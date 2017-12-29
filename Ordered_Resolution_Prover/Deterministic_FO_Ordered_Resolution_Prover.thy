@@ -739,7 +739,7 @@ proof
         b_in: "Pos B \<in> set C" and
         \<sigma>_mgu: "Some \<sigma> = mgu {{A, B}}" and
         max: "maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}" and
-        e_disj: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}
+        e_disj: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># mset C - {#Pos B#}#}
            \<and> E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D
          \<or> E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) (A \<cdot>a \<sigma>) (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
         using e_in[unfolded resolve_on.simps[of C A D] Let_def, simplified] by metis
@@ -748,10 +748,10 @@ proof
         using e_disj
       proof (elim disjE conjE)
         assume
-          smax: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}" and
+          smax: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># mset C - {#Pos B#}#}" and
           e: "E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D"
 
-        have c_eq_bbc: "mset C = add_mset (Pos B) (remove1_mset (Pos B) (mset C))"
+        have c_eq_bbc: "mset C = add_mset (Pos B) (mset C - {#Pos B#})"
           using b_in by simp
 
         have elig: "eligible S \<sigma> [A] (add_mset (Neg A) (mset D))"
@@ -760,7 +760,7 @@ proof
           apply (auto simp: maximal_wrt_def subst_cls_def less_atm_irrefl)
           done
 
-        have smax': "strictly_maximal_wrt (A \<cdot>a \<sigma>) (remove1_mset (Pos B) (mset C) \<cdot> \<sigma>)"
+        have smax': "strictly_maximal_wrt (A \<cdot>a \<sigma>) ((mset C - {#Pos B#}) \<cdot> \<sigma>)"
           using smax by (auto simp: subst_cls_def)
 
         have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#}] [A] \<sigma> (mset E)"
@@ -782,8 +782,12 @@ proof
              ({#Neg (A \<cdot>a \<sigma>)#} + mset (map (\<lambda>M. M \<cdot>l \<sigma>) D)) [AA] [A \<cdot>a \<sigma>] \<sigma>' (mset E)"
           using ih[OF l e_in] by blast
 
-        have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#} + AA] [A] (\<sigma> \<odot> \<sigma>') (mset E)"
+        define \<sigma>'' :: 's where
+          "\<sigma>'' = undefined" (* FIXME *)
+           (* same as \<sigma> \<odot> \<sigma>' up to renaming *)
 
+        have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#} + AA] [A] \<sigma>'' (mset E)"
+          using ord_resolve[of "[mset C]" 1 "[mset (remove1 (Pos B) C)]" "[{#B#} + AA]" "[A]" \<sigma>'' S "mset D"]
 
           sorry
         then show ?thesis
