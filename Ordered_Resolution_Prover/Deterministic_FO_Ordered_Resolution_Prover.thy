@@ -174,10 +174,8 @@ fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Righta
                let
                  C' = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 L C)
                in
-                 if strictly_maximal_wrt A' (mset C') then
-                   [C' @ D']
-                 else
-                   resolve_on C' A' D'
+                 (if strictly_maximal_wrt A' (mset C') then [C' @ D'] else [])
+                 @ resolve_on C' A' D'
              else
                []))) C)"
 
@@ -743,17 +741,15 @@ proof
         max: "maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}" and
         e_disj: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}
            \<and> E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D
-         \<or> \<not> strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}
-           \<and> E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>)
-             (remove1 (Pos B) C)) (A \<cdot>a \<sigma>) (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
-        using e_in[unfolded resolve_on.simps[of C A D]]
-        by (simp add: Let_def if_distrib[of "\<lambda>A. E \<in> set A"] if_bool_eq_disj) metis
+         \<or> E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) (A \<cdot>a \<sigma>) (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
+        using e_in[unfolded resolve_on.simps[of C A D] Let_def, simplified] by metis
 
       show ?case
-      proof (cases "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}")
-        case smax: True
-        then have e: "E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D"
-          using e_disj by sat
+        using e_disj
+      proof (elim disjE conjE)
+        assume
+          smax: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}" and
+          e: "E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D"
 
         have c_eq_bbc: "mset C = add_mset (Pos B) (remove1_mset (Pos B) (mset C))"
           using b_in by simp
@@ -775,10 +771,9 @@ proof
         then show ?thesis
           by blast
       next
-        case nsmax: False
-        then have e_in:
+        assume e_in:
           "E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) (A \<cdot>a \<sigma>) (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
-          sorry
+
         have l: "l = length (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C))"
           using suc_l b_in by (auto simp: length_remove1)
 
@@ -786,7 +781,10 @@ proof
           "ord_resolve S [mset (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C))]
              ({#Neg (A \<cdot>a \<sigma>)#} + mset (map (\<lambda>M. M \<cdot>l \<sigma>) D)) [AA] [A \<cdot>a \<sigma>] \<sigma>' (mset E)"
           using ih[OF l e_in] by blast
+
         have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#} + AA] [A] (\<sigma> \<odot> \<sigma>') (mset E)"
+
+
           sorry
         then show ?thesis
           by blast
