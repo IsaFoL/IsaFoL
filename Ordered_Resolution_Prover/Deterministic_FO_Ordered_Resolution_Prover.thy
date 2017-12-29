@@ -765,17 +765,14 @@ proof
         have l: "l = length (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C))"
           using suc_l b_in by (auto simp: length_remove1)
 
-        show ?thesis
-          using ih[OF l e_in]
-
+        obtain AA \<sigma>' where
+          "ord_resolve S [mset (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C))]
+             ({#Neg (A \<cdot>a \<sigma>)#} + mset (map (\<lambda>M. M \<cdot>l \<sigma>) D)) [AA] [A \<cdot>a \<sigma>] \<sigma>' (mset E)"
+          using ih[OF l e_in] by blast
+        have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#} + AA] [A] (\<sigma> \<odot> \<sigma>') (mset E)"
           sorry
-      qed
-
-      next
-        assume "E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) (A \<cdot>a \<sigma>)
-          (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
-        show ?thesis
-          sorry
+        then show ?thesis
+          by blast
       qed
     qed (simp add: resolve_on.simps)
   qed

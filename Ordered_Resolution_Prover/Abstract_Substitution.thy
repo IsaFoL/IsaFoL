@@ -93,8 +93,10 @@ definition
 where
   "AAA \<cdot>aml \<sigma> = map (\<lambda>AA. AA \<cdot>am \<sigma>) AAA"
 
-definition subst_atm_mset_lists :: "'a multiset list \<Rightarrow> 's list \<Rightarrow> 'a multiset list" (infixl "\<cdot>\<cdot>aml" 67) where
-  "AAs \<cdot>\<cdot>aml \<sigma>s == map2 (op \<cdot>am) AAs \<sigma>s"
+definition
+  subst_atm_mset_lists :: "'a multiset list \<Rightarrow> 's list \<Rightarrow> 'a multiset list" (infixl "\<cdot>\<cdot>aml" 67)
+where
+  "AAs \<cdot>\<cdot>aml \<sigma>s = map2 (op \<cdot>am) AAs \<sigma>s"
 
 definition subst_lit :: "'a literal \<Rightarrow> 's \<Rightarrow> 'a literal" (infixl "\<cdot>l" 67) where
   "L \<cdot>l \<sigma> = map_literal (\<lambda>A. A \<cdot>a \<sigma>) L"
@@ -118,10 +120,10 @@ definition subst_cls_mset :: "'a clause multiset \<Rightarrow> 's \<Rightarrow> 
   "CC \<cdot>cm \<sigma> = image_mset (\<lambda>A. A \<cdot> \<sigma>) CC"
 
 lemma subst_cls_add_mset[simp]: "add_mset L C \<cdot> \<sigma> = add_mset (L \<cdot>l \<sigma>) (C \<cdot> \<sigma>)"
-  unfolding subst_cls_def by auto
+  unfolding subst_cls_def by simp
 
 lemma subst_cls_mset_add_mset[simp]: "add_mset C CC \<cdot>cm \<sigma> = add_mset (C \<cdot> \<sigma>) (CC \<cdot>cm \<sigma>)"
-  unfolding subst_cls_mset_def by auto
+  unfolding subst_cls_mset_def by simp
 
 definition generalizes_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
   "generalizes_atm A B \<longleftrightarrow> (\<exists>\<sigma>. A \<cdot>a \<sigma> = B)"
