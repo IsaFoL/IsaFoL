@@ -30,8 +30,7 @@ lemma Ball2_split_def: \<open>(\<forall>(x, y) \<in> A. P x y) \<longleftrightar
 
 method find_cases_and_split =
   (match conclusion in \<open>?P (case x of (_, _) \<Rightarrow> _)\<close> for x \<Rightarrow> \<open>cases x\<close>)
-lemma \<open>f x y = uncurry f (x, y)\<close>
-  by (auto simp: uncurry_def)
+
 method curry_goal =
   (match conclusion in \<open>f x y\<close> for f x y \<Rightarrow> \<open>unfold do_uncurry\<close>)
 lemma uncurry_fst_snd: \<open>uncurry f x = f (fst x) (snd x)\<close>
@@ -224,7 +223,6 @@ notation prod_assn (infixr "*a" 90)
 
 subsection \<open>More Theorems for Refinement\<close>
 
-
 lemma SPEC_add_information: \<open>P \<Longrightarrow> A \<le> SPEC Q \<Longrightarrow> A \<le> SPEC(\<lambda>x. Q x \<and> P)\<close>
   by auto
 
@@ -236,7 +234,6 @@ lemma case_prod_bind:
   shows \<open>(case x of (x1, x2) \<Rightarrow> f x1 x2) \<le> \<Down> R I\<close>
   using assms by (cases x) auto
 
-
 lemma (in transfer) transfer_bool[refine_transfer]:
   assumes "\<alpha> fa \<le> Fa"
   assumes "\<alpha> fb \<le> Fb"
@@ -247,7 +244,7 @@ lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
   unfolding hrp_comp_def by auto
 
 lemma hn_ctxt_prod_assn_prod:
-  \<open>hn_ctxt (prod_assn R S) (a, b) (a', b') = hn_ctxt R a a' * hn_ctxt S b b'\<close>
+  \<open>hn_ctxt (R *a S) (a, b) (a', b') = hn_ctxt R a a' * hn_ctxt S b b'\<close>
   unfolding hn_ctxt_def
   by auto
 
@@ -261,8 +258,32 @@ lemma list_assn_map_list_assn: \<open>list_assn g (map f x) xi = list_assn (\<la
 lemma RES_RETURN_RES: \<open>RES \<Phi> \<bind> (\<lambda>T. RETURN (f T)) = RES (f ` \<Phi>)\<close>
   by (simp add: bind_RES_RETURN_eq setcompr_eq_image)
 
+lemma RES_RES_RETURN_RES: \<open>RES A \<bind> (\<lambda>T. RES (f T)) = RES (\<Union>(f ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps)
+
+lemma RES_RES2_RETURN_RES: \<open>RES A \<bind> (\<lambda>(T, T'). RES (f T T')) = RES (\<Union>(uncurry f ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
+
+lemma RES_RES3_RETURN_RES:
+   \<open>RES A \<bind> (\<lambda>(T, T', T''). RES (f T T' T'')) = RES (\<Union>((\<lambda>(a, b, c). f a b c) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
+
+lemma RES_RETURN_RES3:
+   \<open>SPEC \<Phi> \<bind> (\<lambda>(T, T', T''). RETURN (f T T' T'')) = RES ((\<lambda>(a, b, c). f a b c) ` {T. \<Phi> T})\<close>
+  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>\<lambda>(a, b, c). f a b c\<close>]
+  apply (subst (asm)(2) split_prod_bound)
+  apply (subst (asm)(3) split_prod_bound)
+  by auto
+
 lemma bind_refine_res: \<open>(\<And>x. x \<in> \<Phi> \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> RES \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
   by (auto simp add: pw_le_iff refine_pw_simps)
+
+text \<open>
+  This theorem adds the invariant at the beginning of next iteration to the current invariant, 
+  i.e., the invariant is added as a post-condition on the current iteration.
+  
+  This is useful to reduce duplication in theorems while refining.
+\<close>
 
 lemma RECT_WHILEI_body_add_post_condition:
     \<open>REC\<^sub>T (WHILEI_body op \<bind> RETURN I' b' f) x' =
@@ -314,7 +335,7 @@ proof -
     finally have unfold1: \<open>flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f) x' =
          ?f' (flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f)) x'\<close>
       .
-    have [intro!]: \<open>(\<And>x. g x \<le>(h:: 'a \<Rightarrow> 'a nres) x) \<Longrightarrow> fx \<bind> g \<le> fx \<bind> h\<close> for g h fx fy
+    have [intro!]: \<open>(\<And>x. g x \<le> (h:: 'a \<Rightarrow> 'a nres) x) \<Longrightarrow> fx \<bind> g \<le> fx \<bind> h\<close> for g h fx fy
       by (refine_rcg bind_refine'[where R = \<open>Id\<close>, simplified]) fast
     show ?case
       apply (subst unfold1)
@@ -378,7 +399,10 @@ proof -
     using le[of x'] ge[of x'] by (auto simp: WHILEI_body_trimono)
 qed
 
-lemma WHILEIT_add_post_condition: \<open>(WHILEIT I' b' f' x') = (WHILEIT (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f' x' = FAIL \<or> f' x' \<le> SPEC I')) b' f' x')\<close>
+lemma WHILEIT_add_post_condition:
+ \<open>(WHILEIT I' b' f' x') =
+  (WHILEIT (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f' x' = FAIL \<or> f' x' \<le> SPEC I'))
+    b' f' x')\<close>
   unfolding WHILEIT_def
   apply (subst RECT_WHILEI_body_add_post_condition)
   ..
@@ -387,9 +411,9 @@ lemma WHILEIT_rule_stronger_inv:
   assumes
     \<open>wf R\<close> and
     \<open>I s\<close> and
-    \<open>I' s\<close>
+    \<open>I' s\<close> and
     \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> b s \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. I s' \<and>  I' s' \<and> (s', s) \<in> R)\<close> and
-   \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> \<not> b s \<Longrightarrow> \<Phi> s\<close>
+    \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> \<not> b s \<Longrightarrow> \<Phi> s\<close>
  shows \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> SPEC \<Phi>\<close>
 proof -
   have \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s\<close>
@@ -426,7 +450,8 @@ qed
 
 text \<open>
   This theorem is useful to debug situation where sepref is not able to synthesize a program (with
-  the ``[[unify\_trace\_failure]]'' for rule and the \<^text>\<open>to_hnr\<close>).
+  the ``[[unify\_trace\_failure]]'' to trace what fails in rule rule and the \<^text>\<open>to_hnr\<close> to
+  ensure the theorem has the correct form).
 \<close>
 lemma Pair_hnr: \<open>(uncurry (return oo (\<lambda>a b. Pair a b)), uncurry (RETURN oo (\<lambda>a b. Pair a b))) \<in>
     A\<^sup>d *\<^sub>a B\<^sup>d \<rightarrow>\<^sub>a prod_assn A B\<close>
@@ -564,122 +589,6 @@ lemma list_mset_assn_empty_nil: \<open>list_mset_assn R {#} [] = emp\<close>
 
 lemma no_fail_spec_le_RETURN_itself: \<open>nofail f \<Longrightarrow> f \<le> SPEC(\<lambda>x. RETURN x \<le> f)\<close>
   by (metis RES_rule nres_order_simps(21) the_RES_inv)
-
-text \<open>
-  This theorems links two forms:
-  \<^item> the form where access is done via \<^term>\<open>nth\<close>. This form is useful for refinement towards
-  arrays.
-  \<^item> the form where access is done via recursion over lists. This form is useful to prove properties
-  via induction: this is the target of a first refinement.
-\<close>
-lemma WHILE\<^sub>T_nth_WHILE\<^sub>T_list:
-  \<open>WHILE\<^sub>T\<^bsup>\<lambda>(brk, i). P (nths xs {i..<length xs}) \<and> i \<le> length xs\<^esup>
-     (\<lambda>(brk, i). \<not>brk \<and> i < length xs)
-     (\<lambda>(brk, i).
-        do {
-          ASSERT (i < length xs);
-          RETURN (f (xs!i), i+1)
-        })
-     (False, 0)
-   \<le> \<Down> {((b', i), (b, ys)). b' = b \<and> ys = nths xs {i..<length xs} \<and> i \<le> length xs}
-    (WHILE\<^sub>T\<^bsup>\<lambda>(brk, ys). P ys\<^esup>
-      (\<lambda>(brk, ys). \<not>brk \<and> ys \<noteq> [])
-      (\<lambda>(brk, ys). RETURN (f (hd ys), tl ys))
-      (False, xs))
-     \<close>
-  apply (refine_vcg)
-  subgoal by (simp add: atLeast0LessThan)
-  subgoal by auto
-  subgoal by auto
-  subgoal by (auto simp: nths_empty_iff)
-  subgoal by (auto simp: nths_upt_Suc)
-  subgoal by (auto simp: nths_upt_Suc)
-  done
-
-lemma op_list_contains:
-  \<open>(WHILE\<^sub>T\<^bsup>\<lambda>(brk, ys). True\<^esup>
-      (\<lambda>(brk, ys). \<not>brk \<and> ys \<noteq> [])
-      (\<lambda>(brk, ys). RETURN (l = hd ys, tl ys))
-      (False, xs))
-   \<le> \<Down> (Collect (case_prod (\<lambda>(b', ys). op = b'))) (RETURN (l \<in> set xs))\<close>
-  (is \<open>WHILE\<^sub>T\<^bsup>?pre\<^esup> ?stop ?body ?init \<le> \<Down> ?inv _\<close>)
-proof -
-  define inv pre where \<open>inv \<equiv> ?inv\<close> and \<open>pre = ?pre\<close>
-
-  have [simp]: \<open>pre (False, a # xs)\<close> for a xs
-    unfolding pre_def by auto
-  show ?thesis
-    unfolding inv_def[symmetric] pre_def[symmetric]
-    apply (induction xs)
-    subgoal by (subst WHILEIT_unfold) (simp add: inv_def pre_def)
-    subgoal premises IH for a xs
-      apply (cases \<open>l = a\<close>)
-      subgoal by (solves \<open>simp add: WHILEIT_unfold inv_def pre_def\<close>)
-      subgoal apply (subst WHILEIT_unfold)
-        using IH[unfolded pre_def[symmetric] inv_def[symmetric]]
-        by simp
-      done
-    done
-qed
-
-definition list_contains_WHILE where
-  \<open>list_contains_WHILE l xs =
-     WHILE\<^sub>T\<^bsup>\<lambda>(brk, i). True \<and> i \<le> length xs\<^esup>
-       (\<lambda>(brk, i). \<not> brk \<and> i < length xs)
-       (\<lambda>(brk, i).
-         ASSERT (i < length xs) \<bind>
-         (\<lambda>_. RETURN (l = xs ! i, i + 1)))
-       (False, 0)\<close>
-
-lemma \<open>list_contains_WHILE l xs \<le>
-      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = nths xs {i..<length xs} \<and> i \<le> length xs} O
-          Collect (case_prod (\<lambda>(b', ys). op = b')))
-        (RETURN (l \<in> set xs))\<close>
-  (is \<open>_ \<le> \<Down> ?A _\<close>)
-proof -
-  show \<open>list_contains_WHILE l xs \<le>
-      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = nths xs {i..<length xs} \<and> i \<le> length xs} O
-          Collect (case_prod (\<lambda>(b', ys). op = b')))
-        (RETURN (l \<in> set xs))\<close>
-    (is \<open>_ \<le> \<Down> ?B _\<close>)
-    unfolding list_contains_WHILE_def op_list_contains_def
-    using ref_two_step[OF WHILE\<^sub>T_nth_WHILE\<^sub>T_list[of \<open>\<lambda>_. True\<close> xs \<open>op = l\<close>]
-        op_list_contains, unfolded conc_fun_chain]
-    by simp
-qed
-
-sepref_thm list_contains_WHILE
-  is \<open>uncurry (\<lambda>(l::nat) xs. do{ b \<leftarrow> list_contains_WHILE l xs; RETURN (fst b)})\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a (array_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding list_contains_WHILE_def
-  by sepref
-
-lemma union_mset_list_Nil[simp]: \<open>union_mset_list [] bi = bi\<close>
-  by (auto simp: union_mset_list_def)
-declare union_mset_list_def[code]
-
-text \<open>A more general theorem is \<^emph>\<open>very\<close> hard to write (if it is possible at all).\<close>
-lemma union_mset_list_op_union: \<open>(uncurry (RETURN oo union_mset_list), uncurry (RETURN oo op \<union>#)) \<in>
-  (list_mset_rel O \<langle>Id\<rangle>mset_rel) \<times>\<^sub>r (list_mset_rel O \<langle>Id\<rangle>mset_rel) \<rightarrow>\<^sub>f
-    \<langle>list_mset_rel O \<langle>Id\<rangle>mset_rel\<rangle>nres_rel\<close>
-  by (auto simp: list_mset_rel_def fref_def
-      br_def mset_rel_def Collect_eq_comp rel_mset_def p2rel_def nres_rel_def
-      rel2p_def[abs_def] union_mset_list[symmetric] list.rel_eq ex_mset)
-
-lemma union_mset_list_union_mset_list: \<open>(uncurry (return oo union_mset_list), uncurry (RETURN oo union_mset_list)) \<in>
-   id_assn\<^sup>k *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
-  by sepref_to_hoare sep_auto
-
-lemma union_mset_list_op_union_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return \<circ>\<circ> union_mset_list), uncurry (RETURN \<circ>\<circ> op \<union>#))
-  \<in> (list_mset_assn id_assn)\<^sup>k *\<^sub>a (list_mset_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a list_mset_assn id_assn\<close>
-proof -
-  have I: \<open>\<langle>Id\<rangle>mset_rel = \<langle>the_pure id_assn\<rangle>mset_rel\<close>
-    by auto
-  show ?thesis
-    using union_mset_list_union_mset_list[FCOMP union_mset_list_op_union,
-        unfolded list_mset_assn_def[symmetric] I] .
-qed
 
 lemma refine_add_invariants':
   assumes
@@ -830,7 +739,7 @@ lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa
   by (subst ex_assn_def, subst (1) ex_assn_def, auto)+
 
 lemma snd_hnr_pure:
-   \<open>CONSTRAINT is_pure B \<Longrightarrow> (return \<circ> snd, RETURN \<circ> snd) \<in> (prod_assn A B)\<^sup>k \<rightarrow>\<^sub>a B\<close>
+   \<open>CONSTRAINT is_pure B \<Longrightarrow> (return \<circ> snd, RETURN \<circ> snd) \<in> A\<^sup>d *\<^sub>a B\<^sup>k \<rightarrow>\<^sub>a B\<close>
   apply sepref_to_hoare
   apply sep_auto
   by (metis SLN_def SLN_left assn_times_comm ent_pure_pre_iff_sng ent_refl ent_star_mono
@@ -865,7 +774,7 @@ definition emptied_arl :: \<open>'a array_list \<Rightarrow> 'a array_list\<clos
 \<open>emptied_arl = (\<lambda>(a, n). (a, 0))\<close>
 
 lemma emptied_arl_refine[sepref_fr_rules]:
-  shows \<open>(return o emptied_arl, RETURN o emptied_list) \<in> (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a arl_assn R\<close>
+  \<open>(return o emptied_arl, RETURN o emptied_list) \<in> (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a arl_assn R\<close>
   unfolding emptied_arl_def emptied_list_def
   by sepref_to_hoare (sep_auto simp: arl_assn_def hr_comp_def is_array_list_def)
 
@@ -944,24 +853,6 @@ proof -
     using hfref_imp2[of S S' P R'] assms(3) by auto
 qed
 
-lemma RES_RES_RETURN_RES: \<open>RES A \<bind> (\<lambda>T. RES (f T)) = RES (\<Union>(f ` A))\<close>
-  by (auto simp:  pw_eq_iff refine_pw_simps)
-
-lemma RES_RES2_RETURN_RES: \<open>RES A \<bind> (\<lambda>(T, T'). RES (f T T')) = RES (\<Union>(uncurry f ` A))\<close>
-  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
-
-lemma RES_RETURN_RES3:
-   \<open>SPEC \<Phi> \<bind> (\<lambda>(T, T', T''). RETURN (f T T' T'')) = RES ((\<lambda>(a, b, c). f a b c) ` {T. \<Phi> T})\<close>
-  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>\<lambda>(a, b, c). f a b c\<close>]
-  apply (subst (asm)(2) split_prod_bound)
-  apply (subst (asm)(3) split_prod_bound)
-  by auto
-
-lemma RES_RES3_RETURN_RES:
-   \<open>RES A \<bind> (\<lambda>(T, T', T''). RES (f T T' T'')) = RES (\<Union>((\<lambda>(a, b, c). f a b c) ` A))\<close>
-  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
-
-
 subsection \<open>Sorting\<close>
 
 text \<open>Remark that we do not \<^emph>\<open>prove\<close> that the sorting in correct, since we do not care about the
@@ -1023,7 +914,7 @@ lemma insert_sort_inner:
 lemma insert_sort_reorder_remove: \<open>(insert_sort f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
 proof -
   have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close>
-    for ba aa b
+    for ba aa
     using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified, rule_format]
     by fast
   show ?thesis
