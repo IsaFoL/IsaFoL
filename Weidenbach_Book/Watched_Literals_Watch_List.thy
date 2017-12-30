@@ -1067,7 +1067,7 @@ definition skip_and_resolve_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_
                 do {RETURN (True, S)}
           }
         )
-        (get_conflict_wl S\<^sub>0 = Some {#}, S\<^sub>0);
+        (False, S\<^sub>0);
       RETURN S
     }
   \<close>
@@ -1083,7 +1083,8 @@ lemma skip_and_resolve_loop_wl_spec:
           twl_stgy_invs (twl_st_of_wl None T') \<and>
           get_conflict_wl T' \<noteq> None \<and>
           literals_to_update_wl T' = {#} \<and>
-          twl_list_invs (st_l_of_wl None T')} \<rightarrow>
+          twl_list_invs (st_l_of_wl None T') \<and>
+          0 < count_decided (get_trail_wl T')} \<rightarrow>
       \<langle>{(T', T).
           st_l_of_wl None T' = T \<and>
           twl_struct_invs (twl_st_of_wl None T') \<and>
@@ -1096,7 +1097,7 @@ lemma skip_and_resolve_loop_wl_spec:
           correct_watching T'}\<rangle>nres_rel\<close>
   (is \<open>?s \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
 proof -
-  have get_conflict_wl: \<open>((get_conflict_wl S' = Some {#}, S'), get_conflict_l S = Some {#}, S)
+  have get_conflict_wl: \<open>((False, S'), False, S)
     \<in> Id \<times>\<^sub>r {(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<close>
     if \<open>S = st_l_of_wl None S'\<close> and \<open>correct_watching S'\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
@@ -1125,6 +1126,10 @@ proof -
     unfolding update_confl_tl_wl_def update_confl_tl_l_def resolve_cls_wl'_def resolve_cls_l'_def
     by (cases T; cases T')
      (auto simp: Let_def)
+  have [simp]:
+    \<open>get_trail_l (st_l_of_wl None S) = get_trail_wl S\<close>
+    \<open>get_conflict_l (st_l_of_wl None S) = get_conflict_wl S\<close> for S
+    by (cases S; auto)+
 
   have H: \<open>?s \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
     unfolding skip_and_resolve_loop_wl_def skip_and_resolve_loop_l_def
@@ -1139,6 +1144,7 @@ proof -
     subgoal by (auto simp: get_conflict_l_st_l_of_wl get_trail_l_st_l_of_wl)
     subgoal by (auto simp: get_trail_l_st_l_of_wl )
     subgoal by (auto simp: get_conflict_l_st_l_of_wl get_trail_l_st_l_of_wl)
+    subgoal by auto
     subgoal by (rule update_confl_tl_wl) assumption+
     subgoal by auto
     subgoal by (auto simp: correct_watching.simps clause_to_update_def)
@@ -1153,7 +1159,8 @@ proof -
                  twl_struct_invs (twl_st_of None S) \<and>
                  twl_stgy_invs (twl_st_of None S) \<and> twl_list_invs S \<and>
                  clauses_to_update_l S = {#} \<and>
-                 literals_to_update_l S = {#} \<and> get_conflict (twl_st_of None S) \<noteq> None}\<close>
+                 literals_to_update_l S = {#} \<and> get_conflict (twl_st_of None S) \<noteq> None \<and>
+                 0 < count_decided (get_trail_l S)}\<close>
       using A by (cases x, cases y) auto
     have nf: \<open>nofail (skip_and_resolve_loop (twl_st_of None y))\<close>
       apply (rule SPEC_nofail)
@@ -1617,11 +1624,14 @@ definition cdcl_twl_o_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> (bool \<times
         if get_conflict_wl S = None
         then decide_wl_or_skip S
         else do {
-          T \<leftarrow> skip_and_resolve_loop_wl S;
-          ASSERT(get_conflict_wl T \<noteq> None);
-          if get_conflict_wl T \<noteq> Some {#}
-          then do {U \<leftarrow> backtrack_wl T; RETURN (False, U)}
-          else do {RETURN (True, T)}
+          if count_decided (get_trail_wl S) > 0
+          then do {
+            T \<leftarrow> skip_and_resolve_loop_wl S;
+            ASSERT(get_conflict_wl T \<noteq> None \<and> get_conflict_wl T \<noteq> Some {#});
+            U \<leftarrow> backtrack_wl T; 
+            RETURN (False, U)
+          }
+          else do {RETURN (True, S)}
         }
       }
     }
@@ -1641,8 +1651,7 @@ lemma cdcl_twl_o_prog_wl_spec:
      T' = st_l_of_wl None T \<and>
      brk = brk' \<and>
      twl_list_invs (st_l_of_wl None T) \<and>
-     (get_conflict_wl T \<noteq> None \<longrightarrow>
-      get_conflict_wl T = Some {#}) \<and>
+     (get_conflict_wl T \<noteq> None \<longrightarrow> count_decided (get_trail_wl T) = 0) \<and>
      twl_struct_invs (twl_st_of_wl None T) \<and>
      twl_stgy_invs (twl_st_of_wl None T) \<and>
      correct_watching T}\<rangle>nres_rel\<close>
@@ -1659,7 +1668,8 @@ proof -
     st_l_of_wl None (decide_lit_wl L S)\<close> for L S
     by (cases S; auto simp: decide_lit_wl_def decide_lit_l_def)
   have option_id: \<open>x = x' \<Longrightarrow> (x,x') \<in> \<langle>Id\<rangle>option_rel\<close> for x x' by auto
-
+  have [simp]: \<open>get_trail_l (st_l_of_wl None S) = get_trail_wl S\<close> for S
+    by (cases S) auto
   have cdcl_o: \<open>?o \<in> ?A \<rightarrow>
    \<langle>{((brk::bool, T::'v twl_st_wl), brk'::bool, T'::'v twl_st_l).
      T' = st_l_of_wl None T \<and>
@@ -1680,6 +1690,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by (auto simp: get_conflict_l_st_l_of_wl)
     subgoal by (auto simp: get_conflict_l_st_l_of_wl)
     subgoal by auto
     subgoal by auto
@@ -1720,17 +1731,18 @@ qed
 
 subsubsection \<open>Full Strategy\<close>
 
+abbreviation cdcl_twl_stgy_prog_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> bool \<times> 'v twl_st_wl  \<Rightarrow> bool\<close> where
+  \<open>cdcl_twl_stgy_prog_wl_inv S\<^sub>0 \<equiv> \<lambda>(brk, T). twl_struct_invs (twl_st_of_wl None T) \<and>
+        twl_stgy_invs (twl_st_of_wl None T) \<and>
+        (brk \<longrightarrow> final_twl_state (twl_st_of_wl None T)) \<and>
+        cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of_wl None S\<^sub>0) (twl_st_of_wl None T) \<and>
+        (\<not>brk \<longrightarrow> get_conflict_wl T = None)\<close>
+
 definition cdcl_twl_stgy_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>cdcl_twl_stgy_prog_wl S\<^sub>0 =
   do {
     do {
-      (brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T). twl_struct_invs (twl_st_of_wl None T) \<and>
-          twl_stgy_invs (twl_st_of_wl None T) \<and>
-          (brk \<longrightarrow> no_step cdcl_twl_stgy (twl_st_of_wl None T)) \<and>
-          cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of_wl None S\<^sub>0) (twl_st_of_wl None T) \<and>
-          (\<not>brk \<longrightarrow> get_conflict_wl T = None) \<and>
-          twl_list_invs (st_l_of_wl None T) \<and>
-          correct_watching T\<^esup>
+      (brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_prog_wl_inv S\<^sub>0\<^esup>
         (\<lambda>(brk, _). \<not>brk)
         (\<lambda>(brk, S).
         do {
@@ -1742,6 +1754,7 @@ definition cdcl_twl_stgy_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_
     }
   }
   \<close>
+
 
 theorem cdcl_twl_stgy_prog_wl_spec:
   \<open>(cdcl_twl_stgy_prog_wl, cdcl_twl_stgy_prog_l) \<in> {(S::'v twl_st_wl, S').
@@ -1766,11 +1779,9 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal for S' S brk'T' brkT brk' T' SS' by (cases SS') auto
+    subgoal for S' S brk'T' brkT brk' T' by auto
     subgoal by auto
     subgoal by (auto simp: get_conflict_l_st_l_of_wl)
-    subgoal by auto
-    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by (rule cdcl_twl_o_prog_wl_spec["to_\<Down>", THEN order_trans])
@@ -1779,7 +1790,6 @@ proof -
     done
 qed
 
-
 lemma cdcl_twl_stgy_prog_wl_spec_final:
   assumes \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
     \<open>get_conflict_wl S = None\<close> and \<open>twl_list_invs (st_l_of_wl None S)\<close> and
@@ -1787,7 +1797,8 @@ lemma cdcl_twl_stgy_prog_wl_spec_final:
   shows
     \<open>cdcl_twl_stgy_prog_wl S \<le>
       \<Down> {(S, S'). S' = st_l_of_wl None S}
-        (SPEC(\<lambda>T. full cdcl_twl_stgy (twl_st_of_wl None S) (twl_st_of None T)))\<close>
+        (SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of_wl None S) (twl_st_of None T) \<and>
+            final_twl_state (twl_st_of None T)))\<close>
   apply (rule order_trans)
    apply (rule cdcl_twl_stgy_prog_wl_spec["to_\<Down>", of _ \<open>st_l_of_wl None S\<close>])
   subgoal using assms by auto
@@ -1802,32 +1813,5 @@ lemma cdcl_twl_stgy_prog_wl_spec_final:
   subgoal using assms by auto
   subgoal by auto
   done
-
-lemma cdcl_twl_stgy_prog_wl_spec_final2_Down:
-  assumes \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
-    \<open>get_conflict_wl S = None\<close> and \<open>twl_list_invs (st_l_of_wl None S)\<close> and
-    \<open>correct_watching S\<close>
-  shows
-    \<open>cdcl_twl_stgy_prog_wl S \<le>
-      \<Down> {(S, S'). S' = st_l_of_wl None S}
-        (SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of (twl_st_of_wl None S))
-          (state\<^sub>W_of (twl_st_of None T))))\<close>
-  apply (rule ref_two_step)
-   apply (rule cdcl_twl_stgy_prog_wl_spec_final[OF assms])
-  apply (rule weaken_SPEC)
-   apply (rule order.refl)
-  using full_cdcl_twl_stgy_cdcl\<^sub>W_stgy[OF _ assms(1)] by blast
-
-
-theorem cdcl_twl_stgy_prog_wl_spec_final2:
-  assumes \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
-    \<open>get_conflict_wl S = None\<close> and \<open>twl_list_invs (st_l_of_wl None S)\<close> and
-    \<open>correct_watching S\<close>
-  shows
-    \<open>cdcl_twl_stgy_prog_wl S \<le>
-       SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of (twl_st_of_wl None S))
-          (state\<^sub>W_of (twl_st_of_wl None T)))\<close>
-  using cdcl_twl_stgy_prog_wl_spec_final2_Down[OF assms] unfolding conc_fun_SPEC
-  by auto
 
 end
