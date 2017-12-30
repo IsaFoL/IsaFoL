@@ -22,6 +22,10 @@ lemma apfst_fst_snd: "apfst f x = (f (fst x), snd x)"
 lemma apfst_comp_rpair_const: "apfst f \<circ> (\<lambda>x. (x, y)) = (\<lambda>x. (x, y)) \<circ> f"
   by (simp add: comp_def)
 
+(* TODO: Move to Isabelle's List.thy *)
+lemma length_remove1_less[termination_simp]: "x \<in> set xs \<Longrightarrow> length (remove1 x xs) < length xs"
+  by (induct xs) auto
+
 lemma map_filter_neq_eq_filter_map:
   "map f (filter (\<lambda>y. f x \<noteq> f y) xs) = filter (\<lambda>z. f x \<noteq> z) (map f xs)"
   by (induct xs) auto
@@ -72,7 +76,7 @@ type_synonym 'a dstate = "'a dclause list \<times> 'a dclause list \<times> 'a d
 
 locale deterministic_FO_resolution_prover =
   weighted_FO_resolution_prover_with_size_generation_factors S subst_atm id_subst comp_subst
-    renamings_apart atm_of_atms mgu lessatm size_atm generation_factor size_factor
+    renamings_apart atm_of_atms mgu less_atm size_atm generation_factor size_factor
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -81,13 +85,16 @@ locale deterministic_FO_resolution_prover =
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
-    lessatm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
     size_atm :: "'a \<Rightarrow> nat" and
     generation_factor :: nat and
     size_factor :: nat +
   assumes
     S_empty: "S C = {#}"
 begin
+
+lemma less_atm_irrefl: "\<not> less_atm A A"
+  using ex_ground_subst less_atm_ground less_atm_stable unfolding is_ground_subst_def by blast
 
 fun wstate_of_dstate :: "'a dstate \<Rightarrow> 'a wstate" where
   "wstate_of_dstate (N, P, Q, n) =
@@ -150,26 +157,28 @@ fun reduce_all2 :: "'a lclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dc
     in
       (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 D Cs))"
 
-fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
-  "resolve_on C A D =
-   concat (map (\<lambda>L.
-     (case L of
-        Neg _ \<Rightarrow> []
-      | Pos B \<Rightarrow>
-        (case mgu {{B, A}} of
-           None \<Rightarrow> []
-         | Some \<sigma> \<Rightarrow>
-           let
-             D' = map (\<lambda>M. M \<cdot>l \<sigma>) D;
-             A' = A \<cdot>a \<sigma>
-           in
-             if maximal_wrt A' (mset D') then
-               let
-                 C' = map (\<lambda>L. L \<cdot>l \<sigma>) (removeAll L C)
-               in
-                 (if strictly_maximal_wrt A' (mset C') then [C' @ D'] else []) @ resolve_on C' A' D'
-             else
-               []))) C)"
+fun resolve_on :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
+  "resolve_on _ [] _ _ = []"
+| "resolve_on C (L # Ls) As D =
+   (case L of
+      Neg _ \<Rightarrow> []
+    | Pos A \<Rightarrow>
+      (case mgu {insert A (set As)} of
+         None \<Rightarrow> []
+       | Some \<sigma> \<Rightarrow>
+         let
+           D' = map (\<lambda>M. M \<cdot>l \<sigma>) D;
+           A' = A \<cdot>a \<sigma>
+         in
+           if maximal_wrt A' (mset D') then
+             let
+               CLs' = map (\<lambda>L. L \<cdot>l \<sigma>) (C @ Ls)
+             in
+               (if strictly_maximal_wrt A' (mset CLs') then [CLs' @ D'] else [])
+               @ resolve_on (L # C) Ls (A # As) D
+           else
+             []))
+   @ resolve_on (L # C) Ls As D"
 
 declare resolve_on.simps [simp del]
 
@@ -180,7 +189,7 @@ definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lcla
         Pos A \<Rightarrow> []
       | Neg A \<Rightarrow>
         if maximal_wrt A (mset D) then
-          resolve_on C A (remove1 L D)
+          resolve_on [] C [A] (remove1 L D)
         else
           [])) D)"
 
@@ -695,14 +704,14 @@ proof (induct Q' arbitrary: P Q)
   qed
 qed simp
 
-lemma bin_eligible:
+lemma eligible_iff:
   "eligible S \<sigma> As DA \<longleftrightarrow> As = [] \<or> length As = 1 \<and> maximal_wrt (hd As \<cdot>a \<sigma>) (DA \<cdot> \<sigma>)"
   unfolding eligible.simps S_empty by (fastforce dest: hd_conv_nth)
 
 lemma ord_resolve_one_side_prem:
   "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
   apply (erule ord_resolve.cases)
-  unfolding bin_eligible by force
+  unfolding eligible_iff by force
 
 lemma ord_resolve_rename_one_side_prem:
   "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
@@ -715,27 +724,95 @@ abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Righ
   "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AA A \<sigma>. ord_resolve_rename S [C] D [AA] [A] \<sigma> E}"
 
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
-  "mset ` set (resolve_on C A D) =
-   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}"
-(* FIXME: not yet -- express resolve on as the union of all literals of C
-proof (intro order_antisym subsetI, unfold mem_Collect_eq)
-  fix E
-  assume e_in: "E \<in> mset ` set (resolve_on C A D)"
-  show "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
+  "mset ` set (resolve_on [] C [A] D) =
+   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}" (is "?lhs = ?rhs")
+proof
+  show "?lhs \<subseteq> ?rhs"
+  proof clarify
+    fix E
+    assume "E \<in> set (resolve_on [] C [A] D)"
+    then show "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> (mset E)"
+    proof (induct "length C" arbitrary: C A D)
+      case (Suc l)
+      note ih = this(1) and suc_l = this(2) and e_in = this(3)
+
+      obtain B \<sigma> where
+        b_in: "Pos B \<in> set C" and
+        \<sigma>_mgu: "Some \<sigma> = mgu {{A, B}}" and
+        max: "maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}" and
+        e_disj: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># mset C - {#Pos B#}#}
+           \<and> E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D
+         \<or> E \<in> set (resolve_on [] (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) [A \<cdot>a \<sigma>] (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
+        (* using e_in[unfolded resolve_on.simps[of "[]" C "[A]" D] Let_def, simplified] by metis *)
+        sorry
+
+      show ?case
+        using e_disj
+      proof (elim disjE conjE)
+        assume
+          smax: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># mset C - {#Pos B#}#}" and
+          e: "E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D"
+
+        have c_eq_bbc: "mset C = add_mset (Pos B) (mset C - {#Pos B#})"
+          using b_in by simp
+
+        have elig: "eligible S \<sigma> [A] (add_mset (Neg A) (mset D))"
+          unfolding eligible_iff
+          using max
+          apply (auto simp: maximal_wrt_def subst_cls_def less_atm_irrefl)
+          done
+
+        have smax': "strictly_maximal_wrt (A \<cdot>a \<sigma>) ((mset C - {#Pos B#}) \<cdot> \<sigma>)"
+          using smax by (auto simp: subst_cls_def)
+
+        have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#}] [A] \<sigma> (mset E)"
+          unfolding e
+          using ord_resolve[of "[mset C]" 1 "[mset (remove1 (Pos B) C)]" "[{#B#}]" "[A]" \<sigma> S "mset D", simplified, OF c_eq_bbc \<sigma>_mgu elig smax' S_empty]
+          apply (auto simp: subst_cls_def)
+          done
+        then show ?thesis
+          by blast
+      next
+        assume e_in:
+          "E \<in> set (resolve_on [] (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) [A \<cdot>a \<sigma>] (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
+
+        have l: "l = length (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C))"
+          using suc_l b_in by (auto simp: length_remove1)
+
+        obtain AA \<sigma>' where
+          "ord_resolve S [mset (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C))]
+             ({#Neg (A \<cdot>a \<sigma>)#} + mset (map (\<lambda>M. M \<cdot>l \<sigma>) D)) [AA] [A \<cdot>a \<sigma>] \<sigma>' (mset E)"
+          using ih[OF l e_in] by blast
+
+        define \<sigma>'' :: 's where
+          "\<sigma>'' = undefined" (* FIXME *)
+           (* same as \<sigma> \<odot> \<sigma>' up to renaming *)
+
+        have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#} + AA] [A] \<sigma>'' (mset E)"
+          using ord_resolve[of "[mset C]" 1 "[mset (remove1 (Pos B) C)]" "[{#B#} + AA]" "[A]" \<sigma>'' S "mset D"]
+
+          sorry
+        then show ?thesis
+          by blast
+      qed
+    qed (simp add: resolve_on.simps)
+  qed
 next
-  fix E
-  assume e_in: "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
-  show "E \<in> mset ` set (resolve_on C A D)"
+  show "?rhs \<subseteq> ?lhs"
+  proof clarify
+    fix E AA \<sigma>
+    assume "ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
+    show "E \<in> mset ` set (resolve_on [] C [A] D)"
+      sorry
+  qed
 qed
-*)
-  sorry
 
 lemma set_resolve_eq_UNION_set_resolve_on:
   "set (resolve C D) =
    (\<Union>L \<in> set D.
       (case L of
          Pos _ \<Rightarrow> {}
-       | Neg A \<Rightarrow> if maximal_wrt A (mset D) then set (resolve_on C A (remove1 L D)) else {}))"
+       | Neg A \<Rightarrow> if maximal_wrt A (mset D) then set (resolve_on [] C [A] (remove1 L D)) else {}))"
   unfolding resolve_def by (fastforce split: literal.splits if_splits)
 
 lemma resolve_eq_Bin_ord_resolve: "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
@@ -751,7 +828,7 @@ lemma resolve_eq_Bin_ord_resolve: "mset ` set (resolve C D) = Bin_ord_resolve (m
     apply (frule ord_resolve.simps[THEN iffD1])
     apply auto[1]
    apply (drule ord_resolve.simps[THEN iffD1])
-   apply (unfold bin_eligible)
+   apply (unfold eligible_iff)
    apply (clarsimp simp del: subst_cls_add_mset subst_cls_union)
    apply (drule maximal_wrt_subst)
    apply satx
@@ -973,9 +1050,7 @@ proof -
       apply auto[1]
     using ms_ci_in
       apply (simp add: ci_in image_mset_remove1_mset_if)
-    using ci_min
-(*
-     apply (meson in_diffD)
+    prefer 3
     apply (simp only: list.map_comp apfst_comp_rpair_const)
     apply (simp only: list.map_comp[symmetric])
     apply (subst mset_map)
@@ -989,10 +1064,11 @@ proof -
     apply (simp only: map_concat list.map_comp image_comp)
     using resolve_rename_either_way_eq_congls_of_inferences_between[of C "fst ` set Q", symmetric]
     apply (simp only: image_comp comp_def)
-    apply (simp add: image_UN)
-    done
-*)
-    sorry
+      apply (simp add: image_UN)
+     apply auto[1]
+     apply (smt apfst_conv case_prodD case_prodE case_prodI case_prodI2 filter_cong image_mset_filter_swap mset_filter)
+    using ci_min
+    by (meson in_diffD)
 qed
 
 lemma nonfinal_deterministic_RP_step:

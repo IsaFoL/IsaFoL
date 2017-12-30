@@ -8,9 +8,23 @@ begin
 ML \<open>@{term pre_logic_checker.check_valid_formula}\<close>
 term pre_logic_checker.check_valid_formula
 thm pre_logic_checker.check_valid_formula_def
- pre_logic_checker.check_valid_formula_def
-thm IA.check_valid_formula[unfolded IA.valid_def]
+thm IA.check_valid_formula
+thm IA.check_valid_formula[unfolded IA.valid_def IA.assignment_def]
+thm IA.formula.simps
 term IA.check_clause
+thm IA.check_clause_def
+term flatten
+thm flatten.simps
+thm simplex
+term simplex
+thm  pre_logic_checker.check_valid_formula_def
+term pre_logic_checker.remove_Atom
+thm pre_logic_checker.remove_Atom.simps
+term check_allm
+term IA_locale.check_clause
+term IA_locale.unsat_checker
+term IA_locale.unsat_via_simplex
+thm IA_locale.unsat_via_simplex_def
 
 text \<open>Function that should be replaced @{term pre_logic_checker.check_valid_formula}
   @{term pre_logic_checker.check_valid_formula} is called by
@@ -30,14 +44,12 @@ text \<open>Function that should be replaced @{term pre_logic_checker.check_vali
        @{term check_cert} called by
        @{term certify_cert_problem}
 \<close>
-term IA_locale.check_clause
-term IA_locale.unsat_checker
-term IA_locale.unsat_via_simplex
-thm IA_locale.unsat_via_simplex_def
 term check_valid_formula
 thm IA.to_simplex_constraint_def
 term simplex
 thm simplex_def
+
+term \<open>v \<Turnstile>\<^sub>c c\<close>
 lemma \<open>simplex A = None\<close>
   unfolding
     simplex_def
@@ -47,12 +59,22 @@ lemma \<open>simplex A = None\<close>
     Solve_exec_ns'.solve_exec_ns_def[OF Solve_exec_ns'Default.Solve_exec_ns'_axioms]
   unfolding
     (* assert_all_code_def *) AssertAllState.assert_all_def[OF AssertAllStateDefault.AssertAllState_axioms]
-  apply simp
+  AssertAllStateDefault.assert_all_def
+  AssertAllStateDefault.assert_all_state_def
+  AssertAllStateDefault.assert_bound_loop_def
+RhsEqValDefault.assert_bound_def
+  apply (cases \<open>preprocess (to_ns A)\<close>)
+  apply auto
+
+  thm AssertAllStateDefault.assert_all_def
   thm 
 AssertAllState.assert_all_def[OF AssertAllStateDefault.AssertAllState_axioms]
     Solve_exec_ns'.solve_exec_ns_def
     Solve_exec_ns'.solve_exec_ns_def[OF Solve_exec_ns'Default.Solve_exec_ns'_axioms]
-
+  AssertAllStateDefault.assert_all_state_def[unfolded AssertAllStateDefault.assert_bound_loop_def]
+   SolveExec'Default.simplex_sat0
+   AssertAllStateDefault.assert_all_state_def
+   AssertAllStateDefault.assert_bound_loop_def
 ML \<open>
   BNF_FP_Def_Sugar.fp_sugar_of @{context} @{type_name dp_termination_proof}
   |> the 
