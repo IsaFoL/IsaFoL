@@ -22,6 +22,10 @@ lemma apfst_fst_snd: "apfst f x = (f (fst x), snd x)"
 lemma apfst_comp_rpair_const: "apfst f \<circ> (\<lambda>x. (x, y)) = (\<lambda>x. (x, y)) \<circ> f"
   by (simp add: comp_def)
 
+(* TODO: Move to Isabelle's List.thy *)
+lemma length_remove1_less[termination_simp]: "x \<in> set xs \<Longrightarrow> length (remove1 x xs) < length xs"
+  by (induct xs) auto
+
 lemma map_filter_neq_eq_filter_map:
   "map f (filter (\<lambda>y. f x \<noteq> f y) xs) = filter (\<lambda>z. f x \<noteq> z) (map f xs)"
   by (induct xs) auto
@@ -49,6 +53,10 @@ qed
 lemma wf_app: "wf r \<Longrightarrow> wf {(x, y). (f x, f y) \<in> r}"
   unfolding wf_eq_minimal by (intro allI, drule spec[of _ "f ` Q" for Q]) auto
 
+(* FIXME: clone of Lambda_Free_RPOs *)
+lemma wfP_app: "wfP p \<Longrightarrow> wfP (\<lambda>x y. p (f x) (f y))"
+  unfolding wfP_def by (rule wf_app[of "{(x, y). p x y}" f, simplified])
+
 (* TODO: Move to Isabelle. *)
 lemma funpow_fixpoint: "f x = x \<Longrightarrow> (f ^^ n) x = x"
   by (induct n) auto
@@ -68,7 +76,7 @@ type_synonym 'a dstate = "'a dclause list \<times> 'a dclause list \<times> 'a d
 
 locale deterministic_FO_resolution_prover =
   weighted_FO_resolution_prover_with_size_generation_factors S subst_atm id_subst comp_subst
-    renamings_apart atm_of_atms mgu lessatm size_atm generation_factor size_factor
+    renamings_apart atm_of_atms mgu less_atm size_atm generation_factor size_factor
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -77,13 +85,16 @@ locale deterministic_FO_resolution_prover =
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
-    lessatm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
     size_atm :: "'a \<Rightarrow> nat" and
     generation_factor :: nat and
     size_factor :: nat +
   assumes
     S_empty: "S C = {#}"
 begin
+
+lemma less_atm_irrefl: "\<not> less_atm A A"
+  using ex_ground_subst less_atm_ground less_atm_stable unfolding is_ground_subst_def by blast
 
 fun wstate_of_dstate :: "'a dstate \<Rightarrow> 'a wstate" where
   "wstate_of_dstate (N, P, Q, n) =
@@ -128,8 +139,11 @@ primrec reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lcl
 | "reduce Ds C (L # C') =
    (if is_reducible_lit Ds (C @ C') L then reduce Ds C C' else L # reduce Ds (L # C) C')"
 
-abbreviation is_irreducible where
+abbreviation is_irreducible :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> bool" where
   "is_irreducible Ds C \<equiv> reduce Ds [] C = C"
+
+abbreviation is_reducible :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> bool" where
+  "is_reducible Ds C \<equiv> reduce Ds [] C \<noteq> C"
 
 definition reduce_all :: "'a lclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list" where
   "reduce_all D = map (apfst (reduce [D] []))"
@@ -143,26 +157,28 @@ fun reduce_all2 :: "'a lclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dc
     in
       (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 D Cs))"
 
-fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
-  "resolve_on C A D =
-   concat (map (\<lambda>L.
-     (case L of
-        Neg _ \<Rightarrow> []
-      | Pos B \<Rightarrow>
-        (case mgu {{B, A}} of
-           None \<Rightarrow> []
-         | Some \<sigma> \<Rightarrow>
-           let
-             D' = map (\<lambda>M. M \<cdot>l \<sigma>) D;
-             A' = A \<cdot>a \<sigma>
-           in
-             if maximal_wrt A' (mset D') then
-               let
-                 C' = map (\<lambda>L. L \<cdot>l \<sigma>) (removeAll L C)
-               in
-                 (if strictly_maximal_wrt A' (mset C') then [C' @ D'] else []) @ resolve_on C' A' D'
-             else
-               []))) C)"
+fun resolve_on :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
+  "resolve_on _ [] _ _ = []"
+| "resolve_on C (L # Ls) As D =
+   (case L of
+      Neg _ \<Rightarrow> []
+    | Pos A \<Rightarrow>
+      (case mgu {insert A (set As)} of
+         None \<Rightarrow> []
+       | Some \<sigma> \<Rightarrow>
+         let
+           D' = map (\<lambda>M. M \<cdot>l \<sigma>) D;
+           A' = A \<cdot>a \<sigma>
+         in
+           if maximal_wrt A' (mset D') then
+             let
+               CLs' = map (\<lambda>L. L \<cdot>l \<sigma>) (C @ Ls)
+             in
+               (if strictly_maximal_wrt A' (mset CLs') then [CLs' @ D'] else [])
+               @ resolve_on (L # C) Ls (A # As) D
+           else
+             []))
+   @ resolve_on (L # C) Ls As D"
 
 declare resolve_on.simps [simp del]
 
@@ -173,7 +189,7 @@ definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lcla
         Pos A \<Rightarrow> []
       | Neg A \<Rightarrow>
         if maximal_wrt A (mset D) then
-          resolve_on C A (remove1 L D)
+          resolve_on [] C [A] (remove1 L D)
         else
           [])) D)"
 
@@ -281,9 +297,15 @@ lemma is_reducible_lit_mono_cls:
   "mset C \<subseteq># mset C' \<Longrightarrow> is_reducible_lit Ds C L \<Longrightarrow> is_reducible_lit Ds C' L"
   unfolding is_reducible_lit_def by (blast intro: subset_mset.order.trans)
 
-lemma is_reducible_lit_cong_cls:
+lemma is_reducible_lit_mset_iff:
   "mset C = mset C' \<Longrightarrow> is_reducible_lit Ds C' L \<longleftrightarrow> is_reducible_lit Ds C L"
   by (metis is_reducible_lit_mono_cls subset_mset.order_refl)
+
+lemma is_reducible_lit_remove1_Cons_iff:
+  assumes "L \<in> set C'"
+  shows "is_reducible_lit Ds (C @ remove1 L (M # C')) L \<longleftrightarrow>
+    is_reducible_lit Ds (M # C @ remove1 L C') L"
+  using assms by (subst is_reducible_lit_mset_iff, auto)
 
 lemma reduce_mset_eq: "mset C = mset C' \<Longrightarrow> reduce Ds C E = reduce Ds C' E"
 proof (induct E arbitrary: C C')
@@ -294,7 +316,7 @@ proof (induct E arbitrary: C C')
     mset_ce_eq: "mset (C @ E) = mset (C' @ E)"
     using mset_eq by simp+
   show ?case
-    using ih[OF mset_eq] ih[OF mset_lc_eq] by (simp add: is_reducible_lit_cong_cls[OF mset_ce_eq])
+    using ih[OF mset_eq] ih[OF mset_lc_eq] by (simp add: is_reducible_lit_mset_iff[OF mset_ce_eq])
 qed simp
 
 lemma reduce_rotate[simp]: "reduce Ds (C @ [L]) E = reduce Ds (L # C) E"
@@ -313,6 +335,67 @@ lemma reduce_idem: "reduce Ds C (reduce Ds C E) = reduce Ds C E"
   apply (drule is_reducible_lit_mono_cls[of "C @ reduce Ds (L # C) E" "C @ E" Ds L for L E C, rotated])
   apply (auto intro: mset_reduce_subset)
   done
+
+lemma is_reducible_lit_imp_is_reducible:
+  "L \<in> set C' \<Longrightarrow> is_reducible_lit Ds (C @ remove1 L C') L \<Longrightarrow> reduce Ds C C' \<noteq> C'"
+proof (induct C' arbitrary: C)
+  case (Cons M C')
+  note ih = this(1) and l_in = this(2) and l_red = this(3)
+
+  show ?case
+  proof (cases "is_reducible_lit Ds (C @ C') M")
+    case True
+    then show ?thesis
+      by simp (metis mset.simps(2) mset_reduce_subset multi_self_add_other_not_self
+          subset_mset.eq_iff subset_mset_imp_subset_add_mset)
+  next
+    case m_irred: False
+
+    have
+      l_in': "L \<in> set C'" and
+      l_red': "is_reducible_lit Ds (M # C @ remove1 L C') L"
+      using l_in l_red m_irred is_reducible_lit_remove1_Cons_iff by auto
+
+    show ?thesis
+      apply (simp add: m_irred)
+      apply (rule ih[of "M # C"])
+      using l_in' l_red'
+      apply auto
+      done
+  qed
+qed simp
+
+lemma is_reducible_imp_is_reducible_lit:
+  "reduce Ds C C' \<noteq> C' \<Longrightarrow> \<exists>L \<in> set C'. is_reducible_lit Ds (C @ remove1 L C') L"
+proof (induct C' arbitrary: C)
+  case (Cons M C')
+  note ih = this(1) and mc'_red = this(2)
+
+  show ?case
+  proof (cases "is_reducible_lit Ds (C @ C') M")
+    case m_irred: False
+    show ?thesis
+      using ih[of "M # C"] mc'_red[simplified, simplified m_irred, simplified] m_irred
+        is_reducible_lit_remove1_Cons_iff
+      by auto
+  qed simp
+qed simp
+
+lemma is_irreducible_iff_nexists_is_reducible_lit:
+  "reduce Ds C C' = C' \<longleftrightarrow> \<not> (\<exists>L \<in> set C'. is_reducible_lit Ds (C @ remove1 L C') L)"
+  using is_reducible_imp_is_reducible_lit is_reducible_lit_imp_is_reducible by blast
+
+lemma is_irreducible_mset_iff: "mset E = mset E' \<Longrightarrow> reduce Ds C E = E \<longleftrightarrow> reduce Ds C E' = E'"
+  unfolding is_irreducible_iff_nexists_is_reducible_lit
+  apply auto
+  using is_reducible_lit_mset_iff[of "C @ remove1 L E" "C @ remove1 L E'" for L]
+   apply auto
+   apply (cases E)
+    apply auto
+   apply (metis (mono_tags, lifting) mset.simps(2) set_ConsD set_mset_mset)
+   apply (cases E)
+   apply auto[1]
+  by (metis set_mset_mset)
 
 lemma select_min_weight_clause_min_weight:
   assumes "Ci = select_min_weight_clause P0 P"
@@ -470,24 +553,32 @@ proof (induct D' arbitrary: D)
   case ih: (Cons L D')
   show ?case
   proof (cases "is_reducible_lit [C] (D @ D') L")
-    case red: True
+    case l_red: True
     then obtain L' :: "'a literal" and \<sigma> :: 's where
       l'_in: "L' \<in> set C" and
       not_l: "- L = L' \<cdot>l \<sigma>" and
       subs: "mset (remove1 L' C) \<cdot> \<sigma> \<subseteq># mset (D @ D')"
       unfolding is_reducible_lit_def by force
 
+    have ldd'_red: "is_reducible [C] (L # D @ D')"
+      apply (rule is_reducible_lit_imp_is_reducible)
+      using l_red by auto
+
+    have foo: "\<forall>(E, k) \<in> set (P @ P'). j < k \<longrightarrow> mset E \<noteq> mset (L # D @ D')"
+      using p_irred ldd'_red is_irreducible_mset_iff by fast
+
     have "wstate_of_dstate (N, P @ (D @ L # D', j) # P', Q, n)
       \<leadsto>\<^sub>w wstate_of_dstate (N, P @ (D @ D', j) # P', Q, n)"
-      sorry
-(* FIXME
-      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+      apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
             wrp.backward_reduction_P[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)" L \<sigma>
-              "mset (D @ D')" "mset (map (apfst mset) (P @ P'))" k "mset (map (apfst mset) Q)" n]],
-          use l'_in not_l subs c_in in auto)
-*)
+              "mset (D @ D')" "mset (map (apfst mset) (P @ P'))" j "mset (map (apfst mset) Q)" n]])
+      using l'_in not_l subs c_in apply auto[5]
+      using foo
+      apply (auto simp: case_prod_beta)
+      apply force+
+      done
     then show ?thesis
-      using ih[of D] red by simp
+      using ih[of D] l_red by simp
   next
     case False
     then show ?thesis
@@ -508,7 +599,7 @@ proof (induct D' arbitrary: D)
   note ih = this(1) and ld'_red = this(2)
   then show ?case
   proof (cases "is_reducible_lit [C] (D @ D') L")
-    case red: True
+    case l_red: True
     then obtain L' :: "'a literal" and \<sigma> :: 's where
       l'_in: "L' \<in> set C" and
       not_l: "- L = L' \<cdot>l \<sigma>" and
@@ -522,7 +613,7 @@ proof (induct D' arbitrary: D)
               "mset (D @ D')" "mset (map (apfst mset) P)" "mset (map (apfst mset) (Q @ Q'))" j n]],
           use l'_in not_l subs c_in in auto)
     then show ?thesis
-      using red p_irred reduce_clause_in_P[OF c_in, of "[]" P j D D' "Q @ Q'" n] by simp
+      using l_red p_irred reduce_clause_in_P[OF c_in, of "[]" P j D D' "Q @ Q'" n] by simp
   next
     case l_nred: False
     then have d'_red: "reduce [C] (D @ [L]) D' \<noteq> D'"
@@ -538,17 +629,52 @@ lemma reduce_clauses_in_P:
     p_irred: "\<forall>(E, k) \<in> set P. is_irreducible [C] E"
   shows "wstate_of_dstate (N, P @ P', Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ reduce_all C P', Q, n)"
   unfolding reduce_all_def
-proof (induct P' arbitrary: P)
-  case ih: (Cons Dj P')
-  have "wstate_of_dstate (N, P @ Dj # P', Q, n)
-     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ apfst (reduce [C] []) Dj # P', Q, n)"
-    sorry
-(*
-    by (cases Dj, simp only: apfst_conv,
-        rule reduce_clause_in_P[of _ _  _"[]", unfolded append_Nil, OF c_in])
-*)
-  then show ?case
-    using ih[of "P @ [apfst (reduce [C] []) Dj]"] by force
+  using p_irred
+proof (induct "length P'" arbitrary: P P')
+  case (Suc l)
+  note ih = this(1) and suc_l = this(2) and p_irred = this(3)
+
+  have p'_nnil: "P' \<noteq> []"
+    using suc_l by auto
+
+  define j where
+    "j = Max (snd ` set P')"
+
+  obtain Dj where
+    dj_in: "Dj \<in> set P'" and
+    snd_dj: "snd Dj = j"
+    using Max_in[of "snd ` set P'", unfolded image_def, simplified]
+    by (metis image_def j_def length_Suc_conv list.set_intros(1) suc_l)
+
+  have "\<forall>k \<in> snd ` set P'. k \<le> j"
+    unfolding j_def using p'_nnil by simp
+  then have j_max: "\<forall>(E, k) \<in> set P'. j \<ge> k"
+    unfolding image_def by fastforce
+
+  obtain P1' P2' :: "'a dclause list"  where
+    p': "P' = P1' @ Dj # P2'"
+    using split_list[OF dj_in] by blast
+
+  have "wstate_of_dstate (N, P @ P1' @ Dj # P2', Q, n)
+     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ P1' @ apfst (reduce [C] []) Dj # P2', Q, n)"
+    unfolding append_assoc[symmetric]
+    apply (subst (1 2) surjective_pairing[of Dj, unfolded snd_dj])
+    apply (simp only: apfst_conv)
+    apply (rule reduce_clause_in_P[of _ _ _ _ _ "[]", unfolded append_Nil, OF c_in])
+    using p_irred j_max[unfolded p']
+    apply (force simp: case_prod_beta)
+    done
+  moreover have "wstate_of_dstate (N, P @ P1' @ apfst (reduce [C] []) Dj # P2', Q, n)
+     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ map (apfst (reduce [C] [])) (P1' @ Dj # P2'), Q, n)"
+    apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+          ih[of "P1' @ P2'" "apfst (reduce [C] []) Dj # P"]])
+       apply auto
+    using suc_l unfolding p'
+      apply simp
+    using reduce_idem apply (metis Pair_inject apfst_conv old.prod.exhaust)
+    using p_irred by auto
+  ultimately show ?case
+    unfolding p' by simp
 qed simp
 
 lemma reduce_clauses_in_Q:
@@ -567,25 +693,25 @@ proof (induct Q' arbitrary: P Q)
     then show ?thesis
       using ih[of _ "Q @ [Dj]"] p_irred by (simp add: case_prod_beta)
   next
-    case red: False
+    case d_red: False
     have "wstate_of_dstate (N, P, Q @ Dj # Q', n)
       \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, (reduce [C] [] (fst Dj), snd Dj) # P, Q @ Q', n)"
-      using p_irred reduce_clause_in_Q[of _ _ P "snd Dj" "[]" _ Q Q' n, OF c_in _ red]
+      using p_irred reduce_clause_in_Q[of _ _ P "snd Dj" "[]" _ Q Q' n, OF c_in _ d_red]
       by (cases Dj) force
     then show ?thesis
-      using ih[of "(reduce [C] [] (fst Dj), snd Dj) # P" Q] red p_irred reduce_idem
+      using ih[of "(reduce [C] [] (fst Dj), snd Dj) # P" Q] d_red p_irred reduce_idem
       by (force simp: case_prod_beta)
   qed
 qed simp
 
-lemma bin_eligible:
+lemma eligible_iff:
   "eligible S \<sigma> As DA \<longleftrightarrow> As = [] \<or> length As = 1 \<and> maximal_wrt (hd As \<cdot>a \<sigma>) (DA \<cdot> \<sigma>)"
   unfolding eligible.simps S_empty by (fastforce dest: hd_conv_nth)
 
 lemma ord_resolve_one_side_prem:
   "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
   apply (erule ord_resolve.cases)
-  unfolding bin_eligible by force
+  unfolding eligible_iff by force
 
 lemma ord_resolve_rename_one_side_prem:
   "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
@@ -598,27 +724,95 @@ abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Righ
   "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AA A \<sigma>. ord_resolve_rename S [C] D [AA] [A] \<sigma> E}"
 
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
-  "mset ` set (resolve_on C A D) =
-   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}"
-(* FIXME: not yet -- express resolve on as the union of all literals of C
-proof (intro order_antisym subsetI, unfold mem_Collect_eq)
-  fix E
-  assume e_in: "E \<in> mset ` set (resolve_on C A D)"
-  show "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
+  "mset ` set (resolve_on [] C [A] D) =
+   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}" (is "?lhs = ?rhs")
+proof
+  show "?lhs \<subseteq> ?rhs"
+  proof clarify
+    fix E
+    assume "E \<in> set (resolve_on [] C [A] D)"
+    then show "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> (mset E)"
+    proof (induct "length C" arbitrary: C A D)
+      case (Suc l)
+      note ih = this(1) and suc_l = this(2) and e_in = this(3)
+
+      obtain B \<sigma> where
+        b_in: "Pos B \<in> set C" and
+        \<sigma>_mgu: "Some \<sigma> = mgu {{A, B}}" and
+        max: "maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}" and
+        e_disj: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># mset C - {#Pos B#}#}
+           \<and> E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D
+         \<or> E \<in> set (resolve_on [] (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) [A \<cdot>a \<sigma>] (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
+        (* using e_in[unfolded resolve_on.simps[of "[]" C "[A]" D] Let_def, simplified] by metis *)
+        sorry
+
+      show ?case
+        using e_disj
+      proof (elim disjE conjE)
+        assume
+          smax: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># mset C - {#Pos B#}#}" and
+          e: "E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D"
+
+        have c_eq_bbc: "mset C = add_mset (Pos B) (mset C - {#Pos B#})"
+          using b_in by simp
+
+        have elig: "eligible S \<sigma> [A] (add_mset (Neg A) (mset D))"
+          unfolding eligible_iff
+          using max
+          apply (auto simp: maximal_wrt_def subst_cls_def less_atm_irrefl)
+          done
+
+        have smax': "strictly_maximal_wrt (A \<cdot>a \<sigma>) ((mset C - {#Pos B#}) \<cdot> \<sigma>)"
+          using smax by (auto simp: subst_cls_def)
+
+        have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#}] [A] \<sigma> (mset E)"
+          unfolding e
+          using ord_resolve[of "[mset C]" 1 "[mset (remove1 (Pos B) C)]" "[{#B#}]" "[A]" \<sigma> S "mset D", simplified, OF c_eq_bbc \<sigma>_mgu elig smax' S_empty]
+          apply (auto simp: subst_cls_def)
+          done
+        then show ?thesis
+          by blast
+      next
+        assume e_in:
+          "E \<in> set (resolve_on [] (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) [A \<cdot>a \<sigma>] (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
+
+        have l: "l = length (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C))"
+          using suc_l b_in by (auto simp: length_remove1)
+
+        obtain AA \<sigma>' where
+          "ord_resolve S [mset (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C))]
+             ({#Neg (A \<cdot>a \<sigma>)#} + mset (map (\<lambda>M. M \<cdot>l \<sigma>) D)) [AA] [A \<cdot>a \<sigma>] \<sigma>' (mset E)"
+          using ih[OF l e_in] by blast
+
+        define \<sigma>'' :: 's where
+          "\<sigma>'' = undefined" (* FIXME *)
+           (* same as \<sigma> \<odot> \<sigma>' up to renaming *)
+
+        have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#} + AA] [A] \<sigma>'' (mset E)"
+          using ord_resolve[of "[mset C]" 1 "[mset (remove1 (Pos B) C)]" "[{#B#} + AA]" "[A]" \<sigma>'' S "mset D"]
+
+          sorry
+        then show ?thesis
+          by blast
+      qed
+    qed (simp add: resolve_on.simps)
+  qed
 next
-  fix E
-  assume e_in: "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
-  show "E \<in> mset ` set (resolve_on C A D)"
+  show "?rhs \<subseteq> ?lhs"
+  proof clarify
+    fix E AA \<sigma>
+    assume "ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
+    show "E \<in> mset ` set (resolve_on [] C [A] D)"
+      sorry
+  qed
 qed
-*)
-  sorry
 
 lemma set_resolve_eq_UNION_set_resolve_on:
   "set (resolve C D) =
    (\<Union>L \<in> set D.
       (case L of
          Pos _ \<Rightarrow> {}
-       | Neg A \<Rightarrow> if maximal_wrt A (mset D) then set (resolve_on C A (remove1 L D)) else {}))"
+       | Neg A \<Rightarrow> if maximal_wrt A (mset D) then set (resolve_on [] C [A] (remove1 L D)) else {}))"
   unfolding resolve_def by (fastforce split: literal.splits if_splits)
 
 lemma resolve_eq_Bin_ord_resolve: "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
@@ -634,7 +828,7 @@ lemma resolve_eq_Bin_ord_resolve: "mset ` set (resolve C D) = Bin_ord_resolve (m
     apply (frule ord_resolve.simps[THEN iffD1])
     apply auto[1]
    apply (drule ord_resolve.simps[THEN iffD1])
-   apply (unfold bin_eligible)
+   apply (unfold eligible_iff)
    apply (clarsimp simp del: subst_cls_add_mset subst_cls_union)
    apply (drule maximal_wrt_subst)
    apply satx
@@ -856,9 +1050,7 @@ proof -
       apply auto[1]
     using ms_ci_in
       apply (simp add: ci_in image_mset_remove1_mset_if)
-    using ci_min
-(*
-     apply (meson in_diffD)
+    prefer 3
     apply (simp only: list.map_comp apfst_comp_rpair_const)
     apply (simp only: list.map_comp[symmetric])
     apply (subst mset_map)
@@ -872,10 +1064,11 @@ proof -
     apply (simp only: map_concat list.map_comp image_comp)
     using resolve_rename_either_way_eq_congls_of_inferences_between[of C "fst ` set Q", symmetric]
     apply (simp only: image_comp comp_def)
-    apply (simp add: image_UN)
-    done
-*)
-    sorry
+      apply (simp add: image_UN)
+     apply auto[1]
+     apply (smt apfst_conv case_prodD case_prodE case_prodI case_prodI2 filter_cong image_mset_filter_swap mset_filter)
+    using ci_min
+    by (meson in_diffD)
 qed
 
 lemma nonfinal_deterministic_RP_step:
@@ -1151,17 +1344,15 @@ proof -
           note red_C
           also have "wstate_of_dstate ((C', i) # N', P, Q, n)
               \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q, n)"
-            unfolding P'_def
-              sorry
-            (* FIXME by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp *)
+            unfolding P'_def by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp+
           also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P', Q', n)"
             unfolding P'_def
-            sorry
-(* FIXME
-            by (rule reduce_clauses_in_Q[of C' _ _ "[]" Q, folded red_Q,
+            apply (rule reduce_clauses_in_Q[of C' _ _ "[]" Q, folded red_Q,
                   unfolded append_Nil prod.sel])
-              simp
-*)
+             apply simp
+            unfolding reduce_all_def
+            apply (auto intro: reduce_idem)
+            done
           also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P', Q'', n)"
             unfolding Q''_def
             by (rule remove_strictly_subsumed_clauses_in_Q[of _ _ _ "[]", unfolded append_Nil])

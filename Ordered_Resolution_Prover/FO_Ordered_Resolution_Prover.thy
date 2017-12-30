@@ -17,6 +17,13 @@ theory FO_Ordered_Resolution_Prover
   imports FO_Ordered_Resolution
 begin
 
+(* FIXME: Used only twice, really -- inline? *)
+definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> bool" where
+  "is_least P n \<longleftrightarrow> P n \<and> (\<forall>n' < n. \<not> P n')"
+
+lemma least_exists: "P n \<Longrightarrow> \<exists>n. is_least P n"
+  using exists_least_iff unfolding is_least_def by auto
+
 text \<open>
 The following corresponds to page 42 and 43 of Section 4.3, from the explanation of RP to
 Lemma 4.10.
@@ -695,13 +702,6 @@ lemma resolution_prover_ground_derivation:
 text \<open>
 The following is used prove to Lemma 4.11:
 \<close>
-
-(* FIXME: Used only once, really -- inline? *)
-definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> bool" where
-  "is_least P n \<longleftrightarrow> P n \<and> (\<forall>n' < n. \<not> P n')"
-
-lemma least_exists: "P n \<Longrightarrow> \<exists>n. is_least P n"
-  using exists_least_iff unfolding is_least_def by auto
 
 lemma in_Sup_llist_in_nth: "C \<in> Sup_llist Ns \<Longrightarrow> \<exists>j. enat j < llength Ns \<and> C \<in> lnth Ns j"
   unfolding Sup_llist_def by auto
