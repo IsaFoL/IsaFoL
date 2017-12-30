@@ -1191,6 +1191,9 @@ Inference computation gør det mindre fordi den flytter en clause from P til Q (
 og introducerer en masse med større vægt. (Antaget at vi er spolet frem til en tid større end vægt af (C,i))
 
 
+This measure is non-strictly decreasing.
+To get one that is strictly decreasing I can take it and <*lex*> it with the one for N.
+
 
 For something completely different:
   It would probably be nice to have a lemma saying that \<leadsto>\<^sub>n\<^sub>i is wellfounded.
