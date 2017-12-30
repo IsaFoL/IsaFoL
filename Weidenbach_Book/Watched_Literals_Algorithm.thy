@@ -1069,9 +1069,9 @@ definition cdcl_twl_o_prog :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v t
         if count_decided (get_trail S) > 0
         then do {
           T \<leftarrow> skip_and_resolve_loop S;
-          if get_conflict T \<noteq> Some {#}
-          then do {U \<leftarrow> backtrack T; RETURN (False, U)}
-          else RETURN (True, T)
+          ASSERT(get_conflict T \<noteq> None \<and> get_conflict T \<noteq> Some {#});
+          U \<leftarrow> backtrack T;
+          RETURN (False, U)
         }
         else
           RETURN (True, S)
@@ -1102,8 +1102,6 @@ lemma rtranclp_skip_and_resolve_same_decision_level:
     using skip_and_resolve_conflict_before[of T U]
     by (auto simp: skip_and_resolve_same_decision_level)
   done
-
-thm twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_restart_mset.conflict_is_false_with_level_def
 
 lemma empty_conflict_lvl0:
   \<open>twl_stgy_invs T \<Longrightarrow> get_conflict T = Some {#} \<Longrightarrow> count_decided (get_trail T) = 0\<close>
@@ -1154,29 +1152,17 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
-    subgoal using assms by auto
+    subgoal for T using assms empty_conflict_lvl0[of T]
+      rtranclp_skip_and_resolve_same_decision_level[of S T] by auto
     subgoal using assms by auto
     subgoal using assms by (auto elim!: cdcl_twl_oE simp: image_Un)
     subgoal by (auto elim!: cdcl_twl_stgyE cdcl_twl_oE cdcl_twl_cpE)
     subgoal by (auto simp: rtranclp_unfold elim!: cdcl_twl_oE)
-    subgoal for T using rtranclp_skip_and_resolve_same_decision_level[of S T]
-        empty_conflict_lvl0[of T]
-        by auto
-    subgoal for uip T using rtranclp_skip_and_resolve_same_decision_level[of S T]
-        empty_conflict_lvl0[of T]
-        by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal for uip by auto
-    subgoal by (auto simp: rtranclp_unfold elim!: cdcl_twl_oE)
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
     done
 qed
 

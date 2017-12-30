@@ -2038,10 +2038,9 @@ definition cdcl_twl_o_prog_l :: \<open>'v twl_st_l \<Rightarrow> (bool \<times> 
         else if count_decided (get_trail_l S) > 0
         then do {
           T \<leftarrow> skip_and_resolve_loop_l S;
-          ASSERT(get_conflict_l T \<noteq> None);
-          if get_conflict_l T \<noteq> Some {#}
-          then do {U \<leftarrow> backtrack_l T; RETURN (False, U)}
-          else RETURN (True, T)
+          ASSERT(get_conflict_l T \<noteq> None \<and> get_conflict_l T \<noteq> Some {#});
+          U \<leftarrow> backtrack_l T;
+          RETURN (False, U)
         }
         else RETURN (True, S)
       }
@@ -2113,18 +2112,18 @@ proof -
       by simp
     subgoal
       by auto
-    subgoal
-      by (rule twl_st_lE) auto
+    subgoal by auto
     subgoal
       by (rule twl_st_lE) auto
     subgoal
       by (auto simp add: twl_list_invs_def)
     subgoal by fast
-    subgoal by fast
+    subgoal by auto
     subgoal
       by (simp del: split_paired_All)
     subgoal
-      by (auto simp add: twl_list_invs_def)
+      by (simp del: split_paired_All)
+    subgoal by fast
     subgoal
       by fast
     subgoal
