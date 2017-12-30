@@ -361,7 +361,9 @@ definition twl_struct_invs :: \<open>'v twl_st \<Rightarrow> bool\<close> where
   \<close>
 
 definition twl_stgy_invs :: \<open>'v twl_st \<Rightarrow> bool\<close> where
-  \<open>twl_stgy_invs S \<longleftrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of S)\<close>
+  \<open>twl_stgy_invs S \<longleftrightarrow>
+     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of S) \<and>
+     cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state\<^sub>W_of S)\<close>
 
 
 subsubsection \<open>Initial properties\<close>
@@ -2679,11 +2681,34 @@ lemma cdcl_twl_cp_twl_struct_invs:
   subgoal by (simp add: twl_cp_past_invs twl_struct_invs_def; fail)
   done
 
+lemma twl_struct_invs_no_false_clause:
+  assumes \<open>twl_struct_invs S\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.no_false_clause (state\<^sub>W_of S)\<close>
+proof -
+  obtain M N U D NE UE WS Q where
+    S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
+    by (cases S) auto
+  have wf: \<open>\<And>C. C \<in># N + U \<Longrightarrow> struct_wf_twl_cls C\<close> and entailed: \<open>entailed_clss_inv S\<close>
+    using assms unfolding twl_struct_invs_def twl_st_inv.simps S by fast+
+  have \<open>{#} \<notin># NE + UE\<close>
+    using entailed unfolding S entailed_clss_inv.simps
+    by (auto simp del: set_mset_union)
+  moreover have \<open>clause C = {#} \<Longrightarrow> C \<in># N + U \<Longrightarrow> False\<close> for C
+    using wf[of C] by (cases C) (auto simp del: set_mset_union)
+  ultimately show ?thesis
+    by (fastforce simp: S clauses_def cdcl\<^sub>W_restart_mset.no_false_clause_def)
+qed
+
 lemma cdcl_twl_cp_twl_stgy_invs:
   \<open>cdcl_twl_cp S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
+  using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant[of \<open>state\<^sub>W_of S\<close> \<open>state\<^sub>W_of S\<close>]
   unfolding twl_stgy_invs_def
-  by (metis cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant cdcl_twl_cp_cdcl\<^sub>W_stgy
-      twl_struct_invs_def)
+  by (metis cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant
+      cdcl_twl_cp_cdcl\<^sub>W_stgy cdcl\<^sub>W_restart_mset.conflict
+      cdcl\<^sub>W_restart_mset.propagate twl_cp_propagate_or_conflict
+      twl_struct_invs_def twl_struct_invs_no_false_clause)
+
 
 subsubsection \<open>The other rules\<close>
 
@@ -4628,6 +4653,7 @@ proof -
 
   show stgy_invs: \<open>twl_stgy_invs (init_state_twl N)\<close>
     by (auto simp: twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+        cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
         cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_smaller_confl_def init_state_twl_def)
   show \<open>twl_struct_invs (init_state_twl N)\<close>
     using struct tauto
@@ -4666,8 +4692,12 @@ qed
 lemma cdcl_twl_o_twl_stgy_invs:
   \<open>cdcl_twl_o S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
   using cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant cdcl_twl_stgy_cdcl\<^sub>W_stgy
-    other'
-  unfolding twl_struct_invs_def twl_stgy_invs_def by blast
+    other' cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0
+  unfolding twl_struct_invs_def twl_stgy_invs_def
+  apply (intro conjI)
+   apply blast
+  by (smt cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0 cdcl\<^sub>W_restart_mset.other
+      cdcl_twl_o_cdcl\<^sub>W_o twl_struct_invs_def twl_struct_invs_no_false_clause)
 
 
 paragraph \<open>Well-foundedness\<close>
@@ -4871,7 +4901,10 @@ lemma (in -) rtranclp_cdcl_twl_stgy_twl_stgy_invs:
     \<open>twl_stgy_invs S\<close>
   shows \<open>twl_stgy_invs T\<close>
   using assms cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant
-    rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy unfolding twl_stgy_invs_def twl_struct_invs_def by blast
+    rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy
+  by (metis cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0
+      cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart twl_stgy_invs_def
+      twl_struct_invs_def twl_struct_invs_no_false_clause)
 
 lemma after_fast_restart_replay:
   assumes

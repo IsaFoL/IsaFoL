@@ -251,6 +251,11 @@ definition unit_propagation_outer_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_
       S\<^sub>0
 \<close>
 
+(* don't use no_step here to allow the abbreviation to fold by default *)
+abbreviation unit_propagation_outer_loop_spec where
+  \<open>unit_propagation_outer_loop_spec S S' \<equiv> twl_struct_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and>
+    literals_to_update S' = {#} \<and>  (\<forall>S'a. \<not> cdcl_twl_cp S' S'a) \<and> twl_stgy_invs S'\<close>
+
 lemma unit_propagation_outer_loop:
   assumes \<open>twl_struct_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and confl: \<open>get_conflict S = None\<close> and
     \<open>twl_stgy_invs S\<close>
@@ -323,7 +328,6 @@ lemma unit_propagation_outer_loop:
       \<comment> \<open>Show that the invariant still holds\<close>
     then show \<open>twl_struct_invs ?T'\<close>
       using cdcl_twl_cp_twl_struct_invs twl by blast
-
   qed
   subgoal
   proof -
@@ -404,7 +408,7 @@ lemma decide_or_skip_spec:
   assumes \<open>clauses_to_update S = {#}\<close> and \<open>literals_to_update S = {#}\<close> and \<open>get_conflict S = None\<close> and
     twl: \<open>twl_struct_invs S\<close> and twl_s: \<open>twl_stgy_invs S\<close>
   shows \<open>decide_or_skip S \<le> SPEC(\<lambda>(brk, T). cdcl_twl_o\<^sup>*\<^sup>* S T \<and>
-       (get_conflict T \<noteq> None \<longrightarrow> get_conflict T = Some {#}) \<and>
+       get_conflict T = None \<and>
        no_step cdcl_twl_o T \<and> (brk \<longrightarrow> no_step cdcl_twl_stgy T) \<and> twl_struct_invs T \<and>
        twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
        (\<not>brk \<longrightarrow> literals_to_update T \<noteq> {#}) \<and>
@@ -470,6 +474,7 @@ definition skip_and_resolve_loop_inv where
     (\<lambda>(brk, S). cdcl_twl_o\<^sup>*\<^sup>* S\<^sub>0 S \<and> twl_struct_invs S \<and> twl_stgy_invs S \<and>
       clauses_to_update S = {#} \<and> literals_to_update S = {#} \<and>
           get_conflict S \<noteq> None \<and>
+          count_decided (get_trail S) \<noteq> 0 \<and>
           (\<not>brk \<longrightarrow> get_trail S \<noteq> [] \<and> get_conflict S \<noteq> Some {#}) \<and>
           (brk \<longrightarrow> no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of S) \<and>
             no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of S)))\<close>
@@ -485,7 +490,7 @@ definition skip_and_resolve_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_st nre
     do {
       (_, S) \<leftarrow>
         WHILE\<^sub>T\<^bsup>skip_and_resolve_loop_inv S\<^sub>0\<^esup>
-        (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail S)))
+        (\<lambda>(uip, S). \<not>uip \<and> \<not>is_decided (hd (get_trail S)))
         (\<lambda>(_, S).
           do {
             ASSERT(get_trail S \<noteq> []);
@@ -502,14 +507,14 @@ definition skip_and_resolve_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_st nre
                 do {RETURN (True, S)}
           }
         )
-        (get_conflict S\<^sub>0 = Some {#}, S\<^sub>0);
+        (False, S\<^sub>0);
       RETURN S
     }
   \<close>
 
 lemma skip_and_resolve_loop_spec:
   assumes struct_S: \<open>twl_struct_invs S\<close> and stgy_S: \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and \<open>literals_to_update S = {#}\<close> and
-    \<open>get_conflict S \<noteq> None\<close>
+    \<open>get_conflict S \<noteq> None\<close> and count_dec: \<open>count_decided (get_trail S) > 0\<close>
   shows \<open>skip_and_resolve_loop S \<le> SPEC(\<lambda>T. cdcl_twl_o\<^sup>*\<^sup>* S T \<and> twl_struct_invs T \<and> twl_stgy_invs T \<and>
       no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of T) \<and>
       no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of T) \<and>
@@ -525,9 +530,10 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def by (cases S, auto simp add: cdcl\<^sub>W_restart_mset_state)
   then have \<open>get_trail S \<noteq> []\<close> if \<open>get_conflict S \<noteq> Some {#}\<close>
     using that assms by auto
-  then show \<open>skip_and_resolve_loop_inv S (get_conflict S = Some {#}, S)\<close>
+  then show \<open>skip_and_resolve_loop_inv S (False, S)\<close>
     using assms by (cases S) (auto simp: skip_and_resolve_loop_inv_def cdcl\<^sub>W_restart_mset.skip.simps
-          cdcl\<^sub>W_restart_mset.resolve.simps cdcl\<^sub>W_restart_mset_state)
+          cdcl\<^sub>W_restart_mset.resolve.simps cdcl\<^sub>W_restart_mset_state
+          twl_stgy_invs_def cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
 
   fix brk :: bool and T :: \<open>'a twl_st\<close>
   assume
@@ -535,7 +541,6 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
     brk: \<open>case (brk, T) of (brk, S) \<Rightarrow> \<not> brk \<and> \<not> is_decided (hd (get_trail S))\<close>
   have [simp]: \<open>brk = False\<close>
     using brk by auto
-
   show M_not_empty: \<open>get_trail T \<noteq> []\<close>
     using brk inv unfolding skip_and_resolve_loop_inv_def by auto
 
@@ -550,13 +555,13 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
   obtain M' :: \<open>('a, 'a clause) ann_lits\<close> and D' where
     M: \<open>get_trail T = Propagated L C # M'\<close> and WS: \<open>WS = {#}\<close> and Q: \<open>Q = {#}\<close> and D: \<open>D = Some D'\<close> and
     st: \<open>cdcl_twl_o\<^sup>*\<^sup>* S T\<close> and twl: \<open>twl_struct_invs T\<close> and D': \<open>D' \<noteq> {#}\<close> and
-    twl_stgy_S: \<open>twl_stgy_invs T\<close>
+    twl_stgy_S: \<open>twl_stgy_invs T\<close> and
+    [simp]: \<open>count_decided (tl M) > 0\<close>
     using brk inv LC unfolding skip_and_resolve_loop_inv_def
     by (cases \<open>get_trail T\<close>; cases \<open>hd (get_trail T)\<close>) (auto simp: T)
 
   { \<comment> \<open>skip\<close>
-    assume
-      LD: \<open>- L \<notin># the (get_conflict T)\<close>
+    assume LD: \<open>- L \<notin># the (get_conflict T)\<close>
     let ?T = \<open>tl_state T\<close>
     have o_S_T: \<open>cdcl_twl_o T ?T\<close>
       using cdcl_twl_o.skip[of L \<open>the D\<close> C M' N U NE UE]
@@ -823,8 +828,6 @@ proof -
     have WS: \<open>WS = {#}\<close> and Q: \<open>Q = {#}\<close>
       using w_q p unfolding S by auto
 
-(*     assume \<open>1 < size (get_conflict ?U)\<close> and
-      \<open>K \<in># remove1_mset (- lit_of (hd (get_trail ?S))) (the (get_conflict ?U))\<close> *)
     have uL_D: \<open>- lit_of (hd M) \<in># the D\<close>
       using decomp N_U_NE_UE_D' D'_D L_D' lev_K'
       unfolding WS Q
@@ -961,8 +964,6 @@ proof -
            get_level M L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) D')\<close>
         by (rule get_maximum_level_exists_lit_of_max_level)
           (use size_D in \<open>auto simp: remove1_mset_empty_iff\<close>)
-(*       assume L'_D': \<open>L' \<in># remove1_mset (-lit_of (hd M)) D'\<close> and
-        lev_L: \<open>get_level M1 L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) D')\<close> *)
       have D'_ne_single: \<open>D' \<noteq> {#- lit_of (hd M)#}\<close>
         using size_D apply (cases D', simp)
         apply (rename_tac L D'')
@@ -1065,25 +1066,66 @@ definition cdcl_twl_o_prog :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v t
       if get_conflict S = None
       then decide_or_skip S
       else do {
-        T \<leftarrow> skip_and_resolve_loop S;
-        if get_conflict T \<noteq> Some {#}
-        then do {U \<leftarrow> backtrack T; RETURN (False, U)}
-        else do {RETURN (True, T)}
+        if count_decided (get_trail S) > 0
+        then do {
+          T \<leftarrow> skip_and_resolve_loop S;
+          if get_conflict T \<noteq> Some {#}
+          then do {U \<leftarrow> backtrack T; RETURN (False, U)}
+          else RETURN (True, T)
+        }
+        else
+          RETURN (True, S)
       }
     }
   \<close>
+
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
+declare split_paired_All[simp del]
+
+lemma skip_and_resolve_same_decision_level:
+  assumes \<open>cdcl_twl_o S T\<close>  \<open>get_conflict T \<noteq> None\<close>
+  shows  \<open>count_decided (get_trail T) = count_decided (get_trail S)\<close>
+  using assms by (induction rule: cdcl_twl_o.induct) auto
+
+
+lemma skip_and_resolve_conflict_before:
+  assumes \<open>cdcl_twl_o S T\<close> \<open>get_conflict T \<noteq> None\<close>
+  shows  \<open>get_conflict S \<noteq> None\<close>
+  using assms by (induction rule: cdcl_twl_o.induct) auto
+
+lemma rtranclp_skip_and_resolve_same_decision_level:
+  \<open>cdcl_twl_o\<^sup>*\<^sup>* S T \<Longrightarrow> get_conflict S \<noteq> None \<Longrightarrow> get_conflict T \<noteq> None \<Longrightarrow>
+    count_decided (get_trail T) = count_decided (get_trail S)\<close>
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for T U
+    using skip_and_resolve_conflict_before[of T U]
+    by (auto simp: skip_and_resolve_same_decision_level)
+  done
+
+thm twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_restart_mset.conflict_is_false_with_level_def
+
+lemma empty_conflict_lvl0:
+  \<open>twl_stgy_invs T \<Longrightarrow> get_conflict T = Some {#} \<Longrightarrow> count_decided (get_trail T) = 0\<close>
+  by (cases T) (auto simp: twl_stgy_invs_def cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+      trail.simps conflicting.simps)
+
+abbreviation cdcl_twl_o_prog_spec where
+  \<open>cdcl_twl_o_prog_spec S \<equiv> \<lambda>(brk, T).
+       cdcl_twl_o\<^sup>*\<^sup>* S T \<and>
+       (get_conflict T \<noteq> None \<longrightarrow> count_decided (get_trail T) = 0) \<and>
+       (\<not> brk \<longrightarrow> get_conflict T = None \<and> (\<forall>S'. \<not> cdcl_twl_o T S')) \<and>
+       (brk \<longrightarrow> get_conflict T \<noteq> None \<or> (\<forall>S'. \<not> cdcl_twl_stgy T S')) \<and>
+       twl_struct_invs T \<and> twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
+       (\<not> brk \<longrightarrow> literals_to_update T \<noteq> {#}) \<and>
+       (\<not>brk \<longrightarrow> \<not> (\<forall>S'. \<not> cdcl_twl_o S S') \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ S T)\<close>
 
 lemma cdcl_twl_o_prog_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>literals_to_update S = {#}\<close> and
     ns_cp: \<open>no_step cdcl_twl_cp S\<close>
   shows
-    \<open>cdcl_twl_o_prog S \<le> SPEC(\<lambda>(brk, T). cdcl_twl_o\<^sup>*\<^sup>* S T \<and>
-       (get_conflict T \<noteq> None \<longrightarrow> get_conflict T = Some {#}) \<and>
-       no_step cdcl_twl_o T \<and> (brk \<longrightarrow> no_step cdcl_twl_stgy T) \<and> twl_struct_invs T \<and>
-       twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
-       (\<not>brk \<longrightarrow> literals_to_update T \<noteq> {#}) \<and>
-       (\<not>no_step cdcl_twl_o S \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ S T))\<close>
+    \<open>cdcl_twl_o_prog S \<le> SPEC(cdcl_twl_o_prog_spec S)\<close>
     (is \<open>_ \<le> ?S\<close>)
 proof -
   have [iff]: \<open>\<not> cdcl_twl_cp S T\<close> for T
@@ -1099,22 +1141,42 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by simp
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
     subgoal using assms by (auto elim!: cdcl_twl_oE simp: image_Un)
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by (auto elim!: cdcl_twl_oE simp: image_Un)
-    subgoal for x T using assms
-      by (cases T) (auto elim!: cdcl_twl_stgyE cdcl_twl_oE cdcl_twl_cpE)
-
-    \<comment> \<open>decision, if false\<close>
-    subgoal using assms by (auto elim!: cdcl_twl_oE)
+    subgoal by (auto elim!: cdcl_twl_stgyE cdcl_twl_oE cdcl_twl_cpE)
     subgoal by (auto simp: rtranclp_unfold elim!: cdcl_twl_oE)
+    subgoal for T using rtranclp_skip_and_resolve_same_decision_level[of S T]
+        empty_conflict_lvl0[of T]
+        by auto
+    subgoal for uip T using rtranclp_skip_and_resolve_same_decision_level[of S T]
+        empty_conflict_lvl0[of T]
+        by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal for uip by auto
+    subgoal by (auto simp: rtranclp_unfold elim!: cdcl_twl_oE)
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
     done
 qed
 
@@ -1123,13 +1185,20 @@ declare cdcl_twl_o_prog_spec[THEN order_trans, refine_vcg]
 
 subsection \<open>Full Strategy\<close>
 
+definition final_twl_state where
+  \<open>final_twl_state S \<longleftrightarrow>
+      no_step cdcl_twl_stgy S \<or> (get_conflict S \<noteq> None \<and> count_decided (get_trail S) = 0)\<close>
+
+abbreviation cdcl_twl_stgy_prog_inv where
+  \<open>cdcl_twl_stgy_prog_inv S\<^sub>0 \<equiv> \<lambda>(brk, T). twl_struct_invs T \<and> twl_stgy_invs T \<and>
+        (brk \<longrightarrow> final_twl_state T) \<and> cdcl_twl_stgy\<^sup>*\<^sup>* S\<^sub>0 T \<and> clauses_to_update T = {#} \<and>
+        (\<not>brk \<longrightarrow> get_conflict T = None)\<close>
+
 definition cdcl_twl_stgy_prog :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>cdcl_twl_stgy_prog S\<^sub>0 =
   do {
     do {
-      (brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T). twl_struct_invs T \<and> twl_stgy_invs T \<and>
-        (brk \<longrightarrow> no_step cdcl_twl_stgy T) \<and> cdcl_twl_stgy\<^sup>*\<^sup>* S\<^sub>0 T \<and> clauses_to_update T = {#} \<and>
-        (\<not>brk \<longrightarrow> get_conflict T = None)\<^esup>
+      (brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_prog_inv S\<^sub>0\<^esup>
         (\<lambda>(brk, _). \<not>brk)
         (\<lambda>(brk, S).
         do {
@@ -1163,13 +1232,119 @@ proof (rule wf_union_compatible)
   qed
 qed
 
+lemma cdcl_twl_o_final_twl_state:
+  assumes
+    \<open>cdcl_twl_stgy_prog_inv S (brk, T)\<close> and
+    \<open>case (brk, T) of (brk, _) \<Rightarrow> \<not> brk\<close> and
+    twl_o: \<open>cdcl_twl_o_prog_spec U (True, V)\<close>
+  shows \<open>final_twl_state V\<close>
+proof -
+  have \<open>cdcl_twl_o\<^sup>*\<^sup>* U V\<close> and
+    confl_lev: \<open>get_conflict V \<noteq> None \<longrightarrow> count_decided (get_trail V) = 0\<close> and
+    final: \<open>get_conflict V \<noteq> None \<or> (\<forall>S'. \<not> cdcl_twl_stgy V S')\<close>
+    \<open>twl_struct_invs V\<close>
+    \<open>twl_stgy_invs V\<close>
+    \<open>clauses_to_update V = {#}\<close>
+    using twl_o
+    by force+
+
+  show ?thesis
+    unfolding final_twl_state_def
+    using confl_lev final
+    by auto
+qed
+
+lemma cdcl_twl_stgy_in_measure:
+  assumes
+    twl_stgy: \<open>cdcl_twl_stgy_prog_inv S (brk0, T)\<close> and
+    brk0: \<open>case (brk0, T) of (brk, uu_) \<Rightarrow> \<not> brk\<close> and
+    twl_o: \<open>cdcl_twl_o_prog_spec U V\<close> and
+    [simp]: \<open>twl_struct_invs U\<close> and
+    TU: \<open>cdcl_twl_cp\<^sup>*\<^sup>* T U\<close> and
+    \<open>literals_to_update U = {#}\<close>
+  shows \<open>(V, brk0, T)
+         \<in> {((brkT, T), brkS, S). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union>
+            {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close>
+proof -
+  have [simp]: \<open>twl_struct_invs T\<close>
+    using twl_stgy by fast+
+  obtain brk' V' where
+    V: \<open>V = (brk', V')\<close>
+    by (cases V)
+  have
+    UV: \<open>cdcl_twl_o\<^sup>*\<^sup>* U V'\<close> and
+    \<open>(get_conflict V' \<noteq> None \<longrightarrow> count_decided (get_trail V') = 0)\<close> and
+    not_brk': \<open>(\<not> brk' \<longrightarrow> get_conflict V' = None \<and> (\<forall>S'. \<not> cdcl_twl_o V' S'))\<close> and
+    brk': \<open>(brk' \<longrightarrow> get_conflict V' \<noteq> None \<or> (\<forall>S'. \<not> cdcl_twl_stgy V' S'))\<close> and
+    [simp]: \<open>twl_struct_invs V'\<close>
+    \<open>twl_stgy_invs V'\<close>
+    \<open>clauses_to_update V' = {#}\<close> and
+    no_lits_to_upd: \<open>(0 < count_decided (get_trail V') \<longrightarrow> \<not> brk' \<longrightarrow> literals_to_update V' \<noteq> {#})\<close>
+    \<open>(\<not>brk' \<longrightarrow> \<not> (\<forall>S'. \<not> cdcl_twl_o U S') \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ U V')\<close>
+    using twl_o unfolding V
+    by fast+
+    have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T V'\<close>
+      using TU UV by (auto dest!: rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_o_stgyD)
+    then have TV_or_tranclp_TV: \<open>T = V' \<or> cdcl_twl_stgy\<^sup>+\<^sup>+ T V'\<close>
+      unfolding rtranclp_unfold by auto
+    have [simp]: \<open>\<not> cdcl_twl_stgy\<^sup>+\<^sup>+ V' V'\<close>
+      using wf_not_refl[OF tranclp_wf_cdcl_twl_stgy, of V'] by auto
+    have [simp]: \<open>brk0 = False\<close>
+      using brk0 by auto
+
+    have \<open>brk'\<close> if \<open>T = V'\<close>
+    proof -
+      have ns_TV: \<open>\<not>cdcl_twl_stgy\<^sup>+\<^sup>+ T V'\<close>
+        using that[symmetric] wf_not_refl[OF tranclp_wf_cdcl_twl_stgy, of T] by auto
+
+      have ns_T_T: \<open>\<not>cdcl_twl_o\<^sup>+\<^sup>+ T T\<close>
+        using wf_not_refl[OF tranclp_wf_cdcl_twl_o, of T] by auto
+      have \<open>T = U\<close>
+        by (metis (no_types, hide_lams) TU UV ns_TV rtranclp_cdcl_twl_cp_stgyD
+            rtranclp_cdcl_twl_o_stgyD rtranclp_tranclp_tranclp rtranclp_unfold)
+      show ?thesis
+        using assms \<open>literals_to_update U = {#}\<close> unfolding V that[symmetric] \<open>T = U\<close>[symmetric]
+        by (auto simp: ns_T_T)
+    qed
+
+    then show ?thesis
+      using TV_or_tranclp_TV
+      unfolding V
+      by auto
+qed
+
+lemma cdcl_twl_o_prog_cdcl_twl_stgy:
+  assumes
+    twl_stgy: \<open>cdcl_twl_stgy_prog_inv S (brk, S')\<close> and
+    \<open>case (brk, S') of (brk, uu_) \<Rightarrow> \<not> brk\<close> and
+    twl_o: \<open>cdcl_twl_o_prog_spec T (brk', U)\<close> and
+    \<open>twl_struct_invs T\<close> and
+    cp: \<open>cdcl_twl_cp\<^sup>*\<^sup>* S' T\<close> and
+    \<open>literals_to_update T = {#}\<close> and
+    \<open>\<forall>S'. \<not> cdcl_twl_cp T S'\<close> and
+    \<open>twl_stgy_invs T\<close>
+  shows \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S U\<close>
+proof -
+  have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S S'\<close>
+    using twl_stgy by fast
+  moreover {
+    have \<open>cdcl_twl_o\<^sup>*\<^sup>* T U\<close>
+      using twl_o by fast
+    then have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S' U\<close>
+      using cp by (auto dest!: rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_o_stgyD)
+  }
+  ultimately show ?thesis by auto
+qed
+
 lemma cdcl_twl_stgy_prog_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_prog S \<le> SPEC(\<lambda>T. full cdcl_twl_stgy S T)\<close>
+    \<open>cdcl_twl_stgy_prog S \<le> SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> final_twl_state T)\<close>
   unfolding cdcl_twl_stgy_prog_def full_def
-  apply (refine_vcg WHILEIT_rule[where R = \<open>{((brkT, T), (brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union> {((brkT, T), (brkS, S)). S = T \<and> brkT \<and> \<not>brkS}\<close>];
+  apply (refine_vcg WHILEIT_rule[where
+     R = \<open>{((brkT, T), (brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union>
+          {((brkT, T), (brkS, S)). S = T \<and> brkT \<and> \<not>brkS}\<close>];
       remove_dummy_vars)
   \<comment> \<open>Well foundedness of the relation\<close>
   subgoal using wf_cdcl_twl_stgy_measure .
@@ -1190,91 +1365,15 @@ lemma cdcl_twl_stgy_prog_spec:
   subgoal by simp
   subgoal by simp
   subgoal by simp
-  subgoal by blast
-  subgoal for brk S' T brk' U
-  proof -
-    assume a1: \<open>cdcl_twl_cp\<^sup>*\<^sup>* S' T\<close>
-    assume a2: \<open>case (brk', U) of (brk, S') \<Rightarrow> cdcl_twl_o\<^sup>*\<^sup>* T S' \<and>
-      (get_conflict S' \<noteq> None \<longrightarrow> get_conflict S' = Some {#}) \<and> no_step cdcl_twl_o S' \<and>
-      (brk \<longrightarrow> no_step cdcl_twl_stgy S') \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
-      clauses_to_update S' = {#} \<and> (\<not> brk \<longrightarrow> literals_to_update S' \<noteq> {#}) \<and>
-      (\<not> no_step cdcl_twl_o T \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ T S')\<close>
-    assume a3: \<open>case (brk, S') of (brk, S') \<Rightarrow> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
-      (brk \<longrightarrow> no_step cdcl_twl_stgy S') \<and> cdcl_twl_stgy\<^sup>*\<^sup>* S S' \<and> clauses_to_update S' = {#} \<and>
-      (\<not> brk \<longrightarrow> get_conflict S' = None)\<close>
-    have f4: \<open>cdcl_twl_o\<^sup>*\<^sup>* T U \<and> (get_conflict U \<noteq> None \<longrightarrow> get_conflict U = Some {#}) \<and>
-      no_step cdcl_twl_o U \<and> (brk' \<longrightarrow> no_step cdcl_twl_stgy U) \<and> twl_struct_invs U \<and>
-      twl_stgy_invs U \<and> clauses_to_update U = {#} \<and> (\<not> brk' \<longrightarrow> literals_to_update U \<noteq> {#})\<close>
-      using a2 by fastforce
-    have f5: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S' T\<close>
-      using a1 by (metis cp mono_rtranclp)
-    have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>
-      using f4 rtranclp_cdcl_twl_o_stgyD by blast
-    then show ?thesis
-      using f5 a3 by force
-  qed
+  subgoal by (rule cdcl_twl_o_final_twl_state)
+  subgoal by (rule cdcl_twl_o_prog_cdcl_twl_stgy)
   subgoal by simp
-  subgoal by (force simp: twl_struct_invs_def)
+  subgoal for brk0 T U brl V
+    by clarsimp
+
   \<comment> \<open>Final properties\<close>
-  subgoal for brkT T U V'  \<comment> \<open>termination\<close>
-  proof -
-    assume
-      T: \<open>case (brkT, T) of (brk, T) \<Rightarrow> twl_struct_invs T \<and> twl_stgy_invs T \<and>
-        (brk \<longrightarrow> no_step cdcl_twl_stgy T) \<and> cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> clauses_to_update T = {#} \<and>
-        (\<not> brk \<longrightarrow> get_conflict T = None)\<close> and
-      brkT: \<open>case (brkT, T) of (brk, uu_) \<Rightarrow> \<not> brk\<close> and
-      V': \<open>case V' of (brk, T) \<Rightarrow> cdcl_twl_o\<^sup>*\<^sup>* U T \<and>
-      (get_conflict T \<noteq> None \<longrightarrow> get_conflict T = Some {#}) \<and>
-      no_step cdcl_twl_o T \<and> (brk \<longrightarrow> no_step cdcl_twl_stgy T) \<and> twl_struct_invs T \<and>
-      twl_stgy_invs T \<and> clauses_to_update T = {#} \<and> (\<not> brk \<longrightarrow> literals_to_update T \<noteq> {#}) \<and>
-      (\<not> no_step cdcl_twl_o U \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ U T)\<close> and
-      [simp]: \<open>twl_struct_invs U\<close> and
-      TU: \<open>cdcl_twl_cp\<^sup>*\<^sup>* T U\<close> and
-      \<open>literals_to_update U = {#}\<close> and
-      \<open>no_step cdcl_twl_cp U\<close> and
-      [simp]: \<open>twl_stgy_invs U\<close>
-    obtain brkV V where
-      V'_V: \<open>V' = (brkV, V)\<close>
-      by (cases V') auto
-    then have
-      UV: \<open>cdcl_twl_o\<^sup>*\<^sup>* U V\<close> and
-      confl_V: \<open>get_conflict V \<noteq> None \<longrightarrow> get_conflict V = Some {#}\<close> and
-      ns_o_V: \<open>no_step cdcl_twl_o V\<close> and
-      brkV: \<open>brkV \<longrightarrow> no_step cdcl_twl_stgy V\<close> and
-      \<open>\<not> brkV \<longrightarrow> literals_to_update V \<noteq> {#}\<close> and
-      \<open>\<not> no_step cdcl_twl_o U \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ U V\<close> and
-      [simp]: \<open>twl_struct_invs V\<close>
-      using V' by auto
-
-    have [simp]: \<open>twl_struct_invs T\<close>
-      using T by auto
-    have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T V\<close>
-      using TU UV by (auto dest!: rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_o_stgyD)
-    then have TV_or_tranclp_TV: \<open>T = V \<or> cdcl_twl_stgy\<^sup>+\<^sup>+ T V\<close>
-      unfolding rtranclp_unfold by auto
-
-    have [simp]: \<open>\<not>brkT\<close>
-      using brkT by auto
-
-    have \<open>brkV\<close> if \<open>T = V\<close>
-    proof -
-      have ns_TV: \<open>\<not>cdcl_twl_stgy\<^sup>+\<^sup>+ T V\<close>
-        using that wf_not_refl[OF tranclp_wf_cdcl_twl_stgy, of T] by auto
-
-      have ns_U_U: \<open>\<not>cdcl_twl_o\<^sup>+\<^sup>+ U U\<close>
-        using wf_not_refl[OF tranclp_wf_cdcl_twl_o, of U] by auto
-      have \<open>T = U\<close>
-        by (metis (no_types, hide_lams) TU UV ns_TV rtranclp_cdcl_twl_cp_stgyD
-            rtranclp_cdcl_twl_o_stgyD rtranclp_tranclp_tranclp rtranclp_unfold)
-      then show brkV
-        using T V' \<open>literals_to_update U = {#}\<close> unfolding V'_V that[symmetric]
-        by (auto simp: ns_U_U)
-    qed
-    then show
-      \<open>(V', (brkT, T)) \<in> {((brkT, T), (brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union>
-      {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close>
-      using TV_or_tranclp_TV unfolding V'_V by auto
-  qed
+  subgoal for brk0 T U V  \<comment> \<open>termination\<close>
+    by (rule cdcl_twl_stgy_in_measure)
   subgoal by simp
   subgoal by fast
   done
