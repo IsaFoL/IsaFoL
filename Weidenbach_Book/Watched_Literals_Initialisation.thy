@@ -596,7 +596,9 @@ next
   case 9
   show ?case
     unfolding twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
-    by (cases D; cases a) (auto simp: S cdcl\<^sub>W_restart_mset.no_smaller_confl_def clauses_def
+       cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+    by (cases D; cases a)
+        (auto simp: S cdcl\<^sub>W_restart_mset.no_smaller_confl_def clauses_def
         cdcl\<^sub>W_restart_mset_state Let_def)
 
   case 10
@@ -692,7 +694,8 @@ proof -
     unfolding S by auto
   have [simp]: \<open>twl_stgy_invs (twl_st_of None (fst S))\<close>
     unfolding S by (auto simp: twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
-        cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_smaller_confl_def)
+        cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+        cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
   have [simp]: \<open>get_conflict_l (fst S) = None\<close>
     unfolding S by auto
   have [simp]: \<open>snd S = {#}\<close> \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (fst S))) = {#}\<close>

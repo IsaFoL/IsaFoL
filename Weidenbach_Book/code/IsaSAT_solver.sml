@@ -1992,24 +1992,9 @@ fun literal_is_in_conflict_heur_code x =
     is_in_lookup_option_conflict_code ai a1c)
     x;
 
-fun lookup_clause_assn_is_empty (B1_, B2_) =
-  (fn (_, (n, _)) => eq B2_ n (zero B1_));
-
-fun get_conflict_wl_is_Nil_code x =
-  (fn xi =>
-    (fn () =>
-      let
-        val (_, (_, (_, (a1c, (_, (_, (_, _))))))) = xi;
-      in
-        (if lookup_clause_assn_is_None a1c then false
-          else lookup_clause_assn_is_empty (zero_uint32, equal_uint32) a1c)
-      end))
-    x;
-
 fun skip_and_resolve_loop_wl_D_code x =
   (fn xi => fn () =>
     let
-      val xa = get_conflict_wl_is_Nil_code xi ();
       val a =
         heap_WHILET
           (fn (a1, a2) =>
@@ -2025,8 +2010,8 @@ fun skip_and_resolve_loop_wl_D_code x =
                 (fn f_ => fn () => f_
                   ((literal_is_in_conflict_heur_code (uminus_code a1a) a2) ())
                   ())
-                  (fn xb =>
-                    (if not xb
+                  (fn xa =>
+                    (if not xa
                       then (fn f_ => fn () => f_ ((tl_state_wl_heur_code a2) ())
                              ())
                              (fn x_e => (fn () => (false, x_e)))
@@ -2037,7 +2022,7 @@ fun skip_and_resolve_loop_wl_D_code x =
                              (fn x_d =>
                                (if x_d then update_confl_tl_wl_code a2a a1a a2
                                  else (fn () => (true, a2))))))))
-          (xa, xi) ();
+          (false, xi) ();
     in
       let
         val (_, aa) = a;
@@ -2046,17 +2031,6 @@ fun skip_and_resolve_loop_wl_D_code x =
       end
         ()
     end)
-    x;
-
-fun get_conflict_wll_is_Nil_code x =
-  (fn xi =>
-    (fn () =>
-      let
-        val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
-      in
-        (if lookup_clause_assn_is_None a1c then false
-          else lookup_clause_assn_is_empty (zero_uint32, equal_uint32) a1c)
-      end))
     x;
 
 fun equal_minimize_status SEEN_REMOVABLE SEEN_UNKNOWN = false
@@ -3150,16 +3124,16 @@ fun cdcl_twl_o_prog_wl_D_code x =
       val xa = get_conflict_wl_is_None_code xi ();
     in
       (if xa then decide_wl_or_skip_D_code xi
-        else (fn f_ => fn () => f_ ((skip_and_resolve_loop_wl_D_code xi) ()) ())
-               (fn x_a =>
-                 (fn f_ => fn () => f_ ((get_conflict_wll_is_Nil_code x_a) ())
-                   ())
-                   (fn xb =>
-                     (if not xb
-                       then (fn f_ => fn () => f_
-                              ((backtrack_wl_D_nlit_heur_code x_a) ()) ())
-                              (fn x_c => (fn () => (false, x_c)))
-                       else (fn () => (true, x_a))))))
+        else (fn f_ => fn () => f_ ((count_decided_st_code xi) ()) ())
+               (fn xb =>
+                 (if Word32.< ((Word32.fromInt 0), xb)
+                   then (fn f_ => fn () => f_
+                          ((skip_and_resolve_loop_wl_D_code xi) ()) ())
+                          (fn x_b =>
+                            (fn f_ => fn () => f_
+                              ((backtrack_wl_D_nlit_heur_code x_b) ()) ())
+                              (fn x_c => (fn () => (false, x_c))))
+                   else (fn () => (true, xi)))))
         ()
     end)
     x;

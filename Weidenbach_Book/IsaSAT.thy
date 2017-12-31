@@ -22,7 +22,7 @@ definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset
   \<open>SAT CS = do{
     let T = init_state CS;
     SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy T U \<or>
-         (CS \<noteq> {#} \<and> learned_clss U = {#} \<and> conflicting U \<noteq> None \<and> count_decided (trail U) = 0 \<and>
+         (CS \<noteq> {#} \<and> conflicting U \<noteq> None \<and> count_decided (trail U) = 0 \<and>
           unsatisfiable (set_mset CS)))
   }\<close>
 
@@ -306,18 +306,34 @@ proof -
     unfolding extract_atms_clss_def .
 qed
 
+(* TODO Move *)
+lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step:
+  \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state {#}) S \<longleftrightarrow> False\<close>
+  unfolding rtranclp_unfold
+  by (auto simp:  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps
+      cdcl\<^sub>W_restart_mset.conflict.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.simps
+       cdcl\<^sub>W_restart_mset.propagate.simps cdcl\<^sub>W_restart_mset.decide.simps
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps cdcl\<^sub>W_restart_mset.backtrack.simps
+      cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps
+      cdcl\<^sub>W_restart_mset_state clauses_def)
+
+lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state:
+  \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state {#}) S \<longleftrightarrow> S = init_state {#}\<close>
+  unfolding rtranclp_unfold
+  by (subst tranclp_unfold_begin)
+     (auto simp: cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step simp del: init_state.simps)
+(* End Move *)
+
 lemma conflict_of_level_unsatisfiable:
   assumes
     struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S\<close> and
     dec: \<open>count_decided (trail S) = 0\<close> and
     confl: \<open>conflicting S \<noteq> None\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
-  shows \<open>unsatisfiable (set_mset (cdcl\<^sub>W_restart_mset.clauses S))\<close>
+  shows \<open>unsatisfiable (set_mset (init_clss S))\<close>
 proof -
-
   obtain M N U D where S: \<open>S = (M, N, U, Some D)\<close>
     by (cases S) (use confl in auto)
-
   have [simp]: \<open>get_all_ann_decomposition M = [([], M)]\<close>
     by (rule no_decision_get_all_ann_decomposition)
       (use dec in \<open>auto simp: count_decided_def filter_empty_conv S \<close>)
@@ -341,6 +357,36 @@ proof -
 
   then show ?thesis
     by (auto simp: S clauses_def dest: satisfiable_decreasing)
+qed
+
+lemma twl_conflict_of_level_unsatisfiable_from_init:
+  assumes
+    invs: \<open>twl_struct_invs (twl_st_of_wl None U)\<close> and
+    st: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state CS) (state\<^sub>W_of (twl_st_of_wl None U))\<close> and
+    lev: \<open>count_decided (get_trail_wl U) = 0\<close> and
+    confl: \<open>get_conflict_wl U \<noteq> None\<close> and
+    \<open>satisfiable (set_mset CS)\<close>
+  shows \<open>False\<close>
+proof -
+  have \<open>init_clss (state\<^sub>W_of (twl_st_of_wl None U)) = CS\<close>
+    using cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss[OF st] by fastforce
+  moreover have
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (twl_st_of_wl None U))\<close>
+    using invs unfolding twl_struct_invs_def by fast
+  moreover have \<open>backtrack_lvl (state\<^sub>W_of (twl_st_of_wl None U)) = 0\<close>
+    using lev by (cases U) auto
+  moreover have \<open>conflicting (state\<^sub>W_of (twl_st_of None (st_l_of_wl None U))) \<noteq> None\<close>
+    using confl by (cases U) auto
+  moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init
+         (state\<^sub>W_of (twl_st_of_wl None U))\<close>
+    apply (rule cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_learned_clauses_entailed[of \<open>init_state CS\<close>])
+    subgoal using st by (blast dest!: cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
+    subgoal by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+    subgoal by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
+    subgoal by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
+    done
+  ultimately show ?thesis
+    using conflict_of_level_unsatisfiable[of \<open>state\<^sub>W_of (twl_st_of_wl None U)\<close>] assms by auto
 qed
 
 lemma cdcl_twl_stgy_prog_wl_spec_final2:
@@ -409,7 +455,7 @@ proof -
   have conflict_during_init: \<open>RETURN (fst T)
       \<le> \<Down> TWL_to_clauses_state_conv
            (SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS) U \<or>
-                     CS \<noteq> {#} \<and> learned_clss U = {#} \<and> conflicting U \<noteq> None \<and>
+                     CS \<noteq> {#} \<and> conflicting U \<noteq> None \<and>
                      backtrack_lvl U = 0 \<and>
                      unsatisfiable (set_mset CS)))\<close>
     if
@@ -475,7 +521,6 @@ proof -
       \<le> \<Down> TWL_to_clauses_state_conv
           (SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS) U \<or>
                      CS \<noteq> {#} \<and>
-                     learned_clss U = {#} \<and>
                      conflicting U \<noteq> None \<and> backtrack_lvl U = 0 \<and> unsatisfiable (set_mset CS)))\<close>
     if
       \<open>Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)\<close> and
@@ -540,7 +585,6 @@ proof -
       \<le> \<Down> TWL_to_clauses_state_conv
           (SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS) U \<or>
                      CS \<noteq> {#} \<and>
-                     learned_clss U = {#} \<and>
                      conflicting U \<noteq> None \<and>
                      backtrack_lvl U = 0 \<and> unsatisfiable (set_mset CS)))\<close>
     if
@@ -642,7 +686,18 @@ proof -
         using L
         by (cases L) (auto simp: CS in_extract_atms_clssD uint_max_def)
     qed
-    then have 2:
+    have 2:\<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' []))
+             (from_init_state T)
+            \<le> \<Down> {(S, S'). S' = st_l_of_wl None S}
+               (SPEC (\<lambda>Ta. cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of_wl None (from_init_state T))
+                 (twl_st_of None Ta) \<and>
+                final_twl_state (twl_st_of None Ta)))\<close>
+      apply (rule isasat_input_bounded.cdcl_twl_stgy_prog_wl_D_spec_final2_Down
+        [of \<open>(mset (extract_atms_clss CS' []))\<close>])
+      using CS_p \<L>\<^sub>a\<^sub>l\<^sub>l
+        struct_invs stgy_invs corr_w add_invs clss 1 confl clss clss_CS'
+      by (auto simp: from_init_state_def)
+    (* then have 2:
       \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' []))
          (from_init_state T)
        \<le> SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
@@ -651,20 +706,42 @@ proof -
       using isasat_input_bounded.cdcl_twl_stgy_prog_wl_spec_final2[of
           \<open>mset (extract_atms_clss CS' [])\<close> \<open>(from_init_state T)\<close>] CS_p \<L>\<^sub>a\<^sub>l\<^sub>l
         struct_invs stgy_invs corr_w add_invs clss 1 confl clss clss_CS'
-      by (auto simp: from_init_state_def)
-
+      by (auto simp: from_init_state_def) *)
     have RES_SPEC: \<open>RES ({(S', S). S = state\<^sub>W_of (twl_st_of_wl None S')}\<inverse> ``
             Collect (full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS))) =
      SPEC (\<lambda>S'. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy ([], CS, {#}, None)
                    (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S'))))\<close>
       by auto
-    have \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' []))
-         (from_init_state T)
-      \<le> \<Down> TWL_to_clauses_state_conv
-      (SPEC (full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS)))\<close>
-      unfolding TWL_to_clauses_state_conv_def conc_fun_RES RES_SPEC
-      by (rule weaken_SPEC[OF SPEC_add_information[OF 1 2]])
-       (auto simp: from_init_state_def intro: rtranclp_fullI)
+    have [simp]: \<open>backtrack_lvl (state\<^sub>W_of (twl_st_of_wl None U)) = count_decided (get_trail_wl U)\<close> for U
+      by (cases U) auto
+    have [simp]: \<open>count_decided (get_trail (twl_st_of_wl None U)) = count_decided (get_trail_wl U)\<close> for U
+      by (cases U) auto
+    have [simp]: \<open>twl_st_of None (st_l_of_wl None U) = twl_st_of_wl None U\<close> for U
+      by auto
+    note twl_st_of_wl.simps[simp del]
+    have ?thesis
+      unfolding TWL_to_clauses_state_conv_def RES_SPEC from_init_state_def[symmetric]
+      apply (rule order_trans)
+      apply (rule 2)
+      unfolding conc_fun_RES less_eq_nres.simps (* TODO refactor *)
+      apply rule
+      subgoal for U
+        apply (subgoal_tac \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None U))\<close>)
+        subgoal
+          using 1 struct_invs
+          by (auto simp: conc_fun_RES final_twl_state_def from_init_state_def[symmetric] full_def
+              cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state
+              get_conflict_l_st_l_of_wl conflicting_twl_st_of_wl get_trail_l_st_l_of_wl
+              intro!: twl_conflict_of_level_unsatisfiable_from_init
+              simp del: twl_st_of.simps st_l_of_wl.simps split_paired_All
+              init_state.simps
+              dest: rtranclp_trans
+              dest!: rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy)
+        subgoal
+          using struct_invs
+          by (auto intro: rtranclp_cdcl_twl_stgy_twl_struct_invs simp: from_init_state_def)
+        done
+      done
     then show ?thesis
       unfolding confl if_True
       by (auto intro: ref_two_step simp: from_init_state_def)

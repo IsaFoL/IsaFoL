@@ -885,7 +885,7 @@ where
                 RETURN (True, S)
           }
         )
-        (get_conflict_wl_is_Nil_heur S\<^sub>0, S\<^sub>0);
+        (False, S\<^sub>0);
       RETURN S
     }
   \<close>
