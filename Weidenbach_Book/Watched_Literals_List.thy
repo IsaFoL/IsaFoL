@@ -1242,14 +1242,18 @@ definition tl_state_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> wh
 
 definition resolve_cls_l' :: \<open>'v twl_st_l \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v clause\<close> where
 \<open>resolve_cls_l' S C L  =
-   remove1_mset (-L) (the (get_conflict_l S)) \<union>#
-      (if C = 0 then {#} else mset (tl (get_clauses_l S!C)))\<close>
+   remove1_mset (-L) (the (get_conflict_l S)) \<union># mset (tl (get_clauses_l S!C))\<close>
 
 definition update_confl_tl_l :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> bool \<times> 'v twl_st_l\<close> where
   \<open>update_confl_tl_l = (\<lambda>C L (M, N, U, D, NE, UE, WS, Q).
      let D = resolve_cls_l' (M, N, U, D, NE, UE, WS, Q) C L in
-        (D = {#}, (tl M, N, U, Some D, NE, UE, WS, Q)))\<close>
+        (False, (tl M, N, U, Some D, NE, UE, WS, Q)))\<close>
 
+abbreviation skip_and_resolve_loop_inv_l where
+  \<open>skip_and_resolve_loop_inv_l  S\<^sub>0 brk S \<equiv> 
+     skip_and_resolve_loop_inv (twl_st_of None S\<^sub>0) (brk, twl_st_of None S) \<and>
+        twl_list_invs S \<and> clauses_to_update_l S = {#} \<and>
+        (\<not>is_decided (hd (get_trail_l S)) \<longrightarrow> mark_of (hd(get_trail_l S)) > 0)\<close>
 text \<open>
   We here strictly follow \<^term>\<open>cdcl\<^sub>W_restart_mset.skip\<close> and \<^term>\<open>cdcl\<^sub>W_restart_mset.resolve\<close>:
   if the level is 0, we should directly return \<^term>\<open>{#}\<close>. This would also avoid the
@@ -1260,8 +1264,7 @@ definition skip_and_resolve_loop_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st
     do {
       ASSERT(get_conflict_l S\<^sub>0 \<noteq> None);
       (_, S) \<leftarrow>
-        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_inv (twl_st_of None S\<^sub>0) (brk, twl_st_of None S) \<and>
-         twl_list_invs S \<and> clauses_to_update_l S = {#}\<^esup>
+        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_inv_l S\<^sub>0 brk S\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_l S)))
         (\<lambda>(_, S).
           do {
@@ -1303,10 +1306,11 @@ private lemma skip_and_resolve_skip_refine:
         C' = (if C = 0 then {#L#} else mset (get_clauses_l S ! C))}\<close> and
     LC: \<open>lit_and_ann_of_propagated (hd (get_trail_l S)) = (L, C)\<close> and
     tr: \<open>get_trail_l S \<noteq> []\<close> and
-    struct_invs: \<open>twl_struct_invs (twl_st_of None S)\<close>
+    struct_invs: \<open>twl_struct_invs (twl_st_of None S)\<close> and
+    stgy_invs: \<open>twl_stgy_invs (twl_st_of None S)\<close> and
+    lev: \<open>count_decided (get_trail_l S) > 0\<close>
   shows
-   \<open>(update_confl_tl_l C L S, remove1_mset (- L') (the (get_conflict S')) \<union># remove1_mset L' C' =
-          {#},
+   \<open>(update_confl_tl_l C L S, False,
      update_confl_tl (Some (remove1_mset (- L') (the (get_conflict S')) \<union># remove1_mset L' C')) S')
          \<in> {((brk, S), brk', S').
              brk = brk' \<and>
@@ -1322,44 +1326,52 @@ proof -
     C': \<open>C' = (if C = 0 then {#L#} else mset (get_clauses_l S ! C))\<close> and
     invs_S: \<open>twl_list_invs S\<close>
     using rel rel' unfolding S by auto
-  show ?thesis
-  proof (cases \<open>C = 0\<close>)
-    case True
-    then show ?thesis
+
+  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of (twl_st_of None S))\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (twl_st_of None S))\<close>
+    using struct_invs unfolding twl_struct_invs_def by fast+
+  moreover have \<open>Suc 0 \<le> backtrack_lvl (state\<^sub>W_of (twl_st_of None S))\<close>
+    using lev by (cases S) (auto simp: trail.simps)
+  moreover have \<open>is_proped (cdcl\<^sub>W_restart_mset.hd_trail (state\<^sub>W_of (twl_st_of None S)))\<close>
+    using dec tr by (cases S; cases \<open>get_trail_l S\<close>)
+     (auto simp: trail.simps is_decided_no_proped_iff)
+  moreover have \<open>mark_of (cdcl\<^sub>W_restart_mset.hd_trail (state\<^sub>W_of (twl_st_of None S))) = C'\<close>
+     using dec unfolding S C' by (auto simp: trail.simps)
+  ultimately have False: \<open>C = 0 \<Longrightarrow> False\<close>
+    using C' cdcl\<^sub>W_restart_mset.hd_trail_level_ge_1_length_gt_1[of \<open>state\<^sub>W_of (twl_st_of None S)\<close>]
+    by (auto simp: is_decided_no_proped_iff)
+  then have \<open>L = N ! C ! 0\<close> and \<open>C < length N\<close>
     using invs_S
-    by (auto simp: skip_and_resolve_loop_inv_def twl_list_invs_def resolve_cls_l'_def
+    unfolding S C' by (auto simp: twl_list_invs_def)
+  moreover {
+    have \<open>twl_st_inv (twl_st_of None (Propagated L C # M, N, U, D, NE, UE, {#}, Q))\<close>
+      using struct_invs unfolding S twl_struct_invs_def
+      by fast
+    then have
+      \<open>Multiset.Ball (twl_clause_of `# mset (take U (tl N)) + twl_clause_of `# mset (drop (Suc U) N))
+      struct_wf_twl_cls\<close>
+      unfolding twl_st_of.simps twl_st_inv.simps by fast
+    then have
+      \<open>Multiset.Ball (mset (tl N)) (\<lambda>C. size C \<ge> 2)\<close>
+      unfolding Ball_def mset_append[symmetric] image_mset_union[symmetric] drop_Suc
+      by auto
+    moreover have \<open>N ! C \<in> set (tl N)\<close>
+      using False \<open>C < length N\<close> nth_in_set_tl unfolding S by blast
+    ultimately have \<open>length (N ! C) \<ge> 2\<close>
+      using False \<open>C < length N\<close> unfolding S by (auto simp: twl_list_invs_def)
+  }
+  ultimately show ?thesis
+    using invs_S
+    by (cases \<open>N ! C\<close>)
+      (auto simp: skip_and_resolve_loop_inv_def twl_list_invs_def resolve_cls_l'_def
         resolve_cls_l_nil_iff update_confl_tl_l_def update_confl_tl_def
-         S S' C')
-  next
-    case False
-    then have \<open>L = N ! C ! 0\<close> and \<open>C < length N\<close>
-      using invs_S
-      unfolding S C' by (auto simp: twl_list_invs_def)
-    moreover {
-      have \<open>twl_st_inv (twl_st_of None (Propagated L C # M, N, U, D, NE, UE, {#}, Q))\<close>
-        using struct_invs unfolding S twl_struct_invs_def
-        by fast
-      then have
-        \<open>Multiset.Ball (twl_clause_of `# mset (take U (tl N)) + twl_clause_of `# mset (drop (Suc U) N))
-        struct_wf_twl_cls\<close>
-        unfolding twl_st_of.simps twl_st_inv.simps by fast
-      then have
-        \<open>Multiset.Ball (mset (tl N)) (\<lambda>C. size C \<ge> 2)\<close>
-        unfolding Ball_def mset_append[symmetric] image_mset_union[symmetric] drop_Suc
-        by auto
-      moreover have \<open>N ! C \<in> set (tl N)\<close>
-        using False \<open>C < length N\<close> nth_in_set_tl unfolding S by blast
-      ultimately have \<open>length (N ! C) \<ge> 2\<close>
-        using False \<open>C < length N\<close> unfolding S by (auto simp: twl_list_invs_def)
-    }
-    ultimately show ?thesis
-      using invs_S
-      by (cases \<open>N ! C\<close>)
-        (auto simp: skip_and_resolve_loop_inv_def twl_list_invs_def resolve_cls_l'_def
-          resolve_cls_l_nil_iff update_confl_tl_l_def update_confl_tl_def
-          S S' C')
-  qed
+        S S' C' dest!: False)
 qed
+
+(* TODO Move *)
+lemma is_proped_convert_lit[simp]: \<open>is_proped (convert_lit b a) \<longleftrightarrow> is_proped a\<close>
+  by (cases a) auto
+(* End Move *)
 
 lemma skip_and_resolve_loop_l_spec:
   \<open>(skip_and_resolve_loop_l, skip_and_resolve_loop) \<in>
@@ -1423,7 +1435,40 @@ proof -
   have clauses_to_update_l_tl_state: \<open>clauses_to_update_l (tl_state_l S) = clauses_to_update_l S\<close>
     for S
     by (cases S, cases \<open>get_trail_l S\<close>) (auto simp: tl_state_l_def)
-
+have mark_ge_0: \<open>0 < mark_of (hd (get_trail_l T))\<close>
+  if 
+    SS': \<open>(S, S') \<in> ?R\<close> and
+    \<open>get_conflict_l S \<noteq> None\<close> and
+    brk_TT': \<open>(brkT, brkT')
+     \<in> {((brk, S), brk', S').
+        brk = brk' \<and>
+        S' = twl_st_of None S \<and>
+        twl_list_invs S \<and> clauses_to_update_l S = {#}}\<close> and
+    loop_inv: \<open>skip_and_resolve_loop_inv S' brkT'\<close> and
+    brkT: \<open>brkT = (brk, T)\<close> and
+    dec: \<open>\<not> is_decided (hd (get_trail_l T))\<close>
+    for S S' brkT brkT' brk T
+proof -
+  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of (twl_st_of None T))\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (twl_st_of None T))\<close> and
+    tr: \<open>get_trail (twl_st_of None T) \<noteq> []\<close> and
+    count_dec: \<open>count_decided (get_trail_l T) \<noteq> 0\<close>
+    using loop_inv brk_TT' unfolding twl_struct_invs_def skip_and_resolve_loop_inv_def brkT 
+    by force+
+  moreover have \<open>Suc 0 \<le> backtrack_lvl (state\<^sub>W_of (twl_st_of None T))\<close>
+    using count_dec by (cases T) (auto simp: trail.simps)
+  moreover have \<open>is_proped (cdcl\<^sub>W_restart_mset.hd_trail (state\<^sub>W_of (twl_st_of None T)))\<close>
+    using dec tr by (cases T; cases \<open>get_trail_l T\<close>)
+     (auto simp: trail.simps is_decided_no_proped_iff)
+  moreover have \<open>mark_of (hd (get_trail_l T)) = 0 \<Longrightarrow>
+    size (mark_of (cdcl\<^sub>W_restart_mset.hd_trail (state\<^sub>W_of (twl_st_of None T)))) = Suc 0\<close>
+    using tr dec by (cases T; cases \<open>get_trail_l T\<close>; cases \<open>hd (get_trail_l T)\<close>)
+       (auto simp: trail.simps)
+  ultimately have False: \<open>mark_of (hd (get_trail_l T)) = 0 \<Longrightarrow> False\<close>
+    using cdcl\<^sub>W_restart_mset.hd_trail_level_ge_1_length_gt_1[of \<open>state\<^sub>W_of (twl_st_of None T)\<close>]
+    by (auto simp: is_decided_no_proped_iff)
+  then show ?thesis by blast
+qed
   have H:
     \<open>(skip_and_resolve_loop_l, skip_and_resolve_loop) \<in> ?R \<rightarrow>
       \<langle>{(T::'v twl_st_l, T'). T' = twl_st_of None T \<and> twl_list_invs T \<and>
@@ -1442,6 +1487,7 @@ proof -
       \<comment> \<open>trail not empty\<close>
     subgoal by (auto simp add: get_trail_twl_st_of_get_trail_l)
       \<comment> \<open>conflict not none\<close>
+    subgoal by (rule mark_ge_0)
     subgoal by (auto simp: is_decided_no_proped_iff lit_hd_get_trail_twl_st_of
       dest!: skip_and_resolve_loop_inv_trail_nempty)
       \<comment> \<open>head of the trail is a propagation\<close>
@@ -1458,8 +1504,9 @@ proof -
       dest!: skip_and_resolve_loop_inv_trail_nempty)
     subgoal by (auto simp: clauses_to_update_l_tl_state)
     subgoal by auto
-    subgoal by (rule skip_and_resolve_skip_refine)
-        (auto simp: skip_and_resolve_loop_inv_def get_trail_twl_st_of_nil_iff)
+    subgoal
+      by (rule skip_and_resolve_skip_refine) 
+       (auto simp: skip_and_resolve_loop_inv_def get_trail_twl_st_of_nil_iff)
       \<comment> \<open>annotations are valid\<close>
     subgoal by auto
     subgoal by auto

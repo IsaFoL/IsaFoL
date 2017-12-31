@@ -475,7 +475,8 @@ definition skip_and_resolve_loop_inv where
       clauses_to_update S = {#} \<and> literals_to_update S = {#} \<and>
           get_conflict S \<noteq> None \<and>
           count_decided (get_trail S) \<noteq> 0 \<and>
-          (\<not>brk \<longrightarrow> get_trail S \<noteq> [] \<and> get_conflict S \<noteq> Some {#}) \<and>
+          get_trail S \<noteq> [] \<and>
+          get_conflict S \<noteq> Some {#} \<and>
           (brk \<longrightarrow> no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of S) \<and>
             no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of S)))\<close>
 
@@ -501,8 +502,7 @@ definition skip_and_resolve_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_st nre
             else
               if get_maximum_level (get_trail S) (remove1_mset (-L) D') = count_decided (get_trail S)
               then
-                do {RETURN (cdcl\<^sub>W_restart_mset.resolve_cls L D' C = {#},
-                    update_confl_tl (Some (cdcl\<^sub>W_restart_mset.resolve_cls L D' C)) S)}
+                do {RETURN (False, update_confl_tl (Some (cdcl\<^sub>W_restart_mset.resolve_cls L D' C)) S)}
               else
                 do {RETURN (True, S)}
           }
@@ -556,7 +556,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
     M: \<open>get_trail T = Propagated L C # M'\<close> and WS: \<open>WS = {#}\<close> and Q: \<open>Q = {#}\<close> and D: \<open>D = Some D'\<close> and
     st: \<open>cdcl_twl_o\<^sup>*\<^sup>* S T\<close> and twl: \<open>twl_struct_invs T\<close> and D': \<open>D' \<noteq> {#}\<close> and
     twl_stgy_S: \<open>twl_stgy_invs T\<close> and
-    [simp]: \<open>count_decided (tl M) > 0\<close>
+    [simp]: \<open>count_decided (tl M) > 0\<close> \<open>count_decided (tl M) \<noteq> 0\<close>
     using brk inv LC unfolding skip_and_resolve_loop_inv_def
     by (cases \<open>get_trail T\<close>; cases \<open>hd (get_trail T)\<close>) (auto simp: T)
 
@@ -608,12 +608,16 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
         using  M unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         by (auto simp add: cdcl\<^sub>W_restart_mset_state T update_confl_tl_def)
     }
-    ultimately show \<open>skip_and_resolve_loop_inv S (?D = {#}, ?T)\<close>
+    moreover have \<open>get_conflict ?T \<noteq> Some {#}\<close>
+      using twl_stgy_T count_dec unfolding twl_stgy_invs_def update_confl_tl_def
+        cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def T
+        by (auto simp: trail.simps conflicting.simps)
+    ultimately show \<open>skip_and_resolve_loop_inv S (False, ?T)\<close>
       using WS Q D D' unfolding skip_and_resolve_loop_inv_def
       by (auto simp add: cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps
           cdcl\<^sub>W_restart_mset_state update_confl_tl_def T)
 
-    show \<open>((?D = {#}, ?T), (brk, T)) \<in> measure (\<lambda>(brk, S). Suc (length (get_trail S)
+    show \<open>((False, ?T), (brk, T)) \<in> measure (\<lambda>(brk, S). Suc (length (get_trail S)
         - (if brk then 1 else 0)))\<close>
       using M_not_empty by (simp add: T update_confl_tl_def)
   }

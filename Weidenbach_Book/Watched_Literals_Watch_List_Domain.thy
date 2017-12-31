@@ -1077,6 +1077,10 @@ proof -
     done
 qed
 
+abbreviation (in isasat_input_ops) skip_and_resolve_loop_wl_D_inv where
+  \<open>skip_and_resolve_loop_wl_D_inv S\<^sub>0 brk S \<equiv>
+      skip_and_resolve_loop_wl_inv S\<^sub>0 brk S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+
 definition (in isasat_input_ops) skip_and_resolve_loop_wl_D
   :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
 where
@@ -1084,8 +1088,7 @@ where
     do {
       ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
       (_, S) \<leftarrow>
-        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
-         twl_list_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<^esup>
+        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_wl_D_inv S\<^sub>0 brk S\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
         (\<lambda>(brk, S).
           do {
@@ -1141,12 +1144,10 @@ lemma skip_and_resolve_loop_wl_D_spec:
     (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
   define invar where
-   \<open>invar = (\<lambda>(brk, T). skip_and_resolve_loop_inv (twl_st_of_wl None S) (brk, twl_st_of_wl None T) \<and>
-         twl_list_invs (st_l_of_wl None T) \<and> correct_watching T \<and> literals_are_\<L>\<^sub>i\<^sub>n T)\<close>
+   \<open>invar = (\<lambda>(brk, T). skip_and_resolve_loop_wl_D_inv S brk T)\<close>
   have 1: \<open>((get_conflict_wl S = Some {#}, S), get_conflict_wl S = Some {#}, S) \<in> Id\<close>
     by auto
-  have H: \<open>(\<lambda>(brk, T). skip_and_resolve_loop_inv (twl_st_of_wl None S) (brk, twl_st_of_wl None T) \<and>
-         twl_list_invs (st_l_of_wl None T) \<and> correct_watching T) =
+  have H: \<open>(\<lambda>(brk, T). skip_and_resolve_loop_wl_inv S brk T) =
        invar\<close>
     apply (intro ext, rename_tac brkT)
     subgoal for brkT
@@ -1166,15 +1167,17 @@ proof -
     subgoal unfolding invar_def by fast
     subgoal unfolding invar_def by fast
     subgoal unfolding invar_def by fast
-    subgoal by fast
-    subgoal by fast
+    subgoal unfolding invar_def by fast
+    subgoal unfolding invar_def by fast
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal unfolding invar_def by auto
     subgoal by auto
     subgoal unfolding invar_def by auto
-    subgoal by fast
+    subgoal by auto
+    subgoal unfolding invar_def by auto
+    subgoal by auto
     subgoal by auto
     done
 qed

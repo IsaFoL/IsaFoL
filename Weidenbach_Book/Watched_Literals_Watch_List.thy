@@ -1037,21 +1037,24 @@ definition tl_state_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close>
 
 definition resolve_cls_wl' :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v clause\<close> where
 \<open>resolve_cls_wl' S C L  =
-   remove1_mset (-L) (the (get_conflict_wl S)) \<union>#
-      (if C = 0 then {#} else mset (tl (get_clauses_wl S!C)))\<close>
+   remove1_mset (-L) (the (get_conflict_wl S)) \<union># (mset (tl (get_clauses_wl S!C)))\<close>
 
 definition update_confl_tl_wl :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool \<times> 'v twl_st_wl\<close> where
   \<open>update_confl_tl_wl = (\<lambda>C L (M, N, U, D, NE, UE, WS, Q).
      let D = resolve_cls_wl' (M, N, U, D, NE, UE, WS, Q) C L in
-        (D = {#}, (tl M, N, U, Some D, NE, UE, WS, Q)))\<close>
+        (False, (tl M, N, U, Some D, NE, UE, WS, Q)))\<close>
+
+abbreviation skip_and_resolve_loop_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>skip_and_resolve_loop_wl_inv S\<^sub>0 brk S\<equiv> 
+     skip_and_resolve_loop_inv_l (st_l_of_wl None S\<^sub>0) brk (st_l_of_wl None S) \<and>
+        correct_watching S\<close>
 
 definition skip_and_resolve_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>skip_and_resolve_loop_wl S\<^sub>0 =
     do {
       ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
       (_, S) \<leftarrow>
-        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
-         twl_list_invs (st_l_of_wl None S) \<and> correct_watching S\<^esup>
+        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_wl_inv S\<^sub>0 brk S\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
         (\<lambda>(_, S).
           do {
@@ -1116,7 +1119,7 @@ proof -
     by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
   have update_confl_tl_wl: \<open>
     (brkT, brkT') \<in> bool_rel \<times>\<^sub>f {(T', T). st_l_of_wl None T' = T \<and> correct_watching T'} \<Longrightarrow>
-    case brkT' of (brk, S) \<Rightarrow> skip_and_resolve_loop_inv (twl_st_of None S') (brk, twl_st_of None S) \<and> twl_list_invs S \<and> clauses_to_update_l S = {#} \<Longrightarrow>
+    case brkT' of (brk, S) \<Rightarrow> skip_and_resolve_loop_inv_l S' brk S \<Longrightarrow>
     brkT' = (brk', T') \<Longrightarrow>
     brkT = (brk, T) \<Longrightarrow>
     lit_and_ann_of_propagated (hd (get_trail_l T')) = (L', C') \<Longrightarrow>
@@ -1133,7 +1136,7 @@ proof -
 
   have H: \<open>?s \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
     unfolding skip_and_resolve_loop_wl_def skip_and_resolve_loop_l_def
-    apply (refine_vcg get_conflict_wl)
+    apply (refine_rcg get_conflict_wl)
     subgoal by (auto simp add: get_conflict_l_st_l_of_wl)
     subgoal by auto
     subgoal by auto
@@ -1144,6 +1147,8 @@ proof -
     subgoal by (auto simp: get_conflict_l_st_l_of_wl get_trail_l_st_l_of_wl)
     subgoal by (auto simp: get_trail_l_st_l_of_wl )
     subgoal by (auto simp: get_conflict_l_st_l_of_wl get_trail_l_st_l_of_wl)
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by (rule update_confl_tl_wl) assumption+
     subgoal by auto
