@@ -1861,64 +1861,36 @@ fun update_confl_tl_wl_code x =
     fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
     (a1g, (a1h, (a1i, (a1j, (a1k, a2k))))))))))))
       =>
-    (if equal_nat ai zero_nata
-      then (fn () =>
-             let
-               val x_a = conflict_remove1_code (uminus_code bia) (snd a1c) ();
-               val xa = tl_trail_tr_code a1 ();
-               val xaa =
-                 vmtf_mark_to_rescore_and_unset_code (atm_of_code bia) a1f ();
-               val xb =
-                 heap_array_set_u heap_bool a1g (atm_of_code bia)
-                   (is_pos_code bia) ();
-             in
-               (let
-                  val (n, _) = x_a;
-                in
-                  ((n : Word32.word) = (Word32.fromInt 0))
-                end,
-                 (xa, (a1a, (a1b, ((false, x_a),
-                                    (a1d, (a1e,
-    (xaa, (xb, (fast_minus_uint32 a1h (Word32.fromInt 1),
-                 (a1i, (a1j, (a1k, a2k)))))))))))))
-             end)
-      else (fn () =>
-             let
-               val a =
-                 resolve_lookup_conflict_merge_code a1 a1a ai a1c a1h a1j a1k
-                   ();
-             in
-               let
-                 val (a1l, (a1m, (a1n, a2n))) = a;
-               in
-                 (fn f_ => fn () => f_
-                   ((conflict_remove1_code (uminus_code bia) (snd a1l)) ()) ())
-                   (fn x_d =>
-                     (fn f_ => fn () => f_ ((tl_trail_tr_code a1) ()) ())
-                       (fn xa =>
-                         (fn f_ => fn () => f_
-                           ((vmtf_mark_to_rescore_and_unset_code
-                              (atm_of_code bia) a1f)
-                           ()) ())
-                           (fn xaa =>
-                             (fn f_ => fn () => f_
-                               ((heap_array_set_u heap_bool a1g
-                                  (atm_of_code bia) (is_pos_code bia))
-                               ()) ())
-                               (fn xb =>
-                                 (fn () =>
-                                   (let
-                                      val (n, _) = x_d;
-                                    in
-                                      ((n : Word32.word) = (Word32.fromInt 0))
-                                    end,
-                                     (xa, (a1a,
-    (a1b, ((false, x_d),
-            (a1d, (a1e, (xaa, (xb, (fast_minus_uint32 a1m (Word32.fromInt 1),
-                                     (a1i, (a1n, (a2n, a2k))))))))))))))))))
-               end
-                 ()
-             end)))
+    fn () =>
+    let
+      val a = resolve_lookup_conflict_merge_code a1 a1a ai a1c a1h a1j a1k ();
+    in
+      let
+        val (a1l, (a1m, (a1n, a2n))) = a;
+      in
+        (fn f_ => fn () => f_
+          ((conflict_remove1_code (uminus_code bia) (snd a1l)) ()) ())
+          (fn x_c =>
+            (fn f_ => fn () => f_ ((tl_trail_tr_code a1) ()) ())
+              (fn xa =>
+                (fn f_ => fn () => f_
+                  ((vmtf_mark_to_rescore_and_unset_code (atm_of_code bia) a1f)
+                  ()) ())
+                  (fn xaa =>
+                    (fn f_ => fn () => f_
+                      ((heap_array_set_u heap_bool a1g (atm_of_code bia)
+                         (is_pos_code bia))
+                      ()) ())
+                      (fn xb =>
+                        (fn () =>
+                          (false,
+                            (xa, (a1a, (a1b,
+ ((false, x_c),
+   (a1d, (a1e, (xaa, (xb, (fast_minus_uint32 a1m (Word32.fromInt 1),
+                            (a1i, (a1n, (a2n, a2k))))))))))))))))))
+      end
+        ()
+    end)
     x;
 
 fun tl_state_wl_heur_code x =
@@ -1992,24 +1964,9 @@ fun literal_is_in_conflict_heur_code x =
     is_in_lookup_option_conflict_code ai a1c)
     x;
 
-fun lookup_clause_assn_is_empty (B1_, B2_) =
-  (fn (_, (n, _)) => eq B2_ n (zero B1_));
-
-fun get_conflict_wl_is_Nil_code x =
-  (fn xi =>
-    (fn () =>
-      let
-        val (_, (_, (_, (a1c, (_, (_, (_, _))))))) = xi;
-      in
-        (if lookup_clause_assn_is_None a1c then false
-          else lookup_clause_assn_is_empty (zero_uint32, equal_uint32) a1c)
-      end))
-    x;
-
 fun skip_and_resolve_loop_wl_D_code x =
   (fn xi => fn () =>
     let
-      val xa = get_conflict_wl_is_Nil_code xi ();
       val a =
         heap_WHILET
           (fn (a1, a2) =>
@@ -2025,8 +1982,8 @@ fun skip_and_resolve_loop_wl_D_code x =
                 (fn f_ => fn () => f_
                   ((literal_is_in_conflict_heur_code (uminus_code a1a) a2) ())
                   ())
-                  (fn xb =>
-                    (if not xb
+                  (fn xa =>
+                    (if not xa
                       then (fn f_ => fn () => f_ ((tl_state_wl_heur_code a2) ())
                              ())
                              (fn x_e => (fn () => (false, x_e)))
@@ -2037,7 +1994,7 @@ fun skip_and_resolve_loop_wl_D_code x =
                              (fn x_d =>
                                (if x_d then update_confl_tl_wl_code a2a a1a a2
                                  else (fn () => (true, a2))))))))
-          (xa, xi) ();
+          (false, xi) ();
     in
       let
         val (_, aa) = a;
@@ -2046,17 +2003,6 @@ fun skip_and_resolve_loop_wl_D_code x =
       end
         ()
     end)
-    x;
-
-fun get_conflict_wll_is_Nil_code x =
-  (fn xi =>
-    (fn () =>
-      let
-        val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
-      in
-        (if lookup_clause_assn_is_None a1c then false
-          else lookup_clause_assn_is_empty (zero_uint32, equal_uint32) a1c)
-      end))
     x;
 
 fun equal_minimize_status SEEN_REMOVABLE SEEN_UNKNOWN = false
@@ -3150,16 +3096,16 @@ fun cdcl_twl_o_prog_wl_D_code x =
       val xa = get_conflict_wl_is_None_code xi ();
     in
       (if xa then decide_wl_or_skip_D_code xi
-        else (fn f_ => fn () => f_ ((skip_and_resolve_loop_wl_D_code xi) ()) ())
-               (fn x_a =>
-                 (fn f_ => fn () => f_ ((get_conflict_wll_is_Nil_code x_a) ())
-                   ())
-                   (fn xb =>
-                     (if not xb
-                       then (fn f_ => fn () => f_
-                              ((backtrack_wl_D_nlit_heur_code x_a) ()) ())
-                              (fn x_c => (fn () => (false, x_c)))
-                       else (fn () => (true, x_a))))))
+        else (fn f_ => fn () => f_ ((count_decided_st_code xi) ()) ())
+               (fn xb =>
+                 (if Word32.< ((Word32.fromInt 0), xb)
+                   then (fn f_ => fn () => f_
+                          ((skip_and_resolve_loop_wl_D_code xi) ()) ())
+                          (fn x_b =>
+                            (fn f_ => fn () => f_
+                              ((backtrack_wl_D_nlit_heur_code x_b) ()) ())
+                              (fn x_c => (fn () => (false, x_c))))
+                   else (fn () => (true, xi)))))
         ()
     end)
     x;

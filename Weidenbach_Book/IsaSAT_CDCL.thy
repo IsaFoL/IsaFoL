@@ -321,10 +321,14 @@ where
       if get_conflict_wl_heur S = None
       then decide_wl_or_skip_D_heur S
       else do {
-        T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
-        if get_conflict_wl_heur T \<noteq> Some {#}
-        then do {U \<leftarrow> backtrack_wl_D_nlit_heur T; RETURN (False, U)}
-        else do {RETURN (True, T)}
+
+        if count_decided_st S > zero_uint32_nat
+        then do {
+          T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
+          U \<leftarrow> backtrack_wl_D_nlit_heur T;
+          RETURN (False, U)
+        }
+        else RETURN (True, S)
       }
     }
   \<close>
@@ -374,6 +378,12 @@ prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
 lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+lemma (in isasat_input_ops) twl_st_heur_count_decided_st_alt_def: 
+  fixes S :: twl_st_wl_heur
+  shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> count_decided_st S = count_decided (get_trail_wl T)\<close>
+  unfolding count_decided_st_def twl_st_heur_def
+  by (cases S) auto
+
 lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
   \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>f twl_st_heur\<rangle>nres_rel\<close>
   unfolding cdcl_twl_o_prog_wl_D_heur_def cdcl_twl_o_prog_wl_D_def
@@ -383,7 +393,7 @@ lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
       skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D[THEN fref_to_Down]
       backtrack_wl_D_nlit_backtrack_wl_D[THEN fref_to_Down])
   subgoal by (auto simp: twl_st_heur_state_simp)
-  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_count_decided_st_alt_def)
   subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp)
   done

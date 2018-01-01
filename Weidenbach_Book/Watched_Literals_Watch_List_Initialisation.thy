@@ -91,7 +91,11 @@ proof -
   qed
 qed
 
+lemma twl_struct_invs_init_twl_struct_invs:
+  \<open>snd S = {#} \<Longrightarrow> twl_struct_invs_init S \<longleftrightarrow> twl_struct_invs (fst S)\<close>
+  by (cases S) (auto simp: twl_struct_invs_def twl_struct_invs_init_def)
 
+(* TODO Kill?
 
 subsection \<open>Final Theorem with Initialisation\<close>
 
@@ -99,9 +103,6 @@ fun init_wl_of :: \<open>'v twl_st_l\<Rightarrow> 'v twl_st_wl\<close> where
   \<open>init_wl_of (M, N, U, D, NE, UE, _, Q) =
        ((M, N, U, D, NE, UE, Q, calculate_correct_watching (tl N) (\<lambda>_. []) 1))\<close>
 
-lemma twl_struct_invs_init_twl_struct_invs:
-  \<open>snd S = {#} \<Longrightarrow> twl_struct_invs_init S \<longleftrightarrow> twl_struct_invs (fst S)\<close>
-  by (cases S) (auto simp: twl_struct_invs_def twl_struct_invs_init_def)
 
 theorem init_dt_wl:
   fixes CS S
@@ -143,10 +144,11 @@ proof -
     subgoal
       using init_dt(5)[OF dist]
       by (cases \<open>init_dt CS S\<^sub>0\<close>) (auto simp: S\<^sub>0 clauses_def twl_list_invs_def)
-    done
+    don
   from cdcl_twl_stgy_prog_wl_spec_final2[OF this(1,3) no_confl this(4) corr_w]
   show ?thesis
     .
 qed
 
+*)
 end

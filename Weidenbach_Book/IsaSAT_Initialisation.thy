@@ -1417,6 +1417,7 @@ proof -
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
         past_invs.simps clauses_def twl_list_invs_def twl_stgy_invs_def clause_to_update_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+        cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
         cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_def)
   note HH = init_dt_init_dt_l_full[of CS S, unfolded clss_empty,
         OF dist struct dec confl aff_invs learned stgy_invs watch clss _ learned_nil,
