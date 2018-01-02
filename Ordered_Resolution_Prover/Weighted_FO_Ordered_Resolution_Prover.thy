@@ -127,51 +127,14 @@ definition weighted_RP_Inference :: "'a wstate \<Rightarrow> 'a wstate \<Rightar
 lemma weighted_RP_iff_inference_or_non_inference: "St \<leadsto>\<^sub>w St' \<longleftrightarrow> St \<leadsto>\<^sub>w\<^sub>i St' \<or> St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St'"
   unfolding weighted_RP_Non_Inference_def weighted_RP_Inference_def by auto
 
+(* FIXME: move general lemmas to Lazy_List_Chain (and rename) *)
 lemma infinite_chain_if_infinite_chain:
   assumes "\<forall>i. r (f (Suc i)) (f i)"
   shows "\<not> lfinite (inf_llist f) \<and> chain r\<inverse>\<inverse> (inf_llist f)"
-proof -
-  from assms have "\<forall>j. enat (j + 1) < llength (inf_llist f) \<longrightarrow> 
-                     r\<inverse>\<inverse> (lnth (inf_llist f) j) (lnth (inf_llist f) (j + 1))"
-    using assms by auto
-  then have "chain r\<inverse>\<inverse> (inf_llist f)" 
-    using lnth_rel_chain by (metis inf_llist_neq_LNil)
-  moreover
-  have inf: "\<not> lfinite (inf_llist f)"
-    using assms by auto
-  ultimately show ?thesis
-    by auto
-qed
-
-(* FIXME: remove this alternate proof of infinite_chain_if_infinite_chain when lnth_rel_chain has 
-          been proved. *)
-lemma
-  assumes "\<forall>i. r (f (Suc i)) (f i)"
-  shows "\<not> lfinite (inf_llist f) \<and> chain r\<inverse>\<inverse> (inf_llist f)"
-proof
-  show inf: "\<not> lfinite (inf_llist f)"
-    using assms by auto
-  from assms inf
-  show "chain r\<inverse>\<inverse> (inf_llist f)"
-  proof (coinduction arbitrary: f rule: chain.coinduct)
-    case chain
-    have "inf_llist f = LCons (f 0) (inf_llist (f \<circ> Suc))"
-      using inf_llist_rec unfolding comp_def by metis
-    moreover 
-    from chain have "(\<forall>i. (f (Suc i), f i) \<in> {(x, y). r x y}) \<or> chain r\<inverse>\<inverse> (inf_llist (f \<circ> Suc))"
-      by auto
-    moreover have "r\<inverse>\<inverse> (f 0) (f 1)"
-      using chain by auto
-    then have "r\<inverse>\<inverse> (f 0) (lhd (inf_llist (f o Suc)))"
-      using chain by simp 
-    ultimately show ?case
-      by auto
-  qed
-qed
+  using assms by (simp add: lnth_rel_chain)
 
 lemma infinite_chain_lnth_rel:
-  assumes "\<not> lfinite c"
-  assumes "chain r c"
+  assumes "\<not> lfinite c" and "chain r c"
   shows "r (lnth c i) (lnth c (Suc i))"
   using assms chain_lnth_rel lfinite_conv_llength_enat by force
 
@@ -179,7 +142,7 @@ lemma infinite_down_chain_iff_infinite_down_chain:
   "(\<exists>f. \<forall>i. r (f (Suc i)) (f i)) \<longleftrightarrow> (\<exists>c. \<not> lfinite c \<and> chain r\<inverse>\<inverse> c)"
   using infinite_chain_if_infinite_chain infinite_chain_lnth_rel by blast
 
-lemma wfP_iff_no_infinite_down_chain: "wfP r \<longleftrightarrow> (\<nexists>c. \<not>lfinite c \<and> chain r\<inverse>\<inverse> c)"
+lemma wfP_iff_no_infinite_down_chain: "wfP r \<longleftrightarrow> (\<nexists>c. \<not> lfinite c \<and> chain r\<inverse>\<inverse> c)"
 proof -
   have "wfP r \<longleftrightarrow>  wf {(x, y). r x y}"
     unfolding wfP_def by auto
@@ -856,7 +819,7 @@ proof -
       case (Suc xc)
       have any_Ck_in_wP: "\<forall>k. (C, k) \<in># wP_of_wstate (lnth Sts (x + xb + xc)) \<longrightarrow> j \<le> k"
       proof (rule, rule)
-        fix k :: "nat"
+        fix k :: nat
         assume "(C, k) \<in># wP_of_wstate (lnth Sts (x + xb + xc))"
         then have "(C, k) \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) (xb + xc))"
           by (simp add: add.commute add.left_commute llength_infty)
@@ -881,7 +844,7 @@ proof -
     done
   have "(\<And>xa. x+xb \<le> xa \<Longrightarrow> (C, j) \<in># wP_of_wstate (lnth Sts xa))"
   proof -
-    fix xa :: "nat"
+    fix xa :: nat
     assume a:
       "x+xb \<le> xa"
     have "(C, j) \<in># wP_of_wstate (lnth (ldrop (enat (x + xb)) Sts) (xa - (x+xb)))"
@@ -1015,7 +978,7 @@ proof (rule ccontr)
   }
   ultimately have "\<exists>St'. llast Sts \<leadsto>\<^sub>w St'"
      by auto
-   then show "False"
+   then show False
      using no_inf_from_last by metis
  qed
 
@@ -1176,28 +1139,22 @@ lemma weighted_RP_Non_Inference_if_constant_n:
     "St \<leadsto>\<^sub>w St'"
     "n_of_wstate St = n_of_wstate St'"
   shows "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St'"
-using assms assms(1) proof (induction rule: weighted_RP.induct)
-  case (inference_computation P C i N n Q)
-  then have False
-    by auto
-  then show ?case
-    by auto
-qed (auto simp add: weighted_RP_Non_Inference_def)
+  using assms(1,2,1)
+  by (induction rule: weighted_RP.induct) (auto simp: weighted_RP_Non_Inference_def)
 
 lemma weighted_RP_Non_Inference_chain_if_constant_n:
   assumes 
-    "\<forall>m'\<ge>m. n_of_wstate (lnth Sts m') = c" and
+    "\<forall>m' \<ge> m. n_of_wstate (lnth Sts m') = c" and
     "\<not> lfinite Sts" and
     "llength Sts = \<infinity>"
   shows "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop m Sts)"
 proof (rule lnth_rel_chain)
-  show "LNil \<noteq> (ldrop m Sts)"
-    using assms
-    by (metis enat.distinct(2) lfinite_LNil lfinite_ldrop) 
+  show "\<not> lnull (ldrop m Sts)"
+    using assms by simp
 next
   show "\<forall>j. enat (j + 1) < llength (ldrop m Sts) \<longrightarrow> lnth (ldrop m Sts) j \<leadsto>\<^sub>w\<^sub>n\<^sub>i lnth (ldrop m Sts) (j + 1)" 
   proof (rule, rule)
-    fix j :: "nat"
+    fix j :: nat
     have "n_of_wstate (lnth (ldrop m Sts) j) = n_of_wstate (lnth (ldrop m Sts) (j + 1))"
       using assms lnth_ldrop[of m _ Sts] by auto
     moreover
@@ -1228,7 +1185,7 @@ proof (induction n)
     then have "chain (\<lambda>x y. (x, y) \<in> RP_Non_Inference_relation)\<inverse>\<inverse> (lmap RP_Non_Inference_measure (ldrop (enat 0) Sts))"
       using infinite_chain_relation_measure[of 0] assms inf
       by auto
-    then show "False" 
+    then show False 
       using wfP_iff_no_infinite_down_chain[of "\<lambda>x y. (x, y) \<in> RP_Non_Inference_relation"] 
         wf_RP_Non_Inference_relation inf
       by (metis (no_types, lifting) inf_llist_lnth ldrop_enat_inf_llist lfinite_inf_llist 
@@ -1254,7 +1211,7 @@ next
       using leI by blast
     have "\<forall>m' > m. Suc n = n_of_wstate (lnth Sts m')"
     proof (rule, rule)
-      fix m' :: "nat"
+      fix m' :: nat
       assume a: "m < m'"
       then have "n_of_wstate (lnth Sts m') \<le> Suc n"
         using adf by auto
@@ -1268,7 +1225,7 @@ next
       by (metis Suc_le_lessD) 
     then have "chain (\<lambda>x y. (x, y) \<in> RP_Non_Inference_relation)\<inverse>\<inverse> (lmap RP_Non_Inference_measure (ldrop (enat (Suc m)) Sts))"
       using infinite_chain_relation_measure[of "Suc m"] using assms inf by auto
-    then show "False"
+    then show False
       using wfP_iff_no_infinite_down_chain[of "\<lambda>x y. (x, y) \<in> RP_Non_Inference_relation"] 
         wf_RP_Non_Inference_relation inf
       by (metis (no_types, lifting) inf_llist_lnth ldrop_enat_inf_llist lfinite_inf_llist 
@@ -1313,28 +1270,25 @@ proof (rule ccontr)
     (* ultimately *)
     have "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop k Sts)"
     proof (rule lnth_rel_chain)
-      show "LNil \<noteq> ldrop (enat k) Sts"
-        by (metis inff ldrop_enat lfinite_code(1) lfinite_ldropn)
+      show "\<not> lnull (ldrop (enat k) Sts)"
+        by (simp add: inf inff)
     next
       show "\<forall>j. enat (j + 1) < llength (ldrop (enat k) Sts) \<longrightarrow>
             lnth (ldrop (enat k) Sts) j \<leadsto>\<^sub>w\<^sub>n\<^sub>i lnth (ldrop (enat k) Sts) (j + 1)"
       proof (rule, rule)
-        fix j :: "nat"
+        fix j :: nat
         assume "enat (j + 1) < llength (ldrop (enat k) Sts)"
         then have "lnth (ldrop (enat k) Sts) j \<leadsto>\<^sub>w lnth (ldrop (enat k) Sts) (j + 1)"
           using chain_lnth_rel[OF chain_drop_Sts, of j] by auto
-        moreover
-        have "N_of_wstate (lnth (ldrop (enat k) Sts) j) \<noteq> {}"
-          using in_N_j[of j] in_wN_of_wstate_in_N_of_wstate[of C _ "(lnth (ldrop (enat k) Sts) j)"] 
+        moreover have "N_of_wstate (lnth (ldrop (enat k) Sts) j) \<noteq> {}"
+          using in_N_j[of j] in_wN_of_wstate_in_N_of_wstate[of C _ "lnth (ldrop (enat k) Sts) j"]
           by auto
-        ultimately
-        show "lnth (ldrop (enat k) Sts) j \<leadsto>\<^sub>w\<^sub>n\<^sub>i lnth (ldrop (enat k) Sts) (j + 1)"
+        ultimately show "lnth (ldrop (enat k) Sts) j \<leadsto>\<^sub>w\<^sub>n\<^sub>i lnth (ldrop (enat k) Sts) (j + 1)"
           unfolding weighted_RP_Non_Inference_def by auto
       qed
     qed
     then have "chain (\<lambda>x y. (x, y) \<in> RP_Non_Inference_relation)\<inverse>\<inverse> (lmap RP_Non_Inference_measure (ldrop k Sts))"
-      using inff inf
-      using infinite_chain_relation_measure by auto
+      using inff inf infinite_chain_relation_measure by auto
     then show False
       using wfP_iff_no_infinite_down_chain[of "\<lambda>x y. (x, y) \<in> RP_Non_Inference_relation"] 
         wf_RP_Non_Inference_relation inff

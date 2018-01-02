@@ -89,14 +89,38 @@ proof -
 qed
 
 lemma lnth_rel_chain:
-  assumes "\<not> LNil = xs"
-  assumes "(\<forall>j. enat (j + 1) < llength xs \<longrightarrow> R (lnth xs j) (lnth xs (j + 1)))"
+  assumes
+    "\<not> lnull xs" and
+    "\<forall>j. enat (j + 1) < llength xs \<longrightarrow> R (lnth xs j) (lnth xs (j + 1))"
   shows "chain R xs"
-proof (coinduction rule: chain.coinduct)
+  using assms
+proof (coinduction arbitrary: xs rule: chain.coinduct)
   case chain
-  then show ?case sorry
-qed
+  note nnul = this(1) and nth_chain = this(2)
 
+  show ?case
+  proof (cases "lnull (ltl xs)")
+    case True
+    have "xs = LCons (lhd xs) LNil"
+      using nnul True by (simp add: llist.expand)
+    then show ?thesis
+      by blast
+  next
+    case nnul': False
+    moreover have "xs = LCons (lhd xs) (ltl xs)"
+      using nnul by simp
+    moreover have
+      "\<forall>j. enat (j + 1) < llength (ltl xs) \<longrightarrow> R (lnth (ltl xs) j) (lnth (ltl xs) (j + 1))"
+      using nnul nth_chain
+      by (metis Suc_eq_plus1 ldrop_eSuc_ltl ldropn_Suc_conv_ldropn ldropn_eq_LConsD lnth_ltl)
+    moreover have "R (lhd xs) (lhd (ltl xs))"
+      using nnul' nnul nth_chain[rule_format, of 0, simplified]
+      by (metis ldropn_0 ldropn_Suc_conv_ldropn ldropn_eq_LConsD lhd_LCons_ltl lhd_conv_lnth
+          lnth_Suc_LCons ltl_simps(2))
+    ultimately show ?thesis
+      by blast
+  qed
+qed
 
 lemma chain_lmap:
   assumes "\<forall>x y. R x y \<longrightarrow> R' (f x) (f y)" and "chain R xs"
