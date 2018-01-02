@@ -2307,6 +2307,15 @@ fun arl_set_ua A_ a i x = arl_set A_ a (nat_of_uint32 i) x;
 
 fun arl_set_u A_ a i x = arl_set_ua A_ a i x;
 
+fun delete_index_and_swap_code x =
+  (fn ai => fn bi => fn () => let
+                                val xa = arl_last heap_uint32 ai ();
+                                val xb = arl_set_u heap_uint32 ai bi xa ();
+                              in
+                                arl_butlast heap_uint32 xb ()
+                              end)
+    x;
+
 fun int_of_nat n = Int_of_integer (integer_of_nat n);
 
 fun integer_of_int (Int_of_integer k) = k;
@@ -2344,15 +2353,10 @@ fun minimize_and_extract_highest_lookup_conflict_code x =
                       else (fn f_ => fn () => f_
                              ((delete_from_lookup_conflict_code x_a a1) ()) ())
                              (fn x_e =>
-                               (fn f_ => fn () => f_ ((arl_last heap_uint32 a2b)
-                                 ()) ())
+                               (fn f_ => fn () => f_
+                                 ((delete_index_and_swap_code a2b a1a) ()) ())
                                  (fn xa =>
-                                   (fn f_ => fn () => f_
-                                     ((arl_set_u heap_uint32 a2b a1a xa) ()) ())
-                                     (fn xb =>
-                                       (fn f_ => fn () => f_
- ((arl_butlast heap_uint32 xb) ()) ())
- (fn xc => (fn () => (x_e, (a1a, (a1c, xc))))))))))))
+                                   (fn () => (x_e, (a1a, (a1c, xa))))))))))
           (bic, ((Word32.fromInt 1), (bib, bi))) ();
     in
       let
