@@ -2490,6 +2490,17 @@ lemma arl_set_hnr_u[sepref_fr_rules]:
      nat_of_uint32_code[symmetric])
 (* End Move *)
 
+
+sepref_definition delete_index_and_swap_code
+  is \<open>uncurry (RETURN oo delete_index_and_swap)\<close>
+  :: \<open>[\<lambda>(xs, i). i < length xs]\<^sub>a 
+      (arl_assn unat_lit_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> arl_assn unat_lit_assn\<close>
+  unfolding delete_index_and_swap.simps
+  by sepref
+
+declare delete_index_and_swap_code.refine[sepref_fr_rules]
+
+
 context isasat_input_bounded
 begin
 
@@ -2596,7 +2607,7 @@ sepref_thm minimize_and_extract_highest_lookup_conflict_code
     in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max[intro] length_u_hnr[sepref_fr_rules]
     array_set_hnr_u[sepref_fr_rules]
   unfolding minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
-    one_uint32_nat_def[symmetric] PR_CONST_def delete_index_and_swap.simps
+    one_uint32_nat_def[symmetric] PR_CONST_def
     length_u_def[symmetric] minimize_and_extract_highest_lookup_conflict_inv_def
   by sepref
 
