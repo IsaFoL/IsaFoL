@@ -88,6 +88,16 @@ proof -
     using ys_def unfolding ys by (metis ldropn_Suc_conv_ldropn ldropn_eq_LConsD llist.inject)
 qed
 
+lemma lnth_rel_chain:
+  assumes "\<not> LNil = xs"
+  assumes "(\<forall>j. enat (j + 1) < llength xs \<longrightarrow> R (lnth xs j) (lnth xs (j + 1)))"
+  shows "chain R xs"
+proof (coinduction rule: chain.coinduct)
+  case chain
+  then show ?case sorry
+qed
+
+
 lemma chain_lmap:
   assumes "\<forall>x y. R x y \<longrightarrow> R' (f x) (f y)" and "chain R xs"
   shows "chain R' (lmap f xs)"

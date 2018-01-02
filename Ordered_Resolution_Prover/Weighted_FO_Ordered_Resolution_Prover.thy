@@ -127,18 +127,6 @@ definition weighted_RP_Inference :: "'a wstate \<Rightarrow> 'a wstate \<Rightar
 lemma weighted_RP_iff_inference_or_non_inference: "St \<leadsto>\<^sub>w St' \<longleftrightarrow> St \<leadsto>\<^sub>w\<^sub>i St' \<or> St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St'"
   unfolding weighted_RP_Non_Inference_def weighted_RP_Inference_def by auto
 
-find_theorems inf_llist LCons
-
-(* FIXME: move to Lazy_List_Chain *)
-lemma lnth_rel_chain:
-  assumes "\<not> LNil = xs"
-  assumes "(\<forall>j. enat (j + 1) < llength xs \<longrightarrow> R (lnth xs j) (lnth xs (j + 1)))"
-  shows "chain R xs"
-proof (coinduction rule: chain.coinduct)
-  case chain
-  then show ?case sorry
-qed
-
 lemma infinite_chain_if_infinite_chain:
   assumes "\<forall>i. r (f (Suc i)) (f i)"
   shows "\<not> lfinite (inf_llist f) \<and> chain r\<inverse>\<inverse> (inf_llist f)"
@@ -263,16 +251,6 @@ lemma weighted_RP_sound:
   shows "\<not> satisfiable (grounding_of_wstate (lhd Sts))"
   by (rule RP_sound[OF Sts_thms assms, unfolded lhd_lmap_Sts])
 
-find_theorems \<infinity> llength
-find_theorems lfinite llength
-find_theorems chain lfinite
-
-lemma llength_infinite_if_Ns_non_empty: (* This is only true for full derivations. *)
-  assumes "\<forall>i<llength Sts. N_of_state (state_of_wstate (lnth Sts i)) \<noteq> {}"
-  shows "llength Sts = \<infinity>"
-  using assms deriv
-  oops
-
 abbreviation RP_measure_proto :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
   "RP_measure_proto max_gen \<equiv> (\<lambda>(N, P, Q, n). (image_mset (\<lambda>(_, i). max_gen - i) (N + P), 
                                           sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) (N + P + Q)),
@@ -291,7 +269,7 @@ definition RP_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> nat" where
      (\<lambda>w (N,P,Q,n). sum_mset (image_mset (\<lambda>(C, i). size C + 2) ({#(D,i) \<in># N + P. i \<le> w#}))
                   + sum_mset (image_mset (\<lambda>(C, i). size C + 1) ({#(D,i) \<in># Q. i \<le> w#})))"
 
-abbreviation RP_combined_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
+abbreviation RP_combined_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> nat \<times> (nat \<times> nat)" where
   "RP_combined_measure \<equiv> (\<lambda>n St. (RP_measure n St, RP_Non_Inference_measure St))"
 
 abbreviation(input) RP_relation_proto where
@@ -584,9 +562,7 @@ next
     using inference_computation weighted_RP_Inference_has_measure 
     unfolding natLess_def natLeq_def by fastforce
 qed
-thm weighted_RP_iff_inference_or_non_inference[unfolded]
-find_theorems "op \<leadsto>\<^sub>w" "op \<leadsto>\<^sub>w\<^sub>i" "op \<leadsto>\<^sub>w\<^sub>n\<^sub>i" 
-find_theorems "op <*lex*>"
+
 (* FIXME: stupid name *)
 lemma weighted_RP_combined_has_measure:
   assumes "St \<leadsto>\<^sub>w St'"
@@ -691,65 +667,6 @@ next
       [OF \<open>St \<leadsto>\<^sub>w\<^sub>i St'\<close> inference_computation(4)[folded St_def] inference_computation(5)[folded St_def]] .
   then show ?case 
     unfolding St_def[symmetric] St'_def[symmetric] by auto
-qed
-
-lemma 
-  assumes "St \<leadsto>\<^sub>w St'"
-  assumes "(C,i) \<in># wP_of_wstate St"
-  shows "(RP_measure_proto (weight (C,i) + 1) St', RP_measure_proto (weight (C,i) + 1) St) \<in> RP_relation_proto"
-  using assms proof (induction rule: weighted_RP.induct)
-  case (tautology_deletion A C' N i' P Q n)
-  have "(fst (RP_measure_proto (weight (C, i) + 1) (N, P, Q, n)), fst (RP_measure_proto (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))) \<in> mult natLess"
-    by (rule subset_implies_mult) auto
-  then show ?case
-    unfolding lex_prod_def by auto
-next
-  case (forward_subsumption D P Q C' N i' n)
-  have "(fst (RP_measure_proto (weight (C, i) + 1) (N, P, Q, n)), fst (RP_measure_proto (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))) \<in> mult natLess"
-    by (rule subset_implies_mult) auto
-  then show ?case
-    unfolding lex_prod_def by auto
-next
-  case (backward_subsumption_P D N C' P Q n)
-  then show ?case sorry
-next
-  case (backward_subsumption_Q D N C' P Q i' n)
-  have "(fst (RP_measure_proto (weight (C, i) + 1) (N, P, Q, n))) = fst (RP_measure_proto (weight (C, i) + 1) (N, P, Q  + {#(C', i')#}, n))"
-    by auto
-  moreover have "(fst (snd (RP_measure_proto (weight (C, i) + 1) (N, P, Q, n))), fst (snd (RP_measure_proto (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n)))) \<in> natLess"
-    by (simp add: natLess_def)
-  ultimately show ?case
-    unfolding lex_prod_def by force
-next
-  case (forward_reduction D L' P Q L \<sigma> C' N i' n)
-  have "(fst (RP_measure_proto (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))) = fst (RP_measure_proto (weight (C, i) + 1) (N + {#(C' + {#L#}, i')#}, P, Q, n))"
-    by auto
-  moreover have "(fst (snd (RP_measure_proto (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))), fst (snd (RP_measure_proto (weight (C, i) + 1) (N + {#(C' + {#L#}, i')#}, P, Q, n)))) \<in> natLess"
-     by (simp add: natLess_def)
-  ultimately show ?case
-    unfolding lex_prod_def by force
-next
-  case (backward_reduction_P D L' N L \<sigma> C' P i' Q n)
-  have "(fst (RP_measure_proto (weight (C, i) + 1) (N, P + {#(C', i')#}, Q, n))) = fst (RP_measure_proto (weight (C, i) + 1) (N, P + {#(C' + {#L#}, i')#}, Q, n))"
-    by auto
-  moreover have "(fst (snd (RP_measure_proto (weight (C, i) + 1) (N, P + {#(C', i')#}, Q, n))), fst (snd (RP_measure_proto (weight (C, i) + 1) (N, P  + {#(C' + {#L#}, i')#}, Q, n)))) \<in> natLess"
-     by (simp add: natLess_def)
-  ultimately show ?case
-    unfolding lex_prod_def by force
-next
-  case (backward_reduction_Q D L' N L \<sigma> C' P Q i' n)
-  have "(fst (RP_measure_proto (weight (C, i) + 1) (N, P + {#(C', i')#}, Q , n))) = fst (RP_measure_proto (weight (C, i) + 1) (N, P, Q  + {#(C' + {#L#}, i')#}, n))"
-    sorry (* Problem is... here the measure actually grows *)
-  moreover have "(fst (snd (RP_measure_proto (weight (C, i) + 1) (N, P + {#(C', i')#}, Q, n))), fst (snd (RP_measure_proto (weight (C, i) + 1) (N, P  + {#(C' + {#L#}, i')#}, Q, n)))) \<in> natLess"
-     by (simp add: natLess_def)
-  ultimately show ?case
-    unfolding lex_prod_def by force
-next
-  case (clause_processing N C i P Q n)
-  then show ?case sorry
-next
-  case (inference_computation P C i N n Q)
-  then show ?case sorry
 qed
 
 (* FIXME: come up with better name *)
@@ -1293,32 +1210,35 @@ qed
 
 (* FIXME: come up with a better name *)
 lemma fast_forward:
-  assumes "\<not> lfinite Sts"
   assumes "llength Sts = \<infinity>"
   shows "\<exists>m. n_of_wstate (lnth Sts m) > n"
 proof (induction n)
   case 0
-  then show ?case
+  from assms have inf: "\<not> lfinite Sts"
+    using llength_eq_infty_conv_lfinite by blast
+  from 0 show ?case
   proof (rule ccontr)
     assume "\<nexists>m. 0 < n_of_wstate (lnth Sts m)"
     then have "\<forall>m. n_of_wstate (lnth Sts m) = 0"
       by auto
     then have "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i Sts"
-      using assms weighted_RP_Non_Inference_chain_if_constant_n[of 0 0] zero_enat_def by auto 
+      using inf assms weighted_RP_Non_Inference_chain_if_constant_n[of 0 0] zero_enat_def by auto 
     then have "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop (enat 0) Sts)"
       using assms zero_enat_def by auto
     then have "chain (\<lambda>x y. (x, y) \<in> RP_Non_Inference_relation)\<inverse>\<inverse> (lmap RP_Non_Inference_measure (ldrop (enat 0) Sts))"
-      using infinite_chain_relation_measure[of 0] assms
+      using infinite_chain_relation_measure[of 0] assms inf
       by auto
     then show "False" 
       using wfP_iff_no_infinite_down_chain[of "\<lambda>x y. (x, y) \<in> RP_Non_Inference_relation"] 
-        wf_RP_Non_Inference_relation assms
+        wf_RP_Non_Inference_relation inf
       by (metis (no_types, lifting) inf_llist_lnth ldrop_enat_inf_llist lfinite_inf_llist 
           lfinite_lmap wfPUNIVI wf_induct_rule)
   qed
 next
   case (Suc n)
-  then obtain m where m_p: "n < n_of_wstate (lnth Sts m)"
+  from assms have inf: "\<not> lfinite Sts"
+    using llength_eq_infty_conv_lfinite by blast
+  from Suc obtain m where m_p: "n < n_of_wstate (lnth Sts m)"
     by auto
   (* FIXME: Change name: *)
   then have asdf: "\<And>m'. m' > m \<Longrightarrow> n < n_of_wstate (lnth Sts m')"
@@ -1344,21 +1264,17 @@ next
     qed
     then have "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop (enat (Suc m)) Sts)"
       using weighted_RP_Non_Inference_chain_if_constant_n[of "Suc m" "Suc n"]
-      using assms
+      using assms inf
       by (metis Suc_le_lessD) 
     then have "chain (\<lambda>x y. (x, y) \<in> RP_Non_Inference_relation)\<inverse>\<inverse> (lmap RP_Non_Inference_measure (ldrop (enat (Suc m)) Sts))"
-      using infinite_chain_relation_measure[of "Suc m"] using assms by auto
+      using infinite_chain_relation_measure[of "Suc m"] using assms inf by auto
     then show "False"
       using wfP_iff_no_infinite_down_chain[of "\<lambda>x y. (x, y) \<in> RP_Non_Inference_relation"] 
-        wf_RP_Non_Inference_relation assms
+        wf_RP_Non_Inference_relation inf
       by (metis (no_types, lifting) inf_llist_lnth ldrop_enat_inf_llist lfinite_inf_llist 
           lfinite_lmap wfPUNIVI wf_induct_rule)
   qed
 qed
-
-
-
-
 
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
