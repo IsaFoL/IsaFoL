@@ -500,6 +500,7 @@ lemma cdcl_twl_restart_twl_stgy_invs:
   using assms
   by (induction rule: cdcl_twl_restart.induct)
    (auto simp: twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+    cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
       conflicting.simps cdcl\<^sub>W_restart_mset.no_smaller_confl_def clauses_def trail.simps
       dest!: get_all_ann_decomposition_exists_prepend)
 

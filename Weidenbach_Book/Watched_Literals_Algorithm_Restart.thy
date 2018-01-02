@@ -221,12 +221,16 @@ proof (rule wf_union_compatible)
       by auto
   qed
 qed
+
+abbreviation cdcl_twl_stgy_restart_prog_inv where
+  \<open>cdcl_twl_stgy_restart_prog_inv S\<^sub>0 brk T n \<equiv> twl_struct_invs T \<and> twl_stgy_invs T \<and>
+      (brk \<longrightarrow> final_twl_state T) \<and> cdcl_twl_stgy_restart_with_leftovers (S\<^sub>0, 0) (T, n) \<and>
+         clauses_to_update T = {#} \<and> (\<not>brk \<longrightarrow> get_conflict T = None)\<close>
+
 definition cdcl_twl_stgy_restart_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>cdcl_twl_stgy_restart_prog S\<^sub>0 =
   do {
-    (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). twl_struct_invs T \<and> twl_stgy_invs T \<and>
-      (brk \<longrightarrow> no_step cdcl_twl_stgy T) \<and> cdcl_twl_stgy_restart_with_leftovers (S\<^sub>0, 0) (T, n) \<and>
-         clauses_to_update T = {#} \<and> (\<not>brk \<longrightarrow> get_conflict T = None)\<^esup>
+    (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_prog_inv S\<^sub>0 brk T n\<^esup>
       (\<lambda>(brk, _). \<not>brk)
       (\<lambda>(brk, S, n).
       do {
@@ -243,29 +247,9 @@ definition cdcl_twl_stgy_restart_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres
 lemma restart_prog_spec:
   fixes n :: string
   assumes
-    inv: \<open>case (brk, T, m) of
-     (brk, T, n) \<Rightarrow>
-       twl_struct_invs T \<and>
-       twl_stgy_invs T \<and>
-       (brk \<longrightarrow> (\<forall>S'. \<not> cdcl_twl_stgy T S')) \<and>
-       cdcl_twl_stgy_restart_with_leftovers (S, 0)
-        (T, n) \<and>
-       clauses_to_update T = {#} \<and>
-       (\<not> brk \<longrightarrow> get_conflict T = None)\<close> and
+    inv: \<open>case (brk, T, m) of  (brk, T, m) \<Rightarrow> cdcl_twl_stgy_restart_prog_inv S brk T m\<close> and
     cond: \<open>case (brk, T, m) of (brk, uu_) \<Rightarrow> \<not> brk\<close> and
-    other_inv: \<open>case (brk', U) of
-     (brk, T) \<Rightarrow>
-       cdcl_twl_o\<^sup>*\<^sup>* S' T \<and>
-       (get_conflict T \<noteq> None \<longrightarrow>
-        get_conflict T = Some {#}) \<and>
-       (\<forall>S'. \<not> cdcl_twl_o T S') \<and>
-       (brk \<longrightarrow> (\<forall>S'. \<not> cdcl_twl_stgy T S')) \<and>
-       twl_struct_invs T \<and>
-       twl_stgy_invs T \<and>
-       clauses_to_update T = {#} \<and>
-       (\<not> brk \<longrightarrow> literals_to_update T \<noteq> {#}) \<and>
-       (\<not> (\<forall>S'a. \<not> cdcl_twl_o S' S'a) \<longrightarrow>
-        cdcl_twl_o\<^sup>+\<^sup>+ S' T)\<close> and
+    other_inv: \<open>cdcl_twl_o_prog_spec S' (brk', U)\<close> and
     struct_invs_S: \<open>twl_struct_invs S'\<close> and
     cp: \<open>cdcl_twl_cp\<^sup>*\<^sup>* T S'\<close> and
     lits_to_update: \<open>literals_to_update S' = {#}\<close> and
@@ -280,7 +264,7 @@ lemma restart_prog_spec:
   (brk, T, n) \<Rightarrow>
     twl_struct_invs T \<and>
     twl_stgy_invs T \<and>
-    (brk \<longrightarrow> (\<forall>S'. \<not> cdcl_twl_stgy T S')) \<and>
+    (brk \<longrightarrow> final_twl_state T) \<and>
     cdcl_twl_stgy_restart_with_leftovers (S, 0)
      (T, n) \<and>
     clauses_to_update T = {#} \<and>
@@ -301,26 +285,23 @@ proof -
   have res_no_confl: \<open>cdcl_twl_restart U V \<Longrightarrow>get_conflict V = None\<close> for V
     by (auto simp: cdcl_twl_restart.simps)
 
-  thm inv
   have
     struct_invs_T: \<open>twl_struct_invs T\<close> and
     \<open>twl_stgy_invs T\<close> and
-    \<open>brk \<longrightarrow> (\<forall>Ta. \<not> cdcl_twl_stgy T Ta)\<close> and
+    \<open>brk \<longrightarrow> final_twl_state T\<close> and
     twl_res: \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, m)\<close> and
     \<open>clauses_to_update T = {#}\<close> and
     \<open>\<not> brk \<longrightarrow> get_conflict T = None\<close>
     using inv by fast+
   have
     cdcl_o: \<open>cdcl_twl_o\<^sup>*\<^sup>* S' U\<close> and
-    conflict_U: \<open>get_conflict U \<noteq> None \<Longrightarrow> get_conflict U = Some {#}\<close> and
-    \<open>\<forall>S'. \<not> cdcl_twl_o U S'\<close> and
-    brk'_no_step: \<open>\<And>S'. brk' \<Longrightarrow> \<not> cdcl_twl_stgy U S'\<close> and
+    conflict_U: \<open>get_conflict U \<noteq> None \<Longrightarrow> count_decided (get_trail U) = 0\<close> and
+    brk'_no_step: \<open>brk' \<Longrightarrow> final_twl_state U\<close> and
     struct_invs_U: \<open>twl_struct_invs U\<close> and
     stgy_invs_U: \<open>twl_stgy_invs U\<close> and
     clss_to_upd_U: \<open>clauses_to_update U = {#}\<close> and
-    lits_to_upd_U: \<open>\<not> brk' \<longrightarrow> literals_to_update U \<noteq> {#}\<close> and
-    \<open>\<not> (\<forall>S'a. \<not> cdcl_twl_o S' S'a) \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ S' U\<close>
-    using other_inv by fast+
+    lits_to_upd_U: \<open>\<not> brk' \<longrightarrow> literals_to_update U \<noteq> {#}\<close>
+    using other_inv unfolding final_twl_state_def by fast+
 
   have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>
     by (meson \<open>cdcl_twl_o\<^sup>*\<^sup>* S' U\<close> assms(5) rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_o_stgyD
@@ -397,26 +378,34 @@ proof -
     if
       [simp]: \<open>brk' = True\<close>
   proof -
-    have \<open>full1 cdcl_twl_stgy T U \<or> T = U\<close>
+    have \<open>full1 cdcl_twl_stgy T U \<or> T = U \<or> get_conflict U \<noteq> None\<close>
       using brk'_no_step \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>
-      unfolding rtranclp_unfold full1_def by auto
-    then have H: \<open>cdcl_twl_stgy_restart (T, m) (U, m) \<or> T = U\<close>
+      unfolding rtranclp_unfold full1_def final_twl_state_def by auto
+    then consider
+        (step) \<open>cdcl_twl_stgy_restart (T, m) (U, m)\<close> |
+        (TU) \<open>T = U\<close> |
+        (final) \<open>get_conflict U \<noteq> None\<close>
       by (auto dest!: cdcl_twl_stgy_restart.intros)
-    show \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0) (U, m)\<close>
-    proof (cases \<open>cdcl_twl_stgy_restart (T, m) (U, m)\<close>)
-      case True
+    then show \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0) (U, m)\<close>
+    proof cases
+      case step
       then show ?thesis
         using twl_res unfolding cdcl_twl_stgy_restart_with_leftovers_def
         using cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2[of T m U] apply -
         by (rule exI[of _ U]) (fastforce dest!: )
     next
-      case False
-      then have [simp]: \<open>T = U\<close>
-        using H by auto
+      case [simp]: TU
       then show ?thesis
         using twl_res unfolding cdcl_twl_stgy_restart_with_leftovers_def
         using cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2[of T m U] apply -
         by fastforce
+    next
+      case final
+      then show ?thesis
+        using twl_res \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>  unfolding cdcl_twl_stgy_restart_with_leftovers_def
+        using cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2[of T m U] apply -
+        by fastforce
+
     qed
   qed
   have cdcl_twl_stgy_restart_with_leftovers1_T_U:
@@ -433,7 +422,7 @@ proof -
   have brk'_eq: \<open>\<not>cdcl_twl_stgy_restart_with_leftovers1 (T, m) (U, m) \<Longrightarrow> brk'\<close>
     using cdcl_o lits_to_upd_U lits_to_update local.cp
     unfolding cdcl_twl_stgy_restart_with_leftovers1_def
-    unfolding Nitpick.rtranclp_unfold
+    unfolding rtranclp_unfold
     by (auto dest!: tranclp_cdcl_twl_o_stgyD tranclp_cdcl_twl_cp_stgyD
         simp: rtranclp_unfold
         dest: rtranclp_tranclp_tranclp tranclp_trans)
@@ -478,17 +467,13 @@ lemma cdcl_twl_stgy_prog_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_restart_prog S \<le> SPEC(\<lambda>T. \<exists>n. full cdcl_twl_stgy_restart (S, 0) (T, n))\<close>
+    \<open>cdcl_twl_stgy_restart_prog S \<le> SPEC(\<lambda>T. \<exists>n. cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, n) \<and>
+        final_twl_state T)\<close>
+    (is \<open>_ \<le> SPEC(\<lambda>T. ?P T)\<close>)
 proof -
-  have final_prop: \<open>\<exists>n. cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0) (T, n) \<and>
-          (\<forall>S'. \<not> cdcl_twl_stgy_restart (T, n) S')\<close>
+  have final_prop: \<open>?P T\<close>
     if
-     \<open>case (brk, T, n) of (brk, T, n) \<Rightarrow>
-       twl_struct_invs T \<and>
-       twl_stgy_invs T \<and>
-       (brk \<longrightarrow> (\<forall>S'. \<not> cdcl_twl_stgy T S')) \<and>
-       cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, n) \<and>
-       clauses_to_update T = {#} \<and> (\<not> brk \<longrightarrow> get_conflict T = None)\<close> and
+     inv: \<open>case (brk, T, n) of  (brk, T, m) \<Rightarrow> cdcl_twl_stgy_restart_prog_inv S brk T m\<close> and
       \<open>\<not> (case (brk, T, n) of (brk, uu_) \<Rightarrow> \<not> brk)\<close>
     for brk T n
   proof -
@@ -496,7 +481,7 @@ proof -
       \<open>brk\<close> and
       \<open>twl_struct_invs T\<close> and
       \<open>twl_stgy_invs T\<close> and
-      ns: \<open>no_step cdcl_twl_stgy T\<close> and
+      ns: \<open>final_twl_state T\<close> and
       twl_left_overs: \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, n)\<close> and
       \<open>clauses_to_update T = {#}\<close>
       using that by auto
@@ -504,28 +489,16 @@ proof -
        st: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0) (S', n)\<close> and
        S'_T: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S' T\<close>
       using twl_left_overs unfolding cdcl_twl_stgy_restart_with_leftovers_def by auto
-    have ns_T: \<open>no_step cdcl_twl_stgy_restart (T, n)\<close>
-        using ns by (auto simp: cdcl_twl_stgy_restart.simps full1_def tranclp_unfold_begin)
-    consider
-      (S'T)  \<open>S' = T\<close> |
-      (full) \<open>full1 cdcl_twl_stgy S' T\<close>
-      using ns S'_T unfolding full1_def rtranclp_unfold by auto
     then show ?thesis
-    proof cases
-      case [simp]: S'T
-      then show ?thesis
-        using st ns_T by auto
-    next
-      case full
-      then have \<open>cdcl_twl_stgy_restart (S', n) (T, n)\<close>
-        by (rule cdcl_twl_stgy_restart.intros)
-      then have \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0) (T, n)\<close>
-        using st by auto
-      then show ?thesis
-        using st ns_T by auto
-    qed
+      using ns unfolding cdcl_twl_stgy_restart_with_leftovers_def apply -
+      apply (rule_tac x=n in exI)
+      apply (rule conjI)
+      subgoal by (rule_tac x=S' in exI) auto
+      subgoal by auto
+      done
   qed
   show ?thesis
+   supply RETURN_as_SPEC_refine[refine2 del]
     unfolding cdcl_twl_stgy_restart_prog_def full_def
     apply (refine_vcg WHILEIT_rule[where
            R = \<open>{((brkT, T, n), (brkS, S, m)).
