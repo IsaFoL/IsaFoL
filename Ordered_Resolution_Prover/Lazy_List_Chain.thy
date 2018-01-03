@@ -88,6 +88,11 @@ proof -
     using ys_def unfolding ys by (metis ldropn_Suc_conv_ldropn ldropn_eq_LConsD llist.inject)
 qed
 
+lemma infinite_chain_lnth_rel:
+  assumes "\<not> lfinite c" and "chain r c"
+  shows "r (lnth c i) (lnth c (Suc i))"
+  using assms chain_lnth_rel lfinite_conv_llength_enat by force
+
 lemma lnth_rel_chain:
   assumes
     "\<not> lnull xs" and
@@ -576,6 +581,29 @@ proof (coinduction arbitrary: xs ys rule: emb.coinduct)
 qed
 
 end
+
+lemma chain_inf_llist_if_infinite_chain_function:
+  assumes "\<forall>i. r (f (Suc i)) (f i)"
+  shows "\<not> lfinite (inf_llist f) \<and> chain r\<inverse>\<inverse> (inf_llist f)"
+  using assms by (simp add: lnth_rel_chain)
+
+lemma infinite_chain_function_iff_infinite_chain_llist: 
+  "(\<exists>f. \<forall>i. r (f (Suc i)) (f i)) \<longleftrightarrow> (\<exists>c. \<not> lfinite c \<and> chain r\<inverse>\<inverse> c)"
+  using chain_inf_llist_if_infinite_chain_function infinite_chain_lnth_rel by blast
+
+lemma wfP_iff_no_infinite_down_chain_llist: "wfP r \<longleftrightarrow> (\<nexists>c. \<not> lfinite c \<and> chain r\<inverse>\<inverse> c)"
+proof -
+  have "wfP r \<longleftrightarrow>  wf {(x, y). r x y}"
+    unfolding wfP_def by auto
+  also have "... \<longleftrightarrow> (\<nexists>f. \<forall>i. (f (Suc i), f i) \<in> {(x, y). r x y})"
+    using wf_iff_no_infinite_down_chain by blast
+  also have "... \<longleftrightarrow> (\<nexists>f. \<forall>i. r (f (Suc i)) (f i))"
+    by auto
+  also have "... \<longleftrightarrow> (\<nexists>c. \<not>lfinite c \<and> chain r\<inverse>\<inverse> c)"
+    using infinite_chain_function_iff_infinite_chain_llist by blast
+  finally show ?thesis 
+    by auto
+qed
 
 
 subsection \<open>Complete Chains\<close>
