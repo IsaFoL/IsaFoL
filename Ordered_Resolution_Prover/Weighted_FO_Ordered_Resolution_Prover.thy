@@ -185,15 +185,6 @@ lemma weighted_RP_sound:
   shows "\<not> satisfiable (grounding_of_wstate (lhd Sts))"
   by (rule RP_sound[OF Sts_thms assms, unfolded lhd_lmap_Sts])
 
-abbreviation RP_measure_proto :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
-  "RP_measure_proto max_gen \<equiv> (\<lambda>(N, P, Q, n). (image_mset (\<lambda>(_, i). max_gen - i) (N + P), 
-                                          sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) (N + P + Q)),
-                                          size N))"
-
-abbreviation RP_measure_proto2 :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
-  "RP_measure_proto2 max_gen \<equiv> (\<lambda>(N, P, Q, n). (image_mset (\<lambda>(C, i). (max_gen - i, size C)) (N + P), 
-                                          size N))"
-
 abbreviation RP_Non_Inference_measure :: "'a wstate \<Rightarrow> nat \<times> nat" where
   "RP_Non_Inference_measure \<equiv> (\<lambda>(N, P, Q, n). 
                               (sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) (N + P + Q)), size N))"
@@ -205,12 +196,6 @@ definition RP_bounded_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> nat"
 
 abbreviation RP_combined_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> nat \<times> (nat \<times> nat)" where
   "RP_combined_measure \<equiv> (\<lambda>n St. (RP_bounded_measure n St, RP_Non_Inference_measure St))"
-
-abbreviation(input) RP_relation_proto where
-  "RP_relation_proto \<equiv> mult natLess <*lex*> natLess <*lex*> natLess"
-
-abbreviation(input) RP_relation_proto2 where
-  "RP_relation_proto2 \<equiv> mult (natLess <*lex*> natLess) <*lex*> natLess"
 
 abbreviation RP_Non_Inference_relation where
   "RP_Non_Inference_relation \<equiv> natLess <*lex*> natLess"
@@ -224,17 +209,12 @@ abbreviation(input) RP_bounded_relation_eq where
 abbreviation(input) RP_combined_relation where
   "RP_combined_relation \<equiv> RP_bounded_relation <*lex*> RP_Non_Inference_relation"
 
-term "(RP_measure_proto max_gen St, RP_measure_proto max_gen St2) \<in> RP_relation_proto"
-term "(RP_measure_proto2 max_gen St, RP_measure2 max_gen St2) \<in> RP_relation_proto2"
 term "(RP_Non_Inference_measure St , RP_Non_Inference_measure St2) \<in> RP_Non_Inference_relation"
 term "(RP_bounded_measure w St, RP_bounded_measure w St2) \<in> RP_bounded_relation"
 term "(RP_combined_measure w St, RP_combined_measure w St2) \<in> RP_combined_relation"
 
 lemma wf_natLess: "wf natLess"
   unfolding natLess_def using wf_less by auto
-
-lemma wf_RP_proto_relation: "wf RP_relation_proto"
-  using wf_natLess wf_mult by auto
 
 lemma wf_RP_Non_Inference_relation: "wf RP_Non_Inference_relation"
   using wf_natLess wf_mult by auto
