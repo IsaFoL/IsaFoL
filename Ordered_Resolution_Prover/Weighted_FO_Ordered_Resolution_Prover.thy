@@ -194,8 +194,35 @@ definition RP_bounded_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> nat"
      (\<lambda>w (N,P,Q,n). sum_mset (image_mset (\<lambda>(C, i). size C + 2) ({#(D,i) \<in># N + P. i \<le> w#}))
                   + sum_mset (image_mset (\<lambda>(C, i). size C + 1) ({#(D,i) \<in># Q. i \<le> w#})))"
 
+abbreviation(input) RP_Non_Inference_measure2 :: "('a wclause \<Rightarrow> bool) \<Rightarrow> 'a wstate \<Rightarrow> nat \<times> nat" where
+  "RP_Non_Inference_measure2 \<equiv> (\<lambda>p (N, P, Q, n). 
+                              (sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) {#Di \<in># N + P + Q. p Di#}), size {#Di \<in># N. p Di#}))"
+
 abbreviation RP_combined_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> nat \<times> (nat \<times> nat)" where
   "RP_combined_measure \<equiv> (\<lambda>n St. (RP_bounded_measure n St, RP_Non_Inference_measure St))"
+
+abbreviation(input) RP_combined_measure2 :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
+  "RP_combined_measure2 \<equiv> (\<lambda>w St. ((w + 1) - n_of_wstate St, RP_Non_Inference_measure2 ((\<lambda>(C, i). i \<le> w)) St, RP_Non_Inference_measure2 (\<lambda>Ci. True) St))"
+(*
+I want to prove that this is decreasing.
+maybe I can do it directly?
+We have a stream the (D,i) is stuck in P.
+Any inference produces visible clauses with weight below P.
+
+Problem A:
+Before we get to a state with no. greater than weight of (D,i) 
+both components of the measure will increase when we do an inference computation.
+But this can be solved by adding "n - w" as a first component of the measure
+
+Problem B:
+The problem is that when the clause goes from O to P, it may get smaller in weight.
+But I don't think it's really a problem. I can use
+And then suddenly the measure increases...
+But maybe there is some nice way to take that into account. Before I did the thing with the Suc's.
+
+Meh...
+
+ *)
 
 abbreviation RP_Non_Inference_relation where
   "RP_Non_Inference_relation \<equiv> natLess <*lex*> natLess"
@@ -209,9 +236,16 @@ abbreviation(input) RP_bounded_relation_eq where
 abbreviation(input) RP_combined_relation where
   "RP_combined_relation \<equiv> RP_bounded_relation <*lex*> RP_Non_Inference_relation"
 
+abbreviation(input) RP_bounded_relation2 where
+  "RP_bounded_relation2 \<equiv> natLess <*lex*> natLess"
+
+abbreviation(input) RP_combined_relation2 where
+  "RP_combined_relation2 \<equiv> natLess <*lex*> RP_bounded_relation2 <*lex*> RP_bounded_relation2"
+
 term "(RP_Non_Inference_measure St , RP_Non_Inference_measure St2) \<in> RP_Non_Inference_relation"
 term "(RP_bounded_measure w St, RP_bounded_measure w St2) \<in> RP_bounded_relation"
 term "(RP_combined_measure w St, RP_combined_measure w St2) \<in> RP_combined_relation"
+term "(RP_combined_measure2 w St, RP_combined_measure2 w St2) \<in> RP_combined_relation2"
 
 lemma wf_natLess: "wf natLess"
   unfolding natLess_def using wf_less by auto
@@ -282,14 +316,14 @@ qed
 lemma weighted_RP_Non_Inference_measure_decreasing:
   assumes "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St'"
   shows "(RP_Non_Inference_measure St', RP_Non_Inference_measure St) \<in> RP_Non_Inference_relation"
-  using weighted_RP_if_weighted_RP_Non_Inference[OF assms(1)] using assms proof (induction rule: weighted_RP.induct)
+using weighted_RP_if_weighted_RP_Non_Inference[OF assms(1)] using assms proof (induction rule: weighted_RP.induct)
   case (tautology_deletion A C' N i' P Q n)
   then show ?case
-    unfolding lex_prod_def natLess_def by auto
+    unfolding natLess_def by auto
 next
   case (forward_subsumption D P Q C' N i' n)
   then show ?case
-    unfolding lex_prod_def natLess_def by auto
+    unfolding natLess_def by auto
 next
   case (backward_subsumption_P D N C' P Q n)
   then obtain i' where  "(C',i') \<in># P"
@@ -302,27 +336,27 @@ next
   then have "fst (RP_Non_Inference_measure (N, {#(E, k) \<in># P. E \<noteq> C'#}, Q, n)) < fst (RP_Non_Inference_measure (N, P, Q, n))"
     by simp
   then show ?case
-   unfolding lex_prod_def natLess_def by auto
+    unfolding natLess_def by auto
 next
   case (backward_subsumption_Q D N C' P Q i' n)
   then show ?case
-    unfolding lex_prod_def natLess_def by auto
+    unfolding natLess_def by auto
 next
   case (forward_reduction D L' P Q L \<sigma> C' N i n)
   then show ?case
-    unfolding lex_prod_def natLess_def by auto
+    unfolding natLess_def by auto
 next
   case (backward_reduction_P D L' N L \<sigma> C' P i Q n)
   then show ?case
-    unfolding lex_prod_def natLess_def by auto
+    unfolding natLess_def by auto
 next
   case (backward_reduction_Q D L' N L \<sigma> C' P Q i n)
   then show ?case
-    unfolding lex_prod_def natLess_def by auto
+    unfolding natLess_def by auto
 next
   case (clause_processing N C' i P Q n)
   then show ?case
-    unfolding lex_prod_def natLess_def by auto
+    unfolding natLess_def by auto
 next
   case (inference_computation P C' i N n Q)
   then show ?case
@@ -343,6 +377,127 @@ proof -
   then show ?thesis
     by (rule empty_empty)
 qed
+
+value "snd (''1'', ''2'', ''3'')"
+
+lemma weighted_RP_Inference_has_measure:
+  assumes "St \<leadsto>\<^sub>w\<^sub>i St'"
+  assumes "(C, i) \<in># wP_of_wstate St"
+  shows "(RP_combined_measure2 (weight (C, i)) St', RP_combined_measure2 (weight (C, i)) St) \<in> RP_combined_relation2"
+using weighted_RP_if_weighted_RP_Inference[OF assms(1)] using assms proof (induction rule: weighted_RP.induct)
+  case (tautology_deletion A C' N i' P Q n)
+  then show ?case 
+    unfolding natLess_def by auto
+next
+  case (forward_subsumption D P Q C' N i' n)
+  then show ?case 
+    unfolding natLess_def by auto
+next
+  case (backward_subsumption_P D N C' P Q n)
+  define St where "St = (N, P, Q, n)"
+  define P' where "P' = {#(E, k) \<in># P. E \<noteq> C'#}"
+  define St' where "St' = (N, P', Q, n)"
+  from backward_subsumption_P obtain i' where  "(C',i') \<in># P"
+    by auto
+  then have P'_sub_P: "P' \<subset># P"
+    unfolding P'_def
+    using filter_mset_strict_subset[of "(C', i')" P "\<lambda>X. \<not>fst X =  C'"]
+    by (metis (mono_tags, lifting) filter_mset_cong fst_conv prod.case_eq_if)
+  then have "(\<Sum>(C, i)\<in>#P'. Suc (size C)) < (\<Sum>(C, i)\<in>#P. Suc (size C))"
+    using multiset_sum_monotone_f'[of "{#(E, k) \<in># P. E \<noteq> C'#}" P size]
+    unfolding P'_def by metis
+  then have "fst (snd (snd (RP_combined_measure2 (weight (C, i)) St'))) < fst (snd (snd (RP_combined_measure2 (weight (C, i)) St)))"
+    unfolding P'_def St'_def St_def by auto
+  moreover
+  have "(\<Sum>x\<in>#{#(Ca, ia) \<in># P'. ia \<le> weight (C, i)#}. case x of (C, i) \<Rightarrow> Suc (size C))
+    \<le> (\<Sum>x\<in>#{#(Ca, ia) \<in># P. ia \<le> weight (C, i)#}. case x of (C, i) \<Rightarrow> Suc (size C))"
+    apply (rule sum_image_mset_mono) apply (rule multiset_filter_mono) using P'_sub_P apply auto done
+  then have "fst (fst (snd (RP_combined_measure2 (weight (C, i)) St'))) \<le> fst (fst (snd (RP_combined_measure2 (weight (C, i)) St)))" 
+    unfolding St'_def St_def by auto 
+  moreover
+  have "snd (fst (snd (RP_combined_measure2 (weight (C, i)) St'))) \<le> snd (fst (snd (RP_combined_measure2 (weight (C, i)) St)))" 
+    unfolding St'_def St_def by auto
+  moreover
+  have "fst (RP_combined_measure2 (weight (C, i)) St') \<le> fst (RP_combined_measure2 (weight (C, i)) St)" 
+    unfolding St'_def St_def by auto
+  ultimately show ?case
+    unfolding natLess_def P'_def St'_def St_def by auto
+next
+  case (backward_subsumption_Q D N C' P Q i' n)
+  then show ?case 
+    unfolding natLess_def by auto
+next
+  case (forward_reduction D L' P Q L \<sigma> C' N i' n)
+  then show ?case 
+    unfolding natLess_def by auto
+next
+  case (backward_reduction_P D L' N L \<sigma> C' P i' Q n)
+  then show ?case 
+    unfolding natLess_def by auto
+next
+  case (backward_reduction_Q D L' N L \<sigma> C' P Q i' n)
+  then show ?case 
+    unfolding natLess_def by auto
+next
+  case (clause_processing N C' i' P Q n)
+  then show ?case 
+    unfolding natLess_def by auto
+next
+  case (inference_computation P C' i' N n Q)
+  then show ?case 
+  proof (cases "n \<le> weight (C, i)")
+    case True
+    then have "(weight (C, i) + 1) - n > (weight (C, i) + 1) - (Suc n)"
+      by auto
+    then show ?thesis 
+      unfolding natLess_def by auto
+  next
+    case False
+    define St :: "'a wstate" where "St = ({#}, P + {#(C', i')#}, Q, n)"
+    define St' :: "'a wstate" where "St' =  (N, {#(D, j) \<in># P. D \<noteq> C'#}, Q + {#(C', i')#}, Suc n)"
+    define concls where "concls = ((\<lambda>D. (D, n)) ` concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (fst ` set_mset Q) C'))"
+
+    have "finite (inference_system.inferences_between (ord_FO_\<Gamma> S) (fst ` set_mset Q) C')"
+      using finite_ord_FO_resolution_inferences_between by auto
+    then have fin: "finite concls"
+      unfolding concls_def by auto
+
+    from False have "\<not> n \<le> weight (C, i)"
+      by auto
+    then have "{(D, ia) \<in> concls. ia \<le> weight (C, i)} = {}"
+      unfolding concls_def by auto
+    then have "{#(D, ia) \<in># mset_set concls. ia \<le> weight (C, i)#} = {#}"
+      using fin filter_mset_empty_if_finite_and_filter_set_empty[of concls] by auto
+    then have N_low_weight_empty: "{#(D, ia) \<in># N. ia \<le> weight (C, i)#} = {#}"
+      unfolding inference_computation unfolding concls_def by auto 
+    have "weight (C', i') \<le> weight (C, i)"
+      using inference_computation by auto
+    then have i'_le_w_Ci: "i' \<le> weight (C, i)"
+      using generation_le_weight[of i' C'] by auto
+
+    have subs: "{#(D, ia) \<in># N + {#(D, j) \<in># P. D \<noteq> C'#} + (Q + {#(C', i')#}). ia \<le> weight (C, i)#}
+            \<subset># {#(D, ia) \<in># {#} + (P + {#(C', i')#}) + Q. ia \<le> weight (C, i)#}"
+       using N_low_weight_empty apply auto 
+       sorry (* It's not gonna work -- nothing is removed ... Maybe we add a component about the size of P. 
+                Seems too easy, but I think it can be made to work *)
+    have "fst (RP_Non_Inference_measure2 ((\<lambda>(D, ia). ia \<le> weight (C, i))) St') = 
+           (\<Sum>(C, i)\<in>#{#(D, ia) \<in># N + {#(D, j) \<in># P. D \<noteq> C'#} + (Q + {#(C', i')#}). ia \<le> weight (C, i)#}. Suc (size C))"
+      unfolding St'_def by auto
+    also have "... < (\<Sum>(C, i)\<in>#{#(D, ia) \<in># {#} + (P + {#(C', i')#}) + Q. ia \<le> weight (C, i)#}. Suc (size C))"
+      using subs by (simp add: multiset_sum_monotone_f') 
+    also have "... = fst (RP_Non_Inference_measure2 ((\<lambda>(D, ia). ia \<le> weight (C, i))) St)"
+      unfolding St_def by auto
+    finally have "fst (RP_Non_Inference_measure2 ((\<lambda>(D, ia). ia \<le> weight (C, i))) St') < fst (RP_Non_Inference_measure2 ((\<lambda>(D, ia). ia \<le> weight (C, i))) St)"
+      by auto
+    then have "fst (fst (snd (RP_combined_measure2 (weight (C, i)) St'))) < fst (fst (snd (RP_combined_measure2 (weight (C, i)) St)))"
+      by auto
+    moreover have "fst (RP_combined_measure2 (weight (C, i)) St') = fst (RP_combined_measure2 (weight (C, i)) St)"
+      using False unfolding St_def St'_def by auto
+    ultimately show ?thesis
+      unfolding natLess_def St'_def St_def by auto
+  qed
+qed
+
 
 lemma weighted_RP_Inference_has_measure:
   assumes "St \<leadsto>\<^sub>w\<^sub>i St'"

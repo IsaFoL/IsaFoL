@@ -897,7 +897,7 @@ lemma ord_resolve_rename_lifting:
     "is_ground_subst_list \<eta>s"
     "is_ground_subst \<eta>2"
     "ord_resolve_rename S CAs'' DA'' AAs'' As'' \<tau> E''"
-    "CAs'' \<cdot>\<cdot>cl \<eta>s = CAs" "DA'' \<cdot> \<eta> = DA" "E'' \<cdot> \<eta>2 = E" (* In the previous proofs I have CAs and DA on lfs of equality *)
+    "CAs'' \<cdot>\<cdot>cl \<eta>s = CAs" "DA'' \<cdot> \<eta> = DA" "E'' \<cdot> \<eta>2 = E" (* In the previous proofs I have CAs and DA on lhs of equality *)
     "{DA''} \<union> set CAs'' \<subseteq> M"
   using res_e
 proof (cases rule: ord_resolve.cases)
