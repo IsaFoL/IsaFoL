@@ -281,7 +281,7 @@ proof -
       L_T: \<open>L \<in># literals_to_update T\<close> and
       invs: \<open>twl_struct_invs T \<and> twl_stgy_invs T \<and>cdcl_twl_cp\<^sup>*\<^sup>* S T \<and> clauses_to_update T = {#}\<close>
       for L T
-  proof - 
+  proof -
     from that have
       p: \<open>literals_to_update T \<noteq> {#}\<close> and
       L_T: \<open>L \<in># literals_to_update T\<close> and

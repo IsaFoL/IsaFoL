@@ -887,7 +887,7 @@ proof -
           skip_and_resolve_loop_inv_def get_trail_twl_st_of_wl_get_trail_empty_iff
           get_conflict_twl_st_of_wl twl_st_of_sl_of_wl get_trail_l_st_l_of_wl
           simp del: twl_st_of_wl.simps)
-        
+
     from lits invs(1) have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close>
       by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail)
 

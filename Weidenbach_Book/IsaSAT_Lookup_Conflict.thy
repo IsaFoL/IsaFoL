@@ -2493,7 +2493,7 @@ lemma arl_set_hnr_u[sepref_fr_rules]:
 
 sepref_definition delete_index_and_swap_code
   is \<open>uncurry (RETURN oo delete_index_and_swap)\<close>
-  :: \<open>[\<lambda>(xs, i). i < length xs]\<^sub>a 
+  :: \<open>[\<lambda>(xs, i). i < length xs]\<^sub>a
       (arl_assn unat_lit_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> arl_assn unat_lit_assn\<close>
   unfolding delete_index_and_swap.simps
   by sepref

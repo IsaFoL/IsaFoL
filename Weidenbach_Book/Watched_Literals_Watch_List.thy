@@ -1045,7 +1045,7 @@ definition update_confl_tl_wl :: \<open>nat \<Rightarrow> 'v literal \<Rightarro
         (False, (tl M, N, U, Some D, NE, UE, WS, Q)))\<close>
 
 abbreviation skip_and_resolve_loop_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>skip_and_resolve_loop_wl_inv S\<^sub>0 brk S\<equiv> 
+  \<open>skip_and_resolve_loop_wl_inv S\<^sub>0 brk S\<equiv>
      skip_and_resolve_loop_inv_l (st_l_of_wl None S\<^sub>0) brk (st_l_of_wl None S) \<and>
         correct_watching S\<close>
 
@@ -1633,7 +1633,7 @@ definition cdcl_twl_o_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> (bool \<times
           then do {
             T \<leftarrow> skip_and_resolve_loop_wl S;
             ASSERT(get_conflict_wl T \<noteq> None \<and> get_conflict_wl T \<noteq> Some {#});
-            U \<leftarrow> backtrack_wl T; 
+            U \<leftarrow> backtrack_wl T;
             RETURN (False, U)
           }
           else do {RETURN (True, S)}
