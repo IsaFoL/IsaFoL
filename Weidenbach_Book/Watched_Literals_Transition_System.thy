@@ -373,7 +373,7 @@ lemma twl_is_an_exception_add_mset_to_queue: \<open>twl_is_an_exception C (add_m
   unfolding twl_is_an_exception_def by auto
 
 lemma twl_is_an_exception_add_mset_to_clauses_to_update:
-  \<open>twl_is_an_exception C Q (add_mset (L, D) WS) \<longleftrightarrow> (twl_is_an_exception C Q WS \<or> (C = D))\<close>
+  \<open>twl_is_an_exception C Q (add_mset (L, D) WS) \<longleftrightarrow> (twl_is_an_exception C Q WS \<or> C = D)\<close>
   unfolding twl_is_an_exception_def by auto
 
 lemma twl_is_an_exception_empty[simp]: \<open>\<not>twl_is_an_exception C {#} {#}\<close>
@@ -384,7 +384,7 @@ lemma twl_inv_empty_trail:
     \<open>watched_literals_false_of_max_level [] C\<close> and
     \<open>twl_lazy_update [] C\<close> and
     \<open>twl_inv [] C\<close>
-  by (cases C; auto)+
+  by (solves \<open>cases C; auto\<close>)+
 
 lemma clauses_to_update_inv_cases[case_names WS_nempty WS_empty Q]:
   assumes
@@ -1071,7 +1071,7 @@ next
     case (Q K' K'' C) note C = this(1) and uK'_M = this(2) and uK''_M = this(3) and KC_WS = this(4)
       and watched_C = this(5)
     have ?case if CD: \<open>C \<noteq> D\<close> \<open>C \<noteq> ?D\<close>
-      using IH_Q[of C K' K''] (* IH_Q[of C K'' K'] *)  CD watched uK_M L'  L_ne_L' L_M uK'_M uK''_M
+      using IH_Q[of C K' K''] CD watched uK_M L'  L_ne_L' L_M uK'_M uK''_M
         Q unfolding N'U' NU
       by auto
     moreover have ?case if CD: \<open>C = D\<close>
@@ -5234,16 +5234,14 @@ proof -
   qed
 qed
 
-lemma (in -)cdcl_twl_stgy_get_init_learned_clss_mono:
-  assumes
-    \<open>cdcl_twl_stgy S T\<close>
+lemma cdcl_twl_stgy_get_init_learned_clss_mono:
+  assumes \<open>cdcl_twl_stgy S T\<close>
   shows \<open>get_init_learned_clss S \<subseteq># get_init_learned_clss T\<close>
   using assms
   by induction (auto simp: cdcl_twl_cp.simps cdcl_twl_o.simps)
 
-lemma (in -)rtranclp_cdcl_twl_stgy_get_init_learned_clss_mono:
-  assumes
-    \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close>
+lemma rtranclp_cdcl_twl_stgy_get_init_learned_clss_mono:
+  assumes \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close>
   shows \<open>get_init_learned_clss S \<subseteq># get_init_learned_clss T\<close>
   using assms
   by induction (auto dest!: cdcl_twl_stgy_get_init_learned_clss_mono)
