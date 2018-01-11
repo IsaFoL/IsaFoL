@@ -1453,7 +1453,7 @@ proof -
       using CAs_p unfolding is_ground_cls_list_def by auto
 
     have ground_e: "is_ground_cls ?E"
-    proof - (* turn in to a LEMMA? *)
+    proof - (* FIXME: turn in to a LEMMA? *)
       have a1: "atms_of ?E \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA) \<union> atms_of ?DA"
         using \<gamma>_p ground_cc ground_da gd.ord_resolve_atms_of_concl_subset[of CAs ?DA _ _ ?E] CAs_p
         by auto
