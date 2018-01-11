@@ -1236,11 +1236,14 @@ lemma fair_imp_Liminf_minus_Rf_subset_ground_Liminf_state:
     deriv: "chain (op \<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
     ns: "Ns = lmap grounding_of_state Sts"
-  shows "Liminf_llist Ns - src.Rf (Liminf_llist Ns) \<subseteq> grounding_of_state (Liminf_state Sts)"
+  shows "Liminf_llist Ns - src.Rf (Liminf_llist Ns) \<subseteq> grounding_of_clss (Q_of_state (Liminf_state Sts))"
 proof
   let ?Ns = "\<lambda>i. N_of_state (lnth Sts i)"
   let ?Ps = "\<lambda>i. P_of_state (lnth Sts i)"
   let ?Qs = "\<lambda>i. Q_of_state (lnth Sts i)"
+
+  have SQinf: "clss_of_state (Liminf_state Sts) = Liminf_llist (lmap Q_of_state Sts)"
+    using fair unfolding fair_state_seq_def Liminf_state_def clss_of_state_def by auto
 
   fix C
   assume C_p: "C \<in> Liminf_llist Ns - src.Rf (Liminf_llist Ns)"
@@ -1266,8 +1269,10 @@ proof
     by blast
   then have "D' \<in> clss_of_state (Liminf_state Sts)"
     by (simp add: clss_of_state_def)
-  then show "C \<in> grounding_of_state (Liminf_state Sts)"
-    unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def using D'_p by auto
+  then have "C \<in> grounding_of_state (Liminf_state Sts)"
+    unfolding grounding_of_clss_def grounding_of_cls_def using D'_p by auto
+  then show "C \<in> grounding_of_clss (Q_of_state (Liminf_state Sts))"
+    using SQinf clss_of_state_def fair fair_state_seq_def by auto 
 qed
 
 text \<open>
@@ -1411,12 +1416,9 @@ proof -
   let ?Ps = "\<lambda>i. P_of_state (lnth Sts i)"
   let ?Qs = "\<lambda>i. Q_of_state (lnth Sts i)"
 
-  have SQinf: "clss_of_state (Liminf_state Sts) = Liminf_llist (lmap Q_of_state Sts)"
-    using fair unfolding fair_state_seq_def Liminf_state_def clss_of_state_def by auto
-
   have ground_ns_in_ground_limit_st:
-    "Liminf_llist Ns - src.Rf (Liminf_llist Ns) \<subseteq> grounding_of_state (Liminf_state Sts)"
-    using fair deriv fair_imp_Liminf_minus_Rf_subset_ground_Liminf_state ns by blast
+    "Liminf_llist Ns - src.Rf (Liminf_llist Ns) \<subseteq> grounding_of_clss (Q_of_state (Liminf_state Sts))"
+    using fair deriv fair_imp_Liminf_minus_Rf_subset_ground_Liminf_state ns sorry (* adapt fair_imp_Liminf_minus_Rf_subset_ground_Liminf_state *)
 
   have derivns: "chain src_ext.derive Ns"
     using resolution_prover_ground_derivation deriv ns by auto
@@ -1600,6 +1602,7 @@ proof -
       "C' \<in> set CAs' \<union> {DA'}"
       "C' \<notin> ?Qs (j - 1)"
       using j_adds_CAs' by (induction rule: RP.cases) auto
+    (* FIXME: come up with a better name than ihih *)
     then have ihih: "set CAs' \<union> {DA'} - {C'} \<subseteq> ?Qs (j - 1)"
       using j_adds_CAs' by auto
     have "E' \<in> ?Ns j"
