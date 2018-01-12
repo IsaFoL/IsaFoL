@@ -61,9 +61,12 @@ lemma unit_propagation_inner_loop_body:
     inv: \<open>twl_struct_invs S\<close> and
     inv_s: \<open>twl_stgy_invs S\<close> and
     confl: \<open>get_conflict S = None\<close>
-  shows \<open>unit_propagation_inner_loop_body x (set_clauses_to_update (remove1_mset x (clauses_to_update S)) S)
-    \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and> (S', S) \<in> measure (size \<circ> clauses_to_update))\<close> (is ?spec) and
-    \<open>nofail (unit_propagation_inner_loop_body x (set_clauses_to_update (remove1_mset x (clauses_to_update S)) S))\<close> (is ?fail)
+  shows
+     \<open>unit_propagation_inner_loop_body x (set_clauses_to_update (remove1_mset x (clauses_to_update S)) S)
+        \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and>
+           (S', S) \<in> measure (size \<circ> clauses_to_update))\<close> (is ?spec) and
+    \<open>nofail (unit_propagation_inner_loop_body x
+       (set_clauses_to_update (remove1_mset x (clauses_to_update S)) S))\<close> (is ?fail)
 proof -
   obtain M N U D NE UE WS Q where
     S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
@@ -261,25 +264,33 @@ lemma unit_propagation_outer_loop:
     \<open>twl_stgy_invs S\<close>
   shows \<open>unit_propagation_outer_loop S \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and>
     literals_to_update S' = {#} \<and> no_step cdcl_twl_cp S' \<and> twl_stgy_invs S')\<close>
-  unfolding unit_propagation_outer_loop_def
-  apply (refine_vcg WHILEIT_rule[where R = \<open>{(T, S). twl_struct_invs S \<and> cdcl_twl_cp\<^sup>+\<^sup>+ S T}\<close>])
-              apply ((simp_all add: assms tranclp_wf_cdcl_twl_cp; fail)+)[6]
-  subgoal \<comment> \<open>Assertion\<close>
+proof -
+
+  have assert_twl_cp: \<open>cdcl_twl_cp T
+     (set_clauses_to_update (Pair L `# {#Ca \<in># get_clauses T. L \<in># watched Ca#})
+        (set_literals_to_update (remove1_mset L (literals_to_update T)) T))\<close> (is ?twl) and
+    assert_twl_struct_invs:
+      \<open>twl_struct_invs (set_clauses_to_update (Pair L `# {#Ca \<in># get_clauses T. L \<in># watched Ca#})
+      (set_literals_to_update (remove1_mset L (literals_to_update T)) T))\<close>
+           (is \<open>twl_struct_invs ?T'\<close>) and
+    assert_stgy_invs:
+      \<open>twl_stgy_invs  (set_clauses_to_update (Pair L `# {#Ca \<in># get_clauses T. L \<in># watched Ca#})
+      (set_literals_to_update (remove1_mset L (literals_to_update T)) T))\<close> (is ?stgy)
+     if
+      p: \<open>literals_to_update T \<noteq> {#}\<close> and
+      L_T: \<open>L \<in># literals_to_update T\<close> and
+      invs: \<open>twl_struct_invs T \<and> twl_stgy_invs T \<and>cdcl_twl_cp\<^sup>*\<^sup>* S T \<and> clauses_to_update T = {#}\<close>
+      for L T
   proof -
-    fix L T
-    assume
+    from that have
       p: \<open>literals_to_update T \<noteq> {#}\<close> and
       L_T: \<open>L \<in># literals_to_update T\<close> and
-      twl: \<open>twl_struct_invs T \<and> twl_stgy_invs T \<and>cdcl_twl_cp\<^sup>*\<^sup>* S T \<and> clauses_to_update T = {#}\<close>
-    then have
-      p: \<open>literals_to_update T \<noteq> {#}\<close> and
-      L_T: \<open>L \<in># literals_to_update T\<close> and
-      twl: \<open>twl_struct_invs T\<close> and
+      struct_invs: \<open>twl_struct_invs T\<close> and
       \<open>cdcl_twl_cp\<^sup>*\<^sup>* S T\<close> and
       w_q: \<open>clauses_to_update T = {#}\<close>
       by fast+
     have \<open>get_conflict T = None\<close>
-      using w_q p twl unfolding twl_struct_invs_def by auto
+      using w_q p invs unfolding twl_struct_invs_def by auto
     then obtain M N U NE UE Q where
       T: \<open>T = (M, N, U, None, NE, UE, {#}, Q)\<close>
       using w_q p by (cases T) auto
@@ -287,96 +298,39 @@ lemma unit_propagation_outer_loop:
     have Q: \<open>Q = add_mset L Q'\<close>
       using L_T unfolding Q'_def T by auto
 
-    let ?T' = \<open>set_clauses_to_update (Pair L `# {#Ca \<in># get_clauses T. L \<in># watched Ca#})
-      (set_literals_to_update (remove1_mset L (literals_to_update T)) T)\<close>
       \<comment> \<open>Show assertion that one step has been done\<close>
-    show
-      \<open>cdcl_twl_cp T ?T'\<close>
+    show twl: ?twl
       unfolding T set_clauses_to_update.simps set_literals_to_update.simps literals_to_update.simps Q'_def[symmetric]
       unfolding Q get_clauses.simps
       by (rule cdcl_twl_cp.pop)
-  qed
-  subgoal \<comment> \<open>WHILE-loop invariants\<close>
-  proof -
-    fix L T
-    assume
-      p: \<open>literals_to_update T \<noteq> {#}\<close> and
-      L_T: \<open>L \<in># literals_to_update T\<close> and
-      twl: \<open>twl_struct_invs T \<and> twl_stgy_invs T \<and> cdcl_twl_cp\<^sup>*\<^sup>* S T \<and> clauses_to_update T = {#}\<close>
-    then have
-      p: \<open>literals_to_update T \<noteq> {#}\<close> and
-      L_T: \<open>L \<in># literals_to_update T\<close> and
-      twl: \<open>twl_struct_invs T\<close> and
-      \<open>cdcl_twl_cp\<^sup>*\<^sup>* S T\<close> and
-      w_q: \<open>clauses_to_update T = {#}\<close>
-      by fast+
-    have \<open>get_conflict T = None\<close>
-      using w_q p twl unfolding twl_struct_invs_def by auto
-    then obtain M N U NE UE Q where
-      T: \<open>T = (M, N, U, None, NE, UE, {#}, Q)\<close>
-      using w_q p by (cases T) auto
-    define Q' where \<open>Q' = remove1_mset L Q\<close>
-    have Q: \<open>Q = add_mset L Q'\<close>
-      using L_T unfolding Q'_def T by auto
-
-    let ?T' = \<open>set_clauses_to_update (Pair L `# {#Ca \<in># get_clauses T. L \<in># watched Ca#})
-      (set_literals_to_update (remove1_mset L (literals_to_update T)) T)\<close>
-      \<comment> \<open>Show assertion that one step has been done\<close>
-    assume
-      \<open>cdcl_twl_cp T ?T'\<close>
-
-      \<comment> \<open>Show that the invariant still holds\<close>
     then show \<open>twl_struct_invs ?T'\<close>
-      using cdcl_twl_cp_twl_struct_invs twl by blast
+      using cdcl_twl_cp_twl_struct_invs struct_invs by blast
+
+
+    then show ?stgy
+      using twl cdcl_twl_cp_twl_stgy_invs[OF twl] invs by blast
   qed
-  subgoal
-  proof -
-    fix L T
-    assume
-      p: \<open>literals_to_update T \<noteq> {#}\<close> and
-      L_T: \<open>L \<in># literals_to_update T\<close> and
-      twl: \<open>twl_struct_invs T \<and> twl_stgy_invs T \<and> cdcl_twl_cp\<^sup>*\<^sup>* S T \<and>clauses_to_update T = {#}\<close>
-    then have
-      p: \<open>literals_to_update T \<noteq> {#}\<close> and
-      L_T: \<open>L \<in># literals_to_update T\<close> and
-      twl: \<open>twl_struct_invs T\<close> and
-      twl_s: \<open>twl_stgy_invs T\<close> and
-      \<open>cdcl_twl_cp\<^sup>*\<^sup>* S T\<close> and
-      w_q: \<open>clauses_to_update T = {#}\<close>
-      by fast+
-    have \<open>get_conflict T = None\<close>
-      using w_q p twl unfolding twl_struct_invs_def by auto
-    then obtain M N U NE UE Q where
-      T: \<open>T = (M, N, U, None, NE, UE, {#}, Q)\<close>
-      using w_q p by (cases T) auto
-    define Q' where \<open>Q' = remove1_mset L Q\<close>
-    have Q: \<open>Q = add_mset L Q'\<close>
-      using L_T unfolding Q'_def T by auto
 
-    let ?T' = \<open>set_clauses_to_update (Pair L `# {#Ca \<in># get_clauses T. L \<in># watched Ca#})
-      (set_literals_to_update (remove1_mset L (literals_to_update T)) T)\<close>
-      \<comment> \<open>Show assertion that one step has been done\<close>
-    assume
-      cdcl: \<open>cdcl_twl_cp T ?T'\<close>
-
-    then show \<open>twl_stgy_invs ?T'\<close>
-      using twl cdcl_twl_cp_twl_stgy_invs[OF cdcl] twl_s by blast
-
-  qed
-  subgoal by (simp; fail)
-  subgoal by auto
-  subgoal by auto
-  subgoal by simp
-  subgoal for T L U \<comment> \<open>Termination\<close>
-    by auto
-  subgoal \<comment> \<open>Final invariants\<close>
-    by simp
-  subgoal by simp
-  subgoal by auto
-  subgoal by (auto simp: cdcl_twl_cp.simps)
-  subgoal by simp
-  done
-
+  show ?thesis
+    unfolding unit_propagation_outer_loop_def
+    apply (refine_vcg WHILEIT_rule[where R = \<open>{(T, S). twl_struct_invs S \<and> cdcl_twl_cp\<^sup>+\<^sup>+ S T}\<close>])
+                apply ((simp_all add: assms tranclp_wf_cdcl_twl_cp; fail)+)[6]
+    subgoal by (rule assert_twl_cp) \<comment> \<open>Assertion\<close>
+    subgoal by (rule assert_twl_struct_invs) \<comment> \<open>WHILE-loop invariants\<close>
+    subgoal by (rule assert_stgy_invs)
+    subgoal by (simp; fail)
+    subgoal by auto
+    subgoal by auto
+    subgoal by simp
+    subgoal by auto \<comment> \<open>Termination\<close>
+    subgoal \<comment> \<open>Final invariants\<close>
+      by simp
+    subgoal by simp
+    subgoal by auto
+    subgoal by (auto simp: cdcl_twl_cp.simps)
+    subgoal by simp
+    done
+qed
 declare unit_propagation_outer_loop[THEN order_trans, refine_vcg]
 
 
@@ -513,7 +467,8 @@ definition skip_and_resolve_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_st nre
   \<close>
 
 lemma skip_and_resolve_loop_spec:
-  assumes struct_S: \<open>twl_struct_invs S\<close> and stgy_S: \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and \<open>literals_to_update S = {#}\<close> and
+  assumes struct_S: \<open>twl_struct_invs S\<close> and stgy_S: \<open>twl_stgy_invs S\<close> and
+    \<open>clauses_to_update S = {#}\<close> and \<open>literals_to_update S = {#}\<close> and
     \<open>get_conflict S \<noteq> None\<close> and count_dec: \<open>count_decided (get_trail S) > 0\<close>
   shows \<open>skip_and_resolve_loop S \<le> SPEC(\<lambda>T. cdcl_twl_o\<^sup>*\<^sup>* S T \<and> twl_struct_invs T \<and> twl_stgy_invs T \<and>
       no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of T) \<and>
@@ -807,7 +762,6 @@ proof -
     by (cases S) (auto simp: cdcl\<^sub>W_restart_mset_state)
   show ?thesis
     unfolding backtrack_def extract_shorter_conflict_def reduce_trail_bt_def
-     (*  propagate_bt_def propagate_unit_bt_def *)
   proof (refine_vcg; remove_dummy_vars; clarify?)
     show \<open>backtrack_inv S\<close>
       using trail confl unfolding backtrack_inv_def by fast

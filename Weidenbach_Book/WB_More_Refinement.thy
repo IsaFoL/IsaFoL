@@ -279,9 +279,9 @@ lemma bind_refine_res: \<open>(\<And>x. x \<in> \<Phi> \<Longrightarrow> f x \<l
   by (auto simp add: pw_le_iff refine_pw_simps)
 
 text \<open>
-  This theorem adds the invariant at the beginning of next iteration to the current invariant, 
+  This theorem adds the invariant at the beginning of next iteration to the current invariant,
   i.e., the invariant is added as a post-condition on the current iteration.
-  
+
   This is useful to reduce duplication in theorems while refining.
 \<close>
 

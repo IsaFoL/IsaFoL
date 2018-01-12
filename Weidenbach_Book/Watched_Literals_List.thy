@@ -1250,7 +1250,7 @@ definition update_confl_tl_l :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow
         (False, (tl M, N, U, Some D, NE, UE, WS, Q)))\<close>
 
 abbreviation skip_and_resolve_loop_inv_l where
-  \<open>skip_and_resolve_loop_inv_l  S\<^sub>0 brk S \<equiv> 
+  \<open>skip_and_resolve_loop_inv_l  S\<^sub>0 brk S \<equiv>
      skip_and_resolve_loop_inv (twl_st_of None S\<^sub>0) (brk, twl_st_of None S) \<and>
         twl_list_invs S \<and> clauses_to_update_l S = {#} \<and>
         (\<not>is_decided (hd (get_trail_l S)) \<longrightarrow> mark_of (hd(get_trail_l S)) > 0)\<close>
@@ -1436,7 +1436,7 @@ proof -
     for S
     by (cases S, cases \<open>get_trail_l S\<close>) (auto simp: tl_state_l_def)
 have mark_ge_0: \<open>0 < mark_of (hd (get_trail_l T))\<close>
-  if 
+  if
     SS': \<open>(S, S') \<in> ?R\<close> and
     \<open>get_conflict_l S \<noteq> None\<close> and
     brk_TT': \<open>(brkT, brkT')
@@ -1453,7 +1453,7 @@ proof -
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (twl_st_of None T))\<close> and
     tr: \<open>get_trail (twl_st_of None T) \<noteq> []\<close> and
     count_dec: \<open>count_decided (get_trail_l T) \<noteq> 0\<close>
-    using loop_inv brk_TT' unfolding twl_struct_invs_def skip_and_resolve_loop_inv_def brkT 
+    using loop_inv brk_TT' unfolding twl_struct_invs_def skip_and_resolve_loop_inv_def brkT
     by force+
   moreover have \<open>Suc 0 \<le> backtrack_lvl (state\<^sub>W_of (twl_st_of None T))\<close>
     using count_dec by (cases T) (auto simp: trail.simps)
@@ -1505,7 +1505,7 @@ qed
     subgoal by (auto simp: clauses_to_update_l_tl_state)
     subgoal by auto
     subgoal
-      by (rule skip_and_resolve_skip_refine) 
+      by (rule skip_and_resolve_skip_refine)
        (auto simp: skip_and_resolve_loop_inv_def get_trail_twl_st_of_nil_iff)
       \<comment> \<open>annotations are valid\<close>
     subgoal by auto

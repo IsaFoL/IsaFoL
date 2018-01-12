@@ -378,7 +378,7 @@ prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
 lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-lemma (in isasat_input_ops) twl_st_heur_count_decided_st_alt_def: 
+lemma (in isasat_input_ops) twl_st_heur_count_decided_st_alt_def:
   fixes S :: twl_st_wl_heur
   shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> count_decided_st S = count_decided (get_trail_wl T)\<close>
   unfolding count_decided_st_def twl_st_heur_def
