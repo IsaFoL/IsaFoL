@@ -247,9 +247,9 @@ term "(RP_bounded_measure w St, RP_bounded_measure w St2) \<in> RP_bounded_relat
 term "(RP_combined_measure w St, RP_combined_measure w St2) \<in> RP_combined_relation"
 term "(RP_combined_measure2 w St, RP_combined_measure2 w St2) \<in> RP_combined_relation2"
 
-abbreviation(input) "(fst3 :: 'b * 'c * 'd \<Rightarrow> 'b) == fst"
-abbreviation(input) "snd3 == \<lambda>x. fst (snd x)"
-abbreviation(input) "trd3 == \<lambda>x. snd (snd x)"
+abbreviation "(fst3 :: 'b * 'c * 'd \<Rightarrow> 'b) == fst"
+abbreviation "(snd3 :: 'b * 'c * 'd \<Rightarrow> 'c) == \<lambda>x. fst (snd x)"
+abbreviation "(trd3 :: 'b * 'c * 'd \<Rightarrow> 'd) == \<lambda>x. snd (snd x)"
 
 
 lemma wf_natLess: "wf natLess"
@@ -385,7 +385,8 @@ qed
 
 value "snd (''1'', ''2'', ''3'')"
 
-lemma weighted_RP_Inference_has_measure:
+(* FIXME: I should actually use this measure... And maybe the measure could be made even simpler. *)
+lemma weighted_RP_Inference_has_measure2:
   assumes "St \<leadsto>\<^sub>w\<^sub>i St'"
   assumes "(C, i) \<in># wP_of_wstate St"
   shows "(RP_combined_measure2 (weight (C, i)) St', RP_combined_measure2 (weight (C, i)) St) \<in> RP_combined_relation2"
@@ -408,20 +409,34 @@ next
     unfolding P'_def
     using filter_mset_strict_subset[of "(C', i')" P "\<lambda>X. \<not>fst X =  C'"]
     by (metis (mono_tags, lifting) filter_mset_cong fst_conv prod.case_eq_if)
-  then have "(\<Sum>(C, i)\<in>#P'. Suc (size C)) < (\<Sum>(C, i)\<in>#P. Suc (size C))"
-    using multiset_sum_monotone_f'[of "{#(E, k) \<in># P. E \<noteq> C'#}" P size]
-    unfolding P'_def by metis
-  then have "fst3 (trd3 (RP_combined_measure2 (weight (C, i)) St')) < fst3 (trd3 (RP_combined_measure2 (weight (C, i)) St))"
-    unfolding P'_def St'_def St_def by auto
+  have P'_subeq_P_filter: "{#(Ca, ia) \<in># P'. ia \<le> weight (C, i)#} \<subseteq># {#(Ca, ia) \<in># P. ia \<le> weight (C, i)#}"
+    apply (rule multiset_filter_mono) using P'_sub_P by auto
+  
+  (* First component *)
+  have "fst3 (RP_combined_measure2 (weight (C, i)) St') \<le> fst3 (RP_combined_measure2 (weight (C, i)) St)" 
+    unfolding St'_def St_def by auto
   moreover
-  have "(\<Sum>x\<in>#{#(Ca, ia) \<in># P'. ia \<le> weight (C, i)#}. case x of (C, i) \<Rightarrow> Suc (size C))
+  (* Second component *)
+  from P'_subeq_P_filter have "(\<Sum>x\<in>#{#(Ca, ia) \<in># P'. ia \<le> weight (C, i)#}. case x of (C, i) \<Rightarrow> Suc (size C))
     \<le> (\<Sum>x\<in>#{#(Ca, ia) \<in># P. ia \<le> weight (C, i)#}. case x of (C, i) \<Rightarrow> Suc (size C))"
-    apply (rule sum_image_mset_mono) apply (rule multiset_filter_mono) using P'_sub_P apply auto done
+    by (rule sum_image_mset_mono)
   then have "fst3 (snd3 (RP_combined_measure2 (weight (C, i)) St')) \<le> fst3 (snd3 (RP_combined_measure2 (weight (C, i)) St))" 
     unfolding St'_def St_def by auto
   moreover
-  have "fst (RP_combined_measure2 (weight (C, i)) St') \<le> fst (RP_combined_measure2 (weight (C, i)) St)" 
+  have "snd3 (snd3 (RP_combined_measure2 (weight (C, i)) St')) \<le> snd3 (snd3 (RP_combined_measure2 (weight (C, i)) St))" 
     unfolding St'_def St_def by auto
+  moreover
+  from P'_subeq_P_filter have "size {#(Ca, ia) \<in># P'. ia \<le> weight (C, i)#} \<le> size {#(Ca, ia) \<in># P. ia \<le> weight (C, i)#}"
+    by (simp add: size_mset_mono)
+  then have "trd3 (snd3 (RP_combined_measure2 (weight (C, i)) St')) \<le> trd3 (snd3 (RP_combined_measure2 (weight (C, i)) St))" 
+    unfolding St'_def St_def unfolding fst_def snd_def by auto
+  (* Third component *)
+  moreover
+  from P'_sub_P have "(\<Sum>(C, i)\<in>#P'. Suc (size C)) < (\<Sum>(C, i)\<in>#P. Suc (size C))"
+    using multiset_sum_monotone_f'[of "{#(E, k) \<in># P. E \<noteq> C'#}" P size]
+    unfolding P'_def by metis
+  then have "fst3 (trd3 (RP_combined_measure2 (weight (C, i)) St')) < fst3 (trd3 (RP_combined_measure2 (weight (C, i)) St))" 
+    unfolding P'_def St'_def St_def by auto 
   ultimately show ?case
     unfolding natLess_def P'_def St'_def St_def by auto
 next
@@ -479,28 +494,34 @@ next
 
     have subs: "{#(D, ia) \<in># N + {#(D, j) \<in># P. D \<noteq> C'#} + (Q + {#(C', i')#}). ia \<le> weight (C, i)#}
             \<subseteq># {#(D, ia) \<in># {#} + (P + {#(C', i')#}) + Q. ia \<le> weight (C, i)#}"
-       using N_low_weight_empty apply auto 
-       sorry (* It's not gonna work -- nothing is removed ... Maybe we add a component about the size of P. 
-                Seems too easy, but I think it can be made to work. *)
+       using N_low_weight_empty apply auto
+       by (simp add: multiset_filter_mono)  
+
+    (* First component *)
+    have "fst3 (RP_combined_measure2 (weight (C, i)) St') \<le> fst3 (RP_combined_measure2 (weight (C, i)) St)" 
+      unfolding St'_def St_def by auto
+    moreover
+    (* Second component *)
     have "fst (RP_Non_Inference_measure2 ((\<lambda>(D, ia). ia \<le> weight (C, i))) St') = 
            (\<Sum>(C, i)\<in>#{#(D, ia) \<in># N + {#(D, j) \<in># P. D \<noteq> C'#} + (Q + {#(C', i')#}). ia \<le> weight (C, i)#}. Suc (size C))"
       unfolding St'_def by auto
     also have "... \<le> (\<Sum>(C, i)\<in>#{#(D, ia) \<in># {#} + (P + {#(C', i')#}) + Q. ia \<le> weight (C, i)#}. Suc (size C))"
-      using subs sorry
+      using subs sum_image_mset_mono by blast
     also have "... = fst (RP_Non_Inference_measure2 ((\<lambda>(D, ia). ia \<le> weight (C, i))) St)"
       unfolding St_def by auto
     finally have "fst (RP_Non_Inference_measure2 ((\<lambda>(D, ia). ia \<le> weight (C, i))) St') \<le> fst (RP_Non_Inference_measure2 ((\<lambda>(D, ia). ia \<le> weight (C, i))) St)"
       by auto
     then have "fst3 (snd3 (RP_combined_measure2 (weight (C, i)) St')) \<le> fst3 (snd3 (RP_combined_measure2 (weight (C, i)) St))"
       by auto
-    moreover have "snd3 (snd3 (RP_combined_measure2 (weight (C, i)) St')) = snd3 (snd3 (RP_combined_measure2 (weight (C, i)) St))"
+    moreover
+    have "snd3 (snd3 (RP_combined_measure2 (weight (C, i)) St')) = snd3 (snd3 (RP_combined_measure2 (weight (C, i)) St))"
       unfolding St_def St'_def using N_low_weight_empty by auto
-    moreover have "trd3 (snd3 (RP_combined_measure2 (weight (C, i)) St')) < trd3 (snd3 (RP_combined_measure2 (weight (C, i)) St))"
-      unfolding St_def St'_def using i'_le_w_Ci apply auto sorry (* Believable *)
-    moreover have "fst (RP_combined_measure2 (weight (C, i)) St') = fst (RP_combined_measure2 (weight (C, i)) St)"
-      using False unfolding St_def St'_def by auto
+    moreover
+    have "trd3 (snd3 (RP_combined_measure2 (weight (C, i)) St')) < trd3 (snd3 (RP_combined_measure2 (weight (C, i)) St))"
+      unfolding St_def St'_def using i'_le_w_Ci 
+      by (simp add: le_imp_less_Suc multiset_filter_mono size_mset_mono)
     ultimately show ?thesis
-      unfolding natLess_def St'_def St_def by auto
+      unfolding natLess_def St'_def St_def lex_prod_def by force
   qed
 qed
 
