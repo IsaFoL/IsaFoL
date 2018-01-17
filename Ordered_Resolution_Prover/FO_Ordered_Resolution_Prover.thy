@@ -148,7 +148,7 @@ context
     Sts :: "'a state llist"
   assumes
     deriv: "chain (op \<leadsto>) Sts" and
-    empty_Q0: "Q_of_state (lhd Sts) = {}"
+    empty_Q0: "Q_of_state (lhd Sts) = {}" (* FIXME: make this hypothesis more local---and is it really needed? *)
 begin
 
 lemmas lhd_lmap_Sts = llist.map_sel(1)[OF chain_not_lnull[OF deriv]]
