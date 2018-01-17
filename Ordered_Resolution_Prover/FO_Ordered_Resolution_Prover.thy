@@ -148,8 +148,6 @@ context
     Sts :: "'a state llist"
   assumes
     deriv: "chain (op \<leadsto>) Sts" and
-    finite_Sts0: "finite (clss_of_state (lhd Sts))" and
-    empty_P0: "P_of_state (lhd Sts) = {}" and
     empty_Q0: "Q_of_state (lhd Sts) = {}"
 begin
 
@@ -1584,7 +1582,7 @@ proof -
       using least_exists[of "\<lambda>j. enat j < llength Sts \<and> set CAs' \<union> {DA'} \<subseteq> ?Qs j"] by force
     then have j_p': "enat j < llength Sts" "set CAs' \<union> {DA'} \<subseteq> ?Qs j"
       unfolding is_least_def by auto
-    then have jn0: "j \<noteq> 0" (* Since there are initially no clauses in Q *)
+    then have jn0: "j \<noteq> 0"
       using empty_Q0 by (metis bot_eq_sup_iff gr_implies_not_zero insert_not_empty llength_lnull
           lnth_0_conv_lhd sup.orderE)
     then have j_adds_CAs': "\<not> set CAs' \<union> {DA'} \<subseteq> ?Qs (j - 1)" "set CAs' \<union> {DA'} \<subseteq> ?Qs j"
