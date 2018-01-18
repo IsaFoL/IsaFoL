@@ -8,6 +8,10 @@
 * [Anders Schlichtkrull](mailto:anders shtrudel dtu.dk)
 * [Jasmin Christian Blanchette](mailto:jasmin.blanchette shtrudel inria.fr)
 * [Dmitriy Traytel](mailto:traytel shtrudel inf.ethz.ch)
+
+
+## Additional Collaborator ##
+
 * [Uwe Waldmann](mailto:waldmann shtrudel mpi-inf.mpg.de)
 
 
