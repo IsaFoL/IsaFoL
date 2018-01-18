@@ -20,4 +20,4 @@ Contact:
   andschl@dtu.dk, jasmin.blanchette@gmail.com
 
 Message for the editors:
-  Tested against Isabelle2017. Contains a few occurrences of "smt".
+  Tested against Isabelle2017.

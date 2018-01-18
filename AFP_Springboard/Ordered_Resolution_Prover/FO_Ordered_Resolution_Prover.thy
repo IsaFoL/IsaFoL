@@ -667,9 +667,8 @@ proof (drule resolution_prover_ground_derive, erule sr_ext.derive.cases, hypsubs
   proof
     assume bef: "I \<Turnstile>s ?gSt"
     then have "I \<Turnstile>s ?concls"
-      unfolding ground_sound_\<Gamma>_def inference_system.inferences_from_def
-      by (simp add: image_def infer_from_def)
-        (smt inference.sel mem_Collect_eq true_clss_def true_clss_mono true_clss_set_mset)
+      unfolding ground_sound_\<Gamma>_def inference_system.inferences_from_def true_clss_def true_cls_mset_def
+      by (auto simp add: image_def infer_from_def dest!: spec[of _ I])
     then have diff: "I \<Turnstile>s ?gSt' - ?gSt"
       using deduct by (blast intro: true_clss_mono)
     then show "I \<Turnstile>s ?gSt'"
@@ -1573,7 +1572,7 @@ proof -
       "E' \<cdot> \<eta>2' = ?E"
       "{DA'} \<union> set CAs' \<subseteq> Q_of_state (Liminf_state Sts)"
       using ord_resolve_rename_lifting[OF sel_stable, of "Q_of_state (Liminf_state Sts)" CAs ?DA]
-        \<sigma>_p selection_axioms DA_CAs_in_ground_Liminf by smt
+        \<sigma>_p selection_axioms DA_CAs_in_ground_Liminf by metis
     from this(8) have "\<exists>j. enat j < llength Sts \<and> (set CAs' \<union> {DA'} \<subseteq> ?Qs j)"
       unfolding Liminf_llist_def
       using subseteq_Liminf_state_eventually_always[of "{DA'} \<union> set CAs'"] by auto

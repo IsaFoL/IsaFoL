@@ -231,8 +231,8 @@ next
   moreover have "finite (DD \<union> EE)"
     using d_fin e_fin by fast
   moreover have "E \<in> saturate (DD \<union> EE)"
-    by (smt in_sat_d in_sat_ee inference_system.saturate.step saturate_mono step.hyps(1)
-        subset_iff sup.cobounded1 sup.cobounded2)
+    using in_sat_d in_sat_ee step.hyps(1)
+    by (blast intro: inference_system.saturate.step saturate_mono)
   ultimately show ?case
     by blast
 qed

@@ -403,14 +403,12 @@ proof -
         \<and> CAs \<in> CAS \<and> AAs \<in> AAS \<and> As \<in> AS" (is "?e \<and> ?cas \<and> ?aas \<and> ?as")
       proof (intro conjI)
         show ?e
-          using res_e by (smt ord_resolve_rename_unique the_equality)
+          using res_e ord_resolve_rename_unique by (blast intro: the_equality[symmetric])
       next
         show ?cas
           unfolding CAS_def max_ary_def using cas_sub
-          by (simp add: lists_eq_set)
-            (smt da_in res_e Max.bounded_iff Max_ge Un_insert_right antisym empty_iff fin_cc
-              finite_imageI finite_insert image_eqI image_iff image_insert nat_le_linear
-              ord_resolve_rename_max_side_prems sup_bot.right_neutral)
+            ord_resolve_rename_max_side_prems[OF res_e] da_in fin_cc
+          by (auto simp add: Max_ge_iff)
       next
         show ?aas
           using res_e
@@ -586,9 +584,7 @@ proof (induction n arbitrary: AAs' As')
     using Succ Suc by auto
   ultimately have "\<forall>i. i < Suc n \<longrightarrow> i > 0 \<longrightarrow>
     map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>) ! i = (map2 add_mset As' AAs' \<cdot>aml \<eta>) ! i"
-    by (smt Suc.prems(1,2) Succ(1,2) \<open>length (map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (AAs' \<cdot>aml \<eta>))) = n\<close>
-        \<open>map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (AAs' \<cdot>aml \<eta>)) = map2 add_mset (tl As') (tl AAs') \<cdot>aml \<eta>\<close>
-        less_Suc_eq_0_disj map2_tl map_tl neq0_conv nth_tl subst_atm_mset_list_def)
+    by (auto simp: subst_atm_mset_list_def gr0_conv_Suc subst_atm_mset_def)
   moreover have "add_mset (hd As' \<cdot>a \<eta>) (hd AAs' \<cdot>am \<eta>) = add_mset (hd As') (hd AAs') \<cdot>am \<eta>"
     unfolding subst_atm_mset_def by auto
   then have "(map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>)) ! 0  = (map2 add_mset (As') (AAs') \<cdot>aml \<eta>) ! 0"
@@ -933,7 +929,7 @@ proof (cases rule: ord_resolve.cases)
     "\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)"
     "length AAs'' = n"
     using ord_resolve_obtain_clauses[of S M CAs DA, OF res_e select grounding n(2) \<open>DA = D + negs (mset As)\<close>
-      \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close>] by smt
+      \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close>, of thesis] by blast
 
   note n = \<open>length CAs'' = n\<close> \<open>length \<eta>s'' = n\<close> \<open>length As'' = n\<close> \<open>length AAs'' = n\<close> \<open>length Cs'' = n\<close> n
 
