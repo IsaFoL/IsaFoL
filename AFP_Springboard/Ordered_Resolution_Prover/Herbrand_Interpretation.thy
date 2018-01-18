@@ -113,7 +113,7 @@ lemma true_cls_mset_mono: "set_mset DD \<subseteq> set_mset CC \<Longrightarrow>
 lemma true_clss_set_mset[iff]: "I \<Turnstile>s set_mset CC \<longleftrightarrow> I \<Turnstile>m CC"
   unfolding true_clss_def true_cls_mset_def by auto
 
-lemma true_cls_mset_true_cls: "I \<Turnstile>m CC \<Longrightarrow> C \<in># CC \<Longrightarrow> I \<Turnstile> C" 
+lemma true_cls_mset_true_cls: "I \<Turnstile>m CC \<Longrightarrow> C \<in># CC \<Longrightarrow> I \<Turnstile> C"
   using true_cls_mset_def by auto
 
 end

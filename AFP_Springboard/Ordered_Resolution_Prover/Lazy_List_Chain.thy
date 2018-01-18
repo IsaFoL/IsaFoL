@@ -594,7 +594,7 @@ lemma chain_inf_llist_if_infinite_chain_function:
   shows "\<not> lfinite (inf_llist f) \<and> chain r\<inverse>\<inverse> (inf_llist f)"
   using assms by (simp add: lnth_rel_chain)
 
-lemma infinite_chain_function_iff_infinite_chain_llist: 
+lemma infinite_chain_function_iff_infinite_chain_llist:
   "(\<exists>f. \<forall>i. r (f (Suc i)) (f i)) \<longleftrightarrow> (\<exists>c. \<not> lfinite c \<and> chain r\<inverse>\<inverse> c)"
   using chain_inf_llist_if_infinite_chain_function infinite_chain_lnth_rel by blast
 
@@ -608,7 +608,7 @@ proof -
     by auto
   also have "\<dots> \<longleftrightarrow> (\<nexists>c. \<not>lfinite c \<and> chain r\<inverse>\<inverse> c)"
     using infinite_chain_function_iff_infinite_chain_llist by blast
-  finally show ?thesis 
+  finally show ?thesis
     by auto
 qed
 

@@ -146,7 +146,7 @@ where
      length AAs = n \<Longrightarrow>
      length As = n \<Longrightarrow>
      (\<forall>i < n. poss (AAs ! i) \<subseteq># CAs ! i) \<Longrightarrow>
-     negs (mset As) \<subseteq># DA \<Longrightarrow> 
+     negs (mset As) \<subseteq># DA \<Longrightarrow>
      \<rho> = hd (renamings_apart (DA # CAs)) \<Longrightarrow>
      \<rho>s = tl (renamings_apart (DA # CAs)) \<Longrightarrow>
      ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) (AAs \<cdot>\<cdot>aml \<rho>s) (As \<cdot>al \<rho>) \<sigma> E \<Longrightarrow>
@@ -669,7 +669,7 @@ lemma ord_resolve_obtain_clauses:
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n_twin Cs_twins D_twin)
   note da = this(1) and e = this(2) and cas = this(8) and mgu = this(10) and eligible = this(11)
-  from ord_resolve have "n_twin = n" "D_twin = D" 
+  from ord_resolve have "n_twin = n" "D_twin = D"
     using n d by auto
   moreover have "Cs_twins = Cs"
     using c cas n calculation(1) \<open>length Cs_twins = n_twin\<close> by (auto simp add: nth_equalityI)
@@ -880,7 +880,7 @@ lemma
   assumes "Pos A \<in># C"
   shows "A \<in> atms_of C"
   using assms
-  by (simp add: atm_iff_pos_or_neg_lit) 
+  by (simp add: atm_iff_pos_or_neg_lit)
 
 lemma ord_resolve_rename_lifting:
   assumes
@@ -942,7 +942,7 @@ proof (cases rule: ord_resolve.cases)
 
   note n = this n
 
-  define \<rho> where 
+  define \<rho> where
     "\<rho> = hd (renamings_apart (DA'' # CAs''))"
   define \<rho>s where
     "\<rho>s = tl (renamings_apart (DA'' # CAs''))"
@@ -1010,7 +1010,7 @@ proof (cases rule: ord_resolve.cases)
   from DA'_split have negs_As'_subset_DA': "negs (mset As') \<subseteq># DA'"
     by auto
 
-  have CAs'_split: "\<forall>i<n. CAs' ! i = Cs' ! i + poss (AAs' ! i)" 
+  have CAs'_split: "\<forall>i<n. CAs' ! i = Cs' ! i + poss (AAs' ! i)"
     using as''(19) CAs'_def Cs'_def AAs'_def n by auto
   then have "\<forall>i<n. Cs' ! i \<subseteq># CAs' ! i"
     by auto
@@ -1049,14 +1049,14 @@ proof (cases rule: ord_resolve.cases)
     then have "\<forall>S. S \<subseteq># (DA' # CAs') ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>"
       using \<eta>_p by auto
     then have "{# L #} \<cdot> (\<eta>' # \<eta>s') ! i = {# L #} \<cdot> \<eta>"
-      using a by (meson single_subset_iff) 
+      using a by (meson single_subset_iff)
     then show "L \<cdot>l (\<eta>' # \<eta>s') ! i = L \<cdot>l \<eta>" by auto
   qed
   have \<eta>_p_atm: "\<forall>i < Suc n. \<forall>A. A \<in> atms_of ((DA' # CAs') ! i) \<longrightarrow> A \<cdot>a (\<eta>'#\<eta>s') ! i = A \<cdot>a \<eta>"
   proof (rule, rule, rule, rule)
     fix i :: "nat" and A :: "'a"
     assume a:
-      "i < Suc n" 
+      "i < Suc n"
       "A \<in> atms_of ((DA' # CAs') ! i)"
     then obtain L where L_p: "atm_of L = A \<and> L \<in># (DA' # CAs') ! i"
       unfolding atms_of_def by auto
@@ -1064,14 +1064,14 @@ proof (cases rule: ord_resolve.cases)
       using \<eta>_p_lit a by auto
     then show "A \<cdot>a (\<eta>' # \<eta>s') ! i = A \<cdot>a \<eta>"
       using L_p unfolding subst_lit_def by (cases L) auto
-  qed 
+  qed
 
   have DA'_DA: "DA' \<cdot> \<eta> = DA"
     using DA'_DA \<eta>_p by auto
   have "D' \<cdot> \<eta> = D" using \<eta>_p D'_D n D'_subset_DA' by auto
-  have "As' \<cdot>al \<eta> = As" 
+  have "As' \<cdot>al \<eta> = As"
   proof (rule nth_equalityI)
-    show "length (As' \<cdot>al \<eta>) = length As" 
+    show "length (As' \<cdot>al \<eta>) = length As"
       using n by auto
   next
     show "\<forall>i<length (As' \<cdot>al \<eta>). (As' \<cdot>al \<eta>) ! i = As ! i"
@@ -1081,15 +1081,15 @@ proof (cases rule: ord_resolve.cases)
       have A_eq: "\<forall>A. A \<in> atms_of DA' \<longrightarrow> A \<cdot>a \<eta>' = A \<cdot>a \<eta>"
         using \<eta>_p_atm n by force
       have "As' ! i \<in> atms_of DA'"
-        using negs_As'_subset_DA' unfolding atms_of_def 
+        using negs_As'_subset_DA' unfolding atms_of_def
         using a n by force
       then have "As' ! i \<cdot>a \<eta>' = As' ! i \<cdot>a \<eta>"
          using A_eq by simp
-      then show "(As' \<cdot>al \<eta>) ! i = As ! i" 
+      then show "(As' \<cdot>al \<eta>) ! i = As ! i"
         using As'_As \<open>length As' = n\<close> a by auto
     qed
   qed
-    
+
   have "S DA' \<cdot> \<eta> = S_M S M DA"
     using \<open>S DA' \<cdot> \<eta>' = S_M S M DA\<close> \<eta>_p S.S_selects_subseteq by auto
 
@@ -1109,7 +1109,7 @@ proof (cases rule: ord_resolve.cases)
 
   have "Cs' \<cdot>cl \<eta> = Cs"
   proof (rule nth_equalityI)
-    show "length (Cs' \<cdot>cl \<eta>) = length Cs" 
+    show "length (Cs' \<cdot>cl \<eta>) = length Cs"
       using n by auto
   next
     show "\<forall>i<length (Cs' \<cdot>cl \<eta>). (Cs' \<cdot>cl \<eta>) ! i = Cs ! i"
@@ -1120,22 +1120,22 @@ proof (cases rule: ord_resolve.cases)
         using n by force
       have "(Cs' \<cdot>\<cdot>cl \<eta>s') ! i = Cs ! i"
         using Cs'_Cs a n by force
-      moreover 
+      moreover
       have \<eta>_p_CAs': "\<forall>S. S \<subseteq># CAs' ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>"
         using \<eta>_p a by force
       have "Cs' ! i \<cdot> \<eta>s' ! i = (Cs' \<cdot>cl \<eta>) ! i"
         using \<eta>_p_CAs' \<open>\<forall>i<n. Cs' ! i \<subseteq># CAs' ! i\<close> a n by force
       then have "(Cs' \<cdot>\<cdot>cl \<eta>s') ! i = (Cs' \<cdot>cl \<eta>) ! i "
         using a n by force
-      ultimately show "(Cs' \<cdot>cl \<eta>) ! i = Cs ! i" 
+      ultimately show "(Cs' \<cdot>cl \<eta>) ! i = Cs ! i"
         by auto
-      thm Cs'_Cs \<eta>_p \<open>\<forall>i<n. Cs' ! i \<subseteq># CAs' ! i\<close> a 
+      thm Cs'_Cs \<eta>_p \<open>\<forall>i<n. Cs' ! i \<subseteq># CAs' ! i\<close> a
     qed
   qed
 
   have AAs'_AAs: "AAs' \<cdot>aml \<eta> = AAs"
   proof (rule nth_equalityI)
-    show "length (AAs' \<cdot>aml \<eta>) = length AAs" 
+    show "length (AAs' \<cdot>aml \<eta>) = length AAs"
       using n by auto
   next
     show "\<forall>i<length (AAs' \<cdot>aml \<eta>). (AAs' \<cdot>aml \<eta>) ! i = AAs ! i"
@@ -1149,11 +1149,11 @@ proof (cases rule: ord_resolve.cases)
       then have A_eq: "\<forall>A. A \<in> atms_of (CAs' ! i) \<longrightarrow> A \<cdot>a \<eta>s' ! i = A \<cdot>a \<eta>"
         by auto
       have AAs_CAs': "\<forall>A \<in># AAs' ! i. A \<in> atms_of (CAs' ! i)"
-        using AAs'_in_atms_of_CAs' unfolding atms_of_def 
+        using AAs'_in_atms_of_CAs' unfolding atms_of_def
         using a n by force
       then have "AAs' ! i \<cdot>am  \<eta>s' ! i = AAs' ! i \<cdot>am \<eta>"
         unfolding subst_atm_mset_def using A_eq unfolding subst_atm_mset_def by auto
-      then show "(AAs' \<cdot>aml \<eta>) ! i = AAs ! i" 
+      then show "(AAs' \<cdot>aml \<eta>) ! i = AAs ! i"
          using AAs'_AAs \<open>length AAs' = n\<close> \<open>length \<eta>s' = n\<close> a by auto
     qed
   qed

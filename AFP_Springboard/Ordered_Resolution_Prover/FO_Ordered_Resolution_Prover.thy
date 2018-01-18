@@ -1270,7 +1270,7 @@ proof
   then have "C \<in> grounding_of_state (Liminf_state Sts)"
     unfolding grounding_of_clss_def grounding_of_cls_def using D'_p by auto
   then show "C \<in> grounding_of_clss (Q_of_state (Liminf_state Sts))"
-    using SQinf clss_of_state_def fair fair_state_seq_def by auto 
+    using SQinf clss_of_state_def fair fair_state_seq_def by auto
 qed
 
 text \<open>

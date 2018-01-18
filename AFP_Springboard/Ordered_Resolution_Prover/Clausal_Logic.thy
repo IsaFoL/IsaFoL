@@ -272,7 +272,7 @@ lemma
 
 lemma less_eq_Max_atms_of: "C \<noteq> {#} \<Longrightarrow> C \<le> D \<Longrightarrow> Max (atms_of C) \<le> Max (atms_of D)"
   unfolding atms_of_def
-  by (metis Max_atm_of_set_mset_commute leq_imp_less_eq_atm_of less_eq_Max_lit 
+  by (metis Max_atm_of_set_mset_commute leq_imp_less_eq_atm_of less_eq_Max_lit
       less_eq_multiset_empty_right)
 
 lemma le_multiset_Max_in_imp_Max:
