@@ -1,7 +1,7 @@
 chapter AFP
 
 session Ordered_Resolution_Prover (AFP) = "HOL-Library" +
-  options [document = pdf, document_output = "output", timeout = 600] (* FIXME!! *)
+  options [timeout = 600]
   sessions
     Coinductive
     Nested_Multisets_Ordinals
