@@ -1,0 +1,13 @@
+chapter Ordered_Resolution_Prover
+
+session Ordered_Resolution_Prover = "HOL-Library" +
+  options [timeout = 600]
+  sessions
+    "HOL-Library"
+    Coinductive
+    Nested_Multisets_Ordinals
+  theories
+    FO_Ordered_Resolution_Prover
+  document_files
+    "bib.bib"
+    "root.tex"

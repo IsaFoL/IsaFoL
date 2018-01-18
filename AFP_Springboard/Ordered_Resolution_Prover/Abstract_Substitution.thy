@@ -8,7 +8,7 @@
 section \<open>Abstract Substitutions\<close>
 
 theory Abstract_Substitution
-  imports "../lib/Clausal_Logic" Map2
+  imports Clausal_Logic Map2
 begin
 
 text \<open>

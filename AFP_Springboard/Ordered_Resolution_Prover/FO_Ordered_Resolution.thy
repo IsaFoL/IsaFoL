@@ -15,13 +15,11 @@ soundness and Lemma 4.12 (the lifting lemma).
 \<close>
 
 theory FO_Ordered_Resolution
-  imports Abstract_Substitution Ordered_Ground_Resolution Standard_Redundancy "../lib/Explorer" (* FIXME: remove Explorer when done *)
+  imports Abstract_Substitution Ordered_Ground_Resolution Standard_Redundancy
 begin
 
-setup Explorer_Lib.switch_to_quotes
-
 text \<open>
-The following corresponds to to pages 41 and 42 of Section 4.3, until Figure 5 and its explanation.
+The following corresponds to pages 41--42 of Section 4.3, until Figure 5 and its explanation.
 \<close>
 
 locale FO_resolution = mgu subst_atm id_subst comp_subst atm_of_atms renamings_apart mgu

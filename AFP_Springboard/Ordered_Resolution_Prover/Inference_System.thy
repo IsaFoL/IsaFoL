@@ -8,7 +8,7 @@
 section \<open>Refutational Inference Systems\<close>
 
 theory Inference_System
-  imports "../lib/Herbrand_Interpretation"
+  imports Herbrand_Interpretation
 begin
 
 text \<open>
