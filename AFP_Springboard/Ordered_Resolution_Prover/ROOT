@@ -1,9 +1,8 @@
-chapter Ordered_Resolution_Prover
+chapter AFP
 
-session Ordered_Resolution_Prover = "HOL-Library" +
+session Ordered_Resolution_Prover (AFP) = "HOL-Library" +
   options [timeout = 600]
   sessions
-    "HOL-Library"
     Coinductive
     Nested_Multisets_Ordinals
   theories
