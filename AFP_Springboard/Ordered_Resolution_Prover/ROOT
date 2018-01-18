@@ -15,5 +15,4 @@ session Ordered_Resolution_Prover (AFP) = "HOL-Library" +
     Ordered_Ground_Resolution
     FO_Ordered_Resolution_Prover
   document_files
-    "bib.bib"
     "root.tex"

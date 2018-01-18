@@ -11,6 +11,13 @@ theory Lazy_List_Chain
   imports "HOL-Library.BNF_Corec" Lazy_List_Liminf
 begin
 
+text \<open>
+A chain is a lazy lists of elements such that all pairs of consecutive elements are related by a
+given relation. A full chain is either an infinite chain or a finite chain that cannot be extended.
+The inspiration for this theory is Section 4.1 (``Theorem Proving Processes'') of Bachmair and
+Ganzinger's chapter.
+\<close>
+
 
 subsection \<open>Chains\<close>
 
@@ -595,11 +602,11 @@ lemma wfP_iff_no_infinite_down_chain_llist: "wfP r \<longleftrightarrow> (\<nexi
 proof -
   have "wfP r \<longleftrightarrow>  wf {(x, y). r x y}"
     unfolding wfP_def by auto
-  also have "... \<longleftrightarrow> (\<nexists>f. \<forall>i. (f (Suc i), f i) \<in> {(x, y). r x y})"
+  also have "\<dots> \<longleftrightarrow> (\<nexists>f. \<forall>i. (f (Suc i), f i) \<in> {(x, y). r x y})"
     using wf_iff_no_infinite_down_chain by blast
-  also have "... \<longleftrightarrow> (\<nexists>f. \<forall>i. r (f (Suc i)) (f i))"
+  also have "\<dots> \<longleftrightarrow> (\<nexists>f. \<forall>i. r (f (Suc i)) (f i))"
     by auto
-  also have "... \<longleftrightarrow> (\<nexists>c. \<not>lfinite c \<and> chain r\<inverse>\<inverse> c)"
+  also have "\<dots> \<longleftrightarrow> (\<nexists>c. \<not>lfinite c \<and> chain r\<inverse>\<inverse> c)"
     using infinite_chain_function_iff_infinite_chain_llist by blast
   finally show ?thesis 
     by auto

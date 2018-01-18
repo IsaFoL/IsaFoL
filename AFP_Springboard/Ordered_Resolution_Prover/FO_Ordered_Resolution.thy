@@ -7,18 +7,16 @@
 
 section \<open>First-Order Ordered Resolution Calculus with Selection\<close>
 
-text \<open>
-This material is based on Section 4.3 (``A Simple Resolution Prover for First-Order Clauses'') of
-Bachmair and Ganzinger's chapter. Specifically, it formalizes the ordered resolution calculus for
-first-order standard clauses presented in Figure 4 and its related lemmas and theorems, including
-soundness and Lemma 4.12 (the lifting lemma).
-\<close>
-
 theory FO_Ordered_Resolution
   imports Abstract_Substitution Ordered_Ground_Resolution Standard_Redundancy
 begin
 
 text \<open>
+This material is based on Section 4.3 (``A Simple Resolution Prover for First-Order Clauses'') of
+Bachmair and Ganzinger's chapter. Specifically, it formalizes the ordered resolution calculus for
+first-order standard clauses presented in Figure 4 and its related lemmas and theorems, including
+soundness and Lemma 4.12 (the lifting lemma).
+
 The following corresponds to pages 41--42 of Section 4.3, until Figure 5 and its explanation.
 \<close>
 

@@ -11,9 +11,9 @@ theory Herbrand_Interpretation
 begin
 
 text \<open>
-Resolution operates of clauses, which are disjunctions of literals. The material formalized here
-corresponds roughly to Sections 2.2 (``Herbrand Interpretations'') of Bachmair and Ganzinger,
-excluding the formula and term syntax.
+The material formalized here corresponds roughly to Sections 2.2 (``Herbrand
+Interpretations'') of Bachmair and Ganzinger, excluding the formula and term
+syntax.
 
 A Herbrand interpretation is a set of ground atoms that are to be considered true.
 \<close>

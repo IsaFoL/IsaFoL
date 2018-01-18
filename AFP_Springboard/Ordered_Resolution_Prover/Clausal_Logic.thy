@@ -8,7 +8,7 @@
 section \<open>Clausal Logic\<close>
 
 theory Clausal_Logic
-imports Nested_Multisets_Ordinals.Multiset_More
+  imports Nested_Multisets_Ordinals.Multiset_More
 begin
 
 text \<open>

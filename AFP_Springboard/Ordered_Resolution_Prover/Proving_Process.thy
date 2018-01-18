@@ -291,8 +291,7 @@ page 38 of Section 4.1.
 lemma redundancy_criterion_standard_extension:
   assumes "\<Gamma> \<subseteq> \<Gamma>'" and "redundancy_criterion \<Gamma> Rf Ri"
   shows "redundancy_criterion \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>))"
-  using assms unfolding redundancy_criterion_def
-  by (intro conjI) ((auto simp: rev_subsetD)[5], satx)
+  using assms unfolding redundancy_criterion_def by (intro conjI) ((auto simp: rev_subsetD)[5], sat)
 
 lemma redundancy_criterion_standard_extension_saturated_upto_iff:
   assumes "\<Gamma> \<subseteq> \<Gamma>'" and "redundancy_criterion \<Gamma> Rf Ri"

@@ -7,15 +7,15 @@
 
 section \<open>An Ordered Resolution Prover for First-Order Clauses\<close>
 
+theory FO_Ordered_Resolution_Prover
+  imports FO_Ordered_Resolution
+begin
+
 text \<open>
 This material is based on Section 4.3 (``A Simple Resolution Prover for First-Order Clauses'') of
 Bachmair and Ganzinger's chapter. Specifically, it formalizes the RP prover defined in Figure 5 and
 its related lemmas and theorems, including Lemmas 4.10 and 4.11 and Theorem 4.13 (completeness).
 \<close>
-
-theory FO_Ordered_Resolution_Prover
-  imports FO_Ordered_Resolution
-begin
 
 (* FIXME: Used only twice, really -- inline? *)
 definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> bool" where

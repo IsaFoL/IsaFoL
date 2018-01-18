@@ -10,7 +10,10 @@ theory Map2
 begin
 
 text \<open>
-This definition is taken from @{url "https://www.isa-afp.org/browser_info/current/AFP/Jinja/Listn.html"}.
+This theory defines a map function that applies a (curried) binary function elementwise to two
+parallel lists.
+
+The definition is taken from @{url "https://www.isa-afp.org/browser_info/current/AFP/Jinja/Listn.html"}.
 \<close>
 
 abbreviation map2 :: "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> 'c list" where

@@ -12,7 +12,7 @@ theory Ordered_Ground_Resolution
 begin
 
 text \<open>
-Ordered ground resolution with selection is the second inference system studied in Section 3
+Ordered ground resolution with selection is the second inference system studied in Section~3
 (``Standard Resolution'') of Bachmair and Ganzinger's chapter.
 \<close>
 
