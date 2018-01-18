@@ -5,7 +5,7 @@ Short article name:
   Ordered_Resolution_Prover
 
 Authors:
-  Anders Schlichtkrull <andschl@dtu.dk>, Jasmin Christian Blanchette <jasmin.blanchette@gmail.com>, Dmitriy Traytel <dmitriy.traytel@gmail.com>, and Uwe Waldmann <waldmann@mpi-inf.mpg.de>
+  Anders Schlichtkrull <andschl@dtu.dk>, Jasmin Christian Blanchette <jasmin.blanchette@gmail.com>, Dmitriy Traytel <dmitriy.traytel@gmail.com>, and Uwe Waldmann <uwe@mpi-inf.mpg.de>
 
 Topics:
   Logic
