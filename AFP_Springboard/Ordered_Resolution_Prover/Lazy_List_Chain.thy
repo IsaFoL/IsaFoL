@@ -12,7 +12,7 @@ theory Lazy_List_Chain
 begin
 
 
-subsection \<open>Potentially Incomplete Chains\<close>
+subsection \<open>Chains\<close>
 
 coinductive chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" for R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
 	chain_singleton: "chain R (LCons x LNil)"
@@ -606,7 +606,7 @@ proof -
 qed
 
 
-subsection \<open>Complete Chains\<close>
+subsection \<open>Full Chains\<close>
 
 coinductive full_chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" for R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
 	full_chain_singleton: "(\<forall>y. \<not> R x y) \<Longrightarrow> full_chain R (LCons x LNil)"
