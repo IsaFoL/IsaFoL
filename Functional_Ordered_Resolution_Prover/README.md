@@ -1,8 +1,8 @@
-# Formalization of Bachmair and Ganzinger's Simple Ordered Resolution Prover #
+# A Verified Functional Implementation of Bachmair and Ganzinger's Ordered Resolution Prover #
 
-[This directory](https://bitbucket.org/isafol/isafol/src/master/Ordered_Resolution_Prover/) contains an ongoing Isabelle formalization of Sections 3 and 4 of Bachmair and Ganzinger's "Resolution Theorem Proving" (Chapter 2 of Volume 1 of _The Handbook of Automated Reasoning_, up to Section 4.3).
+[This directory](https://bitbucket.org/isafol/isafol/src/master/Functional_Ordered_Resolution_Prover/) contains an ongoing Isabelle verification of a functional implementation of the ordered resolution prover presented in Section~4.3 of Bachmair and Ganzinger's "Resolution Theorem Proving" (Chapter 2 of Volume 1 of _The Handbook of Automated Reasoning_).
 
-The repository version of Isabelle is necessary to process the theory files.
+Isabelle2017 is necessary to process the theory files.
 
 
 ## Authors ##
@@ -10,4 +10,3 @@ The repository version of Isabelle is necessary to process the theory files.
 * [Anders Schlichtkrull](mailto:anders shtrudel dtu.dk)
 * [Jasmin Christian Blanchette](mailto:jasmin.blanchette shtrudel inria.fr)
 * [Dmitriy Traytel](mailto:traytel shtrudel inf.ethz.ch)
-* [Uwe Waldmann](mailto:waldmann shtrudel mpi-inf.mpg.de)

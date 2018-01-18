@@ -17,20 +17,17 @@
 
 \begin{document}
 
-\title{Formalized ``Resolution Theorem Proving''}
-\author{Jasmin Christian Blanchette and Dmitriy Traytel}
+\title{A Verified Functional Implementation of \\ Bachmair and Ganzinger's Ordered Resolution Prover}
+\author{Anders Schlichtkrull, Jasmin Christian Blanchette, and Dmitriy Traytel}
 
 \maketitle
 
 \begin{abstract}
 \noindent
-This Isabelle/HOL formalization covers most of Sections 2 to 4 of Bachmair and
-Ganzinger's ``Resolution Theorem Proving'' chapter
-\cite{bachmair-ganzinger-2001} in Volume 1 of the \emph{Handbook of Automated
-Reasoning} \cite{robinson-voronkov-2001-vol1}. This includes soundness and
-completeness of unordered and ordered variants of ground resolution with and
-without literal selection, the standard redundancy criterion, as well as a
-general framework for refutational theorem proving.
+This Isabelle/HOL formalization refines the abstract ordered resolution prover
+presented in Section~4.3 of Bachmair and Ganzinger's ``Resolution Theorem
+Proving'' chapter in the \emph{Handbook of Automated Reasoning}. The result
+is an executable, functional implementation of a first-order prover.
 \end{abstract}
 
 \tableofcontents
@@ -42,31 +39,20 @@ general framework for refutational theorem proving.
 \section{Introduction}
 
 Bachmair and Ganzinger's ``Resolution Theorem Proving'' chapter
-\cite{bachmair-ganzinger-2001} in Volume 1 of the \emph{Handbook of Automated
-Reasoning} \cite{robinson-voronkov-2001-vol1} is the standard reference on the
+%\cite{bachmair-ganzinger-2001}
+in the \emph{Handbook of Automated Reasoning} is the standard reference on the
 topic. It defines a general framework for propositional and first-order
-resolution-based theorem proving. Resolution forms the basis for superposition,
-the calculus implemented in the popular automatic theorem provers E
-\cite{schulz-2013}, SPASS \cite{weidenbach-et-al-2009}, and Vampire
-\cite{hoder-voronkov-2010}.
+resolution-based theorem proving. Resolution forms the basis for
+superposition, the calculus implemented in many popular automatic theorem
+provers.
 
 \medskip
 
-This Isabelle/HOL formalization covers Sections 2.1, 2.2, 2.4, 2.5, 3, 4.1,
-4.2, and 4.3 of Bachmair and Ganzinger's chapter. Section 2 focuses on
-preliminaries. Section 3 introduces unordered and ordered variants of ground
-resolution with and without literal selection and proves them refutationally
-complete. Section 4.1 presents a framework for theorem provers based on
-refutation and saturation. Finally, Section 4.2 generalizes the refutational
-completeness argument and introduces the standard redundancy criterion, which
-can be used in conjunction with ordered resolution. Section 4.3 lifts the
-result to a first-order prover, specified as a calculus. Figure~\ref{fig:thys}
-shows the corresponding Isabelle theory structure.
-
-\medskip
-
-This formalization work is part of a larger program of bringing the benefits of
-interactive theorem proving to the automated theorem proving community.
+This Isabelle/HOL formalization starts from an existing formalization of
+Bachmair and Ganzinger's chapter, up to and including Section 4.3. It refines
+the abstract ordered resolution prover presented in Section~4.3 to obtain an
+executable, functional implementation of a first-order prover.
+Figure~\ref{fig:thys} shows the corresponding Isabelle theory structure.
 
 \begin{figure}
 \begin{center}
@@ -80,10 +66,7 @@ interactive theorem proving to the automated theorem proving community.
 \input{session}
 
 % optional bibliography
-%\bibliographystyle{abbrv}
-%\bibliography{root}
-
-\bibliographystyle{abbrv}
-\bibliography{bib}
+% \bibliographystyle{abbrv}
+% \bibliography{bib}
 
 \end{document}
