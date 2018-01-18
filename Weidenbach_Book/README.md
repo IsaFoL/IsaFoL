@@ -3,14 +3,17 @@
 [This directory](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/) contains an ongoing Isabelle formalization of Christoph Weidenbach's forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
 The relevant part of the book can be found [online](http://people.mpi-inf.mpg.de/~mfleury/paper/Weidenback_Book_CDCL.pdf).
 
+
 ## Organisation of the Development ##
 
 * The branch [master](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/) contains the latest development and is based on Isabelle version 2017.
 * The branch [IJCAR2016](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/) contains the version of the development related to the paper. Please refer to [this page](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/Readme.md).
 
+
 ## Documentation ##
 
 A recent version of the documentation the theory files is also available [online](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book).
+
 
 ## Authors ##
 
@@ -18,10 +21,12 @@ A recent version of the documentation the theory files is also available [online
 * [Jasmin Christian Blanchette](mailto:j.c.blanchette shtrudel vu.nl>)
 * [Peter Lammich](mailto:lammich shtrudel in.tum.de)
 
+
 ## Additional Collaborators ##
 
 * [Dmitriy Traytel](mailto:traytel shtrudel inf.ethz.ch)
 * [Christoph Weidenbach](mailto:weidenbach shtrudel mpi-inf.mpg.de)
+
 
 ## Publications ##
 
@@ -41,6 +46,7 @@ A recent version of the documentation the theory files is also available [online
   M. Fleury.
   M.Sc. thesis, École normale supérieure Rennes, 2015.
 
+
 ## Execution of the Formalisation ##
 
 * Please install [Isabelle2017](http://isabelle.in.tum.de).
@@ -50,6 +56,7 @@ A recent version of the documentation the theory files is also available [online
    (``-d .`` ensures that Isabelle knows about the sessions of this formalisation, and ``-l CDCL`` means that we build the formalisation on top of CDCL).
   The whole compilation will take around 30 minutes.
 
+
 ## The SAT solver IsaSAT ##
 
 The code of the SAT solver is in the ``code`` folder. To run it:
@@ -58,12 +65,12 @@ The code of the SAT solver is in the ``code`` folder. To run it:
   * run the solver with ``./IsaSAT <cnf-file>``. Use the options "--model" to output the model (if the clauses are statifiable)
     and "--stat" to print some statistics on the run.
 
+
 ## Names Correspondance and Publications
 
 ### A Verified SAT Solver with Watched Literals Using Imperative HOL, Accepted at CPP 18 ###
 
 Version: commit 678b79ae5e865b9cc21081adb091e5baaa802c0b
-
 
 |Paper                       |  Theory file                                |   Isabelle name
 |----------------------------|---------------------------------------------|---------------------------------------------------------------------

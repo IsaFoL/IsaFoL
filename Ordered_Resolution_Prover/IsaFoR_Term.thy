@@ -10,11 +10,16 @@ theory IsaFoR_Term
   imports
     Deriving.Derive
     Abstract_Substitution
-    "../lib/Explorer" (* FIXME: remove explorer when done *)
     QTRS.Encompassment (* Version 7a339721b8c2 *)
-    "./AFP_IsaFoR/Fun_More"
+    "../AFP_IsaFoR/Fun_More"
     Processors.KBO
 begin
+
+text \<open>
+This theory implements the abstract interface for atoms and substitutions using the IsaFoR library.
+Since the IsaFoR files we need are not in the \emph{Archive of Formal Proof}, we cannot put this
+theory file in the archive.
+\<close>
 
 (* FIXME: Use these once they are moved to AFP:
     "AFP_IsaFoR/AFP_Unifiers"
@@ -89,8 +94,7 @@ lemma less_kbo_subst:
   shows "less_kbo s t \<Longrightarrow> less_kbo (s \<cdot> \<sigma>) (t \<cdot> \<sigma>)"
   unfolding less_kbo_def by (rule KBO.S_subst)
 
-lemma wfP_less_kbo:
-  "wfP less_kbo"
+lemma wfP_less_kbo: "wfP less_kbo"
 proof -
   have "SN {(x, y). fst (kbo x y)}"
     using pr_strict_asymp by (fastforce simp: asymp.simps irreflp_def intro!: KBO.SN_S_po scf_ok)
