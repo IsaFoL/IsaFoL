@@ -18,5 +18,5 @@
 ## Entry in the Archive of Formal Proofs ##
 
 * [Formalization of Bachmair and Ganzinger's Ordered Resolution Prover](https://www.isa-afp.org/entries/Ordered_Resolution_Prover.shtml)
-  A. Schlichtkrull, J.C. Blanchette, D. Traytel, U. Waldmann.
+  A. Schlichtkrull, J. C. Blanchette, D. Traytel, U. Waldmann.
   Archive of Formal Proofs, Formal proof development.
