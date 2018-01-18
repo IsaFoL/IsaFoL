@@ -1416,7 +1416,7 @@ proof -
 
   have ground_ns_in_ground_limit_st:
     "Liminf_llist Ns - sr.Rf (Liminf_llist Ns) \<subseteq> grounding_of_clss (Q_of_state (Liminf_state Sts))"
-    using fair deriv fair_imp_Liminf_minus_Rf_subset_ground_Liminf_state ns sorry (* adapt fair_imp_Liminf_minus_Rf_subset_ground_Liminf_state *)
+    using fair deriv fair_imp_Liminf_minus_Rf_subset_ground_Liminf_state ns by blast
 
   have derivns: "chain sr_ext.derive Ns"
     using resolution_prover_ground_derivation deriv ns by auto

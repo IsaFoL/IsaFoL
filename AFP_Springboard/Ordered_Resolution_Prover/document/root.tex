@@ -17,20 +17,21 @@
 
 \begin{document}
 
-\title{Formalized ``Resolution Theorem Proving''}
-\author{Jasmin Christian Blanchette and Dmitriy Traytel}
+\title{Formalization of Bachmair and Ganzinger's Ordered Resolution Prover}
+\author{Anders Schlichtkrull, Jasmin Christian Blanchette, Dmitriy Traytel, and Uwe Waldmann}
 
 \maketitle
 
 \begin{abstract}
 \noindent
-This Isabelle/HOL formalization covers most of Sections 2 to 4 of Bachmair and
+This Isabelle/HOL formalization covers Sections 2 to 4 of Bachmair and
 Ganzinger's ``Resolution Theorem Proving'' chapter
 \cite{bachmair-ganzinger-2001} in Volume 1 of the \emph{Handbook of Automated
 Reasoning} \cite{robinson-voronkov-2001-vol1}. This includes soundness and
 completeness of unordered and ordered variants of ground resolution with and
-without literal selection, the standard redundancy criterion, as well as a
-general framework for refutational theorem proving.
+without literal selection, the standard redundancy criterion, a general
+framework for refutational theorem proving, and soundness and completeness of
+an abstract first-order prover.
 \end{abstract}
 
 \tableofcontents
@@ -62,11 +63,6 @@ completeness argument and introduces the standard redundancy criterion, which
 can be used in conjunction with ordered resolution. Section 4.3 lifts the
 result to a first-order prover, specified as a calculus. Figure~\ref{fig:thys}
 shows the corresponding Isabelle theory structure.
-
-\medskip
-
-This formalization work is part of a larger program of bringing the benefits of
-interactive theorem proving to the automated theorem proving community.
 
 \begin{figure}
 \begin{center}
