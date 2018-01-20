@@ -240,19 +240,18 @@ end;
 
 
 
-  (* Locally patched version  *)
-  fun array_blit src si dst di len = (
-    src=dst andalso raise Fail ("array_blit: Same arrays");
-    ArraySlice.copy {
-      di = IntInf.toInt di,
-      src = ArraySlice.slice (src,IntInf.toInt si,SOME (IntInf.toInt len)),
-      dst = dst})
+   fun array_blit src si dst di len = (
+      src=dst andalso raise Fail ("array_blit: Same arrays");
+      ArraySlice.copy {
+        di = IntInf.toInt di,
+        src = ArraySlice.slice (src,IntInf.toInt si,SOME (IntInf.toInt len)),
+        dst = dst})
 
-  fun array_nth_oo v a i () = Array.sub(a,IntInf.toInt i) handle Subscript => v | Overflow => v
-  fun array_upd_oo f i x a () = 
-    (Array.update(a,IntInf.toInt i,x); a) handle Subscript => f () | Overflow => f ()
+    fun array_nth_oo v a i () = Array.sub(a,IntInf.toInt i) handle Subscript => v | Overflow => v
+    fun array_upd_oo f i x a () = 
+      (Array.update(a,IntInf.toInt i,x); a) handle Subscript => f () | Overflow => f ()
 
-  
+    
 
 structure Bits_Integer : sig
   val set_bit : IntInf.int -> IntInf.int -> bool -> IntInf.int
@@ -750,11 +749,12 @@ fun sum_encode x =
   (case x of Inl a => times_nat (nat_of_integer (2 : IntInf.int)) a
     | Inr b => suc (times_nat (nat_of_integer (2 : IntInf.int)) b));
 
+val one_int : int = Int_of_integer (1 : IntInf.int);
+
 fun int_encode i =
   sum_encode
     (if less_eq_int zero_int i then Inl (nat i)
-      else Inr (nat (minus_int (uminus_int i)
-                      (Int_of_integer (1 : IntInf.int)))));
+      else Inr (nat (minus_int (uminus_int i) one_int)));
 
 fun creg_register (A1_, A2_) l cid cr =
   (fn () =>
@@ -3116,7 +3116,7 @@ fun check_item3a x =
         in
           (case a of Inl x1a => (fn () => (Inl x1a))
             | Inr (a1a, a2a) =>
-              (if equal_int a1a (Int_of_integer (1 : IntInf.int))
+              (if equal_int a1a one_int
                 then (fn f_ => fn () => f_ ((apply_units3a ai bic a1 a2 a2a) ())
                        ())
                        (fn aa =>
@@ -3346,7 +3346,7 @@ fun init_rat_counts3a x =
     in
       (case a of Inl x1a => (fn () => (Inl x1a))
         | Inr (a1, a2) =>
-          (if equal_int a1 (Int_of_integer (1 : IntInf.int)) orelse
+          (if equal_int a1 one_int orelse
                 (equal_int a1 (Int_of_integer (2 : IntInf.int)) orelse
                   (equal_int a1 (Int_of_integer (3 : IntInf.int)) orelse
                     (equal_int a1 (Int_of_integer (4 : IntInf.int)) orelse

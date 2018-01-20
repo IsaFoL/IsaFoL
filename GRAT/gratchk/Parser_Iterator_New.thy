@@ -6,7 +6,10 @@ begin
     This theory provides a notion of iterator, and 
     defines simple parsers (for null-terminated lists) on top of this.
   \<close>
-  
+
+(* TODO: FIXME *)
+hide_const Word.slice   
+
   
   subsection \<open>Iterators\<close>
   text \<open>This locale provides the abstract interface of an iterator.
@@ -634,7 +637,6 @@ begin
       qed
       done  
         
-        
     lemma seg_is_slice:
       assumes "seg it l it'"
       shows "l = slice it it' a"
@@ -644,9 +646,27 @@ begin
       apply clarsimp  
       apply (rewrite in "seg \<hole>" in asm ait_next_def)  
       apply (rewrite in "peek _ # _" ait_peek_def) (* TODO: Clean up proof *)
-      by (smt Cons_nth_drop_Suc slice_def I_def antisym_conv2 diff_diff_cancel 
-          drop_all drop_take dual_order.strict_trans1 hd_drop_conv_nth leI 
-          lessI less_or_eq_imp_le seg_invar2 seg_ord slice_head slice_len)  
+    proof -
+      fix la :: "'a list" and ita :: nat
+      assume a1: "seg (Suc ita) la it'"
+      assume a2: "\<And>it. seg it la it' \<Longrightarrow> la = slice it it' a"
+    have f3: "\<forall>n na nb. \<not> (n::nat) \<le> na \<or> \<not> nb < n \<or> nb < na"
+      using dual_order.strict_trans1 by blast
+      have f4: "Suc ita \<le> it'"
+        using a1 seg_ord by blast
+    then have f5: "ita < it'"
+      using f3 by blast
+      have f6: "\<forall>n na. \<not> (n::nat) < na \<and> n \<noteq> na \<or> n \<le> na"
+        using less_or_eq_imp_le by blast
+      then have f7: "ita \<le> Suc ita"
+        by (meson lessI)
+      have "length (take it' a) \<le> ita \<longrightarrow> drop (Suc ita) (take it' a) \<noteq> []"
+    using f6 f4 f3 a1 by (metis (no_types) I_def Misc.slice_def antisym_conv2 diff_diff_cancel drop_all drop_take lessI seg_invar2 slice_len)
+    then have "\<not> length (take it' a) \<le> ita"
+      using f7 f6 f3 by (metis (no_types) antisym_conv2 drop_all)
+      then show "a ! ita # la = slice ita it' a"
+        using f5 a2 a1 by (metis (no_types) Cons_nth_drop_Suc I_def Misc.slice_def drop_take hd_drop_conv_nth leI seg_invar2 slice_head)
+    qed
         
     lemma seg_exists:
       "\<lbrakk> 0<it; it\<le>it'; it'\<le>length a \<rbrakk> \<Longrightarrow> \<exists>l. seg it l it'"

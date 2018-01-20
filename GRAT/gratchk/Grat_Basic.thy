@@ -2,14 +2,19 @@ section \<open>Basic Notions for the GRAT Format\<close>
 theory Grat_Basic
 imports 
   Unit_Propagation 
-  DRAT_Misc 
   "$AFP/Refine_Imperative_HOL/Sepref_ICF_Bindings" 
   Exc_Nres_Monad
   Synth_Definition 
   Dynamic_Array 
   Array_Map_Default 
   Parser_Iterator_New
+  DRAT_Misc 
+  Misc
 begin
+
+hide_const (open) Word.slice
+
+(*
 
 (* TODO: Move, patch Imperative/HOL! 
   This patch makes Imperative/HOL array translation also work for index types other than IntInf.
@@ -60,9 +65,7 @@ code_printing constant blit' \<rightharpoonup>
   
   
   
-  
-  
-  
+*)  
   
   
 (* TODO: Move *)

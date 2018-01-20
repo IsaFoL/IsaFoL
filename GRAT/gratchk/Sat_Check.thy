@@ -316,7 +316,7 @@ proof -
       
     have U1: "slice 1 F_end DB = tl (take F_end DB)"
       unfolding slice_def
-      by (metis One_nat_def drop_0 drop_Suc_Cons drop_take list.sel(3) tl_drop)
+      by (metis Misc.slice_def One_nat_def drop_0 drop_Suc_Cons drop_take list.sel(3) tl_drop)
         
     have U2: "F_invar (tl (take F_end DB)) \<and> sat (F_\<alpha> (tl (take F_end DB))) 
       \<longleftrightarrow> formula_sat_spec DB F_end"    

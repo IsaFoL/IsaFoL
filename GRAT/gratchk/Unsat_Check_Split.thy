@@ -392,7 +392,7 @@ lemma parse_skip_listZ_correct[THEN ESPEC_trans, refine_vcg]:
   shows "parse_skip_listZ prf
           \<le> ESPEC (\<lambda>_. True) (\<lambda>prf'. (prf',prf)\<in>prfWF\<^sup>+)"
   unfolding parse_skip_listZ_def
-  apply (refine_vcg EWHILET_rule[where R="inv_image (prfWF\<^sup>+) snd"])
+  apply (refine_vcg EWHILET_rule[where R="inv_image (prfWF\<^sup>+) snd" and I="\<lambda>_. True"])
   apply (auto dest: rtrancl_inv_image_ssI) 
   done
   
@@ -3281,7 +3281,7 @@ proof -
       done    
       
     have U1: "slice 1 F_end DB = tl (take F_end DB)"
-      unfolding slice_def
+      unfolding Misc.slice_def
       by (metis One_nat_def drop_0 drop_Suc_Cons drop_take list.sel(3) tl_drop)
         
     have U2: "F_invar (tl (take F_end DB)) \<and> \<not> sat (F_\<alpha> (tl (take F_end DB))) 
