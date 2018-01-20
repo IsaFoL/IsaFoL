@@ -22,7 +22,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-ggdb3 -O3 -DNDEBUG -DWITH_PROFILING")
 set(CMAKE_INSTALL_PREFIX "$ENV{HOME}")
 
 # link_directories(/home/lammich/lib)
-link_libraries(pthread tcmalloc)
+link_libraries(pthread)
 
 
 if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")

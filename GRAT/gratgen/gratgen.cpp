@@ -393,6 +393,8 @@ bool cfg_single_threaded = false; ///< Operate in single-threaded mode. Implicit
 bool cfg_rat_run_heuristics = true; ///< Enable RAT run heuristics
 size_t cfg_rat_run_readd_upper_limit = 1<<8;  ///< Upper limit for re-added clauses to be collected until RAT-run heuristics is reset. TODO: Compute dynamically as fraction of total number of clauses?!
 
+bool cfg_binary_drat = false; ///< Use binary format for drat file
+
 ///@}
 
 
@@ -1048,15 +1050,36 @@ public:
   /// Skip over whitespace and comments
   void parse_ignore_comments(istream &in);
 
-  /// Parse a clause to the global clause database.
-  pos_t parse_clause(istream &in);
+  /** Parse a clause to the global clause database.
+   * @param parse_append_raw Called with (in) to read and append a clause to clause db. @see parse_append_clause
+   *
+   */
+  template<typename T> pos_t parse_clause(istream &in, T parse_append_raw);
   /// Parse a deletion item to the global clause database.
-  pos_t parse_deletion(istream &in);
+  template<typename T> pos_t parse_deletion(istream &in, T parse_append_raw);
 
   /// Parse the cnf file
   void parse_dimacs(istream &in);
   /// Parse the DRAT file
   void parse_proof(istream &in);
+
+private:
+  /// Parses a clause and appends to clause db. No postprocessing of clause is done.
+  void parse_append_clause_raw(istream &in) {
+    lit_t l;
+    do {                                          // Push literals and terminating zero
+      in>>ws; in>>l; glb.db.append(l);
+    } while (l);
+  }
+
+  unsigned bin_parse_unsigned(istream &in);
+  lit_t bin_parse_lit(istream &in);
+  void bin_parse_append_clause_raw(istream &in);
+
+public:
+  void bin_parse_proof(istream &in);
+
+
 };
 
 
@@ -1081,20 +1104,19 @@ inline bool Parser::Clause_Hash_Eq::operator() (const pos_t &pos1, const pos_t &
 
 
 
-pos_t Parser::parse_clause(istream &in) {
+template<typename T> pos_t Parser::parse_clause(istream& in, T parse_append_raw) {
   size_t id = ++glb.num_clauses;                    // Ids start at 1
   glb.db.append(id);                                // Push id
   pos_t pos = glb.db.current();                     // Positions refer to first literal
 
-  size_t len=0;
+  parse_append_raw(in);  // Read clause to clause-db
+  assert(glb.db.current().pos > pos.pos); // At least a terminating 0 must have been read
 
-  lit_t l;
-  do {                                          // Push literals and terminating zero
-    in>>ws; in>>l; glb.db.append(l);
-    glb.max_var = max(var_of(l),glb.max_var);
-    ++len;
-  } while (l);
-  --len;
+//   lit_t l;
+//   do {                                          // Push literals and terminating zero
+//     in>>ws; in>>l; glb.db.append(l);
+// //     glb.max_var = max(var_of(l),glb.max_var);
+//   } while (l);
 
   auto cl = glb.db.p2i(pos);                  // pos indicates first literal
   auto cle = glb.db.p2i(glb.db.current())-1;  // set cle one past last literal (Current position is one past terminating zero)
@@ -1106,17 +1128,22 @@ pos_t Parser::parse_clause(istream &in) {
     // Remove duplicate literals
     auto ncle = unique(cl,cle);
     if (ncle != cle) {
-      ncle[1]=0;
+      ncle[1]=0;  //FIXME Off by one? ncle[0] = 0? Expect ncle to point one beyond end of dup-free sequence!
       glb.db.shrink_to(ncle+1);
+      cle=ncle;
     }
   }
+
+  // Adjust max-var
+  for (auto i = cl;i!=cle;++i) glb.max_var = max(var_of(*i),glb.max_var);
+
 
   clause_map.insert({ pos, pos });              // Add to clause_map
 
   return pos;
 }
 
-pos_t Parser::parse_deletion(istream &in) {
+template<typename T> pos_t Parser::parse_deletion(istream &in, T parse_append_raw) {
   pos_t orig_pos = glb.db.current();
   pos_t result = pos_t::null;
 
@@ -1128,11 +1155,13 @@ pos_t Parser::parse_deletion(istream &in) {
 
   pos_t pos = glb.db.current();
 
+  parse_append_raw(in);  // Read clause to clause-db
+  assert(glb.db.current().pos > pos.pos); // At least a terminating 0 must have been read
 
-  lit_t l;
-  do {                                          // Push literals and terminating zero
-    in>>ws; in>>l; glb.db.append(l);
-  } while (l);
+//   lit_t l;
+//   do {                                          // Push literals and terminating zero
+//     in>>ws; in>>l; glb.db.append(l);
+//   } while (l);
 
   lit_t *cl = glb.db.p2c(pos);                  // pos indicates first literal
   lit_t *cle = glb.db.p2c(glb.db.current())-1;  // set cle one past last literal (Current position is one past terminating zero)
@@ -1171,7 +1200,7 @@ void Parser::parse_dimacs(istream &in) {
     parse_ignore_comments(in);
     if (in.eof()) break;
 
-    pos_t pos = parse_clause(in);
+    pos_t pos = parse_clause(in,[this](istream &in){parse_append_clause_raw(in);});
 
     glb.items.push_back(item_t(false,pos));
   }
@@ -1194,17 +1223,71 @@ void Parser::parse_proof(istream &in) {
 
     if (in.peek()=='d') {
       in.get();
-      pos_t pos = parse_deletion(in);
+      pos_t pos = parse_deletion(in,[this](istream &in){parse_append_clause_raw(in);});
 
       if (pos) glb.items.push_back(item_t(true,pos));
     } else {
-      pos_t pos = parse_clause(in);
+      pos_t pos = parse_clause(in,[this](istream &in){parse_append_clause_raw(in);});
       glb.items.push_back(item_t(false,pos));
     }
   }
 
   glb.init_after_parsing();
 }
+
+
+inline unsigned Parser::bin_parse_unsigned(istream &in) {
+  unsigned res=0;
+  unsigned shift=0;
+
+  int c;
+  do {
+    c = in.get();
+    assert(c>=0); // Assuming exception on fail!
+    res |= (c & 0x7F) << shift;  // TODO: Overflow check!
+    shift += 7;
+  } while ((c&0x80) != 0);
+
+  return res;
+}
+
+
+inline lit_t Parser::bin_parse_lit(istream &in) {
+  unsigned ul = bin_parse_unsigned(in);
+  if ((ul&0x01) != 0) return -(static_cast<int>(ul>>1));
+  else return static_cast<int>(ul>>1);
+}
+
+inline void Parser::bin_parse_append_clause_raw(istream &in) {
+  lit_t l;
+  do {                                          // Push literals and terminating zero
+    l=bin_parse_lit(in);
+    glb.db.append(l);
+  } while (l);
+}
+
+
+void Parser::bin_parse_proof(istream &in) {
+//   in.exceptions(in.failbit|in.badbit);
+
+  while (true) {
+    int ctrl = in.get();
+    if (ctrl < 0) break;
+
+    if (ctrl=='d') {
+      pos_t pos = parse_deletion(in,[this](istream &in){bin_parse_append_clause_raw(in);});
+      if (pos) glb.items.push_back(item_t(true,pos));
+    } else if (ctrl=='a') {
+      pos_t pos = parse_clause(in,[this](istream &in){bin_parse_append_clause_raw(in);});
+      glb.items.push_back(item_t(false,pos));
+    } else {
+      fail("Binary format: Invalid ctrl byte " + ctrl);
+    }
+  }
+
+  glb.init_after_parsing();
+}
+
 
 
 
@@ -2999,6 +3082,7 @@ void print_usage() {
     cerr<<"      --single-del            Do not summarize deletion items"<<endl;
     cerr<<"      --[no-]premark-formula  Mark clauses of initial formula"<<endl;
     cerr<<"      --[no-]rat-run-h        Use RAT run heuristics"<<endl;
+    cerr<<"  -b, --[no-]binary-drat      Use binary DRAT format"<<endl;
 }
 
 /// Print sizes of data types used internally
@@ -3033,6 +3117,8 @@ int main(int argc, char **argv) {
     else if (           a=="--premark-formula") cfg_premark_formula = true;
     else if (           a=="--no-premark-formula") cfg_premark_formula = false;
     else if (           a=="--no-rat-run-h") cfg_rat_run_heuristics = false;
+    else if (a=="-b" || a=="--binary-drat") cfg_binary_drat = true;
+    else if (           a=="--no-binary-drat") cfg_binary_drat = false;
     else if (a=="-j" || a=="--num_parallel") {
       ++i; if (i>=argc) {cerr<<"Expecting argument for "<<a<<endl; fail();}
       num_parallel = stoul(argv[i]);
@@ -3092,11 +3178,19 @@ int main(int argc, char **argv) {
       fs.close();
     });
 
-    with_timing("Parsing proof",[&] () {
-      ifstream fs(proof_file,ifstream::in);
-      parser.parse_proof(fs);
-      fs.close();
-    });
+    if (cfg_binary_drat) {
+      with_timing("Parsing proof (binary format)",[&] () {
+        ifstream fs(proof_file,ios::in | ios::binary);
+        parser.bin_parse_proof(fs);
+        fs.close();
+      });
+    } else {
+      with_timing("Parsing proof (ASCII format)",[&] () {
+        ifstream fs(proof_file,ifstream::in);
+        parser.parse_proof(fs);
+        fs.close();
+      });
+    }
 
     stat_parsing_time = chrono::duration_cast<chrono::milliseconds>( chrono::steady_clock::now() - parsing_start_time);
   }

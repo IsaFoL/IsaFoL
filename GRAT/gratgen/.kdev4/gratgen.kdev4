@@ -3,7 +3,7 @@ BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x
 
 [CMake]
 Build Directory Count=3
-Current Build Directory Index=2
+Current Build Directory Index=1
 ProjectRootRelative=./
 
 [CMake][CMake Build Directory 0]
@@ -164,7 +164,7 @@ pattern=__pycache__
 targets=2
 
 [Launch]
-Launch Configurations=Launch Configuration 0
+Launch Configurations=Launch Configuration 0,Launch Configuration 1
 
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
@@ -182,6 +182,24 @@ External Terminal=konsole --noclose --workdir %workdir -e %exe
 Project Target=gratgen,gratgen
 Use External Terminal=false
 Working Directory=file:///home/lammich/devel/isabelle/isafol/GRAT/regression/data
+isExecutable=false
+
+[Launch][Launch Configuration 1]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=gratgen2
+Type=Native Application
+
+[Launch][Launch Configuration 1][Data]
+Arguments=mp1-tri_ali_s11_c35_sinx_UNS.cnf mp1-tri_ali_s11_c35_sinx_UNS.drat -j 1 -b
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00g\x00e\x00n\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00g\x00e\x00n)
+Dependency Action=Build
+EnvironmentGroup=
+Executable=file:///home/lammich/devel/isabelle/isafol/GRAT/gratgen/
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Project Target=gratgen,gratgen
+Use External Terminal=false
+Working Directory=file:///home/lammich/opt/src/sat_solvers/out/Maple_LCM_Dist/default/
 isExecutable=false
 
 [Project]
