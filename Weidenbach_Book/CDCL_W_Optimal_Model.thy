@@ -7,8 +7,8 @@ section \<open>CDCL Extensions\<close>
 subsection \<open>Optimisations\<close>
 
 text \<open>
-  A counter-example for the original version from the book has been found (see below). There is no 
-  simple fix, except taking complete models. In this case, it is better to build on top of the 
+  A counter-example for the original version from the book has been found (see below). There is no
+  simple fix, except taking complete models. In this case, it is better to build on top of the
   incremental version of CDCL, and not to create a new variant of the calculus.\<close>
 
 notation image_mset (infixr "`#" 90)
@@ -495,7 +495,7 @@ lemma resolve_resolve:
       simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
       true_annots_true_cls_def_iff_negation_in_model abs_state_def
       in_negate_trial_iff)
-    
+
 lemma backtrack_backtrack:
   \<open>backtrack S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.backtrack (abs_state S) (abs_state T)\<close>
 proof (induction rule: backtrack.cases)

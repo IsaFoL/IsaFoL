@@ -46,8 +46,8 @@ proof (rule ccontr)
       cdcl\<^sub>W_all_struct_inv_inv cdcl\<^sub>W_cdcl\<^sub>W_restart by blast
 
   have M1_D': \<open>M1 \<Turnstile>as CNot D'\<close>
-    using backtrack_M1_CNot_D'[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T \<open>Propagated L (add_mset L D')\<close>]
-      confl inv confl_S decomp i T D_D' lev_K lev_L max_D_L
+    using backtrack_M1_CNot_D'[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T
+        \<open>Propagated L (add_mset L D')\<close>] confl inv confl_S decomp i T D_D' lev_K lev_L max_D_L
     unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
     by (auto simp: subset_mset_trans_add_mset)
   have \<open>undefined_lit M1 L\<close>
@@ -77,6 +77,28 @@ proof (rule ccontr)
     by (auto simp: inv smaller elim!: rulesE) fast
 qed
 
+text \<open>
+  This is a more restrictive version of the previous theorem, but is a better bound for an
+  implementation that does not do duplication removal (esp. as part of preprocessing).
+\<close>
+lemma cdcl\<^sub>W_stgy_learned_distinct_mset:
+  assumes
+    cdcl: \<open>cdcl\<^sub>W_stgy S T\<close> and
+    inv: "cdcl\<^sub>W_all_struct_inv S" and
+    smaller: \<open>no_smaller_propa S\<close> and
+    dist: \<open>distinct_mset (learned_clss S + remdups_mset (init_clss S))\<close>
+  shows
+    \<open>distinct_mset (learned_clss T + remdups_mset (init_clss T))\<close>
+proof (rule ccontr)
+  assume n_dist: \<open>\<not> ?thesis\<close>
+  then have \<open>backtrack S T\<close>
+    using cdcl dist by (auto simp: cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps
+        elim: propagateE conflictE decideE skipE resolveE)
+  then show False
+    using n_dist cdcl\<^sub>W_stgy_no_relearned_clause[of S T] dist
+    by (auto simp: inv smaller clauses_def elim!: rulesE)
+qed
+
 lemma rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses:
   assumes
     st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S" and
@@ -88,6 +110,18 @@ lemma rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses:
     (auto simp: cdcl\<^sub>W_stgy_distinct_mset rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa
       rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
 
+
+lemma rtranclp_cdcl\<^sub>W_stgy_distinct_mset_learned_clauses:
+  assumes
+    st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S" and
+    invR: "cdcl\<^sub>W_all_struct_inv R" and
+    dist: "distinct_mset (learned_clss R + remdups_mset (init_clss R))" and
+    no_smaller: \<open>no_smaller_propa R\<close>
+  shows "distinct_mset (learned_clss S + remdups_mset (init_clss S))"
+  using assms by (induction rule: rtranclp_induct)
+    (auto simp: cdcl\<^sub>W_stgy_learned_distinct_mset rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa
+      rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
+
 lemma cdcl\<^sub>W_stgy_distinct_mset_clauses:
   assumes
     st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S" and
@@ -96,6 +130,64 @@ lemma cdcl\<^sub>W_stgy_distinct_mset_clauses:
   shows "distinct_mset (clauses S)"
   using rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses[OF st] assms
   by (auto simp: cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def no_smaller_propa_def)
+
+lemma cdcl\<^sub>W_stgy_learned_distinct_mset_new:
+  assumes
+    cdcl: \<open>cdcl\<^sub>W_stgy S T\<close> and
+    inv: "cdcl\<^sub>W_all_struct_inv S" and
+    smaller: \<open>no_smaller_propa S\<close> and
+    dist: \<open>distinct_mset (learned_clss S - A)\<close>
+  shows \<open>distinct_mset (learned_clss T - A)\<close>
+proof (rule ccontr)
+  have [iff]: \<open>distinct_mset (add_mset C (learned_clss S) - A) \<longleftrightarrow>
+     C \<notin># (learned_clss S) - A\<close> for C
+    using dist distinct_mset_add_mset[of C \<open>learned_clss S - A\<close>]
+  proof -
+    have f1: "learned_clss S - A = remove1_mset C (add_mset C (learned_clss S) - A)"
+      by (metis Multiset.diff_right_commute add_mset_remove_trivial)
+    have "remove1_mset C (add_mset C (learned_clss S) - A) = add_mset C (learned_clss S) - A \<longrightarrow>
+        distinct_mset (add_mset C (learned_clss S) - A)"
+      by (metis (no_types) Multiset.diff_right_commute add_mset_remove_trivial dist)
+    then have "\<not> distinct_mset (add_mset C (learned_clss S - A)) \<or>
+        distinct_mset (add_mset C (learned_clss S) - A) \<noteq> (C \<in># learned_clss S - A)"
+      by (metis (full_types) Multiset.diff_right_commute
+          distinct_mset_add_mset[of C \<open>learned_clss S - A\<close>] add_mset_remove_trivial
+          diff_single_trivial insert_DiffM)
+    then show ?thesis
+      using f1 by (metis (full_types) distinct_mset_add_mset[of C \<open>learned_clss S - A\<close>]
+          diff_single_trivial dist insert_DiffM)
+  qed
+
+  assume n_dist: \<open>\<not> ?thesis\<close>
+  then have \<open>backtrack S T\<close>
+    using cdcl dist by (auto simp: cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps
+        elim: propagateE conflictE decideE skipE resolveE)
+  then show False
+    using n_dist cdcl\<^sub>W_stgy_no_relearned_clause[of S T \<open>add_mset _ _\<close>]
+    apply (auto simp: inv smaller clauses_def elim!: rulesE
+        dest!: in_diffD)
+    by blast
+qed
+
+lemma rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new_abs:
+  assumes
+    st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S" and
+    invR: "cdcl\<^sub>W_all_struct_inv R" and
+    no_smaller: \<open>no_smaller_propa R\<close> and
+    \<open>distinct_mset (learned_clss R - A)\<close>
+  shows "distinct_mset (learned_clss S - A)"
+  using assms by (induction rule: rtranclp_induct)
+    (auto simp: cdcl\<^sub>W_stgy_distinct_mset rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa
+      rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
+      cdcl\<^sub>W_stgy_learned_distinct_mset_new)
+
+lemma rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new:
+  assumes
+    st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S" and
+    invR: "cdcl\<^sub>W_all_struct_inv R" and
+    no_smaller: \<open>no_smaller_propa R\<close>
+  shows "distinct_mset (learned_clss S - learned_clss R)"
+  using assms by (rule rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new_abs) auto
 
 
 subsubsection \<open>Decrease of a Measure\<close>
@@ -217,8 +309,8 @@ next
   case resolve
   then show ?case using finite by (simp add: lexn3_conv)
 next
-  case (backtrack L D K i M1 M2 T D') note conf = this(1) and decomp = this(3) and D_D' = this(7) and
-    T = this(9)
+  case (backtrack L D K i M1 M2 T D') note conf = this(1) and decomp = this(3) and D_D' = this(7)
+    and T = this(9)
   let ?D' = \<open>add_mset L D'\<close>
   have bt: "backtrack S T"
     using backtrack_rule[OF backtrack.hyps] by auto
@@ -290,7 +382,7 @@ lemma empty_trail_no_smaller_propa: \<open>trail R = [] \<Longrightarrow> no_sma
   by (simp add: no_smaller_propa_def)
 
 text \<open>Roughly corresponds to \cwref{theo:prop:cdcltermlc}{theorem 2.9.15 page 86}
-  but using a different bound: Christoph does not count propagations in his bound\<close>
+  but using a different bound: Christoph does not count propagations in his bound.\<close>
 lemma tranclp_cdcl\<^sub>W_stgy_decreasing:
   fixes R S T :: 'st
   assumes "cdcl\<^sub>W_stgy\<^sup>+\<^sup>+ R S" and

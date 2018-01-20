@@ -1,0 +1,23 @@
+Title of article:
+  Formalization of Bachmair and Ganzinger's Ordered Resolution Prover
+
+Short article name:
+  Ordered_Resolution_Prover
+
+Authors:
+  Anders Schlichtkrull <andschl@dtu.dk>, Jasmin Christian Blanchette <j.c.blanchette@vu.nl>, Dmitriy Traytel <traytel@inf.ethz.ch>, and Uwe Waldmann <uwe@mpi-inf.mpg.de>
+
+Topics:
+  Logic
+
+License:
+  BSD
+
+Abstract:
+  This Isabelle/HOL formalization covers Sections 2 to 4 of Bachmair and Ganzinger's "Resolution Theorem Proving" chapter in the Handbook of Automated Reasoning. This includes soundness and completeness of unordered and ordered variants of ground resolution with and without literal selection, the standard redundancy criterion, a general framework for refutational theorem proving, and soundness and completeness of an abstract first-order prover.
+
+Contact:
+  andschl@dtu.dk, j.c.blanchette@vu.nl
+
+Message for the editors:
+  Tested against Isabelle2017.

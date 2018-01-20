@@ -1,0 +1,18 @@
+session "CeTA_SAT_Imports" (ceta) = "CeTA" +
+  options [document = false]
+  sessions
+     Watched_Literals
+  theories
+    Ceta_SAT_Imports
+
+session "CeTA_SAT_Slow" (ceta) = "CeTA_SAT_Imports" +
+  options [document = false]
+  sessions
+    CeTA_SAT_Imports
+  theories
+    Ceta_SAT
+    
+session "CeTA_SAT" (ceta) = "CeTA_SAT_Slow" +
+  options [document = false]
+  theories
+    Ceta_SAT_Code

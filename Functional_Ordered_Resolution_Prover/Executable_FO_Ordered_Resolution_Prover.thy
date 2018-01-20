@@ -1,0 +1,176 @@
+(*  Title:       An Executable Simple Ordered Resolution Prover for First-Order Clauses
+    Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2017
+    Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
+*)
+
+section \<open>An Executable Siple Ordered Resolution Prover for First-Order Clauses\<close>
+
+text \<open>
+TODO.
+\<close>
+
+theory Executable_FO_Ordered_Resolution_Prover
+  imports Deterministic_FO_Ordered_Resolution_Prover Executable_Subsumption
+begin
+
+global_interpretation RP: deterministic_FO_resolution_prover where
+  S = "\<lambda>_. {#}" and
+  subst_atm = "op \<cdot>" and
+  id_subst = "Var :: _ \<Rightarrow> ('f :: {weighted, compare_order}, nat) term" and
+  comp_subst = "op \<circ>\<^sub>s" and
+  renamings_apart = renamings_apart and
+  atm_of_atms = "Fun undefined" and
+  mgu = mgu_sets and
+  lessatm = less_kbo and
+  size_atm = size and
+  generation_factor = 1 and
+  size_factor = 1
+  defines deterministic_RP = RP.deterministic_RP
+  and deterministic_RP_step = RP.deterministic_RP_step
+  and is_final_dstate = RP.is_final_dstate
+  and is_reducible_lit = RP.is_reducible_lit
+  and is_tautology = RP.is_tautology
+  and maximal_wrt = RP.maximal_wrt
+  and reduce = RP.reduce
+(*  and reduce_from = RP.reduce_from*)
+(*  and reduce_on = RP.reduce_on*)
+  and reduce_all = RP.reduce_all
+  and reduce_all2 = RP.reduce_all2
+  and resolve = RP.resolve
+  and resolve_on = RP.resolve_on
+  and resolve_rename = RP.resolve_rename
+  and resolve_rename_either_way = RP.resolve_rename_either_way
+  and select_min_weight_clause = RP.select_min_weight_clause
+  and strictly_maximal_wrt = RP.strictly_maximal_wrt
+  and strictly_subsume = RP.strictly_subsume
+  and subsume = RP.subsume
+  and weight = RP.weight
+  and St0 = RP.St0
+  and sorted_list_of_set = "linorder.sorted_list_of_set (le_of_comp compare)"
+  and sort_key = "linorder.sort_key (le_of_comp compare)"
+  and insort_key = "linorder.insort_key (le_of_comp compare)"
+  by (unfold_locales)
+    (auto simp: less_kbo_subst is_ground_atm_ground less_kbo_less intro: ground_less_less_kbo)
+
+declare
+  RP.deterministic_RP.simps[code]
+  RP.deterministic_RP_step.simps[code]
+  RP.is_final_dstate.simps[code]
+  RP.is_tautology_def[code]
+  RP.reduce.simps[code]
+  RP.reduce_all_def[code]
+  RP.reduce_all2.simps[code]
+  RP.resolve_rename_def[code]
+  RP.resolve_rename_either_way_def[code]
+  RP.select_min_weight_clause.simps[code]
+  RP.weight.simps[code]
+  St0_def[code]
+  substitution_ops.strictly_subsumes_def[code]
+  substitution_ops.subst_cls_lists_def[code]
+  substitution_ops.subst_lit_def[code]
+  substitution_ops.subst_cls_def[code]
+
+lemma remove1_mset_subset_eq: "remove1_mset a A \<subseteq># B \<longleftrightarrow> A \<subseteq># add_mset a B"
+  by (metis add_mset_add_single subset_eq_diff_conv)
+
+lemma Bex_cong: "(\<And>b. b \<in> B \<Longrightarrow> P b = Q b) \<Longrightarrow> Bex B P = Bex B Q"
+  by auto
+
+lemma is_reducible_lit_code[code]: "RP.is_reducible_lit Ds C L =
+  (\<exists>D \<in> set Ds. (\<exists>L' \<in> set D.
+     if is_pos L' = is_neg L then
+       (case match_term_list [(atm_of L', atm_of L)] Map.empty of
+         None \<Rightarrow> False
+       | Some \<sigma> \<Rightarrow> subsumes_list (remove1 L' D) C \<sigma>)
+     else False))"
+  unfolding RP.is_reducible_lit_def subsumes_list_alt subsumes_modulo_def
+  apply (rule Bex_cong)+
+  subgoal for D L'
+    apply (split if_splits option.splits)+
+    apply safe
+    subgoal for \<sigma>
+      using term_subst_eq[of _ "subst_of_map Var (\<lambda>x. if x \<in> vars_lit L' then Some (\<sigma> x) else None)" \<sigma>]
+      by (cases L; cases L';
+        auto simp add: subst_lit_def subst_of_map_def
+          dest!:  match_term_list_complete[of _ _ "\<lambda>x. if x \<in> vars_lit L' then Some (\<sigma> x) else None"])
+    subgoal for \<sigma>
+      using term_subst_eq[of _ "subst_of_map Var (\<lambda>x. if x \<in> vars_lit L' then Some (\<sigma> x) else None)" \<sigma>]
+      by (cases L; cases L';
+        auto simp add: subst_lit_def subst_of_map_def
+          dest!:  match_term_list_complete[of _ _ "\<lambda>x. if x \<in> vars_lit L' then Some (\<sigma> x) else None"])
+    subgoal for \<sigma>
+      by (cases L; cases L'; simp add: subst_lit_def)
+    subgoal for \<sigma>
+      by (cases L; cases L'; simp add: subst_lit_def)
+    subgoal for \<sigma> \<tau>
+      using same_on_vars_clause[of "mset (remove1 L' D)" "subst_of_map Var
+        (\<lambda>x. if x \<in> vars_clause (remove1_mset L' (mset D)) \<union> dom \<sigma> then Some (\<tau> x) else None)" \<tau>]
+      apply (cases L; cases L'; auto simp add: subst_lit_def dom_def subst_of_map_def
+        dest!: match_term_list_sound split: option.splits if_splits
+        intro!: exI[of _ "\<lambda>x. if x \<in> vars_clause (remove1_mset L' (mset D)) \<union> dom \<sigma> then Some (\<tau> x) else None"])
+      by (auto 0 4 simp: extends_subst_def subst_of_map_def split: option.splits dest!: term_subst_eq_rev)
+    subgoal for \<sigma> \<tau>
+      by (cases L; cases L'; auto simp add: subst_lit_def subst_of_map_def extends_subst_def
+        dest!: match_term_list_sound intro!: exI[of _ "subst_of_map Var \<tau>"] term_subst_eq)
+    subgoal for \<sigma> \<tau>
+      using same_on_vars_clause[of "mset (remove1 L' D)" "subst_of_map Var
+        (\<lambda>x. if x \<in> vars_clause (remove1_mset L' (mset D)) \<union> dom \<sigma> then Some (\<tau> x) else None)" \<tau>]
+      apply (cases L; cases L'; auto simp add: subst_lit_def dom_def subst_of_map_def
+        dest!: match_term_list_sound split: option.splits if_splits
+        intro!: exI[of _ "\<lambda>x. if x \<in> vars_clause (remove1_mset L' (mset D)) \<union> dom \<sigma> then Some (\<tau> x) else None"])
+      by (auto 0 4 simp: extends_subst_def subst_of_map_def split: option.splits dest!: term_subst_eq_rev)
+    subgoal for \<sigma> \<tau>
+      by (cases L; cases L'; auto simp add: subst_lit_def subst_of_map_def extends_subst_def
+        dest!: match_term_list_sound intro!: exI[of _ "subst_of_map Var \<tau>"] term_subst_eq)
+    subgoal for \<sigma> \<tau>
+      by (cases L; cases L'; simp add: subst_lit_def)
+    subgoal for \<sigma> \<tau>
+      by (cases L; cases L'; simp add: subst_lit_def)
+    done
+  done
+
+declare
+  Pairs_def[folded sorted_list_of_set_def, code]
+  linorder.sorted_list_of_set_sort_remdups[OF class_linorder_compare,
+    folded sorted_list_of_set_def sort_key_def, code]
+  linorder.sort_key_def[OF class_linorder_compare, folded sort_key_def insort_key_def, code]
+  linorder.insort_key.simps[OF class_linorder_compare, folded insort_key_def, code]
+
+export_code St0 in SML
+export_code deterministic_RP in SML module_name RP
+
+definition prover where
+  "prover N = deterministic_RP (St0 N 0)"
+
+lemma "prover N = None \<Longrightarrow> satisfiable (RP.grounded_N0 N)"
+  unfolding prover_def St0_def by (rule RP.deterministic_RP_complete)
+
+export_code prover in SML module_name RP
+
+
+(*arbitrary*)
+instantiation nat :: weighted begin
+definition weights_nat :: "nat weights" where "weights_nat =
+  \<lparr>w = Suc \<circ> prod_encode, w0 = 1, pr_strict = \<lambda>(f, n) (g, m). f > g \<or> f = g \<and> n > m, least = \<lambda>n. n = 0, scf = \<lambda>_ _. 1\<rparr>"
+
+instance
+  by (intro_classes, unfold_locales)
+    (auto simp: weights_nat_def SN_iff_wf asymp.simps irreflp_def prod_encode_def
+      intro!: wf_subset[OF wf_lex_prod])
+end
+
+abbreviation "\<pp> \<equiv> Fun 42"
+abbreviation "\<aa> \<equiv> Fun 0 []"
+abbreviation "\<bb> \<equiv> Fun 1 []"
+abbreviation "\<cc> \<equiv> Fun 2 []"
+abbreviation "X \<equiv> Var 0"
+abbreviation "Y \<equiv> Var 1"
+abbreviation "Z \<equiv> Var 2"
+
+value "prover
+  ([([Neg (\<pp>[X,Y,Z]), Pos (\<pp>[Y,Z,X])], 1), 
+    ([Pos (\<pp>[\<cc>,\<aa>,\<bb>])], 1),
+    ([Neg (\<pp>[\<bb>,\<cc>,\<aa>])], 1)]
+  :: ((nat, nat) Term.term literal list \<times> nat) list)"
+
+end

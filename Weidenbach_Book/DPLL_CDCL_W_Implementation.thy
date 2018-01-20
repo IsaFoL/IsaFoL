@@ -1,5 +1,5 @@
 theory DPLL_CDCL_W_Implementation
-imports 
+imports
   Entailment_Definition.Partial_Annotated_Clausal_Logic
   CDCL_W_Level
 begin
@@ -252,7 +252,7 @@ next
     "L \<noteq> L' \<longrightarrow> L \<in> set Ls \<and> get_maximum_level M (mset Ls + mset D - {#L#} + {#L'#}) = j \<and>
       get_level M L = k"
      using a2 a1[of "L' # D"] unfolding find_def
-     apply (metis add.commute add_diff_cancel_left' add_mset_add_single mset.simps(2) 
+     apply (metis add.commute add_diff_cancel_left' add_mset_add_single mset.simps(2)
          option.inject prod.inject)
     using f4 a2 a1[of "L' # D"] unfolding find_def by (metis option.inject prod.inject)
   then show ?case by simp

@@ -5,6 +5,7 @@ a certified simple prover for first-order logic based on Tom Ridge's [AFP entry]
 
 [GitHub](https://github.com/logic-tools/simpro) contains a preliminary version.
 
+
 ## Authors ##
 
 * [Jørgen Villadsen](mailto:jovi shtrudel dtu.dk)

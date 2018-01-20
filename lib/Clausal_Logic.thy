@@ -8,7 +8,7 @@
 section \<open>Clausal Logic\<close>
 
 theory Clausal_Logic
-imports "Nested_Multisets_Ordinals.Multiset_More"
+imports Nested_Multisets_Ordinals.Multiset_More
 begin
 
 text \<open>
@@ -32,10 +32,13 @@ abbreviation is_neg :: "'a literal \<Rightarrow> bool" where
   "is_neg L \<equiv> \<not> is_pos L"
 
 lemma Pos_atm_of_iff[simp]: "Pos (atm_of L) = L \<longleftrightarrow> is_pos L"
-  by (cases L) auto
+  by (cases L) simp+
 
 lemma Neg_atm_of_iff[simp]: "Neg (atm_of L) = L \<longleftrightarrow> is_neg L"
-  by (cases L) auto
+  by (cases L) simp+
+
+lemma set_literal_atm_of: "set_literal L = {atm_of L}"
+  by (cases L) simp+
 
 lemma ex_lit_cases: "(\<exists>L. P L) \<longleftrightarrow> (\<exists>A. P (Pos A) \<or> P (Neg A))"
   by (metis literal.exhaust)
@@ -95,8 +98,7 @@ instantiation literal :: (order) order
 begin
 
 instance
-  apply intro_classes
-  unfolding less_eq_literal_def by (auto intro: literal.expand)
+  by intro_classes (auto simp: less_eq_literal_def intro: literal.expand)
 
 end
 
@@ -168,6 +170,12 @@ Clauses are (finite) multisets of literals.
 \<close>
 
 type_synonym 'a clause = "'a literal multiset"
+
+abbreviation map_clause :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a clause \<Rightarrow> 'b clause" where
+  "map_clause f \<equiv> image_mset (map_literal f)"
+
+abbreviation rel_clause :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'a clause \<Rightarrow> 'b clause \<Rightarrow> bool" where
+  "rel_clause R \<equiv> rel_mset (rel_literal R)"
 
 abbreviation poss :: "'a multiset \<Rightarrow> 'a clause" where "poss AA \<equiv> {#Pos A. A \<in># AA#}"
 abbreviation negs :: "'a multiset \<Rightarrow> 'a clause" where "negs AA \<equiv> {#Neg A. A \<in># AA#}"
@@ -259,7 +267,7 @@ lemma atms_empty_iff_empty[iff]: "atms_of C = {} \<longleftrightarrow> C = {#}"
 
 lemma
   atms_of_poss[simp]: "atms_of (poss AA) = set_mset AA" and
-  atms_of_negg[simp]: "atms_of (negs AA) = set_mset AA"
+  atms_of_negs[simp]: "atms_of (negs AA) = set_mset AA"
   unfolding atms_of_def image_def by auto
 
 lemma less_eq_Max_atms_of: "C \<noteq> {#} \<Longrightarrow> C \<le> D \<Longrightarrow> Max (atms_of C) \<le> Max (atms_of D)"

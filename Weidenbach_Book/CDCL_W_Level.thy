@@ -1,5 +1,5 @@
 theory CDCL_W_Level
-imports 
+imports
   Entailment_Definition.Partial_Annotated_Clausal_Logic
 begin
 
@@ -116,6 +116,11 @@ lemma get_maximum_level_empty_list[simp]:
 lemma get_maximum_level_add_mset:
   "get_maximum_level M (add_mset L D) = max (get_level M L) (get_maximum_level M D)"
   unfolding get_maximum_level_def by simp
+
+text \<open>Do mot activate as [simp] rules. It breaks everything.\<close>
+lemma get_maximum_level_single:
+  \<open>get_maximum_level M {#x#} = get_level M x\<close>
+  by (auto simp: get_maximum_level_add_mset)
 
 lemma get_maximum_level_plus:
   "get_maximum_level M (D + D') = max (get_maximum_level M D) (get_maximum_level M D')"
@@ -259,7 +264,7 @@ lemma Suc_count_decided_gt_get_level:
   \<open>get_level M L < Suc (count_decided M)\<close>
   by (induction M rule: ann_lit_list_induct) (auto simp: get_level_cons_if)
 
-lemma get_level_Succ_count_decided_neq[simp]:
+lemma get_level_neq_Suc_count_decided[simp]:
   \<open>get_level M L \<noteq> Suc (count_decided M)\<close>
   using Suc_count_decided_gt_get_level[of M L] by auto
 

@@ -1236,7 +1236,7 @@ proof -
         using atm_L apply (simp; fail)
        using U_L_D' init_clss_VU_S apply (simp add: clauses_def; fail)
       apply (simp; fail)
-     using M1_D' apply (simp; fail)   
+     using M1_D' apply (simp; fail)
     using bj \<open>distinct_mset ?D'\<close> \<open>\<not> tautology ?D'\<close> by auto
 qed
 

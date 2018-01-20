@@ -630,6 +630,17 @@ lemma tautology_decomp:
   "tautology \<psi> \<longleftrightarrow> (\<exists>p. Pos p \<in># \<psi> \<and> Neg p \<in># \<psi>)"
   using tautology_exists_Pos_Neg by auto
 
+lemma tautology_union_add_iff[simp]:
+  \<open>tautology (A \<union># B) \<longleftrightarrow> tautology (A + B)\<close>
+  by (auto simp: tautology_decomp)
+lemma tautology_add_mset_union_add_iff[simp]:
+  \<open>tautology (add_mset L (A \<union># B)) \<longleftrightarrow> tautology (add_mset L (A + B))\<close>
+  by (auto simp: tautology_decomp)
+
+lemma not_tautology_minus:
+  \<open>\<not>tautology A \<Longrightarrow> \<not>tautology (A - B)\<close>
+  by (auto simp: tautology_decomp dest: in_diffD)
+
 lemma tautology_false[simp]: "\<not>tautology {#}"
   unfolding tautology_def by auto
 
@@ -700,6 +711,10 @@ definition true_clss_clss :: "'a clauses \<Rightarrow> 'a clauses \<Rightarrow> 
 lemma true_cls_cls_refl[simp]:
   "A \<Turnstile>f A"
   unfolding true_cls_cls_def by auto
+
+lemma (in -) true_clss_cls_empty_empty[iff]:
+  \<open>{} \<Turnstile>p {#} \<longleftrightarrow> False\<close>
+  unfolding true_clss_cls_def consistent_interp_def by auto
 
 lemma true_cls_cls_insert_l[simp]:
   "a \<Turnstile>f C \<Longrightarrow> insert a A \<Turnstile>p C"

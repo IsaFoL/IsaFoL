@@ -11,8 +11,21 @@ imports Partial_Clausal_Logic
 
 begin
 
+subsection \<open>More Literals\<close>
+
+text \<open>The following lemma is very useful when in the goal appears an axioms like @{term \<open>-L = K\<close>}:
+  this lemma allows the simplifier to rewrite L.\<close>
+lemma uminus_lit_swap: \<open>-(a::'a literal) = i \<longleftrightarrow> a = -i\<close>
+  by auto
+
+lemma (in -) in_image_uminus_uminus: \<open>a \<in> uminus ` A \<longleftrightarrow> -a \<in> A\<close> for a :: \<open>'v literal\<close>
+  using Partial_Annotated_Clausal_Logic.uminus_lit_swap by auto
+
+
 subsection \<open>Decided Literals\<close>
+
 subsubsection \<open>Definition\<close>
+
 datatype ('v, 'w, 'mark) annotated_lit =
   is_decided: Decided (lit_dec: 'v) |
   is_proped: Propagated (lit_prop: 'w) (mark_of: 'mark)
@@ -69,13 +82,13 @@ lemma finite_lits_of_def[simp]:
   unfolding lits_of_def by auto
 
 abbreviation unmark where
-\<open>unmark \<equiv> (\<lambda>a. {#lit_of a#})\<close>
+  \<open>unmark \<equiv> (\<lambda>a. {#lit_of a#})\<close>
 
 abbreviation unmark_s where
-\<open>unmark_s M \<equiv> unmark ` M\<close>
+  \<open>unmark_s M \<equiv> unmark ` M\<close>
 
 abbreviation unmark_l where
-\<open>unmark_l M \<equiv> unmark_s (set M)\<close>
+  \<open>unmark_l M \<equiv> unmark_s (set M)\<close>
 
 lemma atms_of_ms_lambda_lit_of_is_atm_of_lit_of[simp]:
   \<open>atms_of_ms (unmark_l M') = atm_of ` lits_of_l M'\<close>
@@ -84,6 +97,9 @@ lemma atms_of_ms_lambda_lit_of_is_atm_of_lit_of[simp]:
 lemma lits_of_l_empty_is_empty[iff]:
   \<open>lits_of_l M = {} \<longleftrightarrow> M = []\<close>
   by (induct M) (auto simp: lits_of_def)
+
+lemma in_unmark_l_in_lits_of_l_iff: \<open>{#L#} \<in> unmark_l M \<longleftrightarrow> L \<in> lits_of_l M\<close>
+  by (induction M) auto
 
 
 subsubsection \<open>Entailment\<close>
@@ -901,11 +917,6 @@ lemma atms_of_ms_CNot_atms_of_ms: \<open>atms_of_ms (CNot CC) = atms_of_ms {CC}\
 lemma total_over_m_CNot_toal_over_m[simp]:
   \<open>total_over_m I (CNot C) = total_over_set I (atms_of C)\<close>
   unfolding total_over_m_def total_over_set_def by auto
-
-text \<open>The following lemma is very useful when in the goal appears an axioms like @{term \<open>-L = K\<close>}:
-  this lemma allows the simplifier to rewrite L.\<close>
-lemma uminus_lit_swap: \<open>-(a::'a literal) = i \<longleftrightarrow> a = -i\<close>
-  by auto
 
 lemma true_clss_cls_plus_CNot:
   assumes

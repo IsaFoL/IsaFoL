@@ -100,10 +100,6 @@ lemma take_length_takeWhile_eq_takeWhile:
 lemma fold_cons_replicate: \<open>fold (\<lambda>_ xs. a # xs) [0..<n] xs = replicate n a @ xs\<close>
   by (induction n) auto
 
-lemma take_2_if:
-  \<open>take 2 C = (if C = [] then [] else if length C = 1 then [hd C] else [C!0, C!1])\<close>
-  by (cases C; cases \<open>tl C\<close>) auto
-
 lemma Collect_minus_single_Collect: \<open>{x. P x} - {a} = {x . P x \<and> x \<noteq> a}\<close>
   by auto
 
@@ -125,6 +121,9 @@ lemma tl_update_swap:
   \<open>i \<ge> 1 \<Longrightarrow> tl (N[i := C]) = tl N[i-1 := C]\<close>
   by (auto simp:  drop_Suc[of 0, symmetric, simplified] drop_update_swap)
 
+lemma tl_update_0[simp]: \<open>tl (N[0 := x]) = tl N\<close>
+  by (cases N) auto
+
 declare nth_list_update[simp]
 text \<open>
   This a version of @{thm nth_list_update} with a different condition (\<^term>\<open>j\<close>
@@ -133,6 +132,39 @@ text \<open>
 lemma nth_list_update_le'[simp]:
   "j < length xs \<Longrightarrow> (xs[i:=x])!j = (if i = j then x else xs!j)"
   by (induct xs arbitrary: i j) (auto simp add: nth_Cons split: nat.split)
+
+
+subsection \<open>Take and drop\<close>
+
+lemma take_2_if:
+  \<open>take 2 C = (if C = [] then [] else if length C = 1 then [hd C] else [C!0, C!1])\<close>
+  by (cases C; cases \<open>tl C\<close>) auto
+
+
+lemma in_set_take_conv_nth:
+  \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>m<min n (length xs). xs ! m = x)\<close>
+  by (metis in_set_conv_nth length_take min.commute min.strict_boundedE nth_take)
+
+text \<open>Taken from \<^file>\<open>~~/src/HOL/Word/Word.thy\<close>\<close>
+lemma atd_lem: \<open>take n xs = t \<Longrightarrow> drop n xs = d \<Longrightarrow> xs = t @ d\<close>
+  by (auto intro: append_take_drop_id [symmetric])
+
+lemma drop_take_drop_drop:
+  \<open>j \<ge> i \<Longrightarrow> drop i xs = take (j - i) (drop i xs) @ drop j xs\<close>
+  apply (induction \<open>j - i\<close> arbitrary: j i)
+   apply auto
+  apply (case_tac j)
+  by (auto simp add: atd_lem)
+
+subsection \<open>Replicate\<close>
+
+lemma list_eq_replicate_iff_nempty:
+  \<open>n > 0 \<Longrightarrow> xs = replicate n x \<longleftrightarrow> n = length xs \<and> set xs = {x}\<close>
+  by (metis length_replicate neq0_conv replicate_length_same set_replicate singletonD)
+
+lemma list_eq_replicate_iff:
+  \<open>xs = replicate n x \<longleftrightarrow> (n = 0 \<and> xs = []) \<or> (n = length xs \<and> set xs = {x})\<close>
+  by (cases n) (auto simp: list_eq_replicate_iff_nempty simp del: replicate.simps)
 
 
 subsection \<open>@{term upt}\<close>
@@ -268,45 +300,11 @@ lemma length_list_2: \<open>length S = 2 \<longleftrightarrow> (\<exists>a b. S 
 lemma finite_bounded_list:
   fixes b :: nat
   shows \<open>finite {xs. length xs < s \<and> (\<forall>i< length xs. xs ! i < b)}\<close> (is \<open>finite (?S s)\<close>)
-proof (induction s)
-  case 0
-  then show ?case by auto
-next
-  case (Suc s) note IH = this(1)
-  have H: \<open>?S (Suc s) \<subseteq> ?S s \<union> {x # xs| x xs. x < b \<and> length xs < s \<and> (\<forall>i< length xs. xs ! i < b)}
-    \<union> {[]}\<close>
-    (is \<open>_ \<subseteq> _ \<union> ?C \<union> _\<close>)
-    proof
-      fix xs
-      assume \<open>xs \<in> ?S (Suc s)\<close>
-      then have B: \<open>\<forall>i<length xs. xs ! i < b\<close> and len: \<open>length xs < Suc s\<close>
-        by auto
-      consider
-        (st) \<open>length xs < s\<close> |
-        (s) \<open>length xs = 0\<close> and \<open>s = 0\<close> |
-        (s') s' where \<open>length xs = Suc s'\<close>
-        using len by (cases s) (auto simp add: Nat.less_Suc_eq)
-      then show \<open>xs \<in> ?S s \<union> ?C \<union> {[]}\<close>
-        proof cases
-          case st
-          then show ?thesis using B by auto
-        next
-          case s
-          then show ?thesis using B by auto
-        next
-          case s' note len_xs = this(1)
-          then obtain x xs' where xs: \<open>xs = x # xs'\<close> by (cases xs) auto
-          then show ?thesis using len_xs B len s' unfolding xs by auto
-        qed
-    qed
-  have \<open>?C \<subseteq> (case_prod Cons) ` ({x. x < b} \<times> ?S s)\<close>
-    by auto
-  moreover have \<open>finite ({x. x < b} \<times> ?S s)\<close>
-    using IH by (auto simp: finite_cartesian_product_iff)
-  ultimately have \<open>finite ?C\<close> by (simp add: finite_surj)
-  then have \<open>finite (?S s \<union> ?C \<union> {[]})\<close>
-    using IH by auto
-  then show ?case using H by (auto intro: finite_subset)
+proof -
+  have H: \<open>finite {xs. set xs \<subseteq> {0..<b} \<and> length xs \<le> s}\<close>
+    by (rule finite_lists_length_le[of \<open>{0..<b}\<close> \<open>s\<close>]) auto
+  show ?thesis
+    by (rule finite_subset[OF _ H]) (auto simp: in_set_conv_nth)
 qed
 
 lemma last_in_set_dropWhile:
@@ -513,7 +511,7 @@ subsection \<open>Remove\<close>
 
 subsubsection \<open>More lemmas about remove\<close>
 
-  
+
 lemma distinct_remove1_last_butlast:
   \<open>distinct xs \<Longrightarrow> xs \<noteq> [] \<Longrightarrow> remove1 (last xs) xs = butlast xs\<close>
   by (metis append_Nil2 append_butlast_last_id distinct_butlast not_distinct_conv_prefix
@@ -608,8 +606,38 @@ lemma (in -) length_filter_update_falte:
   unfolding filter_append length_append
   by simp
 
+lemma mset_set_mset_set_minus_id_iff:
+  assumes \<open>finite A\<close>
+  shows \<open>mset_set A = mset_set (A - B) \<longleftrightarrow> (\<forall>b \<in> B. b \<notin> A)\<close>
+proof -
+ have f1: "mset_set A = mset_set (A - B) \<longleftrightarrow> A - B = A"
+    using assms by (metis (no_types) finite_Diff finite_set_mset_mset_set)
+  then show ?thesis
+    by blast
+qed
+
+lemma mset_set_eq_mset_set_more_conds:
+  \<open>finite {x. P x} \<Longrightarrow> mset_set {x. P x} = mset_set {x. Q x \<and> P x} \<longleftrightarrow> (\<forall>x. P x \<longrightarrow> Q x)\<close>
+  (is \<open>?F \<Longrightarrow> ?A \<longleftrightarrow> ?B\<close>)
+proof -
+  assume ?F
+  then have \<open>?A \<longleftrightarrow> (\<forall>x \<in> {x. P x}. x \<in> {x. Q x \<and> P x})\<close>
+    by (subst mset_set_eq_iff) auto
+  also have \<open>\<dots> \<longleftrightarrow> (\<forall>x. P x \<longrightarrow> Q x)\<close>
+    by blast
+  finally show ?thesis .
+qed
+
+lemma count_list_filter: \<open>count_list xs x = length (filter (op = x) xs)\<close>
+  by (induction xs) auto
+
+lemma sum_length_filter_compl': \<open>length [x\<leftarrow>xs . \<not> P x] + length (filter P xs) = length xs\<close>
+  using sum_length_filter_compl[of P xs] by auto
 
 subsection \<open>Multisets\<close>
+
+lemma in_multiset_nempty: \<open>L \<in># D \<Longrightarrow> D \<noteq> {#}\<close>
+  by auto
 
 text \<open>The definition and the correctness theorem are from the multiset theory
   @{file \<open>~~/src/HOL/Library/Multiset.thy\<close>}, but a name is necessary to refer to them:\<close>
@@ -642,9 +670,6 @@ lemma mset_eq_size_2:
   \<open>mset xs = {#a, b#} \<longleftrightarrow> xs = [a, b] \<or> xs = [b, a]\<close>
   by (cases xs) (auto simp: add_mset_eq_add_mset Diff_eq_empty_iff_mset subset_eq_mset_single_iff)
 
-lemma mset_set_eq_mset_set_iff:
-  \<open>finite A \<Longrightarrow> finite B \<Longrightarrow> mset_set A = mset_set B \<longleftrightarrow> A = B\<close>
-  using finite_set_mset_mset_set by fastforce
 
 lemma butlast_list_update:
   \<open>w < length xs \<Longrightarrow> butlast (xs[w := last xs]) = take w xs @ butlast (last xs # drop (Suc w) xs)\<close>
@@ -737,12 +762,19 @@ lemma minus_eq_id_forall_notin_mset:
   by (induction A)
    (auto dest!: multi_member_split simp: subset_mset_minus_eq_add_mset_noteq)
 
-lemma (in -) in_multiset_minus_notin_snd[simp]: \<open>a \<notin># B \<Longrightarrow> a \<in># A - B \<longleftrightarrow> a \<in># A\<close>
+lemma in_multiset_minus_notin_snd[simp]: \<open>a \<notin># B \<Longrightarrow> a \<in># A - B \<longleftrightarrow> a \<in># A\<close>
   by (metis count_greater_zero_iff count_inI in_diff_count)
 
-lemma (in -) distinct_mset_in_diff:
+lemma distinct_mset_in_diff:
   \<open>distinct_mset C \<Longrightarrow> a \<in># C - D \<longleftrightarrow> a \<in># C \<and> a \<notin># D\<close>
   by (meson distinct_mem_diff_mset in_multiset_minus_notin_snd)
+
+lemma diff_le_mono2_mset: \<open>A \<subseteq># B \<Longrightarrow> C - B \<subseteq># C - A\<close>
+  apply (auto simp: subseteq_mset_def ac_simps)
+  by (simp add: diff_le_mono2)
+
+lemma subseteq_remove1[simp]: \<open>C \<subseteq># C' \<Longrightarrow> remove1_mset L C \<subseteq># C'\<close>
+  by (meson diff_subset_eq_self subset_mset.dual_order.trans)
 
 lemma filter_mset_cong2:
   "(\<And>x. x \<in># M \<Longrightarrow> f x = g x) \<Longrightarrow> M = N \<Longrightarrow> filter_mset f M = filter_mset g N"
@@ -793,6 +825,9 @@ next
       using IH LC by auto
   qed
 qed
+
+lemma set_mset_set_mset_eq_iff: \<open>set_mset A = set_mset B \<longleftrightarrow> (\<forall>a\<in>#A. a \<in># B) \<and> (\<forall>a\<in>#B. a \<in># A)\<close>
+  by blast
 
 
 subsection \<open>Sorting\<close>
@@ -872,6 +907,10 @@ lemma distinct_mset_set_distinct: \<open>distinct_mset_set (mset ` set Cs) \<lon
 lemma distinct_mset_remdups_mset_id: \<open>distinct_mset C \<Longrightarrow> remdups_mset C = C\<close>
   by (induction C)  auto
 
+lemma notin_add_mset_remdups_mset:
+  \<open>a \<notin># A \<Longrightarrow> add_mset a (remdups_mset A) = remdups_mset (add_mset a A)\<close>
+  by auto
+
 
 subsection \<open>Sublists\<close>
 
@@ -911,10 +950,12 @@ proof -
   have [simp]: \<open>nths xs {j. Suc j \<in> A} = a # xs \<longleftrightarrow> False\<close>
     for a :: 'a and xs :: \<open>'a list\<close> and A :: \<open>nat set\<close>
     using mset_nths_subset_mset[of xs \<open>{j. Suc j \<in> A}\<close>] by auto
-  show ?thesis -- \<open>TODO tune proof\<close>
+  show ?thesis
     apply (induction xs arbitrary: A)
-     apply (auto simp: nths_Cons less_Suc_eq)
-    by (fastforce simp: less_Suc_eq)+
+    subgoal by auto
+    subgoal
+      by (auto 5 5 simp: nths_Cons) fastforce
+    done
 qed
 
 lemma nts_upt_length[simp]: \<open>nths xs {0..<length xs} = xs\<close>

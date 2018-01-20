@@ -1,19 +1,25 @@
 # Formalization of First-Order Unordered Resolution #
 
-[This directory](https://bitbucket.org/isafol/isafol/src/master/Unordered_Resolution/) contains an Isabelle formalization of unordered resolution for first-order logic. It has been [moved to the Archive of Formal Proofs](https://www.isa-afp.org/entries/Resolution_FOL.shtml). The only exception is a formal proof of the unification theorem. It is proved here by loading it from a theory in the [IsaFoR project](http://cl-informatik.uibk.ac.at/software/ceta/) and doing conversions between the terms of the two theories. The assumption in the unification locale can then be instantiated, and we obtain the completeness theorem from the locale.
+[This directory](https://bitbucket.org/isafol/isafol/src/master/Unordered_Resolution/) used to contain an Isabelle formalization of unordered resolution for first-order logic. The formalization has been [moved to the Archive of Formal Proofs](https://www.isa-afp.org/entries/Resolution_FOL.shtml). The only exception is a formal proof of the unification theorem. It is proved here by loading it from a theory in the [IsaFoR project](http://cl-informatik.uibk.ac.at/software/ceta/) and doing conversions between the terms of the two theories. The assumption in the unification locale can then be instantiated, and we obtain the completeness theorem from the locale.
+
 
 ## Author ##
 
 * [Anders Schlichtkrull](mailto:andschl shtrudel dtu.dk)
 
+
 ## Inspired by [work](http://afp.sourceforge.net/entries/FOL-Fitting.shtml) of ##
 
 * [Stefan Berghofer](mailto:berghofe shtrudel in.tum.de)
 
-## News: Additional Completeness results ##
-I have proven some additional completeness results. They are available at the end of [this file](https://bitbucket.org/isafol/isafol/src/unordered_jar/Unordered_Resolution/Resolution_FOL/Completeness.thy) following the theorem named completeness. I plan to add them to the AFP entry.
+
+## News: Additional Completeness Results ##
+
+We have proved some additional completeness results. They are available at the end of [this file](https://bitbucket.org/isafol/isafol/src/unordered_jar/Unordered_Resolution/Resolution_FOL/Completeness.thy) following the theorem named completeness. We plan to add them to the AFP entry.
+
 
 ## Installation ##
+
 * [Download and install Isabelle2016-1](https://isabelle.in.tum.de)
 * [Download AFP version afp-2016-12-17](https://sourceforge.net/projects/afp/files/afp-Isabelle2016-1/)
 * [Install it in Isabelle](https://www.isa-afp.org/using.shtml)
@@ -22,11 +28,13 @@ I have proven some additional completeness results. They are available at the en
 * Install IsaFoR in Isabelle by adding `/full/path/to/-CeTA-657d09abd9ab` to `~/.isabelle/Isabelle2016/etc/components`.
 * Download and open the theories in this project.
 
-## In Archive of Formal Proofs ##
+
+## Entry in the Archive of Formal Proofs ##
 
 * [The Resolution Calculus for First-Order Logic](https://www.isa-afp.org/entries/Resolution_FOL.shtml)
   A. Schlichtkrull.
-  Archive of Formal Proofs, Formal proof development
+  Archive of Formal Proofs, Formal proof development.
+
 
 ## Publications ##
 
