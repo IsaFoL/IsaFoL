@@ -8,7 +8,7 @@ section \<open>Partial Clausal Logic\<close>
 theory Partial_Clausal_Logic
   imports
     Weidenbach_Book_Base.WB_List_More
-    "../lib/Clausal_Logic"
+    Ordered_Resolution_Prover.Clausal_Logic
 begin
 
 lemma atm_of_notin_atms_of_iff: \<open>atm_of L \<notin> atms_of C' \<longleftrightarrow> L \<notin># C' \<and> -L \<notin># C'\<close> for L C'
