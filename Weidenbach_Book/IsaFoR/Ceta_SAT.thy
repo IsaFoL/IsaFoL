@@ -1,10 +1,13 @@
 theory Ceta_SAT
-  imports CeTA_SAT_Imports.Ceta_SAT_Imports
+  imports CeTA_SAT_Imports.Ceta_SAT_Imports Refine_Imperative_HOL.IICF
 begin
 
 (* to avoid ambiguities and exponentially many parse trees *)
 no_notation vec_nth (infixl "$" 90)
 no_notation vec_index (infixl "$" 100)
+
+text \<open>Remove when loading SAT again:\<close>
+notation prod_assn (infixr "*a" 90)
 
 (*
 datatype ('f,'l) lab =
@@ -770,5 +773,201 @@ lemma hn_case_dp_termination_proof_assn[sepref_prep_comb_rule, sepref_comb_rules
   subgoal by (hn_case_dp_proof ccase:General_Redpair_Proc merge:MERGE1)
   subgoal by (hn_case_dp_proof ccase:To_Trs_Proc merge:MERGE1)
   done
+
+
+abbreviation strategy_assn :: \<open>('f, 'v) strategy \<Rightarrow> ('f, 'v) strategy \<Rightarrow> assn\<close> where
+\<open>strategy_assn \<equiv> id_assn\<close>
+
+abbreviation start_term_assn :: \<open>start_term \<Rightarrow> start_term \<Rightarrow> assn\<close> where
+\<open>start_term_assn \<equiv> id_assn\<close>
+
+typ "('f, 'v) complexity_measure"
+
+abbreviation complexity_measure_assn
+   :: \<open>('f, 'v) complexity_measure \<Rightarrow> ('f, 'v) complexity_measure \<Rightarrow> assn\<close>
+where
+  \<open>complexity_measure_assn \<equiv> id_assn\<close>
+
+abbreviation complexity_class_assn  :: \<open>complexity_class \<Rightarrow> complexity_class \<Rightarrow> assn\<close> where
+\<open>complexity_class_assn \<equiv> id_assn\<close>
+typ "('f, 'v) equation list"
+
+abbreviation reduction_order_input_assn
+   :: \<open>'f reduction_order_input \<Rightarrow> 'f reduction_order_input \<Rightarrow> assn\<close>
+where
+  \<open>reduction_order_input_assn \<equiv> id_assn\<close>
+
+abbreviation equation_literal_assn
+   :: \<open>('f, 'v) equation_literal \<Rightarrow> ('f, 'v) equation_literal \<Rightarrow> assn\<close>
+where
+  \<open>equation_literal_assn \<equiv> id_assn\<close>
+
+
+abbreviation fp_strategy_assn
+   :: \<open>('f, 'v) fp_strategy \<Rightarrow> ('f, 'v) fp_strategy \<Rightarrow> assn\<close>
+where
+  \<open>fp_strategy_assn \<equiv> id_assn\<close>
+
+
+abbreviation condition_assn
+   :: \<open>('f, 'v) condition \<Rightarrow> ('f, 'v) condition \<Rightarrow> assn\<close>
+where
+  \<open>condition_assn \<equiv> (term_assn id_assn id_assn *a term_assn id_assn id_assn)\<close>
+
+abbreviation crule_assn
+   :: \<open>('f, 'v) crule \<Rightarrow> ('f, 'v) crule \<Rightarrow> assn\<close>
+where
+  \<open>crule_assn \<equiv> rule_assn id_assn id_assn *a list_assn condition_assn\<close>
+
+
+abbreviation crules_assn
+   :: \<open>('f, 'v) crules \<Rightarrow> ('f, 'v) crules \<Rightarrow> assn\<close>
+where
+  \<open>crules_assn \<equiv> list_assn crule_assn\<close>
+
+abbreviation tree_automaton_assn
+   :: \<open>(string,'f)tree_automaton \<Rightarrow> (string,'f)tree_automaton \<Rightarrow> assn\<close>
+where
+  \<open>tree_automaton_assn \<equiv> id_assn\<close>
+
+abbreviation lts_impl_assn 
+  :: \<open>(IA.sig, 'v, IA.ty, string, string) lts_impl \<Rightarrow> _ \<Rightarrow> assn\<close>
+where
+  \<open>lts_impl_assn \<equiv> id_assn\<close>
+
+abbreviation char_assn :: \<open>char \<Rightarrow> char \<Rightarrow> assn\<close> where
+  \<open>char_assn \<equiv> id_assn\<close>
+
+abbreviation string_assn where
+  \<open>string_assn \<equiv> list_assn char_assn\<close>
+
+
+
+definition input_assn :: \<open>('f, 'v) input \<Rightarrow> ('f, 'v) input \<Rightarrow> assn\<close> where
+\<open>input_assn a b = 
+  (case (a, b) of
+     (DP_input b rules1 stgy rules2, DP_input b' rules1' stgy' rules2') \<Rightarrow>
+       bool_assn b b' * rules_assn id_assn id_assn rules1 rules1' *
+       strategy_assn stgy stgy' *
+       rules_assn id_assn id_assn rules2 rules2'
+  | (Inn_TRS_input stgy rules1 rules2 start, Inn_TRS_input stgy' rules1' rules2' start') \<Rightarrow>
+       strategy_assn stgy stgy' *  rules_assn id_assn id_assn rules1 rules1' *
+       rules_assn id_assn id_assn rules2 rules2' *
+       start_term_assn start start'
+  | (CPX_input stgy rules1 rules2 c_m c_c, CPX_input stgy' rules1' rules2' c_m' c_c') \<Rightarrow>
+       strategy_assn stgy stgy' *  rules_assn id_assn id_assn rules1 rules1' *
+       rules_assn id_assn id_assn rules2 rules2' *
+       complexity_measure_assn c_m c_m' *
+       complexity_class_assn c_c c_c'
+  | (COMP_input eqs rules1, COMP_input eqs' rules1') \<Rightarrow>
+        rules_assn id_assn id_assn eqs eqs' *
+        rules_assn id_assn id_assn rules1 rules1'
+  | (OCOMP_input eqs1 eqs2 rules1 roi, OCOMP_input eqs1' eqs2' rules1' roi') \<Rightarrow>
+      rules_assn id_assn id_assn eqs1 eqs1' *
+      rules_assn id_assn id_assn eqs2 eqs2' *
+      rules_assn id_assn id_assn rules1 rules1' *
+      reduction_order_input_assn roi roi'
+  | (EQ_input eqs eq_lit, EQ_input eqs' eq_lit') \<Rightarrow>
+      rules_assn id_assn id_assn eqs eqs' *
+      equation_literal_assn eq_lit eq_lit'
+  | (FP_TRS_input stgy rules1, FP_TRS_input stgy' rules1') \<Rightarrow>
+      fp_strategy_assn stgy stgy' *  rules_assn id_assn id_assn rules1 rules1'
+  | (CTRS_input crules, CTRS_input crules') \<Rightarrow>
+      crules_assn crules crules'
+  | (TA_input tree rules1, TA_input tree' rules1') \<Rightarrow>
+      tree_automaton_assn tree tree' * rules_assn id_assn id_assn rules1 rules1'
+  | (AC_input rules1 l1 l2, AC_input rules1' l1' l2') \<Rightarrow>
+      rules_assn id_assn id_assn rules1 rules1' * list_assn id_assn l1 l1' * list_assn id_assn l2 l2'
+  | (LTS_input lts1, LTS_input lts1') \<Rightarrow> lts_impl_assn lts1 lts1'
+  | (LTS_safety_input lts1 l, LTS_safety_input lts1' l') \<Rightarrow>
+      lts_impl_assn lts1 lts1' * list_assn string_assn l l'
+  | (Unknown_input un, Unknown_input un') \<Rightarrow>
+      string_assn un un'
+  | _ \<Rightarrow> false
+  )\<close>
+
+
+lemma hn_input_assn:
+    "input_assn x y = z \<Longrightarrow> hn_ctxt (input_assn) x y = z"
+  by (simp add: hn_ctxt_def)
+
+method hn_case_input_internal uses hccase merge =
+  ((simp only: input.case)?;
+   rule hn_refine_cons[OF _ hccase _ entt_refl],
+   solves \<open>simp add: assn_times_comm entt_fr_drop\<close>,
+   assumption,
+   assumption,
+   rule entt_star_mono,
+     (* rule entt_fr_drop, *)
+     subst input_assn_def[THEN hn_input_assn],
+     solves \<open>simp add: hn_ctxt_def\<close>,
+  rule entt_trans[OF _ merge],
+  solves \<open>simp add: entt_disjI1' entt_disjI2'\<close>)
+
+lemma hn_case_dp_termination_proof_assn[sepref_prep_comb_rule, sepref_comb_rules]:
+  fixes p p' P
+  defines [simp]: "INVE \<equiv> hn_invalid (input_assn) p p'"
+  assumes FR: "\<Gamma> \<Longrightarrow>\<^sub>t hn_ctxt (input_assn) p p' * F"
+  (* assumes CH:
+    "\<And>arg arg'. \<lbrakk>p=CH arg;
+       p'= CH arg'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f20' arg')
+       ( * \<Gamma>20') R (f20 arg)" *)
+  assumes DP_input:
+    "\<And>b rules1 stgy rules2 b' rules1' stgy' rules2'. \<lbrakk>p=DP_input b rules1 stgy rules2;
+       p'= DP_input b' rules1' stgy' rules2'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f1' b' rules1' stgy' rules2')
+       (bool_assn b b' * rules_assn id_assn id_assn rules1 rules1' *
+       strategy_assn stgy stgy' *
+       rules_assn id_assn id_assn rules2 rules2' * \<Gamma>1') R (f1 b rules1 stgy rules2)"
+  assumes Inn_TRS_input:
+    "\<And>stgy rules1 rules2 start stgy' rules1' rules2' start'. 
+      \<lbrakk>p=Inn_TRS_input stgy rules1 rules2 start;
+       p'= Inn_TRS_input stgy' rules1' rules2' start'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f2' stgy' rules1' rules2' start')
+       (strategy_assn stgy stgy' *  rules_assn id_assn id_assn rules1 rules1' *
+       rules_assn id_assn id_assn rules2 rules2' *
+       start_term_assn start start' * \<Gamma>2') R (f2 stgy rules1 rules2 start)"
+  assumes CPX_input:
+    "\<And>arg stgy' rules1' rules2' c_m' c_c'. \<lbrakk>p=CPX_input arg;
+       p'= CH arg'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f3' arg')
+       (strategy_assn stgy stgy' *  rules_assn id_assn id_assn rules1 rules1' *
+       rules_assn id_assn id_assn rules2 rules2' *
+       complexity_measure_assn c_m c_m' *
+       complexity_class_assn c_c c_c' * \<Gamma>3333') R (f3 arg)" 
+  assumes MERGE1: "\<Gamma>1' \<or>\<^sub>A \<Gamma>2' \<or>\<^sub>A \<Gamma>3' \<or>\<^sub>A \<Gamma>4'  \<or>\<^sub>A \<Gamma>5' \<or>\<^sub>A \<Gamma>6' \<or>\<^sub>A \<Gamma>7' \<or>\<^sub>A \<Gamma>8' \<or>\<^sub>A \<Gamma>9' \<or>\<^sub>A \<Gamma>10' \<or>\<^sub>A
+         \<Gamma>11' \<or>\<^sub>A \<Gamma>12' \<or>\<^sub>A \<Gamma>13'  \<Longrightarrow>\<^sub>t \<Gamma>'"
+  shows
+    "hn_refine \<Gamma>
+      (case_input f1' f2' f3' f4' f5' f6' f7' f8' f9' f10' f11' f12' f13' p')
+      (hn_ctxt (input_assn) p p' * \<Gamma>') R
+      (case_input$ABS4 f1$ABS4 f2$ABS5 f3$ABS3 f4$ABS4 f5$ABS2 f6$ABS2 f7$ABS f8$
+        ABS2 f9$ABS3 f10$ABS f11$ABS2 f12$ABS f13$p)"
+  supply [[goals_limit=1]]
+  apply (rule hn_refine_cons_pre[OF FR])
+  apply1 extract_hnr_invalids
+    apply (subst input_assn_def[THEN hn_input_assn])
+
+
+  apply (cases p; cases p';
+      simp only: PROTECT2_def APP_def prod.case
+      star_false_left hn_refine_false)
+  subgoal
+  apply (simp only: input.case)
+    apply (hn_case_input_internal hccase:DP_input merge:MERGE1)
+  apply (rule hn_refine_cons[OF _ DP_input _ entt_refl])
+  apply (solves \<open>simp add: assn_times_comm entt_fr_drop\<close>)
+   apply (
+   assumption,
+   assumption)
+   apply (
+   rule entt_star_mono)
+   apply (
+     subst input_assn_def[THEN hn_input_assn])
+   apply (simp add: hn_ctxt_def)
+   apply (
+  rule entt_trans[OF _ MERGE1],
+  solves \<open>simp add: entt_disjI1' entt_disjI2'\<close>)
 
 end
