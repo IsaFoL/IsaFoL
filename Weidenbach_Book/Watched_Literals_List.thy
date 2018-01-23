@@ -145,9 +145,30 @@ lemma ran_m_ran: \<open>finite (dom N) \<Longrightarrow> set_mset (ran_m N) = ra
 lemma ran_m_clause_upd: 
   assumes
     [simp]: \<open>finite (dom N)\<close> and
-    NC: \<open>N C \<noteq> None\<close>
+    NC: \<open>C \<in> dom N\<close>
   shows \<open>ran_m (N(C \<hookrightarrow> C')) =
          add_mset (C', irred N C) (remove1_mset (N \<propto> C, irred N C) (ran_m N))\<close>
+proof -
+  obtain b D where
+    \<open>N C = Some (b, D)\<close>
+    using assms by auto
+  define N' where
+    \<open>N' = N(C := None)\<close>
+  have N_N': \<open>dom N = insert C (dom N')\<close>
+    using NC unfolding N'_def by auto
+  then have [simp]: \<open>finite (dom N')\<close>
+    unfolding N'_def by auto
+  show ?thesis
+    by (auto simp: N_N' ran_m_def mset_set.insert_remove image_mset_remove1_mset_if
+      intro!: image_mset_cong)
+qed
+
+lemma ran_m_mapsto_upd: 
+  assumes
+    [simp]: \<open>finite (dom N)\<close> and
+    NC: \<open>C \<in> dom N\<close>
+  shows \<open>ran_m (N(C \<mapsto> C')) =
+         add_mset C' (remove1_mset (N \<propto> C, irred N C) (ran_m N))\<close>
 proof -
   obtain b D where
     \<open>N C = Some (b, D)\<close>
@@ -601,54 +622,35 @@ proof -
           by (auto simp add: C' S ran_m_def)
         subgoal by simp
         done
-      have N: ?GN
-        using True
-        apply (cases \<open>the (N C)\<close>)
-        apply auto
-        apply (subst tl_update_swap)
-        subgoal using C_le_N by auto
-        apply (subst take_update)
-        apply (subst mset_update)
-        subgoal using True .
-        apply (subst (2) 1)
-        subgoal by auto
-        done
+      have \<open>the (N C) \<in># init_clss_l N\<close>
+        using True dom C_le_N
+        by (auto simp: ran_m_def dom_def intro!: imageI)
+      then have N: ?GN
+        using True dom C_le_N N_C_C'
+        by (auto simp: ran_m_clause_upd ran_m_mapsto_upd dest!: multi_member_split)
       have U: ?GU
-        apply (subst drop_Suc)+
-        apply (subst tl_update_swap)
-        subgoal using C_le_N by auto
-        subgoal using True by auto
-        done
+        using True dom C_le_N N_C_C'
+        by (auto simp: ran_m_clause_upd ran_m_mapsto_upd dest!: multi_member_split)
       note N and U
     } note 1 = this
     {
-      assume False: \<open>\<not>C - 1 < length (take U (tl N))\<close>
-      then have 1: \<open>mset (drop U (tl N)) = add_mset C' (remove1_mset C' (mset (drop U (tl N))))\<close>
+      assume False: \<open>\<not>irred N C\<close>
+      then have 1: \<open>learned_clss_lf N = add_mset C' (remove1_mset C' (learned_clss_lf N))\<close>
         apply (subst insert_DiffM)
         subgoal
-          by (simp add: C' S)
-            (metis C_le_N Suc_le_eq Suc_less_eq Suc_pred drop_Suc in_set_drop_conv_nth
-              less_imp_diff_less linorder_neqE_nat n_not_Suc_n not_less_zero)
+          using C_le_N dom
+          by (auto simp add: C' S ran_m_def)
         subgoal by simp
         done
-       have [simp]: \<open>drop U (tl N) ! (C - Suc U) = C'\<close>
-        using False C_le_N by (auto simp: C' S tl_update_swap nth_tl)
-      have U: ?GU
-        apply (subst drop_Suc)+
-        apply (subst tl_update_swap)
-        subgoal using C_le_N by auto
-        apply (subst drop_update_swap)
-        subgoal using False C_le_N by (auto simp add: not_less)
-        apply (subst mset_update)
-        subgoal using False C_le_N by (auto simp add: not_less)
-        apply (subst (2) 1)
-        subgoal by auto
-        done
       have N: ?GN
-        apply (subst tl_update_swap)
-        subgoal using C_le_N by auto
-        subgoal using False by auto
-        done
+        using False dom C_le_N N_C_C'
+        by (auto simp: ran_m_clause_upd ran_m_mapsto_upd dest!: multi_member_split)
+      have \<open>the (N C) \<in># learned_clss_l N\<close>
+        using False dom C_le_N
+        by (auto simp: ran_m_def dom_def intro!: imageI)
+      then have U: ?GU
+        using False dom C_le_N N_C_C'
+        by (auto simp: ran_m_clause_upd ran_m_mapsto_upd dest!: multi_member_split)
       note N and U
     } note 2 = this
     show ?GN and ?GU using 1 2 by blast+
@@ -656,7 +658,7 @@ proof -
   have [simp]: \<open>mset (swap C' 0 (Suc 0 - i)) = mset C'\<close>
     using watched_C' i two_le_length_C C_le_N
     by (auto simp: mset_update swap_def take_2_if split: if_splits)
-  have conv: \<open>convert_lits_l (N[C := swap C' 0 (Suc 0 - i)]) M =
+  have conv: \<open>convert_lits_l (N (C \<hookrightarrow> ?C')) M =
     convert_lits_l N M \<close>
     unfolding convert_lits_l_def
     apply (rule map_cong)
@@ -784,14 +786,12 @@ proof -
       {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)).
          x \<in># learned_clss_lf ?N'#})\<close>
     proof cases
-      assume J_NE: \<open>snd (the (N C))\<close>
+      assume J_NE: \<open>irred N C\<close>
       have L_L'_UW_N: \<open>C' \<in># init_clss_lf N\<close>
-        using C_le_N J_NE N_C_C' unfolding N_C_C'[symmetric] take_set
+        using C_le_N J_NE dom unfolding N_C_C'[symmetric] take_set
         by (auto simp: nth_tl ran_m_def intro!: exI[of _ \<open>C - 1\<close>])
-      have TWL_L_L'_UW_N: \<open>TWL_Clause {#?L, ?L'#} (mset ?UW) \<in># twl_clause_of `# mset (take U (tl N))\<close>
-        using imageI[OF L_L'_UW_N, of twl_clause_of] watched_C' by auto
-      have C_le_U: \<open>C - Suc 0 < length (take U (tl N))\<close>
-        using \<open>C < length N\<close> \<open>C > 0\<close> J_NE by auto
+      have TWL_L_L'_UW_N: \<open>TWL_Clause {#?L, ?L'#} (mset ?UW) \<in># twl_clause_of `# init_clss_lf N\<close>
+        using imageI[OF L_L'_UW_N, of twl_clause_of] watched_C' by force
       let ?k' = \<open>the x - 2\<close>
       have \<open>?k' < length (unwatched_l C')\<close>
         using N_C_C' x by auto
@@ -805,42 +805,66 @@ proof -
       have H2: \<open>mset (unwatched_l (C'[i := C' ! Suc (Suc ?k'), Suc (Suc ?k') := L])) =
         add_mset (L) (remove1_mset (C' ! Suc (Suc ?k')) (mset (unwatched_l C')))\<close>
         using x i by (auto simp: drop_update_swap N_C_C' mset_update)
-      have H3:  \<open>{#L, C' ! (Suc 0 - i)#} = mset (watched_l (tl N ! (C - Suc 0)))\<close>
-        using x \<open>C < length N\<close> \<open>C > 0\<close> C'_i i by (auto simp: take_2_if N_C_C' nth_tl simp del: C'_i)
+      have H3:  \<open>{#L, C' ! (Suc 0 - i)#} = mset (watched_l (N \<propto> C))\<close>
+        using x C_le_N \<open>C > 0\<close> C'_i i by (auto simp: take_2_if N_C_C' nth_tl simp del: C'_i)
       have H3':  \<open>{#C' ! the x, C' ! (Suc 0 - i)#} = mset (watched_l (C'[i := C' ! the x, the x := L]))\<close>
-         using x \<open>C < length N\<close> \<open>C > 0\<close> C'_i i by (auto simp: take_2_if N_C_C' nth_tl simp del: C'_i
+         using x C_le_N \<open>C > 0\<close> C'_i i by (auto simp: take_2_if N_C_C' nth_tl simp del: C'_i
              split: nat.splits)
-      have H4: \<open>mset (unwatched_l C') = mset (unwatched_l (tl N ! (C - Suc 0)))\<close>
-        using x i \<open>C < length N\<close> \<open>C > 0\<close> by (auto simp: take_2_if N_C_C' nth_tl)
+      have H4: \<open>mset (unwatched_l C') = mset (unwatched_l (N \<propto> C))\<close>
+        using x i C_le_N \<open>C > 0\<close> by (auto simp: take_2_if N_C_C' nth_tl)
 
       have H5: \<open>add_mset L (remove1_mset (C' ! the x) (mset (unwatched_l C'))) =
           mset (unwatched_l (C'[i := C' ! the x, the x := L]))\<close>
-        using J_NE C_le_U x C_le_N i by (auto simp: mset_update
+        using J_NE C_le_N x C_le_N i by (auto simp: mset_update
             image_mset_remove1_mset_if  L_L'_UW_N H0 TWL_L_L'_UW_N C'[symmetric] N_C_C'
             mset_watched_C watched_C' nth_tl tl_update_swap swap_def add_mset_remove_trivial_If drop_Suc
-            drop_update_swap drop_upd_irrelevant)
+            drop_update_swap drop_upd_irrelevant) 
       let ?New_C = \<open>(TWL_Clause {#L, C' ! (Suc 0 - i)#} (mset (unwatched_l C')))\<close>
-      have \<open>update_clauses
-        (twl_clause_of `# mset (take U (tl N)),
-        {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x))
-        . x \<in># mset (drop (Suc U) N)#})
-        (TWL_Clause {#C' ! i, C' ! (Suc 0 - i)#} (mset (unwatched_l C'))) (C' ! i)
-        (C' ! the x)
-        (add_mset
-          (update_clause
-            (TWL_Clause {#C' ! i, C' ! (Suc 0 - i)#} (mset (unwatched_l C'))) (C' ! i)
-            (C' ! the x))
-          (remove1_mset
-            (TWL_Clause {#C' ! i, C' ! (Suc 0 - i)#} (mset (unwatched_l C')))
-            (twl_clause_of `# mset (take U (tl N)))),
-        {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x))
-        . x \<in># mset (drop (Suc U) N)#})\<close>
+
+      have wo: "a = a' \<Longrightarrow> b = b' \<Longrightarrow> L = L'   \<Longrightarrow>  K = K'   \<Longrightarrow> c = c'  \<Longrightarrow> update_clauses a K L b c \<Longrightarrow> 
+           update_clauses a' K' L' b' c'" for a a' b b' K L K' L' c c'
+        by auto
+      have [simp]: \<open>C' \<in> fst ` {a. a \<in># ran_m N \<and> snd a}  \<longleftrightarrow> irred N C\<close>
+        using C_le_N dom J_NE unfolding C' S ran_m_def
+        by auto
+      have [simp]: \<open>(C', True) \<in># ran_m N\<close>
+        using C_le_N dom J_NE unfolding C' S ran_m_def dom_def
+        by force
+      have upd: \<open>update_clauses
+          (twl_clause_of `# init_clss_lf N, twl_clause_of `# learned_clss_lf N)
+          (TWL_Clause {#C' ! i, C' ! (Suc 0 - i)#} (mset (unwatched_l C'))) (C' ! i) (C' ! the x)
+             (add_mset (update_clause (TWL_Clause {#C' ! i, C' ! (Suc 0 - i)#} 
+                (mset (unwatched_l C'))) (C' ! i) (C' ! the x))
+               (remove1_mset
+                 (TWL_Clause {#C' ! i, C' ! (Suc 0 - i)#} (mset (unwatched_l C')))
+                 (twl_clause_of `# init_clss_lf N)), twl_clause_of `# learned_clss_lf N)\<close>
         by (rule update_clauses.intros(1)[OF TWL_L_L'_UW_N, of ?U ?L \<open>C'!the x\<close>])
-      then show ?thesis
-        using J_NE C_le_U x C_le_N by (auto simp: mset_update
-            image_mset_remove1_mset_if H1 H2 H3[symmetric] H4[symmetric] H3' H5
-            L_L'_UW_N H0 TWL_L_L'_UW_N C'[symmetric] N_C_C' mset_watched_C watched_C' nth_tl
-            tl_update_swap swap_def add_mset_remove_trivial_If drop_Suc)
+      show ?thesis
+        apply (rule wo[OF _ _ _ _ _ upd])
+        subgoal by auto
+        subgoal 
+          using J_NE x C_le_N dom by (auto simp: mset_update
+          image_mset_remove1_mset_if H1 H2 
+              H3[symmetric] H4[symmetric] H3' H5
+              L_L'_UW_N H0 TWL_L_L'_UW_N C'[symmetric] N_C_C' mset_watched_C watched_C' nth_tl
+              tl_update_swap swap_def add_mset_remove_trivial_If drop_Suc
+              ran_m_mapsto_upd)
+        subgoal by auto
+        subgoal 
+          using J_NE x C_le_N dom by (auto simp: mset_update
+          image_mset_remove1_mset_if H1 H2 
+              H3[symmetric] H4[symmetric] H3' H5
+              L_L'_UW_N H0 TWL_L_L'_UW_N C'[symmetric] N_C_C' mset_watched_C watched_C' nth_tl
+              tl_update_swap swap_def add_mset_remove_trivial_If drop_Suc
+              ran_m_mapsto_upd)
+        subgoal
+          using J_NE x C_le_N dom by (auto simp: mset_update
+          image_mset_remove1_mset_if H1 H2 
+              H3[symmetric] H4[symmetric] H3' H5
+              L_L'_UW_N H0 TWL_L_L'_UW_N C'[symmetric] N_C_C' mset_watched_C watched_C' nth_tl
+              tl_update_swap swap_def add_mset_remove_trivial_If drop_Suc
+              ran_m_mapsto_upd)
+        done
     next
       assume J_NE: \<open>\<not>C \<le> U\<close>
       then have L_L'_UW_N: \<open>C' \<in> set (drop (Suc U) N)\<close>
