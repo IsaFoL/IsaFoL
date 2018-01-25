@@ -126,6 +126,10 @@ abbreviation init_clss_lf :: \<open>'v clauses_l \<Rightarrow> 'v clause_l multi
 abbreviation all_clss_l :: \<open>'v clauses_l \<Rightarrow> ('v clause_l \<times> bool) multiset\<close> where
   \<open>all_clss_l N \<equiv> init_clss_l N + learned_clss_l N\<close>
 
+lemma all_clss_l_ran_m[simp]:
+\<open>all_clss_l N = ran_m N\<close>
+  by (metis multiset_partition)
+
 abbreviation all_clss_lf :: \<open>'v clauses_l \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>all_clss_lf N \<equiv> init_clss_lf N + learned_clss_lf N\<close>
 
@@ -1195,12 +1199,11 @@ definition clause_to_update :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rig
 lemma distinct_mset_clause_to_update: \<open>distinct_mset (clause_to_update L C)\<close>
   unfolding clause_to_update_def
   apply (rule distinct_mset_filter)
-  apply (subst distinct_mset_mset_distinct)
-  apply auto
-  done
+  using distinct_mset_mset_set by blast
 
-lemma in_clause_to_updateD: \<open>b \<in># clause_to_update L' T \<Longrightarrow> b < length (get_clauses_l T) \<and> 0 < b\<close>
-  by (auto simp: clause_to_update_def)
+lemma in_clause_to_updateD: \<open>b \<in># clause_to_update L' T \<Longrightarrow> b \<in> dom (get_clauses_l T)\<close>
+  by (cases \<open>finite (dom (get_clauses_l T))\<close>)
+     (auto simp: clause_to_update_def)
 
 definition select_and_remove_from_literals_to_update :: \<open>'v twl_st_l \<Rightarrow>
     ('v twl_st_l \<times> 'v literal) nres\<close> where
@@ -1253,7 +1256,9 @@ lemma watched_twl_clause_of_watched: \<open>watched (twl_clause_of x) = mset (wa
   by (cases x) auto
 
 lemma twl_st_of_clause_to_update:
-  assumes \<open>twl_struct_invs (twl_st_of None T)\<close>
+  assumes
+    \<open>twl_struct_invs (twl_st_of None T)\<close> and
+    fin: \<open>finite (dom (get_clauses_l T))\<close>
   shows
   \<open>twl_st_of (Some L')
      (set_clauses_to_update_l
@@ -1268,35 +1273,42 @@ proof -
     T: \<open>T = (M, N, U, D , NE, UE, WS, Q)\<close>
     by (cases T) auto
 
-  have watched_tl_N: \<open>\<exists>i j. watched_l x = [i, j]\<close> if \<open>x \<in> set (tl N)\<close> for x
-  proof -
-    have \<open>Multiset.Ball (twl_clause_of `# mset (tl N)) struct_wf_twl_cls\<close>
-      using assms unfolding T twl_struct_invs_def twl_st_inv.simps twl_st_of.simps
-      image_mset_union[symmetric] mset_append[symmetric] drop_Suc by auto
-    then have \<open>struct_wf_twl_cls (twl_clause_of x)\<close>
-      using that by auto
-    then show ?thesis
-      by (cases \<open>twl_clause_of x\<close>) (auto simp: length_list_2 take_2_if)
-  qed
+  have fin: \<open>finite (dom N)\<close>
+    using fin unfolding T by auto
   have
     \<open>{#(L',
-        TWL_Clause (mset (watched_l (N ! x)))
-          (mset (unwatched_l (N ! x)))).
-      x \<in># mset_set {x. Suc 0 \<le> x \<and> x < length N \<and> L' \<in> set (watched_l (N ! x))}#} =
+        TWL_Clause (mset (watched_l (N \<propto> x)))
+          (mset (unwatched_l (N \<propto> x)))).
+      x \<in># {#C \<in># mset_set (dom N). L' \<in> set (watched_l (N \<propto> C))#}#} =
     Pair L' `#
-      {#C \<in># {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># mset (take U (tl N))#} +
-            {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># mset (drop (Suc U) N)#}.
+      {#C \<in># {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># init_clss_lf N#} +
+            {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># learned_clss_lf N#}.
       L' \<in># watched C#}\<close>
-    (is \<open>{#(L', ?C x). x \<in># mset_set ?S#} = Pair L' `# ?C'\<close>)
+    (is \<open>{#(L', ?C x). x \<in># ?S#} = Pair L' `# ?C'\<close>)
   proof -
-    have mset_tl_upto: \<open>mset (tl N) = {#N!i. i \<in># mset_set {1..<length N}#}\<close>
-      unfolding tl_drop_def mset_drop_upto by simp
-    have L'': \<open>{#(L', ?C x). x \<in># mset_set ?S#} = Pair L' `# {#?C x. x \<in># mset_set ?S#}\<close>
+    have H: \<open>{#f (N \<propto> x). x \<in>#  {#x \<in># mset_set (dom N). P (N \<propto> x)#}#} =
+       {#f (fst x). x \<in># {#C \<in># ran_m N. P (fst C)#}#}\<close> for P f
+        using fin unfolding ran_m_def image_mset_filter_swap2 by auto
+
+    have H: \<open>{#f (N\<propto>x). x \<in># ?S#} =
+        {#f (fst x). x \<in># {#C \<in># init_clss_l N. L' \<in> set (watched_l (fst C))#}#} +
+        {#f (fst x). x \<in># {#C \<in># learned_clss_l N. L' \<in> set (watched_l (fst C))#}#}\<close>
+      for f
+      unfolding image_mset_union[symmetric] filter_union_mset[symmetric]
+      apply auto
+      apply (subst H)
+      ..
+
+    have L'': \<open>{#(L', ?C x). x \<in># ?S#} = Pair L' `# {#?C x. x \<in># ?S#}\<close>
       by auto
     also have \<open>\<dots> = Pair L' `# ?C'\<close>
       apply (rule arg_cong[of _ _ \<open>op `# (Pair L')\<close>])
-      unfolding image_mset_union[symmetric] mset_append[symmetric] drop_Suc append_take_drop_id
-        mset_tl_upto by (auto simp: image_mset_filter_swap2)
+      unfolding image_mset_union[symmetric] mset_append[symmetric] drop_Suc H
+      apply simp
+      apply (subst H)
+      unfolding image_mset_union[symmetric] mset_append[symmetric] drop_Suc H
+        filter_union_mset[symmetric] image_mset_filter_swap2
+      by auto
     finally show ?thesis .
   qed
   then show ?thesis
