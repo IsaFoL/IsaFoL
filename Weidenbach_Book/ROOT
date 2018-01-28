@@ -32,10 +32,9 @@ session "Entailment_Definition" (Weidenbach_Book) = "Weidenbach_Book_Base" +
   options [document = pdf, document_output = "output"]
   sessions
     "HOL-Library"
+    Ordered_Resolution_Prover
   theories [document = true]
     Doc_Entailment
-    "../lib/Herbrand_Interpretation"
-    "../lib/Clausal_Logic"
     Partial_Clausal_Logic
     Partial_Annotated_Clausal_Logic
     Prop_Logic
@@ -51,7 +50,6 @@ session "Normalisation" (Weidenbach_Book) = "Entailment_Definition" +
     Entailment_Definition
   theories [document = false]
     Nested_Multisets_Ordinals.Multiset_More
-    "../lib/Herbrand_Interpretation"
   theories [document = true]
     Prop_Abstract_Transformation
     Prop_Normalisation
@@ -85,7 +83,7 @@ session "CDCL_no_Sepref" (Weidenbach_Book) = "HOL"  +
     Nested_Multisets_Ordinals
     Weidenbach_Book_Base
     Entailment_Definition
-
+    Ordered_Resolution_Prover
   theories [quick_and_dirty = false]
     DPLL_W
     CDCL_W_Level

@@ -1,5 +1,5 @@
 theory Prop_Superposition
-imports Entailment_Definition.Partial_Clausal_Logic Entailment_Definition.Herbrand_Interpretation
+imports Entailment_Definition.Partial_Clausal_Logic Ordered_Resolution_Prover.Herbrand_Interpretation
 begin
 section \<open>Superposition\<close>
 
