@@ -212,8 +212,10 @@ lemma [twl_st_l]:
     \<open>get_trail T = convert_lits_l (get_clauses_l S) (get_trail_l S)\<close> and
     \<open>get_clauses T = twl_clause_of `# fst `# ran_m (get_clauses_l S)\<close> and
     \<open>get_conflict T = get_conflict_l S\<close> and
-    \<open>L \<noteq> None \<Longrightarrow> clauses_to_update T = {#} \<longleftrightarrow> clauses_to_update_l S = {#}\<close>
-    \<open>L = None \<Longrightarrow> clauses_to_update T = {#}\<close>
+    \<open>L = None \<Longrightarrow> clauses_to_update T = {#}\<close>  
+    \<open>L \<noteq> None \<Longrightarrow> clauses_to_update T =
+        (\<lambda>j. (the L, twl_clause_of (get_clauses_l S \<propto> j))) `# clauses_to_update_l S\<close> and
+    \<open>literals_to_update T = literals_to_update_l S\<close>
   using assms unfolding twl_st_l_def all_clss_lf_ran_m[symmetric]
   by (auto split: option.splits)
 
@@ -443,12 +445,30 @@ lemma Ball_ran_m_dom:
     (\<forall>x\<in> dom N. P (N \<propto> x))\<close>
   by (auto simp: ran_m_def)
 
+lemma Ball_ran_m_dom_struct_wf:
+  \<open>finite (dom N) \<Longrightarrow> (\<forall>x\<in>#ran_m N. struct_wf_twl_cls (twl_clause_of (fst x))) \<longleftrightarrow>
+     (\<forall>x\<in> dom N. struct_wf_twl_cls (twl_clause_of (N \<propto> x)))\<close>
+  by (rule Ball_ran_m_dom)
+
+lemma get_clauses_l_set_clauses_to_update_l[simp]:
+  \<open>get_clauses_l (set_clauses_to_update_l WC S) = get_clauses_l S\<close>
+  by (cases S) auto
+
+lemma get_trail_l_set_clauses_to_update_l[simp]:
+  \<open>get_trail_l (set_clauses_to_update_l WC S) = get_trail_l S\<close>
+  by (cases S) auto
+
+text \<open>TODO Move\<close>
+lemma get_trail_set_clauses_to_update[simp]:
+  \<open>get_trail (set_clauses_to_update WC S) = get_trail S\<close>
+  by (cases S) auto
+
 lemma unit_propagation_inner_loop_body_l:
   fixes i C :: nat and S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close> and L :: \<open>'v literal\<close>
   defines
     C'[simp]: \<open>C' \<equiv> get_clauses_l S \<propto> C\<close>
   assumes
-    SS': \<open>(S, S') \<in> twl_st_l None\<close> and
+    SS': \<open>(S, S') \<in> twl_st_l (Some L)\<close> and
     WS: \<open>C \<in># clauses_to_update_l S\<close> and
     struct_invs: \<open>twl_struct_invs S'\<close> and
     add_inv: \<open>twl_list_invs S\<close> and
@@ -459,19 +479,24 @@ lemma unit_propagation_inner_loop_body_l:
         \<Down> {(S, S''). (S, S'') \<in> twl_st_l (Some L) \<and> twl_list_invs S \<and> twl_stgy_invs S'' \<and>
              twl_struct_invs S''}
           (unit_propagation_inner_loop_body (L, twl_clause_of C')
-             (set_clauses_to_update (clauses_to_update (S') - {#(L, twl_clause_of C')#}) (S')))\<close>
+             (set_clauses_to_update (clauses_to_update (S') - {#(L, twl_clause_of C')#}) S'))\<close>
+    (is \<open>?A \<le> \<Down> _ ?B\<close>)
 proof -
   let ?S = \<open>set_clauses_to_update_l (clauses_to_update_l S - {#C#}) S\<close>
-  obtain M N U D NE UE WS Q where S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
+  obtain M N D NE UE WS Q where S: \<open>S = (M, N, D, NE, UE, WS, Q)\<close>
     by (cases S) auto
-
+  have [simp]: \<open>finite (dom (get_clauses_l S))\<close>
+    using SS' unfolding twl_st_l_def by auto
+  have C_N_U: \<open>C \<in> dom (get_clauses_l S)\<close>
+    using add_inv WS SS' by (auto simp: twl_st_l twl_list_invs_def)
   let ?M = \<open>get_trail_l S\<close>
   let ?N = \<open>get_clauses_l S\<close>
+  let ?WS = \<open>clauses_to_update_l S\<close>
+  let ?Q = \<open>literals_to_update_l S\<close>
 
   define i :: nat where \<open>i \<equiv> (if get_clauses_l S\<propto>C!0 = L then 0 else 1)\<close>
   let ?L = \<open>C' ! i\<close>
   let ?L' = \<open>C' ! (Suc 0 - i)\<close>
-
   have inv: \<open>twl_st_inv S'\<close> and
     cdcl_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S')\<close> and
     valid: \<open>valid_enqueued S'\<close>
@@ -496,59 +521,104 @@ proof -
       ?C' \<in># twl_clause_of `# learned_clss_lf ?N\<close>
     using WS valid SS'
     unfolding union_iff[symmetric] image_mset_union[symmetric]  mset_append[symmetric]
-    apply (auto simp: twl_struct_invs_def
+    by (auto simp: twl_struct_invs_def twl_st_l
         split: prod.splits simp del: twl_clause_of.simps)
-    
-    sorry
   have struct: \<open>struct_wf_twl_cls ?C'\<close>
-    using inv SS' WS valid 
-    apply (auto simp: twl_st_inv_alt_def twl_st_l Ball_ran_m_dom simp del: twl_clause_of.simps)
-    unfolding Ball_ran_m_dom
-    sorry
+    using C_N_U inv SS' WS valid unfolding valid_enqueued_alt_simps
+    by (auto simp: twl_st_inv_alt_def twl_st_l Ball_ran_m_dom_struct_wf
+      simp del: twl_clause_of.simps)
   have C'_N_U: \<open>?C' \<in># twl_clause_of `# all_clss_lf ?N\<close>
     using C'_N_U_or
     unfolding union_iff[symmetric] image_mset_union[symmetric]  mset_append[symmetric] .
   have watched_C': \<open>mset (watched_l C') = {#?L, ?L'#}\<close>
-    using struct i_def by (cases C) (auto simp: length_list_2 take_2_if S)
+    using struct i_def SS' by (cases C) (auto simp: length_list_2 take_2_if)
   then have mset_watched_C: \<open>mset (watched_l C') = {#watched_l C' ! i, watched_l C' ! (Suc 0 - i)#}\<close>
     using i_def by (cases \<open>twl_clause_of (get_clauses_l S \<propto> C)\<close>) (auto simp: take_2_if)
   have two_le_length_C: \<open>2 \<le> length C'\<close>
     by (metis length_take linorder_not_le min_less_iff_conj numeral_2_eq_2 order_less_irrefl
         size_add_mset size_eq_0_iff_empty size_mset watched_C')
-  have C_N_U: \<open>C \<in> dom (get_clauses_l S)\<close>
-    using WS add_inv by (auto simp: S twl_list_invs_def)
-  obtain WS' where WS'_def: \<open>WS = add_mset C WS'\<close>
-    using multi_member_split[OF WS] by (auto simp: S)
+  obtain WS' where WS'_def: \<open>?WS = add_mset C WS'\<close>
+    using multi_member_split[OF WS] by auto
   have L: \<open>L \<in> set (watched_l C')\<close>
-    using valid by (auto simp: S WS'_def)
+    using valid SS' by (auto simp: twl_st_l WS'_def)
   have C'_i[simp]: \<open>C'!i = L\<close>
-    using L two_le_length_C by (auto simp: take_2_if S i_def split: if_splits)
-  then have [simp]: \<open>N\<propto>C!i = L\<close>
-    by (auto simp: S)
+    using L two_le_length_C by (auto simp: take_2_if i_def split: if_splits)
+  then have [simp]: \<open>?N\<propto>C!i = L\<close>
+    by auto
 
-  have S'_S: \<open>twl_st_of (Some L) S =  (convert_lits_l N M,
+  have pre_inv: \<open>unit_propagation_inner_loop_body_l_inv L C
+     (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)\<close>
+    unfolding unit_propagation_inner_loop_body_l_inv_def
+  proof (intro conjI)
+    show \<open>C \<in> dom (get_clauses_l ?S)\<close>
+      using assms C_N_U by (auto simp: twl_st_l)
+    show \<open>C > 0\<close>
+      using assms(3,5) unfolding twl_list_invs_def by blast
+    show \<open>(if get_clauses_l ?S \<propto> C ! 0 = L then 0 else 1) < length (get_clauses_l ?S \<propto> C)\<close>
+      using two_le_length_C by auto
+    show \<open>1 - (if get_clauses_l ?S \<propto> C ! 0 = L then 0 else 1) < length (get_clauses_l ?S \<propto> C)\<close>
+      using two_le_length_C by auto
+    show \<open>length (get_clauses_l ?S \<propto> C) > 0\<close>
+      using two_le_length_C by auto
+    show \<open>no_dup (get_trail_l ?S)\<close>
+      using n_d by auto
+  qed
+  have \<open>twl_list_invs ?S\<close>
+    using add_inv C_N_U unfolding twl_list_invs_def
+    by (cases S) (auto dest: in_diffD)
+  then have upd_rel: \<open>(?S,
+     set_clauses_to_update (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S')
+    \<in> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S}\<close>
+    using SS' WS
+    by (auto simp: twl_st_l_def image_mset_remove1_mset_if)
+  have H: \<open>?A \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S} ?B\<close>
+    unfolding unit_propagation_inner_loop_body_l_def unit_propagation_inner_loop_body_def
+      option.case_eq_if find_unwatched_l_def
+    apply (rewrite at \<open>let _ = if _ ! _ = _then _ else _ in _\<close> Let_def)
+    apply (rewrite at \<open>let _ =  polarity _ _ in _\<close> Let_def)
+    apply clarify
+    apply (refine_vcg
+        bind_refine_spec[where M' = \<open>RETURN (polarity _ _)\<close>, OF _ polarity_spec]
+        case_prod_bind[of _ \<open>If _ _\<close>]; remove_dummy_vars)
+    subgoal by (rule pre_inv)
+    subgoal
+      using mset_watched_C by (auto simp: i_def)
+    subgoal for L'
+      using assms by (auto simp: twl_st_l polarity_def Decided_Propagated_in_iff_in_lits_of_l)
+    subgoal by (rule upd_rel)
+    subgoal using SS' by (auto simp: twl_st_l)
+    subgoal using SS' by (auto simp: twl_st_l Decided_Propagated_in_iff_in_lits_of_l
+      polarity_def)
+    subgoal apply auto sorry
+    subgoal apply auto sorry
+    subgoal apply auto sorry
+    subgoal apply auto sorry
+oops
+
+
+  (* have S'_S: \<open>twl_st_of (Some L) S =  (convert_lits_l N M,
      twl_clause_of `# init_clss_lf N,
      twl_clause_of `# learned_clss_lf N,
      D, NE, UE,
      {#(L, TWL_Clause (mset (watched_l (N \<propto> x))) (mset (unwatched_l (N \<propto> x)))).
         x \<in># WS#},
      Q)\<close>
-    unfolding S by auto
+    unfolding S by auto *)
   have i: \<open>i = 0 \<or> i = 1\<close>
     using i_def by auto
   have WS': \<open>(C' ! i, twl_clause_of C') \<in># clauses_to_update S'\<close>
-    using WS S by auto
-  have S': \<open>set_clauses_to_update_l (remove1_mset C
+    using WS SS' by (auto simp: twl_st_l)
+  (* have S': \<open>set_clauses_to_update_l (remove1_mset C
        (clauses_to_update_l (M, N, U, D, NE, UE, WS, Q))) (M, N, U, D, NE, UE, WS, Q) =
     (M, N, U, D, NE, UE, remove1_mset C WS, Q)\<close>
-    by auto
-  let ?N = \<open>twl_clause_of `# init_clss_lf N\<close>
-  let ?U = \<open>twl_clause_of `# learned_clss_lf N\<close>
-  have st_of_S': \<open>twl_st_of (Some L)
+    by auto *)
+  let ?N' = \<open>twl_clause_of `# init_clss_lf ?N\<close>
+  let ?U' = \<open>twl_clause_of `# learned_clss_lf ?N\<close>
+  (* have st_of_S': \<open>twl_st_of (Some L)
      (M, N, U, D, NE, UE, remove1_mset C WS, Q) = (convert_lits_l N M, ?N, ?U, D, NE,
        UE, {#(L, TWL_Clause (mset (watched_l (N \<propto> j))) (mset (unwatched_l (N \<propto> j)))).
           j \<in># remove1_mset C WS#}, Q)\<close>
-    by simp
+    by simp *)
 
   have unwatched_twl_clause_of[simp]: \<open>set_mset (unwatched (twl_clause_of C')) = set (unwatched_l C')\<close>
     by (cases C) auto
@@ -556,27 +626,27 @@ proof -
     (\<forall>L \<in># mset (unwatched C). defined_lit M L)\<close>
     for C :: \<open>'b literal list twl_clause\<close> and M :: \<open>('b, 'c) ann_lit list\<close>
     unfolding set_mset_mset by (metis in_set_conv_nth)
-  have init_invs: \<open>(?S, twl_st_of (Some L) ?S) \<in> {(S, S'). S' = twl_st_of (Some L) S \<and> twl_list_invs S}\<close> and
-    C_le_N: \<open>C \<in> dom N\<close> \<open>C > 0\<close> and
-    dist_WS: \<open>distinct_mset WS\<close> and
-    dom: \<open>finite (dom N)\<close>
-    using WS add_inv by (auto simp add: S twl_list_invs_def dest: in_diffD)
+  have (*  init_invs: \<open>(?S, twl_st_of (Some L) ?S) \<in> {(S, S'). S' = twl_st_of (Some L) S \<and> twl_list_invs S}\<close> and *)
+    C_le_N: \<open>C \<in> dom (get_clauses_l S)\<close> \<open>C > 0\<close> and
+    dist_WS: \<open>distinct_mset ?WS\<close> and
+    dom: \<open>finite (dom (get_clauses_l S))\<close>
+    using WS add_inv by (auto simp add: twl_list_invs_def dest: in_diffD)
 
-  have init_invs: \<open>(?S, twl_st_of (Some L) ?S) \<in> {(S, S'). S' = twl_st_of (Some L) S \<and> twl_list_invs S}\<close>
-    using WS add_inv by (auto simp add: S twl_list_invs_def dest: in_diffD)
+  (* have init_invs: \<open>(?S, twl_st_of (Some L) ?S) \<in> {(S, S'). S' = twl_st_of (Some L) S \<and> twl_list_invs S}\<close>
+    using WS add_inv by (auto simp add: S twl_list_invs_def dest: in_diffD) *)
 
-  have D_None: \<open>D = None\<close>
-    using WS' struct_invs unfolding twl_struct_invs_def S'_S get_conflict.simps clauses_to_update.simps
-    by (metis S S'_def ex_Melem_conv get_conflict_l.simps get_conflict_l_get_conflict(1))
-  have upd_S_S': \<open>twl_st_of (Some L) (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S) =
+  have D_None: \<open>get_conflict_l S = None\<close>
+    using WS' struct_invs SS' unfolding twl_struct_invs_def
+    by (auto simp: twl_st_l)
+  (* have upd_S_S': \<open>twl_st_of (Some L) (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S) =
     set_clauses_to_update (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S'\<close>
-    using S WS by (auto simp: image_mset_remove1_mset_if)
+    using S WS by (auto simp: image_mset_remove1_mset_if) *)
 
-  have H: \<open>\<And>L' C. count {#(L, twl_clause_of (N\<propto>b)). b \<in># WS#} (L', C) \<le>
-    count (twl_clause_of `# all_clss_lf N) C\<close>
-    using dist (* N_take_drop *) unfolding S distinct_queued.simps twl_st_of.simps mset_append[symmetric]
-      image_mset_union[symmetric] S'_def by auto
-  have \<open>add_mset L Q \<subseteq># {#- lit_of x. x \<in># mset (convert_lits_l N M)#}\<close>
+  have H: \<open>\<And>L' C. count {#(L, twl_clause_of (?N\<propto>b)). b \<in># ?WS#} (L', C) \<le>
+    count (twl_clause_of `# all_clss_lf ?N) C\<close>
+    using dist SS' unfolding distinct_queued.simps mset_append[symmetric]
+      image_mset_union[symmetric] by (auto simp: twl_st_l)
+  have \<open>add_mset L ?Q \<subseteq># {#- lit_of x. x \<in># mset (convert_lits_l N M)#}\<close>
     using no_dup by (simp add: S all_conj_distrib WS'_def)
   then have uL_M: \<open>-L \<in> lits_of_l (get_trail_l S)\<close>
     apply - by (drule mset_le_add_mset_decr_left2)
@@ -600,7 +670,7 @@ proof -
   have \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of S')\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast
-  then have \<open>distinct_mset (mset (watched_l (N\<propto>C)) + mset (unwatched_l (N\<propto>C)))\<close>
+  then have \<open>distinct_mset (mset (watched_l (get_clauses_l S \<propto> C)) + mset (unwatched_l (get_clauses_l S\<propto>C)))\<close>
     using C'_N_U_or unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_alt_def S
     by (auto simp add: C' S distinct_mset_set_def
         dest: bspec)
@@ -738,9 +808,9 @@ proof -
     unfolding update_clause_l_def by auto
   have update_clause_l:
     \<open>update_clause_l C i (the x) (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)
-       \<le> \<Down> {(S, S'). twl_st_of (Some L) S = S' \<and> twl_list_invs S}
+       \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S}
          (update_clauseS (C' ! i) (twl_clause_of C')
-            (twl_st_of (Some L) (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)))\<close>
+            ((set_clauses_to_update (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S')))\<close>
     if \<open>x \<noteq> None\<close> and x: \<open>the x \<ge> 2\<close>
         \<open>the x < length (get_clauses_l (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S) \<propto> C)\<close> and
        undef: \<open>undefined_lit (get_trail_l (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S))
