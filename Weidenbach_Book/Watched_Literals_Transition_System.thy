@@ -412,8 +412,7 @@ lemma twl_st_inv_add_mset_clauses_to_update:
   assumes \<open>D \<in># N + U\<close>
   shows \<open>twl_st_inv (M, N, U, None, NE, UE, WS, Q)
   \<longleftrightarrow> twl_st_inv (M, N, U, None, NE, UE, add_mset (L, D) WS, Q) \<and>
-    (\<not> twl_is_an_exception D Q WS \<longrightarrow>twl_lazy_update M D \<and> twl_inv M D)
-    \<close>
+    (\<not> twl_is_an_exception D Q WS \<longrightarrow>twl_lazy_update M D \<and> twl_inv M D)\<close>
   using assms by (auto simp: twl_is_an_exception_add_mset_to_clauses_to_update)
 
 lemma twl_st_simps:
