@@ -729,51 +729,19 @@ proof -
            (set_clauses_to_update
              (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S'))\<close>
   if
-    L': \<open>(get_clauses_l
-       (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S) \<propto>
-      C !
-      (1 - i),
-      L')
-     \<in> Id\<close> and
+    L': \<open>(get_clauses_l ?S \<propto> C ! (1 - i), L') \<in> Id\<close> and
     L'_M: \<open>L' \<notin> lits_of_l
            (get_trail
              (set_clauses_to_update
                (remove1_mset (L, twl_clause_of C') (clauses_to_update S'))
                S'))\<close> and
     K: \<open>K \<in> {found. (found = None) =
-          (\<forall>L\<in>set (unwatched_l
-                    (get_clauses_l
-                      (set_clauses_to_update_l
-                        (remove1_mset C (clauses_to_update_l S)) S) \<propto>
-                     C)).
-              - L \<in> lits_of_l
-                     (get_trail_l
-                       (set_clauses_to_update_l
-                         (remove1_mset C (clauses_to_update_l S)) S))) \<and>
+          (\<forall>L\<in>set (unwatched_l (get_clauses_l ?S \<propto> C)).
+              - L \<in> lits_of_l (get_trail_l ?S)) \<and>
           (\<forall>j. found = Some j \<longrightarrow>
-               j < length
-                    (get_clauses_l
-                      (set_clauses_to_update_l
-                        (remove1_mset C (clauses_to_update_l S)) S) \<propto>
-                     C) \<and>
-               (undefined_lit
-                 (get_trail_l
-                   (set_clauses_to_update_l
-                     (remove1_mset C (clauses_to_update_l S)) S))
-                 (get_clauses_l
-                   (set_clauses_to_update_l
-                     (remove1_mset C (clauses_to_update_l S)) S) \<propto>
-                  C !
-                  j) \<or>
-                get_clauses_l
-                 (set_clauses_to_update_l
-                   (remove1_mset C (clauses_to_update_l S)) S) \<propto>
-                C !
-                j
-                \<in> lits_of_l
-                   (get_trail_l
-                     (set_clauses_to_update_l
-                       (remove1_mset C (clauses_to_update_l S)) S))) \<and>
+               j < length (get_clauses_l ?S \<propto> C) \<and>
+               (undefined_lit (get_trail_l ?S) (get_clauses_l ?S \<propto> C ! j) \<or>
+                get_clauses_l ?S \<propto> C ! j \<in> lits_of_l (get_trail_l ?S)) \<and>
                2 \<le> j)}\<close> and
     K_None: \<open>K \<noteq> None\<close>
     for L' and K
@@ -1033,18 +1001,19 @@ qed
 
 lemma unit_propagation_inner_loop_body_l2:
   assumes
+    SS': \<open>(S, S') \<in> twl_st_l (Some L)\<close> and
     WS: \<open>C \<in># clauses_to_update_l S\<close> and
-    struct_invs: \<open>twl_struct_invs (twl_st_of (Some L) S)\<close> and
+    struct_invs: \<open>twl_struct_invs S'\<close> and
     add_inv: \<open>twl_list_invs S\<close> and
-    stgy_inv: \<open>twl_stgy_invs (twl_st_of (Some L) S)\<close>
+    stgy_inv: \<open>twl_stgy_invs S'\<close>
   shows
     \<open>(unit_propagation_inner_loop_body_l L C
         (set_clauses_to_update_l (clauses_to_update_l S - {#C#}) S),
       unit_propagation_inner_loop_body (L, twl_clause_of (get_clauses_l S \<propto> C))
         (set_clauses_to_update
           (remove1_mset (L, twl_clause_of (get_clauses_l S \<propto> C))
-          (clauses_to_update (twl_st_of (Some L) S))) (twl_st_of (Some L) S)))
-    \<in> \<langle>{(S, S'). twl_st_of (Some L) S = S' \<and> twl_list_invs S \<and> twl_stgy_invs S' \<and>
+          (clauses_to_update S')) S'))
+    \<in> \<langle>{(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S \<and> twl_stgy_invs S' \<and>
          twl_struct_invs S'}\<rangle>nres_rel\<close>
   using unit_propagation_inner_loop_body_l[OF assms]
   by (auto simp: nres_rel_def)
@@ -1055,8 +1024,9 @@ definition select_from_clauses_to_update :: \<open>'v twl_st_l \<Rightarrow> ('v
 
 definition unit_propagation_inner_loop_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>unit_propagation_inner_loop_l L S\<^sub>0 =
-    WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of (Some L) S) \<and> twl_stgy_invs (twl_st_of (Some L) S) \<and>
-    cdcl_twl_cp\<^sup>*\<^sup>* (twl_st_of (Some L) S\<^sub>0) (twl_st_of (Some L) S) \<and>
+    WHILE\<^sub>T\<^bsup>\<lambda>S. \<exists>S'. (S, S') \<in> twl_st_l (Some L) \<and> twl_struct_invs S' \<and> 
+       twl_stgy_invs S' \<and>
+    (* cdcl_twl_cp\<^sup>*\<^sup>* (twl_st_of (Some L) S\<^sub>0) S' \<and> *)
     twl_list_invs S\<^esup>
       (\<lambda>S. clauses_to_update_l S \<noteq> {#})
       (\<lambda>S. do {
@@ -1068,15 +1038,17 @@ definition unit_propagation_inner_loop_l :: \<open>'v literal \<Rightarrow> 'v t
   \<close>
 
 lemma set_mset_clauses_to_update_l_set_mset_clauses_to_update_spec:
-  \<open>RES (set_mset (clauses_to_update_l S)) \<le> \<Down> {(C, (L', C')). L' = L \<and>
-    C' = twl_clause_of (get_clauses_l S \<propto> C)}
-  (RES (set_mset (clauses_to_update (twl_st_of (Some L) S))))\<close>
+  assumes \<open>(S, S') \<in> twl_st_l (Some L)\<close>
+  shows
+    \<open>RES (set_mset (clauses_to_update_l S)) \<le> \<Down> {(C, (L', C')). L' = L \<and>
+      C' = twl_clause_of (get_clauses_l S \<propto> C)}
+    (RES (set_mset (clauses_to_update S')))\<close>
 proof -
-  obtain M N U D NE UE WS Q where
-    S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
+  obtain M N D NE UE WS Q where
+    S: \<open>S = (M, N, D, NE, UE, WS, Q)\<close>
     by (cases S) auto
   show ?thesis
-    unfolding S by (rule RES_refine) (auto simp add: Bex_def)
+    using assms unfolding S by (auto simp add: RES_refine Bex_def twl_st_l_def)
 qed
 
 lemma refine_add_inv:
@@ -1115,78 +1087,56 @@ lemma refine_add_inv_pair:
   by fastforce
 
 lemma clauses_to_update_l_empty_tw_st_of_Some_None[simp]:
-  \<open>clauses_to_update_l S = {#} \<Longrightarrow> twl_st_of (Some L) S = twl_st_of None S\<close>
-  by (cases S) auto
-
+  \<open>clauses_to_update_l S = {#} \<Longrightarrow> (S, S')\<in> twl_st_l (Some L) \<longleftrightarrow> (S, S') \<in> twl_st_l None\<close>
+  by (cases S) (auto simp: twl_st_l_def)
+thm frefI
 lemma unit_propagation_inner_loop_l:
   \<open>(uncurry unit_propagation_inner_loop_l,  unit_propagation_inner_loop) \<in>
-  {((L, S), S'). S' = twl_st_of (Some L) S \<and> twl_struct_invs (twl_st_of (Some L) S) \<and>
-     twl_stgy_invs (twl_st_of (Some L) S) \<and> twl_list_invs S} \<rightarrow>
-  \<langle>{(T, T'). T' = twl_st_of None T \<and> clauses_to_update_l T = {#} \<and>
-    twl_list_invs T \<and> twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T)}\<rangle>
-  nres_rel\<close>
-  (is \<open>?unit_prop_inner \<in> _\<close>)
+  {((L, S), S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_struct_invs S' \<and>
+     twl_stgy_invs S' \<and> twl_list_invs S} \<rightarrow>
+  \<langle>{(T, T'). (T, T') \<in> twl_st_l None \<and> clauses_to_update_l T = {#} \<and>
+    twl_list_invs T \<and> twl_struct_invs T' \<and> twl_stgy_invs T'}\<rangle> nres_rel\<close>
+  (is \<open>?unit_prop_inner \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
 proof -
   have SPEC_remove: \<open>select_from_clauses_to_update S
        \<le> \<Down> {((T', C), C').
-             set_clauses_to_update (clauses_to_update S'' - {#C'#}) S'' = twl_st_of (Some L) T' \<and>
+             (T', set_clauses_to_update (clauses_to_update S'' - {#C'#}) S'') \<in> twl_st_l (Some L) \<and>
               T' = set_clauses_to_update_l (clauses_to_update_l S - {#C#}) S \<and>
               C' \<in># clauses_to_update S'' \<and>
               C \<in># clauses_to_update_l S \<and>
               snd C' = twl_clause_of (get_clauses_l S \<propto> C)}
              (SPEC (\<lambda>C. C \<in># clauses_to_update S''))\<close>
-    if \<open>(S, S'') \<in> {(T, T'). T' = twl_st_of (Some L) T \<and> twl_list_invs T}\<close> for S S'' L
+    if \<open>(S, S'') \<in> {(T, T'). (T, T') \<in> twl_st_l (Some L) \<and> twl_list_invs T}\<close> for S S'' L
     using that unfolding select_from_clauses_to_update_def
-    by (cases S; cases S'') (auto simp: conc_fun_def image_mset_remove1_mset_if)
-  have H: \<open>(uncurry unit_propagation_inner_loop_l, unit_propagation_inner_loop) \<in>
-  {((L, S), S'). S' = twl_st_of (Some L) S \<and> twl_struct_invs (twl_st_of (Some L) S) \<and>
-     twl_stgy_invs (twl_st_of (Some L) S) \<and> twl_list_invs S} \<rightarrow>
-  \<langle>{(T, T'). T' = twl_st_of None T \<and> clauses_to_update_l T = {#} \<and> twl_list_invs T}\<rangle> nres_rel\<close>
-    (is \<open>_ \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
+    by (auto simp: conc_fun_def image_mset_remove1_mset_if twl_st_l_def)
+  show ?thesis
     unfolding unit_propagation_inner_loop_l_def unit_propagation_inner_loop_def uncurry_def
-    apply clarify
-    subgoal for L M' N' U' C' NE' UE' WS' Q' M N U C NE UE WS Q
-    apply (refine_vcg set_mset_clauses_to_update_l_set_mset_clauses_to_update_spec
-      WHILEIT_refine_genR[where R=\<open>?B\<close> and R' = \<open>{(T, T'). T' = twl_st_of (Some L) T \<and>
-        twl_list_invs T}\<close>]
-      SPEC_remove;
-      remove_dummy_vars)
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal for T T' LC S'' iC
-      apply (rule refinement_trans_long[OF _ _ _ unit_propagation_inner_loop_body_l[of \<open>iC\<close> T L,
-        unfolded prod.collapse]])
-      subgoal by auto
-      subgoal by (cases T) force
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
+    fref_param1
+    apply (intro frefI nres_relI)
+    subgoal for LS S'
+      apply (refine_vcg set_mset_clauses_to_update_l_set_mset_clauses_to_update_spec
+        WHILEIT_refine_genR[where R=\<open>?B\<close> and R' = \<open>{(T, T'). (T, T') \<in> twl_st_l (Some (fst LS)) \<and>
+          twl_list_invs T}\<close>]
+        SPEC_remove;
+        remove_dummy_vars)
+      subgoal by simp
+      subgoal by fastforce
+      subgoal by (auto simp add: twl_st_l)
+      subgoal for L S T T' C' U C
+        apply (rule refinement_trans_long[OF _ _ _ unit_propagation_inner_loop_body_l[of T T' L C,
+          unfolded prod.collapse]])
+        subgoal by auto
+        subgoal by (auto simp: twl_st_l)
+        subgoal by auto
+        subgoal by auto
+        subgoal by auto
+        subgoal by auto
+        subgoal by auto
+        subgoal by auto
+        done
       subgoal by auto
       done
-    subgoal by auto
     done
-  done
-  have H': \<open>?unit_prop_inner
-  \<in> {((L, S), S'). S' = twl_st_of (Some L) S \<and> twl_struct_invs (twl_st_of (Some L) S) \<and>
-      twl_stgy_invs (twl_st_of (Some L) S) \<and> twl_list_invs S} \<rightarrow>
-    \<langle>{(T, T'). T' = twl_st_of None T \<and> clauses_to_update_l T = {#} \<and> twl_list_invs T \<and>
-      twl_struct_invs T' \<and> twl_stgy_invs T' \<and> clauses_to_update T' = {#}}\<rangle>nres_rel\<close>
-    apply (rule refine_add_inv_generalised[OF H, of \<open>Collect (\<lambda>S'. twl_struct_invs S' \<and>
-      twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S' S' \<and> clauses_to_update S' = {#})\<close>, simplified])
-    subgoal for LS S'
-      using unit_propagation_inner_loop[of \<open>twl_st_of (Some (fst LS)) (snd LS)\<close>]
-      by match_spec_trans auto
-    done
-
-  show ?thesis
-    using H' apply -
-    apply (match_spec; (match_fun_rel; match_fun_rel?)+)
-    by blast+
 qed
 
 definition clause_to_update :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v clauses_to_update_l\<close>where
@@ -1212,7 +1162,7 @@ definition select_and_remove_from_literals_to_update :: \<open>'v twl_st_l \<Rig
 
 definition unit_propagation_outer_loop_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>unit_propagation_outer_loop_l S\<^sub>0 =
-    WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and>
+    WHILE\<^sub>T\<^bsup>\<lambda>S. \<exists>S'. (S, S') \<in> twl_st_l None \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
       clauses_to_update_l S = {#}\<^esup>
       (\<lambda>S. literals_to_update_l S \<noteq> {#})
       (\<lambda>S. do {
