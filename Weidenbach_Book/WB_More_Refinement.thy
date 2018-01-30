@@ -179,6 +179,11 @@ lemma fun_rel_syn_invert:
   \<open>a = a' \<Longrightarrow> b \<subseteq> b' \<Longrightarrow> a \<rightarrow> b \<subseteq> a' \<rightarrow> b'\<close>
   by (auto simp: refine_rel_defs)
 
+lemma fref_syn_invert:
+  \<open>a = a' \<Longrightarrow> b \<subseteq> b' \<Longrightarrow> a \<rightarrow>\<^sub>f b \<subseteq> a' \<rightarrow>\<^sub>f b'\<close>
+  unfolding fref_param1[symmetric]
+  by (rule fun_rel_syn_invert)
+
 lemma nres_rel_mono:
   \<open>a \<subseteq> a'  \<Longrightarrow> \<langle>a\<rangle> nres_rel \<subseteq> \<langle>a'\<rangle> nres_rel\<close>
   by (fastforce simp: refine_rel_defs nres_rel_def pw_ref_iff)
@@ -191,6 +196,7 @@ method match_spec =
 method match_fun_rel =
   ((match conclusion in
        \<open>_ \<rightarrow> _ \<subseteq> _ \<rightarrow> _\<close> \<Rightarrow> \<open>rule fun_rel_mono\<close>
+     \<bar> \<open>_ \<rightarrow>\<^sub>f _ \<subseteq> _ \<rightarrow>\<^sub>f _\<close> \<Rightarrow> \<open>rule fref_syn_invert\<close>
      \<bar> \<open>\<langle>_\<rangle>nres_rel \<subseteq> \<langle>_\<rangle>nres_rel\<close> \<Rightarrow> \<open>rule nres_rel_mono\<close>
      \<bar> \<open>[_]\<^sub>f _ \<rightarrow> _ \<subseteq> [_]\<^sub>f _ \<rightarrow> _\<close> \<Rightarrow> \<open>rule fref_mono\<close>
    )+)
@@ -474,6 +480,59 @@ lemma the_hnr_keep:
   using pure_option[of A]
   by sepref_to_hoare
    (sep_auto simp: option_assn_alt_def is_pure_def split: option.splits)
+
+lemma (in -)fref_to_Down:
+  \<open>(f, g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> f x \<le> \<Down> B (g x'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma (in -)fref_to_Down_curry:
+  \<open>(uncurry f, uncurry g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y \<le> \<Down> B (g x' y'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma (in -)fref_to_Down_curry2:
+  \<open>(uncurry2 f, uncurry2 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z'. P ((x', y'), z') \<Longrightarrow> (((x, y), z), ((x', y'), z')) \<in> A\<Longrightarrow>
+         f x y z \<le> \<Down> B (g x' y' z'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma (in -)fref_to_Down_curry2':
+  \<open>(uncurry2 f, uncurry2 g) \<in> A \<rightarrow>\<^sub>f \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z'. (((x, y), z), ((x', y'), z')) \<in> A \<Longrightarrow>
+         f x y z \<le> \<Down> B (g x' y' z'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+
+lemma (in -)fref_to_Down_curry3:
+  \<open>(uncurry3 f, uncurry3 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z' a a'. P (((x', y'), z'), a') \<Longrightarrow>
+        ((((x, y), z), a), (((x', y'), z'), a')) \<in> A \<Longrightarrow>
+         f x y z a \<le> \<Down> B (g x' y' z' a'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma (in -)fref_to_Down_curry4:
+  \<open>(uncurry4 f, uncurry4 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z' a a' b b'. P ((((x', y'), z'), a'), b') \<Longrightarrow>
+        (((((x, y), z), a), b), ((((x', y'), z'), a'), b')) \<in> A \<Longrightarrow>
+         f x y z a b \<le> \<Down> B (g x' y' z' a' b'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma (in -)fref_to_Down_curry5:
+  \<open>(uncurry5 f, uncurry5 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z' a a' b b' c c'. P (((((x', y'), z'), a'), b'), c') \<Longrightarrow>
+        ((((((x, y), z), a), b), c), (((((x', y'), z'), a'), b'), c')) \<in> A \<Longrightarrow>
+         f x y z a b c \<le> \<Down> B (g x' y' z' a' b' c'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+declare RETURN_as_SPEC_refine[refine2 del]
 
 
 subsubsection \<open>More Simplification Theorems\<close>
