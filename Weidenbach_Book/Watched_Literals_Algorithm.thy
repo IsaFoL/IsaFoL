@@ -738,15 +738,19 @@ qed
 end
 
 
-lemma backtrack_spec:
+lemma
   assumes confl: \<open>get_conflict S \<noteq> None\<close> \<open>get_conflict S \<noteq> Some {#}\<close> and
     w_q: \<open>clauses_to_update S = {#}\<close> and p: \<open>literals_to_update S = {#}\<close> and
     ns_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of S)\<close> and
     ns_r: \<open>no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of S)\<close> and
     twl_struct: \<open>twl_struct_invs S\<close> and twl_stgy: \<open>twl_stgy_invs S\<close>
-  shows \<open>backtrack S \<le> SPEC (\<lambda>T. cdcl_twl_o S T \<and> get_conflict T = None \<and> no_step cdcl_twl_o T \<and>
-    twl_struct_invs T \<and> twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
-    literals_to_update T \<noteq> {#})\<close>
+  shows
+    backtrack_spec:
+    \<open>backtrack S \<le> SPEC (\<lambda>T. cdcl_twl_o S T \<and> get_conflict T = None \<and> no_step cdcl_twl_o T \<and>
+      twl_struct_invs T \<and> twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
+      literals_to_update T \<noteq> {#})\<close> (is ?spec) and
+    backtrack_nofail:
+      \<open>nofail (backtrack S)\<close> (is ?fail)
 proof -
   let ?S = \<open>state\<^sub>W_of S\<close>
   have inv_s: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant ?S\<close> and
@@ -760,7 +764,7 @@ proof -
   then have trail: \<open>get_trail S \<noteq> []\<close>
     using confl unfolding true_annots_true_cls_def_iff_negation_in_model
     by (cases S) (auto simp: cdcl\<^sub>W_restart_mset_state)
-  show ?thesis
+  show ?spec
     unfolding backtrack_def extract_shorter_conflict_def reduce_trail_bt_def
   proof (refine_vcg; remove_dummy_vars; clarify?)
     show \<open>backtrack_inv S\<close>
@@ -1011,6 +1015,8 @@ proof -
         using that by (auto simp: cdcl_twl_o.simps propagate_unit_bt_def)
     }
   qed
+  then show ?fail
+    using nofail_simps(2) pwD1 by blast
 qed
 
 declare backtrack_spec[THEN order_trans, refine_vcg]
