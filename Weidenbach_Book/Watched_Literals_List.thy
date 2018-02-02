@@ -490,7 +490,9 @@ definition update_clause_l :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat \<R
        RETURN (M, N', D, NE, UE, WS, Q)
   })\<close>
 
-definition unit_propagation_inner_loop_body_l_inv :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
+definition unit_propagation_inner_loop_body_l_inv
+  :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close>
+where
   \<open>unit_propagation_inner_loop_body_l_inv L C S \<longleftrightarrow>
     C \<in> dom (get_clauses_l S) \<and>
     C > 0 \<and>
@@ -549,8 +551,8 @@ lemma clauses_tuple[simp]:
 
 lemma valid_enqueued_alt_simps[simp]:
   \<open>valid_enqueued S \<longleftrightarrow>
-    (\<forall>(L, C) \<in># clauses_to_update S. L \<in># watched C \<and> C \<in># get_clauses S \<and> -L \<in> lits_of_l (get_trail S) \<and>
-       get_level (get_trail S) L = count_decided (get_trail S)) \<and>
+    (\<forall>(L, C) \<in># clauses_to_update S. L \<in># watched C \<and> C \<in># get_clauses S \<and>
+       -L \<in> lits_of_l (get_trail S) \<and> get_level (get_trail S) L = count_decided (get_trail S)) \<and>
      (\<forall>L \<in># literals_to_update S.
           -L \<in> lits_of_l (get_trail S) \<and> get_level (get_trail S) L = count_decided (get_trail S))\<close>
   by (cases S) auto
@@ -575,12 +577,14 @@ lemma twl_st_inv_alt_def:
 
 lemma init_clss_l_clause_upd:
   \<open>finite (dom N) \<Longrightarrow> C \<in> dom N \<Longrightarrow> irred N C \<Longrightarrow>
-   init_clss_l (N(C \<hookrightarrow> C')) = add_mset (C', irred N C) (remove1_mset (N \<propto> C, irred N C) (init_clss_l N))\<close>
+   init_clss_l (N(C \<hookrightarrow> C')) = 
+     add_mset (C', irred N C) (remove1_mset (N \<propto> C, irred N C) (init_clss_l N))\<close>
   by (auto simp: ran_m_mapsto_upd)
 
 lemma init_clss_l_mapsto_upd:
   \<open>finite (dom N) \<Longrightarrow> C \<in> dom N \<Longrightarrow> irred N C \<Longrightarrow>
-   init_clss_l (N(C \<mapsto> (C', True))) = add_mset (C', irred N C) (remove1_mset (N \<propto> C, irred N C) (init_clss_l N))\<close>
+   init_clss_l (N(C \<mapsto> (C', True))) =
+     add_mset (C', irred N C) (remove1_mset (N \<propto> C, irred N C) (init_clss_l N))\<close>
   by (auto simp: ran_m_mapsto_upd)
 
 lemma learned_clss_l_mapsto_upd:
@@ -908,8 +912,9 @@ proof -
 
       let ?New_C = \<open>(TWL_Clause {#L, C' ! (Suc 0 - i)#} (mset (unwatched_l C')))\<close>
 
-      have wo: "a = a' \<Longrightarrow> b = b' \<Longrightarrow> L = L'  \<Longrightarrow>  K = K'  \<Longrightarrow> c = c' \<Longrightarrow> update_clauses a K L b c \<Longrightarrow>
-           update_clauses a' K' L' b' c'" for a a' b b' K L K' L' c c'
+      have wo: "a = a' \<Longrightarrow> b = b' \<Longrightarrow> L = L'  \<Longrightarrow>  K = K'  \<Longrightarrow> c = c' \<Longrightarrow>
+         update_clauses a K L b c \<Longrightarrow>
+         update_clauses a' K' L' b' c'" for a a' b b' K L K' L' c c'
         by auto
       have [simp]: \<open>C' \<in> fst ` {a. a \<in># ran_m N \<and> snd a}  \<longleftrightarrow> irred N C\<close>
         using C_N_U J_NE unfolding C' S ran_m_def
@@ -974,8 +979,9 @@ proof -
 
       let ?New_C = \<open>(TWL_Clause {#L, C' ! (Suc 0 - i)#} (mset (unwatched_l C')))\<close>
 
-      have wo: "a = a' \<Longrightarrow> b = b' \<Longrightarrow> L = L'  \<Longrightarrow>  K = K'  \<Longrightarrow> c = c' \<Longrightarrow> update_clauses a K L b c \<Longrightarrow>
-           update_clauses a' K' L' b' c'" for a a' b b' K L K' L' c c'
+      have wo: "a = a' \<Longrightarrow> b = b' \<Longrightarrow> L = L'  \<Longrightarrow>  K = K'  \<Longrightarrow> c = c' \<Longrightarrow>
+        update_clauses a K L b c \<Longrightarrow>
+        update_clauses a' K' L' b' c'" for a a' b b' K L K' L' c c'
         by auto
       have [simp]: \<open>C' \<in> fst ` {a. a \<in># ran_m N \<and> \<not>snd a}  \<longleftrightarrow> \<not>irred N C\<close>
         using C_N_U J_NE unfolding C' S ran_m_def
@@ -1988,7 +1994,8 @@ proof -
       using UU' by (cases U) auto
     have [simp]: \<open>L = L'\<close>
       using LL' by simp
-    have [simp]: \<open>convert_lits_l (NS(i \<mapsto> C')) MU = convert_lits_l NS MU\<close> if \<open>i \<notin> dom NS\<close> for NS' i C'
+    have [simp]: \<open>convert_lits_l (NS(i \<mapsto> C')) MU = convert_lits_l NS MU\<close>
+      if \<open>i \<notin> dom NS\<close> for NS' i C'
       unfolding convert_lits_l_def
       apply (rule map_cong)
       subgoal by simp
@@ -2010,7 +2017,8 @@ proof -
       using TT' by (auto simp: T)
     moreover have \<open>L' \<in># remove1_mset (- lit_of (hd MS)) DT\<close>
       using L' S_S' U_U' by (auto simp: S U twl_st_l)
-    ultimately have DT: \<open>DT = add_mset (- lit_of (hd MS)) (add_mset L' (DT - {#- lit_of (hd MS), L'#}))\<close>
+    ultimately have DT:
+      \<open>DT = add_mset (- lit_of (hd MS)) (add_mset L' (DT - {#- lit_of (hd MS), L'#}))\<close>
       by (metis (no_types, lifting) add_mset_diff_bothsides diff_single_eq_union)
 
     have Propa: \<open>((Propagated (- lit_of (hd MS)) i # MU, NS(i \<mapsto>
@@ -2185,7 +2193,8 @@ definition decide_l_or_skip :: \<open>'v twl_st_l \<Rightarrow> (bool \<times> '
   })
 \<close>
 method "match_\<Down>" =
-  (match conclusion in \<open>f \<le> \<Down> R g\<close> for f :: \<open>'a nres\<close> and R :: \<open>('a \<times> 'b) set\<close> and g :: \<open>'b nres\<close> \<Rightarrow>
+  (match conclusion in \<open>f \<le> \<Down> R g\<close> for f :: \<open>'a nres\<close> and R :: \<open>('a \<times> 'b) set\<close> and
+    g :: \<open>'b nres\<close> \<Rightarrow>
     \<open>match premises in
       I[thin,uncurry]: \<open>f \<le> \<Down> R' g\<close> for R' :: \<open>('a \<times> 'b) set\<close>
           \<Rightarrow> \<open>rule refinement_trans_long[of f f g g R' R, OF refl refl _ I]\<close>
@@ -2228,7 +2237,8 @@ proof -
       by (cases S)
        (auto simp: decide_lit_l_def propagate_dec_def twl_list_invs_def twl_st_l_def)
     done
-  have KK: \<open>SPEC (\<lambda>(brk, T). cdcl_twl_o\<^sup>*\<^sup>* S' T \<and> P brk T) = \<Down> {(S, S'). snd S = S' \<and> P (fst S) (snd S)} (SPEC (cdcl_twl_o\<^sup>*\<^sup>* S'))\<close>
+  have KK: \<open>SPEC (\<lambda>(brk, T). cdcl_twl_o\<^sup>*\<^sup>* S' T \<and> P brk T) = \<Down> {(S, S'). snd S = S' \<and>
+     P (fst S) (snd S)} (SPEC (cdcl_twl_o\<^sup>*\<^sup>* S'))\<close>
     for S' P
     by (auto simp: conc_fun_def)
   have nf: \<open>nofail (SPEC (cdcl_twl_o\<^sup>*\<^sup>* S'))\<close> \<open>nofail (SPEC (cdcl_twl_o\<^sup>*\<^sup>* S'))\<close> for S S'
@@ -2353,11 +2363,6 @@ proof -
     subgoal by (auto simp: twl_st_l)
     subgoal by (auto simp: twl_st_l)
     done
-  have KK: \<open>SPEC (\<lambda>(brk, T). cdcl_twl_o\<^sup>*\<^sup>* S' T \<and> P brk T) = \<Down> {(S, S'). snd S = S' \<and> P (fst S) (snd S)} (SPEC (cdcl_twl_o\<^sup>*\<^sup>* S'))\<close>
-    for S' P
-    by (auto simp: conc_fun_def)
-  have nf: \<open>nofail (SPEC (cdcl_twl_o\<^sup>*\<^sup>* S'))\<close> \<open>nofail (SPEC (cdcl_twl_o\<^sup>*\<^sup>* (twl_st_of None S)))\<close> for S S'
-    by auto
   have set: \<open>{((a,b), (a', b')). P a b a' b'} = {(a, b). P (fst a) (snd a) (fst b) (snd b)}\<close> for P
     by auto
   have SPEC_Id: \<open>SPEC \<Phi> = \<Down> {(T, T'). \<Phi> T} (SPEC \<Phi>)\<close> for \<Phi>
@@ -2422,7 +2427,8 @@ lemma cdcl_twl_stgy_prog_l_spec:
     \<langle>{(T, T'). (T, T') \<in> twl_st_l None \<and> True}\<rangle> nres_rel\<close>
   (is \<open> _ \<in> ?R \<rightarrow>\<^sub>f ?I\<close> is \<open> _ \<in> ?R \<rightarrow>\<^sub>f \<langle>?J\<rangle>nres_rel\<close>)
 proof -
-  have R: \<open>(a, b) \<in> ?R \<Longrightarrow> ((False, a), (False, b)) \<in> {((brk, S), (brk', S')). brk = brk' \<and> (S, S') \<in> ?R}\<close>
+  have R: \<open>(a, b) \<in> ?R \<Longrightarrow>
+    ((False, a), (False, b)) \<in> {((brk, S), (brk', S')). brk = brk' \<and> (S, S') \<in> ?R}\<close>
     for a b by auto
 
   show ?thesis

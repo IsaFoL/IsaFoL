@@ -20,38 +20,35 @@ type_synonym watched = \<open>nat list\<close>
 type_synonym 'v lit_queue_wl = \<open>'v literal multiset\<close>
 
 type_synonym 'v twl_st_wl =
-  \<open>('v, nat) ann_lits \<times> 'v clause_l list \<times> nat \<times>
+  \<open>('v, nat) ann_lits \<times> 'v clauses_l \<times>
     'v cconflict \<times> 'v clauses \<times> 'v clauses \<times> 'v lit_queue_wl \<times>
     ('v literal \<Rightarrow> watched)\<close>
 
 subsection \<open>Access Functions\<close>
 
 fun clauses_to_update_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> clauses_to_update_wl\<close> where
-  \<open>clauses_to_update_wl (_, _, _, _, _, _, _, W) L i = mset (drop i (W L))\<close>
+  \<open>clauses_to_update_wl (_, _, _, _, _, _, W) L i = mset (drop i (W L))\<close>
 
 fun get_trail_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v, nat) ann_lit list\<close> where
-  \<open>get_trail_wl (M, _, _, _, _, _, _, _) = M\<close>
+  \<open>get_trail_wl (M, _, _, _, _, _, _) = M\<close>
 
 fun literals_to_update_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v lit_queue_wl\<close> where
-  \<open>literals_to_update_wl (_, _, _, _, _, _, Q, _) = Q\<close>
+  \<open>literals_to_update_wl (_, _, _, _, _, Q, _) = Q\<close>
 
 fun set_literals_to_update_wl :: \<open>'v lit_queue_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>set_literals_to_update_wl Q (M, N, U, D, NE, UE, _, W) = (M, N, U, D, NE, UE, Q, W)\<close>
+  \<open>set_literals_to_update_wl Q (M, N, D, NE, UE, _, W) = (M, N, D, NE, UE, Q, W)\<close>
 
 fun get_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v cconflict\<close> where
-  \<open>get_conflict_wl (_, _, _, D, _, _, _, _) = D\<close>
+  \<open>get_conflict_wl (_, _, D, _, _, _, _) = D\<close>
 
 fun get_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses_l\<close> where
-  \<open>get_clauses_wl (M, N, U, D, NE, UE, WS, Q) = N\<close>
-
-fun get_learned_wl :: \<open>'v twl_st_wl \<Rightarrow> nat\<close> where
-  \<open>get_learned_wl (M, N, U, D, NE, UE, WS, Q) = U\<close>
+  \<open>get_clauses_wl (M, N, D, NE, UE, WS, Q) = N\<close>
 
 definition get_unit_learned :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
-  \<open>get_unit_learned = (\<lambda>(M, N, U, D, NE, UE, Q, W). UE)\<close>
+  \<open>get_unit_learned = (\<lambda>(M, N, D, NE, UE, Q, W). UE)\<close>
 
 definition get_unit_init_clss :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
-  \<open>get_unit_init_clss = (\<lambda>(M, N, U, D, NE, UE, Q, W). NE)\<close>
+  \<open>get_unit_init_clss = (\<lambda>(M, N, D, NE, UE, Q, W). NE)\<close>
 
 definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset\<close> where
 \<open>all_lits_of_mm Ls = Pos `# (atm_of `# (\<Union># Ls)) + Neg `# (atm_of `# (\<Union># Ls))\<close>
@@ -66,16 +63,17 @@ text \<open>
   definition of \<^term>\<open>all_lits_of_mm\<close> can be changed to \<open>all_lits_of_mm Ls = \<Union># Ls\<close>.
 \<close>
 fun correct_watching :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>correct_watching (M, N, U, D, NE, UE, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_of_mm (mset `# mset (tl N) + NE). mset (W L) = clause_to_update L (M, N, U, D, NE, UE, {#}, {#}))\<close>
+  \<open>correct_watching (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + NE).
+       mset (W L) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
 
 declare correct_watching.simps[simp del]
 
 fun watched_by :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> watched\<close> where
-  \<open>watched_by (M, N, U, D, NE, UE, Q, W) L = W L\<close>
+  \<open>watched_by (M, N, D, NE, UE, Q, W) L = W L\<close>
 
 fun update_watched :: \<open>'v literal \<Rightarrow> watched \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>update_watched L WL (M, N, U, D, NE, UE, Q, W) = (M, N, U, D, NE, UE, Q, W(L:= WL))\<close>
+  \<open>update_watched L WL (M, N, D, NE, UE, Q, W) = (M, N, D, NE, UE, Q, W(L:= WL))\<close>
 
 fun delete_index_and_swap where
   \<open>delete_index_and_swap l i = butlast(l[i := last l])\<close>
@@ -119,24 +117,41 @@ lemma all_lits_of_m_mono:
   by (auto elim!: mset_le_addE simp: all_lits_of_m_union)
 
 fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>st_l_of_wl None (M, N, C, D, NE, UE, Q, W) = (M, N, C, D, NE, UE, {#}, Q)\<close>
-| \<open>st_l_of_wl (Some (L, j)) (M, N, C, D, NE, UE, Q, W) =
-    (M, N, C, D, NE, UE, (if D \<noteq> None then {#} else clauses_to_update_wl (M, N, C, D, NE, UE, Q, W) L j,
+  \<open>st_l_of_wl None (M, N, D, NE, UE, Q, W) = (M, N, D, NE, UE, {#}, Q)\<close>
+| \<open>st_l_of_wl (Some (L, j)) (M, N, D, NE, UE, Q, W) =
+    (M, N, D, NE, UE, (if D \<noteq> None then {#} else clauses_to_update_wl (M, N, D, NE, UE, Q, W) L j,
       Q))\<close>
 
-fun twl_st_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st\<close> where
-  \<open>twl_st_of_wl L S = twl_st_of (map_option fst L) (st_l_of_wl L S)\<close>
+definition state_wl_l :: \<open>('v literal \<times> nat) option \<Rightarrow> ('v twl_st_wl \<times> 'v twl_st_l) set\<close> where
+\<open>state_wl_l L = {(T, T'). T' = st_l_of_wl L T \<and> finite (dom (get_clauses_wl T))}\<close>
+
+fun twl_st_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> ('v twl_st_wl \<times> 'v twl_st) set\<close> where
+  \<open>twl_st_of_wl L = state_wl_l L O twl_st_l (map_option fst L)\<close>
 
 fun remove_one_lit_from_wq :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>remove_one_lit_from_wq L (M, N, C, D, NE, UE, WS, Q) = (M, N, C, D, NE, UE, remove1_mset L WS, Q)\<close>
+  \<open>remove_one_lit_from_wq L (M, N, D, NE, UE, WS, Q) = (M, N, D, NE, UE, remove1_mset L WS, Q)\<close>
+
+named_theorems twl_st_wl \<open>Conversions from \<^typ>\<open>'v twl_st_l\<close> to \<^typ>\<open>'v twl_st_wl\<close>\<close>
+
+declare twl_st_wl[simp]
+
+lemma [twl_st_wl]:
+  assumes \<open>(S, T) \<in> state_wl_l L\<close>
+  shows
+    \<open>get_trail_l T = get_trail_wl S\<close> and
+    \<open>get_clauses_l T = get_clauses_wl S\<close> and
+    \<open>get_conflict_l T = get_conflict_wl S\<close> and
+    \<open>L = None \<Longrightarrow> clauses_to_update_l T = {#}\<close>
+    \<open>L \<noteq> None \<Longrightarrow> get_conflict_wl S \<noteq> None \<Longrightarrow> clauses_to_update_l T = {#}\<close>
+    \<open>L \<noteq> None \<Longrightarrow> get_conflict_wl S = None \<Longrightarrow> clauses_to_update_l T =
+       clauses_to_update_wl S (fst (the L)) (snd (the L))\<close> and
+    \<open>literals_to_update_l T = literals_to_update_wl S\<close>
+  using assms unfolding state_wl_l_def all_clss_lf_ran_m[symmetric]
+  by (cases S; cases T; cases L; auto split: option.splits simp: trail.simps; fail)+
 
 lemma remove_one_lit_from_wq_def:
   \<open>remove_one_lit_from_wq L S = set_clauses_to_update_l (clauses_to_update_l S - {#L#}) S\<close>
   by (cases S) auto
-
-lemma literals_to_update_wl_literals_to_update_l_iff:
-  \<open>literals_to_update_l (st_l_of_wl L S) = literals_to_update_wl S\<close>
-  by (cases S; cases L) auto
 
 lemma correct_watching_set_literals_to_update:
   \<open>correct_watching (set_literals_to_update_wl WS T') = correct_watching T'\<close>
@@ -146,35 +161,12 @@ lemma get_conflict_wl_set_literals_to_update_wl:
   \<open>get_conflict_wl (set_literals_to_update_wl P S) = get_conflict_wl S\<close>
   by (cases S) auto
 
-lemma get_conflict_twl_st_of_wl:
-  \<open>get_conflict (twl_st_of_wl L' T') = get_conflict_wl T'\<close>
-  by (cases T'; cases L') auto
-
-lemma literals_to_update_twl_st_of_st_l_of_wl:
-  \<open>literals_to_update (twl_st_of L (st_l_of_wl L' T')) = literals_to_update_wl T'\<close>
-  by (cases T'; cases L; cases L') auto
-
-lemma get_conflict_l_st_l_of_wl:
-  \<open>get_conflict_l (st_l_of_wl L S) = get_conflict_wl S\<close>
-  by (cases S; cases L) auto
-
-lemma (in -) clauses_twl_st_of_wl:
-  \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (M, N, U, y, NE, UE, Q, W))) =
-     mset `# mset (tl N) + NE + UE\<close>
-  by (auto simp del: append_take_drop_id simp: mset_take_mset_drop_mset' clauses_def)
-
-lemma (in -) conflicting_twl_st_of_wl:
-  \<open>conflicting (state\<^sub>W_of (twl_st_of_wl L S)) = get_conflict_wl S\<close>
-  by (cases S; cases L) (auto simp: conflicting.simps)
-
-lemma get_trail_l_st_l_of_wl: \<open>get_trail_l (st_l_of_wl None S) = get_trail_wl S\<close>
-  by (cases S) auto
-
-
 text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<close>.\<close>
 definition unit_prop_body_wl_inv where
-\<open>unit_prop_body_wl_inv T' i L \<longleftrightarrow>
-    twl_struct_invs (twl_st_of_wl (Some (L, i)) T') \<and>
+\<open>unit_prop_body_wl_inv T i L \<longleftrightarrow>
+    (\<exists>T'. (T, T') \<in> state_wl_l (Some (L, i)) \<and>
+       unit_propagation_inner_loop_body_l_inv L i T')
+(*     twl_struct_invs (twl_st_of_wl (Some (L, i)) T') \<and>
     twl_stgy_invs (twl_st_of_wl (Some (L, i)) T') \<and>
     twl_list_invs (st_l_of_wl (Some (L, i)) T') \<and>
     correct_watching T' \<and>
@@ -184,7 +176,7 @@ definition unit_prop_body_wl_inv where
     i < length (watched_by T' L) \<and>
     watched_by T' L ! i < length (get_clauses_wl T') \<and>
     unit_propagation_inner_loop_body_l_inv L (watched_by T' L ! i) (st_l_of_wl (Some (L, Suc i)) T') \<and>
-    L \<in># all_lits_of_mm (mset `# mset (tl (get_clauses_wl T')) + (get_unit_init_clss T'))
+    L \<in># all_lits_of_mm (mset `# mset (tl (get_clauses_wl T')) + (get_unit_init_clss T')) *)
   \<close>
 
 
