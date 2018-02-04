@@ -156,61 +156,61 @@ text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<c
 definition unit_prop_body_wl_inv where
 \<open>unit_prop_body_wl_inv T i L \<longleftrightarrow>
     (\<exists>T'. (T, T') \<in> state_wl_l (Some (L, i)) \<and>
-       unit_propagation_inner_loop_body_l_inv L i T')
+    unit_propagation_inner_loop_body_l_inv L (watched_by T L ! i) T'\<and>
+    L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T)) \<and>
+    correct_watching T \<and>
+    i < length (watched_by T L)
 (*     twl_struct_invs (twl_st_of_wl (Some (L, i)) T') \<and>
     twl_stgy_invs (twl_st_of_wl (Some (L, i)) T') \<and>
-    twl_list_invs (st_l_of_wl (Some (L, i)) T') \<and>
-    correct_watching T' \<and>
-    i < length (watched_by T' L) \<and>
+    twl_list_invs (st_l_of_wl (Some (L, i)) T')
     get_conflict_wl T' = None \<and>
     (watched_by T' L) ! i > 0 \<and>
     i < length (watched_by T' L) \<and>
-    watched_by T' L ! i < length (get_clauses_wl T') \<and>
-    unit_propagation_inner_loop_body_l_inv L (watched_by T' L ! i) (st_l_of_wl (Some (L, Suc i)) T') \<and>
-    L \<in># all_lits_of_mm (mset `# mset (tl (get_clauses_wl T')) + (get_unit_init_clss T')) *)
+    watched_by T' L ! i < length (get_clauses_wl T') *)
+    )
   \<close>
 
 
 definition set_conflict_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>set_conflict_wl = (\<lambda>C (M, N, U, D, NE, UE, Q, W). (M, N, U, Some (mset C), NE, UE, {#}, W))\<close>
-
+  \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, Q, W). (M, N, Some (mset C), NE, UE, {#}, W))\<close>
 
 definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>propagate_lit_wl = (\<lambda>L' C i (M, N, U, D, NE, UE, Q, W).
-      let N = list_update N C (swap (N!C) 0 (Suc 0 - i)) in
-      (Propagated L' C # M, N, U, D, NE, UE, add_mset (-L') Q, W))\<close>
+  \<open>propagate_lit_wl = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W).
+      let N = N(C \<hookrightarrow> swap (N \<propto> C) 0 (Suc 0 - i)) in
+      (Propagated L' C # M, N, D, NE, UE, add_mset (-L') Q, W))\<close>
 
 definition update_clause_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> 'v twl_st_wl) nres\<close> where
-  \<open>update_clause_wl = (\<lambda>(L::'v literal) C w i f (M, N, U, D, NE, UE, Q, W). do {
-     let K' = (N!C) ! f;
-     let N' = list_update N C (swap (N!C) i f);
-     RETURN (w, (M, N', U, D, NE, UE, Q, W(L := delete_index_and_swap (watched_by (M, N, U, D, NE, UE, Q, W) L) w, K':= W K' @ [C])))
+  \<open>update_clause_wl = (\<lambda>(L::'v literal) C w i f (M, N,  D, NE, UE, Q, W). do {
+     let K' = (N\<propto>C) ! f;
+     let N' = N(C \<hookrightarrow> swap (N \<propto> C) i f);
+     RETURN (w, (M, N', D, NE, UE, Q, 
+         W(L := delete_index_and_swap (watched_by (M, N, D, NE, UE, Q, W) L) w, K':= W K' @ [C])))
 
   })\<close>
 
 definition unit_prop_body_wl_find_unwatched_inv where
 \<open>unit_prop_body_wl_find_unwatched_inv f C S \<longleftrightarrow>
-   (get_clauses_wl S)!C \<noteq> [] \<and>
-   (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l ((get_clauses_wl S)!C)). - L \<in> lits_of_l (get_trail_wl S)))\<close>
+   get_clauses_wl S \<propto> C \<noteq> [] \<and>
+   (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (get_clauses_wl S \<propto> C)). - L \<in> lits_of_l (get_trail_wl S)))\<close>
 
 definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> 'v twl_st_wl) nres\<close> where
   \<open>unit_propagation_inner_loop_body_wl L w S = do {
       ASSERT(unit_prop_body_wl_inv S w L);
       let C = (watched_by S L) ! w;
-      let i = (if ((get_clauses_wl S)!C) ! 0 = L then 0 else 1);
-      let L' = ((get_clauses_wl S)!C) ! (1 - i);
+      let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
+      let L' = ((get_clauses_wl S)\<propto>C) ! (1 - i);
       let val_L' = polarity (get_trail_wl S) L';
       if val_L' = Some True
       then RETURN (w+1, S)
       else do {
-        f \<leftarrow> find_unwatched_l (get_trail_wl S) ((get_clauses_wl S)!C);
+        f \<leftarrow> find_unwatched_l (get_trail_wl S) ((get_clauses_wl S)\<propto>C);
         ASSERT (unit_prop_body_wl_find_unwatched_inv f C S);
         case f of
           None \<Rightarrow>
             if val_L' = Some False
-            then do {RETURN (w+1, set_conflict_wl ((get_clauses_wl S)!C) S)}
+            then do {RETURN (w+1, set_conflict_wl ((get_clauses_wl S)\<propto>C) S)}
             else do {RETURN (w+1, propagate_lit_wl L' C i S)}
         | Some f \<Rightarrow> do {
             update_clause_wl L C w i f S
@@ -223,18 +223,15 @@ subsection \<open>The Functions\<close>
 
 subsubsection \<open>Inner Loop\<close>
 
-lemma image_mset_mset_update: \<open>f `# mset (xs [i := x]) = mset ((map f xs) [i := f x])\<close>
-  by (auto simp: map_update[symmetric])
-
 lemma
   fixes S :: \<open>'v twl_st_wl\<close> and L :: \<open>'v literal\<close> and w :: nat
   defines
     [simp]: \<open>T \<equiv> remove_one_lit_from_wq (watched_by S L ! w) (st_l_of_wl (Some (L, w)) S)\<close> and
     [simp]: \<open>S' \<equiv> st_l_of_wl (Some (L, w)) S\<close> and
-    [simp]: \<open>S'' \<equiv> twl_st_of_wl (Some (L, w)) S\<close> and
+    (* [simp]: \<open>S'' \<equiv> twl_st_of_wl (Some (L, w)) S\<close> and *)
     [simp]: \<open>C' \<equiv> watched_by S L ! w\<close>
   defines
-    [simp]: \<open>C'' \<equiv> get_clauses_l S' ! C'\<close>
+    [simp]: \<open>C'' \<equiv> get_clauses_l S' \<propto> C'\<close>
   assumes
     w_le: \<open>w < length (watched_by S L)\<close> and
     confl: \<open>get_conflict_wl S = None\<close> and
@@ -243,19 +240,19 @@ lemma
     add_inv: \<open>twl_list_invs S'\<close> and
     stgy_inv: \<open>twl_stgy_invs S''\<close>
   shows  unit_propagation_inner_loop_body_wl_spec: \<open>unit_propagation_inner_loop_body_wl L w S \<le>
-   \<Down> {((i, T'), T).
+   \<Down> {((i, T'), T). \<exists> T''. (T, T'') \<in> twl_st_l (Some L) \<and>
         T = st_l_of_wl (Some (L, i)) T' \<and>
-        twl_struct_invs (twl_st_of_wl (Some (L, i)) T') \<and>
-        twl_stgy_invs (twl_st_of_wl (Some (L, i)) T') \<and>
+        twl_struct_invs T'' \<and>
+        twl_stgy_invs T'' \<and>
         twl_list_invs T \<and>
         correct_watching T' \<and>
         i \<le> length (watched_by T' L)}
      (unit_propagation_inner_loop_body_l L C' T)\<close> (is \<open>?propa\<close>)and
     unit_propagation_inner_loop_body_wl_update:
-      \<open>mset `# mset (tl (get_clauses_wl S[watched_by S L ! w :=
-                     swap (get_clauses_wl S ! (watched_by S L ! w)) 0
-                           (1 - (if (get_clauses_wl S)!(watched_by S L ! w) ! 0 = L then 0 else 1))])) =
-        mset `# mset ((tl (get_clauses_wl S)))\<close>
+      \<open>mset `# (ran_mf ((get_clauses_wl S)((watched_by S L ! w)\<hookrightarrow>
+                     (swap (get_clauses_wl S \<propto> (watched_by S L ! w)) 0
+                           (1 - (if (get_clauses_wl S)\<propto>(watched_by S L ! w) ! 0 = L then 0 else 1)))))) =
+        mset `# (ran_mf (get_clauses_wl S))\<close>
 proof -
   have val: \<open>(polarity a b, polarity a' b') \<in> Id\<close>
     if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' :: \<open>('a, 'b) ann_lits\<close> and b b' :: \<open>'a literal\<close>
