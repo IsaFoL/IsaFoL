@@ -2,15 +2,6 @@ theory Watched_Literals_Watch_List
   imports Watched_Literals_List
 begin
 
-text \<open>Less ambiguities in the notations (TODO: using a bundle would probably be better):\<close>
-
-(* TODO Move somewhere *)
-lemma in_atms_of_mset_takeD:
-  \<open>x \<in> atms_of_ms (mset ` set (take U (tl N))) \<Longrightarrow> x \<in> atms_of_ms (mset ` set ((tl N)))\<close>
-  by (auto dest: in_set_takeD simp:atms_of_ms_def)
-(* End Move *)
-
-
 section \<open>Third Refinement: Remembering watched\<close>
 
 subsection \<open>Types\<close>
