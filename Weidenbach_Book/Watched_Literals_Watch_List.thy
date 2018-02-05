@@ -124,8 +124,6 @@ fun remove_one_lit_from_wq :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow>
 
 named_theorems twl_st_wl \<open>Conversions from \<^typ>\<open>'v twl_st_l\<close> to \<^typ>\<open>'v twl_st_wl\<close>\<close>
 
-declare twl_st_wl[simp]
-
 lemma [twl_st_wl]:
   assumes \<open>(S, T) \<in> state_wl_l L\<close>
   shows
@@ -152,11 +150,21 @@ lemma get_conflict_wl_set_literals_to_update_wl:
   \<open>get_conflict_wl (set_literals_to_update_wl P S) = get_conflict_wl S\<close>
   by (cases S) auto
 
+lemma [twl_st_l]:
+  \<open>get_clauses_l (remove_one_lit_from_wq L S) = get_clauses_l S\<close>
+  \<open>get_trail_l (remove_one_lit_from_wq L S) = get_trail_l S\<close>
+  by (cases S; auto; fail)+
+
+declare twl_st_l[simp]
+
 text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<close>.\<close>
+declare twl_st_wl[simp]
+
 definition unit_prop_body_wl_inv where
 \<open>unit_prop_body_wl_inv T i L \<longleftrightarrow>
     (\<exists>T'. (T, T') \<in> state_wl_l (Some (L, i)) \<and>
-    unit_propagation_inner_loop_body_l_inv L (watched_by T L ! i) T'\<and>
+    unit_propagation_inner_loop_body_l_inv L (watched_by T L ! i)
+       (remove_one_lit_from_wq (watched_by T L ! i) T')\<and>
     L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T)) \<and>
     correct_watching T \<and>
     i < length (watched_by T L)
@@ -205,12 +213,12 @@ definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow
       if val_L' = Some True
       then RETURN (w+1, S)
       else do {
-        f \<leftarrow> find_unwatched_l (get_trail_wl S) ((get_clauses_wl S)\<propto>C);
+        f \<leftarrow> find_unwatched_l (get_trail_wl S) (get_clauses_wl S \<propto>C);
         ASSERT (unit_prop_body_wl_find_unwatched_inv f C S);
         case f of
           None \<Rightarrow>
             if val_L' = Some False
-            then do {RETURN (w+1, set_conflict_wl ((get_clauses_wl S)\<propto>C) S)}
+            then do {RETURN (w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
             else do {RETURN (w+1, propagate_lit_wl L' C i S)}
         | Some f \<Rightarrow> do {
             update_clause_wl L C w i f S
@@ -224,15 +232,15 @@ subsection \<open>The Functions\<close>
 subsubsection \<open>Inner Loop\<close>
 
 lemma
-  fixes S :: \<open>'v twl_st_wl\<close> and L :: \<open>'v literal\<close> and w :: nat
+  fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
   defines
-    [simp]: \<open>T \<equiv> remove_one_lit_from_wq (watched_by S L ! w) (st_l_of_wl (Some (L, w)) S)\<close> and
-    [simp]: \<open>S' \<equiv> st_l_of_wl (Some (L, w)) S\<close> and
+    [simp]: \<open>T \<equiv> remove_one_lit_from_wq (watched_by S L ! w) S'\<close> and
     (* [simp]: \<open>S'' \<equiv> twl_st_of_wl (Some (L, w)) S\<close> and *)
     [simp]: \<open>C' \<equiv> watched_by S L ! w\<close>
   defines
     [simp]: \<open>C'' \<equiv> get_clauses_l S' \<propto> C'\<close>
   assumes
+    S_S': \<open>(S, S') \<in> state_wl_l (Some (L, w))\<close> and
     w_le: \<open>w < length (watched_by S L)\<close> and
     confl: \<open>get_conflict_wl S = None\<close> and
     corr_w: \<open>correct_watching S\<close> and
@@ -241,7 +249,7 @@ lemma
     stgy_inv: \<open>twl_stgy_invs S''\<close>
   shows  unit_propagation_inner_loop_body_wl_spec: \<open>unit_propagation_inner_loop_body_wl L w S \<le>
    \<Down> {((i, T'), T). \<exists> T''. (T, T'') \<in> twl_st_l (Some L) \<and>
-        T = st_l_of_wl (Some (L, i)) T' \<and>
+        (T', T) \<in> state_wl_l (Some (L, i)) \<and>
         twl_struct_invs T'' \<and>
         twl_stgy_invs T'' \<and>
         twl_list_invs T \<and>
@@ -258,16 +266,55 @@ proof -
     if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' :: \<open>('a, 'b) ann_lits\<close> and b b' :: \<open>'a literal\<close>
     by (auto simp: that)
   let ?M = \<open>get_trail_wl S\<close>
-  have f: \<open>find_unwatched_l (get_trail_wl S) (get_clauses_wl S ! (watched_by S L ! w))
+  have f: \<open>find_unwatched_l (get_trail_wl S) (get_clauses_wl S \<propto> (watched_by S L ! w))
       \<le> \<Down> {(found, found'). found = found' \<and>
              (found = None \<longleftrightarrow> (\<forall>L\<in>set (unwatched_l C''). -L \<in> lits_of_l ?M)) \<and>
              (\<forall>j. found = Some j \<longrightarrow> (j < length C'' \<and> (undefined_lit ?M (C''!j) \<or> C''!j \<in> lits_of_l ?M) \<and> j \<ge> 2))
            }
-            (find_unwatched_l (get_trail_l T) (get_clauses_l T ! C'))\<close>
+            (find_unwatched_l (get_trail_l T) (get_clauses_l T \<propto> C'))\<close>
     (is \<open>_ \<le> \<Down> ?find _\<close>)
-    by (cases S) (auto simp: find_unwatched_l_def intro!: RES_refine)
+    using S_S' by (auto simp: find_unwatched_l_def intro!: RES_refine)
+
+  have 1: \<open>unit_propagation_inner_loop_body_wl L w S
+    \<le> \<Down> {((i, T'), T).
+          (T', T) \<in> state_wl_l (Some (L, i)) \<and> correct_watching T' \<and>
+          i \<le> length (watched_by T' L)}
+        (unit_propagation_inner_loop_body_l L C' T)\<close>
+    (is \<open>_ \<le> \<Down> ?unit _\<close>)
+    using w_le confl corr_w
+    unfolding unit_propagation_inner_loop_body_wl_def unit_propagation_inner_loop_body_l_def
+    supply [[goals_limit=1]]
+    apply (refine_vcg val f (*f f' ref*); remove_dummy_vars)
+    subgoal
+      using assms unfolding unit_prop_body_wl_inv_def apply -
+      apply (rule exI[of _ S'])
+      apply (auto simp: )
+      sorry
+  subgoal using S_S' by auto
+  subgoal
+    using S_S' apply auto 
+    sorry
+  subgoal 
+    unfolding i_def[symmetric] i_alt_def[symmetric]
+    subgoal using assms S zero_le_W_L_w C_N_U L_in_N_NE unfolding unit_prop_body_wl_inv_def
+      by (auto simp: get_unit_init_clss_def)
+    subgoal by (auto simp: S)
+    subgoal using L_in_N_NE zero_le_W_L_w
+      by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def correct_watching.simps S
+          intro!: nth_in_set_tl
+          intro!: bexI[of _ \<open>N ! (W L ! w)\<close>])
+    subgoal using zero_le_W_L_w watched_C'
+        by (auto simp add: S unit_prop_body_wl_find_unwatched_inv_def)
+    subgoal by (simp add: S)
+    subgoal by (simp add: S)
+    subgoal by (auto simp add: clause_to_update_def correct_watching.simps set_conflict_wl_def S
+       set_conflict_l_def)
+    subgoal by (simp add: clause_to_update_def correct_watching.simps propagate_lit_wl_def S
+       propagate_lit_l_def)
+    subgoal by (rule ref) assumption
+    done
   obtain M N U NE UE Q W where
-    S: \<open>S = (M, N, U, None, NE, UE, Q, W)\<close>
+    S: \<open>S = (M, N, None, NE, UE, Q, W)\<close>
     using confl by (cases S) auto
   have T'[unfolded T_def, unfolded S]: \<open>remove_one_lit_from_wq (watched_by S L ! w)
            (st_l_of_wl (Some (L, w)) (M, N, U, None, NE, UE, Q, W)) =

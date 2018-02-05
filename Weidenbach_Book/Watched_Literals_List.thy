@@ -494,12 +494,15 @@ definition unit_propagation_inner_loop_body_l_inv
   :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close>
 where
   \<open>unit_propagation_inner_loop_body_l_inv L C S \<longleftrightarrow>
+   (\<exists>S'. (set_clauses_to_update_l (clauses_to_update_l S + {#C#}) S, S') \<in> twl_st_l (Some L) \<and>
+    twl_struct_invs S' \<and>
+    twl_stgy_invs S' \<and>
     C \<in> dom (get_clauses_l S) \<and>
     C > 0 \<and>
     0 < length (get_clauses_l S \<propto> C) \<and>
     no_dup (get_trail_l S) \<and>
     (if (get_clauses_l S \<propto> C) ! 0 = L then 0 else 1) < length (get_clauses_l S \<propto> C) \<and>
-    1 - (if (get_clauses_l S \<propto> C) ! 0 = L then 0 else 1) < length (get_clauses_l S \<propto> C)
+    1 - (if (get_clauses_l S \<propto> C) ! 0 = L then 0 else 1) < length (get_clauses_l S \<propto> C))
   \<close>
 
 definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow>
@@ -635,6 +638,7 @@ proof -
   let ?S = \<open>set_clauses_to_update_l (clauses_to_update_l S - {#C#}) S\<close>
   obtain M N D NE UE WS Q where S: \<open>S = (M, N, D, NE, UE, WS, Q)\<close>
     by (cases S) auto
+
   have [simp]: \<open>finite (dom (get_clauses_l S))\<close> \<open>finite (dom N)\<close>
     using SS' unfolding twl_st_l_def S by auto
   have C_N_U: \<open>C \<in> dom (get_clauses_l S)\<close>
@@ -703,7 +707,16 @@ proof -
 
   have pre_inv: \<open>unit_propagation_inner_loop_body_l_inv L C ?S\<close>
     unfolding unit_propagation_inner_loop_body_l_inv_def
-  proof (intro conjI)
+  proof (rule exI[of _ S'], intro conjI)
+  have S_readd_C_S: \<open>set_clauses_to_update_l (clauses_to_update_l ?S + {#C#}) ?S = S\<close>
+     unfolding S WS'_def' by auto
+    show \<open>(set_clauses_to_update_l
+      (clauses_to_update_l ?S + {#C#})
+      (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S),
+     S') \<in> twl_st_l (Some L)\<close>
+      using SS' unfolding S_readd_C_S .
+    show \<open>twl_stgy_invs S'\<close> \<open>twl_struct_invs S'\<close>
+      using assms by fast+
     show \<open>C \<in> dom (get_clauses_l ?S)\<close>
       using assms C_N_U by (auto simp: twl_st_l)
     show \<open>C > 0\<close>
