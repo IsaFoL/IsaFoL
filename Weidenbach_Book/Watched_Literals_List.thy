@@ -502,7 +502,8 @@ where
     0 < length (get_clauses_l S \<propto> C) \<and>
     no_dup (get_trail_l S) \<and>
     (if (get_clauses_l S \<propto> C) ! 0 = L then 0 else 1) < length (get_clauses_l S \<propto> C) \<and>
-    1 - (if (get_clauses_l S \<propto> C) ! 0 = L then 0 else 1) < length (get_clauses_l S \<propto> C))
+    1 - (if (get_clauses_l S \<propto> C) ! 0 = L then 0 else 1) < length (get_clauses_l S \<propto> C) \<and>
+    L \<in> set (watched_l (get_clauses_l S \<propto> C)))
   \<close>
 
 definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow>
@@ -729,6 +730,8 @@ proof -
       using two_le_length_C by auto
     show \<open>no_dup (get_trail_l ?S)\<close>
       using n_d by auto
+    show \<open>L \<in> set (watched_l (get_clauses_l ?S \<propto> C))\<close>
+      using L by auto
   qed
   have i_def': \<open>i = (if get_clauses_l ?S \<propto> C ! 0 = L then 0 else 1)\<close>
     unfolding i_def by auto
@@ -1281,6 +1284,12 @@ lemma distinct_mset_clause_to_update: \<open>distinct_mset (clause_to_update L C
 
 lemma in_clause_to_updateD: \<open>b \<in># clause_to_update L' T \<Longrightarrow> b \<in> dom (get_clauses_l T)\<close>
   by (cases \<open>finite (dom (get_clauses_l T))\<close>)
+     (auto simp: clause_to_update_def)
+
+lemma in_clause_to_update_iff:
+  \<open>finite (dom (get_clauses_l S)) \<Longrightarrow> C \<in># clause_to_update L S \<longleftrightarrow> 
+     C \<in> dom (get_clauses_l S) \<and> L \<in> set (watched_l (get_clauses_l S \<propto> C))\<close>
+  by (cases \<open>finite (dom (get_clauses_l S))\<close>)
      (auto simp: clause_to_update_def)
 
 definition select_and_remove_from_literals_to_update :: \<open>'v twl_st_l \<Rightarrow>
