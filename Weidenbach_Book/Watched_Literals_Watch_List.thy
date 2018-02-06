@@ -281,6 +281,34 @@ subsection \<open>The Functions\<close>
 
 subsubsection \<open>Inner Loop\<close>
 
+lemma clause_to_update_mapsto_upd_If:
+  assumes
+    i: \<open>i \<in> dom N\<close> and
+    \<open>finite (dom N)\<close>
+  shows
+  \<open>clause_to_update L (M, N(i \<hookrightarrow> C'), C, NE, UE, WS, Q) =
+    (if L \<in> set (watched_l C')
+     then add_mset i (remove1_mset i (clause_to_update L (M, N, C, NE, UE, WS, Q)))
+     else remove1_mset i (clause_to_update L (M, N, C, NE, UE, WS, Q)))\<close>
+proof -
+  define D' where \<open>D' = mset_set (dom N - {i})\<close>
+  then have [simp]: \<open>mset_set (dom N) = add_mset i D'\<close>
+    using assms by (simp add: mset_set.remove)
+  have [simp]: \<open>mset_set (insert i (dom N)) = add_mset i D'\<close>
+    using assms unfolding D'_def by (auto simp: mset_set.insert_remove)
+  have [simp]: \<open>i \<notin># D'\<close>
+    using assms unfolding D'_def by auto
+
+  have \<open>{#C \<in># D'.
+     (C = i \<longrightarrow> L \<in> set (watched_l C')) \<and>
+     (C \<noteq> i \<longrightarrow> L \<in> set (watched_l (N \<propto> C)))#} =
+    {#C \<in># D'. L \<in> set (watched_l (N \<propto> C))#}\<close>
+    by (rule filter_mset_cong2) auto
+  then show ?thesis
+    unfolding clause_to_update_def
+    by auto
+qed
+
 lemma
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
   defines
@@ -442,14 +470,19 @@ proof -
       subgoal using C'_dom[OF init_inv'] S_S' fin by (auto simp: image_mset_remove1_mset_if S
          ran_m_def)
       done
-
+    have [simp]: \<open>W L ! w \<in> dom N\<close>
+      using C'_dom[OF init_inv'] S_S' by (auto simp: S)
+    have [simp]: \<open>L \<noteq>  N \<propto> (W L ! w) ! f'\<close>
+      (* L is false, the other true *)
+      sorry
     have \<open>correct_watching
           (M, N(W L ! w \<hookrightarrow> swap (N \<propto> (W L ! w)) i f'), None, NE, UE, Q, W
            (L := butlast (W L[w := last (W L)]),
             N \<propto> (W L ! w) ! f' := W (N \<propto> (W L ! w) ! f') @ [W L ! w]))\<close>
-      using corr_w unfolding correct_watching.simps S(* clause_to_update_def *)
-      apply auto
+      using corr_w fin unfolding  S  correct_watching.simps (* clause_to_update_def*)
+      apply (auto simp: clause_to_update_mapsto_upd_If)
       sorry
+
     have corr_w: \<open>correct_watching (M, ?N, None, NE, UE, Q, ?W)\<close>
       (is \<open>correct_watching ?S\<close>)
       unfolding correct_watching.simps Ball_def
