@@ -332,27 +332,19 @@ lemma
     w_le: \<open>w < length (watched_by S L)\<close> and
     confl: \<open>get_conflict_wl S = None\<close> and
     corr_w: \<open>correct_watching S\<close> and
-    add_inv: \<open>twl_list_invs S'\<close> and
-    inv: \<open>unit_propagation_inner_loop_body_l_inv L C' T\<close> -- \<open>TODO rather speculative\<close>
-    (* and
-    struct_invs: \<open>twl_struct_invs S''\<close> and
-    add_inv: \<open>twl_list_invs S'\<close> and
-    stgy_inv: \<open>twl_stgy_invs S''\<close> *)
+    add_inv: \<open>twl_list_invs S'\<close>
   shows  unit_propagation_inner_loop_body_wl_spec: \<open>unit_propagation_inner_loop_body_wl L w S \<le>
    \<Down> {((i, T'), T). 
-   (* \<exists> T''. (T, T'') \<in> twl_st_l (Some L) \<and> *)
         (T', T) \<in> state_wl_l (Some (L, i)) \<and>
-        (* twl_struct_invs T'' \<and>
-        twl_stgy_invs T'' \<and> *)
-        twl_list_invs T \<and>
         correct_watching T' \<and>
         i \<le> length (watched_by T' L)}
      (unit_propagation_inner_loop_body_l L C' T)\<close> (is \<open>?propa\<close>)and
     unit_propagation_inner_loop_body_wl_update:
-      \<open>mset `# (ran_mf ((get_clauses_wl S)((watched_by S L ! w)\<hookrightarrow>
+      \<open>unit_propagation_inner_loop_body_l_inv L C' T \<Longrightarrow>
+         mset `# (ran_mf ((get_clauses_wl S)((watched_by S L ! w)\<hookrightarrow>
                      (swap (get_clauses_wl S \<propto> (watched_by S L ! w)) 0
                            (1 - (if (get_clauses_wl S)\<propto>(watched_by S L ! w) ! 0 = L then 0 else 1)))))) =
-        mset `# (ran_mf (get_clauses_wl S))\<close> (is ?eq)
+        mset `# (ran_mf (get_clauses_wl S))\<close> (is \<open>_ \<Longrightarrow> ?eq\<close>)
 proof -
   have fin: \<open>finite (dom (get_clauses_wl S))\<close>
     using S_S' unfolding state_wl_l_def by blast
@@ -591,7 +583,7 @@ proof -
   have i_def': \<open>i = (if get_clauses_l T \<propto> C' ! 0 = L then 0 else 1)\<close>
     using S_S' unfolding i_def by auto
 
-  have 1: \<open>unit_propagation_inner_loop_body_wl L w S
+  show 1: \<open>unit_propagation_inner_loop_body_wl L w S
     \<le> \<Down> {((i, T'), T).
           (T', T) \<in> state_wl_l (Some (L, i)) \<and> correct_watching T' \<and>
           i \<le> length (watched_by T' L)}
@@ -625,57 +617,7 @@ proof -
   have readd_T_S': \<open>set_clauses_to_update_l (clauses_to_update_l T + {#watched_by S L ! w#}) T = S'\<close>
     using S_S' w_le confl
     by (cases S) (auto simp: state_wl_l_def in_set_drop_conv_nth)
-  obtain U where
-    S'_U: \<open>(S', U) \<in> twl_st_l (Some L)\<close> and
-    struct_U: \<open>twl_struct_invs U\<close> and
-    stgy_U: \<open>twl_stgy_invs U\<close>
-    using inv unfolding unit_propagation_inner_loop_body_l_inv_def readd_T_S' C'_def
-    by blast
-  have T_def': \<open>T = set_clauses_to_update_l (remove1_mset C' (clauses_to_update_l S')) S'\<close>
-    by (auto simp: remove_one_lit_from_wq_def)
-  have 2: \<open>unit_propagation_inner_loop_body_l L C' T        
-     \<le> \<Down> {(S, S'').
-        (S, S'') \<in> twl_st_l (Some L) \<and>
-        twl_list_invs S \<and> twl_stgy_invs S'' \<and> twl_struct_invs S''}
-      (unit_propagation_inner_loop_body (L, twl_clause_of (get_clauses_l S' \<propto> C'))
-        (set_clauses_to_update
-          (remove1_mset (L, twl_clause_of (get_clauses_l S' \<propto> C'))
-            (clauses_to_update U))
-          U))\<close>
-    unfolding T_def'
-    apply (rule unit_propagation_inner_loop_body_l[of S' U L C'])
-    using S'_U struct_U stgy_U add_inv S_S' confl w_le apply auto
-    apply (cases S)
-    by (auto simp: state_wl_l_def in_set_drop_conv_nth)
-  have nf: \<open>nofail
-      (unit_propagation_inner_loop_body
-        (L, twl_clause_of (get_clauses_l S' \<propto> C'))
-        (set_clauses_to_update
-          (remove1_mset (L, twl_clause_of (get_clauses_l S' \<propto> C'))
-            (clauses_to_update U))
-          U))\<close>
-      apply (cases S)
-      apply (rule unit_propagation_inner_loop_body(2))
-      using S'_U struct_U stgy_U add_inv S_S' confl w_le by (auto simp: state_wl_l_def
-        Cons_nth_drop_Suc[symmetric])
-  then have \<open>unit_propagation_inner_loop_body_wl L w S
-     \<le> \<Down> {(T2, T1).
-          (case T2 of
-           (i, T') \<Rightarrow>
-             \<lambda>T. (T', T) \<in> state_wl_l (Some (L, i)) \<and>
-                 correct_watching T' \<and> i \<le> length (watched_by T' L))
-           T1 \<and>
-          twl_list_invs T1}
-        (unit_propagation_inner_loop_body_l L C' T)\<close>
-    using 1 2 apply -
-    apply unify_Down_invs2+
-    by auto
-  then show ?propa
-     apply -
-     apply match_Down
-     by force
-
-  show ?eq
+  show ?eq if inv: \<open>unit_propagation_inner_loop_body_l_inv L C' T\<close>
     using i_le[OF inv] i_le2[OF inv] C'_dom[OF inv] fin S_S'
     unfolding i_def[symmetric]
     by (auto simp: ran_m_clause_upd image_mset_remove1_mset_if
