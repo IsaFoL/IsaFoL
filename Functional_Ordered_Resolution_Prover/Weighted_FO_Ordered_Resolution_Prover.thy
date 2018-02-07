@@ -11,7 +11,7 @@ TODO. Formalizes footnote.
 \<close>
 
 theory Weighted_FO_Ordered_Resolution_Prover
-  imports FO_Ordered_Resolution_Prover
+  imports "Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover"
 begin
 
 type_synonym 'a wclause = "'a clause \<times> nat"
@@ -157,14 +157,14 @@ lemmas Sts_thms = deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP
 lemma weighted_RP_model:
   assumes step: "St \<leadsto>\<^sub>w St'"
   shows "I \<Turnstile>s grounding_of_wstate St' \<longleftrightarrow> I \<Turnstile>s grounding_of_wstate St"
-  using RP_model[OF Sts_thms weighted_RP_imp_RP[OF step]] by (simp only: comp_def)
+  using RP_model Sts_thms weighted_RP_imp_RP step by (simp only: comp_def)
 
 abbreviation S_gQ :: "'a clause \<Rightarrow> 'a clause" where
   "S_gQ \<equiv> S_Q (lmap state_of_wstate Sts)"
 
 interpretation sq: selection S_gQ
-  unfolding S_Q_def[OF Sts_thms] using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
-  by unfold_locales blast
+  unfolding S_Q_def[OF deriv_RP empty_Q0_RP] using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
+  by unfold_locales auto
 
 interpretation gd: ground_resolution_with_selection S_gQ
   by unfold_locales
@@ -183,7 +183,7 @@ lemmas ord_\<Gamma>_contradiction_Rf = src.contradiction_Rf
 lemma weighted_RP_sound:
   assumes "{#} \<in> clss_of_state (Liminf_wstate Sts)"
   shows "\<not> satisfiable (grounding_of_wstate (lhd Sts))"
-  by (rule RP_sound[OF Sts_thms assms, unfolded lhd_lmap_Sts])
+  by (rule RP_sound[OF deriv_RP empty_Q0_RP assms, unfolded lhd_lmap_Sts])
 
 abbreviation RP_filtered_measure :: "('a wclause \<Rightarrow> bool) \<Rightarrow> 'a wstate \<Rightarrow> nat \<times> nat \<times> nat" where
   "RP_filtered_measure \<equiv> (\<lambda>p (N, P, Q, n). 
@@ -1147,12 +1147,12 @@ proof (rule ccontr)
 qed
 
 corollary weighted_RP_saturated: "src.saturated_upto (Liminf_llist (lmap grounding_of_wstate Sts))"
-  using RP_saturated_if_fair[OF Sts_thms weighted_RP_fair, unfolded llist.map_comp] by simp
+  using RP_saturated_if_fair[OF deriv_RP empty_Q0_RP weighted_RP_fair, unfolded llist.map_comp] by simp
 
 corollary weighted_RP_complete:
   assumes "\<not> satisfiable (grounding_of_wstate (lhd Sts))"
   shows "{#} \<in> Q_of_state (Liminf_wstate Sts)"
-  using assms RP_complete_if_fair[OF Sts_thms weighted_RP_fair, simplified lhd_lmap_Sts] by blast
+  using assms RP_complete_if_fair[OF deriv_RP empty_Q0_RP weighted_RP_fair, simplified lhd_lmap_Sts] by blast
 
 end
 
