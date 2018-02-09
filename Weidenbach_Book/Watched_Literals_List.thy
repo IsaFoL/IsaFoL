@@ -1506,8 +1506,8 @@ definition update_confl_tl_l :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow
      let D = resolve_cls_l' (M, N, D, NE, UE, WS, Q) C L in
         (False, (tl M, N, Some D, NE, UE, WS, Q)))\<close>
 
-abbreviation skip_and_resolve_loop_inv_l where
-  \<open>skip_and_resolve_loop_inv_l S\<^sub>0 brk S \<equiv>
+definition skip_and_resolve_loop_inv_l where
+  \<open>skip_and_resolve_loop_inv_l S\<^sub>0 brk S \<longleftrightarrow>
    (\<exists>S' S\<^sub>0'. (S, S') \<in> twl_st_l None \<and> (S\<^sub>0, S\<^sub>0') \<in> twl_st_l None \<and>
      skip_and_resolve_loop_inv S\<^sub>0' (brk, S') \<and>
         twl_list_invs S \<and> clauses_to_update_l S = {#} \<and>
@@ -1711,6 +1711,7 @@ proof -
     subgoal by auto \<comment> \<open>loop invariant init: @{term twl_list_invs}\<close>
     subgoal by auto \<comment> \<open>loop invariant init: @{term \<open>clauses_to_update S = {#}\<close>}\<close>
     subgoal for S S' brkT brkT'
+      unfolding skip_and_resolve_loop_inv_l_def
       apply(rule exI[of _ \<open>snd brkT'\<close>])
       apply(rule exI[of _ S'])
       apply (intro conjI impI)
