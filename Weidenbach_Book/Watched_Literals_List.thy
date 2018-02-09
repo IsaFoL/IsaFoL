@@ -369,9 +369,9 @@ lemma clss_state\<^sub>W_of[twl_st]:
   assumes \<open>(S, R) \<in> twl_st_l L\<close>
   shows
   \<open>init_clss (state\<^sub>W_of R) = mset `# (init_clss_lf (get_clauses_l S)) +
-     get_unit_init_clauses_l S\<close> 
+     get_unit_init_clauses_l S\<close>
   \<open>learned_clss (state\<^sub>W_of R) = mset `# (learned_clss_lf (get_clauses_l S)) +
-     get_unit_learned_clauses_l S\<close> 
+     get_unit_learned_clauses_l S\<close>
  using assms
  by (cases S; cases L; auto simp: init_clss.simps learned_clss.simps twl_st_l_def
    mset_take_mset_drop_mset'; fail)+
@@ -597,7 +597,7 @@ lemma twl_st_inv_alt_def:
 
 lemma init_clss_l_clause_upd:
   \<open>finite (dom N) \<Longrightarrow> C \<in> dom N \<Longrightarrow> irred N C \<Longrightarrow>
-   init_clss_l (N(C \<hookrightarrow> C')) = 
+   init_clss_l (N(C \<hookrightarrow> C')) =
      add_mset (C', irred N C) (remove1_mset (N \<propto> C, irred N C) (init_clss_l N))\<close>
   by (auto simp: ran_m_mapsto_upd)
 
@@ -1308,7 +1308,7 @@ lemma in_clause_to_updateD: \<open>b \<in># clause_to_update L' T \<Longrightarr
      (auto simp: clause_to_update_def)
 
 lemma in_clause_to_update_iff:
-  \<open>finite (dom (get_clauses_l S)) \<Longrightarrow> C \<in># clause_to_update L S \<longleftrightarrow> 
+  \<open>finite (dom (get_clauses_l S)) \<Longrightarrow> C \<in># clause_to_update L S \<longleftrightarrow>
      C \<in> dom (get_clauses_l S) \<and> L \<in> set (watched_l (get_clauses_l S \<propto> C))\<close>
   by (cases \<open>finite (dom (get_clauses_l S))\<close>)
      (auto simp: clause_to_update_def)
@@ -1320,7 +1320,7 @@ definition select_and_remove_from_literals_to_update :: \<open>'v twl_st_l \<Rig
           (set_literals_to_update_l (literals_to_update_l S - {#L#}) S))\<close>
 
 definition unit_propagation_outer_loop_l_inv where
-  \<open>unit_propagation_outer_loop_l_inv S \<longleftrightarrow> 
+  \<open>unit_propagation_outer_loop_l_inv S \<longleftrightarrow>
     (\<exists>S'. (S, S') \<in> twl_st_l None \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
       clauses_to_update_l S = {#})\<close>
 
