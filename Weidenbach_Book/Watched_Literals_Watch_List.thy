@@ -1189,95 +1189,125 @@ definition backtrack_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<
      }
   }\<close>
 
+lemma ran_m_infinite_empty: \<open>infinite (dom N) \<Longrightarrow> ran_m N = {#}\<close>
+  by (auto simp: ran_m_def)
 
 lemma correct_watching_learn:
-  assumes N_ne_Nil: \<open>N \<noteq> []\<close> and
-    L1: \<open>atm_of L1 \<in> atms_of_mm (mset `# mset (tl N) + NE)\<close> and
-    L2: \<open>atm_of L2 \<in> atms_of_mm (mset `# mset (tl N) + NE)\<close> and
-    UW: \<open>atms_of (mset UW) \<subseteq> atms_of_mm (mset `# mset (tl N) + NE)\<close>
+  assumes
+    L1: \<open>atm_of L1 \<in> atms_of_mm (mset `# ran_mf N + NE)\<close> and
+    L2: \<open>atm_of L2 \<in> atms_of_mm (mset `# ran_mf N + NE)\<close> and
+    UW: \<open>atms_of (mset UW) \<subseteq> atms_of_mm (mset `# ran_mf N + NE)\<close> and
+    i_dom: \<open>i \<notin> dom N\<close> and
+    fin_N: \<open>finite (dom N)\<close>
   shows
-  \<open>correct_watching (K # M, N @ [[L1 , L2] @ UW],
-    D, NE, UE, Q, W (L1 := W L1 @ [length N], L2 := W L2 @ [length N])) \<longleftrightarrow>
-  correct_watching (M, N, U, D, NE, UE, Q, W)\<close> (is \<open>?l \<longleftrightarrow> ?c\<close>)
+  \<open>correct_watching (K # M, N(i \<mapsto> (L1 # L2 # UW,  b)),
+    D, NE, UE, Q, W (L1 := W L1 @ [i], L2 := W L2 @ [i])) \<longleftrightarrow>
+  correct_watching (M, N, D, NE, UE, Q, W)\<close> (is \<open>?l \<longleftrightarrow> ?c\<close>)
 proof (rule iffI)
   assume corr: ?l
-  have H: \<open>\<And>x. x \<in># all_lits_of_mm (mset `# mset (tl (N @ [L1 # L2 # UW]))) +
+  let ?N = \<open>N(i \<mapsto> (L1 # L2 # UW,  b))\<close>
+  have H: \<open>\<And>x. x \<in># all_lits_of_mm (mset `# ran_mf ?N) +
               all_lits_of_mm NE \<longrightarrow>
-        mset ((W(L1 := W L1 @ [length N], L2 := W L2 @ [length N])) x) =
+        mset ((W(L1 := W L1 @ [i], L2 := W L2 @ [i])) x) =
         clause_to_update x
-         (K # M, N @ [L1 # L2 # UW], U, D, NE, UE, {#}, {#})\<close>
+         (K # M, ?N, D, NE, UE, {#}, {#})\<close>
     using corr
     by (auto simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset if_distrib[of mset]
         uminus_lit_swap correct_watching.simps all_lits_of_mm_union Ball_def
         all_conj_distrib)
-  have [simp]: \<open>{x. (P x \<longrightarrow> Q x) \<and> P x} = {x. Q x \<and> P x}\<close> for P Q :: \<open>'a \<Rightarrow> bool\<close>
+  have K[iff]: \<open>{x.  x = i \<or> (x = i \<or> Q x) \<and> P x} = Set.insert i {x. x \<noteq> i \<and> Q x \<and> P x}\<close>
+     for P Q :: \<open>nat \<Rightarrow> bool\<close> and i :: nat
     by auto
-  have [simp]: \<open>mset (W x) = clause_to_update x (M, N, U, D, NE, UE, {#}, {#})\<close>
+  have [simp]: \<open>mset (W x) = clause_to_update x (M, N, D, NE, UE, {#}, {#})\<close>
     if \<open>x \<in># all_lits_of_mm NE\<close>
     for x
-    using that H[of x]
-    by (auto split: if_splits simp: clause_to_update_def nth_append
+    using that H[of x] i_dom
+    by (cases \<open>finite (dom N)\<close>)
+      (auto split: if_splits simp: clause_to_update_def nth_append
         intro!: arg_cong[of _ _ mset_set])
-  have [simp]: \<open>mset (W x) = clause_to_update x (M, N, U, D, NE, UE, {#}, {#})\<close>
-    if \<open>x \<in># all_lits_of_mm (mset `# mset (tl N))\<close>
+  have [simp]: \<open>N i = None\<close>
+    using i_dom by auto
+  have K: 
+    \<open>set_mset (all_lits_of_mm (mset `# ran_mf ?N + NE)) =
+       set_mset (all_lits_of_mm (mset `# ran_mf N + NE))\<close>
+    using i_dom L1 L2 UW
+    by (cases \<open>finite (dom N)\<close>)
+     (auto 5 5 simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset
+        ran_m_mapsto_upd ran_m_mapsto_upd_notin in_all_lits_of_m_ain_atms_of_iff
+        in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of ran_m_infinite_empty
+        dest: imageI[of _ \<open>set UW\<close> atm_of])
+
+  have [simp]: \<open>mset (W x) = clause_to_update x (M, N, D, NE, UE, {#}, {#})\<close>
+    if \<open>x \<in># all_lits_of_mm (mset `# ran_mf N)\<close>
     for x
-    using that H[of x]
-    by (auto split: if_splits simp: clause_to_update_def nth_append
-        all_lits_of_mm_add_mset all_lits_of_m_add_mset
-        intro!: arg_cong[of _ _ mset_set]) \<comment> \<open>slow but auto magic\<close>
+    using that H[of x] i_dom L1 L2
+    unfolding all_lits_of_mm_union[symmetric] K
+    by (cases \<open>finite (dom N)\<close>)
+      (auto split: if_splits simp: clause_to_update_def
+        in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of ran_m_infinite_empty)
   show ?c
     unfolding correct_watching.simps Ball_def
     by (auto simp add: all_lits_of_mm_add_mset all_lits_of_m_add_mset
         all_conj_distrib all_lits_of_mm_union)
 next
+  let ?N = \<open>N(i \<mapsto> (L1 # L2 # UW,  b))\<close>
   assume corr: ?c
   have [simp]: \<open>{x. (P x \<longrightarrow> Q x) \<and> P x} = {x. Q x \<and> P x}\<close> for P Q :: \<open>'a \<Rightarrow> bool\<close>
     by auto
-  have [simp]: \<open>clause_to_update L (K # M, N @ [L1 # L2 # UW], U, D, NE, UE, {#}, {#}) =
-     clause_to_update L (M, N, U, D, NE, UE, {#}, {#}) +
-     (if L = L1 \<or> L = L2 then {#length N#} else {#})\<close>
+  have [simp]: \<open>N i = None\<close>
+    using i_dom by auto
+  have H[simp]: \<open>{x. x \<noteq> i \<longrightarrow> P x \<and> Q x} = Set.insert i {x. P x \<and> Q x}\<close> 
+    for P Q :: \<open>nat \<Rightarrow> bool\<close> and i :: nat
+    by auto
+  have [simp]: \<open>clause_to_update L (K # M, ?N, D, NE, UE, {#}, {#}) =
+     clause_to_update L (M, N, D, NE, UE, {#}, {#}) +
+     (if L = L1 \<or> L = L2 then {#i#} else {#})\<close>
     for L
-    using N_ne_Nil by (auto simp: clause_to_update_def nth_append
-        intro: arg_cong[of _ _ mset_set])
-  have \<open>L1 \<in># all_lits_of_mm (mset `# mset (tl N) + NE)\<close> and
-    \<open>-L1 \<in># all_lits_of_mm (mset `# mset (tl N) + NE)\<close> and
-    \<open>L2 \<in># all_lits_of_mm (mset `# mset (tl N) + NE)\<close> and
-    \<open>-L2 \<in># all_lits_of_mm (mset `# mset (tl N) + NE)\<close>
+    using fin_N i_dom
+    by (auto simp: clause_to_update_def intro: arg_cong[of _ _ mset_set])
+  have K: 
+    \<open>set_mset (all_lits_of_mm (mset `# ran_mf ?N + NE)) =
+       set_mset (all_lits_of_mm (mset `# ran_mf N + NE))\<close>
+    using i_dom L1 L2 UW
+    by (cases \<open>finite (dom N)\<close>)
+     (auto 5 5 simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset
+        ran_m_mapsto_upd ran_m_mapsto_upd_notin in_all_lits_of_m_ain_atms_of_iff
+        in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of ran_m_infinite_empty
+        dest: imageI[of _ \<open>set UW\<close> atm_of])
+  have
+    \<open>L1 \<in># all_lits_of_mm (mset `# ran_mf N + NE)\<close> and
+    \<open>-L1 \<in># all_lits_of_mm (mset `# ran_mf N + NE)\<close> and
+    \<open>L2 \<in># all_lits_of_mm (mset `# ran_mf N + NE)\<close> and
+    \<open>-L2 \<in># all_lits_of_mm (mset `# ran_mf N + NE)\<close>
     using L1 L2 by (auto simp add: in_all_lits_of_mm_ain_atms_of_iff)
   then have [simp]:
-    \<open>mset (W L1) = clause_to_update L1 (M, N, U, D, NE, UE, {#}, {#})\<close>
-    \<open>mset (W (- L1)) = clause_to_update (- L1) (M, N, U, D, NE, UE, {#}, {#})\<close>
-    \<open>mset (W L2) = clause_to_update L2 (M, N, U, D, NE, UE, {#}, {#})\<close>
-    \<open>mset (W (- L2)) = clause_to_update (- L2) (M, N, U, D, NE, UE, {#}, {#})\<close>
-    using corr by (auto simp: correct_watching.simps)
-  have \<open>set_mset (all_lits_of_m (mset UW)) \<subseteq> set_mset (all_lits_of_mm (mset `# mset (tl N)+ NE))\<close>
+    \<open>mset (W L1) = clause_to_update L1 (M, N, D, NE, UE, {#}, {#})\<close>
+    \<open>mset (W (- L1)) = clause_to_update (- L1) (M, N, D, NE, UE, {#}, {#})\<close>
+    \<open>mset (W L2) = clause_to_update L2 (M, N, D, NE, UE, {#}, {#})\<close>
+    \<open>mset (W (- L2)) = clause_to_update (- L2) (M, N, D, NE, UE, {#}, {#})\<close> and
+    \<open>x \<in># all_lits_of_mm (mset `# ran_mf N + NE) \<Longrightarrow>
+        mset (W x) = clause_to_update x (M, N, D, NE, UE, {#}, {#})\<close> for x
+    using corr unfolding K by (auto simp: correct_watching.simps)
+  have \<open>set_mset (all_lits_of_m (mset UW)) \<subseteq> set_mset (all_lits_of_mm (mset `# ran_mf N + NE))\<close>
     using UW using in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff by blast
   then show ?l
-    using corr N_ne_Nil
-    unfolding correct_watching.simps Ball_def
+    using corr
+    unfolding correct_watching.simps Ball_def K
     by (auto simp add: all_lits_of_mm_add_mset all_lits_of_m_add_mset
-        all_conj_distrib all_lits_of_mm_union)
+      all_conj_distrib all_lits_of_mm_union)
 qed
 
 
 lemma backtrack_wl_spec:
   \<open>(backtrack_wl, backtrack_l)
     \<in> {(T'::'v twl_st_wl, T).
-          st_l_of_wl None T' = T \<and>
+          (T', T) \<in> state_wl_l None \<and>
           correct_watching T' \<and>
-          twl_struct_invs (twl_st_of_wl None T') \<and>
-          twl_stgy_invs (twl_st_of_wl None T') \<and>
           get_conflict_wl T' \<noteq> None \<and>
           get_conflict_wl T' \<noteq> Some {#} \<and>
-          literals_to_update_wl T' = {#} \<and>
-          no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None T')) \<and>
-          no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None T')) \<and>
-          twl_list_invs (st_l_of_wl None T')} \<rightarrow>
+          literals_to_update_wl T' = {#}} \<rightarrow>
         \<langle>{(T', T).
-          st_l_of_wl None T' = T \<and>
-          twl_struct_invs (twl_st_of_wl None T') \<and>
-          twl_stgy_invs (twl_st_of_wl None T') \<and>
-          twl_list_invs T \<and>
+          (T', T) \<in> state_wl_l None \<and>
           get_conflict_wl T' = None \<and>
           literals_to_update_wl T' \<noteq> {#} \<and>
           correct_watching T'}\<rangle>nres_rel\<close>
