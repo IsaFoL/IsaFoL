@@ -10,8 +10,8 @@ text \<open>
 TODO. Formalizes footnote.
 \<close>
 
-theory Weighted_FO_Ordered_Resolution_Prover
-  imports "Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover"
+theory Weighted_FO_Ordered_Resolution_Prover 
+  imports "Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover" "../lib/Explorer" (* TODO: remove Explorer when finished *)
 begin
 
 type_synonym 'a wclause = "'a clause \<times> nat"
@@ -271,7 +271,6 @@ proof -
     using subseteq by (metis less_not_refl2 subset_mset.le_neq_trans)  
 qed
 
-(* FIXME: rename *)
 lemma weighted_RP_Non_Inference_measure_decreasing:
   assumes "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St'"
   shows "((RP_filtered_measure (\<lambda>Ci. True)) St', (RP_filtered_measure (\<lambda>Ci. True)) St) \<in> RP_filtered_relation_new"
@@ -337,7 +336,7 @@ proof -
     by (rule empty_empty)
 qed
 
-lemma weighted_RP_Inference_has_measure2:
+lemma weighted_RP_Inference_measure_decreasing:
   assumes "St \<leadsto>\<^sub>w St'"
   assumes "(C, i) \<in># wP_of_wstate St"
   shows "(RP_combined_measure_new (weight (C, i)) St', RP_combined_measure_new (weight (C, i)) St) \<in> RP_combined_relation_new"
@@ -923,55 +922,39 @@ next
     by auto
 qed
 
-(* 
-FIXME:
-  1. Prove with lnth_rel_chain
-  2. Generalize this to any measure and relation that fit together
-  3. Use the generalized in both cases of weighted_RP_fair
-*)
 lemma infinite_chain_relation_measure:
   assumes 
-    non_infer_chain: "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop (enat k) Sts)" and
-    inf:"llength Sts = \<infinity>"
-  shows "chain (\<lambda>x y. (x, y) \<in> RP_filtered_relation_new)\<inverse>\<inverse> (lmap (RP_filtered_measure (\<lambda>Ci. True)) (ldrop (enat k) Sts))"
-using non_infer_chain proof (coinduction arbitrary: k rule: chain.coinduct)
-  case chain
-  from inf have inff: "\<not> lfinite Sts"
-    using llength_eq_infty_conv_lfinite by blast 
-  from inf have k_lt_len: "enat k < llength Sts"
-    by auto
-  define x where "x = (RP_filtered_measure (\<lambda>Ci. True)) (lnth Sts k)"
-  define xs where "xs = lmap (RP_filtered_measure (\<lambda>Ci. True)) (ldrop (enat (Suc k)) Sts)"
-  have "(ldrop (enat k) Sts) = LCons ((lhd (ldrop (enat k) Sts))) ((ltl (ldrop (enat k) Sts)))"
-    using chain(1) inff
-    unfolding ldrop_Suc_conv_ltl
-    unfolding lhd_ldrop'[symmetric, OF k_lt_len]
-    by (metis enat.distinct(1) lfinite_LNil lfinite_ldrop llist.exhaust_sel)
-  then have "lmap (RP_filtered_measure (\<lambda>Ci. True)) (ldrop (enat k) Sts) = LCons x xs"        
-    unfolding x_def xs_def using chain
-    by (metis (no_types, lifting) k_lt_len ldrop_Suc_conv_ltl lhd_ldrop' llist.simps(13)) 
-  moreover
-  have "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop (enat (Suc k)) Sts)"
-    using chain inff
-    unfolding ldrop_Suc_conv_ltl
-    using inf_chain_ltl_chain[of "op \<leadsto>\<^sub>w\<^sub>n\<^sub>i" "(ldrop (enat k) Sts)"]
-    by (simp add: not_lfinite_llength)
-  moreover
-  have "lnth (ldrop (enat k) Sts) 0 \<leadsto>\<^sub>w\<^sub>n\<^sub>i lnth (ldrop (enat k) Sts) (Suc 0)"
-    using chain chain_lnth_rel[of "op \<leadsto>\<^sub>w\<^sub>n\<^sub>i" "(ldrop (enat k) Sts)" 0] inf
-    by (metis enat.distinct(2) enat_ord_code(4) lfinite_ldrop llength_eq_infty_conv_lfinite)
-  then have "lnth Sts k \<leadsto>\<^sub>w\<^sub>n\<^sub>i lnth Sts (Suc k)"
-    using lnth_ldrop[of k 0 Sts] lnth_ldrop[of k "Suc 0" Sts]
-    by (simp add: inf)
-  then have "((RP_filtered_measure (\<lambda>Ci. True)) (lnth Sts (Suc k)), (RP_filtered_measure (\<lambda>Ci. True)) (lnth Sts k)) \<in> RP_filtered_relation_new"
-    using weighted_RP_Non_Inference_measure_decreasing[of "lnth Sts k" "lnth Sts (Suc k)"] by auto
-  then have "(lhd xs, x) \<in> RP_filtered_relation_new"
-    unfolding xs_def x_def
-    by (simp add: inf lhd_ldrop')
-  then have "(\<lambda>x y. (x, y) \<in> RP_filtered_relation_new)\<inverse>\<inverse> x (lhd xs)"
-    by auto
-  ultimately show ?case
-    using xs_def by auto
+    measure_decreasing: "\<And>St St'. P St \<Longrightarrow> R St St' \<Longrightarrow> (m St', m St) \<in> mR" and
+    non_infer_chain: "chain R (ldrop (enat k) Sts)" and
+    inf: "llength Sts = \<infinity>" and
+    P: "\<And>i. P (lnth (ldrop (enat k) Sts) i)"
+  shows "chain (\<lambda>x y. (x, y) \<in> mR)\<inverse>\<inverse> (lmap m (ldrop (enat k) Sts))"
+proof (rule lnth_rel_chain)
+  show "\<not> lnull (lmap m (ldrop (enat k) Sts))"
+    using assms by auto
+next
+  from inf have ldrop_inf: "llength (ldrop (enat k) Sts) = \<infinity> \<and> \<not> lfinite (ldrop (enat k) Sts)"
+    using inf by (auto simp add: llength_eq_infty_conv_lfinite)
+  {
+    fix j :: "nat"
+    define St where "St = lnth (ldrop (enat k) Sts) j"
+    define St' where "St' = lnth (ldrop (enat k) Sts) (j + 1)"
+    have P': "P St \<and> P St'"
+      unfolding St_def St'_def using P by auto
+    from ldrop_inf have "R St St'"
+      using non_infer_chain unfolding St_def St'_def using infinite_chain_lnth_rel[of "ldrop (enat k) Sts" R j] by auto
+    then have "(m St', m St)
+        \<in> mR" 
+      using measure_decreasing P' by auto
+    then have "(lnth (lmap m (ldrop (enat k) Sts)) (j + 1), lnth (lmap m (ldrop (enat k) Sts)) j)
+        \<in> mR"
+      unfolding St_def St'_def using lnth_lmap 
+      by (smt enat.distinct(1) enat_add_left_cancel enat_ord_simps(4) inf ldrop_lmap llength_lmap lnth_ldrop plus_enat_simps(3)) 
+  }
+  then show "\<forall>j. enat (j + 1) < llength (lmap m (ldrop (enat k) Sts)) \<longrightarrow>
+            (\<lambda>x y. (x, y) \<in> mR)\<inverse>\<inverse> (lnth (lmap m (ldrop (enat k) Sts)) j)
+             (lnth (lmap m (ldrop (enat k) Sts)) (j + 1))"
+    by blast
 qed
 
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)" (* Proof using the simpler measure *)
@@ -1025,7 +1008,7 @@ proof (rule ccontr)
       qed
     qed
     then have "chain (\<lambda>x y. (x, y) \<in> RP_filtered_relation_new)\<inverse>\<inverse> (lmap (RP_filtered_measure (\<lambda>Ci. True)) (ldrop k Sts))"
-      using inff inf infinite_chain_relation_measure by auto
+      using inff inf infinite_chain_relation_measure weighted_RP_Non_Inference_measure_decreasing by blast
     then show False
       using wfP_iff_no_infinite_down_chain_llist[of "\<lambda>x y. (x, y) \<in> RP_filtered_relation_new"] 
         wf_RP_filtered_relation inff
@@ -1056,88 +1039,9 @@ proof (rule ccontr)
       by auto
     then have "chain (\<lambda>x y. (x, y) \<in> RP_combined_relation_new)\<inverse>\<inverse> (lmap (RP_combined_measure_new (weight (C, i))) (ldrop k Sts))"
       using inff inf Ci_in
-    proof (coinduction arbitrary: k rule: chain.coinduct)
-      case chain (* FIXME: Some copy paste from above. *)
-      then have k_lt_len: "enat k < llength Sts"
-        by auto
-      have chain_6: "\<And>k'. (C, i) \<in># wP_of_wstate (lnth (ldrop (enat k) Sts) k')"
-        using chain by auto
-      define x where "x = RP_combined_measure_new (weight (C, i)) (lnth Sts k)"
-      define xs where "xs = lmap (RP_combined_measure_new (weight (C, i))) (ldrop (enat (Suc k)) Sts)"
-      have f: "(ldrop (enat k) Sts) = LCons ((lhd (ldrop (enat k) Sts))) ((ltl (ldrop (enat k) Sts)))"
-        using chain
-        unfolding ldrop_Suc_conv_ltl
-        unfolding lhd_ldrop'[symmetric, OF k_lt_len]
-        by (metis enat.distinct(1) lfinite_LNil lfinite_ldrop llist.exhaust_sel)
-      then have "lmap (RP_combined_measure_new (weight (C, i))) (ldrop (enat k) Sts) = LCons x xs"        
-        unfolding x_def xs_def using chain
-        by (metis (no_types, lifting) k_lt_len ldrop_Suc_conv_ltl lhd_ldrop' llist.simps(13)) 
-      moreover
-      have "chain op \<leadsto>\<^sub>w (ldrop (enat (Suc k)) Sts)"
-        using chain
-        unfolding ldrop_Suc_conv_ltl
-        using inf_chain_ltl_chain[of "op \<leadsto>\<^sub>w" "(ldrop (enat k) Sts)"]
-        by (simp add: not_lfinite_llength)
-      moreover
-      have "lnth (ldrop (enat k) Sts) 0 \<leadsto>\<^sub>w lnth (ldrop (enat k) Sts) (Suc 0)"
-        using chain chain_lnth_rel[of "op \<leadsto>\<^sub>w" "(ldrop (enat k) Sts)" 0]
-        by (metis enat.distinct(2) enat_ord_code(4) lfinite_ldrop llength_eq_infty_conv_lfinite)
-      then have "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
-        using lnth_ldrop[of k 0 Sts] lnth_ldrop[of k "Suc 0" Sts]
-        by (simp add: inf)
-      then have "(RP_combined_measure_new (weight (C, i)) (lnth Sts (Suc k)), RP_combined_measure_new (weight (C, i)) (lnth Sts k)) \<in> RP_combined_relation_new"
-        using weighted_RP_Inference_has_measure2[of "lnth Sts k" "lnth Sts (Suc k)" C i]
-          using chain_6[of 0] k_lt_len by auto 
-      then have "(lhd xs, x) \<in> RP_combined_relation_new"
-        unfolding xs_def x_def
-        by (simp add: inf lhd_ldrop')
-      then have "(\<lambda>x y. (x, y) \<in> RP_combined_relation_new)\<inverse>\<inverse> x (lhd xs)"
-        by auto
-      
-      note lol = calculation this
-      show ?case
-        apply (rule disjI2)
-        apply (rule_tac x=xs in exI)
-        apply (rule_tac x=x in exI)
-        apply (rule conjI)
-        subgoal
-          using chain xs_def x_def lol by auto
-        subgoal
-          apply (rule conjI)
-          subgoal
-            apply (rule disjI1)
-            apply (rule_tac x="(Suc k)" in exI)
-            apply (rule conjI)
-            subgoal
-              using xs_def .
-            subgoal
-              apply (rule conjI)
-              subgoal
-                by (simp add: lol(2))
-              subgoal
-                apply (rule conjI)
-                subgoal 
-                  using inf inff by auto
-                subgoal
-                  apply (rule conjI)
-                  subgoal
-                    using inf inff by auto
-                  subgoal
-                    apply (rule allI)
-                    subgoal for k'
-                      using chain_6[of "Suc k'"] inf inff 
-                      apply auto
-                      done
-                    done
-                  done
-                done
-              done
-            done
-          subgoal
-            using chain xs_def x_def lol by auto
-          done
-        done
-    qed
+      using infinite_chain_relation_measure[of "\<lambda>St. (C, i) \<in># wP_of_wstate St" "op \<leadsto>\<^sub>w" "RP_combined_measure_new (weight (C, i))" ]
+      using weighted_RP_Inference_measure_decreasing
+      by auto
     then show False
       using wfP_iff_no_infinite_down_chain_llist[of "\<lambda>x y. (x, y) \<in> RP_combined_relation_new"] 
         wf_RP_combined_relation_new inff
