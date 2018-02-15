@@ -2440,7 +2440,7 @@ qed
 
 subsection \<open>Full Strategy\<close>
 
-abbreviation cdcl_twl_stgy_prog_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool \<times> 'v twl_st_l  \<Rightarrow> bool\<close> where
+definition cdcl_twl_stgy_prog_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool \<times> 'v twl_st_l  \<Rightarrow> bool\<close> where
   \<open>cdcl_twl_stgy_prog_l_inv S\<^sub>0 \<equiv> \<lambda>(brk, T). \<exists>S\<^sub>0' T'. (T, T') \<in> twl_st_l None \<and>
        (S\<^sub>0, S\<^sub>0') \<in> twl_st_l None \<and>
        twl_struct_invs T' \<and>
@@ -2481,7 +2481,7 @@ proof -
 
   show ?thesis
     unfolding cdcl_twl_stgy_prog_l_def cdcl_twl_stgy_prog_def cdcl_twl_o_prog_l_spec
-      fref_param1[symmetric]
+      fref_param1[symmetric] cdcl_twl_stgy_prog_l_inv_def
     apply (refine_rcg R cdcl_twl_o_prog_l_spec[THEN fref_to_Down, THEN "weaken_\<Down>'"]
         unit_propagation_outer_loop_l_spec[THEN fref_to_Down]; remove_dummy_vars)
     subgoal for S\<^sub>0 S\<^sub>0' T T'
