@@ -114,7 +114,7 @@ fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_s
       Q))\<close>
 
 definition state_wl_l :: \<open>('v literal \<times> nat) option \<Rightarrow> ('v twl_st_wl \<times> 'v twl_st_l) set\<close> where
-\<open>state_wl_l L = {(T, T'). T' = st_l_of_wl L T \<and> finite (dom (get_clauses_wl T))}\<close>
+\<open>state_wl_l L = {(T, T'). T' = st_l_of_wl L T}\<close>
 
 fun twl_st_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> ('v twl_st_wl \<times> 'v twl_st) set\<close> where
   \<open>twl_st_of_wl L = state_wl_l L O twl_st_l (map_option fst L)\<close>
@@ -293,25 +293,22 @@ subsubsection \<open>Inner Loop\<close>
 
 lemma clause_to_update_mapsto_upd_If:
   assumes
-    i: \<open>i \<in> dom N\<close> and
-    \<open>finite (dom N)\<close>
+    i: \<open>i \<in># dom_m N\<close>
   shows
   \<open>clause_to_update L (M, N(i \<hookrightarrow> C'), C, NE, UE, WS, Q) =
     (if L \<in> set (watched_l C')
      then add_mset i (remove1_mset i (clause_to_update L (M, N, C, NE, UE, WS, Q)))
      else remove1_mset i (clause_to_update L (M, N, C, NE, UE, WS, Q)))\<close>
 proof -
-  define D' where \<open>D' = mset_set (dom N - {i})\<close>
-  then have [simp]: \<open>mset_set (dom N) = add_mset i D'\<close>
+  define D' where \<open>D' = dom_m N - {#i#}\<close>
+  then have [simp]: \<open>dom_m N = add_mset i D'\<close>
     using assms by (simp add: mset_set.remove)
-  have [simp]: \<open>mset_set (insert i (dom N)) = add_mset i D'\<close>
-    using assms unfolding D'_def by (auto simp: mset_set.insert_remove)
   have [simp]: \<open>i \<notin># D'\<close>
-    using assms unfolding D'_def by auto
+    using assms distinct_mset_dom[of N] unfolding D'_def by auto
 
   have \<open>{#C \<in># D'.
-     (C = i \<longrightarrow> L \<in> set (watched_l C')) \<and>
-     (C \<noteq> i \<longrightarrow> L \<in> set (watched_l (N \<propto> C)))#} =
+     (i = C \<longrightarrow> L \<in> set (watched_l C')) \<and>
+     (i \<noteq> C \<longrightarrow> L \<in> set (watched_l (N \<propto> C)))#} =
     {#C \<in># D'. L \<in> set (watched_l (N \<propto> C))#}\<close>
     by (rule filter_mset_cong2) auto
   then show ?thesis
@@ -328,7 +325,6 @@ lemma
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
   defines
     [simp]: \<open>T \<equiv> remove_one_lit_from_wq (watched_by S L ! w) S'\<close> and
-    (* [simp]: \<open>S'' \<equiv> twl_st_of_wl (Some (L, w)) S\<close> and *)
     [simp]: \<open>C' \<equiv> watched_by S L ! w\<close>
   defines
     [simp]: \<open>C'' \<equiv> get_clauses_l S' \<propto> C'\<close>
@@ -349,8 +345,6 @@ lemma
                            (1 - (if (get_clauses_wl S)\<propto>(watched_by S L ! w) ! 0 = L then 0 else 1)))))) =
         mset `# (ran_mf (get_clauses_wl S))\<close> (is \<open>_ \<Longrightarrow> ?eq\<close>)
 proof -
-  have fin: \<open>finite (dom (get_clauses_wl S))\<close>
-    using S_S' unfolding state_wl_l_def by blast
   have val: \<open>(polarity a b, polarity a' b') \<in> Id\<close>
     if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' :: \<open>('a, 'b) ann_lits\<close> and b b' :: \<open>'a literal\<close>
     by (auto simp: that)
@@ -373,7 +367,7 @@ proof -
       \<open>L \<notin> lits_of_l (get_trail_wl S)\<close> (is ?L_def) and
     i_le: \<open>i < length (get_clauses_wl S \<propto> C')\<close>  (is ?i_le) and
     i_le2: \<open>1-i < length (get_clauses_wl S \<propto> C')\<close>  (is ?i_le2) and
-    C'_dom: \<open>C' \<in> dom (get_clauses_l T)\<close> (is ?C'_dom) and
+    C'_dom: \<open>C' \<in># dom_m (get_clauses_l T)\<close> (is ?C'_dom) and
     L_watched: \<open>L \<in> set (watched_l (get_clauses_l T \<propto> C'))\<close> (is ?L_w) and
     dist_clss: \<open>distinct_mset_mset (mset `# ran_mf (get_clauses_wl S))\<close>
   if
@@ -385,7 +379,7 @@ proof -
       T_T': \<open>(set_clauses_to_update_l (clauses_to_update_l T + {#C'#}) T, T') \<in> twl_st_l (Some L)\<close> and
       struct_invs: \<open>twl_struct_invs T'\<close> and
        \<open>twl_stgy_invs T'\<close> and
-      C'_dom: \<open>C' \<in> dom (get_clauses_l T)\<close> and
+      C'_dom: \<open>C' \<in># dom_m (get_clauses_l T)\<close> and
        \<open>0 < C'\<close> and
        ge_0: \<open>0 < length (get_clauses_l T \<propto> C')\<close> and
        \<open>no_dup (get_trail_l T)\<close> and
@@ -482,12 +476,11 @@ proof -
       by (auto simp: S)
     have [simp]: \<open>{#mset (fst x). x \<in># ran_m ?N#} = {#mset (fst x). x \<in># ran_m N#}\<close>
       apply (subst ran_m_clause_upd)
-      subgoal using fin S_S' by (auto simp: S)
       subgoal using C'_dom[OF init_inv'] S_S' by (auto simp: S)
-      subgoal using C'_dom[OF init_inv'] S_S' fin by (auto simp: image_mset_remove1_mset_if S
+      subgoal using C'_dom[OF init_inv'] S_S' by (auto simp: image_mset_remove1_mset_if S
          ran_m_def)
       done
-    have [simp]: \<open>W L ! w \<in> dom N\<close> \<open>w < length (W L)\<close> \<open>w \<le> length (W L) - Suc 0\<close>
+    have [simp]: \<open>W L ! w \<in># dom_m N\<close> \<open>w < length (W L)\<close> \<open>w \<le> length (W L) - Suc 0\<close>
       using C'_dom[OF init_inv'] S_S' w_le by (auto simp: S)
     have [simp]: \<open>L \<noteq>  N \<propto> (W L ! w) ! f'\<close>
       using f'_f S_S' by (auto simp: S)
@@ -503,7 +496,7 @@ proof -
       using L_watched[OF init_inv'] S_S' by (auto simp: take_2_if S i_def hd_conv_nth
          split: if_splits)
     have \<open>N \<propto> (W L ! w) \<in># ran_mf N\<close>
-      using C'_dom[OF init_inv'] S_S' fin by (auto simp: S ran_m_def)
+      using C'_dom[OF init_inv'] S_S' by (auto simp: S ran_m_def)
     then have dist: \<open>distinct (N \<propto> (W L ! w))\<close>
       using dist_clss[OF init_inv'] S_S'
       by (auto simp: S distinct_mset_set_def)
@@ -518,7 +511,7 @@ proof -
           (M, N(W L ! w \<hookrightarrow> swap (N \<propto> (W L ! w)) i f'), None, NE, UE, Q, W
            (L := butlast (W L[w := last (W L)]),
             N \<propto> (W L ! w) ! f' := W (N \<propto> (W L ! w) ! f') @ [W L ! w]))\<close>
-      using corr_w fin unfolding  S  correct_watching.simps (* clause_to_update_def*)
+      using corr_w unfolding  S  correct_watching.simps (* clause_to_update_def*)
       by (auto simp: clause_to_update_mapsto_upd_If
         id_remove_1_mset_iff_notin
         remove_1_mset_id_iff_notin
@@ -559,6 +552,11 @@ proof -
       S: \<open>S = (M, N, None, NE, UE, Q, W)\<close>
       using inv S_S' unfolding unit_propagation_inner_loop_body_l_inv_def
       by (cases S) (auto simp: twl_st_l)
+    have [iff]:
+      \<open>K \<in># all_lits_of_mm (add_mset (mset (N \<propto> (W L ! w))) ({#mset (fst x). x \<in># ran_m N#} + NE)) \<longleftrightarrow>
+       K \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + NE)\<close> for K
+      using C'_dom[OF inv] S_S' by (auto simp: ran_m_def S state_wl_l_def all_lits_of_mm_add_mset
+          dest!: multi_member_split)
     have \<open>mset (swap (N \<propto> C') 0 (Suc 0 - i)) = mset (N \<propto> C')\<close>
       using i_le[OF inv] i_le2[OF inv]
       by (auto simp: take_2_if i_def S)
@@ -573,13 +571,14 @@ proof -
                     swap (N \<propto> (watched_by S L ! w)) 0 (Suc 0 - i)), None, NE, UE,
             add_mset (- get_clauses_wl S \<propto> (watched_by S L ! w) ! (1 - i)) Q,
             W))\<close>
-      using S_S' w_le corr_w fin C'_dom[OF inv] corr_w
+      using S_S' w_le corr_w C'_dom[OF inv] corr_w
       unfolding propagate_lit_l_def propagate_lit_wl_def
       by (auto simp: state_wl_l_def propagate_lit_wl_def  S image_mset_remove1_mset_if
-        Cons_nth_drop_Suc[symmetric] clause_to_update_mapsto_upd_If in_ran_m_iff_ran ran_def
-      ran_m_mapsto_upd correct_watching.simps clause_to_update_def)
+        Cons_nth_drop_Suc[symmetric] clause_to_update_mapsto_upd_If ran_def
+      ran_m_mapsto_upd correct_watching.simps clause_to_update_def
+      intro!: filter_mset_cong)
     then show ?thesis
-      using S_S' w_le corr_w fin C'_dom[OF inv] corr_w
+      using S_S' w_le corr_w C'_dom[OF inv] corr_w
       unfolding propagate_lit_l_def propagate_lit_wl_def
       by (auto simp: state_wl_l_def propagate_lit_wl_def  S
         Cons_nth_drop_Suc[symmetric] clause_to_update_mapsto_upd_If ran_m_mapsto_upd)
@@ -618,10 +617,9 @@ proof -
        remove1_mset_eqE union_mset_add_mset_left)
 
   show ?eq if inv: \<open>unit_propagation_inner_loop_body_l_inv L C' T\<close>
-    using i_le[OF inv] i_le2[OF inv] C'_dom[OF inv] fin S_S'
+    using i_le[OF inv] i_le2[OF inv] C'_dom[OF inv] S_S'
     unfolding i_def[symmetric]
-    by (auto simp: ran_m_clause_upd image_mset_remove1_mset_if
-      in_ran_m_iff_ran ran_def)
+    by (auto simp: ran_m_clause_upd image_mset_remove1_mset_if)
 qed
 
 definition unit_propagation_inner_loop_wl_loop_inv where
@@ -1160,7 +1158,7 @@ definition propagate_bt_wl :: \<open>'v literal \<Rightarrow> 'v literal \<Right
     D'' \<leftarrow> list_of_mset (the D);
     i \<leftarrow> get_fresh_index N;
     RETURN (Propagated (-L) i # M,
-        N(i := Some ([-L, L'] @ (remove1 (-L) (remove1 L' D'')), False)),
+        fmupd i ([-L, L'] @ (remove1 (-L) (remove1 L' D'')), False) N,
           None, NE, UE, {#L#}, W(-L:= W (-L) @ [i], L':= W L' @ [i]))
       })\<close>
 
@@ -1186,23 +1184,19 @@ definition backtrack_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<
      }
   }\<close>
 
-lemma ran_m_infinite_empty: \<open>infinite (dom N) \<Longrightarrow> ran_m N = {#}\<close>
-  by (auto simp: ran_m_def)
-
 lemma correct_watching_learn:
   assumes
     L1: \<open>atm_of L1 \<in> atms_of_mm (mset `# ran_mf N + NE)\<close> and
     L2: \<open>atm_of L2 \<in> atms_of_mm (mset `# ran_mf N + NE)\<close> and
     UW: \<open>atms_of (mset UW) \<subseteq> atms_of_mm (mset `# ran_mf N + NE)\<close> and
-    i_dom: \<open>i \<notin> dom N\<close> and
-    fin_N: \<open>finite (dom N)\<close>
+    i_dom: \<open>i \<notin># dom_m N\<close>
   shows
-  \<open>correct_watching (K # M, N(i \<mapsto> (L1 # L2 # UW,  b)),
+  \<open>correct_watching (K # M, fmupd i (L1 # L2 # UW,  b) N,
     D, NE, UE, Q, W (L1 := W L1 @ [i], L2 := W L2 @ [i])) \<longleftrightarrow>
-  correct_watching (M, N, D, NE, UE, Q, W)\<close> (is \<open>?l \<longleftrightarrow> ?c\<close>)
+  correct_watching (M, N, D, NE, UE, Q, W)\<close>
+  (is \<open>?l \<longleftrightarrow> ?c\<close> is \<open>correct_watching (_, ?N, _) = _\<close>)
 proof (rule iffI)
   assume corr: ?l
-  let ?N = \<open>N(i \<mapsto> (L1 # L2 # UW,  b))\<close>
   have H: \<open>\<And>x. x \<in># all_lits_of_mm (mset `# ran_mf ?N) +
               all_lits_of_mm NE \<longrightarrow>
         mset ((W(L1 := W L1 @ [i], L2 := W L2 @ [i])) x) =
@@ -1219,19 +1213,15 @@ proof (rule iffI)
     if \<open>x \<in># all_lits_of_mm NE\<close>
     for x
     using that H[of x] i_dom
-    by (cases \<open>finite (dom N)\<close>)
-      (auto split: if_splits simp: clause_to_update_def nth_append
-        intro!: arg_cong[of _ _ mset_set])
-  have [simp]: \<open>N i = None\<close>
-    using i_dom by auto
-  have K: 
+    by (auto split: if_splits simp: clause_to_update_def nth_append
+        intro!: arg_cong[of _ _ mset_set] filter_mset_cong)
+  have K:
     \<open>set_mset (all_lits_of_mm (mset `# ran_mf ?N + NE)) =
        set_mset (all_lits_of_mm (mset `# ran_mf N + NE))\<close>
     using i_dom L1 L2 UW
-    by (cases \<open>finite (dom N)\<close>)
-     (auto 5 5 simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset
+    by (auto 5 5 simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset
         ran_m_mapsto_upd ran_m_mapsto_upd_notin in_all_lits_of_m_ain_atms_of_iff
-        in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of ran_m_infinite_empty
+        in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of
         dest: imageI[of _ \<open>set UW\<close> atm_of])
 
   have [simp]: \<open>mset (W x) = clause_to_update x (M, N, D, NE, UE, {#}, {#})\<close>
@@ -1239,37 +1229,32 @@ proof (rule iffI)
     for x
     using that H[of x] i_dom L1 L2
     unfolding all_lits_of_mm_union[symmetric] K
-    by (cases \<open>finite (dom N)\<close>)
-      (auto split: if_splits simp: clause_to_update_def
-        in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of ran_m_infinite_empty)
+    by (auto split: if_splits simp: clause_to_update_def
+        in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of intro: filter_mset_cong)
   show ?c
     unfolding correct_watching.simps Ball_def
     by (auto simp add: all_lits_of_mm_add_mset all_lits_of_m_add_mset
         all_conj_distrib all_lits_of_mm_union)
 next
-  let ?N = \<open>N(i \<mapsto> (L1 # L2 # UW,  b))\<close>
   assume corr: ?c
   have [simp]: \<open>{x. (P x \<longrightarrow> Q x) \<and> P x} = {x. Q x \<and> P x}\<close> for P Q :: \<open>'a \<Rightarrow> bool\<close>
     by auto
-  have [simp]: \<open>N i = None\<close>
-    using i_dom by auto
-  have H[simp]: \<open>{x. x \<noteq> i \<longrightarrow> P x \<and> Q x} = Set.insert i {x. P x \<and> Q x}\<close> 
+  have H[simp]: \<open>{x. x \<noteq> i \<longrightarrow> P x \<and> Q x} = Set.insert i {x. P x \<and> Q x}\<close>
     for P Q :: \<open>nat \<Rightarrow> bool\<close> and i :: nat
     by auto
   have [simp]: \<open>clause_to_update L (K # M, ?N, D, NE, UE, {#}, {#}) =
      clause_to_update L (M, N, D, NE, UE, {#}, {#}) +
      (if L = L1 \<or> L = L2 then {#i#} else {#})\<close>
     for L
-    using fin_N i_dom
-    by (auto simp: clause_to_update_def intro: arg_cong[of _ _ mset_set])
-  have K: 
+    using i_dom
+    by (auto simp: clause_to_update_def intro: arg_cong[of _ _ mset_set] filter_mset_cong)
+  have K:
     \<open>set_mset (all_lits_of_mm (mset `# ran_mf ?N + NE)) =
        set_mset (all_lits_of_mm (mset `# ran_mf N + NE))\<close>
     using i_dom L1 L2 UW
-    by (cases \<open>finite (dom N)\<close>)
-     (auto 5 5 simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset
+    by (auto 5 5 simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset
         ran_m_mapsto_upd ran_m_mapsto_upd_notin in_all_lits_of_m_ain_atms_of_iff
-        in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of ran_m_infinite_empty
+        in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of
         dest: imageI[of _ \<open>set UW\<close> atm_of])
   have
     \<open>L1 \<in># all_lits_of_mm (mset `# ran_mf N + NE)\<close> and
@@ -1436,7 +1421,8 @@ proof -
       using trail_no_alien K_hd MS
       by (cases MS) (auto simp: S'
           mset_take_mset_drop_mset simp del:  K_hd dest!: atm_of_lit_in_atms_of)
-    have fresh: \<open>get_fresh_index N \<le> \<Down> {(i, i'). i = i' \<and> i \<notin> dom N} (get_fresh_index N')\<close> if \<open>N = N'\<close> for N N'
+    have fresh: \<open>get_fresh_index N \<le> \<Down> {(i, i'). i = i' \<and> i \<notin># dom_m N} (get_fresh_index N')\<close>
+       if \<open>N = N'\<close> for N N'
        unfolding that get_fresh_index_def by (auto intro: RES_refine)
     show ?thesis
       unfolding propagate_bt_wl_def propagate_bt_l_def S' T' U' U st_l_of_wl.simps get_trail_wl.simps
@@ -1449,7 +1435,6 @@ proof -
       subgoal using atm_confl TT'  unfolding all_clss_lf_ran_m[symmetric] image_mset_union
         by (fastforce simp: S' T' dest!: in_atms_of_minusD)
       subgoal by auto
-      subgoal using SS' by (auto simp: state_wl_l_def S')
       subgoal using SS' by (auto simp: corr state_wl_l_def S')
       done
   qed
@@ -1502,7 +1487,7 @@ proof -
      apply (refine_vcg find_decomp_wl find_lit_of_max_level_wl extract_shorter_conflict_wl
          propagate_bt_wl propagate_unit_bt_wl;
         remove_dummy_vars)
-    subgoal using backtrack_wl_inv_def by blast 
+    subgoal using backtrack_wl_inv_def by blast
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1553,12 +1538,12 @@ proof -
   have find_unassigned_lit_wl: \<open>find_unassigned_lit_wl S \<le> \<Down> Id (find_unassigned_lit_l S')\<close>
     if \<open>(S, S') \<in> state_wl_l None\<close>
     for S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
-    unfolding find_unassigned_lit_wl_def find_unassigned_lit_l_def 
+    unfolding find_unassigned_lit_wl_def find_unassigned_lit_l_def
     using that
     by (cases S; cases S') (auto simp: state_wl_l_def)
   have [iff]: \<open>correct_watching (decide_lit_wl L S) \<longleftrightarrow> correct_watching S\<close> for L S
     by (cases S; auto simp: decide_lit_wl_def correct_watching.simps clause_to_update_def)
-  have [iff]: \<open>(decide_lit_wl L S, decide_lit_l L S') \<in> state_wl_l None\<close> 
+  have [iff]: \<open>(decide_lit_wl L S, decide_lit_l L S') \<in> state_wl_l None\<close>
     if \<open>(S, S') \<in> state_wl_l None\<close>
     for L S S'
     using that by (cases S; auto simp: decide_lit_wl_def decide_lit_l_def state_wl_l_def)
@@ -1623,7 +1608,7 @@ theorem cdcl_twl_stgy_prog_wl_spec:
     \<langle>{(S, S'). (S, S') \<in> state_wl_l None}\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
 proof -
-  have H: \<open>((False, S'), False, S) \<in> {((brk', T'), (brk, T)). (T', T) \<in> state_wl_l None \<and> brk' = brk \<and> 
+  have H: \<open>((False, S'), False, S) \<in> {((brk', T'), (brk, T)). (T', T) \<in> state_wl_l None \<and> brk' = brk \<and>
        correct_watching T'}\<close>
     if \<open>(S', S) \<in> state_wl_l None\<close> and
        \<open>correct_watching S'\<close>
@@ -1647,7 +1632,7 @@ qed
 
 (* Not in the form we want anymore.
 Probably requires along the line of
-cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (False, S\<^sub>0) ==> 
+cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (False, S\<^sub>0) ==>
     cdcl_twl_stgy_prog_wl S \<le>
       \<Down> {(S, S'). (S, S' \<in> ...)}
         (SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* S\<^sub>0 T \<and>
