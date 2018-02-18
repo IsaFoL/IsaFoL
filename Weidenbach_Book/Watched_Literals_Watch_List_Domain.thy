@@ -1224,7 +1224,7 @@ where
   \<open>propagate_bt_wl_D = (\<lambda>L L' (M, N, D, NE, UE, Q, W). do {
     D'' \<leftarrow> list_of_mset2 (-L) L' (the D);
     i \<leftarrow> get_fresh_index N;
-    RETURN (Propagated (-L) i # M, N(i \<hookrightarrow> D''),
+    RETURN (Propagated (-L) i # M, fmupd i (D'', False) N,
           None, NE, UE, {#L#}, W(-L:= W (-L) @ [i], L':= W L' @ [i]))
       })\<close>
 
@@ -1253,6 +1253,7 @@ definition (in isasat_input_ops) backtrack_wl_D :: \<open>nat twl_st_wl \<Righta
   }\<close>
 
 lemma backtrack_wl_D_spec:
+  fixes S :: \<open>nat twl_st_wl\<close>
   assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and confl: \<open>get_conflict_wl S ~= None\<close>
   shows \<open>backtrack_wl_D S \<le>
      \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
@@ -1367,81 +1368,98 @@ proof -
       using UU' by (cases U) auto
     define list_of_mset where
       \<open>list_of_mset D L L' = ?list_of_mset D L L'\<close> for D and L L' :: \<open>nat literal\<close>
-    have dist:
-     \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S)))\<close>
-      and
-      add_invs: \<open>twl_list_invs (st_l_of_wl None S)\<close> and
-      \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-      struct: \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close>
+    have [simp]: \<open>get_conflict_wl S = Some DS\<close>
+      using S by auto
+    obtain T U where
+      dist: \<open>distinct_mset (the (get_conflict_wl S))\<close> and
+      ST: \<open>(S, T) \<in> state_wl_l None\<close> and
+      TU: \<open>(T, U) \<in> twl_st_l None\<close> and
+      alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of U)\<close>
       using bt unfolding backtrack_wl_D_inv_def backtrack_wl_inv_def backtrack_l_inv_def
       twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      by fast+
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+      apply -
+      apply normalize_goal+
+      by (auto simp: twl_st_wl twl_st_l twl_st)
+      
     then have \<open>distinct_mset DT\<close>
-      using DT unfolding S cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
-      by (auto simp: cdcl\<^sub>W_restart_mset_state intro: distinct_mset_mono)
+      using DT unfolding S by (auto simp: distinct_mset_mono)
     then have [simp]: \<open>L \<noteq> -lit_of (hd MS)\<close>
       using LL' by (auto simp: U S dest: distinct_mem_diff_mset)
-    have propa_ref:
-      \<open>((Propagated (- lit_of (hd (get_trail_wl S))) (length NS) # MU, NS @ [D], US, None, NES, UES,
-            unmark (hd (get_trail_wl S)),
-           W (- lit_of (hd (get_trail_wl S)) := W (- lit_of (hd (get_trail_wl S))) @ [length NS],
-              L := W L @ [length NS])),
-         Propagated (- lit_of (hd (get_trail_wl S))) (length NS) # MU,
-         NS @ [[- lit_of (hd (get_trail_wl S)), L'] @
-            remove1 (- lit_of (hd (get_trail_wl S))) (remove1 L' D')], US, None, NES, UES,
-         unmark (hd (get_trail_wl S)),
-         W(- lit_of (hd (get_trail_wl S)) := W (- lit_of (hd (get_trail_wl S))) @ [length NS],
-           L' := W L' @ [length NS]))
-        \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
-      if DD': \<open>(D, D') \<in> list_of_mset (the (Some DT)) (- lit_of (hd (get_trail_wl S))) L\<close>
-      for D D'
+    
+    have \<open>x \<in># all_lits_of_m (the (get_conflict_wl S)) \<Longrightarrow>
+        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf (get_clauses_wl S)#} + get_unit_init_clss S)\<close>
+      for x
+      using alien ST TU unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      all_clss_lf_ran_m[symmetric] set_mset_union
+      by (auto simp: twl_st_wl twl_st_l twl_st in_all_lits_of_m_ain_atms_of_iff
+        in_all_lits_of_mm_ain_atms_of_iff)   
+    then have \<open>x \<in># all_lits_of_m DS \<Longrightarrow>
+        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + NES)\<close>
+      for x
+      by (simp add: S)
+    then have H: \<open>x \<in># all_lits_of_m DT \<Longrightarrow>
+        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + NES)\<close>
+      for x
+      using DT all_lits_of_m_mono by blast
+    have propa_ref: \<open>((Propagated (- lit_of (hd (get_trail_wl S))) i # MU,
+            fmupd i (D, False) NS, None, NES, UES, unmark (hd (get_trail_wl S)), W
+            (- lit_of (hd (get_trail_wl S)) :=
+              W (- lit_of (hd (get_trail_wl S))) @ [i],
+            L := W L @ [i])),
+          Propagated (- lit_of (hd (get_trail_wl S))) i' # MU,
+          fmupd i'
+            ([- lit_of (hd (get_trail_wl S)), L'] @
+            remove1 (- lit_of (hd (get_trail_wl S))) (remove1 L' D'),
+            False)
+            NS,
+          None, NES, UES, unmark (hd (get_trail_wl S)), W
+          (- lit_of (hd (get_trail_wl S)) :=
+              W (- lit_of (hd (get_trail_wl S))) @ [i'],
+            L' := W L' @ [i']))
+          \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
+      if 
+        DD': \<open>(D, D') \<in> list_of_mset (the (Some DT)) (- lit_of (hd (get_trail_wl S))) L\<close> and
+        ii': \<open>(i, i') \<in> {(i, i'). i = i' \<and> i \<notin># dom_m NS}\<close>
+      for i i' D D'
     proof -
-      have [simp]: \<open>L = L'\<close>
-        using LL' by fast
-      have DD'_eq[simp]: \<open>D' = D\<close> and D_DT: \<open>mset D = DT\<close>
-        using DD' unfolding list_of_mset_def by force+
-      have [simp]: \<open>- lit_of (hd MS) # L' # remove1 (- lit_of (hd MS)) (remove1 L' D) = D\<close>
-        using DD' that LL' unfolding list_of_mset_def by (cases D; cases \<open>tl D\<close>) (auto simp: S)
-
-
-      have [simp]: \<open>US < length NS\<close> \<open>NS \<noteq> []\<close>
-        using add_invs unfolding S twl_list_invs_def by auto
-      have [simp]: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm
-        (mset `# mset (take US (tl NS)) + NES + (mset `# mset (drop (Suc US) NS) + UES)))\<close>
-        apply (rule subst[of _ _ \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l\<close>, OF _ \<A>\<^sub>i\<^sub>n])
-        apply (rule arg_cong[of _ _ \<open>all_lits_of_mm\<close>])
-        by (auto simp: clauses_def U U' S T mset_take_mset_drop_mset mset_take_mset_drop_mset'
-           all_lits_of_mm_add_mset)
-      then have [simp]: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (mset `# mset (tl NS) + NES + UES))\<close>
-        apply (rule back_subst)
-        apply (rule arg_cong[of _ _ \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l\<close>])
-        apply (rule arg_cong[of _ _ \<open>all_lits_of_mm\<close>])
-        by (auto simp: clauses_def U U' S T mset_take_mset_drop_mset mset_take_mset_drop_mset'
-           all_lits_of_mm_add_mset)
-      have struct': \<open>twl_struct_invs (twl_st_of_wl None S)\<close>
-        using struct by simp
-      have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n DS\<close>
-        using literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[OF \<A>\<^sub>i\<^sub>n _ struct']
-        by (simp add: S)
-      then have \<A>\<^sub>i\<^sub>n_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset D)\<close>
-        using DT unfolding D_DT by (blast intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
-      have \<open>take (Suc US - length NS) [D] = [D] \<and> drop (Suc US - length NS) [D] = [] \<or>
-          take (Suc US - length NS) [D] = [] \<and> drop (Suc US - length NS) [D] = [D]\<close>
-        by (cases \<open>Suc US - length NS\<close>) (auto)
+      have [simp]: \<open>i = i'\<close> \<open>L = L'\<close> and i'_dom: \<open>i' \<notin># dom_m NS\<close>
+        using ii' LL' by auto
+      have
+        D: \<open>D = [- lit_of (hd (get_trail_wl S)), L] @
+          remove1 (- lit_of (hd (get_trail_wl S))) (remove1 L D')\<close> and
+        DT_D: \<open>DT = mset D\<close>
+        using DD' unfolding list_of_mset_def
+        by force+
+      have [simp]: \<open>- lit_of (hd (get_trail_wl S)) # L' #
+              remove1 (- lit_of (hd (get_trail_wl S))) (remove1 L' D') = D\<close>
+        using D by simp
+      then have [simp]: \<open>- lit_of (hd MS) # L' #
+              remove1 (- lit_of (hd MS)) (remove1 L' D') = D\<close>
+        using D by (simp add: S)
+      have \<open>x \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m NS#} + NES) \<Longrightarrow>
+        x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> for x
+        using i'_dom \<A>\<^sub>i\<^sub>n is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by (fastforce simp: S)
       then show ?thesis
-        using \<A>\<^sub>i\<^sub>n_D
-        by (auto simp: clauses_def U U' S T mset_take_mset_drop_mset mset_take_mset_drop_mset'
-           all_lits_of_mm_add_mset is_\<L>\<^sub>a\<^sub>l\<^sub>l_add Suc_leI literals_are_in_\<L>\<^sub>i\<^sub>n_def)
+        using i'_dom \<A>\<^sub>i\<^sub>n
+        by (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset
+          is_\<L>\<^sub>a\<^sub>l\<^sub>l_add S dest!: H[unfolded DT_D])
     qed
+    define get_fresh_index2 where \<open>get_fresh_index2 N = get_fresh_index (N :: nat clauses_l)\<close> for N
+    have fresh: \<open>get_fresh_index N \<le> \<Down> {(i, i'). i = i' \<and> i \<notin># dom_m N} (get_fresh_index2 N')\<close>
+      if \<open>N = N'\<close> for N N'
+      using that by (auto simp: get_fresh_index_def get_fresh_index2_def intro!: RES_refine)
     show ?thesis
       unfolding propagate_bt_wl_D_def propagate_bt_wl_def propagate_bt_wl_D_def U U' S T
+      apply (subst (2) get_fresh_index2_def[symmetric])
       apply clarify
-      apply (refine_vcg list_of_mset)
+      apply (refine_rcg list_of_mset fresh)
       subgoal ..
       subgoal using TT' T by (auto simp: U S)
       subgoal using LL' by (auto simp: T U S dest: in_diffD)
-      subgoal using LL' by auto
-      subgoal for D D'
+      subgoal by auto
+      subgoal ..
+      subgoal for D D' i i'
         unfolding list_of_mset_def[symmetric] U[symmetric] U'[symmetric] S[symmetric] T[symmetric]
         by (rule propa_ref)
       done
@@ -1459,45 +1477,61 @@ proof -
       \<open>\<not>1 < size (the (get_conflict_wl U'))\<close>
     for L L' T T' U U'
   proof -
-    obtain MS NS US DS NES UES W Q where
-       S: \<open>S = (MS, NS, US, Some DS, NES, UES, Q, W)\<close>
+    obtain MS NS DS NES UES W Q where
+       S: \<open>S = (MS, NS, Some DS, NES, UES, Q, W)\<close>
       using bt by (cases S; cases \<open>get_conflict_wl S\<close>)
         (auto simp: backtrack_wl_D_inv_def backtrack_wl_inv_def
-          backtrack_l_inv_def)
+          backtrack_l_inv_def state_wl_l_def)
     then obtain DT where
-      T: \<open>T = (MS, NS, US, Some DT, NES, UES, Q, W)\<close> and DT: \<open>DT \<subseteq># DS\<close>
+      T: \<open>T = (MS, NS, Some DT, NES, UES, Q, W)\<close> and DT: \<open>DT \<subseteq># DS\<close>
       using TT' by (cases T'; cases \<open>get_conflict_wl T'\<close>) auto
     then obtain MU where
-      U: \<open>U = (MU, NS, US, Some DT, NES, UES, Q, W)\<close> and U': \<open>U' = U\<close>
+      U: \<open>U = (MU, NS, Some DT, NES, UES, Q, W)\<close> and U': \<open>U' = U\<close>
       using UU' by (cases U) auto
-    have dist:
-      \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S)))\<close>
-      and
-      add_invs: \<open>twl_list_invs (st_l_of_wl None S)\<close> and
-      \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-      struct: \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close>
+    define list_of_mset where
+      \<open>list_of_mset D L L' = ?list_of_mset D L L'\<close> for D and L L' :: \<open>nat literal\<close>
+    have [simp]: \<open>get_conflict_wl S = Some DS\<close>
+      using S by auto
+    obtain T U where
+      dist: \<open>distinct_mset (the (get_conflict_wl S))\<close> and
+      ST: \<open>(S, T) \<in> state_wl_l None\<close> and
+      TU: \<open>(T, U) \<in> twl_st_l None\<close> and
+      alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of U)\<close>
       using bt unfolding backtrack_wl_D_inv_def backtrack_wl_inv_def backtrack_l_inv_def
       twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      by fast+
-    have [simp]: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm
-       (mset `# mset (take US (tl NS)) + NES + (mset `# mset (drop (Suc US) NS) + UES)))\<close>
-        apply (rule subst[of _ _ \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l\<close>, OF _ \<A>\<^sub>i\<^sub>n])
-        apply (rule arg_cong[of _ _ \<open>all_lits_of_mm\<close>])
-        by (auto simp: clauses_def U U' S T mset_take_mset_drop_mset mset_take_mset_drop_mset'
-           all_lits_of_mm_add_mset)
-    have struct': \<open>twl_struct_invs (twl_st_of_wl None S)\<close>
-      using struct by simp
-    have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n DS\<close>
-      using literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[OF \<A>\<^sub>i\<^sub>n _ struct']
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+      apply -
+      apply normalize_goal+
+      by (auto simp: twl_st_wl twl_st_l twl_st)
+      
+    then have \<open>distinct_mset DT\<close>
+      using DT unfolding S by (auto simp: distinct_mset_mono)
+    have \<open>x \<in># all_lits_of_m (the (get_conflict_wl S)) \<Longrightarrow>
+        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf (get_clauses_wl S)#} + get_unit_init_clss S)\<close>
+      for x
+      using alien ST TU unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      all_clss_lf_ran_m[symmetric] set_mset_union
+      by (auto simp: twl_st_wl twl_st_l twl_st in_all_lits_of_m_ain_atms_of_iff
+        in_all_lits_of_mm_ain_atms_of_iff)   
+    then have \<open>x \<in># all_lits_of_m DS \<Longrightarrow>
+        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + NES)\<close>
+      for x
       by (simp add: S)
+    then have H: \<open>x \<in># all_lits_of_m DT \<Longrightarrow>
+        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + NES)\<close>
+      for x
+      using DT all_lits_of_m_mono by blast
     then have \<A>\<^sub>i\<^sub>n_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n DT\<close>
-      using DT by (blast intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
+      using DT \<A>\<^sub>i\<^sub>n unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def S is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+      by auto
+
     show ?thesis
       unfolding propagate_unit_bt_wl_D_def propagate_unit_bt_wl_def U U' single_of_mset_def
       apply clarify
       apply refine_vcg
-      using \<A>\<^sub>i\<^sub>n_D by (auto simp: clauses_def mset_take_mset_drop_mset mset_take_mset_drop_mset'
-          all_lits_of_mm_add_mset is_\<L>\<^sub>a\<^sub>l\<^sub>l_add literals_are_in_\<L>\<^sub>i\<^sub>n_def)
+      using \<A>\<^sub>i\<^sub>n_D \<A>\<^sub>i\<^sub>n
+      by (auto simp: clauses_def mset_take_mset_drop_mset mset_take_mset_drop_mset'
+          all_lits_of_mm_add_mset is_\<L>\<^sub>a\<^sub>l\<^sub>l_add literals_are_in_\<L>\<^sub>i\<^sub>n_def S)
   qed
   show ?thesis
     unfolding backtrack_wl_D_def backtrack_wl_def find_lit_of_max_level_wl'_def
@@ -1514,18 +1548,18 @@ qed
 
 
 subsubsection \<open>Decide or Skip\<close>
-
+thm find_unassigned_lit_wl_def
 definition (in isasat_input_ops) find_unassigned_lit_wl_D
   :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal option) nres\<close>
 where
   \<open>find_unassigned_lit_wl_D S = (
-     SPEC(\<lambda>((M, N, U, D, NE, UE, WS, Q), L).
-         S = (M, N, U, D, NE, UE, WS, Q) \<and>
+     SPEC(\<lambda>((M, N, D, NE, UE, WS, Q), L).
+         S = (M, N, D, NE, UE, WS, Q) \<and>
          (L \<noteq> None \<longrightarrow>
             undefined_lit M (the L) \<and> the L \<in> snd ` D\<^sub>0 \<and>
-            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)) + NE)) \<and>
+            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE)) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
-            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)) + NE)))))
+            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE)))))
 \<close>
 
 
@@ -1553,17 +1587,17 @@ proof -
   have H: \<open>find_unassigned_lit_wl_D S \<le> \<Down> {((S', L'), L). S' = S \<and> L = L' \<and>
          (L \<noteq> None \<longrightarrow>
             undefined_lit (get_trail_wl S) (the L) \<and>
-            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset
-              (take (get_learned_wl S) (tl (get_clauses_wl S))) + get_unit_init_clss S)) \<and>
+            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf (get_clauses_wl S)
+                 + get_unit_init_clss S)) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit (get_trail_wl S) L' \<and>
-            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset
-              (take (get_learned_wl S) (tl (get_clauses_wl S))) + get_unit_init_clss S)))}
+            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf (get_clauses_wl S)
+                 + get_unit_init_clss S)))}
      (find_unassigned_lit_wl S')\<close>
     (is \<open>_ \<le> \<Down> ?find _\<close>)
     if \<open>S = S'\<close>
     for S S' :: \<open>nat twl_st_wl\<close>
     unfolding find_unassigned_lit_wl_def find_unassigned_lit_wl_D_def that
-    by (cases S') (auto intro!: RES_refine simp: mset_take_mset_drop_mset' get_unit_init_clss_def)
+    by (cases S') (auto intro!: RES_refine simp: mset_take_mset_drop_mset')
   have [refine]: \<open>x = x' \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle> option_rel\<close>
     for x x' by auto
   have decide_lit_wl: \<open>((False, decide_lit_wl L T), False, decide_lit_wl L' S')
@@ -1584,8 +1618,7 @@ proof -
       using LT_L' pre unfolding LT decide_wl_or_skip_D_pre_def by fast+
     have [simp]: \<open>S' = S\<close> \<open>L = L'\<close>
       using SS' LL' by simp_all
-    have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses
-            (state\<^sub>W_of (twl_st_of None (st_l_of_wl None (decide_lit_wl L' S))))))\<close>
+    have \<open>literals_are_\<L>\<^sub>i\<^sub>n (decide_lit_wl L' S)\<close>
       using \<A>\<^sub>i\<^sub>n
       by (cases S) (auto simp: decide_lit_wl_def clauses_def)
     then show ?thesis
@@ -1609,14 +1642,15 @@ qed
 
 subsubsection \<open>Backtrack, Skip, Resolve or Decide\<close>
 
+definition (in isasat_input_ops) cdcl_twl_o_prog_wl_D_pre where
+\<open>cdcl_twl_o_prog_wl_D_pre S \<longleftrightarrow> cdcl_twl_o_prog_wl_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+
 definition (in isasat_input_ops) cdcl_twl_o_prog_wl_D
  :: \<open>nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres\<close>
 where
   \<open>cdcl_twl_o_prog_wl_D S =
     do {
-      ASSERT(twl_struct_invs (twl_st_of_wl None S));
-      ASSERT(twl_stgy_invs (twl_st_of_wl None S));
-      ASSERT(twl_list_invs (st_l_of_wl None S));
+      ASSERT(cdcl_twl_o_prog_wl_D_pre S);
       if get_conflict_wl S = None
       then decide_wl_or_skip_D S
       else do {
@@ -1644,14 +1678,14 @@ proof -
     using backtrack_wl_D_spec[of S] that by fast
   have 2: \<open>skip_and_resolve_loop_wl_D S \<le>
      \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} (skip_and_resolve_loop_wl T)\<close>
-    if \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close> \<open>S = T\<close>
+    if \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> \<open>S = T\<close>
     for S T
     using skip_and_resolve_loop_wl_D_spec[of S] that by fast
   show ?thesis
     using assms
     unfolding cdcl_twl_o_prog_wl_D_def cdcl_twl_o_prog_wl_def
     apply (refine_vcg decide_wl_or_skip_D_spec 1 2)
-    subgoal by simp
+    subgoal unfolding cdcl_twl_o_prog_wl_D_pre_def by simp
     subgoal by simp
     subgoal by simp
     subgoal by simp
@@ -1711,13 +1745,10 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
     done
 qed
 
+(*
 lemma cdcl_twl_stgy_prog_wl_D_spec_final2_Down:
   assumes \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
     \<open>get_conflict_wl S = None\<close> and \<open>twl_list_invs (st_l_of_wl None S)\<close> and
@@ -1737,7 +1768,7 @@ lemma cdcl_twl_stgy_prog_wl_D_spec_final2_Down:
     using assms apply (solves \<open>simp\<close>)+
     apply (auto simp: conc_fun_chain conc_fun_RES)
     done
-
+*)
 end -- \<open>end of locale @{locale isasat_input_bounded}\<close>
 
 end
