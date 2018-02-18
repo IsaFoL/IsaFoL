@@ -853,7 +853,7 @@ lemma [twl_st_wl]: \<open>get_clauses_wl (set_conflict_wl D S) = get_clauses_wl 
   by (cases S) (auto simp: set_conflict_wl_def)
 lemma [twl_st_wl]: \<open>get_unit_init_clss (set_conflict_wl D S) = get_unit_init_clss S\<close>
   by (cases S) (auto simp: set_conflict_wl_def)
-  
+
 lemma (in -) lookup_None_notin_dom_m[simp]:
   \<open>fmlookup N i = None \<longleftrightarrow> i \<notin># dom_m N\<close>
   by (auto simp: dom_m_def fmlookup_dom_iff fmember.rep_eq[symmetric])
@@ -1092,7 +1092,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by (auto simp: twl_st_wl)
-    subgoal for S' S T'L' TL T' L' T L 
+    subgoal for S' S T'L' TL T' L' T L
       apply (auto simp: twl_st_wl is_\<L>\<^sub>a\<^sub>l\<^sub>l_def)
       unfolding image_image
       apply simp -- \<open>TODO: but why does it loop\<close>
@@ -1381,19 +1381,19 @@ proof -
       apply -
       apply normalize_goal+
       by (auto simp: twl_st_wl twl_st_l twl_st)
-      
+
     then have \<open>distinct_mset DT\<close>
       using DT unfolding S by (auto simp: distinct_mset_mono)
     then have [simp]: \<open>L \<noteq> -lit_of (hd MS)\<close>
       using LL' by (auto simp: U S dest: distinct_mem_diff_mset)
-    
+
     have \<open>x \<in># all_lits_of_m (the (get_conflict_wl S)) \<Longrightarrow>
         x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf (get_clauses_wl S)#} + get_unit_init_clss S)\<close>
       for x
       using alien ST TU unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
       all_clss_lf_ran_m[symmetric] set_mset_union
       by (auto simp: twl_st_wl twl_st_l twl_st in_all_lits_of_m_ain_atms_of_iff
-        in_all_lits_of_mm_ain_atms_of_iff)   
+        in_all_lits_of_mm_ain_atms_of_iff)
     then have \<open>x \<in># all_lits_of_m DS \<Longrightarrow>
         x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + NES)\<close>
       for x
@@ -1418,7 +1418,7 @@ proof -
               W (- lit_of (hd (get_trail_wl S))) @ [i'],
             L' := W L' @ [i']))
           \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
-      if 
+      if
         DD': \<open>(D, D') \<in> list_of_mset (the (Some DT)) (- lit_of (hd (get_trail_wl S))) L\<close> and
         ii': \<open>(i, i') \<in> {(i, i'). i = i' \<and> i \<notin># dom_m NS}\<close>
       for i i' D D'
@@ -1503,7 +1503,7 @@ proof -
       apply -
       apply normalize_goal+
       by (auto simp: twl_st_wl twl_st_l twl_st)
-      
+
     then have \<open>distinct_mset DT\<close>
       using DT unfolding S by (auto simp: distinct_mset_mono)
     have \<open>x \<in># all_lits_of_m (the (get_conflict_wl S)) \<Longrightarrow>
@@ -1512,7 +1512,7 @@ proof -
       using alien ST TU unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
       all_clss_lf_ran_m[symmetric] set_mset_union
       by (auto simp: twl_st_wl twl_st_l twl_st in_all_lits_of_m_ain_atms_of_iff
-        in_all_lits_of_mm_ain_atms_of_iff)   
+        in_all_lits_of_mm_ain_atms_of_iff)
     then have \<open>x \<in># all_lits_of_m DS \<Longrightarrow>
         x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + NES)\<close>
       for x
