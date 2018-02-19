@@ -39,6 +39,9 @@ global_interpretation RP: deterministic_FO_resolution_prover where
   and remdups_clss = RP.remdups_clss
   and resolve = RP.resolve
   and resolve_on = RP.resolve_on
+  and resolve_on2 = RP.resolve_on2
+  and resolvable = RP.resolvable
+  and resolvent = RP.resolvent
   and resolve_rename = RP.resolve_rename
   and resolve_rename_either_way = RP.resolve_rename_either_way
   and select_min_weight_clause = RP.select_min_weight_clause
