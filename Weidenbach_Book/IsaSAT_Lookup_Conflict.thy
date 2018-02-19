@@ -5,6 +5,7 @@ theory IsaSAT_Lookup_Conflict
     CDCL_Conflict_Minimisation
     "../lib/Explorer"
     LBD
+    IsaSAT_Clauses
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -406,7 +407,7 @@ definition (in isasat_input_ops) set_conflict_m
    out_learned \<Rightarrow> (nat clause option \<times> nat \<times> lbd \<times> out_learned) nres\<close>
 where
 \<open>set_conflict_m M N i _ _ _ _ =
-    SPEC (\<lambda>(C, n, lbd, outl). C = Some (mset (N!i)) \<and> n = card_max_lvl M (mset (N!i)) \<and>
+    SPEC (\<lambda>(C, n, lbd, outl). C = Some (mset (N\<propto>i)) \<and> n = card_max_lvl M (mset (N\<propto>i)) \<and>
      out_learned M C outl)\<close>
 
 definition (in isasat_input_ops) merge_conflict_m
@@ -414,8 +415,8 @@ definition (in isasat_input_ops) merge_conflict_m
   out_learned \<Rightarrow> (nat clause option \<times> nat \<times> lbd \<times> out_learned) nres\<close>
 where
 \<open>merge_conflict_m M N i D _ _ _ =
-    SPEC (\<lambda>(C, n, lbd, outl). C = Some (mset (tl (N!i)) \<union># the D) \<and>
-       n = card_max_lvl M (mset (tl (N!i))  \<union># the D) \<and>
+    SPEC (\<lambda>(C, n, lbd, outl). C = Some (mset (tl (N\<propto>i)) \<union># the D) \<and>
+       n = card_max_lvl M (mset (tl (N\<propto>i)) \<union># the D) \<and>
        out_learned M C outl)\<close>
 
 definition (in isasat_input_ops) merge_conflict_m_g
@@ -551,7 +552,7 @@ definition resolve_lookup_conflict_aa
      out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close>
 where
   \<open>resolve_lookup_conflict_aa M C i xs clvls lbd outl =
-     lookup_conflict_merge one_uint32_nat M (C ! i) xs clvls lbd outl\<close>
+     lookup_conflict_merge one_uint32_nat M (C\<propto>i) xs clvls lbd outl\<close>
 
 
 definition set_lookup_conflict_aa
@@ -559,7 +560,7 @@ definition set_lookup_conflict_aa
   out_learned \<Rightarrow>(conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close>
 where
   \<open>set_lookup_conflict_aa M C i xs clvls lbd outl =
-     lookup_conflict_merge zero_uint32_nat M (C ! i) xs clvls lbd outl\<close>
+     lookup_conflict_merge zero_uint32_nat M (C\<propto>i) xs clvls lbd outl\<close>
 
 (* TODO Move *)
 lemma(in isasat_input_ops) in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n:
@@ -618,10 +619,10 @@ begin
 sepref_register resolve_lookup_conflict_aa
 sepref_thm resolve_lookup_conflict_merge_code
   is \<open>uncurry6 (PR_CONST resolve_lookup_conflict_aa)\<close>
-  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-        (\<forall>j<length (N!i). atm_of (N!i!j) < length (snd xs)) \<and> no_dup M \<and>
-        literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N!i)) \<and>
-        length (N!i) \<le> uint_max]\<^sub>a
+  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i \<in># dom_m N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+        (\<forall>j<length (N\<propto>i). atm_of (N\<propto>i!j) < length (snd xs)) \<and> no_dup M \<and>
+        literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N\<propto>i)) \<and>
+        length (N\<propto>i) \<le> uint_max]\<^sub>a
       trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
@@ -634,6 +635,11 @@ sepref_thm resolve_lookup_conflict_merge_code
     length_aa_u_def[symmetric] outlearned_add_def clvls_add_def
   apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
   supply [[goals_limit = 1]]
+    apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
+
   by sepref
 
 concrete_definition (in -) resolve_lookup_conflict_merge_code

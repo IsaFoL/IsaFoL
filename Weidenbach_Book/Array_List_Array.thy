@@ -497,7 +497,7 @@ qed
 definition nth_rl :: \<open>'a::heap arrayO_raa \<Rightarrow> nat \<Rightarrow> 'a array Heap\<close> where
   \<open>nth_rl xs n = do {x \<leftarrow> arl_get xs n; array_copy x}\<close>
 
-lemma nth_rl_op_list_get[sepref_fr_rules]:
+lemma nth_rl_op_list_get:
   \<open>(uncurry nth_rl, uncurry (RETURN oo op_list_get)) \<in>
     [\<lambda>(xs, n). n < length xs]\<^sub>a (arlO_assn (array_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> array_assn R\<close>
   apply sepref_to_hoare
@@ -518,7 +518,7 @@ definition arl_of_array_raa :: "'a::heap array \<Rightarrow> ('a array_list) Hea
      return (xs, n)
   }\<close>
 
-lemma arl_of_array_raa[sepref_fr_rules]: \<open>(arl_of_array_raa, RETURN o arl_of_array) \<in>
+lemma arl_of_array_raa: \<open>(arl_of_array_raa, RETURN o arl_of_array) \<in>
        [\<lambda>xs. xs \<noteq> []]\<^sub>a (array_assn R)\<^sup>d \<rightarrow> (arl_assn R)\<close>
   by sepref_to_hoare (sep_auto simp: arl_of_array_raa_def arl_assn_def is_array_list_def hr_comp_def
       array_assn_def is_array_def arl_of_array_def)
