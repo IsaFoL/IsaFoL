@@ -820,7 +820,7 @@ proof
       "Ls \<noteq> []" 
       "eligible S \<sigma> [A] (add_mset (Neg A) (mset D))"
       "strictly_maximal_wrt (A \<cdot>a \<sigma>) ((mset CA - mset Ls) \<cdot> \<sigma>)"
-      "\<forall>L \<in> set Ls. is_pos L)"
+      "\<forall>L \<in> set Ls. is_pos L"
       using Ls_p unfolding resolvable_def unfolding Let_def eligible.simps using S_empty by auto
     from \<sigma>_p have \<sigma>_p2: "the (mgu {insert A (atms_of (mset Ls))}) = \<sigma>"
       by auto
@@ -969,8 +969,7 @@ next
         using Al_p
         by auto
       moreover
-      have "list_all is_pos Ls"
-        using list_all_iff[of is_pos Ls]
+      have "\<forall>L \<in> set Ls. is_pos L"
         by (simp add: Ls_def)
       ultimately have "resolvable A D CA Ls"
         unfolding resolvable_def Let_def unfolding eligible.simps using S_empty by simp
