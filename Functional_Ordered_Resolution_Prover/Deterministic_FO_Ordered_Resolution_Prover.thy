@@ -158,9 +158,9 @@ fun reduce_all2 :: "'a lclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dc
     in
       (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 D Cs))"
 
-fun resolve_on :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
-  "resolve_on _ [] _ _ = []"
-| "resolve_on C (L # Ls) As D =
+fun resolve_on_old :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
+  "resolve_on_old _ [] _ _ = []"
+| "resolve_on_old C (L # Ls) As D =
    (case L of
       Neg _ \<Rightarrow> []
     | Pos A \<Rightarrow>
@@ -176,14 +176,14 @@ fun resolve_on :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a list \<R
                CLs' = map (\<lambda>L. L \<cdot>l \<sigma>) (C @ Ls)
              in
                (if strictly_maximal_wrt A' (mset CLs') then [CLs' @ D'] else [])
-               @ resolve_on (L # C) Ls (A # As) D
+               @ resolve_on_old (L # C) Ls (A # As) D
            else
              []))
-   @ resolve_on (L # C) Ls As D"
+   @ resolve_on_old (L # C) Ls As D"
 
 fun remove_all :: "'b list \<Rightarrow> 'b list \<Rightarrow> 'b list" where
   "remove_all xs [] = xs"
-| "remove_all xs (y#ys) = (if List.member xs y then remove_all (remove1 y xs) ys else remove_all xs ys)"
+| "remove_all xs (y#ys) = (if y \<in> set xs then remove_all (remove1 y xs) ys else remove_all xs ys)"
 
 lemma remove_all_mset_minus: "mset ys \<subseteq># mset xs \<Longrightarrow> mset (remove_all xs ys) = mset xs - mset ys"
 proof (induction ys arbitrary: xs)
@@ -220,7 +220,7 @@ definition resolvable :: "'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \
 definition resolve_on2 :: "'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_on2 A D CA = map (resolvent D A CA) (filter (resolvable A D CA) (subseqs CA))"
 
-declare resolve_on.simps [simp del]
+declare resolve_on_old.simps [simp del]
 
 definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve C D =
@@ -229,7 +229,7 @@ definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lcla
         Pos A \<Rightarrow> []
       | Neg A \<Rightarrow>
         if maximal_wrt A (mset D) then
-          resolve_on [] C [A] (remove1 L D)
+          resolve_on2 A (remove1 L D) C
         else
           [])) D)"
 
@@ -998,13 +998,13 @@ next
 qed
 
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
-  "mset ` set (resolve_on [] C [A] D) =
+  "mset ` set (resolve_on_old [] C [A] D) =
    {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}" (is "?lhs = ?rhs")
 proof
   show "?lhs \<subseteq> ?rhs"
   proof clarify
     fix E
-    assume "E \<in> set (resolve_on [] C [A] D)"
+    assume "E \<in> set (resolve_on_old [] C [A] D)"
     then show "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> (mset E)"
     proof (induct "length C" arbitrary: C A D)
       case (Suc l)
@@ -1016,7 +1016,7 @@ proof
         max: "maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}" and
         e_disj: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># mset C - {#Pos B#}#}
            \<and> E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D
-         \<or> E \<in> set (resolve_on [] (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) [A \<cdot>a \<sigma>] (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
+         \<or> E \<in> set (resolve_on_old [] (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) [A \<cdot>a \<sigma>] (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
         (* using e_in[unfolded resolve_on.simps[of "[]" C "[A]" D] Let_def, simplified] by metis *)
         sorry
 
@@ -1048,7 +1048,7 @@ proof
           by blast
       next
         assume e_in:
-          "E \<in> set (resolve_on [] (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) [A \<cdot>a \<sigma>] (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
+          "E \<in> set (resolve_on_old [] (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) [A \<cdot>a \<sigma>] (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
 
         have l: "l = length (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C))"
           using suc_l b_in by (auto simp: length_remove1)
@@ -1069,30 +1069,30 @@ proof
         then show ?thesis
           by blast
       qed
-    qed (simp add: resolve_on.simps)
+    qed (simp add: resolve_on_old.simps)
   qed
 next
   show "?rhs \<subseteq> ?lhs"
   proof clarify
     fix E AA \<sigma>
     assume "ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
-    show "E \<in> mset ` set (resolve_on [] C [A] D)"
+    show "E \<in> mset ` set (resolve_on_old [] C [A] D)"
       sorry
   qed
-qed
+oops
 
 lemma set_resolve_eq_UNION_set_resolve_on:
   "set (resolve C D) =
    (\<Union>L \<in> set D.
       (case L of
          Pos _ \<Rightarrow> {}
-       | Neg A \<Rightarrow> if maximal_wrt A (mset D) then set (resolve_on [] C [A] (remove1 L D)) else {}))"
+       | Neg A \<Rightarrow> if maximal_wrt A (mset D) then set (resolve_on2 A (remove1 L D) C) else {}))"
   unfolding resolve_def by (fastforce split: literal.splits if_splits)
 
 lemma resolve_eq_Bin_ord_resolve: "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
   unfolding set_resolve_eq_UNION_set_resolve_on
   apply (unfold image_UN literal.case_distrib if_distrib)
-  apply (subst resolve_on_eq_UNION_Bin_ord_resolve)
+  apply (subst resolve_on2_eq_UNION_Bin_ord_resolve)
   apply (auto split: literal.splits if_splits)
    apply force
   apply (rule_tac x = "Neg A" in bexI)
