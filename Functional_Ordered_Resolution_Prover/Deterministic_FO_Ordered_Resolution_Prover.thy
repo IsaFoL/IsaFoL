@@ -197,7 +197,7 @@ next
     then have subs: "mset ys \<subseteq># mset (remove1 y xs)"
       using Cons(2) by (simp add: insert_subset_eq_iff)
     from True show ?thesis 
-      using Cons(1) Cons(2) subs by (auto simp add: member_def)
+      using Cons(1) Cons(2) subs by auto
   next
     case False
     then show ?thesis 
@@ -215,10 +215,10 @@ definition resolvable :: "'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \
       \<and> Ls \<noteq> [] 
       \<and> maximal_wrt (A \<cdot>a the \<sigma>) ((add_mset (Neg A) (mset D)) \<cdot> the \<sigma>)
       \<and> strictly_maximal_wrt (A \<cdot>a the \<sigma>) ((mset CA - mset Ls) \<cdot> the \<sigma>)
-      \<and> list_all is_pos Ls)"
+      \<and> (\<forall>L \<in> set Ls. is_pos L))"
 
-definition resolve_on2 :: "'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
-  "resolve_on2 A D CA = map (resolvent D A CA) (filter (resolvable A D CA) (subseqs CA))"
+definition resolve_on :: "'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
+  "resolve_on A D CA = map (resolvent D A CA) (filter (resolvable A D CA) (subseqs CA))"
 
 declare resolve_on_old.simps [simp del]
 
@@ -229,7 +229,7 @@ definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lcla
         Pos A \<Rightarrow> []
       | Neg A \<Rightarrow>
         if maximal_wrt A (mset D) then
-          resolve_on2 A (remove1 L D) C
+          resolve_on A (remove1 L D) C
         else
           [])) D)"
 
@@ -803,15 +803,15 @@ next
   qed
 qed
 
-lemma resolve_on2_eq_UNION_Bin_ord_resolve:
-  "mset ` set (resolve_on2 A D CA) =
+lemma resolve_on_eq_UNION_Bin_ord_resolve:
+  "mset ` set (resolve_on A D CA) =
    {E. \<exists>AA \<sigma>. ord_resolve S [mset CA] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}"
 proof
   {
     fix E :: "'a literal list"
-    assume "E \<in> set (resolve_on2 A D CA)"
+    assume "E \<in> set (resolve_on A D CA)"
     then have "E \<in> resolvent D A CA ` {Ls. subseq Ls CA \<and> resolvable A D CA Ls}"
-      unfolding resolve_on2_def by simp
+      unfolding resolve_on_def by simp
     then obtain Ls where Ls_p: "resolvent D A CA Ls = E" "subseq Ls CA \<and> resolvable A D CA Ls"
       by auto
     define \<sigma> where "\<sigma> = the (mgu {insert A (atms_of (mset Ls))})"
@@ -820,7 +820,7 @@ proof
       "Ls \<noteq> []" 
       "eligible S \<sigma> [A] (add_mset (Neg A) (mset D))"
       "strictly_maximal_wrt (A \<cdot>a \<sigma>) ((mset CA - mset Ls) \<cdot> \<sigma>)"
-      "list_all is_pos Ls"
+      "\<forall>L \<in> set Ls. is_pos L)"
       using Ls_p unfolding resolvable_def unfolding Let_def eligible.simps using S_empty by auto
     from \<sigma>_p have \<sigma>_p2: "the (mgu {insert A (atms_of (mset Ls))}) = \<sigma>"
       by auto
@@ -862,7 +862,7 @@ proof
     then have "\<exists>AA \<sigma>. ord_resolve S [mset CA] (add_mset (Neg A) (mset D)) [AA] [A] \<sigma> (mset E)"
       using Ls_p by auto
   }
-  then show "mset ` set (resolve_on2 A D CA) \<subseteq> {E. \<exists>AA \<sigma>. ord_resolve S [mset CA] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}" 
+  then show "mset ` set (resolve_on A D CA) \<subseteq> {E. \<exists>AA \<sigma>. ord_resolve S [mset CA] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}" 
     by auto
 next
   {
@@ -990,10 +990,10 @@ next
       unfolding resolvable_def Let_def resolvent_def 
       using Al_p(1) Ls_def atms_of_poss res_foobar(4) by (metis image_mset_union mset_append mset_map option.sel) 
     ultimately
-    have "E \<in> mset ` set (resolve_on2 A D CA)"
-      unfolding resolve_on2_def by auto
+    have "E \<in> mset ` set (resolve_on A D CA)"
+      unfolding resolve_on_def by auto
   }
-  then show "{E. \<exists>AA \<sigma>. ord_resolve S [mset CA] ({#Neg A#} + mset D) [AA] [A] \<sigma> E} \<subseteq> mset ` set (resolve_on2 A D CA)" 
+  then show "{E. \<exists>AA \<sigma>. ord_resolve S [mset CA] ({#Neg A#} + mset D) [AA] [A] \<sigma> E} \<subseteq> mset ` set (resolve_on A D CA)" 
     by auto
 qed
 
@@ -1086,13 +1086,13 @@ lemma set_resolve_eq_UNION_set_resolve_on:
    (\<Union>L \<in> set D.
       (case L of
          Pos _ \<Rightarrow> {}
-       | Neg A \<Rightarrow> if maximal_wrt A (mset D) then set (resolve_on2 A (remove1 L D) C) else {}))"
+       | Neg A \<Rightarrow> if maximal_wrt A (mset D) then set (resolve_on A (remove1 L D) C) else {}))"
   unfolding resolve_def by (fastforce split: literal.splits if_splits)
 
 lemma resolve_eq_Bin_ord_resolve: "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
   unfolding set_resolve_eq_UNION_set_resolve_on
   apply (unfold image_UN literal.case_distrib if_distrib)
-  apply (subst resolve_on2_eq_UNION_Bin_ord_resolve)
+  apply (subst resolve_on_eq_UNION_Bin_ord_resolve)
   apply (auto split: literal.splits if_splits)
    apply force
   apply (rule_tac x = "Neg A" in bexI)
