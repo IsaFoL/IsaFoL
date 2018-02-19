@@ -1836,7 +1836,7 @@ lemma conflict_min_cach_set_removable_hnr[sepref_fr_rules]:
 
 definition mark_failed_lits_stack_inv where
   \<open>mark_failed_lits_stack_inv NU analyse = (\<lambda>cach.
-       (\<forall>(i, j) \<in> set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0))\<close>
+       (\<forall>(i, j) \<in> set analyse. j \<le> length (NU \<propto> i) \<and> i \<in># dom_m NU \<and> j \<ge> 1 \<and> i > 0))\<close>
 
 
 definition (in isasat_input_ops) mark_failed_lits_stack where
@@ -1846,13 +1846,14 @@ definition (in isasat_input_ops) mark_failed_lits_stack where
       (\<lambda>(i, cach). do {
         ASSERT(i < length analyse);
         let (cls_idx, idx) = analyse ! i;
-        ASSERT(atm_of (NU ! cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n);
-        RETURN (i+1, cach (atm_of (NU ! cls_idx ! (idx - 1)) := SEEN_FAILED))
+        ASSERT(atm_of (NU \<propto> cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n);
+        RETURN (i+1, cach (atm_of (NU \<propto> cls_idx ! (idx - 1)) := SEEN_FAILED))
       })
       (0, cach);
    RETURN cach
    }\<close>
 
+(*
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l_tl:
   assumes
     N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl xs))\<close> and \<open>xs \<noteq> []\<close> and
@@ -1860,23 +1861,24 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l_tl
   shows \<open>xs ! i ! j \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>tl xs\<close> \<open>i - 1\<close> j] assms
   by (cases xs) auto
+*)
 
 lemma mark_failed_lits_stack_mark_failed_lits_wl:
   shows
     \<open>(uncurry2 mark_failed_lits_stack, uncurry2 mark_failed_lits_wl) \<in>
-       [\<lambda>((NU, analyse), cach). literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU)) \<and>
+       [\<lambda>((NU, analyse), cach). literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU) \<and>
           mark_failed_lits_stack_inv NU analyse cach]\<^sub>f
        Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
 proof -
   have \<open>mark_failed_lits_stack NU analyse cach \<le> (mark_failed_lits_wl NU analyse cach)\<close>
     if
-      NU_\<L>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU))\<close> and
+      NU_\<L>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU)\<close> and
       init: \<open>mark_failed_lits_stack_inv NU analyse cach\<close>
     for NU analyse cach
   proof -
     define I where
       \<open>I = (\<lambda>(i :: nat, cach'). (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
-    have valid_atm: \<open>atm_of (NU ! cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
+    have valid_atm: \<open>atm_of (NU \<propto> cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
       if
         \<open>I s\<close> and
         \<open>case s of (i, cach) \<Rightarrow> i < length analyse\<close> and
@@ -1890,7 +1892,7 @@ proof -
         using i by (cases analyse) auto
       show ?thesis
         unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
-        apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l_tl)
+        apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l)
         using NU_\<L>\<^sub>i\<^sub>n that  nth_mem[of i analyse]
         by (auto simp: mark_failed_lits_stack_inv_def I_def)
     qed

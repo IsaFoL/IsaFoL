@@ -1,5 +1,5 @@
 theory LBD
-  imports IsaSAT_Trail
+  imports IsaSAT_Trail IsaSAT_Clauses
 begin
 
 type_synonym lbd = \<open>bool list\<close>
@@ -20,12 +20,6 @@ definition lbd_assn :: \<open>lbd \<Rightarrow> lbd_assn \<Rightarrow> assn\<clo
 
 definition level_in_lbd :: \<open>nat \<Rightarrow> lbd \<Rightarrow> bool\<close> where
   \<open>level_in_lbd i = (\<lambda>lbd. i < length lbd \<and> lbd!i)\<close>
-
-definition length_u where
-  [simp]: \<open>length_u xs = length xs\<close>
-
-definition length_aa_u where
-  [simp]: \<open>length_aa_u xs i = length_u (xs ! i)\<close>
 
 definition level_in_lbd_ref :: \<open>nat \<Rightarrow> lbd_ref \<Rightarrow> bool\<close> where
   \<open>level_in_lbd_ref = (\<lambda>i (lbd, _). i < length_u lbd \<and> lbd!i)\<close>

@@ -12,8 +12,8 @@ fun state\<^sub>W_of_init :: "'v twl_st_init \<Rightarrow> 'v cdcl\<^sub>W_resta
   (M, clause `# N + NE + OC, clause `# U + UE,  C)"
 
 fun twl_st_of_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v twl_st_init\<close> where
-  \<open>twl_st_of_init ((M, N, U, C, NE, UE, WS, Q), OC) =
-    ((convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop (Suc U) N),
+  \<open>twl_st_of_init ((M, N, C, NE, UE, WS, Q), OC) =
+    ((convert_lits_l N M, twl_clause_of `# init_clss_lf N, twl_clause_of `# learned_clss_lf N,
        C, NE, UE, {#}, Q), OC)\<close>
 
 definition twl_struct_invs_init :: \<open>'v twl_st_init \<Rightarrow> bool\<close> where
@@ -82,30 +82,36 @@ proof -
     done
 qed
 
-definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init\<close> where
+definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init nres\<close> where
   \<open>init_dt_step C S =
-  (let ((M, N, U, D, NE, UE, WS, Q), OC) = S in
+  (let ((M, N, D, NE, UE, WS, Q), OC) = S in
   (case D of
     None \<Rightarrow>
     if length C = 0
-    then ((M, N, U, Some {#}, NE, UE, {#}, {#}), add_mset {#} OC)
+    then RETURN ((M, N, Some {#}, NE, UE, {#}, {#}), add_mset {#} OC)
     else if length C = 1
     then
       let L = hd C in
       if undefined_lit M L
-      then ((Propagated L 0 # M, N, U, None, add_mset {#L#} NE, UE, WS, add_mset (-L) Q), OC)
+      then RETURN ((Propagated L 0 # M, N, None, add_mset {#L#} NE, UE, WS, add_mset (-L) Q), OC)
       else if L \<in> lits_of_l M
-      then ((M, N, U, None, add_mset {#L#} NE, UE, WS, Q), OC)
-      else ((M, N, U, Some (mset C), add_mset {#L#} NE, UE, {#}, {#}), OC)
+      then RETURN ((M, N, None, add_mset {#L#} NE, UE, WS, Q), OC)
+      else RETURN ((M, N, Some (mset C), add_mset {#L#} NE, UE, {#}, {#}), OC)
     else
       let L = hd C; L' = hd (tl C); C' = tl (tl C) in
-      ((M, N @ [[L, L'] @ C'], length N, None, NE, UE, WS, Q), OC)
+      do {
+        i \<leftarrow> get_fresh_index N;
+        RETURN ((M, fmupd i ([L, L'] @ C', True) N, None, NE, UE, WS, Q), OC)
+      }
   | Some D \<Rightarrow>
-      ((M, N, U, Some D, NE, UE, WS, Q), add_mset (mset C) OC)))\<close>
+      RETURN ((M, N, Some D, NE, UE, WS, Q), add_mset (mset C) OC)))\<close>
 
-fun init_dt :: \<open>'v clauses_l \<Rightarrow> 'v twl_st_l \<times> 'v clauses \<Rightarrow> 'v twl_st_l \<times> 'v clauses\<close> where
-  \<open>init_dt [] S = S\<close>
-| \<open>init_dt (C # CS) S = init_dt_step C (init_dt CS S)\<close>
+fun init_dt :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init nres\<close> where
+  \<open>init_dt [] S = RETURN S\<close>
+| \<open>init_dt (C # CS) S =  do {
+      S \<leftarrow> init_dt_step C S;
+      init_dt CS S
+   }\<close>
 
 lemma init_dt_full:
   fixes CS :: \<open>'v literal list list\<close> and S :: \<open>'v twl_st_l\<close> and OC :: \<open>'v clauses\<close>

@@ -184,21 +184,6 @@ type_synonym (in -) twl_st_wl_heur_W_list =
 definition literals_are_in_\<L>\<^sub>i\<^sub>n_heur where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S = literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf (get_clauses_wl_heur S))\<close>
 
-(*TODO Move to replace literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l*)
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
-  assumes
-    N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf xs)\<close> and
-    i_xs: \<open>i \<in># dom_m xs\<close> and j_xs: \<open>j < length (xs \<propto> i)\<close>
-  shows \<open>xs \<propto> i ! j \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-proof -
-  have \<open>xs \<propto> i \<in># ran_mf xs\<close>
-    using i_xs by auto
-  then have \<open>xs \<propto> i ! j \<in> set_mset (all_lits_of_mm (mset `# ran_mf xs))\<close>
-    using j_xs by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def Bex_def
-      intro!: exI[of _ \<open>xs \<propto> i\<close>])
-  then show ?thesis
-    using N1 unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def by blast
-qed
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0:
   assumes \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S\<close> and
