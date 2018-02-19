@@ -1,5 +1,5 @@
 theory IsaSAT_Setup
-  imports IsaSAT_Trail CDCL_Conflict_Minimisation
+  imports IsaSAT_Trail CDCL_Conflict_Minimisation IsaSAT_Clauses
     Watched_Literals_VMTF IsaSAT_Lookup_Conflict LBD
 begin
 
@@ -14,40 +14,7 @@ lemma [sepref_fr_rules]:
 
 declare option_assn_eq[sepref_comb_rules del]
 
-lemma (in -) twl_struct_invs_length_clause_ge_2:
-  assumes
-    struct: \<open>twl_struct_invs (twl_st_of_wl (Some (L, w)) S)\<close> and
-    i: \<open>i > 0\<close> \<open>i < length (get_clauses_wl S)\<close>
- shows \<open>length (get_clauses_wl S ! i) \<ge> 2\<close>
-proof -
-  obtain M N U D NE UE WS Q where
-    S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
-    by (cases S)
-  have \<open>twl_st_inv (twl_st_of_wl (Some (L, w)) (M, N, U, D, NE, UE, WS, Q))\<close>
-    using struct unfolding S twl_struct_invs_def by fast
-  then have \<open>\<forall>x\<in>set (tl N). 2 \<le> length x \<and> distinct x\<close>
-    by (auto simp: twl_st_inv.simps mset_take_mset_drop_mset')
-  then show ?thesis
-    using i by (auto simp: nth_in_set_tl S)
-qed
-
-lemma (in -) twl_struct_invs_length_clause_ge_2':
-  assumes
-    struct: \<open>twl_struct_invs (twl_st_of_wl LL S)\<close> and
-    i: \<open>i > 0\<close> \<open>i < length (get_clauses_wl S)\<close>
- shows \<open>length (get_clauses_wl S ! i) \<ge> 2\<close>
-proof -
-  obtain M N U D NE UE WS Q where
-    S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
-    by (cases S)
-  have \<open>twl_st_inv (twl_st_of_wl LL (M, N, U, D, NE, UE, WS, Q))\<close>
-    using struct unfolding S twl_struct_invs_def by fast
-  then have \<open>\<forall>x\<in>set (tl N). 2 \<le> length x \<and> distinct x\<close>
-    by (cases LL) (auto simp: twl_st_inv.simps mset_take_mset_drop_mset')
-  then show ?thesis
-    using i by (auto simp: nth_in_set_tl S)
-qed
-
+text \<open>This function does not change the size of the underlying array.\<close>
 definition (in -) take1 where
   \<open>take1 xs = take 1 xs\<close>
 
@@ -110,49 +77,49 @@ type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array 
 type_synonym out_learned = \<open>nat clause_l\<close>
 
 type_synonym twl_st_wll_trail =
-  \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> option_lookup_clause_assn \<times>
+  \<open>trail_pol_assn \<times> clauses_wl \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 type_synonym twl_st_wl_heur =
-  \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
+  \<open>(nat,nat)ann_lits \<times> nat clauses_l \<times>
     nat clause option \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times>
     nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats\<close>
 
 type_synonym twl_st_wl_heur_trail_ref =
-  \<open>trail_pol \<times> nat clause_l list \<times> nat \<times> nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times>
+  \<open>trail_pol \<times> nat clause_l list \<times> nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times>
    vmtf_remove_int \<times> bool list \<times> nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat clauses_l\<close> where
-  \<open>get_clauses_wl_heur (M, N, U, D, _) = N\<close>
+  \<open>get_clauses_wl_heur (M, N, D, _) = N\<close>
 
 fun get_trail_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (nat,nat) ann_lits\<close> where
-  \<open>get_trail_wl_heur (M, N, U, D, _) = M\<close>
+  \<open>get_trail_wl_heur (M, N, D, _) = M\<close>
 
 fun get_conflict_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat clause option\<close> where
-  \<open>get_conflict_wl_heur (_, _, _, D, _) = D\<close>
+  \<open>get_conflict_wl_heur (_, _, D, _) = D\<close>
 
 fun get_watched_list_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat list list\<close> where
-  \<open>get_watched_list_heur (_, _, _, _, _, W, _) = W\<close>
+  \<open>get_watched_list_heur (_, _, _, _, W, _) = W\<close>
 
 fun get_vmtf_heur :: \<open>twl_st_wl_heur \<Rightarrow> vmtf_remove_int\<close> where
-  \<open>get_vmtf_heur (_, _, _, _, _, _, vm, _) = vm\<close>
+  \<open>get_vmtf_heur (_, _, _, _, _, vm, _) = vm\<close>
 
 fun get_phase_saver_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool list\<close> where
-  \<open>get_phase_saver_heur (_, _, _, _, _, _, _, \<phi>, _) = \<phi>\<close>
+  \<open>get_phase_saver_heur (_, _, _, _, _, _, \<phi>, _) = \<phi>\<close>
 
 fun get_count_max_lvls_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
-  \<open>get_count_max_lvls_heur (_, _, _, _, _, _, _, _, clvls, _) = clvls\<close>
+  \<open>get_count_max_lvls_heur (_, _, _, _, _, _, _, clvls, _) = clvls\<close>
 
 fun get_conflict_cach:: \<open>twl_st_wl_heur \<Rightarrow> nat conflict_min_cach\<close> where
-  \<open>get_conflict_cach (_, _, _, _, _, _, _, _, _, cach, _) = cach\<close>
+  \<open>get_conflict_cach (_, _, _, _, _, _, _, _, cach, _) = cach\<close>
 
 fun get_lbd :: \<open>twl_st_wl_heur \<Rightarrow> lbd\<close> where
-  \<open>get_lbd (_, _, _, _, _, _, _, _, _, _, lbd, _) = lbd\<close>
+  \<open>get_lbd (_, _, _, _, _, _, _, _, _, lbd, _) = lbd\<close>
 
 fun get_outlearned_heur :: \<open>twl_st_wl_heur \<Rightarrow> out_learned\<close> where
-  \<open>get_outlearned_heur (_, _, _, _, _, _, _, _, _, _, _, out, _) = out\<close>
+  \<open>get_outlearned_heur (_, _, _, _, _, _, _, _, _, _, out, _) = out\<close>
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -166,8 +133,8 @@ definition cach_refinement_empty where
 
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats), (M, N, U, D, NE, UE, Q, W)).
-    M = M' \<and> N' = N \<and> U' = U \<and>
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats), (M, N, D, NE, UE, Q, W)).
+    M = M' \<and> N' = N \<and>
     D' = D \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
@@ -181,7 +148,7 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
 
 definition twl_st_heur_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_heur_assn =
-  trail_assn *a clauses_ll_assn *a nat_assn *a
+  trail_assn *a clauses_ll_assn *a
   option_lookup_clause_assn *a
   clause_l_assn *a
   arrayO_assn (arl_assn nat_assn) *a
@@ -196,10 +163,10 @@ definition (in isasat_input_ops) twl_st_heur_no_clvls
   :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur_no_clvls =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats), (M, N, U, D, NE, UE, Q, W)).
-    M = M' \<and> N' = N \<and> U' = U \<and>
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats), (M, N, D, NE, UE, Q, W)).
+    M = M' \<and> N' = N \<and>
     D' = D \<and>
-     Q' = Q \<and>
+    Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf M \<and>
     phase_saving \<phi> \<and>
@@ -209,30 +176,45 @@ where
   }\<close>
 
 type_synonym (in -) twl_st_wl_heur_W_list =
-  \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
+  \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times>
     nat cconflict \<times> nat literal list \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
     nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats\<close>
 
 
 definition literals_are_in_\<L>\<^sub>i\<^sub>n_heur where
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S = literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl (get_clauses_wl_heur S)))\<close>
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S = literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf (get_clauses_wl_heur S))\<close>
+
+(*TODO Move to replace literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l*)
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
+  assumes
+    N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf xs)\<close> and
+    i_xs: \<open>i \<in># dom_m xs\<close> and j_xs: \<open>j < length (xs \<propto> i)\<close>
+  shows \<open>xs \<propto> i ! j \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+proof -
+  have \<open>xs \<propto> i \<in># ran_mf xs\<close>
+    using i_xs by auto
+  then have \<open>xs \<propto> i ! j \<in> set_mset (all_lits_of_mm (mset `# ran_mf xs))\<close>
+    using j_xs by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def Bex_def
+      intro!: exI[of _ \<open>xs \<propto> i\<close>])
+  then show ?thesis
+    using N1 unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def by blast
+qed
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0:
   assumes \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S\<close> and
-    \<open>i < length (get_clauses_wl_heur S)\<close> and
-    \<open>j < length (get_clauses_wl_heur S ! i)\<close> and
-    \<open>i > 0\<close>
-  shows \<open>get_clauses_wl_heur S ! i ! j \<in> snd ` D\<^sub>0\<close>
-  using assms literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>tl (get_clauses_wl_heur S)\<close> \<open>i - 1\<close> j]
+    \<open>i \<in># dom_m (get_clauses_wl_heur S)\<close> and
+    \<open>j < length (get_clauses_wl_heur S \<propto> i)\<close>
+  shows \<open>get_clauses_wl_heur S \<propto> i ! j \<in> snd ` D\<^sub>0\<close>
+  using assms literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>get_clauses_wl_heur S\<close> i j]
   by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_heur_def image_image nth_tl)
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0':
   assumes \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S\<close> and
-    \<open>i < length (get_clauses_wl_heur S)\<close> and
-    \<open>j < length (get_clauses_wl_heur S ! i)\<close> and
-    \<open>i > 0\<close> and N: \<open>N = get_clauses_wl_heur S\<close>
-  shows \<open>N ! i ! j \<in> snd ` D\<^sub>0\<close>
-  using literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0[OF assms(1-4)] unfolding N .
+    \<open>i \<in># dom_m (get_clauses_wl_heur S)\<close> and
+    \<open>j < length (get_clauses_wl_heur S \<propto> i)\<close> and
+    N: \<open>N = get_clauses_wl_heur S\<close>
+  shows \<open>N \<propto> i ! j \<in> snd ` D\<^sub>0\<close>
+  using literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0[OF assms(1-3)] unfolding N .
 
 end
 
@@ -253,7 +235,7 @@ definition polarity_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightar
   \<open>polarity_st S = polarity (get_trail_wl S)\<close>
 
 definition (in -) get_conflict_wl_is_None_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None_heur = (\<lambda>(M, N, U, D, Q, W, _). is_None D)\<close>
+  \<open>get_conflict_wl_is_None_heur = (\<lambda>(M, N, D, Q, W, _). is_None D)\<close>
 
 lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
     \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
@@ -283,7 +265,7 @@ definition (in isasat_input_ops) get_conflict_wl_is_Nil_heur :: \<open>twl_st_wl
   \<open>get_conflict_wl_is_Nil_heur S \<longleftrightarrow> get_conflict_wl_heur S = Some {#}\<close>
 
 lemma  (in isasat_input_ops) get_conflict_wll_is_Nil_heur_alt_def:
-  \<open>RETURN o get_conflict_wl_is_Nil_heur = (\<lambda>(M, N, U, D, NE, UE, Q, W).
+  \<open>RETURN o get_conflict_wl_is_Nil_heur = (\<lambda>(M, N, D, NE, UE, Q, W).
    do {
      if is_None D
      then RETURN False
@@ -344,7 +326,7 @@ definition (in isasat_input_ops) literal_is_in_conflict_heur :: \<open>nat liter
   \<open>literal_is_in_conflict_heur L S \<longleftrightarrow> L \<in># the (get_conflict_wl_heur S)\<close>
 
 lemma literal_is_in_conflict_heur_alt_def:
-  \<open>literal_is_in_conflict_heur = (\<lambda>L (M, N, U, D, _). L \<in># the D)\<close>
+  \<open>literal_is_in_conflict_heur = (\<lambda>L (M, N, D, _). L \<in># the D)\<close>
   unfolding literal_is_in_conflict_heur_def by (auto intro!: ext)
 
 lemma literal_is_in_conflict_heur_is_in_conflict_st:

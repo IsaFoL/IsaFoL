@@ -53,6 +53,7 @@ lemma length_u_hnr[sepref_fr_rules]:
         uint32_nat_rel_def br_def list_rel_pres_length
         dest!: nat_of_uint32_uint32_of_nat_id)
 
+(* TODO port
 lemma length_aa_u_hnr[sepref_fr_rules]:
   \<open>(uncurry length_aa_u_code, uncurry (RETURN oo length_aa_u)) \<in>
      [\<lambda>(xs, i). length (xs ! i) \<le> uint_max \<and> i < length xs]\<^sub>a
@@ -62,7 +63,7 @@ lemma length_aa_u_hnr[sepref_fr_rules]:
         length_u_def length_aa_u_code_def length_rll_def
         nth_nat_of_uint32_nth'[symmetric] nat_of_uint32_le_iff
         uint32_nat_rel_def br_def list_rel_pres_length)
-
+*)
 
 definition length_arl_u_code :: \<open>('a::heap) array_list \<Rightarrow> uint32 Heap\<close> where
   \<open>length_arl_u_code xs = do {

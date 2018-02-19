@@ -1,23 +1,23 @@
 theory Watched_Literals_Heuristics
-  imports Watched_Literals_Watch_List_Code_Common IsaSAT_Setup
+  imports Watched_Literals_Watch_List_Code_Common IsaSAT_Setup IsaSAT_Clauses
 begin
 
 subsection \<open>Getters\<close>
 
 fun watched_by_int :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> watched\<close> where
-  \<open>watched_by_int (M, N, U, D, Q, W, _) L = W ! nat_of_lit L\<close>
+  \<open>watched_by_int (M, N, D, Q, W, _) L = W ! nat_of_lit L\<close>
 
 fun (in -) get_watched_wl :: \<open>nat twl_st_wl \<Rightarrow> (nat literal \<Rightarrow> nat list)\<close> where
-  \<open>get_watched_wl (_, _, _, _, _, _, _, W) = W\<close>
+  \<open>get_watched_wl (_, _, _, _, _, _, W) = W\<close>
 
 fun (in -) get_watched_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat list list\<close> where
-  \<open>get_watched_wl_heur (_, _, _, _, _, W, _) = W\<close>
+  \<open>get_watched_wl_heur (_, _, _, _, W, _) = W\<close>
 
 fun literals_to_update_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat lit_queue_wl\<close> where
-  \<open>literals_to_update_wl_heur (M, N, U, D, Q, W, _, _)  = Q\<close>
+  \<open>literals_to_update_wl_heur (M, N, D, Q, W, _, _)  = Q\<close>
 
 fun set_literals_to_update_wl_heur :: \<open>nat lit_queue_wl \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>set_literals_to_update_wl_heur Q (M, N, U, D, _, W') = (M, N, U, D, Q, W')\<close>
+  \<open>set_literals_to_update_wl_heur Q (M, N, D, _, W') = (M, N, D, Q, W')\<close>
 
 definition watched_by_app_heur_pre where
   \<open>watched_by_app_heur_pre = (\<lambda>((S, L), K). nat_of_lit L < length (get_watched_wl_heur S) \<and>
@@ -27,7 +27,7 @@ definition (in -) watched_by_app_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat
   \<open>watched_by_app_heur S L K = watched_by_int S L ! K\<close>
 
 lemma watched_by_app_heur_alt_def:
-  \<open>watched_by_app_heur = (\<lambda>(M, N, U, D, Q, W, _) L K. W ! nat_of_lit L ! K)\<close>
+  \<open>watched_by_app_heur = (\<lambda>(M, N, D, Q, W, _) L K. W ! nat_of_lit L ! K)\<close>
   by (auto simp: watched_by_app_heur_def intro!: ext)
 
 definition (in -) watched_by_app :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
@@ -48,54 +48,55 @@ lemma unit_prop_body_wl_D_invD:
   assumes \<open>unit_prop_body_wl_D_inv S w L\<close>
   shows
     \<open>w < length (watched_by S L)\<close> and
-    \<open>watched_by_app S L w < length (get_clauses_wl S)\<close> and
-    \<open>get_clauses_wl S ! watched_by_app S L w \<noteq> []\<close> and
-    \<open>Suc 0 < length (get_clauses_wl S ! watched_by_app S L w)\<close> and
-    \<open>get_clauses_wl S ! watched_by_app S L w ! 0 \<in> snd ` D\<^sub>0\<close> and
-    \<open>get_clauses_wl S ! watched_by_app S L w ! Suc 0 \<in> snd ` D\<^sub>0\<close> and
+    \<open>watched_by_app S L w \<in># dom_m (get_clauses_wl S)\<close> and
+    \<open>get_clauses_wl S \<propto> watched_by_app S L w \<noteq> []\<close> and
+    \<open>Suc 0 < length (get_clauses_wl S \<propto> watched_by_app S L w)\<close> and
+    \<open>get_clauses_wl S \<propto> watched_by_app S L w ! 0 \<in> snd ` D\<^sub>0\<close> and
+    \<open>get_clauses_wl S \<propto> watched_by_app S L w ! Suc 0 \<in> snd ` D\<^sub>0\<close> and
     \<open>L \<in> snd ` D\<^sub>0\<close> and
     \<open>watched_by_app S L w > 0\<close> and
     \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
     \<open>get_conflict_wl S = None\<close> and
-    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl S ! watched_by_app S L w))\<close> and
-    \<open>distinct (get_clauses_wl S ! watched_by_app S L w)\<close>
+    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl S \<propto> watched_by_app S L w))\<close> and
+    \<open>distinct (get_clauses_wl S \<propto> watched_by_app S L w)\<close>
 proof -
   show \<open>L \<in> snd ` D\<^sub>0\<close>
     using assms unfolding unit_prop_body_wl_D_inv_def by fast
   show \<open>w < length (watched_by S L)\<close>
     using assms unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def by fast
-  show S_L_W_le_S: \<open>watched_by_app S L w < length (get_clauses_wl S)\<close>
+  show S_L_W_le_S: \<open>watched_by_app S L w \<in># dom_m (get_clauses_wl S)\<close>
     using assms unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
-    by fast
-  show \<open>get_clauses_wl S ! watched_by_app S L w \<noteq> []\<close>
+      unit_propagation_inner_loop_body_l_inv_def
+    apply - by normalize_goal+ simp
+  show \<open>get_clauses_wl S \<propto> watched_by_app S L w \<noteq> []\<close>
     using assms twl_struct_invs_length_clause_ge_2[of L w S \<open>watched_by S L ! w\<close>]
     unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
       twl_list_invs_def by force
-  show le: \<open>Suc 0 < length (get_clauses_wl S ! watched_by_app S L w)\<close>
+  show le: \<open>Suc 0 < length (get_clauses_wl S \<propto> watched_by_app S L w)\<close>
     using assms twl_struct_invs_length_clause_ge_2[of L w S \<open>watched_by S L ! w\<close>]
     unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
       twl_list_invs_def by force
-  have nempty: \<open>get_clauses_wl S \<noteq> []\<close> and S_L_w_ge_0: \<open>0 < watched_by_app S L w\<close>
+  have S_L_w_ge_0: \<open>0 < watched_by_app S L w\<close>
     using assms unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
     twl_list_invs_def watched_by_app_def by auto
-  obtain M N U D NE UE W Q where
-    S: \<open>S = (M, N, U, D, NE, UE, Q, W)\<close>
+  obtain M N D NE UE W Q where
+    S: \<open>S = (M, N, D, NE, UE, Q, W)\<close>
     by (cases S)
-  show lits_N: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl S ! watched_by_app S L w))\<close>
+  show lits_N: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl S \<propto> watched_by_app S L w))\<close>
     using assms unfolding unit_prop_body_wl_D_inv_def apply -
     apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_nth[of _ _ M U D NE UE Q W])
     apply (rule S_L_W_le_S)
     apply (rule S_L_w_ge_0)
     using S by (auto simp del: twl_st_of.simps)
-  then show \<open>get_clauses_wl S ! watched_by_app S L w ! 0 \<in> snd ` D\<^sub>0\<close>
-    using le apply (cases \<open>get_clauses_wl S ! watched_by_app S L w\<close>;
-        cases \<open>tl (get_clauses_wl S ! watched_by_app S L w)\<close>)
+  then show \<open>get_clauses_wl S \<propto> watched_by_app S L w ! 0 \<in> snd ` D\<^sub>0\<close>
+    using le apply (cases \<open>get_clauses_wl S \<propto> watched_by_app S L w\<close>;
+        cases \<open>get_clauses_wl S \<propto> watched_by_app S L w\<close>)
     by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_add_mset)
 
-  show \<open>get_clauses_wl S ! watched_by_app S L w ! Suc 0 \<in> snd ` D\<^sub>0\<close>
-    using lits_N le apply (cases \<open>get_clauses_wl S ! watched_by_app S L w\<close>;
-        cases \<open>tl (get_clauses_wl S ! watched_by_app S L w)\<close>;
-        cases \<open>tl (tl (get_clauses_wl S ! watched_by_app S L w))\<close>)
+  show \<open>get_clauses_wl S \<propto> watched_by_app S L w ! Suc 0 \<in> snd ` D\<^sub>0\<close>
+    using lits_N le apply (cases \<open>get_clauses_wl S \<propto> watched_by_app S L w\<close>;
+        cases \<open>tl (get_clauses_wl S \<propto> watched_by_app S L w)\<close>;
+        cases \<open>tl (tl (get_clauses_wl S \<propto> watched_by_app S L w))\<close>)
     by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_add_mset)
 
   show S_L_W_ge_0: \<open>watched_by_app S L w > 0\<close> and
@@ -119,14 +120,14 @@ proof -
      dist:
         \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl (Some (L, w)) S))\<close>
     using struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
-  have \<open>\<forall>D\<in>mset ` set (tl (get_clauses_wl S)). distinct_mset D\<close>
+  have \<open>\<forall>D\<in>mset ` set_mset (ran_mf (get_clauses_wl S)). distinct_mset D\<close>
     apply (subst append_take_drop_id[of \<open>get_learned_wl S\<close>, symmetric])
     unfolding set_append
     using dist
     apply (cases S)
     by (auto simp: drop_Suc clauses_def mset_take_mset_drop_mset
         watched_by_app_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def distinct_mset_set_distinct)
-  then show \<open>distinct (get_clauses_wl S ! watched_by_app S L w)\<close>
+  then show \<open>distinct (get_clauses_wl S \<propto> watched_by_app S L w)\<close>
     using S_L_W_le_S S_L_W_ge_0 nempty
     by (cases S; cases \<open>get_clauses_wl S\<close>)
        (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def distinct_mset_set_distinct
