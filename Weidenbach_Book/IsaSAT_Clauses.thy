@@ -48,7 +48,7 @@ lemma list_fmap_rel_def:
   by (simp add: relAPP_def list_fmap_rel_internal_def)
 
 lemma nth_clauses_l:
-  \<open>(uncurry (RETURN oo op !), uncurry (RETURN oo (\<lambda>N i. N \<propto> i))) 
+  \<open>(uncurry (RETURN oo op !), uncurry (RETURN oo (\<lambda>N i. N \<propto> i)))
     \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f \<langle>R\<rangle>list_fmap_rel unused \<times>\<^sub>r nat_rel \<rightarrow> \<langle>R\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: list_fmap_rel_def)
 
@@ -66,8 +66,8 @@ definition fmap_rll_u :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow
   [simp]: \<open>fmap_rll_u  = fmap_rll\<close>
 
 lemma nth_clauses_rll:
-  \<open>(uncurry2 (RETURN ooo Array_List_Array.nth_rll), uncurry2 (RETURN ooo IsaSAT_Clauses.fmap_rll)) 
-    \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>f 
+  \<open>(uncurry2 (RETURN ooo Array_List_Array.nth_rll), uncurry2 (RETURN ooo IsaSAT_Clauses.fmap_rll))
+    \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>f
       \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_rll_def nth_rll_def)
 
@@ -139,7 +139,7 @@ declare fmap_length_rll_u_def[symmetric, isasat_codegen]
 
 (*TODO rename length_rll_n_uint32*)
 lemma fmap_length_rll_u:
-  \<open>(uncurry (RETURN oo length_rll_n_uint32), uncurry (RETURN oo fmap_length_rll_u)) 
+  \<open>(uncurry (RETURN oo length_rll_n_uint32), uncurry (RETURN oo fmap_length_rll_u))
     \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_length_rll_u_def length_rll_def)
 
@@ -179,7 +179,7 @@ definition fmap_length_rll :: "(nat, 'a literal list \<times> bool) fmap \<Right
 
 (*TODO rename length_rll_n_uint32*)
 lemma fmap_length_rll:
-  \<open>(uncurry (RETURN oo length_rll), uncurry (RETURN oo fmap_length_rll)) 
+  \<open>(uncurry (RETURN oo length_rll), uncurry (RETURN oo fmap_length_rll))
     \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_length_rll_def length_rll_def)
 
@@ -194,7 +194,7 @@ proof -
        \<in> [comp_PRE (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel)
             (\<lambda>(N, i). i \<in># dom_m N)
             (\<lambda>_ (xs, i). i < length xs)
-            (\<lambda>_. True)]\<^sub>a 
+            (\<lambda>_. True)]\<^sub>a
           hrp_comp ((arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k) (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel) \<rightarrow>
            hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
