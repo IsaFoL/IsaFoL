@@ -8,6 +8,19 @@ begin
 
 no_notation Ref.update ("_ := _" 62)
 
+subsection \<open>Not-Related to Refinement\<close>
+
+text \<open>
+  Unlike clarify, this does not split tuple of the form \<^term>\<open>\<exists>T. P T\<close> in the assumption.
+  After calling it, as the variable are not quantified anymore, the simproc does not trigger,
+  allowing to safely call auto/simp/...
+\<close>
+method normalize_goal =
+  (match premises in
+    J[thin]: \<open>\<exists>x. _\<close> \<Rightarrow> \<open>rule exE[OF J]\<close>
+  \<bar> J[thin]: \<open>_ \<and> _\<close> \<Rightarrow> \<open>rule conjE[OF J]\<close>
+  )
+
 
 subsection \<open>Some Tooling for Refinement\<close>
 
