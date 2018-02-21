@@ -189,16 +189,16 @@ abbreviation RP_filtered_measure :: "('a wclause \<Rightarrow> bool) \<Rightarro
   "RP_filtered_measure \<equiv> (\<lambda>p (N, P, Q, n). 
                               (sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) {#Di \<in># N + P + Q. p Di#}), size {#Di \<in># N. p Di#}, size {#Di \<in># P. p Di#}))"
 
-abbreviation RP_combined_measure_new :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
-  "RP_combined_measure_new \<equiv> (\<lambda>w St. ((w + 1) - n_of_wstate St, RP_filtered_measure (\<lambda>(C, i). i \<le> w) St, RP_filtered_measure (\<lambda>Ci. True) St))"
+abbreviation RP_combined_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
+  "RP_combined_measure \<equiv> (\<lambda>w St. ((w + 1) - n_of_wstate St, RP_filtered_measure (\<lambda>(C, i). i \<le> w) St, RP_filtered_measure (\<lambda>Ci. True) St))"
 
-abbreviation(input) RP_filtered_relation_new where
-  "RP_filtered_relation_new \<equiv> natLess <*lex*> natLess <*lex*> natLess"
+abbreviation(input) RP_filtered_relation where
+  "RP_filtered_relation \<equiv> natLess <*lex*> natLess <*lex*> natLess"
 
-abbreviation(input) RP_combined_relation_new where
-  "RP_combined_relation_new \<equiv> natLess <*lex*> RP_filtered_relation_new <*lex*> RP_filtered_relation_new"
+abbreviation(input) RP_combined_relation where
+  "RP_combined_relation \<equiv> natLess <*lex*> RP_filtered_relation <*lex*> RP_filtered_relation"
 
-term "(RP_combined_measure_new w St, RP_combined_measure_new w St2) \<in> RP_combined_relation_new"
+term "(RP_combined_measure w St, RP_combined_measure w St2) \<in> RP_combined_relation"
 
 (* FIXME: these should probably be avioded *)
 abbreviation "(fst3 :: 'b * 'c * 'd \<Rightarrow> 'b) == fst"
@@ -208,10 +208,10 @@ abbreviation "(trd3 :: 'b * 'c * 'd \<Rightarrow> 'd) == \<lambda>x. snd (snd x)
 lemma wf_natLess: "wf natLess"
   unfolding natLess_def using wf_less by auto
 
-lemma wf_RP_filtered_relation: "wf RP_filtered_relation_new"
+lemma wf_RP_filtered_relation: "wf RP_filtered_relation"
   using wf_natLess wf_mult by auto
 
-lemma wf_RP_combined_relation_new: "wf RP_combined_relation_new"
+lemma wf_RP_combined_relation: "wf RP_combined_relation"
   using wf_natLess wf_mult by auto
 
 lemma weighted_RP_if_weighted_RP_Non_Inference: "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St' \<Longrightarrow> St \<leadsto>\<^sub>w St'"
@@ -273,7 +273,7 @@ qed
 
 lemma weighted_RP_Non_Inference_measure_decreasing:
   assumes "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St'"
-  shows "((RP_filtered_measure (\<lambda>Ci. True)) St', (RP_filtered_measure (\<lambda>Ci. True)) St) \<in> RP_filtered_relation_new"
+  shows "((RP_filtered_measure (\<lambda>Ci. True)) St', (RP_filtered_measure (\<lambda>Ci. True)) St) \<in> RP_filtered_relation"
 using weighted_RP_if_weighted_RP_Non_Inference[OF assms(1)] using assms proof (induction rule: weighted_RP.induct)
   case (tautology_deletion A C' N i' P Q n)
   then show ?case
@@ -339,7 +339,7 @@ qed
 lemma weighted_RP_Inference_measure_decreasing:
   assumes "St \<leadsto>\<^sub>w St'"
   assumes "(C, i) \<in># wP_of_wstate St"
-  shows "(RP_combined_measure_new (weight (C, i)) St', RP_combined_measure_new (weight (C, i)) St) \<in> RP_combined_relation_new"
+  shows "(RP_combined_measure (weight (C, i)) St', RP_combined_measure (weight (C, i)) St) \<in> RP_combined_relation"
 using assms proof (induction rule: weighted_RP.induct)
   case (tautology_deletion A C' N i' P Q n)
   then show ?case 
@@ -363,29 +363,29 @@ next
     apply (rule multiset_filter_mono) using P'_sub_P by auto
   
   (* First component *)
-  have "fst3 (RP_combined_measure_new (weight (C, i)) St') \<le> fst3 (RP_combined_measure_new (weight (C, i)) St)" 
+  have "fst3 (RP_combined_measure (weight (C, i)) St') \<le> fst3 (RP_combined_measure (weight (C, i)) St)" 
     unfolding St'_def St_def by auto
   moreover
   (* Second component *)
   from P'_subeq_P_filter have "(\<Sum>x\<in>#{#(Ca, ia) \<in># P'. ia \<le> weight (C, i)#}. case x of (C, i) \<Rightarrow> Suc (size C))
     \<le> (\<Sum>x\<in>#{#(Ca, ia) \<in># P. ia \<le> weight (C, i)#}. case x of (C, i) \<Rightarrow> Suc (size C))"
     by (rule sum_image_mset_mono)
-  then have "fst3 (snd3 (RP_combined_measure_new (weight (C, i)) St')) \<le> fst3 (snd3 (RP_combined_measure_new (weight (C, i)) St))" 
+  then have "fst3 (snd3 (RP_combined_measure (weight (C, i)) St')) \<le> fst3 (snd3 (RP_combined_measure (weight (C, i)) St))" 
     unfolding St'_def St_def by auto
   moreover
-  have "snd3 (snd3 (RP_combined_measure_new (weight (C, i)) St')) \<le> snd3 (snd3 (RP_combined_measure_new (weight (C, i)) St))" 
+  have "snd3 (snd3 (RP_combined_measure (weight (C, i)) St')) \<le> snd3 (snd3 (RP_combined_measure (weight (C, i)) St))" 
     unfolding St'_def St_def by auto
   moreover
   from P'_subeq_P_filter have "size {#(Ca, ia) \<in># P'. ia \<le> weight (C, i)#} \<le> size {#(Ca, ia) \<in># P. ia \<le> weight (C, i)#}"
     by (simp add: size_mset_mono)
-  then have "trd3 (snd3 (RP_combined_measure_new (weight (C, i)) St')) \<le> trd3 (snd3 (RP_combined_measure_new (weight (C, i)) St))" 
+  then have "trd3 (snd3 (RP_combined_measure (weight (C, i)) St')) \<le> trd3 (snd3 (RP_combined_measure (weight (C, i)) St))" 
     unfolding St'_def St_def unfolding fst_def snd_def by auto
   (* Third component *)
   moreover
   from P'_sub_P have "(\<Sum>(C, i)\<in>#P'. Suc (size C)) < (\<Sum>(C, i)\<in>#P. Suc (size C))"
     using multiset_sum_monotone_f'[of "{#(E, k) \<in># P. E \<noteq> C'#}" P size]
     unfolding P'_def by metis
-  then have "fst3 (trd3 (RP_combined_measure_new (weight (C, i)) St')) < fst3 (trd3 (RP_combined_measure_new (weight (C, i)) St))" 
+  then have "fst3 (trd3 (RP_combined_measure (weight (C, i)) St')) < fst3 (trd3 (RP_combined_measure (weight (C, i)) St))" 
     unfolding P'_def St'_def St_def by auto 
   ultimately show ?case
     unfolding natLess_def P'_def St'_def St_def by auto
@@ -448,7 +448,7 @@ next
        by (simp add: multiset_filter_mono)  
 
     (* First component *)
-    have "fst3 (RP_combined_measure_new (weight (C, i)) St') \<le> fst3 (RP_combined_measure_new (weight (C, i)) St)" 
+    have "fst3 (RP_combined_measure (weight (C, i)) St') \<le> fst3 (RP_combined_measure (weight (C, i)) St)" 
       unfolding St'_def St_def by auto
     moreover
     (* Second component *)
@@ -461,13 +461,13 @@ next
       unfolding St_def by auto
     finally have "fst (RP_filtered_measure ((\<lambda>(D, ia). ia \<le> weight (C, i))) St') \<le> fst (RP_filtered_measure ((\<lambda>(D, ia). ia \<le> weight (C, i))) St)"
       by auto
-    then have "fst3 (snd3 (RP_combined_measure_new (weight (C, i)) St')) \<le> fst3 (snd3 (RP_combined_measure_new (weight (C, i)) St))"
+    then have "fst3 (snd3 (RP_combined_measure (weight (C, i)) St')) \<le> fst3 (snd3 (RP_combined_measure (weight (C, i)) St))"
       by auto
     moreover
-    have "snd3 (snd3 (RP_combined_measure_new (weight (C, i)) St')) = snd3 (snd3 (RP_combined_measure_new (weight (C, i)) St))"
+    have "snd3 (snd3 (RP_combined_measure (weight (C, i)) St')) = snd3 (snd3 (RP_combined_measure (weight (C, i)) St))"
       unfolding St_def St'_def using N_low_weight_empty by auto
     moreover
-    have "trd3 (snd3 (RP_combined_measure_new (weight (C, i)) St')) < trd3 (snd3 (RP_combined_measure_new (weight (C, i)) St))"
+    have "trd3 (snd3 (RP_combined_measure (weight (C, i)) St')) < trd3 (snd3 (RP_combined_measure (weight (C, i)) St))"
       unfolding St_def St'_def using i'_le_w_Ci 
       by (simp add: le_imp_less_Suc multiset_filter_mono size_mset_mono)
     ultimately show ?thesis
@@ -746,7 +746,7 @@ proof (rule ccontr)
     by auto
   then have no_inf_from_last: "\<forall>y. \<not> llast Sts \<leadsto>\<^sub>w y" 
     using full_chain_iff_chain[of "op \<leadsto>\<^sub>w" Sts] full_deriv by auto
-  
+
   from assms obtain C where
     "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))
        \<union> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
@@ -755,7 +755,7 @@ proof (rule ccontr)
     "enat i < llength Sts"
     "\<And>j. i \<le> j \<Longrightarrow> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j)) \<union> P_of_state (state_of_wstate (lnth Sts j))"
     unfolding Liminf_llist_def by auto
- 
+
   have C_in_llast: "C \<in> N_of_state (state_of_wstate (llast Sts)) \<union> P_of_state (state_of_wstate (llast Sts))"
   proof -
     obtain l where l_p: "enat l < llength Sts \<and> lnth Sts l = llast Sts \<and> (\<forall>j<llength Sts. j \<le> enat l)"
@@ -796,7 +796,7 @@ proof (rule ccontr)
     then obtain D j where "(D, j) \<in># P"
       unfolding P_def by (cases "llast Sts") auto
     then have "weight (D, j) \<in> weight ` set_mset P"
-       by auto
+      by auto
     then have "\<exists>w. is_least (\<lambda>w. w \<in> (weight ` set_mset P)) w"
       using least_exists by auto
     then have "\<exists>D j. (\<forall>(D', j') \<in># P. weight (D, j) \<le> weight (D', j')) \<and> (D, j) \<in># P"
@@ -805,7 +805,7 @@ proof (rule ccontr)
       and Dj_in_p: "(D, j) \<in># P"
       by auto
     from min have min: "(\<forall>(D', j') \<in># P - {#(D, j)#}. weight (D, j) \<le> weight (D', j'))"
-        using mset_subset_diff_self[OF Dj_in_p] by auto
+      using mset_subset_diff_self[OF Dj_in_p] by auto
     define N' where "N' = mset_set ((\<lambda>D'. (D', n)) ` concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (set_mset (image_mset fst Q)) D))"
     have "llast Sts \<leadsto>\<^sub>w (N', {#(D', j') \<in># P - {# (D, j) #}. D' \<noteq> D#}, Q + {#(D,j)#}, Suc n)"
       using weighted_RP.inference_computation[of "P - {#(D, j)#}" D j N' n Q, OF min N'_def]
@@ -817,10 +817,10 @@ proof (rule ccontr)
       by auto
   }
   ultimately have "\<exists>St'. llast Sts \<leadsto>\<^sub>w St'"
-     by auto
-   then show False
-     using no_inf_from_last by metis
- qed
+    by auto
+  then show False
+    using no_inf_from_last by metis
+qed
 
 lemma ldrop_Suc_conv_ltl: "ldrop (enat (Suc k)) xs = ltl (ldrop (enat k) xs)"
   by (metis eSuc_enat ldrop_eSuc_conv_ltl) 
@@ -943,11 +943,9 @@ next
       unfolding St_def St'_def using P by auto
     from ldrop_inf have "R St St'"
       using non_infer_chain unfolding St_def St'_def using infinite_chain_lnth_rel[of "ldrop (enat k) Sts" R j] by auto
-    then have "(m St', m St)
-        \<in> mR" 
+    then have "(m St', m St) \<in> mR" 
       using measure_decreasing P' by auto
-    then have "(lnth (lmap m (ldrop (enat k) Sts)) (j + 1), lnth (lmap m (ldrop (enat k) Sts)) j)
-        \<in> mR"
+    then have "(lnth (lmap m (ldrop (enat k) Sts)) (j + 1), lnth (lmap m (ldrop (enat k) Sts)) j) \<in> mR"
       unfolding St_def St'_def using lnth_lmap 
       by (smt enat.distinct(1) enat_add_left_cancel enat_ord_simps(4) inf ldrop_lmap llength_lmap lnth_ldrop plus_enat_simps(3)) 
   }
@@ -971,9 +969,6 @@ proof (rule ccontr)
   then show False
   proof
     assume "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))"
-      (* You need a persistent_wclause_if_persistent_clause for N.
-         No. You don't need that. The following arguments should work even when the
-         numbers change! *)
     then obtain x where "enat x < llength Sts"
       "\<forall>xa. x \<le> xa \<and> enat xa < llength Sts \<longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts xa))"
       unfolding Liminf_llist_def by auto
@@ -987,7 +982,6 @@ proof (rule ccontr)
       using deriv inf inff inf_chain_ldrop_chain by auto
     have in_N_j: "\<And>j. \<exists>i. (C, i) \<in># wN_of_wstate (lnth (ldrop k Sts) j)"
       using k_p by (simp add: add.commute inf)
-    (* ultimately *)
     have "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop k Sts)"
     proof (rule lnth_rel_chain)
       show "\<not> lnull (ldrop (enat k) Sts)"
@@ -1007,10 +1001,10 @@ proof (rule ccontr)
           unfolding weighted_RP_Non_Inference_def by auto
       qed
     qed
-    then have "chain (\<lambda>x y. (x, y) \<in> RP_filtered_relation_new)\<inverse>\<inverse> (lmap (RP_filtered_measure (\<lambda>Ci. True)) (ldrop k Sts))"
+    then have "chain (\<lambda>x y. (x, y) \<in> RP_filtered_relation)\<inverse>\<inverse> (lmap (RP_filtered_measure (\<lambda>Ci. True)) (ldrop k Sts))"
       using inff inf infinite_chain_relation_measure weighted_RP_Non_Inference_measure_decreasing by blast
     then show False
-      using wfP_iff_no_infinite_down_chain_llist[of "\<lambda>x y. (x, y) \<in> RP_filtered_relation_new"] 
+      using wfP_iff_no_infinite_down_chain_llist[of "\<lambda>x y. (x, y) \<in> RP_filtered_relation"] 
         wf_RP_filtered_relation inff
       by (metis (no_types, lifting) inf_llist_lnth ldrop_enat_inf_llist lfinite_inf_llist 
         lfinite_lmap wfPUNIVI wf_induct_rule)
@@ -1037,14 +1031,14 @@ proof (rule ccontr)
       using deriv 
       using inf_chain_ldrop_chain inf inff
       by auto
-    then have "chain (\<lambda>x y. (x, y) \<in> RP_combined_relation_new)\<inverse>\<inverse> (lmap (RP_combined_measure_new (weight (C, i))) (ldrop k Sts))"
+    then have "chain (\<lambda>x y. (x, y) \<in> RP_combined_relation)\<inverse>\<inverse> (lmap (RP_combined_measure (weight (C, i))) (ldrop k Sts))"
       using inff inf Ci_in
-      using infinite_chain_relation_measure[of "\<lambda>St. (C, i) \<in># wP_of_wstate St" "op \<leadsto>\<^sub>w" "RP_combined_measure_new (weight (C, i))" ]
+      using infinite_chain_relation_measure[of "\<lambda>St. (C, i) \<in># wP_of_wstate St" "op \<leadsto>\<^sub>w" "RP_combined_measure (weight (C, i))" ]
       using weighted_RP_Inference_measure_decreasing
       by auto
     then show False
-      using wfP_iff_no_infinite_down_chain_llist[of "\<lambda>x y. (x, y) \<in> RP_combined_relation_new"] 
-        wf_RP_combined_relation_new inff
+      using wfP_iff_no_infinite_down_chain_llist[of "\<lambda>x y. (x, y) \<in> RP_combined_relation"] 
+        wf_RP_combined_relation inff
       by (metis (no_types, lifting) inf_llist_lnth ldrop_enat_inf_llist lfinite_inf_llist 
         lfinite_lmap wfPUNIVI wf_induct_rule)
   qed
