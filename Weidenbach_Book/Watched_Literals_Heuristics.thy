@@ -710,15 +710,15 @@ lemma twl_st_heur_state_simp:
      \<open>get_conflict_wl_heur S = get_conflict_wl S'\<close> and
      \<open>literals_to_update_wl_heur S = literals_to_update_wl S'\<close>
   using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
-
+ 
 lemma twl_st_heur_literals_are_in_\<L>\<^sub>i\<^sub>n_heur:
-  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n S'\<close> and \<open>(S, S') \<in> twl_st_heur\<close> and
-  \<open>twl_struct_invs (twl_st_of_wl b S')\<close>
+  assumes lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n S'\<close> and SS': \<open>(S, S') \<in> twl_st_heur\<close>
   shows
     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S\<close>
-  using assms
-  using literals_are_\<L>\<^sub>i\<^sub>n_clauses_literals_are_in_\<L>\<^sub>i\<^sub>n[of S' b]
-  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_heur_def clauses_twl_st_of_wl twl_st_heur_state_simp
+  using SS' unfolding  is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+   literals_are_in_\<L>\<^sub>i\<^sub>n_heur_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def
+   lits[unfolded is_\<L>\<^sub>a\<^sub>l\<^sub>l_def]
+  by (auto simp: twl_st_heur_state_simp all_lits_of_mm_union
     simp del: twl_st_of_wl.simps)
 
 ML \<open>
@@ -795,11 +795,9 @@ proof -
     unit_prop_body_wl_D_inv x2a x2 x1a \<Longrightarrow>
        access_lit_in_clauses_heur_pre ((x2c, watched_by_int x2c x1c ! x2b), 0)\<close>
     for x2c x2b x1c x y x1 x1a x2 x2a x1b
-    using twl_struct_invs_length_clause_ge_2'[of \<open>(Some (x1c, x2))\<close> x2a \<open>(watched_by x2a x1c ! x2)\<close>]
-    by (auto simp: unit_prop_body_wl_heur_inv_def access_lit_in_clauses_heur_pre_def
-        unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
-        twl_st_heur_state_simp twl_list_invs_def length_rll_def
-        simp del: twl_st_of_wl.simps get_clauses_wl.simps)
+    using unit_prop_body_wl_D_invD[of x2a x2 x1a]
+    by (auto simp:  access_lit_in_clauses_heur_pre_def
+        twl_st_heur_state_simp length_rll_def watched_by_app_def)
   have access_lit_in_clauses_heur_pre2: \<open>(x, y)
     \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
        twl_st_heur \<Longrightarrow>
@@ -809,13 +807,11 @@ proof -
     x = (x1b, x2c) \<Longrightarrow>
     unit_prop_body_wl_D_inv x2a x2 x1a \<Longrightarrow>
     access_lit_in_clauses_heur_pre ((x2c, watched_by_int x2c x1c ! x2b),
-      1 - (if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) ! 0 = x1c then 0 else 1))\<close>
+      1 - (if get_clauses_wl_heur x2c \<propto> (watched_by_int x2c x1c ! x2b) ! 0 = x1c then 0 else 1))\<close>
     for x y x1 x1a x2 x2a x1b x1c x2b x2c
-    using twl_struct_invs_length_clause_ge_2'[of \<open>(Some (x1c, x2))\<close> x2a \<open>(watched_by x2a x1c ! x2)\<close>]
-    by (auto simp: access_lit_in_clauses_heur_pre_def
-        unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
-        twl_st_heur_state_simp twl_list_invs_def length_rll_def
-        simp del: twl_st_of_wl.simps get_clauses_wl.simps)
+    using unit_prop_body_wl_D_invD[of x2a x2 x1a]
+    by (auto simp:  access_lit_in_clauses_heur_pre_def
+        twl_st_heur_state_simp length_rll_def watched_by_app_def)
   have in_D0: \<open>x2d \<in> snd ` D\<^sub>0\<close>
   if
     \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur\<close> and
@@ -826,17 +822,15 @@ proof -
     inv': \<open>unit_prop_body_wl_D_inv x2a x2 x1a\<close> and
     \<open>unit_prop_body_wl_heur_inv x2c x2b x1c\<close> and
     \<open>(x2c,
-      get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
-      (1 - (if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) ! 0 =
+      get_clauses_wl_heur x2c \<propto> (watched_by_int x2c x1c ! x2b) !
+      (1 - (if get_clauses_wl_heur x2c \<propto> (watched_by_int x2c x1c ! x2b) ! 0 =
                x1c
             then 0 else 1))) =
      (x1d, x2d)\<close>
     for x y x1 x1a x2 x2a x1b x1c x2b x2c x1d x2d
-  proof -
-    show ?thesis
-     using unit_prop_body_wl_D_invD(5-6)[OF inv'] that
-     by (auto simp: image_image twl_st_heur_def map_fun_rel_def watched_by_app_def)
-  qed
+    using unit_prop_body_wl_D_invD(5-6)[OF inv'] that
+    by (auto simp: image_image twl_st_heur_def map_fun_rel_def watched_by_app_def)
+
   have find_unwatched_wl_st_heur_pre:
     \<open>find_unwatched_wl_st_heur_pre (x2c, watched_by_int x2c x1c ! x2b)\<close>
   if
@@ -851,7 +845,7 @@ proof -
   proof -
     have [simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur x2c\<close> and
        heur: \<open>(x2c, x2a) \<in> twl_st_heur\<close>
-      apply (rule twl_st_heur_literals_are_in_\<L>\<^sub>i\<^sub>n_heur[of x2a _ \<open>Some (x1c, x2)\<close>])
+      apply (rule twl_st_heur_literals_are_in_\<L>\<^sub>i\<^sub>n_heur[of x2a])
       using inv' xy unfolding st
       by (auto simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         simp del: twl_st_of_wl.simps)
@@ -878,14 +872,14 @@ proof -
       x2a\<close> and
       f: \<open>f = None\<close> \<open>fa = None\<close> and
       pol: \<open>polarity (get_trail_wl_heur x2c)
-      (get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
-       (1 - (if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) ! 0 =
+      (get_clauses_wl_heur x2c \<propto> (watched_by_int x2c x1c ! x2b) !
+       (1 - (if get_clauses_wl_heur x2c \<propto> (watched_by_int x2c x1c ! x2b) ! 0 =
                 x1c
              then 0 else 1))) =
      Some False\<close>
       \<open>polarity (get_trail_wl x2a)
-      (get_clauses_wl x2a ! (watched_by x2a x1a ! x2) !
-       (1 - (if get_clauses_wl x2a ! (watched_by x2a x1a ! x2) ! 0 = x1a then 0
+      (get_clauses_wl x2a \<propto> (watched_by x2a x1a ! x2) !
+       (1 - (if get_clauses_wl x2a \<propto> (watched_by x2a x1a ! x2) ! 0 = x1a then 0
              else 1))) =
      Some False\<close>
     for x y x1 x1a x2 x2a x1b x1c x2b x2c f fa
@@ -913,7 +907,7 @@ proof -
     moreover have \<open>out_learned (get_trail_wl x2a) None (get_outlearned_heur x2c)\<close>
       using heur \<open>get_conflict_wl x2a = None\<close> unfolding twl_st_heur_def by auto
     ultimately  show ?thesis
-      using heur unit_prop_body_wl_D_invD[OF inv']  that
+      using unit_prop_body_wl_D_invD[OF inv']  that
       unfolding set_conflict_wl_heur_pre_def find_unwatched_wl_st_heur_pre_def
       by (auto simp: twl_st_heur_state_simp twl_st_heur_state_simp_watched[OF heur]
         watched_by_app_def)
