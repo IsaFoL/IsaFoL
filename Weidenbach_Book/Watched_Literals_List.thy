@@ -56,14 +56,11 @@ fun get_unit_learned_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<c
 fun get_init_clauses :: \<open>'v twl_st \<Rightarrow> 'v twl_clss\<close> where
   \<open>get_init_clauses (M, N, U, D, NE, UE, WS, Q) = N\<close>
 
-fun unit_init_clauses :: \<open>'v twl_st \<Rightarrow> 'v clauses\<close> where
-  \<open>unit_init_clauses (M, N, U, D, NE, UE, WS, Q) = NE\<close>
-
 fun get_unit_init_clauses :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
   \<open>get_unit_init_clauses (M, N, D, NE, UE, WS, Q) = NE\<close>
 
-fun get_unit_learned_clauses :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
-  \<open>get_unit_learned_clauses (M, N, D, NE, UE, WS, Q) = UE\<close>
+fun get_unit_learned_clss :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
+  \<open>get_unit_learned_clss (M, N, D, NE, UE, WS, Q) = UE\<close>
 
 lemma state_decomp_to_state:
   \<open>(case S of (M, N, U, D, NE, UE, WS, Q) \<Rightarrow> P M N U D NE UE WS Q) =

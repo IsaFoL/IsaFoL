@@ -35,11 +35,18 @@ fun get_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v cconflict\<close> wh
 fun get_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses_l\<close> where
   \<open>get_clauses_wl (M, N, D, NE, UE, WS, Q) = N\<close>
 
-fun get_unit_learned :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
-  \<open>get_unit_learned (M, N, D, NE, UE, Q, W)  = UE\<close>
+fun get_unit_learned_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_unit_learned_clss_wl (M, N, D, NE, UE, Q, W) = UE\<close>
 
-fun get_unit_init_clss :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
-  \<open>get_unit_init_clss (M, N, D, NE, UE, Q, W) =  NE\<close>
+fun get_unit_init_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_unit_init_clss_wl (M, N, D, NE, UE, Q, W) = NE\<close>
+
+fun get_unit_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_unit_clss_wl (M, N, D, NE, UE, Q, W) = NE + UE\<close>
+
+lemma get_unit_clss_wl_alt_def:
+  \<open>get_unit_clss_wl S = get_unit_init_clss_wl S + get_unit_learned_clss_wl S\<close>
+  by (cases S) auto
 
 definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset\<close> where
 \<open>all_lits_of_mm Ls = Pos `# (atm_of `# (\<Union># Ls)) + Neg `# (atm_of `# (\<Union># Ls))\<close>
@@ -135,6 +142,9 @@ lemma [twl_st_wl]:
     \<open>L \<noteq> None \<Longrightarrow> get_conflict_wl S = None \<Longrightarrow> clauses_to_update_l T =
        clauses_to_update_wl S (fst (the L)) (snd (the L))\<close> and
     \<open>literals_to_update_l T = literals_to_update_wl S\<close>
+    \<open>get_unit_learned_clauses_l T = get_unit_learned_clss_wl S\<close>
+    \<open>get_unit_init_clauses_l T = get_unit_init_clss_wl S\<close>
+    \<open>get_unit_learned_clauses_l T = get_unit_learned_clss_wl S\<close>
   using assms unfolding state_wl_l_def all_clss_lf_ran_m[symmetric]
   by (cases S; cases T; cases L; auto split: option.splits simp: trail.simps; fail)+
 
@@ -150,9 +160,10 @@ lemma correct_watching_set_literals_to_update[simp]:
   \<open>correct_watching (set_literals_to_update_wl WS T') = correct_watching T'\<close>
   by (cases T') (auto simp: correct_watching.simps)
 
-lemma get_conflict_wl_set_literals_to_update_wl:
+lemma get_conflict_wl_set_literals_to_update_wl[twl_st_l]:
   \<open>get_conflict_wl (set_literals_to_update_wl P S) = get_conflict_wl S\<close>
-  by (cases S) auto
+  \<open>get_unit_clss_wl (set_literals_to_update_wl P S) = get_unit_clss_wl S\<close>
+  by (cases S; auto; fail)+
 
 lemma [twl_st_l]:
   \<open>get_clauses_l (remove_one_lit_from_wq L S) = get_clauses_l S\<close>
@@ -169,7 +180,7 @@ definition unit_prop_body_wl_inv where
     (\<exists>T'. (T, T') \<in> state_wl_l (Some (L, i)) \<and>
     unit_propagation_inner_loop_body_l_inv L (watched_by T L ! i)
        (remove_one_lit_from_wq (watched_by T L ! i) T')\<and>
-    L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) + get_unit_init_clss T) \<and>
+    L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) + get_unit_init_clss_wl T) \<and>
     correct_watching T \<and>
     i < length (watched_by T L) \<and>
     get_conflict_wl T = None
@@ -261,19 +272,19 @@ lemma init_clss_state_to_l[twl_st_l]: \<open>(S, S') \<in> twl_st_l L \<Longrigh
   init_clss (state\<^sub>W_of S') = mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S\<close>
   by (cases S) (auto simp: twl_st_l_def init_clss.simps mset_take_mset_drop_mset')
 
-text \<open>TODO get_unit_init_clss must be renamed\<close>
-lemma get_unit_init_clauses_l_get_unit_init_clss[twl_st_wl]: \<open>(S, S') \<in> state_wl_l L \<Longrightarrow>
-  get_unit_init_clauses_l S' = get_unit_init_clss S\<close>
+text \<open>TODO get_unit_init_clss_wl must be renamed\<close>
+lemma get_unit_init_clauses_l_get_unit_init_clss_wl[twl_st_wl]: \<open>(S, S') \<in> state_wl_l L \<Longrightarrow>
+  get_unit_init_clauses_l S' = get_unit_init_clss_wl S\<close>
   by (cases S; cases L) (auto simp: state_wl_l_def)
 
 
 lemma [twl_st_l]:
   \<open>get_unit_init_clauses_l (set_clauses_to_update_l Cs S) = get_unit_init_clauses_l S\<close>
-  by (cases S) auto
+  by (cases S; auto; fail)+
 
 lemma [twl_st_l]:
   \<open>get_unit_init_clauses_l (remove_one_lit_from_wq L S) = get_unit_init_clauses_l S\<close>
-  by (cases S) auto
+  by (cases S; auto; fail)+
 
 lemma unit_init_clauses_get_unit_init_clauses_l[twl_st_l]:
   \<open>(S, T) \<in> twl_st_l L \<Longrightarrow> unit_init_clauses T = get_unit_init_clauses_l S\<close>
@@ -415,7 +426,7 @@ proof -
       \<open>L \<notin> lits_of_l (get_trail_wl S)\<close>
       using S_S' T_T' n_d by (auto simp: Decided_Propagated_in_iff_in_lits_of_l twl_st
         dest: no_dup_consistentD)
-    have \<open>L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss S)\<close>
+    have \<open>L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)\<close>
       using alien uL_M twl_st_l(1-8)[OF T_T'] S_S'
         init_clss_state_to_l[OF T_T']
         unit_init_clauses_get_unit_init_clauses_l[OF T_T']
@@ -790,7 +801,7 @@ definition unit_propagation_outer_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> '
       (\<lambda>S. do {
         ASSERT(literals_to_update_wl S \<noteq> {#});
         (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl S;
-        ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') + get_unit_init_clss S'));
+        ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') + get_unit_clss_wl S'));
         unit_propagation_inner_loop_wl L S'
       })
       (S\<^sub>0 :: 'v twl_st_wl)
@@ -799,7 +810,7 @@ definition unit_propagation_outer_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> '
 text \<open>TODO Move\<close>
 lemma [twl_st_wl]:
   \<open>get_clauses_wl (set_literals_to_update_wl W S) = get_clauses_wl S\<close>
-  \<open>get_unit_init_clss (set_literals_to_update_wl W S) = get_unit_init_clss S\<close>
+  \<open>get_unit_init_clss_wl (set_literals_to_update_wl W S) = get_unit_init_clss_wl S\<close>
   by (cases S; auto; fail)+
 
 lemma unit_propagation_outer_loop_wl_spec:
@@ -825,7 +836,7 @@ proof -
    \<open>select_and_remove_from_literals_to_update_wl S' \<le>
      \<Down> {((T', L'), (T, L)). L = L' \<and> (T', T) \<in> state_wl_l (Some (L, 0)) \<and>
          T' = set_literals_to_update_wl (literals_to_update_wl S' - {#L#}) S' \<and> L \<in># literals_to_update_wl S' \<and>
-         L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') + get_unit_init_clss S')
+         L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') + get_unit_clss_wl S')
        }
        (select_and_remove_from_literals_to_update S)\<close>
     if S: \<open>(S', S) \<in> state_wl_l None\<close> and \<open>get_conflict_wl S' = None\<close> and
@@ -1391,11 +1402,11 @@ proof -
            \<subseteq> atms_of_ms
               ((\<lambda>x. mset (fst x)) `
                {a. a \<in># ran_m (get_clauses_wl S') \<and> snd a}) \<union>
-             atms_of_mm (get_unit_init_clss S')\<close> and
+             atms_of_mm (get_unit_init_clss_wl S')\<close> and
        no_alien: \<open>atms_of DS \<subseteq> atms_of_ms
                   ((\<lambda>x. mset (fst x)) `
                    {a. a \<in># ran_m (get_clauses_wl S') \<and> snd a}) \<union>
-                 atms_of_mm (get_unit_init_clss S')\<close>
+                 atms_of_mm (get_unit_init_clss_wl S')\<close>
       using SS' bt unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         backtrack_wl_inv_def backtrack_l_inv_def  cdcl\<^sub>W_restart_mset.no_strange_atm_def
       apply -

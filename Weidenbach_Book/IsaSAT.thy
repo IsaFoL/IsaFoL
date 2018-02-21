@@ -509,7 +509,7 @@ proof -
       apply (intro conjI)
       subgoal
        by (cases T) (clarsimp_all simp: TWL_to_clauses_state_conv_def mset_take_mset_drop_mset'
-            clauses_def get_unit_learned_def in_list_mset_rel in_list_mset_rel_mset_rel)
+            clauses_def get_unit_learned_clss_wl_def in_list_mset_rel in_list_mset_rel_mset_rel)
       subgoal
         apply (rule disjI2)
         using \<L>\<^sub>a\<^sub>l\<^sub>l struct_invs learned count_dec U clss confl
@@ -612,9 +612,9 @@ proof -
       snd_T_conflict: \<open>snd T \<noteq> {#} \<longrightarrow> get_conflict_wl (fst T) \<noteq> None\<close> and
       false_in_conflict: \<open>{#} \<in># mset `# mset CS' \<longrightarrow> get_conflict_wl (fst T) \<noteq> None\<close> and
       no_decided: \<open>\<forall>s\<in>set (get_trail_wl (fst T)). \<not> is_decided s\<close> and
-      trail: \<open>(\<forall>L\<in>lits_of_l (get_trail_wl (fst T)). {#L#} \<in># get_unit_init_clss (fst T))\<close>
+      trail: \<open>(\<forall>L\<in>lits_of_l (get_trail_wl (fst T)). {#L#} \<in># get_unit_init_clss_wl (fst T))\<close>
         \<open>(\<forall>L\<in>set (get_trail_wl (fst T)). \<exists>K. L = Propagated K 0)\<close> and
-      no_learned_unit: \<open>get_unit_learned (fst T) = {#}\<close> and
+      no_learned_unit: \<open>get_unit_learned_clss_wl (fst T) = {#}\<close> and
       corr_w: \<open>correct_watching (fst T)\<close>
       using spec unfolding init_dt_wl_spec_def
       by fast+
@@ -628,14 +628,14 @@ proof -
     obtain M N NE Q W UE where
       S\<^sub>0: \<open>T = ((M, N, length N - 1, None, NE, UE, Q, W), {#})\<close>
       using U confl snd_T_conflict
-      by (cases T) (auto simp: clauses_def mset_take_mset_drop_mset' get_unit_learned_def)
+      by (cases T) (auto simp: clauses_def mset_take_mset_drop_mset' get_unit_learned_clss_wl_def)
     have [simp]: \<open>UE = {#}\<close>
-      using no_learned_unit unfolding S\<^sub>0 by (auto simp: get_unit_learned_def)
+      using no_learned_unit unfolding S\<^sub>0 by (auto simp: get_unit_learned_clss_wl_def)
 
     have N_NE: \<open>mset `# mset (tl N) + NE = mset `# mset CS'\<close>
       using clss by (auto simp: clauses_def mset_take_mset_drop_mset' S\<^sub>0)
     have trail_in_NE: \<open>\<forall>L\<in>lits_of_l M. {#L#} \<in># NE\<close>
-      using trail unfolding S\<^sub>0 by (auto simp: get_unit_init_clss_def)
+      using trail unfolding S\<^sub>0 by (auto simp: get_unit_init_clss_wl_def)
     have n_d: \<open>no_dup M\<close>
       using struct_invs by (auto simp: twl_struct_invs_def S\<^sub>0 twl_struct_invs_init_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
@@ -796,7 +796,7 @@ proof -
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
         past_invs.simps clauses_def twl_list_invs_def twl_stgy_invs_def clause_to_update_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
-        cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_def
+        cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_clss_wl_def
         distinct_mset_set_def)
   show ?thesis
     unfolding SAT'_def model_if_satisfiable_def SAT_def

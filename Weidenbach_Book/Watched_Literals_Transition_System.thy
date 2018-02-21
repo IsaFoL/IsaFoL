@@ -57,6 +57,9 @@ fun get_clauses :: \<open>'v twl_st \<Rightarrow> 'v twl_clss\<close> where
 fun unit_clss :: \<open>'v twl_st \<Rightarrow> 'v clause multiset\<close> where
   \<open>unit_clss (M, N, U, D, NE, UE, WS, Q) = NE + UE\<close>
 
+fun unit_init_clauses :: \<open>'v twl_st \<Rightarrow> 'v clauses\<close> where
+  \<open>unit_init_clauses (M, N, U, D, NE, UE, WS, Q) = NE\<close>
+
 fun get_all_init_clss :: \<open>'v twl_st \<Rightarrow> 'v clause multiset\<close> where
   \<open>get_all_init_clss (M, N, U, D, NE, UE, WS, Q) = clause `# N + NE\<close>
 

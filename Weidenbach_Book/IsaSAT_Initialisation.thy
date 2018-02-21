@@ -1225,9 +1225,9 @@ lemma init_dt_init_dt_l_full:
     clss: \<open>get_clauses_wl S \<noteq> []\<close> and
     S_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>set_mset (all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses
       (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S))))) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
-    no_learned: \<open>get_unit_learned S = {#}\<close> and
+    no_learned: \<open>get_unit_learned_clss_wl S = {#}\<close> and
     confl_in_clss: \<open>get_conflict_wl S \<noteq> None \<longrightarrow> the (get_conflict_wl S) \<in># mset `# mset CS\<close> and
-    trail_in_NE: \<open>\<forall>L \<in> lits_of_l (get_trail_wl S). {#L#} \<in># get_unit_init_clss S\<close> and
+    trail_in_NE: \<open>\<forall>L \<in> lits_of_l (get_trail_wl S). {#L#} \<in># get_unit_init_clss_wl S\<close> and
     prop_NE: \<open>\<forall>L \<in> set (get_trail_wl S). \<exists>K. L = Propagated K 0\<close> and
     upper: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max\<close> and
     is_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (mset `# mset CS))\<close> and
@@ -1249,10 +1249,10 @@ lemma init_dt_init_dt_l_full:
        twl_stgy_invs (twl_st_of_wl None (fst TOC)) \<and>
        (snd TOC \<noteq> {#} \<longrightarrow> get_conflict_wl (fst TOC) \<noteq> None) \<and>
        ({#} \<in># mset `# mset CS \<longrightarrow> get_conflict_wl (fst TOC) \<noteq> None) \<and>
-       (\<forall>L \<in> lits_of_l (get_trail_wl (fst TOC)). {#L#} \<in># get_unit_init_clss (fst TOC)) \<and>
+       (\<forall>L \<in> lits_of_l (get_trail_wl (fst TOC)). {#L#} \<in># get_unit_init_clss_wl (fst TOC)) \<and>
        (\<forall>L \<in> set (get_trail_wl (fst TOC)). \<exists>K. L = Propagated K 0) \<and>
        (get_conflict_wl (fst TOC) \<noteq> None \<longrightarrow> the (get_conflict_wl (fst TOC)) \<in># mset `# mset (rev CS)) \<and>
-       get_unit_learned (fst TOC) = {#}\<and>
+       get_unit_learned_clss_wl (fst TOC) = {#}\<and>
        correct_watching_init (fst TOC))\<close>
 proof -
   define T where \<open>T = st_l_of_wl None S\<close>
@@ -1341,8 +1341,8 @@ proof -
   have S_T_HH: \<open>((S, {#}), T, {#}) \<in> HH\<close>
     using clss watch S_\<L>\<^sub>a\<^sub>l\<^sub>l no_learned trail_in_NE prop_NE lits_upd_confl
     by (cases S)
-      (auto simp: HH_def T_def clauses_def mset_take_mset_drop_mset' get_unit_learned_def
-            get_unit_init_clss_def \<L>\<^sub>a\<^sub>l\<^sub>l_def
+      (auto simp: HH_def T_def clauses_def mset_take_mset_drop_mset' get_unit_learned_clss_wl_def
+            get_unit_init_clss_wl_def \<L>\<^sub>a\<^sub>l\<^sub>l_def
           simp del: correct_watching_init.simps literal_of_nat.simps)
 
   show ?thesis
@@ -1353,7 +1353,7 @@ proof -
     subgoal using dist .
     subgoal using is_\<L>\<^sub>a\<^sub>l\<^sub>l CS_\<L>\<^sub>a\<^sub>l\<^sub>l' S_\<L>\<^sub>a\<^sub>l\<^sub>l unfolding conc_fun_RES T_def[symmetric]
       by (clarsimp simp: HH_def all_lits_of_mm_union mset_take_mset_drop_mset'
-          clauses_def get_unit_learned_def get_unit_init_clss_def \<L>\<^sub>a\<^sub>l\<^sub>l_def T_def[symmetric]
+          clauses_def get_unit_learned_clss_wl_def get_unit_init_clss_wl_def \<L>\<^sub>a\<^sub>l\<^sub>l_def T_def[symmetric]
           simp del: literal_of_nat.simps)
     done
 qed
@@ -1376,10 +1376,10 @@ where
          twl_stgy_invs (twl_st_of_wl None (fst TOC)) \<and>
          (snd TOC \<noteq> {#} \<longrightarrow> get_conflict_wl (fst TOC) \<noteq> None) \<and>
          ({#} \<in># mset `# mset CS \<longrightarrow> get_conflict_wl (fst TOC) \<noteq> None) \<and>
-         (\<forall>L \<in> lits_of_l (get_trail_wl (fst TOC)). {#L#} \<in># get_unit_init_clss (fst TOC)) \<and>
+         (\<forall>L \<in> lits_of_l (get_trail_wl (fst TOC)). {#L#} \<in># get_unit_init_clss_wl (fst TOC)) \<and>
          (\<forall>L \<in> set (get_trail_wl (fst TOC)). \<exists>K. L = Propagated K 0) \<and>
          (get_conflict_wl (fst TOC) \<noteq> None \<longrightarrow> the (get_conflict_wl (fst TOC)) \<in># mset `# mset (rev CS)) \<and>
-         get_unit_learned (fst TOC) = {#} \<and>
+         get_unit_learned_clss_wl (fst TOC) = {#} \<and>
          correct_watching (fst TOC)\<close>
 
 lemma init_dt_init_dt_l:
@@ -1406,9 +1406,9 @@ proof -
     S_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>set_mset (all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses
       (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S))))) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
     no_learned: \<open>(\<lambda>(M, N, U, D, NE, UE, Q, W). UE) S = {#}\<close> and
-    learned_nil: \<open>get_unit_learned S = {#}\<close> and
+    learned_nil: \<open>get_unit_learned_clss_wl S = {#}\<close> and
     confl_nil: \<open>get_conflict_wl S = None\<close> and
-    trail_in_NE: \<open>\<forall>L\<in>lits_of_l (get_trail_wl S). {#L#} \<in># get_unit_init_clss S\<close> and
+    trail_in_NE: \<open>\<forall>L\<in>lits_of_l (get_trail_wl S). {#L#} \<in># get_unit_init_clss_wl S\<close> and
     prop_NE: \<open>\<forall>L \<in> set (get_trail_wl S). \<exists>K. L = Propagated K 0\<close>
     unfolding S_def by (auto simp:
         twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -1418,7 +1418,7 @@ proof -
         past_invs.simps clauses_def twl_list_invs_def twl_stgy_invs_def clause_to_update_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
         cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
-        cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_def)
+        cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_clss_wl_def)
   note HH = init_dt_init_dt_l_full[of CS S, unfolded clss_empty,
         OF dist struct dec confl aff_invs learned stgy_invs watch clss _ learned_nil,
         unfolded empty_neutral trail_in_NE]
@@ -1438,7 +1438,7 @@ proof -
      apply (rule HH)
     using upper is_\<L>\<^sub>a\<^sub>l\<^sub>l
     apply (clarsimp_all simp: correct_watching.simps isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def clauses_def clss_empty
-        mset_take_mset_drop_mset' get_unit_learned_def confl_nil trail_in_NE prop_NE
+        mset_take_mset_drop_mset' get_unit_learned_clss_wl_def confl_nil trail_in_NE prop_NE
         init_dt_wl_spec_def)
     apply (intro conjI)
     apply (metis (no_types, hide_lams) set_image_mset set_mset_mset union_iff)

@@ -58,7 +58,8 @@ lemma unit_prop_body_wl_D_invD:
     \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
     \<open>get_conflict_wl S = None\<close> and
     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl S \<propto> watched_by_app S L w))\<close> and
-    \<open>distinct (get_clauses_wl S \<propto> watched_by_app S L w)\<close>
+    \<open>distinct (get_clauses_wl S \<propto> watched_by_app S L w)\<close> and
+    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S)\<close>
 proof -
   define i where
     \<open>i \<equiv> ((if get_clauses_l (remove_one_lit_from_wq (watched_by S L ! w) x) \<propto>  (watched_by S L ! w) !
@@ -70,7 +71,7 @@ obtain T T' where
     \<open>L \<in> snd ` D\<^sub>0\<close> and
     S_T: \<open>(S, T) \<in> state_wl_l (Some (L, w))\<close> and
     \<open>L \<in># all_lits_of_mm
-           (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss S)\<close> and
+           (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)\<close> and
     T_T': \<open>(set_clauses_to_update_l
        (clauses_to_update_l (remove_one_lit_from_wq (watched_by S L ! w) T) +
         {#watched_by S L ! w#})
@@ -175,6 +176,22 @@ obtain T T' where
          clauses_def mset_take_mset_drop_mset watched_by_app_def)
   show  \<open>L \<in> snd ` D\<^sub>0\<close> 
     using  \<open>L \<in> snd ` D\<^sub>0\<close>  .
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T')\<close>
+    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast
+  then have N: \<open>atm_of ` lits_of_l (trail (state\<^sub>W_of T')) \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of T'))\<close>
+    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (cases S)
+       (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset')
+  then have N: \<open>atm_of ` lits_of_l (trail (state\<^sub>W_of T')) \<subseteq> atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of T'))\<close>
+    by (auto simp: cdcl\<^sub>W_restart_mset.clauses_def)
+  then show \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S)\<close>
+    using in_all_lits_of_m_ain_atms_of_iff  S_T T_T' lits
+    unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def in_all_lits_of_mm_ain_atms_of_iff image_subset_iff
+    by (auto simp:  trail.simps in_all_lits_of_mm_ain_atms_of_iff
+      lits_of_def image_image init_clss.simps mset_take_mset_drop_mset' 
+      convert_lits_l_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+      twl_st_l twl_st_wl twl_st get_unit_clss_wl_alt_def)
 qed
 
 
@@ -385,7 +402,7 @@ proof  -
     \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
     \<open>L \<in> snd ` D\<^sub>0\<close> and
     S_T: \<open>(S, T) \<in> state_wl_l (Some (L, C))\<close> and
-    \<open>L \<in># all_lits_of_mm  (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss S)\<close> and
+    \<open>L \<in># all_lits_of_mm  (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)\<close> and
     T_T': \<open>(set_clauses_to_update_l
        (clauses_to_update_l (remove_one_lit_from_wq (watched_by S L ! C) T) +
         {#watched_by S L ! C#})
@@ -501,7 +518,7 @@ proof -
     lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
     \<open>L \<in> snd ` D\<^sub>0\<close> and
     S_T: \<open>(S, T) \<in> state_wl_l (Some (L, C))\<close> and
-    \<open>L \<in># all_lits_of_mm  (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss S)\<close> and
+    \<open>L \<in># all_lits_of_mm  (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)\<close> and
     T_T': \<open>(set_clauses_to_update_l
        (clauses_to_update_l (remove_one_lit_from_wq (watched_by S L ! C) T) +
         {#watched_by S L ! C#})
@@ -556,10 +573,15 @@ proof -
       using C_le by (auto simp: watched_by_app_def)
 
    have
-    \<open>L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_init_clss S)\<close>
+    \<open>L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clss_wl S)\<close>
     using alien \<open>L \<in> snd ` D\<^sub>0\<close> lits
-    by
-        (auto simp: clauses_def mset_take_mset_drop_mset drop_Suc
+    by (auto simp: clauses_def mset_take_mset_drop_mset drop_Suc get_unit_clss_wl_alt_def
+        mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset.no_strange_atm_def
+        is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def_sym in_all_lits_of_mm_ain_atms_of_iff in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+   then have
+    \<open>L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_init_clss_wl S)\<close>
+    using alien \<open>L \<in> snd ` D\<^sub>0\<close> lits
+    by (auto simp: clauses_def mset_take_mset_drop_mset drop_Suc get_unit_clss_wl_alt_def
         mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset.no_strange_atm_def
         is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def_sym in_all_lits_of_mm_ain_atms_of_iff in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
     then have H: \<open>mset (watched_by S L) =
@@ -886,9 +908,9 @@ proof -
   proof -
     have [simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur x2c\<close> and
        heur: \<open>(x2c, x2a) \<in> twl_st_heur\<close> and
-       lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n x2a\<close> and
-       struct_invs: \<open>twl_struct_invs (twl_st_of_wl (Some (x1c, x2)) x2a)\<close>
-      apply (rule twl_st_heur_literals_are_in_\<L>\<^sub>i\<^sub>n_heur[of x2a _ \<open>Some (x1c, x2)\<close>])
+       lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n x2a\<close>
+(*        struct_invs: \<open>twl_struct_invs (twl_st_of_wl (Some (x1c, x2)) x2a)\<close> *)
+      apply (rule twl_st_heur_literals_are_in_\<L>\<^sub>i\<^sub>n_heur[of x2a])
       using inv' xy unfolding st
       by (auto simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         simp del: twl_st_of_wl.simps)
@@ -896,12 +918,10 @@ proof -
       using inv' xy unfolding st
       by (auto simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         simp del: twl_st_of_wl.simps)
-    have \<open>\<not> tautology (mset (get_clauses_wl x2a ! watched_by_app x2a x1a x2))\<close>
+    have \<open>\<not> tautology (mset (get_clauses_wl x2a \<propto> watched_by_app x2a x1a x2))\<close>
       apply (rule find_unwatched_not_tauto[OF _ inv'])
       using that by (auto simp: twl_st_heur_state_simp_watched[OF heur]
         watched_by_app_def access_lit_in_clauses_def polarity_st_def split: if_splits)
-    moreover have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2a)\<close>
-      by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail[OF lits struct_invs])
     moreover have \<open>no_dup (get_trail_wl x2a)\<close>
       using xy by (auto simp: st twl_st_heur_def)
     moreover have \<open>out_learned (get_trail_wl x2a) None (get_outlearned_heur x2c)\<close>

@@ -1869,7 +1869,7 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     \<open>M \<equiv> get_trail_wl S\<close> and
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
     NU'_def: \<open>NU' \<equiv> mset `# ran_mf NU\<close> and
-    NUE: \<open>NUE \<equiv> get_unit_learned S + get_unit_init_clss S\<close> and
+    NUE: \<open>NUE \<equiv> get_unit_learned_clss_wl S + get_unit_init_clss_wl S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close>
   assumes
     S_S': \<open>(S, S') \<in> state_wl_l None\<close> and
@@ -1893,8 +1893,8 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
            (iterate_over_conflict K M NU' NUE D)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
-  let ?UE = \<open>get_unit_learned S\<close>
-  let ?NE = \<open>get_unit_init_clss S\<close>
+  let ?UE = \<open>get_unit_learned_clss_wl S\<close>
+  let ?NE = \<open>get_unit_init_clss_wl S\<close>
   define N U where
     \<open>N \<equiv> mset `# init_clss_lf NU\<close> and
     \<open>U \<equiv> mset `# learned_clss_lf NU\<close>
@@ -1913,10 +1913,10 @@ proof -
   have NU'_N_U: \<open>NU' = N + U\<close>
     unfolding NU'_def N_def U_def mset_append[symmetric] image_mset_union[symmetric]
     by auto
-  have NU'_NUE: \<open>NU' + NUE = N + get_unit_init_clss S + U + get_unit_learned S\<close>
+  have NU'_NUE: \<open>NU' + NUE = N + get_unit_init_clss_wl S + U + get_unit_learned_clss_wl S\<close>
     unfolding NUE NU'_N_U by (auto simp: ac_simps)
-  have struct_inv_S''': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N + get_unit_init_clss S,
-          U + get_unit_learned S, E)\<close>
+  have struct_inv_S''': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N + get_unit_init_clss_wl S,
+          U + get_unit_learned_clss_wl S, E)\<close>
     using struct_invs unfolding twl_struct_invs_def S'''_def[symmetric] S'''
     by fast
   then have n_d: \<open>no_dup M'\<close>
@@ -2449,7 +2449,7 @@ lemma
     \<open>M \<equiv> get_trail_wl S\<close> and
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
     NU'_def: \<open>NU' \<equiv> mset `# ran_mf NU\<close> and
-    NUE: \<open>NUE \<equiv> get_unit_learned S + get_unit_init_clss S\<close> and
+    NUE: \<open>NUE \<equiv> get_unit_learned_clss_wl S + get_unit_init_clss_wl S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close>
   assumes
     S_S': \<open>(S, S') \<in> state_wl_l None\<close> and

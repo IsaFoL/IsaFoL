@@ -1242,12 +1242,12 @@ proof -
       by (auto simp: S)
     have entailed:
       \<open>mset `# mset (tl (get_clauses_wl S)) +
-    (get_unit_learned S + get_unit_init_clss S) \<Turnstile>pm
+    (get_unit_learned_clss_wl S + get_unit_init_clss_wl S) \<Turnstile>pm
     add_mset (- lit_of (hd M)) (remove1_mset (- lit_of (hd M)) (the D))\<close>
       using uL_D learned not_none unfolding  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
         clauses_twl_st_of
-      by (auto simp: S ac_simps mset_take_mset_drop_mset get_unit_learned_def
-          get_unit_init_clss_def)
+      by (auto simp: S ac_simps mset_take_mset_drop_mset get_unit_learned_clss_wl_def
+          get_unit_init_clss_wl_def)
     have mini: \<open>minimize_and_extract_highest_lookup_conflict (get_trail_wl S) (get_clauses_wl S)
               ?D cach lbd (outl[0 := - lit_of (hd M)])
           \<le> \<Down> {((E, s, outl), E'). E = E' \<and> mset (tl outl) = E \<and>
@@ -1255,7 +1255,7 @@ proof -
                 outl \<noteq> []}
               (iterate_over_conflict (- lit_of (hd M)) (get_trail_wl S)
                 (mset `# mset (tl (get_clauses_wl S)))
-                (get_unit_learned S + get_unit_init_clss S) ?D)\<close>
+                (get_unit_learned_clss_wl S + get_unit_init_clss_wl S) ?D)\<close>
       apply (rule minimize_and_extract_highest_lookup_conflict_iterate_over_conflict[of
          \<open>outl [0 := - lit_of (hd M)]\<close>
          \<open>remove1_mset _ (the D)\<close> S cach \<open>-lit_of (hd M)\<close> lbd])
@@ -1286,7 +1286,7 @@ proof -
                   outl \<noteq> []}
               (iterate_over_conflict (- lit_of (hd M)) (get_trail_wl S)
                 (mset `# mset (tl N))
-                (get_unit_learned S + get_unit_init_clss S) ?D)\<close>
+                (get_unit_learned_clss_wl S + get_unit_init_clss_wl S) ?D)\<close>
       unfolding S by auto
      have mini: \<open>minimize_and_extract_highest_lookup_conflict M N
               ?D cach lbd (outl[0 := - lit_of (hd M)])
@@ -1294,7 +1294,7 @@ proof -
                  outl ! 0 = - lit_of (hd M) \<and> E' \<subseteq># remove1_mset (- lit_of (hd M)) (the D) \<and>
                  outl \<noteq> []}
               (SPEC (\<lambda>D'. D' \<subseteq># ?D \<and>  mset `# mset (tl N) +
-                      (get_unit_learned S + get_unit_init_clss S) \<Turnstile>pm add_mset (- lit_of (hd M)) D'))\<close>
+                      (get_unit_learned_clss_wl S + get_unit_init_clss_wl S) \<Turnstile>pm add_mset (- lit_of (hd M)) D'))\<close>
        apply (rule order.trans)
         apply (rule mini)
        apply (rule conc_fun_mono)
@@ -1331,7 +1331,7 @@ proof -
       (is \<open>RES ?res \<le> \<Down> ?R (RES ?S)\<close>)
       if
         incl: \<open>mset (tl outl') \<subseteq># remove1_mset (- lit_of (hd M)) (the D)\<close> and
-        ent: \<open>mset `# mset (tl N) + (get_unit_learned S + get_unit_init_clss S) \<Turnstile>pm
+        ent: \<open>mset `# mset (tl N) + (get_unit_learned_clss_wl S + get_unit_init_clss_wl S) \<Turnstile>pm
      add_mset (- lit_of (hd M)) (mset (tl outl'))\<close> and
         outl0: \<open>outl' ! 0 = - lit_of (hd M)\<close> and
         \<open>mset (tl outl') \<subseteq># remove1_mset (- lit_of (hd M)) (the D)\<close> and
@@ -1370,12 +1370,12 @@ proof -
         have ent: \<open>mset ` set (tl N) \<union> set_mset NE \<union> set_mset UE \<Turnstile>p add_mset (- lit_of (hd M)) (mset (tl c))\<close>
           using ent
           unfolding s by (auto simp: mset_take_mset_drop_mset outl0 S
-              get_unit_learned_def get_unit_init_clss_def ac_simps)
+              get_unit_learned_clss_wl_def get_unit_init_clss_wl_def ac_simps)
         show ?TS
           using incl ent outl0
           unfolding s \<open>mset (tl outl') = mset (tl c)\<close> \<open>c ! 0 = outl' ! 0\<close>[symmetric]
           by (auto simp: mset_take_mset_drop_mset S
-              get_unit_learned_def get_unit_init_clss_def insert_subset_eq_iff uL_D)
+              get_unit_learned_clss_wl_def get_unit_init_clss_wl_def insert_subset_eq_iff uL_D)
         have mset_tl_c_remove:
           \<open>(remove1_mset (- lit_of (hd M)) (add_mset (c ! 0) (mset (tl c)))) = mset (tl c)\<close>
           using C \<open>outl' \<noteq> []\<close> outl0 \<open>c \<noteq> []\<close>

@@ -225,7 +225,7 @@ definition is_\<L>\<^sub>a\<^sub>l\<^sub>l :: \<open>nat literal multiset \<Righ
 
 abbreviation literals_are_\<L>\<^sub>i\<^sub>n :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>literals_are_\<L>\<^sub>i\<^sub>n S \<equiv>
-     is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm ((\<lambda>C. mset (fst C)) `# ran_m (get_clauses_wl S) + get_unit_init_clss S))\<close>
+     is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm ((\<lambda>C. mset (fst C)) `# ran_m (get_clauses_wl S) + get_unit_clss_wl S))\<close>
 
 definition literals_are_in_\<L>\<^sub>i\<^sub>n :: \<open>nat clause \<Rightarrow> bool\<close> where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C \<longleftrightarrow> set_mset (all_lits_of_m C) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
@@ -440,7 +440,7 @@ lemma in_literals_are_in_\<L>\<^sub>i\<^sub>n_in_D\<^sub>0:
   shows \<open>L \<in> snd ` D\<^sub>0\<close>
   using assms by (cases L) (auto simp: image_image literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_def)
 
-lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm A) \<longleftrightarrow> atms_of_mm A = atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm A) \<longleftrightarrow> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l = atms_of_mm A\<close>
   unfolding set_mset_set_mset_eq_iff is_\<L>\<^sub>a\<^sub>l\<^sub>l_def Ball_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
     in_all_lits_of_mm_ain_atms_of_iff
   by auto (metis literal.sel(2))+
@@ -852,8 +852,10 @@ text \<open>TODO Move\<close>
 
 lemma [twl_st_wl]: \<open>get_clauses_wl (set_conflict_wl D S) = get_clauses_wl S\<close>
   by (cases S) (auto simp: set_conflict_wl_def)
-lemma [twl_st_wl]: \<open>get_unit_init_clss (set_conflict_wl D S) = get_unit_init_clss S\<close>
-  by (cases S) (auto simp: set_conflict_wl_def)
+lemma [twl_st_wl]: 
+  \<open>get_unit_init_clss_wl (set_conflict_wl D S) = get_unit_init_clss_wl S\<close>
+  \<open>get_unit_clss_wl (set_conflict_wl D S) = get_unit_clss_wl S\<close>
+  by (cases S; auto simp: set_conflict_wl_def; fail)+
 
 lemma (in -) lookup_None_notin_dom_m[simp]:
   \<open>fmlookup N i = None \<longleftrightarrow> i \<notin># dom_m N\<close>
@@ -1058,7 +1060,7 @@ definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D :: \<open>nat 
         ASSERT(literals_to_update_wl S \<noteq> {#});
         (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl S;
         ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') +
-                        get_unit_init_clss S'));
+                        get_unit_clss_wl S'));
         unit_propagation_inner_loop_wl_D L S'
       })
       (S\<^sub>0 :: nat twl_st_wl)\<close>
@@ -1070,8 +1072,9 @@ lemma unit_propagation_outer_loop_wl_D_spec:
        (unit_propagation_outer_loop_wl S)\<close>
 proof -
   have select: \<open>select_and_remove_from_literals_to_update_wl S \<le>
-    \<Down> {((T', L'), (T, L)). T = T' \<and> L = L' \<and>  T = set_literals_to_update_wl (literals_to_update_wl S - {#L#}) S}
-       (select_and_remove_from_literals_to_update_wl S')\<close>
+    \<Down> {((T', L'), (T, L)). T = T' \<and> L = L' \<and>
+        T = set_literals_to_update_wl (literals_to_update_wl S - {#L#}) S}
+              (select_and_remove_from_literals_to_update_wl S')\<close>
     if \<open>S = S'\<close> for S S' :: \<open>nat twl_st_wl\<close>
     unfolding select_and_remove_from_literals_to_update_wl_def select_and_remove_from_literals_to_update_def
     apply (rule RES_refine)
@@ -1094,9 +1097,9 @@ proof -
     subgoal by auto
     subgoal by (auto simp: twl_st_wl)
     subgoal for S' S T'L' TL T' L' T L
-      apply (auto simp: twl_st_wl is_\<L>\<^sub>a\<^sub>l\<^sub>l_def)
+      apply (auto simp: twl_st_wl is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_of_mm_union)
       unfolding image_image
-      apply simp -- \<open>TODO: but why does it loop\<close>
+      apply simp_all -- \<open>TODO: but why does it loop\<close>
       done
     done
 qed
@@ -1389,18 +1392,18 @@ proof -
       using LL' by (auto simp: U S dest: distinct_mem_diff_mset)
 
     have \<open>x \<in># all_lits_of_m (the (get_conflict_wl S)) \<Longrightarrow>
-        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf (get_clauses_wl S)#} + get_unit_init_clss S)\<close>
+        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf (get_clauses_wl S)#} + get_unit_clss_wl S)\<close>
       for x
       using alien ST TU unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
       all_clss_lf_ran_m[symmetric] set_mset_union
       by (auto simp: twl_st_wl twl_st_l twl_st in_all_lits_of_m_ain_atms_of_iff
-        in_all_lits_of_mm_ain_atms_of_iff)
+        in_all_lits_of_mm_ain_atms_of_iff get_unit_clss_wl_alt_def)
     then have \<open>x \<in># all_lits_of_m DS \<Longrightarrow>
-        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + NES)\<close>
+        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + (NES + UES))\<close>
       for x
       by (simp add: S)
     then have H: \<open>x \<in># all_lits_of_m DT \<Longrightarrow>
-        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + NES)\<close>
+        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + (NES + UES))\<close>
       for x
       using DT all_lits_of_m_mono by blast
     have propa_ref: \<open>((Propagated (- lit_of (hd (get_trail_wl S))) i # MU,
@@ -1438,7 +1441,7 @@ proof -
       then have [simp]: \<open>- lit_of (hd MS) # L' #
               remove1 (- lit_of (hd MS)) (remove1 L' D') = D\<close>
         using D by (simp add: S)
-      have \<open>x \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m NS#} + NES) \<Longrightarrow>
+      have \<open>x \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m NS#} + (NES + UES)) \<Longrightarrow>
         x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> for x
         using i'_dom \<A>\<^sub>i\<^sub>n is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by (fastforce simp: S)
       then show ?thesis
@@ -1508,7 +1511,7 @@ proof -
     then have \<open>distinct_mset DT\<close>
       using DT unfolding S by (auto simp: distinct_mset_mono)
     have \<open>x \<in># all_lits_of_m (the (get_conflict_wl S)) \<Longrightarrow>
-        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf (get_clauses_wl S)#} + get_unit_init_clss S)\<close>
+        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf (get_clauses_wl S)#} + get_unit_init_clss_wl S)\<close>
       for x
       using alien ST TU unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
       all_clss_lf_ran_m[symmetric] set_mset_union
@@ -1524,7 +1527,7 @@ proof -
       using DT all_lits_of_m_mono by blast
     then have \<A>\<^sub>i\<^sub>n_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n DT\<close>
       using DT \<A>\<^sub>i\<^sub>n unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def S is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-      by auto
+      by (auto simp: all_lits_of_mm_union)
 
     show ?thesis
       unfolding propagate_unit_bt_wl_D_def propagate_unit_bt_wl_def U U' single_of_mset_def
@@ -1589,10 +1592,10 @@ proof -
          (L \<noteq> None \<longrightarrow>
             undefined_lit (get_trail_wl S) (the L) \<and>
             atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf (get_clauses_wl S)
-                 + get_unit_init_clss S)) \<and>
+                 + get_unit_init_clss_wl S)) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit (get_trail_wl S) L' \<and>
             atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf (get_clauses_wl S)
-                 + get_unit_init_clss S)))}
+                 + get_unit_init_clss_wl S)))}
      (find_unassigned_lit_wl S')\<close>
     (is \<open>_ \<le> \<Down> ?find _\<close>)
     if \<open>S = S'\<close>
