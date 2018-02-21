@@ -118,15 +118,6 @@ qed (use RP.intros in simp_all)
 lemma final_weighted_RP: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
   by (auto elim: weighted_RP.cases)
 
-definition weighted_RP_Non_Inference :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w\<^sub>n\<^sub>i" 50) where
-  "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St' \<longleftrightarrow> St \<leadsto>\<^sub>w St' \<and> N_of_wstate St \<noteq> {}"
-
-definition weighted_RP_Inference :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w\<^sub>i" 50) where
-  "St \<leadsto>\<^sub>w\<^sub>i St' \<longleftrightarrow> St \<leadsto>\<^sub>w St' \<and> N_of_wstate St = {}"
-
-lemma weighted_RP_iff_inference_or_non_inference: "St \<leadsto>\<^sub>w St' \<longleftrightarrow> St \<leadsto>\<^sub>w\<^sub>i St' \<or> St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St'"
-  unfolding weighted_RP_Non_Inference_def weighted_RP_Inference_def by auto
-
 context
   fixes
     Sts :: "'a wstate llist"
@@ -214,12 +205,6 @@ lemma wf_RP_filtered_relation: "wf RP_filtered_relation"
 lemma wf_RP_combined_relation: "wf RP_combined_relation"
   using wf_natLess wf_mult by auto
 
-lemma weighted_RP_if_weighted_RP_Non_Inference: "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St' \<Longrightarrow> St \<leadsto>\<^sub>w St'"
-  unfolding weighted_RP_Non_Inference_def by auto
-
-lemma weighted_RP_if_weighted_RP_Inference: "St \<leadsto>\<^sub>w\<^sub>i St' \<Longrightarrow> St \<leadsto>\<^sub>w St'"
-  unfolding weighted_RP_Inference_def by auto
-
 lemma multiset_sum_of_Suc_f_monotone:
   assumes "N \<subset># M"
   shows "(\<Sum>x\<in>#N. Suc (f x)) < (\<Sum>x\<in>#M. Suc (f x))"
@@ -272,9 +257,10 @@ proof -
 qed
 
 lemma weighted_RP_Non_Inference_measure_decreasing:
-  assumes "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St'"
+  assumes "St \<leadsto>\<^sub>w St'"
+  assumes "(C, l) \<in># wN_of_wstate St"
   shows "((RP_filtered_measure (\<lambda>Ci. True)) St', (RP_filtered_measure (\<lambda>Ci. True)) St) \<in> RP_filtered_relation"
-using weighted_RP_if_weighted_RP_Non_Inference[OF assms(1)] using assms proof (induction rule: weighted_RP.induct)
+using assms proof (induction rule: weighted_RP.induct)
   case (tautology_deletion A C' N i' P Q n)
   then show ?case
     unfolding natLess_def by auto
@@ -318,7 +304,7 @@ next
 next
   case (inference_computation P C' i N n Q)
   then show ?case
-    unfolding weighted_RP_Non_Inference_def by auto
+    by auto
 qed
 
 (* FIXME: move to an appropriate library. *)
@@ -982,27 +968,8 @@ proof (rule ccontr)
       using deriv inf inff inf_chain_ldrop_chain by auto
     have in_N_j: "\<And>j. \<exists>i. (C, i) \<in># wN_of_wstate (lnth (ldrop k Sts) j)"
       using k_p by (simp add: add.commute inf)
-    have "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop k Sts)"
-    proof (rule lnth_rel_chain)
-      show "\<not> lnull (ldrop (enat k) Sts)"
-        by (simp add: inf inff)
-    next
-      show "\<forall>j. enat (j + 1) < llength (ldrop (enat k) Sts) \<longrightarrow>
-            lnth (ldrop (enat k) Sts) j \<leadsto>\<^sub>w\<^sub>n\<^sub>i lnth (ldrop (enat k) Sts) (j + 1)"
-      proof (rule, rule)
-        fix j :: nat
-        assume "enat (j + 1) < llength (ldrop (enat k) Sts)"
-        then have "lnth (ldrop (enat k) Sts) j \<leadsto>\<^sub>w lnth (ldrop (enat k) Sts) (j + 1)"
-          using chain_lnth_rel[OF chain_drop_Sts, of j] by auto
-        moreover have "N_of_wstate (lnth (ldrop (enat k) Sts) j) \<noteq> {}"
-          using in_N_j[of j] in_wN_of_wstate_in_N_of_wstate[of C _ "lnth (ldrop (enat k) Sts) j"]
-          by auto
-        ultimately show "lnth (ldrop (enat k) Sts) j \<leadsto>\<^sub>w\<^sub>n\<^sub>i lnth (ldrop (enat k) Sts) (j + 1)"
-          unfolding weighted_RP_Non_Inference_def by auto
-      qed
-    qed
     then have "chain (\<lambda>x y. (x, y) \<in> RP_filtered_relation)\<inverse>\<inverse> (lmap (RP_filtered_measure (\<lambda>Ci. True)) (ldrop k Sts))"
-      using inff inf infinite_chain_relation_measure weighted_RP_Non_Inference_measure_decreasing by blast
+      using inff inf infinite_chain_relation_measure[of "\<lambda>St. \<exists>i. (C, i) \<in># wN_of_wstate St" "op \<leadsto>\<^sub>w"] weighted_RP_Non_Inference_measure_decreasing chain_drop_Sts by blast
     then show False
       using wfP_iff_no_infinite_down_chain_llist[of "\<lambda>x y. (x, y) \<in> RP_filtered_relation"] 
         wf_RP_filtered_relation inff
