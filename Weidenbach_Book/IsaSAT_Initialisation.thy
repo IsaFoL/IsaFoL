@@ -364,14 +364,6 @@ prepare_code_thms (in -) conflict_propagated_unit_cls_code_def
 lemmas conflict_propagated_unit_cls_heur_hnr[sepref_fr_rules] =
    conflict_propagated_unit_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-definition (in isasat_input_ops) add_init_cls
-  :: \<open>nat clause_l \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init nres\<close>  where
-  \<open>add_init_cls = (\<lambda>C ((M, N, U, D, NE, UE, Q, WS), OC). do {
-           let U = length N;
-           let WS = WS((hd C) := WS (hd C) @ [U]);
-           let WS = WS((hd (tl C)) := WS (hd (tl C)) @ [U]);
-           RETURN ((M, N @ [op_array_of_list C], U, D, NE, UE, Q, WS), OC)})\<close>
-
 definition (in isasat_input_ops) add_init_cls_heur
   :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>  where
   \<open>add_init_cls_heur = (\<lambda>C (M, N, D, Q, WS, oth). do {

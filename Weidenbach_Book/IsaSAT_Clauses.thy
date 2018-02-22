@@ -40,11 +40,11 @@ named_theorems isasat_codegen \<open>lemmas that should be unfolded to generate 
 definition list_fmap_rel :: \<open>_ \<Rightarrow> _ \<Rightarrow> ('a list \<times> nat clauses_l) set\<close> where
   list_fmap_rel_internal_def:
   \<open>list_fmap_rel unused R = {(NU', NU). (\<forall>i\<in>#dom_m NU. i < length NU' \<and> (NU'!i, NU \<propto> i) \<in> R) \<and>
-         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> NU'!i = unused)}\<close>
+         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> NU'!i = unused) \<and> NU' \<noteq> []}\<close>
 
 lemma list_fmap_rel_def:
   \<open>\<langle>R\<rangle>list_fmap_rel unused = {(NU', NU). (\<forall>i\<in>#dom_m NU. i < length NU' \<and> (NU'!i, NU \<propto> i) \<in> R) \<and>
-         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> NU'!i = unused)}\<close>
+         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> NU'!i = unused) \<and> NU' \<noteq> []}\<close>
   by (simp add: relAPP_def list_fmap_rel_internal_def)
 
 lemma nth_clauses_l:
@@ -253,5 +253,46 @@ proof -
     using H unfolding f im apply assumption
     using pre ..
 qed
+
+definition fm_add_new where
+ \<open>fm_add_new b C N = do {
+    i \<leftarrow> get_fresh_index N;
+    let N = fmupd i (C, b) N;
+    RETURN (N, i)
+  }\<close>
+
+definition fm_add_new_at_position
+   :: \<open>bool \<Rightarrow> nat \<Rightarrow> 'v clause_l \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clauses_l\<close>
+where
+  \<open>fm_add_new_at_position b i C N = fmupd i (C, b) N\<close>
+
+definition append_and_length
+   :: \<open>bool \<Rightarrow> 'v clause_l \<Rightarrow> 'v clause_l list \<Rightarrow> 'v clause_l list \<times> nat\<close>
+where
+\<open>append_and_length b C N = (let k = length N in (op_list_append N C, k))\<close>
+
+lemma append_and_length_fm_add_new:
+  \<open>(uncurry2 (RETURN ooo append_and_length), uncurry2 fm_add_new)
+     \<in> bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (\<langle>Id\<rangle>clauses_l_fmat) \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (fastforce simp: fm_add_new_at_position_def list_fmap_rel_def Let_def
+      max_def nth_append  append_and_length_def fm_add_new_def get_fresh_index_def
+      RETURN_RES_refine_iff RES_RETURN_RES
+      intro!: RETURN_SPEC_refine
+      dest: multi_member_split
+      split: if_splits)
+
+sepref_definition append_and_length_code
+  is \<open>uncurry2 (RETURN ooo append_and_length)\<close>
+  :: \<open>bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a (arlO_assn clause_ll_assn)\<^sup>d \<rightarrow>\<^sub>a
+       arlO_assn clause_ll_assn *a nat_assn\<close>
+  unfolding append_and_length_def
+  by sepref
+
+lemma fm_add_new_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 append_and_length_code, uncurry2 fm_add_new)
+    \<in> bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow>\<^sub>a clauses_ll_assn *a nat_assn\<close>
+  using append_and_length_code.refine[FCOMP append_and_length_fm_add_new] unfolding clauses_ll_assn_def
+  by simp
 
 end
