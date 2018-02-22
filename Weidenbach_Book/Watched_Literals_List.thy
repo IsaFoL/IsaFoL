@@ -419,8 +419,9 @@ lemma [twl_st_l]:
     \<open>literals_to_update T = literals_to_update_l S\<close>
     \<open>backtrack_lvl (state\<^sub>W_of T) = count_decided (get_trail_l S)\<close>
     \<open>unit_clss T = get_unit_clauses_l S\<close>
+   \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of T) = mset `# ran_mf (get_clauses_l S) + get_unit_clauses_l S\<close>
   using assms unfolding twl_st_l_def all_clss_lf_ran_m[symmetric]
-  by (auto split: option.splits simp: trail.simps)
+  by (auto split: option.splits simp: trail.simps clauses_def mset_take_mset_drop_mset')
 
 lemma clauses_to_update_l_set_clauses_to_update_l:
   \<open>clauses_to_update_l (set_clauses_to_update_l WS S) = WS\<close>
@@ -1517,7 +1518,7 @@ definition tl_state_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> wh
 
 definition resolve_cls_l' :: \<open>'v twl_st_l \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v clause\<close> where
 \<open>resolve_cls_l' S C L  =
-   remove1_mset (-L) (the (get_conflict_l S)) \<union># mset (tl (get_clauses_l S \<propto> C))\<close>
+   remove1_mset (-L) (the (get_conflict_l S) \<union># mset (tl (get_clauses_l S \<propto> C)))\<close>
 
 definition update_confl_tl_l :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> bool \<times> 'v twl_st_l\<close> where
   \<open>update_confl_tl_l = (\<lambda>C L (M, N, D, NE, UE, WS, Q).
@@ -1570,6 +1571,12 @@ private lemma skip_and_resolve_l_refines:
    (auto simp: twl_list_invs_def twl_st_l_def
       resolve_cls_l_nil_iff tl_state_l_def tl_state_def)
 
+(*TODO Move*)
+lemma remove1_mset_union_distrib:
+  \<open>remove1_mset a (M \<union># N) = remove1_mset a M \<union># remove1_mset a N\<close>
+  by (auto simp: multiset_eq_iff)
+(*End Move*)
+
 private lemma skip_and_resolve_skip_refine:
   assumes
     rel: \<open>((nrk, S), brk', S') \<in> {((brk, S), brk', S'). brk = brk' \<and>
@@ -1600,7 +1607,7 @@ proof -
     invs_S: \<open>twl_list_invs S\<close>
     using rel rel' unfolding S by auto
   have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of S')\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S')\<close>
+    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S')\<close>
     using struct_invs unfolding twl_struct_invs_def by fast+
   moreover have \<open>Suc 0 \<le> backtrack_lvl (state\<^sub>W_of S')\<close>
     using lev S' by (cases S) (auto simp: trail.simps twl_st_l_def)
@@ -1608,11 +1615,11 @@ proof -
     using dec tr S' by (cases \<open>get_trail_l S\<close>)
      (auto simp: trail.simps is_decided_no_proped_iff twl_st_l_def)
   moreover have \<open>mark_of (cdcl\<^sub>W_restart_mset.hd_trail (state\<^sub>W_of S')) = C'\<close>
-     using dec S' unfolding C' by (auto simp: S trail.simps twl_st_l_def)
+    using dec S' unfolding C' by (auto simp: S trail.simps twl_st_l_def)
   ultimately have False: \<open>C = 0 \<Longrightarrow> False\<close>
     using C' cdcl\<^sub>W_restart_mset.hd_trail_level_ge_1_length_gt_1[of \<open>state\<^sub>W_of S'\<close>]
     by (auto simp: is_decided_no_proped_iff)
-  then have \<open>L = N \<propto> C ! 0\<close> and \<open>C \<in># dom_m N\<close>
+  then have L: \<open>L = N \<propto> C ! 0\<close> and C_dom: \<open>C \<in># dom_m N\<close>
     using invs_S
     unfolding S C' by (auto simp: twl_list_invs_def)
   moreover {
@@ -1627,6 +1634,26 @@ proof -
       by (subst (asm) Ball_ran_m_dom_struct_wf) auto
     then have \<open>length (N \<propto> C) \<ge> 2\<close>
       using \<open>C \<in># dom_m N\<close>  unfolding S by (auto simp: twl_list_invs_def)
+  }
+  moreover {
+    have
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of S')\<close> and
+      M_lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of S')\<close>
+      using struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
+    then have \<open>M \<Turnstile>as CNot (remove1_mset L (mset (N \<propto> C)))\<close>
+      using S' False
+      by (cases \<open>C = 0\<close>)
+         (force simp: S twl_st_l_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          cdcl\<^sub>W_restart_mset_state)+
+    then have \<open>-L' \<in># mset (N \<propto> C) \<Longrightarrow> False\<close>
+      apply - apply (drule multi_member_split)
+      using S' M_lev False unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      by (auto simp: S twl_st_l_def cdcl\<^sub>W_restart_mset_state split: if_splits
+          dest: in_lits_of_l_defined_litD)
+    then have \<open>remove1_mset (- L') (the D) \<union># mset (tl (N \<propto> C)) =
+       remove1_mset (- L') (the D \<union># mset (tl (N \<propto> C)))\<close>
+      using L by(cases \<open>N \<propto> C\<close>; cases \<open>-L' \<in># mset (N \<propto> C)\<close>)
+         (auto simp: remove1_mset_union_distrib)
   }
   ultimately show ?thesis
     using invs_S S'

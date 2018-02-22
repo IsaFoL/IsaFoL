@@ -131,6 +131,7 @@ fun remove_one_lit_from_wq :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow>
 
 named_theorems twl_st_wl \<open>Conversions from \<^typ>\<open>'v twl_st_l\<close> to \<^typ>\<open>'v twl_st_wl\<close>\<close>
 
+(* TODO rename get_unit_clss_wl to get_unit_clauses_wl *)
 lemma [twl_st_wl]:
   assumes \<open>(S, T) \<in> state_wl_l L\<close>
   shows
@@ -145,6 +146,7 @@ lemma [twl_st_wl]:
     \<open>get_unit_learned_clauses_l T = get_unit_learned_clss_wl S\<close>
     \<open>get_unit_init_clauses_l T = get_unit_init_clss_wl S\<close>
     \<open>get_unit_learned_clauses_l T = get_unit_learned_clss_wl S\<close>
+   \<open>get_unit_clauses_l T = get_unit_clss_wl S\<close>
   using assms unfolding state_wl_l_def all_clss_lf_ran_m[symmetric]
   by (cases S; cases T; cases L; auto split: option.splits simp: trail.simps; fail)+
 
@@ -1019,7 +1021,7 @@ definition tl_state_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close>
 
 definition resolve_cls_wl' :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v clause\<close> where
 \<open>resolve_cls_wl' S C L  =
-   remove1_mset (-L) (the (get_conflict_wl S)) \<union># (mset (tl (get_clauses_wl S \<propto> C)))\<close>
+   remove1_mset (-L) (the (get_conflict_wl S) \<union># (mset (tl (get_clauses_wl S \<propto> C))))\<close>
 
 definition update_confl_tl_wl :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool \<times> 'v twl_st_wl\<close> where
   \<open>update_confl_tl_wl = (\<lambda>C L (M, N, D, NE, UE, WS, Q).

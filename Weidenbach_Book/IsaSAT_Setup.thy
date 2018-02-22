@@ -176,8 +176,8 @@ where
   }\<close>
 
 type_synonym (in -) twl_st_wl_heur_W_list =
-  \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times>
-    nat cconflict \<times> nat literal list \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
+  \<open>(nat,nat) ann_lits \<times> nat clauses_l \<times>
+    nat cconflict \<times> nat clause_l \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
     nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats\<close>
 
 

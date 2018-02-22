@@ -212,4 +212,46 @@ proof -
     using H unfolding f im apply assumption
     using pre ..
 qed
+
+definition fmap_swap_ll where
+  [simp]: \<open>fmap_swap_ll N i j f = N(i \<hookrightarrow> swap (N \<propto> i) j f)\<close>
+
+lemma swap_ll_fmap_swap_ll:
+  \<open>(uncurry3 (RETURN oooo swap_ll), uncurry3 (RETURN oooo fmap_swap_ll))
+    \<in> [\<lambda>(((N, i), j), k). i \<in># dom_m N \<and> j < length (N \<propto> i) \<and> k < length (N \<propto> i)]\<^sub>f
+        \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>\<langle>Id\<rangle>clauses_l_fmat\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: list_fmap_rel_def Array_List_Array.swap_ll_def)
+
+lemma fmap_swap_ll_hnr[sepref_fr_rules]:
+  \<open>(uncurry3  Array_List_Array.swap_aa, uncurry3 (RETURN oooo fmap_swap_ll))
+     \<in> [\<lambda>(((N, i), j), k). i \<in># dom_m N \<and> j < length (N \<propto> i) \<and> k < length (N \<propto> i)]\<^sub>a
+     clauses_ll_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> clauses_ll_assn\<close>
+   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H:
+    \<open>?c \<in> [comp_PRE (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel)
+             (\<lambda>(((N, i), j), k). i \<in># dom_m N \<and> j < length (N \<propto> i) \<and> k < length (N \<propto> i))
+             (\<lambda>_ (((xs, k), i), j). k < length xs \<and> i < length_rll xs k \<and> j < length_rll xs k)
+             (\<lambda>_. True)]\<^sub>a
+          hrp_comp ((arlO_assn clause_ll_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                   (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel) \<rightarrow>
+          hr_comp (arlO_assn clause_ll_assn) (\<langle>Id\<rangle>clauses_l_fmat)\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    by (rule hfref_compI_PRE_aux[OF swap_aa_hnr swap_ll_fmap_swap_ll, of unat_lit_assn]) simp
+  have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
+    by (auto simp: comp_PRE_def list_fmap_rel_def length_rll_def intro!: ext)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep clauses_ll_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep clauses_ll_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding f im apply assumption
+    using pre ..
+qed
+
 end

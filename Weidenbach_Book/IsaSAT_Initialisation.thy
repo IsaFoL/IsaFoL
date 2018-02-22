@@ -5,10 +5,10 @@ begin
 no_notation Ref.update ("_ := _" 62)
 
 section \<open>Code for the initialisation of the Data Structure\<close>
-
+(*
 definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> ('v twl_st_l_init) nres\<close> where
   \<open>init_dt_step_l C S = do {
-   (let ((M, N, U, D, NE, UE, WS, Q), OC) = S in
+   (let ((M, N,  D, NE, UE, WS, Q), OC) = S in
    (case D of
       None \<Rightarrow>
         if is_Nil C
@@ -90,15 +90,13 @@ next
   show ?case
     by (auto simp: IH[symmetric] step)
 qed
-
+*)
 
 context isasat_input_bounded
 begin
 
 type_synonym (in -) 'v twl_st_wl_init = \<open>'v twl_st_wl \<times> 'v clauses\<close>
 
-fun (in -) get_conflict_wl_init :: \<open>'v twl_st_wl_init \<Rightarrow> 'v clause option\<close> where
-  \<open>get_conflict_wl_init ((_, _, _, D, _), _) = D\<close>
 
 type_synonym (in -) vmtf_remove_int_option_fst_As = \<open>vmtf_option_fst_As \<times> nat list\<close>
 
@@ -110,7 +108,7 @@ where
      to_remove) \<in> vmtf M)}\<close>
 
 type_synonym (in -) twl_st_wl_heur_init =
-  \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times> nat clause option \<times> nat lit_queue_wl \<times>
+  \<open>(nat,nat)ann_lits \<times> nat clauses_l \<times> nat clause option \<times> nat lit_queue_wl \<times>
     nat list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times>
     nat \<times> nat conflict_min_cach \<times> lbd\<close>
 
@@ -132,8 +130,8 @@ definition (in isasat_input_ops) twl_st_heur_init
   :: \<open>(twl_st_wl_heur_init \<times> nat twl_st_wl_init) set\<close>
 where
 \<open>twl_st_heur_init =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), ((M, N, U, D, NE, UE, Q, W), OC)).
-    M' = M \<and> N' = N \<and> U' = U \<and>
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd), ((M, N, D, NE, UE, Q, W), OC)).
+    M' = M \<and> N' = N \<and>
     D' = D \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
@@ -144,7 +142,7 @@ where
   }\<close>
 
 type_synonym (in -)twl_st_wll_trail_init =
-  \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> option_lookup_clause_assn \<times>
+  \<open>trail_pol_assn \<times> clauses_wl \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn\<close>
 
@@ -152,7 +150,7 @@ definition (in isasat_input_ops) twl_st_heur_init_assn
   :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close>
 where
 \<open>twl_st_heur_init_assn =
-  trail_assn *a clauses_ll_assn *a nat_assn *a
+  trail_assn *a clauses_ll_assn *a
   option_lookup_clause_assn *a
   clause_l_assn *a
   arrayO_assn (arl_assn nat_assn) *a
@@ -167,10 +165,10 @@ where
   \<open>twl_st_init_assn = hr_comp twl_st_heur_init_assn twl_st_heur_init\<close>
 
 fun (in -)get_conflict_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat clause option\<close> where
-  \<open>get_conflict_wl_heur_init (_, _, _, D, _) = D\<close>
+  \<open>get_conflict_wl_heur_init (_, _, D, _) = D\<close>
 
 fun (in -) get_watched_list_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat list list\<close> where
-  \<open>get_watched_list_heur_init (_, _, _, _, _, W, _) = W\<close>
+  \<open>get_watched_list_heur_init (_, _, _, _, W, _) = W\<close>
 
 fun (in -) get_trail_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> (nat,nat) ann_lits\<close> where
   \<open>get_trail_wl_heur_init (M, _, _, _, _, _, _) = M\<close>
@@ -178,15 +176,15 @@ fun (in -) get_trail_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> (n
 definition (in isasat_input_ops) propagate_unit_cls
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
-  \<open>propagate_unit_cls = (\<lambda>L ((M, N, U, D, NE, UE, Q, WS), OC).
-     ((Propagated L 0 # M, N, U, D, add_mset {#L#} NE, UE, add_mset (-L) Q, WS), OC))\<close>
+  \<open>propagate_unit_cls = (\<lambda>L ((M, N, D, NE, UE, Q, WS), OC).
+     ((Propagated L 0 # M, N, D, add_mset {#L#} NE, UE, add_mset (-L) Q, WS), OC))\<close>
 
 definition (in isasat_input_ops) propagate_unit_cls_heur
  :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>propagate_unit_cls_heur = (\<lambda>L (M, N, U, D, Q, oth). do {
+  \<open>propagate_unit_cls_heur = (\<lambda>L (M, N, D, Q, oth). do {
      ASSERT(undefined_lit M L \<and> L \<in> snd ` D\<^sub>0);
-     RETURN (Propagated L 0 # M, N, U, D, add_mset (-L) Q, oth)})\<close>
+     RETURN (Propagated L 0 # M, N, D, add_mset (-L) Q, oth)})\<close>
 
 lemma propagate_unit_cls_heur_propagate_unit_cls:
   \<open>(uncurry propagate_unit_cls_heur, uncurry (RETURN oo propagate_unit_cls)) \<in>
@@ -217,14 +215,14 @@ lemmas propagate_unit_cls_heur_hnr[sepref_fr_rules] =
 definition (in isasat_input_ops) already_propagated_unit_cls
    :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
-  \<open>already_propagated_unit_cls = (\<lambda>L ((M, N, U, D, NE, UE, Q, WS), OC).
-     ((M, N, U, D, add_mset {#L#} NE, UE, Q, WS), OC))\<close>
+  \<open>already_propagated_unit_cls = (\<lambda>L ((M, N, D, NE, UE, Q, WS), OC).
+     ((M, N, D, add_mset {#L#} NE, UE, Q, WS), OC))\<close>
 
 definition (in isasat_input_ops) already_propagated_unit_cls_heur
    :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>already_propagated_unit_cls_heur = (\<lambda>L (M, N, U, D, Q, oth).
-     RETURN (M, N, U, D, Q, oth))\<close>
+  \<open>already_propagated_unit_cls_heur = (\<lambda>L (M, N, D, Q, oth).
+     RETURN (M, N, D, Q, oth))\<close>
 
 lemma already_propagated_unit_cls_heur_already_propagated_unit_cls:
   \<open>(uncurry already_propagated_unit_cls_heur, uncurry (RETURN oo already_propagated_unit_cls)) \<in>
@@ -263,20 +261,20 @@ definition (in -) set_conflict_unit :: \<open>nat literal \<Rightarrow> nat clau
 definition (in isasat_input_ops) conflict_propagated_unit_cls
  :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
-  \<open>conflict_propagated_unit_cls = (\<lambda>L ((M, N, U, D, NE, UE, Q, WS), OC).
-     ((M, N, U, set_conflict_unit L D, add_mset {#L#} NE, UE, {#}, WS), OC))\<close>
+  \<open>conflict_propagated_unit_cls = (\<lambda>L ((M, N, D, NE, UE, Q, WS), OC).
+     ((M, N, set_conflict_unit L D, add_mset {#L#} NE, UE, {#}, WS), OC))\<close>
 
 definition (in isasat_input_ops) conflict_propagated_unit_cls_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>conflict_propagated_unit_cls_heur = (\<lambda>L (M, N, U, D, Q, oth). do {
+  \<open>conflict_propagated_unit_cls_heur = (\<lambda>L (M, N, D, Q, oth). do {
      ASSERT(L \<in> snd ` D\<^sub>0 \<and> D = None);
-     RETURN (M, N, U, set_conflict_unit L D, {#}, oth)
+     RETURN (M, N, set_conflict_unit L D, {#}, oth)
     })\<close>
 
 lemma conflict_propagated_unit_cls_heur_conflict_propagated_unit_cls:
   \<open>(uncurry conflict_propagated_unit_cls_heur, uncurry (RETURN oo conflict_propagated_unit_cls)) \<in>
-   [\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> get_conflict_wl_init S = None]\<^sub>f
+   [\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> get_conflict_init_wl S = None]\<^sub>f
       nat_lit_lit_rel \<times>\<^sub>r twl_st_heur_init \<rightarrow> \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_init_def conflict_propagated_unit_cls_heur_def conflict_propagated_unit_cls_def
@@ -376,11 +374,11 @@ definition (in isasat_input_ops) add_init_cls
 
 definition (in isasat_input_ops) add_init_cls_heur
   :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>  where
-  \<open>add_init_cls_heur = (\<lambda>C (M, N, U, D, Q, WS, oth). do {
-     let U = length N;
-     let WS = WS[nat_of_lit (hd C) := WS ! nat_of_lit (hd C) @ [U]];
-     let WS = WS[nat_of_lit (hd (tl C)) := WS ! nat_of_lit (hd (tl C)) @ [U]];
-     RETURN (M, N @ [op_array_of_list C], U, D, Q, WS, oth)})\<close>
+  \<open>add_init_cls_heur = (\<lambda>C (M, N, D, Q, WS, oth). do {
+     i \<leftarrow> get_fresh_index N;
+     let WS = WS[nat_of_lit (hd C) := WS ! nat_of_lit (hd C) @ [i]];
+     let WS = WS[nat_of_lit (hd (tl C)) := WS ! nat_of_lit (hd (tl C)) @ [i]];
+     RETURN (M, N(i \<hookrightarrow> op_array_of_list C), D, Q, WS, oth)})\<close>
 
 lemma length_C_nempty_iff: \<open>length C \<ge> 2 \<longleftrightarrow> C \<noteq> [] \<and> tl C \<noteq> []\<close>
   by (cases C; cases \<open>tl C\<close>) auto

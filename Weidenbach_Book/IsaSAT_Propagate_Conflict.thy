@@ -115,7 +115,7 @@ sepref_thm update_clause_wl_code
   supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
   unfolding update_clause_wl_heur_def twl_st_heur_assn_def Array_List_Array.swap_ll_def[symmetric]
     fmap_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
-    delete_index_and_swap_ll_def[symmetric]
+    delete_index_and_swap_ll_def[symmetric] fmap_swap_ll_def[symmetric]
     append_ll_def[symmetric] update_clause_wl_code_pre_def
   by sepref
 
@@ -136,8 +136,8 @@ sepref_thm propagate_lit_wl_code
   unfolding PR_CONST_def propagate_lit_wl_heur_def twl_st_heur_assn_def
     cons_trail_Propagated_def[symmetric]
   supply [[goals_limit=1]]length_rll_def[simp] length_ll_def[simp]
-  unfolding update_clause_wl_heur_def twl_st_heur_assn_def Array_List_Array.swap_ll_def[symmetric]
-    propagate_lit_wl_heur_pre_def
+  unfolding update_clause_wl_heur_def twl_st_heur_assn_def
+    propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
   by sepref
 
 
@@ -195,19 +195,19 @@ lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
 paragraph \<open>Unit Propagation, Inner Loop\<close>
 
 definition (in -) length_ll_fs :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
-  \<open>length_ll_fs = (\<lambda>(_, _, _, _, _, _, _, W) L. length (W L))\<close>
+  \<open>length_ll_fs = (\<lambda>(_, _, _, _, _, _, W) L. length (W L))\<close>
 
 definition (in -) length_ll_fs_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>length_ll_fs_heur S L = length (watched_by_int S L)\<close>
 
 lemma length_ll_fs_heur_alt_def:
-  \<open>length_ll_fs_heur = (\<lambda>(M, N, U, D, Q, W, _) L. length (W ! nat_of_lit L))\<close>
+  \<open>length_ll_fs_heur = (\<lambda>(M, N, D, Q, W, _) L. length (W ! nat_of_lit L))\<close>
   unfolding length_ll_fs_heur_def
   apply (intro ext)
   apply (case_tac S)
   by auto
 
-lemma (in -) get_watched_wl_heur_def: \<open>get_watched_wl_heur = (\<lambda>(M, N, U, D, Q, W, _). W)\<close>
+lemma (in -) get_watched_wl_heur_def: \<open>get_watched_wl_heur = (\<lambda>(M, N, D, Q, W, _). W)\<close>
   by (intro ext, rename_tac x, case_tac x) auto
 
 sepref_thm length_ll_fs_heur_code
@@ -284,16 +284,16 @@ paragraph \<open>Unit propagation, Outer Loop\<close>
 definition (in -) select_and_remove_from_literals_to_update_wl_heur'
   :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wl_heur_W_list \<times> _\<close> where
   \<open>select_and_remove_from_literals_to_update_wl_heur' =
-     (\<lambda>(M, N, U, D, Q, W, other).  ((M, N, U, D, tl Q, W, other), hd Q))\<close>
+     (\<lambda>(M, N, D, Q, W, other).  ((M, N, D, tl Q, W, other), hd Q))\<close>
 
 definition get_literals_to_update_wl where
    \<open>get_literals_to_update_wl = (\<lambda>(M, N, U, D, NE, UE, Q, W). Q)\<close>
 
 definition get_literals_to_update_wl_heur_W_list where
-   \<open>get_literals_to_update_wl_heur_W_list = (\<lambda>(M, N, U, D, Q, W, _). Q)\<close>
+   \<open>get_literals_to_update_wl_heur_W_list = (\<lambda>(M, N, D, Q, W, _). Q)\<close>
 
 definition literals_to_update_wl_empty_heur' :: \<open>twl_st_wl_heur_W_list \<Rightarrow> bool\<close>  where
-  \<open>literals_to_update_wl_empty_heur' = (\<lambda>(M, N, U, D, Q, W, oth). Q = [])\<close>
+  \<open>literals_to_update_wl_empty_heur' = (\<lambda>(M, N, D, Q, W, oth). Q = [])\<close>
 
 definition (in isasat_input_ops) twl_st_wl_heur_W_list_rel
   :: \<open>(twl_st_wl_heur_W_list \<times> twl_st_wl_heur) set\<close>
@@ -301,7 +301,6 @@ where
   \<open>twl_st_wl_heur_W_list_rel =
      (Id :: ((nat,nat) ann_lits \<times> _) set) \<times>\<^sub>r
      (Id :: (nat clauses_l  \<times> _) set) \<times>\<^sub>r
-     nat_rel \<times>\<^sub>r
      (Id :: (nat cconflict \<times> _)set) \<times>\<^sub>r
      (list_mset_rel :: (nat literal list \<times> nat lit_queue_wl) set)  \<times>\<^sub>r
      (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
@@ -317,7 +316,7 @@ definition (in isasat_input_ops) twl_st_heur_W_list_assn
   :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close>
 where
 \<open>twl_st_heur_W_list_assn =
-  (trail_assn *a clauses_ll_assn *a nat_assn *a
+  (trail_assn *a clauses_ll_assn *a
   option_lookup_clause_assn *a
   (list_assn unat_lit_assn) *a
   arrayO_assn (arl_assn nat_assn) *a

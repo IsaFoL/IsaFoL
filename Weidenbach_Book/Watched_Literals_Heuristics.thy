@@ -188,7 +188,7 @@ obtain T T' where
   then show \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S)\<close>
     using in_all_lits_of_m_ain_atms_of_iff  S_T T_T' lits
     unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def in_all_lits_of_mm_ain_atms_of_iff image_subset_iff
-    by (auto simp:  trail.simps in_all_lits_of_mm_ain_atms_of_iff
+    by (auto 5 5  simp:  trail.simps in_all_lits_of_mm_ain_atms_of_iff
       lits_of_def image_image init_clss.simps mset_take_mset_drop_mset' 
       convert_lits_l_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
       twl_st_l twl_st_wl twl_st get_unit_clss_wl_alt_def)
