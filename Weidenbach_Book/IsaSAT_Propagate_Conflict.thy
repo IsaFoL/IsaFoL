@@ -40,7 +40,7 @@ sepref_thm access_lit_in_clauses_heur_code
       twl_st_heur_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   supply length_rll_def[simp]
   unfolding twl_st_heur_assn_def access_lit_in_clauses_heur_alt_def
-    nth_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
+    fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
   by sepref
 
 concrete_definition (in -) access_lit_in_clauses_heur_code
@@ -71,10 +71,10 @@ sepref_thm find_unwatched_wl_st_heur_code
   is \<open>uncurry ((PR_CONST find_unwatched_wl_st_heur))\<close>
   :: \<open>[find_unwatched_wl_st_heur_pre]\<^sub>a
          twl_st_heur_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
-  supply [[goals_limit = 1]] literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0'[intro] nth_rll_def[simp]
-    length_rll_def[simp]
+  supply [[goals_limit = 1]] literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0'[intro] fmap_rll_def[simp]
+    length_rll_def[simp] fmap_length_rll_def[simp]
   unfolding find_unwatched_wl_st_heur_def twl_st_heur_assn_def PR_CONST_def
-  find_unwatched_def nth_rll_def[symmetric] length_rll_def[symmetric]
+  find_unwatched_def fmap_rll_def[symmetric] fmap_length_rll_def[symmetric]
   case_tri_bool_If find_unwatched_wl_st_heur_pre_def
   by sepref
 
@@ -114,7 +114,7 @@ sepref_thm update_clause_wl_code
        nat_assn *a twl_st_heur_assn\<close>
   supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
   unfolding update_clause_wl_heur_def twl_st_heur_assn_def Array_List_Array.swap_ll_def[symmetric]
-    nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
+    fmap_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
     delete_index_and_swap_ll_def[symmetric]
     append_ll_def[symmetric] update_clause_wl_code_pre_def
   by sepref
@@ -172,7 +172,7 @@ sepref_thm unit_propagation_inner_loop_body_wl_heur
   supply undefined_lit_polarity_st_iff[iff]
     unit_prop_body_wl_D_find_unwatched_heur_inv_def[simp]
   unfolding unit_propagation_inner_loop_body_wl_heur_def length_rll_def[symmetric] PR_CONST_def
-  unfolding nth_rll_def[symmetric]
+  unfolding fmap_rll_def[symmetric]
   unfolding fast_minus_def[symmetric]
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
   supply [[goals_limit=1]]

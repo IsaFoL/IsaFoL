@@ -174,7 +174,7 @@ qed
 
 
 definition fmap_length_rll :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat" where
-  \<open>fmap_length_rll l i = length (l \<propto> i)\<close>
+  [simp]: \<open>fmap_length_rll l i = length (l \<propto> i)\<close>
 
 
 (*TODO rename length_rll_n_uint32*)

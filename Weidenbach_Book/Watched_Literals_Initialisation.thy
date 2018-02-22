@@ -210,7 +210,7 @@ lemma fst_add_to_other_init [simp]: \<open>fst (add_to_other_init a T) = fst T\<
 
 definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init nres\<close> where
   \<open>init_dt_step C S =
-  (case get_conflict_l (fst S) of
+  (case get_conflict_l_init S of
     None \<Rightarrow>
     if length C = 0
     then RETURN (add_empty_conflict_init_l S)
@@ -227,12 +227,8 @@ definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<R
   | Some D \<Rightarrow>
       RETURN (add_to_other_init C S))\<close>
 
-fun init_dt :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init nres\<close> where
-  \<open>init_dt [] S = RETURN S\<close>
-| \<open>init_dt (C # CS) S =  do {
-      S \<leftarrow> init_dt_step C S;
-      init_dt CS S
-   }\<close>
+definition init_dt :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init nres\<close> where
+  \<open>init_dt CS S = nfoldli CS (\<lambda>_. True) init_dt_step S\<close>
 
 definition   init_dt_pre where
   \<open>init_dt_pre CS SOC \<longleftrightarrow>
@@ -1327,7 +1323,7 @@ proof (induction CS arbitrary: SOC)
     by auto
 
   then show ?case
-    unfolding init_dt.simps SOC init_dt_spec_def
+    unfolding init_dt_def SOC init_dt_spec_def nfoldli_simps
     apply (intro RETURN_rule)
     unfolding prod.simps
     apply (rule exI[of _ T])
@@ -1342,16 +1338,36 @@ next
        spec': \<open>init_dt_spec [a] SOC T\<close> for T UOC
     using init_dt_spec_append[OF spec' spec] by simp
   show ?case
-    unfolding init_dt.simps
+    unfolding init_dt_def nfoldli_simps if_True
     apply (rule specify_left)
      apply (rule 1)
     apply (rule order.trans)
+    unfolding init_dt_def[symmetric]
      apply (rule IH)
      apply (solves \<open>simp\<close>)
     apply (rule SPEC_rule)
     by (rule 2) fast+
 qed
 
+text \<open>TODO Move\<close>
+lemma ran_m_fmempty[simp]: \<open>ran_m fmempty = {#}\<close> and
+    dom_m_fmempty[simp]: \<open>dom_m fmempty = {#}\<close>
+  by (auto simp: ran_m_def dom_m_def)
+text \<open>END Move\<close>
+
+lemma init_dt_pre_empty_state:
+  \<open>init_dt_pre [] (([], fmempty, None, {#}, {#}, {#}, {#}), {#})\<close>
+  unfolding init_dt_pre_def
+  by (auto simp: twl_st_l_init_def twl_struct_invs_init_def twl_st_inv.simps
+      twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
+      past_invs.simps clauses_def
+      cdcl\<^sub>W_restart_mset_state twl_list_invs_def
+      twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+      cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+      cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
 (* TODO needs to be done via proper refinement!
 theorem init_dt:
   fixes CS S
