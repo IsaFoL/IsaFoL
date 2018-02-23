@@ -44,10 +44,10 @@ fun set_conflict_init_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init \
 
 fun add_to_clauses_init_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init nres\<close> where
   add_to_clauses_init_wl_def[simp del]:
-   \<open>add_to_clauses_init_wl C ((M, N, _, NE, UE, Q, W), OC) = do {
+   \<open>add_to_clauses_init_wl C ((M, N, D, NE, UE, Q, W), OC) = do {
         i \<leftarrow> get_fresh_index N;
         let W = W((C!0) := W (C!0) @ [i], (C!1) := W (C!1) @ [i]);
-        RETURN ((M, fmupd i (C, True) N, None, NE, UE, Q, W), OC)
+        RETURN ((M, fmupd i (C, True) N, D, NE, UE, Q, W), OC)
     }\<close>
 
 
@@ -151,14 +151,14 @@ proof -
   have add_to_clauses_init_wl: \<open>add_to_clauses_init_wl C S
           \<le> \<Down> {(S, S'). (S, S') \<in> state_wl_l_init \<and> correct_watching_init S}
                (add_to_clauses_init_l C S')\<close>
-    if C: \<open>length C \<ge> 2\<close>
+    if C: \<open>length C \<ge> 2\<close> and conf: \<open>get_conflict_l_init S' = None\<close>
   proof -
     have [iff]: \<open>C ! Suc 0 \<notin> set (watched_l C) \<longleftrightarrow> False\<close>
       \<open>C ! 0 \<notin> set (watched_l C) \<longleftrightarrow> False\<close> and
       [dest!]: \<open>\<And>L. L \<noteq> C ! 0 \<Longrightarrow> L \<noteq> C ! Suc 0 \<Longrightarrow> L \<in> set (watched_l C) \<Longrightarrow> False\<close>
       using C by (cases C; cases \<open>tl C\<close>; auto)+
     show ?thesis
-      using S_S' corr
+      using S_S' corr conf
       by (cases S; cases S')
         (auto 5 5 simp: add_to_clauses_init_wl_def add_to_clauses_init_l_def get_fresh_index_def
           state_wl_l_init_def state_wl_l_def correct_watching.simps clause_to_update_def

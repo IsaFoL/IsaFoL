@@ -364,13 +364,16 @@ prepare_code_thms (in -) conflict_propagated_unit_cls_code_def
 lemmas conflict_propagated_unit_cls_heur_hnr[sepref_fr_rules] =
    conflict_propagated_unit_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
+text \<open>TODO: why is sepref not able to handle the inlined version of the Let for True?\<close>
 definition (in isasat_input_ops) add_init_cls_heur
   :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>  where
   \<open>add_init_cls_heur = (\<lambda>C (M, N, D, Q, WS, oth). do {
-     i \<leftarrow> get_fresh_index N;
-     let WS = WS[nat_of_lit (hd C) := WS ! nat_of_lit (hd C) @ [i]];
-     let WS = WS[nat_of_lit (hd (tl C)) := WS ! nat_of_lit (hd (tl C)) @ [i]];
-     RETURN (M, N(i \<hookrightarrow> op_array_of_list C), D, Q, WS, oth)})\<close>
+     let L = hd C; let L' = hd (tl C);
+     let b = True; let C = op_array_of_list C;
+     (N, i) \<leftarrow> fm_add_new b C N;
+     let WS = WS[nat_of_lit L := WS ! nat_of_lit L @ [i]];
+     let WS = WS[nat_of_lit L' := WS ! nat_of_lit L' @ [i]];
+     RETURN (M, N, D, Q, WS, oth)})\<close>
 
 lemma length_C_nempty_iff: \<open>length C \<ge> 2 \<longleftrightarrow> C \<noteq> [] \<and> tl C \<noteq> []\<close>
   by (cases C; cases \<open>tl C\<close>) auto
@@ -398,13 +401,23 @@ prepare_code_thms (in -) add_init_cls_code_def
 lemmas add_init_cls_heur_hnr[sepref_fr_rules] =
    add_init_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
+text \<open>TODO Move\<close>
+lemma (in -)RES_RETURN_RES_RES2:
+   \<open>RES \<Phi> \<bind> (\<lambda>(T, T'). RETURN (f T T')) = RES (uncurry f ` \<Phi>)\<close>
+  using RES_RES2_RETURN_RES[of \<open>\<Phi>\<close> \<open>\<lambda>T T'. {f T T'}\<close>]
+  apply (subst (asm)(2) split_prod_bound)
+  by (auto simp: RETURN_def uncurry_def)
+
 lemma add_init_cls_heur_add_init_cls:
-  \<open>(uncurry add_init_cls_heur, uncurry (add_init_cls)) \<in>
-   [\<lambda>(C, S). length C \<ge> 2 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)]\<^sub>f
+  \<open>(uncurry add_init_cls_heur, uncurry (add_to_clauses_init_wl)) \<in>
+   [\<lambda>(C, S). length C \<ge> 2 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and> distinct C]\<^sub>f
    Id \<times>\<^sub>r twl_st_heur_init \<rightarrow> \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: twl_st_heur_init_def add_init_cls_heur_def add_init_cls_def Let_def
-      map_fun_rel_def)
+     (fastforce simp: twl_st_heur_init_def add_init_cls_heur_def add_to_clauses_init_wl_def Let_def
+      fm_add_new_def get_fresh_index_def RES_RETURN_RES RES_RETURN_RES2 RES_RES2_RETURN_RES
+      RES_RETURN_RES_RES2 length_C_nempty_iff
+      map_fun_rel_def neq_Nil_conv
+      intro!: RES_refine)
 
 definition (in isasat_input_ops) already_propagated_unit_cls_conflict
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
