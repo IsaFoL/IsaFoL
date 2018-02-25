@@ -831,8 +831,7 @@ lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def:
 lemma (in -)sup_union_right_if:
   \<open>N \<union># add_mset x M = (if x \<notin># N then  add_mset x (N \<union># M) else add_mset x (remove1_mset x N \<union># M))\<close>
   by (auto simp: sup_union_right2)
-text \<open>END Move\<close>
-
+text \<open>END MOVE\<close>
 
 lemma skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D:
   \<open>(skip_and_resolve_loop_wl_D_heur, skip_and_resolve_loop_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
@@ -922,14 +921,8 @@ proof -
       using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+
 
-    with lits have lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close>
-      using x2_T T_U unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-         literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
-      by (subst (asm) all_clss_l_ran_m[symmetric])
-        (auto simp add: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
-        convert_lits_l_def image_image in_all_lits_of_mm_ain_atms_of_iff
-        get_unit_clss_wl_alt_def
-        simp del: all_clss_l_ran_m M)
+    have lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close>
+      using literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail[OF lits x2_T struct T_U] .
     then have 1: \<open>lit_of (hd (get_trail_wl x2)) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using nempty x2_T T_U by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons)
     have M_confl: \<open>get_trail_wl x2 \<Turnstile>as CNot (the (get_conflict_wl x2))\<close>
@@ -948,16 +941,8 @@ proof -
       using dist x2_T T_U conf unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
       by (auto simp: twl_st)
     have lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl x2))\<close>
-      using x2_T T_U alien lits conf unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
-         cdcl\<^sub>W_restart_mset.no_strange_atm_def literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def
-      apply (subst (asm) all_clss_l_ran_m[symmetric])
-      unfolding image_mset_union all_lits_of_mm_union
-      by (auto simp add: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
-        image_image in_all_lits_of_mm_ain_atms_of_iff
-        in_all_lits_of_m_ain_atms_of_iff
-        get_unit_clss_wl_alt_def
-        simp del: all_clss_l_ran_m M
-        dest: rev_subsetD[of _ _ "atms_of _"])
+      by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_conflict[OF lits x2_T struct T_U])
+        (use conf x2_T T_U in auto)
     show ?pre_heur
       using rel x2_T T_U conf 1 lits_confl
       unfolding literal_is_in_conflict_heur_pre_def st
