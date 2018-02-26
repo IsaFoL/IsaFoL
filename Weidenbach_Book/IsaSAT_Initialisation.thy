@@ -670,7 +670,9 @@ where
   }\<close>
 
 lemma init_dt_step_wl_heur_init_dt_step_wl:
-  \<open>(uncurry init_dt_step_wl_heur, uncurry init_dt_step_wl) \<in> Id \<times>\<^sub>f twl_st_heur_init \<rightarrow>\<^sub>f \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
+  \<open>(uncurry init_dt_step_wl_heur, uncurry init_dt_step_wl) \<in>
+   [\<lambda>(C, S). literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and> distinct C]\<^sub>f 
+      Id \<times>\<^sub>f twl_st_heur_init \<rightarrow> \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
   supply [[goals_limit=1]]
   unfolding init_dt_step_wl_heur_def init_dt_step_wl_def uncurry_def
     option.case_eq_if
@@ -689,13 +691,13 @@ lemma init_dt_step_wl_heur_init_dt_step_wl:
       add_clause_to_others_heur_add_clause_to_others[THEN fref_to_Down_curry,
         unfolded comp_def])
   subgoal by (auto simp: twl_st_heur_init_def)
-  subgoal by (auto simp: twl_st_heur_init_def)
+  subgoal by (auto simp: twl_st_heur_init_def is_Nil_def split: list.splits)
   subgoal by simp
   subgoal by auto
   subgoal by simp
   subgoal by simp
-  subgoal by (auto simp: twl_st_heur_init_def)
-  subgoal by (auto simp: polarity_def split: if_splits)
+  subgoal by (auto simp: image_image literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset split: list.splits)
+  subgoal by (auto simp: polarity_def twl_st_heur_init_def split: list.splits)
   subgoal by simp
   subgoal by (auto simp: twl_st_heur_init_def)
   subgoal by (auto simp: twl_st_heur_init_def)
@@ -709,7 +711,6 @@ lemma init_dt_step_wl_heur_init_dt_step_wl:
     by (auto simp: twl_st_heur_init_def map_fun_rel_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
         split: list.splits)
   subgoal for C
-    apply (cases C; cases \<open>tl C\<close>)
     by (auto simp: twl_st_heur_init_def map_fun_rel_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
   subgoal by simp
   subgoal by simp
@@ -717,10 +718,10 @@ lemma init_dt_step_wl_heur_init_dt_step_wl:
   done
 
 definition get_conflict_wl_is_None_init :: \<open>nat twl_st_wl_init \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None_init = (\<lambda>((M, N, U, D, NE, UE, Q, W), OC). is_None D)\<close>
+  \<open>get_conflict_wl_is_None_init = (\<lambda>((M, N, D, NE, UE, Q, W), OC). is_None D)\<close>
 
 definition (in -) get_conflict_wl_is_None_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None_heur_init = (\<lambda>(M, N, U, D, Q, W, _). is_None D)\<close>
+  \<open>get_conflict_wl_is_None_heur_init = (\<lambda>(M, N, D, Q, W, _). is_None D)\<close>
 
 lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_init:
     \<open>(RETURN o get_conflict_wl_is_None_heur_init,  RETURN o get_conflict_wl_is_None_init ) \<in>
@@ -833,12 +834,12 @@ lemmas init_dt_step_wl_code_refine[sepref_fr_rules] =
   init_dt_step_wl_code.refine[OF isasat_input_bounded_axioms]
 
 definition (in isasat_input_ops) init_dt_wl
- :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl_init \<Rightarrow> (nat twl_st_wl_init) nres\<close>
+ :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl_init \<Rightarrow> (nat twl_st_wl_init) nres\<close>
 where
   \<open>init_dt_wl CS S = nfoldli CS (\<lambda>_. True) (init_dt_step_wl) S\<close>
 
 definition (in isasat_input_ops) init_dt_wl_heur
- :: \<open>nat clauses_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (twl_st_wl_heur_init) nres\<close>
+ :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (twl_st_wl_heur_init) nres\<close>
 where
   \<open>init_dt_wl_heur CS S = nfoldli CS (\<lambda>_. True) (init_dt_step_wl_heur) S\<close>
 
@@ -905,7 +906,7 @@ sepref_definition extract_atms_cls_imp
 
 declare extract_atms_cls_imp.refine[sepref_fr_rules]
 
-definition extract_atms_clss:: \<open>'a clauses_l \<Rightarrow> 'a list \<Rightarrow> 'a list\<close>  where
+definition extract_atms_clss:: \<open>'a clause_l list \<Rightarrow> 'a list \<Rightarrow> 'a list\<close>  where
   \<open>extract_atms_clss N \<A>\<^sub>i\<^sub>n = fold extract_atms_cls N \<A>\<^sub>i\<^sub>n\<close>
 
 sepref_definition extract_atms_clss_imp
@@ -1011,22 +1012,23 @@ context isasat_input_bounded
 begin
 
 fun (in isasat_input_ops) correct_watching_init :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>correct_watching_init (M, N, U, D, NE, UE, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_of_atms_m \<A>\<^sub>i\<^sub>n. mset (W L) = clause_to_update L (M, N, U, D, NE, UE, {#}, {#}))\<close>
+  \<open>correct_watching_init (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_lits_of_atms_m \<A>\<^sub>i\<^sub>n. mset (W L) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
 
-
-lemma clause_to_update_append: \<open>N \<noteq> [] \<Longrightarrow> clause_to_update La (M, N @ [C], U, D, NE, UE, WS, Q) =
+(*
+lemma clause_to_update_append: \<open>N \<noteq> [] \<Longrightarrow> clause_to_update La (M, N @ [C], D, NE, UE, WS, Q) =
      clause_to_update La (M, N, U, D, NE, UE, WS, Q) +
     (if La \<in> set (watched_l C) then {#length N#} else {#})\<close>
   unfolding clause_to_update_def get_clauses_l.simps
   by (auto simp: clause_to_update_def nth_append)
+*)
 
 definition (in isasat_input_ops) HH :: \<open>(nat twl_st_wl_init \<times> nat twl_st_l_init) set\<close> where
-  \<open>HH = {(((M', N', U', D', NE', UE', Q', WS'), OC'), ((M, N, U, D, NE, UE, WS, Q), OC)).
-               M = M' \<and> N = N' \<and> U = U' \<and> D = D' \<and> NE = NE' \<and> UE = UE' \<and> Q = Q' \<and> WS = {#} \<and>
-               (* U = length N - 1 \<and> *) UE = {#} \<and> N \<noteq> [] \<and>
-               correct_watching_init (M', N', U', D', NE', UE', Q', WS') \<and>
-               set_mset (all_lits_of_mm (mset `# mset (tl N) + NE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+  \<open>HH = {(((M', N', D', NE', UE', Q', WS'), OC'), ((M, N, D, NE, UE, WS, Q), OC)).
+               M = M' \<and> N = N' \<and> D = D' \<and> NE = NE' \<and> UE = UE' \<and> Q = Q' \<and> WS = {#} \<and>
+               (* U = length N - 1 \<and> *) UE = {#} \<and> 0 \<notin># dom_m N \<and>
+               correct_watching_init (M', N', D', NE', UE', Q', WS') \<and>
+               set_mset (all_lits_of_mm (mset `# ran_mf N + NE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
                (\<forall>L \<in> lits_of_l M. {#L#} \<in># NE) \<and>
                (\<forall>L \<in> set M. \<exists>K. L = Propagated K 0) \<and>
                (D \<noteq> None \<longrightarrow> Q = {#}) \<and>
@@ -1048,10 +1050,10 @@ lemma init_dt_step_wl_init_dt_step_l:
 proof -
   have val: \<open>(val, val') \<in> \<langle>Id\<rangle>option_rel\<close> if \<open>val = val'\<close> for val val'
     using that by auto
-  have [simp]: \<open>clause_to_update L (M, N, U, D, NE, UE, WS, Q) =
-       clause_to_update L (M', N', U', D', NE', UE', WS', Q')\<close>
+  have [simp]: \<open>clause_to_update L (M, N, D, NE, UE, WS, Q) =
+       clause_to_update L (M', N', D', NE', UE', WS', Q')\<close>
     if \<open>N = N'\<close>
-    for M N U D NE UE WS Q M' N' U' D' NE' UE' WS' Q' and L :: \<open>nat literal\<close>
+    for M N D NE UE WS Q M' N' D' NE' UE' WS' Q' and L :: \<open>nat literal\<close>
     by (auto simp: clause_to_update_def that)
   note literal_of_nat.simps[simp del] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[simp]
   have hd_C: \<open>hd C \<in> snd ` (\<lambda>L. (nat_of_lit L, L)) ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
@@ -1066,18 +1068,17 @@ proof -
   have hd_tl_C: \<open>hd (tl C) \<in> snd ` (\<lambda>L. (nat_of_lit L, L)) ` set_mset (isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
     if \<open>C \<noteq> []\<close> and \<open>tl C \<noteq> []\<close>
     using assms(3-) that lits_C by (cases C; cases \<open>tl C\<close>)
-      (auto simp: HH_def Let_def clause_to_update_append
+      (auto simp: HH_def Let_def
         clauses_def mset_take_mset_drop_mset' image_image all_lits_of_m_add_mset
         isasat_input_ops.literals_are_in_\<L>\<^sub>i\<^sub>n_def)
 
-  obtain M N U D NE Q WS OC where
-    S': \<open>S' = ((M, N, U, D, NE, {#}, Q, WS), OC)\<close> and
-    S: \<open>S = ((M, N, U, D, NE, {#}, {#}, Q), OC)\<close> and
-    H: \<open>correct_watching_init (M, N, U, D, NE, {#}, Q, WS)\<close>
-     \<open>set_mset (all_lits_of_mm (mset `# mset (tl N) + NE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  obtain M N D NE Q WS OC where
+    S': \<open>S' = ((M, N, D, NE, {#}, Q, WS), OC)\<close> and
+    S: \<open>S = ((M, N, D, NE, {#}, {#}, Q), OC)\<close> and
+    H: \<open>correct_watching_init (M, N, D, NE, {#}, Q, WS)\<close>
+     \<open>set_mset (all_lits_of_mm (mset `# ran_mf N + NE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
      \<open>\<forall>L\<in>lits_of_l M. {#L#} \<in># NE\<close>
      \<open>\<forall>L\<in>set M. \<exists>K. L = Propagated K 0\<close>
-     \<open>N \<noteq> []\<close>
      \<open>D \<noteq> None \<longrightarrow> Q = {#}\<close>
     using S'S unfolding HH_def
     by (cases S'; cases S) (auto simp: HH_def)
@@ -1190,18 +1191,20 @@ lemma init_dt_wl_init_dt_l:
     apply (rule p(1)[unfolded init_dt_wl_def init_dt_l_def]; solves \<open>simp\<close>)
     done
   done
+  sorry
+  sorry
 
 lemma all_lits_of_mm_in_all_lits_of_m_in_iff:
   \<open>set_mset (all_lits_of_mm (mset `# mset CS)) \<subseteq> A \<longleftrightarrow>
     (\<forall>C\<in>set CS. set_mset (all_lits_of_m (mset C)) \<subseteq> A)\<close>
   by (auto simp: all_lits_of_mm_def all_lits_of_m_def)
-
+(*
 fun (in -) st_l_of_wl_init :: \<open>'v twl_st_wl_init \<Rightarrow> 'v twl_st_l_init\<close> where
   \<open>st_l_of_wl_init ((M, N, C, D, NE, UE, Q, W), OC) = ((M, N, C, D, NE, UE, {#}, Q), OC)\<close>
 
 fun  (in -) twl_st_of_wl_init :: \<open>'v twl_st_wl_init \<Rightarrow> 'v twl_st_init\<close> where
   \<open>twl_st_of_wl_init S = twl_st_of_init (st_l_of_wl_init S)\<close>
-
+*)
 
 lemma init_dt_init_dt_l_full:
   assumes
@@ -1455,7 +1458,7 @@ lemma (in isasat_input_ops) empty_watched_alt_def:
   unfolding empty_watched_def Let_def ..
 
 definition (in isasat_input_ops) init_state_wl :: \<open>nat twl_st_wl\<close> where
-  \<open>init_state_wl = ([], [[]], 0, None, {#}, {#}, {#}, empty_watched)\<close>
+  \<open>init_state_wl = ([], fmempty, None, {#}, {#}, {#}, empty_watched)\<close>
 
 definition (in isasat_input_ops) init_state_wl_heur :: \<open>twl_st_wl_heur_init nres\<close> where
   \<open>init_state_wl_heur = do {
@@ -1464,15 +1467,15 @@ definition (in isasat_input_ops) init_state_wl_heur :: \<open>twl_st_wl_heur_ini
     \<phi> \<leftarrow> SPEC phase_saving;
     cach \<leftarrow> SPEC cach_refinement_empty;
     let lbd = empty_lbd;
-    RETURN ([], [[]], 0, None, {#}, W, vm, \<phi>, zero_uint32_nat, cach, lbd)}\<close>
+    RETURN ([], fmempty, None, {#}, W, vm, \<phi>, zero_uint32_nat, cach, lbd)}\<close>
 
 
 definition (in isasat_input_ops) twl_st_heur_init_wl :: \<open>(twl_st_wl_heur_init \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_init_wl =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), (M, N, U, D, NE, UE, Q, W)).
-    M' = M \<and> N' = N \<and> U' = U \<and>
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd), (M, N, D, NE, UE, Q, W)).
+    M' = M \<and> N' = N \<and>
     D' = D \<and>
-     Q' = Q \<and>
+    Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf_init M \<and>
     phase_saving \<phi> \<and>
@@ -1831,10 +1834,10 @@ end
 text \<open>The value 160 is random (but larger than the default 16 for array lists).\<close>
 definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>finalise_init_code =
-    (\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
+    (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
        lbd). do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
-     RETURN (M', N', U', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
+     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
        clvls, cach, lbd, take1(replicate 160 (Pos zero_uint32_nat)),
          (0::uint64, 0::uint64, 0::uint64))
      })\<close>
@@ -1871,12 +1874,12 @@ prepare_code_thms (in -) finalise_init_code'_def
 lemmas (in isasat_input_ops)finalise_init_hnr[sepref_fr_rules] =
    finalise_init_code'.refine[of \<A>\<^sub>i\<^sub>n]
 
-definition (in -) init_rll :: \<open>nat \<Rightarrow> 'a list list\<close> where
-  \<open>init_rll n = []\<close>
+definition (in -) init_rll :: \<open>nat \<Rightarrow> (nat, 'v clause_l \<times> bool) fmap\<close> where
+  \<open>init_rll n = fmempty\<close>
 
 lemma (in -)arrayO_raa_empty_sz_init_rll[sepref_fr_rules]:
   \<open>(arrayO_raa_empty_sz, RETURN o init_rll) \<in>
-    nat_assn\<^sup>k \<rightarrow>\<^sub>a arlO_assn R\<close>
+    nat_assn\<^sup>k \<rightarrow>\<^sub>a clauses_ll_assn\<close>
   by sepref_to_hoare (sep_auto simp: init_rll_def)
 
 definition init_lrl :: \<open>nat \<Rightarrow> 'a list list\<close> where
@@ -1918,28 +1921,25 @@ sepref_definition init_trail_D_code
 
 declare init_trail_D_code.refine[sepref_fr_rules]
 
-definition init_state_wl_D' :: \<open>uint32 list \<Rightarrow>  (trail_pol \<times> _ list list \<times>
-     nat \<times> _) nres\<close> where
+definition init_state_wl_D' :: \<open>uint32 list \<Rightarrow>  (trail_pol \<times> _ \<times> _) nres\<close> where
   \<open>init_state_wl_D' \<A>\<^sub>i\<^sub>n = do {
      let n = Suc (nat_of_uint32 (fold max \<A>\<^sub>i\<^sub>n 0));
      let m = 2 * n;
      M \<leftarrow> init_trail_D \<A>\<^sub>i\<^sub>n n;
-     let e = [];
      let N = init_rll n;
-     let N = N @ [e];
      let D = (True, zero_uint32_nat, replicate n None);
      let WS = init_lrl m;
      vm \<leftarrow> initialise_VMTF \<A>\<^sub>i\<^sub>n n;
      let \<phi> = replicate n False;
      let cach = (replicate n SEEN_UNKNOWN, []);
      let lbd = empty_lbd;
-     RETURN (M, N, 0, D, [], WS, vm, \<phi>, zero_uint32_nat, cach, lbd)
+     RETURN (M, N, D, [], WS, vm, \<phi>, zero_uint32_nat, cach, lbd)
   }\<close>
 
 
 sepref_definition init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
-  :: \<open>(list_assn uint32_assn)\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn *a clauses_ll_assn *a nat_assn *a
+  :: \<open>(list_assn uint32_assn)\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn *a clauses_ll_assn *a
     conflict_option_rel_assn *a
     list_assn unat_lit_assn *a
     (arrayO_assn (arl_assn nat_assn)) *a
@@ -1948,13 +1948,11 @@ sepref_definition init_state_wl_D'_code
     cach_refinement_l_assn *a lbd_assn\<close>
   unfolding init_state_wl_D'_def
   apply (rewrite at \<open>(_, _, _, \<hole>, _, _)\<close> HOL_list.fold_custom_empty)
-  apply (rewrite at \<open>(_, _, _, _, \<hole>, _)\<close> annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
-  apply (rewrite at \<open>let _ = \<hole> in _\<close> array.fold_custom_empty)
+  apply (rewrite at \<open>(_, _, _, \<hole>, _)\<close> annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
-  apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn unat_lit_assn\<close>])
   unfolding array_fold_custom_replicate
-  apply (rewrite at \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>clauses_ll_assn\<close>])
-  apply (rewrite at \<open>let _ = _ @ _; _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn nat_assn))\<close>])
+  apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>clauses_ll_assn\<close>])
+  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn nat_assn))\<close>])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1993,20 +1991,20 @@ qed
 lemma init_state_wl_D':
   \<open>(init_state_wl_D', isasat_input_ops.init_state_wl_heur) \<in>
     [\<lambda>N. N = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n]\<^sub>f \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel  \<rightarrow>
-      \<langle>isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
-         nat_rel \<times>\<^sub>r isasat_input_ops.option_lookup_clause_rel \<A>\<^sub>i\<^sub>n \<times>\<^sub>r list_mset_rel \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
+      \<langle>isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n \<times>\<^sub>r Id \<times>\<^sub>r
+         isasat_input_ops.option_lookup_clause_rel \<A>\<^sub>i\<^sub>n \<times>\<^sub>r list_mset_rel \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
            Id \<times>\<^sub>r \<langle>bool_rel\<rangle>list_rel \<times>\<^sub>r Id \<times>\<^sub>r isasat_input_ops.cach_refinement \<A>\<^sub>i\<^sub>n \<times>\<^sub>r Id\<rangle>nres_rel\<close>
 proof -
   have init_state_wl_heur_alt_def: \<open>isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n = do {
     let M = [];
-    let N = [[]];
+    let N = fmempty;
     let D = None;
     W \<leftarrow> SPEC (\<lambda>W. (W, isasat_input_ops.empty_watched \<A>\<^sub>i\<^sub>n ) \<in> \<langle>Id\<rangle>map_fun_rel (isasat_input_ops.D\<^sub>0 \<A>\<^sub>i\<^sub>n));
     vm \<leftarrow> RES (isasat_input_ops.vmtf_init \<A>\<^sub>i\<^sub>n []);
     \<phi> \<leftarrow> SPEC (isasat_input_ops.phase_saving \<A>\<^sub>i\<^sub>n);
     cach \<leftarrow> SPEC (isasat_input_ops.cach_refinement_empty \<A>\<^sub>i\<^sub>n);
     let lbd = empty_lbd;
-    RETURN (M, N, 0, D, {#}, W, vm, \<phi>, zero_uint32_nat, cach, lbd)}\<close> for \<A>\<^sub>i\<^sub>n
+    RETURN (M, N, D, {#}, W, vm, \<phi>, zero_uint32_nat, cach, lbd)}\<close> for \<A>\<^sub>i\<^sub>n
     unfolding isasat_input_ops.init_state_wl_heur_def Let_def by auto
 
   have tr: \<open>distinct_mset \<A>\<^sub>i\<^sub>n \<and> (\<forall>L\<in>#\<A>\<^sub>i\<^sub>n. L < b) \<Longrightarrow> (\<A>\<^sub>i\<^sub>n', \<A>\<^sub>i\<^sub>n) \<in> \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel \<Longrightarrow>
@@ -2112,6 +2110,8 @@ proof -
           isasat_input_ops.lookup_clause_rel_def
           simp del: replicate.simps
           intro!: mset_as_position.intros)
+    subgoal by auto
+    subgoal by auto
     done
   done
 qed
@@ -2139,8 +2139,7 @@ proof -
        \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n]\<^sub>a
          (hr_comp (list_assn uint32_assn) (\<langle>uint32_nat_rel\<rangle>list_rel_mset_rel))\<^sup>k \<rightarrow>
          hr_comp trail_pol_assn (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *a
-         hr_comp clauses_ll_assn (\<langle>\<langle>nat_lit_lit_rel\<rangle>list_rel\<rangle>list_rel) *a
-         nat_assn *a
+         clauses_ll_assn *a
          hr_comp conflict_option_rel_assn (isasat_input_ops.option_lookup_clause_rel \<A>\<^sub>i\<^sub>n) *a
          hr_comp (list_assn unat_lit_assn) list_mset_rel *a
          hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel) *a

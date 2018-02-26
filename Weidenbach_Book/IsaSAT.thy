@@ -26,15 +26,15 @@ definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset
           unsatisfiable (set_mset CS)))
   }\<close>
 
-definition (in -) SAT_wl :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl nres\<close> where
+definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>SAT_wl CS = do{
     let \<A>\<^sub>i\<^sub>n' = extract_atms_clss CS [];
     let S = isasat_input_ops.init_state_wl (mset \<A>\<^sub>i\<^sub>n');
-    T \<leftarrow> isasat_input_ops.init_dt_wl (mset \<A>\<^sub>i\<^sub>n') CS (to_init_state S);
+    T \<leftarrow> isasat_input_ops.init_dt_wl (*mset \<A>\<^sub>i\<^sub>n'*) CS (to_init_state S);
     let T = from_init_state T;
     if get_conflict_wl T \<noteq> None
     then RETURN T
-    else if CS = [] then RETURN (([], [], 0, None, {#}, {#}, {#}, \<lambda>_. undefined))
+    else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, \<lambda>_. undefined))
     else do {
        ASSERT (extract_atms_clss CS [] \<noteq> []);
        ASSERT(isasat_input_bounded_nempty (mset \<A>\<^sub>i\<^sub>n'));
@@ -56,14 +56,14 @@ definition extract_stats_init where
   [simp]: \<open>extract_stats_init = None\<close>
 
 (* TODO Kill *)
-definition IsaSAT :: \<open>nat clauses_l \<Rightarrow> nat literal list option nres\<close> where
+definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list option nres\<close> where
   \<open>IsaSAT CS = do{
     let \<A>\<^sub>i\<^sub>n' = mset (extract_atms_clss CS []);
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
     let S = isasat_input_ops.init_state_wl \<A>\<^sub>i\<^sub>n';
     let S = to_init_state S;
-    T \<leftarrow> isasat_input_ops.init_dt_wl \<A>\<^sub>i\<^sub>n' CS S;
+    T \<leftarrow> isasat_input_ops.init_dt_wl (*\<A>\<^sub>i\<^sub>n'*) CS S;
     let T = from_init_state T;
     if \<not>get_conflict_wl_is_None_init T
     then RETURN (None)
@@ -81,12 +81,12 @@ definition IsaSAT :: \<open>nat clauses_l \<Rightarrow> nat literal list option 
 definition extract_model_of_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
   \<open>extract_model_of_state_stat U =
      (Some (map lit_of (get_trail_wl_heur U)),
-       (\<lambda>(M, _, _, _, _, _ ,_ ,_ ,_, _, _, _, stat). stat) U)\<close>
+       (\<lambda>(M, _,  _, _, _ ,_ ,_ ,_, _, _, _, stat). stat) U)\<close>
 
 definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
   \<open>extract_state_stat U =
      (None,
-       (\<lambda>(M, _, _, _, _, _ ,_ ,_ ,_, _, _, _, stat). stat) U)\<close>
+       (\<lambda>(M, _, _, _, _ ,_ ,_ ,_, _, _, _, stat). stat) U)\<close>
 
 definition empty_conflict :: \<open>nat literal list option\<close> where
   \<open>empty_conflict = Some []\<close>
@@ -114,7 +114,7 @@ lemma empty_init_code_hnr[sepref_fr_rules]:
        hr_comp_def empty_init_code_def)
 
 
-definition IsaSAT_heur :: \<open>nat clauses_l \<Rightarrow> (nat literal list option \<times> stats) nres\<close> where
+definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal list option \<times> stats) nres\<close> where
   \<open>IsaSAT_heur CS = do{
     let \<A>\<^sub>i\<^sub>n' = mset (extract_atms_clss CS []);
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
@@ -127,7 +127,7 @@ definition IsaSAT_heur :: \<open>nat clauses_l \<Rightarrow> (nat literal list o
     else do {
        ASSERT(\<A>\<^sub>i\<^sub>n' \<noteq> {#});
        ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n');
-       ASSERT((\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
+       ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
          lst_As \<noteq> None) T);
        T \<leftarrow> finalise_init_code (T::twl_st_wl_heur_init);
        U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur \<A>\<^sub>i\<^sub>n' T;
@@ -174,10 +174,10 @@ lemma cdcl_twl_stgy_prog_wl_D_code_ref':
 declare cdcl_twl_stgy_prog_wl_D_code_ref'[to_hnr, OF refl, sepref_fr_rules]
 
 definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 list option \<times> stats\<close> where
-  \<open>get_trail_wl_code = (\<lambda>((M, _), _, _, _, _, _ ,_ ,_ ,_, _, _, _, stat). (Some M, stat))\<close>
+  \<open>get_trail_wl_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat). (Some M, stat))\<close>
 
 definition get_stats_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 list option \<times> stats\<close> where
-  \<open>get_stats_code = (\<lambda>((M, _), _, _, _, _, _ ,_ ,_ ,_, _, _, _, stat). (None, stat))\<close>
+  \<open>get_stats_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat). (None, stat))\<close>
 
 
 definition (in -) model_stat_rel where
