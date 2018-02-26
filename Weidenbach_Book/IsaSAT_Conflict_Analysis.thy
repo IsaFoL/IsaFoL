@@ -922,7 +922,7 @@ proof -
       by fast+
 
     have lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close>
-      using literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail[OF lits x2_T struct T_U] .
+      using literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail[OF x2_T struct T_U lits] .
     then have 1: \<open>lit_of (hd (get_trail_wl x2)) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using nempty x2_T T_U by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons)
     have M_confl: \<open>get_trail_wl x2 \<Turnstile>as CNot (the (get_conflict_wl x2))\<close>
@@ -941,7 +941,7 @@ proof -
       using dist x2_T T_U conf unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
       by (auto simp: twl_st)
     have lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl x2))\<close>
-      by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_conflict[OF lits x2_T struct T_U])
+      by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_conflict[OF x2_T struct T_U lits])
         (use conf x2_T T_U in auto)
     show ?pre_heur
       using rel x2_T T_U conf 1 lits_confl
