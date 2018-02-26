@@ -3,7 +3,7 @@
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-section \<open>An Executable Siple Ordered Resolution Prover for First-Order Clauses\<close>
+section \<open>An Executable Simple Ordered Resolution Prover for First-Order Clauses\<close>
 
 text \<open>
 TODO.

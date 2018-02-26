@@ -10,8 +10,7 @@ theory IsaFoR_Term
   imports
     Deriving.Derive
     Ordered_Resolution_Prover.Abstract_Substitution
-    QTRS.Encompassment (* Version 7a339721b8c2 *)
-    "../AFP_IsaFoR/Fun_More"
+    QTRS.Encompassment
     Processors.KBO
 begin
 
@@ -172,10 +171,7 @@ lemma less_kbo_less: "less_kbo s t \<Longrightarrow> s < t"
   using less_trm_extension
   by (auto simp: less_term_alt less_kbo_def KBO.S_irrefl)
 
-abbreviation
-  subst_apply_set :: "('f, 'v) terms \<Rightarrow> ('f, 'v, 'w) gsubst \<Rightarrow> ('f, 'w) terms" (infixl "\<cdot>\<^sub>s\<^sub>e\<^sub>t" 60)
-  where
-    "T \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma> \<equiv> (\<lambda>t. t \<cdot> \<sigma>) ` T"
+
 
 hide_const (open) mgu
 

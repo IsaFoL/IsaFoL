@@ -941,7 +941,7 @@ next
     by blast
 qed
 
-theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)" (* Proof using the simpler measure *)
+theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
   assume asm: "\<not> fair_state_seq (lmap state_of_wstate Sts)"
   then have inff: "\<not> lfinite Sts" using infinite_if_not_fair
