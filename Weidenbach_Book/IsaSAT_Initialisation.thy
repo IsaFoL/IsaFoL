@@ -428,8 +428,8 @@ where
 definition (in isasat_input_ops) already_propagated_unit_cls_conflict_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>already_propagated_unit_cls_conflict_heur = (\<lambda>L (M, N, U, D, Q, oth).
-     RETURN (M, N, U, D, {#}, oth))\<close>
+  \<open>already_propagated_unit_cls_conflict_heur = (\<lambda>L (M, N, D, Q, oth).
+     RETURN (M, N, D, {#}, oth))\<close>
 
 lemma already_propagated_unit_cls_conflict_heur_already_propagated_unit_cls_conflict:
   \<open>(uncurry already_propagated_unit_cls_conflict_heur,
@@ -492,23 +492,17 @@ lemma set_conflict_empty_hnr[sepref_fr_rules]:
   using set_conflict_empty_code.refine[FCOMP lookup_set_conflict_empty_set_conflict_empty]
   unfolding option_lookup_clause_assn_def .
 
-definition (in isasat_input_ops) set_empty_clause_as_conflict
-   :: \<open>nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
-where
-  \<open>set_empty_clause_as_conflict = (\<lambda> ((M, N, U, D, NE, UE, Q, WS), OC).
-     ((M, N, U, set_conflict_empty D, NE, UE, {#}, WS), add_mset {#} OC))\<close>
-
 definition (in isasat_input_ops) set_empty_clause_as_conflict_heur
    :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
-  \<open>set_empty_clause_as_conflict_heur = (\<lambda> (M, N, U, D, Q, WS).
-     RETURN (M, N, U, set_conflict_empty D, {#}, WS))\<close>
+  \<open>set_empty_clause_as_conflict_heur = (\<lambda> (M, N, D, Q, WS).
+     RETURN (M, N, set_conflict_empty D, {#}, WS))\<close>
 
 lemma set_empty_clause_as_conflict_heur_set_empty_clause_as_conflict:
-  \<open>(set_empty_clause_as_conflict_heur, RETURN o set_empty_clause_as_conflict) \<in>
+  \<open>(set_empty_clause_as_conflict_heur, RETURN o add_empty_conflict_init_wl) \<in>
    twl_st_heur_init \<rightarrow>\<^sub>f \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: set_empty_clause_as_conflict_heur_def set_empty_clause_as_conflict_def
-      twl_st_heur_init_def)
+    (auto simp: set_empty_clause_as_conflict_heur_def add_empty_conflict_init_wl_def
+      twl_st_heur_init_def set_conflict_empty_def)
 
 sepref_thm set_empty_clause_as_conflict_code
   is \<open>set_empty_clause_as_conflict_heur\<close>
@@ -528,7 +522,7 @@ lemmas set_empty_clause_as_conflict_heur_hnr[sepref_fr_rules] =
    set_empty_clause_as_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 theorem set_empty_clause_as_conflict_hnr[sepref_fr_rules]:
-  \<open>(set_empty_clause_as_conflict_code, RETURN o set_empty_clause_as_conflict)
+  \<open>(set_empty_clause_as_conflict_code, RETURN o add_empty_conflict_init_wl)
     \<in> [\<lambda>S. get_conflict_wl (fst S) = None]\<^sub>a twl_st_init_assn\<^sup>d  \<rightarrow> twl_st_init_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -560,22 +554,16 @@ proof -
 qed
 
 
-definition (in isasat_input_ops) add_clause_to_others
-   :: \<open>nat clause_l \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
-where
-  \<open>add_clause_to_others = (\<lambda>C ((M, N, U, D, NE, UE, Q, WS), OC).
-     ((M, N, U, D, NE, UE, {#}, WS), add_mset (mset C) OC))\<close>
-
 definition (in -) add_clause_to_others_heur
    :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
-  \<open>add_clause_to_others_heur = (\<lambda> _ (M, N, U, D, Q, WS).
-      RETURN (M, N, U, D, {#}, WS))\<close>
+  \<open>add_clause_to_others_heur = (\<lambda> _ (M, N, D, Q, WS).
+      RETURN (M, N, D, Q, WS))\<close>
 
 lemma add_clause_to_others_heur_add_clause_to_others:
-  \<open>(uncurry add_clause_to_others_heur, uncurry (RETURN oo add_clause_to_others)) \<in>
+  \<open>(uncurry add_clause_to_others_heur, uncurry (RETURN oo add_to_other_init)) \<in>
    \<langle>Id\<rangle>list_rel \<times>\<^sub>r twl_st_heur_init \<rightarrow>\<^sub>f \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: add_clause_to_others_heur_def add_clause_to_others_def
+    (auto simp: add_clause_to_others_heur_def add_to_other_init.simps
       twl_st_heur_init_def)
 
 sepref_thm add_clause_to_others_code
@@ -583,7 +571,6 @@ sepref_thm add_clause_to_others_code
   :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a twl_st_heur_init_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_init_assn\<close>
   supply [[goals_limit=1]]
   unfolding add_clause_to_others_heur_def twl_st_heur_init_assn_def
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> lms_fold_custom_empty)+
   by sepref
 
 concrete_definition (in -) add_clause_to_others_code
@@ -596,7 +583,7 @@ lemmas add_clause_to_others_heur_hnr[sepref_fr_rules] =
    add_clause_to_others_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma add_clause_to_others_hnr[sepref_fr_rules]:
-  \<open>(uncurry add_clause_to_others_code, uncurry (RETURN \<circ>\<circ> add_clause_to_others))
+  \<open>(uncurry add_clause_to_others_code, uncurry (RETURN \<circ>\<circ> add_to_other_init))
    \<in> (list_assn unat_lit_assn)\<^sup>k *\<^sub>a twl_st_init_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_init_assn\<close>
   using add_clause_to_others_heur_hnr[FCOMP add_clause_to_others_heur_add_clause_to_others,
   unfolded twl_st_init_assn_def[symmetric]] .
@@ -622,6 +609,7 @@ proof -
         split: list.splits)
 qed
 
+(*
 definition (in isasat_input_ops) init_dt_step_wl
   :: \<open>nat clause_l \<Rightarrow> nat twl_st_wl_init \<Rightarrow> (nat twl_st_wl_init) nres\<close>
 where
@@ -649,6 +637,7 @@ where
           add_init_cls C S}}
     else RETURN (add_clause_to_others C S)
   }\<close>
+*)
 
 definition (in isasat_input_ops) init_dt_step_wl_heur
   :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (twl_st_wl_heur_init) nres\<close>
@@ -677,16 +666,16 @@ where
           ASSERT(nat_of_lit (hd C) < length (get_watched_list_heur_init S));
           ASSERT(nat_of_lit (hd (tl C)) < length (get_watched_list_heur_init S));
           add_init_cls_heur C S}}
-    else add_clause_to_others_heur C S
+     else add_clause_to_others_heur C S
   }\<close>
 
 lemma init_dt_step_wl_heur_init_dt_step_wl:
   \<open>(uncurry init_dt_step_wl_heur, uncurry init_dt_step_wl) \<in> Id \<times>\<^sub>f twl_st_heur_init \<rightarrow>\<^sub>f \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
   supply [[goals_limit=1]]
   unfolding init_dt_step_wl_heur_def init_dt_step_wl_def uncurry_def
+    option.case_eq_if
   supply RETURN_as_SPEC_refine[refine2 del]
   apply (intro frefI nres_relI)
-  apply clarify
   apply (refine_vcg
       set_empty_clause_as_conflict_heur_set_empty_clause_as_conflict[THEN fref_to_Down,
         unfolded comp_def]
