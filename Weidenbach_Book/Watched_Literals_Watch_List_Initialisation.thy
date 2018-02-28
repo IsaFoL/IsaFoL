@@ -36,10 +36,10 @@ fun already_propagated_unit_init_wl :: \<open>'v clause \<Rightarrow> 'v twl_st_
        ((M, N, D, add_mset C NE, UE, Q, W), OC)\<close>
 
 
-fun set_conflict_init_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init\<close> where
+fun set_conflict_init_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init\<close> where
   set_conflict_init_wl_def[simp del]:
-   \<open>set_conflict_init_wl C ((M, N, _, NE, UE, Q, W), OC) =
-       ((M, N, Some (mset C), add_mset (mset C) NE, UE, {#}, W), OC)\<close>
+   \<open>set_conflict_init_wl L ((M, N, _, NE, UE, Q, W), OC) =
+       ((M, N, Some {#L#}, add_mset {#L#} NE, UE, {#}, W), OC)\<close>
 
 
 fun add_to_clauses_init_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init nres\<close> where
@@ -64,7 +64,7 @@ definition init_dt_step_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init
       then RETURN (propagate_unit_init_wl L S)
       else if L \<in> lits_of_l (get_trail_init_wl S)
       then RETURN (already_propagated_unit_init_wl (mset C) S)
-      else RETURN (set_conflict_init_wl C S)
+      else RETURN (set_conflict_init_wl L S)
     else
         add_to_clauses_init_wl C S
   | Some D \<Rightarrow>
@@ -142,8 +142,9 @@ proof -
        (auto simp: already_propagated_unit_init_wl_def already_propagated_unit_init_l_def
         state_wl_l_init_def state_wl_l_def correct_watching.simps clause_to_update_def
         all_lits_of_mm_add_mset all_lits_of_m_add_mset correct_watching_init.simps)
-  have set_conflict: \<open>(set_conflict_init_wl C S, set_conflict_init_l C S') \<in> ?A\<close>
-    using S_S' corr
+  have set_conflict: \<open>(set_conflict_init_wl (hd C) S, set_conflict_init_l C S') \<in> ?A\<close> 
+    if \<open>C = [hd C]\<close>
+    using S_S' corr that
     by (cases S; cases S')
        (auto simp: set_conflict_init_wl_def set_conflict_init_l_def
         state_wl_l_init_def state_wl_l_def correct_watching.simps clause_to_update_def
@@ -180,6 +181,7 @@ proof -
     subgoal by simp
     subgoal using S_S' by (simp add: twl_st_wl_init)
     subgoal using S_S' by (simp add: twl_st_wl_init)
+    subgoal using S_S' by (cases C) simp_all
     subgoal by linarith
     done
 qed
