@@ -6,7 +6,7 @@
 section \<open>An Executable Algorithm for Clause Subsumption\<close>
 
 theory Executable_Subsumption
-  imports "../Ordered_Resolution_Prover/IsaFoR_Term" QTRS.Matching
+  imports "../Ordered_Resolution_Prover/IsaFoR_Term" QTRS.Matching QTRS.Term_More
 begin
 
 fun subsumes_list where

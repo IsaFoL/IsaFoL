@@ -14,7 +14,8 @@ theory IsaFoR_Term
     First_Order_Terms.Unification
     First_Order_Terms.Fun_More
     First_Order_Terms.Subsumption
-    QTRS.Term_More
+    Open_Induction.Restricted_Predicates
+    "HOL-Cardinals.Wellorder_Extension"
 begin
 
 text \<open>
