@@ -14,6 +14,7 @@ theory IsaFoR_Term
     First_Order_Terms.Unification
     First_Order_Terms.Fun_More
     First_Order_Terms.Subsumption
+    QTRS.Term_More
 begin
 
 text \<open>
@@ -38,7 +39,7 @@ record 'f weights =
 class weighted =
   fixes weights :: "'a weights"
   assumes weights_adm:
-    "admissible_weight_fun_prc
+    "admissible_kbo
        (w weights) (w0 weights) (pr_strict weights) ((pr_strict weights)\<^sup>=\<^sup>=) (least weights) (scf weights)"
   and pr_strict_total: "fi = gj \<or> pr_strict weights fi gj \<or> pr_strict weights gj fi"
   and pr_strict_asymp: "asymp (pr_strict weights)"
@@ -50,13 +51,12 @@ definition weights_unit :: "unit weights" where "weights_unit =
   \<lparr>w = Suc \<circ> snd, w0 = 1, pr_strict = \<lambda>(_, n) (_, m). n > m, least = \<lambda>_. True, scf = \<lambda>_ _. 1\<rparr>"
 
 instance
-  by (intro_classes, unfold_locales)
-    (auto simp: weights_unit_def SN_iff_wf asymp.simps irreflp_def
-               intro!: wf_subset[OF wf_inv_image[OF wf], of _ snd])
+  by (intro_classes, unfold_locales) (auto simp: weights_unit_def SN_iff_wf asymp.simps irreflp_def
+      intro!: wf_subset[OF wf_inv_image[OF wf], of _ snd])
 end
 
 global_interpretation KBO:
-  admissible_weight_fun_prc
+  admissible_kbo
     "w (weights :: 'f :: weighted weights)" "w0 (weights :: 'f :: weighted weights)"
     "pr_strict weights" "((pr_strict weights)\<^sup>=\<^sup>=)" "least weights" "scf weights"
     defines weight = KBO.weight
