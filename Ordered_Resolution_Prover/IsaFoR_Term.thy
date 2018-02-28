@@ -10,8 +10,10 @@ theory IsaFoR_Term
   imports
     Deriving.Derive
     Ordered_Resolution_Prover.Abstract_Substitution
-    QTRS.Encompassment
     Processors.KBO
+    First_Order_Terms.Unification
+    First_Order_Terms.Fun_More
+    First_Order_Terms.Subsumption
 begin
 
 text \<open>
@@ -58,7 +60,6 @@ global_interpretation KBO:
     "w (weights :: 'f :: weighted weights)" "w0 (weights :: 'f :: weighted weights)"
     "pr_strict weights" "((pr_strict weights)\<^sup>=\<^sup>=)" "least weights" "scf weights"
     defines weight = KBO.weight
-    and gtkbo = KBO.gtkbo
     and kbo = KBO.kbo
   by (simp add: weights_adm)
 
@@ -82,11 +83,8 @@ lemma kbo_code[code]: "kbo s t =
 
 definition "less_kbo s t = fst (kbo t s)"
 
-lemma less_kbo_gtkbo: "ground s \<Longrightarrow> ground t \<Longrightarrow> less_kbo s t = gtkbo t s"
-  unfolding less_kbo_def using KBO.kbo_eq_gtkbo[OF refl pr_strict_total, of t s] by auto
-
 lemma less_kbo_gtotal: "ground s \<Longrightarrow> ground t \<Longrightarrow> s = t \<or> less_kbo s t \<or> less_kbo t s"
-  using less_kbo_gtkbo KBO.gtkbo_gtotal[OF refl pr_strict_total subset_UNIV _ subset_UNIV] by blast
+  unfolding less_kbo_def using KBO.S_ground_total by (metis pr_strict_total subset_UNIV) 
 
 lemma less_kbo_subst:
   fixes \<sigma> :: "('f :: weighted, 'v) subst"
@@ -96,7 +94,7 @@ lemma less_kbo_subst:
 lemma wfP_less_kbo: "wfP less_kbo"
 proof -
   have "SN {(x, y). fst (kbo x y)}"
-    using pr_strict_asymp by (fastforce simp: asymp.simps irreflp_def intro!: KBO.SN_S_po scf_ok)
+    using pr_strict_asymp by (fastforce simp: asymp.simps irreflp_def intro!: KBO.S_SN scf_ok)
   then show ?thesis
     unfolding SN_iff_wf wfP_def by (rule wf_subset) (auto simp: less_kbo_def)
 qed
