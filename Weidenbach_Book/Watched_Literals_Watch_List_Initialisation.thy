@@ -88,6 +88,7 @@ lemma [twl_st_wl_init]:
   shows
     \<open>get_conflict_l_init S' = get_conflict_init_wl S\<close>
     \<open>get_trail_l_init S' = get_trail_init_wl S\<close>
+    \<open>other_clauses_init_l S' = other_clauses_init_wl S\<close>
   using assms
   by (cases S; cases S'; auto simp: state_wl_l_init_def state_wl_l_def)+
 
@@ -200,6 +201,43 @@ proof -
     subgoal by simp
     subgoal by (auto intro!: init_dt_step_wl_init_dt_step)
     done
+qed
+
+definition init_dt_wl_pre where
+  \<open>init_dt_wl_pre C S \<longleftrightarrow>
+    (\<exists>S'. (S, S') \<in> state_wl_l_init \<and> correct_watching_init S \<and>
+      init_dt_pre C S')\<close>
+
+
+definition init_dt_wl_spec where
+  \<open>init_dt_wl_spec C S T \<longleftrightarrow>
+    (\<exists>S' T'. (S, S') \<in> state_wl_l_init \<and> correct_watching_init S \<and> (T, T') \<in> state_wl_l_init \<and>
+      init_dt_spec C S' T')\<close>
+
+lemma ref_two_step': \<open>S \<le> T \<Longrightarrow> \<Down> R S \<le> \<Down> R T\<close>
+  using ref_two_step by auto
+
+lemma init_dt_wl_init_dt_wl_spec:
+  assumes \<open>init_dt_wl_pre CS S\<close>
+  shows \<open>init_dt_wl CS S \<le> SPEC (init_dt_wl_spec CS S)\<close>
+proof -
+  obtain S' where
+     SS': \<open>(S, S') \<in> state_wl_l_init\<close> and
+     corr: \<open>correct_watching_init S\<close> and
+     pre: \<open>init_dt_pre CS S'\<close>
+    using assms unfolding init_dt_wl_pre_def by blast
+  show ?thesis
+    apply (rule order.trans)
+     apply (rule init_dt_wl_init_dt[OF SS' corr])
+    apply (rule order.trans)
+     apply (rule ref_two_step')
+     apply (rule init_dt_full[OF pre])
+    apply (unfold conc_fun_SPEC)
+    apply (rule SPEC_rule)
+    apply normalize_goal+
+    apply (simp )
+    using SS' corr pre unfolding init_dt_wl_spec_def
+    by blast
 qed
 
 (* TODO Kill?

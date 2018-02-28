@@ -16,6 +16,18 @@ fun get_conflict_init :: \<open>'v twl_st_init \<Rightarrow> 'v cconflict\<close
 fun literals_to_update_init :: \<open>'v twl_st_init \<Rightarrow> 'v clause\<close> where
   \<open>literals_to_update_init ((_, _, _, _, _, _, _, Q), _) = Q\<close>
 
+fun get_init_clauses_init :: \<open>'v twl_st_init \<Rightarrow> 'v twl_cls multiset\<close> where
+  \<open>get_init_clauses_init ((_, N, _, _, _, _, _, _), _) = N\<close>
+
+fun get_learned_clauses_init :: \<open>'v twl_st_init \<Rightarrow> 'v twl_cls multiset\<close> where
+  \<open>get_learned_clauses_init ((_, _, U, _, _, _, _, _), _) = U\<close>
+
+fun get_unit_init_clauses_init :: \<open>'v twl_st_init \<Rightarrow> 'v clauses\<close> where
+  \<open>get_unit_init_clauses_init ((_, _, _, _, NE, _, _, _), _) = NE\<close>
+
+fun get_unit_learned_clauses_init :: \<open>'v twl_st_init \<Rightarrow> 'v clauses\<close> where
+  \<open>get_unit_learned_clauses_init ((_, _, _, _, _, UE, _, _), _) = UE\<close>
+
 fun clauses_to_update_init :: \<open>'v twl_st_init \<Rightarrow> ('v literal \<times> 'v twl_cls) multiset\<close> where
   \<open>clauses_to_update_init ((_, _, _, _, _, _, WS, _), _) = WS\<close>
 
@@ -103,6 +115,7 @@ lemma [twl_st_init]:
    \<open>get_conflict (fst T) = get_conflict_l_init S\<close>
    \<open>literals_to_update_init T = literals_to_update_l_init S\<close>
    \<open>clauses_to_update_init T = {#}\<close>
+   \<open>other_clauses_init T = other_clauses_l_init T\<close>
   by (use assms in \<open>solves \<open>cases S; auto simp: twl_st_l_init_def\<close>\<close>)+
 
 definition twl_struct_invs_init :: \<open>'v twl_st_init \<Rightarrow> bool\<close> where

@@ -857,11 +857,6 @@ prepare_code_thms (in -) init_dt_step_wl_code_def
 lemmas init_dt_step_wl_code_refine[sepref_fr_rules] =
   init_dt_step_wl_code.refine[OF isasat_input_bounded_axioms]
 
-definition (in isasat_input_ops) init_dt_wl
- :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl_init \<Rightarrow> (nat twl_st_wl_init) nres\<close>
-where
-  \<open>init_dt_wl CS S = nfoldli CS (\<lambda>_. True) (init_dt_step_wl) S\<close>
-
 definition (in isasat_input_ops) init_dt_wl_heur
  :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (twl_st_wl_heur_init) nres\<close>
 where
@@ -1378,14 +1373,6 @@ proof -
 qed
 *)
 
-
-definition (in -) init_dt_wl_spec
-  :: \<open>nat clause_l list \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> bool\<close>
-where
-  \<open>init_dt_wl_spec CS T TOC \<longleftrightarrow>
-    (\<exists>T. (TOC, T) \<in> state_wl_l_init \<and>
-        init_dt_pre CS T)\<close>
-
 definition (in isasat_input_ops) init_dt_wl_heur_spec
   :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> bool\<close>
 where
@@ -1895,28 +1882,44 @@ lemmas (in isasat_input_ops)finalise_init_hnr[sepref_fr_rules] =
 definition (in -) init_rll :: \<open>nat \<Rightarrow> (nat, 'v clause_l \<times> bool) fmap\<close> where
   \<open>init_rll n = fmempty\<close>
 
+definition (in -) init_aa :: \<open>nat \<Rightarrow> 'v list\<close> where
+  \<open>init_aa n = []\<close>
+
+
+lemma (in -)arrayO_raa_empty_sz_empty_list[sepref_fr_rules]:
+  \<open>(arrayO_raa_empty_sz, RETURN o init_aa) \<in>
+    nat_assn\<^sup>k \<rightarrow>\<^sub>a (arlO_assn clause_ll_assn)\<close>
+  by sepref_to_hoare (sep_auto simp: init_rll_def hr_comp_def clauses_ll_assn_def init_aa_def)
+
+definition init_rll_list where
+  \<open>init_rll_list n =
+    (let e = ASSN_ANNOT clause_ll_assn op_array_empty in
+     let N = init_aa n in
+     RETURN (N @ [e]))\<close>
+
+
 lemma (in -)empty_array_init_rll:
-  \<open>(RETURN o (\<lambda>_. [[]]), RETURN o init_rll) \<in>
+  \<open>(init_rll_list, RETURN o init_rll) \<in>
     nat_rel\<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>clauses_l_fmat\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
   apply  (auto simp: init_rll_def hr_comp_def clauses_ll_assn_def 
-    list_fmap_rel_def)
+    list_fmap_rel_def init_rll_list_def init_aa_def)
     apply (case_tac i)
     apply auto
   done
 
-lemma (in -)arrayO_raa_empty_sz_init_rll[sepref_fr_rules]:
-  \<open>(arrayO_raa_empty_sz, RETURN o (\<lambda>_. [[]])) \<in>
-    nat_assn\<^sup>k \<rightarrow>\<^sub>a (arlO_assn clause_ll_assn)\<close>
-  by sepref_to_hoare (sep_auto simp: init_rll_def hr_comp_def clauses_ll_assn_def 
-    )
+sepref_definition init_rll_list_code
+  is \<open>init_rll_list\<close>
+  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arlO_assn clause_ll_assn\<close>
+  unfolding init_rll_list_def
+  by sepref
 
-
 lemma (in -)arrayO_raa_empty_sz_init_rll[sepref_fr_rules]:
-  \<open>(arrayO_raa_empty_sz, RETURN o init_rll) \<in>
+  \<open>(init_rll_list_code, RETURN o init_rll) \<in>
     nat_assn\<^sup>k \<rightarrow>\<^sub>a clauses_ll_assn\<close>
-  by sepref_to_hoare (sep_auto simp: init_rll_def hr_comp_def clauses_ll_assn_def 
-    )
+  using init_rll_list_code.refine[FCOMP empty_array_init_rll]
+  unfolding clauses_ll_assn_def[symmetric]
+  by auto
 
 definition init_lrl :: \<open>nat \<Rightarrow> 'a list list\<close> where
   \<open>init_lrl n = replicate n []\<close>
@@ -2132,7 +2135,7 @@ proof -
     unfolding init_state_wl_heur_alt_def init_state_wl_D'_def
     apply (rewrite in \<open>let _ = Suc _in _\<close> Let_def)
     apply (rewrite in \<open>let _ = 2 * _in _\<close> Let_def)
-    apply (rewrite in \<open>let _ = [] in _\<close> Let_def)
+    apply (rewrite in \<open>let _ = fmempty in _\<close> Let_def)
     apply (rewrite in \<open>let _ = init_rll _ in _\<close> Let_def)
     apply (refine_vcg init[of y x] initialise_VMTF cach)
     subgoal by auto
@@ -2146,8 +2149,6 @@ proof -
           isasat_input_ops.lookup_clause_rel_def
           simp del: replicate.simps
           intro!: mset_as_position.intros)
-    subgoal by auto
-    subgoal by auto
     done
   done
 qed
