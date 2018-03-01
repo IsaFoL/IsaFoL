@@ -1286,12 +1286,15 @@ proof -
   ultimately show ?thesis by auto
 qed
 
+definition conclusive_TWL_run where
+  \<open>conclusive_TWL_run S = SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> final_twl_state T)\<close>
+
 lemma cdcl_twl_stgy_prog_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_prog S \<le> SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> final_twl_state T)\<close>
-  unfolding cdcl_twl_stgy_prog_def full_def
+    \<open>cdcl_twl_stgy_prog S \<le> conclusive_TWL_run S\<close>
+  unfolding cdcl_twl_stgy_prog_def full_def conclusive_TWL_run_def
   apply (refine_vcg WHILEIT_rule[where
      R = \<open>{((brkT, T), (brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union>
           {((brkT, T), (brkS, S)). S = T \<and> brkT \<and> \<not>brkS}\<close>];

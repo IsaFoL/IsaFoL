@@ -2539,25 +2539,25 @@ proof -
     by auto
 qed
 
+definition cdcl_twl_stgy_prog_l_pre where
+  \<open>cdcl_twl_stgy_prog_l_pre S S' \<longleftrightarrow>
+    ((S, S') \<in> twl_st_l None \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
+      clauses_to_update_l S = {#} \<and> get_conflict_l S = None \<and> twl_list_invs S)\<close>
+
 lemma cdcl_twl_stgy_prog_l_spec_final:
   assumes
-    \<open>(S, S') \<in> twl_st_l None\<close>
-    \<open>twl_struct_invs S'\<close> and \<open>twl_stgy_invs S'\<close> and
-    \<open>clauses_to_update_l S = {#}\<close> and
-    \<open>get_conflict_l S = None\<close> and \<open>twl_list_invs S\<close>
+    \<open>cdcl_twl_stgy_prog_l_pre S S'\<close>
   shows
-    \<open>cdcl_twl_stgy_prog_l S \<le> SPEC(\<lambda>T. \<exists>T'. (T, T') \<in> twl_st_l None \<and> cdcl_twl_stgy\<^sup>*\<^sup>* S' T' \<and>
-       final_twl_state T')\<close>
+    \<open>cdcl_twl_stgy_prog_l S \<le> \<Down> (twl_st_l None) (conclusive_TWL_run S')\<close>
   apply (rule order_trans[OF cdcl_twl_stgy_prog_l_spec[THEN refine_pair_to_SPEC,
           of S S']])
-  subgoal using assms by auto
-  subgoal using assms by auto
+  subgoal using assms unfolding cdcl_twl_stgy_prog_l_pre_def by auto
+  subgoal using assms unfolding cdcl_twl_stgy_prog_l_pre_def by auto
   subgoal
-    apply (rule order_trans)
-     apply (rule ref_two_step[OF _ cdcl_twl_stgy_prog_spec[of \<open>S'\<close>],
-          of _ \<open>{(S, S'). (S, S') \<in> twl_st_l None \<and> True}\<close>])
-    using assms by (auto simp: full_def twl_st_l
-        pw_conc_inres pw_conc_nofail pw_ords_iff(1))
+    apply (rule ref_two_step)
+     prefer 2
+     apply (rule cdcl_twl_stgy_prog_spec)
+    using assms unfolding cdcl_twl_stgy_prog_l_pre_def by (auto simp: twl_st_l)
   done
 
 end

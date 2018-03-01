@@ -1612,7 +1612,7 @@ theorem cdcl_twl_stgy_prog_wl_spec:
   \<open>(cdcl_twl_stgy_prog_wl, cdcl_twl_stgy_prog_l) \<in> {(S::'v twl_st_wl, S').
        (S, S') \<in> state_wl_l None \<and>
        correct_watching S} \<rightarrow>
-    \<langle>{(S, S'). (S, S') \<in> state_wl_l None}\<rangle>nres_rel\<close>
+    \<langle>state_wl_l None\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
 proof -
   have H: \<open>((False, S'), False, S) \<in> {((brk', T'), (brk, T)). (T', T) \<in> state_wl_l None \<and> brk' = brk \<and>
@@ -1668,5 +1668,35 @@ lemma cdcl_twl_stgy_prog_wl_spec_final:
   subgoal by auto
   done
 *)
+
+(* TODO Move *)
+lemma ref_two_step': \<open>A \<le> B \<Longrightarrow> \<Down> R A \<le>  \<Down> R B\<close>
+  by (auto intro: ref_two_step)
+(* End Move *)
+
+definition cdcl_twl_stgy_prog_wl_pre where
+  \<open>cdcl_twl_stgy_prog_wl_pre S U \<longleftrightarrow>
+    (\<exists>T. (S, T) \<in> state_wl_l None \<and> cdcl_twl_stgy_prog_l_pre T U \<and> correct_watching S)\<close>
+
+lemma cdcl_twl_stgy_prog_wl_spec_final:
+  assumes
+    \<open>cdcl_twl_stgy_prog_wl_pre S S'\<close>
+  shows
+    \<open>cdcl_twl_stgy_prog_wl S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
+proof -
+  obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close>
+    using assms unfolding cdcl_twl_stgy_prog_wl_pre_def by blast
+  show ?thesis
+    apply (rule order_trans[OF cdcl_twl_stgy_prog_wl_spec["to_\<Down>", of S T]])
+    subgoal using T by auto
+    subgoal
+      apply (rule order_trans)
+      apply (rule ref_two_step')
+       apply (rule cdcl_twl_stgy_prog_l_spec_final[of _ S'])
+      subgoal using T by fast
+      subgoal unfolding conc_fun_chain by auto
+      done
+    done
+qed
 
 end
