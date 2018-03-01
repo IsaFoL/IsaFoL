@@ -9,24 +9,6 @@ paragraph \<open>Skip and resolve\<close>
 context isasat_input_bounded_nempty
 begin
 
-
-definition get_conflict_wll_is_Nil_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool nres\<close> where
-  \<open>get_conflict_wll_is_Nil_heur = (\<lambda>(M, N, D, Q, W, _).
-   do {
-     if is_None D
-     then RETURN False
-     else do{ ASSERT(D \<noteq> None); RETURN (Multiset.is_empty (the D))}
-   })\<close>
-
-
-lemma get_conflict_wll_is_Nil_heur_get_conflict_wll_is_Nil:
-  \<open>(PR_CONST get_conflict_wll_is_Nil_heur, get_conflict_wll_is_Nil) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  apply (rename_tac x y, case_tac x, case_tac y)
-  by (auto simp: get_conflict_wll_is_Nil_heur_def get_conflict_wll_is_Nil_def twl_st_heur_def
-      split: option.splits)
-
-
 lemma get_maximum_level_remove_count_max_lvls:
   assumes L: \<open>L = -lit_of (hd M)\<close> and LD: \<open>L \<in># D\<close> and M_nempty: \<open>M \<noteq> []\<close>
   shows \<open>get_maximum_level_remove M D L = count_decided M \<longleftrightarrow>
@@ -198,7 +180,6 @@ lemma (in isasat_input_ops) tl_state_wl_heur_alt_def:
        (tl M, N, D, WS, Q, vmtf_unset (atm_of L) vmtf, \<phi>, clvls)))\<close>
   by (auto simp: tl_state_wl_heur_def Let_def)
 
-(* TODO: adapt this code to early breaks in skip_and_resolve! *)
 lemma card_max_lvl_Cons:
   assumes \<open>no_dup (L # a)\<close> \<open>distinct_mset y\<close>\<open>\<not>tautology y\<close> \<open>\<not>is_decided L\<close>
   shows \<open>card_max_lvl (L # a) y =
@@ -920,25 +901,6 @@ proof -
     subgoal by (auto simp: twl_st_heur_state_simp)
     done
 qed
-
-
-sepref_thm get_conflict_wll_is_Nil_code
-  is \<open>(PR_CONST get_conflict_wll_is_Nil_heur)\<close>
-  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply [[goals_limit=1]]
-  apply (subst PR_CONST_def)
-  unfolding get_conflict_wll_is_Nil_heur_def isasat_assn_def
-    short_circuit_conv the_is_empty_def[symmetric]
-  by sepref
-
-concrete_definition (in -) get_conflict_wll_is_Nil_code
-   uses isasat_input_bounded_nempty.get_conflict_wll_is_Nil_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) get_conflict_wll_is_Nil_code_def
-
-lemmas get_conflict_wll_is_Nil_code[sepref_fr_rules] =
-  get_conflict_wll_is_Nil_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 definition (in -) get_count_max_lvls_code where
   \<open>get_count_max_lvls_code = (\<lambda>(_, _, _, _, _, _, _, clvls, _). clvls)\<close>

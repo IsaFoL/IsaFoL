@@ -375,4 +375,62 @@ end
 abbreviation (in -) nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
 
+
+definition (in -)get_conflict_wl_heur_is_Nil :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>get_conflict_wl_heur_is_Nil = (\<lambda>(M, N, D, NE, UE, Q, W). D \<noteq> None \<and> Multiset.is_empty (the D))\<close>
+
+lemma get_conflict_wl_heur_is_Nil_alt_def:
+  \<open>get_conflict_wl_heur_is_Nil S \<longleftrightarrow> get_conflict_wl_heur S = Some {#}\<close>
+  by (cases S) (auto simp: get_conflict_wl_heur_is_Nil_def Multiset.is_empty_def)
+
+
+definition get_conflict_wll_is_Nil_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool nres\<close> where
+  \<open>get_conflict_wll_is_Nil_heur = (\<lambda>(M, N, D, Q, W, _).
+   do {
+     if is_None D
+     then RETURN False
+     else do{ ASSERT(D \<noteq> None); RETURN (Multiset.is_empty (the D))}
+   })\<close>
+
+lemma get_conflict_wl_heur_is_Nil_get_conflict_wll_is_Nil_heur:
+  \<open>RETURN o get_conflict_wl_heur_is_Nil = get_conflict_wll_is_Nil_heur\<close>
+  by (auto intro!: ext simp: get_conflict_wl_heur_is_Nil_def get_conflict_wll_is_Nil_heur_def
+      split: if_splits option.splits)
+
+context isasat_input_ops
+begin
+
+lemma get_conflict_wll_is_Nil_heur_get_conflict_wll_is_Nil:
+  \<open>(PR_CONST get_conflict_wll_is_Nil_heur, get_conflict_wll_is_Nil) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (rename_tac x y, case_tac x, case_tac y)
+  by (auto simp: get_conflict_wll_is_Nil_heur_def get_conflict_wll_is_Nil_def twl_st_heur_def
+      split: option.splits)
+
+
+sepref_thm get_conflict_wll_is_Nil_code
+  is \<open>(PR_CONST get_conflict_wll_is_Nil_heur)\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  supply [[goals_limit=1]]
+  apply (subst PR_CONST_def)
+  unfolding get_conflict_wll_is_Nil_heur_def isasat_assn_def
+    short_circuit_conv the_is_empty_def[symmetric]
+  by sepref
+
+concrete_definition (in -) get_conflict_wll_is_Nil_code
+   uses isasat_input_ops.get_conflict_wll_is_Nil_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) get_conflict_wll_is_Nil_code_def
+
+lemmas get_conflict_wll_is_Nil_code[sepref_fr_rules] =
+  get_conflict_wll_is_Nil_code.refine[of \<A>\<^sub>i\<^sub>n]
+
+lemma [sepref_fr_rules]: \<open>(get_conflict_wll_is_Nil_code, RETURN \<circ> get_conflict_wl_heur_is_Nil)
+\<in> isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  using get_conflict_wll_is_Nil_code[unfolded PR_CONST_def
+    get_conflict_wl_heur_is_Nil_get_conflict_wll_is_Nil_heur[symmetric]]
+  .
+end
+
 end

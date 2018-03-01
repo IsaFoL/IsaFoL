@@ -4,24 +4,6 @@ begin
 
 subsubsection \<open>Representation of Clauses\<close>
 
-(* TODO Move + setup for efficient array accesses *)
-definition arl_set'_u where
-  \<open>arl_set'_u a i x = arl_set a (nat_of_uint32 i) x\<close>
-
-definition arl_set_u :: \<open>'a::heap array_list \<Rightarrow> uint32 \<Rightarrow> 'a \<Rightarrow> 'a array_list Heap\<close>where
-  \<open>arl_set_u a i x = arl_set'_u a i x\<close>
-
-lemma arl_set_hnr_u[sepref_fr_rules]:
-  \<open>CONSTRAINT is_pure A \<Longrightarrow>
-    (uncurry2 arl_set_u, uncurry2 (RETURN \<circ>\<circ>\<circ> op_list_set)) \<in>
-     [pre_list_set]\<^sub>a (arl_assn A)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a A\<^sup>k \<rightarrow> arl_assn A\<close>
-  by sepref_to_hoare
-    (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
-      hr_comp_def list_rel_pres_length list_rel_update heap_array_set'_u_def
-      heap_array_set_u_def Array.upd'_def arl_set_u_def arl_set'_u_def arl_assn_def
-     nat_of_uint32_code[symmetric])
-(* End Move *)
-
 text \<open>The representation of clauses relies on two important properties:
   \<^item> the empty clause indicates that the clause is not present.
   \<^item> the elements are accessed through type \<^typ>\<open>nat\<close>.

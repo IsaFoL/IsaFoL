@@ -615,10 +615,10 @@ proof -
 qed
 
 
-definition get_conflict_wl_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+definition (in isasat_input_ops) get_conflict_wl_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>get_conflict_wl_is_Nil = (\<lambda>(M, N, D, NE, UE, Q, W). D \<noteq> None \<and> Multiset.is_empty (the D))\<close>
 
-definition get_conflict_wll_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool nres\<close> where
+definition (in isasat_input_ops) get_conflict_wll_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool nres\<close> where
   \<open>get_conflict_wll_is_Nil = (\<lambda>(M, N, D, NE, UE, Q, W).
    do {
      if is_None D
@@ -626,20 +626,20 @@ definition get_conflict_wll_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool nr
      else do{ ASSERT(D \<noteq> None); RETURN (Multiset.is_empty (the D))}
    })\<close>
 
-lemma get_conflict_wll_is_Nil_get_conflict_wl_is_Nil:
+lemma (in isasat_input_ops) get_conflict_wll_is_Nil_get_conflict_wl_is_Nil:
   \<open>(PR_CONST get_conflict_wll_is_Nil, RETURN o get_conflict_wl_is_Nil) \<in>
     Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro nres_relI frefI) (auto simp: get_conflict_wll_is_Nil_def get_conflict_wl_is_Nil_def
       split: option.splits)
 
-lemma get_conflict_wl_get_conflict_wl_is_Nil:
+lemma (in isasat_input_ops) get_conflict_wl_get_conflict_wl_is_Nil:
   \<open>get_conflict_wl S\<^sub>0 = Some {#} \<longleftrightarrow> get_conflict_wl_is_Nil S\<^sub>0\<close>
   by (cases S\<^sub>0) (auto simp add: get_conflict_wl_is_Nil_def Multiset.is_empty_def split: option.splits)
 
-definition is_decided_hd_trail_wl where
+definition (in isasat_input_ops) is_decided_hd_trail_wl where
   \<open>is_decided_hd_trail_wl S = is_decided (hd (get_trail_wl S))\<close>
 
-definition is_decided_hd_trail_wll :: \<open>nat twl_st_wl \<Rightarrow> bool nres\<close> where
+definition (in isasat_input_ops) is_decided_hd_trail_wll :: \<open>nat twl_st_wl \<Rightarrow> bool nres\<close> where
   \<open>is_decided_hd_trail_wll = (\<lambda>(M, N, D, NE, UE, Q, W).
      RETURN (is_decided (hd M))
    )\<close>

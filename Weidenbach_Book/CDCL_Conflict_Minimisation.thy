@@ -262,20 +262,25 @@ proof -
 
     have 1: \<open>NU \<Turnstile>p add_mset x (add_mset L (D + C))\<close>
       using NU_DC by (auto simp: add_mset_commute ac_simps)
+    moreover have 2: \<open>remdups_mset (add_mset L (D + C + D)) = remdups_mset (add_mset L (C + D))\<close>
+      by (auto simp: remdups_mset_def)
+    moreover have 3: \<open>remdups_mset (D + C + D) = remdups_mset (D + C)\<close>
+      by (auto simp: remdups_mset_def)
     moreover have \<open>x \<in># D \<Longrightarrow> NU \<Turnstile>p add_mset L (D + C + D)\<close>
-      using 1 apply (auto dest!: multi_member_split)(* TODO Proof *)
-      by (metis (no_types, hide_lams) ab_semigroup_add_class.add.commute true_clss_cls_mono_r'
-          union_mset_add_mset_right)
+      using 1
+      apply (subst (asm) true_clss_cls_remdups_mset[symmetric])
+      apply (subst true_clss_cls_remdups_mset[symmetric])
+      by (auto simp: 2 3)
     ultimately have \<open>NU \<Turnstile>p add_mset L (D + C + D)\<close>
       using entailed[of x] NU_DC
         true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of NU \<open>-x\<close> \<open>add_mset L D + C\<close> D]
       by auto
-    moreover have \<open>remdups_mset (add_mset L (D + C + D)) = remdups_mset (add_mset L (C + D))\<close>
+    moreover have \<open>remdups_mset (D + (C + D)) = remdups_mset (D + C)\<close>
       by (auto simp: remdups_mset_def)
     ultimately have \<open>NU \<Turnstile>p add_mset L C + D\<close>
       apply (subst true_clss_cls_remdups_mset[symmetric])
       apply (subst (asm) true_clss_cls_remdups_mset[symmetric])
-      by simp
+      by (auto simp add: 3 2 add.commute simp del: true_clss_cls_remdups_mset)
     from IH[OF this] entailed show ?case by auto
   qed
 qed
@@ -901,7 +906,7 @@ proof -
       by (auto simp: analysis ana' conflict_min_analysis_stack_change_hd)
 
     then have \<open>conflict_min_analysis_stack M ?N D ((L, remove1_mset (-L) E') # ana)\<close>
-      using stack E next_lit NU_E uL_E (* stack_hd *)
+      using stack E next_lit NU_E uL_E
         filter_to_poslev_mono_entailement_add_mset[of M _ _ \<open>set_mset ?N\<close> _ D]
         filter_to_poslev_mono[of M ]
       unfolding s ana'[symmetric]

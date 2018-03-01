@@ -297,6 +297,9 @@ lemma RES_RETURN_RES3:
   apply (subst (asm)(3) split_prod_bound)
   by auto
 
+lemma RES_RES_RETURN_RES2: \<open>RES A \<bind> (\<lambda>(T, T'). RETURN (f T T')) = RES (uncurry f ` A)\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
+
 lemma bind_refine_res: \<open>(\<And>x. x \<in> \<Phi> \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> RES \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
   by (auto simp add: pw_le_iff refine_pw_simps)
 

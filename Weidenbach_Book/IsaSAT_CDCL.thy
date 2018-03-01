@@ -360,29 +360,9 @@ where
 sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolve_loop_wl_D_heur
   backtrack_wl_D_nlit_heur
 
-(* TODO Move + kill get_conflict_wl_is_Nil *)
-definition (in -)get_conflict_wl_heur_is_Nil :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_heur_is_Nil = (\<lambda>(M, N, D, NE, UE, Q, W). D \<noteq> None \<and> Multiset.is_empty (the D))\<close>
-
-lemma get_conflict_wl_heur_is_Nil_alt_def:
-  \<open>get_conflict_wl_heur_is_Nil S \<longleftrightarrow> get_conflict_wl_heur S = Some {#}\<close>
-  by (cases S) (auto simp: get_conflict_wl_heur_is_Nil_def Multiset.is_empty_def)
-
-lemma get_conflict_wl_heur_is_Nil_get_conflict_wll_is_Nil_heur:
-  \<open>RETURN o get_conflict_wl_heur_is_Nil = get_conflict_wll_is_Nil_heur\<close>
-  by (auto intro!: ext simp: get_conflict_wl_heur_is_Nil_def get_conflict_wll_is_Nil_heur_def
-      split: if_splits option.splits)
-
-lemma [sepref_fr_rules]: \<open>(get_conflict_wll_is_Nil_code, RETURN \<circ> get_conflict_wl_heur_is_Nil)
-\<in> isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using get_conflict_wll_is_Nil_code[unfolded PR_CONST_def
-    get_conflict_wl_heur_is_Nil_get_conflict_wll_is_Nil_heur[symmetric]]
-  .
-
-(* End Move *)
-
 sepref_register cdcl_twl_o_prog_wl_D
 
+(* TODO KILL get_conflict_wl_get_conflict_wl_is_Nil & co *)
 sepref_thm cdcl_twl_o_prog_wl_D_code
   is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_assn\<close>
