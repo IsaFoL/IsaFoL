@@ -1580,21 +1580,9 @@ fun unit_propagation_outer_loop_wl_D x =
 fun get_count_max_lvls_code x =
   (fn (_, (_, (_, (_, (_, (_, (_, (clvls, _)))))))) => clvls) x;
 
-fun count_decided_st_code x = (fn xi => (fn () => let
-            val (a1, _) = xi;
-          in
-            count_decided_pol a1
-          end))
-                                x;
-
 fun maximum_level_removed_eq_count_dec_code x =
-  (fn _ => fn bi => fn () =>
-    let
-      val xa = count_decided_st_code bi ();
-    in
-      ((xa : Word32.word) = (Word32.fromInt 0)) orelse
-        Word32.< ((Word32.fromInt 1), get_count_max_lvls_code bi)
-    end)
+  (fn _ => fn bi =>
+    (fn () => (Word32.< ((Word32.fromInt 1), get_count_max_lvls_code bi))))
     x;
 
 fun hd_trail_code x =
@@ -3031,6 +3019,13 @@ fun decide_wl_or_skip_D_code x =
         ()
     end)
     x;
+
+fun count_decided_st_code x = (fn xi => (fn () => let
+            val (a1, _) = xi;
+          in
+            count_decided_pol a1
+          end))
+                                x;
 
 fun cdcl_twl_o_prog_wl_D_code x =
   (fn xi => fn () =>
