@@ -262,20 +262,25 @@ proof -
 
     have 1: \<open>NU \<Turnstile>p add_mset x (add_mset L (D + C))\<close>
       using NU_DC by (auto simp: add_mset_commute ac_simps)
+    moreover have 2: \<open>remdups_mset (add_mset L (D + C + D)) = remdups_mset (add_mset L (C + D))\<close>
+      by (auto simp: remdups_mset_def)
+    moreover have 3: \<open>remdups_mset (D + C + D) = remdups_mset (D + C)\<close>
+      by (auto simp: remdups_mset_def)
     moreover have \<open>x \<in># D \<Longrightarrow> NU \<Turnstile>p add_mset L (D + C + D)\<close>
-      using 1 apply (auto dest!: multi_member_split)(* TODO Proof *)
-      by (metis (no_types, hide_lams) ab_semigroup_add_class.add.commute true_clss_cls_mono_r'
-          union_mset_add_mset_right)
+      using 1
+      apply (subst (asm) true_clss_cls_remdups_mset[symmetric])
+      apply (subst true_clss_cls_remdups_mset[symmetric])
+      by (auto simp: 2 3)
     ultimately have \<open>NU \<Turnstile>p add_mset L (D + C + D)\<close>
       using entailed[of x] NU_DC
         true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of NU \<open>-x\<close> \<open>add_mset L D + C\<close> D]
       by auto
-    moreover have \<open>remdups_mset (add_mset L (D + C + D)) = remdups_mset (add_mset L (C + D))\<close>
+    moreover have \<open>remdups_mset (D + (C + D)) = remdups_mset (D + C)\<close>
       by (auto simp: remdups_mset_def)
     ultimately have \<open>NU \<Turnstile>p add_mset L C + D\<close>
-      apply (subst  true_clss_cls_remdups_mset[symmetric])
+      apply (subst true_clss_cls_remdups_mset[symmetric])
       apply (subst (asm) true_clss_cls_remdups_mset[symmetric])
-      by simp
+      by (auto simp add: 3 2 add.commute simp del: true_clss_cls_remdups_mset)
     from IH[OF this] entailed show ?case by auto
   qed
 qed
@@ -561,7 +566,7 @@ proof -
   have uL_M: \<open>- L \<in> lits_of_l M\<close>
     using in_trail by (force simp: lits_of_def)
   then have init_I: \<open>lit_redundant_inv M ?N D init_analysis (cach, init_analysis, False)\<close>
-    using assms NU_C  Propagated_in_trail_entailed[OF invs in_trail]
+    using assms NU_C Propagated_in_trail_entailed[OF invs in_trail]
     unfolding lit_redundant_inv_def
     by (auto simp: ac_simps)
 
@@ -901,7 +906,7 @@ proof -
       by (auto simp: analysis ana' conflict_min_analysis_stack_change_hd)
 
     then have \<open>conflict_min_analysis_stack M ?N D ((L, remove1_mset (-L) E') # ana)\<close>
-      using stack E next_lit NU_E uL_E (* stack_hd *)
+      using stack E next_lit NU_E uL_E
         filter_to_poslev_mono_entailement_add_mset[of M _ _ \<open>set_mset ?N\<close> _ D]
         filter_to_poslev_mono[of M ]
       unfolding s ana'[symmetric]
@@ -1173,7 +1178,7 @@ where
 
 definition lit_redundant_rec_wl_ref where
   \<open>lit_redundant_rec_wl_ref NU analyse \<longleftrightarrow>
-       (\<forall>(i, j) \<in> set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0)\<close>
+       (\<forall>(i, j) \<in> set analyse. j \<le> length (NU \<propto> i) \<and> i \<in># dom_m NU \<and> j \<ge> 1 \<and> i > 0)\<close>
 
 definition lit_redundant_rec_wl_inv where
   \<open>lit_redundant_rec_wl_inv M NU D = (\<lambda>(cach, analyse, b). lit_redundant_rec_wl_ref NU analyse)\<close>
@@ -1190,8 +1195,8 @@ where
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
-            ASSERT(fst (last analyse) < length NU);
-            let C = NU ! fst (last analyse);
+            ASSERT(fst (last analyse) \<in># dom_m NU);
+            let C = NU \<propto> fst (last analyse);
             ASSERT(length C \<ge> 1);
             let i = snd (last analyse);
             ASSERT(C!0 \<in> lits_of_l M);
@@ -1223,7 +1228,7 @@ where
        (cach, analysis, False)\<close>
 
 fun convert_analysis_l where
-  \<open>convert_analysis_l NU (i, j) = (-NU ! i ! 0, mset (drop j (NU ! i)))\<close>
+  \<open>convert_analysis_l NU (i, j) = (-NU \<propto> i ! 0, mset (drop j (NU \<propto> i)))\<close>
 
 definition convert_analysis_list where
   \<open>convert_analysis_list NU analyse = map (convert_analysis_l NU) (rev analyse)\<close>
@@ -1234,18 +1239,18 @@ lemma convert_analysis_list_empty[simp]:
   by (auto simp: convert_analysis_list_def)
 
 lemma lit_redundant_rec_wl:
-  fixes S :: \<open>nat twl_st_wl\<close> and NU M analyse
+  fixes S :: \<open>nat twl_st_wl\<close> and S' :: \<open>nat twl_st_l\<close> and S'' :: \<open>nat twl_st\<close> and NU M analyse
   defines
-    [simp]: \<open>S' \<equiv> st_l_of_wl None S\<close> and
-    [simp]: \<open>S'' \<equiv> twl_st_of_wl None S\<close> and
-    [simp]: \<open>S''' \<equiv> state\<^sub>W_of (twl_st_of_wl None S)\<close>
+    [simp]: \<open>S''' \<equiv> state\<^sub>W_of S''\<close>
   defines
     \<open>M \<equiv> get_trail_wl S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close> and
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
-    NU': \<open>NU' \<equiv> mset `# mset (tl NU)\<close> and
+    NU': \<open>NU' \<equiv> mset `# ran_mf NU\<close> and
     \<open>analyse' \<equiv> convert_analysis_list NU analyse\<close>
   assumes
+    S_S': \<open>(S, S') \<in> state_wl_l None\<close> and
+    S'_S'': \<open>(S', S'') \<in> twl_st_l None\<close> and
     bounds_init: \<open>lit_redundant_rec_wl_ref NU analyse\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>twl_list_invs S'\<close>
@@ -1256,22 +1261,22 @@ lemma lit_redundant_rec_wl:
        (lit_redundant_rec M' NU' D cach analyse')\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
-  obtain u D' NE UE Q W where
-    S: \<open>S = (M, NU, u, D', NE, UE, Q, W)\<close>
+  obtain D' NE UE Q W where
+    S: \<open>S = (M, NU, D', NE, UE, Q, W)\<close>
     using M_def NU by (cases S) auto
   have M'_def: \<open>M' = convert_lits_l NU M\<close>
-    using NU unfolding M' by (auto simp: S)
+    using NU S_S' S'_S'' unfolding M' by (auto simp: S state_wl_l_def twl_st_l_def)
   have [simp]: \<open>lits_of_l M' = lits_of_l M\<close>
     unfolding M'_def by auto
-  have [simp]: \<open>fst (convert_analysis_l NU x) = -NU ! (fst x) ! 0\<close> for x
+  have [simp]: \<open>fst (convert_analysis_l NU x) = -NU \<propto> (fst x) ! 0\<close> for x
     by (cases x) auto
-  have [simp]: \<open>snd (convert_analysis_l NU x) = mset (drop (snd x) (NU ! fst x))\<close> for x
+  have [simp]: \<open>snd (convert_analysis_l NU x) = mset (drop (snd x) (NU \<propto> fst x))\<close> for x
     by (cases x) auto
 
   have
     no_smaller_propa: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa S'''\<close> and
     struct_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S'''\<close>
-    using struct_invs unfolding twl_struct_invs_def S''_def S'''_def[symmetric]
+    using struct_invs unfolding twl_struct_invs_def S'''_def[symmetric]
     by fast+
   have annots: \<open>set (get_all_mark_of_propagated (trail S''')) \<subseteq>
      set_mset (cdcl\<^sub>W_restart_mset.clauses S''')\<close>
@@ -1279,15 +1284,17 @@ proof -
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
     by fast
-  have n_d: \<open>no_dup M\<close>
-    using struct_invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+  have \<open>no_dup (get_trail_wl S)\<close>
+    using struct_invs S_S' S'_S'' unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto simp: twl_st_wl twl_st_l twl_st)
+  then have n_d: \<open>no_dup M\<close>
     by (auto simp: S)
   then have n_d': \<open>no_dup M'\<close>
     unfolding M'_def by (auto simp: S)
 
   have get_literal_and_remove_of_analyse_wl: \<open>RETURN
-       (get_literal_and_remove_of_analyse_wl (NU ! fst (last x1c)) x1c)
+       (get_literal_and_remove_of_analyse_wl (NU \<propto> fst (last x1c)) x1c)
       \<le> \<Down> (Id \<times>\<^sub>r ?A) (get_literal_and_remove_of_analyse x1a)\<close>
     if
       xx': \<open>(x, x') \<in> ?R\<close> and
@@ -1297,36 +1304,25 @@ proof -
         \<open>x = (x1b, x2b)\<close> and
         \<open>x1a \<noteq> []\<close> and
       x1c: \<open>x1c \<noteq> []\<close> and
-      length: \<open>\<not> length (NU ! fst (last x1c)) \<le> snd (last x1c)\<close>
+      length: \<open>\<not> length (NU \<propto> fst (last x1c)) \<le> snd (last x1c)\<close>
     for x x' x1 x2 x1a x2a x1b x2b x1c x2c
   proof -
-    have [simp]: \<open>length list = Suc x2 \<Longrightarrow>
-       tl (rev (map f (list[x2 := aa])) @ ls) =
-       tl (rev (map f list)) @ ls\<close>
-      for list x2 aa f ls
-      by (cases list rule: rev_cases) auto
-    have [simp]: \<open>length list = Suc x2 \<Longrightarrow>
-       hd (rev (map f (list[x2 := aa])) @ ls) = f aa\<close>
-      for list x2 aa f ls
-      by (cases list rule: rev_cases) auto
-    have \<open>last x1c = (a, b) \<Longrightarrow> b \<le> length (NU ! a)\<close> for aa ba list a b
+    have \<open>last x1c = (a, b) \<Longrightarrow> b \<le> length (NU \<propto> a)\<close> for aa ba list a b
       using xx' x1c length unfolding s convert_analysis_list_def
       by (cases x1c rule: rev_cases) auto
     then show ?thesis
       supply convert_analysis_list_def[simp] hd_rev[simp] last_map[simp] rev_map[symmetric, simp]
       using x1c xx' length
-      using Cons_nth_drop_Suc[of \<open>snd (last x1c)\<close> \<open>NU ! fst (last x1c)\<close>, symmetric]
+      using Cons_nth_drop_Suc[of \<open>snd (last x1c)\<close> \<open>NU \<propto> fst (last x1c)\<close>, symmetric]
       unfolding s lit_redundant_rec_wl_ref_def
       by (cases x1c; cases \<open>last x1c\<close>)
-         (auto 5 5 simp: get_literal_and_remove_of_analyse_wl_def (* in_set_drop_conv_nth *)
+         (auto simp: get_literal_and_remove_of_analyse_wl_def
           get_literal_and_remove_of_analyse_def convert_analysis_list_def
-          map_butlast[symmetric] rev_append
-          intro!: RETURN_SPEC_refine elim!: neq_Nil_revE split: if_splits nat.splits
-          elim!: in_set_upd_cases)
+          intro!: RETURN_SPEC_refine elim!: neq_Nil_revE split: if_splits)
   qed
   have get_propagation_reason: \<open>get_propagation_reason M (-x1e)
-      \<le> \<Down> (\<langle>{(C', C).  C = mset (NU ! C') \<and> C' \<noteq> 0 \<and> Propagated (- x1e) (mset (NU!C')) \<in> set M'
-                \<and> Propagated (- x1e) C' \<in> set M \<and> C' < length NU}\<rangle>
+      \<le> \<Down> (\<langle>{(C', C).  C = mset (NU \<propto> C') \<and> C' \<noteq> 0 \<and> Propagated (- x1e) (mset (NU\<propto>C')) \<in> set M'
+                \<and> Propagated (- x1e) C' \<in> set M \<and> C' \<in># dom_m NU}\<rangle>
               option_rel)
           (get_propagation_reason M' (-x1d))\<close>
     (is \<open>_ \<le> \<Down> (\<langle>?get_propagation_reason\<rangle>option_rel) _\<close>)
@@ -1339,11 +1335,11 @@ proof -
       \<open>x1a \<noteq> []\<close> and
       \<open>- fst (hd x1a) \<in> lits_of_l M'\<close> and
       \<open>x1c \<noteq> []\<close> and
-      \<open>NU ! fst (last x1c) ! 0 \<in> lits_of_l M\<close> and
-      \<open>\<not> length (NU ! fst (last x1c)) \<le> snd (last x1c)\<close> and
+      \<open>NU \<propto> fst (last x1c) ! 0 \<in> lits_of_l M\<close> and
+      \<open>\<not> length (NU \<propto> fst (last x1c)) \<le> snd (last x1c)\<close> and
       \<open>snd (hd x1a) \<noteq> {#}\<close> and
-      H: \<open>(get_literal_and_remove_of_analyse_wl (NU ! fst (last x1c)) x1c, x'a) \<in> Id \<times>\<^sub>f ?A\<close>
-         \<open>get_literal_and_remove_of_analyse_wl (NU ! fst (last x1c)) x1c = (x1e, x2e)\<close> and
+      H: \<open>(get_literal_and_remove_of_analyse_wl (NU \<propto> fst (last x1c)) x1c, x'a) \<in> Id \<times>\<^sub>f ?A\<close>
+         \<open>get_literal_and_remove_of_analyse_wl (NU \<propto> fst (last x1c)) x1c = (x1e, x2e)\<close> and
       \<open>- x1d \<in> lits_of_l M'\<close> and
       ux1e_M: \<open>- x1e \<in> lits_of_l M\<close> and
       \<open>\<not> (get_level M x1e = 0 \<or> x1b (atm_of x1e) = SEEN_REMOVABLE \<or> x1e \<in># D)\<close> and
@@ -1353,9 +1349,9 @@ proof -
     have [simp]: \<open>x1d = x1e\<close>
       using s H by auto
     have
-      \<open>Propagated (- x1d) (mset (NU ! a)) \<in> set M'\<close> (is ?propa) and
+      \<open>Propagated (- x1d) (mset (NU \<propto> a)) \<in> set M'\<close> (is ?propa) and
       \<open>a \<noteq> 0\<close> (is ?a) and
-      \<open>a < length NU\<close> (is ?L)
+      \<open>a \<in># dom_m NU\<close> (is ?L)
       if \<open>Propagated (-x1e) a \<in> set M\<close>
       for a
     proof -
@@ -1371,7 +1367,8 @@ proof -
           using that by (auto simp: M'_def dest!: split_list)
 
         then have x1d_clss:  \<open>{#-x1d#} \<in># cdcl\<^sub>W_restart_mset.clauses S'''\<close>
-          using annots by (auto simp: S M'_def[symmetric] clauses_def mset_take_mset_drop_mset
+          using annots S_S' S'_S''
+          by (auto simp: S M'_def[symmetric] clauses_def mset_take_mset_drop_mset twl_st_wl twl_st_l twl_st
               dest!: split_list)
         have \<open>no_dup M'\<close>
           using n_d unfolding M'_def by auto
@@ -1391,22 +1388,22 @@ proof -
           have \<open>defined_lit M' x1d\<close>
             using ux1e_M by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
           then have \<open>undefined_lit M1 x1d\<close>
-            using lev' n_d' lev_K  Suc_count_decided_gt_get_level[of M1]
+            using lev' n_d' lev_K Suc_count_decided_gt_get_level[of M1]
             unfolding M_def
             by (auto simp: S clauses_def mset_take_mset_drop_mset' M'_def[symmetric] defined_lit_cons
                 M' defined_lit_append atm_of_eq_atm_of get_level_cons_if
                 dest: defined_lit_no_dupD split: if_splits)
           then show False
-            using H[of _ _ _ \<open>{#}\<close> \<open>-x1d\<close>] x1d_clss
-            by (auto simp: S clauses_def mset_take_mset_drop_mset' M'_def[symmetric] M')
+            using H[of _ _ _ \<open>{#}\<close> \<open>-x1d\<close>] x1d_clss S_S' S'_S'' S
+            by (auto simp: M'_def[symmetric] M' twl_st_wl twl_st_l twl_st)
         qed
         then show False using cond unfolding M'_def by auto
       qed
       show ?propa and ?a
         using that by (auto simp: M'_def dest!: split_list)
-      show ?L
-        using that add_inv unfolding twl_list_invs_def
-        by (auto simp: S)
+      then show ?L
+        using that add_inv S_S' S'_S'' S unfolding twl_list_invs_def
+        by (auto 5 5 simp: state_wl_l_def twl_st_l_def)
     qed
     then show ?thesis
       apply (auto simp: get_propagation_reason_def refine_rel_defs intro!: RES_refine)
@@ -1420,9 +1417,9 @@ proof -
       s: \<open>x2 = (x1a, x2a)\<close> \<open>x' = (x1, x2)\<close> \<open>x2b = (x1c, x2c)\<close> \<open>x = (x1b, x2b)\<close>
          \<open>x'a = (x1d, x2d)\<close> and
       get_literal_and_remove_of_analyse_wl:
-        \<open>(get_literal_and_remove_of_analyse_wl (NU ! fst (last x1c)) x1c, x'a) \<in> Id \<times>\<^sub>f ?A\<close> and
+        \<open>(get_literal_and_remove_of_analyse_wl (NU \<propto> fst (last x1c)) x1c, x'a) \<in> Id \<times>\<^sub>f ?A\<close> and
       get_lit:
-        \<open>get_literal_and_remove_of_analyse_wl (NU ! fst (last x1c)) x1c = (x1e, x2e)\<close> and
+        \<open>get_literal_and_remove_of_analyse_wl (NU \<propto> fst (last x1c)) x1c = (x1e, x2e)\<close> and
       xb_x'c: \<open>(xb, x'c) \<in> (?get_propagation_reason x1e)\<close>
     for x x2 x1a x2a x2b x1c x2c x'a x1d x2d x1e x2e xb x'c x' x1b x1
   proof -
@@ -1432,8 +1429,9 @@ proof -
       using s get_literal_and_remove_of_analyse_wl
       unfolding get_lit convert_analysis_list_def
       by auto
-    then have [simp]: \<open>x1d = -NU ! xb ! 0\<close> \<open>NU ! xb \<noteq> []\<close>
-      using add_inv xb_x'c unfolding twl_list_invs_def by (fastforce simp: S)+
+    then have [simp]: \<open>x1d = -NU \<propto> xb ! 0\<close> \<open>NU \<propto> xb \<noteq> []\<close>
+      using add_inv xb_x'c S_S' S'_S'' S unfolding twl_list_invs_def
+      by (auto 5 5 simp: state_wl_l_def twl_st_l_def)
     show ?thesis
       using s xx' get_literal_and_remove_of_analyse_wl xb_x'c
       unfolding get_lit convert_analysis_list_def lit_redundant_rec_wl_ref_def
@@ -1452,7 +1450,7 @@ proof -
   show ?thesis
     supply convert_analysis_list_def[simp] hd_rev[simp] last_map[simp] rev_map[symmetric, simp]
     unfolding lit_redundant_rec_wl_def lit_redundant_rec_def WHILET_def
-    apply (rewrite at \<open>let _ = _ ! _ in _\<close> Let_def)
+    apply (rewrite at \<open>let _ = _ \<propto> _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = snd _ in _\<close> Let_def)
     apply refine_rcg
     subgoal using bounds_init unfolding analyse'_def by auto
@@ -1503,16 +1501,21 @@ definition literal_redundant_wl where
   }\<close>
 
 lemma literal_redundant_wl_literal_redundant:
-  fixes S :: \<open>nat twl_st_wl\<close> and NU M
+  fixes S :: \<open>nat twl_st_wl\<close> and S' :: \<open>nat twl_st_l\<close> and S'' :: \<open>nat twl_st\<close> and NU M
   defines
-    [simp]: \<open>S' \<equiv> st_l_of_wl None S\<close> and
-    [simp]: \<open>S'' \<equiv> twl_st_of_wl None S\<close> and
-    [simp]: \<open>S''' \<equiv> state\<^sub>W_of (twl_st_of_wl None S)\<close>
+    [simp]: \<open>S''' \<equiv> state\<^sub>W_of S''\<close>
   defines
     \<open>M \<equiv> get_trail_wl S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close> and
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
-    NU': \<open>NU' \<equiv> mset `# mset (tl NU)\<close>
+    NU': \<open>NU' \<equiv> mset `# ran_mf NU\<close>
+  assumes
+    S_S': \<open>(S, S') \<in> state_wl_l None\<close> and
+    S'_S'': \<open>(S', S'') \<in> twl_st_l None\<close> and
+    \<open>M \<equiv> get_trail_wl S\<close> and
+    M': \<open>M' \<equiv> trail S'''\<close> and
+    NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
+    NU': \<open>NU' \<equiv> mset `# ran_mf NU\<close>
   assumes
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>twl_list_invs S'\<close> and
@@ -1521,21 +1524,21 @@ lemma literal_redundant_wl_literal_redundant:
   shows
     \<open>literal_redundant_wl M NU D cach L lbd \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
-          (\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0)} \<times>\<^sub>r bool_rel)
+          (\<forall>(i, j)\<in> set analyse. j \<le> length (NU\<propto>i) \<and> i \<in># dom_m NU \<and> j \<ge> 1 \<and> i > 0)} \<times>\<^sub>r bool_rel)
        (literal_redundant M' NU' D cach L)\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
-  obtain u D' NE UE Q W where
-    S: \<open>S = (M, NU, u, D', NE, UE, Q, W)\<close>
+  obtain D' NE UE Q W where
+    S: \<open>S = (M, NU, D', NE, UE, Q, W)\<close>
     using M_def NU by (cases S) auto
   have M'_def: \<open>M' = convert_lits_l NU M\<close>
-    using NU unfolding M' by (auto simp: S)
+    using NU S_S' S'_S'' S unfolding M' by (auto simp: twl_st_wl twl_st_l twl_st)
   have [simp]: \<open>lits_of_l M' = lits_of_l M\<close>
     unfolding M'_def by auto
   have
     no_smaller_propa: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa S'''\<close> and
     struct_invs': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S'''\<close>
-    using struct_invs unfolding twl_struct_invs_def S''_def S'''_def[symmetric]
+    using struct_invs unfolding twl_struct_invs_def S'''_def[symmetric]
     by fast+
   have annots: \<open>set (get_all_mark_of_propagated (trail S''')) \<subseteq>
      set_mset (cdcl\<^sub>W_restart_mset.clauses S''')\<close>
@@ -1543,87 +1546,91 @@ proof -
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
     by fast
-  have n_d: \<open>no_dup M\<close>
-    using struct_invs' unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+  have n_d: \<open>no_dup (get_trail_wl S)\<close>
+    using struct_invs' S_S' S'_S'' unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto simp: twl_st_wl twl_st_l twl_st)
+  then have n_d: \<open>no_dup M\<close>
     by (auto simp: S)
   then have n_d': \<open>no_dup M'\<close>
     unfolding M'_def by (auto simp: S)
   have uL_M: \<open>-L \<in> lits_of_l M\<close>
     using L_D M_D by (auto dest!: multi_member_split)
   have H: \<open>lit_redundant_rec_wl M NU D cach analyse lbd
-  \<le> \<Down> ?R (lit_redundant_rec M' NU' D cach analyse')\<close>
+      \<le> \<Down> ?R (lit_redundant_rec M' NU' D cach analyse')\<close>
     if \<open>analyse' = convert_analysis_list NU analyse\<close> and
-       \<open>\<forall>(i, j)\<in>set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0\<close>
+       \<open>\<forall>(i, j)\<in>set analyse. j \<le> length (NU \<propto> i) \<and> i \<in># dom_m NU \<and> j \<ge> 1 \<and> i > 0\<close>
      for analyse analyse'
-  using lit_redundant_rec_wl[of S analyse D cach, unfolded S'''_def[symmetric],
-      unfolded S'_def[symmetric] S''_def[symmetric]
-      M_def[symmetric] M'[symmetric] NU[symmetric] NU'[symmetric], OF _ struct_invs add_inv]
+    using lit_redundant_rec_wl[of S S' S'' analyse D cach, unfolded S'''_def[symmetric],
+      unfolded
+      M_def[symmetric] M'[symmetric] NU[symmetric] NU'[symmetric], OF S_S' S'_S'' _ struct_invs add_inv]
     that by (auto simp: lit_redundant_rec_wl_ref_def)
-   have get_propagation_reason: \<open>get_propagation_reason M (-L)
-      \<le> \<Down> (\<langle>{(C', C).  C = mset (NU ! C') \<and> C' \<noteq> 0 \<and> Propagated (-L) (mset (NU!C')) \<in> set M'
+  have get_propagation_reason: \<open>get_propagation_reason M (-L)
+      \<le> \<Down> (\<langle>{(C', C).  C = mset (NU \<propto> C') \<and> C' \<noteq> 0 \<and> Propagated (-L) (mset (NU\<propto>C')) \<in> set M'
                 \<and> Propagated (-L) C' \<in> set M}\<rangle>
               option_rel)
           (get_propagation_reason M' (-L))\<close>
-    (is \<open>_ \<le> \<Down> (\<langle>?get_propagation_reason\<rangle>option_rel) _\<close> is ?G1) and
-     propagated_L: \<open>Propagated (-L) a \<in> set M \<Longrightarrow> a \<noteq> 0 \<and> Propagated (- L) (mset (NU ! a)) \<in> set M'\<close>
-    (is \<open>?H2 \<Longrightarrow> ?G2\<close>)
+      (is \<open>_ \<le> \<Down> (\<langle>?get_propagation_reason\<rangle>option_rel) _\<close> is ?G1) and
+    propagated_L:
+       \<open>Propagated (-L) a \<in> set M \<Longrightarrow> a \<noteq> 0 \<and> Propagated (- L) (mset (NU \<propto> a)) \<in> set M'\<close>
+       (is \<open>?H2 \<Longrightarrow> ?G2\<close>)
     if
       lev0_rem: \<open>\<not> (get_level M' L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE)\<close> and
       ux1e_M: \<open>- L \<in> lits_of_l M\<close>
     for a
-   proof -
-     have \<open>Propagated (- L) (mset (NU ! a)) \<in> set M'\<close> (is ?propa) and
-       \<open>a \<noteq> 0\<close> (is ?a)
-       if \<open>Propagated (-L) a \<in> set M\<close>
-       for a
-     proof -
-       have [simp]: \<open>a \<noteq> 0\<close>
-       proof
-         assume [simp]: \<open>a = 0\<close>
-         have H: \<open>\<not> M \<Turnstile>as CNot D\<close>
-           if \<open>trail S''' = M' @ Decided K # M\<close> and
-             \<open>D + {#L#} \<in># cdcl\<^sub>W_restart_mset.clauses S'''\<close>
-             \<open>undefined_lit M L\<close> for M K M' D L
-           using no_smaller_propa that unfolding cdcl\<^sub>W_restart_mset.no_smaller_propa_def by blast
-         have x1d_M': \<open>Propagated (- L) {#-L#} \<in> set M'\<close>
-           using that by (auto simp: M'_def dest!: split_list)
+    proof -
+      have \<open>Propagated (- L) (mset (NU \<propto> a)) \<in> set M'\<close> (is ?propa) and
+        \<open>a \<noteq> 0\<close> (is ?a)
+        if \<open>Propagated (-L) a \<in> set M\<close>
+        for a
+      proof -
+        have [simp]: \<open>a \<noteq> 0\<close>
+        proof
+          assume [simp]: \<open>a = 0\<close>
+          have H: \<open>\<not> M \<Turnstile>as CNot D\<close>
+            if \<open>trail S''' = M' @ Decided K # M\<close> and
+              \<open>D + {#L#} \<in># cdcl\<^sub>W_restart_mset.clauses S'''\<close>
+              \<open>undefined_lit M L\<close> for M K M' D L
+            using no_smaller_propa that unfolding cdcl\<^sub>W_restart_mset.no_smaller_propa_def by blast
+          have x1d_M': \<open>Propagated (- L) {#-L#} \<in> set M'\<close>
+            using that by (auto simp: M'_def dest!: split_list)
 
-         then have x1d_clss:  \<open>{#-L#} \<in># cdcl\<^sub>W_restart_mset.clauses S'''\<close>
-           using annots by (auto simp: S M'_def[symmetric] clauses_def mset_take_mset_drop_mset
-               dest!: split_list)
-         have \<open>no_dup M'\<close>
-           using n_d unfolding M'_def by auto
-         then have count_M': \<open>count_decided M' \<ge> 1\<close>
-           using x1d_M' lev0_rem by (auto dest!: split_list)
-         have \<open>get_level M (-L) = 0\<close>
-         proof (rule ccontr)
-           assume lev: \<open>\<not> ?thesis\<close>
-           then have lev': \<open>0 < get_level M' L\<close>
-             unfolding M'_def by auto
-           obtain M2 K M1 where
-             M': \<open>M' = M2 @ Decided K # M1\<close> and
-             lev_K: \<open>get_level M K = Suc 0\<close>
-             using le_count_decided_decomp[OF n_d, of 0] count_M' unfolding M'_def by auto
-           have lev_K: \<open>get_level M' K = Suc 0\<close>
-             using lev_K unfolding M'_def by auto
-           have \<open>defined_lit M' L\<close>
-             using ux1e_M by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
-           then have \<open>undefined_lit M1 L\<close>
-             using lev' n_d' lev_K  Suc_count_decided_gt_get_level[of M1]
-             unfolding M_def
-             by (auto simp: S clauses_def mset_take_mset_drop_mset' M'_def[symmetric]
-                 defined_lit_cons M' defined_lit_append atm_of_eq_atm_of get_level_cons_if
-                 dest: defined_lit_no_dupD split: if_splits)
-           then show False
-             using H[of _ _ _ \<open>{#}\<close> \<open>-L\<close>] x1d_clss
-             by (auto simp: S clauses_def mset_take_mset_drop_mset' M'_def[symmetric] M')
-         qed
-         then show False using lev0_rem unfolding M'_def by auto
-       qed
-       show ?propa and ?a
-         using that by (auto simp: M'_def dest!: split_list)
-     qed note H = this
+          then have x1d_clss:  \<open>{#-L#} \<in># cdcl\<^sub>W_restart_mset.clauses S'''\<close>
+            using annots S_S' S'_S''
+            by (auto simp: S M'_def[symmetric] clauses_def mset_take_mset_drop_mset
+                twl_st_l_def state_wl_l_def dest!: split_list)
+          have \<open>no_dup M'\<close>
+            using n_d unfolding M'_def by auto
+          then have count_M': \<open>count_decided M' \<ge> 1\<close>
+            using x1d_M' lev0_rem by (auto dest!: split_list)
+          have \<open>get_level M (-L) = 0\<close>
+          proof (rule ccontr)
+            assume lev: \<open>\<not> ?thesis\<close>
+            then have lev': \<open>0 < get_level M' L\<close>
+              unfolding M'_def by auto
+            obtain M2 K M1 where
+              M': \<open>M' = M2 @ Decided K # M1\<close> and
+              lev_K: \<open>get_level M K = Suc 0\<close>
+              using le_count_decided_decomp[OF n_d, of 0] count_M' unfolding M'_def by auto
+            have lev_K: \<open>get_level M' K = Suc 0\<close>
+              using lev_K unfolding M'_def by auto
+            have \<open>defined_lit M' L\<close>
+              using ux1e_M by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
+            then have \<open>undefined_lit M1 L\<close>
+              using lev' n_d' lev_K Suc_count_decided_gt_get_level[of M1]
+              unfolding M_def
+              by (auto simp: S clauses_def mset_take_mset_drop_mset' M'_def[symmetric]
+                  defined_lit_cons M' defined_lit_append atm_of_eq_atm_of get_level_cons_if
+                  dest: defined_lit_no_dupD split: if_splits)
+            then show False
+              using H[of _ _ _ \<open>{#}\<close> \<open>-L\<close>] x1d_clss S_S' S'_S'' S
+              by (auto simp: M'_def[symmetric] M' twl_st_wl twl_st_l twl_st)
+          qed
+          then show False using lev0_rem unfolding M'_def by auto
+        qed
+        show ?propa and ?a
+          using that by (auto simp: M'_def dest!: split_list)
+      qed note H = this
      show \<open>?H2 \<Longrightarrow> ?G2\<close>
        using H by auto
      show ?G1
@@ -1632,15 +1639,15 @@ proof -
            get_propagation_reason_def intro!: RES_refine)
        apply (case_tac s)
        by auto
-   qed
+    qed
 
   have [simp]: \<open>mset (tl C) = remove1_mset (C!0) (mset C)\<close> for C
     by (cases C) auto
-  have [simp]: \<open>NU ! C ! 0 = -L\<close> if
+  have [simp]: \<open>NU \<propto> C ! 0 = -L\<close> if
     in_trail: \<open>Propagated (- L) C \<in> set M\<close> and
     lev: \<open>\<not> (get_level M' L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE)\<close>
-  for C
-    using add_inv that propagated_L[OF lev _ in_trail] uL_M
+    for C
+    using add_inv that propagated_L[OF lev _ in_trail] uL_M S_S' S'_S''
     by (auto simp: S twl_list_invs_def)
   have [dest]: \<open>C \<noteq> {#}\<close> if \<open>Propagated (- L) C \<in> set M'\<close> for C
   proof -
@@ -1650,11 +1657,13 @@ proof -
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
       by fast
     then show ?thesis
-      using that by (fastforce simp: S M'_def[symmetric] dest!: split_list)
+      using that S_S' S'_S'' by (fastforce simp: S M'_def[symmetric] state_wl_l_def
+        twl_st_l_def dest!: split_list)
   qed
-  have [simp]: \<open>Propagated (- L) C \<in> set M \<Longrightarrow> C < length NU\<close> for C
-    using add_inv by (auto simp: S twl_list_invs_def)
-
+  have [simp]: \<open>Propagated (- L) C \<in> set M \<Longrightarrow> C > 0 \<Longrightarrow> C \<in># dom_m NU\<close> for C
+    using add_inv S_S' S'_S'' propagated_L[of C]
+    by (auto simp: S twl_list_invs_def state_wl_l_def
+        twl_st_l_def)
   show ?thesis
     unfolding literal_redundant_wl_def literal_redundant_def
     apply (refine_rcg H get_propagation_reason)
@@ -1816,7 +1825,7 @@ lemma conflict_min_cach_set_removable:
     uncurry (RETURN oo conflict_min_cach_set_removable)) \<in>
      [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-     (auto simp: cach_refinement_alt_def map_fun_rel_def  cach_refinement_list_def
+     (auto simp: cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
       conflict_min_cach_set_removable_l_def)
 
 lemma conflict_min_cach_set_removable_hnr[sepref_fr_rules]:
@@ -1828,7 +1837,7 @@ lemma conflict_min_cach_set_removable_hnr[sepref_fr_rules]:
 
 definition mark_failed_lits_stack_inv where
   \<open>mark_failed_lits_stack_inv NU analyse = (\<lambda>cach.
-       (\<forall>(i, j) \<in> set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0))\<close>
+       (\<forall>(i, j) \<in> set analyse. j \<le> length (NU \<propto> i) \<and> i \<in># dom_m NU \<and> j \<ge> 1 \<and> i > 0))\<close>
 
 
 definition (in isasat_input_ops) mark_failed_lits_stack where
@@ -1838,37 +1847,29 @@ definition (in isasat_input_ops) mark_failed_lits_stack where
       (\<lambda>(i, cach). do {
         ASSERT(i < length analyse);
         let (cls_idx, idx) = analyse ! i;
-        ASSERT(atm_of (NU ! cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n);
-        RETURN (i+1, cach (atm_of (NU ! cls_idx ! (idx - 1)) := SEEN_FAILED))
+        ASSERT(atm_of (NU \<propto> cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n);
+        RETURN (i+1, cach (atm_of (NU \<propto> cls_idx ! (idx - 1)) := SEEN_FAILED))
       })
       (0, cach);
    RETURN cach
    }\<close>
 
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l_tl:
-  assumes
-    N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl xs))\<close> and \<open>xs \<noteq> []\<close> and
-    i_xs: \<open>i < length xs\<close> and j_xs: \<open>j < length (xs ! i)\<close> \<open>i > 0\<close>
-  shows \<open>xs ! i ! j \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-  using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>tl xs\<close> \<open>i - 1\<close> j] assms
-  by (cases xs) auto
-
 lemma mark_failed_lits_stack_mark_failed_lits_wl:
   shows
     \<open>(uncurry2 mark_failed_lits_stack, uncurry2 mark_failed_lits_wl) \<in>
-       [\<lambda>((NU, analyse), cach). literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU)) \<and>
+       [\<lambda>((NU, analyse), cach). literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU) \<and>
           mark_failed_lits_stack_inv NU analyse cach]\<^sub>f
        Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
 proof -
   have \<open>mark_failed_lits_stack NU analyse cach \<le> (mark_failed_lits_wl NU analyse cach)\<close>
     if
-      NU_\<L>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU))\<close> and
+      NU_\<L>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU)\<close> and
       init: \<open>mark_failed_lits_stack_inv NU analyse cach\<close>
     for NU analyse cach
   proof -
     define I where
       \<open>I = (\<lambda>(i :: nat, cach'). (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
-    have valid_atm: \<open>atm_of (NU ! cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
+    have valid_atm: \<open>atm_of (NU \<propto> cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
       if
         \<open>I s\<close> and
         \<open>case s of (i, cach) \<Rightarrow> i < length analyse\<close> and
@@ -1882,8 +1883,8 @@ proof -
         using i by (cases analyse) auto
       show ?thesis
         unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
-        apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l_tl)
-        using NU_\<L>\<^sub>i\<^sub>n that  nth_mem[of i analyse]
+        apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l)
+        using NU_\<L>\<^sub>i\<^sub>n that nth_mem[of i analyse]
         by (auto simp: mark_failed_lits_stack_inv_def I_def)
     qed
     show ?thesis

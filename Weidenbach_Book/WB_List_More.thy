@@ -421,7 +421,7 @@ proof
      apply (auto; fail)
     by (metis AB AC nth_append nth_append_length zero_less_Suc zero_less_diff)
   ultimately show ?B
-    using  len_B[symmetric] len_C[symmetric] xy
+    using len_B[symmetric] len_C[symmetric] xy
     by (auto simp: lexn_conv)
 next
   assume ?B
@@ -714,7 +714,7 @@ lemma count_multi_member_split:
   subgoal premises IH for n M
     using IH(1)[of \<open>remove1_mset a M\<close>] IH(2)
     apply (cases \<open>n \<le> count M a - Suc 0\<close>)
-     apply (auto dest!: Suc_le_D  simp: count_greater_zero_iff)
+     apply (auto dest!: Suc_le_D simp: count_greater_zero_iff)
     by (metis count_greater_zero_iff insert_DiffM zero_less_Suc)
   done
 
@@ -829,6 +829,13 @@ qed
 lemma set_mset_set_mset_eq_iff: \<open>set_mset A = set_mset B \<longleftrightarrow> (\<forall>a\<in>#A. a \<in># B) \<and> (\<forall>a\<in>#B. a \<in># A)\<close>
   by blast
 
+lemma remove1_mset_union_distrib:
+  \<open>remove1_mset a (M \<union># N) = remove1_mset a M \<union># remove1_mset a N\<close>
+  by (auto simp: multiset_eq_iff)
+
+(* useful for sledgehammer/proof reconstruction ?*)
+lemma member_add_mset: \<open>a \<in># add_mset x xs \<longleftrightarrow> a = x \<or> a \<in># xs\<close>
+  by simp
 
 subsection \<open>Sorting\<close>
 
@@ -1169,5 +1176,8 @@ lemma list_all2_op_eq_map_map_left_iff:
     apply (rename_tac x, case_tac x)
   by (auto simp: list_all2_op_eq_map_left_iff)
 
+lemma list_all2_conj:
+  \<open>list_all2 (\<lambda>x y. P x y \<and> Q x y) xs ys \<longleftrightarrow> list_all2 P xs ys \<and> list_all2 Q xs ys\<close>
+  by (auto simp: list_all2_conv_all_nth)
 
 end

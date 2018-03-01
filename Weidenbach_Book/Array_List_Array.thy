@@ -131,10 +131,10 @@ lemma length_raa_rule[sep_heap_rules]:
   unfolding length_raa_def
   apply (cases a)
   apply sep_auto
-  apply (sep_auto simp: arlO_assn_except_def arl_length_def array_assn_def (*  *)
+  apply (sep_auto simp: arlO_assn_except_def arl_length_def array_assn_def
       eq_commute[of \<open>(_, _)\<close>] is_array_def hr_comp_def length_rll_def
       dest: list_all2_lengthD)
-   apply (sep_auto simp: arlO_assn_except_def arl_length_def arl_assn_def(*  *)
+   apply (sep_auto simp: arlO_assn_except_def arl_length_def arl_assn_def
       eq_commute[of \<open>(_, _)\<close>] is_array_list_def hr_comp_def length_rll_def list_rel_def
       dest: list_all2_lengthD)[]
   unfolding arlO_assn_def[symmetric] arl_assn_def[symmetric]
@@ -189,7 +189,7 @@ definition update_raa :: "('a::{heap,default}) arrayO_raa \<Rightarrow> nat \<Ri
       arl_set a i a'
     }\<close> -- \<open>is the Array.upd really needed?\<close>
 
-definition update_rll :: "'a list_rll \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list"  where
+definition update_rll :: "'a list_rll \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
   \<open>update_rll xs i j y = xs[i:= (xs ! i)[j := y]]\<close>
 
 declare nth_rule[sep_heap_rules del]
@@ -330,7 +330,7 @@ proof -
   show ?thesis
     using assms unfolding R'[symmetric] unfolding RR'
     apply sepref_to_hoare
-    apply (sep_auto simp: swap_aa_def swap_ll_def (* arl_get_def *) arlO_assn_except_def
+    apply (sep_auto simp: swap_aa_def swap_ll_def arlO_assn_except_def
         length_rll_update_rll)
     by (sep_auto simp: update_rll_def swap_def nth_rll_def list_update_swap)
 qed
@@ -352,8 +352,7 @@ proof -
     using assms
     apply (cases xs)
     supply arl_set_rule[sep_heap_rules del]
-    apply (sep_auto simp: arlO_assn_def update_ra_def (* arl_set_def *)
-        (* hoare_triple_def *) Let_def arl_assn_def (* mod_star_conv *) (* is_array_list_def *)
+    apply (sep_auto simp: arlO_assn_def update_ra_def Let_def arl_assn_def
         dest!: heap_list_add_same_length
         elim!: run_elims)
     apply (subst H)
@@ -497,7 +496,7 @@ qed
 definition nth_rl :: \<open>'a::heap arrayO_raa \<Rightarrow> nat \<Rightarrow> 'a array Heap\<close> where
   \<open>nth_rl xs n = do {x \<leftarrow> arl_get xs n; array_copy x}\<close>
 
-lemma nth_rl_op_list_get[sepref_fr_rules]:
+lemma nth_rl_op_list_get:
   \<open>(uncurry nth_rl, uncurry (RETURN oo op_list_get)) \<in>
     [\<lambda>(xs, n). n < length xs]\<^sub>a (arlO_assn (array_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> array_assn R\<close>
   apply sepref_to_hoare
@@ -518,7 +517,7 @@ definition arl_of_array_raa :: "'a::heap array \<Rightarrow> ('a array_list) Hea
      return (xs, n)
   }\<close>
 
-lemma arl_of_array_raa[sepref_fr_rules]: \<open>(arl_of_array_raa, RETURN o arl_of_array) \<in>
+lemma arl_of_array_raa: \<open>(arl_of_array_raa, RETURN o arl_of_array) \<in>
        [\<lambda>xs. xs \<noteq> []]\<^sub>a (array_assn R)\<^sup>d \<rightarrow> (arl_assn R)\<close>
   by sepref_to_hoare (sep_auto simp: arl_of_array_raa_def arl_assn_def is_array_list_def hr_comp_def
       array_assn_def is_array_def arl_of_array_def)

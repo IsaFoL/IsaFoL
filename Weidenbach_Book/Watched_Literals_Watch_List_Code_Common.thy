@@ -57,9 +57,20 @@ qed
 
 instantiation literal :: (default) default
 begin
+
 definition default_literal where
 \<open>default_literal = Pos default\<close>
 instance by standard
+
+end
+
+instantiation fmap :: (type, type) default
+begin
+
+definition default_fmap where
+\<open>default_fmap = fmempty\<close>
+instance by standard
+
 end
 
 
@@ -174,9 +185,6 @@ abbreviation ann_lits_wl_assn :: \<open>ann_lits_wl \<Rightarrow> ann_lits_wl \<
 abbreviation clause_ll_assn :: \<open>nat clause_l \<Rightarrow> clause_wl \<Rightarrow> assn\<close> where
   \<open>clause_ll_assn \<equiv> array_assn unat_lit_assn\<close>
 
-abbreviation clauses_ll_assn :: \<open>nat clauses_l \<Rightarrow> clauses_wl \<Rightarrow> assn\<close> where
-  \<open>clauses_ll_assn \<equiv> arlO_assn clause_ll_assn\<close>
-
 abbreviation clause_l_assn :: \<open>nat clause \<Rightarrow> uint32 list \<Rightarrow> assn\<close> where
   \<open>clause_l_assn \<equiv> list_mset_assn unat_lit_assn\<close>
 
@@ -195,8 +203,12 @@ abbreviation unit_lits_assn :: \<open>nat clauses \<Rightarrow> unit_lits_wl \<R
 type_synonym nat_clauses_l = \<open>nat list list\<close>
 
 type_synonym twl_st_wll =
-  \<open>nat_trail \<times> clauses_wl \<times> nat \<times> uint32 array_list option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
+  \<open>nat_trail \<times> clauses_wl \<times> uint32 array_list option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
     lit_queue_l \<times> watched_wl\<close>
+
+lemma clause_l_assn_alt_def:
+  \<open>clause_l_assn = hr_comp (list_assn unat_lit_assn) list_mset_rel\<close>
+  by (simp add: list_assn_list_mset_rel_eq_list_mset_assn)
 
 
 subsubsection \<open>Refinement of the Watched Function\<close>
@@ -205,7 +217,7 @@ sepref_register \<open>watched_by :: nat twl_st_wl \<Rightarrow> nat literal \<R
    :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> watched\<close>
 
 definition watched_by_nth :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
-  \<open>watched_by_nth = (\<lambda>(M, N, U, D, NE, UE, Q, W) L i. W L ! i)\<close>
+  \<open>watched_by_nth = (\<lambda>(M, N, D, NE, UE, Q, W) L i. W L ! i)\<close>
 
 definition watched_app :: \<open>(nat literal \<Rightarrow> nat list) \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>watched_app M L i \<equiv> M L ! i\<close>
@@ -220,7 +232,7 @@ lemma [def_pat_rules]:
   by (auto simp: watched_app_def)
 
 lemma watched_by_nth_watched_app:
-  \<open>watched_by S K ! w = watched_app ((snd o snd o snd o snd o snd o snd o snd) S) K w\<close>
+  \<open>watched_by S K ! w = watched_app ((snd o snd o snd o snd o snd o snd) S) K w\<close>
   by (cases S) (auto simp: watched_app_def)
 
 
@@ -259,126 +271,23 @@ proof -
       split: if_splits)+
 qed
 
-definition delete_index_and_swap_ll where
-  \<open>delete_index_and_swap_ll xs i j =
-     xs[i:= delete_index_and_swap (xs!i) j]\<close>
-
-definition delete_index_and_swap_aa where
-  \<open>delete_index_and_swap_aa xs i j = do {
-     x \<leftarrow> last_aa xs i;
-     xs \<leftarrow> update_aa xs i j x;
-     set_butlast_aa xs i
-  }\<close>
-
-
-lemma delete_index_and_swap_aa_ll_hnr[sepref_fr_rules]:
-  assumes \<open>is_pure R\<close>
-  shows \<open>(uncurry2 delete_index_and_swap_aa, uncurry2 (RETURN ooo delete_index_and_swap_ll))
-     \<in> [\<lambda>((l,i), j). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
-         \<rightarrow> (arrayO_assn (arl_assn R))\<close>
-  using assms unfolding delete_index_and_swap_aa_def
-  by sepref_to_hoare (sep_auto dest: le_length_ll_nemptyD
-      simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
-      length_ll_def[symmetric])
-
-
-lemma nth_nat_of_uint32_nth': \<open>Array.nth x (nat_of_uint32 L) = Array.nth' x (integer_of_uint32 L)\<close>
-  by (auto simp: Array.nth'_def nat_of_uint32_code)
-
-lemma nth_aa_u_code[code]:
-  \<open>nth_aa_u x L L' = nth_u_code x L \<bind> (\<lambda>x. arl_get x L' \<bind> return)\<close>
-  unfolding nth_aa_u_def nth_aa_def arl_get_u_def[symmetric]  Array.nth'_def[symmetric]
-   nth_nat_of_uint32_nth' nth_u_code_def[symmetric] ..
-
-definition last_aa_u where
-  \<open>last_aa_u xs i = last_aa xs (nat_of_uint32 i)\<close>
-
-lemma last_aa_u_code[code]:
-  \<open>last_aa_u xs i = nth_u_code xs i \<bind> arl_last\<close>
-  unfolding last_aa_u_def last_aa_def nth_nat_of_uint32_nth' nth_nat_of_uint32_nth'
-    arl_get_u_def[symmetric] nth_u_code_def[symmetric] ..
-
-definition update_aa_u where
-  \<open>update_aa_u xs i j = update_aa xs (nat_of_uint32 i) j\<close>
-
-lemma Array_upd_upd': \<open>Array.upd i x a = Array.upd' a (of_nat i) x \<then> return a\<close>
-  by (auto simp: Array.upd'_def upd_return)
-
-definition Array_upd_u where
-  \<open>Array_upd_u i x a = Array.upd (nat_of_uint32 i) x a\<close>
-
-
-lemma Array_upd_u_code[code]: \<open>Array_upd_u i x a = heap_array_set'_u a i x \<then> return a\<close>
-  unfolding Array_upd_u_def heap_array_set'_u_def
-  Array.upd'_def
-  by (auto simp: nat_of_uint32_code upd_return)
-
-
-lemma update_aa_u_code[code]:
-  \<open>update_aa_u a i j y = do {
-      x \<leftarrow> nth_u_code a i;
-      a' \<leftarrow> arl_set x j y;
-      Array_upd_u i a' a
-    }\<close> -- \<open>is the Array.upd really needed?\<close>
-  unfolding update_aa_u_def update_aa_def nth_nat_of_uint32_nth' nth_nat_of_uint32_nth'
-    arl_get_u_def[symmetric] nth_u_code_def[symmetric]
-    heap_array_set'_u_def[symmetric] Array_upd_u_def[symmetric]
-  by auto
-
-definition set_butlast_aa_u where
-  \<open>set_butlast_aa_u xs i = set_butlast_aa xs (nat_of_uint32 i)\<close>
-
-lemma set_butlast_aa_u_code[code]:
-  \<open>set_butlast_aa_u a i = do {
-      x \<leftarrow> nth_u_code a i;
-      a' \<leftarrow> arl_butlast x;
-      Array_upd_u i a' a
-    }\<close> -- \<open>Replace the \<^term>\<open>i\<close>-th element by the itself execpt the last element.\<close>
-  unfolding set_butlast_aa_u_def set_butlast_aa_def
-   nth_u_code_def Array_upd_u_def
-  by (auto simp: Array.nth'_def nat_of_uint32_code)
-
-
-definition delete_index_and_swap_aa_u where
-   \<open>delete_index_and_swap_aa_u xs i = delete_index_and_swap_aa xs (nat_of_uint32 i)\<close>
-
-lemma delete_index_and_swap_aa_u_code[code]:
-\<open>delete_index_and_swap_aa_u xs i j = do {
-     x \<leftarrow> last_aa_u xs i;
-     xs \<leftarrow> update_aa_u xs i j x;
-     set_butlast_aa_u xs i
-  }\<close>
-  unfolding delete_index_and_swap_aa_u_def delete_index_and_swap_aa_def
-   last_aa_u_def update_aa_u_def set_butlast_aa_u_def
-  by auto
-
-lemma delete_index_and_swap_aa_ll_hnr_u[sepref_fr_rules]:
-  assumes \<open>is_pure R\<close>
-  shows \<open>(uncurry2 delete_index_and_swap_aa_u, uncurry2 (RETURN ooo delete_index_and_swap_ll))
-     \<in> [\<lambda>((l,i), j). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
-         \<rightarrow> (arrayO_assn (arl_assn R))\<close>
-  using assms unfolding delete_index_and_swap_aa_def delete_index_and_swap_aa_u_def
-  by sepref_to_hoare (sep_auto dest: le_length_ll_nemptyD
-      simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
-      length_ll_def[symmetric] uint32_nat_rel_def br_def)
-
 
 subsection \<open>Code Generation\<close>
 
 subsubsection \<open>More Operations\<close>
 
 fun literals_to_update_wll :: \<open>twl_st_wll \<Rightarrow> lit_queue_l\<close> where
-  \<open>literals_to_update_wll (M, N, U, D, NE, UE, Q, W) = Q\<close>
+  \<open>literals_to_update_wll (M, N, D, NE, UE, Q, W) = Q\<close>
 
 definition literals_to_update_wll_empty :: \<open>twl_st_wll \<Rightarrow> bool\<close> where
-  \<open>literals_to_update_wll_empty = (\<lambda>(M, N, U, D, NE, UE, Q, W). is_Nil Q)\<close>
+  \<open>literals_to_update_wll_empty = (\<lambda>(M, N, D, NE, UE, Q, W). is_Nil Q)\<close>
 
 definition literals_to_update_wl_empty :: \<open>nat twl_st_wl \<Rightarrow> bool\<close>  where
-  \<open>literals_to_update_wl_empty = (\<lambda>(M, N, U, D, NE, UE, Q, W). Q = {#})\<close>
+  \<open>literals_to_update_wl_empty = (\<lambda>(M, N, D, NE, UE, Q, W). Q = {#})\<close>
 
 definition select_and_remove_from_literals_to_update_wl' :: \<open>twl_st_wll \<Rightarrow> twl_st_wll \<times> uint32\<close> where
   \<open>select_and_remove_from_literals_to_update_wl' =
-    (\<lambda>(M, N, U, D, NE, UE, Q, W).  ((M, N, U, D, NE, UE, tl Q, W), hd Q))\<close>
+    (\<lambda>(M, N, D, NE, UE, Q, W).  ((M, N, D, NE, UE, tl Q, W), hd Q))\<close>
 
 lemma in_nat_list_rel_list_all2_in_set_iff:
     \<open>(a, aa) \<in> nat_lit_rel \<Longrightarrow>
@@ -481,20 +390,14 @@ definition find_decomp_wl' where
         SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (D - {#-L#}) + 1))\<close>
 
-definition no_skip where
-  \<open>no_skip S = (no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
-
-definition no_resolve where
-  \<open>no_resolve S = (no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
-
 definition get_conflict_wl_is_None :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None = (\<lambda>(M, N, U, D, NE, UE, Q, W). is_None D)\<close>
+  \<open>get_conflict_wl_is_None = (\<lambda>(M, N, D, NE, UE, Q, W). is_None D)\<close>
 
 lemma get_conflict_wl_is_None: \<open>get_conflict_wl S = None \<longleftrightarrow> get_conflict_wl_is_None S\<close>
   by (cases S) (auto simp: get_conflict_wl_is_None_def split: option.splits)
 
 lemma watched_by_nth_watched_app':
-  \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd o snd) S) K\<close>
+  \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd) S) K\<close>
   by (cases S) (auto simp: watched_app_def)
 
 
@@ -712,32 +615,32 @@ proof -
 qed
 
 
-definition get_conflict_wl_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_Nil = (\<lambda>(M, N, U, D, NE, UE, Q, W). D \<noteq> None \<and> Multiset.is_empty (the D))\<close>
+definition (in isasat_input_ops) get_conflict_wl_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>get_conflict_wl_is_Nil = (\<lambda>(M, N, D, NE, UE, Q, W). D \<noteq> None \<and> Multiset.is_empty (the D))\<close>
 
-definition get_conflict_wll_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool nres\<close> where
-  \<open>get_conflict_wll_is_Nil = (\<lambda>(M, N, U, D, NE, UE, Q, W).
+definition (in isasat_input_ops) get_conflict_wll_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool nres\<close> where
+  \<open>get_conflict_wll_is_Nil = (\<lambda>(M, N, D, NE, UE, Q, W).
    do {
      if is_None D
      then RETURN False
      else do{ ASSERT(D \<noteq> None); RETURN (Multiset.is_empty (the D))}
    })\<close>
 
-lemma get_conflict_wll_is_Nil_get_conflict_wl_is_Nil:
+lemma (in isasat_input_ops) get_conflict_wll_is_Nil_get_conflict_wl_is_Nil:
   \<open>(PR_CONST get_conflict_wll_is_Nil, RETURN o get_conflict_wl_is_Nil) \<in>
-    Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+    Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro nres_relI frefI) (auto simp: get_conflict_wll_is_Nil_def get_conflict_wl_is_Nil_def
       split: option.splits)
 
-lemma get_conflict_wl_get_conflict_wl_is_Nil:
+lemma (in isasat_input_ops) get_conflict_wl_get_conflict_wl_is_Nil:
   \<open>get_conflict_wl S\<^sub>0 = Some {#} \<longleftrightarrow> get_conflict_wl_is_Nil S\<^sub>0\<close>
   by (cases S\<^sub>0) (auto simp add: get_conflict_wl_is_Nil_def Multiset.is_empty_def split: option.splits)
 
-definition is_decided_hd_trail_wl where
+definition (in isasat_input_ops) is_decided_hd_trail_wl where
   \<open>is_decided_hd_trail_wl S = is_decided (hd (get_trail_wl S))\<close>
 
-definition is_decided_hd_trail_wll :: \<open>nat twl_st_wl \<Rightarrow> bool nres\<close> where
-  \<open>is_decided_hd_trail_wll = (\<lambda>(M, N, U, D, NE, UE, Q, W).
+definition (in isasat_input_ops) is_decided_hd_trail_wll :: \<open>nat twl_st_wl \<Rightarrow> bool nres\<close> where
+  \<open>is_decided_hd_trail_wll = (\<lambda>(M, N, D, NE, UE, Q, W).
      RETURN (is_decided (hd M))
    )\<close>
 

@@ -352,7 +352,7 @@ lemma cons_trail_Propagated_tr:
   by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst (fst x)\<close>)
      (auto simp add: trail_pol_def polarity_def cons_trail_Propagated_def uminus_lit_swap
         cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update'
-        ann_lits_split_reasons_def  atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+        ann_lits_split_reasons_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
         dest!: in_list_pos_neg_notD multi_member_split dest: pos_lit_in_atms_of neg_lit_in_atms_of
          simp del: nat_of_lit.simps)
 
@@ -472,7 +472,7 @@ proof -
     using hfref_compI_PRE_aux[OF cons_trail_Propagated_tr_code.refine cons_trail_Propagated_tr,
         OF isasat_input_bounded_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
-    by (auto simp: comp_PRE_def trail_pol_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff 
+    by (auto simp: comp_PRE_def trail_pol_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
         intro!: ext)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
@@ -548,7 +548,7 @@ proof -
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
-    unfolding  nat_ann_lit_rel_alt_def hr_comp_pure[symmetric] prod_assn_pure_conv[symmetric]
+    unfolding nat_ann_lit_rel_alt_def hr_comp_pure[symmetric] prod_assn_pure_conv[symmetric]
       option_assn_pure_conv[symmetric] ..
   show ?thesis
     using H unfolding im pre f .
@@ -822,7 +822,7 @@ proof -
   have H: \<open>2*L < length xs\<close> (is \<open>?length\<close>) and
     none: \<open>defined_atm M L \<longleftrightarrow> xs ! (2*L) \<noteq> None\<close> (is ?undef) and
     le: \<open>2*L \<le> uint_max\<close> (is ?le)
-    if L_N: \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and  tr: \<open>((M', xs, lvls, k), M) \<in> trail_pol\<close>
+    if L_N: \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and tr: \<open>((M', xs, lvls, k), M) \<in> trail_pol\<close>
     for M xs lvls k M' L
   proof -
     have
