@@ -92,6 +92,15 @@ lemma [twl_st_wl_init]:
   using assms
   by (cases S; cases S'; auto simp: state_wl_l_init_def state_wl_l_def)+
 
+lemma [twl_st_wl_init]:
+  \<open>get_trail_wl (fst T) = get_trail_init_wl T\<close>
+  \<open>get_conflict_wl (fst T) = get_conflict_init_wl T\<close>
+  by (cases T; auto simp: correct_watching.simps correct_watching_init.simps; fail)+
+
+lemma correct_watching_init_correct_watching:
+  \<open>correct_watching_init T \<Longrightarrow> correct_watching (fst T)\<close>
+  by (cases T; auto simp: correct_watching.simps correct_watching_init.simps)
+
 
 lemma image_mset_Suc: \<open>Suc `# {#C \<in># M. P C#} = {#C \<in># Suc `# M. P (C-1)#}\<close>
   by (induction M) auto
@@ -240,60 +249,4 @@ proof -
     by blast
 qed
 
-(* TODO Kill?
-
-subsection \<open>Final Theorem with Initialisation\<close>
-
-fun init_wl_of :: \<open>'v twl_st_l\<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>init_wl_of (M, N, U, D, NE, UE, _, Q) =
-       ((M, N, U, D, NE, UE, Q, calculate_correct_watching (tl N) (\<lambda>_. []) 1))\<close>
-
-
-theorem init_dt_wl:
-  fixes CS S
-  defines S\<^sub>0: \<open>S\<^sub>0 \<equiv> (([], [[]], 0, None, {#}, {#}, {#}, {#}), {#})\<close>
-  defines S: \<open>S \<equiv>  init_wl_of (fst (init_dt CS S\<^sub>0))\<close>
-  assumes
-    dist: \<open>\<forall>C \<in> set CS. distinct C\<close> and
-    no_confl: \<open>get_conflict_wl S = None\<close> and
-    snd_init: \<open>snd (init_dt CS S\<^sub>0) = {#}\<close>
-  shows
-    \<open>cdcl_twl_stgy_prog_wl S \<le> SPEC (\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
-             (state\<^sub>W_of (twl_st_of_wl None S))
-             (state\<^sub>W_of (twl_st_of_wl None T)))\<close>
-proof -
-  obtain M N U D NE UE WS Q OC where
-    init: \<open>init_dt CS S\<^sub>0 = ((M, N, U, D, NE, UE, WS, Q), OC)\<close>
-    by (cases \<open>init_dt CS S\<^sub>0\<close>) auto
-  have \<open>N \<noteq> []\<close>
-    using clauses_init_dt_not_Nil[of CS \<open>snd S\<^sub>0\<close>] init unfolding S\<^sub>0 by auto
-  then have corr_w: \<open>correct_watching S\<close>
-    unfolding S init
-    by (auto simp: correct_watching.simps
-        calculate_correct_watching[of _ _ _ M \<open>hd N\<close> U D NE UE])
-  have
-    \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None S)) = mset `# mset CS\<close> and
-    \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
-    \<open>twl_list_invs (st_l_of_wl None S)\<close>
-    unfolding S S\<^sub>0
-    subgoal
-      using init_dt(1)[OF dist] snd_init
-        by (cases \<open>init_dt CS S\<^sub>0\<close>) (auto simp: S\<^sub>0 twl_struct_invs_init_twl_struct_invs)
-    subgoal
-      using init_dt(2)[OF dist] snd_init
-      by (cases \<open>init_dt CS S\<^sub>0\<close>) (auto simp: S\<^sub>0 clauses_def)
-    subgoal
-      using init_dt(3)[OF dist] snd_init
-      by (cases \<open>init_dt CS S\<^sub>0\<close>) (auto simp: S\<^sub>0 clauses_def)
-    subgoal
-      using init_dt(5)[OF dist]
-      by (cases \<open>init_dt CS S\<^sub>0\<close>) (auto simp: S\<^sub>0 clauses_def twl_list_invs_def)
-    don
-  from cdcl_twl_stgy_prog_wl_spec_final2[OF this(1,3) no_confl this(4) corr_w]
-  show ?thesis
-    .
-qed
-
-*)
 end

@@ -1,6 +1,8 @@
 theory Watched_Literals_Watch_List
-  imports Watched_Literals_List
+  imports Watched_Literals_List Array_UInt
 begin
+
+
 no_notation Ref.update ("_ := _" 62)
 section \<open>Third Refinement: Remembering watched\<close>
 
@@ -72,9 +74,6 @@ fun watched_by :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> wat
 
 fun update_watched :: \<open>'v literal \<Rightarrow> watched \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>update_watched L WL (M, N, D, NE, UE, Q, W) = (M, N, D, NE, UE, Q, W(L:= WL))\<close>
-
-fun delete_index_and_swap where
-  \<open>delete_index_and_swap l i = butlast(l[i := last l])\<close>
 
 lemma in_all_lits_of_mm_ain_atms_of_iff: \<open>L \<in># all_lits_of_mm N \<longleftrightarrow> atm_of L \<in> atms_of_mm N\<close>
   by (cases L) (auto simp: all_lits_of_mm_def atms_of_ms_def atms_of_def)
@@ -185,16 +184,7 @@ definition unit_prop_body_wl_inv where
     L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) + get_unit_init_clss_wl T) \<and>
     correct_watching T \<and>
     i < length (watched_by T L) \<and>
-    get_conflict_wl T = None
-(*     twl_struct_invs (twl_st_of_wl (Some (L, i)) T') \<and>
-    twl_stgy_invs (twl_st_of_wl (Some (L, i)) T') \<and>
-    twl_list_invs (st_l_of_wl (Some (L, i)) T')
-    get_conflict_wl T' = None \<and>
-    (watched_by T' L) ! i > 0 \<and>
-    i < length (watched_by T' L) \<and>
-    watched_by T' L ! i < length (get_clauses_wl T') *)
-    )
-  \<close>
+    get_conflict_wl T = None)\<close>
 
 
 definition set_conflict_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
@@ -523,7 +513,7 @@ proof -
           (M, N(W L ! w \<hookrightarrow> swap (N \<propto> (W L ! w)) i f'), None, NE, UE, Q, W
            (L := butlast (W L[w := last (W L)]),
             N \<propto> (W L ! w) ! f' := W (N \<propto> (W L ! w) ! f') @ [W L ! w]))\<close>
-      using corr_w unfolding  S  correct_watching.simps (* clause_to_update_def*)
+      using corr_w unfolding  S  correct_watching.simps
       by (auto simp: clause_to_update_mapsto_upd_If
         id_remove_1_mset_iff_notin
         remove_1_mset_id_iff_notin
@@ -611,7 +601,7 @@ proof -
     apply (rewrite at "let _ = _ in let _ = _ in _" Let_def)
     apply (rewrite at "let _ = _ in let _ = get_clauses_l _ \<propto> _ ! _ in _" Let_def)
     supply [[goals_limit=1]]
-    apply (refine_vcg val f f' ref (*f f' ref*); remove_dummy_vars)
+    apply (refine_vcg val f f' ref; remove_dummy_vars)
     subgoal by (rule l_wl_inv)
     subgoal using S_S' by auto
     subgoal by (rule other_watched_is_true)
@@ -660,8 +650,7 @@ definition unit_propagation_inner_loop_wl :: \<open>'v literal \<Rightarrow> 'v 
 lemma unit_propagation_inner_loop_wl_spec:
   shows \<open>(uncurry unit_propagation_inner_loop_wl, uncurry unit_propagation_inner_loop_l) \<in>
     {((L', T'::'v twl_st_wl), (L, T::'v twl_st_l)). L = L' \<and> (T', T) \<in> state_wl_l (Some (L, 0)) \<and>
-      correct_watching T' (*\<and>
-      get_conflict_wl T' = None*)} \<rightarrow>
+      correct_watching T'} \<rightarrow>
     \<langle>{(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T'}\<rangle> nres_rel
     \<close> (is \<open>?fg \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close> is \<open>?fg \<in> ?A \<rightarrow> \<langle>{(T', T). _ \<and> ?P T T'}\<rangle>nres_rel\<close>)
 proof -
@@ -756,12 +745,6 @@ proof -
           simp del: twl_st_of_wl.simps)
       subgoal for iT' T by (auto simp: state_wl_l_def)
       done
-    (* then have \<open>unit_propagation_inner_loop_wl_loop L S \<le> \<Down> {((i, T'), T).  (T', T) \<in> state_wl_l None \<and>
-      ?P T T'}
-     (unit_propagation_inner_loop_l L' S')\<close>
-     if \<open>L = L'\<close> and \<open>S' = st_l_of_wl (Some (L, 0)) S\<close>
-     for S' and L' :: \<open>'v literal\<close>
-     using that by auto *)
   }
   note H = this
   text \<open>Another phantom function to help the refine generator to align goals:\<close>
@@ -1635,43 +1618,6 @@ proof -
     subgoal by auto
     done
 qed
-
-(* Not in the form we want anymore.
-Probably requires along the line of
-cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (False, S\<^sub>0) ==>
-    cdcl_twl_stgy_prog_wl S \<le>
-      \<Down> {(S, S'). (S, S' \<in> ...)}
-        (SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* S\<^sub>0 T \<and>
-            final_twl_state T))\<close>
-
-
-lemma cdcl_twl_stgy_prog_wl_spec_final:
-  assumes \<open>cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (False, T)\<close>
-  shows
-    \<open>cdcl_twl_stgy_prog_wl S \<le>
-      \<Down> {(S, S'). S' = st_l_of_wl None S}
-        (SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of_wl None S) (twl_st_of None T) \<and>
-            final_twl_state (twl_st_of None T)))\<close>
-  apply (rule order_trans)
-   apply (rule cdcl_twl_stgy_prog_wl_spec["to_\<Down>", of _ \<open>st_l_of_wl None S\<close>])
-  subgoal using assms by auto
-  apply (rule order_trans)
-   apply (rule ref_two_step)
-    apply auto[]
-   apply (rule cdcl_twl_stgy_prog_l_spec_final)
-  subgoal using assms by auto
-  subgoal using assms by auto
-  subgoal using assms by (cases S) auto
-  subgoal using assms by (cases S) auto
-  subgoal using assms by auto
-  subgoal by auto
-  done
-*)
-
-(* TODO Move *)
-lemma ref_two_step': \<open>A \<le> B \<Longrightarrow> \<Down> R A \<le>  \<Down> R B\<close>
-  by (auto intro: ref_two_step)
-(* End Move *)
 
 definition cdcl_twl_stgy_prog_wl_pre where
   \<open>cdcl_twl_stgy_prog_wl_pre S U \<longleftrightarrow>

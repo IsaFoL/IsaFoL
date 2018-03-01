@@ -678,6 +678,7 @@ prepare_code_thms (in -) set_lookup_conflict_aa_code_def
 lemmas set_lookup_conflict_aa_code[sepref_fr_rules] =
    set_lookup_conflict_aa_code.refine[OF isasat_input_bounded_axioms]
 
+
 (* TODO Move *)
 lemma (in -)distinct_in_set_take_iff:
   \<open>distinct D \<Longrightarrow>
@@ -2620,5 +2621,16 @@ lemmas minimize_and_extract_highest_lookup_conflict_code_hnr[sepref_fr_rules] =
    minimize_and_extract_highest_lookup_conflict_code.refine[OF isasat_input_bounded_axioms]
 
 end
+
+definition set_empty_conflict_to_none where
+  \<open>set_empty_conflict_to_none D = None\<close>
+
+lemma (in isasat_input_ops) set_empty_conflict_to_none_hnr[sepref_fr_rules]:
+  \<open>(return o (\<lambda>(n, xs). (True, n, xs)), RETURN o set_empty_conflict_to_none) \<in>
+     [\<lambda>D. D = {#}]\<^sub>a lookup_clause_assn\<^sup>d \<rightarrow> option_lookup_clause_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: option_lookup_clause_assn_def
+      option_lookup_clause_rel_def lookup_clause_assn_def
+      hr_comp_def set_empty_conflict_to_none_def pure_def)
 
 end

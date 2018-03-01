@@ -198,9 +198,9 @@ lemma length_aa_rule[sep_heap_rules]:
    <\<lambda>r. arrayO_assn (arl_assn R) xs a * \<up> (r = length_ll xs b)>\<^sub>t\<close>
   unfolding length_aa_def
   apply sep_auto
-  apply (sep_auto simp: arrayO_except_assn_def arl_length_def arl_assn_def(*  *)
+  apply (sep_auto simp: arrayO_except_assn_def arl_length_def arl_assn_def
       eq_commute[of \<open>(_, _)\<close>] hr_comp_def length_ll_def)
-   apply (sep_auto simp: arrayO_except_assn_def arl_length_def arl_assn_def(*  *)
+   apply (sep_auto simp: arrayO_except_assn_def arl_length_def arl_assn_def
       eq_commute[of \<open>(_, _)\<close>] is_array_list_def hr_comp_def length_ll_def list_rel_def
       dest: list_all2_lengthD)[]
   unfolding arrayO_assn_def[symmetric] arl_assn_def[symmetric]
@@ -547,8 +547,8 @@ lemma nth_a_hnr[sepref_fr_rules]:
     apply sep_auto
     apply (subst arrayO_except_assn_array0_index[symmetric, of b])
      apply simp
-    apply (sep_auto simp: arrayO_except_assn_def arl_length_def arl_assn_def(*  *)
-        eq_commute[of \<open>(_, _)\<close>] (* is_array_list_def *) hr_comp_def length_ll_def)
+    apply (sep_auto simp: arrayO_except_assn_def arl_length_def arl_assn_def
+        eq_commute[of \<open>(_, _)\<close>] hr_comp_def length_ll_def)
     done
   done
 
@@ -640,7 +640,7 @@ proof -
   show ?thesis
     using assms unfolding R'[symmetric] unfolding RR'
     apply sepref_to_hoare
-    apply (sep_auto simp: swap_aa_def swap_ll_def (* arl_get_def *) arrayO_except_assn_def
+    apply (sep_auto simp: swap_aa_def swap_ll_def arrayO_except_assn_def
         length_ll_update_ll)
     by (sep_auto simp: update_ll_def swap_def nth_ll_def list_update_swap)
 qed

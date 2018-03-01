@@ -3,48 +3,6 @@ theory IsaSAT_Backtrack
 begin
 
 
-(* TODO Move *)
-
-definition swap_u_code :: "'a ::heap array \<Rightarrow> uint32 \<Rightarrow> uint32 \<Rightarrow> 'a array Heap" where
-  \<open>swap_u_code xs i j = do {
-     ki \<leftarrow> nth_u_code xs i;
-     kj \<leftarrow> nth_u_code xs j;
-     xs \<leftarrow> heap_array_set_u xs i kj;
-     xs \<leftarrow> heap_array_set_u xs j ki;
-     return xs
-  }\<close>
-
-
-lemma op_list_swap_u_hnr[sepref_fr_rules]:
-  assumes p: \<open>CONSTRAINT is_pure R\<close>
-  shows \<open>(uncurry2 swap_u_code, uncurry2 (RETURN ooo op_list_swap)) \<in>
-       [\<lambda>((xs, i), j).  i < length xs \<and> j < length xs]\<^sub>a
-      (array_assn R)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k  *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> array_assn R\<close>
-proof -
-  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
-    using p by fastforce
-  show ?thesis
-  apply (sepref_to_hoare)
-  apply (sep_auto simp: swap_u_code_def swap_def nth_u_code_def is_array_def
-      array_assn_def hr_comp_def nth_nat_of_uint32_nth'[symmetric]
-      list_rel_imp_same_length uint32_nat_rel_def br_def
-      heap_array_set_u_def heap_array_set'_u_def Array.upd'_def
-      nat_of_uint32_code[symmetric] R
-      intro!: list_rel_update[of _ _ R true _ _ \<open>(_, {})\<close>, unfolded R] param_nth
-      )
-    subgoal for bi bia a ai bb aa b
-      using param_nth[of \<open>nat_of_uint32 bi\<close> a \<open>nat_of_uint32 bi\<close> bb R']
-      by (auto simp: R' pure_def)
-    subgoal using p by simp
-    subgoal for bi bia a ai bb aa b
-      using param_nth[of \<open>nat_of_uint32 bia\<close> a \<open>nat_of_uint32 bia\<close> bb R']
-      by (auto simp: R' pure_def)
-    subgoal using p by simp
-    done
-qed
-
-(* End Move *)
-
 subsection \<open>Backtrack\<close>
 
 context isasat_input_bounded_nempty
@@ -64,9 +22,6 @@ where
        (length C > 1 \<longrightarrow> n = get_level M (C!1)) \<and>
        (length C = 1 \<longrightarrow> n = 0)
       )\<close>
-
-definition set_empty_conflict_to_none where
-  \<open>set_empty_conflict_to_none D = None\<close>
 
 definition empty_conflict_and_extract_clause_heur where
   \<open>empty_conflict_and_extract_clause_heur M D outl = do {
@@ -399,13 +354,7 @@ proof -
 qed
 
 (* TODO Move *)
-lemma set_empty_conflict_to_none_hnr[sepref_fr_rules]:
-  \<open>(return o (\<lambda>(n, xs). (True, n, xs)), RETURN o set_empty_conflict_to_none) \<in>
-     [\<lambda>D. D = {#}]\<^sub>a lookup_clause_assn\<^sup>d \<rightarrow> option_lookup_clause_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: option_lookup_clause_assn_def
-      option_lookup_clause_rel_def lookup_clause_assn_def
-      hr_comp_def set_empty_conflict_to_none_def pure_def)
+
 (* End Move *)
 
 sepref_thm empty_conflict_and_extract_clause_heur_code

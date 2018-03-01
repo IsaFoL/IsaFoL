@@ -131,10 +131,10 @@ lemma length_raa_rule[sep_heap_rules]:
   unfolding length_raa_def
   apply (cases a)
   apply sep_auto
-  apply (sep_auto simp: arlO_assn_except_def arl_length_def array_assn_def (*  *)
+  apply (sep_auto simp: arlO_assn_except_def arl_length_def array_assn_def
       eq_commute[of \<open>(_, _)\<close>] is_array_def hr_comp_def length_rll_def
       dest: list_all2_lengthD)
-   apply (sep_auto simp: arlO_assn_except_def arl_length_def arl_assn_def(*  *)
+   apply (sep_auto simp: arlO_assn_except_def arl_length_def arl_assn_def
       eq_commute[of \<open>(_, _)\<close>] is_array_list_def hr_comp_def length_rll_def list_rel_def
       dest: list_all2_lengthD)[]
   unfolding arlO_assn_def[symmetric] arl_assn_def[symmetric]
@@ -330,7 +330,7 @@ proof -
   show ?thesis
     using assms unfolding R'[symmetric] unfolding RR'
     apply sepref_to_hoare
-    apply (sep_auto simp: swap_aa_def swap_ll_def (* arl_get_def *) arlO_assn_except_def
+    apply (sep_auto simp: swap_aa_def swap_ll_def arlO_assn_except_def
         length_rll_update_rll)
     by (sep_auto simp: update_rll_def swap_def nth_rll_def list_update_swap)
 qed
@@ -352,8 +352,7 @@ proof -
     using assms
     apply (cases xs)
     supply arl_set_rule[sep_heap_rules del]
-    apply (sep_auto simp: arlO_assn_def update_ra_def (* arl_set_def *)
-        (* hoare_triple_def *) Let_def arl_assn_def (* mod_star_conv *) (* is_array_list_def *)
+    apply (sep_auto simp: arlO_assn_def update_ra_def Let_def arl_assn_def
         dest!: heap_list_add_same_length
         elim!: run_elims)
     apply (subst H)

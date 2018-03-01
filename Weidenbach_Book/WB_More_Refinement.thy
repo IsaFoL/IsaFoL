@@ -259,6 +259,9 @@ lemma (in transfer) transfer_bool[refine_transfer]:
   shows "\<alpha> (case_bool fa fb x) \<le> case_bool Fa Fb x"
   using assms by (auto split: bool.split)
 
+lemma ref_two_step': \<open>A \<le> B \<Longrightarrow> \<Down> R A \<le>  \<Down> R B\<close>
+  by (auto intro: ref_two_step)
+
 lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
   unfolding hrp_comp_def by auto
 
@@ -297,8 +300,6 @@ lemma RES_RETURN_RES3:
 lemma bind_refine_res: \<open>(\<And>x. x \<in> \<Phi> \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> RES \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
   by (auto simp add: pw_le_iff refine_pw_simps)
 
-thm ref_WHILEI_invarI WHILEI_le_rule
-thm WHILEI_invisible_refine_genR
 
 text \<open>
   This theorem adds the invariant at the beginning of next iteration to the current invariant,

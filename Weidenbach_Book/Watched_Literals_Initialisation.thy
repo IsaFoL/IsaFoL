@@ -98,6 +98,38 @@ lemma [twl_st_init]:
   \<open>literals_to_update_init (S, QC) = literals_to_update S\<close>
   by (solves \<open>cases S; auto\<close>)+
 
+lemma [twl_st_init]:
+  \<open>clauses_to_update_init (add_to_unit_init_clauses (mset C) T) = clauses_to_update_init T\<close>
+  \<open>literals_to_update_init (add_to_unit_init_clauses (mset C) T) = literals_to_update_init T\<close>
+  \<open>get_conflict_init (add_to_unit_init_clauses (mset C) T) = get_conflict_init T\<close>
+  apply (cases T; auto simp: twl_st_inv.simps; fail)+
+  done
+lemma [twl_st_init]:
+  \<open>twl_st_inv (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow>  twl_st_inv (fst T)\<close>
+  \<open>valid_enqueued (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow> valid_enqueued (fst T)\<close>
+  \<open>no_duplicate_queued (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow> no_duplicate_queued (fst T)\<close>
+  \<open>distinct_queued (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow> distinct_queued (fst T)\<close>
+  \<open>confl_cands_enqueued (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow> confl_cands_enqueued (fst T)\<close>
+  \<open>propa_cands_enqueued (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow> propa_cands_enqueued (fst T)\<close>
+  \<open>twl_st_exception_inv (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow> twl_st_exception_inv (fst T)\<close>
+    apply (cases T; auto simp: twl_st_inv.simps; fail)+
+  apply (cases \<open>get_conflict_init T\<close>; cases T;
+      auto simp: twl_st_inv.simps twl_exception_inv.simps; fail)+
+  done
+
+lemma [twl_st_init]:
+  \<open>trail (state\<^sub>W_of_init T) = get_trail_init T\<close>
+  \<open>conflicting (state\<^sub>W_of_init T) = get_conflict_init T\<close>
+  \<open>init_clss (state\<^sub>W_of_init T) = clauses (get_init_clauses_init T) + get_unit_init_clauses_init T
+    + other_clauses_init T\<close>
+  \<open>learned_clss (state\<^sub>W_of_init T) = clauses (get_learned_clauses_init T) +
+     get_unit_learned_clauses_init T\<close>
+  \<open>conflicting (state\<^sub>W_of (fst T)) = conflicting (state\<^sub>W_of_init T)\<close>
+  \<open>trail (state\<^sub>W_of (fst T)) = trail (state\<^sub>W_of_init T)\<close>
+  \<open>clauses_to_update (fst T) = clauses_to_update_init T\<close>
+  \<open>get_conflict (fst T) =  get_conflict_init T\<close>
+  \<open>literals_to_update (fst T) = literals_to_update_init T\<close>
+  by (cases T; auto simp: cdcl\<^sub>W_restart_mset_state; fail)+
 
 definition twl_st_l_init :: \<open>('v twl_st_l_init \<times> 'v twl_st_init) set\<close> where
   \<open>twl_st_l_init = {(((M, N, C, NE, UE, WS, Q), OC), ((M', N', C', NE', UE', WS', Q'), OC')).
@@ -105,6 +137,10 @@ definition twl_st_l_init :: \<open>('v twl_st_l_init \<times> 'v twl_st_init) se
       ((convert_lits_l N M, twl_clause_of `# init_clss_lf N, twl_clause_of `# learned_clss_lf N,
          C, NE, UE, {#}, Q), OC)}\<close>
 
+lemma twl_st_l_init_alt_def:
+  \<open>(S, T) \<in> twl_st_l_init \<longleftrightarrow>
+    (fst S, fst T) \<in> twl_st_l None \<and> other_clauses_l_init S = other_clauses_init T\<close>
+  by (cases S; cases T) (auto simp: twl_st_l_init_def twl_st_l_def)
 
 lemma [twl_st_init]:
   assumes \<open>(S, T) \<in> twl_st_l_init\<close>
@@ -134,6 +170,17 @@ definition twl_struct_invs_init :: \<open>'v twl_st_init \<Rightarrow> bool\<clo
     clauses_to_update_inv (fst S) \<and>
     past_invs (fst S))
   \<close>
+
+lemma state\<^sub>W_of_state\<^sub>W_of_init:
+  \<open>other_clauses_init W = {#} \<Longrightarrow> state\<^sub>W_of (fst W) = state\<^sub>W_of_init W\<close>
+  by (cases W) auto
+
+lemma twl_struct_invs_init_twl_struct_invs:
+  \<open>other_clauses_init W = {#} \<Longrightarrow> twl_struct_invs_init W \<Longrightarrow> twl_struct_invs (fst W)\<close>
+  unfolding twl_struct_invs_def twl_struct_invs_init_def
+  apply (subst state\<^sub>W_of_state\<^sub>W_of_init; assumption?)+
+  apply (intro iffI impI conjI)
+  by (clarsimp simp: twl_st_init)+
 
 lemma twl_struct_invs_init_add_mset:
   assumes \<open>twl_struct_invs_init (S, QC)\<close> and [simp]: \<open>distinct_mset C\<close> and
@@ -639,26 +686,13 @@ lemma [twl_st_l_init]:
        get_learned_unit_clauses_l_init S\<close>
   \<open>get_conflict_l_init (T, OC) = get_conflict_l T\<close>
   by (solves \<open>cases S; cases T; auto simp: already_propagated_unit_init_l_def\<close>)+
+thm twl_st_init
 
-lemma [twl_st_init]:
-  \<open>clauses_to_update_init (add_to_unit_init_clauses (mset C) T) = clauses_to_update_init T\<close>
-  \<open>literals_to_update_init (add_to_unit_init_clauses (mset C) T) = literals_to_update_init T\<close>
-  \<open>get_conflict_init (add_to_unit_init_clauses (mset C) T) = get_conflict_init T\<close>
-  apply (cases T; auto simp: twl_st_inv.simps; fail)+
-  done
-
-lemma [twl_st_init]:
-  \<open>twl_st_inv (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow>  twl_st_inv (fst T)\<close>
-  \<open>valid_enqueued (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow> valid_enqueued (fst T)\<close>
-  \<open>no_duplicate_queued (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow> no_duplicate_queued (fst T)\<close>
-  \<open>distinct_queued (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow> distinct_queued (fst T)\<close>
-  \<open>confl_cands_enqueued (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow> confl_cands_enqueued (fst T)\<close>
-  \<open>propa_cands_enqueued (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow> propa_cands_enqueued (fst T)\<close>
-  \<open>twl_st_exception_inv (fst (add_to_unit_init_clauses (mset C) T)) \<longleftrightarrow> twl_st_exception_inv (fst T)\<close>
-    apply (cases T; auto simp: twl_st_inv.simps; fail)+
-  apply (cases \<open>get_conflict_init T\<close>; cases T;
-      auto simp: twl_st_inv.simps twl_exception_inv.simps; fail)+
-  done
+lemma [twl_st_l_init]:
+  \<open>get_conflict_l (fst T) =  get_conflict_l_init T\<close>
+  \<open>literals_to_update_l (fst T) = literals_to_update_l_init T\<close>
+  \<open>clauses_to_update_l (fst T) = clauses_to_update_l_init T\<close>
+  by (cases T; auto; fail)+
 
 lemma entailed_clss_inv_add_to_unit_init_clauses:
   \<open>count_decided (get_trail_init T) = 0 \<Longrightarrow> C \<noteq> [] \<Longrightarrow> hd C \<in> lits_of_l (get_trail_init T) \<Longrightarrow>
@@ -1303,9 +1337,6 @@ qed
 
 lemma init_dt_full:
   fixes CS :: \<open>'v literal list list\<close> and SOC :: \<open>'v twl_st_l_init\<close> and S'
-(*   defines \<open>SOC' \<equiv> init_dt CS (S, OC)\<close>
-  defines \<open>S' \<equiv> fst (init_dt CS (S, OC))\<close>
-  defines \<open>OC' \<equiv> snd (init_dt CS (S, OC))\<close> *)
   defines
     \<open>S \<equiv> fst SOC\<close> and
     \<open>OC \<equiv> snd SOC\<close>
@@ -1381,79 +1412,5 @@ lemma init_dt_pre_empty_state:
       twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
       cdcl\<^sub>W_restart_mset.no_smaller_confl_def
       cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
-(* TODO needs to be done via proper refinement!
-theorem init_dt:
-  fixes CS S
-  defines S: \<open>S \<equiv> (([], [[]], 0, None, {#}, {#}, {#}, {#}), {#})\<close>
-  assumes
-    \<open>\<forall>C \<in> set CS. distinct C\<close>
-  shows
-    \<open>twl_struct_invs_init (twl_st_of_init (init_dt CS S))\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (fst (init_dt CS S)))) + snd (init_dt CS S) =
-         mset `# mset CS\<close> and
-    \<open>twl_stgy_invs (twl_st_of None (fst (init_dt CS S)))\<close> and
-    \<open>clauses_to_update_l (fst (init_dt CS S)) = {#}\<close> and
-    \<open>twl_list_invs (fst (init_dt CS S))\<close> and
-    \<open>get_conflict_l (fst (init_dt CS S)) \<noteq> None \<longrightarrow>
-         the (get_conflict_l (fst (init_dt CS S))) \<in># mset `# mset CS\<close> and
-   \<open>snd (init_dt CS S) \<noteq> {#} \<longrightarrow> get_conflict_l (fst (init_dt CS S)) \<noteq> None\<close> and
-   \<open>{#} \<in># mset `# mset CS \<longrightarrow> get_conflict_l (fst (init_dt CS S)) \<noteq> None\<close>
 
-proof -
-  have [simp]: \<open>twl_struct_invs_init (twl_st_of_init S)\<close>
-    unfolding S
-    by (auto simp: twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
-        past_invs.simps twl_struct_invs_init_def
-        cdcl\<^sub>W_restart_mset_state)
-  have [simp]: \<open>clauses_to_update_l (fst S) = {#}\<close>
-    \<open>\<forall>s\<in>set (get_trail_l (fst S)). \<not> is_decided s\<close>
-    \<open>get_conflict_l (fst S) = None \<longrightarrow>
-        literals_to_update_l (fst S) = {#- lit_of x. x \<in># mset (get_trail_l (fst S))#}\<close>
-    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of_init (twl_st_of_init S)) = {#}\<close>
-    unfolding S
-    by (auto simp: twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
-        past_invs.simps clauses_def
-        cdcl\<^sub>W_restart_mset_state)
-  have [simp]: \<open>twl_list_invs (fst S)\<close>
-    unfolding S by (auto simp: twl_list_invs_def)
-  have [simp]: \<open>get_learned_l (fst S) = length (get_clauses_l (fst S)) - 1\<close>
-    unfolding S by auto
-  have [simp]: \<open>twl_stgy_invs (twl_st_of None (fst S))\<close>
-    unfolding S by (auto simp: twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
-        cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_smaller_confl_def
-        cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
-  have [simp]: \<open>get_conflict_l (fst S) = None\<close>
-    unfolding S by auto
-  have [simp]: \<open>snd S = {#}\<close> \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (fst S))) = {#}\<close>
-    unfolding S by (auto simp: clauses_def)
-  have confl:
-     \<open>(snd S \<noteq> {#} \<longrightarrow> get_conflict_l (fst S) \<noteq> None) = True\<close>
-     \<open>snd S \<noteq> {#} \<longrightarrow> get_conflict_l (fst S) \<noteq> None\<close>
-    by auto
-  show
-    \<open>twl_struct_invs_init (twl_st_of_init (init_dt CS S))\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (fst (init_dt CS S)))) + snd (init_dt CS S) =
-      mset `# mset CS\<close> and
-    \<open>twl_stgy_invs (twl_st_of None (fst (init_dt CS S)))\<close> and
-    \<open>clauses_to_update_l (fst (init_dt CS S)) = {#}\<close> and
-    \<open>twl_list_invs (fst (init_dt CS S))\<close> and
-    \<open>get_conflict_l (fst (init_dt CS S)) \<noteq> None \<longrightarrow>
-      the (get_conflict_l (fst (init_dt CS S))) \<in># mset `# mset CS\<close>
-    using init_dt_full(1-9)[of CS \<open>fst S\<close> \<open>snd S\<close>, OF assms(2)]
-    init_dt_confl_in_clauses[of \<open>fst S\<close> CS \<open>snd S\<close>] unfolding prod.collapse confl
-    by (simp_all add: clauses_state\<^sub>W_of_init_clauses_state\<^sub>W_of)
-  show \<open>snd (init_dt CS S) \<noteq> {#} \<longrightarrow> get_conflict_l (fst (init_dt CS S)) \<noteq> None\<close>
-    by (rule init_dt_full(10)[of CS \<open>fst S\<close> \<open>snd S\<close>, OF assms(2),
-      unfolded prod.collapse]) auto
-  show \<open>{#} \<in># mset `# mset CS \<longrightarrow> get_conflict_l (fst (init_dt CS S)) \<noteq> None\<close>
-    by (rule init_dt_full(11)[of CS \<open>fst S\<close> \<open>snd S\<close>, OF assms(2),
-      unfolded prod.collapse]) auto
-qed
-*)
 end

@@ -637,7 +637,7 @@ lemma
     ws: \<open>clauses_to_update_inv S\<close>
   shows twl_cp_twl_st_exception_inv: \<open>twl_st_exception_inv T\<close> and
     twl_cp_clauses_to_update: \<open>clauses_to_update_inv T\<close>
-  using cdcl twl twl_excep valid inv (* no_taut *) no_dup ws
+  using cdcl twl twl_excep valid inv no_dup ws
 proof (induction rule: cdcl_twl_cp.induct)
   case (pop M N U NE UE L Q)
   case 1 note _ = this(2)
@@ -4356,8 +4356,6 @@ proof -
           using C by auto
         then obtain L'' where L'': \<open>L'' \<in># C\<close> and L''_def: \<open>L'' \<in> lits_of_l M\<close>
           using unit unfolding S by auto
-(*         then have  \<open>L'' = L\<close>
-          using L by auto *)
         then show ?thesis
           using undef L'' L''_def L M L_uL
           by (auto simp: S true_annots_true_cls_def_iff_negation_in_model

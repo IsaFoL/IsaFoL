@@ -829,6 +829,10 @@ qed
 lemma set_mset_set_mset_eq_iff: \<open>set_mset A = set_mset B \<longleftrightarrow> (\<forall>a\<in>#A. a \<in># B) \<and> (\<forall>a\<in>#B. a \<in># A)\<close>
   by blast
 
+lemma remove1_mset_union_distrib:
+  \<open>remove1_mset a (M \<union># N) = remove1_mset a M \<union># remove1_mset a N\<close>
+  by (auto simp: multiset_eq_iff)
+
 
 subsection \<open>Sorting\<close>
 

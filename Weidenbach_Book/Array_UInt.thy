@@ -275,4 +275,148 @@ lemma nth_raa_u'_uint_hnr[sepref_fr_rules]:
   using assms
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nth_raa_u'_def)
 
+fun delete_index_and_swap where
+  \<open>delete_index_and_swap l i = butlast(l[i := last l])\<close>
+
+definition delete_index_and_swap_ll where
+  \<open>delete_index_and_swap_ll xs i j =
+     xs[i:= delete_index_and_swap (xs!i) j]\<close>
+
+definition delete_index_and_swap_aa where
+  \<open>delete_index_and_swap_aa xs i j = do {
+     x \<leftarrow> last_aa xs i;
+     xs \<leftarrow> update_aa xs i j x;
+     set_butlast_aa xs i
+  }\<close>
+
+
+lemma delete_index_and_swap_aa_ll_hnr[sepref_fr_rules]:
+  assumes \<open>is_pure R\<close>
+  shows \<open>(uncurry2 delete_index_and_swap_aa, uncurry2 (RETURN ooo delete_index_and_swap_ll))
+     \<in> [\<lambda>((l,i), j). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
+         \<rightarrow> (arrayO_assn (arl_assn R))\<close>
+  using assms unfolding delete_index_and_swap_aa_def
+  by sepref_to_hoare (sep_auto dest: le_length_ll_nemptyD
+      simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
+      length_ll_def[symmetric])
+
+
+lemma nth_nat_of_uint32_nth': \<open>Array.nth x (nat_of_uint32 L) = Array.nth' x (integer_of_uint32 L)\<close>
+  by (auto simp: Array.nth'_def nat_of_uint32_code)
+
+lemma nth_aa_u_code[code]:
+  \<open>nth_aa_u x L L' = nth_u_code x L \<bind> (\<lambda>x. arl_get x L' \<bind> return)\<close>
+  unfolding nth_aa_u_def nth_aa_def arl_get_u_def[symmetric]  Array.nth'_def[symmetric]
+   nth_nat_of_uint32_nth' nth_u_code_def[symmetric] ..
+
+definition last_aa_u where
+  \<open>last_aa_u xs i = last_aa xs (nat_of_uint32 i)\<close>
+
+lemma last_aa_u_code[code]:
+  \<open>last_aa_u xs i = nth_u_code xs i \<bind> arl_last\<close>
+  unfolding last_aa_u_def last_aa_def nth_nat_of_uint32_nth' nth_nat_of_uint32_nth'
+    arl_get_u_def[symmetric] nth_u_code_def[symmetric] ..
+
+definition update_aa_u where
+  \<open>update_aa_u xs i j = update_aa xs (nat_of_uint32 i) j\<close>
+
+lemma Array_upd_upd': \<open>Array.upd i x a = Array.upd' a (of_nat i) x \<then> return a\<close>
+  by (auto simp: Array.upd'_def upd_return)
+
+definition Array_upd_u where
+  \<open>Array_upd_u i x a = Array.upd (nat_of_uint32 i) x a\<close>
+
+
+lemma Array_upd_u_code[code]: \<open>Array_upd_u i x a = heap_array_set'_u a i x \<then> return a\<close>
+  unfolding Array_upd_u_def heap_array_set'_u_def
+  Array.upd'_def
+  by (auto simp: nat_of_uint32_code upd_return)
+
+lemma update_aa_u_code[code]:
+  \<open>update_aa_u a i j y = do {
+      x \<leftarrow> nth_u_code a i;
+      a' \<leftarrow> arl_set x j y;
+      Array_upd_u i a' a
+    }\<close>
+  unfolding update_aa_u_def update_aa_def nth_nat_of_uint32_nth' nth_nat_of_uint32_nth'
+    arl_get_u_def[symmetric] nth_u_code_def[symmetric]
+    heap_array_set'_u_def[symmetric] Array_upd_u_def[symmetric]
+  by auto
+
+definition set_butlast_aa_u where
+  \<open>set_butlast_aa_u xs i = set_butlast_aa xs (nat_of_uint32 i)\<close>
+
+lemma set_butlast_aa_u_code[code]:
+  \<open>set_butlast_aa_u a i = do {
+      x \<leftarrow> nth_u_code a i;
+      a' \<leftarrow> arl_butlast x;
+      Array_upd_u i a' a
+    }\<close> -- \<open>Replace the \<^term>\<open>i\<close>-th element by the itself execpt the last element.\<close>
+  unfolding set_butlast_aa_u_def set_butlast_aa_def
+   nth_u_code_def Array_upd_u_def
+  by (auto simp: Array.nth'_def nat_of_uint32_code)
+
+
+definition delete_index_and_swap_aa_u where
+   \<open>delete_index_and_swap_aa_u xs i = delete_index_and_swap_aa xs (nat_of_uint32 i)\<close>
+
+lemma delete_index_and_swap_aa_u_code[code]:
+\<open>delete_index_and_swap_aa_u xs i j = do {
+     x \<leftarrow> last_aa_u xs i;
+     xs \<leftarrow> update_aa_u xs i j x;
+     set_butlast_aa_u xs i
+  }\<close>
+  unfolding delete_index_and_swap_aa_u_def delete_index_and_swap_aa_def
+   last_aa_u_def update_aa_u_def set_butlast_aa_u_def
+  by auto
+
+lemma delete_index_and_swap_aa_ll_hnr_u[sepref_fr_rules]:
+  assumes \<open>is_pure R\<close>
+  shows \<open>(uncurry2 delete_index_and_swap_aa_u, uncurry2 (RETURN ooo delete_index_and_swap_ll))
+     \<in> [\<lambda>((l,i), j). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
+         \<rightarrow> (arrayO_assn (arl_assn R))\<close>
+  using assms unfolding delete_index_and_swap_aa_def delete_index_and_swap_aa_u_def
+  by sepref_to_hoare (sep_auto dest: le_length_ll_nemptyD
+      simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
+      length_ll_def[symmetric] uint32_nat_rel_def br_def)
+
+
+definition swap_u_code :: "'a ::heap array \<Rightarrow> uint32 \<Rightarrow> uint32 \<Rightarrow> 'a array Heap" where
+  \<open>swap_u_code xs i j = do {
+     ki \<leftarrow> nth_u_code xs i;
+     kj \<leftarrow> nth_u_code xs j;
+     xs \<leftarrow> heap_array_set_u xs i kj;
+     xs \<leftarrow> heap_array_set_u xs j ki;
+     return xs
+  }\<close>
+
+
+lemma op_list_swap_u_hnr[sepref_fr_rules]:
+  assumes p: \<open>CONSTRAINT is_pure R\<close>
+  shows \<open>(uncurry2 swap_u_code, uncurry2 (RETURN ooo op_list_swap)) \<in>
+       [\<lambda>((xs, i), j).  i < length xs \<and> j < length xs]\<^sub>a
+      (array_assn R)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k  *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> array_assn R\<close>
+proof -
+  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
+    using p by fastforce
+  show ?thesis
+  apply (sepref_to_hoare)
+  apply (sep_auto simp: swap_u_code_def swap_def nth_u_code_def is_array_def
+      array_assn_def hr_comp_def nth_nat_of_uint32_nth'[symmetric]
+      list_rel_imp_same_length uint32_nat_rel_def br_def
+      heap_array_set_u_def heap_array_set'_u_def Array.upd'_def
+      nat_of_uint32_code[symmetric] R
+      intro!: list_rel_update[of _ _ R true _ _ \<open>(_, {})\<close>, unfolded R] param_nth
+      )
+    subgoal for bi bia a ai bb aa b
+      using param_nth[of \<open>nat_of_uint32 bi\<close> a \<open>nat_of_uint32 bi\<close> bb R']
+      by (auto simp: R' pure_def)
+    subgoal using p by simp
+    subgoal for bi bia a ai bb aa b
+      using param_nth[of \<open>nat_of_uint32 bia\<close> a \<open>nat_of_uint32 bia\<close> bb R']
+      by (auto simp: R' pure_def)
+    subgoal using p by simp
+    done
+qed
+
 end

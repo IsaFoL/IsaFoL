@@ -1200,10 +1200,9 @@ definition select_from_clauses_to_update :: \<open>'v twl_st_l \<Rightarrow> ('v
 
 definition unit_propagation_inner_loop_l_inv where
   \<open>unit_propagation_inner_loop_l_inv L S \<longleftrightarrow>
-    (\<exists>S'. (S, S') \<in> twl_st_l (Some L) \<and> twl_struct_invs S' \<and>
-       twl_stgy_invs S' \<and>
-    (* cdcl_twl_cp\<^sup>*\<^sup>* (twl_st_of (Some L) S\<^sub>0) S' \<and> *)
-    twl_list_invs S)\<close>
+    (\<exists>S'. (S, S') \<in> twl_st_l (Some L) \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
+      twl_list_invs S)\<close>
+
 definition unit_propagation_inner_loop_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>unit_propagation_inner_loop_l L S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_l_inv L\<^esup>
@@ -1570,12 +1569,6 @@ private lemma skip_and_resolve_l_refines:
   by (cases S; cases \<open>get_trail_l S\<close>)
    (auto simp: twl_list_invs_def twl_st_l_def
       resolve_cls_l_nil_iff tl_state_l_def tl_state_def)
-
-(*TODO Move*)
-lemma remove1_mset_union_distrib:
-  \<open>remove1_mset a (M \<union># N) = remove1_mset a M \<union># remove1_mset a N\<close>
-  by (auto simp: multiset_eq_iff)
-(*End Move*)
 
 private lemma skip_and_resolve_skip_refine:
   assumes
@@ -2129,7 +2122,7 @@ proof -
       apply (rule RES_rule)
       apply (subst in_pair_collect_simp)
       apply (intro conjI)
-      subgoal using (*US_NS  DT*) Propa
+      subgoal using Propa
          by (auto simp: hd_get_trail_twl_st_of_get_trail_l S T U)
       subgoal by auto
       subgoal using add_invs \<open>L = L'\<close> by (auto simp: S twl_list_invs_def MU simp del: \<open>L = L'\<close>)
@@ -2421,7 +2414,7 @@ proof -
          clauses_to_update_l S = {#}}\<rangle> nres_rel\<close>
      (is \<open>_ \<in> _ \<rightarrow>\<^sub>f \<langle>?I'\<rangle> nres_rel\<close>)
     supply [[goals_limit=3]]
-    unfolding cdcl_twl_o_prog_l_def cdcl_twl_o_prog_def (* decide_l_or_skip_def *)
+    unfolding cdcl_twl_o_prog_l_def cdcl_twl_o_prog_def
       find_unassigned_lit_def fref_param1[symmetric]
     apply (refine_vcg
         decide_l_or_skip_spec[THEN fref_to_Down, THEN "weaken_\<Down>'"]

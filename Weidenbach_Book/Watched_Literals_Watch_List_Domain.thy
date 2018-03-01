@@ -288,7 +288,6 @@ lemma uminus_\<A>\<^sub>i\<^sub>n_iff: \<open>- L \<in># \<L>\<^sub>a\<^sub>l\<^
 definition literals_are_in_\<L>\<^sub>i\<^sub>n_mm :: \<open>nat clauses \<Rightarrow> bool\<close> where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm C \<longleftrightarrow> set_mset (all_lits_of_mm C) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
 
-(*TODO Move to replace literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l*)
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
   assumes
     N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf xs)\<close> and
@@ -444,105 +443,6 @@ lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def: \<open>is_\<L>\<^sub>a\<^sub>l\<^
   unfolding set_mset_set_mset_eq_iff is_\<L>\<^sub>a\<^sub>l\<^sub>l_def Ball_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
     in_all_lits_of_mm_ain_atms_of_iff
   by auto (metis literal.sel(2))+
-
-(*
-lemma twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss:
-  fixes S\<^sub>0 :: \<open>nat twl_st_wl\<close> and b
-  defines \<open>S \<equiv> twl_st_of_wl b S\<^sub>0\<close>
-  defines \<open>clss \<equiv> (all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of S)))\<close>
-  defines \<open>init \<equiv> (all_lits_of_mm (init_clss (state\<^sub>W_of S)))\<close>
-  assumes invs: \<open>twl_struct_invs (twl_st_of_wl b S\<^sub>0)\<close>
-  shows \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l clss \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l init\<close>
-proof -
-
-  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S)\<close>
-    using invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S_def
-    by fast
-  then have
-    \<open>set_mset clss = set_mset init\<close>
-    unfolding clss_def init_def S_def
-    by (cases S\<^sub>0; cases b)
-      (auto simp: clauses_def mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset_state
-        cdcl\<^sub>W_restart_mset.no_strange_atm_def in_all_lits_of_mm_ain_atms_of_iff)
-  then show \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l clss \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l init\<close>
-    unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by blast
-qed
-
-lemma literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n:
-  assumes
-    \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    confl: \<open>get_conflict_wl S \<noteq> None\<close> and
-    struct: \<open>twl_struct_invs (twl_st_of_wl b S)\<close>
-  shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S))\<close>
-proof -
-  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl b S))\<close>
-    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast
-  then have N: \<open>atms_of (the (get_conflict_wl S)) \<subseteq>
-      atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S)))\<close>
-    using confl unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
-    by (cases S; cases \<open>get_conflict_wl S\<close>; cases b)
-       (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset')
-
-  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S))))\<close>
-    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by (cases S; cases b) auto
-  then show ?thesis
-    using N in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff
-    by (fastforce simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def )
-qed
-
-lemma literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail:
-  assumes
-    \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    struct: \<open>twl_struct_invs (twl_st_of_wl b S)\<close>
-  shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S)\<close>
-proof -
-  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl b S))\<close>
-    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast
-  then have N: \<open>atm_of ` lits_of_l (trail (state\<^sub>W_of (twl_st_of_wl b S)))
-    \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S)))\<close>
-    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
-    by (cases S)
-       (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset')
-
-  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S))))\<close>
-    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by (cases S; cases b) auto
-  then show ?thesis
-    using N in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff
-    by (cases S; cases b)
-       (force simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def trail.simps
-      lits_of_def image_image init_clss.simps mset_take_mset_drop_mset'
-      atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff convert_lits_l_def)+
-qed
-
-lemma literals_are_\<L>\<^sub>i\<^sub>n_clauses_literals_are_in_\<L>\<^sub>i\<^sub>n:
-  assumes
-    \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    struct: \<open>twl_struct_invs (twl_st_of_wl b S)\<close>
-  shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl (get_clauses_wl S)))\<close>
-proof -
-  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl b S))\<close>
-    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast
-  then have N: \<open>atms_of_mm (learned_clss (state\<^sub>W_of (twl_st_of_wl b S)))
-    \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S)))\<close>
-    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
-    by (cases S)
-       (auto simp: mset_take_mset_drop_mset')
-
-  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S))))\<close>
-    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by (cases S; cases b) auto
-  then show ?thesis
-    apply (subst append_take_drop_id[symmetric, of _ \<open>get_learned_wl S\<close>])
-    unfolding mset_append
-    using N in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff
-    apply (cases S; cases b)
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def mset_take_mset_drop_mset'
-       in_all_lits_of_mm_ain_atms_of_iff in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff drop_Suc
-       learned_clss.simps init_clss.simps)
-qed
-*)
 
 lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n:\<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> atm_of L \<in># \<A>\<^sub>i\<^sub>n\<close>
   by (cases L) (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
@@ -1215,33 +1115,6 @@ where
     }
   \<close>
 
-(*)
-lemma cdcl_twl_o_literals_are_\<L>\<^sub>i\<^sub>n_invs:
-  fixes S :: \<open>nat twl_st_wl\<close>
-  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<^sub>0\<close> and
-    cdcl: \<open>cdcl_twl_o\<^sup>*\<^sup>* (twl_st_of_wl None S\<^sub>0) (twl_st_of_wl None T)\<close> and
-    invs: \<open>twl_struct_invs (twl_st_of_wl None S\<^sub>0)\<close>
-  shows \<open>literals_are_\<L>\<^sub>i\<^sub>n T\<close>
-proof -
-  let ?S = \<open>twl_st_of_wl None S\<^sub>0\<close> and ?T = \<open>twl_st_of_wl None T\<close>
-  have cdcl_stgy: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (state\<^sub>W_of ?S) (state\<^sub>W_of ?T)\<close>
-    apply (rule rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy)
-    subgoal using rtranclp_cdcl_twl_o_stgyD[OF cdcl] .
-    subgoal using invs .
-    done
-  have init: \<open>init_clss (state\<^sub>W_of ?S) = init_clss (state\<^sub>W_of ?T)\<close>
-    apply (rule cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_restart_init_clss)
-    using cdcl_stgy by (blast dest: cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
-  have invs_T: \<open>twl_struct_invs (twl_st_of_wl None T)\<close>
-    using cdcl invs rtranclp_cdcl_twl_o_stgyD rtranclp_cdcl_twl_stgy_twl_struct_invs by blast
-  show ?thesis
-    using \<A>\<^sub>i\<^sub>n
-    unfolding twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[of None S\<^sub>0, OF invs]
-      twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[of None T, OF invs_T] init[symmetric]
-    .
-qed
-*)
-
 lemma (in isasat_input_ops) literals_are_\<L>\<^sub>i\<^sub>n_tl_state_wl[simp]:
  \<open>literals_are_\<L>\<^sub>i\<^sub>n (tl_state_wl S) = literals_are_\<L>\<^sub>i\<^sub>n S\<close>
   by (cases S)
@@ -1829,27 +1702,6 @@ proof -
     done
 qed
 
-(*
-lemma cdcl_twl_stgy_prog_wl_D_spec_final2_Down:
-  assumes \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
-    \<open>get_conflict_wl S = None\<close> and \<open>twl_list_invs (st_l_of_wl None S)\<close> and
-    \<open>correct_watching S\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
-  shows
-    \<open>cdcl_twl_stgy_prog_wl_D S \<le>
-      \<Down> {(S, S'). S' = st_l_of_wl None S}
-        (SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of_wl None S) (twl_st_of None T) \<and>
-              final_twl_state (twl_st_of None T)))\<close>
-  apply (rule order.trans)
-   apply (rule cdcl_twl_stgy_prog_wl_D_spec)
-    using assms apply (solves \<open>simp\<close>)
-  apply (rule order.trans)
-     apply (rule ref_two_step)
-      apply (rule order.refl)
-     apply (rule cdcl_twl_stgy_prog_wl_spec_final)
-    using assms apply (solves \<open>simp\<close>)+
-    apply (auto simp: conc_fun_chain conc_fun_RES)
-    done
-*)
 
 definition (in isasat_input_ops) cdcl_twl_stgy_prog_wl_D_pre where
   \<open>cdcl_twl_stgy_prog_wl_D_pre S U \<longleftrightarrow>
