@@ -787,202 +787,10 @@ proof -
 qed
 
 end
-definition (in -)del_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+
+definition del_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>del_conflict_wl = (\<lambda>(M, N, D, NE, UE, Q, W). (M, N, None, NE, UE, Q, W))\<close>
 
-context conflict_driven_clause_learning\<^sub>W
-begin
-
-lemma
-  fixes S
-  assumes
-     nss: \<open>no_step skip S\<close> and
-     nsr: \<open>no_step resolve S\<close> and
-     invs: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
-     stgy: \<open>cdcl\<^sub>W_stgy_invariant S\<close> and
-     confl: \<open>conflicting S \<noteq> None\<close> and
-     confl': \<open>conflicting S \<noteq> Some {#}\<close>
-   shows no_skip_no_resolve_single_highest_level:
-    \<open>the (conflicting S) =
-       add_mset (-(lit_of (hd (trail S)))) {#L \<in># the (conflicting S).
-         get_level (trail S) L < local.backtrack_lvl S#}\<close> (is ?A) and
-      no_skip_no_resolve_level_lvl_nonzero:
-    \<open>0 < backtrack_lvl S\<close> (is ?B) and
-      no_skip_no_resolve_level_get_maximum_lvl_le:
-    \<open>get_maximum_level (trail S) (remove1_mset (-(lit_of (hd (trail S)))) (the (conflicting S)))
-        < backtrack_lvl S\<close> (is ?C)
-proof -
-  define K where \<open>K \<equiv> lit_of (hd (trail S))\<close>
-  have K: \<open>-K \<in># the (conflicting S)\<close>
-    using no_step_skip_hd_in_conflicting[OF stgy invs nss confl confl']
-    unfolding K_def .
-  have
-    \<open>no_strange_atm S\<close> and
-    lev: \<open>cdcl\<^sub>W_M_level_inv S\<close> and
-    \<open>\<forall>s\<in>#learned_clss S. \<not> tautology s\<close> and
-    dist: \<open>distinct_cdcl\<^sub>W_state S\<close> and
-    conf: \<open>cdcl\<^sub>W_conflicting S\<close> and
-    \<open>all_decomposition_implies_m (local.clauses S)
-      (get_all_ann_decomposition (trail S))\<close> and
-    learned: \<open>cdcl\<^sub>W_learned_clause S\<close>
-    using invs unfolding cdcl\<^sub>W_all_struct_inv_def
-    by auto
-
-  obtain D where
-    D[simp]: \<open>conflicting S = Some (add_mset (-K) D)\<close>
-    using confl K by (auto dest: multi_member_split)
-
-  have dist: \<open>distinct_mset (the (conflicting S))\<close>
-    using dist confl unfolding distinct_cdcl\<^sub>W_state_def by auto
-  then have [iff]: \<open>L \<notin># remove1_mset L (the (conflicting S))\<close> for L
-    by (meson distinct_mem_diff_mset union_single_eq_member)
-  from this[of K] have [simp]: \<open>-K \<notin># D\<close> using dist by auto
-
-  have nd: \<open>no_dup (trail S)\<close>
-    using lev unfolding cdcl\<^sub>W_M_level_inv_def by auto
-  have CNot: \<open>trail S \<Turnstile>as CNot (add_mset (-K) D)\<close>
-    using conf unfolding cdcl\<^sub>W_conflicting_def
-    by fastforce
-  then have tr: \<open>trail S \<noteq> []\<close>
-    by auto
-  have [simp]: \<open>K \<notin># D\<close>
-    using nd K_def tr CNot unfolding true_annots_true_cls_def_iff_negation_in_model
-    by (cases \<open>trail S\<close>)
-       (auto simp: uminus_lit_swap Decided_Propagated_in_iff_in_lits_of_l dest!: multi_member_split)
-  have H1:
-    \<open>0 < backtrack_lvl S\<close>
-  proof (cases \<open>is_proped (hd (trail S))\<close>)
-    case proped: True
-    obtain C M where
-      [simp]: \<open>trail S = Propagated K C # M\<close>
-      using tr proped K_def
-      by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
-        (auto simp: K_def)
-    have \<open>a @ Propagated L mark # b = Propagated K C # M \<longrightarrow>
-       b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
-      using conf unfolding cdcl\<^sub>W_conflicting_def
-      by fastforce
-    from this[of \<open>[]\<close>] have [simp]: \<open>K \<in># C\<close> \<open>M \<Turnstile>as CNot (remove1_mset K C)\<close>
-      by auto
-    have [simp]: \<open>get_maximum_level (Propagated K C # M) D = get_maximum_level M D\<close>
-      by (rule get_maximum_level_skip_first)
-        (auto simp: atms_of_def atm_of_eq_atm_of uminus_lit_swap[symmetric])
-
-    have \<open>get_maximum_level M D < count_decided M\<close>
-      using nsr tr confl K proped count_decided_ge_get_maximum_level[of M D]
-      by (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
-    then show ?thesis by simp
-  next
-    case proped: False
-    have \<open>get_maximum_level (tl (trail S)) D < count_decided (trail S)\<close>
-      using tr confl K proped count_decided_ge_get_maximum_level[of \<open>tl (trail S)\<close> D]
-      by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
-         (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
-    then show ?thesis
-      by simp
-  qed
-  show H2: ?C
-  proof (cases \<open>is_proped (hd (trail S))\<close>)
-    case proped: True
-    obtain C M where
-      [simp]: \<open>trail S = Propagated K C # M\<close>
-      using tr proped K_def
-      by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
-        (auto simp: K_def)
-    have \<open>a @ Propagated L mark # b = Propagated K C # M \<longrightarrow>
-       b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
-      using conf unfolding cdcl\<^sub>W_conflicting_def
-      by fastforce
-    from this[of \<open>[]\<close>] have [simp]: \<open>K \<in># C\<close> \<open>M \<Turnstile>as CNot (remove1_mset K C)\<close>
-      by auto
-    have [simp]: \<open>get_maximum_level (Propagated K C # M) D = get_maximum_level M D\<close>
-      by (rule get_maximum_level_skip_first)
-        (auto simp: atms_of_def atm_of_eq_atm_of uminus_lit_swap[symmetric])
-
-    have \<open>get_maximum_level M D < count_decided M\<close>
-      using nsr tr confl K proped count_decided_ge_get_maximum_level[of M D]
-      by (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
-    then show ?thesis by simp
-  next
-    case proped: False
-    have \<open>get_maximum_level (tl (trail S)) D = get_maximum_level (trail S) D\<close>
-      apply (rule get_maximum_level_cong)
-      using K_def \<open>- K \<notin># D\<close> \<open>K \<notin># D\<close>
-      apply (cases \<open>trail S\<close>)
-      by (auto simp: get_level_cons_if atm_of_eq_atm_of)
-    moreover have \<open>get_maximum_level (tl (trail S)) D < count_decided (trail S)\<close>
-      using tr confl K proped count_decided_ge_get_maximum_level[of \<open>tl (trail S)\<close> D]
-      by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
-         (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
-    ultimately show ?thesis
-      by (simp add: K_def)
-  qed
-
-  have H:
-    \<open>get_level (trail S) L < local.backtrack_lvl S\<close>
-    if \<open>L \<in># remove1_mset (-K) (the (conflicting S))\<close>
-    for L
-  proof (cases \<open>is_proped (hd (trail S))\<close>)
-    case proped: True
-    obtain C M where
-      [simp]: \<open>trail S = Propagated K C # M\<close>
-      using tr proped K_def
-      by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
-        (auto simp: K_def)
-    have \<open>a @ Propagated L mark # b = Propagated K C # M \<longrightarrow>
-       b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
-      using conf unfolding cdcl\<^sub>W_conflicting_def
-      by fastforce
-    from this[of \<open>[]\<close>] have [simp]: \<open>K \<in># C\<close> \<open>M \<Turnstile>as CNot (remove1_mset K C)\<close>
-      by auto
-    have [simp]: \<open>get_maximum_level (Propagated K C # M) D = get_maximum_level M D\<close>
-      by (rule get_maximum_level_skip_first)
-        (auto simp: atms_of_def atm_of_eq_atm_of uminus_lit_swap[symmetric])
-
-    have \<open>get_maximum_level M D < count_decided M\<close>
-      using nsr tr confl K that proped count_decided_ge_get_maximum_level[of M D]
-      by (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
-    then show ?thesis
-      using get_maximum_level_ge_get_level[of L D M] that
-      by (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
-  next
-    case proped: False
-    have L_K: \<open>L \<noteq> - K\<close> \<open>-L \<noteq> K\<close> \<open>L \<noteq> -lit_of (hd (trail S))\<close>
-      using that by (auto simp: uminus_lit_swap K_def[symmetric])
-    have \<open>L \<noteq> lit_of (hd (trail S))\<close>
-      using tr that K_def \<open>K \<notin># D\<close>
-      by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
-         (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
-
-    have \<open>get_maximum_level (tl (trail S)) D < count_decided (trail S)\<close>
-      using tr confl K that proped count_decided_ge_get_maximum_level[of \<open>tl (trail S)\<close> D]
-      by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
-         (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
-    then show ?thesis
-      using get_maximum_level_ge_get_level[of L D \<open>(trail S)\<close>] that tr L_K \<open>L \<noteq> lit_of (hd (trail S))\<close>
-        count_decided_ge_get_level[of \<open>tl (trail S)\<close> L] proped
-      by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
-        (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
-  qed
-  have [simp]: \<open>get_level (trail S) K = local.backtrack_lvl S\<close>
-    using tr K_def
-    by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
-      (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
-  show ?A
-    apply (rule distinct_set_mset_eq)
-    subgoal using dist by auto
-    subgoal using dist by (auto simp: distinct_mset_filter K_def[symmetric])
-    subgoal using H by (auto simp: K_def[symmetric])
-    done
-  show ?B
-    using H1 .
-qed
-
-end
-
-lemma RES_RES_RETURN_RES2: \<open>RES A \<bind> (\<lambda>(T, T'). RETURN (f T T')) = RES (uncurry f ` A)\<close>
-  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
-(* End Move *)
 
 context isasat_input_bounded_nempty
 begin
@@ -1842,11 +1650,7 @@ definition extract_shorter_conflict_list_heur_st_pre where
   \<open>extract_shorter_conflict_list_heur_st_pre S \<longleftrightarrow>
     get_conflict_wl S \<noteq> None \<and> get_trail_wl S \<noteq> [] \<and>
         -lit_of (hd (get_trail_wl S)) \<in># the (get_conflict_wl S) \<and>
-        literals_are_\<L>\<^sub>i\<^sub>n S
-        (* \<and>
-        twl_struct_invs (twl_st_of_wl None S) \<and>
-        twl_stgy_invs (twl_st_of_wl None S) \<and>
-        twl_list_invs (st_l_of_wl None S)*)\<close>
+        literals_are_\<L>\<^sub>i\<^sub>n S\<close>
 
 definition extract_shorter_conflict_list_lookup_heur_pre where
   \<open>extract_shorter_conflict_list_lookup_heur_pre =
@@ -2148,14 +1952,6 @@ proof -
     using pre ..
 qed
 
-(* TODO KILL
-definition extract_shorter_conflict_wl_pre where
-  \<open>extract_shorter_conflict_wl_pre S \<longleftrightarrow>
-      twl_struct_invs (twl_st_of_wl None S) \<and>
-            twl_stgy_invs (twl_st_of_wl None S) \<and>
-            get_conflict_wl S \<noteq> None \<and> get_conflict_wl S \<noteq> Some {#} \<and> no_skip S \<and> no_resolve S \<and>
-            literals_are_\<L>\<^sub>i\<^sub>n S\<close>
-*)
 definition size_conflict_wl :: \<open>nat twl_st_wl \<Rightarrow> nat\<close> where
   \<open>size_conflict_wl S = size (the (get_conflict_wl S))\<close>
 
@@ -2412,8 +2208,7 @@ qed
 sepref_thm extract_shorter_conflict_list_heur_st
   is \<open>PR_CONST extract_shorter_conflict_list_heur_st\<close>
   :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn *a uint32_nat_assn *a clause_ll_assn\<close>
-  supply [[goals_limit=1]]
-empty_conflict_and_extract_clause_pre_def[simp](* TODO: cheating *)
+  supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
   unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     take1_def[symmetric]
