@@ -1932,9 +1932,9 @@ lemma (in -)arrayO_raa_empty_sz_init_lrl[sepref_fr_rules]:
     nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl_assn R)\<close>
   using arrayO_ara_empty_sz_code.refine unfolding arrayO_ara_empty_sz_init_lrl .
 
-definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> trail_pol nres\<close> where
-  \<open>init_trail_D \<A>\<^sub>i\<^sub>n n = do {
-     let M = replicate n UNSET;
+definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> trail_pol nres\<close> where
+  \<open>init_trail_D \<A>\<^sub>i\<^sub>n n m = do {
+     let M = replicate m UNSET;
      let M' = replicate n zero_uint32_nat;
      let M'' = replicate n None;
      RETURN (([], M, M', M'', zero_uint32_nat))
@@ -1944,8 +1944,8 @@ sepref_register initialise_VMTF
 
 
 sepref_definition init_trail_D_code
-  is \<open>uncurry init_trail_D\<close>
-  :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn\<close>
+  is \<open>uncurry2 init_trail_D\<close>
+  :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn\<close>
   unfolding init_trail_D_def PR_CONST_def
   apply (rewrite in \<open>((\<hole>, _, _, _))\<close> HOL_list.fold_custom_empty)
   apply (rewrite in \<open>((\<hole>, _, _, _))\<close> annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
@@ -1964,7 +1964,7 @@ definition init_state_wl_D' :: \<open>uint32 list \<Rightarrow>  (trail_pol \<ti
   \<open>init_state_wl_D' \<A>\<^sub>i\<^sub>n = do {
      let n = Suc (nat_of_uint32 (fold max \<A>\<^sub>i\<^sub>n 0));
      let m = 2 * n;
-     M \<leftarrow> init_trail_D \<A>\<^sub>i\<^sub>n n;
+     M \<leftarrow> init_trail_D \<A>\<^sub>i\<^sub>n n m;
      let N = init_rll n;
      let D = (True, zero_uint32_nat, replicate n None);
      let WS = init_lrl m;
@@ -1999,9 +1999,9 @@ lemma (in isasat_input_ops) in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\
   by (cases L) (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
 
 lemma init_trail_D_ref:
-  \<open>(uncurry init_trail_D, uncurry (RETURN oo (\<lambda> _ _. []))) \<in> [\<lambda>(N, n). mset N = \<A>\<^sub>i\<^sub>n \<and>
-    distinct N \<and> (\<forall>L\<in>set N. L< n)]\<^sub>f
-    \<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow>
+  \<open>(uncurry2 init_trail_D, uncurry2 (RETURN ooo (\<lambda> _ _ _. []))) \<in> [\<lambda>((N, n), m). mset N = \<A>\<^sub>i\<^sub>n \<and>
+    distinct N \<and> (\<forall>L\<in>set N. L < n) \<and> m = 2 * n]\<^sub>f
+    \<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow>
    \<langle>isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n\<rangle> nres_rel\<close>
 proof -
   have K: \<open>(\<forall>L\<in>set N. nat_of_uint32 L < n) \<longleftrightarrow>
@@ -2012,18 +2012,68 @@ proof -
     subgoal by (metis (full_types) image_eqI isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n literal.sel(1)
           set_image_mset set_mset_mset)
     done
+  have K': \<open>(\<forall>L\<in>set N. L < n) \<Longrightarrow>
+     (\<forall>L \<in># (isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset N)). nat_of_lit L < 2 * n)\<close>
+     (is \<open>?A \<Longrightarrow> ?B\<close>) for N n
+     (*TODO proof*)
+  proof -
+    assume ?A
+    then show ?B
+      apply (auto simp: isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
+      apply (case_tac L)
+      apply auto
+      done
+  qed
   show ?thesis
     unfolding init_trail_D_def
     apply (intro frefI nres_relI)
-    unfolding uncurry_def Let_def comp_def
+    unfolding uncurry_def Let_def comp_def isasat_input_ops.trail_pol_def
     apply clarify
-    by (auto 5 5 simp: zero_uint32_def shiftr1_def
+    unfolding RETURN_refine_iff
+    apply clarify
+    apply (intro conjI)
+    subgoal 
+      by (auto simp: zero_uint32_def shiftr1_def
         nat_shiftr_div2 nat_of_uint32_shiftr isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
         polarity_atm_def isasat_input_ops.trail_pol_def K atms_of_def
         isasat_input_ops.phase_saving_def list_rel_mset_rel_def
         list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
         isasat_input_ops.ann_lits_split_reasons_def
       list_mset_rel_def Collect_eq_comp)
+    subgoal 
+      by (auto simp: zero_uint32_def shiftr1_def
+        nat_shiftr_div2 nat_of_uint32_shiftr isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+        polarity_atm_def isasat_input_ops.trail_pol_def K atms_of_def
+        isasat_input_ops.phase_saving_def list_rel_mset_rel_def
+        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
+        isasat_input_ops.ann_lits_split_reasons_def
+      list_mset_rel_def Collect_eq_comp)
+    subgoal using K' by (auto simp: polarity_def)
+    subgoal 
+      by (auto simp: zero_uint32_def shiftr1_def
+        nat_shiftr_div2 nat_of_uint32_shiftr isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+        polarity_atm_def isasat_input_ops.trail_pol_def K atms_of_def
+        isasat_input_ops.phase_saving_def list_rel_mset_rel_def
+        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
+        isasat_input_ops.ann_lits_split_reasons_def
+      list_mset_rel_def Collect_eq_comp)
+    subgoal 
+      by (auto simp: zero_uint32_def shiftr1_def
+        nat_shiftr_div2 nat_of_uint32_shiftr isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+        polarity_atm_def isasat_input_ops.trail_pol_def K atms_of_def
+        isasat_input_ops.phase_saving_def list_rel_mset_rel_def
+        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
+        isasat_input_ops.ann_lits_split_reasons_def
+      list_mset_rel_def Collect_eq_comp)
+    subgoal 
+      by (auto simp: zero_uint32_def shiftr1_def
+        nat_shiftr_div2 nat_of_uint32_shiftr isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+        polarity_atm_def isasat_input_ops.trail_pol_def K atms_of_def
+        isasat_input_ops.phase_saving_def list_rel_mset_rel_def
+        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
+        isasat_input_ops.ann_lits_split_reasons_def
+      list_mset_rel_def Collect_eq_comp)
+    done
 qed
 
 
@@ -2046,8 +2096,10 @@ proof -
     RETURN (M, N, D, {#}, W, vm, \<phi>, zero_uint32_nat, cach, lbd)}\<close> for \<A>\<^sub>i\<^sub>n
     unfolding isasat_input_ops.init_state_wl_heur_def Let_def by auto
 
-  have tr: \<open>distinct_mset \<A>\<^sub>i\<^sub>n \<and> (\<forall>L\<in>#\<A>\<^sub>i\<^sub>n. L < b) \<Longrightarrow> (\<A>\<^sub>i\<^sub>n', \<A>\<^sub>i\<^sub>n) \<in> \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel \<Longrightarrow>
-      init_trail_D \<A>\<^sub>i\<^sub>n' b \<le> \<Down> (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) (RETURN [])\<close> for b \<A>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n' x
+  have tr: \<open>distinct_mset \<A>\<^sub>i\<^sub>n \<and> (\<forall>L\<in>#\<A>\<^sub>i\<^sub>n. L < b) \<Longrightarrow>
+        (\<A>\<^sub>i\<^sub>n', \<A>\<^sub>i\<^sub>n) \<in> \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel \<Longrightarrow>
+     b' = 2 * b \<Longrightarrow>
+      init_trail_D \<A>\<^sub>i\<^sub>n' b (2 * b) \<le> \<Down> (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) (RETURN [])\<close> for b' b \<A>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n' x
     by (rule init_trail_D_ref[unfolded fref_def nres_rel_def, simplified, rule_format])
        (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def)
   have [simp]: \<open>comp_fun_idem (max :: 'a::linorder \<Rightarrow> _)\<close>
@@ -2063,7 +2115,8 @@ proof -
   define P where \<open>P x = {(a, b). b = [] \<and> (a, b) \<in> isasat_input_ops.trail_pol x}\<close> for x
   have P: \<open>(c, []) \<in> P x \<longleftrightarrow> (c, []) \<in> isasat_input_ops.trail_pol x\<close> for c x
     unfolding P_def by auto
-  have init: \<open>init_trail_D \<A>\<^sub>i\<^sub>n' (Suc (nat_of_uint32 (fold max \<A>\<^sub>i\<^sub>n' 0))) \<le>
+  have init: \<open>init_trail_D \<A>\<^sub>i\<^sub>n' (Suc (nat_of_uint32 (fold max \<A>\<^sub>i\<^sub>n' 0)))
+          (2 * Suc (nat_of_uint32 (fold max \<A>\<^sub>i\<^sub>n' 0))) \<le>
      SPEC (\<lambda>c. (c, []) \<in> P \<A>\<^sub>i\<^sub>n)\<close>
     if \<open>distinct_mset \<A>\<^sub>i\<^sub>n\<close> and x: \<open>(\<A>\<^sub>i\<^sub>n', \<A>\<^sub>i\<^sub>n) \<in> \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel\<close>
     for \<A>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n'

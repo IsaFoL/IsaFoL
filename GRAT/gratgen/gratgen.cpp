@@ -1128,7 +1128,7 @@ template<typename T> pos_t Parser::parse_clause(istream& in, T parse_append_raw)
     // Remove duplicate literals
     auto ncle = unique(cl,cle);
     if (ncle != cle) {
-      ncle[1]=0;  //FIXME Off by one? ncle[0] = 0? Expect ncle to point one beyond end of dup-free sequence!
+      ncle[0]=0;
       glb.db.shrink_to(ncle+1);
       cle=ncle;
     }
@@ -1167,6 +1167,13 @@ template<typename T> pos_t Parser::parse_deletion(istream &in, T parse_append_ra
   lit_t *cle = glb.db.p2c(glb.db.current())-1;  // set cle one past last literal (Current position is one past terminating zero)
 
   sort(cl,cle);                                 // Sort
+
+  if (!cfg_assume_nodup) {
+    // Remove duplicate literals
+    cle = unique(cl,cle);
+    cle[0] = 0;
+  }
+
   auto orig_c = clause_map.find(pos);           // Look up clause
 
   if (orig_c == clause_map.end()) {
@@ -1789,7 +1796,7 @@ private:
    *
    * @param cl Clause to move to core
    * @param to_outgoing If set, the clause is also added to outgoing marked queue.
-   *      If, however, this clause has been synched from global marked queue, tere is no point re-adding it to local queue, and this should be clear.
+   *      If, however, this clause has been synched from global marked queue, there is no point re-adding it to local queue, and this should be clear.
    */
   inline void move_to_core(lit_t *cl, bool to_outgoing=true) {
     auto id = clid(cl);

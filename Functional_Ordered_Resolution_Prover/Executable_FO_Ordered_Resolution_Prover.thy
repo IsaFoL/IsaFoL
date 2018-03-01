@@ -21,7 +21,7 @@ global_interpretation RP: deterministic_FO_resolution_prover where
   renamings_apart = renamings_apart and
   atm_of_atms = "Fun undefined" and
   mgu = mgu_sets and
-  lessatm = less_kbo and
+  less_atm = less_kbo and
   size_atm = size and
   generation_factor = 1 and
   size_factor = 1
@@ -36,6 +36,7 @@ global_interpretation RP: deterministic_FO_resolution_prover where
 (*  and reduce_on = RP.reduce_on*)
   and reduce_all = RP.reduce_all
   and reduce_all2 = RP.reduce_all2
+  and remdups_clss = RP.remdups_clss
   and resolve = RP.resolve
   and resolve_on = RP.resolve_on
   and resolve_rename = RP.resolve_rename

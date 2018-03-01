@@ -9,7 +9,7 @@ section \<open>Integration of IsaFoR Terms\<close>
 theory IsaFoR_Term
   imports
     Deriving.Derive
-    Abstract_Substitution
+    Ordered_Resolution_Prover.Abstract_Substitution
     QTRS.Encompassment (* Version 7a339721b8c2 *)
     "../AFP_IsaFoR/Fun_More"
     Processors.KBO

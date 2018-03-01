@@ -4,6 +4,7 @@ theory Watched_Literals_Algorithm
     WB_More_Refinement
 begin
 
+term image_mset
 section \<open>First Refinement: Deterministic Rule Application\<close>
 
 subsection \<open>Unit Propagation Loops\<close>
@@ -529,19 +530,22 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
       using twl o_S_T stgy_S twl_stgy_S cdcl_twl_o_twl_stgy_invs by blast
     moreover have \<open>tl M \<noteq> []\<close>
       using twl_T D D' unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def by (auto simp add: cdcl\<^sub>W_restart_mset_state T tl_state_def)
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+      by (auto simp: cdcl\<^sub>W_restart_mset_state T tl_state_def)
     ultimately show \<open>skip_and_resolve_loop_inv S (False, tl_state T)\<close>
       using WS Q D D' unfolding skip_and_resolve_loop_inv_def tl_state_def T
       by simp
 
-    show \<open>((False, ?T), (brk, T)) \<in> measure (\<lambda>(brk, S). Suc (length (get_trail S) - (if brk then 1 else 0)))\<close>
+    show \<open>((False, ?T), (brk, T))
+        \<in> measure (\<lambda>(brk, S). Suc (length (get_trail S) - (if brk then 1 else 0)))\<close>
       using M_not_empty by (simp add: tl_state_def T M)
 
   }
   { \<comment> \<open>resolve\<close>
     assume
       LD: \<open>\<not>- L \<notin># the (get_conflict T)\<close> and
-      max: \<open>get_maximum_level (get_trail T) (remove1_mset (- L) (the (get_conflict T))) = count_decided (get_trail T)\<close>
+      max: \<open>get_maximum_level (get_trail T) (remove1_mset (- L) (the (get_conflict T)))
+        = count_decided (get_trail T)\<close>
     let ?D = \<open>remove1_mset (- L) (the (get_conflict T)) \<union># remove1_mset L C\<close>
     let ?T = \<open>update_confl_tl (Some ?D) T\<close>
     have count_dec: \<open>count_decided M' = count_decided M\<close>
@@ -579,7 +583,8 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
   { \<comment> \<open>No step\<close>
     assume
       LD: \<open>\<not>- L \<notin># the (get_conflict T)\<close> and
-      max: \<open>get_maximum_level (get_trail T) (remove1_mset (- L) (the (get_conflict T))) \<noteq> count_decided (get_trail T)\<close>
+      max: \<open>get_maximum_level (get_trail T) (remove1_mset (- L) (the (get_conflict T)))
+         \<noteq> count_decided (get_trail T)\<close>
 
     show \<open>skip_and_resolve_loop_inv S (True, T)\<close>
       using inv max LD D M unfolding skip_and_resolve_loop_inv_def
@@ -1161,7 +1166,9 @@ definition cdcl_twl_stgy_prog :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<
   }
   \<close>
 
-lemma wf_cdcl_twl_stgy_measure: \<open>wf ({((brkT, T), (brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union> {((brkT, T), (brkS, S)). S = T \<and> brkT \<and> \<not>brkS})\<close>
+lemma wf_cdcl_twl_stgy_measure:
+   \<open>wf ({((brkT, T), (brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T}
+        \<union> {((brkT, T), (brkS, S)). S = T \<and> brkT \<and> \<not>brkS})\<close>
   (is \<open>wf (?TWL \<union> ?BOOL)\<close>)
 proof (rule wf_union_compatible)
   show \<open>wf ?TWL\<close>
