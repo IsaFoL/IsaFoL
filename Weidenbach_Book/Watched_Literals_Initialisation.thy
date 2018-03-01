@@ -115,7 +115,7 @@ lemma [twl_st_init]:
    \<open>get_conflict (fst T) = get_conflict_l_init S\<close>
    \<open>literals_to_update_init T = literals_to_update_l_init S\<close>
    \<open>clauses_to_update_init T = {#}\<close>
-   \<open>other_clauses_init T = other_clauses_l_init T\<close>
+   \<open>other_clauses_init T = other_clauses_l_init S\<close>
   by (use assms in \<open>solves \<open>cases S; auto simp: twl_st_l_init_def\<close>\<close>)+
 
 definition twl_struct_invs_init :: \<open>'v twl_st_init \<Rightarrow> bool\<close> where

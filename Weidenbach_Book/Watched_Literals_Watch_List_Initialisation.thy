@@ -88,7 +88,7 @@ lemma [twl_st_wl_init]:
   shows
     \<open>get_conflict_l_init S' = get_conflict_init_wl S\<close>
     \<open>get_trail_l_init S' = get_trail_init_wl S\<close>
-    \<open>other_clauses_init_l S' = other_clauses_init_wl S\<close>
+    \<open>other_clauses_l_init S' = other_clauses_init_wl S\<close>
   using assms
   by (cases S; cases S'; auto simp: state_wl_l_init_def state_wl_l_def)+
 
@@ -212,7 +212,7 @@ definition init_dt_wl_pre where
 definition init_dt_wl_spec where
   \<open>init_dt_wl_spec C S T \<longleftrightarrow>
     (\<exists>S' T'. (S, S') \<in> state_wl_l_init \<and> correct_watching_init S \<and> (T, T') \<in> state_wl_l_init \<and>
-      init_dt_spec C S' T')\<close>
+      correct_watching_init T \<and> init_dt_spec C S' T')\<close>
 
 lemma ref_two_step': \<open>S \<le> T \<Longrightarrow> \<Down> R S \<le> \<Down> R T\<close>
   using ref_two_step by auto
