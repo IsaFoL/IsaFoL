@@ -1179,7 +1179,7 @@ proof -
       apply -
       apply normalize_goal+
       by blast
-      
+
     have all_struct:
       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of U)\<close>
       using struct_invs
@@ -1208,7 +1208,7 @@ proof -
     have dist_D: \<open>distinct_mset (the (get_conflict_wl S))\<close>
       using dist not_none S_T T_U unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def S
       by (auto simp: twl_st)
-    have \<open>the (conflicting (state\<^sub>W_of U)) = 
+    have \<open>the (conflicting (state\<^sub>W_of U)) =
       add_mset (- lit_of (cdcl\<^sub>W_restart_mset.hd_trail (state\<^sub>W_of U)))
         {#L \<in># the (conflicting (state\<^sub>W_of U)).  get_level (trail (state\<^sub>W_of U)) L
              < backtrack_lvl (state\<^sub>W_of U)#}\<close>

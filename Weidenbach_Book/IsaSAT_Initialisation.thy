@@ -686,7 +686,7 @@ lemma [twl_st_heur_init]:
 find_theorems get_trail_wl_heur_init get_trail_init_wl
 lemma init_dt_step_wl_heur_init_dt_step_wl:
   \<open>(uncurry init_dt_step_wl_heur, uncurry init_dt_step_wl) \<in>
-   [\<lambda>(C, S). literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and> distinct C]\<^sub>f 
+   [\<lambda>(C, S). literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and> distinct C]\<^sub>f
       Id \<times>\<^sub>f twl_st_heur_init \<rightarrow> \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
   supply [[goals_limit=1]]
   unfolding init_dt_step_wl_heur_def init_dt_step_wl_def uncurry_def
@@ -1902,7 +1902,7 @@ lemma (in -)empty_array_init_rll:
   \<open>(init_rll_list, RETURN o init_rll) \<in>
     nat_rel\<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>clauses_l_fmat\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
-  apply  (auto simp: init_rll_def hr_comp_def clauses_ll_assn_def 
+  apply  (auto simp: init_rll_def hr_comp_def clauses_ll_assn_def
     list_fmap_rel_def init_rll_list_def init_aa_def)
     apply (case_tac i)
     apply auto
@@ -2032,7 +2032,7 @@ proof -
     unfolding RETURN_refine_iff
     apply clarify
     apply (intro conjI)
-    subgoal 
+    subgoal
       by (auto simp: zero_uint32_def shiftr1_def
         nat_shiftr_div2 nat_of_uint32_shiftr isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
         polarity_atm_def isasat_input_ops.trail_pol_def K atms_of_def
@@ -2040,7 +2040,7 @@ proof -
         list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
         isasat_input_ops.ann_lits_split_reasons_def
       list_mset_rel_def Collect_eq_comp)
-    subgoal 
+    subgoal
       by (auto simp: zero_uint32_def shiftr1_def
         nat_shiftr_div2 nat_of_uint32_shiftr isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
         polarity_atm_def isasat_input_ops.trail_pol_def K atms_of_def
@@ -2049,7 +2049,7 @@ proof -
         isasat_input_ops.ann_lits_split_reasons_def
       list_mset_rel_def Collect_eq_comp)
     subgoal using K' by (auto simp: polarity_def)
-    subgoal 
+    subgoal
       by (auto simp: zero_uint32_def shiftr1_def
         nat_shiftr_div2 nat_of_uint32_shiftr isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
         polarity_atm_def isasat_input_ops.trail_pol_def K atms_of_def
@@ -2057,7 +2057,7 @@ proof -
         list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
         isasat_input_ops.ann_lits_split_reasons_def
       list_mset_rel_def Collect_eq_comp)
-    subgoal 
+    subgoal
       by (auto simp: zero_uint32_def shiftr1_def
         nat_shiftr_div2 nat_of_uint32_shiftr isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
         polarity_atm_def isasat_input_ops.trail_pol_def K atms_of_def
@@ -2065,7 +2065,7 @@ proof -
         list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
         isasat_input_ops.ann_lits_split_reasons_def
       list_mset_rel_def Collect_eq_comp)
-    subgoal 
+    subgoal
       by (auto simp: zero_uint32_def shiftr1_def
         nat_shiftr_div2 nat_of_uint32_shiftr isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
         polarity_atm_def isasat_input_ops.trail_pol_def K atms_of_def

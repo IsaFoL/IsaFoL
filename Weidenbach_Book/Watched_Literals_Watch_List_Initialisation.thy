@@ -143,7 +143,7 @@ proof -
        (auto simp: already_propagated_unit_init_wl_def already_propagated_unit_init_l_def
         state_wl_l_init_def state_wl_l_def correct_watching.simps clause_to_update_def
         all_lits_of_mm_add_mset all_lits_of_m_add_mset correct_watching_init.simps)
-  have set_conflict: \<open>(set_conflict_init_wl (hd C) S, set_conflict_init_l C S') \<in> ?A\<close> 
+  have set_conflict: \<open>(set_conflict_init_wl (hd C) S, set_conflict_init_l C S') \<in> ?A\<close>
     if \<open>C = [hd C]\<close>
     using S_S' corr that
     by (cases S; cases S')

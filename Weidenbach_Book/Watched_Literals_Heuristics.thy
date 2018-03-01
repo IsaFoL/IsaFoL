@@ -164,7 +164,7 @@ obtain T T' where
   have \<open>\<forall>D\<in>mset ` set_mset (ran_mf (get_clauses_wl S)). distinct_mset D\<close>
     using dist
     using S_T T_T'
-    unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def 
+    unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
     by (auto simp: clauses_def twl_st_wl twl_st_l twl_st
         watched_by_app_def Ball_def Collect_conv_if
         distinct_mset_set_def conj_disj_distribR Collect_disj_eq image_mset_union
@@ -174,7 +174,7 @@ obtain T T' where
     using S_L_W_le_S S_L_W_ge_0
     by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def distinct_mset_set_distinct
          clauses_def mset_take_mset_drop_mset watched_by_app_def)
-  show  \<open>L \<in> snd ` D\<^sub>0\<close> 
+  show  \<open>L \<in> snd ` D\<^sub>0\<close>
     using  \<open>L \<in> snd ` D\<^sub>0\<close>  .
   have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T')\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -189,7 +189,7 @@ obtain T T' where
     using in_all_lits_of_m_ain_atms_of_iff  S_T T_T' lits
     unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def in_all_lits_of_mm_ain_atms_of_iff image_subset_iff
     by (auto 5 5  simp:  trail.simps in_all_lits_of_mm_ain_atms_of_iff
-      lits_of_def image_image init_clss.simps mset_take_mset_drop_mset' 
+      lits_of_def image_image init_clss.simps mset_take_mset_drop_mset'
       convert_lits_l_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
       twl_st_l twl_st_wl twl_st get_unit_clss_wl_alt_def)
 qed
@@ -404,7 +404,7 @@ proof  -
   obtain M N D NE UE WS Q where
     S: \<open>S = (M, N, D, NE, UE, WS, Q)\<close>
     by (cases S)
-  obtain T T' where 
+  obtain T T' where
     \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
     \<open>L \<in> snd ` D\<^sub>0\<close> and
     S_T: \<open>(S, T) \<in> state_wl_l (Some (L, C))\<close> and
@@ -520,7 +520,7 @@ proof -
   let ?C = \<open>get_clauses_wl S \<propto> watched_by_app S L C\<close>
   let ?L = \<open>get_clauses_wl S \<propto> watched_by_app S L C ! xj\<close>
 
-  obtain T T' where 
+  obtain T T' where
     lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
     \<open>L \<in> snd ` D\<^sub>0\<close> and
     S_T: \<open>(S, T) \<in> state_wl_l (Some (L, C))\<close> and
@@ -740,7 +740,7 @@ lemma twl_st_heur_state_simp:
      \<open>get_conflict_wl_heur S = get_conflict_wl S'\<close> and
      \<open>literals_to_update_wl_heur S = literals_to_update_wl S'\<close>
   using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
- 
+
 lemma twl_st_heur_literals_are_in_\<L>\<^sub>i\<^sub>n_heur:
   assumes lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n S'\<close> and SS': \<open>(S, S') \<in> twl_st_heur\<close>
   shows

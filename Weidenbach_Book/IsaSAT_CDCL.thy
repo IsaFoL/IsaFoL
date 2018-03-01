@@ -128,7 +128,7 @@ proof -
       using inv unfolding find_unassigned_lit_wl_D_heur_pre_def
        apply - apply normalize_goal+
        by blast
-      
+
     have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of U)\<close> and
         unit: \<open>entailed_clss_inv U\<close>
       using inv unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -140,7 +140,7 @@ proof -
           mset_take_mset_drop_mset mset_take_mset_drop_mset'
           clauses_def simp del: entailed_clss_inv.simps)
   qed
-  
+
   have [dest]: \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> \<phi> = get_phase_saver_heur S \<Longrightarrow> phase_saving \<phi>\<close> for S T \<phi>
     by (auto simp: twl_st_heur_def)
 
