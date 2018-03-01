@@ -114,12 +114,12 @@ definition  (in isasat_input_ops) maximum_level_removed_eq_count_dec where
 
 definition  (in isasat_input_ops) maximum_level_removed_eq_count_dec_heur where
   \<open>maximum_level_removed_eq_count_dec_heur L S \<longleftrightarrow>
-      count_decided_st S = zero_uint32_nat \<or> get_count_max_lvls_heur S > one_uint32_nat\<close>
+      get_count_max_lvls_heur S > one_uint32_nat\<close>
 
 definition maximum_level_removed_eq_count_dec_pre where
   \<open>maximum_level_removed_eq_count_dec_pre =
      (\<lambda>(L, S). L = -lit_of (hd (get_trail_wl S)) \<and> L \<in># the (get_conflict_wl S) \<and>
-      get_conflict_wl S \<noteq> None \<and> get_trail_wl S \<noteq> [])\<close>
+      get_conflict_wl S \<noteq> None \<and> get_trail_wl S \<noteq> [] \<and> count_decided (get_trail_wl S) \<ge> 1)\<close>
 
 lemma maximum_level_removed_eq_count_dec_heur_maximum_level_removed_eq_count_dec:
   \<open>(uncurry (RETURN oo maximum_level_removed_eq_count_dec_heur),
@@ -222,9 +222,10 @@ qed
 
 lemma card_max_lvl_tl:
   assumes \<open>a \<noteq> []\<close> \<open>distinct_mset y\<close>\<open>\<not>tautology y\<close> \<open>\<not>is_decided (hd a)\<close> \<open>no_dup a\<close>
+   \<open>count_decided a \<noteq> 0\<close>
   shows \<open>card_max_lvl (tl a) y =
-      (if (lit_of(hd a) \<in># y \<or> -lit_of(hd a) \<in># y) \<and> count_decided a \<noteq> 0
-       then card_max_lvl a y - 1 else card_max_lvl a y)\<close>
+      (if (lit_of(hd a) \<in># y \<or> -lit_of(hd a) \<in># y) 
+        then card_max_lvl a y - 1 else card_max_lvl a y)\<close>
   using assms by (cases a) (auto simp: card_max_lvl_Cons)
 end
 
@@ -232,12 +233,13 @@ context isasat_input_bounded_nempty
 begin
 
 definition (in isasat_input_ops) tl_state_wl_pre where
-  \<open>tl_state_wl_pre = (\<lambda>S. get_trail_wl S \<noteq> [] \<and> lit_of(hd (get_trail_wl S)) \<in> snd ` D\<^sub>0 \<and>
+  \<open>tl_state_wl_pre S \<longleftrightarrow> get_trail_wl S \<noteq> [] \<and> lit_of(hd (get_trail_wl S)) \<in> snd ` D\<^sub>0 \<and>
      (lit_of (hd (get_trail_wl S))) \<notin># the (get_conflict_wl S) \<and>
      -(lit_of (hd (get_trail_wl S))) \<notin># the (get_conflict_wl S) \<and>
     \<not>tautology (the (get_conflict_wl S)) \<and>
     distinct_mset (the (get_conflict_wl S)) \<and>
-    \<not>is_decided (hd (get_trail_wl S)))\<close>
+    \<not>is_decided (hd (get_trail_wl S)) \<and>
+    count_decided (get_trail_wl S) > 0\<close>
 
 lemma tl_state_out_learned:
    \<open>lit_of (hd a) \<notin># the at \<Longrightarrow>
@@ -317,7 +319,8 @@ definition update_confl_tl_wl_pre where
       distinct (get_clauses_wl S \<propto> C) \<and>
       \<not>tautology (the (get_conflict_wl S)) \<and>
       \<not>tautology (mset (get_clauses_wl S \<propto> C)) \<and>
-      \<not>tautology (remove1_mset (- L) (the (get_conflict_wl S) \<union># mset (tl (get_clauses_wl S \<propto> C))))
+      \<not>tautology (remove1_mset (- L) (the (get_conflict_wl S) \<union># mset (tl (get_clauses_wl S \<propto> C)))) \<and>
+      count_decided (get_trail_wl S) > 0
     )\<close>
 
 lemma (in -)out_learned_add_mset_highest_level:
@@ -384,7 +387,8 @@ proof -
        tauto_NC_D:
           \<open>\<not> tautology (remove1_mset (- L)
                    (the (get_conflict_wl (M', N', D', NE', UE', WS', Q')) \<union>#
-                    mset (tl (get_clauses_wl (M', N', D', NE', UE', WS', Q') \<propto> C))))\<close>
+                    mset (tl (get_clauses_wl (M', N', D', NE', UE', WS', Q') \<propto> C))))\<close> and
+       count_dec_ge: \<open>count_decided (get_trail_wl (M', N', D', NE', UE', WS', Q')) > 0\<close>
        using inv unfolding CLS update_confl_tl_wl_pre_def prod.case
        by blast+
      have
@@ -454,7 +458,7 @@ proof -
         by (auto simp: hd_M_L_C ac_simps)
       ultimately show ?thesis
         unfolding counts_maximum_level_def
-        using uL_D L_M proped nempty \<open>C > 0\<close> n_d
+        using uL_D L_M proped nempty \<open>C > 0\<close> n_d count_dec_ge
         by (auto simp del: simp: card_max_lvl_tl resolve_cls_wl'_def card_max_lvl_remove1_mset_hd)
     qed
     ultimately show ?thesis
@@ -630,7 +634,7 @@ proof -
       \<open>twl_stgy_invs U\<close> and
       \<open>clauses_to_update U = {#}\<close> and
       \<open>literals_to_update U = {#}\<close> and
-      \<open>count_decided (get_trail U) \<noteq> 0\<close> and
+      count_dec_ge: \<open>count_decided (get_trail U) \<noteq> 0\<close> and
       nempty: \<open>get_trail U \<noteq> []\<close> and
       conf: \<open>get_conflict U \<noteq> None\<close> \<open>get_conflict U \<noteq> Some {#}\<close>
       using inv
@@ -707,7 +711,7 @@ proof -
         using nempty hd_trail notin dec
         by auto
       show ?thesis
-        using that x2_T T_U nempty 1 2 3 4 5 dec
+        using that x2_T T_U nempty 1 2 3 4 5 dec count_dec_ge
         by (auto simp: tl_state_wl_pre_def image_image skip_and_resolve_loop_inv_def
             simp del: twl_st_of_wl.simps)
     qed
@@ -767,7 +771,7 @@ proof -
     {
       assume in_confl: \<open>\<not> - x1a \<notin># the (get_conflict_wl x2)\<close>
       show ?max
-        using in_confl dec conf x2_T T_U nempty
+        using in_confl dec conf x2_T T_U nempty count_dec_ge
         unfolding maximum_level_removed_eq_count_dec_pre_def skip_and_resolve_loop_inv_def
         by auto
       have [simp]: \<open>x1c \<in> snd ` D\<^sub>0\<close> \<open>is_proped (hd (get_trail_wl x2))\<close>
@@ -819,7 +823,7 @@ proof -
         by (rule not_tautology_minus)
 
       show ?confl
-        using conf dec in_confl x2_T T_U 5 10 3 4 6 7 8 9
+        using conf dec in_confl x2_T T_U 5 10 3 4 6 7 8 9 count_dec_ge
         unfolding update_confl_tl_wl_pre_def
         by auto
 
