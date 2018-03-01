@@ -713,7 +713,7 @@ lemma (in -) in_set_distinct_take_drop_iff:
     \<open>b < length D\<close>
   shows \<open>D ! b \<in> set (take (a - init) (drop init D)) \<longleftrightarrow> (init \<le> b \<and> b < a)\<close>
   using assms apply (auto 5 5 simp: distinct_in_set_take_iff in_set_conv_iff
-      in_set_drop_conv_nth  nth_eq_iff_index_eq dest: in_set_takeD)
+      in_set_drop_conv_nth nth_eq_iff_index_eq dest: in_set_takeD)
   by (metis add_diff_cancel_left' diff_less_mono le_iff_add less_imp_le_nat nth_drop)
 
 
@@ -881,7 +881,7 @@ proof -
       have [simp]: \<open>D ! a \<notin># C\<close> \<open>-D ! a \<notin># C\<close> \<open>b ! atm_of (D ! a) = None\<close>
         using if_cond mset_as_position_nth[OF map, of \<open>D ! a\<close>]
           if_cond mset_as_position_nth[OF map, of \<open>-D ! a\<close>] D_a_notin uD_a_notin
-        by (auto simp: is_in_lookup_conflict_def  split: option.splits bool.splits
+        by (auto simp: is_in_lookup_conflict_def split: option.splits bool.splits
             dest: in_diffD)
       have [simp]: \<open>atm_of (D ! a) < length xs\<close> \<open>D ! a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
         using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset D)\<close> a_le_D] atms_le_xs
@@ -978,14 +978,14 @@ proof -
         moreover have \<open>b[atm_of (D ! a) := Some i] = b\<close>
           unfolding 1[symmetric] Some_in(1)[symmetric] by simp
         ultimately show ?thesis
-          using  dist_C  atms_le_xs Some_in(1) map
+          using dist_C atms_le_xs Some_in(1) map
           unfolding option_lookup_clause_rel_def lookup_clause_rel_def add_to_lookup_conflict_def ab
           by (auto simp: distinct_mset_in_diff minus_notin_trivial
               intro: mset_as_position.intros
               simp del: remdups_mset_singleton_sum)
       qed
       have notin_lo_in_C: \<open>\<not>is_in_lookup_conflict (ab, b) (D ! a) \<Longrightarrow> D ! a \<notin># C\<close>
-        using  mset_as_position_in_iff_nth[OF map, of \<open>Pos (atm_of (D!a))\<close>]
+        using mset_as_position_in_iff_nth[OF map, of \<open>Pos (atm_of (D!a))\<close>]
           mset_as_position_in_iff_nth[OF map, of \<open>Neg (atm_of (D!a))\<close>] atm_D_a_le_xs(1)
           \<open>- D ! a \<notin> set (take (a - init) (drop init D))\<close>
           \<open>D ! a \<notin> set (take (a - init) (drop init D))\<close>
@@ -995,7 +995,7 @@ proof -
             split: option.splits bool.splits
             dest: in_diffD)
       have in_lo_in_C: \<open>is_in_lookup_conflict (ab, b) (D ! a) \<Longrightarrow> D ! a \<in># C\<close>
-        using  mset_as_position_in_iff_nth[OF map, of \<open>Pos (atm_of (D!a))\<close>]
+        using mset_as_position_in_iff_nth[OF map, of \<open>Pos (atm_of (D!a))\<close>]
           mset_as_position_in_iff_nth[OF map, of \<open>Neg (atm_of (D!a))\<close>] atm_D_a_le_xs(1)
           \<open>- D ! a \<notin> set (take (a - init) (drop init D))\<close>
           \<open>D ! a \<notin> set (take (a - init) (drop init D))\<close>
@@ -1266,7 +1266,7 @@ proof -
            (Id \<times>\<^sub>f option_lookup_clause_rel) \<rightarrow>
       hr_comp bool_assn bool_rel\<close>
      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using  hfref_compI_PRE_aux[OF is_in_lookup_option_conflict_code.refine
+    using hfref_compI_PRE_aux[OF is_in_lookup_option_conflict_code.refine
         is_in_lookup_option_conflict_is_in_conflict] .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that unfolding comp_PRE_def option_lookup_clause_rel_def lookup_clause_rel_def
@@ -1798,11 +1798,11 @@ end
 (* TODO Move *)
 
 lemma swap_nth_irrelevant:
-  \<open>k \<noteq> i \<Longrightarrow> k \<noteq> j \<Longrightarrow> swap xs i  j ! k = xs ! k\<close>
+  \<open>k \<noteq> i \<Longrightarrow> k \<noteq> j \<Longrightarrow> swap xs i j ! k = xs ! k\<close>
   by (auto simp: swap_def)
 
 lemma swap_nth_relevant:
-  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs i  j ! i = xs ! j\<close>
+  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs i j ! i = xs ! j\<close>
   by (auto simp: swap_def)
 
 lemma swap_nth_relevant2:
@@ -1810,7 +1810,7 @@ lemma swap_nth_relevant2:
   by (auto simp: swap_def)
 
 lemma swap_nth_if:
-  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs i  j ! k =
+  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs i j ! k =
     (if k = i then xs ! j else if k = j then xs ! i else xs ! k)\<close>
   by (auto simp: swap_def)
 
@@ -2069,7 +2069,7 @@ proof -
        apply (rule 2)
       apply (rule order.trans)
        apply (rule conc_fun_mono[OF 3])
-      unfolding  literal_redundant_spec_def is_literal_redundant_spec_def
+      unfolding literal_redundant_spec_def is_literal_redundant_spec_def
           conc_fun_SPEC NU'_NUE[symmetric]
       apply (rule SPEC_rule)
       apply clarify
@@ -2130,7 +2130,7 @@ proof -
       L: \<open>(outl' ! i, L) \<in> Id\<close> and
       \<open>outl' ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
       cach: \<open>(cachred, red') \<in> (?red F' L)\<close>
-    for S T F' T1 F D' S1 i S2 cach S3 highest outl' L  cachred red' cachr
+    for S T F' T1 F D' S1 i S2 cach S3 highest outl' L cachred red' cachr
       cachred1 stack red
   proof -
     have \<open>L = outl' ! i\<close> and
@@ -2231,7 +2231,7 @@ proof -
   qed
   show ?thesis
     unfolding minimize_and_extract_highest_lookup_conflict_def iterate_over_conflict_def
-    apply (refine_vcg  WHILEIT_refine[where R = R])
+    apply (refine_vcg WHILEIT_refine[where R = R])
     subgoal by (rule init_args_ref)
     subgoal for s' s by (rule init_lo_inv)
     subgoal by (rule cond)
@@ -2275,14 +2275,14 @@ private lemma mark_failed_lits_stack_inv_helper1: \<open>mark_failed_lits_stack_
        a1' < length ba \<Longrightarrow>
        (a1'a, a2'a) = ba ! a1' \<Longrightarrow>
        a1'a \<in># dom_m a\<close>
-  using nth_mem[of a1' ba] unfolding  mark_failed_lits_stack_inv_def
+  using nth_mem[of a1' ba] unfolding mark_failed_lits_stack_inv_def
   by (auto simp del: nth_mem)
 
 private lemma mark_failed_lits_stack_inv_helper2: \<open>mark_failed_lits_stack_inv a ba a2' \<Longrightarrow>
        a1' < length ba \<Longrightarrow>
        (a1'a, a2'a) = ba ! a1' \<Longrightarrow>
        a2'a - Suc 0 < length (a \<propto> a1'a)\<close>
-  using nth_mem[of a1' ba] unfolding  mark_failed_lits_stack_inv_def
+  using nth_mem[of a1' ba] unfolding mark_failed_lits_stack_inv_def
   by (auto simp del: nth_mem)
 
 sepref_thm mark_failed_lits_stack_code

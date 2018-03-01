@@ -621,10 +621,6 @@ qed
 lemma lit_of_inj_on_no_dup: \<open>no_dup M \<Longrightarrow> inj_on (\<lambda>x. - lit_of x) (set M)\<close>
   by (induction M) (auto simp: no_dup_def)
 
-(* useful for sledgehammer/proof reconstruction ?*)
-lemma member_add_mset: \<open>a \<in># add_mset x xs \<longleftrightarrow> a = x \<or> a \<in># xs\<close>
-  by simp
-
 lemma
   assumes
     cdcl: \<open>cdcl_twl_cp S T\<close> and
@@ -1422,7 +1418,7 @@ next
 next
   case (update_clause D L L' M K N U N' U' NE UE WS Q) note watched = this(1) and uL = this(2) and
     L' = this(3) and K = this(4) and undef = this(5) and N'U' = this(6) and twl = this(7) and
-    valid = this(8) and inv = this(9) and  no_dup = this(10) and dist = this(11)
+    valid = this(8) and inv = this(9) and no_dup = this(10) and dist = this(11)
 
   show ?case
     unfolding distinct_queued.simps
@@ -4584,7 +4580,7 @@ proof (rule ccontr)
         using cdcl_twl_o.backtrack_nonunit_clause[of L \<open>add_mset L C\<close> K M1 M2 M \<open>add_mset L D'\<close>
             i N U NE UE L']
         using decomp lev_L_bt lev_L i lev_K False L'_C lev_L' ns_o confl backtrack
-        by (auto simp: cdcl\<^sub>W_restart_mset_state S  inf_sup_aci(6) sup.left_commute clauses_def
+        by (auto simp: cdcl\<^sub>W_restart_mset_state S inf_sup_aci(6) sup.left_commute clauses_def
             dest: in_diffD)
     qed
   qed

@@ -347,9 +347,7 @@ proof -
       apply simp_all
       apply (cases \<open>f x'\<close>)
        apply (auto simp: RES_RETURN_RES nofail_def[symmetric] pw_RES_bind_choose
-           intro!: (* bind_refine_RES(2)[of , simplified]  *)
-          split: if_splits
-          cong: if_cong)
+          split: if_splits)
       done
     also have \<open>\<dots> =  WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f ((flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f))) x'\<close>
       apply (subst (2) flatf_ord.fixp_unfold)
@@ -498,13 +496,13 @@ lemma the_hnr_keep:
   by sepref_to_hoare
    (sep_auto simp: option_assn_alt_def is_pure_def split: option.splits)
 
-lemma (in -)fref_to_Down:
+lemma fref_to_Down:
   \<open>(f, g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> f x \<le> \<Down> B (g x'))\<close>
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma (in -)fref_to_Down_curry_left:
+lemma fref_to_Down_curry_left:
   fixes f:: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c nres\<close> and
     A::\<open>(('a \<times> 'b) \<times> 'd) set\<close>
   shows
@@ -513,20 +511,20 @@ lemma (in -)fref_to_Down_curry_left:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma (in -)fref_to_Down_curry:
+lemma fref_to_Down_curry:
   \<open>(uncurry f, uncurry g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y \<le> \<Down> B (g x' y'))\<close>
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma (in -)fref_to_Down_curry2:
+lemma fref_to_Down_curry2:
   \<open>(uncurry2 f, uncurry2 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y' z z'. P ((x', y'), z') \<Longrightarrow> (((x, y), z), ((x', y'), z')) \<in> A\<Longrightarrow>
          f x y z \<le> \<Down> B (g x' y' z'))\<close>
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma (in -)fref_to_Down_curry2':
+lemma fref_to_Down_curry2':
   \<open>(uncurry2 f, uncurry2 g) \<in> A \<rightarrow>\<^sub>f \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y' z z'. (((x, y), z), ((x', y'), z')) \<in> A \<Longrightarrow>
          f x y z \<le> \<Down> B (g x' y' z'))\<close>
@@ -534,7 +532,7 @@ lemma (in -)fref_to_Down_curry2':
   by auto
 
 
-lemma (in -)fref_to_Down_curry3:
+lemma fref_to_Down_curry3:
   \<open>(uncurry3 f, uncurry3 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y' z z' a a'. P (((x', y'), z'), a') \<Longrightarrow>
         ((((x, y), z), a), (((x', y'), z'), a')) \<in> A \<Longrightarrow>
@@ -542,7 +540,7 @@ lemma (in -)fref_to_Down_curry3:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma (in -)fref_to_Down_curry4:
+lemma fref_to_Down_curry4:
   \<open>(uncurry4 f, uncurry4 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y' z z' a a' b b'. P ((((x', y'), z'), a'), b') \<Longrightarrow>
         (((((x, y), z), a), b), ((((x', y'), z'), a'), b')) \<in> A \<Longrightarrow>
@@ -550,11 +548,17 @@ lemma (in -)fref_to_Down_curry4:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma (in -)fref_to_Down_curry5:
+lemma fref_to_Down_curry5:
   \<open>(uncurry5 f, uncurry5 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y' z z' a a' b b' c c'. P (((((x', y'), z'), a'), b'), c') \<Longrightarrow>
         ((((((x, y), z), a), b), c), (((((x', y'), z'), a'), b'), c')) \<in> A \<Longrightarrow>
          f x y z a b c \<le> \<Down> B (g x' y' z' a' b' c'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_explode:
+  \<open>(f a, g a) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' b. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> b = a \<Longrightarrow> f a x \<le> \<Down> B (g b x'))\<close>
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
@@ -830,7 +834,7 @@ lemma snd_hnr_pure:
   by (metis SLN_def SLN_left assn_times_comm ent_pure_pre_iff_sng ent_refl ent_star_mono
       ent_true is_pure_assn_def is_pure_iff_pure_assn)
 
-lemma (in -) list_assn_list_mset_rel_eq_list_mset_assn:
+lemma list_assn_list_mset_rel_eq_list_mset_assn:
   assumes p: \<open>is_pure R\<close>
   shows \<open>hr_comp (list_assn R) list_mset_rel = list_mset_assn R\<close>
 proof -

@@ -102,9 +102,9 @@ proof -
     proof -
       have \<open>mset (take (Suc i) C[i := outl ! i]) = mset (take (Suc i) outl)\<close>
         using mset_C_outl \<open>1 \<le> i\<close> \<open>i < length C\<close> \<open>length C = length outl\<close>
-        apply (subst  take_Suc_conv_app_nth)
+        apply (subst take_Suc_conv_app_nth)
         subgoal by auto
-        apply (subst  take_Suc_conv_app_nth)
+        apply (subst take_Suc_conv_app_nth)
         subgoal by auto
         by (auto simp: list_update_append)
       then show ?thesis
@@ -281,11 +281,11 @@ proof -
     show ?thesis
       apply (cases \<open>i = 1\<close>)
       subgoal
-        using lits  multi_member_split[OF outl_1] \<open>i < length outl\<close> \<open>1 \<le> i\<close>
+        using lits multi_member_split[OF outl_1] \<open>i < length outl\<close> \<open>1 \<le> i\<close>
         by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset nth_list_update'
             \<open>length C = length outl\<close>)
       subgoal
-        using lits  multi_member_split[OF C_1] \<open>i < length outl\<close> \<open>1 \<le> i\<close>
+        using lits multi_member_split[OF C_1] \<open>i < length outl\<close> \<open>1 \<le> i\<close>
         by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset nth_list_update')
       done
   qed
@@ -322,7 +322,7 @@ proof -
       by (auto simp: in_set_take_conv_nth \<open>length C = length outl\<close>
           intro!: exI[of _ 1])
     show ?thesis
-      using lits  multi_member_split[OF C_1] \<open>1 \<le> i\<close> \<open>length outl \<noteq> 1\<close>
+      using lits multi_member_split[OF C_1] \<open>1 \<le> i\<close> \<open>length outl \<noteq> 1\<close>
       by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset nth_list_update')
   qed
 
@@ -353,9 +353,6 @@ proof -
     done
 qed
 
-(* TODO Move *)
-
-(* End Move *)
 
 sepref_thm empty_conflict_and_extract_clause_heur_code
   is \<open>uncurry2 (PR_CONST empty_conflict_and_extract_clause_heur)\<close>
@@ -983,41 +980,6 @@ qed
 
 end
 
-context isasat_input_ops
-begin
-(* TODO KILL
-lemma twl_struct_invs_conflit_not_tauto:
-  assumes
-    struct: \<open>twl_struct_invs (twl_st_of_wl b S)\<close> and
-    confl: \<open>get_conflict_wl S \<noteq> None\<close>
-  shows \<open>\<not>tautology (the (get_conflict_wl S))\<close>
-proof -
-  obtain M N D NE UE Q W where
-    S: \<open>S = (M, N, D, NE, UE, Q, W)\<close>
-    by (cases S)
-   have
-      not_none: \<open>D \<noteq> None\<close>
-      using assms unfolding S backtrack_wl_D_inv_def
-      by (auto simp: backtrack_wl_inv_def backtrack_l_inv_def
-          simp del: twl_st_of.simps)
-    have
-      lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of (twl_st_of_wl b S))\<close> and
-      conf: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of (twl_st_of_wl b S))\<close>
-      using assms unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      by (auto simp: S twl_struct_invs_def simp del: twl_st_of.simps)
-
-    show ?thesis
-      apply (rule consistent_CNot_not_tautology[of \<open>lits_of_l (get_trail_wl S)\<close>])
-      subgoal using lev unfolding  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-        by (cases S; cases b) auto
-      subgoal
-        using conf confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def true_annots_true_cls
-        by (cases S; cases b) auto
-      done
-qed
-*)
-end
-
 lemma RES_RES_RETURN_RES2: \<open>RES A \<bind> (\<lambda>(T, T'). RETURN (f T T')) = RES (uncurry f ` A)\<close>
   by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
 (* End Move *)
@@ -1177,7 +1139,7 @@ proof -
       by (cases outl) (auto simp: out_learned_def S)
     let ?D = \<open>remove1_mset (- lit_of (hd M)) (the D)\<close>
     have \<L>\<^sub>i\<^sub>n_S: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S))\<close>
-      apply (rule  literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_conflict[OF S_T _ T_U])
+      apply (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_conflict[OF S_T _ T_U])
       using \<L>\<^sub>i\<^sub>n not_none struct_invs not_none S_T T_U by (auto simp: S)
     then have \<L>\<^sub>i\<^sub>n_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n ?D\<close>
       unfolding S by (auto intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
@@ -1191,7 +1153,7 @@ proof -
         add_mset (- lit_of (hd (get_trail_wl S)))
            (remove1_mset (- lit_of (hd (get_trail_wl S))) (the (get_conflict_wl S)))\<close>
       using uL_D learned not_none S_T T_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
-      by (auto simp: ac_simps twl_st get_unit_clss_wl_alt_def)
+      by (auto simp: ac_simps twl_st get_unit_clauses_wl_alt_def)
 
     have mini: \<open>minimize_and_extract_highest_lookup_conflict (get_trail_wl S) (get_clauses_wl S)
               ?D cach lbd (outl[0 := - lit_of (hd M)])
@@ -1370,7 +1332,7 @@ proof -
             not_none not_empty confl trail_nempty S_T T_U
           by (auto simp: twl_st S)
         finally have \<open>get_maximum_level M (mset (tl c)) < count_decided M\<close> .
-        then  have \<open>n < count_decided M\<close>
+        then have \<open>n < count_decided M\<close>
           by (auto simp: n mset_tl_c_remove)
         then have \<open>find_decomp_wl_pre (n, S')\<close>
           using M_\<L>\<^sub>i\<^sub>n struct_invs vm S_T T_U n_d
@@ -1403,7 +1365,7 @@ proof -
       by (auto simp: twl_st S)
     have pre2: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N) \<equiv> True\<close>
       using M_\<L>\<^sub>i\<^sub>n S_T T_U not_none \<L>\<^sub>i\<^sub>n
-      unfolding  is_\<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def
+      unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def
       by (auto simp: twl_st S all_lits_of_mm_union)
     have empty_conflict_and_extract_clause_pre:
         \<open>empty_conflict_and_extract_clause_pre ((M, mset (tl E)), E)\<close>
@@ -1944,7 +1906,7 @@ prepare_code_thms (in -) find_decomp_wl_imp_code_def
 lemmas find_decomp_wl_imp_code[sepref_fr_rules] =
    find_decomp_wl_imp_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-definition find_decomp_wvmtf_ns  where
+definition find_decomp_wvmtf_ns where
   \<open>find_decomp_wvmtf_ns =
      (\<lambda>(M::(nat, nat) ann_lits) highest _.
         SPEC(\<lambda>(M1, vm). \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
@@ -2052,22 +2014,22 @@ proof -
     subgoal for s a b aa ba x1 x2 x1a x2a by (cases aa) (auto simp: count_decided_ge_get_maximum_level)
     subgoal for s a b aa ba x1 x2 x1a x2a
       by (cases aa) (auto simp: butlast_nil_iff count_decided_butlast)
-    subgoal for s a b aa ba x1 x2 x1a x2a  by (cases ba)
+    subgoal for s a b aa ba x1 x2 x1a x2a by (cases ba)
         (auto intro!: vmtf_unset_vmtf_tl atm_of_N)
-    subgoal for s a b aa ba x1 x2 x1a x2a  by (cases aa)
-        (auto  simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
+    subgoal for s a b aa ba x1 x2 x1a x2a by (cases aa)
+        (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
     subgoal by auto
-    subgoal for s a b aa ba x1 x2 x1a x2a  by (cases aa) (auto intro: butlast count_decided_tl_if)
+    subgoal for s a b aa ba x1 x2 x1a x2a by (cases aa) (auto intro: butlast count_decided_tl_if)
     subgoal by auto
     subgoal for s a b aa ba x1 x2 x1a x2a
       by (cases aa) (auto simp: butlast_nil_iff count_decided_butlast
           eq_commute[of \<open>[_]\<close>] intro: butlast
           cong: if_cong split: if_splits)
     subgoal by auto
-    subgoal for s a b aa ba x1 x2 x1a x2a  by (cases ba)
+    subgoal for s a b aa ba x1 x2 x1a x2a by (cases ba)
         (auto intro!: vmtf_unset_vmtf_tl atm_of_N)
-    subgoal for s a b aa ba x1 x2 x1a x2a  by (cases aa)
-        (auto  simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
+    subgoal for s a b aa ba x1 x2 x1a x2a by (cases aa)
+        (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
     subgoal by auto
     subgoal for s D M
       apply (auto simp: count_decided_ge_get_maximum_level ex_decomp_get_ann_decomposition_iff

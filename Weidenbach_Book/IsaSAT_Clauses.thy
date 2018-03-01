@@ -276,7 +276,7 @@ lemma append_and_length_fm_add_new:
      \<in> bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (\<langle>Id\<rangle>clauses_l_fmat) \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (fastforce simp: fm_add_new_at_position_def list_fmap_rel_def Let_def
-      max_def nth_append  append_and_length_def fm_add_new_def get_fresh_index_def
+      max_def nth_append append_and_length_def fm_add_new_def get_fresh_index_def
       RETURN_RES_refine_iff RES_RETURN_RES
       intro!: RETURN_SPEC_refine
       dest: multi_member_split

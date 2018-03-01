@@ -326,7 +326,7 @@ definition update_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<Right
       Array.upd i a' a
     }\<close> -- \<open>is the Array.upd really needed?\<close>
 
-definition update_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list"  where
+definition update_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
   \<open>update_ll xs i j y = xs[i:= (xs ! i)[j := y]]\<close>
 
 declare nth_rule[sep_heap_rules del]

@@ -60,7 +60,7 @@ definition append_el_aa_u' :: "('a::{default,heap} array_list) array \<Rightarro
 
 lemma append_el_aa_append_el_aa_u':
   \<open>append_el_aa xs (nat_of_uint32 i) j = append_el_aa_u' xs i j\<close>
-  unfolding append_el_aa_def append_el_aa_u'_def Array.nth'_def nat_of_uint32_code  Array.upd'_def
+  unfolding append_el_aa_def append_el_aa_u'_def Array.nth'_def nat_of_uint32_code Array.upd'_def
   by (auto simp add: upd'_def upd_return max_def)
 
 
@@ -98,7 +98,7 @@ lemma append_el_aa_hnr'[sepref_fr_rules]:
      \<in> [\<lambda>((W,L), j). L < length W]\<^sub>a
         (arrayO_assn (arl_assn nat_assn))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> (arrayO_assn (arl_assn nat_assn))\<close>
     (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
-  using append_aa_hnr_u[of nat_assn, simplified] unfolding hfref_def  uint32_nat_rel_def br_def pure_def
+  using append_aa_hnr_u[of nat_assn, simplified] unfolding hfref_def uint32_nat_rel_def br_def pure_def
    hn_refine_def append_el_aa_append_el_aa_u'
   by auto
 
@@ -125,11 +125,11 @@ proof -
     by sepref_to_hoare
       (sep_auto simp: array_assn_def is_array_def
        hr_comp_def list_rel_pres_length list_rel_update param_nth A' A[symmetric] ent_refl_true
-     list_rel_eq_listrel listrel_iff_nth pure_def  nth_u_code_def nth_u_def Array.nth'_def
+     list_rel_eq_listrel listrel_iff_nth pure_def nth_u_code_def nth_u_def Array.nth'_def
      nat_of_uint32_code)
 qed
 
-lemma  array_get_hnr_u[sepref_fr_rules]:
+lemma array_get_hnr_u[sepref_fr_rules]:
   assumes \<open>CONSTRAINT is_pure A\<close>
   shows \<open>(uncurry nth_u_code,
       uncurry (RETURN \<circ>\<circ> op_list_get)) \<in> [pre_list_get]\<^sub>a (array_assn A)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> A\<close>
@@ -203,7 +203,7 @@ definition (in -)length_aa_u :: \<open>('a::heap array_list) array \<Rightarrow>
 
 lemma length_aa_u_code[code]:
   \<open>length_aa_u xs i = nth_u_code xs i \<bind> arl_length\<close>
-  unfolding length_aa_u_def length_aa_def  nth_u_def[symmetric] nth_u_code_def
+  unfolding length_aa_u_def length_aa_def nth_u_def[symmetric] nth_u_code_def
    Array.nth'_def
   by (auto simp: nat_of_uint32_code)
 

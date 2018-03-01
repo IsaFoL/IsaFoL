@@ -4,93 +4,8 @@ begin
 
 no_notation Ref.update ("_ := _" 62)
 
+
 section \<open>Code for the initialisation of the Data Structure\<close>
-(*
-definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> ('v twl_st_l_init) nres\<close> where
-  \<open>init_dt_step_l C S = do {
-   (let ((M, N,  D, NE, UE, WS, Q), OC) = S in
-   (case D of
-      None \<Rightarrow>
-        if is_Nil C
-        then RETURN ((M, N, U, Some {#}, NE, UE, {#}, {#}), add_mset {#} OC)
-        else if length C = 1
-        then do {
-          ASSERT (no_dup M);
-          ASSERT (C \<noteq> []);
-          let L = hd C;
-          let val_L = polarity M L;
-          if val_L = None
-          then RETURN ((Propagated L 0 # M, N, U, None, add_mset {#L#} NE, UE, WS, add_mset (-L) Q),
-             OC)
-          else
-            if val_L = Some True
-            then RETURN ((M, N, U, None, add_mset {#L#} NE, UE, WS, Q), OC)
-            else RETURN ((M, N, U, Some (mset C), add_mset {#L#} NE, UE, {#}, {#}), OC)
-          }
-        else do {
-          ASSERT(C \<noteq> []);
-          ASSERT(tl C \<noteq> []);
-          RETURN ((M, N @ [C], length N, None, NE, UE, WS, Q), OC)}
-  | Some D \<Rightarrow>
-      RETURN ((M, N, U, Some D, NE, UE, WS, Q), add_mset (mset C) OC)))
-  }\<close>
-
-lemma init_dt_step_init_dt_step_l:
-  assumes
-    struct_invs: \<open>twl_struct_invs_init (twl_st_of_init S)\<close>
-  shows \<open>RETURN (init_dt_step C S) = init_dt_step_l C S\<close>
-proof -
-  have \<open>no_dup (trail (state\<^sub>W_of_init (twl_st_of_init S)))\<close>
-    using struct_invs unfolding twl_struct_invs_init_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def twl_st_of_init.simps
-      by fast
-  then have n_d: \<open>no_dup (get_trail_l (fst S))\<close>
-    by (cases S) (auto simp add: cdcl\<^sub>W_restart_mset_state)
-
-  show ?thesis
-    using n_d unfolding init_dt_step_def init_dt_step_l_def Let_def
-    by (cases S; cases C; cases \<open>tl C\<close>)
-      (auto simp: polarity_def split: option.splits cong: bind_cong)
-qed
-
-
-definition init_dt_l where
-  \<open>init_dt_l CS S = nfoldli CS (\<lambda>_. True) init_dt_step_l S\<close>
-
-
-lemma init_dt_init_dt_l:
-  assumes
-    \<open>\<forall>C \<in> set CS. distinct C\<close> and
-    \<open>twl_struct_invs_init (twl_st_of_init S)\<close> and
-    \<open>clauses_to_update_l (fst S) = {#}\<close> and
-    \<open>\<forall>s\<in>set (get_trail_l (fst S)). \<not>is_decided s\<close> and
-    \<open>get_conflict_l (fst S) = None \<longrightarrow>
-        literals_to_update_l (fst S) = uminus `# lit_of `# mset (get_trail_l (fst S))\<close> and
-    \<open>twl_list_invs (fst S)\<close> and
-    \<open>get_learned_l (fst S) = length (get_clauses_l (fst S)) - 1\<close> and
-    \<open>twl_stgy_invs (twl_st_of None (fst S))\<close> and
-    \<open>snd S \<noteq> {#} \<longrightarrow> get_conflict_l (fst S) \<noteq> None\<close>
-  shows \<open>RETURN (init_dt CS S) = init_dt_l (rev CS) S\<close>
-  using assms unfolding init_dt_l_def
-proof (induction CS)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons a CS)
-  then have IH: \<open>RETURN (init_dt CS S) = nfoldli (rev CS) (\<lambda>_. True) init_dt_step_l S\<close>
-    by auto
-  have [simp]: \<open>nfoldli [] (\<lambda>_. True) init_dt_step_l = (\<lambda>S. RETURN S)\<close>
-    by (auto intro!: ext)
-  have step:
-    \<open>RETURN (init_dt_step a (init_dt CS S)) = init_dt_step_l a (init_dt CS S)\<close>
-    apply (rule init_dt_step_init_dt_step_l)
-    subgoal by (rule init_dt_full[of CS \<open>fst S\<close> \<open>snd S\<close>, unfolded prod.collapse])
-        (use Cons(2-) in \<open>solves simp\<close>)+
-    done
-  show ?case
-    by (auto simp: IH[symmetric] step)
-qed
-*)
 
 context isasat_input_bounded
 begin
@@ -248,12 +163,6 @@ prepare_code_thms (in -) already_propagated_unit_cls_code_def
 
 lemmas already_propagated_unit_cls_heur_hnr[sepref_fr_rules] =
    already_propagated_unit_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
-(*TODO Move*)
-lemma (in -) clause_l_assn_alt_def:
-  \<open>clause_l_assn = hr_comp (list_assn unat_lit_assn) list_mset_rel\<close>
-  by (simp add: list_assn_list_mset_rel_eq_list_mset_assn)
-(*End Move*)
 
 theorem already_propagated_unit_cls_hnr[sepref_fr_rules]:
   \<open>(uncurry already_propagated_unit_cls_code, uncurry (RETURN \<circ>\<circ> already_propagated_unit_init_wl))
@@ -1844,5 +1753,38 @@ lemma init_dt_wl_code_refine[sepref_fr_rules]:
        (sep_auto dest!: frame_rule_left[of \<open>_ * isasat_input_ops.isasat_init_assn _ _ _\<close> _ _
             \<open>list_mset_assn uint32_nat_assn \<A>\<^sub>i\<^sub>n (fst (fst a))\<close>])
   done
+
+lemma (in isasat_input_bounded) init_dt_wl_heur_init_dt_wl:
+  \<open>(uncurry init_dt_wl_heur, uncurry init_dt_wl) \<in>
+    [\<lambda>(CS, S). (\<forall>C \<in> set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)) \<and> distinct_mset_set (mset ` set CS)]\<^sub>f
+     \<langle>Id\<rangle>list_rel \<times>\<^sub>f twl_st_heur_init \<rightarrow> \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
+proof -
+  have H: \<open>\<And>x y x1 x2 x1a x2a.
+       (\<forall>C\<in>set x1. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)) \<and> distinct_mset_set (mset ` set x1) \<Longrightarrow>
+       (x1a, x1) \<in> \<langle>Id\<rangle>list_rel \<Longrightarrow>
+       (x1a, x1) \<in> \<langle>{(C, C'). C = C' \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and>
+          distinct C}\<rangle>list_rel\<close>
+    apply (auto simp: list_rel_def list_all2_conj)
+    apply (auto simp: list_all2_conv_all_nth distinct_mset_set_def)
+    done
+
+  show ?thesis
+    unfolding init_dt_wl_heur_def init_dt_wl_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply (case_tac y rule: prod.exhaust)
+    apply (case_tac x rule: prod.exhaust)
+    apply (simp only: prod.case prod_rel_iff)
+    apply (refine_vcg init_dt_step_wl_heur_init_dt_step_wl[THEN fref_to_Down_curry] H)
+         apply normalize_goal+
+    subgoal by fast
+    subgoal by fast
+    subgoal by simp
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 
 end

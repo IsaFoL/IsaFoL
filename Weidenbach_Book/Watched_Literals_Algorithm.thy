@@ -521,7 +521,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
     let ?T = \<open>tl_state T\<close>
     have o_S_T: \<open>cdcl_twl_o T ?T\<close>
       using cdcl_twl_o.skip[of L \<open>the D\<close> C M' N U NE UE]
-      using LD D inv M  unfolding skip_and_resolve_loop_inv_def T WS Q D by (auto simp: tl_state_def)
+      using LD D inv M unfolding skip_and_resolve_loop_inv_def T WS Q D by (auto simp: tl_state_def)
     have st_T: \<open>cdcl_twl_o\<^sup>*\<^sup>* S ?T\<close>
       using st o_S_T by auto
     moreover have twl_T: \<open>twl_struct_invs ?T\<close>
@@ -564,7 +564,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
       using twl_T D D' M unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        by fast
       then have \<open>tl M \<Turnstile>as CNot ?D\<close>
-        using  M unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+        using M unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         by (auto simp add: cdcl\<^sub>W_restart_mset_state T update_confl_tl_def)
     }
     moreover have \<open>get_conflict ?T \<noteq> Some {#}\<close>
@@ -967,7 +967,7 @@ proof -
         using WS by (auto simp: propagate_bt_def)
 
       show False if \<open>cdcl_twl_o (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) (an, ao, ap, aq, ar, as, at, b)\<close>
-        for  an ao ap aq ar as at b
+        for an ao ap aq ar as at b
         using that by (auto simp: cdcl_twl_o.simps propagate_bt_def)
 
       show False if \<open>literals_to_update (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) = {#}\<close>

@@ -980,7 +980,7 @@ proof -
         using C_N_U J_NE unfolding C' S ran_m_def
         by auto
       have C'_ran_N: \<open>(C', True) \<in># ran_m N\<close>
-        using C_N_U J_NE  unfolding C' S S
+        using C_N_U J_NE unfolding C' S S
         by auto
       have upd: \<open>update_clauses
           (twl_clause_of `# init_clss_lf N, twl_clause_of `# learned_clss_lf N)
@@ -1047,7 +1047,7 @@ proof -
         using C_N_U J_NE unfolding C' S ran_m_def
         by auto
       have C'_ran_N: \<open>(C', False) \<in># ran_m N\<close>
-        using C_N_U J_NE  unfolding C' S S
+        using C_N_U J_NE unfolding C' S S
         by auto
       have upd: \<open>update_clauses
         (twl_clause_of `# init_clss_lf N, twl_clause_of `# learned_clss_lf N)
@@ -1473,7 +1473,7 @@ proof -
     subgoal by (auto simp: twl_st_l)
     subgoal by simp
     subgoal by fast
-    subgoal  for S S' T T' L L' C
+    subgoal for S S' T T' L L' C
       by (auto simp add: twl_st_of_clause_to_update twl_list_invs_set_clauses_to_update_iff
           intro: cdcl_twl_cp_twl_struct_invs cdcl_twl_cp_twl_stgy_invs
           distinct_mset_clause_to_update
@@ -1665,9 +1665,9 @@ lemma skip_and_resolve_loop_l_spec:
        0 < count_decided (get_trail_l S)} \<rightarrow>\<^sub>f
   \<langle>{(T, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T \<and>
     (twl_struct_invs T' \<and> twl_stgy_invs T' \<and>
-    no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of  T') \<and>
-    no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of  T') \<and>
-    literals_to_update  T' = {#} \<and>
+    no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of T') \<and>
+    no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of T') \<and>
+    literals_to_update T' = {#} \<and>
     clauses_to_update_l T = {#} \<and> get_conflict T' \<noteq> None)}\<rangle> nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f _\<close>)
 proof -
@@ -1801,7 +1801,7 @@ qed
 end
 
 
-definition find_decomp :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l  nres\<close> where
+definition find_decomp :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>find_decomp =  (\<lambda>L (M, N, D, NE, UE, WS, Q).
     SPEC(\<lambda>S. \<exists>K M2 M1. S = (M1, N, D, NE, UE, WS, Q) \<and>
        (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>

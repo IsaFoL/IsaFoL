@@ -206,6 +206,10 @@ type_synonym twl_st_wll =
   \<open>nat_trail \<times> clauses_wl \<times> uint32 array_list option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
     lit_queue_l \<times> watched_wl\<close>
 
+lemma clause_l_assn_alt_def:
+  \<open>clause_l_assn = hr_comp (list_assn unat_lit_assn) list_mset_rel\<close>
+  by (simp add: list_assn_list_mset_rel_eq_list_mset_assn)
+
 
 subsubsection \<open>Refinement of the Watched Function\<close>
 

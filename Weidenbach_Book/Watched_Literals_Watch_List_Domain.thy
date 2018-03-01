@@ -225,7 +225,7 @@ definition is_\<L>\<^sub>a\<^sub>l\<^sub>l :: \<open>nat literal multiset \<Righ
 
 abbreviation literals_are_\<L>\<^sub>i\<^sub>n :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>literals_are_\<L>\<^sub>i\<^sub>n S \<equiv>
-     is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm ((\<lambda>C. mset (fst C)) `# ran_m (get_clauses_wl S) + get_unit_clss_wl S))\<close>
+     is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm ((\<lambda>C. mset (fst C)) `# ran_m (get_clauses_wl S) + get_unit_clauses_wl S))\<close>
 
 definition literals_are_in_\<L>\<^sub>i\<^sub>n :: \<open>nat clause \<Rightarrow> bool\<close> where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C \<longleftrightarrow> set_mset (all_lits_of_m C) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
@@ -484,7 +484,7 @@ proof -
     by (subst (asm) all_clss_l_ran_m[symmetric])
       (auto simp add: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
         convert_lits_l_def image_image in_all_lits_of_mm_ain_atms_of_iff
-        get_unit_clss_wl_alt_def
+        get_unit_clauses_wl_alt_def
         simp del: all_clss_l_ran_m)
 
   {
@@ -498,7 +498,7 @@ proof -
       by (auto simp add: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
          image_image in_all_lits_of_mm_ain_atms_of_iff
         in_all_lits_of_m_ain_atms_of_iff
-        get_unit_clss_wl_alt_def
+        get_unit_clauses_wl_alt_def
         simp del: all_clss_l_ran_m)
 
     have M_confl: \<open>get_trail_wl x2 \<Turnstile>as CNot (the (get_conflict_wl x2))\<close>
@@ -831,7 +831,7 @@ lemma [twl_st_wl]: \<open>get_clauses_wl (set_conflict_wl D S) = get_clauses_wl 
   by (cases S) (auto simp: set_conflict_wl_def)
 lemma [twl_st_wl]:
   \<open>get_unit_init_clss_wl (set_conflict_wl D S) = get_unit_init_clss_wl S\<close>
-  \<open>get_unit_clss_wl (set_conflict_wl D S) = get_unit_clss_wl S\<close>
+  \<open>get_unit_clauses_wl (set_conflict_wl D S) = get_unit_clauses_wl S\<close>
   by (cases S; auto simp: set_conflict_wl_def; fail)+
 
 lemma (in -) lookup_None_notin_dom_m[simp]:
@@ -888,7 +888,7 @@ proof -
   apply clarify
   apply refine_vcg
   using that \<A>\<^sub>i\<^sub>n
-  by (auto simp: clauses_def  unit_prop_body_wl_find_unwatched_inv_def
+  by (auto simp: clauses_def unit_prop_body_wl_find_unwatched_inv_def
         mset_take_mset_drop_mset' S unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         ran_m_mapsto_upd unit_propagation_inner_loop_body_l_inv_def
         state_wl_l_def image_mset_remove1_mset_if)
@@ -907,7 +907,7 @@ proof -
     apply clarify
     apply refine_vcg
     using that \<A>\<^sub>i\<^sub>n
-    by (auto simp: clauses_def  mset_take_mset_drop_mset unit_prop_body_wl_find_unwatched_inv_def
+    by (auto simp: clauses_def mset_take_mset_drop_mset unit_prop_body_wl_find_unwatched_inv_def
           mset_take_mset_drop_mset' S unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
           ran_m_clause_upd unit_propagation_inner_loop_body_l_inv_def
           state_wl_l_def image_mset_remove1_mset_if)
@@ -1024,7 +1024,7 @@ proof -
     done
 qed
 
-definition (in isasat_input_ops)  unit_propagation_outer_loop_wl_D_inv  where
+definition (in isasat_input_ops)  unit_propagation_outer_loop_wl_D_inv where
 \<open>unit_propagation_outer_loop_wl_D_inv S \<longleftrightarrow>
     unit_propagation_outer_loop_wl_inv S \<and>
     literals_are_\<L>\<^sub>i\<^sub>n S\<close>
@@ -1037,7 +1037,7 @@ definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D :: \<open>nat 
         ASSERT(literals_to_update_wl S \<noteq> {#});
         (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl S;
         ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') +
-                        get_unit_clss_wl S'));
+                        get_unit_clauses_wl S'));
         unit_propagation_inner_loop_wl_D L S'
       })
       (S\<^sub>0 :: nat twl_st_wl)\<close>
@@ -1342,12 +1342,12 @@ proof -
       using LL' by (auto simp: U S dest: distinct_mem_diff_mset)
 
     have \<open>x \<in># all_lits_of_m (the (get_conflict_wl S)) \<Longrightarrow>
-        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf (get_clauses_wl S)#} + get_unit_clss_wl S)\<close>
+        x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf (get_clauses_wl S)#} + get_unit_clauses_wl S)\<close>
       for x
       using alien ST TU unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
       all_clss_lf_ran_m[symmetric] set_mset_union
       by (auto simp: twl_st_wl twl_st_l twl_st in_all_lits_of_m_ain_atms_of_iff
-        in_all_lits_of_mm_ain_atms_of_iff get_unit_clss_wl_alt_def)
+        in_all_lits_of_mm_ain_atms_of_iff get_unit_clauses_wl_alt_def)
     then have \<open>x \<in># all_lits_of_m DS \<Longrightarrow>
         x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + (NES + UES))\<close>
       for x
@@ -1490,7 +1490,7 @@ proof -
   show ?thesis
     unfolding backtrack_wl_D_def backtrack_wl_def find_lit_of_max_level_wl'_def
       array_of_arl_def
-    apply (subst  extract_shorter_conflict_wl'_def[symmetric])
+    apply (subst extract_shorter_conflict_wl'_def[symmetric])
     apply (subst find_lit_of_max_level_wl'_def[symmetric])
     supply [[goals_limit=1]]
     apply (refine_vcg extract_shorter_conflict_wl find_lit_of_max_level_wl find_decomp_wl

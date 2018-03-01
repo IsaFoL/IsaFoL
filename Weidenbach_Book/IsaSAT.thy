@@ -269,8 +269,7 @@ definition length_aa_u_code' where
 code_printing constant length_aa_u_code' \<rightharpoonup> (SML_imp)
    "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ (fst (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
 
-(*
-This equation makes no sense since a resizable array is represent by an array and an infinite
+(* This equation makes no sense since a resizable array is represent by an array and an infinite
  integer: There is no obvious shortcut.
 code_printing constant length_arl_u_code' \<rightharpoonup> (SML_imp)
    "(fn/ ()/ =>/ Word32.fromLargeInt (snd (_)))"  *)
@@ -339,30 +338,6 @@ proof -
   then show ?thesis
     by (auto simp: S clauses_def dest: satisfiable_decreasing)
 qed
-
-(* TODO Move *)
-lemma Ex_consistent_interp: \<open>Ex consistent_interp\<close>
-  by (auto simp: consistent_interp_def)
-
-lemma satisfiable_empty[simp]: \<open>satisfiable {}\<close>
-  by (auto simp: satisfiable_def Ex_consistent_interp)
-
-lemma twl_init_invs:
-  \<open>twl_struct_invs_init (([], {#}, {#}, None, {#}, {#}, {#}, {#}), {#})\<close>
-  \<open>twl_list_invs ([], fmempty, None, {#}, {#}, {#}, {#})\<close>
-  \<open>twl_stgy_invs ([], {#}, {#}, None, {#}, {#}, {#}, {#})\<close>
-  by (auto simp: twl_struct_invs_init_def twl_st_inv.simps twl_list_invs_def twl_stgy_invs_def
-      past_invs.simps
-      twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
-      past_invs.simps clauses_def
-      cdcl\<^sub>W_restart_mset_state twl_list_invs_def
-      twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
-      cdcl\<^sub>W_restart_mset.no_smaller_confl_def
-      cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
-(* End Move *)
 
 lemma cdcl_twl_stgy_prog_wl_spec_final2:
   shows
@@ -521,7 +496,7 @@ proof -
       apply (rule exI[of _ \<open>state\<^sub>W_of (fst W)\<close>])
       apply (intro conjI)
       subgoal
-        using T_V V_W unfolding  state_wl_l_init_def twl_st_l_init_alt_def
+        using T_V V_W unfolding state_wl_l_init_def twl_st_l_init_alt_def
         by (auto simp: TWL_to_clauses_state_conv_def mset_take_mset_drop_mset'
             clauses_def in_list_mset_rel in_list_mset_rel_mset_rel)
       subgoal
@@ -604,7 +579,7 @@ proof -
     have CS: \<open>CS = mset `# mset CS'\<close>
       using CS'_CS by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
     have \<open>other_clauses_init_wl T = {#}\<close>
-      using snd_T_conflict confl T_V V_W by (auto simp: twl_st_init  twl_st_l_init
+      using snd_T_conflict confl T_V V_W by (auto simp: twl_st_init twl_st_l_init
            twl_st_wl_init)
     have \<open>\<exists>C\<in>set CS'. C \<noteq> []\<close>
     proof (rule ccontr)
@@ -613,8 +588,8 @@ proof -
         by blast
       show False
         by (cases CS'; cases T)
-          (use E false_in_conflict clss confl T_V V_W  in
-            \<open>auto simp: clauses_def CS twl_st_init  twl_st_l_init   twl_st_wl_init\<close>)
+          (use E false_in_conflict clss confl T_V V_W in
+            \<open>auto simp: clauses_def CS twl_st_init twl_st_l_init   twl_st_wl_init\<close>)
     qed
     then show ?thesis
       unfolding extract_atms_clss_empty_iff by auto
@@ -712,7 +687,7 @@ proof -
       propa: \<open>\<And>L mark a b. a @ Propagated L mark # b = convert_lits_l N M \<Longrightarrow>
             b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> and
       clss_in_clss: \<open>set (get_all_mark_of_propagated (convert_lits_l N M)) \<subseteq> set_mset (mset `# mset CS')\<close>
-      using struct_invs unfolding  twl_struct_invs_def S\<^sub>0 twl_struct_invs_init_def
+      using struct_invs unfolding twl_struct_invs_def S\<^sub>0 twl_struct_invs_init_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def st cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
           N_NE
@@ -809,7 +784,7 @@ proof -
       apply (rule isasat_input_bounded.cdcl_twl_stgy_prog_wl_D_spec_final
         [of \<open>(mset (extract_atms_clss CS' []))\<close>])
       using CS_p \<L>\<^sub>a\<^sub>l\<^sub>l
-        struct_invs corr_w add_invs clss  confl clss
+        struct_invs corr_w add_invs clss confl clss
       by (auto simp: from_init_state_def st 1)
 
     have conclusive_le: \<open>(conclusive_TWL_run (fst W)) \<le> \<Down> ({(S', S). S = state\<^sub>W_of S'}) ?Spec\<close>
@@ -881,7 +856,7 @@ proof -
       qed
     qed
     show ?thesis
-      unfolding TWL_to_clauses_state_conv_def  from_init_state_def[symmetric]
+      unfolding TWL_to_clauses_state_conv_def from_init_state_def[symmetric]
       apply (rule order_trans)
        apply (rule 2)
       apply (subst (2) conc_fun_chain[symmetric])
@@ -961,44 +936,6 @@ proof -
     done
 qed
 
-(*TOD Move*)
-lemma list_all2_conj:
-  \<open>list_all2 (\<lambda>x y. P x y \<and> Q x y) xs ys \<longleftrightarrow> list_all2 P xs ys \<and> list_all2 Q xs ys\<close>
-  by (auto simp: list_all2_conv_all_nth)
-
-lemma (in isasat_input_bounded) init_dt_wl_heur_init_dt_wl:
-  \<open>(uncurry init_dt_wl_heur, uncurry init_dt_wl) \<in>
-    [\<lambda>(CS, S). (\<forall>C \<in> set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)) \<and> distinct_mset_set (mset ` set CS)]\<^sub>f
-     \<langle>Id\<rangle>list_rel \<times>\<^sub>f twl_st_heur_init \<rightarrow> \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
-proof -
-  have H: \<open>\<And>x y x1 x2 x1a x2a.
-       (\<forall>C\<in>set x1. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)) \<and> distinct_mset_set (mset ` set x1) \<Longrightarrow>
-       (x1a, x1) \<in> \<langle>Id\<rangle>list_rel \<Longrightarrow>
-       (x1a, x1) \<in> \<langle>{(C, C'). C = C' \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and>
-          distinct C}\<rangle>list_rel\<close>
-    apply (auto simp: list_rel_def list_all2_conj)
-    apply (auto simp: list_all2_conv_all_nth distinct_mset_set_def)
-    done
-
-  show ?thesis
-    unfolding init_dt_wl_heur_def init_dt_wl_def uncurry_def
-    apply (intro frefI nres_relI)
-    apply (case_tac y rule: prod.exhaust)
-    apply (case_tac x rule: prod.exhaust)
-    apply (simp only: prod.case prod_rel_iff)
-    apply (refine_vcg init_dt_step_wl_heur_init_dt_step_wl[THEN fref_to_Down_curry] H)
-         apply normalize_goal+
-    subgoal by fast
-    subgoal by fast
-    subgoal by simp
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    done
-qed
-
 lemma list_assn_list_mset_rel_clauses_l_assn:
   \<open>(hr_comp (list_assn (list_assn unat_lit_assn)) (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)) xs xs'
      = clauses_l_assn xs xs'\<close>
@@ -1023,14 +960,6 @@ proof -
         list_all2_op_eq_map_right_iff
         simp del: literal_of_nat.simps)
 qed
-
-(* TODO Move *)
-lemma (in -)fref_to_Down_explode:
-  \<open>(f a, g a) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x' b. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> b = a \<Longrightarrow> f a x \<le> \<Down> B (g b x'))\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-(* End Move *)
 
 lemma IsaSAT_heur_IsaSAT: \<open>(IsaSAT_heur, IsaSAT) \<in>
      [\<lambda>CS.  Multiset.Ball (mset CS) distinct]\<^sub>f
@@ -1271,7 +1200,7 @@ proof -
           mset_rel_def p2rel_def rel2p_def[abs_def] rel_mset_def
           list_all2_op_eq_map_right_iff')
     have im: \<open>?im' = ?im\<close>
-      unfolding  prod_hrp_comp hrp_comp_dest hrp_comp_keep
+      unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
         list_assn_list_mset_rel_clauses_l_assn
       ..
     have f: \<open>?f' = ?f\<close>

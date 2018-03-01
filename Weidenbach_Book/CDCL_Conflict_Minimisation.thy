@@ -273,7 +273,7 @@ proof -
     moreover have \<open>remdups_mset (add_mset L (D + C + D)) = remdups_mset (add_mset L (C + D))\<close>
       by (auto simp: remdups_mset_def)
     ultimately have \<open>NU \<Turnstile>p add_mset L C + D\<close>
-      apply (subst  true_clss_cls_remdups_mset[symmetric])
+      apply (subst true_clss_cls_remdups_mset[symmetric])
       apply (subst (asm) true_clss_cls_remdups_mset[symmetric])
       by simp
     from IH[OF this] entailed show ?case by auto
@@ -561,7 +561,7 @@ proof -
   have uL_M: \<open>- L \<in> lits_of_l M\<close>
     using in_trail by (force simp: lits_of_def)
   then have init_I: \<open>lit_redundant_inv M ?N D init_analysis (cach, init_analysis, False)\<close>
-    using assms NU_C  Propagated_in_trail_entailed[OF invs in_trail]
+    using assms NU_C Propagated_in_trail_entailed[OF invs in_trail]
     unfolding lit_redundant_inv_def
     by (auto simp: ac_simps)
 
@@ -1235,9 +1235,7 @@ lemma convert_analysis_list_empty[simp]:
 
 lemma lit_redundant_rec_wl:
   fixes S :: \<open>nat twl_st_wl\<close> and S' :: \<open>nat twl_st_l\<close> and S'' :: \<open>nat twl_st\<close> and NU M analyse
-   defines
-  (*  [simp]: \<open>S' \<equiv> st_l_of_wl None S\<close> and
-    [simp]: \<open>S'' \<equiv> twl_st_of_wl None S\<close> and*)
+  defines
     [simp]: \<open>S''' \<equiv> state\<^sub>W_of S''\<close>
   defines
     \<open>M \<equiv> get_trail_wl S\<close> and
@@ -1282,7 +1280,7 @@ proof -
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
     by fast
   have \<open>no_dup (get_trail_wl S)\<close>
-    using struct_invs  S_S' S'_S'' unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    using struct_invs S_S' S'_S'' unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (auto simp: twl_st_wl twl_st_l twl_st)
   then have n_d: \<open>no_dup M\<close>
@@ -1385,7 +1383,7 @@ proof -
           have \<open>defined_lit M' x1d\<close>
             using ux1e_M by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
           then have \<open>undefined_lit M1 x1d\<close>
-            using lev' n_d' lev_K  Suc_count_decided_gt_get_level[of M1]
+            using lev' n_d' lev_K Suc_count_decided_gt_get_level[of M1]
             unfolding M_def
             by (auto simp: S clauses_def mset_take_mset_drop_mset' M'_def[symmetric] defined_lit_cons
                 M' defined_lit_append atm_of_eq_atm_of get_level_cons_if
@@ -1499,9 +1497,7 @@ definition literal_redundant_wl where
 
 lemma literal_redundant_wl_literal_redundant:
   fixes S :: \<open>nat twl_st_wl\<close> and S' :: \<open>nat twl_st_l\<close> and S'' :: \<open>nat twl_st\<close> and NU M
-   defines
-  (*  [simp]: \<open>S' \<equiv> st_l_of_wl None S\<close> and
-    [simp]: \<open>S'' \<equiv> twl_st_of_wl None S\<close> and*)
+  defines
     [simp]: \<open>S''' \<equiv> state\<^sub>W_of S''\<close>
   defines
     \<open>M \<equiv> get_trail_wl S\<close> and
@@ -1616,7 +1612,7 @@ proof -
             have \<open>defined_lit M' L\<close>
               using ux1e_M by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
             then have \<open>undefined_lit M1 L\<close>
-              using lev' n_d' lev_K  Suc_count_decided_gt_get_level[of M1]
+              using lev' n_d' lev_K Suc_count_decided_gt_get_level[of M1]
               unfolding M_def
               by (auto simp: S clauses_def mset_take_mset_drop_mset' M'_def[symmetric]
                   defined_lit_cons M' defined_lit_append atm_of_eq_atm_of get_level_cons_if
@@ -1660,7 +1656,7 @@ proof -
         twl_st_l_def dest!: split_list)
   qed
   have [simp]: \<open>Propagated (- L) C \<in> set M \<Longrightarrow> C > 0 \<Longrightarrow> C \<in># dom_m NU\<close> for C
-    using add_inv  S_S' S'_S'' propagated_L[of C]
+    using add_inv S_S' S'_S'' propagated_L[of C]
     by (auto simp: S twl_list_invs_def state_wl_l_def
         twl_st_l_def)
   show ?thesis
@@ -1824,7 +1820,7 @@ lemma conflict_min_cach_set_removable:
     uncurry (RETURN oo conflict_min_cach_set_removable)) \<in>
      [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-     (auto simp: cach_refinement_alt_def map_fun_rel_def  cach_refinement_list_def
+     (auto simp: cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
       conflict_min_cach_set_removable_l_def)
 
 lemma conflict_min_cach_set_removable_hnr[sepref_fr_rules]:
@@ -1852,16 +1848,6 @@ definition (in isasat_input_ops) mark_failed_lits_stack where
       (0, cach);
    RETURN cach
    }\<close>
-
-(*
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l_tl:
-  assumes
-    N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl xs))\<close> and \<open>xs \<noteq> []\<close> and
-    i_xs: \<open>i < length xs\<close> and j_xs: \<open>j < length (xs ! i)\<close> \<open>i > 0\<close>
-  shows \<open>xs ! i ! j \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-  using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>tl xs\<close> \<open>i - 1\<close> j] assms
-  by (cases xs) auto
-*)
 
 lemma mark_failed_lits_stack_mark_failed_lits_wl:
   shows
@@ -1893,7 +1879,7 @@ proof -
       show ?thesis
         unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
         apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l)
-        using NU_\<L>\<^sub>i\<^sub>n that  nth_mem[of i analyse]
+        using NU_\<L>\<^sub>i\<^sub>n that nth_mem[of i analyse]
         by (auto simp: mark_failed_lits_stack_inv_def I_def)
     qed
     show ?thesis

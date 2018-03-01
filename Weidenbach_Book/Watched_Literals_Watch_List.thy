@@ -43,11 +43,11 @@ fun get_unit_learned_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<cl
 fun get_unit_init_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
   \<open>get_unit_init_clss_wl (M, N, D, NE, UE, Q, W) = NE\<close>
 
-fun get_unit_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
-  \<open>get_unit_clss_wl (M, N, D, NE, UE, Q, W) = NE + UE\<close>
+fun get_unit_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_unit_clauses_wl (M, N, D, NE, UE, Q, W) = NE + UE\<close>
 
-lemma get_unit_clss_wl_alt_def:
-  \<open>get_unit_clss_wl S = get_unit_init_clss_wl S + get_unit_learned_clss_wl S\<close>
+lemma get_unit_clauses_wl_alt_def:
+  \<open>get_unit_clauses_wl S = get_unit_init_clss_wl S + get_unit_learned_clss_wl S\<close>
   by (cases S) auto
 
 definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset\<close> where
@@ -130,7 +130,6 @@ fun remove_one_lit_from_wq :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow>
 
 named_theorems twl_st_wl \<open>Conversions simp rules\<close>
 
-(* TODO rename get_unit_clss_wl to get_unit_clauses_wl *)
 lemma [twl_st_wl]:
   assumes \<open>(S, T) \<in> state_wl_l L\<close>
   shows
@@ -145,7 +144,7 @@ lemma [twl_st_wl]:
     \<open>get_unit_learned_clauses_l T = get_unit_learned_clss_wl S\<close>
     \<open>get_unit_init_clauses_l T = get_unit_init_clss_wl S\<close>
     \<open>get_unit_learned_clauses_l T = get_unit_learned_clss_wl S\<close>
-   \<open>get_unit_clauses_l T = get_unit_clss_wl S\<close>
+   \<open>get_unit_clauses_l T = get_unit_clauses_wl S\<close>
   using assms unfolding state_wl_l_def all_clss_lf_ran_m[symmetric]
   by (cases S; cases T; cases L; auto split: option.splits simp: trail.simps; fail)+
 
@@ -163,7 +162,7 @@ lemma correct_watching_set_literals_to_update[simp]:
 
 lemma get_conflict_wl_set_literals_to_update_wl[twl_st_l]:
   \<open>get_conflict_wl (set_literals_to_update_wl P S) = get_conflict_wl S\<close>
-  \<open>get_unit_clss_wl (set_literals_to_update_wl P S) = get_unit_clss_wl S\<close>
+  \<open>get_unit_clauses_wl (set_literals_to_update_wl P S) = get_unit_clauses_wl S\<close>
   by (cases S; auto; fail)+
 
 lemma [twl_st_l]:
@@ -334,7 +333,7 @@ lemma
     S_S': \<open>(S, S') \<in> state_wl_l (Some (L, w))\<close> and
     w_le: \<open>w < length (watched_by S L)\<close> and
     corr_w: \<open>correct_watching S\<close>
-  shows  unit_propagation_inner_loop_body_wl_spec: \<open>unit_propagation_inner_loop_body_wl L w S \<le>
+  shows unit_propagation_inner_loop_body_wl_spec: \<open>unit_propagation_inner_loop_body_wl L w S \<le>
    \<Down> {((i, T'), T).
         (T', T) \<in> state_wl_l (Some (L, i)) \<and>
         correct_watching T' \<and>
@@ -513,7 +512,7 @@ proof -
           (M, N(W L ! w \<hookrightarrow> swap (N \<propto> (W L ! w)) i f'), None, NE, UE, Q, W
            (L := butlast (W L[w := last (W L)]),
             N \<propto> (W L ! w) ! f' := W (N \<propto> (W L ! w) ! f') @ [W L ! w]))\<close>
-      using corr_w unfolding  S  correct_watching.simps
+      using corr_w unfolding S correct_watching.simps
       by (auto simp: clause_to_update_mapsto_upd_If
         id_remove_1_mset_iff_notin
         remove_1_mset_id_iff_notin
@@ -575,14 +574,14 @@ proof -
             W))\<close>
       using S_S' w_le corr_w C'_dom[OF inv] corr_w
       unfolding propagate_lit_l_def propagate_lit_wl_def
-      by (auto simp: state_wl_l_def propagate_lit_wl_def  S image_mset_remove1_mset_if
+      by (auto simp: state_wl_l_def propagate_lit_wl_def S image_mset_remove1_mset_if
         Cons_nth_drop_Suc[symmetric] clause_to_update_mapsto_upd_If ran_def
       ran_m_mapsto_upd correct_watching.simps clause_to_update_def
       intro!: filter_mset_cong)
     then show ?thesis
       using S_S' w_le corr_w C'_dom[OF inv] corr_w
       unfolding propagate_lit_l_def propagate_lit_wl_def
-      by (auto simp: state_wl_l_def propagate_lit_wl_def  S
+      by (auto simp: state_wl_l_def propagate_lit_wl_def S
         Cons_nth_drop_Suc[symmetric] clause_to_update_mapsto_upd_If ran_m_mapsto_upd)
   qed
   have i_def': \<open>i = (if get_clauses_l T \<propto> C' ! 0 = L then 0 else 1)\<close>
@@ -785,7 +784,7 @@ definition unit_propagation_outer_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> '
       (\<lambda>S. do {
         ASSERT(literals_to_update_wl S \<noteq> {#});
         (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl S;
-        ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') + get_unit_clss_wl S'));
+        ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') + get_unit_clauses_wl S'));
         unit_propagation_inner_loop_wl L S'
       })
       (S\<^sub>0 :: 'v twl_st_wl)
@@ -820,7 +819,7 @@ proof -
    \<open>select_and_remove_from_literals_to_update_wl S' \<le>
      \<Down> {((T', L'), (T, L)). L = L' \<and> (T', T) \<in> state_wl_l (Some (L, 0)) \<and>
          T' = set_literals_to_update_wl (literals_to_update_wl S' - {#L#}) S' \<and> L \<in># literals_to_update_wl S' \<and>
-         L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') + get_unit_clss_wl S')
+         L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') + get_unit_clauses_wl S')
        }
        (select_and_remove_from_literals_to_update S)\<close>
     if S: \<open>(S', S) \<in> state_wl_l None\<close> and \<open>get_conflict_wl S' = None\<close> and
@@ -1125,7 +1124,7 @@ qed
 
 subsubsection \<open>Backtrack\<close>
 
-definition find_decomp_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl  nres\<close> where
+definition find_decomp_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>find_decomp_wl =  (\<lambda>L (M, N, D, NE, UE, Q, W).
     SPEC(\<lambda>S. \<exists>K M2 M1. S = (M1, N, D, NE, UE, Q, W) \<and> (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (the D - {#-L#}) + 1))\<close>
@@ -1349,7 +1348,7 @@ proof -
     \<le> \<Down> {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T'}
         (propagate_bt_l (lit_of (hd (get_trail_l S))) L U)\<close>
     (is \<open>_ \<le> \<Down> ?propa _\<close>)
-    if  SS': \<open>(S', S) \<in> ?A\<close> and
+    if SS': \<open>(S', S) \<in> ?A\<close> and
      UU': \<open>(U', U) \<in> ?find T'\<close> and
      LL': \<open>(L', L) \<in> ?find_lit U'\<close> and
      TT': \<open>(T', T) \<in> ?extract S'\<close> and
@@ -1392,7 +1391,7 @@ proof -
                    {a. a \<in># ran_m (get_clauses_wl S') \<and> snd a}) \<union>
                  atms_of_mm (get_unit_init_clss_wl S')\<close>
       using SS' bt unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        backtrack_wl_inv_def backtrack_l_inv_def  cdcl\<^sub>W_restart_mset.no_strange_atm_def
+        backtrack_wl_inv_def backtrack_l_inv_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
       apply -
       apply normalize_goal+
       apply (simp add: twl_st twl_st_l twl_st_wl)
@@ -1439,7 +1438,7 @@ proof -
      bt: \<open>backtrack_wl_inv S'\<close>
     for S' S T T' L L' U U' K'
   proof -
-    obtain MS NS  DS NES UES W where
+    obtain MS NS DS NES UES W where
       S': \<open>S' = (MS, NS, Some DS, NES, UES, {#}, W)\<close>
       using SS' UU' empty[OF bt] by (cases S'; cases \<open>get_conflict_wl S'\<close>) auto
     then obtain DT where
@@ -1546,7 +1545,7 @@ proof -
       decide_l_or_skip_def fref_param1[symmetric]
     apply (refine_vcg skip_and_resolve_loop_wl_spec["to_\<Down>"] backtrack_wl_spec["to_\<Down>"]
       find_unassigned_lit_wl option_id)
-    subgoal  unfolding cdcl_twl_o_prog_wl_pre_def by blast
+    subgoal unfolding cdcl_twl_o_prog_wl_pre_def by blast
     subgoal by auto
     subgoal unfolding decide_wl_or_skip_pre_def by blast
     subgoal by (auto simp:)

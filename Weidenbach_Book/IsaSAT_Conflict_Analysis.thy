@@ -272,7 +272,7 @@ lemma lookup_conflict_remove1:
   subgoal for x y a b aa ab c
     using mset_as_position_remove[of c b \<open>atm_of aa\<close>]
     by (cases \<open>aa\<close>)
-       (auto simp: lookup_clause_rel_def lookup_conflict_remove1_def  lookup_clause_rel_atm_in_iff minus_notin_trivial2
+       (auto simp: lookup_clause_rel_def lookup_conflict_remove1_def lookup_clause_rel_atm_in_iff minus_notin_trivial2
       size_remove1_mset_If in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff minus_notin_trivial mset_as_position_in_iff_nth)
    done
 
@@ -407,7 +407,7 @@ proof -
         using dist uL_D multi_member_split[of \<open>-L\<close> \<open>the D\<close>]
         by auto
      moreover have [simp]: \<open>- L \<notin> set (tl (N' \<propto> C))\<close>
-        using uL_D proped  L_M nempty uL_NC
+        using uL_D proped L_M nempty uL_NC
         by (cases \<open>N' \<propto> C\<close>) (auto simp: resolve_cls_wl'_def split: if_splits)
      ultimately have [simp]: \<open>- L \<notin># remove1_mset (- L) (the D' \<union># mset (tl (N' \<propto> C)))\<close>
         by (metis \<open>D = D'\<close> diff_single_trivial in_multiset_in_set multi_drop_mem_not_eq
@@ -445,7 +445,7 @@ proof -
       have \<open>distinct_mset (remove1_mset (- L) (the D' \<union># mset (tl (N' \<propto> C))))\<close>
         using dist_NC dist_D by (auto intro!: distinct_mset_minus)
       moreover have \<open>\<not>tautology (remove1_mset (- L) (the D' \<union># mset (tl (N' \<propto> C))))\<close>
-        using tauto_NC_D  by simp
+        using tauto_NC_D by simp
       moreover have \<open>card_max_lvl M (mset (tl (N' \<propto> C)) \<union># the D') - 1 =
         card_max_lvl M (remove1_mset (- L) (the D' \<union># mset (tl (N' \<propto> C))))\<close>
         unfolding \<open>lit_of (hd M) = L\<close> [symmetric]
@@ -478,18 +478,6 @@ proof -
       done
     done
 qed
-
-(* TODO Kill
-lemma skip_and_resolve_hd_D\<^sub>0:
-  assumes
-    \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close> and
-    \<open>get_trail_wl S = Propagated x21 x22 # xs\<close> and
-    \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
-  shows \<open>- x21 \<in> snd ` D\<^sub>0\<close>
-  using literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail[of S None] assms
-  by (cases S)
-     (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons image_image
-      uminus_\<A>\<^sub>i\<^sub>n_iff) *)
 
 definition (in isasat_input_ops) skip_and_resolve_loop_wl_D_heur_inv where
  \<open>skip_and_resolve_loop_wl_D_heur_inv S\<^sub>0' =
@@ -591,7 +579,7 @@ lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def:
   done
 
 lemma (in -)sup_union_right_if:
-  \<open>N \<union># add_mset x M = (if x \<notin># N then  add_mset x (N \<union># M) else add_mset x (remove1_mset x N \<union># M))\<close>
+  \<open>N \<union># add_mset x M = (if x \<notin># N then add_mset x (N \<union># M) else add_mset x (remove1_mset x N \<union># M))\<close>
   by (auto simp: sup_union_right2)
 text \<open>END MOVE\<close>
 
@@ -1071,7 +1059,7 @@ proof -
     hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d) (Id \<times>\<^sub>f lookup_clause_rel) \<rightarrow>
     hr_comp lookup_clause_rel_assn lookup_clause_rel\<close>
       (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using  hfref_compI_PRE_aux[OF conflict_remove1_code_refine lookup_conflict_remove1]
+    using hfref_compI_PRE_aux[OF conflict_remove1_code_refine lookup_conflict_remove1]
     unfolding op_mset_delete_def
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x

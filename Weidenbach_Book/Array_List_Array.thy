@@ -189,7 +189,7 @@ definition update_raa :: "('a::{heap,default}) arrayO_raa \<Rightarrow> nat \<Ri
       arl_set a i a'
     }\<close> -- \<open>is the Array.upd really needed?\<close>
 
-definition update_rll :: "'a list_rll \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list"  where
+definition update_rll :: "'a list_rll \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
   \<open>update_rll xs i j y = xs[i:= (xs ! i)[j := y]]\<close>
 
 declare nth_rule[sep_heap_rules del]

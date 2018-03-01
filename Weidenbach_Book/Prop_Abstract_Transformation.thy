@@ -230,7 +230,7 @@ text \<open>To prove correctness of our transformation, we create a @{term all_s
   relation and the @{term test_symb}\<close>
 
 
-definition all_subformula_st :: "('a propo \<Rightarrow> bool) \<Rightarrow> 'a propo \<Rightarrow> bool"  where
+definition all_subformula_st :: "('a propo \<Rightarrow> bool) \<Rightarrow> 'a propo \<Rightarrow> bool" where
 "all_subformula_st test_symb \<phi> \<equiv> \<forall>\<psi>. \<psi> \<preceq> \<phi> \<longrightarrow> test_symb \<psi>"
 
 

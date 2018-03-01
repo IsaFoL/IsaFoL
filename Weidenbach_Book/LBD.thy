@@ -68,7 +68,7 @@ lemma length_arl_u_hnr[sepref_fr_rules]:
   \<open>(length_arl_u_code, RETURN o length_u) \<in>
      [\<lambda>xs. length xs \<le> uint_max]\<^sub>a (arl_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare
-    (sep_auto simp: length_u_code_def  nat_of_uint32_uint32_of_nat_id
+    (sep_auto simp: length_u_code_def nat_of_uint32_uint32_of_nat_id
       length_arl_u_code_def arl_assn_def
       arl_length_def hr_comp_def is_array_list_def list_rel_pres_length[symmetric]
       uint32_nat_rel_def br_def)

@@ -97,7 +97,7 @@ proof (induction rule: cdcl_twl_restart.induct)
       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (M, N, U, None, NE, UE, {#}, Q))\<close>  and
     smaller_propa:
       \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of (M, N, U, None, NE, UE, {#}, Q))\<close>
-    using inv unfolding twl_struct_invs_def  by fast+
+    using inv unfolding twl_struct_invs_def by fast+
   have drop_M_M': \<open>drop (length M - length M') M = M'\<close>
     using decomp by (auto)
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ([], clause `# N + NE, clause `# U' + UE, None)
@@ -132,7 +132,7 @@ next
       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (M, N, U, None, NE, UE, {#}, Q))\<close>  and
     smaller_propa:
       \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of (M, N, U, None, NE, UE, {#}, Q))\<close>
-    using inv unfolding twl_struct_invs_def  by fast+
+    using inv unfolding twl_struct_invs_def by fast+
 
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ([], clause `# N + NE, clause `# U' + UE, None)
       (drop (length M - length M) M, clause `# N + NE, clause `# U' + UE, None)\<close> for n
@@ -175,7 +175,7 @@ proof (induction rule: cdcl_twl_restart.induct)
       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (M, N, U, None, NE, UE, {#}, Q))\<close>  and
     smaller_propa:
       \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of (M, N, U, None, NE, UE, {#}, Q))\<close>
-    using inv unfolding twl_struct_invs_def  by fast+
+    using inv unfolding twl_struct_invs_def by fast+
   have drop_M_M': \<open>drop (length M - length M') M = M'\<close>
     using decomp by (auto)
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ([], clause `# N + NE, clause `# U' + UE, None)
@@ -204,13 +204,13 @@ next
       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (M, N, U, None, NE, UE, {#}, Q))\<close>  and
     smaller_propa:
       \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of (M, N, U, None, NE, UE, {#}, Q))\<close>
-    using inv unfolding twl_struct_invs_def  by fast+
+    using inv unfolding twl_struct_invs_def by fast+
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ([], clause `# N + NE, clause `# U' + UE, None)
       (drop (length M - length M) M, clause `# N + NE, clause `# U' + UE, None)\<close> for n
     apply (rule after_fast_restart_replay_no_stgy[of M \<open>clause `# N + NE\<close> \<open>clause `# U+UE\<close> _
           \<open>clause `# U' + UE\<close>])
     subgoal using struct_invs by simp
-    subgoal using kept  by (auto simp add: ac_simps)
+    subgoal using kept by (auto simp add: ac_simps)
     subgoal using learned by (auto simp: image_mset_subseteq_mono)
     done
   then have st: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ?T (state\<^sub>W_of ?V)\<close>
@@ -331,7 +331,7 @@ proof (induction rule: cdcl_twl_restart.induct)
      using clss_to_upd learned by (auto simp add: filter_mset_empty_conv)
 
    have [simp]: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W \<le> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<close>
-     using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart  by blast
+     using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart by blast
 
    obtain T' where
      res: \<open>cdcl\<^sub>W_restart_mset.restart (state\<^sub>W_of (M, N, U, None, NE, UE, {#}, Q)) T'\<close> and
@@ -447,7 +447,7 @@ next
    qed
 
    have [simp]: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W \<le> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<close>
-     using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart  by blast
+     using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart by blast
 
    have clss_to_upd: \<open>clauses_to_update_inv (M, N, U', None, NE, UE, {#}, Q)\<close>
      using to_upd learned by (auto simp add: filter_mset_empty_conv)
@@ -531,7 +531,7 @@ lemma cdcl_twl_stgy_restart_twl_stgy_invs:
   shows \<open>twl_stgy_invs (fst T)\<close>
   using assms
   by (induction rule: cdcl_twl_stgy_restart.induct)
-    (auto simp add: full1_def  dest!: tranclp_into_rtranclp
+    (auto simp add: full1_def dest!: tranclp_into_rtranclp
       intro: cdcl_twl_restart_twl_stgy_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs )
 
 lemma no_step_cdcl_twl_stgy_restart_cdcl_twl_stgy:

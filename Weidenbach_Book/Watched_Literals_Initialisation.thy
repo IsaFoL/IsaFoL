@@ -470,7 +470,7 @@ lemma twl_struct_invs_init_init_state:
   shows \<open>twl_struct_invs_init T\<close>
 proof -
   have n_d: \<open>no_dup (get_trail_init T)\<close>
-    using struct_invs unfolding  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    using struct_invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (cases T) (auto simp: trail.simps)
   then show ?thesis
     using invariants_init_state[OF lev wf MQ WS n_d] assms unfolding twl_struct_invs_init_def
@@ -920,7 +920,7 @@ lemma [twl_st_init]:
 
 lemma [twl_st_l_init]:
   \<open>get_trail_l_init (add_empty_conflict_init_l T) = get_trail_l_init T\<close>
-  \<open>get_conflict_l_init (add_empty_conflict_init_l  T) = Some {#}\<close>
+  \<open>get_conflict_l_init (add_empty_conflict_init_l T) = Some {#}\<close>
   \<open>clauses_to_update_l_init (add_empty_conflict_init_l T) =  clauses_to_update_l_init T\<close>
   \<open>literals_to_update_l_init (add_empty_conflict_init_l T) = {#}\<close>
   \<open>get_unit_clauses_l_init (add_empty_conflict_init_l T) = get_unit_clauses_l_init T\<close>
@@ -1243,14 +1243,14 @@ proof -
     have \<open>init_dt_pre CS ((M, N, Some D', NE, UE, {#}, Q), add_mset (mset a) OC)\<close>
       unfolding init_dt_pre_def
       apply (rule exI[of _ \<open>add_to_other_init a T\<close>])
-      using dist inv WS dec  in_literals_to_update add_inv stgy_inv SOC_T
+      using dist inv WS dec in_literals_to_update add_inv stgy_inv SOC_T
       by (auto simp: S'  count_decided_0_iff
           intro!: twl_struct_invs_init_add_to_other_init)
     moreover have \<open>init_dt_spec [a] ((M, N, Some D', NE, UE, {#}, Q), OC)
         ((M, N, Some D', NE, UE, {#}, Q), add_mset (mset a) OC)\<close>
       unfolding init_dt_spec_def
       apply (rule exI[of _ \<open>add_to_other_init a T\<close>])
-      using dist inv WS dec  in_literals_to_update add_inv stgy_inv SOC_T
+      using dist inv WS dec in_literals_to_update add_inv stgy_inv SOC_T
       by (auto simp: S'  count_decided_0_iff
           intro!: twl_struct_invs_init_add_to_other_init)
     ultimately show ?thesis
@@ -1413,4 +1413,19 @@ lemma init_dt_pre_empty_state:
       cdcl\<^sub>W_restart_mset.no_smaller_confl_def
       cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
 
+lemma twl_init_invs:
+  \<open>twl_struct_invs_init (([], {#}, {#}, None, {#}, {#}, {#}, {#}), {#})\<close>
+  \<open>twl_list_invs ([], fmempty, None, {#}, {#}, {#}, {#})\<close>
+  \<open>twl_stgy_invs ([], {#}, {#}, None, {#}, {#}, {#}, {#})\<close>
+  by (auto simp: twl_struct_invs_init_def twl_st_inv.simps twl_list_invs_def twl_stgy_invs_def
+      past_invs.simps
+      twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
+      past_invs.simps clauses_def
+      cdcl\<^sub>W_restart_mset_state twl_list_invs_def
+      twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+      cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+      cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
 end
