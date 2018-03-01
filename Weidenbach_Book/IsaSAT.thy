@@ -151,12 +151,11 @@ proof -
        p2rel_def rel2p_def[abs_def] rel_mset_def br_def Collect_eq_comp list_rel_def)
 qed
 
-(* TODO rename twl_st_heur_assn to isasat_assn*)
 lemma cdcl_twl_stgy_prog_wl_D_code_ref':
   \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_code), uncurry isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur)
   \<in> [\<lambda>(N, _). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n]\<^sub>a
      (list_mset_assn uint32_nat_assn)\<^sup>k *\<^sub>a
-    (isasat_input_ops.twl_st_heur_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> isasat_input_ops.twl_st_heur_assn \<A>\<^sub>i\<^sub>n\<close>
+    (isasat_input_ops.isasat_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> isasat_input_ops.isasat_assn \<A>\<^sub>i\<^sub>n\<close>
   unfolding hfref_def hn_refine_def
   apply (subst in_pair_collect_simp)
   apply (intro allI impI)
@@ -166,7 +165,7 @@ lemma cdcl_twl_stgy_prog_wl_D_code_ref':
       rule_format, of \<open>snd c\<close> \<open>snd a\<close>]
     apply (cases a)
     by (sep_auto simp:
-      dest!: frame_rule_left[of \<open>isasat_input_ops.twl_st_heur_assn _ _ _\<close> _ _
+      dest!: frame_rule_left[of \<open>isasat_input_ops.isasat_assn _ _ _\<close> _ _
         \<open>list_mset_assn uint32_nat_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
   done
 
@@ -190,7 +189,7 @@ context isasat_input_ops
 begin
 
 lemma extract_model_of_state_stat_hnr[sepref_fr_rules]:
-  \<open>(return o get_trail_wl_code, RETURN o extract_model_of_state_stat) \<in> twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a
+  \<open>(return o get_trail_wl_code, RETURN o extract_model_of_state_stat) \<in> isasat_assn\<^sup>d \<rightarrow>\<^sub>a
        model_stat_assn\<close>
 proof -
   have [simp]: \<open>(\<lambda>a c. \<up> ((c, a) \<in> unat_lit_rel)) = unat_lit_assn\<close>
@@ -200,15 +199,15 @@ proof -
     by (auto simp: pure_def)
   show ?thesis
     by sepref_to_hoare
-      (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def twl_st_heur_assn_def
-        twl_st_heur_init_assn_def get_trail_wl_code_def
+      (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def isasat_assn_def
+        isasat_init_assn_def get_trail_wl_code_def
         extract_model_of_state_def extract_model_of_state_stat_def
         dest!: ann_lits_split_reasons_map_lit_of
         elim!: mod_starE)
 qed
 
 lemma get_stats_code[sepref_fr_rules]:
-  \<open>(return o get_stats_code, RETURN o extract_state_stat) \<in> twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a
+  \<open>(return o get_stats_code, RETURN o extract_state_stat) \<in> isasat_assn\<^sup>d \<rightarrow>\<^sub>a
        model_stat_assn\<close>
 proof -
   have [simp]: \<open>(\<lambda>a c. \<up> ((c, a) \<in> unat_lit_rel)) = unat_lit_assn\<close>
@@ -218,8 +217,8 @@ proof -
     by (auto simp: pure_def)
   show ?thesis
     by sepref_to_hoare
-      (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def twl_st_heur_assn_def
-        twl_st_heur_init_assn_def get_trail_wl_code_def get_stats_code_def
+      (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def isasat_assn_def
+        isasat_init_assn_def get_trail_wl_code_def get_stats_code_def
         extract_model_of_state_def extract_model_of_state_stat_def extract_state_stat_def
         dest!: ann_lits_split_reasons_map_lit_of
         elim!: mod_starE)
@@ -305,24 +304,6 @@ proof -
   then show ?thesis
     unfolding extract_atms_clss_def .
 qed
-
-(* TODO Move *)
-lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step:
-  \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state {#}) S \<longleftrightarrow> False\<close>
-  unfolding rtranclp_unfold
-  by (auto simp:  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps
-      cdcl\<^sub>W_restart_mset.conflict.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.simps
-       cdcl\<^sub>W_restart_mset.propagate.simps cdcl\<^sub>W_restart_mset.decide.simps
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps cdcl\<^sub>W_restart_mset.backtrack.simps
-      cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps
-      cdcl\<^sub>W_restart_mset_state clauses_def)
-
-lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state:
-  \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state {#}) S \<longleftrightarrow> S = init_state {#}\<close>
-  unfolding rtranclp_unfold
-  by (subst tranclp_unfold_begin)
-     (auto simp: cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step simp del: init_state.simps)
-(* End Move *)
 
 lemma conflict_of_level_unsatisfiable:
   assumes

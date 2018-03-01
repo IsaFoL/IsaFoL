@@ -183,5 +183,20 @@ sublocale cdcl\<^sub>W_restart_mset: cdcl\<^sub>W_restart_restart where
   by unfold_locales (rule f)
 end
 
+lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step:
+  \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state {#}) S \<longleftrightarrow> False\<close>
+  unfolding rtranclp_unfold
+  by (auto simp:  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps
+      cdcl\<^sub>W_restart_mset.conflict.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.simps
+       cdcl\<^sub>W_restart_mset.propagate.simps cdcl\<^sub>W_restart_mset.decide.simps
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps cdcl\<^sub>W_restart_mset.backtrack.simps
+      cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps
+      cdcl\<^sub>W_restart_mset_state clauses_def)
+
+lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state:
+  \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state {#}) S \<longleftrightarrow> S = init_state {#}\<close>
+  unfolding rtranclp_unfold
+  by (subst tranclp_unfold_begin)
+     (auto simp: cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step simp del: init_state.simps)
 
 end

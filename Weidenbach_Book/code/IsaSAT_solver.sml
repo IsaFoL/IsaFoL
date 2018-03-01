@@ -1293,13 +1293,6 @@ fun watched_by_app_heur_code x =
                                end)
     x;
 
-fun array_upd_u A_ i x a =
-  (fn () => let
-              val _ = (fn () => Array.update (a, (Word32.toInt i), x)) ();
-            in
-              a
-            end);
-
 fun array_shrink A_ a s =
   (fn () =>
     let
@@ -1339,6 +1332,13 @@ fun arl_butlast A_ =
             ()
         end)
     end);
+
+fun array_upd_u A_ i x a =
+  (fn () => let
+              val _ = (fn () => Array.update (a, (Word32.toInt i), x)) ();
+            in
+              a
+            end);
 
 fun set_butlast_aa_u A_ a i =
   (fn () =>

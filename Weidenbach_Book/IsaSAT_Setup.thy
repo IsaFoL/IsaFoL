@@ -146,8 +146,8 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     out_learned M D outl
   }\<close>
 
-definition twl_st_heur_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
-\<open>twl_st_heur_assn =
+definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
+\<open>isasat_assn =
   trail_assn *a clauses_ll_assn *a
   option_lookup_clause_assn *a
   clause_l_assn *a
@@ -232,8 +232,8 @@ lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
 
 sepref_thm get_conflict_wl_is_None_code
   is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
-  :: \<open>twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding get_conflict_wl_is_None_heur_def twl_st_heur_assn_def length_ll_def[symmetric]
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wl_is_None_heur_def isasat_assn_def length_ll_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
 
@@ -261,8 +261,8 @@ lemma  (in isasat_input_ops) get_conflict_wll_is_Nil_heur_alt_def:
 
 sepref_thm get_conflict_wl_is_Nil_code
   is \<open>RETURN o get_conflict_wl_is_Nil_heur\<close>
-  :: \<open>twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding get_conflict_wll_is_Nil_heur_alt_def twl_st_heur_assn_def
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wll_is_Nil_heur_alt_def isasat_assn_def
   supply [[goals_limit=1]]
   by sepref
 
@@ -280,9 +280,9 @@ definition (in isasat_input_ops) count_decided_st where
 
 sepref_thm count_decided_st_code
   is \<open>RETURN o count_decided_st\<close>
-  :: \<open>twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=2]]
-  unfolding count_decided_st_def twl_st_heur_assn_def
+  unfolding count_decided_st_def isasat_assn_def
   by sepref
 
 concrete_definition (in -) count_decided_st_code
@@ -329,9 +329,9 @@ definition (in isasat_input_ops) literal_is_in_conflict_heur_pre where
 sepref_thm literal_is_in_conflict_heur_code
   is \<open>uncurry (RETURN oo literal_is_in_conflict_heur)\<close>
   :: \<open>[literal_is_in_conflict_heur_pre]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>k  \<rightarrow> bool_assn\<close>
+      unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>k  \<rightarrow> bool_assn\<close>
   supply [[goals_limit=1]]
-  unfolding literal_is_in_conflict_heur_alt_def twl_st_heur_assn_def is_in_conflict_def[symmetric]
+  unfolding literal_is_in_conflict_heur_alt_def isasat_assn_def is_in_conflict_def[symmetric]
   PR_CONST_def literal_is_in_conflict_heur_pre_def
   by sepref
 
@@ -356,8 +356,8 @@ lemma polarity_st_heur_alt_def:
 
 sepref_thm polarity_st_heur_pol
   is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
-  :: \<open>[polarity_st_pre]\<^sub>a twl_st_heur_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
-  unfolding polarity_st_heur_alt_def twl_st_heur_assn_def
+  :: \<open>[polarity_st_pre]\<^sub>a isasat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
+  unfolding polarity_st_heur_alt_def isasat_assn_def
   supply [[goals_limit = 1]]
   by sepref
 

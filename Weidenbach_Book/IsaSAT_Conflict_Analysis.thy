@@ -198,25 +198,6 @@ lemma (in isasat_input_ops) tl_state_wl_heur_alt_def:
        (tl M, N, D, WS, Q, vmtf_unset (atm_of L) vmtf, \<phi>, clvls)))\<close>
   by (auto simp: tl_state_wl_heur_def Let_def)
 
-(* TODO remove
-lemma literals_are_\<L>\<^sub>i\<^sub>n_hd_trail_in_D\<^sub>0:
-  assumes
-    \<L>\<^sub>a\<^sub>l\<^sub>l: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    invs: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
-    nil: \<open>get_trail_wl S \<noteq> []\<close>
-  shows \<open>lit_of (hd (get_trail_wl S)) \<in> snd ` D\<^sub>0\<close>
-proof -
-  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None S))\<close>
-    using invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast
-  then show ?thesis
-     using nil \<L>\<^sub>a\<^sub>l\<^sub>l by (cases S; cases \<open>get_trail_wl S\<close>)
-        (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def
-          in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff image_image mset_take_mset_drop_mset' clauses_def
-          is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def)
-qed
-*)
-
 (* TODO: adapt this code to early breaks in skip_and_resolve! *)
 lemma card_max_lvl_Cons:
   assumes \<open>no_dup (L # a)\<close> \<open>distinct_mset y\<close>\<open>\<not>tautology y\<close> \<open>\<not>is_decided L\<close>
@@ -275,59 +256,6 @@ lemma tl_state_wl_heur_tl_state_wl:
     card_max_lvl_tl tl_state_wl_pre_def tl_state_out_learned
     dest: no_dup_tlD)
 
-(* TODO KILL
-lemma twl_struct_invs_confl:
-  assumes
-    \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
-    confl: \<open>get_conflict_wl S \<noteq> None\<close>
-  shows
-     \<open>\<not>tautology (the (get_conflict_wl S))\<close> and
-     \<open>distinct_mset (the (get_conflict_wl S))\<close> and
-     \<open>\<And>L. L \<in># the (get_conflict_wl S) \<Longrightarrow> -L \<in> lits_of_l (get_trail_wl S)\<close>
-     \<open>\<And>L. L \<in># the (get_conflict_wl S) \<Longrightarrow> L \<notin> lits_of_l (get_trail_wl S)\<close>
-proof -
-  obtain M N U D NE UE Q W where
-    S: \<open>S = (M, N, U, Some D, NE, UE, W, Q)\<close>
-    using confl by (cases S; cases \<open>get_conflict_wl S\<close>; cases \<open>hd (get_trail_wl S)\<close>;
-        cases \<open>get_trail_wl S\<close>) auto
-  have
-     confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of (twl_st_of_wl None S))\<close> and
-     M_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of (twl_st_of_wl None S))\<close> and
-     dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl None S))\<close>
-    using assms unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def twl_struct_invs_def
-    by auto
-  have dist_D: \<open>distinct_mset D\<close>
-    using dist unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
-    by (auto simp: S)
-  then show \<open>distinct_mset (the (get_conflict_wl S))\<close>
-    by (auto simp: S)
-
-  have M_D: \<open>convert_lits_l N M \<Turnstile>as CNot D\<close>
-    using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    by (auto simp: S true_annots_true_cls)
-
-  have M_D': \<open>M \<Turnstile>as CNot D\<close>
-    using M_D by (auto simp: true_annots_true_cls split: if_splits)
-
-  have cons: \<open>consistent_interp (lits_of_l M)\<close> and n_d: \<open>no_dup M\<close>
-    using M_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-    by (auto simp: S)
-  have tauto_D: \<open>\<not>tautology D\<close>
-    using M_D' cons consistent_CNot_not_tautology[of \<open>lits_of_l M\<close> D]
-    by (auto dest!: distinct_consistent_interp simp: true_annots_true_cls)
-  then show \<open> \<not> tautology (the (get_conflict_wl S))\<close>
-    by (auto simp: S)
-
-  show H: \<open>\<And>L. L \<in># the (get_conflict_wl S) \<Longrightarrow> -L \<in> lits_of_l (get_trail_wl S)\<close>
-    using M_D' unfolding S true_annots_true_cls_def_iff_negation_in_model
-    by auto
-  show \<open>L \<in># the (get_conflict_wl S) \<Longrightarrow> L \<notin> lits_of_l (get_trail_wl S)\<close> for L
-    using H[of L] n_d
-    unfolding S true_annots_true_cls_def_iff_negation_in_model
-    by (auto dest: no_dup_consistentD)
-qed
-*)
-
 definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
@@ -347,158 +275,6 @@ lemma lookup_conflict_remove1:
        (auto simp: lookup_clause_rel_def lookup_conflict_remove1_def  lookup_clause_rel_atm_in_iff minus_notin_trivial2
       size_remove1_mset_If in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff minus_notin_trivial mset_as_position_in_iff_nth)
    done
-(* TODO port
-lemma
-  fixes S and C clvls :: nat
-  defines [simp]:
-     \<open>E \<equiv> (mset (tl ((get_clauses_wl S)!C)) \<union># the (get_conflict_wl S))\<close>
-  assumes invs: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
-    confl: \<open>get_conflict_wl S \<noteq> None\<close> and
-    C: \<open>C < length (get_clauses_wl S)\<close> and
-    L_confl: \<open>-L \<in># the (get_conflict_wl S)\<close> and
-    tr: \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close>
-       \<open>is_proped (hd (get_trail_wl S))\<close> \<open>get_trail_wl S \<noteq> []\<close> and
-    twl_list: \<open>twl_list_invs (st_l_of_wl None S)\<close> and
-    C': \<open>C > 0\<close>
-  shows
-    resolve_cls_wl'_union_uminus_positive_index:
-      \<open>resolve_cls_wl' S C L = remove1_mset (-L) E\<close>
-       (is \<open>?Res\<close>) and
-    resolve_cls_wl'_not_tauto_confl: \<open>\<not>tautology (the (get_conflict_wl S))\<close> (is ?tauto) and
-    resolve_cls_wl'_not_tauto_cls: \<open>\<not>tautology (mset (get_clauses_wl S ! C))\<close>
-      (is \<open>?tauto_cls\<close>) and
-    resolve_cls_wl'_L_in_cls: \<open>L \<in> set (get_clauses_wl S ! C)\<close> (is \<open>?L_in_cls\<close>) and
-    resolve_cls_wl'_L_notin_cls: \<open>-L \<notin> set (get_clauses_wl S ! C)\<close> (is \<open>?uL_notin_cls\<close>) and
-    resolve_cls_wl'_L_notin_tl_cls: \<open>L \<notin> set (tl (get_clauses_wl S ! C))\<close>
-       (is \<open>?L_notin_tl_cls\<close>) and
-    resolve_cls_wl'_in:
-      \<open>-L \<in># E\<close>
-      (is \<open>?L_in_union\<close>) and
-    resolve_cls_wl'_notin:
-      \<open>L \<notin># E\<close>
-      (is \<open>?L_notin_union\<close>) and
-    resolve_cls_wl'_not_tauto: \<open>\<not> tautology E\<close> and
-    resolve_cls_wl'_card_max_lvl:
-       \<open>card_max_lvl (get_trail_wl S) E = card_max_lvl (tl (get_trail_wl S))
-         (E - {#-lit_of (hd (get_trail_wl S))#}) + 1\<close>(is \<open>?Max\<close>) and
-    resolve_helper_notin_conflict:
-       \<open>lit_of (hd (get_trail_wl S)) \<notin># the (get_conflict_wl S)\<close> and
-    resolve_helper_seperated:
-      \<open>La \<in> set (tl (get_clauses_wl S ! C)) \<Longrightarrow> - La \<in># the (get_conflict_wl S) \<Longrightarrow> False\<close>
-proof -
-  obtain M N U D NE UE Q W where
-    S: \<open>S = (Propagated L C # M, N, U, Some D, NE, UE, W, Q)\<close>
-    using confl tr by (cases S; cases \<open>get_conflict_wl S\<close>; cases \<open>hd (get_trail_wl S)\<close>;
-        cases \<open>get_trail_wl S\<close>) auto
-  obtain D' where
-    D: \<open>D = add_mset (-L) D'\<close>
-    using L_confl by (auto simp: S dest: multi_member_split)
-  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (twl_st_of_wl None S))\<close>
-    using invs unfolding twl_struct_invs_def by fast
-  then have
-     confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of (twl_st_of_wl None S))\<close> and
-     M_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of (twl_st_of_wl None S))\<close> and
-     dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl None S))\<close>
-     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
-  have dist_D: \<open>distinct_mset D\<close>
-    using dist unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
-    by (auto simp: S)
-  have undef_L: \<open>undefined_lit M L\<close> and n_d: \<open>no_dup M\<close>
-    using M_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-    by (auto simp: S split: if_splits)
-  have M_D: \<open>Propagated L (mset (N ! C)) # convert_lits_l N M \<Turnstile>as CNot D\<close>
-    using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    by (cases C) (auto simp: S true_annots_true_cls)
-
-  have M_D': \<open>Propagated L C # M \<Turnstile>as CNot D\<close>
-    using M_D by (auto simp: true_annots_true_cls split: if_splits)
-  have tauto_D: \<open>\<not>tautology D\<close>
-    using M_D' n_d undef_L consistent_CNot_not_tautology[of \<open>lits_of_l (Propagated L C # M)\<close> D]
-    by (auto dest!: distinct_consistent_interp simp: true_annots_true_cls)
-  then show ?tauto
-    by (auto simp: S)
-  have L_D': \<open>L \<notin># D'\<close>
-    using M_D' undef_L by (auto simp: true_annots_true_cls_def_iff_negation_in_model
-        Decided_Propagated_in_iff_in_lits_of_l D uminus_lit_swap)
- then show \<open>lit_of (hd (get_trail_wl S)) \<notin># the (get_conflict_wl S)\<close>
-   by (auto simp: S D)
-
-  have \<open>L = N ! C ! 0\<close>
-    using C' twl_list by (auto simp: S twl_list_invs_def)
-  moreover have \<open>length (N!C) \<ge> 2\<close>
-    using twl_struct_invs_length_clause_ge_2'[OF assms(2) C'] C by (auto simp: S)
-  ultimately have C'': \<open>mset (N!C) = add_mset L (mset (tl (N!C)))\<close>
-    by (cases \<open>N!C\<close>) (auto simp: S twl_list_invs_def)
-  have \<open>L \<in># mset (N ! C)\<close> and
-    M_C: \<open>M \<Turnstile>as CNot (mset (N!C) - {#L#})\<close>
-    using C C' confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    by (fastforce simp: S)+
-
-  define C' where \<open>C' = mset (tl (N!C))\<close>
-  have M_C': \<open>M \<Turnstile>as CNot C'\<close>
-    using M_C unfolding C'_def C''
-    by auto
-  have uL_C': \<open>-L \<notin># C'\<close> \<open>L \<notin># C'\<close>
-    using M_C undef_L by (auto simp: C'' true_annots_true_cls_def_iff_negation_in_model
-        Decided_Propagated_in_iff_in_lits_of_l C'_def)
-  then show tauto_C: ?tauto_cls
-    using M_C n_d undef_L consistent_CNot_not_tautology[of \<open>lits_of_l M\<close> \<open>C'\<close>]
-    by (auto 5 5 dest!: distinct_consistent_interp
-        simp: tautology_add_mset true_annots_true_cls C' C'' S C'_def[symmetric])
-  have get_clss_S: \<open>get_clauses_wl S = N\<close>
-    by (auto simp: S)
-  show ?L_in_cls
-    unfolding in_multiset_in_set[symmetric] get_clss_S C'' by simp
-
-  have n_d_L: \<open>L \<in> lits_of_l M \<Longrightarrow> -L \<in> lits_of_l M \<Longrightarrow> False\<close> for L
-    using distinct_consistent_interp[OF n_d] by (auto simp: consistent_interp_def)
-  have dist_C: \<open>distinct_mset (mset (N ! C))\<close>
-    using C C' dist unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
-    by (auto simp: S)
-   have \<open>L \<notin># D'\<close>
-    using tauto_D by (auto simp: tautology_add_mset D S)
-   moreover have [simp]: \<open>distinct_mset D'\<close> \<open>distinct_mset C'\<close>
-    using dist_D dist_C unfolding D C'' C' C'_def by auto
-   ultimately show ?Res
-    using C C' uL_C' unfolding S by (auto simp: C'' D resolve_cls_wl'_def ac_simps
-         minus_notin_trivial S C'_def[symmetric])
-  show ?L_in_union
-    using C C' unfolding S by (auto simp: C'' D resolve_cls_wl'_def ac_simps
-        S)
-  show ?L_notin_union
-    using C C' uL_C' dist_D L_D' unfolding S by (auto simp: C'' D resolve_cls_wl'_def ac_simps
-        S  C'_def[symmetric] dest: in_diffD)
-  have [simp]: \<open>L \<notin># D'\<close>
-    using undef_L n_d M_D' M_C
-    by (auto 5 5 simp: C'' D true_annots_true_cls_def_iff_negation_in_model uminus_lit_swap
-        Decided_Propagated_in_iff_in_lits_of_l)
-  have H: \<open>La \<in># C' \<Longrightarrow> - La \<in># D' \<Longrightarrow> False\<close> for La
-    using M_D' M_C' undef_L L_D' n_d_L
-    by (fastforce simp: true_annots_true_cls_def_iff_negation_in_model
-        Decided_Propagated_in_iff_in_lits_of_l D uminus_lit_swap C'_def[symmetric]
-        dest!: multi_member_split)
-
-  then show \<open>\<not> tautology E\<close>
-    using uL_C' dist_D tauto_C tauto_D L_D'
-    by (fastforce simp: S C'' tautology_add_mset  C'_def[symmetric]
-        distinct_mset_in_diff D minus_notin_trivial tautology_decomp')
-  then have \<open>card_max_lvl (Propagated L C # M) (add_mset (-L) (C' \<union># D')) =
-       card_max_lvl M (C' \<union># D') + 1\<close>
-    apply (subst card_max_lvl_Cons)
-    using undef_L n_d tauto_C dist_C uL_C' dist_D
-    by (auto simp: S C'' D C'_def[symmetric] tautology_add_mset
-        card_max_lvl_add_mset)
-  then show ?Max
-    using uL_C'
-    by (auto simp: S resolve_cls_wl'_def C'' D C'_def[symmetric])
-  show ?L_notin_tl_cls and ?uL_notin_cls
-    using uL_C' unfolding set_mset_mset[symmetric] S get_clauses_wl.simps C'_def[symmetric] C''
-    by (auto simp: S)
-  fix La
-  show \<open>La \<in> set (tl (get_clauses_wl S ! C)) \<Longrightarrow> - La \<in># the (get_conflict_wl S) \<Longrightarrow> False\<close>
-    using H uL_C' by (auto simp: S C'_def D)
-qed
-*)
 
 definition (in isasat_input_ops) update_confl_tl_wl_heur
   :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
@@ -525,22 +301,8 @@ lemma update_confl_tl_wl_heur_state_helper:
 lemma (in -) not_ge_Suc0: \<open>\<not>Suc 0 \<le> n \<longleftrightarrow> n = 0\<close> (* WTF *)
   by auto
 
-(* TODO
-lemma card_max_lvl_ge_1:
-  assumes \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
-    \<open>get_conflict_wl S \<noteq> None\<close> and
-    \<open>get_conflict_wl S \<noteq> Some {#}\<close>
-  shows
-   \<open>card_max_lvl (get_trail_wl S) (the (get_conflict_wl S)) \<ge> Suc 0\<close>
-  using assms unfolding twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
-     cdcl\<^sub>W_restart_mset.conflict_is_false_with_level_def
-  by (cases S) (auto simp: card_max_lvl_def not_ge_Suc0 filter_mset_empty_conv)
-*)
 definition update_confl_tl_wl_pre where
   \<open>update_confl_tl_wl_pre = (\<lambda>((C, L), S).
-(*       twl_struct_invs (twl_st_of_wl None S) \<and>
-      twl_stgy_invs (twl_st_of_wl None S) \<and>
-      twl_list_invs (st_l_of_wl None S) \<and> *)
       C \<in># dom_m (get_clauses_wl S) \<and>
       get_conflict_wl S \<noteq> None \<and> get_trail_wl S \<noteq> [] \<and>
       - L \<in># the (get_conflict_wl S) \<and>
@@ -1170,10 +932,10 @@ qed
 
 sepref_thm get_conflict_wll_is_Nil_code
   is \<open>(PR_CONST get_conflict_wll_is_Nil_heur)\<close>
-  :: \<open>twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   supply [[goals_limit=1]]
   apply (subst PR_CONST_def)
-  unfolding get_conflict_wll_is_Nil_heur_def twl_st_heur_assn_def
+  unfolding get_conflict_wll_is_Nil_heur_def isasat_assn_def
     short_circuit_conv the_is_empty_def[symmetric]
   by sepref
 
@@ -1191,17 +953,17 @@ definition (in -) get_count_max_lvls_code where
 
 lemma get_count_max_lvls_heur_hnr[sepref_fr_rules]:
   \<open>(return o get_count_max_lvls_code, RETURN o get_count_max_lvls_heur) \<in>
-     twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+     isasat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   apply sepref_to_hoare
   subgoal for x x'
     by (cases x; cases x')
-     (sep_auto simp: twl_st_heur_assn_def get_count_max_lvls_code_def
+     (sep_auto simp: isasat_assn_def get_count_max_lvls_code_def
         elim!: mod_starE)
   done
 
 sepref_thm maximum_level_removed_eq_count_dec_code
   is \<open>uncurry (RETURN oo maximum_level_removed_eq_count_dec_heur)\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding maximum_level_removed_eq_count_dec_heur_def
   by sepref
 
@@ -1217,8 +979,8 @@ lemmas maximum_level_removed_eq_count_dec_code_hnr[sepref_fr_rules] =
 
 sepref_thm is_decided_hd_trail_wl_code
   is \<open>RETURN o is_decided_hd_trail_wl_heur\<close>
-  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a twl_st_heur_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding is_decided_hd_trail_wl_heur_alt_def twl_st_heur_assn_def
+  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  unfolding is_decided_hd_trail_wl_heur_alt_def isasat_assn_def
   by sepref
 
 
@@ -1235,10 +997,10 @@ lemmas is_decided_hd_trail_wl_code[sepref_fr_rules] =
 sepref_thm lit_and_ann_of_propagated_st_heur_code
   is \<open>RETURN o lit_and_ann_of_propagated_st_heur\<close>
   :: \<open>[\<lambda>S. is_proped (hd (get_trail_wl_heur S)) \<and> get_trail_wl_heur S \<noteq> []]\<^sub>a
-       twl_st_heur_assn\<^sup>k \<rightarrow> (unat_lit_assn *a nat_assn)\<close>
+       isasat_assn\<^sup>k \<rightarrow> (unat_lit_assn *a nat_assn)\<close>
   supply [[goals_limit=1]]
   supply get_trail_wl_heur_def[simp]
-  unfolding lit_and_ann_of_propagated_st_heur_def twl_st_heur_assn_def
+  unfolding lit_and_ann_of_propagated_st_heur_def isasat_assn_def
   by sepref
 
 concrete_definition (in -) lit_and_ann_of_propagated_st_heur_code
@@ -1261,9 +1023,9 @@ begin
 sepref_thm tl_state_wl_heur_code
   is \<open>RETURN o tl_state_wl_heur\<close>
   :: \<open>[tl_state_wl_heur_pre]\<^sub>a
-      twl_st_heur_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
+      isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
   supply [[goals_limit=1]] if_splits[split]
-  unfolding tl_state_wl_heur_alt_def[abs_def] twl_st_heur_assn_def get_trail_wl_heur_def[simp]
+  unfolding tl_state_wl_heur_alt_def[abs_def] isasat_assn_def get_trail_wl_heur_def[simp]
     vmtf_unset_def bind_ref_tag_def[simp] tl_state_wl_heur_pre_def
     short_circuit_conv
   by sepref
@@ -1354,10 +1116,10 @@ lemma lookup_clause_assn_op_nset_is_emty[sepref_fr_rules]:
 sepref_thm update_confl_tl_wl_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
   :: \<open>[update_confl_tl_wl_heur_pre]\<^sub>a
-  nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow> bool_assn *a twl_st_heur_assn\<close>
+  nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> bool_assn *a isasat_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]]
-  unfolding update_confl_tl_wl_heur_def twl_st_heur_assn_def save_phase_def
+  unfolding update_confl_tl_wl_heur_def isasat_assn_def save_phase_def
     update_confl_tl_wl_heur_pre_def
   supply merge_conflict_m_def[simp]
   by sepref (* slow *)
@@ -1391,7 +1153,7 @@ lemma skip_and_resolve_loop_wl_D_heur_inv_nempty:
 sepref_register skip_and_resolve_loop_wl_D is_in_conflict_st
 sepref_thm skip_and_resolve_loop_wl_D
   is \<open>PR_CONST skip_and_resolve_loop_wl_D_heur\<close>
-  :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
   supply [[goals_limit=1]]
     is_decided_hd_trail_wl_def[simp]
     is_decided_no_proped_iff[simp]

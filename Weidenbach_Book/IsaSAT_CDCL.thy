@@ -239,9 +239,9 @@ lemma find_unassigned_lit_wl_D_code_helper:
 sepref_register find_undefined_atm
 sepref_thm find_unassigned_lit_wl_D_code
   is \<open>PR_CONST find_unassigned_lit_wl_D_heur\<close>
-  :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a (twl_st_heur_assn *a option_assn unat_lit_assn)\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a (isasat_assn *a option_assn unat_lit_assn)\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
-  unfolding find_unassigned_lit_wl_D_heur_def twl_st_heur_assn_def PR_CONST_def
+  unfolding find_unassigned_lit_wl_D_heur_def isasat_assn_def PR_CONST_def
   by sepref
 
 concrete_definition (in -) find_unassigned_lit_wl_D_code
@@ -261,9 +261,9 @@ sepref_thm decide_lit_wl_code
   is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
   :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and> get_conflict_wl_heur S = None \<and>
         L \<in> snd ` D\<^sub>0]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
+     unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
-  unfolding decide_lit_wl_heur_def twl_st_heur_assn_def PR_CONST_def
+  unfolding decide_lit_wl_heur_def isasat_assn_def PR_CONST_def
     cons_trail_Decided_def[symmetric]
   apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
   by sepref
@@ -318,7 +318,7 @@ lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:
 sepref_register decide_wl_or_skip_D find_unassigned_lit_wl_D_heur decide_lit_wl_heur
 sepref_thm decide_wl_or_skip_D_code
   is \<open>PR_CONST decide_wl_or_skip_D_heur\<close>
-  :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a twl_st_heur_assn\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_assn\<close>
   unfolding decide_wl_or_skip_D_heur_def PR_CONST_def
   supply [[goals_limit = 1]]
     find_unassigned_lit_wl_D_def[simp] image_image[simp]
@@ -374,7 +374,7 @@ lemma get_conflict_wl_heur_is_Nil_get_conflict_wll_is_Nil_heur:
       split: if_splits option.splits)
 
 lemma [sepref_fr_rules]: \<open>(get_conflict_wll_is_Nil_code, RETURN \<circ> get_conflict_wl_heur_is_Nil)
-\<in> twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+\<in> isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   using get_conflict_wll_is_Nil_code[unfolded PR_CONST_def
     get_conflict_wl_heur_is_Nil_get_conflict_wll_is_Nil_heur[symmetric]]
   .
@@ -385,7 +385,7 @@ sepref_register cdcl_twl_o_prog_wl_D
 
 sepref_thm cdcl_twl_o_prog_wl_D_code
   is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
-  :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a twl_st_heur_assn\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_assn\<close>
   unfolding cdcl_twl_o_prog_wl_D_heur_def PR_CONST_def
   unfolding get_conflict_wl_is_None get_conflict_wl_get_conflict_wl_is_Nil
     get_conflict_wl_is_None_heur_alt_def[symmetric]
@@ -462,7 +462,7 @@ sepref_register cdcl_twl_stgy_prog_wl_D unit_propagation_outer_loop_wl_D_heur
 
 sepref_thm cdcl_twl_stgy_prog_wl_D_code
   is \<open>PR_CONST cdcl_twl_stgy_prog_wl_D_heur\<close>
-  :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
   unfolding cdcl_twl_stgy_prog_wl_D_heur_def PR_CONST_def
   supply [[goals_limit = 1]]
   by sepref

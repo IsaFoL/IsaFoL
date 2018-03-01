@@ -1834,8 +1834,8 @@ lemma (in -) lit_of_hd_trail_st_heur_alt_def:
 
 sepref_thm lit_of_hd_trail_st_heur
   is \<open>RETURN o lit_of_hd_trail_st_heur\<close>
-  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a twl_st_heur_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  unfolding lit_of_hd_trail_st_heur_alt_def twl_st_heur_assn_def
+  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  unfolding lit_of_hd_trail_st_heur_alt_def isasat_assn_def
   by sepref
 
  concrete_definition (in -) lit_of_hd_trail_st_heur_code
@@ -2097,16 +2097,6 @@ lemma find_decomp_wl_imp_find_decomp_wl':
      (auto simp: find_decomp_wvmtf_ns_pre_def simp del: twl_st_of_wl.simps
        intro!: find_decomp_wl_imp_le_find_decomp_wl')
 
-(*TODO used?*)
-definition find_decomp_wvmtf_ns_pre_full where
-  \<open>find_decomp_wvmtf_ns_pre_full M' = (\<lambda>(((M, E), L), vm).
-   \<exists>D.
-(*      \<exists>N U D NE UE Q W. twl_struct_invs (twl_st_of_wl None (M, N, D, NE, UE, Q, W)) \<and>*)
-       E \<noteq> None \<and> the E \<noteq> {#} \<and> L = lit_of (hd M) \<and>
-       M \<noteq> [] \<and> ex_decomp_of_max_lvl M D L \<and>
-       the E \<subseteq># the D \<and> D \<noteq> None \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M) \<and>
-      vm \<in> vmtf M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the E) \<and> -L \<in># the E \<and> M = M')\<close>
-
 sepref_register find_decomp_wvmtf_ns
 lemma find_decomp_wl_imp_code_find_decomp_wl'[sepref_fr_rules]:
   \<open>(uncurry2 find_decomp_wl_imp_code, uncurry2 (PR_CONST find_decomp_wvmtf_ns))
@@ -2121,9 +2111,9 @@ sepref_thm find_decomp_wl_imp'_code
   is \<open>uncurry (PR_CONST find_decomp_wl_st_int)\<close>
   :: \<open>[\<lambda>(highest, (M', N, D, W, Q, vm, \<phi>)).
          find_decomp_wvmtf_ns_pre ((M', highest), vm)]\<^sub>a
-       uint32_nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d  \<rightarrow>
-        (twl_st_heur_assn)\<close>
-  unfolding find_decomp_wl_st_int_def PR_CONST_def twl_st_heur_assn_def
+       uint32_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d  \<rightarrow>
+        (isasat_assn)\<close>
+  unfolding find_decomp_wl_st_int_def PR_CONST_def isasat_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
@@ -2163,8 +2153,8 @@ lemma find_decomp_wl_imp'_code_find_decomp_wl[sepref_fr_rules]:
   fixes M :: \<open>(nat, nat) ann_lits\<close>
   shows \<open>(uncurry find_decomp_wl_imp'_code, uncurry (PR_CONST find_decomp_wl_nlit)) \<in>
     [find_decomp_wl_pre]\<^sub>a
-       uint32_nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow>
-     twl_st_heur_assn\<close>
+       uint32_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>
+     isasat_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   define L where L: \<open>L \<equiv> -lit_of (hd M)\<close>
@@ -2172,8 +2162,8 @@ proof -
        \<in> [comp_PRE (nat_rel \<times>\<^sub>f Id) (\<lambda>(highest, S). True)
      (\<lambda>_ (highest, M', N, D, W, Q, vm, \<phi>).
          find_decomp_wvmtf_ns_pre ((M', highest), vm))
-     (\<lambda>_. True)]\<^sub>a hrp_comp (uint32_nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d)
-                    (nat_rel \<times>\<^sub>f Id) \<rightarrow> hr_comp twl_st_heur_assn Id\<close>
+     (\<lambda>_. True)]\<^sub>a hrp_comp (uint32_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d)
+                    (nat_rel \<times>\<^sub>f Id) \<rightarrow> hr_comp isasat_assn Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF find_decomp_wl_imp'_code_hnr[unfolded PR_CONST_def]
          find_decomp_wl_st_int_find_decomp_wl_nlit]
@@ -2373,10 +2363,10 @@ sepref_register rescore_clause flush
 
 sepref_thm propagate_bt_wl_D_code
   is \<open>uncurry2 (PR_CONST propagate_bt_wl_D_heur)\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
   supply [[goals_limit = 1]] uminus_\<A>\<^sub>i\<^sub>n_iff[simp] image_image[simp] append_ll_def[simp]
   rescore_clause_def[simp] flush_def[simp]
-  unfolding propagate_bt_wl_D_heur_def twl_st_heur_assn_def cons_trail_Propagated_def[symmetric]
+  unfolding propagate_bt_wl_D_heur_def isasat_assn_def cons_trail_Propagated_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric]
     cons_trail_Propagated_def[symmetric] PR_CONST_def
@@ -2394,9 +2384,9 @@ lemmas propagate_bt_wl_D_heur_hnr[sepref_fr_rules] =
 
 sepref_thm propagate_unit_bt_wl_D_code
   is \<open>uncurry (PR_CONST propagate_unit_bt_wl_D_int)\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
   supply [[goals_limit = 1]] flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
-  unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] twl_st_heur_assn_def
+  unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_assn_def
   PR_CONST_def
   apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
   by sepref
@@ -2459,10 +2449,10 @@ qed
 
 sepref_thm extract_shorter_conflict_list_heur_st
   is \<open>PR_CONST extract_shorter_conflict_list_heur_st\<close>
-  :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn *a uint32_nat_assn *a clause_ll_assn\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn *a uint32_nat_assn *a clause_ll_assn\<close>
   supply [[goals_limit=1]]
 empty_conflict_and_extract_clause_pre_def[simp](* TODO: cheating *)
-  unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def twl_st_heur_assn_def
+  unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     take1_def[symmetric]
   by sepref
@@ -2483,7 +2473,7 @@ sepref_register backtrack_wl_D
 
 sepref_thm backtrack_wl_D_code
   is \<open>PR_CONST backtrack_wl_D_nlit_heur\<close>
-  :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
   supply [[goals_limit=1]]
   lit_of_hd_trail_st_def[symmetric, simp]
   size_conflict_wl_def[simp]
