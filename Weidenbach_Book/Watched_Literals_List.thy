@@ -382,7 +382,7 @@ definition twl_st_l   :: \<open>_ \<Rightarrow> ('v twl_st_l \<times> 'v twl_st)
       Q' = Q
   }\<close>
 
-named_theorems twl_st \<open>Conversions from \<^typ>\<open>'v twl_st_l\<close> to \<^typ>\<open>'v cdcl\<^sub>W_restart_mset\<close>\<close>
+named_theorems twl_st \<open>Conversions simp rules\<close>
 
 lemma [twl_st]:\<open>trail (state\<^sub>W_of S') = get_trail S'\<close>
   by (cases S') (auto simp: trail.simps)
@@ -405,7 +405,7 @@ lemma clss_state\<^sub>W_of[twl_st]:
  by (cases S; cases L; auto simp: init_clss.simps learned_clss.simps twl_st_l_def
    mset_take_mset_drop_mset'; fail)+
 
-named_theorems twl_st_l \<open>Conversions from \<^typ>\<open>'v twl_st_l\<close> to \<^typ>\<open>'v twl_st\<close>\<close>
+named_theorems twl_st_l \<open>Conversions simp rules\<close>
 
 lemma [twl_st_l]:
   assumes \<open>(S, T) \<in> twl_st_l L\<close>

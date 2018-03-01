@@ -129,7 +129,7 @@ fun twl_st_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> ('v tw
 fun remove_one_lit_from_wq :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
   \<open>remove_one_lit_from_wq L (M, N, D, NE, UE, WS, Q) = (M, N, D, NE, UE, remove1_mset L WS, Q)\<close>
 
-named_theorems twl_st_wl \<open>Conversions from \<^typ>\<open>'v twl_st_l\<close> to \<^typ>\<open>'v twl_st_wl\<close>\<close>
+named_theorems twl_st_wl \<open>Conversions simp rules\<close>
 
 (* TODO rename get_unit_clss_wl to get_unit_clauses_wl *)
 lemma [twl_st_wl]:
@@ -274,7 +274,6 @@ lemma init_clss_state_to_l[twl_st_l]: \<open>(S, S') \<in> twl_st_l L \<Longrigh
   init_clss (state\<^sub>W_of S') = mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S\<close>
   by (cases S) (auto simp: twl_st_l_def init_clss.simps mset_take_mset_drop_mset')
 
-text \<open>TODO get_unit_init_clss_wl must be renamed\<close>
 lemma get_unit_init_clauses_l_get_unit_init_clss_wl[twl_st_wl]: \<open>(S, S') \<in> state_wl_l L \<Longrightarrow>
   get_unit_init_clauses_l S' = get_unit_init_clss_wl S\<close>
   by (cases S; cases L) (auto simp: state_wl_l_def)
