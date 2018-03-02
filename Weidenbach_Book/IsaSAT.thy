@@ -1190,7 +1190,7 @@ proof -
        [comp_PRE (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)
           (\<lambda>CS. Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max))
           (\<lambda>x y. Ball (set y) distinct)
-           (\<lambda>x. nofail (SAT'  x))]\<^sub>a 
+           (\<lambda>x. nofail (SAT'  x))]\<^sub>a
        hrp_comp ((list_assn (list_assn unat_lit_assn))\<^sup>k) (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel) \<rightarrow>
        hr_comp model_assn  (\<langle>\<langle>nat_lit_lit_rel\<rangle>list_rel\<rangle>option_rel)\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)

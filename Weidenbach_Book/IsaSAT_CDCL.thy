@@ -367,9 +367,7 @@ sepref_thm cdcl_twl_o_prog_wl_D_code
   is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_assn\<close>
   unfolding cdcl_twl_o_prog_wl_D_heur_def PR_CONST_def
-  unfolding get_conflict_wl_is_None get_conflict_wl_get_conflict_wl_is_Nil
-    get_conflict_wl_is_None_heur_alt_def[symmetric]
-   get_conflict_wl_heur_is_Nil_alt_def[symmetric]
+  unfolding get_conflict_wl_is_None get_conflict_wl_is_None_heur_alt_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
