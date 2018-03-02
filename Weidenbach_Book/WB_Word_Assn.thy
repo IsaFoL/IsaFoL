@@ -335,7 +335,7 @@ lemma array_set_hnr_u:
     (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
       hr_comp_def list_rel_pres_length list_rel_update)
 
-lemma  array_get_hnr_u:
+lemma array_get_hnr_u:
   assumes \<open>CONSTRAINT is_pure A\<close>
   shows \<open>(uncurry (\<lambda>xs i. Array.nth xs (nat_of_uint32 i)),
       uncurry (RETURN \<circ>\<circ> op_list_get)) \<in> [pre_list_get]\<^sub>a (array_assn A)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> A\<close>

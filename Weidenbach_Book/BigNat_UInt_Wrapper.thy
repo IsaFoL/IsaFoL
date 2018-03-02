@@ -76,7 +76,7 @@ lemma arl_get_big_nat_nth:
 definition arl_get_big_nat_code where
   \<open>arl_get_big_nat_code as n = (case n of UInt n \<Rightarrow> arl_get_u as n | BigNat n \<Rightarrow> arl_get as n)\<close>
 
-lemma  arl_get_u_arl_get: "arl_get_u = (\<lambda>a i. arl_get a (nat_of_uint32 i))"
+lemma arl_get_u_arl_get: "arl_get_u = (\<lambda>a i. arl_get a (nat_of_uint32 i))"
   unfolding arl_get_u_def arl_get'_def nat_of_uint32_code
   ..
 

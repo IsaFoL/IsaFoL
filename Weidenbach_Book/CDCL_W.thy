@@ -462,7 +462,7 @@ lemma
   additional_info_tl_trail[simp]:
     "additional_info (tl_trail S) = additional_info S" and
   additional_info_add_learned_cls_unfolded:
-    "additional_info (add_learned_cls U S) = additional_info S"  and
+    "additional_info (add_learned_cls U S) = additional_info S" and
   additional_info_update_conflicting[simp]:
     "additional_info (update_conflicting D S) = additional_info S" and
   additional_info_remove_cls[simp]:

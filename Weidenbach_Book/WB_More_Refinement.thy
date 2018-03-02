@@ -8,6 +8,19 @@ begin
 
 no_notation Ref.update ("_ := _" 62)
 
+subsection \<open>Not-Related to Refinement\<close>
+
+text \<open>
+  Unlike clarify, this does not split tuple of the form \<^term>\<open>\<exists>T. P T\<close> in the assumption.
+  After calling it, as the variable are not quantified anymore, the simproc does not trigger,
+  allowing to safely call auto/simp/...
+\<close>
+method normalize_goal =
+  (match premises in
+    J[thin]: \<open>\<exists>x. _\<close> \<Rightarrow> \<open>rule exE[OF J]\<close>
+  \<bar> J[thin]: \<open>_ \<and> _\<close> \<Rightarrow> \<open>rule conjE[OF J]\<close>
+  )
+
 
 subsection \<open>Some Tooling for Refinement\<close>
 
@@ -179,6 +192,11 @@ lemma fun_rel_syn_invert:
   \<open>a = a' \<Longrightarrow> b \<subseteq> b' \<Longrightarrow> a \<rightarrow> b \<subseteq> a' \<rightarrow> b'\<close>
   by (auto simp: refine_rel_defs)
 
+lemma fref_syn_invert:
+  \<open>a = a' \<Longrightarrow> b \<subseteq> b' \<Longrightarrow> a \<rightarrow>\<^sub>f b \<subseteq> a' \<rightarrow>\<^sub>f b'\<close>
+  unfolding fref_param1[symmetric]
+  by (rule fun_rel_syn_invert)
+
 lemma nres_rel_mono:
   \<open>a \<subseteq> a'  \<Longrightarrow> \<langle>a\<rangle> nres_rel \<subseteq> \<langle>a'\<rangle> nres_rel\<close>
   by (fastforce simp: refine_rel_defs nres_rel_def pw_ref_iff)
@@ -191,6 +209,7 @@ method match_spec =
 method match_fun_rel =
   ((match conclusion in
        \<open>_ \<rightarrow> _ \<subseteq> _ \<rightarrow> _\<close> \<Rightarrow> \<open>rule fun_rel_mono\<close>
+     \<bar> \<open>_ \<rightarrow>\<^sub>f _ \<subseteq> _ \<rightarrow>\<^sub>f _\<close> \<Rightarrow> \<open>rule fref_syn_invert\<close>
      \<bar> \<open>\<langle>_\<rangle>nres_rel \<subseteq> \<langle>_\<rangle>nres_rel\<close> \<Rightarrow> \<open>rule nres_rel_mono\<close>
      \<bar> \<open>[_]\<^sub>f _ \<rightarrow> _ \<subseteq> [_]\<^sub>f _ \<rightarrow> _\<close> \<Rightarrow> \<open>rule fref_mono\<close>
    )+)
@@ -240,6 +259,9 @@ lemma (in transfer) transfer_bool[refine_transfer]:
   shows "\<alpha> (case_bool fa fb x) \<le> case_bool Fa Fb x"
   using assms by (auto split: bool.split)
 
+lemma ref_two_step': \<open>A \<le> B \<Longrightarrow> \<Down> R A \<le>  \<Down> R B\<close>
+  by (auto intro: ref_two_step)
+
 lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
   unfolding hrp_comp_def by auto
 
@@ -275,8 +297,12 @@ lemma RES_RETURN_RES3:
   apply (subst (asm)(3) split_prod_bound)
   by auto
 
+lemma RES_RES_RETURN_RES2: \<open>RES A \<bind> (\<lambda>(T, T'). RETURN (f T T')) = RES (uncurry f ` A)\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
+
 lemma bind_refine_res: \<open>(\<And>x. x \<in> \<Phi> \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> RES \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
   by (auto simp add: pw_le_iff refine_pw_simps)
+
 
 text \<open>
   This theorem adds the invariant at the beginning of next iteration to the current invariant,
@@ -324,9 +350,7 @@ proof -
       apply simp_all
       apply (cases \<open>f x'\<close>)
        apply (auto simp: RES_RETURN_RES nofail_def[symmetric] pw_RES_bind_choose
-           intro!: (* bind_refine_RES(2)[of , simplified]  *)
-          split: if_splits
-          cong: if_cong)
+          split: if_splits)
       done
     also have \<open>\<dots> =  WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f ((flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f))) x'\<close>
       apply (subst (2) flatf_ord.fixp_unfold)
@@ -474,6 +498,74 @@ lemma the_hnr_keep:
   using pure_option[of A]
   by sepref_to_hoare
    (sep_auto simp: option_assn_alt_def is_pure_def split: option.splits)
+
+lemma fref_to_Down:
+  \<open>(f, g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> f x \<le> \<Down> B (g x'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_curry_left:
+  fixes f:: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c nres\<close> and
+    A::\<open>(('a \<times> 'b) \<times> 'd) set\<close>
+  shows
+    \<open>(uncurry f, g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+      (\<And>a b x'. P x' \<Longrightarrow> ((a, b), x') \<in> A \<Longrightarrow> f a b \<le> \<Down> B (g x'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_curry:
+  \<open>(uncurry f, uncurry g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y \<le> \<Down> B (g x' y'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_curry2:
+  \<open>(uncurry2 f, uncurry2 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z'. P ((x', y'), z') \<Longrightarrow> (((x, y), z), ((x', y'), z')) \<in> A\<Longrightarrow>
+         f x y z \<le> \<Down> B (g x' y' z'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_curry2':
+  \<open>(uncurry2 f, uncurry2 g) \<in> A \<rightarrow>\<^sub>f \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z'. (((x, y), z), ((x', y'), z')) \<in> A \<Longrightarrow>
+         f x y z \<le> \<Down> B (g x' y' z'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+
+lemma fref_to_Down_curry3:
+  \<open>(uncurry3 f, uncurry3 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z' a a'. P (((x', y'), z'), a') \<Longrightarrow>
+        ((((x, y), z), a), (((x', y'), z'), a')) \<in> A \<Longrightarrow>
+         f x y z a \<le> \<Down> B (g x' y' z' a'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_curry4:
+  \<open>(uncurry4 f, uncurry4 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z' a a' b b'. P ((((x', y'), z'), a'), b') \<Longrightarrow>
+        (((((x, y), z), a), b), ((((x', y'), z'), a'), b')) \<in> A \<Longrightarrow>
+         f x y z a b \<le> \<Down> B (g x' y' z' a' b'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_curry5:
+  \<open>(uncurry5 f, uncurry5 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z' a a' b b' c c'. P (((((x', y'), z'), a'), b'), c') \<Longrightarrow>
+        ((((((x, y), z), a), b), c), (((((x', y'), z'), a'), b'), c')) \<in> A \<Longrightarrow>
+         f x y z a b c \<le> \<Down> B (g x' y' z' a' b' c'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_explode:
+  \<open>(f a, g a) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' b. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> b = a \<Longrightarrow> f a x \<le> \<Down> B (g b x'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+declare RETURN_as_SPEC_refine[refine2 del]
 
 
 subsubsection \<open>More Simplification Theorems\<close>
@@ -745,7 +837,7 @@ lemma snd_hnr_pure:
   by (metis SLN_def SLN_left assn_times_comm ent_pure_pre_iff_sng ent_refl ent_star_mono
       ent_true is_pure_assn_def is_pure_iff_pure_assn)
 
-lemma (in -) list_assn_list_mset_rel_eq_list_mset_assn:
+lemma list_assn_list_mset_rel_eq_list_mset_assn:
   assumes p: \<open>is_pure R\<close>
   shows \<open>hr_comp (list_assn R) list_mset_rel = list_mset_assn R\<close>
 proof -

@@ -259,7 +259,7 @@ proof (rule ccontr)
    proof (induction rule: cdcl\<^sub>W_restart_with_restart.induct)
      case (restart_step S T n) note H = this(1) and c = this(2) and n_s = this(4)
     obtain S' where \<open>cdcl\<^sub>W_stgy S S'\<close>
-      using H c  by (subst (asm) rtranclp_unfold) (auto dest!: tranclpD)
+      using H c by (subst (asm) rtranclp_unfold) (auto dest!: tranclpD)
      then show False using n_s by auto
    next
      case (restart_full S T)

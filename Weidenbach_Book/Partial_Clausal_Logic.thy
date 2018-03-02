@@ -56,6 +56,9 @@ lemma consistent_interp_empty[simp]:
 lemma consistent_interp_single[simp]:
   "consistent_interp {L}" unfolding consistent_interp_def by auto
 
+lemma Ex_consistent_interp: \<open>Ex consistent_interp\<close>
+  by (auto simp: consistent_interp_def)
+
 lemma consistent_interp_subset:
   assumes
     "A \<subseteq> B" and
@@ -427,6 +430,9 @@ definition satisfiable :: "'a clause set \<Rightarrow> bool" where
 lemma satisfiable_single[simp]:
   "satisfiable {{#L#}}"
   unfolding satisfiable_def by fastforce
+
+lemma satisfiable_empty[simp]: \<open>satisfiable {}\<close>
+  by (auto simp: satisfiable_def Ex_consistent_interp)
 
 abbreviation unsatisfiable :: "'a clause set \<Rightarrow> bool" where
   "unsatisfiable CC \<equiv> \<not> satisfiable CC"

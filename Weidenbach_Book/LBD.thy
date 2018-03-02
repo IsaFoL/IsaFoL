@@ -1,5 +1,5 @@
 theory LBD
-  imports IsaSAT_Trail
+  imports IsaSAT_Trail IsaSAT_Clauses
 begin
 
 type_synonym lbd = \<open>bool list\<close>
@@ -20,12 +20,6 @@ definition lbd_assn :: \<open>lbd \<Rightarrow> lbd_assn \<Rightarrow> assn\<clo
 
 definition level_in_lbd :: \<open>nat \<Rightarrow> lbd \<Rightarrow> bool\<close> where
   \<open>level_in_lbd i = (\<lambda>lbd. i < length lbd \<and> lbd!i)\<close>
-
-definition length_u where
-  [simp]: \<open>length_u xs = length xs\<close>
-
-definition length_aa_u where
-  [simp]: \<open>length_aa_u xs i = length_u (xs ! i)\<close>
 
 definition level_in_lbd_ref :: \<open>nat \<Rightarrow> lbd_ref \<Rightarrow> bool\<close> where
   \<open>level_in_lbd_ref = (\<lambda>i (lbd, _). i < length_u lbd \<and> lbd!i)\<close>
@@ -53,6 +47,7 @@ lemma length_u_hnr[sepref_fr_rules]:
         uint32_nat_rel_def br_def list_rel_pres_length
         dest!: nat_of_uint32_uint32_of_nat_id)
 
+(* TODO port
 lemma length_aa_u_hnr[sepref_fr_rules]:
   \<open>(uncurry length_aa_u_code, uncurry (RETURN oo length_aa_u)) \<in>
      [\<lambda>(xs, i). length (xs ! i) \<le> uint_max \<and> i < length xs]\<^sub>a
@@ -62,7 +57,7 @@ lemma length_aa_u_hnr[sepref_fr_rules]:
         length_u_def length_aa_u_code_def length_rll_def
         nth_nat_of_uint32_nth'[symmetric] nat_of_uint32_le_iff
         uint32_nat_rel_def br_def list_rel_pres_length)
-
+*)
 
 definition length_arl_u_code :: \<open>('a::heap) array_list \<Rightarrow> uint32 Heap\<close> where
   \<open>length_arl_u_code xs = do {
@@ -73,7 +68,7 @@ lemma length_arl_u_hnr[sepref_fr_rules]:
   \<open>(length_arl_u_code, RETURN o length_u) \<in>
      [\<lambda>xs. length xs \<le> uint_max]\<^sub>a (arl_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare
-    (sep_auto simp: length_u_code_def  nat_of_uint32_uint32_of_nat_id
+    (sep_auto simp: length_u_code_def nat_of_uint32_uint32_of_nat_id
       length_arl_u_code_def arl_assn_def
       arl_length_def hr_comp_def is_array_list_def list_rel_pres_length[symmetric]
       uint32_nat_rel_def br_def)
