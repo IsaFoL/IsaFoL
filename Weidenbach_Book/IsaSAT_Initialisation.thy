@@ -214,7 +214,7 @@ sepref_thm set_conflict_unit_code
   :: \<open>[\<lambda>(L, (b, n, xs)). atm_of L < length xs]\<^sub>a
         unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn\<close>
   supply one_uint32_nat[sepref_fr_rules]
-  unfolding set_conflict_unit_heur_def one_uint32_nat_def[symmetric]
+  unfolding set_conflict_unit_heur_def one_uint32_nat_def[symmetric] ISIN_def[symmetric]
   by sepref
 
 concrete_definition (in -) set_conflict_unit_code
@@ -1439,7 +1439,7 @@ definition init_state_wl_D' :: \<open>uint32 list \<Rightarrow>  (trail_pol \<ti
      let m = 2 * n;
      M \<leftarrow> init_trail_D \<A>\<^sub>i\<^sub>n n m;
      let N = init_rll n;
-     let D = (True, zero_uint32_nat, replicate n None);
+     let D = (True, zero_uint32_nat, replicate n NOTIN);
      let WS = init_lrl m;
      vm \<leftarrow> initialise_VMTF \<A>\<^sub>i\<^sub>n n;
      let \<phi> = replicate n False;

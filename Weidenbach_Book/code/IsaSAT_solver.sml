@@ -902,8 +902,7 @@ fun init_state_wl_D_code x =
           (fn x_d =>
             (fn f_ => fn () => f_ ((init_rll_list_code xb) ()) ())
               (fn x_e =>
-                (fn f_ => fn () => f_ ((new (heap_option heap_bool) xb NONE) ())
-                  ())
+                (fn f_ => fn () => f_ ((new heap_bool xb false) ()) ())
                   (fn xaa =>
                     (fn f_ => fn () => f_
                       ((arrayO_ara_empty_sz_code (default_nat, heap_nat) x_b)
@@ -1054,9 +1053,6 @@ fun find_unwatched_wl_st_heur_code x =
     end)
     x;
 
-fun is_pos_code l =
-  (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
-
 fun is_in_conflict_code x =
   (fn ai => fn bi =>
     let
@@ -1066,7 +1062,7 @@ fun is_in_conflict_code x =
         let
           val xa = (fn () => Array.sub (a2, Word32.toInt (atm_of_code bi))) ();
         in
-          not (is_None xa)
+          not (not xa)
         end)
     end)
     x;
@@ -1221,14 +1217,12 @@ fun set_lookup_conflict_aa_code x =
                                        ())
                                        (fn xae =>
  (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bie bid a1a) ()) ())
-   (fn xba =>
+   (fn _ =>
      (fn f_ => fn () => f_
-       ((heap_array_set_u (heap_option heap_bool) a2e (atm_of_code xae)
-          (SOME (is_pos_code xba)))
-       ()) ())
+       ((heap_array_set_u heap_bool a2e (atm_of_code xae) true) ()) ())
        (fn x_h =>
          (fn () =>
-           ((if is_None xh then Word32.+ (a1e, (Word32.fromInt 1)) else a1e),
+           ((if not xh then Word32.+ (a1e, (Word32.fromInt 1)) else a1e),
              x_h)))))))
                            end
                           ()) ())
@@ -1610,7 +1604,7 @@ fun is_in_option_lookup_conflict_code x =
     let
       val xa = (fn () => Array.sub (a2a, Word32.toInt (atm_of_code ai))) ();
     in
-      not (is_None xa)
+      not (not xa)
     end)
     x;
 
@@ -1731,14 +1725,12 @@ fun resolve_lookup_conflict_merge_code x =
                                        ())
                                        (fn xae =>
  (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bie bid a1a) ()) ())
-   (fn xba =>
+   (fn _ =>
      (fn f_ => fn () => f_
-       ((heap_array_set_u (heap_option heap_bool) a2e (atm_of_code xae)
-          (SOME (is_pos_code xba)))
-       ()) ())
+       ((heap_array_set_u heap_bool a2e (atm_of_code xae) true) ()) ())
        (fn x_h =>
          (fn () =>
-           ((if is_None xh then Word32.+ (a1e, (Word32.fromInt 1)) else a1e),
+           ((if not xh then Word32.+ (a1e, (Word32.fromInt 1)) else a1e),
              x_h)))))))
                            end
                           ()) ())
@@ -1763,6 +1755,9 @@ fun resolve_lookup_conflict_merge_code x =
     end)
     x;
 
+fun is_pos_code l =
+  (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
+
 fun fast_minus A_ m n = minus A_ m n;
 
 fun fast_minus_uint32 x = fast_minus minus_uint32 x;
@@ -1772,11 +1767,9 @@ fun conflict_remove1_code x =
     let
       val xa = (fn () => Array.sub (a2, Word32.toInt (atm_of_code ai))) ();
     in
-      (if is_None xa then (fn () => (a1, a2))
+      (if not xa then (fn () => (a1, a2))
         else (fn f_ => fn () => f_
-               ((heap_array_set_u (heap_option heap_bool) a2 (atm_of_code ai)
-                  NONE)
-               ()) ())
+               ((heap_array_set_u heap_bool a2 (atm_of_code ai) false) ()) ())
                (fn x_b =>
                  (fn () => (fast_minus_uint32 a1 (Word32.fromInt 1), x_b))))
         ()
@@ -2011,7 +2004,7 @@ fun atm_in_conflict_code x =
     let
       val xa = (fn () => Array.sub (a2, Word32.toInt ai)) ();
     in
-      not (is_None xa)
+      not (not xa)
     end)
     x;
 
@@ -2217,8 +2210,7 @@ lit_redundant_rec_wl_lookup_code ai bid bic bib x_d bi)))))))
 fun delete_from_lookup_conflict_code x =
   (fn ai => fn (a1, a2) => fn () =>
     let
-      val x_a =
-        heap_array_set_u (heap_option heap_bool) a2 (atm_of_code ai) NONE ();
+      val x_a = heap_array_set_u heap_bool a2 (atm_of_code ai) false ();
     in
       (fast_minus_uint32 a1 (Word32.fromInt 1), x_a)
     end)
@@ -3079,9 +3071,7 @@ fun set_empty_clause_as_conflict_code x =
 fun set_conflict_unit_code x =
   (fn ai => fn (_, (_, a2a)) => fn () =>
     let
-      val xa =
-        heap_array_set_u (heap_option heap_bool) a2a (atm_of_code ai)
-          (SOME (is_pos_code ai)) ();
+      val xa = heap_array_set_u heap_bool a2a (atm_of_code ai) true ();
     in
       (false, ((Word32.fromInt 1), xa))
     end)

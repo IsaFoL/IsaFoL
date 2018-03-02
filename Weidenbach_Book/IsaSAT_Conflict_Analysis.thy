@@ -242,10 +242,10 @@ lemma tl_state_wl_heur_tl_state_wl:
 definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
-
+(* TODO why test if it is in it? *)
 definition (in -) lookup_conflict_remove1 :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel\<close> where
   \<open>lookup_conflict_remove1 =
-     (\<lambda>L (n,xs). if xs ! (atm_of L) = None then (n, xs) else (n-1, xs [atm_of L := None]))\<close>
+     (\<lambda>L (n,xs). if is_NOTIN (xs ! (atm_of L)) then (n, xs) else (n-1, xs [atm_of L := NOTIN]))\<close>
 
 lemma lookup_conflict_remove1:
   \<open>(uncurry (RETURN oo lookup_conflict_remove1), uncurry (RETURN oo remove1_mset)) \<in>
