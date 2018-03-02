@@ -1765,14 +1765,9 @@ fun fast_minus_uint32 x = fast_minus minus_uint32 x;
 fun conflict_remove1_code x =
   (fn ai => fn (a1, a2) => fn () =>
     let
-      val xa = (fn () => Array.sub (a2, Word32.toInt (atm_of_code ai))) ();
+      val x_a = heap_array_set_u heap_bool a2 (atm_of_code ai) false ();
     in
-      (if not xa then (fn () => (a1, a2))
-        else (fn f_ => fn () => f_
-               ((heap_array_set_u heap_bool a2 (atm_of_code ai) false) ()) ())
-               (fn x_b =>
-                 (fn () => (fast_minus_uint32 a1 (Word32.fromInt 1), x_b))))
-        ()
+      (fast_minus_uint32 a1 (Word32.fromInt 1), x_a)
     end)
     x;
 

@@ -242,21 +242,22 @@ lemma tl_state_wl_heur_tl_state_wl:
 definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
-(* TODO why test if it is in it? *)
 definition (in -) lookup_conflict_remove1 :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel\<close> where
   \<open>lookup_conflict_remove1 =
-     (\<lambda>L (n,xs). if is_NOTIN (xs ! (atm_of L)) then (n, xs) else (n-1, xs [atm_of L := NOTIN]))\<close>
+     (\<lambda>L (n,xs). (n-1, xs [atm_of L := NOTIN]))\<close>
 
 lemma lookup_conflict_remove1:
-  \<open>(uncurry (RETURN oo lookup_conflict_remove1), uncurry (RETURN oo remove1_mset)) \<in>
-  [\<lambda>(L,C). L \<in># C \<and> -L \<notin># C \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f lookup_clause_rel \<rightarrow> \<langle>lookup_clause_rel\<rangle>nres_rel\<close>
+  \<open>(uncurry (RETURN oo lookup_conflict_remove1), uncurry (RETURN oo remove1_mset))
+   \<in> [\<lambda>(L,C). L \<in># C \<and> -L \<notin># C \<and> L \<in> snd ` D\<^sub>0]\<^sub>f
+     Id \<times>\<^sub>f lookup_clause_rel \<rightarrow> \<langle>lookup_clause_rel\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (case_tac y; case_tac x)
   subgoal for x y a b aa ab c
     using mset_as_position_remove[of c b \<open>atm_of aa\<close>]
     by (cases \<open>aa\<close>)
-       (auto simp: lookup_clause_rel_def lookup_conflict_remove1_def lookup_clause_rel_atm_in_iff minus_notin_trivial2
-      size_remove1_mset_If in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff minus_notin_trivial mset_as_position_in_iff_nth)
+      (auto simp: lookup_clause_rel_def lookup_conflict_remove1_def lookup_clause_rel_atm_in_iff
+        minus_notin_trivial2 size_remove1_mset_If in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff minus_notin_trivial
+        mset_as_position_in_iff_nth)
    done
 
 definition (in isasat_input_ops) update_confl_tl_wl_heur
@@ -352,7 +353,8 @@ proof -
        \<open>get_conflict_wl (M', N', D', NE', UE', WS', Q') \<noteq> None\<close> and
        nempty: \<open>get_trail_wl (M', N', D', NE', UE', WS', Q') \<noteq> []\<close> and
        uL_D: \<open>- L \<in># the (get_conflict_wl (M', N', D', NE', UE', WS', Q'))\<close> and
-       L_M: \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M', N', D', NE', UE', WS', Q')))\<close> and
+       L_M:
+        \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M', N', D', NE', UE', WS', Q')))\<close> and
        \<open>L \<in> snd ` D\<^sub>0\<close> and
        proped: \<open>is_proped (hd (get_trail_wl (M', N', D', NE', UE', WS', Q')))\<close> and
        \<open>0 < C\<close> and
@@ -561,12 +563,14 @@ lemma (in -)fref_to_Down_curry_no_nres:
   by auto
 
 lemma (in -)sup_union_right_if:
-  \<open>N \<union># add_mset x M = (if x \<notin># N then add_mset x (N \<union># M) else add_mset x (remove1_mset x N \<union># M))\<close>
+  \<open>N \<union># add_mset x M =
+     (if x \<notin># N then add_mset x (N \<union># M) else add_mset x (remove1_mset x N \<union># M))\<close>
   by (auto simp: sup_union_right2)
 text \<open>END MOVE\<close>
 
 lemma skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D:
-  \<open>(skip_and_resolve_loop_wl_D_heur, skip_and_resolve_loop_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  \<open>(skip_and_resolve_loop_wl_D_heur, skip_and_resolve_loop_wl_D)
+    \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
   have
     atm_is_in_conflict_st_heur_pre: \<open>atm_is_in_conflict_st_heur_pre (- x1c, x2b)\<close>
@@ -1051,14 +1055,14 @@ qed
 lemma option_lookup_clause_assn_the[sepref_fr_rules]:
   \<open>(return o snd, RETURN o the) \<in> [\<lambda>C. C \<noteq> None]\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow> lookup_clause_assn\<close>
   by sepref_to_hoare
-     (sep_auto simp: lookup_clause_assn_def option_lookup_clause_assn_def lookup_clause_rel_def hr_comp_def
-    option_lookup_clause_rel_def)
+    (sep_auto simp: lookup_clause_assn_def option_lookup_clause_assn_def lookup_clause_rel_def
+       hr_comp_def option_lookup_clause_rel_def)
 
 lemma option_lookup_clause_assn_Some[sepref_fr_rules]:
   \<open>(return o (\<lambda>C. (False, C)), RETURN o Some) \<in> lookup_clause_assn\<^sup>d \<rightarrow>\<^sub>a option_lookup_clause_assn\<close>
   by sepref_to_hoare
-     (sep_auto simp: lookup_clause_assn_def option_lookup_clause_assn_def lookup_clause_rel_def hr_comp_def
-    option_lookup_clause_rel_def bool_assn_alt_def)
+    (sep_auto simp: lookup_clause_assn_def option_lookup_clause_assn_def lookup_clause_rel_def
+       hr_comp_def option_lookup_clause_rel_def bool_assn_alt_def)
 
 
 lemma lookup_clause_assn_op_nset_is_emty[sepref_fr_rules]:
@@ -1119,7 +1123,8 @@ proof -
     using assms by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def)
   have aa_d: \<open>atm_of aa < length d\<close> and uaa_d: \<open>atm_of (-aa) < length d\<close>
     using le aa by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-  from mset_as_position_in_iff_nth[OF map aa_d] have 1: \<open>(aa \<in># yb) = (d ! atm_of aa = Some (is_pos aa))\<close>
+  from mset_as_position_in_iff_nth[OF map aa_d]
+  have 1: \<open>(aa \<in># yb) = (d ! atm_of aa = Some (is_pos aa))\<close>
     .
 
   from mset_as_position_in_iff_nth[OF map uaa_d] have 2: \<open>(d ! atm_of aa \<noteq> Some (is_pos (-aa)))\<close>
@@ -1134,7 +1139,8 @@ qed
 
 lemma is_in_option_lookup_conflict_atm_is_in_conflict:
   \<open>(uncurry (RETURN oo is_in_option_lookup_conflict), uncurry (RETURN oo atm_is_in_conflict))
-   \<in> [\<lambda>(L, D). D \<noteq> None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> -L \<notin># the D]\<^sub>f Id \<times>\<^sub>f option_lookup_clause_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
+   \<in> [\<lambda>(L, D). D \<noteq> None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> -L \<notin># the D]\<^sub>f
+      Id \<times>\<^sub>f option_lookup_clause_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (case_tac x, case_tac y)
   by (simp add: is_in_option_lookup_conflict_atm_is_in_conflict_iff)
