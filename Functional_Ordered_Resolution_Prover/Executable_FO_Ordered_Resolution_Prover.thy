@@ -148,6 +148,10 @@ definition prover where
 lemma "prover N = None \<Longrightarrow> satisfiable (RP.grounded_N0 N)"
   unfolding prover_def St0_def by (rule RP.deterministic_RP_complete)
 
+lemma "prover N = Some R \<Longrightarrow> (\<not> satisfiable (RP.grounded_N0 N)) = ({#} \<in> RP.grounded_R R)"
+  unfolding prover_def St0_def using RP.deterministic_RP_refutation by auto
+
+
 export_code prover in SML module_name RP
 
 
