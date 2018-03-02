@@ -1605,6 +1605,19 @@ fun lit_and_ann_of_propagated_st_heur_code x =
                           end)
     x;
 
+fun is_in_option_lookup_conflict_code x =
+  (fn ai => fn (_, (_, a2a)) => fn () =>
+    let
+      val xa = (fn () => Array.sub (a2a, Word32.toInt (atm_of_code ai))) ();
+    in
+      not (is_None xa)
+    end)
+    x;
+
+fun atm_is_in_option_lookup_conflict_code x =
+  (fn ai => fn (_, (_, (a1b, _))) => is_in_option_lookup_conflict_code ai a1b)
+    x;
+
 fun is_decided_wl_code x = (fn xi => (fn () => (is_None (snd xi)))) x;
 
 fun is_decided_hd_trail_wl_code x =
@@ -1872,30 +1885,6 @@ fun tl_state_wl_heur_code x =
     end)
     x;
 
-fun equal_bool p true = p
-  | equal_bool p false = not p
-  | equal_bool true p = p
-  | equal_bool false p = not p;
-
-fun imp_option_eq eq a b =
-  (case (a, b) of (NONE, NONE) => (fn () => true)
-    | (NONE, SOME _) => (fn () => false) | (SOME _, NONE) => (fn () => false)
-    | (SOME aa, SOME ba) => eq aa ba);
-
-fun is_in_lookup_option_conflict_code x =
-  (fn ai => fn (_, (_, a2a)) => fn () =>
-    let
-      val xa = (fn () => Array.sub (a2a, Word32.toInt (atm_of_code ai))) ();
-    in
-      imp_option_eq (fn va => fn vb => (fn () => (equal_bool va vb))) xa
-        (SOME (is_pos_code ai)) ()
-    end)
-    x;
-
-fun literal_is_in_conflict_heur_code x =
-  (fn ai => fn (_, (_, (a1b, _))) => is_in_lookup_option_conflict_code ai a1b)
-    x;
-
 fun skip_and_resolve_loop_wl_D_code x =
   (fn xi => fn () =>
     let
@@ -1912,8 +1901,8 @@ fun skip_and_resolve_loop_wl_D_code x =
               ()) ())
               (fn (a1a, a2a) =>
                 (fn f_ => fn () => f_
-                  ((literal_is_in_conflict_heur_code (uminus_code a1a) a2) ())
-                  ())
+                  ((atm_is_in_option_lookup_conflict_code (uminus_code a1a) a2)
+                  ()) ())
                   (fn xa =>
                     (if not xa
                       then (fn f_ => fn () => f_ ((tl_state_wl_heur_code a2) ())
@@ -2519,6 +2508,11 @@ fun ns_vmtf_dequeue_code x =
         (VMTF_Node (stamp xb, NONE, NONE)) ()
     end)
     x;
+
+fun imp_option_eq eq a b =
+  (case (a, b) of (NONE, NONE) => (fn () => true)
+    | (NONE, SOME _) => (fn () => false) | (SOME _, NONE) => (fn () => false)
+    | (SOME aa, SOME ba) => eq aa ba);
 
 fun vmtf_dequeue_code x =
   (fn ai => fn (a1, (a1a, (a1b, (a1c, a2c)))) => fn () =>

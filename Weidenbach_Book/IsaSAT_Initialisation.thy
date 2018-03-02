@@ -114,7 +114,7 @@ sepref_thm propagate_unit_cls_code
   is \<open>uncurry (PR_CONST propagate_unit_cls_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
-  unfolding propagate_unit_cls_heur_def isasat_init_assn_def is_in_conflict_def[symmetric]
+  unfolding propagate_unit_cls_heur_def isasat_init_assn_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   by sepref
 
@@ -151,7 +151,7 @@ sepref_thm already_propagated_unit_cls_code
   is \<open>uncurry already_propagated_unit_cls_heur\<close>
   :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
-  unfolding already_propagated_unit_cls_heur_def isasat_init_assn_def is_in_conflict_def[symmetric]
+  unfolding already_propagated_unit_cls_heur_def isasat_init_assn_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   by sepref
 
@@ -266,7 +266,7 @@ sepref_thm conflict_propagated_unit_cls_code
   :: \<open>[\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> get_conflict_wl_heur_init S = None]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow> isasat_init_assn\<close>
   supply [[goals_limit=1]]
-  unfolding conflict_propagated_unit_cls_heur_def isasat_init_assn_def is_in_conflict_def[symmetric]
+  unfolding conflict_propagated_unit_cls_heur_def isasat_init_assn_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   apply (rewrite at \<open>(_, \<hole>, _)\<close> lms_fold_custom_empty)+
   by sepref
@@ -300,7 +300,7 @@ sepref_thm add_init_cls_code
         nat_of_lit (hd (tl C)) < length (get_watched_list_heur_init S)]\<^sub>a
       (list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow> isasat_init_assn\<close>
   supply [[goals_limit=1]] append_ll_def[simp]
-  unfolding add_init_cls_heur_def isasat_init_assn_def is_in_conflict_def[symmetric]
+  unfolding add_init_cls_heur_def isasat_init_assn_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   unfolding isasat_init_assn_def Array_List_Array.swap_ll_def[symmetric]
     nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
@@ -360,7 +360,7 @@ sepref_thm already_propagated_unit_cls_conflict_code
   is \<open>uncurry already_propagated_unit_cls_conflict_heur\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
-  unfolding already_propagated_unit_cls_conflict_heur_def isasat_init_assn_def is_in_conflict_def[symmetric]
+  unfolding already_propagated_unit_cls_conflict_heur_def isasat_init_assn_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   apply (rewrite at \<open>(_, \<hole>, _)\<close> lms_fold_custom_empty)+
   by sepref

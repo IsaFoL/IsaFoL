@@ -278,42 +278,21 @@ lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_t
 definition (in -) is_in_conflict_st :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>is_in_conflict_st L S \<longleftrightarrow> is_in_conflict L (get_conflict_wl S)\<close>
 
-definition (in isasat_input_ops) literal_is_in_conflict_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>literal_is_in_conflict_heur L S \<longleftrightarrow> L \<in># the (get_conflict_wl_heur S)\<close>
+definition (in isasat_input_ops) atm_is_in_conflict_st_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>atm_is_in_conflict_st_heur L S \<longleftrightarrow> atm_of L \<in> atms_of (the (get_conflict_wl_heur S))\<close>
 
-lemma literal_is_in_conflict_heur_alt_def:
-  \<open>literal_is_in_conflict_heur = (\<lambda>L (M, N, D, _). L \<in># the D)\<close>
-  unfolding literal_is_in_conflict_heur_def by (auto intro!: ext)
+lemma atm_is_in_conflict_st_heur_alt_def:
+  \<open>atm_is_in_conflict_st_heur = (\<lambda>L (M, N, D, _). atm_of L \<in> atms_of (the D))\<close>
+  unfolding atm_is_in_conflict_st_heur_def by (auto intro!: ext)
 
-lemma literal_is_in_conflict_heur_is_in_conflict_st:
-  \<open>(uncurry (RETURN oo literal_is_in_conflict_heur), uncurry (RETURN oo is_in_conflict_st)) \<in>
-   Id \<times>\<^sub>r twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+lemma atm_is_in_conflict_st_heur_is_in_conflict_st:
+  \<open>(uncurry (RETURN oo atm_is_in_conflict_st_heur), uncurry (RETURN oo is_in_conflict_st)) \<in>
+   [\<lambda>(L, S). -L \<notin># the (get_conflict_wl S)]\<^sub>f
+   Id \<times>\<^sub>r twl_st_heur \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (case_tac x, case_tac y)
-  by (auto simp: literal_is_in_conflict_heur_def is_in_conflict_st_def twl_st_heur_def)
-
-definition (in isasat_input_ops) literal_is_in_conflict_heur_pre where
-  \<open>literal_is_in_conflict_heur_pre =
-    (\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and>
-        get_conflict_wl_heur S \<noteq> None)\<close>
-
-sepref_thm literal_is_in_conflict_heur_code
-  is \<open>uncurry (RETURN oo literal_is_in_conflict_heur)\<close>
-  :: \<open>[literal_is_in_conflict_heur_pre]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>k  \<rightarrow> bool_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding literal_is_in_conflict_heur_alt_def isasat_assn_def is_in_conflict_def[symmetric]
-  PR_CONST_def literal_is_in_conflict_heur_pre_def
-  by sepref
-
-concrete_definition (in -) literal_is_in_conflict_heur_code
-   uses isasat_input_bounded.literal_is_in_conflict_heur_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) literal_is_in_conflict_heur_code_def
-
-lemmas literal_is_in_conflict_heur_code_refine[sepref_fr_rules] =
-   literal_is_in_conflict_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+  by (auto simp: atm_is_in_conflict_st_heur_def is_in_conflict_st_def twl_st_heur_def
+      atms_of_def atm_of_eq_atm_of)
 
 definition (in isasat_input_ops) polarity_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option\<close> where
   \<open>polarity_st_heur S = polarity (get_trail_wl_heur S)\<close>
