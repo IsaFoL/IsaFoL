@@ -712,50 +712,6 @@ prepare_code_thms (in -) set_lookup_conflict_aa_code_def
 lemmas set_lookup_conflict_aa_code[sepref_fr_rules] =
    set_lookup_conflict_aa_code.refine[OF isasat_input_bounded_axioms]
 
-
-(* TODO Move *)
-lemma (in -)distinct_in_set_take_iff:
-  \<open>distinct D \<Longrightarrow>
-    b < length D \<Longrightarrow>
-    D ! b \<in> set (take a D) \<longleftrightarrow> b < a\<close>
-  apply (induction a arbitrary: b)
-  subgoal by simp
-  subgoal for a
-    by (cases \<open>Suc a < length D\<close>)
-      (auto simp: take_Suc_conv_app_nth nth_eq_iff_index_eq)
-  done
-
-lemma (in -)in_set_conv_iff:
-  \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>i < n. i < length xs \<and> xs ! i = x)\<close>
-   apply (induction n)
-  subgoal by auto
-  subgoal for n
-    apply (cases \<open>Suc n < length xs\<close>)
-    subgoal by (auto simp: take_Suc_conv_app_nth less_Suc_eq dest: in_set_takeD)
-    subgoal
-    apply (cases \<open>n < length xs\<close>)
-      apply (auto simp: take_Suc_conv_app_nth dest: in_set_takeD)
-      using less_Suc_eq apply auto[1]
-      apply (meson in_set_conv_nth less_trans_Suc not_less_eq)
-      by (meson Suc_lessD less_trans_Suc not_less_eq)
-    done
-  done
-
-lemma (in -) in_set_distinct_take_drop_iff:
-  assumes
-    \<open>distinct D\<close> and
-    \<open>b < length D\<close>
-  shows \<open>D ! b \<in> set (take (a - init) (drop init D)) \<longleftrightarrow> (init \<le> b \<and> b < a)\<close>
-  using assms apply (auto 5 5 simp: distinct_in_set_take_iff in_set_conv_iff
-      in_set_drop_conv_nth nth_eq_iff_index_eq dest: in_set_takeD)
-  by (metis add_diff_cancel_left' diff_less_mono le_iff_add less_imp_le_nat nth_drop)
-
-
-lemma (in -)is_neg_neg_not_is_neg: "is_neg (- L) \<longleftrightarrow> \<not> is_neg L"
-  by (cases L) auto
-
-(* End Move *)
-
 lemma lookup_conflict_merge'_spec:
   assumes
     o: \<open>((b, n, xs), Some C) \<in> option_lookup_clause_rel\<close> and

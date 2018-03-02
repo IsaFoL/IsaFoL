@@ -303,6 +303,11 @@ lemma RES_RES_RETURN_RES2: \<open>RES A \<bind> (\<lambda>(T, T'). RETURN (f T T
 lemma bind_refine_res: \<open>(\<And>x. x \<in> \<Phi> \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> RES \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
   by (auto simp add: pw_le_iff refine_pw_simps)
 
+lemma RES_RETURN_RES_RES2:
+   \<open>RES \<Phi> \<bind> (\<lambda>(T, T'). RETURN (f T T')) = RES (uncurry f ` \<Phi>)\<close>
+  using RES_RES2_RETURN_RES[of \<open>\<Phi>\<close> \<open>\<lambda>T T'. {f T T'}\<close>]
+  apply (subst (asm)(2) split_prod_bound)
+  by (auto simp: RETURN_def uncurry_def)
 
 text \<open>
   This theorem adds the invariant at the beginning of next iteration to the current invariant,
@@ -534,7 +539,6 @@ lemma fref_to_Down_curry2':
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-
 lemma fref_to_Down_curry3:
   \<open>(uncurry3 f, uncurry3 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y' z z' a a'. P (((x', y'), z'), a') \<Longrightarrow>
@@ -563,6 +567,33 @@ lemma fref_to_Down_explode:
   \<open>(f a, g a) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' b. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> b = a \<Longrightarrow> f a x \<le> \<Down> B (g b x'))\<close>
   unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_curry_no_nres_Id:
+  \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y = g x' y')\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_no_nres:
+  \<open>((RETURN o f), (RETURN o g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x'. P (x') \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> (f x, g x') \<in> B)\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_curry_no_nres:
+  \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> (f x y, g x' y') \<in> B)\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma RES_RETURN_RES4:
+   \<open>SPEC \<Phi> \<bind> (\<lambda>(T, T', T'', T'''). RETURN (f T T' T'' T''')) =
+      RES ((\<lambda>(a, b, c, d). f a b c d) ` {T. \<Phi> T})\<close>
+  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>\<lambda>(a, b, c, d). f a b c d\<close>]
+  apply (subst (asm)(2) split_prod_bound)
+  apply (subst (asm)(3) split_prod_bound)
+  apply (subst (asm)(4) split_prod_bound)
   by auto
 
 declare RETURN_as_SPEC_refine[refine2 del]

@@ -156,6 +156,41 @@ lemma drop_take_drop_drop:
   apply (case_tac j)
   by (auto simp add: atd_lem)
 
+lemma in_set_conv_iff:
+  \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>i < n. i < length xs \<and> xs ! i = x)\<close>
+   apply (induction n)
+  subgoal by auto
+  subgoal for n
+    apply (cases \<open>Suc n < length xs\<close>)
+    subgoal by (auto simp: take_Suc_conv_app_nth less_Suc_eq dest: in_set_takeD)
+    subgoal
+    apply (cases \<open>n < length xs\<close>)
+      apply (auto simp: take_Suc_conv_app_nth dest: in_set_takeD)
+      using less_Suc_eq apply auto[1]
+      apply (meson in_set_conv_nth less_trans_Suc not_less_eq)
+      by (meson Suc_lessD less_trans_Suc not_less_eq)
+    done
+  done
+
+lemma distinct_in_set_take_iff:
+  \<open>distinct D \<Longrightarrow> b < length D \<Longrightarrow> D ! b \<in> set (take a D) \<longleftrightarrow> b < a\<close>
+  apply (induction a arbitrary: b)
+  subgoal by simp
+  subgoal for a
+    by (cases \<open>Suc a < length D\<close>)
+      (auto simp: take_Suc_conv_app_nth nth_eq_iff_index_eq)
+  done
+
+lemma in_set_distinct_take_drop_iff:
+  assumes
+    \<open>distinct D\<close> and
+    \<open>b < length D\<close>
+  shows \<open>D ! b \<in> set (take (a - init) (drop init D)) \<longleftrightarrow> (init \<le> b \<and> b < a)\<close>
+  using assms apply (auto 5 5 simp: distinct_in_set_take_iff in_set_conv_iff
+      nth_eq_iff_index_eq dest: in_set_takeD)
+  by (metis add_diff_cancel_left' diff_less_mono le_iff_add less_imp_le_nat nth_drop)
+
+
 subsection \<open>Replicate\<close>
 
 lemma list_eq_replicate_iff_nempty:
@@ -634,6 +669,7 @@ lemma count_list_filter: \<open>count_list xs x = length (filter (op = x) xs)\<c
 lemma sum_length_filter_compl': \<open>length [x\<leftarrow>xs . \<not> P x] + length (filter P xs) = length xs\<close>
   using sum_length_filter_compl[of P xs] by auto
 
+
 subsection \<open>Multisets\<close>
 
 lemma in_multiset_nempty: \<open>L \<in># D \<Longrightarrow> D \<noteq> {#}\<close>
@@ -836,6 +872,17 @@ lemma remove1_mset_union_distrib:
 (* useful for sledgehammer/proof reconstruction ?*)
 lemma member_add_mset: \<open>a \<in># add_mset x xs \<longleftrightarrow> a = x \<or> a \<in># xs\<close>
   by simp
+
+lemma (in -)sup_union_right_if:
+  \<open>N \<union># add_mset x M =
+     (if x \<notin># N then add_mset x (N \<union># M) else add_mset x (remove1_mset x N \<union># M))\<close>
+  by (auto simp: sup_union_right2)
+
+lemma same_mset_distinct_iff:
+  \<open>mset M = mset M' \<Longrightarrow> distinct M \<longleftrightarrow> distinct M'\<close>
+  by (auto simp: distinct_mset_mset_distinct[symmetric] simp del: distinct_mset_mset_distinct)
+
+
 
 subsection \<open>Sorting\<close>
 

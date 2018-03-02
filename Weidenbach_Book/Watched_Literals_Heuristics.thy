@@ -775,14 +775,6 @@ method "to_\<Down>" =
    unfold Ball2_split_def all_to_meta fref_def uncurry_def;
    intro allI impI)
 
-lemma (in -) RES_RETURN_RES4:
-   \<open>SPEC \<Phi> \<bind> (\<lambda>(T, T', T'', T'''). RETURN (f T T' T'' T''')) =
-      RES ((\<lambda>(a, b, c, d). f a b c d) ` {T. \<Phi> T})\<close>
-  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>\<lambda>(a, b, c, d). f a b c d\<close>]
-  apply (subst (asm)(2) split_prod_bound)
-  apply (subst (asm)(3) split_prod_bound)
-  apply (subst (asm)(4) split_prod_bound)
-  by auto
 
 
 lemma set_conflict_wl_heur_set_conflict_wl':

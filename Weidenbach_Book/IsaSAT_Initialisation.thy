@@ -317,13 +317,6 @@ prepare_code_thms (in -) add_init_cls_code_def
 lemmas add_init_cls_heur_hnr[sepref_fr_rules] =
    add_init_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-text \<open>TODO Move\<close>
-lemma (in -)RES_RETURN_RES_RES2:
-   \<open>RES \<Phi> \<bind> (\<lambda>(T, T'). RETURN (f T T')) = RES (uncurry f ` \<Phi>)\<close>
-  using RES_RES2_RETURN_RES[of \<open>\<Phi>\<close> \<open>\<lambda>T T'. {f T T'}\<close>]
-  apply (subst (asm)(2) split_prod_bound)
-  by (auto simp: RETURN_def uncurry_def)
-
 lemma add_init_cls_heur_add_init_cls:
   \<open>(uncurry add_init_cls_heur, uncurry (add_to_clauses_init_wl)) \<in>
    [\<lambda>(C, S). length C \<ge> 2 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and> distinct C]\<^sub>f

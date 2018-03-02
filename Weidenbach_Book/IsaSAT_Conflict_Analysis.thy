@@ -543,31 +543,6 @@ lemma skip_and_resolve_loop_wl_D_inv_skip_and_resolve_loop_wl_D_heur_inv:
   apply (rule exI[of _ y])
   by auto
 
-text \<open>TODO Move\<close>
-lemma (in -)fref_to_Down_curry_no_nres_Id:
-  \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y = g x' y')\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma (in -)fref_to_Down_no_nres:
-  \<open>((RETURN o f), (RETURN o g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x'. P (x') \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> (f x, g x') \<in> B)\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma (in -)fref_to_Down_curry_no_nres:
-  \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> (f x y, g x' y') \<in> B)\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma (in -)sup_union_right_if:
-  \<open>N \<union># add_mset x M =
-     (if x \<notin># N then add_mset x (N \<union># M) else add_mset x (remove1_mset x N \<union># M))\<close>
-  by (auto simp: sup_union_right2)
-text \<open>END MOVE\<close>
-
 lemma skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D:
   \<open>(skip_and_resolve_loop_wl_D_heur, skip_and_resolve_loop_wl_D)
     \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>

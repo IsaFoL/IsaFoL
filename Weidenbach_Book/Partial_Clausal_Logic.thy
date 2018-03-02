@@ -35,6 +35,10 @@ Clauses are (finite) multisets of literals.
 type_synonym 'a clause = "'a literal multiset"
 type_synonym 'v clauses = "'v clause set"
 
+lemma is_neg_neg_not_is_neg: "is_neg (- L) \<longleftrightarrow> \<not> is_neg L"
+  by (cases L) auto
+
+
 subsection \<open>Partial Interpretations\<close>
 
 type_synonym 'a interp = "'a literal set"
