@@ -13,7 +13,6 @@ declare isasat_input_bounded.append_el_aa_hnr[sepref_fr_rules]
 declare isasat_input_bounded.polarity_pol_code_polarity_refine[sepref_fr_rules]
   isasat_input_bounded.cons_trail_Propagated_tr_code_cons_trail_Propagated_tr[sepref_fr_rules]
 
-
 text \<open>to get a full SAT:
   \<^item> either we fully apply \<^term>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<close>
   \<^item> or we can stop early.
@@ -1182,7 +1181,6 @@ proof -
     using IsaSAT_code.refine[FCOMP IsaSAT_heur_IsaSAT]
     unfolding list_assn_list_mset_rel_clauses_l_assn H
     by auto
-  thm hfref_compI_PRE[OF H IsaSAT_SAT]
   show ?thesis
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
   proof -
