@@ -520,6 +520,18 @@ definition uint64_nat_rel :: "(uint64 \<times> nat) set" where
 abbreviation uint64_nat_assn :: "nat \<Rightarrow> uint64 \<Rightarrow> assn" where
   \<open>uint64_nat_assn \<equiv> pure uint64_nat_rel\<close>
 
+
+abbreviation uint64_rel :: \<open>(uint64 \<times> uint64) set\<close> where
+  \<open>uint64_rel \<equiv> Id\<close>
+
+abbreviation uint64_assn :: \<open>uint64 \<Rightarrow> uint64 \<Rightarrow> assn\<close> where
+  \<open>uint64_assn \<equiv> id_assn\<close>
+
+lemma op_eq_uint64:
+  \<open>(uncurry (return oo (op = :: uint64 \<Rightarrow> _)), uncurry (RETURN oo op =)) \<in>
+    uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare sep_auto
+
 lemma word_nat_of_uint64_Rep_inject[simp]: \<open>nat_of_uint64 ai = nat_of_uint64 bi \<longleftrightarrow> ai = bi\<close>
   by transfer simp
 
@@ -610,8 +622,10 @@ structure Uint64 : sig
   val one : uint64;
   val fromInt : IntInf.int -> uint64;
   val toInt : uint64 -> IntInf.int;
+  val toFixedInt : uint64 -> Int.int;
   val toLarge : uint64 -> LargeWord.word;
   val fromLarge : LargeWord.word -> uint64
+  val fromFixedInt : Int.int -> uint64
   val plus : uint64 -> uint64 -> uint64;
   val minus : uint64 -> uint64 -> uint64;
   val times : uint64 -> uint64 -> uint64;
@@ -641,7 +655,11 @@ fun fromInt x = Word64.fromLargeInt (IntInf.toLarge x);
 
 fun toInt x = IntInf.fromLarge (Word64.toLargeInt x);
 
+fun toFixedInt x = Word64.toInt x;
+
 fun fromLarge x = Word64.fromLarge x;
+
+fun fromFixedInt x = Word64.fromInt x;
 
 fun toLarge x = Word64.toLarge x;
 

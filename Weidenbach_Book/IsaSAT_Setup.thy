@@ -37,12 +37,6 @@ paragraph \<open>Statistics\<close>
 
 type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64\<close>
 
-abbreviation uint64_rel :: \<open>(uint64 \<times> uint64) set\<close> where
-  \<open>uint64_rel \<equiv> Id\<close>
-
-abbreviation uint64_assn :: \<open>uint64 \<Rightarrow> uint64 \<Rightarrow> assn\<close>where
-  \<open>uint64_assn \<equiv> id_assn\<close>
-
 abbreviation stats_assn where
   \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn\<close>
 

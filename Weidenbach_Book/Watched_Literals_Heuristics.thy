@@ -59,14 +59,15 @@ lemma unit_prop_body_wl_D_invD:
     \<open>get_conflict_wl S = None\<close> and
     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl S \<propto> watched_by_app S L w))\<close> and
     \<open>distinct (get_clauses_wl S \<propto> watched_by_app S L w)\<close> and
-    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S)\<close>
+    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S)\<close> and
+    \<open>length (get_clauses_wl S \<propto> watched_by_app S L w) \<le> uint64_max\<close>
 proof -
   define i where
     \<open>i \<equiv> ((if get_clauses_l (remove_one_lit_from_wq (watched_by S L ! w) x) \<propto>  (watched_by S L ! w) !
                    0 =
                    L
                 then 0 else 1))\<close>
-obtain T T' where
+  obtain T T' where
     lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
     \<open>L \<in> snd ` D\<^sub>0\<close> and
     S_T: \<open>(S, T) \<in> state_wl_l (Some (L, w))\<close> and
@@ -174,7 +175,7 @@ obtain T T' where
     using S_L_W_le_S S_L_W_ge_0
     by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def distinct_mset_set_distinct
          clauses_def mset_take_mset_drop_mset watched_by_app_def)
-  show  \<open>L \<in> snd ` D\<^sub>0\<close>
+  show \<open>L \<in> snd ` D\<^sub>0\<close>
     using  \<open>L \<in> snd ` D\<^sub>0\<close>  .
   have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T')\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -192,6 +193,10 @@ obtain T T' where
       lits_of_def image_image init_clss.simps mset_take_mset_drop_mset'
       convert_lits_l_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
       twl_st_l twl_st_wl twl_st get_unit_clauses_wl_alt_def)
+  show \<open>length (get_clauses_wl S \<propto> watched_by_app S L w) \<le> uint64_max\<close>
+    using clss_size_uint64_max[of \<open>mset (get_clauses_wl S \<propto> watched_by_app S L w)\<close>, 
+        OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl S \<propto> watched_by_app S L w))\<close>]
+      \<open>distinct (get_clauses_wl S \<propto> watched_by_app S L w)\<close> by auto
 qed
 
 
@@ -225,7 +230,7 @@ definition (in -) find_unwatched :: \<open>('a, 'b) ann_lits \<Rightarrow> 'a cl
 definition (in isasat_input_ops) find_unwatched_wl_st_heur_pre where
   \<open>find_unwatched_wl_st_heur_pre =
      (\<lambda>(S, i). i \<in># dom_m (get_clauses_wl_heur S) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_heur S \<and>
-        length (get_clauses_wl_heur S \<propto> i) \<ge> 2)\<close>
+        length (get_clauses_wl_heur S \<propto> i) \<ge> 2 \<and> length (get_clauses_wl_heur S \<propto> i) < uint64_max)\<close>
 
 definition (in isasat_input_ops) find_unwatched_wl_st_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
@@ -294,7 +299,8 @@ lemma (in -) find_unwatched:
 definition (in isasat_input_ops) find_unwatched_wl_st_pre where
   \<open>find_unwatched_wl_st_pre =  (\<lambda>(S, i).
     i \<in># dom_m (get_clauses_wl S) \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n S \<and> 2 \<le> length (get_clauses_wl S \<propto> i))\<close>
+    literals_are_\<L>\<^sub>i\<^sub>n S \<and> 2 \<le> length (get_clauses_wl S \<propto> i) \<and>
+    length (get_clauses_wl S \<propto> i) < uint64_max)\<close>
 
 theorem find_unwatched_wl_st_heur_find_unwatched_wl_s:
   \<open>(uncurry find_unwatched_wl_st_heur, uncurry find_unwatched_wl_st)
@@ -379,7 +385,9 @@ definition (in -) access_lit_in_clauses where
 
 definition (in -) access_lit_in_clauses_heur_pre where
   \<open>access_lit_in_clauses_heur_pre =
-      (\<lambda>((S, i), j). i \<in># dom_m (get_clauses_wl_heur S) \<and> j < length (get_clauses_wl_heur S \<propto> i))\<close>
+      (\<lambda>((S, i), j). i \<in># dom_m (get_clauses_wl_heur S) \<and>
+           j < length (get_clauses_wl_heur S \<propto> i) \<and>
+           length (get_clauses_wl_heur S \<propto> i) \<le> uint64_max)\<close>
 
 definition (in -) access_lit_in_clauses_heur where
   \<open>access_lit_in_clauses_heur S i j = get_clauses_wl_heur S \<propto> i ! j\<close>
@@ -871,12 +879,12 @@ proof -
       using inv' xy unfolding st
       by (auto simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         simp del: twl_st_of_wl.simps)
-
+    with clss_size_uint64_max[of \<open>mset (get_clauses_wl x2a \<propto> (watched_by x2a x1a ! x2))\<close>]
     show ?thesis
       using unit_prop_body_wl_D_invD[OF inv'] that heur
       unfolding find_unwatched_wl_st_heur_pre_def watched_by_app_def
       by (simp add: twl_st_heur_state_simp image_image
-          twl_st_heur_state_simp_watched[OF heur])
+          twl_st_heur_state_simp_watched[OF heur] )
   qed
   have set_conflict_wl_heur_pre: \<open>set_conflict_wl_heur_pre (watched_by_int x2c x1c ! x2b, x2c)\<close>
     if

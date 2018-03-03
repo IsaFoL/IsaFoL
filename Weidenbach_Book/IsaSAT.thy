@@ -253,14 +253,38 @@ sepref_definition IsaSAT_code
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
   by sepref
 
-code_printing constant nth_u_code \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Word32.toInt _))"
 
-code_printing constant heap_array_set'_u \<rightharpoonup>
+definition nth_u_code' where
+  [symmetric, code]: \<open>nth_u_code' = nth_u_code\<close>
+
+code_printing constant nth_u_code' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Word32.toInt (_)))"
+
+
+definition nth_u64_code' where
+  [symmetric, code]: \<open>nth_u64_code' = nth_u64_code\<close>
+
+code_printing constant nth_u64_code' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Uint64.toFixedInt (_)))"
+
+
+definition heap_array_set'_u' where
+  [symmetric, code]: \<open>heap_array_set'_u' = heap_array_set'_u\<close>
+
+code_printing constant heap_array_set'_u' \<rightharpoonup>
    (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word32.toInt (_)),/ (_)))"
+
+
+definition heap_array_set'_u64' where
+  [symmetric, code]: \<open>heap_array_set'_u64' = heap_array_set'_u64\<close>
+
+code_printing constant heap_array_set'_u64' \<rightharpoonup>
+   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word64.toInt (_)),/ (_)))" 
 
 code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
 
-code_printing constant length_u_code \<rightharpoonup> (SML_imp) "(fn/ ()/ =>/ Word32.fromInt (Array.length (_)))"
+definition length_u_code' where
+  [symmetric, code]: \<open>length_u_code' = length_u_code\<close>
+
+code_printing constant length_u_code' \<rightharpoonup> (SML_imp) "(fn/ ()/ =>/ Word32.fromInt (Array.length (_)))"
 
 definition length_aa_u_code' where
   [symmetric, code]: \<open>length_aa_u_code' = length_aa_u_code\<close>
@@ -268,11 +292,35 @@ definition length_aa_u_code' where
 code_printing constant length_aa_u_code' \<rightharpoonup> (SML_imp)
    "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ (fst (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
 
+term delete_index_and_swap_code
+term nth_raa_i_u64
+
+definition nth_raa_i_u64' where
+  [symmetric, code]: \<open>nth_raa_i_u64' = nth_raa_i_u64\<close>
+
+code_printing constant nth_raa_i_u64' \<rightharpoonup> (SML_imp)
+   "(fn/ ()/ =>/ Array.sub (Array.sub/ (fst (_),/ IntInf.toInt (integer'_of'_nat (_))), Uint64.toFixedInt (_)))"
+
+definition length_u64_code' where
+  [symmetric, code]: \<open>length_u64_code' = length_u64_code\<close> 
+
+code_printing constant length_u64_code' \<rightharpoonup> (SML_imp)
+   "(fn/ ()/ =>/ Uint64.fromFixedInt (Array.length (_)))"
+
 (* This equation makes no sense since a resizable array is represent by an array and an infinite
  integer: There is no obvious shortcut.
 code_printing constant length_arl_u_code' \<rightharpoonup> (SML_imp)
    "(fn/ ()/ =>/ Word32.fromLargeInt (snd (_)))"  *)
+(* code_printing constant nth_u64_code \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Uint64.toFixedInt (_)))" *)
 
+
+definition arl_get_u64' where
+  [symmetric, code]: \<open>arl_get_u64' = arl_get_u64\<close>
+
+code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ (fst (_),/ Uint64.toFixedInt (_)))"
+
+term nth_u_code
+term nth_u64_code
 export_code IsaSAT_code checking SML_imp
 export_code IsaSAT_code
     int_of_integer
