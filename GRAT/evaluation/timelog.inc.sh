@@ -46,19 +46,19 @@ function pr_log_info {
   fi
 }
 
-
-echo -n "problem, "
-for i in $FIELDS; do
-  for j in $SUBFIELDS; do
-    echo -n "$i-$j, "
+if test ! -n "$NOHEADER"; then
+  echo -n "problem, " $EXTRAFIELDS
+  for i in $FIELDS; do
+    for j in $SUBFIELDS; do
+      echo -n "$i-$j, "
+    done
   done
-done
-
-echo
+  echo
+fi
 
 for i in $PROBLEMS; do
   BASENAME=${i%.cnf}
-  echo -n "$BASENAME, "
+  echo -n "$BASENAME, " $EXTRAFIELDSV
   for j in $FIELDS; do
     LOGFILE="$BASENAME.$j.log"
     pr_log_info $LOGFILE
