@@ -40,8 +40,8 @@ begin
     ) >\<^sub>t"
     unfolding certified_sat_def
     by (sep_auto 
-        simp: formula_sat_spec_def formula_unsat_spec_def 
-        simp: Let_def F_invar_def tl_lst_nn_eq)
+        simp: verify_sat_spec_def verify_unsat_spec_def clause_DB_valid_def clause_DB_sat_def
+        )
       
       
       

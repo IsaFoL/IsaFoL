@@ -881,17 +881,15 @@ lemma init_rat_counts_correct[THEN ESPEC_trans, refine_vcg]:
   
     
 definition "verify_unsat F_begin F_end it prf \<equiv> doE {
-  let A=Map.empty;
-
   EASSERT (it_invar it);
 
   (CM,prf) \<leftarrow> init_rat_counts prf;
 
-  (CM) \<leftarrow> read_cnf_new F_end F_begin CM;
+  CM \<leftarrow> read_cnf_new F_end F_begin CM;
 
-  let s = (CM,A);
+  let s = (CM,Map.empty);
 
-  s \<leftarrow> EWHILEIT 
+  EWHILEIT 
     (\<lambda>Some (_,it,_) \<Rightarrow> it_invar it | None \<Rightarrow> True) 
     (\<lambda>s. s\<noteq>None) 
     (\<lambda>s. doE {
@@ -902,7 +900,11 @@ definition "verify_unsat F_begin F_end it prf \<equiv> doE {
   
       check_item s it prf
     }) (Some (s,it,prf));
+    
+  ERETURN ()
+  (*  
   CHECK (is_None s) (mkp_err ''Proof did not contain conflict declaration'')
+  *)
 }"
 
 lemma verify_unsat_correct: 
@@ -1256,17 +1258,15 @@ lemma check_item_bt_refine[refine]: "\<lbrakk>(si,s)\<in>Id; (iti,it)\<in>Id; (p
   done
 
 definition "verify_unsat_bt F_begin F_end it prf \<equiv> doE {
-  let A=Map.empty;
-
   EASSERT (it_invar it);
 
   (CM,prf) \<leftarrow> init_rat_counts prf;
 
-  (CM) \<leftarrow> read_cnf_new F_end F_begin CM;
+  CM \<leftarrow> read_cnf_new F_end F_begin CM;
 
-  let s = (CM,A);
+  let s = (CM,Map.empty);
 
-  s \<leftarrow> EWHILEIT 
+  EWHILEIT 
     (\<lambda>Some (_,it,_) \<Rightarrow> it_invar it | None \<Rightarrow> True) 
     (\<lambda>s. s\<noteq>None) 
     (\<lambda>s. 
@@ -1278,7 +1278,8 @@ definition "verify_unsat_bt F_begin F_end it prf \<equiv> doE {
 
     check_item_bt s it prf
   }) (Some (s,it,prf));
-  CHECK (is_None s) (mkp_err ''Proof did not contain conflict declaration'')
+  ERETURN ()
+  (*CHECK (is_None s) (mkp_err ''Proof did not contain conflict declaration'')*)
 }"
 
 lemma verify_unsat_bt_refine[refine]: 
@@ -2383,17 +2384,16 @@ context unsat_input begin
       
       
   definition "verify_unsat1 F_begin F_end it prf \<equiv> doE {
-    let A=Map.empty;
 
     EASSERT (it_invar it);
 
     (CM,prf) \<leftarrow> init_rat_counts1 prf;
 
-    (CM) \<leftarrow> read_cnf_new1 F_end F_begin CM;
+    CM \<leftarrow> read_cnf_new1 F_end F_begin CM;
   
-    let s = (CM,A);
+    let s = (CM,Map.empty);
 
-    s \<leftarrow> EWHILEIT 
+    EWHILEIT 
       (\<lambda>Some (_,it,_) \<Rightarrow> it_invar it | None \<Rightarrow> True) 
       (\<lambda>s. s\<noteq>None) 
       (\<lambda>s. doE {
@@ -2404,7 +2404,8 @@ context unsat_input begin
     
         check_item1 s it prf
       }) (Some (s,it,prf));
-    CHECK (is_None s) (mkp_err ''Proof did not contain conflict declaration'')
+    ERETURN ()  
+    (*CHECK (is_None s) (mkp_err ''Proof did not contain conflict declaration'')*)
   }"
   
   lemma verify_unsat1_refine[refine]: 
@@ -3250,7 +3251,7 @@ begin
         *\<^sub>a prfi_assn\<^sup>d 
       \<rightarrow>\<^sub>a errorp_assn +\<^sub>a unit_assn"  
     unfolding verify_unsat2_def 
-    apply (rewrite at "Let \<hole>" assignment.fold_custom_empty)  
+    apply (rewrite at "Let (_,\<hole>)" assignment.fold_custom_empty)  
     (*apply (rewrite at "do {let it\<^sub>0 = \<hole>;
                              _ \<leftarrow> ASSERT (_ \<noteq> None);
                              let s = the _; _}" fold_COPY)  *)
@@ -3336,23 +3337,23 @@ end
 text \<open>Main correctness theorem:
   Given an array @{term DBi} that contains the integers @{term DB}, 
   the verification algorithm does not change the array, and if it returns a 
-  non-@{const Inl} value, the formula in the array is unsatisfiable, as 
-  specified by @{const formula_unsat_spec}.
+  non-@{const Inl} value, the formula in the array is unsatisfiable.
 \<close>  
 theorem verify_unsat_split_impl_wrapper_correct[sep_heap_rules]: 
   shows "
     <DBi \<mapsto>\<^sub>a DB> 
       verify_unsat_split_impl_wrapper DBi prf_next F_end it prf
-    <\<lambda>result. DBi \<mapsto>\<^sub>a DB * \<up>(\<not>isl result \<longrightarrow> formula_unsat_spec DB F_end)>\<^sub>t"
+    <\<lambda>result. DBi \<mapsto>\<^sub>a DB * \<up>(\<not>isl result \<longrightarrow> verify_unsat_spec DB F_end)>\<^sub>t"
 proof -
   {
-    assume A: "0 < F_end" "F_end \<le> length DB" "0 < it" "it \<le> length DB"
+    assume A: "1 \<le> F_end" "F_end \<le> length DB" "0 < it" "it \<le> length DB"
     
     then interpret GRAT_loc DB F_end 
       apply unfold_locales by auto
       
     have SEG: "liti.seg 1 (slice 1 F_end DB) F_end"
-      by (simp add: \<open>0 < F_end\<close> \<open>F_end \<le> length DB\<close> leI liti.seg_sliceI)
+      using \<open>1 \<le> F_end\<close> \<open>F_end \<le> length DB\<close>
+      by (simp add: liti.seg_sliceI)
      
     have INV: "it_invar F_end" "it_invar it" 
       subgoal 
@@ -3370,17 +3371,16 @@ proof -
       by (metis One_nat_def drop_0 drop_Suc_Cons drop_take list.sel(3) tl_drop)
         
     have U2: "F_invar (tl (take F_end DB)) \<and> \<not> sat (F_\<alpha> (tl (take F_end DB))) 
-      \<longleftrightarrow> formula_unsat_spec DB F_end"    
-      unfolding formula_unsat_spec_def using A
-      by (auto simp: Let_def F_invar_def F_\<alpha>_def tl_take)
-        
+      \<longleftrightarrow> verify_unsat_spec DB F_end"    
+      unfolding verify_unsat_spec_def clause_DB_valid_def clause_DB_sat_def 
+      using A by auto
+
     note verify_unsat3_correct_aux[OF SEG INV, unfolded U1 U2]
   } note [sep_heap_rules] = this
   
   
   show ?thesis
-    unfolding verify_unsat_split_impl_wrapper_def
-    by (sep_auto simp: formula_unsat_spec_def clause_\<alpha>_def[abs_def])
+    unfolding verify_unsat_split_impl_wrapper_def by sep_auto
 qed      
 
 end  

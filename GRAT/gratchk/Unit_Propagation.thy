@@ -16,6 +16,9 @@ begin
       else if \<forall>l\<in>C. sem_lit' l A = Some False then Some False
       else None"
 
+  definition compat_assignment :: "('a \<rightharpoonup> bool) \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> bool" 
+    where "compat_assignment A \<sigma> \<equiv> \<forall>x v. A x = Some v \<longrightarrow> \<sigma> x = v"
+      
   lemma sem_neg_lit'[simp]: 
     "sem_lit' (neg_lit l) A = map_option Not (sem_lit' l A)"
     by (cases l) (auto simp: option.map_comp o_def option.map_ident)
@@ -67,9 +70,9 @@ begin
     \<longleftrightarrow> sem_clause' C1 A = Some False \<and> sem_clause' C2 A = Some False"
     unfolding sem_clause'_def by auto
 
-      
-      
-      
+  lemma compat_assignment_empty[simp]: "compat_assignment Map.empty \<sigma>" 
+    unfolding compat_assignment_def by simp
+
       
   text \<open>Assign variable such that literal becomes true\<close>
   definition "assign_lit A l \<equiv> A( var_of_lit l \<mapsto> is_pos l )"
@@ -121,12 +124,6 @@ begin
   abbreviation (input) "is_conflict_clause A C \<equiv> sem_clause' C A = Some False"
   abbreviation (input) "is_true_clause A C \<equiv> sem_clause' C A = Some True"
     
-  definition compat_assignment :: "('a \<rightharpoonup> bool) \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> bool" 
-    where "compat_assignment A \<sigma> \<equiv> \<forall>x v. A x = Some v \<longrightarrow> \<sigma> x = v"
-
-  lemma compat_assignment_empty[simp]: "compat_assignment Map.empty \<sigma>" 
-    unfolding compat_assignment_def by simp
-
   lemma sem_clause'_false_conv: 
     "sem_clause' C A = Some False \<longleftrightarrow> (\<forall>l\<in>C. sem_lit' l A = Some False)"
     unfolding sem_clause'_def by auto
@@ -328,6 +325,12 @@ begin
   definition "sat' F A \<equiv> models' F A \<noteq> {}"
   definition "equiv' F A A' \<equiv> models' F A = models' F A'"
 
+  text \<open>Alternative definition of models', which may be suited for 
+    presentation in paper.\<close>
+  lemma "models' F A = models F \<inter> Collect (compat_assignment A)"
+    unfolding models'_def models_def by auto
+  
+  
   lemma equiv'_refl[simp]: "equiv' F A A" unfolding equiv'_def by simp
   lemma equiv'_sym: "equiv' F A A' \<Longrightarrow> equiv' F A' A" 
     unfolding equiv'_def by simp
@@ -352,11 +355,18 @@ begin
   lemma sat'_equiv: "equiv' F A A' \<Longrightarrow> sat' F A = sat' F A'"
     unfolding equiv'_def sat'_def by blast
     
+  lemma sat_iff_sat': "sat F \<longleftrightarrow> (\<exists>A. sat' F A)"
+    by (metis (no_types, lifting) Collect_empty_eq models'_def models_def 
+          sat'_def sat'_empty_iff sat_iff_has_models)
+    
 
   definition "implied_clause F A C \<equiv> models' (insert C F) A = models' F A"  
   definition "redundant_clause F A C 
     \<equiv> (models' (insert C F) A = {}) \<longleftrightarrow> (models' F A = {})"
   
+  lemma redundant_clause_alt: "redundant_clause F A C \<longleftrightarrow> sat' (insert C F) A = sat' F A"
+    unfolding redundant_clause_def sat'_def by blast
+    
   lemma redundant_clauseI[intro?]:
     assumes "\<And>\<sigma>. \<lbrakk>compat_assignment A \<sigma>; sem_cnf F \<sigma>\<rbrakk> 
               \<Longrightarrow> \<exists>\<sigma>'. compat_assignment A \<sigma>' \<and> sem_clause C \<sigma>' \<and> sem_cnf F \<sigma>'"

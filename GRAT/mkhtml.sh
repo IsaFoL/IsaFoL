@@ -64,7 +64,7 @@ cp gratchk/output/document.pdf html/
 cp evaluation/sat.csv html/
 # cp evaluation/logs/2017-05-combined/rawdata.csv html/unsat.csv
 
-cp evaluation/logs/2017-06-combined_logs.tgz html/
+cp evaluation/logs/{2017-06-combined_logs.tgz,2018-01-logs.tgz} html/
 
 cp LICENSE html/
 

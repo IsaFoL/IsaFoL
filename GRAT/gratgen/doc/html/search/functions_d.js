@@ -2,8 +2,8 @@ var searchData=
 [
   ['p2c',['p2c',['../classClauseDB.html#a4ceb667e2d6436f1810c51f9588f6fd0',1,'ClauseDB::p2c(pos_t pos)'],['../classClauseDB.html#a2a567e2d41f34fb96a32b286006b1426',1,'ClauseDB::p2c(pos_t pos) const ']]],
   ['p2i',['p2i',['../classClauseDB.html#a76533116bae5848ecdb63b67a0261f79',1,'ClauseDB::p2i(pos_t pos)'],['../classClauseDB.html#ad1b343c35d7d37a57a8af070f4d27f7a',1,'ClauseDB::p2i(pos_t pos) const ']]],
-  ['parse_5fclause',['parse_clause',['../classParser.html#a255b91f86d20de3fb538f3d43a5f3358',1,'Parser']]],
-  ['parse_5fdeletion',['parse_deletion',['../classParser.html#a180901b723fd9ea92d657933e52e2a43',1,'Parser']]],
+  ['parse_5fclause',['parse_clause',['../classParser.html#a6c9d37d3cc9f16dcdc2470c07cd091ae',1,'Parser']]],
+  ['parse_5fdeletion',['parse_deletion',['../classParser.html#a628da5e008c2dfaf46d46a887b0dc727',1,'Parser']]],
   ['parse_5fdimacs',['parse_dimacs',['../classParser.html#accd26aeabd4e70f713b3a725d4ea3aa4',1,'Parser']]],
   ['parse_5fignore_5fcomments',['parse_ignore_comments',['../classParser.html#ad9b9794e8ccd8754499fab77e0a5d48d',1,'Parser']]],
   ['parse_5fproof',['parse_proof',['../classParser.html#afb4bacfc12b3612fd320b19c8e521266',1,'Parser']]],

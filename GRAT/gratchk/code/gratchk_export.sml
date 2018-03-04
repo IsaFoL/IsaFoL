@@ -3437,7 +3437,6 @@ val (a1e, a2e) =
 fun verify_unsat3a x =
   (fn ai => fn bid => fn bic => fn bib => fn bia => fn bi => fn () =>
     let
-      val xa = assignment_empty_impl ();
       val a = init_rat_counts3a bid bi ();
     in
       (case a of Inl x1a => (fn () => (Inl x1a))
@@ -3446,26 +3445,24 @@ fun verify_unsat3a x =
             (fn aa =>
               (case aa of Inl x1a => (fn () => (Inl x1a))
                 | Inr x2aa =>
-                  (fn f_ => fn () => f_
-                    ((heap_WHILET
-                       (fn ab =>
-                         (case ab of Inl _ => (fn () => false)
-                           | Inr x2ab => (fn () => (not (is_None x2ab)))))
-                       (fn s => let
-                                  val (a1a, ab) = the (projr s);
-                                  val (ac, b) = ab;
-                                in
-                                  check_item3a ai bid a1a ac b
-                                end)
-                       (Inr (SOME ((x2aa, xa), (bia, a2)))))
-                    ()) ())
-                    (fn ab =>
-                      (case ab of Inl x1a => (fn () => (Inl x1a))
-                        | Inr x2ab =>
-                          (fn () =>
-                            (if is_None x2ab then Inr ()
-                              else Inl (mkp_raw_err
- "Proof did not contain conflict declaration" NONE NONE))))))))
+                  (fn f_ => fn () => f_ (assignment_empty_impl ()) ())
+                    (fn xa =>
+                      (fn f_ => fn () => f_
+                        ((heap_WHILET
+                           (fn ab =>
+                             (case ab of Inl _ => (fn () => false)
+                               | Inr x2ab => (fn () => (not (is_None x2ab)))))
+                           (fn s => let
+                                      val (a1a, ab) = the (projr s);
+                                      val (ac, b) = ab;
+                                    in
+                                      check_item3a ai bid a1a ac b
+                                    end)
+                           (Inr (SOME ((x2aa, xa), (bia, a2)))))
+                        ()) ())
+                        (fn ab =>
+                          (case ab of Inl x1a => (fn () => (Inl x1a))
+                            | Inr _ => (fn () => (Inr ()))))))))
         ()
     end)
     x;

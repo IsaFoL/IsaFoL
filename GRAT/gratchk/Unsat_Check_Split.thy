@@ -2,6 +2,12 @@ section \<open>Unsat Checker\<close>
 theory Unsat_Check_Split
 imports Grat_Basic
 begin
+(* Obsolete Version with ascending id constraint. See Unsat_Check_Split_MM for
+  current version.
+
+  TODO: Discontinue this!
+*)
+
 (*
   Test for split mode:
 
@@ -3252,13 +3258,13 @@ text \<open>Main correctness theorem:
   Given an array @{term DBi} that contains the integers @{term DB}, 
   the verification algorithm does not change the array, and if it returns a 
   non-@{const Inl} value, the formula in the array is unsatisfiable, as 
-  specified by @{const formula_unsat_spec}.
+  specified by @{const verify_unsat_spec}.
 \<close>  
 theorem verify_unsat_split_impl_wrapper_correct[sep_heap_rules]: 
   shows "
     <DBi \<mapsto>\<^sub>a DB> 
       verify_unsat_split_impl_wrapper DBi prf_next F_end it prf
-    <\<lambda>result. DBi \<mapsto>\<^sub>a DB * \<up>(\<not>isl result \<longrightarrow> formula_unsat_spec DB F_end)>\<^sub>t"
+    <\<lambda>result. DBi \<mapsto>\<^sub>a DB * \<up>(\<not>isl result \<longrightarrow> verify_unsat_spec DB F_end)>\<^sub>t"
 proof -
   {
     assume A: "0 < F_end" "F_end \<le> length DB" "0 < it" "it \<le> length DB"
@@ -3285,9 +3291,9 @@ proof -
       by (metis One_nat_def drop_0 drop_Suc_Cons drop_take list.sel(3) tl_drop)
         
     have U2: "F_invar (tl (take F_end DB)) \<and> \<not> sat (F_\<alpha> (tl (take F_end DB))) 
-      \<longleftrightarrow> formula_unsat_spec DB F_end"    
-      unfolding formula_unsat_spec_def using A
-      by (auto simp: Let_def F_invar_def F_\<alpha>_def tl_take)
+      \<longleftrightarrow> verify_unsat_spec DB F_end"    
+      unfolding verify_unsat_spec_def clause_DB_valid_def clause_DB_sat_def using A
+      by (auto)
         
     note verify_unsat3_correct_aux[OF SEG INV, unfolded U1 U2]
   } note [sep_heap_rules] = this
@@ -3295,7 +3301,7 @@ proof -
   
   show ?thesis
     unfolding verify_unsat_split_impl_wrapper_def
-    by (sep_auto simp: formula_unsat_spec_def clause_\<alpha>_def[abs_def])
+    by (sep_auto simp: verify_unsat_spec_def clause_\<alpha>_def[abs_def])
 qed      
 
 end  
