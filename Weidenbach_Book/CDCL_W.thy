@@ -462,7 +462,7 @@ lemma
   additional_info_tl_trail[simp]:
     "additional_info (tl_trail S) = additional_info S" and
   additional_info_add_learned_cls_unfolded:
-    "additional_info (add_learned_cls U S) = additional_info S"  and
+    "additional_info (add_learned_cls U S) = additional_info S" and
   additional_info_update_conflicting[simp]:
     "additional_info (update_conflicting D S) = additional_info S" and
   additional_info_remove_cls[simp]:
@@ -2580,13 +2580,6 @@ definition mark_is_false_with_level :: "'st \<Rightarrow> bool" where
 "mark_is_false_with_level S' \<equiv>
   \<forall>D M1 M2 L. M1 @ Propagated L D # M2 = trail S' \<longrightarrow> D - {#L#} \<noteq> {#}
     \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level (trail S') L = count_decided M1)"
-lemma (in -) same_mset_distinct_iff:
-  \<open>mset M = mset M' \<Longrightarrow> distinct M \<longleftrightarrow> distinct M'\<close>
-  by (auto simp: no_dup_def distinct_mset_mset_distinct[symmetric] simp del: distinct_mset_mset_distinct)
-
-lemma (in -)same_mset_no_dup_iff:
-  \<open>mset M = mset M' \<Longrightarrow> no_dup M \<longleftrightarrow> no_dup M'\<close>
-  by (auto simp: no_dup_def same_mset_distinct_iff)
 
 lemma backtrack\<^sub>W_rule:
   assumes

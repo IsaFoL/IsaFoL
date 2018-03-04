@@ -84,7 +84,7 @@ lemma preprocess_less:
   by (induction rule: preprocess.induct) auto
 
 lemma preprocess_satisfiable_imp:
-  \<open>preprocess tauto_lits pure_lits C tauto_lits pure_lits  D \<Longrightarrow> satisfiable (set_mset C) \<Longrightarrow> satisfiable (set_mset D)\<close>
+  \<open>preprocess tauto_lits pure_lits C tauto_lits pure_lits D \<Longrightarrow> satisfiable (set_mset C) \<Longrightarrow> satisfiable (set_mset D)\<close>
   by (induction rule: preprocess.induct) (auto simp: satisfiable_def)
 
 lemma preprocess_satisfiable_rev:

@@ -3,7 +3,7 @@
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-section \<open>An Executable Siple Ordered Resolution Prover for First-Order Clauses\<close>
+section \<open>An Executable Simple Ordered Resolution Prover for First-Order Clauses\<close>
 
 text \<open>
 TODO.
@@ -21,7 +21,7 @@ global_interpretation RP: deterministic_FO_resolution_prover where
   renamings_apart = renamings_apart and
   atm_of_atms = "Fun undefined" and
   mgu = mgu_sets and
-  lessatm = less_kbo and
+  less_atm = less_kbo and
   size_atm = size and
   generation_factor = 1 and
   size_factor = 1
@@ -36,8 +36,11 @@ global_interpretation RP: deterministic_FO_resolution_prover where
 (*  and reduce_on = RP.reduce_on*)
   and reduce_all = RP.reduce_all
   and reduce_all2 = RP.reduce_all2
+  and remdups_clss = RP.remdups_clss
   and resolve = RP.resolve
   and resolve_on = RP.resolve_on
+  and resolvable = RP.resolvable
+  and resolvent = RP.resolvent
   and resolve_rename = RP.resolve_rename
   and resolve_rename_either_way = RP.resolve_rename_either_way
   and select_min_weight_clause = RP.select_min_weight_clause
@@ -144,6 +147,10 @@ definition prover where
 
 lemma "prover N = None \<Longrightarrow> satisfiable (RP.grounded_N0 N)"
   unfolding prover_def St0_def by (rule RP.deterministic_RP_complete)
+
+lemma "prover N = Some R \<Longrightarrow> (\<not> satisfiable (RP.grounded_N0 N)) = ({#} \<in> RP.grounded_R R)"
+  unfolding prover_def St0_def using RP.deterministic_RP_refutation by auto
+
 
 export_code prover in SML module_name RP
 

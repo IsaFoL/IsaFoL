@@ -100,7 +100,7 @@ definition ann_lits_split_reasons where
 definition trail_pol :: \<open>(trail_pol \<times> (nat, nat) ann_lits) set\<close> where
   \<open>trail_pol = {((M', xs, lvls, reasons, k), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<and>
     no_dup M \<and>
-    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < length xs \<and> xs ! (atm_of L) = polarity_atm M (atm_of L)) \<and>
+    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length xs \<and> xs ! (nat_of_lit L) = polarity M L) \<and>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < length lvls \<and> lvls ! (atm_of L) = get_level M L) \<and>
     k = count_decided M \<and>
     (\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)}\<close>
@@ -244,8 +244,8 @@ definition (in -) invert_pol where
 
 definition (in -) polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
   \<open>polarity_pol = (\<lambda>(M, xs, lvls, k) L. do {
-     ASSERT(atm_of L < length xs);
-     RETURN (invert_pol (xs ! (atm_of L)) L)
+     ASSERT(nat_of_lit L < length xs);
+     RETURN (xs ! (nat_of_lit L))
   })\<close>
 
 definition (in -)invert_pol_code where
@@ -321,7 +321,7 @@ proof -
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trail_pol \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI)
       (auto simp: trail_pol_def polarity_def polarity_pol_def invert_pol_def
-        split: if_splits option.splits)
+        dest!: multi_member_split)
   show ?thesis
     using polarity_pol_code.refine[FCOMP 2, OF isasat_input_bounded_axioms] by simp
 qed
@@ -337,7 +337,7 @@ definition cons_trail_Propagated :: \<open>nat literal \<Rightarrow> nat \<Right
 
 definition cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trail_pol \<Rightarrow> trail_pol\<close> where
   \<open>cons_trail_Propagated_tr = (\<lambda>L C (M', xs, lvls, reasons, k).
-     (L # M', xs[atm_of L := Some (is_pos L)],
+     (L # M', let xs = xs[nat_of_lit L := Some True] in xs[nat_of_lit (-L) := Some False],
       lvls[atm_of L := k], reasons[atm_of L:= Some C], k))\<close>
 
 lemma in_list_pos_neg_notD: \<open>Pos (atm_of (lit_of La)) \<notin> lits_of_l bc \<Longrightarrow>
@@ -350,10 +350,11 @@ lemma cons_trail_Propagated_tr:
   \<open>(uncurry2 (RETURN ooo cons_trail_Propagated_tr), uncurry2 (RETURN ooo cons_trail_Propagated)) \<in>
   [\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_pol \<rightarrow> \<langle>trail_pol\<rangle>nres_rel\<close>
   by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst (fst x)\<close>)
-    (fastforce simp: trail_pol_def polarity_atm_def cons_trail_Propagated_def uminus_lit_swap
+     (auto simp add: trail_pol_def polarity_def cons_trail_Propagated_def uminus_lit_swap
         cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update'
         ann_lits_split_reasons_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
-        dest!: in_list_pos_neg_notD dest: pos_lit_in_atms_of neg_lit_in_atms_of)+
+        dest!: in_list_pos_neg_notD multi_member_split dest: pos_lit_in_atms_of neg_lit_in_atms_of
+         simp del: nat_of_lit.simps)
 
 lemma undefined_lit_count_decided_uint_max:
   assumes
@@ -435,11 +436,11 @@ qed
 
 sepref_thm cons_trail_Propagated_tr_code
   is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
-  :: \<open>[\<lambda>((L, C), (M, xs, lvls, reasons, k)). atm_of L < length xs \<and> atm_of L < length lvls \<and>
-     atm_of L < length reasons]\<^sub>a
+  :: \<open>[\<lambda>((L, C), (M, xs, lvls, reasons, k)). nat_of_lit L < length xs \<and> nat_of_lit (-L) < length xs \<and>
+        atm_of L < length lvls \<and> atm_of L < length reasons]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
   unfolding cons_trail_Propagated_tr_def cons_trail_Propagated_tr_def
-    get_pol_def[symmetric]
+    get_pol_def[symmetric] SET_TRUE_def[symmetric] SET_FALSE_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -461,8 +462,8 @@ proof -
   have H: \<open>(uncurry2 cons_trail_Propagated_tr_code, uncurry2 (RETURN \<circ>\<circ>\<circ> cons_trail_Propagated))
     \<in> [comp_PRE (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_pol)
      (\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0)
-     (\<lambda>_ ((L, C), (M, xs, lvls, reasons, k)). atm_of L < length xs \<and> atm_of L < length lvls \<and>
-        atm_of L < length reasons)
+     (\<lambda>_ ((L, C), (M, xs, lvls, reasons, k)). nat_of_lit L < length xs \<and> nat_of_lit (-L) < length xs \<and>
+        atm_of L < length lvls \<and> atm_of L < length reasons)
      (\<lambda>_. True)]\<^sub>a hrp_comp
                      (unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d)
                      (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f
@@ -471,7 +472,8 @@ proof -
     using hfref_compI_PRE_aux[OF cons_trail_Propagated_tr_code.refine cons_trail_Propagated_tr,
         OF isasat_input_bounded_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
-    by (auto simp: comp_PRE_def trail_pol_def trail_pol_def ann_lits_split_reasons_def intro!: ext)
+    by (auto simp: comp_PRE_def trail_pol_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
+        intro!: ext)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     by (auto simp: hrp_comp_def hr_comp_def)
@@ -546,7 +548,7 @@ proof -
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
-    unfolding  nat_ann_lit_rel_alt_def hr_comp_pure[symmetric] prod_assn_pure_conv[symmetric]
+    unfolding nat_ann_lit_rel_alt_def hr_comp_pure[symmetric] prod_assn_pure_conv[symmetric]
       option_assn_pure_conv[symmetric] ..
   show ?thesis
     using H unfolding im pre f .
@@ -554,14 +556,16 @@ qed
 
 
 definition (in isasat_input_ops) tl_trailt_tr :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, reasons, k). (tl M', xs[atm_of (hd M') := None],
+  \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, reasons, k). (tl M',
+    let xs = xs[nat_of_lit (hd M') := None] in xs[nat_of_lit (- hd M') := None],
     lvls[atm_of (hd M') := zero_uint32_nat],
     reasons, if reasons ! atm_of (hd M') = None then k-one_uint32_nat else k))\<close>
 
 sepref_thm tl_trail_tr_code
   is \<open>RETURN o tl_trailt_tr\<close>
-  :: \<open>[\<lambda>(M, xs, lvls, reason, k). M \<noteq> [] \<and> atm_of (hd M) < length xs  \<and> atm_of (hd M) < length lvls \<and>
-      atm_of (hd M) < length reason \<and>
+  :: \<open>[\<lambda>(M, xs, lvls, reason, k). M \<noteq> [] \<and> nat_of_lit(hd M) < length xs \<and>
+        nat_of_lit(-hd M) < length xs  \<and> atm_of (hd M) < length lvls \<and>
+        atm_of (hd M) < length reason \<and>
     (reason ! atm_of (hd M) = None \<longrightarrow> k \<ge> 1)]\<^sub>a
         trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
   supply if_splits[split] option.splits[split]
@@ -600,7 +604,8 @@ proof -
       subgoal by (auto simp: polarity_atm_def tl_trailt_tr_def)
       subgoal
         by (cases \<open>lit_of L\<close>)
-          (auto simp: polarity_atm_def tl_trailt_tr_def Decided_Propagated_in_iff_in_lits_of_l
+          (auto simp: polarity_def tl_trailt_tr_def Decided_Propagated_in_iff_in_lits_of_l
+            uminus_lit_swap
             dest!: ann_lits_split_reasons_map_lit_of)
       subgoal
         by (auto simp: polarity_atm_def tl_trailt_tr_def
@@ -632,7 +637,8 @@ proof -
       \<in>  [comp_PRE trail_pol (\<lambda>M. M \<noteq> [])
      (\<lambda>_ (M, xs, lvls, reason, k).
          M \<noteq> [] \<and>
-         atm_of (hd M) < length xs \<and>
+         nat_of_lit (hd M) < length xs \<and>
+         nat_of_lit (-hd M) < length xs \<and>
          atm_of (hd M) < length lvls \<and>
          atm_of (hd M) < length reason \<and>
          (reason ! atm_of (hd M) = None \<longrightarrow> 1 \<le> k))
@@ -644,7 +650,7 @@ proof -
     .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
     apply (cases x; cases \<open>hd x\<close>)
-    by (auto simp: comp_PRE_def trail_pol_def ann_lits_split_reasons_def intro!: ext)
+    by (auto simp: comp_PRE_def trail_pol_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff intro!: ext)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     by (auto simp: hrp_comp_def hr_comp_def)
@@ -708,26 +714,27 @@ definition cons_trail_Decided :: \<open>nat literal \<Rightarrow> (nat, nat) ann
 
 definition cons_trail_Decided_tr :: \<open>nat literal \<Rightarrow> trail_pol \<Rightarrow> trail_pol\<close> where
   \<open>cons_trail_Decided_tr = (\<lambda>L (M', xs, lvls, reasons, k).
-     (L # M', xs[atm_of L := Some (is_pos L)],
+     (L # M', let xs = xs[nat_of_lit L := Some True] in xs[nat_of_lit (-L) := Some False],
       lvls[atm_of L := k+1], reasons[atm_of L := None], k+1))\<close>
 
 lemma cons_trail_Decided_tr:
   \<open>(uncurry (RETURN oo cons_trail_Decided_tr), uncurry (RETURN oo cons_trail_Decided)) \<in>
   [\<lambda>(L, M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f trail_pol \<rightarrow> \<langle>trail_pol\<rangle>nres_rel\<close>
   by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst x\<close>)
-    (fastforce simp: trail_pol_def polarity_atm_def cons_trail_Decided_def uminus_lit_swap
+    (auto simp: trail_pol_def polarity_def cons_trail_Decided_def uminus_lit_swap
         Decided_Propagated_in_iff_in_lits_of_l
         cons_trail_Decided_tr_def nth_list_update' ann_lits_split_reasons_def
-      dest!: in_list_pos_neg_notD)+
+      dest!: in_list_pos_neg_notD multi_member_split
+      simp del: nat_of_lit.simps)
 
 sepref_thm cons_trail_Decided_tr_code
   is \<open>uncurry (RETURN oo cons_trail_Decided_tr)\<close>
-  :: \<open>[\<lambda>(L, (M, xs, lvls, reason, k)). atm_of L < length xs \<and> atm_of L < length lvls \<and>
-     atm_of L < length reason \<and> L \<in> snd ` D\<^sub>0 \<and>
+  :: \<open>[\<lambda>(L, (M, xs, lvls, reason, k)). nat_of_lit L < length xs \<and> nat_of_lit (-L) < length xs \<and>
+      atm_of L < length lvls \<and> atm_of L < length reason \<and> L \<in> snd ` D\<^sub>0 \<and>
       Suc k \<le> uint_max]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
   unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def one_uint32_nat_def[symmetric]
-    get_pol_def[symmetric]
+    get_pol_def[symmetric] SET_TRUE_def[symmetric] SET_FALSE_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -749,7 +756,8 @@ proof -
   have H: \<open>?c \<in>  [comp_PRE (Id \<times>\<^sub>f trail_pol)
      (\<lambda>(L, M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0)
      (\<lambda>_ (L, M, xs, lvls, reason, k).
-         atm_of L < length xs \<and>
+         nat_of_lit L < length xs \<and>
+         nat_of_lit (-L) < length xs \<and>
          atm_of L < length lvls \<and>
          atm_of L < length reason \<and> L \<in> snd ` D\<^sub>0 \<and> Suc k \<le> uint_max)
      (\<lambda>_. True)]\<^sub>a hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d)
@@ -758,10 +766,9 @@ proof -
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF cons_trail_Decided_tr_code.refine cons_trail_Decided_tr,
         OF isasat_input_bounded_axioms] .
-  thm  undefined_lit_count_decided_uint_max[dest!]
   have pre: \<open>?pre' = ?pre\<close>
-    by (auto simp: comp_PRE_def trail_pol_def image_image ann_lits_split_reasons_def intro!: ext
-        intro!: undefined_lit_count_decided_uint_max)
+    by (auto simp: comp_PRE_def trail_pol_def image_image ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
+        intro!: ext undefined_lit_count_decided_uint_max)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     by (auto simp: hrp_comp_def hr_comp_def)
@@ -772,18 +779,31 @@ proof -
     using H unfolding im pre .
 qed
 
+lemma (in -) nat_of_uint32_mult_le:
+   \<open>nat_of_uint32 ai * nat_of_uint32 bi \<le> uint_max \<Longrightarrow>
+       (a, b) \<Turnstile> emp \<Longrightarrow>
+       nat_of_uint32 (ai * bi) = nat_of_uint32 ai * nat_of_uint32 bi\<close>
+  apply transfer
+  by (auto simp: unat_word_ariths uint_max_def)
+
+lemma (in -) uint32_nat_assn_mult:
+  \<open>(uncurry (return oo (op *)), uncurry (RETURN oo (op *))) \<in> [\<lambda>(a, b). a * b \<le> uint_max]\<^sub>a
+      uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+     (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_mult_le)
 
 definition (in -) defined_atm_pol where
   \<open>defined_atm_pol = (\<lambda>(M, xs, lvls, k) L. do {
-      ASSERT(L < length xs);
-      RETURN (\<not>((xs!L) = None))
+      ASSERT(2*L < length xs);
+      ASSERT(2*L \<le> uint_max);
+      RETURN (\<not>((xs!(two_uint32_nat*L)) = None))
     })\<close>
 
 sepref_thm defined_atm_code
   is \<open>uncurry defined_atm_pol\<close>
   :: \<open>(trail_pol_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
-  supply UNSET_def[simp del] [[goals_limit=15]]
+  supply UNSET_def[simp del] uint32_nat_assn_mult[sepref_fr_rules]
   by sepref
 
 concrete_definition (in -) defined_atm_code
@@ -799,26 +819,29 @@ lemma undefined_atm_code:
   \<open>(uncurry defined_atm_pol, uncurry (RETURN oo defined_atm)) \<in>
    [\<lambda>(M, L). Pos L \<in> snd ` D\<^sub>0]\<^sub>f trail_pol \<times>\<^sub>r Id \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
 proof -
-  have H: \<open>L < length xs\<close> (is \<open>?length\<close>) and
-    none: \<open>defined_atm M L \<longleftrightarrow> xs ! L \<noteq> None\<close> (is ?undef)
-    if L_N: \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and  tr: \<open>((M', xs, lvls, k), M) \<in> trail_pol\<close>
+  have H: \<open>2*L < length xs\<close> (is \<open>?length\<close>) and
+    none: \<open>defined_atm M L \<longleftrightarrow> xs ! (2*L) \<noteq> None\<close> (is ?undef) and
+    le: \<open>2*L \<le> uint_max\<close> (is ?le)
+    if L_N: \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and tr: \<open>((M', xs, lvls, k), M) \<in> trail_pol\<close>
     for M xs lvls k M' L
   proof -
     have
        \<open>M' = map lit_of M\<close> and
-       \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < length xs \<and> xs ! atm_of L = polarity_atm M (atm_of L)\<close>
+       \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length xs \<and> xs ! nat_of_lit L = polarity M L\<close>
       using tr unfolding trail_pol_def ann_lits_split_reasons_def by fast+
-    then have L: \<open>L < length xs\<close> and xsL: \<open>xs ! L = polarity_atm M L\<close>
-      using L_N by force+
+    then have L: \<open>nat_of_lit (Pos L) < length xs\<close> and xsL: \<open>xs ! (nat_of_lit (Pos L)) = polarity M (Pos L)\<close>
+      using L_N by (auto dest!: multi_member_split)
     show ?length
-      using L .
+      using L by simp
     show ?undef
-      using xsL by (auto simp: polarity_atm_def defined_atm_def
+      using xsL by (auto simp: polarity_def defined_atm_def
           Decided_Propagated_in_iff_in_lits_of_l split: if_splits)
+    show \<open>2*L \<le> uint_max\<close>
+      using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max'[OF L_N] by auto
   qed
   show ?thesis
     unfolding defined_atm_pol_def
-    by (intro frefI nres_relI) (auto 5 5 simp: none H intro!: ASSERT_leI)
+    by (intro frefI nres_relI) (auto 5 5 simp: none H le intro!: ASSERT_leI)
 qed
 
 lemma undefined_atm_code_ref[sepref_fr_rules]:

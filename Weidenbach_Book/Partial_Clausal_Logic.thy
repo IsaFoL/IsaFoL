@@ -35,6 +35,10 @@ Clauses are (finite) multisets of literals.
 type_synonym 'a clause = "'a literal multiset"
 type_synonym 'v clauses = "'v clause set"
 
+lemma is_neg_neg_not_is_neg: "is_neg (- L) \<longleftrightarrow> \<not> is_neg L"
+  by (cases L) auto
+
+
 subsection \<open>Partial Interpretations\<close>
 
 type_synonym 'a interp = "'a literal set"
@@ -55,6 +59,9 @@ lemma consistent_interp_empty[simp]:
 
 lemma consistent_interp_single[simp]:
   "consistent_interp {L}" unfolding consistent_interp_def by auto
+
+lemma Ex_consistent_interp: \<open>Ex consistent_interp\<close>
+  by (auto simp: consistent_interp_def)
 
 lemma consistent_interp_subset:
   assumes
@@ -427,6 +434,9 @@ definition satisfiable :: "'a clause set \<Rightarrow> bool" where
 lemma satisfiable_single[simp]:
   "satisfiable {{#L#}}"
   unfolding satisfiable_def by fastforce
+
+lemma satisfiable_empty[simp]: \<open>satisfiable {}\<close>
+  by (auto simp: satisfiable_def Ex_consistent_interp)
 
 abbreviation unsatisfiable :: "'a clause set \<Rightarrow> bool" where
   "unsatisfiable CC \<equiv> \<not> satisfiable CC"

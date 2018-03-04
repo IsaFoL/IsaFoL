@@ -9,10 +9,13 @@ section \<open>Integration of IsaFoR Terms\<close>
 theory IsaFoR_Term
   imports
     Deriving.Derive
-    Abstract_Substitution
-    QTRS.Encompassment (* Version 7a339721b8c2 *)
-    "../AFP_IsaFoR/Fun_More"
+    Ordered_Resolution_Prover.Abstract_Substitution
     Processors.KBO
+    First_Order_Terms.Unification
+    First_Order_Terms.Fun_More
+    First_Order_Terms.Subsumption
+    Open_Induction.Restricted_Predicates
+    "HOL-Cardinals.Wellorder_Extension"
 begin
 
 text \<open>
@@ -37,7 +40,7 @@ record 'f weights =
 class weighted =
   fixes weights :: "'a weights"
   assumes weights_adm:
-    "admissible_weight_fun_prc
+    "admissible_kbo
        (w weights) (w0 weights) (pr_strict weights) ((pr_strict weights)\<^sup>=\<^sup>=) (least weights) (scf weights)"
   and pr_strict_total: "fi = gj \<or> pr_strict weights fi gj \<or> pr_strict weights gj fi"
   and pr_strict_asymp: "asymp (pr_strict weights)"
@@ -49,17 +52,15 @@ definition weights_unit :: "unit weights" where "weights_unit =
   \<lparr>w = Suc \<circ> snd, w0 = 1, pr_strict = \<lambda>(_, n) (_, m). n > m, least = \<lambda>_. True, scf = \<lambda>_ _. 1\<rparr>"
 
 instance
-  by (intro_classes, unfold_locales)
-    (auto simp: weights_unit_def SN_iff_wf asymp.simps irreflp_def
-               intro!: wf_subset[OF wf_inv_image[OF wf], of _ snd])
+  by (intro_classes, unfold_locales) (auto simp: weights_unit_def SN_iff_wf asymp.simps irreflp_def
+      intro!: wf_subset[OF wf_inv_image[OF wf], of _ snd])
 end
 
 global_interpretation KBO:
-  admissible_weight_fun_prc
+  admissible_kbo
     "w (weights :: 'f :: weighted weights)" "w0 (weights :: 'f :: weighted weights)"
     "pr_strict weights" "((pr_strict weights)\<^sup>=\<^sup>=)" "least weights" "scf weights"
     defines weight = KBO.weight
-    and gtkbo = KBO.gtkbo
     and kbo = KBO.kbo
   by (simp add: weights_adm)
 
@@ -83,11 +84,8 @@ lemma kbo_code[code]: "kbo s t =
 
 definition "less_kbo s t = fst (kbo t s)"
 
-lemma less_kbo_gtkbo: "ground s \<Longrightarrow> ground t \<Longrightarrow> less_kbo s t = gtkbo t s"
-  unfolding less_kbo_def using KBO.kbo_eq_gtkbo[OF refl pr_strict_total, of t s] by auto
-
 lemma less_kbo_gtotal: "ground s \<Longrightarrow> ground t \<Longrightarrow> s = t \<or> less_kbo s t \<or> less_kbo t s"
-  using less_kbo_gtkbo KBO.gtkbo_gtotal[OF refl pr_strict_total subset_UNIV _ subset_UNIV] by blast
+  unfolding less_kbo_def using KBO.S_ground_total by (metis pr_strict_total subset_UNIV) 
 
 lemma less_kbo_subst:
   fixes \<sigma> :: "('f :: weighted, 'v) subst"
@@ -97,7 +95,7 @@ lemma less_kbo_subst:
 lemma wfP_less_kbo: "wfP less_kbo"
 proof -
   have "SN {(x, y). fst (kbo x y)}"
-    using pr_strict_asymp by (fastforce simp: asymp.simps irreflp_def intro!: KBO.SN_S_po scf_ok)
+    using pr_strict_asymp by (fastforce simp: asymp.simps irreflp_def intro!: KBO.S_SN scf_ok)
   then show ?thesis
     unfolding SN_iff_wf wfP_def by (rule wf_subset) (auto simp: less_kbo_def)
 qed
@@ -172,10 +170,7 @@ lemma less_kbo_less: "less_kbo s t \<Longrightarrow> s < t"
   using less_trm_extension
   by (auto simp: less_term_alt less_kbo_def KBO.S_irrefl)
 
-abbreviation
-  subst_apply_set :: "('f, 'v) terms \<Rightarrow> ('f, 'v, 'w) gsubst \<Rightarrow> ('f, 'w) terms" (infixl "\<cdot>\<^sub>s\<^sub>e\<^sub>t" 60)
-  where
-    "T \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma> \<equiv> (\<lambda>t. t \<cdot> \<sigma>) ` T"
+
 
 hide_const (open) mgu
 

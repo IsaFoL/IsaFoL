@@ -522,7 +522,7 @@ lemma
   additional_info\<^sub>B_tl_trail\<^sub>B[simp]:
     "additional_info\<^sub>B (tl_trail\<^sub>B S) = additional_info\<^sub>B S" and
   additional_info\<^sub>B_add_learned_cls_unfolded:
-    "additional_info\<^sub>B (add_learned_cls U S) = additional_info\<^sub>B S"  and
+    "additional_info\<^sub>B (add_learned_cls U S) = additional_info\<^sub>B S" and
   additional_info\<^sub>B_update_conflicting[simp]:
     "additional_info\<^sub>B (update_conflicting D S) = additional_info\<^sub>B S" and
   additional_info\<^sub>B_remove_cls[simp]:

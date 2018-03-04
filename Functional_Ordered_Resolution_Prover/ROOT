@@ -1,17 +1,30 @@
-chapter Ordered_Resolution_Prover
+chapter Functional_Ordered_Resolution_Prover
 
-session Ordered_Resolution_Prover_Base = "HOL-Library" +
+session Functional_Ordered_Resolution_Prover_Base = "HOL-Library" +
   options [document=false]
   sessions
     "HOL-Library"
     Coinductive
+    Deriving
+    First_Order_Terms
     Nested_Multisets_Ordinals
+    Ordered_Resolution_Prover
+    Processors
+    QTRS
   theories [document = false]
     "HOL-Library.Multiset"
     "Coinductive.Coinductive_List"
     "Nested_Multisets_Ordinals.Multiset_More"
+  theories [document = false] (* IsaFoR/AFP *)
+    Deriving.Derive
+    Ordered_Resolution_Prover.Abstract_Substitution
+    Processors.KBO
+    First_Order_Terms.Unification
+    First_Order_Terms.Fun_More
+    First_Order_Terms.Subsumption
+    QTRS.Matching
 
-session Ordered_Resolution_Prover = Ordered_Resolution_Prover_Base +
+session Functional_Ordered_Resolution_Prover = Functional_Ordered_Resolution_Prover_Base +
   options [document = pdf, document_output = "output",
     document_variants = "document:outline=/proof,/ML",
     timeout=200]

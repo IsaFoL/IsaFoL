@@ -386,7 +386,7 @@ proof -
     using \<open>M\<^sub>T \<Turnstile>as CNot (add_mset L D)\<close> M nm undef_D by (auto simp: get_maximum_level_skip_beginning)
 
   have lev_l': "get_level M\<^sub>T L = backtrack_lvl S"
-    using lev_l nm  by (auto simp: H)
+    using lev_l nm by (auto simp: H)
   have [simp]: "trail (reduce_trail_to M1 T) = M1"
     by (metis (no_types) M M\<^sub>T append_assoc get_all_ann_decomposition_exists_prepend[OF decomp] nm
         reduce_trail_to_trail_tl_trail_decomp beginning_not_decided_invert)

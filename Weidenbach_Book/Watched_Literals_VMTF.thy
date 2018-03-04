@@ -101,7 +101,7 @@ proof -
     then show ?case by (auto intro: vmtf_ns.intros)
   next
     case (Cons1 a xs n zs)
-    show ?case by (rule vmtf_ns.Cons1) (use Cons1 in \<open>auto  intro: vmtf_ns.intros\<close>)
+    show ?case by (rule vmtf_ns.Cons1) (use Cons1 in \<open>auto intro: vmtf_ns.intros\<close>)
   next
     case (Cons b l m xs c n zs n' zs') note vmtf_ns = this(1) and a_le_y = this(2) and zs_a = this(3)
       and ab = this(4) and a_l = this(5) and mn = this(6) and xs' = this(7) and nn' = this(8) and
@@ -262,7 +262,7 @@ next
         subgoal using ab by auto
         subgoal by simp
         subgoal using mn .
-        subgoal using zs_a a_le_y ab xs' b_le_xs  by auto
+        subgoal using zs_a a_le_y ab xs' b_le_xs by auto
         subgoal using nn' .
         done
       then show ?thesis
@@ -282,7 +282,7 @@ next
         subgoal using ab by auto
         subgoal using a_l bl unfolding Cons by simp
         subgoal using mn .
-        subgoal using zs_a a_le_y ab xs' b_le_xs  by (auto simp: list_update_swap)
+        subgoal using zs_a a_le_y ab xs' b_le_xs by (auto simp: list_update_swap)
         subgoal using nn' .
         done
       then show ?thesis
@@ -355,9 +355,9 @@ next
     using dist_b decomp dist by (cases axs; auto)+
   have vmtf_ns_ay': \<open>vmtf_ns (ay # azs) (stamp (xs ! ay)) xs\<close>
     apply (rule vmtf_ns_eq_iffI[of _ _ xs'])
-    subgoal using xs' b_ay dist_b  b_le_xs by auto
+    subgoal using xs' b_ay dist_b b_le_xs by auto
     subgoal using vmtf_ns_le_length[OF vmtf_ns_ay] xs' by auto
-    subgoal using xs' b_ay dist_b  b_le_xs vmtf_ns_ay xs' by auto
+    subgoal using xs' b_ay dist_b b_le_xs vmtf_ns_ay xs' by auto
     done
 
   have \<open>vmtf_ns (tl axs @ [ax, ay] @ azs) m
@@ -606,7 +606,7 @@ next
   next
     case xs_empty_zs_nempty note xs = this(1) and zs = this(2)
     have [simp]: \<open>x \<noteq> y'\<close> \<open>y' \<noteq> x\<close> \<open>x \<notin> set zs'\<close>
-      using dist  unfolding l xs zs by auto
+      using dist unfolding l xs zs by auto
     have prev_next: \<open>get_prev (ns ! x) = None\<close> \<open>get_next (ns ! x) = option_hd zs\<close>
       using vmtf_ns unfolding l xs zs
       by (cases zs; auto 5 5 simp: option_hd_def elim: vmtf_nsE; fail)+
@@ -619,7 +619,7 @@ next
       apply (rule vmtf_ns_eq_iffI[of _ _
             \<open>(ns[y' := VMTF_Node (stamp (ns ! y')) None (get_next (ns ! y'))])\<close> m])
       subgoal
-        using  prev_next unfolding r_l unfolding l xs zs
+        using prev_next unfolding r_l unfolding l xs zs
         by (cases \<open>ns ! x\<close>) (auto simp: ns_vmtf_dequeue_def Let_def nth_list_update')
       subgoal
         using prev_next le_length unfolding r_l unfolding l xs zs
@@ -630,7 +630,7 @@ next
   next
     case xs_nempty_zs_empty note xs = this(1) and zs = this(2)
     have [simp]: \<open>x \<noteq> x'\<close> \<open>x' \<noteq> x\<close> \<open>x' \<notin> set xs'\<close> \<open>x \<notin> set xs'\<close>
-      using dist  unfolding l xs zs by auto
+      using dist unfolding l xs zs by auto
     have prev_next: \<open>get_prev (ns ! x) = Some x'\<close> \<open>get_next (ns ! x) = None\<close>
       using vmtf_ns vmtf_ns_append_decomp[of xs' x' x zs m ns] unfolding l xs zs
       by (auto simp: vmtf_ns_single_iff intro: vmtf_ns_last_mid_get_prev)
@@ -964,7 +964,7 @@ proof (cases xs rule: rev_cases)
   then show ?thesis using vmtf by (cases \<open>ns!x\<close>) (auto simp: vmtf_ns_single_iff)
 next
   case (snoc xs' y')
-  then  show ?thesis
+  then show ?thesis
     using vmtf_ns_last_mid_get_prev[of xs' y' x \<open>[]\<close> m ns] vmtf by auto
 qed
 
@@ -1533,7 +1533,7 @@ lemma (in -) vmtf_dequeue_pre_alt_def:
   apply (intro ext, rename_tac x)
   subgoal for x
     by (cases \<open>get_next ((snd x)!(fst x))\<close>; cases \<open>get_prev ((snd x)!(fst x))\<close>)
-      (auto simp: vmtf_dequeue_pre_def  intro!: ext)
+      (auto simp: vmtf_dequeue_pre_def intro!: ext)
   done
 
 definition (in -) vmtf_en_dequeue_pre :: \<open>nat \<times> vmtf \<Rightarrow> bool\<close> where
@@ -1615,9 +1615,9 @@ proof -
       then obtain zs zs' where zs: \<open>ys' @ xs' = zs' @ [to_remove ! i] @ zs\<close>
         using split_list by fastforce
       moreover have \<open>set (ys' @ xs') = atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-        using  abs_vmtf unfolding vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def by auto
+        using abs_vmtf unfolding vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def by auto
       ultimately show ?thesis
-        using vmtf_ns_last_mid_get_next_option_hd[of zs' \<open>to_remove!i\<close> zs m ns] vmtf_ns atm_A  get_next
+        using vmtf_ns_last_mid_get_next_option_hd[of zs' \<open>to_remove!i\<close> zs m ns] vmtf_ns atm_A get_next
           L_ys'_xs'_\<L>\<^sub>a\<^sub>l\<^sub>l unfolding zs by force
     qed
     moreover have \<open>y < length ns\<close> if get_prev: \<open>get_prev (ns ! (to_remove ! i)) = Some y\<close> for y
@@ -1630,9 +1630,9 @@ proof -
       then obtain zs zs' where zs: \<open>ys' @ xs' = zs' @ [to_remove ! i] @ zs\<close>
         using split_list by fastforce
       moreover have \<open>set (ys' @ xs') = atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-        using  abs_vmtf unfolding vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def by auto
+        using abs_vmtf unfolding vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def by auto
       ultimately show ?thesis
-        using vmtf_ns_last_mid_get_prev_option_last[of zs' \<open>to_remove!i\<close> zs m ns] vmtf_ns atm_A  get_prev
+        using vmtf_ns_last_mid_get_prev_option_last[of zs' \<open>to_remove!i\<close> zs m ns] vmtf_ns atm_A get_prev
           L_ys'_xs'_\<L>\<^sub>a\<^sub>l\<^sub>l unfolding zs by force
     qed
     ultimately show ?thesis
@@ -1707,7 +1707,7 @@ proof -
        le: \<open>a < length to_remove''\<close> and
        de: \<open>(a + 1, vmtf_en_dequeue (to_remove'' ! a) vm') = (x1, x2)\<close>
        \<open>x1 < length to_remove''\<close>
-     for to_remove'' x1 x1a x1b a  x2 and vm vm' :: \<open>nat_vmtf_node list \<times> nat \<times> nat \<times> nat \<times> nat option\<close> and s
+     for to_remove'' x1 x1a x1b a x2 and vm vm' :: \<open>nat_vmtf_node list \<times> nat \<times> nat \<times> nat \<times> nat option\<close> and s
   proof -
     have to_remove_i: \<open>to_remove'' ! a \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       apply (rule H'')
@@ -1723,7 +1723,7 @@ proof -
       unfolding R
       apply (cases x2)
       apply clarify
-      apply (rule vmtf_vmtf_en_dequeue_pre_to_remove[of _ _ _ _ _  _ M])
+      apply (rule vmtf_vmtf_en_dequeue_pre_to_remove[of _ _ _ _ _ _ M])
       using de vmtf s I' by (auto intro: vmtf_swap_to_remove)
   qed
   have H: \<open>do {
@@ -1749,7 +1749,7 @@ proof -
                 mset to_remove'' = mset to_remove'\<close>])
       subgoal by auto
       subgoal using vmtf by auto
-      subgoal using vmtf  by (auto intro!: vmtf_vmtf_en_dequeue_pre_to_remove)
+      subgoal using vmtf by (auto intro!: vmtf_vmtf_en_dequeue_pre_to_remove)
       subgoal using vmtf mset that by (auto intro: vmtf_swap_to_remove)
       subgoal using that by simp
       subgoal by (simp add: to_remove_le)
@@ -2094,7 +2094,7 @@ proof -
       \<open>lst_As' = lst_As\<close>
       using S unfolding vmtf_unset_def by (auto simp: C)
     have L_y_ys: \<open>L \<notin> set y_ys\<close>
-       unfolding y_ys_def  by (metis (full_types) takeWhile_eq_all_conv takeWhile_idem)
+       unfolding y_ys_def by (metis (full_types) takeWhile_eq_all_conv takeWhile_idem)
     have \<open>vmtf_ns (?ys' @ ?xs') m ns\<close>
       using vmtf_ns unfolding ys'_y_x by simp
     moreover have \<open>fst_As' = hd (?ys' @ ?xs')\<close>
@@ -2114,7 +2114,7 @@ proof -
     moreover have \<open>vmtf_ns_notin (?ys' @ ?xs') m ns\<close>
       using notin unfolding ys'_y_x by simp
     moreover have \<open>\<forall>L\<in>set (?ys' @ ?xs'). L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-      using ys'_xs'_\<L>\<^sub>a\<^sub>l\<^sub>l  unfolding ys'_y_x by simp
+      using ys'_xs'_\<L>\<^sub>a\<^sub>l\<^sub>l unfolding ys'_y_x by simp
     ultimately show ?thesis
       using S False atm_A unfolding vmtf_unset_def L_ys'_xs'[symmetric]
       by (fastforce simp add: C)
@@ -2557,7 +2557,7 @@ sepref_thm vmtf_mark_to_rescore_and_unset_code
       uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]]
-  unfolding  vmtf_mark_to_rescore_and_unset_def vmtf_mark_to_rescore_def
+  unfolding vmtf_mark_to_rescore_and_unset_def vmtf_mark_to_rescore_def
    vmtf_unset_def save_phase_def
   apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
   by sepref

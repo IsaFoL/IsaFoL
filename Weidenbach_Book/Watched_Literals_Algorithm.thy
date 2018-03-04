@@ -521,7 +521,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
     let ?T = \<open>tl_state T\<close>
     have o_S_T: \<open>cdcl_twl_o T ?T\<close>
       using cdcl_twl_o.skip[of L \<open>the D\<close> C M' N U NE UE]
-      using LD D inv M  unfolding skip_and_resolve_loop_inv_def T WS Q D by (auto simp: tl_state_def)
+      using LD D inv M unfolding skip_and_resolve_loop_inv_def T WS Q D by (auto simp: tl_state_def)
     have st_T: \<open>cdcl_twl_o\<^sup>*\<^sup>* S ?T\<close>
       using st o_S_T by auto
     moreover have twl_T: \<open>twl_struct_invs ?T\<close>
@@ -564,7 +564,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
       using twl_T D D' M unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        by fast
       then have \<open>tl M \<Turnstile>as CNot ?D\<close>
-        using  M unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+        using M unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         by (auto simp add: cdcl\<^sub>W_restart_mset_state T update_confl_tl_def)
     }
     moreover have \<open>get_conflict ?T \<noteq> Some {#}\<close>
@@ -683,75 +683,19 @@ definition backtrack :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> wh
   \<close>
 
 
-context conflict_driven_clause_learning\<^sub>W
-begin
-
-lemma no_step_skip_hd_in_conflicting:
-  assumes
-    inv_s: \<open>cdcl\<^sub>W_stgy_invariant S\<close> and
-    inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
-    ns: \<open>no_step skip S\<close> and
-    confl: \<open>conflicting S \<noteq> None\<close> \<open>conflicting S \<noteq> Some {#}\<close>
-  shows \<open>-lit_of (hd (trail S)) \<in># the (conflicting S)\<close>
-proof -
-  let
-    ?M = \<open>trail S\<close> and
-    ?N = \<open>init_clss S\<close> and
-    ?U = \<open>learned_clss S\<close> and
-    ?k = \<open>backtrack_lvl S\<close> and
-    ?D = \<open>conflicting S\<close>
-  obtain D where D: \<open>?D = Some D\<close>
-    using confl by (cases ?D) auto
-  have M_D: \<open>?M \<Turnstile>as CNot D\<close>
-    using inv D unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def by auto
-  then have tr: \<open>trail S \<noteq> []\<close>
-    using confl D by auto
-  obtain L M where M: \<open>?M = L # M\<close>
-    using tr by (cases \<open>?M\<close>) auto
-  have conlf_k: \<open>conflict_is_false_with_level S\<close>
-    using inv_s unfolding cdcl\<^sub>W_stgy_invariant_def by simp
-  then obtain L_k where
-    L_k: \<open>L_k \<in># D\<close> and lev_L_k: \<open>get_level ?M L_k = ?k\<close>
-    using confl D by auto
-  have dec: \<open>?k = count_decided ?M\<close>
-    using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
-  moreover {
-    have \<open>no_dup ?M\<close>
-      using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
-    then have \<open>-lit_of L \<notin> lits_of_l M\<close>
-      unfolding M by (auto simp: defined_lit_map lits_of_def uminus_lit_swap)
-    }
-  ultimately have L_D: \<open>lit_of L \<notin># D\<close>
-    using M_D unfolding M by (auto simp add: true_annots_true_cls_def_iff_negation_in_model
-        uminus_lit_swap)
-  show ?thesis
-  proof (cases L)
-    case (Decided L') note L' = this(1)
-    moreover have \<open>atm_of L' = atm_of L_k\<close>
-      using lev_L_k count_decided_ge_get_level[of M L_k] unfolding M dec L'
-      by (auto simp: get_level_cons_if split: if_splits)
-    then have \<open>L' = -L_k\<close>
-      using L_k L_D L' by (auto simp: atm_of_eq_atm_of)
-    then show ?thesis using L_k unfolding D M L' by simp
-  next
-    case (Propagated L' C)
-    then show ?thesis
-      using ns confl by (auto simp: skip.simps M D)
-  qed
-qed
-
-end
-
-
-lemma backtrack_spec:
+lemma
   assumes confl: \<open>get_conflict S \<noteq> None\<close> \<open>get_conflict S \<noteq> Some {#}\<close> and
     w_q: \<open>clauses_to_update S = {#}\<close> and p: \<open>literals_to_update S = {#}\<close> and
     ns_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of S)\<close> and
     ns_r: \<open>no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of S)\<close> and
     twl_struct: \<open>twl_struct_invs S\<close> and twl_stgy: \<open>twl_stgy_invs S\<close>
-  shows \<open>backtrack S \<le> SPEC (\<lambda>T. cdcl_twl_o S T \<and> get_conflict T = None \<and> no_step cdcl_twl_o T \<and>
-    twl_struct_invs T \<and> twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
-    literals_to_update T \<noteq> {#})\<close>
+  shows
+    backtrack_spec:
+    \<open>backtrack S \<le> SPEC (\<lambda>T. cdcl_twl_o S T \<and> get_conflict T = None \<and> no_step cdcl_twl_o T \<and>
+      twl_struct_invs T \<and> twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
+      literals_to_update T \<noteq> {#})\<close> (is ?spec) and
+    backtrack_nofail:
+      \<open>nofail (backtrack S)\<close> (is ?fail)
 proof -
   let ?S = \<open>state\<^sub>W_of S\<close>
   have inv_s: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant ?S\<close> and
@@ -765,7 +709,7 @@ proof -
   then have trail: \<open>get_trail S \<noteq> []\<close>
     using confl unfolding true_annots_true_cls_def_iff_negation_in_model
     by (cases S) (auto simp: cdcl\<^sub>W_restart_mset_state)
-  show ?thesis
+  show ?spec
     unfolding backtrack_def extract_shorter_conflict_def reduce_trail_bt_def
   proof (refine_vcg; remove_dummy_vars; clarify?)
     show \<open>backtrack_inv S\<close>
@@ -963,7 +907,7 @@ proof -
         using WS by (auto simp: propagate_bt_def)
 
       show False if \<open>cdcl_twl_o (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) (an, ao, ap, aq, ar, as, at, b)\<close>
-        for  an ao ap aq ar as at b
+        for an ao ap aq ar as at b
         using that by (auto simp: cdcl_twl_o.simps propagate_bt_def)
 
       show False if \<open>literals_to_update (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) = {#}\<close>
@@ -1016,6 +960,8 @@ proof -
         using that by (auto simp: cdcl_twl_o.simps propagate_unit_bt_def)
     }
   qed
+  then show ?fail
+    using nofail_simps(2) pwD1 by blast
 qed
 
 declare backtrack_spec[THEN order_trans, refine_vcg]
@@ -1287,12 +1233,15 @@ proof -
   ultimately show ?thesis by auto
 qed
 
+definition conclusive_TWL_run where
+  \<open>conclusive_TWL_run S = SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> final_twl_state T)\<close>
+
 lemma cdcl_twl_stgy_prog_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_prog S \<le> SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> final_twl_state T)\<close>
-  unfolding cdcl_twl_stgy_prog_def full_def
+    \<open>cdcl_twl_stgy_prog S \<le> conclusive_TWL_run S\<close>
+  unfolding cdcl_twl_stgy_prog_def full_def conclusive_TWL_run_def
   apply (refine_vcg WHILEIT_rule[where
      R = \<open>{((brkT, T), (brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union>
           {((brkT, T), (brkS, S)). S = T \<and> brkT \<and> \<not>brkS}\<close>];

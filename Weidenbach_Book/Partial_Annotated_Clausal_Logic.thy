@@ -1074,6 +1074,10 @@ next
     using a1 by simp
 qed
 
+lemma same_mset_no_dup_iff:
+  \<open>mset M = mset M' \<Longrightarrow> no_dup M \<longleftrightarrow> no_dup M'\<close>
+  by (auto simp: no_dup_def same_mset_distinct_iff)
+
 lemma distinct_get_all_ann_decomposition_no_dup:
   assumes \<open>(a, b) \<in> set (get_all_ann_decomposition M)\<close>
   and \<open>no_dup M\<close>
