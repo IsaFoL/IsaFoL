@@ -49,8 +49,8 @@ current: Ordered_Resolution_Prover Unordered_Resolution
 # move the html documentation to the locale directory
 doc:
 	mkdir -p $(DESTINATION)/current
-	cp -R $(ISABELLE_HOME2017)/Weidenbach_Book $(DESTINATION)/current || :
-	cp -R $(ISABELLE_HOME2017)/Ordered_Resolution_Prover $(DESTINATION)/current || :
+	cp -R $(ISABELLE2017_HOME)/Weidenbach_Book $(DESTINATION)/current || :
+	cp -R $(ISABELLE2017_HOME)/Ordered_Resolution_Prover $(DESTINATION)/current || :
 	cp -R $(ISABELLE2017_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current || :
 	./add_dates.pl --noverbose --unsafe --isabelle="$(ISABELLE_version)" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP_version)"
 
