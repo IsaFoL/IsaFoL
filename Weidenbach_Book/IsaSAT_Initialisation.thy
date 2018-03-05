@@ -738,61 +738,256 @@ sepref_register (in isasat_input_ops) init_dt_wl_heur
 
 end
 
-definition nat_lit_list_hm_ref_rel :: \<open>(('a set \<times> 'a list) \<times> 'a list) set\<close> where
-  \<open>nat_lit_list_hm_ref_rel = {((s, xs), l). l = xs \<and> s = set l}\<close>
+definition isasat_atms_ext_rel :: \<open>((nat list \<times> nat) \<times> nat set) set\<close> where
+  \<open>isasat_atms_ext_rel = {((xs, n), l). 
+    (\<forall>L\<in>l. L < length xs) \<and>
+    (\<forall>L \<in> l.  (xs ! L) mod 2 = 1) \<and>
+    (\<forall>L. L < length xs \<longrightarrow> (xs ! L) mod 2 = 1 \<longrightarrow> L \<in> l) \<and>
+    n = Max (insert 0 l) \<and>
+    length xs \<le> uint_max \<and>
+    finite l}\<close>
 
-abbreviation nat_lit_lits_init_ref_assn where
-  \<open>nat_lit_lits_init_ref_assn \<equiv> hs.assn uint32_nat_assn *a list_assn uint32_nat_assn\<close>
+abbreviation isasat_atms_ext_rel_assn where
+  \<open>isasat_atms_ext_rel_assn \<equiv> array_assn uint64_nat_assn *a uint32_nat_assn\<close>
 
 abbreviation nat_lit_list_hm_assn where
-  \<open>nat_lit_list_hm_assn \<equiv> hr_comp nat_lit_lits_init_ref_assn nat_lit_list_hm_ref_rel\<close>
+  \<open>nat_lit_list_hm_assn \<equiv> hr_comp isasat_atms_ext_rel_assn isasat_atms_ext_rel\<close>
 
 definition in_map_atm_of :: \<open>'a \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
   \<open>in_map_atm_of L N \<longleftrightarrow> L \<in> set N\<close>
 
+definition (in -) sum_mod_uint64_max where
+  \<open>sum_mod_uint64_max a b = (a + b) mod (uint64_max + 1)\<close>
+
+definition add_to_atms_ext where
+  \<open>add_to_atms_ext = (\<lambda>i (xs, n). do {
+    ASSERT(length xs \<le> uint_max);
+    let n = max i n;
+    (if i < length_u xs then
+       RETURN (xs[i := (sum_mod_uint64_max (xs ! i) 2) OR one_uint64_nat], n)
+     else do {
+        ASSERT(i + 1 \<le> uint_max);
+        RETURN ((list_grow xs (i + one_uint32_nat) zero_uint64_nat)[i := one_uint64_nat], n)
+     })
+    })\<close>
+
+lemma mod2_bin_last: \<open>a mod 2 = 0 \<longleftrightarrow> \<not>bin_last a\<close>
+  by (auto simp: bin_last_def)
+
+lemma bitXOR_1_if_mod_2_int: \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: int
+  apply (rule bin_rl_eqI)
+  unfolding bin_rest_OR bin_last_OR
+   apply (auto simp: bin_rest_def bin_last_def)
+  done
+
+lemma bitOR_1_if_mod_2_nat: 
+  \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close> 
+  \<open>bitOR L (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: nat
+proof -
+  have H: \<open>bitOR L 1 =  L + (if bin_last (int L) then 0 else 1)\<close>
+    unfolding bitOR_nat_def
+    apply (auto simp: bitOR_nat_def bin_last_def
+        bitXOR_1_if_mod_2_int)
+    done
+  show \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close> 
+    unfolding H
+    apply (auto simp: bitOR_nat_def bin_last_def)
+    apply presburger+
+    done
+  then show \<open>bitOR L (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close> 
+    by simp
+qed
+
+lemma uint64_max_uint_def:\<open>unat ( -1 :: 64 Word.word) = uint64_max\<close>
+  by normalization
+  
+lemma nat_of_uint64_le_uint64_max: \<open>nat_of_uint64 x \<le> uint64_max\<close>
+  apply transfer
+  subgoal for x
+    using word_le_nat_alt[of x \<open>- 1\<close>]
+    unfolding uint64_max_def[symmetric] uint64_max_uint_def
+    by auto
+  done
+
+lemma bitOR_1_if_mod_2_uint64: \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: uint64
+proof -
+  have H: \<open>bitOR L 1 = a \<longleftrightarrow> bitOR (nat_of_uint64 L) 1 = nat_of_uint64 a\<close> for a
+    apply transfer
+    apply (rule iffI)
+    subgoal for L a
+      by (auto simp: unat_def uint_or bitOR_nat_def)
+    subgoal for L a
+      apply (auto simp: unat_def uint_or bitOR_nat_def eq_nat_nat_iff
+          word_or_def)
+      apply (subst (asm)eq_nat_nat_iff)
+        apply (auto simp: uint_1 uint_ge_0 uint_or)
+       apply (metis uint_1 uint_ge_0 uint_or)
+      done
+    done
+  have K: \<open>L mod 2 = 0 \<longleftrightarrow> nat_of_uint64 L mod 2 = 0\<close>
+    apply transfer
+    subgoal for L
+      using unat_mod[of L 2]
+      by (auto simp: unat_eq_0)
+    done
+  have L: \<open>nat_of_uint64 (if L mod 2 = 0 then L + 1 else L) =
+      (if nat_of_uint64 L mod 2 = 0 then nat_of_uint64 L + 1 else nat_of_uint64 L)\<close>
+    using nat_of_uint64_le_uint64_max[of L]
+    by (auto simp: K nat_of_uint64_add uint64_max_def)
+
+  show ?thesis
+    apply (subst H)
+    unfolding bitOR_1_if_mod_2_nat[symmetric] L ..
+qed
+
+lemma (in -) nat_of_uint64_plus:
+  \<open>nat_of_uint64 (a + b) = (nat_of_uint64 a + nat_of_uint64 b) mod (uint64_max + 1)\<close>
+  by transfer (auto simp: unat_word_ariths uint64_max_def)
+
+lemma add_to_atms_ext_op_set_insert:
+  \<open>(uncurry add_to_atms_ext, uncurry (RETURN oo op_set_insert))
+   \<in> [\<lambda>(n, l). n < uint_max]\<^sub>f nat_rel \<times>\<^sub>f isasat_atms_ext_rel \<rightarrow> \<langle>isasat_atms_ext_rel\<rangle>nres_rel\<close>
+proof -
+  have H: \<open>finite x2 \<Longrightarrow> Max (insert x1 (insert 0 x2)) = Max (insert x1 x2)\<close>
+    \<open>finite x2 \<Longrightarrow> Max (insert 0 (insert x1 x2)) = Max (insert x1 x2)\<close>
+    for x1 and x2 :: \<open>nat set\<close>
+    by (subst insert_commute) auto
+  have [simp]: \<open>(a OR Suc 0) mod 2 = Suc 0\<close> for a
+    by (auto simp add: bitOR_1_if_mod_2_nat)
+  show ?thesis
+    apply (intro frefI nres_relI)
+    unfolding isasat_atms_ext_rel_def add_to_atms_ext_def uncurry_def
+    apply (refine_vcg lhs_step_If)
+    subgoal by auto
+    subgoal for x y x1 x2 x1a x2a x1b x2b
+      unfolding comp_def
+      apply (rule RETURN_refine)
+      apply (subst in_pair_collect_simp)
+      apply (subst prod.case)
+      apply (intro conjI impI allI)
+      subgoal by auto
+      subgoal by (simp add: )
+      subgoal for x'
+        apply clarify
+        apply (simp only: bitOR_1_if_mod_2_nat one_uint64_nat_def)
+        apply (cases \<open>sum_mod_uint64_max (x1b ! x1a) 2 mod 2 = 0\<close>; cases \<open>x' = x1a\<close>)
+           apply (simp_all only: eq_refl if_True simp_thms length_u_def op_set_insert_def
+            insert_iff prod_rel_iff in_pair_collect_simp pair_in_Id_conv if_False)
+         apply (simp_all only: nth_list_update' length_list_update
+            split: if_splits)
+         apply (simp_all only: prod.case)
+        done
+      subgoal by (auto simp: H Max_insert[symmetric] simp del: Max_insert)
+      subgoal by auto
+      subgoal by auto
+      done
+    subgoal by (auto simp: uint_max_def)
+    subgoal
+      unfolding comp_def list_grow_def
+      apply (rule RETURN_refine)
+      apply (subst in_pair_collect_simp)
+      apply (subst prod.case)
+      apply (intro conjI impI allI)
+      subgoal by auto
+      subgoal by (simp add: )
+      subgoal
+        by (simp add: nth_append cong: if_cong) presburger
+      subgoal by (auto simp: H Max_insert[symmetric] simp del: Max_insert)
+      subgoal by auto
+      subgoal by auto
+      done
+    done
+qed
+
+
+lemma sum_mod_uint64_max_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo  op +), uncurry (RETURN oo sum_mod_uint64_max))
+   \<in> uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  apply sepref_to_hoare
+  apply (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_plus
+      sum_mod_uint64_max_def)
+  done
+
+definition two_uint64_nat :: nat where
+  [simp]: \<open>two_uint64_nat = 2\<close>
+
+lemma two_uint64_nat[sepref_fr_rules]:
+  \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint64_nat))
+   \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: two_uint64_nat_def uint64_nat_rel_def br_def)
+
+lemma nat_or:
+  \<open>ai\<ge> 0 \<Longrightarrow> bi \<ge> 0 \<Longrightarrow> nat (ai OR bi) = nat ai OR nat bi\<close>
+  by (auto simp: bitOR_nat_def)
+
+lemma nat_of_uint64_or:
+  \<open>nat_of_uint64 ai \<le> uint64_max \<Longrightarrow> nat_of_uint64 bi \<le> uint64_max \<Longrightarrow> 
+    nat_of_uint64 (ai OR bi) = nat_of_uint64 ai OR nat_of_uint64 bi\<close>
+  unfolding uint64_max_def
+  by transfer (auto simp: unat_def uint_or nat_or)
+
+lemma bitOR_uint64_max_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo  op OR), uncurry (RETURN oo op OR))
+   \<in> [\<lambda>(a, b). a \<le> uint64_max \<and> b \<le> uint64_max]\<^sub>a
+     uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_plus
+      sum_mod_uint64_max_def nat_of_uint64_or)
+
+lemma sum_mod_uint64_max_le_uint64_max[simp]: \<open>sum_mod_uint64_max a b \<le> uint64_max\<close>
+  unfolding sum_mod_uint64_max_def
+  by auto
+
+lemma Suc_0_le_uint64_max: \<open>Suc 0 \<le> uint64_max\<close>
+  by (auto simp: uint64_max_def)
+
+(*lemma list_grow_array_hnr[sepref_fr_rules]:
+  assumes \<open>CONSTRAINT is_pure R\<close>
+  shows
+    \<open>(uncurry2 (\<lambda>xs u. array_grow xs (nat_of_uint64 u)),
+        uncurry2 (RETURN ooo list_grow)) \<in>
+    [\<lambda>((xs, n), x). n \<ge> length xs]\<^sub>a (array_assn R)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>d *\<^sub>a R\<^sup>k \<rightarrow>
+       array_assn R\<close>
+proof -
+  obtain R' where [simp]:
+    \<open>R = pure R'\<close>
+    \<open>the_pure R = R'\<close>
+    using assms by (metis CONSTRAINT_D pure_the_pure)
+  have [simp]: \<open>pure R' b bi = \<up>( (bi, b) \<in> R')\<close> for b bi
+    by (auto simp: pure_def)
+  show ?thesis
+    by sepref_to_hoare
+       (sep_auto simp: list_grow_def array_assn_def is_array_def
+          hr_comp_def list_rel_pres_length list_rel_def list_all2_replicate
+         uint64_nat_rel_def br_def
+        intro!: list_all2_appendI)
+qed
+ *)
 sepref_definition nat_lit_lits_init_assn_assn_in
-  is \<open>uncurry (RETURN oo (\<lambda>L (s, xs). L \<in> s))\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a nat_lit_lits_init_ref_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  is \<open>uncurry add_to_atms_ext\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a isasat_atms_ext_rel_assn\<^sup>d \<rightarrow>\<^sub>a isasat_atms_ext_rel_assn\<close>
+  unfolding add_to_atms_ext_def two_uint64_nat_def[symmetric] Suc_0_le_uint64_max[simp]
+    heap_array_set_u_def[symmetric]
   by sepref
 
-lemma nat_lit_lits_init_assn_ref_in:
-  \<open>(uncurry (RETURN oo (\<lambda>L (s, xs). L \<in> s)), uncurry (RETURN oo in_map_atm_of)) \<in>
-    nat_rel \<times>\<^sub>r nat_lit_list_hm_ref_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: nat_lit_list_hm_ref_rel_def in_map_atm_of_def)
+lemma [sepref_fr_rules]:
+  \<open>(uncurry nat_lit_lits_init_assn_assn_in,  uncurry (RETURN \<circ>\<circ> op_set_insert))
+\<in> [\<lambda>(a, b).  a < uint_max]\<^sub>a 
+    uint32_nat_assn\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
+  by (rule nat_lit_lits_init_assn_assn_in.refine[FCOMP add_to_atms_ext_op_set_insert])
 
-sepref_definition nat_lit_lits_init_assn_assn_prepend
-  is \<open>uncurry (RETURN oo (\<lambda>L (s, xs). (insert L s, L # xs)))\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a nat_lit_lits_init_ref_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_lits_init_ref_assn\<close>
-  by sepref
-
-lemma nat_lit_lits_init_assn_ref_list_prepend:
-  \<open>(uncurry (RETURN oo (\<lambda>L (s, xs). (insert L s, L # xs))),
-      uncurry (RETURN oo op_list_prepend)) \<in>
-    Id \<times>\<^sub>r nat_lit_list_hm_ref_rel \<rightarrow>\<^sub>f \<langle>nat_lit_list_hm_ref_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: nat_lit_list_hm_ref_rel_def in_map_atm_of_def)
-
-lemma nat_lit_lits_init_assn_assn_prepend[sepref_fr_rules]:
-  \<open>(uncurry nat_lit_lits_init_assn_assn_prepend, uncurry (RETURN \<circ>\<circ> op_list_prepend))
-      \<in> uint32_nat_assn\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
-  using nat_lit_lits_init_assn_assn_prepend.refine[FCOMP nat_lit_lits_init_assn_ref_list_prepend] .
-
-lemma nat_lit_lits_init_assn_assn_id[sepref_fr_rules]:
-  \<open>(return o snd, RETURN o id) \<in> nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a list_assn uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: nat_lit_list_hm_ref_rel_def hr_comp_def)
-
-lemma in_map_atm_of_hnr[sepref_fr_rules]:
-  \<open>(uncurry nat_lit_lits_init_assn_assn_in, uncurry (RETURN \<circ>\<circ> in_map_atm_of))
-     \<in> uint32_nat_assn\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using nat_lit_lits_init_assn_assn_in.refine[FCOMP nat_lit_lits_init_assn_ref_in] .
-
-
-definition extract_atms_cls :: \<open>'a clause_l \<Rightarrow> 'a list \<Rightarrow> 'a list\<close> where
-  \<open>extract_atms_cls C \<A>\<^sub>i\<^sub>n = fold (\<lambda>L \<A>\<^sub>i\<^sub>n. if atm_of L \<in> set \<A>\<^sub>i\<^sub>n then \<A>\<^sub>i\<^sub>n else atm_of L # \<A>\<^sub>i\<^sub>n) C \<A>\<^sub>i\<^sub>n\<close>
+definition extract_atms_cls :: \<open>'a clause_l \<Rightarrow> 'a set \<Rightarrow> 'a set\<close> where
+  \<open>extract_atms_cls C \<A>\<^sub>i\<^sub>n = fold (\<lambda>L \<A>\<^sub>i\<^sub>n. insert (atm_of L) \<A>\<^sub>i\<^sub>n) C \<A>\<^sub>i\<^sub>n\<close>
 
 sepref_definition extract_atms_cls_imp
   is \<open>uncurry (RETURN oo extract_atms_cls)\<close>
   :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
   unfolding extract_atms_cls_def in_map_atm_of_def[symmetric]
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp:)[]
+
   by sepref
 
 declare extract_atms_cls_imp.refine[sepref_fr_rules]
