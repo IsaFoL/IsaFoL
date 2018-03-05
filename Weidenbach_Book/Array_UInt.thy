@@ -834,15 +834,10 @@ proof -
         swap_def nth_rll_def list_update_swap swap_u64_code_def nth_u64_code_def Array.nth'_def
         heap_array_set_u64_def heap_array_set'_u64_def arl_assn_def
          Array.upd'_def)
-     apply (drule_tac aa = aa and bc =bc in H[of ])
-    apply assumption
-    apply assumption
-    apply assumption
-    apply assumption
-     apply assumption
+    apply (rule H; assumption)
     apply (sep_auto simp: array_assn_def nat_of_uint64_code[symmetric] hr_comp_def is_array_def
         list_rel_imp_same_length arlO_assn_def arl_assn_def hr_comp_def[abs_def])
-    apply (rule H'; assumption?)
+    apply (rule H'; assumption)
     done
 qed
 
