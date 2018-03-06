@@ -738,17 +738,27 @@ sepref_register (in isasat_input_ops) init_dt_wl_heur
 
 end
 
-definition isasat_atms_ext_rel :: \<open>((nat list \<times> nat) \<times> nat set) set\<close> where
-  \<open>isasat_atms_ext_rel = {((xs, n), l). 
-    (\<forall>L\<in>l. L < length xs) \<and>
-    (\<forall>L \<in> l.  (xs ! L) mod 2 = 1) \<and>
-    (\<forall>L. L < length xs \<longrightarrow> (xs ! L) mod 2 = 1 \<longrightarrow> L \<in> l) \<and>
-    n = Max (insert 0 l) \<and>
-    length xs \<le> uint_max \<and>
-    finite l}\<close>
+definition init_valid_rep :: "nat list \<Rightarrow> nat set \<Rightarrow> bool" where
+  \<open>init_valid_rep xs l \<longleftrightarrow>
+      (\<forall>L\<in>l. L < length xs) \<and>
+      (\<forall>L \<in> l.  (xs ! L) mod 2 = 1) \<and>
+      (\<forall>L. L < length xs \<longrightarrow> (xs ! L) mod 2 = 1 \<longrightarrow> L \<in> l)\<close>
+
+
+definition isasat_atms_ext_rel :: \<open>((nat list \<times> nat \<times> nat list) \<times> nat set) set\<close> where
+  \<open>isasat_atms_ext_rel = {((xs, n, atms), l). 
+      init_valid_rep xs l \<and>
+      n = Max (insert 0 l) \<and>
+      length xs \<le> uint_max \<and>
+      (\<forall>s\<in>set xs. s \<le> uint64_max) \<and>
+      finite l \<and>
+      distinct atms \<and>
+      set atms = l
+   }\<close>
 
 abbreviation isasat_atms_ext_rel_assn where
-  \<open>isasat_atms_ext_rel_assn \<equiv> array_assn uint64_nat_assn *a uint32_nat_assn\<close>
+  \<open>isasat_atms_ext_rel_assn \<equiv> array_assn uint64_nat_assn *a uint32_nat_assn *a
+       arl_assn uint32_nat_assn\<close>
 
 abbreviation nat_lit_list_hm_assn where
   \<open>nat_lit_list_hm_assn \<equiv> hr_comp isasat_atms_ext_rel_assn isasat_atms_ext_rel\<close>
@@ -760,14 +770,18 @@ definition (in -) sum_mod_uint64_max where
   \<open>sum_mod_uint64_max a b = (a + b) mod (uint64_max + 1)\<close>
 
 definition add_to_atms_ext where
-  \<open>add_to_atms_ext = (\<lambda>i (xs, n). do {
+  \<open>add_to_atms_ext = (\<lambda>i (xs, n, atms). do {
     ASSERT(length xs \<le> uint_max);
     let n = max i n;
-    (if i < length_u xs then
-       RETURN (xs[i := (sum_mod_uint64_max (xs ! i) 2) OR one_uint64_nat], n)
+    (if i < length_u xs then do {
+       ASSERT(xs!i \<le> uint64_max);
+       let atms = (if xs!i AND one_uint64_nat = one_uint64_nat then atms else atms @ [i]);
+       RETURN (xs[i := (sum_mod_uint64_max (xs ! i) 2) OR one_uint64_nat], n, atms)
+     }
      else do {
         ASSERT(i + 1 \<le> uint_max);
-        RETURN ((list_grow xs (i + one_uint32_nat) zero_uint64_nat)[i := one_uint64_nat], n)
+        RETURN ((list_grow xs (i + one_uint32_nat) zero_uint64_nat)[i := one_uint64_nat], n,
+            atms @ [i])
      })
     })\<close>
 
@@ -840,9 +854,143 @@ proof -
     unfolding bitOR_1_if_mod_2_nat[symmetric] L ..
 qed
 
+lemma init_valid_rep_upd_OR:
+  \<open>init_valid_rep (x1b[x1a := a OR one_uint64_nat]) x2 \<longleftrightarrow>
+    init_valid_rep (x1b[x1a := one_uint64_nat]) x2 \<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof
+  assume ?A
+  then have
+    1: \<open>\<forall>L\<in>x2. L < length (x1b[x1a := a OR one_uint64_nat])\<close> and
+    2: \<open>\<forall>L\<in>x2. x1b[x1a := a OR one_uint64_nat] ! L mod 2 = 1\<close> and
+    3: \<open>\<forall>L<length (x1b[x1a := a OR one_uint64_nat]).
+        x1b[x1a := a OR one_uint64_nat] ! L mod 2 = 1 \<longrightarrow>
+        L \<in> x2\<close>
+    unfolding init_valid_rep_def by fast+
+  have 1: \<open>\<forall>L\<in>x2. L < length (x1b[x1a := one_uint64_nat])\<close>
+    using 1 by simp
+  then have 2: \<open>\<forall>L\<in>x2. x1b[x1a := one_uint64_nat] ! L mod 2 = 1\<close>
+    using 2 by (auto simp: nth_list_update')
+  then have 3: \<open>\<forall>L<length (x1b[x1a := one_uint64_nat]).
+        x1b[x1a := one_uint64_nat] ! L mod 2 = 1 \<longrightarrow>
+        L \<in> x2\<close>
+    using 3 by (auto split: if_splits simp: bitOR_1_if_mod_2_nat)
+  show ?B
+    using 1 2 3
+    unfolding init_valid_rep_def by fast+
+next
+  assume ?B
+  then have
+    1: \<open>\<forall>L\<in>x2. L < length (x1b[x1a := one_uint64_nat])\<close> and
+    2: \<open>\<forall>L\<in>x2. x1b[x1a := one_uint64_nat] ! L mod 2 = 1\<close> and
+    3: \<open>\<forall>L<length (x1b[x1a := one_uint64_nat]).
+        x1b[x1a := one_uint64_nat] ! L mod 2 = 1 \<longrightarrow>
+        L \<in> x2\<close>
+    unfolding init_valid_rep_def by fast+
+  have 1: \<open>\<forall>L\<in>x2. L < length (x1b[x1a :=  a OR one_uint64_nat])\<close>
+    using 1 by simp
+  then have 2: \<open>\<forall>L\<in>x2. x1b[x1a := a OR one_uint64_nat] ! L mod 2 = 1\<close>
+    using 2 by (auto simp: nth_list_update' bitOR_1_if_mod_2_nat)
+  then have 3: \<open>\<forall>L<length (x1b[x1a :=  a OR one_uint64_nat]).
+        x1b[x1a :=  a OR one_uint64_nat] ! L mod 2 = 1 \<longrightarrow>
+        L \<in> x2\<close>
+    using 3 by (auto split: if_splits simp: bitOR_1_if_mod_2_nat)
+  show ?A
+    using 1 2 3
+    unfolding init_valid_rep_def by fast+
+qed
+
+lemma init_valid_rep_insert:
+  assumes val: \<open>init_valid_rep x1b x2\<close> and le: \<open>x1a < length x1b\<close>
+  shows \<open>init_valid_rep (x1b[x1a := one_uint64_nat]) (insert x1a x2)\<close>
+proof -
+  have
+    1: \<open>\<forall>L\<in>x2. L < length x1b\<close> and
+    2: \<open>\<forall>L\<in>x2. x1b ! L mod 2 = 1\<close> and
+    3: \<open>\<And>L. L<length x1b \<Longrightarrow> x1b ! L mod 2 = 1 \<longrightarrow> L \<in> x2\<close>
+    using val unfolding init_valid_rep_def by fast+
+  have 1: \<open>\<forall>L\<in>insert x1a x2. L < length (x1b[x1a := one_uint64_nat])\<close>
+    using 1 le by simp
+  then have 2: \<open>\<forall>L\<in>insert x1a x2. x1b[x1a := one_uint64_nat] ! L mod 2 = 1\<close>
+    using 2 by (auto simp: nth_list_update')
+  then have 3: \<open>\<forall>L<length (x1b[x1a := one_uint64_nat]).
+        x1b[x1a := one_uint64_nat] ! L mod 2 = 1 \<longrightarrow>
+        L \<in> insert x1a x2\<close>
+    using 3 le by (auto split: if_splits simp: bitOR_1_if_mod_2_nat)
+  show ?thesis
+    using 1 2 3
+    unfolding init_valid_rep_def by fast+
+qed
+
+lemma init_valid_rep_extend:
+  \<open>init_valid_rep (x1b @ replicate n 0) x2 \<longleftrightarrow> init_valid_rep (x1b) x2\<close>
+   (is \<open>?A \<longleftrightarrow> ?B\<close> is \<open>init_valid_rep ?x1b _ \<longleftrightarrow> _\<close>)
+proof
+  assume ?A
+  then have
+    1: \<open>\<And>L. L\<in>x2 \<Longrightarrow> L < length ?x1b\<close> and
+    2: \<open>\<And>L. L\<in>x2 \<Longrightarrow> ?x1b ! L mod 2 = 1\<close> and
+    3: \<open>\<And>L. L<length ?x1b \<Longrightarrow> ?x1b ! L mod 2 = 1 \<longrightarrow> L \<in> x2\<close>
+    unfolding init_valid_rep_def by fast+
+  have 1: \<open>L\<in>x2 \<Longrightarrow> L < length x1b\<close> for L
+    using 3[of L] 2[of L] 1[of L]
+    by (auto simp: nth_append split: if_splits)
+  then have 2: \<open>\<forall>L\<in>x2. x1b ! L mod 2 = 1\<close>
+    using 2 by (auto simp: nth_list_update')
+  then have 3: \<open>\<forall>L<length x1b. x1b ! L mod 2 = 1 \<longrightarrow> L \<in> x2\<close>
+    using 3 by (auto split: if_splits simp: bitOR_1_if_mod_2_nat)
+  show ?B
+    using 1 2 3
+    unfolding init_valid_rep_def by fast
+next
+  assume ?B
+  then have
+    1: \<open>\<And>L. L\<in>x2 \<Longrightarrow> L < length x1b\<close> and
+    2: \<open>\<And>L. L\<in>x2 \<Longrightarrow> x1b ! L mod 2 = 1\<close> and
+    3: \<open>\<And>L. L<length x1b \<longrightarrow> x1b ! L mod 2 = 1 \<longrightarrow> L \<in> x2\<close>
+    unfolding init_valid_rep_def by fast+
+  have 10: \<open>\<forall>L\<in>x2. L < length ?x1b\<close>
+    using 1 by fastforce
+  then have 20: \<open>L\<in>x2 \<Longrightarrow> ?x1b ! L mod 2 = 1\<close> for L
+    using 1[of L] 2[of L] 3[of L] by (auto simp: nth_list_update' bitOR_1_if_mod_2_nat nth_append)
+  then have 30: \<open>L<length ?x1b \<Longrightarrow> ?x1b ! L mod 2 = 1 \<longrightarrow> L \<in> x2\<close>for L
+    using 1[of L] 2[of L] 3[of L] 
+    by (auto split: if_splits simp: bitOR_1_if_mod_2_nat nth_append)
+  show ?A
+    using 10 20 30
+    unfolding init_valid_rep_def by fast+
+qed
+
+lemma init_valid_rep_in_set_iff:
+  \<open>init_valid_rep x1b x2  \<Longrightarrow> x \<in> x2 \<longleftrightarrow> (x < length x1b \<and> (x1b!x) mod 2 = 1)\<close>
+  unfolding init_valid_rep_def
+  by auto
+
 lemma (in -) nat_of_uint64_plus:
   \<open>nat_of_uint64 (a + b) = (nat_of_uint64 a + nat_of_uint64 b) mod (uint64_max + 1)\<close>
   by transfer (auto simp: unat_word_ariths uint64_max_def)
+
+
+lemma nat_and:
+  \<open>ai\<ge> 0 \<Longrightarrow> bi \<ge> 0 \<Longrightarrow> nat (ai AND bi) = nat ai AND nat bi\<close>
+  by (auto simp: bitAND_nat_def)
+
+lemma nat_of_uint64_and:
+  \<open>nat_of_uint64 ai \<le> uint64_max \<Longrightarrow> nat_of_uint64 bi \<le> uint64_max \<Longrightarrow> 
+    nat_of_uint64 (ai AND bi) = nat_of_uint64 ai AND nat_of_uint64 bi\<close>
+  unfolding uint64_max_def
+  by transfer (auto simp: unat_def uint_and nat_and)
+
+lemma bitAND_uint64_max_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo  op AND), uncurry (RETURN oo op AND))
+   \<in> [\<lambda>(a, b). a \<le> uint64_max \<and> b \<le> uint64_max]\<^sub>a
+     uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_plus
+      sum_mod_uint64_max_def nat_of_uint64_and)
+
+lemma sum_mod_uint64_max_le_uint64_max[simp]: \<open>sum_mod_uint64_max a b \<le> uint64_max\<close>
+  unfolding sum_mod_uint64_max_def
+  by auto
 
 lemma add_to_atms_ext_op_set_insert:
   \<open>(uncurry add_to_atms_ext, uncurry (RETURN oo op_set_insert))
@@ -859,42 +1007,55 @@ proof -
     unfolding isasat_atms_ext_rel_def add_to_atms_ext_def uncurry_def
     apply (refine_vcg lhs_step_If)
     subgoal by auto
+    subgoal by auto
     subgoal for x y x1 x2 x1a x2a x1b x2b
       unfolding comp_def
       apply (rule RETURN_refine)
       apply (subst in_pair_collect_simp)
-      apply (subst prod.case)
+      apply (subst prod.case)+
       apply (intro conjI impI allI)
-      subgoal by auto
-      subgoal by (simp add: )
-      subgoal for x'
-        apply clarify
-        apply (simp only: bitOR_1_if_mod_2_nat one_uint64_nat_def)
-        apply (cases \<open>sum_mod_uint64_max (x1b ! x1a) 2 mod 2 = 0\<close>; cases \<open>x' = x1a\<close>)
-           apply (simp_all only: eq_refl if_True simp_thms length_u_def op_set_insert_def
-            insert_iff prod_rel_iff in_pair_collect_simp pair_in_Id_conv if_False)
-         apply (simp_all only: nth_list_update' length_list_update
-            split: if_splits)
-         apply (simp_all only: prod.case)
-        done
+      subgoal by (simp add: init_valid_rep_upd_OR init_valid_rep_insert
+            del: one_uint64_nat_def)
       subgoal by (auto simp: H Max_insert[symmetric] simp del: Max_insert)
       subgoal by auto
-      subgoal by auto
+      subgoal
+        using sum_mod_uint64_max_le_uint64_max
+        unfolding bitOR_1_if_mod_2_nat one_uint64_nat_def
+        by (auto simp del: sum_mod_uint64_max_le_uint64_max simp: uint64_max_def
+            sum_mod_uint64_max_def
+            elim!: in_set_upd_cases)
+      subgoal
+        unfolding bitAND_1_mod_2 one_uint64_nat_def
+        by (auto simp add: init_valid_rep_in_set_iff)
+      subgoal
+        unfolding bitAND_1_mod_2 one_uint64_nat_def
+        by (auto simp add: init_valid_rep_in_set_iff)
+      subgoal
+        unfolding bitAND_1_mod_2 one_uint64_nat_def
+        by (auto simp add: init_valid_rep_in_set_iff)
       done
     subgoal by (auto simp: uint_max_def)
     subgoal
       unfolding comp_def list_grow_def
       apply (rule RETURN_refine)
       apply (subst in_pair_collect_simp)
-      apply (subst prod.case)
+      apply (subst prod.case)+
       apply (intro conjI impI allI)
-      subgoal by auto
-      subgoal by (simp add: )
       subgoal
-        by (simp add: nth_append cong: if_cong) presburger
+        unfolding op_set_insert_def
+        by (auto simp: init_valid_rep_insert init_valid_rep_extend
+            simp del: one_uint64_nat_def)
       subgoal by (auto simp: H Max_insert[symmetric] simp del: Max_insert)
       subgoal by auto
-      subgoal by auto
+      subgoal
+        using sum_mod_uint64_max_le_uint64_max
+        unfolding bitOR_1_if_mod_2_nat one_uint64_nat_def
+        by (auto simp del: sum_mod_uint64_max_le_uint64_max simp: uint64_max_def
+            sum_mod_uint64_max_def
+            elim!: in_set_upd_cases)
+      subgoal by (auto simp: init_valid_rep_in_set_iff)
+      subgoal by (auto simp add: init_valid_rep_in_set_iff)
+      subgoal by (auto simp add: init_valid_rep_in_set_iff)
       done
     done
 qed
@@ -934,38 +1095,14 @@ lemma bitOR_uint64_max_hnr[sepref_fr_rules]:
     (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_plus
       sum_mod_uint64_max_def nat_of_uint64_or)
 
-lemma sum_mod_uint64_max_le_uint64_max[simp]: \<open>sum_mod_uint64_max a b \<le> uint64_max\<close>
-  unfolding sum_mod_uint64_max_def
-  by auto
 
 lemma Suc_0_le_uint64_max: \<open>Suc 0 \<le> uint64_max\<close>
   by (auto simp: uint64_max_def)
 
-(*lemma list_grow_array_hnr[sepref_fr_rules]:
-  assumes \<open>CONSTRAINT is_pure R\<close>
-  shows
-    \<open>(uncurry2 (\<lambda>xs u. array_grow xs (nat_of_uint64 u)),
-        uncurry2 (RETURN ooo list_grow)) \<in>
-    [\<lambda>((xs, n), x). n \<ge> length xs]\<^sub>a (array_assn R)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>d *\<^sub>a R\<^sup>k \<rightarrow>
-       array_assn R\<close>
-proof -
-  obtain R' where [simp]:
-    \<open>R = pure R'\<close>
-    \<open>the_pure R = R'\<close>
-    using assms by (metis CONSTRAINT_D pure_the_pure)
-  have [simp]: \<open>pure R' b bi = \<up>( (bi, b) \<in> R')\<close> for b bi
-    by (auto simp: pure_def)
-  show ?thesis
-    by sepref_to_hoare
-       (sep_auto simp: list_grow_def array_assn_def is_array_def
-          hr_comp_def list_rel_pres_length list_rel_def list_all2_replicate
-         uint64_nat_rel_def br_def
-        intro!: list_all2_appendI)
-qed
- *)
 sepref_definition nat_lit_lits_init_assn_assn_in
   is \<open>uncurry add_to_atms_ext\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a isasat_atms_ext_rel_assn\<^sup>d \<rightarrow>\<^sub>a isasat_atms_ext_rel_assn\<close>
+  supply [[goals_limit=1]]
   unfolding add_to_atms_ext_def two_uint64_nat_def[symmetric] Suc_0_le_uint64_max[simp]
     heap_array_set_u_def[symmetric]
   by sepref
@@ -979,50 +1116,138 @@ lemma [sepref_fr_rules]:
 definition extract_atms_cls :: \<open>'a clause_l \<Rightarrow> 'a set \<Rightarrow> 'a set\<close> where
   \<open>extract_atms_cls C \<A>\<^sub>i\<^sub>n = fold (\<lambda>L \<A>\<^sub>i\<^sub>n. insert (atm_of L) \<A>\<^sub>i\<^sub>n) C \<A>\<^sub>i\<^sub>n\<close>
 
-sepref_definition extract_atms_cls_imp
-  is \<open>uncurry (RETURN oo extract_atms_cls)\<close>
-  :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
-  unfolding extract_atms_cls_def in_map_atm_of_def[symmetric]
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
-           apply sepref_dbg_side_unfold apply (auto simp:)[]
+definition extract_atms_cls_i :: \<open>nat clause_l \<Rightarrow> nat set \<Rightarrow> nat set nres\<close> where
+  \<open>extract_atms_cls_i C \<A>\<^sub>i\<^sub>n = nfoldli C (\<lambda>_. True)
+       (\<lambda>L \<A>\<^sub>i\<^sub>n. do {
+         ASSERT(atm_of L < uint_max);
+         RETURN(insert (atm_of L) \<A>\<^sub>i\<^sub>n)})
+    \<A>\<^sub>i\<^sub>n\<close>
 
+lemma fild_insert_insert_swap:
+  \<open>fold (\<lambda>L. insert (f L)) C (insert a \<A>\<^sub>i\<^sub>n) = insert a (fold (\<lambda>L. insert (f L)) C \<A>\<^sub>i\<^sub>n)\<close>
+  by (induction C arbitrary: a \<A>\<^sub>i\<^sub>n)  (auto simp: extract_atms_cls_def)
+
+lemma extract_atms_cls_alt_def: \<open>extract_atms_cls C \<A>\<^sub>i\<^sub>n = \<A>\<^sub>i\<^sub>n \<union> atm_of ` set C\<close>
+  by (induction C)  (auto simp: extract_atms_cls_def fild_insert_insert_swap)
+
+sepref_definition extract_atms_cls_imp
+  is \<open>uncurry extract_atms_cls_i\<close>
+  :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
+  unfolding extract_atms_cls_i_def
   by sepref
+
+lemma extract_atms_cls_i_extract_atms_cls:
+  \<open>(uncurry extract_atms_cls_i, uncurry (RETURN oo extract_atms_cls))
+   \<in> [\<lambda>(C, \<A>\<^sub>i\<^sub>n). \<forall>L\<in>set C. nat_of_lit L \<le> uint_max]\<^sub>f
+     \<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+proof -
+  have H1: \<open>(x1a, x1) \<in> \<langle>{(L, L'). L = L' \<and> nat_of_lit L \<le> uint_max}\<rangle>list_rel\<close>
+    if 
+      \<open>case y of (C, \<A>\<^sub>i\<^sub>n) \<Rightarrow>  \<forall>L\<in>set C. nat_of_lit L \<le> uint_max\<close> and
+      \<open>(x, y) \<in> \<langle>nat_lit_lit_rel\<rangle>list_rel \<times>\<^sub>f Id\<close> and
+      \<open>y = (x1, x2)\<close> and
+      \<open>x = (x1a, x2a)\<close>
+    for x :: \<open>nat literal list \<times>  nat set\<close> and y :: \<open>nat literal list \<times>  nat set\<close> and
+      x1 :: \<open>nat literal list\<close> and x2 :: \<open>nat set\<close> and x1a :: \<open>nat literal list\<close> and x2a :: \<open>nat set\<close>
+    using that by (auto simp: list_rel_def list_all2_conj list.rel_eq list_all2_conv_all_nth)
+  
+  have atm_le: \<open>nat_of_lit xa \<le> uint_max \<Longrightarrow> atm_of xa < uint_max\<close> for xa
+    by (cases xa) (auto simp: uint_max_def)
+
+  show ?thesis
+    supply RETURN_as_SPEC_refine[refine2 del]
+    unfolding extract_atms_cls_i_def extract_atms_cls_def uncurry_def comp_def
+      fold_eq_nfoldli
+    apply (intro frefI nres_relI)
+    apply (refine_rcg H1)
+           apply assumption+
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: atm_le)
+    subgoal by auto
+    done
+qed
 
 declare extract_atms_cls_imp.refine[sepref_fr_rules]
 
-definition extract_atms_clss:: \<open>'a clause_l list \<Rightarrow> 'a list \<Rightarrow> 'a list\<close>  where
+definition extract_atms_clss:: \<open>'a clause_l list \<Rightarrow> 'a set \<Rightarrow> 'a set\<close>  where
   \<open>extract_atms_clss N \<A>\<^sub>i\<^sub>n = fold extract_atms_cls N \<A>\<^sub>i\<^sub>n\<close>
 
+definition extract_atms_clss_i :: \<open>nat clause_l list \<Rightarrow> nat set \<Rightarrow> nat set nres\<close>  where
+  \<open>extract_atms_clss_i N \<A>\<^sub>i\<^sub>n = nfoldli N (\<lambda>_. True) extract_atms_cls_i \<A>\<^sub>i\<^sub>n\<close>
+
+
+lemma extract_atms_clss_i_extract_atms_clss:
+  \<open>(uncurry extract_atms_clss_i, uncurry (RETURN oo extract_atms_clss))
+   \<in> [\<lambda>(N, \<A>\<^sub>i\<^sub>n). \<forall>C\<in>set N. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max]\<^sub>f
+     \<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+proof -
+  have H1: \<open>(x1a, x1) \<in> \<langle>{(C, C'). C = C' \<and> (\<forall>L\<in>set C. nat_of_lit L \<le> uint_max)}\<rangle>list_rel\<close>
+    if 
+      \<open>case y of (N, \<A>\<^sub>i\<^sub>n) \<Rightarrow> \<forall>C\<in>set N. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max\<close> and
+      \<open>(x, y) \<in> \<langle>Id\<rangle>list_rel \<times>\<^sub>f Id\<close> and
+      \<open>y = (x1, x2)\<close> and
+      \<open>x = (x1a, x2a)\<close>
+    for x :: \<open>nat literal list list \<times> nat set\<close> and y :: \<open>nat literal list list \<times> nat set\<close> and
+      x1 :: \<open>nat literal list list\<close> and x2 :: \<open>nat set\<close> and x1a :: \<open>nat literal list list\<close>
+      and x2a :: \<open>nat set\<close>
+    using that by (auto simp: list_rel_def list_all2_conj list.rel_eq list_all2_conv_all_nth)
+
+  show ?thesis
+    supply RETURN_as_SPEC_refine[refine2 del]
+    unfolding extract_atms_clss_i_def extract_atms_clss_def comp_def fold_eq_nfoldli uncurry_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg H1 extract_atms_cls_i_extract_atms_cls[THEN fref_to_Down_curry,
+          unfolded comp_def])
+          apply assumption+
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
 sepref_definition extract_atms_clss_imp
-  is \<open>uncurry (RETURN oo extract_atms_clss)\<close>
+  is \<open>uncurry extract_atms_clss_i\<close>
   :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
-  unfolding extract_atms_clss_def in_map_atm_of_def[symmetric]
+  unfolding extract_atms_clss_i_def
   by sepref
 
-lemma id_extract_atms_clss: \<open>extract_atms_clss = (\<lambda>a b. id (extract_atms_clss a b))\<close>
-  by auto
+lemma  extract_atms_clss_hnr[sepref_fr_rules]:
+  \<open>(uncurry extract_atms_clss_imp, uncurry (RETURN \<circ>\<circ> extract_atms_clss))
+    \<in> [\<lambda>(a, b). \<forall>C\<in>set a. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max]\<^sub>a
+      (list_assn (list_assn unat_lit_assn))\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
+  using extract_atms_clss_imp.refine[FCOMP extract_atms_clss_i_extract_atms_clss] .
 
-sepref_definition extract_atms_clss_imp_list_assn
-  is \<open>uncurry (RETURN oo extract_atms_clss)\<close>
-  :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a list_assn uint32_nat_assn\<close>
-  supply extract_atms_clss_imp.refine[sepref_fr_rules]
-  apply (rewrite at \<open>extract_atms_clss\<close> id_extract_atms_clss)
-  by sepref
+lemma fold_extract_atms_cls_union_swap:
+  \<open>fold extract_atms_cls N (\<A>\<^sub>i\<^sub>n \<union> a) = fold extract_atms_cls N \<A>\<^sub>i\<^sub>n \<union> a\<close>
+  by (induction N arbitrary: a \<A>\<^sub>i\<^sub>n)  (auto simp: extract_atms_cls_alt_def)
+  
+lemma extract_atms_clss_alt_def: 
+  \<open>extract_atms_clss N \<A>\<^sub>i\<^sub>n = \<A>\<^sub>i\<^sub>n \<union> ((\<Union>C\<in>set N. atm_of ` set C))\<close>
+  by (induction N)
+    (auto simp: extract_atms_clss_def extract_atms_cls_alt_def
+      fold_extract_atms_cls_union_swap)
 
 definition op_extract_list_empty where
-  \<open>op_extract_list_empty = []\<close>
+  \<open>op_extract_list_empty = {}\<close>
+
+definition extract_atms_clss_imp_empty_rel where
+  \<open>extract_atms_clss_imp_empty_rel = (RETURN ([], 0, []))\<close>
 
 lemma extract_atms_clss_imp_empty_rel:
-  \<open>(uncurry0 (RETURN ({}, [])), uncurry0 (RETURN op_extract_list_empty)) \<in>
-     unit_rel \<rightarrow>\<^sub>f \<langle>nat_lit_list_hm_ref_rel\<rangle> nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: nat_lit_list_hm_ref_rel_def op_extract_list_empty_def)
+  \<open>(uncurry0 extract_atms_clss_imp_empty_rel, uncurry0 (RETURN op_extract_list_empty)) \<in>
+     unit_rel \<rightarrow>\<^sub>f \<langle>isasat_atms_ext_rel\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: op_extract_list_empty_def
+      isasat_atms_ext_rel_def init_valid_rep_def extract_atms_clss_imp_empty_rel_def)
 
 sepref_definition extract_atms_clss_imp_empty_assn
-  is \<open>uncurry0 (RETURN ({}, []))\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_lits_init_ref_assn\<close>
-  unfolding hs.fold_custom_empty HOL_list.fold_custom_empty
+  is \<open>uncurry0 extract_atms_clss_imp_empty_rel\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a isasat_atms_ext_rel_assn\<close>
+  unfolding extract_atms_clss_imp_empty_rel_def zero_uint32_nat_def[symmetric]
+  supply [[goals_limit=1]]
+  apply (rewrite at \<open>(_, _, \<hole>)\<close> arl.fold_custom_empty)
+  apply (rewrite at \<open>(\<hole>, _, _)\<close> array.fold_custom_empty)
   by sepref
 
 lemma extract_atms_clss_imp_empty_assn[sepref_fr_rules]:
@@ -1030,12 +1255,7 @@ lemma extract_atms_clss_imp_empty_assn[sepref_fr_rules]:
     \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
   using extract_atms_clss_imp_empty_assn.refine[FCOMP extract_atms_clss_imp_empty_rel] .
 
-declare extract_atms_clss_imp_list_assn.refine[sepref_fr_rules]
 declare atm_of_hnr[sepref_fr_rules]
-
-lemma extract_atms_cls_Cons:
-  \<open>extract_atms_cls (L # C) \<A>\<^sub>i\<^sub>n = extract_atms_cls C (if atm_of L \<in> set \<A>\<^sub>i\<^sub>n then \<A>\<^sub>i\<^sub>n else atm_of L # \<A>\<^sub>i\<^sub>n)\<close>
-  unfolding extract_atms_cls_def fold.simps by simp
 
 lemma extract_atms_cls_Nil[simp]:
   \<open>extract_atms_cls [] \<A>\<^sub>i\<^sub>n = \<A>\<^sub>i\<^sub>n\<close>
@@ -1044,20 +1264,6 @@ lemma extract_atms_cls_Nil[simp]:
 lemma extract_atms_clss_Cons[simp]:
   \<open>extract_atms_clss (C # Cs) N = extract_atms_clss Cs (extract_atms_cls C N)\<close>
   by (simp add: extract_atms_clss_def)
-
-lemma distinct_extract_atms_cls: \<open>distinct (extract_atms_cls x N) \<longleftrightarrow> distinct N\<close>
-  apply (induction x arbitrary: N)
-  subgoal by (auto simp: extract_atms_clss_def)
-  subgoal premises p for a x N
-    using p by (auto simp: extract_atms_cls_Cons)
-  done
-
-lemma distinct_extract_atms_clss: \<open>distinct (extract_atms_clss x N) \<longleftrightarrow> distinct N\<close>
-  apply (induction x arbitrary: N)
-  subgoal by (auto simp: extract_atms_clss_def)
-  subgoal premises p for a x N
-    using p by (auto simp: distinct_extract_atms_cls)
-  done
 
 definition (in -) all_lits_of_atms_m :: \<open>'a multiset \<Rightarrow> 'a clause\<close> where
  \<open>all_lits_of_atms_m N = poss N + negs N\<close>
@@ -1073,14 +1279,9 @@ lemma all_lits_of_atms_m_all_lits_of_m:
   unfolding all_lits_of_atms_m_def all_lits_of_m_def
   by (induction N) auto
 
-lemma in_extract_atms_clsD:
-  \<open>set (extract_atms_cls C \<A>\<^sub>i\<^sub>n) = atms_of_s (set C) \<union> set \<A>\<^sub>i\<^sub>n\<close>
-  apply (induction C arbitrary: \<A>\<^sub>i\<^sub>n)
-  subgoal by auto
-  subgoal premises IH for L' C \<A>\<^sub>i\<^sub>n
-    using IH(1)[of \<open>(if atm_of L' \<in> set \<A>\<^sub>i\<^sub>n then \<A>\<^sub>i\<^sub>n else atm_of L' # \<A>\<^sub>i\<^sub>n)\<close>]
-    by (auto simp: extract_atms_cls_def split: if_splits)
-  done
+(* lemma in_extract_atms_clsD:
+  \<open>extract_atms_cls C \<A>\<^sub>i\<^sub>n = atms_of_s (set C) \<union> \<A>\<^sub>i\<^sub>n\<close>
+  by (simp add: extract_atms_cls_alt_def atms_of_s_def ac_simps)
 
 lemma in_extract_atms_clssD:
   fixes \<A>\<^sub>i\<^sub>n :: \<open>'a list\<close>
@@ -1092,7 +1293,7 @@ lemma in_extract_atms_clssD:
     using IH(1)[of \<open>extract_atms_cls L' \<A>\<^sub>i\<^sub>n\<close>]
     by (auto simp: extract_atms_clss_def in_extract_atms_clsD split: if_splits)
   done
-
+ *)
 
 context isasat_input_bounded
 begin
@@ -1494,6 +1695,55 @@ concrete_definition (in -) init_dt_wl_code
   is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) init_dt_wl_code_def
+
+definition (in -)insert_sort_inner_nth2 :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
+  \<open>insert_sort_inner_nth2 ns = insert_sort_inner (\<lambda>remove n. ns ! (remove ! n))\<close>
+
+definition (in -)insert_sort_nth2 :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
+  \<open>insert_sort_nth2 = (\<lambda>ns. insert_sort (\<lambda>remove n. ns ! (remove ! n)))\<close>
+
+(* lemma insert_sort_inner_nth_code_helper:
+  fixes b :: \<open>nat\<close> and ba :: \<open>nat list\<close> and a :: \<open>nat list\<close> and a1' :: \<open>nat\<close> and a2' :: \<open>nat list\<close>
+  assumes 
+    \<open>\<forall>x\<in>set ba. x < length a\<close> and
+    \<open>b < length ba\<close> and
+    mset: \<open>mset ba = mset a2'\<close> and
+    \<open>a1' < length a2'\<close> and
+    \<open>rdomp (array_assn uint64_nat_assn) a\<close>
+  shows \<open>b < length a\<close>
+  using assms nth_mem[of b a2'] mset_eq_setD[OF mset] mset_eq_length[OF mset] assms
+  by (auto simp del: nth_mem) *)
+
+lemma
+  fixes b :: \<open>nat\<close> and ba :: \<open>nat list\<close> and a :: \<open>nat list\<close> and a1' :: \<open>nat\<close> and a2' :: \<open>nat list\<close>
+  assumes 
+    \<open>\<forall>x\<in>set ba. x < length a\<close> and
+    \<open>b < length a\<close> and
+    mset: \<open>mset ba = mset a2'\<close> and
+    \<open>a1' < length a2'\<close> and
+    \<open>rdomp (arl_assn uint32_nat_assn) a2'\<close>
+  shows \<open>b < length a2'\<close>
+  apply (rule ccontr)
+  using assms nth_mem[of b a2'] mset_eq_setD[OF mset] mset_eq_length[OF mset] assms
+  apply (auto simp del: nth_mem)
+  oops
+
+sepref_definition (in -) insert_sort_inner_nth_code
+   is \<open>uncurry2 insert_sort_inner_nth2\<close>
+   :: \<open>[\<lambda>((xs, vars), n). (\<forall>x\<in>#mset vars. x < length xs) \<and> n < length xs]\<^sub>a
+  (array_assn uint64_nat_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
+  arl_assn uint32_nat_assn\<close>
+  unfolding insert_sort_inner_nth2_def insert_sort_inner_def fast_minus_def[symmetric]
+  supply [[goals_limit = 1]]
+  supply mset_eq_setD[dest] mset_eq_length[dest] insert_sort_inner_nth_code_helper[intro]
+   apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+                  apply sepref_dbg_side_unfold apply (auto simp: )[]
+  explore_lemma
+
+  by sepref
+
 
 end
 

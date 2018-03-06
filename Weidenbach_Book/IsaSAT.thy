@@ -27,17 +27,17 @@ definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset
 
 definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>SAT_wl CS = do{
-    let \<A>\<^sub>i\<^sub>n' = extract_atms_clss CS [];
-    let S = isasat_input_ops.init_state_wl (mset \<A>\<^sub>i\<^sub>n');
+    let \<A>\<^sub>i\<^sub>n' = extract_atms_clss CS {};
+    let S = isasat_input_ops.init_state_wl (mset_set \<A>\<^sub>i\<^sub>n');
     T \<leftarrow> init_dt_wl CS (to_init_state S);
     let T = from_init_state T;
     if get_conflict_wl T \<noteq> None
     then RETURN T
     else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, \<lambda>_. undefined))
     else do {
-       ASSERT (extract_atms_clss CS [] \<noteq> []);
-       ASSERT(isasat_input_bounded_nempty (mset \<A>\<^sub>i\<^sub>n'));
-       isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset \<A>\<^sub>i\<^sub>n') (finalise_init T)
+       ASSERT (extract_atms_clss CS {} \<noteq> {});
+       ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
+       isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset_set \<A>\<^sub>i\<^sub>n') (finalise_init T)
     }
   }\<close>
 
@@ -56,7 +56,7 @@ definition extract_stats_init where
 
 definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list option nres\<close> where
   \<open>IsaSAT CS = do{
-    let \<A>\<^sub>i\<^sub>n' = mset (extract_atms_clss CS []);
+    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
     let S = isasat_input_ops.init_state_wl \<A>\<^sub>i\<^sub>n';
@@ -114,7 +114,8 @@ lemma empty_init_code_hnr[sepref_fr_rules]:
 
 definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal list option \<times> stats) nres\<close> where
   \<open>IsaSAT_heur CS = do{
-    let \<A>\<^sub>i\<^sub>n' = mset (extract_atms_clss CS []);
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
+    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
     S \<leftarrow> isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n';
@@ -251,6 +252,11 @@ sepref_definition IsaSAT_code
    option.splits[split]
    extract_stats_def[simp del]
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
+
   by sepref
 
 
