@@ -1696,56 +1696,69 @@ concrete_definition (in -) init_dt_wl_code
 
 prepare_code_thms (in -) init_dt_wl_code_def
 
+end
+
 definition (in -)insert_sort_inner_nth2 :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
   \<open>insert_sort_inner_nth2 ns = insert_sort_inner (\<lambda>remove n. ns ! (remove ! n))\<close>
 
 definition (in -)insert_sort_nth2 :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
   \<open>insert_sort_nth2 = (\<lambda>ns. insert_sort (\<lambda>remove n. ns ! (remove ! n)))\<close>
 
-(* lemma insert_sort_inner_nth_code_helper:
-  fixes b :: \<open>nat\<close> and ba :: \<open>nat list\<close> and a :: \<open>nat list\<close> and a1' :: \<open>nat\<close> and a2' :: \<open>nat list\<close>
-  assumes 
-    \<open>\<forall>x\<in>set ba. x < length a\<close> and
-    \<open>b < length ba\<close> and
-    mset: \<open>mset ba = mset a2'\<close> and
-    \<open>a1' < length a2'\<close> and
-    \<open>rdomp (array_assn uint64_nat_assn) a\<close>
-  shows \<open>b < length a\<close>
-  using assms nth_mem[of b a2'] mset_eq_setD[OF mset] mset_eq_length[OF mset] assms
-  by (auto simp del: nth_mem) *)
-
-lemma
-  fixes b :: \<open>nat\<close> and ba :: \<open>nat list\<close> and a :: \<open>nat list\<close> and a1' :: \<open>nat\<close> and a2' :: \<open>nat list\<close>
-  assumes 
-    \<open>\<forall>x\<in>set ba. x < length a\<close> and
-    \<open>b < length a\<close> and
-    mset: \<open>mset ba = mset a2'\<close> and
-    \<open>a1' < length a2'\<close> and
-    \<open>rdomp (arl_assn uint32_nat_assn) a2'\<close>
-  shows \<open>b < length a2'\<close>
-  apply (rule ccontr)
-  using assms nth_mem[of b a2'] mset_eq_setD[OF mset] mset_eq_length[OF mset] assms
-  apply (auto simp del: nth_mem)
-  oops
-
 sepref_definition (in -) insert_sort_inner_nth_code
    is \<open>uncurry2 insert_sort_inner_nth2\<close>
-   :: \<open>[\<lambda>((xs, vars), n). (\<forall>x\<in>#mset vars. x < length xs) \<and> n < length xs]\<^sub>a
+   :: \<open>[\<lambda>((xs, vars), n). (\<forall>x\<in>#mset vars. x < length xs) \<and> n < length vars]\<^sub>a
   (array_assn uint64_nat_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
   arl_assn uint32_nat_assn\<close>
   unfolding insert_sort_inner_nth2_def insert_sort_inner_def fast_minus_def[symmetric]
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest] insert_sort_inner_nth_code_helper[intro]
-   apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
-                  apply sepref_dbg_side_unfold apply (auto simp: )[]
-  explore_lemma
-
   by sepref
 
 
-end
+declare insert_sort_inner_nth_code.refine[sepref_fr_rules]
+
+sepref_definition (in -) insert_sort_nth_code
+   is \<open>uncurry insert_sort_nth2\<close>
+   :: \<open>[\<lambda>(xs, vars). (\<forall>x\<in>#mset vars. x < length xs)]\<^sub>a
+      (array_assn uint64_nat_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
+       arl_assn uint32_nat_assn\<close>
+  unfolding insert_sort_nth2_def insert_sort_def insert_sort_inner_nth2_def[symmetric]
+  supply [[goals_limit = 1]]
+  supply mset_eq_setD[dest] mset_eq_length[dest]
+  by sepref
+
+
+definition extract_lits_sorted where
+  \<open>extract_lits_sorted = (\<lambda>(xs, n, vars). do {vars \<leftarrow> insert_sort_nth2 xs vars; RETURN (vars, n)})\<close>
+
+definition lits_with_max_rel where
+  \<open>lits_with_max_rel = {((xs, n), \<A>\<^sub>i\<^sub>n). mset xs = \<A>\<^sub>i\<^sub>n \<and> n = Max (set xs)}\<close>
+
+lemma
+  \<open>(extract_lits_sorted, RETURN o mset_set)
+   \<in> isasat_atms_ext_rel \<rightarrow>\<^sub>f \<langle>lits_with_max_rel\<rangle>nres_rel\<close>
+proof -
+  have K: \<open>RETURN o mset_set = (\<lambda>v. do {v' \<leftarrow> SPEC(\<lambda>v'. v' = mset_set v); RETURN v'})\<close>
+    by auto
+  have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close> 
+    for ba aa f
+    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified, rule_format]
+    by fast
+  show ?thesis
+    unfolding extract_lits_sorted_def reorder_remove_def K
+    apply (intro frefI nres_relI)
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, ys). length ys - i)\<close>] H)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto dest: mset_eq_length)
+    subgoal by auto
+    subgoal by (auto dest!: mset_eq_length)
+    subgoal by auto
+    done
+qed
+  sorry
 
 text \<open>The value 160 is random (but larger than the default 16 for array lists).\<close>
 definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur nres\<close> where
