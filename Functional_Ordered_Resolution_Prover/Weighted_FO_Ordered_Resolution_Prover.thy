@@ -123,10 +123,13 @@ context
     Sts :: "'a wstate llist"
   assumes
     full_deriv: "full_chain (op \<leadsto>\<^sub>w) Sts" and
-    finite_Sts0: "finite (clss_of_wstate (lhd Sts))" and
     empty_P0: "P_of_wstate (lhd Sts) = {}" and
     empty_Q0: "Q_of_wstate (lhd Sts) = {}"
 begin
+
+lemma finite_Sts0: "finite (clss_of_wstate (lhd Sts))" 
+  using clss_of_state_def
+  by (cases "lhd Sts") auto
 
 lemmas deriv = full_chain_imp_chain[OF full_deriv]
 lemmas lhd_lmap_Sts = llist.map_sel(1)[OF chain_not_lnull[OF deriv]]

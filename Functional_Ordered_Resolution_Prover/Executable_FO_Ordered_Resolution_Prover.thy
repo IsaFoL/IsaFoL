@@ -1,5 +1,6 @@
 (*  Title:       An Executable Simple Ordered Resolution Prover for First-Order Clauses
-    Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2017
+    Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2017, 2018
+    Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2018
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
@@ -146,7 +147,7 @@ definition prover where
   "prover N = deterministic_RP (St0 N 0)"
 
 lemma "prover N = None \<Longrightarrow> satisfiable (RP.grounded_N0 N)"
-  unfolding prover_def St0_def by (rule RP.deterministic_RP_complete)
+  unfolding prover_def St0_def using RP.deterministic_RP_complete by auto
 
 lemma "prover N = Some R \<Longrightarrow> (\<not> satisfiable (RP.grounded_N0 N)) = ({#} \<in> RP.grounded_R R)"
   unfolding prover_def St0_def using RP.deterministic_RP_refutation by auto
@@ -178,6 +179,9 @@ value "prover
   ([([Neg (\<pp>[X,Y,Z]), Pos (\<pp>[Y,Z,X])], 1), 
     ([Pos (\<pp>[\<cc>,\<aa>,\<bb>])], 1),
     ([Neg (\<pp>[\<bb>,\<cc>,\<aa>])], 1)]
+  :: ((nat, nat) Term.term literal list \<times> nat) list)"
+
+value "prover ([([Neg (\<pp>[X,Y,Z]), Pos (\<pp>[Y,Z,X])], 1)]
   :: ((nat, nat) Term.term literal list \<times> nat) list)"
 
 end
