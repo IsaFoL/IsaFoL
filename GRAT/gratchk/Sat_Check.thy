@@ -287,26 +287,21 @@ context DB2_loc begin
     
 end  
   
-definition "formula_sat_spec DB F_end \<equiv> let lst = tl (take F_end DB) in
-      F_end \<le> length DB \<and> F_end \<ge> 1
-    \<and> (F_end > 1 \<longrightarrow> last lst = 0)
-    \<and> sat (F_\<alpha> lst)"
-  
-  
 theorem verify_sat_impl_wrapper_correct[sep_heap_rules]:
   shows "
     <DBi \<mapsto>\<^sub>a DB> 
       verify_sat_impl_wrapper DBi F_end
-    <\<lambda>result. DBi \<mapsto>\<^sub>a DB * \<up>(\<not>isl result \<longrightarrow> formula_sat_spec DB F_end)>\<^sub>t "
+    <\<lambda>result. DBi \<mapsto>\<^sub>a DB * \<up>(\<not>isl result \<longrightarrow> verify_sat_spec DB F_end)>\<^sub>t "
 proof -
   {
-    assume A: "0 < F_end" "F_end \<le> length DB"
+    assume A: "1 \<le> F_end" "F_end \<le> length DB"
     
     then interpret DB2_loc DB F_end 
       apply unfold_locales by auto
       
     have SEG: "liti.seg 1 (slice 1 F_end DB) F_end"
-      by (simp add: \<open>0 < F_end\<close> \<open>F_end \<le> length DB\<close> leI liti.seg_sliceI)
+      using \<open>1 \<le> F_end\<close> \<open>F_end \<le> length DB\<close>
+      by (simp add: liti.seg_sliceI)
      
     have INV: "it_invar F_end" 
       subgoal 
@@ -319,17 +314,17 @@ proof -
       by (metis Misc.slice_def One_nat_def drop_0 drop_Suc_Cons drop_take list.sel(3) tl_drop)
         
     have U2: "F_invar (tl (take F_end DB)) \<and> sat (F_\<alpha> (tl (take F_end DB))) 
-      \<longleftrightarrow> formula_sat_spec DB F_end"    
-      unfolding formula_sat_spec_def using A
-      apply (clarsimp simp: Let_def F_invar_def F_\<alpha>_def tl_take)
-      apply (cases DB) by auto  
+      \<longleftrightarrow> verify_sat_spec DB F_end"    
+      unfolding verify_sat_spec_def clause_DB_valid_def clause_DB_sat_def using A
+      by simp
         
     note verify_sat3_correct[OF SEG INV INV, unfolded U1 U2]
   } note [sep_heap_rules] = this
   
   show ?thesis
     unfolding verify_sat_impl_wrapper_def
-    by (sep_auto simp: formula_sat_spec_def clause_\<alpha>_def[abs_def])
+    by sep_auto
+    
 qed
     
 end

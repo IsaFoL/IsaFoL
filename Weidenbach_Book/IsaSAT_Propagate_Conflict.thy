@@ -2,6 +2,34 @@ theory IsaSAT_Propagate_Conflict
   imports IsaSAT_Setup Watched_Literals_Heuristics
 begin
 
+(* TODO Move *)
+lemma nat_of_uint64_le_iff: \<open>nat_of_uint64 a \<le> nat_of_uint64 b \<longleftrightarrow> a \<le> b\<close>
+  apply transfer
+  by (auto simp: unat_def word_less_def nat_le_iff word_le_def)
+
+lemma nat_of_uint64_notle_minus:
+  \<open>\<not> ai < bi \<Longrightarrow>
+       nat_of_uint64 (ai - bi) = nat_of_uint64 ai - nat_of_uint64 bi\<close>
+  apply transfer
+  unfolding unat_def
+  by (subst uint_sub_lem[THEN iffD1])
+    (auto simp: unat_def uint_nonnegative nat_diff_distrib word_le_def[symmetric] intro: leI)
+
+lemma fast_minus_uint64_nat[sepref_fr_rules]:
+  \<open>(uncurry (return oo fast_minus), uncurry (RETURN oo fast_minus))
+   \<in> [\<lambda>(a, b). a \<ge> b]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by (sepref_to_hoare)
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_notle_minus
+      nat_of_uint64_less_iff nat_of_uint64_le_iff)
+
+lemma fast_minus_uint64[sepref_fr_rules]:
+  \<open>(uncurry (return oo fast_minus), uncurry (RETURN oo fast_minus))
+   \<in> [\<lambda>(a, b). a \<ge> b]\<^sub>a uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow> uint64_assn\<close>
+  by (sepref_to_hoare)
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_notle_minus
+      nat_of_uint64_less_iff nat_of_uint64_le_iff)
+(* End MOVE *)
+
 subsubsection \<open>Refining Propagate And Conflict\<close>
 
 paragraph \<open>Propagation, Inner Loop\<close>
@@ -37,10 +65,11 @@ lemmas watched_by_app_heur_code_refine[sepref_fr_rules] =
 sepref_thm access_lit_in_clauses_heur_code
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
   :: \<open>[access_lit_in_clauses_heur_pre]\<^sub>a
-      isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  supply length_rll_def[simp]
+      isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  supply length_rll_def[simp] [[goals_limit=1]]
   unfolding isasat_assn_def access_lit_in_clauses_heur_alt_def
     fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
+    fmap_rll_u64_def[symmetric]
   by sepref
 
 concrete_definition (in -) access_lit_in_clauses_heur_code
@@ -64,18 +93,31 @@ lemma case_tri_bool_If:
     else if b = SET_TRUE then f2 else f3)\<close>
   by (auto split: option.splits)
 
+
+definition two_uint64_nat where
+  [simp]: \<open>two_uint64_nat = (2 :: nat)\<close>
+
+lemma uint64_nat_assn_two_uint64_nat[sepref_fr_rules]:
+  \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint64_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
+
 context isasat_input_bounded_nempty
 begin
 
+(* TODO most of the unfolding should move to the definition *)
 sepref_thm find_unwatched_wl_st_heur_code
   is \<open>uncurry ((PR_CONST find_unwatched_wl_st_heur))\<close>
   :: \<open>[find_unwatched_wl_st_heur_pre]\<^sub>a
-         isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
-  supply [[goals_limit = 1]] literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0'[intro] fmap_rll_def[simp]
-    length_rll_def[simp] fmap_length_rll_def[simp]
+         isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn uint64_nat_assn\<close>
+  supply [[goals_limit = 1]] literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0'[intro]
+    fmap_length_rll_def[simp] fmap_length_rll_u64_def[simp]
   unfolding find_unwatched_wl_st_heur_def isasat_assn_def PR_CONST_def
-  find_unwatched_def fmap_rll_def[symmetric] fmap_length_rll_def[symmetric]
+  find_unwatched_def fmap_rll_def[symmetric] fmap_length_rll_u64_def[symmetric]
+  length_u_def[symmetric]
   case_tri_bool_If find_unwatched_wl_st_heur_pre_def
+  two_uint64_nat_def[symmetric]
+  fmap_rll_u64_def[symmetric]
+  one_uint64_nat_def[symmetric]
   by sepref
 
 concrete_definition (in -) find_unwatched_wl_st_heur_code
@@ -108,15 +150,16 @@ lemmas set_conflict_wl_heur_code[sepref_fr_rules] =
 
 sepref_thm update_clause_wl_code
   is \<open>uncurry5 update_clause_wl_heur\<close>
-  :: \<open>
-    [update_clause_wl_code_pre]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>
+  :: \<open>[update_clause_wl_code_pre]\<^sub>a
+     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>
        nat_assn *a isasat_assn\<close>
   supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
   unfolding update_clause_wl_heur_def isasat_assn_def Array_List_Array.swap_ll_def[symmetric]
     fmap_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
     delete_index_and_swap_ll_def[symmetric] fmap_swap_ll_def[symmetric]
     append_ll_def[symmetric] update_clause_wl_code_pre_def
+    fmap_rll_u64_def[symmetric]
+    fmap_swap_ll_u64_def[symmetric]
   by sepref
 
 
@@ -132,12 +175,15 @@ lemmas update_clause_wl_code[sepref_fr_rules] =
 sepref_thm propagate_lit_wl_code
   is \<open>uncurry3 (RETURN oooo (PR_CONST propagate_lit_wl_heur))\<close>
   :: \<open>[propagate_lit_wl_heur_pre]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
+      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
   unfolding PR_CONST_def propagate_lit_wl_heur_def isasat_assn_def
     cons_trail_Propagated_def[symmetric]
   supply [[goals_limit=1]]length_rll_def[simp] length_ll_def[simp]
   unfolding update_clause_wl_heur_def isasat_assn_def
     propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
+    fmap_swap_ll_u64_def[symmetric]
+    zero_uint64_nat_def[symmetric]
+    one_uint64_nat_def[symmetric]
   by sepref
 
 
@@ -175,6 +221,8 @@ sepref_thm unit_propagation_inner_loop_body_wl_heur
   unfolding fmap_rll_def[symmetric]
   unfolding fast_minus_def[symmetric]
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> zero_uint64_nat_def[symmetric])+
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> one_uint64_nat_def[symmetric])+
   supply [[goals_limit=1]]
   by sepref
 

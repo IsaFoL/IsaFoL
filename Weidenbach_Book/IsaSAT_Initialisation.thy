@@ -114,7 +114,7 @@ sepref_thm propagate_unit_cls_code
   is \<open>uncurry (PR_CONST propagate_unit_cls_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
-  unfolding propagate_unit_cls_heur_def isasat_init_assn_def is_in_conflict_def[symmetric]
+  unfolding propagate_unit_cls_heur_def isasat_init_assn_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   by sepref
 
@@ -151,7 +151,7 @@ sepref_thm already_propagated_unit_cls_code
   is \<open>uncurry already_propagated_unit_cls_heur\<close>
   :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
-  unfolding already_propagated_unit_cls_heur_def isasat_init_assn_def is_in_conflict_def[symmetric]
+  unfolding already_propagated_unit_cls_heur_def isasat_init_assn_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   by sepref
 
@@ -214,7 +214,7 @@ sepref_thm set_conflict_unit_code
   :: \<open>[\<lambda>(L, (b, n, xs)). atm_of L < length xs]\<^sub>a
         unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn\<close>
   supply one_uint32_nat[sepref_fr_rules]
-  unfolding set_conflict_unit_heur_def one_uint32_nat_def[symmetric]
+  unfolding set_conflict_unit_heur_def one_uint32_nat_def[symmetric] ISIN_def[symmetric]
   by sepref
 
 concrete_definition (in -) set_conflict_unit_code
@@ -266,7 +266,7 @@ sepref_thm conflict_propagated_unit_cls_code
   :: \<open>[\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> get_conflict_wl_heur_init S = None]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow> isasat_init_assn\<close>
   supply [[goals_limit=1]]
-  unfolding conflict_propagated_unit_cls_heur_def isasat_init_assn_def is_in_conflict_def[symmetric]
+  unfolding conflict_propagated_unit_cls_heur_def isasat_init_assn_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   apply (rewrite at \<open>(_, \<hole>, _)\<close> lms_fold_custom_empty)+
   by sepref
@@ -300,7 +300,7 @@ sepref_thm add_init_cls_code
         nat_of_lit (hd (tl C)) < length (get_watched_list_heur_init S)]\<^sub>a
       (list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow> isasat_init_assn\<close>
   supply [[goals_limit=1]] append_ll_def[simp]
-  unfolding add_init_cls_heur_def isasat_init_assn_def is_in_conflict_def[symmetric]
+  unfolding add_init_cls_heur_def isasat_init_assn_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   unfolding isasat_init_assn_def Array_List_Array.swap_ll_def[symmetric]
     nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
@@ -316,13 +316,6 @@ prepare_code_thms (in -) add_init_cls_code_def
 
 lemmas add_init_cls_heur_hnr[sepref_fr_rules] =
    add_init_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
-text \<open>TODO Move\<close>
-lemma (in -)RES_RETURN_RES_RES2:
-   \<open>RES \<Phi> \<bind> (\<lambda>(T, T'). RETURN (f T T')) = RES (uncurry f ` \<Phi>)\<close>
-  using RES_RES2_RETURN_RES[of \<open>\<Phi>\<close> \<open>\<lambda>T T'. {f T T'}\<close>]
-  apply (subst (asm)(2) split_prod_bound)
-  by (auto simp: RETURN_def uncurry_def)
 
 lemma add_init_cls_heur_add_init_cls:
   \<open>(uncurry add_init_cls_heur, uncurry (add_to_clauses_init_wl)) \<in>
@@ -360,7 +353,7 @@ sepref_thm already_propagated_unit_cls_conflict_code
   is \<open>uncurry already_propagated_unit_cls_conflict_heur\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
-  unfolding already_propagated_unit_cls_conflict_heur_def isasat_init_assn_def is_in_conflict_def[symmetric]
+  unfolding already_propagated_unit_cls_conflict_heur_def isasat_init_assn_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   apply (rewrite at \<open>(_, \<hole>, _)\<close> lms_fold_custom_empty)+
   by sepref
@@ -1439,7 +1432,7 @@ definition init_state_wl_D' :: \<open>uint32 list \<Rightarrow>  (trail_pol \<ti
      let m = 2 * n;
      M \<leftarrow> init_trail_D \<A>\<^sub>i\<^sub>n n m;
      let N = init_rll n;
-     let D = (True, zero_uint32_nat, replicate n None);
+     let D = (True, zero_uint32_nat, replicate n NOTIN);
      let WS = init_lrl m;
      vm \<leftarrow> initialise_VMTF \<A>\<^sub>i\<^sub>n n;
      let \<phi> = replicate n False;

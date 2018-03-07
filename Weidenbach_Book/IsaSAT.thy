@@ -13,7 +13,6 @@ declare isasat_input_bounded.append_el_aa_hnr[sepref_fr_rules]
 declare isasat_input_bounded.polarity_pol_code_polarity_refine[sepref_fr_rules]
   isasat_input_bounded.cons_trail_Propagated_tr_code_cons_trail_Propagated_tr[sepref_fr_rules]
 
-
 text \<open>to get a full SAT:
   \<^item> either we fully apply \<^term>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<close>
   \<^item> or we can stop early.
@@ -254,14 +253,38 @@ sepref_definition IsaSAT_code
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
   by sepref
 
-code_printing constant nth_u_code \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Word32.toInt _))"
 
-code_printing constant heap_array_set'_u \<rightharpoonup>
+definition nth_u_code' where
+  [symmetric, code]: \<open>nth_u_code' = nth_u_code\<close>
+
+code_printing constant nth_u_code' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Word32.toInt (_)))"
+
+
+definition nth_u64_code' where
+  [symmetric, code]: \<open>nth_u64_code' = nth_u64_code\<close>
+
+code_printing constant nth_u64_code' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Uint64.toFixedInt (_)))"
+
+
+definition heap_array_set'_u' where
+  [symmetric, code]: \<open>heap_array_set'_u' = heap_array_set'_u\<close>
+
+code_printing constant heap_array_set'_u' \<rightharpoonup>
    (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word32.toInt (_)),/ (_)))"
+
+
+definition heap_array_set'_u64' where
+  [symmetric, code]: \<open>heap_array_set'_u64' = heap_array_set'_u64\<close>
+
+code_printing constant heap_array_set'_u64' \<rightharpoonup>
+   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word64.toInt (_)),/ (_)))" 
 
 code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
 
-code_printing constant length_u_code \<rightharpoonup> (SML_imp) "(fn/ ()/ =>/ Word32.fromInt (Array.length (_)))"
+definition length_u_code' where
+  [symmetric, code]: \<open>length_u_code' = length_u_code\<close>
+
+code_printing constant length_u_code' \<rightharpoonup> (SML_imp) "(fn/ ()/ =>/ Word32.fromInt (Array.length (_)))"
 
 definition length_aa_u_code' where
   [symmetric, code]: \<open>length_aa_u_code' = length_aa_u_code\<close>
@@ -269,11 +292,35 @@ definition length_aa_u_code' where
 code_printing constant length_aa_u_code' \<rightharpoonup> (SML_imp)
    "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ (fst (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
 
+term delete_index_and_swap_code
+term nth_raa_i_u64
+
+definition nth_raa_i_u64' where
+  [symmetric, code]: \<open>nth_raa_i_u64' = nth_raa_i_u64\<close>
+
+code_printing constant nth_raa_i_u64' \<rightharpoonup> (SML_imp)
+   "(fn/ ()/ =>/ Array.sub (Array.sub/ (fst (_),/ IntInf.toInt (integer'_of'_nat (_))), Uint64.toFixedInt (_)))"
+
+definition length_u64_code' where
+  [symmetric, code]: \<open>length_u64_code' = length_u64_code\<close> 
+
+code_printing constant length_u64_code' \<rightharpoonup> (SML_imp)
+   "(fn/ ()/ =>/ Uint64.fromFixedInt (Array.length (_)))"
+
 (* This equation makes no sense since a resizable array is represent by an array and an infinite
  integer: There is no obvious shortcut.
 code_printing constant length_arl_u_code' \<rightharpoonup> (SML_imp)
    "(fn/ ()/ =>/ Word32.fromLargeInt (snd (_)))"  *)
+(* code_printing constant nth_u64_code \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Uint64.toFixedInt (_)))" *)
 
+
+definition arl_get_u64' where
+  [symmetric, code]: \<open>arl_get_u64' = arl_get_u64\<close>
+
+code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ (fst (_),/ Uint64.toFixedInt (_)))"
+
+term nth_u_code
+term nth_u64_code
 export_code IsaSAT_code checking SML_imp
 export_code IsaSAT_code
     int_of_integer
@@ -1182,7 +1229,6 @@ proof -
     using IsaSAT_code.refine[FCOMP IsaSAT_heur_IsaSAT]
     unfolding list_assn_list_mset_rel_clauses_l_assn H
     by auto
-  thm hfref_compI_PRE[OF H IsaSAT_SAT]
   show ?thesis
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
   proof -
@@ -1190,7 +1236,7 @@ proof -
        [comp_PRE (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)
           (\<lambda>CS. Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max))
           (\<lambda>x y. Ball (set y) distinct)
-           (\<lambda>x. nofail (SAT'  x))]\<^sub>a 
+           (\<lambda>x. nofail (SAT'  x))]\<^sub>a
        hrp_comp ((list_assn (list_assn unat_lit_assn))\<^sup>k) (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel) \<rightarrow>
        hr_comp model_assn  (\<langle>\<langle>nat_lit_lit_rel\<rangle>list_rel\<rangle>option_rel)\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)

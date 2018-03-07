@@ -6,7 +6,7 @@
 % \documentclass[smallextended]{svjour3}       % onecolumn (second format)
 %\documentclass[twocolumn]{svjour3}          % twocolumn
 %
-\smartqed  % flush right qed marks, e.g. at end of proof
+\smartqed  % flush right qed marks, \eg at end of proof
 %
 \usepackage{etex}
 
@@ -35,6 +35,8 @@
 \usepackage{wrapfig}
 \usepackage{multirow}
 \usepackage{pgfplots}
+
+\usepgfplotslibrary{groupplots}
 
 \usepackage{relsize}
 \usepackage{cite}
@@ -73,6 +75,41 @@
 \newcommand{\isai}{\lstinline[language=isabelle,basicstyle=\normalsize\ttfamily\slshape]}
 \newcommand{\lsti}{\lstinline[language={},literate={}]}
 
+
+\input{lstpseudo}
+
+
+% add a key to suppress counting of blank lines in listings
+% source http://tex.stackexchange.com/questions/33999/
+\makeatletter
+\lst@Key{countblanklines}{true}[t]%
+    {\lstKV@SetIf{#1}\lst@ifcountblanklines}
+
+\lst@AddToHook{OnEmptyLine}{%
+    \lst@ifnumberblanklines\else%
+       \lst@ifcountblanklines\else%
+         \advance\c@lstnumber-\@ne\relax%
+       \fi%
+    \fi}
+\makeatother
+
+% make lstinline work in math mode
+\makeatletter
+\renewcommand\lstinline[1][]{%
+  \leavevmode
+  \ifmmode\expandafter\hbox\fi\bgroup
+    \def\lst@boxpos{b}%
+    \lsthk@PreSet\lstset{flexiblecolumns,#1}%
+    \lsthk@TextStyle
+    \@ifnextchar\bgroup{\afterassignment\lst@InlineG \let\@let@token}%
+                       \lstinline@}
+\makeatother
+
+\newcommand{\withlinenumbers}{%
+  \lstset{numbers=left,numberstyle=\scriptsize,xleftmargin=2em,numberblanklines=false,countblanklines=false,escapechar=@}%
+}
+
+
 \input{macros}
 
 \newcommand\CC{C\nolinebreak[4]\hspace{-.05em}\raisebox{.4ex}{\relsize{-3}{\textbf{++}}}}
@@ -87,6 +124,36 @@
      \end{quote}}}
 \newcommand{\Snippet}[1]{\ifcsname snippet--#1\endcsname\csname snippet--#1\endcsname\else\PackageError{}{No snippet '#1' defined.}{}\fi}
 \input{snippets/snippets.out}
+
+
+\newcommand{\todo}[1]{\par\noindent\fbox{\parbox{\textwidth}{\color{darkgray}#1}}}
+
+
+
+\begin{comment}
+
+  TODO for journal version:
+  
+  More extensive description of GRATgen tool
+    optimizations: 
+      Existing: core-first, 
+      Novel: separate watchlists, core-first
+      Parallelization
+  
+  
+  New benchmarks, present graphically
+  
+
+  More comprehensive introduction to refinement framework and error-monad
+  
+  
+  Some emphasis on that we have a complete tool, for SAT *and* UNSAT
+
+
+
+
+\end{comment}
+
 
 
 % Insert the name of "your journal" with
@@ -110,13 +177,16 @@
 \begin{abstract}
 We present an efficient formally verified checker for satisfiability and unsatisfiability certificates for 
 Boolean formulas in conjunctive normal form. 
-It utilizes a two phase approach: Starting from a DRAT certificate, the unverified generator computes an enriched certificate,
-which is checked against the original formula by the verified checker.
+While satisfiability certificates are straightforward to check, the unsatisfiability checker utilizes a two phase approach: 
+Starting from a DRAT certificate, the unverified generator computes an enriched certificate,
+which is then checked against the original formula by the verified checker.
 
-Using the Isabelle/HOL Refinement Framework, we verify the actual implementation of the checker, specifying the semantics of the formula down to the integer sequence that represents it.
+The actual implementation of the checker is mechanically verified with the Isabelle/HOL theorem prover, 
+against a specification of the semantics of the formula down to the integer sequence that represents it.
 
-On a realistic benchmark suite drawn from the 2016 SAT competition, our approach is more than two times faster than the unverified standard tool drat-trim.
-Additionally, we implemented a multi-threaded version of the generator, which further reduces the runtime.
+On a realistic benchmark suite drawn from the 2016 and 2017 SAT competitions, our approach is significantly faster 
+than the unverified standard tool drat-trim. An optional multi-threaded mode of the generator further reduces the 
+runtime, in particular for big problems.
 \end{abstract}
 
 
@@ -142,7 +212,7 @@ Since 2014, only certificates in the DRAT format~\cite{WHH14} are accepted~\cite
 % Mainly efficiency optimization?, can, in theory, enable drat-proofs
 
 The standard tool to check DRAT certificates is drat-trim~\cite{WHH14,drat-trim-webpage}. 
-It is a highly optimized C program with many features, including forward and backward checking mode, a satisfiability certificate checking mode,
+It is a highly optimized C program with many features, including forward and backward checking modes, a satisfiability certificate checking mode,
 and a feature to output reduced (trimmed) certificates.
 % 
 % It uses a two watched literals~\cite{MMZZ01} data structure for unit propagation, as well as some other optimizations,
@@ -158,7 +228,7 @@ for satisfiable formulas. This bug has been confirmed by the authors, and is now
 Moreover, we discovered several numeric and buffer overflow issues in the parser~\cite{drat-trim-issues}, which could lead to misinterpretation of the formula.
 Thus, although being less complex than SAT solvers, efficient DRAT checkers are still complex enough to easily overlook bugs.\footnote{Unfortunately, the available version history of drat-trim~\cite{drat-trim-github} only dates back to October 2016. We can only speculate whether the discovered bugs were present in the versions used for the 2014 and 2016 SAT competitions.} 
 
-One method to eliminate bugs from software is to conduct a machine-checked correctness proof. 
+One method to ensure correct software is to conduct a machine-checked correctness proof. 
 A common approach is to prove correct a specification in the logic of an interactive theorem prover, and then generate executable code from 
 the specification. Here, code generation is merely a syntax transformation from the executable fragment of the theorem prover's logic to the target language.
 Following the LCF approach~\cite{Gord00}, modern theorem provers like Isabelle~\cite{NPW02} and Coq~\cite{BeCa10} are explicitly designed to maximize their trustworthiness.
@@ -172,11 +242,14 @@ to implement a check whether a clause is unit, instead of a fully fledged unit p
 
 Cruz-Filipe et al.\ formalize a checker for their enriched certificates in the Coq theorem prover~\cite{BeCa10}, and generate OCaml code from the formalization. 
 However, their current approach still has some deficits:
-GRIT only supports the less powerful DRUP fragment~\cite{WHH13} of DRAT, making it unsuitable for recent SAT solvers that output full DRAT~(\eg CryptoMiniSat, Riss6~\cite{SATCOMP16}).
+GRIT only supports the less powerful DRUP fragment~\cite{WHH13} of DRAT, making it unsuitable for SAT solvers that output full DRAT.
 Also, their checker does not consider the original formula, but assumes that the certificate correctly mirrors the formula. 
 Moreover, they use unverified code to parse the certificate into the internal data structures of the checker.
 Finally, their verified checker is quite slow: Checking a certificate requires roughly the same time as generating it, which effectively doubles the verification time.
 However, an unverified implementation of their checker in C is two orders of magnitude faster.
+
+Independently to us, Cruz-Filipe et al.~also extended their tool to DRAT~\cite{CHHKS17}, and optimized their verified checker~\cite{HHKW17}. Their tool is called LRAT.
+
 
 % rely on an unverified parser to translate the 
 % The generated code combined with an unverified parser, which parses the certificate into the internal data structures of the checker. 
@@ -190,35 +263,25 @@ However, an unverified implementation of their checker in C is two orders of mag
 % %
 % Finally, the GRIT format only supports the less powerful DRUP-fragment of DRAT, making it unsuitable for recent SAT solvers which output full DRAT~(\eg CryptoMiniSAT, Riss6~\cite{SATCOMP16}).
 
-In this paper, we present enriched certificates for full DRAT, along with a checker whose correctness is formally verified down to the integer sequence 
+In this paper, which is an extended version of our conference papers~\cite{La17_CADE,La17_SAT}, we present enriched certificates for full DRAT, along with a checker whose correctness is formally verified down to the integer sequence 
 representing the formula. 
 The simple unverified parser that reads a formula into an integer array is written in Standard ML~\cite{MHMT97}, which guarantees that numeric and buffer overflows will 
-not go unnoticed.
+not go unnoticed. On the same basis, we also implement and verify a sat certificate checker, obtaining a complete and formally verified SAT solver certification tool.
 
 We use stepwise refinement techniques to obtain an efficient verified checker, and implement aggressive optimizations in the generator.
-As a result, our tool chain (generation plus checking) is more than two times faster than drat-trim, with the additional benefit 
-of providing strong formal correctness guarantees.
-Another distinguishing is a multi-threaded mode for the generator, which allows us to trade hardware resources for additional speedup:
-With 8 threads, our tool chain verifies a DRAT-certificate seven times (on average) faster than drat-trim.
+Another distinguishing feature is a multi-threaded mode for the generator, which allows us to trade computing resources for additional speedup.
 
-Building on the technology of our verified unsat certificate checker, we also provide a verified sat certificate checker, 
-obtaining a complete, formally verified, and fast SAT solver certification tool chain. 
+We benchmark our tool against drat-trim and LRAT on a realistic benchmark suite drawn from the 2016 and 2017 SAT 
+competitions: Already in single-threaded mode, our tool is faster than LRAT on every single problem, and, on most problems, even faster than the (unverified) drat-trim.
+In multi-threaded mode with 8 threads, we get an average speedup of $2.2$.
+
 Our tools, formalizations, and benchmark results are available online~\cite{GRAT-homepage}.
-
-Independently to us, Cruz-Filipe et al.\ also extended their work to DRAT~\cite{CHHKS17}. 
-Their certificate generator is still based on drat-trim, and first benchmarks indicate that
-our approach might be significantly faster.\footnote{However, we expect that most of our optimizations can be transferred to their tools.}
-
-% We have not yet benchmarked their implementation against ours.
-% However, their certificate generator is based on drat-trim,
-% % , and they report that certificate checking is almost as fast as certificate generation, 
-% indicating that our approach might be significantly faster.
 
 The rest of this paper is organized as follows: 
 After briefly recalling the theory of DRAT certificates (\S\ref{sec:unsat_cert}), we introduce our enriched certificate format (\S\ref{sec:grat-format}).
 We then give a short overview of the Isabelle Refinement Framework (\S\ref{sec:imp_ref_framework})
 and describe its application to verifying our certificate checker (\S\ref{sec:grat_verified}). 
-The paper ends with a brief description of our certificate generator (\S\ref{sec:gratgen}) and a report on the experimental evaluation 
+The paper ends with a description of our certificate generator (\S\ref{sec:gratgen}) and a report on the experimental evaluation 
 of our tools (\S\ref{sec:benchmarks}).
 
 \section{Unsatisfiability Certificates}\label{sec:unsat_cert}
@@ -253,7 +316,7 @@ A DRAT certificate $\chi = \chi_1\ldots\chi_n$ is \emph{valid} iff $\textrm{eff}
 \]
 where a clause $C$ has the \emph{RAT} (\emph{resolution asymmetric tautology}) property \wrt formula $F$ (we write $\textrm{RAT}(F,C)$) iff either $C$ is empty and $F^{\textrm u}=\{\emptyset\}$,
 or if there is a \emph{pivot literal} $l\in C$, such that for all \emph{RAT candidates} $D\in F$ with $\neg l \in D$, we have $(F \wedge \neg(C \cup D\setminus\{\neg l\}))^{\textrm u} = \{\emptyset\}$.
-Adding a lemma with the RAT property to a formula preserves satisfiability, and so do unit propagation and deletion of clauses. Thus, existence of a valid DRAT certificate implies unsatisfiability of the original formula.
+Adding a lemma with the RAT property to a satisfiable formula preserves satisfiability, and so do unit propagation and deletion of clauses. Thus, existence of a valid DRAT certificate implies unsatisfiability of the original formula.
 
 % The empty clause having RAT property is equivalent to unit propagation on the current effect finding a conflict. We call such a conflict a \emph{root conflict}.
 % Thus, instead of waiting for the empty clause to be added, a RAT certificate checker can perform unit propagation after adding each lemma, 
@@ -329,7 +392,7 @@ Then, the checker iterates over the items of the proof, processing each item as 
     \item[rat-lemma] The item specifies a pivot literal $l$, an ID for the lemma, an initial list of unit clause IDs, and a list of
       candidate proofs. 
       First, as for \lsti{rup-lemma}, the literals of the lemma are assigned to false and the initial unit propagations are performed. 
-      Second, it is checked that the provided RAT candidates are exhaustive, and the corresponding \lsti{cand-prf} items are processed:
+      Second, it is checked that the provided RAT candidates are exhaustive, and then the corresponding \lsti{cand-prf} items are processed:
       A \lsti{cand-prf} item consists of the ID of the candidate clause $D$, a list of unit clause IDs, and a conflict clause ID.
       To check a candidate proof, the literals of $D\setminus\{\neg l\}$ are assigned to false, the listed unit propagations are performed, and the conflict clause is 
       checked to be actually conflict. Afterwards, the assignment is rolled back to the state before checking the candidate proof.
@@ -404,62 +467,134 @@ Isabelle uses a mixture of common mathematical notations and Standard ML~\cite{M
 % quantifiers and logical connectives (\eg \isai$\<forall>, \<and>, ==>$). Due to the tight page limit, we can only display small excerpts from the original formalization.
 % For details, we refer the reader to the complete formalization~\cite{??}.
 
-\subsection{Syntax and Semantics of Formulas}
-The following Isabelle text specifies the abstract syntax of CNF formulas:
+\subsection{Syntax and Semantics of Formulas}\label{sec:syn_sem_frml}
+For the abstract syntax of CNF formulas, we represent variables by natural numbers, use an algebraic data type to specify positive and negative literals, and model clauses 
+as sets of literals, and a CNF formula as set of clauses:
 \begin{lstlisting}
-  datatype 'a literal = Pos 'a | Neg 'a
-  type_synonym 'a clause = "'a literal set"
-  type_synonym 'a cnf = "'a clause set"
+  datatype literal = Pos nat | Neg nat
+  type_synonym clause = "literal set"
+  type_synonym cnf = "clause set"
 \end{lstlisting}
-We abstract over the type \isai$'a$ of variables, use an algebraic data type to specify positive and negative literals, and model clauses 
-as sets of literals, and a CNF formula as set of clauses. 
-% Note that we will refine this abstract representation to an array of integers
-% 
-% 
-% Note that, ultimately, the formula will be represented as an array of integers. 
-% However, this abstract specification is much easier to work with on an abstract level, and we will use data refinement to make our final algorithm 
-% actually use an array of integers.
 
-A partial assignment has 
-type \isai{'a => bool option}, which is abbreviated as \isai{'a -` bool} in Isabelle. 
+The concrete syntax that our tool accepts is a list (array) of integers, representing a formula in the well-known DIMACS format.
+Variables are positive natural numbers. Literals are non-zero integers of the form $v$ or $-v$, representing positive and negative literals on variable $v$.
+A clause is a list of literals, and a formula is the concatenation of its clauses, terminated by nulls.
+The following definitions specify the restrictions on the concrete syntax (\isai{xxx_invar}) and the translation from concrete to abstract syntax:(\isai{xxx_\<alpha>})
+\begin{lstlisting}
+definition "lit_invar l == l~=0"
+definition "lit_\<alpha> l == if l<0 then Neg (nat (-l)) else Pos (nat l)"
+definition "clause_invar l == \<forall>x\<in>set l. lit_invar x"
+definition "clause_\<alpha> l == lit_\<alpha>`set l"
+definition "F_invar lst == lst~=[] ==> last lst = 0"
+definition "F_\<alpha> lst == set (map clause_\<alpha> (tokenize lst))"
+\end{lstlisting}
+where \isai{nat} converts an integer to a natural number, 
+\isai{set} converts a list to the set of its elements, 
+and \isai{tokenize l} splits the concatenation of null-terminated lists into a list of lists.
+Note that every list that ends with a null represents a valid formula.
+
+
+We define the semantics of literals, clauses, and formulas wrt.~a \emph{valuation}, which is a function from variables to Booleans.
+A positive literal is true if its variable is assigned to true, a negative literal is true if its variable is false, a clause is true if it
+contains a true literal, and a formula is true if all its clauses are true:
+\begin{lstlisting}
+  type_synonym valuation = "nat => bool"
+  fun sem_lit :: "literal => valuation => bool" where
+    "sem_lit (Pos x) \<sigma> = \<sigma> x"
+  | "sem_lit (Neg x) \<sigma> = \<not> \<sigma> x"
+  definition sem_clause :: "clause => valuation => bool" where
+    "sem_clause C \<sigma> == \<exists>l\<in>C. sem_lit l \<sigma>"
+  definition sem_cnf :: "cnf => valuation => bool" where
+    "sem_cnf F \<sigma> == \<forall>C\<in>F. sem_clause C \<sigma>"
+\end{lstlisting}
+Note that type specifications on constant definitions are optional in Isabelle. If they are omitted, the most general type is inferred automatically.
+
+We define the \emph{models} of a formula to be the set of all valuations that make the formula true, 
+and we define a formula to be satisfiable if it has a model:
+\begin{lstlisting}
+  definition "models F == {\<sigma>. sem_cnf F \<sigma>}"
+  definition "sat F == models F ~= {}"
+\end{lstlisting}
+
+While unit propagation can be presented by modifying the formula (removing false literals and true clauses),
+practical implementations use a partial assignment (where variables can be true, false, or undecided) and do not change the formula on unit propagation.
+At this point, we have the design choice to either formalize unit-propagation by modifying the formula, and then refine this model to partial 
+assignments, or to formalize unit propagation on partial assignments directly. We decided for the latter, as we found it to be convenient, 
+and it saves the overhead of one refinement step.
+
+A \emph{partial assignment} has 
+type \isai{nat => bool option}, which is abbreviated as \isai{nat -` bool} in Isabelle. 
 It maps a variable to \isai{None} for undecided, or to \isai{Some True} or \isai{Some False}.
 We specify the semantics of literals and clauses as follows:
 \begin{lstlisting}
-  primrec sem_lit' :: "'a literal => ('a-`bool) -` bool" where
-    "sem_lit' (Pos x) A = A x" | "sem_lit' (Neg x) A = map_option Not (A x)"
-  definition "sem_clause' C A ==
-    if (\<exists>l\<in>C. sem_lit' l A = Some True) then Some True
-    else if (\<forall>l\<in>C. sem_lit' l A = Some False) then Some False
-    else None"
+primrec sem_lit' :: "literal => (nat-`bool) -` bool" where
+  "sem_lit' (Pos x) A = A x" | "sem_lit' (Neg x) A = map_option Not (A x)"
+definition "sem_clause' C A ==
+  if (\<exists>l\<in>C. sem_lit' l A = Some True) then Some True
+  else if (\<forall>l\<in>C. sem_lit' l A = Some False) then Some False
+  else None"
 \end{lstlisting}
-Note that we omitted the type specification for \isai{sem_clause'}, in which case Isabelle automatically infers the most general type.
+For a fixed formula $F$, we define the models induced by a partial assignment to be all total extensions that satisfy the formula, 
+and a predicate \isai{sat'} which holds iff a model exists:
+\begin{lstlisting}
+definition compat_assignment :: "(nat -` bool) => valuation => bool" 
+  where "compat_assignment A \<sigma> == \<forall>x v. A x = Some v ==> \<sigma> x = v"
+definition "models' F A == models F \<inter> Collect (compat_assignment A)"
+definition "sat' F A == models' F A ~= {}"
+\end{lstlisting}
+Obviously, a formula is satisfiable if, and only if, it is satisfiable wrt.\ the empty partial assignment:
+\begin{lstlisting}
+lemma sat'_empty_iff: "sat' F Map.empty = sat F"  
+\end{lstlisting}
+In Isabelle, free variables in a lemma (here: \isai{F}) are implicitly universally quantified.
 
-For a fixed formula $F$, we define the \emph{models} induced by a partial assignment to be all total extensions that satisfy the formula. 
-We define two partial assignments to be \emph{equivalent} if they induce the same models.
+Two assignments \isai{A} and \isai{A'} are \emph{equivalent} iff they induce the same models:
+\begin{lstlisting}
+definition "equiv' F A A' == models' F A = models' F A'"
+\end{lstlisting}
+\vspace*{-\baselineskip}
 
-\subsection{Unit Propagation and RAT}
+\subsection{Unit Propagation and RAT}\label{sec:uprop_and_rat}
 We define a predicate to state that, \wrt a partial assignment $A$, a clause $C$ is unit, with unit literal $l$:
 \begin{lstlisting}
-  definition "is_unit_lit A C l 
-    == l\<in>C \<and> sem_lit' l A = None \<and> sem_clause' (C-{l}) A = Some False"
+definition "is_unit_lit A C l 
+  == l\<in>C \<and> sem_lit' l A = None \<and> sem_clause' (C-{l}) A = Some False"
 \end{lstlisting}
 Assigning a unit literal to true yields an equivalent assignment:
 \begin{lstlisting}
-  lemma unit_propagation:
-    assumes "C\<in>F" and "is_unit_lit A C l"
-    shows "equiv' F A (assign_lit A l)"
+lemma unit_propagation:
+  assumes "C\<in>F" and "is_unit_lit A C l"
+  shows "equiv' F A (assign_lit A l)"
 \end{lstlisting}
-In Isabelle, all variables that occur free in a lemma (here: \isai{C,F,A,l}) are implicitly universally quantified.
 
-Having formalized the basic concepts, we can show the essential lemma that justifies RAT (\cf Section~\ref{sec:unsat_cert}):
+For a fixed formula $F$ and assignment $A$, a clause $C$ is \emph{implied} if adding it to $F$ does not change the models, 
+and \emph{redundant} if it does not change satisfiability:
 \begin{lstlisting}
-  lemma abs_rat_criterion:
-    assumes "l\<in>C" and "sem_lit' l A \<noteq> Some False"
-    assumes "\<forall>D\<in>F. neg_lit l \<in> D ==> implied_clause F A (C\<union>(D-{neg_lit l}))"  
-    shows "redundant_clause F A C"
+definition "implied_clause F A C == models' (insert C F) A = models' F A"  
+definition "redundant_clause F A C == sat' (insert C F) A = sat' F A"
 \end{lstlisting}
-Where a clause is \emph{implied} if it can be added to the formula without changing the models, 
-and it is \emph{redundant} if adding the clause preserves satisfiability (but not necessarily the models).
+
+Recall that DRAT proofs work by deleting clauses, adding redundant clauses, and applying unit propagations, 
+until the formula becomes trivially unsatisfiable.(\cf Section~\ref{sec:unsat_cert})
+A clause is accepted as redundant if it has the RAT property.
+Abstractly, the RAT property is justified by the following lemma:
+\begin{lstlisting}
+lemma abs_rat_criterion:
+  assumes "l\<in>C" and "sem_lit' l A \<noteq> Some False"
+  assumes "\<forall>D\<in>F. neg_lit l \<in> D ==> implied_clause F A (C\<union>(D-{neg_lit l}))"  
+  shows "redundant_clause F A C"
+\end{lstlisting}
+To test whether a clause is implied, we use the RUP property:
+\begin{lstlisting}
+lemma one_step_implied:
+  assumes RC: "\<not>is_blocked A C ==> 
+    \<exists>A_1. equiv' F (and_not_C A C) A_1 \<and> (\<exists>E\<in>F. is_conflict_clause A_1 E)"
+  shows "implied_clause F A C"
+\end{lstlisting}
+where the assignment \isai$A_1$ will be computed by unit propagation.
+
+
+
 
 
 % 
@@ -469,7 +604,7 @@ and it is \emph{redundant} if adding the clause preserves satisfiability (but no
 % the the clause $C(D\setminus\neg l)$ is implied, then the clause $C$ is redundant, \ie we can add it to the formula without changing satisfiability.
 
 \subsection{Abstract Checker Algorithm}
-Having formalized the basic theory of CNF formulas \wrt partial assignments, we can specify an abstract version of the certificate checker algorithm.
+Having formalized the basic theory of CNF formulas, unit propagation, and RAT, we can specify an abstract version of the certificate checker algorithm.
 Our specifications live in an exception monad stacked onto the nondeterminism monad of the Isabelle Refinement Framework.
 Exceptions are used to indicate failure of the checker, and are never caught.
 %
@@ -479,8 +614,8 @@ an empirical argument that it is sufficiently complete.
 
 At the abstract level, we model the proof as a stream of integers. On this, we define functions \isai$parse_id$ and \isai$parse_lit$ that fetch an 
 element from the stream, try to interpret it as ID or literal, and fail if this is not possible.
-The state of the checker is a tuple \isai$(last_id,CM,A)$. To check that the lemma IDs are strictly ascending, \isai{last_id} stores the ID of the last processed lemma.
-The \emph{clause map} \isai{CM} contains the current formula as a mapping from IDs to clauses, and also maintains the RAT candidate lists. Finally, \isai$A$ is the current assignment.
+The state of the checker is a tuple \isai$(CM,A)$. The \emph{clause map} \isai{CM} contains the current formula as a mapping from IDs to clauses, 
+and also maintains the RAT candidate lists. Finally, \isai$A$ is the current assignment.
 
 
 % First, we show the specification of the function that pulls a clause from the stream, assigns its literals to false, and checks whether the clause is blocked. 
@@ -504,27 +639,27 @@ The \emph{clause map} \isai{CM} contains the current formula as a mapping from I
 % 
 
 As first example, we present the abstract algorithm that is invoked after reading the item-type of a \lsti{rup-lemma} item (\cf Section~\ref{sec:grat-format}),
-\ie we expect a sequence of the form \lstinline[language={},literate={}]{id id* "0" id}.
+\ie we expect a sequence of the form \lstinline[language={},literate={}]{id id* "0" id} (lemma, unit-clauses, conflict-clause).
 \begin{lstlisting}[numbers=left, xleftmargin=2em]
-  "check_rup_proof == \<lambda>(last_id,CM,A_0) it prf. do {
+  "check_rup_proof == \<lambda>(CM,A_0) it prf. do {
     (i,prf) <- parse_id prf;
-    check (i>last_id);
+    check (i\<notin>cm_ids CM);
     (C,A',it) <- parse_check_blocked A_0 it;
     (A',prf) <- apply_units CM A' prf;
     (confl_id,prf) <- parse_id prf;
     confl <- resolve_id CM confl_id;
     check (sem_clause' confl A' = Some False);
     CM <- add_clause i C CM;
-    return ((i,CM,A_0),it,prf)
+    return ((CM,A_0),it,prf)
   }"
 \end{lstlisting}
 We use do-notation to conveniently express monad operations. 
-First, the lemma ID is pulled from the proof stream (line 2) and checked to be greater than \isai{last_id} (3).
+First, the ID for the new lemma is pulled from the proof stream (line 2) and checked to available (3).
 The \isai$check$ function throws an exception unless the first argument evaluates to true.
 Next, \isai{parse_check_blocked} (4) parses the next lemma from the lemma file, checks that it is not blocked, and assigns its literals to false.
 Then, the function \isai$apply_units$ (5) pulls the unit clause IDs from the proof stream, checks that they are actually unit, and assigns the unit literals to true.
 Finally, we pull the ID of the conflict clause (6), obtain the corresponding clause from the clause map (7), check that it is actually conflict (8), and add the lemma to the clause map (9).
-We return (10) the lemma ID as new last ID, the new clause map, and the \emph{old} assignment, as the changes to the assignment are local and must be backtracked before checking
+We return (10) the new clause map and the \emph{old} assignment, as the changes to the assignment are local and must be backtracked before checking
 the next clause. Additionally, we return the new position in the lemma file (\isai$it$) and in the proof stream (\isai$prf$).
 Note that this abstract specification contains non-algorithmic parts: For example, in line 8, we check for the semantics of the conflict clause to be \isai{Some False}, without
 specifying how to implement this check.
@@ -532,23 +667,22 @@ specifying how to implement this check.
 We prove the following lemma for \isai{check_rup_proof}:
 \begin{lstlisting}
 lemma check_rup_proof_correct: 
-  assumes "invar (last_id,CM,A)"
-  shows "check_rup_proof (last_id,CM,A) it prf
-      \<le> spec True (\<lambda>((last_id',CM',A'), it', prf'). 
-          invar (last_id',CM',A') \<and> (sat' (cm_F CM) A ==> sat' (cm_F CM') A'))"
+  assumes "invar (CM,A)"
+  shows "check_rup_proof (CM,A) it prf
+      \<le> spec True (\<lambda>((CM',A'), it', prf'). 
+          invar (CM',A') \<and> (sat' (cm_F CM) A ==> sat' (cm_F CM') A'))"
 \end{lstlisting}
 Here, \isai{spec \<Phi> \<Psi>} describes the postcondition \isai$\<Phi>$ in case of an exception, and the postcondition \isai$\<Psi>$ for a normal result.
 As we only prove soundness of the checker, we use \isai$True$ as postcondition for exceptions. For normal results, 
-we show that an invariant on the state is preserved, and that the resulting formula and partial assignment is satisfiable if the original formula and partial assignment was.
+we show that an invariant on the state is preserved\footnote{The invariant states that there are no syntactic tautologies, \ie clauses that contain both a positive and negative literal over the same variable, and that the RAT candidate database, which is used to quickly identify RAT candidates (\cf Section~\ref{sec:grat-format}), is accurate.}, and that the resulting formula and partial assignment is satisfiable if the original formula and partial assignment was.
 
 Finally, we present the specification of the checker's main function:
 \begin{lstlisting}[numbers=left, xleftmargin=2em]
 definition "verify_unsat F_begin F_end it prf == do {
-  let A = \<lambda>_. None;
   (CM,prf) <- init_rat_counts prf;
-  (CM,last_id) <- read_cnf F_end F_begin CM;
-  let s = (last_id,CM,A);
-  (so,_) <- while (\<lambda>(so,it). so\<noteq>None) (\<lambda>(so,it). 
+  CM <- read_cnf F_end F_begin CM;
+  let s = (CM,\<lambda>_. None);
+  while (\<lambda>(so,it). so\<noteq>None) (\<lambda>(so,it). 
   do {
     let (s,it,prf) = the so;
     check_item s it
@@ -557,8 +691,9 @@ definition "verify_unsat F_begin F_end it prf == do {
 \end{lstlisting}
 The parameters \isai{F_begin} and \isai{F_end} indicate the range that hold the representation of the formula, \isai{it} points to the 
 first lemma, and \isai{prf} is the proof stream.
-After initializing the assignment (line 2, all variables undecided), the RAT literal counts are read (3), and the formula is parsed into the clause map (4).
-Then, the function iterates over the proof stream and checks each item (6--10), until the formula has been certified. (or an exception terminates the program)
+First, the RAT literal counts are read (2), and the formula is parsed into the clause map (3).
+Then, the assignment is initialized to have all variables undecided (4).
+The function then iterates over the proof stream and checks each item (5--9), until the formula has been certified. (or an exception terminates the program)
 Here, the checker's state is wrapped into an option type, where \isai{None} indicates that the formula has been certified. 
 %
 Correctness of the abstract checker is expressed by the following lemma:
@@ -579,7 +714,7 @@ The abstract checker algorithm that we described so far contains non-algorithmic
 Even if we could extract executable code, its performance would be poor: For example, we model assignments as functions. Translating 
 this directly to a functional language results in assignments to be stored as long chains of function updates with worst-case linear time lookup.
 
-We now show how to refine the abstract checker to an efficient algorithm, replacing the specifications by actual algorithms,
+We now refine the abstract checker to an efficient implementation, replacing the specifications by actual algorithms,
 and the abstract types by efficient data structures.
 The refinement is done in multiple steps, where each step focuses on different aspects of the implementation. 
 Formally, we use a \emph{refinement relation} that relates objects of the refined type (\eg a hash table) to 
@@ -596,6 +731,8 @@ unassigning the variables in $T$ yields $A_0$. The relation \isai{bt_assign_rel}
 \begin{lstlisting}
 "bt_assign_rel A_0 == { ((A,T),A) | A T. T \<subseteq> dom A \<and> A_0 = A|`(-T) }"
 \end{lstlisting}
+where \isai{A|`(-T)} restricts a partial assignment \isai{A} to the variables not in \isai$T$.
+
 We define \isai{apply_units_bt}, which operates on $A_0$-backtrackable assignments. If applied 
 to assignments \isai$(A',T)$ and \isai$A$ related by \isai{bt_assign_rel A_0}, and to the same proof stream position \isai$prf$, then the results of 
 \isai{apply_units_bt} and \isai{apply_units} are related by \isai{bt_assign_rel A_0 \<times> Id}, \ie the returned assignments 
@@ -625,7 +762,7 @@ where the relation \isai{cref_rel} relates iterators to clauses.
 In the next refinement step, we introduce efficient data structures. For example, we implement the iterators by indexes 
 into an array of integers that stores both the formula and the lemmas.
 For many of the abstract types, we use general purpose data structures from the Isabelle Refinement Framework~\cite{La15,La16}.
-For example, we refine assignments to arrays, using the \isai{array_map_default} data structure, which implements functions of type \isai{nat=>'a option} by
+For example, we refine assignments to arrays, using the \isai{array_map_default} data structure, which implements functions of type \isai{nat => 'a option} by
 arrays of type \isai$'b array$. It is parameterized by a relation \isai$R : ('b\<times>'a) set$ and a default concrete element \isai$d$ that does not correspond to 
 any abstract element (\isai$\<nexists>a. (d,a)\<in>R$). The implementation uses \isai$d$ to represent the abstract value \isai$None$.
 We define:
@@ -653,33 +790,72 @@ By combining all the refinement steps and unfolding some definitions, we prove t
 \begin{lstlisting}
 theorem verify_unsat_impl_correct: "
   <DBi |->$_a$ DB> 
-    verify_unsat_impl DBi F_end it prf
-  <\<lambda>result. DBi |->$_a$ DB * \<up>(\<not>isl result ==> formula_unsat_spec DB F_end)>"
+    verify_unsat_impl DBi prf_next F_end it prf
+  <\<lambda>result. DBi |->$_a$ DB * \<up>(\<not>isl result ==> verify_unsat_spec DB F_end)>"
 \end{lstlisting}
 This Hoare triple states that if \isai$DBi$ points to an array holding the elements \isai$DB$,
 and we run \isai$verify_unsat_impl$, the array will be unchanged, and if the return value is no exception,
-the formula represented by the range \isai$1...F_end$ in the array is unsatisfiable. 
-We have experimented with many equivalent formulations of \isai{formula_unsat_spec}, trying to reduce the \emph{trusted base}, 
-\ie the concepts and definitions the specification depends on. A concise one is:
+the range \isai$1...F_end$ in the array\footnote{Element $0$ is used as a guard in our implementation.} represents a valid unsatisfiable formula in DIMACS format:
+\begin{lstlisting}
+definition "verify_unsat_spec DB F_end == 1 <= F_end \<and> F_end <= length DB \<and>
+  (let lst = tl (take F_end DB) in F_invar lst \<and> \<not>sat (F_\<alpha> lst))"
+\end{lstlisting}
+
+We also define a checker for satisfiability certificates, which are a null-terminated list of non-contradictory literals starting at index \isai{F_end}, and prove an analogous correctness theorem:
+\begin{lstlisting}
+theorem verify_sat_impl_correct: "
+  <DBi |->$_a$ DB> 
+    verify_sat_impl DBi F_end
+  <\<lambda>result. DBi |->$_a$ DB * \<up>(\<not>isl result ==> verify_sat_spec DB F_end)>"
+  
+definition "verify_sat_spec DB F_end == 1 <= F_end \<and> F_end <= length DB \<and>
+  (let lst = tl (take F_end DB) in F_invar lst \<and> sat (F_\<alpha> lst))"
+\end{lstlisting}
+
+The final step to a verified efficient sat and unsat checker is to use Isabelle/HOL's code generator to extract Standard ML code for \isai{verify_(un)sat_impl} and to
+link this code with a command line interface and a small (40 LOC) parser to read the formula into an array. 
+Moreover, we implement a buffered reader for the proof file. This, however, does not affect the correctness statement, which is 
+valid for all proof stream implementations. The resulting program is compiled with MLton~\cite{MLton}.
+
+\subsection{Concise Correctness Statement}
+We have shown that our checker only accepts arrays containing (un)satisfiable formulas in DIMACS format. 
+To describe a satisfiable input,(\cf Section~\ref{sec:syn_sem_frml}) we have first mapped the array to a 
+formula (constants \isai{tokenize}, \isai{F_\<alpha>}, \isai{clause_\<alpha>}, \isai{lit_\<alpha>}).
+Then, we defined a semantics to describe satisfiability of a formula.(\isai{sat}, \isai{models}, \isai{sem_cnf}, \isai{sem_clause}, \isai{sem_lit})
+In this section, we outline a more direct specification, which only uses elementary list and set operations of Isabelle/HOL, and show that it is 
+equivalent to our original specification.
+This can be seen as a sanity check for our semantics. 
+
+We again use tokenization to convert the input into a list of lists. 
+We further justify tokenization by showing that it is the unique inverse of concatenation:
+\begin{lstlisting}
+definition "concat0 ll = concat (map (\<lambda>l . l@[0]) ll)"
+lemma unique_tokenization: 
+  assumes "l~=[] ==> last l = 0"
+  shows "\<exists>_1ls. (0\<notin>\<Union>set (map set ls) \<and> concat0 ls = l)"
+    and "tokenize l = (THE ls. 0\<notin>\<Union>set (map set ls) \<and> concat0 ls = l)"
+\end{lstlisting}
+where \isai{THE} is the definite description operator.
+Next, we define an assignment from integers to Booleans to be consistent, if a negative value is mapped 
+to the opposite of its absolute value:
 \begin{lstlisting}
 definition assn_consistent :: "(int => bool) => bool"
   where "assn_consistent \<sigma> = (\<forall>x. x\<noteq>0 ==> \<not> \<sigma> (-x) = \<sigma> x)"
-definition "formula_unsat_spec DB F_end == (
-  let lst = tl (take F_end DB) in
-    1 < F_end \<and> F_end \<le> length DB \<and> last lst = 0 
-    \<and> (\<nexists>\<sigma>. assn_consistent \<sigma> \<and> (\<forall>C\<in>set (tokenize 0 lst). \<exists>l\<in>set C. \<sigma> l)))"
 \end{lstlisting}
-Here, a \emph{consistent assignment} is a mapping from integers to Booleans, such that a negative value is mapped to the opposite as its absolute value.
-The specification then defines \isai$lst$ to be the elements \isai$1,...,F_end$ of the array\footnote{Element $0$ is used as a guard in our implementation.}, and
-states that \isai$F_end$ is in bounds, the last element of \isai$lst$ is a null, and that there is \emph{no} assignment such that each clause contains a literal assigned to true. 
-We define \isai{tokenize 0 lst} to be the unique list of lists of non-null integers whose concatenation as null-terminated lists yields \isai{lst}.
-This way, we specify an unsatisfiable formula down to the list of integers that represents it, only using basic list functions. 
-The last section of the proof outline of our formalization~\cite{GRATchk-proof-outline} contains a detailed discussion of the correctness theorem.
+Finally, we characterize an (un)satisfiable input by the (non)existence of a consistent assignment that assigns at least one literal of each clause to true:
+\begin{lstlisting}
+lemma "verify_sat_spec DB F_end = (1<=F_end \<and> F_end <= length DB \<and> (
+    let lst = tl (take F_end DB) in 
+      (lst~=[] ==> last lst = 0)
+    \<and> (\<exists>\<sigma>. assn_consistent \<sigma> \<and> (\<forall>C\<in>set (tokenize 0 lst). \<exists>l\<in>set C. \<sigma> l))))"
+    
+lemma "verify_unsat_spec DB F_end = (1 < F_end \<and> F_end <= length DB \<and> (
+    let lst = tl (take F_end DB) in 
+       last lst = 0
+    \<and> (\<nexists>\<sigma>. assn_consistent \<sigma> \<and> (\<forall>C\<in>set (tokenize 0 lst). \<exists>l\<in>set C. \<sigma> l))))"
+\end{lstlisting}
+In the case of unsatisfiability, the bounds have been adjusted to exclude the empty formula, which is trivially satisfiable.
 
-The final step to a verified efficient unsat checker is to use Isabelle/HOL's code generator to extract Standard ML code for \isai{verify_unsat_impl} and to
-link this code with a small (40 LOC) parser to read the formula (and the lemmas) into an array. 
-Moreover, we implement a buffered reader for the proof file. This, however, does not affect the correctness statement, which is 
-valid for all proof stream implementations. The resulting program is compiled with MLton~\cite{MLton}.
 
 % Basics: formula, semantics, sat
 %   This is also important as it is the trusted part of our specification
@@ -754,79 +930,250 @@ valid for all proof stream implementations. The resulting program is compiled wi
 \section{Multithreaded Generation of Enriched Certificates}\label{sec:gratgen}
 In order to generate GRAT certificates, we extend a DRAT checker algorithm 
 to record the unit clauses that lead to a conflict when checking each lemma. 
-% All optimizations for DRAT checkers, like backward checking and core-first unit propagation are compatible with enriched certificate generation.
-
+As the certificate generator is not part of the trusted code base, we can afford aggressive optimizations.
 Our certificate generator started as a reimplementation of the backward mode of drat-trim~\cite{WHH13,drat-trim-webpage} in \CC, to 
-which we then added GRAT certificate generation. 
-% We decided to do a re-implementation instead of modifying the existing code, as we only 
-% wanted to include the absolutely necessary features, keeping the code small and clear, and thus enable further optimizations to be encoded at lower effort.
-As the certificate generator is not part of the trusted code base, we could afford to add aggressive novel optimizations:
-We maintain separate watchlists for marked and unmarked lemmas, which allows a more efficient implementation of core-first unit propagation.
-Moreover, we detect runs of lemmas with the same pivot element, which allows to reuse the results of (expensive) RAT candidate searches in certain cases.
-These optimizations alone make our generator more than two times faster than drat-trim. 
-% (Which performs less work, as it does not generate an enriched certificate)
+which we added GRAT certificate generation. Then, we implemented multithreading and some additional optimizations.
 
-Another common optimization is parallelization: If one has more DRAT certificates to check than processors 
-available (\eg when evaluating a SAT competition), one can simply run multiple instances of the certificate generator and checker in parallel.
-However, if one has only a few certificates to check (\eg when using SAT solvers for checking a single model), a more fine grained parallelization 
-is required to keep the available processors busy. 
-To this end, our certificate generator provides a multi-threaded mode,
-which parallelizes the processing of lemmas, at the cost of using more memory. 
-It uses all optimizations of the single-threaded mode, some of them slightly adjusted for multi-threading. 
-For example, the lemmas of a run with the same pivot element are preferably scheduled to the same thread.
+The multithreading mode allows us to trade computing resources for faster response time. It makes sense in settings where parallelization 
+on the granularity of whole problems does not exhaust the available computing resources, \eg when one is interested in a quick answer for a single problem.
 
-The basic idea is to let multiple threads run backwards over the certificate, verifying the lemmas in parallel.
-A thread tries to acquire a lemma before it starts verification. If the lemma is already acquired 
-by another thread, this thread proceeds with the next lemma. This way, each lemma is only proved by one thread.
-For the marking of lemmas, the only required synchronization is that a thread sees its own markings: As every thread runs to the beginning, 
-and on processing a lemma only earlier lemmas are marked, every thread will try to acquire at least the lemmas that it marked itself --- and 
-process them if no other thread was faster. 
-However, in order to improve the effectiveness of core-first unit propagation, the threads periodically synchronize on their marking data.
+The following displays high-level pseudocode of our certificate generator:
+{\withlinenumbers
+\begin{lstlisting}[language=pseudo]
+fun forward_phase:      @\label{ll:fwd_begin}@
+  F := @original formula@ @\label{ll:f_eq_orig}@
+  @propagate units in F@; if F @has conflict@ then exit "s UNSAT"  @\label{ll:f_init_uprop}@
+  for item in certificate do @\label{ll:f_iterate}@
+    if item = d C then 
+      @remove clause C from F@    @\label{ll:f_delete}@
+    else if item = C then
+      @add C to F@                @\label{ll:f_add}@
+      @propagate units in F@      @\label{ll:f_uprop}@
+      if @F has conflict@ then
+        @mark clauses required for conflict@   @\label{ll:f_mark_cl}@
+        @truncate certificate@                 @\label{ll:f_trunc}@   
+        return F
+
+  exit "s ERROR"      @\label{ll:fwd_end}@
+
+fun backward_phase(F):
+  for item in reverse certificate do      @\label{ll:bwd_iterate}@
+    if item = d C then
+      @add clause to F@                     @\label{ll:undo_del}@
+    else if item = C
+      @remove C from F@; @undo unit propagations due to C@  @\label{ll:undo_add}@
+      if is_marked(C) and acquire(C) then   @\label{ll:is_marked}@  
+        @verify C and mark required clauses@    @\label{ll:verify}@
+        @synchronize marked clauses@            @\label{ll:sync}@
+        
+fun main:
+  F = forward_phase
+  for parallel 1..N do
+    backward_phase(copy(F))
+\end{lstlisting}
+}
+
+The initial forward phase starts with the original formula (line~\ref{ll:f_eq_orig}), and performs unit propagation (\ref{ll:f_init_uprop}). 
+If this already yields a conflict, the formula is unsatisfiable. Otherwise, we iterate over the certificate (\ref{ll:f_iterate}). Each item in the certificate either
+deletes (\ref{ll:f_delete}) or adds (\ref{ll:f_add}) a clause. After adding a clause, we perform unit propagation (\ref{ll:f_uprop}), and if this yields a conflict,
+we mark all clauses required for the conflict (\ref{ll:f_mark_cl}), discard the remaining items in the certificate if any (\ref{ll:f_trunc}), and finish the forward phase.
+
+Next, the backward phase iterates over the certificate in reverse order (line~\ref{ll:bwd_iterate}), undoes the effects of the items (\ref{ll:undo_del} and \ref{ll:undo_add}), verifies the lemmas, and marks all lemmas required for verification (\ref{ll:verify}). Unmarked lemmas are skipped(\ref{ll:is_marked}).
+The enriched certificate is generated during the backwards phase, when undoing unit propagations and verifying lemmas. 
+For better readability, we have omitted certificate generation from the above listing.
+
+The backwards phase is parallelized: Each thread maintains its own copy of the clause database. 
+Before proving a lemma, a thread needs to acquire it (\ref{ll:is_marked}), thus ensuring that each lemma is only proved by a single thread.
+The information about marked lemmas is periodically synchronized between the threads (\ref{ll:sync}), such that a thread can generate work for other threads.
+Interestingly, there is no synchronization apart from lemma acquisition and sharing of marked clauses between the 
+threads. In theory, one thread could prove most of the lemmas, while the other threads quickly run to the beginning of the certificate, 
+seeing only very few marked lemmas. However, we have not observed such behavior in practice, and thus did not implement any further synchronization
+between the threads.
+
+In the remainder of this section, we describe the most important optimizations that we have implemented in gratgen: RAT-run heuristics and separate watchlists.
+
+\subsection{RAT-Run Heuristics}
+To verify that a lemma has the RAT property,(\cf Section~\ref{sec:uprop_and_rat}) one has to collect all RAT candidate lemmas, \ie those clauses in the 
+database that contain the negated pivot literal. As it is not known in advance which of the lemmas will
+actually be marked and require a full RAT proof,(most lemmas are proved by a RUP-proof) maintaining a database of candidate 
+lemmas for each literal would be inefficient. Thus, drat-trim iterates over the whole clause database on each RAT proof. Our profiling indicated that a significant amount of the overall runtime may be spent on searching RAT candidate lemmas. However, we observed that certificates
+usually contain runs of multiple RAT lemmas with the same pivot. Thus, we store the result of the last search through the database, and reuse it if 
+we should encounter a RAT lemma over the same pivot. Moreover, in multi-threaded mode, we always allocate a run of lemmas with the same pivot to the 
+same thread, as the stored search result is maintained thread-locally. Our benchmarks (Section~\ref{sec:benchmarks}) indicate that this optimization is very efficient if actual RAT lemmas are present. If there are no RAT lemmas, the heuristics' overhead is effectively a single check in the outer loop
+of the backwards phase, and, as expected, we observed no decrease in performance.
+
+\subsection{Separate Watchlists}
+Another important heuristics, which is already implemented in drat-trim, is core-first unit propagation.
+On unit propagation, marked lemmas are preferred over unmarked ones. This way, the unit clauses used for a proof are more likely to be already marked,
+thus reducing the overall number of marked lemmas.
+
+Unit propagation is done by a two-watched literals data structure~\cite{MMZZ01},
+where, for each clause, two distinct literals are marked as watched. As long as the clause is not blocked or conflict, the two watched literals must be undecided.
+When assigning a new variable, this invariant may be broken, and is then restored by the unit propagation algorithm: For each clause watching a literal that has been 
+assigned to false, a new watched literal is searched. If no new watched literal can be found, the clause is unit or conflict, in which case the unit literal is 
+assigned to true or unit propagation stops with a conflict. To efficiently iterate over the clauses watching a literal, they are stored in a \emph{watchlist} for 
+each literal.
+
+In drat-trim, core first unit propagation is implemented by two iterators over the watchlists of the newly assigned literals.
+The first iterator ignores unmarked clauses, while 
+the second iterator processes unmarked clauses. The second iterator is only advanced when the first iterator cannot be advanced further. By advancing the second 
+iterator, new literals may be assigned, which makes advancing the first iterator possible again.
+However, skipping the iterators over irrelevant clauses may yield considerable overhead in the performance sensitive inner loop of unit propagation.
+Thus, for gratgen, we have implemented two watchlists for each literal, one for the marked and one for the unmarked lemmas. 
+This way, the iterators during unit propagation never have to skip over irrelevant clauses. On the other hand, when marking a clause, we have to spend additional time
+to move it from the unmarked to the marked watchlists\footnote{We have also experimented with lazily moving marked clauses if they are encountered in the unmarked list during unit propagation, but this turned out to be less efficient.}. In practice, we found this optimization to be effective.
+
 
 \section{Benchmarks}\label{sec:benchmarks}
-We present the experimental evaluation of our tools on a realistic set of benchmarks.
-We used CryptoMiniSat~\cite{SNC09,SATCOMP16} to generate DRAT certificates for the 110 unsatisfiable problems it solved at the 2016 SAT competition~\cite{satcomp-2016}.
-% From these, we eliminated the 6 problems for which drat-trim could not check the certificate.
-We ran the benchmarks on a standard server board with a 22 core Intel XEON Broadwell processor with 2.2 GHz and 128 GiB of RAM.
-To minimize interferences, we ran only one benchmark at a time, with no other load on the server. 
-Due to the page limit of this paper, we only provide a short summary of our benchmark results. The complete results are available on the tool's homepage~\cite{GRAT-homepage}.
+  We have benchmarked GRAT with one and eight threads against drat-trim and LRAT~\cite{HHKW17} on problems taken from the main tracks of the 2016 and 2017 SAT 
+  competitions~\cite{satcomp-2016,satcomp-2017}. We consider the problems solved by 2017 gold medalist Maple, and the problems solved by 2016 silver medalist Riss6.
+  We chose the silver medalist for 2016, as the gold medalist is, again, Maple.
+  Moreover, we consider the problems solved by CryptoMiniSat in 2016. Although not among the Top 3 solvers, we included CryptoMiniSat because it seems to be 
+  the only prover that produces a significant amount of RAT lemmas. For the 2017 competition, only abcdSAT seems to produce RAT lemmas, and we did not include 
+  it in our benchmarks\footnote{Due to constraints on available computation time. Note that this shifts the benchmark results in favor of drat-trim, 
+    as our tool has optimizations specifically tailored to handle RAT lemmas.}
+    
+  All tested tools verified all but 4 unsatisfiability certificates: On 2 certificates, drat-trim timed out (using the default timeout of 20.000 seconds), 
+  and it segfaulted on a third one. A fourth certificate lead to an out-of-memory error of multithreaded gratgen. We excluded these certificates 
+  from the benchmarks.
+    
+  Figure~\ref{fig:benchmark} shows the results for the unsatisfiability certificates. The first three scatter plots compare the 
+  wall-clock time of LRAT against GRAT with one and eight threads. Here, already single-threaded GRAT is faster than LRAT on every problem.
+  As expected, the difference is more significant on problems that contain RAT lemmas: for the problems that actually contain RAT 
+  lemmas, single-threaded GRAT is about 3 times faster than LRAT, while, for the other problems, it is only 1.7 times faster.
+  
+\begin{figure}[!t]
+  \begin{center}    
+    \begin{tikzpicture}[thick,scale=.75, every node/.style={scale=1}] %change the scales if you like to reduce the size
+      \begin{groupplot}[
+          group style={
+              group size=2 by 2,
+              vertical sep=2cm,
+          }
+      ]
 
-On each DRAT certificate, we ran drat-trim (version Nov 10 2016)\footnote{The current version at the time of writing this paper.}
-and our tool chain (version 1.2) with 1 and 8 threads.
-We measured the wall-clock time and memory consumption. First of all, our tools successfully checked all certificates, 
-indicating that our approach is sufficiently complete. (Recall that only soundness is formally proved)
+      \nextgroupplot[
+          title={Certificates by CryptoMiniSAT},
+          title style={yshift=-2ex},
+          axis x line*= bottom,
+          axis y line*= left,
+          xtick={0,2,4,6},
+          ytick={0,2,4,6},
+          xlabel style={align=center},
+          xlabel={grat/hours},
+          ylabel={lrat/hours},
+          ylabel style={yshift=-4ex},
+          legend style={at={(1,-0.1)},anchor=north,cells={anchor=east}},
+      ]
+      \addplot+[only marks,mark=square] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Lrat}/3600] {scatter-cmsat.data};
+      \addlegendentry{single threaded}
+      \addplot+[only marks,mark=o] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Lrat}/3600] {scatter-cmsat.data};
+      \addlegendentry{8 threads}
+      \addplot+[domain=0:6,smooth,mark=,color=black]{x};
+      
 
-We start with comparing drat-trim to our tool in single-threaded mode: drat-trim timed out after 20.000 seconds on two certificates, and crashed on a third one.
-For checking the remaining 107 certificates, drat-trim required 42.3 hours, while our tool chain required only 17.3 hours.
-% for both generating and checking the enriched certificates.
-% That is, we get results with strong formal correctness guarantees in less than half the time. 
-Out of the 17.3 hours, only 1.1 hours were required to run the verified certificate checker, \ie its runtime is almost negligible compared to certificate generation time.
-Our tool-chain verified the three certificates for which drat-trim failed in 5.3 hours.
+      \nextgroupplot[
+          title={Certificates by Riss6},
+          title style={yshift=-2ex},
+          axis x line*= bottom,
+          axis y line*= left,
+          xtick={0,1,2,3},
+          ytick={0,1,2,3},
+          xlabel style={align=center},
+          xlabel={grat/hours\\Excluded points at (4.6,4.6) and (1.5,4.6)},
+          ylabel={lrat/hours},
+          ylabel style={yshift=-4ex},
+      ]
+      \addplot+[only marks,mark=square] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Lrat}/3600] {scatter-riss6.data};
+%       \addlegendentry{single threaded}
+      \addplot+[only marks,mark=o] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Lrat}/3600] {scatter-riss6.data};
+%       \addlegendentry{8 threads}
+      \addplot+[domain=0:3,smooth,mark=,color=black]{x};
 
-Our certificate generator requires roughly two times more memory than drat-trim. This is due to the generated certificate being stored 
-in memory. We could not measure meaningful memory consumption values for our verified checker: The MLton garbage collector only gets active when memory falls short, 
-resulting in unrealistic memory consumption values when being the only process running on a machine with 128 GiB of RAM.
+      
+      \nextgroupplot[
+          title={Certificates by Maple-LCM-DIST},
+          title style={yshift=-2ex},
+          axis x line*= bottom,
+          axis y line*= left,
+          xtick={0,1,2,3,4},
+          ytick={0,1,2,3,4},
+          xlabel style={align=center},
+          xlabel={grat/hours},
+          ylabel={lrat/hours},
+          ylabel style={yshift=-4ex},
+      ]
+      \addplot+[only marks,mark=square] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Lrat}/3600] {scatter-maple.data};
+%       \addlegendentry{single threaded}
+      \addplot+[only marks,mark=o] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Lrat}/3600] {scatter-maple.data};
+%       \addlegendentry{8 threads}
+      \addplot+[domain=0:4,smooth,mark=,color=black]{x};
+      
 
-Next, we report on running the certificate generator with 8 threads: The wall clock times required for generation and checking add up to only 8.3 hours.
-Excluding certificates that required less than one minute to check, the average speed up is 2.6 [min: 1.1, max: 4.9] compared to single-threaded mode, 
-and 7.1 [min: 0.5, max: 36.0] compared to drat-trim.
-However, certificate generation requires significantly more memory, as the DRAT certificate is duplicated for each thread.
- 
-% We restrict the comparison to the 31 \emph{hard} problems, for which drat-trim required more than 1000 seconds.
-% On average, our complete tool chain gets 2.5(4.1) times faster when using 4(12) threads for the generator, the minimum speedup is 1.6(2.2), the maximum is 3.4(7.3).
-% Compared to drat-trim, we achieve an average speedup of 2.7(4.5) [min: 1.0(1.2); max: 4.8(8.8)], requiring an average of 4.6(11.2) times more memory [min: 3.3(8.3); max: 8.0(14.0)].
-% The additional memory consumption results from the DRAT certificate being duplicated for each thread.
+      
+      \nextgroupplot[
+          title={All Certificates},
+          title style={yshift=-2ex},
+          axis x line*= bottom,
+          axis y line*= left,
+          xtick={0,1,2,3,4},
+          ytick={0,1,2,3,4},
+          xlabel style={align=center},
+          xlabel={grat/hours},
+          ylabel={drat-trim/hours},
+          ylabel style={yshift=-4ex},
+      ]
+      \addplot[only marks,mark=square,color=blue] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Drat}/3600] {scatter-maple.data};
+      \addplot[only marks,mark=square,color=blue] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Drat}/3600] {scatter-cmsat.data};
+      \addplot[only marks,mark=square,color=blue] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Drat}/3600] {scatter-riss6.data};
+%       \addlegendentry{single threaded}
+      \addplot[only marks,mark=o,color=red] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Drat}/3600] {scatter-maple.data};
+      \addplot[only marks,mark=o,color=red] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Drat}/3600] {scatter-cmsat.data};
+      \addplot[only marks,mark=o,color=red] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Drat}/3600] {scatter-riss6.data};
+%       \addlegendentry{8 threads}
+      \addplot[domain=0:4,smooth,mark=,color=black]{x};
+      
+      
+      
+      \end{groupplot}
+      
+  %     \node at (group c1r1.south) [anchor=west, xshift= 1.1cm] {\ref{grouplegend}};
+    \end{tikzpicture}
+  \end{center}
+  \caption{Comparison of drat-trim and GRAT, ran on a server board with a 22-core XEON Broadwell CPU @2.2GHz and 128GiB RAM.}\label{fig:benchmark}
+\end{figure}
+  
+  
+  Except for small problems, multithreading yields a significant speedup: Considering only problems where single-threaded gratgen needs longer than 100 seconds,
+  the average speedup with 8 threads is $2.1$, the average speedup of the backwards checking phase of gratgen, which is the only parallelized part, is $3.3$.
+  
+  Finally, the last scatter plot in Figure~\ref{fig:benchmark} compares GRAT against drat-trim. 
+  Although we compare an unverified tool against a verified one, GRAT wins this comparison: Except for a few certificates, it is faster than 
+  drat-trim, and there is only a single outlier where GRAT is significantly slower than drat-trim. 
+  
+  We also compare the memory consumption: In single threaded mode, gratgen needs roughly three times more memory than drat-trim, with 8 threads, this figure increases to 
+  roughly 9 times more memory. Due to the garbage collection in Standard ML, we could not measure meaningful memory consumptions for gratchk.
+  The extra memory in single-threaded mode is mostly due to the proof being stored in memory, the extra memory in multithreaded mode is due to the duplication of data for each thread.
+  
+  For completeness, we also report on the satisfiable problems in our benchmark set: The 241 sat certificates in our benchmark set have a size of 566MiB and could be
+  verified in roughly 100 seconds.
 
-% Finally, we compare the enriched certificate size to the original certificate size: On average, the enriched certificate is 1.3 times larger than the original certificate. This only moderate increase in certificate size is mainly because many lemmas (72\% on average) turn out to be unnecessary during 
-% certificate generation, and thus are not included into the certificate. The number of threads used to generate the certificate has no significant effect on certificate size.
-
-To complete the presentation, we briefly report on the results of our formally verified satisfiability checker:
-The certificates for the 64 satisfiable problems that CryptoMiniSat solved at the 2016 SAT competition~\cite{satcomp-2016} have a size of 229 MiB and could be verified in 40 seconds.
+  
+  
+%   We ran the benchmarks on a standard server board with a 22 core Intel XEON Broadwell processor with 2.2 GHz and 128 GiB of RAM.
+%   We have used gratgen in single-threaded mode and with 8 threads.
+%   We also ran drat-trim on the same set of benchmarks, with a timeout of 20,000s. The results are displayed as scatter plots in Figure~\ref{fig:benchmark}. 
+%   The value for drat-trim is on the y axis, and the value for GRAT on the x axis. The line indicates the identity, \ie points above 
+%   the line mean that we are better, and points below the line mean that drat-trim is better. 
+  
 
 \section{Conclusions}\label{sec:concl}
-We have presented a formally verified tool chain to check DRAT unsatisfiability certificates. 
-In single-threaded mode, our approach is more than two times faster than the (unverified) standard tool drat-trim, on a benchmark 
-suite taken from the 2016 SAT competition. Additionally, we implemented a multi-threaded mode, 
+
+
+We have presented a formally verified sat solver certification tool. 
+Already in single threaded mode, it is significantly faster than the unverified standard tool drat-trim, on a benchmark 
+suite taken from the 2017 and 2016 SAT competitions.
+Additionally, we implemented a multi-threaded mode, 
 which allows us to trade computing resources for significantly smaller response times.
 The formal proof covers the actual implementation of the checker and the semantics of the 
 formula down to the sequence of integers that represents it.
@@ -846,23 +1193,30 @@ lines of code, and took two man month to develop.
 Currently, the formal proof of our verified checker goes down to the representation of the formula as integer array,
 thus requiring a (small) unverified parser. A logical next step would be to verify the parser, too.
 Moreover, verification stops at the Isabelle code generator, whose correctness is only proved the classical way on paper~\cite{HaNi10,HKKN13}. 
-There is work aiming at the mechanical verification of code generators~\cite{MO14}, and even the subsequent compilers~\cite{KMNO14}. 
-Unfortunately, this is not (yet) available for Isabelle/HOL. 
+There is work aiming at the mechanical verification of code generators~\cite{MO14}, and even the subsequent compilers~\cite{KMNO14}.
+A similar tool became available for Isabelle/HOL only recently~\cite{HuNi18}, but does not yet support the imperative arrays required for our application.
 
-We plan to attack the high memory consumption of our multi-threaded generator by trying to share more (read-only) data between the threads.
+If the memory consumption of gratgen should become a problem, we could easily write out the proof to disk instead of storing it in RAM. 
+We expect that this would yield a memory consumption similar to drat-trim. For multi-threaded mode, we plan to share more (read-only) data between the threads.
 
 An interesting research topic would be to integrate enriched certificate generation directly into SAT solvers. 
 The performance decrease in the solver could be weighed against the cost of generating an enriched certificate.
-However, such modifications are probably complex and SAT-solver specific, whereas DRAT certificates are designed to be 
+A main challenge would be to manage the size of the enriched certificates, which, without reductions as done by, 
+\eg backward checking, may become prohibitively large.
+Moreover, such modifications are probably SAT-solver specific, whereas DRAT certificates are designed to be
 easily integrated into virtually any CDCL based SAT solver.
 
-Finally, we chose a benchmark set which is realistic, but can be run in a few days on the available hardware.
+An alternative to certification would be to verify the SAT solver itself. While this has been attempted several times (\eg~\cite{Maric10,OSOC12}), 
+including our own work~\cite{FBL18}, we do not expect that verified SAT solvers will become competitive to unverified solvers in the near future.
+
+Finally, we chose a benchmark set which is realistic, but can be run in a few weeks on the available hardware.
 We plan to run our tools on larger benchmark suites, once we have access to sufficient (supercomputing) hardware.
 
 \paragraph{Acknowledgements} We thank Jasmin Blanchette and Mathias Fleury for very useful comments on the draft version of this paper, 
-and Lars Hupel for instant help on any problems related to the benchmark server.
+and Lars Hupel for instant help on any problems related to the benchmark server. Moreover we thank the anonymous reviewers of the 
+conference papers on which this paper is based for their useful comments.
 
-\clearpage
+% \clearpage
 
 \bibliographystyle{abbrv}
 \bibliography{root}

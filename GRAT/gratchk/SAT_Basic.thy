@@ -29,6 +29,10 @@ begin
   definition models :: "'a cnf \<Rightarrow> 'a valuation set" where
     "models F \<equiv> {\<sigma>. sem_cnf F \<sigma>}"
     
+  lemma sat_iff_has_models: 
+    "sat F \<longleftrightarrow> models F \<noteq> {}" 
+    unfolding sat_def models_def by auto
+    
   fun neg_lit where
     "neg_lit (Pos x) = Neg x" | "neg_lit (Neg x) = Pos x"
 

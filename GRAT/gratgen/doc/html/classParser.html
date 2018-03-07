@@ -104,14 +104,15 @@ Public Member Functions</h2></td></tr>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classParser.html#ad9b9794e8ccd8754499fab77e0a5d48d">parse_ignore_comments</a> (istream &amp;in)</td></tr>
 <tr class="memdesc:ad9b9794e8ccd8754499fab77e0a5d48d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Skip over whitespace and comments. <br /></td></tr>
 <tr class="separator:ad9b9794e8ccd8754499fab77e0a5d48d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a255b91f86d20de3fb538f3d43a5f3358"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a255b91f86d20de3fb538f3d43a5f3358"></a>
-<a class="el" href="structpos__t.html">pos_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classParser.html#a255b91f86d20de3fb538f3d43a5f3358">parse_clause</a> (istream &amp;in)</td></tr>
-<tr class="memdesc:a255b91f86d20de3fb538f3d43a5f3358"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse a clause to the global clause database. <br /></td></tr>
-<tr class="separator:a255b91f86d20de3fb538f3d43a5f3358"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a180901b723fd9ea92d657933e52e2a43"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a180901b723fd9ea92d657933e52e2a43"></a>
-<a class="el" href="structpos__t.html">pos_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classParser.html#a180901b723fd9ea92d657933e52e2a43">parse_deletion</a> (istream &amp;in)</td></tr>
-<tr class="memdesc:a180901b723fd9ea92d657933e52e2a43"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse a deletion item to the global clause database. <br /></td></tr>
-<tr class="separator:a180901b723fd9ea92d657933e52e2a43"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6c9d37d3cc9f16dcdc2470c07cd091ae"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a6c9d37d3cc9f16dcdc2470c07cd091ae"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="structpos__t.html">pos_t</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classParser.html#a6c9d37d3cc9f16dcdc2470c07cd091ae">parse_clause</a> (istream &amp;in, T parse_append_raw)</td></tr>
+<tr class="memdesc:a6c9d37d3cc9f16dcdc2470c07cd091ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse a clause to the global clause database.  <a href="#a6c9d37d3cc9f16dcdc2470c07cd091ae">More...</a><br /></td></tr>
+<tr class="separator:a6c9d37d3cc9f16dcdc2470c07cd091ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a628da5e008c2dfaf46d46a887b0dc727"><td class="memTemplParams" colspan="2"><a class="anchor" id="a628da5e008c2dfaf46d46a887b0dc727"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a628da5e008c2dfaf46d46a887b0dc727"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="structpos__t.html">pos_t</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classParser.html#a628da5e008c2dfaf46d46a887b0dc727">parse_deletion</a> (istream &amp;in, T parse_append_raw)</td></tr>
+<tr class="memdesc:a628da5e008c2dfaf46d46a887b0dc727"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse a deletion item to the global clause database. <br /></td></tr>
+<tr class="separator:a628da5e008c2dfaf46d46a887b0dc727"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:accd26aeabd4e70f713b3a725d4ea3aa4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="accd26aeabd4e70f713b3a725d4ea3aa4"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classParser.html#accd26aeabd4e70f713b3a725d4ea3aa4">parse_dimacs</a> (istream &amp;in)</td></tr>
 <tr class="memdesc:accd26aeabd4e70f713b3a725d4ea3aa4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse the cnf file. <br /></td></tr>
@@ -120,10 +121,53 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classParser.html#afb4bacfc12b3612fd320b19c8e521266">parse_proof</a> (istream &amp;in)</td></tr>
 <tr class="memdesc:afb4bacfc12b3612fd320b19c8e521266"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse the DRAT file. <br /></td></tr>
 <tr class="separator:afb4bacfc12b3612fd320b19c8e521266"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9934662111ac7654da88835c5c553514"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9934662111ac7654da88835c5c553514"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classParser.html#a9934662111ac7654da88835c5c553514">bin_parse_proof</a> (istream &amp;in)</td></tr>
+<tr class="memdesc:a9934662111ac7654da88835c5c553514"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse DRAT file in binary format. <br /></td></tr>
+<tr class="separator:a9934662111ac7654da88835c5c553514"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p><a class="el" href="classParser.html" title="Parser that reads cnf and drat files. ">Parser</a> that reads cnf and drat files. </p>
-</div><hr/>The documentation for this class was generated from the following file:<ul>
+</div><h2 class="groupheader">Member Function Documentation</h2>
+<a class="anchor" id="a6c9d37d3cc9f16dcdc2470c07cd091ae"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structpos__t.html">pos_t</a> Parser::parse_clause </td>
+          <td>(</td>
+          <td class="paramtype">istream &amp;&#160;</td>
+          <td class="paramname"><em>in</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">T&#160;</td>
+          <td class="paramname"><em>parse_append_raw</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Parse a clause to the global clause database. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">in</td><td>Input stream to read from </td></tr>
+    <tr><td class="paramname">parse_append_raw</td><td>Called with (in) to read and append a clause to clause db. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd>parse_append_clause </dd></dl>
+
+</div>
+</div>
+<hr/>The documentation for this class was generated from the following file:<ul>
 <li><a class="el" href="gratgen_8cpp.html">gratgen.cpp</a></li>
 </ul>
 </div><!-- contents -->

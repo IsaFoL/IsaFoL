@@ -7,7 +7,7 @@ imports
   Synth_Definition 
   Dynamic_Array 
   Array_Map_Default 
-  Parser_Iterator_New
+  Parser_Iterator
   DRAT_Misc 
   Misc
 begin
@@ -84,53 +84,6 @@ lemma list_set_assn_IS_TO_SORTED_LIST_GA'[sepref_gen_algo_rules]:
   apply (rule sepref_gen_algo_rules) (* FIXME: Using unnamed rule that happens to be in this set! *)
   done
 
-subsection \<open>Encoding of Literals and Clauses\<close>  
-type_synonym var = nat  
-  
-abbreviation (input) litZ :: int where "litZ \<equiv> 0"
-  
-definition lit_\<alpha> :: "int \<Rightarrow> nat literal" 
-  where "lit_\<alpha> l \<equiv> if l<0 then Neg (nat (-l)) else Pos (nat l)"
-definition lit_invar :: "int \<Rightarrow> bool" 
-  where "lit_invar l \<equiv> l\<noteq>0"
-    
-definition "clause_\<alpha> l \<equiv> lit_\<alpha>`set l"
-  
-lemma clause_\<alpha>_empty[simp]: "clause_\<alpha> [] = {}" 
-  unfolding clause_\<alpha>_def by auto
-lemma clause_\<alpha>_cons[simp]: "clause_\<alpha> (x#l) = insert (lit_\<alpha> x) (clause_\<alpha> l)" 
-  unfolding clause_\<alpha>_def by auto
-lemma clause_\<alpha>_conc[simp]: "clause_\<alpha> (l1@l2) = clause_\<alpha> l1 \<union> clause_\<alpha> l2" 
-  unfolding clause_\<alpha>_def by auto
-
-definition "F_\<alpha> lst \<equiv> set (map clause_\<alpha> (tokenize litZ lst))"
-definition "F_invar lst \<equiv> lst\<noteq>[] \<longrightarrow> last lst = litZ"
-
-lemma F_\<alpha>_empty[simp]: "F_\<alpha> [] = {}" unfolding F_\<alpha>_def by auto
-    
-definition "lit_\<gamma> l \<equiv> case l of Pos l \<Rightarrow> int l | Neg l \<Rightarrow> - int l"
-
-lemma lit_\<gamma>_\<alpha>_inv[simp]: "lit_\<gamma> (lit_\<alpha> i) = i"
-  unfolding lit_\<gamma>_def lit_\<alpha>_def by auto
-
-lemma lit_\<alpha>_\<gamma>_inv[simp]: "lit_invar (lit_\<gamma> l) \<Longrightarrow> lit_\<alpha> (lit_\<gamma> l) = l"
-  unfolding lit_\<gamma>_def lit_\<alpha>_def lit_invar_def 
-  by (cases l) auto
-
-lemma map_lit_\<gamma>_\<alpha>_eq[simp]: "0\<notin>set l \<Longrightarrow> map (lit_\<gamma> \<circ> lit_\<alpha>) l = l"
-  by (induction l) auto
-
-lemma map_map_lit_\<gamma>_\<alpha>_eq[simp]: 
-  "0 \<notin> \<Union>set (map set l) \<Longrightarrow> map (map (lit_\<gamma> \<circ> lit_\<alpha>)) l = l"
-  by (induction l) auto  
-    
-lemma lit_invar_\<gamma>_iff[simp]: "lit_invar (lit_\<gamma> l) \<longleftrightarrow> var_of_lit l \<noteq> 0"
-  by (cases l) (auto simp: lit_invar_def lit_\<gamma>_def)
-  
-lemma var_of_lit_\<alpha>_Z_iff[simp]: "var_of_lit (lit_\<alpha> x) = 0 \<longleftrightarrow> x=0"  
-  unfolding var_of_lit_alt lit_\<alpha>_def by auto
-    
-    
 subsection \<open>Input Parser\<close>    
        
 locale input_pre =   
@@ -683,24 +636,89 @@ subsubsection \<open>Clause Map\<close>
   
   
 subsubsection \<open>Correctness\<close>  
-text \<open>We present two different correctness specifications, and show that they 
-  are equivalent.
-
-  In both cases, the input is specified by a list of integers @{term DB}, 
-  and an index @{term F_end}. The formula is contained in the list from 
-  index @{term 1} (inclusive) to index @{term F_end} exclusive.
-  (Index zero is not used for implementation reasons).
-
-  Literals are represented by integers as specified by @{term lit_\<alpha>} 
-  and @{term lit_\<gamma>}, zero is  not a valid literal.
-
-  Each clause of the formula is represented by a sequence of non-zero integers, 
-  terminated by a zero. The formula is simply the concatenation of all clause 
-  representations.
-
-  Both specifications express that @{term F_end} is in range.
+text \<open>
+  The input to the verified part of the checker is an array of integers @{term DB}
+  and an index @{term F_end}, such that the range from index @{term 1} (inclusive) 
+  to index @{term F_end} (exclusive) contains the formula in DIMACs format.
+  
+  The array is represented as a list here.
+  
+  We phrase an invariant that expressed a valid formula, and a characterization
+  whether the represented formula is satisfiable. 
 \<close>  
 
+definition "clause_DB_valid DB F_end \<equiv> 
+    1 \<le> F_end \<and> F_end \<le> length DB
+  \<and> F_invar (tl (take F_end DB))"
+
+definition "clause_DB_sat DB F_end \<equiv> sat (F_\<alpha> (tl (take F_end DB)))"
+
+definition "verify_sat_spec DB F_end 
+  \<equiv> clause_DB_valid DB F_end \<and> clause_DB_sat DB F_end"
+    
+definition "verify_unsat_spec DB F_end 
+  \<equiv> clause_DB_valid DB F_end \<and> \<not>clause_DB_sat DB F_end"
+  
+lemma "verify_sat_spec DB F_end \<longleftrightarrow> 1 \<le> F_end \<and> F_end \<le> length DB \<and>
+  (let lst = tl (take F_end DB) in F_invar lst \<and> sat (F_\<alpha> lst))"
+  unfolding verify_sat_spec_def clause_DB_valid_def clause_DB_sat_def Let_def
+  by auto
+  
+lemma "verify_unsat_spec DB F_end \<longleftrightarrow> 1 \<le> F_end \<and> F_end \<le> length DB \<and>
+  (let lst = tl (take F_end DB) in F_invar lst \<and> \<not>sat (F_\<alpha> lst))"
+  unfolding verify_unsat_spec_def clause_DB_valid_def clause_DB_sat_def Let_def
+  by auto
+
+text \<open>Concise version only using elementary list operations\<close>
+lemma clause_DB_valid_concise: "clause_DB_valid DB F_end \<equiv> 
+    1 \<le> F_end \<and> F_end \<le> length DB
+  \<and> (let lst=tl (take F_end DB) in lst \<noteq>[] \<longrightarrow> last lst = 0)"
+  apply (rule eq_reflection)
+  unfolding clause_DB_valid_def F_invar_def
+  by auto
+  
+lemma clause_DB_sat_concise:
+  "clause_DB_sat DB F_end \<equiv> \<exists>\<sigma>. assn_consistent \<sigma> 
+    \<and> (\<forall>C\<in>set ` set (tokenize 0 (tl (take F_end DB))). \<exists>l\<in>C. \<sigma> l)"
+  using clause_DB_sat_def
+  unfolding direct_sat_iff_sat[symmetric] direct_sat_def parse_direct_def
+  by auto
+
+
+text \<open>
+  The input describes a satisfiable formula, iff @{term F_end} is in range,
+  the described DIMACS string is empty or ends with zero,
+  and there exists a consistent assignment such that each clause contains a
+  literal assigned to true. 
+\<close>    
+lemma verify_sat_spec_concise:
+  shows "verify_sat_spec DB F_end \<equiv> 1\<le>F_end \<and> F_end \<le> length DB \<and> (
+    let lst = tl (take F_end DB) in 
+      (lst\<noteq>[] \<longrightarrow> last lst = 0)
+    \<and> (\<exists>\<sigma>. assn_consistent \<sigma> \<and> (\<forall>C\<in>set (tokenize 0 lst). \<exists>l\<in>set C. \<sigma> l)))"
+  unfolding verify_sat_spec_def clause_DB_sat_concise clause_DB_valid_concise
+  by (simp add: Let_def)
+
+text \<open>
+  The input describes an unsatisfiable formula, iff @{term F_end} is in range
+  and does not describe the empty DIMACS string, the DIMACS string ends 
+  with zero, and there exists no consistent assignment such that every clause
+  contains at least one literal assigned to true.
+\<close>    
+lemma verify_unsat_spec_concise:
+  "verify_unsat_spec DB F_end \<equiv> 1 < F_end \<and> F_end \<le> length DB \<and> (
+    let lst = tl (take F_end DB) in 
+       last lst = 0
+    \<and> (\<nexists>\<sigma>. assn_consistent \<sigma> \<and> (\<forall>C\<in>set (tokenize 0 lst). \<exists>l\<in>set C. \<sigma> l)))"
+  unfolding verify_unsat_spec_def clause_DB_sat_concise clause_DB_valid_concise
+  apply (rule eq_reflection)
+  apply (cases "F_end = 1")
+  apply (auto simp add: Let_def tl_take)
+  done
+  
+  
+  
+(*
 text \<open>The first specification uses the abstraction function @{const F_\<alpha>}, 
   which, in turn, uses @{const tokenize} to read the list as list of 
   zero-terminated lists.
@@ -783,6 +801,8 @@ text \<open>We also specify a correctness statement that uses only elementary
   concepts, in order to reduce the dependencies of the correctness statement.
 \<close>  
 
+(* TODO: Remove, when moved to DIMACS-Format *)
+
 type_synonym assn = "int \<Rightarrow> bool"
 definition assn_consistent :: "assn \<Rightarrow> bool" 
   where "assn_consistent \<sigma> = (\<forall>x. x\<noteq>0 \<longrightarrow> \<not> \<sigma> (-x) = \<sigma> x)"
@@ -844,5 +864,7 @@ lemma formula_unsat_spec_alt': "formula_unsat_spec DB F_end \<longleftrightarrow
   unfolding formula_unsat_spec_alt 
   unfolding alt_sat_def 
   by auto  
+  
+*)  
   
 end

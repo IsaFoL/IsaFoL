@@ -1051,6 +1051,7 @@ public:
   void parse_ignore_comments(istream &in);
 
   /** Parse a clause to the global clause database.
+   * @param in Input stream to read from
    * @param parse_append_raw Called with (in) to read and append a clause to clause db. @see parse_append_clause
    *
    */
@@ -1077,6 +1078,7 @@ private:
   void bin_parse_append_clause_raw(istream &in);
 
 public:
+  /// Parse DRAT file in binary format
   void bin_parse_proof(istream &in);
 
 

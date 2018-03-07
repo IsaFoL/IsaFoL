@@ -168,11 +168,39 @@ proof -
     using simple_clss_size_upper_div2[of \<open>C\<close>] \<open>\<not>tautology C\<close> by auto
 qed
 
-type_synonym (in -) lookup_clause_assn = \<open>uint32 \<times> bool option array\<close>
+type_synonym (in -) lookup_clause_assn = \<open>uint32 \<times> bool array\<close>
+
+definition (in -) option_bool_rel :: \<open>(bool \<times> 'a option) set\<close> where
+  \<open>option_bool_rel = {(b, x). b \<longleftrightarrow> \<not>(is_None x)}\<close>
+
+abbreviation (in -) option_bool_assn where
+  \<open>option_bool_assn \<equiv>  pure option_bool_rel\<close>
+
+
+definition (in -)NOTIN :: \<open>bool option\<close> where
+  [simp]: \<open>NOTIN = None\<close>
+
+definition (in -)ISIN :: \<open>bool \<Rightarrow> bool option\<close> where
+  [simp]: \<open>ISIN b = Some b\<close>
+
+definition (in -)is_NOTIN :: \<open>bool option \<Rightarrow> bool\<close> where
+  [simp]: \<open>is_NOTIN x \<longleftrightarrow> x = NOTIN\<close>
+
+lemma (in -)NOTIN_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return False), uncurry0 (RETURN NOTIN)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a option_bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: NOTIN_def option_bool_rel_def)
+
+lemma (in -)POSIN_hnr[sepref_fr_rules]:
+  \<open>(return o (\<lambda>_. True), RETURN o ISIN) \<in> bool_assn\<^sup>k \<rightarrow>\<^sub>a option_bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: ISIN_def option_bool_rel_def)
+
+lemma (in -)is_NOTIN_hnr[sepref_fr_rules]:
+  \<open>(return o Not, RETURN o is_NOTIN) \<in> option_bool_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: is_NOTIN_def option_bool_rel_def split: option.splits)
 
 definition lookup_clause_assn :: \<open>nat clause \<Rightarrow> lookup_clause_assn \<Rightarrow> assn\<close> where
 \<open>lookup_clause_assn =
-   hr_comp (uint32_nat_assn *a array_assn (option_assn bool_assn)) lookup_clause_rel\<close>
+   hr_comp (uint32_nat_assn *a array_assn option_bool_assn) lookup_clause_rel\<close>
 
 definition option_lookup_clause_rel where
 \<open>option_lookup_clause_rel = {((b,(n,xs)), C). b = (C = None) \<and>
@@ -186,12 +214,12 @@ lemma option_lookup_clause_rel_lookup_clause_rel_iff:
    unfolding option_lookup_clause_rel_def by auto
 
 
-type_synonym (in -) option_lookup_clause_assn = \<open>bool \<times> uint32 \<times> bool option array\<close>
+type_synonym (in -) option_lookup_clause_assn = \<open>bool \<times> uint32 \<times> bool array\<close>
 
 abbreviation (in -) lookup_clause_rel_assn
   :: \<open>lookup_clause_rel \<Rightarrow> lookup_clause_assn \<Rightarrow> assn\<close>
 where
- \<open>lookup_clause_rel_assn \<equiv> (uint32_nat_assn *a array_assn (option_assn bool_assn))\<close>
+ \<open>lookup_clause_rel_assn \<equiv> (uint32_nat_assn *a array_assn option_bool_assn)\<close>
 
 type_synonym (in -) conflict_option_rel = \<open>bool \<times> nat \<times> bool option list\<close>
 
@@ -204,7 +232,7 @@ definition option_lookup_clause_assn
   :: \<open>nat clause option \<Rightarrow> option_lookup_clause_assn \<Rightarrow> assn\<close>
 where
   \<open>option_lookup_clause_assn =
-     hr_comp (bool_assn *a uint32_nat_assn *a array_assn (option_assn bool_assn))
+     hr_comp (bool_assn *a uint32_nat_assn *a array_assn option_bool_assn)
        option_lookup_clause_rel\<close>
 
 definition (in -) lookup_clause_assn_is_None :: \<open>_ \<Rightarrow> bool\<close> where
@@ -310,6 +338,10 @@ next
     using add by (auto simp: list_update_append)
 qed
 
+lemma option_bool_assn_is_None[sepref_fr_rules]:
+  \<open>(return o Not, RETURN o is_None) \<in> option_bool_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare
+     (sep_auto simp: option_bool_rel_def hr_comp_def)
 
 context isasat_input_bounded
 begin
@@ -375,7 +407,7 @@ definition (in -) delete_from_lookup_conflict
 sepref_definition (in -) delete_from_lookup_conflict_code
   is \<open>uncurry delete_from_lookup_conflict\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d \<rightarrow>\<^sub>a lookup_clause_rel_assn\<close>
-  unfolding delete_from_lookup_conflict_def
+  unfolding delete_from_lookup_conflict_def NOTIN_def[symmetric]
   by sepref
 
 
@@ -429,8 +461,8 @@ where
        out_learned M C outl)\<close>
 
 definition add_to_lookup_conflict :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel\<close> where
-  \<open>add_to_lookup_conflict = (\<lambda>L (n, xs). (if xs ! atm_of L = None then n + 1 else n,
-      xs[atm_of L := Some (is_pos L)]))\<close>
+  \<open>add_to_lookup_conflict = (\<lambda>L (n, xs). (if xs ! atm_of L = NOTIN then n + 1 else n,
+      xs[atm_of L := ISIN (is_pos L)]))\<close>
 
 
 definition lookup_conflict_merge'_step
@@ -632,6 +664,7 @@ sepref_thm resolve_lookup_conflict_merge_code
     isasat_codegen
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
+    is_NOTIN_def[symmetric]
   apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
   supply [[goals_limit = 1]]
   by sepref
@@ -665,6 +698,7 @@ sepref_thm set_lookup_conflict_aa_code
     isasat_codegen
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
+    is_NOTIN_def[symmetric]
   apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
   supply [[goals_limit = 1]]
   by sepref
@@ -677,50 +711,6 @@ prepare_code_thms (in -) set_lookup_conflict_aa_code_def
 
 lemmas set_lookup_conflict_aa_code[sepref_fr_rules] =
    set_lookup_conflict_aa_code.refine[OF isasat_input_bounded_axioms]
-
-
-(* TODO Move *)
-lemma (in -)distinct_in_set_take_iff:
-  \<open>distinct D \<Longrightarrow>
-    b < length D \<Longrightarrow>
-    D ! b \<in> set (take a D) \<longleftrightarrow> b < a\<close>
-  apply (induction a arbitrary: b)
-  subgoal by simp
-  subgoal for a
-    by (cases \<open>Suc a < length D\<close>)
-      (auto simp: take_Suc_conv_app_nth nth_eq_iff_index_eq)
-  done
-
-lemma (in -)in_set_conv_iff:
-  \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>i < n. i < length xs \<and> xs ! i = x)\<close>
-   apply (induction n)
-  subgoal by auto
-  subgoal for n
-    apply (cases \<open>Suc n < length xs\<close>)
-    subgoal by (auto simp: take_Suc_conv_app_nth less_Suc_eq dest: in_set_takeD)
-    subgoal
-    apply (cases \<open>n < length xs\<close>)
-      apply (auto simp: take_Suc_conv_app_nth dest: in_set_takeD)
-      using less_Suc_eq apply auto[1]
-      apply (meson in_set_conv_nth less_trans_Suc not_less_eq)
-      by (meson Suc_lessD less_trans_Suc not_less_eq)
-    done
-  done
-
-lemma (in -) in_set_distinct_take_drop_iff:
-  assumes
-    \<open>distinct D\<close> and
-    \<open>b < length D\<close>
-  shows \<open>D ! b \<in> set (take (a - init) (drop init D)) \<longleftrightarrow> (init \<le> b \<and> b < a)\<close>
-  using assms apply (auto 5 5 simp: distinct_in_set_take_iff in_set_conv_iff
-      in_set_drop_conv_nth nth_eq_iff_index_eq dest: in_set_takeD)
-  by (metis add_diff_cancel_left' diff_less_mono le_iff_add less_imp_le_nat nth_drop)
-
-
-lemma (in -)is_neg_neg_not_is_neg: "is_neg (- L) \<longleftrightarrow> \<not> is_neg L"
-  by (cases L) auto
-
-(* End Move *)
 
 lemma lookup_conflict_merge'_spec:
   assumes
@@ -1243,15 +1233,16 @@ lemma is_in_lookup_option_conflict_is_in_conflict:
     by (auto simp: is_in_lookup_option_conflict_def is_in_conflict_def option_lookup_clause_rel_def)
   done
 
-sepref_definition (in -) is_in_lookup_option_conflict_code
+(* TODO not needed?
+)sepref_definition (in -) is_in_lookup_option_conflict_code
   is \<open>uncurry (RETURN oo is_in_lookup_option_conflict)\<close>
   :: \<open>[\<lambda>(L, (b, n, xs)). atm_of L < length xs]\<^sub>a
         unat_lit_assn\<^sup>k *\<^sub>a (bool_assn *a lookup_clause_rel_assn)\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding is_in_lookup_option_conflict_def
+  unfolding is_in_lookup_option_conflict_def ISIN_def[symmetric]
   by sepref
+*)
 
-
-lemma is_in_lookup_option_conflict_code_is_in_conflict[sepref_fr_rules]:
+(*lemma is_in_lookup_option_conflict_code_is_in_conflict[sepref_fr_rules]:
   \<open>(uncurry is_in_lookup_option_conflict_code,
      uncurry (RETURN oo is_in_conflict)) \<in>
     [\<lambda>(L, C). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and> C \<noteq> None]\<^sub>a
@@ -1284,7 +1275,7 @@ proof -
     using H unfolding im f PR_CONST_def apply assumption
     using pre ..
 qed
-
+*)
 end
 
 definition conflict_from_lookup where
@@ -2533,6 +2524,7 @@ lemma lookup_conflict_size_hnr[sepref_fr_rules]:
   \<open>(return o fst, RETURN o lookup_conflict_size) \<in> lookup_clause_rel_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare sep_auto
 
+(* TODO Kill
 sepref_definition (in -)lookup_conflict_nth_code
   is \<open>uncurry (RETURN oo lookup_conflict_nth)\<close>
   :: \<open>[\<lambda>((n, xs), i). i < length xs]\<^sub>a
@@ -2541,12 +2533,12 @@ sepref_definition (in -)lookup_conflict_nth_code
   by sepref
 
 declare lookup_conflict_nth_code.refine[sepref_fr_rules]
-
+*)
 lemma single_replicate: \<open>[C] = op_list_append [] C\<close>
   by auto
 
 lemma (in -) lookup_conflict_upd_None_RETURN_def:
-  \<open>RETURN oo lookup_conflict_upd_None = (\<lambda>(n, xs) i. RETURN (n- one_uint32_nat, xs [i :=None]))\<close>
+  \<open>RETURN oo lookup_conflict_upd_None = (\<lambda>(n, xs) i. RETURN (n- one_uint32_nat, xs [i := NOTIN]))\<close>
   by (auto intro!: ext)
 
 sepref_definition (in -)lookup_conflict_upd_None_code

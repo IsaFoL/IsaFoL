@@ -37,12 +37,6 @@ paragraph \<open>Statistics\<close>
 
 type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64\<close>
 
-abbreviation uint64_rel :: \<open>(uint64 \<times> uint64) set\<close> where
-  \<open>uint64_rel \<equiv> Id\<close>
-
-abbreviation uint64_assn :: \<open>uint64 \<Rightarrow> uint64 \<Rightarrow> assn\<close>where
-  \<open>uint64_assn \<equiv> id_assn\<close>
-
 abbreviation stats_assn where
   \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn\<close>
 
@@ -246,35 +240,6 @@ prepare_code_thms (in -) get_conflict_wl_is_None_code_def
 lemmas get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
    get_conflict_wl_is_None_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-definition (in isasat_input_ops) get_conflict_wl_is_Nil_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_Nil_heur S \<longleftrightarrow> get_conflict_wl_heur S = Some {#}\<close>
-
-lemma  (in isasat_input_ops) get_conflict_wll_is_Nil_heur_alt_def:
-  \<open>RETURN o get_conflict_wl_is_Nil_heur = (\<lambda>(M, N, D, NE, UE, Q, W).
-   do {
-     if is_None D
-     then RETURN False
-     else do{ ASSERT(D \<noteq> None); RETURN (the_is_empty D)}
-   })\<close>
-  unfolding get_conflict_wl_is_Nil_heur_def the_is_empty_def
-  by (auto intro!: ext split: option.splits simp: Multiset.is_empty_def)
-
-sepref_thm get_conflict_wl_is_Nil_code
-  is \<open>RETURN o get_conflict_wl_is_Nil_heur\<close>
-  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding get_conflict_wll_is_Nil_heur_alt_def isasat_assn_def
-  supply [[goals_limit=1]]
-  by sepref
-
-concrete_definition (in -) get_conflict_wl_is_Nil_code
-   uses isasat_input_bounded.get_conflict_wl_is_Nil_code.refine_raw
-   is \<open>(?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) get_conflict_wl_is_Nil_code_def
-
-lemmas get_conflict_wl_is_Nil_code_refine[sepref_fr_rules] =
-   get_conflict_wl_is_Nil_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
 definition (in isasat_input_ops) count_decided_st where
   \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
 
@@ -307,42 +272,21 @@ lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_t
 definition (in -) is_in_conflict_st :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>is_in_conflict_st L S \<longleftrightarrow> is_in_conflict L (get_conflict_wl S)\<close>
 
-definition (in isasat_input_ops) literal_is_in_conflict_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>literal_is_in_conflict_heur L S \<longleftrightarrow> L \<in># the (get_conflict_wl_heur S)\<close>
+definition (in isasat_input_ops) atm_is_in_conflict_st_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>atm_is_in_conflict_st_heur L S \<longleftrightarrow> atm_of L \<in> atms_of (the (get_conflict_wl_heur S))\<close>
 
-lemma literal_is_in_conflict_heur_alt_def:
-  \<open>literal_is_in_conflict_heur = (\<lambda>L (M, N, D, _). L \<in># the D)\<close>
-  unfolding literal_is_in_conflict_heur_def by (auto intro!: ext)
+lemma atm_is_in_conflict_st_heur_alt_def:
+  \<open>atm_is_in_conflict_st_heur = (\<lambda>L (M, N, D, _). atm_of L \<in> atms_of (the D))\<close>
+  unfolding atm_is_in_conflict_st_heur_def by (auto intro!: ext)
 
-lemma literal_is_in_conflict_heur_is_in_conflict_st:
-  \<open>(uncurry (RETURN oo literal_is_in_conflict_heur), uncurry (RETURN oo is_in_conflict_st)) \<in>
-   Id \<times>\<^sub>r twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+lemma atm_is_in_conflict_st_heur_is_in_conflict_st:
+  \<open>(uncurry (RETURN oo atm_is_in_conflict_st_heur), uncurry (RETURN oo is_in_conflict_st)) \<in>
+   [\<lambda>(L, S). -L \<notin># the (get_conflict_wl S)]\<^sub>f
+   Id \<times>\<^sub>r twl_st_heur \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (case_tac x, case_tac y)
-  by (auto simp: literal_is_in_conflict_heur_def is_in_conflict_st_def twl_st_heur_def)
-
-definition (in isasat_input_ops) literal_is_in_conflict_heur_pre where
-  \<open>literal_is_in_conflict_heur_pre =
-    (\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and>
-        get_conflict_wl_heur S \<noteq> None)\<close>
-
-sepref_thm literal_is_in_conflict_heur_code
-  is \<open>uncurry (RETURN oo literal_is_in_conflict_heur)\<close>
-  :: \<open>[literal_is_in_conflict_heur_pre]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>k  \<rightarrow> bool_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding literal_is_in_conflict_heur_alt_def isasat_assn_def is_in_conflict_def[symmetric]
-  PR_CONST_def literal_is_in_conflict_heur_pre_def
-  by sepref
-
-concrete_definition (in -) literal_is_in_conflict_heur_code
-   uses isasat_input_bounded.literal_is_in_conflict_heur_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) literal_is_in_conflict_heur_code_def
-
-lemmas literal_is_in_conflict_heur_code_refine[sepref_fr_rules] =
-   literal_is_in_conflict_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+  by (auto simp: atm_is_in_conflict_st_heur_def is_in_conflict_st_def twl_st_heur_def
+      atms_of_def atm_of_eq_atm_of)
 
 definition (in isasat_input_ops) polarity_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option\<close> where
   \<open>polarity_st_heur S = polarity (get_trail_wl_heur S)\<close>
@@ -374,63 +318,5 @@ end
 
 abbreviation (in -) nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
-
-
-definition (in -)get_conflict_wl_heur_is_Nil :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_heur_is_Nil = (\<lambda>(M, N, D, NE, UE, Q, W). D \<noteq> None \<and> Multiset.is_empty (the D))\<close>
-
-lemma get_conflict_wl_heur_is_Nil_alt_def:
-  \<open>get_conflict_wl_heur_is_Nil S \<longleftrightarrow> get_conflict_wl_heur S = Some {#}\<close>
-  by (cases S) (auto simp: get_conflict_wl_heur_is_Nil_def Multiset.is_empty_def)
-
-
-definition get_conflict_wll_is_Nil_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool nres\<close> where
-  \<open>get_conflict_wll_is_Nil_heur = (\<lambda>(M, N, D, Q, W, _).
-   do {
-     if is_None D
-     then RETURN False
-     else do{ ASSERT(D \<noteq> None); RETURN (Multiset.is_empty (the D))}
-   })\<close>
-
-lemma get_conflict_wl_heur_is_Nil_get_conflict_wll_is_Nil_heur:
-  \<open>RETURN o get_conflict_wl_heur_is_Nil = get_conflict_wll_is_Nil_heur\<close>
-  by (auto intro!: ext simp: get_conflict_wl_heur_is_Nil_def get_conflict_wll_is_Nil_heur_def
-      split: if_splits option.splits)
-
-context isasat_input_ops
-begin
-
-lemma get_conflict_wll_is_Nil_heur_get_conflict_wll_is_Nil:
-  \<open>(PR_CONST get_conflict_wll_is_Nil_heur, get_conflict_wll_is_Nil) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  apply (rename_tac x y, case_tac x, case_tac y)
-  by (auto simp: get_conflict_wll_is_Nil_heur_def get_conflict_wll_is_Nil_def twl_st_heur_def
-      split: option.splits)
-
-
-sepref_thm get_conflict_wll_is_Nil_code
-  is \<open>(PR_CONST get_conflict_wll_is_Nil_heur)\<close>
-  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply [[goals_limit=1]]
-  apply (subst PR_CONST_def)
-  unfolding get_conflict_wll_is_Nil_heur_def isasat_assn_def
-    short_circuit_conv the_is_empty_def[symmetric]
-  by sepref
-
-concrete_definition (in -) get_conflict_wll_is_Nil_code
-   uses isasat_input_ops.get_conflict_wll_is_Nil_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) get_conflict_wll_is_Nil_code_def
-
-lemmas get_conflict_wll_is_Nil_code[sepref_fr_rules] =
-  get_conflict_wll_is_Nil_code.refine[of \<A>\<^sub>i\<^sub>n]
-
-lemma [sepref_fr_rules]: \<open>(get_conflict_wll_is_Nil_code, RETURN \<circ> get_conflict_wl_heur_is_Nil)
-\<in> isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using get_conflict_wll_is_Nil_code[unfolded PR_CONST_def
-    get_conflict_wl_heur_is_Nil_get_conflict_wll_is_Nil_heur[symmetric]]
-  .
-end
 
 end

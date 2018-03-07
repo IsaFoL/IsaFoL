@@ -520,6 +520,18 @@ lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_atm_of:
   subgoal by (fastforce simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def lits_of_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
   done
 
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_poss_remdups_mset:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (poss (remdups_mset (atm_of `# C))) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n C\<close>
+  by (induction C)
+    (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atm_of_eq_atm_of
+      dest!: multi_member_split)
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_negs_remdups_mset:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (negs (remdups_mset (atm_of `# C))) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n C\<close>
+  by (induction C)
+    (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atm_of_eq_atm_of
+      dest!: multi_member_split)
+
 end
 
 
@@ -658,17 +670,43 @@ proof -
     unfolding card[symmetric] size .
 qed
 
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_poss_remdups_mset:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (poss (remdups_mset (atm_of `# C))) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n C\<close>
-  by (induction C)
-    (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atm_of_eq_atm_of
-      dest!: multi_member_split)
+lemma clss_size_uint_max:
+  assumes
+   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
+   dist: \<open>distinct_mset C\<close>
+  shows \<open>size C \<le> uint_max + 2\<close>
+proof -
+  let ?posC = \<open>filter_mset is_pos C\<close>
+  let ?negC = \<open>filter_mset is_neg C\<close>
+  have C: \<open>C = ?posC + ?negC\<close>
+    apply (subst multiset_partition[of _ is_pos])
+    by auto
+  have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n ?posC\<close>
+    by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF lits]) auto
+  moreover have \<open>distinct_mset ?posC\<close>
+    by (rule distinct_mset_mono[OF _dist]) auto
+  ultimately have pos: \<open>size ?posC \<le> 1 + uint_max div 2\<close>
+    by (rule simple_clss_size_upper_div2) (auto simp: tautology_decomp)
 
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_negs_remdups_mset:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (negs (remdups_mset (atm_of `# C))) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n C\<close>
-  by (induction C)
-    (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atm_of_eq_atm_of
-      dest!: multi_member_split)
+  have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n ?negC\<close>
+    by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF lits]) auto
+  moreover have \<open>distinct_mset ?negC\<close>
+    by (rule distinct_mset_mono[OF _dist]) auto
+  ultimately have neg: \<open>size ?negC \<le> 1 + uint_max div 2\<close>
+    by (rule simple_clss_size_upper_div2) (auto simp: tautology_decomp)
+
+  show ?thesis
+    apply (subst C)
+    apply (subst size_union)
+    using pos neg by linarith
+qed
+
+lemma clss_size_uint64_max:
+  assumes
+   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
+   dist: \<open>distinct_mset C\<close>
+ shows \<open>size C < uint64_max\<close>
+  using clss_size_uint_max[OF assms] by (auto simp: uint32_max_def uint64_max_def)
 
 lemma clss_size_upper:
   assumes
@@ -714,7 +752,7 @@ definition (in isasat_input_ops) unit_prop_body_wl_D_inv where
     unit_prop_body_wl_inv T' i L \<and> literals_are_\<L>\<^sub>i\<^sub>n T' \<and> L \<in> snd ` D\<^sub>0
   \<close>
 
-text \<open>:
+text \<open>
   \<^item> should be the definition of \<^term>\<open>unit_prop_body_wl_find_unwatched_inv\<close>.
   \<^item> the distinctiveness should probably be only a property, not a part of the definition.
 \<close>
@@ -751,24 +789,6 @@ where
    }\<close>
 
 declare Id_refine[refine_vcg del] refine0(5)[refine_vcg del]
-
-lemma (in -) mset_tl_update_swap:
-  \<open>i < length xs \<Longrightarrow> j < length (xs ! i) \<Longrightarrow> k < length (xs ! i) \<Longrightarrow>
-  mset `# mset (tl (xs [i := swap (xs ! i) j k])) = mset `# mset (tl xs)\<close>
-  apply (cases i)
-  subgoal by (cases xs) auto
-  subgoal by (auto simp: tl_update_swap mset_update nth_tl image_mset_remove1_mset_if
-      nth_in_set_tl)
-  done
-
-text \<open>TODO Move\<close>
-lemma (in -)[twl_st_l]:
-  \<open>get_unit_learned_clauses_l (set_clauses_to_update_l Cs S) = get_unit_learned_clauses_l S\<close>
-  by (cases S) auto
-lemma (in -)[twl_st_l]:
-  \<open>get_unit_learned_clauses_l (remove_one_lit_from_wq L S) = get_unit_learned_clauses_l S\<close>
-  by (cases S) auto
-text \<open>END Move\<close>
 
 lemma unit_prop_body_wl_D_inv_clauses_distinct_eq:
   assumes
@@ -1029,7 +1049,9 @@ definition (in isasat_input_ops)  unit_propagation_outer_loop_wl_D_inv where
     unit_propagation_outer_loop_wl_inv S \<and>
     literals_are_\<L>\<^sub>i\<^sub>n S\<close>
 
-definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D
+   :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
+where
   \<open>unit_propagation_outer_loop_wl_D S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>unit_propagation_outer_loop_wl_D_inv\<^esup>
       (\<lambda>S. literals_to_update_wl S \<noteq> {#})
@@ -1162,7 +1184,9 @@ definition find_lit_of_max_level_wl' :: \<open>_ \<Rightarrow> _ \<Rightarrow> _
   \<open>find_lit_of_max_level_wl' M N D NE UE Q W L =
      find_lit_of_max_level_wl (M, N, Some D, NE, UE, Q, W) L\<close>
 
-definition (in -) list_of_mset2 :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause \<Rightarrow> nat clause_l nres\<close> where
+definition (in -) list_of_mset2
+  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause \<Rightarrow> nat clause_l nres\<close>
+where
   \<open>list_of_mset2 L L' D =
     SPEC (\<lambda>E. mset E = D \<and> E!0 = L \<and> E!1 = L' \<and> length E \<ge> 2)\<close>
 
@@ -1182,7 +1206,9 @@ where
           None, NE, UE, {#L#}, W(-L:= W (-L) @ [i], L':= W L' @ [i]))
       })\<close>
 
-definition (in isasat_input_ops) propagate_unit_bt_wl_D :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close> where
+definition (in isasat_input_ops) propagate_unit_bt_wl_D
+  :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
+where
   \<open>propagate_unit_bt_wl_D = (\<lambda>L (M, N, D, NE, UE, Q, W). do {
         D' \<leftarrow> single_of_mset (the D);
         RETURN (Propagated (-L) 0 # M, N, None, NE, add_mset {#D'#} UE, {#L#}, W)

@@ -4,7 +4,7 @@ Distribution of GRATchk with complete Isabelle/HOL formalization.
 
 ## Prerequisites
   * Working installation of [Isabelle/HOL](https://isabelle.in.tum.de) with the [Archive of Formal Proofs](https://www.isa-afp.org) installed 
-    as [component](https://www.isa-afp.org/using.shtml). We require version = Isabelle-2016-1, which, at the time of writing, is the current version.
+    as [component](https://www.isa-afp.org/using.shtml). We require version = Isabelle-2017, which, at the time of writing, is the current version.
   * To compile the actual executable GRATchk: An [MLton](http://mlton.org/) compiler version >= 20100608.
 
 ## Building

@@ -7,7 +7,7 @@ session Grat_Check_Base = Sepref_IICF +
     Synth_Definition 
     Dynamic_Array 
     Array_Map_Default 
-    Parser_Iterator_New
+    Parser_Iterator
     
 session Grat_Check = Grat_Check_Base +
   options [document = pdf, document_output = "output",
@@ -18,9 +18,10 @@ session Grat_Check = Grat_Check_Base +
     Grat_Basic
     
   theories [document = false]
-    Unsat_Check
+    Unsat_Check        (* TODO: Discontinue? *)
+    Unsat_Check_Split  (* TODO: Discontinue *)
   theories
-    Unsat_Check_Split
+    Unsat_Check_Split_MM
     Sat_Check
     Grat_Check_Code_Exporter
     

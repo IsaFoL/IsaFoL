@@ -22,7 +22,7 @@ check:
 snippets/snippets.out.tex: snippets/snippets.tex massage_snippets.sed
 	sed -rf massage_snippets.sed snippets/snippets.tex > snippets/snippets.out.tex
 
-$(TEX).pdf: *.tex snippets/snippets.out.tex *.bib
+$(TEX).pdf: *.tex snippets/snippets.out.tex *.bib *.data
 	latexmk -pdf $(TEX).tex; err=$$?; egrep --color -i 'error|warning|overfull|underfull|undef|^l\.[0-9]' $(TEX).log; grep --color=never "Output written" $(TEX).log; exit $$err
 
 clean:

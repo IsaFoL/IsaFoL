@@ -170,6 +170,14 @@ lemma [twl_st_l]:
   \<open>get_trail_l (remove_one_lit_from_wq L S) = get_trail_l S\<close>
   by (cases S; auto; fail)+
 
+lemma [twl_st_l]:
+  \<open>get_unit_learned_clauses_l (set_clauses_to_update_l Cs S) = get_unit_learned_clauses_l S\<close>
+  by (cases S) auto
+
+lemma [twl_st_l]:
+  \<open>get_unit_learned_clauses_l (remove_one_lit_from_wq L S) = get_unit_learned_clauses_l S\<close>
+  by (cases S) auto
+
 declare twl_st_l[simp]
 
 text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<close>.\<close>

@@ -1,6 +1,6 @@
 section \<open>Iterators and Simple Parsers\<close>
-theory Parser_Iterator_New
-imports IICF Array_Map_Default Exc_Nres_Monad
+theory Parser_Iterator
+imports IICF Array_Map_Default Exc_Nres_Monad Dimacs_Format
 begin
   text \<open>
     This theory provides a notion of iterator, and 
@@ -310,6 +310,7 @@ hide_const Word.slice
   end  
     
   subsection \<open>Tokenization\<close>  
+  (*
   text \<open>We first define a function that joins a list of lists, 
     terminating each sublist by a zero.\<close>
   primrec concat_sep :: "'a \<Rightarrow> 'a list list \<Rightarrow> 'a list" where
@@ -416,7 +417,8 @@ hide_const Word.slice
   lemma tokenize_concat_id: 
     "\<lbrakk> Z \<notin> \<Union>set (map set ls) \<rbrakk> \<Longrightarrow> tokenize Z (concat_sep Z ls) = ls"
     by (induction ls) (auto simp: tokenize_NZZ)  
-
+  *)
+  
   subsubsection \<open>Simple Parser\<close>    
   text \<open>The parsing algorithm succeeds iff the input is non-empty and ends 
     with a zero. In case of success, it returns the tokenization of the input\<close>  
