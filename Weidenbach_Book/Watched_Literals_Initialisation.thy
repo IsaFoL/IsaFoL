@@ -290,6 +290,8 @@ definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<R
 definition init_dt :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init nres\<close> where
   \<open>init_dt CS S = nfoldli CS (\<lambda>_. True) init_dt_step S\<close>
 
+thm nfoldli.simps
+
 definition   init_dt_pre where
   \<open>init_dt_pre CS SOC \<longleftrightarrow>
     (\<exists>T. (SOC, T) \<in> twl_st_l_init \<and>
