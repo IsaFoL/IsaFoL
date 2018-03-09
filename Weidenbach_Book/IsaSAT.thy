@@ -388,7 +388,7 @@ definition length_aa_u_code' where
   [symmetric, code]: \<open>length_aa_u_code' = length_aa_u_code\<close>
 
 code_printing constant length_aa_u_code' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ (fst (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
+   "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
 
 term delete_index_and_swap_code
 term nth_raa_i_u64
@@ -397,13 +397,15 @@ definition nth_raa_i_u64' where
   [symmetric, code]: \<open>nth_raa_i_u64' = nth_raa_i_u64\<close>
 
 code_printing constant nth_raa_i_u64' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Array.sub (Array.sub/ (fst (_),/ IntInf.toInt (integer'_of'_nat (_))), Uint64.toFixedInt (_)))"
+   "(fn/ ()/ =>/ Array.sub (Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ IntInf.toInt (integer'_of'_nat (_))), Uint64.toFixedInt (_)))"
 
 definition length_u64_code' where
-  [symmetric, code]: \<open>length_u64_code' = length_u64_code\<close> 
+  [symmetric, code]: \<open>length_u64_code' = length_u64_code\<close>
 
 code_printing constant length_u64_code' \<rightharpoonup> (SML_imp)
    "(fn/ ()/ =>/ Uint64.fromFixedInt (Array.length (_)))"
+
+code_printing constant arl_get_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ Word32.toInt (_)))"
 
 (* This equation makes no sense since a resizable array is represent by an array and an infinite
  integer: There is no obvious shortcut.
@@ -415,7 +417,7 @@ code_printing constant length_arl_u_code' \<rightharpoonup> (SML_imp)
 definition arl_get_u64' where
   [symmetric, code]: \<open>arl_get_u64' = arl_get_u64\<close>
 
-code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ (fst (_),/ Uint64.toFixedInt (_)))"
+code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Uint64.toFixedInt (_)))"
 
 term nth_u_code
 term nth_u64_code
