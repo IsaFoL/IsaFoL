@@ -147,7 +147,7 @@ definition (in -)convert_state where
 
 lemma (in -) convert_state_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
-   \<in> [\<lambda>(N, S). N = \<A>\<^sub>i\<^sub>n \<and> N = \<A>\<^sub>i\<^sub>n']\<^sub>a 
+   \<in> [\<lambda>(N, S). N = \<A>\<^sub>i\<^sub>n \<and> N = \<A>\<^sub>i\<^sub>n']\<^sub>a
      virtual_copy_assn\<^sup>k *\<^sub>a (isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
      isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n'\<close>
   by sepref_to_hoare (sep_auto simp: convert_state_def)
@@ -298,7 +298,7 @@ sepref_definition IsaSAT_code
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
   apply sepref_dbg_keep
       apply sepref_dbg_trans_keep
-              apply sepref_dbg_trans_step_keep  
+              apply sepref_dbg_trans_step_keep
               apply (rule refl)
   apply sepref_dbg_trans_step_keep
   apply sepref_dbg_trans_step_keep
@@ -375,7 +375,7 @@ definition heap_array_set'_u64' where
   [symmetric, code]: \<open>heap_array_set'_u64' = heap_array_set'_u64\<close>
 
 code_printing constant heap_array_set'_u64' \<rightharpoonup>
-   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word64.toInt (_)),/ (_)))" 
+   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word64.toInt (_)),/ (_)))"
 
 code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
 
@@ -1102,7 +1102,7 @@ qed
 
 
 lemma [simp]:
-  \<open>(Tb, from_init_state Ta) \<in> isasat_input_ops.twl_st_heur_init_wl A \<Longrightarrow> 
+  \<open>(Tb, from_init_state Ta) \<in> isasat_input_ops.twl_st_heur_init_wl A \<Longrightarrow>
      get_conflict_wl_is_None_init (from_init_state Ta) = get_conflict_wl_is_None_heur_init Tb\<close>
   by (auto simp: isasat_input_ops.twl_st_heur_init_wl_def from_init_state_def
       get_conflict_wl_is_None_init_def get_conflict_wl_is_None_heur_init_def
@@ -1220,7 +1220,7 @@ proof -
     subgoal by auto
     apply assumption
                    apply (assumption)+
-    subgoal for CS CS' S S' 
+    subgoal for CS CS' S S'
       by simp
     subgoal
         by (auto simp: empty_init_code_def)
