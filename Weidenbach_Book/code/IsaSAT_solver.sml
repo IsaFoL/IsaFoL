@@ -38,9 +38,10 @@ structure Uint64 : sig
   val one : uint64;
   val fromInt : IntInf.int -> uint64;
   val toInt : uint64 -> IntInf.int;
-  val toNormalInt : uint64 -> Int.int;
+  val toFixedInt : uint64 -> Int.int;
   val toLarge : uint64 -> LargeWord.word;
   val fromLarge : LargeWord.word -> uint64
+  val fromFixedInt : Int.int -> uint64
   val plus : uint64 -> uint64 -> uint64;
   val minus : uint64 -> uint64 -> uint64;
   val times : uint64 -> uint64 -> uint64;
@@ -70,9 +71,11 @@ fun fromInt x = Word64.fromLargeInt (IntInf.toLarge x);
 
 fun toInt x = IntInf.fromLarge (Word64.toLargeInt x);
 
-fun toNormalInt x = Word64.toInt x;
+fun toFixedInt x = Word64.toInt x;
 
 fun fromLarge x = Word64.fromLarge x;
+
+fun fromFixedInt x = Word64.fromInt x;
 
 fun toLarge x = Word64.toLarge x;
 
@@ -1002,7 +1005,7 @@ fun select_and_remove_from_literals_to_update_wl_code x =
 fun nth_raa_i_u64 A_ =
   (fn a => fn b => fn c =>
     (fn () => Array.sub (Array.sub (fst a,
-      IntInf.toInt (integer_of_nat b)), Uint64.toNormalInt c)));
+      IntInf.toInt (integer_of_nat b)), Uint64.toFixedInt c)));
 
 fun access_lit_in_clauses_heur_code x =
   (fn ai => fn bia => fn bi => let
@@ -1024,19 +1027,8 @@ fun is_None a = (case a of NONE => true | SOME _ => false);
 val sET_TRUE_code : Word32.word =
   Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int));
 
-fun int_of_nat n = Int_of_integer (integer_of_nat n);
-
-fun integer_of_int (Int_of_integer k) = k;
-
-fun uint64_of_int i = Uint64.fromInt (integer_of_int i);
-
-fun uint64_of_nat x = (uint64_of_int o int_of_nat) x;
-
-fun length_u64_code A_ c = (fn () => let
-                                       val n = len A_ c ();
-                                     in
-                                       uint64_of_nat n
-                                     end);
+fun length_u64_code A_ =
+  (fn a => (fn () => Uint64.fromFixedInt (Array.length a)));
 
 fun arl_get A_ = (fn (a, _) => nth A_ a);
 
@@ -1125,6 +1117,10 @@ fun arl_append (A1_, A2_) =
              end)
         ()
     end);
+
+fun int_of_nat n = Int_of_integer (integer_of_nat n);
+
+fun integer_of_int (Int_of_integer k) = k;
 
 fun uint32_of_int i = Word32.fromLargeInt (IntInf.toLarge (integer_of_int i));
 
@@ -1410,6 +1406,19 @@ fun delete_index_and_swap_aa_u A_ xs i j =
               set_butlast_aa_u A_ xsa i ()
             end);
 
+fun append_el_aa_u (A1_, A2_) =
+  (fn a => fn i => fn x => fn () =>
+    let
+      val j =
+        nth_u_code (heap_prod (heap_array (typerep_heap A2_)) heap_nat) a i ();
+      val aa = arl_append (A1_, A2_) j x ();
+      val _ =
+        heap_array_set_ua (heap_prod (heap_array (typerep_heap A2_)) heap_nat) a
+          i aa ();
+    in
+      a
+    end);
+
 fun heap_array_set_u64a A_ =
   (fn a => fn b => fn c => (fn () => Array.update (a, (Word64.toInt b), c)));
 
@@ -1421,7 +1430,7 @@ fun heap_array_set_u64 A_ a i x =
             end);
 
 fun nth_u64_code A_ =
-  (fn a => fn b => (fn () => Array.sub (a, Uint64.toNormalInt b)));
+  (fn a => fn b => (fn () => Array.sub (a, Uint64.toFixedInt b)));
 
 fun swap_u64_code A_ xs i j =
   (fn () => let
@@ -1441,19 +1450,6 @@ fun swap_aa_u64 (A1_, A2_) xs k i j =
             in
               x
             end);
-
-fun append_el_aa_u (A1_, A2_) =
-  (fn a => fn i => fn x => fn () =>
-    let
-      val j =
-        nth_u_code (heap_prod (heap_array (typerep_heap A2_)) heap_nat) a i ();
-      val aa = arl_append (A1_, A2_) j x ();
-      val _ =
-        heap_array_set_ua (heap_prod (heap_array (typerep_heap A2_)) heap_nat) a
-          i aa ();
-    in
-      a
-    end);
 
 fun update_clause_wl_code x =
   (fn ai => fn bid => fn bic => fn bib => fn bia =>
@@ -2621,22 +2617,28 @@ fun insert_sort_inner_nth_code x =
       val a =
         heap_WHILET
           (fn (a1, a2) =>
-            (fn f_ => fn () => f_ ((arl_get heap_uint32 a2 bi) ()) ())
-              (fn xa =>
-                (fn f_ => fn () => f_
-                  ((nth_u_code (heap_vmtf_node heap_uint32 heap_nat) ai xa) ())
-                  ())
-                  (fn xb =>
-                    (fn f_ => fn () => f_ ((arl_get heap_uint32 a2 a1) ()) ())
-                      (fn xaa =>
-                        (fn f_ => fn () => f_
-                          ((nth_u_code (heap_vmtf_node heap_uint32 heap_nat) ai
-                             xaa)
-                          ()) ())
-                          (fn xab =>
-                            (fn () =>
-                              (less_nat zero_nata a1 andalso
-                                less_nat (stamp xb) (stamp xab))))))))
+            (if less_nat zero_nata a1
+              then (fn f_ => fn () => f_ ((arl_get heap_uint32 a2 a1) ()) ())
+                     (fn xa =>
+                       (fn f_ => fn () => f_
+                         ((nth_u_code (heap_vmtf_node heap_uint32 heap_nat) ai
+                            xa)
+                         ()) ())
+                         (fn xb =>
+                           (fn f_ => fn () => f_
+                             ((arl_get heap_uint32 a2
+                                (fast_minus_nat a1 one_nat))
+                             ()) ())
+                             (fn xaa =>
+                               (fn f_ => fn () => f_
+                                 ((nth_u_code
+                                    (heap_vmtf_node heap_uint32 heap_nat) ai
+                                    xaa)
+                                 ()) ())
+                                 (fn xab =>
+                                   (fn () =>
+                                     (less_nat (stamp xb) (stamp xab)))))))
+              else (fn () => false)))
           (fn (a1, a2) =>
             (fn f_ => fn () => f_
               ((arl_swap heap_uint32 a2 a1 (fast_minus_nat a1 one_nat)) ()) ())
