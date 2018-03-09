@@ -17,12 +17,15 @@ session Functional_Ordered_Resolution_Prover_Base = "HOL-Library" +
     "Nested_Multisets_Ordinals.Multiset_More"
   theories [document = false] (* IsaFoR/AFP *)
     Deriving.Derive
-    Ordered_Resolution_Prover.Abstract_Substitution
+    Nested_Multisets_Ordinals.Multiset_More
+    Ordered_Resolution_Prover.Lazy_List_Chain
+    Ordered_Resolution_Prover.Map2
     Processors.KBO
     First_Order_Terms.Unification
     First_Order_Terms.Fun_More
     First_Order_Terms.Subsumption
     QTRS.Matching
+    QTRS.Term_More
 
 session Functional_Ordered_Resolution_Prover = Functional_Ordered_Resolution_Prover_Base +
   options [document = pdf, document_output = "output",
