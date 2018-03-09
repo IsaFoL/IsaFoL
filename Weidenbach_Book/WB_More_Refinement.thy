@@ -983,7 +983,7 @@ text \<open>Remark that we do not \<^emph>\<open>prove\<close> that the sorting 
 definition insert_sort_inner :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 'b :: ord) \<Rightarrow> 'a list \<Rightarrow>  nat \<Rightarrow> 'a list nres\<close> where
   \<open>insert_sort_inner f xs i = do {
      (j, ys) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(j, ys). j \<ge> 0 \<and> mset xs = mset ys \<and> j < length ys\<^esup>
-         (\<lambda>(j, ys). j > 0 \<and> f ys j > f ys i)
+         (\<lambda>(j, ys). j > 0 \<and> f ys (j - 1) > f ys j)
          (\<lambda>(j, ys). do {
              ASSERT(j < length ys);
              ASSERT(j > 0);
@@ -996,6 +996,10 @@ definition insert_sort_inner :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 
      RETURN ys
   }\<close>
 
+
+(* A check: *)
+lemma \<open>RETURN [Suc 0, 2, 0] = insert_sort_inner (\<lambda>remove n. remove ! n) [2::nat, 1, 0] 1\<close>
+  by (simp add: WHILEIT_unfold insert_sort_inner_def swap_def)
 
 definition reorder_remove :: \<open>'b \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
 \<open>reorder_remove _ removed = SPEC (\<lambda>removed'. mset removed' = mset removed)\<close>
