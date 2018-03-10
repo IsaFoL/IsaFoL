@@ -466,7 +466,7 @@ next
 qed
 
 (* FIXME: come up with better name *)
-lemma stay_or_delete_completely:
+lemma preserve_min_or_delete_completely:
   assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St" 
     "\<forall>k. (C, k) \<in># wP_of_wstate St \<longrightarrow> i \<le> k"
   shows "(C, i) \<in># wP_of_wstate St' \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate St')"
@@ -555,7 +555,7 @@ next
 qed
 
 (* FIXME: come up with better name *)
-lemma stay_or_delete_completely_Sts:
+lemma preserve_min_or_delete_completely_Sts:
   assumes "enat (Suc k) < llength Sts"
   assumes "(C, i) \<in># wP_of_wstate (lnth Sts k)"
   assumes "\<forall>j. (C, j) \<in># wP_of_wstate (lnth Sts k) \<longrightarrow> i \<le> j"
@@ -564,7 +564,7 @@ proof -
   from deriv have "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
     using assms chain_lnth_rel by auto
   then show ?thesis
-    using stay_or_delete_completely[of "lnth Sts k" "lnth Sts (Suc k)" C i] assms by metis
+    using preserve_min_or_delete_completely[of "lnth Sts k" "lnth Sts (Suc k)" C i] assms by metis
 qed
 
 lemma in_lnth_in_Supremum_ldrop:
@@ -668,7 +668,7 @@ proof -
       then have "\<exists>k. (C, k) \<in># wP_of_wstate (lnth Sts (Suc (x + xb + xc)))"
         by (smt Ci_in_nth_wP add.commute add.left_commute add_Suc_right enat_ord_code(4) ldrop_enat llength_infty lnth_ldropn)
       ultimately have "(C, j) \<in># wP_of_wstate (lnth Sts (Suc (x + xb + xc)))"
-        using stay_or_delete_completely_Sts[of "x + xb + xc" C j, OF _ Cj_in_wP any_Ck_in_wP] 
+        using preserve_min_or_delete_completely_Sts[of "x + xb + xc" C j, OF _ Cj_in_wP any_Ck_in_wP] 
         by (auto simp add: llength_infty)
       then have "(C, j) \<in># lnth (lmap wP_of_wstate Sts) (Suc ((x+xb) + xc))"
         by (simp add: llength_infty)
