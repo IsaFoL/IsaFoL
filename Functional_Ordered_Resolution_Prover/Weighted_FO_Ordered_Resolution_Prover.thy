@@ -183,13 +183,14 @@ abbreviation RP_filtered_measure :: "('a wclause \<Rightarrow> bool) \<Rightarro
   "RP_filtered_measure \<equiv> (\<lambda>p (N, P, Q, n). 
                               (sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) {#Di \<in># N + P + Q. p Di#}), size {#Di \<in># N. p Di#}, size {#Di \<in># P. p Di#}))"
 
-abbreviation RP_combined_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
+abbreviation RP_combined_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> nat \<times> (nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat)" where
   "RP_combined_measure \<equiv> (\<lambda>w St. ((w + 1) - n_of_wstate St, RP_filtered_measure (\<lambda>(C, i). i \<le> w) St, RP_filtered_measure (\<lambda>Ci. True) St))"
 
-abbreviation(input) RP_filtered_relation where
+abbreviation(input) RP_filtered_relation :: "((nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat)) set" where
   "RP_filtered_relation \<equiv> natLess <*lex*> natLess <*lex*> natLess"
 
-abbreviation(input) RP_combined_relation where
+abbreviation(input) RP_combined_relation :: "((nat \<times> ((nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat))) \<times>
+    (nat \<times> ((nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat)))) set" where
   "RP_combined_relation \<equiv> natLess <*lex*> RP_filtered_relation <*lex*> RP_filtered_relation"
 
 term "(RP_combined_measure w St, RP_combined_measure w St2) \<in> RP_combined_relation"
