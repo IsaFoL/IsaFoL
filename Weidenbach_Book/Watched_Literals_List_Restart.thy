@@ -36,6 +36,43 @@ lemma cdcl_twl_o_prog_l_spec:
        twl_struct_invs T' \<and> twl_stgy_invs T'}\<rangle> nres_rel\<close>
   (is \<open> _ \<in> ?R \<rightarrow> ?I\<close> is \<open> _ \<in> ?R \<rightarrow> \<langle>?J\<rangle>nres_rel\<close>)
 proof -
+  have \<open>RETURN (M'', N', D, NE', UE, WS, Q)
+      \<le> \<Down> {(T, T').
+            (T, T') \<in> twl_st_l None \<and>
+            twl_list_invs T \<and> clauses_to_update_l T = {#} \<and> twl_struct_invs T' \<and> twl_stgy_invs T'}
+          (SPEC (cdcl_twl_restart S''))\<close>
+    if 
+      \<open>(S, S'')
+     \<in> {(S, S').
+         (S, S') \<in> twl_st_l None \<and>
+         literals_to_update_l S = {#} \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and> twl_list_invs S}\<close> and
+      \<open>SUE = (WS, Q)\<close> and
+      \<open>SNE = (UE, SUE)\<close> and
+      \<open>SD = (NE, SNE)\<close> and
+      \<open>SN = (D, SD)\<close> and
+      \<open>SM = (N, SN)\<close> and
+      \<open>S = (M, SM)\<close> and
+      \<open>x \<in> {(M', N', y). derive_literals_and_clauses M M' N N' NE y}\<close> and
+      \<open>SM'' = (N', NE')\<close> and
+      \<open>x = (M'', SM'')\<close>
+    for S and SM and SN and D and SD and NE and SNE and UE and SUE and WS and Q and
+      M'' and SM'' and N' and NE' and S'' and x and M and N
+proof -
+  obtain M' N'' U' D' NE'' UE' WS' Q' where
+    S'': \<open>S'' = (M', N'', U', D', NE'', UE', WS', Q')\<close>
+    by (cases S'')
+  show ?thesis
+    apply (subst RETURN_RES_refine_iff)
+    using that unfolding S''
+    apply (auto)
+    sorry
+qed
+  show ?thesis
+    unfolding restart_prog_clss_list_def cdcl_twl_restart_only_def
+    apply (refine_vcg)
+    explore_have
+    apply assumption
+    sorry
   have corr:
     \<open>RETURN (map_proped_lits (the \<circ> new_pos) M, N', u, D, NE, UE, WS, Q)
       \<le> \<Down> {(T, T').
