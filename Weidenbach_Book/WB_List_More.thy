@@ -873,7 +873,7 @@ lemma remove1_mset_union_distrib:
 lemma member_add_mset: \<open>a \<in># add_mset x xs \<longleftrightarrow> a = x \<or> a \<in># xs\<close>
   by simp
 
-lemma (in -)sup_union_right_if:
+lemma sup_union_right_if:
   \<open>N \<union># add_mset x M =
      (if x \<notin># N then add_mset x (N \<union># M) else add_mset x (remove1_mset x N \<union># M))\<close>
   by (auto simp: sup_union_right2)
@@ -882,6 +882,41 @@ lemma same_mset_distinct_iff:
   \<open>mset M = mset M' \<Longrightarrow> distinct M \<longleftrightarrow> distinct M'\<close>
   by (auto simp: distinct_mset_mset_distinct[symmetric] simp del: distinct_mset_mset_distinct)
 
+lemma inj_on_image_mset_eq_iff:
+  assumes inj: \<open>inj_on f (set_mset (M + M'))\<close>
+  shows \<open>image_mset f M' = image_mset f M \<longleftrightarrow> M' = M\<close> (is \<open>?A = ?B\<close>)
+proof
+  assume ?B
+  then show ?A by auto
+next
+  assume ?A
+  then show ?B
+    using inj
+  proof(induction M arbitrary: M')
+    case empty
+    then show ?case by auto
+  next
+    case (add x M) note IH = this(1) and H = this(2) and inj = this(3)
+
+    obtain M1 x' where
+      M': \<open>M' = add_mset x' M1\<close> and
+      f_xx': \<open>f x' = f x\<close> and
+      M1_M: \<open>image_mset f M1 = image_mset f M\<close>
+      using H by (auto dest!: msed_map_invR)
+    moreover have \<open>M1 = M\<close>
+      apply (rule IH[OF M1_M])
+      using inj by (auto simp: M')
+    moreover have \<open>x = x'\<close>
+      using inj f_xx' by (auto simp: M')
+    ultimately show ?case by fast
+  qed
+qed
+
+lemma inj_image_mset_eq_iff:
+  assumes inj: \<open>inj f\<close>
+  shows \<open>image_mset f M' = image_mset f M \<longleftrightarrow> M' = M\<close>
+  using inj_on_image_mset_eq_iff[of f M' M] assms
+  by (simp add: inj_eq multiset.inj_map)
 
 
 subsection \<open>Sorting\<close>
