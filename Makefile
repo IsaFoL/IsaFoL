@@ -33,6 +33,9 @@ Ordered_Resolution_Prover:
 Unordered_Resolution:
 	$(RUN_ISABELLE2017) build -o browser_info -v -b -D Unordered_Resolution
 
+Functional_Ordered_Resolution_Prover:
+	$(RUN_ISABELLE2017) build -d '$$ISAFOR' -o browser_info -o "document=pdf" -v -b -D Functional_Ordered_Resolution_Prover
+
 GRAT: HOL
 	$(RUN_ISABELLE2016-1) build -d '$$AFP' -b Refine_Imperative_HOL
 	$(RUN_ISABELLE2016-1) build -d '$$AFP' -o browser_info -o "document=pdf" -v -b -D GRAT/gratchk
@@ -64,4 +67,4 @@ clean:
 	rm -rf $(DESTINATION)/current
 
 
-.PHONY: Weidenbach_Book Ordered_Resolution_Prover Unordered_Resolution
+.PHONY: Weidenbach_Book Ordered_Resolution_Prover Unordered_Resolution Functional_Ordered_Resolution_Prover

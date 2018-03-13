@@ -40,5 +40,5 @@ session Functional_Ordered_Resolution_Prover = Functional_Ordered_Resolution_Pro
   theories
     Executable_FO_Ordered_Resolution_Prover
   document_files
-    "bib.bib"
+(*    "bib.bib"*)
     "root.tex"
