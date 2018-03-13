@@ -5328,4 +5328,12 @@ proof -
     using 1 2 by auto
 qed
 
+
+definition final_twl_state where
+  \<open>final_twl_state S \<longleftrightarrow>
+      no_step cdcl_twl_stgy S \<or> (get_conflict S \<noteq> None \<and> count_decided (get_trail S) = 0)\<close>
+
+definition conclusive_TWL_run where
+  \<open>conclusive_TWL_run S = SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> final_twl_state T)\<close>
+
 end
