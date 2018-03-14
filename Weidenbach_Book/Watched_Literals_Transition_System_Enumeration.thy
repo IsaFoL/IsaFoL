@@ -22,7 +22,7 @@ qed
 
 definition TWL_DECO_clause where
   \<open>TWL_DECO_clause M =
-       TWL_Clause 
+       TWL_Clause
          ((uminus o lit_of) `# mset (take 2 (rev (filter is_decided M))))
          ((uminus o lit_of) `# mset (drop 2 (rev (filter is_decided M))))\<close>
 
@@ -32,14 +32,14 @@ lemma clause_TWL_Deco_clause[simp]: \<open>clause (TWL_DECO_clause M) = DECO_cla
       simp add: image_mset_union[symmetric] mset_append[symmetric] mset_filter)
 
 inductive negate_model_and_add :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
-bj_unit: 
+bj_unit:
   \<open>negate_model_and_add (M, N, U, D, NP, UP, WS, Q)
        (Propagated K (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#-K#})\<close>
 if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
   \<open>get_level M K = count_decided M\<close> and
   \<open>count_decided M = 1\<close> |
-bj_nonunit: 
+bj_nonunit:
   \<open>negate_model_and_add (M, N, U, D, NP, UP, WS, Q)
        (Propagated K (DECO_clause M) # M1, N, add_mset (TWL_DECO_clause M) U, None, NP, UP, {#}, {#-K#})\<close>
 if
@@ -49,7 +49,7 @@ if
 restart_nonunit:
   \<open>negate_model_and_add (M, N, U, D, NP, UP, WS, Q)
        (M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
-if 
+if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
   \<open>get_level M K = 1\<close> and
   \<open>count_decided M > 1\<close>
@@ -62,7 +62,9 @@ lemma after_fast_restart_replay:
     smaller_propa: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M', N, U, None)\<close> and
     kept: \<open>\<forall>L E. Propagated L E \<in> set (drop (length M' - n) M') \<longrightarrow> E \<in># N + U'\<close> and
     U'_U: \<open>U' \<subseteq># U\<close> and
-    N'_N: \<open>\<forall>C\<in>#N'. \<forall>M1 K M2. M' = M2 @ Decided K # M1 \<longrightarrow> \<not>M1 \<Turnstile>as CNot C\<close>
+    no_confl: \<open>\<forall>C\<in>#N'. \<forall>M1 K M2. M' = M2 @ Decided K # M1 \<longrightarrow> \<not>M1 \<Turnstile>as CNot C\<close> and
+    no_propa: \<open>\<forall>C\<in>#N'. \<forall>M1 K M2 L. M' = M2 @ Decided K # M1 \<longrightarrow> L \<in># C \<longrightarrow>
+          \<not>M1 \<Turnstile>as CNot (remove1_mset L C)\<close>
   shows
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ([], N+N', U', None) (drop (length M' - n) M', N+ N', U', None)\<close>
 proof -
@@ -178,15 +180,34 @@ proof -
           apply (subst (asm) M')
           unfolding Dec Sk k_def[symmetric]
           by (auto simp: clauses_def state_eq_def)
+        have no_new_propa: \<open>False\<close>
+          if
+            \<open>drop (Suc k) M' \<Turnstile>as CNot (remove1_mset L E)\<close> and
+            \<open>L \<in># E\<close> and
+            \<open>undefined_lit (drop (Suc k) M') L\<close> and
+            \<open>E \<in># N'\<close> for L E
+          using that no_propa
+          apply (subst (asm)(3) M')
+          apply (subst (asm)(2) M')
+          apply (subst (asm) M')
+          unfolding k_def[symmetric] Dec
+          by (auto simp: k_def dest!: multi_member_split)
+
         have \<open>D \<in># N \<longrightarrow> undefined_lit (trail (?S m)) L \<longrightarrow> L \<in># D \<longrightarrow>
             \<not> (trail (?S m)) \<Turnstile>as CNot (remove1_mset L D)\<close> and
           \<open>D \<in># U' \<longrightarrow> undefined_lit (trail (?S m)) L \<longrightarrow> L \<in># D \<longrightarrow>
             \<not> (trail (?S m)) \<Turnstile>as CNot (remove1_mset L D)\<close>for D L
           using H[of \<open>remove1_mset L D\<close> L] U'_U by auto
         then have nss: \<open>no_step cdcl\<^sub>W_restart_mset.propagate (?S m)\<close>
-          using N'_N
+          using no_propa no_new_propa
           by (auto simp: cdcl\<^sub>W_restart_mset.propagate.simps clauses_def
               state_eq_def k_def[symmetric] Sk)
+        have no_new_confl: \<open>drop (Suc k) M' \<Turnstile>as CNot D \<Longrightarrow> D \<in># N' \<Longrightarrow> False\<close> for D
+          using no_confl
+          apply (subst (asm)(2) M')
+          apply (subst (asm) M')
+          unfolding k_def[symmetric] Dec
+          by (auto simp: k_def dest!: multi_member_split)
 
         have H: \<open>D \<in># N + U' \<longrightarrow> \<not> (trail (?S m)) \<Turnstile>as CNot D\<close> for D
           using smaller_confl U'_U unfolding cdcl\<^sub>W_restart_mset.no_smaller_confl_def
@@ -195,7 +216,7 @@ proof -
           unfolding Dec Sk k_def[symmetric]
           by (auto simp: clauses_def state_eq_def)
         then have nsc: \<open>no_step cdcl\<^sub>W_restart_mset.conflict (?S m)\<close>
-          using N'_N
+          using no_new_confl
           by (auto simp: cdcl\<^sub>W_restart_mset.conflict.simps clauses_def state_eq_def
               k_def[symmetric] Sk)
         show ?thesis
@@ -270,7 +291,7 @@ proof (induction rule: negate_model_and_add.induct)
     \<open>entailed_clss_inv ?S\<close> and
     \<open>clauses_to_update_inv ?S\<close> and
     \<open>past_invs ?S\<close>
-    using inv unfolding twl_struct_invs_def 
+    using inv unfolding twl_struct_invs_def
     by fast+
   obtain L L' C where
     M: \<open>TWL_DECO_clause M = TWL_Clause {#L, L'#} C\<close>
@@ -300,7 +321,7 @@ proof (induction rule: negate_model_and_add.induct)
     sorry
 
   show ?case
-    unfolding twl_struct_invs_def 
+    unfolding twl_struct_invs_def
     apply (intro conjI)
     sorry
 
