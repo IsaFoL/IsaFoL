@@ -191,4 +191,25 @@ value "prover
 value "prover ([([Neg (\<pp>[X,Y,Z]), Pos (\<pp>[Y,Z,X])], 1)]
   :: ((nat, nat) Term.term literal list \<times> nat) list)"
 
+definition mk_MSC015_1 :: "nat \<Rightarrow> ((nat, nat) Term.term literal list \<times> nat) list" where
+  "mk_MSC015_1 n =
+     (let
+       init = ([Pos (\<pp> (replicate n \<aa>))], 1);
+       rules = map (\<lambda>i. ([Neg (\<pp> (map Var [0 ..< n - i - 1] @ \<aa> # replicate i \<bb>)), 
+                         Pos (\<pp> (map Var [0 ..< n - i - 1] @ \<bb> # replicate i \<aa>))], 1)) [0 ..< n];
+       goal = ([Neg (\<pp> (replicate n \<bb>))], 1)
+     in init # rules @ [goal])"
+
+value "prover (mk_MSC015_1 1)"
+value "prover (mk_MSC015_1 2)"
+value "prover (mk_MSC015_1 3)"
+value "prover (mk_MSC015_1 4)"
+value "prover (mk_MSC015_1 5)"
+value "prover (mk_MSC015_1 10)"
+value "prover (mk_MSC015_1 12)"
+(*
+value "prover (mk_MSC015_1 20)"
+value "prover (mk_MSC015_1 25)"
+*)
+
 end
