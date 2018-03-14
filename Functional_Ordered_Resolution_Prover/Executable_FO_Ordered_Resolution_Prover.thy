@@ -144,14 +144,17 @@ export_code St0 in SML
 export_code deterministic_RP in SML module_name RP
 
 definition prover where
-  "prover N = deterministic_RP (St0 N 0)"
+  "prover N = (case deterministic_RP (St0 N 0) of
+      None \<Rightarrow> True
+    | Some R \<Rightarrow> if [] \<in> set R then False else True)"
 
-lemma "prover N = None \<Longrightarrow> satisfiable (RP.grounded_N0 N)"
-  unfolding prover_def St0_def using RP.deterministic_RP_complete by auto
+term RP.grounded_R
 
-lemma "prover N = Some R \<Longrightarrow> (\<not> satisfiable (RP.grounded_N0 N)) = ({#} \<in> RP.grounded_R R)"
-  unfolding prover_def St0_def using RP.deterministic_RP_refutation by auto
-
+lemma "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
+  unfolding prover_def St0_def
+  using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
+  by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
+    split: option.splits if_splits)
 
 export_code prover in SML module_name RP
 
@@ -179,6 +182,10 @@ value "prover
   ([([Neg (\<pp>[X,Y,Z]), Pos (\<pp>[Y,Z,X])], 1), 
     ([Pos (\<pp>[\<cc>,\<aa>,\<bb>])], 1),
     ([Neg (\<pp>[\<bb>,\<cc>,\<aa>])], 1)]
+  :: ((nat, nat) Term.term literal list \<times> nat) list)"
+
+value "prover
+  ([([Pos (\<pp>[X,Y])], 1), ([Neg (\<pp>[X,X])], 1)]
   :: ((nat, nat) Term.term literal list \<times> nat) list)"
 
 value "prover ([([Neg (\<pp>[X,Y,Z]), Pos (\<pp>[Y,Z,X])], 1)]
