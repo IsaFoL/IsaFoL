@@ -4886,8 +4886,8 @@ lemma (in -)twl_st_exception_inv_mono:
 
 lemma (in -)twl_st_inv_mono:
   \<open>U' \<subseteq># U \<Longrightarrow>
-     twl_st_inv  (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow>
-      twl_st_inv  (M, N, U', D, NE, UE, WS, Q)\<close>
+     twl_st_inv (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow>
+      twl_st_inv (M, N, U', D, NE, UE, WS, Q)\<close>
   by (cases D) (fastforce simp: twl_st_inv.simps)+
 
 lemma (in -) rtranclp_cdcl_twl_stgy_twl_stgy_invs:
