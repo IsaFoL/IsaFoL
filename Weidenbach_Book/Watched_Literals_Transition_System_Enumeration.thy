@@ -23,8 +23,8 @@ qed
 definition TWL_DECO_clause where
   \<open>TWL_DECO_clause M =
        TWL_Clause
-         ((uminus o lit_of) `# mset (take 2 (rev (filter is_decided M))))
-         ((uminus o lit_of) `# mset (drop 2 (rev (filter is_decided M))))\<close>
+         ((uminus o lit_of) `# mset (take 2 (filter is_decided M)))
+         ((uminus o lit_of) `# mset (drop 2 (filter is_decided M)))\<close>
 
 lemma clause_TWL_Deco_clause[simp]: \<open>clause (TWL_DECO_clause M) = DECO_clause M\<close>
   by (auto simp: TWL_DECO_clause_def DECO_clause_def
@@ -265,6 +265,23 @@ proof -
   qed
 qed
 
+lemma after_fast_restart_replay':
+  assumes
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N, U, None)\<close> and
+    stgy_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (M', N, U, None)\<close> and
+    smaller_propa: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M', N, U, None)\<close> and
+    kept: \<open>\<forall>L E. Propagated L E \<in> set (drop (length M' - n) M') \<longrightarrow> E \<in># N + U'\<close> and
+    U'_U: \<open>U' \<subseteq># U\<close> and
+    N_N': \<open>N \<subseteq># N'\<close> and
+    no_confl: \<open>\<forall>C\<in>#N'-N. \<forall>M1 K M2. M' = M2 @ Decided K # M1 \<longrightarrow> \<not>M1 \<Turnstile>as CNot C\<close> and
+    no_propa: \<open>\<forall>C\<in>#N'-N. \<forall>M1 K M2 L. M' = M2 @ Decided K # M1 \<longrightarrow> L \<in># C \<longrightarrow>
+          \<not>M1 \<Turnstile>as CNot (remove1_mset L C)\<close>
+  shows
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ([], N', U', None) (drop (length M' - n) M', N', U', None)\<close>
+  using after_fast_restart_replay[OF inv stgy_invs smaller_propa kept U'_U, of \<open>N' - N\<close>]
+  no_confl no_propa N_N'
+  by auto
+
 lemma
   assumes
      \<open>negate_model_and_add S T\<close> and
@@ -290,14 +307,53 @@ proof (induction rule: negate_model_and_add.induct)
     \<open>get_conflict ?S \<noteq> None \<longrightarrow> clauses_to_update ?S = {#} \<and> literals_to_update ?S = {#}\<close> and
     \<open>entailed_clss_inv ?S\<close> and
     \<open>clauses_to_update_inv ?S\<close> and
-    \<open>past_invs ?S\<close>
+    past: \<open>past_invs ?S\<close>
     using inv unfolding twl_struct_invs_def
     by fast+
-  obtain L L' C where
-    M: \<open>TWL_DECO_clause M = TWL_Clause {#L, L'#} C\<close>
-    using count_dec
-    by (cases \<open>rev (filter is_decided M)\<close>; cases \<open>tl (rev (filter is_decided M))\<close>)
-      (auto simp: TWL_DECO_clause_def count_decided_def)
+  obtain M3 where
+    M: \<open>M = M3 @ M2 @ Decided K # M1\<close>
+    using decomp by blast
+  define M2' where
+    \<open>M2' = M3 @ M2\<close>
+  then have M': \<open>M = M2' @ Decided K # M1\<close>
+    using M by auto
+  then have 
+    \<open>\<forall>C\<in>#N + U. twl_lazy_update M1 C \<and> twl_inv M1 C \<and>
+         watched_literals_false_of_max_level M1 C \<and>
+         twl_exception_inv (M1, N, U, None, NP, UP, {#}, {#}) C\<close> and
+    \<open>confl_cands_enqueued (M1, N, U, None, NP, UP, {#}, {#})\<close> and
+    \<open>propa_cands_enqueued (M1, N, U, None, NP, UP, {#}, {#})\<close> and
+    \<open>clauses_to_update_inv (M1, N, U, None, NP, UP, {#}, {#})\<close>
+    using past
+    unfolding past_invs.simps
+    by auto
+  have \<open>no_dup M\<close>
+    sorry
+  then have [simp]: \<open>filter is_decided M2' = []\<close>
+    using count_dec lev unfolding M'   
+    by (auto simp: TWL_DECO_clause_def count_decided_def add_mset_eq_add_mset M')
+
+  obtain L' C where
+(*     M: \<open>TWL_DECO_clause M = TWL_Clause {#-K, L'#} C\<close> and *)
+     \<open>filter is_decided M = Decided K # Decided L' # C\<close>
+    using count_dec lev unfolding M'
+    by (cases \<open>filter is_decided M\<close>; cases \<open>tl (filter is_decided M)\<close>;
+        cases \<open>hd (filter is_decided M)\<close>; cases \<open>hd (tl (filter is_decided M))\<close>)
+      (auto simp: TWL_DECO_clause_def count_decided_def add_mset_eq_add_mset M'
+        filter_eq_Cons_iff)
+  then have deco_M: \<open>TWL_DECO_clause M = TWL_Clause {#-K, -L'#} (uminus `# lit_of `# mset C)\<close>
+    by (auto simp: TWL_DECO_clause_def)
+
+  have \<open>cdcl_twl_cp (M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, add_mset (-L', (TWL_DECO_clause M)) {#}, {#})
+     (Propagated (-K) (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U, None,
+        NP, UP, {#}, {#- (-K)#})\<close>
+    unfolding clause_TWL_Deco_clause[symmetric]
+    apply (rule cdcl_twl_cp.propagate)
+    subgoal by (auto simp: deco_M)
+    subgoal sorry
+    subgoal sorry
+    sorry
+
   have no_dup: \<open>no_dup M\<close>
     sorry
   then have dist: \<open>distinct (map atm_of (map lit_of M))\<close>
