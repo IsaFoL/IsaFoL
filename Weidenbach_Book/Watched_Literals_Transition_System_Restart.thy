@@ -20,7 +20,6 @@ restart_trail:
   if
     \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> and
     \<open>U' \<subseteq># U\<close> and
-
     \<open>\<forall>L E. Propagated L E \<in> set M' \<longrightarrow> E \<in># clause `# (N + U') + NE + UE\<close> |
 restart_clauses:
    \<open>cdcl_twl_restart (M, N, U, None, NE, UE, {#}, Q) (M, N, U', None, NE, UE, {#}, Q)\<close>
