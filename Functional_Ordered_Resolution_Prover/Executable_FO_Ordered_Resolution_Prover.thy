@@ -148,8 +148,6 @@ definition prover where
       None \<Rightarrow> True
     | Some R \<Rightarrow> if [] \<in> set R then False else True)"
 
-term RP.grounded_R
-
 lemma "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
   unfolding prover_def St0_def
   using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
@@ -213,5 +211,53 @@ value "prover (mk_MSC015_1 15)" -- mem out
 value "prover (mk_MSC015_1 20)"
 value "prover (mk_MSC015_1 25)"
 *)
+
+lemma
+  assumes
+     "p a a a a a a a a a a a a a a"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 a \<or>
+       p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 b)"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 a b \<or>
+       p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 b a)"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 a b b \<or>
+       p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 b a a)"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7 x8 x9 x10.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 a b b b \<or>
+       p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 b a a a)"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7 x8 x9.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 x8 x9 a b b b b \<or>
+       p x1 x2 x3 x4 x5 x6 x7 x8 x9 b a a a a)"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7 x8.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 x8 a b b b b b \<or>
+       p x1 x2 x3 x4 x5 x6 x7 x8 b a a a a a)"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 a b b b b b b \<or>
+       p x1 x2 x3 x4 x5 x6 x7 b a a a a a a)"
+     "(\<forall>x1 x2 x3 x4 x5 x6.
+       \<not> p x1 x2 x3 x4 x5 x6 a b b b b b b b \<or>
+       p x1 x2 x3 x4 x5 x6 b a a a a a a a)"
+     "(\<forall>x1 x2 x3 x4 x5.
+       \<not> p x1 x2 x3 x4 x5 a b b b b b b b b \<or>
+       p x1 x2 x3 x4 x5 b a a a a a a a a)"
+     "(\<forall>x1 x2 x3 x4.
+       \<not> p x1 x2 x3 x4 a b b b b b b b b b \<or>
+       p x1 x2 x3 x4 b a a a a a a a a a)"
+     "(\<forall>x1 x2 x3.
+       \<not> p x1 x2 x3 a b b b b b b b b b b \<or>
+       p x1 x2 x3 b a a a a a a a a a a)"
+     "(\<forall>x1 x2.
+       \<not> p x1 x2 a b b b b b b b b b b b \<or>
+       p x1 x2 b a a a a a a a a a a a)"
+     "(\<forall>x1.
+       \<not> p x1 a b b b b b b b b b b b b \<or>
+       p x1 b a a a a a a a a a a a a)"
+     "(\<not> p a b b b b b b b b b b b b b \<or>
+       p b a a a a a a a a a a a a a)"
+     "\<not> p b b b b b b b b b b b b b b"
+   shows False
+  using assms by metis
 
 end
