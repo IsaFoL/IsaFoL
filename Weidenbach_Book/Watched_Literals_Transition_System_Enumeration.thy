@@ -51,7 +51,7 @@ restart_nonunit:
        (M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
 if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
-  \<open>get_level M K = 1\<close> and
+  \<open>get_level M K < count_decided M\<close> and
   \<open>count_decided M > 1\<close>
 
 (* TODO Merge with the proof from  thm after_fast_restart_replay*)
@@ -552,8 +552,12 @@ lemma
    shows \<open>twl_struct_invs T\<close>
   using assms
 proof (induction rule: negate_model_and_add.induct)
-  case (bj_nonunit K M1 M2 M N U NP UP WS Q) note decomp = this(1) and lev = this(2) and
-    count_dec = this(3) and inv = this(4)
+  fix K M1 M2 M N U NP UP WS Q
+  assume
+    decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
+    inv: \<open>twl_struct_invs (M, N, U, None, NP, UP, WS, Q)\<close>
+(*   case (bj_nonunit K M1 M2 M N U NP UP WS Q) note decomp = this(1) and lev = this(2) and
+    count_dec = this(3) and inv = this(4) *)
   let ?S = \<open>(M, N, U, None, NP, UP, WS, Q)\<close>
   let ?T = \<open>(Propagated K (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U, None,
         NP, UP, {#}, {#- K#})\<close>
@@ -581,7 +585,7 @@ proof (induction rule: negate_model_and_add.induct)
   then have M': \<open>M = M2' @ Decided K # M1\<close>
     using M by auto
   then have
-    st_invs_M1: \<open>\<forall>C\<in>#N + U. twl_lazy_update M1 C \<and> twl_inv M1 C \<and>
+    st_invs_M1': \<open>\<forall>C\<in>#N + U. twl_lazy_update M1 C \<and> twl_inv M1 C \<and>
          watched_literals_false_of_max_level M1 C \<and>
          twl_exception_inv (M1, N, U, None, NP, UP, {#}, {#}) C\<close> and
     confl_enqueued_M1: \<open>confl_cands_enqueued (M1, N, U, None, NP, UP, {#}, {#})\<close> and
@@ -595,9 +599,6 @@ proof (induction rule: negate_model_and_add.induct)
     using struct_invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (simp add: trail.simps)
-  then have [simp]: \<open>filter is_decided M2' = []\<close>
-    using count_dec lev unfolding M'
-    by (auto simp: TWL_DECO_clause_def count_decided_def add_mset_eq_add_mset M')
 
   have dist: \<open>distinct (map atm_of (map lit_of M))\<close>
     using no_dup by (auto simp: no_dup_def comp_def)
@@ -613,43 +614,10 @@ proof (induction rule: negate_model_and_add.induct)
     subgoal by (auto simp: inj_on_def)
     subgoal .
     done
-  obtain L' C where
-(*     M: \<open>TWL_DECO_clause M = TWL_Clause {#-K, L'#} C\<close> and *)
-    filter_M: \<open>filter is_decided M = Decided K # Decided L' # C\<close>
-    using count_dec lev unfolding M'
-    by (cases \<open>filter is_decided M\<close>; cases \<open>tl (filter is_decided M)\<close>;
-        cases \<open>hd (filter is_decided M)\<close>; cases \<open>hd (tl (filter is_decided M))\<close>)
-      (auto simp: TWL_DECO_clause_def count_decided_def add_mset_eq_add_mset M'
-        filter_eq_Cons_iff tl_append)
-  then have deco_M: \<open>TWL_DECO_clause M = TWL_Clause {#-K, -L'#} (uminus `# lit_of `# mset C)\<close>
-    by (auto simp: TWL_DECO_clause_def)
-  have C_M1: \<open>C = tl (filter is_decided M1)\<close>
-    using filter_M unfolding M'
-    by auto
-  then obtain M1'' M1' where
-    M1: \<open>M1 = M1'' @ Decided L' # M1'\<close>
-    by (metis (no_types, lifting) M' \<open>filter is_decided M2' = []\<close> append_self_conv2
-        filter.simps(2) filter_M filter_append filter_eq_Cons_iff list.sel(3))
-  then have [simp]: \<open>count_decided M1'' = 0\<close> and filter_M1'': \<open>filter is_decided M1'' = []\<close>
-    using filter_M no_dup unfolding C_M1 M1 M'
-    by (auto simp: tl_append count_decided_def dest: filter_eq_ConsD split: list.splits)
-  have C_in_M1: \<open>lits_of_l C \<subseteq> lits_of_l M1\<close>
-    unfolding C_M1 by (auto simp: lits_of_def dest: in_set_tlD)
-
-  let ?S' = \<open>(M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, add_mset (-L', (TWL_DECO_clause M)) {#}, {#})\<close>
-  let ?T' = \<open>(Propagated (-K) (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U, None,
-        NP, UP, {#}, {#- (-K)#})\<close>
-  have propa: \<open>cdcl_twl_cp ?S' ?T'\<close>
-    unfolding clause_TWL_Deco_clause[symmetric]
-    apply (rule cdcl_twl_cp.propagate)
-    subgoal by (auto simp: deco_M)
-    subgoal using no_dup unfolding M by auto
-    subgoal using C_in_M1 unfolding deco_M by (auto simp: lits_of_def)
-    done
-
-  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ([], clauses (add_mset (TWL_DECO_clause M) N) + NP,
-         clauses U + UP, None)
-    (drop (length M - length M1) M, clauses (add_mset (TWL_DECO_clause M) N) + NP, clauses U + UP, None)\<close>
+  have cdcl_W: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ([], clauses (add_mset (TWL_DECO_clause M) N) + NP,
+             clauses U + UP, None)
+         (drop (length M - length M1) M, clauses (add_mset (TWL_DECO_clause M) N) + NP, clauses U + UP,
+             None)\<close>
     apply (rule after_fast_restart_replay_no_stgy'[OF struct_invs[unfolded state\<^sub>W_of.simps]])
     subgoal
       apply (intro allI impI conjI)
@@ -661,174 +629,312 @@ proof (induction rule: negate_model_and_add.induct)
     subgoal by simp
     subgoal by simp
     done
-  then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ([], clauses (add_mset (TWL_DECO_clause M) N) + NP,
-         clauses U + UP, None) (state\<^sub>W_of ?S')\<close>
-    using M' by simp
-  moreover {
-    have \<open>distinct_mset (DECO_clause M)\<close>
-      using dist_filtered' unfolding DECO_clause_def
-      by (simp add: mset_filter)
-    then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ([], clauses (add_mset (TWL_DECO_clause M) N) + NP,
+
+  have \<open>distinct_mset (DECO_clause M)\<close>
+    using dist_filtered' unfolding DECO_clause_def
+    by (simp add: mset_filter)
+  then have struct_invs_S': 
+     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ([], clauses (add_mset (TWL_DECO_clause M) N) + NP,
          clauses U + UP, None)\<close>
-      using struct_invs
-      by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-          cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state)
-  }
-  ultimately have struct_invs_S': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of ?S')\<close>
-    by (auto intro: cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_all_struct_inv_inv
+    using struct_invs
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state)
+  with cdcl_W have struct_invs_add: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv 
+    (M1, clauses (add_mset (TWL_DECO_clause M) N) + NP, clauses U + UP, None)\<close>
+    by (auto intro: cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_all_struct_inv_inv simp: M'
         dest!: cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_restart)
   have no_smaller_M1:
     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of (M1, N, U, None, NP, UP, WS, Q))\<close>
     using no_smaller by (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def
         cdcl\<^sub>W_restart_mset_state clauses_def M')
-
-  have no_smaller_S': \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of ?S')\<close>
-    unfolding  cdcl\<^sub>W_restart_mset.no_smaller_propa_def state\<^sub>W_of.simps
+  have no_smaller_add:
+    \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa
+       (M1, clauses (add_mset (TWL_DECO_clause M) N) + NP, clauses U + UP, None)\<close>
+      unfolding state\<^sub>W_of.simps cdcl\<^sub>W_restart_mset.no_smaller_propa_def
         cdcl\<^sub>W_restart_mset_state clauses_def
-  proof (intro conjI impI allI)
-    fix M1a M2 K' D L
-    assume
-      M1a: \<open>M1 = M2 @ Decided K' # M1a\<close> and
-      DL: \<open>D + {#L#} \<in># clauses (add_mset (TWL_DECO_clause M) N) + NP + (clauses U + UP)\<close> and
-      undef: \<open>undefined_lit M1a L\<close>
-    consider
-      \<open>D+{#L#} \<in># clauses N + NP + (clauses U + UP)\<close> |
-      \<open>D+{#L#} = clause (TWL_DECO_clause M)\<close>
-      using DL by auto
-    then show \<open>\<not> M1a \<Turnstile>as CNot D\<close>
-    proof cases
-      case 1
-      then show ?thesis
-        using DL M1a undef no_smaller_M1
-        by (auto 5 5 simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def
-            cdcl\<^sub>W_restart_mset_state clauses_def deco_M
-            add_mset_eq_add_mset)
-    next
-      case 2
-      moreover have \<open>L' \<notin> lits_of_l M1a\<close>  \<open>-K \<notin> lits_of_l M1a\<close> \<open>K \<notin> lits_of_l M1a\<close>
-      using no_dup M1 filter_M1'' unfolding deco_M unfolding M' M1a
-      by (auto simp: deco_M add_mset_eq_add_mset
-        dest: in_lits_of_l_defined_litD
-        simp del: \<open>filter is_decided M2' = []\<close>
-        elim!: list_match_lel_lel)
-      ultimately  show ?thesis
-        using undef by (auto simp: deco_M add_mset_eq_add_mset
-            dest!: multi_member_split)
+    proof (intro conjI impI allI)
+      fix M1a M2 K' D L
+      assume
+        M1a: \<open>M1 = M2 @ Decided K' # M1a\<close> and
+        DL: \<open>D + {#L#} \<in># clauses (add_mset (TWL_DECO_clause M) N) + NP + (clauses U + UP)\<close> and
+        undef: \<open>undefined_lit M1a L\<close>
+      consider
+        \<open>D+{#L#} \<in># clauses N + NP + (clauses U + UP)\<close> |
+        \<open>D+{#L#} = clause (TWL_DECO_clause M)\<close>
+        using DL by auto
+      then show \<open>\<not> M1a \<Turnstile>as CNot D\<close>
+      proof cases
+        case 1
+        then show ?thesis
+          using DL M1a undef no_smaller_M1
+          by (auto 5 5 simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def
+              cdcl\<^sub>W_restart_mset_state clauses_def
+              add_mset_eq_add_mset)
+      next
+        case 2
+        moreover have \<open>K' \<notin> lits_of_l M1a\<close>  \<open>-K \<notin> lits_of_l M1a\<close> \<open>K \<notin> lits_of_l M1a\<close>
+          using no_dup unfolding M' M1a
+          by (auto simp: add_mset_eq_add_mset
+              dest: in_lits_of_l_defined_litD
+              elim!: list_match_lel_lel)
+        ultimately show ?thesis
+          using undef by (auto simp: add_mset_eq_add_mset DECO_clause_def M' M1a
+              dest!: multi_member_split)
+      qed
     qed
-  qed
-  have [simp]: \<open>get_level M1 L' = count_decided M1\<close>
-    using no_dup unfolding M' M1 by auto
-  have \<open>watched_literals_false_of_max_level M1 (TWL_DECO_clause M)\<close>
-    using no_dup apply (subst (asm) M')
-    by (auto simp: deco_M add_mset_eq_add_mset dest: in_lits_of_l_defined_litD)
-  moreover have \<open>C \<in># N + U \<Longrightarrow> struct_wf_twl_cls C\<close> for C
-    using st_invs unfolding twl_st_inv.simps by auto
-  moreover have \<open>struct_wf_twl_cls (TWL_DECO_clause M)\<close>
-    using dist_filtered' unfolding deco_M filter_M
-    by (auto simp: simp del: clause_TWL_Deco_clause)
-  ultimately have \<open>twl_st_inv ?S'\<close>
-    using st_invs_M1 unfolding twl_st_inv.simps
-    by (auto simp: twl_is_an_exception_def)
+    have wf_N_U: \<open>C \<in># N + U \<Longrightarrow> struct_wf_twl_cls C\<close> for C
+      using st_invs unfolding twl_st_inv.simps by auto
+  {
+    assume 
+      lev: \<open>get_level M K = count_decided M\<close> and
+      count_dec: \<open>count_decided M \<ge> 2\<close>
+    have [simp]: \<open>filter is_decided M2' = []\<close>
+      using count_dec lev no_dup unfolding M'
+      by (auto simp: TWL_DECO_clause_def count_decided_def add_mset_eq_add_mset M') 
+    obtain L' C where
+      filter_M: \<open>filter is_decided M = Decided K # Decided L' # C\<close>
+      using count_dec lev unfolding M'
+      by (cases \<open>filter is_decided M\<close>; cases \<open>tl (filter is_decided M)\<close>;
+          cases \<open>hd (filter is_decided M)\<close>; cases \<open>hd (tl (filter is_decided M))\<close>)
+        (auto simp: TWL_DECO_clause_def count_decided_def add_mset_eq_add_mset M'
+          filter_eq_Cons_iff tl_append)
+    then have deco_M: \<open>TWL_DECO_clause M = TWL_Clause {#-K, -L'#} (uminus `# lit_of `# mset C)\<close>
+      by (auto simp: TWL_DECO_clause_def)
+    have C_M1: \<open>C = tl (filter is_decided M1)\<close>
+      using filter_M unfolding M'
+      by auto
+    then obtain M1'' M1' where
+      M1: \<open>M1 = M1'' @ Decided L' # M1'\<close>
+      by (metis (no_types, lifting) M' \<open>filter is_decided M2' = []\<close> append_self_conv2
+          filter.simps(2) filter_M filter_append filter_eq_Cons_iff list.sel(3))
+    then have [simp]: \<open>count_decided M1'' = 0\<close> and filter_M1'': \<open>filter is_decided M1'' = []\<close>
+      using filter_M no_dup unfolding C_M1 M1 M'
+      by (auto simp: tl_append count_decided_def dest: filter_eq_ConsD split: list.splits)
+    have C_in_M1: \<open>lits_of_l C \<subseteq> lits_of_l M1\<close>
+      unfolding C_M1 by (auto simp: lits_of_def dest: in_set_tlD)
 
-  moreover have \<open>valid_enqueued ?S'\<close>
-    by (auto simp: deco_M) (auto simp: M1)
-  moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of ?S')\<close>
-    using struct_invs_S' .
-  moreover have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of ?S')\<close>
-    using no_smaller_S' .
-  moreover have \<open>twl_st_exception_inv ?S'\<close>
-    using st_invs_M1 C_in_M1
-    by (auto simp: twl_exception_inv.simps deco_M add_mset_eq_add_mset)
-      (auto simp: lits_of_def)
-  moreover have \<open>no_duplicate_queued ?S'\<close>
-    by (auto simp: M1)
-  moreover have \<open>distinct_queued ?S'\<close>
-    by auto
-  moreover have \<open>confl_cands_enqueued ?S'\<close>
-    using confl_enqueued_M1 by auto
-  moreover have \<open>propa_cands_enqueued ?S'\<close>
-    using propa_enqueued_M1 by auto
-  moreover {
-    have \<open>get_level M L = 0 \<Longrightarrow> get_level M1 L = 0\<close> for L
-      using no_dup defined_lit_no_dupD(1)[of M1 L M2']
-      by (cases \<open>defined_lit M L\<close>)
+    let ?S' = \<open>(M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP,
+        add_mset (-L', (TWL_DECO_clause M)) {#}, {#})\<close>
+    let ?T' = \<open>(Propagated (-K) (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U, None,
+        NP, UP, {#}, {#- (-K)#})\<close>
+    have propa: \<open>cdcl_twl_cp ?S' ?T'\<close>
+      unfolding clause_TWL_Deco_clause[symmetric]
+      apply (rule cdcl_twl_cp.propagate)
+      subgoal by (auto simp: deco_M)
+      subgoal using no_dup unfolding M by auto
+      subgoal using C_in_M1 unfolding deco_M by (auto simp: lits_of_def)
+      done
+
+    have struct_invs_S': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of ?S')\<close>
+      using struct_invs_add by auto
+
+    have no_smaller_S': \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of ?S')\<close>
+      using no_smaller_add by simp
+    have [simp]: \<open>get_level M1 L' = count_decided M1\<close>
+      using no_dup unfolding M' M1 by auto
+    have \<open>watched_literals_false_of_max_level M1 (TWL_DECO_clause M)\<close>
+      using no_dup apply (subst (asm) M')
+      by (auto simp: deco_M add_mset_eq_add_mset dest: in_lits_of_l_defined_litD)
+    moreover have \<open>struct_wf_twl_cls (TWL_DECO_clause M)\<close>
+      using dist_filtered' unfolding deco_M filter_M
+      by (auto simp: simp del: clause_TWL_Deco_clause)
+    ultimately have \<open>twl_st_inv ?S'\<close>
+      using wf_N_U st_invs_M1' unfolding twl_st_inv.simps
+      by (auto simp: twl_is_an_exception_def)
+
+    moreover have \<open>valid_enqueued ?S'\<close>
+      by (auto simp: deco_M) (auto simp: M1)
+    moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of ?S')\<close>
+      using struct_invs_S' .
+    moreover have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of ?S')\<close>
+      using no_smaller_S' .
+    moreover have \<open>twl_st_exception_inv ?S'\<close>
+      using st_invs_M1' C_in_M1
+      by (auto simp: twl_exception_inv.simps deco_M add_mset_eq_add_mset)
+        (auto simp: lits_of_def)
+    moreover have \<open>no_duplicate_queued ?S'\<close>
+      by (auto simp: M1)
+    moreover have \<open>distinct_queued ?S'\<close>
+      by auto
+    moreover have \<open>confl_cands_enqueued ?S'\<close>
+      using confl_enqueued_M1 by auto
+    moreover have \<open>propa_cands_enqueued ?S'\<close>
+      using propa_enqueued_M1 by auto
+    moreover {
+      have \<open>get_level M L = 0 \<Longrightarrow> get_level M1 L = 0\<close> for L
+        using no_dup defined_lit_no_dupD(1)[of M1 L M2']
+        by (cases \<open>defined_lit M L\<close>)
           (auto simp: M' defined_lit_append defined_lit_cons atm_of_eq_atm_of
-          get_level_cons_if split: if_splits)
-    moreover have \<open>get_level M L = 0 \<Longrightarrow> L \<in> lits_of_l M \<Longrightarrow> L \<in> lits_of_l M1\<close> for L
-      using no_dup defined_lit_no_dupD(1)[of M1 L M2']
-      by (cases \<open>defined_lit M L\<close>)
-        (auto simp: M' defined_lit_append defined_lit_cons atm_of_eq_atm_of
-          get_level_cons_if split: if_splits dest: in_lits_of_l_defined_litD)
-    ultimately have \<open>entailed_clss_inv ?S'\<close>
-      using entailed unfolding entailed_clss_inv.simps by meson
-  }
-  moreover have \<open>clauses_to_update_inv ?S'\<close>
-    using clss_upd no_dup unfolding deco_M by (auto simp: deco_M add_mset_eq_add_mset M'
-        dest: in_lits_of_l_defined_litD)
-  moreover have \<open>past_invs ?S'\<close>
-    unfolding past_invs.simps
-  proof (intro conjI impI allI)
-    fix M1a M2 K'
-    assume M1a: \<open>M1 = M2 @ Decided K' # M1a\<close>
-    let ?SM1a = \<open>(M1a, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
-    have
-      struct:
-      \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+            get_level_cons_if split: if_splits)
+      moreover have \<open>get_level M L = 0 \<Longrightarrow> L \<in> lits_of_l M \<Longrightarrow> L \<in> lits_of_l M1\<close> for L
+        using no_dup defined_lit_no_dupD(1)[of M1 L M2']
+        by (cases \<open>defined_lit M L\<close>)
+          (auto simp: M' defined_lit_append defined_lit_cons atm_of_eq_atm_of
+            get_level_cons_if split: if_splits dest: in_lits_of_l_defined_litD)
+      ultimately have \<open>entailed_clss_inv ?S'\<close>
+        using entailed unfolding entailed_clss_inv.simps by meson
+    }
+    moreover have \<open>clauses_to_update_inv ?S'\<close>
+      using clss_upd no_dup unfolding deco_M by (auto simp: deco_M add_mset_eq_add_mset M'
+          dest: in_lits_of_l_defined_litD)
+    moreover have \<open>past_invs ?S'\<close>
+      unfolding past_invs.simps
+    proof (intro conjI impI allI)
+      fix M1a M2 K'
+      assume M1a: \<open>M1 = M2 @ Decided K' # M1a\<close>
+      let ?SM1a = \<open>(M1a, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
+      have
+        struct:
+        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
           watched_literals_false_of_max_level M1a C \<and>
           twl_exception_inv (M1a, N, U, None, NP, UP, {#}, {#}) C\<close>
-      for C
-      using past_M1 unfolding past_invs.simps unfolding M1a
-      by fast+
-    have
-      confl: \<open>confl_cands_enqueued (M1a, N, U, None, NP, UP, {#}, {#})\<close> and
-      propa: \<open>propa_cands_enqueued (M1a, N, U, None, NP, UP, {#}, {#})\<close> and
-      clss_to_upd: \<open>clauses_to_update_inv (M1a, N, U, None, NP, UP, {#}, {#})\<close>
-      using past_M1 unfolding past_invs.simps unfolding M1a
-      by fast+
-    have [iff]: \<open>L' \<notin> lits_of_l M1a\<close> \<open>K \<notin> lits_of_l M1a\<close>
-      using no_dup M1 filter_M1'' unfolding deco_M unfolding M' M1a
-      by (auto simp: deco_M add_mset_eq_add_mset
-        dest: in_lits_of_l_defined_litD
-        simp del: \<open>filter is_decided M2' = []\<close>
-        elim!: list_match_lel_lel)
-    have \<open>twl_lazy_update M1a (TWL_DECO_clause M)\<close>
-      using no_dup M1 unfolding deco_M unfolding M' M1a
-      by (auto simp: deco_M add_mset_eq_add_mset
-        dest: in_lits_of_l_defined_litD)
-    moreover have \<open>twl_inv M1a (TWL_DECO_clause M)\<close>
-      unfolding deco_M by (auto simp: add_mset_eq_add_mset)
-    moreover have \<open>watched_literals_false_of_max_level M1a (TWL_DECO_clause M)\<close>
-      unfolding deco_M by (auto simp: add_mset_eq_add_mset)
-    moreover have \<open>twl_exception_inv ?SM1a (TWL_DECO_clause M)\<close>
-      unfolding deco_M by (auto simp: add_mset_eq_add_mset twl_exception_inv.simps)
-    ultimately have \<open>C\<in>#add_mset (TWL_DECO_clause M) N + U \<Longrightarrow> twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+        for C
+        using past_M1 unfolding past_invs.simps unfolding M1a
+        by fast+
+      have
+        confl: \<open>confl_cands_enqueued (M1a, N, U, None, NP, UP, {#}, {#})\<close> and
+        propa: \<open>propa_cands_enqueued (M1a, N, U, None, NP, UP, {#}, {#})\<close> and
+        clss_to_upd: \<open>clauses_to_update_inv (M1a, N, U, None, NP, UP, {#}, {#})\<close>
+        using past_M1 unfolding past_invs.simps unfolding M1a
+        by fast+
+      have [iff]: \<open>L' \<notin> lits_of_l M1a\<close> \<open>K \<notin> lits_of_l M1a\<close>
+        using no_dup M1 filter_M1'' unfolding deco_M unfolding M' M1a
+        by (auto simp: deco_M add_mset_eq_add_mset
+            dest: in_lits_of_l_defined_litD
+            simp del: \<open>filter is_decided M2' = []\<close>
+            elim!: list_match_lel_lel)
+      have \<open>twl_lazy_update M1a (TWL_DECO_clause M)\<close>
+        using no_dup M1 unfolding deco_M unfolding M' M1a
+        by (auto simp: deco_M add_mset_eq_add_mset
+            dest: in_lits_of_l_defined_litD)
+      moreover have \<open>twl_inv M1a (TWL_DECO_clause M)\<close>
+        unfolding deco_M by (auto simp: add_mset_eq_add_mset)
+      moreover have \<open>watched_literals_false_of_max_level M1a (TWL_DECO_clause M)\<close>
+        unfolding deco_M by (auto simp: add_mset_eq_add_mset)
+      moreover have \<open>twl_exception_inv ?SM1a (TWL_DECO_clause M)\<close>
+        unfolding deco_M by (auto simp: add_mset_eq_add_mset twl_exception_inv.simps)
+      ultimately have \<open>C\<in>#add_mset (TWL_DECO_clause M) N + U \<Longrightarrow> twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
          watched_literals_false_of_max_level M1a C \<and>
          twl_exception_inv ?SM1a C\<close> for C
-      using struct[of C]
-      by (auto simp: twl_exception_inv.simps)
-    then show \<open>\<forall>C\<in>#add_mset (TWL_DECO_clause M) N + U. twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+        using struct[of C]
+        by (auto simp: twl_exception_inv.simps)
+      then show \<open>\<forall>C\<in>#add_mset (TWL_DECO_clause M) N + U. twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
          watched_literals_false_of_max_level M1a C \<and>
          twl_exception_inv ?SM1a C\<close>
-      by blast
-    show \<open>confl_cands_enqueued ?SM1a\<close>
-      using confl by (auto simp: deco_M)
-    show \<open>propa_cands_enqueued ?SM1a\<close>
-      using propa by (auto simp: deco_M)
-    show \<open>clauses_to_update_inv ?SM1a\<close>
-      using clss_to_upd
-      by (auto simp: deco_M clauses_to_update_prop.simps add_mset_eq_add_mset)
-  qed
-  moreover have \<open>get_conflict ?S' = None\<close>
-    by simp
-  ultimately have \<open>twl_struct_invs ?S'\<close>
-    unfolding twl_struct_invs_def
-    by meson
-  then have \<open>twl_struct_invs ?T'\<close>
-    by (rule cdcl_twl_cp_twl_struct_invs[OF propa])
-  then show ?case
-    by simp
+        by blast
+      show \<open>confl_cands_enqueued ?SM1a\<close>
+        using confl by (auto simp: deco_M)
+      show \<open>propa_cands_enqueued ?SM1a\<close>
+        using propa by (auto simp: deco_M)
+      show \<open>clauses_to_update_inv ?SM1a\<close>
+        using clss_to_upd
+        by (auto simp: deco_M clauses_to_update_prop.simps add_mset_eq_add_mset)
+    qed
+    moreover have \<open>get_conflict ?S' = None\<close>
+      by simp
+    ultimately have \<open>twl_struct_invs ?S'\<close>
+      unfolding twl_struct_invs_def
+      by meson
+    then have \<open>twl_struct_invs ?T'\<close>
+      by (rule cdcl_twl_cp_twl_struct_invs[OF propa])
+    then show \<open>twl_struct_invs (Propagated (-K) (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, 
+      U, None, NP, UP, {#}, {#K#})\<close>
+      by simp
+  }
+
+  {
+    let ?S' = \<open>(M1, N, U, Some (DECO_clause M), add_mset (DECO_clause M) NP, UP,  {#}, {#})\<close>
+ 
+    let ?S = \<open>(Propagated (- K) (DECO_clause M) # M1, N, U, None, add_mset (DECO_clause M) NP, UP,
+        {#}, {#K#})\<close>
+    assume \<open>count_decided M = 1\<close>
+    then have [simp]: \<open>DECO_clause M = {#-K#}\<close>
+      using decomp by (auto simp: DECO_clause_def filter_mset_empty_conv count_decided_0_iff
+          dest!: get_all_ann_decomposition_exists_prepend)
+    have [simp]: \<open>get_level M1 L = 0\<close> \<open>count_decided M1 = 0\<close> for L
+      using count_decided_ge_get_level[of M1 L]  \<open>count_decided M = 1\<close>
+      unfolding M by auto
+
+
+   have \<open>twl_st_inv ?S'\<close>
+      using wf_N_U st_invs_M1' unfolding twl_st_inv.simps
+      by (auto simp: twl_is_an_exception_def)
+    moreover have \<open>valid_enqueued ?S'\<close>
+      by (auto simp: )
+    moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of ?S')\<close>
+      using struct_invs_add sorry
+    moreover have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of ?S')\<close>
+      using no_smaller_S' sorry
+    moreover have \<open>twl_st_exception_inv ?S'\<close>
+      using st_invs_M1' 
+      by (auto simp: twl_exception_inv.simps add_mset_eq_add_mset)
+    moreover have \<open>no_duplicate_queued ?S'\<close>
+      by auto
+    moreover have \<open>distinct_queued ?S'\<close>
+      by auto
+    moreover have \<open>confl_cands_enqueued ?S'\<close>
+      using confl_enqueued_M1 by auto
+    moreover have \<open>propa_cands_enqueued ?S'\<close>
+      using propa_enqueued_M1 by auto
+    moreover {
+      have \<open>get_level M L = 0 \<Longrightarrow> get_level M1 L = 0\<close> for L
+        using no_dup defined_lit_no_dupD(1)[of M1 L M2']
+        by (cases \<open>defined_lit M L\<close>)
+          (auto simp: M' defined_lit_append defined_lit_cons atm_of_eq_atm_of
+            get_level_cons_if split: if_splits)
+      moreover have \<open>get_level M L = 0 \<Longrightarrow> L \<in> lits_of_l M \<Longrightarrow> L \<in> lits_of_l M1\<close> for L
+        using no_dup defined_lit_no_dupD(1)[of M1 L M2']
+        by (cases \<open>defined_lit M L\<close>)
+          (auto simp: M' defined_lit_append defined_lit_cons atm_of_eq_atm_of
+            get_level_cons_if split: if_splits dest: in_lits_of_l_defined_litD)
+      ultimately have \<open>entailed_clss_inv ?S'\<close>
+        using entailed unfolding entailed_clss_inv.simps by auto
+    }
+    moreover have \<open>clauses_to_update_inv ?S'\<close>
+      using clss_upd no_dup by (auto simp: add_mset_eq_add_mset M'
+          dest: in_lits_of_l_defined_litD)
+    moreover have \<open>past_invs ?S'\<close>
+      using past_M1 unfolding past_invs.simps by (auto simp: twl_exception_inv.simps)
+    moreover have \<open>get_conflict ?S' \<noteq> None \<longrightarrow> clauses_to_update ?S' = {#} \<and>
+       literals_to_update ?S' = {#}\<close>
+      by simp
+    ultimately have \<open>twl_struct_invs ?S'\<close>
+      unfolding twl_struct_invs_def
+      by meson
+
+
+    have \<open>twl_lazy_update (Propagated (- K) {#- K#} # M1) C\<close> for C
+      by (cases C) (auto simp: get_level_cons_if)
+    moreover have \<open>twl_inv (Propagated (- K) {#- K#} # M1) C\<close> for C
+      by (cases C) (auto simp: get_level_cons_if)
+    moreover have \<open>watched_literals_false_of_max_level (Propagated (- K) {#- K#} # M1) C\<close> for C
+      by (cases C) (auto simp: get_level_cons_if)
+    ultimately have \<open>twl_st_inv ?S\<close>
+      using st_invs_M1' wf_N_U by (auto simp: twl_st_inv.simps 
+          simp del: set_mset_union)
+    moreover have \<open>valid_enqueued ?S\<close>
+      by auto
+    moreover have \<open> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of ?S)\<close>
+      sorry
+    moreover have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of ?S)\<close>
+      sorry
+    moreover have \<open>twl_st_exception_inv ?S\<close>
+      using st_invs_M1' by (simp add: twl_exception_inv.simps)
+    moreover have \<open>no_duplicate_queued ?S\<close>
+      by auto
+    moreover have \<open>distinct_queued ?S\<close>
+      by auto
+    moreover have \<open>confl_cands_enqueued ?S\<close>
+      using confl_enqueued_M1 by (auto simp del: set_mset_union)
+    moreover have \<open>propa_cands_enqueued ?S\<close>
+      using propa_enqueued_M1 by auto
+    show \<open>twl_struct_invs ?S\<close>
+      unfolding twl_struct_invs_def
+    
+      sorry
+  }
 next
   case (bj_unit K M1 M2 M N U NP UP WS Q)
   then show ?case sorry
