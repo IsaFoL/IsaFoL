@@ -208,7 +208,8 @@ value "prover (mk_MSC015_1 5)"
 value "prover (mk_MSC015_1 10)"
 value "prover (mk_MSC015_1 12)"
 (*
-value "prover (mk_MSC015_1 15)"
+value "prover (mk_MSC015_1 14)" -- 400s
+value "prover (mk_MSC015_1 15)" -- mem out
 value "prover (mk_MSC015_1 20)"
 value "prover (mk_MSC015_1 25)"
 *)
