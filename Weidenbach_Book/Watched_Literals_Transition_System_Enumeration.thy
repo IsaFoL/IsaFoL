@@ -34,14 +34,14 @@ lemma clause_TWL_Deco_clause[simp]: \<open>clause (TWL_DECO_clause M) = DECO_cla
 inductive negate_model_and_add :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
 bj_unit:
   \<open>negate_model_and_add (M, N, U, None, NP, UP, WS, Q)
-       (Propagated (-K) (DECO_clause M) # M1, N, U, None, add_mset (DECO_clause M) NP, UP, {#}, {#K#})\<close>
+     (Propagated (-K) (DECO_clause M) # M1, N, U, None, add_mset (DECO_clause M) NP, UP, {#}, {#K#})\<close>
 if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
   \<open>get_level M K = count_decided M\<close> and
   \<open>count_decided M = 1\<close> |
 bj_nonunit:
   \<open>negate_model_and_add (M, N, U, None, NP, UP, WS, Q)
-       (Propagated (-K) (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#K#})\<close>
+     (Propagated (-K) (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#K#})\<close>
 if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
   \<open>get_level M K = count_decided M\<close> and
