@@ -545,14 +545,15 @@ proof -
     done
 qed
 
-lemma
+lemma negate_model_and_add_twl_struct_invs:
+  fixes S T :: \<open>'v twl_st\<close>
   assumes
      \<open>negate_model_and_add S T\<close> and
      \<open>twl_struct_invs S\<close>
    shows \<open>twl_struct_invs T\<close>
   using assms
 proof (induction rule: negate_model_and_add.induct)
-  fix K M1 M2 M N U NP UP WS Q
+  fix K :: \<open>'v literal\<close> and M1 M2 M N U NP UP WS Q
   assume
     decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
     inv: \<open>twl_struct_invs (M, N, U, None, NP, UP, WS, Q)\<close>
@@ -1189,6 +1190,171 @@ proof (induction rule: negate_model_and_add.induct)
       unfolding twl_struct_invs_def
       by meson
   }
+qed
+
+lemma get_all_ann_decomposition_count_decided_1:
+  assumes
+    decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
+    count_dec: \<open>count_decided M = 1\<close>
+  shows \<open>M = M2 @ Decided K # M1\<close>
+proof -
+  obtain M3 where
+    M: \<open>M = M3 @ M2 @ Decided K # M1\<close>
+    using decomp by blast
+  then have M': \<open>M = (M3 @ M2) @ Decided K # M1\<close>
+    by simp
+  have count_dec_M1: \<open>count_decided M1 = 0\<close>
+    using count_dec unfolding M'
+    by (auto simp: count_decided_0_iff)
+
+  have [simp]: \<open>length (get_all_ann_decomposition (M3 @ M2)) = Suc 0\<close>
+    \<open>length (get_all_ann_decomposition M1) = Suc 0\<close>
+    using count_dec unfolding M'
+    by (subst no_decision_get_all_ann_decomposition; auto simp: count_decided_0_iff; fail)+
+  have \<open>length (get_all_ann_decomposition M) = 2\<close>
+    using count_dec
+    unfolding M' cdcl\<^sub>W_restart_mset.length_get_all_ann_decomposition_append_Decided
+    by auto
+  moreover have \<open>get_all_ann_decomposition M = [(a, b), (Decided K # M1, M2)] \<Longrightarrow> False\<close> for a b
+    using decomp get_all_ann_decomposition_hd_hd[of M \<open>fst (hd (get_all_ann_decomposition M))\<close>
+         \<open>snd (hd (get_all_ann_decomposition M))\<close> \<open>fst ((hd o tl) (get_all_ann_decomposition M))\<close>
+         \<open>snd ((hd o tl) (get_all_ann_decomposition M))\<close> Nil] count_dec
+       get_all_ann_decomposition_exists_prepend[of a b M]
+    by (cases \<open>get_all_ann_decomposition M\<close>; cases \<open>tl (get_all_ann_decomposition M)\<close>;
+        cases \<open>fst ((hd o tl) (get_all_ann_decomposition M))\<close>; cases a)
+      (auto simp: count_decided_0_iff)
+  ultimately have \<open>get_all_ann_decomposition M = [(Decided K # M1, M2), ([], M1)]\<close>
+    using decomp get_all_ann_decomposition_hd_hd[of M \<open>fst (hd (get_all_ann_decomposition M))\<close>
+         \<open>snd (hd (get_all_ann_decomposition M))\<close> \<open>fst ((hd o tl) (get_all_ann_decomposition M))\<close>
+         \<open>snd ((hd o tl) (get_all_ann_decomposition M))\<close> Nil]
+       in_get_all_ann_decomposition_decided_or_empty[of \<open>fst ((hd o tl) (get_all_ann_decomposition M))\<close>
+         \<open>snd ((hd o tl) (get_all_ann_decomposition M))\<close> M] count_dec_M1
+    by (cases \<open>get_all_ann_decomposition M\<close>; cases \<open>tl (get_all_ann_decomposition M)\<close>;
+        cases \<open>fst ((hd o tl) (get_all_ann_decomposition M))\<close>)
+      (auto simp: count_decided_0_iff)
+
+  show \<open>?thesis\<close>
+    by (simp add: \<open>get_all_ann_decomposition M = [(Decided K # M1, M2), ([], M1)]\<close>
+        get_all_ann_decomposition_decomp)
+qed
+
+lemma negate_model_and_add_twl_stgy_invs:
+  assumes
+     \<open>negate_model_and_add S T\<close> and
+     \<open>twl_struct_invs S\<close> and
+     \<open>twl_stgy_invs S\<close>
+   shows \<open>twl_stgy_invs T\<close>
+  using assms
+proof (induction rule: negate_model_and_add.induct)
+  case (bj_unit K M1 M2 M N U NP UP WS Q) note decomp = this(1) and lev_K = this(2) and
+    count_dec = this(3) and struct = this(4) and stgy = this(5)
+  let ?S = \<open>(M, N, U, None, NP, UP, WS, Q)\<close>
+  let ?T = \<open>(Propagated (- K) (DECO_clause M) # M1, N, U, None, add_mset (DECO_clause M) NP, UP,
+   {#}, {#K#})\<close>
+  have
+    false_with_lev: \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (state\<^sub>W_of ?S)\<close> and
+    no_smaller_confl: \<open>cdcl\<^sub>W_restart_mset.no_smaller_confl (state\<^sub>W_of ?S)\<close> and
+    confl0: \<open>cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state\<^sub>W_of ?S)\<close>
+    using stgy unfolding twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+    by fast+
+  have M: \<open>M = M2 @ Decided K # M1\<close>
+    using decomp count_dec by(simp add: get_all_ann_decomposition_count_decided_1)
+  have [iff]: \<open>M = M' @ Decided K' # Ma \<longleftrightarrow> M' = M2 \<and> K' = K \<and> Ma = M1\<close> for M' K' Ma
+    using count_dec unfolding M
+    by (auto elim!: list_match_lel_lel)
+  have [iff]: \<open>M1 = M' @ Decided K' # Ma \<longleftrightarrow> False\<close> for M' K' Ma
+    using count_dec unfolding M
+    by (auto elim!: list_match_lel_lel)
+  have
+    false_with_lev: \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (state\<^sub>W_of ?T)\<close>
+    using false_with_lev unfolding cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+    by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def)
+  moreover have \<open>cdcl\<^sub>W_restart_mset.no_smaller_confl (state\<^sub>W_of ?T)\<close>
+    using no_smaller_confl unfolding cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+    by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def
+        cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons
+        dest!: multi_member_split)
+  moreover have \<open>cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state\<^sub>W_of ?T)\<close>
+    using no_smaller_confl unfolding cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+    by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def
+        cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons
+        dest!: multi_member_split)
+  ultimately show ?case
+    unfolding twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+    by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def)
+next
+  case (bj_nonunit K M1 M2 M N U NP UP WS Q) note decomp = this(1) and lev_K = this(2) and
+    count_dec = this(3) and struct = this(4) and stgy = this(5)
+  let ?S = \<open>(M, N, U, None, NP, UP, WS, Q)\<close>
+  let ?T = \<open>(Propagated (- K) (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U,
+        None, NP, UP, {#}, {#K#})\<close>
+  have
+    false_with_lev: \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (state\<^sub>W_of ?S)\<close> and
+    no_smaller_confl: \<open>cdcl\<^sub>W_restart_mset.no_smaller_confl (state\<^sub>W_of ?S)\<close> and
+    confl0: \<open>cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state\<^sub>W_of ?S)\<close>
+    using stgy unfolding twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+    by fast+
+  obtain M3 where M: \<open>M = M3 @ M2 @ Decided K # M1\<close>
+    using decomp by auto
+  have \<open>no_dup M\<close>
+    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def trail.simps state\<^sub>W_of.simps
+    by fast
+  then have H: \<open>M1 = M' @ Decided Ka # M2 \<Longrightarrow> \<not>M2 \<Turnstile>as CNot (DECO_clause M)\<close> for M' Ka M2
+    by (auto simp: M DECO_clause_def
+           dest: in_lits_of_l_defined_litD in_diffD)
+  have
+    false_with_lev: \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (state\<^sub>W_of ?T)\<close>
+    using false_with_lev unfolding cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+    by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def)
+  moreover have \<open>cdcl\<^sub>W_restart_mset.no_smaller_confl (state\<^sub>W_of ?T)\<close>
+    using no_smaller_confl H unfolding cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+    by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def M
+        cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons
+        dest!: multi_member_split)
+  moreover have \<open>cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state\<^sub>W_of ?T)\<close>
+    using no_smaller_confl unfolding cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+    by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def
+        cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons
+        dest!: multi_member_split)
+  ultimately show ?case
+    unfolding twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def by fast
+next
+  case (restart_nonunit K M1 M2 M N U NP UP Q) note decomp = this(1) and lev_K = this(2) and
+    count_dec = this(3) and struct = this(4) and stgy = this(5)
+  let ?S = \<open>(M, N, U, None, NP, UP, {#}, Q)\<close>
+  let ?T = \<open>(M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
+  have
+    false_with_lev: \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (state\<^sub>W_of ?S)\<close> and
+    no_smaller_confl: \<open>cdcl\<^sub>W_restart_mset.no_smaller_confl (state\<^sub>W_of ?S)\<close> and
+    confl0: \<open>cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state\<^sub>W_of ?S)\<close>
+    using stgy unfolding twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+    by fast+
+  obtain M3 where M: \<open>M = M3 @ M2 @ Decided K # M1\<close>
+    using decomp by auto
+  have \<open>no_dup M\<close>
+    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def trail.simps state\<^sub>W_of.simps
+    by fast
+  then have H: \<open>M1 = M' @ Decided Ka # M2 \<Longrightarrow> \<not>M2 \<Turnstile>as CNot (DECO_clause M)\<close> for M' Ka M2
+    by (auto simp: M DECO_clause_def
+           dest: in_lits_of_l_defined_litD in_diffD)
+  have
+    false_with_lev: \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (state\<^sub>W_of ?T)\<close>
+    using false_with_lev unfolding cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+    by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def)
+  moreover have \<open>cdcl\<^sub>W_restart_mset.no_smaller_confl (state\<^sub>W_of ?T)\<close>
+    using no_smaller_confl H unfolding cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+    by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def M
+        cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons
+        dest!: multi_member_split)
+  moreover have \<open>cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state\<^sub>W_of ?T)\<close>
+    using no_smaller_confl unfolding cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+    by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def
+        cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons
+        dest!: multi_member_split)
+  ultimately show ?case
+    unfolding twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def by fast
 qed
 
 end
