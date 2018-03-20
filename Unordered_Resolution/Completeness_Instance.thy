@@ -1,6 +1,6 @@
 section {* Completeness Revisited *}
 
-theory Complete imports Unify "Resolution_FOL.Completeness" begin
+theory Completeness_Instance imports Unification_Theorem "Resolution_FOL.Completeness" begin
 
 interpretation unification using unification by unfold_locales auto
 
@@ -14,7 +14,7 @@ lemma lift:
   assumes appl: "applicable C' D' L' M' \<sigma>"
   shows "\<exists>L M \<tau>. applicable C D L M \<tau> \<and>
                    instance_of\<^sub>l\<^sub>s (resolution C' D' L' M' \<sigma>) (resolution C D L M \<tau>)"
-using assms lifting by simp
+using assms lifting by -
 
 thm completeness
 
@@ -22,6 +22,6 @@ theorem complete:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   assumes unsat: "\<forall>(F::hterm fun_denot) (G::hterm pred_denot) . \<not>eval\<^sub>c\<^sub>s F G Cs"
   shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
-using assms completeness by simp
+using assms completeness by -
 
 end
