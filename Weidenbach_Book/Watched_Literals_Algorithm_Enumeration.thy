@@ -150,9 +150,15 @@ proof -
   qed
 qed
 
+
 context
   fixes P :: \<open>'v literal set \<Rightarrow> bool\<close>
 begin
+
+fun negate_model_and_add :: \<open>'v literal list option \<times> 'v clauses \<Rightarrow> _ \<times> 'v clauses\<close> where
+  \<open>negate_model_and_add (Some M, N) = 
+     (if P (set M) then (Some M, N) else (None, add_mset (uminus `# mset M) N))\<close> |
+  \<open>negate_model_and_add (None, N) = (None, N)\<close>
 
 definition cdcl_twl_enum :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>cdcl_twl_enum S = do {
@@ -160,7 +166,7 @@ definition cdcl_twl_enum :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close
      WHILE\<^sub>T\<^bsup>cdcl_twl_enum_inv\<^esup>
        (\<lambda>S. get_conflict S \<noteq> None \<and> P (lits_of_l (get_trail S)))
        (\<lambda>S. do {
-             S \<leftarrow> SPEC (negate_model_and_add S);
+             S \<leftarrow> SPEC (negate_model_and_add_twl S);
              conclusive_TWL_run S
            })
        S
@@ -170,17 +176,44 @@ definition next_model_filtered_nres where
   \<open>next_model_filtered_nres N =
     SPEC (\<lambda>M. full (next_model_filtered P) N M)\<close>
 
+(* TODO move *)
+lemma no_step_next_model_filtered_next_model_iff:
+  \<open>fst S = None \<Longrightarrow> no_step (next_model_filtered P) S \<longleftrightarrow> (\<nexists>M. next_model M (snd S))\<close>
+  apply (cases S; auto simp: next_model_filtered.simps)
+  by metis
+
+lemma Ex_next_model_iff_statisfiable:
+  \<open>(\<exists>M. next_model M N) \<longleftrightarrow> satisfiable (set_mset N)\<close>
+  by (metis Watched_Literals_Algorithm_Enumeration.no_step_next_model_filtered_next_model_iff
+      next_model.cases no_step_next_model_filtered_unsat prod.sel(1) prod.sel(2) satisfiable_carac')
+
+
+lemma unsatisfiable_mono:
+  \<open>N \<subseteq> N' \<Longrightarrow> unsatisfiable N \<Longrightarrow> unsatisfiable N'\<close>
+  by (metis (full_types) satisfiable_decreasing subset_Un_eq)
+
+lemma no_step_full_iff_eq:
+  \<open>no_step R S \<Longrightarrow> full R S T \<longleftrightarrow> S = T\<close>
+  unfolding full_def
+  by (meson rtranclp.rtrancl_refl rtranclpD tranclpD)
+
+(* End Move *)
+
 lemma
   \<open>(cdcl_twl_enum, next_model_filtered_nres) \<in>
     [\<lambda>(M, N). M = None]\<^sub>f enum_equisatisfiable_st_clss \<rightarrow> \<langle>enum_model_st\<rangle>nres_rel\<close>
 proof -
   define model_if_exists where
     \<open>model_if_exists S \<equiv> \<lambda>M.
-      (if no_step (next_model_filtered P) S then M=S
-       else next_model_filtered P S M)\<close>
-      for S :: \<open>_ \<times> 'v clauses\<close>
+      (if \<exists>M. next_model M (snd S) 
+       then (fst M \<noteq> None \<and> next_model (the (fst M)) (snd S) \<and> snd M = snd S)
+       else (fst M = None \<and> M = S))\<close>
+  for S :: \<open>_ \<times> 'v clauses\<close>
+
   have \<open>full (next_model_filtered P) S U \<longleftrightarrow>
-         (\<exists>T. model_if_exists S T \<and> full (next_model_filtered P) T U)\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+         (\<exists>T. model_if_exists S T \<and> full (next_model_filtered P) (negate_model_and_add T) U)\<close>
+    (is \<open>?A \<longleftrightarrow> ?B\<close>)
+    if \<open>fst S = None\<close>
     for S U
   proof
     assume ?A
@@ -192,30 +225,70 @@ proof -
     then show ?B
     proof cases
       case nss
-      then have \<open>model_if_exists S S\<close>
-        unfolding model_if_exists_def by simp
-      then show ?B
-        using \<open>?A\<close> by blast
+      then have SU: \<open>S = U\<close>
+        using \<open>?A\<close>
+        apply (subst (asm) no_step_full_iff_eq)
+         apply assumption by simp
+      have \<open>model_if_exists S S\<close> and \<open>fst S = None\<close>
+        using nss no_step_next_model_filtered_next_model_iff[of \<open>(_, snd S)\<close>] that
+        unfolding model_if_exists_def
+        by (cases S; auto; fail)+
+      moreover {
+        have \<open>no_step (next_model_filtered P) (negate_model_and_add S)\<close>
+          using nss
+          apply (subst no_step_next_model_filtered_next_model_iff)
+          subgoal using that by (cases S) auto
+          apply (subst (asm) no_step_next_model_filtered_next_model_iff)
+          subgoal using that by (cases S) auto
+          unfolding Ex_next_model_iff_statisfiable
+          apply (rule unsatisfiable_mono)
+           defer
+           apply assumption
+          by (cases S; cases \<open>fst S\<close>) (auto intro: unsatisfiable_mono)
+        then have \<open>full (next_model_filtered P) (negate_model_and_add S) U\<close>
+          apply (subst no_step_full_iff_eq)
+           apply assumption
+          using SU \<open>fst S = None\<close>
+          by (cases S) auto
+      }
+      ultimately show ?B
+        by fast
     next
       case (s1 T)
-      then have \<open>model_if_exists S T\<close>
-        unfolding model_if_exists_def
-        by meson
-      then show ?B
-        using s1 by blast
+      obtain M where
+        M: \<open>next_model M (snd S)\<close> and 
+        T: \<open>T = (if P (set M) then (Some M, snd S)
+            else (None, add_mset (image_mset uminus (mset M)) (snd S)))\<close>
+        using s1
+        unfolding model_if_exists_def 
+        apply (cases T)
+        apply (auto simp: next_model_filtered.simps)
+        done
+      let ?T = \<open>((Some M, snd S))\<close>
+      have \<open>model_if_exists S ?T\<close>
+        using M T that unfolding model_if_exists_def
+        by (cases S) auto
+      moreover have \<open>full (next_model_filtered P) (negate_model_and_add ?T) U\<close>
+        using s1(2) T 
+        by (auto split: if_splits)
+      ultimately show ?B
+        by blast
     qed
   next
     assume ?B
     then show ?A
-      by (auto simp: model_if_exists_def full1_is_full full_fullI split: if_splits)
+      apply (auto simp: model_if_exists_def full1_is_full full_fullI split: if_splits
+          dest: )
+       apply (metis full1_is_full full_fullI next_model_filtered.intros(1) prod.exhaust_sel that)
+      by (metis full1_is_full full_fullI next_model_filtered.intros(2) prod.exhaust_sel that)
   qed
-  then have next_model_filtered_nres_alt_def: \<open>next_model_filtered_nres  = (\<lambda>S. do {
+  then have next_model_filtered_nres_alt_def: \<open>next_model_filtered_nres S  = do {
          S \<leftarrow> SPEC (model_if_exists S);
-         SPEC (\<lambda>T. full (next_model_filtered P) S T)
-       })\<close>
-    apply (intro ext)
+         SPEC (\<lambda>T. full (next_model_filtered P) (negate_model_and_add S) T)
+       }\<close> if \<open>fst S = None\<close> for S
+    using that
     unfolding next_model_filtered_nres_def (* model_if_exists_def *) RES_RES_RETURN_RES
-    by fast
+    by blast
   have \<open>conclusive_TWL_run S
       \<le> \<Down> enum_model_st_direct
           (SPEC (model_if_exists MN))\<close>

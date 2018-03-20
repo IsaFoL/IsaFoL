@@ -31,23 +31,23 @@ lemma clause_TWL_Deco_clause[simp]: \<open>clause (TWL_DECO_clause M) = DECO_cla
       simp del: image_mset_union mset_append
       simp add: image_mset_union[symmetric] mset_append[symmetric] mset_filter)
 
-inductive negate_model_and_add :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
+inductive negate_model_and_add_twl :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
 bj_unit:
-  \<open>negate_model_and_add (M, N, U, None, NP, UP, WS, Q)
+  \<open>negate_model_and_add_twl (M, N, U, None, NP, UP, WS, Q)
      (Propagated (-K) (DECO_clause M) # M1, N, U, None, add_mset (DECO_clause M) NP, UP, {#}, {#K#})\<close>
 if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
   \<open>get_level M K = count_decided M\<close> and
   \<open>count_decided M = 1\<close> |
 bj_nonunit:
-  \<open>negate_model_and_add (M, N, U, None, NP, UP, WS, Q)
+  \<open>negate_model_and_add_twl (M, N, U, None, NP, UP, WS, Q)
      (Propagated (-K) (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#K#})\<close>
 if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
   \<open>get_level M K = count_decided M\<close> and
   \<open>count_decided M \<ge> 2\<close> |
 restart_nonunit:
-  \<open>negate_model_and_add (M, N, U, None, NP, UP, {#}, Q)
+  \<open>negate_model_and_add_twl (M, N, U, None, NP, UP, {#}, Q)
        (M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
 if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
@@ -545,14 +545,14 @@ proof -
     done
 qed
 
-lemma negate_model_and_add_twl_struct_invs:
+lemma negate_model_and_add_twl_twl_struct_invs:
   fixes S T :: \<open>'v twl_st\<close>
   assumes
-     \<open>negate_model_and_add S T\<close> and
+     \<open>negate_model_and_add_twl S T\<close> and
      \<open>twl_struct_invs S\<close>
    shows \<open>twl_struct_invs T\<close>
   using assms
-proof (induction rule: negate_model_and_add.induct)
+proof (induction rule: negate_model_and_add_twl.induct)
   fix K :: \<open>'v literal\<close> and M1 M2 M N U NP UP WS Q
   assume
     decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
@@ -1238,14 +1238,14 @@ proof -
         get_all_ann_decomposition_decomp)
 qed
 
-lemma negate_model_and_add_twl_stgy_invs:
+lemma negate_model_and_add_twl_twl_stgy_invs:
   assumes
-     \<open>negate_model_and_add S T\<close> and
+     \<open>negate_model_and_add_twl S T\<close> and
      \<open>twl_struct_invs S\<close> and
      \<open>twl_stgy_invs S\<close>
    shows \<open>twl_stgy_invs T\<close>
   using assms
-proof (induction rule: negate_model_and_add.induct)
+proof (induction rule: negate_model_and_add_twl.induct)
   case (bj_unit K M1 M2 M N U NP UP WS Q) note decomp = this(1) and lev_K = this(2) and
     count_dec = this(3) and struct = this(4) and stgy = this(5)
   let ?S = \<open>(M, N, U, None, NP, UP, WS, Q)\<close>
