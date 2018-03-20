@@ -144,14 +144,15 @@ export_code St0 in SML
 export_code deterministic_RP in SML module_name RP
 
 definition prover where
-  "prover N = deterministic_RP (St0 N 0)"
+  "prover N = (case deterministic_RP (St0 N 0) of
+      None \<Rightarrow> True
+    | Some R \<Rightarrow> if [] \<in> set R then False else True)"
 
-lemma "prover N = None \<Longrightarrow> satisfiable (RP.grounded_N0 N)"
-  unfolding prover_def St0_def using RP.deterministic_RP_complete by auto
-
-lemma "prover N = Some R \<Longrightarrow> (\<not> satisfiable (RP.grounded_N0 N)) = ({#} \<in> RP.grounded_R R)"
-  unfolding prover_def St0_def using RP.deterministic_RP_refutation by auto
-
+lemma "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
+  unfolding prover_def St0_def
+  using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
+  by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
+    split: option.splits if_splits)
 
 export_code prover in SML module_name RP
 
@@ -181,7 +182,82 @@ value "prover
     ([Neg (\<pp>[\<bb>,\<cc>,\<aa>])], 1)]
   :: ((nat, nat) Term.term literal list \<times> nat) list)"
 
+value "prover
+  ([([Pos (\<pp>[X,Y])], 1), ([Neg (\<pp>[X,X])], 1)]
+  :: ((nat, nat) Term.term literal list \<times> nat) list)"
+
 value "prover ([([Neg (\<pp>[X,Y,Z]), Pos (\<pp>[Y,Z,X])], 1)]
   :: ((nat, nat) Term.term literal list \<times> nat) list)"
+
+definition mk_MSC015_1 :: "nat \<Rightarrow> ((nat, nat) Term.term literal list \<times> nat) list" where
+  "mk_MSC015_1 n =
+     (let
+       init = ([Pos (\<pp> (replicate n \<aa>))], 1);
+       rules = map (\<lambda>i. ([Neg (\<pp> (map Var [0 ..< n - i - 1] @ \<aa> # replicate i \<bb>)), 
+                         Pos (\<pp> (map Var [0 ..< n - i - 1] @ \<bb> # replicate i \<aa>))], 1)) [0 ..< n];
+       goal = ([Neg (\<pp> (replicate n \<bb>))], 1)
+     in init # rules @ [goal])"
+
+value "prover (mk_MSC015_1 1)"
+value "prover (mk_MSC015_1 2)"
+value "prover (mk_MSC015_1 3)"
+value "prover (mk_MSC015_1 4)"
+value "prover (mk_MSC015_1 5)"
+value "prover (mk_MSC015_1 10)"
+value "prover (mk_MSC015_1 12)"
+(*
+value "prover (mk_MSC015_1 14)" -- 400s
+value "prover (mk_MSC015_1 15)" -- mem out
+value "prover (mk_MSC015_1 20)"
+value "prover (mk_MSC015_1 25)"
+*)
+
+lemma
+  assumes
+     "p a a a a a a a a a a a a a a"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 a \<or>
+       p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 b)"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 a b \<or>
+       p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 b a)"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 a b b \<or>
+       p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 b a a)"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7 x8 x9 x10.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 a b b b \<or>
+       p x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 b a a a)"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7 x8 x9.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 x8 x9 a b b b b \<or>
+       p x1 x2 x3 x4 x5 x6 x7 x8 x9 b a a a a)"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7 x8.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 x8 a b b b b b \<or>
+       p x1 x2 x3 x4 x5 x6 x7 x8 b a a a a a)"
+     "(\<forall>x1 x2 x3 x4 x5 x6 x7.
+       \<not> p x1 x2 x3 x4 x5 x6 x7 a b b b b b b \<or>
+       p x1 x2 x3 x4 x5 x6 x7 b a a a a a a)"
+     "(\<forall>x1 x2 x3 x4 x5 x6.
+       \<not> p x1 x2 x3 x4 x5 x6 a b b b b b b b \<or>
+       p x1 x2 x3 x4 x5 x6 b a a a a a a a)"
+     "(\<forall>x1 x2 x3 x4 x5.
+       \<not> p x1 x2 x3 x4 x5 a b b b b b b b b \<or>
+       p x1 x2 x3 x4 x5 b a a a a a a a a)"
+     "(\<forall>x1 x2 x3 x4.
+       \<not> p x1 x2 x3 x4 a b b b b b b b b b \<or>
+       p x1 x2 x3 x4 b a a a a a a a a a)"
+     "(\<forall>x1 x2 x3.
+       \<not> p x1 x2 x3 a b b b b b b b b b b \<or>
+       p x1 x2 x3 b a a a a a a a a a a)"
+     "(\<forall>x1 x2.
+       \<not> p x1 x2 a b b b b b b b b b b b \<or>
+       p x1 x2 b a a a a a a a a a a a)"
+     "(\<forall>x1.
+       \<not> p x1 a b b b b b b b b b b b b \<or>
+       p x1 b a a a a a a a a a a a a)"
+     "(\<not> p a b b b b b b b b b b b b b \<or>
+       p b a a a a a a a a a a a a a)"
+     "\<not> p b b b b b b b b b b b b b b"
+   shows False
+  using assms by metis
 
 end

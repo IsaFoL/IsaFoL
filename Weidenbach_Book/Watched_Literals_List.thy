@@ -382,18 +382,6 @@ definition twl_st_l   :: \<open>_ \<Rightarrow> ('v twl_st_l \<times> 'v twl_st)
       Q' = Q
   }\<close>
 
-named_theorems twl_st \<open>Conversions simp rules\<close>
-
-lemma [twl_st]:\<open>trail (state\<^sub>W_of S') = get_trail S'\<close>
-  by (cases S') (auto simp: trail.simps)
-
-lemma [twl_st]:
-  \<open>get_trail S' \<noteq> [] \<Longrightarrow> cdcl\<^sub>W_restart_mset.hd_trail (state\<^sub>W_of S') = hd (get_trail S')\<close>
-  by (cases S') (auto simp: trail.simps)
-
-lemma [twl_st]: \<open>conflicting (state\<^sub>W_of S') = get_conflict S'\<close>
-  by (cases S') (auto simp: conflicting.simps)
-
 lemma clss_state\<^sub>W_of[twl_st]:
   assumes \<open>(S, R) \<in> twl_st_l L\<close>
   shows

@@ -997,6 +997,7 @@ next
     by auto
 qed
 
+(*
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
   "mset ` set (resolve_on_old [] C [A] D) =
    {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}" (is "?lhs = ?rhs")
@@ -1080,6 +1081,7 @@ next
       sorry
   qed
 oops
+*)
 
 lemma set_resolve_eq_UNION_set_resolve_on:
   "set (resolve C D) =

@@ -443,41 +443,6 @@ lemma extract_atms_clss_empty_iff:
   unfolding extract_atms_clss_alt_def
   by auto
 
-lemma conflict_of_level_unsatisfiable:
-  assumes
-    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S\<close> and
-    dec: \<open>count_decided (trail S) = 0\<close> and
-    confl: \<open>conflicting S \<noteq> None\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
-  shows \<open>unsatisfiable (set_mset (init_clss S))\<close>
-proof -
-  obtain M N U D where S: \<open>S = (M, N, U, Some D)\<close>
-    by (cases S) (use confl in auto)
-  have [simp]: \<open>get_all_ann_decomposition M = [([], M)]\<close>
-    by (rule no_decision_get_all_ann_decomposition)
-      (use dec in \<open>auto simp: count_decided_def filter_empty_conv S \<close>)
-  have
-    N_U: \<open>N \<Turnstile>psm U\<close> and
-    M_D: \<open>M \<Turnstile>as CNot D\<close> and
-    N_U_M: \<open>set_mset N \<union> set_mset U \<Turnstile>ps unmark_l M\<close> and
-    n_d: \<open>no_dup M\<close> and
-    N_U_D: \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>
-    using assms
-    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
-        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
-  have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
-    by (rule true_clss_clss_true_clss_cls_true_clss_clss[OF N_U_M M_D])
-  then have \<open>set_mset N \<Turnstile>ps CNot D\<close> \<open>set_mset N \<Turnstile>p D\<close>
-    using N_U N_U_D true_clss_clss_left_right by blast+
-  then have \<open>unsatisfiable (set_mset N)\<close>
-    by (rule true_clss_clss_CNot_true_clss_cls_unsatisfiable)
-
-  then show ?thesis
-    by (auto simp: S clauses_def dest: satisfiable_decreasing)
-qed
-
 lemma cdcl_twl_stgy_prog_wl_spec_final2:
   shows
     \<open>(SAT_wl, SAT) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and>

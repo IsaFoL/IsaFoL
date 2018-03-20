@@ -922,8 +922,6 @@ val sET_TRUE_code : Word32.word =
 fun length_u64_code A_ =
   (fn a => (fn () => Uint64.fromFixedInt (Array.length a)));
 
-fun arl_get A_ = (fn (a, _) => nth A_ a);
-
 fun length_raa_u64 A_ xs i =
   (fn () => let
               val x = arl_get (heap_array (typerep_heap A_)) xs i ();
@@ -991,34 +989,6 @@ fun get_level_atm_code x =
 
 fun get_level_code x =
   (fn ai => fn bi => get_level_atm_code ai (atm_of_code bi)) x;
-
-fun arl_append (A1_, A2_) =
-  (fn (a, n) => fn x => fn () =>
-    let
-      val lena = len A2_ a ();
-    in
-      (if less_nat n lena
-        then (fn f_ => fn () => f_ ((upd A2_ n x a) ()) ())
-               (fn aa => (fn () => (aa, plus_nat n one_nat)))
-        else let
-               val newcap = times_nat (nat_of_integer (2 : IntInf.int)) lena;
-             in
-               (fn f_ => fn () => f_ ((array_grow A2_ a newcap (default A1_))
-                 ()) ())
-                 (fn aa =>
-                   (fn f_ => fn () => f_ ((upd A2_ n x aa) ()) ())
-                     (fn ab => (fn () => (ab, plus_nat n one_nat))))
-             end)
-        ()
-    end);
-
-fun int_of_nat n = Int_of_integer (integer_of_nat n);
-
-fun integer_of_int (Int_of_integer k) = k;
-
-fun uint32_of_int i = Word32.fromLargeInt (IntInf.toLarge (integer_of_int i));
-
-fun uint32_of_nat x = (uint32_of_int o int_of_nat) x;
 
 fun length_u_codea A_ c = (fn () => let
                                       val n = len A_ c ();
