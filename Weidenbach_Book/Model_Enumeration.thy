@@ -208,6 +208,12 @@ lemma no_step_next_model_filtered_unsat:
   by (metis Ex_sat_model Model_Enumeration.next_model_filtered.simps
       assms next_model.intros)
 
+lemma unsat_no_step_next_model_filtered:
+  assumes \<open>unsatisfiable (set_mset N)\<close>
+  shows \<open>no_step next_model_filtered (None, N)\<close>
+  by (metis (no_types, lifting) next_model_filtered.simps assms
+      next_model.cases satisfiable_carac' snd_conv)
+
 lemma full_next_model_filtered_no_distinct_model:
   assumes
     no_model:  \<open>full next_model_filtered (None, N) (None, N')\<close> and
