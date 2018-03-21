@@ -2,7 +2,7 @@ theory Watched_Literals_Algorithm_Enumeration
   imports Watched_Literals_Algorithm Watched_Literals_Transition_System_Enumeration
 begin
 
-definition cdcl_twl_enum_inv where
+definition cdcl_twl_enum_inv :: \<open>'v twl_st \<Rightarrow> bool\<close> where
   \<open>cdcl_twl_enum_inv S \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S\<close>
 
 definition equisatisfiable :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
@@ -26,7 +26,8 @@ definition enum_model_st_direct :: \<open>('v twl_st \<times> ('v literal list o
          equisatisfiable (get_all_init_clss S) N \<and>
          (get_conflict S = None \<longrightarrow> M \<noteq> None \<and> lits_of_l (get_trail S) = set (the M)) \<and>
          (get_conflict S \<noteq> None \<longrightarrow> M = None) \<and>
-         atms_of_mm (get_all_init_clss S) = atms_of_mm N}\<close>
+         atms_of_mm (get_all_init_clss S) = atms_of_mm N \<and>
+         cdcl_twl_enum_inv S}\<close>
 
 definition enum_model_st :: \<open>('v twl_st \<times> ('v literal list option \<times> 'v clauses)) set\<close> where
   \<open>enum_model_st = {(S, (M, N)).
@@ -319,6 +320,11 @@ proof -
         using M by auto
       have [simp]: \<open>get_all_init_clss s = get_all_init_clss S\<close>
         by (metis rtranclp_cdcl_twl_stgy_all_learned_diff_learned that(1))
+
+      have enum_inv: \<open>cdcl_twl_enum_inv s\<close>
+        using star S_MN unfolding enum_equisatisfiable_st_clss_def cdcl_twl_enum_inv_def
+        by (auto intro: rtranclp_cdcl_twl_stgy_twl_struct_invs
+            rtranclp_cdcl_twl_stgy_twl_stgy_invs)
       have \<open>twl_struct_invs S\<close>
         using S_MN unfolding enum_equisatisfiable_st_clss_def by blast
       moreover have \<open>twl_stgy_invs S\<close>
@@ -336,7 +342,7 @@ proof -
           unsat: \<open>unsatisfiable (set_mset (get_all_init_clss S))\<close>
         let ?s = \<open>(None, snd MN)\<close>
         have \<open>(s, ?s) \<in> enum_model_st_direct\<close>
-          using S_MN confl unsat unfolding enum_model_st_def
+          using S_MN confl unsat enum_inv unfolding enum_model_st_def
           by (auto simp: enum_model_st_direct_def enum_equisatisfiable_st_clss_def)
         moreover have \<open>model_if_exists MN ?s\<close>
           using unsat S_MN unsat_no_step_next_model_filtered[of N P] Ex_next_model_iff_statisfiable[of N]
@@ -356,7 +362,7 @@ proof -
           n_d: \<open>no_dup (get_trail s)\<close> and
           alien: \<open>atm_of ` (lits_of_l (get_trail s)) \<subseteq> atms_of_mm (get_all_init_clss s)\<close>
         then have \<open>(s, ?s) \<in> enum_model_st_direct\<close>
-          using S_MN unfolding enum_model_st_direct_def
+          using S_MN enum_inv unfolding enum_model_st_direct_def
           by (auto simp: equisatisfiable_satisfiable_iff
               enum_equisatisfiable_st_clss_def lits_of_def)
         moreover {
@@ -383,14 +389,47 @@ proof -
       apply fast+
       done
   qed
+  have \<open>WHILE\<^sub>T\<^bsup>cdcl_twl_enum_inv\<^esup>
+       (\<lambda>S. get_conflict S \<noteq> None \<and>
+             P (lits_of_l (get_trail S)))
+       (\<lambda>S. SPEC (negate_model_and_add_twl S) \<bind>
+             conclusive_TWL_run) T
+      \<le> SPEC
+          (\<lambda>y. \<exists>x. (y, x) \<in> enum_model_st \<and>
+                    full (next_model_filtered P)
+                     (local.negate_model_and_add M) x)\<close>
+    if 
+      \<open>case MN of (M, N) \<Rightarrow> M = None\<close> and
+      S: \<open>(S, MN) \<in> enum_equisatisfiable_st_clss\<close> and
+      T: \<open>(T, M) \<in> enum_model_st_direct\<close> and
+      \<open>M \<in> Collect (model_if_exists MN)\<close>
+    for S T :: \<open>'v twl_st\<close> and MN M
+  proof -
+    define R where \<open>R = {(S :: 'v twl_st, T :: 'v twl_st). True}\<close>
+    show ?thesis
+      apply (refine_vcg WHILEIT_rule[where R=\<open>R\<close>])
+      subgoal sorry
+      subgoal
+        using T S unfolding enum_model_st_direct_def enum_equisatisfiable_st_clss_def 
+          cdcl_twl_enum_inv_def
+        by auto
+        sorry
+      sorry
+  qed
   show ?thesis
     unfolding cdcl_twl_enum_def
     apply (intro frefI nres_relI)
     apply (subst next_model_filtered_nres_alt_def)
     subgoal by auto
-    apply (refine_vcg conclusive_run)
+    apply (refine_vcg conclusive_run WHILEIT_rule)
+    unfolding conc_fun_SPEC
+    subgoal for S MN T M
+      explore_have
+    apply (refine_vcg WHILEIT_rule)
+
     subgoal for S MN
-  oops
+      oops
+      thm WHILEIT_rule
 
 end
 
