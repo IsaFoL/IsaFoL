@@ -1,5 +1,6 @@
 (*  Title:       A Deterministic Ordered Resolution Prover for First-Order Clauses
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2017
+    Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2018
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
@@ -996,6 +997,7 @@ next
     by auto
 qed
 
+(*
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
   "mset ` set (resolve_on_old [] C [A] D) =
    {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}" (is "?lhs = ?rhs")
@@ -1079,6 +1081,7 @@ next
       sorry
   qed
 oops
+*)
 
 lemma set_resolve_eq_UNION_set_resolve_on:
   "set (resolve C D) =
@@ -1780,16 +1783,13 @@ lemmas deriv_ssgSts_weighted_RP = full_chain_imp_chain[OF full_deriv_ssgSts_weig
 lemma not_lnull_ssgSts: "\<not> lnull ssgSts"
   using deriv_ssgSts_weighted_RP by (cases rule: chain.cases) auto
 
-lemma finite_ssgSts0: "finite (wrp.clss_of_wstate (lhd ssgSts))"
-  unfolding lhd_ssgSts by (subst derivation_from.code) (simp add: clss_of_state_def)
-
 lemma empty_ssgP0: "wrp.P_of_wstate (lhd ssgSts) = {}"
   unfolding lhd_ssgSts by (subst derivation_from.code) simp
 
 lemma empty_ssgQ0: "wrp.Q_of_wstate (lhd ssgSts) = {}"
   unfolding lhd_ssgSts by (subst derivation_from.code) simp
 
-lemmas ssgSts_thms = full_deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0 empty_ssgQ0
+lemmas ssgSts_thms = full_deriv_ssgSts_weighted_RP empty_ssgP0 empty_ssgQ0
 
 lemma "clss_of_state (wrp.Liminf_wstate ssgSts) \<subseteq> clss_of_state (wrp.Liminf_wstate gSts)"
 proof (cases "lfinite Sts")

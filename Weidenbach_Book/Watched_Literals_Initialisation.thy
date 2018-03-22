@@ -290,6 +290,8 @@ definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<R
 definition init_dt :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init nres\<close> where
   \<open>init_dt CS S = nfoldli CS (\<lambda>_. True) init_dt_step S\<close>
 
+thm nfoldli.simps
+
 definition   init_dt_pre where
   \<open>init_dt_pre CS SOC \<longleftrightarrow>
     (\<exists>T. (SOC, T) \<in> twl_st_l_init \<and>
@@ -575,7 +577,7 @@ proof -
     \<open>clauses_to_update_inv (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow> clauses_to_update_inv ?T\<close>
     \<open>past_invs (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow> past_invs ?T\<close>
     by (auto simp: twl_st_inv.simps twl_exception_inv.simps past_invs.simps; fail)+
-  have [simp]: \<open> entailed_clss_inv (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow> entailed_clss_inv ?T\<close>
+  have [simp]: \<open>entailed_clss_inv (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow> entailed_clss_inv ?T\<close>
     using ex count_decided_ge_get_level[of M] lev nempty by (auto simp: T)
   show ?all_struct
     using invs ex
@@ -1089,8 +1091,6 @@ proof -
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
        clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
-  have [iff]: \<open>Propagated L {#L#} # M = M' @ Decided K # Ma \<longleftrightarrow> False\<close> for M' K Ma
-    using lev by (cases M') (auto simp: count_decided_0_iff T)
   have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + OC, clauses U + UE, None)\<close>
     using invs confl unfolding T twl_struct_invs_init_def by auto
   then have [simp]:

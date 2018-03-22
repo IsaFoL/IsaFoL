@@ -27,17 +27,17 @@ definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset
 
 definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>SAT_wl CS = do{
-    let \<A>\<^sub>i\<^sub>n' = extract_atms_clss CS [];
-    let S = isasat_input_ops.init_state_wl (mset \<A>\<^sub>i\<^sub>n');
+    let \<A>\<^sub>i\<^sub>n' = extract_atms_clss CS {};
+    let S = isasat_input_ops.init_state_wl (mset_set \<A>\<^sub>i\<^sub>n');
     T \<leftarrow> init_dt_wl CS (to_init_state S);
     let T = from_init_state T;
     if get_conflict_wl T \<noteq> None
     then RETURN T
     else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, \<lambda>_. undefined))
     else do {
-       ASSERT (extract_atms_clss CS [] \<noteq> []);
-       ASSERT(isasat_input_bounded_nempty (mset \<A>\<^sub>i\<^sub>n'));
-       isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset \<A>\<^sub>i\<^sub>n') (finalise_init T)
+       ASSERT (extract_atms_clss CS {} \<noteq> {});
+       ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
+       isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset_set \<A>\<^sub>i\<^sub>n') (finalise_init T)
     }
   }\<close>
 
@@ -56,7 +56,7 @@ definition extract_stats_init where
 
 definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list option nres\<close> where
   \<open>IsaSAT CS = do{
-    let \<A>\<^sub>i\<^sub>n' = mset (extract_atms_clss CS []);
+    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
     let S = isasat_input_ops.init_state_wl \<A>\<^sub>i\<^sub>n';
@@ -111,24 +111,67 @@ lemma empty_init_code_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: empty_conflict_code_def empty_conflict_def
        hr_comp_def empty_init_code_def)
 
+definition virtual_copy where
+  [simp]: \<open>virtual_copy = id\<close>
+
+definition virtual_copy_rel where
+  \<open>virtual_copy_rel = {(c, b). c = ()}\<close>
+
+abbreviation virtual_copy_assn where
+  \<open>virtual_copy_assn \<equiv> hr_comp unit_assn virtual_copy_rel\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>(return o (\<lambda>_. ()), RETURN o virtual_copy) \<in> R\<^sup>k \<rightarrow>\<^sub>a virtual_copy_assn\<close>
+  by sepref_to_hoare (sep_auto simp: virtual_copy_rel_def)
+
+lemma init_dt_wl_code_refine[sepref_fr_rules]:
+  \<open>(uncurry2 (\<lambda>_. init_dt_wl_code), uncurry2 (isasat_input_ops.init_dt_wl_heur))
+  \<in> [\<lambda>((N, S), S'). isasat_input_bounded \<A>\<^sub>i\<^sub>n \<and> N = \<A>\<^sub>i\<^sub>n]\<^sub>a
+    virtual_copy_assn\<^sup>k *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>d *\<^sub>a (isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
+    isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n\<close>
+  unfolding PR_CONST_def
+  unfolding hfref_def hn_refine_def
+  apply (subst in_pair_collect_simp)
+  apply (intro allI impI)
+  subgoal for a c
+    using init_dt_wl_code.refine[of \<A>\<^sub>i\<^sub>n,
+      unfolded in_pair_collect_simp hfref_def hn_refine_def PR_CONST_def,
+      rule_format, of \<open>(snd (fst c), snd c)\<close> \<open>(snd (fst a), snd a)\<close>]
+    by (cases a)
+       (sep_auto dest!: frame_rule_left[of \<open>_ * isasat_input_ops.isasat_init_assn _ _ _\<close> _ _
+            \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst (fst a))\<close>])
+  done
+
+definition (in -)convert_state where
+  \<open>convert_state _ S = S\<close>
+
+lemma (in -) convert_state_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
+   \<in> [\<lambda>(N, S). N = \<A>\<^sub>i\<^sub>n \<and> N = \<A>\<^sub>i\<^sub>n']\<^sub>a
+     virtual_copy_assn\<^sup>k *\<^sub>a (isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
+     isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n'\<close>
+  by sepref_to_hoare (sep_auto simp: convert_state_def)
 
 definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal list option \<times> stats) nres\<close> where
   \<open>IsaSAT_heur CS = do{
-    let \<A>\<^sub>i\<^sub>n' = mset (extract_atms_clss CS []);
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
+    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
+    let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
     S \<leftarrow> isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n';
-    (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur \<A>\<^sub>i\<^sub>n' CS S;
+    (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur \<A>\<^sub>i\<^sub>n'' CS S;
+    let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
     if \<not>get_conflict_wl_is_None_heur_init T
     then RETURN (empty_init_code)
     else if CS = [] then RETURN (empty_conflict_code)
     else do {
-       ASSERT(\<A>\<^sub>i\<^sub>n' \<noteq> {#});
-       ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n');
+       ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
+       ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
        ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
          lst_As \<noteq> None) T);
        T \<leftarrow> finalise_init_code (T::twl_st_wl_heur_init);
-       U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur \<A>\<^sub>i\<^sub>n' T;
+       U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur \<A>\<^sub>i\<^sub>n'' T;
        RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
          else extract_state_stat U)
      }
@@ -153,7 +196,7 @@ qed
 lemma cdcl_twl_stgy_prog_wl_D_code_ref':
   \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_code), uncurry isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur)
   \<in> [\<lambda>(N, _). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n]\<^sub>a
-     (list_mset_assn uint32_nat_assn)\<^sup>k *\<^sub>a
+     (virtual_copy_assn)\<^sup>k *\<^sub>a
     (isasat_input_ops.isasat_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> isasat_input_ops.isasat_assn \<A>\<^sub>i\<^sub>n\<close>
   unfolding hfref_def hn_refine_def
   apply (subst in_pair_collect_simp)
@@ -165,7 +208,7 @@ lemma cdcl_twl_stgy_prog_wl_D_code_ref':
     apply (cases a)
     by (sep_auto simp:
       dest!: frame_rule_left[of \<open>isasat_input_ops.isasat_assn _ _ _\<close> _ _
-        \<open>list_mset_assn uint32_nat_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
+        \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
   done
 
 declare cdcl_twl_stgy_prog_wl_D_code_ref'[to_hnr, OF refl, sepref_fr_rules]
@@ -234,9 +277,11 @@ declare init_state_wl_heur_hnr[to_hnr, OF refl, sepref_fr_rules]
   init_dt_wl_code.refine[sepref_fr_rules]
  isasat_input_ops.get_stats_code[sepref_fr_rules]
 
+(* TODO: make the intermediate level a proper level *)
 sepref_definition IsaSAT_code
   is \<open>IsaSAT_heur\<close>
   :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
+  supply [[goals_limit=1]]
   unfolding IsaSAT_heur_def empty_conflict_def[symmetric]
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]
     extract_stats_def[symmetric]
@@ -248,10 +293,63 @@ sepref_definition IsaSAT_code
   isasat_input_bounded.get_conflict_wl_is_None_init_wl_hnr[
     unfolded get_conflict_wl_is_None_init_def[symmetric], sepref_fr_rules]
   supply id_mset_list_assn_list_mset_assn[sepref_fr_rules] get_conflict_wl_is_None_def[simp]
-   option.splits[split]
+   option.splits[split] virtual_copy_def[simp]
    extract_stats_def[simp del]
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
-  by sepref
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+              apply sepref_dbg_trans_step_keep
+              apply (rule refl)
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
+                  apply fast
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_constraints
+  done
 
 
 definition nth_u_code' where
@@ -277,7 +375,7 @@ definition heap_array_set'_u64' where
   [symmetric, code]: \<open>heap_array_set'_u64' = heap_array_set'_u64\<close>
 
 code_printing constant heap_array_set'_u64' \<rightharpoonup>
-   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word64.toInt (_)),/ (_)))" 
+   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word64.toInt (_)),/ (_)))"
 
 code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
 
@@ -290,7 +388,7 @@ definition length_aa_u_code' where
   [symmetric, code]: \<open>length_aa_u_code' = length_aa_u_code\<close>
 
 code_printing constant length_aa_u_code' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ (fst (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
+   "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
 
 term delete_index_and_swap_code
 term nth_raa_i_u64
@@ -299,13 +397,15 @@ definition nth_raa_i_u64' where
   [symmetric, code]: \<open>nth_raa_i_u64' = nth_raa_i_u64\<close>
 
 code_printing constant nth_raa_i_u64' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Array.sub (Array.sub/ (fst (_),/ IntInf.toInt (integer'_of'_nat (_))), Uint64.toFixedInt (_)))"
+   "(fn/ ()/ =>/ Array.sub (Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ IntInf.toInt (integer'_of'_nat (_))), Uint64.toFixedInt (_)))"
 
 definition length_u64_code' where
-  [symmetric, code]: \<open>length_u64_code' = length_u64_code\<close> 
+  [symmetric, code]: \<open>length_u64_code' = length_u64_code\<close>
 
 code_printing constant length_u64_code' \<rightharpoonup> (SML_imp)
    "(fn/ ()/ =>/ Uint64.fromFixedInt (Array.length (_)))"
+
+code_printing constant arl_get_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ Word32.toInt (_)))"
 
 (* This equation makes no sense since a resizable array is represent by an array and an infinite
  integer: There is no obvious shortcut.
@@ -317,7 +417,7 @@ code_printing constant length_arl_u_code' \<rightharpoonup> (SML_imp)
 definition arl_get_u64' where
   [symmetric, code]: \<open>arl_get_u64' = arl_get_u64\<close>
 
-code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ (fst (_),/ Uint64.toFixedInt (_)))"
+code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Uint64.toFixedInt (_)))"
 
 term nth_u_code
 term nth_u64_code
@@ -334,57 +434,14 @@ definition TWL_to_clauses_state_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\
   \<open>TWL_to_clauses_state_conv = twl_st_of_wl None O {(S', S). S = state\<^sub>W_of S'}\<close>
 
 
-lemma extract_atms_cls_empty_iff: \<open>extract_atms_cls Cs C0 = [] \<longleftrightarrow> (C0 = [] \<and> Cs = [])\<close>
+lemma extract_atms_cls_empty_iff: \<open>extract_atms_cls Cs C0 = {} \<longleftrightarrow> (C0 = {} \<and> Cs = [])\<close>
   unfolding extract_atms_cls_def
   by (induction Cs arbitrary: C0) force+
 
 lemma extract_atms_clss_empty_iff:
-   \<open>extract_atms_clss CS C0  = [] \<longleftrightarrow> (C0 = [] \<and> (\<forall>C \<in> set CS. C = []))\<close>
-proof -
-  have \<open>fold extract_atms_cls Cs C0 = [] \<longleftrightarrow> (C0 = [] \<and> (\<forall>C \<in> set Cs. C = []))\<close> for Cs
-    unfolding extract_atms_clss_def
-    apply (induction Cs arbitrary: C0)
-    subgoal by auto
-    subgoal by (auto simp: extract_atms_cls_empty_iff)
-    done
-  then show ?thesis
-    unfolding extract_atms_clss_def .
-qed
-
-lemma conflict_of_level_unsatisfiable:
-  assumes
-    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S\<close> and
-    dec: \<open>count_decided (trail S) = 0\<close> and
-    confl: \<open>conflicting S \<noteq> None\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
-  shows \<open>unsatisfiable (set_mset (init_clss S))\<close>
-proof -
-  obtain M N U D where S: \<open>S = (M, N, U, Some D)\<close>
-    by (cases S) (use confl in auto)
-  have [simp]: \<open>get_all_ann_decomposition M = [([], M)]\<close>
-    by (rule no_decision_get_all_ann_decomposition)
-      (use dec in \<open>auto simp: count_decided_def filter_empty_conv S \<close>)
-  have
-    N_U: \<open>N \<Turnstile>psm U\<close> and
-    M_D: \<open>M \<Turnstile>as CNot D\<close> and
-    N_U_M: \<open>set_mset N \<union> set_mset U \<Turnstile>ps unmark_l M\<close> and
-    n_d: \<open>no_dup M\<close> and
-    N_U_D: \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>
-    using assms
-    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
-        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
-  have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
-    by (rule true_clss_clss_true_clss_cls_true_clss_clss[OF N_U_M M_D])
-  then have \<open>set_mset N \<Turnstile>ps CNot D\<close> \<open>set_mset N \<Turnstile>p D\<close>
-    using N_U N_U_D true_clss_clss_left_right by blast+
-  then have \<open>unsatisfiable (set_mset N)\<close>
-    by (rule true_clss_clss_CNot_true_clss_cls_unsatisfiable)
-
-  then show ?thesis
-    by (auto simp: S clauses_def dest: satisfiable_decreasing)
-qed
+   \<open>extract_atms_clss CS C0  = {} \<longleftrightarrow> (C0 = {} \<and> (\<forall>C \<in> set CS. C = []))\<close>
+  unfolding extract_atms_clss_alt_def
+  by auto
 
 lemma cdcl_twl_stgy_prog_wl_spec_final2:
   shows
@@ -404,48 +461,39 @@ proof -
       (auto simp: drop_Suc)
 
   have \<L>\<^sub>a\<^sub>l\<^sub>l:
-    \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss CS' []))
+    \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS' {}))
        (all_lits_of_mm (mset `# mset CS'))\<close>
     for CS'
     by (auto simp add: isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
-      all_lits_of_mm_add_mset in_extract_atms_clssD in_extract_atms_clsD
+      all_lits_of_mm_add_mset extract_atms_clss_alt_def extract_atms_cls_alt_def
       all_lits_of_mm_def atms_of_s_def image_image image_Un)
-  have extract_nempty: \<open>extract_atms_clss xs [] = [] \<longleftrightarrow> set xs = {[]}\<close>
+  have extract_nempty: \<open>extract_atms_clss xs {} = {} \<longleftrightarrow> set xs = {[]}\<close>
   if
     H: \<open>Multiset.Ball ys distinct_mset \<and> (\<forall>C\<in>#ys. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)\<close> and
     rel: \<open>(xs, ys) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close> and
     le_xs: \<open>length xs \<noteq> 0\<close>
-  for xs ys
-  proof -
-    obtain x xs' where [simp]: \<open>xs = x # xs'\<close>
-      using le_xs by (cases xs) auto
-    obtain xy where
-      xs_xy: \<open>(xs, xy) \<in> list_mset_rel\<close> and xy_ys: \<open>(xy, ys) \<in> \<langle>list_mset_rel\<rangle>mset_rel\<close>
-      using rel by auto
-    have xy[simp]: \<open>xy = mset xs\<close>
-      using xs_xy by (auto simp: list_mset_rel_def br_def)
-    have \<open>mset x \<in># ys\<close>
-      using in_list_mset_rel_mset_rel[THEN iffD1, OF xy_ys[unfolded xy]]
-      by auto
-    show ?thesis
-      by (auto simp: extract_atms_clss_empty_iff extract_atms_cls_empty_iff)
-  qed
-  have [simp]: \<open>isasat_input_bounded (mset (extract_atms_clss CS' []))\<close>
+    for xs ys
+    using le_xs unfolding extract_atms_clss_alt_def by (cases xs) auto
+
+  have [simp]: \<open>isasat_input_bounded (mset_set (extract_atms_clss CS' {}))\<close>
     if CS_p: \<open>\<forall>C\<in>set CS'. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max\<close>
     for CS'
   unfolding isasat_input_bounded_def
       proof
     fix L
-    assume L: \<open>L \<in># isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss CS' []))\<close>
+    assume L: \<open>L \<in># isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS' {}))\<close>
     then obtain C where
       L: \<open>C\<in>set CS' \<and> (L \<in>set C \<or> - L \<in> set C)\<close>
-      by (cases L) (auto simp: in_extract_atms_clssD uint_max_def nat_of_uint32_uint32_of_nat_id
-          isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def)
+      apply (cases L)
+      apply (auto simp: extract_atms_clss_alt_def uint_max_def nat_of_uint32_uint32_of_nat_id
+          isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def)+
+      apply (metis literal.exhaust_sel)+
+      done
     have \<open>nat_of_lit L \<le> uint_max \<or> nat_of_lit (-L) \<le> uint_max\<close>
       using L CS_p by auto
     then show \<open>nat_of_lit L \<le> uint_max\<close>
       using L
-      by (cases L) (auto simp: in_extract_atms_clssD uint_max_def)
+      by (cases L) (auto simp: extract_atms_clss_alt_def uint_max_def)
   qed
 
   have conflict_during_init: \<open>RETURN (fst T)
@@ -590,7 +638,7 @@ proof -
       apply (rule exI[of _ \<open>([], {#}, {#}, None)\<close>])
       by (auto simp: clauses_def TWL_to_clauses_state_conv_def state_wl_l_init_def)
   qed
-  have extract_atms_clss_not_nil: \<open>extract_atms_clss CS' [] \<noteq> []\<close>
+  have extract_atms_clss_not_nil: \<open>extract_atms_clss CS' {} \<noteq> {}\<close>
     if
       \<open>Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)\<close> and
       CS'_CS: \<open>(CS', CS) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close> and
@@ -642,7 +690,7 @@ proof -
       unfolding extract_atms_clss_empty_iff by auto
   qed
   have CDCL_steps:
-    \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) (fst T)
+    \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset_set (extract_atms_clss CS' {})) (fst T)
       \<le> \<Down> TWL_to_clauses_state_conv
           (SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS) U \<or>
                      CS \<noteq> {#} \<and>
@@ -655,8 +703,8 @@ proof -
       spec: \<open>init_dt_wl_spec CS' (([], fmempty, None, {#}, {#}, {#}, \<lambda>_. []), {#}) T\<close> and
       confl: \<open>\<not> get_conflict_wl (fst T) \<noteq> None\<close> and
       CS'_nempty: \<open>CS' \<noteq> []\<close> and
-      \<open>extract_atms_clss CS' [] \<noteq> []\<close> and
-      \<open>isasat_input_bounded_nempty (mset (extract_atms_clss CS' []))\<close>
+      \<open>extract_atms_clss CS' {} \<noteq> {}\<close> and
+      \<open>isasat_input_bounded_nempty (mset_set (extract_atms_clss CS' {}))\<close>
     for CS' CS T
   proof -
     obtain U V W where
@@ -787,27 +835,30 @@ proof -
         apply (rule 2)
         .
     qed
-    have \<L>\<^sub>a\<^sub>l\<^sub>l: \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss CS' []))
+    have \<L>\<^sub>a\<^sub>l\<^sub>l: \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS' {}))
         (all_lits_of_mm (mset `# mset CS'))\<close>
       by (auto simp add: isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
-        all_lits_of_mm_add_mset in_extract_atms_clssD in_extract_atms_clsD
+        all_lits_of_mm_add_mset extract_atms_clss_alt_def extract_atms_cls_alt_def
         all_lits_of_mm_def atms_of_s_def image_image image_Un)
-    have [simp]: \<open>isasat_input_bounded (mset (extract_atms_clss CS' []))\<close>
+    have [simp]: \<open>isasat_input_bounded (mset_set (extract_atms_clss CS' {}))\<close>
       unfolding isasat_input_bounded_def
     proof
       fix L
-      assume L: \<open>L \<in># isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss CS' []))\<close>
+      assume L: \<open>L \<in># isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS' {}))\<close>
       then obtain C where
         L: \<open>C\<in>set CS' \<and> (L \<in>set C \<or> - L \<in> set C)\<close>
-        by (cases L) (auto simp: in_extract_atms_clssD uint_max_def nat_of_uint32_uint32_of_nat_id
-           isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def)
+      apply (cases L)
+      apply (auto simp: extract_atms_clss_alt_def uint_max_def nat_of_uint32_uint32_of_nat_id
+          isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def)+
+      apply (metis literal.exhaust_sel)+
+      done
       have \<open>\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max\<close>
         using CS_p by auto
       then have \<open>nat_of_lit L \<le> uint_max \<or> nat_of_lit (-L) \<le> uint_max\<close>
         using L unfolding CS by auto
       then show \<open>nat_of_lit L \<le> uint_max\<close>
         using L
-        by (cases L) (auto simp: CS in_extract_atms_clssD uint_max_def)
+        by (cases L) (auto simp: CS extract_atms_clss_alt_def uint_max_def)
     qed
     have T_V': \<open>(fst T, fst V) \<in> state_wl_l None\<close>
       using T_V by (auto simp: S\<^sub>0 state_wl_l_def state_wl_l_init_def)
@@ -821,15 +872,15 @@ proof -
       unfolding cdcl_twl_stgy_prog_wl_pre_def apply -
       apply (rule exI[of _ \<open>fst V\<close>])
       using T_V' corr_w by (simp add: correct_watching_init_correct_watching)
-    then have 1: \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D_pre (mset (extract_atms_clss CS' [])) (fst T) (fst W)\<close>
+    then have 1: \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D_pre (mset_set (extract_atms_clss CS' {})) (fst T) (fst W)\<close>
       unfolding isasat_input_ops.cdcl_twl_stgy_prog_wl_D_pre_def
       by (auto simp: st N_NE \<L>\<^sub>a\<^sub>l\<^sub>l S\<^sub>0)
-    have 2:\<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' []))
+    have 2:\<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset_set (extract_atms_clss CS' {}))
              (from_init_state T)
             \<le> \<Down> (state_wl_l None O twl_st_l None)
                  (conclusive_TWL_run (fst W))\<close>
       apply (rule isasat_input_bounded.cdcl_twl_stgy_prog_wl_D_spec_final
-        [of \<open>(mset (extract_atms_clss CS' []))\<close>])
+        [of \<open>(mset_set (extract_atms_clss CS' {}))\<close>])
       using CS_p \<L>\<^sub>a\<^sub>l\<^sub>l
         struct_invs corr_w add_invs clss confl clss
       by (auto simp: from_init_state_def st 1)
@@ -920,7 +971,13 @@ proof -
     by (auto simp: init_dt_wl_pre_def init_dt_pre_def state_wl_l_init_def
         twl_st_l_init_def state_wl_l_def correct_watching_init.simps clause_to_update_def
         twl_init_invs)
+  have [simp]: \<open>finite (extract_atms_clss CS' {})\<close> for CS'
+    by  (auto simp: extract_atms_clss_alt_def)
 
+  have K: \<open>mset_set (extract_atms_clss CS' {}) = {#} \<longleftrightarrow> (\<forall>C \<in>set CS'. C = [])\<close> for CS'
+    by  (auto simp: extract_atms_clss_alt_def mset_set_empty_iff)
+  then have K'[dest]: \<open>x \<in> (extract_atms_clss CS' {}) \<Longrightarrow> \<not>(\<forall>C \<in>set CS'. C = [])\<close> for CS' x
+    using K[of CS'] by (auto simp:  mset_set_empty_iff)
   show ?thesis
     unfolding SAT_wl_def SAT_def from_init_state_def to_init_state_def
      isasat_input_ops.empty_watched_alt_def finalise_init_def id_def
@@ -934,7 +991,7 @@ proof -
       subgoal for T by (rule conflict_during_init)
       subgoal for T by (rule empty_clss)
       subgoal by (rule extract_atms_clss_not_nil)
-      subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel
+      subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel K
          isasat_input_bounded_nempty_def isasat_input_bounded_nempty_axioms_def)
       subgoal by (rule CDCL_steps)
       subgoal by (rule init) (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
@@ -1008,14 +1065,23 @@ proof -
         simp del: literal_of_nat.simps)
 qed
 
+
+lemma [simp]:
+  \<open>(Tb, from_init_state Ta) \<in> isasat_input_ops.twl_st_heur_init_wl A \<Longrightarrow>
+     get_conflict_wl_is_None_init (from_init_state Ta) = get_conflict_wl_is_None_heur_init Tb\<close>
+  by (auto simp: isasat_input_ops.twl_st_heur_init_wl_def from_init_state_def
+      get_conflict_wl_is_None_init_def get_conflict_wl_is_None_heur_init_def
+      get_conflict_wl_is_None_def)
+
 lemma IsaSAT_heur_IsaSAT: \<open>(IsaSAT_heur, IsaSAT) \<in>
-     [\<lambda>CS.  Multiset.Ball (mset CS) distinct]\<^sub>f
+     [\<lambda>CS.  Multiset.Ball (mset CS) distinct \<and> (\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max)]\<^sub>f
      Id \<rightarrow> \<langle>{((M, stat), M'). M = M'}\<rangle>nres_rel\<close>
 proof -
   define f :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where \<open>f = RETURN\<close>
   have IsaSAT_heur_alt_def:
     \<open>IsaSAT_heur CS = do{
-    let \<A>\<^sub>i\<^sub>n' = mset (extract_atms_clss CS []);
+     ASSERT (\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
+    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
     S \<leftarrow> isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n';
@@ -1036,7 +1102,7 @@ proof -
          else extract_state_stat U)
      }
   }\<close> for CS
-    unfolding IsaSAT_heur_def f_def by auto
+    unfolding IsaSAT_heur_def f_def convert_state_def by auto
 
   have [refine]: \<open>(T, T') \<in> isasat_input_ops.twl_st_heur_init_wl N \<Longrightarrow>
     f T \<le> \<Down> {(T, (T', OS)). (T, T') \<in> isasat_input_ops.twl_st_heur_init_wl N}
@@ -1044,21 +1110,21 @@ proof -
     (is \<open>_ \<Longrightarrow> _ \<le> \<Down> ?init _\<close>)
     for T T' N
     by (auto simp: f_def to_init_state_def)
-  have init: \<open>isasat_input_ops.init_dt_wl_heur (mset (extract_atms_clss CS [])) CS
+  have init: \<open>isasat_input_ops.init_dt_wl_heur (mset_set (extract_atms_clss CS {})) CS
        T'
-      \<le> \<Down> (isasat_input_ops.twl_st_heur_init (mset (extract_atms_clss CS' [])))
+      \<le> \<Down> (isasat_input_ops.twl_st_heur_init (mset_set (extract_atms_clss CS' {})))
           (init_dt_wl CS'
-             (to_init_state (isasat_input_ops.init_state_wl (mset (extract_atms_clss CS' [])))))\<close>
+             (to_init_state (isasat_input_ops.init_state_wl (mset_set (extract_atms_clss CS' {})))))\<close>
     if
       distinct: \<open>Multiset.Ball (mset CS') distinct\<close> and
       SS': \<open>(CS, CS') \<in> Id\<close> and
-      bounded: \<open>isasat_input_bounded (mset (extract_atms_clss CS' []))\<close> and
+      bounded: \<open>isasat_input_bounded (mset_set (extract_atms_clss CS' {}))\<close> and
       TT': \<open>inres (f T) T'\<close> and
-      T': \<open>(T', to_init_state (isasat_input_ops.init_state_wl (mset (extract_atms_clss CS' []))))
+      T': \<open>(T', to_init_state (isasat_input_ops.init_state_wl (mset_set (extract_atms_clss CS' {}))))
      \<in> {(T, T', OS).
          (T, T')
          \<in> isasat_input_ops.twl_st_heur_init_wl
-             (mset (extract_atms_clss CS' []))}\<close>
+             (mset_set (extract_atms_clss CS' {}))}\<close>
     for CS CS' T T'
   proof -
     have SS': \<open>CS = CS'\<close>
@@ -1068,9 +1134,9 @@ proof -
     have H: \<open>C \<in> set CS' \<Longrightarrow> \<exists>CS'''. set CS' = insert C CS'''\<close> for C
       by auto
     have [simp]: \<open>C \<in> set CS' \<Longrightarrow>
-       isasat_input_ops.literals_are_in_\<L>\<^sub>i\<^sub>n (mset (extract_atms_clss CS' [])) (mset C)\<close> for C
+       isasat_input_ops.literals_are_in_\<L>\<^sub>i\<^sub>n (mset_set (extract_atms_clss CS' {})) (mset C)\<close> for C
       apply (auto simp: isasat_input_ops.literals_are_in_\<L>\<^sub>i\<^sub>n_def isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
-          in_extract_atms_clssD in_all_lits_of_m_ain_atms_of_iff atm_of_eq_atm_of
+          extract_atms_clss_alt_def in_all_lits_of_m_ain_atms_of_iff atm_of_eq_atm_of
           atms_of_s_def image_image image_Un in_image_uminus_uminus[symmetric]
           dest!: H)
       apply (metis (no_types, lifting) image_iff literal.exhaust_sel)+
@@ -1086,12 +1152,12 @@ proof -
             isasat_input_ops.twl_st_heur_init_wl_def)
       done
   qed
-  have from_init_state: \<open>f T \<le> \<Down> (isasat_input_ops.twl_st_heur_init_wl (mset (extract_atms_clss CS' [])))
+  have from_init_state: \<open>f T \<le> \<Down> (isasat_input_ops.twl_st_heur_init_wl (mset_set (extract_atms_clss CS' {})))
           (RETURN (from_init_state T'))\<close>
     if
       TT': \<open>(T, T')
      \<in> isasat_input_ops.twl_st_heur_init
-         (mset (extract_atms_clss CS' []))\<close>
+         (mset_set (extract_atms_clss CS' {}))\<close>
     for T T' CS CS'
   proof -
     show ?thesis
@@ -1114,12 +1180,14 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
                 apply (assumption)+
-    subgoal for CS CS' S S' T T'
-      by (auto simp:  isasat_input_ops.twl_st_heur_init_wl_def
-          get_conflict_wl_is_None_heur_init_def get_conflict_wl_is_None_init_def
-          get_conflict_wl_is_None_def)
-    subgoal premises p
+    subgoal by auto
+    apply assumption
+                   apply (assumption)+
+    subgoal for CS CS' S S'
+      by simp
+    subgoal
         by (auto simp: empty_init_code_def)
       subgoal for CS CS' S S' T T'
       by (auto simp:  isasat_input_ops.twl_st_heur_init_wl_def
@@ -1144,7 +1212,7 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal premises p
-      using p(25) \<comment> \<open>only last assumption\<close>
+      using p(26) \<comment> \<open>only last assumption\<close>
       by (auto simp: extract_model_of_state_stat_def extract_model_of_state_def
           isasat_input_ops.twl_st_heur_def get_conflict_wl_is_None_heur_def
           get_conflict_wl_is_None_heur_init_def extract_state_stat_def
@@ -1152,22 +1220,31 @@ proof -
     done
 qed
 
+lemma [simp]: \<open>finite (extract_atms_clss CS {})\<close>
+  by (auto simp: extract_atms_clss_alt_def)
+
 lemma IsaSAT_code: \<open>(IsaSAT_code, SAT')
     \<in> [\<lambda>x. Multiset.Ball x distinct_mset \<and> (\<forall>C\<in>#x. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)]\<^sub>a
       clauses_l_assn\<^sup>k \<rightarrow> model_assn\<close>
 proof -
   define empty_trail where
     \<open>empty_trail = Some ([] :: nat literal list)\<close>
+  have 1: \<open>B = C \<Longrightarrow> ((A :: _ nres) \<bind> B) = ((A :: _ nres) \<bind> C)\<close> for A B C
+    by auto
+  have [simp]: \<open>mset_set (extract_atms_clss CS {}) \<noteq> {#} \<longleftrightarrow> extract_atms_clss CS {} \<noteq> {}\<close> for CS
+    using mset_set_empty_iff[of \<open>extract_atms_clss CS {}\<close>]
+    by (auto simp: )
   have IsaSAT: \<open>IsaSAT CS =
     do {
-     ASSERT (isasat_input_bounded (mset (extract_atms_clss CS [])));
-     ASSERT (distinct (extract_atms_clss CS []));
+     ASSERT (isasat_input_bounded (mset_set (extract_atms_clss CS {})));
+     ASSERT (distinct_mset (mset_set (extract_atms_clss CS {})));
      T \<leftarrow> SAT_wl CS;
      RETURN (if get_conflict_wl T = None then extract_model_of_state T else None)
     }\<close> for CS
     unfolding IsaSAT_def SAT_wl_def Let_def get_conflict_wl_is_None_init_def
      finalise_init_def id_def get_conflict_wl_is_None[symmetric] empty_trail_def
-    by (force cong: bind_cong simp: extract_model_of_state_def intro: bind_cong)
+     extract_model_of_state_def
+    by (auto cong: bind_cong simp:  intro: bind_cong intro!: 1 ext)
 
   have 2: \<open>Multiset.Ball y distinct_mset \<Longrightarrow>
        (x, y) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<Longrightarrow>
@@ -1185,7 +1262,7 @@ proof -
       }\<close> for CS
     unfolding SAT'_def SAT_def empty_trail_def by (auto simp: RES_RETURN_RES)
   have 3:
-    \<open>ASSERT (isasat_input_bounded (mset (extract_atms_clss x []))) \<le> \<Down> unit_rel (ASSERT True)\<close>
+    \<open>ASSERT (isasat_input_bounded (mset_set (extract_atms_clss x {}))) \<le> \<Down> unit_rel (ASSERT True)\<close>
     if CS_p: \<open>(\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)\<close> and
        CS: \<open>(x, y) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close>
        for x y
@@ -1193,11 +1270,14 @@ proof -
     unfolding isasat_input_bounded_def
   proof
     fix L
-    assume L: \<open>L \<in># isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss x []))\<close>
+    assume L: \<open>L \<in># isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss x {}))\<close>
     then obtain C where
       L: \<open>C\<in>set x \<and> (L \<in>set C \<or> - L \<in> set C)\<close>
-      by (cases L) (auto simp: in_extract_atms_clssD uint_max_def nat_of_uint32_uint32_of_nat_id
-         isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def)
+      apply (cases L)
+      apply (auto simp: extract_atms_clss_alt_def uint_max_def nat_of_uint32_uint32_of_nat_id
+          isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def)+
+      apply (metis literal.exhaust_sel)+
+      done
     have \<open>\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max\<close>
       using CS_p by auto
     then have \<open>nat_of_lit L \<le> uint_max \<or> nat_of_lit (-L) \<le> uint_max\<close>
@@ -1205,10 +1285,10 @@ proof -
         rel_mset_def list_all2_op_eq_map_right_iff')
     then show \<open>nat_of_lit L \<le> uint_max\<close>
       using L
-      by (cases L) (auto simp: in_extract_atms_clssD uint_max_def)
+      by (cases L) (auto simp: extract_atms_clss_alt_def uint_max_def)
   qed
-  have 4: \<open>ASSERT (distinct (extract_atms_clss x [])) \<le> \<Down> unit_rel (ASSERT True)\<close> for x
-    by (auto simp: distinct_extract_atms_clss)
+  have 4: \<open>ASSERT (distinct_mset (mset_set (extract_atms_clss x {}))) \<le> \<Down> unit_rel (ASSERT True)\<close> for x
+    by (auto simp: distinct_mset_def)
   have IsaSAT_SAT: \<open>(IsaSAT, SAT') \<in>
      [\<lambda>CS. Multiset.Ball CS distinct_mset \<and>
       (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)]\<^sub>f
@@ -1225,7 +1305,8 @@ proof -
       by (auto simp: model_assn_def hr_comp_def model_stat_rel_def ex_assn_pair_split eq_commute
           intro!: ext)
   have H: \<open>(IsaSAT_code, IsaSAT)
-      \<in> [\<lambda>x. Ball (set x) distinct]\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow> model_assn\<close>
+      \<in> [\<lambda>x. Ball (set x) distinct  \<and> (\<forall>C\<in>set x. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max)]\<^sub>a
+         (list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow> model_assn\<close>
     using IsaSAT_code.refine[FCOMP IsaSAT_heur_IsaSAT]
     unfolding list_assn_list_mset_rel_clauses_l_assn H
     by auto
@@ -1235,7 +1316,7 @@ proof -
     have H: \<open>?c \<in>
        [comp_PRE (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)
           (\<lambda>CS. Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max))
-          (\<lambda>x y. Ball (set y) distinct)
+          (\<lambda>x y. Ball (set y) distinct  \<and> (\<forall>C\<in>set y. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max))
            (\<lambda>x. nofail (SAT'  x))]\<^sub>a
        hrp_comp ((list_assn (list_assn unat_lit_assn))\<^sup>k) (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel) \<rightarrow>
        hr_comp model_assn  (\<langle>\<langle>nat_lit_lit_rel\<rangle>list_rel\<rangle>option_rel)\<close>

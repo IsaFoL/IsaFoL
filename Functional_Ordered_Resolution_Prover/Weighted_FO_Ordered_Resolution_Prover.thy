@@ -35,7 +35,7 @@ locale weighted_FO_resolution_prover =
   fixes
     weight :: "'a clause \<times> nat \<Rightarrow> nat"
   assumes
-    weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
+    weight_mono: "i < j \<Longrightarrow> weight (C, i) < weight (C, j)"
 begin
 
 (* FIXME: don't use \<circ> in abbreviations -- fragile w.r.t. simplifier when applied *)
@@ -123,10 +123,13 @@ context
     Sts :: "'a wstate llist"
   assumes
     full_deriv: "full_chain (op \<leadsto>\<^sub>w) Sts" and
-    finite_Sts0: "finite (clss_of_wstate (lhd Sts))" and
     empty_P0: "P_of_wstate (lhd Sts) = {}" and
     empty_Q0: "Q_of_wstate (lhd Sts) = {}"
 begin
+
+lemma finite_Sts0: "finite (clss_of_wstate (lhd Sts))" 
+  using clss_of_state_def
+  by (cases "lhd Sts") auto
 
 lemmas deriv = full_chain_imp_chain[OF full_deriv]
 lemmas lhd_lmap_Sts = llist.map_sel(1)[OF chain_not_lnull[OF deriv]]
@@ -180,13 +183,14 @@ abbreviation RP_filtered_measure :: "('a wclause \<Rightarrow> bool) \<Rightarro
   "RP_filtered_measure \<equiv> (\<lambda>p (N, P, Q, n). 
                               (sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) {#Di \<in># N + P + Q. p Di#}), size {#Di \<in># N. p Di#}, size {#Di \<in># P. p Di#}))"
 
-abbreviation RP_combined_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
+abbreviation RP_combined_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> nat \<times> (nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat)" where
   "RP_combined_measure \<equiv> (\<lambda>w St. ((w + 1) - n_of_wstate St, RP_filtered_measure (\<lambda>(C, i). i \<le> w) St, RP_filtered_measure (\<lambda>Ci. True) St))"
 
-abbreviation(input) RP_filtered_relation where
+abbreviation(input) RP_filtered_relation :: "((nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat)) set" where
   "RP_filtered_relation \<equiv> natLess <*lex*> natLess <*lex*> natLess"
 
-abbreviation(input) RP_combined_relation where
+abbreviation(input) RP_combined_relation :: "((nat \<times> ((nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat))) \<times>
+    (nat \<times> ((nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat)))) set" where
   "RP_combined_relation \<equiv> natLess <*lex*> RP_filtered_relation <*lex*> RP_filtered_relation"
 
 term "(RP_combined_measure w St, RP_combined_measure w St2) \<in> RP_combined_relation"
@@ -462,7 +466,7 @@ next
 qed
 
 (* FIXME: come up with better name *)
-lemma stay_or_delete_completely:
+lemma preserve_min_or_delete_completely:
   assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St" 
     "\<forall>k. (C, k) \<in># wP_of_wstate St \<longrightarrow> i \<le> k"
   shows "(C, i) \<in># wP_of_wstate St' \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate St')"
@@ -551,7 +555,7 @@ next
 qed
 
 (* FIXME: come up with better name *)
-lemma stay_or_delete_completely_Sts:
+lemma preserve_min_or_delete_completely_Sts:
   assumes "enat (Suc k) < llength Sts"
   assumes "(C, i) \<in># wP_of_wstate (lnth Sts k)"
   assumes "\<forall>j. (C, j) \<in># wP_of_wstate (lnth Sts k) \<longrightarrow> i \<le> j"
@@ -560,7 +564,7 @@ proof -
   from deriv have "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
     using assms chain_lnth_rel by auto
   then show ?thesis
-    using stay_or_delete_completely[of "lnth Sts k" "lnth Sts (Suc k)" C i] assms by metis
+    using preserve_min_or_delete_completely[of "lnth Sts k" "lnth Sts (Suc k)" C i] assms by metis
 qed
 
 lemma in_lnth_in_Supremum_ldrop:
@@ -664,7 +668,7 @@ proof -
       then have "\<exists>k. (C, k) \<in># wP_of_wstate (lnth Sts (Suc (x + xb + xc)))"
         by (smt Ci_in_nth_wP add.commute add.left_commute add_Suc_right enat_ord_code(4) ldrop_enat llength_infty lnth_ldropn)
       ultimately have "(C, j) \<in># wP_of_wstate (lnth Sts (Suc (x + xb + xc)))"
-        using stay_or_delete_completely_Sts[of "x + xb + xc" C j, OF _ Cj_in_wP any_Ck_in_wP] 
+        using preserve_min_or_delete_completely_Sts[of "x + xb + xc" C j, OF _ Cj_in_wP any_Ck_in_wP] 
         by (auto simp add: llength_infty)
       then have "(C, j) \<in># lnth (lmap wP_of_wstate Sts) (Suc ((x+xb) + xc))"
         by (simp add: llength_infty)
@@ -1044,9 +1048,9 @@ locale weighted_FO_resolution_prover_with_size_generation_factors =
 begin
 
 fun weight :: "'a wclause \<Rightarrow> nat" where
-  "weight (C, m) = size_factor * size_multiset (size_literal size_atm) C + generation_factor * m"
+  "weight (C, i) = size_factor * size_multiset (size_literal size_atm) C + generation_factor * i"
 
-lemma weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
+lemma weight_mono: "i < j \<Longrightarrow> weight (C, i) < weight (C, j)"
   using generation_factor_pos by simp
 
 declare weight.simps [simp del]

@@ -1,7 +1,7 @@
 section {* The Unification Theorem *}
 
-theory Unify imports
-  "QTRS.Unification" "Resolution_FOL.Resolution"
+theory Unification_Theorem imports
+  "First_Order_Terms.Unification" "Resolution_FOL.Resolution"
 begin
 
 definition set_to_list :: "'a set \<Rightarrow> 'a list" where
@@ -90,7 +90,7 @@ next
       then have "fterm_to_iterm t\<^sub>1 \<in> fterm_to_iterm ` ts" "fterm_to_iterm t\<^sub>2 \<in> fterm_to_iterm ` ts" by auto
       then have "(fterm_to_iterm t\<^sub>1, fterm_to_iterm t\<^sub>2) \<in> (fterm_to_iterm ` ts \<times> fterm_to_iterm ` ts)" by auto
       then have "(fterm_to_iterm t\<^sub>1) \<cdot> \<sigma> = (fterm_to_iterm t\<^sub>2) \<cdot> \<sigma>" using assms unfolding unifiers_def
-         by (metis (no_types, lifting) assms fst_conv member_unifiersE snd_conv) 
+         by (metis (no_types, lifting) assms fst_conv in_unifiersE snd_conv)
       then have "fterm_to_iterm (t\<^sub>1 \<cdot>\<^sub>t isub_to_fsub \<sigma>) = fterm_to_iterm (t\<^sub>2 \<cdot>\<^sub>t isub_to_fsub \<sigma>)" using fterm_to_iterm_subst by auto
       then have "iterm_to_fterm (fterm_to_iterm (t\<^sub>1 \<cdot>\<^sub>t (isub_to_fsub \<sigma>))) = iterm_to_fterm (fterm_to_iterm (t\<^sub>2 \<cdot>\<^sub>t isub_to_fsub \<sigma>))" by auto
       then show "t\<^sub>1 \<cdot>\<^sub>t isub_to_fsub \<sigma> = t\<^sub>2 \<cdot>\<^sub>t isub_to_fsub \<sigma>" by auto
