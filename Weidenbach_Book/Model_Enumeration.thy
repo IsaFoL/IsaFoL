@@ -159,12 +159,11 @@ next
   qed
 qed
 
-
 lemma next_model_decreasing:
   assumes
     \<open>next_model M N\<close>
-  shows \<open>((P, add_mset (image_mset uminus (mset M)) N), P, N)
-         \<in> measure (\<lambda>(P, N). card (all_models N))\<close>
+  shows \<open>(add_mset (image_mset uminus (mset M)) N, N)
+         \<in> measure (\<lambda>N. card (all_models N))\<close>
 proof -
   have \<open>M \<in> all_models N\<close>
     using assms unfolding all_models_def
@@ -190,10 +189,17 @@ proof -
     by (auto simp: finite_all_models psubset_card_mono)
 qed
 
+lemma next_model_decreasing':
+  assumes
+    \<open>next_model M N\<close>
+  shows \<open>((P, add_mset (image_mset uminus (mset M)) N), P, N)
+         \<in> measure (\<lambda>(P, N). card (all_models N))\<close>
+  using next_model_decreasing[OF assms] by auto
+
 lemma wf_next_model_filtered:
   \<open>wf {(y, x). next_model_filtered x y}\<close>
 proof -
-  have \<open>wf {(y, x). True \<and> local.next_model_filtered x y}\<close>
+  have \<open>wf {(y, x). True \<and> next_model_filtered x y}\<close>
     by (rule  wfP_if_measure[of \<open>\<lambda>_. True\<close> next_model_filtered
           \<open>\<lambda>N. (if fst N = None then 1 else 0) + card (all_models (snd N))\<close>])
       (auto dest: next_model_decreasing simp: next_model_filtered.simps)
