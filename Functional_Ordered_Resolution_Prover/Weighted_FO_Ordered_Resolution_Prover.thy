@@ -35,7 +35,7 @@ locale weighted_FO_resolution_prover =
   fixes
     weight :: "'a clause \<times> nat \<Rightarrow> nat"
   assumes
-    weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
+    weight_mono: "i < j \<Longrightarrow> weight (C, i) < weight (C, j)"
 begin
 
 (* FIXME: don't use \<circ> in abbreviations -- fragile w.r.t. simplifier when applied *)
@@ -1048,9 +1048,9 @@ locale weighted_FO_resolution_prover_with_size_generation_factors =
 begin
 
 fun weight :: "'a wclause \<Rightarrow> nat" where
-  "weight (C, m) = size_factor * size_multiset (size_literal size_atm) C + generation_factor * m"
+  "weight (C, i) = size_factor * size_multiset (size_literal size_atm) C + generation_factor * i"
 
-lemma weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
+lemma weight_mono: "i < j \<Longrightarrow> weight (C, i) < weight (C, j)"
   using generation_factor_pos by simp
 
 declare weight.simps [simp del]
