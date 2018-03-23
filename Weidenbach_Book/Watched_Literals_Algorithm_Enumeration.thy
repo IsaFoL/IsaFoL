@@ -6,16 +6,19 @@ definition cdcl_twl_enum_inv :: \<open>'v twl_st \<Rightarrow> bool\<close> wher
   \<open>cdcl_twl_enum_inv S \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and> final_twl_state S \<and>
          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
 
-definition equisatisfiable :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
-\<open>equisatisfiable N N' \<longleftrightarrow> (\<forall>M. M \<Turnstile>sm N \<longleftrightarrow> M \<Turnstile>sm N')\<close>
+text \<open>This is \<close>
+definition mod_restriction :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
+\<open>mod_restriction N N' \<longleftrightarrow> 
+       (\<forall>M. M \<Turnstile>sm N \<longrightarrow> M \<Turnstile>sm N') \<and>
+       (\<forall>M. total_over_m M (set_mset N') \<longrightarrow> consistent_interp M \<longrightarrow> M \<Turnstile>sm N' \<longrightarrow> M \<Turnstile>sm N)\<close>
 
-lemma equisatisfiable_satisfiable_iff:
-  \<open>equisatisfiable M M' \<Longrightarrow> satisfiable (set_mset M) \<longleftrightarrow> satisfiable (set_mset M')\<close>
-  by (auto simp: equisatisfiable_def satisfiable_carac[symmetric])
+lemma mod_restriction_satisfiable_iff:
+  \<open>mod_restriction N N' \<Longrightarrow> satisfiable (set_mset N) \<longleftrightarrow> satisfiable (set_mset N')\<close>
+  apply (auto simp: mod_restriction_def satisfiable_carac[symmetric])
+  by (meson satisfiable_carac satisfiable_def true_clss_set_mset)
 
-
-definition enum_equisatisfiable_st_clss :: \<open>('v twl_st \<times> ('v literal list option \<times> 'v clauses)) set\<close> where
-  \<open>enum_equisatisfiable_st_clss = {(S, (M, N)). equisatisfiable (get_all_init_clss S) N \<and>
+definition enum_mod_restriction_st_clss :: \<open>('v twl_st \<times> ('v literal list option \<times> 'v clauses)) set\<close> where
+  \<open>enum_mod_restriction_st_clss = {(S, (M, N)). mod_restriction (get_all_init_clss S) N \<and>
       twl_struct_invs S \<and> twl_stgy_invs S \<and> clauses_to_update S = {#} \<and>
       literals_to_update S = {#} \<and>
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<and>
@@ -24,8 +27,8 @@ definition enum_equisatisfiable_st_clss :: \<open>('v twl_st \<times> ('v litera
 
 definition enum_model_st_direct :: \<open>('v twl_st \<times> ('v literal list option \<times> 'v clauses)) set\<close> where
   \<open>enum_model_st_direct = {(S, (M, N)).
-         equisatisfiable (get_all_init_clss S) N \<and>
-         (get_conflict S = None \<longrightarrow> M \<noteq> None \<and> lits_of_l (get_trail S) = set (the M)) \<and>
+         mod_restriction (get_all_init_clss S) N \<and>
+         (get_conflict S = None \<longrightarrow> M \<noteq> None \<and> lit_of `# mset (get_trail S) = mset (the M)) \<and>
          (get_conflict S \<noteq> None \<longrightarrow> M = None) \<and>
          atms_of_mm (get_all_init_clss S) = atms_of_mm N \<and>
          (get_conflict S = None \<longrightarrow> next_model (map lit_of (get_trail S)) N) \<and>
@@ -34,7 +37,7 @@ definition enum_model_st_direct :: \<open>('v twl_st \<times> ('v literal list o
 
 definition enum_model_st :: \<open>('v twl_st \<times> ('v literal list option \<times> 'v clauses)) set\<close> where
   \<open>enum_model_st = {(S, (M, N)).
-         equisatisfiable (add_mset (DECO_clause (get_trail S)) (get_all_init_clss S)) N \<and>
+         mod_restriction (add_mset (DECO_clause (get_trail S)) (get_all_init_clss S)) N \<and>
          (get_conflict S = None \<longrightarrow> M \<noteq> None \<and> lits_of_l (get_trail S) = set (the M)) \<and>
          (get_conflict S \<noteq> None \<longrightarrow> M = None)}\<close>
 
@@ -253,18 +256,37 @@ lemma true_cls_def_set_mset_eq:
   \<open>set_mset A = set_mset B \<Longrightarrow> I \<Turnstile> A \<longleftrightarrow> I \<Turnstile> B\<close>
   by (auto simp: true_cls_def)
 
-lemma \<open>A \<union> CNot B \<Turnstile>ps C \<longleftrightarrow> A \<Turnstile>ps CNot B \<union> C\<close>
+lemma \<open>consistent_interp (set_mset B) \<Longrightarrow> A \<union> CNot B \<Turnstile>ps CNot C \<Longrightarrow> I \<Turnstile>s A \<Longrightarrow> I \<Turnstile> B \<Longrightarrow> I \<Turnstile> C\<close>
+  nitpick
   apply (auto simp: true_clss_clss_def)
-  oops
-  
+oops
 (*  set_mset (init_clss (state\<^sub>W_of U)) \<union> set_mset (learned_clss (state\<^sub>W_of U)) \<union> CNot (DECO_clause (get_trail U)) \<Turnstile>ps unmark_l (trail (state\<^sub>W_of U)) \<Longrightarrow>
     init_clss (state\<^sub>W_of U) \<Turnstile>psm learned_clss (state\<^sub>W_of U) \<Longrightarrow> set_mset (get_all_init_clss U) \<union> CNot (DECO_clause (get_trail U)) \<Turnstile>ps unmark_l (trail (state\<^sub>W_of U))
  *)
+lemma atms_of_DECO_clauseD: 
+  \<open>x \<in> atms_of (DECO_clause U) \<Longrightarrow> x \<in> atms_of_s (lits_of_l U)\<close>
+  \<open>x \<in> atms_of (DECO_clause U) \<Longrightarrow> x \<in> atms_of (lit_of `# mset U)\<close>
+  by (auto simp: DECO_clause_def atms_of_s_def atms_of_def lits_of_def)
 (* End Move *)
+
+lemma mod_restriction_next_modelD:
+  \<open>mod_restriction N N' \<Longrightarrow> atms_of_mm N \<subseteq> atms_of_mm N' \<Longrightarrow> next_model M N \<Longrightarrow> next_model M N'\<close>
+  by (auto simp: mod_restriction_def next_model.simps)
+
+definition enum_mod_restriction_st_clss_after :: \<open>('v twl_st \<times> ('v literal list option \<times> 'v clauses)) set\<close> where
+  \<open>enum_mod_restriction_st_clss_after = {(S, (M, N)). mod_restriction (get_all_init_clss S) N \<and>
+      twl_struct_invs S \<and> twl_stgy_invs S \<and>
+      (get_conflict S = None \<longrightarrow> M \<noteq> None \<longrightarrow> P (set(the M)) \<and> lit_of `# mset (get_trail S) = mset (the M)) \<and>
+      (get_conflict S \<noteq> None \<longrightarrow> M = None) \<and>
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<and>
+      atms_of_mm (get_all_init_clss S) = atms_of_mm N}\<close>
+
+lemma atms_of_uminus_lit_of[simp]: \<open>atms_of {#- lit_of x. x \<in># A#} = atms_of (lit_of `# A)\<close>
+  by (auto simp: atms_of_def image_image)
 
 lemma
   \<open>(cdcl_twl_enum, next_model_filtered_nres) \<in>
-    [\<lambda>(M, N). M = None]\<^sub>f enum_equisatisfiable_st_clss \<rightarrow> \<langle>enum_model_st\<rangle>nres_rel\<close>
+    [\<lambda>(M, N). M = None]\<^sub>f enum_mod_restriction_st_clss \<rightarrow> \<langle>enum_model_st\<rangle>nres_rel\<close>
 proof -
   define model_if_exists where
     \<open>model_if_exists S \<equiv> \<lambda>M.
@@ -356,7 +378,7 @@ proof -
       \<le> \<Down> enum_model_st_direct
           (SPEC (model_if_exists MN))\<close>
     if
-      S_MN: \<open>(S, MN) \<in> enum_equisatisfiable_st_clss\<close> and
+      S_MN: \<open>(S, MN) \<in> enum_mod_restriction_st_clss\<close> and
       M: \<open>case MN of (M, N) \<Rightarrow> M = None\<close>
     for S MN
   proof -
@@ -374,15 +396,15 @@ proof -
         by (metis rtranclp_cdcl_twl_stgy_all_learned_diff_learned that(1))
 
       have struct_S: \<open>twl_struct_invs S\<close>
-        using S_MN unfolding enum_equisatisfiable_st_clss_def by blast
+        using S_MN unfolding enum_mod_restriction_st_clss_def by blast
       moreover have stgy_S: \<open>twl_stgy_invs S\<close>
-        using S_MN unfolding enum_equisatisfiable_st_clss_def by blast
+        using S_MN unfolding enum_mod_restriction_st_clss_def by blast
       moreover have ent: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
-        using S_MN unfolding enum_equisatisfiable_st_clss_def by blast
+        using S_MN unfolding enum_mod_restriction_st_clss_def by blast
       then have ent_s: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of s)\<close>
         using rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init star struct_S by blast
       then have enum_inv: \<open>cdcl_twl_enum_inv s\<close>
-        using star S_MN final unfolding enum_equisatisfiable_st_clss_def cdcl_twl_enum_inv_def
+        using star S_MN final unfolding enum_mod_restriction_st_clss_def cdcl_twl_enum_inv_def
         by (auto intro: rtranclp_cdcl_twl_stgy_twl_struct_invs
             rtranclp_cdcl_twl_stgy_twl_stgy_invs)
       show ?thesis
@@ -394,13 +416,13 @@ proof -
         let ?s = \<open>(None, snd MN)\<close>
         have \<open>(s, ?s) \<in> enum_model_st_direct\<close>
           using S_MN confl unsat enum_inv ent star unfolding enum_model_st_def
-          by (auto simp: enum_model_st_direct_def enum_equisatisfiable_st_clss_def
+          by (auto simp: enum_model_st_direct_def enum_mod_restriction_st_clss_def
               intro: rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init)
         moreover have \<open>model_if_exists MN ?s\<close>
           using unsat S_MN unsat_no_step_next_model_filtered[of N P] Ex_next_model_iff_statisfiable[of N]
           unfolding model_if_exists_def
-          by (auto simp: enum_equisatisfiable_st_clss_def
-                equisatisfiable_satisfiable_iff)
+          by (auto simp: enum_mod_restriction_st_clss_def
+                mod_restriction_satisfiable_iff)
         ultimately show \<open>\<exists>s'\<in>Collect (model_if_exists MN). (s, s') \<in> enum_model_st_direct\<close>
             apply -
           by (rule bexI[of _ \<open>?s\<close>]) auto
@@ -416,16 +438,16 @@ proof -
         moreover have nm: \<open>next_model (map lit_of (get_trail s)) N\<close>
           using ent cons n_d S_MN alien
           by (auto simp: next_model.simps true_annots_true_cls lits_of_def
-              no_dup_map_lit_of enum_equisatisfiable_st_clss_def equisatisfiable_def)
+              no_dup_map_lit_of enum_mod_restriction_st_clss_def mod_restriction_def)
         ultimately have \<open>(s, ?s) \<in> enum_model_st_direct\<close>
           using S_MN enum_inv star ent unfolding enum_model_st_direct_def
-          by (auto simp: equisatisfiable_satisfiable_iff next_model.simps
-              enum_equisatisfiable_st_clss_def lits_of_def
+          by (auto simp: mod_restriction_satisfiable_iff next_model.simps
+              enum_mod_restriction_st_clss_def lits_of_def
               rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init)
         moreover have \<open>model_if_exists (None, N) (Some (map lit_of (get_trail s)), N)\<close>
             using nm by (auto simp: model_if_exists_def
-                enum_equisatisfiable_st_clss_def
-                equisatisfiable_satisfiable_iff)
+                enum_mod_restriction_st_clss_def
+                mod_restriction_satisfiable_iff)
         ultimately show \<open>\<exists>s'\<in>Collect (model_if_exists MN). (s, s') \<in> enum_model_st_direct\<close>
           apply -
           by (rule bexI[of _ \<open>(Some (map lit_of (get_trail s)), snd MN)\<close>])
@@ -451,9 +473,9 @@ proof -
                      (negate_model_and_add M) x)\<close>
     if 
       MN: \<open>case MN of (M, N) \<Rightarrow> M = None\<close> and
-      S: \<open>(S, MN) \<in> enum_equisatisfiable_st_clss\<close> and
+      S: \<open>(S, MN) \<in> enum_mod_restriction_st_clss\<close> and
       T: \<open>(T, M) \<in> enum_model_st_direct\<close> and
-      \<open>M \<in> Collect (model_if_exists MN)\<close>
+      M: \<open>M \<in> Collect (model_if_exists MN)\<close>
     for S T :: \<open>'v twl_st\<close> and MN M
   proof -
     define R where 
@@ -478,15 +500,21 @@ proof -
       subgoal
         by auto
       done
-    have conc_run: \<open>conclusive_TWL_run V \<le> SPEC (\<lambda>s'. cdcl_twl_enum_inv s' \<and> (s', U) \<in> R)\<close>
+    define I where \<open>I s = (\<exists>x. (s, x) \<in> enum_mod_restriction_st_clss_after \<and>
+           (next_model_filtered P)\<^sup>*\<^sup>* (negate_model_and_add M) (negate_model_and_add x))\<close> for s
+    let ?Q = \<open>\<lambda>U V s'. cdcl_twl_enum_inv s' \<and> final_twl_state s' \<and> cdcl_twl_stgy\<^sup>*\<^sup>* V s' \<and> (s', U) \<in> R\<close>
+    have 
+      conc_run: \<open>conclusive_TWL_run V \<le> SPEC (?Q U V)\<close>
+         (is ?conc_run is \<open>_ \<le> SPEC ?Q\<close>) and
+      inv_I: \<open>?Q U V W \<Longrightarrow> I W\<close> (is \<open>_ \<Longrightarrow> ?I\<close>)
       if 
         U: \<open>cdcl_twl_enum_inv U\<close> and
         confl: \<open>get_conflict U = None \<and> \<not>P (lits_of_l (get_trail U))\<close> and
-        neg: \<open>negate_model_and_add_twl U V\<close>
-      for U V
+        neg: \<open>negate_model_and_add_twl U V\<close> and
+        I_U: \<open>I U\<close>
+      for U V W
     proof -
-      { fix W
-        assume star: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* V W\<close> and final: \<open>final_twl_state W\<close>
+      { 
         have \<open>clauses_to_update V = {#}\<close> 
           using neg by (auto simp: negate_model_and_add_twl.simps)
         have 
@@ -499,36 +527,9 @@ proof -
           using U neg unfolding cdcl_twl_enum_inv_def
           using negate_model_and_add_twl_twl_struct_invs  negate_model_and_add_twl_twl_stgy_invs
           by blast+
-        moreover have ent_W: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of W)\<close>
-          using U ent_V neg invs_V rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init
-            star
-          unfolding cdcl_twl_enum_inv_def by blast
-        ultimately have H1: \<open>cdcl_twl_enum_inv W\<close>
-          using star final unfolding cdcl_twl_enum_inv_def
-          using rtranclp_cdcl_twl_stgy_twl_stgy_invs rtranclp_cdcl_twl_stgy_twl_struct_invs by blast
-        have [simp]: \<open>get_all_init_clss W = get_all_init_clss V\<close>
-          by (metis rtranclp_cdcl_twl_stgy_all_learned_diff_learned star)
         have [simp]: \<open>get_all_init_clss V = add_mset (DECO_clause (get_trail U))(get_all_init_clss U)\<close>
           using neg by (auto simp: negate_model_and_add_twl.simps)
 
-        have next_mod: \<open>next_model (map lit_of (get_trail W)) (get_all_init_clss W)\<close> 
-          if None: \<open>get_conflict W = None\<close>
-          using invs_V ent_V
-        proof (rule cdcl_twl_stgy_final_twl_stateE[OF star final])
-          show ?thesis
-            if \<open>get_conflict W \<noteq> None\<close>
-            using that None by blast
-          show ?thesis
-            if 
-              \<open>get_conflict W = None\<close> and
-              \<open>consistent_interp (lits_of_l (get_trail W))\<close> and
-              \<open>no_dup (get_trail W)\<close> and
-              \<open>atm_of ` lits_of_l (get_trail W) \<subseteq> atms_of_mm (get_all_init_clss W)\<close> and
-              \<open>get_trail W \<Turnstile>asm get_all_init_clss V\<close> and
-              \<open>satisfiable (set_mset (get_all_init_clss V))\<close>
-            using that that(5) unfolding next_model.simps
-            by (auto simp: lits_of_def true_annots_true_cls no_dup_map_lit_of)
-        qed
         have next_mod_U: \<open>next_model (map lit_of (get_trail U)) (get_all_init_clss U)\<close> 
           if None: \<open>get_conflict U = None\<close>
         proof (rule cdcl_twl_stgy_final_twl_stateE[of U U])
@@ -578,22 +579,6 @@ proof -
               \<open>get_trail U \<Turnstile>asm get_all_init_clss U\<close> and
               \<open>satisfiable (set_mset (get_all_init_clss U))\<close>
           proof -
-            have 1: \<open>{unmark L |L. is_decided L \<and> L \<in> set (trail (state\<^sub>W_of U))} = 
-                    CNot (DECO_clause (get_trail U))\<close>
-              by (force simp: DECO_clause_def twl_st CNot_def)
-            have ent3_gnerealise: \<open>A \<union> B \<union> C \<Turnstile>ps D \<Longrightarrow> A \<Turnstile>ps B \<Longrightarrow> A \<union> C \<Turnstile>ps D\<close> for A B C D
-              by (metis Un_absorb inf_sup_aci(5) true_clss_clss_def
-                  true_clss_clss_generalise_true_clss_clss)
-
-            have \<open>set_mset (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of U)) \<union>
-                CNot (DECO_clause (get_trail U)) \<Turnstile>ps unmark_l (trail (state\<^sub>W_of U))\<close>
-              using all_decomposition_implies_propagated_lits_are_implied[OF decomp]
-              unfolding 1 .
-            then have \<open>set_mset (get_all_init_clss U) \<union> CNot (DECO_clause (get_trail U)) \<Turnstile>ps
-              unmark_l (trail (state\<^sub>W_of U))\<close>
-              using ent_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-                cdcl\<^sub>W_restart_mset.clauses_def
-              by (auto simp: clauses_def twl_st intro: ent3_gnerealise)
             have 1: \<open>I \<Turnstile> {#- lit_of x. x \<in># mset (get_trail U)#}\<close>
               if 
                 I_U: \<open>I \<Turnstile> DECO_clause (get_trail U)\<close>
@@ -607,29 +592,202 @@ proof -
           qed
         qed
         from card_mono[OF _ this]
-        have \<open>card (all_models (add_mset (DECO_clause (get_trail U)) (get_all_init_clss U))) <
+        have card_decr: \<open>card (all_models (add_mset (DECO_clause (get_trail U)) (get_all_init_clss U))) <
            card (all_models (get_all_init_clss U))\<close>
-          if \<open>get_conflict U = None\<close> \<open>get_conflict W = None\<close>
+          if \<open>get_conflict U = None\<close>
           using next_model_decreasing[OF next_mod_U] that by (auto simp: finite_all_models)
-        then have H2: \<open>(W, U) \<in> R\<close>
-          using confl unfolding R_def by (auto)
-        note H1 H2
-      } note H = this
-      then show ?thesis
+
+        {
+          fix WW
+          assume star: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* V WW\<close> and final: \<open>final_twl_state WW\<close>
+          have ent_W: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of WW)\<close>
+            using U ent_V neg invs_V rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init
+              star
+            unfolding cdcl_twl_enum_inv_def by blast
+          then have H1: \<open>cdcl_twl_enum_inv WW\<close>
+            using star final invs_V unfolding cdcl_twl_enum_inv_def
+            using rtranclp_cdcl_twl_stgy_twl_stgy_invs rtranclp_cdcl_twl_stgy_twl_struct_invs by blast
+          have init_clss_WW_V[simp]: \<open>get_all_init_clss WW = get_all_init_clss V\<close>
+            by (metis rtranclp_cdcl_twl_stgy_all_learned_diff_learned star)
+
+          have next_mod: \<open>next_model (map lit_of (get_trail WW)) (get_all_init_clss WW)\<close> 
+            if None: \<open>get_conflict WW = None\<close>
+            using invs_V ent_V
+          proof (rule cdcl_twl_stgy_final_twl_stateE[OF star final])
+            show ?thesis
+              if \<open>get_conflict WW \<noteq> None\<close>
+              using that None by blast
+            show ?thesis
+              if 
+                \<open>get_conflict WW = None\<close> and
+                \<open>consistent_interp (lits_of_l (get_trail WW))\<close> and
+                \<open>no_dup (get_trail WW)\<close> and
+                \<open>atm_of ` lits_of_l (get_trail WW) \<subseteq> atms_of_mm (get_all_init_clss WW)\<close> and
+                \<open>get_trail WW \<Turnstile>asm get_all_init_clss V\<close> and
+                \<open>satisfiable (set_mset (get_all_init_clss V))\<close>
+              using that that(5) unfolding next_model.simps
+              by (auto simp: lits_of_def true_annots_true_cls no_dup_map_lit_of)
+          qed
+          have H2: \<open>(WW, U) \<in> R\<close>
+            using confl card_decr unfolding R_def by (auto)
+          note H1 H2 next_mod init_clss_WW_V
+        } note H = this(1,2) and next_mod = this(3) and init_clss_WW_V = this(4)
+
+       {
+         assume \<open>?Q W\<close>
+         then have
+           twl_enum: \<open>cdcl_twl_enum_inv W\<close> and
+           final: \<open>final_twl_state W\<close> and
+           st: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* V W\<close> and
+           \<open>(W, U) \<in> R\<close>
+           by blast+
+         obtain U' where
+           U_U': \<open>(U, U') \<in> enum_mod_restriction_st_clss_after\<close> and
+           st_M_U': \<open>(next_model_filtered P)\<^sup>*\<^sup>* (local.negate_model_and_add M) (local.negate_model_and_add U')\<close>
+           using I_U unfolding I_def by blast
+
+         have 1: \<open>{unmark L |L. is_decided L \<and> L \<in> set (trail (state\<^sub>W_of U))} = 
+                    CNot (DECO_clause (get_trail U))\<close>
+           by (force simp: DECO_clause_def twl_st CNot_def)
+         have ent3_gnerealise: \<open>A \<union> B \<union> C \<Turnstile>ps D \<Longrightarrow> A \<Turnstile>ps B \<Longrightarrow> A \<union> C \<Turnstile>ps D\<close> for A B C D
+           by (metis Un_absorb inf_sup_aci(5) true_clss_clss_def
+               true_clss_clss_generalise_true_clss_clss)
+
+         have \<open>set_mset (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of U)) \<union>
+                CNot (DECO_clause (get_trail U)) \<Turnstile>ps unmark_l (trail (state\<^sub>W_of U))\<close>
+           using all_decomposition_implies_propagated_lits_are_implied[OF decomp]
+           unfolding 1 .
+         then have 2: \<open>set_mset (get_all_init_clss U) \<union> CNot (DECO_clause (get_trail U)) \<Turnstile>ps
+              unmark_l (trail (state\<^sub>W_of U))\<close>
+           using ent_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+             cdcl\<^sub>W_restart_mset.clauses_def
+           by (auto simp: clauses_def twl_st intro: ent3_gnerealise)
+         have [simp]: \<open>unmark_l (get_trail U) = CNot {#- lit_of x. x \<in># mset (get_trail U)#}\<close>
+           by (force simp: CNot_def)
+         have mod_U: \<open>mod_restriction (get_all_init_clss U) (snd U')\<close> and
+           atms_U_U': \<open>atms_of_mm (get_all_init_clss U) = atms_of_mm (snd U')\<close>
+           using U_U' unfolding enum_mod_restriction_st_clss_after_def by (cases U'; auto; fail)+
+         have alien_U: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of U)\<close>
+           using \<open>twl_struct_invs U\<close>
+           unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+           by fast
+         have mod_restriction_H: \<open>M \<Turnstile> DECO_clause (get_trail U)\<close>
+           if 
+             total: \<open>total_over_m M (set_mset (snd U'))\<close> and
+             consistent: \<open>consistent_interp M\<close> and
+             M_tr: \<open>M \<Turnstile> {#- lit_of x. x \<in># mset (get_trail U)#}\<close> and
+             M_U': \<open>M \<Turnstile>m snd U'\<close>
+           for M
+         proof (rule ccontr)
+           assume \<open>\<not>?thesis\<close>
+           moreover have tot_tr: \<open>total_over_m M {DECO_clause (get_trail U)}\<close>
+             using alien_U total atms_U_U' unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+             apply (auto simp: twl_st image_iff total_over_m_alt_def lits_of_def
+                 dest!: atms_of_DECO_clauseD(1))
+             apply (metis atms_of_s_def contra_subsetD image_iff in_atms_of_s_decomp)+
+             done
+           ultimately have \<open>M \<Turnstile>s CNot (DECO_clause (get_trail U))\<close>
+             by (simp add: total_not_true_cls_true_clss_CNot)
+           moreover have \<open>M \<Turnstile>sm get_all_init_clss U\<close>
+             using mod_U total consistent M_U' unfolding mod_restriction_def
+             by blast
+           moreover have \<open>total_over_m M (set_mset (get_all_init_clss U))\<close>
+             using total atms_U_U' by (simp add: total_over_m_def)
+           moreover have \<open>total_over_m M (unmark_l (trail (state\<^sub>W_of U)))\<close>
+             using alien_U tot_tr total atms_U_U' unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+             apply (auto simp: total_over_m_alt_def
+                  twl_st dest: atms_of_DECO_clauseD)
+             by (metis atms_of_uminus_lit_atm_of_lit_of atms_of_uminus_lit_of lits_of_def
+                 set_mset_mset subsetCE total total_over_m_def total_over_set_def)
+           ultimately have \<open>M \<Turnstile>s unmark_l (trail (state\<^sub>W_of U))\<close>
+             using 2 total consistent tot_tr unfolding true_clss_clss_def
+             by auto
+           then show False
+             using M_tr tot_tr consistent
+             by (auto simp: true_clss_def twl_st true_cls_def consistent_interp_def)
+         qed
+         have \<open>mod_restriction (get_all_init_clss U) (snd U')\<close>
+           using U_U' unfolding enum_mod_restriction_st_clss_after_def
+           by auto
+         moreover have \<open>M \<Turnstile> {#- lit_of x. x \<in># mset (get_trail U)#}\<close>
+           if \<open>M \<Turnstile> DECO_clause (get_trail U)\<close> for M
+           by (rule true_cls_mono_set_mset[OF _ that]) (auto simp: DECO_clause_def)
+         ultimately have mod_rest_U:
+           \<open>mod_restriction (add_mset (DECO_clause (get_trail U)) (get_all_init_clss U))
+              (add_mset {#- lit_of x. x \<in># mset (get_trail U)#} (snd U'))\<close>
+           using 2
+           by (auto simp: mod_restriction_def twl_st mod_restriction_H)
+         have \<open>(next_model_filtered P) (local.negate_model_and_add U')
+               ((negate_model_and_add (Some (map lit_of (get_trail U)), snd U')))\<close>
+           using confl U_U'
+           apply (cases U'; cases \<open>fst U'\<close>)
+           apply (auto simp: enum_mod_restriction_st_clss_after_def lits_of_def
+               eq_commute[of _ \<open>mset _\<close>] next_model_filtered.simps
+               intro!: exI[of _ \<open>map lit_of (get_trail U)\<close>]
+               dest: mset_eq_setD)
+            defer
+            apply (metis list.set_map mset_eq_setD mset_map)
+           using next_mod_U by (auto dest: mod_restriction_next_modelD)
+         then have \<open>(next_model_filtered P)\<^sup>*\<^sup>* (local.negate_model_and_add M)
+               ((negate_model_and_add (Some (map lit_of (get_trail U)), snd U')))\<close>
+           using st_M_U' by simp
+         moreover have \<open>(W, (negate_model_and_add (Some (map lit_of (get_trail U)), snd U'))) 
+                \<in> enum_mod_restriction_st_clss_after\<close>
+           using confl init_clss_WW_V[OF st final] twl_enum alien_U atms_U_U'
+           apply (auto simp: enum_mod_restriction_st_clss_after_def lits_of_def
+               cdcl_twl_enum_inv_def mod_rest_U
+               dest: atms_of_DECO_clauseD)
+           by (smt U atms_of_def cdcl_twl_enum_inv_def cdcl_twl_stgy_final_twl_stateE contra_subsetD 
+               lits_of_def rtranclp.intros(1) set_image_mset set_mset_mset)
+         ultimately have ?I
+           unfolding I_def
+           apply -
+           apply (rule exI[of _ \<open>(negate_model_and_add (Some (map lit_of (get_trail U)), snd U'))\<close>])
+           using confl
+           by (auto simp: )
+        } note I = this
+        note H and I
+      } note H = this(1,2) and I = this(3)
+      then show ?conc_run
         by (auto simp add:  conclusive_TWL_run_def)
+             
+
+      show ?I if \<open>?Q W\<close>
+        using I that
+        by (auto simp: I_def)
     qed
-    define I where \<open>I s = (\<exists>x. (s, x) \<in> enum_model_st_direct \<and>
-           (next_model_filtered P)\<^sup>*\<^sup>* (negate_model_and_add M) (negate_model_and_add x))\<close> for s
+    have neg_neg[simp]: \<open>negate_model_and_add ( negate_model_and_add M) = negate_model_and_add M\<close>
+      by (cases M; cases \<open>fst M\<close>; auto)
+    have \<open>(T, a, b) \<in> enum_model_st_direct \<Longrightarrow> (T, negate_model_and_add (a, b)) \<in> enum_mod_restriction_st_clss_after\<close>
+      for a b
+      unfolding enum_model_st_direct_def enum_mod_restriction_st_clss_after_def
+        cdcl_twl_enum_inv_def
+      apply (cases a)
+      apply clarify
+       apply clarsimp
+      apply simp
+      supply [[simp_trace]]
+      apply (intro conjI impI; fast?)
+      sorry
     have I_T: \<open>I T\<close>
       unfolding I_def
-      apply (rule exI[of _ \<open>M\<close>])
-      using T MN
-      by (auto simp: enum_model_st_direct_def enum_model_st_def)
+      apply (rule exI[of _ \<open>(fst M, snd M)\<close>])
+      unfolding neg_neg
+
+      apply (intro conjI)
+      subgoal
+        using T
+        apply (cases M)
+        apply auto
+        sorry
+      subgoal by (auto simp: enum_mod_restriction_st_clss_after_def cdcl_twl_enum_inv_def
+          enum_model_st_def enum_model_st_direct_def)
+      done
     show ?thesis
       apply (refine_vcg WHILEIT_rule_stronger_inv[where R=\<open>R\<close> and I' = I] conc_run)
       subgoal by (rule wf)
       subgoal
-        using T S unfolding enum_model_st_direct_def enum_equisatisfiable_st_clss_def 
+        using T S unfolding enum_model_st_direct_def enum_mod_restriction_st_clss_def 
           cdcl_twl_enum_inv_def
         by auto
       subgoal by (rule I_T)
@@ -638,8 +796,9 @@ proof -
       subgoal by fast
       subgoal by fast
       subgoal by fast
-      subgoal
-        sorry
+      subgoal by fast
+      subgoal for U V W
+        by (rule inv_I)
       subgoal by fast
       subgoal sorry
       done
@@ -657,6 +816,7 @@ proof -
       done
     done
 qed
+
 end
 
 end
