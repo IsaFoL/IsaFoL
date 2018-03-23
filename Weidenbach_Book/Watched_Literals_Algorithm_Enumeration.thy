@@ -35,11 +35,11 @@ definition enum_model_st_direct :: \<open>('v twl_st \<times> ('v literal list o
          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<and>
          cdcl_twl_enum_inv S}\<close>
 
-definition enum_model_st :: \<open>('v twl_st \<times> ('v literal list option \<times> 'v clauses)) set\<close> where
-  \<open>enum_model_st = {(S, (M, N)).
-         mod_restriction (add_mset (DECO_clause (get_trail S)) (get_all_init_clss S)) N \<and>
-         (get_conflict S = None \<longrightarrow> M \<noteq> None \<and> lits_of_l (get_trail S) = set (the M)) \<and>
-         (get_conflict S \<noteq> None \<longrightarrow> M = None)}\<close>
+definition enum_model_st :: \<open>((bool \<times> 'v twl_st) \<times> ('v literal list option \<times> 'v clauses)) set\<close> where
+  \<open>enum_model_st = {((b, S), (M, N)).
+         mod_restriction (get_all_init_clss S) N \<and>
+         (get_conflict S = None \<longrightarrow> b \<and> M \<noteq> None \<and> lits_of_l (get_trail S) = set (the M)) \<and>
+         (get_conflict S \<noteq> None \<longrightarrow> \<not>b \<and> M = None)}\<close>
 
 
 fun add_to_init_cls :: \<open>'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
@@ -171,21 +171,22 @@ fun negate_model_and_add :: \<open>'v literal list option \<times> 'v clauses \<
      (if P (set M) then (Some M, N) else (None, add_mset (uminus `# mset M) N))\<close> |
   \<open>negate_model_and_add (None, N) = (None, N)\<close>
 
-definition cdcl_twl_enum :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
+definition cdcl_twl_enum :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
   \<open>cdcl_twl_enum S = do {
      S \<leftarrow> conclusive_TWL_run S;
-     WHILE\<^sub>T\<^bsup>cdcl_twl_enum_inv\<^esup>
+     S \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_enum_inv\<^esup>
        (\<lambda>S. get_conflict S = None \<and> \<not>P (lits_of_l (get_trail S)))
        (\<lambda>S. do {
              S \<leftarrow> SPEC (negate_model_and_add_twl S);
              conclusive_TWL_run S
            })
-       S
+       S;
+     if get_conflict S = None then RETURN (True, S) else RETURN (False, S)
     }\<close>
 
 definition next_model_filtered_nres where
   \<open>next_model_filtered_nres N =
-    SPEC (\<lambda>M. full (next_model_filtered P) N M)\<close>
+    SPEC (\<lambda>M. full (next_model_filtered P) N (M))\<close>
 
 (* TODO move *)
 lemma no_step_next_model_filtered_next_model_iff:
@@ -252,17 +253,25 @@ lemma negate_model_and_add_twl_cdcl\<^sub>W_learned_clauses_entailed_by_init:
 lemma true_cls_mset_add_mset[iff]: "I \<Turnstile>m add_mset C CC \<longleftrightarrow> I \<Turnstile> C \<and> I \<Turnstile>m CC"
   unfolding true_cls_mset_def by auto
 
+lemma unsat_no_step_next_model_filtered':
+  assumes \<open>unsatisfiable (set_mset (snd S)) \<or> fst S \<noteq> None\<close>
+  shows \<open>no_step (next_model_filtered P) S\<close>
+  using assms
+  apply cases
+  apply (auto dest: unsat_no_step_next_model_filtered)
+   apply (metis Ex_next_model_iff_statisfiable fst_conv next_model_filtered.simps
+      no_step_next_model_filtered_next_model_iff)
+  by (metis Pair_inject next_model_filtered.cases option.simps(3) prod.collapse)
+
 lemma true_cls_def_set_mset_eq:
   \<open>set_mset A = set_mset B \<Longrightarrow> I \<Turnstile> A \<longleftrightarrow> I \<Turnstile> B\<close>
   by (auto simp: true_cls_def)
 
-lemma \<open>consistent_interp (set_mset B) \<Longrightarrow> A \<union> CNot B \<Turnstile>ps CNot C \<Longrightarrow> I \<Turnstile>s A \<Longrightarrow> I \<Turnstile> B \<Longrightarrow> I \<Turnstile> C\<close>
-  nitpick
-  apply (auto simp: true_clss_clss_def)
-oops
 (*  set_mset (init_clss (state\<^sub>W_of U)) \<union> set_mset (learned_clss (state\<^sub>W_of U)) \<union> CNot (DECO_clause (get_trail U)) \<Turnstile>ps unmark_l (trail (state\<^sub>W_of U)) \<Longrightarrow>
     init_clss (state\<^sub>W_of U) \<Turnstile>psm learned_clss (state\<^sub>W_of U) \<Longrightarrow> set_mset (get_all_init_clss U) \<union> CNot (DECO_clause (get_trail U)) \<Turnstile>ps unmark_l (trail (state\<^sub>W_of U))
  *)
+
+
 lemma atms_of_DECO_clauseD: 
   \<open>x \<in> atms_of (DECO_clause U) \<Longrightarrow> x \<in> atms_of_s (lits_of_l U)\<close>
   \<open>x \<in> atms_of (DECO_clause U) \<Longrightarrow> x \<in> atms_of (lit_of `# mset U)\<close>
@@ -283,6 +292,7 @@ definition enum_mod_restriction_st_clss_after :: \<open>('v twl_st \<times> ('v 
 
 lemma atms_of_uminus_lit_of[simp]: \<open>atms_of {#- lit_of x. x \<in># A#} = atms_of (lit_of `# A)\<close>
   by (auto simp: atms_of_def image_image)
+
 
 lemma
   \<open>(cdcl_twl_enum, next_model_filtered_nres) \<in>
@@ -376,13 +386,16 @@ proof -
           dest: )
       by (metis full1_is_full full_fullI next_model_filtered.intros(1) prod.exhaust_sel that)
   qed
-  then have next_model_filtered_nres_alt_def: \<open>next_model_filtered_nres S  = do {
+  note H = this
+  have next_model_filtered_nres_alt_def: \<open>next_model_filtered_nres S  = do {
          S \<leftarrow> SPEC (model_if_exists S);
-         SPEC (\<lambda>T. full (next_model_filtered P) (None, snd S) T)
+         T \<leftarrow> SPEC (\<lambda>T. full (next_model_filtered P) (None, snd S) T);
+         RETURN T
        }\<close> if \<open>fst S = None\<close> for S
     using that
-    unfolding next_model_filtered_nres_def (* model_if_exists_def *) RES_RES_RETURN_RES
-    by blast
+    unfolding next_model_filtered_nres_def RES_RES_RETURN_RES RES_RETURN_RES
+     H[OF that]
+    by blast+
   have conclusive_run: \<open>conclusive_TWL_run S
       \<le> \<Down> enum_model_st_direct
           (SPEC (model_if_exists MN))\<close>
@@ -477,9 +490,9 @@ proof -
        (\<lambda>S. SPEC (negate_model_and_add_twl S) \<bind>
              conclusive_TWL_run) T
       \<le> SPEC
-          (\<lambda>y. \<exists>x. (y, x) \<in> enum_model_st \<and>
-                    full (next_model_filtered P)
-                     (None, snd M) x)\<close>
+          (\<lambda>y. \<exists>x. (y, x) \<in> {(y, x). (y, x) \<in> enum_mod_restriction_st_clss_after \<and>
+                       (get_conflict y \<noteq> None \<or> P (lits_of_l (get_trail y)))} \<and>
+                  full (next_model_filtered P) (None, snd M) x)\<close>
     if 
       MN: \<open>case MN of (M, N) \<Rightarrow> M = None\<close> and
       S: \<open>(S, MN) \<in> enum_mod_restriction_st_clss\<close> and
@@ -789,7 +802,9 @@ proof -
       subgoal by (auto simp: enum_mod_restriction_st_clss_after_def cdcl_twl_enum_inv_def
           enum_model_st_def enum_model_st_direct_def)
       done
-    have final: \<open>\<exists>x. (s, x) \<in> enum_model_st \<and> full (next_model_filtered P) (None, snd M) x\<close>
+    have final: \<open>\<exists>x. (s, x) \<in> {(s, x). (s, x) \<in> enum_mod_restriction_st_clss_after \<and>
+                        (get_conflict s \<noteq> None \<or> P (lits_of_l (get_trail s)))} \<and>
+          full (next_model_filtered P) (None, snd M) x\<close>
       if 
         I: \<open>I s\<close> and
         cond: \<open>\<not> (get_conflict s = None \<and> \<not> P (lits_of_l (get_trail s)))\<close>
@@ -797,15 +812,23 @@ proof -
     proof -
       obtain x where
          sx: \<open>(s, x) \<in> enum_mod_restriction_st_clss_after\<close> and
-         \<open>(next_model_filtered P)\<^sup>*\<^sup>* (None, snd M) (negate_model_and_add x)\<close>
+         st: \<open>(next_model_filtered P)\<^sup>*\<^sup>* (None, snd M) (negate_model_and_add x)\<close>
         using I unfolding I_def by blast
-      have \<open>(s, x) \<in> enum_model_st\<close>
-        using sx apply (auto simp: enum_mod_restriction_st_clss_after_def
-            enum_model_st_def)
+      have 1: \<open>(s, negate_model_and_add x) \<in> enum_mod_restriction_st_clss_after\<close>
+        using sx cond unfolding enum_mod_restriction_st_clss_after_def
+            enum_model_st_def
+        apply (cases x; cases \<open>fst x\<close>)
+        by (auto)
+      have \<open>no_step (next_model_filtered P) (negate_model_and_add x)\<close>
+        apply (rule unsat_no_step_next_model_filtered')
+        apply (cases x; cases \<open>fst x\<close>)
+        using cond apply auto
         sorry
+      then have 2: \<open>full (next_model_filtered P) (None, snd M) (negate_model_and_add x)\<close>
+        using st unfolding full_def by blast
       show ?thesis
-        apply (rule exI[of _ x])
-        sorry
+        apply (rule exI[of _ \<open>negate_model_and_add x\<close>])
+        using 1 2 cond by fast
     qed
     show ?thesis
       apply (refine_vcg WHILEIT_rule_stronger_inv[where R=\<open>R\<close> and I' = I] conc_run)
@@ -824,9 +847,15 @@ proof -
       subgoal for U V W
         by (rule inv_I)
       subgoal by fast
-      subgoal sorry
+      subgoal by (rule final)
       done
   qed
+  have \<open>(Sb, x') \<in> {(y, x). (y, x) \<in> enum_mod_restriction_st_clss_after \<and>
+           (get_conflict y \<noteq> None \<or> P (lits_of_l (get_trail y)))} \<Longrightarrow>
+       get_conflict Sb = None \<Longrightarrow> ((True, Sb), x') \<in> enum_model_st\<close> for Sb x'
+    apply (auto simp: enum_mod_restriction_st_clss_after_def enum_model_st_def
+        )
+    sorry
   show ?thesis
     unfolding cdcl_twl_enum_def
     apply (intro frefI nres_relI)
@@ -834,9 +863,7 @@ proof -
     subgoal by auto
     apply (refine_vcg conclusive_run WHILEIT_rule)
     unfolding conc_fun_SPEC
-    subgoal for S MN T M
-      apply (rule loop)
-         apply assumption+
+      apply (rule loop; assumption)
       done
     done
 qed
