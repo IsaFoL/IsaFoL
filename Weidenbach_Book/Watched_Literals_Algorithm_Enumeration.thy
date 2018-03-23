@@ -296,7 +296,7 @@ proof -
   for S :: \<open>_ \<times> 'v clauses\<close>
 
   have \<open>full (next_model_filtered P) S U \<longleftrightarrow>
-         (\<exists>T. model_if_exists S T \<and> full (next_model_filtered P) (negate_model_and_add T) U)\<close>
+         (\<exists>T. model_if_exists S T \<and> full (next_model_filtered P) (None, snd T) U)\<close>
     (is \<open>?A \<longleftrightarrow> ?B\<close>)
     if \<open>fst S = None\<close>
     for S U
@@ -319,7 +319,7 @@ proof -
         unfolding model_if_exists_def
         by (cases S; auto; fail)+
       moreover {
-        have \<open>no_step (next_model_filtered P) (negate_model_and_add S)\<close>
+        have \<open>no_step (next_model_filtered P) (None, snd S)\<close>
           using nss
           apply (subst no_step_next_model_filtered_next_model_iff)
           subgoal using that by (cases S) auto
@@ -330,7 +330,7 @@ proof -
            defer
            apply assumption
           by (cases S; cases \<open>fst S\<close>) (auto intro: unsatisfiable_mono)
-        then have \<open>full (next_model_filtered P) (negate_model_and_add S) U\<close>
+        then have \<open>full (next_model_filtered P) (None, snd S) U\<close>
           apply (subst no_step_full_iff_eq)
            apply assumption
           using SU \<open>fst S = None\<close>
@@ -350,26 +350,35 @@ proof -
         apply (auto simp: next_model_filtered.simps)
         done
       let ?T = \<open>((Some M, snd S))\<close>
-      have \<open>model_if_exists S ?T\<close>
+      have nm: \<open>model_if_exists S ?T\<close>
         using M T that unfolding model_if_exists_def
         by (cases S) auto
       moreover have \<open>full (next_model_filtered P) (negate_model_and_add ?T) U\<close>
         using s1(2) T
         by (auto split: if_splits)
+      moreover have \<open>next_model_filtered P (None, snd ?T) (negate_model_and_add (Some M, snd S))\<close>
+        using nm that by (cases S) (auto simp: next_model_filtered.simps model_if_exists_def
+            split: if_splits)
       ultimately show ?B
-        by blast
+      proof -
+        have "(None, snd (Some M, snd S)) = S"
+          by (metis (no_types) sndI surjective_pairing that) (* 40 ms *)
+        then have "full (next_model_filtered P) (None, snd (Some M, snd S)) U"
+          by (metis \<open>full (next_model_filtered P) S U\<close>) (* failed *)
+        then show ?thesis
+          using \<open>model_if_exists S (Some M, snd S)\<close> by blast (* 0.5 ms *)
+      qed
     qed
   next
     assume ?B
     then show ?A
       apply (auto simp: model_if_exists_def full1_is_full full_fullI split: if_splits
           dest: )
-       apply (metis full1_is_full full_fullI next_model_filtered.intros(1) prod.exhaust_sel that)
-      by (metis full1_is_full full_fullI next_model_filtered.intros(2) prod.exhaust_sel that)
+      by (metis full1_is_full full_fullI next_model_filtered.intros(1) prod.exhaust_sel that)
   qed
   then have next_model_filtered_nres_alt_def: \<open>next_model_filtered_nres S  = do {
          S \<leftarrow> SPEC (model_if_exists S);
-         SPEC (\<lambda>T. full (next_model_filtered P) (negate_model_and_add S) T)
+         SPEC (\<lambda>T. full (next_model_filtered P) (None, snd S) T)
        }\<close> if \<open>fst S = None\<close> for S
     using that
     unfolding next_model_filtered_nres_def (* model_if_exists_def *) RES_RES_RETURN_RES
@@ -470,7 +479,7 @@ proof -
       \<le> SPEC
           (\<lambda>y. \<exists>x. (y, x) \<in> enum_model_st \<and>
                     full (next_model_filtered P)
-                     (negate_model_and_add M) x)\<close>
+                     (None, snd M) x)\<close>
     if 
       MN: \<open>case MN of (M, N) \<Rightarrow> M = None\<close> and
       S: \<open>(S, MN) \<in> enum_mod_restriction_st_clss\<close> and
@@ -501,7 +510,7 @@ proof -
         by auto
       done
     define I where \<open>I s = (\<exists>x. (s, x) \<in> enum_mod_restriction_st_clss_after \<and>
-           (next_model_filtered P)\<^sup>*\<^sup>* (negate_model_and_add M) (negate_model_and_add x))\<close> for s
+           (next_model_filtered P)\<^sup>*\<^sup>* (None, snd M) (negate_model_and_add x))\<close> for s
     let ?Q = \<open>\<lambda>U V s'. cdcl_twl_enum_inv s' \<and> final_twl_state s' \<and> cdcl_twl_stgy\<^sup>*\<^sup>* V s' \<and> (s', U) \<in> R\<close>
     have 
       conc_run: \<open>conclusive_TWL_run V \<le> SPEC (?Q U V)\<close>
@@ -643,7 +652,7 @@ proof -
            by blast+
          obtain U' where
            U_U': \<open>(U, U') \<in> enum_mod_restriction_st_clss_after\<close> and
-           st_M_U': \<open>(next_model_filtered P)\<^sup>*\<^sup>* (local.negate_model_and_add M) (local.negate_model_and_add U')\<close>
+           st_M_U': \<open>(next_model_filtered P)\<^sup>*\<^sup>* (None, snd M) (local.negate_model_and_add U')\<close>
            using I_U unfolding I_def by blast
 
          have 1: \<open>{unmark L |L. is_decided L \<and> L \<in> set (trail (state\<^sub>W_of U))} = 
@@ -728,7 +737,7 @@ proof -
             defer
             apply (metis list.set_map mset_eq_setD mset_map)
            using next_mod_U by (auto dest: mod_restriction_next_modelD)
-         then have \<open>(next_model_filtered P)\<^sup>*\<^sup>* (local.negate_model_and_add M)
+         then have \<open>(next_model_filtered P)\<^sup>*\<^sup>* (None, snd M)
                ((negate_model_and_add (Some (map lit_of (get_trail U)), snd U')))\<close>
            using st_M_U' by simp
          moreover have \<open>(W, (negate_model_and_add (Some (map lit_of (get_trail U)), snd U'))) 
@@ -758,7 +767,7 @@ proof -
     qed
     have neg_neg[simp]: \<open>negate_model_and_add ( negate_model_and_add M) = negate_model_and_add M\<close>
       by (cases M; cases \<open>fst M\<close>; auto)
-    have \<open>(T, a, b) \<in> enum_model_st_direct \<Longrightarrow> (T, negate_model_and_add (a, b)) \<in> enum_mod_restriction_st_clss_after\<close>
+    have [simp]: \<open>(T, a, b) \<in> enum_model_st_direct \<Longrightarrow> (T, None, b) \<in> enum_mod_restriction_st_clss_after\<close>
       for a b
       unfolding enum_model_st_direct_def enum_mod_restriction_st_clss_after_def
         cdcl_twl_enum_inv_def
@@ -766,23 +775,38 @@ proof -
       apply clarify
        apply clarsimp
       apply simp
-      supply [[simp_trace]]
-      apply (intro conjI impI; fast?)
-      sorry
+      done
     have I_T: \<open>I T\<close>
       unfolding I_def
-      apply (rule exI[of _ \<open>(fst M, snd M)\<close>])
+      apply (rule exI[of _ \<open>(None, snd M)\<close>])
       unfolding neg_neg
 
       apply (intro conjI)
       subgoal
         using T
         apply (cases M)
-        apply auto
-        sorry
+        by auto
       subgoal by (auto simp: enum_mod_restriction_st_clss_after_def cdcl_twl_enum_inv_def
           enum_model_st_def enum_model_st_direct_def)
       done
+    have final: \<open>\<exists>x. (s, x) \<in> enum_model_st \<and> full (next_model_filtered P) (None, snd M) x\<close>
+      if 
+        I: \<open>I s\<close> and
+        cond: \<open>\<not> (get_conflict s = None \<and> \<not> P (lits_of_l (get_trail s)))\<close>
+      for s
+    proof -
+      obtain x where
+         sx: \<open>(s, x) \<in> enum_mod_restriction_st_clss_after\<close> and
+         \<open>(next_model_filtered P)\<^sup>*\<^sup>* (None, snd M) (negate_model_and_add x)\<close>
+        using I unfolding I_def by blast
+      have \<open>(s, x) \<in> enum_model_st\<close>
+        using sx apply (auto simp: enum_mod_restriction_st_clss_after_def
+            enum_model_st_def)
+        sorry
+      show ?thesis
+        apply (rule exI[of _ x])
+        sorry
+    qed
     show ?thesis
       apply (refine_vcg WHILEIT_rule_stronger_inv[where R=\<open>R\<close> and I' = I] conc_run)
       subgoal by (rule wf)
