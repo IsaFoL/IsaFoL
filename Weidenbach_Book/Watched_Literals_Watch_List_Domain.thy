@@ -482,7 +482,7 @@ proof -
     using alien that x2_T T_U unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
       literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
     by (subst (asm) all_clss_l_ran_m[symmetric])
-      (auto simp add: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
+     (auto simp: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
         convert_lits_l_def image_image in_all_lits_of_mm_ain_atms_of_iff
         get_unit_clauses_wl_alt_def
         simp del: all_clss_l_ran_m)

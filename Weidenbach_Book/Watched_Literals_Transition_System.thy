@@ -207,11 +207,6 @@ lemma [twl_st]:
 lemma [twl_st]: \<open>conflicting (state\<^sub>W_of S') = get_conflict S'\<close>
   by (cases S') (auto simp: conflicting.simps)
 
-lemma [twl_st]:
-  \<open>init_clss (state\<^sub>W_of T) = get_all_init_clss T\<close>
-  \<open>learned_clss (state\<^sub>W_of T) = get_all_learned_clss T\<close>
-  by (cases T; auto simp: cdcl\<^sub>W_restart_mset_state; fail)+
-
 text \<open>
   The invariant on the clauses is the following:
   \<^item> the structure is correct (the watched part is of length exactly two).

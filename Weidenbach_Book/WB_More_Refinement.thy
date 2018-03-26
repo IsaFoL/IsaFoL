@@ -1038,11 +1038,12 @@ lemma insert_sort_inner:
   subgoal by auto
   done
 
-lemma insert_sort_reorder_remove: \<open>(insert_sort f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+lemma insert_sort_reorder_remove:
+  \<open>(insert_sort f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
 proof -
   have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close>
     for ba aa
-    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified, rule_format]
+    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified]
     by fast
   show ?thesis
     unfolding insert_sort_def reorder_remove_def

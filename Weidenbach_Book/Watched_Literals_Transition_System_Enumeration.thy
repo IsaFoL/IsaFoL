@@ -48,6 +48,10 @@ proof -
     .
 qed
 
+lemma [twl_st]:
+  \<open>init_clss (state\<^sub>W_of T) = get_all_init_clss T\<close>
+  \<open>learned_clss (state\<^sub>W_of T) = get_all_learned_clss T\<close>
+  by (cases T; auto simp: cdcl\<^sub>W_restart_mset_state; fail)+
 
 lemma atms_of_DECO_clauseD:
   \<open>x \<in> atms_of (DECO_clause U) \<Longrightarrow> x \<in> atms_of_s (lits_of_l U)\<close>
