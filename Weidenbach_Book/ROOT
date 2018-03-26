@@ -182,7 +182,6 @@ session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
     CDCL
     Watched_Literals
   theories[document = true]
-    CDCL_Model_Enumeration
     Model_Enumeration
     Watched_Literals_Transition_System_Enumeration
     Watched_Literals_Algorithm_Enumeration
