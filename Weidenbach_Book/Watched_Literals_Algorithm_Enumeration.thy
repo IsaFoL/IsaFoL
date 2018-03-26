@@ -6,7 +6,6 @@ definition cdcl_twl_enum_inv :: \<open>'v twl_st \<Rightarrow> bool\<close> wher
   \<open>cdcl_twl_enum_inv S \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and> final_twl_state S \<and>
          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
 
-text \<open>This is \<close>
 definition mod_restriction :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
 \<open>mod_restriction N N' \<longleftrightarrow>
        (\<forall>M. M \<Turnstile>sm N \<longrightarrow> M \<Turnstile>sm N') \<and>
@@ -43,16 +42,6 @@ definition enum_model_st :: \<open>((bool \<times> 'v twl_st) \<times> ('v liter
 
 fun add_to_init_cls :: \<open>'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
   \<open>add_to_init_cls C (M, N, U, D, NE, UE, WS, Q) = (M, add_mset C N, U, D, NE, UE, WS, Q)\<close>
-
-(* TODO Move *)
-lemma [twl_st]:
-  \<open>init_clss (state\<^sub>W_of T) = get_all_init_clss T\<close>
-  \<open>learned_clss (state\<^sub>W_of T) = get_all_learned_clss T\<close>
-  by (cases T; auto simp: cdcl\<^sub>W_restart_mset_state; fail)+
-
-lemma total_over_m_alt_def: \<open>total_over_m I S \<longleftrightarrow> atms_of_ms S \<subseteq> atms_of_s I\<close>
-  by (auto simp: total_over_m_def total_over_set_def)
-(* End Move *)
 
 lemma cdcl_twl_stgy_final_twl_stateE:
   assumes
@@ -186,96 +175,6 @@ definition cdcl_twl_enum :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl
 definition next_model_filtered_nres where
   \<open>next_model_filtered_nres N =
     SPEC (\<lambda>M. full (next_model_filtered P) N (M))\<close>
-
-(* TODO move *)
-lemma no_step_next_model_filtered_next_model_iff:
-  \<open>fst S = None \<Longrightarrow> no_step (next_model_filtered P) S \<longleftrightarrow> (\<nexists>M. next_model M (snd S))\<close>
-  apply (cases S; auto simp: next_model_filtered.simps)
-  by metis
-
-lemma Ex_next_model_iff_statisfiable:
-  \<open>(\<exists>M. next_model M N) \<longleftrightarrow> satisfiable (set_mset N)\<close>
-  by (metis Watched_Literals_Algorithm_Enumeration.no_step_next_model_filtered_next_model_iff
-      next_model.cases no_step_next_model_filtered_unsat prod.sel(1) prod.sel(2) satisfiable_carac')
-
-
-lemma unsatisfiable_mono:
-  \<open>N \<subseteq> N' \<Longrightarrow> unsatisfiable N \<Longrightarrow> unsatisfiable N'\<close>
-  by (metis (full_types) satisfiable_decreasing subset_Un_eq)
-
-lemma no_step_full_iff_eq:
-  \<open>no_step R S \<Longrightarrow> full R S T \<longleftrightarrow> S = T\<close>
-  unfolding full_def
-  by (meson rtranclp.rtrancl_refl rtranclpD tranclpD)
-
-lemma no_dup_map_lit_of: \<open>no_dup M \<Longrightarrow> distinct (map lit_of M)\<close>
-  apply (induction M)
-   apply (auto simp: dest: no_dup_imp_distinct)
-  by (meson distinct.simps(2) no_dup_cons no_dup_imp_distinct)
-
-lemma cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init:
-  assumes
-    \<open>cdcl_twl_stgy S s\<close> and
-    \<open>twl_struct_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
-  shows
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of s)\<close>
-  by (meson assms cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_learned_clauses_entailed
-      cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart
-      cdcl_twl_stgy_cdcl\<^sub>W_stgy twl_struct_invs_def)
-
-lemma rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init:
-  assumes
-    \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S s\<close> and
-    \<open>twl_struct_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
-  shows
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of s)\<close>
-  using assms
-  by (induction rule: rtranclp_induct)
-    (auto intro: cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init
-      rtranclp_cdcl_twl_stgy_twl_struct_invs)
-
-lemma negate_model_and_add_twl_cdcl\<^sub>W_learned_clauses_entailed_by_init:
-  assumes
-    \<open>negate_model_and_add_twl S s\<close> and
-    \<open>twl_struct_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
-  shows
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of s)\<close>
-  using assms
-  by (induction rule: negate_model_and_add_twl.induct)
-     (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-      cdcl\<^sub>W_restart_mset_state)
-
-lemma true_cls_mset_add_mset[iff]: "I \<Turnstile>m add_mset C CC \<longleftrightarrow> I \<Turnstile> C \<and> I \<Turnstile>m CC"
-  unfolding true_cls_mset_def by auto
-
-lemma unsat_no_step_next_model_filtered':
-  assumes \<open>unsatisfiable (set_mset (snd S)) \<or> fst S \<noteq> None\<close>
-  shows \<open>no_step (next_model_filtered P) S\<close>
-  using assms
-  apply cases
-  apply (auto dest: unsat_no_step_next_model_filtered)
-   apply (metis Ex_next_model_iff_statisfiable fst_conv next_model_filtered.simps
-      no_step_next_model_filtered_next_model_iff)
-  by (metis Pair_inject next_model_filtered.cases option.simps(3) prod.collapse)
-
-lemma true_cls_def_set_mset_eq:
-  \<open>set_mset A = set_mset B \<Longrightarrow> I \<Turnstile> A \<longleftrightarrow> I \<Turnstile> B\<close>
-  by (auto simp: true_cls_def)
-
-(*  set_mset (init_clss (state\<^sub>W_of U)) \<union> set_mset (learned_clss (state\<^sub>W_of U)) \<union> CNot (DECO_clause (get_trail U)) \<Turnstile>ps unmark_l (trail (state\<^sub>W_of U)) \<Longrightarrow>
-    init_clss (state\<^sub>W_of U) \<Turnstile>psm learned_clss (state\<^sub>W_of U) \<Longrightarrow> set_mset (get_all_init_clss U) \<union> CNot (DECO_clause (get_trail U)) \<Turnstile>ps unmark_l (trail (state\<^sub>W_of U))
- *)
-
-
-lemma atms_of_DECO_clauseD:
-  \<open>x \<in> atms_of (DECO_clause U) \<Longrightarrow> x \<in> atms_of_s (lits_of_l U)\<close>
-  \<open>x \<in> atms_of (DECO_clause U) \<Longrightarrow> x \<in> atms_of (lit_of `# mset U)\<close>
-  by (auto simp: DECO_clause_def atms_of_s_def atms_of_def lits_of_def)
-(* End Move *)
 
 lemma mod_restriction_next_modelD:
   \<open>mod_restriction N N' \<Longrightarrow> atms_of_mm N \<subseteq> atms_of_mm N' \<Longrightarrow> next_model M N \<Longrightarrow> next_model M N'\<close>

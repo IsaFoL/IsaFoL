@@ -155,6 +155,11 @@ lemma rtranclp_full1_eq_or_full1:
   \<open>(full1 R)\<^sup>*\<^sup>* a b \<longleftrightarrow> (a = b \<or> full1 R a b)\<close>
   unfolding rtranclp_unfold tranclp_full1_full1 by simp
 
+lemma no_step_full_iff_eq:
+  \<open>no_step R S \<Longrightarrow> full R S T \<longleftrightarrow> S = T\<close>
+  unfolding full_def
+  by (meson rtranclp.rtrancl_refl rtranclpD tranclpD)
+
 
 subsection \<open>Well-Foundedness and Full Transitions\<close>
 

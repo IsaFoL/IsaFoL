@@ -41,7 +41,7 @@ proof -
             (T, T') \<in> twl_st_l None \<and>
             twl_list_invs T \<and> clauses_to_update_l T = {#} \<and> twl_struct_invs T' \<and> twl_stgy_invs T'}
           (SPEC (cdcl_twl_restart S''))\<close>
-    if 
+    if
       \<open>(S, S'')
      \<in> {(S, S').
          (S, S') \<in> twl_st_l None \<and>

@@ -205,7 +205,7 @@ lemma card_max_lvl_tl:
   assumes \<open>a \<noteq> []\<close> \<open>distinct_mset y\<close>\<open>\<not>tautology y\<close> \<open>\<not>is_decided (hd a)\<close> \<open>no_dup a\<close>
    \<open>count_decided a \<noteq> 0\<close>
   shows \<open>card_max_lvl (tl a) y =
-      (if (lit_of(hd a) \<in># y \<or> -lit_of(hd a) \<in># y) 
+      (if (lit_of(hd a) \<in># y \<or> -lit_of(hd a) \<in># y)
         then card_max_lvl a y - 1 else card_max_lvl a y)\<close>
   using assms by (cases a) (auto simp: card_max_lvl_Cons)
 end
@@ -1085,7 +1085,7 @@ begin
 
 
 lemma is_in_option_lookup_conflict_atm_is_in_conflict_iff:
-  assumes 
+  assumes
     \<open>ba \<noteq> None\<close> and aa: \<open>aa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and uaa: \<open>- aa \<notin># the ba\<close> and
     \<open>((b, c, d), ba) \<in> option_lookup_clause_rel\<close>
   shows \<open>is_in_option_lookup_conflict aa (b, c, d) =
@@ -1130,7 +1130,7 @@ lemma is_in_option_lookup_conflict_alt_def:
 
 sepref_definition is_in_option_lookup_conflict_code
   is \<open>uncurry (RETURN oo is_in_option_lookup_conflict)\<close>
-  :: \<open>[\<lambda>(L, (c, n, xs)). atm_of L < length xs]\<^sub>a 
+  :: \<open>[\<lambda>(L, (c, n, xs)). atm_of L < length xs]\<^sub>a
         unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k \<rightarrow> bool_assn\<close>
   unfolding is_in_option_lookup_conflict_alt_def is_in_lookup_conflict_def PROTECT_def
   by sepref
@@ -1148,12 +1148,12 @@ lemma conflict_remove1_code_op_nset_delete[sepref_fr_rules]:
        unat_lit_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>k \<rightarrow> bool_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
-  have H: 
+  have H:
     \<open>?c \<in> [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f option_lookup_clause_rel)
             (\<lambda>(L, D). D \<noteq> None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> - L \<notin># the D)
             (\<lambda>_ (L, c, n, xs). atm_of L < length xs) (\<lambda>_. True)]\<^sub>a
            hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k)
-               (nat_lit_lit_rel \<times>\<^sub>f option_lookup_clause_rel) \<rightarrow> 
+               (nat_lit_lit_rel \<times>\<^sub>f option_lookup_clause_rel) \<rightarrow>
            hr_comp bool_assn bool_rel\<close>
      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF is_in_option_lookup_conflict_code.refine
@@ -1182,7 +1182,7 @@ qed
 sepref_register atm_is_in_conflict_st_heur
 sepref_thm atm_is_in_option_lookup_conflict_code
   is \<open>uncurry (RETURN oo atm_is_in_conflict_st_heur)\<close>
-  :: \<open>[atm_is_in_conflict_st_heur_pre]\<^sub>a 
+  :: \<open>[atm_is_in_conflict_st_heur_pre]\<^sub>a
         unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>k \<rightarrow> bool_assn\<close>
   unfolding atm_is_in_conflict_st_heur_alt_def atm_is_in_conflict_def[symmetric]
     atm_is_in_conflict_st_heur_pre_def isasat_assn_def PR_CONST_def

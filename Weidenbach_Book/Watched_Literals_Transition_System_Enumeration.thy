@@ -2,6 +2,34 @@ theory Watched_Literals_Transition_System_Enumeration
   imports Watched_Literals_Transition_System Model_Enumeration
 begin
 
+text \<open>
+  Design decision: we favour shorter clauses to (potentially) better models.
+
+  More precisely, we take the clause composed of decisions, instead of taking the full trail. This
+  creates shorter clauses. However, this makes satisfying the initial clauses \<^emph>\<open>harder\<close> since fewer
+  literals have to be defined.
+
+  For now there is no difference, since TWL produces only full models anyway. Remark that this is
+  the clause that is produced by the minimization of the conflict of the full trail (except that
+  this clauses would be learned and not added to the initial set of clauses, meaning that that the
+  set of initial clauses is not harder to satisfy).
+
+  It is not clear if that would really make a huge performance difference.
+
+  The name DECO (e.g., \<^term>\<open>DECO_clause\<close>) comes from Armin Biere's "decision only clauses"
+  (DECO) optimisation (see Armin Biere's "Lingeling, Plingeling and Treengeling Entering the SAT
+  Competition 2013"). If the learned clause becomes much larger that the clause normally learned by
+  backjump, then the clause composed of the negation of the decision is learned instead
+  (effectively doing a backtrack instead of a backjump).
+  Unless we get more information from the filtering function, we are in the special case where the
+  1st-UIP is exactly the last decision.
+
+  An important property of the transition rules is that they violate the invariant that propagations
+  are fully done before each decision. This means that we handle the transitions as a fast restart
+  and not as a backjump as one would expect, since we cannot reuse any theorem about backjump.
+\<close>
+
+
 definition DECO_clause :: \<open>('v, 'a) ann_lits \<Rightarrow>  'v clause\<close>where
   \<open>DECO_clause M = (uminus o lit_of) `# (filter_mset is_decided (mset M))\<close>
 
@@ -19,6 +47,12 @@ proof -
   finally show ?thesis
     .
 qed
+
+
+lemma atms_of_DECO_clauseD:
+  \<open>x \<in> atms_of (DECO_clause U) \<Longrightarrow> x \<in> atms_of_s (lits_of_l U)\<close>
+  \<open>x \<in> atms_of (DECO_clause U) \<Longrightarrow> x \<in> atms_of (lit_of `# mset U)\<close>
+  by (auto simp: DECO_clause_def atms_of_s_def atms_of_def lits_of_def)
 
 definition TWL_DECO_clause where
   \<open>TWL_DECO_clause M =
@@ -41,7 +75,8 @@ if
   \<open>count_decided M = 1\<close> |
 bj_nonunit:
   \<open>negate_model_and_add_twl (M, N, U, None, NP, UP, WS, Q)
-     (Propagated (-K) (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#K#})\<close>
+     (Propagated (-K) (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#},
+      {#K#})\<close>
 if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
   \<open>get_level M K = count_decided M\<close> and
@@ -53,6 +88,13 @@ if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
   \<open>get_level M K < count_decided M\<close> and
   \<open>count_decided M > 1\<close>
+
+text \<open>Some remarks:
+  \<^item> Because of the invariants (unit clauses have to be propagated), a rule restart\_unit would be
+the same as the bj\_unit.
+  \<^item> The rules cleans the components about updates and do not assume that they are empty.
+\<close>
+
 
 (* TODO Merge with the proof from  thm after_fast_restart_replay*)
 lemma after_fast_restart_replay:
@@ -439,13 +481,6 @@ lemma after_fast_restart_replay_no_stgy':
   shows
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ([], N', U', None) (drop (length M' - n) M', N', U', None)\<close>
   using after_fast_restart_replay_no_stgy[OF inv, of n \<open>N'-N\<close> U'] assms by auto
-
-(* TODO Move *)
-lemma (in conflict_driven_clause_learning\<^sub>W) rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_restart:
-  \<open>cdcl\<^sub>W\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T\<close>
-  by (induction rule: rtranclp_induct) (auto dest: cdcl\<^sub>W_cdcl\<^sub>W_restart)
-(* End Move *)
-
 
 lemma cdcl\<^sub>W_all_struct_inv_move_to_init:
   assumes inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U + U', D)\<close>
@@ -1356,5 +1391,42 @@ next
   ultimately show ?case
     unfolding twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def by fast
 qed
+
+
+lemma cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init:
+  assumes
+    \<open>cdcl_twl_stgy S s\<close> and
+    \<open>twl_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+  shows
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of s)\<close>
+  by (meson assms cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_learned_clauses_entailed
+      cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart
+      cdcl_twl_stgy_cdcl\<^sub>W_stgy twl_struct_invs_def)
+
+lemma rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init:
+  assumes
+    \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S s\<close> and
+    \<open>twl_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+  shows
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of s)\<close>
+  using assms
+  by (induction rule: rtranclp_induct)
+    (auto intro: cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init
+      rtranclp_cdcl_twl_stgy_twl_struct_invs)
+
+lemma negate_model_and_add_twl_cdcl\<^sub>W_learned_clauses_entailed_by_init:
+  assumes
+    \<open>negate_model_and_add_twl S s\<close> and
+    \<open>twl_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+  shows
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of s)\<close>
+  using assms
+  by (induction rule: negate_model_and_add_twl.induct)
+     (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+      cdcl\<^sub>W_restart_mset_state)
 
 end

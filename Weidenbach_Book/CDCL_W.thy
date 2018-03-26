@@ -705,6 +705,12 @@ lemma cdcl\<^sub>W_cdcl\<^sub>W_restart:
   "cdcl\<^sub>W S T \<Longrightarrow> cdcl\<^sub>W_restart S T"
   by (induction rule: cdcl\<^sub>W.induct) (auto intro: cdcl\<^sub>W_restart.intros simp del: state_prop)
 
+lemma rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_restart:
+  \<open>cdcl\<^sub>W\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T\<close>
+  apply (induction rule: rtranclp_induct)
+   apply (auto; fail)[]
+  by (meson cdcl\<^sub>W_cdcl\<^sub>W_restart rtranclp.rtrancl_into_rtrancl)
+
 lemma cdcl\<^sub>W_restart_all_rules_induct[consumes 1, case_names propagate conflict forget restart decide
     skip resolve backtrack]:
   fixes S :: 'st

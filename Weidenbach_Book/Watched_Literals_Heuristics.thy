@@ -194,7 +194,7 @@ proof -
       convert_lits_l_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
       twl_st_l twl_st_wl twl_st get_unit_clauses_wl_alt_def)
   show \<open>length (get_clauses_wl S \<propto> watched_by_app S L w) \<le> uint64_max\<close>
-    using clss_size_uint64_max[of \<open>mset (get_clauses_wl S \<propto> watched_by_app S L w)\<close>, 
+    using clss_size_uint64_max[of \<open>mset (get_clauses_wl S \<propto> watched_by_app S L w)\<close>,
         OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl S \<propto> watched_by_app S L w))\<close>]
       \<open>distinct (get_clauses_wl S \<propto> watched_by_app S L w)\<close> by auto
 qed

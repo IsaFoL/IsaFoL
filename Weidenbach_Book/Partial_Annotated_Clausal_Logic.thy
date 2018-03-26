@@ -1134,6 +1134,11 @@ lemma no_dup_distinct_uminus: \<open>no_dup M \<Longrightarrow> distinct_mset {#
   by (induction M) (auto simp: uminus_lit_swap defined_lit_def
       dest: atm_imp_decided_or_proped)
 
+lemma no_dup_map_lit_of: \<open>no_dup M \<Longrightarrow> distinct (map lit_of M)\<close>
+  apply (induction M)
+   apply (auto simp: dest: no_dup_imp_distinct)
+  by (meson distinct.simps(2) no_dup_cons no_dup_imp_distinct)
+
 
 subsection \<open>Extending Entailments to multisets\<close>
 

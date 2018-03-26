@@ -297,4 +297,24 @@ qed
 
 end
 
+lemma no_step_next_model_filtered_next_model_iff:
+  \<open>fst S = None \<Longrightarrow> no_step (next_model_filtered P) S \<longleftrightarrow> (\<nexists>M. next_model M (snd S))\<close>
+  apply (cases S; auto simp: next_model_filtered.simps)
+  by metis
+
+lemma Ex_next_model_iff_statisfiable:
+  \<open>(\<exists>M. next_model M N) \<longleftrightarrow> satisfiable (set_mset N)\<close>
+  by (metis no_step_next_model_filtered_next_model_iff
+      next_model.cases no_step_next_model_filtered_unsat prod.sel(1) prod.sel(2) satisfiable_carac')
+
+lemma unsat_no_step_next_model_filtered':
+  assumes \<open>unsatisfiable (set_mset (snd S)) \<or> fst S \<noteq> None\<close>
+  shows \<open>no_step (next_model_filtered P) S\<close>
+  using assms
+  apply cases
+  apply (auto dest: unsat_no_step_next_model_filtered)
+   apply (metis Ex_next_model_iff_statisfiable fst_conv next_model_filtered.simps
+      no_step_next_model_filtered_next_model_iff)
+  by (metis Pair_inject next_model_filtered.cases option.simps(3) prod.collapse)
+
 end
