@@ -163,13 +163,15 @@ definition cdcl_twl_enum :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl
   \<open>cdcl_twl_enum S = do {
      S \<leftarrow> conclusive_TWL_run S;
      S \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_enum_inv\<^esup>
-       (\<lambda>S. get_conflict S = None \<and> \<not>P (lits_of_l (get_trail S)))
+       (\<lambda>S. get_conflict S = None \<and> count_decided(get_trail S) > 0 \<and> \<not>P (lits_of_l (get_trail S)))
        (\<lambda>S. do {
              S \<leftarrow> SPEC (negate_model_and_add_twl S);
              conclusive_TWL_run S
            })
        S;
-     if get_conflict S = None then RETURN (True, S) else RETURN (False, S)
+     if get_conflict S = None
+     then RETURN (if count_decided(get_trail S) = 0 then P (lits_of_l (get_trail S)) else False, S)
+     else RETURN (False, S)
     }\<close>
 
 definition next_model_filtered_nres where
@@ -396,7 +398,7 @@ proof -
       done
   qed
   have loop: \<open>WHILE\<^sub>T\<^bsup>cdcl_twl_enum_inv\<^esup>
-       (\<lambda>S. get_conflict S = None \<and>
+       (\<lambda>S. get_conflict S = None \<and> count_decided (get_trail S) > 0 \<and>
              \<not>P (lits_of_l (get_trail S)))
        (\<lambda>S. SPEC (negate_model_and_add_twl S) \<bind>
              conclusive_TWL_run) T
@@ -404,7 +406,7 @@ proof -
           (\<lambda>y. \<exists>x. (y, x) \<in> {(y, x). (y, x) \<in> enum_mod_restriction_st_clss_after \<and>
                        (get_conflict y \<noteq> None \<or> (fst x \<noteq> None \<and> P (lits_of_l (get_trail y))))} \<and>
                   full (next_model_filtered P) (None, snd M) x)\<close>
-       (is \<open>_ \<le> SPEC ?Spec\<close>)
+       (is \<open>WHILE\<^sub>T\<^bsup>_ \<^esup> ?Cond _ _ \<le> SPEC ?Spec\<close>)
     if
       MN: \<open>case MN of (M, N) \<Rightarrow> M = None\<close> and
       S: \<open>(S, MN) \<in> enum_mod_restriction_st_clss\<close> and
@@ -447,7 +449,7 @@ proof -
       inv_I: \<open>?Q U V W \<Longrightarrow> I W\<close> (is \<open>_ \<Longrightarrow> ?I\<close>)
       if
         U: \<open>cdcl_twl_enum_inv U\<close> and
-        confl: \<open>get_conflict U = None \<and> \<not>P (lits_of_l (get_trail U))\<close> and
+        confl: \<open>?Cond U\<close> and
         neg: \<open>negate_model_and_add_twl U V\<close> and
         I_U: \<open>I U\<close>
       for U V W
@@ -751,7 +753,7 @@ proof -
     have final: \<open>?Spec s\<close>
       if
         I: \<open>I s\<close> and
-        cond: \<open>\<not> (get_conflict s = None \<and> \<not> P (lits_of_l (get_trail s)))\<close>
+        cond: \<open>\<not> (?Cond s)\<close>
       for s
     proof -
       obtain x where
@@ -762,14 +764,18 @@ proof -
          nm: \<open>get_conflict s = None \<Longrightarrow> next_model (map lit_of (get_trail s)) (snd x)\<close> and
          unsat: \<open>get_conflict s \<noteq> None \<Longrightarrow> unsatisfiable (set_mset (snd x))\<close>
         using I unfolding I_def by meson
-      let ?x = \<open>(if get_conflict s = None then Some (map lit_of (get_trail s)) else None, snd x)\<close>
+      let ?x = \<open>(if get_conflict s = None
+         then if \<not>P (lits_of_l (get_trail s))
+              then Some (map lit_of (get_trail s)) else None
+          else None, snd x)\<close>
       have step: \<open>(next_model_filtered P) (None, snd (negate_model_and_add x))
-          (negate_model_and_add ?x)\<close> if \<open>get_conflict s = None\<close>
+          (negate_model_and_add ?x)\<close> if \<open>get_conflict s = None\<close> and \<open>\<not>P (lits_of_l (get_trail s))\<close>
         using cond that sx final nm unfolding enum_mod_restriction_st_clss_after_def
           enum_model_st_def
         by (cases x; cases \<open>fst x\<close>)
           (auto simp: next_model_filtered.simps lits_of_def
-            conclusive_TWL_run_def conc_fun_RES)
+            conclusive_TWL_run_def conc_fun_RES
+            intro!: exI[of _ \<open>map lit_of (get_trail s)\<close>])
       moreover have step: \<open>(next_model_filtered P)\<^sup>*\<^sup>* (negate_model_and_add x)
           (negate_model_and_add ?x)\<close> if \<open>get_conflict s \<noteq> None\<close>
         using cond that sx unfolding enum_mod_restriction_st_clss_after_def
@@ -782,7 +788,10 @@ proof -
         using sx cond unfolding enum_mod_restriction_st_clss_after_def
             enum_model_st_def
         apply (cases x; cases \<open>fst x\<close>)
-        by (auto simp: lits_of_def)
+        apply (auto simp: lits_of_def)
+        defer
+        apply (metis list.set_map mset_eq_setD mset_map)
+        sorry
       have \<open>no_step (next_model_filtered P) (negate_model_and_add ?x)\<close>
         apply (rule unsat_no_step_next_model_filtered')
         apply (cases x; cases \<open>fst x\<close>)
@@ -807,8 +816,8 @@ proof -
       subgoal by fast
       subgoal by fast
       subgoal by fast
-      subgoal for U V W
-        by (rule inv_I)
+      subgoal by fast
+      subgoal for U V W by (rule inv_I)
       subgoal by fast
       subgoal by (rule final)
       done

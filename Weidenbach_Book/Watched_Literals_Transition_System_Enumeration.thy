@@ -86,7 +86,7 @@ if
   \<open>get_level M K = count_decided M\<close> and
   \<open>count_decided M \<ge> 2\<close> |
 restart_nonunit:
-  \<open>negate_model_and_add_twl (M, N, U, None, NP, UP, {#}, Q)
+  \<open>negate_model_and_add_twl (M, N, U, None, NP, UP, WS, Q)
        (M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
 if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
@@ -1359,9 +1359,9 @@ next
   ultimately show ?case
     unfolding twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def by fast
 next
-  case (restart_nonunit K M1 M2 M N U NP UP Q) note decomp = this(1) and lev_K = this(2) and
+  case (restart_nonunit K M1 M2 M N U NP UP WS Q) note decomp = this(1) and lev_K = this(2) and
     count_dec = this(3) and struct = this(4) and stgy = this(5)
-  let ?S = \<open>(M, N, U, None, NP, UP, {#}, Q)\<close>
+  let ?S = \<open>(M, N, U, None, NP, UP, WS, Q)\<close>
   let ?T = \<open>(M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
   have
     false_with_lev: \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (state\<^sub>W_of ?S)\<close> and

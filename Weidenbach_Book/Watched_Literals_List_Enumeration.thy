@@ -95,4 +95,327 @@ proof -
     done
 qed
 
+
+definition DECO_clause_l :: \<open>('v, 'a) ann_lits \<Rightarrow>  'v clause_l\<close> where
+  \<open>DECO_clause_l M = map (uminus o lit_of) (filter is_decided M)\<close>
+
+
+fun propagate_nonunit_and_add :: \<open>'v literal \<Rightarrow> 'v literal multiset twl_clause \<Rightarrow>  'v twl_st \<Rightarrow> 'v twl_st\<close> where
+  \<open>propagate_nonunit_and_add K C (M, N, U, D, NE, UE, WS, Q) = do {
+      (Propagated (-K) (clause C) # M, add_mset C N, U, None,
+       NE, UE, {#}, {#K#})
+    }\<close>
+
+fun propagate_nonunit_and_add_l :: \<open>'v literal \<Rightarrow> 'v clause_l \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
+  \<open>propagate_nonunit_and_add_l K C i (M, N, D, NE, UE, WS, Q) = do {
+      (Propagated (-K) i # M, fmupd i (C, True) N, None,
+      NE, UE, {#}, {#K#})
+    }\<close>
+
+definition negate_mode_bj_nonunit_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+\<open>negate_mode_bj_nonunit_l = (\<lambda>S. do {
+    let C = DECO_clause_l (get_trail_l S);
+    (S, K) \<leftarrow> find_decomp_target (count_decided (get_trail_l S)) S;
+    i \<leftarrow> get_fresh_index (get_clauses_l S);
+    RETURN (propagate_nonunit_and_add_l K C i S)
+  })\<close>
+
+lemma DECO_clause_convert_lits_l[simp]:
+  \<open>DECO_clause (convert_lits_l N M1) = DECO_clause M1\<close>
+  by (induction M1) (auto simp: DECO_clause_def convert_lits_l_def)
+
+lemma DECO_clause_l_DECO_clause[simp]:
+ \<open>mset (DECO_clause_l M1) = DECO_clause M1\<close>
+  by (induction M1) (auto simp: DECO_clause_l_def DECO_clause_def convert_lits_l_def)
+
+lemma TWL_DECO_clause_convert_lits_l[simp]:
+  \<open>TWL_DECO_clause (convert_lits_l N M1) = TWL_DECO_clause M1\<close>
+  unfolding TWL_DECO_clause_def convert_lits_l_def
+  by (auto simp: TWL_DECO_clause_def convert_lits_l_def filter_map take_map drop_map)
+
+lemma TWL_DECO_clause_alt_def:
+  \<open>TWL_DECO_clause M1 =
+    TWL_Clause (mset (watched_l (DECO_clause_l M1)))
+          (mset (unwatched_l (DECO_clause_l M1)))\<close>
+  unfolding TWL_DECO_clause_def convert_lits_l_def
+  by (auto simp: TWL_DECO_clause_def convert_lits_l_def filter_map take_map drop_map
+    DECO_clause_l_def)
+    
+lemma negate_mode_bj_nonunit_l:
+  fixes S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close> 
+  assumes
+    count_dec: \<open>count_decided (get_trail_l S) > 1\<close> and
+    SS': \<open>(S, S') \<in> twl_st_l b\<close> and
+    struct_invs: \<open>twl_struct_invs S'\<close> and
+    add_inv: \<open>twl_list_invs S\<close> and
+    stgy_inv: \<open>twl_stgy_invs S'\<close> and
+    confl: \<open>get_conflict_l S = None\<close>
+  shows
+    \<open>negate_mode_bj_nonunit_l S \<le> \<Down>{(S, S''). (S, S'') \<in> twl_st_l None \<and> twl_list_invs S}
+       (SPEC (negate_model_and_add_twl S'))\<close>
+proof -
+  have H: \<open>RETURN (propagate_nonunit_and_add_l x2 (DECO_clause_l (get_trail_l S)) i x1)
+        \<le> \<Down> {(S, S''). (S, S'') \<in> twl_st_l None \<and> twl_list_invs S}
+          (SPEC (negate_model_and_add_twl S'))\<close>
+    if 
+      x_S: \<open>x \<in> {(T, K).
+            \<exists>M2 M1.
+              equality_except_trail S T \<and>
+              get_trail_l T = M1 \<and>
+              (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_l S)) \<and>
+              get_level (get_trail_l S) K = count_decided (get_trail_l S)}\<close> and
+      x: \<open>x = (x1, x2)\<close> and
+      i: \<open>i \<in> {i. 0 < i \<and> i \<notin># dom_m (get_clauses_l x1)}\<close>
+    for x :: \<open>'v twl_st_l \<times> 'v literal\<close> and
+       x1 :: \<open>'v twl_st_l\<close> and x2 :: \<open>'v literal\<close> and i :: \<open>nat\<close>
+  proof -
+    obtain M N U D NE UE Q where
+      x1: \<open>x1 = (M, N, U, D, NE, UE, Q)\<close>
+      by (cases x1)
+
+    obtain M1 M2 where
+      S_x1: \<open>equality_except_trail S x1\<close> and
+      tr_M1: \<open>get_trail_l x1 = M1\<close> and
+      decomp: \<open>(Decided x2 # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_l S))\<close> and
+      lev_K: \<open>get_level (get_trail_l S) x2 = count_decided (get_trail_l S)\<close>
+      using x_S unfolding x by blast
+    let ?y0 = \<open>(\<lambda>(M, Oth). (convert_lits_l (get_clauses_l x1) M1, Oth)) S'\<close>
+    let ?y1 = \<open>propagate_nonunit_and_add x2 (TWL_DECO_clause (get_trail S')) ?y0\<close>
+    obtain M3 where
+      M3: \<open>get_trail_l S = M3 @ M2 @ Decided x2 # M1\<close>
+      using decomp by blast
+    have confl': \<open>get_conflict S' = None\<close> and
+      trail_S': \<open>get_trail S' = convert_lits_l (get_clauses_l S) (get_trail_l S)\<close>
+      using confl SS' by (auto simp: twl_st_l)
+    have \<open>no_dup (trail (state\<^sub>W_of S'))\<close>
+      using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      by fast
+    then have \<open>no_dup (get_trail_l S)\<close>
+      using SS' by (auto simp: twl_st twl_st_l)
+    then have [simp]: \<open>count_decided M3 = 0\<close> \<open>count_decided M2 = 0\<close>
+      \<open>filter is_decided M3 = []\<close>
+      \<open>filter is_decided M2 = []\<close>
+      using lev_K 
+      by (auto simp: M3 count_decided_0_iff)
+    have convert_eq: \<open>convert_lits_l (fmupd i (DECO_clause_l (get_trail_l S), True) N) M1 = convert_lits_l N M1\<close>
+      apply (rule convert_lits_l_cong)
+      subgoal by simp
+      subgoal
+        by (cases S; cases S')
+          (use add_inv i SS' S_x1 tr_M1 decomp in \<open>auto simp: twl_list_invs_def x1\<close>)
+      done
+    moreover have \<open>- x2 \<in> set (watched_l (DECO_clause_l (get_trail_l S)))\<close>
+      using S_x1 tr_M1 SS' i decomp add_inv lev_K M3
+      by (auto simp: DECO_clause_l_def)
+    moreover have \<open>DECO_clause_l (get_trail_l S) ! 0 = -x2\<close>
+      by (auto simp: M3 DECO_clause_l_def)
+    ultimately have \<open>(propagate_nonunit_and_add_l x2 (DECO_clause_l (get_trail_l S)) i x1, ?y1) \<in> 
+        {(S, S''). (S, S'') \<in> twl_st_l None \<and> twl_list_invs S}\<close>
+      using S_x1 tr_M1 SS' i add_inv decomp
+      by (cases S; cases S')
+        (auto simp: x1 twl_st_l_def twl_list_invs_def init_clss_l_mapsto_upd_notin
+          TWL_DECO_clause_alt_def[symmetric] learned_clss_l_mapsto_upd_notin_irrelev
+          dest: get_all_ann_decomposition_exists_prepend)
+    moreover have \<open>?y1 \<in> Collect (negate_model_and_add_twl S')\<close>
+      using S_x1 tr_M1 i add_inv decomp confl confl' count_dec lev_K
+      apply (cases S; cases S')
+      apply (auto simp: x1  twl_st_l_def
+        intro!: negate_model_and_add_twl.bj_nonunit[of _ \<open>convert_lits_l N M1\<close>
+            \<open>convert_lits_l N M2\<close>])
+      using trail_S' 
+      imageI[OF decomp, of \<open>\<lambda>(M, M'). (convert_lits_l (get_clauses_l x1) M,
+          convert_lits_l (get_clauses_l x1) M')\<close>]
+      by (auto simp: get_all_ann_decomposition_convert_lits_l rev_image_eqI)
+
+    ultimately have \<open>\<exists>y\<in>Collect (negate_model_and_add_twl S').
+        (propagate_nonunit_and_add_l x2 (DECO_clause_l (get_trail_l S)) i x1, y)
+      \<in> {(S, S''). (S, S'') \<in> twl_st_l None \<and> twl_list_invs S}\<close>
+      apply -
+      apply (rule bexI[of _ ?y1])
+      apply fast+
+      done
+    then show ?thesis
+      unfolding x1
+      apply (subst RETURN_RES_refine_iff)
+      by fast
+  qed  
+  show ?thesis
+    unfolding negate_mode_bj_nonunit_l_def find_decomp_target_def get_fresh_index_def
+    apply refine_vcg
+    apply (rule H; assumption)
+    done
+qed
+
+
+
+fun restart_nonunit_and_add :: \<open>'v literal multiset twl_clause \<Rightarrow>  'v twl_st \<Rightarrow> 'v twl_st\<close> where
+  \<open>restart_nonunit_and_add C (M, N, U, D, NE, UE, WS, Q) = do {
+      (M, add_mset C N, U, None, NE, UE, {#}, {#})
+    }\<close>
+
+fun restart_nonunit_and_add_l :: \<open>'v clause_l \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
+  \<open>restart_nonunit_and_add_l C i (M, N, D, NE, UE, WS, Q) = do {
+      (M, fmupd i (C, True) N, None, NE, UE, {#}, {#})
+    }\<close>
+
+definition negate_mode_restart_nonunit_l   :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+\<open>negate_mode_restart_nonunit_l = (\<lambda>S. do {
+    let C = DECO_clause_l (get_trail_l S);
+    i \<leftarrow> SPEC(\<lambda>i. i < count_decided (get_trail_l S));
+    (S, K) \<leftarrow> find_decomp_target i S;
+    i \<leftarrow> get_fresh_index (get_clauses_l S);
+    RETURN (restart_nonunit_and_add_l C i S)
+  })\<close>
+    
+lemma negate_mode_restart_nonunit_l:
+  fixes S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close> 
+  assumes
+    count_dec: \<open>count_decided (get_trail_l S) > 1\<close> and
+    SS': \<open>(S, S') \<in> twl_st_l b\<close> and
+    struct_invs: \<open>twl_struct_invs S'\<close> and
+    add_inv: \<open>twl_list_invs S\<close> and
+    stgy_inv: \<open>twl_stgy_invs S'\<close> and
+    confl: \<open>get_conflict_l S = None\<close>
+  shows
+    \<open>negate_mode_restart_nonunit_l S \<le> \<Down>{(S, S''). (S, S'') \<in> twl_st_l None \<and> twl_list_invs S}
+       (SPEC (negate_model_and_add_twl S'))\<close>
+proof -
+  have H: \<open>RETURN (restart_nonunit_and_add_l (DECO_clause_l (get_trail_l S)) i x1)
+        \<le> \<Down> {(S, S''). (S, S'') \<in> twl_st_l None \<and> twl_list_invs S}
+          (SPEC (negate_model_and_add_twl S'))\<close>
+    if 
+      j: \<open>j \<in> {i. i < count_decided (get_trail_l S)}\<close> and
+      x_S: \<open>x \<in> {(T, K).
+            \<exists>M2 M1.
+              equality_except_trail S T \<and>
+              get_trail_l T = M1 \<and>
+              (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_l S)) \<and>
+              get_level (get_trail_l S) K = j}\<close> and
+      x: \<open>x = (x1, x2)\<close> and
+      i: \<open>i \<in> {i. 0 < i \<and> i \<notin># dom_m (get_clauses_l x1)}\<close>
+    for x :: \<open>'v twl_st_l \<times> 'v literal\<close> and
+       x1 :: \<open>'v twl_st_l\<close> and x2 :: \<open>'v literal\<close> and i j :: \<open>nat\<close>
+  proof -
+    obtain M N U D NE UE Q where
+      x1: \<open>x1 = (M, N, U, D, NE, UE, Q)\<close>
+      by (cases x1)
+
+    obtain M1 M2 where
+      S_x1: \<open>equality_except_trail S x1\<close> and
+      tr_M1: \<open>get_trail_l x1 = M1\<close> and
+      decomp: \<open>(Decided x2 # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_l S))\<close> and
+      lev_K: \<open>get_level (get_trail_l S) x2 = j\<close>
+      using x_S unfolding x by blast
+    let ?y0 = \<open>(\<lambda>(M, Oth). (convert_lits_l (get_clauses_l x1) M1, Oth)) S'\<close>
+    let ?y1 = \<open>restart_nonunit_and_add (TWL_DECO_clause (get_trail S')) ?y0\<close>
+
+    obtain M3 where
+      M3: \<open>get_trail_l S = M3 @ M2 @ Decided x2 # M1\<close>
+      using decomp by blast
+    have \<open>M = M1\<close>
+      using S_x1 SS' decomp tr_M1 unfolding x1
+      by (cases S; cases S') auto
+    have confl': \<open>get_conflict S' = None\<close> and
+      trail_S': \<open>get_trail S' = convert_lits_l (get_clauses_l S) (get_trail_l S)\<close>
+      using confl SS' by (auto simp: twl_st_l)
+    have \<open>no_dup (trail (state\<^sub>W_of S'))\<close>
+      using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      by fast
+    then have \<open>no_dup (get_trail_l S)\<close>
+      using SS' by (auto simp: twl_st twl_st_l)
+    have convert_eq: \<open>convert_lits_l (fmupd i (DECO_clause_l (get_trail_l S), True) N) M1 = convert_lits_l N M1\<close>
+      apply (rule convert_lits_l_cong)
+      subgoal by simp
+      subgoal
+        by (cases S; cases S')
+          (use add_inv i SS' S_x1 tr_M1 decomp in \<open>auto simp: twl_list_invs_def x1\<close>)
+      done
+    then have \<open>(restart_nonunit_and_add_l (DECO_clause_l (get_trail_l S)) i x1, ?y1) \<in> 
+        {(S, S''). (S, S'') \<in> twl_st_l None \<and> twl_list_invs S}\<close>
+      using S_x1 tr_M1 SS' i add_inv decomp
+      by (cases S; cases S')
+       (auto simp: x1 twl_st_l_def twl_list_invs_def init_clss_l_mapsto_upd_notin
+          TWL_DECO_clause_alt_def[symmetric] learned_clss_l_mapsto_upd_notin_irrelev
+          dest: get_all_ann_decomposition_exists_prepend)
+    moreover {
+      have \<open>get_level (get_trail_l S) x2 < count_decided (get_trail_l S)\<close>
+        using lev_K j by auto
+      then have \<open>?y1 \<in> Collect (negate_model_and_add_twl S')\<close>
+        using S_x1 tr_M1 i add_inv decomp confl confl' count_dec lev_K
+        apply (cases S; cases S')
+        apply (auto simp: x1  twl_st_l_def
+          intro!: negate_model_and_add_twl.restart_nonunit[of x2 \<open>convert_lits_l N M1\<close>
+              \<open>convert_lits_l N M2\<close>])
+        using trail_S' 
+        imageI[OF decomp, of \<open>\<lambda>(M, M'). (convert_lits_l (get_clauses_l x1) M,
+            convert_lits_l (get_clauses_l x1) M')\<close>]
+        by (auto simp: get_all_ann_decomposition_convert_lits_l rev_image_eqI)
+    }
+    ultimately have \<open>\<exists>y\<in>Collect (negate_model_and_add_twl S').
+        (restart_nonunit_and_add_l (DECO_clause_l (get_trail_l S)) i x1, y)
+      \<in> {(S, S''). (S, S'') \<in> twl_st_l None \<and> twl_list_invs S}\<close>
+      apply -
+      apply (rule bexI[of _ ?y1])
+      apply fast+
+      done
+    then show ?thesis
+      unfolding x1
+      apply (subst RETURN_RES_refine_iff)
+      by fast
+  qed  
+  show ?thesis
+    unfolding negate_mode_restart_nonunit_l_def find_decomp_target_def get_fresh_index_def
+    apply refine_vcg
+    supply [[unify_trace_failure]]
+    apply (rule H; assumption)
+    done
+qed
+
+
+definition negate_mode_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>negate_mode_l S = do {
+    if count_decided (get_trail_l S) = 1
+    then negate_mode_bj_unit_l S
+    else do {
+      b \<leftarrow> SPEC(\<lambda>_. True);
+      if b then negate_mode_bj_nonunit_l S else negate_mode_restart_nonunit_l S
+    }
+  }\<close>
+
+lemma negate_mode_restart_l:
+  fixes S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close> 
+  assumes
+    SS': \<open>(S, S') \<in> twl_st_l b\<close> and
+    struct_invs: \<open>twl_struct_invs S'\<close> and
+    add_inv: \<open>twl_list_invs S\<close> and
+    stgy_inv: \<open>twl_stgy_invs S'\<close> and
+    confl: \<open>get_conflict_l S = None\<close> and
+    \<open>count_decided (get_trail_l S) \<noteq> 0\<close>
+  shows
+    \<open>negate_mode_l S \<le> \<Down>{(S, S''). (S, S'') \<in> twl_st_l None \<and> twl_list_invs S}
+       (SPEC (negate_model_and_add_twl S'))\<close>
+   unfolding negate_mode_l_def
+   apply (refine_vcg negate_mode_restart_nonunit_l negate_mode_bj_unit_l
+      negate_mode_bj_nonunit_l lhs_step_If)
+    using SS' apply assumption
+    subgoal using assms by fast
+    subgoal using assms by fast
+    subgoal using assms by fast
+    subgoal using assms by fast
+    subgoal using assms by simp
+    using SS' apply assumption
+    subgoal using assms by fast
+    subgoal using assms by fast
+    subgoal using assms by fast
+    subgoal using assms by fast
+    subgoal using assms by simp
+    using SS' apply assumption
+    subgoal using assms by fast
+    subgoal using assms by fast
+    subgoal using assms by fast
+    subgoal using assms by fast
+    done
+
 end

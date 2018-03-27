@@ -650,6 +650,20 @@ lemma in_ran_mf_clause_inI[intro]:
   \<open>C \<in># dom_m N \<Longrightarrow> i = irred N C \<Longrightarrow> (N \<propto> C, i) \<in># ran_m N\<close>
   by (auto simp: ran_m_def dom_m_def)
 
+lemma init_clss_l_mapsto_upd_notin:
+  \<open>C \<notin># dom_m N \<Longrightarrow> init_clss_l (fmupd C (C', True) N) =
+     add_mset (C', True) (init_clss_l N)\<close>
+  by (auto simp: ran_m_mapsto_upd_notin)
+
+lemma learned_clss_l_mapsto_upd_notin_irrelev: \<open>C \<notin># dom_m N \<Longrightarrow>
+  learned_clss_l (fmupd C  (C', True) N) = learned_clss_l N\<close>
+  by (auto simp: ran_m_mapsto_upd_notin)
+
+lemma ran_m_fmempty[simp]: \<open>ran_m fmempty = {#}\<close> and
+    dom_m_fmempty[simp]: \<open>dom_m fmempty = {#}\<close>
+  by (auto simp: ran_m_def dom_m_def)
+
+  
 lemma unit_propagation_inner_loop_body_l:
   fixes i C :: nat and S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close> and L :: \<open>'v literal\<close>
   defines

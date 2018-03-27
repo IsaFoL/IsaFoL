@@ -1037,17 +1037,6 @@ proof -
     using dist WS dec in_literals_to_update OC'_empty by (auto simp: twl_st_init twl_st_l_init)
 qed
 
-text \<open>TODO Move\<close>
-lemma init_clss_l_mapsto_upd_notin:
-  \<open>C \<notin># dom_m N \<Longrightarrow> init_clss_l (fmupd C (C', True) N) =
-     add_mset (C', True) (init_clss_l N)\<close>
-  by (auto simp: ran_m_mapsto_upd_notin)
-
-lemma learned_clss_l_mapsto_upd_notin_irrelev: \<open>C \<notin># dom_m N \<Longrightarrow>
-  learned_clss_l (fmupd C  (C', True) N) = learned_clss_l N\<close>
-  by (auto simp: ran_m_mapsto_upd_notin)
-text \<open>END Move\<close>
-
 lemma [twl_st_l_init]:
   \<open>get_trail (fst (add_to_clauses_init a T)) = get_trail_init T\<close>
   by (cases T; auto; fail)
@@ -1392,12 +1381,6 @@ next
     apply (rule SPEC_rule)
     by (rule 2) fast+
 qed
-
-text \<open>TODO Move\<close>
-lemma ran_m_fmempty[simp]: \<open>ran_m fmempty = {#}\<close> and
-    dom_m_fmempty[simp]: \<open>dom_m fmempty = {#}\<close>
-  by (auto simp: ran_m_def dom_m_def)
-text \<open>END Move\<close>
 
 lemma init_dt_pre_empty_state:
   \<open>init_dt_pre [] (([], fmempty, None, {#}, {#}, {#}, {#}), {#})\<close>
