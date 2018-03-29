@@ -7,7 +7,7 @@ text \<open>
 
   More precisely, we take the clause composed of decisions, instead of taking the full trail. This
   creates shorter clauses. However, this makes satisfying the initial clauses \<^emph>\<open>harder\<close> since fewer
-  literals have to be defined.
+  literals can be left undefined or be defined with the wrong sign.
 
   For now there is no difference, since TWL produces only full models anyway. Remark that this is
   the clause that is produced by the minimization of the conflict of the full trail (except that

@@ -185,6 +185,7 @@ session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
     Model_Enumeration
     Watched_Literals_Transition_System_Enumeration
     Watched_Literals_Algorithm_Enumeration
+    Watched_Literals_List_Enumeration
   document_files
     "root.tex"
     "biblio.bib"
