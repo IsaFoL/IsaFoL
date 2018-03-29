@@ -160,6 +160,20 @@ fun negate_model_and_add :: \<open>'v literal list option \<times> 'v clauses \<
      else (None, add_mset (uminus `# mset M) N))\<close> |
   \<open>negate_model_and_add (None, N) = (None, N)\<close>
 
+text \<open>
+  The code below is a little tricky to get right (in a way that can be easily refined later).
+
+  There are three cases:
+    \<^enum> the considered clauses are not satisfiable. Then we can conclude that there is no model.
+    \<^enum> the considered clauses are satisfiable and there is at least one decision. Then, we can simply
+      apply \<^term>\<open>negate_model_and_add_twl\<close>.
+    \<^enum> the considered clauses are satisfiable and there are no decisions. Then we cannot apply
+      \<^term>\<open>negate_model_and_add_twl\<close>, because that would produce the empty clause that cannot
+      be part of our state (because of our invariants). Therefore, as we know that the model is
+      the last possible model, we break out of the loop and handle test if the model is acceptable
+      outside of the loop.
+\<close>
+
 definition cdcl_twl_enum :: \<open>'v twl_st \<Rightarrow> bool nres\<close> where
   \<open>cdcl_twl_enum S = do {
      S \<leftarrow> conclusive_TWL_run S;
@@ -205,14 +219,14 @@ lemma atms_of_uminus_lit_of[simp]: \<open>atms_of {#- lit_of x. x \<in># A#} = a
 
 lemma lit_of_mset_eq_mset_setD[dest]:
   \<open>lit_of `# mset M = mset aa  \<Longrightarrow> set aa = lit_of ` set M\<close>
-  by (metis set_image_mset set_mset_mset) 
+  by (metis set_image_mset set_mset_mset)
 
 lemma mod_restriction_add_twice[simp]:
   \<open>mod_restriction A (add_mset C (add_mset C N)) \<longleftrightarrow> mod_restriction A (add_mset C N)\<close>
   by (auto simp: mod_restriction_def)
 
 lemma
-  assumes 
+  assumes
     confl: \<open>get_conflict W = None\<close> and
     count_dec: \<open>count_decided (get_trail W) = 0\<close> and
     enum_inv: \<open>cdcl_twl_enum_inv W\<close> and
@@ -252,7 +266,7 @@ proof -
       cdcl\<^sub>W_restart_mset.clauses_def
     by (fastforce simp: clauses_def twl_st dest: true_clss_clss_generalise_true_clss_clss)
 
-  have H: False 
+  have H: False
     if M_tr_W:  \<open>M \<Turnstile> {#- lit_of x. x \<in># mset (get_trail W)#}\<close> and
       M_U': \<open>M \<Turnstile>m N\<close> and
       tot: \<open>total_over_m M (set_mset N)\<close> and
@@ -265,7 +279,7 @@ proof -
       apply auto
       using tot apply blast+
       done
-    moreover have \<open>total_over_m M (set_mset (get_all_init_clss W) \<union> 
+    moreover have \<open>total_over_m M (set_mset (get_all_init_clss W) \<union>
                   unmark_l (trail (state\<^sub>W_of W)))\<close>
       using alien_W atms_U_U' tot
       unfolding total_over_m_alt_def total_over_set_alt_def
@@ -278,7 +292,7 @@ proof -
       using cons M_tr_W
       by (auto simp: true_clss_def twl_st true_cls_def consistent_interp_def)
   qed
-  then show ?A 
+  then show ?A
     unfolding mod_restriction_def
     by auto
   from mod_restriction_satisfiable_iff[OF this]
@@ -497,10 +511,11 @@ proof -
              conclusive_TWL_run) T
       \<le> SPEC
           (\<lambda>y. \<exists>x. (y, x) \<in> {(y, x).
-                       ((get_conflict y \<noteq> None \<or> (fst x \<noteq> None \<and> P (lits_of_l (get_trail y))) \<and>
-                          (y, x) \<in> enum_mod_restriction_st_clss_after) \<or>
+                       (( (get_conflict y \<noteq> None \<and> fst x = None) \<or>
+                          (fst x \<noteq> None \<and> P (lits_of_l (get_trail y))) \<and>
+                         (y, x) \<in> enum_mod_restriction_st_clss_after) \<or>
                        (get_conflict y = None \<and> count_decided (get_trail y) = 0 \<and>
-                          \<not>P (lits_of_l (get_trail y)) \<and>
+                          \<not>P (lits_of_l (get_trail y)) \<and> fst x = None \<and>
                           (y, (None, remove1_mset (uminus `# lit_of `# mset (get_trail y)) (snd x)))
                             \<in> enum_mod_restriction_st_clss_after))
                     } \<and>
@@ -789,7 +804,7 @@ proof -
             have \<open>mod_restriction (add_mset {#} (get_all_init_clss W))
                  (add_mset {#- lit_of x. x \<in># mset (get_trail W)#}
                      (add_mset {#- lit_of x. x \<in># mset (get_trail U)#} (snd U')))\<close>
-              if 
+              if
                 confl: \<open>get_conflict W = None\<close> and
                 count_dec: \<open>count_decided (get_trail W) = 0\<close>
               apply (rule final_level0_add_empty_clause[OF that])
@@ -886,9 +901,7 @@ proof -
       let ?x = \<open>if get_conflict s = None
           then (Some (map lit_of (get_trail s)), snd x)
           else (None, snd x)\<close>
-      let ?y = \<open>(* if count_decided (get_trail s) = 0 \<and> \<not> P (lit_of ` set (get_trail s)) \<and>
-           get_conflict s = None
-          then (None, snd ?x) else *) negate_model_and_add ?x\<close> 
+      let ?y = \<open>negate_model_and_add ?x\<close>
       have step: \<open>(next_model_filtered P) (None, snd (negate_model_and_add x)) ?y\<close>
         if \<open>get_conflict s = None\<close> and \<open>P (lits_of_l (get_trail s))\<close>
         using cond that sx final nm unfolding enum_mod_restriction_st_clss_after_def
@@ -903,8 +916,8 @@ proof -
             enum_model_st_def
         by (cases x; cases \<open>fst x\<close>)
           (auto simp: next_model_filtered.simps lits_of_def)
-      moreover have step: \<open>(next_model_filtered P) (negate_model_and_add x) ?y \<or> 
-         (negate_model_and_add x) = ?y\<close> 
+      moreover have step: \<open>(next_model_filtered P) (negate_model_and_add x) ?y \<or>
+         (negate_model_and_add x) = ?y\<close>
         if \<open>get_conflict s = None\<close> and \<open>\<not>P (lits_of_l (get_trail s))\<close>
         using cond that sx nm unfolding enum_mod_restriction_st_clss_after_def
           enum_model_st_def
@@ -974,9 +987,8 @@ proof -
       \<open>get_conflict Sb = None\<close>
     for x x' Sa Sb S y
     using that (* TODO Proof *)
-    apply (auto simp: enum_mod_restriction_st_clss_after_def enum_model_st_def
+    by (auto simp: enum_mod_restriction_st_clss_after_def enum_model_st_def
         enum_mod_restriction_st_clss_def lits_of_def)
-    sorry
   have H2: \<open>(False, fst x' \<noteq> None) \<in> bool_rel\<close>
     if
       \<open>case y of (M, N) \<Rightarrow> M = None\<close> and
@@ -993,7 +1005,7 @@ proof -
     apply (intro frefI nres_relI)
     apply (subst next_model_filtered_nres_alt_def)
     subgoal by auto
-    apply (refine_vcg conclusive_run WHILEIT_rule)
+    apply (refine_vcg conclusive_run)
     unfolding conc_fun_SPEC
       apply (rule loop; assumption)
      apply (rule H1; assumption)

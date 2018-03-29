@@ -384,7 +384,7 @@ definition negate_mode_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<c
     }
   }\<close>
 
-lemma negate_mode_restart_l:
+lemma negate_mode_l:
   fixes S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close> 
   assumes
     SS': \<open>(S, S') \<in> twl_st_l b\<close> and
@@ -397,21 +397,18 @@ lemma negate_mode_restart_l:
     \<open>negate_mode_l S \<le> \<Down>{(S, S''). (S, S'') \<in> twl_st_l None \<and> twl_list_invs S}
        (SPEC (negate_model_and_add_twl S'))\<close>
    unfolding negate_mode_l_def
-   apply (refine_vcg negate_mode_restart_nonunit_l negate_mode_bj_unit_l
-      negate_mode_bj_nonunit_l lhs_step_If)
-    using SS' apply assumption
+   apply (refine_vcg negate_mode_restart_nonunit_l[OF _ SS'] negate_mode_bj_unit_l[OF _ SS']
+      negate_mode_bj_nonunit_l[OF _ SS'] lhs_step_If)
     subgoal using assms by fast
     subgoal using assms by fast
     subgoal using assms by fast
     subgoal using assms by fast
     subgoal using assms by simp
-    using SS' apply assumption
     subgoal using assms by fast
     subgoal using assms by fast
     subgoal using assms by fast
     subgoal using assms by fast
     subgoal using assms by simp
-    using SS' apply assumption
     subgoal using assms by fast
     subgoal using assms by fast
     subgoal using assms by fast
