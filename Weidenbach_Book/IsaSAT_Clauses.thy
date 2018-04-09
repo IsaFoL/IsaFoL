@@ -14,11 +14,13 @@ named_theorems isasat_codegen \<open>lemmas that should be unfolded to generate 
 definition list_fmap_rel :: \<open>_ \<Rightarrow> _ \<Rightarrow> ('a list \<times> nat clauses_l) set\<close> where
   list_fmap_rel_internal_def:
   \<open>list_fmap_rel unused R = {(NU', NU). (\<forall>i\<in>#dom_m NU. i < length NU' \<and> (NU'!i, NU \<propto> i) \<in> R) \<and>
-         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> NU'!i = unused) \<and> NU' \<noteq> []}\<close>
+         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> NU'!i = unused) \<and> NU' \<noteq> [] \<and>
+         Suc (Max_mset (add_mset 0 (dom_m NU))) = length NU'}\<close>
 
 lemma list_fmap_rel_def:
   \<open>\<langle>R\<rangle>list_fmap_rel unused = {(NU', NU). (\<forall>i\<in>#dom_m NU. i < length NU' \<and> (NU'!i, NU \<propto> i) \<in> R) \<and>
-         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> NU'!i = unused) \<and> NU' \<noteq> []}\<close>
+         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> NU'!i = unused) \<and> NU' \<noteq> [] \<and>
+          Suc (Max_mset (add_mset 0 (dom_m NU))) = length NU'}\<close>
   by (simp add: relAPP_def list_fmap_rel_internal_def)
 
 lemma nth_clauses_l:
@@ -239,7 +241,7 @@ lemma swap_ll_fmap_swap_ll:
     \<in> [\<lambda>(((N, i), j), k). i \<in># dom_m N \<and> j < length (N \<propto> i) \<and> k < length (N \<propto> i)]\<^sub>f
         \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>\<langle>Id\<rangle>clauses_l_fmat\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: list_fmap_rel_def Array_List_Array.swap_ll_def)
+    (fastforce simp: list_fmap_rel_def Array_List_Array.swap_ll_def split: if_splits)
 
 lemma fmap_swap_ll_hnr[sepref_fr_rules]:
   \<open>(uncurry3 swap_aa, uncurry3 (RETURN oooo fmap_swap_ll))
@@ -294,13 +296,21 @@ where
 lemma append_and_length_fm_add_new:
   \<open>(uncurry2 (RETURN ooo append_and_length), uncurry2 fm_add_new)
      \<in> bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (\<langle>Id\<rangle>clauses_l_fmat) \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (fastforce simp: fm_add_new_at_position_def list_fmap_rel_def Let_def
+  apply (intro frefI nres_relI)
+  apply (auto simp: fm_add_new_at_position_def list_fmap_rel_def Let_def
       max_def nth_append append_and_length_def fm_add_new_def get_fresh_index_def
       RETURN_RES_refine_iff RES_RETURN_RES
       intro!: RETURN_SPEC_refine
       dest: multi_member_split
       split: if_splits)
+  apply force
+  apply force
+  apply force
+   apply force
+  apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
+   apply force
+  apply force
+  done
 
 sepref_definition append_and_length_code
   is \<open>uncurry2 (RETURN ooo append_and_length)\<close>
@@ -315,6 +325,61 @@ lemma fm_add_new_hnr[sepref_fr_rules]:
   using append_and_length_code.refine[FCOMP append_and_length_fm_add_new]
   unfolding clauses_ll_assn_def by simp
 
+definition convert_to_uint32 :: \<open>nat \<Rightarrow> nat\<close> where
+  [simp]: \<open>convert_to_uint32 = id\<close>
+lemma convert_to_uint32_hnr[sepref_fr_rules]:
+  \<open>(return o uint32_of_nat, RETURN o convert_to_uint32) \<in> [\<lambda>n. n \<le> uint32_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def uint32_max_def nat_of_uint32_uint32_of_nat_id)
+
+definition append_and_length_u32
+   :: \<open>bool \<Rightarrow> 'v clause_l \<Rightarrow> 'v clause_l list \<Rightarrow> ('v clause_l list \<times> nat) nres\<close>
+  where
+\<open>append_and_length_u32 b C N = do {
+    ASSERT(length N \<le> uint32_max);
+    let k = length N;
+    RETURN (op_list_append N C, convert_to_uint32 k)}\<close>
+
+lemma (in -) clauses_l_fmat_not_nil[simp]:
+  \<open>([], bc) \<in> \<langle>Id\<rangle>clauses_l_fmat \<longleftrightarrow> False\<close>
+  by (auto simp: list_fmap_rel_def)
+
+lemma clauses_l_fmat_length:
+  \<open>(ba, bc) \<in> \<langle>Id\<rangle>clauses_l_fmat \<Longrightarrow> length ba = Suc (Max_mset (add_mset 0 (dom_m bc)))\<close>
+  by (auto simp: list_fmap_rel_def)
+
+lemma append_and_length_u32_fm_add_new:
+  \<open>(uncurry2 append_and_length_u32, uncurry2 fm_add_new)
+     \<in> [\<lambda>((b, C), N). Max (insert 0 (set_mset (dom_m N))) < uint32_max]\<^sub>f
+     bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (\<langle>Id\<rangle>clauses_l_fmat) \<rightarrow> \<langle>\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+(* TODO Tune proof *)
+  apply (intro frefI nres_relI)
+  apply (auto simp: fm_add_new_at_position_def list_fmap_rel_def Let_def
+      max_def nth_append append_and_length_u32_def fm_add_new_def get_fresh_index_def
+      RETURN_RES_refine_iff RES_RETURN_RES
+      intro!: RETURN_SPEC_refine ASSERT_refine_left
+      dest: multi_member_split
+      split: if_splits)
+       apply (metis Max_in_lits Suc_leI empty_iff insert_iff set_mset_add_mset_insert
+      set_mset_empty)
+  apply auto
+  apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
+  apply auto
+  done
+
+sepref_definition append_and_length_u32_code
+  is \<open>uncurry2 (append_and_length_u32)\<close>
+  :: \<open>bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a (arlO_assn clause_ll_assn)\<^sup>d \<rightarrow>\<^sub>a
+       arlO_assn clause_ll_assn *a uint32_nat_assn\<close>
+  unfolding append_and_length_u32_def
+  by sepref
+
+lemma fm_add_new_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 append_and_length_u32_code, uncurry2 fm_add_new)
+    \<in> [\<lambda>(_, ba). (\<forall>a\<in>#dom_m ba. a < uint_max)]\<^sub>a
+       bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow> clauses_ll_assn *a uint32_nat_assn\<close>
+  using append_and_length_u32_code.refine[FCOMP append_and_length_u32_fm_add_new]
+  unfolding clauses_ll_assn_def by (simp add: uint32_max_def)
 
 definition fmap_swap_ll_u64 where
   [simp]: \<open>fmap_swap_ll_u64 = fmap_swap_ll\<close>

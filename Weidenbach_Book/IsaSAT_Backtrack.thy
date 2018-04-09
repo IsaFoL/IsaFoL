@@ -364,7 +364,6 @@ sepref_thm empty_conflict_and_extract_clause_heur_code
   array_fold_custom_replicate
   by sepref
 
-
 concrete_definition (in -) empty_conflict_and_extract_clause_heur_code
    uses isasat_input_bounded_nempty.empty_conflict_and_extract_clause_heur_code.refine_raw
    is \<open>(uncurry2 ?f,_)\<in>_\<close>
@@ -374,6 +373,25 @@ prepare_code_thms (in -) empty_conflict_and_extract_clause_heur_code_def
 lemmas empty_conflict_and_extract_clause_heur_hnr[sepref_fr_rules] =
    empty_conflict_and_extract_clause_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+
+sepref_thm empty_conflict_and_extract_clause_heur_fast_code
+  is \<open>uncurry2 (PR_CONST empty_conflict_and_extract_clause_heur)\<close>
+  :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint_max]\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k \<rightarrow>
+       option_lookup_clause_assn *a clause_ll_assn *a uint32_nat_assn\<close>
+  supply [[goals_limit=1]] image_image[simp]
+  unfolding empty_conflict_and_extract_clause_heur_def PR_CONST_def
+  array_fold_custom_replicate
+  by sepref
+
+concrete_definition (in -) empty_conflict_and_extract_clause_heur_fast_code
+   uses isasat_input_bounded_nempty.empty_conflict_and_extract_clause_heur_fast_code.refine_raw
+   is \<open>(uncurry2 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) empty_conflict_and_extract_clause_heur_fast_code_def
+
+lemmas empty_conflict_and_extract_clause_heur_hnr_fast[sepref_fr_rules] =
+   empty_conflict_and_extract_clause_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 definition (in isasat_input_ops) extract_shorter_conflict_wl_nlit where
 \<open>extract_shorter_conflict_wl_nlit K M NU D NE UE =
@@ -680,7 +698,7 @@ proof -
     using pre ..
 qed
 
-definition (in isasat_input_ops)  rescore_clause
+definition (in isasat_input_ops) rescore_clause
   :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
     (vmtf_remove_int \<times> phase_saver) nres\<close>
 where
@@ -1617,6 +1635,22 @@ prepare_code_thms (in -) lit_of_hd_trail_st_heur_code_def
 lemmas lit_of_hd_trail_st_heur_code_refine[sepref_fr_rules] =
    lit_of_hd_trail_st_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+
+sepref_thm lit_of_hd_trail_st_heur_fast
+  is \<open>RETURN o lit_of_hd_trail_st_heur\<close>
+  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_fast_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  unfolding lit_of_hd_trail_st_heur_alt_def isasat_fast_assn_def
+  by sepref
+
+ concrete_definition (in -) lit_of_hd_trail_st_heur_fast_code
+   uses isasat_input_bounded_nempty.lit_of_hd_trail_st_heur_fast.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) lit_of_hd_trail_st_heur_fast_code_def
+
+lemmas lit_of_hd_trail_st_heur_code_refine_fast[sepref_fr_rules] =
+   lit_of_hd_trail_st_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
 definition (in -) extract_shorter_conflict_l_trivial
   :: \<open>'v literal \<Rightarrow> ('v, 'a) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow>  'v cconflict \<Rightarrow>
         ('v cconflict \<times> 'v conflict_highest_conflict) nres\<close>
@@ -1709,6 +1743,26 @@ prepare_code_thms (in -) find_decomp_wl_imp_code_def
 
 lemmas find_decomp_wl_imp_code[sepref_fr_rules] =
    find_decomp_wl_imp_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm find_decomp_wl_imp_fast_code
+  is \<open>uncurry2 (PR_CONST find_decomp_wl_imp)\<close>
+  :: \<open>trail_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
+    \<rightarrow>\<^sub>a trail_fast_assn *a vmtf_remove_conc\<close>
+  unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
+    find_decomp_wl_imp_pre_def
+  supply [[goals_limit=1]] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
+  supply uint32_nat_assn_one[sepref_fr_rules]
+  supply uint32_nat_assn_minus[sepref_fr_rules]
+  by sepref
+
+concrete_definition (in -) find_decomp_wl_imp_fast_code
+   uses isasat_input_bounded_nempty.find_decomp_wl_imp_fast_code.refine_raw
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) find_decomp_wl_imp_fast_code_def
+
+lemmas find_decomp_wl_imp_fast_code[sepref_fr_rules] =
+   find_decomp_wl_imp_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 definition find_decomp_wvmtf_ns where
   \<open>find_decomp_wvmtf_ns =
@@ -1873,12 +1927,20 @@ lemma find_decomp_wl_imp_code_find_decomp_wl'[sepref_fr_rules]:
   unfolding PR_CONST_def
   .
 
+lemma find_decomp_wl_imp_fast_code_find_decomp_wl'[sepref_fr_rules]:
+  \<open>(uncurry2 find_decomp_wl_imp_fast_code, uncurry2 (PR_CONST find_decomp_wvmtf_ns))
+     \<in> [\<lambda>((b, a), c). find_decomp_wvmtf_ns_pre ((b, a), c)]\<^sub>a
+     trail_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
+    trail_fast_assn *a vmtf_remove_conc\<close>
+  using find_decomp_wl_imp_fast_code[unfolded PR_CONST_def, FCOMP find_decomp_wl_imp_find_decomp_wl']
+  unfolding PR_CONST_def
+  .
+
 sepref_thm find_decomp_wl_imp'_code
   is \<open>uncurry (PR_CONST find_decomp_wl_st_int)\<close>
   :: \<open>[\<lambda>(highest, (M', N, D, W, Q, vm, \<phi>)).
          find_decomp_wvmtf_ns_pre ((M', highest), vm)]\<^sub>a
-       uint32_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d  \<rightarrow>
-        (isasat_assn)\<close>
+       uint32_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d  \<rightarrow> isasat_assn\<close>
   unfolding find_decomp_wl_st_int_def PR_CONST_def isasat_assn_def
   supply [[goals_limit = 1]]
   by sepref
@@ -1892,6 +1954,24 @@ prepare_code_thms (in -) find_decomp_wl_imp'_code_def
 lemmas find_decomp_wl_imp'_code_hnr[sepref_fr_rules] =
   find_decomp_wl_imp'_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+sepref_thm find_decomp_wl_imp'_fast_code
+  is \<open>uncurry (PR_CONST find_decomp_wl_st_int)\<close>
+  :: \<open>[\<lambda>(highest, (M', N, D, W, Q, vm, \<phi>)).
+         find_decomp_wvmtf_ns_pre ((M', highest), vm)]\<^sub>a
+       uint32_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d  \<rightarrow>
+        isasat_fast_assn\<close>
+  unfolding find_decomp_wl_st_int_def PR_CONST_def isasat_fast_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) find_decomp_wl_imp'_fast_code
+   uses isasat_input_bounded_nempty.find_decomp_wl_imp'_fast_code.refine_raw
+   is \<open>(uncurry ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) find_decomp_wl_imp'_fast_code_def
+
+lemmas find_decomp_wl_imp'_fast_code_hnr[sepref_fr_rules] =
+  find_decomp_wl_imp'_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 lemma find_decomp_wl_st_int_find_decomp_wl_nlit:
   \<open>(uncurry find_decomp_wl_st_int, uncurry find_decomp_wl_nlit) \<in>
@@ -1915,13 +1995,17 @@ proof -
 qed
 
 sepref_register find_decomp_wl_nlit
-lemma find_decomp_wl_imp'_code_find_decomp_wl[sepref_fr_rules]:
+lemma 
   fixes M :: \<open>(nat, nat) ann_lits\<close>
-  shows \<open>(uncurry find_decomp_wl_imp'_code, uncurry (PR_CONST find_decomp_wl_nlit)) \<in>
-    [find_decomp_wl_pre]\<^sub>a
-       uint32_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>
-     isasat_assn\<close>
-    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+  shows
+    find_decomp_wl_imp'_code_find_decomp_wl[sepref_fr_rules]:
+      \<open>(uncurry find_decomp_wl_imp'_code, uncurry (PR_CONST find_decomp_wl_nlit)) \<in>
+        [find_decomp_wl_pre]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
+      (is ?slow is  \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
+    find_decomp_wl_imp'_fast_code_find_decomp_wl[sepref_fr_rules]:
+      \<open>(uncurry find_decomp_wl_imp'_fast_code, uncurry (PR_CONST find_decomp_wl_nlit)) \<in>
+        [find_decomp_wl_pre]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+      (is ?fast is  \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
 proof -
   define L where L: \<open>L \<equiv> -lit_of (hd M)\<close>
   have H: \<open>?c
@@ -1945,7 +2029,30 @@ proof -
   have f: \<open>?f' = ?f\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
        hr_comp_prod_conv hr_comp_Id2 ..
-  show ?thesis
+  show ?slow
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f apply assumption
+    using pre ..
+
+  have H: \<open>?cfast
+       \<in> [comp_PRE (nat_rel \<times>\<^sub>f Id) (\<lambda>(highest, S). True)
+     (\<lambda>_ (highest, M', N, D, W, Q, vm, \<phi>).
+         find_decomp_wvmtf_ns_pre ((M', highest), vm))
+     (\<lambda>_. True)]\<^sub>a hrp_comp (uint32_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d)
+                    (nat_rel \<times>\<^sub>f Id) \<rightarrow> hr_comp isasat_fast_assn Id\<close>
+    (is \<open>_ \<in> [_]\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF find_decomp_wl_imp'_fast_code_hnr[unfolded PR_CONST_def]
+         find_decomp_wl_st_int_find_decomp_wl_nlit]
+    unfolding PR_CONST_def
+    .
+  have im: \<open>?im' = ?imfast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by simp
+  have f: \<open>?f' = ?ffast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+       hr_comp_prod_conv hr_comp_Id2 ..
+  show ?fast
     apply (rule hfref_weaken_pre[OF ])
      defer
     using H unfolding im f apply assumption
@@ -2031,6 +2138,25 @@ prepare_code_thms (in -) vmtf_rescore_code_def
 lemmas vmtf_rescore_code_refine[sepref_fr_rules] =
    vmtf_rescore_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+
+sepref_thm vmtf_rescore_fast_code
+  is \<open>uncurry3 vmtf_rescore\<close>
+  :: \<open>(array_assn unat_lit_assn)\<^sup>k *\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>\<^sub>a
+       vmtf_remove_conc *a phase_saver_conc\<close>
+  unfolding vmtf_rescore_def vmtf_mark_to_rescore_and_unset_def save_phase_inv_def vmtf_mark_to_rescore_def vmtf_unset_def
+  vmtf_rescore_body_def
+  supply [[goals_limit = 1]] fold_is_None[simp]
+  by sepref
+
+concrete_definition (in -) vmtf_rescore_fast_code
+   uses isasat_input_bounded_nempty.vmtf_rescore_fast_code.refine_raw
+   is \<open>(uncurry3 ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_rescore_fast_code_def
+
+lemmas vmtf_rescore_fast_code_refine[sepref_fr_rules] =
+   vmtf_rescore_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
 lemma vmtf_rescore_score_clause:
   \<open>(uncurry3 vmtf_rescore, uncurry3 rescore_clause) \<in>
      [\<lambda>(((C, M), vm), \<phi>). literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and> vm \<in> vmtf M \<and> phase_saving \<phi>]\<^sub>f
@@ -2072,13 +2198,21 @@ proof -
     done
 qed
 
-lemma vmtf_rescore_code_rescore_clause[sepref_fr_rules]:
-  \<open>(uncurry3 vmtf_rescore_code, uncurry3 (PR_CONST rescore_clause))
+lemma
+  vmtf_rescore_code_rescore_clause[sepref_fr_rules]:
+    \<open>(uncurry3 vmtf_rescore_code, uncurry3 (PR_CONST rescore_clause))
      \<in> [\<lambda>(((b, a), c), d). literals_are_in_\<L>\<^sub>i\<^sub>n (mset b) \<and> c \<in> vmtf a \<and>
          phase_saving d]\<^sub>a
        clause_ll_assn\<^sup>k *\<^sub>a trail_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>
+        vmtf_remove_conc *a phase_saver_conc\<close> and
+  vmtf_rescore_fast_code_rescore_clause[sepref_fr_rules]:
+    \<open>(uncurry3 vmtf_rescore_fast_code, uncurry3 (PR_CONST rescore_clause))
+     \<in> [\<lambda>(((b, a), c), d). literals_are_in_\<L>\<^sub>i\<^sub>n (mset b) \<and> c \<in> vmtf a \<and>
+         phase_saving d]\<^sub>a
+       clause_ll_assn\<^sup>k *\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>
         vmtf_remove_conc *a phase_saver_conc\<close>
   using vmtf_rescore_code_refine[FCOMP vmtf_rescore_score_clause]
+  using vmtf_rescore_fast_code_refine[FCOMP vmtf_rescore_score_clause]
   by auto
 
 definition vmtf_flush' where
@@ -2101,6 +2235,23 @@ lemmas vmtf_flush_all_code_hnr[sepref_fr_rules] =
    vmtf_flush_all_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 
+sepref_thm vmtf_flush_all_fast_code
+  is \<open>uncurry vmtf_flush'\<close>
+  :: \<open>[\<lambda>(M, vm). vm \<in> vmtf M]\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
+  supply [[goals_limit=1]] trail_dump_code_refine[sepref_fr_rules]
+  unfolding vmtf_flush'_def
+  by sepref
+
+concrete_definition (in -) vmtf_flush_all_fast_code
+   uses isasat_input_bounded_nempty.vmtf_flush_all_fast_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_flush_all_fast_code_def
+
+lemmas vmtf_flush_all_fast_code_hnr[sepref_fr_rules] =
+   vmtf_flush_all_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+
 lemma trail_bump_rescore:
   \<open>(uncurry vmtf_flush', uncurry flush) \<in> [\<lambda>(M, vm). vm \<in> vmtf M]\<^sub>f Id \<times>\<^sub>r Id  \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   unfolding vmtf_flush'_def flush_def
@@ -2111,11 +2262,16 @@ lemma trail_bump_rescore:
     by auto
   done
 
-lemma trail_dump_code_rescore[sepref_fr_rules]:
+lemma
+  trail_dump_code_rescore[sepref_fr_rules]:
    \<open>(uncurry vmtf_flush_all_code, uncurry (PR_CONST flush)) \<in> [\<lambda>(M, vm). vm \<in> vmtf M]\<^sub>a
-        trail_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
-   (is \<open>_ \<in> [?cond]\<^sub>a ?pre \<rightarrow> ?im\<close>)
-  using vmtf_flush_all_code_hnr[FCOMP trail_bump_rescore] by simp
+        trail_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close> and
+  trail_dump_fast_code_rescore[sepref_fr_rules]:
+   \<open>(uncurry vmtf_flush_all_fast_code, uncurry (PR_CONST flush)) \<in> [\<lambda>(M, vm). vm \<in> vmtf M]\<^sub>a
+        trail_fast_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
+  subgoal using vmtf_flush_all_code_hnr[FCOMP trail_bump_rescore] by simp
+  subgoal using vmtf_flush_all_fast_code_hnr[FCOMP trail_bump_rescore] by simp
+  done
 
 sepref_register rescore_clause flush
 
@@ -2139,6 +2295,30 @@ prepare_code_thms (in -) propagate_bt_wl_D_code_def
 
 lemmas propagate_bt_wl_D_heur_hnr[sepref_fr_rules] =
   propagate_bt_wl_D_code.refine[OF isasat_input_bounded_nempty_axioms]
+term fm_add_new
+sepref_thm propagate_bt_wl_D_fast_code
+  is \<open>uncurry2 (PR_CONST propagate_bt_wl_D_heur)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_fast_assn\<close>
+  supply [[goals_limit = 1]] uminus_\<A>\<^sub>i\<^sub>n_iff[simp] image_image[simp] append_ll_def[simp]
+  rescore_clause_def[simp] flush_def[simp]
+  unfolding propagate_bt_wl_D_heur_def isasat_fast_assn_def cons_trail_Propagated_def[symmetric]
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+    append_ll_def[symmetric] append_ll_def[symmetric]
+    cons_trail_Propagated_def[symmetric] PR_CONST_def
+  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
+    apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+  by sepref
+
+concrete_definition (in -) propagate_bt_wl_D_fast_code
+  uses isasat_input_bounded_nempty.propagate_bt_wl_D_fast_code.refine_raw
+  is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) propagate_bt_wl_D_fast_code_def
+
+lemmas propagate_bt_wl_D_heur_fast_hnr[sepref_fr_rules] =
+  propagate_bt_wl_D_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 sepref_thm propagate_unit_bt_wl_D_code
   is \<open>uncurry (PR_CONST propagate_unit_bt_wl_D_int)\<close>

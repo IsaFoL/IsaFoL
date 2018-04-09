@@ -376,7 +376,8 @@ lemma update_clause_wl_heur_update_clause_wl:
       map_fun_rel_def)
 
 text \<open>TODO MOVE\<close>
-lemma (in -)length_delete_index_and_swap_ll[simp]: \<open>length (delete_index_and_swap_ll s i j) = length s\<close>
+lemma (in -)length_delete_index_and_swap_ll[simp]:
+  \<open>length (delete_index_and_swap_ll s i j) = length s\<close>
   by (auto simp: delete_index_and_swap_ll_def)
 text \<open>END MOVE\<close>
 

@@ -30,7 +30,6 @@ lemma (in -) take1_hnr[sepref_fr_rules]:
 
 subsection \<open>Code Generation\<close>
 
-
 subsubsection \<open>Types and Refinement Relations\<close>
 
 paragraph \<open>Statistics\<close>
@@ -73,6 +72,11 @@ type_synonym out_learned = \<open>nat clause_l\<close>
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> clauses_wl \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats\<close>
+
+type_synonym twl_st_wll_trail_fast =
+  \<open>trail_pol_fast_assn \<times> clauses_wl \<times> option_lookup_clause_assn \<times>
+    lit_queue_l \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
@@ -153,7 +157,20 @@ definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \
   out_learned_assn *a
   stats_assn\<close>
 
-definition (in isasat_input_ops) twl_st_heur_no_clvls
+definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
+\<open>isasat_fast_assn =
+  trail_fast_assn *a clauses_ll_assn *a
+  option_lookup_clause_assn *a
+  clause_l_assn *a
+  arrayO_assn (arl_assn uint32_nat_assn) *a
+  vmtf_remove_conc *a phase_saver_conc *a
+  uint32_nat_assn *a
+  cach_refinement_assn *a
+  lbd_assn *a
+  out_learned_assn *a
+  stats_assn\<close>
+
+definition twl_st_heur_no_clvls
   :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur_no_clvls =
@@ -174,10 +191,8 @@ type_synonym (in -) twl_st_wl_heur_W_list =
     nat cconflict \<times> nat clause_l \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
     nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats\<close>
 
-
 definition literals_are_in_\<L>\<^sub>i\<^sub>n_heur where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S = literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf (get_clauses_wl_heur S))\<close>
-
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0:
   assumes \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S\<close> and
@@ -240,6 +255,22 @@ prepare_code_thms (in -) get_conflict_wl_is_None_code_def
 lemmas get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
    get_conflict_wl_is_None_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
+sepref_thm get_conflict_wl_is_None_fast_code
+  is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
+  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wl_is_None_heur_def isasat_fast_assn_def length_ll_def[symmetric]
+  supply [[goals_limit=1]]
+  by sepref
+
+concrete_definition (in -) get_conflict_wl_is_None_fast_code
+   uses isasat_input_bounded.get_conflict_wl_is_None_fast_code.refine_raw
+   is \<open>(?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) get_conflict_wl_is_None_fast_code_def
+
+lemmas get_conflict_wl_is_None_fast_code_refine[sepref_fr_rules] =
+   get_conflict_wl_is_None_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
 definition (in isasat_input_ops) count_decided_st where
   \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
 
@@ -259,6 +290,23 @@ prepare_code_thms (in -) count_decided_st_code_def
 lemmas count_decided_st_code_refine[sepref_fr_rules] =
    count_decided_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
+sepref_thm count_decided_st_fast_code
+  is \<open>RETURN o count_decided_st\<close>
+  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=2]]
+  unfolding count_decided_st_def isasat_fast_assn_def
+  by sepref
+
+concrete_definition (in -) count_decided_st_fast_code
+  uses isasat_input_bounded.count_decided_st_fast_code.refine_raw
+  is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) count_decided_st_fast_code_def
+
+lemmas count_decided_st_fast_code_refine[sepref_fr_rules] =
+   count_decided_st_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+(*ported until here*)
 lemma count_decided_st_count_decided_st:
   \<open>(RETURN o count_decided_st, RETURN o count_decided_st) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
@@ -313,6 +361,23 @@ prepare_code_thms (in -) polarity_st_heur_pol_code_def
 
 lemmas polarity_st_heur_pol_polarity_st_refine[sepref_fr_rules] =
   polarity_st_heur_pol_code.refine[OF isasat_input_bounded_axioms]
+
+
+sepref_thm polarity_st_heur_pol_fast
+  is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
+  :: \<open>[polarity_st_pre]\<^sub>a isasat_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
+  unfolding polarity_st_heur_alt_def isasat_fast_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) polarity_st_heur_pol_fast_code
+   uses isasat_input_bounded.polarity_st_heur_pol.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) polarity_st_heur_pol_fast_code_def
+
+lemmas polarity_st_heur_pol_fast_polarity_st_refine[sepref_fr_rules] =
+  polarity_st_heur_pol_fast_code.refine[OF isasat_input_bounded_axioms]
 
 end
 

@@ -2573,4 +2573,60 @@ lemma cdcl_twl_stgy_prog_l_spec_final':
     using assms unfolding cdcl_twl_stgy_prog_l_pre_def by (auto simp: twl_st_l intro: conc_fun_R_mono)
   done
 
+definition cdcl_twl_stgy_prog_break_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>cdcl_twl_stgy_prog_break_l S\<^sub>0 =
+  do {
+    b \<leftarrow> SPEC(\<lambda>_. True);
+    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, S). cdcl_twl_stgy_prog_l_inv S\<^sub>0 S\<^esup>
+      (\<lambda>(b, brk, _). b \<and> \<not>brk)
+      (\<lambda>(_, brk, S). do {
+        T \<leftarrow> unit_propagation_outer_loop_l S;
+        T \<leftarrow> cdcl_twl_o_prog_l T;
+        b \<leftarrow> SPEC(\<lambda>_. True);
+        RETURN (b, T)
+      })
+      (b, False, S\<^sub>0);
+    if brk then RETURN T
+    else cdcl_twl_stgy_prog_l T
+  }\<close>
+
+lemma cdcl_twl_stgy_prog_break_l_spec:
+  \<open>(cdcl_twl_stgy_prog_break_l, cdcl_twl_stgy_prog_break) \<in>
+    {(S, S'). (S, S') \<in> twl_st_l None  \<and> twl_list_invs S \<and>
+       clauses_to_update_l S = {#} \<and>
+       twl_struct_invs S' \<and> twl_stgy_invs S'} \<rightarrow>\<^sub>f
+    \<langle>{(T, T'). (T, T') \<in> {(T, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T \<and>
+      twl_struct_invs T' \<and> twl_stgy_invs T'} \<and> True}\<rangle> nres_rel\<close>
+  (is \<open> _ \<in> ?R \<rightarrow>\<^sub>f ?I\<close> is \<open> _ \<in> ?R \<rightarrow>\<^sub>f \<langle>?J\<rangle>nres_rel\<close>)
+proof -
+  have R: \<open>(a, b) \<in> ?R \<Longrightarrow> (bb, bb') \<in> bool_rel \<Longrightarrow>
+    ((bb, False, a), (bb', False, b)) \<in> {((b, brk, S), (b', brk', S')). b = b' \<and> brk = brk' \<and> (S, S') \<in> ?R}\<close>
+    for a b bb bb' by auto
+
+  show ?thesis
+  supply [[goals_limit=1]]
+    unfolding cdcl_twl_stgy_prog_break_l_def cdcl_twl_stgy_prog_break_def cdcl_twl_o_prog_l_spec
+      fref_param1[symmetric] cdcl_twl_stgy_prog_l_inv_def
+    apply (refine_rcg cdcl_twl_o_prog_l_spec[THEN fref_to_Down]
+        unit_propagation_outer_loop_l_spec[THEN fref_to_Down]
+        cdcl_twl_stgy_prog_l_spec[THEN fref_to_Down]; remove_dummy_vars)
+    apply (rule R)
+    subgoal by auto
+    subgoal by auto
+    subgoal for S\<^sub>0 S\<^sub>0' b b' T T'
+      apply (rule exI[of _ S\<^sub>0'])
+      apply (rule exI[of _ \<open>snd (snd T)\<close>])
+      by (auto simp: twl_st_l[symmetric])
+    subgoal
+     by auto
+    subgoal by fastforce
+    subgoal by (auto simp: twl_st_l)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
 end

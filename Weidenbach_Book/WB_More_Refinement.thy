@@ -4,6 +4,7 @@ theory WB_More_Refinement
     Weidenbach_Book_Base.WB_List_More
     "HOL-Eisbach.Eisbach"
     "HOL-Eisbach.Eisbach_Tools"
+  "HOL-Library.While_Combinator"
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -1059,5 +1060,14 @@ proof -
     subgoal by auto
     done
 qed
+
+term \<open>WHILE\<^sub>T\<^bsup>\<lambda>(b, S). I S\<^esup>
+        (\<lambda>(b, S). \<not>b \<and> P S)
+        (\<lambda>(b, S). do {
+            b \<leftarrow> RETURN False;
+            S \<leftarrow> f S;
+            RETURN (b, S)
+          })
+        (False, S)\<close>
 
 end
