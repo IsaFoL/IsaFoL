@@ -2249,6 +2249,9 @@ begin
 abbreviation (in -)analyse_refinement_assn where
   \<open>analyse_refinement_assn \<equiv> arl_assn (nat_assn *a nat_assn)\<close>
 
+abbreviation (in -)analyse_refinement_fast_assn where
+  \<open>analyse_refinement_fast_assn \<equiv> arl_assn (uint32_nat_assn *a nat_assn)\<close>
+
 end
 
 
@@ -2365,6 +2368,47 @@ prepare_code_thms (in -) lit_redundant_rec_wl_lookup_code_def
 
 lemmas lit_redundant_rec_wl_lookup_hnr[sepref_fr_rules] =
    lit_redundant_rec_wl_lookup_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+sepref_thm lit_redundant_rec_wl_lookup_fast_code
+  is \<open>uncurry5 (PR_CONST lit_redundant_rec_wl_lookup)\<close>
+  :: \<open>[\<lambda>(((((M, NU), D), cach), analysis), lbd).
+         literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU) \<and>
+         literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
+        cach_refinement_assn\<^sup>d *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
+      cach_refinement_assn *a analyse_refinement_fast_assn *a bool_assn\<close>
+  supply [[goals_limit = 1]] neq_Nil_revE[elim] image_image[simp]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms[intro] length_rll_def[simp]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro] nth_rll_def[simp]
+    fmap_length_rll_u_def[simp]
+    fmap_length_rll_def[simp]
+  unfolding lit_redundant_rec_wl_lookup_def
+    conflict_min_cach_set_removable_def[symmetric]
+    conflict_min_cach_def[symmetric]
+    get_literal_and_remove_of_analyse_wl_def
+    nth_rll_def[symmetric] PR_CONST_def
+    fmap_rll_u_def[symmetric]
+    fmap_rll_def[symmetric]
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
+  apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_fast_assn])
+  apply (rewrite at \<open>let _ = _ \<propto> _ in _\<close> Let_def)
+  unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
+    fmap_rll_def[symmetric]
+    fmap_length_rll_def[symmetric]
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+  by sepref (* slow *)
+
+concrete_definition (in -) lit_redundant_rec_wl_lookup_fast_code
+   uses isasat_input_bounded.lit_redundant_rec_wl_lookup_fast_code.refine_raw
+   is \<open>(uncurry5 ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) lit_redundant_rec_wl_lookup_fast_code_def
+
+lemmas lit_redundant_rec_wl_lookup_fast_hnr[sepref_fr_rules] =
+   lit_redundant_rec_wl_lookup_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 end
 
@@ -2581,6 +2625,36 @@ prepare_code_thms (in -) literal_redundant_wl_lookup_code_def
 lemmas literal_redundant_wl_lookup_code_hnr[sepref_fr_rules] =
    literal_redundant_wl_lookup_code.refine[OF isasat_input_bounded_axioms]
 
+sepref_thm literal_redundant_wl_lookup_fast_code
+  is \<open>uncurry5 (PR_CONST literal_redundant_wl_lookup)\<close>
+  :: \<open>[\<lambda>(((((M, NU), D), cach), L), lbd). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+        literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU)]\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
+      cach_refinement_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
+      cach_refinement_assn *a analyse_refinement_assn *a bool_assn\<close>
+  supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
+  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
+  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro]
+  unfolding literal_redundant_wl_lookup_def zero_uint32_nat_def[symmetric] PR_CONST_def
+  apply (subst conflict_min_cach_def[symmetric])
+  apply (subst (3) conflict_min_cach_def[symmetric])
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
+  unfolding single_replicate
+  unfolding arl.fold_custom_empty
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+  by sepref
+
+concrete_definition (in -) literal_redundant_wl_lookup_code
+   uses isasat_input_bounded.literal_redundant_wl_lookup_code.refine_raw
+   is \<open>(uncurry5 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) literal_redundant_wl_lookup_code_def
+
+lemmas literal_redundant_wl_lookup_code_hnr[sepref_fr_rules] =
+   literal_redundant_wl_lookup_code.refine[OF isasat_input_bounded_axioms]
+
 
 abbreviation (in -) highest_lit_assn where
   \<open>highest_lit_assn \<equiv> option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
@@ -2611,6 +2685,35 @@ prepare_code_thms (in -) minimize_and_extract_highest_lookup_conflict_code_def
 
 lemmas minimize_and_extract_highest_lookup_conflict_code_hnr[sepref_fr_rules] =
    minimize_and_extract_highest_lookup_conflict_code.refine[OF isasat_input_bounded_axioms]
+
+sepref_thm minimize_and_extract_highest_lookup_conflict_fast_code
+  is \<open>uncurry5 (PR_CONST minimize_and_extract_highest_lookup_conflict)\<close>
+  :: \<open>[\<lambda>(((((M, NU), D), cach), lbd), outl). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+        literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU)]\<^sub>a
+       trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a
+        cach_refinement_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+      lookup_clause_assn *a cach_refinement_assn *a out_learned_assn\<close>
+  supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
+    minimize_and_extract_highest_lookup_conflict_inv_def[simp]
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max[intro] length_u_hnr[sepref_fr_rules]
+    array_set_hnr_u[sepref_fr_rules]
+  unfolding minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
+    one_uint32_nat_def[symmetric] PR_CONST_def
+    length_u_def[symmetric] minimize_and_extract_highest_lookup_conflict_inv_def
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+  by sepref
+
+concrete_definition (in -) minimize_and_extract_highest_lookup_conflict_fast_code
+   uses isasat_input_bounded.minimize_and_extract_highest_lookup_conflict_fast_code.refine_raw
+   is \<open>(uncurry5 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) minimize_and_extract_highest_lookup_conflict_fast_code_def
+
+lemmas minimize_and_extract_highest_lookup_conflict_fast_code_hnr[sepref_fr_rules] =
+   minimize_and_extract_highest_lookup_conflict_fast_code.refine[OF isasat_input_bounded_axioms]
 
 end
 

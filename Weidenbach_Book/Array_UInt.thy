@@ -1,5 +1,5 @@
 theory Array_UInt
-  imports Array_List_Array WB_Word_Assn
+  imports Array_List_Array WB_Word_Assn "../lib/Explorer"
 begin
 
 subsection \<open>Setup for array accesses via unsigned integer\<close>
@@ -461,6 +461,17 @@ lemma append_el_aa_hnr'[sepref_fr_rules]:
   by auto
 
 
+lemma append_el_aa_uint32_hnr'[sepref_fr_rules]:
+  shows \<open>(uncurry2 append_el_aa_u', uncurry2 (RETURN ooo append_ll))
+     \<in> [\<lambda>((W,L), j). L < length W]\<^sub>a
+        (arrayO_assn (arl_assn uint32_nat_assn))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+       (arrayO_assn (arl_assn uint32_nat_assn))\<close>
+    (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
+  using append_aa_hnr_u[of uint32_nat_assn, simplified]
+   unfolding hfref_def uint32_nat_rel_def br_def pure_def
+   hn_refine_def append_el_aa_append_el_aa_u'
+  by auto
+
 lemma append_el_aa_u'_code[code]:
   "append_el_aa_u' = (\<lambda>a i x. nth_u_code a i \<bind>
      (\<lambda>j. arl_append j x \<bind>
@@ -838,6 +849,44 @@ proof -
     apply (sep_auto simp: array_assn_def nat_of_uint64_code[symmetric] hr_comp_def is_array_def
         list_rel_imp_same_length arlO_assn_def arl_assn_def hr_comp_def[abs_def])
     apply (rule H'; assumption)
+    done
+qed
+
+
+definition nth_raa_i32 :: \<open>'a::heap arrayO_raa \<Rightarrow> uint32 \<Rightarrow> nat \<Rightarrow> 'a Heap\<close> where
+  \<open>nth_raa_i32 xs i j = do {
+      x \<leftarrow> arl_get_u xs i;
+      y \<leftarrow> Array.nth x j;
+      return y}\<close>
+
+lemma nth_raa_i32_hnr[sepref_fr_rules]:
+  assumes \<open>CONSTRAINT is_pure R\<close>
+  shows
+    \<open>(uncurry2 nth_raa_i32, uncurry2 (RETURN ooo nth_rll)) \<in>
+      [\<lambda>((xs, i), j). i < length xs \<and> j < length (xs !i)]\<^sub>a
+      (arlO_assn (array_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
+proof -
+  have 1: \<open>a * b * array_assn R x y = array_assn R x y * a * b\<close> for a b c :: assn and x y
+    by (auto simp: ac_simps)
+  have 2: \<open>a * arl_assn R x y * c = arl_assn R x y * a * c\<close> for a c :: assn and x y and R
+    by (auto simp: ac_simps)
+  have [simp]: \<open>R a b = \<up>((b,a) \<in> the_pure R)\<close> for a b
+    using assms by (metis CONSTRAINT_D pure_app_eq pure_the_pure)
+  show ?thesis
+    using assms
+    apply sepref_to_hoare
+    apply (sep_auto simp: nth_raa_i32_def arl_get_u_def
+        uint32_nat_rel_def br_def nat_of_uint32_code[symmetric]
+        arlO_assn_except_def 1 arl_get'_def
+        )
+    apply (sep_auto simp: array_assn_def hr_comp_def is_array_def list_rel_imp_same_length
+        param_nth nth_rll_def)
+    apply (sep_auto simp: arlO_assn_def 2 )
+    apply (subst mult.assoc)+
+    apply (rule fr_refl')
+    apply (subst heap_list_all_heap_list_all_nth_eq)
+    apply (subst_tac (2) i=\<open>nat_of_uint32 bia\<close> in heap_list_all_nth_remove1)
+     apply (sep_auto simp: nth_rll_def is_array_def hr_comp_def)+
     done
 qed
 

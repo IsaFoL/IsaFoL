@@ -51,7 +51,7 @@ lemma fmap_rll_hnr[sepref_fr_rules]:
   \<open>(uncurry2 nth_raa, uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll))
      \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>a
      clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-   (is \<open>_?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+   (is \<open>?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H:
     \<open>(uncurry2 nth_raa, uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll))
@@ -163,11 +163,59 @@ lemma fmap_length_rll_u64:
     \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_length_rll_u64_def length_rll_def)
 
+
+definition length_raa_u32_u64 :: \<open>'a::heap arrayO_raa \<Rightarrow> uint32 \<Rightarrow> uint64 Heap\<close> where
+  \<open>length_raa_u32_u64 xs i = do {
+     x \<leftarrow> arl_get_u xs i;
+    length_u64_code x}\<close>
+
+thm length_raa_u64_alt_def
+
+lemma length_raa_u32_u64_hnr[sepref_fr_rules]:
+  shows \<open>(uncurry length_raa_u32_u64, uncurry (RETURN \<circ>\<circ> length_rll_n_uint64)) \<in>
+     [\<lambda>(xs, i). i < length xs \<and> length (xs ! i) \<le> uint64_max]\<^sub>a
+       (arlO_assn (array_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+proof -
+   have 1: \<open>a * b * c = c * a * b\<close> for a b c :: assn
+    by (auto simp: ac_simps)
+  have H: \<open><arlO_assn_except (array_assn R) [nat_of_uint32 bi] a (aa, ba)
+        (\<lambda>r'. array_assn R (a ! nat_of_uint32 bi) x *
+              \<up> (x = r' ! nat_of_uint32 bi))>
+      Array.len x <\<lambda>r. \<up>(r = length (a ! nat_of_uint32 bi)) *
+          arlO_assn (array_assn R) a (aa, ba)>\<close>
+    if
+      \<open>nat_of_uint32 bi < length a\<close> and
+      \<open>length (a ! nat_of_uint32 bi) \<le> uint64_max\<close>
+    for bi :: \<open>uint32\<close> and a :: \<open>'b list list\<close> and aa :: \<open>'a array array\<close> and ba :: \<open>nat\<close> and
+      x :: \<open>'a array\<close>
+  proof -
+    show ?thesis
+      using that apply -
+      apply (subst arlO_assn_except_array0_index[symmetric, OF that(1)])
+      by (sep_auto simp: array_assn_def arl_get_def hr_comp_def is_array_def
+          list_rel_imp_same_length arlO_assn_except_def)
+  qed
+  show ?thesis
+  apply sepref_to_hoare
+  apply (sep_auto simp: uint64_nat_rel_def br_def length_rll_def
+      nat_of_uint64_uint64_of_nat_id length_raa_u32_u64_def arl_get_u_def arl_get'_def
+      uint32_nat_rel_def nat_of_uint32_code[symmetric] length_u64_code_def
+      intro!:)+
+     apply (rule H; assumption)
+    apply (sep_auto simp: array_assn_def arl_get_def nat_of_uint64_uint64_of_nat_id)
+    done
+qed
+
 lemma fmap_length_rll_u64_hnr[sepref_fr_rules]:
   \<open>(uncurry length_raa_u64, uncurry (RETURN \<circ>\<circ> fmap_length_rll_u64))
      \<in> [\<lambda>(N, i). i \<in># dom_m N \<and> length (N \<propto> i) \<le> uint64_max]\<^sub>a
      clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-   (is \<open>_?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+   (is ?slow is \<open>?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
+  fmap_length_rll_u32_u64_hnr[sepref_fr_rules]:
+  \<open>(uncurry length_raa_u32_u64, uncurry (RETURN \<circ>\<circ> fmap_length_rll_u64))
+     \<in> [\<lambda>(N, i). i \<in># dom_m N \<and> length (N \<propto> i) \<le> uint64_max]\<^sub>a
+     clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+   (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
 proof -
   have H:
     \<open>?c
@@ -185,7 +233,26 @@ proof -
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
     by auto
-  show ?thesis
+  show ?slow
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding f im apply assumption
+    using pre ..
+  have H:
+    \<open>?cfast
+       \<in> [comp_PRE (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel) (\<lambda>(N, i). i \<in># dom_m N)
+            (\<lambda>_ (xs, i). i < length xs \<and> length (xs ! i) \<le> uint64_max)
+            (\<lambda>_. True)]\<^sub>a
+         hrp_comp ((arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k) (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel) \<rightarrow>
+         hr_comp uint64_nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    by (rule hfref_compI_PRE_aux[OF length_raa_u32_u64_hnr fmap_length_rll_u64, of unat_lit_assn])
+  have im: \<open>?im' = ?imfast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep clauses_ll_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?ffast\<close>
+    by auto
+  show ?fast
     apply (rule hfref_weaken_pre[OF ])
      defer
     using H unfolding f im apply assumption
@@ -203,14 +270,51 @@ lemma fmap_length_rll:
     \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_length_rll_def length_rll_def)
 
+
+definition length_raa_u32 :: \<open>'a::heap arrayO_raa \<Rightarrow> uint32 \<Rightarrow> nat Heap\<close> where
+  \<open>length_raa_u32 xs i = do {
+     x \<leftarrow> arl_get_u xs i;
+    Array.len x}\<close>
+
+lemma length_raa_u32_rule[sep_heap_rules]:
+  \<open>b < length xs \<Longrightarrow> (b', b) \<in> uint32_nat_rel \<Longrightarrow> <arlO_assn (array_assn R) xs a> length_raa_u32 a b'
+   <\<lambda>r. arlO_assn (array_assn R) xs a * \<up> (r = length_rll xs b)>\<^sub>t\<close>
+  supply arrayO_raa_nth_rule[sep_heap_rules]
+  unfolding length_raa_u32_def arl_get_u_def arl_get'_def uint32_nat_rel_def br_def
+  apply (cases a)
+  apply (sep_auto simp: nat_of_uint32_code[symmetric])
+  apply (sep_auto simp: arlO_assn_except_def arl_length_def array_assn_def 
+      eq_commute[of \<open>(_, _)\<close>] is_array_def hr_comp_def length_rll_def
+      dest: list_all2_lengthD)
+   apply (sep_auto simp: arlO_assn_except_def arl_length_def arl_assn_def
+      hr_comp_def[abs_def] arl_get'_def
+      eq_commute[of \<open>(_, _)\<close>] is_array_list_def hr_comp_def length_rll_def list_rel_def
+      dest: list_all2_lengthD)[]
+  unfolding arlO_assn_def[symmetric] arl_assn_def[symmetric]
+  apply (subst arlO_assn_except_array0_index[symmetric, of b])
+   apply simp
+  unfolding arlO_assn_except_def arl_assn_def hr_comp_def is_array_def
+  apply sep_auto
+  done
+
+lemma length_raa_u32_hnr[sepref_fr_rules]:
+  \<open>(uncurry length_raa_u32, uncurry (RETURN \<circ>\<circ> length_rll)) \<in>
+     [\<lambda>(xs, i). i < length xs]\<^sub>a (arlO_assn (array_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  by sepref_to_hoare sep_auto
+
 lemma fmap_length_rll_hnr[sepref_fr_rules]:
   \<open>(uncurry length_raa, uncurry (RETURN \<circ>\<circ> fmap_length_rll))
      \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>a
      clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-   (is \<open>_?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+   (is ?slow is \<open>?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
+ fmap_length_rll_u32_hnr[sepref_fr_rules]:
+  \<open>(uncurry length_raa_u32, uncurry (RETURN \<circ>\<circ> fmap_length_rll))
+     \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>a
+     clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+   (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
 proof -
   have H:
-    \<open>(uncurry length_raa, uncurry (RETURN \<circ>\<circ> fmap_length_rll))
+    \<open>?c
        \<in> [comp_PRE (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel)
             (\<lambda>(N, i). i \<in># dom_m N)
             (\<lambda>_ (xs, i). i < length xs)
@@ -226,7 +330,27 @@ proof -
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
     by auto
-  show ?thesis
+  show ?slow
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding f im apply assumption
+    using pre ..
+  have H:
+    \<open>?cfast
+       \<in> [comp_PRE (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel)
+            (\<lambda>(N, i). i \<in># dom_m N)
+            (\<lambda>_ (xs, i). i < length xs)
+            (\<lambda>_. True)]\<^sub>a
+          hrp_comp ((arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k) (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel) \<rightarrow>
+           hr_comp nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    by (rule hfref_compI_PRE_aux[OF length_raa_u32_hnr fmap_length_rll, of unat_lit_assn])
+  have im: \<open>?im' = ?imfast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep clauses_ll_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?ffast\<close>
+    by auto
+  show ?fast
     apply (rule hfref_weaken_pre[OF ])
      defer
     using H unfolding f im apply assumption
@@ -374,8 +498,14 @@ sepref_definition append_and_length_u32_code
   unfolding append_and_length_u32_def
   by sepref
 
+
+named_theorems isasat_fast
+
+definition fm_add_new_fast where
+  [simp, symmetric, isasat_fast]: \<open>fm_add_new_fast = fm_add_new\<close>
+
 lemma fm_add_new_fast_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 append_and_length_u32_code, uncurry2 fm_add_new)
+  \<open>(uncurry2 append_and_length_u32_code, uncurry2 fm_add_new_fast)
     \<in> [\<lambda>(_, ba). (\<forall>a\<in>#dom_m ba. a < uint_max)]\<^sub>a
        bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow> clauses_ll_assn *a uint32_nat_assn\<close>
   using append_and_length_u32_code.refine[FCOMP append_and_length_u32_fm_add_new]

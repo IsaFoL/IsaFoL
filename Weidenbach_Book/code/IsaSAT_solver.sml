@@ -1377,7 +1377,7 @@ fun propagate_lit_wl_code x =
     end)
     x;
 
-fun polarity_st_heur_pol_code x =
+fun polarity_st_heur_pol_fast_code x =
   (fn ai => fn bi => let
                        val (a1, _) = ai;
                      in
@@ -1400,7 +1400,8 @@ fun unit_propagation_inner_loop_body_wl_heur_code x =
              (fast_minus minus_uint64 Uint64.one x_b))
           ()) ())
           (fn x_d =>
-            (fn f_ => fn () => f_ ((polarity_st_heur_pol_code bi x_d) ()) ())
+            (fn f_ => fn () => f_ ((polarity_st_heur_pol_fast_code bi x_d) ())
+              ())
               (fn x_f =>
                 (if ((x_f : Word32.word) = sET_TRUE_code)
                   then (fn () => (plus_nat bia one_nat, bi))
