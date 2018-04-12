@@ -85,7 +85,12 @@ lemma fmap_rll_u64_hnr[sepref_fr_rules]:
   \<open>(uncurry2 nth_raa_i_u64, uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll_u64))
      \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>a
      clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-   (is \<open>_?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+   (is ?slow is \<open>?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
+   fmap_rll_i32_u64_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 nth_raa_i32_u64, uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll_u64))
+     \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>a
+     clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+   (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
 proof -
   have H:
     \<open>?c \<in> [comp_PRE (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel)
@@ -104,12 +109,33 @@ proof -
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
     by auto
-  show ?thesis
+  show ?slow
     apply (rule hfref_weaken_pre[OF ])
      defer
     using H unfolding f im fmap_rll_u_def apply assumption
     using pre ..
+  have H:
+    \<open>?cfast \<in> [comp_PRE (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel)
+         (\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i))
+        (\<lambda>_ ((l, i), j). i < length l \<and> j < length (l!i))
+         (\<lambda>_. True)]\<^sub>a
+       hrp_comp ((arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k)
+                   (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel) \<rightarrow> hr_comp unat_lit_assn Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    unfolding fmap_rll_u64_def
+    by (rule hfref_compI_PRE_aux[OF nth_raa_i32_u64_hnr nth_clauses_rll, of unat_lit_assn]) simp
+  have im: \<open>?im' = ?imfast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep clauses_ll_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?ffast\<close>
+    by auto
+  show ?fast
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding f im fmap_rll_u_def apply assumption
+    using pre unfolding length_rll_def ..
 qed
+
 
 definition fmap_length_rll_u :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat" where
   \<open>fmap_length_rll_u l i = length_u (l \<propto> i)\<close>
@@ -126,7 +152,7 @@ lemma fmap_length_rll_u_hnr[sepref_fr_rules]:
   \<open>(uncurry length_raa_u, uncurry (RETURN \<circ>\<circ> fmap_length_rll_u))
      \<in> [\<lambda>(N, i). i \<in># dom_m N \<and> length (N \<propto> i) \<le> uint_max]\<^sub>a
      clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-   (is \<open>_?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+   (is \<open>?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H:
     \<open>(uncurry length_raa_u, uncurry (RETURN \<circ>\<circ> fmap_length_rll_u))
@@ -168,8 +194,6 @@ definition length_raa_u32_u64 :: \<open>'a::heap arrayO_raa \<Rightarrow> uint32
   \<open>length_raa_u32_u64 xs i = do {
      x \<leftarrow> arl_get_u xs i;
     length_u64_code x}\<close>
-
-thm length_raa_u64_alt_def
 
 lemma length_raa_u32_u64_hnr[sepref_fr_rules]:
   shows \<open>(uncurry length_raa_u32_u64, uncurry (RETURN \<circ>\<circ> length_rll_n_uint64)) \<in>
@@ -283,7 +307,7 @@ lemma length_raa_u32_rule[sep_heap_rules]:
   unfolding length_raa_u32_def arl_get_u_def arl_get'_def uint32_nat_rel_def br_def
   apply (cases a)
   apply (sep_auto simp: nat_of_uint32_code[symmetric])
-  apply (sep_auto simp: arlO_assn_except_def arl_length_def array_assn_def 
+  apply (sep_auto simp: arlO_assn_except_def arl_length_def array_assn_def
       eq_commute[of \<open>(_, _)\<close>] is_array_def hr_comp_def length_rll_def
       dest: list_all2_lengthD)
    apply (sep_auto simp: arlO_assn_except_def arl_length_def arl_assn_def
@@ -547,11 +571,17 @@ proof -
 qed
 
 
-lemma fmap_rll_u_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 nth_raa_u', uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll_u))
+lemma
+  fmap_rll_u_hnr[sepref_fr_rules]:
+    \<open>(uncurry2 nth_raa_u', uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll_u))
      \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>a
      clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-   (is \<open>_?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+   (is ?slow is \<open>?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
+  fmap_rll_i32_u_hnr[sepref_fr_rules]:
+    \<open>(uncurry2 nth_raa_i32_u32, uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll_u))
+     \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>a
+     clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+   (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
 proof -
   have H:
     \<open>?c
@@ -572,10 +602,133 @@ proof -
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
     by auto
-  show ?thesis
+  show ?slow
     apply (rule hfref_weaken_pre[OF ])
      defer
     using H unfolding f im fmap_rll_u_def apply assumption
+    using pre ..
+  have H:
+    \<open>?cfast
+       \<in> [comp_PRE (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel)
+           (\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i))
+           (\<lambda>_ ((l, i), j). i < length l \<and> j < length (l!i))
+          (\<lambda>_. True)]\<^sub>a
+       hrp_comp ((arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k)
+                   (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel) \<rightarrow>
+       hr_comp unat_lit_assn Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    unfolding fmap_rll_u_def
+    by (rule hfref_compI_PRE_aux[OF nth_raa_i32_u32_hnr nth_clauses_rll, of unat_lit_assn]) simp
+  have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
+    by (auto simp: comp_PRE_def list_fmap_rel_def length_rll_def intro!: ext)
+  have im: \<open>?im' = ?imfast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep clauses_ll_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?ffast\<close>
+    by auto
+  show ?fast
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding f im fmap_rll_u_def apply assumption
+    using pre ..
+qed
+
+
+lemma fmap_rll_i32_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 nth_raa_i32, uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll_u))
+     \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>a
+     clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+   (is \<open>?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H:
+    \<open>(uncurry2 nth_raa_i32, uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll))
+       \<in> [comp_PRE (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel)
+         (\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i))
+        (\<lambda>_ ((l, i), j). i < length l \<and> j < length (l!i))
+         (\<lambda>_. True)]\<^sub>a
+       hrp_comp ((arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                   (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel) \<rightarrow> hr_comp unat_lit_assn Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    by (rule hfref_compI_PRE_aux[OF nth_raa_i32_hnr nth_clauses_rll, of unat_lit_assn]) simp
+  have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
+    by (auto simp: comp_PRE_def list_fmap_rel_def length_rll_def intro!: ext)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep clauses_ll_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    by auto
+  show ?thesis
+    unfolding fmap_rll_u_def
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding f im apply assumption
+    using pre ..
+qed
+
+
+definition length_raa_i32_u :: \<open>'a::heap arrayO_raa \<Rightarrow> uint32 \<Rightarrow> uint32 Heap\<close> where
+  \<open>length_raa_i32_u xs i = do {
+     x \<leftarrow> arl_get_u xs i;
+    length_u_code x}\<close>
+
+lemma length_raa_i32_rule[sep_heap_rules]:
+  assumes \<open>nat_of_uint32 b < length xs\<close>
+  shows \<open><arlO_assn (array_assn R) xs a> length_raa_i32_u a b
+   <\<lambda>r. arlO_assn (array_assn R) xs a * \<up> (r = uint32_of_nat (length_rll xs (nat_of_uint32 b)))>\<^sub>t\<close>
+proof -
+  have 1: \<open>a * b* c = c * a *b\<close> for a b c :: assn
+    by (auto simp: ac_simps)
+  have [sep_heap_rules]: \<open><arlO_assn_except (array_assn R) [nat_of_uint32 b] xs a
+           (\<lambda>r'. array_assn R (xs ! nat_of_uint32 b) x *
+                 \<up> (x = r' ! nat_of_uint32 b))>
+         Array.len x <\<lambda>r.  arlO_assn (array_assn R) xs a *
+                 \<up> (r = length (xs ! nat_of_uint32 b))>\<close>
+    for x
+    unfolding arlO_assn_except_def
+    apply (subst arlO_assn_except_array0_index[symmetric, OF assms])
+    apply sep_auto
+    apply (subst 1)
+    by (sep_auto simp: array_assn_def is_array_def hr_comp_def list_rel_imp_same_length
+        arlO_assn_except_def)
+  show ?thesis
+    using assms
+    unfolding length_raa_i32_u_def length_u_code_def arl_get_u_def arl_get'_def length_rll_def
+    by (sep_auto simp: nat_of_uint32_code[symmetric])
+qed
+
+lemma length_raa_i32_u_hnr[sepref_fr_rules]:
+  shows \<open>(uncurry length_raa_i32_u, uncurry (RETURN \<circ>\<circ> length_rll_n_uint32)) \<in>
+     [\<lambda>(xs, i). i < length xs \<and> length (xs ! i) \<le> uint32_max]\<^sub>a
+       (arlO_assn (array_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def length_rll_def
+      nat_of_uint32_uint32_of_nat_id)+
+
+lemma fmap_length_rll_i32_u_hnr[sepref_fr_rules]:
+  \<open>(uncurry length_raa_i32_u, uncurry (RETURN \<circ>\<circ> fmap_length_rll_u))
+     \<in> [\<lambda>(N, i). i \<in># dom_m N \<and> length (N \<propto> i) \<le> uint_max]\<^sub>a
+     clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+   (is \<open>?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H:
+    \<open>(uncurry length_raa_i32_u, uncurry (RETURN \<circ>\<circ> fmap_length_rll_u))
+       \<in> [comp_PRE (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel) (\<lambda>(N, i). i \<in># dom_m N)
+            (\<lambda>_ (xs, i). i < length xs \<and> length (xs ! i) \<le> uint_max)
+            (\<lambda>_. True)]\<^sub>a
+         hrp_comp ((arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k) (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel) \<rightarrow>
+         hr_comp uint32_nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    by (rule hfref_compI_PRE_aux[OF length_raa_i32_u_hnr fmap_length_rll_u, of unat_lit_assn])
+  have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
+    by (auto simp: comp_PRE_def list_fmap_rel_def length_rll_def intro!: ext)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep clauses_ll_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    by auto
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding f im apply assumption
     using pre ..
 qed
 

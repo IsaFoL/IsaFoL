@@ -712,6 +712,44 @@ prepare_code_thms (in -) set_lookup_conflict_aa_code_def
 lemmas set_lookup_conflict_aa_code[sepref_fr_rules] =
    set_lookup_conflict_aa_code.refine[OF isasat_input_bounded_axioms]
 
+sepref_thm set_lookup_conflict_aa_fast_code
+  is \<open>uncurry6 (PR_CONST set_lookup_conflict_aa)\<close>
+  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), _). i \<in># dom_m N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+        (\<forall>j<length (N\<propto>i). atm_of (N\<propto>i!j) < length (snd xs)) \<and> no_dup M \<and>
+        literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N\<propto>i)) \<and>
+        length (N\<propto>i) \<le> uint_max]\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+         uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d  *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+      conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
+  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+    uint32_nat_assn_one[sepref_fr_rules] image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    Suc_uint32_nat_assn_hnr[sepref_fr_rules]  fmap_length_rll_u_def[simp]
+  unfolding set_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
+    PR_CONST_def nth_rll_def[symmetric] length_rll_def[symmetric]
+    length_aa_u_def[symmetric] outlearned_add_def clvls_add_def
+    isasat_codegen
+    fmap_rll_u_def[symmetric]
+    fmap_rll_def[symmetric]
+    is_NOTIN_def[symmetric]
+  apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
+  supply [[goals_limit = 1]]
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
+
+  by sepref
+
+concrete_definition (in -) set_lookup_conflict_aa_code
+   uses isasat_input_bounded.set_lookup_conflict_aa_code.refine_raw
+   is \<open>(uncurry6 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) set_lookup_conflict_aa_code_def
+
+lemmas set_lookup_conflict_aa_code[sepref_fr_rules] =
+   set_lookup_conflict_aa_code.refine[OF isasat_input_bounded_axioms]
+
 lemma lookup_conflict_merge'_spec:
   assumes
     o: \<open>((b, n, xs), Some C) \<in> option_lookup_clause_rel\<close> and
@@ -2294,6 +2332,22 @@ sepref_thm mark_failed_lits_stack_code
     fmap_rll_def[symmetric]
   by sepref
 
+
+sepref_thm mark_failed_lits_stack_fast_code
+  is \<open>uncurry2 mark_failed_lits_stack\<close>
+  :: \<open>clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a
+      cach_refinement_assn\<close>
+  supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] length_rll_def[simp]
+    mark_failed_lits_stack_inv_helper1[dest] mark_failed_lits_stack_inv_helper2[dest]
+    fmap_length_rll_u_def[simp]
+  unfolding mark_failed_lits_stack_def
+    conflict_min_cach_set_failed_def[symmetric]
+    conflict_min_cach_def[symmetric]
+    get_literal_and_remove_of_analyse_wl_def
+    nth_rll_def[symmetric]
+    fmap_rll_def[symmetric]
+    fmap_rll_u_def[symmetric]
+  by sepref
 end
 
 sepref_register mark_failed_lits_stack
@@ -2306,6 +2360,15 @@ prepare_code_thms (in -) mark_failed_lits_stack_code_def
 lemmas mark_failed_lits_stack_code_hnr =
    mark_failed_lits_stack_code.refine[of \<A>\<^sub>i\<^sub>n]
 
+concrete_definition (in -) mark_failed_lits_stack_fast_code
+   uses isasat_input_ops.mark_failed_lits_stack_fast_code.refine_raw
+   is \<open>(uncurry2 ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) mark_failed_lits_stack_fast_code_def
+
+lemmas mark_failed_lits_stack_fast_code_hnr =
+   mark_failed_lits_stack_fast_code.refine[of \<A>\<^sub>i\<^sub>n]
+
 lemma mark_failed_lits_wl_hnr[sepref_fr_rules]:
   \<open>(uncurry2 mark_failed_lits_stack_code, uncurry2 mark_failed_lits_wl)
      \<in> [\<lambda>((a, b), ba). literals_are_in_\<L>\<^sub>i\<^sub>n_mm ((mset \<circ> fst) `# ran_m a) \<and>
@@ -2314,6 +2377,16 @@ lemma mark_failed_lits_wl_hnr[sepref_fr_rules]:
         cach_refinement_assn\<close>
   using mark_failed_lits_stack_code_hnr[FCOMP mark_failed_lits_stack_mark_failed_lits_wl]
   .
+
+lemma mark_failed_lits_wl_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 mark_failed_lits_stack_fast_code, uncurry2 mark_failed_lits_wl)
+     \<in> [\<lambda>((a, b), ba). literals_are_in_\<L>\<^sub>i\<^sub>n_mm ((mset \<circ> fst) `# ran_m a) \<and>
+         mark_failed_lits_stack_inv a b ba]\<^sub>a
+        clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>
+        cach_refinement_assn\<close>
+  using mark_failed_lits_stack_fast_code_hnr[FCOMP mark_failed_lits_stack_mark_failed_lits_wl]
+  .
+
 end
 
 context isasat_input_bounded
@@ -2396,9 +2469,8 @@ sepref_thm lit_redundant_rec_wl_lookup_fast_code
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
     fmap_rll_def[symmetric]
     fmap_length_rll_def[symmetric]
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
+    zero_uint32_nat_def[symmetric]
+    fmap_rll_u_def[symmetric]
   by sepref (* slow *)
 
 concrete_definition (in -) lit_redundant_rec_wl_lookup_fast_code
@@ -2631,7 +2703,7 @@ sepref_thm literal_redundant_wl_lookup_fast_code
         literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU)]\<^sub>a
       trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
       cach_refinement_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
-      cach_refinement_assn *a analyse_refinement_assn *a bool_assn\<close>
+      cach_refinement_assn *a analyse_refinement_fast_assn *a bool_assn\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
   literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
   literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro]
@@ -2641,19 +2713,16 @@ sepref_thm literal_redundant_wl_lookup_fast_code
   apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   unfolding single_replicate
   unfolding arl.fold_custom_empty
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
   by sepref
 
-concrete_definition (in -) literal_redundant_wl_lookup_code
-   uses isasat_input_bounded.literal_redundant_wl_lookup_code.refine_raw
+concrete_definition (in -) literal_redundant_wl_lookup_fast_code
+   uses isasat_input_bounded.literal_redundant_wl_lookup_fast_code.refine_raw
    is \<open>(uncurry5 ?f, _) \<in> _\<close>
 
-prepare_code_thms (in -) literal_redundant_wl_lookup_code_def
+prepare_code_thms (in -) literal_redundant_wl_lookup_fast_code_def
 
-lemmas literal_redundant_wl_lookup_code_hnr[sepref_fr_rules] =
-   literal_redundant_wl_lookup_code.refine[OF isasat_input_bounded_axioms]
+lemmas literal_redundant_wl_lookup_fast_code_hnr[sepref_fr_rules] =
+   literal_redundant_wl_lookup_fast_code.refine[OF isasat_input_bounded_axioms]
 
 
 abbreviation (in -) highest_lit_assn where
@@ -2701,9 +2770,6 @@ sepref_thm minimize_and_extract_highest_lookup_conflict_fast_code
   unfolding minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric] PR_CONST_def
     length_u_def[symmetric] minimize_and_extract_highest_lookup_conflict_inv_def
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
   by sepref
 
 concrete_definition (in -) minimize_and_extract_highest_lookup_conflict_fast_code

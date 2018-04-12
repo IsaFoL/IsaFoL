@@ -130,6 +130,31 @@ lemmas find_unwatched_wl_st_heur_code_find_unwatched_wl_st_heur[sepref_fr_rules]
    find_unwatched_wl_st_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
      unfolded PR_CONST_def]
 
+sepref_thm find_unwatched_wl_st_heur_fast_code
+  is \<open>uncurry ((PR_CONST find_unwatched_wl_st_heur))\<close>
+  :: \<open>[find_unwatched_wl_st_heur_pre]\<^sub>a
+         isasat_fast_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn uint64_nat_assn\<close>
+  supply [[goals_limit = 1]] literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0'[intro]
+    fmap_length_rll_def[simp] fmap_length_rll_u64_def[simp]
+  unfolding find_unwatched_wl_st_heur_def isasat_fast_assn_def PR_CONST_def
+  find_unwatched_def fmap_rll_def[symmetric] fmap_length_rll_u64_def[symmetric]
+  length_u_def[symmetric]
+  case_tri_bool_If find_unwatched_wl_st_heur_pre_def
+  two_uint64_nat_def[symmetric]
+  fmap_rll_u64_def[symmetric]
+  one_uint64_nat_def[symmetric]
+  by sepref
+
+concrete_definition (in -) find_unwatched_wl_st_heur_fast_code
+   uses isasat_input_bounded_nempty.find_unwatched_wl_st_heur_fast_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) find_unwatched_wl_st_heur_fast_code_def
+
+lemmas find_unwatched_wl_st_heur_code_find_unwatched_wl_st_fast_heur[sepref_fr_rules] =
+   find_unwatched_wl_st_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
+     unfolded PR_CONST_def]
+
 sepref_thm set_conflict_wl_heur_code
   is \<open>uncurry set_conflict_wl_heur\<close>
   :: \<open>[set_conflict_wl_heur_pre]\<^sub>a
@@ -146,6 +171,30 @@ concrete_definition (in -) set_conflict_wl_heur_code
 prepare_code_thms (in -) set_conflict_wl_heur_code_def
 
 lemmas set_conflict_wl_heur_code[sepref_fr_rules] =
+  set_conflict_wl_heur_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+
+sepref_thm set_conflict_wl_heur_fast_code
+  is \<open>uncurry set_conflict_wl_heur\<close>
+  :: \<open>[set_conflict_wl_heur_pre]\<^sub>a
+    uint32_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding set_conflict_wl_heur_def isasat_fast_assn_def IICF_List_Mset.lms_fold_custom_empty
+    set_conflict_wl_heur_pre_def
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
+
+  by sepref
+
+concrete_definition (in -) set_conflict_wl_heur_fast_code
+  uses isasat_input_bounded_nempty.set_conflict_wl_heur_fast_code.refine_raw
+  is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) set_conflict_wl_heur_fast_code_def
+
+lemmas set_conflict_wl_heur_fast_code[sepref_fr_rules] =
   set_conflict_wl_heur_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 sepref_thm update_clause_wl_code

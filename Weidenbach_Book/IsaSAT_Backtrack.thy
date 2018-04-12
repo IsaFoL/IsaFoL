@@ -761,16 +761,17 @@ where
 definition (in isasat_input_ops) backtrack_wl_D_nlit_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
-  \<open>backtrack_wl_D_nlit_heur S =
+  \<open>backtrack_wl_D_nlit_heur S\<^sub>0 =
     do {
-      ASSERT(backtrack_wl_D_heur_inv S);
-      ASSERT(get_trail_wl_heur S \<noteq> []);
-      let L = lit_of_hd_trail_st_heur S;
-      (S, n, C) \<leftarrow> extract_shorter_conflict_list_heur_st S;
-
+      ASSERT(backtrack_wl_D_heur_inv S\<^sub>0);
+      ASSERT(get_trail_wl_heur S\<^sub>0 \<noteq> []);
+      let L = lit_of_hd_trail_st_heur S\<^sub>0;
+      (S, n, C) \<leftarrow> extract_shorter_conflict_list_heur_st S\<^sub>0;
+      ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0);
       ASSERT(find_decomp_wl_pre (n, S));
       S \<leftarrow> find_decomp_wl_nlit n S;
 
+      ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0);
       if size C > 1
       then do {
         propagate_bt_wl_D_heur L C S
@@ -809,11 +810,23 @@ end
 definition del_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>del_conflict_wl = (\<lambda>(M, N, D, NE, UE, Q, W). (M, N, None, NE, UE, Q, W))\<close>
 
+(* TODO Move *)
+lemma [simp]:
+  \<open>get_clauses_wl (del_conflict_wl S) = get_clauses_wl S\<close>
+  by (cases S) (auto simp: del_conflict_wl_def)
+
+lemma equality_except_conflict_wl_get_clauses_wl:
+  \<open>equality_except_conflict_wl S Y \<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
+  by (cases S; cases Y) (auto simp:)
+lemma equality_except_trail_wl_get_clauses_wl:
+ \<open>equality_except_trail_wl S Y\<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
+  by (cases S; cases Y) (auto simp:)
+(* End Move *)
 
 context isasat_input_bounded_nempty
 begin
 
-definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
+definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_bt =
   {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats), (M, N, D, NE, UE, Q, W)).
     M = M' \<and> N' = N \<and>
@@ -828,17 +841,23 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
     out_learned M D' outl
   }\<close>
 
+lemma (in isasat_input_ops) twl_st_heur_bt_get_clauses_wl:
+  \<open>(S, Y) \<in> twl_st_heur_bt \<Longrightarrow> get_clauses_wl_heur S = get_clauses_wl Y\<close>
+  by (cases S; cases Y) (auto simp: twl_st_heur_bt_def)
+
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
-  have backtrack_wl_D_nlit_heur_alt_def: \<open>backtrack_wl_D_nlit_heur S =
+  have backtrack_wl_D_nlit_heur_alt_def: \<open>backtrack_wl_D_nlit_heur S\<^sub>0 =
     do {
-      ASSERT(backtrack_wl_D_heur_inv S);
-      ASSERT(get_trail_wl_heur S \<noteq> []);
-      let L = lit_of_hd_trail_st_heur S;
-      (S, n, C) \<leftarrow> extract_shorter_conflict_list_heur_st S;
+      ASSERT(backtrack_wl_D_heur_inv S\<^sub>0);
+      ASSERT(get_trail_wl_heur S\<^sub>0 \<noteq> []);
+      let L = lit_of_hd_trail_st_heur S\<^sub>0;
+      (S, n, C) \<leftarrow> extract_shorter_conflict_list_heur_st S\<^sub>0;
+      ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0);
       ASSERT(find_decomp_wl_pre (n, S));
       S \<leftarrow> find_decomp_wl_nlit n S;
+      ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0);
 
       if size C > 1
       then do {
@@ -848,7 +867,7 @@ proof -
       else do {
         propagate_unit_bt_wl_D_int L S
      }
-  }\<close> for S
+  }\<close> for S\<^sub>0
     unfolding backtrack_wl_D_nlit_heur_def Let_def
     by auto
   have inv: \<open>backtrack_wl_D_heur_inv S'\<close>
@@ -1046,8 +1065,7 @@ proof -
       using M_\<L>\<^sub>i\<^sub>n trail_nempty S_T T_U by (cases M)
         (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons uminus_\<A>\<^sub>i\<^sub>n_iff twl_st S)
 
-    have ref: \<open>RES (\<Union>(a, C,
-              n)\<in>{(D, C, n).
+    have ref: \<open>RES (\<Union>(a, C, n)\<in>{(D, C, n).
                    D = None \<and>
                    mset C = mset outl' \<and>
                    C ! 0 = outl' ! 0 \<and>
@@ -1603,8 +1621,11 @@ proof -
     apply (refine_rcg shorter)
     subgoal by (rule inv)
     subgoal by (rule trail_nempty)
+    subgoal by (auto simp: twl_st_heur_state_simp equality_except_conflict_wl_get_clauses_wl)
     subgoal by auto
        apply (rule find_decomp_wl_nlit; solves assumption)
+    subgoal by (auto simp: twl_st_heur_state_simp equality_except_conflict_wl_get_clauses_wl
+          twl_st_heur_bt_get_clauses_wl equality_except_trail_wl_get_clauses_wl)
     subgoal for x y xa S x1 x2 x1a x2a Sa Sb
       by (cases Sb; cases S) (auto simp: twl_st_heur_state_simp)
       apply (rule fst_find_lit_of_max_level_wl; solves assumption)
@@ -1995,7 +2016,7 @@ proof -
 qed
 
 sepref_register find_decomp_wl_nlit
-lemma 
+lemma
   fixes M :: \<open>(nat, nat) ann_lits\<close>
   shows
     find_decomp_wl_imp'_code_find_decomp_wl[sepref_fr_rules]:
@@ -2377,7 +2398,7 @@ lemma empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause':
     (auto intro!: empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause
       simp: empty_conflict_and_extract_clause_pre_def)
 
-theorem 
+theorem
   empty_conflict_and_extract_clause_hnr[sepref_fr_rules]:
     \<open>(uncurry2 (empty_conflict_and_extract_clause_heur_code),
       uncurry2 empty_conflict_and_extract_clause) \<in>
@@ -2465,9 +2486,6 @@ sepref_thm extract_shorter_conflict_list_heur_st_fast
   unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_fast_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     take1_def[symmetric]
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_list_heur_st_fast_code
@@ -2506,6 +2524,29 @@ prepare_code_thms (in -) backtrack_wl_D_nlit_heur_code_def
 
 lemmas backtrack_wl_D_nlit_heur_hnr[sepref_fr_rules] =
    backtrack_wl_D_nlit_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm backtrack_wl_D_fast_code
+  is \<open>PR_CONST backtrack_wl_D_nlit_heur\<close>
+  :: \<open>[isasat_fast]\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+  supply [[goals_limit=1]]
+  lit_of_hd_trail_st_def[symmetric, simp]
+  size_conflict_wl_def[simp]
+  unfolding backtrack_wl_D_nlit_heur_def PR_CONST_def
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+    append_ll_def[symmetric] lit_of_hd_trail_st_def[symmetric]
+    cons_trail_Propagated_def[symmetric]
+    size_conflict_wl_def[symmetric]
+  by sepref
+
+
+concrete_definition (in -) backtrack_wl_D_nlit_heur_fast_code
+   uses isasat_input_bounded_nempty.backtrack_wl_D_fast_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) backtrack_wl_D_nlit_heur_fast_code_def
+
+lemmas backtrack_wl_D_nlit_heur_fast_hnr[sepref_fr_rules] =
+   backtrack_wl_D_nlit_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 end
 
