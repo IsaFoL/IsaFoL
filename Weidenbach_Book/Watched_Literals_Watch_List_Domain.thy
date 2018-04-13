@@ -1155,10 +1155,14 @@ lemma (in isasat_input_ops) literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl[si
   by (cases S)
    (auto simp: is_\<L>\<^sub>a\<^sub>l\<^sub>l_def set_conflict_wl_def)
 
+lemma get_clauses_wl_tl_state: \<open>get_clauses_wl (tl_state_wl T) = get_clauses_wl T\<close>
+  unfolding tl_state_wl_def by (cases T) auto
+
 lemma skip_and_resolve_loop_wl_D_spec:
   assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
   shows \<open>skip_and_resolve_loop_wl_D S \<le>
-     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} (skip_and_resolve_loop_wl S)\<close>
+     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T \<and> get_clauses_wl T = get_clauses_wl S}
+       (skip_and_resolve_loop_wl S)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
   define invar where
@@ -1177,9 +1181,11 @@ proof -
     subgoal by fast
     subgoal by fast
     subgoal by auto
+    subgoal
+      unfolding skip_and_resolve_loop_wl_D_inv_def update_confl_tl_wl_def
+      by (auto split: prod.splits) (simp add: get_clauses_wl_tl_state)
     subgoal by auto
-    subgoal by auto
-    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c
+    subgoal
       unfolding skip_and_resolve_loop_wl_D_inv_def update_confl_tl_wl_def
       by (auto split: prod.splits)
     subgoal by auto
@@ -1645,7 +1651,7 @@ where
         if count_decided (get_trail_wl S) > 0
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D S;
-          ASSERT(get_conflict_wl T \<noteq> None);
+          ASSERT(get_conflict_wl T \<noteq> None \<and> get_clauses_wl S = get_clauses_wl T);
           U \<leftarrow> backtrack_wl_D T;
           RETURN (False, U)
         }
@@ -1665,7 +1671,8 @@ proof -
     for S T
     using backtrack_wl_D_spec[of S] that by fast
   have 2: \<open>skip_and_resolve_loop_wl_D S \<le>
-     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} (skip_and_resolve_loop_wl T)\<close>
+     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T \<and>  get_clauses_wl T = get_clauses_wl S}
+        (skip_and_resolve_loop_wl T)\<close>
     if \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> \<open>S = T\<close>
     for S T
     using skip_and_resolve_loop_wl_D_spec[of S] that by fast
@@ -1678,6 +1685,8 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by simp
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by simp
     subgoal by auto

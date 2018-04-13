@@ -567,7 +567,8 @@ lemma skip_and_resolve_loop_wl_D_inv_skip_and_resolve_loop_wl_D_heur_inv:
 
 lemma skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D:
   \<open>(skip_and_resolve_loop_wl_D_heur, skip_and_resolve_loop_wl_D)
-    \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+    \<in> twl_st_heur \<rightarrow>\<^sub>f
+    \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> get_clauses_wl_heur S = get_clauses_wl T}\<rangle>nres_rel\<close>
 proof -
   have
     atm_is_in_conflict_st_heur_pre: \<open>atm_is_in_conflict_st_heur_pre (- x1c, x2b)\<close>
@@ -917,6 +918,16 @@ lemma get_count_max_lvls_heur_hnr[sepref_fr_rules]:
         elim!: mod_starE)
   done
 
+lemma get_count_max_lvls_heur_fast_hnr[sepref_fr_rules]:
+  \<open>(return o get_count_max_lvls_code, RETURN o get_count_max_lvls_heur) \<in>
+     isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  apply sepref_to_hoare
+  subgoal for x x'
+    by (cases x; cases x')
+     (sep_auto simp: isasat_fast_assn_def get_count_max_lvls_code_def
+        elim!: mod_starE)
+  done
+
 sepref_thm maximum_level_removed_eq_count_dec_code
   is \<open>uncurry (RETURN oo maximum_level_removed_eq_count_dec_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -933,12 +944,27 @@ lemmas maximum_level_removed_eq_count_dec_code_hnr[sepref_fr_rules] =
    maximum_level_removed_eq_count_dec_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 
+sepref_thm maximum_level_removed_eq_count_dec_fast_code
+  is \<open>uncurry (RETURN oo maximum_level_removed_eq_count_dec_heur)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding maximum_level_removed_eq_count_dec_heur_def
+  by sepref
+
+concrete_definition (in -) maximum_level_removed_eq_count_dec_fast_code
+   uses isasat_input_bounded_nempty.maximum_level_removed_eq_count_dec_fast_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) maximum_level_removed_eq_count_dec_fast_code_def
+
+lemmas maximum_level_removed_eq_count_dec_fast_code_hnr[sepref_fr_rules] =
+   maximum_level_removed_eq_count_dec_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+
 sepref_thm is_decided_hd_trail_wl_code
   is \<open>RETURN o is_decided_hd_trail_wl_heur\<close>
   :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_assn\<^sup>k \<rightarrow> bool_assn\<close>
   unfolding is_decided_hd_trail_wl_heur_alt_def isasat_assn_def
   by sepref
-
 
 concrete_definition (in -) is_decided_hd_trail_wl_code
    uses isasat_input_bounded_nempty.is_decided_hd_trail_wl_code.refine_raw
@@ -948,6 +974,22 @@ prepare_code_thms is_decided_hd_trail_wl_code_def
 
 lemmas is_decided_hd_trail_wl_code[sepref_fr_rules] =
    is_decided_hd_trail_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm is_decided_hd_trail_wl_fast_code
+  is \<open>RETURN o is_decided_hd_trail_wl_heur\<close>
+  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_fast_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  unfolding is_decided_hd_trail_wl_heur_alt_def isasat_fast_assn_def
+  by sepref
+
+
+concrete_definition (in -) is_decided_hd_trail_wl_fast_code
+   uses isasat_input_bounded_nempty.is_decided_hd_trail_wl_fast_code.refine_raw
+   is \<open>(?f, _) \<in> _\<close>
+
+prepare_code_thms is_decided_hd_trail_wl_fast_code_def
+
+lemmas is_decided_hd_trail_wl_fast_code[sepref_fr_rules] =
+   is_decided_hd_trail_wl_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 
 sepref_thm lit_and_ann_of_propagated_st_heur_code
@@ -967,6 +1009,24 @@ prepare_code_thms (in -) lit_and_ann_of_propagated_st_heur_code_def
 
 lemmas lit_and_ann_of_propagated_st_heur_code_refine[sepref_fr_rules] =
    lit_and_ann_of_propagated_st_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm lit_and_ann_of_propagated_st_heur_fast_code
+  is \<open>RETURN o lit_and_ann_of_propagated_st_heur\<close>
+  :: \<open>[\<lambda>S. is_proped (hd (get_trail_wl_heur S)) \<and> get_trail_wl_heur S \<noteq> []]\<^sub>a
+       isasat_fast_assn\<^sup>k \<rightarrow> (unat_lit_assn *a uint32_nat_assn)\<close>
+  supply [[goals_limit=1]]
+  supply get_trail_wl_heur_def[simp]
+  unfolding lit_and_ann_of_propagated_st_heur_def isasat_fast_assn_def
+  by sepref
+
+concrete_definition (in -) lit_and_ann_of_propagated_st_heur_fast_code
+   uses isasat_input_bounded_nempty.lit_and_ann_of_propagated_st_heur_fast_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) lit_and_ann_of_propagated_st_heur_fast_code_def
+
+lemmas lit_and_ann_of_propagated_st_heur_fast_code_refine[sepref_fr_rules] =
+   lit_and_ann_of_propagated_st_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 end
 
@@ -995,6 +1055,27 @@ prepare_code_thms (in -) tl_state_wl_heur_code_def
 
 lemmas tl_state_wl_heur_code_refine[sepref_fr_rules] =
    tl_state_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+
+sepref_thm tl_state_wl_heur_fast_code
+  is \<open>RETURN o tl_state_wl_heur\<close>
+  :: \<open>[tl_state_wl_heur_pre]\<^sub>a
+      isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+  supply [[goals_limit=1]] if_splits[split]
+  unfolding tl_state_wl_heur_alt_def[abs_def] isasat_fast_assn_def get_trail_wl_heur_def[simp]
+    vmtf_unset_def bind_ref_tag_def[simp] tl_state_wl_heur_pre_def
+    short_circuit_conv
+  by sepref
+
+
+concrete_definition (in -) tl_state_wl_heur_fast_code
+  uses isasat_input_bounded_nempty.tl_state_wl_heur_fast_code.refine_raw
+  is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) tl_state_wl_heur_fast_code_def
+
+lemmas tl_state_wl_heur_fast_code_refine[sepref_fr_rules] =
+   tl_state_wl_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 
 sepref_thm conflict_remove1_code
@@ -1088,6 +1169,27 @@ prepare_code_thms (in -) update_confl_tl_wl_code_def
 
 lemmas update_confl_tl_wl_code_refine[sepref_fr_rules] =
    update_confl_tl_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+
+sepref_thm update_confl_tl_wl_fast_code
+  is \<open>uncurry2 update_confl_tl_wl_heur\<close>
+  :: \<open>[update_confl_tl_wl_heur_pre]\<^sub>a
+  uint32_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> bool_assn *a isasat_fast_assn\<close>
+  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
+  supply [[goals_limit=1]]
+  unfolding update_confl_tl_wl_heur_def isasat_fast_assn_def save_phase_def
+    update_confl_tl_wl_heur_pre_def
+  supply merge_conflict_m_def[simp]
+  by sepref (* slow *)
+
+concrete_definition (in -) update_confl_tl_wl_fast_code
+  uses isasat_input_bounded_nempty.update_confl_tl_wl_fast_code.refine_raw
+  is \<open>(uncurry2 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) update_confl_tl_wl_fast_code_def
+
+lemmas update_confl_tl_wl_fast_code_refine[sepref_fr_rules] =
+   update_confl_tl_wl_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 end
 
@@ -1219,6 +1321,24 @@ prepare_code_thms (in -) atm_is_in_option_lookup_conflict_code_def
 lemmas atm_is_in_option_lookup_conflict_code_def[sepref_fr_rules] =
    atm_is_in_option_lookup_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
+sepref_thm atm_is_in_option_lookup_conflict_fast_code
+  is \<open>uncurry (RETURN oo atm_is_in_conflict_st_heur)\<close>
+  :: \<open>[atm_is_in_conflict_st_heur_pre]\<^sub>a
+        unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding atm_is_in_conflict_st_heur_alt_def atm_is_in_conflict_def[symmetric]
+    atm_is_in_conflict_st_heur_pre_def isasat_fast_assn_def PR_CONST_def
+  by sepref
+
+concrete_definition (in -) atm_is_in_option_lookup_conflict_fast_code
+  uses isasat_input_bounded.atm_is_in_option_lookup_conflict_fast_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) atm_is_in_option_lookup_conflict_fast_code_def
+
+lemmas atm_is_in_option_lookup_conflict_fast_code_def[sepref_fr_rules] =
+   atm_is_in_option_lookup_conflict_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
 end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
@@ -1261,6 +1381,33 @@ prepare_code_thms (in -) skip_and_resolve_loop_wl_D_code_def
 
 lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
    skip_and_resolve_loop_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm skip_and_resolve_loop_wl_D_fast
+  is \<open>PR_CONST skip_and_resolve_loop_wl_D_heur\<close>
+  :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_fast_assn\<close>
+  supply [[goals_limit=1]]
+    is_decided_hd_trail_wl_def[simp]
+    is_decided_no_proped_iff[simp]
+    is_in_conflict_st_def[simp]  neq_NilE[elim!]
+    annotated_lit.splits[split] lit_and_ann_of_propagated_st_def[simp]
+    annotated_lit.disc_eq_case(2)[simp]
+    not_None_eq[simp del] maximum_level_removed_eq_count_dec_def[simp]
+    skip_and_resolve_loop_wl_D_heur_inv_nempty[simp]
+    is_decided_hd_trail_wl_heur_def[simp]
+  apply (subst PR_CONST_def)
+  unfolding skip_and_resolve_loop_wl_D_heur_def
+  apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
+  by sepref (* slow *)
+
+concrete_definition (in -) skip_and_resolve_loop_wl_D_fast_code
+  uses isasat_input_bounded_nempty.skip_and_resolve_loop_wl_D_fast.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) skip_and_resolve_loop_wl_D_fast_code_def
+
+lemmas skip_and_resolve_loop_wl_D_fast_code_refine[sepref_fr_rules] =
+   skip_and_resolve_loop_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
 end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", split_all_tac))\<close>
