@@ -965,4 +965,31 @@ proof -
     done
 qed
 
+
+definition nth_aa_i32_u32 where
+  \<open>nth_aa_i32_u32 x L L' =  nth_aa x (nat_of_uint32 L) (nat_of_uint32 L')\<close>
+
+definition nth_aa_i32_u32' where
+  \<open>nth_aa_i32_u32' xs i j = do {
+      x \<leftarrow> nth_u_code xs i;
+      y \<leftarrow> arl_get_u x j;
+      return y}\<close>
+
+lemma nth_aa_i32_u32[code]:
+  \<open>nth_aa_i32_u32 x L L' =  nth_aa_i32_u32' x L L'\<close>
+  unfolding nth_aa_u_def nth_aa'_def nth_aa_def Array.nth'_def nat_of_uint32_code
+  nth_aa_i32_u32_def nth_aa_i32_u32'_def nth_u_code_def arl_get_u_def arl_get'_def
+  by (auto simp: nat_of_uint32_code[symmetric])
+
+lemma nth_aa_i32_u32_hnr[sepref_fr_rules]:
+  assumes \<open>CONSTRAINT is_pure R\<close>
+  shows
+    \<open>(uncurry2 nth_aa_i32_u32, uncurry2 (RETURN ooo nth_rll)) \<in>
+       [\<lambda>((x, L), L'). L < length x \<and> L' < length (x ! L)]\<^sub>a
+       (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> R\<close>
+  unfolding nth_aa_i32_u32_def
+  by sepref_to_hoare
+    (use assms in \<open>sep_auto simp: uint32_nat_rel_def br_def length_ll_def nth_ll_def
+     nth_rll_def\<close>)
+
 end

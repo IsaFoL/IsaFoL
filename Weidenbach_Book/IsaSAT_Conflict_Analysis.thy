@@ -149,6 +149,28 @@ lemma mark_of_refine[sepref_fr_rules]:
   apply (case_tac x; case_tac xi; case_tac \<open>snd xi\<close>)
   by (sep_auto simp: nat_ann_lit_rel_def)+
 
+
+lemma mark_of_fast_refine[sepref_fr_rules]:
+  \<open>(return o (\<lambda>C. the (snd C)), RETURN o mark_of) \<in>
+    [\<lambda>C. is_proped C]\<^sub>a pair_nat_ann_lit_fast_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+proof -
+  have 1: \<open>option_assn (\<lambda>a c. \<up> ((c, a) \<in> uint32_nat_rel)) = pure (\<langle>uint32_nat_rel\<rangle>option_rel)\<close>
+    unfolding option_assn_pure_conv[symmetric]
+    by (auto simp: pure_def)
+  show ?thesis
+    apply sepref_to_hoare
+    unfolding 1
+    apply (case_tac x; case_tac xi; case_tac \<open>snd xi\<close>)
+       apply (sep_auto simp: br_def)
+      apply (sep_auto simp: nat_ann_lit_rel_def uint32_nat_rel_def br_def
+        ann_lit_of_pair_if cong: )+
+     apply (sep_auto simp: hr_comp_def)
+    apply (sep_auto simp: hr_comp_def uint32_nat_rel_def br_def)
+     apply (auto simp: nat_ann_lit_rel_def elim: option_relE)[]
+    apply (auto simp: ent_refl_true)
+    done
+qed
+
 lemma lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st:
    \<open>(RETURN o lit_and_ann_of_propagated_st_heur, RETURN o lit_and_ann_of_propagated_st) \<in>
    [\<lambda>S. is_proped (hd (get_trail_wl S))]\<^sub>f twl_st_heur \<rightarrow> \<langle>Id \<times>\<^sub>f Id\<rangle>nres_rel\<close>

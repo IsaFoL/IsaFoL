@@ -371,7 +371,7 @@ sepref_thm polarity_st_heur_pol_fast
   by sepref
 
 concrete_definition (in -) polarity_st_heur_pol_fast_code
-   uses isasat_input_bounded.polarity_st_heur_pol.refine_raw
+   uses isasat_input_bounded.polarity_st_heur_pol_fast.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) polarity_st_heur_pol_fast_code_def
