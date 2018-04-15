@@ -2,6 +2,73 @@ theory IsaSAT_Trail
 imports Watched_Literals_Watch_List_Code_Common
 begin
 
+(* TODO Move *)
+definition nat_of_uint32_conv :: \<open>nat \<Rightarrow> nat\<close> where
+\<open>nat_of_uint32_conv = id\<close>
+
+lemma nat_of_uint32_conv_hnr[sepref_fr_rules]:
+  \<open>(return o nat_of_uint32, RETURN o nat_of_uint32_conv) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_conv_def)
+
+definition option_nat_of_uint32_conv :: \<open>nat option \<Rightarrow> nat option\<close> where
+\<open>option_nat_of_uint32_conv = id\<close>
+
+definition option_nat_of_uint32 :: \<open>uint32 option \<Rightarrow> nat option\<close> where
+\<open>option_nat_of_uint32 = map_option nat_of_uint32\<close>
+
+lemma option_nat_of_uint32_conv_hnr[sepref_fr_rules]:
+  \<open>(return o option_nat_of_uint32, RETURN o option_nat_of_uint32_conv) \<in>
+    (option_assn uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a option_assn nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def
+     option_nat_of_uint32_conv_def option_assn_alt_def option_nat_of_uint32_def
+    split: option.splits)
+
+lemma option_nat_of_uint32[sepref_fr_rules]:
+  \<open>(return o option_nat_of_uint32, RETURN o option_nat_of_uint32) \<in>
+    (option_assn uint32_assn)\<^sup>k \<rightarrow>\<^sub>a option_assn nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def
+     option_nat_of_uint32_conv_def option_assn_alt_def option_nat_of_uint32_def
+    split: option.splits)
+
+definition op_map :: "('b \<Rightarrow> 'a::default) \<Rightarrow> 'a \<Rightarrow> 'b list \<Rightarrow> 'a list nres" where
+  \<open>op_map R e xs = do {
+    let zs = replicate (length xs) e;
+    (_, zs) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i,zs). i \<le> length xs \<and> take i zs = map R (take i xs) \<and>
+        length zs = length xs\<^esup>
+      (\<lambda>(i, zs). i < length zs)
+      (\<lambda>(i, zs). do {ASSERT(i < length zs); RETURN (i+1, zs[i := R (xs!i)])})
+      (0, zs);
+    RETURN zs
+     }\<close>
+
+lemma op_map_map: \<open>op_map R e xs \<le> RETURN (map R xs)\<close>
+  unfolding op_map_def Let_def
+  apply (refine_vcg WHILEIT_rule[where R=\<open>measure (\<lambda>(i,_). length xs - i)\<close>])
+  apply (auto simp: hd_conv_nth take_Suc_conv_app_nth list_update_append split: nat.splits)
+  done
+
+lemma op_map_map_rel:
+  \<open>(op_map R e, RETURN o (map R)) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: op_map_map)
+
+definition arl_option_nat_of_uint32_conv :: \<open>nat option \<Rightarrow> nat option\<close> where
+\<open>arl_option_nat_of_uint32_conv = id\<close>
+
+definition array_option_nat_of_uint32 :: "nat option list \<Rightarrow> nat option list nres" where
+\<open>array_option_nat_of_uint32 xs = op_map option_nat_of_uint32_conv None xs\<close>
+
+sepref_definition array_option_nat_of_uint32_code
+  is array_option_nat_of_uint32
+  :: \<open>(array_assn (option_assn uint32_nat_assn))\<^sup>k \<rightarrow>\<^sub>a array_assn (option_assn nat_assn)\<close>
+  unfolding op_map_def array_option_nat_of_uint32_def array_fold_custom_replicate
+  apply (rewrite at \<open>do {let _ = \<hole>; _}\<close> annotate_assn[where A=\<open>array_assn (option_assn nat_assn)\<close>])
+  by sepref
+
+thm array_option_nat_of_uint32_code.refine[unfolded array_option_nat_of_uint32_def,
+    FCOMP op_map_map_rel]
+
+(* End Move *)
+
 type_synonym tri_bool = \<open>bool option\<close>
 type_synonym tri_bool_assn = \<open>uint32\<close>
 
