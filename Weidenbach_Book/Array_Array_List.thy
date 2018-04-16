@@ -674,4 +674,16 @@ sepref_definition
   supply [[goals_limit = 1]]
   by sepref
 
+
+definition init_lrl :: \<open>nat \<Rightarrow> 'a list list\<close> where
+  \<open>init_lrl n = replicate n []\<close>
+
+lemma arrayO_ara_empty_sz_init_lrl: \<open>arrayO_ara_empty_sz n = init_lrl n\<close>
+  by (induction n) (auto simp: arrayO_ara_empty_sz_def init_lrl_def)
+
+lemma arrayO_raa_empty_sz_init_lrl[sepref_fr_rules]:
+  \<open>(arrayO_ara_empty_sz_code, RETURN o init_lrl) \<in>
+    nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl_assn R)\<close>
+  using arrayO_ara_empty_sz_code.refine unfolding arrayO_ara_empty_sz_init_lrl .
+
 end

@@ -123,6 +123,107 @@ abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
 
 
+definition arl_copy_to :: \<open>('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b list\<close> where
+\<open>arl_copy_to R xs = map R xs\<close>
+
+definition op_map_to
+  :: \<open>('b \<Rightarrow> 'a::default) \<Rightarrow> 'a \<Rightarrow> 'b list \<Rightarrow> 'a list list \<Rightarrow> nat \<Rightarrow> 'a list list nres\<close>
+where
+  \<open>op_map_to R e xs W j = do {
+    (_, zs) \<leftarrow>
+       WHILE\<^sub>T\<^bsup>\<lambda>(i,W'). i \<le> length xs \<and> W'!j = W!j @ map R (take i xs) \<and>
+         (\<forall>k. k \<noteq> j \<longrightarrow> k < length W \<longrightarrow> W'!k = W!k) \<and> length W' = length W\<^esup>
+      (\<lambda>(i, W'). i < length xs)
+      (\<lambda>(i, W'). do {
+         ASSERT(i < length xs);
+         let x = xs ! i;
+         RETURN (i+1, append_ll W' j (R x))})
+      (0, W);
+    RETURN zs
+     }\<close>
+
+lemma op_map_to_map:
+  \<open>j < length W' \<Longrightarrow> op_map_to R e xs W' j \<le> RETURN (W'[j := W'!j @ map R xs])\<close>
+  unfolding op_map_to_def Let_def
+  apply (refine_vcg WHILEIT_rule[where R=\<open>measure (\<lambda>(i,_). length xs - i)\<close>])
+         apply (auto simp: hd_conv_nth take_Suc_conv_app_nth list_update_append 
+      append_ll_def  split: nat.splits)
+  by (simp add: list_eq_iff_nth_eq)
+
+lemma op_map_to_map_rel:
+  \<open>(uncurry2 (op_map_to R e), uncurry2 (RETURN ooo (\<lambda>xs W' j. W'[j := W'!j @ map R xs]))) \<in>
+    [\<lambda>((xs, ys), j). j < length ys]\<^sub>f
+   \<langle>Id\<rangle>list_rel \<times>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: op_map_to_map)
+
+definition convert_single_wl_to_nat where
+\<open>convert_single_wl_to_nat W i W' j = op_map_to nat_of_uint32_conv 0 (W!i) W' j\<close>
+
+sepref_definition convert_single_wl_to_nat_code
+  is \<open>uncurry3 convert_single_wl_to_nat\<close>
+  :: \<open>[\<lambda>(((W, i), W'), j). i < length W \<and> j < length W']\<^sub>a
+       (arrayO_assn (arl_assn uint32_nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
+       (arrayO_assn (arl_assn nat_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
+      arrayO_assn (arl_assn nat_assn)\<close>
+  supply [[goals_limit=1]]
+  unfolding convert_single_wl_to_nat_def op_map_to_def nth_ll_def[symmetric]
+    length_ll_def[symmetric]
+  by sepref
+
+definition convert_single_wl_to_nat_conv where
+\<open>convert_single_wl_to_nat_conv xs i W' j = W'[j :=  map nat_of_uint32_conv (xs!i)]\<close>
+
+lemma convert_single_wl_to_nat:
+  \<open>(uncurry3 convert_single_wl_to_nat,
+    uncurry3 (RETURN oooo convert_single_wl_to_nat_conv)) \<in>
+   [\<lambda>(((xs, i), ys), j). i < length xs \<and> j < length ys \<and> ys!j = []]\<^sub>f
+   \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: convert_single_wl_to_nat_def convert_single_wl_to_nat_conv_def
+      dest!: op_map_to_map)
+
+lemma convert_single_wl_to_nat_conv_hnr[sepref_fr_rules]:
+  \<open>(uncurry3 convert_single_wl_to_nat_code,
+     uncurry3 (RETURN \<circ>\<circ>\<circ> convert_single_wl_to_nat_conv))
+  \<in> [\<lambda>(((a, b), ba), bb). b < length a \<and> bb < length ba \<and> ba ! bb = []]\<^sub>a
+    (arrayO_assn (arl_assn uint32_nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
+    (arrayO_assn (arl_assn nat_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> 
+    arrayO_assn (arl_assn nat_assn)\<close>
+  using convert_single_wl_to_nat_code.refine[FCOMP convert_single_wl_to_nat]
+  by auto
+
+definition convert_wlists_to_nat_conv where
+  \<open>convert_wlists_to_nat_conv = id\<close>
+
+definition convert_wlists_to_nat where
+  \<open>convert_wlists_to_nat = op_map (map nat_of_uint32_conv) []\<close>
+
+(* TODO Move *)
+lemma length_a_hnr[sepref_fr_rules]: \<open>(length_a, RETURN o op_list_length) \<in> (arrayO_assn R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare sep_auto
+(* End Move *)
+
+sepref_definition convert_wlists_to_nat_code
+  is \<open>convert_wlists_to_nat\<close>
+  :: \<open>(arrayO_assn (arl_assn uint32_nat_assn))\<^sup>d \<rightarrow>\<^sub>a arrayO_assn (arl_assn nat_assn)\<close>
+  unfolding convert_wlists_to_nat_def
+    op_map_def[of \<open>map nat_of_uint32_conv\<close> \<open>[]\<close>,
+  unfolded convert_single_wl_to_nat_conv_def[symmetric] init_lrl_def[symmetric]]
+  by sepref
+
+lemma convert_wlists_to_nat_convert_wlists_to_nat_conv:
+  \<open>(convert_wlists_to_nat, RETURN o convert_wlists_to_nat_conv) \<in>
+     \<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) 
+    (auto simp: convert_wlists_to_nat_def nat_of_uint32_conv_def convert_wlists_to_nat_conv_def
+      intro: order.trans op_map_map)
+
+lemma convert_wlists_to_nat_conv_hnr[sepref_fr_rules]:
+  \<open>(convert_wlists_to_nat_code, RETURN \<circ> convert_wlists_to_nat_conv)
+   \<in> (arrayO_assn (arl_assn uint32_nat_assn))\<^sup>d \<rightarrow>\<^sub>a arrayO_assn (arl_assn nat_assn)\<close>
+  using convert_wlists_to_nat_code.refine[FCOMP convert_wlists_to_nat_convert_wlists_to_nat_conv]
+  by simp
+
 context isasat_input_ops
 begin
 
@@ -185,6 +286,18 @@ where
     cach_refinement_empty cach \<and>
     out_learned_confl M D outl
   }\<close>
+
+definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>isasat_fast_slow = 
+    (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats).
+      RETURN (trail_fast_of_slow M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
+        clvls, cach, lbd, outl, stats))\<close>
+
+sepref_definition isasat_fast_slow_code
+  is \<open>isasat_fast_slow\<close>
+  :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  unfolding isasat_fast_assn_def isasat_assn_def isasat_fast_slow_def
+  by sepref
 
 type_synonym (in -) twl_st_wl_heur_W_list =
   \<open>(nat,nat) ann_lits \<times> nat clauses_l \<times>
@@ -306,7 +419,6 @@ prepare_code_thms (in -) count_decided_st_fast_code_def
 lemmas count_decided_st_fast_code_refine[sepref_fr_rules] =
    count_decided_st_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-(*ported until here*)
 lemma count_decided_st_count_decided_st:
   \<open>(RETURN o count_decided_st, RETURN o count_decided_st) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)

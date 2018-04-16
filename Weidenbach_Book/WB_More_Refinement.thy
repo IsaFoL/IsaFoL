@@ -1061,13 +1061,37 @@ proof -
     done
 qed
 
-term \<open>WHILE\<^sub>T\<^bsup>\<lambda>(b, S). I S\<^esup>
-        (\<lambda>(b, S). \<not>b \<and> P S)
-        (\<lambda>(b, S). do {
-            b \<leftarrow> RETURN False;
-            S \<leftarrow> f S;
-            RETURN (b, S)
-          })
-        (False, S)\<close>
+definition arl_replicate where
+ "arl_replicate init_cap x \<equiv> do {
+    let n = max init_cap minimum_capacity;
+    a \<leftarrow> Array.new n x;
+    return (a,init_cap)
+  }"
+
+definition \<open>op_arl_replicate = op_list_replicate\<close>
+lemma arl_fold_custom_replicate:
+  \<open>replicate = op_arl_replicate\<close>
+  unfolding op_arl_replicate_def op_list_replicate_def ..
+
+lemma list_replicate_arl_hnr[sepref_fr_rules]:
+  assumes p:  \<open>CONSTRAINT is_pure R\<close>
+  shows \<open>(uncurry arl_replicate, uncurry (RETURN oo op_arl_replicate)) \<in> nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow>\<^sub>a arl_assn R\<close>
+proof -
+  obtain R' where
+     R'[symmetric]: \<open>R' = the_pure R\<close> and
+     R_R': \<open>R = pure R'\<close>
+    using assms by fastforce
+  have [simp]: \<open>pure R' b bi = \<up>((bi, b) \<in> R')\<close> for b bi
+    by (auto simp: pure_def)
+  have [simp]: \<open>min a (max a 16) = a\<close> for a :: nat
+    by auto
+  show ?thesis
+    using assms unfolding op_arl_replicate_def
+    by sepref_to_hoare
+      (sep_auto simp: arl_replicate_def arl_assn_def hr_comp_def R' R_R' list_rel_def
+        is_array_list_def minimum_capacity_def
+        intro!: list_all2_replicate)
+qed
+
 
 end

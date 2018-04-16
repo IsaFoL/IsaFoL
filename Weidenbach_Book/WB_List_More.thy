@@ -1262,4 +1262,11 @@ lemma list_all2_conj:
   \<open>list_all2 (\<lambda>x y. P x y \<and> Q x y) xs ys \<longleftrightarrow> list_all2 P xs ys \<and> list_all2 Q xs ys\<close>
   by (auto simp: list_all2_conv_all_nth)
 
+lemma list_all2_replicate:
+  \<open>(bi, b) \<in> R' \<Longrightarrow>
+       list_all2 (\<lambda>x x'. (x, x') \<in> R')
+        (replicate n bi)
+        (replicate n b)\<close>
+  by (induction n) auto
+
 end

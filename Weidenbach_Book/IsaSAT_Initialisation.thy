@@ -1676,39 +1676,6 @@ qed
 definition finalise_init where
   \<open>finalise_init = id\<close>
 
-(* TODO Move *)
-definition arl_replicate where
- "arl_replicate init_cap x \<equiv> do {
-    let n = max init_cap minimum_capacity;
-    a \<leftarrow> Array.new n x;
-    return (a,init_cap)
-  }"
-
-definition \<open>op_arl_replicate = op_list_replicate\<close>
-lemma arl_fold_custom_replicate:
-  \<open>replicate = op_arl_replicate\<close>
-  unfolding op_arl_replicate_def op_list_replicate_def ..
-
-lemma list_replicate_arl_hnr[sepref_fr_rules]:
-  assumes p:  \<open>CONSTRAINT is_pure R\<close>
-  shows \<open>(uncurry arl_replicate, uncurry (RETURN oo op_arl_replicate)) \<in> nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow>\<^sub>a arl_assn R\<close>
-proof -
-  obtain R' where
-     R'[symmetric]: \<open>R' = the_pure R\<close> and
-     R_R': \<open>R = pure R'\<close>
-    using assms by fastforce
-  have [simp]: \<open>pure R' b bi = \<up>((bi, b) \<in> R')\<close> for b bi
-    by (auto simp: pure_def)
-  have [simp]: \<open>min a (max a 16) = a\<close> for a :: nat
-    by auto
-  show ?thesis
-    using assms unfolding op_arl_replicate_def
-    by sepref_to_hoare
-      (sep_auto simp: arl_replicate_def arl_assn_def hr_comp_def R' R_R' list_rel_def
-        is_array_list_def minimum_capacity_def
-        intro!: list_all2_replicate)
-qed
-(* End Move *)
 context isasat_input_bounded
 begin
 
@@ -1959,17 +1926,6 @@ lemma (in -)arrayO_raa_empty_sz_init_rll[sepref_fr_rules]:
   using init_rll_list_code.refine[FCOMP empty_array_init_rll]
   unfolding clauses_ll_assn_def[symmetric]
   by auto
-
-definition init_lrl :: \<open>nat \<Rightarrow> 'a list list\<close> where
-  \<open>init_lrl n = replicate n []\<close>
-
-lemma arrayO_ara_empty_sz_init_lrl: \<open>arrayO_ara_empty_sz n = init_lrl n\<close>
-  by (induction n) (auto simp: arrayO_ara_empty_sz_def init_lrl_def)
-
-lemma (in -)arrayO_raa_empty_sz_init_lrl[sepref_fr_rules]:
-  \<open>(arrayO_ara_empty_sz_code, RETURN o init_lrl) \<in>
-    nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl_assn R)\<close>
-  using arrayO_ara_empty_sz_code.refine unfolding arrayO_ara_empty_sz_init_lrl .
 
 definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> trail_pol nres\<close> where
   \<open>init_trail_D \<A>\<^sub>i\<^sub>n n m = do {
