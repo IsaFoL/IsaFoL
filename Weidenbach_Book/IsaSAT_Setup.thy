@@ -293,11 +293,20 @@ definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heu
       RETURN (trail_fast_of_slow M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
         clvls, cach, lbd, outl, stats))\<close>
 
-sepref_definition isasat_fast_slow_code
+sepref_thm isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
   :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
   unfolding isasat_fast_assn_def isasat_assn_def isasat_fast_slow_def
   by sepref
+
+concrete_definition (in -) isasat_fast_slow_code
+  uses isasat_input_ops.isasat_fast_slow_code.refine_raw
+  is \<open>(?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) isasat_fast_slow_code_def
+
+lemmas isasat_fast_slow_code[sepref_fr_rules] =
+   isasat_fast_slow_code.refine
 
 type_synonym (in -) twl_st_wl_heur_W_list =
   \<open>(nat,nat) ann_lits \<times> nat clauses_l \<times>
