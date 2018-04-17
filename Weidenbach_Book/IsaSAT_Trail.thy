@@ -41,9 +41,6 @@ definition op_map :: "('b \<Rightarrow> 'a::default) \<Rightarrow> 'a \<Rightarr
     RETURN zs
      }\<close>
 
-lemma fucck_it: \<open>(\<forall>k\<ge>i. P k) \<Longrightarrow> k\<ge>i \<Longrightarrow> P k\<close>
-  by auto
-
 lemma op_map_map: \<open>op_map R e xs \<le> RETURN (map R xs)\<close>
   unfolding op_map_def Let_def
   by (refine_vcg WHILEIT_rule[where R=\<open>measure (\<lambda>(i,_). length xs - i)\<close>])
@@ -75,6 +72,56 @@ lemma array_option_nat_of_uint32_conv_hnr[sepref_fr_rules]:
     \<in> (array_assn (option_assn uint32_nat_assn))\<^sup>k \<rightarrow>\<^sub>a array_assn (option_assn nat_assn)\<close>
   using array_option_nat_of_uint32_code.refine[unfolded array_option_nat_of_uint32_def,
     FCOMP op_map_map_rel] unfolding array_option_nat_of_uint32_conv_alt_def
+  by simp
+
+definition uint32_of_nat_conv :: \<open>nat \<Rightarrow> nat\<close> where
+\<open>uint32_of_nat_conv = id\<close>
+
+lemma uint32_of_nat_conv_hnr[sepref_fr_rules]:
+  \<open>(return o uint32_of_nat, RETURN o uint32_of_nat_conv) \<in> 
+    [\<lambda>n. n \<le> uint32_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def uint32_of_nat_conv_def
+      nat_of_uint32_uint32_of_nat_id)
+
+definition option_uint32_of_nat_conv :: \<open>nat option \<Rightarrow> nat option\<close> where
+\<open>option_uint32_of_nat_conv = id\<close>
+
+definition option_uint32_of_nat :: \<open>nat option \<Rightarrow> uint32 option\<close> where
+\<open>option_uint32_of_nat = map_option uint32_of_nat\<close>
+
+lemma option_uint32_of_nat_conv_hnr[sepref_fr_rules]:
+  \<open>(return o option_uint32_of_nat, RETURN o option_uint32_of_nat_conv) \<in>
+    [\<lambda>n. n = None \<or> the n \<le> uint32_max]\<^sub>a
+    (option_assn nat_assn)\<^sup>k \<rightarrow> option_assn uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def option_uint32_of_nat_def
+     option_uint32_of_nat_conv_def option_assn_alt_def option_nat_of_uint32_def nat_of_uint32_uint32_of_nat_id
+    split: option.splits)
+
+
+definition array_option_uint32_of_nat_conv :: \<open>nat option list \<Rightarrow> nat option list\<close> where
+\<open>array_option_uint32_of_nat_conv = id\<close>
+
+definition array_option_uint32_of_nat :: "nat option list \<Rightarrow> nat option list nres" where
+\<open>array_option_uint32_of_nat xs = op_map option_uint32_of_nat_conv None xs\<close>
+
+sepref_definition array_option_uint32_of_nat_code
+  is array_option_uint32_of_nat
+  :: \<open>[\<lambda>xs. \<forall>a\<in>set xs. a = None \<or> the a \<le> uint32_max]\<^sub>a
+       (array_assn (option_assn nat_assn))\<^sup>k \<rightarrow> array_assn (option_assn uint32_nat_assn)\<close>
+  unfolding op_map_def array_option_uint32_of_nat_def array_fold_custom_replicate
+  apply (rewrite at \<open>do {let _ = \<hole>; _}\<close> annotate_assn[where A=\<open>array_assn (option_assn uint32_nat_assn)\<close>])
+  by sepref
+
+lemma array_option_uint32_of_nat_conv_alt_def:
+  \<open>array_option_uint32_of_nat_conv = map option_uint32_of_nat_conv\<close>
+  unfolding option_uint32_of_nat_conv_def array_option_uint32_of_nat_conv_def by auto
+
+lemma array_option_uint32_of_nat_conv_hnr[sepref_fr_rules]:
+  \<open>(array_option_uint32_of_nat_code, (RETURN \<circ> array_option_uint32_of_nat_conv))
+    \<in> [\<lambda>xs. \<forall>a\<in>set xs. a = None \<or> the a \<le> uint32_max]\<^sub>a 
+       (array_assn (option_assn nat_assn))\<^sup>k \<rightarrow> array_assn (option_assn uint32_nat_assn)\<close>
+  using array_option_uint32_of_nat_code.refine[unfolded array_option_uint32_of_nat_def,
+    FCOMP op_map_map_rel] unfolding array_option_uint32_of_nat_conv_alt_def
   by simp
 (* End Move *)
 
@@ -210,13 +257,27 @@ abbreviation phase_saver_conc where
 definition trail_fast_of_slow :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>trail_fast_of_slow = id\<close>
 
-definition trail_pol_fast_of_slow :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>trail_pol_fast_of_slow =
+definition trail_pol_slow_of_fast :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
+  \<open>trail_pol_slow_of_fast =
     (\<lambda>(M, val, lvls, reason, k). (M, val, lvls, array_option_nat_of_uint32_conv reason, k))\<close>
 
 sepref_definition trail_pol_slow_of_fast_code
-  is \<open>RETURN o trail_pol_fast_of_slow\<close>
+  is \<open>RETURN o trail_pol_slow_of_fast\<close>
   :: \<open>trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn\<close>
+  unfolding trail_pol_slow_of_fast_def
+  by sepref
+
+definition trail_slow_of_fast :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
+  \<open>trail_slow_of_fast = id\<close>
+
+definition trail_pol_fast_of_slow :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
+  \<open>trail_pol_fast_of_slow =
+    (\<lambda>(M, val, lvls, reason, k). (M, val, lvls, array_option_uint32_of_nat_conv reason, k))\<close>
+
+sepref_definition trail_pol_fast_of_slow_code
+  is \<open>RETURN o trail_pol_fast_of_slow\<close>
+  :: \<open>[\<lambda>(M, val, lvls, reason, k). \<forall>i\<in>set reason. i = None \<or> the i < uint32_max]\<^sub>a 
+      trail_pol_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   unfolding trail_pol_fast_of_slow_def
   by sepref
 
@@ -231,15 +292,23 @@ abbreviation trail_fast_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> trail_p
 
 lemma trail_pol_fast_of_slow_trail_fast_of_slow:
   \<open>(RETURN o trail_pol_fast_of_slow, RETURN o trail_fast_of_slow)
+    \<in> [\<lambda>M. (\<forall>C L. Propagated L C \<in> set M \<longrightarrow> C < uint32_max)]\<^sub>f
+        trail_pol \<rightarrow> \<langle>trail_pol\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+   (auto simp: trail_pol_def trail_pol_fast_of_slow_def array_option_nat_of_uint32_conv_def
+    trail_fast_of_slow_def array_option_uint32_of_nat_conv_def)
+
+lemma trail_pol_slow_of_fast_trail_slow_of_fast:
+  \<open>(RETURN o trail_pol_slow_of_fast, RETURN o trail_slow_of_fast)
     \<in> trail_pol \<rightarrow>\<^sub>f \<langle>trail_pol\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
    (auto simp: trail_pol_def trail_pol_fast_of_slow_def array_option_nat_of_uint32_conv_def
-    trail_fast_of_slow_def)
+    trail_fast_of_slow_def array_option_uint32_of_nat_conv_def trail_slow_of_fast_def
+     trail_pol_slow_of_fast_def)
 
 lemma trail_fast_of_slow_hnr[sepref_fr_rules]:
-  \<open>(trail_pol_slow_of_fast_code, RETURN \<circ> trail_fast_of_slow) \<in> trail_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_assn\<close>
-  using trail_pol_slow_of_fast_code.refine[FCOMP trail_pol_fast_of_slow_trail_fast_of_slow]
-  .
+  \<open>(trail_pol_slow_of_fast_code, RETURN \<circ> trail_slow_of_fast) \<in> trail_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_assn\<close>
+  using trail_pol_slow_of_fast_code.refine[FCOMP trail_pol_slow_of_fast_trail_slow_of_fast] .
 
 end
 

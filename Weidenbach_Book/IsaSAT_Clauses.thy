@@ -473,6 +473,20 @@ lemma fm_add_new_hnr[sepref_fr_rules]:
   using append_and_length_code.refine[FCOMP append_and_length_fm_add_new]
   unfolding clauses_ll_assn_def by simp
 
+(* TODO Proper setup + Move *)
+definition length_arlO_u where
+  \<open>length_arlO_u xs = do {
+      n \<leftarrow> length_ra xs;
+      return (uint32_of_nat n)}\<close>
+
+lemma length_arlO_u[sepref_fr_rules]:
+  \<open>(length_arlO_u, RETURN o length_u) \<in>
+     [\<lambda>xs. length xs \<le> uint32_max]\<^sub>a (arlO_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: length_arlO_u_def arl_length_def uint32_nat_rel_def
+      br_def nat_of_uint32_uint32_of_nat_id)
+(* End Move *)
+
 definition convert_to_uint32 :: \<open>nat \<Rightarrow> nat\<close> where
   [simp]: \<open>convert_to_uint32 = id\<close>
 lemma convert_to_uint32_hnr[sepref_fr_rules]:

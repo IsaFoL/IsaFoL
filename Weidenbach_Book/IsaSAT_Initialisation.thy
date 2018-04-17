@@ -61,6 +61,12 @@ type_synonym (in -)twl_st_wll_trail_init =
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn\<close>
 
+
+type_synonym (in -)twl_st_wll_trail_fast_init =
+  \<open>trail_pol_fast_assn \<times> clauses_wl \<times> option_lookup_clause_assn \<times>
+    lit_queue_l \<times> watched_wl_uint32 \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
+    uint32 \<times> minimize_assn \<times> lbd_assn\<close>
+
 definition (in isasat_input_ops) isasat_init_assn
   :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close>
 where
@@ -78,6 +84,24 @@ definition (in isasat_input_ops) twl_st_init_assn
   :: \<open>nat twl_st_wl_init \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close>
 where
   \<open>twl_st_init_assn = hr_comp isasat_init_assn twl_st_heur_init\<close>
+
+definition (in isasat_input_ops) isasat_init_fast_assn
+  :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_fast_init \<Rightarrow> assn\<close>
+where
+\<open>isasat_init_fast_assn =
+  trail_fast_assn *a clauses_ll_assn *a
+  option_lookup_clause_assn *a
+  clause_l_assn *a
+  arrayO_assn (arl_assn uint32_nat_assn) *a
+  vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
+  uint32_nat_assn *a
+  cach_refinement_assn *a
+  lbd_assn\<close>
+
+definition (in isasat_input_ops) twl_st_init_fast_assn
+  :: \<open>nat twl_st_wl_init \<Rightarrow> twl_st_wll_trail_fast_init \<Rightarrow> assn\<close>
+where
+  \<open>twl_st_init_fast_assn = hr_comp isasat_init_fast_assn twl_st_heur_init\<close>
 
 fun (in -)get_conflict_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat clause option\<close> where
   \<open>get_conflict_wl_heur_init (_, _, D, _) = D\<close>
@@ -133,6 +157,24 @@ prepare_code_thms (in -) propagate_unit_cls_code_def
 lemmas propagate_unit_cls_heur_hnr[sepref_fr_rules] =
    propagate_unit_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
+
+sepref_thm propagate_unit_cls_fast_code
+  is \<open>uncurry (PR_CONST propagate_unit_cls_heur)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_fast_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding propagate_unit_cls_heur_def isasat_init_fast_assn_def
+  PR_CONST_def cons_trail_Propagated_def[symmetric] zero_uint32_nat_def[symmetric]
+  by sepref
+
+concrete_definition (in -) propagate_unit_cls_fast_code
+   uses isasat_input_bounded.propagate_unit_cls_fast_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) propagate_unit_cls_fast_code_def
+
+lemmas propagate_unit_cls_fast_heur_hnr[sepref_fr_rules] =
+   propagate_unit_cls_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
 definition (in isasat_input_ops) already_propagated_unit_cls
    :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
@@ -170,12 +212,36 @@ prepare_code_thms (in -) already_propagated_unit_cls_code_def
 lemmas already_propagated_unit_cls_heur_hnr[sepref_fr_rules] =
    already_propagated_unit_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
+sepref_thm already_propagated_unit_cls_fast_code
+  is \<open>uncurry already_propagated_unit_cls_heur\<close>
+  :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_fast_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_fast_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding already_propagated_unit_cls_heur_def isasat_init_fast_assn_def
+  PR_CONST_def cons_trail_Propagated_def[symmetric]
+  by sepref
+
+concrete_definition (in -) already_propagated_unit_cls_fast_code
+   uses isasat_input_bounded.already_propagated_unit_cls_fast_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) already_propagated_unit_cls_fast_code_def
+
+lemmas already_propagated_unit_cls_fast_heur_hnr[sepref_fr_rules] =
+   already_propagated_unit_cls_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
 theorem already_propagated_unit_cls_hnr[sepref_fr_rules]:
   \<open>(uncurry already_propagated_unit_cls_code, uncurry (RETURN \<circ>\<circ> already_propagated_unit_init_wl))
   \<in> clause_l_assn\<^sup>k *\<^sub>a twl_st_init_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_init_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
   using already_propagated_unit_cls_heur_hnr[FCOMP already_propagated_unit_cls_heur_already_propagated_unit_cls]
   unfolding twl_st_init_assn_def[symmetric] clause_l_assn_alt_def[symmetric] by simp
+
+theorem already_propagated_unit_cls_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry already_propagated_unit_cls_fast_code, uncurry (RETURN \<circ>\<circ> already_propagated_unit_init_wl))
+  \<in> clause_l_assn\<^sup>k *\<^sub>a twl_st_init_fast_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_init_fast_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+  using already_propagated_unit_cls_fast_heur_hnr[FCOMP already_propagated_unit_cls_heur_already_propagated_unit_cls]
+  unfolding twl_st_init_fast_assn_def[symmetric] clause_l_assn_alt_def[symmetric] by simp
 
 definition (in -) set_conflict_unit :: \<open>nat literal \<Rightarrow> nat clause option \<Rightarrow> nat clause option\<close> where
 \<open>set_conflict_unit L _ = Some {#L#}\<close>
@@ -286,6 +352,25 @@ prepare_code_thms (in -) conflict_propagated_unit_cls_code_def
 lemmas conflict_propagated_unit_cls_heur_hnr[sepref_fr_rules] =
    conflict_propagated_unit_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
+sepref_thm conflict_propagated_unit_cls_fast_code
+  is \<open>uncurry (PR_CONST conflict_propagated_unit_cls_heur)\<close>
+  :: \<open>[\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> get_conflict_wl_heur_init S = None]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a isasat_init_fast_assn\<^sup>d  \<rightarrow> isasat_init_fast_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding conflict_propagated_unit_cls_heur_def isasat_init_fast_assn_def
+  PR_CONST_def cons_trail_Propagated_def[symmetric]
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> lms_fold_custom_empty)+
+  by sepref
+
+concrete_definition (in -) conflict_propagated_unit_cls_fast_code
+   uses isasat_input_bounded.conflict_propagated_unit_cls_fast_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) conflict_propagated_unit_cls_fast_code_def
+
+lemmas conflict_propagated_unit_cls_heur_fast_hnr[sepref_fr_rules] =
+   conflict_propagated_unit_cls_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
 text \<open>TODO: why is sepref not able to handle the inlined version of the Let for True?\<close>
 definition (in isasat_input_ops) add_init_cls_heur
   :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>  where
@@ -322,6 +407,30 @@ prepare_code_thms (in -) add_init_cls_code_def
 
 lemmas add_init_cls_heur_hnr[sepref_fr_rules] =
    add_init_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+sepref_thm add_init_cls_fast_code
+  is \<open>uncurry add_init_cls_heur\<close>
+  :: \<open>[\<lambda>(C, S). length C \<ge> 2 \<and> nat_of_lit (hd C) < length (get_watched_list_heur_init S) \<and>
+        nat_of_lit (hd (tl C)) < length (get_watched_list_heur_init S) \<and>
+       isasat_fast_init S]\<^sub>a
+      (list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_fast_assn\<^sup>d  \<rightarrow> isasat_init_fast_assn\<close>
+  supply [[goals_limit=1]] append_ll_def[simp]
+  unfolding add_init_cls_heur_def isasat_init_fast_assn_def
+  PR_CONST_def cons_trail_Propagated_def[symmetric]
+  unfolding isasat_init_assn_def Array_List_Array.swap_ll_def[symmetric]
+    nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
+    delete_index_and_swap_ll_def[symmetric] isasat_fast
+    append_ll_def[symmetric] length_C_nempty_iff
+  by sepref
+
+concrete_definition (in -) add_init_cls_fast_code
+   uses isasat_input_bounded.add_init_cls_fast_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) add_init_cls_fast_code_def
+
+lemmas add_init_cls_heur_fast_hnr[sepref_fr_rules] =
+   add_init_cls_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma add_init_cls_heur_add_init_cls:
   \<open>(uncurry add_init_cls_heur, uncurry (add_to_clauses_init_wl)) \<in>
@@ -381,6 +490,33 @@ lemma already_propagated_unit_cls_conflict_hnr[sepref_fr_rules]:
     [FCOMP already_propagated_unit_cls_conflict_heur_already_propagated_unit_cls_conflict]
   unfolding twl_st_init_assn_def[symmetric] by simp
 
+
+sepref_thm already_propagated_unit_cls_conflict_fast_code
+  is \<open>uncurry already_propagated_unit_cls_conflict_heur\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_fast_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_fast_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding already_propagated_unit_cls_conflict_heur_def isasat_init_fast_assn_def
+  PR_CONST_def cons_trail_Propagated_def[symmetric]
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> lms_fold_custom_empty)+
+  by sepref
+
+concrete_definition (in -) already_propagated_unit_cls_conflict_fast_code
+   uses isasat_input_bounded.already_propagated_unit_cls_conflict_fast_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) already_propagated_unit_cls_conflict_fast_code_def
+
+lemmas already_propagated_unit_cls_conflict_heur_fast_hnr[sepref_fr_rules] =
+   already_propagated_unit_cls_conflict_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+lemma already_propagated_unit_cls_conflict_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry already_propagated_unit_cls_conflict_fast_code,
+      uncurry (RETURN \<circ>\<circ> already_propagated_unit_cls_conflict))
+  \<in> unat_lit_assn\<^sup>k *\<^sub>a twl_st_init_fast_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_init_fast_assn\<close>
+  using already_propagated_unit_cls_conflict_heur_fast_hnr
+    [FCOMP already_propagated_unit_cls_conflict_heur_already_propagated_unit_cls_conflict]
+  unfolding twl_st_init_fast_assn_def[symmetric] by simp
+
 definition (in -) set_conflict_empty :: \<open>nat clause option \<Rightarrow> nat clause option\<close> where
 \<open>set_conflict_empty _ = Some {#}\<close>
 
@@ -436,10 +572,32 @@ prepare_code_thms (in -) set_empty_clause_as_conflict_code_def
 lemmas set_empty_clause_as_conflict_heur_hnr[sepref_fr_rules] =
    set_empty_clause_as_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
+
+sepref_thm set_empty_clause_as_conflict_fast_code
+  is \<open>set_empty_clause_as_conflict_heur\<close>
+  :: \<open>[\<lambda>S. get_conflict_wl_heur_init S = None]\<^sub>a isasat_init_fast_assn\<^sup>d \<rightarrow> isasat_init_fast_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding set_empty_clause_as_conflict_heur_def isasat_init_fast_assn_def
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> lms_fold_custom_empty)+
+  by sepref
+
+concrete_definition (in -) set_empty_clause_as_conflict_fast_code
+   uses isasat_input_bounded.set_empty_clause_as_conflict_fast_code.refine_raw
+   is \<open>(?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) set_empty_clause_as_conflict_fast_code_def
+
+lemmas set_empty_clause_as_conflict_heur_fast_hnr[sepref_fr_rules] =
+   set_empty_clause_as_conflict_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
 theorem set_empty_clause_as_conflict_hnr[sepref_fr_rules]:
   \<open>(set_empty_clause_as_conflict_code, RETURN o add_empty_conflict_init_wl)
     \<in> [\<lambda>S. get_conflict_wl (fst S) = None]\<^sub>a twl_st_init_assn\<^sup>d  \<rightarrow> twl_st_init_assn\<close>
-    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+    (is ?slow is  \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
+  set_empty_clause_as_conflict_fast_hnr[sepref_fr_rules]:
+    \<open>(set_empty_clause_as_conflict_fast_code, RETURN o add_empty_conflict_init_wl)
+      \<in> [\<lambda>S. get_conflict_wl (fst S) = None]\<^sub>a twl_st_init_fast_assn\<^sup>d  \<rightarrow> twl_st_init_fast_assn\<close>
+    (is ?fast is \<open>?cfast \<in> [?prefast]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
 proof -
   have H: \<open>?c
     \<in> [comp_PRE twl_st_heur_init (\<lambda>_. True) (\<lambda>_ S. get_conflict_wl_heur_init S = None)
@@ -456,13 +614,33 @@ proof -
   have f: \<open>?f' = ?f\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_init_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
-  show ?thesis
+  show ?slow
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+
+  have H: \<open>?cfast
+    \<in> [comp_PRE twl_st_heur_init (\<lambda>_. True) (\<lambda>_ S. get_conflict_wl_heur_init S = None)
+         (\<lambda>_. True)]\<^sub>a
+       hrp_comp (isasat_init_fast_assn\<^sup>d) twl_st_heur_init \<rightarrow>
+       hr_comp isasat_init_fast_assn twl_st_heur_init\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF set_empty_clause_as_conflict_heur_fast_hnr
+    set_empty_clause_as_conflict_heur_set_empty_clause_as_conflict] .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that by (auto simp: comp_PRE_def twl_st_heur_init_def)
+  have im: \<open>?im' = ?imfast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_init_fast_assn_def by simp
+  have f: \<open>?f' = ?ffast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_init_fast_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?fast
     apply (rule hfref_weaken_pre[OF ])
      defer
     using H unfolding im f PR_CONST_def apply assumption
     using pre ..
 qed
-
 
 definition (in -) add_clause_to_others_heur
    :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
@@ -497,6 +675,28 @@ lemma add_clause_to_others_hnr[sepref_fr_rules]:
    \<in> (list_assn unat_lit_assn)\<^sup>k *\<^sub>a twl_st_init_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_init_assn\<close>
   using add_clause_to_others_heur_hnr[FCOMP add_clause_to_others_heur_add_clause_to_others,
   unfolded twl_st_init_assn_def[symmetric]] .
+
+sepref_thm add_clause_to_others_fast_code
+  is \<open>uncurry add_clause_to_others_heur\<close>
+  :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_fast_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding add_clause_to_others_heur_def isasat_init_fast_assn_def
+  by sepref
+
+concrete_definition (in -) add_clause_to_others_fast_code
+   uses isasat_input_bounded.add_clause_to_others_fast_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) add_clause_to_others_fast_code_def
+
+lemmas add_clause_to_others_heur_fast_hnr[sepref_fr_rules] =
+   add_clause_to_others_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+lemma add_clause_to_others_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry add_clause_to_others_fast_code, uncurry (RETURN \<circ>\<circ> add_to_other_init))
+   \<in> (list_assn unat_lit_assn)\<^sup>k *\<^sub>a twl_st_init_fast_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_init_fast_assn\<close>
+  using add_clause_to_others_heur_fast_hnr[FCOMP add_clause_to_others_heur_add_clause_to_others,
+  unfolded twl_st_init_fast_assn_def[symmetric]] .
 
 definition (in -)list_length_1 where
   [simp]: \<open>list_length_1 C \<longleftrightarrow> length C = 1\<close>
@@ -537,8 +737,8 @@ where
            then do { (propagate_unit_cls_heur L S)}
            else
              if val_L = Some True
-             then do { (already_propagated_unit_cls_heur C S)}
-             else do { (conflict_propagated_unit_cls_heur L S)}
+             then do {already_propagated_unit_cls_heur C S}
+             else do {conflict_propagated_unit_cls_heur L S}
            }
          else do {
           ASSERT(length C \<ge> 2);
@@ -653,6 +853,29 @@ lemma get_conflict_wl_is_None_code_get_conflict_wl_is_None_no_lvls[sepref_fr_rul
   unfolding twl_st_init_assn_def get_conflict_wl_is_None_init_def
   by fast
 
+sepref_thm get_conflict_wl_is_None_init_fast_code
+  is \<open>RETURN o get_conflict_wl_is_None_heur_init\<close>
+  :: \<open>isasat_init_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wl_is_None_heur_init_def isasat_init_fast_assn_def length_ll_def[symmetric]
+  supply [[goals_limit=1]]
+  by sepref
+
+concrete_definition (in -) get_conflict_wl_is_None_init_fast_code
+   uses isasat_input_bounded.get_conflict_wl_is_None_init_fast_code.refine_raw
+   is \<open>(?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) get_conflict_wl_is_None_init_fast_code_def
+
+lemmas get_conflict_wl_is_None_init_fast_code_hnr[sepref_fr_rules] =
+   get_conflict_wl_is_None_init_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+lemma get_conflict_wl_is_None_fast_code_get_conflict_wl_is_None_no_lvls[sepref_fr_rules]:
+  \<open>(get_conflict_wl_is_None_init_fast_code, RETURN o get_conflict_wl_is_None_init) \<in>
+     twl_st_init_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  using get_conflict_wl_is_None_init_fast_code_hnr[FCOMP get_conflict_wl_is_None_heur_get_conflict_wl_is_None_init]
+  unfolding twl_st_init_fast_assn_def get_conflict_wl_is_None_init_def
+  by fast
+
 definition polarity_st_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _ \<Rightarrow> bool option\<close> where
   \<open>polarity_st_heur_init = (\<lambda>(M, _) L. polarity M L)\<close>
 
@@ -671,6 +894,22 @@ prepare_code_thms (in -) polarity_st_heur_init_code_def
 
 lemmas polarity_st_heur_init_hr[sepref_fr_rules] =
    polarity_st_heur_init_code.refine[OF isasat_input_bounded_axioms]
+
+sepref_thm polarity_st_heur_init_fast_code
+  is \<open>uncurry (RETURN oo polarity_st_heur_init)\<close>
+  :: \<open>[\<lambda>(S, L). L \<in> snd ` D\<^sub>0]\<^sub>a isasat_init_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
+  unfolding polarity_st_heur_init_def isasat_init_fast_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) polarity_st_heur_init_fast_code
+   uses isasat_input_bounded.polarity_st_heur_init_fast_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) polarity_st_heur_init_fast_code_def
+
+lemmas polarity_st_heur_init_fast_hr[sepref_fr_rules] =
+   polarity_st_heur_init_fast_code.refine[OF isasat_input_bounded_axioms]
 
 definition polarity_st_init :: \<open>'v twl_st_wl_init \<Rightarrow> 'v literal \<Rightarrow> bool option\<close> where
   \<open>polarity_st_init S = polarity (get_trail_wl (fst S))\<close>
@@ -729,21 +968,63 @@ prepare_code_thms (in -) init_dt_step_wl_code_def
 lemmas init_dt_step_wl_code_refine[sepref_fr_rules] =
   init_dt_step_wl_code.refine[OF isasat_input_bounded_axioms]
 
+
+sepref_thm init_dt_step_wl_fast_code
+  is \<open>uncurry (PR_CONST init_dt_step_wl_heur)\<close>
+  :: \<open>[\<lambda>(_, S). isasat_fast_init S]\<^sub>a (list_assn unat_lit_assn)\<^sup>d *\<^sub>a isasat_init_fast_assn\<^sup>d \<rightarrow>
+       isasat_init_fast_assn\<close>
+  supply polarity_None_undefined_lit[simp] polarity_st_init_def[simp]
+  option.splits[split] get_conflict_wl_is_None_heur_init_alt_def[simp]
+  tri_bool_eq_def[simp]
+  unfolding init_dt_step_wl_heur_def lms_fold_custom_empty PR_CONST_def
+  unfolding watched_app_def[symmetric]
+  unfolding nth_rll_def[symmetric]
+  unfolding lms_fold_custom_empty swap_ll_def[symmetric]
+  unfolding
+    cons_trail_Propagated_def[symmetric] get_conflict_wl_is_None_init
+    polarity_st_heur_init_alt_def[symmetric]
+    get_conflict_wl_is_None_heur_init_alt_def[symmetric]
+    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] UNSET_def[symmetric]
+    tri_bool_eq_def[symmetric]
+  by sepref
+
+concrete_definition (in -) init_dt_step_wl_fast_code
+  uses "isasat_input_bounded.init_dt_step_wl_fast_code.refine_raw"
+  is "(uncurry ?f,_)\<in>_"
+
+prepare_code_thms (in -) init_dt_step_wl_fast_code_def
+
+lemmas init_dt_step_wl_fast_code_refine[sepref_fr_rules] =
+  init_dt_step_wl_fast_code.refine[OF isasat_input_bounded_axioms]
+
 definition (in isasat_input_ops) init_dt_wl_heur
  :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
   \<open>init_dt_wl_heur CS S = nfoldli CS (\<lambda>_. True) (init_dt_step_wl_heur) S\<close>
 
+lemma
+  \<open>isasat_fast_init S \<Longrightarrow>
+  init_dt_wl_heur CS S = nfoldli CS (\<lambda>_. True)
+     (\<lambda>C S. do {ASSERT(isasat_fast_init S); init_dt_step_wl_heur C S}) S\<close>
+  unfolding init_dt_wl_heur_def
+  apply (induction CS arbitrary: S)
+   apply auto[]
+  subgoal premises H
+    using H
+    apply simp
+  oops
 
 definition (in isasat_input_ops) init_dt_wl_heur_fast
  :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (twl_st_wl_heur_init) nres\<close>
 where
   \<open>init_dt_wl_heur_fast CS S = do {
-      (_, U) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(CS', T). all_clss_lf (get_clauses_wl_heur_init T) + mset CS' \<subseteq># mset CS\<^esup>
+      (_, U) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(CS', T). dom_m (get_clauses_wl_heur_init T) + mset [1..<length CS'] 
+               \<subseteq># mset [1..<length CS]\<^esup>
          (\<lambda>(CS', T). CS' \<noteq> [])
          (\<lambda>(CS', S). do {
-            ASSERT(isasat_fast_init S); 
-            U \<leftarrow> init_dt_step_wl_heur (hd CS') S;
+            ASSERT(isasat_fast_init S);
+            let C = hd CS'; 
+            U \<leftarrow> init_dt_step_wl_heur C S;
             RETURN (tl CS', U)
          })
          (CS, S);
@@ -751,23 +1032,6 @@ where
      }\<close>
 
 sepref_register (in isasat_input_ops) init_dt_wl_heur init_dt_wl_heur_fast
-
-lemma
-  \<open>(uncurry init_dt_wl_heur_fast, uncurry init_dt_wl_heur) \<in>
-     [\<lambda>(CS, S). dom_m (get_clauses_wl_heur_init S) = {#} \<and> length CS \<le> uint_max]\<^sub>f
-      \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  unfolding init_dt_wl_heur_fast_def init_dt_wl_heur_def while_eq_nfoldli[symmetric] FOREACH_cond_def
-    FOREACH_body_def WHILET_def uncurry_def
-  subgoal for CSS' CSS
-    apply (refine_vcg WHILEIT_refine[where R = \<open>{((CS', S'), (CS, S)). CS = CS' \<and> S = S' \<and>
-            all_clss_lf (get_clauses_wl_heur_init S') + mset CS' \<subseteq># mset (fst CSS)}\<close>])
-  subgoal apply auto sorry
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-    oops
 
 end
 
@@ -1595,6 +1859,26 @@ sepref_thm init_dt_wl_code
        isasat_init_assn\<close>
   unfolding init_dt_wl_heur_def PR_CONST_def
   supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) init_dt_wl_code
+  uses "isasat_input_bounded.init_dt_wl_code.refine_raw"
+  is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) init_dt_wl_code_def
+
+sepref_thm init_dt_wl_code
+  is \<open>uncurry (PR_CONST init_dt_wl_heur)\<close>
+  :: \<open>[\<lambda>(N,S). length N < uint_max]\<^sub>a 
+   (list_assn (list_assn unat_lit_assn))\<^sup>d *\<^sub>a isasat_init_fast_assn\<^sup>d \<rightarrow>
+       isasat_init_fast_assn\<close>
+  unfolding init_dt_wl_heur_def PR_CONST_def
+  supply [[goals_limit = 1]]
+apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
+
   by sepref
 
 concrete_definition (in -) init_dt_wl_code
