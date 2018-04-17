@@ -419,8 +419,6 @@ definition arl_get_u64' where
 
 code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Uint64.toFixedInt (_)))"
 
-term nth_u_code
-term nth_u64_code
 export_code IsaSAT_code checking SML_imp
 export_code IsaSAT_code
     int_of_integer

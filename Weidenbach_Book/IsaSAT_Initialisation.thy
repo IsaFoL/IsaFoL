@@ -82,11 +82,17 @@ where
 fun (in -)get_conflict_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat clause option\<close> where
   \<open>get_conflict_wl_heur_init (_, _, D, _) = D\<close>
 
+fun (in -)get_clauses_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat clauses_l\<close> where
+  \<open>get_clauses_wl_heur_init (_, N, _) = N\<close>
+
 fun (in -) get_watched_list_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat list list\<close> where
   \<open>get_watched_list_heur_init (_, _, _, _, W, _) = W\<close>
 
 fun (in -) get_trail_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> (nat,nat) ann_lits\<close> where
   \<open>get_trail_wl_heur_init (M, _, _, _, _, _, _) = M\<close>
+
+abbreviation (in -) isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
+  \<open>isasat_fast_init S \<equiv> (\<forall>L \<in># dom_m (get_clauses_wl_heur_init S). L < uint32_max)\<close>
 
 definition (in isasat_input_ops) propagate_unit_cls
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
@@ -436,15 +442,10 @@ theorem set_empty_clause_as_conflict_hnr[sepref_fr_rules]:
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
-    \<in> [comp_PRE twl_st_heur_init (\<lambda>_. True)
-     (\<lambda>_ S.
-         get_conflict_wl_heur_init S =
-         None)
-     (\<lambda>_. True)]\<^sub>a hrp_comp
-                    (isasat_init_assn\<^sup>d)
-                    twl_st_heur_init \<rightarrow> hr_comp
-                    isasat_init_assn
-                    twl_st_heur_init\<close>
+    \<in> [comp_PRE twl_st_heur_init (\<lambda>_. True) (\<lambda>_ S. get_conflict_wl_heur_init S = None)
+         (\<lambda>_. True)]\<^sub>a
+       hrp_comp (isasat_init_assn\<^sup>d) twl_st_heur_init \<rightarrow>
+       hr_comp isasat_init_assn twl_st_heur_init\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF set_empty_clause_as_conflict_heur_hnr
     set_empty_clause_as_conflict_heur_set_empty_clause_as_conflict] .
@@ -555,7 +556,6 @@ lemma [twl_st_heur_init]:
   using assms
   by (cases S; auto simp: twl_st_heur_init_def; fail)+
 
-find_theorems get_trail_wl_heur_init get_trail_init_wl
 lemma init_dt_step_wl_heur_init_dt_step_wl:
   \<open>(uncurry init_dt_step_wl_heur, uncurry init_dt_step_wl) \<in>
    [\<lambda>(C, S). literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and> distinct C]\<^sub>f
@@ -730,11 +730,44 @@ lemmas init_dt_step_wl_code_refine[sepref_fr_rules] =
   init_dt_step_wl_code.refine[OF isasat_input_bounded_axioms]
 
 definition (in isasat_input_ops) init_dt_wl_heur
- :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (twl_st_wl_heur_init) nres\<close>
+ :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
   \<open>init_dt_wl_heur CS S = nfoldli CS (\<lambda>_. True) (init_dt_step_wl_heur) S\<close>
 
-sepref_register (in isasat_input_ops) init_dt_wl_heur
+
+definition (in isasat_input_ops) init_dt_wl_heur_fast
+ :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (twl_st_wl_heur_init) nres\<close>
+where
+  \<open>init_dt_wl_heur_fast CS S = do {
+      (_, U) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(CS', T). all_clss_lf (get_clauses_wl_heur_init T) + mset CS' \<subseteq># mset CS\<^esup>
+         (\<lambda>(CS', T). CS' \<noteq> [])
+         (\<lambda>(CS', S). do {
+            ASSERT(isasat_fast_init S); 
+            U \<leftarrow> init_dt_step_wl_heur (hd CS') S;
+            RETURN (tl CS', U)
+         })
+         (CS, S);
+     RETURN U
+     }\<close>
+
+sepref_register (in isasat_input_ops) init_dt_wl_heur init_dt_wl_heur_fast
+
+lemma
+  \<open>(uncurry init_dt_wl_heur_fast, uncurry init_dt_wl_heur) \<in>
+     [\<lambda>(CS, S). dom_m (get_clauses_wl_heur_init S) = {#} \<and> length CS \<le> uint_max]\<^sub>f
+      \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  unfolding init_dt_wl_heur_fast_def init_dt_wl_heur_def while_eq_nfoldli[symmetric] FOREACH_cond_def
+    FOREACH_body_def WHILET_def uncurry_def
+  subgoal for CSS' CSS
+    apply (refine_vcg WHILEIT_refine[where R = \<open>{((CS', S'), (CS, S)). CS = CS' \<and> S = S' \<and>
+            all_clss_lf (get_clauses_wl_heur_init S') + mset CS' \<subseteq># mset (fst CSS)}\<close>])
+  subgoal apply auto sorry
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+    oops
 
 end
 
@@ -808,75 +841,6 @@ definition add_to_atms_ext where
             atms @ [i])
      })
     })\<close>
-
-lemma mod2_bin_last: \<open>a mod 2 = 0 \<longleftrightarrow> \<not>bin_last a\<close>
-  by (auto simp: bin_last_def)
-
-lemma bitXOR_1_if_mod_2_int: \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: int
-  apply (rule bin_rl_eqI)
-  unfolding bin_rest_OR bin_last_OR
-   apply (auto simp: bin_rest_def bin_last_def)
-  done
-
-lemma bitOR_1_if_mod_2_nat:
-  \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close>
-  \<open>bitOR L (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: nat
-proof -
-  have H: \<open>bitOR L 1 =  L + (if bin_last (int L) then 0 else 1)\<close>
-    unfolding bitOR_nat_def
-    apply (auto simp: bitOR_nat_def bin_last_def
-        bitXOR_1_if_mod_2_int)
-    done
-  show \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close>
-    unfolding H
-    apply (auto simp: bitOR_nat_def bin_last_def)
-    apply presburger+
-    done
-  then show \<open>bitOR L (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close>
-    by simp
-qed
-
-lemma uint64_max_uint_def:\<open>unat ( -1 :: 64 Word.word) = uint64_max\<close>
-  by normalization
-
-lemma nat_of_uint64_le_uint64_max: \<open>nat_of_uint64 x \<le> uint64_max\<close>
-  apply transfer
-  subgoal for x
-    using word_le_nat_alt[of x \<open>- 1\<close>]
-    unfolding uint64_max_def[symmetric] uint64_max_uint_def
-    by auto
-  done
-
-lemma bitOR_1_if_mod_2_uint64: \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: uint64
-proof -
-  have H: \<open>bitOR L 1 = a \<longleftrightarrow> bitOR (nat_of_uint64 L) 1 = nat_of_uint64 a\<close> for a
-    apply transfer
-    apply (rule iffI)
-    subgoal for L a
-      by (auto simp: unat_def uint_or bitOR_nat_def)
-    subgoal for L a
-      apply (auto simp: unat_def uint_or bitOR_nat_def eq_nat_nat_iff
-          word_or_def)
-      apply (subst (asm)eq_nat_nat_iff)
-        apply (auto simp: uint_1 uint_ge_0 uint_or)
-       apply (metis uint_1 uint_ge_0 uint_or)
-      done
-    done
-  have K: \<open>L mod 2 = 0 \<longleftrightarrow> nat_of_uint64 L mod 2 = 0\<close>
-    apply transfer
-    subgoal for L
-      using unat_mod[of L 2]
-      by (auto simp: unat_eq_0)
-    done
-  have L: \<open>nat_of_uint64 (if L mod 2 = 0 then L + 1 else L) =
-      (if nat_of_uint64 L mod 2 = 0 then nat_of_uint64 L + 1 else nat_of_uint64 L)\<close>
-    using nat_of_uint64_le_uint64_max[of L]
-    by (auto simp: K nat_of_uint64_add uint64_max_def)
-
-  show ?thesis
-    apply (subst H)
-    unfolding bitOR_1_if_mod_2_nat[symmetric] L ..
-qed
 
 lemma init_valid_rep_upd_OR:
   \<open>init_valid_rep (x1b[x1a := a OR one_uint64_nat]) x2 \<longleftrightarrow>
@@ -989,29 +953,6 @@ lemma init_valid_rep_in_set_iff:
   unfolding init_valid_rep_def
   by auto
 
-lemma (in -) nat_of_uint64_plus:
-  \<open>nat_of_uint64 (a + b) = (nat_of_uint64 a + nat_of_uint64 b) mod (uint64_max + 1)\<close>
-  by transfer (auto simp: unat_word_ariths uint64_max_def)
-
-
-lemma nat_and:
-  \<open>ai\<ge> 0 \<Longrightarrow> bi \<ge> 0 \<Longrightarrow> nat (ai AND bi) = nat ai AND nat bi\<close>
-  by (auto simp: bitAND_nat_def)
-
-lemma nat_of_uint64_and:
-  \<open>nat_of_uint64 ai \<le> uint64_max \<Longrightarrow> nat_of_uint64 bi \<le> uint64_max \<Longrightarrow>
-    nat_of_uint64 (ai AND bi) = nat_of_uint64 ai AND nat_of_uint64 bi\<close>
-  unfolding uint64_max_def
-  by transfer (auto simp: unat_def uint_and nat_and)
-
-lemma bitAND_uint64_max_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo  op AND), uncurry (RETURN oo op AND))
-   \<in> [\<lambda>(a, b). a \<le> uint64_max \<and> b \<le> uint64_max]\<^sub>a
-     uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_plus
-      sum_mod_uint64_max_def nat_of_uint64_and)
-
 lemma sum_mod_uint64_max_le_uint64_max[simp]: \<open>sum_mod_uint64_max a b \<le> uint64_max\<close>
   unfolding sum_mod_uint64_max_def
   by auto
@@ -1102,36 +1043,6 @@ lemma sum_mod_uint64_max_hnr[sepref_fr_rules]:
   apply (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_plus
       sum_mod_uint64_max_def)
   done
-
-definition two_uint64_nat :: nat where
-  [simp]: \<open>two_uint64_nat = 2\<close>
-
-lemma two_uint64_nat[sepref_fr_rules]:
-  \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint64_nat))
-   \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: two_uint64_nat_def uint64_nat_rel_def br_def)
-
-lemma nat_or:
-  \<open>ai\<ge> 0 \<Longrightarrow> bi \<ge> 0 \<Longrightarrow> nat (ai OR bi) = nat ai OR nat bi\<close>
-  by (auto simp: bitOR_nat_def)
-
-lemma nat_of_uint64_or:
-  \<open>nat_of_uint64 ai \<le> uint64_max \<Longrightarrow> nat_of_uint64 bi \<le> uint64_max \<Longrightarrow>
-    nat_of_uint64 (ai OR bi) = nat_of_uint64 ai OR nat_of_uint64 bi\<close>
-  unfolding uint64_max_def
-  by transfer (auto simp: unat_def uint_or nat_or)
-
-lemma bitOR_uint64_max_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo  op OR), uncurry (RETURN oo op OR))
-   \<in> [\<lambda>(a, b). a \<le> uint64_max \<and> b \<le> uint64_max]\<^sub>a
-     uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_plus
-      sum_mod_uint64_max_def nat_of_uint64_or)
-
-
-lemma Suc_0_le_uint64_max: \<open>Suc 0 \<le> uint64_max\<close>
-  by (auto simp: uint64_max_def)
 
 sepref_definition nat_lit_lits_init_assn_assn_in
   is \<open>uncurry add_to_atms_ext\<close>
@@ -1647,8 +1558,6 @@ proof -
       apply (subst RETURN_RES_refine_iff)
       apply (auto dest: list_rel_mset_rel_imp_same_length)
       unfolding  isasat_input_ops.vmtf_def in_pair_collect_simp prod.case
-(*       apply  (auto simp: rev_map[symmetric] isasat_input_ops.vmtf_def option_hd_rev
-          map_option_option_last list_rel_mset_rel_def dest: in_N_in_N1) *)
       apply (rule exI[of _ \<open>map nat_of_uint32 (rev (fst N'))\<close>])
       apply (rule_tac exI[of _ \<open>[]\<close>])
       apply (intro conjI)

@@ -271,6 +271,13 @@ definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_tr
   out_learned_assn *a
   stats_assn\<close>
 
+text \<open>
+  The difference between \<^term>\<open>isasat_assn\<close> and \<^term>\<open>isasat_fast_assn\<close> corresponds to the
+  following condition:
+\<close>
+abbreviation (in -) isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>isasat_fast S \<equiv> (\<forall>L \<in># dom_m (get_clauses_wl_heur S). L < uint32_max)\<close>
+
 definition twl_st_heur_no_clvls
   :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
