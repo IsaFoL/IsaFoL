@@ -423,7 +423,6 @@ proof -
 qed
 
 
-
 definition fm_add_new where
  \<open>fm_add_new b C N = do {
     i \<leftarrow> get_fresh_index N;
@@ -472,6 +471,50 @@ lemma fm_add_new_hnr[sepref_fr_rules]:
     \<in> bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow>\<^sub>a clauses_ll_assn *a nat_assn\<close>
   using append_and_length_code.refine[FCOMP append_and_length_fm_add_new]
   unfolding clauses_ll_assn_def by simp
+
+
+definition get_fresh_index_packed :: \<open>'v clauses_l \<Rightarrow> nat nres\<close> where
+\<open>get_fresh_index_packed N = SPEC(\<lambda>i. i > 0 \<and> i \<notin># dom_m N \<and>
+    (\<forall>j < i. j > 0 \<longrightarrow> j \<in># dom_m N))\<close>
+
+definition fm_add_new_packed where
+ \<open>fm_add_new_packed b C N = do {
+    i \<leftarrow> get_fresh_index_packed N;
+    let N = fmupd i (C, b) N;
+    RETURN (N, i)
+  }\<close>
+
+definition packed where
+  \<open>packed N \<longleftrightarrow> dom_m N = mset [1..<Max_mset (add_mset 0 (dom_m N))]\<close>
+
+lemma append_and_length_fm_add_new_packed:
+  \<open>(uncurry2 (RETURN ooo append_and_length), uncurry2 fm_add_new_packed)
+     \<in> [\<lambda>((b, C), N). packed N]\<^sub>f
+       bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (\<langle>Id\<rangle>clauses_l_fmat) \<rightarrow> \<langle>\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (auto simp: fm_add_new_at_position_def list_fmap_rel_def Let_def
+      max_def nth_append append_and_length_def fm_add_new_packed_def get_fresh_index_packed_def
+      RETURN_RES_refine_iff RES_RETURN_RES packed_def
+      intro!: RETURN_SPEC_refine
+      dest: multi_member_split
+      split: if_splits)
+       apply force
+      apply (metis (no_types, lifting) Max_n_upt Suc_leI Suc_pred atLeastLessThan_iff
+      finite_atLeastLessThan finite_set_mset_mset_set less_Suc_eq)
+  apply force
+  apply force
+  apply force
+  apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
+   apply force
+  apply force
+  done
+
+lemma fm_add_new_packed_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 append_and_length_code, uncurry2 fm_add_new_packed)
+    \<in> [\<lambda>(_, N). packed N]\<^sub>a bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow> clauses_ll_assn *a nat_assn\<close>
+  using append_and_length_code.refine[FCOMP append_and_length_fm_add_new_packed]
+  unfolding clauses_ll_assn_def
+  by simp
 
 (* TODO Proper setup + Move *)
 definition length_arlO_u where
@@ -547,6 +590,38 @@ lemma fm_add_new_fast_hnr[sepref_fr_rules]:
     \<in> [\<lambda>(_, ba). (\<forall>a\<in>#dom_m ba. a < uint_max)]\<^sub>a
        bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow> clauses_ll_assn *a uint32_nat_assn\<close>
   using append_and_length_u32_code.refine[FCOMP append_and_length_u32_fm_add_new]
+  unfolding clauses_ll_assn_def by (simp add: uint32_max_def)
+
+
+lemma append_and_length_u32_fm_add_new_packed:
+  \<open>(uncurry2 append_and_length_u32, uncurry2 fm_add_new_packed)
+     \<in> [\<lambda>((b, C), N). Max (insert 0 (set_mset (dom_m N))) < uint32_max \<and> packed N]\<^sub>f
+     bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (\<langle>Id\<rangle>clauses_l_fmat) \<rightarrow> \<langle>\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+(* TODO Tune proof *)
+  apply (intro frefI nres_relI)
+  apply (auto simp: fm_add_new_at_position_def list_fmap_rel_def Let_def
+      max_def nth_append append_and_length_u32_def fm_add_new_packed_def get_fresh_index_packed_def
+      RETURN_RES_refine_iff RES_RETURN_RES packed_def
+      intro!: RETURN_SPEC_refine ASSERT_refine_left
+      dest: multi_member_split
+      split: if_splits)
+       apply (metis Max_in_lits Suc_leI empty_iff insert_iff set_mset_add_mset_insert
+      set_mset_empty)
+       apply auto
+   apply (metis (no_types, lifting) Max_n_upt Suc_leI Suc_pred atLeastLessThan_iff
+      finite_atLeastLessThan finite_set_mset_mset_set less_Suc_eq)
+  apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
+  apply auto
+  done
+
+definition fm_add_new_packed_fast where
+  [simp, symmetric, isasat_fast]: \<open>fm_add_new_packed_fast = fm_add_new_packed\<close>
+
+lemma fm_add_new_packed_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 append_and_length_u32_code, uncurry2 fm_add_new_packed_fast)
+    \<in> [\<lambda>(_, ba). (\<forall>a\<in>#dom_m ba. a < uint_max) \<and> packed ba]\<^sub>a
+       bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow> clauses_ll_assn *a uint32_nat_assn\<close>
+  using append_and_length_u32_code.refine[FCOMP append_and_length_u32_fm_add_new_packed]
   unfolding clauses_ll_assn_def by (simp add: uint32_max_def)
 
 definition fmap_swap_ll_u64 where

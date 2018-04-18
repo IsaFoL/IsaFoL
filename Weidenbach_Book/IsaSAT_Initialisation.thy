@@ -377,7 +377,7 @@ definition (in isasat_input_ops) add_init_cls_heur
   \<open>add_init_cls_heur = (\<lambda>C (M, N, D, Q, WS, oth). do {
      let L = hd C; let L' = hd (tl C);
      let b = True; let C = op_array_of_list C;
-     (N, i) \<leftarrow> fm_add_new b C N;
+     (N, i) \<leftarrow> fm_add_new_packed b C N;
      let WS = WS[nat_of_lit L := WS ! nat_of_lit L @ [i]];
      let WS = WS[nat_of_lit L' := WS ! nat_of_lit L' @ [i]];
      RETURN (M, N, D, Q, WS, oth)})\<close>
@@ -388,7 +388,8 @@ lemma length_C_nempty_iff: \<open>length C \<ge> 2 \<longleftrightarrow> C \<not
 sepref_thm add_init_cls_code
   is \<open>uncurry add_init_cls_heur\<close>
   :: \<open>[\<lambda>(C, S). length C \<ge> 2 \<and> nat_of_lit (hd C) < length (get_watched_list_heur_init S) \<and>
-        nat_of_lit (hd (tl C)) < length (get_watched_list_heur_init S)]\<^sub>a
+        nat_of_lit (hd (tl C)) < length (get_watched_list_heur_init S) \<and>
+        packed(get_clauses_wl_heur_init S)]\<^sub>a
       (list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow> isasat_init_assn\<close>
   supply [[goals_limit=1]] append_ll_def[simp]
   unfolding add_init_cls_heur_def isasat_init_assn_def
@@ -412,7 +413,7 @@ sepref_thm add_init_cls_fast_code
   is \<open>uncurry add_init_cls_heur\<close>
   :: \<open>[\<lambda>(C, S). length C \<ge> 2 \<and> nat_of_lit (hd C) < length (get_watched_list_heur_init S) \<and>
         nat_of_lit (hd (tl C)) < length (get_watched_list_heur_init S) \<and>
-       isasat_fast_init S]\<^sub>a
+       isasat_fast_init S \<and> packed (get_clauses_wl_heur_init S)]\<^sub>a
       (list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_fast_assn\<^sup>d  \<rightarrow> isasat_init_fast_assn\<close>
   supply [[goals_limit=1]] append_ll_def[simp]
   unfolding add_init_cls_heur_def isasat_init_fast_assn_def
@@ -437,9 +438,9 @@ lemma add_init_cls_heur_add_init_cls:
    [\<lambda>(C, S). length C \<ge> 2 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and> distinct C]\<^sub>f
    Id \<times>\<^sub>r twl_st_heur_init \<rightarrow> \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
-     (fastforce simp: twl_st_heur_init_def add_init_cls_heur_def add_to_clauses_init_wl_def Let_def
-      fm_add_new_def get_fresh_index_def RES_RETURN_RES RES_RETURN_RES2 RES_RES2_RETURN_RES
-      RES_RETURN_RES_RES2 length_C_nempty_iff
+    (fastforce simp: twl_st_heur_init_def add_init_cls_heur_def add_to_clauses_init_wl_def Let_def
+      fm_add_new_packed_def get_fresh_index_packed_def RES_RETURN_RES RES_RETURN_RES2 RES_RES2_RETURN_RES
+      RES_RETURN_RES_RES2 length_C_nempty_iff get_fresh_index_def
       map_fun_rel_def neq_Nil_conv
       intro!: RES_refine)
 
@@ -725,27 +726,29 @@ where
   \<open>init_dt_step_wl_heur C S = do {
      if get_conflict_wl_heur_init S = None
      then do {
-         if is_Nil C
-         then set_empty_clause_as_conflict_heur S
-         else if list_length_1 C
-         then do {
-           ASSERT (C \<noteq> []);
-           let L = hd C;
-           ASSERT(L \<in> snd ` D\<^sub>0);
-           let val_L = polarity (get_trail_wl_heur_init S) L;
-           if val_L = None
-           then do { (propagate_unit_cls_heur L S)}
-           else
-             if val_L = Some True
-             then do {already_propagated_unit_cls_heur C S}
-             else do {conflict_propagated_unit_cls_heur L S}
-           }
-         else do {
+        if is_Nil C
+        then set_empty_clause_as_conflict_heur S
+        else if list_length_1 C
+        then do {
+          ASSERT (C \<noteq> []);
+          let L = hd C;
+          ASSERT(L \<in> snd ` D\<^sub>0);
+          let val_L = polarity (get_trail_wl_heur_init S) L;
+          if val_L = None
+          then propagate_unit_cls_heur L S
+          else
+            if val_L = Some True
+            then already_propagated_unit_cls_heur C S
+            else conflict_propagated_unit_cls_heur L S
+        }
+        else do {
           ASSERT(length C \<ge> 2);
           ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset C));
           ASSERT(nat_of_lit (hd C) < length (get_watched_list_heur_init S));
           ASSERT(nat_of_lit (hd (tl C)) < length (get_watched_list_heur_init S));
-          add_init_cls_heur C S}}
+          add_init_cls_heur C S
+       }
+     }
      else add_clause_to_others_heur C S
   }\<close>
 
@@ -942,7 +945,7 @@ sepref_register polarity_st_heur_init propagate_unit_cls_heur
 
 sepref_thm init_dt_step_wl_code
   is \<open>uncurry (PR_CONST init_dt_step_wl_heur)\<close>
-  :: \<open>(list_assn unat_lit_assn)\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a
+  :: \<open>[\<lambda>(C, S). packed (get_clauses_wl_heur_init S)]\<^sub>a (list_assn unat_lit_assn)\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>
        isasat_init_assn\<close>
   supply polarity_None_undefined_lit[simp] polarity_st_init_def[simp]
   option.splits[split] get_conflict_wl_is_None_heur_init_alt_def[simp]
@@ -971,7 +974,8 @@ lemmas init_dt_step_wl_code_refine[sepref_fr_rules] =
 
 sepref_thm init_dt_step_wl_fast_code
   is \<open>uncurry (PR_CONST init_dt_step_wl_heur)\<close>
-  :: \<open>[\<lambda>(_, S). isasat_fast_init S]\<^sub>a (list_assn unat_lit_assn)\<^sup>d *\<^sub>a isasat_init_fast_assn\<^sup>d \<rightarrow>
+  :: \<open>[\<lambda>(_, S). isasat_fast_init S \<and> packed(get_clauses_wl_heur_init S)]\<^sub>a 
+       (list_assn unat_lit_assn)\<^sup>d *\<^sub>a isasat_init_fast_assn\<^sup>d \<rightarrow>
        isasat_init_fast_assn\<close>
   supply polarity_None_undefined_lit[simp] polarity_st_init_def[simp]
   option.splits[split] get_conflict_wl_is_None_heur_init_alt_def[simp]
@@ -1018,8 +1022,8 @@ definition (in isasat_input_ops) init_dt_wl_heur_fast
  :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (twl_st_wl_heur_init) nres\<close>
 where
   \<open>init_dt_wl_heur_fast CS S = do {
-      (_, U) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(CS', T). dom_m (get_clauses_wl_heur_init T) + mset [1..<length CS'] 
-               \<subseteq># mset [1..<length CS]\<^esup>
+      (_, U) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(CS', T). dom_m (get_clauses_wl_heur_init T) = 
+               mset [1..<length CS - length CS']\<^esup>
          (\<lambda>(CS', T). CS' \<noteq> [])
          (\<lambda>(CS', S). do {
             ASSERT(isasat_fast_init S);
@@ -1033,6 +1037,68 @@ where
 
 sepref_register (in isasat_input_ops) init_dt_wl_heur init_dt_wl_heur_fast
 
+lemma get_fresh_index_packed_alt_def: \<open>packed N \<Longrightarrow>
+ get_fresh_index_packed N = SPEC(\<lambda>i. i = Suc (Max_mset (add_mset 0 (dom_m N))))\<close>
+  apply (auto simp: get_fresh_index_packed_def packed_def)
+    apply (metis Max_n_upt Suc_mono Suc_pred atLeastLessThan_iff finite_atLeastLessThan
+      finite_set_mset_mset_set less_Suc_eq order_less_irrefl zero_less_Suc)
+    apply (metis Max_n_upt Suc_mono Suc_pred atLeastLessThan_iff finite_atLeastLessThan
+      finite_set_mset_mset_set less_Suc_eq order_less_irrefl zero_less_Suc)
+  by (metis (no_types, lifting) Max_n_upt diff_Suc_less finite_atLeastLessThan 
+      finite_set_mset_mset_set gr_implies_not0 le_less_trans less_Suc_eq_0_disj less_irrefl zero_le)
+
+lemma HH:
+  assumes
+    \<open>packed (get_clauses_wl_heur_init S)\<close> and
+    \<open>\<forall>L\<in>snd ` D\<^sub>0. nat_of_lit L < length (get_watched_list_heur_init S)\<close> and
+    \<open>Suc (Max (insert 0 (set_mset (dom_m (get_clauses_wl_heur_init S)))) +
+            length CS) < uint_max - Suc 0\<close>
+    \<open>RETURN T \<le> init_dt_step_wl_heur C S\<close> and
+   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close>
+  shows \<open>Max (insert 0 (set_mset (dom_m (get_clauses_wl_heur_init T)))) + length CS
+         < uint_max - Suc 0\<close>
+proof -
+  show ?thesis 
+    using assms (* TODO Proof *)
+    apply (cases S; cases T; cases C; cases \<open>tl C\<close>)
+    apply (auto simp: init_dt_step_wl_heur_def Let_def set_empty_clause_as_conflict_heur_def
+        propagate_unit_cls_heur_def image_image polarity_def already_propagated_unit_cls_heur_def
+        conflict_propagated_unit_cls_heur_def add_clause_to_others_heur_def get_fresh_index_def
+        literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset add_init_cls_heur_def fm_add_new_packed_def RES_RETURN_RES
+        RES_RES_RETURN_RES2 get_fresh_index_packed_alt_def packed_def
+        split: if_splits list.splits) 
+     apply (metis (no_types, lifting) Max_in_lits Max_n_upt Suc_pred add_Suc add_mset_remove_trivial_If
+        atLeastLessThan_iff finite_atLeastLessThan finite_set_mset_mset_set less_Suc_eq
+        less_Suc_eq_0_disj multi_self_add_other_not_self n_not_Suc_n not_less_zero
+        set_mset_add_mset_insert single_eq_add_mset)+
+    done
+qed
+
+lemma
+   \<open>Max_mset (add_mset 0 (dom_m (get_clauses_wl_heur_init S))) + length CS < uint_max - 1 \<Longrightarrow> 
+   \<forall>C\<in>set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<Longrightarrow>
+packed (get_clauses_wl_heur_init S) \<Longrightarrow>
+  \<forall>L\<in>snd ` D\<^sub>0. nat_of_lit L < length (get_watched_list_heur_init S) \<Longrightarrow>
+    nfoldli CS (\<lambda>_. True) (\<lambda>CS S. do {ASSERT(isasat_fast_init S); init_dt_step_wl_heur CS S}) S \<le> init_dt_wl_heur CS S\<close>
+  unfolding init_dt_wl_heur_fast_def init_dt_wl_heur_def
+  apply (induction CS arbitrary: S)
+  subgoal
+    apply auto
+    done
+  subgoal premises H
+    using H
+    apply (auto intro!: ASSERT_leI dest: multi_member_split)
+     apply (auto dest!: multi_member_split)[]
+     apply (case_tac \<open>set_mset A = {}\<close>)
+    apply auto[2]
+    defer
+    apply (rule Refine_Basic.bind_mono(1))
+     apply simp
+    apply (rule order.trans)
+    apply (rule H)
+        apply auto
+    apply (rule HH)
+    oops
 end
 
 definition init_valid_rep :: "nat list \<Rightarrow> nat set \<Rightarrow> bool" where
