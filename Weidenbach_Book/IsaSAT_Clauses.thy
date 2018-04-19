@@ -485,7 +485,10 @@ definition fm_add_new_packed where
   }\<close>
 
 definition packed where
-  \<open>packed N \<longleftrightarrow> dom_m N = mset [1..<Max_mset (add_mset 0 (dom_m N))]\<close>
+  \<open>packed N \<longleftrightarrow> dom_m N = mset [1..<Suc (Max_mset (add_mset 0 (dom_m N)))]\<close>
+
+lemma packed_enpty[simp]: \<open>packed fmempty\<close>
+  by (auto simp: packed_def)
 
 lemma append_and_length_fm_add_new_packed:
   \<open>(uncurry2 (RETURN ooo append_and_length), uncurry2 fm_add_new_packed)
@@ -498,16 +501,16 @@ lemma append_and_length_fm_add_new_packed:
       intro!: RETURN_SPEC_refine
       dest: multi_member_split
       split: if_splits)
-       apply force
-      apply (metis (no_types, lifting) Max_n_upt Suc_leI Suc_pred atLeastLessThan_iff
-      finite_atLeastLessThan finite_set_mset_mset_set less_Suc_eq)
+        apply force
+       apply (smt Suc_leI atLeastLessThan_iff finite_atLeastLessThan finite_set_mset_mset_set insert_iff
+      less_Suc_eq set_mset_add_mset_insert)
   apply force
   apply force
   apply force
   apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
    apply force
   apply force
-  done
+  using not_less by blast
 
 lemma fm_add_new_packed_hnr[sepref_fr_rules]:
   \<open>(uncurry2 append_and_length_code, uncurry2 fm_add_new_packed)
@@ -597,7 +600,7 @@ lemma append_and_length_u32_fm_add_new_packed:
   \<open>(uncurry2 append_and_length_u32, uncurry2 fm_add_new_packed)
      \<in> [\<lambda>((b, C), N). Max (insert 0 (set_mset (dom_m N))) < uint32_max \<and> packed N]\<^sub>f
      bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (\<langle>Id\<rangle>clauses_l_fmat) \<rightarrow> \<langle>\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
-(* TODO Tune proof *)
+  (* TODO Tune proof *)
   apply (intro frefI nres_relI)
   apply (auto simp: fm_add_new_at_position_def list_fmap_rel_def Let_def
       max_def nth_append append_and_length_u32_def fm_add_new_packed_def get_fresh_index_packed_def
@@ -605,14 +608,16 @@ lemma append_and_length_u32_fm_add_new_packed:
       intro!: RETURN_SPEC_refine ASSERT_refine_left
       dest: multi_member_split
       split: if_splits)
-       apply (metis Max_in_lits Suc_leI empty_iff insert_iff set_mset_add_mset_insert
-      set_mset_empty)
-       apply auto
-   apply (metis (no_types, lifting) Max_n_upt Suc_leI Suc_pred atLeastLessThan_iff
-      finite_atLeastLessThan finite_set_mset_mset_set less_Suc_eq)
-  apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
-  apply auto
-  done
+         apply (metis Suc_leI insert_iff set_mset_add_mset_insert set_mset_empty)
+        apply (auto dest: dest: multi_member_split; fail)
+       apply (smt Suc_leI atLeastLessThan_iff finite_atLeastLessThan finite_set_mset_mset_set
+      insert_iff less_Suc_eq set_mset_add_mset_insert)
+      apply (auto dest: dest: multi_member_split; fail)
+     apply (auto dest: dest: multi_member_split; fail)
+    apply (auto dest: dest: multi_member_split; fail)
+   apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
+    apply ((auto; fail)+)[2]
+  using leD by blast
 
 definition fm_add_new_packed_fast where
   [simp, symmetric, isasat_fast]: \<open>fm_add_new_packed_fast = fm_add_new_packed\<close>
