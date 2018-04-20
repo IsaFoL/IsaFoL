@@ -655,18 +655,19 @@ definition (in isasat_input_ops) cdcl_twl_stgy_prog_break_wl_D_heur_break
 where
   \<open>cdcl_twl_stgy_prog_break_wl_D_heur_break S\<^sub>0 =
   do {
-    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, S). (b \<longrightarrow> isasat_fast S)\<^esup>
+    let b = isasat_fast2 S\<^sub>0;
+    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, S). (b \<longrightarrow> \<not>brk \<longrightarrow>isasat_fast2 S)\<^esup>
         (\<lambda>(b, brk, _). b \<and> \<not>brk)
         (\<lambda>(b, brk, S).
         do {
           ASSERT b;
           T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
-          ASSERT(isasat_fast T);
+          ASSERT(isasat_fast2 T);
           (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
           b \<leftarrow> RETURN (isasat_fast2 T);
-          RETURN(b, brk, T)
+          RETURN (b, brk, T)
         })
-        (True, False, S\<^sub>0);
+        (b, False, S\<^sub>0);
     if brk then (isasat_fast_slow T)
     else do {
          T \<leftarrow> isasat_fast_slow T;
@@ -678,7 +679,7 @@ sepref_thm cdcl_twl_stgy_prog_wl_D_fast_code
   is \<open>PR_CONST cdcl_twl_stgy_prog_break_wl_D_heur_break\<close>
   :: \<open>[isasat_fast]\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_assn\<close>
   unfolding cdcl_twl_stgy_prog_break_wl_D_heur_break_def PR_CONST_def
-  supply [[goals_limit = 1]] isasat_input_bounded_nempty_axioms[intro]
+  supply [[goals_limit = 1]] isasat_input_bounded_nempty_axioms[intro] isasat_fast2_def[simp]
   by sepref
 
 concrete_definition (in -) cdcl_twl_stgy_prog_wl_D_fast_code
@@ -690,13 +691,84 @@ prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_fast_code_def
 lemmas cdcl_twl_stgy_prog_wl_D_fast_code[sepref_fr_rules] =
    cdcl_twl_stgy_prog_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n]
 
+definition  (in -)isasat_fast_wl where
+  \<open>isasat_fast_wl S = (\<forall>L\<in>#dom_m (get_clauses_wl S). L < uint_max)\<close>
+
+lemma twl_st_heur_isasat_fast_wl:
+   \<open>(x, y) \<in> twl_st_heur \<Longrightarrow> isasat_fast_wl y = isasat_fast2 x\<close>
+  by (auto simp: isasat_fast2_def twl_st_heur_state_simp twl_st_heur_def isasat_fast_wl_def)
+term isasat_fast_slow
+definition isasat_fast_slow_conv where
+  \<open>isasat_fast_slow_conv = id\<close>
+  
+lemma cdcl_twl_stgy_prog_break_wl_D_alt_def:
+  \<open>cdcl_twl_stgy_prog_break_wl_D P S\<^sub>0 =
+  do {
+    b \<leftarrow> RETURN (P S\<^sub>0);
+    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (brk, T) \<and>
+          literals_are_\<L>\<^sub>i\<^sub>n T \<and> (b \<longrightarrow> \<not>brk \<longrightarrow> P T)\<^esup>
+        (\<lambda>(b, brk, _). b \<and> \<not>brk)
+        (\<lambda>(b, brk, S).
+        do {
+          ASSERT(b);
+          T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+          b \<leftarrow> RETURN (P T);
+          RETURN(b, brk, T)
+        })
+        (b, False, S\<^sub>0);
+    if brk then RETURN (isasat_fast_slow_conv T)
+    else let T' = isasat_fast_slow_conv T in cdcl_twl_stgy_prog_wl_D T'
+  }\<close>
+  unfolding Let_def cdcl_twl_stgy_prog_break_wl_D_def isasat_fast_slow_conv_def id_apply
+  by (auto simp: Let_def)
+
+lemma cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D:
+  \<open>(cdcl_twl_stgy_prog_break_wl_D_heur_break,
+     cdcl_twl_stgy_prog_break_wl_D isasat_fast_wl) \<in>
+         twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+proof -
+  have H1: \<open>
+    (isasat_fast2 x, b) \<in> bool_rel \<Longrightarrow>
+    (x, y) \<in> twl_st_heur \<Longrightarrow>
+    ((isasat_fast2 x, False, x), b, False, y) \<in> {(b, b'). b = b' \<and>
+       (b \<longrightarrow> isasat_fast2 x)} \<times>\<^sub>r bool_rel \<times>\<^sub>r twl_st_heur\<close> for b x y
+    by auto
+  have H2:
+    \<open>(x, y) \<in> twl_st_heur \<Longrightarrow>
+    (isasat_fast2 x, isasat_fast_wl y) \<in> {(b, b'). b = b' \<and>
+       (b \<longrightarrow> isasat_fast2 x)}\<close> for x y
+    by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  show ?thesis
+    unfolding cdcl_twl_stgy_prog_break_wl_D_heur_break_def cdcl_twl_stgy_prog_break_wl_D_alt_def
+      isasat_fast2_def[symmetric]
+  apply (intro frefI nres_relI)
+  apply (refine_vcg H1 H2
+      unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D[THEN fref_to_Down]
+      cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
+      cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D[THEN fref_to_Down])
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal sorry
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  done
+qed
+
 end
 
-export_code cdcl_twl_stgy_prog_wl_D_fast_code in SML_imp module_name SAT_Solver
+(* export_code cdcl_twl_stgy_prog_wl_D_fast_code in SML_imp module_name SAT_Solver
   file "code/CDCL_Cached_Array_Trail_Fast.sml"
 
 export_code cdcl_twl_stgy_prog_wl_D_code in SML_imp module_name SAT_Solver
   file "code/CDCL_Cached_Array_Trail.sml"
-
+ *)
 
 end
