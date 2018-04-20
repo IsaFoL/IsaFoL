@@ -299,6 +299,7 @@ definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heu
     (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats).
       RETURN (trail_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
         clvls, cach, lbd, outl, stats))\<close>
+
 sepref_thm isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
   :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
@@ -313,7 +314,21 @@ concrete_definition (in -) isasat_fast_slow_code
 prepare_code_thms (in -) isasat_fast_slow_code_def
 
 lemmas isasat_fast_slow_code[sepref_fr_rules] =
-   isasat_fast_slow_code.refine
+   isasat_fast_slow_code.refine 
+
+definition (in -)isasat_fast_slow_wl_D where
+  \<open>isasat_fast_slow_wl_D = id\<close>
+
+lemma isasat_fast_slow_alt_def:
+  \<open>isasat_fast_slow S = RETURN S\<close>
+  by (cases S)
+    (auto simp: isasat_fast_slow_def trail_slow_of_fast_def convert_wlists_to_nat_conv_def)
+
+lemma isasat_fast_slow_isasat_fast_slow_wl_D:
+  \<open>(isasat_fast_slow, RETURN o isasat_fast_slow_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  by (intro nres_relI frefI)
+    (auto simp: isasat_fast_slow_alt_def isasat_fast_slow_wl_D_def)
+
 type_synonym (in -) twl_st_wl_heur_W_list =
   \<open>(nat,nat) ann_lits \<times> nat clauses_l \<times>
     nat cconflict \<times> nat clause_l \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>

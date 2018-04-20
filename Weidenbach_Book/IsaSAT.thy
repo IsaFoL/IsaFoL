@@ -73,7 +73,7 @@ definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list opt
          ASSERT(\<A>\<^sub>i\<^sub>n' \<noteq> {#});
          ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n');
          let T = finalise_init T;
-         U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D \<A>\<^sub>i\<^sub>n' T;
+         U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D \<A>\<^sub>i\<^sub>n' isasat_fast_wl T;
          RETURN (if get_conflict_wl U = None then extract_model_of_state U else extract_stats U)
       }
     }
@@ -1355,7 +1355,9 @@ proof -
            from_init_state
            isasat_input_ops.finalise_init_finalise_init[THEN fref_to_Down, unfolded comp_def]
            isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D
-             [THEN fref_to_Down_explode, unfolded comp_def])
+             [THEN fref_to_Down_explode, unfolded comp_def]
+           isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D
+             [THEN fref_to_Down, unfolded comp_def])
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1385,8 +1387,12 @@ proof -
       by (rule isasat_input_ops.twl_st_heur_init_wl)
     subgoal
       sorry
-    subgoal
-      sorry
+    supply [[unify_trace_failure]]
+    apply (rule isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D
+             [THEN fref_to_Down, unfolded comp_def])
+    thm isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D
+             [THEN fref_to_Down, unfolded comp_def]
+oops
     subgoal premises p
       using p(26) \<comment> \<open>only last assumption\<close>
       by (auto simp: extract_model_of_state_stat_def extract_model_of_state_def
@@ -1410,6 +1416,9 @@ proof -
           get_conflict_wl_is_None_def split: option.splits)
     done
 qed
+
+thm isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D
+             [THEN fref_to_Down, unfolded comp_def]
 
 lemma [simp]: \<open>finite (extract_atms_clss CS {})\<close>
   by (auto simp: extract_atms_clss_alt_def)
