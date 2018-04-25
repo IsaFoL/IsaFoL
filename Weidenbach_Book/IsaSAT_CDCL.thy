@@ -699,7 +699,7 @@ lemma twl_st_heur_isasat_fast_wl:
    \<open>(x, y) \<in> twl_st_heur \<Longrightarrow> isasat_fast_wl y = isasat_fast2 x\<close>
   by (auto simp: isasat_fast2_def twl_st_heur_state_simp twl_st_heur_def isasat_fast_wl_def)
 term isasat_fast_slow
-  
+
 lemma cdcl_twl_stgy_prog_break_wl_D_alt_def:
   \<open>cdcl_twl_stgy_prog_break_wl_D P S\<^sub>0 =
   do {
@@ -742,12 +742,13 @@ proof -
        (b \<longrightarrow> isasat_fast2 x)}\<close> for x y
     by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
   show ?thesis
-    supply RETURN_as_SPEC_refine[refine2 del]
+    supply RETURN_as_SPEC_refine[refine2 del] twl_st_heur'_def[simp]
     unfolding cdcl_twl_stgy_prog_break_wl_D_heur_break_def cdcl_twl_stgy_prog_break_wl_D_alt_def
       isasat_fast2_def[symmetric]
   apply (intro frefI nres_relI)
   apply (refine_vcg H1 H2
-      unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D[THEN fref_to_Down]
+      unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down,
+        of x y \<open>dom_m (get_clauses_wl_heur x)\<close> for x y]
       cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
       cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D[THEN fref_to_Down]
       isasat_fast_slow_isasat_fast_slow_wl_D[THEN fref_to_Down, unfolded comp_def, simplified])
@@ -756,10 +757,11 @@ proof -
   subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp)
-  subgoal sorry
+  subgoal by (auto simp: twl_st_heur_state_simp isasat_fast2_def)
   subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
   subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
   subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
   subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
   done
