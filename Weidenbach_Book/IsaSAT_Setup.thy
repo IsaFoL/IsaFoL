@@ -245,6 +245,11 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     out_learned M D outl
   }\<close>
 
+
+definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
+\<open>twl_st_heur' N =
+  {(S, S'). (S, S') \<in> twl_st_heur \<and> dom_m (get_clauses_wl_heur S) = N}\<close>
+
 definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>isasat_assn =
   trail_assn *a clauses_ll_assn *a
