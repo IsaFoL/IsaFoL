@@ -1834,6 +1834,27 @@ proof -
     done
 qed
 
+lemma cdcl_twl_stgy_prog_break_wl_D_spec_final:
+  assumes
+    \<open>cdcl_twl_stgy_prog_wl_D_pre S S'\<close>
+  shows
+    \<open>cdcl_twl_stgy_prog_break_wl_D S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
+proof -
+  have T: \<open>cdcl_twl_stgy_prog_wl_pre S S' \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+    using assms unfolding cdcl_twl_stgy_prog_wl_D_pre_def by blast
+  show ?thesis
+    apply (rule order_trans[OF cdcl_twl_stgy_prog_break_wl_D_spec])
+    subgoal using T by auto
+    subgoal
+      apply (rule order_trans)
+      apply (rule ref_two_step')
+       apply (rule cdcl_twl_stgy_prog_break_wl_spec_final[of _ S'])
+      subgoal using T by fast
+      subgoal unfolding conc_fun_chain by (rule conc_fun_R_mono) blast
+      done
+    done
+qed
+
 end -- \<open>end of locale @{locale isasat_input_bounded}\<close>
 
 end

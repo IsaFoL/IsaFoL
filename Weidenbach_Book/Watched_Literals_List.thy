@@ -2628,5 +2628,20 @@ proof -
     done
 qed
 
+lemma cdcl_twl_stgy_prog_break_l_spec_final:
+  assumes
+    \<open>cdcl_twl_stgy_prog_l_pre S S'\<close>
+  shows
+    \<open>cdcl_twl_stgy_prog_break_l S \<le> \<Down> (twl_st_l None) (conclusive_TWL_run S')\<close>
+  apply (rule order_trans[OF cdcl_twl_stgy_prog_break_l_spec[THEN refine_pair_to_SPEC,
+          of S S']])
+  subgoal using assms unfolding cdcl_twl_stgy_prog_l_pre_def by auto
+  subgoal using assms unfolding cdcl_twl_stgy_prog_l_pre_def by auto
+  subgoal
+    apply (rule ref_two_step)
+     prefer 2
+     apply (rule cdcl_twl_stgy_prog_break_spec)
+    using assms unfolding cdcl_twl_stgy_prog_l_pre_def by (auto simp: twl_st_l intro: conc_fun_R_mono)
+  done
 
 end

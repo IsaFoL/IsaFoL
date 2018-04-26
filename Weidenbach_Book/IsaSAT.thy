@@ -153,7 +153,7 @@ lemma empty_init_code_hnr[sepref_fr_rules]:
 
 text \<open>
   This is a trick to recover from consumption of a variable (\<^term>\<open>\<A>\<^sub>i\<^sub>n\<close>) that is passed as
-  argument and destroyed by the initialisation: We copy it as a zero-cost 
+  argument and destroyed by the initialisation: We copy it as a zero-cost
   (by creating a \<^term>\<open>()\<close>), because we don't need it in the code and only in the specification.
 \<close>
 definition virtual_copy where
@@ -228,7 +228,7 @@ definition IsaSAT_use_fast_mode where
   \<open>IsaSAT_use_fast_mode = True\<close>
 
 lemma IsaSAT_use_fast_mode[sepref_fr_rules]:
-  \<open>(uncurry0 (return IsaSAT_use_fast_mode), uncurry0 (RETURN IsaSAT_use_fast_mode)) 
+  \<open>(uncurry0 (return IsaSAT_use_fast_mode), uncurry0 (RETURN IsaSAT_use_fast_mode))
    \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare sep_auto
 
@@ -292,55 +292,6 @@ lemma in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n:
   apply (subst insert_absorb[OF assms, symmetric])
   apply auto
   done
-(* 
-lemma IsaSAT_heur_alt_def:
-  \<open>IsaSAT_heur CS = do{
-    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
-    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
-    ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
-    ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
-    let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
-    S \<leftarrow> isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n';
-    (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur \<A>\<^sub>i\<^sub>n'' CS S;
-    let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
-    if \<not>get_conflict_wl_is_None_heur_init T
-    then RETURN (empty_init_code)
-    else if CS = [] then RETURN (empty_conflict_code)
-    else do {
-       ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
-       ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
-       ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
-         lst_As \<noteq> None) T);
-       T \<leftarrow> finalise_init_code (T::twl_st_wl_heur_init);
-       U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur \<A>\<^sub>i\<^sub>n'' T;
-       RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
-         else extract_state_stat U)
-      }  
-    }\<close>
- (is \<open>?A = ?B\<close>)
-proof -
-  have [simp]: \<open>ASSERT \<Phi> \<bind> (\<lambda>_. P) \<le> ASSERT \<Phi> \<bind> (\<lambda>_. Q) \<longleftrightarrow> (\<Phi> \<longrightarrow> P \<le> Q)\<close> for \<Phi> P Q
-    using Refine_Basic.le_ASSERTI_pres by auto
-
-  have 1: \<open>?A \<le> ?B\<close>
-    unfolding IsaSAT_heur_def Let_def isasat_input_ops.init_state_wl_heur_fast_def
-    apply (refine_vcg lhs_step_If)
-     apply (auto intro!:  Refine_Basic.bind_mono)
-    apply (subst isasat_input_ops.init_dt_wl_heur_fast_init_dt_wl_heur)
-        apply (auto simp: isasat_input_ops.init_state_wl_heur_def map_fun_rel_def
-        RES_RES_RETURN_RES RETURN_def in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n)
-    done
-
-  have 2: \<open>?B \<le> ?A\<close>
-    unfolding IsaSAT_heur_def Let_def isasat_input_ops.init_state_wl_heur_fast_def
-    apply (refine_vcg lhs_step_If)
-     apply (auto intro!:  Refine_Basic.bind_mono)
-    apply (subst isasat_input_ops.init_dt_wl_heur_fast_init_dt_wl_heur)
-        apply (auto simp: isasat_input_ops.init_state_wl_heur_def map_fun_rel_def
-        RES_RES_RETURN_RES RETURN_def in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n)
-    done
-  show ?thesis using 1 2 by simp
-qed *)
 
 lemma (in -)id_mset_list_assn_list_mset_assn:
   assumes \<open>CONSTRAINT is_pure R\<close>
@@ -378,7 +329,7 @@ lemma cdcl_twl_stgy_prog_wl_D_code_ref':
 
 
 lemma cdcl_twl_stgy_prog_wl_D_break_fast_code_ref':
-  \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_fast_code), 
+  \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_fast_code),
       uncurry isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break)
   \<in> [\<lambda>(N, S). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n \<and> isasat_fast S]\<^sub>a
      (virtual_copy_assn)\<^sup>k *\<^sub>a
@@ -831,7 +782,15 @@ proof -
       (is ?steps is \<open>_ \<le> \<Down> _ ?Spec\<close>) and
     clauses: \<open>mset `# ran_mf (get_clauses_wl (fst T)) +
          get_unit_clauses_wl (fst T) = mset `# mset CS'\<close>
-        (is ?clss)
+        (is ?clss) and
+    break_CDCL_steps: \<open>isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D
+     (mset_set (extract_atms_clss CS' {})) (fst T)
+    \<le> \<Down> TWL_to_clauses_state_conv
+       (SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS) U \<or>
+                  CS \<noteq> {#} \<and>
+                  conflicting U \<noteq> None \<and>
+                  backtrack_lvl U = 0 \<and> unsatisfiable (set_mset CS)))\<close>
+      (is ?break_steps)
     if
       CS_p: \<open>Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)\<close> and
       CS'_CS: \<open>(CS', CS) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close> and
@@ -1100,6 +1059,26 @@ proof -
       using clss U unfolding all_clss_lf_ran_m
       by (cases U)
         (auto simp: S\<^sub>0 state_wl_l_init_def state_wl_l_def N_NE)
+
+    have 2:\<open>isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D (mset_set (extract_atms_clss CS' {}))
+             (from_init_state T)
+            \<le> \<Down> (state_wl_l None O twl_st_l None)
+                 (conclusive_TWL_run (fst W))\<close>
+      apply (rule isasat_input_bounded.cdcl_twl_stgy_prog_break_wl_D_spec_final
+        [of \<open>(mset_set (extract_atms_clss CS' {}))\<close>])
+      using CS_p \<L>\<^sub>a\<^sub>l\<^sub>l
+        struct_invs corr_w add_invs clss confl clss
+      by (auto simp: from_init_state_def st 1)
+    show ?break_steps
+      unfolding TWL_to_clauses_state_conv_def from_init_state_def[symmetric]
+      apply (rule order_trans)
+       apply (rule 2)
+      apply (subst (2) conc_fun_chain[symmetric])
+      apply (rule ref_two_step)
+       prefer 2
+       apply (rule conclusive_le)
+      apply simp
+      done
   qed
 
   have init: \<open>init_dt_wl_pre CS' (([], fmempty, None, {#}, {#}, {#}, \<lambda>_. []), {#})\<close>
@@ -1133,7 +1112,7 @@ proof -
       subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel K
          isasat_input_bounded_nempty_def isasat_input_bounded_nempty_axioms_def)
       subgoal by (rule clauses)
-      subgoal sorry
+      subgoal by (rule break_CDCL_steps)
       subgoal by (rule init) (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
       -- \<open>Now the slow part: \<close>
       subgoal for b by (rule conflict_during_init)
@@ -1376,7 +1355,7 @@ proof -
       bounded: \<open>isasat_input_bounded (mset_set (extract_atms_clss CS' {}))\<close> and
       TT': \<open>inres (f T) T'\<close> and
       T': \<open>(T', to_init_state (isasat_input_ops.init_state_wl (mset_set (extract_atms_clss CS' {}))))
-        \<in> {(T, T', OS). 
+        \<in> {(T, T', OS).
           (T, T') \<in> isasat_input_ops.twl_st_heur_init_wl (mset_set (extract_atms_clss CS' {}))}\<close>
     for CS CS' T T'
   proof -
@@ -1418,7 +1397,7 @@ proof -
          isasat_input_ops.twl_st_heur_init_wl_def)
   qed
   have dom_m_le_uint_max: \<open>\<forall>L\<in>#dom_m (get_clauses_wl_heur U). L < uint_max\<close>
-    if 
+    if
       CS_CS': \<open>(CS, CS') \<in> Id\<close> and
       length_CS': \<open>b \<and> length CS' < uint_max - 1\<close> and
       S_fS': \<open>inres (f S') S\<close> and
@@ -1454,8 +1433,8 @@ proof -
     moreover {
       have \<open>size (dom_m (get_clauses_wl_heur_init T)) \<le> size (ran_mf (get_clauses_wl_heur_init T))\<close>
         by (auto simp: ran_m_def)
-      moreover have \<open>size (ran_mf (get_clauses_wl_heur_init T)) \<le> length CS\<close> 
-        using size_mset_mono[OF dom] by auto 
+      moreover have \<open>size (ran_mf (get_clauses_wl_heur_init T)) \<le> length CS\<close>
+        using size_mset_mono[OF dom] by auto
       ultimately have \<open>size (dom_m (get_clauses_wl_heur_init T)) \<le> uint_max - 1\<close>
         using length_CS' CS_CS' by force
     }

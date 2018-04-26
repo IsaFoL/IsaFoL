@@ -1700,4 +1700,25 @@ proof -
     done
 qed
 
+lemma cdcl_twl_stgy_prog_break_wl_spec_final:
+  assumes
+    \<open>cdcl_twl_stgy_prog_wl_pre S S'\<close>
+  shows
+    \<open>cdcl_twl_stgy_prog_break_wl S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
+proof -
+  obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close>
+    using assms unfolding cdcl_twl_stgy_prog_wl_pre_def by blast
+  show ?thesis
+    apply (rule order_trans[OF cdcl_twl_stgy_prog_break_wl_spec[unfolded fref_param1[symmetric], "to_\<Down>", of S T]])
+    subgoal using T by auto
+    subgoal
+      apply (rule order_trans)
+      apply (rule ref_two_step')
+       apply (rule cdcl_twl_stgy_prog_break_l_spec_final[of _ S'])
+      subgoal using T by fast
+      subgoal unfolding conc_fun_chain by auto
+      done
+    done
+qed
+
 end

@@ -1313,7 +1313,7 @@ proof -
     done
 qed
 
-lemma cdcl_twl_stgy_prog_spec_break:
+lemma cdcl_twl_stgy_prog_break_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
