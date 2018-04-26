@@ -1522,8 +1522,7 @@ proof -
     subgoal
       by (auto dest!: isasat_input_ops.twl_st_heur_init_vmtf_fstD)
     subgoal
-      by (auto simp: get_conflict_wl_is_None_init_def get_conflict_wl_is_None_def
-          split: option.splits)
+      unfolding get_conflict_wl_is_None_init_def get_conflict_wl_is_None by meson
     apply assumption+
     subgoal
       by (rule isasat_input_ops.twl_st_heur_init_wl)
