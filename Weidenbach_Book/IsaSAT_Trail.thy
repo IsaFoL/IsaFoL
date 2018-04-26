@@ -78,7 +78,7 @@ definition uint32_of_nat_conv :: \<open>nat \<Rightarrow> nat\<close> where
 \<open>uint32_of_nat_conv = id\<close>
 
 lemma uint32_of_nat_conv_hnr[sepref_fr_rules]:
-  \<open>(return o uint32_of_nat, RETURN o uint32_of_nat_conv) \<in> 
+  \<open>(return o uint32_of_nat, RETURN o uint32_of_nat_conv) \<in>
     [\<lambda>n. n \<le> uint32_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def uint32_of_nat_conv_def
       nat_of_uint32_uint32_of_nat_id)
@@ -118,7 +118,7 @@ lemma array_option_uint32_of_nat_conv_alt_def:
 
 lemma array_option_uint32_of_nat_conv_hnr[sepref_fr_rules]:
   \<open>(array_option_uint32_of_nat_code, (RETURN \<circ> array_option_uint32_of_nat_conv))
-    \<in> [\<lambda>xs. \<forall>a\<in>set xs. a = None \<or> the a \<le> uint32_max]\<^sub>a 
+    \<in> [\<lambda>xs. \<forall>a\<in>set xs. a = None \<or> the a \<le> uint32_max]\<^sub>a
        (array_assn (option_assn nat_assn))\<^sup>k \<rightarrow> array_assn (option_assn uint32_nat_assn)\<close>
   using array_option_uint32_of_nat_code.refine[unfolded array_option_uint32_of_nat_def,
     FCOMP op_map_map_rel] unfolding array_option_uint32_of_nat_conv_alt_def
@@ -276,7 +276,7 @@ definition trail_pol_fast_of_slow :: \<open>trail_pol \<Rightarrow> trail_pol\<c
 
 sepref_definition trail_pol_fast_of_slow_code
   is \<open>RETURN o trail_pol_fast_of_slow\<close>
-  :: \<open>[\<lambda>(M, val, lvls, reason, k). \<forall>i\<in>set reason. i = None \<or> the i < uint32_max]\<^sub>a 
+  :: \<open>[\<lambda>(M, val, lvls, reason, k). \<forall>i\<in>set reason. i = None \<or> the i < uint32_max]\<^sub>a
       trail_pol_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   unfolding trail_pol_fast_of_slow_def
   by sepref
@@ -364,7 +364,7 @@ lemmas get_level_atm_fast_code_hnr[sepref_fr_rules] =
 lemma
   get_level_atm_hnr[sepref_fr_rules]:
     \<open>(uncurry get_level_atm_code, uncurry (RETURN oo get_level_atm)) \<in>
-     [\<lambda>(M, L). Pos L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close> 
+     [\<lambda>(M, L). Pos L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   (is ?Slow is \<open>_ \<in> [?pre]\<^sub>a ?imslow \<rightarrow> ?f\<close>) and
   get_level_atm_fast_hnr[sepref_fr_rules]:
     \<open>(uncurry get_level_atm_fast_code, uncurry (RETURN oo get_level_atm)) \<in>
@@ -412,8 +412,8 @@ proof -
                       (trail_pol \<times>\<^sub>f uint32_nat_rel) \<rightarrow> hr_comp uint32_nat_assn
           nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF get_level_atm_fast_code.refine 1, OF isasat_input_bounded_axioms] .    
-  
+    using hfref_compI_PRE_aux[OF get_level_atm_fast_code.refine 1, OF isasat_input_bounded_axioms] .
+
   have im: \<open>?im' = ?imfast\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     by (auto simp: hrp_comp_def hr_comp_def)
@@ -533,8 +533,8 @@ prepare_code_thms (in -) polarity_pol_fast_code_def
 
 lemmas polarity_pol_fast_code_polarity_refine_code[sepref_fr_rules] =
    polarity_pol_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-  
-lemma 
+
+lemma
   polarity_pol_code_polarity_refine[sepref_fr_rules]:
     \<open>(uncurry polarity_pol_code, uncurry (RETURN oo polarity)) \<in>
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
@@ -760,7 +760,7 @@ proof -
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     by (auto simp: hrp_comp_def hr_comp_def)
   show ?fast
-    using H unfolding im pre .       
+    using H unfolding im pre .
 qed
 
 definition (in -) hd_trail_pol :: \<open>trail_pol \<Rightarrow> (nat literal \<times> nat option) nres\<close> where
@@ -818,7 +818,7 @@ lemma (in -) nat_ann_lit_rel_alt_def: \<open>nat_ann_lit_rel = (unat_lit_rel \<t
 type_synonym (in -) ann_lit_wl_uint32 = \<open>uint32 \<times> uint32 option\<close>
 
 abbreviation (in -) pair_nat_ann_lit_uint32_assn :: \<open>(nat, nat) ann_lit \<Rightarrow> ann_lit_wl_uint32 \<Rightarrow> assn\<close> where
-  \<open>pair_nat_ann_lit_uint32_assn \<equiv> 
+  \<open>pair_nat_ann_lit_uint32_assn \<equiv>
     hr_comp (uint32_assn \<times>\<^sub>a option_assn uint32_nat_assn) nat_ann_lit_rel\<close>
 
 lemma
@@ -1166,7 +1166,7 @@ lemma
     \<open>(uncurry cons_trail_Decided_tr_code, uncurry (RETURN oo cons_trail_Decided)) \<in>
     [\<lambda>(L, M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a trail_assn\<^sup>d \<rightarrow>
     trail_assn\<close>
-    (is ?slow is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and 
+    (is ?slow is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
   cons_trail_Decided_tr_fast_code_cons_trail_Decided_tr[sepref_fr_rules]:
     \<open>(uncurry cons_trail_Decided_tr_fast_code, uncurry (RETURN oo cons_trail_Decided)) \<in>
     [\<lambda>(L, M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a trail_fast_assn\<^sup>d \<rightarrow>

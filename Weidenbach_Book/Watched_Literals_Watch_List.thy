@@ -1672,7 +1672,7 @@ theorem cdcl_twl_stgy_prog_break_wl_spec:
     \<langle>state_wl_l None\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle> nres_rel\<close>)
 proof -
-  have H: \<open>((b', False, S'), b, False, S) \<in> {((b', brk', T'), (b, brk, T)). 
+  have H: \<open>((b', False, S'), b, False, S) \<in> {((b', brk', T'), (b, brk, T)).
       (T', T) \<in> state_wl_l None \<and> brk' = brk \<and> b' = b \<and>
        correct_watching T'}\<close>
     if \<open>(S', S) \<in> state_wl_l None\<close> and

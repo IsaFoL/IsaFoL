@@ -742,7 +742,7 @@ proof -
        (b \<longrightarrow> isasat_fast2 x)}\<close> for x y
     by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
   have H3:
-    \<open>RETURN (isasat_fast2 x) \<le> \<Down> {(b, b'). b = b' \<and> (b \<longrightarrow> isasat_fast2 x)} (SPEC (\<lambda>_. True))\<close> 
+    \<open>RETURN (isasat_fast2 x) \<le> \<Down> {(b, b'). b = b' \<and> (b \<longrightarrow> isasat_fast2 x)} (SPEC (\<lambda>_. True))\<close>
     for x
      by (auto simp: RETURN_RES_refine_iff)
   let ?R = \<open>{((b, brk, S), (b', brk', S')). b = b' \<and>

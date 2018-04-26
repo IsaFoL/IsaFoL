@@ -1048,7 +1048,7 @@ lemmas init_dt_step_wl_code_refine[sepref_fr_rules] =
 
 sepref_thm init_dt_step_wl_fast_code
   is \<open>uncurry (PR_CONST init_dt_step_wl_heur)\<close>
-  :: \<open>[\<lambda>(_, S). isasat_fast_init S \<and> packed(get_clauses_wl_heur_init S)]\<^sub>a 
+  :: \<open>[\<lambda>(_, S). isasat_fast_init S \<and> packed(get_clauses_wl_heur_init S)]\<^sub>a
        (list_assn unat_lit_assn)\<^sup>d *\<^sub>a isasat_init_fast_assn\<^sup>d \<rightarrow>
        isasat_init_fast_assn\<close>
   supply polarity_None_undefined_lit[simp] polarity_st_init_def[simp]
@@ -1080,7 +1080,7 @@ definition (in isasat_input_ops) init_dt_wl_heur
 where
   \<open>init_dt_wl_heur CS S = nfoldli CS (\<lambda>_. True)
      (\<lambda>C S. do {
-        ASSERT (packed (get_clauses_wl_heur_init S)); 
+        ASSERT (packed (get_clauses_wl_heur_init S));
         init_dt_step_wl_heur C S}) S\<close>
 
 definition (in isasat_input_ops) init_dt_wl_heur_fast
@@ -1088,8 +1088,8 @@ definition (in isasat_input_ops) init_dt_wl_heur_fast
 where
   \<open>init_dt_wl_heur_fast CS S = nfoldli CS (\<lambda>_. True)
      (\<lambda>C S. do {
-        ASSERT(isasat_fast_init S); 
-        ASSERT (packed (get_clauses_wl_heur_init S)); 
+        ASSERT(isasat_fast_init S);
+        ASSERT (packed (get_clauses_wl_heur_init S));
         init_dt_step_wl_heur C S}) S\<close>
 
 sepref_register (in isasat_input_ops) init_dt_wl_heur init_dt_wl_heur_fast
@@ -1106,7 +1106,7 @@ lemma (in isasat_input_ops)init_dt_wl_heur_fast_invariants:
     \<open>packed (get_clauses_wl_heur_init T)\<close> (is ?B) and
     \<open>length (get_watched_list_heur_init T) = length (get_watched_list_heur_init S)\<close> (is ?C)
 proof -
-  show ?A 
+  show ?A
     using assms (* TODO Proof *)
     by (cases S; cases T; cases C; cases \<open>tl C\<close>)
       (auto simp: init_dt_step_wl_heur_def Let_def set_empty_clause_as_conflict_heur_def
@@ -1114,7 +1114,7 @@ proof -
         conflict_propagated_unit_cls_heur_def add_clause_to_others_heur_def get_fresh_index_def
         literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset add_init_cls_heur_def fm_add_new_packed_def RES_RETURN_RES
         RES_RES_RETURN_RES2 get_fresh_index_packed_alt_def max_def remove1_mset_ge_Max_some
-        Max_dom_alt_def[symmetric] Max_dom_fmupd_irrel    
+        Max_dom_alt_def[symmetric] Max_dom_fmupd_irrel
         split: if_splits list.splits)
   show ?B
     using assms (* TODO Proof *)
@@ -1137,7 +1137,7 @@ proof -
 qed
 
 lemma (in isasat_input_ops)init_dt_wl_heur_fast_le:
-   \<open>Max_dom (get_clauses_wl_heur_init S) + length CS < uint_max - 1 \<Longrightarrow> 
+   \<open>Max_dom (get_clauses_wl_heur_init S) + length CS < uint_max - 1 \<Longrightarrow>
    \<forall>C\<in>set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<Longrightarrow>
 packed (get_clauses_wl_heur_init S) \<Longrightarrow>
 \<forall>L\<in>snd ` D\<^sub>0. nat_of_lit L < length (get_watched_list_heur_init S) \<Longrightarrow>
@@ -1166,7 +1166,7 @@ packed (get_clauses_wl_heur_init S) \<Longrightarrow>
 
 
 lemma (in isasat_input_ops)init_dt_wl_heur_fast_ge:
-   \<open>Max_dom (get_clauses_wl_heur_init S) + length CS < uint_max - 1 \<Longrightarrow> 
+   \<open>Max_dom (get_clauses_wl_heur_init S) + length CS < uint_max - 1 \<Longrightarrow>
    \<forall>C\<in>set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<Longrightarrow>
 packed (get_clauses_wl_heur_init S) \<Longrightarrow>
 \<forall>L\<in>snd ` D\<^sub>0. nat_of_lit L < length (get_watched_list_heur_init S) \<Longrightarrow>
@@ -1190,7 +1190,7 @@ packed (get_clauses_wl_heur_init S) \<Longrightarrow>
   done
 
 lemma (in isasat_input_ops)init_dt_wl_heur_fast_init_dt_wl_heur:
-  assumes 
+  assumes
     \<open>Max_dom_wl_heur S + length CS < uint_max - 1\<close> and
     \<open>\<forall>C\<in>set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close> and
     \<open>packed (get_clauses_wl_heur_init S)\<close> and

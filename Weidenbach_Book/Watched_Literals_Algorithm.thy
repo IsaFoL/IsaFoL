@@ -1298,7 +1298,7 @@ lemma wf_cdcl_twl_stgy_measure_break:
     (is \<open>?wf ?R\<close>)
 proof -
   have 1: \<open>wf ({((brkT, T), brkS, S). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union>
-    {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS})\<close>  
+    {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS})\<close>
     (is \<open>wf ?S\<close>)
     by (rule wf_cdcl_twl_stgy_measure)
   have \<open>wf {((bT, T), (bS, S)). (T, S) \<in> ?S}\<close>
@@ -1306,7 +1306,7 @@ proof -
     apply (rule wf_subset)
     apply (rule 1)
     apply auto
-    done 
+    done
   then show ?thesis
     apply (rule wf_subset)
     apply auto

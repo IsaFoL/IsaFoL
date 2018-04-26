@@ -146,7 +146,7 @@ lemma op_map_to_map:
   \<open>j < length W' \<Longrightarrow> op_map_to R e xs W' j \<le> RETURN (W'[j := W'!j @ map R xs])\<close>
   unfolding op_map_to_def Let_def
   apply (refine_vcg WHILEIT_rule[where R=\<open>measure (\<lambda>(i,_). length xs - i)\<close>])
-         apply (auto simp: hd_conv_nth take_Suc_conv_app_nth list_update_append 
+         apply (auto simp: hd_conv_nth take_Suc_conv_app_nth list_update_append
       append_ll_def  split: nat.splits)
   by (simp add: list_eq_iff_nth_eq)
 
@@ -187,7 +187,7 @@ lemma convert_single_wl_to_nat_conv_hnr[sepref_fr_rules]:
      uncurry3 (RETURN \<circ>\<circ>\<circ> convert_single_wl_to_nat_conv))
   \<in> [\<lambda>(((a, b), ba), bb). b < length a \<and> bb < length ba \<and> ba ! bb = []]\<^sub>a
     (arrayO_assn (arl_assn uint32_nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
-    (arrayO_assn (arl_assn nat_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> 
+    (arrayO_assn (arl_assn nat_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
     arrayO_assn (arl_assn nat_assn)\<close>
   using convert_single_wl_to_nat_code.refine[FCOMP convert_single_wl_to_nat]
   by auto
@@ -214,7 +214,7 @@ sepref_definition convert_wlists_to_nat_code
 lemma convert_wlists_to_nat_convert_wlists_to_nat_conv:
   \<open>(convert_wlists_to_nat, RETURN o convert_wlists_to_nat_conv) \<in>
      \<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) 
+  by (intro frefI nres_relI)
     (auto simp: convert_wlists_to_nat_def nat_of_uint32_conv_def convert_wlists_to_nat_conv_def
       intro: order.trans op_map_map)
 
@@ -300,7 +300,7 @@ where
   }\<close>
 
 definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>isasat_fast_slow = 
+  \<open>isasat_fast_slow =
     (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats).
       RETURN (trail_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
         clvls, cach, lbd, outl, stats))\<close>
@@ -319,7 +319,7 @@ concrete_definition (in -) isasat_fast_slow_code
 prepare_code_thms (in -) isasat_fast_slow_code_def
 
 lemmas isasat_fast_slow_code[sepref_fr_rules] =
-   isasat_fast_slow_code.refine 
+   isasat_fast_slow_code.refine
 
 definition (in -)isasat_fast_slow_wl_D where
   \<open>isasat_fast_slow_wl_D = id\<close>

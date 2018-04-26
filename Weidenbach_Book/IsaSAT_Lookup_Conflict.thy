@@ -1160,7 +1160,7 @@ theorem
   trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
       lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
     option_lookup_clause_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
-   (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>) 
+   (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
 proof -
    have H: \<open>?c
   \<in> [comp_PRE (\<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f
@@ -1199,7 +1199,7 @@ proof -
     apply (rule hfref_weaken_pre[OF ])
      defer
     using H unfolding im f PR_CONST_def apply assumption
-    using pre ..  
+    using pre ..
   have H: \<open>?cfast
   \<in> [comp_PRE (\<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f
         nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id)

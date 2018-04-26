@@ -663,7 +663,7 @@ lemma ran_m_fmempty[simp]: \<open>ran_m fmempty = {#}\<close> and
     dom_m_fmempty[simp]: \<open>dom_m fmempty = {#}\<close>
   by (auto simp: ran_m_def dom_m_def)
 
-  
+
 lemma unit_propagation_inner_loop_body_l:
   fixes i C :: nat and S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close> and L :: \<open>'v literal\<close>
   defines
