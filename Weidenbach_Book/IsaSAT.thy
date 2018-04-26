@@ -29,7 +29,7 @@ definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl
   \<open>SAT_wl CS = do{
     let \<A>\<^sub>i\<^sub>n' = extract_atms_clss CS {};
     b \<leftarrow> SPEC(\<lambda>_. True);
-    if b then do {
+    if b \<and> length CS < uint_max - 1 (*simplifies the refinement*) then do {
       let S = isasat_input_ops.init_state_wl (mset_set \<A>\<^sub>i\<^sub>n');
       T \<leftarrow> init_dt_wl CS (to_init_state S);
       let T = from_init_state T;
@@ -40,7 +40,7 @@ definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl
          ASSERT (extract_atms_clss CS {} \<noteq> {});
          ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
          ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
-         isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D (mset_set \<A>\<^sub>i\<^sub>n') P (finalise_init T)
+         isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D (mset_set \<A>\<^sub>i\<^sub>n') (finalise_init T)
       }
    }
    else do {
@@ -92,7 +92,7 @@ definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list opt
          ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n');
          ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
          let T = finalise_init T;
-         U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D \<A>\<^sub>i\<^sub>n' isasat_fast_wl T;
+         U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D \<A>\<^sub>i\<^sub>n' T;
          RETURN (if get_conflict_wl U = None then extract_model_of_state U else extract_stats U)
       }
     }
@@ -591,10 +591,6 @@ proof -
     \<open>(mset CS', CS) \<in> \<langle>list_mset_rel\<rangle>mset_rel \<longleftrightarrow> CS = mset `# mset CS'\<close> for CS CS'
     by (auto simp: list_mset_rel_def br_def mset_rel_def p2rel_def rel_mset_def
         rel2p_def[abs_def] list_all2_op_eq_map_right_iff')
-  have [simp]: \<open>mset `# mset (take ag (tl af)) + ai + (mset `# mset (drop (Suc ag) af)) =
-     mset `# mset (tl af) + ai\<close> for ag af aj ai
-    by (subst (2) append_take_drop_id[symmetric, of \<open>tl af\<close> ag], subst mset_append)
-      (auto simp: drop_Suc)
 
   have \<L>\<^sub>a\<^sub>l\<^sub>l:
     \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS' {}))
@@ -1128,8 +1124,19 @@ proof -
       apply (rewrite at \<open>let _ = isasat_input_ops.init_state_wl _ in _\<close> Let_def)
       apply (simp only: if_False isasat_input_ops.init_state_wl_def
           isasat_input_ops.empty_watched_alt_def)
-      apply (refine_vcg bind_refine_spec lhs_step_If init_dt_wl_init_dt_wl_spec)
-      subgoal for T by (rule conflict_during_init)
+      apply (refine_vcg  (* bind_refine_spec*) lhs_step_If init_dt_wl_init_dt_wl_spec
+         bind_refine_spec[OF _ init_dt_wl_init_dt_wl_spec])
+      -- \<open>First the fast part: \<close>
+      subgoal for b by (rule conflict_during_init)
+      subgoal for T by (rule empty_clss)
+      subgoal by (rule extract_atms_clss_not_nil)
+      subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel K
+         isasat_input_bounded_nempty_def isasat_input_bounded_nempty_axioms_def)
+      subgoal by (rule clauses)
+      subgoal sorry
+      subgoal by (rule init) (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
+      -- \<open>Now the slow part: \<close>
+      subgoal for b by (rule conflict_during_init)
       subgoal for T by (rule empty_clss)
       subgoal by (rule extract_atms_clss_not_nil)
       subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel K
@@ -1264,7 +1271,7 @@ lemma isasat_input_bounded_nempty_cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_st
 (S, S') \<in> isasat_input_ops.twl_st_heur \<A> \<Longrightarrow> \<A> = \<A>' \<Longrightarrow>
 isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break \<A> S
 \<le> \<Down> (isasat_input_ops.twl_st_heur \<A>)
-    (isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D \<A>' isasat_fast_wl S')\<close>
+    (isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D \<A>' S')\<close>
   using  isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D
              [THEN fref_to_Down, unfolded comp_def, of \<A> S S']
   by fast
@@ -1567,8 +1574,7 @@ proof -
   have [simp]: \<open>mset_set (extract_atms_clss CS {}) \<noteq> {#} \<longleftrightarrow> extract_atms_clss CS {} \<noteq> {}\<close> for CS
     using mset_set_empty_iff[of \<open>extract_atms_clss CS {}\<close>]
     by (auto simp: )
-  have IsaSAT: \<open>IsaSAT CS =
-    do {
+  have IsaSAT: \<open>IsaSAT CS = do {
      ASSERT (isasat_input_bounded (mset_set (extract_atms_clss CS {})));
      ASSERT (distinct_mset (mset_set (extract_atms_clss CS {})));
      T \<leftarrow> SAT_wl CS;

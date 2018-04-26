@@ -701,18 +701,18 @@ lemma twl_st_heur_isasat_fast_wl:
 term isasat_fast_slow
 
 lemma cdcl_twl_stgy_prog_break_wl_D_alt_def:
-  \<open>cdcl_twl_stgy_prog_break_wl_D P S\<^sub>0 =
+  \<open>cdcl_twl_stgy_prog_break_wl_D S\<^sub>0 =
   do {
-    b \<leftarrow> RETURN (P S\<^sub>0);
+    b \<leftarrow> SPEC (\<lambda>_. True);
     (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (brk, T) \<and>
-          literals_are_\<L>\<^sub>i\<^sub>n T \<and> (b \<longrightarrow> \<not>brk \<longrightarrow> P T)\<^esup>
+          literals_are_\<L>\<^sub>i\<^sub>n T\<^esup>
         (\<lambda>(b, brk, _). b \<and> \<not>brk)
         (\<lambda>(b, brk, S).
         do {
           ASSERT(b);
           T \<leftarrow> unit_propagation_outer_loop_wl_D S;
           (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
-          b \<leftarrow> RETURN (P T);
+          b \<leftarrow>  SPEC (\<lambda>_. True);
           RETURN(b, brk, T)
         })
         (b, False, S\<^sub>0);
@@ -727,7 +727,7 @@ lemma cdcl_twl_stgy_prog_break_wl_D_alt_def:
 
 lemma cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D:
   \<open>(cdcl_twl_stgy_prog_break_wl_D_heur_break,
-     cdcl_twl_stgy_prog_break_wl_D isasat_fast_wl) \<in>
+     cdcl_twl_stgy_prog_break_wl_D) \<in>
          twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
   have H1: \<open>
@@ -741,12 +741,21 @@ proof -
     (isasat_fast2 x, isasat_fast_wl y) \<in> {(b, b'). b = b' \<and>
        (b \<longrightarrow> isasat_fast2 x)}\<close> for x y
     by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  have H3:
+    \<open>RETURN (isasat_fast2 x) \<le> \<Down> {(b, b'). b = b' \<and> (b \<longrightarrow> isasat_fast2 x)} (SPEC (\<lambda>_. True))\<close> 
+    for x
+     by (auto simp: RETURN_RES_refine_iff)
+  let ?R = \<open>{((b, brk, S), (b', brk', S')). b = b' \<and>
+       (b \<longrightarrow> isasat_fast2 S) \<and> brk = brk' \<and> (S, S') \<in> twl_st_heur}\<close>
+thm WHILEIT_refine[where R= ?R]
+
   show ?thesis
     supply RETURN_as_SPEC_refine[refine2 del] twl_st_heur'_def[simp]
     unfolding cdcl_twl_stgy_prog_break_wl_D_heur_break_def cdcl_twl_stgy_prog_break_wl_D_alt_def
       isasat_fast2_def[symmetric]
   apply (intro frefI nres_relI)
-  apply (refine_vcg H1 H2
+  apply (refine_vcg H1 H2 H3
+      WHILEIT_refine[where R= ?R]
       unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down,
         of x y \<open>dom_m (get_clauses_wl_heur x)\<close> for x y]
       cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
@@ -763,8 +772,8 @@ proof -
   subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
   subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
-  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
   done
+
 qed
 
 end

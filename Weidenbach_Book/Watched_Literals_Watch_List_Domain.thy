@@ -1830,9 +1830,6 @@ proof -
     subgoal by fast
     subgoal by fast
     subgoal by fast
-    subgoal by auto
-    subgoal by auto
-    subgoal by fast
     subgoal by (fast intro!: cdcl_twl_stgy_prog_wl_D_spec)
     done
 qed
