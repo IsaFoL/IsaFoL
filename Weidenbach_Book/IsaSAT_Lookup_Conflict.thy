@@ -678,6 +678,39 @@ prepare_code_thms (in -) resolve_lookup_conflict_merge_code_def
 lemmas resolve_lookup_conflict_aa_hnr[sepref_fr_rules] =
    resolve_lookup_conflict_merge_code.refine[OF isasat_input_bounded_axioms]
 
+sepref_thm resolve_lookup_conflict_merge_fast_code
+  is \<open>uncurry6 (PR_CONST resolve_lookup_conflict_aa)\<close>
+  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i \<in># dom_m N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+        (\<forall>j<length (N\<propto>i). atm_of (N\<propto>i!j) < length (snd xs)) \<and> no_dup M \<and>
+        literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N\<propto>i)) \<and>
+        length (N\<propto>i) \<le> uint_max]\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+         uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+      conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
+  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+    uint32_nat_assn_one[sepref_fr_rules] image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    Suc_uint32_nat_assn_hnr[sepref_fr_rules] fmap_length_rll_u_def[simp]
+  unfolding resolve_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
+    PR_CONST_def nth_rll_def[symmetric]
+    outlearned_add_def clvls_add_def
+    isasat_codegen
+    fmap_rll_u_def[symmetric]
+    fmap_rll_def[symmetric]
+    is_NOTIN_def[symmetric]
+  apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) resolve_lookup_conflict_merge_fast_code
+   uses isasat_input_bounded.resolve_lookup_conflict_merge_fast_code.refine_raw
+   is \<open>(uncurry6 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) resolve_lookup_conflict_merge_fast_code_def
+
+lemmas resolve_lookup_conflict_aa_fast_hnr[sepref_fr_rules] =
+   resolve_lookup_conflict_merge_fast_code.refine[OF isasat_input_bounded_axioms]
+
 sepref_register set_lookup_conflict_aa
 sepref_thm set_lookup_conflict_aa_code
   is \<open>uncurry6 (PR_CONST set_lookup_conflict_aa)\<close>
@@ -711,6 +744,39 @@ prepare_code_thms (in -) set_lookup_conflict_aa_code_def
 
 lemmas set_lookup_conflict_aa_code[sepref_fr_rules] =
    set_lookup_conflict_aa_code.refine[OF isasat_input_bounded_axioms]
+
+sepref_thm set_lookup_conflict_aa_fast_code
+  is \<open>uncurry6 (PR_CONST set_lookup_conflict_aa)\<close>
+  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), _). i \<in># dom_m N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+        (\<forall>j<length (N\<propto>i). atm_of (N\<propto>i!j) < length (snd xs)) \<and> no_dup M \<and>
+        literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N\<propto>i)) \<and>
+        length (N\<propto>i) \<le> uint_max]\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+         uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d  *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+      conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
+  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+    uint32_nat_assn_one[sepref_fr_rules] image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    Suc_uint32_nat_assn_hnr[sepref_fr_rules]  fmap_length_rll_u_def[simp]
+  unfolding set_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
+    PR_CONST_def nth_rll_def[symmetric] length_rll_def[symmetric]
+    length_aa_u_def[symmetric] outlearned_add_def clvls_add_def
+    isasat_codegen
+    fmap_rll_u_def[symmetric]
+    fmap_rll_def[symmetric]
+    is_NOTIN_def[symmetric]
+  apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) set_lookup_conflict_aa_fast_code
+   uses isasat_input_bounded.set_lookup_conflict_aa_fast_code.refine_raw
+   is \<open>(uncurry6 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) set_lookup_conflict_aa_fast_code_def
+
+lemmas set_lookup_conflict_aa_fast_code[sepref_fr_rules] =
+   set_lookup_conflict_aa_fast_code.refine[OF isasat_input_bounded_axioms]
 
 lemma lookup_conflict_merge'_spec:
   assumes
@@ -1076,15 +1142,25 @@ proof -
     by (intro nres_relI frefI) (auto simp: H)
 qed
 
-theorem resolve_lookup_conflict_merge_code_set_conflict[sepref_fr_rules]:
-  \<open>(uncurry6 set_lookup_conflict_aa_code, uncurry6 set_conflict_m) \<in>
+theorem
+  resolve_lookup_conflict_merge_code_set_conflict[sepref_fr_rules]:
+    \<open>(uncurry6 set_lookup_conflict_aa_code, uncurry6 set_conflict_m) \<in>
   [\<lambda>((((((M, N), i), xs), clvls), lbd), outl). clvls = 0 \<and> i \<in># dom_m N \<and> xs = None \<and> distinct (N \<propto> i) \<and>
     literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> i)) \<and> \<not> tautology (mset (N \<propto> i)) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
      no_dup M \<and> out_learned M None outl]\<^sub>a
   trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
       lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
     option_lookup_clause_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
-   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+   (is ?slow is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
+  resolve_lookup_conflict_merge_code_set_conflict_fast[sepref_fr_rules]:
+    \<open>(uncurry6 set_lookup_conflict_aa_fast_code, uncurry6 set_conflict_m) \<in>
+  [\<lambda>((((((M, N), i), xs), clvls), lbd), outl). clvls = 0 \<and> i \<in># dom_m N \<and> xs = None \<and> distinct (N \<propto> i) \<and>
+    literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> i)) \<and> \<not> tautology (mset (N \<propto> i)) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+     no_dup M \<and> out_learned M None outl]\<^sub>a
+  trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
+      lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+    option_lookup_clause_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
+   (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
 proof -
    have H: \<open>?c
   \<in> [comp_PRE (\<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f
@@ -1119,7 +1195,40 @@ proof -
   have f: \<open>?f' = ?f\<close>
     by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn
        option_lookup_clause_assn_def)
-  show ?thesis
+  show ?slow
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+  have H: \<open>?cfast
+  \<in> [comp_PRE (\<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f
+        nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id)
+     (\<lambda>((((((M, N), i), xs), clvls), lbd), outl). i \<in># dom_m N \<and> xs = None \<and>
+         distinct (N \<propto> i) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> i)) \<and> \<not> tautology (mset (N \<propto> i)) \<and>
+         clvls = 0 \<and> out_learned M None outl)
+     (\<lambda>_ ((((((M, N), i), _, xs), _), _), _). i \<in># dom_m N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+         (\<forall>j<length (N \<propto> i). atm_of (N \<propto> i ! j) < length (snd xs)) \<and> no_dup M \<and>
+         literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> i)) \<and> length (N \<propto> i) \<le> uint_max)
+     (\<lambda>_. True)]\<^sub>a
+   hrp_comp ((hr_comp trail_pol_fast_assn trail_pol)\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
+       conflict_option_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d)
+     (\<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f
+         nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow>
+    hr_comp (conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn)
+      (option_lookup_clause_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f Id)))\<close> (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+     using hfref_compI_PRE_aux[OF set_lookup_conflict_aa_fast_code.refine[unfolded PR_CONST_def]
+        resolve_lookup_conflict_aa_set_conflict[unfolded PR_CONST_def],
+        OF isasat_input_bounded_axioms]
+     unfolding PR_CONST_def
+     .
+  have im: \<open>?im' = ?imfast\<close>
+    unfolding prod_hrp_comp option_lookup_clause_assn_def
+    by (auto simp: prod_hrp_comp hrp_comp_def hr_comp_invalid)
+
+  have f: \<open>?f' = ?ffast\<close>
+    by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn
+       option_lookup_clause_assn_def)
+  show ?fast
     apply (rule hfref_weaken_pre[OF ])
      defer
     using H unfolding im f PR_CONST_def apply assumption
@@ -1172,7 +1281,18 @@ theorem resolve_lookup_conflict_merge_code_merge_conflict_m[sepref_fr_rules]:
   trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
       lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
     option_lookup_clause_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
-   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+   (is ?slow is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
+ resolve_lookup_conflict_merge_fast_code_merge_conflict_m[sepref_fr_rules]:
+  \<open>(uncurry6 resolve_lookup_conflict_merge_fast_code, uncurry6 merge_conflict_m) \<in>
+  [\<lambda>((((((M, N), i), xs), clvls), lbd), outl). clvls = card_max_lvl M (the xs) \<and> i \<in># dom_m N \<and>
+      xs \<noteq> None \<and> distinct (N \<propto> i) \<and> \<not>tautology (the xs) \<and>
+     literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> i)) \<and> \<not> tautology (mset (N \<propto> i)) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+     no_dup M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the xs) \<and>
+     (\<forall>L \<in> set (tl (N \<propto> i)). - L \<notin># the xs) \<and> out_learned M xs outl]\<^sub>a
+  trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
+      lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+    option_lookup_clause_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
+   (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
 proof -
    have H: \<open>?c
   \<in> [comp_PRE (\<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f
@@ -1207,7 +1327,41 @@ proof -
   have f: \<open>?f' = ?f\<close>
     by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn
        option_lookup_clause_assn_def)
-  show ?thesis
+  show ?slow
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+
+   have H: \<open>?cfast
+  \<in> [comp_PRE (\<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f
+      nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id)
+     (\<lambda>((((((M, N), i), xs), clvls), lbd), out). i \<in># dom_m N \<and> xs \<noteq> None \<and> distinct (N \<propto> i) \<and>
+         literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> i)) \<and> \<not> tautology (mset (N \<propto> i)) \<and>
+         (\<forall>L\<in>set (tl (N \<propto> i)). - L \<notin># the xs) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the xs) \<and>
+         clvls = card_max_lvl M (the xs) \<and> out_learned M xs out)
+     (\<lambda>_ ((((((M, N), i), _, xs), _), _), out). i \<in># dom_m N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+         (\<forall>j<length (N \<propto> i). atm_of (N \<propto> i ! j) < length (snd xs)) \<and> no_dup M \<and>
+         literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> i)) \<and> length (N \<propto> i) \<le> uint_max)
+     (\<lambda>_. True)]\<^sub>a
+   hrp_comp (trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
+               conflict_option_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d)
+      (\<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
+                      Id \<times>\<^sub>f Id) \<rightarrow>
+   hr_comp (conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn)
+      (option_lookup_clause_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f Id)))\<close> (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+     using hfref_compI_PRE_aux[OF resolve_lookup_conflict_merge_fast_code.refine[unfolded PR_CONST_def]
+        resolve_lookup_conflict_aa_merge_conflict_m[unfolded PR_CONST_def], OF isasat_input_bounded_axioms]
+     unfolding PR_CONST_def
+     .
+  have im: \<open>?im' = ?imfast\<close>
+    unfolding prod_hrp_comp option_lookup_clause_assn_def
+    by (auto simp: prod_hrp_comp hrp_comp_def hr_comp_invalid)
+
+  have f: \<open>?f' = ?ffast\<close>
+    by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn
+       option_lookup_clause_assn_def)
+  show ?fast
     apply (rule hfref_weaken_pre[OF ])
      defer
     using H unfolding im f PR_CONST_def apply assumption
@@ -2249,6 +2403,9 @@ begin
 abbreviation (in -)analyse_refinement_assn where
   \<open>analyse_refinement_assn \<equiv> arl_assn (nat_assn *a nat_assn)\<close>
 
+abbreviation (in -)analyse_refinement_fast_assn where
+  \<open>analyse_refinement_fast_assn \<equiv> arl_assn (uint32_nat_assn *a nat_assn)\<close>
+
 end
 
 
@@ -2291,6 +2448,22 @@ sepref_thm mark_failed_lits_stack_code
     fmap_rll_def[symmetric]
   by sepref
 
+
+sepref_thm mark_failed_lits_stack_fast_code
+  is \<open>uncurry2 mark_failed_lits_stack\<close>
+  :: \<open>clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a
+      cach_refinement_assn\<close>
+  supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] length_rll_def[simp]
+    mark_failed_lits_stack_inv_helper1[dest] mark_failed_lits_stack_inv_helper2[dest]
+    fmap_length_rll_u_def[simp]
+  unfolding mark_failed_lits_stack_def
+    conflict_min_cach_set_failed_def[symmetric]
+    conflict_min_cach_def[symmetric]
+    get_literal_and_remove_of_analyse_wl_def
+    nth_rll_def[symmetric]
+    fmap_rll_def[symmetric]
+    fmap_rll_u_def[symmetric]
+  by sepref
 end
 
 sepref_register mark_failed_lits_stack
@@ -2303,6 +2476,15 @@ prepare_code_thms (in -) mark_failed_lits_stack_code_def
 lemmas mark_failed_lits_stack_code_hnr =
    mark_failed_lits_stack_code.refine[of \<A>\<^sub>i\<^sub>n]
 
+concrete_definition (in -) mark_failed_lits_stack_fast_code
+   uses isasat_input_ops.mark_failed_lits_stack_fast_code.refine_raw
+   is \<open>(uncurry2 ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) mark_failed_lits_stack_fast_code_def
+
+lemmas mark_failed_lits_stack_fast_code_hnr =
+   mark_failed_lits_stack_fast_code.refine[of \<A>\<^sub>i\<^sub>n]
+
 lemma mark_failed_lits_wl_hnr[sepref_fr_rules]:
   \<open>(uncurry2 mark_failed_lits_stack_code, uncurry2 mark_failed_lits_wl)
      \<in> [\<lambda>((a, b), ba). literals_are_in_\<L>\<^sub>i\<^sub>n_mm ((mset \<circ> fst) `# ran_m a) \<and>
@@ -2311,6 +2493,16 @@ lemma mark_failed_lits_wl_hnr[sepref_fr_rules]:
         cach_refinement_assn\<close>
   using mark_failed_lits_stack_code_hnr[FCOMP mark_failed_lits_stack_mark_failed_lits_wl]
   .
+
+lemma mark_failed_lits_wl_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 mark_failed_lits_stack_fast_code, uncurry2 mark_failed_lits_wl)
+     \<in> [\<lambda>((a, b), ba). literals_are_in_\<L>\<^sub>i\<^sub>n_mm ((mset \<circ> fst) `# ran_m a) \<and>
+         mark_failed_lits_stack_inv a b ba]\<^sub>a
+        clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>
+        cach_refinement_assn\<close>
+  using mark_failed_lits_stack_fast_code_hnr[FCOMP mark_failed_lits_stack_mark_failed_lits_wl]
+  .
+
 end
 
 context isasat_input_bounded
@@ -2365,6 +2557,46 @@ prepare_code_thms (in -) lit_redundant_rec_wl_lookup_code_def
 
 lemmas lit_redundant_rec_wl_lookup_hnr[sepref_fr_rules] =
    lit_redundant_rec_wl_lookup_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+sepref_thm lit_redundant_rec_wl_lookup_fast_code
+  is \<open>uncurry5 (PR_CONST lit_redundant_rec_wl_lookup)\<close>
+  :: \<open>[\<lambda>(((((M, NU), D), cach), analysis), lbd).
+         literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU) \<and>
+         literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
+        cach_refinement_assn\<^sup>d *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
+      cach_refinement_assn *a analyse_refinement_fast_assn *a bool_assn\<close>
+  supply [[goals_limit = 1]] neq_Nil_revE[elim] image_image[simp]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms[intro] length_rll_def[simp]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro] nth_rll_def[simp]
+    fmap_length_rll_u_def[simp]
+    fmap_length_rll_def[simp]
+  unfolding lit_redundant_rec_wl_lookup_def
+    conflict_min_cach_set_removable_def[symmetric]
+    conflict_min_cach_def[symmetric]
+    get_literal_and_remove_of_analyse_wl_def
+    nth_rll_def[symmetric] PR_CONST_def
+    fmap_rll_u_def[symmetric]
+    fmap_rll_def[symmetric]
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
+  apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_fast_assn])
+  apply (rewrite at \<open>let _ = _ \<propto> _ in _\<close> Let_def)
+  unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
+    fmap_rll_def[symmetric]
+    fmap_length_rll_def[symmetric]
+    zero_uint32_nat_def[symmetric]
+    fmap_rll_u_def[symmetric]
+  by sepref (* slow *)
+
+concrete_definition (in -) lit_redundant_rec_wl_lookup_fast_code
+   uses isasat_input_bounded.lit_redundant_rec_wl_lookup_fast_code.refine_raw
+   is \<open>(uncurry5 ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) lit_redundant_rec_wl_lookup_fast_code_def
+
+lemmas lit_redundant_rec_wl_lookup_fast_hnr[sepref_fr_rules] =
+   lit_redundant_rec_wl_lookup_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 end
 
@@ -2581,6 +2813,33 @@ prepare_code_thms (in -) literal_redundant_wl_lookup_code_def
 lemmas literal_redundant_wl_lookup_code_hnr[sepref_fr_rules] =
    literal_redundant_wl_lookup_code.refine[OF isasat_input_bounded_axioms]
 
+sepref_thm literal_redundant_wl_lookup_fast_code
+  is \<open>uncurry5 (PR_CONST literal_redundant_wl_lookup)\<close>
+  :: \<open>[\<lambda>(((((M, NU), D), cach), L), lbd). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+        literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU)]\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
+      cach_refinement_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
+      cach_refinement_assn *a analyse_refinement_fast_assn *a bool_assn\<close>
+  supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
+  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
+  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro]
+  unfolding literal_redundant_wl_lookup_def zero_uint32_nat_def[symmetric] PR_CONST_def
+  apply (subst conflict_min_cach_def[symmetric])
+  apply (subst (3) conflict_min_cach_def[symmetric])
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
+  unfolding single_replicate
+  unfolding arl.fold_custom_empty
+  by sepref
+
+concrete_definition (in -) literal_redundant_wl_lookup_fast_code
+   uses isasat_input_bounded.literal_redundant_wl_lookup_fast_code.refine_raw
+   is \<open>(uncurry5 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) literal_redundant_wl_lookup_fast_code_def
+
+lemmas literal_redundant_wl_lookup_fast_code_hnr[sepref_fr_rules] =
+   literal_redundant_wl_lookup_fast_code.refine[OF isasat_input_bounded_axioms]
+
 
 abbreviation (in -) highest_lit_assn where
   \<open>highest_lit_assn \<equiv> option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
@@ -2611,6 +2870,32 @@ prepare_code_thms (in -) minimize_and_extract_highest_lookup_conflict_code_def
 
 lemmas minimize_and_extract_highest_lookup_conflict_code_hnr[sepref_fr_rules] =
    minimize_and_extract_highest_lookup_conflict_code.refine[OF isasat_input_bounded_axioms]
+
+sepref_thm minimize_and_extract_highest_lookup_conflict_fast_code
+  is \<open>uncurry5 (PR_CONST minimize_and_extract_highest_lookup_conflict)\<close>
+  :: \<open>[\<lambda>(((((M, NU), D), cach), lbd), outl). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+        literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU)]\<^sub>a
+       trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a
+        cach_refinement_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+      lookup_clause_assn *a cach_refinement_assn *a out_learned_assn\<close>
+  supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
+    minimize_and_extract_highest_lookup_conflict_inv_def[simp]
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max[intro] length_u_hnr[sepref_fr_rules]
+    array_set_hnr_u[sepref_fr_rules]
+  unfolding minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
+    one_uint32_nat_def[symmetric] PR_CONST_def
+    length_u_def[symmetric] minimize_and_extract_highest_lookup_conflict_inv_def
+  by sepref
+
+concrete_definition (in -) minimize_and_extract_highest_lookup_conflict_fast_code
+   uses isasat_input_bounded.minimize_and_extract_highest_lookup_conflict_fast_code.refine_raw
+   is \<open>(uncurry5 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) minimize_and_extract_highest_lookup_conflict_fast_code_def
+
+lemmas minimize_and_extract_highest_lookup_conflict_fast_code_hnr[sepref_fr_rules] =
+   minimize_and_extract_highest_lookup_conflict_fast_code.refine[OF isasat_input_bounded_axioms]
 
 end
 

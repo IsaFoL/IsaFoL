@@ -708,4 +708,127 @@ fun xorb x y = Word64.xorb(x, y);
 end (*struct Uint64*)
 \<close>
 
+(* TODO Move *)
+lemma mod2_bin_last: \<open>a mod 2 = 0 \<longleftrightarrow> \<not>bin_last a\<close>
+  by (auto simp: bin_last_def)
+
+lemma bitXOR_1_if_mod_2_int: \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: int
+  apply (rule bin_rl_eqI)
+  unfolding bin_rest_OR bin_last_OR
+   apply (auto simp: bin_rest_def bin_last_def)
+  done
+
+lemma bitOR_1_if_mod_2_nat:
+  \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close>
+  \<open>bitOR L (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: nat
+proof -
+  have H: \<open>bitOR L 1 =  L + (if bin_last (int L) then 0 else 1)\<close>
+    unfolding bitOR_nat_def
+    apply (auto simp: bitOR_nat_def bin_last_def
+        bitXOR_1_if_mod_2_int)
+    done
+  show \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close>
+    unfolding H
+    apply (auto simp: bitOR_nat_def bin_last_def)
+    apply presburger+
+    done
+  then show \<open>bitOR L (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close>
+    by simp
+qed
+
+lemma uint64_max_uint_def:\<open>unat (-1 :: 64 Word.word) = uint64_max\<close>
+  by normalization
+
+lemma nat_of_uint64_le_uint64_max: \<open>nat_of_uint64 x \<le> uint64_max\<close>
+  apply transfer
+  subgoal for x
+    using word_le_nat_alt[of x \<open>- 1\<close>]
+    unfolding uint64_max_def[symmetric] uint64_max_uint_def
+    by auto
+  done
+
+lemma bitOR_1_if_mod_2_uint64: \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: uint64
+proof -
+  have H: \<open>bitOR L 1 = a \<longleftrightarrow> bitOR (nat_of_uint64 L) 1 = nat_of_uint64 a\<close> for a
+    apply transfer
+    apply (rule iffI)
+    subgoal for L a
+      by (auto simp: unat_def uint_or bitOR_nat_def)
+    subgoal for L a
+      apply (auto simp: unat_def uint_or bitOR_nat_def eq_nat_nat_iff
+          word_or_def)
+      apply (subst (asm)eq_nat_nat_iff)
+        apply (auto simp: uint_1 uint_ge_0 uint_or)
+       apply (metis uint_1 uint_ge_0 uint_or)
+      done
+    done
+  have K: \<open>L mod 2 = 0 \<longleftrightarrow> nat_of_uint64 L mod 2 = 0\<close>
+    apply transfer
+    subgoal for L
+      using unat_mod[of L 2]
+      by (auto simp: unat_eq_0)
+    done
+  have L: \<open>nat_of_uint64 (if L mod 2 = 0 then L + 1 else L) =
+      (if nat_of_uint64 L mod 2 = 0 then nat_of_uint64 L + 1 else nat_of_uint64 L)\<close>
+    using nat_of_uint64_le_uint64_max[of L]
+    by (auto simp: K nat_of_uint64_add uint64_max_def)
+
+  show ?thesis
+    apply (subst H)
+    unfolding bitOR_1_if_mod_2_nat[symmetric] L ..
+qed
+
+lemma (in -) nat_of_uint64_plus:
+  \<open>nat_of_uint64 (a + b) = (nat_of_uint64 a + nat_of_uint64 b) mod (uint64_max + 1)\<close>
+  by transfer (auto simp: unat_word_ariths uint64_max_def)
+
+
+lemma nat_and:
+  \<open>ai\<ge> 0 \<Longrightarrow> bi \<ge> 0 \<Longrightarrow> nat (ai AND bi) = nat ai AND nat bi\<close>
+  by (auto simp: bitAND_nat_def)
+
+lemma nat_of_uint64_and:
+  \<open>nat_of_uint64 ai \<le> uint64_max \<Longrightarrow> nat_of_uint64 bi \<le> uint64_max \<Longrightarrow>
+    nat_of_uint64 (ai AND bi) = nat_of_uint64 ai AND nat_of_uint64 bi\<close>
+  unfolding uint64_max_def
+  by transfer (auto simp: unat_def uint_and nat_and)
+
+lemma bitAND_uint64_max_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo  op AND), uncurry (RETURN oo op AND))
+   \<in> [\<lambda>(a, b). a \<le> uint64_max \<and> b \<le> uint64_max]\<^sub>a
+     uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_plus
+      nat_of_uint64_and)
+
+
+definition two_uint64_nat :: nat where
+  [simp]: \<open>two_uint64_nat = 2\<close>
+
+lemma two_uint64_nat[sepref_fr_rules]:
+  \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint64_nat))
+   \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: two_uint64_nat_def uint64_nat_rel_def br_def)
+
+lemma nat_or:
+  \<open>ai\<ge> 0 \<Longrightarrow> bi \<ge> 0 \<Longrightarrow> nat (ai OR bi) = nat ai OR nat bi\<close>
+  by (auto simp: bitOR_nat_def)
+
+lemma nat_of_uint64_or:
+  \<open>nat_of_uint64 ai \<le> uint64_max \<Longrightarrow> nat_of_uint64 bi \<le> uint64_max \<Longrightarrow>
+    nat_of_uint64 (ai OR bi) = nat_of_uint64 ai OR nat_of_uint64 bi\<close>
+  unfolding uint64_max_def
+  by transfer (auto simp: unat_def uint_or nat_or)
+
+lemma bitOR_uint64_max_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo  op OR), uncurry (RETURN oo op OR))
+   \<in> [\<lambda>(a, b). a \<le> uint64_max \<and> b \<le> uint64_max]\<^sub>a
+     uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_plus
+      nat_of_uint64_or)
+
+lemma Suc_0_le_uint64_max: \<open>Suc 0 \<le> uint64_max\<close>
+  by (auto simp: uint64_max_def)
+
 end
