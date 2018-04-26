@@ -1773,20 +1773,20 @@ qed
 
 
 definition (in isasat_input_ops) cdcl_twl_stgy_prog_break_wl_D
-   :: \<open>(nat twl_st_wl \<Rightarrow> bool) \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
+   :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
 where
-  \<open>cdcl_twl_stgy_prog_break_wl_D P S\<^sub>0 =
+  \<open>cdcl_twl_stgy_prog_break_wl_D S\<^sub>0 =
   do {
-    b \<leftarrow> RETURN (P S\<^sub>0);
+    b \<leftarrow> SPEC (\<lambda>_. True);
     (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (brk, T) \<and>
-          literals_are_\<L>\<^sub>i\<^sub>n T \<and> (b \<longrightarrow> \<not>brk \<longrightarrow> P T)\<^esup>
+          literals_are_\<L>\<^sub>i\<^sub>n T\<^esup>
         (\<lambda>(b, brk, _). b \<and> \<not>brk)
         (\<lambda>(b, brk, S).
         do {
           ASSERT(b);
           T \<leftarrow> unit_propagation_outer_loop_wl_D S;
           (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
-          b \<leftarrow> RETURN (P T);
+          b \<leftarrow> SPEC (\<lambda>_. True);
           RETURN(b, brk, T)
         })
         (b, False, S\<^sub>0);
@@ -1796,23 +1796,19 @@ where
 
 theorem cdcl_twl_stgy_prog_break_wl_D_spec:
   assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
-  shows \<open>cdcl_twl_stgy_prog_break_wl_D P S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+  shows \<open>cdcl_twl_stgy_prog_break_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
      (cdcl_twl_stgy_prog_break_wl S)\<close>
 proof -
   define f where \<open>f \<equiv> SPEC (\<lambda>_::bool. True)\<close>
   have 1: \<open>((b, False, S), b, False, S) \<in> {((b', brk', T'), b, brk, T). b = b' \<and> brk = brk' \<and>
-        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T\<and> (b \<longrightarrow> \<not>brk' \<longrightarrow> P T')}\<close> if \<open>b \<longrightarrow> P S\<close>
+        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
     for b
-    using assms that by fast
-  have 0: \<open>RETURN (P S) \<le> \<Down> {(b,b'). b = b' \<and> (b \<longrightarrow> P S)} f\<close>
-    unfolding f_def by (auto simp: RETURN_RES_refine_iff)
+    using assms by fast
   have 1: \<open>((b, False, S), b', False, S) \<in> {((b', brk', T'), b, brk, T). b = b' \<and> brk = brk' \<and>
-        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T \<and> (b \<longrightarrow> \<not>brk' \<longrightarrow>P T')}\<close>
-    if \<open>(b, b') \<in> bool_rel\<close> and \<open>b \<longrightarrow> P S\<close>
+        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
+    if \<open>(b, b') \<in> bool_rel\<close>
     for b b'
     using assms that by fast
-  have 4: \<open>RETURN (P S) \<le> \<Down> {(b,b'). b= b' \<and> (b \<longrightarrow> P S)} f\<close> for S
-    unfolding f_def by (auto simp: RETURN_RES_refine_iff)
 
   have 2: \<open>unit_propagation_outer_loop_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
        (unit_propagation_outer_loop_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> for S T
@@ -1822,7 +1818,7 @@ proof -
     using cdcl_twl_o_prog_wl_D_spec[of S] that by fast
   show ?thesis
     unfolding cdcl_twl_stgy_prog_break_wl_D_def cdcl_twl_stgy_prog_break_wl_def f_def[symmetric]
-    apply (refine_vcg 0 1 2 3 4)
+    apply (refine_vcg 1 2 3)
     subgoal by auto
     subgoal by fast
     subgoal by fast

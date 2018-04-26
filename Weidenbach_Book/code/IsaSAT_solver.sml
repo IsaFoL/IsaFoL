@@ -4905,7 +4905,7 @@ fun init_dt_step_wl_code x =
 fun init_dt_wl_code x =
   (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) init_dt_step_wl_code) x;
 
-val isaSAT_use_fast_mode : bool = false;
+val isaSAT_use_fast_mode : bool = true;
 
 val empty_conflict_code :
   ('a list) option * (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))
