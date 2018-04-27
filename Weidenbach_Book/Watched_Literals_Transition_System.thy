@@ -5,8 +5,6 @@ begin
 
 chapter \<open>Two-Watched Literals\<close>
 
-notation image_mset (infixr "`#" 90)
-
 section \<open>Rule-based system\<close>
 
 subsection \<open>Types and Transitions System\<close>

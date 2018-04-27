@@ -1,6 +1,5 @@
 theory Watched_Literals_List
   imports Watched_Literals_Algorithm CDCL.DPLL_CDCL_W_Implementation
-  "HOL-Library.Finite_Map"
 begin
 
 lemma mset_take_mset_drop_mset: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>
@@ -234,33 +233,6 @@ lemma is_decided_hd_convert_lits_l[simp]:
 lemma is_proped_convert_lit[simp]: \<open>is_proped (convert_lit b a) \<longleftrightarrow> is_proped a\<close>
   by (cases a) auto
 
-text \<open>Roughly the same as \<^term>\<open>ran\<close>, but with duplication and works only on finite domains.\<close>
-abbreviation mset_fset :: \<open>'a fset \<Rightarrow> 'a multiset\<close> where
-  \<open>mset_fset N \<equiv> mset_set (fset N)\<close>
-
-definition fset_mset :: \<open>'a multiset \<Rightarrow> 'a fset\<close> where
-  \<open>fset_mset N \<equiv> Abs_fset (set_mset N)\<close>
-
-lemma fset_mset_mset_fset: \<open>fset_mset (mset_fset N) = N\<close>
-  by (auto simp: fset.fset_inverse fset_mset_def)
-
-
-lemma mset_fset_fset_mset[simp]:
-  \<open>mset_fset (fset_mset N) = remdups_mset N\<close>
-  by (auto simp: fset.fset_inverse fset_mset_def Abs_fset_inverse
-      remdups_mset_def)
-
-lemma in_mset_fset_fmember[simp]: \<open>x \<in># mset_fset N \<longleftrightarrow> x |\<in>| N\<close>
-  by (auto simp: fmember.rep_eq)
-
-lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow> x \<in># N\<close>
-  by (auto simp: fmember.rep_eq fset_mset_def Abs_fset_inverse)
-
-definition dom_m where
-  \<open>dom_m N = mset_fset (fmdom N)\<close>
-
-definition ran_m where
-  \<open>ran_m N =  the `# fmlookup N `# dom_m N\<close>
 
 abbreviation ran_mf :: \<open>'v clauses_l \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>ran_mf N \<equiv> fst `# ran_m N\<close>
@@ -298,25 +270,6 @@ lemma ran_m_ran: \<open>fset_mset (ran_m N) = fmran N\<close>
   apply (auto simp: fmlookup_ran_iff dom_m_def elim!: fmdomE)
    apply (metis fmdomE notin_fset option.sel)
   by (metis (no_types, lifting) fmdomI fmember.rep_eq image_iff option.sel)
-
-lemma dom_m_fmdrop[simp]: \<open>dom_m (fmdrop C N) = remove1_mset C (dom_m N)\<close>
-  unfolding dom_m_def
-  by (cases \<open>C |\<in>| fmdom N\<close>)
-    (auto simp: mset_set.remove fmember.rep_eq)
-
-lemma dom_m_fmupd[simp]: \<open>dom_m (fmupd k C N) = add_mset k (remove1_mset k (dom_m N))\<close>
-  unfolding dom_m_def
-  by (cases \<open>k |\<in>| fmdom N\<close>)
-    (auto simp: mset_set.remove fmember.rep_eq mset_set.insert
-    mset_set.insert_remove)
-lemma distinct_mset_dom: \<open>distinct_mset (dom_m N)\<close>
-  by (simp add: distinct_mset_mset_set dom_m_def)
-
-lemma in_dom_m_lookup_iff: \<open>C \<in># dom_m N' \<longleftrightarrow> fmlookup N' C \<noteq> None\<close>
-  by (auto simp: dom_m_def fmdom.rep_eq)
-
-lemma in_dom_in_ran_m[simp]: \<open>i \<in># dom_m N \<Longrightarrow> the (fmlookup N i) \<in># ran_m N\<close>
-  by (auto simp: ran_m_def)
 
 lemma ran_m_clause_upd:
   assumes
@@ -658,10 +611,6 @@ lemma init_clss_l_mapsto_upd_notin:
 lemma learned_clss_l_mapsto_upd_notin_irrelev: \<open>C \<notin># dom_m N \<Longrightarrow>
   learned_clss_l (fmupd C  (C', True) N) = learned_clss_l N\<close>
   by (auto simp: ran_m_mapsto_upd_notin)
-
-lemma ran_m_fmempty[simp]: \<open>ran_m fmempty = {#}\<close> and
-    dom_m_fmempty[simp]: \<open>dom_m fmempty = {#}\<close>
-  by (auto simp: ran_m_def dom_m_def)
 
 
 lemma unit_propagation_inner_loop_body_l:

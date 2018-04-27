@@ -82,7 +82,7 @@ proof -
   show ?spec
     using assms unfolding unit_propagation_inner_loop_body_def x update_clause.simps
   proof (refine_vcg; (unfold prod.inject clauses_to_update.simps set_clauses_to_update.simps
-        ball_simps)?; clarify?; unfold triv_forall_equality)
+        ball_simps)?;  clarify; (unfold triv_forall_equality)?)
     fix L' :: \<open>'v literal\<close>
     assume
       \<open>clauses_to_update S \<noteq> {#}\<close> and
@@ -187,8 +187,9 @@ proof -
         let ?S' = \<open>(M, N, U, None, NE, UE, add_mset (L, C) WS', Q)\<close>
         let ?T = \<open>set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S\<close>
         fix K M' N' U' D' WS'' NE' UE' Q' N'' U''
-        show \<open>update_clauseS L C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)
-               \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and> (S', S) \<in> measure (size \<circ> clauses_to_update))\<close>
+        have \<open>update_clauseS L C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)
+               \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and>
+               (S', S) \<in> measure (size \<circ> clauses_to_update))\<close> (is ?upd)
           apply (rewrite at \<open>set_clauses_to_update _ \<hole>\<close> S)
           apply (rewrite at \<open>clauses_to_update \<hole>\<close> S)
           unfolding update_clauseS_def clauses_to_update.simps set_clauses_to_update.simps
@@ -221,6 +222,10 @@ proof -
           show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
             by (simp add: WS'_def[symmetric] WS_WS' S)
         qed
+        moreover assume \<open>\<not>?upd\<close>
+        ultimately show \<open>- La \<in>
+           lits_of_l (get_trail (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S))\<close>
+          by fast
       }
     }
   qed

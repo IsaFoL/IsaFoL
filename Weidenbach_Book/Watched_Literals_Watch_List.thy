@@ -1289,6 +1289,13 @@ fun equality_except_trail_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \
 \<open>equality_except_trail_wl (M, N, D, NE, UE, WS, Q) (M', N', D', NE', UE', WS', Q') \<longleftrightarrow>
     N = N' \<and> D = D' \<and> NE = NE' \<and> UE = UE' \<and> WS = WS' \<and> Q = Q'\<close>
 
+lemma equality_except_conflict_wl_get_clauses_wl:
+  \<open>equality_except_conflict_wl S Y \<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
+  by (cases S; cases Y) (auto simp:)
+lemma equality_except_trail_wl_get_clauses_wl:
+ \<open>equality_except_trail_wl S Y\<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
+  by (cases S; cases Y) (auto simp:)
+
 lemma backtrack_wl_spec:
   \<open>(backtrack_wl, backtrack_l)
     \<in> {(T'::'v twl_st_wl, T).

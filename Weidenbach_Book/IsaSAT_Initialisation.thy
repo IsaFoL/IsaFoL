@@ -438,56 +438,12 @@ lemmas add_init_cls_heur_fast_hnr[sepref_fr_rules] =
 lemma (in -) in_multiset_ge_Max: \<open>a \<in># N \<Longrightarrow> a > Max (insert 0 (set_mset N)) \<Longrightarrow> False\<close>
   by (simp add: leD)
 
-definition (in -) EQ where
-  \<open>EQ n m \<longleftrightarrow> (n = m)\<close>
-
-lemma (in -)packed_alt_def:
-  \<open>packed N \<longleftrightarrow> (\<exists>n. EQ (dom_m N) n \<and> dom_m N = mset [1..<Suc (Max_mset (add_mset 0 n))] \<and>
-    distinct_mset (dom_m N))\<close>
-  by (auto simp: packed_def EQ_def distinct_mset_dom)
-
 lemma (in -)distinct_mset_set_mset_remove1_mset:
   \<open>distinct_mset M \<Longrightarrow> set_mset (remove1_mset c M) = set_mset M - {c}\<close>
   by (cases \<open>c \<in># M\<close>) (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
 
-lemma EQ_reqrite: \<open>EQ m n \<Longrightarrow> m = n\<close>
-  by (auto simp: EQ_def)
-
-definition (in -) Max_dom where
-  \<open>Max_dom N = Max (set_mset (add_mset 0 (dom_m N)))\<close>
-
 abbreviation (in -) Max_dom_wl_heur where
   \<open>Max_dom_wl_heur S \<equiv> Max_dom (get_clauses_wl_heur_init S)\<close>
-
-lemma (in -) remove1_mset_ge_Max_some: \<open>a > Max_dom b \<Longrightarrow> remove1_mset a (dom_m b) = dom_m  b\<close>
-  by(auto simp: Max_dom_def remove_1_mset_id_iff_notin
-      dest!: multi_member_split)
-
-lemma (in -) Max_dom_fmupd_irrel:
-   \<open>(a :: 'a :: {zero,linorder}) > Max_dom M \<Longrightarrow> Max_dom (fmupd a C M) = max a (Max_dom M)\<close>
-  by (cases \<open>dom_m M\<close>)
-     (auto simp: Max_dom_def remove1_mset_ge_Max_some ac_simps)
-
-lemma (in -) [simp]: \<open>dom_m b = {#}  \<Longrightarrow> Max_dom b = 0\<close>
-  by (auto simp: Max_dom_def)
-
-lemma (in -) Max_dom_alt_def: \<open>Max_dom b = Max (insert 0 (set_mset (dom_m b)))\<close>
-  unfolding Max_dom_def by auto
-
-lemma (in -)Max_insert_Suc_Max_dim_dom[simp]:
-   \<open>Max (insert (Suc (Max_dom b)) (set_mset (dom_m b))) = Suc (Max_dom b)\<close>
-  unfolding Max_dom_alt_def
-  by (cases \<open>set_mset (dom_m b) = {}\<close>) auto
-
-lemma (in -)packed0_fmud_Suc_Max_dom: \<open>packed b \<Longrightarrow> packed (fmupd (Suc (Max_dom b)) C b)\<close>
-  apply (auto simp: packed_def EQ_def remove1_mset_ge_Max_some Max_dom_def[symmetric]
-      split: if_splits)
-  unfolding  Max_dom_alt_def[symmetric]
-  apply blast+
-  done
-
-lemma (in -) ge_Max_dom_notin_dom_m: \<open>a > Max_dom ao \<Longrightarrow> a \<notin># dom_m ao\<close>
-  by (auto simp: Max_dom_def)
 
 lemma (in -)get_fresh_index_packed_alt_def: \<open>packed N \<Longrightarrow>
  get_fresh_index_packed N = SPEC(\<lambda>i. i = Suc (Max_dom N))\<close>
@@ -1771,6 +1727,13 @@ definition (in -)to_init_state :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_
 definition (in -) from_init_state :: \<open>nat twl_st_wl_init \<Rightarrow> nat twl_st_wl\<close> where
   \<open>from_init_state = fst\<close>
 
+lemma (in isasat_input_ops) get_conflict_wl_is_None_heur_init_get_conflict_wl_is_None_init:
+  \<open>(T, Ta) \<in> twl_st_heur_init  \<Longrightarrow>
+    get_conflict_wl_is_None_heur_init T \<longleftrightarrow> get_conflict_wl_is_None_init (from_init_state Ta)\<close>
+  by (cases T; cases Ta) (auto simp: get_conflict_wl_is_None_heur_init_def twl_st_heur_init_def
+      get_conflict_wl_is_None_init_def from_init_state_def get_conflict_wl_is_None_def
+      split: option.splits)
+
 lemma (in isasat_input_ops) id_to_init_state:
   \<open>(RETURN o id, RETURN o to_init_state) \<in> twl_st_heur_init_wl \<rightarrow>\<^sub>f \<langle>twl_st_heur_init\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: to_init_state_def twl_st_heur_init_wl_def
@@ -2640,21 +2603,6 @@ proof -
     done
   done
 qed
-
-(* TODO replace list_mset_assn_pure_conv by this: *)
-lemma (in -)list_mset_assn_pure_conv':
-  \<open>list_mset_assn (pure R) = pure (\<langle>R\<rangle>list_rel_mset_rel)\<close>
-  apply (intro ext)
-  using list_all2_reorder_left_invariance
-  by (fastforce
-    simp: list_rel_mset_rel_def list_mset_assn_def
-      mset_rel_def rel2p_def[abs_def] rel_mset_def p2rel_def
-      list_mset_rel_def[abs_def] Collect_eq_comp br_def
-      list_rel_mset_rel_def list_rel_def Collect_eq_comp_right
-    intro!: arg_cong[of _ _ \<open>\<lambda>b. pure b _ _\<close>])
-
-lemma prod_assn_id_assn_destroy: \<open>R\<^sup>d *\<^sub>a id_assn\<^sup>d = (R *a id_assn)\<^sup>d\<close>
-  by (auto simp: hfprod_def prod_assn_def[abs_def] invalid_assn_def pure_def intro!: ext)
 
 lemma init_state_wl_heur_hnr:
   \<open>(init_state_wl_D'_code, isasat_input_ops.init_state_wl_heur)

@@ -2,34 +2,6 @@ theory IsaSAT_Propagate_Conflict
   imports IsaSAT_Setup Watched_Literals_Heuristics
 begin
 
-(* TODO Move *)
-lemma nat_of_uint64_le_iff: \<open>nat_of_uint64 a \<le> nat_of_uint64 b \<longleftrightarrow> a \<le> b\<close>
-  apply transfer
-  by (auto simp: unat_def word_less_def nat_le_iff word_le_def)
-
-lemma nat_of_uint64_notle_minus:
-  \<open>\<not> ai < bi \<Longrightarrow>
-       nat_of_uint64 (ai - bi) = nat_of_uint64 ai - nat_of_uint64 bi\<close>
-  apply transfer
-  unfolding unat_def
-  by (subst uint_sub_lem[THEN iffD1])
-    (auto simp: unat_def uint_nonnegative nat_diff_distrib word_le_def[symmetric] intro: leI)
-
-lemma fast_minus_uint64_nat[sepref_fr_rules]:
-  \<open>(uncurry (return oo fast_minus), uncurry (RETURN oo fast_minus))
-   \<in> [\<lambda>(a, b). a \<ge> b]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-  by (sepref_to_hoare)
-    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_notle_minus
-      nat_of_uint64_less_iff nat_of_uint64_le_iff)
-
-lemma fast_minus_uint64[sepref_fr_rules]:
-  \<open>(uncurry (return oo fast_minus), uncurry (RETURN oo fast_minus))
-   \<in> [\<lambda>(a, b). a \<ge> b]\<^sub>a uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow> uint64_assn\<close>
-  by (sepref_to_hoare)
-    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_notle_minus
-      nat_of_uint64_less_iff nat_of_uint64_le_iff)
-(* End MOVE *)
-
 subsubsection \<open>Refining Propagate And Conflict\<close>
 
 paragraph \<open>Propagation, Inner Loop\<close>

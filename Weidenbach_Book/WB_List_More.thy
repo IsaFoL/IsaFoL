@@ -1,5 +1,5 @@
 theory WB_List_More
-  imports Nested_Multisets_Ordinals.Multiset_More
+  imports Nested_Multisets_Ordinals.Multiset_More "HOL-Library.Finite_Map"
 begin
 
 text \<open>Sledgehammer parameters\<close>
@@ -627,14 +627,14 @@ lemma distinct_filter_eq_if:
   \<open>distinct C \<Longrightarrow> length (filter (op = L) C) = (if L \<in> set C then 1 else 0)\<close>
   by (induction C) auto
 
-lemma (in -) length_filter_update_true:
+lemma  length_filter_update_true:
   \<open>i < length xs \<Longrightarrow> P (xs ! i) \<Longrightarrow> length (filter P (xs[i := x])) = length (filter P xs) - (if P x then 0 else 1)\<close>
   apply (subst (5) append_take_drop_id[of i, symmetric])
   using upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
   unfolding filter_append length_append
   by simp
 
-lemma (in -) length_filter_update_falte:
+lemma  length_filter_update_falte:
   \<open>i < length xs \<Longrightarrow> \<not>P (xs ! i) \<Longrightarrow> length (filter P (xs[i := x])) = length (filter P xs) + (if P x then 1 else 0)\<close>
   apply (subst (5) append_take_drop_id[of i, symmetric])
   using upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
@@ -671,6 +671,8 @@ lemma sum_length_filter_compl': \<open>length [x\<leftarrow>xs . \<not> P x] + l
 
 
 subsection \<open>Multisets\<close>
+
+notation image_mset (infixr "`#" 90)
 
 lemma in_multiset_nempty: \<open>L \<in># D \<Longrightarrow> D \<noteq> {#}\<close>
   by auto
@@ -1268,5 +1270,148 @@ lemma list_all2_replicate:
         (replicate n bi)
         (replicate n b)\<close>
   by (induction n) auto
+
+section \<open>Finite maps and multisets\<close>
+
+text \<open>Roughly the same as \<^term>\<open>ran\<close>, but with duplication and works only on finite domains.\<close>
+abbreviation mset_fset :: \<open>'a fset \<Rightarrow> 'a multiset\<close> where
+  \<open>mset_fset N \<equiv> mset_set (fset N)\<close>
+
+definition fset_mset :: \<open>'a multiset \<Rightarrow> 'a fset\<close> where
+  \<open>fset_mset N \<equiv> Abs_fset (set_mset N)\<close>
+
+lemma fset_mset_mset_fset: \<open>fset_mset (mset_fset N) = N\<close>
+  by (auto simp: fset.fset_inverse fset_mset_def)
+
+
+lemma mset_fset_fset_mset[simp]:
+  \<open>mset_fset (fset_mset N) = remdups_mset N\<close>
+  by (auto simp: fset.fset_inverse fset_mset_def Abs_fset_inverse
+      remdups_mset_def)
+
+lemma in_mset_fset_fmember[simp]: \<open>x \<in># mset_fset N \<longleftrightarrow> x |\<in>| N\<close>
+  by (auto simp: fmember.rep_eq)
+
+lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow> x \<in># N\<close>
+  by (auto simp: fmember.rep_eq fset_mset_def Abs_fset_inverse)
+
+definition dom_m where
+  \<open>dom_m N = mset_fset (fmdom N)\<close>
+
+definition ran_m where
+  \<open>ran_m N =  the `# fmlookup N `# dom_m N\<close>
+
+lemma dom_m_fmdrop[simp]: \<open>dom_m (fmdrop C N) = remove1_mset C (dom_m N)\<close>
+  unfolding dom_m_def
+  by (cases \<open>C |\<in>| fmdom N\<close>)
+    (auto simp: mset_set.remove fmember.rep_eq)
+
+lemma dom_m_fmupd[simp]: \<open>dom_m (fmupd k C N) = add_mset k (remove1_mset k (dom_m N))\<close>
+  unfolding dom_m_def
+  by (cases \<open>k |\<in>| fmdom N\<close>)
+    (auto simp: mset_set.remove fmember.rep_eq mset_set.insert
+    mset_set.insert_remove)
+lemma distinct_mset_dom: \<open>distinct_mset (dom_m N)\<close>
+  by (simp add: distinct_mset_mset_set dom_m_def)
+
+lemma in_dom_m_lookup_iff: \<open>C \<in># dom_m N' \<longleftrightarrow> fmlookup N' C \<noteq> None\<close>
+  by (auto simp: dom_m_def fmdom.rep_eq)
+
+lemma in_dom_in_ran_m[simp]: \<open>i \<in># dom_m N \<Longrightarrow> the (fmlookup N i) \<in># ran_m N\<close>
+  by (auto simp: ran_m_def)
+
+
+definition Max_dom where
+  \<open>Max_dom N = Max (set_mset (add_mset 0 (dom_m N)))\<close>
+
+text \<open>\<^term>\<open>packed\<close> is a predicate to indicate that the domain of finite mapping starts at
+   \<^term>\<open>1::nat\<close> and does not contain holes. We use it in the SAT solver for the mapping from
+   indexes to clauses.
+\<close>
+definition packed where
+  \<open>packed N \<longleftrightarrow> dom_m N = mset [1..<Suc (Max_dom N)]\<close>
+
+text \<open>Marking this rule as simp is not compatible with unfolding the definition of packed when marked as\<close>
+lemma Max_dom_empty: \<open>dom_m b = {#}  \<Longrightarrow> Max_dom b = 0\<close>
+  by (auto simp: Max_dom_def)
+
+lemma ran_m_fmempty[simp]: \<open>ran_m fmempty = {#}\<close> and
+    dom_m_fmempty[simp]: \<open>dom_m fmempty = {#}\<close>
+  by (auto simp: ran_m_def dom_m_def)
+
+lemma Max_dom_fmempty: \<open>Max_dom fmempty = 0\<close>
+  by (auto simp: Max_dom_empty)
+
+lemma packed_empty[simp]: \<open>packed fmempty\<close>
+  by (auto simp: packed_def Max_dom_empty)
+
+lemma packed_Max_dom_size:
+  assumes p: \<open>packed N\<close>
+  shows \<open>Max_dom N = size (dom_m N)\<close>
+proof -
+  have 1: \<open>dom_m N = mset [1..<Suc (Max_dom N)]\<close>
+    using p unfolding packed_def Max_dom_def[symmetric] .
+  have \<open>size (dom_m N) = size (mset [1..<Suc (Max_dom N)])\<close>
+    unfolding 1 ..
+  also have \<open>\<dots> = length [1..<Suc (Max_dom N)]\<close>
+    unfolding size_mset ..
+  also have \<open>\<dots> = Max_dom N\<close>
+    unfolding length_upt by simp
+  finally show ?thesis
+    by simp
+qed
+
+lemma Max_dom_le:
+  \<open>L \<in># dom_m N \<Longrightarrow> L \<le> Max_dom N\<close>
+  by (auto simp: Max_dom_def)
+
+lemma remove1_mset_ge_Max_some: \<open>a > Max_dom b \<Longrightarrow> remove1_mset a (dom_m b) = dom_m  b\<close>
+  by (auto simp: Max_dom_def remove_1_mset_id_iff_notin
+      dest!: multi_member_split)
+
+lemma Max_dom_fmupd_irrel:
+   \<open>(a :: 'a :: {zero,linorder}) > Max_dom M \<Longrightarrow> Max_dom (fmupd a C M) = max a (Max_dom M)\<close>
+  by (cases \<open>dom_m M\<close>)
+     (auto simp: Max_dom_def remove1_mset_ge_Max_some ac_simps)
+
+
+lemma Max_dom_alt_def: \<open>Max_dom b = Max (insert 0 (set_mset (dom_m b)))\<close>
+  unfolding Max_dom_def by auto
+
+lemma Max_insert_Suc_Max_dim_dom[simp]:
+   \<open>Max (insert (Suc (Max_dom b)) (set_mset (dom_m b))) = Suc (Max_dom b)\<close>
+  unfolding Max_dom_alt_def
+  by (cases \<open>set_mset (dom_m b) = {}\<close>) auto
+
+lemma Max_atLeastLessThan_plus: \<open>Max {(a::nat) ..< a+n} = (if n = 0 then Max {} else a+n - 1)\<close>
+  apply (induction n arbitrary: a)
+  subgoal premises p by auto
+  subgoal premises p for n a
+    using p
+    apply (cases n)
+     apply (auto simp: image_Suc_atLeastLessThan[symmetric] mono_Max_commute[symmetric] mono_def
+        atLeastLessThanSuc
+        simp del: image_Suc_atLeastLessThan)
+    done
+  done
+
+lemma Max_atLeastLessThan: \<open>Max {(a::nat) ..< b} = (if b \<le> a then Max {} else b - 1)\<close>
+  using Max_atLeastLessThan_plus[of a \<open>b-a\<close>]
+  by auto
+
+lemma Max_insert_Max_dom_into_packed:
+   \<open>Max (insert (Max_dom bc) {Suc 0..<Max_dom bc}) = Max_dom bc\<close>
+  by (cases \<open>Max_dom bc\<close>; cases \<open>Max_dom bc - 1\<close>)
+    (auto simp: Max_dom_empty Max_atLeastLessThan)
+
+lemma packed0_fmud_Suc_Max_dom: \<open>packed b \<Longrightarrow> packed (fmupd (Suc (Max_dom b)) C b)\<close>
+  by (auto simp del: Max_dom_empty
+      simp: packed_def remove1_mset_ge_Max_some Max_dom_fmupd_irrel max_def)
+
+lemma ge_Max_dom_notin_dom_m: \<open>a > Max_dom ao \<Longrightarrow> a \<notin># dom_m ao\<close>
+  by (auto simp: Max_dom_def)
+
+lemma packed_in_dom_mI: \<open>packed bc \<Longrightarrow> j \<le> Max_dom bc \<Longrightarrow> 0 < j \<Longrightarrow> j \<in># dom_m bc\<close>
+  by (auto simp: packed_def)
 
 end

@@ -25,6 +25,8 @@ definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset
           unsatisfiable (set_mset CS)))
   }\<close>
 
+text \<open>In the following program, the condition \<^term>\<open>length CS < uint_max - 1\<close> is only necessary
+  to simplify the refinement and should not be necessary.\<close>
 definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>SAT_wl CS = do{
     let \<A>\<^sub>i\<^sub>n' = extract_atms_clss CS {};
@@ -1179,8 +1181,8 @@ proof -
     by auto
 
   show ?thesis
-    unfolding list_assn_pure_conv list_mset_assn_pure_conv list_mset_assn_pure_conv
-     list_rel_mset_rel_internal
+    unfolding list_assn_pure_conv list_mset_assn_pure_conv
+     list_rel_mset_rel_def
     apply (auto simp: hr_comp_def)
     apply (auto simp: ent_ex_up_swap list_mset_assn_def pure_def)
     using ex_mset[of \<open>map (\<lambda>x. literal_of_nat (nat_of_uint32 x)) `# mset xs'\<close>]
@@ -1224,47 +1226,21 @@ lemma(in isasat_input_ops) get_clauses_wl_from_init_get_clauses_wl_heur_init:
   by (cases T; cases Ta)
     (auto simp: twl_st_heur_init_def twl_st_heur_init_wl_def from_init_state_def)
 
-(* TODO Move *)
-lemma (in -) packed_Max_dom_size:
-  assumes p: \<open>packed N\<close>
-  shows \<open>Max_dom N = size (dom_m N)\<close>
-proof -
-  have 1: \<open>dom_m N = mset [1..<Suc (Max_dom N)]\<close>
-    using p unfolding packed_def Max_dom_def[symmetric] .
-  have \<open>size (dom_m N) = size (mset [1..<Suc (Max_dom N)])\<close>
-    unfolding 1 ..
-  also have \<open>\<dots> = length [1..<Suc (Max_dom N)]\<close>
-    unfolding size_mset ..
-  also have \<open>\<dots> = Max_dom N\<close>
-    unfolding length_upt by simp
-  finally show ?thesis
-    by simp
-qed
-
-lemma (in -) Max_dom_le:
-  \<open>L \<in># dom_m N \<Longrightarrow> L \<le> Max_dom N\<close>
-  by (auto simp: Max_dom_def)
-
 lemma isasat_input_bounded_nempty_cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D':
-  \<open>isasat_input_bounded_nempty \<A> \<Longrightarrow>
-(S, S') \<in> isasat_input_ops.twl_st_heur \<A> \<Longrightarrow> \<A> = \<A>' \<Longrightarrow>
-isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break \<A> S
-\<le> \<Down> (isasat_input_ops.twl_st_heur \<A>)
-    (isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D \<A>' S')\<close>
+  \<open>isasat_input_bounded_nempty \<A> \<Longrightarrow> (S, S') \<in> isasat_input_ops.twl_st_heur \<A> \<Longrightarrow> \<A> = \<A>' \<Longrightarrow>
+   isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break \<A> S
+    \<le> \<Down> (isasat_input_ops.twl_st_heur \<A>)
+         (isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D \<A>' S')\<close>
   using  isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D
              [THEN fref_to_Down, unfolded comp_def, of \<A> S S']
   by fast
-
-lemma (in isasat_input_ops) get_conflict_wl_is_None_heur_init_get_conflict_wl_is_None_init:
-  \<open>(T, Ta) \<in> twl_st_heur_init  \<Longrightarrow>
-    get_conflict_wl_is_None_heur_init T \<longleftrightarrow> get_conflict_wl_is_None_init (from_init_state Ta)\<close>
-  by (auto simp: )
-(* End Move *)
 
 lemma IsaSAT_heur_IsaSAT: \<open>(IsaSAT_heur, IsaSAT) \<in>
      [\<lambda>CS.  Multiset.Ball (mset CS) distinct \<and> (\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max)]\<^sub>f
      Id \<rightarrow> \<langle>{((M, stat), M'). M = M'}\<rangle>nres_rel\<close>
 proof -
+  have H: \<open>A + B = C \<Longrightarrow> A \<subseteq># C\<close> for A B C
+    by auto
   define f :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where \<open>f = RETURN\<close>
   have  IsaSAT_heur_alt_def: \<open>IsaSAT_heur CS = do{
     ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
@@ -1324,7 +1300,7 @@ proof -
        apply (auto intro!:  Refine_Basic.bind_mono)
       apply (subst isasat_input_ops.init_dt_wl_heur_fast_init_dt_wl_heur)
       apply (auto simp: isasat_input_ops.init_state_wl_heur_def map_fun_rel_def
-          RES_RES_RETURN_RES RETURN_def in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n)
+          RES_RES_RETURN_RES RETURN_def in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n Max_dom_fmempty)
       done
 
     have 2: \<open>?B \<le> ?A\<close>
@@ -1334,7 +1310,7 @@ proof -
       apply (auto intro!:  Refine_Basic.bind_mono)
       apply (subst isasat_input_ops.init_dt_wl_heur_fast_init_dt_wl_heur)
       apply (auto simp: isasat_input_ops.init_state_wl_heur_def map_fun_rel_def
-          RES_RES_RETURN_RES RETURN_def in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n)
+          RES_RES_RETURN_RES RETURN_def in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n Max_dom_fmempty)
       done
     show ?thesis using 1 2 by simp
   qed
@@ -1384,7 +1360,8 @@ proof -
             isasat_input_ops.twl_st_heur_init_wl_def)
       done
   qed
-  have from_init_state: \<open>f T \<le> \<Down> (isasat_input_ops.twl_st_heur_init_wl (mset_set (extract_atms_clss CS' {})))
+  have from_init_state:
+    \<open>f T \<le> \<Down> (isasat_input_ops.twl_st_heur_init_wl (mset_set (extract_atms_clss CS' {})))
           (RETURN (from_init_state T'))\<close>
     if
       TT': \<open>(T, T') \<in> isasat_input_ops.twl_st_heur_init (mset_set (extract_atms_clss CS' {}))\<close>
@@ -1439,7 +1416,8 @@ proof -
         using length_CS' CS_CS' by force
     }
     ultimately have H: \<open>L < uint_max\<close>
-      if packed: \<open>packed (get_clauses_wl_heur_init T)\<close> and \<open>L \<in># dom_m (get_clauses_wl_heur_init T)\<close> for L
+      if packed: \<open>packed (get_clauses_wl_heur_init T)\<close> and \<open>L \<in># dom_m (get_clauses_wl_heur_init T)\<close>
+      for L
       using length_CS' that Max_dom_le[of L \<open>get_clauses_wl_heur_init T\<close>]
        1[OF packed] dom
       by auto
@@ -1479,10 +1457,9 @@ proof -
       by (auto simp: empty_conflict_code_def)
     subgoal by auto
     subgoal by auto
-    subgoal (*TODO tune proof*)
-      apply (auto simp: isasat_input_ops.get_clauses_wl_from_init_get_clauses_wl_heur_init
-        intro: mset_subset_eq_add_left)
-      by (metis mset_subset_eq_add_left)
+    subgoal
+      by (auto simp: isasat_input_ops.get_clauses_wl_from_init_get_clauses_wl_heur_init
+        intro: mset_subset_eq_add_left dest: H)
     subgoal
       by (auto dest: isasat_input_ops.twl_st_heur_init_vmtf_next_emptyD)
     subgoal
@@ -1513,10 +1490,9 @@ proof -
     subgoal premises p by (simp add: empty_conflict_code_def)
     subgoal by auto
     subgoal by auto
-    subgoal (*TODO tune proof*)
-      apply (auto simp: isasat_input_ops.get_clauses_wl_from_init_get_clauses_wl_heur_init
-        intro: mset_subset_eq_add_left)
-      by (metis mset_subset_eq_add_left)+
+    subgoal
+      by (auto simp: isasat_input_ops.get_clauses_wl_from_init_get_clauses_wl_heur_init
+        intro: mset_subset_eq_add_left dest: H)
     subgoal
       by (auto dest: isasat_input_ops.twl_st_heur_init_vmtf_next_emptyD)
     subgoal
@@ -1604,7 +1580,8 @@ proof -
       using L
       by (cases L) (auto simp: extract_atms_clss_alt_def uint_max_def)
   qed
-  have 4: \<open>ASSERT (distinct_mset (mset_set (extract_atms_clss x {}))) \<le> \<Down> unit_rel (ASSERT True)\<close> for x
+  have 4: \<open>ASSERT (distinct_mset (mset_set (extract_atms_clss x {}))) \<le> \<Down> unit_rel (ASSERT True)\<close>
+    for x
     by (auto simp: distinct_mset_def)
   have IsaSAT_SAT: \<open>(IsaSAT, SAT') \<in>
      [\<lambda>CS. Multiset.Ball CS distinct_mset \<and>

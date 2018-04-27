@@ -810,18 +810,9 @@ end
 definition del_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>del_conflict_wl = (\<lambda>(M, N, D, NE, UE, Q, W). (M, N, None, NE, UE, Q, W))\<close>
 
-(* TODO Move *)
 lemma [simp]:
   \<open>get_clauses_wl (del_conflict_wl S) = get_clauses_wl S\<close>
   by (cases S) (auto simp: del_conflict_wl_def)
-
-lemma equality_except_conflict_wl_get_clauses_wl:
-  \<open>equality_except_conflict_wl S Y \<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
-  by (cases S; cases Y) (auto simp:)
-lemma equality_except_trail_wl_get_clauses_wl:
- \<open>equality_except_trail_wl S Y\<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
-  by (cases S; cases Y) (auto simp:)
-(* End Move *)
 
 context isasat_input_bounded_nempty
 begin

@@ -243,6 +243,9 @@ notation prod_assn (infixr "*a" 90)
 
 subsection \<open>More Theorems for Refinement\<close>
 
+lemma prod_assn_id_assn_destroy: \<open>R\<^sup>d *\<^sub>a id_assn\<^sup>d = (R *a id_assn)\<^sup>d\<close>
+  by (auto simp: hfprod_def prod_assn_def[abs_def] invalid_assn_def pure_def intro!: ext)
+
 lemma SPEC_add_information: \<open>P \<Longrightarrow> A \<le> SPEC Q \<Longrightarrow> A \<le> SPEC(\<lambda>x. Q x \<and> P)\<close>
   by auto
 
@@ -849,14 +852,14 @@ lemma list_rel_mset_rel_def[refine_rel_defs]:
   unfolding relAPP_def list_rel_mset_rel_internal ..
 
 lemma list_mset_assn_pure_conv:
-  \<open>list_mset_assn (pure R) = pure (list_rel_mset_rel R)\<close>
+  \<open>list_mset_assn (pure R) = pure (\<langle>R\<rangle>list_rel_mset_rel)\<close>
   apply (intro ext)
   using list_all2_reorder_left_invariance
   by (fastforce
     simp: list_rel_mset_rel_def list_mset_assn_def
       mset_rel_def rel2p_def[abs_def] rel_mset_def p2rel_def
       list_mset_rel_def[abs_def] Collect_eq_comp br_def
-      list_rel_mset_rel_internal list_rel_def Collect_eq_comp_right
+      list_rel_def Collect_eq_comp_right
     intro!: arg_cong[of _ _ \<open>\<lambda>b. pure b _ _\<close>])
 
 lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
