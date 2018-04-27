@@ -241,8 +241,7 @@ definition cdcl_twl_stgy_restart_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres
       })
       (False, S\<^sub>0, 0);
     RETURN T
-  }
-  \<close>
+  }\<close>
 
 lemma restart_prog_spec:
   fixes n :: string

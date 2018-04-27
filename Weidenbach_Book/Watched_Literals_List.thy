@@ -271,6 +271,9 @@ lemma ran_m_ran: \<open>fset_mset (ran_m N) = fmran N\<close>
    apply (metis fmdomE notin_fset option.sel)
   by (metis (no_types, lifting) fmdomI fmember.rep_eq image_iff option.sel)
 
+fun get_learned_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause_l multiset\<close> where
+  \<open>get_learned_clauses_l (M, N, D, NE, UE, WS, Q) = learned_clss_lf N\<close>
+
 lemma ran_m_clause_upd:
   assumes
     NC: \<open>C \<in># dom_m N\<close>
