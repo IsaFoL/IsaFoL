@@ -2,8 +2,8 @@ theory WB_List_More
   imports Nested_Multisets_Ordinals.Multiset_More "HOL-Library.Finite_Map"
 begin
 
-text \<open>Sledgehammer parameters\<close>
-sledgehammer_params[debug]
+text \<open>More Sledgehammer parameters\<close>
+(* sledgehammer_params[debug] *)
 
 section \<open>Various Lemmas\<close>
 
@@ -152,23 +152,26 @@ lemma atd_lem: \<open>take n xs = t \<Longrightarrow> drop n xs = d \<Longrighta
 lemma drop_take_drop_drop:
   \<open>j \<ge> i \<Longrightarrow> drop i xs = take (j - i) (drop i xs) @ drop j xs\<close>
   apply (induction \<open>j - i\<close> arbitrary: j i)
-   apply auto
-  apply (case_tac j)
-  by (auto simp add: atd_lem)
+  subgoal by auto
+  subgoal by (auto simp add: atd_lem)
+  done
 
 lemma in_set_conv_iff:
   \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>i < n. i < length xs \<and> xs ! i = x)\<close>
-   apply (induction n)
+  apply (induction n)
   subgoal by auto
   subgoal for n
     apply (cases \<open>Suc n < length xs\<close>)
     subgoal by (auto simp: take_Suc_conv_app_nth less_Suc_eq dest: in_set_takeD)
     subgoal
-    apply (cases \<open>n < length xs\<close>)
-      apply (auto simp: take_Suc_conv_app_nth dest: in_set_takeD)
-      using less_Suc_eq apply auto[1]
-      apply (meson in_set_conv_nth less_trans_Suc not_less_eq)
-      by (meson Suc_lessD less_trans_Suc not_less_eq)
+      apply (cases \<open>n < length xs\<close>)
+      subgoal
+        apply (auto simp: in_set_conv_nth)
+        by (rule_tac x=i in exI; auto; fail)+
+      subgoal
+        apply (auto simp: take_Suc_conv_app_nth dest: in_set_takeD)
+        by (rule_tac x=i in exI; auto; fail)+
+      done
     done
   done
 
@@ -414,11 +417,11 @@ lemma lexn_n:
   by (auto simp: map_prod_def image_iff lex_prod_def)
 
 text \<open>
-  There is some subtle point in the previous theorem explaining \<^emph>\<open>why\<close> it is useful. @{term \<open>1::nat\<close>}
-  is converted to @{term \<open>Suc 0::nat\<close>}, but @{term \<open>2::nat\<close>} is not: meaning that @{term \<open>1::nat\<close>}
-  is automatically simplified by default allowing the use of the default simplification rule
-  @{thm [source] lexn.simps}. However, the latter needs additional simplification rule (see the
-  proof of the theorem above).
+  There is some subtle point in the previous theorem explaining \<^emph>\<open>why\<close> it is useful. The term
+  @{term \<open>1::nat\<close>} is converted to @{term \<open>Suc 0::nat\<close>}, but @{term \<open>2::nat\<close>} is not, meaning
+  that @{term \<open>1::nat\<close>} is automatically simplified by default allowing the use of the default
+  simplification rule @{thm [source] lexn.simps}. However, for 2 one additional simplification rule
+  is required (see the proof of the theorem above).
 \<close>
 
 lemma lexn2_conv:
@@ -546,7 +549,6 @@ subsection \<open>Remove\<close>
 
 subsubsection \<open>More lemmas about remove\<close>
 
-
 lemma distinct_remove1_last_butlast:
   \<open>distinct xs \<Longrightarrow> xs \<noteq> [] \<Longrightarrow> remove1 (last xs) xs = butlast xs\<close>
   by (metis append_Nil2 append_butlast_last_id distinct_butlast not_distinct_conv_prefix
@@ -627,17 +629,19 @@ lemma distinct_filter_eq_if:
   \<open>distinct C \<Longrightarrow> length (filter (op = L) C) = (if L \<in> set C then 1 else 0)\<close>
   by (induction C) auto
 
-lemma  length_filter_update_true:
-  \<open>i < length xs \<Longrightarrow> P (xs ! i) \<Longrightarrow> length (filter P (xs[i := x])) = length (filter P xs) - (if P x then 0 else 1)\<close>
+lemma length_filter_update_true:
+  assumes \<open>i < length xs\<close> and \<open>P (xs ! i)\<close>
+  shows \<open>length (filter P (xs[i := x])) = length (filter P xs) - (if P x then 0 else 1)\<close>
   apply (subst (5) append_take_drop_id[of i, symmetric])
-  using upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
+  using assms upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
   unfolding filter_append length_append
   by simp
 
-lemma  length_filter_update_falte:
-  \<open>i < length xs \<Longrightarrow> \<not>P (xs ! i) \<Longrightarrow> length (filter P (xs[i := x])) = length (filter P xs) + (if P x then 1 else 0)\<close>
+lemma length_filter_update_false:
+  assumes \<open>i < length xs\<close> and \<open>\<not>P (xs ! i)\<close>
+  shows \<open>length (filter P (xs[i := x])) = length (filter P xs) + (if P x then 1 else 0)\<close>
   apply (subst (5) append_take_drop_id[of i, symmetric])
-  using upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
+  using assms upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
   unfolding filter_append length_append
   by simp
 
@@ -752,7 +756,7 @@ lemma count_multi_member_split:
   subgoal premises IH for n M
     using IH(1)[of \<open>remove1_mset a M\<close>] IH(2)
     apply (cases \<open>n \<le> count M a - Suc 0\<close>)
-     apply (auto dest!: Suc_le_D simp: count_greater_zero_iff)
+     apply (auto dest!: Suc_le_D)
     by (metis count_greater_zero_iff insert_DiffM zero_less_Suc)
   done
 
@@ -923,10 +927,6 @@ lemma inj_image_mset_eq_iff:
 
 subsection \<open>Sorting\<close>
 
-text \<open>@{thm insort_is_Cons} is more general.\<close>
-lemma insort_is_append: \<open>\<forall>x\<in>set xs. a \<ge> x \<Longrightarrow> sorted xs \<Longrightarrow> insort a xs = xs @ [a]\<close>
-by (induction xs) (auto simp add: insort_is_Cons sorted_Cons)
-
 text \<open>See @{thm sorted_distinct_set_unique}.\<close>
 lemma sorted_mset_unique:
   fixes xs :: \<open>'a :: linorder list\<close>
@@ -947,7 +947,7 @@ proof -
    apply (rule sorted_mset_unique)
       apply ((auto simp add: sorted_append sorted_insort sorted_Cons ac_simps mset_set_Union
         dest!: H; fail)+)[2]
-    apply (auto simp: insort_is_Cons insort_is_append sorted_append mset_set_Union
+    apply (auto simp: insort_is_Cons sorted_insort_is_snoc sorted_append mset_set_Union
       ac_simps dest: H; fail)+
   done
 qed
@@ -1010,10 +1010,10 @@ proof -
   have [simp]: \<open>0 < n \<Longrightarrow> {j. Suc j = n} = {n-1}\<close> for n
     by auto
   show ?thesis
-  apply (induction l arbitrary: n)
-  subgoal by (auto simp: nths_def)
-  subgoal by (auto simp: nths_Cons)
-  done
+    apply (induction l arbitrary: n)
+    subgoal by (auto simp: nths_def)
+    subgoal by (auto simp: nths_Cons)
+    done
 qed
 
 lemma atLeastLessThan_Collect: \<open>{a..<b} = {j. j \<ge> a \<and> j < b}\<close>
@@ -1023,7 +1023,8 @@ lemma mset_nths_subset_mset: \<open>mset (nths xs A) \<subseteq># mset xs\<close
   apply (induction xs arbitrary: A)
   subgoal by auto
   subgoal for a xs A
-    using subset_mset.add_increasing2[of \<open>add_mset _ {#}\<close> \<open>mset (nths xs {j. Suc j \<in> A})\<close>  \<open>mset xs\<close>]
+    using subset_mset.add_increasing2[of \<open>add_mset _ {#}\<close> \<open>mset (nths xs {j. Suc j \<in> A})\<close> 
+      \<open>mset xs\<close>]
     by (auto simp: nths_Cons)
   done
 
@@ -1053,7 +1054,7 @@ lemma nts_upt_length[simp]: \<open>nths xs {0..<length xs} = xs\<close>
   by (auto simp: nths_id_iff)
 
 lemma nths_shift_lemma':
-  \<open>map fst [p<-zip xs [i..<i + n]. snd p + b : A] = map fst [p<-zip xs [0..<n]. snd p + b + i : A]\<close>
+  \<open>map fst [p\<leftarrow>zip xs [i..<i + n]. snd p + b \<in> A] = map fst [p\<leftarrow>zip xs [0..<n]. snd p + b + i \<in> A]\<close>
 proof (induct xs arbitrary: i n b)
   case Nil
   then show ?case by simp
@@ -1186,7 +1187,7 @@ lemma Ball_set_nths: \<open>(\<forall>L\<in>set (nths xs A). P L) \<longleftrigh
 subsection \<open>Product Case\<close>
 
 text \<open>The splitting of tuples is done for sizes strictly less than 8. As we want to manipulate
-  tuples for size 8, here is some more setup for sizes up to 12.\<close>
+  tuples of size 8, here is some more setup for larger sizes.\<close>
 
 lemma prod_cases8 [cases type]:
   obtains (fields) a b c d e f g h where "y = (a, b, c, d, e, f, g, h)"
@@ -1231,6 +1232,11 @@ lemma prod_induct12 [case_names fields, induct type]:
 
 subsection \<open>More about @{term list_all2} and @{term map}\<close>
 
+text \<open>
+  More properties on the relator \<^term>\<open>list_all2\<close> and \<^term>\<open>map\<close>. These theorems are
+  mostly used during the refinement and especially the lifting from a deterministic relator to
+  its list version.
+\<close>
 lemma list_all2_op_eq_map_right_iff: \<open>list_all2 (\<lambda>L. op = (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
   apply (induction a arbitrary: aa)
    apply (auto; fail)
@@ -1265,15 +1271,14 @@ lemma list_all2_conj:
   by (auto simp: list_all2_conv_all_nth)
 
 lemma list_all2_replicate:
-  \<open>(bi, b) \<in> R' \<Longrightarrow>
-       list_all2 (\<lambda>x x'. (x, x') \<in> R')
-        (replicate n bi)
-        (replicate n b)\<close>
+  \<open>(bi, b) \<in> R' \<Longrightarrow> list_all2 (\<lambda>x x'. (x, x') \<in> R') (replicate n bi) (replicate n b)\<close>
   by (induction n) auto
+
 
 section \<open>Finite maps and multisets\<close>
 
-text \<open>Roughly the same as \<^term>\<open>ran\<close>, but with duplication and works only on finite domains.\<close>
+text \<open>Roughly the same as \<^term>\<open>ran\<close>, but with duplication (unlike sets or finite sets) and
+  it works only on finite domains (unlike a function mapping).\<close>
 abbreviation mset_fset :: \<open>'a fset \<Rightarrow> 'a multiset\<close> where
   \<open>mset_fset N \<equiv> mset_set (fset N)\<close>
 
@@ -1283,11 +1288,9 @@ definition fset_mset :: \<open>'a multiset \<Rightarrow> 'a fset\<close> where
 lemma fset_mset_mset_fset: \<open>fset_mset (mset_fset N) = N\<close>
   by (auto simp: fset.fset_inverse fset_mset_def)
 
-
 lemma mset_fset_fset_mset[simp]:
   \<open>mset_fset (fset_mset N) = remdups_mset N\<close>
-  by (auto simp: fset.fset_inverse fset_mset_def Abs_fset_inverse
-      remdups_mset_def)
+  by (auto simp: fset.fset_inverse fset_mset_def Abs_fset_inverse remdups_mset_def)
 
 lemma in_mset_fset_fmember[simp]: \<open>x \<in># mset_fset N \<longleftrightarrow> x |\<in>| N\<close>
   by (auto simp: fmember.rep_eq)
@@ -1311,6 +1314,7 @@ lemma dom_m_fmupd[simp]: \<open>dom_m (fmupd k C N) = add_mset k (remove1_mset k
   by (cases \<open>k |\<in>| fmdom N\<close>)
     (auto simp: mset_set.remove fmember.rep_eq mset_set.insert
     mset_set.insert_remove)
+
 lemma distinct_mset_dom: \<open>distinct_mset (dom_m N)\<close>
   by (simp add: distinct_mset_mset_set dom_m_def)
 
@@ -1319,7 +1323,6 @@ lemma in_dom_m_lookup_iff: \<open>C \<in># dom_m N' \<longleftrightarrow> fmlook
 
 lemma in_dom_in_ran_m[simp]: \<open>i \<in># dom_m N \<Longrightarrow> the (fmlookup N i) \<in># ran_m N\<close>
   by (auto simp: ran_m_def)
-
 
 definition Max_dom where
   \<open>Max_dom N = Max (set_mset (add_mset 0 (dom_m N)))\<close>
@@ -1385,14 +1388,12 @@ lemma Max_insert_Suc_Max_dim_dom[simp]:
 
 lemma Max_atLeastLessThan_plus: \<open>Max {(a::nat) ..< a+n} = (if n = 0 then Max {} else a+n - 1)\<close>
   apply (induction n arbitrary: a)
-  subgoal premises p by auto
-  subgoal premises p for n a
-    using p
-    apply (cases n)
-     apply (auto simp: image_Suc_atLeastLessThan[symmetric] mono_Max_commute[symmetric] mono_def
+  subgoal by auto
+  subgoal for n a
+    by (cases n)
+      (auto simp: image_Suc_atLeastLessThan[symmetric] mono_Max_commute[symmetric] mono_def
         atLeastLessThanSuc
         simp del: image_Suc_atLeastLessThan)
-    done
   done
 
 lemma Max_atLeastLessThan: \<open>Max {(a::nat) ..< b} = (if b \<le> a then Max {} else b - 1)\<close>
@@ -1405,8 +1406,7 @@ lemma Max_insert_Max_dom_into_packed:
     (auto simp: Max_dom_empty Max_atLeastLessThan)
 
 lemma packed0_fmud_Suc_Max_dom: \<open>packed b \<Longrightarrow> packed (fmupd (Suc (Max_dom b)) C b)\<close>
-  by (auto simp del: Max_dom_empty
-      simp: packed_def remove1_mset_ge_Max_some Max_dom_fmupd_irrel max_def)
+  by (auto simp: packed_def remove1_mset_ge_Max_some Max_dom_fmupd_irrel max_def)
 
 lemma ge_Max_dom_notin_dom_m: \<open>a > Max_dom ao \<Longrightarrow> a \<notin># dom_m ao\<close>
   by (auto simp: Max_dom_def)
