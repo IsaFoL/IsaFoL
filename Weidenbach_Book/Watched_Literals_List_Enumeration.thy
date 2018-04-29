@@ -114,8 +114,13 @@ fun propagate_nonunit_and_add_l :: \<open>'v literal \<Rightarrow> 'v clause_l \
       NE, UE, {#}, {#K#})
     }\<close>
 
+definition negate_mode_bj_nonunit_l_inv where
+\<open>negate_mode_bj_nonunit_l_inv S \<longleftrightarrow>
+   (\<exists>S'' b. (S, S'') \<in> twl_st_l b \<and> twl_list_invs S \<and> count_decided (get_trail_l S) > 1)\<close>
+
 definition negate_mode_bj_nonunit_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
 \<open>negate_mode_bj_nonunit_l = (\<lambda>S. do {
+    ASSERT(negate_mode_bj_nonunit_l_inv S);
     let C = DECO_clause_l (get_trail_l S);
     (S, K) \<leftarrow> find_decomp_target (count_decided (get_trail_l S)) S;
     i \<leftarrow> get_fresh_index (get_clauses_l S);
@@ -245,7 +250,9 @@ proof -
       apply (subst RETURN_RES_refine_iff)
       by fast
   qed
-  show ?thesis
+  have \<open>negate_mode_bj_nonunit_l_inv S\<close>
+    using assms unfolding negate_mode_bj_nonunit_l_inv_def by blast
+  then show ?thesis
     unfolding negate_mode_bj_nonunit_l_def find_decomp_target_def get_fresh_index_def
     apply refine_vcg
     apply (rule H; assumption)
