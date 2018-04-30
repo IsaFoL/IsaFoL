@@ -17,8 +17,14 @@ fun propagate_unit_and_add_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Ri
   \<open>propagate_unit_and_add_l K (M, N, D, NE, UE, WS, Q) =
       (Propagated (-K) 0 # M, N, None, add_mset {#-K#} NE, UE, {#}, {#K#})\<close>
 
+definition negate_mode_bj_unit_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool\<close> where
+  \<open>negate_mode_bj_unit_l_inv S \<longleftrightarrow>
+     (\<exists>(S'::'v twl_st) b. (S, S') \<in> twl_st_l b \<and> twl_list_invs S \<and> twl_stgy_invs S' \<and>
+        twl_struct_invs S' \<and> get_conflict_l S = None)\<close>
+
 definition negate_mode_bj_unit_l   :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
 \<open>negate_mode_bj_unit_l = (\<lambda>S. do {
+    ASSERT(negate_mode_bj_unit_l_inv S);
     (S, K) \<leftarrow> find_decomp_target 1 S;
     RETURN (propagate_unit_and_add_l K S)
   })\<close>
@@ -92,8 +98,9 @@ proof -
     using assms
     unfolding negate_mode_bj_unit_l_def find_decomp_target_def
     apply (refine_rcg)
-    apply (subst RETURN_RES_refine_iff)
-    apply (rule H; assumption)
+    subgoal unfolding negate_mode_bj_unit_l_inv_def by fast
+    subgoal
+      by (subst RETURN_RES_refine_iff) (rule H; assumption)
     done
 qed
 
