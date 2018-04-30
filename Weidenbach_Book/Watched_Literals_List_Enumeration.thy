@@ -123,7 +123,8 @@ fun propagate_nonunit_and_add_l :: \<open>'v literal \<Rightarrow> 'v clause_l \
 
 definition negate_mode_bj_nonunit_l_inv where
 \<open>negate_mode_bj_nonunit_l_inv S \<longleftrightarrow>
-   (\<exists>S'' b. (S, S'') \<in> twl_st_l b \<and> twl_list_invs S \<and> count_decided (get_trail_l S) > 1)\<close>
+   (\<exists>S'' b. (S, S'') \<in> twl_st_l b \<and> twl_list_invs S \<and> count_decided (get_trail_l S) > 1 \<and>
+      twl_struct_invs S'' \<and>  twl_stgy_invs S'' \<and> get_conflict_l S = None)\<close>
 
 definition negate_mode_bj_nonunit_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
 \<open>negate_mode_bj_nonunit_l = (\<lambda>S. do {

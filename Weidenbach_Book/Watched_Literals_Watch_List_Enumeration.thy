@@ -25,6 +25,12 @@ lemma in_all_lits_of_mm_uminusD: \<open>x2 \<in># all_lits_of_mm N \<Longrightar
   by (auto simp: all_lits_of_mm_def)
 (* End Move *)
 
+abbreviation find_decomp_target_wl_ref where
+  \<open>find_decomp_target_wl_ref S \<equiv>
+     {((T, K), (T', K')). (T, T') \<in> {(T, T'). (T, T') \<in> state_wl_l None \<and> correct_watching T} \<and>
+        (K , K') \<in> Id \<and> K \<in># all_lits_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl T) +
+          get_unit_init_clss_wl T) \<and> equality_except_trail_wl S T}\<close>
+
 lemma find_decomp_target_wl_find_decomp_target_l:
   assumes
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
@@ -32,10 +38,7 @@ lemma find_decomp_target_wl_find_decomp_target_l:
     corr: \<open>correct_watching S\<close> and
     [simp]: \<open>a = a'\<close>
   shows \<open>find_decomp_target_wl a S \<le>
-     \<Down> {((S, K), (S', K')). (S, S') \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S} \<and>
-        (K , K') \<in> Id \<and> K \<in># all_lits_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl S) +
-          get_unit_init_clss_wl S)}
-    (find_decomp_target a' S')\<close>
+     \<Down> (find_decomp_target_wl_ref S) (find_decomp_target a' S')\<close>
     (is \<open>_ \<le> \<Down> ?negate _\<close>)
 proof -
   let ?y0 = \<open>\<lambda>S S'. (\<lambda>(M, Oth). (get_trail_wl S, Oth)) S'\<close>
@@ -95,9 +98,7 @@ proof -
   have 2: \<open>(propagate_unit_and_add_wl x2a x1a, propagate_unit_and_add_l x2 x1)
         \<in> {(S, S''). (S, S'') \<in> state_wl_l None \<and> correct_watching S}\<close>
     if 
-      \<open>(x, x') \<in> {((S, K), (S', K')). (S, S') \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S} \<and>
-        (K , K') \<in> Id \<and> K \<in># all_lits_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl S) +
-          get_unit_init_clss_wl S)}\<close> and
+      \<open>(x, x') \<in> find_decomp_target_wl_ref S\<close> and
       \<open>x' = (x1, x2)\<close> and
       \<open>x = (x1a, x2a)\<close>
     for x2a x1a x2 x1 and x :: \<open>'v twl_st_wl \<times> 'v literal\<close> and x' :: \<open>'v twl_st_l \<times> 'v literal\<close>
@@ -128,14 +129,54 @@ where
     }\<close>
 
 
+definition negate_mode_bj_nonunit_wl_inv where
+\<open>negate_mode_bj_nonunit_wl_inv S \<longleftrightarrow>
+   (\<exists>S' b. (S, S') \<in> state_wl_l b \<and> negate_mode_bj_nonunit_l_inv S')\<close>
+
 definition negate_mode_bj_nonunit_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>negate_mode_bj_nonunit_wl = (\<lambda>S. do {
+    ASSERT(negate_mode_bj_nonunit_wl_inv S);
     let C = DECO_clause_l (get_trail_wl S);
     (S, K) \<leftarrow> find_decomp_target_wl (count_decided (get_trail_wl S)) S;
     i \<leftarrow> get_fresh_index (get_clauses_wl S);
     propagate_nonunit_and_add_wl K C i S
   })\<close>
 
+lemma
+  assumes 
+    \<open>correct_watching S\<close> and
+    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
+    \<open>negate_mode_bj_nonunit_wl_inv S\<close> and
+    TK: \<open>(TK, TK') \<in> find_decomp_target_wl_ref S\<close> and
+    [simp]: \<open>TK' = (T, K)\<close> and
+    [simp]: \<open>TK = (T', K')\<close> and
+    ij: \<open>(i, j) \<in> {(i, j). i = j \<and> i \<notin># dom_m (get_clauses_wl T')}\<close>
+  shows \<open>propagate_nonunit_and_add_wl K' (DECO_clause_l (get_trail_wl S)) i T'
+         \<le> SPEC (\<lambda>c. (c, propagate_nonunit_and_add_l K
+                          (DECO_clause_l (get_trail_l S')) j T)
+                     \<in> {(S, S'').
+                        (S, S'') \<in> state_wl_l None \<and> correct_watching S})\<close>
+proof -
+  have [simp]: \<open>i = j\<close> and j: \<open>j \<notin># dom_m (get_clauses_wl T')\<close>
+    using ij by auto
+  have [simp]: \<open>DECO_clause_l (get_trail_l S') = DECO_clause_l (get_trail_wl S)\<close>
+    using SS' by auto
+  have 1: \<open>DECO_clause_l (get_trail_wl S) = 
+        DECO_clause_l (get_trail_wl S) ! 0 #
+           DECO_clause_l (get_trail_wl S) ! Suc 0 # drop 2 (DECO_clause_l (get_trail_wl S))\<close>
+    sorry
+  show ?thesis
+    using TK j
+    apply (cases T; cases T')
+    apply (auto simp: assert_bind_spec_conv state_wl_l_def)
+    prefer 4
+    apply (subst 1)
+    apply (rule correct_watching_learn[THEN iffD2])
+    apply auto
+     thm correct_watching_learn[THEN iffD2]
+   sorry
+   find_theorems correct_watching append
+qed
 
 lemma negate_mode_bj_nonunit_l:
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
@@ -147,12 +188,35 @@ lemma negate_mode_bj_nonunit_l:
     \<open>negate_mode_bj_nonunit_wl S \<le> \<Down>{(S, S''). (S, S'') \<in> state_wl_l None \<and> correct_watching S}
        (negate_mode_bj_nonunit_l S')\<close>
 proof -
-
+  have fresh: \<open>get_fresh_index (get_clauses_wl T)
+    \<le> \<Down> {(i, j). i = j \<and> i \<notin># dom_m (get_clauses_wl S)} (get_fresh_index (get_clauses_l T'))\<close>
+    if \<open>(TK, TK') \<in> find_decomp_target_wl_ref S\<close> and
+      \<open>TK = (T, K)\<close> and
+      \<open>TK' =(T', K')\<close>
+    for T T' K K' TK TK'
+    using that by (auto simp: get_fresh_index_def equality_except_trail_wl_get_clauses_wl
+      intro!: RES_refine)
   show ?thesis
     using corr SS'
     unfolding negate_mode_bj_nonunit_wl_def negate_mode_bj_nonunit_l_def
-    apply (refine_rcg find_decomp_target_wl_find_decomp_target_l)
+    apply (refine_rcg find_decomp_target_wl_find_decomp_target_l fresh)
     subgoal 
-      unfolding negate_mode_bj_nonunit_l_inv_def negate_mode_bj_unit_l_inv_def
-    using SS' by (auto simp: )
+       using SS' unfolding negate_mode_bj_unit_l_inv_def negate_mode_bj_nonunit_wl_inv_def
+       by blast
+    subgoal 
+       using SS' unfolding negate_mode_bj_nonunit_l_inv_def negate_mode_bj_unit_l_inv_def
+       by blast
+    subgoal
+       using SS' unfolding negate_mode_bj_nonunit_l_inv_def negate_mode_bj_unit_l_inv_def
+       by auto
+    apply (assumption; fail)
+    apply (assumption; fail)
+    apply (assumption; fail)
+    subgoal for TK TK' T K T' K' i j
+    explore_lemma
+    
+     sorry
+    done
+qed
+
 end
