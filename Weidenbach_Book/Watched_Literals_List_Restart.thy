@@ -2,6 +2,7 @@ theory Watched_Literals_List_Restart
   imports Watched_Literals_List Watched_Literals_Algorithm_Restart
 begin
 
+
 definition mapping_old_new_clauses where
   \<open>mapping_old_new_clauses N N' NE NE' \<longleftrightarrow>
     (init_clss_lf N' = init_clss_lf N \<and>
@@ -31,17 +32,28 @@ begin
 definition restart_required_l :: "'v twl_st_l \<times> nat \<Rightarrow> bool nres" where
   \<open>restart_required_l S = SPEC (\<lambda>b. b \<longrightarrow> size (get_learned_clauses_l (fst S)) > f (snd S))\<close>
 
+(* TODO This is already defined somewhere *)
+definition find_decomp_target :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>find_decomp_target =  (\<lambda>i (M, N, D, NE, UE, WS, Q).
+    SPEC(\<lambda>S. \<exists>K M2 M1. S = (M1, N, D, NE, UE, WS, Q) \<and>
+       (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+          get_level M K = i))\<close>
+
 definition restart_prog_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres" where
   \<open>restart_prog_l S n brk = do {
      b \<leftarrow> restart_required_l (S, n);
-     if b \<and> \<not>brk then do {
-       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart S T);
-       RETURN (T, n + 1)
+     if \<not>b then RETURN (S, n)
+     else do {
+       i \<leftarrow> SPEC(\<lambda>i. i \<le> count_decided (get_trail_l S));
+       if (i = count_decided (get_trail_l S))
+      then RETURN (S, n) (*don't restart if we don't change the trail at all*)
+       else do {
+         S \<leftarrow> find_decomp_target i S;
+         S \<leftarrow> restart_prog_clss_list S;
+         RETURN (S, n)
+       }
      }
-     else
-       RETURN (S, n)
    }\<close>
-
 
 
 lemma cdcl_twl_o_prog_l_spec:

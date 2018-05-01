@@ -13,7 +13,19 @@ text \<open>
     \<^item> or it is kept and the number of clauses is strictly decreasing.
 
   This ensures that \<^emph>\<open>something\<close> changes to prove termination.
+
+  In practice, there are two types of restarts that are done:
+    \<^item> First, a restart can be done to enforce that the SAT solver goemore into the direction
+      expected by the decision heuristics.
+    \<^item> Second, a restart can be done to simplify inprocessing and garbage collection of the memory:
+      instead of properly updating the trail, we restart the search. This is not necessary (i.e.,
+      glucose and minisat do not do it), but it simplifies the proofs by allowing to move clauses
+      without taking care of updating references in the trail. Moreover, as this happens ``rarely''
+      (around once every few thousand conflicts), it should not matter too much.
+
+  Restarts are the ``local search'' part of all modern SAT solvers.
 \<close>
+
 inductive cdcl_twl_restart :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
 restart_trail:
    \<open>cdcl_twl_restart (M, N, U, None, NE, UE, {#}, Q) (M', N', U', None, NE + clauses NE', UE, {#}, {#})\<close>

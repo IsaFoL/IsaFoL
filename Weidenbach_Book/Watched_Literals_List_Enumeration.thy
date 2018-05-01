@@ -279,8 +279,13 @@ fun restart_nonunit_and_add_l :: \<open>'v clause_l \<Rightarrow> nat \<Rightarr
       (M, fmupd i (C, True) N, None, NE, UE, {#}, {#})
     }\<close>
 
+definition negate_mode_restart_nonunit_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool\<close> where
+\<open>negate_mode_restart_nonunit_l_inv  S \<longleftrightarrow>
+  (\<exists>S' b. (S, S') \<in> twl_st_l b \<and> twl_struct_invs S' \<and> twl_list_invs S \<and> twl_stgy_invs S' \<and>
+     count_decided (get_trail_l S) > 1 \<and> get_conflict_l S = None)\<close>
 definition negate_mode_restart_nonunit_l   :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
 \<open>negate_mode_restart_nonunit_l = (\<lambda>S. do {
+    ASSERT(negate_mode_restart_nonunit_l_inv S);
     let C = DECO_clause_l (get_trail_l S);
     i \<leftarrow> SPEC(\<lambda>i. i < count_decided (get_trail_l S));
     (S, K) \<leftarrow> find_decomp_target i S;
@@ -392,8 +397,12 @@ proof -
   show ?thesis
     unfolding negate_mode_restart_nonunit_l_def find_decomp_target_def get_fresh_index_def
     apply refine_vcg
-    supply [[unify_trace_failure]]
-    apply (rule H; assumption)
+    subgoal
+      using assms unfolding negate_mode_restart_nonunit_l_inv_def by fast
+    subgoal
+      supply [[unify_trace_failure]]
+      apply (rule H; assumption)
+      done
     done
 qed
 

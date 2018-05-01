@@ -20,7 +20,7 @@ definition negate_mode_bj_unit_wl   :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_
     RETURN (propagate_unit_and_add_wl K S)
   })\<close>
 
-(* TODO Move *)
+(* TODO Move or duplicate *)
 lemma in_all_lits_of_mm_uminusD: \<open>x2 \<in># all_lits_of_mm N \<Longrightarrow> -x2 \<in># all_lits_of_mm N\<close>
   by (auto simp: all_lits_of_mm_def)
 (* End Move *)
@@ -34,7 +34,7 @@ abbreviation find_decomp_target_wl_ref where
 lemma find_decomp_target_wl_find_decomp_target_l:
   assumes
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
-    inv: \<open>negate_mode_bj_unit_l_inv S'\<close> and
+    inv: \<open>\<exists>S'' b. (S', S'') \<in> twl_st_l b \<and> twl_struct_invs S''\<close> and
     corr: \<open>correct_watching S\<close> and
     [simp]: \<open>a = a'\<close>
   shows \<open>find_decomp_target_wl a S \<le>
@@ -114,7 +114,12 @@ proof -
 
   show ?thesis
     using SS' corr unfolding negate_mode_bj_unit_wl_def negate_mode_bj_unit_l_def
-    by (refine_rcg find_decomp_target_wl_find_decomp_target_l 2) auto
+    apply (refine_rcg find_decomp_target_wl_find_decomp_target_l 2)
+    subgoal unfolding negate_mode_bj_unit_l_inv_def by blast
+    subgoal by standard
+    subgoal by blast
+    apply assumption+
+    done
 qed
 
 fun propagate_nonunit_and_add_wl
@@ -131,7 +136,7 @@ where
 
 definition negate_mode_bj_nonunit_wl_inv where
 \<open>negate_mode_bj_nonunit_wl_inv S \<longleftrightarrow>
-   (\<exists>S' b. (S, S') \<in> state_wl_l b \<and> negate_mode_bj_nonunit_l_inv S')\<close>
+   (\<exists>S'' b. (S, S'') \<in> state_wl_l b \<and> negate_mode_bj_nonunit_l_inv S'' \<and> correct_watching S)\<close>
 
 definition negate_mode_bj_nonunit_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>negate_mode_bj_nonunit_wl = (\<lambda>S. do {
@@ -204,19 +209,8 @@ proof -
        using SS' unfolding negate_mode_bj_unit_l_inv_def negate_mode_bj_nonunit_wl_inv_def
        by blast
     subgoal 
-       using SS' unfolding negate_mode_bj_nonunit_l_inv_def negate_mode_bj_unit_l_inv_def
-       by blast
-    subgoal
-       using SS' unfolding negate_mode_bj_nonunit_l_inv_def negate_mode_bj_unit_l_inv_def
-       by auto
-    apply (assumption; fail)
-    apply (assumption; fail)
-    apply (assumption; fail)
-    subgoal for TK TK' T K T' K' i j
-    explore_lemma
+       using SS' unfolding negate_mode_bj_nonunit_l_inv_def by blast
+    subgoal by simp
+    oops
     
-     sorry
-    done
-qed
-
 end
