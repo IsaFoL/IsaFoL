@@ -1632,6 +1632,35 @@ proof -
     done
 qed
 
+theorem cdcl_twl_stgy_prog_wl_spec':
+  \<open>(cdcl_twl_stgy_prog_wl, cdcl_twl_stgy_prog_l) \<in> {(S::'v twl_st_wl, S').
+       (S, S') \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>
+    \<langle>{(S::'v twl_st_wl, S').
+       (S, S') \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+   (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
+proof -
+  have H: \<open>((False, S'), False, S) \<in> {((brk', T'), (brk, T)). (T', T) \<in> state_wl_l None \<and> brk' = brk \<and>
+       correct_watching T'}\<close>
+    if \<open>(S', S) \<in> state_wl_l None\<close> and
+       \<open>correct_watching S'\<close>
+    for S' :: \<open>'v twl_st_wl\<close> and S :: \<open>'v twl_st_l\<close>
+    using that by auto
+    thm unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
+  show ?thesis
+    unfolding cdcl_twl_stgy_prog_wl_def cdcl_twl_stgy_prog_l_def
+    apply (refine_rcg H unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
+      cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
+    subgoal for S' S by (cases S') auto
+    subgoal by auto
+    subgoal unfolding cdcl_twl_stgy_prog_wl_inv_def by blast
+    subgoal by auto
+    subgoal by auto
+    subgoal for S' S brk'T' brkT brk' T' by auto
+    subgoal by fast
+    subgoal by auto
+    done
+qed
+
 definition cdcl_twl_stgy_prog_wl_pre where
   \<open>cdcl_twl_stgy_prog_wl_pre S U \<longleftrightarrow>
     (\<exists>T. (S, T) \<in> state_wl_l None \<and> cdcl_twl_stgy_prog_l_pre T U \<and> correct_watching S)\<close>
@@ -1675,11 +1704,10 @@ definition cdcl_twl_stgy_prog_break_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v t
     else cdcl_twl_stgy_prog_wl T
   }\<close>
 
-theorem cdcl_twl_stgy_prog_break_wl_spec:
+theorem cdcl_twl_stgy_prog_break_wl_spec':
   \<open>(cdcl_twl_stgy_prog_break_wl, cdcl_twl_stgy_prog_break_l) \<in> {(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and>
-       correct_watching S} \<rightarrow>\<^sub>f
-    \<langle>state_wl_l None\<rangle>nres_rel\<close>
+       (S, S') \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
+    \<langle>{(S::'v twl_st_wl, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle> nres_rel\<close>)
 proof -
   have H: \<open>((b', False, S'), b, False, S) \<in> {((b', brk', T'), (b, brk, T)).
@@ -1694,7 +1722,7 @@ proof -
     unfolding cdcl_twl_stgy_prog_break_wl_def cdcl_twl_stgy_prog_break_l_def fref_param1[symmetric]
     apply (refine_rcg H unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
       cdcl_twl_o_prog_wl_spec[THEN fref_to_Down]
-      cdcl_twl_stgy_prog_wl_spec[unfolded fref_param1, THEN fref_to_Down])
+      cdcl_twl_stgy_prog_wl_spec'[unfolded fref_param1, THEN fref_to_Down])
     subgoal for S' S by (cases S') auto
     subgoal by auto
     subgoal unfolding cdcl_twl_stgy_prog_wl_inv_def by blast
@@ -1705,10 +1733,25 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
+    subgoal by fast
     subgoal by auto
     done
 qed
+
+
+theorem cdcl_twl_stgy_prog_break_wl_spec:
+  \<open>(cdcl_twl_stgy_prog_break_wl, cdcl_twl_stgy_prog_break_l) \<in> {(S::'v twl_st_wl, S').
+       (S, S') \<in> state_wl_l None \<and>
+       correct_watching S} \<rightarrow>\<^sub>f
+    \<langle>state_wl_l None\<rangle>nres_rel\<close>
+   (is \<open>?o \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle> nres_rel\<close>)
+  using cdcl_twl_stgy_prog_break_wl_spec'
+  apply -
+  apply (rule mem_set_trans)
+  prefer 2 apply assumption
+  apply (match_fun_rel, solves simp)
+  apply (match_fun_rel; solves auto)
+  done
 
 lemma cdcl_twl_stgy_prog_break_wl_spec_final:
   assumes

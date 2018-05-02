@@ -410,9 +410,14 @@ proof -
     done
 qed
 
+definition negate_mode_l_inv where
+  \<open>negate_mode_l_inv S \<longleftrightarrow>
+     (\<exists>S' b. (S, S') \<in> twl_st_l b \<and> twl_struct_invs S' \<and> twl_list_invs S \<and> twl_stgy_invs S' \<and>
+       get_conflict_l S = None \<and> count_decided (get_trail_l S) \<noteq> 0)\<close>
 
 definition negate_mode_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>negate_mode_l S = do {
+    ASSERT(negate_mode_l_inv S);
     if count_decided (get_trail_l S) = 1
     then negate_mode_bj_unit_l S
     else do {
@@ -437,6 +442,7 @@ lemma negate_mode_l:
    unfolding negate_mode_l_def
    apply (refine_vcg negate_mode_restart_nonunit_l[OF _ SS'] negate_mode_bj_unit_l[OF _ SS']
       negate_mode_bj_nonunit_l[OF _ SS'] lhs_step_If)
+    subgoal using assms unfolding negate_mode_l_inv_def by fast
     subgoal using assms by fast
     subgoal using assms by fast
     subgoal using assms by fast

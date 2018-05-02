@@ -69,7 +69,7 @@ lemma find_decomp_target_wl_find_decomp_target_l:
     (is \<open>_ \<le> \<Down> ?negate _\<close>)
 proof -
   let ?y0 = \<open>\<lambda>S S'. (\<lambda>(M, Oth). (get_trail_wl S, Oth)) S'\<close>
-  have K: \<open>\<And>K. K \<in> lits_of_l (get_trail_wl S) \<Longrightarrow> 
+  have K: \<open>\<And>K. K \<in> lits_of_l (get_trail_wl S) \<Longrightarrow>
      K \<in># all_lits_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl S) +
           get_unit_init_clss_wl S)\<close> (is \<open>\<And>K. ?HK K \<Longrightarrow> ?K K\<close>) and
     DECO:
@@ -90,7 +90,7 @@ proof -
     moreover have \<open>atms_of_mm (get_all_init_clss S'') =
           atms_of_mm (mset `# (ran_mf (get_clauses_wl S)) + get_unit_init_clss_wl S)\<close>
       apply (subst all_clss_lf_ran_m[symmetric])
-      using no_alien 
+      using no_alien
       using S'_S'' SS' unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
       by (cases S; cases S'; cases b)
         (auto simp: mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset_state
@@ -104,7 +104,7 @@ proof -
       by (auto simp: twl_st_l twl_st mset_take_mset_drop_mset'
         in_all_lits_of_mm_ain_atms_of_iff
         dest: in_atms_of_DECO_clauseD)
-    
+
     show ?dist_DECO
       by (rule no_dup_distinct_mset_DECO_clause)
        (use M_lev S'_S'' SS' in \<open>auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def twl_st\<close>)
@@ -126,11 +126,10 @@ proof -
     done
 qed
 
-lemma negate_mode_bj_unit_l:
+lemma negate_mode_bj_unit_wl_negate_mode_bj_unit_l:
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
   assumes \<open>count_decided (get_trail_wl S) = 1\<close> and
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
-    confl: \<open>get_conflict_wl S = None\<close> and
     corr: \<open>correct_watching S\<close>
   shows
     \<open>negate_mode_bj_unit_wl S \<le> \<Down>{(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S}
@@ -139,7 +138,7 @@ lemma negate_mode_bj_unit_l:
 proof -
   have 2: \<open>(propagate_unit_and_add_wl x2a x1a, propagate_unit_and_add_l x2 x1)
         \<in> {(S, S''). (S, S'') \<in> state_wl_l None \<and> correct_watching S}\<close>
-    if 
+    if
       \<open>(x, x') \<in> find_decomp_target_wl_ref S\<close> and
       \<open>x' = (x1, x2)\<close> and
       \<open>x = (x1a, x2a)\<close>
@@ -176,13 +175,13 @@ where
     }\<close>
 
 lemma twl_st_l_splitD:
-  \<open>(\<And>M N D NE UE Q W. f (M, N, D, NE, UE, Q, W) = P M N D NE UE Q W) \<Longrightarrow> 
+  \<open>(\<And>M N D NE UE Q W. f (M, N, D, NE, UE, Q, W) = P M N D NE UE Q W) \<Longrightarrow>
    f S = P (get_trail_l S) (get_clauses_l S) (get_conflict_l S) (get_unit_init_clauses_l S)
     (get_unit_learned_clauses_l S) (clauses_to_update_l S) (literals_to_update_l S)\<close>
   by (cases S) auto
 
 lemma twl_st_wl_splitD:
-  \<open>(\<And>M N D NE UE Q W. f (M, N, D, NE, UE, Q, W) = P M N D NE UE Q W) \<Longrightarrow> 
+  \<open>(\<And>M N D NE UE Q W. f (M, N, D, NE, UE, Q, W) = P M N D NE UE Q W) \<Longrightarrow>
    f S = P (get_trail_wl S) (get_clauses_wl S) (get_conflict_wl S) (get_unit_init_clss_wl S)
     (get_unit_learned_clss_wl S) (literals_to_update_wl S) (get_watched_wl S)\<close>
   by (cases S) auto
@@ -247,7 +246,7 @@ proof -
     by blast
   have \<open>length (DECO_clause_l (get_trail_wl S)) > 1\<close>
     using ST ge1 by auto
-  then have 1: \<open>DECO_clause_l (get_trail_wl S) = 
+  then have 1: \<open>DECO_clause_l (get_trail_wl S) =
         DECO_clause_l (get_trail_wl S) ! 0 #
            DECO_clause_l (get_trail_wl S) ! Suc 0 # drop 2 (DECO_clause_l (get_trail_wl S))\<close>
     by (cases \<open>DECO_clause_l (get_trail_wl S)\<close>; cases \<open>tl (DECO_clause_l (get_trail_wl S))\<close>)
@@ -265,7 +264,7 @@ proof -
       unfolding RETURN_def less_eq_nres.simps mem_Collect_eq prod.simps singleton_iff
       apply (intro conjI impI allI)
       subgoal by (auto simp: state_wl_l_def)
-      subgoal 
+      subgoal
         apply (simp only: )
         apply (subst 1)
         apply (subst One_nat_def[symmetric])+
@@ -278,7 +277,7 @@ proof -
         apply (rule correct_watching_learn[THEN iffD2])
         apply (rule atms_of_subset_in_atms_ofI[of \<open>DECO_clause (get_trail_wl S)\<close>])
         subgoal by (solves \<open>auto simp add: mset_take_mset_drop_mset'\<close>)
-        subgoal by (solves \<open>auto simp add: mset_take_mset_drop_mset' 
+        subgoal by (solves \<open>auto simp add: mset_take_mset_drop_mset'
           DECO_clause_l_DECO_clause[symmetric]
            simp del: DECO_clause_l_DECO_clause\<close>)
         subgoal apply (use  in \<open>auto simp add: mset_take_mset_drop_mset' DECO_clause_l_DECO_clause[symmetric]
@@ -300,11 +299,10 @@ proof -
     done
   qed
 
-lemma negate_mode_bj_nonunit_l:
+lemma negate_mode_bj_nonunit_wl_negate_mode_bj_nonunit_l:
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
-  assumes \<open>count_decided (get_trail_wl S) = 1\<close> and
+  assumes
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
-    confl: \<open>get_conflict_wl S = None\<close> and
     corr: \<open>correct_watching S\<close>
   shows
     \<open>negate_mode_bj_nonunit_wl S \<le> \<Down>{(S, S''). (S, S'') \<in> state_wl_l None \<and> correct_watching S}
@@ -323,15 +321,263 @@ proof -
     unfolding negate_mode_bj_nonunit_wl_def negate_mode_bj_nonunit_l_def
     apply (refine_rcg find_decomp_target_wl_find_decomp_target_l fresh
       propagate_nonunit_and_add_wl_propagate_nonunit_and_add_l)
-    subgoal 
+    subgoal
        using SS' unfolding negate_mode_bj_unit_l_inv_def negate_mode_bj_nonunit_wl_inv_def
        by blast
-    subgoal 
+    subgoal
        using SS' unfolding negate_mode_bj_nonunit_l_inv_def by blast
     subgoal by simp
     apply assumption+
     apply (auto simp add: equality_except_trail_wl_get_clauses_wl)
     done
 qed
-    
+
+definition negate_mode_restart_nonunit_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
+\<open>negate_mode_restart_nonunit_wl_inv  S \<longleftrightarrow>
+  (\<exists>S' b. (S, S') \<in> state_wl_l b \<and> negate_mode_restart_nonunit_l_inv S' \<and> correct_watching S)\<close>
+
+fun restart_nonunit_and_add_wl :: \<open>'v clause_l \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>restart_nonunit_and_add_wl C i (M, N, D, NE, UE, Q, W) = do {
+      ASSERT(length C \<ge> 2);
+      let W = W(C!0 := W (C!0) @ [i]);
+      let W = W(C!1 := W (C!1) @ [i]);
+      RETURN (M, fmupd i (C, True) N, None, NE, UE, {#}, W)
+  }\<close>
+
+definition negate_mode_restart_nonunit_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+\<open>negate_mode_restart_nonunit_wl = (\<lambda>S. do {
+    ASSERT(negate_mode_restart_nonunit_wl_inv S);
+    let C = DECO_clause_l (get_trail_wl S);
+    i \<leftarrow> SPEC(\<lambda>i. i < count_decided (get_trail_wl S));
+    (S, K) \<leftarrow> find_decomp_target_wl i S;
+    i \<leftarrow> get_fresh_index (get_clauses_wl S);
+    restart_nonunit_and_add_wl C i S
+  })\<close>
+
+
+definition negate_mode_wl_inv where
+  \<open>negate_mode_wl_inv S \<longleftrightarrow>
+     (\<exists>S' b. (S, S') \<in> state_wl_l b \<and> negate_mode_l_inv S' \<and> correct_watching S)\<close>
+
+definition negate_mode_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>negate_mode_wl S = do {
+    ASSERT(negate_mode_wl_inv S);
+    if count_decided (get_trail_wl S) = 1
+    then negate_mode_bj_unit_wl S
+    else do {
+      b \<leftarrow> SPEC(\<lambda>_. True);
+      if b then negate_mode_bj_nonunit_wl S else negate_mode_restart_nonunit_wl S
+    }
+  }\<close>
+
+lemma correct_watching_learn_no_propa:
+  assumes
+    L1: \<open>atm_of L1 \<in> atms_of_mm (mset `# ran_mf N + NE)\<close> and
+    L2: \<open>atm_of L2 \<in> atms_of_mm (mset `# ran_mf N + NE)\<close> and
+    UW: \<open>atms_of (mset UW) \<subseteq> atms_of_mm (mset `# ran_mf N + NE)\<close> and
+    i_dom: \<open>i \<notin># dom_m N\<close>
+  shows
+  \<open>correct_watching (M, fmupd i (L1 # L2 # UW,  b) N,
+    D, NE, UE, Q, W (L1 := W L1 @ [i], L2 := W L2 @ [i])) \<longleftrightarrow>
+  correct_watching (M, N, D, NE, UE, Q, W)\<close>
+  apply (subst correct_watching_learn[OF assms, symmetric])
+  unfolding correct_watching.simps clause_to_update_def
+  by auto
+
+lemma restart_nonunit_and_add_wl_restart_nonunit_and_add_l:
+  assumes
+    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
+    l_inv: \<open>negate_mode_restart_nonunit_l_inv S'\<close> and
+    inv: \<open>negate_mode_restart_nonunit_wl_inv S\<close> and
+    \<open>(m, n) \<in> nat_rel\<close> and
+    \<open>m \<in> {i. i < count_decided (get_trail_wl S)}\<close> and
+    \<open>n \<in> {i. i < count_decided (get_trail_l S')}\<close> and
+    TK: \<open>(TK, TK')
+     \<in> {((T, K), T', K').
+        (T, T') \<in> {(T, T'). (T, T') \<in> state_wl_l None \<and> correct_watching T} \<and>
+        (K, K') \<in> Id \<and>
+        K \<in># all_lits_of_mm
+              (clauses (twl_clause_of `# ran_mf (get_clauses_wl T)) +
+               get_unit_init_clss_wl T) \<and>
+        equality_except_trail_wl S T \<and>
+        atms_of (DECO_clause (get_trail_wl S))
+        \<subseteq> atms_of_mm
+           (clauses (twl_clause_of `# ran_mf (get_clauses_wl T)) +
+            get_unit_init_clss_wl T) \<and>
+        distinct_mset (DECO_clause (get_trail_wl S))}\<close> and
+    [simp]: \<open>TK' = (T, K)\<close> and
+    [simp]: \<open>TK = (T', K')\<close> and
+    ij: \<open>(i, j) \<in> {(i, j). i = j \<and> i \<notin># dom_m (get_clauses_wl S)}\<close>
+  shows \<open>restart_nonunit_and_add_wl (DECO_clause_l (get_trail_wl S)) i T'
+         \<le> SPEC (\<lambda>c. (c, restart_nonunit_and_add_l
+                          (DECO_clause_l (get_trail_l S')) j T)
+                     \<in> {(S, S'').
+                        (S, S'') \<in> state_wl_l None \<and> correct_watching S})\<close>
+proof -
+  have [simp]: \<open>i = j\<close> and j: \<open>j \<notin># dom_m (get_clauses_wl S)\<close>
+    using ij by auto
+  have le: \<open>length (DECO_clause_l (get_trail_wl S)) > 1\<close>
+    using SS' l_inv unfolding negate_mode_restart_nonunit_l_inv_def by auto
+  then have 1: \<open>DECO_clause_l (get_trail_wl S) =
+        DECO_clause_l (get_trail_wl S) ! 0 #
+           DECO_clause_l (get_trail_wl S) ! Suc 0 # drop 2 (DECO_clause_l (get_trail_wl S))\<close>
+    by (cases \<open>DECO_clause_l (get_trail_wl S)\<close>; cases \<open>tl (DECO_clause_l (get_trail_wl S))\<close>)
+      auto
+  show ?thesis
+    apply (simp only:  twl_st_wl_splitD[of \<open>restart_nonunit_and_add_wl _ _\<close>,
+        OF restart_nonunit_and_add_wl.simps]
+       twl_st_l_splitD[of \<open>restart_nonunit_and_add_l _ _\<close>,
+        OF restart_nonunit_and_add_l.simps] Let_def
+       assert_bind_spec_conv)
+    apply (intro conjI)
+    subgoal
+      using SS' l_inv unfolding negate_mode_restart_nonunit_l_inv_def
+      by auto
+    subgoal
+      unfolding RETURN_def less_eq_nres.simps mem_Collect_eq prod.simps singleton_iff
+      apply (subst subset_iff)
+      unfolding RETURN_def less_eq_nres.simps mem_Collect_eq prod.simps singleton_iff
+      apply (intro conjI impI allI)
+      subgoal using TK SS' by (auto simp: state_wl_l_def)
+      subgoal
+        apply (simp only: )
+        apply (subst 1)
+        apply (subst One_nat_def[symmetric])+
+        apply (subst fun_upd_other)
+        subgoal
+          using SS' length_DECO_clause_l[of \<open>get_trail_wl S\<close>] le TK
+          by (cases \<open>DECO_clause_l (get_trail_wl S)\<close>; cases \<open>tl (DECO_clause_l (get_trail_wl S))\<close>)
+            (auto simp: DECO_clause_l_DECO_clause[symmetric] twl_st_l twl_st
+            simp del: DECO_clause_l_DECO_clause)
+        apply (rule correct_watching_learn_no_propa[THEN iffD2])
+        apply (rule atms_of_subset_in_atms_ofI[of \<open>DECO_clause (get_trail_wl S)\<close>])
+        subgoal using TK by (solves \<open>auto simp add: mset_take_mset_drop_mset'\<close>)
+        subgoal using TK le by (solves \<open>auto simp add: mset_take_mset_drop_mset'
+          DECO_clause_l_DECO_clause[symmetric]
+           simp del: DECO_clause_l_DECO_clause\<close>)
+        subgoal apply (use TK le  in \<open>auto simp add: mset_take_mset_drop_mset' DECO_clause_l_DECO_clause[symmetric]
+           simp del: DECO_clause_l_DECO_clause\<close>)
+           apply (smt "1" UnE add_mset_add_single image_eqI mset.simps(2) set_mset_mset subsetCE
+              union_iff union_single_eq_member)
+           done
+        subgoal -- \<open>TODO Proof\<close>
+          using TK le apply (auto simp: mset_take_mset_drop_mset' in_DECO_clause_l_in_DECO_clause_iff
+           dest!: in_set_dropD)
+           by (metis UnE atms_of_ms_union atms_of_subset_in_atms_ofI)
+        subgoal using j SS' TK by (auto simp add: equality_except_trail_wl_get_clauses_wl)
+        subgoal using inv TK SS' unfolding negate_mode_restart_nonunit_wl_inv_def
+          by (cases S; cases T; cases T')
+           (auto simp: state_wl_l_def correct_watching.simps
+             clause_to_update_def)
+        done
+      done
+    done
+qed
+
+lemma negate_mode_restart_nonunit_wl_negate_mode_restart_nonunit_l:
+  fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
+  assumes
+    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
+    corr: \<open>correct_watching S\<close>
+  shows
+    \<open>negate_mode_restart_nonunit_wl S \<le>
+      \<Down> {(S, S''). (S, S'') \<in> state_wl_l None \<and> correct_watching S}
+       (negate_mode_restart_nonunit_l S')\<close>
+proof -
+  have fresh: \<open>get_fresh_index (get_clauses_wl T)
+    \<le> \<Down> {(i, j). i = j \<and> i \<notin># dom_m (get_clauses_wl S)} (get_fresh_index (get_clauses_l T'))\<close>
+    if \<open>(TK, TK') \<in> find_decomp_target_wl_ref S\<close> and
+      \<open>TK = (T, K)\<close> and
+      \<open>TK' =(T', K')\<close>
+    for T T' K K' TK TK'
+    using that by (auto simp: get_fresh_index_def equality_except_trail_wl_get_clauses_wl
+      intro!: RES_refine)
+  show ?thesis
+    unfolding negate_mode_restart_nonunit_wl_def negate_mode_restart_nonunit_l_def
+    apply (refine_rcg find_decomp_target_wl_find_decomp_target_l fresh
+      restart_nonunit_and_add_wl_restart_nonunit_and_add_l)
+    subgoal using SS' corr unfolding negate_mode_restart_nonunit_wl_inv_def by blast
+    subgoal using SS' by auto
+    subgoal using SS' by simp
+    subgoal unfolding negate_mode_restart_nonunit_l_inv_def by blast
+    subgoal using corr by fast
+    subgoal by simp
+    apply assumption+
+    apply (rule SS')
+    apply assumption+
+    done
+qed
+
+lemma negate_mode_wl_negate_mode_l:
+  fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
+  assumes
+    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
+    corr: \<open>correct_watching S\<close> and
+    confl: \<open>get_conflict_wl S = None\<close>
+  shows
+    \<open>negate_mode_wl S \<le>
+      \<Down> {(S, S''). (S, S'') \<in> state_wl_l None \<and> correct_watching S}
+       (negate_mode_l S')\<close>
+proof -
+  show ?thesis
+    using SS' corr
+    unfolding negate_mode_wl_def negate_mode_l_def
+    apply (refine_vcg negate_mode_bj_nonunit_wl_negate_mode_bj_nonunit_l
+      negate_mode_bj_unit_wl_negate_mode_bj_unit_l
+      negate_mode_restart_nonunit_wl_negate_mode_restart_nonunit_l)
+    subgoal unfolding negate_mode_wl_inv_def by blast
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+context
+  fixes P :: \<open>'v literal set \<Rightarrow> bool\<close>
+begin
+
+definition cdcl_twl_enum_inv_wl :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>cdcl_twl_enum_inv_wl S \<longleftrightarrow>
+    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> cdcl_twl_enum_inv_l S') \<and>
+       correct_watching S\<close>
+
+definition cdcl_twl_enum_wl :: \<open>'v twl_st_wl \<Rightarrow> bool nres\<close> where
+  \<open>cdcl_twl_enum_wl S = do {
+     S \<leftarrow> cdcl_twl_stgy_prog_wl S;
+     S \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_enum_inv_wl\<^esup>
+       (\<lambda>S. get_conflict_wl S = None \<and> count_decided(get_trail_wl S) > 0 \<and>
+            \<not>P (lits_of_l (get_trail_wl S)))
+       (\<lambda>S. do {
+             S \<leftarrow> negate_mode_wl S;
+             cdcl_twl_stgy_prog_wl S
+           })
+       S;
+     if get_conflict_wl S = None
+     then RETURN (if count_decided(get_trail_wl S) = 0 then P (lits_of_l (get_trail_wl S)) else True)
+     else RETURN (False)
+    }\<close>
+
+lemma cdcl_twl_enum_wl_cdcl_twl_enum_l:
+  assumes
+    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
+    corr: \<open>correct_watching S\<close>
+  shows
+    \<open>cdcl_twl_enum_wl S \<le> \<Down> bool_rel
+       (cdcl_twl_enum_l P S')\<close>
+  unfolding cdcl_twl_enum_wl_def cdcl_twl_enum_l_def
+  apply (refine_vcg cdcl_twl_stgy_prog_wl_spec'[unfolded fref_param1, THEN fref_to_Down]
+    negate_mode_wl_negate_mode_l)
+  subgoal by fast
+  subgoal using SS' corr by auto
+  subgoal using corr unfolding cdcl_twl_enum_inv_wl_def by blast
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
+end
+
 end
