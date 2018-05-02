@@ -50,6 +50,9 @@ lemma get_unit_clauses_wl_alt_def:
   \<open>get_unit_clauses_wl S = get_unit_init_clss_wl S + get_unit_learned_clss_wl S\<close>
   by (cases S) auto
 
+fun get_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v literal \<Rightarrow> nat list)\<close> where
+  \<open>get_watched_wl (_, _, _, _, _, _, W) = W\<close>
+
 definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset\<close> where
 \<open>all_lits_of_mm Ls = Pos `# (atm_of `# (\<Union># Ls)) + Neg `# (atm_of `# (\<Union># Ls))\<close>
 

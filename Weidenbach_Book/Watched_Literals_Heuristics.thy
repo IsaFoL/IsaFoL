@@ -7,9 +7,6 @@ subsection \<open>Getters\<close>
 fun watched_by_int :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> watched\<close> where
   \<open>watched_by_int (M, N, D, Q, W, _) L = W ! nat_of_lit L\<close>
 
-fun (in -) get_watched_wl :: \<open>nat twl_st_wl \<Rightarrow> (nat literal \<Rightarrow> nat list)\<close> where
-  \<open>get_watched_wl (_, _, _, _, _, _, W) = W\<close>
-
 fun (in -) get_watched_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat list list\<close> where
   \<open>get_watched_wl_heur (_, _, _, _, W, _) = W\<close>
 

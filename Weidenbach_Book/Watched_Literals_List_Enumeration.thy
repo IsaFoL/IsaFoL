@@ -156,6 +156,10 @@ lemma TWL_DECO_clause_alt_def:
   by (auto simp: TWL_DECO_clause_def convert_lits_l_def filter_map take_map drop_map
     DECO_clause_l_def)
 
+lemma length_DECO_clause_l[simp]:
+  \<open>length (DECO_clause_l M) = count_decided M\<close>
+  unfolding DECO_clause_l_def count_decided_def by auto
+
 lemma negate_mode_bj_nonunit_l:
   fixes S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close>
   assumes
