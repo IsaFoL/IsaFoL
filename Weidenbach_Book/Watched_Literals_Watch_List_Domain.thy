@@ -1745,6 +1745,12 @@ proof -
     done
 qed
 
+lemma cdcl_twl_stgy_prog_wl_D_spec':
+  \<open>(cdcl_twl_stgy_prog_wl_D, cdcl_twl_stgy_prog_wl) \<in> 
+    {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f 
+    \<langle>{(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto intro: cdcl_twl_stgy_prog_wl_D_spec)
 
 definition (in isasat_input_ops) cdcl_twl_stgy_prog_wl_D_pre where
   \<open>cdcl_twl_stgy_prog_wl_D_pre S U \<longleftrightarrow>
