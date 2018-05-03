@@ -16,22 +16,28 @@ definition negate_mode_bj_unit_wl   :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_
 \<open>negate_mode_bj_unit_wl = (\<lambda>S. do {
     (S, K) \<leftarrow> find_decomp_target_wl 1 S;
     ASSERT(K \<in># all_lits_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl S) +
-           get_unit_init_clss_wl S));
+           get_unit_clauses_wl S));
     RETURN (propagate_unit_and_add_wl K S)
   })\<close>
 
 (* TODO Move or duplicate *)
 lemma in_all_lits_of_mm_uminusD: \<open>x2 \<in># all_lits_of_mm N \<Longrightarrow> -x2 \<in># all_lits_of_mm N\<close>
   by (auto simp: all_lits_of_mm_def)
+lemma in_all_lits_of_mm_uminus_iff: \<open>-x2 \<in># all_lits_of_mm N \<longleftrightarrow> x2 \<in># all_lits_of_mm N\<close>
+  by (cases x2) (auto simp: all_lits_of_mm_def)
 (* End Move *)
 
 abbreviation find_decomp_target_wl_ref where
   \<open>find_decomp_target_wl_ref S \<equiv>
      {((T, K), (T', K')). (T, T') \<in> {(T, T'). (T, T') \<in> state_wl_l None \<and> correct_watching T} \<and>
-        (K , K') \<in> Id \<and> K \<in># all_lits_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl T) +
-        get_unit_init_clss_wl T) \<and> equality_except_trail_wl S T \<and>
+        (K , K') \<in> Id \<and>
+        K \<in># all_lits_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl T) +
+           get_unit_clauses_wl T) \<and> 
+        K \<in># all_lits_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl T) +
+           get_unit_init_clss_wl T) \<and> equality_except_trail_wl S T \<and>
         atms_of (DECO_clause (get_trail_wl S)) \<subseteq> atms_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl T) +
-          get_unit_init_clss_wl T) \<and> distinct_mset (DECO_clause (get_trail_wl S))}\<close>
+          get_unit_init_clss_wl T) \<and> distinct_mset (DECO_clause (get_trail_wl S)) \<and>
+        correct_watching T}\<close>
 
 lemma DECO_clause_nil[simp]: \<open>DECO_clause [] = {#}\<close>
   by (auto simp: DECO_clause_def)
@@ -60,9 +66,8 @@ qed
 
 lemma find_decomp_target_wl_find_decomp_target_l:
   assumes
-    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
+    SS': \<open>(S, S') \<in> {(S, S''). (S, S'') \<in> state_wl_l None \<and> correct_watching S}\<close> and
     inv: \<open>\<exists>S'' b. (S', S'') \<in> twl_st_l b \<and> twl_struct_invs S''\<close> and
-    corr: \<open>correct_watching S\<close> and
     [simp]: \<open>a = a'\<close>
   shows \<open>find_decomp_target_wl a S \<le>
      \<Down> (find_decomp_target_wl_ref S) (find_decomp_target a' S')\<close>
@@ -97,12 +102,12 @@ proof -
         in_all_lits_of_mm_ain_atms_of_iff twl_st_l_def state_wl_l_def)
     ultimately show \<open>\<And>K. ?HK K \<Longrightarrow> ?K K\<close>
       using S'_S'' SS' unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
-      by (auto simp: twl_st_l twl_st mset_take_mset_drop_mset'
-        in_all_lits_of_mm_ain_atms_of_iff)
+      by (auto 5 5 simp: twl_st_l twl_st mset_take_mset_drop_mset'
+        in_all_lits_of_mm_ain_atms_of_iff get_unit_clauses_wl_alt_def)
     then show ?DECO
       using S'_S'' SS' unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
       by (auto simp: twl_st_l twl_st mset_take_mset_drop_mset'
-        in_all_lits_of_mm_ain_atms_of_iff
+        in_all_lits_of_mm_ain_atms_of_iff get_unit_clauses_wl_alt_def
         dest: in_atms_of_DECO_clauseD)
 
     show ?dist_DECO
@@ -111,15 +116,16 @@ proof -
   qed
 
   show ?thesis
-    using SS' corr
+    using SS'
     unfolding find_decomp_target_wl_def find_decomp_target_def apply -
     apply (rule RES_refine)
     apply (rule_tac x=\<open>(?y0 (fst s) S', snd s)\<close> in bexI)
     subgoal
       using K DECO distinct_DECO
       by (cases S; cases S')
-        (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def
-        mset_take_mset_drop_mset')
+        (fastforce simp: state_wl_l_def correct_watching.simps clause_to_update_def
+          mset_take_mset_drop_mset' all_lits_of_mm_union
+          dest!: get_all_ann_decomposition_exists_prepend)+
     subgoal
       by (cases S; cases S')
         (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def)
@@ -129,8 +135,7 @@ qed
 lemma negate_mode_bj_unit_wl_negate_mode_bj_unit_l:
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
   assumes \<open>count_decided (get_trail_wl S) = 1\<close> and
-    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
-    corr: \<open>correct_watching S\<close>
+    SS': \<open>(S, S') \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S}\<close>
   shows
     \<open>negate_mode_bj_unit_wl S \<le> \<Down>{(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S}
        (negate_mode_bj_unit_l S')\<close>
@@ -154,20 +159,27 @@ proof -
   qed
 
   show ?thesis
-    using SS' corr unfolding negate_mode_bj_unit_wl_def negate_mode_bj_unit_l_def
+    using SS' unfolding negate_mode_bj_unit_wl_def negate_mode_bj_unit_l_def
     apply (refine_rcg find_decomp_target_wl_find_decomp_target_l 2)
+    subgoal unfolding negate_mode_bj_unit_l_inv_def by blast 
     subgoal unfolding negate_mode_bj_unit_l_inv_def by blast
-    subgoal by standard
     subgoal by blast
     apply assumption+
     done
 qed
 
+definition propagate_nonunit_and_add_wl_pre 
+  :: \<open>'v literal \<Rightarrow> 'v clause_l \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>propagate_nonunit_and_add_wl_pre K C i S \<longleftrightarrow>
+     length C \<ge> 2 \<and> i > 0 \<and> i \<notin># dom_m (get_clauses_wl S) \<and>
+     atms_of (mset C) \<subseteq> atms_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl S) +
+          get_unit_init_clss_wl S)\<close>
+
 fun propagate_nonunit_and_add_wl
   :: \<open>'v literal \<Rightarrow> 'v clause_l \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close>
 where
   \<open>propagate_nonunit_and_add_wl K C i (M, N, D, NE, UE, Q, W) = do {
-      ASSERT(length C \<ge> 2);
+      ASSERT(propagate_nonunit_and_add_wl_pre K C i (M, N, D, NE, UE, Q, W));
       let W = W(C!0 := W (C!0) @ [i]);
       let W = W(C!1 := W (C!1) @ [i]);
       RETURN (Propagated (-K) i # M, fmupd i (C, True) N, None,
@@ -222,7 +234,7 @@ lemma propagate_nonunit_and_add_wl_propagate_nonunit_and_add_l:
     TK: \<open>(TK, TK') \<in> find_decomp_target_wl_ref S\<close> and
     [simp]: \<open>TK' = (T, K)\<close> and
     [simp]: \<open>TK = (T', K')\<close> and
-    ij: \<open>(i, j) \<in> {(i, j). i = j \<and> i \<notin># dom_m (get_clauses_wl T')}\<close>
+    ij: \<open>(i, j) \<in> {(i, j). i = j \<and> i \<notin># dom_m (get_clauses_wl T') \<and> i > 0}\<close>
   shows \<open>propagate_nonunit_and_add_wl K' (DECO_clause_l (get_trail_wl S)) i T'
          \<le> SPEC (\<lambda>c. (c, propagate_nonunit_and_add_l K
                           (DECO_clause_l (get_trail_l S')) j T)
@@ -257,7 +269,7 @@ proof -
        propagate_nonunit_and_add_l_def Let_def
        assert_bind_spec_conv)
     apply (intro conjI)
-    subgoal by auto
+    subgoal using j ij TK unfolding propagate_nonunit_and_add_wl_pre_def by auto
     subgoal
       unfolding RETURN_def less_eq_nres.simps mem_Collect_eq prod.simps singleton_iff
       apply (subst subset_iff)
@@ -276,7 +288,9 @@ proof -
             simp del: DECO_clause_l_DECO_clause)
         apply (rule correct_watching_learn[THEN iffD2])
         apply (rule atms_of_subset_in_atms_ofI[of \<open>DECO_clause (get_trail_wl S)\<close>])
-        subgoal by (solves \<open>auto simp add: mset_take_mset_drop_mset'\<close>)
+        subgoal by (auto simp add: mset_take_mset_drop_mset' get_unit_clauses_wl_alt_def
+          DECO_clause_l_DECO_clause[symmetric]
+           simp del: DECO_clause_l_DECO_clause)
         subgoal by (solves \<open>auto simp add: mset_take_mset_drop_mset'
           DECO_clause_l_DECO_clause[symmetric]
            simp del: DECO_clause_l_DECO_clause\<close>)
@@ -302,14 +316,14 @@ proof -
 lemma negate_mode_bj_nonunit_wl_negate_mode_bj_nonunit_l:
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
   assumes
-    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
-    corr: \<open>correct_watching S\<close>
+    SS': \<open>(S, S') \<in> {(S, S''). (S, S'') \<in> state_wl_l None \<and> correct_watching S}\<close>
   shows
     \<open>negate_mode_bj_nonunit_wl S \<le> \<Down>{(S, S''). (S, S'') \<in> state_wl_l None \<and> correct_watching S}
        (negate_mode_bj_nonunit_l S')\<close>
 proof -
   have fresh: \<open>get_fresh_index (get_clauses_wl T)
-    \<le> \<Down> {(i, j). i = j \<and> i \<notin># dom_m (get_clauses_wl S)} (get_fresh_index (get_clauses_l T'))\<close>
+    \<le> \<Down> {(i, j). i = j \<and> i \<notin># dom_m (get_clauses_wl S) \<and> i > 0}
+        (get_fresh_index (get_clauses_l T'))\<close>
     if \<open>(TK, TK') \<in> find_decomp_target_wl_ref S\<close> and
       \<open>TK = (T, K)\<close> and
       \<open>TK' =(T', K')\<close>
@@ -317,7 +331,7 @@ proof -
     using that by (auto simp: get_fresh_index_def equality_except_trail_wl_get_clauses_wl
       intro!: RES_refine)
   show ?thesis
-    using corr SS'
+    using SS'
     unfolding negate_mode_bj_nonunit_wl_def negate_mode_bj_nonunit_l_def
     apply (refine_rcg find_decomp_target_wl_find_decomp_target_l fresh
       propagate_nonunit_and_add_wl_propagate_nonunit_and_add_l)
@@ -326,7 +340,7 @@ proof -
        by blast
     subgoal
        using SS' unfolding negate_mode_bj_nonunit_l_inv_def by blast
-    subgoal by simp
+    subgoal using SS' by (auto simp add: twl_st_wl)
     apply assumption+
     apply (auto simp add: equality_except_trail_wl_get_clauses_wl)
     done
@@ -336,9 +350,15 @@ definition negate_mode_restart_nonunit_wl_inv :: \<open>'v twl_st_wl \<Rightarro
 \<open>negate_mode_restart_nonunit_wl_inv  S \<longleftrightarrow>
   (\<exists>S' b. (S, S') \<in> state_wl_l b \<and> negate_mode_restart_nonunit_l_inv S' \<and> correct_watching S)\<close>
 
+definition restart_nonunit_and_add_wl_inv where
+  \<open>restart_nonunit_and_add_wl_inv C i S \<longleftrightarrow>
+     length C \<ge> 2 \<and> correct_watching S \<and>
+      atms_of (mset C) \<subseteq> atms_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl S) +
+          get_unit_init_clss_wl S)\<close>
+
 fun restart_nonunit_and_add_wl :: \<open>'v clause_l \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>restart_nonunit_and_add_wl C i (M, N, D, NE, UE, Q, W) = do {
-      ASSERT(length C \<ge> 2);
+      ASSERT(restart_nonunit_and_add_wl_inv C i (M, N, D, NE, UE, Q, W));
       let W = W(C!0 := W (C!0) @ [i]);
       let W = W(C!1 := W (C!1) @ [i]);
       RETURN (M, fmupd i (C, True) N, None, NE, UE, {#}, W)
@@ -386,28 +406,16 @@ lemma correct_watching_learn_no_propa:
 
 lemma restart_nonunit_and_add_wl_restart_nonunit_and_add_l:
   assumes
-    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
+    SS': \<open>(S, S') \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S}\<close> and
     l_inv: \<open>negate_mode_restart_nonunit_l_inv S'\<close> and
     inv: \<open>negate_mode_restart_nonunit_wl_inv S\<close> and
     \<open>(m, n) \<in> nat_rel\<close> and
     \<open>m \<in> {i. i < count_decided (get_trail_wl S)}\<close> and
     \<open>n \<in> {i. i < count_decided (get_trail_l S')}\<close> and
-    TK: \<open>(TK, TK')
-     \<in> {((T, K), T', K').
-        (T, T') \<in> {(T, T'). (T, T') \<in> state_wl_l None \<and> correct_watching T} \<and>
-        (K, K') \<in> Id \<and>
-        K \<in># all_lits_of_mm
-              (clauses (twl_clause_of `# ran_mf (get_clauses_wl T)) +
-               get_unit_init_clss_wl T) \<and>
-        equality_except_trail_wl S T \<and>
-        atms_of (DECO_clause (get_trail_wl S))
-        \<subseteq> atms_of_mm
-           (clauses (twl_clause_of `# ran_mf (get_clauses_wl T)) +
-            get_unit_init_clss_wl T) \<and>
-        distinct_mset (DECO_clause (get_trail_wl S))}\<close> and
+    TK: \<open>(TK, TK') \<in> find_decomp_target_wl_ref S\<close> and
     [simp]: \<open>TK' = (T, K)\<close> and
     [simp]: \<open>TK = (T', K')\<close> and
-    ij: \<open>(i, j) \<in> {(i, j). i = j \<and> i \<notin># dom_m (get_clauses_wl S)}\<close>
+    ij: \<open>(i, j) \<in> {(i, j). i = j \<and> i \<notin># dom_m (get_clauses_wl S) \<and> i > 0}\<close>
   shows \<open>restart_nonunit_and_add_wl (DECO_clause_l (get_trail_wl S)) i T'
          \<le> SPEC (\<lambda>c. (c, restart_nonunit_and_add_l
                           (DECO_clause_l (get_trail_l S')) j T)
@@ -431,8 +439,9 @@ proof -
        assert_bind_spec_conv)
     apply (intro conjI)
     subgoal
-      using SS' l_inv unfolding negate_mode_restart_nonunit_l_inv_def
-      by auto
+      using TK SS' l_inv unfolding negate_mode_restart_nonunit_l_inv_def
+         restart_nonunit_and_add_wl_inv_def
+      by (cases T') auto
     subgoal
       unfolding RETURN_def less_eq_nres.simps mem_Collect_eq prod.simps singleton_iff
       apply (subst subset_iff)
@@ -477,18 +486,18 @@ qed
 lemma negate_mode_restart_nonunit_wl_negate_mode_restart_nonunit_l:
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
   assumes
-    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
-    corr: \<open>correct_watching S\<close>
+    SS': \<open>(S, S') \<in> {(S, S''). (S, S'') \<in> state_wl_l None \<and> correct_watching S}\<close>
   shows
     \<open>negate_mode_restart_nonunit_wl S \<le>
       \<Down> {(S, S''). (S, S'') \<in> state_wl_l None \<and> correct_watching S}
        (negate_mode_restart_nonunit_l S')\<close>
 proof -
   have fresh: \<open>get_fresh_index (get_clauses_wl T)
-    \<le> \<Down> {(i, j). i = j \<and> i \<notin># dom_m (get_clauses_wl S)} (get_fresh_index (get_clauses_l T'))\<close>
+    \<le> \<Down> {(i, j). i = j \<and> i \<notin># dom_m (get_clauses_wl S) \<and> i > 0}
+         (get_fresh_index (get_clauses_l T'))\<close>
     if \<open>(TK, TK') \<in> find_decomp_target_wl_ref S\<close> and
       \<open>TK = (T, K)\<close> and
-      \<open>TK' =(T', K')\<close>
+      \<open>TK' = (T', K')\<close>
     for T T' K K' TK TK'
     using that by (auto simp: get_fresh_index_def equality_except_trail_wl_get_clauses_wl
       intro!: RES_refine)
@@ -496,12 +505,11 @@ proof -
     unfolding negate_mode_restart_nonunit_wl_def negate_mode_restart_nonunit_l_def
     apply (refine_rcg find_decomp_target_wl_find_decomp_target_l fresh
       restart_nonunit_and_add_wl_restart_nonunit_and_add_l)
-    subgoal using SS' corr unfolding negate_mode_restart_nonunit_wl_inv_def by blast
+    subgoal using SS' unfolding negate_mode_restart_nonunit_wl_inv_def by blast
     subgoal using SS' by auto
     subgoal using SS' by simp
     subgoal unfolding negate_mode_restart_nonunit_l_inv_def by blast
-    subgoal using corr by fast
-    subgoal by simp
+    subgoal using SS' by fast
     apply assumption+
     apply (rule SS')
     apply assumption+
@@ -511,8 +519,7 @@ qed
 lemma negate_mode_wl_negate_mode_l:
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
   assumes
-    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
-    corr: \<open>correct_watching S\<close> and
+    SS': \<open>(S, S') \<in> {(S, S''). (S, S'') \<in> state_wl_l None \<and> correct_watching S}\<close> and
     confl: \<open>get_conflict_wl S = None\<close>
   shows
     \<open>negate_mode_wl S \<le>
@@ -520,7 +527,7 @@ lemma negate_mode_wl_negate_mode_l:
        (negate_mode_l S')\<close>
 proof -
   show ?thesis
-    using SS' corr
+    using SS'
     unfolding negate_mode_wl_def negate_mode_l_def
     apply (refine_vcg negate_mode_bj_nonunit_wl_negate_mode_bj_nonunit_l
       negate_mode_bj_unit_wl_negate_mode_bj_unit_l
@@ -569,8 +576,6 @@ lemma cdcl_twl_enum_wl_cdcl_twl_enum_l:
   subgoal by fast
   subgoal using SS' corr by auto
   subgoal using corr unfolding cdcl_twl_enum_inv_wl_def by blast
-  subgoal by auto
-  subgoal by auto
   subgoal by auto
   subgoal by auto
   subgoal by auto
