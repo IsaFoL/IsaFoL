@@ -389,6 +389,30 @@ lemma access_lit_in_clauses_heur_alt_def:
   \<open>access_lit_in_clauses_heur = (\<lambda>(M, N, _) i j.  N \<propto> i ! j)\<close>
   by (auto simp: access_lit_in_clauses_heur_def intro!: ext)
 
+(* TODO Move *)
+lemma literals_to_update_l_remove_one_lit_from_wq[simp]:
+  \<open>literals_to_update_l (remove_one_lit_from_wq L T) = literals_to_update_l T\<close>
+  by (cases T) auto
+
+lemma clauses_to_update_l_remove_one_lit_from_wq[simp]:
+  \<open>clauses_to_update_l (remove_one_lit_from_wq L T) = remove1_mset L (clauses_to_update_l T)\<close>
+  by (cases T) auto
+
+lemma lit_of_l_convert_lits_l[simp]:
+  assumes \<open>(M, M') \<in> convert_lits_l N E\<close>
+  shows
+      \<open>lit_of ` set M' = lit_of ` set M\<close>
+  using assms
+  apply (induction M arbitrary: M' rule: ann_lit_list_induct)
+  subgoal by auto
+  subgoal for L M M'
+    by (cases M')
+      (auto simp: convert_lits_l_def p2rel_def)
+  subgoal for L C M M'
+    by (cases M') (auto simp: convert_lits_l_def p2rel_def)
+  done
+(* End Move *)
+
 lemma
   find_unwatched_not_tauto:
     \<open>\<not>tautology(mset (get_clauses_wl S \<propto> watched_by_app S L C))\<close>
@@ -477,11 +501,19 @@ proof  -
       using n_d_q S_T T_T' L_WS
       by (cases \<open>clauses_to_update T'\<close>)
          (auto simp add: no_duplicate_queued_alt_def twl_st_wl twl_st_l twl_st)
-    from mset_subset_eq_insertD[OF this] have \<open>- L \<in> lits_of_l (convert_lits_l N M)\<close>
+    note mset_subset_eq_insertD[OF this] 
+    moreover have \<open>xa \<in> set x \<Longrightarrow>
+       (M, x) \<in> convert_lits_l N (NE + UE) \<Longrightarrow>
+       lit_of xa \<in> lit_of ` set M\<close> for xa x
+      using imageI[of xa \<open>set x\<close> lit_of]
+      by (auto simp: twl_st_wl twl_st_l twl_st S state_wl_l_def twl_st_l_def lits_of_def
+          dest: imageI[of _ \<open>set _\<close> \<open>lit_of\<close>])
+    ultimately have \<open>- L \<in> lits_of_l M\<close>
       using S_T T_T'
-      by (auto simp: lits_of_def twl_st_wl twl_st_l twl_st S)
+      by (auto simp: twl_st_wl twl_st_l twl_st S state_wl_l_def twl_st_l_def lits_of_def
+          dest: imageI[of _ \<open>set _\<close> \<open>lit_of\<close>])
   }
-  moreover have \<open>- ?C ! ?i \<in> lits_of_l (convert_lits_l N M)\<close>
+  moreover have \<open>- ?C ! ?i \<in> lits_of_l M\<close>
     using val by (auto simp: S polarity_st_def watched_by_app_def polarity_def
         access_lit_in_clauses_def Decided_Propagated_in_iff_in_lits_of_l split: if_splits)
   moreover have length_C: \<open>length ?C \<ge> 2\<close>

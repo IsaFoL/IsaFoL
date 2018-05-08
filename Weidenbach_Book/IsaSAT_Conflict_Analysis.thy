@@ -769,11 +769,17 @@ proof -
         by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>)
           (auto simp: card_max_lvl_def dest!: multi_member_split)
 
-      have M_x2_x2a: \<open>tl (get_trail_wl x2) \<Turnstile>as CNot (mset (tl (get_clauses_wl x2 \<propto> x2c)))\<close>
+      have \<open>\<exists>x2a M''. get_trail U = Propagated x1a x2a # M'' \<and>
+          (M', M'') \<in> convert_lits_l (get_clauses_l T) (unit_clss U) \<and>
+          x2a = mset(get_clauses_wl x2 \<propto> x2c)\<close>
+        using nempty x2_T T_U dec x1a_watched M'_def hd_trail
+        by (cases x2; cases T; cases U; cases \<open>get_trail U\<close>; cases \<open>get_trail_l T\<close>)
+           (auto simp: state_wl_l_def twl_st_l_def convert_lit.simps)
+      then have M_x2_x2a: \<open>tl (get_trail_wl x2) \<Turnstile>as CNot (mset (tl (get_clauses_wl x2 \<propto> x2c)))\<close>
         using confl conf nempty x2_T T_U dec x1a_0 x1a_watched
         unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         by (cases \<open>get_clauses_wl x2 \<propto> x2c\<close>)
-          (auto 5 5 simp: twl_st twl_st_l true_annots_true_cls split: if_splits)
+          (fastforce simp: twl_st twl_st_l true_annots_true_cls split: if_splits)+
       then have M_x2_x2a': \<open>Propagated (-x1c) x2c # tl (get_trail_wl x2) \<Turnstile>as
             CNot (mset (get_clauses_wl x2 \<propto> x2c))\<close>
         using conf nempty x2_T T_U dec x1a_0 x1a_watched

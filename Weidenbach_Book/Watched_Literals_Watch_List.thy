@@ -845,7 +845,7 @@ proof -
       S_R: \<open>(S, R) \<in> twl_st_l None\<close> and
       struct_invs: \<open>twl_struct_invs R\<close>
       using inv_l unfolding unit_propagation_outer_loop_l_inv_def by blast
-    have [simp]: \<open>trail (state\<^sub>W_of R) = convert_lits_l N M\<close>
+    have [simp]: (* \<open>trail (state\<^sub>W_of R) = convert_lits_l N M\<close> *)
        \<open>init_clss (state\<^sub>W_of R) = mset `# (init_clss_lf N) + NE\<close>
       using S_R S by (auto simp: twl_st S' twl_st_wl)
     have
@@ -855,14 +855,22 @@ proof -
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
     then have H1: \<open>L \<in># all_lits_of_mm (mset `# ran_mf N + NE)\<close> if LQ: \<open>L \<in># Q\<close> for L
     proof -
-      obtain K where \<open>L = - lit_of K\<close> and \<open>K \<in># mset (convert_lits_l N M)\<close>
+      have [simp]: \<open>(f o g) ` I = f ` g ` I\<close> for f g I
+        by auto
+      obtain K where \<open>L = - lit_of K\<close> and \<open>K \<in># mset (trail (state\<^sub>W_of R))\<close>
         using that no_dup_q LQ S_R S
         mset_le_add_mset_decr_left2[of L \<open>remove1_mset L Q\<close>]
         by (force simp: S' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
           all_lits_of_mm_def atms_of_ms_def twl_st_l_def state_wl_l_def
           dest!: multi_member_split[of L Q])
+      from imageI[OF this(2), of \<open>atm_of o lit_of\<close>]
+      have \<open>atm_of L \<in> atm_of ` lits_of_l (get_trail_wl S')\<close> and
+        [simp]: \<open>atm_of ` lits_of_l (trail (state\<^sub>W_of R)) = atm_of ` lits_of_l (get_trail_wl S')\<close>
+        using S_R S S \<open>L = - lit_of K\<close>
+        by (simp_all add: twl_st_wl twl_st_l twl_st image_image[symmetric]
+            lits_of_def[symmetric])
       then have \<open>atm_of L \<in> atm_of ` lits_of_l M\<close>
-        by (auto simp: convert_lits_l_def lits_of_def)
+        using S'  by auto
       moreover {
         have \<open>atm_of ` lits_of_l M
          \<subseteq> (\<Union>x\<in>set_mset (init_clss_lf N). atm_of ` set x) \<union>

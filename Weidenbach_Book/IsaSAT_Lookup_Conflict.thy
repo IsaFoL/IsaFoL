@@ -2166,7 +2166,7 @@ proof -
     have M_x1: \<open>M \<Turnstile>as CNot E\<close>
       by (metis CNot_plus M_D \<open>E \<subseteq># D\<close> subset_mset.le_iff_add true_annots_union)
     then have M'_x1: \<open>M' \<Turnstile>as CNot E\<close>
-      using S_S' S'_S'' unfolding M' M_def S'''_def by (auto simp: twl_st)
+      using S_S' S'_S'' unfolding M' M_def S'''_def by (auto simp: twl_st twl_st_wl twl_st_l)
     have \<open>outl' ! x1d \<in># E\<close>
       using \<open>E = mset (tl outl')\<close> \<open>x1d < length outl'\<close> \<open>0 < x1d\<close>
       by (auto simp: nth_in_set_tl)

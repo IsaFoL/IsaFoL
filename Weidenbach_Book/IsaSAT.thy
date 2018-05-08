@@ -522,6 +522,12 @@ export_code IsaSAT_code
 definition TWL_to_clauses_state_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\<^sub>W_restart_mset) set\<close> where
   \<open>TWL_to_clauses_state_conv = twl_st_of_wl None O {(S', S). S = state\<^sub>W_of S'}\<close>
 
+(* TODO Move *)
+lemma [twl_st_l_init]:
+  \<open>(V, W) \<in> twl_st_l_init \<Longrightarrow>
+    count_decided (get_trail_init W) = count_decided (get_trail_l_init V)\<close>
+  by (auto simp: twl_st_l_init_def)
+(* End Move *)
 
 lemma extract_atms_cls_empty_iff: \<open>extract_atms_cls Cs C0 = {} \<longleftrightarrow> (C0 = {} \<and> Cs = [])\<close>
   unfolding extract_atms_cls_def
@@ -665,7 +671,7 @@ proof -
       using conflict_of_level_unsatisfiable[OF all_struct_invs] count_dec confl learned clss T_V V_W
         learned_U init_clss_W_V learned_W le ran_m_init_U
       by (auto simp: clauses_def mset_take_mset_drop_mset' twl_st_init twl_st_wl_init image_image
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def ac_simps)
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def ac_simps twl_st_l_init)
     then have unsat[simp]: \<open>unsatisfiable (mset ` set CS')\<close>
       by auto
     then have [simp]: \<open>CS' \<noteq> []\<close>
@@ -682,7 +688,7 @@ proof -
       subgoal
         apply (rule disjI2)
         using \<L>\<^sub>a\<^sub>l\<^sub>l struct_invs learned count_dec U clss confl T_V V_W
-        by (clarsimp simp: CS twl_st_init twl_st_wl_init)
+        by (clarsimp simp: CS twl_st_init twl_st_wl_init twl_st_l_init)
       done
   qed
   have empty_clss:
@@ -855,7 +861,7 @@ proof -
       \<open>get_unit_clauses_l_init V = NE\<close>
       \<open>get_clauses_l_init V = N\<close>
       \<open>other_clauses_l_init V = {#}\<close>
-      \<open>trail (state\<^sub>W_of (fst W)) = convert_lits_l N M\<close>
+      \<open>(M, trail (state\<^sub>W_of (fst W))) \<in> convert_lits_l N (NE+UE)\<close>
       \<open>get_trail_l_init V = M\<close>
       \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (fst W)) = mset `# (ran_mf N) + NE\<close>
       using T_V V_W unfolding S\<^sub>0
@@ -867,62 +873,65 @@ proof -
       \<open>{#mset (fst x). x \<in># ran_m N#} + NE  = mset `# mset CS'\<close>
       using clss T_V V_W learned_U
       by (auto simp: clauses_def mset_take_mset_drop_mset' S\<^sub>0 st)
-    have st_W: \<open>state\<^sub>W_of (fst W) = (convert_lits_l N M, mset `# mset CS', {#}, None)\<close>
+    define MW where \<open>MW = trail (state\<^sub>W_of (fst W))\<close>
+    have st_W: \<open>state\<^sub>W_of (fst W) = (MW, mset `# mset CS', {#}, None)\<close>
       using T_V V_W learned_UV learned_U clss st unfolding S\<^sub>0
       by (auto simp: state_wl_l_init_def state_wl_l_def twl_st_l_init_def
-          mset_take_mset_drop_mset mset_take_mset_drop_mset' clauses_def
+          mset_take_mset_drop_mset mset_take_mset_drop_mset' clauses_def MW_def
           simp del: all_clss_l_ran_m
           simp: all_clss_lf_ran_m[symmetric])
-    have n_d: \<open>no_dup M\<close> and
-      propa: \<open>\<And>L mark a b. a @ Propagated L mark # b = convert_lits_l N M \<Longrightarrow>
+    have n_d: \<open>no_dup MW\<close> and
+      propa: \<open>\<And>L mark a b. a @ Propagated L mark # b = MW \<Longrightarrow>
             b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> and
-      clss_in_clss: \<open>set (get_all_mark_of_propagated (convert_lits_l N M)) \<subseteq> set_mset (mset `# mset CS')\<close>
+      clss_in_clss: \<open>set (get_all_mark_of_propagated MW) \<subseteq> set_mset (mset `# mset CS')\<close>
       using struct_invs unfolding twl_struct_invs_def S\<^sub>0 twl_struct_invs_init_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def st cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
-          N_NE
-      by blast+
-    have count_dec': \<open>\<forall>L\<in>set M. \<not>is_decided L\<close>
-      using count_dec unfolding st .
+          N_NE st_W clauses_def
+      by simp_all
+    have count_dec': \<open>\<forall>L\<in>set MW. \<not>is_decided L\<close>
+      using V_W count_dec unfolding st MW_def twl_st_init
+      apply (subst twl_st_l_init_no_decision_iff)
+       apply assumption
+      using count_dec V_W unfolding st MW_def by auto
     have CS: \<open>CS = mset `# mset CS'\<close>
       using CS'_CS by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
     have 0: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ([], CS, {#}, None)
-       (convert_lits_l N M, mset `# mset CS', {#}, None)\<close>
+       (MW, mset `# mset CS', {#}, None)\<close>
       using n_d count_dec' propa clss_in_clss
-    proof (induction M)
+    proof (induction MW)
       case Nil
       then show ?case by (auto simp: CS)
     next
-      case (Cons K M) note IH = this(1) and H = this(2-) and n_d = this(2) and dec = this(3) and
+      case (Cons K MW) note IH = this(1) and H = this(2-) and n_d = this(2) and dec = this(3) and
         propa = this(4) and clss_in_clss = this(5)
       let ?init = \<open>([], CS, {#}, None)\<close>
-      let ?int = \<open>(convert_lits_l N M, mset `# mset CS', {#}, None)\<close>
-      let ?final = \<open>(convert_lits_l N (K # M), mset `# mset CS', {#}, None)\<close>
-      obtain i L where
-        K: \<open>K = Propagated L i\<close>
+      let ?int = \<open>(MW, mset `# mset CS', {#}, None)\<close>
+      let ?final = \<open>(K # MW, mset `# mset CS', {#}, None)\<close>
+      obtain L C where
+        K: \<open>K = Propagated L C\<close>
         using dec by (cases K) auto
-      define C where \<open>C == if i = 0 then {#L#} else mset (N \<propto> i)\<close>
       have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ?init ?int\<close>
         apply (rule IH)
         subgoal using n_d by simp
         subgoal using dec by simp
         subgoal for M2 L' mark M1
-          using K propa[of \<open>convert_lit N K # M2\<close> L' mark M1]
+          using K propa[of \<open>K # M2\<close> L' mark M1]
           by (auto split: if_splits)
         subgoal using clss_in_clss by (auto simp: K)
         done
-      have \<open>convert_lits_l N M \<Turnstile>as CNot (remove1_mset L C)\<close> and \<open>L \<in># C\<close>
-        using propa[of \<open>[]\<close> L C \<open>convert_lits_l N M\<close>]
-        by (auto simp: C_def K)
-      moreover have \<open>C \<in># cdcl\<^sub>W_restart_mset.clauses (convert_lits_l N M, mset `# mset CS', {#}, None)\<close>
-        using clss_in_clss by (auto simp: K clauses_def C_def split: if_splits)
+      have \<open>MW \<Turnstile>as CNot (remove1_mset L C)\<close> and \<open>L \<in># C\<close>
+        using propa[of \<open>[]\<close> L C \<open>MW\<close>]
+        by (auto simp: K)
+      moreover have \<open>C \<in># cdcl\<^sub>W_restart_mset.clauses (MW, mset `# mset CS', {#}, None)\<close>
+        using clss_in_clss by (auto simp: K clauses_def split: if_splits)
       ultimately have \<open>cdcl\<^sub>W_restart_mset.propagate ?int
-            (Propagated L C # convert_lits_l N M, mset `# mset CS', {#}, None)\<close>
+            (Propagated L C # MW, mset `# mset CS', {#}, None)\<close>
         using n_d apply -
         apply (rule cdcl\<^sub>W_restart_mset.propagate_rule[of _ \<open>C\<close> L])
         by (auto simp: K)
       then have 2: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy ?int ?final\<close>
-        by (auto simp add: K C_def dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.propagate')
+        by (auto simp add: K dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.propagate')
 
       show ?case
         apply (rule rtranclp.rtrancl_into_rtrancl[OF 1])
@@ -1516,7 +1525,13 @@ qed
 
 lemma [simp]: \<open>finite (extract_atms_clss CS {})\<close>
   by (auto simp: extract_atms_clss_alt_def)
-
+(* TODO Move *)
+lemma convert_lits_l_map_lit_of: \<open>(ay, bq) \<in> convert_lits_l N e \<Longrightarrow> map lit_of ay = map lit_of bq\<close>
+  apply (induction ay arbitrary: bq)
+  subgoal by auto
+  subgoal for L M bq by (cases bq) auto
+  done
+(* End Move *)
 lemma IsaSAT_code: \<open>(IsaSAT_code, SAT')
     \<in> [\<lambda>x. Multiset.Ball x distinct_mset \<and> (\<forall>C\<in>#x. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)]\<^sub>a
       clauses_l_assn\<^sup>k \<rightarrow> model_assn\<close>
@@ -1592,8 +1607,8 @@ proof -
          apply (rule 3; simp; fail)
         apply (rule 4; simp; fail)
      apply (rule 2)
-    by (auto simp: TWL_to_clauses_state_conv_def convert_lits_l_def extract_model_of_state_def
-        state_wl_l_def twl_st_l_def)
+    by (auto simp: TWL_to_clauses_state_conv_def extract_model_of_state_def
+        state_wl_l_def twl_st_l_def convert_lits_l_map_lit_of)
     have H: \<open>hr_comp model_stat_assn
         (Collect (case_prod (\<lambda>(M, stat). op = M))) = model_assn\<close>
       by (auto simp: model_assn_def hr_comp_def model_stat_rel_def ex_assn_pair_split eq_commute
