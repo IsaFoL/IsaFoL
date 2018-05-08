@@ -817,18 +817,6 @@ lemma [twl_st_l_init]:
   \<open>get_unit_clauses_l_init (propagate_unit_init_l L S) = add_mset {#L#} (get_unit_clauses_l_init S)\<close>
   by (cases S; auto simp: propagate_unit_init_l_def; fail)+
 
-lemma uminus_lit_of_image_mset:
-  \<open>{#- lit_of x . x \<in># A#} = {#- lit_of x. x \<in># B#} \<longleftrightarrow>
-     {#lit_of x . x \<in># A#} = {#lit_of x. x \<in># B#}\<close>
-  for A :: \<open>('a literal, 'a literal, 'b) annotated_lit multiset\<close>
-proof -
-  have 1: \<open>(\<lambda>x. -lit_of x) `# A = uminus `# lit_of `# A\<close> for A
-    by auto
-  show ?thesis
-    unfolding 1
-    by (rule inj_image_mset_eq_iff) (auto simp: inj_on_def)
-qed
-
 lemma init_dt_pre_propagate_unit_init:
   assumes
     hd_C: \<open>undefined_lit (get_trail_l_init S) L\<close> and

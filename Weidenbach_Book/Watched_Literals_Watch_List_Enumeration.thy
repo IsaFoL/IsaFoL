@@ -123,7 +123,7 @@ proof -
     subgoal
       using K DECO distinct_DECO
       by (cases S; cases S')
-        (fastforce simp: state_wl_l_def correct_watching.simps clause_to_update_def
+       (force simp: state_wl_l_def correct_watching.simps clause_to_update_def
           mset_take_mset_drop_mset' all_lits_of_mm_union
           dest!: get_all_ann_decomposition_exists_prepend)+
     subgoal

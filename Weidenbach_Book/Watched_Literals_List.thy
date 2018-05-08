@@ -7,6 +7,18 @@ lemma mset_take_mset_drop_mset: \<open>(\<lambda>x. mset (take 2 x) + mset (drop
 lemma mset_take_mset_drop_mset': \<open>mset (take 2 x) + mset (drop 2 x) = mset x\<close>
   unfolding mset_append[symmetric] append_take_drop_id ..
 
+lemma uminus_lit_of_image_mset:
+  \<open>{#- lit_of x . x \<in># A#} = {#- lit_of x. x \<in># B#} \<longleftrightarrow>
+     {#lit_of x . x \<in># A#} = {#lit_of x. x \<in># B#}\<close>
+  for A :: \<open>('a literal, 'a literal, 'b) annotated_lit multiset\<close>
+proof -
+  have 1: \<open>(\<lambda>x. -lit_of x) `# A = uminus `# lit_of `# A\<close> for A
+    by auto
+  show ?thesis
+    unfolding 1
+    by (rule inj_image_mset_eq_iff) (auto simp: inj_on_def)
+qed
+
 
 section \<open>Second Refinement: Lists as Clause\<close>
 
