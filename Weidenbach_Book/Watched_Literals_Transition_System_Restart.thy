@@ -34,7 +34,7 @@ restart_trail:
     \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> and
     \<open>U' + UE' \<subseteq># U\<close> and
     \<open>N = N' + NE'\<close> and
-    \<open>\<forall>E\<in>#NE'+UE'. \<exists>L\<in>#clause E. L \<in> lits_of_l M \<and> get_level M L = 0\<close>
+    \<open>\<forall>E\<in>#NE'+UE'. \<exists>L\<in>#clause E. L \<in> lits_of_l M' \<and> get_level M' L = 0\<close>
     \<open>\<forall>L E. Propagated L E \<in> set M' \<longrightarrow> E \<in># clause `# (N + U') + NE + UE + clauses UE'\<close> |
 restart_clauses:
    \<open>cdcl_twl_restart (M, N, U, None, NE, UE, {#}, Q)
@@ -298,11 +298,17 @@ proof (induction rule: cdcl_twl_restart.induct)
    proof
      fix C
      assume \<open>C \<in># NE + clauses NE' + (UE + clauses UE')\<close>
-     then obtain L where
-       lev_L: \<open>get_level M L = 0\<close>
-       \<open>L \<in> lits_of_l M\<close> and
+     moreover have \<open>L \<in> lits_of_l M \<and> get_level M L = 0 \<Longrightarrow>L \<in> lits_of_l M' \<and> get_level M' L = 0\<close>
+       for L
+       using n_d 
+       by (cases \<open>undefined_lit M3' L\<close>)
+         (auto simp: M3' atm_of_eq_atm_of get_level_cons_if
+           dest: in_lits_of_l_defined_litD split: if_splits)
+     ultimately obtain L where
+       lev_L: \<open>get_level M' L = 0\<close>
+       \<open>L \<in> lits_of_l M'\<close> and
        C: \<open>L \<in># C\<close>
-       using unit has_true by auto
+       using unit has_true by auto blast+
      then have \<open>L \<in> lits_of_l M'\<close>
        apply (cases \<open>defined_lit M3' L\<close>)
        using n_d unfolding M3' by (auto simp: get_level_cons_if split: if_splits
