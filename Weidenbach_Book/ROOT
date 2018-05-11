@@ -160,6 +160,11 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_VMTF
     IsaSAT_CDCL
     IsaSAT
+
+    (* Restarts not clear if different session of not *)
+    Watched_Literals_Transition_System_Restart
+    Watched_Literals_Algorithm_Restart
+    Watched_Literals_List_Restart
   document_files
     "root.tex"
     "biblio.bib"
