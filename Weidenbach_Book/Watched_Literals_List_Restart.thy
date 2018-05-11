@@ -112,7 +112,8 @@ lemma valid_trail_reduction_Propagated_inD:
       dest!: split_list[of \<open>Propagated L C\<close>] elim!: trail_changes_same_decomp)+
 
 lemma valid_trail_reduction_Propagated_inD2:
-  \<open>valid_trail_reduction M M' \<Longrightarrow> length M = length M' \<Longrightarrow> Propagated L C \<in> set M \<Longrightarrow> \<exists>C'. Propagated L C' \<in> set M'\<close>
+  \<open>valid_trail_reduction M M' \<Longrightarrow> length M = length M' \<Longrightarrow> Propagated L C \<in> set M \<Longrightarrow> 
+     \<exists>C'. Propagated L C' \<in> set M'\<close>
   apply (induction rule: valid_trail_reduction.induct)
   apply (auto dest!: get_all_ann_decomposition_exists_prepend
       dest!: split_list[of \<open>Propagated L C\<close>] elim!: trail_changes_same_decomp)+
