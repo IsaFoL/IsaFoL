@@ -1123,18 +1123,24 @@ fun watched_by_app_heur_fast_code x =
                                end)
     x;
 
-fun arl_set A_ =
-  (fn (a, n) => fn i => fn x => fn () => let
-   val aa = upd A_ i x a ();
- in
-   (aa, n)
- end);
+fun heap_array_set_u64a A_ =
+  (fn a => fn b => fn c => (fn () => Array.update (a, (Word64.toInt b), c)));
 
-fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
+fun array_upd_u64 A_ i x a =
+  (fn () => let
+              val _ = heap_array_set_u64a A_ a i x ();
+            in
+              a
+            end);
 
-fun arl_set_u64a A_ a i x = arl_set A_ a (nat_of_uint64 i) x;
+fun snd (x1, x2) = x2;
 
-fun arl_set_u64 A_ a i x = arl_set_u64a A_ a i x;
+fun arl_set_u64 A_ a i x =
+  (fn () => let
+              val b = array_upd_u64 A_ i x (fst a) ();
+            in
+              (b, snd a)
+            end);
 
 fun array_upd_u A_ i x a = (fn () => let
                                        val _ = heap_array_set_ua A_ a i x ();
@@ -1225,9 +1231,6 @@ fun delete_index_and_swap_aa_i32_u64 A_ xs i j =
               set_butlast_aa_u A_ xsa i ()
             end);
 
-fun heap_array_set_u64a A_ =
-  (fn a => fn b => fn c => (fn () => Array.update (a, (Word64.toInt b), c)));
-
 fun heap_array_set_u64 A_ a i x =
   (fn () => let
               val _ = heap_array_set_u64a A_ a i x ();
@@ -1245,9 +1248,11 @@ fun swap_u64_code A_ xs i j =
               x
             end);
 
-fun arl_set_ua A_ a i x = arl_set A_ a (nat_of_uint32 i) x;
-
-fun arl_set_u A_ a i x = arl_set_ua A_ a i x;
+fun arl_set_u A_ a i x = (fn () => let
+                                     val b = array_upd_u A_ i x (fst a) ();
+                                   in
+                                     (b, snd a)
+                                   end);
 
 fun swap_aa_i32_u64 (A1_, A2_) xs k i j =
   (fn () =>
@@ -1427,8 +1432,6 @@ fun unit_propagation_inner_loop_wl_loop_D_fast_code x =
       (fn (a, b) => unit_propagation_inner_loop_body_wl_heur_fast_code ai a b)
       (Uint64.zero, bi))
     x;
-
-fun snd (x1, x2) = x2;
 
 fun unit_propagation_inner_loop_wl_D_fast_code x =
   (fn ai => fn bi => fn () =>
@@ -1934,6 +1937,13 @@ fun length_raa_u32 A_ xs i =
     in
       len A_ x ()
     end);
+
+fun arl_set A_ =
+  (fn (a, n) => fn i => fn x => fn () => let
+   val aa = upd A_ i x a ();
+ in
+   (aa, n)
+ end);
 
 fun level_in_lbd_code x =
   (fn ai => fn (a1, _) => fn () =>

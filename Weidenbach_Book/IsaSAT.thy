@@ -497,6 +497,21 @@ code_printing constant length_u64_code' \<rightharpoonup> (SML_imp)
    "(fn/ ()/ =>/ Uint64.fromFixedInt (Array.length (_)))"
 
 code_printing constant arl_get_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ Word32.toInt (_)))"
+(*
+definition arl_set_u64' where
+  [symmetric, code]: \<open>arl_set_u64' = arl_set_u64\<close>
+ *)
+lemma arl_set_u64_code[code]: \<open>arl_set_u64 a i x =
+   Array_upd_u64 i x (fst a) \<bind> (\<lambda>b. return (b, (snd a)))\<close>
+  unfolding arl_set_u64_def arl_set_def heap_array_set'_u64_def arl_set'_u64_def
+     heap_array_set_u64_def Array.upd'_def Array_upd_u64_def
+  by (cases a) (auto simp: nat_of_uint64_code[symmetric])
+
+lemma arl_set_u_code[code]: \<open>arl_set_u a i x =
+   Array_upd_u i x (fst a) \<bind> (\<lambda>b. return (b, (snd a)))\<close>
+  unfolding arl_set_u_def arl_set_def heap_array_set'_u64_def arl_set'_u_def
+     heap_array_set_u_def Array.upd'_def Array_upd_u_def
+  by (cases a) (auto simp: nat_of_uint64_code[symmetric])
 
 (* This equation makes no sense since a resizable array is represent by an array and an infinite
  integer: There is no obvious shortcut.
