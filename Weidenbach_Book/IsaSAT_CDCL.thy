@@ -183,15 +183,15 @@ proof -
     by (auto simp: twl_st_heur_def)
 
   show ?thesis
-   unfolding find_unassigned_lit_wl_D_heur_def find_unassigned_lit_wl_D_def find_undefined_atm_def
-    ID_R lit_of_found_atm_def
-   apply (intro frefI nres_relI)
-   apply clarify
-   apply refine_vcg
-   unfolding RETURN_RES_refine_iff
-   by (auto simp add: twl_st_heur_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def image_image
-       mset_take_mset_drop_mset' atms
-        simp del: twl_st_of_wl.simps dest!: atms)
+    unfolding find_unassigned_lit_wl_D_heur_def find_unassigned_lit_wl_D_def find_undefined_atm_def
+      ID_R lit_of_found_atm_def
+    apply (intro frefI nres_relI)
+    apply clarify
+    apply refine_vcg
+    unfolding RETURN_RES_refine_iff
+    by (auto simp add: twl_st_heur_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def image_image
+        mset_take_mset_drop_mset' atms
+          simp del: twl_st_of_wl.simps dest!: atms)
 qed
 
 
@@ -660,7 +660,7 @@ where
         (\<lambda>(b, brk, _). b \<and> \<not>brk)
         (\<lambda>(b, brk, S).
         do {
-          ASSERT b;
+          ASSERT (b \<and> \<not>brk);
           T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
           ASSERT(isasat_fast2 T);
           (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
@@ -747,7 +747,6 @@ proof -
      by (auto simp: RETURN_RES_refine_iff)
   let ?R = \<open>{((b, brk, S), (b', brk', S')). b = b' \<and>
        (b \<longrightarrow> isasat_fast2 S) \<and> brk = brk' \<and> (S, S') \<in> twl_st_heur}\<close>
-thm WHILEIT_refine[where R= ?R]
 
   show ?thesis
     supply RETURN_as_SPEC_refine[refine2 del] twl_st_heur'_def[simp]
@@ -763,6 +762,7 @@ thm WHILEIT_refine[where R= ?R]
       isasat_fast_slow_isasat_fast_slow_wl_D[THEN fref_to_Down, unfolded comp_def, simplified])
   subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
   subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp)
