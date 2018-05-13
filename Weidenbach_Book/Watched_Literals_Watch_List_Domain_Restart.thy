@@ -3,12 +3,18 @@ theory Watched_Literals_Watch_List_Domain_Restart
 begin
 
 locale isasat_restart_ops =
+  twl_restart + isasat_input_ops
+
+locale isasat_restart_bounded =
   twl_restart + isasat_input_bounded
 
-context isasat_restart_ops
+context isasat_restart_bounded
 begin
 
-definition restart_prog_wl_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+sublocale isasat_restart_ops
+  by standard
+
+definition (in isasat_restart_ops) restart_prog_wl_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>restart_prog_wl_D_pre S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n S \<and> restart_prog_wl_pre S\<close>
 
 lemma cdcl_twl_restart_wl_literals_are_\<L>\<^sub>i\<^sub>n:
@@ -84,7 +90,9 @@ lemma cdcl_twl_restart_wl_cdcl_twl_restart_wl:
   using cdcl_twl_restart_wl_literals_are_\<L>\<^sub>i\<^sub>n[OF _ assms]
   by (auto intro!: RES_refine)
 
-definition restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (nat twl_st_wl \<times> nat) nres" where
+definition (in isasat_restart_ops) restart_prog_wl_D
+ :: "nat twl_st_wl \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (nat twl_st_wl \<times> nat) nres"
+  where
   \<open>restart_prog_wl_D S n brk = do {
      ASSERT(restart_prog_wl_D_pre S);
      b \<leftarrow> restart_required_wl S n;
@@ -119,12 +127,14 @@ proof -
 qed
 
 
-definition cdcl_twl_stgy_restart_prog_wl_D_inv where
+definition (in isasat_restart_ops) cdcl_twl_stgy_restart_prog_wl_D_inv where
   \<open>cdcl_twl_stgy_restart_prog_wl_D_inv S\<^sub>0 brk T n \<equiv>
     (cdcl_twl_stgy_restart_prog_wl_inv S\<^sub>0 brk T n \<and>
        literals_are_\<L>\<^sub>i\<^sub>n T)\<close>
 
-definition cdcl_twl_stgy_restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+definition  (in isasat_restart_ops) cdcl_twl_stgy_restart_prog_wl_D
+  :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres"
+where
   \<open>cdcl_twl_stgy_restart_prog_wl_D S\<^sub>0 =
   do {
     (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_prog_wl_D_inv S\<^sub>0 brk T n\<^esup>
