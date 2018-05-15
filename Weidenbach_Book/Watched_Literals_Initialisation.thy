@@ -1263,7 +1263,8 @@ proof -
       using add_inv i_dom i_0 by (auto simp: S twl_list_invs_def)
     moreover have \<open>twl_stgy_invs (fst (add_to_clauses_init a T))\<close>
       by (rule twl_stgy_invs_backtrack_lvl_0)
-        (use dec' SOC_T in \<open>auto simp: S count_decided_0_iff twl_st_l_init twl_st_init\<close>)
+        (use dec' SOC_T in \<open>auto simp: S count_decided_0_iff twl_st_l_init twl_st_init
+           twl_st_l_init_def\<close>)
     ultimately show ?pre1 ?spec1
       unfolding init_dt_pre_def init_dt_spec_def apply -
       subgoal
