@@ -164,6 +164,12 @@ lemma convert_lits_l_append[simp]:
            (M2, M2') \<in> convert_lits_l N E \<close>
   by (auto simp: convert_lits_l_def list_rel_append2 list_rel_pres_length)
 
+lemma convert_lits_l_map_lit_of: \<open>(ay, bq) \<in> convert_lits_l N e \<Longrightarrow> map lit_of ay = map lit_of bq\<close>
+  apply (induction ay arbitrary: bq)
+  subgoal by auto
+  subgoal for L M bq by (cases bq) (auto simp: convert_lit.simps)
+  done
+
 lemma convert_lits_l_tlD:
   \<open>(M, M') \<in> convert_lits_l N E \<Longrightarrow>
      (tl M, tl M') \<in> convert_lits_l N E\<close>
@@ -342,62 +348,6 @@ lemma convert_lit_decided[iff]:
 lemma convert_lit_decided_propagated[iff]:
   \<open>convert_lit b d (Decided x1) (Propagated x21 x22) \<longleftrightarrow> False\<close>
   by (auto simp: convert_lit.simps)
-
-(*)
-lemma lits_of_convert_lit[iff]: \<open>lits_of (convert_lit N ` set M) = lits_of_l M\<close>
-  by (induction M) auto
-
-lemma lits_of_l_convert_lits_l[simp]: \<open>lits_of_l (convert_lits_l N M) = lits_of_l M\<close>
-  by (induction M) auto
-
-lemma convert_lits_l_true_annot[simp]: \<open>convert_lits_l N M \<Turnstile>a A \<longleftrightarrow> M \<Turnstile>a A\<close>
-  unfolding true_annot_def by auto
-
-lemma convert_lits_l_true_annots[simp]: \<open>convert_lits_l N M \<Turnstile>as A \<longleftrightarrow> M \<Turnstile>as A\<close>
-  unfolding true_annots_def by auto
-
-lemma defined_lit_convert_lits_l[iff]: \<open>defined_lit (convert_lits_l N M) = defined_lit M\<close>
-  by (auto simp: defined_lit_map image_im
-lemma lits_of_convert_lit[iff]: \<open>lits_of (convert_lit N ` set M) = lits_of_l M\<close>
-  by (induction M) auto
-
-lemma lits_of_l_convert_lits_l[simp]: \<open>lits_of_l (convert_lits_l N M) = lits_of_l M\<close>
-  by (induction M) auto
-
-lemma convert_lits_l_true_annot[simp]: \<open>convert_lits_l N M \<Turnstile>a A \<longleftrightarrow> M \<Turnstile>a A\<close>
-  unfolding true_annot_def by auto
-
-lemma convert_lits_l_true_annots[simp]: \<open>convert_lits_l N M \<Turnstile>as A \<longleftrightarrow> M \<Turnstile>as A\<close>
-  unfolding true_annots_def by auto
-
-lemma defined_lit_convert_lits_l[iff]: \<open>defined_lit (convert_lits_l N M) = defined_lit M\<close>
-  by (auto simp: defined_lit_map image_image convert_lits_l_def)
-
-lemma get_level_convert_lits_l[simp]: \<open>get_level (convert_lits_l N M) = get_level M\<close>
-  apply (rule ext)
-  by (induction M) (auto simp: get_level_def convert_lits_l_def)
-
-lemma get_level_convert_lits_l2[simp]:
-  \<open>get_level (convert_lits_l N M') K = get_level M' K\<close>
-  using get_level_convert_lits_l[of N M'] by simp
-
-lemma get_maximum_level_convert_lits_l[simp]:
-  \<open>get_maximum_level (convert_lits_l N M) = get_maximum_level M\<close>
-  unfolding get_maximum_level_def by auto
-
-lemma lit_of_hd_convert_lits_l[simp]: \<open>M \<noteq> [] \<Longrightarrow> lit_of (hd (convert_lits_l N M)) = lit_of (hd M)\<close>
-  by (cases M) auto
-
-lemma convert_lits_l_Nil_off[iff]: \<open>convert_lits_l b a = [] \<longleftrightarrow> a = []\<close>
-  by (auto simp: convert_lits_l_def)
-
-lemma is_decided_hd_convert_lits_l[simp]:
-  \<open>M \<noteq> [] \<Longrightarrow> is_decided (hd (convert_lits_l N M)) = is_decided (hd M)\<close>
-  by (cases M) auto
-
-lemma is_proped_convert_lit[simp]: \<open>is_proped (convert_lit b a) \<longleftrightarrow> is_proped a\<close>
-  by (cases a) auto
-*)
 
 abbreviation ran_mf :: \<open>'v clauses_l \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>ran_mf N \<equiv> fst `# ran_m N\<close>

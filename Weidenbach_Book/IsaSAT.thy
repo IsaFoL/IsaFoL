@@ -537,13 +537,6 @@ export_code IsaSAT_code
 definition TWL_to_clauses_state_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\<^sub>W_restart_mset) set\<close> where
   \<open>TWL_to_clauses_state_conv = twl_st_of_wl None O {(S', S). S = state\<^sub>W_of S'}\<close>
 
-(* TODO Move *)
-lemma [twl_st_l_init]:
-  \<open>(V, W) \<in> twl_st_l_init \<Longrightarrow>
-    count_decided (get_trail_init W) = count_decided (get_trail_l_init V)\<close>
-  by (auto simp: twl_st_l_init_def)
-(* End Move *)
-
 lemma extract_atms_cls_empty_iff: \<open>extract_atms_cls Cs C0 = {} \<longleftrightarrow> (C0 = {} \<and> Cs = [])\<close>
   unfolding extract_atms_cls_def
   by (induction Cs arbitrary: C0) force+
@@ -1540,13 +1533,7 @@ qed
 
 lemma [simp]: \<open>finite (extract_atms_clss CS {})\<close>
   by (auto simp: extract_atms_clss_alt_def)
-(* TODO Move *)
-lemma convert_lits_l_map_lit_of: \<open>(ay, bq) \<in> convert_lits_l N e \<Longrightarrow> map lit_of ay = map lit_of bq\<close>
-  apply (induction ay arbitrary: bq)
-  subgoal by auto
-  subgoal for L M bq by (cases bq) auto
-  done
-(* End Move *)
+
 lemma IsaSAT_code: \<open>(IsaSAT_code, SAT')
     \<in> [\<lambda>x. Multiset.Ball x distinct_mset \<and> (\<forall>C\<in>#x. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)]\<^sub>a
       clauses_l_assn\<^sup>k \<rightarrow> model_assn\<close>

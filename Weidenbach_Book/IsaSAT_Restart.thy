@@ -2,10 +2,8 @@ theory IsaSAT_Restart
   imports Watched_Literals_Watch_List_Domain_Restart  IsaSAT_Setup
 begin
 
-context isasat_restart_bounded
-begin
 
-paragraph \<open>Handle true clauses from the trail\<close>
+subsubsection \<open>Handle true clauses from the trail\<close>
 
 text \<open>
   Once of the first thing we do, is removing clauses we know to be true. We do in two ways:
@@ -14,6 +12,240 @@ text \<open>
 
   This is obviously not complete but is fast by avoiding iterating over all clauses.
 \<close>
+lemma get_all_ann_decomposition_change_annotation_exists:
+  assumes 
+    \<open>(Decided K # M', M2') \<in> set (get_all_ann_decomposition M2)\<close> and
+    \<open>map lit_of M1 = map lit_of M2\<close> and
+    \<open>map is_decided M1 = map is_decided M2\<close>
+  shows \<open>\<exists>M'' M2'. (Decided K # M'', M2') \<in> set (get_all_ann_decomposition M1) \<and> 
+    map lit_of M'' = map lit_of M' \<and>  map is_decided M'' = map is_decided M'\<close>
+  using assms
+proof (induction M1 arbitrary: M2 M2' rule: ann_lit_list_induct)
+  case Nil
+  then show ?case by auto
+next
+  case (Decided L xs M2)
+  then show ?case
+    by (cases M2; cases \<open>hd M2\<close>) fastforce+
+next
+  case (Propagated L m xs M2) note IH = this(1) and prems = this(2-)
+  show ?case
+    using IH[of _ \<open>tl M2\<close>] prems get_all_ann_decomposition_decomp[of xs]
+      get_all_ann_decomposition_decomp[of M2 \<open>Decided K # M'\<close>]
+    by (cases M2; cases \<open>hd M2\<close>; cases \<open>(get_all_ann_decomposition (tl M2))\<close>;
+        cases \<open>hd (get_all_ann_decomposition xs)\<close>; cases \<open>get_all_ann_decomposition xs\<close>)
+      fastforce+
+qed
+
+lemma valid_trail_reduction_trans:
+  assumes
+    M1_M2: \<open>valid_trail_reduction M1 M2\<close> and
+    M2_M3: \<open>valid_trail_reduction M2 M3\<close>
+  shows \<open>valid_trail_reduction M1 M3\<close>
+proof -
+  consider
+    (same) \<open>map lit_of M2 = map lit_of M3\<close> and
+       \<open>map is_decided M2 = map is_decided M3\<close> \<open>length M2 = length M3\<close> |
+    (decomp_M1) K M'' M2' where
+      \<open>(Decided K # M'', M2') \<in> set (get_all_ann_decomposition M2)\<close> and
+      \<open>map lit_of M'' = map lit_of M3\<close> and 
+      \<open>map is_decided M'' = map is_decided M3\<close> and
+      \<open>length M3 = length M''\<close>
+    using M2_M3 unfolding valid_trail_reduction_simps
+    by auto
+  note decomp_M2 = this
+  consider
+    (same) \<open>map lit_of M1 = map lit_of M2\<close> and
+       \<open>map is_decided M1 = map is_decided M2\<close> \<open>length M1 = length M2\<close> |
+    (decomp_M1) K M'' M2' where
+      \<open>(Decided K # M'', M2') \<in> set (get_all_ann_decomposition M1)\<close> and
+      \<open>map lit_of M'' = map lit_of M2\<close> and 
+      \<open>map is_decided M'' = map is_decided M2\<close> and
+      \<open>length M2 = length M''\<close>
+    using M1_M2 unfolding valid_trail_reduction_simps
+    by auto
+  then show ?thesis
+  proof cases
+    case same
+    from decomp_M2
+    show ?thesis
+    proof cases
+      case same': same
+      then show ?thesis
+        using same by (auto simp: valid_trail_reduction_simps)
+    next
+      case decomp_M1 note decomp = this(1) and eq = this(2,3) and [simp] = this(4)
+      obtain M4 M5 where
+         decomp45: \<open>(Decided K # M4, M5) \<in> set (get_all_ann_decomposition M1)\<close> and
+         M4_lit: \<open>map lit_of M4 = map lit_of M''\<close> and
+         M4_dec: \<open>map is_decided M4 = map is_decided M''\<close>
+        using get_all_ann_decomposition_change_annotation_exists[OF decomp, of M1] eq same
+        by (auto simp: valid_trail_reduction_simps)
+      show ?thesis
+        by (rule valid_trail_reduction.backtrack_red[OF decomp45])
+          (use M4_lit M4_dec eq same in auto)
+    qed
+  next
+    case decomp_M1 note decomp = this(1) and eq = this(2,3) and [simp] = this(4)
+    from decomp_M2
+    show ?thesis
+    proof cases
+      case same
+      obtain M4 M5 where
+         decomp45: \<open>(Decided K # M4, M5) \<in> set (get_all_ann_decomposition M1)\<close> and
+         M4_lit: \<open>map lit_of M4 = map lit_of M''\<close> and
+         M4_dec: \<open>map is_decided M4 = map is_decided M''\<close>
+        using get_all_ann_decomposition_change_annotation_exists[OF decomp, of M1] eq same
+        by (auto simp: valid_trail_reduction_simps)
+      show ?thesis
+        by (rule valid_trail_reduction.backtrack_red[OF decomp45])
+          (use M4_lit M4_dec eq same in auto)
+    next
+      case (decomp_M1 K' M''' M2''') note decomp' = this(1) and eq' = this(2,3) and [simp] = this(4)
+      obtain M4 M5 where
+         decomp45: \<open>(Decided K' # M4, M5) \<in> set (get_all_ann_decomposition M'')\<close> and
+         M4_lit: \<open>map lit_of M4 = map lit_of M'''\<close> and
+         M4_dec: \<open>map is_decided M4 = map is_decided M'''\<close>
+        using get_all_ann_decomposition_change_annotation_exists[OF decomp', of M''] eq 
+        by (auto simp: valid_trail_reduction_simps)
+      obtain M6 where
+        decomp45: \<open>(Decided K' # M4, M6) \<in> set (get_all_ann_decomposition M1)\<close>
+        using get_all_ann_decomposition_exists_prepend[OF decomp45]
+          get_all_ann_decomposition_exists_prepend[OF decomp]
+          get_all_ann_decomposition_ex[of K' M4 \<open>_ @ M2' @ Decided K # _ @ M5\<close>]
+        by (auto simp: valid_trail_reduction_simps)
+      show ?thesis
+        by (rule valid_trail_reduction.backtrack_red[OF decomp45])
+          (use M4_lit M4_dec eq decomp_M1 in auto)
+    qed
+  qed
+qed
+
+lemma valid_trail_reduction_length_leD: \<open>valid_trail_reduction M M' \<Longrightarrow> length M' \<le> length M\<close>
+  by (auto simp: valid_trail_reduction_simps)
+
+lemma \<open>valid_trail_reduction M M' \<Longrightarrow> 
+           (L \<in> lits_of_l M \<and> get_level M L = 0) \<longleftrightarrow> (L \<in> lits_of_l M' \<and> get_level M' L = 0)\<close>
+  apply (auto simp: valid_trail_reduction_simps)
+  oops
+
+lemma
+  assumes
+    ST: \<open>cdcl_twl_restart_wl S T\<close> and TU: \<open>cdcl_twl_restart_wl T U\<close>
+  shows \<open>cdcl_twl_restart_wl S U\<close>
+  using assms
+proof -
+  obtain M M' N N' NE' UE' NE UE Q Q' W' W where
+    S: \<open>S = (M, N, None, NE, UE, Q, W)\<close> and
+    T: \<open>T = (M', N', None, NE + mset `# NE', UE + mset `# UE', Q', W')\<close> and
+    tr_red: \<open>valid_trail_reduction M M'\<close> and
+    init: \<open>init_clss_lf N = init_clss_lf N' + NE'\<close> and
+    learned: \<open>learned_clss_lf N' + UE' \<subseteq># learned_clss_lf N\<close> and
+    NUE: \<open>\<forall>E\<in>#NE' + UE'. \<exists>L\<in>set E. L \<in> lits_of_l M \<and> get_level M L = 0\<close> and
+    ge0: \<open>\<forall>L E E'. Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> 0 < E \<longrightarrow> 0 < E' \<longrightarrow>
+        E \<in># dom_m N' \<and> N' \<propto> E = N \<propto> E'\<close> and
+    new0: \<open>\<forall>L E E'. Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E = 0 \<longrightarrow>
+        E' \<noteq> 0 \<longrightarrow> mset (N \<propto> E') \<in># NE + mset `# NE' + UE + mset `# UE'\<close> and
+    still0: \<open>\<forall>L E E'. Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow>
+        E' = 0 \<longrightarrow> E = 0\<close> and
+    dom0: \<open>0 \<notin># dom_m N'\<close> and
+    QQ': \<open>if length M = length M' then Q = Q' else Q' = {#}\<close> and
+    \<open>correct_watching (M', N', None, NE + mset `# NE', UE + mset `# UE', Q', W')\<close>
+    using ST unfolding cdcl_twl_restart_wl.simps
+    apply -
+    apply normalize_goal+
+    by blast
+  obtain M'' N'' NE'' UE'' Q'' W'' where
+    U: \<open>U = (M'', N'', None, NE + mset `# NE' + mset `# NE'', UE + mset `# UE' + mset `# UE'', Q'',
+      W'')\<close> and
+    tr_red': \<open>valid_trail_reduction M' M''\<close> and
+    init': \<open>init_clss_lf N' = init_clss_lf N'' + NE''\<close> and
+    learned': \<open>learned_clss_lf N'' + UE'' \<subseteq># learned_clss_lf N'\<close> and
+    NUE': \<open>\<forall>E\<in>#NE'' + UE''.
+        \<exists>L\<in>set E.
+           L \<in> lits_of_l M' \<and>
+           get_level M' L = 0\<close> and
+    ge0': \<open>\<forall>L E E'.
+        Propagated L E \<in> set M'' \<longrightarrow>
+        Propagated L E' \<in> set M' \<longrightarrow>
+        0 < E \<longrightarrow>
+        0 < E' \<longrightarrow>
+        E \<in># dom_m N'' \<and> N'' \<propto> E = N' \<propto> E'\<close> and
+    new0': \<open>\<forall>L E E'.
+        Propagated L E \<in> set M'' \<longrightarrow>
+        Propagated L E' \<in> set M' \<longrightarrow>
+        E = 0 \<longrightarrow>
+        E' \<noteq> 0 \<longrightarrow>
+        mset (N' \<propto> E')
+        \<in># NE + mset `# NE' + mset `# NE'' +
+            (UE + mset `# UE') +
+            mset `# UE''\<close> and
+    still0': \<open>\<forall>L E E'.
+        Propagated L E \<in> set M'' \<longrightarrow>
+        Propagated L E' \<in> set M' \<longrightarrow>
+        E' = 0 \<longrightarrow> E = 0\<close> and
+    dom0': \<open>0 \<notin># dom_m N''\<close> and
+    Q'Q'': \<open>if length M' = length M'' then Q' = Q'' else Q'' = {#}\<close> and
+    corr: \<open>correct_watching (M'', N'', None, NE + mset `# NE' + mset `# NE'',
+        UE + mset `# UE' + mset `# UE'', Q'',
+       W'')\<close>
+    using TU unfolding cdcl_twl_restart_wl.simps T apply -
+    apply normalize_goal+
+    by blast
+
+  have U': \<open>U = (M'', N'', None, NE + mset `# (NE' + NE''), UE + mset `# (UE' + UE''), Q'',
+      W'')\<close>
+    unfolding U by simp
+  show ?thesis
+    unfolding S U'
+    apply (rule cdcl_twl_restart_wl.restart_trail)
+    subgoal using valid_trail_reduction_trans[OF tr_red tr_red'] .
+    subgoal using init init' by auto
+    subgoal using learned learned' subset_mset.dual_order.trans by fastforce
+    subgoal using NUE NUE' apply auto sorry
+    subgoal using ge0 ge0' tr_red' init learned NUE ge0  still0' (* TODO tune proof *)
+      apply (auto dest: valid_trail_reduction_Propagated_inD)
+       apply (metis neq0_conv still0' valid_trail_reduction_Propagated_inD)+
+      done
+    subgoal using new0 new0' tr_red' init learned NUE ge0  (* TODO tune proof *)
+      apply (auto dest: valid_trail_reduction_Propagated_inD)
+      by (smt neq0_conv valid_trail_reduction_Propagated_inD)
+    subgoal using still0 still0' tr_red' by (fastforce dest: valid_trail_reduction_Propagated_inD)
+    subgoal using dom0' .
+    subgoal using QQ' Q'Q'' valid_trail_reduction_length_leD[OF tr_red]
+        valid_trail_reduction_length_leD[OF tr_red']
+      by (auto split: if_splits)
+    subgoal using corr by (simp add: ac_simps)
+    done
+qed
+
+paragraph \<open>Specification\<close>
+
+inductive remove_one_watched_true_clause where
+remove_irred: 
+  \<open>remove_one_watched_true_clause L (M, N, D, NE, UE, Q, W)
+     (M, N, D, add_mset (mset (N\<propto>C))NE, UE, Q, W)\<close>
+if
+  \<open>L \<in> lits_of_l M\<close> and
+  \<open>get_level M L = 0\<close> and
+  \<open>C \<in># dom_m N\<close> and
+  \<open>L \<in> set (watched_l (N\<propto>C))\<close> and
+  \<open>irred N C\<close> |
+remove_red: 
+  \<open>remove_one_watched_true_clause L (M, N, D, NE, UE, Q, W)
+     (M, N, D, NE, add_mset (mset (N\<propto>C)) UE, Q, W)\<close>
+if
+  \<open>L \<in> lits_of_l M\<close> and
+  \<open>get_level M L = 0\<close> and
+  \<open>C \<in># dom_m N\<close> and
+  \<open>L \<in> set (watched_l (N\<propto>C))\<close> and
+  \<open>\<not>irred N C\<close>
+
+inductive remove_all_watched_true_clause where
+  \<open>remove_all_watched_true_clause (M @ Propagated L C # M', N, D, NE, UE, Q, W)
+     (M @ Propagated L 0 # M', N', D', NE', UE', Q', W')\<close>
+if \<open>full (remove_one_watched_true_clause L) (M, N, D, NE, UE, Q, W)
+     (M, N, D, add_mset (mset (N\<propto>C))NE, UE, Q, W)\<close>
 
 definition (in -) extract_and_remove
   :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> ('v clauses_l \<times> 'v clause_l \<times> bool) nres\<close>
@@ -37,6 +269,10 @@ lemma (in -) \<open>correct_watching S \<Longrightarrow> partial_correct_watchin
     (auto simp: correct_watching.simps partial_correct_watching.simps clause_to_update_def
     simp del: set_mset_mset dest: in_set_mset_eq_in)
 
+definition remove_all_clause_watched_by_inv where
+  \<open>remove_all_clause_watched_by_inv = (\<lambda>(M\<^sub>0, N\<^sub>0, D\<^sub>0, NE\<^sub>0, UE\<^sub>0, Q\<^sub>0, W\<^sub>0) (M, N, D, NE, UE, Q, W).
+       ran_mf N + NE + UE = ran_mf N\<^sub>0 + NE\<^sub>0 + UE\<^sub>0)\<close>
+
 definition remove_all_clause_watched_by :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close> where
 \<open>remove_all_clause_watched_by L = (\<lambda>(M, N, D, NE, UE, Q, W). do {
     (_, N, NE, UE) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, N, NE, UE). partial_correct_watching (M, N, D, NE, UE, Q, W)\<^esup>
@@ -52,8 +288,31 @@ definition remove_all_clause_watched_by :: \<open>nat literal \<Rightarrow> nat 
             RETURN (i+1, N, NE, UE)
       })
       (0, N, NE, UE);
-    RETURN (M, N, D, NE, UE, Q, W)
+    RETURN (M, N, D, NE, UE, Q, W(L := []))
   })\<close>
+
+definition remove_trivially_true_clause where
+  \<open>remove_trivially_true_clause = (\<lambda>S. do {
+    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, S). partial_correct_watching S\<^esup>
+      (\<lambda>(i, S). i > 0 \<and> \<not>is_decided (get_trail_wl S!i))
+      (\<lambda>(i, (M, N, D, NE, UE, Q, W)). do {
+         ASSERT(i > 0);
+         let L = lit_of (M!i);
+         (M, N, D, NE, UE, Q, W) \<leftarrow> remove_all_clause_watched_by L (M, N, D, NE, UE, Q, W);
+         let M = M[i := Propagated L 0];
+         RETURN(i-1, (M, N, D, NE, UE, Q, W))
+      })
+      (0, S);
+    RETURN S
+  })\<close>
+
+definition collect_valid_indices where
+  \<open>collect_valid_indices S = SPEC (\<lambda>N. mset N = dom_m (get_clauses_wl S))\<close>
+
+context isasat_restart_bounded
+begin
+
+
 
 end
 

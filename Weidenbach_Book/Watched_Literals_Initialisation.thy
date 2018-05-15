@@ -698,7 +698,12 @@ lemma [twl_st_l_init]:
        get_learned_unit_clauses_l_init S\<close>
   \<open>get_conflict_l_init (T, OC) = get_conflict_l T\<close>
   by (solves \<open>cases S; cases T; auto simp: already_propagated_unit_init_l_def\<close>)+
-thm twl_st_init
+
+
+lemma [twl_st_l_init]:
+  \<open>(V, W) \<in> twl_st_l_init \<Longrightarrow>
+    count_decided (get_trail_init W) = count_decided (get_trail_l_init V)\<close>
+  by (auto simp: twl_st_l_init_def)
 
 lemma [twl_st_l_init]:
   \<open>get_conflict_l (fst T) =  get_conflict_l_init T\<close>
