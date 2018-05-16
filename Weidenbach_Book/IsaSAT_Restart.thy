@@ -2,6 +2,38 @@ theory IsaSAT_Restart
   imports Watched_Literals_Watch_List_Domain_Restart  IsaSAT_Setup
 begin
 
+lemma \<open>
+  do {
+    (S, finished) \<leftarrow>
+       WHILE
+         (\<lambda>(S, finished). finished) 
+         (\<lambda>(S, finished). f S)
+         (S0, False);
+    RETURN S 
+  } 
+  =
+  do {
+    (* Do some iterations *)
+    (S, finished, early_break) \<leftarrow>
+       WHILE
+         (\<lambda>(S, finished, early_break). finished \<and> early_break) 
+         (\<lambda>(S, finished). do {
+            (S, finished) \<leftarrow> f S;
+            early_break \<leftarrow> g S;
+            RETURN (S, finished, early_break)
+          })
+         (S0, False, False);
+
+    (* Do missing iterations to reach the end*)
+    (S, finished) \<leftarrow>
+       WHILE
+         (\<lambda>(S, finished). finished) 
+         (\<lambda>(S, finished). f S)
+         (S, finished);
+    RETURN S 
+  }
+\<close>
+oops
 
 subsubsection \<open>Handle true clauses from the trail\<close>
 
@@ -124,14 +156,43 @@ qed
 lemma valid_trail_reduction_length_leD: \<open>valid_trail_reduction M M' \<Longrightarrow> length M' \<le> length M\<close>
   by (auto simp: valid_trail_reduction_simps)
 
-lemma \<open>valid_trail_reduction M M' \<Longrightarrow> 
-           (L \<in> lits_of_l M \<and> get_level M L = 0) \<longleftrightarrow> (L \<in> lits_of_l M' \<and> get_level M' L = 0)\<close>
-  apply (auto simp: valid_trail_reduction_simps)
-  oops
+lemma valid_trail_reduction_level0_iff:
+  assumes valid:  \<open>valid_trail_reduction M M'\<close> and n_d: \<open>no_dup M\<close>
+  shows \<open>(L \<in> lits_of_l M \<and> get_level M L = 0) \<longleftrightarrow> (L \<in> lits_of_l M' \<and> get_level M' L = 0)\<close>
+proof -
+  have H[intro]: \<open>map lit_of M = map lit_of M' \<Longrightarrow> L \<in> lits_of_l M \<Longrightarrow> L \<in>  lits_of_l M'\<close> for M M'
+    by (metis lits_of_def set_map)
+  have [dest]: \<open>undefined_lit c L \<Longrightarrow> L \<in> lits_of_l c \<Longrightarrow> False\<close> for c
+    by (auto dest: in_lits_of_l_defined_litD)
+
+  show ?thesis
+    using valid
+  proof cases
+    case keep_red
+    then show ?thesis
+      by (metis H trail_renumber_get_level)
+  next
+    case (backtrack_red K M'' M2) note decomp = this(1) and eq = this(2,3)
+    obtain M3 where M: \<open>M = M3 @ Decided K # M''\<close>
+      using decomp by auto
+    have \<open>(L \<in> lits_of_l M \<and> get_level M L = 0) \<longleftrightarrow>
+      (L \<in> lits_of_l M'' \<and> get_level M'' L = 0)\<close>
+      using n_d unfolding M
+      by (auto 4 4 simp: valid_trail_reduction_simps get_level_append_if get_level_cons_if
+          atm_of_eq_atm_of
+      dest: in_lits_of_l_defined_litD cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin 
+      split: if_splits)
+    also have \<open>... \<longleftrightarrow> (L \<in> lits_of_l M' \<and> get_level M' L = 0)\<close>
+      using eq by (metis local.H trail_renumber_get_level)
+    finally show ?thesis
+      by blast
+  qed
+qed
 
 lemma
   assumes
-    ST: \<open>cdcl_twl_restart_wl S T\<close> and TU: \<open>cdcl_twl_restart_wl T U\<close>
+    ST: \<open>cdcl_twl_restart_wl S T\<close> and TU: \<open>cdcl_twl_restart_wl T U\<close> and
+    n_d: \<open>no_dup (get_trail_wl S)\<close>
   shows \<open>cdcl_twl_restart_wl S U\<close>
   using assms
 proof -
@@ -192,7 +253,6 @@ proof -
     using TU unfolding cdcl_twl_restart_wl.simps T apply -
     apply normalize_goal+
     by blast
-
   have U': \<open>U = (M'', N'', None, NE + mset `# (NE' + NE''), UE + mset `# (UE' + UE''), Q'',
       W'')\<close>
     unfolding U by simp
@@ -202,7 +262,7 @@ proof -
     subgoal using valid_trail_reduction_trans[OF tr_red tr_red'] .
     subgoal using init init' by auto
     subgoal using learned learned' subset_mset.dual_order.trans by fastforce
-    subgoal using NUE NUE' apply auto sorry
+    subgoal using NUE NUE' valid_trail_reduction_level0_iff[OF tr_red] n_d unfolding S by auto
     subgoal using ge0 ge0' tr_red' init learned NUE ge0  still0' (* TODO tune proof *)
       apply (auto dest: valid_trail_reduction_Propagated_inD)
        apply (metis neq0_conv still0' valid_trail_reduction_Propagated_inD)+
