@@ -5,6 +5,42 @@ begin
 
 subsubsection \<open>Handle true clauses from the trail\<close>
 
+fun (in -) partial_correct_watching :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
+  [simp del]: \<open>partial_correct_watching (M, N, D, NE, UE, Q, W)  \<longleftrightarrow>
+     (\<forall>L\<in>#all_lits_of_mm (mset `# ran_mf N + NE).
+       (\<forall>i\<in>set (W L). i \<notin># dom_m N \<or> L \<in> set (watched_l (N\<propto>i))))\<close>
+
+lemma (in -) in_set_mset_eq_in:
+  \<open>i \<in> set A \<Longrightarrow> mset A = B \<Longrightarrow> i \<in># B\<close>
+  by fastforce
+
+lemma (in -) \<open>correct_watching S \<Longrightarrow> partial_correct_watching S\<close>
+  by (cases S)
+    (auto simp: correct_watching.simps partial_correct_watching.simps clause_to_update_def
+    simp del: set_mset_mset dest: in_set_mset_eq_in)
+
+
+text \<open>Our transformation will be chains of a weaker version of restarts, that don't update the
+  watch lists and only keep partial correctness.\<close>
+
+inductive cdcl_twl_restart_wl_p :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+restart_trail:
+   \<open>cdcl_twl_restart_wl_p (M, N, None, NE, UE, Q, W)
+       (M', N', None, NE + mset `# NE', UE + mset `# UE', Q', W')\<close>
+  if
+    \<open>valid_trail_reduction M M'\<close> and
+    \<open>init_clss_lf N = init_clss_lf N' + NE'\<close> and
+    \<open>learned_clss_lf N' + UE' \<subseteq># learned_clss_lf N\<close> and
+    \<open>\<forall>E\<in># (NE'+UE'). \<exists>L\<in>set E. L \<in> lits_of_l M \<and> get_level M L = 0\<close> and
+    \<open>\<forall>L E E' . Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E > 0  \<longrightarrow> E' > 0 \<longrightarrow>
+        E \<in># dom_m N' \<and> N' \<propto> E = N \<propto> E'\<close> and
+    \<open>\<forall>L E E'. Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E = 0 \<longrightarrow> E' \<noteq> 0 \<longrightarrow>
+       mset (N \<propto> E') \<in># NE + mset `# NE' + UE + mset `# UE'\<close> and
+    \<open>\<forall>L E E'. Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E' = 0 \<longrightarrow> E = 0\<close> and
+    \<open>0 \<notin># dom_m N'\<close> and
+    \<open>if length M = length M' then Q = Q' else Q' = {#}\<close> and
+    \<open>partial_correct_watching (M', N', None, NE + mset `# NE', UE + mset `# UE', Q', W')\<close>
+
 text \<open>
   Once of the first thing we do, is removing clauses we know to be true. We do in two ways:
     \<^item> along the trail (at level 0);
@@ -157,11 +193,11 @@ proof -
   qed
 qed
 
-lemma cdcl_twl_restart_wl_cdcl_twl_restart_wl_is_cdcl_twl_restart_wl:
+lemma cdcl_twl_restart_wl_p_cdcl_twl_restart_wl_p_is_cdcl_twl_restart_wl_p:
   assumes
-    ST: \<open>cdcl_twl_restart_wl S T\<close> and TU: \<open>cdcl_twl_restart_wl T U\<close> and
+    ST: \<open>cdcl_twl_restart_wl_p S T\<close> and TU: \<open>cdcl_twl_restart_wl_p T U\<close> and
     n_d: \<open>no_dup (get_trail_wl S)\<close>
-  shows \<open>cdcl_twl_restart_wl S U\<close>
+  shows \<open>cdcl_twl_restart_wl_p S U\<close>
   using assms
 proof -
   obtain M M' N N' NE' UE' NE UE Q Q' W' W where
@@ -179,8 +215,8 @@ proof -
         E' = 0 \<longrightarrow> E = 0\<close> and
     dom0: \<open>0 \<notin># dom_m N'\<close> and
     QQ': \<open>if length M = length M' then Q = Q' else Q' = {#}\<close> and
-    \<open>correct_watching (M', N', None, NE + mset `# NE', UE + mset `# UE', Q', W')\<close>
-    using ST unfolding cdcl_twl_restart_wl.simps
+    \<open>partial_correct_watching (M', N', None, NE + mset `# NE', UE + mset `# UE', Q', W')\<close>
+    using ST unfolding cdcl_twl_restart_wl_p.simps
     apply -
     apply normalize_goal+
     by blast
@@ -215,10 +251,10 @@ proof -
         E' = 0 \<longrightarrow> E = 0\<close> and
     dom0': \<open>0 \<notin># dom_m N''\<close> and
     Q'Q'': \<open>if length M' = length M'' then Q' = Q'' else Q'' = {#}\<close> and
-    corr: \<open>correct_watching (M'', N'', None, NE + mset `# NE' + mset `# NE'',
+    corr: \<open>partial_correct_watching (M'', N'', None, NE + mset `# NE' + mset `# NE'',
         UE + mset `# UE' + mset `# UE'', Q'',
        W'')\<close>
-    using TU unfolding cdcl_twl_restart_wl.simps T apply -
+    using TU unfolding cdcl_twl_restart_wl_p.simps T apply -
     apply normalize_goal+
     by blast
   have U': \<open>U = (M'', N'', None, NE + mset `# (NE' + NE''), UE + mset `# (UE' + UE''), Q'',
@@ -226,7 +262,7 @@ proof -
     unfolding U by simp
   show ?thesis
     unfolding S U'
-    apply (rule cdcl_twl_restart_wl.restart_trail)
+    apply (rule cdcl_twl_restart_wl_p.restart_trail)
     subgoal using valid_trail_reduction_trans[OF tr_red tr_red'] .
     subgoal using init init' by auto
     subgoal using learned learned' subset_mset.dual_order.trans by fastforce
@@ -264,30 +300,30 @@ lemma map_lit_of_eq_no_dupD: \<open>map lit_of M = map lit_of M' \<Longrightarro
       (auto dest: map_lit_of_eq_defined_litD)
   done
 
-lemma tranclp_cdcl_twl_restart_wl_no_dup:
+lemma tranclp_cdcl_twl_restart_wl_p_no_dup:
   assumes
-    ST: \<open>cdcl_twl_restart_wl\<^sup>*\<^sup>* S T\<close> and
+    ST: \<open>cdcl_twl_restart_wl_p\<^sup>*\<^sup>* S T\<close> and
     n_d: \<open>no_dup (get_trail_wl S)\<close>
   shows \<open>no_dup (get_trail_wl T)\<close>
   using assms
   apply (induction rule: rtranclp_induct)
   subgoal by auto
   subgoal 
-    by (auto simp: cdcl_twl_restart_wl.simps valid_trail_reduction_simps
+    by (auto simp: cdcl_twl_restart_wl_p.simps valid_trail_reduction_simps
       dest: map_lit_of_eq_no_dupD dest!: no_dup_appendD get_all_ann_decomposition_exists_prepend)
   done
 
-lemma rtranclp_cdcl_twl_restart_wl_cdcl_is_cdcl_twl_restart_wl:
+lemma rtranclp_cdcl_twl_restart_wl_p_cdcl_is_cdcl_twl_restart_wl_p:
   assumes
-    ST: \<open>cdcl_twl_restart_wl\<^sup>+\<^sup>+ S T\<close> and
+    ST: \<open>cdcl_twl_restart_wl_p\<^sup>+\<^sup>+ S T\<close> and
     n_d: \<open>no_dup (get_trail_wl S)\<close>
-  shows \<open>cdcl_twl_restart_wl S T\<close>
+  shows \<open>cdcl_twl_restart_wl_p S T\<close>
   using assms
   apply (induction rule: tranclp_induct)
   subgoal by auto
   subgoal 
-    using cdcl_twl_restart_wl_cdcl_twl_restart_wl_is_cdcl_twl_restart_wl
-    tranclp_cdcl_twl_restart_wl_no_dup by blast
+    using cdcl_twl_restart_wl_p_cdcl_twl_restart_wl_p_is_cdcl_twl_restart_wl_p
+    tranclp_cdcl_twl_restart_wl_p_no_dup by blast
   done
 
 paragraph \<open>Specification\<close>
@@ -327,23 +363,8 @@ where
       SPEC(\<lambda>(N' :: 'v clauses_l, C' :: 'v clause_l, b :: bool). N' = N(j \<hookrightarrow> []) \<and> C' = N\<propto>j \<and> b = irred N j)
     }\<close>
 
-fun (in -) partial_correct_watching where
-  [simp del]: \<open>partial_correct_watching (M, N, D, NE, UE, Q, W)  \<longleftrightarrow>
-     (\<forall>L\<in>#all_lits_of_mm (mset `# ran_mf N + NE).
-       (\<forall>i\<in>set (W L). i \<notin># dom_m N \<or> L \<in> set (watched_l (N\<propto>i))))\<close>
-
-lemma (in -) in_set_mset_eq_in:
-  \<open>i \<in> set A \<Longrightarrow> mset A = B \<Longrightarrow> i \<in># B\<close>
-  by fastforce
-
-lemma (in -) \<open>correct_watching S \<Longrightarrow> partial_correct_watching S\<close>
-  by (cases S)
-    (auto simp: correct_watching.simps partial_correct_watching.simps clause_to_update_def
-    simp del: set_mset_mset dest: in_set_mset_eq_in)
-
-lemma impI_isabelle_you_are_stupid: "(\<And>M. M = M' \<Longrightarrow> R M) \<Longrightarrow> (R M')"
-  
-  by blast
+lemma singleton_eq_image_mset_iff:  \<open>{#a#} = f `# NE' \<longleftrightarrow> (\<exists>b. NE' = {#b#} \<and> f b = a)\<close>
+  by (cases NE') (auto)
 
 lemma remove_one_watched_true_clause_decomp:
   assumes \<open>remove_one_watched_true_clause L S T\<close> and
@@ -351,13 +372,14 @@ lemma remove_one_watched_true_clause_decomp:
      \<open>L \<in> lits_of_l (get_trail_wl S)\<close>
   obtains M N U D NE UE W Q M' N' U' NE' UE' W' Q' where
     \<open>S = (M, N, D, NE, UE, Q, W)\<close> and
-    \<open>T = (M', N', D, NE + NE', UE + UE', Q, W)\<close> and
-    \<open>\<forall>C\<in># NE'+UE'. \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M\<close> 
+    \<open>T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W)\<close> and
+    \<open>\<forall>C\<in># mset `# (NE'+UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M\<close> 
     \<open>dom_m N' \<subseteq># dom_m N\<close> and
     \<open>M = M'\<close>
     apply atomize
   using assms
-  by (induction) (auto simp: conj_imp_eq_imp_imp dest: in_set_takeD[of _ 2])
+  by (induction) (auto 5 5 simp: conj_imp_eq_imp_imp singleton_eq_image_mset_iff
+    dest: in_set_takeD[of _ 2])
 
 lemma rtranclp_remove_one_watched_true_clause_decomp_Ex:
   assumes \<open>(remove_one_watched_true_clause L)\<^sup>*\<^sup>* S T\<close> and
@@ -365,23 +387,92 @@ lemma rtranclp_remove_one_watched_true_clause_decomp_Ex:
      \<open>L \<in> lits_of_l (get_trail_wl S)\<close>
   shows
     \<open>\<exists>M N U D NE UE W Q M' N' U' D' NE' UE' W' Q'. S = (M, N, D, NE, UE, Q, W) \<and>
-     T = (M', N', D, NE + NE', UE + UE', Q, W) \<and>
-     (\<forall>C\<in># NE'+UE'. \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
+     T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W) \<and>
+     (\<forall>C\<in># mset `# (NE'+UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
      dom_m N' \<subseteq># dom_m N \<and> M = M'\<close>
   using assms
   apply (induction)
   subgoal by (cases S) auto
   subgoal for T U
-    by (drule remove_one_watched_true_clause_decomp) (auto simp: dest!: )
+    by (drule remove_one_watched_true_clause_decomp)
+      (auto 5 5 simp: image_mset_union[symmetric] simp del: image_mset_union)
   done
 
-lemma
+
+lemma remove_all_watched_true_clause_decomp_Ex:
+  assumes \<open>remove_all_watched_true_clause S T\<close> and
+    \<open>count_decided (get_trail_wl S) = 0\<close>
+  shows
+    \<open>\<exists>M N U D NE UE W Q M' N' U' D' NE' UE' W' Q'. 
+     S = (M, N, D, NE, UE, Q, W) \<and>
+     T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W) \<and>
+     (\<forall>C\<in># mset `# (NE'+UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
+     dom_m N' \<subseteq># dom_m N \<and> map lit_of M = map lit_of M' \<and>
+     count_decided M' = 0\<close>
+  using assms
+  apply (induction)
+  subgoal for L M C M' N D NE UE Q W N' D' NE' UE' Q' W'
+    using count_decided_ge_get_level[of \<open>M @ Propagated L C # M'\<close> L] unfolding full_def
+    apply -
+    apply normalize_goal+
+    by (drule rtranclp_remove_one_watched_true_clause_decomp_Ex) auto
+  done
+
+lemma rtranclp_remove_all_watched_true_clause_decomp_Ex:
   assumes \<open>remove_all_watched_true_clause\<^sup>*\<^sup>* S T\<close> and
-    \<open>count_decided (get_trail_wl S) = 0\<close> and
+    \<open>count_decided (get_trail_wl S) = 0\<close>
+  shows
+    \<open>\<exists>M N U D NE UE W Q M' N' U' D' NE' UE' W' Q'. 
+     S = (M, N, D, NE, UE, Q, W) \<and>
+     T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W) \<and>
+     (\<forall>C\<in># mset `# (NE'+UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
+     dom_m N' \<subseteq># dom_m N \<and> map lit_of M = map lit_of M' \<and>
+     count_decided M' = 0\<close>
+proof -
+  have H[simp]: \<open>count_decided M'a = 0 \<Longrightarrow>  get_level M'a L = 0\<close> for M'a L
+    using count_decided_ge_get_level[of M'a]
+    by (auto intro!: ext)
+  have H: \<open>map lit_of M = map lit_of M' \<Longrightarrow> lits_of_l M = lits_of_l M'\<close> for M M'
+    by (metis lits_of_def set_map)
+  show ?thesis
+    using assms
+    apply (induction)
+    subgoal by (cases S) auto
+    subgoal for T U 
+      apply (drule remove_all_watched_true_clause_decomp_Ex)
+      subgoal by auto
+      subgoal
+        supply image_mset_union[simp del] image_mset_union[symmetric, simp]
+        by (fastforce dest: H)
+      done
+    done
+qed
+
+lemma
+  assumes
+    remove: \<open>remove_all_watched_true_clause\<^sup>*\<^sup>* S T\<close> and
+    lev0: \<open>count_decided (get_trail_wl S) = 0\<close> and
     \<open>partial_correct_watching S\<close> and
-    \<open>get_conflict_wl S = None\<close> and
+    confl: \<open>get_conflict_wl S = None\<close> and
     \<open>\<forall>L C. Propagated L C \<in> set (get_trail_wl T) \<longrightarrow> C = 0\<close>
-  shows \<open>cdcl_twl_restart_wl S T\<close>
+  shows \<open>cdcl_twl_restart_wl_p S T\<close>
+proof -
+  from rtranclp_remove_all_watched_true_clause_decomp_Ex[OF remove lev0]
+  obtain  M N U D NE UE W Q M' N' U' D' NE' UE' W' Q' where
+    S: \<open>S = (M, N, D, NE, UE, Q, W)\<close> and
+    T: \<open>T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W)\<close> and
+    \<open>\<forall>C\<in>#mset `# (NE'+UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M\<close> and
+    \<open>dom_m N' \<subseteq># dom_m N\<close> and
+    \<open>map lit_of M = map lit_of M'\<close> and
+    \<open>count_decided M' = 0\<close>
+    by meson
+  have D: \<open>D = None\<close>
+    using confl unfolding S by auto
+  show ?thesis
+    unfolding S T D
+    supply [[unify_trace_failure]]
+    apply (rule cdcl_twl_restart_wl_p.intros)
+    oops
   using assms
   oops
 
