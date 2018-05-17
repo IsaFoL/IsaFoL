@@ -67,7 +67,7 @@ text \<open>
 \<close>
 fun correct_watching :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + NE).
+    (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + NE + UE).
        mset (W L) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
 
 declare correct_watching.simps[simp del]
@@ -853,7 +853,7 @@ proof -
       alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of R)\<close>
       using struct_invs that by (auto simp: twl_struct_invs_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
-    then have H1: \<open>L \<in># all_lits_of_mm (mset `# ran_mf N + NE)\<close> if LQ: \<open>L \<in># Q\<close> for L
+    then have H1: \<open>L \<in># all_lits_of_mm (mset `# ran_mf N + NE + UE)\<close> if LQ: \<open>L \<in># Q\<close> for L
     proof -
       have [simp]: \<open>(f o g) ` I = f ` g ` I\<close> for f g I
         by auto
@@ -897,7 +897,7 @@ proof -
         using that by (auto simp: in_all_lits_of_mm_ain_atms_of_iff)
     qed
     then have H: \<open>clause_to_update L S = mset (W L)\<close> and
-       \<open>L \<in># all_lits_of_mm (mset `# ran_mf N + NE)\<close>
+       \<open>L \<in># all_lits_of_mm (mset `# ran_mf N + NE + UE)\<close>
         if \<open>L \<in># Q\<close> for L
       using corr_w that S by (auto simp: correct_watching.simps S' clause_to_update_def)
     show ?thesis
@@ -1211,7 +1211,7 @@ lemma correct_watching_learn:
 proof (rule iffI)
   assume corr: ?l
   have H: \<open>\<And>x. x \<in># all_lits_of_mm (mset `# ran_mf ?N) +
-              all_lits_of_mm NE \<longrightarrow>
+              all_lits_of_mm NE + all_lits_of_mm UE \<longrightarrow>
         mset ((W(L1 := W L1 @ [i], L2 := W L2 @ [i])) x) =
         clause_to_update x
          (K # M, ?N, D, NE, UE, {#}, {#})\<close>
@@ -1223,14 +1223,14 @@ proof (rule iffI)
      for P Q :: \<open>nat \<Rightarrow> bool\<close> and i :: nat
     by auto
   have [simp]: \<open>mset (W x) = clause_to_update x (M, N, D, NE, UE, {#}, {#})\<close>
-    if \<open>x \<in># all_lits_of_mm NE\<close>
+    if \<open>x \<in># all_lits_of_mm NE \<or> x \<in># all_lits_of_mm UE\<close>
     for x
     using that H[of x] i_dom
     by (auto split: if_splits simp: clause_to_update_def nth_append
         intro!: arg_cong[of _ _ mset_set] filter_mset_cong)
   have K:
-    \<open>set_mset (all_lits_of_mm (mset `# ran_mf ?N + NE)) =
-       set_mset (all_lits_of_mm (mset `# ran_mf N + NE))\<close>
+    \<open>set_mset (all_lits_of_mm (mset `# ran_mf ?N + NE + UE)) =
+       set_mset (all_lits_of_mm (mset `# ran_mf N + NE + UE))\<close>
     using i_dom L1 L2 UW
     by (auto 5 5 simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset
         ran_m_mapsto_upd ran_m_mapsto_upd_notin in_all_lits_of_m_ain_atms_of_iff
@@ -1262,8 +1262,8 @@ next
     using i_dom
     by (auto simp: clause_to_update_def intro: arg_cong[of _ _ mset_set] filter_mset_cong)
   have K:
-    \<open>set_mset (all_lits_of_mm (mset `# ran_mf ?N + NE)) =
-       set_mset (all_lits_of_mm (mset `# ran_mf N + NE))\<close>
+    \<open>set_mset (all_lits_of_mm (mset `# ran_mf ?N + NE + UE)) =
+       set_mset (all_lits_of_mm (mset `# ran_mf N + NE + UE))\<close>
     using i_dom L1 L2 UW
     by (auto 5 5 simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset
         ran_m_mapsto_upd ran_m_mapsto_upd_notin in_all_lits_of_m_ain_atms_of_iff
@@ -1280,9 +1280,9 @@ next
     \<open>mset (W (- L1)) = clause_to_update (- L1) (M, N, D, NE, UE, {#}, {#})\<close>
     \<open>mset (W L2) = clause_to_update L2 (M, N, D, NE, UE, {#}, {#})\<close>
     \<open>mset (W (- L2)) = clause_to_update (- L2) (M, N, D, NE, UE, {#}, {#})\<close> and
-    \<open>x \<in># all_lits_of_mm (mset `# ran_mf N + NE) \<Longrightarrow>
+    \<open>x \<in># all_lits_of_mm (mset `# ran_mf N + NE + UE) \<Longrightarrow>
         mset (W x) = clause_to_update x (M, N, D, NE, UE, {#}, {#})\<close> for x
-    using corr unfolding K by (auto simp: correct_watching.simps)
+    using corr unfolding K by (auto simp: correct_watching.simps all_lits_of_mm_union)
   have \<open>set_mset (all_lits_of_m (mset UW)) \<subseteq> set_mset (all_lits_of_mm (mset `# ran_mf N + NE))\<close>
     using UW using in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff by blast
   then show ?l
@@ -1468,7 +1468,8 @@ proof -
       S': \<open>S' = (MS, NS, Some DS, NES, UES, {#}, W)\<close>
       using SS' UU' empty[OF bt] by (cases S'; cases \<open>get_conflict_wl S'\<close>) auto
     then obtain DT where
-      T': \<open>T' = (MS, NS, Some DT, NES, UES, {#}, W)\<close>
+      T': \<open>T' = (MS, NS, Some DT, NES, UES, {#}, W)\<close> and
+      DT_DS: \<open>DT \<subseteq># DS\<close>
       using TT' by (cases T'; cases \<open>get_conflict_wl T'\<close>) auto
     have T: \<open>T = (MS, NS, Some DT, NES, UES, {#}, {#})\<close>
       using TT' by (auto simp: S' T' state_wl_l_def)
@@ -1479,12 +1480,29 @@ proof -
       using UU' T' by (cases U') auto
     have U: \<open>U = (MU, NS, Some DT, NES, UES, {#}, {#})\<close>
       using UU' by (auto simp: U' state_wl_l_def)
-
+    obtain S1 S2 where
+      S1: \<open>(S', S1) \<in> state_wl_l None\<close> and 
+      S2: \<open>(S1, S2) \<in> twl_st_l None\<close> and
+      struct_invs: \<open>twl_struct_invs S2\<close>
+      using bt unfolding backtrack_wl_inv_def backtrack_l_inv_def
+      by blast
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S2)\<close>
+      using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by fast
+    then have K: \<open>set_mset (all_lits_of_mm (mset `# ran_mf NS + NES + add_mset (the (Some DT)) UES)) =
+      set_mset (all_lits_of_mm (mset `# ran_mf NS + NES + UES))\<close>
+      apply (subst all_clss_lf_ran_m[symmetric])+
+      apply (subst image_mset_union)+
+      using S1 S2 atms_of_subset_mset_mono[OF DT_DS]
+      by (fastforce simp: all_lits_of_mm_union all_lits_of_mm_add_mset state_wl_l_def
+        twl_st_l_def S' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+        mset_take_mset_drop_mset' in_all_lits_of_mm_ain_atms_of_iff
+        in_all_lits_of_m_ain_atms_of_iff)
     have \<open>correct_watching S'\<close>
       using SS' by fast
     then have corr: \<open>correct_watching (Propagated (- lit_of (hd MS)) 0 # MU, NS, None, NES,
       add_mset (the (Some DT)) UES, unmark (hd MS), W)\<close>
-       unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps .
+       unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps K .
 
     show ?thesis
       unfolding propagate_unit_bt_wl_def propagate_unit_bt_l_def S' T' U U'

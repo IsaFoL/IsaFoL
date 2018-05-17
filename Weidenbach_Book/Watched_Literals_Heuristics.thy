@@ -629,7 +629,8 @@ proof -
        {#x \<in># dom_m (get_clauses_wl S).
          L \<in> set (watched_l (get_clauses_wl S \<propto> x))#}\<close>
       using corr by (cases S)
-          (auto simp: correct_watching.simps watched_by_app_def clause_to_update_def)
+          (auto simp: correct_watching.simps watched_by_app_def clause_to_update_def
+         all_lits_of_mm_union)
   have L_in_watched: \<open>L \<in> set (watched_l ?C)\<close>
     using in_watched unfolding H
     by (cases S)

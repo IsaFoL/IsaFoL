@@ -569,7 +569,7 @@ proof -
       cdcl\<^sub>W_restart_mset.no_strange_atm_def mset_take_mset_drop_mset')
   ultimately have 1: \<open>mset ((get_watched_wl T) L) = {#C \<in># dom_m (get_clauses_wl T). L \<in> set (watched_l ((get_clauses_wl T) \<propto> C))#}\<close>
     using corr_w by (cases T)
-      (auto simp: correct_watching.simps clause_to_update_def)
+      (auto simp: correct_watching.simps clause_to_update_def all_lits_of_mm_union)
   then have \<open>size (mset ((get_watched_wl T) L)) \<le> size (dom_m (get_clauses_wl T))\<close>
     unfolding 1
     by (cases T) (auto simp: correct_watching.simps clause_to_update_def)
