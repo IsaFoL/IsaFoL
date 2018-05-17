@@ -2,38 +2,6 @@ theory IsaSAT_Restart
   imports Watched_Literals_Watch_List_Domain_Restart  IsaSAT_Setup
 begin
 
-lemma \<open>
-  do {
-    (S, finished) \<leftarrow>
-       WHILE
-         (\<lambda>(S, finished). finished) 
-         (\<lambda>(S, finished). f S)
-         (S0, False);
-    RETURN S 
-  } 
-  =
-  do {
-    (* Do some iterations *)
-    (S, finished, early_break) \<leftarrow>
-       WHILE
-         (\<lambda>(S, finished, early_break). finished \<and> early_break) 
-         (\<lambda>(S, finished). do {
-            (S, finished) \<leftarrow> f S;
-            early_break \<leftarrow> g S;
-            RETURN (S, finished, early_break)
-          })
-         (S0, False, False);
-
-    (* Do missing iterations to reach the end*)
-    (S, finished) \<leftarrow>
-       WHILE
-         (\<lambda>(S, finished). finished) 
-         (\<lambda>(S, finished). f S)
-         (S, finished);
-    RETURN S 
-  }
-\<close>
-oops
 
 subsubsection \<open>Handle true clauses from the trail\<close>
 
@@ -189,7 +157,7 @@ proof -
   qed
 qed
 
-lemma
+lemma cdcl_twl_restart_wl_cdcl_twl_restart_wl_is_cdcl_twl_restart_wl:
   assumes
     ST: \<open>cdcl_twl_restart_wl S T\<close> and TU: \<open>cdcl_twl_restart_wl T U\<close> and
     n_d: \<open>no_dup (get_trail_wl S)\<close>
@@ -279,6 +247,49 @@ proof -
     done
 qed
 
+lemma map_lit_of_eq_defined_litD: \<open>map lit_of M = map lit_of M' \<Longrightarrow> defined_lit M = defined_lit M'\<close>
+  apply (induction M arbitrary: M')
+  subgoal by auto
+  subgoal for L M M'
+    by (cases M'; cases L; cases "hd M'")
+      (auto simp: defined_lit_cons)
+  done
+   
+
+lemma map_lit_of_eq_no_dupD: \<open>map lit_of M = map lit_of M' \<Longrightarrow> no_dup M = no_dup M'\<close>
+  apply (induction M arbitrary: M')
+  subgoal by auto
+  subgoal for L M M'
+    by (cases M'; cases L; cases "hd M'")
+      (auto dest: map_lit_of_eq_defined_litD)
+  done
+
+lemma tranclp_cdcl_twl_restart_wl_no_dup:
+  assumes
+    ST: \<open>cdcl_twl_restart_wl\<^sup>*\<^sup>* S T\<close> and
+    n_d: \<open>no_dup (get_trail_wl S)\<close>
+  shows \<open>no_dup (get_trail_wl T)\<close>
+  using assms
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal 
+    by (auto simp: cdcl_twl_restart_wl.simps valid_trail_reduction_simps
+      dest: map_lit_of_eq_no_dupD dest!: no_dup_appendD get_all_ann_decomposition_exists_prepend)
+  done
+
+lemma rtranclp_cdcl_twl_restart_wl_cdcl_is_cdcl_twl_restart_wl:
+  assumes
+    ST: \<open>cdcl_twl_restart_wl\<^sup>+\<^sup>+ S T\<close> and
+    n_d: \<open>no_dup (get_trail_wl S)\<close>
+  shows \<open>cdcl_twl_restart_wl S T\<close>
+  using assms
+  apply (induction rule: tranclp_induct)
+  subgoal by auto
+  subgoal 
+    using cdcl_twl_restart_wl_cdcl_twl_restart_wl_is_cdcl_twl_restart_wl
+    tranclp_cdcl_twl_restart_wl_no_dup by blast
+  done
+
 paragraph \<open>Specification\<close>
 
 inductive remove_one_watched_true_clause where
@@ -304,8 +315,9 @@ if
 inductive remove_all_watched_true_clause where
   \<open>remove_all_watched_true_clause (M @ Propagated L C # M', N, D, NE, UE, Q, W)
      (M @ Propagated L 0 # M', N', D', NE', UE', Q', W')\<close>
-if \<open>full (remove_one_watched_true_clause L) (M, N, D, NE, UE, Q, W)
-     (M, N, D, add_mset (mset (N\<propto>C))NE, UE, Q, W)\<close>
+if \<open>full (remove_one_watched_true_clause L) (M @ Propagated L C # M', N, D, NE, UE, Q, W)
+     (M @ Propagated L C # M', N', D', NE', UE', Q', W')\<close>
+
 
 definition (in -) extract_and_remove
   :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> ('v clauses_l \<times> 'v clause_l \<times> bool) nres\<close>
@@ -328,6 +340,50 @@ lemma (in -) \<open>correct_watching S \<Longrightarrow> partial_correct_watchin
   by (cases S)
     (auto simp: correct_watching.simps partial_correct_watching.simps clause_to_update_def
     simp del: set_mset_mset dest: in_set_mset_eq_in)
+
+lemma impI_isabelle_you_are_stupid: "(\<And>M. M = M' \<Longrightarrow> R M) \<Longrightarrow> (R M')"
+  
+  by blast
+
+lemma remove_one_watched_true_clause_decomp:
+  assumes \<open>remove_one_watched_true_clause L S T\<close> and
+    \<open>get_level (get_trail_wl S) L = 0\<close> and
+     \<open>L \<in> lits_of_l (get_trail_wl S)\<close>
+  obtains M N U D NE UE W Q M' N' U' NE' UE' W' Q' where
+    \<open>S = (M, N, D, NE, UE, Q, W)\<close> and
+    \<open>T = (M', N', D, NE + NE', UE + UE', Q, W)\<close> and
+    \<open>\<forall>C\<in># NE'+UE'. \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M\<close> 
+    \<open>dom_m N' \<subseteq># dom_m N\<close> and
+    \<open>M = M'\<close>
+    apply atomize
+  using assms
+  by (induction) (auto simp: conj_imp_eq_imp_imp dest: in_set_takeD[of _ 2])
+
+lemma rtranclp_remove_one_watched_true_clause_decomp_Ex:
+  assumes \<open>(remove_one_watched_true_clause L)\<^sup>*\<^sup>* S T\<close> and
+    \<open>get_level (get_trail_wl S) L = 0\<close> and
+     \<open>L \<in> lits_of_l (get_trail_wl S)\<close>
+  shows
+    \<open>\<exists>M N U D NE UE W Q M' N' U' D' NE' UE' W' Q'. S = (M, N, D, NE, UE, Q, W) \<and>
+     T = (M', N', D, NE + NE', UE + UE', Q, W) \<and>
+     (\<forall>C\<in># NE'+UE'. \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
+     dom_m N' \<subseteq># dom_m N \<and> M = M'\<close>
+  using assms
+  apply (induction)
+  subgoal by (cases S) auto
+  subgoal for T U
+    by (drule remove_one_watched_true_clause_decomp) (auto simp: dest!: )
+  done
+
+lemma
+  assumes \<open>remove_all_watched_true_clause\<^sup>*\<^sup>* S T\<close> and
+    \<open>count_decided (get_trail_wl S) = 0\<close> and
+    \<open>partial_correct_watching S\<close> and
+    \<open>get_conflict_wl S = None\<close> and
+    \<open>\<forall>L C. Propagated L C \<in> set (get_trail_wl T) \<longrightarrow> C = 0\<close>
+  shows \<open>cdcl_twl_restart_wl S T\<close>
+  using assms
+  oops
 
 definition remove_all_clause_watched_by_inv where
   \<open>remove_all_clause_watched_by_inv = (\<lambda>(M\<^sub>0, N\<^sub>0, D\<^sub>0, NE\<^sub>0, UE\<^sub>0, Q\<^sub>0, W\<^sub>0) (M, N, D, NE, UE, Q, W).
