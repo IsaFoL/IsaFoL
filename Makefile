@@ -7,7 +7,7 @@ RUN_ISABELLE2017="$(ISABELLE2017)/bin/isabelle"
 ISABELLE_HOME=/home/zmaths/.isabelle/browser_info
 ISABELLE2017_HOME=/home/zmaths/.isabelle/Isabelle2017/browser_info
 
-AFP=$(ISABELLE)/../afp-devel
+AFP=$(ISABELLE)/../afp-2017
 DESTINATION="$(shell pwd)/html"
 
 ISABELLE_version= $(shell (cd $(ISABELLE) && hg id --id))
@@ -25,7 +25,7 @@ HOL:
 
 Weidenbach_Book:
 	$(RUN_ISABELLE2017) build -d '$$AFP' -b Sepref_IICF
-	$(RUN_ISABELLE2017) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
+	$(RUN_ISABELLE2017) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -d Weidenbach_Book CDCL
 
 Ordered_Resolution_Prover:
 	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -v -b -D Ordered_Resolution_Prover
@@ -56,7 +56,7 @@ doc:
 	cp -R $(ISABELLE2017_HOME)/Functional_Ordered_Resolution_Prover $(DESTINATION)/current || :
 #	cp -R $(ISABELLE2017_HOME)/Ordered_Resolution_Prover $(DESTINATION)/current || :
 #	cp -R $(ISABELLE2017_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current || :
-#	./add_dates.pl --noverbose --unsafe --isabelle="$(ISABELLE_version)" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP_version)"
+	./add_dates.pl --noverbose --unsafe --isabelle="2017" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP_version)"
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
