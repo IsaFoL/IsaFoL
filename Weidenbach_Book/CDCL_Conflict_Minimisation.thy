@@ -1238,34 +1238,12 @@ lemma convert_analysis_list_empty[simp]:
   \<open>convert_analysis_list NU a = [] \<longleftrightarrow> a = []\<close>
   by (auto simp: convert_analysis_list_def)
 
-lemma in_set_definedD: \<open>Propagated L L' \<in> set M \<Longrightarrow> defined_lit M L\<close>
-  by (auto simp: defined_lit_append dest!: split_list)
-
 (* TODO Move *)
 lemma list_rel_in_find_correspondanceE:
   assumes \<open>(M, M') \<in> \<langle>R\<rangle>list_rel\<close> and \<open>L \<in> set M\<close>
   obtains L' where \<open>(L, L') \<in> R\<close> and \<open>L' \<in> set M'\<close>
   using assms[unfolded in_set_conv_decomp] by (auto simp: list_rel_append1
       elim!: list_relE3)
-
-lemma convert_lits_l_propagated_in_inD:
-  \<open>(M, M') \<in> convert_lits_l NU NUE \<Longrightarrow> Propagated L i \<in> set M \<Longrightarrow> get_level M L > 0 \<Longrightarrow> 
-    no_dup M \<Longrightarrow>
-    \<exists>C. Propagated L C \<in> set M' \<and> convert_lit NU NUE (Propagated L i) (Propagated L C)\<close>
-  apply (induction arbitrary: L i rule: convert_lits_l_induct)
-  subgoal by auto
-  subgoal for M M' LM LM' L L'
-    by (auto simp: get_level_cons_if atm_of_eq_atm_of dest!: split: if_splits)
-  subgoal for M M' LM LM' L L'
-    by (cases LM; cases LM')
-      (auto simp: get_level_cons_if atm_of_eq_atm_of dest!: split: if_splits
-      dest: in_set_definedD)
-  subgoal for M M' LM LM' L L'
-    by (cases LM; cases LM')
-      (auto simp: get_level_cons_if atm_of_eq_atm_of convert_lit.simps split: if_splits
-      dest: in_set_definedD)
-  done 
-
 (* End Move *)
 
 lemma lit_redundant_rec_wl:
@@ -1352,7 +1330,7 @@ proof -
   qed
   have get_propagation_reason: \<open>get_propagation_reason M (-x1e)
       \<le> \<Down> (\<langle>{(C', C). C = mset (NU \<propto> C') \<and> C' \<noteq> 0 \<and> Propagated (- x1e) (mset (NU\<propto>C')) \<in> set M'
-                \<and> Propagated (- x1e) C' \<in> set M \<and> C' \<in># dom_m NU \<and> get_level M x1e > 0}\<rangle>
+                \<and> Propagated (- x1e) C' \<in> set M \<and> C' \<in># dom_m NU}\<rangle>
               option_rel)
           (get_propagation_reason M' (-x1d))\<close>
     (is \<open>_ \<le> \<Down> (\<langle>?get_propagation_reason\<rangle>option_rel) _\<close>)
@@ -1372,8 +1350,8 @@ proof -
          \<open>get_literal_and_remove_of_analyse_wl (NU \<propto> fst (last x1c)) x1c = (x1e, x2e)\<close> and
       \<open>- x1d \<in> lits_of_l M'\<close> and
       ux1e_M: \<open>- x1e \<in> lits_of_l M\<close> and
-      cond: \<open>\<not> (get_level M x1e = 0 \<or> x1b (atm_of x1e) = SEEN_REMOVABLE \<or> x1e \<in># D)\<close> and
-      cond': \<open>\<not> (get_level M' x1d = 0 \<or> x1 (atm_of x1d) = SEEN_REMOVABLE \<or> x1d \<in># D)\<close>
+      \<open>\<not> (get_level M x1e = 0 \<or> x1b (atm_of x1e) = SEEN_REMOVABLE \<or> x1e \<in># D)\<close> and
+      cond: \<open>\<not> (get_level M' x1d = 0 \<or> x1 (atm_of x1d) = SEEN_REMOVABLE \<or> x1d \<in># D)\<close>
     for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1e x1d x'a x2d x2e
   proof -
     have [simp]: \<open>x1d = x1e\<close>
@@ -1391,10 +1369,8 @@ proof -
         obtain E' where
            x1d_M': \<open>Propagated (- x1d) E' \<in> set M'\<close> and
            \<open>E' \<in># NE + UE\<close>
-          using x1e_M M'_def cond n_d
-          convert_lits_l_propagated_in_inD[OF M'_def x1e_M]
-          by (auto dest: split_list simp: p2rel_def
-              convert_lit.simps dest!: 
+          using x1e_M M'_def by (auto dest: split_list simp: convert_lits_l_def p2rel_def
+              convert_lit.simps
               elim!: list_rel_in_find_correspondanceE split: if_splits)
         moreover have \<open>unit_clss S'' = NE + UE\<close>
           using S_S' S'_S'' x1d_M' by (auto simp: S)
@@ -1409,15 +1385,13 @@ proof -
           by (auto simp: S)
       qed
       show ?propa and ?a
-        using that M'_def cond n_d by (auto simp: p2rel_def convert_lit.simps
-              elim!: list_rel_in_find_correspondanceE split: if_splits
-              dest: convert_lits_l_propagated_in_inD)
+        using that M'_def by (auto simp: convert_lits_l_def p2rel_def convert_lit.simps
+              elim!: list_rel_in_find_correspondanceE split: if_splits)
       then show ?L
-        using that add_inv S_S' S'_S'' S cond unfolding twl_list_invs_def
+        using that add_inv S_S' S'_S'' S unfolding twl_list_invs_def
         by (auto 5 5 simp: state_wl_l_def twl_st_l_def)
     qed
     then show ?thesis
-      using cond
       apply (auto simp: get_propagation_reason_def refine_rel_defs intro!: RES_refine)
       apply (case_tac s)
       by auto
@@ -1602,9 +1576,8 @@ proof -
           obtain E' where
             x1d_M': \<open>Propagated (- L) E' \<in> set M'\<close> and
             \<open>E' \<in># NE + UE\<close>
-            using L_M convert_lits_l_propagated_in_inD[OF M'_def L_M] n_d lev0_rem M'_def
-            by (auto dest: split_list simp: p2rel_def
-                convert_lit.simps dest: 
+            using L_M M'_def by (auto dest: split_list simp: convert_lits_l_def p2rel_def
+                convert_lit.simps
                 elim!: list_rel_in_find_correspondanceE split: if_splits)
           moreover have \<open>unit_clss S'' = NE + UE\<close>
             using S_S' S'_S'' x1d_M' by (auto simp: S)
@@ -1619,8 +1592,7 @@ proof -
             by (auto simp: S)
         qed
         show ?propa and ?a
-          using that M'_def n_d lev0_rem by (auto simp: p2rel_def convert_lit.simps
-              dest!: convert_lits_l_propagated_in_inD
+          using that M'_def by (auto simp: convert_lits_l_def p2rel_def convert_lit.simps
               elim!: list_rel_in_find_correspondanceE split: if_splits)
       qed note H = this
      show \<open>?H2 \<Longrightarrow> ?G2\<close>
@@ -1639,7 +1611,7 @@ proof -
     in_trail: \<open>Propagated (- L) C \<in> set M\<close> and
     lev: \<open>\<not> (get_level M' L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE)\<close>
     for C
-    using add_inv that propagated_L[OF lev _ in_trail] uL_M S_S' S'_S'' M'_def
+    using add_inv that propagated_L[OF lev _ in_trail] uL_M S_S' S'_S''
     by (auto simp: S twl_list_invs_def)
   have [dest]: \<open>C \<noteq> {#}\<close> if \<open>Propagated (- L) C \<in> set M'\<close> for C
   proof -
@@ -1658,7 +1630,7 @@ proof -
           dest!: split_list p2relD)
 
   qed
-  have [simp]: \<open>Propagated (- L) C \<in> set M \<Longrightarrow> 0 < get_level M L \<Longrightarrow> C > 0 \<Longrightarrow> C \<in># dom_m NU\<close> for C
+  have [simp]: \<open>Propagated (- L) C \<in> set M \<Longrightarrow> C > 0 \<Longrightarrow> C \<in># dom_m NU\<close> for C
     using add_inv S_S' S'_S'' propagated_L[of C]
     by (auto simp: S twl_list_invs_def state_wl_l_def
         twl_st_l_def)
