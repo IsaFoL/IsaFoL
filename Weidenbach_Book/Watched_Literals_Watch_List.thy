@@ -212,7 +212,6 @@ definition update_clause_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow>
      let N' = N(C \<hookrightarrow> swap (N \<propto> C) i f);
      RETURN (w, (M, N', D, NE, UE, Q,
          W(L := delete_index_and_swap (watched_by (M, N, D, NE, UE, Q, W) L) w, K':= W K' @ [C])))
-
   })\<close>
 
 definition unit_prop_body_wl_find_unwatched_inv where

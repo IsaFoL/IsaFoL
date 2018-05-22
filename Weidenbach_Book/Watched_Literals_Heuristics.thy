@@ -402,15 +402,9 @@ lemma lit_of_l_convert_lits_l[simp]:
   assumes \<open>(M, M') \<in> convert_lits_l N E\<close>
   shows
       \<open>lit_of ` set M' = lit_of ` set M\<close>
-  using assms
-  apply (induction M arbitrary: M' rule: ann_lit_list_induct)
-  subgoal by auto
-  subgoal for L M M'
-    by (cases M')
-      (auto simp: convert_lits_l_def p2rel_def)
-  subgoal for L C M M'
-    by (cases M') (auto simp: convert_lits_l_def p2rel_def)
-  done
+  using assms apply -
+  apply (drule list_of_l_convert_lits_l)
+  by (auto simp: lits_of_def)
 (* End Move *)
 
 lemma

@@ -146,11 +146,7 @@ lemma twl_st_l_init_alt_def:
 
 lemma convert_lits_l_lit_of_mset[simp]:
   \<open>(a, af) \<in> convert_lits_l N E \<Longrightarrow> lit_of `# mset af = lit_of `# mset a\<close>
-  apply (induction a arbitrary: af)
-  subgoal by auto
-  subgoal for L M af
-    by (cases af) auto
-  done
+  by (induction rule: convert_lits_l_induct) auto
 
 lemma [twl_st_init]:
   assumes \<open>(S, T) \<in> twl_st_l_init\<close>
@@ -720,9 +716,8 @@ lemma entailed_clss_inv_add_to_unit_init_clauses:
 lemma convert_lits_l_no_decision_iff: \<open>(S, T) \<in> convert_lits_l M N \<Longrightarrow>
         (\<forall>s\<in>set  T. \<not> is_decided s) \<longleftrightarrow>
         (\<forall>s\<in>set S. \<not> is_decided s)\<close>
-  unfolding convert_lits_l_def
-  by (induction rule: list_rel_induct)
-    (auto simp: dest!: p2relD)
+  by (drule convert_lits_l_count_decided)
+    (auto simp: count_decided_0_iff[symmetric])
 
 lemma twl_st_l_init_no_decision_iff:
    \<open>(S, T) \<in> twl_st_l_init \<Longrightarrow>
@@ -852,8 +847,19 @@ proof -
     by (cases S) auto
   have [simp]: \<open>(propagate_unit_init_l L S, propagate_unit_init L T)
         \<in> twl_st_l_init\<close>
-    using SOC_T by (cases S) (auto simp: twl_st_l_init_def propagate_unit_init_l_def
-        convert_lit.simps convert_lits_l_extend_mono)
+    using SOC_T dec unfolding propagate_unit_init_l_def S
+    apply (cases T)
+    apply (clarsimp simp only: propagate_unit_init.simps twl_st_l_init_def)
+    apply (intro conjI)
+    subgoal
+        apply (rule convert_lits_l_extend_mono)
+        apply (rule convert_lits_l_cons0)
+        apply assumption
+        by (auto simp: count_decided_0_iff)
+    subgoal
+      by (auto simp: twl_st_l_init_def propagate_unit_init_l_def
+        convert_lit.simps)
+    done
   have dec': \<open>\<forall>s\<in>set (get_trail_init T). \<not> is_decided s\<close>
     using SOC_T dec by (subst twl_st_l_init_no_decision_iff)
   have [simp]: \<open>twl_stgy_invs (fst (propagate_unit_init L T))\<close>
@@ -882,9 +888,11 @@ proof -
       using inv hd_C lev SOC_T dec' confl in_literals_to_update WS
       by (auto simp: twl_st_init twl_st_l_init count_decided_0_iff uminus_lit_of_image_mset)
     done
+  have [simp]: \<open>count_decided M  = 0\<close>
+    using dec unfolding S by (auto simp: count_decided_0_iff)
   have [simp]: \<open>twl_list_invs (fst (propagate_unit_init_l L S))\<close>
     using add_inv
-    by (auto simp: S twl_list_invs_def propagate_unit_init_l_def)
+    by (auto simp: S twl_list_invs_def propagate_unit_init_l_def get_level_cons_if)
   show ?pre
     unfolding init_dt_pre_def
     apply (rule exI[of _ \<open>propagate_unit_init L T\<close>])
@@ -1229,15 +1237,14 @@ proof -
     for i :: \<open>nat\<close>
   proof -
     let ?S = \<open>((M, fmupd i (a, True) N, None, NE, UE, {#}, Q), OC)\<close>
-(*     have [simp]: \<open>convert_lits_l (fmupd i (a, True) N) (NE+UE) convert_lits_l N (NE+UE)\<close>
-      apply (rule convert_lits_l_cong)
-      using add_inv i_dom i_0 by (auto simp: S twl_list_invs_def) *)
-    have \<open>Propagated L i \<notin> set M\<close> for L
-      using add_inv i_dom i_0 unfolding S
-      by (auto simp: twl_list_invs_def)
-    then have \<open>(?S, add_to_clauses_init a T) \<in> twl_st_l_init\<close>
+    have [simp]: \<open>count_decided M = 0\<close>
+      using add_inv i_dom i_0 dec unfolding S
+      by (auto simp: twl_list_invs_def count_decided_0_iff)
+    then have [simp]: \<open>get_level M L = 0\<close> for L
+      using count_decided_ge_get_level[of M L] by auto
+    have \<open>(?S, add_to_clauses_init a T) \<in> twl_st_l_init\<close>
       using SOC_T i_dom
-      by (auto simp: S twl_st_l_init_def init_clss_l_mapsto_upd_notin
+      by (auto simp: S twl_st_l_init_def init_clss_l_mapsto_upd_notin get_level_cons_if
           learned_clss_l_mapsto_upd_notin_irrelev convert_lit.simps
           intro!: convert_lits_l_extend_mono[of _ _ N \<open>NE+UE\<close> \<open>fmupd i (a, True) N\<close>])
     moreover have \<open>twl_struct_invs_init (add_to_clauses_init a T)\<close>
@@ -1301,7 +1308,7 @@ proof -
     apply -
     apply normalize_goal+
     by presburger
-  have dec': \<open>\<forall>s\<in>set (get_trail_init T). \<not> is_decided s\<close> 
+  have dec': \<open>\<forall>s\<in>set (get_trail_init T). \<not> is_decided s\<close>
     using SOC_T dec by (rule twl_st_l_init_no_decision_iff[THEN iffD2])
 
   obtain M N D NE UE Q where

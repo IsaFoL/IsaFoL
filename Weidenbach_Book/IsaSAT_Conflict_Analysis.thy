@@ -646,7 +646,7 @@ proof -
       x2c_dom[simp]: \<open>x2c \<in># dom_m (get_clauses_wl x2)\<close> and
       x1a_0: \<open>x1c = get_clauses_wl x2 \<propto> x2c ! 0\<close> and
       x1a_watched: \<open>x1c \<in> set (watched_l (get_clauses_wl x2 \<propto> x2c))\<close>
-      using list_invs x2_T T_U unfolding twl_list_invs_def
+      using list_invs x2_T T_U count_dec_ge unfolding twl_list_invs_def
       by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons)
     then have C': \<open>get_clauses_wl x2 \<propto> x2c = x1c # C'\<close>
       unfolding C'_def by (cases \<open>get_clauses_wl x2 \<propto> x2c\<close>) auto
@@ -772,9 +772,12 @@ proof -
       have \<open>\<exists>x2a M''. get_trail U = Propagated x1a x2a # M'' \<and>
           (M', M'') \<in> convert_lits_l (get_clauses_l T) (unit_clss U) \<and>
           x2a = mset(get_clauses_wl x2 \<propto> x2c)\<close>
-        using nempty x2_T T_U dec x1a_watched M'_def hd_trail
+        using nempty x2_T T_U dec x1a_watched M'_def hd_trail count_dec_ge
+        convert_lits_l_consD[of \<open>hd (get_trail_l T)\<close> \<open>tl (get_trail_l T)\<close> \<open>hd (get_trail U)\<close>
+          \<open>tl (get_trail U)\<close> \<open>get_clauses_l T\<close> \<open>get_unit_clauses_l T\<close>]
         by (cases x2; cases T; cases U; cases \<open>get_trail U\<close>; cases \<open>get_trail_l T\<close>)
-           (auto simp: state_wl_l_def twl_st_l_def convert_lit.simps)
+          (auto simp: state_wl_l_def twl_st_l_def convert_lit.simps
+          simp del: convert_lits_l_cons convert_lits_l_cons0)
       then have M_x2_x2a: \<open>tl (get_trail_wl x2) \<Turnstile>as CNot (mset (tl (get_clauses_wl x2 \<propto> x2c)))\<close>
         using confl conf nempty x2_T T_U dec x1a_0 x1a_watched
         unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
