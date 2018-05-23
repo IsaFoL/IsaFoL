@@ -5,12 +5,10 @@ begin
 
 text \<open>
   The idea of the restart works the following:
-  \<^enum> We backtrack to level 0. This simplifies further steps. 
-  \<^enum> We move all clauses used to justify the remaining propagating at level 0 out of \<^term>\<open>N\<close> and
-    move them to \<^term>\<open>NE\<close> or \<^term>\<open>UE\<close>. To do so, we move that are watching the
-    corresponding literal to the entailed clauses. This includes the clauses justifying the
-    propagation (if it was not already there).
-  \<^enum> Now we can safely deleting all learned clauses.
+  \<^enum> We backtrack to level 0. This simplifies further steps.
+  \<^enum> We first move all clause annotating a literal to  \<^term>\<open>NE\<close> or \<^term>\<open>UE\<close>.
+  \<^enum> Then, we move remaining clauses that are watching the some literal at level 0.
+  \<^enum> Now we can safely deleting any remaining learned clauses.
   \<^enum> Once all that is done, we have to recalculate the watch lists (and can on the way GC the set of
     clauses).
 \<close>
@@ -44,7 +42,7 @@ restart_trail:
     \<open>init_clss_lf N = init_clss_lf N' + NE'\<close> and
     \<open>learned_clss_lf N' + UE' \<subseteq># learned_clss_lf N\<close> and
     \<open>\<forall>E\<in># (NE'+UE'). \<exists>L\<in>set E. L \<in> lits_of_l M \<and> get_level M L = 0\<close> and
-    \<open>\<forall>L E E' . Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E \<in># dom_m N \<longrightarrow> E > 0  \<longrightarrow> E' > 0 \<longrightarrow>
+    \<open>\<forall>L E E' . Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E > 0  \<longrightarrow> E' > 0 \<longrightarrow>
         E \<in># dom_m N' \<and> N' \<propto> E = N \<propto> E'\<close> and
     \<open>\<forall>L E E'. Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E = 0 \<longrightarrow> E' \<noteq> 0 \<longrightarrow>
        mset (N \<propto> E') \<in># NE + mset `# NE' + UE + mset `# UE'\<close> and
@@ -340,6 +338,25 @@ text \<open>
 
   This is obviously not complete but is fast by avoiding iterating over all clauses.
 \<close>
+inductive remove_one_annot_true_clause :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+remove_irred: 
+  \<open>remove_one_annot_true_clause L (M @ Propagated L C # M', N, D, NE, UE, Q, W)
+     (M @ Propagated L C # M', fmdrop C N, D, add_mset (mset (N\<propto>C)) NE, UE, Q, W)\<close>
+if
+  \<open>get_level (M @ Propagated L C # M') L = 0\<close> and
+  \<open>C \<in># dom_m N\<close> and
+  \<open>L \<in> set (watched_l (N\<propto>C))\<close> and
+  \<open>irred N C\<close> |
+remove_red: 
+  \<open>remove_one_annot_true_clause L (M @ Propagated L C # M', N, D, NE, UE, Q, W)
+     (M @ Propagated L C # M', fmdrop C N, D, NE, add_mset (mset (N\<propto>C)) UE, Q, W)\<close>
+if
+  \<open>L \<in> lits_of_l M\<close> and
+  \<open>get_level M L = 0\<close> and
+  \<open>C \<in># dom_m N\<close> and
+  \<open>L \<in> set (watched_l (N\<propto>C))\<close> and
+  \<open>\<not>irred N C\<close>
+
 inductive remove_one_watched_true_clause :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
 remove_irred: 
   \<open>remove_one_watched_true_clause L (M, N, D, NE, UE, Q, W)
@@ -464,9 +481,12 @@ lemma rtranclp_remove_one_watched_true_clause_trail:
   shows \<open>get_trail_wl S = get_trail_wl T\<close>
   using assms by (induction) (auto simp: remove_one_watched_true_clause_trail)
 
+text \<open>This definition states that the domain of the clauses is reduced, but the remaining clauses
+  are not changed. 
+\<close>
 definition reduce_dom_clauses where
   \<open>reduce_dom_clauses N N' \<longleftrightarrow>
-     (\<forall>C. C \<in># dom_m N' \<longrightarrow> C \<in># dom_m N \<and> N\<propto>C = N'\<propto>C)\<close>
+     (\<forall>C. C \<in># dom_m N' \<longrightarrow> C \<in># dom_m N \<and> fmlookup N C = fmlookup N' C)\<close>
 
 lemma reduce_dom_clauses_fdrop[simp]: \<open>reduce_dom_clauses N (fmdrop C N)\<close>
   using distinct_mset_dom[of N]
@@ -552,10 +572,8 @@ definition reasons_invs_wl where
   \<open>reasons_invs_wl S \<longleftrightarrow>
     (* distinct_mset (mark_of `# filter_mset is_proped (mset (get_trail_wl S))) \<and> *)
     (\<forall>L C M1 M2 . M2 @ Propagated L C # M1 = get_trail_wl S \<longrightarrow> C > 0 \<longrightarrow> 
-      C \<in># dom_m (get_clauses_wl S) \<longrightarrow> (L = get_clauses_wl S \<propto> C ! 0 \<and>
+      (C \<in># dom_m (get_clauses_wl S) \<and> L = get_clauses_wl S \<propto> C ! 0 \<and>
        L \<in> set (watched_l (get_clauses_wl S \<propto> C))
-        (* \<and>
-        M1 \<Turnstile>as CNot (remove1_mset L (mset (get_clauses_wl S \<propto> C))) *)
     ))\<close>
 
 lemma no_step_remove_one_watched_true_clause_different_annot_all_killed:
@@ -574,23 +592,24 @@ lemma no_step_remove_one_watched_true_clause_different_annot_all_killed:
     dest!: multi_member_split split_list[of \<open>Propagated L C\<close>])
 
 lemma remove_one_watched_true_clause_reasons_invs_wl:
-  \<open>remove_one_watched_true_clause L S T \<Longrightarrow> reasons_invs_wl S \<Longrightarrow> reasons_invs_wl T\<close>
+  \<open>remove_one_watched_true_clause L S T \<Longrightarrow> reasons_invs_wl_p L S \<Longrightarrow> reasons_invs_wl_p L T\<close>
   using distinct_mset_dom[of \<open>get_clauses_wl S\<close>] apply -
   by (induction rule: remove_one_watched_true_clause.induct)
-    (auto simp: reasons_invs_wl_def dest: multi_member_split)
+    (auto simp: reasons_invs_wl_p_def dest: multi_member_split)
 
 lemma rtranclp_remove_one_watched_true_clause_reasons_invs_wl:
-  \<open>(remove_one_watched_true_clause L)\<^sup>*\<^sup>* S T \<Longrightarrow> reasons_invs_wl S \<Longrightarrow> reasons_invs_wl T\<close>
+  \<open>(remove_one_watched_true_clause L)\<^sup>*\<^sup>* S T \<Longrightarrow> reasons_invs_wl_p L S \<Longrightarrow> reasons_invs_wl_p L T\<close>
   using distinct_mset_dom[of \<open>get_clauses_wl S\<close>] apply -
   by (induction rule: rtranclp_induct)
     (auto simp: remove_one_watched_true_clause_reasons_invs_wl)
 
 lemma reasons_invs_wl_change_annot:
-  \<open>reasons_invs_wl (M @ Propagated L C # M', N', D', NE', UE', Q', W') \<Longrightarrow>
+  \<open>no_dup (M @ Propagated L C # M') \<Longrightarrow> 
+     reasons_invs_wl_p L (M @ Propagated L C # M', N', D', NE', UE', Q', W') \<Longrightarrow>
        reasons_invs_wl (M @ Propagated L 0 # M', N', D', NE', UE', Q', W')\<close>
   apply (auto 5 5 simp: reasons_invs_wl_def
     simp del: append_assoc append_Cons
-    simp: append_assoc[symmetric] append_Cons[symmetric]
+    simp: append_assoc[symmetric] append_Cons[symmetric] reasons_invs_wl_p_def
     elim!: list_match_lel_lel)
   apply (auto 5 5 simp: reasons_invs_wl_def
     elim!: list_match_lel_lel)
@@ -610,15 +629,39 @@ lemma rtranclp_remove_all_watched_true_clause_reasons_invs_wl:
   by (induction rule: rtranclp_induct)
     (auto simp: remove_all_watched_true_clause_reasons_invs_wl)
 
-lemma reduce_dom_clauses_ran_mf_subset: \<open>reduce_dom_clauses N N' \<Longrightarrow> ran_mf N' \<subseteq># ran_mf N\<close>
-  apply (auto simp: reduce_dom_clauses_def ran_m_def)
-  apply (induction \<open>dom_m N\<close> arbitrary: N N')
-  subgoal by auto
-  subgoal premises p for C A N N'
-   using p(1)[of \<open>fmdrop C N\<close>] p(2-)
-   by auto
-  done
+lemma dom_m_empty_iff: \<open>dom_m N' = {#} \<longleftrightarrow> N' = fmempty\<close>
+  by (cases N') auto
 
+lemma reduce_dom_clauses_empty_left: \<open>reduce_dom_clauses fmempty N' \<longleftrightarrow> N' = fmempty\<close>
+  by (auto simp: reduce_dom_clauses_def dom_m_empty_iff)
+
+lemma reduce_dom_clauses_empty_right[simp]: \<open>reduce_dom_clauses N' fmempty\<close>
+  by (auto simp: reduce_dom_clauses_def)
+
+lemma reduce_dom_clauses_fmupd_notin:
+  \<open>x \<notin># dom_m N' \<Longrightarrow> reduce_dom_clauses N (fmupd x C N') \<longleftrightarrow>
+   reduce_dom_clauses N N' \<and> x \<in># dom_m N \<and> fmlookup N x = Some C\<close>
+  by (auto simp: reduce_dom_clauses_def)
+
+lemma reduce_dom_clauses_fmdrop_notin:
+   \<open>reduce_dom_clauses N' N \<Longrightarrow> i \<notin># dom_m N \<Longrightarrow> reduce_dom_clauses (fmdrop i N') N\<close>
+  by (auto simp: reduce_dom_clauses_def)
+
+lemma setset_mset_add_msetD: \<open>a \<subseteq># b \<Longrightarrow> add_mset x a \<subseteq># add_mset x b\<close>
+  by (auto simp: ac_simps)
+
+lemma reduce_dom_clauses_ran_mf_subset: \<open>reduce_dom_clauses N N' \<Longrightarrow> ran_mf N' \<subseteq># ran_mf N\<close>
+  apply (induction N' arbitrary: N)
+  subgoal by auto
+  subgoal premises p for i C N N'
+    using p(1)[of \<open>fmdrop i N'\<close>] p(2-)
+     setset_mset_add_msetD[of \<open>ran_mf N\<close> \<open>remove1_mset (fst C) (ran_mf N')\<close> \<open>fst C\<close>,
+      unfolded add_mset_remove_trivial_If]
+    apply (auto simp: reduce_dom_clauses_empty_left ran_m_mapsto_upd_notin
+      reduce_dom_clauses_fmupd_notin reduce_dom_clauses_fmdrop_notin split: if_splits)
+    apply (auto simp: ran_m_def dest: multi_member_split)
+    done
+  done
 
 lemma remove_all_watched_true_clause_different_annots_all_killed:
   assumes
@@ -663,8 +706,8 @@ proof (induction)
     init: \<open>init_clss_lf N = init_clss_lf N' + NE'\<close> and 
     learned: \<open>learned_clss_lf N = learned_clss_lf N' + UE'\<close> and 
     red_NN: \<open>reduce_dom_clauses N N'\<close> and
-    \<open>TNE' = NE + mset `# NE'\<close> and
-    \<open>TUE' = UE + mset `# UE'\<close>
+    TNE': \<open>TNE' = NE + mset `# NE'\<close> and
+    TUE': \<open>TUE' = UE + mset `# UE'\<close>
     by blast
   have N_N':  \<open>ran_mf N = ran_mf N' + NE' + UE'\<close>
     apply (subst all_clss_lf_ran_m[symmetric])
@@ -693,34 +736,33 @@ proof (induction)
     \<open>0 < C\<close> and
     \<open>C \<in># dom_m N\<close>
   proof -
+    have [simp]: \<open>op \<propto> N `# dom_m N' = op \<propto> N' `# dom_m N'\<close>
+      apply (rule image_mset_cong)
+      using red_NN
+      by (auto simp: reduce_dom_clauses_def)
     have \<open>C \<notin># dom_m N'\<close>
        using notin[OF that] .
     (* have \<open>N\<propto>C \<in># ran_mf N\<close>
       using that by (auto simp: ran_m_def) *)
     then have \<open>N\<propto>C \<in># ran_mf N - ran_mf N'\<close>
-      using dom_m_NN'
-      using multi_member_split[OF that(2)]
-       apply (auto simp: ran_m_def dest!: )
-    sorry
+      using dom_m_NN' subset_add_mset_notin_subset_mset[of \<open>dom_m N'\<close> C \<open>dom_m (fmdrop C N)\<close>]
+      using that(2) reduce_dom_clauses_ran_mf_subset[OF red_NN]
+       apply (auto simp:  ran_m_def  dest!: multi_member_split)
+       apply (subst (asm)(2) mset_subset_eq_exists_conv)
+       apply auto
+       done
     then show ?thesis
-      unfolding N_N' apply auto
-      sorry
-  have \<open>different_annots_all_killed N (NE + mset `# NE' + UE + mset `# UE') (M @ Propagated L C # M')
+      unfolding N_N' by auto
+  qed
+  then have \<open>different_annots_all_killed N (NE + mset `# NE' + UE + mset `# UE') (M @ Propagated L C # M')
      (M @ Propagated L 0 # M')\<close>
     using annot annot_L_N
-    apply (auto simp: list_all2_append count_decided_0_iff is_decided_no_proped_iff
+    by (auto simp: list_all2_append count_decided_0_iff is_decided_no_proped_iff
         full_def rtranclp_remove_one_watched_true_clause_reasons_invs_wl
         different_annot_all_killed.simps
      intro!: list.rel_refl_strong)
-     
-    sorry
-  show ?case apply simp sorry
-  unfolding full_def apply clarify
-  
-  apply (drule no_step_remove_one_watched_true_clause_different_annot_all_killed)
-  apply (auto simp: list_all2_append count_decided_0_iff is_decided_no_proped_iff
-        full_def rtranclp_remove_one_watched_true_clause_reasons_invs_wl
-     intro!: list.rel_refl_strong)
+  then show ?case by (simp add: TNE' TUE' ac_simps)
+qed
 
 lemma rtranclp_remove_all_watched_true_clause_partial_correct_watching:
  assumes \<open>remove_all_watched_true_clause\<^sup>*\<^sup>* S T\<close> and \<open>partial_correct_watching S\<close>
@@ -790,12 +832,15 @@ lemma different_annot_all_killed_trans:
     \<open>different_annot_all_killed N NUE L L'\<close> and
     \<open>different_annot_all_killed N' NUE' L' L''\<close>
     \<open>set_mset NUE \<subseteq> set_mset NUE'\<close> and
-    \<open>reduce_dom_clauses N N'\<close> 
+    red: \<open>reduce_dom_clauses N N'\<close> and
+    L': \<open>is_proped L' \<Longrightarrow> mark_of L'  > 0 \<Longrightarrow> mark_of L' \<in># dom_m N'\<close>
   shows
-    \<open>different_annot_all_killed N' NUE' L L''\<close>
+    \<open>different_annot_all_killed N NUE' L L''\<close>
 proof -
+  have [dest]: \<open>Ca \<in># dom_m N' \<Longrightarrow> mset (N' \<propto> Ca) = mset (N \<propto> Ca)\<close> for Ca
+    using red by (auto simp: reduce_dom_clauses_def)
   show ?thesis
-  using assms by (auto 5 5 simp: different_annot_all_killed.simps reduce_dom_clauses_def)
+    using assms L' by (auto simp: different_annot_all_killed.simps reduce_dom_clauses_def)
 qed
 
 lemma different_annots_all_killed_trans:
@@ -803,9 +848,10 @@ lemma different_annots_all_killed_trans:
     MM': \<open>different_annots_all_killed N NUE M M'\<close> and
     M'M'': \<open>different_annots_all_killed N' NUE' M' M''\<close> and
     \<open>set_mset NUE \<subseteq> set_mset NUE'\<close> and
-    \<open>reduce_dom_clauses N N'\<close>
+    \<open>reduce_dom_clauses N N'\<close> and
+    L': \<open>\<forall>L'\<in>set M'. is_proped L' \<longrightarrow> mark_of L' > 0 \<longrightarrow> mark_of L' \<in># dom_m N'\<close>
   shows
-    \<open>different_annots_all_killed N' NUE' M M''\<close>
+    \<open>different_annots_all_killed N NUE' M M''\<close>
 proof -
   have [simp]: \<open>length M = length M'\<close> \<open>length M' = length M''\<close>
     using MM' M'M'' by (auto simp: list_all2_conv_all_nth)
@@ -814,7 +860,7 @@ proof -
     subgoal using MM' M'M'' by (auto simp: list_all2_conv_all_nth)
     subgoal for n
       using list_all2_nthD[OF MM', of n]
-      using list_all2_nthD[OF M'M'', of n]
+      using list_all2_nthD[OF M'M'', of n] L'
       using different_annot_all_killed_trans[of N NUE \<open>M!n\<close> \<open>M'!n\<close> N' NUE' \<open>M''!n\<close>] assms(3-4)
       by auto
     done
@@ -843,23 +889,26 @@ next
     \<open>map lit_of M = map lit_of M'\<close> and
     count_dec': \<open>count_decided M' = 0\<close> and
     init: \<open>init_clss_lf N = init_clss_lf N' + NE'\<close> and
-    learned: \<open>learned_clss_lf N = learned_clss_lf N' + UE' \<and> reduce_dom_clauses N N'\<close>
+    learned: \<open>learned_clss_lf N = learned_clss_lf N' + UE' \<and> reduce_dom_clauses N N'\<close> and
+    red: \<open>reduce_dom_clauses N N'\<close>
     using rtranclp_remove_all_watched_true_clause_decomp_Ex[OF st lev0] by force
   have count_dec_T: \<open>count_decided (get_trail_wl T) = 0\<close>
     using count_dec' unfolding T by auto
   obtain TW' TQ' M'' N'' NE'' UE'' where
     T': \<open>T = (M', N', D, NE + mset `# NE', UE + mset `# UE', TQ', TW')\<close> and
-    U: \<open>U = (M'', N'', D, NE + mset `# NE' + mset `# NE'', UE + mset `# UE' + mset `# UE'', TQ', TW')\<close> and
+    U: \<open>U = (M'', N'', D, NE + mset `# NE' + mset `# NE'', UE + mset `# UE' + mset `# UE'', TQ',
+       TW')\<close> and
     \<open>\<forall>C\<in>#mset `# (NE'' + UE''). \<exists>L\<in>#C. get_level M' L = 0 \<and> L \<in> lits_of_l M'\<close> and
     \<open>dom_m N'' \<subseteq># dom_m N'\<close> and
     \<open>map lit_of M' = map lit_of M''\<close> and
     \<open>count_decided M'' = 0\<close> and
     init': \<open>init_clss_lf N' = init_clss_lf N'' + NE''\<close> and
     learned': \<open>learned_clss_lf N' = learned_clss_lf N'' + UE''\<close> and
-    red: \<open>reduce_dom_clauses N' N''\<close>
+    red': \<open>reduce_dom_clauses N' N''\<close>
     using remove_all_watched_true_clause_decomp_Ex[OF TU count_dec_T] unfolding T
     by (auto simp: T)
-
+  have reasons_T: \<open>reasons_invs_wl T\<close>
+    using reasons_inv rtranclp_remove_all_watched_true_clause_reasons_invs_wl st by blast
   have \<open>ran_mf N = init_clss_lf N'' + learned_clss_lf N'' + NE' + NE'' + UE' + UE''\<close>
     apply (subst all_clss_lf_ran_m[symmetric])
     unfolding init init'  unfolding learned  learned'
@@ -868,7 +917,7 @@ next
   have IH': \<open>different_annots_all_killed (get_clauses_wl S) (get_unit_clauses_wl T)
     (get_trail_wl S) (get_trail_wl T)\<close>
     using IH by auto
-  moreover have \<open>different_annots_all_killed (get_clauses_wl U) (get_unit_clauses_wl U)
+  moreover have \<open>different_annots_all_killed (get_clauses_wl T) (get_unit_clauses_wl U)
     (get_trail_wl T) (get_trail_wl U)\<close>
     apply (rule remove_all_watched_true_clause_different_annots_all_killed[OF TU])
     subgoal using count_dec' by (auto simp: T count_decided_0_iff)
@@ -879,12 +928,16 @@ next
              rtranclp_remove_all_watched_true_clause_reasons_invs_wl)
     done
   ultimately show ?case
-    using red
+    using red red' reasons_T
     apply -
     apply (rule different_annots_all_killed_trans)
       apply assumption+
-    by (auto simp: S T U
-      intro: different_annots_all_killed_trans)
+    apply (auto simp: S T U reasons_invs_wl_def
+      intro: different_annots_all_killed_trans
+      dest: split_list)
+    apply (case_tac L')
+    apply (auto dest!: split_list)
+    
 qed
 
 lemma count_decided0_map_is_decided:
@@ -992,7 +1045,7 @@ proof -
     subgoal using all0 unfolding T by auto
     subgoal using all0 annot red_NN' unfolding T
       apply (intro conjI impI allI)
-     apply (auto simp: S) sorry
+     apply (auto simp: S) 
     subgoal using all0 unfolding T by auto
     subgoal using dom0 dom_mono by (auto simp: S)
     subgoal by auto
@@ -1014,7 +1067,9 @@ definition remove_all_clause_watched_by_inv where
   \<open>remove_all_clause_watched_by_inv = (\<lambda>(M\<^sub>0, N\<^sub>0, D\<^sub>0, NE\<^sub>0, UE\<^sub>0, Q\<^sub>0, W\<^sub>0) (M, N, D, NE, UE, Q, W).
        ran_mf N + NE + UE = ran_mf N\<^sub>0 + NE\<^sub>0 + UE\<^sub>0)\<close>
 
-definition remove_all_clause_watched_by :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close> where
+definition remove_all_clause_watched_by
+  :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
+where
 \<open>remove_all_clause_watched_by L = (\<lambda>(M, N, D, NE, UE, Q, W). do {
     (_, N, NE, UE) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, N, NE, UE). partial_correct_watching (M, N, D, NE, UE, Q, W)\<^esup>
       (\<lambda>(i, N, NE, UE). i < length (W L))
