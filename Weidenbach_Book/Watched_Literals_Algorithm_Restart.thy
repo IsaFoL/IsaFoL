@@ -6,12 +6,16 @@ context twl_restart
 begin
 
 text \<open>Restarts are never necessary\<close>
-definition restart_required :: "'v twl_st \<times> nat \<Rightarrow> bool nres" where
-  \<open>restart_required S = SPEC (\<lambda>b. b \<longrightarrow> size (get_learned_clss (fst S)) > f (snd S))\<close>
+definition restart_required :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool nres" where
+  \<open>restart_required S n = SPEC (\<lambda>b. b \<longrightarrow> size (get_learned_clss S) > f n)\<close>
+
+definition restart_prog_pre :: \<open>'v twl_st \<Rightarrow> bool\<close> where
+  \<open>restart_prog_pre S \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S\<close>
 
 definition restart_prog :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> nat) nres" where
   \<open>restart_prog S n brk = do {
-     b \<leftarrow> restart_required (S, n);
+     ASSERT(restart_prog_pre S);
+     b \<leftarrow> restart_required S n;
      if b \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart S T);
        RETURN (T, n + 1)
@@ -23,7 +27,6 @@ definition restart_prog :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool \<Rig
 definition cdcl_twl_stgy_restart_with_leftovers where
   \<open>cdcl_twl_stgy_restart_with_leftovers S U \<longleftrightarrow>
      (\<exists>T. cdcl_twl_stgy_restart\<^sup>*\<^sup>* S (T, snd U) \<and> cdcl_twl_stgy\<^sup>*\<^sup>* T (fst U))\<close>
-
 
 lemma cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart:
   \<open>cdcl_twl_stgy_restart (T, m) (V, Suc m) \<Longrightarrow>
@@ -222,7 +225,7 @@ proof (rule wf_union_compatible)
   qed
 qed
 
-abbreviation cdcl_twl_stgy_restart_prog_inv where
+definition cdcl_twl_stgy_restart_prog_inv where
   \<open>cdcl_twl_stgy_restart_prog_inv S\<^sub>0 brk T n \<equiv> twl_struct_invs T \<and> twl_stgy_invs T \<and>
       (brk \<longrightarrow> final_twl_state T) \<and> cdcl_twl_stgy_restart_with_leftovers (S\<^sub>0, 0) (T, n) \<and>
          clauses_to_update T = {#} \<and> (\<not>brk \<longrightarrow> get_conflict T = None)\<close>
@@ -241,8 +244,7 @@ definition cdcl_twl_stgy_restart_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres
       })
       (False, S\<^sub>0, 0);
     RETURN T
-  }
-  \<close>
+  }\<close>
 
 lemma restart_prog_spec:
   fixes n :: string
@@ -280,9 +282,9 @@ proof -
     using assms(3) cdcl_twl_restart_twl_struct_invs by blast
   have stgy_invs: \<open>cdcl_twl_restart U V \<Longrightarrow>twl_stgy_invs V\<close> for V
     using assms(3) cdcl_twl_restart_twl_stgy_invs by blast
-  have res_no_clss_to_upd: \<open>cdcl_twl_restart U V \<Longrightarrow>clauses_to_update V = {#}\<close> for V
+  have res_no_clss_to_upd: \<open>cdcl_twl_restart U V \<Longrightarrow> clauses_to_update V = {#}\<close> for V
     by (auto simp: cdcl_twl_restart.simps)
-  have res_no_confl: \<open>cdcl_twl_restart U V \<Longrightarrow>get_conflict V = None\<close> for V
+  have res_no_confl: \<open>cdcl_twl_restart U V \<Longrightarrow> get_conflict V = None\<close> for V
     by (auto simp: cdcl_twl_restart.simps)
 
   have
@@ -292,7 +294,7 @@ proof -
     twl_res: \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, m)\<close> and
     \<open>clauses_to_update T = {#}\<close> and
     \<open>\<not> brk \<longrightarrow> get_conflict T = None\<close>
-    using inv by fast+
+    using inv unfolding cdcl_twl_stgy_restart_prog_inv_def by fast+
   have
     cdcl_o: \<open>cdcl_twl_o\<^sup>*\<^sup>* S' U\<close> and
     conflict_U: \<open>get_conflict U \<noteq> None \<Longrightarrow> count_decided (get_trail U) = 0\<close> and
@@ -405,7 +407,6 @@ proof -
         using twl_res \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>  unfolding cdcl_twl_stgy_restart_with_leftovers_def
         using cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2[of T m U] apply -
         by fastforce
-
     qed
   qed
   have cdcl_twl_stgy_restart_with_leftovers1_T_U:
@@ -432,10 +433,11 @@ proof -
   show ?thesis
     unfolding restart_prog_def restart_required_def
     apply (refine_vcg; remove_dummy_vars)
+    subgoal using struct_invs_U stgy_invs_U unfolding restart_prog_pre_def by fast
     subgoal by (rule struct_invs')
     subgoal by (rule stgy_invs)
     subgoal by fast
-    subgoal by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart)
+    subgoal by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart) simp
     subgoal by (rule res_no_clss_to_upd)
     subgoal by (rule res_no_confl)
     subgoal by (auto intro!: struct_invs_S struct_invs_T
@@ -484,7 +486,7 @@ proof -
       ns: \<open>final_twl_state T\<close> and
       twl_left_overs: \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, n)\<close> and
       \<open>clauses_to_update T = {#}\<close>
-      using that by auto
+      using that unfolding cdcl_twl_stgy_restart_prog_inv_def by auto
     obtain S' where
        st: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0) (S', n)\<close> and
        S'_T: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S' T\<close>
@@ -499,7 +501,7 @@ proof -
   qed
   show ?thesis
    supply RETURN_as_SPEC_refine[refine2 del]
-    unfolding cdcl_twl_stgy_restart_prog_def full_def
+    unfolding cdcl_twl_stgy_restart_prog_def full_def cdcl_twl_stgy_restart_prog_inv_def 
     apply (refine_vcg WHILEIT_rule[where
            R = \<open>{((brkT, T, n), (brkS, S, m)).
                      twl_struct_invs S \<and> cdcl_twl_stgy_restart_with_leftovers1 (S, m) (T, n)} \<union>
@@ -518,8 +520,8 @@ proof -
     subgoal by fast
     subgoal by (simp add: no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp)
     subgoal by fast
-    subgoal by (rule restart_prog_spec)
-    subgoal by (rule final_prop)
+    subgoal by (rule restart_prog_spec[unfolded cdcl_twl_stgy_restart_prog_inv_def])
+    subgoal by (rule final_prop[unfolded cdcl_twl_stgy_restart_prog_inv_def])
     done
 qed
 

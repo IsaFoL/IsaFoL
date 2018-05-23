@@ -89,8 +89,9 @@ lemma [twl_st_wl_init]:
     \<open>get_conflict_l_init S' = get_conflict_init_wl S\<close>
     \<open>get_trail_l_init S' = get_trail_init_wl S\<close>
     \<open>other_clauses_l_init S' = other_clauses_init_wl S\<close>
+    \<open>count_decided (get_trail_l_init S') = count_decided (get_trail_init_wl S)\<close>
   using assms
-  by (cases S; cases S'; auto simp: state_wl_l_init_def state_wl_l_def)+
+  by (solves \<open>cases S; cases S'; auto simp: state_wl_l_init_def state_wl_l_def\<close>)+
 
 lemma [twl_st_wl_init]:
   \<open>get_trail_wl (fst T) = get_trail_init_wl T\<close>

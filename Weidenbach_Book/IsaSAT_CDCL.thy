@@ -13,7 +13,7 @@ lemma (in -)not_is_None_not_None: \<open>\<not>is_None s \<Longrightarrow> s \<n
 sepref_register vmtf_find_next_undef
 sepref_thm vmtf_find_next_undef_code
   is \<open>uncurry (PR_CONST vmtf_find_next_undef)\<close>
-  :: \<open>vmtf_remove_conc\<^sup>k *\<^sub>a (hr_comp trail_pol_assn trail_pol)\<^sup>k \<rightarrow>\<^sub>a option_assn uint32_nat_assn\<close>
+  :: \<open>vmtf_remove_conc\<^sup>k *\<^sub>a trail_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint32_nat_assn\<close>
   supply [[goals_limit=1]]
   supply not_is_None_not_None[simp]
   unfolding vmtf_find_next_undef_def PR_CONST_def
@@ -29,6 +29,25 @@ prepare_code_thms (in -) vmtf_find_next_undef_code_def
 
 lemmas vmtf_find_next_undef_code_ref[sepref_fr_rules] =
    vmtf_find_next_undef_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm vmtf_find_next_undef_fast_code
+  is \<open>uncurry (PR_CONST vmtf_find_next_undef)\<close>
+  :: \<open>vmtf_remove_conc\<^sup>k *\<^sub>a trail_fast_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint32_nat_assn\<close>
+  supply [[goals_limit=1]]
+  supply not_is_None_not_None[simp]
+  unfolding vmtf_find_next_undef_def PR_CONST_def
+  apply (rewrite at \<open>WHILE\<^sub>T\<^bsup>_\<^esup> (\<lambda> _ . \<hole>) _ _\<close> short_circuit_conv)
+  apply (rewrite in \<open>If _ \<hole> _\<close> defined_atm_def[symmetric])
+  by sepref
+
+concrete_definition (in -) vmtf_find_next_undef_fast_code
+  uses isasat_input_bounded_nempty.vmtf_find_next_undef_fast_code.refine_raw
+  is \<open>(uncurry ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) vmtf_find_next_undef_fast_code_def
+
+lemmas vmtf_find_next_undef_fast_code_ref[sepref_fr_rules] =
+   vmtf_find_next_undef_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 definition (in isasat_input_ops) vmtf_find_next_undef_upd
   :: \<open>(nat, nat)ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
@@ -50,7 +69,7 @@ sepref_register vmtf_find_next_undef_upd
 sepref_thm vmtf_find_next_undef_upd_code
   is \<open>uncurry (PR_CONST vmtf_find_next_undef_upd)\<close>
   :: \<open>trail_assn\<^sup>d *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a
-     (hr_comp trail_pol_assn trail_pol *a vmtf_remove_conc) *a
+     (trail_assn *a vmtf_remove_conc) *a
         option_assn uint32_nat_assn\<close>
   supply [[goals_limit=1]]
   supply not_is_None_not_None[simp]
@@ -66,6 +85,24 @@ prepare_code_thms (in -) vmtf_find_next_undef_upd_code_def
 lemmas vmtf_find_next_undef_upd_code_ref[sepref_fr_rules] =
    vmtf_find_next_undef_upd_code.refine[OF isasat_input_bounded_nempty_axioms]
 
+sepref_thm vmtf_find_next_undef_upd_fast_code
+  is \<open>uncurry (PR_CONST vmtf_find_next_undef_upd)\<close>
+  :: \<open>trail_fast_assn\<^sup>d *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a
+     (trail_fast_assn *a vmtf_remove_conc) *a
+        option_assn uint32_nat_assn\<close>
+  supply [[goals_limit=1]]
+  supply not_is_None_not_None[simp]
+  unfolding vmtf_find_next_undef_upd_def PR_CONST_def
+  by sepref
+
+concrete_definition (in -) vmtf_find_next_undef_upd_fast_code
+  uses isasat_input_bounded_nempty.vmtf_find_next_undef_upd_fast_code.refine_raw
+  is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_find_next_undef_upd_fast_code_def
+
+lemmas vmtf_find_next_undef_upd_fast_code_ref[sepref_fr_rules] =
+   vmtf_find_next_undef_upd_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 definition (in isasat_input_ops)lit_of_found_atm where
 \<open>lit_of_found_atm \<phi> L = SPEC (\<lambda>K. (L = None \<longrightarrow> K = None) \<and>
@@ -99,6 +136,7 @@ definition find_unassigned_lit_wl_D_heur_pre where
         literals_are_\<L>\<^sub>i\<^sub>n S \<and>
         get_conflict_wl S = None
     )\<close>
+
 lemma find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D:
   \<open>(find_unassigned_lit_wl_D_heur, find_unassigned_lit_wl_D) \<in>
      [find_unassigned_lit_wl_D_heur_pre]\<^sub>f
@@ -145,15 +183,15 @@ proof -
     by (auto simp: twl_st_heur_def)
 
   show ?thesis
-   unfolding find_unassigned_lit_wl_D_heur_def find_unassigned_lit_wl_D_def find_undefined_atm_def
-    ID_R lit_of_found_atm_def
-   apply (intro frefI nres_relI)
-   apply clarify
-   apply refine_vcg
-   unfolding RETURN_RES_refine_iff
-   by (auto simp add: twl_st_heur_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def image_image
-       mset_take_mset_drop_mset' atms
-        simp del: twl_st_of_wl.simps dest!: atms)
+    unfolding find_unassigned_lit_wl_D_heur_def find_unassigned_lit_wl_D_def find_undefined_atm_def
+      ID_R lit_of_found_atm_def
+    apply (intro frefI nres_relI)
+    apply clarify
+    apply refine_vcg
+    unfolding RETURN_RES_refine_iff
+    by (auto simp add: twl_st_heur_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def image_image
+        mset_take_mset_drop_mset' atms
+          simp del: twl_st_of_wl.simps dest!: atms)
 qed
 
 
@@ -175,6 +213,14 @@ lemma find_undefined_atm_hnr[sepref_fr_rules]:
     \<in> [\<lambda>(b, a). a \<in> vmtf b]\<^sub>a trail_assn\<^sup>d *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
    (trail_assn *a vmtf_remove_conc) *a option_assn uint32_nat_assn\<close>
   using vmtf_find_next_undef_upd_code_ref[unfolded PR_CONST_def, FCOMP vmtf_find_next_undef_upd]
+  unfolding PR_CONST_def
+  .
+
+lemma find_undefined_atm_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry vmtf_find_next_undef_upd_fast_code, uncurry (PR_CONST find_undefined_atm))
+    \<in> [\<lambda>(b, a). a \<in> vmtf b]\<^sub>a trail_fast_assn\<^sup>d *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
+   (trail_fast_assn *a vmtf_remove_conc) *a option_assn uint32_nat_assn\<close>
+  using vmtf_find_next_undef_upd_fast_code_ref[unfolded PR_CONST_def, FCOMP vmtf_find_next_undef_upd]
   unfolding PR_CONST_def
   .
 
@@ -253,6 +299,22 @@ prepare_code_thms (in -) find_unassigned_lit_wl_D_code_def
 lemmas find_unassigned_lit_wl_D_heur_hnr[sepref_fr_rules] =
    find_unassigned_lit_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+sepref_thm find_unassigned_lit_wl_D_fast_code
+  is \<open>PR_CONST find_unassigned_lit_wl_D_heur\<close>
+  :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a (isasat_fast_assn *a option_assn unat_lit_assn)\<close>
+  supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
+  unfolding find_unassigned_lit_wl_D_heur_def isasat_fast_assn_def PR_CONST_def
+  by sepref
+
+concrete_definition (in -) find_unassigned_lit_wl_D_fast_code
+   uses isasat_input_bounded_nempty.find_unassigned_lit_wl_D_fast_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) find_unassigned_lit_wl_D_fast_code_def
+
+lemmas find_unassigned_lit_wl_D_fast_heur_hnr[sepref_fr_rules] =
+   find_unassigned_lit_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
 definition (in isasat_input_ops) decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats).
       (Decided L' # M, N, D, {#- L'#}, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_decision stats))\<close>
@@ -276,6 +338,28 @@ prepare_code_thms (in -) decide_lit_wl_code_def
 
 lemmas decide_lit_wl_heur_hnr[sepref_fr_rules] =
   decide_lit_wl_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+
+sepref_thm decide_lit_wl_fast_code
+  is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
+  :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and> get_conflict_wl_heur S = None \<and>
+        L \<in> snd ` D\<^sub>0]\<^sub>a
+     unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+  supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
+  unfolding decide_lit_wl_heur_def isasat_fast_assn_def PR_CONST_def
+    cons_trail_Decided_def[symmetric]
+  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
+  by sepref
+
+concrete_definition (in -) decide_lit_wl_fast_code
+  uses isasat_input_bounded_nempty.decide_lit_wl_fast_code.refine_raw
+  is \<open>(uncurry ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) decide_lit_wl_fast_code_def
+
+lemmas decide_lit_wl_fast_heur_hnr[sepref_fr_rules] =
+  decide_lit_wl_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
+
 
 definition(in isasat_input_ops) decide_wl_or_skip_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
@@ -333,6 +417,22 @@ prepare_code_thms (in -) decide_wl_or_skip_D_code_def
 lemmas decide_wl_or_skip_D_hnr[sepref_fr_rules] =
    decide_wl_or_skip_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+sepref_thm decide_wl_or_skip_D_fast_code
+  is \<open>PR_CONST decide_wl_or_skip_D_heur\<close>
+  :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_fast_assn\<close>
+  unfolding decide_wl_or_skip_D_heur_def PR_CONST_def
+  supply [[goals_limit = 1]]
+    find_unassigned_lit_wl_D_def[simp] image_image[simp]
+  by sepref
+
+concrete_definition (in -) decide_wl_or_skip_D_fast_code
+   uses isasat_input_bounded_nempty.decide_wl_or_skip_D_fast_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) decide_wl_or_skip_D_fast_code_def
+
+lemmas decide_wl_or_skip_D_fast_hnr[sepref_fr_rules] =
+   decide_wl_or_skip_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 
 paragraph \<open>Combining Together: the Other Rules\<close>
@@ -349,6 +449,7 @@ where
         if count_decided_st S > zero_uint32_nat
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
+          ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur T);
           U \<leftarrow> backtrack_wl_D_nlit_heur T;
           RETURN (False, U)
         }
@@ -380,6 +481,24 @@ prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
 lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+
+sepref_thm cdcl_twl_o_prog_wl_D_fast_code
+  is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
+  :: \<open>[isasat_fast]\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> bool_assn *a isasat_fast_assn\<close>
+  unfolding cdcl_twl_o_prog_wl_D_heur_def PR_CONST_def
+  unfolding get_conflict_wl_is_None get_conflict_wl_is_None_heur_alt_def[symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) cdcl_twl_o_prog_wl_D_fast_code
+   uses isasat_input_bounded_nempty.cdcl_twl_o_prog_wl_D_fast_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_fast_code_def
+
+lemmas cdcl_twl_o_prog_wl_D_fast_code[sepref_fr_rules] =
+   cdcl_twl_o_prog_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
 lemma (in isasat_input_ops) twl_st_heur_count_decided_st_alt_def:
   fixes S :: twl_st_wl_heur
   shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> count_decided_st S = count_decided (get_trail_wl T)\<close>
@@ -396,6 +515,8 @@ lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
       backtrack_wl_D_nlit_backtrack_wl_D[THEN fref_to_Down])
   subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_count_decided_st_alt_def)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_count_decided_st_alt_def)
+  subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp)
   done
@@ -453,10 +574,215 @@ prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_code_def
 
 lemmas cdcl_twl_stgy_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_stgy_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n]
+end
+
+definition (in -)isasat_fast2 where
+  \<open>isasat_fast2 = isasat_fast\<close>
+
+
+definition (in -) isasat_fast_clss :: \<open>_ \<Rightarrow> bool\<close> where
+  \<open>isasat_fast_clss = (\<lambda>N. length N \<le> uint32_max)\<close>
+
+definition (in -) isasat_fast_clss_dom :: \<open>_ \<Rightarrow> bool\<close> where
+  \<open>isasat_fast_clss_dom = (\<lambda>N. \<forall>L\<in>#dom_m N. L < uint32_max)\<close>
+
+
+lemma (in -) isasat_fast_clss_dom:
+  \<open>(RETURN o isasat_fast_clss, RETURN o isasat_fast_clss_dom) \<in>
+      \<langle>Id\<rangle>clauses_l_fmat \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (auto simp:  clauses_ll_assn_def list_fmap_rel_def isasat_fast_clss_dom_def
+      isasat_fast_clss_def)
+  apply (subst (asm)(4) eq_commute)
+  apply auto
+  apply (case_tac \<open>dom_m y\<close>)
+   apply (auto simp: uint_max_def)
+  done
+
+definition (in -) isasat_fast_code :: \<open>twl_st_wll_trail_fast \<Rightarrow> bool\<close> where
+  \<open>isasat_fast_code = (\<lambda>(M', (N', n), _). n < uint32_max)\<close>
+
+
+lemma (in -)isasat_fast_clss_hnr[sepref_fr_rules]:
+  \<open>(return o (\<lambda>(N, n). n \<le> uint32_max), RETURN o isasat_fast_clss) \<in>
+       (arlO_assn clause_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply sepref_to_hoare
+  apply (sep_auto simp: isasat_fast_clss_def
+      isasat_fast2_def isasat_fast_code_def clauses_ll_assn_def
+      hr_comp_def list_fmap_rel_def arlO_assn_def arl_assn_def
+      is_array_list_def dest: heap_list_add_same_length
+      elim!: mod_starE)
+  done
+
+lemma isasat_fast_clss_dom_hnr [sepref_fr_rules]:
+\<open>((return \<circ>\<circ> case_prod) (\<lambda>N n. n \<le> uint_max),
+     RETURN \<circ> isasat_fast_clss_dom)
+    \<in> (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  using isasat_fast_clss_hnr[FCOMP isasat_fast_clss_dom] unfolding clauses_ll_assn_def[symmetric]
+  .
+
+lemma (in -)isasat_fast2_alt_def:
+  \<open>isasat_fast2 = (\<lambda>(M,N,_). isasat_fast_clss_dom N)\<close>
+  by (auto simp: isasat_fast2_def isasat_fast_clss_dom_def)
+
+
+context isasat_input_bounded_nempty
+begin
+
+declare isasat_fast_slow_code.refine[sepref_fr_rules]
+
+sepref_register isasat_fast2
+sepref_thm isasat_fast2_code
+  is \<open>RETURN o isasat_fast2\<close>
+  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_fast2_alt_def isasat_fast_assn_def
+  by sepref
+
+concrete_definition (in -) isasat_fast2_code
+  uses isasat_input_bounded_nempty.isasat_fast2_code.refine_raw
+  is \<open>(?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) isasat_fast2_code_def
+
+lemmas isasat_fast2_code[sepref_fr_rules] =
+   isasat_fast2_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+sepref_register cdcl_twl_stgy_prog_wl_D_heur
+
+definition (in isasat_input_ops) cdcl_twl_stgy_prog_break_wl_D_heur_break
+   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+where
+  \<open>cdcl_twl_stgy_prog_break_wl_D_heur_break S\<^sub>0 =
+  do {
+    let b = isasat_fast2 S\<^sub>0;
+    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, S). (b \<longrightarrow> \<not>brk \<longrightarrow>isasat_fast2 S)\<^esup>
+        (\<lambda>(b, brk, _). b \<and> \<not>brk)
+        (\<lambda>(b, brk, S).
+        do {
+          ASSERT (b \<and> \<not>brk);
+          T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
+          ASSERT(isasat_fast2 T);
+          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
+          b \<leftarrow> RETURN (isasat_fast2 T);
+          RETURN (b, brk, T)
+        })
+        (b, False, S\<^sub>0);
+    if brk then isasat_fast_slow T
+    else do {
+        T' \<leftarrow> isasat_fast_slow T;
+        cdcl_twl_stgy_prog_wl_D_heur T'
+    }
+  }\<close>
+
+sepref_register isasat_fast_slow
+sepref_thm cdcl_twl_stgy_prog_wl_D_fast_code
+  is \<open>PR_CONST cdcl_twl_stgy_prog_break_wl_D_heur_break\<close>
+  :: \<open>[isasat_fast]\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_assn\<close>
+  unfolding cdcl_twl_stgy_prog_break_wl_D_heur_break_def PR_CONST_def
+  supply [[goals_limit = 1]] isasat_input_bounded_nempty_axioms[intro] isasat_fast2_def[simp]
+  by sepref
+
+concrete_definition (in -) cdcl_twl_stgy_prog_wl_D_fast_code
+   uses isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_fast_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_fast_code_def
+
+lemmas cdcl_twl_stgy_prog_wl_D_fast_code[sepref_fr_rules] =
+   cdcl_twl_stgy_prog_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n]
+
+definition  (in -)isasat_fast_wl where
+  \<open>isasat_fast_wl S = (\<forall>L\<in>#dom_m (get_clauses_wl S). L < uint_max)\<close>
+
+lemma twl_st_heur_isasat_fast_wl:
+   \<open>(x, y) \<in> twl_st_heur \<Longrightarrow> isasat_fast_wl y = isasat_fast2 x\<close>
+  by (auto simp: isasat_fast2_def twl_st_heur_state_simp twl_st_heur_def isasat_fast_wl_def)
+term isasat_fast_slow
+
+lemma cdcl_twl_stgy_prog_break_wl_D_alt_def:
+  \<open>cdcl_twl_stgy_prog_break_wl_D S\<^sub>0 =
+  do {
+    b \<leftarrow> SPEC (\<lambda>_. True);
+    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (brk, T) \<and>
+          literals_are_\<L>\<^sub>i\<^sub>n T\<^esup>
+        (\<lambda>(b, brk, _). b \<and> \<not>brk)
+        (\<lambda>(b, brk, S).
+        do {
+          ASSERT(b);
+          T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+          b \<leftarrow>  SPEC (\<lambda>_. True);
+          RETURN(b, brk, T)
+        })
+        (b, False, S\<^sub>0);
+    if brk then RETURN (isasat_fast_slow_wl_D T)
+    else do {
+        let T' = isasat_fast_slow_wl_D T;
+        cdcl_twl_stgy_prog_wl_D T'
+     }
+  }\<close>
+  unfolding Let_def cdcl_twl_stgy_prog_break_wl_D_def isasat_fast_slow_wl_D_def id_apply
+  by (auto simp: Let_def)
+
+lemma cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D:
+  \<open>(cdcl_twl_stgy_prog_break_wl_D_heur_break,
+     cdcl_twl_stgy_prog_break_wl_D) \<in>
+         twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+proof -
+  have H1: \<open>
+    (isasat_fast2 x, b) \<in> bool_rel \<Longrightarrow>
+    (x, y) \<in> twl_st_heur \<Longrightarrow>
+    ((isasat_fast2 x, False, x), b, False, y) \<in> {(b, b'). b = b' \<and>
+       (b \<longrightarrow> isasat_fast2 x)} \<times>\<^sub>r bool_rel \<times>\<^sub>r twl_st_heur\<close> for b x y
+    by auto
+  have H2:
+    \<open>(x, y) \<in> twl_st_heur \<Longrightarrow>
+    (isasat_fast2 x, isasat_fast_wl y) \<in> {(b, b'). b = b' \<and>
+       (b \<longrightarrow> isasat_fast2 x)}\<close> for x y
+    by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  have H3:
+    \<open>RETURN (isasat_fast2 x) \<le> \<Down> {(b, b'). b = b' \<and> (b \<longrightarrow> isasat_fast2 x)} (SPEC (\<lambda>_. True))\<close>
+    for x
+     by (auto simp: RETURN_RES_refine_iff)
+  let ?R = \<open>{((b, brk, S), (b', brk', S')). b = b' \<and>
+       (b \<longrightarrow> isasat_fast2 S) \<and> brk = brk' \<and> (S, S') \<in> twl_st_heur}\<close>
+
+  show ?thesis
+    supply RETURN_as_SPEC_refine[refine2 del] twl_st_heur'_def[simp]
+    unfolding cdcl_twl_stgy_prog_break_wl_D_heur_break_def cdcl_twl_stgy_prog_break_wl_D_alt_def
+      isasat_fast2_def[symmetric]
+  apply (intro frefI nres_relI)
+  apply (refine_vcg H1 H2 H3
+      WHILEIT_refine[where R= ?R]
+      unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down,
+        of x y \<open>dom_m (get_clauses_wl_heur x)\<close> for x y]
+      cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
+      cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D[THEN fref_to_Down]
+      isasat_fast_slow_isasat_fast_slow_wl_D[THEN fref_to_Down, unfolded comp_def, simplified])
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp isasat_fast2_def)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
+  done
+
+qed
 
 end
 
+export_code cdcl_twl_stgy_prog_wl_D_fast_code in SML_imp module_name SAT_Solver
+  file "code/CDCL_Cached_Array_Trail_Fast.sml"
+
 export_code cdcl_twl_stgy_prog_wl_D_code in SML_imp module_name SAT_Solver
   file "code/CDCL_Cached_Array_Trail.sml"
+
 
 end

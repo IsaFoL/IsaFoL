@@ -316,6 +316,8 @@ lemma total_union_2:
   shows "total_over_m (I \<union> I') (\<psi> \<union> \<psi>')"
   using assms unfolding total_over_m_def total_over_set_def by auto
 
+lemma total_over_m_alt_def: \<open>total_over_m I S \<longleftrightarrow> atms_of_ms S \<subseteq> atms_of_s I\<close>
+  by (auto simp: total_over_m_def total_over_set_def)
 
 subsubsection \<open>Interpretations\<close>
 
@@ -425,6 +427,10 @@ lemma notin_vars_union_true_clss_true_clss:
   using assms unfolding true_clss_def true_lit_def Ball_def
   by (meson atms_of_atms_of_ms_mono notin_vars_union_true_cls_true_cls subset_trans)
 
+lemma true_cls_def_set_mset_eq:
+  \<open>set_mset A = set_mset B \<Longrightarrow> I \<Turnstile> A \<longleftrightarrow> I \<Turnstile> B\<close>
+  by (auto simp: true_cls_def)
+
 
 subsubsection \<open>Satisfiability\<close>
 
@@ -500,6 +506,10 @@ qed
 lemma satisfiable_carac'[simp]: "consistent_interp I \<Longrightarrow> I \<Turnstile>s \<phi> \<Longrightarrow> satisfiable \<phi>"
   using satisfiable_carac by metis
 
+lemma unsatisfiable_mono:
+  \<open>N \<subseteq> N' \<Longrightarrow> unsatisfiable N \<Longrightarrow> unsatisfiable N'\<close>
+  by (metis (full_types) satisfiable_decreasing subset_Un_eq)
+
 
 subsubsection \<open>Entailment for Multisets of Clauses\<close>
 
@@ -514,6 +524,9 @@ lemma true_cls_mset_singleton[iff]: "I \<Turnstile>m {#C#} \<longleftrightarrow>
 
 lemma true_cls_mset_union[iff]: "I \<Turnstile>m CC + DD \<longleftrightarrow> I \<Turnstile>m CC \<and> I \<Turnstile>m DD"
   unfolding true_cls_mset_def by fastforce
+
+lemma true_cls_mset_add_mset[iff]: "I \<Turnstile>m add_mset C CC \<longleftrightarrow> I \<Turnstile> C \<and> I \<Turnstile>m CC"
+  unfolding true_cls_mset_def by auto
 
 lemma true_cls_mset_image_mset[iff]: "I \<Turnstile>m image_mset f A \<longleftrightarrow> (\<forall>x \<in># A. I \<Turnstile> f x)"
   unfolding true_cls_mset_def by fastforce

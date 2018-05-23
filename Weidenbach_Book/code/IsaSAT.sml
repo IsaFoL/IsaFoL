@@ -64,9 +64,9 @@ fun print_clauses id a [] = ()
 
 fun print_stat (propa, (confl, dec)) =
   let
-     val _ = print ("s propagations: " ^ IntInf.toString (Uint64.toInt propa) ^ "\n")
-     val _ = print ("s conflicts: " ^ IntInf.toString (Uint64.toInt confl) ^ "\n")
-     val _ = print ("s decisions: " ^ IntInf.toString (Uint64.toInt dec) ^ "\n")
+     val _ = print ("c propagations: " ^ IntInf.toString (Uint64.toInt propa) ^ "\n")
+     val _ = print ("c conflicts: " ^ IntInf.toString (Uint64.toInt confl) ^ "\n")
+     val _ = print ("c decisions: " ^ IntInf.toString (Uint64.toInt dec) ^ "\n")
   in
    ()
   end
@@ -76,8 +76,8 @@ fun checker print_modelb print_stats cnf_name = let
   val _ = (if print_stats then print_stat stat else ());
   val _ =
         (case SAT of
-             NONE => print "UNSAT"
-           | SOME SAT => if print_modelb then ignore (print_model SAT) else print "SAT")
+             NONE => print "s UNSATISFIABLE\n"
+           | SOME SAT => if print_modelb then ignore (print_model SAT) else print "s SATISFIABLE\n")
   in
     ()
   end

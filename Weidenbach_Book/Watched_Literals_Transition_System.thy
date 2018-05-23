@@ -5,8 +5,6 @@ begin
 
 chapter \<open>Two-Watched Literals\<close>
 
-notation image_mset (infixr "`#" 90)
-
 section \<open>Rule-based system\<close>
 
 subsection \<open>Types and Transitions System\<close>
@@ -4881,27 +4879,27 @@ lemma tranclp_wf_cdcl_twl_o:
   by (rule wf_subset[OF tranclp_wf_cdcl_twl_stgy]) (auto dest: tranclp_cdcl_twl_o_stgyD)
 
 lemma (in -)propa_cands_enqueued_mono:
-  \<open>U' \<subseteq># U \<Longrightarrow>
+  \<open>U' \<subseteq># U \<Longrightarrow> N' \<subseteq># N \<Longrightarrow>
      propa_cands_enqueued  (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow>
-      propa_cands_enqueued  (M, N, U', D, NE, UE, WS, Q)\<close>
-  by (cases D) auto
+      propa_cands_enqueued  (M, N', U', D, NE', UE', WS, Q)\<close>
+  by (cases D) (auto 5 5)
 
 lemma (in -)confl_cands_enqueued_mono:
-  \<open>U' \<subseteq># U \<Longrightarrow>
+  \<open>U' \<subseteq># U \<Longrightarrow> N' \<subseteq># N \<Longrightarrow>
      confl_cands_enqueued  (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow>
-      confl_cands_enqueued  (M, N, U', D, NE, UE, WS, Q)\<close>
+      confl_cands_enqueued  (M, N', U', D, NE', UE', WS, Q)\<close>
   by (cases D) auto
 
 lemma (in -)twl_st_exception_inv_mono:
-  \<open>U' \<subseteq># U \<Longrightarrow>
+  \<open>U' \<subseteq># U \<Longrightarrow> N' \<subseteq># N \<Longrightarrow>
      twl_st_exception_inv  (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow>
-      twl_st_exception_inv  (M, N, U', D, NE, UE, WS, Q)\<close>
+      twl_st_exception_inv  (M, N', U', D, NE', UE', WS, Q)\<close>
   by (cases D) (fastforce simp: twl_exception_inv.simps)+
 
 lemma (in -)twl_st_inv_mono:
-  \<open>U' \<subseteq># U \<Longrightarrow>
+  \<open>U' \<subseteq># U \<Longrightarrow> N' \<subseteq># N \<Longrightarrow>
      twl_st_inv (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow>
-      twl_st_inv (M, N, U', D, NE, UE, WS, Q)\<close>
+      twl_st_inv (M, N', U', D, NE', UE', WS, Q)\<close>
   by (cases D) (fastforce simp: twl_st_inv.simps)+
 
 lemma (in -) rtranclp_cdcl_twl_stgy_twl_stgy_invs:

@@ -4,6 +4,7 @@ theory WB_More_Refinement
     Weidenbach_Book_Base.WB_List_More
     "HOL-Eisbach.Eisbach"
     "HOL-Eisbach.Eisbach_Tools"
+  "HOL-Library.While_Combinator"
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -241,6 +242,9 @@ notation prod_assn (infixr "*a" 90)
 
 
 subsection \<open>More Theorems for Refinement\<close>
+
+lemma prod_assn_id_assn_destroy: \<open>R\<^sup>d *\<^sub>a id_assn\<^sup>d = (R *a id_assn)\<^sup>d\<close>
+  by (auto simp: hfprod_def prod_assn_def[abs_def] invalid_assn_def pure_def intro!: ext)
 
 lemma SPEC_add_information: \<open>P \<Longrightarrow> A \<le> SPEC Q \<Longrightarrow> A \<le> SPEC(\<lambda>x. Q x \<and> P)\<close>
   by auto
@@ -848,14 +852,14 @@ lemma list_rel_mset_rel_def[refine_rel_defs]:
   unfolding relAPP_def list_rel_mset_rel_internal ..
 
 lemma list_mset_assn_pure_conv:
-  \<open>list_mset_assn (pure R) = pure (list_rel_mset_rel R)\<close>
+  \<open>list_mset_assn (pure R) = pure (\<langle>R\<rangle>list_rel_mset_rel)\<close>
   apply (intro ext)
   using list_all2_reorder_left_invariance
   by (fastforce
     simp: list_rel_mset_rel_def list_mset_assn_def
       mset_rel_def rel2p_def[abs_def] rel_mset_def p2rel_def
       list_mset_rel_def[abs_def] Collect_eq_comp br_def
-      list_rel_mset_rel_internal list_rel_def Collect_eq_comp_right
+      list_rel_def Collect_eq_comp_right
     intro!: arg_cong[of _ _ \<open>\<lambda>b. pure b _ _\<close>])
 
 lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
@@ -1038,11 +1042,12 @@ lemma insert_sort_inner:
   subgoal by auto
   done
 
-lemma insert_sort_reorder_remove: \<open>(insert_sort f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+lemma insert_sort_reorder_remove:
+  \<open>(insert_sort f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
 proof -
   have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close>
     for ba aa
-    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified, rule_format]
+    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified]
     by fast
   show ?thesis
     unfolding insert_sort_def reorder_remove_def
@@ -1058,5 +1063,38 @@ proof -
     subgoal by auto
     done
 qed
+
+definition arl_replicate where
+ "arl_replicate init_cap x \<equiv> do {
+    let n = max init_cap minimum_capacity;
+    a \<leftarrow> Array.new n x;
+    return (a,init_cap)
+  }"
+
+definition \<open>op_arl_replicate = op_list_replicate\<close>
+lemma arl_fold_custom_replicate:
+  \<open>replicate = op_arl_replicate\<close>
+  unfolding op_arl_replicate_def op_list_replicate_def ..
+
+lemma list_replicate_arl_hnr[sepref_fr_rules]:
+  assumes p:  \<open>CONSTRAINT is_pure R\<close>
+  shows \<open>(uncurry arl_replicate, uncurry (RETURN oo op_arl_replicate)) \<in> nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow>\<^sub>a arl_assn R\<close>
+proof -
+  obtain R' where
+     R'[symmetric]: \<open>R' = the_pure R\<close> and
+     R_R': \<open>R = pure R'\<close>
+    using assms by fastforce
+  have [simp]: \<open>pure R' b bi = \<up>((bi, b) \<in> R')\<close> for b bi
+    by (auto simp: pure_def)
+  have [simp]: \<open>min a (max a 16) = a\<close> for a :: nat
+    by auto
+  show ?thesis
+    using assms unfolding op_arl_replicate_def
+    by sepref_to_hoare
+      (sep_auto simp: arl_replicate_def arl_assn_def hr_comp_def R' R_R' list_rel_def
+        is_array_list_def minimum_capacity_def
+        intro!: list_all2_replicate)
+qed
+
 
 end

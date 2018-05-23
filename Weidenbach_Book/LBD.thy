@@ -92,13 +92,6 @@ lemma level_in_lbd_hnr[sepref_fr_rules]:
 definition list_grow where
   \<open>list_grow xs n x = xs @ replicate (n - length xs) x\<close>
 
-lemma list_all2_replicate:
-  \<open>(bi, b) \<in> R' \<Longrightarrow>
-       list_all2 (\<lambda>x x'. (x, x') \<in> R')
-        (replicate n bi)
-        (replicate n b)\<close>
-  by (induction n) auto
-
 lemma list_grow_array_hnr[sepref_fr_rules]:
   assumes \<open>CONSTRAINT is_pure R\<close>
   shows

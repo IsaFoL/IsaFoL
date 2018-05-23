@@ -160,6 +160,11 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_VMTF
     IsaSAT_CDCL
     IsaSAT
+
+    (* Restarts not clear if different session of not *)
+    Watched_Literals_Transition_System_Restart
+    Watched_Literals_Algorithm_Restart
+    Watched_Literals_List_Restart
   document_files
     "root.tex"
     "biblio.bib"
@@ -174,6 +179,22 @@ session "CDCL_B" (Weidenbach_Book) = "CDCL_no_Sepref"  +
   theories[document = false, quick_and_dirty]
     CDCL_B
 
+session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
+  description \<open>Model enumeration with filtering\<close>
+  sessions
+    Normalisation
+    Resolution_Superposition
+    CDCL
+    Watched_Literals
+  theories[document = true]
+    Model_Enumeration
+    Watched_Literals_Transition_System_Enumeration
+    Watched_Literals_Algorithm_Enumeration
+    Watched_Literals_List_Enumeration
+  document_files
+    "root.tex"
+    "biblio.bib"
+
 session Weidenbach_Book (Weidenbach_Book) = Watched_Literals +
   description \<open>We import everything\<close>
   sessions
@@ -181,6 +202,7 @@ session Weidenbach_Book (Weidenbach_Book) = Watched_Literals +
     Resolution_Superposition
     CDCL
     Watched_Literals
+    Model_Enumeration
   theories[document = true, quick_and_dirty]
     Weidenbach_Book
   document_files

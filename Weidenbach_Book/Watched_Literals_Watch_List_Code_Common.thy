@@ -179,6 +179,9 @@ type_synonym clauses_wl = \<open>uint32 arrayO_raa\<close>
 abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rightarrow> assn\<close> where
   \<open>ann_lit_wl_assn \<equiv> uint32_assn *a (option_assn nat_assn)\<close>
 
+abbreviation ann_lit_wl_fast_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl_fast \<Rightarrow> assn\<close> where
+  \<open>ann_lit_wl_fast_assn \<equiv> uint32_assn *a (option_assn uint32_nat_assn)\<close>
+
 abbreviation ann_lits_wl_assn :: \<open>ann_lits_wl \<Rightarrow> ann_lits_wl \<Rightarrow> assn\<close> where
   \<open>ann_lits_wl_assn \<equiv> list_assn ann_lit_wl_assn\<close>
 
@@ -256,6 +259,16 @@ lemma lit_of_hnr[sepref_fr_rules]:
       Collect_eq_comp br_def unat_lit_rel_def nat_lit_rel_def ann_lit_of_pair_alt_def
       split: if_splits)
 
+lemma lit_of_fast_hnr[sepref_fr_rules]:
+  \<open>(return o fst, RETURN o op_lit_of) \<in> pair_nat_ann_lit_fast_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
+  apply sepref_to_hoare
+  apply (sep_auto simp: unat_lit_rel_def uint32_nat_rel_def)
+  apply (sep_auto simp: p2rel_def nat_ann_lit_rel_def lit_of_natP_def uint32_nat_rel_def
+      Collect_eq_comp br_def unat_lit_rel_def nat_lit_rel_def ann_lit_of_pair_alt_def
+      hr_comp_def prod.splits case_prod_beta
+      split: if_splits)
+  done
+
 lemma op_eq_op_nat_lit_eq[sepref_fr_rules]:
   \<open>(uncurry (return oo (op =)), uncurry (RETURN oo (op =))) \<in>
     (pure unat_lit_rel)\<^sup>k *\<^sub>a (pure unat_lit_rel)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -317,20 +330,33 @@ sepref_definition is_decided_wl_code
   unfolding is_decided_wl_def[abs_def]
   by sepref
 
+sepref_definition is_decided_wl_fast_code
+  is \<open>(RETURN o is_decided_wl)\<close>
+  :: \<open>ann_lit_wl_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding is_decided_wl_def[abs_def]
+  by sepref
+
 lemma ann_lit_of_pair_if:
   \<open>ann_lit_of_pair (L, D) = (if D = None then Decided L else Propagated L (the D))\<close>
   by (cases D) auto
 
-lemma is_decided_wl_code[sepref_fr_rules]:
-  \<open>(is_decided_wl_code, RETURN o is_decided) \<in> pair_nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+lemma
+  is_decided_wl_code[sepref_fr_rules]:
+    \<open>(is_decided_wl_code, RETURN o is_decided) \<in> pair_nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close> (is ?slow) and
+  is_decided_wl_fast_code[sepref_fr_rules]:
+    \<open>(is_decided_wl_fast_code, RETURN o is_decided) \<in> pair_nat_ann_lit_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+   (is ?fast)
 proof -
   have 1: \<open>hr_comp ann_lit_wl_assn nat_ann_lit_rel = pair_nat_ann_lit_assn\<close>
     by (fastforce simp: case_prod_beta hr_comp_def[abs_def] pure_def nat_ann_lit_rel_def
         prod_assn_def ann_lit_of_pair_if ex_assn_def imp_ex Abs_assn_eqI(1) ex_simps(1)[symmetric]
         simp del: pair_of_ann_lit.simps literal_of_nat.simps ex_simps(1)
         split: if_splits)
-  show ?thesis
+  show ?slow
     using is_decided_wl_code.refine[FCOMP is_decided_wl_is_decided]
+    unfolding 1 .
+  show ?fast
+    using is_decided_wl_fast_code.refine[FCOMP is_decided_wl_is_decided]
     unfolding 1 .
 qed
 
