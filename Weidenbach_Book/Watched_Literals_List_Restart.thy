@@ -121,7 +121,7 @@ lemma valid_trail_reduction_Propagated_inD2:
   by (metis (no_types, lifting) in_set_conv_decomp trail_changes_same_decomp)
 
 text \<open>
-  Remark about the predicate:
+  Remarks about the predicate:
   \<^item> The cases \<^term>\<open>\<forall>L E E'. Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E = 0 \<longrightarrow>
     E' \<noteq> 0 \<longrightarrow> P\<close> are already covered by the invariants (where \<^term>\<open>P\<close> means that there is
     clause which was already present before).
@@ -142,6 +142,7 @@ restart_trail:
     \<open>\<forall>L E E'. Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E' = 0 \<longrightarrow> E = 0\<close> and
     \<open>0 \<notin># dom_m N'\<close> and
     \<open>if length M = length M' then Q = Q' else Q' = {#}\<close>
+
 
 context twl_restart
 begin
