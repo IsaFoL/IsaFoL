@@ -924,6 +924,13 @@ lemma inj_image_mset_eq_iff:
   using inj_on_image_mset_eq_iff[of f M' M] assms
   by (simp add: inj_eq multiset.inj_map)
 
+lemma singleton_eq_image_mset_iff:  \<open>{#a#} = f `# NE' \<longleftrightarrow> (\<exists>b. NE' = {#b#} \<and> f b = a)\<close>
+  by (cases NE') auto
+
+lemma image_mset_If_eq_notin:
+   \<open>C \<notin># A \<Longrightarrow> {#f (if x = C then a x else b x). x \<in># A#} = {# f(b x). x \<in># A #}\<close>
+  by (induction A) auto
+
 
 subsection \<open>Sorting\<close>
 

@@ -2,47 +2,6 @@ theory IsaSAT_Restart
   imports Watched_Literals_Watch_List_Domain_Restart  IsaSAT_Setup
 begin
 
-
-(* TODO Move *)
-lemma singleton_eq_image_mset_iff:  \<open>{#a#} = f `# NE' \<longleftrightarrow> (\<exists>b. NE' = {#b#} \<and> f b = a)\<close>
-  by (cases NE') auto
-
-lemma image_mset_If_eq_notin:
-   \<open>C \<notin># A \<Longrightarrow> {#f (if x = C then a x else b x). x \<in># A#} = {# f(b x). x \<in># A #}\<close>
-  by (induction A) auto
-
-lemma init_clss_lf_fmdrop[simp]:
-  \<open>irred N C \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> init_clss_lf (fmdrop C N) = remove1_mset (N\<propto>C) (init_clss_lf N)\<close>
-  using distinct_mset_dom[of N]
-  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
-
-lemma init_clss_lf_fmdrop_irrelev[simp]:
-  \<open>\<not>irred N C \<Longrightarrow> init_clss_lf (fmdrop C N) = init_clss_lf N\<close>
-  using distinct_mset_dom[of N]
-  apply (cases \<open>C \<in># dom_m N\<close>)
-  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
-
-lemma learned_clss_lf_lf_fmdrop[simp]:
-  \<open>\<not>irred N C \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> learned_clss_lf (fmdrop C N) = remove1_mset (N\<propto>C) (learned_clss_lf N)\<close>
-  using distinct_mset_dom[of N]
-  apply (cases \<open>C \<in># dom_m N\<close>)
-  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
-
-
-lemma learned_clss_lf_lf_fmdrop_irrelev[simp]:
-  \<open>irred N C \<Longrightarrow> learned_clss_lf (fmdrop C N) = learned_clss_lf N\<close>
-  using distinct_mset_dom[of N]
-  apply (cases \<open>C \<in># dom_m N\<close>)
-  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
-
-lemma ran_mf_lf_fmdrop[simp]:
-  \<open>C \<in># dom_m N \<Longrightarrow>  ran_mf (fmdrop C N) = remove1_mset (N\<propto>C) (ran_mf N)\<close>
-  using distinct_mset_dom[of N]
-  apply (cases \<open>C \<in># dom_m N\<close>)
-  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>] dest!: multi_member_split)
-
-(* End Move *)
-
 text \<open>
   The idea of the restart works the following:
   \<^enum> We backtrack to level 0. This simplifies further steps.
@@ -436,12 +395,16 @@ lemma valid_trail_reduction_eq_trans:
   unfolding valid_trail_reduction_eq_alt_def
   by auto
 
+definition no_dup_reasons_invs_wl where
+  \<open>no_dup_reasons_invs_wl S \<longleftrightarrow>
+    (distinct_mset (mark_of `# filter_mset (\<lambda>C. is_proped C \<and> mark_of C > 0) (mset (get_trail_wl S))))\<close>
+
 definition reasons_invs_wl where
   \<open>reasons_invs_wl S \<longleftrightarrow>
-    (* distinct_mset (mark_of `# filter_mset is_proped (mset (get_trail_wl S))) \<and> *)
     (\<forall>L C M1 M2 . M2 @ Propagated L C # M1 = get_trail_wl S \<longrightarrow> C > 0 \<longrightarrow>
-      C \<in># dom_m (get_clauses_wl S) \<longrightarrow> (L = get_clauses_wl S \<propto> C ! 0 \<and>
-       L \<in> set (watched_l (get_clauses_wl S \<propto> C))
+      (C \<in># dom_m (get_clauses_wl S) \<and> L = get_clauses_wl S \<propto> C ! 0 \<and>
+       L \<in> set (watched_l (get_clauses_wl S \<propto> C)) \<and>
+    no_dup_reasons_invs_wl S
     ))\<close>
 
 
@@ -633,14 +596,51 @@ lemma rtranclp_remove_one_annot_true_clause_different_annots_all_killed:
       reduce_dom_clauses_trans[of _ \<open>get_clauses_wl S\<close>])
   done
 
+lemma  no_dup_reasons_invs_wl_repetition:
+ \<open>C > 0 \<Longrightarrow>
+  \<not>no_dup_reasons_invs_wl (M @ Propagated L C # c21' @ Propagated La C # M1, N, D, NE, UE, Q, W)\<close>
+  unfolding no_dup_reasons_invs_wl_def
+  by force
+
+lemma  no_dup_reasons_invs_wl_repetition_delone:
+ \<open>no_dup_reasons_invs_wl (M @ Propagated L C # c21' @ Propagated La C' # M1, N, D, NE, UE, Q, W) \<Longrightarrow>
+  no_dup_reasons_invs_wl (M @ Propagated L 0 # c21' @ Propagated La C' # M1, N', D', NE', UE', Q', W')\<close>
+  unfolding no_dup_reasons_invs_wl_def
+  by (auto split: if_splits)
+
+lemma  no_dup_reasons_invs_wl_repetition_delone':
+ \<open>no_dup_reasons_invs_wl (M @ Propagated L C # c21' @ Propagated La C' # M1, N, D, NE, UE, Q, W) \<Longrightarrow>
+  no_dup_reasons_invs_wl (M @ Propagated L C # c21' @ Propagated La 0 # M1, N', D', NE', UE', Q', W')\<close>
+  unfolding no_dup_reasons_invs_wl_def
+  by (auto split: if_splits)
+
+
 lemma remove_one_annot_true_clause_reasons_invs_wl:
   \<open>remove_one_annot_true_clause S T \<Longrightarrow> reasons_invs_wl S \<Longrightarrow> reasons_invs_wl T\<close>
   using distinct_mset_dom[of \<open>get_clauses_wl S\<close>] apply -
   apply (induction rule: remove_one_annot_true_clause.induct)
-   apply (auto simp: cdcl_twl_restart_wl_p.simps singleton_eq_image_mset_iff
-    reasons_invs_wl_def distinct_mset_remove1_All
+  subgoal for M L C M' N D NE UE Q W
+   apply (auto 5 5 simp: cdcl_twl_restart_wl_p.simps singleton_eq_image_mset_iff
+     distinct_mset_remove1_All reasons_invs_wl_def no_dup_reasons_invs_wl_repetition
+     no_dup_reasons_invs_wl_repetition_delone
     elim!: list_match_lel_lel)
-  apply (metis append_Cons append_assoc)+
+    apply (metis append_Cons append_assoc)
+    apply (metis append_Cons append_assoc)
+    apply (metis append_Cons append_assoc)
+    apply (rule no_dup_reasons_invs_wl_repetition_delone'[of _ _ _ _ _ C _ N D NE UE Q W])
+    using append_Cons append_assoc apply blast
+    done
+  subgoal for M L C M' N D NE UE Q W
+   apply (auto 5 5 simp: cdcl_twl_restart_wl_p.simps singleton_eq_image_mset_iff
+     distinct_mset_remove1_All reasons_invs_wl_def no_dup_reasons_invs_wl_repetition
+     no_dup_reasons_invs_wl_repetition_delone
+    elim!: list_match_lel_lel)
+    apply (metis append_Cons append_assoc)
+    apply (metis append_Cons append_assoc)
+    apply (metis append_Cons append_assoc)
+    apply (rule no_dup_reasons_invs_wl_repetition_delone'[of _ _ _ _ _ C _ N D NE UE Q W])
+    using append_Cons append_assoc apply blast
+    done
   done
 
 lemma rtranclp_remove_one_annot_true_clause_reasons_invs_wl:
@@ -898,6 +898,74 @@ lemma rtranclp_remove_one_watched_true_clause_decomp:
     by auto
   done
 
+
+definition (in -) extract_and_remove
+  :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> ('v clauses_l \<times> 'v clause_l \<times> bool) nres\<close>
+where
+  \<open>extract_and_remove N j = do {
+      ASSERT((j :: nat) \<in># dom_m (N :: 'v clauses_l));
+      SPEC(\<lambda>(N' :: 'v clauses_l, C' :: 'v clause_l, b :: bool). N' = N(j \<hookrightarrow> []) \<and> C' = N\<propto>j \<and> b = irred N j)
+    }\<close>
+
+definition (in -) replace_annot_in_trail_spec :: \<open>('v, nat) ann_lits \<Rightarrow> 'v literal \<Rightarrow>
+    (('v, nat) ann_lits) nres\<close>
+where
+  \<open>replace_annot_in_trail_spec M L = do {
+      ASSERT(L \<in> lits_of_l M);
+      SPEC(\<lambda>M'. \<exists>M2 M1 C. M = M2 @ Propagated L C # M1 \<and> M' = M2 @ Propagated L 0 # M1)
+    }\<close>
+
+
+definition remove_one_annot_true_clause_imp
+  :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
+where
+\<open>remove_one_annot_true_clause_imp = (\<lambda>(M, N, D, NE, UE, Q, W). do {
+    (_, M, N, NE, UE) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, M, N, NE, UE). i < length M)
+      (\<lambda>(i, M, N, NE, UE). do {
+          (L, C) \<leftarrow> SPEC(\<lambda>(L, C). Propagated L C = M!i);
+          
+            ASSERT(C \<in># dom_m N);
+            M \<leftarrow> replace_annot_in_trail_spec M L;
+            (N', C, b) \<leftarrow> extract_and_remove N C;
+            if b then RETURN (i+1, M, N', add_mset (mset C) NE, UE)
+            else RETURN (i+1, M, N', NE, add_mset (mset C) UE)
+      })
+      (0, M, N, NE, UE);
+    RETURN (M, N, D, NE, UE, Q, W)
+  })\<close>
+
+lemma
+  assumes \<open>no_dup (get_trail_wl S)\<close>
+  shows
+    \<open>remove_one_annot_true_clause_imp S \<le> \<Down> Id (SPEC(\<lambda>T. remove_one_annot_true_clause\<^sup>*\<^sup>* S T))\<close>
+proof -
+  obtain M N D NE UE Q W where S:\<open>S = (M, N, D, NE, UE, Q, W)\<close>
+    by (cases S) auto
+  define I where
+    \<open>I \<equiv> \<lambda>(i, M', N', NE', UE').
+      remove_one_annot_true_clause\<^sup>*\<^sup>* (M, N, D, NE, UE, Q, W) (M', N', D, NE', UE', Q, W) \<and>
+      length M = length M' \<and>
+        (\<forall>j < i. j < length M' \<longrightarrow> mark_of (M'!j) = 0)\<close>
+  have I0: \<open>I (0, M, N, NE, UE)\<close>
+    unfolding I_def by auto
+  show ?thesis
+    unfolding S remove_one_annot_true_clause_imp_def
+    apply (refine_vcg
+      WHILET_rule[where I = I and R=\<open>measure(\<lambda>(i, _). length M - i)\<close>])
+    subgoal by auto
+    subgoal using I0 by auto
+    subgoal for M' SM N' SN' D' SD NE' SNE UE' SUE Q' W' s i si M'' sm NE'' sNE UE'' sUE LC L C 
+      unfolding replace_annot_in_trail_spec_def extract_and_remove_def I_def
+      apply (auto simp: assert_bind_spec_conv)
+    by auto
+    subgoal for M' SM N' SN' D' SD NE' SNE UE' SUE Q' W' s i si M'' sm NE'' sNE UE'' sUE LC L C 
+      unfolding I_def replace_annot_in_trail_spec_def
+      apply (auto simp: assert_bind_spec_conv intro_spec_iff)
+    by auto
+    subgoal unfolding I_def by fast
+  oops
+  find_theorems " RES _ >>= (\<lambda>_.  _) <= _"
 lemma remove_all_watched_true_clause_partial_correct_watching:
  assumes \<open>remove_all_watched_true_clause S T\<close> and \<open>partial_correct_watching S\<close>
  shows \<open>partial_correct_watching T\<close>
@@ -1387,14 +1455,6 @@ proof -
     done
 qed
 
-
-definition (in -) extract_and_remove
-  :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> ('v clauses_l \<times> 'v clause_l \<times> bool) nres\<close>
-where
-  \<open>extract_and_remove N j = do {
-      ASSERT((j :: nat) \<in># dom_m (N :: 'v clauses_l));
-      SPEC(\<lambda>(N' :: 'v clauses_l, C' :: 'v clause_l, b :: bool). N' = N(j \<hookrightarrow> []) \<and> C' = N\<propto>j \<and> b = irred N j)
-    }\<close>
 
 definition remove_all_clause_watched_by_inv where
   \<open>remove_all_clause_watched_by_inv = (\<lambda>(M\<^sub>0, N\<^sub>0, D\<^sub>0, NE\<^sub>0, UE\<^sub>0, Q\<^sub>0, W\<^sub>0) (M, N, D, NE, UE, Q, W).

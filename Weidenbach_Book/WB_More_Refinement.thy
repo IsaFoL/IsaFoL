@@ -252,6 +252,10 @@ lemma SPEC_add_information: \<open>P \<Longrightarrow> A \<le> SPEC Q \<Longrigh
 lemma bind_refine_spec: \<open>(\<And>x. \<Phi> x \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> SPEC \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
   by (auto simp add: pw_le_iff refine_pw_simps)
 
+lemma intro_spec_iff:
+  \<open>(RES X \<bind> f \<le> M) = (\<forall>x\<in>X. f x \<le> M)\<close>
+  using intro_spec_refine_iff[of X f Id M] by auto
+
 lemma case_prod_bind:
   assumes \<open>\<And>x1 x2. x = (x1, x2) \<Longrightarrow> f x1 x2 \<le> \<Down> R I\<close>
   shows \<open>(case x of (x1, x2) \<Rightarrow> f x1 x2) \<le> \<Down> R I\<close>
