@@ -407,7 +407,6 @@ definition reasons_invs_wl where
     no_dup_reasons_invs_wl S
     ))\<close>
 
-
 inductive different_annot_all_killed where
 propa_changed:
   \<open>different_annot_all_killed N NUE (Propagated L C) (Propagated L C')\<close>
@@ -904,7 +903,7 @@ definition (in -) extract_and_remove
 where
   \<open>extract_and_remove N j = do {
       ASSERT((j :: nat) \<in># dom_m (N :: 'v clauses_l));
-      SPEC(\<lambda>(N' :: 'v clauses_l, C' :: 'v clause_l, b :: bool). N' = N(j \<hookrightarrow> []) \<and> C' = N\<propto>j \<and> b = irred N j)
+      SPEC(\<lambda>(N' :: 'v clauses_l, C' :: 'v clause_l, b :: bool). N' = fmdrop j N \<and> C' = N\<propto>j \<and> b = irred N j)
     }\<close>
 
 definition (in -) replace_annot_in_trail_spec :: \<open>('v, nat) ann_lits \<Rightarrow> 'v literal \<Rightarrow>
@@ -916,27 +915,52 @@ where
     }\<close>
 
 
+definition remove_one_annot_true_clause_one_imp
+where
+\<open>remove_one_annot_true_clause_one_imp = (\<lambda>(i, M, N, NE, UE). do {
+      ASSERT(i < length M);
+      (L, C) \<leftarrow> SPEC(\<lambda>(L, C). M!i = Propagated L C);
+      if C = 0 then RETURN (i+1, M, N, NE, UE)
+      else do {
+        ASSERT(C \<in># dom_m N);
+        M \<leftarrow> replace_annot_in_trail_spec M L;
+        (N', C, b) \<leftarrow> extract_and_remove N C;
+        if b then RETURN (i+1, M, N', add_mset (mset C) NE, UE)
+        else RETURN (i+1, M, N', NE, add_mset (mset C) UE)
+      }
+  })\<close>
+
+
 definition remove_one_annot_true_clause_imp
   :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp = (\<lambda>(M, N, D, NE, UE, Q, W). do {
     (_, M, N, NE, UE) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, M, N, NE, UE). i < length M)
-      (\<lambda>(i, M, N, NE, UE). do {
-          (L, C) \<leftarrow> SPEC(\<lambda>(L, C). Propagated L C = M!i);
-          
-            ASSERT(C \<in># dom_m N);
-            M \<leftarrow> replace_annot_in_trail_spec M L;
-            (N', C, b) \<leftarrow> extract_and_remove N C;
-            if b then RETURN (i+1, M, N', add_mset (mset C) NE, UE)
-            else RETURN (i+1, M, N', NE, add_mset (mset C) UE)
-      })
+      (\<lambda>(i, M, N, NE, UE). remove_one_annot_true_clause_one_imp (i, M, N, NE, UE))
       (0, M, N, NE, UE);
     RETURN (M, N, D, NE, UE, Q, W)
   })\<close>
 
+lemma remove_one_annot_true_clause_no_dup:
+  \<open>remove_one_annot_true_clause S T \<Longrightarrow> no_dup (get_trail_wl S) \<longleftrightarrow> no_dup (get_trail_wl T)\<close>
+  by (induction rule: remove_one_annot_true_clause.induct) auto
+lemma rtranclp_remove_one_annot_true_clause_no_dup:
+  \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<Longrightarrow> no_dup (get_trail_wl S) \<longleftrightarrow> no_dup (get_trail_wl T)\<close>
+  by (induction rule: rtranclp_induct) (auto simp: remove_one_annot_true_clause_no_dup)
+
+lemma remove_one_annot_true_clause_count_decided:
+  \<open>remove_one_annot_true_clause S T \<Longrightarrow> count_decided (get_trail_wl S) = count_decided (get_trail_wl T)\<close>
+  by (induction rule: remove_one_annot_true_clause.induct) auto
+lemma rtranclp_remove_one_annot_true_clause_count_decided:
+  \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<Longrightarrow> count_decided (get_trail_wl S) = count_decided (get_trail_wl T)\<close>
+  by (induction rule: rtranclp_induct) (auto simp: remove_one_annot_true_clause_count_decided)
+
 lemma
-  assumes \<open>no_dup (get_trail_wl S)\<close>
+  assumes
+    n_d: \<open>no_dup (get_trail_wl S)\<close> and
+    reasons: \<open>reasons_invs_wl S\<close> and
+    count_dec: \<open>count_decided (get_trail_wl S) = 0\<close>
   shows
     \<open>remove_one_annot_true_clause_imp S \<le> \<Down> Id (SPEC(\<lambda>T. remove_one_annot_true_clause\<^sup>*\<^sup>* S T))\<close>
 proof -
@@ -945,26 +969,160 @@ proof -
   define I where
     \<open>I \<equiv> \<lambda>(i, M', N', NE', UE').
       remove_one_annot_true_clause\<^sup>*\<^sup>* (M, N, D, NE, UE, Q, W) (M', N', D, NE', UE', Q, W) \<and>
-      length M = length M' \<and>
-        (\<forall>j < i. j < length M' \<longrightarrow> mark_of (M'!j) = 0)\<close>
+      length M = length M' \<and> i \<le> length M \<and>
+        (\<forall>j < i. mark_of (M'!j) = 0) \<and>
+        reasons_invs_wl (M', N', D, NE', UE', Q, W)\<close>
   have I0: \<open>I (0, M, N, NE, UE)\<close>
-    unfolding I_def by auto
+    using reasons unfolding I_def S by auto
+  have \<open>remove_one_annot_true_clause_one_imp (i, M'', NE'', UE'', sUE)
+      \<le> SPEC (\<lambda>s'. I s' \<and> (s', s) \<in> measure (\<lambda>(i, _). length M - i))\<close>
+    if 
+      \<open>(M, N, D, NE, UE, Q, W) = (M', SM)\<close> and
+      \<open>SM = (N', SN')\<close> and
+      \<open>SN' = (D', SD)\<close> and
+      \<open>SD = (NE', SNE)\<close> and
+      \<open>SNE = (UE', SUE)\<close> and
+      \<open>SUE = (Q', W')\<close> and
+      I: \<open>I s\<close> and
+      i_le: \<open>case s of (i, M, N, NE, UE) \<Rightarrow> i < length M\<close> and
+      s: \<open>s = (i, si)\<close> \<open>si = (M'', sm)\<close> \<open>sm = (NE'', sNE)\<close> \<open>sNE = (UE'', sUE)\<close>
+    for M' SM N' SN' D' SD NE' SNE UE' SUE Q' W' s i si M'' sm NE'' sNE UE'' sUE
+  proof -
+    have \<open>i < length M''\<close>
+      using i_le unfolding s by auto
+    have
+      reasons: \<open>reasons_invs_wl (M'', NE'', D, UE'', sUE, Q, W)\<close> and
+      [simp]: \<open>length M = length M''\<close> and
+      rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* (M, N, D, NE, UE, Q, W)
+         (M'', NE'', D, UE'', sUE, Q, W)\<close> and
+      all0: \<open>\<And>j. j<i \<Longrightarrow> mark_of (M'' ! j) = 0\<close> and
+      reasons': \<open>reasons_invs_wl (M'', NE'', D, UE'', sUE, Q, W)\<close>
+      using I unfolding s I_def prod.simps by fast+
+    have I_next0: \<open> I (Suc i, M'', NE'', UE'', sUE)\<close> if \<open>M'' ! i = Propagated L 0\<close> for L
+      using I that  \<open>i < length M''\<close> unfolding I_def s by (auto simp: less_Suc_eq)
+    have C_dom: \<open>C \<in># dom_m NE''\<close> and
+      L_lits: \<open>L \<in> lits_of_l M''\<close>
+      if \<open>M'' ! i = Propagated L C \<close> and C0: \<open>C > 0\<close> for L C
+    proof -
+      have LC: \<open>Propagated L C \<in> set M''\<close>
+        using that(1)[symmetric]  \<open>i < length M''\<close> by auto
+      then show \<open>C \<in># dom_m NE''\<close>
+        using reasons C0 unfolding reasons_invs_wl_def
+        by (auto dest!: split_list)
+      show \<open>L \<in> lits_of_l M''\<close>
+        using LC
+        by (auto dest!: split_list)
+    qed
+    have \<open>I (i + 1, M', N', add_mset (mset C') UE'', sUE)\<close>
+      if 
+        \<open>i < length M''\<close> and
+        LC_i: \<open>case LC of (L, C) \<Rightarrow> M'' ! i = Propagated L C\<close> and
+        LC: \<open>LC = (L, C)\<close> and
+        \<open>C \<noteq> 0\<close> and
+        \<open>C \<in># dom_m NE''\<close> and
+        \<open>L \<in> lits_of_l M''\<close> and
+        renum: \<open>\<exists>M2 M1 C.
+            M'' = M2 @ Propagated L C # M1 \<and> M' = M2 @ Propagated L 0 # M1\<close> and
+        NCb': \<open>case NCb of (N', C', b) \<Rightarrow> N' = fmdrop C NE'' \<and> C' = NE'' \<propto> C \<and> b = irred NE'' C\<close> and
+        NCb: \<open>NCb = (N', sCb)\<close> \<open>sCb = (C', b')\<close> and
+        \<open>b'\<close>
+      for LC L C M' NCb N' sCb C' b'
+    proof -
+      obtain M2 M1 E where
+        M'': \<open>M'' = M2 @ Propagated L E # M1\<close> and
+        M': \<open>M' = M2 @ Propagated L 0 # M1\<close>
+        using renum by blast
+      have n_d'': \<open>no_dup M''\<close>
+        using rtranclp_remove_one_annot_true_clause_no_dup[OF rem] n_d unfolding S by auto
+      moreover have LC_M'': \<open>Propagated L C \<in> set M''\<close>
+        using LC_i nth_mem[of i \<open>M''\<close>] \<open>i < length M''\<close>
+        unfolding LC 
+        by auto
+      ultimately have E: \<open>E = C\<close>
+        using LC_i \<open>i < length M''\<close> unfolding LC S M' M''
+        by (auto dest!: split_list simp: nth_append simp del: \<open>i < length M''\<close>
+          split: if_splits)
+      have i: \<open>i = length M2\<close>
+        using LC_i n_d'' \<open>i < length M''\<close> unfolding LC prod.case M'' S E
+        apply (auto simp: nth_append nth_Cons split: if_splits)
+        using defined_lit_def nth_mem apply fastforce 
+        by (metis E M'' all0 annotated_lit.sel(3) linorder_neqE_nat nth_append_length that(4))
+      have
+        N': \<open>N' = fmdrop C NE''\<close> and
+        C': \<open>C' = NE'' \<propto> C\<close> and
+        irred: \<open>irred NE'' C\<close>
+        using NCb' \<open>b'\<close> unfolding NCb prod.case
+        by simp_all
+      have count_dec': \<open>count_decided M'' = 0\<close>
+        using rtranclp_remove_one_annot_true_clause_count_decided[OF rem]
+        count_dec unfolding S by simp
+      have all0': \<open>j<i + 1 \<Longrightarrow> mark_of ((M2 @ Propagated L 0 # M1) ! j) = 0\<close> for j
+         using all0[of j]  \<open>i < length M''\<close> i
+         by (auto simp: nth_append M'' less_Suc_eq split: if_splits)
+      have \<open>reasons_invs_wl (M2 @ Propagated L 0 # M1, N', D, add_mset (mset C') UE'', sUE, Q, W)\<close>
+        using reasons' apply (auto 5 5 simp: reasons_invs_wl_def M'' E N'
+          no_dup_reasons_invs_wl_def
+          elim!: list_match_lel_lel)
+        unfolding  append_Cons[symmetric] append_assoc[symmetric]
+        supply append_Cons[simp del] append_assoc[simp del]
+        apply blast
+        apply blast
+        apply blast
+        sorry
+      have \<open>remove_one_annot_true_clause (M'', NE'', D, UE'', sUE, Q, W)
+        (M2 @ Propagated L 0 # M1, N', D, add_mset (mset C') UE'', sUE, Q, W)\<close>
+        unfolding M'' C' N' E
+        apply (rule remove_one_annot_true_clause.intros(1))
+        subgoal using count_decided_ge_get_level[of M'' L] count_dec' unfolding M''  E by simp
+        subgoal using \<open>C \<noteq> 0\<close> by simp
+        subgoal using  \<open>C \<in># dom_m NE''\<close> .
+        subgoal using irred .
+        done
+      then have rem': \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* (M, N, D, NE, UE, Q, W)
+          (M2 @ Propagated L 0 # M1, N', D, add_mset (mset C') UE'', sUE, Q, W)\<close> 
+        using rem unfolding M'' E by simp
+      show ?thesis
+        using rem' all0' \<open>i < length M''\<close>
+        unfolding I_def NCb M' M'' prod.case
+        apply (intro conjI)
+        apply (auto simp: M'' )
+       sorry
+    qed
+    show ?thesis
+      unfolding remove_one_annot_true_clause_one_imp_def replace_annot_in_trail_spec_def
+      extract_and_remove_def s prod.case
+      apply (refine_vcg)
+      subgoal by simp
+      subgoal for LC L C by (auto intro: I_next0)
+      subgoal by (auto simp: diff_less_mono2)
+      subgoal by (auto intro: C_dom)
+      subgoal by (auto intro: L_lits)
+      subgoal for LC L C'' M' NCb N' sCb C' b'
+        explore_have
+       apply auto
+       sorry
+      subgoal by (auto simp: diff_less_mono2)
+      subgoal for LC L C
+      
+       apply auto
+       sorry
+      subgoal by (auto simp: diff_less_mono2)
+      done
+  qed
   show ?thesis
     unfolding S remove_one_annot_true_clause_imp_def
     apply (refine_vcg
       WHILET_rule[where I = I and R=\<open>measure(\<lambda>(i, _). length M - i)\<close>])
     subgoal by auto
     subgoal using I0 by auto
-    subgoal for M' SM N' SN' D' SD NE' SNE UE' SUE Q' W' s i si M'' sm NE'' sNE UE'' sUE LC L C 
-      unfolding replace_annot_in_trail_spec_def extract_and_remove_def I_def
-      apply (auto simp: assert_bind_spec_conv)
-    by auto
-    subgoal for M' SM N' SN' D' SD NE' SNE UE' SUE Q' W' s i si M'' sm NE'' sNE UE'' sUE LC L C 
-      unfolding I_def replace_annot_in_trail_spec_def
+    subgoal for M' SM N' SN' D' SD NE' SNE UE' SUE Q' W' s i si M'' sm NE'' sNE UE'' sUE
+      unfolding remove_one_annot_true_clause_one_imp_def replace_annot_in_trail_spec_def
+      extract_and_remove_def
       apply (auto simp: assert_bind_spec_conv intro_spec_iff)
     by auto
     subgoal unfolding I_def by fast
   oops
+
   find_theorems " RES _ >>= (\<lambda>_.  _) <= _"
 lemma remove_all_watched_true_clause_partial_correct_watching:
  assumes \<open>remove_all_watched_true_clause S T\<close> and \<open>partial_correct_watching S\<close>
