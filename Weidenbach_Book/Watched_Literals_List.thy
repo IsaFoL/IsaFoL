@@ -224,7 +224,6 @@ lemma no_dup_convert_lits_l[simp]: \<open>(M, M') \<in> convert_lits_l N E \<Lon
      by (cases M') auto
   done
 
-
 lemma
   assumes \<open>(M, M') \<in> convert_lits_l N E\<close>
   shows
@@ -255,7 +254,6 @@ lemma
   subgoal for L C M M'
     by (cases M') (auto simp: convert_lits_l_def p2rel_def get_level_cons_if)
   done
-
 
 lemma
   assumes \<open>(M, M') \<in> convert_lits_l N E\<close>
@@ -348,6 +346,18 @@ lemma convert_lit_decided[iff]:
 lemma convert_lit_decided_propagated[iff]:
   \<open>convert_lit b d (Decided x1) (Propagated x21 x22) \<longleftrightarrow> False\<close>
   by (auto simp: convert_lit.simps)
+
+lemma (in -) in_convert_lits_lD:
+  \<open>K \<in> set TM \<Longrightarrow>
+    (M, TM) \<in> convert_lits_l N NE \<Longrightarrow>
+      \<exists>K'. K' \<in> set M \<and> convert_lit N NE K' K\<close>
+  by (auto 5 5 simp: convert_lits_l_def list_rel_append2 dest!: split_list  p2relD
+    elim!: list_relE)
+
+lemma convert_lits_lI:
+  \<open>length M = length M' \<Longrightarrow> (\<And>i. i < length M \<Longrightarrow> convert_lit N NE (M!i) (M'!i)) \<Longrightarrow>
+     (M, M') \<in> convert_lits_l N NE\<close>
+  by (auto simp: convert_lits_l_def list_rel_def p2rel_def list_all2_conv_all_nth)
 
 abbreviation ran_mf :: \<open>'v clauses_l \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>ran_mf N \<equiv> fst `# ran_m N\<close>

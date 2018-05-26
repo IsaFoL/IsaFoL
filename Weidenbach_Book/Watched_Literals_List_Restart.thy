@@ -201,23 +201,6 @@ proof (induction rule: cdcl_twl_restart_l.induct)
   qed
 qed
 
-lemma (in -) in_convert_lits_lD:
-  \<open>K \<in> set TM \<Longrightarrow>
-    (M, TM) \<in> convert_lits_l N NE \<Longrightarrow>
-      \<exists>K'. K' \<in> set M \<and> convert_lit N NE K' K\<close>
-  by (auto 5 5 simp: convert_lits_l_def list_rel_append2 dest!: split_list  p2relD
-    elim!: list_relE)
-
-lemma (in -) get_level_append_if:
-  \<open>get_level (M @ M') L = (if defined_lit M L then get_level M L + count_decided M'
-            else get_level M' L)\<close>
-  by (auto)
-
-lemma convert_lits_lI:
-  \<open>length M = length M' \<Longrightarrow> (\<And>i. i < length M \<Longrightarrow> convert_lit N NE (M!i) (M'!i)) \<Longrightarrow>
-     (M, M') \<in> convert_lits_l N NE\<close>
-  by (auto simp: convert_lits_l_def list_rel_def p2rel_def list_all2_conv_all_nth)
-
 lemma cdcl_twl_restart_l_cdcl_twl_restart:
   assumes ST: \<open>(S, T) \<in> twl_st_l None\<close> and
     list_invs: \<open>twl_list_invs S\<close> and
