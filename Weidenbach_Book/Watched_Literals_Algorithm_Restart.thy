@@ -9,7 +9,7 @@ text \<open>Restarts are never necessary\<close>
 definition restart_required :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required S n = SPEC (\<lambda>b. b \<longrightarrow> size (get_learned_clss S) > f n)\<close>
 
-definition restart_prog_pre :: \<open>'v twl_st \<Rightarrow> bool\<close> where
+definition (in -) restart_prog_pre :: \<open>'v twl_st \<Rightarrow> bool\<close> where
   \<open>restart_prog_pre S \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S\<close>
 
 definition restart_prog :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> nat) nres" where
