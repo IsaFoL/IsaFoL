@@ -47,35 +47,6 @@ restart_clauses:
 
 inductive_cases cdcl_twl_restartE: \<open>cdcl_twl_restart S T\<close>
 
-context twl_restart
-begin
-
-inductive cdcl_twl_stgy_restart :: \<open>'v twl_st \<times> nat \<Rightarrow> 'v twl_st \<times> nat \<Rightarrow> bool\<close> where
-restart_step:
-  \<open>cdcl_twl_stgy_restart (S, n) (U, Suc n)\<close>
-  if
-    \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close> and
-    \<open>size (get_learned_clss T) > f n\<close> and
-    \<open>cdcl_twl_restart T U\<close> |
-restart_full:
- \<open>cdcl_twl_stgy_restart (S, n) (T, n)\<close>
- if
-    \<open>full1 cdcl_twl_stgy S T\<close>
-
-lemma cdcl_twl_stgy_restart_init_clss:
-  assumes \<open>cdcl_twl_stgy_restart S T\<close>
-  shows
-    \<open>get_all_init_clss (fst S) = get_all_init_clss (fst T)\<close>
-  by (use assms in \<open>induction rule: cdcl_twl_stgy_restart.induct\<close>)
-     (auto simp: full1_def cdcl_twl_restart.simps
-     dest: rtranclp_cdcl_twl_stgy_all_learned_diff_learned dest!: tranclp_into_rtranclp)
-
-lemma rtranclp_cdcl_twl_stgy_restart_init_clss:
-  assumes \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T\<close>
-  shows
-    \<open>get_all_init_clss (fst S) = get_all_init_clss (fst T)\<close>
-  by (use assms in \<open>induction rule: rtranclp_induct\<close>)
-   (auto simp: full1_def dest: cdcl_twl_stgy_restart_init_clss)
 
 lemma cdcl_twl_restart_cdcl\<^sub>W_stgy:
   assumes
@@ -531,7 +502,6 @@ next
     done
 qed
 
-
 lemma cdcl_twl_restart_twl_stgy_invs:
   assumes
     \<open>cdcl_twl_restart S T\<close> and \<open>twl_stgy_invs S\<close>
@@ -542,6 +512,37 @@ lemma cdcl_twl_restart_twl_stgy_invs:
     cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
       conflicting.simps cdcl\<^sub>W_restart_mset.no_smaller_confl_def clauses_def trail.simps
       dest!: get_all_ann_decomposition_exists_prepend)
+
+
+context twl_restart
+begin
+
+inductive cdcl_twl_stgy_restart :: \<open>'v twl_st \<times> nat \<Rightarrow> 'v twl_st \<times> nat \<Rightarrow> bool\<close> where
+restart_step:
+  \<open>cdcl_twl_stgy_restart (S, n) (U, Suc n)\<close>
+  if
+    \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close> and
+    \<open>size (get_learned_clss T) > f n\<close> and
+    \<open>cdcl_twl_restart T U\<close> |
+restart_full:
+ \<open>cdcl_twl_stgy_restart (S, n) (T, n)\<close>
+ if
+    \<open>full1 cdcl_twl_stgy S T\<close>
+
+lemma cdcl_twl_stgy_restart_init_clss:
+  assumes \<open>cdcl_twl_stgy_restart S T\<close>
+  shows
+    \<open>get_all_init_clss (fst S) = get_all_init_clss (fst T)\<close>
+  by (use assms in \<open>induction rule: cdcl_twl_stgy_restart.induct\<close>)
+     (auto simp: full1_def cdcl_twl_restart.simps
+     dest: rtranclp_cdcl_twl_stgy_all_learned_diff_learned dest!: tranclp_into_rtranclp)
+
+lemma rtranclp_cdcl_twl_stgy_restart_init_clss:
+  assumes \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T\<close>
+  shows
+    \<open>get_all_init_clss (fst S) = get_all_init_clss (fst T)\<close>
+  by (use assms in \<open>induction rule: rtranclp_induct\<close>)
+   (auto simp: full1_def dest: cdcl_twl_stgy_restart_init_clss)
 
 lemma cdcl_twl_stgy_restart_twl_struct_invs:
   assumes
@@ -727,24 +728,6 @@ lemma rtranclp_cdcl_twl_stgy_restart_new_abs:
   subgoal by auto
   subgoal by (auto intro: cdcl_twl_stgy_restart_new rtranclp_cdcl_twl_stgy_restart_twl_struct_invs)
   done
-(*
-lemma cdcl_twl_stgy_restart_get_init_learned_clss_mono:
-  assumes
-    \<open>cdcl_twl_stgy_restart S T\<close>
-  shows \<open>get_init_learned_clss (fst S) \<subseteq># get_init_learned_clss (fst T)\<close>
-  using assms
-  by (induction) (auto dest!: rtranclp_cdcl_twl_stgy_get_init_learned_clss_mono
-      tranclp_into_rtranclp
-      simp: cdcl_twl_restart.simps full1_def)
-
-lemma rtranclp_cdcl_twl_stgy_restart_get_init_learned_clss_mono:
-  assumes
-    \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T\<close>
-  shows \<open>get_init_learned_clss (fst S) \<subseteq># get_init_learned_clss (fst T)\<close>
-  using assms
-  by induction (auto dest!: tranclp_into_rtranclp cdcl_twl_stgy_restart_get_init_learned_clss_mono)
-*)
-
 
 theorem wf_cdcl_twl_stgy_restart:
   \<open>wf {(T, S :: 'v twl_st \<times> nat). twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart S T}\<close>
