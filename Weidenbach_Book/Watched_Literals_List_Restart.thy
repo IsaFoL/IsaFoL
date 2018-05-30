@@ -1813,13 +1813,16 @@ proof -
       using \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* U (M, N', D, NE', UE, WS, Q)\<close> \<open>twl_list_invs U\<close>
         rtranclp_cdcl_twl_restart_l_list_invs by blast
 
+    have dom_N: \<open>xs ! k \<in># dom_m N\<close>
+      using dom red unfolding s
+      by (auto simp del: nth_mem simp: reduce_dom_clauses_def)
+
     have xs_k_0: \<open>0 < xs ! k\<close>
       apply (rule ccontr)
       using dom list_invs_U' by (auto simp: twl_list_invs_def)
     have L_set: \<open>L \<in> set (N \<propto> (xs!k))\<close>
-      using xs cond nth_mem[of k xs] dom red unfolding s reduce_dom_clauses_def
-      apply (auto simp del: nth_mem simp: )
-      sorry
+      using xs cond nth_mem[of k xs] dom_N unfolding s
+      by (auto simp del: nth_mem)
     have \<open>no_dup M\<close>
       using n_d unfolding U by simp
     then have no_already_annot: \<open>Propagated Laa (xs ! k) \<in>  set M \<Longrightarrow> False\<close> for Laa
@@ -1833,7 +1836,7 @@ proof -
       subgoal using \<open>L \<in> lits_of_l M\<close> .
       subgoal using \<open>get_level M L = 0\<close> .
       subgoal using dom .
-      subgoal using xs cond unfolding s by auto
+      subgoal using L_set by auto
       subgoal using that .
       subgoal using no_already_annot by blast
       done

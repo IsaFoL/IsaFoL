@@ -17,7 +17,7 @@ definition remove_all_annot_true_clause_imp_wl
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
 \<open>remove_all_annot_true_clause_imp_wl = (\<lambda>L (M, N, D, NE, UE, Q, W). do {
-    xs \<leftarrow> SPEC(\<lambda>xs. \<forall>x\<in>set xs. L \<in> set (N\<propto>x));
+    xs \<leftarrow> SPEC(\<lambda>xs. \<forall>x\<in>set xs. (x \<in># dom_m N \<longrightarrow> L \<in> set (N\<propto>x)));
     (_, N, NE) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, N, NE). i < length xs)
       (\<lambda>(i, N, NE). do {
