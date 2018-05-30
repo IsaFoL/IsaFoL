@@ -2,6 +2,142 @@ theory Watched_Literals_Watch_List_Restart
   imports Watched_Literals_List_Restart Watched_Literals_Watch_List
 begin
 
+fun (in -) partial_correct_watching :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
+  [simp del]: \<open>partial_correct_watching (M, N, D, NE, UE, Q, W)  \<longleftrightarrow>
+      (\<forall>L\<in>#all_lits_of_mm (mset `# ran_mf N + NE + UE).
+        (\<forall>i\<in>set (W L). i \<notin># dom_m N \<or> L \<in> set (watched_l (N\<propto>i))))\<close>
+
+lemma (in -) \<open>correct_watching S \<Longrightarrow> partial_correct_watching S\<close>
+  by (cases S)
+    (auto simp: correct_watching.simps partial_correct_watching.simps clause_to_update_def
+    simp del: set_mset_mset dest: in_set_mset_eq_in)
+
+term remove_all_annot_true_clause_imp
+definition remove_all_annot_true_clause_imp_wl
+  :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
+where
+\<open>remove_all_annot_true_clause_imp_wl = (\<lambda>L (M, N, D, NE, UE, Q, W). do {
+    xs \<leftarrow> SPEC(\<lambda>xs. \<forall>x\<in>set xs. L \<in> set (N\<propto>x));
+    (_, N, NE) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, N, NE). i < length xs)
+      (\<lambda>(i, N, NE). do {
+          ASSERT(i < length xs);
+          if xs!i \<in># dom_m N
+          then do {
+            (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (xs!i, N, NE);
+            RETURN (i+1, N, NE)
+          }
+          else
+            RETURN (i+1, N, NE)
+      })
+      (0, N, NE);
+    RETURN (M, N, D, NE, UE, Q, W)
+  })\<close>
+
+
+lemma \<open>(uncurry remove_all_annot_true_clause_imp_wl, uncurry remove_all_annot_true_clause_imp) \<in>
+   Id \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<rangle>nres_rel\<close>
+proof -
+  have H: \<open>((0, x1i, x1k), 0, x1b, x1d) \<in> nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>
+    if \<open>(x1i, x1b) \<in> Id\<close> and  \<open>(x1k, x1d) \<in> Id\<close>
+    for x1i x1k x1b x1d
+    using that by auto
+  have [refine0]: \<open>remove_all_annot_true_clause_one_imp (C, N0, NE) \<le>
+        \<Down> {((N, NE), (N', NE')). N = N' \<and> NE = NE' \<and>
+          (C \<in># dom_m N \<longrightarrow> N = fmdrop C N0)} (remove_all_annot_true_clause_one_imp (C', N', NE'))\<close>
+    if \<open>(C, C') \<in> Id\<close> and \<open>(N0, N') \<in> Id\<close> and \<open>(NE, NE') \<in> Id\<close>
+    for C C' N N' NE NE' N0
+    using that unfolding remove_all_annot_true_clause_one_imp_def by auto
+  show ?thesis
+    apply (intro frefI nres_relI)
+    unfolding uncurry_def remove_all_annot_true_clause_imp_wl_def
+      remove_all_annot_true_clause_imp_def
+    subgoal for LS LT
+    apply (refine_rcg H
+      WHILET_refine[where R=\<open>bool_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
+        {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S \<and>
+          reduce_dom_clauses (get_clauses_wl (snd LS)) (get_clauses_wl S)}\<close>])
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal apply (auto simp: state_wl_l_def)
+    oops
+
+definition remove_one_annot_true_clause_one_imp_wl
+  :: \<open>nat \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres\<close>
+where
+\<open>remove_one_annot_true_clause_one_imp_wl = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
+      ASSERT(i < length M);
+      (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
+      if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
+      else do {
+        ASSERT(C \<in># dom_m N);
+        M \<leftarrow> replace_annot_in_trail_spec M L;
+        (N', C, b) \<leftarrow> extract_and_remove N C;
+        let S = (if b then (M, N', D, add_mset (mset C) NE, UE, Q, W)
+                      else (M, N', D, NE, add_mset (mset C) UE, Q, W));
+        S \<leftarrow> remove_all_annot_true_clause_imp_wl L S;
+        RETURN (i+1, S)
+      }
+  })\<close>
+
+definition remove_one_annot_true_clause_imp_wl :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
+where
+\<open>remove_one_annot_true_clause_imp_wl = (\<lambda>S. do {
+    (_, S) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, S). i < length (get_trail_wl S) \<and> \<not>is_decided (get_trail_wl S!i))
+      (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl i S)
+      (0, S);
+    RETURN S
+  })\<close>
+
+definition collect_valid_indices_wl where
+  \<open>collect_valid_indices_wl S = SPEC (\<lambda>N. mset N \<subseteq># dom_m (get_clauses_wl S) \<and> distinct N)\<close>
+
+definition mark_to_delete_clauses_wl :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+\<open>mark_to_delete_clauses_wl  = (\<lambda>(M, N, D, NE, UE, Q, W). do {
+    xs \<leftarrow> collect_valid_indices_wl (M, N, D, NE, UE, Q, W);
+    (_, _, N) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(brk, i, N). \<not>brk \<and> i < length xs)
+      (\<lambda>(brk, i, N). do {
+        can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (N\<propto>(xs!i)!0) (xs!i) \<notin> set M) \<and> \<not>irred N (xs!i));
+        brk \<leftarrow> SPEC(\<lambda>_. True);
+        ASSERT(i < length xs);
+        if can_del
+        then
+          RETURN (brk, i+1, fmdrop (xs!i) N)
+        else
+          RETURN (brk, i+1, N)
+      })
+      (False, 0, N);
+    RETURN (M, N, D, NE, UE, Q, W)
+  })\<close>
+
+  
+
+lemma \<open>(uncurry remove_all_annot_true_clause_imp_wl, uncurry remove_all_annot_true_clause_imp) \<in>
+   Id \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  unfolding uncurry_def remove_all_annot_true_clause_imp_wl_def
+    remove_all_annot_true_clause_imp_def
+  apply (refine_vcg
+    WHILET_refine[where R=\<open>bool_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
+       {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<close>])
+  
+thm WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
+       {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<close>]
+  oops
+
 text \<open>Most important point: We assume that the new watch list is correct.\<close>
 inductive cdcl_twl_restart_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
 restart_trail:
