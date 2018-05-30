@@ -2138,6 +2138,131 @@ lemma remove_one_annot_true_clause_imp_spec:
   done
 
 definition collect_valid_indices where
-  \<open>collect_valid_indices S = SPEC (\<lambda>N. mset N = dom_m (get_clauses_l S))\<close>
+  \<open>collect_valid_indices S = SPEC (\<lambda>N. mset N \<subseteq># dom_m (get_clauses_l S) \<and> distinct N)\<close>
+
+definition mark_to_delete_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+\<open>mark_to_delete_clauses_l  = (\<lambda>(M, N, D, NE, UE, WS, Q). do {
+    xs \<leftarrow> collect_valid_indices (M, N, D, NE, UE, WS, Q);
+    (_, _, N) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(brk, i, N). \<not>brk \<and> i < length xs)
+      (\<lambda>(brk, i, N). do {
+        can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (N\<propto>(xs!i)!0) (xs!i) \<notin> set M) \<and> \<not>irred N (xs!i));
+        brk \<leftarrow> SPEC(\<lambda>_. True);
+        ASSERT(i < length xs);
+        if can_del
+        then
+          RETURN (brk, i+1, fmdrop (xs!i) N)
+        else
+          RETURN (brk, i+1, N)
+      })
+      (False, 0, N);
+    RETURN (M, N, D, NE, UE, WS, Q)
+  })\<close>
+
+
+
+lemma mark_to_delete_clauses_l_spec:
+  assumes
+    ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    struct_invs: \<open>twl_struct_invs T\<close> and
+    confl: \<open>get_conflict_l S = None\<close> and
+    upd: \<open>clauses_to_update_l S = {#}\<close>
+  shows \<open>mark_to_delete_clauses_l S \<le> \<Down> Id (SPEC(remove_one_annot_true_clause\<^sup>*\<^sup>* S))\<close>
+proof -
+  obtain M N D NE UE WS Q where S: \<open>S = (M, N, D, NE, UE, WS, Q)\<close>
+    by (cases S)
+  define I where
+    \<open>I xs \<equiv> (\<lambda>(brk :: bool, i :: nat, N).
+           remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, N, D, NE, UE, WS, Q) \<and>
+            (\<forall>j\<ge>i. j < length xs \<longrightarrow> xs!j \<in># dom_m N))\<close> for xs
+
+  have I_suc: \<open>I xs (brk', i + 1, fmdrop (xs ! i) N')\<close>
+    if
+      xs: \<open>mset xs \<subseteq># dom_m (get_clauses_l (M, N, D, NE, UE, WS, Q)) \<and> distinct xs\<close> and
+      I: \<open>I xs s\<close> and
+      \<open>case s of (brk, i, N) \<Rightarrow> \<not> brk \<and> i < length xs\<close> and
+      s: \<open>s = (brk, sbrk)\<close> \<open>sbrk = (i, N')\<close> and
+      can_del':
+        \<open>can_del \<longrightarrow> Propagated (N' \<propto> (xs ! i) ! 0) (xs ! i) \<notin> set M \<and> \<not> irred N' (xs ! i)\<close> and
+      i_le: \<open>i < length xs\<close> and
+      can_del: \<open>can_del\<close>
+    for s brk sbrk i N' can_del brk' xs
+  proof -
+    have st:
+      \<open>s = (brk, i, N')\<close>
+      \<open>sbrk = (i, N')\<close>
+      using s by auto
+    have
+      rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, N', D, NE, UE, WS, Q)\<close> and
+      in_dom: \<open>\<And>j. j \<ge> i \<Longrightarrow> j < length xs \<Longrightarrow> xs ! j \<in># dom_m N'\<close>
+      using I unfolding I_def st prod.case by blast+
+    obtain V where
+      SU: \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* S (M, N', D, NE, UE, WS, Q)\<close> and
+      UV: \<open>((M, N', D, NE, UE, WS, Q), V) \<in> twl_st_l None\<close> and
+      TV: \<open>cdcl_twl_restart\<^sup>*\<^sup>* T V\<close> and
+      struct_invs_V: \<open>twl_struct_invs V\<close>
+      using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[OF rem list_invs confl upd
+        ST struct_invs]
+      by auto
+    have list_invs_U': \<open>twl_list_invs (M, N', D, NE, UE, WS, Q)\<close>
+      using SU list_invs rtranclp_cdcl_twl_restart_l_list_invs by blast
+    then have \<open>xs ! i > 0\<close>
+      using in_dom[of i] i_le by (auto simp: twl_list_invs_def dest!: multi_member_split)
+    have \<open>N' \<propto> (xs ! i) ! 0 \<in> lits_of_l M\<close>
+       if \<open>Propagated (N' \<propto> (xs ! i) ! 0) (xs ! i) \<in> set M\<close>
+      using that by (auto dest!: split_list)
+    then have not_annot: \<open>Propagated Laa (xs ! i) \<in> set M \<Longrightarrow> False\<close> for Laa
+      using is_annot_iff_annotates_first[OF UV list_invs_U' struct_invs_V \<open>xs ! i > 0\<close>]
+      is_annot_no_other_true_lit[OF UV list_invs_U' struct_invs_V \<open>xs ! i > 0\<close>, of Laa \<open>
+         N' \<propto> (xs !i) ! 0\<close>] can_del can_del'
+      unfolding S
+      by (auto dest: no_dup_same_annotD)
+    have \<open>remove_one_annot_true_clause (M, N', D, NE, UE, WS, Q) (M, fmdrop (xs ! i) N', D, NE, UE, WS, Q)\<close>
+      unfolding st
+      apply (rule remove_one_annot_true_clause.delete)
+      subgoal using in_dom i_le unfolding st prod.case by auto
+      subgoal using can_del' can_del by auto
+      subgoal using not_annot by blast
+      done
+    then have \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, fmdrop (xs ! i) N', D, NE, UE, WS, Q)\<close>
+      using rem unfolding S[symmetric] st by simp
+    moreover have \<open>j \<ge> i+1 \<Longrightarrow> j < length xs \<Longrightarrow> xs ! j \<in># dom_m (fmdrop (xs ! i) N')\<close> for j
+      using in_dom[of j] distinct_mset_dom[of N'] xs i_le
+      by (auto simp: distinct_mset_remove1_All nth_eq_iff_index_eq)
+    ultimately show ?thesis
+      unfolding I_def prod.case
+      by blast
+  qed
+  have I0: \<open>I xs (False, 0, N)\<close>
+    if \<open>mset xs \<subseteq># dom_m (get_clauses_l (M, N, D, NE, UE, WS, Q)) \<and> distinct xs\<close>
+    for xs
+  proof -
+    have \<open>\<forall>j\<ge>0. j < length xs \<longrightarrow> xs ! j \<in># dom_m N\<close>
+      using mset_subset_eqD that by (force simp: S)
+    then show ?thesis
+      using that
+      unfolding I_def prod.case S[symmetric]
+      by auto
+  qed
+
+  show ?thesis
+    unfolding mark_to_delete_clauses_l_def collect_valid_indices_def S prod.case
+    apply refine_vcg
+    subgoal for xs
+      apply (refine_vcg
+        WHILET_rule[where I=\<open>I xs\<close> and
+          R= \<open>measure (\<lambda>(brk :: bool, i :: nat, N). Suc (length xs) - i)\<close>])
+      subgoal by auto
+      subgoal by (rule I0)
+      subgoal by auto
+      subgoal by (rule I_suc)
+      subgoal by auto
+      subgoal unfolding I_def by auto
+      subgoal by auto
+      subgoal unfolding S I_def by auto
+      done
+    done
+qed
 
 end
