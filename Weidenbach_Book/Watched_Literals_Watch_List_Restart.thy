@@ -17,7 +17,7 @@ definition remove_all_annot_true_clause_imp_wl
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
 \<open>remove_all_annot_true_clause_imp_wl = (\<lambda>L (M, N, D, NE, UE, Q, W). do {
-    xs \<leftarrow> SPEC(\<lambda>xs. \<forall>x\<in>set xs. (x \<in># dom_m N \<longrightarrow> L \<in> set (N\<propto>x)));
+    let xs = W L;
     (_, N, NE) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, N, NE). i < length xs)
       (\<lambda>(i, N, NE). do {
@@ -34,6 +34,10 @@ where
     RETURN (M, N, D, NE, UE, Q, W)
   })\<close>
 
+lemma reduce_dom_clauses_fmdrop:
+  \<open>reduce_dom_clauses N0 N \<Longrightarrow> reduce_dom_clauses N0 (fmdrop C N)\<close>
+  using distinct_mset_dom[of N]
+  by (auto simp: reduce_dom_clauses_def distinct_mset_remove1_All)
 
 lemma \<open>(uncurry remove_all_annot_true_clause_imp_wl, uncurry remove_all_annot_true_clause_imp) \<in>
    Id \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S} \<rightarrow>\<^sub>f
@@ -45,7 +49,8 @@ proof -
     using that by auto
   have [refine0]: \<open>remove_all_annot_true_clause_one_imp (C, N0, NE) \<le>
         \<Down> {((N, NE), (N', NE')). N = N' \<and> NE = NE' \<and>
-          (C \<in># dom_m N \<longrightarrow> N = fmdrop C N0)} (remove_all_annot_true_clause_one_imp (C', N', NE'))\<close>
+            (C \<in># dom_m N \<longrightarrow> N = fmdrop C N0)}
+          (remove_all_annot_true_clause_one_imp (C', N', NE'))\<close>
     if \<open>(C, C') \<in> Id\<close> and \<open>(N0, N') \<in> Id\<close> and \<open>(NE, NE') \<in> Id\<close>
     for C C' N N' NE NE' N0
     using that unfolding remove_all_annot_true_clause_one_imp_def by auto
@@ -54,10 +59,13 @@ proof -
     unfolding uncurry_def remove_all_annot_true_clause_imp_wl_def
       remove_all_annot_true_clause_imp_def
     subgoal for LS LT
-    apply (refine_rcg H
-      WHILET_refine[where R=\<open>bool_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
-        {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S \<and>
-          reduce_dom_clauses (get_clauses_wl (snd LS)) (get_clauses_wl S)}\<close>])
+      apply (cases LS; cases LT)
+      subgoal for L M N0 D NE UE Q W L' M' N' D' NE' UE' Q' W'
+      apply (refine_rcg H
+        WHILET_refine[where R=\<open>
+          {((i, N, NE), (i', N', NE')). i = i' \<and> N = N' \<and> NE = NE' \<and>
+            partial_correct_watching (M, N, D, NE, UE, Q, W) \<and>
+            reduce_dom_clauses N0 N}\<close>])
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
@@ -66,10 +74,9 @@ proof -
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
+    subgoal apply (auto simp: state_wl_l_def reduce_dom_clauses_fmdrop) sorry
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
-    subgoal by (auto simp: state_wl_l_def)
-    subgoal apply (auto simp: state_wl_l_def)
     oops
 
 definition remove_one_annot_true_clause_one_imp_wl
