@@ -9,12 +9,13 @@ text \<open>Restarts are never necessary\<close>
 definition restart_required :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required S n = SPEC (\<lambda>b. b \<longrightarrow> size (get_learned_clss S) > f n)\<close>
 
-definition (in -) restart_prog_pre :: \<open>'v twl_st \<Rightarrow> bool\<close> where
-  \<open>restart_prog_pre S \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S\<close>
+definition (in -) restart_prog_pre :: \<open>'v twl_st \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>restart_prog_pre S brk \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and>
+    (\<not>brk \<longrightarrow> get_conflict S = None)\<close>
 
 definition restart_prog :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> nat) nres" where
   \<open>restart_prog S n brk = do {
-     ASSERT(restart_prog_pre S);
+     ASSERT(restart_prog_pre S brk);
      b \<leftarrow> restart_required S n;
      if b \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart S T);
@@ -293,7 +294,7 @@ proof -
     \<open>brk \<longrightarrow> final_twl_state T\<close> and
     twl_res: \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, m)\<close> and
     \<open>clauses_to_update T = {#}\<close> and
-    \<open>\<not> brk \<longrightarrow> get_conflict T = None\<close>
+    confl: \<open>\<not> brk \<longrightarrow> get_conflict T = None\<close>
     using inv unfolding cdcl_twl_stgy_restart_prog_inv_def by fast+
   have
     cdcl_o: \<open>cdcl_twl_o\<^sup>*\<^sup>* S' U\<close> and
@@ -302,7 +303,8 @@ proof -
     struct_invs_U: \<open>twl_struct_invs U\<close> and
     stgy_invs_U: \<open>twl_stgy_invs U\<close> and
     clss_to_upd_U: \<open>clauses_to_update U = {#}\<close> and
-    lits_to_upd_U: \<open>\<not> brk' \<longrightarrow> literals_to_update U \<noteq> {#}\<close>
+    lits_to_upd_U: \<open>\<not> brk' \<longrightarrow> literals_to_update U \<noteq> {#}\<close> and
+    confl_U: \<open>\<not> brk' \<longrightarrow> get_conflict U = None\<close>
     using other_inv unfolding final_twl_state_def by fast+
 
   have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>
@@ -433,7 +435,7 @@ proof -
   show ?thesis
     unfolding restart_prog_def restart_required_def
     apply (refine_vcg; remove_dummy_vars)
-    subgoal using struct_invs_U stgy_invs_U unfolding restart_prog_pre_def by fast
+    subgoal using struct_invs_U stgy_invs_U confl_U unfolding restart_prog_pre_def by fast
     subgoal by (rule struct_invs')
     subgoal by (rule stgy_invs)
     subgoal by fast
