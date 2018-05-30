@@ -1345,6 +1345,67 @@ next
     using LC unfolding L .
 qed
 
+lemma is_annot_no_other_true_lit:
+  assumes
+    ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    struct_invs: \<open>twl_struct_invs T\<close> and
+    C0: \<open>C > 0\<close> and
+    LaC: \<open>Propagated La C \<in> set (get_trail_l S)\<close> and
+    LC: \<open>L \<in> set (get_clauses_l S \<propto> C)\<close> and
+    L: \<open>L \<in> lits_of_l (get_trail_l S)\<close>
+  shows
+    \<open>La = L\<close> and
+    \<open>L = get_clauses_l S \<propto> C ! 0\<close>
+proof -
+  have conv:
+   \<open>(get_trail_l S, get_trail T) \<in> convert_lits_l (get_clauses_l S) (get_unit_clauses_l S)\<close>
+   using ST unfolding twl_st_l_def by auto
+
+  obtain M2 M1 where
+    tr_S: \<open>get_trail_l S = M2 @ Propagated La C # M1\<close>
+    using split_list[OF LaC] by blast
+  then obtain M2' M1' where
+    tr_T: \<open>get_trail T = M2' @ Propagated La (mset (get_clauses_l S \<propto> C)) # M1'\<close> and
+    M2: \<open>(M2, M2') \<in> convert_lits_l (get_clauses_l S) (get_unit_clauses_l S)\<close> and
+    M1: \<open>(M1, M1') \<in> convert_lits_l (get_clauses_l S) (get_unit_clauses_l S)\<close>
+   using conv C0 by (auto simp: list_all2_append1 list_all2_append2 list_all2_Cons1 list_all2_Cons2
+    convert_lits_l_def list_rel_def convert_lit.simps dest!: p2relD)
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of T)\<close> and
+    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T)\<close>
+    using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  then have \<open>La \<in># mset (get_clauses_l S \<propto> C)\<close> and
+    \<open>M1' \<Turnstile>as CNot (remove1_mset La (mset (get_clauses_l S \<propto> C)))\<close>
+    using tr_T
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+    by (auto 5 5 simp: twl_st twl_st_l)
+  then have
+    \<open>M1 \<Turnstile>as CNot (remove1_mset La (mset (get_clauses_l S \<propto> C)))\<close>
+    using M1 convert_lits_l_true_clss_clss by blast
+  then have all_false: \<open>-K \<in> lits_of_l (get_trail_l S)\<close>
+    if \<open>K \<in># remove1_mset La (mset (get_clauses_l S \<propto> C))\<close>
+    for K
+    using that tr_S unfolding true_annots_true_cls_def_iff_negation_in_model
+    by (auto dest!: multi_member_split)
+  have La0: \<open>La = get_clauses_l S \<propto> C ! 0\<close> and \<open>C \<in># dom_m (get_clauses_l S)\<close> and
+    \<open>La \<in> set (watched_l (get_clauses_l S \<propto> C))\<close>
+    using list_invs tr_S C0 by (auto simp: twl_list_invs_def all_conj_distrib)
+  have n_d: \<open>no_dup (get_trail_l S)\<close>
+    using ST lev_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto simp: twl_st_l twl_st)
+  show \<open>La = L\<close>
+  proof (rule ccontr)
+    assume \<open>\<not>?thesis\<close>
+    then have \<open>L \<in># remove1_mset La (mset (get_clauses_l S \<propto> C))\<close>
+      using LC by auto
+    from all_false[OF this] show False
+      using L n_d by (auto dest: no_dup_consistentD)
+  qed
+  then show \<open>L = get_clauses_l S \<propto> C ! 0\<close>
+    using La0 by simp
+qed
+
 lemma remove_one_annot_true_clause_cdcl_twl_restart_l2:
   assumes
     rem: \<open>remove_one_annot_true_clause S T\<close> and
@@ -1619,11 +1680,11 @@ proof -
   have[simp]: \<open>undefined_lit M2 L \<Longrightarrow>
        k < length M2 \<Longrightarrow>
        M2 ! k \<noteq> Propagated L C\<close> for k
-    using defined_lit_def nth_mem by fastforce 
+    using defined_lit_def nth_mem by fastforce
   have[simp]: \<open>undefined_lit M1 L \<Longrightarrow>
        k < length M1 \<Longrightarrow>
        M1 ! k \<noteq> Propagated L C\<close> for k
-    using defined_lit_def nth_mem by fastforce 
+    using defined_lit_def nth_mem by fastforce
   have \<open>M ! (length M - Suc i) \<in> set M\<close>
     apply (rule nth_mem)
     using assms by auto
@@ -1634,12 +1695,22 @@ proof -
 qed
 
 lemma
+  assumes \<open>no_dup M\<close>
+  shows
+    no_dup_same_annotD:
+        \<open>Propagated L C \<in> set M \<Longrightarrow> Propagated L C' \<in> set M \<Longrightarrow> C = C'\<close> and
+     no_dup_no_propa_and_dec:
+       \<open>Propagated L C \<in> set M \<Longrightarrow> Decided L \<in> set M \<Longrightarrow> False\<close>
+  using assms
+  by (auto dest!: split_list elim: list_match_lel_lel)
+
+lemma remove_one_annot_true_clause_inv_spec:
   assumes
     annot: \<open>remove_one_annot_true_clause_inv S (i+1, U)\<close> and
     i_le: \<open>i < length (get_trail_l S)\<close> and
     L: \<open>L \<in> lits_of_l (get_trail_l S)\<close> and
     lev0: \<open>get_level (get_trail_l S) L = 0\<close> and
-    LC: \<open>Propagated L 0 \<in> set (get_trail_l S)\<close>
+    LC: \<open>Propagated L 0 \<in> set (get_trail_l U)\<close>
   shows \<open>remove_all_annot_true_clause_imp L U
     \<le> SPEC (\<lambda>Sa. RETURN (i + 1, Sa)
                  \<le> SPEC (\<lambda>s'. remove_one_annot_true_clause_inv S s' \<and>
@@ -1659,9 +1730,27 @@ proof -
     \<open>(S, x) \<in> twl_st_l None\<close> and
     \<open>twl_struct_invs x\<close> and
     \<open>clauses_to_update_l S = {#}\<close> and
-    \<open>\<forall>j<i + 1. is_proped (rev (get_trail_l (M, N, D, NE, UE, WS, Q)) ! j)\<close>
+    level0: \<open>\<forall>j<i + 1. is_proped (rev (get_trail_l (M, N, D, NE, UE, WS, Q)) ! j)\<close>
     using annot unfolding U prod.case remove_one_annot_true_clause_inv_def
     by blast
+  obtain U' where
+    \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* S U\<close> and
+    U'V': \<open>(U, U') \<in> twl_st_l None\<close> and
+    \<open>cdcl_twl_restart\<^sup>*\<^sup>* x U'\<close> and
+    struvt_invs_V': \<open>twl_struct_invs U'\<close>
+    using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[OF SU \<open>twl_list_invs S\<close>
+        \<open>get_conflict_l S = None\<close> \<open>clauses_to_update_l S = {#}\<close> \<open>(S, x) \<in> twl_st_l None\<close>
+          \<open>twl_struct_invs x\<close>] unfolding U
+    by auto
+  moreover have \<open>twl_list_invs U\<close>
+    using \<open>twl_list_invs S\<close> calculation(1) rtranclp_cdcl_twl_restart_l_list_invs by blast
+  ultimately have rem_U_U: \<open>remove_one_annot_true_clause_inv U (i + 1, U)\<close>
+    using level0 rtranclp_remove_one_annot_true_clause_clauses_to_update_l[OF SU]
+      rtranclp_remove_one_annot_true_clause_get_conflict_l[OF SU]
+      \<open>clauses_to_update_l S = {#}\<close> \<open>get_conflict_l S = None\<close> i_le
+      arg_cong[OF rtranclp_remove_one_annot_true_clause_map_lit_of_trail[OF SU], of length]
+    unfolding remove_one_annot_true_clause_inv_def unfolding U
+    by (cases U') fastforce
   have remove_all_annot_true_clause_one_imp:
      \<open>remove_all_annot_true_clause_one_imp (xs ! k, N', NE')
         \<le> SPEC (\<lambda>x. (case x of (N, NE) \<Rightarrow> RETURN (k + 1, N, NE))
@@ -1670,7 +1759,7 @@ proof -
                                     remove_one_annot_true_clause_inv U
                                     (i + 1, M, N, D, NE, UE, WS, Q)) \<and>
                                 (s', s) \<in> measure (\<lambda>(i, N, NE). length xs - i)))\<close>
-    if 
+    if
       xs: \<open>xs \<in> {xs. \<forall>x\<in>set xs. L \<in> set (N \<propto> x)}\<close> and
       I: \<open>case s of (_, N, NE) \<Rightarrow>
          remove_one_annot_true_clause_inv U (i + 1, M, N, D, NE, UE, WS, Q)\<close> and
@@ -1688,15 +1777,19 @@ proof -
       i_le: \<open>i + 1 \<le> length (get_trail_l U)\<close> and
       \<open>twl_list_invs U\<close> and
       \<open>get_conflict_l U = None\<close> and
-      \<open>(U, x) \<in> twl_st_l None\<close> and
-      \<open>twl_struct_invs x\<close> and
+      Ux: \<open>(U, x) \<in> twl_st_l None\<close> and
+      struct_x: \<open>twl_struct_invs x\<close> and
       \<open>clauses_to_update_l U = {#}\<close> and
       all_level0: \<open>\<forall>j<i + 1. is_proped (rev (get_trail_l (M, N', D, NE', UE, WS, Q)) ! j)\<close>
       using I unfolding s prod.case remove_one_annot_true_clause_inv_def
       by blast
+    have n_d: \<open>no_dup (get_trail_l U)\<close>
+      using Ux struct_x unfolding twl_struct_invs_def  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+        by (auto simp: twl_st twl_st_l)
     have SU': \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, N', D, NE', UE, WS, Q)\<close>
       using SU UU' unfolding U by simp
-    have \<open>L \<in> lits_of_l M\<close>
+    have L_M: \<open>L \<in> lits_of_l M\<close>
       using L arg_cong[OF rtranclp_remove_one_annot_true_clause_map_lit_of_trail[OF SU], of set]
       by (simp add: lits_of_def)
     have \<open>get_level M L = 0\<close>
@@ -1718,7 +1811,22 @@ proof -
           \<open>get_conflict_l U = None\<close> \<open>clauses_to_update_l U = {#}\<close> \<open>(U, x) \<in> twl_st_l None\<close>
            \<open>twl_struct_invs x\<close>]
       by auto
+    have list_invs_U': \<open>twl_list_invs (M, N', D, NE', UE, WS, Q)\<close>
+      using \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* U (M, N', D, NE', UE, WS, Q)\<close> \<open>twl_list_invs U\<close>
+        rtranclp_cdcl_twl_restart_l_list_invs by blast
 
+    have xs_k_0: \<open>0 < xs ! k\<close>
+      apply (rule ccontr)
+      using dom list_invs_U' by (auto simp: twl_list_invs_def)
+    have L_set: \<open>L \<in> set (N \<propto> (xs!k))\<close>
+      using xs cond nth_mem[of k xs] unfolding s by (auto simp del: nth_mem)
+    have \<open>no_dup M\<close>
+      using n_d unfolding U by simp
+    then have no_already_annot: \<open>Propagated Laa (xs ! k) \<in>  set M \<Longrightarrow> False\<close> for Laa
+      using is_annot_iff_annotates_first[OF U'V' list_invs_U' struvt_invs_V' xs_k_0] LC
+      is_annot_no_other_true_lit[OF U'V' list_invs_U' struvt_invs_V' xs_k_0, of Laa L]
+        L_set L_M xs_k_0 unfolding U
+      by (auto dest: no_dup_same_annotD)
     have \<open>remove_one_annot_true_clause ?U' ?Vt\<close>
       if \<open>irred N' (xs ! k)\<close>
       apply (rule remove_one_annot_true_clause.remove_irred[of L])
@@ -1727,10 +1835,7 @@ proof -
       subgoal using dom .
       subgoal using xs cond unfolding s by auto
       subgoal using that .
-      subgoal
-        using LC
-        apply auto
-       sorry
+      subgoal using no_already_annot by blast
       done
     then have UV_irred: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* (M, N, D, NE, UE, WS, Q)
         (M, fmdrop (xs ! k) N', D, add_mset (mset (N \<propto> (xs ! k))) NE', UE, WS, Q)\<close>
@@ -1738,17 +1843,10 @@ proof -
       using UU' that unfolding U by simp
     have \<open>remove_one_annot_true_clause ?U' ?Vf\<close>
       if \<open>\<not>irred N' (xs ! k)\<close>
-      supply [[unify_trace_failure]]
       apply (rule remove_one_annot_true_clause.delete)
       subgoal using dom .
       subgoal using that .
-      subgoal
-        using is_annot_iff_annotates_first[of ?U', of _ \<open>xs!k\<close>]
-        rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[OF UU' \<open>twl_list_invs U\<close>
-          \<open>get_conflict_l U = None\<close> \<open>clauses_to_update_l U = {#}\<close> \<open>(U, x) \<in> twl_st_l None\<close>
-           \<open>twl_struct_invs x\<close>]
-           apply auto
-       sorry
+      subgoal using no_already_annot by blast
       done
     then have UV_red: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* U (M, fmdrop (xs ! k) N', D, NE', UE, WS, Q)\<close>
       if \<open>\<not>irred N' (xs ! k)\<close>
@@ -1796,13 +1894,13 @@ proof -
     apply (subst intro_spec_refine_iff[of _ _ Id, simplified])
     apply (intro ballI)
     subgoal for xs
-      apply (refine_vcg 
+      apply (refine_vcg
         remove_all_annot_true_clause_one_imp
-        WHILET_rule[where    
+        WHILET_rule[where
           R = \<open>measure (\<lambda>(i, N, NE). length xs - i)\<close> and
           I = \<open>\<lambda>(_, N, NE). remove_one_annot_true_clause_inv U (i+1, M, N, D, NE, UE, WS, Q)\<close>])
       subgoal by auto
-      subgoal using annot unfolding U by auto
+      subgoal using rem_U_U unfolding U by auto
       subgoal by simp
       apply assumption+
       subgoal by auto
@@ -1816,7 +1914,7 @@ proof -
     done
 qed
 
-lemma
+lemma remove_one_annot_true_clause_one_imp_spec:
   assumes
     I: \<open>remove_one_annot_true_clause_inv S iT\<close> and
     cond: \<open>case iT of (i, S) \<Rightarrow> i < length (get_trail_l S) \<and> \<not> is_decided (get_trail_l S ! i)\<close> and
@@ -1830,6 +1928,7 @@ proof -
   have length_ST: \<open>length (get_trail_l T) = length (get_trail_l S)\<close>
     using I unfolding iT remove_one_annot_true_clause_inv_def
     by (auto dest: rtranclp_remove_one_annot_true_clause_imp_same_length)
+
   obtain x where
     ST: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T\<close> and
     \<open>twl_list_invs S\<close> and
@@ -1857,10 +1956,14 @@ proof -
   have D: \<open>D = None\<close> and WS: \<open>WS = {#}\<close>
     using confl upd rtranclp_remove_one_annot_true_clause_clauses_to_update_l[OF ST]
     using rtranclp_remove_one_annot_true_clause_get_conflict_l[OF ST] unfolding T by auto
+  have lits_of_ST: \<open>lits_of_l (get_trail_l S) = lits_of_l (get_trail_l T)\<close>
+    using arg_cong[OF rtranclp_remove_one_annot_true_clause_map_lit_of_trail[OF ST], of set]
+    by (simp add: lits_of_def)
+
   have
     annot_in_dom: \<open>C \<in># dom_m N'\<close> (is ?annot) and
-    literal_in_lits_of: \<open>L \<in> lits_of_l M'\<close> (is ?lit) 
-    if 
+    literal_in_lits_of: \<open>L \<in> lits_of_l M'\<close> (is ?lit)
+    if
       st: \<open>(M, N, D, NE, UE, WS, Q) = (M', TM)\<close>
         \<open>TM = (N', TN)\<close>
         \<open>TN = (D', TD)\<close>
@@ -1883,13 +1986,14 @@ proof -
       using list_invs_T that length_ST  \<open>rev M!i \<in> set M\<close> unfolding T
       by (auto simp: twl_list_invs_def lits_of_def simp del: nth_mem dest!: split_list)
   qed
-  have \<open>remove_all_annot_true_clause_imp L
+  have remove_all_annot_true_clause_imp_spec:
+    \<open>remove_all_annot_true_clause_imp L
         (if red then (M'', N'', D', add_mset (mset C') NE', UE', WS', Q')
           else (M'', N'', D', NE', add_mset (mset C') UE', WS', Q'))
         \<le> SPEC (\<lambda>Sa. RETURN (i + 1, Sa)
                     \<le> SPEC (\<lambda>s'. remove_one_annot_true_clause_inv S s' \<and>
                        (s', iT) \<in> measure (\<lambda>(i, _). length (get_trail_l S) - i)))\<close>
-    if 
+    if
       st: \<open>(M, N, D, NE, UE, WS, Q) = (M', TM)\<close>
         \<open>TM = (N', TN)\<close>
         \<open>TN = (D', TD)\<close>
@@ -1919,7 +2023,7 @@ proof -
       Mi: \<open>rev M ! i = Propagated L C\<close>
       using st NCb LC_d unfolding LC by auto
     obtain M2 M1 C'' where
-      M: \<open>M = M2 @ Propagated L C'' # M1\<close> and 
+      M: \<open>M = M2 @ Propagated L C'' # M1\<close> and
       M'': \<open>M'' = M2 @ Propagated L 0 # M1\<close>
       using decomp unfolding st by blast
     have [simp]: \<open>\<not>undefined_lit M2 (lit_of (M2 ! i))\<close> if \<open>i < length M2\<close>
@@ -1938,7 +2042,7 @@ proof -
        split: if_splits)
        by (metis diff_less len_greater_imp_nonempty
         length_greater_0_conv nth_rev_alt rev_nth zero_less_Suc)
-       
+
 
      have \<open>remove_one_annot_true_clause T Ut\<close> if \<open>red\<close>
       unfolding T Ut_def D WS st M M'' C
@@ -1977,11 +2081,27 @@ proof -
       \<open>\<forall>j<i. is_proped (rev (get_trail_l T) ! j)\<close>
       unfolding remove_one_annot_true_clause_inv_def prod.case
       by blast
-
+    have \<open>remove_one_annot_true_clause_inv S (i+1, U)\<close>
+      using \<open>remove_one_annot_true_clause_inv S (i, U)\<close> length_ST cond \<open>i < length M'\<close>
+      unfolding T st iT
+      by (auto simp: remove_one_annot_true_clause_inv_def less_Suc_eq
+        is_decided_no_proped_iff rev_nth U_def Ut_def Uf_def i[symmetric] M''
+        split:if_splits)
     show ?thesis
       unfolding U_def[symmetric] Uf_def[symmetric] Ut_def[symmetric] C \<open>red = irred N C\<close>[symmetric]
-      explore_lemma
-     sorry
+        iT
+      apply (rule remove_one_annot_true_clause_inv_spec)
+      subgoal using \<open>remove_one_annot_true_clause_inv S (i+1, U)\<close> .
+      subgoal using length_ST  \<open>i < length M'\<close> unfolding T st by simp
+      subgoal using lits_of_ST unfolding T M by simp
+      subgoal using lev_L rtranclp_remove_one_annot_true_clause_map_is_decided_trail[OF SU]
+        rtranclp_remove_one_annot_true_clause_map_lit_of_trail[OF SU]
+        trail_renumber_get_level[of \<open>get_trail_l S\<close> \<open>get_trail_l U\<close> L]
+        trail_renumber_get_level[of \<open>get_trail_l T\<close> \<open>get_trail_l U\<close> L]
+        unfolding U_def Ut_def Uf_def M'' T M C
+        by (auto split: if_splits)
+      subgoal unfolding U_def Ut_def Uf_def M'' by auto
+      done
   qed
   have Ball_suc: \<open>(\<forall>j<Suc i. P j) \<longleftrightarrow> P i \<and> (\<forall>j<i. P j)\<close> for P
     by (auto simp: less_Suc_eq)
@@ -1996,1221 +2116,26 @@ proof -
     subgoal by (rule annot_in_dom)
     subgoal by (rule literal_in_lits_of)
     subgoal for M' TM N' TN D' TD UE' TUE NE' TNE Q' WS' LC L C M'' NCb N'' Cb C' red
-      explore_have
-    using length_ST unfolding iT T apply auto
-      sorry
-    sorry
+      by (rule remove_all_annot_true_clause_imp_spec)
+    done
 qed
 
-lemma
+lemma remove_one_annot_true_clause_imp_spec:
   assumes
     ST: \<open>(S, T) \<in> twl_st_l None\<close> and
     list_invs: \<open>twl_list_invs S\<close> and
-    struct_invs: \<open>twl_struct_invs T\<close>
+    struct_invs: \<open>twl_struct_invs T\<close> and
+    \<open>get_conflict_l S = None\<close> and
+    \<open>clauses_to_update_l S = {#}\<close>
   shows \<open>remove_one_annot_true_clause_imp S \<le> SPEC(remove_one_annot_true_clause\<^sup>*\<^sup>* S)\<close>
   unfolding remove_one_annot_true_clause_imp_def
   apply (refine_vcg WHILET_rule[where R=\<open>measure (\<lambda>(i, _). length (get_trail_l S) - i)\<close> and
-    I=\<open>remove_one_annot_true_clause_inv S\<close>])
+    I=\<open>remove_one_annot_true_clause_inv S\<close>]
+    remove_one_annot_true_clause_one_imp_spec)
   subgoal by auto
   subgoal using assms unfolding remove_one_annot_true_clause_inv_def by blast
-  subgoal for iT i T
-    explore_lemma
-   sorry
   subgoal unfolding remove_one_annot_true_clause_inv_def by auto
-  sorry
-
-lemma remove_one_annot_true_clause_decomp:
-  assumes
-    \<open>remove_one_annot_true_clause S T\<close> and
-    \<open>twl_list_invs S\<close>
-  shows
-    \<open>\<exists>M N D NE UE W Q M' N' NE' UE'.
-     S = (M, N, D, NE, UE, Q, W) \<and>
-     T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W) \<and>
-    (\<forall>C\<in># mset `# (NE'+UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
-    dom_m N' \<subseteq># dom_m N \<and>
-    valid_trail_reduction_eq M M' \<and>
-    init_clss_lf N = init_clss_lf N' + NE' \<and>
-    learned_clss_lf N = learned_clss_lf N' + UE' \<and>
-    reduce_dom_clauses N N'\<close>
-  using assms
-  by (induction)
-    (auto simp: conj_imp_eq_imp_imp singleton_eq_image_mset_iff
-    valid_trail_reduction_eq_change_annot all_conj_distrib valid_trail_reduction_eq_refl
-     Ex_ex_eq_Ex twl_list_invs_def
-    dest!: in_set_takeD[of _ 2])
-
-lemma remove_one_annot_true_clause_reduce_dom_clauses:
-  assumes
-    \<open>remove_one_annot_true_clause S T\<close>
-  shows \<open>reduce_dom_clauses (get_clauses_l S) (get_clauses_l T)\<close>
-  using assms
-  by (induction)
-    (fastforce simp: conj_imp_eq_imp_imp singleton_eq_image_mset_iff
-    valid_trail_reduction_eq_change_annot
-     Ex_ex_eq_Ex reasons_invs_wl_def
-    dest: in_set_takeD[of _ 2])+
-
-lemma rtranclp_remove_one_annot_true_clause_reduce_dom_clauses:
-  assumes
-    \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T\<close>
-  shows \<open>reduce_dom_clauses (get_clauses_l S) (get_clauses_l T)\<close>
-  using assms
-  apply (induction)
-  subgoal by (auto simp: )
-  subgoal by (auto intro: reduce_dom_clauses_trans remove_one_annot_true_clause_reduce_dom_clauses)
   done
-
-lemma remove_one_annot_true_clause_different_annots_all_killed:
-  assumes \<open>remove_one_annot_true_clause S T\<close>
-  shows \<open>different_annots_all_killed (get_clauses_l S) (get_unit_clauses_wl T)
-          (get_trail_l S) (get_trail_l T)\<close>
-proof -
-  have [simp]: \<open>different_annot_all_killed N (add_mset (mset (N \<propto> C)) NE)
-        (Propagated L C) (Propagated L 0)\<close> for N C L NE
-    by (auto simp: different_annot_all_killed.simps)
-  show ?thesis
-    using assms
-    by (induction rule: remove_one_annot_true_clause.induct)
-      (auto simp: list_all2_append different_annots_all_killed_refl)
-qed
-
-lemma different_annot_all_killed_proped:
-  \<open>different_annot_all_killed N NE z (Propagated L C) \<longleftrightarrow>
-     (\<exists>C'.  z = Propagated L C' \<and> (C = C' \<or> (C' > 0 \<and> C = 0 \<and> (C' \<in># dom_m N \<longrightarrow>  mset (N\<propto>C') \<in># NE))))\<close>
-  by (auto simp: different_annot_all_killed.simps)
-
-lemma different_annots_all_killed_append_cons_decomp:
-  \<open>different_annots_all_killed N NUE M (M2 @ Propagated L C # M1) \<longleftrightarrow>
-     (\<exists>M2' M1' C'. different_annots_all_killed N (NUE) M2' M2 \<and>
-      different_annots_all_killed N NUE M1' M1 \<and>
-      different_annot_all_killed N NUE (Propagated L C') (Propagated L C) \<and>
-      M = M2' @ Propagated L C' # M1' \<and>
-     length M2' = length M2 \<and>
-     length M1' = length M1)\<close>
-  apply (auto simp: list_all2_append different_annots_all_killed_refl
-      list_all2_Cons1 list_all2_Cons2 list_all2_append1 list_all2_append2)
-   apply (rule_tac x=us in exI)
-   apply auto
-   apply (rule_tac x=zs in exI)
-   apply (auto simp: different_annot_all_killed_proped)
-     apply (rule_tac x=M2' in exI)
-     apply (rule_tac x=\<open>Propagated L C # M1'\<close> in exI)
-     apply (auto simp: )
-    apply (rule_tac x=M2' in exI)
-    apply (rule_tac x=\<open>Propagated L C' # M1'\<close> in exI)
-    apply (auto simp: )
-   apply (rule_tac x=M2' in exI)
-   apply (rule_tac x=\<open>Propagated L C' # M1'\<close> in exI)
-   apply (auto simp: )
-  done
-
-lemma different_annots_all_killed_add_mset_mono2:
-  \<open>different_annots_all_killed N NE M M' \<Longrightarrow> different_annots_all_killed N (add_mset C NE) M M'\<close>
-  by (induction rule: list_all2_induct)
-    (auto simp: different_annot_all_killed.simps)
-
-lemma remove_one_annot_true_clause_different_annots_all_killed2:
-  assumes \<open>remove_one_annot_true_clause S T\<close> and
-      \<open>different_annots_all_killed N (get_unit_clauses_wl S) M (get_trail_l S)\<close> and
-      \<open>reduce_dom_clauses N (get_clauses_l S)\<close>
-  shows \<open>different_annots_all_killed N (get_unit_clauses_wl T)
-          M (get_trail_l T)\<close>
-proof -
-  have [simp]: \<open>different_annot_all_killed N (add_mset (mset (N \<propto> C)) NE)
-        (Propagated L C) (Propagated L 0)\<close> for N C L NE
-    by (auto simp: different_annot_all_killed.simps)
-  show ?thesis
-    using assms
-    apply (induction rule: remove_one_annot_true_clause.induct)
-     apply (auto simp: list_all2_append different_annots_all_killed_refl
-        different_annots_all_killed_append_cons_decomp)
-     apply (subst (asm) different_annots_all_killed_append_cons_decomp)
-     apply (auto simp: list_all2_append different_annot_all_killed.simps
-      different_annots_all_killed_add_mset_mono2
-      reduce_dom_clauses_def)[]
-     apply (subst (asm) different_annots_all_killed_append_cons_decomp)
-     apply (auto simp: list_all2_append different_annot_all_killed.simps
-      different_annots_all_killed_add_mset_mono2
-      reduce_dom_clauses_def)[]
-    done
-qed
-
-lemma rtranclp_remove_one_annot_true_clause_different_annots_all_killed:
-  assumes \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T\<close> and
-      \<open>different_annots_all_killed N (get_unit_clauses_wl S) M (get_trail_l S)\<close> and
-      \<open>reduce_dom_clauses N (get_clauses_l S)\<close>
-  shows \<open>different_annots_all_killed N (get_unit_clauses_wl T)
-          M (get_trail_l T)\<close>
-  using assms
-  apply induction
-  subgoal by auto
-  subgoal premises p for T U
-    using p p(2) apply -
-    by (drule remove_one_annot_true_clause_different_annots_all_killed2)
-      (auto simp: different_annots_all_killed_refl
-        rtranclp_remove_one_annot_true_clause_reduce_dom_clauses
-      intro: remove_one_annot_true_clause_different_annots_all_killed2
-      reduce_dom_clauses_trans[of _ \<open>get_clauses_l S\<close>])
-  done
-
-lemma  no_dup_reasons_invs_wl_repetition:
- \<open>C > 0 \<Longrightarrow>
-  \<not>no_dup_reasons_invs_wl (M @ Propagated L C # c21' @ Propagated La C # M1, N, D, NE, UE, Q, W)\<close>
-  unfolding no_dup_reasons_invs_wl_def
-  by force
-
-lemma  no_dup_reasons_invs_wl_repetition_delone:
- \<open>no_dup_reasons_invs_wl (M @ Propagated L C # c21' @ Propagated La C' # M1, N, D, NE, UE, Q, W) \<Longrightarrow>
-  no_dup_reasons_invs_wl (M @ Propagated L 0 # c21' @ Propagated La C' # M1, N', D', NE', UE', Q', W')\<close>
-  unfolding no_dup_reasons_invs_wl_def
-  by (auto split: if_splits)
-
-lemma  no_dup_reasons_invs_wl_repetition_delone':
- \<open>no_dup_reasons_invs_wl (M @ Propagated L C # c21' @ Propagated La C' # M1, N, D, NE, UE, Q, W) \<Longrightarrow>
-  no_dup_reasons_invs_wl (M @ Propagated L C # c21' @ Propagated La 0 # M1, N', D', NE', UE', Q', W')\<close>
-  unfolding no_dup_reasons_invs_wl_def
-  by (auto split: if_splits)
-
-
-lemma remove_one_annot_true_clause_reasons_invs_wl:
-  \<open>remove_one_annot_true_clause S T \<Longrightarrow> reasons_invs_wl S \<Longrightarrow> reasons_invs_wl T\<close>
-  using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
-  apply (induction rule: remove_one_annot_true_clause.induct)
-  subgoal for M L C M' N D NE UE Q W
-   apply (auto 5 5 simp: cdcl_twl_restart_l.simps singleton_eq_image_mset_iff
-     distinct_mset_remove1_All reasons_invs_wl_def no_dup_reasons_invs_wl_repetition
-     no_dup_reasons_invs_wl_repetition_delone
-    elim!: list_match_lel_lel)
-    apply (metis append_Cons append_assoc)
-    apply (metis append_Cons append_assoc)
-    apply (metis append_Cons append_assoc)
-    apply (rule no_dup_reasons_invs_wl_repetition_delone'[of _ _ _ _ _ C _ N D NE UE Q W])
-    using append_Cons append_assoc apply blast
-    done
-  subgoal for M L C M' N D NE UE Q W
-   apply (auto 5 5 simp: cdcl_twl_restart_l.simps singleton_eq_image_mset_iff
-     distinct_mset_remove1_All reasons_invs_wl_def no_dup_reasons_invs_wl_repetition
-     no_dup_reasons_invs_wl_repetition_delone
-    elim!: list_match_lel_lel)
-    apply (metis append_Cons append_assoc)
-    apply (metis append_Cons append_assoc)
-    apply (metis append_Cons append_assoc)
-    apply (rule no_dup_reasons_invs_wl_repetition_delone'[of _ _ _ _ _ C _ N D NE UE Q W])
-    using append_Cons append_assoc apply blast
-    done
-  done
-
-lemma rtranclp_remove_one_annot_true_clause_reasons_invs_wl:
-  \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<Longrightarrow> reasons_invs_wl S \<Longrightarrow> reasons_invs_wl T\<close>
-  using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal by (auto intro: remove_one_annot_true_clause_reasons_invs_wl)
-  done
-
-lemma rtranclp_remove_one_annot_true_clause_decomp_Ex:
-  assumes \<open>(remove_one_annot_true_clause)\<^sup>*\<^sup>* S T\<close> and
-    \<open>reasons_invs_wl S\<close>
-  shows
-    \<open>\<exists>M N D NE UE W Q M' N' NE' UE'. S = (M, N, D, NE, UE, Q, W) \<and>
-     T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W) \<and>
-     (\<forall>C\<in># mset `# (NE'+UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
-     dom_m N' \<subseteq># dom_m N \<and> valid_trail_reduction_eq M M'  \<and>
-    init_clss_lf N = init_clss_lf N' + NE' \<and>
-    learned_clss_lf N = learned_clss_lf N' + UE' \<and>
-    reduce_dom_clauses N N'\<close>
-  using assms
-  apply (induction)
-  subgoal
-    by (cases S) (auto simp: singleton_eq_image_mset_iff valid_trail_reduction_eq_refl)
-  subgoal for T U
-    by (drule remove_one_annot_true_clause_decomp)
-      (auto simp: image_mset_union[symmetric] ac_simps simp del: image_mset_union
-        simp: rtranclp_remove_one_annot_true_clause_reasons_invs_wl
-        valid_trail_reduction_eq_get_level valid_trail_reduction_eq_lits_of_l
-        intro: reduce_dom_clauses_trans valid_trail_reduction_eq_trans
-        dest: multi_member_split)
-  done
-
-lemma valid_trail_reduction_eqD:
-  \<open>valid_trail_reduction_eq M M' \<Longrightarrow> valid_trail_reduction M M'\<close>
-  by (auto simp: valid_trail_reduction_eq_def)
-
-lemma different_annots_all_killed_inD:
-  \<open>different_annots_all_killed N NUE M M' \<Longrightarrow> no_dup M \<Longrightarrow>
-           Propagated L E \<in> set M \<Longrightarrow> Propagated L E' \<in> set M' \<Longrightarrow>
-     different_annot_all_killed N NUE (Propagated L E) (Propagated L E')\<close>
-  by (auto dest!: split_list[of _ M']
-      simp: list_all2_append2 list_all2_Cons2 different_annot_all_killed_proped
-      defined_lit_def)
-
-lemma remove_one_annot_true_clause_partial_correct_watching:
-  assumes
-    rem: \<open>remove_one_annot_true_clause S T\<close> and
-    \<open>partial_correct_watching S\<close>
-  shows \<open>partial_correct_watching T\<close>
-proof -
-  have H: \<open>set_mset (all_lits_of_mm (add_mset (mset C) (mset `# remove1_mset C (ran_mf N) + NE + UE)))
-     = set_mset (all_lits_of_mm (mset `# (ran_mf N) + NE + UE))\<close>
-    if C: \<open>C \<in># ran_mf N\<close> for C N NE UE
-  proof -
-    obtain A where A: \<open>ran_mf N =add_mset C A\<close>
-      using multi_member_split[OF C] by blast
-    show ?thesis
-      unfolding A by (auto dest!:  simp: all_lits_of_mm_add_mset)
-  qed
-  have H': \<open>C \<in># dom_m N \<Longrightarrow> N \<propto> C \<in># ran_mf N\<close> for N C
-    by (auto dest: multi_member_split simp: ran_m_def)
-  show ?thesis
-    using assms
-    apply (induction)
-    subgoal for M L C M' N D NE UE Q W
-      using distinct_mset_dom[of \<open>N\<close>]
-      by (auto simp: partial_correct_watching.simps distinct_mset_remove1_All
-          H[OF H'])
-    subgoal for M L C M' N D NE UE Q W
-      using distinct_mset_dom[of \<open>N\<close>]
-      by (auto simp: partial_correct_watching.simps distinct_mset_remove1_All
-          H[OF H'])
-    done
-qed
-
-lemma rtranclp_remove_one_annot_true_clause_partial_correct_watching:
-  assumes
-    rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T\<close> and
-    \<open>partial_correct_watching S\<close>
-  shows \<open>partial_correct_watching T\<close>
-  using assms
-  by (induction) (auto intro: remove_one_annot_true_clause_partial_correct_watching)
-
-lemma remove_one_annot_true_clause_cdcl_twl_restart_l:
-  assumes
-    rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T\<close> and
-    reasons: \<open>reasons_invs_wl S\<close> and
-    confl: \<open>get_conflict_wl S = None\<close> and
-    all0: \<open>\<forall>L C. Propagated L C \<in> set (get_trail_l T) \<longrightarrow> C = 0\<close> and
-    before_valid: \<open>\<forall>L C. Propagated L C \<in> set (get_trail_l S) \<longrightarrow>
-           0 < C \<longrightarrow> C \<in># dom_m (get_clauses_l S)\<close> and
-    dom0: \<open>0 \<notin># dom_m (get_clauses_l S)\<close> and
-    n_d: \<open>no_dup (get_trail_l S)\<close> and
-    part: \<open>partial_correct_watching S\<close>
-  shows \<open>cdcl_twl_restart_l S T\<close>
-proof -
-  obtain M N D NE UE W Q M' N' NE' UE' where
-    S: \<open>S = (M, N, D, NE, UE, Q, W)\<close> and
-    T: \<open>T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W)\<close> and
-    NUE: \<open>\<forall>C\<in>#mset `# (NE' + UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M\<close> and
-    dom_m: \<open>dom_m N' \<subseteq># dom_m N\<close> and
-    valid: \<open>valid_trail_reduction_eq M M'\<close> and
-    init: \<open>init_clss_lf N = init_clss_lf N' + NE'\<close> and
-    learned: \<open>learned_clss_lf N = learned_clss_lf N' + UE'\<close> and
-    \<open>reduce_dom_clauses N N'\<close>
-    using rtranclp_remove_one_annot_true_clause_decomp_Ex[OF rem reasons] by metis+
-  have D: \<open>D = None\<close>
-    using confl unfolding S by auto
-  from rtranclp_remove_one_annot_true_clause_different_annots_all_killed[OF rem
-      different_annots_all_killed_refl]
-  have annots: \<open>different_annots_all_killed N (NE + mset `# NE' + UE + mset `# UE') M M'\<close>
-    unfolding S T by (simp add: ac_simps)
-  have part_T: \<open>partial_correct_watching T\<close>
-    using rtranclp_remove_one_annot_true_clause_partial_correct_watching[OF rem] part .
-  show ?thesis
-    unfolding S T D
-    apply (rule cdcl_twl_restart_l.intros)
-    subgoal using valid_trail_reduction_eqD[OF valid] .
-    subgoal using init .
-    subgoal using learned by simp
-    subgoal using NUE by (auto dest!: multi_member_split)
-    subgoal using all0 by (auto simp: T)
-    subgoal using n_d before_valid
-      by (auto simp: S dest!: different_annots_all_killed_inD[OF annots]
-          simp: different_annot_all_killed.simps reasons_invs_wl_def
-          dest: split_list)
-    subgoal using annots n_d
-      by (auto simp: S dest!: different_annots_all_killed_inD
-          simp: different_annot_all_killed.simps)
-    subgoal using dom_m dom0 unfolding S by auto
-    subgoal using valid unfolding valid_trail_reduction_eq_def by simp
-    subgoal using part_T unfolding T D .
-    done
-qed
-
-inductive remove_one_watched_true_clause :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
-remove_irred:
-  \<open>remove_one_watched_true_clause L (M, N, D, NE, UE, Q, W)
-     (M, fmdrop C N, D, add_mset (mset (N\<propto>C))NE, UE, Q, W)\<close>
-if
-  \<open>L \<in> lits_of_l M\<close> and
-  \<open>get_level M L = 0\<close> and
-  \<open>C \<in># dom_m N\<close> and
-  \<open>L \<in> set (watched_l (N\<propto>C))\<close> and
-  \<open>irred N C\<close> |
-remove_red:
-  \<open>remove_one_watched_true_clause L (M, N, D, NE, UE, Q, W)
-     (M, fmdrop C N, D, NE, add_mset (mset (N\<propto>C)) UE, Q, W)\<close>
-if
-  \<open>L \<in> lits_of_l M\<close> and
-  \<open>get_level M L = 0\<close> and
-  \<open>C \<in># dom_m N\<close> and
-  \<open>L \<in> set (watched_l (N\<propto>C))\<close> and
-  \<open>\<not>irred N C\<close>
-
-inductive remove_all_watched_true_clause :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
-  \<open>remove_all_watched_true_clause (M @ Propagated L C # M', N, D, NE, UE, Q, W)
-     (M @ Propagated L C # M', N', D', NE', UE', Q', W')\<close>
-if \<open>(remove_one_watched_true_clause L)\<^sup>*\<^sup>* (M @ Propagated L C # M', N, D, NE, UE, Q, W)
-     (M @ Propagated L C # M', N', D', NE', UE', Q', W')\<close>
-
-lemma remove_one_watched_true_clause_partial_correct_watching:
- assumes \<open>remove_one_watched_true_clause L S T\<close> and \<open>partial_correct_watching S\<close>
- shows \<open>partial_correct_watching T\<close>
-  using assms
-  using distinct_mset_dom[of \<open>get_clauses_l S\<close>]
-  by (induction)
-    (auto simp: partial_correct_watching.simps image_mset_remove1_mset_if
-  dest: multi_member_split)
-
-lemma rtranclp_remove_one_watched_true_clause_partial_correct_watching:
- assumes \<open>(remove_one_watched_true_clause L)\<^sup>*\<^sup>* S T\<close> and \<open>partial_correct_watching S\<close>
- shows \<open>partial_correct_watching T\<close>
-  using assms
-  using distinct_mset_dom[of \<open>get_clauses_l S\<close>]
-  by (induction)
-    (auto simp: remove_one_watched_true_clause_partial_correct_watching)
-
-lemma remove_one_watched_true_clause_different_annots_all_killed:
-  assumes
-    \<open>remove_one_watched_true_clause L S T\<close> and
-    \<open>count_decided (get_trail_l S) = 0\<close>
-  shows \<open>different_annots_all_killed (get_clauses_l S) (get_unit_clauses_wl S)(get_trail_l S) (get_trail_l T)\<close>
-  using assms by (induction) (auto simp: different_annots_all_killed_refl)
-
-lemma remove_one_watched_true_clause_trail:
-  assumes
-    \<open>remove_one_watched_true_clause L S T\<close> a
-  shows \<open>get_trail_l S =  get_trail_l T\<close>
-  using assms by (induction) (auto simp: different_annots_all_killed_refl)
-
-lemma rtranclp_remove_one_watched_true_clause_trail:
-  assumes
-    \<open>(remove_one_watched_true_clause L)\<^sup>*\<^sup>* S T\<close> a
-  shows \<open>get_trail_l S = get_trail_l T\<close>
-  using assms by (induction) (auto simp: remove_one_watched_true_clause_trail)
-
-lemma remove_one_watched_true_clause_decomp:
-  assumes
-    \<open>remove_one_watched_true_clause L S T\<close>
-  obtains M N U D NE UE W Q M' N' U' NE' UE' W' Q' where
-    \<open>\<exists>M N D NE UE W Q M' N' NE' UE'. S = (M, N, D, NE, UE, Q, W) \<and>
-    T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W) \<and>
-    (\<forall>C\<in># mset `# (NE'+UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
-    dom_m N' \<subseteq># dom_m N \<and>
-    M = M' \<and>
-    init_clss_lf N = init_clss_lf N' + NE' \<and>
-    learned_clss_lf N = learned_clss_lf N' + UE' \<and>
-    reduce_dom_clauses N N'\<close>
-  using assms
-  by (induction)
-    (fastforce simp: conj_imp_eq_imp_imp singleton_eq_image_mset_iff
-    dest: in_set_takeD[of _ 2])+
-
-lemma rtranclp_remove_one_watched_true_clause_decomp_Ex:
-  assumes \<open>(remove_one_watched_true_clause L)\<^sup>*\<^sup>* S T\<close>
-  shows
-    \<open>\<exists>M N D NE UE W Q M' N' NE' UE'. S = (M, N, D, NE, UE, Q, W) \<and>
-     T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W) \<and>
-     (\<forall>C\<in># mset `# (NE'+UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
-     dom_m N' \<subseteq># dom_m N \<and> M = M' \<and>
-    init_clss_lf N = init_clss_lf N' + NE' \<and>
-    learned_clss_lf N = learned_clss_lf N' + UE' \<and>
-    reduce_dom_clauses N N'\<close>
-  using assms
-  apply (induction)
-  subgoal by (cases S) auto
-  subgoal for T U
-    by (drule remove_one_watched_true_clause_decomp)
-      (auto simp: image_mset_union[symmetric] ac_simps simp del: image_mset_union
-        intro: reduce_dom_clauses_trans)
-  done
-
-lemma reduce_dom_clauses_different_annots_all_killed:
-  \<open>reduce_dom_clauses N N' \<Longrightarrow> different_annots_all_killed N NUE M M' \<Longrightarrow>
-    different_annots_all_killed N' NUE M M'\<close>
-  apply (rule list_all2_mono)
-   apply assumption
-  by (auto simp: different_annot_all_killed.simps reduce_dom_clauses_def all_conj_distrib
-    dest!: multi_member_split)
-
-lemma rtranclp_remove_one_watched_true_clause_decomp:
-  assumes
-    \<open>(remove_one_watched_true_clause L)\<^sup>*\<^sup>* S T\<close> and
-    \<open>count_decided (get_trail_l S) = 0\<close>
-  shows \<open>different_annots_all_killed (get_clauses_l S) (get_unit_clauses_wl S)
-     (get_trail_l S) (get_trail_l T)\<close>
-  using assms apply (induction)
-  subgoal by (auto simp: remove_one_watched_true_clause_decomp different_annots_all_killed_refl)
-  subgoal for T U
-    apply (elim remove_one_watched_true_clause_decomp[of L T U])
-    using remove_one_watched_true_clause_different_annots_all_killed[of L T U]
-    by auto
-  done
-
-
-definition (in -) extract_and_remove
-  :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> ('v clauses_l \<times> 'v clause_l \<times> bool) nres\<close>
-where
-  \<open>extract_and_remove N j = do {
-      ASSERT((j :: nat) \<in># dom_m (N :: 'v clauses_l));
-      SPEC(\<lambda>(N' :: 'v clauses_l, C' :: 'v clause_l, b :: bool). N' = fmdrop j N \<and> C' = N\<propto>j \<and> b = irred N j)
-    }\<close>
-
-definition (in -) replace_annot_in_trail_spec :: \<open>('v, nat) ann_lits \<Rightarrow> 'v literal \<Rightarrow>
-    (('v, nat) ann_lits) nres\<close>
-where
-  \<open>replace_annot_in_trail_spec M L = do {
-      ASSERT(L \<in> lits_of_l M);
-      SPEC(\<lambda>M'. \<exists>M2 M1 C. M = M2 @ Propagated L C # M1 \<and> M' = M2 @ Propagated L 0 # M1)
-    }\<close>
-
-
-definition remove_one_annot_true_clause_one_imp
-where
-\<open>remove_one_annot_true_clause_one_imp = (\<lambda>(i, M, N, NE, UE). do {
-      ASSERT(i < length M);
-      (L, C) \<leftarrow> SPEC(\<lambda>(L, C). M!i = Propagated L C);
-      if C = 0 then RETURN (i+1, M, N, NE, UE)
-      else do {
-        ASSERT(C \<in># dom_m N);
-        M \<leftarrow> replace_annot_in_trail_spec M L;
-        (N', C, b) \<leftarrow> extract_and_remove N C;
-        if b then RETURN (i+1, M, N', add_mset (mset C) NE, UE)
-        else RETURN (i+1, M, N', NE, add_mset (mset C) UE)
-      }
-  })\<close>
-
-
-definition remove_one_annot_true_clause_imp
-  :: \<open>nat twl_st_l \<Rightarrow> (nat twl_st_l) nres\<close>
-where
-\<open>remove_one_annot_true_clause_imp = (\<lambda>(M, N, D, NE, UE, Q, W). do {
-    (_, M, N, NE, UE) \<leftarrow> WHILE\<^sub>T
-      (\<lambda>(i, M, N, NE, UE). i < length M)
-      (\<lambda>(i, M, N, NE, UE). remove_one_annot_true_clause_one_imp (i, M, N, NE, UE))
-      (0, M, N, NE, UE);
-    RETURN (M, N, D, NE, UE, Q, W)
-  })\<close>
-
-lemma remove_one_annot_true_clause_no_dup:
-  \<open>remove_one_annot_true_clause S T \<Longrightarrow> no_dup (get_trail_l S) \<longleftrightarrow> no_dup (get_trail_l T)\<close>
-  by (induction rule: remove_one_annot_true_clause.induct) auto
-lemma rtranclp_remove_one_annot_true_clause_no_dup:
-  \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<Longrightarrow> no_dup (get_trail_l S) \<longleftrightarrow> no_dup (get_trail_l T)\<close>
-  by (induction rule: rtranclp_induct) (auto simp: remove_one_annot_true_clause_no_dup)
-
-lemma remove_one_annot_true_clause_count_decided:
-  \<open>remove_one_annot_true_clause S T \<Longrightarrow> count_decided (get_trail_l S) = count_decided (get_trail_l T)\<close>
-  by (induction rule: remove_one_annot_true_clause.induct) auto
-lemma rtranclp_remove_one_annot_true_clause_count_decided:
-  \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<Longrightarrow> count_decided (get_trail_l S) = count_decided (get_trail_l T)\<close>
-  by (induction rule: rtranclp_induct) (auto simp: remove_one_annot_true_clause_count_decided)
-
-lemma
-  assumes
-    n_d: \<open>no_dup (get_trail_l S)\<close> and
-    reasons: \<open>reasons_invs_wl S\<close> and
-    count_dec: \<open>count_decided (get_trail_l S) = 0\<close>
-  shows
-    \<open>remove_one_annot_true_clause_imp S \<le> \<Down> Id (SPEC(\<lambda>T. remove_one_annot_true_clause\<^sup>*\<^sup>* S T))\<close>
-proof -
-  obtain M N D NE UE Q W where S:\<open>S = (M, N, D, NE, UE, Q, W)\<close>
-    by (cases S) auto
-  define I where
-    \<open>I \<equiv> \<lambda>(i, M', N', NE', UE').
-      remove_one_annot_true_clause\<^sup>*\<^sup>* (M, N, D, NE, UE, Q, W) (M', N', D, NE', UE', Q, W) \<and>
-      length M = length M' \<and> i \<le> length M \<and>
-        (\<forall>j < i. mark_of (M'!j) = 0) \<and>
-        reasons_invs_wl (M', N', D, NE', UE', Q, W)\<close>
-  have I0: \<open>I (0, M, N, NE, UE)\<close>
-    using reasons unfolding I_def S by auto
-  have \<open>remove_one_annot_true_clause_one_imp (i, M'', NE'', UE'', sUE)
-      \<le> SPEC (\<lambda>s'. I s' \<and> (s', s) \<in> measure (\<lambda>(i, _). length M - i))\<close>
-    if
-      \<open>(M, N, D, NE, UE, Q, W) = (M', SM)\<close> and
-      \<open>SM = (N', SN')\<close> and
-      \<open>SN' = (D', SD)\<close> and
-      \<open>SD = (NE', SNE)\<close> and
-      \<open>SNE = (UE', SUE)\<close> and
-      \<open>SUE = (Q', W')\<close> and
-      I: \<open>I s\<close> and
-      i_le: \<open>case s of (i, M, N, NE, UE) \<Rightarrow> i < length M\<close> and
-      s: \<open>s = (i, si)\<close> \<open>si = (M'', sm)\<close> \<open>sm = (NE'', sNE)\<close> \<open>sNE = (UE'', sUE)\<close>
-    for M' SM N' SN' D' SD NE' SNE UE' SUE Q' W' s i si M'' sm NE'' sNE UE'' sUE
-  proof -
-    have \<open>i < length M''\<close>
-      using i_le unfolding s by auto
-    have
-      reasons: \<open>reasons_invs_wl (M'', NE'', D, UE'', sUE, Q, W)\<close> and
-      [simp]: \<open>length M = length M''\<close> and
-      rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* (M, N, D, NE, UE, Q, W)
-         (M'', NE'', D, UE'', sUE, Q, W)\<close> and
-      all0: \<open>\<And>j. j<i \<Longrightarrow> mark_of (M'' ! j) = 0\<close> and
-      reasons': \<open>reasons_invs_wl (M'', NE'', D, UE'', sUE, Q, W)\<close>
-      using I unfolding s I_def prod.simps by fast+
-    have I_next0: \<open> I (Suc i, M'', NE'', UE'', sUE)\<close> if \<open>M'' ! i = Propagated L 0\<close> for L
-      using I that  \<open>i < length M''\<close> unfolding I_def s by (auto simp: less_Suc_eq)
-    have C_dom: \<open>C \<in># dom_m NE''\<close> and
-      L_lits: \<open>L \<in> lits_of_l M''\<close>
-      if \<open>M'' ! i = Propagated L C \<close> and C0: \<open>C > 0\<close> for L C
-    proof -
-      have LC: \<open>Propagated L C \<in> set M''\<close>
-        using that(1)[symmetric]  \<open>i < length M''\<close> by auto
-      then show \<open>C \<in># dom_m NE''\<close>
-        using reasons C0 unfolding reasons_invs_wl_def
-        by (auto dest!: split_list)
-      show \<open>L \<in> lits_of_l M''\<close>
-        using LC
-        by (auto dest!: split_list)
-    qed
-    have \<open>I (i + 1, M', N', add_mset (mset C') UE'', sUE)\<close>
-      if
-        \<open>i < length M''\<close> and
-        LC_i: \<open>case LC of (L, C) \<Rightarrow> M'' ! i = Propagated L C\<close> and
-        LC: \<open>LC = (L, C)\<close> and
-        \<open>C \<noteq> 0\<close> and
-        \<open>C \<in># dom_m NE''\<close> and
-        \<open>L \<in> lits_of_l M''\<close> and
-        renum: \<open>\<exists>M2 M1 C.
-            M'' = M2 @ Propagated L C # M1 \<and> M' = M2 @ Propagated L 0 # M1\<close> and
-        NCb': \<open>case NCb of (N', C', b) \<Rightarrow> N' = fmdrop C NE'' \<and> C' = NE'' \<propto> C \<and> b = irred NE'' C\<close> and
-        NCb: \<open>NCb = (N', sCb)\<close> \<open>sCb = (C', b')\<close> and
-        \<open>b'\<close>
-      for LC L C M' NCb N' sCb C' b'
-    proof -
-      obtain M2 M1 E where
-        M'': \<open>M'' = M2 @ Propagated L E # M1\<close> and
-        M': \<open>M' = M2 @ Propagated L 0 # M1\<close>
-        using renum by blast
-      have n_d'': \<open>no_dup M''\<close>
-        using rtranclp_remove_one_annot_true_clause_no_dup[OF rem] n_d unfolding S by auto
-      moreover have LC_M'': \<open>Propagated L C \<in> set M''\<close>
-        using LC_i nth_mem[of i \<open>M''\<close>] \<open>i < length M''\<close>
-        unfolding LC
-        by auto
-      ultimately have E: \<open>E = C\<close>
-        using LC_i \<open>i < length M''\<close> unfolding LC S M' M''
-        by (auto dest!: split_list simp: nth_append simp del: \<open>i < length M''\<close>
-          split: if_splits)
-      have i: \<open>i = length M2\<close>
-        using LC_i n_d'' \<open>i < length M''\<close> unfolding LC prod.case M'' S E
-        apply (auto simp: nth_append nth_Cons split: if_splits)
-        using defined_lit_def nth_mem apply fastforce
-        by (metis E M'' all0 annotated_lit.sel(3) linorder_neqE_nat nth_append_length that(4))
-      have
-        N': \<open>N' = fmdrop C NE''\<close> and
-        C': \<open>C' = NE'' \<propto> C\<close> and
-        irred: \<open>irred NE'' C\<close>
-        using NCb' \<open>b'\<close> unfolding NCb prod.case
-        by simp_all
-      have count_dec': \<open>count_decided M'' = 0\<close>
-        using rtranclp_remove_one_annot_true_clause_count_decided[OF rem]
-        count_dec unfolding S by simp
-      have all0': \<open>j<i + 1 \<Longrightarrow> mark_of ((M2 @ Propagated L 0 # M1) ! j) = 0\<close> for j
-         using all0[of j]  \<open>i < length M''\<close> i
-         by (auto simp: nth_append M'' less_Suc_eq split: if_splits)
-      have \<open>reasons_invs_wl (M2 @ Propagated L 0 # M1, N', D, add_mset (mset C') UE'', sUE, Q, W)\<close>
-        using reasons' apply (auto 5 5 simp: reasons_invs_wl_def M'' E N'
-          no_dup_reasons_invs_wl_def
-          elim!: list_match_lel_lel)
-        unfolding  append_Cons[symmetric] append_assoc[symmetric]
-        supply append_Cons[simp del] append_assoc[simp del]
-        apply blast
-        apply blast
-        apply blast
-        sorry
-      have \<open>remove_one_annot_true_clause (M'', NE'', D, UE'', sUE, Q, W)
-        (M2 @ Propagated L 0 # M1, N', D, add_mset (mset C') UE'', sUE, Q, W)\<close>
-        unfolding M'' C' N' E
-        apply (rule remove_one_annot_true_clause.intros(1))
-        subgoal using count_decided_ge_get_level[of M'' L] count_dec' unfolding M''  E by simp
-        subgoal using \<open>C \<noteq> 0\<close> by simp
-        subgoal using  \<open>C \<in># dom_m NE''\<close> .
-        subgoal using irred .
-        done
-      then have rem': \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* (M, N, D, NE, UE, Q, W)
-          (M2 @ Propagated L 0 # M1, N', D, add_mset (mset C') UE'', sUE, Q, W)\<close>
-        using rem unfolding M'' E by simp
-      show ?thesis
-        using rem' all0' \<open>i < length M''\<close>
-        unfolding I_def NCb M' M'' prod.case
-        apply (intro conjI)
-        apply (auto simp: M'' )
-       sorry
-    qed
-    show ?thesis
-      unfolding remove_one_annot_true_clause_one_imp_def replace_annot_in_trail_spec_def
-      extract_and_remove_def s prod.case
-      apply (refine_vcg)
-      subgoal by simp
-      subgoal for LC L C by (auto intro: I_next0)
-      subgoal by (auto simp: diff_less_mono2)
-      subgoal by (auto intro: C_dom)
-      subgoal by (auto intro: L_lits)
-      subgoal for LC L C'' M' NCb N' sCb C' b'
-        explore_have
-       apply auto
-       sorry
-      subgoal by (auto simp: diff_less_mono2)
-      subgoal for LC L C
-
-       apply auto
-       sorry
-      subgoal by (auto simp: diff_less_mono2)
-      done
-  qed
-  show ?thesis
-    unfolding S remove_one_annot_true_clause_imp_def
-    apply (refine_vcg
-      WHILET_rule[where I = I and R=\<open>measure(\<lambda>(i, _). length M - i)\<close>])
-    subgoal by auto
-    subgoal using I0 by auto
-    subgoal for M' SM N' SN' D' SD NE' SNE UE' SUE Q' W' s i si M'' sm NE'' sNE UE'' sUE
-      unfolding remove_one_annot_true_clause_one_imp_def replace_annot_in_trail_spec_def
-      extract_and_remove_def
-      apply (auto simp: assert_bind_spec_conv intro_spec_iff)
-    by auto
-    subgoal unfolding I_def by fast
-  oops
-
-  find_theorems " RES _ >>= (\<lambda>_.  _) <= _"
-lemma remove_all_watched_true_clause_partial_correct_watching:
- assumes \<open>remove_all_watched_true_clause S T\<close> and \<open>partial_correct_watching S\<close>
- shows \<open>partial_correct_watching T\<close>
-  using assms
-  using distinct_mset_dom[of \<open>get_clauses_l S\<close>]
-  apply (induction)
-  by (auto dest!: rtranclp_remove_one_watched_true_clause_partial_correct_watching
-    simp: full_def)
-    (auto simp: partial_correct_watching.simps)
-
-
-lemma no_step_remove_one_watched_true_clause_different_annot_all_killed:
-  fixes S :: \<open>'v twl_st_l\<close>
-  assumes
-    \<open>no_step (remove_one_watched_true_clause L) S\<close> and
-    count_dec: \<open>count_decided (get_trail_l S) = 0\<close> and
-    L: \<open>Propagated L C \<in> set (get_trail_l S)\<close> and
-    \<open>reasons_invs_wl S\<close>
-  shows \<open>different_annot_all_killed (get_clauses_l S) (get_unit_clauses_wl S)
-     (Propagated L C) (Propagated L (0 :: nat))\<close>
-  using assms count_decided_ge_get_level[of \<open>get_trail_l S\<close> L]
-  by (cases S)
-   (auto 5 5 simp: different_annot_all_killed.simps remove_one_watched_true_clause.simps
-    all_conj_distrib reasons_invs_wl_def
-    dest!: multi_member_split split_list[of \<open>Propagated L C\<close>])
-
-lemma remove_one_watched_true_clause_reasons_invs_wl:
-  \<open>remove_one_watched_true_clause L S T \<Longrightarrow> reasons_invs_wl_p L S \<Longrightarrow> reasons_invs_wl_p L T\<close>
-  using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
-  by (induction rule: remove_one_watched_true_clause.induct)
-    (auto simp: reasons_invs_wl_p_def dest: multi_member_split)
-
-lemma rtranclp_remove_one_watched_true_clause_reasons_invs_wl:
-  \<open>(remove_one_watched_true_clause L)\<^sup>*\<^sup>* S T \<Longrightarrow> reasons_invs_wl_p L S \<Longrightarrow> reasons_invs_wl_p L T\<close>
-  using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
-  by (induction rule: rtranclp_induct)
-    (auto simp: remove_one_watched_true_clause_reasons_invs_wl)
-
-lemma reasons_invs_wl_change_annot:
-  \<open>no_dup (M @ Propagated L C # M') \<Longrightarrow>
-     reasons_invs_wl_p L (M @ Propagated L C # M', N', D', NE', UE', Q', W') \<Longrightarrow>
-       reasons_invs_wl (M @ Propagated L 0 # M', N', D', NE', UE', Q', W')\<close>
-  apply (auto 5 5 simp: reasons_invs_wl_def
-    simp del: append_assoc append_Cons
-    simp: append_assoc[symmetric] append_Cons[symmetric] reasons_invs_wl_p_def
-    elim!: list_match_lel_lel)
-  apply (auto 5 5 simp: reasons_invs_wl_def
-    elim!: list_match_lel_lel)
-  done
-
-lemma remove_all_watched_true_clause_reasons_invs_wl:
-  \<open>remove_all_watched_true_clause S T \<Longrightarrow> reasons_invs_wl S \<Longrightarrow> reasons_invs_wl T\<close>
-  using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
-  by (induction rule: remove_all_watched_true_clause.induct)
-    (auto simp: full_def
-        dest!: rtranclp_remove_one_watched_true_clause_reasons_invs_wl
-       dest: multi_member_split reasons_invs_wl_change_annot)
-
-lemma rtranclp_remove_all_watched_true_clause_reasons_invs_wl:
-  \<open>remove_all_watched_true_clause\<^sup>*\<^sup>* S T \<Longrightarrow> reasons_invs_wl S \<Longrightarrow> reasons_invs_wl T\<close>
-  using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
-  by (induction rule: rtranclp_induct)
-    (auto simp: remove_all_watched_true_clause_reasons_invs_wl)
-
-lemma dom_m_empty_iff: \<open>dom_m N' = {#} \<longleftrightarrow> N' = fmempty\<close>
-  by (cases N') auto
-
-lemma reduce_dom_clauses_empty_left: \<open>reduce_dom_clauses fmempty N' \<longleftrightarrow> N' = fmempty\<close>
-  by (auto simp: reduce_dom_clauses_def dom_m_empty_iff)
-
-lemma reduce_dom_clauses_empty_right[simp]: \<open>reduce_dom_clauses N' fmempty\<close>
-  by (auto simp: reduce_dom_clauses_def)
-
-lemma reduce_dom_clauses_fmupd_notin:
-  \<open>x \<notin># dom_m N' \<Longrightarrow> reduce_dom_clauses N (fmupd x C N') \<longleftrightarrow>
-   reduce_dom_clauses N N' \<and> x \<in># dom_m N \<and> fmlookup N x = Some C\<close>
-  by (auto simp: reduce_dom_clauses_def)
-
-lemma reduce_dom_clauses_fmdrop_notin:
-   \<open>reduce_dom_clauses N' N \<Longrightarrow> i \<notin># dom_m N \<Longrightarrow> reduce_dom_clauses (fmdrop i N') N\<close>
-  by (auto simp: reduce_dom_clauses_def)
-
-lemma setset_mset_add_msetD: \<open>a \<subseteq># b \<Longrightarrow> add_mset x a \<subseteq># add_mset x b\<close>
-  by (auto simp: ac_simps)
-
-lemma reduce_dom_clauses_ran_mf_subset: \<open>reduce_dom_clauses N N' \<Longrightarrow> ran_mf N' \<subseteq># ran_mf N\<close>
-  apply (induction N' arbitrary: N)
-  subgoal by auto
-  subgoal premises p for i C N N'
-    using p(1)[of \<open>fmdrop i N'\<close>] p(2-)
-     setset_mset_add_msetD[of \<open>ran_mf N\<close> \<open>remove1_mset (fst C) (ran_mf N')\<close> \<open>fst C\<close>,
-      unfolded add_mset_remove_trivial_If]
-    apply (auto simp: reduce_dom_clauses_empty_left ran_m_mapsto_upd_notin
-      reduce_dom_clauses_fmupd_notin reduce_dom_clauses_fmdrop_notin split: if_splits)
-    apply (auto simp: ran_m_def dest: multi_member_split)
-    done
-  done
-
-lemma remove_all_watched_true_clause_different_annots_all_killed:
-  assumes
-    \<open>remove_all_watched_true_clause S T\<close> and
-    \<open>count_decided (get_trail_l S) = 0\<close> and
-    reasons: \<open>reasons_invs_wl S\<close>
-  shows \<open>different_annots_all_killed (get_clauses_l S) (get_unit_clauses_wl T) (get_trail_l S)
-      (get_trail_l T)\<close>
-  using assms
-proof (induction)
-  case (1 L M C M' N D NE UE Q W N' D' TNE' TUE' Q' W') note rem = this(1) and count_dec = this(2)
-    and reasons = this(3)
-  let ?M = \<open>M @ Propagated L C # M'\<close>
-  let ?S = \<open>(M @ Propagated L C # M', N, D, NE, UE, Q, W)\<close>
-  let ?T = \<open>(M @ Propagated L C # M', N', D', TNE', TUE', Q', W')\<close>
-  have nss: \<open>no_step (remove_one_watched_true_clause L) ?T\<close> and
-    st: \<open>(remove_one_watched_true_clause L)\<^sup>*\<^sup>* ?S ?T\<close>
-    using rem unfolding full_def
-    by fast+
-  have \<open>reasons_invs_wl (M @ Propagated L C # M', N', D', TNE', TUE', Q', W')\<close>
-    using reasons 1
-    by (auto simp: list_all2_append count_decided_0_iff is_decided_no_proped_iff
-        full_def rtranclp_remove_one_watched_true_clause_reasons_invs_wl
-     intro!: list.rel_refl_strong)
-  with no_step_remove_one_watched_true_clause_different_annot_all_killed[OF nss, of C]
-  have annot_L_N: \<open>different_annot_all_killed N' (TNE' + TUE') (Propagated L C) (Propagated L 0)\<close>
-    using count_dec reasons by auto
-
-  then have annot: \<open>different_annots_all_killed N' (TNE' + TUE') (M @ Propagated L C # M')
-     (M @ Propagated L 0 # M')\<close>
-    by (auto simp: list_all2_append count_decided_0_iff is_decided_no_proped_iff
-        full_def rtranclp_remove_one_watched_true_clause_reasons_invs_wl
-     intro!: list.rel_refl_strong)
-
-  from rtranclp_remove_one_watched_true_clause_decomp_Ex[OF st]
-  obtain M'' NE' UE' where
-    \<open>?S = (?M, N, D, NE, UE, Q, W)\<close> and
-    \<open>?T = (M'', N', D, NE + mset `# NE', UE + mset `# UE', Q, W) \<close> and
-    \<open>\<forall>C\<in># mset `# (NE'+UE'). \<exists>L\<in>#C. get_level ?M L = 0 \<and> L \<in> lits_of_l ?M\<close> and
-    dom_m_NN': \<open>dom_m N' \<subseteq># dom_m N\<close> and
-    \<open>?M = M''\<close> and
-    init: \<open>init_clss_lf N = init_clss_lf N' + NE'\<close> and
-    learned: \<open>learned_clss_lf N = learned_clss_lf N' + UE'\<close> and
-    red_NN: \<open>reduce_dom_clauses N N'\<close> and
-    TNE': \<open>TNE' = NE + mset `# NE'\<close> and
-    TUE': \<open>TUE' = UE + mset `# UE'\<close>
-    by blast
-  have N_N':  \<open>ran_mf N = ran_mf N' + NE' + UE'\<close>
-    apply (subst all_clss_lf_ran_m[symmetric])
-    unfolding init learned
-    by (auto simp: ac_simps all_clss_lf_ran_m)
-  have notin: \<open>C \<notin># dom_m N'\<close>
-  if
-    \<open>0 < C\<close> and
-    \<open>C \<in># dom_m N\<close>
-  proof (rule ccontr)
-    assume J: \<open>\<not> ?thesis\<close>
-    then have \<open>mset (N\<propto>C) = mset (N'\<propto>C)\<close>
-      using red_NN unfolding reduce_dom_clauses_def by auto
-    have \<open>L = N\<propto>C!0\<close> and \<open>L \<in> set (watched_l (N\<propto>C))\<close>
-      using reasons that by (auto simp: reasons_invs_wl_def)
-    moreover have \<open>get_level (M @ Propagated L C # M') K = 0\<close> for K
-      using count_decided_ge_get_level[of \<open>M @ Propagated L C # M'\<close> K] count_dec
-      by auto
-    ultimately show False
-      using that nss J red_NN apply (auto 5 5 simp: remove_one_watched_true_clause.simps
-        reduce_dom_clauses_def)
-      by metis
-  qed
-  have \<open>mset (N\<propto>C) \<in># mset `# (NE' + UE')\<close>
-  if
-    \<open>0 < C\<close> and
-    \<open>C \<in># dom_m N\<close>
-  proof -
-    have [simp]: \<open>op \<propto> N `# dom_m N' = op \<propto> N' `# dom_m N'\<close>
-      apply (rule image_mset_cong)
-      using red_NN
-      by (auto simp: reduce_dom_clauses_def)
-    have \<open>C \<notin># dom_m N'\<close>
-       using notin[OF that] .
-    (* have \<open>N\<propto>C \<in># ran_mf N\<close>
-      using that by (auto simp: ran_m_def) *)
-    then have \<open>N\<propto>C \<in># ran_mf N - ran_mf N'\<close>
-      using dom_m_NN' subset_add_mset_notin_subset_mset[of \<open>dom_m N'\<close> C \<open>dom_m (fmdrop C N)\<close>]
-      using that(2) reduce_dom_clauses_ran_mf_subset[OF red_NN]
-       apply (auto simp:  ran_m_def  dest!: multi_member_split)
-       apply (subst (asm)(2) mset_subset_eq_exists_conv)
-       apply auto
-       done
-    then show ?thesis
-      unfolding N_N' by auto
-  qed
-  then have \<open>different_annots_all_killed N (NE + mset `# NE' + UE + mset `# UE') (M @ Propagated L C # M')
-     (M @ Propagated L 0 # M')\<close>
-    using annot annot_L_N
-    by (auto simp: list_all2_append count_decided_0_iff is_decided_no_proped_iff
-        full_def rtranclp_remove_one_watched_true_clause_reasons_invs_wl
-        different_annot_all_killed.simps
-     intro!: list.rel_refl_strong)
-  then show ?case by (simp add: TNE' TUE' ac_simps)
-qed
-
-lemma rtranclp_remove_all_watched_true_clause_partial_correct_watching:
- assumes \<open>remove_all_watched_true_clause\<^sup>*\<^sup>* S T\<close> and \<open>partial_correct_watching S\<close>
- shows \<open>partial_correct_watching T\<close>
-  using assms
-  using distinct_mset_dom[of \<open>get_clauses_l S\<close>]
-  by (induction)
-    (auto simp: remove_all_watched_true_clause_partial_correct_watching)
-
-lemma remove_all_watched_true_clause_decomp_Ex:
-  assumes \<open>remove_all_watched_true_clause S T\<close> and
-    \<open>count_decided (get_trail_l S) = 0\<close>
-  shows
-    \<open>\<exists>M N D NE UE W Q M' N' NE' UE'.
-     S = (M, N, D, NE, UE, Q, W) \<and>
-     T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W) \<and>
-     (\<forall>C\<in># mset `# (NE'+UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
-     dom_m N' \<subseteq># dom_m N \<and> map lit_of M = map lit_of M' \<and>
-     count_decided M' = 0 \<and>
-     init_clss_lf N = init_clss_lf N' + NE' \<and>
-     learned_clss_lf N = learned_clss_lf N' + UE' \<and>
-     reduce_dom_clauses N N'\<close>
-  using assms
-  apply (induction)
-  subgoal for L M C M' N D NE UE Q W N' D' NE' UE' Q' W'
-    using count_decided_ge_get_level[of \<open>M @ Propagated L C # M'\<close> L] unfolding full_def
-    apply -
-    apply normalize_goal+
-    by (drule rtranclp_remove_one_watched_true_clause_decomp_Ex) auto
-  done
-
-lemma rtranclp_remove_all_watched_true_clause_decomp_Ex:
-  assumes \<open>remove_all_watched_true_clause\<^sup>*\<^sup>* S T\<close> and
-    \<open>count_decided (get_trail_l S) = 0\<close>
-  shows
-    \<open>\<exists>M N D NE UE W Q M' N' NE' UE'.
-     S = (M, N, D, NE, UE, Q, W) \<and>
-     T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W) \<and>
-     (\<forall>C\<in># mset `# (NE'+UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
-     dom_m N' \<subseteq># dom_m N \<and> map lit_of M = map lit_of M' \<and>
-     count_decided M' = 0 \<and>
-     init_clss_lf N = init_clss_lf N' + NE' \<and>
-     learned_clss_lf N = learned_clss_lf N' + UE' \<and>
-     reduce_dom_clauses N N'\<close>
-proof -
-  have H[simp]: \<open>count_decided M'a = 0 \<Longrightarrow>  get_level M'a L = 0\<close> for M'a L
-    using count_decided_ge_get_level[of M'a]
-    by (auto intro!: ext)
-  have H: \<open>map lit_of M = map lit_of M' \<Longrightarrow> lits_of_l M = lits_of_l M'\<close> for M M'
-    by (metis lits_of_def set_map)
-  show ?thesis
-    using assms
-    apply (induction)
-    subgoal by (cases S) auto
-    subgoal for T U
-      apply (drule remove_all_watched_true_clause_decomp_Ex)
-      subgoal by auto
-      subgoal
-        supply image_mset_union[simp del] image_mset_union[symmetric, simp]
-        by (fastforce dest: H simp: ac_simps intro: reduce_dom_clauses_trans)
-      done
-    done
-qed
-
-lemma different_annot_all_killed_trans:
-  assumes
-    \<open>different_annot_all_killed N NUE L L'\<close> and
-    \<open>different_annot_all_killed N' NUE' L' L''\<close>
-    \<open>set_mset NUE \<subseteq> set_mset NUE'\<close> and
-    red: \<open>reduce_dom_clauses N N'\<close> and
-    L': \<open>is_proped L' \<Longrightarrow> mark_of L'  > 0 \<Longrightarrow> mark_of L' \<in># dom_m N'\<close>
-  shows
-    \<open>different_annot_all_killed N NUE' L L''\<close>
-proof -
-  have [dest]: \<open>Ca \<in># dom_m N' \<Longrightarrow> mset (N' \<propto> Ca) = mset (N \<propto> Ca)\<close> for Ca
-    using red by (auto simp: reduce_dom_clauses_def)
-  show ?thesis
-    using assms L' by (auto simp: different_annot_all_killed.simps reduce_dom_clauses_def)
-qed
-
-lemma different_annots_all_killed_trans:
-  assumes
-    MM': \<open>different_annots_all_killed N NUE M M'\<close> and
-    M'M'': \<open>different_annots_all_killed N' NUE' M' M''\<close> and
-    \<open>set_mset NUE \<subseteq> set_mset NUE'\<close> and
-    \<open>reduce_dom_clauses N N'\<close> and
-    L': \<open>\<forall>L'\<in>set M'. is_proped L' \<longrightarrow> mark_of L' > 0 \<longrightarrow> mark_of L' \<in># dom_m N'\<close>
-  shows
-    \<open>different_annots_all_killed N NUE' M M''\<close>
-proof -
-  have [simp]: \<open>length M = length M'\<close> \<open>length M' = length M''\<close>
-    using MM' M'M'' by (auto simp: list_all2_conv_all_nth)
-  show ?thesis
-    apply (rule list_all2_all_nthI)
-    subgoal using MM' M'M'' by (auto simp: list_all2_conv_all_nth)
-    subgoal for n
-      using list_all2_nthD[OF MM', of n]
-      using list_all2_nthD[OF M'M'', of n] L'
-      using different_annot_all_killed_trans[of N NUE \<open>M!n\<close> \<open>M'!n\<close> N' NUE' \<open>M''!n\<close>] assms(3-4)
-      by auto
-    done
-qed
-
-lemma rtranclp_remove_all_watched_true_clause_different_annots_all_killed:
-  assumes
-    \<open>remove_all_watched_true_clause\<^sup>*\<^sup>* S T\<close> and
-    \<open>count_decided (get_trail_l S) = 0\<close> and
-    reasons_inv: \<open>reasons_invs_wl S\<close>
-  shows \<open>different_annots_all_killed (get_clauses_l S) (get_unit_clauses_wl T) (get_trail_l S)
-      (get_trail_l T)\<close>
-  using assms
-proof (induction)
-  case base
-  then show ?case by (auto intro: different_annots_all_killed_refl)
-next
-  case (step T U) note st = this(1) and TU = this(2) and IH = this(3-) and
-    lev0 = this(4) and reasons = this(5)
-
-  obtain M N D NE UE W Q M' N' NE' UE' where
-    S: \<open>S = (M, N, D, NE, UE, Q, W)\<close> and
-    T: \<open>T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W)\<close>
-    \<open>\<forall>C\<in>#mset `# (NE' + UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M\<close> and
-    \<open>dom_m N' \<subseteq># dom_m N\<close> and
-    \<open>map lit_of M = map lit_of M'\<close> and
-    count_dec': \<open>count_decided M' = 0\<close> and
-    init: \<open>init_clss_lf N = init_clss_lf N' + NE'\<close> and
-    learned: \<open>learned_clss_lf N = learned_clss_lf N' + UE' \<and> reduce_dom_clauses N N'\<close> and
-    red: \<open>reduce_dom_clauses N N'\<close>
-    using rtranclp_remove_all_watched_true_clause_decomp_Ex[OF st lev0] by force
-  have count_dec_T: \<open>count_decided (get_trail_l T) = 0\<close>
-    using count_dec' unfolding T by auto
-  obtain TW' TQ' M'' N'' NE'' UE'' where
-    T': \<open>T = (M', N', D, NE + mset `# NE', UE + mset `# UE', TQ', TW')\<close> and
-    U: \<open>U = (M'', N'', D, NE + mset `# NE' + mset `# NE'', UE + mset `# UE' + mset `# UE'', TQ',
-       TW')\<close> and
-    \<open>\<forall>C\<in>#mset `# (NE'' + UE''). \<exists>L\<in>#C. get_level M' L = 0 \<and> L \<in> lits_of_l M'\<close> and
-    \<open>dom_m N'' \<subseteq># dom_m N'\<close> and
-    \<open>map lit_of M' = map lit_of M''\<close> and
-    \<open>count_decided M'' = 0\<close> and
-    init': \<open>init_clss_lf N' = init_clss_lf N'' + NE''\<close> and
-    learned': \<open>learned_clss_lf N' = learned_clss_lf N'' + UE''\<close> and
-    red': \<open>reduce_dom_clauses N' N''\<close>
-    using remove_all_watched_true_clause_decomp_Ex[OF TU count_dec_T] unfolding T
-    by (auto simp: T)
-  have reasons_T: \<open>reasons_invs_wl T\<close>
-    using reasons_inv rtranclp_remove_all_watched_true_clause_reasons_invs_wl st by blast
-  have \<open>ran_mf N = init_clss_lf N'' + learned_clss_lf N'' + NE' + NE'' + UE' + UE''\<close>
-    apply (subst all_clss_lf_ran_m[symmetric])
-    unfolding init init'  unfolding learned  learned'
-    apply (subst learned learned')+
-    by auto
-  have IH': \<open>different_annots_all_killed (get_clauses_l S) (get_unit_clauses_wl T)
-    (get_trail_l S) (get_trail_l T)\<close>
-    using IH by auto
-  moreover have \<open>different_annots_all_killed (get_clauses_l T) (get_unit_clauses_wl U)
-    (get_trail_l T) (get_trail_l U)\<close>
-    apply (rule remove_all_watched_true_clause_different_annots_all_killed[OF TU])
-    subgoal using count_dec' by (auto simp: T count_decided_0_iff)
-    subgoal using st IH
-      by (auto simp: list_all2_append count_decided_0_iff is_decided_no_proped_iff
-             full_def rtranclp_remove_one_watched_true_clause_reasons_invs_wl
-           intro: rtranclp_remove_one_watched_true_clause_reasons_invs_wl
-             rtranclp_remove_all_watched_true_clause_reasons_invs_wl)
-    done
-  ultimately show ?case
-    using red red' reasons_T
-    apply -
-    apply (rule different_annots_all_killed_trans)
-      apply assumption+
-    apply (auto simp: S T U reasons_invs_wl_def
-      intro: different_annots_all_killed_trans
-      dest: split_list)
-    apply (case_tac L')
-    apply (auto dest!: split_list)
-
-qed
-
-lemma count_decided0_map_is_decided:
-  \<open>count_decided M = 0 \<Longrightarrow> map is_decided M = replicate (length M) False\<close>
-  by (induction M rule: ann_lit_list_induct)
-    auto
-
-lemma different_annots_all_killed_map_lit_of:
-  \<open>different_annots_all_killed N' NUE M M' \<Longrightarrow> map lit_of M = map lit_of M'\<close>
-  by (induction rule: list_all2_induct)
-    (auto simp: different_annot_all_killed.simps)
-
-
-lemma different_annots_all_killed_length:
-  \<open>different_annots_all_killed N' NUE M M' \<Longrightarrow> length M = length M'\<close>
-  by (rule list_all2_lengthD)
-
-lemma different_annots_all_killed_in_annot_in_unit:
-  assumes
-    annot: \<open>different_annots_all_killed N' NUE M M'\<close> and
-    n_d: \<open>no_dup M\<close> and
-    LE': \<open>Propagated L E' \<in> set M\<close> and
-    L0: \<open>Propagated L 0 \<in> set M'\<close> and
-    \<open>E' \<in># dom_m N'\<close> and
-    \<open>0 < E'\<close>
-  shows \<open>mset (N' \<propto> E') \<in># NUE\<close>
-proof -
-  obtain M1 M2 where M: \<open>M = M2 @ Propagated L E' # M1\<close>
-    using LE'
-    by (auto dest!: split_list
-        simp: list_all2_append1 list_all2_Cons1 different_annot_all_killed.simps)
-  define M2' where \<open>M2' \<equiv> take (length M2) M'\<close>
-  define M1' where \<open>M1' \<equiv> drop (Suc (length M2)) M'\<close>
-  have n_d': \<open>no_dup M'\<close>
-    using different_annots_all_killed_map_lit_of[OF annot] n_d
-    by (blast dest: map_lit_of_eq_no_dupD)
-
-  have M': \<open>M' =M2' @ Propagated L 0 # M1'\<close>
-    using n_d' split_list[OF L0] annot unfolding M2'_def M1'_def
-    by (auto simp: M list_all2_append1 list_all2_Cons1 different_annot_all_killed.simps
-        elim!: list_match_lel_lel)
-  have [simp]: \<open>length M1' = length M1\<close> \<open>length M2' = length M2\<close>
-    using different_annots_all_killed_length[OF annot]
-    unfolding M1'_def M2'_def M
-    by auto
-  show ?thesis
-    using annot  \<open>0 < E'\<close> \<open>E' \<in># dom_m N'\<close>
-    apply (subst (asm) M)
-    apply (subst (asm) M')
-    by (auto simp: list_all2_append different_annot_all_killed.simps)
-qed
-
-(* lemma *)
-   (* \<open>different_annots_all_killed N' NUE M M' \<Longrightarrow> set_mset (dom_m N') \<subseteq> set_mset (dom_m N) \<Longrightarrow>
-      different_annots_all_killed N NUE M M'\<close>
-  apply (induction rule: list_all2_induct)
-  subgoal by auto
-  subgoal for L L' M M'
-    apply (auto simp: different_annot_all_killed.simps[of _ _ L L'])
-
-thm different_annot_all_killed.simps[of _ _ L L'] *)
-lemma
-  assumes
-    remove: \<open>remove_all_watched_true_clause\<^sup>*\<^sup>* S T\<close> and
-    lev0: \<open>count_decided (get_trail_l S) = 0\<close> and
-    partial: \<open>partial_correct_watching S\<close> and
-    confl: \<open>get_conflict_wl S = None\<close> and
-    all0: \<open>\<forall>L C. Propagated L C \<in> set (get_trail_l T) \<longrightarrow> C = 0\<close> and
-    dom0: \<open>0 \<notin># dom_m (get_clauses_l S)\<close> and
-    reason: \<open>reasons_invs_wl S\<close>
-  shows \<open>cdcl_twl_restart_l S T\<close>
-proof -
-  from rtranclp_remove_all_watched_true_clause_decomp_Ex[OF remove lev0]
-  obtain M N D NE UE W Q M' N' NE' UE' where
-    S: \<open>S = (M, N, D, NE, UE, Q, W)\<close> and
-    T: \<open>T = (M', N', D, NE + mset `# NE', UE + mset `# UE', Q, W)\<close> and
-    NUE: \<open>\<forall>C\<in>#mset `# (NE'+UE'). \<exists>L\<in>#C. get_level M L = 0 \<and> L \<in> lits_of_l M\<close> and
-    dom_mono: \<open>dom_m N' \<subseteq># dom_m N\<close> and
-    lit_of_MM': \<open>map lit_of M = map lit_of M'\<close> and
-    \<open>count_decided M' = 0\<close> and
-    init: \<open>init_clss_lf N = init_clss_lf N' + NE'\<close> and
-    learned: \<open>learned_clss_lf N = learned_clss_lf N' + UE'\<close> and
-    lev0': \<open>count_decided M' = 0\<close> and
-    red_NN': \<open>reduce_dom_clauses N N'\<close>
-    by metis
-  from rtranclp_remove_all_watched_true_clause_different_annots_all_killed[OF remove lev0 reason]
-  have annot: \<open>different_annots_all_killed (get_clauses_l T) (get_unit_clauses_wl T)
-   (get_trail_l S) (get_trail_l T)\<close>
-    .
-  have [simp]: \<open>length M = length M'\<close>
-    using arg_cong[OF lit_of_MM', of length] by auto
-  have D: \<open>D = None\<close>
-    using confl unfolding S by auto
-  have red: \<open>valid_trail_reduction M M'\<close>
-    apply (rule valid_trail_reduction.intros(2))
-    using lit_of_MM' lev0 lev0' by (auto simp: count_decided0_map_is_decided S)
-
-  show ?thesis
-    unfolding S T D
-    apply (rule cdcl_twl_restart_l.intros)
-    subgoal using red .
-    subgoal using init .
-    subgoal using learned by auto
-    subgoal using NUE by (auto dest!: multi_member_split)
-    subgoal using all0 unfolding T by auto
-    subgoal using all0 annot red_NN' unfolding T
-      apply (intro conjI impI allI)
-     apply (auto simp: S)
-    subgoal using all0 unfolding T by auto
-    subgoal using dom0 dom_mono by (auto simp: S)
-    subgoal by auto
-    subgoal using rtranclp_remove_all_watched_true_clause_partial_correct_watching[OF remove
-      partial] unfolding T D .
-    done
-qed
-
-
-definition remove_all_clause_watched_by_inv where
-  \<open>remove_all_clause_watched_by_inv = (\<lambda>(M\<^sub>0, N\<^sub>0, D\<^sub>0, NE\<^sub>0, UE\<^sub>0, Q\<^sub>0, W\<^sub>0) (M, N, D, NE, UE, Q, W).
-       ran_mf N + NE + UE = ran_mf N\<^sub>0 + NE\<^sub>0 + UE\<^sub>0)\<close>
-
-definition remove_all_clause_watched_by
-  :: \<open>nat literal \<Rightarrow> nat twl_st_l \<Rightarrow> (nat twl_st_l) nres\<close>
-where
-\<open>remove_all_clause_watched_by L = (\<lambda>(M, N, D, NE, UE, Q, W). do {
-    (_, N, NE, UE) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, N, NE, UE). partial_correct_watching (M, N, D, NE, UE, Q, W)\<^esup>
-      (\<lambda>(i, N, NE, UE). i < length (W L))
-      (\<lambda>(i, N, NE, UE). do {
-          if i \<in># dom_m N
-          then do {
-            (N', C, b) \<leftarrow> extract_and_remove N (W L!i);
-            if b then RETURN (i+1, N', add_mset (mset C) NE, UE)
-            else RETURN (i+1, N', NE, add_mset (mset C) UE)
-          }
-          else (* The clause might have already been deleted *)
-            RETURN (i+1, N, NE, UE)
-      })
-      (0, N, NE, UE);
-    RETURN (M, N, D, NE, UE, Q, W(L := []))
-  })\<close>
-
-definition remove_trivially_true_clause where
-  \<open>remove_trivially_true_clause = (\<lambda>S. do {
-    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, S). partial_correct_watching S\<^esup>
-      (\<lambda>(i, S). i > 0 \<and> \<not>is_decided (get_trail_l S!i))
-      (\<lambda>(i, (M, N, D, NE, UE, Q, W)). do {
-         ASSERT(i > 0);
-         let L = lit_of (M!i);
-         (M, N, D, NE, UE, Q, W) \<leftarrow> remove_all_clause_watched_by L (M, N, D, NE, UE, Q, W);
-         let M = M[i := Propagated L 0];
-         RETURN(i-1, (M, N, D, NE, UE, Q, W))
-      })
-      (0, S);
-    RETURN S
-  })\<close>
 
 definition collect_valid_indices where
   \<open>collect_valid_indices S = SPEC (\<lambda>N. mset N = dom_m (get_clauses_l S))\<close>
