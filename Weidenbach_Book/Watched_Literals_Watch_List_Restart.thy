@@ -2,23 +2,32 @@ theory Watched_Literals_Watch_List_Restart
   imports Watched_Literals_List_Restart Watched_Literals_Watch_List
 begin
 
+text \<open>We relax the condition on the invariant on the watch list to only fave inclusion allowing to
+  reorder clauses\<close>
 fun (in -) partial_correct_watching :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   [simp del]: \<open>partial_correct_watching (M, N, D, NE, UE, Q, W)  \<longleftrightarrow>
       (\<forall>L\<in>#all_lits_of_mm (mset `# ran_mf N + NE + UE).
-        (\<forall>i\<in>set (W L). i \<notin># dom_m N \<or> L \<in> set (watched_l (N\<propto>i))))\<close>
+        (\<forall>i\<in>set (W L). i \<notin># dom_m N \<or> L \<in> set (N\<propto>i)))\<close>
 
 lemma (in -) \<open>correct_watching S \<Longrightarrow> partial_correct_watching S\<close>
   by (cases S)
     (auto simp: correct_watching.simps partial_correct_watching.simps clause_to_update_def
-    simp del: set_mset_mset dest: in_set_mset_eq_in)
+    simp del: set_mset_mset dest: in_set_mset_eq_in dest!: in_set_takeD)
 
-term remove_all_annot_true_clause_imp
+definition remove_all_annot_true_clause_imp_wl_inv where
+  \<open>remove_all_annot_true_clause_imp_wl_inv S xs = (\<lambda>(i, T).
+     partial_correct_watching S \<and> partial_correct_watching T \<and>
+     (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
+        remove_all_annot_true_clause_imp_inv S' xs (i, T')))\<close>
+
 definition remove_all_annot_true_clause_imp_wl
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
-\<open>remove_all_annot_true_clause_imp_wl = (\<lambda>L (M, N, D, NE, UE, Q, W). do {
+\<open>remove_all_annot_true_clause_imp_wl = (\<lambda>L (M, N0, D, NE0, UE, Q, W). do {
     let xs = W L;
-    (_, N, NE) \<leftarrow> WHILE\<^sub>T
+    (_, N, NE) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, N, NE).
+       remove_all_annot_true_clause_imp_wl_inv (M, N0, D, NE0, UE, Q, W) xs
+         (i, M, N, D, NE, UE, Q, W)\<^esup>
       (\<lambda>(i, N, NE). i < length xs)
       (\<lambda>(i, N, NE). do {
           ASSERT(i < length xs);
@@ -30,7 +39,7 @@ where
           else
             RETURN (i+1, N, NE)
       })
-      (0, N, NE);
+      (0, N0, NE0);
     RETURN (M, N, D, NE, UE, Q, W)
   })\<close>
 
@@ -47,6 +56,40 @@ proof -
     if \<open>(x1i, x1b) \<in> Id\<close> and  \<open>(x1k, x1d) \<in> Id\<close>
     for x1i x1k x1b x1d
     using that by auto
+  have L'_in_clause: \<open>L' \<in> set (N0 \<propto> x)\<close>
+    if
+      pre: \<open>remove_all_annot_true_clause_imp_pre L' (M, N0, D, NE, UE, {#}, Q)\<close> and
+      x: \<open>x \<in> set (W L')\<close> and
+      part: \<open>partial_correct_watching (M, N0, D, NE, UE, Q, W)\<close> and
+      dom:  \<open>x \<in># dom_m N0\<close>
+    for L' M N0 D NE UE Q W M' N' D' NE' UE' Q' W' x
+  proof -
+    define S  :: \<open>_ twl_st_l\<close> where \<open>S \<equiv> (M, N0, D, NE, UE, {#}, Q)\<close>
+    obtain x where
+      \<open>twl_list_invs S\<close> and
+      \<open>twl_list_invs S\<close> and
+      \<open>get_conflict_l S = None\<close> and
+      Sx: \<open>(S, x) \<in> twl_st_l None\<close> and
+      struct_invs: \<open>twl_struct_invs x\<close> and
+      \<open>clauses_to_update_l S = {#}\<close> and
+      L': \<open>L' \<in> lits_of_l (get_trail_l S)\<close>
+      using pre unfolding remove_all_annot_true_clause_imp_pre_def S_def[symmetric] by blast
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of x)\<close>
+      using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by fast+
+    then have \<open>\<And>L. L \<in> atm_of ` lits_of_l (get_trail_l S) \<Longrightarrow> L \<in> atms_of_ms
+       ((\<lambda>x. mset (fst x)) ` {a. a \<in># ran_m (get_clauses_l S) \<and> snd a}) \<union>
+      atms_of_mm (get_unit_init_clauses_l S)\<close>
+      using Sx unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      by (auto simp add: twl_st twl_st_l)
+    from this[of \<open>atm_of L'\<close>] have \<open>L' \<in>#all_lits_of_mm (mset `# ran_mf N0 + NE + UE)\<close>
+      using L' by (auto simp: S_def in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
+        dest!: multi_member_split)
+    then show ?thesis
+      using part dom x unfolding partial_correct_watching.simps
+      by fast
+  qed
+
   have [refine0]: \<open>remove_all_annot_true_clause_one_imp (C, N0, NE) \<le>
         \<Down> {((N, NE), (N', NE')). N = N' \<and> NE = NE' \<and>
             (C \<in># dom_m N \<longrightarrow> N = fmdrop C N0)}
@@ -62,21 +105,23 @@ proof -
       apply (cases LS; cases LT)
       subgoal for L M N0 D NE UE Q W L' M' N' D' NE' UE' Q' W'
       apply (refine_rcg H
-        WHILET_refine[where R=\<open>
-          {((i, N, NE), (i', N', NE')). i = i' \<and> N = N' \<and> NE = NE' \<and>
+        WHILEIT_refine[where R=\<open>{((i, N, NE), (i', N', NE')). i = i' \<and> N = N' \<and> NE = NE' \<and>
             partial_correct_watching (M, N, D, NE, UE, Q, W) \<and>
             reduce_dom_clauses N0 N}\<close>])
-    subgoal apply (auto simp: state_wl_l_def partial_correct_watching.simps) sorry
+    subgoal by (auto simp: state_wl_l_def L'_in_clause)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def remove_all_annot_true_clause_imp_wl_inv_def)
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def reduce_dom_clauses_fmdrop)
+    subgoal apply (auto simp: state_wl_l_def)
+      sorry
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
-    subgoal apply (auto simp: state_wl_l_def reduce_dom_clauses_fmdrop) sorry
-    subgoal by (auto simp: state_wl_l_def)
-    subgoal by (auto simp: state_wl_l_def)
+    done
     oops
 
 definition remove_one_annot_true_clause_one_imp_wl
@@ -129,7 +174,7 @@ definition mark_to_delete_clauses_wl :: \<open>nat twl_st_wl \<Rightarrow> nat t
     RETURN (M, N, D, NE, UE, Q, W)
   })\<close>
 
-  
+
 
 lemma \<open>(uncurry remove_all_annot_true_clause_imp_wl, uncurry remove_all_annot_true_clause_imp) \<in>
    Id \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S} \<rightarrow>\<^sub>f
@@ -140,7 +185,7 @@ lemma \<open>(uncurry remove_all_annot_true_clause_imp_wl, uncurry remove_all_an
   apply (refine_vcg
     WHILET_refine[where R=\<open>bool_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
        {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<close>])
-  
+
 thm WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
        {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<close>]
   oops
