@@ -17,7 +17,7 @@ text \<open>
   In practice, there are two types of restarts that are done:
     \<^item> First, a restart can be done to enforce that the SAT solver goes more into the direction
       expected by the decision heuristics.
-    \<^item> Second, a restart can be done to simplify inprocessing and garbage collection of the memory:
+    \<^item> Second, a full restart can be done to simplify inprocessing and garbage collection of the memory:
       instead of properly updating the trail, we restart the search. This is not necessary (i.e.,
       glucose and minisat do not do it), but it simplifies the proofs by allowing to move clauses
       without taking care of updating references in the trail. Moreover, as this happens ``rarely''

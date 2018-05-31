@@ -1825,7 +1825,7 @@ proof -
       by (auto simp del: nth_mem)
     have \<open>no_dup M\<close>
       using n_d unfolding U by simp
-    then have no_already_annot: \<open>Propagated Laa (xs ! k) \<in>  set M \<Longrightarrow> False\<close> for Laa
+    then have no_already_annot: \<open>Prop agated Laa (xs ! k) \<in>  set M \<Longrightarrow> False\<close> for Laa
       using is_annot_iff_annotates_first[OF U'V' list_invs_U' struvt_invs_V' xs_k_0] LC
       is_annot_no_other_true_lit[OF U'V' list_invs_U' struvt_invs_V' xs_k_0, of Laa L]
         L_set L_M xs_k_0 unfolding U

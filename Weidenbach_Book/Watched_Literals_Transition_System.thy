@@ -5408,7 +5408,7 @@ proof -
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
   have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
     by (rule true_clss_clss_true_clss_cls_true_clss_clss[OF N_U_M M_D])
-  then have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close> \<open>set_mset N  \<union> set_mset U \<Turnstile>p D\<close>
+  then have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close> \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>
     using  N_U_D true_clss_clss_left_right by blast+
   then have \<open>unsatisfiable (set_mset N  \<union> set_mset U)\<close>
     by (rule true_clss_clss_CNot_true_clss_cls_unsatisfiable)
