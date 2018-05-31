@@ -1556,12 +1556,36 @@ where
       }
   })\<close>
 
+definition remove_one_annot_true_clause_imp_inv where
+  \<open>remove_one_annot_true_clause_imp_inv S =
+    (\<lambda>(i, T). remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<and> twl_list_invs S \<and> i \<le> length (get_trail_l S) \<and>
+           twl_list_invs S \<and>
+           (\<exists>S'. (S, S') \<in> twl_st_l None \<and> twl_struct_invs S') \<and>
+           get_conflict_l S = None \<and> clauses_to_update_l S = {#} \<and>
+           (\<forall>j<i. is_proped (rev (get_trail_l T) ! j)))\<close>
+
+
+definition remove_all_annot_true_clause_imp_inv where
+  \<open>remove_all_annot_true_clause_imp_inv S xs =
+    (\<lambda>(i, T). remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<and> twl_list_invs S \<and> i \<le> length xs \<and>
+           twl_list_invs S \<and>
+           (\<exists>S'. (S, S') \<in> twl_st_l None \<and> twl_struct_invs S') \<and>
+           get_conflict_l S = None \<and> clauses_to_update_l S = {#})\<close>
+ 
+definition remove_all_annot_true_clause_imp_pre where
+  \<open>remove_all_annot_true_clause_imp_pre L S \<longleftrightarrow>
+    (twl_list_invs S \<and> twl_list_invs S \<and>
+           (\<exists>S'. (S, S') \<in> twl_st_l None \<and> twl_struct_invs S') \<and>
+           get_conflict_l S = None \<and> clauses_to_update_l S = {#} \<and> L \<in> lits_of_l (get_trail_l S))\<close>
+ 
 definition remove_all_annot_true_clause_imp
   :: \<open>nat literal \<Rightarrow> nat twl_st_l \<Rightarrow> (nat twl_st_l) nres\<close>
 where
-\<open>remove_all_annot_true_clause_imp = (\<lambda>L (M, N, D, NE, UE, Q, W). do {
-    xs \<leftarrow> SPEC(\<lambda>xs. (\<forall>x\<in>set xs. x \<in># dom_m N \<longrightarrow> L \<in> set (N\<propto>x)));
-    (_, N, NE) \<leftarrow> WHILE\<^sub>T
+\<open>remove_all_annot_true_clause_imp = (\<lambda>L (M, N0, D, NE0, UE, Q, W). do {
+    ASSERT(remove_all_annot_true_clause_imp_pre L (M, N0, D, NE0, UE, Q, W));
+    xs \<leftarrow> SPEC(\<lambda>xs. (\<forall>x\<in>set xs. x \<in># dom_m N0 \<longrightarrow> L \<in> set (N0\<propto>x)));
+    (_, N, NE) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, N, NE). remove_all_annot_true_clause_imp_inv (M, N0, D, NE0, UE, Q, W) xs
+        (i, (M, N, D, NE, UE, Q, W))\<^esup>
       (\<lambda>(i, N, NE). i < length xs)
       (\<lambda>(i, N, NE). do {
           ASSERT(i < length xs);
@@ -1573,15 +1597,21 @@ where
           else
             RETURN (i+1, N, NE)
       })
-      (0, N, NE);
+      (0, N0, NE0);
     RETURN (M, N, D, NE, UE, Q, W)
   })\<close>
 
-
+definition remove_one_annot_true_clause_one_imp_inv where
+  \<open>remove_one_annot_true_clause_one_imp_inv i T \<longleftrightarrow>
+    (twl_list_invs T \<and> i < length (get_trail_l T) \<and>
+           twl_list_invs T \<and>
+           (\<exists>S'. (T, S') \<in> twl_st_l None \<and> twl_struct_invs S') \<and>
+           get_conflict_l T = None \<and> clauses_to_update_l T = {#})\<close>
+ 
 definition remove_one_annot_true_clause_one_imp
 where
 \<open>remove_one_annot_true_clause_one_imp = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
-      ASSERT(i < length M);
+      ASSERT(remove_one_annot_true_clause_one_imp_inv i (M, N, D, NE, UE, Q, W));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
       if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
       else do {
@@ -1599,7 +1629,7 @@ where
 definition remove_one_annot_true_clause_imp :: \<open>nat twl_st_l \<Rightarrow> (nat twl_st_l) nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp = (\<lambda>S. do {
-    (_, S) \<leftarrow> WHILE\<^sub>T
+    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_inv S\<^esup>
       (\<lambda>(i, S). i < length (get_trail_l S) \<and> \<not>is_decided (get_trail_l S!i))
       (\<lambda>(i, S). remove_one_annot_true_clause_one_imp i S)
       (0, S);
@@ -1615,25 +1645,17 @@ lemma rtranclp_remove_one_annot_true_clause_imp_same_length:
   \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<Longrightarrow> length (get_trail_l S) = length (get_trail_l T)\<close>
   by (induction rule: rtranclp_induct) (auto simp: remove_one_annot_true_clause_imp_same_length)
 
-definition remove_one_annot_true_clause_inv where
-  \<open>remove_one_annot_true_clause_inv S =
-    (\<lambda>(i, T). remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<and> twl_list_invs S \<and> i \<le> length (get_trail_l S) \<and>
-           twl_list_invs S \<and>
-           (\<exists>S'. (S, S') \<in> twl_st_l None \<and> twl_struct_invs S') \<and>
-           get_conflict_l S = None \<and> clauses_to_update_l S = {#} \<and>
-           (\<forall>j<i. is_proped (rev (get_trail_l T) ! j)))\<close>
-
 lemma remove_one_annot_true_clause_map_is_decided_trail:
   \<open>remove_one_annot_true_clause S U \<Longrightarrow>
    map is_decided (get_trail_l S) = map is_decided (get_trail_l U)\<close>
   by (induction rule: remove_one_annot_true_clause.induct)
     auto
 
-lemma remove_one_annot_true_clause_inv_trans:
- \<open>remove_one_annot_true_clause_inv S (i, T) \<Longrightarrow> remove_one_annot_true_clause_inv T U \<Longrightarrow>
-  remove_one_annot_true_clause_inv S U\<close>
+lemma remove_one_annot_true_clause_imp_inv_trans:
+ \<open>remove_one_annot_true_clause_imp_inv S (i, T) \<Longrightarrow> remove_one_annot_true_clause_imp_inv T U \<Longrightarrow>
+  remove_one_annot_true_clause_imp_inv S U\<close>
   using rtranclp_remove_one_annot_true_clause_imp_same_length[of S T]
-  by (auto simp: remove_one_annot_true_clause_inv_def)
+  by (auto simp: remove_one_annot_true_clause_imp_inv_def)
 
 lemma rtranclp_remove_one_annot_true_clause_map_is_decided_trail:
   \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S U \<Longrightarrow>
@@ -1702,16 +1724,16 @@ lemma
   using assms
   by (auto dest!: split_list elim: list_match_lel_lel)
 
-lemma remove_one_annot_true_clause_inv_spec:
+lemma remove_one_annot_true_clause_imp_inv_spec:
   assumes
-    annot: \<open>remove_one_annot_true_clause_inv S (i+1, U)\<close> and
+    annot: \<open>remove_one_annot_true_clause_imp_inv S (i+1, U)\<close> and
     i_le: \<open>i < length (get_trail_l S)\<close> and
     L: \<open>L \<in> lits_of_l (get_trail_l S)\<close> and
     lev0: \<open>get_level (get_trail_l S) L = 0\<close> and
     LC: \<open>Propagated L 0 \<in> set (get_trail_l U)\<close>
   shows \<open>remove_all_annot_true_clause_imp L U
     \<le> SPEC (\<lambda>Sa. RETURN (i + 1, Sa)
-                 \<le> SPEC (\<lambda>s'. remove_one_annot_true_clause_inv S s' \<and>
+                 \<le> SPEC (\<lambda>s'. remove_one_annot_true_clause_imp_inv S s' \<and>
                               (s', (i, T))
                               \<in> measure
                                  (\<lambda>(i, _). length (get_trail_l S) - i)))\<close>
@@ -1729,7 +1751,7 @@ proof -
     \<open>twl_struct_invs x\<close> and
     \<open>clauses_to_update_l S = {#}\<close> and
     level0: \<open>\<forall>j<i + 1. is_proped (rev (get_trail_l (M, N, D, NE, UE, WS, Q)) ! j)\<close>
-    using annot unfolding U prod.case remove_one_annot_true_clause_inv_def
+    using annot unfolding U prod.case remove_one_annot_true_clause_imp_inv_def
     by blast
   obtain U' where
     \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* S U\<close> and
@@ -1742,25 +1764,38 @@ proof -
     by auto
   moreover have \<open>twl_list_invs U\<close>
     using \<open>twl_list_invs S\<close> calculation(1) rtranclp_cdcl_twl_restart_l_list_invs by blast
-  ultimately have rem_U_U: \<open>remove_one_annot_true_clause_inv U (i + 1, U)\<close>
+  ultimately have rem_U_U: \<open>remove_one_annot_true_clause_imp_inv U (i + 1, U)\<close>
     using level0 rtranclp_remove_one_annot_true_clause_clauses_to_update_l[OF SU]
       rtranclp_remove_one_annot_true_clause_get_conflict_l[OF SU]
       \<open>clauses_to_update_l S = {#}\<close> \<open>get_conflict_l S = None\<close> i_le
       arg_cong[OF rtranclp_remove_one_annot_true_clause_map_lit_of_trail[OF SU], of length]
-    unfolding remove_one_annot_true_clause_inv_def unfolding U
+    unfolding remove_one_annot_true_clause_imp_inv_def unfolding U
     by (cases U') fastforce
+  then have rem_true_U_U: \<open>remove_all_annot_true_clause_imp_inv U xs (0, U)\<close> for xs
+    using level0 rtranclp_remove_one_annot_true_clause_clauses_to_update_l[OF SU]
+      rtranclp_remove_one_annot_true_clause_get_conflict_l[OF SU]  \<open>twl_list_invs U\<close>
+      \<open>clauses_to_update_l S = {#}\<close> \<open>get_conflict_l S = None\<close> i_le
+      arg_cong[OF rtranclp_remove_one_annot_true_clause_map_lit_of_trail[OF SU], of length]
+    unfolding U remove_all_annot_true_clause_imp_inv_def remove_one_annot_true_clause_imp_inv_def
+    by (cases U') blast
+  moreover have L_M: \<open>L \<in> lits_of_l M\<close>
+      using L arg_cong[OF rtranclp_remove_one_annot_true_clause_map_lit_of_trail[OF SU], of set]
+      by (simp add: lits_of_def)
+  ultimately have pre: \<open>remove_all_annot_true_clause_imp_pre L U\<close>
+    unfolding remove_all_annot_true_clause_imp_pre_def remove_all_annot_true_clause_imp_inv_def
+      prod.case U by force
   have remove_all_annot_true_clause_one_imp:
      \<open>remove_all_annot_true_clause_one_imp (xs ! k, N', NE')
         \<le> SPEC (\<lambda>x. (case x of (N, NE) \<Rightarrow> RETURN (k + 1, N, NE))
                     \<le> SPEC (\<lambda>s'. (case s' of
                                   (_, N, NE) \<Rightarrow>
-                                    remove_one_annot_true_clause_inv U
+                                    remove_one_annot_true_clause_imp_inv U
                                     (i + 1, M, N, D, NE, UE, WS, Q)) \<and>
                                 (s', s) \<in> measure (\<lambda>(i, N, NE). length xs - i)))\<close>
     if
       xs: \<open>xs \<in> {xs. (\<forall>x\<in>set xs. x \<in># dom_m N \<longrightarrow> L \<in> set (N \<propto> x))}\<close> and
       I: \<open>case s of (_, N, NE) \<Rightarrow>
-         remove_one_annot_true_clause_inv U (i + 1, M, N, D, NE, UE, WS, Q)\<close> and
+         remove_one_annot_true_clause_imp_inv U (i + 1, M, N, D, NE, UE, WS, Q)\<close> and
       cond: \<open>case s of (i, N, NE) \<Rightarrow> i < length xs\<close> and
       s: \<open>s = (k, sk)\<close> \<open>sk = (N', NE')\<close> and
       k_le: \<open>k < length xs\<close> and
@@ -1779,7 +1814,7 @@ proof -
       struct_x: \<open>twl_struct_invs x\<close> and
       \<open>clauses_to_update_l U = {#}\<close> and
       all_level0: \<open>\<forall>j<i + 1. is_proped (rev (get_trail_l (M, N', D, NE', UE, WS, Q)) ! j)\<close>
-      using I unfolding s prod.case remove_one_annot_true_clause_inv_def
+      using I unfolding s prod.case remove_one_annot_true_clause_imp_inv_def
       by blast
     have n_d: \<open>no_dup (get_trail_l U)\<close>
       using Ux struct_x unfolding twl_struct_invs_def  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -1787,9 +1822,6 @@ proof -
         by (auto simp: twl_st twl_st_l)
     have SU': \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, N', D, NE', UE, WS, Q)\<close>
       using SU UU' unfolding U by simp
-    have L_M: \<open>L \<in> lits_of_l M\<close>
-      using L arg_cong[OF rtranclp_remove_one_annot_true_clause_map_lit_of_trail[OF SU], of set]
-      by (simp add: lits_of_def)
     have \<open>get_level M L = 0\<close>
       using lev0 rtranclp_remove_one_annot_true_clause_map_is_decided_trail[OF SU']
         rtranclp_remove_one_annot_true_clause_map_lit_of_trail[OF SU']
@@ -1825,7 +1857,7 @@ proof -
       by (auto simp del: nth_mem)
     have \<open>no_dup M\<close>
       using n_d unfolding U by simp
-    then have no_already_annot: \<open>Prop agated Laa (xs ! k) \<in>  set M \<Longrightarrow> False\<close> for Laa
+    then have no_already_annot: \<open>Propagated Laa (xs ! k) \<in>  set M \<Longrightarrow> False\<close> for Laa
       using is_annot_iff_annotates_first[OF U'V' list_invs_U' struvt_invs_V' xs_k_0] LC
       is_annot_no_other_true_lit[OF U'V' list_invs_U' struvt_invs_V' xs_k_0, of Laa L]
         L_set L_M xs_k_0 unfolding U
@@ -1855,12 +1887,12 @@ proof -
       if \<open>\<not>irred N' (xs ! k)\<close>
       using UU' that unfolding U by simp
 
-    have 1: \<open>remove_one_annot_true_clause_inv U (Suc i, ?Vt)\<close>
+    have 1: \<open>remove_one_annot_true_clause_imp_inv U (Suc i, ?Vt)\<close>
       if \<open>irred N' (xs ! k)\<close>
       using UV_irred that  \<open>twl_list_invs U\<close> i_le all_level0
           \<open>get_conflict_l U = None\<close> \<open>clauses_to_update_l U = {#}\<close> \<open>(U, x) \<in> twl_st_l None\<close>
            \<open>twl_struct_invs x\<close> unfolding U
-      unfolding remove_one_annot_true_clause_inv_def prod.case
+      unfolding remove_one_annot_true_clause_imp_inv_def prod.case
       apply (intro conjI)
       subgoal by auto
       subgoal by auto
@@ -1871,12 +1903,12 @@ proof -
       subgoal by auto
       subgoal by auto
       done
-    have 2: \<open>remove_one_annot_true_clause_inv U (Suc i, ?Vf)\<close>
+    have 2: \<open>remove_one_annot_true_clause_imp_inv U (Suc i, ?Vf)\<close>
       if \<open>\<not>irred N' (xs ! k)\<close>
       using UV_red that  \<open>twl_list_invs U\<close> i_le all_level0
           \<open>get_conflict_l U = None\<close> \<open>clauses_to_update_l U = {#}\<close> \<open>(U, x) \<in> twl_st_l None\<close>
            \<open>twl_struct_invs x\<close> unfolding U
-      unfolding remove_one_annot_true_clause_inv_def prod.case
+      unfolding remove_one_annot_true_clause_imp_inv_def prod.case
       apply (intro conjI)
       subgoal by auto
       subgoal by auto
@@ -1892,24 +1924,42 @@ proof -
       unfolding remove_all_annot_true_clause_one_imp_def s
       by auto
   qed
+  have remove_all_annot_true_clause_imp_inv_Suc: \<open>remove_all_annot_true_clause_imp_inv S xs (Suc i, T)\<close>
+    if \<open>remove_all_annot_true_clause_imp_inv S xs (i, T)\<close> and
+      \<open>i < length xs\<close>
+      for xs
+    using that
+    by (auto simp: remove_all_annot_true_clause_imp_inv_def)
+  have one_all: \<open>remove_one_annot_true_clause_imp_inv S  (Suc i, T) \<Longrightarrow>
+    a \<le> length xs \<Longrightarrow>
+    remove_all_annot_true_clause_imp_inv S xs  (a, T)\<close> for S T a xs
+    unfolding remove_one_annot_true_clause_imp_inv_def remove_all_annot_true_clause_imp_inv_def
+    by fast
+    thm intro_spec_refine_iff
   show ?thesis
-    unfolding remove_all_annot_true_clause_imp_def U prod.case
+    unfolding remove_all_annot_true_clause_imp_def U prod.case assert_bind_spec_conv
     apply (subst intro_spec_refine_iff[of _ _ Id, simplified])
-    apply (intro ballI)
+    apply (intro ballI conjI)
+    subgoal using pre unfolding U .
     subgoal for xs
       apply (refine_vcg
         remove_all_annot_true_clause_one_imp
-        WHILET_rule[where
+        WHILEIT_rule_stronger_inv[where
           R = \<open>measure (\<lambda>(i, N, NE). length xs - i)\<close> and
-          I = \<open>\<lambda>(_, N, NE). remove_one_annot_true_clause_inv U (i+1, M, N, D, NE, UE, WS, Q)\<close>])
+          I' = \<open>\<lambda>(_, N, NE). remove_one_annot_true_clause_imp_inv U (i+1, M, N, D, NE, UE, WS, Q)\<close>])
       subgoal by auto
+      subgoal using rem_true_U_U unfolding U by auto
       subgoal using rem_U_U unfolding U by auto
       subgoal by simp
       apply assumption+
+      subgoal by (auto simp: remove_all_annot_true_clause_imp_inv_Suc U one_all)
+      subgoal by auto
+      subgoal by auto
+      subgoal by (auto simp: remove_all_annot_true_clause_imp_inv_Suc U one_all)
       subgoal by auto
       subgoal by auto
       subgoal
-        apply (rule remove_one_annot_true_clause_inv_trans[OF annot])
+        apply (rule remove_one_annot_true_clause_imp_inv_trans[OF annot])
         apply auto
         done
       subgoal using i_le by auto
@@ -1919,17 +1969,17 @@ qed
 
 lemma remove_one_annot_true_clause_one_imp_spec:
   assumes
-    I: \<open>remove_one_annot_true_clause_inv S iT\<close> and
+    I: \<open>remove_one_annot_true_clause_imp_inv S iT\<close> and
     cond: \<open>case iT of (i, S) \<Rightarrow> i < length (get_trail_l S) \<and> \<not> is_decided (get_trail_l S ! i)\<close> and
     iT: \<open>iT = (i, T)\<close>
   shows \<open>remove_one_annot_true_clause_one_imp i T
-         \<le> SPEC  (\<lambda>s'. remove_one_annot_true_clause_inv S s' \<and>
+         \<le> SPEC  (\<lambda>s'. remove_one_annot_true_clause_imp_inv S s' \<and>
                 (s', iT) \<in> measure (\<lambda>(i, _). length (get_trail_l S) - i))\<close>
 proof -
   obtain M N D NE UE WS Q where T: \<open>T = (M, N, D, NE, UE, WS, Q)\<close>
     by (cases T)
   have length_ST: \<open>length (get_trail_l T) = length (get_trail_l S)\<close>
-    using I unfolding iT remove_one_annot_true_clause_inv_def
+    using I unfolding iT remove_one_annot_true_clause_imp_inv_def
     by (auto dest: rtranclp_remove_one_annot_true_clause_imp_same_length)
 
   obtain x where
@@ -1942,13 +1992,13 @@ proof -
     confl: \<open>get_conflict_l S = None\<close> and
     upd: \<open>clauses_to_update_l S = {#}\<close> and
     level0: \<open>\<forall>j<i. is_proped (rev (get_trail_l T) ! j)\<close>
-    using I unfolding remove_one_annot_true_clause_inv_def iT prod.case by blast
+    using I unfolding remove_one_annot_true_clause_imp_inv_def iT prod.case by blast
   then have list_invs_T: \<open>twl_list_invs T\<close>
     by (meson rtranclp_cdcl_twl_restart_l_list_invs
         rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2)
   obtain x' where
-    \<open>(T, x') \<in> twl_st_l None\<close> and
-    \<open>twl_struct_invs x'\<close>
+    Tx': \<open>(T, x') \<in> twl_st_l None\<close> and
+    struct_invs_T: \<open>twl_struct_invs x'\<close>
     using \<open>(S, x) \<in> twl_st_l None\<close> \<open>twl_list_invs S\<close> \<open>twl_struct_invs x\<close> confl
      rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2 ST upd by blast
   then have n_d: \<open>no_dup (get_trail_l T)\<close>
@@ -1963,6 +2013,11 @@ proof -
     using arg_cong[OF rtranclp_remove_one_annot_true_clause_map_lit_of_trail[OF ST], of set]
     by (simp add: lits_of_def)
 
+  have rem_one_annot_i_T: \<open>remove_one_annot_true_clause_one_imp_inv i T\<close>
+    using Tx' struct_invs_T level0 cond list_invs_T D WS
+    unfolding remove_one_annot_true_clause_one_imp_inv_def iT T prod.case
+    by fastforce
+
   have
     annot_in_dom: \<open>C \<in># dom_m N'\<close> (is ?annot) and
     literal_in_lits_of: \<open>L \<in> lits_of_l M'\<close> (is ?lit)
@@ -1973,7 +2028,6 @@ proof -
         \<open>TD = (UE', TUE)\<close>
         \<open>TUE = (NE', TNE)\<close>
         \<open>TNE = (Q', WS')\<close> and
-      \<open>i < length M'\<close> and
       \<open>case LC of (L, C) \<Rightarrow> rev M' ! i = Propagated L C\<close> and
       \<open>LC = (L, C)\<close> and
       \<open>C \<noteq> 0\<close>
@@ -1994,7 +2048,7 @@ proof -
         (if red then (M'', N'', D', add_mset (mset C') NE', UE', WS', Q')
           else (M'', N'', D', NE', add_mset (mset C') UE', WS', Q'))
         \<le> SPEC (\<lambda>Sa. RETURN (i + 1, Sa)
-                    \<le> SPEC (\<lambda>s'. remove_one_annot_true_clause_inv S s' \<and>
+                    \<le> SPEC (\<lambda>s'. remove_one_annot_true_clause_imp_inv S s' \<and>
                        (s', iT) \<in> measure (\<lambda>(i, _). length (get_trail_l S) - i)))\<close>
     if
       st: \<open>(M, N, D, NE, UE, WS, Q) = (M', TM)\<close>
@@ -2002,8 +2056,8 @@ proof -
         \<open>TN = (D', TD)\<close>
         \<open>TD = (NE', TNE)\<close>
         \<open>TNE = (UE', TUE)\<close>
-        \<open>TUE = (WS', Q')\<close>
-      \<open>i < length M'\<close> and
+        \<open>TUE = (WS', Q')\<close> and
+      rem_one: \<open>remove_one_annot_true_clause_one_imp_inv i (M', N', D', NE', UE', WS', Q')\<close> and
       LC_d: \<open>case LC of (L, C) \<Rightarrow> rev M' ! i = Propagated L C\<close> and
       LC: \<open>LC = (L, C)\<close> and
       C0: \<open>C \<noteq> 0\<close> and
@@ -2017,6 +2071,8 @@ proof -
         \<open>Cb = (C', red)\<close>
      for M' TM N' TN D' TD UE' TUE NE' TNE Q' WS' LC L C M'' NCb N'' Cb C' red
   proof -
+    have \<open>i < length M'\<close>
+      using rem_one unfolding remove_one_annot_true_clause_one_imp_inv_def by auto
     define Ut Uf U where
       \<open>Ut \<equiv> (M'', N'', D', add_mset (mset C') NE', UE', WS', Q')\<close> and
       \<open>Uf \<equiv> (M'', N'', D', NE', add_mset (mset C') UE', WS', Q')\<close> and
@@ -2075,26 +2131,26 @@ proof -
          of \<open>\<lambda>xs. xs ! (length (get_trail_l U) - Suc j)\<close>] level0  \<open>i < length M\<close>
         by (auto simp: rev_nth T is_decided_no_proped_iff)
     }
-    ultimately have \<open>remove_one_annot_true_clause_inv S (i, U)\<close>
+    ultimately have \<open>remove_one_annot_true_clause_imp_inv S (i, U)\<close>
       using \<open>twl_list_invs S\<close> \<open>i \<le> length (get_trail_l S)\<close>
       \<open>(S, x) \<in> twl_st_l None\<close> and
       \<open>twl_struct_invs x\<close> and
       \<open>get_conflict_l S = None\<close> and
       \<open>clauses_to_update_l S = {#}\<close> and
       \<open>\<forall>j<i. is_proped (rev (get_trail_l T) ! j)\<close>
-      unfolding remove_one_annot_true_clause_inv_def prod.case
+      unfolding remove_one_annot_true_clause_imp_inv_def prod.case
       by blast
-    have \<open>remove_one_annot_true_clause_inv S (i+1, U)\<close>
-      using \<open>remove_one_annot_true_clause_inv S (i, U)\<close> length_ST cond \<open>i < length M'\<close>
+    have \<open>remove_one_annot_true_clause_imp_inv S (i+1, U)\<close>
+      using \<open>remove_one_annot_true_clause_imp_inv S (i, U)\<close> length_ST cond \<open>i < length M'\<close>
       unfolding T st iT
-      by (auto simp: remove_one_annot_true_clause_inv_def less_Suc_eq
+      by (auto simp: remove_one_annot_true_clause_imp_inv_def less_Suc_eq
         is_decided_no_proped_iff rev_nth U_def Ut_def Uf_def i[symmetric] M''
         split:if_splits)
     show ?thesis
       unfolding U_def[symmetric] Uf_def[symmetric] Ut_def[symmetric] C \<open>red = irred N C\<close>[symmetric]
         iT
-      apply (rule remove_one_annot_true_clause_inv_spec)
-      subgoal using \<open>remove_one_annot_true_clause_inv S (i+1, U)\<close> .
+      apply (rule remove_one_annot_true_clause_imp_inv_spec)
+      subgoal using \<open>remove_one_annot_true_clause_imp_inv S (i+1, U)\<close> .
       subgoal using length_ST  \<open>i < length M'\<close> unfolding T st by simp
       subgoal using lits_of_ST unfolding T M by simp
       subgoal using lev_L rtranclp_remove_one_annot_true_clause_map_is_decided_trail[OF SU]
@@ -2112,10 +2168,11 @@ proof -
     unfolding remove_one_annot_true_clause_one_imp_def T replace_annot_in_trail_spec_def
       extract_and_remove_def
     apply (refine_vcg )
-    subgoal using cond unfolding iT T by simp
-    subgoal using I length_ST unfolding iT T remove_one_annot_true_clause_inv_def
-      by (simp add: Ball_suc)
-    subgoal using cond length_ST unfolding iT T by simp
+    subgoal using rem_one_annot_i_T unfolding iT T by simp
+    subgoal using I length_ST unfolding iT T remove_one_annot_true_clause_imp_inv_def
+      remove_one_annot_true_clause_one_imp_inv_def
+      by (auto simp add: Ball_suc)
+    subgoal using cond length_ST unfolding iT T remove_one_annot_true_clause_one_imp_inv_def by auto
     subgoal by (rule annot_in_dom)
     subgoal by (rule literal_in_lits_of)
     subgoal for M' TM N' TN D' TD UE' TUE NE' TNE Q' WS' LC L C M'' NCb N'' Cb C' red
@@ -2133,11 +2190,11 @@ lemma remove_one_annot_true_clause_imp_spec:
   shows \<open>remove_one_annot_true_clause_imp S \<le> SPEC(remove_one_annot_true_clause\<^sup>*\<^sup>* S)\<close>
   unfolding remove_one_annot_true_clause_imp_def
   apply (refine_vcg WHILET_rule[where R=\<open>measure (\<lambda>(i, _). length (get_trail_l S) - i)\<close> and
-    I=\<open>remove_one_annot_true_clause_inv S\<close>]
+    I=\<open>remove_one_annot_true_clause_imp_inv S\<close>]
     remove_one_annot_true_clause_one_imp_spec)
   subgoal by auto
-  subgoal using assms unfolding remove_one_annot_true_clause_inv_def by blast
-  subgoal unfolding remove_one_annot_true_clause_inv_def by auto
+  subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by blast
+  subgoal unfolding remove_one_annot_true_clause_imp_inv_def by auto
   done
 
 definition collect_valid_indices where

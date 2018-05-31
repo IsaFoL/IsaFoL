@@ -66,7 +66,7 @@ proof -
           {((i, N, NE), (i', N', NE')). i = i' \<and> N = N' \<and> NE = NE' \<and>
             partial_correct_watching (M, N, D, NE, UE, Q, W) \<and>
             reduce_dom_clauses N0 N}\<close>])
-    subgoal by (auto simp: state_wl_l_def)
+    subgoal apply (auto simp: state_wl_l_def partial_correct_watching.simps) sorry
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
