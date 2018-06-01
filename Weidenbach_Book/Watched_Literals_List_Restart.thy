@@ -1603,8 +1603,8 @@ where
     RETURN (M, N, D, NE, UE, Q, W)
   })\<close>
 
-definition remove_one_annot_true_clause_one_imp_inv where
-  \<open>remove_one_annot_true_clause_one_imp_inv i T \<longleftrightarrow>
+definition remove_one_annot_true_clause_one_imp_pre where
+  \<open>remove_one_annot_true_clause_one_imp_pre i T \<longleftrightarrow>
     (twl_list_invs T \<and> i < length (get_trail_l T) \<and>
            twl_list_invs T \<and>
            (\<exists>S'. (T, S') \<in> twl_st_l None \<and> twl_struct_invs S') \<and>
@@ -1613,7 +1613,7 @@ definition remove_one_annot_true_clause_one_imp_inv where
 definition remove_one_annot_true_clause_one_imp
 where
 \<open>remove_one_annot_true_clause_one_imp = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
-      ASSERT(remove_one_annot_true_clause_one_imp_inv i (M, N, D, NE, UE, Q, W));
+      ASSERT(remove_one_annot_true_clause_one_imp_pre i (M, N, D, NE, UE, Q, W));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
       if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
       else do {
@@ -2016,9 +2016,9 @@ proof -
     using arg_cong[OF rtranclp_remove_one_annot_true_clause_map_lit_of_trail[OF ST], of set]
     by (simp add: lits_of_def)
 
-  have rem_one_annot_i_T: \<open>remove_one_annot_true_clause_one_imp_inv i T\<close>
+  have rem_one_annot_i_T: \<open>remove_one_annot_true_clause_one_imp_pre i T\<close>
     using Tx' struct_invs_T level0 cond list_invs_T D WS
-    unfolding remove_one_annot_true_clause_one_imp_inv_def iT T prod.case
+    unfolding remove_one_annot_true_clause_one_imp_pre_def iT T prod.case
     by fastforce
 
   have
@@ -2060,7 +2060,7 @@ proof -
         \<open>TD = (NE', TNE)\<close>
         \<open>TNE = (UE', TUE)\<close>
         \<open>TUE = (WS', Q')\<close> and
-      rem_one: \<open>remove_one_annot_true_clause_one_imp_inv i (M', N', D', NE', UE', WS', Q')\<close> and
+      rem_one: \<open>remove_one_annot_true_clause_one_imp_pre i (M', N', D', NE', UE', WS', Q')\<close> and
       LC_d: \<open>case LC of (L, C) \<Rightarrow> rev M' ! i = Propagated L C\<close> and
       LC: \<open>LC = (L, C)\<close> and
       C0: \<open>C \<noteq> 0\<close> and
@@ -2075,7 +2075,7 @@ proof -
      for M' TM N' TN D' TD UE' TUE NE' TNE Q' WS' LC L C M'' NCb N'' Cb C' red
   proof -
     have \<open>i < length M'\<close>
-      using rem_one unfolding remove_one_annot_true_clause_one_imp_inv_def by auto
+      using rem_one unfolding remove_one_annot_true_clause_one_imp_pre_def by auto
     define Ut Uf U where
       \<open>Ut \<equiv> (M'', N'', D', add_mset (mset C') NE', UE', WS', Q')\<close> and
       \<open>Uf \<equiv> (M'', N'', D', NE', add_mset (mset C') UE', WS', Q')\<close> and
@@ -2173,9 +2173,9 @@ proof -
     apply (refine_vcg )
     subgoal using rem_one_annot_i_T unfolding iT T by simp
     subgoal using I length_ST unfolding iT T remove_one_annot_true_clause_imp_inv_def
-      remove_one_annot_true_clause_one_imp_inv_def
+      remove_one_annot_true_clause_one_imp_pre_def
       by (auto simp add: Ball_suc)
-    subgoal using cond length_ST unfolding iT T remove_one_annot_true_clause_one_imp_inv_def by auto
+    subgoal using cond length_ST unfolding iT T remove_one_annot_true_clause_one_imp_pre_def by auto
     subgoal by (rule annot_in_dom)
     subgoal by (rule literal_in_lits_of)
     subgoal for M' TM N' TN D' TD UE' TUE NE' TNE Q' WS' LC L C M'' NCb N'' Cb C' red

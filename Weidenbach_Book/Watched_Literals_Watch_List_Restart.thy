@@ -342,11 +342,17 @@ proof -
     done
 qed
 
+definition remove_one_annot_true_clause_one_imp_wl_pre where
+  \<open>remove_one_annot_true_clause_one_imp_wl_pre i T \<longleftrightarrow>
+     (\<exists>T'. (T, T') \<in> state_wl_l None \<and>
+       remove_one_annot_true_clause_one_imp_pre i T' \<and>
+       partial_correct_watching T)\<close>
+
 definition remove_one_annot_true_clause_one_imp_wl
   :: \<open>nat \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres\<close>
 where
 \<open>remove_one_annot_true_clause_one_imp_wl = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
-      ASSERT(i < length M);
+      ASSERT(remove_one_annot_true_clause_one_imp_wl_pre i (M, N, D, NE, UE, Q, W));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
       if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
       else do {
