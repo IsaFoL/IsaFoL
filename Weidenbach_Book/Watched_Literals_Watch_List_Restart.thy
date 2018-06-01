@@ -2,14 +2,15 @@ theory Watched_Literals_Watch_List_Restart
   imports Watched_Literals_List_Restart Watched_Literals_Watch_List
 begin
 
-text \<open>We relax the condition on the invariant on the watch list to only have inclusion
-  of the literal: This is enough and would allow to reorder clauses\<close>
+text \<open>We relax the condition on the invariant on the watch list to allow to point to non-existing
+  clauses.\<close>
 fun (in -) partial_correct_watching :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   [simp del]: \<open>partial_correct_watching (M, N, D, NE, UE, Q, W)  \<longleftrightarrow>
       (\<forall>L\<in>#all_lits_of_mm (mset `# ran_mf N + NE + UE).
-        (\<forall>i\<in>set (W L). i \<notin># dom_m N \<or> L \<in> set (N\<propto>i)))\<close>
+        (\<forall>i\<in>set (W L). i \<notin># dom_m N \<or> L \<in> set (watched_l(N\<propto>i))))\<close>
 
-lemma (in -) \<open>correct_watching S \<Longrightarrow> partial_correct_watching S\<close>
+lemma partial_correct_watching_correct_watching:
+  \<open>correct_watching S \<Longrightarrow> partial_correct_watching S\<close>
   by (cases S)
     (auto simp: correct_watching.simps partial_correct_watching.simps clause_to_update_def
     simp del: set_mset_mset dest: in_set_mset_eq_in dest!: in_set_takeD)
@@ -143,7 +144,7 @@ proof -
         dest!: multi_member_split)
     then show ?thesis
       using part dom x unfolding partial_correct_watching.simps
-      by fast
+      by (fast dest: in_set_takeD)
   qed
   have [refine0]: \<open>remove_all_annot_true_clause_one_imp (C, N0, NE0) \<le>
         \<Down> {((N, NE), (N', NE')). N = N' \<and> NE = NE' \<and>
@@ -333,7 +334,7 @@ definition remove_one_annot_true_clause_one_imp_wl_pre where
        partial_correct_watching T)\<close>
 
 definition remove_one_annot_true_clause_one_imp_wl
-  :: \<open>nat \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres\<close>
+  :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres\<close>
 where
 \<open>remove_one_annot_true_clause_one_imp_wl = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
       ASSERT(remove_one_annot_true_clause_one_imp_wl_pre i (M, N, D, NE, UE, Q, W));
@@ -414,7 +415,7 @@ definition remove_one_annot_true_clause_imp_wl_inv where
        partial_correct_watching S \<and> partial_correct_watching T \<and>
        remove_one_annot_true_clause_imp_inv S' (i, T')))\<close>
 
-definition remove_one_annot_true_clause_imp_wl :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
+definition remove_one_annot_true_clause_imp_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_st_wl) nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp_wl = (\<lambda>S. do {
     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_inv S\<^esup>
@@ -455,7 +456,7 @@ qed
 definition collect_valid_indices_wl where
   \<open>collect_valid_indices_wl S = SPEC (\<lambda>N. mset N \<subseteq># dom_m (get_clauses_wl S) \<and> distinct N)\<close>
 
-definition mark_to_delete_clauses_wl :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>mark_to_delete_clauses_wl  = (\<lambda>(M, N, D, NE, UE, Q, W). do {
     xs \<leftarrow> collect_valid_indices_wl (M, N, D, NE, UE, Q, W);
     (_, _, N) \<leftarrow> WHILE\<^sub>T
@@ -512,5 +513,156 @@ proof -
   done
   done
 qed
+
+
+definition cdcl_twl_restart_wl_prog :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+\<open>cdcl_twl_restart_wl_prog S = do {
+    S \<leftarrow> remove_one_annot_true_clause_imp_wl S;
+    mark_to_delete_clauses_wl S
+  }\<close>
+
+lemma cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog:
+  \<open>(cdcl_twl_restart_wl_prog, cdcl_twl_restart_l_prog)
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and>  partial_correct_watching S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<rangle>nres_rel\<close>
+  unfolding cdcl_twl_restart_wl_prog_def cdcl_twl_restart_l_prog_def
+  by (intro frefI nres_relI)
+    (refine_vcg
+     mark_to_delete_clauses_wl_mark_to_delete_clauses_l[THEN fref_to_Down]
+     remove_one_annot_true_clause_imp_wl_remove_one_annot_true_clause_imp[THEN fref_to_Down])
+
+
+definition (in -) restart_abs_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>restart_abs_wl_pre S brk \<longleftrightarrow>
+    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> restart_abs_l_pre S' brk
+      \<and> partial_correct_watching S)\<close>
+
+definition (in -) get_learned_clss_wl where
+  \<open>get_learned_clss_wl S = learned_clss_lf (get_clauses_wl S)\<close>
+
+(* TODO move + remove simp flag *)
+lemma [twl_st_l, simp]:
+  \<open>(a, a') \<in> state_wl_l None \<Longrightarrow>
+        get_learned_clss_l a' = get_learned_clss_wl a\<close>
+  unfolding state_wl_l_def by (cases a; cases a')
+   (auto simp: get_learned_clss_l_def get_learned_clss_wl_def)
+(* End Move *)
+
+text \<open>
+  This is only a specification and must be implemented. There are two ways to do so:
+  \<^enum> clean the watch lists and then iterate over all clauses to rebuild them.
+  \<^enum> iterate over the watch list and check whether the clause index is in the domain or not.
+
+  It is not clear which is faster (but option 1 requires only 1 memory access per clause instead of
+  two). The first option is implemented in SPASS. The latter version (partly) in cadical.
+\<close>
+definition rewatch_clauses :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>rewatch_clauses = (\<lambda>(M, N, D, NE, UE, Q, W). SPEC(\<lambda>(M', N', D', NE', UE', Q', W').
+     (M, N, D, NE, UE, Q) = (M', N', D', NE', UE', Q') \<and>
+    correct_watching (M, N', D, NE, UE, Q, W')))\<close>
+
+context twl_restart
+begin
+
+definition restart_required_wl  :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
+\<open>restart_required_wl S n = SPEC (\<lambda>b. b \<longrightarrow> f n < size (get_learned_clss_wl S))\<close>
+
+definition restart_prog_wl :: "'v twl_st_wl \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_wl \<times> nat) nres" where
+  \<open>restart_prog_wl S n brk = do {
+     ASSERT(restart_abs_wl_pre S brk);
+     b \<leftarrow> restart_required_wl S n;
+     if b \<and> \<not>brk then do {
+       T \<leftarrow> cdcl_twl_restart_wl_prog S;
+       U \<leftarrow> rewatch_clauses T;
+       RETURN (U, n + 1)
+     }
+     else
+       RETURN (S, n)
+   }\<close>
+
+
+lemma cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog:
+  \<open>(uncurry2 restart_prog_wl, uncurry2 restart_prog_l)
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S} \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f
+      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S} \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+    (is \<open>_ \<in> ?R \<times>\<^sub>f _ \<times>\<^sub>f _ \<rightarrow>\<^sub>f \<langle>?R'\<rangle>nres_rel\<close>)
+proof -
+  have [refine0]: \<open>restart_required_wl a b \<le> \<Down> Id (restart_required_l a' b')\<close>
+    if \<open>(a, a') \<in> ?R\<close> and \<open>(b, b') \<in> nat_rel\<close> for a a' b b'
+    using that unfolding restart_required_wl_def restart_required_l_def
+    by auto
+  show ?thesis
+    unfolding uncurry_def restart_prog_wl_def restart_prog_l_def rewatch_clauses_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg
+      cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down])
+    subgoal unfolding restart_abs_wl_pre_def
+       by (fastforce simp: partial_correct_watching_correct_watching)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: partial_correct_watching_correct_watching)
+    subgoal
+      unfolding RES_RETURN_RES less_eq_nres.simps(2)
+      by (auto simp: partial_correct_watching_correct_watching
+        state_wl_l_def)
+    subgoal by auto
+    done
+qed
+
+definition cdcl_twl_stgy_restart_abs_wl_inv
+   :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> 'v twl_st_wl \<Rightarrow> nat \<Rightarrow> bool\<close> where
+  \<open>cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n \<equiv>
+    (\<exists>S\<^sub>0' T'.
+       (S\<^sub>0, S\<^sub>0') \<in> state_wl_l None \<and>
+       (T, T') \<in> state_wl_l None \<and>
+       cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0' brk T' n \<and>
+       correct_watching T)\<close>
+
+
+definition cdcl_twl_stgy_restart_prog_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
+  \<open>cdcl_twl_stgy_restart_prog_wl (S\<^sub>0::'v twl_st_wl) =
+  do {
+    (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
+      (\<lambda>(brk, _). \<not>brk)
+      (\<lambda>(brk, S, n).
+      do {
+        T \<leftarrow> unit_propagation_outer_loop_wl S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
+        (T, n) \<leftarrow> restart_prog_wl T n brk;
+        RETURN (brk, T, n)
+      })
+      (False, S\<^sub>0::'v twl_st_wl, 0);
+    RETURN T
+  }\<close>
+
+
+lemma cdcl_twl_stgy_restart_prog_wl_cdcl_twl_stgy_restart_prog_l:
+  \<open>(cdcl_twl_stgy_restart_prog_wl, cdcl_twl_stgy_restart_prog_l)
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+  (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
+proof -
+  have [refine0]:
+    \<open>(x, y) \<in> ?R \<Longrightarrow> ((False, x, 0), False, y, 0) \<in> bool_rel \<times>\<^sub>r ?R \<times>\<^sub>r nat_rel\<close> for x y
+    by auto
+  show ?thesis
+    unfolding cdcl_twl_stgy_restart_prog_wl_def cdcl_twl_stgy_restart_prog_l_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg WHILEIT_refine[where
+      R=\<open>{(S, T).  (S, T) \<in> state_wl_l None \<and>  partial_correct_watching S}\<close>]
+      unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
+      cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down_curry2]
+      cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
+    subgoal unfolding cdcl_twl_stgy_restart_abs_wl_inv_def by fastforce
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: partial_correct_watching_correct_watching)
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+end
 
 end

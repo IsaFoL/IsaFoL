@@ -484,7 +484,11 @@ lemma ran_mf_lf_fmdrop_notin[simp]:
   using distinct_mset_dom[of N]
   by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>] dest!: multi_member_split)
 
-lemma ran_m_fmdrop[simp]:
+text \<open>While it is temptying to mark the two following theorems as [simp], this would break more
+  simplifications since \<^term>\<open>ran_mf\<close> is only an abbreviation for \<^term>\<open>ran_m\<close>.
+\<close>
+  
+lemma ran_m_fmdrop:
   \<open>C \<in># dom_m N \<Longrightarrow>  ran_m (fmdrop C N) = remove1_mset (N \<propto> C, irred N C) (ran_m N)\<close>
   using distinct_mset_dom[of N]
   by (cases \<open>fmlookup N C\<close>)
@@ -492,7 +496,7 @@ lemma ran_m_fmdrop[simp]:
      dest!: multi_member_split
     intro!: filter_mset_cong2 image_mset_cong2)
 
-lemma ran_m_fmdrop_notin[simp]:
+lemma ran_m_fmdrop_notin:
   \<open>C \<notin># dom_m N \<Longrightarrow> ran_m (fmdrop C N) = ran_m N\<close>
   using distinct_mset_dom[of N]
   by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>]

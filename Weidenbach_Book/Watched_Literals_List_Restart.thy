@@ -1112,7 +1112,7 @@ proof -
       apply (subst (2) UE)
       apply (rule cdcl_twl_restart_l.intros)
       subgoal by (auto simp: valid_trail_reduction_change_annot)
-      subgoal using C_dom irred by auto
+      subgoal using C_dom irred apply auto sorry
       subgoal using irred by auto
       subgoal using new_NUE .
       subgoal
