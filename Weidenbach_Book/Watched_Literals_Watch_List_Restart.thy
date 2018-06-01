@@ -58,7 +58,7 @@ lemma all_lits_of_mm_diffD:
 lemma all_lits_of_mm_mono:
   \<open>set_mset A \<subseteq> set_mset B \<Longrightarrow> set_mset (all_lits_of_mm A) \<subseteq> set_mset (all_lits_of_mm B)\<close>
   by (auto simp: all_lits_of_mm_def)
-  
+
 (* End Move *)
 
 lemma reduce_dom_clauses_fmdrop:
@@ -75,7 +75,7 @@ lemma partial_correct_watching_fmdrop:
     distinct_mset_remove1_All dest: all_lits_of_mm_diffD)
 
 lemma \<open>remove_one_annot_true_clause S T \<Longrightarrow>
-   mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S = 
+   mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S =
      mset `# init_clss_lf (get_clauses_l T) + get_unit_init_clauses_l T\<close>
   using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
   apply (induction rule: remove_one_annot_true_clause.induct)
@@ -86,7 +86,7 @@ lemma \<open>remove_one_annot_true_clause S T \<Longrightarrow>
   done
 
 lemma
-  assumes 
+  assumes
     red: \<open>reduce_dom_clauses SN' N2\<close> and
     \<open>partial_correct_watching (SM', SN', SD', SNE', SUE', SQ', SW')\<close>
   shows \<open>partial_correct_watching (SM', N2, SD', NE2, SUE', SQ', SW')\<close>
@@ -97,19 +97,19 @@ proof -
     by (auto dest!: multi_member_split)
   then show ?thesis
     using assms(2) apply (auto simp: partial_correct_watching.simps reduce_dom_clauses_def)
-    
+
    sorry
 qed
-
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
 (* TODO Move *)
 text \<open>This is the refinement version of @{thm WHILEIT_add_post_condition}.\<close>
 lemma WHILEIT_refine_with_post:
   assumes R0: "I' x' \<Longrightarrow> (x,x')\<in>R"
   assumes IREF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x"
   assumes COND_REF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'"
-  assumes STEP_REF: 
+  assumes STEP_REF:
     "\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x'; f' x' \<le> SPEC I' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')"
-  shows "WHILEIT I b f x \<le>\<Down>R (WHILEIT I' b' f' x')" 
+  shows "WHILEIT I b f x \<le>\<Down>R (WHILEIT I' b' f' x')"
   apply (subst (2) WHILEIT_add_post_condition)
   apply (rule WHILEIT_refine)
   subgoal using R0 by blast
@@ -119,7 +119,8 @@ lemma WHILEIT_refine_with_post:
   done
 (* End Move *)
 
-lemma \<open>(uncurry remove_all_annot_true_clause_imp_wl, uncurry remove_all_annot_true_clause_imp) \<in>
+lemma remove_all_annot_true_clause_imp_wl_remove_all_annot_true_clause_imp:
+  \<open>(uncurry remove_all_annot_true_clause_imp_wl, uncurry remove_all_annot_true_clause_imp) \<in>
    Id \<times>\<^sub>f {(S::'v twl_st_wl, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S} \<rightarrow>\<^sub>f
      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<rangle>nres_rel\<close>
 proof -
@@ -160,15 +161,28 @@ proof -
       using part dom x unfolding partial_correct_watching.simps
       by fast
   qed
-  have \<open>remove_all_annot_true_clause_imp_wl_inv
+  have [refine0]: \<open>remove_all_annot_true_clause_one_imp (C, N0, NE0) \<le>
+        \<Down> {((N, NE), (N', NE')). N = N' \<and> NE = NE' \<and>
+            (C \<in># dom_m N0 \<longrightarrow> N = fmdrop C N0 \<and> (irred N0 C' \<longrightarrow> NE' = add_mset (mset (N0\<propto>C)) NE0)
+              \<and> (\<not>irred N0 C' \<longrightarrow> NE' = NE0)) \<and>
+            (C \<notin># dom_m N0 \<longrightarrow> N = N0 \<and>  NE' = NE0)}
+          (remove_all_annot_true_clause_one_imp (C', N', NE'))\<close>
+      (is \<open>_ \<le> \<Down> ?remove_all_one _\<close>)
+    if \<open>(C, C') \<in> Id\<close> and \<open>(N0, N') \<in> Id\<close> and \<open>(NE0, NE') \<in> Id\<close>
+    for C C' N' NE0 NE' N0
+    using that distinct_mset_dom[of N0]
+     unfolding remove_all_annot_true_clause_one_imp_def by (auto simp: distinct_mset_remove1_All)
+  have remove_all_annot_true_clause_imp_wl_inv:
+     \<open>remove_all_annot_true_clause_imp_wl_inv
         (SM', SN', SD', SNE', SUE', SQ', SW') (SW' SL')
         (j, SM', N2', SD', NE2', SUE', SQ', SW')\<close>
     if
-      \<open>(LS, LT) \<in> Id \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<close> and
+      LST: \<open>(LS, LT) \<in> Id \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<close> and
+      NNE: \<open>(NNE2, NNE2') \<in> ?remove_all_one (SW' SL' ! j) (xs ! j') NE1 N1\<close> and
       st:
         \<open>LS = (L, M, N0, D, NE, UE, Q, W)\<close>
         \<open>LT = (L', M', N', D', NE', UE', Q', W')\<close>
-        \<open>oTUE' = (TQ', oTW')\<close>
+        \<open>oTUE' = (TQ', TW')\<close>
         \<open>oTNE' = (TUE', oTUE')\<close>
         \<open>oTD' = (TNE', oTNE')\<close>
         \<open>oTN' = (TD', oTD')\<close>
@@ -182,65 +196,46 @@ proof -
         \<open>oSM' = (SN', oSN')\<close>
         \<open>oSL' = (SM', oSM')\<close>
         \<open>LS = (SL', oSL')\<close>
-        \<open>oNNE1' = (N1', NE1')\<close>
         \<open>jNNE' = (j', oNNE1')\<close>
-        \<open>oNNE = (N1, NE1)\<close>
         \<open>jNNE1 = (j, oNNE)\<close>
         \<open>NNE2' = (N2, NE2)\<close>
-        \<open>NNE2 = (N2', NE2')\<close> and
-      \<open>remove_all_annot_true_clause_imp_pre TL' (TM', TN', TD', TNE', TUE', TQ', oTW')\<close> and
+        \<open>NNE2 = (N2', NE2')\<close>
+        \<open>oNNE1' = (N1', NE1')\<close>
+        \<open>oNNE = (N1, NE1)\<close> and
+      \<open>remove_all_annot_true_clause_imp_pre TL' (TM', TN', TD', TNE', TUE', TQ', TW')\<close> and
       \<open>(SW' SL', xs) \<in> Id\<close> and
       jNNE: \<open>(jNNE1, jNNE') \<in> {((i, N, NE), i', N', NE'). i = i' \<and> N = N' \<and>
           NE = NE' \<and> partial_correct_watching (M, N, D, NE, UE, Q, W)}\<close> and
       \<open>case jNNE1 of (i, N, NE) \<Rightarrow> i < length (SW' SL')\<close> and
       \<open>case jNNE' of (i, N, NE) \<Rightarrow> i < length xs\<close> and
-      \<open>case jNNE1 of
+      jNNE: \<open>case jNNE1 of
       (i, N, NE) \<Rightarrow>
         remove_all_annot_true_clause_imp_wl_inv
           (SM', SN', SD', SNE', SUE', SQ', SW') (SW' SL')
           (i, SM', N, SD', NE, SUE', SQ', SW')\<close> and
-      \<open>case jNNE' of
+      jNNE': \<open>case jNNE' of
       (i, N, NE) \<Rightarrow>
         remove_all_annot_true_clause_imp_inv
-          (TM', TN', TD', TNE', TUE', TQ', oTW') xs
-          (i, TM', N, TD', NE, TUE', TQ', oTW')\<close> and
+          (TM', TN', TD', TNE', TUE', TQ', TW') xs
+          (i, TM', N, TD', NE, TUE', TQ', TW')\<close> and
       \<open>j' < length xs\<close> and
       \<open>j < length (SW' SL')\<close> and
-      \<open>SW' SL' ! j \<in># dom_m N1\<close> and
+      dom: \<open>SW' SL' ! j \<in># dom_m N1\<close> and
       \<open>xs ! j' \<in># dom_m N1'\<close> and
-      NNE: \<open>(NNE2, NNE2')
-      \<in> {((N, NE), N', NE').
-          N = N' \<and>
-          NE = NE' \<and>
-          (SW' SL' ! j \<in># dom_m N1 \<longrightarrow> N = fmdrop (SW' SL' ! j) N1) \<and>
-          (SW' SL' ! j \<notin># dom_m N1 \<longrightarrow> N = N1)}\<close> and
-      H: \<open>remove_all_annot_true_clause_imp_inv (TM', TN', TD', TNE', TUE', TQ', oTW')
-        xs (j', TM', N2, TD', NE2, TUE', TQ', oTW')\<close>
-    for TL' oTL' TM' oTM' TN' oTN' TD' oTD' TNE' oTNE' TUE' oTUE' TQ' oTW' SL' oSL' SM' oSM' SN'
+      H: \<open>remove_all_annot_true_clause_imp_inv (TM', TN', TD', TNE', TUE', TQ', TW')
+        xs (j', TM', N2, TD', NE2, TUE', TQ', TW')\<close>
+    for TL' oTL' TM' oTM' TN' oTN' TD' oTD' TNE' oTNE' TUE' oTUE' TQ' TW' SL' oSL' SM' oSM' SN'
        oSN' SD' oSD' SNE' oSNE' SUE' oSUE' SQ' SW' xs jNNE1 jNNE' j' oNNE1' N1' NE1' j oNNE N1
        NE1 NNE2 NNE2' N2 NE2 N2' NE2'
       L M N0 D NE UE Q W L' M' N' D' NE' UE' Q' W' LS LT
   proof -
     have
-      \<open>remove_all_annot_true_clause_imp_pre TL'
-        (TM', TN', TD', TNE', TUE', TQ', oTW')\<close> and
       inv: \<open>remove_all_annot_true_clause_imp_wl_inv
         (SM', SN', SD', SNE', SUE', SQ', SW') (SW' TL')
         (j', SM', N1', SD', NE1', SUE', SQ', SW')\<close> and
-      \<open>remove_all_annot_true_clause_imp_inv (TM', TN', TD', TNE', TUE', TQ', oTW')
-        (SW' TL') (j', TM', N1', TD', NE1', TUE', TQ', oTW')\<close> and
-      \<open>j' < length (SW' TL')\<close> and
-      \<open>SW' TL' ! j' \<in># dom_m N1'\<close> and
-      \<open>remove_all_annot_true_clause_imp_inv (TM', TN', TD', TNE', TUE', TQ', oTW')
+      rem_post: \<open>remove_all_annot_true_clause_imp_inv (TM', TN', TD', TNE', TUE', TQ', TW')
         (SW' TL')
-        (j', TM', N2', TD', NE2, TUE', TQ', oTW')\<close> and
-      \<open>xs = SW' TL'\<close> and
-      \<open>SL' = TL'\<close> and
-      \<open>L' = TL'\<close> and
-      \<open>L = TL'\<close> and
-      \<open>j = j'\<close> and
-      \<open>((SM', SN', SD', SNE', SUE', SQ', SW'), TM', TN', TD', TNE', TUE', TQ',
-        oTW') \<in> state_wl_l None\<close> and
+        (j', TM', N2', TD', NE2, TUE', TQ', TW')\<close> and
       part_S: \<open>partial_correct_watching (SM', SN', SD', SNE', SUE', SQ', SW')\<close> and
       st':
         \<open>M' = TM'\<close>
@@ -257,41 +252,65 @@ proof -
         \<open>UE' = TUE'\<close>
         \<open>UE = SUE'\<close>
         \<open>Q' = TQ'\<close>
-        \<open>W' = oTW'\<close>
+        \<open>W' = TW'\<close>
         \<open>Q = SQ'\<close>
         \<open>W = SW'\<close>
+        \<open>xs = SW' TL'\<close>
+        \<open>SL' = TL'\<close>
+        \<open>L' = TL'\<close>
+        \<open>L = TL'\<close>
+        \<open>j = j'\<close>
       using that unfolding st by auto
     have part_U: \<open>partial_correct_watching (SM', N1', SD', NE1', SUE', SQ', SW')\<close>
       using inv unfolding remove_all_annot_true_clause_imp_wl_inv_def prod.case
       by fast
-    have SU: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* (TM', TN', TD', TNE', TUE', TQ', oTW')
-        (TM', N2, TD', NE2, TUE', TQ', oTW')\<close>
+    have SU: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* (TM', TN', TD', TNE', TUE', TQ', TW')
+        (TM', N2, TD', NE2, TUE', TQ', TW')\<close>
       using H unfolding remove_all_annot_true_clause_imp_inv_def prod.case
       by auto
+    obtain x xa where
+      \<open>partial_correct_watching (SM', SN', SD', SNE', SUE', SQ', SW')\<close> and
+      part_V: \<open>partial_correct_watching (SM', N1', SD', NE1', SUE', SQ', SW')\<close> and
+      \<open>((SM', SN', SD', SNE', SUE', SQ', SW'), x) \<in> state_wl_l None\<close> and
+      \<open>((SM', N1, SD', NE1, SUE', SQ', SW'), xa) \<in> state_wl_l None\<close> and
+      \<open>remove_all_annot_true_clause_imp_inv x (SW' SL') (j, xa)\<close>
+      using jNNE unfolding remove_all_annot_true_clause_imp_wl_inv_def prod.case st st' by blast
+
     have \<open>reduce_dom_clauses TN' N2\<close>
       using rtranclp_remove_one_annot_true_clause_reduce_dom_clauses[OF SU] by simp
-    then have \<open>partial_correct_watching (SM', N2', SD', NE2', SUE', SQ', SW')\<close>
-      using part_S unfolding st st' apply -
-      explore_lemma
-       apply (auto intro!: partial_correct_watching_fmdrop)
-      sorry
+    then have \<open>partial_correct_watching (SM', SN', SD', SNE', SUE', SQ', SW') \<Longrightarrow>
+    SW' TL' ! j' \<in># dom_m N1' \<Longrightarrow>
+    partial_correct_watching (SM', N1', SD', NE1', SUE', SQ', SW') \<Longrightarrow>
+    N2' = fmdrop (SW' TL' ! j') N1' \<Longrightarrow>
+    N2 = fmdrop (SW' TL' ! j') N1' \<Longrightarrow>
+    NE2 = add_mset (mset (N1' \<propto> (SW' TL' ! j'))) NE1' \<Longrightarrow>
+    \<not> partial_correct_watching
+       (SM', N1', SD', add_mset (mset (N1' \<propto> (SW' TL' ! j'))) NE1', SUE', SQ',
+        SW') \<Longrightarrow>
+    irred N1' (SW' TL' ! j') \<Longrightarrow> False\<close>
+      using multi_member_split[of \<open>xs!j'\<close> \<open>dom_m N1'\<close>]
+      by (auto simp: partial_correct_watching.simps ran_m_def all_lits_of_mm_add_mset
+        st st')
+    then have part_V: \<open>partial_correct_watching (SM', N2', SD', NE2', SUE', SQ', SW')\<close>
+      using part_S NNE dom part_V
+      unfolding st st' remove_all_annot_true_clause_imp_wl_inv_def
+      by (auto intro!: partial_correct_watching_fmdrop)
     show ?thesis
       unfolding remove_all_annot_true_clause_imp_wl_inv_def prod.case
       apply (intro conjI)
       subgoal using part_S .
-      subgoal sorry
-     sorry
+      subgoal using part_V .
+      subgoal
+       using
+        \<open>((SM', SN', SD', SNE', SUE', SQ', SW'), x) \<in> state_wl_l None\<close> and
+        \<open>((SM', N1, SD', NE1, SUE', SQ', SW'), xa) \<in> state_wl_l None\<close> and
+        \<open>remove_all_annot_true_clause_imp_inv x (SW' SL') (j, xa)\<close>
+        using NNE rem_post LST unfolding st st'
+        by (auto simp: state_wl_l_def)
+      done
   qed
-  have [refine0]: \<open>remove_all_annot_true_clause_one_imp (C, N0, NE) \<le>
-        \<Down> {((N, NE), (N', NE')). N = N' \<and> NE = NE' \<and>
-            (C \<in># dom_m N0 \<longrightarrow> N = fmdrop C N0) \<and>
-            (C \<notin># dom_m N0 \<longrightarrow> N = N0)}
-          (remove_all_annot_true_clause_one_imp (C', N', NE'))\<close>
-    if \<open>(C, C') \<in> Id\<close> and \<open>(N0, N') \<in> Id\<close> and \<open>(NE, NE') \<in> Id\<close>
-    for C C' N' NE NE' N0
-    using that distinct_mset_dom[of N0]
-     unfolding remove_all_annot_true_clause_one_imp_def by (auto simp: distinct_mset_remove1_All)
   show ?thesis
+    supply [[goals_limit=1]]
     apply (intro frefI nres_relI)
     unfolding uncurry_def remove_all_annot_true_clause_imp_wl_def
       remove_all_annot_true_clause_imp_def
@@ -301,27 +320,27 @@ proof -
       apply (refine_rcg H
         WHILEIT_refine[where R=\<open>{((i, N, NE), (i', N', NE')). i = i' \<and> N = N' \<and> NE = NE' \<and>
             partial_correct_watching (M, N, D, NE, UE, Q, W)}\<close>])
-    subgoal by (auto simp: state_wl_l_def L'_in_clause)
-    subgoal by (auto simp: state_wl_l_def)
-    subgoal by (auto simp: state_wl_l_def remove_all_annot_true_clause_imp_wl_inv_def)
-    subgoal by (auto simp: state_wl_l_def)
-    subgoal by (auto simp: state_wl_l_def)
-    subgoal by (auto simp: state_wl_l_def)
-    subgoal by (auto simp: state_wl_l_def)
-    subgoal by (auto simp: state_wl_l_def)
-    subgoal by (auto simp: state_wl_l_def reduce_dom_clauses_fmdrop)
-    subgoal
-      for TL' oTL' TM' oTM' TN' oTN' TD' oTD' TNE' oTNE' TUE' oTUE' TQ' oTW' SL' oSL' SM' oSM' SN'
-       oSN' SD' oSD' SNE' oSNE' SUE' oSUE' SQ' oSW' xs jNNE1 jNNE' j' oNNE1' N1' NE1' j oNNE N1
-       NE1 NNE2 NNE2' N2 NE2 N2' NE2'
-explore_have
-     apply (auto simp: state_wl_l_def)
-      sorry
-    subgoal by (auto simp: state_wl_l_def remove_all_annot_true_clause_imp_wl_inv_def)
-    subgoal by (auto simp: state_wl_l_def)
-    subgoal by (auto simp: state_wl_l_def)
+      subgoal by (auto simp: state_wl_l_def L'_in_clause)
+      subgoal by (auto simp: state_wl_l_def)
+      subgoal by (auto simp: state_wl_l_def remove_all_annot_true_clause_imp_wl_inv_def)
+      subgoal by (auto simp: state_wl_l_def)
+      subgoal by (auto simp: state_wl_l_def)
+      subgoal by (auto simp: state_wl_l_def)
+      subgoal by (auto simp: state_wl_l_def)
+      subgoal by (auto simp: state_wl_l_def)
+      subgoal by (auto simp: state_wl_l_def reduce_dom_clauses_fmdrop)
+      subgoal
+        for TL' oTL' TM' oTM' TN' oTN' TD' oTD' TNE' oTNE' TUE' oTUE' TQ' TW' SL' oSL' SM' oSM' SN'
+        oSN' SD' oSD' SNE' oSNE' SUE' oSUE' SQ' SW' xs jNNE1 jNNE' j' oNNE1' N1' NE1' j oNNE N1
+        NE1 NNE2 NNE2' N2 NE2 N2' NE2'
+        by (rule remove_all_annot_true_clause_imp_wl_inv)
+      subgoal by (auto simp: state_wl_l_def remove_all_annot_true_clause_imp_wl_inv_def)
+      subgoal by (auto simp: state_wl_l_def)
+      subgoal by (auto simp: state_wl_l_def)
+      done
+      done
     done
-    oops
+qed
 
 definition remove_one_annot_true_clause_one_imp_wl
   :: \<open>nat \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres\<close>
