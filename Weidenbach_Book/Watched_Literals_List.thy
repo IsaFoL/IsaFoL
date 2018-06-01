@@ -480,6 +480,12 @@ lemma ran_mf_lf_fmdrop[simp]:
   apply (cases \<open>C \<in># dom_m N\<close>)
   by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>] dest!: multi_member_split)
 
+lemma ran_mf_lf_fmdrop_notin[simp]:
+  \<open>C \<notin># dom_m N \<Longrightarrow>  ran_mf (fmdrop C N) = ran_mf N\<close>
+  using distinct_mset_dom[of N]
+  apply (cases \<open>C \<in># dom_m N\<close>)
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>] dest!: multi_member_split)
+
 definition twl_st_l   :: \<open>_ \<Rightarrow> ('v twl_st_l \<times> 'v twl_st) set\<close> where
 \<open>twl_st_l L =
   {((M, N, C, NE, UE, WS, Q),  (M', N', U', C', NE', UE', WS', Q')).

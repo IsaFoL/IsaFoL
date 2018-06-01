@@ -1579,7 +1579,7 @@ definition remove_all_annot_true_clause_imp_pre where
            get_conflict_l S = None \<and> clauses_to_update_l S = {#} \<and> L \<in> lits_of_l (get_trail_l S))\<close>
  
 definition remove_all_annot_true_clause_imp
-  :: \<open>nat literal \<Rightarrow> nat twl_st_l \<Rightarrow> (nat twl_st_l) nres\<close>
+  :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close>
 where
 \<open>remove_all_annot_true_clause_imp = (\<lambda>L (M, N0, D, NE0, UE, Q, W). do {
     ASSERT(remove_all_annot_true_clause_imp_pre L (M, N0, D, NE0, UE, Q, W));
@@ -1592,6 +1592,8 @@ where
           if xs!i \<in># dom_m N
           then do {
             (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (xs!i, N, NE);
+            ASSERT(remove_all_annot_true_clause_imp_inv (M, N0, D, NE0, UE, Q, W) xs
+              (i, (M, N, D, NE, UE, Q, W)));
             RETURN (i+1, N, NE)
           }
           else
@@ -1626,7 +1628,7 @@ where
   })\<close>
 
 
-definition remove_one_annot_true_clause_imp :: \<open>nat twl_st_l \<Rightarrow> (nat twl_st_l) nres\<close>
+definition remove_one_annot_true_clause_imp :: \<open>'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp = (\<lambda>S. do {
     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_inv S\<^esup>
@@ -1953,8 +1955,9 @@ proof -
       subgoal by simp
       apply assumption+
       subgoal by (auto simp: remove_all_annot_true_clause_imp_inv_Suc U one_all)
+      subgoal by (auto simp: remove_all_annot_true_clause_imp_inv_Suc U one_all)
       subgoal by auto
-      subgoal by auto
+      subgoal by (auto simp: remove_all_annot_true_clause_imp_inv_Suc U one_all)
       subgoal by (auto simp: remove_all_annot_true_clause_imp_inv_Suc U one_all)
       subgoal by auto
       subgoal by auto
@@ -2456,7 +2459,7 @@ qed
 context twl_restart
 begin
 
-definition restart_prog_l :: "nat twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (nat twl_st_l \<times> nat) nres" where
+definition restart_prog_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres" where
   \<open>restart_prog_l S n brk = do {
      ASSERT(restart_abs_l_pre S brk);
      b \<leftarrow> restart_required_l S n;
@@ -2512,7 +2515,7 @@ proof -
     by force
 qed
 
-definition cdcl_twl_stgy_restart_prog_l :: "nat twl_st_l \<Rightarrow> nat twl_st_l nres" where
+definition cdcl_twl_stgy_restart_prog_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>cdcl_twl_stgy_restart_prog_l S\<^sub>0 =
   do {
     (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
