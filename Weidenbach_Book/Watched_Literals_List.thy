@@ -477,14 +477,27 @@ lemma learned_clss_lf_lf_fmdrop_irrelev[simp]:
 lemma ran_mf_lf_fmdrop[simp]:
   \<open>C \<in># dom_m N \<Longrightarrow>  ran_mf (fmdrop C N) = remove1_mset (N\<propto>C) (ran_mf N)\<close>
   using distinct_mset_dom[of N]
-  apply (cases \<open>C \<in># dom_m N\<close>)
   by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>] dest!: multi_member_split)
 
 lemma ran_mf_lf_fmdrop_notin[simp]:
   \<open>C \<notin># dom_m N \<Longrightarrow>  ran_mf (fmdrop C N) = ran_mf N\<close>
   using distinct_mset_dom[of N]
-  apply (cases \<open>C \<in># dom_m N\<close>)
   by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>] dest!: multi_member_split)
+
+lemma ran_m_fmdrop[simp]:
+  \<open>C \<in># dom_m N \<Longrightarrow>  ran_m (fmdrop C N) = remove1_mset (N \<propto> C, irred N C) (ran_m N)\<close>
+  using distinct_mset_dom[of N]
+  by (cases \<open>fmlookup N C\<close>)
+    (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>] dom_m_fmdrop
+     dest!: multi_member_split
+    intro!: filter_mset_cong2 image_mset_cong2)
+
+lemma ran_m_fmdrop_notin[simp]:
+  \<open>C \<notin># dom_m N \<Longrightarrow> ran_m (fmdrop C N) = ran_m N\<close>
+  using distinct_mset_dom[of N]
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>]
+    dest!: multi_member_split
+    intro!: filter_mset_cong2 image_mset_cong2)
 
 definition twl_st_l   :: \<open>_ \<Rightarrow> ('v twl_st_l \<times> 'v twl_st) set\<close> where
 \<open>twl_st_l L =
