@@ -24,7 +24,7 @@ my $result = GetOptions ("unsafe!"  => \$unsafe,
 
 my $date = strftime "%F", localtime;
 
-my $full_date = strftime "%A, %d %B, %Y", localtime;
+my $full_date = strftime "%c", localtime;
 
 my $html_versions_output =
     "<div class=body>" .
