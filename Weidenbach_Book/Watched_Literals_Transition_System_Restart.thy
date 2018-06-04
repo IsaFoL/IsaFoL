@@ -502,6 +502,13 @@ next
     done
 qed
 
+lemma rtranclp_cdcl_twl_restart_twl_struct_invs:
+  assumes
+    \<open>cdcl_twl_restart\<^sup>*\<^sup>* S T\<close> and
+    \<open>twl_struct_invs S\<close>
+  shows \<open>twl_struct_invs T\<close>
+  using assms by (induction rule: rtranclp_induct) (auto simp: cdcl_twl_restart_twl_struct_invs)
+
 lemma cdcl_twl_restart_twl_stgy_invs:
   assumes
     \<open>cdcl_twl_restart S T\<close> and \<open>twl_stgy_invs S\<close>
@@ -512,6 +519,13 @@ lemma cdcl_twl_restart_twl_stgy_invs:
     cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
       conflicting.simps cdcl\<^sub>W_restart_mset.no_smaller_confl_def clauses_def trail.simps
       dest!: get_all_ann_decomposition_exists_prepend)
+
+lemma rtranclp_cdcl_twl_restart_twl_stgy_invs:
+  assumes
+    \<open>cdcl_twl_restart\<^sup>*\<^sup>* S T\<close> and
+    \<open>twl_stgy_invs S\<close>
+  shows \<open>twl_stgy_invs T\<close>
+  using assms by (induction rule: rtranclp_induct) (auto simp: cdcl_twl_restart_twl_stgy_invs)
 
 
 context twl_restart

@@ -575,7 +575,7 @@ where
     let L' = N \<propto> C ! 1;
     RETURN (W(L := W L @ [C], L' := W L' @ [C]))
   }\<close>
-term dom_m
+
 fun correct_watching_on :: \<open>nat set \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
   [simp del]: \<open>correct_watching_on xs (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
     (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + NE + UE).

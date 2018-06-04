@@ -1532,7 +1532,8 @@ definition (in -) extract_and_remove
 where
   \<open>extract_and_remove N j = do {
       ASSERT((j :: nat) \<in># dom_m (N :: 'v clauses_l));
-      SPEC(\<lambda>(N' :: 'v clauses_l, C' :: 'v clause_l, b :: bool). N' = fmdrop j N \<and> C' = N\<propto>j \<and> b = irred N j)
+      SPEC(\<lambda>(N' :: 'v clauses_l, C' :: 'v clause_l, b :: bool). N' = fmdrop j N \<and> C' = N\<propto>j \<and>
+         b = irred N j)
     }\<close>
 
 definition (in -) replace_annot_in_trail_spec :: \<open>('v, nat) ann_lits \<Rightarrow> 'v literal \<Rightarrow>
