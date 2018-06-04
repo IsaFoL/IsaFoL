@@ -57,7 +57,6 @@ qed
 
 end
 
-
 context isasat_restart_bounded
 begin
 
@@ -396,35 +395,269 @@ proof -
       done
     done
 qed
+definition remove_one_annot_true_clause_imp_wl_D_inv where
+  \<open>remove_one_annot_true_clause_imp_wl_D_inv S = (\<lambda>(i, T).
+     remove_one_annot_true_clause_imp_wl_inv S (i, T) \<and> literals_are_\<L>\<^sub>i\<^sub>n T)\<close>
 
 definition remove_one_annot_true_clause_imp_wl_D :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp_wl_D = (\<lambda>S. do {
-    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_inv S\<^esup>
+    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_D_inv S\<^esup>
       (\<lambda>(i, S). i < length (get_trail_wl S) \<and> \<not>is_decided (get_trail_wl S!i))
-      (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl i S)
+      (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl_D i S)
       (0, S);
     RETURN S
   })\<close>
 
+
+lemma remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl:
+  \<open>(remove_one_annot_true_clause_imp_wl_D, remove_one_annot_true_clause_imp_wl) \<in>
+   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding uncurry_def remove_one_annot_true_clause_imp_wl_D_def
+      remove_one_annot_true_clause_imp_wl_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg
+      WHILEIT_refine[where R=\<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<close>]
+      remove_one_annot_true_clause_one_imp_wl_D_remove_one_annot_true_clause_one_imp_wl[THEN fref_to_Down_curry])
+    subgoal by auto
+    subgoal for S S' T T'
+      by (cases T') (auto simp: remove_one_annot_true_clause_imp_wl_D_inv_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+definition mark_to_delete_clauses_wl_D_pre where
+  \<open>mark_to_delete_clauses_wl_D_pre S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+
+definition mark_to_delete_clauses_wl_D_inv where
+  \<open>mark_to_delete_clauses_wl_D_inv = (\<lambda>(M, N0, D, NE, UE, Q, W) (b, i, N).
+       mark_to_delete_clauses_wl_inv (M, N0, D, NE, UE, Q, W) (b, i, N) \<and>
+        literals_are_\<L>\<^sub>i\<^sub>n (M, N, D, NE, UE, Q, W))\<close>
+
+definition mark_to_delete_clauses_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+\<open>mark_to_delete_clauses_wl_D  = (\<lambda>(M, N, D, NE, UE, Q, W). do {
+    ASSERT(mark_to_delete_clauses_wl_D_pre (M, N, D, NE, UE, Q, W));
+    xs \<leftarrow> collect_valid_indices_wl (M, N, D, NE, UE, Q, W);
+    (_, _, N) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_D_inv (M, N, D, NE, UE, Q, W)\<^esup>
+      (\<lambda>(brk, i, N). \<not>brk \<and> i < length xs)
+      (\<lambda>(brk, i, N). do {
+        ASSERT(N\<propto>(xs!i)!0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+        can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (N\<propto>(xs!i)!0) (xs!i) \<notin> set M) \<and> \<not>irred N (xs!i));
+        brk \<leftarrow> SPEC(\<lambda>_. True);
+        ASSERT(i < length xs);
+        if can_del
+        then
+          RETURN (brk, i+1, fmdrop (xs!i) N)
+        else
+          RETURN (brk, i+1, N)
+      })
+      (False, 0, N);
+    RETURN (M, N, D, NE, UE, Q, W)
+  })\<close>
+ 
+lemma mark_to_delete_clauses_wl_D_mark_to_delete_clauses_wl:
+  \<open>(mark_to_delete_clauses_wl_D, mark_to_delete_clauses_wl) \<in>
+   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+proof -
+  have [refine0]: \<open>collect_valid_indices_wl S \<le> \<Down> Id (collect_valid_indices_wl T)\<close>
+    if \<open>(S, T) \<in> Id\<close> for S T
+    using that by auto
+  have [iff]: \<open>(\<forall>(x::bool) xa. P x xa) \<longleftrightarrow> (\<forall>xa.( P True xa \<and> P False xa))\<close> for P
+    by metis
+  show ?thesis
+    unfolding uncurry_def mark_to_delete_clauses_wl_D_def mark_to_delete_clauses_wl_def
+    apply (intro frefI nres_relI)
+    subgoal for S T
+      apply (refine_vcg
+          remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
+          remove_one_annot_true_clause_one_imp_wl_D_remove_one_annot_true_clause_one_imp_wl[THEN fref_to_Down_curry]
+          WHILEIT_refine_with_post[where R = \<open>{((brk, i, N), (brk', i', N')). brk = brk' \<and> i=i' \<and> N=N' \<and>
+            mark_to_delete_clauses_wl_D_inv S (brk, i, N)}\<close>])
+      subgoal unfolding mark_to_delete_clauses_wl_D_pre_def by auto
+      subgoal for S S' T T'
+        by (auto simp: remove_one_annot_true_clause_imp_wl_D_inv_def)
+      subgoal unfolding mark_to_delete_clauses_wl_D_inv_def by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal apply (auto simp: intro_spec_iff mark_to_delete_clauses_wl_D_inv_def
+            split: ) sorry
+      subgoal by (auto simp: intro_spec_iff mark_to_delete_clauses_wl_D_inv_def)
+      subgoal unfolding mark_to_delete_clauses_wl_D_inv_def by auto
+      done
+    done
+qed
+
 definition cdcl_twl_restart_wl_prog_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
 \<open>cdcl_twl_restart_wl_prog_D S = do {
     S \<leftarrow> remove_one_annot_true_clause_imp_wl_D S;
-    mark_to_delete_clauses_wl S
+    mark_to_delete_clauses_wl_D S
   }\<close>
+
+lemma cdcl_twl_restart_wl_prog_D_cdcl_twl_restart_wl_prog:
+  \<open>(cdcl_twl_restart_wl_prog_D, cdcl_twl_restart_wl_prog) \<in>
+   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding uncurry_def cdcl_twl_restart_wl_prog_D_def cdcl_twl_restart_wl_prog_def
+    apply (intro frefI nres_relI)
+    by (refine_vcg
+      remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
+      remove_one_annot_true_clause_one_imp_wl_D_remove_one_annot_true_clause_one_imp_wl[THEN fref_to_Down_curry]
+      mark_to_delete_clauses_wl_D_mark_to_delete_clauses_wl[THEN fref_to_Down])
+qed
+
+definition rewatch_clause_D
+  :: \<open>nat clauses_l \<Rightarrow> nat \<Rightarrow> (nat literal \<Rightarrow> watched) \<Rightarrow> (nat literal \<Rightarrow> watched) nres\<close>
+where
+  \<open>rewatch_clause_D N C W = do {
+    ASSERT(length (N \<propto> C) > 1);
+    let L = N \<propto> C ! 0;
+    let L' = N \<propto> C ! 1;
+    ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+    ASSERT(L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+    RETURN (W(L := W L @ [C], L' := W L' @ [C]))
+  }\<close>
+
+(* TODO Move *)
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C \<Longrightarrow> L \<in># C \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def
+  by (auto dest!: multi_member_split simp: all_lits_of_m_add_mset)
+(* End Move *)
+
+lemma rewatch_clause_D_rewatch_clause:
+  \<open>(uncurry2 rewatch_clause_D, uncurry2 rewatch_clause) \<in>
+     [\<lambda>((N, C), W). literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> C))]\<^sub>f Id \<times>\<^sub>f Id  \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  unfolding uncurry_def rewatch_clause_D_def rewatch_clause_def
+  apply (intro frefI nres_relI)
+  apply (refine_rcg)
+  subgoal by auto
+  subgoal by (auto intro: literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l)
+  subgoal by (auto intro: literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l)
+  subgoal by auto
+  done
+
+definition rewatch_clauses_prog_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool\<close>  where
+  \<open>rewatch_clauses_prog_D_pre S \<longleftrightarrow>
+     (rewatch_clauses_prog_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n S)\<close>
+
+definition rewatch_clauses_prog_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+\<open>rewatch_clauses_prog_D = (\<lambda>(M, N, D, NE, UE, Q, W0). do {
+  ASSERT(rewatch_clauses_prog_D_pre (M, N, D, NE, UE, Q, W0));
+  let W0 = empty_WL W0;
+  xs \<leftarrow> SPEC(\<lambda>xs. dom_m N \<subseteq># mset xs \<and> distinct xs);
+  (_, W) \<leftarrow> WHILE\<^sub>T\<^bsup>rewatch_clauses_prog_inv (M, N, D, NE, UE, Q, W0) xs\<^esup>
+    (\<lambda>(i, W). i < length xs)
+    (\<lambda>(i, W). do {
+      ASSERT(i < length xs);
+      if xs!i \<in># dom_m N then do {
+        W \<leftarrow> rewatch_clause_D N (xs!i) W;
+        RETURN(i+1, W)
+      } else  RETURN(i+1, W)
+    })
+    (0, W0);
+  RETURN (M, N, D, NE, UE, Q, W)
+})\<close>
+
+
+lemma rewatch_clauses_prog_D_rewatch_clauses_prog:
+  \<open>(rewatch_clauses_prog_D, rewatch_clauses_prog) \<in>
+   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding rewatch_clauses_prog_D_def rewatch_clauses_prog_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg 
+     rewatch_clause_D_rewatch_clause[THEN fref_to_Down_curry2]
+      WHILEIT_refine[where R = \<open>nat_rel \<times>\<^sub>f (Id :: ((nat literal \<Rightarrow> watched) \<times> _) set) \<close>])
+    subgoal unfolding rewatch_clauses_prog_D_pre_def by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal unfolding rewatch_clauses_prog_D_pre_def 
+      by (auto dest!: literals_are_in_\<L>\<^sub>i\<^sub>n_nth[of _ \<open>(M, N, D, NE, UE, Q, W0)\<close> for M N D NE UE Q W0,
+            simplified])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+definition restart_abs_wl_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>restart_abs_wl_D_pre S brk \<longleftrightarrow>
+    (restart_abs_wl_pre S brk \<and> literals_are_\<L>\<^sub>i\<^sub>n S)\<close>
 
 definition restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (nat twl_st_wl \<times> nat) nres" where
   \<open>restart_prog_wl_D S n brk = do {
-     ASSERT(restart_abs_wl_pre S brk);
+     ASSERT(restart_abs_wl_D_pre S brk);
      b \<leftarrow> restart_required_wl S n;
      if b \<and> \<not>brk then do {
        T \<leftarrow> cdcl_twl_restart_wl_prog_D S;
-       U \<leftarrow> rewatch_clauses T;
+       ASSERT(literals_are_\<L>\<^sub>i\<^sub>n S);
+       U \<leftarrow> rewatch_clauses_prog_D T;
        RETURN (U, n + 1)
      }
      else
        RETURN (S, n)
    }\<close>
+
+lemma restart_prog_wl_D_restart_prog_wl:
+  \<open>(uncurry2 restart_prog_wl_D, uncurry2 restart_prog_wl) \<in>
+     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>f nat_rel  \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
+proof -
+  have [refine0]: \<open>restart_required_wl x1c x2b \<le> \<Down> Id (restart_required_wl x1a x2)\<close>
+    if \<open>(x1c, x1a) \<in> Id\<close> \<open>(x2b, x2) \<in> Id\<close>
+    for x1c x1a x2b x2
+    using that by auto
+  have \<open>(T, T') \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<Longrightarrow> 
+      rewatch_clauses_prog_D T \<le> \<Down> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} (rewatch_clauses T')\<close>
+    for T T'
+    apply (rule order.trans)
+    apply (rule rewatch_clauses_prog_D_rewatch_clauses_prog[THEN fref_to_Down, of T T']; 
+     assumption?; fast)
+
+    using 
+      rewatch_clauses_prog_D_rewatch_clauses_prog[THEN fref_to_Down, of T T']
+      rewatch_clauses_prog_rewatch_clauses
+
+
+  show ?thesis
+    unfolding uncurry_def restart_prog_wl_D_def restart_prog_wl_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg
+      cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down_curry2]
+      rewatch_clauses_prog_D_rewatch_clauses_prog[THEN fref_to_Down]
+      remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
+      cdcl_twl_restart_wl_prog_D_cdcl_twl_restart_wl_prog[THEN fref_to_Down])
+    subgoal unfolding restart_abs_wl_D_pre_def by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 
 definition cdcl_twl_stgy_restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>cdcl_twl_stgy_restart_prog_wl_D S\<^sub>0 =

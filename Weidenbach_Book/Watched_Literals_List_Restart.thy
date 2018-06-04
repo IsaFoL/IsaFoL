@@ -2204,10 +2204,15 @@ lemma remove_one_annot_true_clause_imp_spec:
 definition collect_valid_indices where
   \<open>collect_valid_indices S = SPEC (\<lambda>N. mset N \<subseteq># dom_m (get_clauses_l S) \<and> distinct N)\<close>
 
+
+definition mark_to_delete_clauses_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool \<times> nat \<times> 'v clauses_l \<Rightarrow> bool\<close> where
+  \<open>mark_to_delete_clauses_l_inv = (\<lambda>(M, N0, D, NE, UE, WS, Q) (brk, i, N). 
+      remove_one_annot_true_clause\<^sup>*\<^sup>* (M, N0, D, NE, UE, WS, Q) (M, N, D, NE, UE, WS, Q))\<close>
+
 definition mark_to_delete_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-\<open>mark_to_delete_clauses_l  = (\<lambda>(M, N, D, NE, UE, WS, Q). do {
-    xs \<leftarrow> collect_valid_indices (M, N, D, NE, UE, WS, Q);
-    (_, _, N) \<leftarrow> WHILE\<^sub>T
+\<open>mark_to_delete_clauses_l  = (\<lambda>(M, N0, D, NE, UE, WS, Q). do {
+    xs \<leftarrow> collect_valid_indices (M, N0, D, NE, UE, WS, Q);
+    (_, _, N) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_l_inv (M, N0, D, NE, UE, WS, Q)\<^esup>
       (\<lambda>(brk, i, N). \<not>brk \<and> i < length xs)
       (\<lambda>(brk, i, N). do {
         can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (N\<propto>(xs!i)!0) (xs!i) \<notin> set M) \<and> \<not>irred N (xs!i));
@@ -2219,7 +2224,7 @@ definition mark_to_delete_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_s
         else
           RETURN (brk, i+1, N)
       })
-      (False, 0, N);
+      (False, 0, N0);
     RETURN (M, N, D, NE, UE, WS, Q)
   })\<close>
 
@@ -2241,7 +2246,8 @@ proof -
            remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, N, D, NE, UE, WS, Q) \<and>
             (\<forall>j\<ge>i. j < length xs \<longrightarrow> xs!j \<in># dom_m N))\<close> for xs
 
-  have I_suc: \<open>I xs (brk', i + 1, fmdrop (xs ! i) N')\<close>
+  have I_suc: \<open>I xs (brk', i + 1, fmdrop (xs ! i) N')\<close> and
+       I'_Suc: \<open>mark_to_delete_clauses_l_inv (M, N, D, NE, UE, WS, Q) (brk', i + 1, fmdrop (xs ! i) N')\<close>
     if
       xs: \<open>mset xs \<subseteq># dom_m (get_clauses_l (M, N, D, NE, UE, WS, Q)) \<and> distinct xs\<close> and
       I: \<open>I xs s\<close> and
@@ -2282,21 +2288,25 @@ proof -
          N' \<propto> (xs !i) ! 0\<close>] can_del can_del'
       unfolding S
       by (auto dest: no_dup_same_annotD)
-    have \<open>remove_one_annot_true_clause (M, N', D, NE, UE, WS, Q) (M, fmdrop (xs ! i) N', D, NE, UE, WS, Q)\<close>
+    have star: \<open>remove_one_annot_true_clause (M, N', D, NE, UE, WS, Q) (M, fmdrop (xs ! i) N', D, NE, UE, WS, Q)\<close>
       unfolding st
       apply (rule remove_one_annot_true_clause.delete)
       subgoal using in_dom i_le unfolding st prod.case by auto
       subgoal using can_del' can_del by auto
       subgoal using not_annot by blast
       done
-    then have \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, fmdrop (xs ! i) N', D, NE, UE, WS, Q)\<close>
+    then have star: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, fmdrop (xs ! i) N', D, NE, UE, WS, Q)\<close>
       using rem unfolding S[symmetric] st by simp
     moreover have \<open>j \<ge> i+1 \<Longrightarrow> j < length xs \<Longrightarrow> xs ! j \<in># dom_m (fmdrop (xs ! i) N')\<close> for j
       using in_dom[of j] distinct_mset_dom[of N'] xs i_le
       by (auto simp: distinct_mset_remove1_All nth_eq_iff_index_eq)
-    ultimately show ?thesis
+    ultimately show \<open>I xs (brk', i + 1, fmdrop (xs ! i) N')\<close>
       unfolding I_def prod.case
       by blast
+    show \<open>mark_to_delete_clauses_l_inv (M, N, D, NE, UE, WS, Q) (brk', i + 1, fmdrop (xs ! i) N')\<close>
+      using star
+      unfolding mark_to_delete_clauses_l_inv_def S
+      by fast
   qed
   have I0: \<open>I xs (False, 0, N)\<close>
     if \<open>mset xs \<subseteq># dom_m (get_clauses_l (M, N, D, NE, UE, WS, Q)) \<and> distinct xs\<close>
@@ -2311,18 +2321,21 @@ proof -
   qed
 
   show ?thesis
-    unfolding mark_to_delete_clauses_l_def collect_valid_indices_def S prod.case
-    apply refine_vcg
+    unfolding mark_to_delete_clauses_l_def collect_valid_indices_def S prod.case intro_spec_iff
+    apply (intro ballI)
     subgoal for xs
       apply (refine_vcg
-        WHILET_rule[where I=\<open>I xs\<close> and
+        WHILEIT_rule_stronger_inv[where I'=\<open>I xs\<close> and
           R= \<open>measure (\<lambda>(brk :: bool, i :: nat, N). Suc (length xs) - i)\<close>])
       subgoal by auto
-      subgoal by (rule I0)
+      subgoal unfolding mark_to_delete_clauses_l_inv_def by auto
+      subgoal by (rule I0) auto
       subgoal by auto
-      subgoal by (rule I_suc)
+      subgoal by (rule I'_Suc) auto
+      subgoal by (rule I_suc) auto
       subgoal by auto
-      subgoal unfolding I_def by auto
+      subgoal unfolding  mark_to_delete_clauses_l_inv_def by auto
+      subgoal unfolding I_def mark_to_delete_clauses_l_inv_def by auto
       subgoal by auto
       subgoal unfolding S I_def by auto
       done

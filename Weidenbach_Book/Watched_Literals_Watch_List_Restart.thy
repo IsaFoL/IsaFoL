@@ -458,10 +458,14 @@ qed
 definition collect_valid_indices_wl where
   \<open>collect_valid_indices_wl S = SPEC (\<lambda>N. mset N \<subseteq># dom_m (get_clauses_wl S) \<and> distinct N)\<close>
 
+definition mark_to_delete_clauses_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> bool \<times> nat \<times> 'v clauses_l \<Rightarrow> bool\<close> where
+  \<open>mark_to_delete_clauses_wl_inv = (\<lambda>S (brk, i, N). 
+     \<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_inv T (brk, i, N))\<close>
+
 definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>mark_to_delete_clauses_wl  = (\<lambda>(M, N, D, NE, UE, Q, W). do {
     xs \<leftarrow> collect_valid_indices_wl (M, N, D, NE, UE, Q, W);
-    (_, _, N) \<leftarrow> WHILE\<^sub>T
+    (_, _, N) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_inv (M, N, D, NE, UE, Q, W)\<^esup>
       (\<lambda>(brk, i, N). \<not>brk \<and> i < length xs)
       (\<lambda>(brk, i, N). do {
         can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (N\<propto>(xs!i)!0) (xs!i) \<notin> set M) \<and> \<not>irred N (xs!i));
@@ -495,7 +499,7 @@ proof -
     apply (cases x; cases y)
     subgoal for M N D NE UE Q W M' N' D' NE' UE' WS' Q'
     apply (refine_vcg
-      WHILET_refine[where
+      WHILEIT_refine[where
          R = \<open>{((brk' :: bool, i' :: nat, N'), (brk'', i'', N'')).
              brk' = brk'' \<and> i' = i'' \<and> N' = N'' \<and>
              ((M, N', D, NE, UE, Q, W), (M, N'', D, NE, UE, WS', Q')) \<in> state_wl_l None \<and>
@@ -503,6 +507,7 @@ proof -
       remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
     subgoal by auto
     subgoal by (auto simp: state_wl_l_def)
+    subgoal unfolding mark_to_delete_clauses_wl_inv_def by fast
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)
     subgoal by auto
@@ -774,7 +779,7 @@ proof -
     apply (intro ASSERT_leI)
     subgoal using pre by fast
     subgoal for M N D NE UE Q W
-      unfolding intro_spec_iff
+      unfolding ec_iff
       apply (intro ballI)
       subgoal for xs
         apply (refine_vcg
