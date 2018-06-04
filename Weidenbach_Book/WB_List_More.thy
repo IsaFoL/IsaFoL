@@ -931,6 +931,39 @@ lemma image_mset_If_eq_notin:
    \<open>C \<notin># A \<Longrightarrow> {#f (if x = C then a x else b x). x \<in># A#} = {# f(b x). x \<in># A #}\<close>
   by (induction A) auto
 
+lemma finite_mset_set_inter:
+  \<open>finite A \<Longrightarrow> finite B \<Longrightarrow> mset_set (A \<inter> B) = mset_set A \<inter># mset_set B\<close>
+  apply (induction A rule: finite_induct)
+  subgoal by auto
+  subgoal for a A
+    apply (cases \<open>a \<in> B\<close>; cases \<open>a \<in># mset_set B\<close>)
+    using multi_member_split[of a \<open>mset_set B\<close>]
+    by (auto simp: mset_set.insert_remove)
+  done
+
+lemma distinct_mset_inter_remdups_mset:
+  assumes dist: \<open>distinct_mset A\<close>
+  shows \<open>A \<inter># remdups_mset B = A \<inter># B\<close>
+proof -
+  have [simp]: \<open>A' \<inter># remove1_mset a (remdups_mset Aa) = A' \<inter># Aa\<close>
+    if 
+      \<open>A' \<inter># remdups_mset Aa = A' \<inter># Aa\<close> and
+      \<open>a \<notin># A'\<close> and
+      \<open>a \<in># Aa\<close>
+    for A' Aa :: \<open>'a multiset\<close> and a
+  by (metis insert_DiffM inter_add_right1 set_mset_remdups_mset that)
+
+  show ?thesis
+    using dist
+    apply (induction A)
+    subgoal by auto
+     subgoal for a A'
+      apply (cases \<open>a \<in># B\<close>)
+      using multi_member_split[of a \<open>B\<close>]  multi_member_split[of a \<open>A\<close>]
+      by (auto simp: mset_set.insert_remove)
+    done
+qed
+
 
 subsection \<open>Sorting\<close>
 
@@ -1420,5 +1453,27 @@ lemma ge_Max_dom_notin_dom_m: \<open>a > Max_dom ao \<Longrightarrow> a \<notin>
 
 lemma packed_in_dom_mI: \<open>packed bc \<Longrightarrow> j \<le> Max_dom bc \<Longrightarrow> 0 < j \<Longrightarrow> j \<in># dom_m bc\<close>
   by (auto simp: packed_def)
+
+
+
+lemma fmrestrict_set_fmupd:
+  \<open>a \<in> xs \<Longrightarrow> fmrestrict_set xs (fmupd a C N) = fmupd a C (fmrestrict_set xs N)\<close>
+  \<open>a \<notin> xs \<Longrightarrow> fmrestrict_set xs (fmupd a C N) = fmrestrict_set xs N\<close>
+  by (auto simp: fmfilter_alt_defs)
+
+lemma fset_fmdom_fmrestrict_set:
+  \<open>fset (fmdom (fmrestrict_set xs N)) = fset (fmdom N) \<inter> xs\<close>
+  by (auto simp: fmfilter_alt_defs)
+
+lemma dom_m_fmresctrict_set: \<open>dom_m (fmrestrict_set (set xs) N) = mset xs \<inter># dom_m N\<close>
+  using fset_fmdom_fmrestrict_set[of \<open>set xs\<close> N] distinct_mset_dom[of N]
+  distinct_mset_inter_remdups_mset[of \<open>mset_fset (fmdom N)\<close> \<open>mset xs\<close>]
+  by (auto simp: dom_m_def fset_mset_mset_fset finite_mset_set_inter multiset_inter_commute
+    remdups_mset_def)
+
+lemma dom_m_fmresctrict_set': \<open>dom_m (fmrestrict_set xs N) = mset_set (xs \<inter> set_mset (dom_m N))\<close>
+  using fset_fmdom_fmrestrict_set[of \<open>xs\<close> N] distinct_mset_dom[of N]
+  by (auto simp: dom_m_def fset_mset_mset_fset finite_mset_set_inter multiset_inter_commute
+    remdups_mset_def)
 
 end

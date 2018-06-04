@@ -2,8 +2,10 @@ theory Watched_Literals_Watch_List_Restart
   imports Watched_Literals_List_Restart Watched_Literals_Watch_List
 begin
 
-text \<open>We relax the condition on the invariant on the watch list to allow to point to non-existing
-  clauses.\<close>
+text \<open>
+  We relax the condition on the invariant on the watch list to allow to point to non-existing
+  clauses.
+\<close>
 fun (in -) partial_correct_watching :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   [simp del]: \<open>partial_correct_watching (M, N, D, NE, UE, Q, W)  \<longleftrightarrow>
       (\<forall>L\<in>#all_lits_of_mm (mset `# ran_mf N + NE + UE).
@@ -573,11 +575,41 @@ where
     let L' = N \<propto> C ! 1;
     RETURN (W(L := W L @ [C], L' := W L' @ [C]))
   }\<close>
+term dom_m
+fun correct_watching_on :: \<open>nat set \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+  [simp del]: \<open>correct_watching_on xs (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + NE + UE).
+       mset (W L) = clause_to_update L (M, fmrestrict_set xs N, D, NE, UE, {#}, {#}))\<close>
+
+lemma fmrestrict_set_dom_m_full:
+  assumes
+    incl: \<open>set_mset (dom_m N) \<subseteq> xs\<close>
+  shows \<open>fmrestrict_set xs N = N\<close>
+  apply (rule fmlookup_inject[THEN iffD1])
+  using assms in_dom_m_lookup_iff by (fastforce intro!: ext)
+  
+lemma correct_watching_on_correct_watching:
+  assumes
+    \<open>correct_watching_on xs (M, N, D, NE, UE, Q, W)\<close> and
+    incl: \<open>set_mset (dom_m N) \<subseteq> xs\<close>
+  shows \<open>correct_watching (M, N, D, NE, UE, Q, W)\<close>
+proof -
+  have \<open>xs \<inter> set_mset (dom_m N) = set_mset (dom_m N)\<close> 
+    using incl by (auto simp: dom_m_fmresctrict_set')
+  then have 1: \<open>dom_m (fmrestrict_set xs N) = dom_m N\<close>
+    using incl distinct_mset_dom[of N]
+    by (auto simp: dom_m_fmresctrict_set' remdups_mset_def[symmetric] distinct_mset_remdups_mset_id)
+  then show ?thesis
+    using assms
+    unfolding correct_watching_on.simps correct_watching.simps
+      clause_to_update_def get_clauses_l.simps 1
+    by (auto simp: fmrestrict_set_dom_m_full)
+qed
 
 definition rewatch_clauses_prog_inv where
   \<open>rewatch_clauses_prog_inv = (\<lambda>(M, N, D, NE, UE, Q, W) xs (i, W).
     i \<le> length xs \<and>
-      correct_watching (M, fmrestrict_set (set (take i xs)) N, D, NE, UE, Q, W))\<close>
+      correct_watching_on (set (take i xs)) (M, N, D, NE, UE, Q, W))\<close>
 
 definition rewatch_clauses_prog_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close>  where
   \<open>rewatch_clauses_prog_pre S \<longleftrightarrow>
@@ -605,58 +637,7 @@ definition rewatch_clauses_prog :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_w
   RETURN (M, N, D, NE, UE, Q, W)
 })\<close>
 
-lemma fmrestrict_set_fmupd:
-  \<open>a \<in> xs \<Longrightarrow> fmrestrict_set xs (fmupd a C N) = fmupd a C (fmrestrict_set xs N)\<close>
-  \<open>a \<notin> xs \<Longrightarrow> fmrestrict_set xs (fmupd a C N) = fmrestrict_set xs N\<close>
-  by (auto simp: fmfilter_alt_defs)
-
-lemma fset_fmdom_fmrestrict_set:
-  \<open>fset (fmdom (fmrestrict_set xs N)) = fset (fmdom N) \<inter> xs\<close>
-  by (auto simp: fmfilter_alt_defs)
-
-lemma finite_mset_set_inter:
-  \<open>finite A \<Longrightarrow> finite B \<Longrightarrow> mset_set (A \<inter> B) = mset_set A \<inter># mset_set B\<close>
-  apply (induction A rule: finite_induct)
-  subgoal by auto
-  subgoal for a A
-    apply (cases \<open>a \<in> B\<close>; cases \<open>a \<in># mset_set B\<close>)
-    using multi_member_split[of a \<open>mset_set B\<close>]
-    by (auto simp: mset_set.insert_remove)
-  done
-
-
-lemma distinct_mset_inter_remdups_mset:
-  assumes dist: \<open>distinct_mset A\<close>
-  shows \<open>A \<inter># remdups_mset B = A \<inter># B\<close>
-proof -
-  have [simp]: \<open>A' \<inter># remove1_mset a (remdups_mset Aa) = A' \<inter># Aa\<close>
-    if 
-      \<open>A' \<inter># remdups_mset Aa = A' \<inter># Aa\<close> and
-      \<open>a \<notin># A'\<close> and
-      \<open>a \<in># Aa\<close>
-    for A' Aa :: \<open>'a multiset\<close> and a
-  by (metis insert_DiffM inter_add_right1 set_mset_remdups_mset that)
-
-  show ?thesis
-    using dist
-    apply (induction A)
-    subgoal by auto
-     subgoal for a A'
-      apply (cases \<open>a \<in># B\<close>)
-      using multi_member_split[of a \<open>B\<close>]  multi_member_split[of a \<open>A\<close>]
-      by (auto simp: mset_set.insert_remove)
-    done
-qed
-
-
-lemma dom_m_fmresctrict_set: \<open>dom_m (fmrestrict_set (set xs) N) =
-  mset xs \<inter># dom_m N\<close>
-  using fset_fmdom_fmrestrict_set[of \<open>set xs\<close> N] distinct_mset_dom[of N]
-  distinct_mset_inter_remdups_mset[of \<open>mset_fset (fmdom N)\<close> \<open>mset xs\<close>]
-  by (auto simp: dom_m_def fset_mset_mset_fset finite_mset_set_inter multiset_inter_commute
-    remdups_mset_def)
-
-lemma
+lemma rewatch_clauses_prog_rewatch_clauses:
   assumes
     ST: \<open>(S, T) \<in> state_wl_l None\<close> and
     TU: \<open>(T, U) \<in> twl_st_l None\<close> and
@@ -687,7 +668,7 @@ proof -
       apply auto
       done
   qed
-  have \<open>rewatch_clauses_prog_inv (M, N, D, NE, UE, Q, \<lambda>_. []) xs
+  have inv_Suc: \<open>rewatch_clauses_prog_inv (M, N, D, NE, UE, Q, \<lambda>_. []) xs
         (i + 1, W2
           (N \<propto> (xs ! i) ! 0 := W2 (N \<propto> (xs ! i) ! 0) @ [xs ! i],
           N \<propto> (xs ! i) ! 1 := W2 (N \<propto> (xs ! i) ! 1) @ [xs ! i]))\<close>
@@ -696,10 +677,10 @@ proof -
       \<open>rewatch_clauses_prog_pre (M, N, D, NE, UE, Q, W)\<close> and
       \<open>xs \<in> {xs. dom_m N \<subseteq># mset xs \<and> distinct xs}\<close> and
       inv: \<open>rewatch_clauses_prog_inv (M, N, D, NE, UE, Q, \<lambda>_. []) xs s\<close> and
-      \<open>case s of (i, W) \<Rightarrow> i < length xs\<close> and
+      cond: \<open>case s of (i, W) \<Rightarrow> i < length xs\<close> and
       s: \<open>s = (i, W2)\<close> and
       [simp]: \<open>i < length xs\<close> \<open>xs ! i \<in># dom_m N\<close> and
-      \<open>1 < length (N \<propto> (xs ! i))\<close>
+      le: \<open>1 < length (N \<propto> (xs ! i))\<close>
     for M N D NE UE Q W xs i W2 s
   proof -
     define N0 where \<open>N0 \<equiv> fmrestrict_set (set (take i xs)) N\<close>
@@ -730,25 +711,62 @@ proof -
     have H: \<open>{#Ca \<in># dom_m N0. (C = Ca \<longrightarrow> P Ca) \<and> (C \<noteq> Ca \<longrightarrow> P' Ca)#} =
        {#Ca \<in># dom_m N0. P' Ca#}\<close> for P P'
       by (rule filter_mset_cong2) auto
-    have \<open>correct_watching (M, fmrestrict_set (set (take i xs)) N, D, NE, UE, Q, W2)\<close>
+    have [simp]: \<open>N \<propto> C ! Suc 0 \<in> set (watched_l (N \<propto> C))\<close>  \<open>N \<propto> C ! 0 \<in> set (watched_l (N \<propto> C))\<close>
+      using le by (auto simp: in_set_take_conv_nth C_def intro: exI[of _ \<open>Suc 0\<close>] exI[of _ \<open>0\<close>])
+    have [dest]: \<open>L \<noteq> N \<propto> C ! 0 \<Longrightarrow> L \<noteq> N \<propto> C ! Suc 0 \<Longrightarrow> L \<in> set (watched_l (N \<propto> C)) \<Longrightarrow> False\<close> for L
+      using le by (auto simp: take_2_if hd_conv_nth split: if_splits)
+    have \<open>correct_watching_on (set (take i xs)) (M, N, D, NE, UE, Q, W2)\<close>
       using inv 
       unfolding s rewatch_clauses_prog_inv_def prod.case
       by fast
-    then have \<open>correct_watching
-     (M, fmrestrict_set (set (take (i + 1) xs)) N, D, NE, UE, Q, W2
+    then have \<open>correct_watching_on (set (take (i + 1) xs))
+     (M, N, D, NE, UE, Q, W2
       (N \<propto> (xs ! i) ! 0 := W2 (N \<propto> (xs ! i) ! 0) @ [xs ! i],
        N \<propto> (xs ! i) ! 1 := W2 (N \<propto> (xs ! i) ! 1) @ [xs ! i]))\<close>
+      using le
       unfolding N1 N0_def[symmetric] D'[symmetric] C_def[symmetric]
-      apply (auto simp: correct_watching.simps clause_to_update_def H
-        )
-
-     sorry
-    show ?thesis
-      unfolding rewatch_clauses_prog_inv_def prod.case
-       
-     sorry
+         correct_watching_on.simps clause_to_update_def get_clauses_l.simps
+      by (auto simp: correct_watching.simps clause_to_update_def H
+        correct_watching_on.simps  N0_def[symmetric] D' C_def[symmetric])
+    then show ?thesis
+      using cond unfolding rewatch_clauses_prog_inv_def prod.case s
+      by linarith
   qed
+  have inv_Suc_notin: \<open>rewatch_clauses_prog_inv (M, N, D, NE, UE, Q, \<lambda>_. []) xs
+        (i + 1, W2)\<close>
+    if 
+      \<open>S = (M, N, D, NE, UE, Q, W)\<close> and
+      \<open>rewatch_clauses_prog_pre (M, N, D, NE, UE, Q, W)\<close> and
+      \<open>xs \<in> {xs. dom_m N \<subseteq># mset xs \<and> distinct xs}\<close> and
+      inv: \<open>rewatch_clauses_prog_inv (M, N, D, NE, UE, Q, \<lambda>_. []) xs s\<close> and
+      cond: \<open>case s of (i, W) \<Rightarrow> i < length xs\<close> and
+      s: \<open>s = (i, W2)\<close> and
+      [simp]: \<open>i < length xs\<close> \<open>xs ! i \<notin># dom_m N\<close>
+    for M N D NE UE Q W xs i W2 s
+  proof -
+    define N0 where \<open>N0 \<equiv> fmrestrict_set (set (take i xs)) N\<close>
+    have \<open>fmfilter (\<lambda>a. a = xs ! i \<or> a \<in> set (take i xs)) N =
+      fmfilter (\<lambda>a. a \<in> set (take i xs)) N\<close>
+      by (rule fmfilter_cong)
+        (use in_dom_m_lookup_iff in force)
+    then have N1: \<open>fmrestrict_set (set (take (Suc i) xs)) N =  N0\<close>
+      by (auto simp: take_Suc_conv_app_nth N0_def fmfilter_alt_defs N0_def)
 
+    have \<open>correct_watching_on (set (take i xs)) (M, N, D, NE, UE, Q, W2)\<close>
+      using inv 
+      unfolding s rewatch_clauses_prog_inv_def prod.case
+      by fast
+    then have \<open>correct_watching_on (set (take (i + 1) xs))
+     (M, N, D, NE, UE, Q, W2)\<close>
+      using N1
+      unfolding N0_def[symmetric]
+         correct_watching_on.simps clause_to_update_def get_clauses_l.simps
+      by (auto simp: correct_watching.simps clause_to_update_def H
+        correct_watching_on.simps  N0_def[symmetric])
+    then show ?thesis
+      using cond unfolding rewatch_clauses_prog_inv_def prod.case s
+      by linarith
+  qed
   show ?thesis
     unfolding rewatch_clauses_prog_def rewatch_clauses_def Let_def empty_WL_def rewatch_clause_def
     apply (cases S)
@@ -762,19 +780,21 @@ proof -
         apply (refine_vcg
           WHILEIT_rule[where R= \<open>measure (\<lambda>(i::nat, W::_ literal \<Rightarrow> watched). length xs -i)\<close>])
         subgoal by auto
-        subgoal by (auto simp: rewatch_clauses_prog_inv_def correct_watching.simps clause_to_update_def)
+        subgoal by (auto simp: rewatch_clauses_prog_inv_def correct_watching_on.simps clause_to_update_def)
         subgoal by auto
         subgoal by (rule size_ge2) auto
-        subgoal for s i W2
-          explore_have
-           apply (auto simp: rewatch_clauses_prog_inv_def correct_watching.simps clause_to_update_def)
-           sorry
+        subgoal by (rule inv_Suc)
         subgoal by auto
-        subgoal by auto
+        subgoal by (rule inv_Suc_notin)
         subgoal unfolding rewatch_clauses_prog_inv_def by auto
         subgoal by auto
-        subgoal unfolding rewatch_clauses_prog_inv_def by auto
-term fmrestrict_set
+        subgoal unfolding rewatch_clauses_prog_inv_def
+          by (auto dest!: correct_watching_on_correct_watching)
+        done
+      done
+    done
+qed
+
 
 context twl_restart
 begin
