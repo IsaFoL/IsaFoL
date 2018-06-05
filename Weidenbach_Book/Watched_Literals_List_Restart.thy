@@ -1,5 +1,6 @@
 theory Watched_Literals_List_Restart
   imports Watched_Literals_List Watched_Literals_Algorithm_Restart
+      Array_UInt
 begin
 
 text \<open>
@@ -1112,7 +1113,7 @@ proof -
       apply (subst (2) UE)
       apply (rule cdcl_twl_restart_l.intros)
       subgoal by (auto simp: valid_trail_reduction_change_annot)
-      subgoal using C_dom irred apply auto sorry
+      subgoal using C_dom irred by auto
       subgoal using irred by auto
       subgoal using new_NUE .
       subgoal
@@ -1572,13 +1573,13 @@ definition remove_all_annot_true_clause_imp_inv where
            twl_list_invs S \<and>
            (\<exists>S'. (S, S') \<in> twl_st_l None \<and> twl_struct_invs S') \<and>
            get_conflict_l S = None \<and> clauses_to_update_l S = {#})\<close>
- 
+
 definition remove_all_annot_true_clause_imp_pre where
   \<open>remove_all_annot_true_clause_imp_pre L S \<longleftrightarrow>
     (twl_list_invs S \<and> twl_list_invs S \<and>
            (\<exists>S'. (S, S') \<in> twl_st_l None \<and> twl_struct_invs S') \<and>
            get_conflict_l S = None \<and> clauses_to_update_l S = {#} \<and> L \<in> lits_of_l (get_trail_l S))\<close>
- 
+
 definition remove_all_annot_true_clause_imp
   :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close>
 where
@@ -1610,7 +1611,7 @@ definition remove_one_annot_true_clause_one_imp_pre where
            twl_list_invs T \<and>
            (\<exists>S'. (T, S') \<in> twl_st_l None \<and> twl_struct_invs S') \<and>
            get_conflict_l T = None \<and> clauses_to_update_l T = {#})\<close>
- 
+
 definition remove_one_annot_true_clause_one_imp
 where
 \<open>remove_one_annot_true_clause_one_imp = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
@@ -1938,7 +1939,6 @@ proof -
     remove_all_annot_true_clause_imp_inv S xs  (a, T)\<close> for S T a xs
     unfolding remove_one_annot_true_clause_imp_inv_def remove_all_annot_true_clause_imp_inv_def
     by fast
-    thm intro_spec_refine_iff
   show ?thesis
     unfolding remove_all_annot_true_clause_imp_def U prod.case assert_bind_spec_conv
     apply (subst intro_spec_refine_iff[of _ _ Id, simplified])
@@ -2202,33 +2202,72 @@ lemma remove_one_annot_true_clause_imp_spec:
   done
 
 definition collect_valid_indices where
-  \<open>collect_valid_indices S = SPEC (\<lambda>N. mset N \<subseteq># dom_m (get_clauses_l S) \<and> distinct N)\<close>
+  \<open>collect_valid_indices S = SPEC (\<lambda>N. distinct N)\<close>
 
 
-definition mark_to_delete_clauses_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool \<times> nat \<times> 'v clauses_l \<Rightarrow> bool\<close> where
-  \<open>mark_to_delete_clauses_l_inv = (\<lambda>(M, N0, D, NE, UE, WS, Q) (brk, i, N). 
-      remove_one_annot_true_clause\<^sup>*\<^sup>* (M, N0, D, NE, UE, WS, Q) (M, N, D, NE, UE, WS, Q))\<close>
+definition mark_to_delete_clauses_l_inv
+  :: \<open>'v twl_st_l \<Rightarrow> nat list \<Rightarrow> bool \<times> nat \<times> 'v clauses_l \<times> nat list \<Rightarrow> bool\<close>
+where
+  \<open>mark_to_delete_clauses_l_inv = (\<lambda>(M, N0, D, NE, UE, WS, Q) xs0 (brk, i, N, xs).
+      remove_one_annot_true_clause\<^sup>*\<^sup>* (M, N0, D, NE, UE, WS, Q) (M, N, D, NE, UE, WS, Q) \<and>
+      (\<exists>T. ((M, N0, D, NE, UE, WS, Q), T) \<in> twl_st_l None \<and> twl_struct_invs T) \<and>
+      twl_list_invs (M, N0, D, NE, UE, WS, Q) \<and>
+      get_conflict_l (M, N0, D, NE, UE, WS, Q) = None \<and>
+      clauses_to_update_l (M, N0, D, NE, UE, WS, Q) = {#} \<and>
+      filter_mset (\<lambda>i. i \<in># dom_m N) (mset xs) = filter_mset (\<lambda>i. i \<in># dom_m N) (mset xs0) \<and>
+      distinct xs)\<close>
+
+definition mark_to_delete_clauses_l_pre
+  :: \<open>'v twl_st_l \<Rightarrow> bool\<close>
+where
+  \<open>mark_to_delete_clauses_l_pre S \<longleftrightarrow>
+   (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T \<and> twl_list_invs S)\<close>
 
 definition mark_to_delete_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
 \<open>mark_to_delete_clauses_l  = (\<lambda>(M, N0, D, NE, UE, WS, Q). do {
-    xs \<leftarrow> collect_valid_indices (M, N0, D, NE, UE, WS, Q);
-    (_, _, N) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_l_inv (M, N0, D, NE, UE, WS, Q)\<^esup>
-      (\<lambda>(brk, i, N). \<not>brk \<and> i < length xs)
-      (\<lambda>(brk, i, N). do {
-        can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (N\<propto>(xs!i)!0) (xs!i) \<notin> set M) \<and> \<not>irred N (xs!i));
-        brk \<leftarrow> SPEC(\<lambda>_. True);
-        ASSERT(i < length xs);
-        if can_del
-        then
-          RETURN (brk, i+1, fmdrop (xs!i) N)
-        else
-          RETURN (brk, i+1, N)
+    ASSERT(mark_to_delete_clauses_l_pre (M, N0, D, NE, UE, WS, Q));
+    xs0 \<leftarrow> collect_valid_indices (M, N0, D, NE, UE, WS, Q);
+    (_, _, N, xs) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_l_inv (M, N0, D, NE, UE, WS, Q) xs0\<^esup>
+      (\<lambda>(brk, i, N, xs). \<not>brk \<and> i < length xs)
+      (\<lambda>(brk, i, N, xs). do {
+        if(xs!i \<notin># dom_m N) then RETURN (brk, i, N, delete_index_and_swap xs i)
+        else do {
+          ASSERT(0 < length (N\<propto>(xs!i)));
+          can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (N\<propto>(xs!i)!0) (xs!i) \<notin> set M) \<and> \<not>irred N (xs!i));
+          brk \<leftarrow> SPEC(\<lambda>_. True);
+          ASSERT(i < length xs);
+          if can_del
+          then
+            RETURN (brk, i+1, fmdrop (xs!i) N, xs)
+          else
+            RETURN (brk, i+1, N, xs)
+       }
       })
-      (False, 0, N0);
+      (False, 0, N0, xs0);
     RETURN (M, N, D, NE, UE, WS, Q)
   })\<close>
 
+(* TODO Move *)
+lemma (in -) distinct_count_msetD:
+  \<open>distinct xs \<Longrightarrow> count (mset xs) a = (if a \<in> set xs then 1 else 0)\<close>
+  unfolding distinct_count_atmost_1 by auto
 
+lemma (in -) filter_mset_and_implied:
+  \<open>(\<And>ia. ia \<in># xs \<Longrightarrow> Q ia \<Longrightarrow> P ia) \<Longrightarrow> {#ia \<in># xs. P ia \<and> Q ia#} = {#ia \<in># xs. Q ia#}\<close>
+  by (rule filter_mset_cong2) auto
+
+lemma filter_mset_eq_add_msetD: \<open>filter_mset P xs = add_mset a A \<Longrightarrow> a \<in># xs \<and> P a\<close>
+  by (induction xs arbitrary: A)
+    (auto split: if_splits simp: add_mset_eq_add_mset)
+lemma filter_mset_eq_add_msetD': \<open>add_mset a A  = filter_mset P xs \<Longrightarrow> a \<in># xs \<and> P a\<close>
+  using filter_mset_eq_add_msetD[of P xs a A] by auto
+(* End Move *)
+
+definition mark_to_delete_clauses_l_post where
+  \<open>mark_to_delete_clauses_l_post S T \<longleftrightarrow>
+     (\<exists>S'. (S, S') \<in> twl_st_l None \<and> remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<and>
+       twl_list_invs S \<and> twl_struct_invs S' \<and> get_conflict_l S = None \<and>
+       clauses_to_update_l S = {#})\<close>
 
 lemma mark_to_delete_clauses_l_spec:
   assumes
@@ -2242,31 +2281,38 @@ proof -
   obtain M N D NE UE WS Q where S: \<open>S = (M, N, D, NE, UE, WS, Q)\<close>
     by (cases S)
   define I where
-    \<open>I xs \<equiv> (\<lambda>(brk :: bool, i :: nat, N).
-           remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, N, D, NE, UE, WS, Q) \<and>
-            (\<forall>j\<ge>i. j < length xs \<longrightarrow> xs!j \<in># dom_m N))\<close> for xs
+    \<open>I (xs :: nat list) \<equiv> (\<lambda>(brk :: bool, i :: nat, N, xs :: nat list).
+           remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, N, D, NE, UE, WS, Q))\<close> for xs
 
-  have I_suc: \<open>I xs (brk', i + 1, fmdrop (xs ! i) N')\<close> and
-       I'_Suc: \<open>mark_to_delete_clauses_l_inv (M, N, D, NE, UE, WS, Q) (brk', i + 1, fmdrop (xs ! i) N')\<close>
+  have I_suc: \<open>I xs0 (brk', i + 1, fmdrop (xs ! i) N', xs)\<close> and
+       I'_Suc: \<open>mark_to_delete_clauses_l_inv (M, N, D, NE, UE, WS, Q) xs0
+            (brk', i + 1, fmdrop (xs ! i) N', xs)\<close>
     if
-      xs: \<open>mset xs \<subseteq># dom_m (get_clauses_l (M, N, D, NE, UE, WS, Q)) \<and> distinct xs\<close> and
-      I: \<open>I xs s\<close> and
+      xs: \<open>distinct xs0\<close> and
+      inv: \<open>mark_to_delete_clauses_l_inv (M, N, D, NE, UE, WS, Q) xs0 s\<close> and
+      I: \<open>I xs0 s\<close> and
       \<open>case s of (brk, i, N) \<Rightarrow> \<not> brk \<and> i < length xs\<close> and
-      s: \<open>s = (brk, sbrk)\<close> \<open>sbrk = (i, N')\<close> and
+      s: \<open>s = (brk, sbrk)\<close> \<open>sbrk = (i, sN')\<close> \<open>sN' = (N', xs)\<close> and
       can_del':
         \<open>can_del \<longrightarrow> Propagated (N' \<propto> (xs ! i) ! 0) (xs ! i) \<notin> set M \<and> \<not> irred N' (xs ! i)\<close> and
       i_le: \<open>i < length xs\<close> and
-      can_del: \<open>can_del\<close>
-    for s brk sbrk i N' can_del brk' xs
+      can_del: \<open>can_del\<close> and
+      in_dom: \<open> \<not> xs ! i \<notin># dom_m N'\<close>
+    for s brk sbrk i N' can_del brk' xs xs0 sN'
   proof -
     have st:
-      \<open>s = (brk, i, N')\<close>
-      \<open>sbrk = (i, N')\<close>
+      \<open>s = (brk, i, N', xs)\<close>
+      \<open>sbrk = (i, N', xs)\<close>
       using s by auto
     have
-      rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, N', D, NE, UE, WS, Q)\<close> and
-      in_dom: \<open>\<And>j. j \<ge> i \<Longrightarrow> j < length xs \<Longrightarrow> xs ! j \<in># dom_m N'\<close>
+      rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, N', D, NE, UE, WS, Q)\<close>
       using I unfolding I_def st prod.case by blast+
+    have
+      incl: \<open>filter_mset (\<lambda>i. i \<in># dom_m N') (mset xs) = filter_mset (\<lambda>i. i \<in># dom_m N') (mset xs0)\<close> and
+      dist: \<open>distinct xs\<close>
+      using inv unfolding mark_to_delete_clauses_l_inv_def prod.case st
+      by fast+
+
     obtain V where
       SU: \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* S (M, N', D, NE, UE, WS, Q)\<close> and
       UV: \<open>((M, N', D, NE, UE, WS, Q), V) \<in> twl_st_l None\<close> and
@@ -2277,8 +2323,9 @@ proof -
       by auto
     have list_invs_U': \<open>twl_list_invs (M, N', D, NE, UE, WS, Q)\<close>
       using SU list_invs rtranclp_cdcl_twl_restart_l_list_invs by blast
-    then have \<open>xs ! i > 0\<close>
-      using in_dom[of i] i_le by (auto simp: twl_list_invs_def dest!: multi_member_split)
+    have \<open>xs ! i > 0\<close>
+      apply (rule ccontr)
+      using in_dom list_invs_U' unfolding twl_list_invs_def by (auto dest: multi_member_split)
     have \<open>N' \<propto> (xs ! i) ! 0 \<in> lits_of_l M\<close>
        if \<open>Propagated (N' \<propto> (xs ! i) ! 0) (xs ! i) \<in> set M\<close>
       using that by (auto dest!: split_list)
@@ -2297,44 +2344,124 @@ proof -
       done
     then have star: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, fmdrop (xs ! i) N', D, NE, UE, WS, Q)\<close>
       using rem unfolding S[symmetric] st by simp
-    moreover have \<open>j \<ge> i+1 \<Longrightarrow> j < length xs \<Longrightarrow> xs ! j \<in># dom_m (fmdrop (xs ! i) N')\<close> for j
-      using in_dom[of j] distinct_mset_dom[of N'] xs i_le
-      by (auto simp: distinct_mset_remove1_All nth_eq_iff_index_eq)
-    ultimately show \<open>I xs (brk', i + 1, fmdrop (xs ! i) N')\<close>
+    then show \<open>I xs0 (brk', i + 1, fmdrop (xs ! i) N', xs)\<close>
       unfolding I_def prod.case
       by blast
-    show \<open>mark_to_delete_clauses_l_inv (M, N, D, NE, UE, WS, Q) (brk', i + 1, fmdrop (xs ! i) N')\<close>
-      using star
-      unfolding mark_to_delete_clauses_l_inv_def S
-      by fast
+    have [simp]: \<open>xs ! i \<in> set xs0\<close>
+      using incl in_dom i_le
+      multi_member_split[of \<open>xs!i\<close> \<open>mset xs\<close>]
+      by (cases \<open>xs!i \<in># mset xs0\<close>) (auto dest!: filter_mset_eq_add_msetD')
+    have [simp]: \<open>xs ! i \<notin># A \<Longrightarrow>  ia \<in># A \<Longrightarrow> ia \<noteq> xs ! i\<close> for i ia A
+      by auto
+    show \<open>mark_to_delete_clauses_l_inv (M, N, D, NE, UE, WS, Q) xs0 (brk', i + 1, fmdrop (xs ! i) N', xs)\<close>
+      using star multi_member_split[OF in_dom[simplified]] incl dist
+        distinct_mset_dom[of N'] i_le list_invs list_invs confl upd
+        ST struct_invs
+      unfolding mark_to_delete_clauses_l_inv_def S prod.case
+      by (cases T) (force simp: filter_union_or_split filter_eq_replicate_mset xs
+          distinct_count_msetD filter_mset_and_implied)
   qed
-  have I0: \<open>I xs (False, 0, N)\<close>
-    if \<open>mset xs \<subseteq># dom_m (get_clauses_l (M, N, D, NE, UE, WS, Q)) \<and> distinct xs\<close>
+  have I0: \<open>I xs (False, 0, N, xs)\<close>
+    if \<open>distinct xs\<close>
     for xs
   proof -
-    have \<open>\<forall>j\<ge>0. j < length xs \<longrightarrow> xs ! j \<in># dom_m N\<close>
-      using mset_subset_eqD that by (force simp: S)
-    then show ?thesis
+    show ?thesis
       using that
       unfolding I_def prod.case S[symmetric]
       by auto
   qed
-
+  have
+    I'_notin_upd: \<open>mark_to_delete_clauses_l_inv (M, N, D, NE, UE, WS, Q) xs0
+       (a, aa, ab, delete_index_and_swap xs aa)\<close> (is ?I') and
+    I_notin_upd: \<open>I xs0 (a, aa, ab, delete_index_and_swap xs aa)\<close> (is ?I)
+    if
+      xs: \<open>xs0 \<in> Collect distinct\<close> and
+      inv: \<open>mark_to_delete_clauses_l_inv (M, N, D, NE, UE, WS, Q) xs0 s\<close> and
+      I: \<open>I xs0 s\<close> and
+      cond: \<open>case s of (brk, i, N, xs) \<Rightarrow> \<not> brk \<and> i < length xs\<close> and
+      s:
+        \<open>s = (a, b)\<close>
+        \<open>b = (aa, ba)\<close>
+        \<open>ba = (ab, xs)\<close> and
+      [simp]: \<open>xs ! aa \<notin># dom_m ab\<close>
+    for s a b aa ba ab xs xs0
+  proof -
+    have st:
+      \<open>s = (a, aa, ab, xs)\<close>
+      using s by auto
+    have
+      rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, ab, D, NE, UE, WS, Q)\<close>
+      using I unfolding I_def st prod.case by blast+
+    have
+      incl: \<open>filter_mset (\<lambda>i. i \<in># dom_m ab) (mset xs) = filter_mset (\<lambda>i. i \<in># dom_m ab) (mset xs0)\<close> and
+      dist: \<open>distinct xs\<close>
+      using inv unfolding mark_to_delete_clauses_l_inv_def prod.case st
+      by fast+
+    have [simp]: \<open>xs \<noteq> []\<close> \<open>aa < length xs\<close>
+      using cond unfolding s by auto
+    show ?I'
+      using rem incl list_invs confl upd ST struct_invs
+      unfolding mark_to_delete_clauses_l_inv_def prod.case S
+      by (cases T) (force simp: dist mset_butlast_remove1_mset last_list_update_to_last
+          mset_update)
+    show ?I
+      using rem unfolding I_def prod.case .
+  qed
+  have length_ge0: \<open>0 < length (ab \<propto> (xs ! aa))\<close>
+    if
+      \<open>xs0 \<in> Collect distinct\<close> and
+      inv: \<open>mark_to_delete_clauses_l_inv (M, N, D, NE, UE, WS, Q) xs0 s\<close> and
+      I: \<open>I xs0 s\<close> and
+      cond: \<open>case s of (brk, i, N, xs) \<Rightarrow> \<not> brk \<and> i < length xs\<close> and
+      st:
+        \<open>s = (a, b)\<close>
+        \<open>b = (aa, ba)\<close>
+        \<open>ba = (ab, xs)\<close> and
+      xs: \<open>\<not> xs ! aa \<notin># dom_m ab\<close>
+    for s a b aa ba ab xs0 xs
+  proof -
+    have
+      rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, ab, D, NE, UE, WS, Q)\<close>
+      using I unfolding I_def st prod.case by blast+
+    then obtain T' where
+      T': \<open>((M, ab, D, NE, UE, WS, Q), T') \<in> twl_st_l None\<close> and
+      \<open>twl_struct_invs T'\<close>
+      using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[OF rem list_invs confl upd
+       ST struct_invs] by blast
+    then have \<open>Multiset.Ball (get_clauses T') struct_wf_twl_cls\<close>
+      unfolding twl_struct_invs_def twl_st_inv_alt_def
+      by fast
+    then have \<open>\<forall>x\<in>#ran_m ab. 2 \<le> length (fst x)\<close>
+      using xs T' by (auto simp: twl_st_l S)
+    then show ?thesis
+      using xs by (auto simp: ran_m_def)
+  qed
+  have mark0: \<open>mark_to_delete_clauses_l_pre (M, N, D, NE, UE, WS, Q)\<close>
+    using ST list_invs struct_invs unfolding S[symmetric] mark_to_delete_clauses_l_pre_def
+    by blast
   show ?thesis
-    unfolding mark_to_delete_clauses_l_def collect_valid_indices_def S prod.case intro_spec_iff
+    unfolding mark_to_delete_clauses_l_def collect_valid_indices_def S prod.case
+    apply (rule ASSERT_refine_left)
+     apply (rule mark0)
+    apply (subst intro_spec_iff)
     apply (intro ballI)
-    subgoal for xs
+    subgoal for xs0
       apply (refine_vcg
-        WHILEIT_rule_stronger_inv[where I'=\<open>I xs\<close> and
-          R= \<open>measure (\<lambda>(brk :: bool, i :: nat, N). Suc (length xs) - i)\<close>])
+        WHILEIT_rule_stronger_inv[where I'=\<open>I xs0\<close> and
+          R= \<open>measure (\<lambda>(brk :: bool, i :: nat, N, xs). Suc (length xs) - i)\<close>])
       subgoal by auto
-      subgoal unfolding mark_to_delete_clauses_l_inv_def by auto
+      subgoal using list_invs confl upd ST struct_invs unfolding mark_to_delete_clauses_l_inv_def
+          by (cases T) (force simp: S)
       subgoal by (rule I0) auto
+      subgoal by (rule I'_notin_upd)
+      subgoal by (rule I_notin_upd)
+      subgoal by auto
+      subgoal by (rule length_ge0)
       subgoal by auto
       subgoal by (rule I'_Suc) auto
       subgoal by (rule I_suc) auto
       subgoal by auto
-      subgoal unfolding  mark_to_delete_clauses_l_inv_def by auto
+      subgoal unfolding mark_to_delete_clauses_l_inv_def by force
       subgoal unfolding I_def mark_to_delete_clauses_l_inv_def by auto
       subgoal by auto
       subgoal unfolding S I_def by auto
@@ -2345,7 +2472,10 @@ qed
 definition cdcl_twl_restart_l_prog where
 \<open>cdcl_twl_restart_l_prog S = do {
     S \<leftarrow> remove_one_annot_true_clause_imp S;
-    mark_to_delete_clauses_l S
+    ASSERT(mark_to_delete_clauses_l_pre S);
+    T \<leftarrow> mark_to_delete_clauses_l S;
+    ASSERT (mark_to_delete_clauses_l_post S T);
+    RETURN T
   }\<close>
 
 
@@ -2395,7 +2525,9 @@ lemma cdcl_twl_restart_l_prog_spec:
   shows \<open>cdcl_twl_restart_l_prog S \<le> \<Down> Id (SPEC(remove_one_annot_true_clause\<^sup>*\<^sup>* S))\<close>
 proof -
   have mark_to_delete_clauses_l:
-    \<open>mark_to_delete_clauses_l x \<le> SPEC (remove_one_annot_true_clause\<^sup>*\<^sup>* U)\<close>
+    \<open>mark_to_delete_clauses_l x \<le> SPEC (\<lambda>T. ASSERT (mark_to_delete_clauses_l_post U T) \<bind>
+             (\<lambda>_. RETURN T)
+             \<le> SPEC (remove_one_annot_true_clause\<^sup>*\<^sup>* U))\<close>
     if
       Ux: \<open>(x, U) \<in> Id\<close> and
       U: \<open>U \<in> Collect (remove_one_annot_true_clause\<^sup>*\<^sup>* S)\<close>
@@ -2419,23 +2551,46 @@ proof -
          rtranclp_remove_one_annot_true_clause_clauses_to_update_l[OF SU] confl upd
       by auto
     have list_U: \<open>twl_list_invs U\<close>
-       using SU' list_invs rtranclp_cdcl_twl_restart_l_list_invs by blast
+      using SU' list_invs rtranclp_cdcl_twl_restart_l_list_invs by blast
+     have [simp]: 
+      \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* U V' \<Longrightarrow>  mark_to_delete_clauses_l_post U V'\<close> for V'
+      unfolding mark_to_delete_clauses_l_post_def
+      using UV struct_invs_V list_U confl_U upd_U
+      by blast
     show ?thesis
       unfolding x
       by (rule mark_to_delete_clauses_l_spec[OF UV list_U struct_invs_V confl_U upd_U,
-         THEN order_trans]) simp
+         THEN order_trans])
+        (auto intro: RES_refine)
   qed
   have 1: \<open>SPEC (remove_one_annot_true_clause\<^sup>*\<^sup>* S) = do {
        T \<leftarrow> SPEC (remove_one_annot_true_clause\<^sup>*\<^sup>* S);
        SPEC (remove_one_annot_true_clause\<^sup>*\<^sup>* T)
     }\<close>
   by (auto simp: RES_RES_RETURN_RES)
-
+  have H: \<open>mark_to_delete_clauses_l_pre T\<close>
+    if 
+      \<open>(T, U) \<in> Id\<close> and
+      \<open>U \<in> Collect (remove_one_annot_true_clause\<^sup>*\<^sup>* S)\<close>
+    for T U
+  proof -
+    show ?thesis
+      using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[of S U,
+          OF _ list_invs confl upd ST struct_invs] that list_invs
+      unfolding mark_to_delete_clauses_l_pre_def
+      by (force intro: rtranclp_cdcl_twl_restart_l_list_invs)
+  qed
   show ?thesis
     apply (subst 1)
     unfolding cdcl_twl_restart_l_prog_def
-    by (refine_vcg mark_to_delete_clauses_l
+    apply (refine_vcg mark_to_delete_clauses_l
       remove_one_annot_true_clause_imp_spec[OF ST list_invs struct_invs confl upd])
+    subgoal by (rule H)
+    apply assumption
+    subgoal by auto
+    subgoal by (auto simp: assert_bind_spec_conv)
+    subgoal by auto
+    done
 qed
 
 lemma remove_one_annot_true_clause_cdcl_twl_restart_l_spec:

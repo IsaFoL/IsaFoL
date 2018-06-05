@@ -456,41 +456,59 @@ proof -
 qed
 
 definition collect_valid_indices_wl where
-  \<open>collect_valid_indices_wl S = SPEC (\<lambda>N. mset N \<subseteq># dom_m (get_clauses_wl S) \<and> distinct N)\<close>
+  \<open>collect_valid_indices_wl S = SPEC (\<lambda>N. distinct N)\<close>
 
-definition mark_to_delete_clauses_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> bool \<times> nat \<times> 'v clauses_l \<Rightarrow> bool\<close> where
-  \<open>mark_to_delete_clauses_wl_inv = (\<lambda>S (brk, i, N). 
-     \<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_inv T (brk, i, N))\<close>
+definition mark_to_delete_clauses_wl_inv
+  :: \<open>'v twl_st_wl \<Rightarrow> nat list \<Rightarrow> bool \<times> nat \<times> 'v clauses_l \<times> nat list \<Rightarrow> bool\<close>
+where
+  \<open>mark_to_delete_clauses_wl_inv = (\<lambda>S xs0 (brk, i, N, xs).
+     \<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_inv T xs0 (brk, i, N, xs) \<and>
+      partial_correct_watching S)\<close>
+
+definition mark_to_delete_clauses_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close>
+where
+  \<open>mark_to_delete_clauses_wl_pre S \<longleftrightarrow>
+   (\<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_pre T)\<close>
 
 definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>mark_to_delete_clauses_wl  = (\<lambda>(M, N, D, NE, UE, Q, W). do {
-    xs \<leftarrow> collect_valid_indices_wl (M, N, D, NE, UE, Q, W);
-    (_, _, N) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_inv (M, N, D, NE, UE, Q, W)\<^esup>
-      (\<lambda>(brk, i, N). \<not>brk \<and> i < length xs)
-      (\<lambda>(brk, i, N). do {
-        can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (N\<propto>(xs!i)!0) (xs!i) \<notin> set M) \<and> \<not>irred N (xs!i));
-        brk \<leftarrow> SPEC(\<lambda>_. True);
-        ASSERT(i < length xs);
-        if can_del
-        then
-          RETURN (brk, i+1, fmdrop (xs!i) N)
-        else
-          RETURN (brk, i+1, N)
+    ASSERT(mark_to_delete_clauses_wl_pre (M, N, D, NE, UE, Q, W));
+    xs0 \<leftarrow> collect_valid_indices_wl (M, N, D, NE, UE, Q, W);
+    (_, _, N, xs) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_inv (M, N, D, NE, UE, Q, W) xs0\<^esup>
+      (\<lambda>(brk, i, N, xs). \<not>brk \<and> i < length xs)
+      (\<lambda>(brk, i, N, xs). do {
+        if(xs!i \<notin># dom_m N) then RETURN (brk, i, N, delete_index_and_swap xs i)
+        else do {
+          ASSERT(0 < length (N\<propto>(xs!i)));
+          can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (N\<propto>(xs!i)!0) (xs!i) \<notin> set M) \<and> \<not>irred N (xs!i));
+          brk \<leftarrow> SPEC(\<lambda>_. True);
+          ASSERT(i < length xs);
+          if can_del
+          then
+            RETURN (brk, i+1, fmdrop (xs!i) N, xs)
+          else
+            RETURN (brk, i+1, N, xs)
+       }
       })
-      (False, 0, N);
+      (False, 0, N, xs0);
     RETURN (M, N, D, NE, UE, Q, W)
   })\<close>
 
 
 lemma mark_to_delete_clauses_wl_mark_to_delete_clauses_l:
   \<open>(mark_to_delete_clauses_wl, mark_to_delete_clauses_l)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and>  partial_correct_watching S} \<rightarrow>\<^sub>f
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> partial_correct_watching S} \<rightarrow>\<^sub>f
       \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>collect_valid_indices_wl S  \<le> \<Down> Id  (collect_valid_indices S')\<close>
-    if \<open>(S, S') \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and>  partial_correct_watching S}\<close>
+    if \<open>(S, S') \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and>  partial_correct_watching S \<and>
+           mark_to_delete_clauses_wl_pre S}\<close>
     for S S'
     using that by (auto simp: collect_valid_indices_wl_def collect_valid_indices_def)
+  have if_inv: \<open>(if A then RETURN P else RETURN Q) = RETURN (if A then P else Q)\<close> for A P Q
+    by auto
+  have Ball_range[simp]: \<open>(\<forall>x\<in>range f \<union> range g. P x)\<longleftrightarrow>(\<forall>x. P (f x) \<and> P (g x))\<close> for P f g
+    by auto
   show ?thesis
     unfolding mark_to_delete_clauses_wl_def mark_to_delete_clauses_l_def
       uncurry_def
@@ -499,19 +517,23 @@ proof -
     apply (cases x; cases y)
     subgoal for M N D NE UE Q W M' N' D' NE' UE' WS' Q'
     apply (refine_vcg
-      WHILEIT_refine[where
-         R = \<open>{((brk' :: bool, i' :: nat, N'), (brk'', i'', N'')).
-             brk' = brk'' \<and> i' = i'' \<and> N' = N'' \<and>
+      WHILEIT_refine_with_post[where
+         R = \<open>{((brk' :: bool, i' :: nat, N', xs), (brk'', i'', N'', xs')).
+             brk' = brk'' \<and> i' = i'' \<and> N' = N'' \<and> xs = xs' \<and>
              ((M, N', D, NE, UE, Q, W), (M, N'', D, NE, UE, WS', Q')) \<in> state_wl_l None \<and>
              partial_correct_watching (M, N', D, NE, UE, Q, W)}\<close>]
       remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
+    subgoal unfolding mark_to_delete_clauses_wl_pre_def by blast
     subgoal by auto
     subgoal by (auto simp: state_wl_l_def)
     subgoal unfolding mark_to_delete_clauses_wl_inv_def by fast
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)
     subgoal by auto
+    subgoal by (force simp: state_wl_l_def)
+    subgoal by (force simp: state_wl_l_def)
     subgoal by auto
+    subgoal by (force simp: state_wl_l_def)
     subgoal by auto
     subgoal by (force simp: state_wl_l_def partial_correct_watching_fmdrop)
     subgoal by auto
@@ -521,23 +543,59 @@ proof -
   done
 qed
 
+text \<open>
+  This is only a specification and must be implemented. There are two ways to do so:
+  \<^enum> clean the watch lists and then iterate over all clauses to rebuild them.
+  \<^enum> iterate over the watch list and check whether the clause index is in the domain or not.
+
+  It is not clear which is faster (but option 1 requires only 1 memory access per clause instead of
+  two). The first option is implemented in SPASS-SAT. The latter version (partly) in cadical.
+\<close>
+definition rewatch_clauses :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>rewatch_clauses = (\<lambda>(M, N, D, NE, UE, Q, W). SPEC(\<lambda>(M', N', D', NE', UE', Q', W').
+     (M, N, D, NE, UE, Q) = (M', N', D', NE', UE', Q') \<and>
+    correct_watching (M, N', D, NE, UE, Q, W')))\<close>
+
+definition mark_to_delete_clauses_wl_post where
+  \<open>mark_to_delete_clauses_wl_post S T \<longleftrightarrow>
+     (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
+       mark_to_delete_clauses_l_post S' T' \<and> partial_correct_watching S  \<and>
+       partial_correct_watching T)\<close>
 
 definition cdcl_twl_restart_wl_prog :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>cdcl_twl_restart_wl_prog S = do {
     S \<leftarrow> remove_one_annot_true_clause_imp_wl S;
-    mark_to_delete_clauses_wl S
+    ASSERT(mark_to_delete_clauses_wl_pre S);
+    T \<leftarrow> mark_to_delete_clauses_wl S;
+    ASSERT(mark_to_delete_clauses_wl_post S T);
+    rewatch_clauses T
   }\<close>
+
+lemma cdcl_twl_restart_l_prog_alt_def: \<open>cdcl_twl_restart_l_prog S = do {
+    S \<leftarrow> remove_one_annot_true_clause_imp S;
+    ASSERT(mark_to_delete_clauses_l_pre S);
+    T \<leftarrow> mark_to_delete_clauses_l S;
+    ASSERT (mark_to_delete_clauses_l_post S T);
+    let T = T;
+    RETURN T
+  }\<close>
+  unfolding cdcl_twl_restart_l_prog_def
+  by auto
 
 lemma cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog:
   \<open>(cdcl_twl_restart_wl_prog, cdcl_twl_restart_l_prog)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and>  partial_correct_watching S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<rangle>nres_rel\<close>
+    \<in> {(S, T). (S, T) \<in> state_wl_l None \<and>  partial_correct_watching S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
   unfolding cdcl_twl_restart_wl_prog_def cdcl_twl_restart_l_prog_def
-  by (intro frefI nres_relI)
-    (refine_vcg
+    rewatch_clauses_def
+  apply (intro frefI nres_relI)
+  apply (refine_vcg
      mark_to_delete_clauses_wl_mark_to_delete_clauses_l[THEN fref_to_Down]
      remove_one_annot_true_clause_imp_wl_remove_one_annot_true_clause_imp[THEN fref_to_Down])
-
+  subgoal unfolding mark_to_delete_clauses_wl_pre_def by blast
+  subgoal unfolding mark_to_delete_clauses_wl_post_def by fast
+  subgoal by (auto simp: state_wl_l_def)
+  done
 
 definition (in -) restart_abs_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_wl_pre S brk \<longleftrightarrow>
@@ -555,23 +613,11 @@ lemma [twl_st_l, simp]:
    (auto simp: get_learned_clss_l_def get_learned_clss_wl_def)
 (* End Move *)
 
-text \<open>
-  This is only a specification and must be implemented. There are two ways to do so:
-  \<^enum> clean the watch lists and then iterate over all clauses to rebuild them.
-  \<^enum> iterate over the watch list and check whether the clause index is in the domain or not.
-
-  It is not clear which is faster (but option 1 requires only 1 memory access per clause instead of
-  two). The first option is implemented in SPASS. The latter version (partly) in cadical.
-\<close>
-definition rewatch_clauses :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>rewatch_clauses = (\<lambda>(M, N, D, NE, UE, Q, W). SPEC(\<lambda>(M', N', D', NE', UE', Q', W').
-     (M, N, D, NE, UE, Q) = (M', N', D', NE', UE', Q') \<and>
-    correct_watching (M, N', D, NE, UE, Q, W')))\<close>
 
 definition empty_WL :: \<open>('v literal \<Rightarrow> watched) \<Rightarrow> ('v literal \<Rightarrow> watched)\<close>  where
   \<open>empty_WL W = (\<lambda>_. [])\<close>
 
-definition rewatch_clause 
+definition rewatch_clause
   :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> ('v literal \<Rightarrow> watched) \<Rightarrow> ('v literal \<Rightarrow> watched) nres\<close>
 where
   \<open>rewatch_clause N C W = do {
@@ -592,14 +638,14 @@ lemma fmrestrict_set_dom_m_full:
   shows \<open>fmrestrict_set xs N = N\<close>
   apply (rule fmlookup_inject[THEN iffD1])
   using assms in_dom_m_lookup_iff by (fastforce intro!: ext)
-  
+
 lemma correct_watching_on_correct_watching:
   assumes
     \<open>correct_watching_on xs (M, N, D, NE, UE, Q, W)\<close> and
     incl: \<open>set_mset (dom_m N) \<subseteq> xs\<close>
   shows \<open>correct_watching (M, N, D, NE, UE, Q, W)\<close>
 proof -
-  have \<open>xs \<inter> set_mset (dom_m N) = set_mset (dom_m N)\<close> 
+  have \<open>xs \<inter> set_mset (dom_m N) = set_mset (dom_m N)\<close>
     using incl by (auto simp: dom_m_fmresctrict_set')
   then have 1: \<open>dom_m (fmrestrict_set xs N) = dom_m N\<close>
     using incl distinct_mset_dom[of N]
@@ -646,7 +692,7 @@ lemma rewatch_clauses_prog_rewatch_clauses:
   assumes
     ST: \<open>(S, T) \<in> state_wl_l None\<close> and
     TU: \<open>(T, U) \<in> twl_st_l None\<close> and
-    struct_invs: \<open>twl_struct_invs U\<close> andfir
+    struct_invs: \<open>twl_struct_invs U\<close> and
     \<open>twl_list_invs T\<close>
     \<open>partial_correct_watching S\<close>
   shows
@@ -655,7 +701,7 @@ proof -
   have pre: \<open>rewatch_clauses_prog_pre S\<close>
     using assms unfolding rewatch_clauses_prog_pre_def by blast
   have size_ge2: \<open>1 < length (N \<propto> (xs ! a))\<close>
-    if 
+    if
       N: \<open>N = get_clauses_wl S\<close> and
       dom: \<open>xs ! a \<in># dom_m N\<close>
     for N xs a
@@ -677,7 +723,7 @@ proof -
         (i + 1, W2
           (N \<propto> (xs ! i) ! 0 := W2 (N \<propto> (xs ! i) ! 0) @ [xs ! i],
           N \<propto> (xs ! i) ! 1 := W2 (N \<propto> (xs ! i) ! 1) @ [xs ! i]))\<close>
-    if 
+    if
       \<open>S = (M, N, D, NE, UE, Q, W)\<close> and
       \<open>rewatch_clauses_prog_pre (M, N, D, NE, UE, Q, W)\<close> and
       \<open>xs \<in> {xs. dom_m N \<subseteq># mset xs \<and> distinct xs}\<close> and
@@ -697,7 +743,7 @@ proof -
       by auto
     have N': \<open>N = fmupd C D' N'\<close>
       unfolding N'_def C_def D'_def
-      by (smt fmap_ext fmlookup_drop fmupd_lookup in_dom_m_lookup_iff option.collapse that(8)) 
+      by (smt fmap_ext fmlookup_drop fmupd_lookup in_dom_m_lookup_iff option.collapse that(8))
     have [simp]: \<open>xs ! i \<notin> set (take i xs)\<close>
       by (metis (no_types, lifting) in_set_conv_iff less_not_refl3 mem_Collect_eq
          nth_eq_iff_index_eq that(3) that(7))
@@ -721,7 +767,7 @@ proof -
     have [dest]: \<open>L \<noteq> N \<propto> C ! 0 \<Longrightarrow> L \<noteq> N \<propto> C ! Suc 0 \<Longrightarrow> L \<in> set (watched_l (N \<propto> C)) \<Longrightarrow> False\<close> for L
       using le by (auto simp: take_2_if hd_conv_nth split: if_splits)
     have \<open>correct_watching_on (set (take i xs)) (M, N, D, NE, UE, Q, W2)\<close>
-      using inv 
+      using inv
       unfolding s rewatch_clauses_prog_inv_def prod.case
       by fast
     then have \<open>correct_watching_on (set (take (i + 1) xs))
@@ -739,7 +785,7 @@ proof -
   qed
   have inv_Suc_notin: \<open>rewatch_clauses_prog_inv (M, N, D, NE, UE, Q, \<lambda>_. []) xs
         (i + 1, W2)\<close>
-    if 
+    if
       \<open>S = (M, N, D, NE, UE, Q, W)\<close> and
       \<open>rewatch_clauses_prog_pre (M, N, D, NE, UE, Q, W)\<close> and
       \<open>xs \<in> {xs. dom_m N \<subseteq># mset xs \<and> distinct xs}\<close> and
@@ -758,7 +804,7 @@ proof -
       by (auto simp: take_Suc_conv_app_nth N0_def fmfilter_alt_defs N0_def)
 
     have \<open>correct_watching_on (set (take i xs)) (M, N, D, NE, UE, Q, W2)\<close>
-      using inv 
+      using inv
       unfolding s rewatch_clauses_prog_inv_def prod.case
       by fast
     then have \<open>correct_watching_on (set (take (i + 1) xs))
@@ -779,7 +825,7 @@ proof -
     apply (intro ASSERT_leI)
     subgoal using pre by fast
     subgoal for M N D NE UE Q W
-      unfolding ec_iff
+      unfolding intro_spec_iff
       apply (intro ballI)
       subgoal for xs
         apply (refine_vcg
@@ -813,8 +859,7 @@ definition restart_prog_wl :: "'v twl_st_wl \<Rightarrow> nat \<Rightarrow> bool
      b \<leftarrow> restart_required_wl S n;
      if b \<and> \<not>brk then do {
        T \<leftarrow> cdcl_twl_restart_wl_prog S;
-       U \<leftarrow> rewatch_clauses T;
-       RETURN (U, n + 1)
+       RETURN (T, n + 1)
      }
      else
        RETURN (S, n)

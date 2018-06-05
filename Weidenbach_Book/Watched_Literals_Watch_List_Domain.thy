@@ -428,19 +428,18 @@ proof -
     using H unfolding 1 2 3 .
 qed
 
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C \<Longrightarrow> L \<in># C \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def
+  by (auto dest!: multi_member_split simp: all_lits_of_m_add_mset)
+
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
   assumes
     N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset xs)\<close> and
     i_xs: \<open>i < length xs\<close>
   shows \<open>xs ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-proof -
-  have \<open>xs ! i \<in># mset xs\<close>
-    using i_xs by auto
-  then have \<open>xs ! i \<in> set_mset (all_lits_of_m (mset xs))\<close>
-    by (auto simp: in_all_lits_of_m_ain_atms_of_iff)
-  then show ?thesis
-    using N1 unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def by blast
-qed
+  using literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>mset xs\<close> \<open>xs!i\<close>] assms by auto
 
 lemma in_literals_are_in_\<L>\<^sub>i\<^sub>n_in_D\<^sub>0:
   assumes \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close> and \<open>L \<in># D\<close>
@@ -1111,6 +1110,17 @@ proof -
     done
 qed
 
+lemma unit_propagation_outer_loop_wl_D_spec':
+  shows \<open>(unit_propagation_outer_loop_wl_D, unit_propagation_outer_loop_wl) \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} \<rightarrow>\<^sub>f
+     \<langle>{(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  subgoal for x y
+    apply (rule order_trans)
+    apply (rule unit_propagation_outer_loop_wl_D_spec[of x])
+     apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
+    done
+  done
+
 definition (in isasat_input_ops) skip_and_resolve_loop_wl_D_inv where
   \<open>skip_and_resolve_loop_wl_D_inv S\<^sub>0 brk S \<equiv>
       skip_and_resolve_loop_wl_inv S\<^sub>0 brk S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
@@ -1694,6 +1704,18 @@ proof -
     done
 qed
 
+theorem cdcl_twl_o_prog_wl_D_spec':
+  shows
+  \<open>(cdcl_twl_o_prog_wl_D, cdcl_twl_o_prog_wl) \<in>
+    {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+    \<langle>bool_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close>
+  apply (intro frefI nres_relI)
+  subgoal for x y
+    apply (rule order_trans)
+    apply (rule cdcl_twl_o_prog_wl_D_spec[of x])
+     apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
+    done
+  done
 
 
 subsubsection \<open>Full Strategy\<close>
@@ -1746,8 +1768,8 @@ proof -
 qed
 
 lemma cdcl_twl_stgy_prog_wl_D_spec':
-  \<open>(cdcl_twl_stgy_prog_wl_D, cdcl_twl_stgy_prog_wl) \<in> 
-    {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f 
+  \<open>(cdcl_twl_stgy_prog_wl_D, cdcl_twl_stgy_prog_wl) \<in>
+    {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
     \<langle>{(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
     (auto intro: cdcl_twl_stgy_prog_wl_D_spec)
