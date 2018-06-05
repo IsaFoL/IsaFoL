@@ -228,7 +228,7 @@ text \<open>This invariant state that watched literals are set at the end and ar
 fun twl_lazy_update :: \<open>('a, 'b) ann_lits \<Rightarrow> 'a twl_cls \<Rightarrow> bool\<close> where
 \<open>twl_lazy_update M (TWL_Clause W UW) \<longleftrightarrow>
   (\<forall>L. L \<in># W \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> \<not>has_blit M (W+UW) L \<longrightarrow>
-    (\<forall>K \<in># UW. get_level M L \<ge> get_level M K))\<close>
+    (\<forall>K \<in># UW. get_level M L \<ge> get_level M K \<and> -K \<in> lits_of_l M))\<close>
 
 text \<open>
   If one watched literals has been assigned to false (\<^term>\<open>-L \<in> lits_of_l M\<close>) and the clause
@@ -509,12 +509,21 @@ proof -
         using lev_M_M1[of \<open>-L\<close>] uL count_decided_ge_get_level[of M1 \<open>-L\<close>] lev_L'_L by auto
     qed
 
-    show \<open>\<forall>K\<in>#UW. get_level M1 K \<le> get_level M1 L\<close>
+    show \<open>\<forall>K\<in>#UW. get_level M1 K \<le> get_level M1 L \<and> -K \<in> lits_of_l M1\<close>
     proof clarify
       fix K''
       assume \<open>K'' \<in># UW\<close>
-      then have lev_K'_L: \<open>get_level M K'' \<le> get_level M L\<close>
+      then have
+        lev_K'_L: \<open>get_level M K'' \<le> get_level M L\<close> and
+        uK'_M: \<open>-K'' \<in> lits_of_l M\<close>
         using lazy W uL L'M unfolding C MM' by auto
+      then have uK'_M1: \<open>- K'' \<in> lits_of_l M1\<close>
+        using uK'_M unfolding M apply (auto simp: get_level_append_if 
+            split: if_splits)
+        using M' MM' n_d uL count_decided_ge_get_level[of M1 L]
+        by (auto dest: defined_lit_no_dupD in_lits_of_l_defined_litD
+            simp: get_level_cons_if atm_of_eq_atm_of
+            split: if_splits)
       have \<open>get_level M K'' = get_level M1 K''\<close>
       proof (rule ccontr, cases \<open>defined_lit M' K''\<close>)
         case False
@@ -540,8 +549,8 @@ proof -
         ultimately show False
           by (auto simp: M' filter_empty_conv get_level_def)
       qed
-      then show \<open>get_level M1 K'' \<le> get_level M1 L\<close>
-        using lev_M_M1[OF uL] lev_K'_L by auto
+      then show \<open>get_level M1 K'' \<le> get_level M1 L \<and> -K'' \<in> lits_of_l M1\<close>
+        using lev_M_M1[OF uL] lev_K'_L uK'_M uK'_M1 by auto
     qed
   qed
 qed
@@ -595,48 +604,44 @@ proof (intro conjI impI allI)
   have b': \<open>\<not>has_blit M (W + UW) La\<close>
     apply (rule no_has_blit_propagate[OF b])
     using assms by auto
-  consider 
-     \<open>\<forall>K\<in>#UW. get_level M K \<le> get_level M La\<close> and \<open>La \<noteq> -L\<close>|
+
+  have \<open>- La \<in> lits_of_l M \<longrightarrow> (\<forall>K\<in>#UW. get_level M K \<le> get_level M La \<and> - K \<in> lits_of_l M)\<close>
+    using lazy assms b' uL_M La unfolding twl_lazy_update.simps
+    by blast
+  then consider 
+     \<open>\<forall>K\<in>#UW. get_level M K \<le> get_level M La \<and> -K \<in> lits_of_l M\<close> and \<open>La \<noteq> -L\<close> |
      \<open>La = -L\<close>
-    using lazy assms b' uL_M La by auto
-  then show \<open>\<forall>K\<in>#UW. get_level (Propagated L D # M) K \<le> get_level (Propagated L D # M) La\<close>
+    using b' uL_M La
+    by (simp only: list.set(2) lits_of_insert insert_iff uminus_lit_swap)
+      fastforce
+  then show \<open>\<forall>K\<in>#UW. get_level (Propagated L D # M) K \<le> get_level (Propagated L D # M) La \<and>
+             -K \<in> lits_of_l (Propagated L D # M)\<close>
   proof cases
     case 1
-    moreover have \<open>has_blit (Propagated L D # M) (W + UW) La\<close> if \<open>L \<in># W+UW\<close>
+    have [simp]: \<open>has_blit (Propagated L D # M) (W + UW) L\<close> if \<open>L \<in># W+UW\<close>
       using that unfolding has_blit_def apply -
-      apply (rule exI[of _ L])
-      apply (auto simp: get_level_cons_if atm_of_eq_atm_of)
-      sorry
-    ultimately show ?thesis
-      using n_d b
-      apply (auto simp: get_level_cons_if atm_of_eq_atm_of) sorry
+      by (rule exI[of _ L]) (auto simp: get_level_cons_if atm_of_eq_atm_of)
+    show ?thesis
+      using n_d b 1 b' uL_M
+      by (auto simp: get_level_cons_if atm_of_eq_atm_of
+          count_decided_ge_get_level Decided_Propagated_in_iff_in_lits_of_l
+          dest!: multi_member_split)
   next
     case 2
-    then show ?thesis
-      using b count_decided_ge_get_level[of \<open>Propagated L D # M\<close>]
-      by (auto simp:  split: if_splits)
+    have [simp]: \<open>has_blit (Propagated L D # M) (W + UW) (-L)\<close> 
+      using 2 La W unfolding has_blit_def apply -
+      by (rule exI[of _ L])
+        (auto simp: get_level_cons_if atm_of_eq_atm_of)
+    show ?thesis
+      using 2 b count_decided_ge_get_level[of \<open>Propagated L D # M\<close>]
+      by (auto simp: uminus_lit_swap split: if_splits)
   qed
-  oops(* 
-  using assms apply (auto simp add: add_mset_eq_add_mset count_decided_ge_get_level)
-   apply (auto simp: count_decided_ge_get_level get_level_cons_if)[]
-  apply (auto simp: get_level_cons_if atm_of_eq_atm_of all_conj_distrib
-    add_mset_eq_add_mset
-   dest: no_has_blit_propagate
-    dest!: multi_member_split)
-  try0 dest: no_has_blit_propagate *)
-  oops
+qed
 
-lemma watched_literals_false_of_max_level_Propagated:
-  assumes
-    W: \<open>W = {#L, L'#}\<close> and
-    \<open>-L \<notin> lits_of_l M\<close>
-  shows
-    \<open>watched_literals_false_of_max_level (Propagated L D # M) (TWL_Clause W UW)\<close>
-  using assms(2) by (simp add: W add_mset_eq_add_mset)
-
-lemma lazy_update_Propagated: \<open>- L' \<notin># watched C \<Longrightarrow> watched_literals_false_of_max_level M C\<Longrightarrow>
+(* lemma lazy_update_Propagated: \<open>- L' \<notin># watched C \<Longrightarrow> watched_literals_false_of_max_level M C\<Longrightarrow>
   twl_lazy_update (Propagated L' D # M) C\<close>
   by (cases C) (auto simp: count_decided_ge_get_level get_level_cons_if)
+*)
 
 lemma pair_in_image_Pair:
   \<open>(La, C) \<in> Pair L ` D \<longleftrightarrow> La = L \<and> C \<in> D\<close>
@@ -717,7 +722,7 @@ next
     no_dup = this(5) and ws = this(6)
   have [simp]: \<open>- L' \<notin> lits_of_l M\<close>
     using Decided_Propagated_in_iff_in_lits_of_l propagate.hyps(2) by blast
-  have D_N_U: \<open>D \<in># N + U\<close>
+  have D_N_U: \<open>D \<in># N + U\<close> and lev_L: \<open>get_level M L = count_decided M\<close>
     using valid by auto
   then have wf_D: \<open>struct_wf_twl_cls D\<close>
     using twl by (simp add: twl_st_inv.simps)
@@ -735,6 +740,11 @@ next
     using n_d no_dup_consistentD by blast
   obtain NU where NU: \<open>N + U = add_mset D NU\<close>
     by (metis D_N_U insert_DiffM)
+  have [simp]: \<open>has_blit (Propagated L' (add_mset L (add_mset L' x2)) # M)
+              (add_mset L (add_mset L' x2)) L\<close> for x2
+    unfolding has_blit_def
+    by (rule exI[of _ L'])
+      (use lev_L in \<open>auto simp: get_level_cons_if\<close>)
   have HH: \<open>\<not>clauses_to_update_prop (add_mset (-L') Q) (Propagated L' (clause D) # M) (L, D)\<close>
     using watched unfolding clauses_to_update_prop.simps by (cases D) (auto simp: watched)
   have \<open>add_mset L Q \<subseteq># {#- lit_of x. x \<in># mset M#}\<close>
@@ -744,7 +754,7 @@ next
       (use n_d in \<open>auto simp: lit_of_inj_on_no_dup distinct_map no_dup_def\<close>)
   ultimately have [simp]: \<open>L \<notin># Q\<close>
     by (metis distinct_mset_add_mset distinct_mset_union subset_mset.le_iff_add)
-  have \<open>\<not>has_blit M (clause D)\<close>
+  have \<open>\<not>has_blit M (clause D) L\<close>
     using watched undef unw n_d by (cases D)
      (auto simp: has_blit_def Decided_Propagated_in_iff_in_lits_of_l dest: no_dup_consistentD)
   then have w_q_p_D: \<open>clauses_to_update_prop Q M (L, D)\<close>
