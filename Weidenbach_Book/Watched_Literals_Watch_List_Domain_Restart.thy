@@ -1030,8 +1030,7 @@ lemma cdcl_twl_restart_wl_prog_D_cdcl_twl_restart_wl_prog:
    {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
      \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
 proof -
-  have [refine0]: \<open>rewatch_clauses_prog_D U
-      \<le> \<Down> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}
+  have [refine0]: \<open>rewatch_clauses_prog_D U \<le> \<Down> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}
           (rewatch_clauses U')\<close>
     if
       UU': \<open>(U, U') \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<close> and

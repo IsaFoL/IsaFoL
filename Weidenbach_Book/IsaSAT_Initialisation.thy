@@ -4,6 +4,35 @@ begin
 
 no_notation Ref.update ("_ := _" 62)
 
+(* TODO Move *)
+definition zero_uint64 where
+  \<open>zero_uint64 \<equiv> (0 :: uint64)\<close>
+
+lemma zero_uint64_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN zero_uint64)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare (sep_auto simp: zero_uint64_def)
+
+definition zero_uint32 where
+  \<open>zero_uint32 \<equiv> (0 :: uint32)\<close>
+
+lemma zero_uint32_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN zero_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare (sep_auto simp: zero_uint32_def)
+
+lemma zero_uin64_hnr: \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
+
+definition two_uint64 where \<open>two_uint64 = (2 :: uint64)\<close>
+
+lemma two_uin64_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint64)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare (sep_auto simp: two_uint64_def)
+
+lemma two_uint32_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare sep_auto
+
+(* End Move *)
 
 section \<open>Code for the initialisation of the Data Structure\<close>
 
@@ -1189,16 +1218,6 @@ abbreviation nat_lit_list_hm_assn where
 definition in_map_atm_of :: \<open>'a \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
   \<open>in_map_atm_of L N \<longleftrightarrow> L \<in> set N\<close>
 
-definition (in -) sum_mod_uint64_max where
-  \<open>sum_mod_uint64_max a b = (a + b) mod (uint64_max + 1)\<close>
-
-definition uint32_max_uint32 :: uint32 where
-  \<open>uint32_max_uint32 = - 1\<close>
-
-lemma nat_of_uint32_uint32_max_uint32[simp]:
-   \<open>nat_of_uint32 (uint32_max_uint32) = uint32_max\<close>
-  by eval
-
 definition (in -) init_next_size where
   \<open>init_next_size L = 2 * L\<close>
 
@@ -1342,10 +1361,6 @@ lemma init_valid_rep_in_set_iff:
   unfolding init_valid_rep_def
   by auto
 
-lemma sum_mod_uint64_max_le_uint64_max[simp]: \<open>sum_mod_uint64_max a b \<le> uint64_max\<close>
-  unfolding sum_mod_uint64_max_def
-  by auto
-
 lemma add_to_atms_ext_op_set_insert:
   \<open>(uncurry add_to_atms_ext, uncurry (RETURN oo op_set_insert))
    \<in> [\<lambda>(n, l). n \<le> uint_max div 2]\<^sub>f nat_rel \<times>\<^sub>f isasat_atms_ext_rel \<rightarrow> \<langle>isasat_atms_ext_rel\<rangle>nres_rel\<close>
@@ -1424,14 +1439,6 @@ proof -
     done
 qed
 
-
-lemma sum_mod_uint64_max_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo  op +), uncurry (RETURN oo sum_mod_uint64_max))
-   \<in> uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  apply sepref_to_hoare
-  apply (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_plus
-      sum_mod_uint64_max_def)
-  done
 
 sepref_definition nat_lit_lits_init_assn_assn_in
   is \<open>uncurry add_to_atms_ext\<close>
@@ -2169,9 +2176,13 @@ definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st
     (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
        lbd). do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
+     let init_stats = (0::uint64, 0::uint64, 0::uint64);
+     let fema = (0 :: uint64);
+     let sema = (0 :: uint64);
+     let ccount = zero_uint32;
      RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
        clvls, cach, lbd, take1(replicate 160 (Pos zero_uint32_nat)),
-         (0::uint64, 0::uint64, 0::uint64))
+      init_stats, fema, sema, ccount)
      })\<close>
 
 
@@ -2182,18 +2193,13 @@ lemma (in isasat_input_ops)finalise_init_finalise_init:
     (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_init_def twl_st_heur_init_wl_def
       finalise_init_code_def vmtf_init_def out_learned_def take1_def)
 
-(* TODO Move *)
-lemma zero_uin64_hnr: \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare sep_auto
-(* End Move *)
-
 sepref_thm (in isasat_input_ops) finalise_init_code'
   is \<open>finalise_init_code\<close>
   :: \<open>isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def isasat_init_assn_def isasat_assn_def
-    arl.fold_custom_empty arl_fold_custom_replicate
+    arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric]
   by sepref
 
 concrete_definition (in -) finalise_init_code'
@@ -2212,7 +2218,7 @@ sepref_thm (in isasat_input_ops) finalise_init_fast_code'
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def isasat_init_fast_assn_def isasat_fast_assn_def
-    arl.fold_custom_empty arl_fold_custom_replicate
+    arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric]
   by sepref
 
 concrete_definition (in -) finalise_init_fast_code'

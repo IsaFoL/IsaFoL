@@ -304,4 +304,59 @@ lemma empty_lbd_hnr[sepref_fr_rules]:
   using empty_lbd_code.refine[FCOMP empty_lbd_ref_empty_lbd]
   unfolding lbd_assn_def .
 
+definition get_LBD :: \<open>lbd \<Rightarrow> nat nres\<close> where
+  \<open>get_LBD lbd = SPEC(\<lambda>_. True)\<close>
+
+definition get_LBD_ref :: \<open>lbd_ref \<Rightarrow> nat nres\<close> where 
+  \<open>get_LBD_ref = (\<lambda>(xs, m). do {
+    (i, lbd) \<leftarrow>
+       WHILE\<^sub>T\<^bsup>\<lambda>(i, lbd). lbd \<le> i \<and> i \<le> length xs\<^esup>
+         (\<lambda>(i, lbd). i \<le> m)
+         (\<lambda>(i, lbd). do {
+            ASSERT(i < length xs);
+            ASSERT(i + one_uint32_nat < uint_max);
+            ASSERT(lbd + one_uint32_nat < uint_max);
+            let lbd = (if xs!i then lbd + one_uint32_nat else lbd);
+            RETURN (i + one_uint32_nat, lbd)})
+         (zero_uint32_nat, zero_uint32_nat);
+     RETURN lbd
+  })\<close>
+
+lemma get_LBD_ref:
+ \<open>((lbd, m), lbd') \<in> lbd_ref \<Longrightarrow> get_LBD_ref (lbd, m) \<le> \<Down> nat_rel (get_LBD lbd')\<close>
+  unfolding get_LBD_ref_def get_LBD_def
+  apply (refine_vcg
+      WHILEIT_rule[where R=\<open>measure (\<lambda>(i, _). Suc m - i)\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: lbd_ref_def)
+  subgoal by (auto simp: lbd_ref_def)
+  subgoal by (auto simp: lbd_ref_def uint_max_def)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
+lemma get_LBD_ref_get_LBD:
+  \<open>(get_LBD_ref, get_LBD) \<in> lbd_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply clarify
+  subgoal for lbd m lbd'
+    using get_LBD_ref[of lbd m]
+    by (auto simp: lbd_empty_def lbd_ref_def)
+  done
+
+
+sepref_definition get_LBD_code
+  is \<open>get_LBD_ref\<close>
+  :: \<open>lbd_int_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding get_LBD_ref_def
+  by sepref
+
+lemma get_LBD_hnr[sepref_fr_rules]:
+  \<open>(get_LBD_code, get_LBD) \<in> lbd_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  using get_LBD_code.refine[FCOMP get_LBD_ref_get_LBD, unfolded lbd_assn_def[symmetric]] .
+
 end

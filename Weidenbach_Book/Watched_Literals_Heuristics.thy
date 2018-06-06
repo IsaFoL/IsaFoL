@@ -330,10 +330,10 @@ definition (in isasat_input_ops) set_conflict_wl_heur_pre where
 definition (in isasat_input_ops) set_conflict_wl_heur
   :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
-  \<open>set_conflict_wl_heur = (\<lambda>C (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats). do {
+  \<open>set_conflict_wl_heur = (\<lambda>C (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema). do {
     let n = zero_uint32_nat;
     (D, clvls, lbd, outl) \<leftarrow> set_conflict_m M N C D n lbd outl;
-    RETURN (M, N, D, {#}, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_conflict stats)})\<close>
+    RETURN (M, N, D, {#}, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_conflict stats, fema, sema)})\<close>
 
 
 definition (in isasat_input_ops) update_clause_wl_code_pre where
@@ -662,10 +662,10 @@ definition (in isasat_input_ops) propagate_lit_wl_heur_pre where
 definition (in isasat_input_ops) propagate_lit_wl_heur
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>
 where
-  \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats).
+  \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema).
       let N' = N(C \<hookrightarrow> swap (N\<propto>C) 0 (fast_minus 1 i)) in
       (Propagated L' C # M, N', D, add_mset (-L') Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-         incr_propagation stats))\<close>
+         incr_propagation stats, fema, sema))\<close>
 
 lemma propagate_lit_wl_heur_propagate_lit_wl:
   \<open>(uncurry3 (RETURN oooo propagate_lit_wl_heur), uncurry3 (RETURN oooo propagate_lit_wl)) \<in>

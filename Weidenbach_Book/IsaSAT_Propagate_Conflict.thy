@@ -368,8 +368,6 @@ sepref_thm unit_propagation_inner_loop_body_wl_heur
   apply (rewrite in \<open>let _ = \<hole> in _\<close> one_uint64_nat_def[symmetric])+
   by sepref
 
-find_theorems "op +" uint64_max " _ < uint64_max"
-thm uint64_nat_assn_plus
 sepref_thm unit_propagation_inner_loop_body_wl_fast_heur
   is \<open>uncurry2 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
   :: \<open>[\<lambda>((L, w), S). w+1 \<le> uint64_max]\<^sub>a
@@ -684,19 +682,22 @@ where
      Id \<times>\<^sub>r
      Id \<times>\<^sub>r
      Id \<times>\<^sub>r
+     Id \<times>\<^sub>r
+     Id \<times>\<^sub>r
+     Id \<times>\<^sub>r
      Id\<close>
 
 definition (in isasat_input_ops) twl_st_heur_W_list_assn
   :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close>
 where
 \<open>twl_st_heur_W_list_assn =
-  (trail_assn *a clauses_ll_assn *a
+  trail_assn *a clauses_ll_assn *a
   option_lookup_clause_assn *a
   (list_assn unat_lit_assn) *a
   arrayO_assn (arl_assn nat_assn) *a
   vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn *a
-  lbd_assn *a out_learned_assn *a stats_assn
-  )\<close>
+  lbd_assn *a out_learned_assn *a stats_assn *a ema_assn *a ema_assn *a conflict_count_assn
+\<close>
 
 lemma (in isasat_input_ops) isasat_assn_W_list:
   \<open>isasat_assn = hr_comp twl_st_heur_W_list_assn twl_st_wl_heur_W_list_rel\<close>
@@ -708,13 +709,13 @@ definition (in isasat_input_ops) twl_st_heur_W_list_fast_assn
   :: \<open>_ \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close>
 where
 \<open>twl_st_heur_W_list_fast_assn =
-  (trail_fast_assn *a clauses_ll_assn *a
+  trail_fast_assn *a clauses_ll_assn *a
   option_lookup_clause_assn *a
   (list_assn unat_lit_assn) *a
   arrayO_assn (arl_assn uint32_nat_assn) *a
   vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn *a
-  lbd_assn *a out_learned_assn *a stats_assn
-  )\<close>
+  lbd_assn *a out_learned_assn *a stats_assn *a ema_assn *a ema_assn *a conflict_count_assn
+\<close>
 
 lemma (in isasat_input_ops) isasat_fast_assn_W_list:
   \<open>isasat_fast_assn = hr_comp twl_st_heur_W_list_fast_assn twl_st_wl_heur_W_list_rel\<close>
