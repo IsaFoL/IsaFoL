@@ -588,6 +588,12 @@ lemma no_has_blit_propagate:
   apply (smt atm_lit_of_set_lits_of_l count_decided_ge_get_level defined_lit_map image_eqI) 
   by (smt atm_lit_of_set_lits_of_l count_decided_ge_get_level defined_lit_map image_eqI)
 
+lemma no_has_blit_propagate':
+  \<open>\<not>has_blit (Propagated L D # M) (clause C) La \<Longrightarrow>
+    undefined_lit M L \<Longrightarrow> no_dup M \<Longrightarrow> \<not>has_blit M (clause C) La\<close>
+  using no_has_blit_propagate[of L D M \<open>watched C\<close> \<open>unwatched C\<close>]
+  by (cases C) auto
+
 lemma twl_lazy_update_Propagated:
   assumes
     W: \<open>L \<in># W\<close> and n_d: \<open>no_dup (Propagated L D # M)\<close> and
@@ -765,7 +771,7 @@ next
   then have IH: \<open>Pair L `# {#C \<in># NU. clauses_to_update_prop Q M (L, C)#} \<subseteq># WS\<close>
     using w_q_p_D by auto
   have IH_Q: \<open>\<forall>La C. C \<in># add_mset D NU \<longrightarrow> La \<in># watched C \<longrightarrow> - La \<in> lits_of_l M \<longrightarrow>
-    \<not> has_blit M (clause C)\<longrightarrow> (La, C) \<notin># add_mset (L, D) WS \<longrightarrow> La \<in># Q\<close>
+    \<not> has_blit M (clause C) La \<longrightarrow> (La, C) \<notin># add_mset (L, D) WS \<longrightarrow> La \<in># Q\<close>
     using ws no_dup unfolding clauses_to_update_inv.simps NU
     by (auto simp: all_conj_distrib)
 
@@ -776,11 +782,13 @@ next
     assume C: \<open>C \<in># N + U\<close> and
       watched_C: \<open>J \<in># watched C\<close> and
       J: \<open>- J \<in> lits_of_l (Propagated L' (clause D) # M)\<close> and
-      J': \<open>\<not> has_blit (Propagated L' (clause D) # M) (clause C)\<close> and
+      J': \<open>\<not> has_blit (Propagated L' (clause D) # M) (clause C) J\<close> and
       J_notin: \<open>J \<notin># add_mset (- L') Q\<close> and
       C_WS: \<open>(J, C) \<notin># WS\<close> and
       \<open>K \<in># unwatched C\<close>
-    then have \<open>- K \<in> lits_of_l (Propagated L' (clause D) # M)\<close> if \<open>C \<noteq> D\<close>
+    moreover have \<open>\<not> has_blit M (clause C) J\<close>
+      using no_has_blit_propagate'[OF J'] n_d undef by fast
+    ultimately have \<open>- K \<in> lits_of_l (Propagated L' (clause D) # M)\<close> if \<open>C \<noteq> D\<close>
       using twl_excep that by (auto simp add: uminus_lit_swap twl_exception_inv.simps)
 
     moreover have CD: False if \<open>C = D\<close>
@@ -799,8 +807,9 @@ next
     have *: \<open>Pair L `# {#C \<in># NU. clauses_to_update_prop Q M (L, C)#} \<supseteq>#
       Pair L `# {#C \<in># NU.
         clauses_to_update_prop (add_mset (- L') Q) (Propagated L' (clause D) # M) (L'', C)#}\<close>
+      using undef n_d
       unfolding image_Pair_subset_mset multiset_filter_mono2 clauses_to_update_prop.simps
-      by auto
+      by (auto dest!: no_has_blit_propagate')
     show ?case
       using subset_mset.dual_order.trans[OF IH *]  HH
       unfolding NU \<open>L'' = L\<close>
@@ -808,17 +817,19 @@ next
   next
     case (WS_empty K)
     then show ?case
-      using IH IH_Q watched unfolding NU by (cases D) (auto simp: filter_mset_empty_conv
-          clauses_to_update_prop.simps watched add_mset_eq_add_mset)
+      using IH IH_Q watched undef n_d unfolding NU
+      by (cases D) (auto simp: filter_mset_empty_conv
+          clauses_to_update_prop.simps watched add_mset_eq_add_mset
+          dest!: no_has_blit_propagate')
   next
     case (Q LC' C)
     then show ?case
-       using watched "1.prems"(6) HH Q.hyps HH IH_Q
+       using watched "1.prems"(6) HH Q.hyps HH IH_Q undef n_d
        apply (cases D)
        apply (cases C)
        apply (auto simp: add_mset_eq_add_mset NU)
-       by (metis HH Q.IH(2,3) Q.hyps clause.simps 
-         clauses_to_update_prop.simps insert_iff set_mset_add_mset_insert)      
+       by (metis HH Q.IH(2) Q.IH(3) Q.hyps clauses_to_update_prop.simps insert_iff
+           no_has_blit_propagate' set_mset_add_mset_insert) 
   qed
 next
   case (conflict D L L' M N U NE UE WS Q)
@@ -843,9 +854,12 @@ next
     using twl by (simp add: twl_st_inv.simps)
   obtain NU where NU: \<open>N + U = add_mset D NU\<close>
     by (metis D_N_U insert_DiffM)
-  have [simp]: \<open>has_blit M (clause D)\<close>
+  have D_N_U: \<open>D \<in># N + U\<close> and lev_L: \<open>get_level M L = count_decided M\<close>
+    using valid by auto
+  have [simp]: \<open>has_blit M (clause D) L\<close>
     unfolding has_blit_def
-    using watched L' by auto
+    by (rule exI[of _ L'])
+       (use watched L' lev_L in \<open>auto simp: count_decided_ge_get_level\<close>)
   have [simp]: \<open>\<not>clauses_to_update_prop Q M (L, D)\<close>
     using L' by (auto simp: clauses_to_update_prop.simps watched)
   have IH_WS: \<open>Pair L `# {#C \<in># N + U. clauses_to_update_prop Q M (L, C)#} \<subseteq># add_mset (L, D) WS\<close>
@@ -857,7 +871,7 @@ next
   have IH_WS': \<open>Pair L `# {#C \<in># N + U. clauses_to_update_prop Q M (L, C)#} \<subseteq># WS\<close>
     by (rule subset_add_mset_notin_subset_mset[OF IH_WS]) auto
   have IH_Q: \<open>\<forall>La C. C \<in># add_mset D NU \<longrightarrow> La \<in># watched C \<longrightarrow> - La \<in> lits_of_l M \<longrightarrow>
-    \<not>has_blit M (clause C) \<longrightarrow> (La, C) \<notin># add_mset (L, D) WS \<longrightarrow> La \<in># Q\<close>
+    \<not>has_blit M (clause C) La \<longrightarrow> (La, C) \<notin># add_mset (L, D) WS \<longrightarrow> La \<in># Q\<close>
     using ws no_dup unfolding clauses_to_update_inv.simps NU
     by (auto simp: all_conj_distrib)
 
@@ -868,7 +882,7 @@ next
     assume C: \<open>C \<in># N + U\<close> and
       watched_C: \<open>J \<in># watched C\<close> and
       J: \<open>- J \<in> lits_of_l M\<close> and
-      J': \<open>\<not>has_blit M (clause C)\<close> and
+      J': \<open>\<not>has_blit M (clause C) J\<close> and
       J_notin: \<open>J \<notin># Q\<close> and
       C_WS: \<open>(J, C) \<notin># WS\<close> and
       \<open>K \<in># unwatched C\<close>
@@ -879,7 +893,11 @@ next
       from n_d have False if \<open> - L' \<in> lits_of_l M\<close> \<open>L' \<in> lits_of_l M\<close>
         using that consistent_interp_def distinct_consistent_interp by blast
       then have CD: False if \<open>C = D\<close>
-        using J J' watched_C watched L' by (auto simp: add_mset_eq_add_mset that) }
+        using J J' watched_C watched L' C_WS IH_Q J_notin \<open>\<not> clauses_to_update_prop Q M (L, D)\<close> that
+        apply (auto simp: add_mset_eq_add_mset)
+        by (metis C_WS J_notin \<open>\<not> clauses_to_update_prop Q M (L, D)\<close> 
+            clauses_to_update_prop.simps that)
+      }
     ultimately show \<open>- K \<in> lits_of_l M\<close>
       by blast
   qed
@@ -892,7 +910,7 @@ next
       using no_dup KC by auto
     from subset_add_mset_notin_subset_mset[OF IH_WS]
     have 1: \<open>Pair K `# {#C \<in># N + U. clauses_to_update_prop Q M (L, C)#} \<subseteq># WS\<close>
-      using L' LK
+      using L' LK \<open>has_blit M (clause D) L\<close> 
       by (auto simp del: filter_union_mset simp: pair_in_image_Pair watched add_mset_eq_add_mset
           all_conj_distrib clauses_to_update_prop.simps)
     show ?case
@@ -900,8 +918,9 @@ next
   next
     case (WS_empty K) note [simp] = this(1)
     have [simp]: \<open>\<not>clauses_to_update_prop Q M (K, D)\<close>
-      using IH_Q WS_empty.IH watched by (auto simp: clauses_to_update_prop.simps
-          add_mset_eq_add_mset L')
+      using IH_Q WS_empty.IH watched  \<open>has_blit M (clause D) L\<close>
+      using IH_WS' IH_Q watched by (auto simp: add_mset_eq_add_mset NU filter_mset_empty_conv
+          all_conj_distrib clauses_to_update_prop.simps)
     show ?case
       using IH_WS' IH_Q watched by (auto simp: add_mset_eq_add_mset NU filter_mset_empty_conv
           all_conj_distrib clauses_to_update_prop.simps)
@@ -973,7 +992,8 @@ next
         simp: consistent_interp_def lits_of_def uminus_lit_swap)
   have w_max_D: \<open>watched_literals_false_of_max_level M D\<close>
     using D_N_U twl by (auto simp: twl_st_inv.simps)
-  have lev_L': \<open>get_level M L' = count_decided M\<close> if \<open>- L' \<in> lits_of_l M\<close> \<open>\<not>has_blit M (clause D)\<close>
+  have lev_L': \<open>get_level M L' = count_decided M\<close>
+    if \<open>- L' \<in> lits_of_l M\<close> \<open>\<not>has_blit M (clause D) L'\<close>
     using L_M w_max_D D watched L' uL that by auto
   have D_ne_D: \<open>D \<noteq> update_clause D L K\<close>
     using D add_remove_WD by auto
@@ -987,7 +1007,14 @@ next
   have n_d: \<open>no_dup M\<close>
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
-  have HH: \<open>\<not>clauses_to_update_prop (add_mset (-L') Q) (Propagated L' (clause D) # M) (L, D)\<close>
+  have D_N_U: \<open>D \<in># N + U\<close> and lev_L: \<open>get_level M L = count_decided M\<close>
+    using valid by auto
+  have \<open>has_blit (Propagated L' C # M)
+              (add_mset L (add_mset L' x2)) L\<close> for C x2
+    unfolding has_blit_def
+    by (rule exI[of _ L'])
+      (use lev_L in \<open>auto simp: count_decided_ge_get_level get_level_cons_if\<close>)
+  then have HH: \<open>\<not>clauses_to_update_prop (add_mset (-L') Q) (Propagated L' (clause D) # M) (L, D)\<close>
     using watched unfolding clauses_to_update_prop.simps by (cases D) (auto simp: watched)
   have \<open>add_mset L Q \<subseteq># {#- lit_of x. x \<in># mset M#}\<close>
     using no_dup by (auto)
@@ -996,23 +1023,24 @@ next
       (use n_d in \<open>auto simp: lit_of_inj_on_no_dup distinct_map no_dup_def\<close>)
   ultimately have LQ: \<open>L \<notin># Q\<close>
     by (metis distinct_mset_add_mset distinct_mset_union subset_mset.le_iff_add)
-  have w_q_p_D: \<open>\<not>has_blit M (clause D) \<Longrightarrow> clauses_to_update_prop Q M (L, D)\<close>
+  have w_q_p_D: \<open>\<not>has_blit M (clause D) L \<Longrightarrow> clauses_to_update_prop Q M (L, D)\<close>
     using watched uL L' by (cases D) (auto simp: LQ clauses_to_update_prop.simps)
   have \<open>Pair L `# {#C \<in># add_mset D NU. clauses_to_update_prop Q M (L, C)#} \<subseteq># add_mset (L, D) WS\<close>
     using ws no_dup unfolding clauses_to_update_inv.simps NU
     by (auto simp: all_conj_distrib)
-  then have IH: \<open>\<not>has_blit M (clause D) \<Longrightarrow> Pair L `# {#C \<in># NU. clauses_to_update_prop Q M (L, C)#} \<subseteq># WS\<close>
+  then have IH: \<open>\<not>has_blit M (clause D) L \<Longrightarrow> Pair L `# {#C \<in># NU. clauses_to_update_prop Q M (L, C)#} \<subseteq># WS\<close>
     using w_q_p_D by auto
   have IH_Q: \<open>\<And>La C. C \<in># add_mset D NU \<Longrightarrow> La \<in># watched C \<Longrightarrow> - La \<in> lits_of_l M \<Longrightarrow>
-    \<not>has_blit M (clause C) \<Longrightarrow> (La, C) \<notin># add_mset (L, D) WS \<Longrightarrow> La \<in># Q\<close>
+    \<not>has_blit M (clause C) La \<Longrightarrow> (La, C) \<notin># add_mset (L, D) WS \<Longrightarrow> La \<in># Q\<close>
     using ws no_dup unfolding clauses_to_update_inv.simps NU
     by (auto simp: all_conj_distrib)
-  have blit_clss_to_upd: \<open>has_blit M (clause D) \<Longrightarrow> \<not> clauses_to_update_prop Q M (L, D)\<close>
+  have blit_clss_to_upd: \<open>has_blit M (clause D) L \<Longrightarrow> \<not> clauses_to_update_prop Q M (L, D)\<close>
     by (auto simp: clauses_to_update_prop.simps)
   have
     \<open>Pair L `# {#C \<in># N + U. clauses_to_update_prop Q M (L, C)#} \<subseteq># add_mset (L, D) WS\<close>
     using ws by (auto simp del: filter_union_mset)
-  moreover have \<open>has_blit M (clause D) \<Longrightarrow> (L, D) \<notin># Pair L `# {#C \<in># NU. clauses_to_update_prop Q M (L, C)#}\<close>
+  moreover have \<open>has_blit M (clause D) L \<Longrightarrow>
+      (L, D) \<notin># Pair L `# {#C \<in># NU. clauses_to_update_prop Q M (L, C)#}\<close>
     by (auto simp: clauses_to_update_prop.simps)
   ultimately have Q_M_L_WS:
     \<open>Pair L `# {#C \<in># NU. clauses_to_update_prop Q M (L, C)#} \<subseteq># WS\<close>
@@ -1029,7 +1057,7 @@ next
     assume C: \<open>C \<in># N' + U'\<close> and
       watched_C: \<open>J\<in># watched C\<close> and
       J: \<open>- J \<in> lits_of_l M\<close> and
-      J': \<open>\<not>has_blit M (clause C)\<close> and
+      J': \<open>\<not>has_blit M (clause C) J\<close> and
       J_notin: \<open>J \<notin># Q\<close> and
       C_WS: \<open>(J, C) \<notin># WS\<close> and
       K'': \<open>K'' \<in># unwatched C\<close>
@@ -1081,13 +1109,13 @@ next
         using K'' unfolding CD by (cases D) auto
       have \<open>clause C = clause D\<close>
         using D K watched unfolding CD by auto
-      then have blit: \<open>\<not> has_blit M (clause D)\<close>
+      then have blit: \<open>\<not> has_blit M (clause D) L'\<close>
         using J' unfolding CD by simp
       have False if \<open>- L' \<in> lits_of_l M\<close> \<open>L' \<in> lits_of_l M\<close>
         using n_d that consistent_interp_def distinct_consistent_interp by blast
       have H: \<open>\<And>x La xa. x \<in># N + U \<Longrightarrow>
             La \<in># watched x \<Longrightarrow> - La \<in> lits_of_l M \<Longrightarrow>
-            \<not>has_blit M (clause x) \<Longrightarrow> La \<notin># Q \<Longrightarrow> (La, x) \<notin># add_mset (L, D) WS \<Longrightarrow>
+            \<not>has_blit M (clause x) La \<Longrightarrow> La \<notin># Q \<Longrightarrow> (La, x) \<notin># add_mset (L, D) WS \<Longrightarrow>
             xa \<in># unwatched x \<Longrightarrow> - xa \<in> lits_of_l M\<close>
         using twl_excep[unfolded twl_st_exception_inv.simps Ball_def twl_exception_inv.simps]
         unfolding has_blit_def is_blit_def
@@ -1097,7 +1125,7 @@ next
       have L'D_WS: \<open>(L', D) \<notin># WS\<close>
         using no_dup LL' by (auto dest: multi_member_split)
       have \<open>xa \<in># unwatched D \<Longrightarrow> - xa \<in> lits_of_l M\<close>
-        if \<open>- L' \<in> lits_of_l M\<close> and \<open>L' \<notin># Q\<close> and \<open>\<not> has_blit M (clause D)\<close> for xa
+        if \<open>- L' \<in> lits_of_l M\<close> and \<open>L' \<notin># Q\<close> and \<open>\<not> has_blit M (clause D) L'\<close> for xa
         by (rule H[of D L'])
           (use D_N_U watched LL' that L'D_WS K'' that in \<open>auto simp: add_mset_eq_add_mset L_M\<close>)
       consider
@@ -1142,7 +1170,7 @@ next
     case (WS_empty K'')
     then show ?case
       using IH IH_Q uL uK_M L_M watched L_ne_L' unfolding N'U' NU
-      by (fastforce simp: filter_mset_empty_conv clauses_to_update_prop.simps
+      by (force simp: filter_mset_empty_conv clauses_to_update_prop.simps
           add_mset_eq_add_mset watched_D all_conj_distrib)
   next
     case (Q K' C) note C = this(1) and uK'_M = this(2) and uK''_M = this(3) and KC_WS = this(4)
@@ -1204,12 +1232,15 @@ next
    unw = this(3) and twl = this(4) and valid = this(5) and inv = this(6)
   have uL'_M[simp]: \<open>- L' \<notin> lits_of_l M\<close>
     using Decided_Propagated_in_iff_in_lits_of_l propagate.hyps(2) by blast
-  have D_N_U: \<open>D \<in># N + U\<close>
+  have D_N_U: \<open>D \<in># N + U\<close> and lev_L: \<open>get_level M L = count_decided M\<close>
     using valid by auto
   then have wf_D: \<open>struct_wf_twl_cls D\<close>
-    using twl by (simp add: twl_st_inv.simps)
+    using twl by (auto simp add: twl_st_inv.simps)
   have [simp]: \<open>- L \<in> lits_of_l M\<close>
     using valid by auto
+  have n_d: \<open>no_dup M\<close>
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
   show ?case unfolding twl_st_simps Ball_def
   proof (intro allI conjI impI)
     fix C
@@ -1219,53 +1250,39 @@ next
     have watched_max: \<open>watched_literals_false_of_max_level M C\<close>
       using twl C by (auto simp: twl_st_inv.simps)
     then show \<open>watched_literals_false_of_max_level (Propagated L' (clause D) # M) C\<close>
-      by (cases C) (auto simp: get_level_cons_if)
+      using undef n_d
+      by (cases C) (auto simp: get_level_cons_if dest!: no_has_blit_propagate')
 
     assume excep: \<open>\<not>twl_is_an_exception C (add_mset (- L') Q) WS\<close>
-    show \<open>twl_lazy_update (Propagated L' (clause D) # M) C\<close>
-      apply (rule lazy_update_Propagated)
-      using excep apply (simp add: twl_is_an_exception_add_mset_to_queue; fail)
-      using twl C by (auto simp add: twl_st_inv.simps)[]
-    have \<open>\<not> twl_is_an_exception C Q (add_mset (L, D) WS)\<close> if \<open>C \<noteq> D\<close>
+    have excep_C: \<open>\<not> twl_is_an_exception C Q (add_mset (L, D) WS)\<close> if \<open>C \<noteq> D\<close>
       using excep that by (auto simp add: twl_is_an_exception_def)
-    then have \<open>twl_inv M C\<close> if \<open>C \<noteq> D\<close>
-      using twl that C by (auto simp: twl_st_inv.simps)
-    moreover have \<open>atm_of L' \<notin> atm_of ` lits_of_l M\<close>
-        using uL'_M by (meson Decided_Propagated_in_iff_in_lits_of_l atm_of_in_atm_of_set_in_uminus
-            undef)
-    ultimately have twl_C: \<open>twl_inv (Propagated L' (clause D) # M) C\<close> if \<open>C \<noteq> D\<close>
-      using watched_max undef that count_decided_ge_get_level[of M] uL'_M
+(*     have \<open>\<not> twl_is_an_exception C Q (add_mset (L, D) WS)\<close>
+      using D_N_U excep
+      unfolding twl_is_an_exception_add_mset_to_queue
+          twl_is_an_exception_add_mset_to_clauses_to_update
+      by (auto simp add: twl_st_inv.simps twl_is_an_exception_add_mset_to_queue
+          twl_is_an_exception_add_mset_to_clauses_to_update) *)
+    then 
+    have \<open>twl_lazy_update M C\<close> if \<open>C \<noteq> D\<close>
+      using twl C D_N_U that by (cases \<open>C = D\<close>) (auto simp add: twl_st_inv.simps)
+    then show \<open>twl_lazy_update (Propagated L' (clause D) # M) C\<close>
+      using twl C excep uL'_M twl undef n_d uL'_M unw watched_max
       apply (cases C)
-      apply (auto simp add: (*rev_image_eqI*)
-          simp del: is_blit_def)
-          apply (metis excep twl_clause.sel(1) twl_is_an_exception_add_mset_to_queue
-           uminus_of_uminus_id)
-apply (clarsimp simp add:  get_level_cons_if atm_of_eq_atm_of)
-apply (intro conjI impI)
-defer
-apply simp_all
-          sledgehammer
-
-          sorry
-    have D: \<open>D \<in># N + U\<close> and \<open>L \<in># watched D\<close>
-      using valid by auto
-    have lev_L: \<open>get_level M L = count_decided M\<close>
-      using valid by auto
-
-    have twl_D: \<open>twl_inv (Propagated L' (clause D) # M) D\<close>
-      by (cases D, cases \<open>atm_of L = atm_of L'\<close>)
-        (use watched in \<open>auto simp: add_mset_eq_add_mset lev_L get_level_cons_if
-          count_decided_ge_get_level\<close>)
-
-    show \<open>twl_inv (Propagated L' (clause D) # M) C\<close>
-      using twl_C twl_D by blast
+      apply (auto simp: get_level_cons_if count_decided_ge_get_level
+          twl_is_an_exception_add_mset_to_queue atm_of_eq_atm_of
+          dest!: no_has_blit_propagate' no_has_blit_propagate)
+      apply (metis twl_clause.sel(2) uL'_M unw)
+      apply (metis twl_clause.sel(2) uL'_M unw)
+      apply (metis twl_clause.sel(2) uL'_M unw)
+      apply (metis twl_clause.sel(2) uL'_M unw)
+      done
   qed
 next
   case (conflict D L L' M N U NE UE WS Q) note twl = this(4)
   then show ?case
     by (auto simp: twl_st_inv.simps)
 next
-  case (delete_from_working D L L' M N U NE UE WS Q) note watched = this(1) and L' = this(2) and
+  case (delete_from_working L' D M N U NE UE L WS Q) note watched = this(1) and L' = this(2) and
   twl = this(3) and valid = this(4) and inv = this(5) and tauto = this(6)
   show ?case unfolding twl_st_simps Ball_def
   proof (intro allI conjI impI)
@@ -1286,27 +1303,19 @@ next
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail.simps)
     then have [simp]: \<open>- L' \<notin> lits_of_l M\<close>
       using L' consistent_interp_def distinct_consistent_interp by blast
+    have \<open>\<not> twl_is_an_exception C Q (add_mset (L, D) WS)\<close> if \<open>C \<noteq> D\<close>
+      using excep that by (auto simp add: twl_is_an_exception_def)
     have twl_D: \<open>twl_lazy_update M D\<close>
-      by (cases D) (use watched L' in \<open>auto simp: add_mset_eq_add_mset\<close>)
+      using twl C excep twl watched L' \<open>watched_literals_false_of_max_level M D\<close> 
+      by (cases D)
+        (auto simp: get_level_cons_if count_decided_ge_get_level has_blit_def
+          twl_is_an_exception_add_mset_to_queue atm_of_eq_atm_of count_decided_ge_get_level
+          dest!: no_has_blit_propagate' no_has_blit_propagate)
     have twl_C: \<open>twl_lazy_update M C\<close> if \<open>C \<noteq> D\<close>
       using twl C excep that by (auto simp add: twl_st_inv.simps
           twl_is_an_exception_add_mset_to_clauses_to_update)
 
     show \<open>twl_lazy_update M C\<close>
-      using twl_C twl_D by blast
-    have \<open>\<not> twl_is_an_exception C Q (add_mset (L, D) WS)\<close> if \<open>C \<noteq> D\<close>
-      using excep that by (auto simp add: twl_is_an_exception_def)
-    then have twl_C: \<open>twl_inv M C\<close> if \<open>C \<noteq> D\<close>
-      using twl that C by (auto simp: twl_st_inv.simps)
-    have D: \<open>D \<in># N + U\<close> and \<open>L \<in># watched D\<close>
-      using valid by auto
-    have lev_L: \<open>get_level M L = count_decided M\<close>
-      using valid by auto
-    have twl_D: \<open>twl_inv M D\<close>
-      by (cases D) (use L L' watched in \<open>auto simp: add_mset_eq_add_mset lev_L
-          count_decided_ge_get_level\<close>)
-
-    show \<open>twl_inv M C\<close>
       using twl_C twl_D by blast
   qed
 next
@@ -1368,8 +1377,7 @@ next
         simp: consistent_interp_def lits_of_def uminus_lit_swap)
   have w_max_D: \<open>watched_literals_false_of_max_level M D\<close>
     using D_N_U twl by (auto simp: twl_st_inv.simps)
-  have lev_L': \<open>get_level M L' = count_decided M\<close> if \<open>- L' \<in> lits_of_l M \<close>
-    using L_M w_max_D D watched L' uL that by (auto simp: add_mset_eq_add_mset)
+
 
   show ?case unfolding twl_st_simps Ball_def
   proof (intro allI conjI impI)
@@ -1386,33 +1394,88 @@ next
     show \<open>struct_wf_twl_cls C\<close>
       using struct_D' struct_C by blast
 
+     have H: \<open>\<And>C. C \<in># N+U \<Longrightarrow> \<not> twl_is_an_exception C Q WS \<Longrightarrow> C \<noteq> D \<Longrightarrow>
+       twl_lazy_update M C\<close>
+      using twl
+      by (auto simp add: twl_st_inv.simps twl_is_an_exception_add_mset_to_clauses_to_update)
     have \<open>watched_literals_false_of_max_level M C\<close> if \<open>C \<noteq> ?D\<close>
       using twl C that N'U' by (fastforce simp: twl_st_inv.simps elim!: update_clausesE
           dest: in_diffD)
     moreover have \<open>watched_literals_false_of_max_level M ?D\<close>
-      using w_max_D D watched L' uK_M distinct_consistent_interp[OF n_d] uL
-      by (auto simp: add_mset_eq_add_mset consistent_interp_def)
+      using w_max_D D watched L' uK_M distinct_consistent_interp[OF n_d] uL K
+      apply (cases D)
+      apply (simp_all add: add_mset_eq_add_mset consistent_interp_def)
+      by (metis add_mset_eq_add_mset)
     ultimately show \<open>watched_literals_false_of_max_level M C\<close>
       by blast
 
     assume excep: \<open>\<not>twl_is_an_exception C Q WS\<close>
-    have H: \<open>\<And>C. C \<in># N+U \<Longrightarrow> \<not> twl_is_an_exception C Q WS \<Longrightarrow> C \<noteq> D \<Longrightarrow>
-       twl_lazy_update M C \<and> twl_inv M C \<close>
-      using twl
-      by (auto simp add: twl_st_inv.simps twl_is_an_exception_add_mset_to_clauses_to_update)
+    have \<open>get_level M L = count_decided M\<close> and L: \<open>-L \<in> lits_of_l M\<close> and D_N_U: \<open>D \<in># N + U\<close>
+      using valid by auto
+
     have excep_WS: \<open>\<not> twl_is_an_exception C Q WS\<close>
       using excep C by (force simp: twl_is_an_exception_def)
+    have \<open>twl_lazy_update M C\<close> if CD: \<open>C = D\<close>
+    proof (rule ccontr)
+      assume \<open>\<not> ?thesis\<close>
+      then have False
+        using 
+(* H[of C] that *)
+ excep_WS
+(*  * C watched D_N_U L_M multi_member_split[OF K] uK_M uL *)
+        unfolding CD D twl_lazy_update.simps not_all
+        apply -
+        apply clarsimp
+        apply (rule exI[of _ L])
+
+        apply (auto simp add: twl_st_inv.simps D twl_is_an_exception_def
+            simp del: has_blit_def)
+        using D count_decided_ge_get_level w_max_D watched apply (auto dest!: multi_member_split[of _ WD]
+            simp: all_conj_distrib)
+        sledgehammer
+      show False
+      have \<open>\<not>twl_lazy_update M C\<close>
+        using H[of C] that excep_WS * C watched D_N_U L_M multi_member_split[OF K] uK_M uL
+        unfolding CD D twl_lazy_update.simps not_all apply -
+        apply clarsimp
+        apply (rule exI[of _ L])
+
+        apply (auto simp add: twl_st_inv.simps D simp del: has_blit_def)
+        oops
+end
     have \<open>twl_lazy_update M C\<close> if \<open>C \<noteq> ?D\<close> \<open>C \<noteq> D\<close>
       using H[of C] that excep_WS * C
       by (auto simp add: twl_st_inv.simps)[]
     moreover have \<open>twl_lazy_update M C\<close> if \<open>C = D\<close>
-      using H[of C] that excep_WS * C D count_decided_ge_get_level w_max_D by auto
-    moreover {
-      have D': \<open>?D = TWL_Clause {#K, L'#} (add_mset L (remove1_mset K UWD))\<close>
-        using D watched by auto
+      using H[of C] that excep_WS * C D count_decided_ge_get_level w_max_D excep watched
+      apply (simp add: twl_is_an_exception_def)
+      apply (intro allI impI conjI)
+       apply clarsimp_all
+       apply (intro allI impI conjI)
+        apply auto[]
+      
+
+      sorry
+      moreover {
+        have D': \<open>?D = TWL_Clause {#K, L'#} (add_mset L (remove1_mset K UWD))\<close> and
+          mset_D': \<open>{#K, L'#} + add_mset L (remove1_mset K UWD) = clause D\<close>
+        using D watched cls_D_D by auto
+      have lev_L': \<open>get_level M L' = count_decided M\<close> if \<open>- L' \<in> lits_of_l M \<close> and
+        \<open>\<not> has_blit M (clause D) L'\<close>
+        using L_M w_max_D D watched L' uL that
+        by simp
+      moreover have \<open>get_level M L' = count_decided M \<Longrightarrow>
+             - L \<in> lits_of_l M \<Longrightarrow>
+             L' \<notin> lits_of_l M \<Longrightarrow>
+             - L' \<in> lits_of_l M \<Longrightarrow>
+          has_blit M (add_mset L (add_mset L' UWD)) L'\<close>
+        unfolding has_blit_def
+        apply (rule exI[of _ L])
+        using watched uL L' undef  unfolding  twl_lazy_update.simps D' mset_D'
+        by (auto simp: uK_M D add_mset_eq_add_mset lev_L count_decided_ge_get_level)
       have \<open>twl_lazy_update M ?D\<close>
-        using watched uL L' undef unfolding D' twl_lazy_update.simps
-        by (auto simp: uK_M D add_mset_eq_add_mset lev_L lev_L' count_decided_ge_get_level)
+        using watched uL L' undef  unfolding  twl_lazy_update.simps D' mset_D'
+        by (auto simp: uK_M D add_mset_eq_add_mset lev_L count_decided_ge_get_level)
       }
     ultimately show \<open>twl_lazy_update M C\<close>
       by blast
