@@ -316,8 +316,9 @@ lemmas find_unassigned_lit_wl_D_fast_heur_hnr[sepref_fr_rules] =
    find_unassigned_lit_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 definition (in isasat_input_ops) decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats).
-      (Decided L' # M, N, D, {#- L'#}, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_decision stats))\<close>
+  \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema).
+      (Decided L' # M, N, D, {#- L'#}, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_decision stats,
+         fema, sema))\<close>
 
 sepref_thm decide_lit_wl_code
   is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>

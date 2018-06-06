@@ -5,7 +5,6 @@ begin
 
 no_notation Ref.update ("_ := _" 62)
 
-notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
 (* TODO Move *)
 lemma [sepref_fr_rules]:
   \<open>(uncurry (return oo (op =)), uncurry (RETURN oo (op =))) \<in>
@@ -68,26 +67,29 @@ paragraph \<open>Base state\<close>
 
 type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array \<times> nat\<close>
 type_synonym out_learned = \<open>nat clause_l\<close>
+type_synonym ema = \<open>uint64\<close>
+abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
+  \<open>ema_assn \<equiv> uint64_assn\<close>
+
+type_synonym conflict_count = \<open>uint32\<close>
+abbreviation conflict_count_assn :: \<open>conflict_count \<Rightarrow> conflict_count \<Rightarrow> assn\<close> where
+  \<open>conflict_count_assn \<equiv> uint32_assn\<close>
 
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> clauses_wl \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats\<close>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> conflict_count\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> clauses_wl \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats\<close>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> conflict_count\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 type_synonym twl_st_wl_heur =
   \<open>(nat,nat)ann_lits \<times> nat clauses_l \<times>
     nat clause option \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times>
-    nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats\<close>
-
-type_synonym twl_st_wl_heur_trail_ref =
-  \<open>trail_pol \<times> nat clause_l list \<times> nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times>
-   vmtf_remove_int \<times> bool list \<times> nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats\<close>
+    nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> conflict_count\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat clauses_l\<close> where
   \<open>get_clauses_wl_heur (M, N, D, _) = N\<close>
@@ -119,10 +121,20 @@ fun get_lbd :: \<open>twl_st_wl_heur \<Rightarrow> lbd\<close> where
 fun get_outlearned_heur :: \<open>twl_st_wl_heur \<Rightarrow> out_learned\<close> where
   \<open>get_outlearned_heur (_, _, _, _, _, _, _, _, _, _, out, _) = out\<close>
 
+fun get_fast_ema_heur :: \<open>twl_st_wl_heur \<Rightarrow> ema\<close> where
+  \<open>get_fast_ema_heur (_, _, _, _, _, _, _, _, _, _, _, _, fast_ema, _) = fast_ema\<close>
+
+fun get_slow_ema_heur :: \<open>twl_st_wl_heur \<Rightarrow> ema\<close> where
+  \<open>get_slow_ema_heur (_, _, _, _, _, _, _, _, _, _, _, _, _, slow_ema, _) = slow_ema\<close>
+
+fun get_conflict_count_heur :: \<open>twl_st_wl_heur \<Rightarrow> uint32\<close> where
+  \<open>get_conflict_count_heur (_, _, _, _, _, _, _, _, _, _, _, _, _, _, ccount) = ccount\<close>
+
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
 
 
+text \<open>Setup to convert a list from \<^typ>\<open>uint64\<close> to \<^typ>\<open>nat\<close>.\<close>
 definition arl_copy_to :: \<open>('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b list\<close> where
 \<open>arl_copy_to R xs = map R xs\<close>
 
@@ -232,7 +244,8 @@ definition cach_refinement_empty where
 
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
-  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats), (M, N, D, NE, UE, Q, W)).
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount),
+     (M, N, D, NE, UE, Q, W)).
     M = M' \<and> N' = N \<and>
     D' = D \<and>
      Q' = Q \<and>
@@ -261,7 +274,10 @@ definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \
   cach_refinement_assn *a
   lbd_assn *a
   out_learned_assn *a
-  stats_assn\<close>
+  stats_assn *a
+  ema_assn *a
+  ema_assn *a
+  conflict_count_assn\<close>
 
 definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_fast_assn =
@@ -274,7 +290,10 @@ definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_tr
   cach_refinement_assn *a
   lbd_assn *a
   out_learned_assn *a
-  stats_assn\<close>
+  stats_assn *a
+  ema_assn *a
+  ema_assn *a
+  conflict_count_assn\<close>
 
 text \<open>
   The difference between \<^term>\<open>isasat_assn\<close> and \<^term>\<open>isasat_fast_assn\<close> corresponds to the
@@ -287,7 +306,8 @@ definition twl_st_heur_no_clvls
   :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur_no_clvls =
-  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats), (M, N, D, NE, UE, Q, W)).
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount),
+     (M, N, D, NE, UE, Q, W)).
     M = M' \<and> N' = N \<and>
     D' = D \<and>
     Q' = Q \<and>
@@ -301,9 +321,9 @@ where
 
 definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>isasat_fast_slow =
-    (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats).
+    (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount).
       RETURN (trail_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
-        clvls, cach, lbd, outl, stats))\<close>
+        clvls, cach, lbd, outl, stats, fema, sema, ccount))\<close>
 
 sepref_thm isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
@@ -337,7 +357,7 @@ lemma isasat_fast_slow_isasat_fast_slow_wl_D:
 type_synonym (in -) twl_st_wl_heur_W_list =
   \<open>(nat,nat) ann_lits \<times> nat clauses_l \<times>
     nat cconflict \<times> nat clause_l \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
-    nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats\<close>
+    nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> conflict_count\<close>
 
 definition literals_are_in_\<L>\<^sub>i\<^sub>n_heur where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S = literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf (get_clauses_wl_heur S))\<close>

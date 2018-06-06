@@ -1,7 +1,48 @@
 theory IsaSAT_Backtrack
   imports IsaSAT_Setup Watched_Literals_Heuristics
 begin
+(* TODO Move *)
+definition uint64_of_uint32 where
+  \<open>uint64_of_uint32 n = uint64_of_nat (nat_of_uint32 n)\<close>
 
+export_code uint64_of_uint32 in SML
+
+text \<open>We do not want to follow the definition in the generated code (that would be crazy).
+\<close>
+definition uint64_of_uint32' where
+  [symmetric, code]: \<open>uint64_of_uint32' = uint64_of_uint32\<close>
+
+code_printing constant uint64_of_uint32' \<rightharpoonup>
+   (SML) "(Uint64.fromLarge (Word32.toLarge (_)))"
+
+
+export_code uint64_of_uint32 checking SML_imp
+
+export_code uint64_of_uint32 in SML_imp
+
+lemma
+  assumes n[simp]: \<open>n \<le> uint32_max_uint32\<close>
+  shows \<open>nat_of_uint64 (uint64_of_uint32 n) = nat_of_uint32 n\<close>
+proof -
+
+  have H: \<open>nat_of_uint32 n \<le> uint32_max\<close> if \<open>n \<le> uint32_max_uint32\<close> for n
+    apply (subst nat_of_uint32_uint32_max_uint32[symmetric])
+    apply (subst nat_of_uint32_le_iff)
+    by (auto simp: that)
+  have [simp]: \<open>nat_of_uint32 n \<le> uint64_max\<close> if \<open>n \<le> uint32_max_uint32\<close> for n
+    using H[of n] by (auto simp: that uint64_max_def uint32_max_def)
+  show ?thesis
+    apply (auto simp: uint64_of_uint32_def
+      nat_of_uint64_uint64_of_nat_id uint64_max_def)
+    by (subst nat_of_uint64_uint64_of_nat_id)
+        (auto simp: )
+qed
+
+lemma uint64_of_uint32_hnr[sepref_fr_rules]:
+  \<open>(return o uint64_of_uint32, RETURN o uint64_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare (sep_auto simp: br_def)
+  
+(*  End Move *)
 
 subsection \<open>Backtrack\<close>
 
@@ -710,9 +751,28 @@ definition (in isasat_input_ops) flush
 where
   \<open>flush M _ = SPEC (\<lambda>vm'. vm' \<in> vmtf M)\<close>
 
+definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> nat \<Rightarrow> ema\<close> where
+  \<open>ema_update coeff ema lbd = (ema >> coeff) + uint64_of_uint32 ((uint32_of_nat lbd) << (32 - coeff))\<close>
+
+definition (in -) ema_update_ref :: \<open>nat \<Rightarrow> ema \<Rightarrow> uint32 \<Rightarrow> ema\<close> where
+  \<open>ema_update_ref coeff ema lbd = (ema >> coeff) + uint64_of_uint32 (lbd << (32 - coeff))\<close>
+
+lemma (in -) ema_update_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 (return ooo ema_update_ref), uncurry2 (RETURN ooo ema_update)) \<in> 
+     nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+     unfolding ema_update_def ema_update_ref_def
+     by sepref_to_hoare
+       (sep_auto simp: uint32_nat_rel_def br_def)
+
+abbreviation(in -) ema_update_slow where
+  \<open>ema_update_slow \<equiv> ema_update 14\<close>
+abbreviation (in -)ema_update_fast where
+  \<open>ema_update_fast \<equiv> ema_update 5\<close>
+
 definition (in isasat_input_ops) propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, _, cach). do {
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, _, cach, lbd, outl, stats, fema, sema,
+         ccount). do {
       ASSERT(phase_saving \<phi> \<and> vm \<in> vmtf M \<and> undefined_lit M (-L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
          nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
       ASSERT(length C > 1);
@@ -720,12 +780,15 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset C));
       (vm, \<phi>) \<leftarrow> rescore_clause C M vm \<phi>;
       vm \<leftarrow> flush M vm;
+      glue \<leftarrow> get_LBD lbd;
       let b = False;
       (N, i) \<leftarrow> fm_add_new b C N;
       let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [i]];
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [i]];
+      lbd \<leftarrow> lbd_empty lbd; 
       RETURN (Propagated (- L) i # M, N, D, {#L#}, W, vm, \<phi>, zero_uint32_nat,
-         cach)
+         cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
+          ccount + one_uint32)
     })\<close>
 
 definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal\<close> where
@@ -739,10 +802,15 @@ where
 definition (in isasat_input_ops) propagate_unit_bt_wl_D_int
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
-  \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, D, Q, W, vm, \<phi>). do {
+  \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+      fema, sema, ccount). do {
       ASSERT(undefined_lit M L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> vm \<in> vmtf M);
       vm \<leftarrow> flush M vm;
-      RETURN (Propagated (- L) 0 # M, N, D, {#L#}, W, vm, \<phi>)})\<close>
+      glue \<leftarrow> get_LBD lbd;
+      lbd \<leftarrow> lbd_empty lbd; 
+      RETURN (Propagated (- L) 0 # M, N, D, {#L#}, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+         ema_update_fast fema glue, ema_update_slow sema glue,
+        ccount + one_uint32)})\<close>
 
 (* TODO ded-uplicate definitions *)
 definition (in isasat_input_ops) find_decomp_wvmtf_ns_pre where
@@ -1459,8 +1527,8 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S'\<close> \<open>1 < length C\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T')
-    obtain vm' W' \<phi> clvls cach lbd outl stats where
-        U: \<open>U = (M1, N, None, Q, W', vm', \<phi>, clvls, cach, lbd, outl, stats)\<close> and
+    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount where
+        U: \<open>U = (M1, N, None, Q, W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount)\<close> and
         vm': \<open>vm' \<in> vmtf M1\<close> and
         \<phi>: \<open>phase_saving \<phi>\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
@@ -1497,7 +1565,7 @@ proof -
           propagate_bt_wl_D_def Let_def T' U' U rescore_clause_def S' map_fun_rel_def
           list_of_mset2_def flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
           fm_add_new_def get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2
-          RES_RES_RETURN_RES
+          RES_RES_RETURN_RES lbd_empty_def get_LBD_def
           intro!: ASSERT_refine_left RES_refine exI[of _ C]
           intro!: vmtf_consD)
   qed
@@ -1561,8 +1629,8 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S'\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T')
-    obtain vm' W' \<phi> clvls cach lbd outl stats where
-        U: \<open>U = (M1, N, None, Q, W', vm', \<phi>, clvls, cach, lbd, outl, stats)\<close> and
+    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount where
+        U: \<open>U = (M1, N, None, Q, W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount)\<close> and
         vm': \<open>vm' \<in> vmtf M1\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
     have
@@ -1588,8 +1656,8 @@ proof -
       using empty_cach n_d_M1  W'W outl vmtf C \<phi> undef uL_M unfolding U U'
       by (auto simp: propagate_unit_bt_wl_D_int_def
           propagate_unit_bt_wl_D_def U U' lit_of_hd_trail_st_heur_def
-          single_of_mset_def flush_def twl_st_heur_def
-          RES_RES2_RETURN_RES RES_RETURN_RES S' uminus_\<A>\<^sub>i\<^sub>n_iff
+          single_of_mset_def flush_def twl_st_heur_def lbd_empty_def get_LBD_def
+          RES_RES2_RETURN_RES RES_RETURN_RES S' uminus_\<A>\<^sub>i\<^sub>n_iff RES_RES_RETURN_RES
           intro!: ASSERT_refine_left RES_refine exI[of _ \<open>-lit_of (hd M)\<close>]
           intro!: vmtf_consD)
   qed
@@ -1793,7 +1861,6 @@ definition find_decomp_wl_st_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Ri
     twl_st_wl_heur nres\<close> where
   \<open>find_decomp_wl_st_int = (\<lambda>highest (M, N, D, W, Q, vm, \<phi>, clvls, cach, lbd, stats). do{
      (M', vm) \<leftarrow> find_decomp_wvmtf_ns M highest vm;
-     lbd \<leftarrow> lbd_empty lbd;
      RETURN (M', N, D, W, Q, vm, \<phi>, clvls, cach, lbd, stats)
   })\<close>
 
