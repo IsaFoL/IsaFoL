@@ -1168,22 +1168,4 @@ lemma cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl:
 
 end
 
-text \<open>
-  This is a list of comments (how does it work for glucose and cadical) to prepare the future
-  refinement:
-  \<^enum> Reduction
-     \<^item> every 2000+300*n (rougly since inprocessing changes the real number, cadical)
-           (split over initialisation file); don't restart if level < 2 or if the level is less
-       than the fast average
-     \<^item> curRestart * nbclausesbeforereduce;
-          curRestart = (conflicts / nbclausesbeforereduce) + 1 (glucose)
-  \<^enum> Killed
-     \<^item> half of the clauses that \<^bold>\<open>can\<close> be deleted (i.e., not used since last restart), not strictly
-       LBD, but a probability of being useful.
-     \<^item> half of the clauses
-  \<^enum> Restarts:
-     \<^item> EMA-14, aka restart if enough clauses and slow_glue_avg * opts.restartmargin > f (file ema.cpp)
-     \<^item> (lbdQueue.getavg() * K) > (sumLBD / conflictsRestarts),
-       \<^text>\<open>conflictsRestarts > LOWER_BOUND_FOR_BLOCKING_RESTART && lbdQueue.isvalid() && trail.size() > R * trailQueue.getavg()\<close>
-\<close>
 end
