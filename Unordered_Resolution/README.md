@@ -41,6 +41,10 @@ which rely on AFP being installed.
 
 ## Publications ##
 
+* [Formalization of the Resolution Calculus for First-Order Logic](https://people.compute.dtu.dk/andschl/#jar).
+  A. Schlichtkrull.
+  _Journal of Automated Reasoning_, 2018.
+  
 * [Formalization of the Resolution Calculus for First-Order Logic](http://orbit.dtu.dk/files/126069253/typeinst.pdf).
   A. Schlichtkrull.
   In Blanchette, J. C., Merz, S. (eds.) 7th International Conference on Interactive Theorem Proving (ITP 2016), LNCS 9807, Springer, 2016.
