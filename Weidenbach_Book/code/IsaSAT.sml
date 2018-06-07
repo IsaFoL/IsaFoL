@@ -14,7 +14,15 @@ fun lit_of_nat n =
   if Word.toLargeInt n mod 2 = 0 then Word.toLargeInt n div 2
   else ~(Word.toLargeInt n div 2)
 
-val print_model = map (print o (fn n => IntInf.toString n ^ " ") o lit_of_nat)
+fun print_model (xs, i) =
+    let
+      fun map_from j =
+          if j >= int_of_gn i then ()
+          else
+            ((print o (fn n => IntInf.toString n ^ " ") o lit_of_nat)
+                (Array.sub (xs, j));
+                 map_from (j+1))
+    in map_from 0 end
 
 fun nat_of_lit n =
   let val m = if n < 0 then (2*(~n-1)+1) else (2*(n-1))
