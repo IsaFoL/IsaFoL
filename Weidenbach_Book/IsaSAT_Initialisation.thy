@@ -2274,10 +2274,11 @@ lemma (in -)arrayO_raa_empty_sz_init_rll[sepref_fr_rules]:
 
 definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> trail_pol nres\<close> where
   \<open>init_trail_D \<A>\<^sub>i\<^sub>n n m = do {
+     let M0 = [];
      let M = replicate m UNSET;
      let M' = replicate n zero_uint32_nat;
      let M'' = replicate n None;
-     RETURN (([], M, M', M'', zero_uint32_nat))
+     RETURN ((M0, M, M', M'', zero_uint32_nat))
   }\<close>
 
 sepref_register initialise_VMTF
@@ -2287,8 +2288,8 @@ sepref_definition init_trail_D_code
   is \<open>uncurry2 init_trail_D\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn\<close>
   unfolding init_trail_D_def PR_CONST_def
-  apply (rewrite in \<open>((\<hole>, _, _, _))\<close> HOL_list.fold_custom_empty)
-  apply (rewrite in \<open>((\<hole>, _, _, _))\<close> annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
 
   apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
   apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
@@ -2308,8 +2309,8 @@ sepref_definition init_trail_D_fast_code
   is \<open>uncurry2 init_trail_D_fast\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
   unfolding init_trail_D_def PR_CONST_def init_trail_D_fast_def
-  apply (rewrite in \<open>((\<hole>, _, _, _))\<close> HOL_list.fold_custom_empty)
-  apply (rewrite in \<open>((\<hole>, _, _, _))\<close> annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
 
   apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
   apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])

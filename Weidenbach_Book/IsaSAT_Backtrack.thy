@@ -1,49 +1,6 @@
 theory IsaSAT_Backtrack
   imports IsaSAT_Setup Watched_Literals_Heuristics
 begin
-(* TODO Move *)
-definition uint64_of_uint32 where
-  \<open>uint64_of_uint32 n = uint64_of_nat (nat_of_uint32 n)\<close>
-
-export_code uint64_of_uint32 in SML
-
-text \<open>We do not want to follow the definition in the generated code (that would be crazy).
-\<close>
-definition uint64_of_uint32' where
-  [symmetric, code]: \<open>uint64_of_uint32' = uint64_of_uint32\<close>
-
-code_printing constant uint64_of_uint32' \<rightharpoonup>
-   (SML) "(Uint64.fromLarge (Word32.toLarge (_)))"
-
-
-export_code uint64_of_uint32 checking SML_imp
-
-export_code uint64_of_uint32 in SML_imp
-
-lemma
-  assumes n[simp]: \<open>n \<le> uint32_max_uint32\<close>
-  shows \<open>nat_of_uint64 (uint64_of_uint32 n) = nat_of_uint32 n\<close>
-proof -
-
-  have H: \<open>nat_of_uint32 n \<le> uint32_max\<close> if \<open>n \<le> uint32_max_uint32\<close> for n
-    apply (subst nat_of_uint32_uint32_max_uint32[symmetric])
-    apply (subst nat_of_uint32_le_iff)
-    by (auto simp: that)
-  have [simp]: \<open>nat_of_uint32 n \<le> uint64_max\<close> if \<open>n \<le> uint32_max_uint32\<close> for n
-    using H[of n] by (auto simp: that uint64_max_def uint32_max_def)
-  show ?thesis
-    apply (auto simp: uint64_of_uint32_def
-      nat_of_uint64_uint64_of_nat_id uint64_max_def)
-    by (subst nat_of_uint64_uint64_of_nat_id)
-        (auto simp: )
-qed
-
-lemma uint64_of_uint32_hnr[sepref_fr_rules]:
-  \<open>(return o uint64_of_uint32, RETURN o uint64_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare (sep_auto simp: br_def)
-  
-(*  End Move *)
-
 subsection \<open>Backtrack\<close>
 
 context isasat_input_bounded_nempty

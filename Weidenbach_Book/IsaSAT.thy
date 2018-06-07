@@ -120,7 +120,7 @@ definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list opt
 
 definition extract_model_of_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
   \<open>extract_model_of_state_stat U =
-     (Some (map lit_of (get_trail_wl_heur U)),
+     (Some (map lit_of (rev (get_trail_wl_heur U))),
        (\<lambda>(M, _,  _, _, _ ,_ ,_ ,_, _, _, _, stat, _). stat) U)\<close>
 
 definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
@@ -131,27 +131,35 @@ definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal
 definition empty_conflict :: \<open>nat literal list option\<close> where
   \<open>empty_conflict = Some []\<close>
 
-definition empty_conflict_code :: \<open>_ list option \<times> stats\<close> where
-  \<open>empty_conflict_code = (Some [], (0, 0, 0))\<close>
-
-definition empty_init_code :: \<open>_ list option \<times> stats\<close> where
-  \<open>empty_init_code = (None, (0, 0, 0))\<close>
-
+definition (in -)empty_conflict_code :: \<open>(_ list option \<times> stats) nres\<close> where
+  \<open>empty_conflict_code = do{
+     let M0 = op_arl_empty;
+     let M1 = Some M0;
+     RETURN (M1, (zero_uint64, zero_uint64, zero_uint64))}\<close>
 
 abbreviation (in -) model_stat_assn where
-  \<open>model_stat_assn \<equiv> option_assn (list_assn unat_lit_assn) *a stats_assn\<close>
+  \<open>model_stat_assn \<equiv> option_assn (arl_assn unat_lit_assn) *a stats_assn\<close>
+(* heap_array_empty *)
+sepref_definition (in -) empty_conflict_code'
+  is \<open>uncurry0 (empty_conflict_code)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
+  unfolding empty_conflict_code_def
+  apply (rewrite in \<open>let _ =  \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
+  by sepref
 
-lemma empty_conflict_code_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return empty_conflict_code), uncurry0 (RETURN empty_conflict_code)) \<in>
-     unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: empty_conflict_code_def empty_conflict_def
-       hr_comp_def)
+declare empty_conflict_code'.refine[sepref_fr_rules]
 
-lemma empty_init_code_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return empty_init_code), uncurry0 (RETURN empty_init_code)) \<in>
-     unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: empty_conflict_code_def empty_conflict_def
-       hr_comp_def empty_init_code_def)
+definition empty_init_code :: \<open>_ list option \<times> stats\<close> where
+  \<open>empty_init_code = (None, (zero_uint64, zero_uint64, zero_uint64))\<close>
+
+sepref_definition (in -) empty_init_code'
+  is \<open>uncurry0 (RETURN empty_init_code)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
+  unfolding empty_init_code_def
+  by sepref
+
+declare empty_init_code'.refine[sepref_fr_rules]
+
 
 text \<open>
   This is a trick to recover from consumption of a variable (\<^term>\<open>\<A>\<^sub>i\<^sub>n\<close>) that is passed as
@@ -247,8 +255,8 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
         (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur_fast \<A>\<^sub>i\<^sub>n'' CS S;
         let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
         if \<not>get_conflict_wl_is_None_heur_init T
-        then RETURN (empty_init_code)
-        else if CS = [] then RETURN (empty_conflict_code)
+        then RETURN empty_init_code
+        else if CS = [] then empty_conflict_code
         else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
@@ -268,7 +276,7 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
         let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
         if \<not>get_conflict_wl_is_None_heur_init T
         then RETURN (empty_init_code)
-        else if CS = [] then RETURN (empty_conflict_code)
+        else if CS = [] then empty_conflict_code
         else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
@@ -352,15 +360,15 @@ lemma cdcl_twl_stgy_prog_wl_D_break_fast_code_ref':
 declare cdcl_twl_stgy_prog_wl_D_code_ref'[to_hnr, OF refl, sepref_fr_rules]
 declare cdcl_twl_stgy_prog_wl_D_break_fast_code_ref'[to_hnr, OF refl, sepref_fr_rules]
 
-definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 list option \<times> stats\<close> where
+definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_list option \<times> stats\<close> where
   \<open>get_trail_wl_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (Some M, stat))\<close>
 
-definition get_stats_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 list option \<times> stats\<close> where
+definition get_stats_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_list option \<times> stats\<close> where
   \<open>get_stats_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (None, stat))\<close>
 
 
 definition (in -) model_stat_rel where
-  \<open>model_stat_rel = {((M', s), M). M = M'}\<close>
+  \<open>model_stat_rel = {((M', s), M). map_option rev M = M'}\<close>
 
 definition (in -) model_assn where
   \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
@@ -413,6 +421,7 @@ declare isasat_input_ops.finalise_init_hnr[unfolded PR_CONST_def, sepref_fr_rule
 declare isasat_input_ops.finalise_init_fast_hnr[unfolded PR_CONST_def, sepref_fr_rules]
 sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extract_stats
   isasat_input_ops.init_dt_wl_heur
+
 declare init_state_wl_heur_hnr[to_hnr, OF refl, sepref_fr_rules]
   init_dt_wl_code.refine[sepref_fr_rules]
   isasat_input_ops.get_stats_code[sepref_fr_rules]
@@ -1254,7 +1263,7 @@ lemma isasat_input_bounded_nempty_cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_st
 
 lemma IsaSAT_heur_IsaSAT: \<open>(IsaSAT_heur, IsaSAT) \<in>
      [\<lambda>CS.  Multiset.Ball (mset CS) distinct \<and> (\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max)]\<^sub>f
-     Id \<rightarrow> \<langle>{((M, stat), M'). M = M'}\<rangle>nres_rel\<close>
+     Id \<rightarrow> \<langle>{((M, stat), M'). map_option rev M = M'}\<rangle>nres_rel\<close>
 proof -
   have H: \<open>A + B = C \<Longrightarrow> A \<subseteq># C\<close> for A B C
     by auto
@@ -1272,7 +1281,7 @@ proof -
         (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur \<A>\<^sub>i\<^sub>n'' CS S;
         if \<not>get_conflict_wl_is_None_heur_init T
         then RETURN (empty_init_code)
-        else if CS = [] then RETURN (empty_conflict_code)
+        else if CS = [] then empty_conflict_code
         else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
@@ -1292,7 +1301,7 @@ proof -
         (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur \<A>\<^sub>i\<^sub>n'' CS S;
         if \<not>get_conflict_wl_is_None_heur_init T
         then RETURN (empty_init_code)
-        else if CS = [] then RETURN (empty_conflict_code)
+        else if CS = [] then empty_conflict_code
         else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
@@ -1471,7 +1480,7 @@ proof -
     subgoal for CS CS' S S'
       by simp
     subgoal premises p
-      by (auto simp: empty_conflict_code_def)
+      by (auto simp: empty_conflict_code_def op_arl_empty_def)
     subgoal by auto
     subgoal by auto
     subgoal
@@ -1495,7 +1504,7 @@ proof -
       using p(30)
       by (auto simp: extract_model_of_state_stat_def extract_model_of_state_def
           isasat_input_ops.twl_st_heur_def get_conflict_wl_is_None_heur_def
-          get_conflict_wl_is_None_heur_init_def extract_state_stat_def
+          get_conflict_wl_is_None_heur_init_def extract_state_stat_def rev_map
           get_conflict_wl_is_None_def split: option.splits)
     subgoal by auto
     apply assumption+
@@ -1504,7 +1513,7 @@ proof -
     subgoal by simp
     subgoal premises p by (simp add: empty_init_code_def)
     subgoal by simp
-    subgoal premises p by (simp add: empty_conflict_code_def)
+    subgoal premises p by (simp add: empty_conflict_code_def op_arl_empty_def)
     subgoal by auto
     subgoal by auto
     subgoal
@@ -1526,7 +1535,7 @@ proof -
       using p(29)
       by (auto simp: extract_model_of_state_stat_def extract_model_of_state_def
           isasat_input_ops.twl_st_heur_def get_conflict_wl_is_None_heur_def
-          get_conflict_wl_is_None_heur_init_def extract_state_stat_def
+          get_conflict_wl_is_None_heur_init_def extract_state_stat_def rev_map
           get_conflict_wl_is_None_def split: option.splits)
     done
 qed
@@ -1611,10 +1620,12 @@ proof -
      apply (rule 2)
     by (auto simp: TWL_to_clauses_state_conv_def extract_model_of_state_def
         state_wl_l_def twl_st_l_def convert_lits_l_map_lit_of)
-    have H: \<open>hr_comp model_stat_assn
-        (Collect (case_prod (\<lambda>(M, stat). op = M))) = model_assn\<close>
-      by (auto simp: model_assn_def hr_comp_def model_stat_rel_def ex_assn_pair_split eq_commute
-          intro!: ext)
+  have [simp]: \<open> \<up> (x = map_option rev ac) =  \<up> (ac = map_option rev x)\<close> for x ac
+    by (cases ac; cases x) auto
+  have H: \<open>hr_comp model_stat_assn
+        (Collect (case_prod (\<lambda>(M, stat). op = (map_option rev M)))) = model_assn\<close>
+    by (auto simp: model_assn_def hr_comp_def model_stat_rel_def ex_assn_pair_split eq_commute
+        intro!: ext)
   have H: \<open>(IsaSAT_code, IsaSAT)
       \<in> [\<lambda>x. Ball (set x) distinct  \<and> (\<forall>C\<in>set x. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max)]\<^sub>a
          (list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow> model_assn\<close>
