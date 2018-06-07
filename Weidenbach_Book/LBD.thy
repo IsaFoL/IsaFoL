@@ -289,7 +289,7 @@ lemma empty_lbd_hnr[sepref_fr_rules]:
 definition get_LBD :: \<open>lbd \<Rightarrow> nat nres\<close> where
   \<open>get_LBD lbd = SPEC(\<lambda>_. True)\<close>
 
-definition get_LBD_ref :: \<open>lbd_ref \<Rightarrow> nat nres\<close> where 
+definition get_LBD_ref :: \<open>lbd_ref \<Rightarrow> nat nres\<close> where
   \<open>get_LBD_ref = (\<lambda>(xs, m). do {
     (i, lbd) \<leftarrow>
        WHILE\<^sub>T\<^bsup>\<lambda>(i, lbd). lbd \<le> i \<and> i \<le> length xs\<^esup>

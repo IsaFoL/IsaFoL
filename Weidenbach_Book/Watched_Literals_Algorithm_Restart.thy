@@ -503,7 +503,7 @@ proof -
   qed
   show ?thesis
    supply RETURN_as_SPEC_refine[refine2 del]
-    unfolding cdcl_twl_stgy_restart_prog_def full_def cdcl_twl_stgy_restart_prog_inv_def 
+    unfolding cdcl_twl_stgy_restart_prog_def full_def cdcl_twl_stgy_restart_prog_inv_def
     apply (refine_vcg WHILEIT_rule[where
            R = \<open>{((brkT, T, n), (brkS, S, m)).
                      twl_struct_invs S \<and> cdcl_twl_stgy_restart_with_leftovers1 (S, m) (T, n)} \<union>

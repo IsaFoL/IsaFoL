@@ -2552,7 +2552,7 @@ proof -
       by auto
     have list_U: \<open>twl_list_invs U\<close>
       using SU' list_invs rtranclp_cdcl_twl_restart_l_list_invs by blast
-     have [simp]: 
+     have [simp]:
       \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* U V' \<Longrightarrow>  mark_to_delete_clauses_l_post U V'\<close> for V'
       unfolding mark_to_delete_clauses_l_post_def
       using UV struct_invs_V list_U confl_U upd_U
@@ -2569,7 +2569,7 @@ proof -
     }\<close>
   by (auto simp: RES_RES_RETURN_RES)
   have H: \<open>mark_to_delete_clauses_l_pre T\<close>
-    if 
+    if
       \<open>(T, U) \<in> Id\<close> and
       \<open>U \<in> Collect (remove_one_annot_true_clause\<^sup>*\<^sup>* S)\<close>
     for T U

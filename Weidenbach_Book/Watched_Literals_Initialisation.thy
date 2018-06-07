@@ -1301,7 +1301,7 @@ proof -
     apply -
     apply normalize_goal+
     by presburger
-  have dec': \<open>\<forall>s\<in>set (get_trail_init T). \<not> is_decided s\<close> 
+  have dec': \<open>\<forall>s\<in>set (get_trail_init T). \<not> is_decided s\<close>
     using SOC_T dec by (rule twl_st_l_init_no_decision_iff[THEN iffD2])
 
   obtain M N D NE UE Q where

@@ -512,7 +512,7 @@ lemma le_uint32_nat_rel_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_le_iff)
 
 definition one_uint32 where
-  \<open>one_uint32 = (1::uint32)\<close>  
+  \<open>one_uint32 = (1::uint32)\<close>
 
 lemma one_uint32_hnr[sepref_fr_rules]:
   \<open>(uncurry0 (return 1), uncurry0 (RETURN one_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
@@ -928,5 +928,5 @@ qed
 lemma uint64_of_uint32_hnr[sepref_fr_rules]:
   \<open>(return o uint64_of_uint32, RETURN o uint64_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by sepref_to_hoare (sep_auto simp: br_def)
-  
+
 end

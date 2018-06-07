@@ -12,7 +12,7 @@ definition (in -)length_aa_u64_o64 :: \<open>('a::heap array_list) array \<Right
 
 definition arl_length_o64 where
   \<open>arl_length_o64 x = do {n \<leftarrow> arl_length x;  return (uint64_of_nat n)}\<close>
-  
+
 lemma length_aa_u64_o64_code[code]:
   \<open>length_aa_u64_o64 xs i = nth_u64_code xs i \<bind> arl_length_o64\<close>
   unfolding length_aa_u64_o64_def length_aa_u64_def nth_u_def[symmetric] nth_u64_code_def
@@ -30,7 +30,7 @@ lemma length_aa_u64_o64_hnr[sepref_fr_rules]:
 
 definition (in -)length_aa_u32_o64 :: \<open>('a::heap array_list) array \<Rightarrow> uint32 \<Rightarrow> uint64 Heap\<close> where
   \<open>length_aa_u32_o64 xs i = length_aa_u xs i >>= (\<lambda>n. return (uint64_of_nat n))\<close>
-  
+
 lemma length_aa_u32_o64_code[code]:
   \<open>length_aa_u32_o64 xs i = nth_u_code xs i \<bind> arl_length_o64\<close>
   unfolding length_aa_u32_o64_def length_aa_u64_def nth_u_def[symmetric] nth_u_code_def
@@ -316,7 +316,7 @@ lemmas propagate_lit_wl_code[sepref_fr_rules] =
 
 sepref_thm propagate_lit_wl_fast_code
   is \<open>uncurry3 (RETURN oooo (PR_CONST propagate_lit_wl_heur))\<close>
-  :: \<open>[\<lambda>(((L', C), w), S). propagate_lit_wl_heur_pre (((L', C), w), S) \<and> 
+  :: \<open>[\<lambda>(((L', C), w), S). propagate_lit_wl_heur_pre (((L', C), w), S) \<and>
         w + 1 \<le> uint64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
   unfolding PR_CONST_def propagate_lit_wl_heur_def isasat_assn_def
@@ -371,7 +371,7 @@ sepref_thm unit_propagation_inner_loop_body_wl_heur
 sepref_thm unit_propagation_inner_loop_body_wl_fast_heur
   is \<open>uncurry2 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
   :: \<open>[\<lambda>((L, w), S). w+1 \<le> uint64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> 
+      unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow>
       uint64_nat_assn *a isasat_fast_assn\<close>
   supply
     if_splits[split]
@@ -528,7 +528,7 @@ qed
 lemma unit_propagation_inner_loop_wl_loop_D_heur_inv_length_watchlist:
   assumes \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv S0 L (w, S)\<close> and
     fast: \<open>isasat_fast S0\<close>
-  shows 
+  shows
     \<open>length (get_watched_wl_heur S ! nat_of_lit L) \<le> uint64_max\<close> (is ?A) and
     \<open>length (get_watched_wl_heur S ! nat_of_lit L) < uint64_max\<close> (is ?B) and
     \<open>Suc w \<le> uint64_max\<close> (is ?C)
@@ -539,7 +539,7 @@ proof -
     L: \<open>L \<in> snd ` D\<^sub>0\<close> and
     dom_eq: \<open>dom_m (get_clauses_wl_heur S) = dom_m (get_clauses_wl_heur S0)\<close>
     using assms unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv_def by blast
-  obtain U V where 
+  obtain U V where
     corr_w: \<open>correct_watching T\<close> and
     lits_in: \<open>literals_are_\<L>\<^sub>i\<^sub>n T\<close> and
     TU: \<open>(T, U) \<in> state_wl_l (Some (L, w))\<close> and
@@ -550,7 +550,7 @@ proof -
     w_le: \<open>w \<le> length (watched_by T L)\<close>
     using inner unfolding unit_propagation_inner_loop_wl_loop_D_inv_def
      unit_propagation_inner_loop_wl_loop_inv_def
-     unit_propagation_inner_loop_l_inv_def 
+     unit_propagation_inner_loop_l_inv_def
      by fast+
   have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of V)\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -947,7 +947,7 @@ lemmas unit_propagation_outer_loop_wl_D[sepref_fr_rules] =
    unit_propagation_outer_loop_wl_D.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 lemma unit_propagation_outer_loop_wl_D_fast_still_fast:
-  assumes 
+  assumes
     fast: \<open>\<forall>L\<in>#dom_m (get_clauses_wl_heur x). L < uint_max\<close> and
     inv: \<open>unit_propagation_outer_loop_wl_D_heur_inv x s'\<close> and
     le: \<open>RETURN (a1', a2') \<le> select_and_remove_from_literals_to_update_wl_heur s'\<close> and

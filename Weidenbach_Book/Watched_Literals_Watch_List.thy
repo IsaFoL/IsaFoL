@@ -1481,7 +1481,7 @@ proof -
     have U: \<open>U = (MU, NS, Some DT, NES, UES, {#}, {#})\<close>
       using UU' by (auto simp: U' state_wl_l_def)
     obtain S1 S2 where
-      S1: \<open>(S', S1) \<in> state_wl_l None\<close> and 
+      S1: \<open>(S', S1) \<in> state_wl_l None\<close> and
       S2: \<open>(S1, S2) \<in> twl_st_l None\<close> and
       struct_invs: \<open>twl_struct_invs S2\<close>
       using bt unfolding backtrack_wl_inv_def backtrack_l_inv_def

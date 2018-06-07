@@ -715,7 +715,7 @@ definition (in -) ema_update_ref :: \<open>nat \<Rightarrow> ema \<Rightarrow> u
   \<open>ema_update_ref coeff ema lbd = (ema >> coeff) + uint64_of_uint32 (lbd << (32 - coeff))\<close>
 
 lemma (in -) ema_update_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 (return ooo ema_update_ref), uncurry2 (RETURN ooo ema_update)) \<in> 
+  \<open>(uncurry2 (return ooo ema_update_ref), uncurry2 (RETURN ooo ema_update)) \<in>
      nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
      unfolding ema_update_def ema_update_ref_def
      by sepref_to_hoare
@@ -742,7 +742,7 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       (N, i) \<leftarrow> fm_add_new b C N;
       let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [i]];
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [i]];
-      lbd \<leftarrow> lbd_empty lbd; 
+      lbd \<leftarrow> lbd_empty lbd;
       RETURN (Propagated (- L) i # M, N, D, {#L#}, W, vm, \<phi>, zero_uint32_nat,
          cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
           ccount + one_uint32)
@@ -764,7 +764,7 @@ where
       ASSERT(undefined_lit M L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> vm \<in> vmtf M);
       vm \<leftarrow> flush M vm;
       glue \<leftarrow> get_LBD lbd;
-      lbd \<leftarrow> lbd_empty lbd; 
+      lbd \<leftarrow> lbd_empty lbd;
       RETURN (Propagated (- L) 0 # M, N, D, {#L#}, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
          ema_update_fast fema glue, ema_update_slow sema glue,
         ccount + one_uint32)})\<close>

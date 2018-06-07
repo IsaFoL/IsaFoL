@@ -946,7 +946,7 @@ lemma distinct_mset_inter_remdups_mset:
   shows \<open>A \<inter># remdups_mset B = A \<inter># B\<close>
 proof -
   have [simp]: \<open>A' \<inter># remove1_mset a (remdups_mset Aa) = A' \<inter># Aa\<close>
-    if 
+    if
       \<open>A' \<inter># remdups_mset Aa = A' \<inter># Aa\<close> and
       \<open>a \<notin># A'\<close> and
       \<open>a \<in># Aa\<close>
@@ -1063,7 +1063,7 @@ lemma mset_nths_subset_mset: \<open>mset (nths xs A) \<subseteq># mset xs\<close
   apply (induction xs arbitrary: A)
   subgoal by auto
   subgoal for a xs A
-    using subset_mset.add_increasing2[of \<open>add_mset _ {#}\<close> \<open>mset (nths xs {j. Suc j \<in> A})\<close> 
+    using subset_mset.add_increasing2[of \<open>add_mset _ {#}\<close> \<open>mset (nths xs {j. Suc j \<in> A})\<close>
       \<open>mset xs\<close>]
     by (auto simp: nths_Cons)
   done

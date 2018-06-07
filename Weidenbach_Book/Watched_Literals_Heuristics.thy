@@ -501,7 +501,7 @@ proof  -
       using n_d_q S_T T_T' L_WS
       by (cases \<open>clauses_to_update T'\<close>)
          (auto simp add: no_duplicate_queued_alt_def twl_st_wl twl_st_l twl_st)
-    note mset_subset_eq_insertD[OF this] 
+    note mset_subset_eq_insertD[OF this]
     moreover have \<open>xa \<in> set x \<Longrightarrow>
        (M, x) \<in> convert_lits_l N (NE + UE) \<Longrightarrow>
        lit_of xa \<in> lit_of ` set M\<close> for xa x

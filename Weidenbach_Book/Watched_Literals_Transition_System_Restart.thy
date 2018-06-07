@@ -271,7 +271,7 @@ proof (induction rule: cdcl_twl_restart.induct)
      assume \<open>C \<in># NE + clauses NE' + (UE + clauses UE')\<close>
      moreover have \<open>L \<in> lits_of_l M \<and> get_level M L = 0 \<Longrightarrow>L \<in> lits_of_l M' \<and> get_level M' L = 0\<close>
        for L
-       using n_d 
+       using n_d
        by (cases \<open>undefined_lit M3' L\<close>)
          (auto simp: M3' atm_of_eq_atm_of get_level_cons_if
            dest: in_lits_of_l_defined_litD split: if_splits)

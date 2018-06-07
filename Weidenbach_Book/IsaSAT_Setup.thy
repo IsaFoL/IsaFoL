@@ -557,7 +557,7 @@ abbreviation (in -) nat_lit_lit_rel where
 context isasat_input_bounded
 begin
 
-definition (in isasat_input_ops) trail_pol_no_CS 
+definition (in isasat_input_ops) trail_pol_no_CS
   :: \<open>(trail_pol \<times> (nat, nat) ann_lits) set\<close>
 where
   \<open>trail_pol_no_CS = {((M', xs, lvls, reasons, k, cs), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<and>
@@ -568,7 +568,7 @@ where
     control_stack (take (count_decided M) cs) M}\<close>
 
 definition (in isasat_input_ops) tl_trailt_tr_no_CS :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>tl_trailt_tr_no_CS = (\<lambda>(M', xs, lvls, reasons, k, cs). 
+  \<open>tl_trailt_tr_no_CS = (\<lambda>(M', xs, lvls, reasons, k, cs).
     let L = last M' in
     (butlast M',
     let xs = xs[nat_of_lit L := None] in xs[nat_of_lit (-L) := None],
@@ -618,7 +618,7 @@ lemmas tl_trail_tr_no_CS_fast_coded_refine[sepref_fr_rules] =
    tl_trail_tr_no_CS_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma (in -) control_stack_take_Suc_count_dec_unstack:
- \<open> control_stack (take (Suc (count_decided M's)) cs) (Decided x1 # M's) \<Longrightarrow> 
+ \<open> control_stack (take (Suc (count_decided M's)) cs) (Decided x1 # M's) \<Longrightarrow>
     control_stack (take (count_decided M's) cs) M's\<close>
   using control_stack_length_count_dec[of \<open>take (Suc (count_decided M's)) cs\<close> \<open>Decided x1 # M's\<close>]
   by (auto simp: min_def take_Suc_conv_app_nth split: if_splits elim: control_stackE)
@@ -643,7 +643,7 @@ proof -
       subgoal
         by (cases \<open>lit_of L\<close>)
           (auto simp: polarity_def tl_trailt_tr_def Decided_Propagated_in_iff_in_lits_of_l
-            uminus_lit_swap Let_def 
+            uminus_lit_swap Let_def
             dest: ann_lits_split_reasons_map_lit_of)
       subgoal
         by (auto simp: polarity_atm_def tl_trailt_tr_def Let_def
@@ -786,7 +786,7 @@ lemma trail_conv_back:
 definition (in -)take_arl where
   \<open>take_arl = (\<lambda>i (xs, j). (xs, i))\<close>
 lemma (in -) take_arl_assn[sepref_fr_rules]:
-  \<open>(uncurry (return oo take_arl), uncurry (RETURN oo take)) 
+  \<open>(uncurry (return oo take_arl), uncurry (RETURN oo take))
     \<in> [\<lambda>(j, xs). j \<le> length xs]\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn R)\<^sup>d \<rightarrow> arl_assn R\<close>
   apply sepref_to_hoare
   apply (sep_auto simp: arl_assn_def hr_comp_def take_arl_def intro!: list_rel_take)

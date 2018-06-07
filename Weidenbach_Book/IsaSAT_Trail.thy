@@ -16,7 +16,7 @@ definition butlast_arl where
 lemma butlast_arl_hnr[sepref_fr_rules]:
   \<open>(return o butlast_arl, RETURN o butlast) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl_assn A)\<^sup>d \<rightarrow> arl_assn A\<close>
 proof -
-  have [simp]: \<open>b \<le> length l' \<Longrightarrow> (take b l', x) \<in> \<langle>the_pure A\<rangle>list_rel \<Longrightarrow> 
+  have [simp]: \<open>b \<le> length l' \<Longrightarrow> (take b l', x) \<in> \<langle>the_pure A\<rangle>list_rel \<Longrightarrow>
      (take (b - Suc 0) l', take (length x - Suc 0) x) \<in> \<langle>the_pure A\<rangle>list_rel\<close>
     for b l' x
     using list_rel_take[of \<open>take b l'\<close> x \<open>the_pure A\<close> \<open>b -1\<close>]
@@ -26,7 +26,7 @@ proof -
   show ?thesis
     by sepref_to_hoare
       (sep_auto simp: butlast_arl_def arl_assn_def hr_comp_def is_array_list_def
-         butlast_conv_take 
+         butlast_conv_take
         simp del: take_butlast_conv)
 qed
 
@@ -298,7 +298,7 @@ lemma control_stack_empty_cs[simp]: \<open>control_stack [] M \<longleftrightarr
 definition control_stack' where
   \<open>control_stack' cs M \<longleftrightarrow>
      (length cs = count_decided M \<and>
-      (\<forall>L\<in>set M. is_decided L \<longrightarrow> (cs ! (get_level M (lit_of L) - 1) < length M \<and> 
+      (\<forall>L\<in>set M. is_decided L \<longrightarrow> (cs ! (get_level M (lit_of L) - 1) < length M \<and>
           rev M!(cs ! (get_level M (lit_of L) - 1)) = L)))\<close>
 
 lemma undefined_notin: \<open>undefined_lit M (lit_of x) \<Longrightarrow> x \<notin> set M\<close> for x M
@@ -336,7 +336,7 @@ next
     using length by (cases cs rule: rev_cases) auto
   have [simp]: \<open>rev M ! n \<in> set M \<Longrightarrow> is_decided (rev M ! n) \<Longrightarrow> count_decided M \<noteq> 0\<close>
     by (auto simp: count_decided_0_iff)
-  have dec': \<open>L'\<in>set M \<Longrightarrow> is_decided L' \<Longrightarrow> cs' ! (get_level M (lit_of L') - 1) < length M \<and> 
+  have dec': \<open>L'\<in>set M \<Longrightarrow> is_decided L' \<Longrightarrow> cs' ! (get_level M (lit_of L') - 1) < length M \<and>
         rev M ! (cs' ! (get_level M (lit_of L') - 1)) = L'\<close> for L'
     using dec[of L'] n_d length
     count_decided_ge_get_level[of M \<open>lit_of L'\<close>]
@@ -361,7 +361,7 @@ next
   case (Propagated L m M) note IH = this(1) and n_d = this(2) and dec = this(3) and length = this(4)
   have [simp]: \<open>rev M ! n \<in> set M \<Longrightarrow> is_decided (rev M ! n) \<Longrightarrow> count_decided M \<noteq> 0\<close> for n
     by (auto simp: count_decided_0_iff)
-  have dec': \<open>L'\<in>set M \<Longrightarrow> is_decided L' \<Longrightarrow> cs ! (get_level M (lit_of L') - 1) < length M \<and> 
+  have dec': \<open>L'\<in>set M \<Longrightarrow> is_decided L' \<Longrightarrow> cs ! (get_level M (lit_of L') - 1) < length M \<and>
         rev M ! (cs ! (get_level M (lit_of L') - 1)) = L'\<close> for L'
     using dec[of L'] n_d length
     count_decided_ge_get_level[of M \<open>lit_of L'\<close>]
@@ -392,7 +392,7 @@ lemma control_stack_alt_def: \<open>no_dup M \<Longrightarrow> control_stack' cs
   done
 
 lemma control_stack_decomp:
-  assumes 
+  assumes
     decomp: \<open>(Decided L # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
     cs: \<open>control_stack cs M\<close> and
     n_d: \<open>no_dup M\<close>
@@ -817,7 +817,7 @@ lemma cons_trail_Propagated_tr:
         dest!: in_list_pos_neg_notD multi_member_split dest: pos_lit_in_atms_of neg_lit_in_atms_of
          simp del: nat_of_lit.simps)
 
-lemma undefined_lit_count_decided_uint_max: 
+lemma undefined_lit_count_decided_uint_max:
   assumes
     M_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and n_d: \<open>no_dup M\<close> and
     \<open>L \<in> snd ` D\<^sub>0\<close> and \<open>undefined_lit M L\<close>
@@ -1139,7 +1139,7 @@ proof -
 qed
 
 definition (in isasat_input_ops) tl_trailt_tr :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, reasons, k, cs). 
+  \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, reasons, k, cs).
     let L = last M' in
     (butlast M',
     let xs = xs[nat_of_lit L := None] in xs[nat_of_lit (-L) := None],
@@ -1218,7 +1218,7 @@ proof -
       subgoal
         by (cases \<open>lit_of L\<close>)
           (auto simp: polarity_def tl_trailt_tr_def Decided_Propagated_in_iff_in_lits_of_l
-            uminus_lit_swap Let_def 
+            uminus_lit_swap Let_def
             dest: ann_lits_split_reasons_map_lit_of)
       subgoal
         by (auto simp: polarity_atm_def tl_trailt_tr_def Let_def

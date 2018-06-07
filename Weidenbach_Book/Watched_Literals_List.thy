@@ -487,7 +487,7 @@ lemma ran_mf_lf_fmdrop_notin[simp]:
 text \<open>While it is temptying to mark the two following theorems as [simp], this would break more
   simplifications since \<^term>\<open>ran_mf\<close> is only an abbreviation for \<^term>\<open>ran_m\<close>.
 \<close>
-  
+
 lemma ran_m_fmdrop:
   \<open>C \<in># dom_m N \<Longrightarrow>  ran_m (fmdrop C N) = remove1_mset (N \<propto> C, irred N C) (ran_m N)\<close>
   using distinct_mset_dom[of N]
