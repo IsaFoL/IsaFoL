@@ -608,6 +608,25 @@ lemma length_raa_u_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def length_rll_def
       nat_of_uint32_uint32_of_nat_id)+
 
+text \<open>TODO: proper fix to avoid the conversion to uint32\<close>
+definition length_aa_u_code :: \<open>('a::heap array) array_list \<Rightarrow> nat \<Rightarrow> uint32 Heap\<close> where
+  \<open>length_aa_u_code xs i = do {
+   n \<leftarrow> length_raa xs i;
+   return (uint32_of_nat n)}\<close>
+
+
+definition length_u where
+  [simp]: \<open>length_u xs = length xs\<close>
+
+(* TODO kill length_u in favour of length_uint32_nat *)
+lemma length_u_hnr'[sepref_fr_rules]:
+  \<open>(length_u_code, RETURN o length_u) \<in>
+     [\<lambda>xs. length xs \<le> uint32_max]\<^sub>a (array_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: length_u_code_def array_assn_def is_array_def
+        hr_comp_def list_rel_def length_u_def
+        uint32_nat_rel_def br_def list_rel_pres_length
+        dest!: nat_of_uint32_uint32_of_nat_id)
 
 
 paragraph \<open>64-bits\<close>
@@ -804,8 +823,6 @@ proof -
     done
 qed
 
-definition length_u where
-  [simp]: \<open>length_u xs = length xs\<close>
 
 definition swap_aa_u64  :: "('a::{heap,default}) arrayO_raa \<Rightarrow> nat \<Rightarrow> uint64 \<Rightarrow> uint64 \<Rightarrow> 'a arrayO_raa Heap" where
   \<open>swap_aa_u64 xs k i j = do {

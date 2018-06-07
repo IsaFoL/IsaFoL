@@ -2275,10 +2275,11 @@ lemma (in -)arrayO_raa_empty_sz_init_rll[sepref_fr_rules]:
 definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> trail_pol nres\<close> where
   \<open>init_trail_D \<A>\<^sub>i\<^sub>n n m = do {
      let M0 = [];
+     let cs = [];
      let M = replicate m UNSET;
      let M' = replicate n zero_uint32_nat;
      let M'' = replicate n None;
-     RETURN ((M0, M, M', M'', zero_uint32_nat))
+     RETURN ((M0, M, M', M'', zero_uint32_nat, cs))
   }\<close>
 
 sepref_register initialise_VMTF
@@ -2290,9 +2291,11 @@ sepref_definition init_trail_D_code
   unfolding init_trail_D_def PR_CONST_def
   apply (rewrite in \<open>let _ = \<hole> in _\<close> arl.fold_custom_empty)
   apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
+  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
 
   apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>let _ = _;_ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
   apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
   apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
   apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
@@ -2311,9 +2314,11 @@ sepref_definition init_trail_D_fast_code
   unfolding init_trail_D_def PR_CONST_def init_trail_D_fast_def
   apply (rewrite in \<open>let _ = \<hole> in _\<close> arl.fold_custom_empty)
   apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
+  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
 
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>let  _ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
+  apply (rewrite in \<open>let _ = _;_ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
   apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
   apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
   apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
@@ -2454,6 +2459,14 @@ proof -
         isasat_input_ops.phase_saving_def list_rel_mset_rel_def
         list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
         isasat_input_ops.ann_lits_split_reasons_def
+      list_mset_rel_def Collect_eq_comp)
+    subgoal
+      by (auto simp: zero_uint32_def shiftr1_def
+        nat_shiftr_div2 nat_of_uint32_shiftr isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+        polarity_atm_def isasat_input_ops.trail_pol_def K atms_of_def
+        isasat_input_ops.phase_saving_def list_rel_mset_rel_def
+        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
+        isasat_input_ops.ann_lits_split_reasons_def control_stack.empty
       list_mset_rel_def Collect_eq_comp)
     done
 qed

@@ -29,24 +29,6 @@ lemma level_in_lbd_ref_level_in_lbd:
     nat_rel \<times>\<^sub>r lbd_ref \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: level_in_lbd_ref_def level_in_lbd_def lbd_ref_def)
 
-definition length_u_code where
-  \<open>length_u_code xs = do { n \<leftarrow> Array.len xs; return (uint32_of_nat n)}\<close>
-
-text \<open>TODO: proper fix to avoid the conversion to uint32\<close>
-definition length_aa_u_code :: \<open>('a::heap array) array_list \<Rightarrow> nat \<Rightarrow> uint32 Heap\<close> where
-  \<open>length_aa_u_code xs i = do {
-   n \<leftarrow> length_raa xs i;
-   return (uint32_of_nat n)}\<close>
-
-lemma length_u_hnr[sepref_fr_rules]:
-  \<open>(length_u_code, RETURN o length_u) \<in>
-     [\<lambda>xs. length xs \<le> uint_max]\<^sub>a (array_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: length_u_code_def array_assn_def is_array_def
-        hr_comp_def list_rel_def length_u_def
-        uint32_nat_rel_def br_def list_rel_pres_length
-        dest!: nat_of_uint32_uint32_of_nat_id)
-
 (* TODO port
 lemma length_aa_u_hnr[sepref_fr_rules]:
   \<open>(uncurry length_aa_u_code, uncurry (RETURN oo length_aa_u)) \<in>
