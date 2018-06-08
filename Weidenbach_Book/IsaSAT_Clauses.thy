@@ -63,6 +63,14 @@ fun extra_clause_information where
       (st = LEARNED \<longleftrightarrow> \<not>irred NU i) \<and>
       (st = INIT \<longleftrightarrow> irred NU i)\<close>
 
+lemma extra_clause_information_simps:
+  \<open>extra_clause_information NU i st \<longleftrightarrow>
+      (fst st = DELETED \<longleftrightarrow> i \<notin># dom_m NU) \<and>
+      (fst st = LEARNED \<longleftrightarrow> \<not>irred NU i) \<and>
+      (fst st = INIT \<longleftrightarrow> irred NU i)
+      \<close>
+  by (cases st) auto
+
 lemma extra_clause_information_update[simp]:
   \<open>i \<in># dom_m aa \<Longrightarrow> extra_clause_information (aa(bd \<hookrightarrow> C)) i (bi) \<longleftrightarrow>
     extra_clause_information aa i (bi)\<close>
@@ -1298,5 +1306,137 @@ proof -
     using H unfolding f im apply assumption
     using pre ..
 qed
+
+definition irred_clauses_l_fmat where
+  \<open>irred_clauses_l_fmat = (\<lambda>(N, ex) i. do {
+     ASSERT(i < length ex);
+     RETURN (fst (ex ! i) = INIT)
+    })\<close>
+
+lemma irred_clauses_l_fmat:
+  \<open>(uncurry irred_clauses_l_fmat, uncurry (RETURN oo irred)) \<in>
+    [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: list_fmap_rel_def extra_clause_information.simps extra_clause_information_simps
+      irred_clauses_l_fmat_def
+      dest!: multi_member_split)
+
+lemma clause_status_assn_eq[sepref_fr_rules]:
+  \<open>(uncurry (return oo op =), uncurry (RETURN oo op =)) \<in>
+     clause_status_assn\<^sup>k *\<^sub>a clause_status_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare sep_auto
+
+sepref_definition irred_clauses_l_fmat_fast
+  is \<open>uncurry irred_clauses_l_fmat\<close>
+  :: \<open>isasat_clauses_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding irred_clauses_l_fmat_def
+  by sepref
+
+sepref_definition irred_clauses_l_fmat_slow
+  is \<open>uncurry irred_clauses_l_fmat\<close>
+  :: \<open>isasat_clauses_assn\<^sup>k *\<^sub>anat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding irred_clauses_l_fmat_def
+  by sepref
+
+lemma irred_hnr[sepref_fr_rules]:
+   \<open>(uncurry irred_clauses_l_fmat_fast, uncurry (RETURN \<circ>\<circ> irred'))
+      \<in> [\<lambda>(a, b). b \<in># dom_m a]\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  using irred_clauses_l_fmat_fast.refine[FCOMP irred_clauses_l_fmat]
+  unfolding clauses_ll_assn_def irred'_def
+  .
+
+lemma irred_slow_hnr[sepref_fr_rules]:
+   \<open>(uncurry irred_clauses_l_fmat_slow, uncurry (RETURN \<circ>\<circ> irred'))
+      \<in> [\<lambda>(a, b). b \<in># dom_m a]\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  using irred_clauses_l_fmat_slow.refine[FCOMP irred_clauses_l_fmat]
+  unfolding clauses_ll_assn_def irred'_def
+  .
+
+definition set_LBD where
+  \<open>set_LBD i lbd N = N\<close>
+
+definition set_LBD_fmap where
+  \<open>set_LBD_fmap i lbd = (\<lambda>(N, ex). do {
+     ASSERT(i < length ex);
+     let (red, _, act) = ex!i;
+     RETURN (N, ex[i := (red, lbd, act)])
+   })\<close>
+
+lemma set_LBD_fmap:
+  \<open>(uncurry2 set_LBD_fmap, uncurry2 (RETURN ooo set_LBD)) \<in>
+    [\<lambda>((i, lbd), N). i \<in># dom_m N]\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>Id\<rangle>clauses_l_fmat \<rightarrow> \<langle> \<langle>Id\<rangle>clauses_l_fmat\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto 5 5 simp: list_fmap_rel_def extra_clause_information.simps extra_clause_information_simps
+      irred_clauses_l_fmat_def set_LBD_fmap_def set_LBD_def case_prod_beta
+      dest: multi_member_split)
+
+sepref_definition set_LBD_fmap_fast
+  is \<open>uncurry2 set_LBD_fmap\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a isasat_clauses_assn\<^sup>d \<rightarrow>\<^sub>a isasat_clauses_assn\<close>
+  unfolding set_LBD_fmap_def
+  by sepref
+
+sepref_definition set_LBD_fmap_slow
+  is \<open>uncurry2 set_LBD_fmap\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a isasat_clauses_assn\<^sup>d \<rightarrow>\<^sub>a isasat_clauses_assn\<close>
+  unfolding set_LBD_fmap_def
+  by sepref
+
+lemma set_LBD_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 set_LBD_fmap_fast, uncurry2 (RETURN \<circ>\<circ>\<circ> set_LBD))
+    \<in> [\<lambda>((a, b), ba). a \<in># dom_m ba]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow>
+     clauses_ll_assn\<close>
+  using  set_LBD_fmap_fast.refine[FCOMP set_LBD_fmap] unfolding clauses_ll_assn_def .
+
+lemma set_LBD_slow_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 set_LBD_fmap_slow, uncurry2 (RETURN \<circ>\<circ>\<circ> set_LBD))
+    \<in> [\<lambda>((a, b), ba). a \<in># dom_m ba]\<^sub>a nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow>
+     clauses_ll_assn\<close>
+  using set_LBD_fmap_slow.refine[FCOMP set_LBD_fmap] unfolding clauses_ll_assn_def .
+
+
+definition increase_activity where
+  \<open>increase_activity i lbd N = N\<close>
+
+definition increase_activity_fmap where
+  \<open>increase_activity_fmap i lbd = (\<lambda>(N, ex). do {
+     ASSERT(i < length ex);
+     let (red, lbd, act) = ex!i;
+     RETURN (N, ex[i := (red, lbd, sum_mod_uint32_max act one_uint32_nat)])
+   })\<close>
+
+lemma increase_activity_fmap:
+  \<open>(uncurry2 increase_activity_fmap, uncurry2 (RETURN ooo increase_activity)) \<in>
+    [\<lambda>((i, lbd), N). i \<in># dom_m N]\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>Id\<rangle>clauses_l_fmat \<rightarrow> \<langle> \<langle>Id\<rangle>clauses_l_fmat\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto 5 5 simp: list_fmap_rel_def extra_clause_information.simps extra_clause_information_simps
+      irred_clauses_l_fmat_def increase_activity_fmap_def increase_activity_def case_prod_beta
+      dest: multi_member_split)
+
+sepref_definition increase_activity_fmap_fast
+  is \<open>uncurry2 increase_activity_fmap\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a isasat_clauses_assn\<^sup>d \<rightarrow>\<^sub>a isasat_clauses_assn\<close>
+  supply sum_mod_uint32_max[sepref_fr_rules]
+  unfolding increase_activity_fmap_def
+  by sepref
+
+sepref_definition increase_activity_fmap_slow
+  is \<open>uncurry2 increase_activity_fmap\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a isasat_clauses_assn\<^sup>d \<rightarrow>\<^sub>a isasat_clauses_assn\<close>
+  supply sum_mod_uint32_max[sepref_fr_rules]
+  unfolding increase_activity_fmap_def
+  by sepref
+
+lemma increase_activity_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 increase_activity_fmap_fast, uncurry2 (RETURN \<circ>\<circ>\<circ> increase_activity))
+    \<in> [\<lambda>((a, b), ba). a \<in># dom_m ba]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow>
+     clauses_ll_assn\<close>
+  using  increase_activity_fmap_fast.refine[FCOMP increase_activity_fmap] unfolding clauses_ll_assn_def .
+
+lemma increase_activity_slow_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 increase_activity_fmap_slow, uncurry2 (RETURN \<circ>\<circ>\<circ> increase_activity))
+    \<in> [\<lambda>((a, b), ba). a \<in># dom_m ba]\<^sub>a nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow>
+     clauses_ll_assn\<close>
+  using increase_activity_fmap_slow.refine[FCOMP increase_activity_fmap] unfolding clauses_ll_assn_def .
 
 end

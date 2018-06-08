@@ -390,6 +390,8 @@ lemma all_clss_lf_ran_m: \<open>all_clss_lf N = fst `# ran_m N\<close>
 abbreviation irred :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> bool\<close> where
   \<open>irred N C \<equiv> snd (the (fmlookup N C))\<close>
 
+definition irred' where \<open>irred' = irred\<close>
+
 lemma ran_m_ran: \<open>fset_mset (ran_m N) = fmran N\<close>
   unfolding ran_m_def ran_def
   apply (auto simp: fmlookup_ran_iff dom_m_def elim!: fmdomE)

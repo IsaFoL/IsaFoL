@@ -739,6 +739,8 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       (N, i) \<leftarrow> fm_add_new b C N;
+      ASSERT (i \<in># dom_m N);
+      let N = set_LBD i glue N;
       let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [i]];
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [i]];
       lbd \<leftarrow> lbd_empty lbd;
@@ -1508,7 +1510,17 @@ proof -
     have [simp]: \<open>C ! Suc 0 \<noteq> - lit_of (hd M)\<close>
       using distinct_mset_mono[OF incl dist_S'] C_L' \<open>1 < length C\<close>  \<open>C ! 0 = - lit_of (hd M)\<close>
       by (cases C; cases \<open>tl C\<close>) (auto simp del: \<open>C ! 0 = - lit_of (hd M)\<close>)
-
+    have H: \<open>(RES ((\<lambda>i. (fmupd i (C, False) N, i)) ` {i. 0 < i \<and> i \<notin># dom_m N}) \<bind>
+                   (\<lambda>(N, i).  ASSERT (i \<in># dom_m N) \<bind> (\<lambda>_. f N i))) =
+          (RES ((\<lambda>i. (fmupd i (C, False) N, i)) ` {i. 0 < i \<and> i \<notin># dom_m N}) \<bind>
+                   (\<lambda>(N, i). f N i))\<close> (is \<open>?A = ?B\<close>) for f C N
+    proof -
+      have \<open>?B \<le> ?A\<close>
+        by (auto intro: ext simp: intro_spec_iff bind_RES)
+      moreover have \<open>?A \<le> ?B\<close>
+        by (auto intro: ext simp: intro_spec_iff bind_RES)
+      ultimately show ?thesis by auto
+    qed
     have [simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close>
       using literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF list_confl_S' incl] .
     then have \<open>C ! Suc 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
@@ -1517,12 +1529,14 @@ proof -
     then have \<open>nat_of_lit (C ! Suc 0) < length W'\<close>
       using W'W unfolding map_fun_rel_def by (auto simp: image_image)
     then show ?thesis
-      using empty_cach n_d_M1 C_L' W'W outl vmtf undef \<open>1 < length C\<close> uM_\<L>\<^sub>a\<^sub>l\<^sub>l unfolding U U'
+      supply [[goals_limit=1]]
+      using empty_cach n_d_M1 C_L' W'W outl vmtf undef \<open>1 < length C\<close> uM_\<L>\<^sub>a\<^sub>l\<^sub>l unfolding U U' H
+        propagate_bt_wl_D_heur_def propagate_bt_wl_D_def set_LBD_def Let_def rescore_clause_def
       by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
           propagate_bt_wl_D_def Let_def T' U' U rescore_clause_def S' map_fun_rel_def
           list_of_mset2_def flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
           fm_add_new_def get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2
-          RES_RES_RETURN_RES lbd_empty_def get_LBD_def
+          RES_RES_RETURN_RES lbd_empty_def get_LBD_def set_LBD_def H
           intro!: ASSERT_refine_left RES_refine exI[of _ C]
           intro!: vmtf_consD)
   qed
@@ -1860,7 +1874,7 @@ sepref_definition (in -) length_trail_imp_code
   unfolding length_trail_imp_def
   by sepref
 
-lemma length_trail_imp_code[sepref_fr_rules]: 
+lemma length_trail_imp_code[sepref_fr_rules]:
   \<open>(length_trail_imp_code, RETURN \<circ> op_list_length)
     \<in> (hr_comp trail_pol_assn'
      trail_pol_no_CS)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
@@ -2147,7 +2161,7 @@ proof -
        (Decided K # M, M2)
        \<in> set (get_all_ann_decomposition M\<^sub>0) \<and>
        get_level M\<^sub>0 K = Suc highest \<and> vm \<in> vmtf M\<close>
-    if 
+    if
       pos: \<open>pos < length M\<^sub>0 \<and> is_decided (rev M\<^sub>0 ! pos) \<and> get_level M\<^sub>0 (lit_of (rev M\<^sub>0 ! pos)) =
          highest + 1\<close> and
       \<open>length M\<^sub>0 - pos \<le> uint_max\<close> and
@@ -2215,7 +2229,7 @@ proof -
     subgoal by auto
     subgoal by (auto simp: drop_Suc drop_tl)
     subgoal by auto
-    subgoal for s a b aa ba vm x2 x1a x2a 
+    subgoal for s a b aa ba vm x2 x1a x2a
       by (cases vm)
         (auto intro!: vmtf_unset_vmtf_tl atm_of_N drop_tl simp: lit_of_hd_trail_def)
     subgoal for s a b aa ba x1 x2 x1a x2a
