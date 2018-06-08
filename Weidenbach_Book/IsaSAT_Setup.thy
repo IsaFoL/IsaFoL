@@ -75,13 +75,15 @@ type_synonym conflict_count = \<open>uint32\<close>
 abbreviation conflict_count_assn :: \<open>conflict_count \<Rightarrow> conflict_count \<Rightarrow> assn\<close> where
   \<open>conflict_count_assn \<equiv> uint32_assn\<close>
 
+type_synonym isasat_clauses_assn =
+  \<open>uint32 array array_list \<times> (clause_status \<times> uint32 \<times> uint32)array_list\<close>
 type_synonym twl_st_wll_trail =
-  \<open>trail_pol_assn \<times> clauses_wl \<times> option_lookup_clause_assn \<times>
+  \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> conflict_count\<close>
 
 type_synonym twl_st_wll_trail_fast =
-  \<open>trail_pol_fast_assn \<times> clauses_wl \<times> option_lookup_clause_assn \<times>
+  \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> conflict_count\<close>
 

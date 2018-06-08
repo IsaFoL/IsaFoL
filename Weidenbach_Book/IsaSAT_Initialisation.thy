@@ -2245,17 +2245,23 @@ lemma (in -)arrayO_raa_empty_sz_empty_list[sepref_fr_rules]:
 definition (in -) init_aa' :: \<open>nat \<Rightarrow> (clause_status \<times> nat \<times> nat) list\<close> where
   \<open>init_aa' n = []\<close>
 
-lemma (in -)arrayO_raa_empty_sz_empty_list[sepref_fr_rules]:
-  \<open>(arl_empty, RETURN o init_aa') \<in>
-    nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn (clause_status_assn *a uint32_nat_assn *a uint32_nat_assn))\<close>
-  by sepref_to_hoare (sep_auto simp: init_rll_def hr_comp_def clauses_ll_assn_def init_aa'_def)
+lemma init_aa'_alt_def: \<open>RETURN o init_aa' = (\<lambda>n. RETURN op_arl_empty)\<close>
+  by (auto simp: init_aa'_def op_arl_empty_def)
+
+sepref_definition init_aa'_code
+  is \<open>RETURN o init_aa'\<close>
+  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn (clause_status_assn *a uint32_nat_assn *a uint32_nat_assn)\<close>
+  unfolding init_aa'_alt_def
+  by sepref
+
+declare init_aa'_code.refine[sepref_fr_rules]
 
 definition init_rll_list where
   \<open>init_rll_list n =
     (let e = ASSN_ANNOT clause_ll_assn op_array_empty in
      let N = init_aa n in
-     let N' = init_aa n in
-     RETURN (N @ [e], N' @ [default]))\<close>
+     let N' = init_aa' n in
+     RETURN (N @ [e], N' @ [(DELETED, zero_uint32_nat, zero_uint32_nat)]))\<close>
 
 
 lemma (in -)empty_array_init_rll:
@@ -2263,7 +2269,7 @@ lemma (in -)empty_array_init_rll:
     nat_rel\<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>clauses_l_fmat\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
   apply  (auto simp: init_rll_def hr_comp_def clauses_ll_assn_def
-    list_fmap_rel_def init_rll_list_def init_aa_def)
+    list_fmap_rel_def init_rll_list_def init_aa_def init_aa'_def)
     apply (case_tac i)
     apply auto
   done
@@ -2272,10 +2278,6 @@ sepref_definition init_rll_list_code
   is \<open>init_rll_list\<close>
   :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a isasat_clauses_assn\<close>
   unfolding init_rll_list_def
-       apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold
   by sepref
 
 lemma (in -)arrayO_raa_empty_sz_init_rll[sepref_fr_rules]:
