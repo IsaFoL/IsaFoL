@@ -553,6 +553,9 @@ end
 abbreviation (in -) nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
 
+text \<open>We here define a variant of the trail representation, where the the control stack is out of
+  sync of the trail. This might make backtracking a little faster.
+\<close>
 
 context isasat_input_bounded
 begin
@@ -769,7 +772,7 @@ lemma trail_no_CS_assn_fast_hnr[sepref_fr_rules]:
 definition trail_conv_back :: \<open>nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>trail_conv_back j M = M\<close>
 
-definition trail_conv_back_imp :: \<open>nat \<Rightarrow> trail_pol \<Rightarrow> trail_pol nres\<close> where
+definition (in -) trail_conv_back_imp :: \<open>nat \<Rightarrow> trail_pol \<Rightarrow> trail_pol nres\<close> where
   \<open>trail_conv_back_imp j = (\<lambda>(M, xs, lvls, reason, _, cs). do {
      ASSERT(j \<le> length cs); RETURN (M, xs, lvls, reason, j, take (nat_of_uint32_conv j) cs)})\<close>
 
@@ -794,12 +797,34 @@ lemma (in -) take_arl_assn[sepref_fr_rules]:
       split: if_splits)
   done
 
-sepref_thm trail_conv_back_imp_code
+sepref_definition (in -) trail_conv_back_imp_code
   is \<open>uncurry trail_conv_back_imp\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a trail_pol_assn'\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn'\<close>
   supply [[goals_limit=1]] nat_of_uint32_conv_def[simp]
   unfolding trail_conv_back_imp_def
   by sepref
+
+lemma trail_conv_back_hnr[sepref_fr_rules]:
+  \<open>(uncurry trail_conv_back_imp_code, uncurry (RETURN \<circ>\<circ> trail_conv_back))
+    \<in> [\<lambda>(a, b). a = count_decided b]\<^sub>a
+       uint32_nat_assn\<^sup>k *\<^sub>a (hr_comp trail_pol_assn' trail_pol_no_CS)\<^sup>d \<rightarrow>
+       hr_comp trail_pol_assn' trail_pol\<close>
+  using trail_conv_back_imp_code.refine[FCOMP trail_conv_back] .
+
+
+sepref_definition (in -) trail_conv_back_imp_fast_code
+  is \<open>uncurry trail_conv_back_imp\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn'\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn'\<close>
+  supply [[goals_limit=1]] nat_of_uint32_conv_def[simp]
+  unfolding trail_conv_back_imp_def
+  by sepref
+
+lemma trail_conv_back_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry trail_conv_back_imp_fast_code, uncurry (RETURN \<circ>\<circ> trail_conv_back))
+  \<in> [\<lambda>(a, b). a = count_decided b]\<^sub>a
+     uint32_nat_assn\<^sup>k *\<^sub>a (hr_comp trail_pol_fast_assn' trail_pol_no_CS)\<^sup>d \<rightarrow>
+    hr_comp trail_pol_fast_assn' trail_pol\<close>
+  using trail_conv_back_imp_fast_code.refine[FCOMP trail_conv_back] .
 
 end
 

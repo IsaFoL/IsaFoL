@@ -629,8 +629,7 @@ lemmas (in isasat_input_ops) empty_cach_ref_hnr[sepref_fr_rules] =
    empty_cach_code.refine
 
 theorem (in isasat_input_ops) empty_cach_code_empty_cach_ref:
-  \<open>(empty_cach_code,
-   RETURN \<circ> empty_cach_ref)
+  \<open>(empty_cach_code, RETURN \<circ> empty_cach_ref)
     \<in> [(\<lambda>(cach :: minimize_status list, supp :: nat list).
          (\<forall>L\<in>set supp. L < length cach) \<and>
          (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))]\<^sub>a
@@ -775,7 +774,8 @@ definition (in isasat_input_ops) find_decomp_wvmtf_ns_pre where
        no_dup M \<and>
        highest < count_decided M \<and>
        literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-       vm \<in> vmtf M)\<close>
+       vm \<in> vmtf M \<and>
+       highest < count_decided M)\<close>
 
 definition  (in isasat_input_ops) find_decomp_wl_pre
    :: \<open>nat \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
@@ -1732,26 +1732,234 @@ definition extract_shorter_conflict_list_lookup_heur_pre where
 
 subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
 
+definition get_pos_of_level_in_trail where
+  \<open>get_pos_of_level_in_trail M\<^sub>0 lev =
+     SPEC(\<lambda>i. i < length M\<^sub>0 \<and> is_decided (rev M\<^sub>0!i) \<and> get_level M\<^sub>0 (lit_of (rev M\<^sub>0!i)) = lev+1)\<close>
+
+definition (in -) get_pos_of_level_in_trail_imp where
+  \<open>get_pos_of_level_in_trail_imp = (\<lambda>(M', xs, lvls, reasons, k, cs) lev. do {
+      ASSERT(lev < length cs);
+      RETURN (cs ! lev)
+   })\<close>
+
+lemma control_stack_is_decided:
+  \<open>control_stack cs M \<Longrightarrow> c\<in>set cs \<Longrightarrow> is_decided ((rev M)!c)\<close>
+  by (induction arbitrary: c rule: control_stack.induct) (auto simp: nth_append
+      dest: control_stack_le_length_M)
+
+
+lemma control_stack_distinct:
+  \<open>control_stack cs M \<Longrightarrow> distinct cs\<close>
+  by (induction rule: control_stack.induct) (auto simp: nth_append
+      dest: control_stack_le_length_M)
+
+lemma control_stack_level_control_stack:
+  assumes
+    cs: \<open>control_stack cs M\<close> and
+    n_d: \<open>no_dup M\<close> and
+    i: \<open>i < length cs\<close>
+  shows  \<open>get_level M (lit_of (rev M ! (cs ! i))) = Suc i\<close>
+proof -
+  define L where \<open>L = rev M ! (cs ! i)\<close>
+  have csi: \<open>cs ! i < length M\<close>
+    using cs i by (auto intro: control_stack_le_length_M)
+  then have L_M: \<open>L \<in> set M\<close>
+    using nth_mem[of \<open>cs !i\<close> \<open>rev M\<close>] unfolding L_def by (auto simp del: nth_mem)
+  have dec_L: \<open>is_decided L\<close>
+    using control_stack_is_decided[OF cs] i unfolding L_def by auto
+  then have \<open>rev M!(cs ! (get_level M (lit_of L) - 1)) = L\<close>
+    using control_stack_rev_get_lev[OF cs n_d L_M] by auto
+  moreover have \<open>distinct M\<close>
+    using no_dup_distinct[OF n_d] unfolding mset_map[symmetric] distinct_mset_mset_distinct
+    by (rule distinct_mapI)
+
+  moreover have lev0:  \<open>get_level M (lit_of L) \<ge> 1\<close>
+    using split_list[OF L_M] n_d dec_L by (auto simp: get_level_append_if)
+  moreover have \<open>cs ! (get_level M (lit_of (rev M ! (cs ! i))) - Suc 0) < length M\<close>
+    using control_stack_le_length_M[OF cs,
+         of \<open>cs ! (get_level M (lit_of (rev M ! (cs ! i))) - Suc 0)\<close>, OF nth_mem]
+      control_stack_length_count_dec[OF cs] count_decided_ge_get_level[of M
+          \<open>lit_of (rev M ! (cs ! i))\<close>] lev0
+    by (auto simp: L_def)
+  ultimately have \<open>cs ! (get_level M (lit_of L) - 1) = cs ! i\<close>
+    using nth_eq_iff_index_eq[of \<open>rev M\<close>] csi unfolding L_def by auto
+  then have \<open>i = get_level M (lit_of L) - 1\<close>
+    using nth_eq_iff_index_eq[OF control_stack_distinct[OF cs], of i \<open>get_level M (lit_of L) - 1\<close>]
+      i lev0 count_decided_ge_get_level[of M \<open>lit_of (rev M ! (cs ! i))\<close>]
+    control_stack_length_count_dec[OF cs]
+    by (auto simp: L_def)
+  then show ?thesis using lev0 unfolding L_def[symmetric] by auto
+qed
+
+lemma get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail:
+   \<open>(uncurry get_pos_of_level_in_trail_imp, uncurry get_pos_of_level_in_trail) \<in>
+    [\<lambda>(M, lev). lev < count_decided M]\<^sub>f trail_pol_no_CS \<times>\<^sub>f nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+  apply (intro nres_relI frefI)
+  unfolding get_pos_of_level_in_trail_imp_def uncurry_def get_pos_of_level_in_trail_def
+  apply clarify
+  apply (rule ASSERT_leI)
+  subgoal
+    by (auto simp: trail_pol_no_CS_def dest!: control_stack_length_count_dec)
+  subgoal for a aa ab ac ad b ba ae bb
+    by (auto simp: trail_pol_no_CS_def control_stack_length_count_dec in_set_take_conv_nth
+        intro!: control_stack_le_length_M control_stack_is_decided
+        dest: control_stack_level_control_stack)
+  done
+
+sepref_definition (in -) get_pos_of_level_in_trail_imp_fast_code
+  is \<open>uncurry get_pos_of_level_in_trail_imp\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding get_pos_of_level_in_trail_imp_def
+  by sepref
+
+
+sepref_definition (in -) get_pos_of_level_in_trail_imp_code
+  is \<open>uncurry get_pos_of_level_in_trail_imp\<close>
+  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding get_pos_of_level_in_trail_imp_def
+  by sepref
+
+lemma get_pos_of_level_in_trail_fast_hnr[sepref_fr_rules]:
+   \<open>(uncurry get_pos_of_level_in_trail_imp_fast_code, uncurry get_pos_of_level_in_trail)
+     \<in> [\<lambda>(a, b). b < count_decided a]\<^sub>a (hr_comp trail_pol_fast_assn' trail_pol_no_CS)\<^sup>k *\<^sub>a
+                 uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  using get_pos_of_level_in_trail_imp_fast_code.refine[FCOMP
+      get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail] .
+
+lemma get_pos_of_level_in_trail_hnr[sepref_fr_rules]:
+   \<open>(uncurry get_pos_of_level_in_trail_imp_code, uncurry get_pos_of_level_in_trail)
+     \<in> [\<lambda>(a, b). b < count_decided a]\<^sub>a (hr_comp trail_pol_assn' trail_pol_no_CS)\<^sup>k *\<^sub>a
+                 uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  using get_pos_of_level_in_trail_imp_code.refine[FCOMP
+      get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail] .
+
+
+definition (in -) length_trail_imp where
+  \<open>length_trail_imp = (\<lambda>(M', xs, lvls, reasons, k, cs). do {
+      ASSERT(length M' \<le> uint32_max);
+      RETURN (length_u M')
+   })\<close>
+
+lemma length_trail_imp_length:
+   \<open>(length_trail_imp, RETURN o op_list_length) \<in> trail_pol_no_CS \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  apply (intro nres_relI frefI)
+  unfolding length_trail_imp_def uncurry_def
+  apply clarify
+  apply (rule ASSERT_leI)
+  subgoal
+    by (auto simp: trail_pol_no_CS_def ann_lits_split_reasons_def dest!: length_trail_uint_max)
+  subgoal
+    by (auto simp: trail_pol_no_CS_def
+        ann_lits_split_reasons_def dest!: length_trail_uint_max)
+  done
+
+
+sepref_definition (in -) length_trail_imp_code
+  is \<open>length_trail_imp\<close>
+  :: \<open>trail_pol_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding length_trail_imp_def
+  by sepref
+
+lemma length_trail_imp_code[sepref_fr_rules]: 
+  \<open>(length_trail_imp_code, RETURN \<circ> op_list_length)
+    \<in> (hr_comp trail_pol_assn'
+     trail_pol_no_CS)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  using length_trail_imp_code.refine[FCOMP length_trail_imp_length] .
+
+
+sepref_definition (in -) length_trail_imp_fast_code
+  is \<open>length_trail_imp\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding length_trail_imp_def
+  by sepref
+
+lemma length_trail_imp_fast_code[sepref_fr_rules]:
+  \<open>(length_trail_imp_fast_code, RETURN \<circ> op_list_length)
+\<in> (hr_comp trail_pol_fast_assn'
+     trail_pol_no_CS)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  using length_trail_imp_fast_code.refine[FCOMP length_trail_imp_length] .
+
+
+lemma lit_of_last_trail_pol_lit_of_last_trail_no_CS:
+   \<open>(RETURN o lit_of_last_trail_pol, RETURN o lit_of_hd_trail) \<in>
+         [\<lambda>S. S \<noteq> []]\<^sub>f trail_pol_no_CS \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (auto simp: lit_of_hd_trail_def trail_pol_no_CS_def lit_of_last_trail_pol_def
+     ann_lits_split_reasons_def hd_map rev_map[symmetric]
+      intro!: frefI nres_relI)
+
+theorem
+  lit_of_last_trail_code_lit_of_last_trail_no_CS[sepref_fr_rules]:
+  \<open>(lit_of_last_trail_code, RETURN o lit_of_hd_trail)
+    \<in> [\<lambda>S. S \<noteq> []]\<^sub>a trail_no_CS_assn\<^sup>k  \<rightarrow> unat_lit_assn\<close>
+    (is ?slow is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
+  lit_of_last_trail_fast_code_lit_of_last_trail_no_CS[sepref_fr_rules]:
+  \<open>(lit_of_last_trail_fast_code, RETURN o lit_of_hd_trail)
+    \<in> [\<lambda>S. S \<noteq> []]\<^sub>a trail_no_CS_fast_assn\<^sup>k  \<rightarrow> unat_lit_assn\<close>
+    (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
+proof -
+  have H: \<open>?c
+    \<in> [comp_PRE trail_pol_no_CS (\<lambda>S. S \<noteq> []) (\<lambda>_ (M, _). M \<noteq> [])
+     (\<lambda>_. True)]\<^sub>a hrp_comp (trail_pol_assn\<^sup>k)
+                     trail_pol_no_CS \<rightarrow> hr_comp unat_lit_assn Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF lit_of_last_trail_code.refine
+      lit_of_last_trail_pol_lit_of_last_trail_no_CS] .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that by (auto simp: comp_PRE_def trail_pol_no_CS_def
+       ann_lits_split_reasons_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep ..
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?slow
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+  have H: \<open>?cfast
+    \<in> [comp_PRE trail_pol_no_CS (\<lambda>S. S \<noteq> []) (\<lambda>_ (M, _). M \<noteq> [])
+     (\<lambda>_. True)]\<^sub>a hrp_comp (trail_pol_fast_assn\<^sup>k) trail_pol_no_CS \<rightarrow> hr_comp unat_lit_assn Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF lit_of_last_trail_fast_code.refine
+      lit_of_last_trail_pol_lit_of_last_trail_no_CS] .
+  have im: \<open>?im' = ?imfast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep ..
+  have f: \<open>?f' = ?ffast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?fast
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+
+
 definition find_decomp_wl_imp
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat \<Rightarrow> vmtf_remove_int \<Rightarrow>
        ((nat, nat) ann_lits \<times> vmtf_remove_int) nres\<close>
 where
   \<open>find_decomp_wl_imp = (\<lambda>M\<^sub>0 lev vm. do {
     let k = count_decided M\<^sub>0;
+    let M\<^sub>0 = trail_conv_to_no_CS M\<^sub>0;
+    let n = (length M\<^sub>0);
+    pos \<leftarrow> get_pos_of_level_in_trail M\<^sub>0 lev;
+    ASSERT((n - pos) \<le> uint32_max);
+    let target = n - pos;
     (_, M, vm') \<leftarrow>
-       WHILE\<^sub>T\<^bsup>\<lambda>(j, M, vm'). j = count_decided M \<and> j \<ge> lev \<and>
-           (M = [] \<longrightarrow> j = lev) \<and>
-           (\<exists>M'. M\<^sub>0 = M' @ M \<and> (j = lev \<longrightarrow> M' \<noteq> [] \<and> is_decided (last M'))) \<and>
+       WHILE\<^sub>T\<^bsup>\<lambda>(j, M, vm'). j \<le> target \<and>
+           M = drop j M\<^sub>0 \<and> target \<le> length M\<^sub>0 \<and>
            vm' \<in> vmtf M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M)\<^esup>
-         (\<lambda>(j, M, vm). j > lev)
+         (\<lambda>(j, M, vm). j < target)
          (\<lambda>(j, M, vm). do {
             ASSERT(M \<noteq> []);
-            ASSERT(j \<ge> 1);
-            if is_decided (hd M)
-            then let L = atm_of (lit_of (hd M)) in RETURN (fast_minus j 1, tl M, vmtf_unset L vm)
-            else let L = atm_of (lit_of (hd M)) in RETURN (j, tl M, vmtf_unset L vm)}
-         )
-         (k, M\<^sub>0, vm);
+            ASSERT(Suc j \<le> uint32_max);
+            let L = atm_of (lit_of_hd_trail M) in RETURN (j + one_uint32_nat, tl M, vmtf_unset L vm)
+         })
+         (zero_uint32_nat, M\<^sub>0, vm);
+    ASSERT(lev = count_decided M);
+    let M = trail_conv_back lev M;
     RETURN (M, vm')
   })\<close>
 
@@ -1763,11 +1971,12 @@ definition find_decomp_wl_imp_pre where
 sepref_register find_decomp_wl_imp
 sepref_thm find_decomp_wl_imp_code
   is \<open>uncurry2 (PR_CONST find_decomp_wl_imp)\<close>
-  :: \<open>trail_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
-    \<rightarrow>\<^sub>a trail_assn *a vmtf_remove_conc\<close>
+  :: \<open>[\<lambda>((M, lev), vm). lev < count_decided M]\<^sub>a trail_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
+    \<rightarrow> trail_assn *a vmtf_remove_conc\<close>
   unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
     find_decomp_wl_imp_pre_def
-  supply [[goals_limit=1]] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
+  supply [[goals_limit=1]] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp] trail_conv_to_no_CS_def[simp]
+    lit_of_last_trail_code_lit_of_last_trail[sepref_fr_rules del] lit_of_hd_trail_def[simp]
   supply uint32_nat_assn_one[sepref_fr_rules]
   supply uint32_nat_assn_minus[sepref_fr_rules]
   by sepref
@@ -1783,10 +1992,11 @@ lemmas find_decomp_wl_imp_code[sepref_fr_rules] =
 
 sepref_thm find_decomp_wl_imp_fast_code
   is \<open>uncurry2 (PR_CONST find_decomp_wl_imp)\<close>
-  :: \<open>trail_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
-    \<rightarrow>\<^sub>a trail_fast_assn *a vmtf_remove_conc\<close>
+  :: \<open>[\<lambda>((M, lev), vm). lev < count_decided M]\<^sub>a trail_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
+    \<rightarrow> trail_fast_assn *a vmtf_remove_conc\<close>
   unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
     find_decomp_wl_imp_pre_def
+  supply trail_conv_to_no_CS_def[simp] lit_of_hd_trail_def[simp]
   supply [[goals_limit=1]] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
   supply uint32_nat_assn_one[sepref_fr_rules]
   supply uint32_nat_assn_minus[sepref_fr_rules]
@@ -1834,6 +2044,45 @@ lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_lit_of_ms
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M = literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M)\<close>
   by (induction M) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset literals_are_in_\<L>\<^sub>i\<^sub>n_Cons)
 
+lemma (in -) le_itself_minus_iff: \<open>b \<le> b - a \<longleftrightarrow> a = 0 \<or> b = 0\<close> for a b :: nat
+  by (cases a) auto
+
+(* TODO Move *)
+lemma length_trail_uint_max_div2:
+  assumes
+    M_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and n_d: \<open>no_dup M\<close>
+  shows \<open>length M \<le> uint_max div 2 + 1\<close>
+proof -
+  have dist_atm_M: \<open>distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
+    using n_d by (metis distinct_mset_mset_distinct mset_map no_dup_def)
+  have incl: \<open>atm_of `# lit_of `# mset M \<subseteq># remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
+    apply (subst distinct_subseteq_iff[THEN iffD1])
+    using assms dist_atm_M
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def no_dup_distinct
+        atm_of_eq_atm_of)
+
+  have inj_on: \<open>inj_on nat_of_lit (set_mset (remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l))\<close>
+    by (auto simp: inj_on_def)
+  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> atm_of xa \<le> uint_max div 2\<close> for xa
+    using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
+    by (cases xa) (auto simp: uint_max_def)
+  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l) \<subseteq># mset [0..< 1 + (uint_max div 2)]\<close>
+    apply (subst distinct_subseteq_iff[THEN iffD1])
+    using H distinct_image_mset_inj[OF inj_on]
+    by (force simp del: literal_of_nat.simps simp: distinct_mset_mset_set
+        dest: le_neq_implies_less)+
+  note _ = size_mset_mono[OF this]
+  moreover have \<open>size (nat_of_lit `# remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l) = size (remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
+    by simp
+  ultimately have 2: \<open>size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l)) \<le> 1 + uint_max div 2\<close>
+    by auto
+  from size_mset_mono[OF incl] have 1: \<open>length M \<le> size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l))\<close>
+    unfolding uint_max_def count_decided_def
+    by (auto simp del: length_filter_le)
+  with 2 show ?thesis
+    by (auto simp: uint32_max_def)
+qed
+(* End Move *)
 lemma
   assumes
     vm: \<open>vm \<in> vmtf M\<^sub>0\<close> and
@@ -1845,6 +2094,9 @@ lemma
       \<open>find_decomp_wl_imp M\<^sub>0 highest vm \<le> find_decomp_wvmtf_ns M\<^sub>0 highest vm\<close>
      (is ?decomp)
 proof -
+  have length_M0:  \<open>length M\<^sub>0 \<le> uint32_max div 2 + 1\<close>
+    using length_trail_uint_max_div2[of M\<^sub>0] n_d literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[OF lits]
+    by (auto simp: lits_of_def)
   have 1: \<open>((count_decided x1g, x1g), count_decided x1, x1) \<in> Id\<close>
     if \<open>x1g = x1\<close> for x1g x1 :: \<open>(nat, nat) ann_lits\<close>
     using that by auto
@@ -1884,64 +2136,93 @@ proof -
     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset aa) \<Longrightarrow> aa \<noteq> [] \<Longrightarrow> atm_of (lit_of (hd aa)) \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
     for aa
     by (cases aa) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+  have Lin_drop_tl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset (drop b M\<^sub>0)) \<Longrightarrow>
+      literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset (tl (drop b M\<^sub>0)))\<close> for b
+    apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
+     apply assumption
+    by (cases \<open>drop b M\<^sub>0\<close>)  auto
 
+  have highest: \<open>highest = count_decided M\<close> and
+     ex_decomp: \<open>\<exists>K M2.
+       (Decided K # M, M2)
+       \<in> set (get_all_ann_decomposition M\<^sub>0) \<and>
+       get_level M\<^sub>0 K = Suc highest \<and> vm \<in> vmtf M\<close>
+    if 
+      pos: \<open>pos < length M\<^sub>0 \<and> is_decided (rev M\<^sub>0 ! pos) \<and> get_level M\<^sub>0 (lit_of (rev M\<^sub>0 ! pos)) =
+         highest + 1\<close> and
+      \<open>length M\<^sub>0 - pos \<le> uint_max\<close> and
+      inv: \<open>case s of (j, M, vm') \<Rightarrow>
+         j \<le> length M\<^sub>0 - pos \<and>
+         M = drop j M\<^sub>0 \<and>
+         length M\<^sub>0 - pos \<le> length M\<^sub>0 \<and>
+         vm' \<in> vmtf M \<and>
+         literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M)\<close> and
+      cond: \<open>\<not> (case s of
+         (j, M, vm) \<Rightarrow> j < length M\<^sub>0 - pos)\<close> and
+      s: \<open>s = (j, s')\<close> \<open>s' = (M, vm)\<close>
+    for pos s j s' M vm
+  proof -
+    have
+      \<open>j = length M\<^sub>0 - pos\<close> and
+      M: \<open>M = drop (length M\<^sub>0 - pos) M\<^sub>0\<close> and
+      vm: \<open>vm \<in> vmtf (drop (length M\<^sub>0 - pos) M\<^sub>0)\<close> and
+      \<open>literals_are_in_\<L>\<^sub>i\<^sub>n
+        (lit_of `# mset (drop (length M\<^sub>0 - pos) M\<^sub>0))\<close>
+      using cond inv unfolding s
+      by auto
+    define M2 and L where \<open>M2 = take (length M\<^sub>0 - Suc pos) M\<^sub>0\<close> and \<open>L = rev M\<^sub>0 ! pos\<close>
+    have le_Suc_pos: \<open>length M\<^sub>0 - pos = Suc (length M\<^sub>0 - Suc pos)\<close>
+      using pos by auto
+    have 1: \<open>take (length M\<^sub>0 - pos) M\<^sub>0 = take (length M\<^sub>0 - Suc pos) M\<^sub>0 @ [rev M\<^sub>0 ! pos]\<close>
+      unfolding le_Suc_pos
+      apply (subst take_Suc_conv_app_nth)
+      using pos by (auto simp: rev_nth)
+    have M\<^sub>0: \<open>M\<^sub>0 = M2 @ L # M\<close>
+      apply (subst append_take_drop_id[symmetric, of _ \<open>length M\<^sub>0 - pos\<close>])
+      unfolding M L_def M2_def 1
+      by auto
+    have L': \<open>Decided (lit_of L) = L\<close>
+      using pos unfolding L_def[symmetric] by (cases L) auto
+    then have M\<^sub>0': \<open>M\<^sub>0 = M2 @ Decided (lit_of L) # M\<close>
+      unfolding M\<^sub>0 by auto
+
+    have \<open>highest = count_decided M\<close> and \<open>get_level M\<^sub>0 (lit_of L) = Suc highest\<close> and \<open>is_decided L\<close>
+      using n_d pos unfolding L_def[symmetric] unfolding M\<^sub>0
+      by (auto simp: get_level_append_if split: if_splits)
+    then show
+     \<open>\<exists>K M2.
+       (Decided K # M, M2)
+       \<in> set (get_all_ann_decomposition M\<^sub>0) \<and>
+       get_level M\<^sub>0 K = Suc highest \<and> vm \<in> vmtf M\<close>
+      using get_all_ann_decomposition_ex[of \<open>lit_of L\<close> M M2] vm unfolding M\<^sub>0'[symmetric] M[symmetric]
+      by blast
+    show \<open>highest = count_decided M\<close>
+      using  \<open>highest = count_decided M\<close> .
+  qed
   show ?decomp
-    unfolding find_decomp_wl_imp_def Let_def find_decomp_wvmtf_ns_def
+    unfolding find_decomp_wl_imp_def Let_def find_decomp_wvmtf_ns_def trail_conv_to_no_CS_def
+      get_pos_of_level_in_trail_def trail_conv_back_def
     apply (refine_vcg 1 WHILEIT_rule[where R=\<open>measure (\<lambda>(_, M, _). length M)\<close>])
-    subgoal by simp
+    subgoal using length_M0 unfolding uint32_max_def by simp
     subgoal by auto
     subgoal using target by (auto simp: count_decided_ge_get_maximum_level)
-    subgoal using target by (auto simp: butlast_nil_iff count_decided_butlast
-          eq_commute[of \<open>[_]\<close>] intro: butlast
-          cong: if_cong split: if_splits)
-    subgoal
-      using get_level_neq_Suc_count_decided target
-      by (auto simp: count_decided_butlast butlast_nil_iff eq_commute[of \<open>[_]\<close>] mset_le_subtract
-          intro: butlast)
+    subgoal by auto
+    subgoal by auto
     subgoal using vm by auto
     subgoal using lits unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_trail_lit_of_mset by auto
-    subgoal using lits by auto
-    subgoal using lits by auto
+    subgoal for target s j b M vm by simp
+    subgoal using length_M0 unfolding uint32_max_def by simp
+    subgoal by auto
+    subgoal by (auto simp: drop_Suc drop_tl)
+    subgoal by auto
+    subgoal for s a b aa ba vm x2 x1a x2a 
+      by (cases vm)
+        (auto intro!: vmtf_unset_vmtf_tl atm_of_N drop_tl simp: lit_of_hd_trail_def)
     subgoal for s a b aa ba x1 x2 x1a x2a
-      using lits by (cases aa) (auto intro: butlast count_decided_tl_if)
-    subgoal by (auto simp: count_decided_butlast count_decided_tl_if)[]
-    subgoal for s a b aa ba x1 x2 x1a x2a by (cases aa) (auto simp: count_decided_ge_get_maximum_level)
-    subgoal for s a b aa ba x1 x2 x1a x2a
-      by (cases aa) (auto simp: butlast_nil_iff count_decided_butlast)
-    subgoal for s a b aa ba x1 x2 x1a x2a by (cases ba)
-        (auto intro!: vmtf_unset_vmtf_tl atm_of_N)
-    subgoal for s a b aa ba x1 x2 x1a x2a by (cases aa)
-        (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
+      using lits by (auto intro: Lin_drop_tl)
     subgoal by auto
-    subgoal for s a b aa ba x1 x2 x1a x2a by (cases aa) (auto intro: butlast count_decided_tl_if)
-    subgoal by auto
-    subgoal for s a b aa ba x1 x2 x1a x2a
-      by (cases aa) (auto simp: butlast_nil_iff count_decided_butlast
-          eq_commute[of \<open>[_]\<close>] intro: butlast
-          cong: if_cong split: if_splits)
-    subgoal by auto
-    subgoal for s a b aa ba x1 x2 x1a x2a by (cases ba)
-        (auto intro!: vmtf_unset_vmtf_tl atm_of_N)
-    subgoal for s a b aa ba x1 x2 x1a x2a by (cases aa)
-        (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
-    subgoal by auto
-    subgoal for s D M
-      apply (auto simp: count_decided_ge_get_maximum_level ex_decomp_get_ann_decomposition_iff
-          get_lev_last)
-       apply (rule_tac x=\<open>lit_of (last M')\<close> in exI)
-       apply auto
-        apply (rule_tac x=\<open>butlast M'\<close> in exI)
-        apply (case_tac \<open>last M'\<close>)
-         apply (auto simp: nth_append simp del: append_butlast_last_id)
-        apply (metis append_butlast_last_id)
-       defer
-       apply (rule_tac x=\<open>lit_of (last M')\<close> in exI)
-       apply auto
-        apply (rule_tac x=\<open>butlast M'\<close> in exI)
-        apply (case_tac \<open>last M'\<close>)
-         apply (auto simp: nth_append snoc_eq_iff_butlast' count_decided_ge_get_maximum_level
-          ex_decomp_get_ann_decomposition_iff get_lev_last)
-      done
+    subgoal by (rule highest)
+    subgoal by (rule ex_decomp) (assumption+, auto)
     done
 qed
 
@@ -1954,13 +2235,19 @@ lemma find_decomp_wl_imp_find_decomp_wl':
        intro!: find_decomp_wl_imp_le_find_decomp_wl')
 
 sepref_register find_decomp_wvmtf_ns
+
+lemma find_decomp_wl_imp_code_conbine_cond:
+  \<open>(\<lambda>((b, a), c). find_decomp_wvmtf_ns_pre ((b, a), c) \<and> a < count_decided b) = (\<lambda>((b, a), c).
+         find_decomp_wvmtf_ns_pre ((b, a), c))\<close>
+  by (auto intro!: ext simp: find_decomp_wvmtf_ns_pre_def)
+
 lemma find_decomp_wl_imp_code_find_decomp_wl'[sepref_fr_rules]:
   \<open>(uncurry2 find_decomp_wl_imp_code, uncurry2 (PR_CONST find_decomp_wvmtf_ns))
      \<in> [\<lambda>((b, a), c). find_decomp_wvmtf_ns_pre ((b, a), c)]\<^sub>a
      trail_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
     trail_assn *a vmtf_remove_conc\<close>
   using find_decomp_wl_imp_code[unfolded PR_CONST_def, FCOMP find_decomp_wl_imp_find_decomp_wl']
-  unfolding PR_CONST_def
+  unfolding PR_CONST_def find_decomp_wl_imp_code_conbine_cond
   .
 
 lemma find_decomp_wl_imp_fast_code_find_decomp_wl'[sepref_fr_rules]:
@@ -1969,7 +2256,7 @@ lemma find_decomp_wl_imp_fast_code_find_decomp_wl'[sepref_fr_rules]:
      trail_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
     trail_fast_assn *a vmtf_remove_conc\<close>
   using find_decomp_wl_imp_fast_code[unfolded PR_CONST_def, FCOMP find_decomp_wl_imp_find_decomp_wl']
-  unfolding PR_CONST_def
+  unfolding PR_CONST_def find_decomp_wl_imp_code_conbine_cond
   .
 
 sepref_thm find_decomp_wl_imp'_code

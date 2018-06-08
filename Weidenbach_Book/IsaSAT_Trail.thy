@@ -1243,11 +1243,11 @@ proof -
 qed
 
 lemma
-  tl_trail_tr_code_op_list_tl[sepref_fr_rules]:
+  tl_trail_tr_code_op_list_tl:
     \<open>(tl_trail_tr_code, (RETURN o op_list_tl)) \<in>
     [\<lambda>M. M \<noteq> []]\<^sub>a trail_assn\<^sup>d \<rightarrow> trail_assn\<close>
     (is ?slow is \<open>_?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
-  tl_trail_tr_fast_code_op_list_tl[sepref_fr_rules]:
+  tl_trail_tr_fast_code_op_list_tl:
     \<open>(tl_trail_tr_fast_code, (RETURN o op_list_tl)) \<in>
     [\<lambda>M. M \<noteq> []]\<^sub>a trail_fast_assn\<^sup>d \<rightarrow> trail_fast_assn\<close>
     (is ?fast is \<open>_?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
@@ -1310,6 +1310,167 @@ proof -
     using pre ..
 qed
 
+definition (in isasat_input_ops) tl_trail_propedt_tr :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
+  \<open>tl_trail_propedt_tr = (\<lambda>(M', xs, lvls, reasons, k, cs).
+    let L = last M' in
+    (butlast M',
+    let xs = xs[nat_of_lit L := None] in xs[nat_of_lit (-L) := None],
+    lvls[atm_of L := zero_uint32_nat],
+    reasons, k, cs))\<close>
+
+sepref_thm tl_trail_proped_tr_code
+  is \<open>RETURN o tl_trail_propedt_tr\<close>
+  :: \<open>[\<lambda>(M, xs, lvls, reason, k, cs). M \<noteq> [] \<and> nat_of_lit(last M) < length xs \<and>
+        nat_of_lit(-last M) < length xs  \<and> atm_of (last M) < length lvls \<and>
+        atm_of (last M) < length reason]\<^sub>a
+        trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
+  supply if_splits[split] option.splits[split]
+  unfolding tl_trail_propedt_tr_def UNSET_def[symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) tl_trail_proped_tr_code
+  uses isasat_input_bounded.tl_trail_proped_tr_code.refine_raw
+  is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) tl_trail_proped_tr_code_def
+
+lemmas tl_trail_proped_tr_coded_refine[sepref_fr_rules] =
+   tl_trail_proped_tr_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+
+sepref_thm tl_trail_proped_tr_fast_code
+  is \<open>RETURN o tl_trail_propedt_tr\<close>
+  :: \<open>[\<lambda>(M, xs, lvls, reason, k, cs). M \<noteq> [] \<and> nat_of_lit(last M) < length xs \<and>
+        nat_of_lit(-last M) < length xs  \<and> atm_of (last M) < length lvls \<and>
+        atm_of (last M) < length reason]\<^sub>a
+        trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
+  supply if_splits[split] option.splits[split]
+  unfolding tl_trail_propedt_tr_def UNSET_def[symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) tl_trail_proped_tr_fast_code
+  uses isasat_input_bounded.tl_trail_proped_tr_fast_code.refine_raw
+  is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) tl_trail_proped_tr_fast_code_def
+
+lemmas tl_trail_proped_tr_fast_coded_refine[sepref_fr_rules] =
+   tl_trail_proped_tr_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+
+lemma tl_trail_proped_tr:
+  \<open>((RETURN o tl_trail_propedt_tr), (RETURN o tl)) \<in>
+    [\<lambda>M. M \<noteq> [] \<and> is_proped(hd M)]\<^sub>f trail_pol \<rightarrow> \<langle>trail_pol\<rangle>nres_rel\<close>
+proof -
+  show ?thesis
+    apply (intro frefI nres_relI, rename_tac x y, case_tac \<open>y\<close>)
+    subgoal by fast
+    subgoal for M M' L M's
+      unfolding trail_pol_def comp_def RETURN_refine_iff trail_pol_def Let_def
+        tl_trail_propedt_tr_def
+      apply clarify
+      apply (intro conjI; clarify?; (intro conjI)?)
+      subgoal
+        by (auto simp: trail_pol_def polarity_atm_def tl_trailt_tr_def
+            ann_lits_split_reasons_def Let_def)
+      subgoal by (auto simp: trail_pol_def polarity_atm_def tl_trailt_tr_def)
+      subgoal by (auto simp: polarity_atm_def tl_trailt_tr_def Let_def)
+      subgoal
+        by (cases \<open>lit_of L\<close>)
+          (auto simp: polarity_def tl_trailt_tr_def Decided_Propagated_in_iff_in_lits_of_l
+            uminus_lit_swap Let_def
+            dest: ann_lits_split_reasons_map_lit_of)
+      subgoal
+        by (auto simp: polarity_atm_def tl_trailt_tr_def Let_def
+           atm_of_eq_atm_of get_level_cons_if)
+      subgoal
+        by (auto simp: polarity_atm_def tl_trailt_tr_def
+           atm_of_eq_atm_of get_level_cons_if Let_def
+            dest!: ann_lits_split_reasons_map_lit_of)
+      subgoal
+        by (cases \<open>L\<close>)
+          (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
+            dest: no_dup_consistentD)
+      subgoal
+        by (auto simp: tl_trailt_tr_def)
+      subgoal
+        by (cases \<open>L\<close>)
+          (auto simp: tl_trailt_tr_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff ann_lits_split_reasons_def
+            control_stack_dec_butlast
+            dest: no_dup_consistentD)
+      done
+    done
+qed
+
+
+lemma
+  tl_trail_proped_tr_code_op_list_tl[sepref_fr_rules]:
+    \<open>(tl_trail_proped_tr_code, (RETURN o op_list_tl)) \<in>
+    [\<lambda>M. M \<noteq> [] \<and> is_proped (hd M)]\<^sub>a trail_assn\<^sup>d \<rightarrow> trail_assn\<close>
+    (is ?slow is \<open>_?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
+  tl_trail_proped_tr_fast_code_op_list_tl[sepref_fr_rules]:
+    \<open>(tl_trail_proped_tr_fast_code, (RETURN o op_list_tl)) \<in>
+    [\<lambda>M. M \<noteq> [] \<and> is_proped (hd M)]\<^sub>a trail_fast_assn\<^sup>d \<rightarrow> trail_fast_assn\<close>
+    (is ?fast is \<open>_?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
+proof -
+  have [dest]: \<open>((a, aa, ab, r, b), x) \<in> trail_pol \<Longrightarrow> a = map lit_of (rev x)\<close> for a aa ab b x r
+    by (auto simp: trail_pol_def ann_lits_split_reasons_def)
+  have [simp]: \<open>x \<noteq> [] \<Longrightarrow> is_decided (last x) \<Longrightarrow> Suc 0 \<le> count_decided x\<close> for x
+    by (cases x rule: rev_cases) auto
+  have H: \<open>?c
+      \<in>  [comp_PRE trail_pol (\<lambda>M. M \<noteq> [] \<and> is_proped (hd M))
+     (\<lambda>_ (M, xs, lvls, reason, k, cs).
+         M \<noteq> [] \<and>
+         nat_of_lit (last M) < length xs \<and>
+         nat_of_lit (-last M) < length xs \<and>
+         atm_of (last M) < length lvls \<and>
+         atm_of (last M) < length reason)
+     (\<lambda>_. True)]\<^sub>a hrp_comp (trail_pol_assn\<^sup>d)
+                    trail_pol \<rightarrow> hr_comp trail_pol_assn trail_pol\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF tl_trail_proped_tr_code.refine tl_trail_proped_tr,
+        OF isasat_input_bounded_axioms]
+    unfolding op_list_tl_def
+    .
+  have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
+    apply (cases x; cases \<open>hd x\<close>)
+    by (auto simp: comp_PRE_def trail_pol_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
+        rev_map[symmetric] hd_append hd_map simp del: rev_map
+        intro!: ext)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?slow
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im apply assumption
+    using pre ..
+  have H: \<open>?cfast
+      \<in>  [comp_PRE trail_pol (\<lambda>M. M \<noteq> [] \<and> is_proped (hd M))
+     (\<lambda>_ (M, xs, lvls, reason, k, cs).
+         M \<noteq> [] \<and>
+         nat_of_lit (last M) < length xs \<and>
+         nat_of_lit (-last M) < length xs \<and>
+         atm_of (last M) < length lvls \<and>
+         atm_of (last M) < length reason)
+     (\<lambda>_. True)]\<^sub>a hrp_comp (trail_pol_fast_assn\<^sup>d)
+                    trail_pol \<rightarrow> hr_comp trail_pol_fast_assn trail_pol\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF tl_trail_proped_tr_fast_code.refine tl_trail_proped_tr,
+     OF isasat_input_bounded_axioms]
+    unfolding op_list_tl_def
+    .
+  have im: \<open>?im' = ?imfast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?fast
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im apply assumption
+    using pre ..
+qed
 
 definition (in -) lit_of_hd_trail where
   \<open>lit_of_hd_trail M = lit_of (hd M)\<close>
