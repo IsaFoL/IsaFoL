@@ -170,6 +170,7 @@ end; (*struct Bits_Integer*)
 structure SAT_Solver : sig
   type nat
   val integer_of_nat : nat -> IntInf.int
+  type clause_status
   type ('a, 'b) vmtf_node
   type minimize_status
   datatype int = Int_of_integer of IntInf.int
@@ -372,6 +373,25 @@ val ord_integer =
   {less_eq = (fn a => fn b => IntInf.<= (a, b)),
     less = (fn a => fn b => IntInf.< (a, b))}
   : IntInf.int ord;
+
+datatype clause_status = INIT | LEARNED | DELETED;
+
+fun typerep_clause_statusa t = Typerep ("IsaSAT_Clauses.clause_status", []);
+
+val countable_clause_status = {} : clause_status countable;
+
+val typerep_clause_status = {typerep = typerep_clause_statusa} :
+  clause_status typerep;
+
+val heap_clause_status =
+  {countable_heap = countable_clause_status,
+    typerep_heap = typerep_clause_status}
+  : clause_status heap;
+
+val default_clause_statusa : clause_status = DELETED;
+
+val default_clause_status = {default = default_clause_statusa} :
+  clause_status default;
 
 datatype ('a, 'b) vmtf_node = VMTF_Node of 'b * 'a option * 'a option;
 
@@ -676,6 +696,15 @@ fun arrayO_raa_empty_sz (A1_, A2_) B_ init_cap =
       (a, zero B_)
     end);
 
+fun init_aa_code x =
+  (fn _ =>
+    arl_empty
+      (default_prod default_clause_status
+         (default_prod default_uint32 default_uint32),
+        heap_prod heap_clause_status (heap_prod heap_uint32 heap_uint32))
+      zero_nat)
+    x;
+
 fun array_grow A_ a s x =
   (fn () =>
     let
@@ -716,14 +745,42 @@ fun arrayO_raa_append (A1_, A2_) =
         ()
     end);
 
+fun arl_append (A1_, A2_) =
+  (fn (a, n) => fn x => fn () =>
+    let
+      val lena = len A2_ a ();
+    in
+      (if less_nat n lena
+        then (fn f_ => fn () => f_ ((upd A2_ n x a) ()) ())
+               (fn aa => (fn () => (aa, plus_nat n one_nata)))
+        else let
+               val newcap = times_nata (nat_of_integer (2 : IntInf.int)) lena;
+             in
+               (fn f_ => fn () => f_ ((array_grow A2_ a newcap (default A1_))
+                 ()) ())
+                 (fn aa =>
+                   (fn f_ => fn () => f_ ((upd A2_ n x aa) ()) ())
+                     (fn ab => (fn () => (ab, plus_nat n one_nata))))
+             end)
+        ()
+    end);
+
 fun init_rll_list_code x =
   (fn xi => fn () =>
     let
       val xa = (fn () => Array.fromList []) ();
       val x_b =
         arrayO_raa_empty_sz (default_uint32, heap_uint32) zero_nat xi ();
+      val x_d = init_aa_code xi ();
+      val x_f = arrayO_raa_append (default_uint32, heap_uint32) x_b xa ();
+      val x_g =
+        arl_append
+          (default_prod default_clause_status
+             (default_prod default_uint32 default_uint32),
+            heap_prod heap_clause_status (heap_prod heap_uint32 heap_uint32))
+          x_d (DELETED, ((Word32.fromInt 0), (Word32.fromInt 0))) ();
     in
-      arrayO_raa_append (default_uint32, heap_uint32) x_b xa ()
+      (x_f, x_g)
     end)
     x;
 
@@ -833,20 +890,20 @@ fun nth_raa_i32_u64 A_ xs i j =
       xa
     end);
 
+fun nth_rll_u32_i64_clauses x =
+  (fn ai => fn bia => fn bi => let
+                                 val (a1, _) = ai;
+                               in
+                                 nth_raa_i32_u64 heap_uint32 a1 bia bi
+                               end)
+    x;
+
 fun access_lit_in_clauses_heur_fast_code x =
   (fn ai => fn bia => fn bi => let
                                  val (_, (a1a, _)) = ai;
                                in
-                                 nth_raa_i32_u64 heap_uint32 a1a bia bi
+                                 nth_rll_u32_i64_clauses a1a bia bi
                                end)
-    x;
-
-fun polarity_pol_fast_code x =
-  (fn ai => fn bi => let
-                       val (_, (a1a, (_, _))) = ai;
-                     in
-                       nth_u_code heap_uint32 a1a bi
-                     end)
     x;
 
 fun length_u64_code A_ =
@@ -859,6 +916,22 @@ fun length_raa_u32_u64 A_ xs i =
     in
       length_u64_code A_ x ()
     end);
+
+fun length_raa_u32_u64_clss x =
+  (fn ai => fn bi => let
+                       val (a1, _) = ai;
+                     in
+                       length_raa_u32_u64 heap_uint32 a1 bi
+                     end)
+    x;
+
+fun polarity_pol_fast_code x =
+  (fn ai => fn bi => let
+                       val (_, (a1a, (_, _))) = ai;
+                     in
+                       nth_u_code heap_uint32 a1a bi
+                     end)
+    x;
 
 fun is_None a = (case a of NONE => true | SOME _ => false);
 
@@ -877,13 +950,12 @@ fun find_unwatched_wl_st_heur_fast_code x =
           val xa =
             heap_WHILET
               (fn (a1f, a2f) =>
-                (fn f_ => fn () => f_ ((length_raa_u32_u64 heap_uint32 a1a bi)
-                  ()) ())
+                (fn f_ => fn () => f_ ((length_raa_u32_u64_clss a1a bi) ()) ())
                   (fn xa =>
                     (fn () => (is_None a1f andalso Uint64.less a2f xa))))
               (fn (_, a2f) =>
-                (fn f_ => fn () => f_ ((nth_raa_i32_u64 heap_uint32 a1a bi a2f)
-                  ()) ())
+                (fn f_ => fn () => f_ ((nth_rll_u32_i64_clauses a1a bi a2f) ())
+                  ())
                   (fn xa =>
                     (fn f_ => fn () => f_ ((polarity_pol_fast_code a1 xa) ())
                       ())
@@ -920,6 +992,24 @@ fun is_in_conflict_code x =
     end)
     x;
 
+fun length_u_code A_ = (fn a => (fn () => Word32.fromInt (Array.length a)));
+
+fun length_raa_i32_u A_ xs i =
+  (fn () =>
+    let
+      val x = (fn () => Array.sub ((fn (a,b) => a) xs, Word32.toInt i)) ();
+    in
+      length_u_code A_ x ()
+    end);
+
+fun fmap_length_rll_u32_clss x =
+  (fn ai => fn bi => let
+                       val (a1, _) = ai;
+                     in
+                       length_raa_i32_u heap_uint32 a1 bi
+                     end)
+    x;
+
 fun get_level_atm_fast_code x =
   (fn ai => fn bi => let
                        val (_, (_, (a1b, _))) = ai;
@@ -931,38 +1021,6 @@ fun get_level_atm_fast_code x =
 fun get_level_fast_code x =
   (fn ai => fn bi => get_level_atm_fast_code ai (atm_of_code bi)) x;
 
-fun length_u_code A_ = (fn a => (fn () => Word32.fromInt (Array.length a)));
-
-fun length_raa_i32_u A_ xs i =
-  (fn () =>
-    let
-      val x = (fn () => Array.sub ((fn (a,b) => a) xs, Word32.toInt i)) ();
-    in
-      length_u_code A_ x ()
-    end);
-
-fun count_decided_pol x = (fn (_, (_, (_, (_, (k, _))))) => k) x;
-
-fun arl_append (A1_, A2_) =
-  (fn (a, n) => fn x => fn () =>
-    let
-      val lena = len A2_ a ();
-    in
-      (if less_nat n lena
-        then (fn f_ => fn () => f_ ((upd A2_ n x a) ()) ())
-               (fn aa => (fn () => (aa, plus_nat n one_nata)))
-        else let
-               val newcap = times_nata (nat_of_integer (2 : IntInf.int)) lena;
-             in
-               (fn f_ => fn () => f_ ((array_grow A2_ a newcap (default A1_))
-                 ()) ())
-                 (fn aa =>
-                   (fn f_ => fn () => f_ ((upd A2_ n x aa) ()) ())
-                     (fn ab => (fn () => (ab, plus_nat n one_nata))))
-             end)
-        ()
-    end);
-
 fun nth_raa_i32_u32 A_ xs i j =
   (fn () =>
     let
@@ -971,6 +1029,16 @@ fun nth_raa_i32_u32 A_ xs i j =
     in
       xa
     end);
+
+fun fmap_rll_u32_clss x =
+  (fn ai => fn bia => fn bi => let
+                                 val (a1, _) = ai;
+                               in
+                                 nth_raa_i32_u32 heap_uint32 a1 bia bi
+                               end)
+    x;
+
+fun count_decided_pol x = (fn (_, (_, (_, (_, (k, _))))) => k) x;
 
 fun lbd_write_code x =
   (fn ai => fn bia => fn bi =>
@@ -1009,12 +1077,11 @@ fun set_lookup_conflict_aa_fast_code x =
           val a =
             heap_WHILET
               (fn (a1a, (_, (_, (_, _)))) =>
-                (fn f_ => fn () => f_ ((length_raa_i32_u heap_uint32 bie bid)
-                  ()) ())
+                (fn f_ => fn () => f_ ((fmap_length_rll_u32_clss bie bid) ())
+                  ())
                   (fn x_a => (fn () => (Word32.< (a1a, x_a)))))
               (fn (a1a, (a1b, (a1c, (a1d, a2d)))) =>
-                (fn f_ => fn () => f_ ((nth_raa_i32_u32 heap_uint32 bie bid a1a)
-                  ()) ())
+                (fn f_ => fn () => f_ ((fmap_rll_u32_clss bie bid a1a) ()) ())
                   (fn xa =>
                     (fn f_ => fn () => f_ ((get_level_fast_code ai xa) ()) ())
                       (fn xb =>
@@ -1022,31 +1089,28 @@ fun set_lookup_conflict_aa_fast_code x =
                           ())
                           (fn x_a =>
                             (fn f_ => fn () => f_
-                              ((nth_raa_i32_u32 heap_uint32 bie bid a1a) ()) ())
+                              ((fmap_rll_u32_clss bie bid a1a) ()) ())
                               (fn xc =>
                                 (fn f_ => fn () => f_
                                   ((get_level_fast_code ai xc) ()) ())
                                   (fn xd =>
                                     (fn f_ => fn () => f_
-                                      ((nth_raa_i32_u32 heap_uint32 bie bid a1a)
-                                      ()) ())
+                                      ((fmap_rll_u32_clss bie bid a1a) ()) ())
                                       (fn xaa =>
 (fn f_ => fn () => f_ ((is_in_conflict_code a1c xaa) ()) ())
   (fn xab =>
     (fn f_ => fn () => f_
       ((if Word32.< (xd, count_decided_pol ai) andalso not xab
-         then (fn f_ => fn () => f_ ((nth_raa_i32_u32 heap_uint32 bie bid a1a)
-                ()) ())
+         then (fn f_ => fn () => f_ ((fmap_rll_u32_clss bie bid a1a) ()) ())
                 (arl_append (default_uint32, heap_uint32) a2d)
          else (fn () => a2d))
       ()) ())
       (fn x_c =>
-        (fn f_ => fn () => f_ ((nth_raa_i32_u32 heap_uint32 bie bid a1a) ()) ())
+        (fn f_ => fn () => f_ ((fmap_rll_u32_clss bie bid a1a) ()) ())
           (fn xe =>
             (fn f_ => fn () => f_ ((get_level_fast_code ai xe) ()) ())
               (fn xf =>
-                (fn f_ => fn () => f_ ((nth_raa_i32_u32 heap_uint32 bie bid a1a)
-                  ()) ())
+                (fn f_ => fn () => f_ ((fmap_rll_u32_clss bie bid a1a) ()) ())
                   (fn xac =>
                     (fn f_ => fn () => f_ ((is_in_conflict_code a1c xac) ()) ())
                       (fn xad =>
@@ -1055,19 +1119,16 @@ fun set_lookup_conflict_aa_fast_code x =
                              val (a1e, a2e) = a1c;
                            in
                              (fn f_ => fn () => f_
-                               ((nth_raa_i32_u32 heap_uint32 bie bid a1a) ())
-                               ())
+                               ((fmap_rll_u32_clss bie bid a1a) ()) ())
                                (fn xg =>
                                  (fn f_ => fn () => f_
                                    ((nth_u_code heap_bool a2e (atm_of_code xg))
                                    ()) ())
                                    (fn xh =>
                                      (fn f_ => fn () => f_
-                                       ((nth_raa_i32_u32 heap_uint32 bie bid
-  a1a)
-                                       ()) ())
+                                       ((fmap_rll_u32_clss bie bid a1a) ()) ())
                                        (fn xae =>
- (fn f_ => fn () => f_ ((nth_raa_i32_u32 heap_uint32 bie bid a1a) ()) ())
+ (fn f_ => fn () => f_ ((fmap_rll_u32_clss bie bid a1a) ()) ())
    (fn _ =>
      (fn f_ => fn () => f_
        ((heap_array_set_u heap_bool a2e (atm_of_code xae) true) ()) ())
@@ -1286,6 +1347,21 @@ fun swap_aa_i32_u64 (A1_, A2_) xs k i j =
       x
     end);
 
+fun fmap_swap_ll_i32_u64_clss x =
+  (fn ai => fn bib => fn bia => fn bi =>
+    let
+      val (a1, a2) = ai;
+    in
+      (fn () =>
+        let
+          val xa =
+            swap_aa_i32_u64 (default_uint32, heap_uint32) a1 bib bia bi ();
+        in
+          (xa, a2)
+        end)
+    end)
+    x;
+
 fun append_el_aa_u (A1_, A2_) =
   (fn a => fn i => fn x => fn () =>
     let
@@ -1303,9 +1379,8 @@ fun update_clause_wl_fast_code x =
   (fn ai => fn bid => fn bic => fn bib => fn bia =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
     let
-      val xa = nth_raa_i32_u64 heap_uint32 a1a bid bia ();
-      val x_b =
-        swap_aa_i32_u64 (default_uint32, heap_uint32) a1a bid bib bia ();
+      val xa = nth_rll_u32_i64_clauses a1a bid bia ();
+      val x_b = fmap_swap_ll_i32_u64_clss a1a bid bib bia ();
       val x_d = delete_index_and_swap_aa_i32_u64 heap_uint32 a1d ai bic ();
       val xb = append_el_aa_u (default_uint32, heap_uint32) x_d xa bid ();
     in
@@ -1347,7 +1422,7 @@ fun propagate_lit_wl_fast_code x =
     fn () =>
     let
       val xa =
-        swap_aa_i32_u64 (default_uint32, heap_uint32) a1a bib Uint64.zero
+        fmap_swap_ll_i32_u64_clss a1a bib Uint64.zero
           (fast_minus minus_uint64 Uint64.one bia) ();
       val x_a = cons_trail_Propagated_tr_fast_code ai bib a1 ();
     in
@@ -1555,12 +1630,11 @@ fun resolve_lookup_conflict_merge_fast_code x =
           val a =
             heap_WHILET
               (fn (a1a, (_, (_, (_, _)))) =>
-                (fn f_ => fn () => f_ ((length_raa_i32_u heap_uint32 bie bid)
-                  ()) ())
+                (fn f_ => fn () => f_ ((fmap_length_rll_u32_clss bie bid) ())
+                  ())
                   (fn x_a => (fn () => (Word32.< (a1a, x_a)))))
               (fn (a1a, (a1b, (a1c, (a1d, a2d)))) =>
-                (fn f_ => fn () => f_ ((nth_raa_i32_u32 heap_uint32 bie bid a1a)
-                  ()) ())
+                (fn f_ => fn () => f_ ((fmap_rll_u32_clss bie bid a1a) ()) ())
                   (fn xa =>
                     (fn f_ => fn () => f_ ((get_level_fast_code ai xa) ()) ())
                       (fn xb =>
@@ -1568,31 +1642,28 @@ fun resolve_lookup_conflict_merge_fast_code x =
                           ())
                           (fn x_a =>
                             (fn f_ => fn () => f_
-                              ((nth_raa_i32_u32 heap_uint32 bie bid a1a) ()) ())
+                              ((fmap_rll_u32_clss bie bid a1a) ()) ())
                               (fn xc =>
                                 (fn f_ => fn () => f_
                                   ((get_level_fast_code ai xc) ()) ())
                                   (fn xd =>
                                     (fn f_ => fn () => f_
-                                      ((nth_raa_i32_u32 heap_uint32 bie bid a1a)
-                                      ()) ())
+                                      ((fmap_rll_u32_clss bie bid a1a) ()) ())
                                       (fn xaa =>
 (fn f_ => fn () => f_ ((is_in_conflict_code a1c xaa) ()) ())
   (fn xab =>
     (fn f_ => fn () => f_
       ((if Word32.< (xd, count_decided_pol ai) andalso not xab
-         then (fn f_ => fn () => f_ ((nth_raa_i32_u32 heap_uint32 bie bid a1a)
-                ()) ())
+         then (fn f_ => fn () => f_ ((fmap_rll_u32_clss bie bid a1a) ()) ())
                 (arl_append (default_uint32, heap_uint32) a2d)
          else (fn () => a2d))
       ()) ())
       (fn x_c =>
-        (fn f_ => fn () => f_ ((nth_raa_i32_u32 heap_uint32 bie bid a1a) ()) ())
+        (fn f_ => fn () => f_ ((fmap_rll_u32_clss bie bid a1a) ()) ())
           (fn xe =>
             (fn f_ => fn () => f_ ((get_level_fast_code ai xe) ()) ())
               (fn xf =>
-                (fn f_ => fn () => f_ ((nth_raa_i32_u32 heap_uint32 bie bid a1a)
-                  ()) ())
+                (fn f_ => fn () => f_ ((fmap_rll_u32_clss bie bid a1a) ()) ())
                   (fn xac =>
                     (fn f_ => fn () => f_ ((is_in_conflict_code a1c xac) ()) ())
                       (fn xad =>
@@ -1601,19 +1672,16 @@ fun resolve_lookup_conflict_merge_fast_code x =
                              val (a1e, a2e) = a1c;
                            in
                              (fn f_ => fn () => f_
-                               ((nth_raa_i32_u32 heap_uint32 bie bid a1a) ())
-                               ())
+                               ((fmap_rll_u32_clss bie bid a1a) ()) ())
                                (fn xg =>
                                  (fn f_ => fn () => f_
                                    ((nth_u_code heap_bool a2e (atm_of_code xg))
                                    ()) ())
                                    (fn xh =>
                                      (fn f_ => fn () => f_
-                                       ((nth_raa_i32_u32 heap_uint32 bie bid
-  a1a)
-                                       ()) ())
+                                       ((fmap_rll_u32_clss bie bid a1a) ()) ())
                                        (fn xae =>
- (fn f_ => fn () => f_ ((nth_raa_i32_u32 heap_uint32 bie bid a1a) ()) ())
+ (fn f_ => fn () => f_ ((fmap_rll_u32_clss bie bid a1a) ()) ())
    (fn _ =>
      (fn f_ => fn () => f_
        ((heap_array_set_u heap_bool a2e (atm_of_code xae) true) ()) ())
@@ -1887,6 +1955,14 @@ fun nth_raa_i32 A_ xs i j =
       xa
     end);
 
+fun fmap_rll_u32_un_clss x =
+  (fn ai => fn bia => fn bi => let
+                                 val (a1, _) = ai;
+                               in
+                                 nth_raa_i32 heap_uint32 a1 bia bi
+                               end)
+    x;
+
 fun mark_failed_lits_stack_fast_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
@@ -1901,7 +1977,7 @@ fun mark_failed_lits_stack_fast_code x =
               ((arl_get (heap_prod heap_uint32 heap_nat) bia a1) ()) ())
               (fn (a1a, a2a) =>
                 (fn f_ => fn () => f_
-                  ((nth_raa_i32 heap_uint32 ai a1a (minus_nat a2a one_nata)) ())
+                  ((fmap_rll_u32_un_clss ai a1a (minus_nat a2a one_nata)) ())
                   ())
                   (fn xa =>
                     (fn f_ => fn () => f_
@@ -1952,6 +2028,14 @@ fun length_raa_u32 A_ xs i =
       len A_ x ()
     end);
 
+fun length_raa_u32_clss x =
+  (fn ai => fn bi => let
+                       val (a1, _) = ai;
+                     in
+                       length_raa_u32 heap_uint32 a1 bi
+                     end)
+    x;
+
 fun arl_set A_ =
   (fn (a, n) => fn i => fn x => fn () => let
    val aa = upd A_ i x a ();
@@ -1983,16 +2067,15 @@ fun lit_redundant_rec_wl_lookup_fast_code x =
         let
           val xa = arl_last (heap_prod heap_uint32 heap_nat) a1a ();
           val xaa = arl_last (heap_prod heap_uint32 heap_nat) a1a ();
-          val xab = length_raa_u32 heap_uint32 bid (fst xaa) ();
+          val xab = length_raa_u32_clss bid (fst xaa) ();
         in
           (if less_eq_nat xab (snd xa)
             then (fn f_ => fn () => f_
                    ((arl_last (heap_prod heap_uint32 heap_nat) a1a) ()) ())
                    (fn xb =>
                      (fn f_ => fn () => f_
-                       ((nth_raa_i32_u32 heap_uint32 bid (fst xb)
-                          (Word32.fromInt 0))
-                       ()) ())
+                       ((fmap_rll_u32_clss bid (fst xb) (Word32.fromInt 0)) ())
+                       ())
                        (fn xc =>
                          (fn f_ => fn () => f_
                            ((conflict_min_cach_set_removable_l_code a1
@@ -2016,8 +2099,7 @@ fun lit_redundant_rec_wl_lookup_fast_code x =
                             ())
                             (fn xc =>
                               (fn f_ => fn () => f_
-                                ((nth_raa_i32 heap_uint32 bid (fst xc) a2b) ())
-                                ())
+                                ((fmap_rll_u32_un_clss bid (fst xc) a2b) ()) ())
                                 (fn x_e =>
                                   (fn f_ => fn () => f_
                                     ((arl_length
@@ -2773,12 +2855,20 @@ fun find_decomp_wl_imp_fast_codea x =
 fun length_ra A_ xs = arl_length (heap_array (typerep_heap A_)) xs;
 
 fun append_and_length_u32_code x =
-  (fn _ => fn bia => fn bi => fn () =>
+  (fn ai => fn bia => fn (a1, a2) => fn () =>
     let
-      val xa = length_ra heap_uint32 bi ();
-      val x_b = arrayO_raa_append (default_uint32, heap_uint32) bi bia ();
+      val xa = length_ra heap_uint32 a1 ();
+      val xaa = arrayO_raa_append (default_uint32, heap_uint32) a1 bia ();
+      val xb =
+        arl_append
+          (default_prod default_clause_status
+             (default_prod default_uint32 default_uint32),
+            heap_prod heap_clause_status (heap_prod heap_uint32 heap_uint32))
+          a2 ((if ai then INIT else LEARNED),
+               ((Word32.fromInt 0), (Word32.fromInt 0)))
+          ();
     in
-      (x_b, uint32_of_nat xa)
+      ((xaa, xb), uint32_of_nat xa)
     end)
     x;
 
@@ -3081,8 +3171,29 @@ fun access_lit_in_clauses_heur_code x =
   (fn ai => fn bia => fn bi => let
                                  val (_, (a1a, _)) = ai;
                                in
-                                 nth_raa_i_u64 heap_uint32 a1a bia bi
+                                 let
+                                   val (n, _) = a1a;
+                                 in
+                                   nth_raa_i_u64 heap_uint32 n
+                                 end
+                                   bia
+                                   bi
                                end)
+    x;
+
+fun length_raa_u64 A_ xs i =
+  (fn () => let
+              val x = arl_get (heap_array (typerep_heap A_)) xs i ();
+            in
+              length_u64_code A_ x ()
+            end);
+
+fun length_raa_u64_clss x =
+  (fn ai => fn bi => let
+                       val (a1, _) = ai;
+                     in
+                       length_raa_u64 heap_uint32 a1 bi
+                     end)
     x;
 
 fun polarity_pol_code x = (fn ai => fn bi => let
@@ -3091,13 +3202,6 @@ fun polarity_pol_code x = (fn ai => fn bi => let
        nth_u_code heap_uint32 a1a bi
      end)
                             x;
-
-fun length_raa_u64 A_ xs i =
-  (fn () => let
-              val x = arl_get (heap_array (typerep_heap A_)) xs i ();
-            in
-              length_u64_code A_ x ()
-            end);
 
 fun find_unwatched_wl_st_heur_code x =
   (fn ai => fn bi =>
@@ -3109,12 +3213,17 @@ fun find_unwatched_wl_st_heur_code x =
           val xa =
             heap_WHILET
               (fn (a1f, a2f) =>
-                (fn f_ => fn () => f_ ((length_raa_u64 heap_uint32 a1a bi) ())
-                  ())
+                (fn f_ => fn () => f_ ((length_raa_u64_clss a1a bi) ()) ())
                   (fn xa =>
                     (fn () => (is_None a1f andalso Uint64.less a2f xa))))
               (fn (_, a2f) =>
-                (fn f_ => fn () => f_ ((nth_raa_i_u64 heap_uint32 a1a bi a2f)
+                (fn f_ => fn () => f_ ((let
+  val (n, _) = a1a;
+in
+  nth_raa_i_u64 heap_uint32 n
+end
+  bi
+ a2f)
                   ()) ())
                   (fn xa =>
                     (fn f_ => fn () => f_ ((polarity_pol_code a1 xa) ()) ())
@@ -3132,23 +3241,20 @@ fun find_unwatched_wl_st_heur_code x =
     end)
     x;
 
-fun get_level_atm_code x =
-  (fn ai => fn bi => let
-                       val (_, (_, (a1b, _))) = ai;
-                     in
-                       nth_u_code heap_uint32 a1b bi
-                     end)
-    x;
-
-fun get_level_code x =
-  (fn ai => fn bi => get_level_atm_code ai (atm_of_code bi)) x;
-
 fun length_raa_u A_ xs i =
   (fn () => let
               val x = arl_get (heap_array (typerep_heap A_)) xs i ();
             in
               length_u_code A_ x ()
             end);
+
+fun length_rll_n_uint32_clss x =
+  (fn ai => fn bi => let
+                       val (a1, _) = ai;
+                     in
+                       length_raa_u heap_uint32 a1 bi
+                     end)
+    x;
 
 fun nth_raa A_ xs i j =
   (fn () => let
@@ -3160,6 +3266,25 @@ fun nth_raa A_ xs i j =
 
 fun nth_raa_u A_ xs x l = nth_raa A_ xs x (nat_of_uint32 l);
 
+fun fmap_rll_u_clss x =
+  (fn ai => fn bia => fn bi => let
+                                 val (a1, _) = ai;
+                               in
+                                 nth_raa_u heap_uint32 a1 bia bi
+                               end)
+    x;
+
+fun get_level_atm_code x =
+  (fn ai => fn bi => let
+                       val (_, (_, (a1b, _))) = ai;
+                     in
+                       nth_u_code heap_uint32 a1b bi
+                     end)
+    x;
+
+fun get_level_code x =
+  (fn ai => fn bi => get_level_atm_code ai (atm_of_code bi)) x;
+
 fun set_lookup_conflict_aa_code x =
   (fn ai => fn bie => fn bid => fn bic => fn bib => fn bia => fn bi =>
     let
@@ -3170,43 +3295,40 @@ fun set_lookup_conflict_aa_code x =
           val a =
             heap_WHILET
               (fn (a1a, (_, (_, (_, _)))) =>
-                (fn f_ => fn () => f_ ((length_raa_u heap_uint32 bie bid) ())
+                (fn f_ => fn () => f_ ((length_rll_n_uint32_clss bie bid) ())
                   ())
                   (fn x_a => (fn () => (Word32.< (a1a, x_a)))))
               (fn (a1a, (a1b, (a1c, (a1d, a2d)))) =>
-                (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bie bid a1a) ())
-                  ())
+                (fn f_ => fn () => f_ ((fmap_rll_u_clss bie bid a1a) ()) ())
                   (fn xa =>
                     (fn f_ => fn () => f_ ((get_level_code ai xa) ()) ())
                       (fn xb =>
                         (fn f_ => fn () => f_ ((lbd_write_code a1d xb true) ())
                           ())
                           (fn x_a =>
-                            (fn f_ => fn () => f_
-                              ((nth_raa_u heap_uint32 bie bid a1a) ()) ())
+                            (fn f_ => fn () => f_ ((fmap_rll_u_clss bie bid a1a)
+                              ()) ())
                               (fn xc =>
                                 (fn f_ => fn () => f_ ((get_level_code ai xc)
                                   ()) ())
                                   (fn xd =>
                                     (fn f_ => fn () => f_
-                                      ((nth_raa_u heap_uint32 bie bid a1a) ())
-                                      ())
+                                      ((fmap_rll_u_clss bie bid a1a) ()) ())
                                       (fn xaa =>
 (fn f_ => fn () => f_ ((is_in_conflict_code a1c xaa) ()) ())
   (fn xab =>
     (fn f_ => fn () => f_
       ((if Word32.< (xd, count_decided_pol ai) andalso not xab
-         then (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bie bid a1a) ()) ())
+         then (fn f_ => fn () => f_ ((fmap_rll_u_clss bie bid a1a) ()) ())
                 (arl_append (default_uint32, heap_uint32) a2d)
          else (fn () => a2d))
       ()) ())
       (fn x_c =>
-        (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bie bid a1a) ()) ())
+        (fn f_ => fn () => f_ ((fmap_rll_u_clss bie bid a1a) ()) ())
           (fn xe =>
             (fn f_ => fn () => f_ ((get_level_code ai xe) ()) ())
               (fn xf =>
-                (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bie bid a1a) ())
-                  ())
+                (fn f_ => fn () => f_ ((fmap_rll_u_clss bie bid a1a) ()) ())
                   (fn xac =>
                     (fn f_ => fn () => f_ ((is_in_conflict_code a1c xac) ()) ())
                       (fn xad =>
@@ -3215,17 +3337,16 @@ fun set_lookup_conflict_aa_code x =
                              val (a1e, a2e) = a1c;
                            in
                              (fn f_ => fn () => f_
-                               ((nth_raa_u heap_uint32 bie bid a1a) ()) ())
+                               ((fmap_rll_u_clss bie bid a1a) ()) ())
                                (fn xg =>
                                  (fn f_ => fn () => f_
                                    ((nth_u_code heap_bool a2e (atm_of_code xg))
                                    ()) ())
                                    (fn xh =>
                                      (fn f_ => fn () => f_
-                                       ((nth_raa_u heap_uint32 bie bid a1a) ())
-                                       ())
+                                       ((fmap_rll_u_clss bie bid a1a) ()) ())
                                        (fn xae =>
- (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bie bid a1a) ()) ())
+ (fn f_ => fn () => f_ ((fmap_rll_u_clss bie bid a1a) ()) ())
    (fn _ =>
      (fn f_ => fn () => f_
        ((heap_array_set_u heap_bool a2e (atm_of_code xae) true) ()) ())
@@ -3322,12 +3443,33 @@ fun swap_aa_u64 (A1_, A2_) xs k i j =
               x
             end);
 
+fun fmap_swap_ll_u64_clss x =
+  (fn ai => fn bib => fn bia => fn bi =>
+    let
+      val (a1, a2) = ai;
+    in
+      (fn () =>
+        let
+          val xa = swap_aa_u64 (default_uint32, heap_uint32) a1 bib bia bi ();
+        in
+          (xa, a2)
+        end)
+    end)
+    x;
+
 fun update_clause_wl_code x =
   (fn ai => fn bid => fn bic => fn bib => fn bia =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
     let
-      val xa = nth_raa_i_u64 heap_uint32 a1a bid bia ();
-      val x_b = swap_aa_u64 (default_uint32, heap_uint32) a1a bid bib bia ();
+      val xa = let
+                 val (n, _) = a1a;
+               in
+                 nth_raa_i_u64 heap_uint32 n
+               end
+                 bid
+                 bia
+                 ();
+      val x_b = fmap_swap_ll_u64_clss a1a bid bib bia ();
       val x_d = delete_index_and_swap_aa_u heap_nat a1d ai bic ();
       val xb = append_el_aa_u (default_nat, heap_nat) x_d xa bid ();
     in
@@ -3359,7 +3501,7 @@ fun propagate_lit_wl_code x =
     fn () =>
     let
       val xa =
-        swap_aa_u64 (default_uint32, heap_uint32) a1a bib Uint64.zero
+        fmap_swap_ll_u64_clss a1a bib Uint64.zero
           (fast_minus minus_uint64 Uint64.one bia) ();
       val x_a = cons_trail_Propagated_tr_code ai bib a1 ();
     in
@@ -3539,43 +3681,40 @@ fun resolve_lookup_conflict_merge_code x =
           val a =
             heap_WHILET
               (fn (a1a, (_, (_, (_, _)))) =>
-                (fn f_ => fn () => f_ ((length_raa_u heap_uint32 bie bid) ())
+                (fn f_ => fn () => f_ ((length_rll_n_uint32_clss bie bid) ())
                   ())
                   (fn x_a => (fn () => (Word32.< (a1a, x_a)))))
               (fn (a1a, (a1b, (a1c, (a1d, a2d)))) =>
-                (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bie bid a1a) ())
-                  ())
+                (fn f_ => fn () => f_ ((fmap_rll_u_clss bie bid a1a) ()) ())
                   (fn xa =>
                     (fn f_ => fn () => f_ ((get_level_code ai xa) ()) ())
                       (fn xb =>
                         (fn f_ => fn () => f_ ((lbd_write_code a1d xb true) ())
                           ())
                           (fn x_a =>
-                            (fn f_ => fn () => f_
-                              ((nth_raa_u heap_uint32 bie bid a1a) ()) ())
+                            (fn f_ => fn () => f_ ((fmap_rll_u_clss bie bid a1a)
+                              ()) ())
                               (fn xc =>
                                 (fn f_ => fn () => f_ ((get_level_code ai xc)
                                   ()) ())
                                   (fn xd =>
                                     (fn f_ => fn () => f_
-                                      ((nth_raa_u heap_uint32 bie bid a1a) ())
-                                      ())
+                                      ((fmap_rll_u_clss bie bid a1a) ()) ())
                                       (fn xaa =>
 (fn f_ => fn () => f_ ((is_in_conflict_code a1c xaa) ()) ())
   (fn xab =>
     (fn f_ => fn () => f_
       ((if Word32.< (xd, count_decided_pol ai) andalso not xab
-         then (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bie bid a1a) ()) ())
+         then (fn f_ => fn () => f_ ((fmap_rll_u_clss bie bid a1a) ()) ())
                 (arl_append (default_uint32, heap_uint32) a2d)
          else (fn () => a2d))
       ()) ())
       (fn x_c =>
-        (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bie bid a1a) ()) ())
+        (fn f_ => fn () => f_ ((fmap_rll_u_clss bie bid a1a) ()) ())
           (fn xe =>
             (fn f_ => fn () => f_ ((get_level_code ai xe) ()) ())
               (fn xf =>
-                (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bie bid a1a) ())
-                  ())
+                (fn f_ => fn () => f_ ((fmap_rll_u_clss bie bid a1a) ()) ())
                   (fn xac =>
                     (fn f_ => fn () => f_ ((is_in_conflict_code a1c xac) ()) ())
                       (fn xad =>
@@ -3584,17 +3723,16 @@ fun resolve_lookup_conflict_merge_code x =
                              val (a1e, a2e) = a1c;
                            in
                              (fn f_ => fn () => f_
-                               ((nth_raa_u heap_uint32 bie bid a1a) ()) ())
+                               ((fmap_rll_u_clss bie bid a1a) ()) ())
                                (fn xg =>
                                  (fn f_ => fn () => f_
                                    ((nth_u_code heap_bool a2e (atm_of_code xg))
                                    ()) ())
                                    (fn xh =>
                                      (fn f_ => fn () => f_
-                                       ((nth_raa_u heap_uint32 bie bid a1a) ())
-                                       ())
+                                       ((fmap_rll_u_clss bie bid a1a) ()) ())
                                        (fn xae =>
- (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bie bid a1a) ()) ())
+ (fn f_ => fn () => f_ ((fmap_rll_u_clss bie bid a1a) ()) ())
    (fn _ =>
      (fn f_ => fn () => f_
        ((heap_array_set_u heap_bool a2e (atm_of_code xae) true) ()) ())
@@ -3776,7 +3914,14 @@ fun mark_failed_lits_stack_code x =
               ((arl_get (heap_prod heap_nat heap_nat) bia a1) ()) ())
               (fn (a1a, a2a) =>
                 (fn f_ => fn () => f_
-                  ((nth_raa heap_uint32 ai a1a (minus_nat a2a one_nata)) ()) ())
+                  ((let
+                      val (n, _) = ai;
+                    in
+                      nth_raa heap_uint32 n
+                    end
+                      a1a
+                     (minus_nat a2a one_nata))
+                  ()) ())
                   (fn xa =>
                     (fn f_ => fn () => f_
                       ((conflict_min_cach_set_failed_l_code a2 (atm_of_code xa))
@@ -3808,6 +3953,13 @@ fun length_raa A_ xs i =
               len A_ x ()
             end);
 
+fun length_raa_clss x = (fn ai => fn bi => let
+     val (a1, _) = ai;
+   in
+     length_raa heap_uint32 a1 bi
+   end)
+                          x;
+
 fun lit_redundant_rec_wl_lookup_code x =
   (fn ai => fn bid => fn bic => fn bib => fn bia => fn bi =>
     heap_WHILET
@@ -3821,14 +3973,21 @@ fun lit_redundant_rec_wl_lookup_code x =
         let
           val xa = arl_last (heap_prod heap_nat heap_nat) a1a ();
           val xaa = arl_last (heap_prod heap_nat heap_nat) a1a ();
-          val xab = length_raa heap_uint32 bid (fst xaa) ();
+          val xab = length_raa_clss bid (fst xaa) ();
         in
           (if less_eq_nat xab (snd xa)
             then (fn f_ => fn () => f_
                    ((arl_last (heap_prod heap_nat heap_nat) a1a) ()) ())
                    (fn xb =>
                      (fn f_ => fn () => f_
-                       ((nth_raa heap_uint32 bid (fst xb) zero_nata) ()) ())
+                       ((let
+                           val (n, _) = bid;
+                         in
+                           nth_raa heap_uint32 n
+                         end
+                           (fst xb)
+                          zero_nata)
+                       ()) ())
                        (fn xc =>
                          (fn f_ => fn () => f_
                            ((conflict_min_cach_set_removable_l_code a1
@@ -3851,7 +4010,14 @@ fun lit_redundant_rec_wl_lookup_code x =
                             ())
                             (fn xc =>
                               (fn f_ => fn () => f_
-                                ((nth_raa heap_uint32 bid (fst xc) a2b) ()) ())
+                                ((let
+                                    val (n, _) = bid;
+                                  in
+                                    nth_raa heap_uint32 n
+                                  end
+                                    (fst xc)
+                                   a2b)
+                                ()) ())
                                 (fn x_e =>
                                   (fn f_ => fn () => f_
                                     ((arl_length (heap_prod heap_nat heap_nat)
@@ -4257,12 +4423,20 @@ fun find_decomp_wl_imp_codea x =
     x;
 
 fun append_and_length_code x =
-  (fn _ => fn bia => fn bi => fn () =>
+  (fn ai => fn bia => fn (a1, a2) => fn () =>
     let
-      val xa = length_ra heap_uint32 bi ();
-      val x_a = arrayO_raa_append (default_uint32, heap_uint32) bi bia ();
+      val xa = length_ra heap_uint32 a1 ();
+      val xaa = arrayO_raa_append (default_uint32, heap_uint32) a1 bia ();
+      val xb =
+        arl_append
+          (default_prod default_clause_status
+             (default_prod default_uint32 default_uint32),
+            heap_prod heap_clause_status (heap_prod heap_uint32 heap_uint32))
+          a2 ((if ai then INIT else LEARNED),
+               ((Word32.fromInt 0), (Word32.fromInt 0)))
+          ();
     in
-      (x_a, xa)
+      ((xaa, xb), xa)
     end)
     x;
 
@@ -4685,12 +4859,13 @@ val uint32_max : nat =
       (nat_of_integer (32 : IntInf.int)))
     one_nata;
 
-fun isasat_fast2_code x = (fn xi => (fn () => let
-        val (_, ((_, n), _)) = xi;
-      in
-        less_eq_nat n uint32_max
-      end))
-                            x;
+fun isasat_fast2_code x =
+  (fn xi => (fn () => let
+                        val (_, ((_, (_, n)), _)) = xi;
+                      in
+                        less_eq_nat n uint32_max
+                      end))
+    x;
 
 fun cdcl_twl_stgy_prog_wl_D_fast_code x =
   (fn xi => fn () =>
