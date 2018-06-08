@@ -1017,16 +1017,16 @@ definition mark_to_delete_clauses_wl_D_post where
   \<open>mark_to_delete_clauses_wl_D_post S T \<longleftrightarrow>
      (mark_to_delete_clauses_wl_post S T \<and> literals_are_\<L>\<^sub>i\<^sub>n S)\<close>
 
-definition cdcl_twl_restart_wl_prog_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-\<open>cdcl_twl_restart_wl_prog_D S = do {
+definition cdcl_twl_full_restart_wl_prog_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+\<open>cdcl_twl_full_restart_wl_prog_D S = do {
     S \<leftarrow> remove_one_annot_true_clause_imp_wl_D S;
     ASSERT(mark_to_delete_clauses_wl_D_pre S);
     T \<leftarrow> mark_to_delete_clauses_wl_D S;
     rewatch_clauses_prog_D T
   }\<close>
 
-lemma cdcl_twl_restart_wl_prog_D_cdcl_twl_restart_wl_prog:
-  \<open>(cdcl_twl_restart_wl_prog_D, cdcl_twl_restart_wl_prog) \<in>
+lemma cdcl_twl_full_restart_wl_prog_D_cdcl_twl_restart_wl_prog:
+  \<open>(cdcl_twl_full_restart_wl_prog_D, cdcl_twl_full_restart_wl_prog) \<in>
    {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
      \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
 proof -
@@ -1071,7 +1071,7 @@ proof -
       using ref_two_step[OF le] by blast
   qed
   show ?thesis
-    unfolding uncurry_def cdcl_twl_restart_wl_prog_D_def cdcl_twl_restart_wl_prog_def
+    unfolding uncurry_def cdcl_twl_full_restart_wl_prog_D_def cdcl_twl_full_restart_wl_prog_def
     apply (intro frefI nres_relI)
     apply (refine_vcg
       remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
@@ -1083,6 +1083,42 @@ proof -
     done
 qed
 
+definition (in -) cdcl_twl_local_restart_wl_D_spec :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>cdcl_twl_local_restart_wl_D_spec = (\<lambda>(M, N, D, NE, UE, Q, W). do {
+      M \<leftarrow> SPEC(\<lambda>M'. \<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M));
+      RETURN (M, N, D, NE, UE, {#}, W)
+   })\<close>
+
+lemma cdcl_twl_local_restart_wl_D_spec_cdcl_twl_local_restart_wl_spec:
+  \<open>(cdcl_twl_local_restart_wl_D_spec, cdcl_twl_local_restart_wl_spec)
+    \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+  unfolding cdcl_twl_local_restart_wl_D_spec_def cdcl_twl_local_restart_wl_spec_def
+    rewatch_clauses_def
+  apply (intro frefI nres_relI)
+  apply (refine_vcg)
+  subgoal by (auto simp: state_wl_l_def)
+  subgoal by (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def)
+  done
+
+definition cdcl_twl_restart_wl_D_prog where
+\<open>cdcl_twl_restart_wl_D_prog S = do {
+   b \<leftarrow> SPEC(\<lambda>_. True);
+   if b then cdcl_twl_local_restart_wl_D_spec S else cdcl_twl_full_restart_wl_prog_D S
+  }\<close>
+
+lemma cdcl_twl_restart_wl_D_prog_cdcl_twl_restart_wl_prog:
+  \<open>(cdcl_twl_restart_wl_D_prog, cdcl_twl_restart_wl_prog)
+    \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+  unfolding cdcl_twl_restart_wl_D_prog_def cdcl_twl_restart_wl_prog_def
+    rewatch_clauses_def
+  apply (intro frefI nres_relI)
+  apply (refine_vcg
+      cdcl_twl_local_restart_wl_D_spec_cdcl_twl_local_restart_wl_spec[THEN fref_to_Down]
+      cdcl_twl_full_restart_wl_prog_D_cdcl_twl_restart_wl_prog[THEN fref_to_Down])
+  subgoal by (auto simp: state_wl_l_def)
+  done
 
 definition restart_abs_wl_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_wl_D_pre S brk \<longleftrightarrow>
@@ -1093,7 +1129,7 @@ definition restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat \<Rightarrow> b
      ASSERT(restart_abs_wl_D_pre S brk);
      b \<leftarrow> restart_required_wl S n;
      if b \<and> \<not>brk then do {
-       T \<leftarrow> cdcl_twl_restart_wl_prog_D S;
+       T \<leftarrow> cdcl_twl_restart_wl_D_prog S;
        RETURN (T, n + 1)
      }
      else
@@ -1114,10 +1150,9 @@ proof -
     unfolding uncurry_def restart_prog_wl_D_def restart_prog_wl_def
     apply (intro frefI nres_relI)
     apply (refine_vcg
-      cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down_curry2]
       rewatch_clauses_prog_D_rewatch_clauses_prog[THEN fref_to_Down]
       remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
-      cdcl_twl_restart_wl_prog_D_cdcl_twl_restart_wl_prog[THEN fref_to_Down])
+      cdcl_twl_restart_wl_D_prog_cdcl_twl_restart_wl_prog[THEN fref_to_Down])
     subgoal unfolding restart_abs_wl_D_pre_def by auto
     subgoal by auto
     subgoal by auto
