@@ -254,6 +254,7 @@ sepref_thm update_clause_wl_code
     append_ll_def[symmetric] update_clause_wl_code_pre_def
     fmap_rll_u64_def[symmetric]
     fmap_swap_ll_u64_def[symmetric]
+    fmap_swap_ll_def[symmetric]
   by sepref
 
 

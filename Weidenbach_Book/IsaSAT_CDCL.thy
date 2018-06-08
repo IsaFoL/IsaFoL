@@ -582,10 +582,10 @@ definition (in -)isasat_fast2 where
 
 
 definition (in -) isasat_fast_clss :: \<open>_ \<Rightarrow> bool\<close> where
-  \<open>isasat_fast_clss = (\<lambda>N. length N \<le> uint32_max)\<close>
+  \<open>isasat_fast_clss = (\<lambda>(_, N). length N \<le> uint32_max)\<close>
 
 definition (in -) isasat_fast_clss_dom :: \<open>_ \<Rightarrow> bool\<close> where
-  \<open>isasat_fast_clss_dom = (\<lambda>N. \<forall>L\<in>#dom_m N. L < uint32_max)\<close>
+  \<open>isasat_fast_clss_dom = (\<lambda>N. \<forall>i\<in>#dom_m N. i < uint32_max)\<close>
 
 
 lemma (in -) isasat_fast_clss_dom:
@@ -596,27 +596,30 @@ lemma (in -) isasat_fast_clss_dom:
       isasat_fast_clss_def)
   apply (subst (asm)(4) eq_commute)
   apply auto
+  apply (subst (asm)(4) eq_commute)
+  apply auto
   apply (case_tac \<open>dom_m y\<close>)
    apply (auto simp: uint_max_def)
   done
 
 definition (in -) isasat_fast_code :: \<open>twl_st_wll_trail_fast \<Rightarrow> bool\<close> where
-  \<open>isasat_fast_code = (\<lambda>(M', (N', n), _). n < uint32_max)\<close>
+  \<open>isasat_fast_code = (\<lambda>(M', (N', _, n), _). n < uint32_max)\<close>
 
 
 lemma (in -)isasat_fast_clss_hnr[sepref_fr_rules]:
-  \<open>(return o (\<lambda>(N, n). n \<le> uint32_max), RETURN o isasat_fast_clss) \<in>
-       (arlO_assn clause_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  apply sepref_to_hoare
-  apply (sep_auto simp: isasat_fast_clss_def
+  \<open>(return o (\<lambda>(N, _, n). n \<le> uint32_max), RETURN o isasat_fast_clss) \<in>
+       isasat_clauses_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: isasat_fast_clss_def min_def
       isasat_fast2_def isasat_fast_code_def clauses_ll_assn_def
       hr_comp_def list_fmap_rel_def arlO_assn_def arl_assn_def
-      is_array_list_def dest: heap_list_add_same_length
-      elim!: mod_starE)
-  done
+      is_array_list_def list_rel_imp_same_length[symmetric]
+      dest: heap_list_add_same_length
+      elim!: mod_starE
+      split: if_splits)
 
 lemma isasat_fast_clss_dom_hnr [sepref_fr_rules]:
-\<open>((return \<circ>\<circ> case_prod) (\<lambda>N n. n \<le> uint_max),
+\<open>((return \<circ>\<circ> case_prod) (\<lambda>N (_, n). n \<le> uint_max),
      RETURN \<circ> isasat_fast_clss_dom)
     \<in> (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   using isasat_fast_clss_hnr[FCOMP isasat_fast_clss_dom] unfolding clauses_ll_assn_def[symmetric]

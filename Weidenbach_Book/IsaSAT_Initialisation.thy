@@ -87,13 +87,13 @@ where
   }\<close>
 
 type_synonym (in -)twl_st_wll_trail_init =
-  \<open>trail_pol_assn \<times> clauses_wl \<times> option_lookup_clause_assn \<times>
+  \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn\<close>
 
 
 type_synonym (in -)twl_st_wll_trail_fast_init =
-  \<open>trail_pol_fast_assn \<times> clauses_wl \<times> option_lookup_clause_assn \<times>
+  \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl_uint32 \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn\<close>
 
@@ -2242,11 +2242,20 @@ lemma (in -)arrayO_raa_empty_sz_empty_list[sepref_fr_rules]:
     nat_assn\<^sup>k \<rightarrow>\<^sub>a (arlO_assn clause_ll_assn)\<close>
   by sepref_to_hoare (sep_auto simp: init_rll_def hr_comp_def clauses_ll_assn_def init_aa_def)
 
+definition (in -) init_aa' :: \<open>nat \<Rightarrow> (clause_status \<times> nat \<times> nat) list\<close> where
+  \<open>init_aa' n = []\<close>
+
+lemma (in -)arrayO_raa_empty_sz_empty_list[sepref_fr_rules]:
+  \<open>(arl_empty, RETURN o init_aa') \<in>
+    nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn (clause_status_assn *a uint32_nat_assn *a uint32_nat_assn))\<close>
+  by sepref_to_hoare (sep_auto simp: init_rll_def hr_comp_def clauses_ll_assn_def init_aa'_def)
+
 definition init_rll_list where
   \<open>init_rll_list n =
     (let e = ASSN_ANNOT clause_ll_assn op_array_empty in
      let N = init_aa n in
-     RETURN (N @ [e]))\<close>
+     let N' = init_aa n in
+     RETURN (N @ [e], N' @ [default]))\<close>
 
 
 lemma (in -)empty_array_init_rll:
@@ -2261,8 +2270,12 @@ lemma (in -)empty_array_init_rll:
 
 sepref_definition init_rll_list_code
   is \<open>init_rll_list\<close>
-  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arlO_assn clause_ll_assn\<close>
+  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a isasat_clauses_assn\<close>
   unfolding init_rll_list_def
+       apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold
   by sepref
 
 lemma (in -)arrayO_raa_empty_sz_init_rll[sepref_fr_rules]:
