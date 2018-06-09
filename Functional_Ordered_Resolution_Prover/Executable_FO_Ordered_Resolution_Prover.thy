@@ -16,9 +16,9 @@ begin
 
 global_interpretation RP: deterministic_FO_resolution_prover where
   S = "\<lambda>_. {#}" and
-  subst_atm = "op \<cdot>" and
+  subst_atm = "(\<cdot>)" and
   id_subst = "Var :: _ \<Rightarrow> ('f :: {weighted, compare_order}, nat) term" and
-  comp_subst = "op \<circ>\<^sub>s" and
+  comp_subst = "(\<circ>\<^sub>s)" and
   renamings_apart = renamings_apart and
   atm_of_atms = "Fun undefined" and
   mgu = mgu_sets and

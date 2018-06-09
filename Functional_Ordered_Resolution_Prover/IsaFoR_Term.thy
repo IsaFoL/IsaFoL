@@ -115,14 +115,14 @@ lemma less_trm_well_order: "well_order leq_term"
 definition less_eq_term :: "('a :: weighted, 'b) term \<Rightarrow> _ \<Rightarrow> bool" where
   "less_eq_term = in_rel leq_term"
 definition less_term :: "('a :: weighted, 'b) term \<Rightarrow> _ \<Rightarrow> bool" where
-  "less_term s t = strict (op \<le>) s t"
+  "less_term s t = strict (\<le>) s t"
 
 lemma leq_term_minus_Id: "leq_term - Id = {(x,y). x < y}"
   using less_trm_well_order
   unfolding well_order_on_def linear_order_on_def partial_order_on_def antisym_def less_term_def less_eq_term_def
   by auto
 
-lemma less_term_alt: "op < = in_rel (leq_term - Id)"
+lemma less_term_alt: "(<) = in_rel (leq_term - Id)"
   by (simp add: in_rel_Collect_case_prod_eq leq_term_minus_Id)
 
 instance
@@ -195,7 +195,7 @@ definition vars_partitioned :: "('f,'v) term clause list \<Rightarrow> bool" whe
 lemma vars_clause_mono: "S \<subseteq># C \<Longrightarrow> vars_clause S \<subseteq> vars_clause C"
   unfolding vars_clause_def by auto
 
-interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
+interpretation substitution_ops "(\<cdot>)" Var "(\<circ>\<^sub>s)" .
 
 lemma is_ground_atm_is_ground_on_var:
   assumes "is_ground_atm (A \<cdot> \<sigma>)" and "v \<in> vars_term A"
@@ -518,7 +518,7 @@ next
         length_nth_simps(2) length_zip min.idem nat.inject not_less_eq subst_cls_lists_def) 
 qed
 
-interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart
+interpretation substitution "(\<cdot>)" "Var :: _ \<Rightarrow> ('f, nat) term" "(\<circ>\<^sub>s)" "Fun undefined" renamings_apart
 proof
   show "\<And>A. A \<cdot> Var = A"
     by auto
@@ -774,7 +774,7 @@ end
 
 definition "mgu_sets AAA = map_option subst_of (unify (Pairs AAA) [])"
 
-interpretation mgu "op \<cdot>" "Var :: _ \<Rightarrow> ('f :: {weighted, compare}, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart mgu_sets
+interpretation mgu "(\<cdot>)" "Var :: _ \<Rightarrow> ('f :: {weighted, compare}, nat) term" "(\<circ>\<^sub>s)" "Fun undefined" renamings_apart mgu_sets
 proof
   fix AAA :: "('a :: {weighted, compare}, nat) term set set" and \<sigma> :: "('a, nat) subst"
   assume fin: "finite AAA" "\<forall>AA\<in>AAA. finite AA" and "mgu_sets AAA = Some \<sigma>"

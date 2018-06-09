@@ -6,7 +6,7 @@
 section \<open>An Executable Algorithm for Clause Subsumption\<close>
 
 theory Executable_Subsumption
-  imports IsaFoR_Term QTRS.Matching QTRS.Term_More
+  imports IsaFoR_Term QTRS.Matching QTRS.Term_More 
 begin
 
 fun subsumes_list where
@@ -231,7 +231,7 @@ shows "subsumes_list (L # Ls) (filter (leq L) Ks) \<sigma> \<longleftrightarrow>
   apply (elim disjE)
   subgoal by (auto split: option.splits elim!: match)
   subgoal for L K \<sigma> \<tau>
-    using sorted_wrt unfolding sorted_wrt_Cons[OF trans]
+    using sorted_wrt unfolding List.sorted_wrt.simps(2)
     apply (elim conjE)
     apply (drule bspec, assumption)
     apply (erule transpD[OF trans])
@@ -284,7 +284,7 @@ proof (induction Ls arbitrary: Ks \<sigma>)
   from Cons.prems have "subsumes_list (L # Ls) Ks \<sigma> = subsumes_list (L # Ls) (filter (leq_lit L) Ks) \<sigma>"
     by (intro subsumes_list_Cons_filter_iff[symmetric]) (auto dest: leq_lit_match)
   also have "subsumes_list (L # Ls) (filter (leq_lit L) Ks) \<sigma> = subsumes_list_filter (L # Ls) Ks \<sigma>"
-    using Cons.prems by (auto simp: sorted_wrt_Cons Cons.IH split: option.splits)
+    using Cons.prems by (auto simp: Cons.IH split: option.splits)
   finally show ?case .
 qed simp
 
@@ -326,7 +326,7 @@ proof (induction R xs rule: quicksort.induct)
           "sorted_wrt R (quicksort R (filter (\<lambda>y. \<not> R y x) xs))"
     using "2.prems" by (intro "2.IH"; auto simp: total_on_def reflp_on_def)+
   then show ?case
-    by (auto simp: sorted_wrt_append sorted_wrt_Cons \<open>transp R\<close>
+    by (auto simp: sorted_wrt_append \<open>transp R\<close>
      intro: transpD[OF \<open>transp R\<close>] dest!: total)
 qed auto
 
