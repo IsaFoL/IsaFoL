@@ -70,11 +70,12 @@ fun print_clauses id a [] = ()
       print_clauses (id+1) a xs
     )
 
-fun print_stat (propa, (confl, dec)) =
+fun print_stat (propa, (confl, (dec, res))) =
   let
      val _ = print ("c propagations: " ^ IntInf.toString (Uint64.toInt propa) ^ "\n")
      val _ = print ("c conflicts: " ^ IntInf.toString (Uint64.toInt confl) ^ "\n")
      val _ = print ("c decisions: " ^ IntInf.toString (Uint64.toInt dec) ^ "\n")
+     val _ = print ("c restarts: " ^ IntInf.toString (Uint64.toInt res) ^ "\n")
   in
    ()
   end
