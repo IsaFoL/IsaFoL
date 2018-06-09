@@ -31,7 +31,7 @@ proof -
 qed
 
 definition nat_of_uint32_conv :: \<open>nat \<Rightarrow> nat\<close> where
-\<open>nat_of_uint32_conv = id\<close>
+\<open>nat_of_uint32_conv i = i\<close>
 
 lemma nat_of_uint32_conv_hnr[sepref_fr_rules]:
   \<open>(return o nat_of_uint32, RETURN o nat_of_uint32_conv) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
@@ -102,7 +102,7 @@ lemma array_option_nat_of_uint32_conv_hnr[sepref_fr_rules]:
   by simp
 
 definition uint32_of_nat_conv :: \<open>nat \<Rightarrow> nat\<close> where
-\<open>uint32_of_nat_conv = id\<close>
+\<open>uint32_of_nat_conv i = i\<close>
 
 lemma uint32_of_nat_conv_hnr[sepref_fr_rules]:
   \<open>(return o uint32_of_nat, RETURN o uint32_of_nat_conv) \<in>

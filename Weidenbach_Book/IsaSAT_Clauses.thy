@@ -78,14 +78,14 @@ lemma extra_clause_information_update[simp]:
 
 definition list_fmap_rel :: \<open>_ \<Rightarrow> _ \<Rightarrow> (('a list \<times> clause_annots) \<times> nat clauses_l) set\<close> where
   list_fmap_rel_internal_def:
-  \<open>list_fmap_rel unused R = {((NU', extra), NU). (\<forall>i\<in>#dom_m NU. i < length NU' \<and> (NU'!i, NU \<propto> i) \<in> R) \<and>
+  \<open>list_fmap_rel unused R = {((NU', extra), (NU)). (\<forall>i\<in>#dom_m NU. i < length NU' \<and> (NU'!i, NU \<propto> i) \<in> R) \<and>
          (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> NU'!i = unused) \<and> NU' \<noteq> [] \<and>
          Suc (Max_mset (add_mset 0 (dom_m NU))) = length NU' \<and>
          (\<forall>i\<in>#dom_m NU. i < length extra \<and> extra_clause_information NU i (extra!i)) \<and>
          length NU' = length extra}\<close>
 
 lemma list_fmap_rel_def:
-  \<open>\<langle>R\<rangle>list_fmap_rel unused = {((NU', extra), NU). (\<forall>i\<in>#dom_m NU. i < length NU' \<and> (NU'!i, NU \<propto> i) \<in> R) \<and>
+  \<open>\<langle>R\<rangle>list_fmap_rel unused = {((NU', extra), (NU)). (\<forall>i\<in>#dom_m NU. i < length NU' \<and> (NU'!i, NU \<propto> i) \<in> R) \<and>
          (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> NU'!i = unused) \<and> NU' \<noteq> [] \<and>
           Suc (Max_mset (add_mset 0 (dom_m NU))) = length NU' \<and>
          (\<forall>i\<in>#dom_m NU. i < length extra \<and> extra_clause_information NU i  (extra!i)) \<and>
@@ -94,6 +94,7 @@ lemma list_fmap_rel_def:
 
 definition clause_nth_fmap where
   \<open>clause_nth_fmap = (\<lambda>(N, _) i. N!i)\<close>
+
 lemma nth_clauses_l:
   \<open>(uncurry (RETURN oo clause_nth_fmap), uncurry (RETURN oo (\<lambda>N i. N \<propto> i)))
     \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f \<langle>R\<rangle>list_fmap_rel unused \<times>\<^sub>r nat_rel \<rightarrow> \<langle>R\<rangle>nres_rel\<close>
