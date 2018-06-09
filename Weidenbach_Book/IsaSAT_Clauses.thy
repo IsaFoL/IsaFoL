@@ -1,5 +1,5 @@
 theory IsaSAT_Clauses
-imports IsaSAT_Trail
+imports Watched_Literals_Watch_List_Code_Common
 begin
 
 subsubsection \<open>Representation of Clauses\<close>
@@ -917,7 +917,7 @@ lemma append_and_length_u32_fm_add_new_packed:
       intro!: RETURN_SPEC_refine ASSERT_refine_left
       dest: multi_member_split Max_dom_le
       intro: packed_in_dom_mI
-      split: if_splits)
+      split: if_splits) (* slow ~ 25s *)
 
 definition fm_add_new_packed_fast where
   [simp, symmetric, isasat_fast]: \<open>fm_add_new_packed_fast = fm_add_new_packed\<close>

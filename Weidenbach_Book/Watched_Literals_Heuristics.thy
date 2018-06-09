@@ -30,9 +30,6 @@ lemma watched_by_app_heur_alt_def:
 definition (in -) watched_by_app :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>watched_by_app S L K = watched_by S L ! K\<close>
 
-fun get_vmtf_heur :: \<open>twl_st_wl_heur \<Rightarrow> vmtf_remove_int\<close> where
-  \<open>get_vmtf_heur (M, N, D, WS, W, cvmtf, _) = cvmtf\<close>
-
 
 subsection \<open>Propagations\<close>
 
