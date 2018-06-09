@@ -964,6 +964,11 @@ proof -
     done
 qed
 
+lemma mset_butlast_update_last[simp]:
+  \<open>w < length xs \<Longrightarrow> mset (butlast (xs[w := last (xs)])) = remove1_mset (xs ! w) (mset xs)\<close>
+  by (cases \<open>xs = []\<close>)
+    (auto simp add: last_list_update_to_last mset_butlast_remove1_mset mset_update)
+
 
 subsection \<open>Sorting\<close>
 

@@ -328,11 +328,6 @@ proof -
     by auto
 qed
 
-text \<open>TODO: Move\<close>
-lemma mset_butlast_update_last[simp]:
-  \<open>w < length xs \<Longrightarrow> mset (butlast (xs[w := last (xs)])) = remove1_mset (xs ! w) (mset xs)\<close>
-  by (simp add: last_list_update_to_last mset_butlast_remove1_mset mset_update)
-
 lemma
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
   defines
