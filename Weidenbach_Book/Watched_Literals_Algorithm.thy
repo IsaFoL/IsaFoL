@@ -1291,7 +1291,7 @@ definition cdcl_twl_stgy_prog_break :: \<open>'v twl_st \<Rightarrow> 'v twl_st 
         })
         (b, False, S\<^sub>0);
     if brk then RETURN T
-    else (*finish iteration is required only*)
+    else \<comment>\<open>finish iteration is required only\<close>
       cdcl_twl_stgy_prog T
   }
   \<close>

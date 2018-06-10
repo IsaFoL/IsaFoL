@@ -31,7 +31,8 @@ definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl
   \<open>SAT_wl CS = do{
     let \<A>\<^sub>i\<^sub>n' = extract_atms_clss CS {};
     b \<leftarrow> SPEC(\<lambda>_. True);
-    if b \<and> length CS < uint_max - 1 (*simplifies the refinement*) then do {
+    if b \<and> length CS < uint_max - 1 \<comment> \<open>simplifies the refinement\<close>
+    then do {
       let S = isasat_input_ops.init_state_wl (mset_set \<A>\<^sub>i\<^sub>n');
       T \<leftarrow> init_dt_wl CS (to_init_state S);
       let T = from_init_state T;
@@ -42,6 +43,7 @@ definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl
          ASSERT (extract_atms_clss CS {} \<noteq> {});
          ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
          ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
+         ASSERT(learned_clss_l (get_clauses_wl T) = {#});
          isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D (mset_set \<A>\<^sub>i\<^sub>n') (finalise_init T)
       }
    }
@@ -56,6 +58,7 @@ definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl
          ASSERT (extract_atms_clss CS {} \<noteq> {});
          ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
          ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
+         ASSERT(learned_clss_l (get_clauses_wl T) = {#});
          isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset_set \<A>\<^sub>i\<^sub>n') (finalise_init T)
       }
    }
@@ -93,6 +96,7 @@ definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list opt
          ASSERT(\<A>\<^sub>i\<^sub>n' \<noteq> {#});
          ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n');
          ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
+         ASSERT(size (learned_clss_l (get_clauses_wl T)) = 0);
          let T = finalise_init T;
          U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D \<A>\<^sub>i\<^sub>n' T;
          RETURN (if get_conflict_wl U = None then extract_model_of_state U else extract_stats U)
@@ -110,6 +114,7 @@ definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list opt
          ASSERT(\<A>\<^sub>i\<^sub>n' \<noteq> {#});
          ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n');
          ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
+         ASSERT(size (learned_clss_l (get_clauses_wl T)) = 0);
          let T = finalise_init T;
          U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D \<A>\<^sub>i\<^sub>n' T;
          RETURN (if get_conflict_wl U = None then extract_model_of_state U else extract_stats U)
@@ -263,6 +268,7 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
            ASSERT(mset `# ran_mf (get_clauses_wl_heur_init T) \<subseteq># mset `# mset CS);
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
+           ASSERT(size (learned_clss_l (get_clauses_wl_heur_init T)) = 0);
            T \<leftarrow> finalise_init_code (T::twl_st_wl_heur_init);
            ASSERT(isasat_fast T);
            U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break \<A>\<^sub>i\<^sub>n'' T;
@@ -283,6 +289,7 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
            ASSERT(mset `# ran_mf (get_clauses_wl_heur_init T) \<subseteq># mset `# mset CS);
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
+           ASSERT(size (learned_clss_l (get_clauses_wl_heur_init T)) = 0);
            T \<leftarrow> finalise_init_code (T::twl_st_wl_heur_init);
            U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur \<A>\<^sub>i\<^sub>n'' T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
@@ -841,7 +848,8 @@ proof -
                   CS \<noteq> {#} \<and>
                   conflicting U \<noteq> None \<and>
                   backtrack_lvl U = 0 \<and> unsatisfiable (set_mset CS)))\<close>
-      (is ?break_steps)
+      (is ?break_steps) and
+    learned_clss: \<open>learned_clss_l (get_clauses_wl (fst T)) = {#}\<close> (is ?learned_clss)
     if
       CS_p: \<open>Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)\<close> and
       CS'_CS: \<open>(CS', CS) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close> and
@@ -1131,6 +1139,9 @@ proof -
        apply (rule conclusive_le)
       apply simp
       done
+    show ?learned_clss
+      using learned_U learned_UV T_V
+      by (cases T, cases V) (auto simp: state_wl_l_init_def state_wl_l_def)
   qed
 
   have init: \<open>init_dt_wl_pre CS' (([], fmempty, None, {#}, {#}, {#}, \<lambda>_. []), {#})\<close>
@@ -1164,6 +1175,7 @@ proof -
       subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel K
          isasat_input_bounded_nempty_def isasat_input_bounded_nempty_axioms_def)
       subgoal by (rule clauses)
+      subgoal by (rule learned_clss)
       subgoal by (rule break_CDCL_steps)
       subgoal by (rule init) (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
       \<comment> \<open>Now the slow part: \<close>
@@ -1173,6 +1185,7 @@ proof -
       subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel K
          isasat_input_bounded_nempty_def isasat_input_bounded_nempty_axioms_def)
       subgoal by (rule clauses)
+      subgoal by (rule learned_clss)
       subgoal by (rule CDCL_steps)
       subgoal by (rule init) (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
       done
@@ -1312,6 +1325,7 @@ proof -
            ASSERT(mset `# ran_mf (get_clauses_wl_heur_init T) \<subseteq># mset `# mset CS);
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
+           ASSERT(size (learned_clss_l (get_clauses_wl_heur_init T)) = 0);
            T \<leftarrow> finalise_init_code (T::twl_st_wl_heur_init);
            ASSERT(isasat_fast T);
            U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break \<A>\<^sub>i\<^sub>n'' T;
@@ -1332,6 +1346,7 @@ proof -
            ASSERT(mset `# ran_mf (get_clauses_wl_heur_init T) \<subseteq># mset `# mset CS);
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
+           ASSERT(size (learned_clss_l (get_clauses_wl_heur_init T)) = 0);
            T \<leftarrow> finalise_init_code (T::twl_st_wl_heur_init);
            U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur \<A>\<^sub>i\<^sub>n'' T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
@@ -1515,6 +1530,9 @@ proof -
     subgoal
       by (auto dest!: isasat_input_ops.twl_st_heur_init_vmtf_fstD)
     subgoal
+      by (auto simp: isasat_input_ops.twl_st_heur_init_def
+        state_wl_l_def from_init_state_def)
+    subgoal
       by (auto simp: get_conflict_wl_is_None_init_def get_conflict_wl_is_None_def
           split: option.splits)
     apply assumption+
@@ -1525,7 +1543,7 @@ proof -
     subgoal by fast
     subgoal by fast
     subgoal premises p
-      using p(30)
+      using p(32)
       by (auto simp: extract_model_of_state_stat_def extract_model_of_state_def
           isasat_input_ops.twl_st_heur_def get_conflict_wl_is_None_heur_def
           get_conflict_wl_is_None_heur_init_def extract_state_stat_def rev_map
@@ -1548,6 +1566,9 @@ proof -
     subgoal
       by (auto dest!: isasat_input_ops.twl_st_heur_init_vmtf_fstD)
     subgoal
+      by (auto simp: isasat_input_ops.twl_st_heur_init_def
+        state_wl_l_def from_init_state_def)
+    subgoal
       unfolding get_conflict_wl_is_None_init_def get_conflict_wl_is_None by meson
     apply assumption+
     subgoal
@@ -1556,7 +1577,7 @@ proof -
     subgoal by fast
     subgoal by fast
     subgoal premises p
-      using p(29)
+      using p(31)
       by (auto simp: extract_model_of_state_stat_def extract_model_of_state_def
           isasat_input_ops.twl_st_heur_def get_conflict_wl_is_None_heur_def
           get_conflict_wl_is_None_heur_init_def extract_state_stat_def rev_map

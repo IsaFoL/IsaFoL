@@ -2065,7 +2065,10 @@ declare insert_sort_nth_code.refine[sepref_fr_rules]
 declare insert_sort_nth2_def[unfolded insert_sort_def insert_sort_inner_def, code]
 
 definition extract_lits_sorted where
-  \<open>extract_lits_sorted = (\<lambda>(xs, n, vars). do {vars \<leftarrow> (* insert_sort_nth2 xs *)RETURN vars; RETURN (vars, n)})\<close>
+  \<open>extract_lits_sorted = (\<lambda>(xs, n, vars). do {
+    vars \<leftarrow> \<comment>\<open>insert_sort_nth2 xs\<close>
+         RETURN vars; 
+    RETURN (vars, n)})\<close>
 
 definition lits_with_max_rel where
   \<open>lits_with_max_rel = {((xs, n), \<A>\<^sub>i\<^sub>n). mset xs = \<A>\<^sub>i\<^sub>n \<and> n = Max (insert 0 (set xs)) \<and>
@@ -2198,14 +2201,16 @@ definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st
      let fema = ema_init;
      let sema = ema_init;
      let ccount = zero_uint32;
+     let lcount = 0;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
        clvls, cach, lbd, take1(replicate 160 (Pos zero_uint32_nat)), init_stats,
-        fema, sema, ccount, vdom)
+        fema, sema, ccount, vdom, lcount)
      })\<close>
 
 lemma (in isasat_input_ops)finalise_init_finalise_init:
   \<open>(finalise_init_code, RETURN o finalise_init) \<in>
-   [\<lambda>S. get_conflict_wl S = None \<and> \<A>\<^sub>i\<^sub>n \<noteq> {#}]\<^sub>f twl_st_heur_init_wl \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
+   [\<lambda>S. get_conflict_wl S = None \<and> \<A>\<^sub>i\<^sub>n \<noteq> {#} \<and> size (learned_clss_l (get_clauses_wl S)) = 0]\<^sub>f
+      twl_st_heur_init_wl \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_init_def twl_st_heur_init_wl_def
       finalise_init_code_def vmtf_init_def out_learned_def take1_def)
@@ -2503,6 +2508,7 @@ proof -
     done
 qed
 
+(* TODO Move *)
 lemma (in -) in_mset_rel_eq_f_iff:
   \<open>(a, b) \<in> \<langle>{(c, a). a = f c}\<rangle>mset_rel \<longleftrightarrow> b = f `# a\<close>
   using ex_mset[of a]
@@ -2513,6 +2519,7 @@ lemma (in -) in_mset_rel_eq_f_iff:
 lemma (in -) in_mset_rel_eq_f_iff_set:
   \<open>\<langle>{(c, a). a = f c}\<rangle>mset_rel = {(b, a). a = f `# b}\<close>
   using in_mset_rel_eq_f_iff[of _ _ f] by blast
+(* End Mode *)
 
 abbreviation (in -)lits_with_max_assn_clss where
   \<open>lits_with_max_assn_clss \<equiv> hr_comp lits_with_max_assn (\<langle>nat_rel\<rangle>mset_rel)\<close>

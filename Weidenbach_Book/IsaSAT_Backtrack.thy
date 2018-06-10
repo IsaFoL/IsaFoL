@@ -704,7 +704,7 @@ abbreviation (in -)ema_update_fast where
 definition (in isasat_input_ops) propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, _, cach, lbd, outl, stats, fema, sema,
-         ccount, vdom). do {
+         ccount, vdom, lcount). do {
       ASSERT(phase_saving \<phi> \<and> vm \<in> vmtf M \<and> undefined_lit M (-L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
          nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
       ASSERT(length C > 1);
@@ -722,7 +722,7 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       lbd \<leftarrow> lbd_empty lbd;
       RETURN (Propagated (- L) i # M, N, D, {#L#}, W, vm, \<phi>, zero_uint32_nat,
          cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
-          ccount + one_uint32, vdom @ [nat_of_uint32_conv i])
+          ccount + one_uint32, vdom @ [nat_of_uint32_conv i], Suc lcount)
     })\<close>
 
 definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal\<close> where
@@ -808,7 +808,7 @@ begin
 
 definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_bt =
-  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, _, _, _, vdom),
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, _, _, _, vdom, lcount),
      (M, N, D, NE, UE, Q, W)).
     M = M' \<and> N' = N \<and>
     D' = None \<and>
@@ -820,13 +820,18 @@ definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<time
     clvls \<in> counts_maximum_level M D' \<and>
     cach_refinement_empty cach \<and>
     out_learned M D' outl \<and>
-    dom_m N \<subseteq># mset vdom
+    dom_m N \<subseteq># mset vdom \<and>
+    lcount = size (learned_clss_l N)
   }\<close>
 
 lemma (in isasat_input_ops) twl_st_heur_bt_get_clauses_wl:
   \<open>(S, Y) \<in> twl_st_heur_bt \<Longrightarrow> get_clauses_wl_heur S = get_clauses_wl Y\<close>
   by (cases S; cases Y) (auto simp: twl_st_heur_bt_def)
 
+lemma lcount_add_clause[simp]: \<open>i \<notin># dom_m N \<Longrightarrow>
+       size (learned_clss_l (fmupd i (C, False) N)) = Suc (size (learned_clss_l N))\<close>
+  by (simp add: learned_clss_l_mapsto_upd_notin)
+       
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
@@ -887,8 +892,8 @@ proof -
     obtain M N D NE UE Q W where
       S: \<open>S = (M, N, D, NE, UE, Q, W)\<close>
       by (cases S)
-    obtain W' vm \<phi> clvls cach lbd outl stats cc cc2 cc3 vdom where
-      S': \<open>S' = (M, N, D, Q, W', vm, \<phi>, clvls, cach, lbd, outl, stats, cc, cc2, cc3, vdom)\<close>
+    obtain W' vm \<phi> clvls cach lbd outl stats cc cc2 cc3 vdom lcount where
+      S': \<open>S' = (M, N, D, Q, W', vm, \<phi>, clvls, cach, lbd, outl, stats, cc, cc2, cc3, vdom, lcount)\<close>
       using S'_S by (cases S') (auto simp: twl_st_heur_def S)
     have
       \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close> and
@@ -898,7 +903,8 @@ proof -
       \<open>clvls \<in> counts_maximum_level M D\<close> and
       cach_empty: \<open>cach_refinement_empty cach\<close> and
       outl: \<open>out_learned M D outl\<close> and
-      \<open>dom_m N \<subseteq># mset vdom\<close>
+      \<open>dom_m N \<subseteq># mset vdom\<close> and
+      lcount: \<open>lcount = size (learned_clss_l N)\<close>
       using S'_S unfolding S S'
       by (auto simp: twl_st_heur_def S)
     obtain T U where
@@ -1058,7 +1064,7 @@ proof -
                    (1 < length C \<longrightarrow> n = get_level M (C ! 1)) \<and>
                    (length C = 1 \<longrightarrow> n = 0)}.
               {((M, N, a, Q, W', vm, \<phi>, clvls, empty_cach cach', lbd, take 1 outl',
-                   stats, cc, cc2, cc3, vdom),
+                   stats, cc, cc2, cc3, vdom, lcount),
                 n, C)})
       \<le> \<Down> ?shorter
           (SPEC (\<lambda>S. \<exists>D'. D' \<subseteq># the D \<and>
@@ -1087,7 +1093,7 @@ proof -
           \<open>mset c = mset outl'\<close> and
           \<open>c ! 0 = outl' ! 0\<close> and
           S': \<open>S' = (M, N, None, Q, W', vm, \<phi>, clvls, empty_cach cach', lbd, take 1 outl',  
-            stats, cc, cc2, cc3, vdom)\<close> and
+            stats, cc, cc2, cc3, vdom, lcount)\<close> and
           C: \<open>1 < length c \<longrightarrow> highest_lit M (mset (tl c))
                 (Some (c ! 1, get_level M (c ! 1)))\<close>
             \<open>length c = 1 \<longrightarrow> n = 0\<close>
@@ -1130,7 +1136,7 @@ proof -
           using \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close> \<open>vm \<in> vmtf M\<close>
             \<open>phase_saving \<phi>\<close>
             \<open>no_dup M\<close>
-            \<open>cach_refinement_empty cach\<close> \<open>c \<noteq> []\<close> \<open>outl' \<noteq> []\<close> \<open>dom_m N \<subseteq># mset vdom\<close>
+            \<open>cach_refinement_empty cach\<close> \<open>c \<noteq> []\<close> \<open>outl' \<noteq> []\<close> \<open>dom_m N \<subseteq># mset vdom\<close> lcount
           by (auto simp: twl_st_heur_def S' del_conflict_wl_def
               empty_cach_def cach_refinement_empty_def out_learned_def)
         moreover have \<open>Suc 0 < length c \<Longrightarrow>
@@ -1452,9 +1458,9 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S'\<close> \<open>1 < length C\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T')
-    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom where
+    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom lcount where
         U: \<open>U = (M1, N, None, Q, W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
-           vdom)\<close> and
+           vdom, lcount)\<close> and
         vm': \<open>vm' \<in> vmtf M1\<close> and
         \<phi>: \<open>phase_saving \<phi>\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
@@ -1466,7 +1472,8 @@ proof -
       empty_cach: \<open>cach_refinement_empty cach\<close> and
       \<open>length outl = Suc 0\<close> and
       outl: \<open>out_learned M1 None outl\<close>and
-      vdom: \<open>dom_m N \<subseteq># mset vdom\<close>
+      vdom: \<open>dom_m N \<subseteq># mset vdom\<close> and
+      lcount: \<open>lcount = size (learned_clss_l N)\<close>
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U')
     have [simp]: \<open>get_trail_wl_heur S = M\<close> \<open>C ! 1 = L'\<close> \<open>C ! 0 = - lit_of (hd M)\<close> and
       n_d: \<open>no_dup M\<close>
@@ -1498,7 +1505,8 @@ proof -
       using W'W unfolding map_fun_rel_def by (auto simp: image_image)
     then show ?thesis
       supply [[goals_limit=1]]
-      using empty_cach n_d_M1 C_L' W'W outl vmtf undef \<open>1 < length C\<close> uM_\<L>\<^sub>a\<^sub>l\<^sub>l vdom unfolding U U' H
+      using empty_cach n_d_M1 C_L' W'W outl vmtf undef \<open>1 < length C\<close> uM_\<L>\<^sub>a\<^sub>l\<^sub>l vdom lcount
+      unfolding U U' H
         propagate_bt_wl_D_heur_def propagate_bt_wl_D_def set_LBD_def Let_def rescore_clause_def
       by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
           propagate_bt_wl_D_def Let_def T' U' U rescore_clause_def S' map_fun_rel_def
@@ -1568,9 +1576,9 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S'\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T')
-    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom where
+    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom lcount where
         U: \<open>U = (M1, N, None, Q, W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
-           vdom)\<close> and
+           vdom, lcount)\<close> and
         vm': \<open>vm' \<in> vmtf M1\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
     have
@@ -1581,7 +1589,8 @@ proof -
       empty_cach: \<open>cach_refinement_empty cach\<close> and
       \<open>length outl = Suc 0\<close> and
       outl: \<open>out_learned M1 None outl\<close> and
-      vdom: \<open>dom_m N \<subseteq># mset vdom\<close>
+      vdom: \<open>dom_m N \<subseteq># mset vdom\<close> and
+      lcount: \<open>lcount = size (learned_clss_l N)\<close>
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U')
     have [simp]: \<open>get_trail_wl_heur S = M\<close> \<open>C ! 0 = - lit_of (hd M)\<close> and
       n_d: \<open>no_dup M\<close>
@@ -1594,7 +1603,7 @@ proof -
       using \<open>C \<noteq> []\<close> \<open>C ! 0 = - lit_of (hd M)\<close> \<open>\<not>1 < length C\<close>
       by (cases C) (auto simp del: \<open>C ! 0 = - lit_of (hd M)\<close>)
     show ?thesis
-      using empty_cach n_d_M1  W'W outl vmtf C \<phi> undef uL_M vdom unfolding U U'
+      using empty_cach n_d_M1  W'W outl vmtf C \<phi> undef uL_M vdom lcount unfolding U U'
       by (auto simp: propagate_unit_bt_wl_D_int_def
           propagate_unit_bt_wl_D_def U U' lit_of_hd_trail_st_heur_def
           single_of_mset_def flush_def twl_st_heur_def lbd_empty_def get_LBD_def

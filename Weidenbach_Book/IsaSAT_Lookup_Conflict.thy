@@ -1726,7 +1726,7 @@ where
             ASSERT(analyse \<noteq> []);
             ASSERT(fst (last analyse) \<in># dom_m NU);
             let C = NU \<propto> fst (last analyse);
-            ASSERT(length C > 0); (* \<ge> 2 ? *)
+            ASSERT(length C > 0); \<comment> \<open> >= 2 would work too \<close>
             let i = snd (last analyse);
             ASSERT(C!0 \<in> lits_of_l M);
             if i \<ge> length C

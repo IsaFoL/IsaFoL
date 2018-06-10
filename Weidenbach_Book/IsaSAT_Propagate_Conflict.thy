@@ -687,7 +687,8 @@ where
      Id \<times>\<^sub>r
      Id \<times>\<^sub>r
      Id \<times>\<^sub>r
-     \<langle>Id\<rangle>list_rel\<close>
+     \<langle>Id\<rangle>list_rel \<times>\<^sub>r
+     nat_rel\<close>
 
 definition (in isasat_input_ops) twl_st_heur_W_list_assn
   :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close>
@@ -699,7 +700,7 @@ where
   arrayO_assn (arl_assn nat_assn) *a
   vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn *a
   lbd_assn *a out_learned_assn *a stats_assn *a ema_assn *a ema_assn *a
-  conflict_count_assn *a vdom_assn
+  conflict_count_assn *a vdom_assn *a nat_assn
 \<close>
 
 lemma (in isasat_input_ops) isasat_assn_W_list:
@@ -718,7 +719,7 @@ where
   arrayO_assn (arl_assn uint32_nat_assn) *a
   vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn *a
   lbd_assn *a out_learned_assn *a stats_assn *a ema_assn *a ema_assn *a
-  conflict_count_assn *a vdom_assn
+  conflict_count_assn *a vdom_assn *a nat_assn
 \<close>
 
 lemma (in isasat_input_ops) isasat_fast_assn_W_list:

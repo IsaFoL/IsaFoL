@@ -95,20 +95,25 @@ type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
-    vdom_assn\<close>
+    vdom_assn \<times> nat\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
-    vdom_assn\<close>
+    vdom_assn \<times> nat\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 type_synonym twl_st_wl_heur =
   \<open>(nat,nat)ann_lits \<times> nat clauses_l \<times>
     nat clause option \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times>
     nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
-    vdom\<close>
+    vdom \<times> nat\<close>
+
+type_synonym (in -) twl_st_wl_heur_W_list =
+  \<open>(nat,nat) ann_lits \<times> nat clauses_l \<times>
+    nat cconflict \<times> nat clause_l \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
+    nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times> vdom \<times> nat\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat clauses_l\<close> where
   \<open>get_clauses_wl_heur (M, N, D, _) = N\<close>
@@ -150,7 +155,10 @@ fun get_conflict_count_heur :: \<open>twl_st_wl_heur \<Rightarrow> uint32\<close
   \<open>get_conflict_count_heur (_, _, _, _, _, _, _, _, _, _, _, _, _, _, ccount, _) = ccount\<close>
 
 fun get_vdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
-  \<open>get_vdom (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, vdom) = vdom\<close>
+  \<open>get_vdom (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
+
+fun get_learned_count :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+  \<open>get_learned_count (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount) = lcount\<close>
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -267,7 +275,7 @@ definition cach_refinement_empty where
 
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
-  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom),
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom, lcount),
      (M, N, D, NE, UE, Q, W)).
     M = M' \<and> N' = N \<and>
     D' = D \<and>
@@ -279,7 +287,8 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty cach \<and>
     out_learned M D outl \<and>
-    dom_m N \<subseteq># mset vdom
+    dom_m N \<subseteq># mset vdom \<and>
+    lcount = size (learned_clss_lf N)
   }\<close>
 
 
@@ -302,7 +311,8 @@ definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \
   ema_assn *a
   ema_assn *a
   conflict_count_assn *a
-  vdom_assn\<close>
+  vdom_assn *a
+  nat_assn\<close>
 
 definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_fast_assn =
@@ -319,7 +329,8 @@ definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_tr
   ema_assn *a
   ema_assn *a
   conflict_count_assn *a
-  vdom_assn\<close>
+  vdom_assn *a
+  nat_assn\<close>
 
 text \<open>
   The difference between \<^term>\<open>isasat_assn\<close> and \<^term>\<open>isasat_fast_assn\<close> corresponds to the
@@ -332,7 +343,8 @@ definition twl_st_heur_no_clvls
   :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur_no_clvls =
-  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom),
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom,
+       lcount),
      (M, N, D, NE, UE, Q, W)).
     M = M' \<and> N' = N \<and>
     D' = D \<and>
@@ -343,14 +355,15 @@ where
     no_dup M \<and>
     cach_refinement_empty cach \<and>
     out_learned_confl M D outl \<and>
-    dom_m N \<subseteq># mset vdom
+    dom_m N \<subseteq># mset vdom \<and>
+    lcount = size (learned_clss_lf N)
   }\<close>
 
 definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>isasat_fast_slow =
-    (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount).
+    (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, lcount).
       RETURN (trail_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
-        clvls, cach, lbd, outl, stats, fema, sema, ccount))\<close>
+        clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, lcount))\<close>
 
 sepref_thm isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
@@ -380,11 +393,6 @@ lemma isasat_fast_slow_isasat_fast_slow_wl_D:
   \<open>(isasat_fast_slow, RETURN o isasat_fast_slow_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
     (auto simp: isasat_fast_slow_alt_def isasat_fast_slow_wl_D_def)
-
-type_synonym (in -) twl_st_wl_heur_W_list =
-  \<open>(nat,nat) ann_lits \<times> nat clauses_l \<times>
-    nat cconflict \<times> nat clause_l \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
-    nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times> vdom\<close>
 
 definition literals_are_in_\<L>\<^sub>i\<^sub>n_heur where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S = literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf (get_clauses_wl_heur S))\<close>

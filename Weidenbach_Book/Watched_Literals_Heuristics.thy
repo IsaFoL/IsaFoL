@@ -355,6 +355,13 @@ where
             vm))
   })\<close>
 
+(* TODO Move *)
+lemma (in -) learned_clss_l_update[simp]:
+  \<open>bh \<in># dom_m ax \<Longrightarrow> size (learned_clss_l (ax(bh \<hookrightarrow> C))) = size (learned_clss_l ax)\<close>
+  by (auto simp: ran_m_clause_upd size_Diff_singleton_if dest!: multi_member_split)
+     (auto simp: ran_m_def)
+(* TODO Move *)
+
 lemma update_clause_wl_heur_update_clause_wl:
   \<open>(uncurry5 update_clause_wl_heur, uncurry5 (update_clause_wl)) \<in>
    [\<lambda>(((((L, C), w), i), f), S). C \<in># dom_m(get_clauses_wl S) \<and> (get_clauses_wl S \<propto> C) ! f \<noteq> L]\<^sub>f
