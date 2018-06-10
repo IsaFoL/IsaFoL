@@ -170,11 +170,11 @@ end; (*struct Bits_Integer*)
 structure SAT_Solver : sig
   type nat
   val integer_of_nat : nat -> IntInf.int
+  val nat_of_integer : IntInf.int -> nat
   type clause_status
   type ('a, 'b) vmtf_node
   type minimize_status
   datatype int = Int_of_integer of IntInf.int
-  val nat_of_integer : IntInf.int -> nat
   val integer_of_int : int -> IntInf.int
   val uint32_of_nat : nat -> Word32.word
   val isaSAT_code :
@@ -341,6 +341,84 @@ val ord_uint32 =
     less = (fn a => fn b => Word32.< (a, b))}
   : Word32.word ord;
 
+type 'a bit =
+  {bitNOT : 'a -> 'a, bitAND : 'a -> 'a -> 'a, bitOR : 'a -> 'a -> 'a,
+    bitXOR : 'a -> 'a -> 'a};
+val bitNOT = #bitNOT : 'a bit -> 'a -> 'a;
+val bitAND = #bitAND : 'a bit -> 'a -> 'a -> 'a;
+val bitOR = #bitOR : 'a bit -> 'a -> 'a -> 'a;
+val bitXOR = #bitXOR : 'a bit -> 'a -> 'a -> 'a;
+
+val bit_uint64 =
+  {bitNOT = Uint64.notb, bitAND = Uint64.andb, bitOR = Uint64.orb,
+    bitXOR = Uint64.xorb}
+  : Uint64.uint64 bit;
+
+fun max A_ a b = (if less_eq A_ a b then b else a);
+
+val ord_integer =
+  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
+    less = (fn a => fn b => IntInf.< (a, b))}
+  : IntInf.int ord;
+
+fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
+
+fun test_bit_uint64 x n =
+  less_nat n (nat_of_integer (64 : IntInf.int)) andalso
+    Uint64.test_bit x (integer_of_nat n);
+
+fun shiftl_uint64 x n =
+  (if less_nat n (nat_of_integer (64 : IntInf.int))
+    then Uint64.shiftl x (integer_of_nat n) else Uint64.zero);
+
+fun minus_nat m n =
+  Nat (max ord_integer (0 : IntInf.int)
+        (IntInf.- (integer_of_nat m, integer_of_nat n)));
+
+fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
+
+fun uint64_set_bits f w n =
+  (if equal_nat n zero_nata then w
+    else let
+           val na = minus_nat n one_nata;
+         in
+           uint64_set_bits f
+             (Uint64.orb (shiftl_uint64 w one_nata)
+               (if f na then Uint64.one else Uint64.zero))
+             na
+         end);
+
+fun set_bits_uint64 f =
+  uint64_set_bits f Uint64.zero (nat_of_integer (64 : IntInf.int));
+
+fun set_bit_uint64 x n b =
+  (if less_nat n (nat_of_integer (64 : IntInf.int))
+    then Uint64.set_bit x (integer_of_nat n) b else x);
+
+fun shiftr_uint64 x n =
+  (if less_nat n (nat_of_integer (64 : IntInf.int))
+    then Uint64.shiftr x (integer_of_nat n) else Uint64.zero);
+
+fun lsb_uint64 x = test_bit_uint64 x zero_nata;
+
+type 'a bits =
+  {bit_bits : 'a bit, test_bit : 'a -> nat -> bool, lsb : 'a -> bool,
+    set_bit : 'a -> nat -> bool -> 'a, set_bits : (nat -> bool) -> 'a,
+    shiftl : 'a -> nat -> 'a, shiftr : 'a -> nat -> 'a};
+val bit_bits = #bit_bits : 'a bits -> 'a bit;
+val test_bit = #test_bit : 'a bits -> 'a -> nat -> bool;
+val lsb = #lsb : 'a bits -> 'a -> bool;
+val set_bit = #set_bit : 'a bits -> 'a -> nat -> bool -> 'a;
+val set_bits = #set_bits : 'a bits -> (nat -> bool) -> 'a;
+val shiftl = #shiftl : 'a bits -> 'a -> nat -> 'a;
+val shiftr = #shiftr : 'a bits -> 'a -> nat -> 'a;
+
+val bits_uint64 =
+  {bit_bits = bit_uint64, test_bit = test_bit_uint64, lsb = lsb_uint64,
+    set_bit = set_bit_uint64, set_bits = set_bits_uint64,
+    shiftl = shiftl_uint64, shiftr = shiftr_uint64}
+  : Uint64.uint64 bits;
+
 fun typerep_uint64a t = Typerep ("Uint64.uint64", []);
 
 val countable_uint64 = {} : Uint64.uint64 countable;
@@ -350,6 +428,8 @@ val typerep_uint64 = {typerep = typerep_uint64a} : Uint64.uint64 typerep;
 val heap_uint64 =
   {countable_heap = countable_uint64, typerep_heap = typerep_uint64} :
   Uint64.uint64 heap;
+
+val one_uint64 = {one = Uint64.one} : Uint64.uint64 one;
 
 val minus_uint64 = {minus = Uint64.minus} : Uint64.uint64 minus;
 
@@ -368,11 +448,6 @@ fun heap_prod A_ B_ =
 fun default_proda A_ B_ = (default A_, default B_);
 
 fun default_prod A_ B_ = {default = default_proda A_ B_} : ('a * 'b) default;
-
-val ord_integer =
-  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
-    less = (fn a => fn b => IntInf.< (a, b))}
-  : IntInf.int ord;
 
 datatype clause_status = INIT | LEARNED | DELETED;
 
@@ -429,10 +504,6 @@ datatype int = Int_of_integer of IntInf.int;
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
 fun suc n = plus_nat n one_nata;
-
-fun max A_ a b = (if less_eq A_ a b then b else a);
-
-fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
 
 fun len A_ a =
   (fn () => let
@@ -563,8 +634,6 @@ fun init_trail_D_fast_code x =
 fun get_next (VMTF_Node (x1, x2, x3)) = x3;
 
 fun stamp (VMTF_Node (x1, x2, x3)) = x1;
-
-fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
 
 fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nata)));
 
@@ -833,6 +902,9 @@ fun arl_replicate A_ init_cap x =
               end)
   end;
 
+fun ema_init (A1_, A2_) =
+  shiftl A1_ (one A2_) (nat_of_integer (48 : IntInf.int));
+
 fun finalise_init_fast_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (a1i, (a1j, a2j)))), a2f),
                                      (a1k, (a1l, (a1m, (a1n, a2n))))))))))
@@ -852,8 +924,9 @@ fun finalise_init_fast_code x =
                     (a, one_nata)
                   end,
                    ((Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))),
-                     (Uint64.zero,
-                       (Uint64.zero, ((Word32.fromInt 0), a2n)))))))))))))))
+                     (ema_init (bits_uint64, one_uint64),
+                       (ema_init (bits_uint64, one_uint64),
+                         ((Word32.fromInt 0), a2n)))))))))))))))
     end)
     x;
 
@@ -1241,10 +1314,6 @@ fun update_aa_u32_i64 A_ a i j y =
     in
       array_upd_u (heap_prod (heap_array (typerep_heap A_)) heap_nat) i aa a ()
     end);
-
-fun minus_nat m n =
-  Nat (max ord_integer (0 : IntInf.int)
-        (IntInf.- (integer_of_nat m, integer_of_nat n)));
 
 fun array_shrink A_ a s =
   (fn () =>
@@ -2678,10 +2747,6 @@ fun vmtf_flush_code x =
     x;
 
 fun vmtf_flush_all_fast_code x = (fn _ => vmtf_flush_code) x;
-
-fun shiftr_uint64 x n =
-  (if less_nat n (nat_of_integer (64 : IntInf.int))
-    then Uint64.shiftr x (integer_of_nat n) else Uint64.zero);
 
 fun shiftl_uint32 x n =
   (if less_nat n (nat_of_integer (32 : IntInf.int))
@@ -5237,8 +5302,9 @@ fun finalise_init_code x =
                     (a, one_nata)
                   end,
                    ((Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))),
-                     (Uint64.zero,
-                       (Uint64.zero, ((Word32.fromInt 0), a2n)))))))))))))))
+                     (ema_init (bits_uint64, one_uint64),
+                       (ema_init (bits_uint64, one_uint64),
+                         ((Word32.fromInt 0), a2n)))))))))))))))
     end)
     x;
 
