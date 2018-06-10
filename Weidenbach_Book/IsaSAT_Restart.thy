@@ -25,10 +25,7 @@ text \<open>
 lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
   by (auto simp: bounded_def) presburger
 
-locale isasat_restart_bounded' =
-  isasat_input_bounded
-
-context isasat_restart_bounded'
+context isasat_input_bounded
 begin
 text \<open>
   We first fix the function that proves termination. We don't take the ``smallest'' function
@@ -67,6 +64,15 @@ sepref_thm find_local_restart_target_level_code
   unfolding find_local_restart_target_level_int_def find_local_restart_target_level_int_inv_def
   by sepref
 
+concrete_definition (in -) find_local_restart_target_level_code
+   uses isasat_input_bounded.find_local_restart_target_level_code
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) find_local_restart_target_level_code_def
+
+lemmas find_local_restart_target_level_code_def_hnr[sepref_fr_rules] =
+   find_local_restart_target_level_code_def.refine
+
 definition (in isasat_input_ops) find_local_restart_target_level where
   \<open>find_local_restart_target_level M _ = SPEC(\<lambda>i. i \<le> count_decided M)\<close>
 
@@ -77,6 +83,7 @@ lemma find_local_restart_target_level_alt_def:
     }\<close>
   unfolding find_local_restart_target_level_def by (auto simp: RES_RETURN_RES2 uncurry_def)
 
+(* TODO Move and use! *)
 lemma trail_pol_alt_def:
   \<open>trail_pol = {((M', xs, lvls, reasons, k, cs), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<and>
     no_dup M \<and>
@@ -145,11 +152,10 @@ definition (in isasat_input_ops) empty_Q :: \<open>twl_st_wl_heur \<Rightarrow> 
      RETURN (M, N, D, {#}, W, vm, \<phi>, clvls, cach, lbd, stats)
   })\<close>
 
-
 definition (in isasat_input_ops) restart_abs_wl_heur_pre  :: \<open>twl_st_wl_heur \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_wl_heur_pre S brk  \<longleftrightarrow> (\<exists>T. (S, T) \<in> twl_st_heur \<and> restart_abs_wl_D_pre T brk)\<close>
 
-text \<open>TODO when \<^term>\<open>lvl = count_decided M\<close>, we probably don't want to restart at all.\<close>
+
 definition (in isasat_input_ops) cdcl_twl_local_restart_wl_D_heur
    :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
@@ -272,7 +278,7 @@ proof -
     subgoal
       by (force dest: restart_abs_wl_D_pre_find_decomp_w_ns_pre)
     subgoal
-      by (rule RES_refine)  (force simp: twl_st_heur_def intro!: )
+      by (rule RES_refine) (force simp: twl_st_heur_def intro!: )
     done
 qed
 
@@ -337,6 +343,29 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
         get_conflict_count_heur S > minimum_number_between_restarts \<and>
         size (get_clauses_wl_heur S) > n)\<close>
 
+definition cdcl_twl_restart_wl_heur where
+\<open>cdcl_twl_restart_wl_heur S = do {
+   cdcl_twl_local_restart_wl_D_heur S
+  }\<close>
+
+lemma cdcl_twl_restart_wl_heur_alt_def:
+  \<open>cdcl_twl_restart_wl_heur S = do {
+   let b = True;
+   if b then cdcl_twl_local_restart_wl_D_heur S else cdcl_twl_local_restart_wl_D_heur S
+  }\<close>
+  unfolding cdcl_twl_restart_wl_heur_def by auto
+
+lemma cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog:
+  \<open>(cdcl_twl_restart_wl_heur, cdcl_twl_restart_wl_D_prog) \<in>
+    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  unfolding cdcl_twl_restart_wl_D_prog_def cdcl_twl_restart_wl_heur_alt_def
+  apply (intro frefI nres_relI)
+  apply (refine_rcg
+    cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec[THEN fref_to_Down])
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
 
 end
 

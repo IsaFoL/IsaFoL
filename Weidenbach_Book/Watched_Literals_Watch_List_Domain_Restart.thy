@@ -1101,14 +1101,18 @@ lemma cdcl_twl_local_restart_wl_D_spec_cdcl_twl_local_restart_wl_spec:
   \<open>(cdcl_twl_local_restart_wl_D_spec, cdcl_twl_local_restart_wl_spec)
     \<in> [\<lambda>S. restart_abs_wl_D_pre S False]\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>
       \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
-  unfolding cdcl_twl_local_restart_wl_D_spec_def cdcl_twl_local_restart_wl_spec_def
-    rewatch_clauses_def
-  apply (intro frefI nres_relI)
-  apply (refine_vcg)
-  subgoal by (auto simp: state_wl_l_def)
-  subgoal by (auto simp: state_wl_l_def)
-  subgoal by (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def)
-  done
+proof -
+   
+  show ?thesis
+    unfolding cdcl_twl_local_restart_wl_D_spec_def cdcl_twl_local_restart_wl_spec_def
+      rewatch_clauses_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def)
+    done
+qed
 
 definition cdcl_twl_restart_wl_D_prog where
 \<open>cdcl_twl_restart_wl_D_prog S = do {
