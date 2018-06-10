@@ -600,21 +600,45 @@ lemma cdcl_twl_full_restart_wl_prog_cdcl_full_twl_restart_l_prog:
 
 definition (in -) cdcl_twl_local_restart_wl_spec :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>cdcl_twl_local_restart_wl_spec = (\<lambda>(M, N, D, NE, UE, Q, W). do {
-      M \<leftarrow> SPEC(\<lambda>M'. \<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M));
-      RETURN (M, N, D, NE, UE, {#}, W)
+      (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
+            Q' = {#}) \<or> (M' = M \<and> Q' = Q));
+      RETURN (M, N, D, NE, UE, Q, W)
    })\<close>
 
 lemma cdcl_twl_local_restart_wl_spec_cdcl_twl_local_restart_l_spec:
   \<open>(cdcl_twl_local_restart_wl_spec, cdcl_twl_local_restart_l_spec)
     \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
       \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
-  unfolding cdcl_twl_local_restart_wl_spec_def cdcl_twl_local_restart_l_spec_def
-    rewatch_clauses_def
-  apply (intro frefI nres_relI)
-  apply (refine_vcg)
-  subgoal by (auto simp: state_wl_l_def)
-  subgoal by (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def)
-  done
+proof -
+  have [refine0]:
+    \<open>\<And>x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k.
+        (x, y) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S} \<Longrightarrow>
+        x2d = (x1e, x2e) \<Longrightarrow>
+        x2c = (x1d, x2d) \<Longrightarrow>
+        x2b = (x1c, x2c) \<Longrightarrow>
+        x2a = (x1b, x2b) \<Longrightarrow>
+        x2 = (x1a, x2a) \<Longrightarrow>
+        y = (x1, x2) \<Longrightarrow>
+        x2j = (x1k, x2k) \<Longrightarrow>
+        x2i = (x1j, x2j) \<Longrightarrow>
+        x2h = (x1i, x2i) \<Longrightarrow>
+        x2g = (x1h, x2h) \<Longrightarrow>
+        x2f = (x1g, x2g) \<Longrightarrow>
+        x = (x1f, x2f) \<Longrightarrow>
+        SPEC (\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition x1f) \<and>
+           Q' = {#}) \<or> M' = x1f \<and> Q' = x1k)
+        \<le> \<Down>Id (SPEC (\<lambda>(M', Q') .(\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition x1) \<and>
+           Q' = {#}) \<or> M' = x1 \<and> Q' = x2e))\<close>
+    by (auto simp: state_wl_l_def)
+  show ?thesis
+    unfolding cdcl_twl_local_restart_wl_spec_def cdcl_twl_local_restart_l_spec_def
+      rewatch_clauses_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg)
+    apply assumption+
+    subgoal by (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def)
+    done
+qed
 
 definition cdcl_twl_restart_wl_prog where
 \<open>cdcl_twl_restart_wl_prog S = do {
@@ -801,7 +825,8 @@ proof -
       by (rule filter_mset_cong2) auto
     have [simp]: \<open>N \<propto> C ! Suc 0 \<in> set (watched_l (N \<propto> C))\<close>  \<open>N \<propto> C ! 0 \<in> set (watched_l (N \<propto> C))\<close>
       using le by (auto simp: in_set_take_conv_nth C_def intro: exI[of _ \<open>Suc 0\<close>] exI[of _ \<open>0\<close>])
-    have [dest]: \<open>L \<noteq> N \<propto> C ! 0 \<Longrightarrow> L \<noteq> N \<propto> C ! Suc 0 \<Longrightarrow> L \<in> set (watched_l (N \<propto> C)) \<Longrightarrow> False\<close> for L
+    have [dest]: \<open>L \<noteq> N \<propto> C ! 0 \<Longrightarrow> L \<noteq> N \<propto> C ! Suc 0 \<Longrightarrow> L \<in> set (watched_l (N \<propto> C)) \<Longrightarrow> False\<close>
+      for L
       using le by (auto simp: take_2_if hd_conv_nth split: if_splits)
     have \<open>correct_watching_on (set (take i xs)) (M, N, D, NE, UE, Q, W2)\<close>
       using inv
@@ -868,7 +893,8 @@ proof -
         apply (refine_vcg
           WHILEIT_rule[where R= \<open>measure (\<lambda>(i::nat, W::_ literal \<Rightarrow> watched). length xs -i)\<close>])
         subgoal by auto
-        subgoal by (auto simp: rewatch_clauses_prog_inv_def correct_watching_on.simps clause_to_update_def)
+        subgoal by (auto simp: rewatch_clauses_prog_inv_def correct_watching_on.simps
+              clause_to_update_def)
         subgoal by auto
         subgoal by (rule size_ge2) auto
         subgoal by (rule inv_Suc)

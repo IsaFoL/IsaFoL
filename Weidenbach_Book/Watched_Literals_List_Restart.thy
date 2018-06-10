@@ -2626,9 +2626,10 @@ qed
 
 
 definition (in -) cdcl_twl_local_restart_l_spec :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-  \<open>cdcl_twl_local_restart_l_spec = (\<lambda>(M, N, D, NE, UE, Q, W). do {
-      M \<leftarrow> SPEC(\<lambda>M'. \<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M));
-      RETURN (M, N, D, NE, UE, Q, {#})
+  \<open>cdcl_twl_local_restart_l_spec = (\<lambda>(M, N, D, NE, UE, W, Q). do {
+      (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
+            Q' = {#}) \<or> (M' = M \<and> Q' = Q));
+      RETURN (M, N, D, NE, UE, W, Q)
    })\<close>
 
 definition cdcl_twl_restart_l_prog where
@@ -2658,57 +2659,111 @@ proof -
   obtain M N D NE UE W Q where
     S: \<open>S = (M, N, D, NE, UE, W, Q)\<close>
     by (cases S)
-  have restart: \<open>cdcl_twl_restart_l S (M', N, D, NE, UE, W, {#})\<close>
-    if decomp: \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close>
-    for M' K M2
+  have restart: \<open>cdcl_twl_restart_l S (M', N, D, NE, UE, W, Q')\<close>
+    if decomp': \<open>(\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
+            Q' = {#}) \<or> (M' = M \<and> Q' = Q)\<close>
+    for M' K M2 Q'
   proof -
-    have valid: \<open>valid_trail_reduction M M'\<close>
-      by (use valid_trail_reduction.backtrack_red[OF decomp, of M'] in \<open>auto simp: S\<close>)
-    have
-      \<open>\<forall>C\<in>#clauses_to_update_l S. C \<in># dom_m (get_clauses_l S)\<close> and
-      dom0: \<open>0 \<notin># dom_m (get_clauses_l S)\<close> and
-      annot: \<open>\<And>L C. Propagated L C \<in> set (get_trail_l S) \<Longrightarrow>
+    consider
+      (nope) \<open>M = M'\<close> and \<open>Q' = Q\<close> |
+      (decomp) K M2 where \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> and
+        \<open>Q' = {#}\<close>
+      using decomp' by auto
+    then show ?thesis
+    proof cases
+      case [simp]: nope
+      have valid: \<open>valid_trail_reduction M M'\<close>
+        by (use valid_trail_reduction.keep_red[of M'] in \<open>auto simp: S\<close>)
+      have
+        S1: \<open>S = (M, N, None, NE, UE, {#}, Q)\<close> and
+        S2 : \<open>(M', N, D, NE, UE, W, Q') = (M', N, None, NE + mset `# {#}, UE + mset `# {#}, {#}, Q)\<close>
+        using confl upd unfolding S
+        by auto
+      have
+        \<open>\<forall>C\<in>#clauses_to_update_l S. C \<in># dom_m (get_clauses_l S)\<close> and
+        dom0: \<open>0 \<notin># dom_m (get_clauses_l S)\<close> and
+        annot: \<open>\<And>L C. Propagated L C \<in> set (get_trail_l S) \<Longrightarrow>
            0 < C \<Longrightarrow>
              (C \<in># dom_m (get_clauses_l S) \<and>
             L \<in> set (watched_l (get_clauses_l S \<propto> C)) \<and>
             L = get_clauses_l S \<propto> C ! 0)\<close> and
-      \<open>distinct_mset (clauses_to_update_l S)\<close>
-      using list_invs unfolding twl_list_invs_def S[symmetric] by auto
-    obtain M3 where M: \<open>M = M3 @ Decided K # M'\<close>
-      using decomp by auto
-    have n_d: \<open>no_dup M\<close>
-      using struct_invs ST unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: twl_st_l twl_st S)
-    have
-      S1: \<open>S = (M, N, None, NE, UE, {#}, Q)\<close> and
-      S2 : \<open>(M', N, D, NE, UE, W, {#}) = (M', N, None, NE + mset `# {#}, UE + mset `# {#}, {#}, {#})\<close>
-      using confl upd unfolding S
-      by auto
-    have propa_MM: \<open>Propagated L E \<in> set M \<Longrightarrow> Propagated L E' \<in> set M' \<Longrightarrow> E=E'\<close> for L E E'
-      using n_d unfolding M
-      by (auto simp: S twl_list_invs_def
-        dest!: split_list[of \<open>Propagated L E\<close> M]
-           split_list[of \<open>Propagated L E'\<close> M]
-        dest: no_dup_same_annotD
-        elim!: list_match_lel_lel)
+        \<open>distinct_mset (clauses_to_update_l S)\<close>
+        using list_invs unfolding twl_list_invs_def S[symmetric] by auto
+      have n_d: \<open>no_dup M\<close>
+        using struct_invs ST unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: twl_st_l twl_st S)
+      have propa_MM: \<open>Propagated L E \<in> set M \<Longrightarrow> Propagated L E' \<in> set M' \<Longrightarrow> E=E'\<close> for L E E'
+        using n_d
+        by (auto simp: S twl_list_invs_def
+            dest!: split_list[of \<open>Propagated L E\<close> M]
+            split_list[of \<open>Propagated L E'\<close> M]
+            dest: no_dup_same_annotD
+            elim!: list_match_lel_lel)
 
-    show ?thesis
-      unfolding S[symmetric] S1 S2
-      apply (rule cdcl_twl_restart_l.intros)
-      subgoal by (rule valid)
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal using propa_MM annot unfolding S by fastforce
-      subgoal using propa_MM annot unfolding S by fastforce
-      subgoal using propa_MM annot unfolding S by fastforce
-      subgoal using dom0 unfolding S by auto
-      subgoal using decomp unfolding S by auto
-      done
+      show ?thesis
+        unfolding S[symmetric] S1 S2
+        apply (rule cdcl_twl_restart_l.intros)
+        subgoal by (rule valid)
+        subgoal by auto
+        subgoal by auto
+        subgoal by auto
+        subgoal using propa_MM annot unfolding S by fastforce
+        subgoal using propa_MM annot unfolding S by fastforce
+        subgoal using propa_MM annot unfolding S by fastforce
+        subgoal using dom0 unfolding S by auto
+        subgoal by auto
+        done
+    next
+      case decomp note decomp = this(1) and Q = this(2)
+      have valid: \<open>valid_trail_reduction M M'\<close>
+        by (use valid_trail_reduction.backtrack_red[OF decomp, of M'] in \<open>auto simp: S\<close>)
+      have
+        \<open>\<forall>C\<in>#clauses_to_update_l S. C \<in># dom_m (get_clauses_l S)\<close> and
+        dom0: \<open>0 \<notin># dom_m (get_clauses_l S)\<close> and
+        annot: \<open>\<And>L C. Propagated L C \<in> set (get_trail_l S) \<Longrightarrow>
+           0 < C \<Longrightarrow>
+             (C \<in># dom_m (get_clauses_l S) \<and>
+            L \<in> set (watched_l (get_clauses_l S \<propto> C)) \<and>
+            L = get_clauses_l S \<propto> C ! 0)\<close> and
+        \<open>distinct_mset (clauses_to_update_l S)\<close>
+        using list_invs unfolding twl_list_invs_def S[symmetric] by auto
+      obtain M3 where M: \<open>M = M3 @ Decided K # M'\<close>
+        using decomp by auto
+      have n_d: \<open>no_dup M\<close>
+        using struct_invs ST unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: twl_st_l twl_st S)
+      have
+        S1: \<open>S = (M, N, None, NE, UE, {#}, Q)\<close> and
+        S2 : \<open>(M', N, D, NE, UE, W, Q') = (M', N, None, NE + mset `# {#}, UE + mset `# {#}, {#}, {#})\<close>
+        using confl upd unfolding S Q
+        by auto
+      have propa_MM: \<open>Propagated L E \<in> set M \<Longrightarrow> Propagated L E' \<in> set M' \<Longrightarrow> E=E'\<close> for L E E'
+        using n_d unfolding M
+        by (auto simp: S twl_list_invs_def
+            dest!: split_list[of \<open>Propagated L E\<close> M]
+            split_list[of \<open>Propagated L E'\<close> M]
+            dest: no_dup_same_annotD
+            elim!: list_match_lel_lel)
+
+      show ?thesis
+        unfolding S[symmetric] S1 S2
+        apply (rule cdcl_twl_restart_l.intros)
+        subgoal by (rule valid)
+        subgoal by auto
+        subgoal by auto
+        subgoal by auto
+        subgoal using propa_MM annot unfolding S by fastforce
+        subgoal using propa_MM annot unfolding S by fastforce
+        subgoal using propa_MM annot unfolding S by fastforce
+        subgoal using dom0 unfolding S by auto
+        subgoal using decomp unfolding S by auto
+        done
+    qed
   qed
   show ?thesis
     apply (subst S)
-    unfolding cdcl_twl_local_restart_l_spec_def prod.case RES_RETURN_RES less_eq_nres.simps
+    unfolding cdcl_twl_local_restart_l_spec_def prod.case RES_RETURN_RES2 less_eq_nres.simps
+      uncurry_def
     apply clarify
     apply (rule restart)
     apply assumption

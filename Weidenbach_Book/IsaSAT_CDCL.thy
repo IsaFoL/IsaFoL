@@ -165,10 +165,10 @@ lemma (in -) isasat_fast_clss_dom:
       isasat_fast_clss_def)
   apply (subst (asm)(4) eq_commute)
   apply auto
-  apply (subst (asm)(4) eq_commute)
-  apply auto
   apply (case_tac \<open>dom_m y\<close>)
    apply (auto simp: uint_max_def)
+  apply (subst (asm)(4) eq_commute)
+  apply auto
   done
 
 definition (in -) isasat_fast_code :: \<open>twl_st_wll_trail_fast \<Rightarrow> bool\<close> where

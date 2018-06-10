@@ -1083,20 +1083,29 @@ proof -
     done
 qed
 
-definition (in -) cdcl_twl_local_restart_wl_D_spec :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+definition (in isasat_input_ops) restart_abs_wl_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>restart_abs_wl_D_pre S brk \<longleftrightarrow>
+    (restart_abs_wl_pre S brk \<and> literals_are_\<L>\<^sub>i\<^sub>n S)\<close>
+
+definition (in isasat_input_ops) cdcl_twl_local_restart_wl_D_spec 
+  :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
+where
   \<open>cdcl_twl_local_restart_wl_D_spec = (\<lambda>(M, N, D, NE, UE, Q, W). do {
-      M \<leftarrow> SPEC(\<lambda>M'. \<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M));
-      RETURN (M, N, D, NE, UE, {#}, W)
+      ASSERT(restart_abs_wl_D_pre (M, N, D, NE, UE, Q, W) False);
+      (M, Q') \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
+            Q' = {#}) \<or> (M' = M \<and> Q' = Q));
+      RETURN (M, N, D, NE, UE, Q', W)
    })\<close>
 
 lemma cdcl_twl_local_restart_wl_D_spec_cdcl_twl_local_restart_wl_spec:
   \<open>(cdcl_twl_local_restart_wl_D_spec, cdcl_twl_local_restart_wl_spec)
-    \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+    \<in> [\<lambda>S. restart_abs_wl_D_pre S False]\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>
       \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
   unfolding cdcl_twl_local_restart_wl_D_spec_def cdcl_twl_local_restart_wl_spec_def
     rewatch_clauses_def
   apply (intro frefI nres_relI)
   apply (refine_vcg)
+  subgoal by (auto simp: state_wl_l_def)
   subgoal by (auto simp: state_wl_l_def)
   subgoal by (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def)
   done
@@ -1109,7 +1118,7 @@ definition cdcl_twl_restart_wl_D_prog where
 
 lemma cdcl_twl_restart_wl_D_prog_cdcl_twl_restart_wl_prog:
   \<open>(cdcl_twl_restart_wl_D_prog, cdcl_twl_restart_wl_prog)
-    \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+    \<in> [\<lambda>S. restart_abs_wl_D_pre S False]\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>
       \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
   unfolding cdcl_twl_restart_wl_D_prog_def cdcl_twl_restart_wl_prog_def
     rewatch_clauses_def
@@ -1118,11 +1127,8 @@ lemma cdcl_twl_restart_wl_D_prog_cdcl_twl_restart_wl_prog:
       cdcl_twl_local_restart_wl_D_spec_cdcl_twl_local_restart_wl_spec[THEN fref_to_Down]
       cdcl_twl_full_restart_wl_prog_D_cdcl_twl_restart_wl_prog[THEN fref_to_Down])
   subgoal by (auto simp: state_wl_l_def)
+  subgoal by (auto simp: state_wl_l_def)
   done
-
-definition restart_abs_wl_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
-  \<open>restart_abs_wl_D_pre S brk \<longleftrightarrow>
-    (restart_abs_wl_pre S brk \<and> literals_are_\<L>\<^sub>i\<^sub>n S)\<close>
 
 definition restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (nat twl_st_wl \<times> nat) nres" where
   \<open>restart_prog_wl_D S n brk = do {
@@ -1154,6 +1160,7 @@ proof -
       remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
       cdcl_twl_restart_wl_D_prog_cdcl_twl_restart_wl_prog[THEN fref_to_Down])
     subgoal unfolding restart_abs_wl_D_pre_def by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto

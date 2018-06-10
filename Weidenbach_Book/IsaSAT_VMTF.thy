@@ -350,7 +350,7 @@ prepare_code_thms (in -) find_decomp_wl_imp_fast_code_def
 lemmas find_decomp_wl_imp_fast_code[sepref_fr_rules] =
    find_decomp_wl_imp_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-definition find_decomp_w_ns where
+definition (in isasat_input_ops) find_decomp_w_ns where
   \<open>find_decomp_w_ns =
      (\<lambda>(M::(nat, nat) ann_lits) highest _.
         SPEC(\<lambda>(M1, vm). \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
@@ -364,7 +364,7 @@ definition (in -) find_decomp_wl_st :: \<open>nat literal \<Rightarrow> nat twl_
   })\<close>
 
 
-definition find_decomp_wl_st_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow>
+definition (in isasat_input_ops) find_decomp_wl_st_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow>
     twl_st_wl_heur nres\<close> where
   \<open>find_decomp_wl_st_int = (\<lambda>highest (M, N, D, W, Q, vm, \<phi>, clvls, cach, lbd, stats). do{
      (M', vm) \<leftarrow> find_decomp_w_ns M highest vm;

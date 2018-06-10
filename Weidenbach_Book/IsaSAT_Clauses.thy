@@ -79,14 +79,14 @@ lemma extra_clause_information_update[simp]:
 definition list_fmap_rel :: \<open>_ \<Rightarrow> _ \<Rightarrow> (('a list \<times> clause_annots) \<times> nat clauses_l) set\<close> where
   list_fmap_rel_internal_def:
   \<open>list_fmap_rel unused R = {((NU', extra), (NU)). (\<forall>i\<in>#dom_m NU. i < length NU' \<and> (NU'!i, NU \<propto> i) \<in> R) \<and>
-         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> NU'!i = unused) \<and> NU' \<noteq> [] \<and>
+         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> (NU'!i = unused \<and> fst (extra!i) = DELETED)) \<and> NU' \<noteq> [] \<and>
          Suc (Max_mset (add_mset 0 (dom_m NU))) = length NU' \<and>
          (\<forall>i\<in>#dom_m NU. i < length extra \<and> extra_clause_information NU i (extra!i)) \<and>
          length NU' = length extra}\<close>
 
 lemma list_fmap_rel_def:
   \<open>\<langle>R\<rangle>list_fmap_rel unused = {((NU', extra), (NU)). (\<forall>i\<in>#dom_m NU. i < length NU' \<and> (NU'!i, NU \<propto> i) \<in> R) \<and>
-         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> NU'!i = unused) \<and> NU' \<noteq> [] \<and>
+         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> (NU'!i = unused \<and> fst (extra!i) = DELETED)) \<and> NU' \<noteq> [] \<and>
           Suc (Max_mset (add_mset 0 (dom_m NU))) = length NU' \<and>
          (\<forall>i\<in>#dom_m NU. i < length extra \<and> extra_clause_information NU i  (extra!i)) \<and>
          length NU' = length extra}\<close>
@@ -746,6 +746,7 @@ lemma append_and_length_fm_add_new:
   apply force
   apply force
    apply force
+   apply force
   apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
   apply force
   apply force
@@ -756,6 +757,11 @@ lemma append_and_length_fm_add_new:
    apply force
   apply (subst extra_clause_information_upd_irrel)
     apply force
+  apply auto
+  apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
+   apply force
+    apply force
+  apply (subst extra_clause_information_upd_irrel)
   apply auto
   done
 
@@ -862,6 +868,7 @@ lemma append_and_length_u32_fm_add_new:
                apply blast
               apply force
              apply fastforce
+             apply fastforce
             apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
              apply force
             apply force
@@ -875,6 +882,7 @@ lemma append_and_length_u32_fm_add_new:
         apply blast
        apply blast
       apply force
+     apply fastforce
      apply fastforce
     apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
      apply force
@@ -911,14 +919,22 @@ lemma append_and_length_u32_fm_add_new_packed:
   \<open>(uncurry2 append_and_length_u32, uncurry2 fm_add_new_packed)
      \<in> [\<lambda>((b, C), N). Max (insert 0 (set_mset (dom_m N))) < uint32_max \<and> packed N]\<^sub>f
      bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (\<langle>Id\<rangle>clauses_l_fmat) \<rightarrow> \<langle>\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (force simp: list_fmap_rel_def Let_def
+  apply (intro frefI nres_relI)
+  apply (auto simp: list_fmap_rel_def Let_def
+       nth_append append_and_length_u32_def fm_add_new_packed_def get_fresh_index_packed_def
+      RETURN_RES_refine_iff RES_RETURN_RES Max_dom_alt_def[symmetric] Max_dom_fmupd_irrel
+      intro!: RETURN_SPEC_refine ASSERT_refine_left extra_clause_information_upd_irrel[THEN iffD2]
+      dest: multi_member_split Max_dom_le
+      intro: packed_in_dom_mI
+      split: if_splits) (* slow ~ 25s *)
+  apply (auto simp: list_fmap_rel_def Let_def
        nth_append append_and_length_u32_def fm_add_new_packed_def get_fresh_index_packed_def
       RETURN_RES_refine_iff RES_RETURN_RES Max_dom_alt_def[symmetric] Max_dom_fmupd_irrel
       intro!: RETURN_SPEC_refine ASSERT_refine_left
       dest: multi_member_split Max_dom_le
       intro: packed_in_dom_mI
-      split: if_splits) (* slow ~ 25s *)
+      split: if_splits)
+  done
 
 definition fm_add_new_packed_fast where
   [simp, symmetric, isasat_fast]: \<open>fm_add_new_packed_fast = fm_add_new_packed\<close>

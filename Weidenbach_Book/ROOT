@@ -179,11 +179,9 @@ session "IsaSAT_pre" (Weidenbach_Book) = "CDCL"  +
     "HOL-Eisbach"
   theories [quick_and_dirty = false, document = true]
     (* Restarts not clear if different session of not *)
+    Watched_Literals_Watch_List_Initialisation
     Watched_Literals_Transition_System_Restart
     Watched_Literals_Algorithm_Restart
-    Watched_Literals_List_Restart
-    Watched_Literals_Watch_List_Restart
-    Watched_Literals_Watch_List_Domain_Restart
     Watched_Literals_Watch_List_Domain
     Watched_Literals_Initialisation
     Watched_Literals_Watch_List_Code_Common
