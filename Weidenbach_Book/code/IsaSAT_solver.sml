@@ -186,10 +186,6 @@ end = struct
 
 datatype typerepa = Typerep of string * typerepa list;
 
-datatype num = One | Bit0 of num | Bit1 of num;
-
-datatype char = Zero_char | Char of num;
-
 datatype nat = Nat of IntInf.int;
 
 datatype 'a itself = Type;
@@ -211,6 +207,8 @@ val typerep_nat = {typerep = typerep_nata} : nat typerep;
 
 val heap_nat = {countable_heap = countable_nat, typerep_heap = typerep_nat} :
   nat heap;
+
+datatype num = One | Bit0 of num | Bit1 of num;
 
 val one_nata : nat = Nat (1 : IntInf.int);
 
