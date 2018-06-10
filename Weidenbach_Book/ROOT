@@ -186,6 +186,8 @@ session "IsaSAT_pre" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_Initialisation
     Watched_Literals_Watch_List_Code_Common
     LBD
+    IsaSAT_CDCL
+    Watched_Literals_Watch_List_Domain_Restart
   document_files
     "root.tex"
     "biblio.bib"
