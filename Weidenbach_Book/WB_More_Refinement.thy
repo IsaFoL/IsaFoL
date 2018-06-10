@@ -325,8 +325,8 @@ text \<open>
 \<close>
 
 lemma RECT_WHILEI_body_add_post_condition:
-    \<open>REC\<^sub>T (WHILEI_body op \<bind> RETURN I' b' f) x' =
-     (REC\<^sub>T (WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f) x')\<close>
+    \<open>REC\<^sub>T (WHILEI_body (\<bind>) RETURN I' b' f) x' =
+     (REC\<^sub>T (WHILEI_body (\<bind>) RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f) x')\<close>
   (is \<open>REC\<^sub>T ?f x' = REC\<^sub>T ?f' x'\<close>)
 proof -
   have le: \<open>flatf_gfp ?f x' \<le> flatf_gfp ?f' x'\<close> for x'
@@ -348,7 +348,7 @@ proof -
     have  \<open>(RES X \<bind> f \<le> M) = (\<forall>x\<in>X. f x \<le> M)\<close> for x f M X
       using intro_spec_refine_iff[of _ _ \<open>Id\<close>] by auto
     thm bind_refine_RES(2)[of _ Id, simplified]
-    have [simp]: \<open>flatf_mono FAIL (WHILEI_body op \<bind> RETURN I' b' f)\<close>
+    have [simp]: \<open>flatf_mono FAIL (WHILEI_body (\<bind>) RETURN I' b' f)\<close>
       by (simp add: WHILEI_mono_ge)
 
     have \<open>flatf_gfp ?f x' = ?f (?f (flatf_gfp ?f)) x'\<close>
@@ -357,7 +357,7 @@ proof -
       apply (subst flatf_ord.fixp_unfold)
        apply (solves \<open>simp\<close>)
       ..
-    also have \<open>\<dots> = WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f (WHILEI_body op \<bind> RETURN I' b' f (flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f))) x'\<close>
+    also have \<open>\<dots> = WHILEI_body (\<bind>) RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f (WHILEI_body (\<bind>) RETURN I' b' f (flatf_gfp (WHILEI_body (\<bind>) RETURN I' b' f))) x'\<close>
       apply (subst (1) WHILEI_body_def, subst (1) WHILEI_body_def)
       apply (subst (2) WHILEI_body_def, subst (2) WHILEI_body_def)
       apply simp_all
@@ -365,12 +365,12 @@ proof -
        apply (auto simp: RES_RETURN_RES nofail_def[symmetric] pw_RES_bind_choose
           split: if_splits)
       done
-    also have \<open>\<dots> =  WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f ((flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f))) x'\<close>
+    also have \<open>\<dots> =  WHILEI_body (\<bind>) RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f ((flatf_gfp (WHILEI_body (\<bind>) RETURN I' b' f))) x'\<close>
       apply (subst (2) flatf_ord.fixp_unfold)
        apply (solves \<open>simp\<close>)
       ..
-    finally have unfold1: \<open>flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f) x' =
-         ?f' (flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f)) x'\<close>
+    finally have unfold1: \<open>flatf_gfp (WHILEI_body (\<bind>) RETURN I' b' f) x' =
+         ?f' (flatf_gfp (WHILEI_body (\<bind>) RETURN I' b' f)) x'\<close>
       .
     have [intro!]: \<open>(\<And>x. g x \<le> (h:: 'a \<Rightarrow> 'a nres) x) \<Longrightarrow> fx \<bind> g \<le> fx \<bind> h\<close> for g h fx fy
       by (refine_rcg bind_refine'[where R = \<open>Id\<close>, simplified]) fast

@@ -4673,9 +4673,9 @@ proof -
     M_def[symmetric] M that by (auto 5 5 simp: clauses_def dest!: lD0D')
   then have I_D0: \<open>total_over_m I (set_mset (clauses S)) \<longrightarrow>
             consistent_interp I \<longrightarrow>
-            Multiset.Ball (clauses S) (op \<Turnstile> I) \<longrightarrow> ~I \<Turnstile> D0\<close> for I
+            Multiset.Ball (clauses S) ((\<Turnstile>) I) \<longrightarrow> ~I \<Turnstile> D0\<close> for I
     using clss_D0 unfolding true_clss_cls_def true_cls_def consistent_interp_def
-    true_cls_def true_cls_mset_def -- \<open>TODO tune proof\<close>
+    true_cls_def true_cls_mset_def \<comment> \<open>TODO tune proof\<close>
     apply auto
     by (metis atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set literal.sel(1)
     true_cls_def true_cls_mset_def true_lit_def uminus_Pos)

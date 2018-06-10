@@ -34,11 +34,13 @@ text \<open>
 sublocale isasat_restart_bounded id
   by standard (rule unbounded_id)
 
-definition find_local_restart_target_level_int_inv where
+definition (in -) find_local_restart_target_level_int_inv where
   \<open>find_local_restart_target_level_int_inv ns cs =
      (\<lambda>(brk, i). i \<le> length cs \<and> length cs < uint32_max)\<close>
 
-definition find_local_restart_target_level_int :: \<open>trail_pol \<Rightarrow> vmtf_remove_int \<Rightarrow> nat nres\<close> where
+definition (in isasat_input_ops) find_local_restart_target_level_int
+   :: \<open>trail_pol \<Rightarrow> vmtf_remove_int \<Rightarrow> nat nres\<close>
+where
   \<open>find_local_restart_target_level_int =
      (\<lambda>(M, xs, lvls, reasons, k, cs) ((ns, m, fst_As, lst_As, next_search), to_remove). do {
      (brk, i) \<leftarrow> WHILE\<^sub>T\<^bsup>find_local_restart_target_level_int_inv ns cs\<^esup>
@@ -65,13 +67,13 @@ sepref_thm find_local_restart_target_level_code
   by sepref
 
 concrete_definition (in -) find_local_restart_target_level_code
-   uses isasat_input_bounded.find_local_restart_target_level_code
+   uses isasat_input_bounded.find_local_restart_target_level_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) find_local_restart_target_level_code_def
 
-lemmas find_local_restart_target_level_code_def_hnr[sepref_fr_rules] =
-   find_local_restart_target_level_code_def.refine
+lemmas find_local_restart_target_level_code_def_hnr (*[sepref_fr_rules]*) =
+   find_local_restart_target_level_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 definition (in isasat_input_ops) find_local_restart_target_level where
   \<open>find_local_restart_target_level M _ = SPEC(\<lambda>i. i \<le> count_decided M)\<close>

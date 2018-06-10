@@ -305,7 +305,7 @@ end
 
 
 lemma (in -) mset_as_position_length_not_None:
-   \<open>mset_as_position x2 C \<Longrightarrow> size C = length (filter (op \<noteq> None) x2)\<close>
+   \<open>mset_as_position x2 C \<Longrightarrow> size C = length (filter ((\<noteq>) None) x2)\<close>
 proof (induction rule: mset_as_position.induct)
   case (empty n)
   then show ?case by auto
@@ -2341,7 +2341,7 @@ proof -
     then have H: \<open>mset (drop i (delete_index_and_swap outl' i)) = mset (drop (Suc i) outl')\<close>
       using \<open>i < length outl'\<close>
       by (cases \<open>drop (Suc i) outl' = []\<close>)
-        (auto simp: butlast_list_update mset_butlast_remove1_mset single_remove1_mset_eq)
+        (auto simp: butlast_list_update mset_butlast_remove1_mset)
     have H': \<open>mset (tl (delete_index_and_swap outl' i)) = remove1_mset (outl' ! i) (mset (tl outl'))\<close>
       apply (rule mset_tl_delete_index_and_swap)
       using \<open>i < length outl'\<close> \<open>i > 0\<close> by fast+
@@ -2410,7 +2410,7 @@ end
 
 
 lemma minimize_status_eq_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo (op =))) \<in>
+  \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in>
     minimize_status_assn\<^sup>k *\<^sub>a minimize_status_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by (sepref_to_hoare) (sep_auto)
 

@@ -193,7 +193,6 @@ lemma lit_of_natP_same_rightD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_
 lemma lit_of_natP_same_leftD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_natP ai b \<Longrightarrow> ai = bi\<close>
   apply (auto simp: p2rel_def lit_of_natP_def split: if_splits)
   apply presburger
-  apply presburger
   done
 
 
@@ -1153,7 +1152,7 @@ proof -
     subgoal for S' S T'L' TL T' L' T L
       apply (auto simp: twl_st_wl is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_of_mm_union)
       unfolding image_image
-      apply simp_all -- \<open>TODO: but why does it loop\<close>
+      apply simp_all \<comment> \<open>TODO: but why does it loop\<close>
       done
     done
 qed
@@ -1931,6 +1930,6 @@ proof -
     done
 qed
 
-end -- \<open>end of locale @{locale isasat_input_bounded}\<close>
+end \<comment> \<open>end of locale @{locale isasat_input_bounded}\<close>
 
 end

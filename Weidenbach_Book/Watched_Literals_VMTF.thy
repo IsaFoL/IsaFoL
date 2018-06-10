@@ -1403,7 +1403,7 @@ proof -
     have \<open>?n \<le> ?L\<close>
       using vmtf_ns_stamp_sorted[OF vmtf_ns] that last_in_set[OF xs']
       by (cases xs')
-         (auto simp: rev_map[symmetric] next_search sorted_append sorted_Cons)
+         (auto simp: rev_map[symmetric] next_search sorted_append sorted2)
     moreover have \<open>?n \<noteq> ?L\<close>
       using vmtf_ns_stamp_distinct[OF vmtf_ns] that last_in_set[OF xs']
       by (cases xs') (auto simp: rev_map[symmetric] next_search)
@@ -1473,13 +1473,13 @@ proof -
       by (subst L_ys'_iff[symmetric]) (use L_ys'_xs' in auto)
     have L_ys: \<open>L \<in> set ys'\<close>
       by (use False L_ys'_xs' in auto)
-    define y_ys where \<open>y_ys \<equiv> takeWhile (op \<noteq> L) ys'\<close>
+    define y_ys where \<open>y_ys \<equiv> takeWhile ((\<noteq>) L) ys'\<close>
     define x_ys where \<open>x_ys \<equiv> drop (length y_ys) ys'\<close>
     let ?ys' = \<open>y_ys\<close>
     let ?xs' = \<open>x_ys @ xs'\<close>
     have x_ys_take_ys': \<open>y_ys = take (length y_ys) ys'\<close>
         unfolding y_ys_def
-        by (subst take_length_takeWhile_eq_takeWhile[of \<open>op \<noteq> L\<close> \<open>ys'\<close>, symmetric]) standard
+        by (subst take_length_takeWhile_eq_takeWhile[of \<open>(\<noteq>) L\<close> \<open>ys'\<close>, symmetric]) standard
     have ys'_y_x: \<open>ys' = y_ys @ x_ys\<close>
       by (subst x_ys_take_ys') (auto simp: x_ys_def)
     have y_ys_le_ys': \<open>length y_ys < length ys'\<close>
@@ -2075,13 +2075,13 @@ proof -
       by (subst L_ys'_iff[symmetric]) (use L_ys'_xs' in auto)
     have L_ys: \<open>L \<in> set ys'\<close>
       by (use False L_ys'_xs' in auto)
-    define y_ys where \<open>y_ys \<equiv> takeWhile (op \<noteq> L) ys'\<close>
+    define y_ys where \<open>y_ys \<equiv> takeWhile ((\<noteq>) L) ys'\<close>
     define x_ys where \<open>x_ys \<equiv> drop (length y_ys) ys'\<close>
     let ?ys' = \<open>y_ys\<close>
     let ?xs' = \<open>x_ys @ xs'\<close>
     have x_ys_take_ys': \<open>y_ys = take (length y_ys) ys'\<close>
         unfolding y_ys_def
-        by (subst take_length_takeWhile_eq_takeWhile[of \<open>op \<noteq> L\<close> \<open>ys'\<close>, symmetric]) standard
+        by (subst take_length_takeWhile_eq_takeWhile[of \<open>(\<noteq>) L\<close> \<open>ys'\<close>, symmetric]) standard
     have ys'_y_x: \<open>ys' = y_ys @ x_ys\<close>
       by (subst x_ys_take_ys') (auto simp: x_ys_def)
     have y_ys_le_ys': \<open>length y_ys < length ys'\<close>

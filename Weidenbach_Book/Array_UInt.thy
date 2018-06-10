@@ -482,7 +482,7 @@ proof -
   have [simp]: \<open>(\<exists>\<^sub>Ax. arrayO_assn (arl_assn R) a ai * R x r * true * \<up> (x = a ! ba ! b)) =
      (arrayO_assn (arl_assn R) a ai * R (a ! ba ! b) r * true)\<close> for a ai ba b r
     by (auto simp: ex_assn_def)
-  show ?thesis -- \<open>TODO tune proof\<close>
+  show ?thesis \<comment> \<open>TODO tune proof\<close>
     apply sepref_to_hoare
     apply (sep_auto simp: append_el_aa_def uint32_nat_rel_def br_def)
      apply (simp add: arrayO_except_assn_def)
@@ -715,7 +715,7 @@ lemma set_butlast_aa_u_code[code]:
       x \<leftarrow> nth_u_code a i;
       a' \<leftarrow> arl_butlast x;
       Array_upd_u i a' a
-    }\<close> -- \<open>Replace the \<^term>\<open>i\<close>-th element by the itself execpt the last element.\<close>
+    }\<close> \<comment> \<open>Replace the \<^term>\<open>i\<close>-th element by the itself execpt the last element.\<close>
   unfolding set_butlast_aa_u_def set_butlast_aa_def
    nth_u_code_def Array_upd_u_def
   by (auto simp: Array.nth'_def nat_of_uint32_code)
@@ -1310,7 +1310,7 @@ lemma set_butlast_aa_u64_code[code]:
       x \<leftarrow> nth_u64_code a i;
       a' \<leftarrow> arl_butlast x;
       Array_upd_u64 i a' a
-    }\<close> -- \<open>Replace the \<^term>\<open>i\<close>-th element by the itself execpt the last element.\<close>
+    }\<close> \<comment> \<open>Replace the \<^term>\<open>i\<close>-th element by the itself execpt the last element.\<close>
   unfolding set_butlast_aa_u64_def set_butlast_aa_def
    nth_u64_code_def Array_upd_u64_def
   by (auto simp: Array.nth'_def nat_of_uint64_code)

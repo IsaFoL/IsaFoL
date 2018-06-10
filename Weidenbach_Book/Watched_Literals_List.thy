@@ -1575,7 +1575,7 @@ proof -
     have L'': \<open>{#(L', ?C x). x \<in># ?S#} = Pair L' `# {#?C x. x \<in># ?S#}\<close>
       by auto
     also have \<open>\<dots> = Pair L' `# ?C'\<close>
-      apply (rule arg_cong[of _ _ \<open>op `# (Pair L')\<close>])
+      apply (rule arg_cong[of _ _ \<open>(`#) (Pair L')\<close>])
       unfolding image_mset_union[symmetric] mset_append[symmetric] drop_Suc H
       apply simp
       apply (subst H)

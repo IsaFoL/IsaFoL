@@ -313,7 +313,7 @@ subsection \<open>Backtracking\<close>
 fun backtrack_split :: \<open>('a, 'v, 'm) annotated_lits
   \<Rightarrow> ('a, 'v, 'm) annotated_lits \<times> ('a, 'v, 'm) annotated_lits\<close> where
 \<open>backtrack_split [] = ([], [])\<close> |
-\<open>backtrack_split (Propagated L P # mlits) = apfst ((op #) (Propagated L P)) (backtrack_split mlits)\<close> |
+\<open>backtrack_split (Propagated L P # mlits) = apfst ((#) (Propagated L P)) (backtrack_split mlits)\<close> |
 \<open>backtrack_split (Decided L # mlits) = ([], Decided L # mlits)\<close>
 
 lemma backtrack_split_fst_not_decided: \<open>a \<in> set (fst (backtrack_split l)) \<Longrightarrow> \<not>is_decided a\<close>
@@ -359,7 +359,7 @@ fun get_all_ann_decomposition :: \<open>('a, 'b, 'm) annotated_lits
 \<open>get_all_ann_decomposition (Decided L # Ls) =
   (Decided L # Ls, []) # get_all_ann_decomposition Ls\<close> |
 \<open>get_all_ann_decomposition (Propagated L P# Ls) =
-  (apsnd ((op #) (Propagated L P)) (hd (get_all_ann_decomposition Ls)))
+  (apsnd ((#) (Propagated L P)) (hd (get_all_ann_decomposition Ls)))
     # tl (get_all_ann_decomposition Ls)\<close> |
 \<open>get_all_ann_decomposition [] = [([], [])]\<close>
 

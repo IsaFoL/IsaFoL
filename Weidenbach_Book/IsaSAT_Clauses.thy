@@ -1339,7 +1339,7 @@ lemma irred_clauses_l_fmat:
       dest!: multi_member_split)
 
 lemma clause_status_assn_eq[sepref_fr_rules]:
-  \<open>(uncurry (return oo op =), uncurry (RETURN oo op =)) \<in>
+  \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in>
      clause_status_assn\<^sup>k *\<^sub>a clause_status_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare sep_auto
 

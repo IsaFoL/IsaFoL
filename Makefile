@@ -34,7 +34,7 @@ Unordered_Resolution:
 	$(RUN_ISABELLE2017) build -o browser_info -v -b -D Unordered_Resolution
 
 Functional_Ordered_Resolution_Prover:
-	$(RUN_ISABELLE2017) build -d '$$ISAFOR' -o browser_info -o "document=pdf" -v -b -D Functional_Ordered_Resolution_Prover
+	$(RUN_ISABELLE) build -d '$$ISAFOR' -o browser_info -o "document=pdf" -v -b -D Functional_Ordered_Resolution_Prover
 
 GRAT: HOL
 	$(RUN_ISABELLE2016-1) build -d '$$AFP' -b Refine_Imperative_HOL
@@ -47,7 +47,7 @@ all: Weidenbach_Book Ordered_Resolution_Prover Unordered_Resolution GRAT FOL_Ber
 
 # build the documentation and the files
 current: Ordered_Resolution_Prover Unordered_Resolution
-	$(RUN_ISABELLE2017) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -d Weidenbach_Book Full
+	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -d Weidenbach_Book Full
 
 # move the html documentation to the locale directory
 doc:

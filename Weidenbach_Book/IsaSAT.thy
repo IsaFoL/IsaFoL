@@ -555,6 +555,34 @@ lemma extract_atms_clss_empty_iff:
   unfolding extract_atms_clss_alt_def
   by auto
 
+lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_extract_atms_clss:
+    \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS' {}))
+       (all_lits_of_mm (mset `# mset CS'))\<close>
+proof -
+  have [simp]: \<open>is_neg xb \<Longrightarrow> Pos (atm_of xb) = - xb\<close> for xb
+    by (cases xb) auto
+  have [simp]: \<open>is_pos xb \<Longrightarrow> Neg (atm_of xb) = - xb\<close> for xb
+    by (cases xb) auto
+  have [intro]: \<open>\<And>x. x \<in># all_lits_of_mm
+               (mset `# mset CS') \<Longrightarrow>
+         x \<notin> Neg `
+              (\<Union>C\<in>set CS'. atm_of ` set C) \<Longrightarrow>
+         x \<in> Pos ` (\<Union>C\<in>set CS'. atm_of ` set C)\<close>
+    apply (induction CS')
+    subgoal by auto
+    subgoal for C CS x
+      by (cases x)
+        (auto simp: all_lits_of_mm_add_mset image_Un in_all_lits_of_m_ain_atms_of_iff
+        atm_of_eq_atm_of uminus_lit_swap)
+    done
+  show ?thesis
+    by (auto simp: extract_atms_clss_alt_def
+        isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_of_mm_add_mset
+        all_lits_of_m_add_mset
+        dest!: split_list)
+qed
+
+
 lemma cdcl_twl_stgy_prog_wl_spec_final2:
   shows
     \<open>(SAT_wl, SAT) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and>
@@ -572,9 +600,7 @@ proof -
     \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS' {}))
        (all_lits_of_mm (mset `# mset CS'))\<close>
     for CS'
-    by (auto simp add: isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
-      all_lits_of_mm_add_mset extract_atms_clss_alt_def extract_atms_cls_alt_def
-      all_lits_of_mm_def atms_of_s_def image_image image_Un)
+    by (auto simp add: is_\<L>\<^sub>a\<^sub>l\<^sub>l_extract_atms_clss)
   have extract_nempty: \<open>extract_atms_clss xs {} = {} \<longleftrightarrow> set xs = {[]}\<close>
   if
     H: \<open>Multiset.Ball ys distinct_mset \<and> (\<forall>C\<in>#ys. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)\<close> and
@@ -957,9 +983,7 @@ proof -
     qed
     have \<L>\<^sub>a\<^sub>l\<^sub>l: \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS' {}))
         (all_lits_of_mm (mset `# mset CS'))\<close>
-      by (auto simp add: isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
-        all_lits_of_mm_add_mset extract_atms_clss_alt_def extract_atms_cls_alt_def
-        all_lits_of_mm_def atms_of_s_def image_image image_Un)
+      by (auto simp add: is_\<L>\<^sub>a\<^sub>l\<^sub>l_extract_atms_clss)
     have [simp]: \<open>isasat_input_bounded (mset_set (extract_atms_clss CS' {}))\<close>
       unfolding isasat_input_bounded_def
     proof
@@ -1133,7 +1157,7 @@ proof -
           isasat_input_ops.empty_watched_alt_def)
       apply (refine_vcg  (* bind_refine_spec*) lhs_step_If init_dt_wl_init_dt_wl_spec
          bind_refine_spec[OF _ init_dt_wl_init_dt_wl_spec])
-      -- \<open>First the fast part: \<close>
+      \<comment> \<open>First the fast part: \<close>
       subgoal for b by (rule conflict_during_init)
       subgoal for T by (rule empty_clss)
       subgoal by (rule extract_atms_clss_not_nil)
@@ -1142,7 +1166,7 @@ proof -
       subgoal by (rule clauses)
       subgoal by (rule break_CDCL_steps)
       subgoal by (rule init) (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
-      -- \<open>Now the slow part: \<close>
+      \<comment> \<open>Now the slow part: \<close>
       subgoal for b by (rule conflict_during_init)
       subgoal for T by (rule empty_clss)
       subgoal by (rule extract_atms_clss_not_nil)
@@ -1623,7 +1647,7 @@ proof -
   have [simp]: \<open> \<up> (x = map_option rev ac) =  \<up> (ac = map_option rev x)\<close> for x ac
     by (cases ac; cases x) auto
   have H: \<open>hr_comp model_stat_assn
-        (Collect (case_prod (\<lambda>(M, stat). op = (map_option rev M)))) = model_assn\<close>
+        (Collect (case_prod (\<lambda>(M, stat). (=) (map_option rev M)))) = model_assn\<close>
     by (auto simp: model_assn_def hr_comp_def model_stat_rel_def ex_assn_pair_split eq_commute
         intro!: ext)
   have H: \<open>(IsaSAT_code, IsaSAT)

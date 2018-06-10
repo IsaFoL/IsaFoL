@@ -299,7 +299,7 @@ proof -
            apply (smt "1" UnE add_mset_add_single image_eqI mset.simps(2) set_mset_mset subsetCE
             union_iff union_single_eq_member)
           done
-        subgoal -- \<open>TODO Proof\<close>
+        subgoal \<comment> \<open>TODO Proof\<close>
          apply (auto simp: mset_take_mset_drop_mset' in_DECO_clause_l_in_DECO_clause_iff
            dest!: in_set_dropD)
            by (metis UnE atms_of_ms_union atms_of_subset_in_atms_ofI)
@@ -469,7 +469,7 @@ proof -
            apply (smt "1" UnE add_mset_add_single image_eqI mset.simps(2) set_mset_mset subsetCE
               union_iff union_single_eq_member)
            done
-        subgoal -- \<open>TODO Proof\<close>
+        subgoal \<comment> \<open>TODO Proof\<close>
           using TK le apply (auto simp: mset_take_mset_drop_mset' in_DECO_clause_l_in_DECO_clause_iff
            dest!: in_set_dropD)
            by (metis UnE atms_of_ms_union atms_of_subset_in_atms_ofI)

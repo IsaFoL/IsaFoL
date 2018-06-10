@@ -731,7 +731,7 @@ definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow>
 definition (in isasat_input_ops) remove_last
    :: \<open>nat literal \<Rightarrow> nat clause option \<Rightarrow> nat clause option nres\<close>
 where
-  \<open>remove_last _ _  = SPEC(op = None)\<close>
+  \<open>remove_last _ _  = SPEC((=) None)\<close>
 
 definition (in isasat_input_ops) propagate_unit_bt_wl_D_int
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>

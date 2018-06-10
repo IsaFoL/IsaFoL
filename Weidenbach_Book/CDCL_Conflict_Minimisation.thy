@@ -485,7 +485,7 @@ proof -
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by auto
 
-  let ?f = \<open>\<lambda>analysis. fold_mset (op +) D (snd `# mset analysis)\<close>
+  let ?f = \<open>\<lambda>analysis. fold_mset (+) D (snd `# mset analysis)\<close>
   define I' where
     \<open>I' = (\<lambda>(cach :: 'v conflict_min_cach, analysis :: 'v conflict_min_analyse, b::bool).
         lit_redundant_inv M ?N D init_analysis (cach, analysis, b) \<and> M \<Turnstile>as CNot (?f analysis))\<close>
@@ -530,8 +530,8 @@ proof -
       (case N' of
        (analysis' :: 'v conflict_min_analyse, _ :: bool) \<Rightarrow>
          \<lambda>(analysis, _).
-            minimize_conflict_support M (fold_mset op + D (snd `# mset analysis))
-              (fold_mset op + D (snd `# mset analysis'))) N}\<close>
+            minimize_conflict_support M (fold_mset (+) D (snd `# mset analysis))
+              (fold_mset (+) D (snd `# mset analysis'))) N}\<close>
       by blast
     then have wf_Min: \<open>wf ?Min\<close>
       apply (rule wf_subset)
@@ -928,10 +928,10 @@ proof -
       C: \<open>C = add_mset L C'\<close>
       using uL_E by (blast dest: multi_member_split)
 
-    have \<open>minimize_conflict_support M (C + fold_mset op + D (snd `# mset ana'))
-           (remove1_mset (- L) E' + (remove1_mset L C + fold_mset op + D (snd `# mset ana')))\<close>
+    have \<open>minimize_conflict_support M (C + fold_mset (+) D (snd `# mset ana'))
+           (remove1_mset (- L) E' + (remove1_mset L C + fold_mset (+) D (snd `# mset ana')))\<close>
       using minimize_conflict_support.resolve_propa[OF in_trail,
-        of \<open>C' + fold_mset op + D (snd `# mset ana')\<close>]
+        of \<open>C' + fold_mset (+) D (snd `# mset ana')\<close>]
       unfolding C E' E
       by (auto simp: ac_simps)
 
@@ -943,30 +943,30 @@ proof -
     unfolding lit_redundant_rec_def lit_redundant_rec_spec_def mark_failed_lits_def
       get_literal_and_remove_of_analyse_def get_propagation_reason_def
     apply (refine_vcg WHILET_rule[where R = R and I = I'])
-      -- \<open>Well foundedness\<close>
+      \<comment> \<open>Well foundedness\<close>
     subgoal by (rule wf_R)
     subgoal by (rule init_I')
     subgoal by simp
-      -- \<open>Assertion:\<close>
+      \<comment> \<open>Assertion:\<close>
     subgoal by (rule hd_M)
-        -- \<open>We finished one stage:\<close>
+        \<comment> \<open>We finished one stage:\<close>
     subgoal by (rule all_removed_I')
     subgoal by (rule all_removed_R)
-      -- \<open>Assertion:\<close>
+      \<comment> \<open>Assertion:\<close>
     subgoal for s cach s' analyse ba
       by (cases \<open>analyse\<close>) (auto simp: I'_def dest!: multi_member_split)
-        -- \<open>Cached or level 0:\<close>
+        \<comment> \<open>Cached or level 0:\<close>
     subgoal by (rule seen_removable_I')
     subgoal by (rule seen_removable_R)
-        -- \<open>Failed:\<close>
+        \<comment> \<open>Failed:\<close>
     subgoal by (rule failed_I')
     subgoal by (rule failed_R)
     subgoal by (rule failed_I')
     subgoal by (rule failed_R)
-        -- \<open>The literal was propagated:\<close>
+        \<comment> \<open>The literal was propagated:\<close>
     subgoal by (rule is_propagation_I')
     subgoal by (rule is_propagation_R)
-        -- \<open>End of Loop invariant:\<close>
+        \<comment> \<open>End of Loop invariant:\<close>
     subgoal
       using uL_M by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def init_analysis
           I'_def ac_simps)

@@ -7,7 +7,7 @@ no_notation Ref.update ("_ := _" 62)
 
 (* TODO Move *)
 lemma [sepref_fr_rules]:
-  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo (op =))) \<in>
+  \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in>
     (option_assn bool_assn)\<^sup>k *\<^sub>a (option_assn bool_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: option_assn_alt_def split:option.splits)
 

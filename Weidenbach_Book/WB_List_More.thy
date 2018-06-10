@@ -58,8 +58,9 @@ lemma bounded_const_product:
   assumes \<open>k > 0\<close>
   shows \<open>bounded f \<longleftrightarrow> bounded (\<lambda>i. k * f i)\<close>
   unfolding bounded_def apply (rule iffI)
-   using mult_le_mono2 apply blast
-  by (meson assms le_less_trans less_or_eq_imp_le nat_mult_less_cancel_disj split_div_lemma)
+  using mult_le_mono2 apply blast
+  by (metis Suc_leI add.right_neutral assms mult.commute mult_0_right mult_Suc_right mult_le_mono
+      nat_mult_le_cancel1)
 
 text \<open>This lemma is not used, but here to show that property that can be expected from
   @{term bounded} holds.\<close>
@@ -379,7 +380,7 @@ lemma last_list_update_to_last:
   \<open>last (xs[x := last xs]) = last xs\<close>
   by (metis last_list_update list_update.simps(1))
 
-lemma take_map_nth_alt_def: \<open>take n xs = map (op! xs) [0..<min n (length xs)]\<close>
+lemma take_map_nth_alt_def: \<open>take n xs = map ((!) xs) [0..<min n (length xs)]\<close>
 proof (induction xs rule: rev_induct)
   case Nil
   then show ?case by auto
@@ -582,7 +583,7 @@ fun remove1_cond where
 \<open>remove1_cond f [] = []\<close> |
 \<open>remove1_cond f (C' # L) = (if f C' then L else C' # remove1_cond f L)\<close>
 
-lemma \<open>remove1 x xs = remove1_cond ((op =) x) xs\<close>
+lemma \<open>remove1 x xs = remove1_cond ((=) x) xs\<close>
   by (induction xs) auto
 
 lemma mset_map_mset_remove1_cond:
@@ -595,7 +596,7 @@ fun removeAll_cond :: \<open>('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rig
 \<open>removeAll_cond f [] = []\<close> |
 \<open>removeAll_cond f (C' # L) = (if f C' then removeAll_cond f L else C' # removeAll_cond f L)\<close>
 
-lemma \<open>removeAll x xs = removeAll_cond ((op =) x) xs\<close>
+lemma \<open>removeAll x xs = removeAll_cond ((=) x) xs\<close>
   by (induction xs) auto
 
 lemma \<open>removeAll_cond P xs = filter (\<lambda>x. \<not>P x) xs\<close>
@@ -626,7 +627,7 @@ qed
 subsubsection \<open>Filter\<close>
 
 lemma distinct_filter_eq_if:
-  \<open>distinct C \<Longrightarrow> length (filter (op = L) C) = (if L \<in> set C then 1 else 0)\<close>
+  \<open>distinct C \<Longrightarrow> length (filter ((=) L) C) = (if L \<in> set C then 1 else 0)\<close>
   by (induction C) auto
 
 lemma length_filter_update_true:
@@ -667,7 +668,7 @@ proof -
   finally show ?thesis .
 qed
 
-lemma count_list_filter: \<open>count_list xs x = length (filter (op = x) xs)\<close>
+lemma count_list_filter: \<open>count_list xs x = length (filter ((=) x) xs)\<close>
   by (induction xs) auto
 
 lemma sum_length_filter_compl': \<open>length [x\<leftarrow>xs . \<not> P x] + length (filter P xs) = length xs\<close>
@@ -990,7 +991,7 @@ proof -
    apply (simp; fail)
   apply (case_tac \<open>\<not>k < a \<and> k < Suc b\<close>)
    apply (rule sorted_mset_unique)
-      apply ((auto simp add: sorted_append sorted_insort sorted_Cons ac_simps mset_set_Union
+      apply ((auto simp add: sorted_append sorted_insort ac_simps mset_set_Union
         dest!: H; fail)+)[2]
     apply (auto simp: insort_is_Cons sorted_insort_is_snoc sorted_append mset_set_Union
       ac_simps dest: H; fail)+
@@ -1282,7 +1283,7 @@ text \<open>
   mostly used during the refinement and especially the lifting from a deterministic relator to
   its list version.
 \<close>
-lemma list_all2_op_eq_map_right_iff: \<open>list_all2 (\<lambda>L. op = (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
+lemma list_all2_op_eq_map_right_iff: \<open>list_all2 (\<lambda>L. (=) (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
   apply (induction a arbitrary: aa)
    apply (auto; fail)
   by (rename_tac aa, case_tac aa) (auto)
@@ -1298,7 +1299,7 @@ lemma list_all2_op_eq_map_left_iff: \<open>list_all2 (\<lambda>L' L. L'  = (f L)
   by (rename_tac aa, case_tac aa) (auto)
 
 lemma list_all2_op_eq_map_map_right_iff:
-  \<open>list_all2 (list_all2 (\<lambda>L. op = (f L))) xs' x \<longleftrightarrow> x = map (map f) xs'\<close> for x
+  \<open>list_all2 (list_all2 (\<lambda>L. (=) (f L))) xs' x \<longleftrightarrow> x = map (map f) xs'\<close> for x
     apply (induction xs' arbitrary: x)
      apply (auto; fail)
     apply (case_tac x)

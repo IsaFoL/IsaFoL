@@ -677,7 +677,7 @@ lemma restart_abs_l_restart_prog:
      unfolding restart_abs_l_pre_def
      by (rule exI[of _ \<open>fst (fst (Snb'))\<close>]) simp
     subgoal by simp
-    subgoal by simp -- \<open>If condition\<close>
+    subgoal by simp \<comment> \<open>If condition\<close>
     subgoal by simp
     subgoal by simp
     subgoal unfolding restart_prog_pre_def by meson

@@ -199,7 +199,7 @@ lemma UNSET_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: tri_bool_assn_def tri_bool_ref_def pure_def hr_comp_def)
 
 lemma equality_tri_bool_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo (op =)), uncurry(RETURN oo (op =))) \<in>
+  \<open>(uncurry (return oo (=)), uncurry(RETURN oo (=))) \<in>
       tri_bool_assn\<^sup>k *\<^sub>a tri_bool_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   apply sepref_to_hoare
   using nat_of_uint32_012 nat_of_uint32_3
@@ -207,10 +207,10 @@ lemma equality_tri_bool_hnr[sepref_fr_rules]:
 
 
 definition (in -) tri_bool_eq :: \<open>tri_bool \<Rightarrow> tri_bool \<Rightarrow> bool\<close> where
-  \<open>tri_bool_eq = (op =)\<close>
+  \<open>tri_bool_eq = (=)\<close>
 
 lemma equality_tri_bool_eq_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo (op =)), uncurry(RETURN oo (tri_bool_eq))) \<in>
+  \<open>(uncurry (return oo (=)), uncurry(RETURN oo (tri_bool_eq))) \<in>
       tri_bool_assn\<^sup>k *\<^sub>a tri_bool_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   apply sepref_to_hoare
   using nat_of_uint32_012 nat_of_uint32_3 unfolding tri_bool_eq_def
@@ -1674,7 +1674,7 @@ lemma (in -) nat_of_uint32_mult_le:
   by (auto simp: unat_word_ariths uint_max_def)
 
 lemma (in -) uint32_nat_assn_mult:
-  \<open>(uncurry (return oo (op *)), uncurry (RETURN oo (op *))) \<in> [\<lambda>(a, b). a * b \<le> uint_max]\<^sub>a
+  \<open>(uncurry (return oo (( * ))), uncurry (RETURN oo (( * )))) \<in> [\<lambda>(a, b). a * b \<le> uint_max]\<^sub>a
       uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_mult_le)

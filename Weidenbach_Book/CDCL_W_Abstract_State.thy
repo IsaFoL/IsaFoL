@@ -109,7 +109,7 @@ interpretation cdcl\<^sub>W_restart_mset: conflict_driven_clause_learning\<^sub>
   init_state = init_state
   by unfold_locales
 
-lemma cdcl\<^sub>W_restart_mset_state_eq_eq: "state_eq = (op =)"
+lemma cdcl\<^sub>W_restart_mset_state_eq_eq: "state_eq = (=)"
    apply (intro ext)
    unfolding state_eq_def
    by (auto simp: cdcl\<^sub>W_restart_mset_state state_def)
