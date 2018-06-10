@@ -924,7 +924,7 @@ fun finalise_init_fast_code x =
                    ((Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))),
                      (ema_init (bits_uint64, one_uint64),
                        (ema_init (bits_uint64, one_uint64),
-                         ((Word32.fromInt 0), a2n)))))))))))))))
+                         ((Word32.fromInt 0), (a2n, zero_nata))))))))))))))))
     end)
     x;
 
@@ -2889,7 +2889,7 @@ fun set_LBD_fmap_fast x =
 fun propagate_bt_wl_D_fast_code x =
   (fn ai => fn bia =>
     fn (a1, (a1a, (a1b, (_, (a1d, (a1e, (a1f,
-  (_, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, a2n)))))))))))))))
+  (_, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
       =>
     fn () =>
     let
@@ -2897,26 +2897,26 @@ fun propagate_bt_wl_D_fast_code x =
       val a = vmtf_rescore_fast_code bia a1 a1e a1f ();
     in
       let
-        val (a1o, a2o) = a;
+        val (a1p, a2p) = a;
       in
-        (fn f_ => fn () => f_ ((vmtf_flush_all_fast_code a1 a1o) ()) ())
+        (fn f_ => fn () => f_ ((vmtf_flush_all_fast_code a1 a1p) ()) ())
           (fn x_c =>
             (fn f_ => fn () => f_ ((get_LBD_code a1i) ()) ())
               (fn x_d =>
                 (fn f_ => fn () => f_
                   ((append_and_length_u32_code false bia a1a) ()) ())
-                  (fn (a1p, a2p) =>
-                    (fn f_ => fn () => f_ ((set_LBD_fmap_fast a2p x_d a1p) ())
+                  (fn (a1q, a2q) =>
+                    (fn f_ => fn () => f_ ((set_LBD_fmap_fast a2q x_d a1q) ())
                       ())
                       (fn x_h =>
                         (fn f_ => fn () => f_
                           ((append_el_aa_u (default_uint32, heap_uint32) a1d
-                             (uminus_code ai) a2p)
+                             (uminus_code ai) a2q)
                           ()) ())
                           (fn x_j =>
                             (fn f_ => fn () => f_
                               ((append_el_aa_u (default_uint32, heap_uint32) x_j
-                                 xa a2p)
+                                 xa a2q)
                               ()) ())
                               (fn x_l =>
                                 (fn f_ => fn () => f_ ((lbd_empty_code a1i) ())
@@ -2924,22 +2924,22 @@ fun propagate_bt_wl_D_fast_code x =
                                   (fn x_n =>
                                     (fn f_ => fn () => f_
                                       ((cons_trail_Propagated_tr_fast_code
- (uminus_code ai) a2p a1)
+ (uminus_code ai) a2q a1)
                                       ()) ())
                                       (fn x_o =>
 (fn f_ => fn () => f_
-  ((arl_append (default_nat, heap_nat) a2n (nat_of_uint32 a2p)) ()) ())
+  ((arl_append (default_nat, heap_nat) a1o (nat_of_uint32 a2q)) ()) ())
   (fn xb =>
     (fn () =>
       (x_o, (x_h, (a1b, ([ai],
-                          (x_l, (x_c, (a2o,
+                          (x_l, (x_c, (a2p,
 ((Word32.fromInt 0),
   (a1h, (x_n, (a1j, (a1k, (ema_update_ref (nat_of_integer (5 : IntInf.int)) a1l
                              x_d,
                             (ema_update_ref (nat_of_integer (14 : IntInf.int))
                                a1m x_d,
                               (Word32.+ (a1n, (Word32.fromInt 1)),
-                                xb)))))))))))))))))))))))))
+                                (xb, suc a2o))))))))))))))))))))))))))
       end
         ()
     end)
@@ -4517,7 +4517,7 @@ fun vmtf_rescore_code x =
 fun propagate_bt_wl_D_code x =
   (fn ai => fn bia =>
     fn (a1, (a1a, (a1b, (_, (a1d, (a1e, (a1f,
-  (_, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, a2n)))))))))))))))
+  (_, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
       =>
     fn () =>
     let
@@ -4525,26 +4525,26 @@ fun propagate_bt_wl_D_code x =
       val a = vmtf_rescore_code bia a1 a1e a1f ();
     in
       let
-        val (a1o, a2o) = a;
+        val (a1p, a2p) = a;
       in
-        (fn f_ => fn () => f_ ((vmtf_flush_all_code a1 a1o) ()) ())
+        (fn f_ => fn () => f_ ((vmtf_flush_all_code a1 a1p) ()) ())
           (fn x_c =>
             (fn f_ => fn () => f_ ((get_LBD_code a1i) ()) ())
               (fn x_d =>
                 (fn f_ => fn () => f_ ((append_and_length_code false bia a1a)
                   ()) ())
-                  (fn (a1p, a2p) =>
-                    (fn f_ => fn () => f_ ((set_LBD_fmap_slow a2p x_d a1p) ())
+                  (fn (a1q, a2q) =>
+                    (fn f_ => fn () => f_ ((set_LBD_fmap_slow a2q x_d a1q) ())
                       ())
                       (fn x_h =>
                         (fn f_ => fn () => f_
                           ((append_el_aa_u (default_nat, heap_nat) a1d
-                             (uminus_code ai) a2p)
+                             (uminus_code ai) a2q)
                           ()) ())
                           (fn x_j =>
                             (fn f_ => fn () => f_
                               ((append_el_aa_u (default_nat, heap_nat) x_j xa
-                                 a2p)
+                                 a2q)
                               ()) ())
                               (fn x_l =>
                                 (fn f_ => fn () => f_ ((lbd_empty_code a1i) ())
@@ -4552,21 +4552,21 @@ fun propagate_bt_wl_D_code x =
                                   (fn x_n =>
                                     (fn f_ => fn () => f_
                                       ((cons_trail_Propagated_tr_code
- (uminus_code ai) a2p a1)
+ (uminus_code ai) a2q a1)
                                       ()) ())
                                       (fn x_o =>
-(fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a2n a2p) ()) ())
+(fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a1o a2q) ()) ())
   (fn xb =>
     (fn () =>
       (x_o, (x_h, (a1b, ([ai],
-                          (x_l, (x_c, (a2o,
+                          (x_l, (x_c, (a2p,
 ((Word32.fromInt 0),
   (a1h, (x_n, (a1j, (a1k, (ema_update_ref (nat_of_integer (5 : IntInf.int)) a1l
                              x_d,
                             (ema_update_ref (nat_of_integer (14 : IntInf.int))
                                a1m x_d,
                               (Word32.+ (a1n, (Word32.fromInt 1)),
-                                xb)))))))))))))))))))))))))
+                                (xb, suc a2o))))))))))))))))))))))))))
       end
         ()
     end)
@@ -4964,7 +4964,7 @@ fun convert_wlists_to_nat_code x =
 
 fun isasat_fast_slow_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, a2m))))))))))))))
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
      =>
     fn () =>
     let
@@ -4972,7 +4972,7 @@ fun isasat_fast_slow_code x =
       val xaa = convert_wlists_to_nat_code a1d ();
     in
       (xa, (a1a, (a1b, (a1c, (xaa, (a1e, (a1f,
-   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, a2m))))))))))))))
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
     end)
     x;
 
@@ -5302,7 +5302,7 @@ fun finalise_init_code x =
                    ((Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))),
                      (ema_init (bits_uint64, one_uint64),
                        (ema_init (bits_uint64, one_uint64),
-                         ((Word32.fromInt 0), a2n)))))))))))))))
+                         ((Word32.fromInt 0), (a2n, zero_nata))))))))))))))))
     end)
     x;
 
