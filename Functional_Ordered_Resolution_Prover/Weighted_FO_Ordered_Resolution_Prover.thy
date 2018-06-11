@@ -100,14 +100,14 @@ lemma weighted_RP_imp_RP: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_
 proof (induction rule: weighted_RP.induct)
   case (backward_subsumption_P D N C P Q n)
   show ?case
-    by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>", OF _ _
+    by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>)", OF _ _
           RP.backward_subsumption_P[of D "fst ` set_mset N" C "fst ` set_mset P - {C}"
             "fst ` set_mset Q"]])
       (use backward_subsumption_P in auto)
 next
   case (inference_computation P C i N n Q)
   show ?case
-     by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>", OF _ _
+     by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>)", OF _ _
            RP.inference_computation[of "fst ` set_mset N" "fst ` set_mset Q" C
              "fst ` set_mset P - {C}"]],
          use inference_computation(2) finite_ord_FO_resolution_inferences_between
@@ -122,7 +122,7 @@ context
   fixes
     Sts :: "'a wstate llist"
   assumes
-    full_deriv: "full_chain (op \<leadsto>\<^sub>w) Sts" and
+    full_deriv: "full_chain (\<leadsto>\<^sub>w) Sts" and
     empty_P0: "P_of_wstate (lhd Sts) = {}" and
     empty_Q0: "Q_of_wstate (lhd Sts) = {}"
 begin
@@ -134,7 +134,7 @@ lemma finite_Sts0: "finite (clss_of_wstate (lhd Sts))"
 lemmas deriv = full_chain_imp_chain[OF full_deriv]
 lemmas lhd_lmap_Sts = llist.map_sel(1)[OF chain_not_lnull[OF deriv]]
 
-lemma deriv_RP: "chain (op \<leadsto>) (lmap state_of_wstate Sts)"
+lemma deriv_RP: "chain (\<leadsto>) (lmap state_of_wstate Sts)"
   using deriv weighted_RP_imp_RP by (metis chain_lmap)
 
 lemma finite_Sts0_RP: "finite (clss_of_state (lhd (lmap state_of_wstate Sts)))"
@@ -735,7 +735,7 @@ proof (rule ccontr)
   then have "lfinite Sts"
     by auto
   then have no_inf_from_last: "\<forall>y. \<not> llast Sts \<leadsto>\<^sub>w y" 
-    using full_chain_iff_chain[of "op \<leadsto>\<^sub>w" Sts] full_deriv by auto
+    using full_chain_iff_chain[of "(\<leadsto>\<^sub>w)" Sts] full_deriv by auto
 
   from assms obtain C where
     "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))
@@ -905,7 +905,7 @@ next
     using Suc
     by (metis enat_ord_simps(2) le_less_Suc_eq less_le_trans not_le) 
   then have "lnth Sts i \<leadsto>\<^sub>w lnth Sts (Suc i)"
-    using deriv chain_lnth_rel[of "op \<leadsto>\<^sub>w" Sts i] by auto
+    using deriv chain_lnth_rel[of "(\<leadsto>\<^sub>w)" Sts i] by auto
   then have "n_of_wstate (lnth Sts i) \<le> n_of_wstate (lnth Sts (i + 1))"
     using n_of_wstate_weighted_RP_increasing[of "lnth Sts i" "lnth Sts (i + 1)"] by auto
   ultimately show ?case
@@ -968,12 +968,12 @@ proof (rule ccontr)
       "\<And>j. k \<le> j \<Longrightarrow> \<exists>i. (C, i) \<in># wN_of_wstate (lnth Sts j)"
       unfolding Liminf_llist_def 
       by auto
-    have chain_drop_Sts: "chain op \<leadsto>\<^sub>w (ldrop k Sts)"
+    have chain_drop_Sts: "chain (\<leadsto>\<^sub>w) (ldrop k Sts)"
       using deriv inf inff inf_chain_ldrop_chain by auto
     have in_N_j: "\<And>j. \<exists>i. (C, i) \<in># wN_of_wstate (lnth (ldrop k Sts) j)"
       using k_p by (simp add: add.commute inf)
     then have "chain (\<lambda>x y. (x, y) \<in> RP_filtered_relation)\<inverse>\<inverse> (lmap (RP_filtered_measure (\<lambda>Ci. True)) (ldrop k Sts))"
-      using inff inf infinite_chain_relation_measure[of "\<lambda>St. \<exists>i. (C, i) \<in># wN_of_wstate St" "op \<leadsto>\<^sub>w"] weighted_RP_Non_Inference_measure_decreasing chain_drop_Sts by blast
+      using inff inf infinite_chain_relation_measure[of "\<lambda>St. \<exists>i. (C, i) \<in># wN_of_wstate St" "(\<leadsto>\<^sub>w)"] weighted_RP_Non_Inference_measure_decreasing chain_drop_Sts by blast
     then show False
       using wfP_iff_no_infinite_down_chain_llist[of "\<lambda>x y. (x, y) \<in> RP_filtered_relation"] 
         wf_RP_filtered_relation inff
@@ -998,13 +998,13 @@ proof (rule ccontr)
       using inf inff by force
     then have Ci_inn: "\<forall>k'. (C, i) \<in># (wP_of_wstate) (lnth (ldrop k Sts) k')"
       by auto
-    have "chain op \<leadsto>\<^sub>w (ldrop k Sts)"
+    have "chain (\<leadsto>\<^sub>w) (ldrop k Sts)"
       using deriv 
       using inf_chain_ldrop_chain inf inff
       by auto
     then have "chain (\<lambda>x y. (x, y) \<in> RP_combined_relation)\<inverse>\<inverse> (lmap (RP_combined_measure (weight (C, i))) (ldrop k Sts))"
       using inff inf Ci_in
-      using infinite_chain_relation_measure[of "\<lambda>St. (C, i) \<in># wP_of_wstate St" "op \<leadsto>\<^sub>w" "RP_combined_measure (weight (C, i))" ]
+      using infinite_chain_relation_measure[of "\<lambda>St. (C, i) \<in># wP_of_wstate St" "(\<leadsto>\<^sub>w)" "RP_combined_measure (weight (C, i))" ]
       using weighted_RP_Inference_measure_decreasing
       by auto
     then show False
