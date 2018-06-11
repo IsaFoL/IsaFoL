@@ -26,13 +26,11 @@ text \<open>
 lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
   by (auto simp: bounded_def) presburger
 
-context isasat_input_ops
-begin
+global_interpretation twl_restart_ops id
+  by unfold_locales
 
-sublocale isasat_restart_ops id
+sublocale isasat_input_ops \<subseteq> isasat_restart_ops id
   .
-
-end
 
 context isasat_input_bounded_nempty
 begin
@@ -573,7 +571,7 @@ proof -
     done
 qed
 
-definition remove_all_annot_true_clause_imp_wl_D_heur_inv
+definition(in isasat_input_ops)  remove_all_annot_true_clause_imp_wl_D_heur_inv
   :: \<open>twl_st_wl_heur \<Rightarrow> nat list \<Rightarrow> nat \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
 where
   \<open>remove_all_annot_true_clause_imp_wl_D_heur_inv S xs = (\<lambda>(i, T).
@@ -590,12 +588,12 @@ where
       }
   })\<close>
 
-definition remove_all_annot_true_clause_imp_wl_D_heur_pre where
+definition(in isasat_input_ops) remove_all_annot_true_clause_imp_wl_D_heur_pre where
   \<open>remove_all_annot_true_clause_imp_wl_D_heur_pre L S \<longleftrightarrow>
     (\<exists>S'. (S, S') \<in> twl_st_heur \<and> remove_all_annot_true_clause_imp_wl_D_pre L S')\<close>
 
 (* TODO: unfold Let when generating code! *)
-definition remove_all_annot_true_clause_imp_wl_D_heur
+definition(in isasat_input_ops) remove_all_annot_true_clause_imp_wl_D_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>remove_all_annot_true_clause_imp_wl_D_heur = (\<lambda>L (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
@@ -897,7 +895,7 @@ prepare_code_thms (in -) cdcl_twl_stgy_restart_prog_wl_heur_code_def
 
 lemmas cdcl_twl_stgy_restart_prog_wl_heur_hnr[sepref_fr_rules] =
    cdcl_twl_stgy_restart_prog_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
+thm cdcl_twl_stgy_restart_prog_wl_heur_hnr
 
 text \<open>TODO There is no fast mode yet!\<close>
 (* sepref_thm cdcl_twl_stgy_restart_prog_wl_heur_fast_code

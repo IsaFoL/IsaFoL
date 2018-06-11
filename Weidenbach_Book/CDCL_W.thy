@@ -91,7 +91,7 @@ text \<open>
 locale state\<^sub>W_no_state =
   state\<^sub>W_ops
     state
-    \<comment> \<open>functions about the state: \<close>
+    \<comment> \<open>functions about the state:\<close>
       \<comment> \<open>getter:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>setter:\<close>
@@ -168,7 +168,7 @@ locale state\<^sub>W_no_state =
 locale state\<^sub>W =
   state\<^sub>W_no_state
     state_eq state
-    \<comment> \<open>functions about the state: \<close>
+    \<comment> \<open>functions about the state:\<close>
       \<comment> \<open>getter:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>setter:\<close>
@@ -518,7 +518,7 @@ locale conflict_driven_clause_learning\<^sub>W =
   state\<^sub>W
     state_eq
     state
-    \<comment> \<open>functions for the state: \<close>
+    \<comment> \<open>functions for the state:\<close>
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>changing state:\<close>

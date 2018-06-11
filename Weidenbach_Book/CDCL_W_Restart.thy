@@ -12,7 +12,7 @@ locale cdcl\<^sub>W_restart_restart_ops =
   conflict_driven_clause_learning\<^sub>W
     state_eq
     state
-    \<comment> \<open>functions for the state: \<close>
+    \<comment> \<open>functions for the state:\<close>
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>changing state:\<close>
@@ -544,7 +544,7 @@ end
 locale luby_sequence_restart =
   luby_sequence ur +
   conflict_driven_clause_learning\<^sub>W
-    \<comment> \<open>functions for the state: \<close>
+    \<comment> \<open>functions for the state:\<close>
     state_eq state
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss conflicting

@@ -173,12 +173,12 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     "biblio.bib"
 
 session "IsaSAT_pre" (Weidenbach_Book) = "CDCL"  +
-  description \<open>This intermediate session loads all things prior to IsaSAT. This should fasten the development by faster startup-time\<close>
-  options [document = pdf, document_output = "output"]
+  description \<open>This intermediate session loads all things prior to IsaSAT. This should fasten the development by faster startup-time. Therefore, we also don't want any documentation\<close>
+  options[document = false]
   sessions
     CDCL
     "HOL-Eisbach"
-  theories [quick_and_dirty = false, document = true]
+  theories
     (* Restarts not clear if different session of not *)
     Watched_Literals_Watch_List_Initialisation
     Watched_Literals_Transition_System_Restart
