@@ -2,7 +2,7 @@ theory Watched_Literals_Algorithm_Restart
   imports Watched_Literals_Algorithm Watched_Literals_Transition_System_Restart
 begin
 
-context twl_restart
+context twl_restart_ops
 begin
 
 text \<open>Restarts are never necessary\<close>
@@ -13,7 +13,9 @@ definition (in -) restart_prog_pre :: \<open>'v twl_st \<Rightarrow> bool \<Righ
   \<open>restart_prog_pre S brk \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and>
     (\<not>brk \<longrightarrow> get_conflict S = None)\<close>
 
-definition restart_prog :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> nat) nres" where
+definition restart_prog
+  :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> nat) nres"
+where
   \<open>restart_prog S n brk = do {
      ASSERT(restart_prog_pre S brk);
      b \<leftarrow> restart_required S n;
@@ -40,7 +42,7 @@ lemma cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2:
   \<open>cdcl_twl_stgy_restart (T, m) (V, m) \<Longrightarrow>
        cdcl_twl_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_twl_stgy_restart (S, m) (V, m)\<close>
   by (subst (asm) cdcl_twl_stgy_restart.simps)
-   (auto simp: intro: cdcl_twl_stgy_restart.intros
+    (auto simp: intro: cdcl_twl_stgy_restart.intros
       dest: rtranclp_tranclp_tranclp rtranclp_full1I)
 
 
@@ -49,7 +51,7 @@ definition cdcl_twl_stgy_restart_with_leftovers1 where
      cdcl_twl_stgy_restart S U \<or>
      (cdcl_twl_stgy\<^sup>+\<^sup>+ (fst S) (fst U) \<and> snd S = snd U)\<close>
 
-lemma wf_cdcl_twl_stgy_restart_with_leftovers1:
+lemma (in twl_restart) wf_cdcl_twl_stgy_restart_with_leftovers1:
   \<open>wf {(T :: 'v twl_st \<times> nat, S).
         twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart_with_leftovers1 S T}\<close>
   (is \<open>wf ?S\<close>)
@@ -200,7 +202,7 @@ proof (rule ccontr)
 qed
 
 
-lemma wf_cdcl_twl_stgy_restart_measure:
+lemma (in twl_restart) wf_cdcl_twl_stgy_restart_measure:
    \<open>wf ({((brkT, T, n), brkS, S, m).
          twl_struct_invs S \<and> cdcl_twl_stgy_restart_with_leftovers1 (S, m) (T, n)} \<union>
         {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS})\<close>
@@ -247,7 +249,7 @@ definition cdcl_twl_stgy_restart_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres
     RETURN T
   }\<close>
 
-lemma restart_prog_spec:
+lemma (in twl_restart) restart_prog_spec:
   fixes n :: string
   assumes
     inv: \<open>case (brk, T, m) of  (brk, T, m) \<Rightarrow> cdcl_twl_stgy_restart_prog_inv S brk T m\<close> and
@@ -467,7 +469,7 @@ lemma cdcl_twl_stgy_restart_with_leftovers_refl: \<open>cdcl_twl_stgy_restart_wi
   by (rule exI[of _ \<open>fst S\<close>]) auto
 
 (* declare restart_prog_spec[THEN order_trans, refine_vcg] *)
-lemma cdcl_twl_stgy_prog_spec:
+lemma (in twl_restart) cdcl_twl_stgy_prog_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
@@ -502,7 +504,7 @@ proof -
       done
   qed
   show ?thesis
-   supply RETURN_as_SPEC_refine[refine2 del]
+    supply RETURN_as_SPEC_refine[refine2 del]
     unfolding cdcl_twl_stgy_restart_prog_def full_def cdcl_twl_stgy_restart_prog_inv_def
     apply (refine_vcg WHILEIT_rule[where
            R = \<open>{((brkT, T, n), (brkS, S, m)).

@@ -1,7 +1,6 @@
 theory IsaSAT_Restart
-  imports IsaSAT_pre.Watched_Literals_Watch_List_Domain_Restart IsaSAT_pre.IsaSAT_Setup
-     IsaSAT_pre.IsaSAT_VMTF
-    IsaSAT_pre.Watched_Literals_Heuristics IsaSAT_pre.IsaSAT_CDCL
+  imports IsaSAT_pre.Watched_Literals_Watch_List_Domain_Restart
+     IsaSAT_pre.IsaSAT_CDCL
 begin
 
 
@@ -27,13 +26,22 @@ text \<open>
 lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
   by (auto simp: bounded_def) presburger
 
-context isasat_input_bounded
+context isasat_input_ops
+begin
+
+sublocale isasat_restart_ops id
+  .
+
+end
+
+context isasat_input_bounded_nempty
 begin
 
 text \<open>
   We first fix the function that proves termination. We don't take the ``smallest'' function
   possible (other possibilites that are growing slower include \<^term>\<open>\<lambda>(n::nat). n >> 50\<close>).
 \<close>
+
 sublocale isasat_restart_bounded id
   by standard (rule unbounded_id)
 
@@ -49,7 +57,7 @@ sepref_definition get_slow_ema_heur_fast_code
   by sepref
 
 concrete_definition (in -) get_slow_ema_heur_fast_code
-   uses isasat_input_bounded.get_slow_ema_heur_fast_code.refine_raw
+   uses isasat_input_bounded_nempty.get_slow_ema_heur_fast_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_slow_ema_heur_fast_code_def
@@ -64,7 +72,7 @@ sepref_definition get_slow_ema_heur_slow_code
   by sepref
 
 concrete_definition (in -) get_slow_ema_heur_slow_code
-   uses isasat_input_bounded.get_slow_ema_heur_slow_code.refine_raw
+   uses isasat_input_bounded_nempty.get_slow_ema_heur_slow_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_slow_ema_heur_slow_code_def
@@ -85,7 +93,7 @@ sepref_definition get_fast_ema_heur_fast_code
   by sepref
 
 concrete_definition (in -) get_fast_ema_heur_fast_code
-   uses isasat_input_bounded.get_fast_ema_heur_fast_code.refine_raw
+   uses isasat_input_bounded_nempty.get_fast_ema_heur_fast_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_fast_ema_heur_fast_code_def
@@ -100,7 +108,7 @@ sepref_definition get_fast_ema_heur_slow_code
   by sepref
 
 concrete_definition (in -) get_fast_ema_heur_slow_code
-   uses isasat_input_bounded.get_fast_ema_heur_slow_code.refine_raw
+   uses isasat_input_bounded_nempty.get_fast_ema_heur_slow_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_fast_ema_heur_slow_code_def
@@ -120,7 +128,7 @@ sepref_definition get_conflict_count_heur_fast_code
   by sepref
 
 concrete_definition (in -) get_conflict_count_heur_fast_code
-   uses isasat_input_bounded.get_conflict_count_heur_fast_code.refine_raw
+   uses isasat_input_bounded_nempty.get_conflict_count_heur_fast_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_conflict_count_heur_fast_code_def
@@ -135,7 +143,7 @@ sepref_definition get_conflict_count_heur_slow_code
   by sepref
 
 concrete_definition (in -) get_conflict_count_heur_slow_code
-   uses isasat_input_bounded.get_conflict_count_heur_slow_code.refine_raw
+   uses isasat_input_bounded_nempty.get_conflict_count_heur_slow_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_conflict_count_heur_slow_code_def
@@ -155,7 +163,7 @@ sepref_definition get_learned_count_fast_code
   by sepref
 
 concrete_definition (in -) get_learned_count_fast_code
-   uses isasat_input_bounded.get_learned_count_fast_code.refine_raw
+   uses isasat_input_bounded_nempty.get_learned_count_fast_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_learned_count_fast_code_def
@@ -170,7 +178,7 @@ sepref_definition get_learned_count_slow_code
   by sepref
 
 concrete_definition (in -) get_learned_count_slow_code
-   uses isasat_input_bounded.get_learned_count_slow_code.refine_raw
+   uses isasat_input_bounded_nempty.get_learned_count_slow_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_learned_count_slow_code_def
@@ -212,13 +220,31 @@ sepref_thm find_local_restart_target_level_code
   by sepref
 
 concrete_definition (in -) find_local_restart_target_level_code
-   uses isasat_input_bounded.find_local_restart_target_level_code.refine_raw
+   uses isasat_input_bounded_nempty.find_local_restart_target_level_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) find_local_restart_target_level_code_def
 
 lemmas find_local_restart_target_level_code_def_hnr (*[sepref_fr_rules]*) =
-   find_local_restart_target_level_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+   find_local_restart_target_level_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+
+sepref_thm find_local_restart_target_level_fast_code
+  is \<open>uncurry find_local_restart_target_level_int\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=1]] length_rev[simp del]
+  unfolding find_local_restart_target_level_int_def find_local_restart_target_level_int_inv_def
+  by sepref
+
+concrete_definition (in -) find_local_restart_target_level_fast_code
+   uses isasat_input_bounded_nempty.find_local_restart_target_level_fast_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) find_local_restart_target_level_fast_code_def
+
+lemmas find_local_restart_target_level_fast_code_def_hnr (*[sepref_fr_rules]*) =
+   find_local_restart_target_level_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
 
 definition (in isasat_input_ops) find_local_restart_target_level where
   \<open>find_local_restart_target_level M _ = SPEC(\<lambda>i. i \<le> count_decided M)\<close>
@@ -283,16 +309,65 @@ lemma find_local_restart_target_level_int_find_local_restart_target_level:
     done
   done
 
+lemma find_local_restart_target_level_hnr[sepref_fr_rules]:
+  \<open>(uncurry find_local_restart_target_level_code, uncurry find_local_restart_target_level)
+    \<in> [\<lambda>(b, a). a \<in> vmtf b]\<^sub>a trail_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  using find_local_restart_target_level_code_def_hnr[FCOMP
+       find_local_restart_target_level_int_find_local_restart_target_level] .
+
+lemma find_local_restart_target_level_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry find_local_restart_target_level_fast_code, uncurry find_local_restart_target_level)
+    \<in> [\<lambda>(b, a). a \<in> vmtf b]\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  using find_local_restart_target_level_fast_code_def_hnr[FCOMP
+       find_local_restart_target_level_int_find_local_restart_target_level] .
+
 definition (in isasat_input_ops) find_local_restart_target_level_st :: \<open>twl_st_wl_heur \<Rightarrow> nat nres\<close> where
-  \<open>find_local_restart_target_level_st S =
-     find_local_restart_target_level (get_trail_wl_heur S) (get_vmtf_heur S)\<close>
+  \<open>find_local_restart_target_level_st S = do {
+     ASSERT(get_vmtf_heur S \<in>  vmtf (get_trail_wl_heur S));
+     find_local_restart_target_level (get_trail_wl_heur S) (get_vmtf_heur S)
+  }\<close>
 
 lemma find_local_restart_target_level_st_alt_def:
-  \<open>find_local_restart_target_level_st = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, stats).
-      find_local_restart_target_level M vm)\<close>
+  \<open>find_local_restart_target_level_st = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, stats). do {
+      ASSERT(vm \<in>  vmtf M);
+      find_local_restart_target_level M vm})\<close>
   apply (intro ext)
   apply (case_tac x)
   by (auto simp: find_local_restart_target_level_st_def)
+
+
+sepref_thm find_local_restart_target_level_st_code
+  is \<open>PR_CONST find_local_restart_target_level_st\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=1]] length_rev[simp del]
+  unfolding find_local_restart_target_level_st_alt_def isasat_assn_def PR_CONST_def
+  by sepref
+
+concrete_definition (in -) find_local_restart_target_level_st_code
+   uses isasat_input_bounded_nempty.find_local_restart_target_level_st_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) find_local_restart_target_level_st_code_def
+
+sepref_register find_local_restart_target_level_st
+lemmas find_local_restart_target_level_st_hnr [sepref_fr_rules] =
+   find_local_restart_target_level_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+
+sepref_thm find_local_restart_target_level_st_fast_code
+  is \<open>PR_CONST find_local_restart_target_level_st\<close>
+  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=1]] length_rev[simp del]
+  unfolding find_local_restart_target_level_st_alt_def isasat_fast_assn_def PR_CONST_def
+  by sepref
+
+concrete_definition (in -) find_local_restart_target_level_st_fast_code
+   uses isasat_input_bounded_nempty.find_local_restart_target_level_st_fast_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) find_local_restart_target_level_st_fast_code_def
+lemmas find_local_restart_target_level_st_fast_hnr [sepref_fr_rules] =
+   find_local_restart_target_level_st_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 definition (in isasat_input_ops) empty_Q :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>empty_Q = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, stats). do{
@@ -309,7 +384,7 @@ where
   \<open>cdcl_twl_local_restart_wl_D_heur = (\<lambda>S. do {
       ASSERT(restart_abs_wl_heur_pre S False);
       lvl \<leftarrow> find_local_restart_target_level_st S;
-      if lvl = count_decided (get_trail_wl_heur S)
+      if lvl = count_decided_st S
       then RETURN S
       else do {
         S \<leftarrow> empty_Q S;
@@ -317,6 +392,70 @@ where
         find_decomp_wl_st_int lvl S
       }
    })\<close>
+
+
+sepref_thm empty_Q_code
+  is \<open>empty_Q\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding empty_Q_def isasat_assn_def IICF_List_Mset.lms_fold_custom_empty
+  by sepref
+
+concrete_definition (in -) empty_Q_code
+   uses isasat_input_bounded_nempty.empty_Q_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) empty_Q_code_def
+
+lemmas empty_Q_hnr [sepref_fr_rules] =
+   empty_Q_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+
+sepref_thm empty_Q_fast_code
+  is \<open>empty_Q\<close>
+  :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_fast_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding empty_Q_def isasat_fast_assn_def IICF_List_Mset.lms_fold_custom_empty
+  by sepref
+
+concrete_definition (in -) empty_Q_fast_code
+   uses isasat_input_bounded_nempty.empty_Q_fast_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) empty_Q_fast_code_def
+lemmas empty_Q_fast_hnr [sepref_fr_rules] =
+   empty_Q_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_register cdcl_twl_local_restart_wl_D_heur
+  empty_Q find_decomp_wl_st_int
+
+sepref_thm cdcl_twl_local_restart_wl_D_heur_code
+  is \<open>PR_CONST cdcl_twl_local_restart_wl_D_heur\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  unfolding cdcl_twl_local_restart_wl_D_heur_def PR_CONST_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) cdcl_twl_local_restart_wl_D_heur_code
+   uses isasat_input_bounded_nempty.cdcl_twl_local_restart_wl_D_heur_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+lemmas cdcl_twl_local_restart_wl_D_heur_hnr [sepref_fr_rules] =
+   cdcl_twl_local_restart_wl_D_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm cdcl_twl_local_restart_wl_D_heur_fast_code
+  is \<open>PR_CONST cdcl_twl_local_restart_wl_D_heur\<close>
+  :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_fast_assn\<close>
+  unfolding cdcl_twl_local_restart_wl_D_heur_def PR_CONST_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) cdcl_twl_local_restart_wl_D_heur_fast_code
+   uses isasat_input_bounded_nempty.cdcl_twl_local_restart_wl_D_heur_fast_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+lemmas cdcl_twl_local_restart_wl_D_heur_fast_hnr [sepref_fr_rules] =
+   cdcl_twl_local_restart_wl_D_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 named_theorems twl_st_heur
 
@@ -388,6 +527,10 @@ proof -
         image_iff split:if_splits)
 qed
 
+lemma count_decided_st_alt_def':
+  \<open>count_decided_st S = count_decided (get_trail_wl_heur S)\<close>
+  by (cases S) (auto simp: count_decided_st_def)
+
 lemma cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec:
   \<open>(cdcl_twl_local_restart_wl_D_heur, cdcl_twl_local_restart_wl_D_spec) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
@@ -410,7 +553,7 @@ proof -
           i \<le> count_decided a} (SPEC (\<lambda>_. True))\<close> for a
     by (auto intro: RES_refine)
   show ?thesis
-    unfolding cdcl_twl_local_restart_wl_D_heur_def
+    unfolding cdcl_twl_local_restart_wl_D_heur_def count_decided_st_alt_def'
       find_decomp_wl_st_int_def find_local_restart_target_level_def
       find_decomp_w_ns_def empty_Q_def find_local_restart_target_level_st_def
     apply (intro frefI nres_relI)
@@ -421,6 +564,7 @@ proof -
     unfolding bind_to_let_conv Let_def RES_RETURN_RES2
     apply (refine_vcg )
     subgoal unfolding restart_abs_wl_heur_pre_def by blast
+    subgoal by (force simp: twl_st_heur_def)
     subgoal by auto
     subgoal
       by (force dest: restart_abs_wl_D_pre_find_decomp_w_ns_pre)
@@ -436,7 +580,8 @@ where
        \<exists>S' T'. (S, S') \<in> twl_st_heur \<and> (T, T') \<in> twl_st_heur \<and>
          remove_all_annot_true_clause_imp_wl_D_inv S' xs (i, T'))
      \<close>
-definition remove_all_annot_true_clause_one_imp_heur
+
+definition (in isasat_input_ops) remove_all_annot_true_clause_one_imp_heur
 where
 \<open>remove_all_annot_true_clause_one_imp_heur = (\<lambda>(C, N). do {
       if C \<in># dom_m N then RETURN (fmdrop C N)
@@ -521,13 +666,14 @@ definition (in -) restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<R
     let sema = get_slow_ema_heur S;
 
     let sema' = (five_uint64 * get_slow_ema_heur S) >> 2;
+       \<comment>\<open>roughly speaking 125/100 with hopefully no overflow\<close>
     let fema = get_fast_ema_heur S;
     
     let ccount = get_conflict_count_heur S ;
     let lcount = get_learned_count S;
     let can_res = (lcount > n );
     let min_reached = (ccount > minimum_number_between_restarts);
-    RETURN (sema > fema   \<and> min_reached \<and> can_res)}
+    RETURN (sema > fema \<and> min_reached \<and> can_res)}
   \<close>
 
 sepref_thm restart_required_heur_fast_code
@@ -537,13 +683,13 @@ sepref_thm restart_required_heur_fast_code
   by sepref
 
 concrete_definition (in -) restart_required_heur_fast_code
-   uses isasat_input_bounded.restart_required_heur_fast_code.refine_raw
+   uses isasat_input_bounded_nempty.restart_required_heur_fast_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) restart_required_heur_fast_code_def
 
 lemmas restart_required_heur_fast_code_hnr[sepref_fr_rules] =
-   restart_required_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+   restart_required_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 sepref_thm restart_required_heur_slow_code
   is \<open>uncurry restart_required_heur\<close>
@@ -552,15 +698,15 @@ sepref_thm restart_required_heur_slow_code
   by sepref
 
 concrete_definition (in -) restart_required_heur_slow_code
-   uses isasat_input_bounded.restart_required_heur_slow_code.refine_raw
+   uses isasat_input_bounded_nempty.restart_required_heur_slow_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) restart_required_heur_slow_code_def
 
 lemmas restart_required_heur_slow_code_hnr[sepref_fr_rules] =
-   restart_required_heur_slow_code.refine
+   restart_required_heur_slow_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-definition cdcl_twl_restart_wl_heur where
+definition (in isasat_input_ops) cdcl_twl_restart_wl_heur where
 \<open>cdcl_twl_restart_wl_heur S = do {
    cdcl_twl_local_restart_wl_D_heur S
   }\<close>
@@ -585,7 +731,7 @@ lemma cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog:
   done
 
 
-definition restart_prog_wl_D_heur
+definition (in isasat_input_ops) restart_prog_wl_D_heur
   :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur \<times> nat) nres" 
 where
   \<open>restart_prog_wl_D_heur S n brk = do {
@@ -593,14 +739,45 @@ where
     if \<not>brk \<and> b
     then do {
        T \<leftarrow> cdcl_twl_restart_wl_heur S;
-       RETURN (T, n)
+       RETURN (T, n+1)
     }
     else RETURN (S, n)
   }\<close>
 
-definition cdcl_twl_stgy_restart_prog_wl_heur :: "twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres" where
+lemma restart_required_heur_restart_required_wl:
+  \<open>(uncurry restart_required_heur, uncurry restart_required_wl) \<in>
+    twl_st_heur \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+    unfolding restart_required_heur_def restart_required_wl_def uncurry_def Let_def
+    by (intro frefI nres_relI)
+     (auto simp: twl_st_heur_def get_learned_clss_wl_def)
+
+lemma restart_prog_wl_D_heur_restart_prog_wl_D:
+  \<open>(uncurry2 restart_prog_wl_D_heur, uncurry2 restart_prog_wl_D) \<in>
+    twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel  \<rightarrow>\<^sub>f \<langle>twl_st_heur \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+  unfolding restart_prog_wl_D_heur_def restart_prog_wl_D_def uncurry_def
+  apply (intro frefI nres_relI)
+  apply (refine_rcg
+      restart_required_heur_restart_required_wl[THEN fref_to_Down_curry]
+      cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
+      cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D[THEN fref_to_Down]
+      cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[THEN fref_to_Down])
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
+definition (in isasat_input_ops) cdcl_twl_stgy_restart_abs_wl_heur_inv where
+  \<open>cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n \<longleftrightarrow>
+    (\<exists>S\<^sub>0' T'. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur \<and> (T, T') \<in> twl_st_heur \<and>
+      cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0' brk T' n)\<close>
+
+definition (in isasat_input_ops) cdcl_twl_stgy_restart_prog_wl_heur
+   :: "twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres"
+where
   \<open>cdcl_twl_stgy_restart_prog_wl_heur S\<^sub>0 = do {
-    (brk, T, _) \<leftarrow> WHILE\<^sub>T
+    (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n\<^esup>
       (\<lambda>(brk, _). \<not>brk)
       (\<lambda>(brk, S, n).
       do {
@@ -614,6 +791,127 @@ definition cdcl_twl_stgy_restart_prog_wl_heur :: "twl_st_wl_heur \<Rightarrow> t
   }\<close>
 
 
-end
+lemma cdcl_twl_stgy_restart_prog_wl_heur_cdcl_twl_stgy_restart_prog_wl_D:
+  \<open>(cdcl_twl_stgy_restart_prog_wl_heur, cdcl_twl_stgy_restart_prog_wl_D) \<in>
+    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding cdcl_twl_stgy_restart_prog_wl_heur_def cdcl_twl_stgy_restart_prog_wl_D_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg
+        restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry2]
+        cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
+        cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D[THEN fref_to_Down]
+        unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D[THEN fref_to_Down]
+        WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r twl_st_heur \<times>\<^sub>r nat_rel\<close>])
+    subgoal by auto
+    subgoal unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def by fastforce
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+sepref_thm cdcl_twl_restart_wl_heur_code
+  is \<open>PR_CONST cdcl_twl_restart_wl_heur\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  unfolding cdcl_twl_restart_wl_heur_def PR_CONST_def
+  supply [[goals_limit = 1]]
+  by sepref
 
+concrete_definition (in -) cdcl_twl_restart_wl_heur_code
+   uses isasat_input_bounded_nempty.cdcl_twl_restart_wl_heur_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) cdcl_twl_restart_wl_heur_code_def
+
+lemmas cdcl_twl_restart_wl_heur_code[sepref_fr_rules] =
+   cdcl_twl_restart_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm cdcl_twl_restart_wl_heur_fast_code
+  is \<open>PR_CONST cdcl_twl_restart_wl_heur\<close>
+  :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_fast_assn\<close>
+  unfolding cdcl_twl_restart_wl_heur_def PR_CONST_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) cdcl_twl_restart_wl_heur_fast_code
+   uses isasat_input_bounded_nempty.cdcl_twl_restart_wl_heur_fast_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) cdcl_twl_restart_wl_heur_fast_code_def
+
+lemmas cdcl_twl_restart_wl_heur_fast_code[sepref_fr_rules] =
+   cdcl_twl_restart_wl_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_register restart_required_heur cdcl_twl_restart_wl_heur
+sepref_thm restart_wl_D_heur_slow_code
+  is \<open>uncurry2 (PR_CONST restart_prog_wl_D_heur)\<close>
+  :: \<open>isasat_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a isasat_assn *a nat_assn\<close>
+  unfolding restart_prog_wl_D_heur_def PR_CONST_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) restart_wl_D_heur_slow_code
+   uses isasat_input_bounded_nempty.restart_wl_D_heur_slow_code.refine_raw
+   is \<open>(uncurry2 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) restart_wl_D_heur_slow_code_def
+
+lemmas restart_wl_D_heur_slow_code[sepref_fr_rules] =
+   restart_wl_D_heur_slow_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm restart_prog_wl_D_heur_fast_code
+  is \<open>uncurry2 (PR_CONST restart_prog_wl_D_heur)\<close>
+  :: \<open>isasat_fast_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a isasat_fast_assn *a nat_assn\<close>
+  unfolding restart_prog_wl_D_heur_def PR_CONST_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) restart_prog_wl_D_heur_fast_code
+   uses isasat_input_bounded_nempty.restart_prog_wl_D_heur_fast_code.refine_raw
+   is \<open>(uncurry2 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) restart_prog_wl_D_heur_fast_code_def
+
+lemmas restart_prog_wl_D_heur_fast_code[sepref_fr_rules] =
+   restart_prog_wl_D_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_register unit_propagation_outer_loop_wl_D_heur cdcl_twl_o_prog_wl_D_heur
+  restart_prog_wl_D_heur
+
+sepref_thm cdcl_twl_stgy_restart_prog_wl_heur_code
+  is \<open>PR_CONST cdcl_twl_stgy_restart_prog_wl_heur\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  unfolding cdcl_twl_stgy_restart_prog_wl_heur_def PR_CONST_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+
+concrete_definition (in -) cdcl_twl_stgy_restart_prog_wl_heur_code
+   uses isasat_input_bounded_nempty.cdcl_twl_stgy_restart_prog_wl_heur_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) cdcl_twl_stgy_restart_prog_wl_heur_code_def
+
+lemmas cdcl_twl_stgy_restart_prog_wl_heur_hnr[sepref_fr_rules] =
+   cdcl_twl_stgy_restart_prog_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+
+text \<open>TODO There is no fast mode yet!\<close>
+(* sepref_thm cdcl_twl_stgy_restart_prog_wl_heur_fast_code
+  is \<open>PR_CONST cdcl_twl_stgy_restart_prog_wl_heur\<close>
+  :: \<open>[\<lambda>S. isasat_fast S]\<^sub>aisasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+  unfolding cdcl_twl_stgy_restart_prog_wl_heur_def PR_CONST_def
+  supply [[goals_limit = 1]]
+    apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
+
+  by sepref *)
+
+end
+ (* No code equations for isasat_input_bounded_nempty.get_conflict_count_heur_slow_code, isasat_input_bounded_nempty.get_slow_ema_heur_slow_code, isasat_input_bounded_nempty.get_learned_count_slow_code, isasat_input_bounded_nempty.get_fast_ema_heur_slow_code *)
 end

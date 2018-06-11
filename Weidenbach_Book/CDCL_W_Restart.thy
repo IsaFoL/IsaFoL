@@ -8,7 +8,7 @@ text \<open>We here extend our calculus.\<close>
 
 section \<open>Restarts\<close>
 
-locale cdcl\<^sub>W_restart_restart =
+locale cdcl\<^sub>W_restart_restart_ops =
   conflict_driven_clause_learning\<^sub>W
     state_eq
     state
@@ -39,9 +39,12 @@ locale cdcl\<^sub>W_restart_restart =
     init_state :: \<open>'v clauses \<Rightarrow> 'st\<close> +
   fixes
     f :: \<open>nat \<Rightarrow> nat\<close>
+
+locale cdcl\<^sub>W_restart_restart =
+  cdcl\<^sub>W_restart_restart_ops +
   assumes
     f: \<open>unbounded f\<close>
-begin
+  
 
 text \<open>The condition of the differences of cardinality has to be strict.
   Otherwise, you could be in a strange state, where nothing remains to do, but a restart is done.
@@ -49,7 +52,8 @@ text \<open>The condition of the differences of cardinality has to be strict.
   With a \<^term>\<open>full cdcl\<^sub>W_stgy S T\<close>, this rules could be applied one after the other, doing
   nothing each time.
 \<close>
-
+context cdcl\<^sub>W_restart_restart_ops
+begin
 inductive cdcl\<^sub>W_merge_with_restart where
 restart_step:
   \<open>(cdcl\<^sub>W_stgy^^(card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)))) S T
@@ -98,7 +102,7 @@ lemma cdcl\<^sub>W_merge_with_restart_init_clss:
   init_clss (fst S) = init_clss (fst T)\<close>
   using cdcl\<^sub>W_merge_with_restart_rtranclp_cdcl\<^sub>W_restart rtranclp_cdcl\<^sub>W_restart_init_clss by blast
 
-lemma
+lemma (in cdcl\<^sub>W_restart_restart)
   \<open>wf {(T, S). cdcl\<^sub>W_all_struct_inv (fst S) \<and> cdcl\<^sub>W_merge_with_restart S T}\<close>
 proof (rule ccontr)
   assume \<open>\<not> ?thesis\<close>
@@ -221,7 +225,7 @@ lemma cdcl\<^sub>W_restart_with_restart_init_clss:
      init_clss (fst S) = init_clss (fst T)\<close>
   using cdcl\<^sub>W_restart_with_restart_rtranclp_cdcl\<^sub>W_restart rtranclp_cdcl\<^sub>W_restart_init_clss by blast
 
-theorem
+theorem (in cdcl\<^sub>W_restart_restart)
   \<open>wf {(T, S). cdcl\<^sub>W_all_struct_inv (fst S) \<and> cdcl\<^sub>W_restart_with_restart S T}\<close>
 proof (rule ccontr)
   assume \<open>\<not> ?thesis\<close>

@@ -632,13 +632,15 @@ definition (in -) restart_abs_l_pre :: \<open>'v twl_st_l \<Rightarrow> bool \<R
     (\<exists>S'. (S, S') \<in> twl_st_l None \<and> restart_prog_pre S' brk
       \<and> twl_list_invs S \<and> clauses_to_update_l S = {#})\<close>
 
-context twl_restart
+context twl_restart_ops
 begin
 
 definition restart_required_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_l S n = SPEC (\<lambda>b. b \<longrightarrow> size (get_learned_clss_l S) > f n)\<close>
 
-definition restart_abs_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres" where
+definition restart_abs_l
+  :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres"
+where
   \<open>restart_abs_l S n brk = do {
      ASSERT(restart_abs_l_pre S brk);
      b \<leftarrow> restart_required_l S n;
@@ -750,7 +752,7 @@ text \<open>
   We here start the refinement towards an executable version of the restarts. The idea of the
   restart is the following:
   \<^enum> We backtrack to level 0. This simplifies further steps.
-  \<^enum> We first move all clause annotating a literal to  \<^term>\<open>NE\<close> or \<^term>\<open>UE\<close>.
+  \<^enum> We first move all clause annotating a literal to \<^term>\<open>NE\<close> or \<^term>\<open>UE\<close>.
   \<^enum> Then, we move remaining clauses that are watching the some literal at level 0.
   \<^enum> Now we can safely deleting any remaining learned clauses.
   \<^enum> Once all that is done, we have to recalculate the watch lists (and can on the way GC the set of
@@ -759,7 +761,7 @@ text \<open>
 
 subsubsection \<open>Handle true clauses from the trail\<close>
 
-lemma (in -) in_set_mset_eq_in:
+lemma in_set_mset_eq_in:
   \<open>i \<in> set A \<Longrightarrow> mset A = B \<Longrightarrow> i \<in># B\<close>
   by fastforce
 
@@ -2770,11 +2772,13 @@ proof -
     done
 qed
 
-context twl_restart
+
+context twl_restart_ops
 begin
 
-
-definition restart_prog_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres" where
+definition restart_prog_l
+  :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres"
+where
   \<open>restart_prog_l S n brk = do {
      ASSERT(restart_abs_l_pre S brk);
      b \<leftarrow> restart_required_l S n;
@@ -2889,10 +2893,10 @@ proof -
     done
 qed
 
-lemma cdcl_twl_stgy_restart_prog_l_cdcl_twl_stgy_restart_prog:
- \<open>(cdcl_twl_stgy_restart_prog_l, cdcl_twl_stgy_restart_prog)
-  \<in> {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}} \<rightarrow>\<^sub>f
-   \<langle>{(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S}\<rangle>nres_rel\<close>
+lemma (in twl_restart) cdcl_twl_stgy_restart_prog_l_cdcl_twl_stgy_restart_prog:
+  \<open>(cdcl_twl_stgy_restart_prog_l, cdcl_twl_stgy_restart_prog)
+    \<in> {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}} \<rightarrow>\<^sub>f
+      \<langle>{(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S}\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (rule order_trans)
   defer

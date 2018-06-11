@@ -528,7 +528,7 @@ lemma rtranclp_cdcl_twl_restart_twl_stgy_invs:
   using assms by (induction rule: rtranclp_induct) (auto simp: cdcl_twl_restart_twl_stgy_invs)
 
 
-context twl_restart
+context twl_restart_ops
 begin
 
 inductive cdcl_twl_stgy_restart :: \<open>'v twl_st \<times> nat \<Rightarrow> 'v twl_st \<times> nat \<Rightarrow> bool\<close> where
@@ -742,6 +742,12 @@ lemma rtranclp_cdcl_twl_stgy_restart_new_abs:
   subgoal by auto
   subgoal by (auto intro: cdcl_twl_stgy_restart_new rtranclp_cdcl_twl_stgy_restart_twl_struct_invs)
   done
+
+end
+
+
+context twl_restart
+begin
 
 theorem wf_cdcl_twl_stgy_restart:
   \<open>wf {(T, S :: 'v twl_st \<times> nat). twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart S T}\<close>

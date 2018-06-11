@@ -3,7 +3,7 @@ theory Watched_Literals_Watch_List_Domain_Restart
 begin
 
 locale isasat_restart_ops =
-  twl_restart + isasat_input_ops
+  twl_restart_ops + isasat_input_ops
 
 locale isasat_restart_bounded =
   twl_restart + isasat_input_bounded
@@ -57,13 +57,13 @@ qed
 
 end
 
-context isasat_restart_bounded
+sublocale isasat_restart_bounded \<subseteq> isasat_restart_ops
+  .
+
+context isasat_restart_ops
 begin
 
-sublocale isasat_restart_ops
-  by standard
-
-definition remove_all_annot_true_clause_imp_wl_D_inv
+definition (in isasat_restart_ops) remove_all_annot_true_clause_imp_wl_D_inv
   :: \<open>nat twl_st_wl \<Rightarrow> _ \<Rightarrow> nat \<times> nat twl_st_wl \<Rightarrow> bool\<close>
 where
   \<open>remove_all_annot_true_clause_imp_wl_D_inv S xs = (\<lambda>(i, T).
@@ -1087,7 +1087,7 @@ definition (in isasat_input_ops) restart_abs_wl_D_pre :: \<open>nat twl_st_wl \<
   \<open>restart_abs_wl_D_pre S brk \<longleftrightarrow>
     (restart_abs_wl_pre S brk \<and> literals_are_\<L>\<^sub>i\<^sub>n S)\<close>
 
-definition (in isasat_input_ops) cdcl_twl_local_restart_wl_D_spec 
+definition (in isasat_input_ops) cdcl_twl_local_restart_wl_D_spec
   :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
 where
   \<open>cdcl_twl_local_restart_wl_D_spec = (\<lambda>(M, N, D, NE, UE, Q, W). do {
@@ -1102,7 +1102,7 @@ lemma cdcl_twl_local_restart_wl_D_spec_cdcl_twl_local_restart_wl_spec:
     \<in> [\<lambda>S. restart_abs_wl_D_pre S False]\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>
       \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
 proof -
-   
+
   show ?thesis
     unfolding cdcl_twl_local_restart_wl_D_spec_def cdcl_twl_local_restart_wl_spec_def
       rewatch_clauses_def
@@ -1174,7 +1174,9 @@ proof -
     done
 qed
 
-definition cdcl_twl_stgy_restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+definition cdcl_twl_stgy_restart_prog_wl_D
+  :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres"
+where
   \<open>cdcl_twl_stgy_restart_prog_wl_D S\<^sub>0 =
   do {
     (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
@@ -1190,7 +1192,7 @@ definition cdcl_twl_stgy_restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat t
     RETURN T
   }\<close>
 
-lemma cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl:
+lemma (in isasat_restart_bounded) cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl:
   \<open>(cdcl_twl_stgy_restart_prog_wl_D, cdcl_twl_stgy_restart_prog_wl) \<in>
      {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
      \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>

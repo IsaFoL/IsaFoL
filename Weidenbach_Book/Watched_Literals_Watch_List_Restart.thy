@@ -913,10 +913,12 @@ qed
 context twl_restart
 begin
 
-definition restart_required_wl  :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
+definition (in twl_restart_ops) restart_required_wl  :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
 \<open>restart_required_wl S n = SPEC (\<lambda>b. b \<longrightarrow> f n < size (get_learned_clss_wl S))\<close>
 
-definition restart_prog_wl :: "'v twl_st_wl \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_wl \<times> nat) nres" where
+definition (in twl_restart_ops) restart_prog_wl
+  :: "'v twl_st_wl \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_wl \<times> nat) nres"
+where
   \<open>restart_prog_wl S n brk = do {
      ASSERT(restart_abs_wl_pre S brk);
      b \<leftarrow> restart_required_wl S n;
@@ -958,7 +960,7 @@ proof -
     done
 qed
 
-definition cdcl_twl_stgy_restart_abs_wl_inv
+definition (in twl_restart_ops) cdcl_twl_stgy_restart_abs_wl_inv
    :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> 'v twl_st_wl \<Rightarrow> nat \<Rightarrow> bool\<close> where
   \<open>cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n \<equiv>
     (\<exists>S\<^sub>0' T'.
@@ -968,7 +970,9 @@ definition cdcl_twl_stgy_restart_abs_wl_inv
        correct_watching T)\<close>
 
 
-definition cdcl_twl_stgy_restart_prog_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
+definition (in twl_restart_ops) cdcl_twl_stgy_restart_prog_wl
+  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close>
+where
   \<open>cdcl_twl_stgy_restart_prog_wl (S\<^sub>0::'v twl_st_wl) =
   do {
     (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
