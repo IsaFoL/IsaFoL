@@ -166,7 +166,8 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_Algorithm_Restart
     Watched_Literals_List_Restart
     Watched_Literals_Watch_List_Restart
-   Watched_Literals_Watch_List_Domain_Restart
+    Watched_Literals_Watch_List_Domain_Restart
+    IsaSAT_Initialisation
   document_files
     "root.tex"
     "biblio.bib"
@@ -183,11 +184,12 @@ session "IsaSAT_pre" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_Transition_System_Restart
     Watched_Literals_Algorithm_Restart
     Watched_Literals_Watch_List_Domain
-    Watched_Literals_Initialisation
     Watched_Literals_Watch_List_Code_Common
     LBD
     IsaSAT_CDCL
     Watched_Literals_Watch_List_Domain_Restart
+    Watched_Literals_Initialisation
+    IsaSAT_Initialisation
   document_files
     "root.tex"
     "biblio.bib"
