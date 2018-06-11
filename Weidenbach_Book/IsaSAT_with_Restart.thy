@@ -23,9 +23,9 @@ text \<open>to get a full SAT:
 definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset nres\<close> where
   \<open>SAT CS = do{
     let T = init_state CS;
-    SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy T U \<or>
+    SPEC (\<lambda>U. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<^sup>*\<^sup>* T U \<and> (no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W U \<or>
           (CS \<noteq> {#} \<and> conflicting U \<noteq> None \<and> count_decided (trail U) = 0 \<and>
-          unsatisfiable (set_mset CS)))
+          unsatisfiable (set_mset CS))))
   }\<close>
 
 text \<open>In the following program, the condition \<^term>\<open>length CS < uint_max - 1\<close> is only necessary
@@ -1337,12 +1337,6 @@ proof -
   have H: \<open>A + B = C \<Longrightarrow> A \<subseteq># C\<close> for A B C
     by auto
   define f :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where \<open>f = RETURN\<close>
-  have  IsaSAT_heur_alt_def: \<open>IsaSAT_heur CS = do{
-    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
-    let \<A>\<^sub>i\<^sub>n'' = mset_set (extract_atms_clss CS {});
-    ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n'');
-    ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n'');
-    let b = IsaSAT_use_fast_mode;
     (* if b \<and> length CS < uint_max - 1
     then do {
         S \<leftarrow> isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n'';
@@ -1366,6 +1360,12 @@ proof -
          }
       }
     else *)
+  have  IsaSAT_heur_alt_def: \<open>IsaSAT_heur CS = do{
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
+    let \<A>\<^sub>i\<^sub>n'' = mset_set (extract_atms_clss CS {});
+    ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n'');
+    ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n'');
+    let b = IsaSAT_use_fast_mode;
     do {
         S \<leftarrow> isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n'';
         S \<leftarrow> f S;
