@@ -30,11 +30,7 @@ definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset
 
 text \<open>In the following program, the condition \<^term>\<open>length CS < uint_max - 1\<close> is only necessary
   to simplify the refinement and should not be necessary.\<close>
-definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
-  \<open>SAT_wl CS = do{
-    let \<A>\<^sub>i\<^sub>n' = extract_atms_clss CS {};
-    b \<leftarrow> SPEC(\<lambda>_::bool. True);
-    (* if b \<and> length CS < uint_max - 1 \<comment> \<open>simplifies the refinement\<close>
+(* if b \<and> length CS < uint_max - 1 \<comment> \<open>simplifies the refinement\<close>
     then
      do {
       let S = isasat_input_ops.init_state_wl (mset_set \<A>\<^sub>i\<^sub>n');
@@ -52,6 +48,11 @@ definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl
       }
    }
    else *)
+definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
+  \<open>SAT_wl CS = do{
+    let \<A>\<^sub>i\<^sub>n' = extract_atms_clss CS {};
+    b \<leftarrow> SPEC(\<lambda>_::bool. True);
+
   do {
       let S = isasat_input_ops.init_state_wl (mset_set \<A>\<^sub>i\<^sub>n');
       T \<leftarrow> init_dt_wl CS (to_init_state S);
@@ -82,12 +83,6 @@ definition extract_stats where
 definition extract_stats_init where
   [simp]: \<open>extract_stats_init = None\<close>
 
-definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list option nres\<close> where
-  \<open>IsaSAT CS = do{
-    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
-    ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
-    ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
-    b \<leftarrow> SPEC(\<lambda>_::bool. True);
     (* if b \<and> length CS < uint_max - 1
     then do {
       let S = isasat_input_ops.init_state_wl \<A>\<^sub>i\<^sub>n';
@@ -108,6 +103,12 @@ definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list opt
       }
     }
     else *)
+definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list option nres\<close> where
+  \<open>IsaSAT CS = do{
+    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
+    ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
+    ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
+    b \<leftarrow> SPEC(\<lambda>_::bool. True);
      do {
       let S = isasat_input_ops.init_state_wl \<A>\<^sub>i\<^sub>n';
       let S = to_init_state S;
@@ -252,14 +253,6 @@ lemma IsaSAT_use_fast_mode[sepref_fr_rules]:
   \<open>(uncurry0 (return IsaSAT_use_fast_mode), uncurry0 (RETURN IsaSAT_use_fast_mode))
    \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare sep_auto
-
-definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal list option \<times> stats) nres\<close> where
-  \<open>IsaSAT_heur CS = do{
-    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
-    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
-    ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
-    ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
-    let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
     (* if IsaSAT_use_fast_mode \<and> length CS < uint_max - 1
     then do {
         S \<leftarrow> isasat_input_ops.init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
@@ -283,6 +276,14 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
          }
       }
     else *)
+definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal list option \<times> stats) nres\<close> where
+  \<open>IsaSAT_heur CS = do{
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
+    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
+    ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
+    ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
+    let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
+
      do {
         S \<leftarrow> isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur \<A>\<^sub>i\<^sub>n'' CS S;

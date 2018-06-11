@@ -684,17 +684,17 @@ proof -
 qed
 
 definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> nat \<Rightarrow> ema\<close> where
-  \<open>ema_update coeff ema lbd = (ema >> coeff) + uint64_of_uint32 ((uint32_of_nat lbd) << (32 - coeff))\<close>
+  \<open>ema_update coeff ema lbd = (ema >> coeff) + ((uint64_of_nat lbd) << (48 - coeff))\<close>
 
 definition (in -) ema_update_ref :: \<open>nat \<Rightarrow> ema \<Rightarrow> uint32 \<Rightarrow> ema\<close> where
-  \<open>ema_update_ref coeff ema lbd = (ema >> coeff) + uint64_of_uint32 (lbd << (32 - coeff))\<close>
+  \<open>ema_update_ref coeff ema lbd = (ema >> coeff) +  ((uint64_of_uint32 lbd) << (48 - coeff))\<close>
 
 lemma (in -) ema_update_hnr[sepref_fr_rules]:
   \<open>(uncurry2 (return ooo ema_update_ref), uncurry2 (RETURN ooo ema_update)) \<in>
      nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-     unfolding ema_update_def ema_update_ref_def
-     by sepref_to_hoare
-       (sep_auto simp: uint32_nat_rel_def br_def)
+  unfolding ema_update_def ema_update_ref_def
+  by sepref_to_hoare
+     (sep_auto simp: uint32_nat_rel_def br_def uint64_of_uint32_def)
 
 abbreviation(in -) ema_update_slow where
   \<open>ema_update_slow \<equiv> ema_update 14\<close>
