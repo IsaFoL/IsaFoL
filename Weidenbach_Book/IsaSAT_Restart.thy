@@ -699,9 +699,9 @@ lemma (in -) shoftr_uint64[sepref_fr_rules]:
   \<in>  uint64_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by sepref_to_hoare sep_auto
 
-
 definition (in -) restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_heur S n = do {
+    let after_bt = \<not>(literals_to_update_wl_empty_heur S);
     let sema = get_slow_ema_heur S;
     let sema' = (five_uint64 * get_slow_ema_heur S) >> 2;
        \<comment>\<open>roughly speaking 125/100 with hopefully no overflow\<close>
