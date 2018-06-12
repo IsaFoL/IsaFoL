@@ -935,7 +935,6 @@ prepare_code_thms (in -) cdcl_twl_stgy_restart_prog_wl_heur_code_def
 
 lemmas cdcl_twl_stgy_restart_prog_wl_heur_hnr[sepref_fr_rules] =
    cdcl_twl_stgy_restart_prog_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-thm cdcl_twl_stgy_restart_prog_wl_heur_hnr
 
 text \<open>TODO There is no fast mode yet!\<close>
 (* sepref_thm cdcl_twl_stgy_restart_prog_wl_heur_fast_code
