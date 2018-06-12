@@ -12,6 +12,7 @@ TODO.
 
 theory Executable_FO_Ordered_Resolution_Prover
   imports Deterministic_FO_Ordered_Resolution_Prover Executable_Subsumption
+    "HOL-Library.Code_Target_Nat"
 begin
 
 global_interpretation RP: deterministic_FO_resolution_prover where
@@ -143,19 +144,6 @@ declare
 export_code St0 in SML
 export_code deterministic_RP in SML module_name RP
 
-definition prover where
-  "prover N = (case deterministic_RP (St0 N 0) of
-      None \<Rightarrow> True
-    | Some R \<Rightarrow> if [] \<in> set R then False else True)"
-
-lemma "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
-  unfolding prover_def St0_def
-  using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
-  by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
-    split: option.splits if_splits)
-
-export_code prover in SML module_name RP
-
 
 (*arbitrary*)
 instantiation nat :: weighted begin
@@ -167,6 +155,21 @@ instance
     (auto simp: weights_nat_def SN_iff_wf asymp.simps irreflp_def prod_encode_def
       intro!: wf_subset[OF wf_lex_prod])
 end
+
+
+
+definition prover:: "((nat, nat) Term.term literal list \<times> nat) list \<Rightarrow> bool" where
+  "prover N = (case deterministic_RP (St0 N 0) of
+      None \<Rightarrow> True
+    | Some R \<Rightarrow> if [] \<in> set R then False else True)"
+
+lemma "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
+  unfolding prover_def St0_def
+  using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
+  by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
+    split: option.splits if_splits)
+
+export_code prover in Haskell module_name RP
 
 abbreviation "\<pp> \<equiv> Fun 42"
 abbreviation "\<aa> \<equiv> Fun 0 []"

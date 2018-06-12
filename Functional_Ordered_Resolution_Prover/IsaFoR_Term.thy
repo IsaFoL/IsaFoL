@@ -10,7 +10,7 @@ theory IsaFoR_Term
   imports
     Deriving.Derive
     Ordered_Resolution_Prover.Abstract_Substitution
-    Processors.KBO
+    Ord.KBO
     First_Order_Terms.Unification
     First_Order_Terms.Fun_More
     First_Order_Terms.Subsumption
