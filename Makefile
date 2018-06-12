@@ -7,7 +7,7 @@ RUN_ISABELLE2017="$(ISABELLE2017)/bin/isabelle"
 ISABELLE_HOME=/home/zmaths/.isabelle/browser_info
 ISABELLE2017_HOME=/home/zmaths/.isabelle/Isabelle2017/browser_info
 
-AFP=$(ISABELLE)/../afp-2017
+AFP=$(ISABELLE)/../afp-devel
 DESTINATION="$(shell pwd)/html"
 
 ISABELLE_version= $(shell (cd $(ISABELLE) && hg id --id))
@@ -52,11 +52,11 @@ current: Ordered_Resolution_Prover Unordered_Resolution
 # move the html documentation to the locale directory
 doc:
 	mkdir -p $(DESTINATION)/current
-	cp -R $(ISABELLE2017_HOME)/Weidenbach_Book $(DESTINATION)/current || :
-	cp -R $(ISABELLE2017_HOME)/Functional_Ordered_Resolution_Prover $(DESTINATION)/current || :
+	cp -R $(ISABELLE_HOME)/Weidenbach_Book $(DESTINATION)/current || :
+	cp -R $(ISABELLE_HOME)/Functional_Ordered_Resolution_Prover $(DESTINATION)/current || :
 #	cp -R $(ISABELLE2017_HOME)/Ordered_Resolution_Prover $(DESTINATION)/current || :
 #	cp -R $(ISABELLE2017_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current || :
-	./add_dates.pl --noverbose --unsafe --isabelle="2017" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP_version)"
+	./add_dates.pl --noverbose --unsafe --isabelle="$(ISABELLE_version)" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP_version)"
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
