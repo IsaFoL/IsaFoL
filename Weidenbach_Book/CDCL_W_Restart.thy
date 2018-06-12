@@ -8,6 +8,70 @@ text \<open>We here extend our calculus.\<close>
 
 section \<open>Restarts\<close>
 
+context conflict_driven_clause_learning\<^sub>W
+begin
+text \<open>This is an unrestricted version.\<close>
+inductive cdcl\<^sub>W_restart_stgy for S T :: \<open>'st \<times> nat\<close> where
+  \<open>cdcl\<^sub>W_stgy (fst S) (fst T) \<Longrightarrow> snd S = snd T \<Longrightarrow> cdcl\<^sub>W_restart_stgy S T\<close> |
+  \<open>restart (fst S) (fst T) \<Longrightarrow> snd T = Suc (snd S) \<Longrightarrow> cdcl\<^sub>W_restart_stgy S T\<close>
+
+lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_restart: \<open>cdcl\<^sub>W_stgy S S' \<Longrightarrow> cdcl\<^sub>W_restart S S'\<close>
+  by (induction rule: cdcl\<^sub>W_stgy.induct) auto
+
+lemma cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart:
+  \<open>cdcl\<^sub>W_restart_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart (fst S) (fst T)\<close>
+  by (induction rule: cdcl\<^sub>W_restart_stgy.induct)
+    (auto dest: cdcl\<^sub>W_stgy_cdcl\<^sub>W_restart simp: cdcl\<^sub>W_restart.simps cdcl\<^sub>W_rf.restart)
+
+lemma rtranclp_cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart:
+  \<open>cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart\<^sup>*\<^sup>* (fst S) (fst T)\<close>
+  by (induction rule: rtranclp_induct)
+    (auto dest: cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart)
+
+lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_restart_stgy:
+  \<open>cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_stgy (S, n) (T, n)\<close>
+  using cdcl\<^sub>W_restart_stgy.intros [of \<open>(S, n)\<close> \<open>(T, n)\<close>]
+  by auto
+
+lemma rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_restart_stgy:
+  \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (S, n) (T, n)\<close>
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for T U
+    by (auto dest!: cdcl\<^sub>W_stgy_cdcl\<^sub>W_restart_stgy[of _ _ n])
+  done
+
+lemma cdcl\<^sub>W_restart_dcl\<^sub>W_all_struct_inv:
+  \<open>cdcl\<^sub>W_restart_stgy S T \<Longrightarrow> cdcl\<^sub>W_all_struct_inv (fst S) \<Longrightarrow>  cdcl\<^sub>W_all_struct_inv (fst T)\<close>
+  using cdcl\<^sub>W_all_struct_inv_inv[OF cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart] .
+
+lemma rtranclp_cdcl\<^sub>W_restart_dcl\<^sub>W_all_struct_inv:
+  \<open>cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_all_struct_inv (fst S) \<Longrightarrow>  cdcl\<^sub>W_all_struct_inv (fst T)\<close>
+  by (induction rule: rtranclp_induct)
+     (auto intro: cdcl\<^sub>W_restart_dcl\<^sub>W_all_struct_inv)
+
+lemma restart_cdcl\<^sub>W_stgy_invariant:
+  \<open>restart S T \<Longrightarrow> cdcl\<^sub>W_stgy_invariant T\<close>
+  by (auto simp: restart.simps cdcl\<^sub>W_stgy_invariant_def state_prop no_smaller_confl_def)
+
+lemma cdcl\<^sub>W_restart_dcl\<^sub>W_stgy_invariant:
+  \<open>cdcl\<^sub>W_restart_stgy S T \<Longrightarrow> cdcl\<^sub>W_all_struct_inv (fst S) \<Longrightarrow> cdcl\<^sub>W_stgy_invariant (fst S) \<Longrightarrow>
+      cdcl\<^sub>W_stgy_invariant (fst T)\<close>
+  apply (induction rule: cdcl\<^sub>W_restart_stgy.induct)
+  subgoal using cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant .
+  subgoal by (auto dest!: cdcl\<^sub>W_rf.intros cdcl\<^sub>W_restart.intros simp: restart_cdcl\<^sub>W_stgy_invariant)
+  done
+
+lemma rtranclp_cdcl\<^sub>W_restart_dcl\<^sub>W_stgy_invariant:
+  \<open>cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_all_struct_inv (fst S) \<Longrightarrow> cdcl\<^sub>W_stgy_invariant (fst S) \<Longrightarrow>
+      cdcl\<^sub>W_stgy_invariant (fst T)\<close>
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal by (auto simp: rtranclp_cdcl\<^sub>W_restart_dcl\<^sub>W_all_struct_inv cdcl\<^sub>W_restart_dcl\<^sub>W_stgy_invariant)
+  done
+
+end
+
 locale cdcl\<^sub>W_restart_restart_ops =
   conflict_driven_clause_learning\<^sub>W
     state_eq
@@ -318,6 +382,7 @@ next
   then show ?case using \<open>restart T U\<close> unfolding clauses_def
     by (metis distinct_mset_union fstI restartE subset_mset.le_iff_add union_assoc)
 qed
+
 end
 
 locale luby_sequence =

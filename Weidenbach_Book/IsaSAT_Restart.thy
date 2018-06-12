@@ -688,16 +688,6 @@ lemma (in -) two_uint64[sepref_fr_rules]:
   \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by sepref_to_hoare sep_auto
 
-lemma (in -) mult_uint64[sepref_fr_rules]:
- \<open>(uncurry (return oo ( * ) ), uncurry (RETURN oo ( * )))
-  \<in>  uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare sep_auto
-
-
-lemma (in -) shoftr_uint64[sepref_fr_rules]:
- \<open>(uncurry (return oo (>>) ), uncurry (RETURN oo (>>)))
-  \<in>  uint64_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare sep_auto
 
 definition (in -) restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_heur S n = do {
