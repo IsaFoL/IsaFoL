@@ -1017,4 +1017,41 @@ qed
 
 end
 
+
+context isasat_input_bounded_nempty
+begin
+
+theorem cdcl_twl_stgy_restart_prog_wl_spec:
+  \<open>(cdcl_twl_stgy_restart_prog_wl, cdcl_twl_stgy_restart_prog_l) \<in> {(S::'v twl_st_wl, S').
+       (S, S') \<in> state_wl_l None \<and> correct_watching S} \<rightarrow> \<langle>state_wl_l None\<rangle>nres_rel\<close>
+   (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
+proof -
+  have H: \<open>((False, S', 0), False, S, 0) \<in> {((brk', T', n'), (brk, T, n)). (T', T) \<in> state_wl_l None \<and> brk' = brk \<and>
+       correct_watching T' \<and> n = n'}\<close>
+    if \<open>(S', S) \<in> state_wl_l None\<close> and
+       \<open>correct_watching S'\<close>
+    for S' :: \<open>'v twl_st_wl\<close> and S :: \<open>'v twl_st_l\<close>
+    using that by auto
+
+  show ?thesis
+    unfolding cdcl_twl_stgy_restart_prog_wl_def cdcl_twl_stgy_restart_prog_l_def
+    apply (refine_rcg H unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
+      cdcl_twl_o_prog_wl_spec[THEN fref_to_Down]
+      cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down_curry2])
+    subgoal for S' S by (cases S') auto
+    subgoal by auto
+    subgoal unfolding cdcl_twl_stgy_restart_abs_wl_inv_def by blast
+    subgoal by auto
+    subgoal by auto
+    subgoal for S' S brk'T' brkT brk' T' by auto
+    subgoal by fast
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+end
+
 end

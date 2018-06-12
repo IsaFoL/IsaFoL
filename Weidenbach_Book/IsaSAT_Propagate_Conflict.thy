@@ -769,7 +769,7 @@ lemmas select_and_remove_from_literals_to_update_wl_fast_code_refine[sepref_fr_r
    select_and_remove_from_literals_to_update_wl_fast_code.refine[of \<A>\<^sub>i\<^sub>n,
      OF isasat_input_bounded_nempty_axioms]
 
-definition literals_to_update_wl_empty_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close>  where
+definition (in -)literals_to_update_wl_empty_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close>  where
   \<open>literals_to_update_wl_empty_heur S \<longleftrightarrow> literals_to_update_wl_heur S = {#}\<close>
 
 lemma

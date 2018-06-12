@@ -618,6 +618,16 @@ lemma uint64_nat_assn_less[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def max_def
       nat_of_uint64_less_iff)
 
+lemma mult_uint64[sepref_fr_rules]:
+ \<open>(uncurry (return oo ( * ) ), uncurry (RETURN oo ( * )))
+  \<in>  uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
+
+lemma shiftr_uint64[sepref_fr_rules]:
+ \<open>(uncurry (return oo (>>) ), uncurry (RETURN oo (>>)))
+  \<in>  uint64_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
+
 text \<open>
   Taken from theory @{theory Uint64}. We use real Word64 instead of the unbounded integer as
   done by default.
