@@ -4,36 +4,6 @@ begin
 
 no_notation Ref.update ("_ := _" 62)
 
-(* TODO Move *)
-definition zero_uint64 where
-  \<open>zero_uint64 \<equiv> (0 :: uint64)\<close>
-
-lemma zero_uint64_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return 0), uncurry0 (RETURN zero_uint64)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare (sep_auto simp: zero_uint64_def)
-
-definition zero_uint32 where
-  \<open>zero_uint32 \<equiv> (0 :: uint32)\<close>
-
-lemma zero_uint32_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return 0), uncurry0 (RETURN zero_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  by sepref_to_hoare (sep_auto simp: zero_uint32_def)
-
-lemma zero_uin64_hnr: \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare sep_auto
-
-definition two_uint64 where \<open>two_uint64 = (2 :: uint64)\<close>
-
-lemma two_uin64_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint64)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare (sep_auto simp: two_uint64_def)
-
-lemma two_uint32_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  by sepref_to_hoare sep_auto
-
-(* End Move *)
-
 section \<open>Code for the initialisation of the Data Structure\<close>
 
 context isasat_input_bounded
@@ -147,6 +117,9 @@ fun (in -) get_watched_list_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow
 
 fun (in -) get_trail_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> (nat,nat) ann_lits\<close> where
   \<open>get_trail_wl_heur_init (M, _, _, _, _, _, _) = M\<close>
+
+abbreviation (in -) Max_dom_wl_heur where
+  \<open>Max_dom_wl_heur S \<equiv> Max_dom (get_clauses_wl_heur_init S)\<close>
 
 abbreviation (in -) isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
   \<open>isasat_fast_init S \<equiv> (\<forall>L \<in># dom_m (get_clauses_wl_heur_init S). L < uint32_max)\<close>
@@ -465,31 +438,6 @@ prepare_code_thms (in -) add_init_cls_fast_code_def
 
 lemmas add_init_cls_heur_fast_hnr[sepref_fr_rules] =
    add_init_cls_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
-(* TODO Move *)
-lemma (in -) in_multiset_ge_Max: \<open>a \<in># N \<Longrightarrow> a > Max (insert 0 (set_mset N)) \<Longrightarrow> False\<close>
-  by (simp add: leD)
-
-lemma (in -)distinct_mset_set_mset_remove1_mset:
-  \<open>distinct_mset M \<Longrightarrow> set_mset (remove1_mset c M) = set_mset M - {c}\<close>
-  by (cases \<open>c \<in># M\<close>) (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
-
-abbreviation (in -) Max_dom_wl_heur where
-  \<open>Max_dom_wl_heur S \<equiv> Max_dom (get_clauses_wl_heur_init S)\<close>
-
-lemma (in -)get_fresh_index_packed_alt_def: \<open>packed N \<Longrightarrow>
- get_fresh_index_packed N = SPEC(\<lambda>i. i = Suc (Max_dom N))\<close>
-  apply (auto simp: get_fresh_index_packed_def packed_def Max_dom_def split: if_splits
-      dest: multi_member_split in_multiset_ge_Max)
-     apply (smt Max_less_iff Suc_leI atLeastLessThan_iff empty_not_insert finite_atLeastLessThan
-      finite_set_mset finite_set_mset_mset_set insertCI lessI linorder_neqE_nat nat_less_le
-      set_mset_add_mset_insert)
-   apply (metis Suc_leI atLeastLessThan_iff finite_atLeastLessThan finite_set_mset_mset_set
-      less_Suc_eq member_add_mset)
-  apply (case_tac x)
-  apply auto
-  done
-(* End Move *)
 
 lemma add_init_cls_heur_add_init_cls:
   \<open>(uncurry add_init_cls_heur, uncurry (add_to_clauses_init_wl)) \<in>
@@ -1824,22 +1772,6 @@ sepref_definition initialise_VMTF_code
   by sepref
 
 declare initialise_VMTF_code.refine[sepref_fr_rules]
-
-(* TODO Move *)
-lemma (in -)finite_length_le_CARD:
-  assumes \<open>distinct (xs :: 'a :: finite list)\<close>
-  shows \<open>length xs \<le> CARD('a)\<close>
-proof -
-  have \<open>set xs \<subseteq> UNIV\<close>
-    by auto
-  show ?thesis
-    by (metis assms card_ge_UNIV distinct_card le_cases)
-qed
-
-lemma list_rel_mset_rel_imp_same_length: \<open>(a, b) \<in> \<langle>R\<rangle>list_rel_mset_rel \<Longrightarrow> length a = size b\<close>
-  by (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def
-      dest: list_rel_imp_same_length)
-(* End Move *)
 
 lemma initialise_VMTF:
   shows \<open>(uncurry initialise_VMTF, uncurry (\<lambda>N n. RES (isasat_input_ops.vmtf_init N []))) \<in>

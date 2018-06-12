@@ -2746,16 +2746,12 @@ fun vmtf_flush_code x =
 
 fun vmtf_flush_all_fast_code x = (fn _ => vmtf_flush_code) x;
 
-fun shiftl_uint32 x n =
-  (if less_nat n (nat_of_integer (32 : IntInf.int))
-    then Uint32.shiftl x (integer_of_nat n) else (Word32.fromInt 0));
-
 fun uint64_of_uint32 x = (Uint64.fromLarge (Word32.toLarge x));
 
 fun ema_update_ref coeff ema lbd =
   Uint64.plus (shiftr_uint64 ema coeff)
-    (uint64_of_uint32
-      (shiftl_uint32 lbd (minus_nat (nat_of_integer (32 : IntInf.int)) coeff)));
+    (shiftl_uint64 (uint64_of_uint32 lbd)
+      (minus_nat (nat_of_integer (48 : IntInf.int)) coeff));
 
 fun lbd_empty_code x =
   (fn (a1, a2) => fn () =>

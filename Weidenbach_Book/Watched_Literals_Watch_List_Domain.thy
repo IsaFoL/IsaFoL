@@ -899,21 +899,6 @@ next
   then show ?eq by blast
 qed
 
-text \<open>TODO Move\<close>
-
-lemma [twl_st_wl]: \<open>get_clauses_wl (set_conflict_wl D S) = get_clauses_wl S\<close>
-  by (cases S) (auto simp: set_conflict_wl_def)
-lemma [twl_st_wl]:
-  \<open>get_unit_init_clss_wl (set_conflict_wl D S) = get_unit_init_clss_wl S\<close>
-  \<open>get_unit_clauses_wl (set_conflict_wl D S) = get_unit_clauses_wl S\<close>
-  by (cases S; auto simp: set_conflict_wl_def; fail)+
-
-lemma (in -) lookup_None_notin_dom_m[simp]:
-  \<open>fmlookup N i = None \<longleftrightarrow> i \<notin># dom_m N\<close>
-  by (auto simp: dom_m_def fmlookup_dom_iff fmember.rep_eq[symmetric])
-text \<open>END Move\<close>
-
-
 lemma unit_propagation_inner_loop_body_wl_D_spec:
   fixes S :: \<open>nat twl_st_wl\<close> and K :: \<open>nat literal\<close> and w :: nat
   assumes

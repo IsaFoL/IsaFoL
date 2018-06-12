@@ -2,26 +2,20 @@ theory WB_More_Refinement
   imports
     Refine_Imperative_HOL.IICF
     Weidenbach_Book_Base.WB_List_More
-    "HOL-Eisbach.Eisbach"
-    "HOL-Eisbach.Eisbach_Tools"
-  "HOL-Library.While_Combinator"
 begin
 
+lemma (in -)finite_length_le_CARD:
+  assumes \<open>distinct (xs :: 'a :: finite list)\<close>
+  shows \<open>length xs \<le> CARD('a)\<close>
+proof -
+  have \<open>set xs \<subseteq> UNIV\<close>
+    by auto
+  show ?thesis
+    by (metis assms card_ge_UNIV distinct_card le_cases)
+qed
+
+
 no_notation Ref.update ("_ := _" 62)
-
-subsection \<open>Not-Related to Refinement\<close>
-
-text \<open>
-  Unlike clarify, this does not split tuple of the form \<^term>\<open>\<exists>T. P T\<close> in the assumption.
-  After calling it, as the variable are not quantified anymore, the simproc does not trigger,
-  allowing to safely call auto/simp/...
-\<close>
-method normalize_goal =
-  (match premises in
-    J[thin]: \<open>\<exists>x. _\<close> \<Rightarrow> \<open>rule exE[OF J]\<close>
-  \<bar> J[thin]: \<open>_ \<and> _\<close> \<Rightarrow> \<open>rule conjE[OF J]\<close>
-  )
-
 
 subsection \<open>Some Tooling for Refinement\<close>
 
@@ -640,6 +634,22 @@ lemma ex_assn_skip_first2:
 lemma nofail_Down_nofail: \<open>nofail gS \<Longrightarrow> fS \<le> \<Down> R gS \<Longrightarrow> nofail fS\<close>
   using pw_ref_iff by blast
 
+text \<open>This is the refinement version of @{thm WHILEIT_add_post_condition}.\<close>
+lemma WHILEIT_refine_with_post:
+  assumes R0: "I' x' \<Longrightarrow> (x,x')\<in>R"
+  assumes IREF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x"
+  assumes COND_REF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'"
+  assumes STEP_REF:
+    "\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x'; f' x' \<le> SPEC I' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')"
+  shows "WHILEIT I b f x \<le>\<Down>R (WHILEIT I' b' f' x')"
+  apply (subst (2) WHILEIT_add_post_condition)
+  apply (rule WHILEIT_refine)
+  subgoal using R0 by blast
+  subgoal using IREF by blast
+  subgoal using COND_REF by blast
+  subgoal using STEP_REF by auto
+  done
+
 
 subsection \<open>Some Refinement\<close>
 
@@ -848,6 +858,12 @@ proof -
 qed
 
 
+lemma list_rel_in_find_correspondanceE:
+  assumes \<open>(M, M') \<in> \<langle>R\<rangle>list_rel\<close> and \<open>L \<in> set M\<close>
+  obtains L' where \<open>(L, L') \<in> R\<close> and \<open>L' \<in> set M'\<close>
+  using assms[unfolded in_set_conv_decomp] by (auto simp: list_rel_append1
+      elim!: list_relE3)
+
 definition list_rel_mset_rel where list_rel_mset_rel_internal:
 \<open>list_rel_mset_rel \<equiv> \<lambda>R. \<langle>R\<rangle>list_rel O list_mset_rel\<close>
 
@@ -890,6 +906,10 @@ proof -
         p2rel_def rel2p_def[abs_def] rel_mset_def R list_mset_rel_def list_rel_def)
       using list_all2_reorder_left_invariance by fastforce
   qed
+
+lemma list_rel_mset_rel_imp_same_length: \<open>(a, b) \<in> \<langle>R\<rangle>list_rel_mset_rel \<Longrightarrow> length a = size b\<close>
+  by (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def
+      dest: list_rel_imp_same_length)
 
 
 subsection \<open>More Functions, Relations, and Theorems\<close>

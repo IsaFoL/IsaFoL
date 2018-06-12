@@ -319,6 +319,9 @@ lemma total_union_2:
 lemma total_over_m_alt_def: \<open>total_over_m I S \<longleftrightarrow> atms_of_ms S \<subseteq> atms_of_s I\<close>
   by (auto simp: total_over_m_def total_over_set_def)
 
+lemma total_over_set_alt_def: \<open>total_over_set M A \<longleftrightarrow> A \<subseteq> atms_of_s M\<close>
+  by (auto simp: total_over_set_def)
+
 subsubsection \<open>Interpretations\<close>
 
 definition true_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>" 50) where

@@ -2,42 +2,6 @@ theory Watched_Literals_List_Enumeration
   imports Watched_Literals_Algorithm_Enumeration Watched_Literals_List
 begin
 
-
-definition find_decomp_target :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l \<times> 'v literal) nres\<close> where
-  \<open>find_decomp_target =  (\<lambda>i S.
-    SPEC(\<lambda>(T, K). \<exists>M2 M1. equality_except_trail S T \<and> get_trail_l T = M1 \<and>
-       (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_l S)) \<and>
-          get_level (get_trail_l S) K = i))\<close>
-
-fun propagate_unit_and_add :: \<open>'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
-  \<open>propagate_unit_and_add K (M, N, U, D, NE, UE, WS, Q) =
-      (Propagated (-K) {#-K#} # M, N, U, None, add_mset {#-K#} NE, UE, {#}, {#K#})\<close>
-
-fun propagate_unit_and_add_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>propagate_unit_and_add_l K (M, N, D, NE, UE, WS, Q) =
-      (Propagated (-K) 0 # M, N, None, add_mset {#-K#} NE, UE, {#}, {#K#})\<close>
-
-definition negate_mode_bj_unit_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool\<close> where
-  \<open>negate_mode_bj_unit_l_inv S \<longleftrightarrow>
-     (\<exists>(S'::'v twl_st) b. (S, S') \<in> twl_st_l b \<and> twl_list_invs S \<and> twl_stgy_invs S' \<and>
-        twl_struct_invs S' \<and> get_conflict_l S = None)\<close>
-
-definition negate_mode_bj_unit_l   :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-\<open>negate_mode_bj_unit_l = (\<lambda>S. do {
-    ASSERT(negate_mode_bj_unit_l_inv S);
-    (S, K) \<leftarrow> find_decomp_target 1 S;
-    RETURN (propagate_unit_and_add_l K S)
-  })\<close>
-
-(* TODO Move *)
-lemma convert_lits_l_filter_decided: \<open>(S, S') \<in> convert_lits_l M N \<Longrightarrow>
-   map lit_of (filter is_decided S') = map lit_of (filter is_decided S)\<close>
-  apply (induction S arbitrary: S')
-  subgoal by auto
-  subgoal for L S S'
-    by (cases S') auto
-  done
-
 lemma convert_lits_l_DECO_clause[simp]:
   \<open>(S, S') \<in> convert_lits_l M N \<Longrightarrow> DECO_clause S' = DECO_clause S\<close>
   by (auto simp: DECO_clause_def uminus_lit_of_image_mset)
@@ -66,7 +30,33 @@ lemma DECO_clause_simp[simp]:
   \<open>DECO_clause (Propagated K C # A) = DECO_clause A\<close>
   \<open>(\<And>K. K \<in> set A \<Longrightarrow> \<not>is_decided K) \<Longrightarrow> DECO_clause A = {#}\<close>
   by (auto simp: DECO_clause_def filter_mset_empty_conv)
-(* End Move *)
+
+definition find_decomp_target :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l \<times> 'v literal) nres\<close> where
+  \<open>find_decomp_target =  (\<lambda>i S.
+    SPEC(\<lambda>(T, K). \<exists>M2 M1. equality_except_trail S T \<and> get_trail_l T = M1 \<and>
+       (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_l S)) \<and>
+          get_level (get_trail_l S) K = i))\<close>
+
+fun propagate_unit_and_add :: \<open>'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
+  \<open>propagate_unit_and_add K (M, N, U, D, NE, UE, WS, Q) =
+      (Propagated (-K) {#-K#} # M, N, U, None, add_mset {#-K#} NE, UE, {#}, {#K#})\<close>
+
+fun propagate_unit_and_add_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
+  \<open>propagate_unit_and_add_l K (M, N, D, NE, UE, WS, Q) =
+      (Propagated (-K) 0 # M, N, None, add_mset {#-K#} NE, UE, {#}, {#K#})\<close>
+
+definition negate_mode_bj_unit_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool\<close> where
+  \<open>negate_mode_bj_unit_l_inv S \<longleftrightarrow>
+     (\<exists>(S'::'v twl_st) b. (S, S') \<in> twl_st_l b \<and> twl_list_invs S \<and> twl_stgy_invs S' \<and>
+        twl_struct_invs S' \<and> get_conflict_l S = None)\<close>
+
+definition negate_mode_bj_unit_l   :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+\<open>negate_mode_bj_unit_l = (\<lambda>S. do {
+    ASSERT(negate_mode_bj_unit_l_inv S);
+    (S, K) \<leftarrow> find_decomp_target 1 S;
+    RETURN (propagate_unit_and_add_l K S)
+  })\<close>
+
 
 lemma negate_mode_bj_unit_l:
   fixes S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close>

@@ -6,46 +6,6 @@ subsubsection \<open>Refining Propagate And Conflict\<close>
 
 paragraph \<open>Propagation, Inner Loop\<close>
 
-(* TODO Move *)
-definition (in -)length_aa_u64_o64 :: \<open>('a::heap array_list) array \<Rightarrow> uint64 \<Rightarrow> uint64 Heap\<close> where
-  \<open>length_aa_u64_o64 xs i = length_aa_u64 xs i >>= (\<lambda>n. return (uint64_of_nat n))\<close>
-
-definition arl_length_o64 where
-  \<open>arl_length_o64 x = do {n \<leftarrow> arl_length x;  return (uint64_of_nat n)}\<close>
-
-lemma length_aa_u64_o64_code[code]:
-  \<open>length_aa_u64_o64 xs i = nth_u64_code xs i \<bind> arl_length_o64\<close>
-  unfolding length_aa_u64_o64_def length_aa_u64_def nth_u_def[symmetric] nth_u64_code_def
-   Array.nth'_def arl_length_o64_def length_aa_def
-  by (auto simp: nat_of_uint32_code nat_of_uint64_code[symmetric])
-
-lemma length_aa_u64_o64_hnr[sepref_fr_rules]:
-   \<open>(uncurry length_aa_u64_o64, uncurry (RETURN \<circ>\<circ> length_ll)) \<in>
-     [\<lambda>(xs, i). i < length xs \<and> length (xs ! i) \<le> uint64_max]\<^sub>a
-    (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def length_aa_u64_o64_def br_def
-     length_aa_u64_def uint64_nat_rel_def nat_of_uint64_uint64_of_nat_id
-     length_ll_def)
-
-
-definition (in -)length_aa_u32_o64 :: \<open>('a::heap array_list) array \<Rightarrow> uint32 \<Rightarrow> uint64 Heap\<close> where
-  \<open>length_aa_u32_o64 xs i = length_aa_u xs i >>= (\<lambda>n. return (uint64_of_nat n))\<close>
-
-lemma length_aa_u32_o64_code[code]:
-  \<open>length_aa_u32_o64 xs i = nth_u_code xs i \<bind> arl_length_o64\<close>
-  unfolding length_aa_u32_o64_def length_aa_u64_def nth_u_def[symmetric] nth_u_code_def
-   Array.nth'_def arl_length_o64_def length_aa_u_def length_aa_def
-  by (auto simp: nat_of_uint64_code[symmetric] nat_of_uint32_code[symmetric])
-
-lemma length_aa_u32_o64_hnr[sepref_fr_rules]:
-   \<open>(uncurry length_aa_u32_o64, uncurry (RETURN \<circ>\<circ> length_ll)) \<in>
-     [\<lambda>(xs, i). i < length xs \<and> length (xs ! i) \<le> uint64_max]\<^sub>a
-    (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def length_aa_u32_o64_def br_def
-     length_aa_u64_def uint64_nat_rel_def nat_of_uint64_uint64_of_nat_id
-     length_ll_def length_aa_u_def)
-(* End Move *)
-
 context isasat_input_bounded
 begin
 
@@ -512,18 +472,6 @@ lemma (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
       b
   }\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_def Let_def zero_uint64_nat_def ..
-
-lemma (in -) size_dom_m_Max_dom:
-  \<open>size (dom_m N) \<le> Suc (Max_dom N)\<close>
-proof -
-  have \<open>dom_m N \<subseteq># mset_set {0..< Suc (Max_dom N)}\<close>
-    apply (rule distinct_finite_set_mset_subseteq_iff[THEN iffD1])
-    subgoal by (auto simp: distinct_mset_dom)
-    subgoal by auto
-    subgoal by (auto dest: Max_dom_le)
-    done
-  from size_mset_mono[OF this] show ?thesis by auto
-qed
 
 (* This bound absolutely not thight *)
 lemma unit_propagation_inner_loop_wl_loop_D_heur_inv_length_watchlist:

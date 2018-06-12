@@ -20,13 +20,6 @@ definition negate_mode_bj_unit_wl   :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_
     RETURN (propagate_unit_and_add_wl K S)
   })\<close>
 
-(* TODO Move or duplicate *)
-lemma in_all_lits_of_mm_uminusD: \<open>x2 \<in># all_lits_of_mm N \<Longrightarrow> -x2 \<in># all_lits_of_mm N\<close>
-  by (auto simp: all_lits_of_mm_def)
-lemma in_all_lits_of_mm_uminus_iff: \<open>-x2 \<in># all_lits_of_mm N \<longleftrightarrow> x2 \<in># all_lits_of_mm N\<close>
-  by (cases x2) (auto simp: all_lits_of_mm_def)
-(* End Move *)
-
 abbreviation find_decomp_target_wl_ref where
   \<open>find_decomp_target_wl_ref S \<equiv>
      {((T, K), (T', K')). (T, T') \<in> {(T, T'). (T, T') \<in> state_wl_l None \<and> correct_watching T} \<and>

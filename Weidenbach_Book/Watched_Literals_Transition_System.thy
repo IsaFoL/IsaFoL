@@ -253,6 +253,13 @@ fun no_duplicate_queued :: \<open>'v twl_st \<Rightarrow> bool\<close> where
   (\<forall>C. C \<in># WS \<longrightarrow> add_mset (fst C) Q \<subseteq># uminus `# lit_of `# mset M) \<and>
   Q \<subseteq># uminus `# lit_of `# mset M\<close>
 
+lemma no_duplicate_queued_alt_def:
+   \<open>no_duplicate_queued S =
+    ((\<forall>C C'. C \<in># clauses_to_update S \<longrightarrow> C' \<in># clauses_to_update S \<longrightarrow> fst C = fst C') \<and>
+     (\<forall>C. C \<in># clauses_to_update S \<longrightarrow> add_mset (fst C) (literals_to_update S) \<subseteq># uminus `# lit_of `# mset (get_trail S)) \<and>
+     literals_to_update S \<subseteq># uminus `# lit_of `# mset (get_trail S))\<close>
+  by (cases S) auto
+
 fun distinct_queued :: \<open>'v twl_st \<Rightarrow> bool\<close> where
 \<open>distinct_queued (M, N, U, D, NE, UE, WS, Q) \<longleftrightarrow>
   distinct_mset Q \<and>
@@ -5416,143 +5423,5 @@ proof -
   then show ?thesis
     by (auto simp: S clauses_def cdcl\<^sub>W_restart_mset_state dest: satisfiable_decreasing)
 qed
-
-
-abbreviation state\<^sub>W_of_restart where
-  \<open>state\<^sub>W_of_restart \<equiv> (\<lambda>(S, n). (state\<^sub>W_of S, n))\<close>
-
-lemma rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_restart_stgy:
-  \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (state\<^sub>W_of S, n) (state\<^sub>W_of T, n)\<close>
-  using rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy[of S T]
-  by (auto dest: cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart
-     cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_restart_stgy)
-
-lemma cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy:
-  \<open>cdcl_twl_stgy_restart S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>  twl_stgy_invs (fst S) \<Longrightarrow>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (state\<^sub>W_of_restart S) (state\<^sub>W_of_restart T)\<close>
-  apply (induction rule: cdcl_twl_stgy_restart.induct)
-  subgoal for S T n U
-    using rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_restart_stgy[of S T n]
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy.intros [of \<open>state\<^sub>W_of_restart(T, n)\<close>
-        \<open>(_, Suc n)\<close>]
-      cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_restart_stgy[of \<open>_\<close>
-        \<open>state\<^sub>W_of U\<close> \<open>Suc n\<close>]
-       cdcl_twl_restart_cdcl\<^sub>W_stgy[of T U]
-       rtranclp_cdcl_twl_stgy_twl_struct_invs[of S T]
-       rtranclp_cdcl_twl_stgy_twl_stgy_invs[of S T]
-    apply (auto dest!: tranclp_into_rtranclp)
-    by (meson r_into_rtranclp rtranclp_trans)
-  subgoal for S T n
-    using rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_restart_stgy[of S T n]
-       rtranclp_cdcl_twl_stgy_twl_struct_invs[of S T]
-       rtranclp_cdcl_twl_stgy_twl_stgy_invs[of S T]
-    by (auto dest!: tranclp_into_rtranclp simp: full1_def)
-  done
-
-lemma rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs:
-  assumes
-    \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T\<close> and
-    \<open>twl_struct_invs (fst S)\<close> and
-    \<open>twl_stgy_invs (fst S)\<close>
-  shows \<open>twl_stgy_invs (fst T)\<close>
-  using assms
-  by (induction rule: rtranclp_induct)
-    (auto intro: cdcl_twl_stgy_restart_twl_stgy_invs
-        rtranclp_cdcl_twl_stgy_restart_twl_struct_invs)
-
-lemma rtranclp_cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy:
-  \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>  twl_stgy_invs (fst S) \<Longrightarrow>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (state\<^sub>W_of_restart S) (state\<^sub>W_of_restart T)\<close>
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal for T U
-    using rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[of S T]
-       rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs[of S T]
-       cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy[of T U]
-    by (auto dest!: tranclp_into_rtranclp)
-  done
-
-lemma cdcl_twl_stgy_restart_with_leftovers_cdcl\<^sub>W_restart_stgy:
-  \<open>cdcl_twl_stgy_restart_with_leftovers S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>  twl_stgy_invs (fst S) \<Longrightarrow>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (state\<^sub>W_of_restart S) (state\<^sub>W_of_restart T)\<close>
-  unfolding cdcl_twl_stgy_restart_with_leftovers_def
-  apply normalize_goal+
-  subgoal for S'
-    using
-      rtranclp_cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy[of S \<open>(S', snd T)\<close>]
-      rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_restart_stgy[of S' \<open>fst T\<close> \<open>snd T\<close>]
-      rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[of S \<open>(S', snd T)\<close>]
-      rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs[of S \<open>(S', snd T)\<close>]
-      by (cases T) auto
-  done
-
-lemma cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs:
-  \<open>cdcl_twl_stgy_restart_with_leftovers S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
-    twl_struct_invs (fst T)\<close>
-  unfolding cdcl_twl_stgy_restart_with_leftovers_def
-  apply normalize_goal+
-  subgoal for S'
-    using
-      rtranclp_cdcl_twl_stgy_twl_struct_invs[of \<open>S'\<close> \<open>(fst T)\<close>]
-      rtranclp_cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy[of S \<open>(S', snd T)\<close>]
-      rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_restart_stgy[of S' \<open>fst T\<close> \<open>snd T\<close>]
-      rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[of S \<open>(S', snd T)\<close>]
-      rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs[of S \<open>(S', snd T)\<close>]
-      rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[of S \<open>(S', snd T)\<close>]
-      rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs[of S \<open>(S', snd T)\<close>]
-    by auto
-  done
-
-lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs:
-  \<open>cdcl_twl_stgy_restart_with_leftovers\<^sup>*\<^sup>* S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
-    twl_struct_invs (fst T)\<close>
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal for T U
-    using cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs[of T U]
-    by auto
-  done
-
-lemma cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs:
-  \<open>cdcl_twl_stgy_restart_with_leftovers S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
-    twl_stgy_invs (fst S) \<Longrightarrow> twl_stgy_invs (fst T)\<close>
-  unfolding cdcl_twl_stgy_restart_with_leftovers_def
-  apply normalize_goal+
-  subgoal for S'
-    using
-      rtranclp_cdcl_twl_stgy_twl_struct_invs[of \<open>S'\<close> \<open>(fst T)\<close>]
-      rtranclp_cdcl_twl_stgy_twl_stgy_invs[of \<open>S'\<close> \<open>(fst T)\<close>]
-      rtranclp_cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy[of S \<open>(S', snd T)\<close>]
-      rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_restart_stgy[of S' \<open>fst T\<close> \<open>snd T\<close>]
-      rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[of S \<open>(S', snd T)\<close>]
-      rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs[of S \<open>(S', snd T)\<close>]
-      rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[of S \<open>(S', snd T)\<close>]
-      rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs[of S \<open>(S', snd T)\<close>]
-    by auto
-  done
-
-lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs:
-  \<open>cdcl_twl_stgy_restart_with_leftovers\<^sup>*\<^sup>* S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
-    twl_stgy_invs (fst S) \<Longrightarrow> twl_stgy_invs (fst T)\<close>
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal for T U
-    using cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs[of T U]
-      rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs[of S T]
-    by auto
-  done
-
-lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_cdcl\<^sub>W_restart_stgy:
-  \<open>cdcl_twl_stgy_restart_with_leftovers\<^sup>*\<^sup>* S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow> twl_stgy_invs (fst S) \<Longrightarrow>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (state\<^sub>W_of_restart S) (state\<^sub>W_of_restart T)\<close>
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal for T U
-    using cdcl_twl_stgy_restart_with_leftovers_cdcl\<^sub>W_restart_stgy[of T U]
-    rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs[of S T]
-    rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs[of S T]
-    by auto
-  done
 
 end

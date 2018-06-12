@@ -48,21 +48,7 @@ where
     RETURN (M, N, D, NE, UE, Q, W)
   })\<close>
 
-(* TODO Move *)
-lemma all_lits_of_mm_diffD:
-  \<open>L \<in># all_lits_of_mm (A - B) \<Longrightarrow> L \<in># all_lits_of_mm A\<close>
-  apply (induction A arbitrary: B)
-  subgoal by auto
-  subgoal for a A' B
-    by (cases \<open>a \<in># B\<close>)
-      (fastforce dest!: multi_member_split[of a B] simp: all_lits_of_mm_add_mset)+
-  done
 
-lemma all_lits_of_mm_mono:
-  \<open>set_mset A \<subseteq> set_mset B \<Longrightarrow> set_mset (all_lits_of_mm A) \<subseteq> set_mset (all_lits_of_mm B)\<close>
-  by (auto simp: all_lits_of_mm_def)
-
-(* End Move *)
 
 lemma reduce_dom_clauses_fmdrop:
   \<open>reduce_dom_clauses N0 N \<Longrightarrow> reduce_dom_clauses N0 (fmdrop C N)\<close>
@@ -89,21 +75,7 @@ lemma \<open>remove_one_annot_true_clause S T \<Longrightarrow>
   done
 
 (* TODO Move *)
-text \<open>This is the refinement version of @{thm WHILEIT_add_post_condition}.\<close>
-lemma WHILEIT_refine_with_post:
-  assumes R0: "I' x' \<Longrightarrow> (x,x')\<in>R"
-  assumes IREF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x"
-  assumes COND_REF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'"
-  assumes STEP_REF:
-    "\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x'; f' x' \<le> SPEC I' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')"
-  shows "WHILEIT I b f x \<le>\<Down>R (WHILEIT I' b' f' x')"
-  apply (subst (2) WHILEIT_add_post_condition)
-  apply (rule WHILEIT_refine)
-  subgoal using R0 by blast
-  subgoal using IREF by blast
-  subgoal using COND_REF by blast
-  subgoal using STEP_REF by auto
-  done
+
 (* End Move *)
 
 lemma remove_all_annot_true_clause_imp_wl_remove_all_annot_true_clause_imp:

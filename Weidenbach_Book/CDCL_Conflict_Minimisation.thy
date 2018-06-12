@@ -1238,14 +1238,6 @@ lemma convert_analysis_list_empty[simp]:
   \<open>convert_analysis_list NU a = [] \<longleftrightarrow> a = []\<close>
   by (auto simp: convert_analysis_list_def)
 
-(* TODO Move *)
-lemma list_rel_in_find_correspondanceE:
-  assumes \<open>(M, M') \<in> \<langle>R\<rangle>list_rel\<close> and \<open>L \<in> set M\<close>
-  obtains L' where \<open>(L, L') \<in> R\<close> and \<open>L' \<in> set M'\<close>
-  using assms[unfolded in_set_conv_decomp] by (auto simp: list_rel_append1
-      elim!: list_relE3)
-(* End Move *)
-
 lemma lit_redundant_rec_wl:
   fixes S :: \<open>nat twl_st_wl\<close> and S' :: \<open>nat twl_st_l\<close> and S'' :: \<open>nat twl_st\<close> and NU M analyse
   defines

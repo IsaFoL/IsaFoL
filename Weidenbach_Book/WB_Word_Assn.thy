@@ -938,4 +938,31 @@ lemma uint64_of_uint32_hnr[sepref_fr_rules]:
   \<open>(return o uint64_of_uint32, RETURN o uint64_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by sepref_to_hoare (sep_auto simp: br_def)
 
+definition zero_uint64 where
+  \<open>zero_uint64 \<equiv> (0 :: uint64)\<close>
+
+lemma zero_uint64_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN zero_uint64)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare (sep_auto simp: zero_uint64_def)
+
+definition zero_uint32 where
+  \<open>zero_uint32 \<equiv> (0 :: uint32)\<close>
+
+lemma zero_uint32_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN zero_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare (sep_auto simp: zero_uint32_def)
+
+lemma zero_uin64_hnr: \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
+
+definition two_uint64 where \<open>two_uint64 = (2 :: uint64)\<close>
+
+lemma two_uin64_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint64)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare (sep_auto simp: two_uint64_def)
+
+lemma two_uint32_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare sep_auto
+
 end

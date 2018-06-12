@@ -1,11 +1,27 @@
 theory WB_List_More
   imports Nested_Multisets_Ordinals.Multiset_More "HOL-Library.Finite_Map"
+    "HOL-Eisbach.Eisbach"
+    "HOL-Eisbach.Eisbach_Tools"
 begin
 
 text \<open>More Sledgehammer parameters\<close>
 (* sledgehammer_params[debug] *)
 
 section \<open>Various Lemmas\<close>
+
+
+subsection \<open>Not-Related to Refinement or lists\<close>
+
+text \<open>
+  Unlike clarify, this does not split tuple of the form \<^term>\<open>\<exists>T. P T\<close> in the assumption.
+  After calling it, as the variable are not quantified anymore, the simproc does not trigger,
+  allowing to safely call auto/simp/...
+\<close>
+method normalize_goal =
+  (match premises in
+    J[thin]: \<open>\<exists>x. _\<close> \<Rightarrow> \<open>rule exE[OF J]\<close>
+  \<bar> J[thin]: \<open>_ \<and> _\<close> \<Rightarrow> \<open>rule conjE[OF J]\<close>
+  )
 
 text \<open>Close to the theorem @{thm [source] nat_less_induct} (@{thm nat_less_induct}), but with a
   separation between the zero and non-zero case.\<close>
@@ -113,7 +129,6 @@ text \<open>
 lemma set_Collect_Pair_to_fst_snd:
   \<open>{((a, b), (a', b')). P a b a' b'} = {(e, f). P (fst e) (snd e) (fst f) (snd f)}\<close>
   by auto
-
 
 subsection \<open>Update\<close>
 
@@ -970,6 +985,13 @@ lemma mset_butlast_update_last[simp]:
   by (cases \<open>xs = []\<close>)
     (auto simp add: last_list_update_to_last mset_butlast_remove1_mset mset_update)
 
+lemma in_multiset_ge_Max: \<open>a \<in># N \<Longrightarrow> a > Max (insert 0 (set_mset N)) \<Longrightarrow> False\<close>
+  by (simp add: leD)
+
+lemma distinct_mset_set_mset_remove1_mset:
+  \<open>distinct_mset M \<Longrightarrow> set_mset (remove1_mset c M) = set_mset M - {c}\<close>
+  by (cases \<open>c \<in># M\<close>) (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+
 
 subsection \<open>Sorting\<close>
 
@@ -1423,7 +1445,6 @@ lemma Max_dom_fmupd_irrel:
   by (cases \<open>dom_m M\<close>)
      (auto simp: Max_dom_def remove1_mset_ge_Max_some ac_simps)
 
-
 lemma Max_dom_alt_def: \<open>Max_dom b = Max (insert 0 (set_mset (dom_m b)))\<close>
   unfolding Max_dom_def by auto
 
@@ -1431,6 +1452,18 @@ lemma Max_insert_Suc_Max_dim_dom[simp]:
    \<open>Max (insert (Suc (Max_dom b)) (set_mset (dom_m b))) = Suc (Max_dom b)\<close>
   unfolding Max_dom_alt_def
   by (cases \<open>set_mset (dom_m b) = {}\<close>) auto
+
+lemma size_dom_m_Max_dom:
+  \<open>size (dom_m N) \<le> Suc (Max_dom N)\<close>
+proof -
+  have \<open>dom_m N \<subseteq># mset_set {0..< Suc (Max_dom N)}\<close>
+    apply (rule distinct_finite_set_mset_subseteq_iff[THEN iffD1])
+    subgoal by (auto simp: distinct_mset_dom)
+    subgoal by auto
+    subgoal by (auto dest: Max_dom_le)
+    done
+  from size_mset_mono[OF this] show ?thesis by auto
+qed
 
 lemma Max_atLeastLessThan_plus: \<open>Max {(a::nat) ..< a+n} = (if n = 0 then Max {} else a+n - 1)\<close>
   apply (induction n arbitrary: a)
