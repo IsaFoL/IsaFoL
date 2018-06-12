@@ -169,7 +169,7 @@ lemma "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
   by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
     split: option.splits if_splits)
 
-export_code prover in Haskell module_name RP
+export_code prover in SML module_name RP
 
 abbreviation "\<pp> \<equiv> Fun 42"
 abbreviation "\<aa> \<equiv> Fun 0 []"
