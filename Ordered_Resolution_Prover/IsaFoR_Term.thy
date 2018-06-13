@@ -265,18 +265,6 @@ next
     unfolding subst_lit_def using Neg by auto
 qed
   
-lemma in_list_of_mset_in_S:
-  assumes "i < length (list_of_mset S)"
-  shows "list_of_mset S ! i \<in># S"
-proof -
-  from assms have "list_of_mset S ! i \<in> set (list_of_mset S)"
-    by auto
-  then have "list_of_mset S ! i \<in># mset (list_of_mset S)"
-    by (meson in_multiset_in_set)
-  then show ?thesis
-    by auto
-qed
-
 lemma same_on_vars_clause:
   assumes "\<forall>v \<in> vars_clause S. \<sigma> v = \<tau> v"
   shows "subst_cls S \<sigma> = subst_cls S \<tau>"

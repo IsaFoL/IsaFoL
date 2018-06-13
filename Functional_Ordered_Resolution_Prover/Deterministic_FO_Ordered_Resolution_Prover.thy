@@ -183,7 +183,7 @@ fun resolve_on_old :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a list
 
 fun remove_all :: "'b list \<Rightarrow> 'b list \<Rightarrow> 'b list" where
   "remove_all xs [] = xs"
-| "remove_all xs (y#ys) = (if y \<in> set xs then remove_all (remove1 y xs) ys else remove_all xs ys)"
+| "remove_all xs (y # ys) = (if y \<in> set xs then remove_all (remove1 y xs) ys else remove_all xs ys)"
 
 lemma remove_all_mset_minus: "mset ys \<subseteq># mset xs \<Longrightarrow> mset (remove_all xs ys) = mset xs - mset ys"
 proof (induction ys arbitrary: xs)
@@ -244,8 +244,7 @@ definition resolve_rename_either_way :: "'a lclause \<Rightarrow> 'a lclause \<R
 fun select_min_weight_clause :: "'a dclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause" where
   "select_min_weight_clause Ci [] = Ci"
 | "select_min_weight_clause Ci (Dj # Djs) =
-   select_min_weight_clause (if weight (apfst mset Dj) < weight (apfst mset Ci) then Dj else Ci)
-     Djs"
+   select_min_weight_clause (if weight (apfst mset Dj) < weight (apfst mset Ci) then Dj else Ci) Djs"
 
 lemma select_min_weight_clause_in: "select_min_weight_clause P0 P \<in> set (P0 # P)"
   by (induct P arbitrary: P0) auto
@@ -1680,19 +1679,6 @@ proof (induct rule: deterministic_RP.raw_induct[OF _ assms])
       unfolding st funpow_Suc_right[symmetric, THEN fun_cong, unfolded comp_apply] by blast
   qed
 qed
-
-lemma deterministic_RP_step_weighted_RP:
-  "wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (deterministic_RP_step St)"
-  by (cases "is_final_dstate St")
-    (simp add: final_deterministic_RP_step nonfinal_deterministic_RP_step tranclp_into_rtranclp)+
-
-lemma funpow_deterministic_RP_step_weighted_RP:
-  "wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((deterministic_RP_step ^^ k) St)"
-  by (induct k; simp) (meson deterministic_RP_step_weighted_RP rtranclp_trans)
-
-lemma funpow_deterministic_RP_step_imp_weighted_RP:
-  "(\<exists>k. (deterministic_RP_step ^^ k) St = St') \<Longrightarrow> wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate St'"
-  using funpow_deterministic_RP_step_weighted_RP by blast
 
 context
   fixes
