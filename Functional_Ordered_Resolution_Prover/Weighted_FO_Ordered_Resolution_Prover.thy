@@ -11,7 +11,7 @@ TODO. Formalizes footnote.
 \<close>
 
 theory Weighted_FO_Ordered_Resolution_Prover 
-  imports "Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover" "../lib/Explorer" (* TODO: remove Explorer when finished *)
+  imports "Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover"
 begin
 
 type_synonym 'a wclause = "'a clause \<times> nat"
