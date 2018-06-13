@@ -2,6 +2,11 @@ theory Watched_Literals_Watch_List_Restart
   imports Watched_Literals_List_Restart Watched_Literals_Watch_List
 begin
 
+(* TODO Move *)
+lemma (in -) dom_mI: \<open>fmlookup m x = Some y \<Longrightarrow> x \<in># dom_m m\<close>
+  by (drule fmdomI)  (auto simp: dom_m_def fmember.rep_eq)
+(* End Move *)
+
 text \<open>
   We relax the condition on the invariant on the watch list to allow to point to non-existing
   clauses.
@@ -669,8 +674,8 @@ lemma fmrestrict_set_dom_m_full:
   assumes
     incl: \<open>set_mset (dom_m N) \<subseteq> xs\<close>
   shows \<open>fmrestrict_set xs N = N\<close>
-  apply (rule fmlookup_inject[THEN iffD1])
-  using assms in_dom_m_lookup_iff by (fastforce intro!: ext)
+  apply (rule fmlookup_inject[THEN iffD1], subst eq_commute)
+  using assms by (auto intro!: ext dest!: dom_mI)
 
 lemma correct_watching_on_correct_watching:
   assumes
@@ -832,8 +837,7 @@ proof -
     define N0 where \<open>N0 \<equiv> fmrestrict_set (set (take i xs)) N\<close>
     have \<open>fmfilter (\<lambda>a. a = xs ! i \<or> a \<in> set (take i xs)) N =
       fmfilter (\<lambda>a. a \<in> set (take i xs)) N\<close>
-      by (rule fmfilter_cong)
-        (use in_dom_m_lookup_iff in force)
+      by (rule fmfilter_cong) (auto dest: dom_mI)
     then have N1: \<open>fmrestrict_set (set (take (Suc i) xs)) N =  N0\<close>
       by (auto simp: take_Suc_conv_app_nth N0_def fmfilter_alt_defs N0_def)
 
@@ -882,7 +886,7 @@ proof -
 qed
 
 
-context twl_restart
+context twl_restart_ops
 begin
 
 definition (in twl_restart_ops) restart_required_wl  :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
@@ -990,7 +994,7 @@ qed
 end
 
 
-context isasat_input_bounded_nempty
+context twl_restart_ops
 begin
 
 theorem cdcl_twl_stgy_restart_prog_wl_spec:
