@@ -313,7 +313,7 @@ subsection \<open>Backtracking\<close>
 fun backtrack_split :: \<open>('a, 'v, 'm) annotated_lits
   \<Rightarrow> ('a, 'v, 'm) annotated_lits \<times> ('a, 'v, 'm) annotated_lits\<close> where
 \<open>backtrack_split [] = ([], [])\<close> |
-\<open>backtrack_split (Propagated L P # mlits) = apfst ((op #) (Propagated L P)) (backtrack_split mlits)\<close> |
+\<open>backtrack_split (Propagated L P # mlits) = apfst ((#) (Propagated L P)) (backtrack_split mlits)\<close> |
 \<open>backtrack_split (Decided L # mlits) = ([], Decided L # mlits)\<close>
 
 lemma backtrack_split_fst_not_decided: \<open>a \<in> set (fst (backtrack_split l)) \<Longrightarrow> \<not>is_decided a\<close>
@@ -359,7 +359,7 @@ fun get_all_ann_decomposition :: \<open>('a, 'b, 'm) annotated_lits
 \<open>get_all_ann_decomposition (Decided L # Ls) =
   (Decided L # Ls, []) # get_all_ann_decomposition Ls\<close> |
 \<open>get_all_ann_decomposition (Propagated L P# Ls) =
-  (apsnd ((op #) (Propagated L P)) (hd (get_all_ann_decomposition Ls)))
+  (apsnd ((#) (Propagated L P)) (hd (get_all_ann_decomposition Ls)))
     # tl (get_all_ann_decomposition Ls)\<close> |
 \<open>get_all_ann_decomposition [] = [([], [])]\<close>
 
@@ -1133,6 +1133,11 @@ lemma no_dup_not_tautology_uminus: \<open>no_dup M \<Longrightarrow> \<not>tauto
 lemma no_dup_distinct_uminus: \<open>no_dup M \<Longrightarrow> distinct_mset {#-lit_of L. L \<in># mset M#}\<close>
   by (induction M) (auto simp: uminus_lit_swap defined_lit_def
       dest: atm_imp_decided_or_proped)
+
+lemma no_dup_map_lit_of: \<open>no_dup M \<Longrightarrow> distinct (map lit_of M)\<close>
+  apply (induction M)
+   apply (auto simp: dest: no_dup_imp_distinct)
+  by (meson distinct.simps(2) no_dup_cons no_dup_imp_distinct)
 
 
 subsection \<open>Extending Entailments to multisets\<close>

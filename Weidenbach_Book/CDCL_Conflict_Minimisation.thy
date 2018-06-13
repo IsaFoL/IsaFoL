@@ -485,7 +485,7 @@ proof -
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by auto
 
-  let ?f = \<open>\<lambda>analysis. fold_mset (op +) D (snd `# mset analysis)\<close>
+  let ?f = \<open>\<lambda>analysis. fold_mset (+) D (snd `# mset analysis)\<close>
   define I' where
     \<open>I' = (\<lambda>(cach :: 'v conflict_min_cach, analysis :: 'v conflict_min_analyse, b::bool).
         lit_redundant_inv M ?N D init_analysis (cach, analysis, b) \<and> M \<Turnstile>as CNot (?f analysis))\<close>
@@ -530,8 +530,8 @@ proof -
       (case N' of
        (analysis' :: 'v conflict_min_analyse, _ :: bool) \<Rightarrow>
          \<lambda>(analysis, _).
-            minimize_conflict_support M (fold_mset op + D (snd `# mset analysis))
-              (fold_mset op + D (snd `# mset analysis'))) N}\<close>
+            minimize_conflict_support M (fold_mset (+) D (snd `# mset analysis))
+              (fold_mset (+) D (snd `# mset analysis'))) N}\<close>
       by blast
     then have wf_Min: \<open>wf ?Min\<close>
       apply (rule wf_subset)
@@ -928,10 +928,10 @@ proof -
       C: \<open>C = add_mset L C'\<close>
       using uL_E by (blast dest: multi_member_split)
 
-    have \<open>minimize_conflict_support M (C + fold_mset op + D (snd `# mset ana'))
-           (remove1_mset (- L) E' + (remove1_mset L C + fold_mset op + D (snd `# mset ana')))\<close>
+    have \<open>minimize_conflict_support M (C + fold_mset (+) D (snd `# mset ana'))
+           (remove1_mset (- L) E' + (remove1_mset L C + fold_mset (+) D (snd `# mset ana')))\<close>
       using minimize_conflict_support.resolve_propa[OF in_trail,
-        of \<open>C' + fold_mset op + D (snd `# mset ana')\<close>]
+        of \<open>C' + fold_mset (+) D (snd `# mset ana')\<close>]
       unfolding C E' E
       by (auto simp: ac_simps)
 
@@ -943,30 +943,30 @@ proof -
     unfolding lit_redundant_rec_def lit_redundant_rec_spec_def mark_failed_lits_def
       get_literal_and_remove_of_analyse_def get_propagation_reason_def
     apply (refine_vcg WHILET_rule[where R = R and I = I'])
-      -- \<open>Well foundedness\<close>
+      \<comment> \<open>Well foundedness\<close>
     subgoal by (rule wf_R)
     subgoal by (rule init_I')
     subgoal by simp
-      -- \<open>Assertion:\<close>
+      \<comment> \<open>Assertion:\<close>
     subgoal by (rule hd_M)
-        -- \<open>We finished one stage:\<close>
+        \<comment> \<open>We finished one stage:\<close>
     subgoal by (rule all_removed_I')
     subgoal by (rule all_removed_R)
-      -- \<open>Assertion:\<close>
+      \<comment> \<open>Assertion:\<close>
     subgoal for s cach s' analyse ba
       by (cases \<open>analyse\<close>) (auto simp: I'_def dest!: multi_member_split)
-        -- \<open>Cached or level 0:\<close>
+        \<comment> \<open>Cached or level 0:\<close>
     subgoal by (rule seen_removable_I')
     subgoal by (rule seen_removable_R)
-        -- \<open>Failed:\<close>
+        \<comment> \<open>Failed:\<close>
     subgoal by (rule failed_I')
     subgoal by (rule failed_R)
     subgoal by (rule failed_I')
     subgoal by (rule failed_R)
-        -- \<open>The literal was propagated:\<close>
+        \<comment> \<open>The literal was propagated:\<close>
     subgoal by (rule is_propagation_I')
     subgoal by (rule is_propagation_R)
-        -- \<open>End of Loop invariant:\<close>
+        \<comment> \<open>End of Loop invariant:\<close>
     subgoal
       using uL_M by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def init_analysis
           I'_def ac_simps)
@@ -1264,10 +1264,10 @@ proof -
   obtain D' NE UE Q W where
     S: \<open>S = (M, NU, D', NE, UE, Q, W)\<close>
     using M_def NU by (cases S) auto
-  have M'_def: \<open>M' = convert_lits_l NU M\<close>
+  have M'_def: \<open>(M, M') \<in> convert_lits_l NU (NE + UE)\<close>
     using NU S_S' S'_S'' unfolding M' by (auto simp: S state_wl_l_def twl_st_l_def)
-  have [simp]: \<open>lits_of_l M' = lits_of_l M\<close>
-    unfolding M'_def by auto
+  then have [simp]: \<open>lits_of_l M' = lits_of_l M\<close>
+    by auto
   have [simp]: \<open>fst (convert_analysis_l NU x) = -NU \<propto> (fst x) ! 0\<close> for x
     by (cases x) auto
   have [simp]: \<open>snd (convert_analysis_l NU x) = mset (drop (snd x) (NU \<propto> fst x))\<close> for x
@@ -1291,7 +1291,7 @@ proof -
   then have n_d: \<open>no_dup M\<close>
     by (auto simp: S)
   then have n_d': \<open>no_dup M'\<close>
-    unfolding M'_def by (auto simp: S)
+    using M'_def by (auto simp: S)
 
   have get_literal_and_remove_of_analyse_wl: \<open>RETURN
        (get_literal_and_remove_of_analyse_wl (NU \<propto> fst (last x1c)) x1c)
@@ -1321,7 +1321,7 @@ proof -
           intro!: RETURN_SPEC_refine elim!: neq_Nil_revE split: if_splits)
   qed
   have get_propagation_reason: \<open>get_propagation_reason M (-x1e)
-      \<le> \<Down> (\<langle>{(C', C).  C = mset (NU \<propto> C') \<and> C' \<noteq> 0 \<and> Propagated (- x1e) (mset (NU\<propto>C')) \<in> set M'
+      \<le> \<Down> (\<langle>{(C', C). C = mset (NU \<propto> C') \<and> C' \<noteq> 0 \<and> Propagated (- x1e) (mset (NU\<propto>C')) \<in> set M'
                 \<and> Propagated (- x1e) C' \<in> set M \<and> C' \<in># dom_m NU}\<rangle>
               option_rel)
           (get_propagation_reason M' (-x1d))\<close>
@@ -1352,55 +1352,33 @@ proof -
       \<open>Propagated (- x1d) (mset (NU \<propto> a)) \<in> set M'\<close> (is ?propa) and
       \<open>a \<noteq> 0\<close> (is ?a) and
       \<open>a \<in># dom_m NU\<close> (is ?L)
-      if \<open>Propagated (-x1e) a \<in> set M\<close>
+      if x1e_M: \<open>Propagated (-x1e) a \<in> set M\<close>
       for a
     proof -
       have [simp]: \<open>a \<noteq> 0\<close>
       proof
         assume [simp]: \<open>a = 0\<close>
-        have H: \<open>\<not> M \<Turnstile>as CNot D\<close>
-          if \<open>trail S''' = M' @ Decided K # M\<close> and
-            \<open>D + {#L#} \<in># cdcl\<^sub>W_restart_mset.clauses S'''\<close>
-            \<open>undefined_lit M L\<close> for M K M' D L
-          using no_smaller_propa that unfolding cdcl\<^sub>W_restart_mset.no_smaller_propa_def by blast
-        have x1d_M': \<open>Propagated (- x1d) {#-x1d#} \<in> set M'\<close>
-          using that by (auto simp: M'_def dest!: split_list)
-
-        then have x1d_clss:  \<open>{#-x1d#} \<in># cdcl\<^sub>W_restart_mset.clauses S'''\<close>
-          using annots S_S' S'_S''
-          by (auto simp: S M'_def[symmetric] clauses_def mset_take_mset_drop_mset twl_st_wl twl_st_l twl_st
-              dest!: split_list)
-        have \<open>no_dup M'\<close>
-          using n_d unfolding M'_def by auto
-        then have count_M': \<open>count_decided M' \<ge> 1\<close>
-          using x1d_M' cond by (auto dest!: split_list)
-        have \<open>get_level M (-x1d) = 0\<close>
-        proof (rule ccontr)
-          assume lev: \<open>\<not> ?thesis\<close>
-          then have lev': \<open>0 < get_level M' x1e\<close>
-            unfolding M'_def by auto
-          obtain M2 K M1 where
-            M': \<open>M' = M2 @ Decided K # M1\<close> and
-            lev_K: \<open>get_level M K = Suc 0\<close>
-            using le_count_decided_decomp[OF n_d, of 0] count_M' unfolding M'_def by auto
-          have lev_K: \<open>get_level M' K = Suc 0\<close>
-            using lev_K unfolding M'_def by auto
-          have \<open>defined_lit M' x1d\<close>
-            using ux1e_M by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
-          then have \<open>undefined_lit M1 x1d\<close>
-            using lev' n_d' lev_K Suc_count_decided_gt_get_level[of M1]
-            unfolding M_def
-            by (auto simp: S clauses_def mset_take_mset_drop_mset' M'_def[symmetric] defined_lit_cons
-                M' defined_lit_append atm_of_eq_atm_of get_level_cons_if
-                dest: defined_lit_no_dupD split: if_splits)
-          then show False
-            using H[of _ _ _ \<open>{#}\<close> \<open>-x1d\<close>] x1d_clss S_S' S'_S'' S
-            by (auto simp: M'_def[symmetric] M' twl_st_wl twl_st_l twl_st)
-        qed
-        then show False using cond unfolding M'_def by auto
+        obtain E' where
+           x1d_M': \<open>Propagated (- x1d) E' \<in> set M'\<close> and
+           \<open>E' \<in># NE + UE\<close>
+          using x1e_M M'_def by (auto dest: split_list simp: convert_lits_l_def p2rel_def
+              convert_lit.simps
+              elim!: list_rel_in_find_correspondanceE split: if_splits)
+        moreover have \<open>unit_clss S'' = NE + UE\<close>
+          using S_S' S'_S'' x1d_M' by (auto simp: S)
+        moreover have \<open>Propagated (- x1e) E' \<in> set (get_trail S'')\<close>
+          using S_S' S'_S'' x1d_M' by (auto simp: S state_wl_l_def twl_st_l_def M')
+        moreover have \<open>0 < count_decided (get_trail S'')\<close>
+          using cond S_S' S'_S'' count_decided_ge_get_level[of M x1e]
+          by (auto simp: S M' twl_st)
+        ultimately show False
+          using clauses_in_unit_clss_have_level0(1)[of S'' E' \<open>- x1d\<close>] cond \<open>twl_struct_invs S''\<close>
+          S_S' S'_S''  M'_def
+          by (auto simp: S)
       qed
       show ?propa and ?a
-        using that by (auto simp: M'_def dest!: split_list)
+        using that M'_def by (auto simp: convert_lits_l_def p2rel_def convert_lit.simps
+              elim!: list_rel_in_find_correspondanceE split: if_splits)
       then show ?L
         using that add_inv S_S' S'_S'' S unfolding twl_list_invs_def
         by (auto 5 5 simp: state_wl_l_def twl_st_l_def)
@@ -1469,9 +1447,9 @@ proof -
           dest: in_set_butlastD)
             apply (rule get_literal_and_remove_of_analyse_wl; assumption)
     subgoal by auto
-    subgoal by (auto simp add: M'_def)
+    subgoal using M'_def by auto
     subgoal by auto
-    subgoal by (auto simp add: M'_def)
+    subgoal by auto
       apply (rule mark_failed_lits_wl; assumption)
     subgoal by (auto simp: lit_redundant_rec_wl_ref_def)
         apply (rule get_propagation_reason; assumption?)
@@ -1531,10 +1509,10 @@ proof -
   obtain D' NE UE Q W where
     S: \<open>S = (M, NU, D', NE, UE, Q, W)\<close>
     using M_def NU by (cases S) auto
-  have M'_def: \<open>M' = convert_lits_l NU M\<close>
-    using NU S_S' S'_S'' S unfolding M' by (auto simp: twl_st_wl twl_st_l twl_st)
+  have M'_def: \<open>(M, M') \<in> convert_lits_l NU (NE+UE)\<close>
+    using NU S_S' S'_S'' S M' by (auto simp: twl_st_l_def state_wl_l_def)
   have [simp]: \<open>lits_of_l M' = lits_of_l M\<close>
-    unfolding M'_def by auto
+    using M'_def by auto
   have
     no_smaller_propa: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa S'''\<close> and
     struct_invs': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S'''\<close>
@@ -1553,7 +1531,7 @@ proof -
   then have n_d: \<open>no_dup M\<close>
     by (auto simp: S)
   then have n_d': \<open>no_dup M'\<close>
-    unfolding M'_def by (auto simp: S)
+    using M'_def by (auto simp: S)
   have uL_M: \<open>-L \<in> lits_of_l M\<close>
     using L_D M_D by (auto dest!: multi_member_split)
   have H: \<open>lit_redundant_rec_wl M NU D cach analyse lbd
@@ -1581,55 +1559,33 @@ proof -
     proof -
       have \<open>Propagated (- L) (mset (NU \<propto> a)) \<in> set M'\<close> (is ?propa) and
         \<open>a \<noteq> 0\<close> (is ?a)
-        if \<open>Propagated (-L) a \<in> set M\<close>
+        if L_M: \<open>Propagated (-L) a \<in> set M\<close>
         for a
       proof -
         have [simp]: \<open>a \<noteq> 0\<close>
         proof
           assume [simp]: \<open>a = 0\<close>
-          have H: \<open>\<not> M \<Turnstile>as CNot D\<close>
-            if \<open>trail S''' = M' @ Decided K # M\<close> and
-              \<open>D + {#L#} \<in># cdcl\<^sub>W_restart_mset.clauses S'''\<close>
-              \<open>undefined_lit M L\<close> for M K M' D L
-            using no_smaller_propa that unfolding cdcl\<^sub>W_restart_mset.no_smaller_propa_def by blast
-          have x1d_M': \<open>Propagated (- L) {#-L#} \<in> set M'\<close>
-            using that by (auto simp: M'_def dest!: split_list)
-
-          then have x1d_clss:  \<open>{#-L#} \<in># cdcl\<^sub>W_restart_mset.clauses S'''\<close>
-            using annots S_S' S'_S''
-            by (auto simp: S M'_def[symmetric] clauses_def mset_take_mset_drop_mset
-                twl_st_l_def state_wl_l_def dest!: split_list)
-          have \<open>no_dup M'\<close>
-            using n_d unfolding M'_def by auto
-          then have count_M': \<open>count_decided M' \<ge> 1\<close>
-            using x1d_M' lev0_rem by (auto dest!: split_list)
-          have \<open>get_level M (-L) = 0\<close>
-          proof (rule ccontr)
-            assume lev: \<open>\<not> ?thesis\<close>
-            then have lev': \<open>0 < get_level M' L\<close>
-              unfolding M'_def by auto
-            obtain M2 K M1 where
-              M': \<open>M' = M2 @ Decided K # M1\<close> and
-              lev_K: \<open>get_level M K = Suc 0\<close>
-              using le_count_decided_decomp[OF n_d, of 0] count_M' unfolding M'_def by auto
-            have lev_K: \<open>get_level M' K = Suc 0\<close>
-              using lev_K unfolding M'_def by auto
-            have \<open>defined_lit M' L\<close>
-              using ux1e_M by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
-            then have \<open>undefined_lit M1 L\<close>
-              using lev' n_d' lev_K Suc_count_decided_gt_get_level[of M1]
-              unfolding M_def
-              by (auto simp: S clauses_def mset_take_mset_drop_mset' M'_def[symmetric]
-                  defined_lit_cons M' defined_lit_append atm_of_eq_atm_of get_level_cons_if
-                  dest: defined_lit_no_dupD split: if_splits)
-            then show False
-              using H[of _ _ _ \<open>{#}\<close> \<open>-L\<close>] x1d_clss S_S' S'_S'' S
-              by (auto simp: M'_def[symmetric] M' twl_st_wl twl_st_l twl_st)
-          qed
-          then show False using lev0_rem unfolding M'_def by auto
+          obtain E' where
+            x1d_M': \<open>Propagated (- L) E' \<in> set M'\<close> and
+            \<open>E' \<in># NE + UE\<close>
+            using L_M M'_def by (auto dest: split_list simp: convert_lits_l_def p2rel_def
+                convert_lit.simps
+                elim!: list_rel_in_find_correspondanceE split: if_splits)
+          moreover have \<open>unit_clss S'' = NE + UE\<close>
+            using S_S' S'_S'' x1d_M' by (auto simp: S)
+          moreover have \<open>Propagated (- L) E' \<in> set (get_trail S'')\<close>
+            using S_S' S'_S'' x1d_M' by (auto simp: S state_wl_l_def twl_st_l_def M')
+          moreover have \<open>0 < count_decided (get_trail S'')\<close>
+            using lev0_rem S_S' S'_S'' count_decided_ge_get_level[of M L]
+            by (auto simp: S M' twl_st)
+          ultimately show False
+            using clauses_in_unit_clss_have_level0(1)[of S'' E' \<open>- L\<close>] lev0_rem \<open>twl_struct_invs S''\<close>
+              S_S' S'_S''  M'_def
+            by (auto simp: S)
         qed
         show ?propa and ?a
-          using that by (auto simp: M'_def dest!: split_list)
+          using that M'_def by (auto simp: convert_lits_l_def p2rel_def convert_lit.simps
+              elim!: list_rel_in_find_correspondanceE split: if_splits)
       qed note H = this
      show \<open>?H2 \<Longrightarrow> ?G2\<close>
        using H by auto
@@ -1657,8 +1613,14 @@ proof -
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
       by fast
     then show ?thesis
-      using that S_S' S'_S'' by (fastforce simp: S M'_def[symmetric] state_wl_l_def
-        twl_st_l_def dest!: split_list)
+      using that S_S' S'_S'' M'_def M'
+      by (fastforce simp: S state_wl_l_def
+          twl_st_l_def convert_lits_l_def convert_lit.simps
+          list_rel_append2 list_rel_append1
+          elim!: list_relE3 list_relE4
+          elim: list_rel_in_find_correspondanceE split: if_splits
+          dest!: split_list p2relD)
+
   qed
   have [simp]: \<open>Propagated (- L) C \<in> set M \<Longrightarrow> C > 0 \<Longrightarrow> C \<in># dom_m NU\<close> for C
     using add_inv S_S' S'_S'' propagated_L[of C]
@@ -1667,8 +1629,8 @@ proof -
   show ?thesis
     unfolding literal_redundant_wl_def literal_redundant_def
     apply (refine_rcg H get_propagation_reason)
-    subgoal by (simp add: M'_def)
-    subgoal by (simp add: M'_def)
+    subgoal by simp
+    subgoal using M'_def by simp
     subgoal by simp
     subgoal by simp
     subgoal by simp

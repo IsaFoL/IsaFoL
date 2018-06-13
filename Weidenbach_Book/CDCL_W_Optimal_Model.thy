@@ -95,7 +95,7 @@ However, the optimal model (obviously) is $Q$.
 locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state =
   state\<^sub>W_no_state
     state_eq state
-    \<comment> \<open>functions for the state: \<close>
+    \<comment> \<open>functions for the state:\<close>
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>changing state:\<close>
@@ -147,7 +147,7 @@ end
 locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops =
   conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state
     state_eq state
-    \<comment> \<open>functions for the state: \<close>
+    \<comment> \<open>functions for the state:\<close>
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>changing state:\<close>
@@ -986,7 +986,7 @@ locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
   conflict_driven_clause_learning\<^sub>W
     state_eq
     state
-    \<comment> \<open>functions for the state: \<close>
+    \<comment> \<open>functions for the state:\<close>
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>changing state:\<close>

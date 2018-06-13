@@ -1578,22 +1578,17 @@ proof -
   then show ?thesis using assms contains_propagates_Exi Exi0 Exi_upward' by metis
 qed
 
-definition ntou :: \<open>nat \<Rightarrow> proxy\<close> where
-  \<open>ntou n \<equiv> replicate n ()\<close>
+definition ntou :: \<open>nat \<Rightarrow> proxy\<close> where \<open>ntou n \<equiv> replicate n ()\<close>
 
-definition uton :: \<open>proxy \<Rightarrow> nat\<close> where
-  \<open>uton u \<equiv> length u\<close>
+lemma inj_ntou: \<open>inj ntou\<close>
+  unfolding inj_def ntou_def using length_replicate by simp
 
-lemma ntou_uton: \<open>ntou (uton u) = u\<close>
-  using ntou_def uton_def
-  by (induct u) auto
+hide_fact ntou_def
 
-lemma uton_ntou: \<open>uton (ntou n) = n\<close>
-  using ntou_def uton_def
-  by (induct n) auto
+definition uton :: \<open>proxy \<Rightarrow> nat\<close> where \<open>uton \<equiv> inv ntou\<close>
 
-lemma uton_ntou_id: \<open>uton \<circ> ntou = id\<close>
-  using uton_ntou by auto
+lemma uton_ntou_id[simp]: \<open>uton \<circ> ntou = id\<close>
+  unfolding uton_def using inj_ntou by simp
 
 subsection \<open>Falsifying Model From Failing Path\<close>
 
@@ -1637,10 +1632,10 @@ proof (rule nat_less_induct,rule allI)
     proof (cases p)
       case (Pre b i v) then show ?thesis
       proof (cases b)
-        case True then show ?thesis using Pre assms model_def uton_ntou_id by auto
+        case True then show ?thesis using Pre assms model_def by auto
       next
         case False then show ?thesis using Pre
-        proof (clarsimp simp: model_def uton_ntou_id)
+        proof (clarsimp simp: model_def)
           fix na m nb ma
           show \<open>n = 0 \<Longrightarrow> contains f na (m,Pre False i v) \<Longrightarrow>
             contains (failing_path (calculation s)) nb (ma,Pre True i v) \<Longrightarrow> False\<close>
@@ -1712,12 +1707,19 @@ proof (rule nat_less_induct,rule allI)
         show \<open>p = Exi q \<Longrightarrow> n = Suc (size q) \<Longrightarrow> z \<in> fst (model s) \<Longrightarrow> contains f na (m,Exi q)
             \<Longrightarrow> semantics (model s) (case_nat z ntou) q \<Longrightarrow> False\<close>
         proof -
-          assume \<open>n = Suc (size q)\<close> and \<open>contains f na (m,Exi q)\<close>
-            and 1: \<open>semantics (model s) (case_nat z ntou) q\<close>
-          then have \<open>\<forall>m'. \<not> semantics (model s) ntou (sv (bind m') q)\<close>
-            using assms * by (meson Exi_upward eval_cong id_apply lessI size_bind)
-          also have \<open>\<forall>u. ntou (uton u) = u\<close> using ntou_uton by simp
-          ultimately show ?thesis using 1 eval_bind by metis
+          assume a1: "n = Suc (size q)"
+          assume a2: "semantics (model s) (case_nat z ntou) q"
+          assume a3: "z \<in> fst (model s)"
+          assume a4: "contains f na (m, Exi q)"
+          have f5: "semantics (model s) ntou (sv (bind (inv ntou z)) q)"
+            using a3 a2 by (simp add: eval_bind f_inv_into_f model_def)
+          obtain nn :: "nat \<Rightarrow> nnf \<Rightarrow> (nat \<Rightarrow> nat \<times> (nat \<times> nnf) list) \<Rightarrow> nat" where
+            "\<forall>x0 x1 x5. (\<exists>v6. contains x5 v6 (0, sv (bind x0) x1)) = contains x5 (nn x0 x1 x5) (0, sv (bind x0) x1)"
+            by moura
+          then have "\<forall>n. contains (failing_path (calculation s)) (nn n q (failing_path (calculation s))) (0, sv (bind n) q)"
+            using a4 Exi_upward assms(1) assms(2) assms(3) by force
+          then show ?thesis
+            using f5 a1 "*" assms(1) size_bind by blast
         qed
       qed
     qed
@@ -1814,7 +1816,8 @@ lemma finite_calculation'':
 proof -
   obtain m where \<open>loop [s] m = []\<close> using assms by blast
   then have \<open>\<forall>y. loop [s] (m+y) = []\<close> using loop_upwards by simp
-  then have 1: \<open>(UN x:Collect (op \<le> m). Pair x ` set (loop [s] x)) = (UN x:Collect (op \<le> m). {})\<close>
+  then have 1: \<open>(UN x:Collect (less_eq m). Pair x ` set (loop [s] x)) =
+                (UN x:Collect (less_eq m). {})\<close>
     using SUP_cong image_is_empty le_Suc_ex mem_Collect_eq set_empty
     by (metis (no_types,lifting))
   then have \<open>(UNIV::nat set) = {y. y < m} Un {y. m \<le> y}\<close> by fastforce

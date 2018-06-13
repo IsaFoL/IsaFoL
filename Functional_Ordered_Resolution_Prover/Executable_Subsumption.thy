@@ -6,7 +6,7 @@
 section \<open>An Executable Algorithm for Clause Subsumption\<close>
 
 theory Executable_Subsumption
-  imports "../Ordered_Resolution_Prover/IsaFoR_Term" QTRS.Matching QTRS.Term_More
+  imports IsaFoR_Term TRS.Matching TRS.Term_More 
 begin
 
 fun subsumes_list where
@@ -31,7 +31,7 @@ lemma extends_subst_trans: "extends_subst \<sigma> \<tau> \<Longrightarrow> exte
 lemma extends_subst_dom: "extends_subst \<sigma> \<tau> \<Longrightarrow> dom \<sigma> \<subseteq> dom \<tau>"
   unfolding extends_subst_def dom_def by auto
 
-lemma exteinds_subst_fun_upd_new: 
+lemma exteinds_subst_fun_upd_new:
   "\<sigma> x = None \<Longrightarrow> extends_subst (\<sigma>(x \<mapsto> t)) \<tau> \<longleftrightarrow> extends_subst \<sigma> \<tau> \<and> \<tau> x = Some t"
   unfolding extends_subst_def dom_fun_upd subst_of_map_def
   by (force simp add: dom_def split: option.splits)
@@ -181,7 +181,7 @@ proof (induction Ls Ks \<sigma> rule: subsumes_list.induct[case_names Nil Cons])
       using unique_extends_subst[of \<sigma> \<tau> \<rho> "atm_of L"]
       by auto
     done
-qed (auto simp: subsumes_modulo_def subst_cls_def vars_clause_def intro: extends_subst_refl) 
+qed (auto simp: subsumes_modulo_def subst_cls_def vars_clause_def intro: extends_subst_refl)
 
 lemma subsumes_subsumes_list[code_unfold]:
   "subsumes (mset Ls) (mset Ks) = subsumes_list Ls Ks Map.empty"
@@ -231,7 +231,7 @@ shows "subsumes_list (L # Ls) (filter (leq L) Ks) \<sigma> \<longleftrightarrow>
   apply (elim disjE)
   subgoal by (auto split: option.splits elim!: match)
   subgoal for L K \<sigma> \<tau>
-    using sorted_wrt unfolding sorted_wrt_Cons[OF trans]
+    using sorted_wrt unfolding List.sorted_wrt.simps(2)
     apply (elim conjE)
     apply (drule bspec, assumption)
     apply (erule transpD[OF trans])
@@ -284,7 +284,7 @@ proof (induction Ls arbitrary: Ks \<sigma>)
   from Cons.prems have "subsumes_list (L # Ls) Ks \<sigma> = subsumes_list (L # Ls) (filter (leq_lit L) Ks) \<sigma>"
     by (intro subsumes_list_Cons_filter_iff[symmetric]) (auto dest: leq_lit_match)
   also have "subsumes_list (L # Ls) (filter (leq_lit L) Ks) \<sigma> = subsumes_list_filter (L # Ls) Ks \<sigma>"
-    using Cons.prems by (auto simp: sorted_wrt_Cons Cons.IH split: option.splits)
+    using Cons.prems by (auto simp: Cons.IH split: option.splits)
   finally show ?case .
 qed simp
 
@@ -292,16 +292,16 @@ subsection \<open>Definition of deterministic QuickSort\<close>
 
 (*stolen from Manuel Eberls Quick_Sort_Cost AFP entry,
    but without invoking probability theory and using a predicate instead of a set*)
-  
+
 text \<open>
-  This is the functional description of the standard variant of deterministic QuickSort that 
-  always chooses the first list element as the pivot as given by Hoare in 1962~\cite{hoare}. 
-  For a list that is already sorted, this leads to $n(n-1)$ 
+  This is the functional description of the standard variant of deterministic QuickSort that
+  always chooses the first list element as the pivot as given by Hoare in 1962~\cite{hoare}.
+  For a list that is already sorted, this leads to $n(n-1)$
   comparisons, but as is well known, the average case is not that bad.
 \<close>
 fun quicksort :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list" where
   "quicksort _ [] = []"
-| "quicksort R (x # xs) = 
+| "quicksort R (x # xs) =
      quicksort R (filter (\<lambda>y. R y x) xs) @ [x] @ quicksort R (filter (\<lambda>y. \<not> R y x) xs)"
 
 text \<open>
@@ -309,11 +309,11 @@ text \<open>
 \<close>
 theorem mset_quicksort [simp]: "mset (quicksort R xs) = mset xs"
   by (induction R xs rule: quicksort.induct) simp_all
-    
+
 corollary set_quicksort [simp]: "set (quicksort R xs) = set xs"
   by (induction R xs rule: quicksort.induct) auto
 
-theorem sorted_wrt_quicksort: 
+theorem sorted_wrt_quicksort:
   assumes "transp R" and "total_on R (set xs)" and "reflp_on R (set xs)"
   shows   "sorted_wrt R (quicksort R xs)"
 using assms
@@ -321,12 +321,12 @@ proof (induction R xs rule: quicksort.induct)
   case (2 R x xs)
   have total: "R a b" if "\<not> R b a" "a \<in> set (x#xs)" "b \<in> set (x#xs)" for a b
     using "2.prems" that unfolding total_on_def reflp_on_def by (cases "a = b") auto
-    
+
   have "sorted_wrt R (quicksort R (filter (\<lambda>y. R y x) xs))"
           "sorted_wrt R (quicksort R (filter (\<lambda>y. \<not> R y x) xs))"
     using "2.prems" by (intro "2.IH"; auto simp: total_on_def reflp_on_def)+
   then show ?case
-    by (auto simp: sorted_wrt_append sorted_wrt_Cons \<open>transp R\<close>
+    by (auto simp: sorted_wrt_append \<open>transp R\<close>
      intro: transpD[OF \<open>transp R\<close>] dest!: total)
 qed auto
 

@@ -14,7 +14,15 @@ fun lit_of_nat n =
   if Word.toLargeInt n mod 2 = 0 then Word.toLargeInt n div 2
   else ~(Word.toLargeInt n div 2)
 
-val print_model = map (print o (fn n => IntInf.toString n ^ " ") o lit_of_nat)
+fun print_model (xs, i) =
+    let
+      fun map_from j =
+          if j >= int_of_gn i then ()
+          else
+            ((print o (fn n => IntInf.toString n ^ " ") o lit_of_nat)
+                (Array.sub (xs, j));
+                 map_from (j+1))
+    in map_from 0 end
 
 fun nat_of_lit n =
   let val m = if n < 0 then (2*(~n-1)+1) else (2*(n-1))
@@ -62,11 +70,12 @@ fun print_clauses id a [] = ()
       print_clauses (id+1) a xs
     )
 
-fun print_stat (propa, (confl, dec)) =
+fun print_stat (propa, (confl, (dec, res))) =
   let
-     val _ = print ("s propagations: " ^ IntInf.toString (Uint64.toInt propa) ^ "\n")
-     val _ = print ("s conflicts: " ^ IntInf.toString (Uint64.toInt confl) ^ "\n")
-     val _ = print ("s decisions: " ^ IntInf.toString (Uint64.toInt dec) ^ "\n")
+     val _ = print ("c propagations: " ^ IntInf.toString (Uint64.toInt propa) ^ "\n")
+     val _ = print ("c conflicts: " ^ IntInf.toString (Uint64.toInt confl) ^ "\n")
+     val _ = print ("c decisions: " ^ IntInf.toString (Uint64.toInt dec) ^ "\n")
+     val _ = print ("c restarts: " ^ IntInf.toString (Uint64.toInt res) ^ "\n")
   in
    ()
   end
@@ -76,8 +85,8 @@ fun checker print_modelb print_stats cnf_name = let
   val _ = (if print_stats then print_stat stat else ());
   val _ =
         (case SAT of
-             NONE => print "UNSAT"
-           | SOME SAT => if print_modelb then ignore (print_model SAT) else print "SAT")
+             NONE => print "s UNSATISFIABLE\n"
+           | SOME SAT => if print_modelb then ignore (print_model SAT) else print "s SATISFIABLE\n")
   in
     ()
   end

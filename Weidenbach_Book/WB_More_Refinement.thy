@@ -2,25 +2,20 @@ theory WB_More_Refinement
   imports
     Refine_Imperative_HOL.IICF
     Weidenbach_Book_Base.WB_List_More
-    "HOL-Eisbach.Eisbach"
-    "HOL-Eisbach.Eisbach_Tools"
 begin
 
+lemma (in -)finite_length_le_CARD:
+  assumes \<open>distinct (xs :: 'a :: finite list)\<close>
+  shows \<open>length xs \<le> CARD('a)\<close>
+proof -
+  have \<open>set xs \<subseteq> UNIV\<close>
+    by auto
+  show ?thesis
+    by (metis assms card_ge_UNIV distinct_card le_cases)
+qed
+
+
 no_notation Ref.update ("_ := _" 62)
-
-subsection \<open>Not-Related to Refinement\<close>
-
-text \<open>
-  Unlike clarify, this does not split tuple of the form \<^term>\<open>\<exists>T. P T\<close> in the assumption.
-  After calling it, as the variable are not quantified anymore, the simproc does not trigger,
-  allowing to safely call auto/simp/...
-\<close>
-method normalize_goal =
-  (match premises in
-    J[thin]: \<open>\<exists>x. _\<close> \<Rightarrow> \<open>rule exE[OF J]\<close>
-  \<bar> J[thin]: \<open>_ \<and> _\<close> \<Rightarrow> \<open>rule conjE[OF J]\<close>
-  )
-
 
 subsection \<open>Some Tooling for Refinement\<close>
 
@@ -242,11 +237,18 @@ notation prod_assn (infixr "*a" 90)
 
 subsection \<open>More Theorems for Refinement\<close>
 
+lemma prod_assn_id_assn_destroy: \<open>R\<^sup>d *\<^sub>a id_assn\<^sup>d = (R *a id_assn)\<^sup>d\<close>
+  by (auto simp: hfprod_def prod_assn_def[abs_def] invalid_assn_def pure_def intro!: ext)
+
 lemma SPEC_add_information: \<open>P \<Longrightarrow> A \<le> SPEC Q \<Longrightarrow> A \<le> SPEC(\<lambda>x. Q x \<and> P)\<close>
   by auto
 
 lemma bind_refine_spec: \<open>(\<And>x. \<Phi> x \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> SPEC \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
   by (auto simp add: pw_le_iff refine_pw_simps)
+
+lemma intro_spec_iff:
+  \<open>(RES X \<bind> f \<le> M) = (\<forall>x\<in>X. f x \<le> M)\<close>
+  using intro_spec_refine_iff[of X f Id M] by auto
 
 lemma case_prod_bind:
   assumes \<open>\<And>x1 x2. x = (x1, x2) \<Longrightarrow> f x1 x2 \<le> \<Down> R I\<close>
@@ -317,8 +319,8 @@ text \<open>
 \<close>
 
 lemma RECT_WHILEI_body_add_post_condition:
-    \<open>REC\<^sub>T (WHILEI_body op \<bind> RETURN I' b' f) x' =
-     (REC\<^sub>T (WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f) x')\<close>
+    \<open>REC\<^sub>T (WHILEI_body (\<bind>) RETURN I' b' f) x' =
+     (REC\<^sub>T (WHILEI_body (\<bind>) RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f) x')\<close>
   (is \<open>REC\<^sub>T ?f x' = REC\<^sub>T ?f' x'\<close>)
 proof -
   have le: \<open>flatf_gfp ?f x' \<le> flatf_gfp ?f' x'\<close> for x'
@@ -340,7 +342,7 @@ proof -
     have  \<open>(RES X \<bind> f \<le> M) = (\<forall>x\<in>X. f x \<le> M)\<close> for x f M X
       using intro_spec_refine_iff[of _ _ \<open>Id\<close>] by auto
     thm bind_refine_RES(2)[of _ Id, simplified]
-    have [simp]: \<open>flatf_mono FAIL (WHILEI_body op \<bind> RETURN I' b' f)\<close>
+    have [simp]: \<open>flatf_mono FAIL (WHILEI_body (\<bind>) RETURN I' b' f)\<close>
       by (simp add: WHILEI_mono_ge)
 
     have \<open>flatf_gfp ?f x' = ?f (?f (flatf_gfp ?f)) x'\<close>
@@ -349,7 +351,7 @@ proof -
       apply (subst flatf_ord.fixp_unfold)
        apply (solves \<open>simp\<close>)
       ..
-    also have \<open>\<dots> = WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f (WHILEI_body op \<bind> RETURN I' b' f (flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f))) x'\<close>
+    also have \<open>\<dots> = WHILEI_body (\<bind>) RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f (WHILEI_body (\<bind>) RETURN I' b' f (flatf_gfp (WHILEI_body (\<bind>) RETURN I' b' f))) x'\<close>
       apply (subst (1) WHILEI_body_def, subst (1) WHILEI_body_def)
       apply (subst (2) WHILEI_body_def, subst (2) WHILEI_body_def)
       apply simp_all
@@ -357,12 +359,12 @@ proof -
        apply (auto simp: RES_RETURN_RES nofail_def[symmetric] pw_RES_bind_choose
           split: if_splits)
       done
-    also have \<open>\<dots> =  WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f ((flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f))) x'\<close>
+    also have \<open>\<dots> =  WHILEI_body (\<bind>) RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f ((flatf_gfp (WHILEI_body (\<bind>) RETURN I' b' f))) x'\<close>
       apply (subst (2) flatf_ord.fixp_unfold)
        apply (solves \<open>simp\<close>)
       ..
-    finally have unfold1: \<open>flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f) x' =
-         ?f' (flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f)) x'\<close>
+    finally have unfold1: \<open>flatf_gfp (WHILEI_body (\<bind>) RETURN I' b' f) x' =
+         ?f' (flatf_gfp (WHILEI_body (\<bind>) RETURN I' b' f)) x'\<close>
       .
     have [intro!]: \<open>(\<And>x. g x \<le> (h:: 'a \<Rightarrow> 'a nres) x) \<Longrightarrow> fx \<bind> g \<le> fx \<bind> h\<close> for g h fx fy
       by (refine_rcg bind_refine'[where R = \<open>Id\<close>, simplified]) fast
@@ -632,6 +634,22 @@ lemma ex_assn_skip_first2:
 lemma nofail_Down_nofail: \<open>nofail gS \<Longrightarrow> fS \<le> \<Down> R gS \<Longrightarrow> nofail fS\<close>
   using pw_ref_iff by blast
 
+text \<open>This is the refinement version of @{thm WHILEIT_add_post_condition}.\<close>
+lemma WHILEIT_refine_with_post:
+  assumes R0: "I' x' \<Longrightarrow> (x,x')\<in>R"
+  assumes IREF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x"
+  assumes COND_REF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'"
+  assumes STEP_REF:
+    "\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x'; f' x' \<le> SPEC I' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')"
+  shows "WHILEIT I b f x \<le>\<Down>R (WHILEIT I' b' f' x')"
+  apply (subst (2) WHILEIT_add_post_condition)
+  apply (rule WHILEIT_refine)
+  subgoal using R0 by blast
+  subgoal using IREF by blast
+  subgoal using COND_REF by blast
+  subgoal using STEP_REF by auto
+  done
+
 
 subsection \<open>Some Refinement\<close>
 
@@ -840,6 +858,12 @@ proof -
 qed
 
 
+lemma list_rel_in_find_correspondanceE:
+  assumes \<open>(M, M') \<in> \<langle>R\<rangle>list_rel\<close> and \<open>L \<in> set M\<close>
+  obtains L' where \<open>(L, L') \<in> R\<close> and \<open>L' \<in> set M'\<close>
+  using assms[unfolded in_set_conv_decomp] by (auto simp: list_rel_append1
+      elim!: list_relE3)
+
 definition list_rel_mset_rel where list_rel_mset_rel_internal:
 \<open>list_rel_mset_rel \<equiv> \<lambda>R. \<langle>R\<rangle>list_rel O list_mset_rel\<close>
 
@@ -848,14 +872,14 @@ lemma list_rel_mset_rel_def[refine_rel_defs]:
   unfolding relAPP_def list_rel_mset_rel_internal ..
 
 lemma list_mset_assn_pure_conv:
-  \<open>list_mset_assn (pure R) = pure (list_rel_mset_rel R)\<close>
+  \<open>list_mset_assn (pure R) = pure (\<langle>R\<rangle>list_rel_mset_rel)\<close>
   apply (intro ext)
   using list_all2_reorder_left_invariance
   by (fastforce
     simp: list_rel_mset_rel_def list_mset_assn_def
       mset_rel_def rel2p_def[abs_def] rel_mset_def p2rel_def
       list_mset_rel_def[abs_def] Collect_eq_comp br_def
-      list_rel_mset_rel_internal list_rel_def Collect_eq_comp_right
+      list_rel_def Collect_eq_comp_right
     intro!: arg_cong[of _ _ \<open>\<lambda>b. pure b _ _\<close>])
 
 lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
@@ -882,6 +906,10 @@ proof -
         p2rel_def rel2p_def[abs_def] rel_mset_def R list_mset_rel_def list_rel_def)
       using list_all2_reorder_left_invariance by fastforce
   qed
+
+lemma list_rel_mset_rel_imp_same_length: \<open>(a, b) \<in> \<langle>R\<rangle>list_rel_mset_rel \<Longrightarrow> length a = size b\<close>
+  by (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def
+      dest: list_rel_imp_same_length)
 
 
 subsection \<open>More Functions, Relations, and Theorems\<close>
@@ -983,7 +1011,7 @@ text \<open>Remark that we do not \<^emph>\<open>prove\<close> that the sorting 
 definition insert_sort_inner :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 'b :: ord) \<Rightarrow> 'a list \<Rightarrow>  nat \<Rightarrow> 'a list nres\<close> where
   \<open>insert_sort_inner f xs i = do {
      (j, ys) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(j, ys). j \<ge> 0 \<and> mset xs = mset ys \<and> j < length ys\<^esup>
-         (\<lambda>(j, ys). j > 0 \<and> f ys j > f ys i)
+         (\<lambda>(j, ys). j > 0 \<and> f ys (j - 1) > f ys j)
          (\<lambda>(j, ys). do {
              ASSERT(j < length ys);
              ASSERT(j > 0);
@@ -996,6 +1024,10 @@ definition insert_sort_inner :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 
      RETURN ys
   }\<close>
 
+
+(* A check: *)
+lemma \<open>RETURN [Suc 0, 2, 0] = insert_sort_inner (\<lambda>remove n. remove ! n) [2::nat, 1, 0] 1\<close>
+  by (simp add: WHILEIT_unfold insert_sort_inner_def swap_def)
 
 definition reorder_remove :: \<open>'b \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
 \<open>reorder_remove _ removed = SPEC (\<lambda>removed'. mset removed' = mset removed)\<close>
@@ -1034,11 +1066,12 @@ lemma insert_sort_inner:
   subgoal by auto
   done
 
-lemma insert_sort_reorder_remove: \<open>(insert_sort f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+lemma insert_sort_reorder_remove:
+  \<open>(insert_sort f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
 proof -
   have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close>
     for ba aa
-    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified, rule_format]
+    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified]
     by fast
   show ?thesis
     unfolding insert_sort_def reorder_remove_def
@@ -1054,5 +1087,38 @@ proof -
     subgoal by auto
     done
 qed
+
+definition arl_replicate where
+ "arl_replicate init_cap x \<equiv> do {
+    let n = max init_cap minimum_capacity;
+    a \<leftarrow> Array.new n x;
+    return (a,init_cap)
+  }"
+
+definition \<open>op_arl_replicate = op_list_replicate\<close>
+lemma arl_fold_custom_replicate:
+  \<open>replicate = op_arl_replicate\<close>
+  unfolding op_arl_replicate_def op_list_replicate_def ..
+
+lemma list_replicate_arl_hnr[sepref_fr_rules]:
+  assumes p:  \<open>CONSTRAINT is_pure R\<close>
+  shows \<open>(uncurry arl_replicate, uncurry (RETURN oo op_arl_replicate)) \<in> nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow>\<^sub>a arl_assn R\<close>
+proof -
+  obtain R' where
+     R'[symmetric]: \<open>R' = the_pure R\<close> and
+     R_R': \<open>R = pure R'\<close>
+    using assms by fastforce
+  have [simp]: \<open>pure R' b bi = \<up>((bi, b) \<in> R')\<close> for b bi
+    by (auto simp: pure_def)
+  have [simp]: \<open>min a (max a 16) = a\<close> for a :: nat
+    by auto
+  show ?thesis
+    using assms unfolding op_arl_replicate_def
+    by sepref_to_hoare
+      (sep_auto simp: arl_replicate_def arl_assn_def hr_comp_def R' R_R' list_rel_def
+        is_array_list_def minimum_capacity_def
+        intro!: list_all2_replicate)
+qed
+
 
 end

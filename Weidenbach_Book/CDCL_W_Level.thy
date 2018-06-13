@@ -117,6 +117,11 @@ lemma get_maximum_level_add_mset:
   "get_maximum_level M (add_mset L D) = max (get_level M L) (get_maximum_level M D)"
   unfolding get_maximum_level_def by simp
 
+lemma get_level_append_if:
+  \<open>get_level (M @ M') L = (if defined_lit M L then get_level M L + count_decided M'
+            else get_level M' L)\<close>
+  by (auto)
+
 text \<open>Do mot activate as [simp] rules. It breaks everything.\<close>
 lemma get_maximum_level_single:
   \<open>get_maximum_level M {#x#} = get_level M x\<close>

@@ -5,8 +5,6 @@ begin
 
 chapter \<open>Two-Watched Literals\<close>
 
-notation image_mset (infixr "`#" 90)
-
 section \<open>Rule-based system\<close>
 
 subsection \<open>Types and Transitions System\<close>
@@ -72,6 +70,8 @@ fun get_init_learned_clss :: \<open>'v twl_st \<Rightarrow> 'v clauses\<close> w
 fun get_all_learned_clss :: \<open>'v twl_st \<Rightarrow> 'v clauses\<close> where
   \<open>get_all_learned_clss (_, N, U, _, _, UE, _) = clause `# U + UE\<close>
 
+fun get_all_clss :: \<open>'v twl_st \<Rightarrow> 'v clause multiset\<close> where
+  \<open>get_all_clss (M, N, U, D, NE, UE, WS, Q) = clause `# N + NE + clause `# U + UE\<close>
 
 fun update_clause where
 \<open>update_clause (TWL_Clause W UW) L L' =
@@ -193,6 +193,18 @@ fun state\<^sub>W_of :: \<open>'v twl_st \<Rightarrow> 'v cdcl\<^sub>W_restart_m
 \<open>state\<^sub>W_of (M, N, U, C, NE, UE, Q) =
   (M, clause `# N + NE, clause `# U + UE,  C)\<close>
 
+named_theorems twl_st \<open>Conversions simp rules\<close>
+
+lemma [twl_st]: \<open>trail (state\<^sub>W_of S') = get_trail S'\<close>
+  by (cases S') (auto simp: trail.simps)
+
+lemma [twl_st]:
+  \<open>get_trail S' \<noteq> [] \<Longrightarrow> cdcl\<^sub>W_restart_mset.hd_trail (state\<^sub>W_of S') = hd (get_trail S')\<close>
+  by (cases S') (auto simp: trail.simps)
+
+lemma [twl_st]: \<open>conflicting (state\<^sub>W_of S') = get_conflict S'\<close>
+  by (cases S') (auto simp: conflicting.simps)
+
 text \<open>
   The invariant on the clauses is the following:
   \<^item> the structure is correct (the watched part is of length exactly two).
@@ -240,6 +252,13 @@ fun no_duplicate_queued :: \<open>'v twl_st \<Rightarrow> bool\<close> where
   (\<forall>C C'. C \<in># WS \<longrightarrow> C' \<in># WS \<longrightarrow> fst C = fst C') \<and>
   (\<forall>C. C \<in># WS \<longrightarrow> add_mset (fst C) Q \<subseteq># uminus `# lit_of `# mset M) \<and>
   Q \<subseteq># uminus `# lit_of `# mset M\<close>
+
+lemma no_duplicate_queued_alt_def:
+   \<open>no_duplicate_queued S =
+    ((\<forall>C C'. C \<in># clauses_to_update S \<longrightarrow> C' \<in># clauses_to_update S \<longrightarrow> fst C = fst C') \<and>
+     (\<forall>C. C \<in># clauses_to_update S \<longrightarrow> add_mset (fst C) (literals_to_update S) \<subseteq># uminus `# lit_of `# mset (get_trail S)) \<and>
+     literals_to_update S \<subseteq># uminus `# lit_of `# mset (get_trail S))\<close>
+  by (cases S) auto
 
 fun distinct_queued :: \<open>'v twl_st \<Rightarrow> bool\<close> where
 \<open>distinct_queued (M, N, U, D, NE, UE, WS, Q) \<longleftrightarrow>
@@ -4867,27 +4886,27 @@ lemma tranclp_wf_cdcl_twl_o:
   by (rule wf_subset[OF tranclp_wf_cdcl_twl_stgy]) (auto dest: tranclp_cdcl_twl_o_stgyD)
 
 lemma (in -)propa_cands_enqueued_mono:
-  \<open>U' \<subseteq># U \<Longrightarrow>
+  \<open>U' \<subseteq># U \<Longrightarrow> N' \<subseteq># N \<Longrightarrow>
      propa_cands_enqueued  (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow>
-      propa_cands_enqueued  (M, N, U', D, NE, UE, WS, Q)\<close>
-  by (cases D) auto
+      propa_cands_enqueued  (M, N', U', D, NE', UE', WS, Q)\<close>
+  by (cases D) (auto 5 5)
 
 lemma (in -)confl_cands_enqueued_mono:
-  \<open>U' \<subseteq># U \<Longrightarrow>
+  \<open>U' \<subseteq># U \<Longrightarrow> N' \<subseteq># N \<Longrightarrow>
      confl_cands_enqueued  (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow>
-      confl_cands_enqueued  (M, N, U', D, NE, UE, WS, Q)\<close>
+      confl_cands_enqueued  (M, N', U', D, NE', UE', WS, Q)\<close>
   by (cases D) auto
 
 lemma (in -)twl_st_exception_inv_mono:
-  \<open>U' \<subseteq># U \<Longrightarrow>
+  \<open>U' \<subseteq># U \<Longrightarrow> N' \<subseteq># N \<Longrightarrow>
      twl_st_exception_inv  (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow>
-      twl_st_exception_inv  (M, N, U', D, NE, UE, WS, Q)\<close>
+      twl_st_exception_inv  (M, N', U', D, NE', UE', WS, Q)\<close>
   by (cases D) (fastforce simp: twl_exception_inv.simps)+
 
 lemma (in -)twl_st_inv_mono:
-  \<open>U' \<subseteq># U \<Longrightarrow>
-     twl_st_inv  (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow>
-      twl_st_inv  (M, N, U', D, NE, UE, WS, Q)\<close>
+  \<open>U' \<subseteq># U \<Longrightarrow> N' \<subseteq># N \<Longrightarrow>
+     twl_st_inv (M, N, U, D, NE, UE, WS, Q) \<Longrightarrow>
+      twl_st_inv (M, N', U', D, NE', UE', WS, Q)\<close>
   by (cases D) (fastforce simp: twl_st_inv.simps)+
 
 lemma (in -) rtranclp_cdcl_twl_stgy_twl_stgy_invs:
@@ -5326,6 +5345,83 @@ proof -
     by (rule struct_S')
   show ?thesis
     using 1 2 by auto
+qed
+
+
+definition final_twl_state where
+  \<open>final_twl_state S \<longleftrightarrow>
+      no_step cdcl_twl_stgy S \<or> (get_conflict S \<noteq> None \<and> count_decided (get_trail S) = 0)\<close>
+
+definition conclusive_TWL_run :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
+  \<open>conclusive_TWL_run S = SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> final_twl_state T)\<close>
+
+
+lemma conflict_of_level_unsatisfiable:
+  assumes
+    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S\<close> and
+    dec: \<open>count_decided (trail S) = 0\<close> and
+    confl: \<open>conflicting S \<noteq> None\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
+  shows \<open>unsatisfiable (set_mset (init_clss S))\<close>
+proof -
+  obtain M N U D where S: \<open>S = (M, N, U, Some D)\<close>
+    by (cases S) (use confl in \<open>auto simp: cdcl\<^sub>W_restart_mset_state\<close>)
+  have [simp]: \<open>get_all_ann_decomposition M = [([], M)]\<close>
+    by (rule no_decision_get_all_ann_decomposition)
+      (use dec in \<open>auto simp: count_decided_def filter_empty_conv S cdcl\<^sub>W_restart_mset_state\<close>)
+  have
+    N_U: \<open>N \<Turnstile>psm U\<close> and
+    M_D: \<open>M \<Turnstile>as CNot D\<close> and
+    N_U_M: \<open>set_mset N \<union> set_mset U \<Turnstile>ps unmark_l M\<close> and
+    n_d: \<open>no_dup M\<close> and
+    N_U_D: \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>
+    using assms
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
+        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+  have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
+    by (rule true_clss_clss_true_clss_cls_true_clss_clss[OF N_U_M M_D])
+  then have \<open>set_mset N \<Turnstile>ps CNot D\<close> \<open>set_mset N \<Turnstile>p D\<close>
+    using N_U N_U_D true_clss_clss_left_right by blast+
+  then have \<open>unsatisfiable (set_mset N)\<close>
+    by (rule true_clss_clss_CNot_true_clss_cls_unsatisfiable)
+
+  then show ?thesis
+    by (auto simp: S clauses_def cdcl\<^sub>W_restart_mset_state dest: satisfiable_decreasing)
+qed
+
+lemma conflict_of_level_unsatisfiable2:
+  assumes
+    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S\<close> and
+    dec: \<open>count_decided (trail S) = 0\<close> and
+    confl: \<open>conflicting S \<noteq> None\<close>
+  shows \<open>unsatisfiable (set_mset (init_clss S + learned_clss S))\<close>
+proof -
+  obtain M N U D where S: \<open>S = (M, N, U, Some D)\<close>
+    by (cases S) (use confl in \<open>auto simp: cdcl\<^sub>W_restart_mset_state\<close>)
+  have [simp]: \<open>get_all_ann_decomposition M = [([], M)]\<close>
+    by (rule no_decision_get_all_ann_decomposition)
+      (use dec in \<open>auto simp: count_decided_def filter_empty_conv S cdcl\<^sub>W_restart_mset_state\<close>)
+  have
+    M_D: \<open>M \<Turnstile>as CNot D\<close> and
+    N_U_M: \<open>set_mset N \<union> set_mset U \<Turnstile>ps unmark_l M\<close> and
+    n_d: \<open>no_dup M\<close> and
+    N_U_D: \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>
+    using assms
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
+        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+  have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
+    by (rule true_clss_clss_true_clss_cls_true_clss_clss[OF N_U_M M_D])
+  then have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close> \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>
+    using  N_U_D true_clss_clss_left_right by blast+
+  then have \<open>unsatisfiable (set_mset N  \<union> set_mset U)\<close>
+    by (rule true_clss_clss_CNot_true_clss_cls_unsatisfiable)
+
+  then show ?thesis
+    by (auto simp: S clauses_def cdcl\<^sub>W_restart_mset_state dest: satisfiable_decreasing)
 qed
 
 end

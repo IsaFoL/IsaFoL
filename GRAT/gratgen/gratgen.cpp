@@ -159,6 +159,7 @@
 #include <atomic>
 #include <chrono>
 #include <limits>
+#include <cmath>
 
 #include <boost/progress.hpp>
 

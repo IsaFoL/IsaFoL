@@ -2,16 +2,23 @@ theory Watched_Literals_Algorithm_Restart
   imports Watched_Literals_Algorithm Watched_Literals_Transition_System_Restart
 begin
 
-context twl_restart
+context twl_restart_ops
 begin
 
 text \<open>Restarts are never necessary\<close>
-definition restart_required :: "'v twl_st \<times> nat \<Rightarrow> bool nres" where
-  \<open>restart_required S = SPEC (\<lambda>b. b \<longrightarrow> size (get_learned_clss (fst S)) > f (snd S))\<close>
+definition restart_required :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool nres" where
+  \<open>restart_required S n = SPEC (\<lambda>b. b \<longrightarrow> size (get_learned_clss S) > f n)\<close>
 
-definition restart_prog :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> nat) nres" where
+definition (in -) restart_prog_pre :: \<open>'v twl_st \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>restart_prog_pre S brk \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and>
+    (\<not>brk \<longrightarrow> get_conflict S = None)\<close>
+
+definition restart_prog
+  :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> nat) nres"
+where
   \<open>restart_prog S n brk = do {
-     b \<leftarrow> restart_required (S, n);
+     ASSERT(restart_prog_pre S brk);
+     b \<leftarrow> restart_required S n;
      if b \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart S T);
        RETURN (T, n + 1)
@@ -20,209 +27,7 @@ definition restart_prog :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool \<Rig
        RETURN (S, n)
    }\<close>
 
-definition cdcl_twl_stgy_restart_with_leftovers where
-  \<open>cdcl_twl_stgy_restart_with_leftovers S U \<longleftrightarrow>
-     (\<exists>T. cdcl_twl_stgy_restart\<^sup>*\<^sup>* S (T, snd U) \<and> cdcl_twl_stgy\<^sup>*\<^sup>* T (fst U))\<close>
-
-
-lemma cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart:
-  \<open>cdcl_twl_stgy_restart (T, m) (V, Suc m) \<Longrightarrow>
-       cdcl_twl_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_twl_stgy_restart (S, m) (V, Suc m)\<close>
-  by (subst (asm) cdcl_twl_stgy_restart.simps)
-   (auto simp: intro: cdcl_twl_stgy_restart.intros
-      dest: rtranclp_tranclp_tranclp)
-
-lemma cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2:
-  \<open>cdcl_twl_stgy_restart (T, m) (V, m) \<Longrightarrow>
-       cdcl_twl_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_twl_stgy_restart (S, m) (V, m)\<close>
-  by (subst (asm) cdcl_twl_stgy_restart.simps)
-   (auto simp: intro: cdcl_twl_stgy_restart.intros
-      dest: rtranclp_tranclp_tranclp rtranclp_full1I)
-
-
-definition cdcl_twl_stgy_restart_with_leftovers1 where
-  \<open>cdcl_twl_stgy_restart_with_leftovers1 S U \<longleftrightarrow>
-     cdcl_twl_stgy_restart S U \<or>
-     (cdcl_twl_stgy\<^sup>+\<^sup>+ (fst S) (fst U) \<and> snd S = snd U)\<close>
-
-lemma wf_cdcl_twl_stgy_restart_with_leftovers1:
-  \<open>wf {(T :: 'v twl_st \<times> nat, S).
-        twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart_with_leftovers1 S T}\<close>
-  (is \<open>wf ?S\<close>)
-proof (rule ccontr)
-  assume \<open>\<not> ?thesis\<close>
-  then obtain g :: \<open>nat \<Rightarrow> 'v twl_st \<times> nat\<close> where
-    g: \<open>\<And>i. cdcl_twl_stgy_restart_with_leftovers1 (g i) (g (Suc i))\<close> and
-    inv: \<open>\<And>i. twl_struct_invs (fst (g i))\<close>
-    unfolding wf_iff_no_infinite_down_chain by fast
-  have ns: \<open>\<not>no_step cdcl_twl_stgy (fst (g i))\<close> for i
-    using g[of i]
-    by (fastforce simp: cdcl_twl_stgy_restart_with_leftovers1_def
-        cdcl_twl_stgy_restart.simps full1_def tranclp_unfold_begin)
-
-  define h where
-    \<open>h \<equiv> rec_nat (g 0) (\<lambda>i Si. g (SOME k. cdcl_twl_stgy_restart Si (g k)))\<close>
-  have [simp]: \<open>h 0 = g 0\<close>
-    unfolding h_def by auto
-
-  have L: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ (fst (g i)) (fst (g (Suc (i + k)))) \<and>
-         cdcl_twl_stgy\<^sup>+\<^sup>+ (fst (g (i + k))) (fst (g (Suc (i + k)))) \<and>
-         snd (g (Suc (i + k))) = snd (g i)\<close>
-    if \<open>k < j\<close> and
-      H: \<open>\<And>k. k \<le> j \<Longrightarrow> \<not>cdcl_twl_stgy_restart (g i) (g (Suc i + k))\<close>
-    for k i j
-    using that
-  proof (induction j arbitrary: k)
-    case 0
-    then show ?case by auto
-  next
-    case (Suc j k)
-    then have
-      IH: \<open>\<And>k. k < j \<Longrightarrow>
-         cdcl_twl_stgy\<^sup>+\<^sup>+ (fst (g i)) (fst (g (Suc (i + k)))) \<and>
-         cdcl_twl_stgy\<^sup>+\<^sup>+ (fst (g (i + k))) (fst (g (Suc (i + k)))) \<and>
-         snd (g (Suc (i + k))) = snd (g i)\<close> and
-      \<open>k < Suc j\<close> and
-      H: \<open>\<And>k. k \<le> Suc j \<Longrightarrow> \<not> cdcl_twl_stgy_restart (g i) (g (Suc i + k))\<close>
-      by auto
-    show ?case
-    proof (cases \<open>k = j\<close>)
-      case False
-      then show ?thesis
-        using IH[of k] \<open>k < Suc j\<close> by simp
-    next
-      case [simp]: True
-      consider
-        (res) \<open>cdcl_twl_stgy_restart (g ( (i+k))) (g ((Suc (i+k))))\<close> |
-        (stgy) \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ (fst (g ((i+k)))) (fst (g ((Suc (i+k)))))\<close> and
-        \<open>snd (g (Suc (i + k))) = snd (g (i + k))\<close>
-        using g[of \<open>i+k\<close>] unfolding cdcl_twl_stgy_restart_with_leftovers1_def
-        by auto
-      then show ?thesis
-      proof cases
-        case stgy
-        then show ?thesis
-          using IH[of \<open>k - 1\<close>]
-          by (cases \<open>0 < j\<close>) auto
-      next
-        case res
-        have Sucg: \<open>Suc (snd (g ((i + k)))) = snd (g (Suc ((i + k))))\<close>
-          using res
-            ns[of \<open>Suc ((i + k))\<close>]
-          by (auto simp: cdcl_twl_stgy_restart.simps full1_def)
-
-        have \<open>cdcl_twl_stgy_restart (g i) (g (Suc (i + k)))\<close>
-          using IH[of \<open>k - 1\<close>]
-            res cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart[ of \<open>fst (g ((i + k)))\<close>
-              \<open>snd (g ((i + k)))\<close> \<open>fst (g (Suc ((i + k))))\<close> \<open>fst (g i)\<close>]
-          unfolding Sucg prod.collapse
-          by (cases \<open>0 < j\<close>) (auto intro!: cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart
-              dest!: tranclp_into_rtranclp)
-        then show ?thesis
-          using H[of k] \<open>k < Suc j\<close>
-          by auto
-      qed
-    qed
-  qed
-  have Ex_cdcl_twl_stgy_restart: \<open>\<exists>k > i. cdcl_twl_stgy_restart (g i) (g k)\<close> for i
-  proof (rule ccontr)
-    assume \<open>\<not> ?thesis\<close>
-    then have H: \<open>\<And>k. k > i \<Longrightarrow> \<not>cdcl_twl_stgy_restart (g i) (g k)\<close>
-      by fast
-
-    define g' where
-      \<open>g' = (\<lambda>k. fst (g (k + i)))\<close>
-    have L: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ (fst (g i)) (fst (g (Suc (i + k)))) \<and>
-         cdcl_twl_stgy\<^sup>+\<^sup>+ (fst (g (i + k))) (fst (g (Suc (i + k)))) \<and>
-         snd (g (Suc (i + k))) = snd (g i)\<close>
-      for k
-      using L[of k \<open>k+1\<close> i] H[of \<open>Suc i+_\<close>]
-      by auto
-    have \<open>(g' (Suc k), g' k) \<in> {(T, S). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T}\<close> for k
-      using L[of k] inv
-      unfolding g'_def
-      by (auto simp: ac_simps)
-    then show False
-      using tranclp_wf_cdcl_twl_stgy
-      unfolding wf_iff_no_infinite_down_chain
-      by fast
-  qed
-  have h_Suc: \<open>h (Suc i) = g (SOME j. cdcl_twl_stgy_restart (h i) (g j))\<close> for i
-    unfolding h_def by auto
-  have h_g: \<open>\<exists>j. h i = g j\<close> for i
-  proof (induction i)
-    case 0
-    then show ?case by auto
-  next
-    case (Suc i)
-    then obtain i' where
-      i': \<open>h i = g i'\<close>
-      by blast
-    define j where \<open>j \<equiv> SOME j. cdcl_twl_stgy_restart (h i) (g j)\<close>
-    obtain k where
-      k: \<open>k > i'\<close> and
-      i_k: \<open>cdcl_twl_stgy_restart (g i') (g k)\<close>
-      using Ex_cdcl_twl_stgy_restart[of i'] by blast
-    have \<open>cdcl_twl_stgy_restart (h i) (g j)\<close>
-      unfolding j_def
-      apply (rule someI[of \<open>\<lambda>S. cdcl_twl_stgy_restart (h i) (g S)\<close>])
-      using k i_k unfolding i' by fast
-    then show ?case
-      unfolding h_Suc by auto
-  qed
-
-  have \<open>cdcl_twl_stgy_restart (h i) (h (Suc i))\<close> for i
-  proof -
-    obtain i' where
-       h_g_i: \<open>h i = g i'\<close>
-      using h_g by fast
-    define j where \<open>j \<equiv> SOME j. cdcl_twl_stgy_restart (h i) (g j)\<close>
-    obtain k where
-      k: \<open>k > i'\<close> and
-      i_k: \<open>cdcl_twl_stgy_restart (g i') (g k)\<close>
-      using Ex_cdcl_twl_stgy_restart[of i'] by blast
-    have \<open>cdcl_twl_stgy_restart (h i) (g j)\<close>
-      unfolding j_def
-      apply (rule someI[of _ k])
-      using k i_k unfolding h_g_i by fast
-    then show ?thesis
-      unfolding h_Suc j_def[symmetric] .
-  qed
-  moreover have \<open>\<And>i. twl_struct_invs (fst (h i))\<close>
-    using inv h_g by metis
-  ultimately show False
-    using wf_cdcl_twl_stgy_restart
-    unfolding wf_iff_no_infinite_down_chain by fast
-qed
-
-
-lemma wf_cdcl_twl_stgy_restart_measure:
-   \<open>wf ({((brkT, T, n), brkS, S, m).
-         twl_struct_invs S \<and> cdcl_twl_stgy_restart_with_leftovers1 (S, m) (T, n)} \<union>
-        {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS})\<close>
-  (is \<open>wf (?TWL \<union> ?BOOL)\<close>)
-proof (rule wf_union_compatible)
-  show \<open>wf ?TWL\<close>
-    apply (rule wf_subset)
-     apply (rule wf_snd_wf_pair[OF wf_cdcl_twl_stgy_restart_with_leftovers1])
-    by auto
-  show \<open>?TWL O ?BOOL \<subseteq> ?TWL\<close>
-    by auto
-
-  show \<open>wf ?BOOL\<close>
-    unfolding wf_iff_no_infinite_down_chain
-  proof clarify
-    fix f :: \<open>nat \<Rightarrow> bool \<times> 'b\<close>
-    assume H: \<open>\<forall>i. (f (Suc i), f i) \<in> {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close>
-    then have \<open>(f (Suc 0), f 0) \<in> {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close> and
-      \<open>(f (Suc 1), f 1) \<in> {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close>
-      by presburger+
-    then show False
-      by auto
-  qed
-qed
-
-abbreviation cdcl_twl_stgy_restart_prog_inv where
+definition cdcl_twl_stgy_restart_prog_inv where
   \<open>cdcl_twl_stgy_restart_prog_inv S\<^sub>0 brk T n \<equiv> twl_struct_invs T \<and> twl_stgy_invs T \<and>
       (brk \<longrightarrow> final_twl_state T) \<and> cdcl_twl_stgy_restart_with_leftovers (S\<^sub>0, 0) (T, n) \<and>
          clauses_to_update T = {#} \<and> (\<not>brk \<longrightarrow> get_conflict T = None)\<close>
@@ -241,10 +46,9 @@ definition cdcl_twl_stgy_restart_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres
       })
       (False, S\<^sub>0, 0);
     RETURN T
-  }
-  \<close>
+  }\<close>
 
-lemma restart_prog_spec:
+lemma (in twl_restart) restart_prog_spec:
   fixes n :: string
   assumes
     inv: \<open>case (brk, T, m) of  (brk, T, m) \<Rightarrow> cdcl_twl_stgy_restart_prog_inv S brk T m\<close> and
@@ -280,9 +84,9 @@ proof -
     using assms(3) cdcl_twl_restart_twl_struct_invs by blast
   have stgy_invs: \<open>cdcl_twl_restart U V \<Longrightarrow>twl_stgy_invs V\<close> for V
     using assms(3) cdcl_twl_restart_twl_stgy_invs by blast
-  have res_no_clss_to_upd: \<open>cdcl_twl_restart U V \<Longrightarrow>clauses_to_update V = {#}\<close> for V
+  have res_no_clss_to_upd: \<open>cdcl_twl_restart U V \<Longrightarrow> clauses_to_update V = {#}\<close> for V
     by (auto simp: cdcl_twl_restart.simps)
-  have res_no_confl: \<open>cdcl_twl_restart U V \<Longrightarrow>get_conflict V = None\<close> for V
+  have res_no_confl: \<open>cdcl_twl_restart U V \<Longrightarrow> get_conflict V = None\<close> for V
     by (auto simp: cdcl_twl_restart.simps)
 
   have
@@ -291,8 +95,8 @@ proof -
     \<open>brk \<longrightarrow> final_twl_state T\<close> and
     twl_res: \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, m)\<close> and
     \<open>clauses_to_update T = {#}\<close> and
-    \<open>\<not> brk \<longrightarrow> get_conflict T = None\<close>
-    using inv by fast+
+    confl: \<open>\<not> brk \<longrightarrow> get_conflict T = None\<close>
+    using inv unfolding cdcl_twl_stgy_restart_prog_inv_def by fast+
   have
     cdcl_o: \<open>cdcl_twl_o\<^sup>*\<^sup>* S' U\<close> and
     conflict_U: \<open>get_conflict U \<noteq> None \<Longrightarrow> count_decided (get_trail U) = 0\<close> and
@@ -300,7 +104,8 @@ proof -
     struct_invs_U: \<open>twl_struct_invs U\<close> and
     stgy_invs_U: \<open>twl_stgy_invs U\<close> and
     clss_to_upd_U: \<open>clauses_to_update U = {#}\<close> and
-    lits_to_upd_U: \<open>\<not> brk' \<longrightarrow> literals_to_update U \<noteq> {#}\<close>
+    lits_to_upd_U: \<open>\<not> brk' \<longrightarrow> literals_to_update U \<noteq> {#}\<close> and
+    confl_U: \<open>\<not> brk' \<longrightarrow> get_conflict U = None\<close>
     using other_inv unfolding final_twl_state_def by fast+
 
   have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>
@@ -405,7 +210,6 @@ proof -
         using twl_res \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>  unfolding cdcl_twl_stgy_restart_with_leftovers_def
         using cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2[of T m U] apply -
         by fastforce
-
     qed
   qed
   have cdcl_twl_stgy_restart_with_leftovers1_T_U:
@@ -432,10 +236,11 @@ proof -
   show ?thesis
     unfolding restart_prog_def restart_required_def
     apply (refine_vcg; remove_dummy_vars)
+    subgoal using struct_invs_U stgy_invs_U confl_U unfolding restart_prog_pre_def by fast
     subgoal by (rule struct_invs')
     subgoal by (rule stgy_invs)
     subgoal by fast
-    subgoal by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart)
+    subgoal by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart) simp
     subgoal by (rule res_no_clss_to_upd)
     subgoal by (rule res_no_confl)
     subgoal by (auto intro!: struct_invs_S struct_invs_T
@@ -463,7 +268,7 @@ lemma cdcl_twl_stgy_restart_with_leftovers_refl: \<open>cdcl_twl_stgy_restart_wi
   by (rule exI[of _ \<open>fst S\<close>]) auto
 
 (* declare restart_prog_spec[THEN order_trans, refine_vcg] *)
-lemma cdcl_twl_stgy_prog_spec:
+lemma (in twl_restart) cdcl_twl_stgy_prog_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
@@ -484,7 +289,7 @@ proof -
       ns: \<open>final_twl_state T\<close> and
       twl_left_overs: \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, n)\<close> and
       \<open>clauses_to_update T = {#}\<close>
-      using that by auto
+      using that unfolding cdcl_twl_stgy_restart_prog_inv_def by auto
     obtain S' where
        st: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0) (S', n)\<close> and
        S'_T: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S' T\<close>
@@ -498,8 +303,8 @@ proof -
       done
   qed
   show ?thesis
-   supply RETURN_as_SPEC_refine[refine2 del]
-    unfolding cdcl_twl_stgy_restart_prog_def full_def
+    supply RETURN_as_SPEC_refine[refine2 del]
+    unfolding cdcl_twl_stgy_restart_prog_def full_def cdcl_twl_stgy_restart_prog_inv_def
     apply (refine_vcg WHILEIT_rule[where
            R = \<open>{((brkT, T, n), (brkS, S, m)).
                      twl_struct_invs S \<and> cdcl_twl_stgy_restart_with_leftovers1 (S, m) (T, n)} \<union>
@@ -518,8 +323,8 @@ proof -
     subgoal by fast
     subgoal by (simp add: no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp)
     subgoal by fast
-    subgoal by (rule restart_prog_spec)
-    subgoal by (rule final_prop)
+    subgoal by (rule restart_prog_spec[unfolded cdcl_twl_stgy_restart_prog_inv_def])
+    subgoal by (rule final_prop[unfolded cdcl_twl_stgy_restart_prog_inv_def])
     done
 qed
 

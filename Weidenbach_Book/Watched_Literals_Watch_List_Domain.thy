@@ -19,6 +19,7 @@ type_synonym clause_wl = \<open>uint32 array\<close>
 type_synonym unit_lits_wl = \<open>uint32 list list\<close>
 
 type_synonym watched_wl = \<open>(nat array_list) array\<close>
+type_synonym watched_wl_uint32 = \<open>(uint32 array_list) array\<close>
 
 
 subsubsection \<open>Refinement of the Watched Function\<close>
@@ -146,7 +147,8 @@ definition ann_lit_rel:: \<open>('a \<times> nat) set \<Rightarrow> ('b \<times>
 
 type_synonym ann_lit_wl = \<open>uint32 \<times> nat option\<close>
 type_synonym ann_lits_wl = \<open>ann_lit_wl list\<close>
-term \<open> \<langle>uint32_nat_rel\<rangle>option_rel\<close>
+type_synonym ann_lit_wl_fast = \<open>uint32 \<times> uint32 option\<close>
+type_synonym ann_lits_wl_fast = \<open>ann_lit_wl_fast list\<close>
 
 definition nat_ann_lit_rel :: \<open>(ann_lit_wl \<times> (nat, nat) ann_lit) set\<close> where
   nat_ann_lit_rel_internal_def: \<open>nat_ann_lit_rel = \<langle>uint32_nat_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>ann_lit_rel\<close>
@@ -175,6 +177,12 @@ abbreviation pair_nat_ann_lit_assn :: \<open>(nat, nat) ann_lit \<Rightarrow> an
 abbreviation pair_nat_ann_lits_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> ann_lits_wl \<Rightarrow> assn\<close> where
   \<open>pair_nat_ann_lits_assn \<equiv> list_assn pair_nat_ann_lit_assn\<close>
 
+abbreviation pair_nat_ann_lit_fast_assn :: \<open>(nat, nat) ann_lit \<Rightarrow> ann_lit_wl_fast \<Rightarrow> assn\<close> where
+  \<open>pair_nat_ann_lit_fast_assn \<equiv> hr_comp (uint32_assn *a option_assn uint32_nat_assn) nat_ann_lit_rel\<close>
+
+abbreviation pair_nat_ann_lits_fast_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> ann_lits_wl_fast \<Rightarrow> assn\<close> where
+  \<open>pair_nat_ann_lits_fast_assn \<equiv> list_assn pair_nat_ann_lit_fast_assn\<close>
+
 lemma nat_ann_lits_rel_Cons[iff]:
   \<open>(x # xs, y # ys) \<in> nat_ann_lits_rel \<longleftrightarrow> (x, y) \<in> nat_ann_lit_rel \<and> (xs, ys) \<in> nat_ann_lits_rel\<close>
   by (auto simp: nat_ann_lits_rel_def)
@@ -184,7 +192,6 @@ lemma lit_of_natP_same_rightD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_
 
 lemma lit_of_natP_same_leftD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_natP ai b \<Longrightarrow> ai = bi\<close>
   apply (auto simp: p2rel_def lit_of_natP_def split: if_splits)
-  apply presburger
   apply presburger
   done
 
@@ -338,6 +345,18 @@ lemma length_ll_length_ll_f:
 abbreviation array_watched_assn :: \<open>(nat literal \<Rightarrow> nat list) \<Rightarrow> (nat array_list) array \<Rightarrow> assn\<close> where
   \<open>array_watched_assn \<equiv> hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<close>
 
+lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_empty[simp]:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail []\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def)
+
+lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_Cons:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (a # M) \<longleftrightarrow> lit_of a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def)
+
+lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_lit_of_mset:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M = literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M)\<close>
+  by (induction M) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset literals_are_in_\<L>\<^sub>i\<^sub>n_Cons)
+
 lemma ex_list_watched:
   fixes W :: \<open>nat literal \<Rightarrow> nat list\<close>
   shows \<open>\<exists>aa. \<forall>x\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = W x\<close>
@@ -420,19 +439,18 @@ proof -
     using H unfolding 1 2 3 .
 qed
 
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C \<Longrightarrow> L \<in># C \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def
+  by (auto dest!: multi_member_split simp: all_lits_of_m_add_mset)
+
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
   assumes
     N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset xs)\<close> and
     i_xs: \<open>i < length xs\<close>
   shows \<open>xs ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-proof -
-  have \<open>xs ! i \<in># mset xs\<close>
-    using i_xs by auto
-  then have \<open>xs ! i \<in> set_mset (all_lits_of_m (mset xs))\<close>
-    by (auto simp: in_all_lits_of_m_ain_atms_of_iff)
-  then show ?thesis
-    using N1 unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def by blast
-qed
+  using literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>mset xs\<close> \<open>xs!i\<close>] assms by auto
 
 lemma in_literals_are_in_\<L>\<^sub>i\<^sub>n_in_D\<^sub>0:
   assumes \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close> and \<open>L \<in># D\<close>
@@ -482,7 +500,7 @@ proof -
     using alien that x2_T T_U unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
       literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
     by (subst (asm) all_clss_l_ran_m[symmetric])
-      (auto simp add: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
+     (auto simp: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
         convert_lits_l_def image_image in_all_lits_of_mm_ain_atms_of_iff
         get_unit_clauses_wl_alt_def
         simp del: all_clss_l_ran_m)
@@ -747,6 +765,42 @@ lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max: \<open>Pos xa \<in># \<L>
   using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by (auto simp: uint_max_def)
 
 
+lemma length_trail_uint_max_div2:
+  assumes
+    M_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and n_d: \<open>no_dup M\<close>
+  shows \<open>length M \<le> uint_max div 2 + 1\<close>
+proof -
+  have dist_atm_M: \<open>distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
+    using n_d by (metis distinct_mset_mset_distinct mset_map no_dup_def)
+  have incl: \<open>atm_of `# lit_of `# mset M \<subseteq># remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
+    apply (subst distinct_subseteq_iff[THEN iffD1])
+    using assms dist_atm_M
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def no_dup_distinct
+        atm_of_eq_atm_of)
+
+  have inj_on: \<open>inj_on nat_of_lit (set_mset (remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l))\<close>
+    by (auto simp: inj_on_def)
+  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> atm_of xa \<le> uint_max div 2\<close> for xa
+    using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
+    by (cases xa) (auto simp: uint_max_def)
+  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l) \<subseteq># mset [0..< 1 + (uint_max div 2)]\<close>
+    apply (subst distinct_subseteq_iff[THEN iffD1])
+    using H distinct_image_mset_inj[OF inj_on]
+    by (force simp del: literal_of_nat.simps simp: distinct_mset_mset_set
+        dest: le_neq_implies_less)+
+  note _ = size_mset_mono[OF this]
+  moreover have \<open>size (nat_of_lit `# remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l) = size (remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
+    by simp
+  ultimately have 2: \<open>size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l)) \<le> 1 + uint_max div 2\<close>
+    by auto
+  from size_mset_mono[OF incl] have 1: \<open>length M \<le> size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l))\<close>
+    unfolding uint_max_def count_decided_def
+    by (auto simp del: length_filter_le)
+  with 2 show ?thesis
+    by (auto simp: uint32_max_def)
+qed
+
+
 definition (in isasat_input_ops) unit_prop_body_wl_D_inv where
 \<open>unit_prop_body_wl_D_inv T' i L \<longleftrightarrow>
     unit_prop_body_wl_inv T' i L \<and> literals_are_\<L>\<^sub>i\<^sub>n T' \<and> L \<in> snd ` D\<^sub>0
@@ -844,21 +898,6 @@ next
   assume ?y
   then show ?eq by blast
 qed
-
-text \<open>TODO Move\<close>
-
-lemma [twl_st_wl]: \<open>get_clauses_wl (set_conflict_wl D S) = get_clauses_wl S\<close>
-  by (cases S) (auto simp: set_conflict_wl_def)
-lemma [twl_st_wl]:
-  \<open>get_unit_init_clss_wl (set_conflict_wl D S) = get_unit_init_clss_wl S\<close>
-  \<open>get_unit_clauses_wl (set_conflict_wl D S) = get_unit_clauses_wl S\<close>
-  by (cases S; auto simp: set_conflict_wl_def; fail)+
-
-lemma (in -) lookup_None_notin_dom_m[simp]:
-  \<open>fmlookup N i = None \<longleftrightarrow> i \<notin># dom_m N\<close>
-  by (auto simp: dom_m_def fmlookup_dom_iff fmember.rep_eq[symmetric])
-text \<open>END Move\<close>
-
 
 lemma unit_propagation_inner_loop_body_wl_D_spec:
   fixes S :: \<open>nat twl_st_wl\<close> and K :: \<open>nat literal\<close> and w :: nat
@@ -1098,10 +1137,21 @@ proof -
     subgoal for S' S T'L' TL T' L' T L
       apply (auto simp: twl_st_wl is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_of_mm_union)
       unfolding image_image
-      apply simp_all -- \<open>TODO: but why does it loop\<close>
+      apply simp_all \<comment> \<open>TODO: but why does it loop\<close>
       done
     done
 qed
+
+lemma unit_propagation_outer_loop_wl_D_spec':
+  shows \<open>(unit_propagation_outer_loop_wl_D, unit_propagation_outer_loop_wl) \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} \<rightarrow>\<^sub>f
+     \<langle>{(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  subgoal for x y
+    apply (rule order_trans)
+    apply (rule unit_propagation_outer_loop_wl_D_spec[of x])
+     apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
+    done
+  done
 
 definition (in isasat_input_ops) skip_and_resolve_loop_wl_D_inv where
   \<open>skip_and_resolve_loop_wl_D_inv S\<^sub>0 brk S \<equiv>
@@ -1147,10 +1197,14 @@ lemma (in isasat_input_ops) literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl[si
   by (cases S)
    (auto simp: is_\<L>\<^sub>a\<^sub>l\<^sub>l_def set_conflict_wl_def)
 
+lemma get_clauses_wl_tl_state: \<open>get_clauses_wl (tl_state_wl T) = get_clauses_wl T\<close>
+  unfolding tl_state_wl_def by (cases T) auto
+
 lemma skip_and_resolve_loop_wl_D_spec:
   assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
   shows \<open>skip_and_resolve_loop_wl_D S \<le>
-     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} (skip_and_resolve_loop_wl S)\<close>
+     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T \<and> get_clauses_wl T = get_clauses_wl S}
+       (skip_and_resolve_loop_wl S)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
   define invar where
@@ -1169,9 +1223,11 @@ proof -
     subgoal by fast
     subgoal by fast
     subgoal by auto
+    subgoal
+      unfolding skip_and_resolve_loop_wl_D_inv_def update_confl_tl_wl_def
+      by (auto split: prod.splits) (simp add: get_clauses_wl_tl_state)
     subgoal by auto
-    subgoal by auto
-    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c
+    subgoal
       unfolding skip_and_resolve_loop_wl_D_inv_def update_confl_tl_wl_def
       by (auto split: prod.splits)
     subgoal by auto
@@ -1637,7 +1693,7 @@ where
         if count_decided (get_trail_wl S) > 0
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D S;
-          ASSERT(get_conflict_wl T \<noteq> None);
+          ASSERT(get_conflict_wl T \<noteq> None \<and> get_clauses_wl S = get_clauses_wl T);
           U \<leftarrow> backtrack_wl_D T;
           RETURN (False, U)
         }
@@ -1657,7 +1713,8 @@ proof -
     for S T
     using backtrack_wl_D_spec[of S] that by fast
   have 2: \<open>skip_and_resolve_loop_wl_D S \<le>
-     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} (skip_and_resolve_loop_wl T)\<close>
+     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T \<and>  get_clauses_wl T = get_clauses_wl S}
+        (skip_and_resolve_loop_wl T)\<close>
     if \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> \<open>S = T\<close>
     for S T
     using skip_and_resolve_loop_wl_D_spec[of S] that by fast
@@ -1671,12 +1728,26 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal by simp
     subgoal by auto
     subgoal by auto
     done
 qed
 
+theorem cdcl_twl_o_prog_wl_D_spec':
+  shows
+  \<open>(cdcl_twl_o_prog_wl_D, cdcl_twl_o_prog_wl) \<in>
+    {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+    \<langle>bool_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close>
+  apply (intro frefI nres_relI)
+  subgoal for x y
+    apply (rule order_trans)
+    apply (rule cdcl_twl_o_prog_wl_D_spec[of x])
+     apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
+    done
+  done
 
 
 subsubsection \<open>Full Strategy\<close>
@@ -1728,6 +1799,12 @@ proof -
     done
 qed
 
+lemma cdcl_twl_stgy_prog_wl_D_spec':
+  \<open>(cdcl_twl_stgy_prog_wl_D, cdcl_twl_stgy_prog_wl) \<in>
+    {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+    \<langle>{(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto intro: cdcl_twl_stgy_prog_wl_D_spec)
 
 definition (in isasat_input_ops) cdcl_twl_stgy_prog_wl_D_pre where
   \<open>cdcl_twl_stgy_prog_wl_D_pre S U \<longleftrightarrow>
@@ -1754,6 +1831,90 @@ proof -
     done
 qed
 
-end -- \<open>end of locale @{locale isasat_input_bounded}\<close>
+
+definition (in isasat_input_ops) cdcl_twl_stgy_prog_break_wl_D
+   :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
+where
+  \<open>cdcl_twl_stgy_prog_break_wl_D S\<^sub>0 =
+  do {
+    b \<leftarrow> SPEC (\<lambda>_. True);
+    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (brk, T) \<and>
+          literals_are_\<L>\<^sub>i\<^sub>n T\<^esup>
+        (\<lambda>(b, brk, _). b \<and> \<not>brk)
+        (\<lambda>(b, brk, S).
+        do {
+          ASSERT(b);
+          T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+          b \<leftarrow> SPEC (\<lambda>_. True);
+          RETURN(b, brk, T)
+        })
+        (b, False, S\<^sub>0);
+    if brk then RETURN T
+    else cdcl_twl_stgy_prog_wl_D T
+  }\<close>
+
+theorem cdcl_twl_stgy_prog_break_wl_D_spec:
+  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+  shows \<open>cdcl_twl_stgy_prog_break_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+     (cdcl_twl_stgy_prog_break_wl S)\<close>
+proof -
+  define f where \<open>f \<equiv> SPEC (\<lambda>_::bool. True)\<close>
+  have 1: \<open>((b, False, S), b, False, S) \<in> {((b', brk', T'), b, brk, T). b = b' \<and> brk = brk' \<and>
+        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
+    for b
+    using assms by fast
+  have 1: \<open>((b, False, S), b', False, S) \<in> {((b', brk', T'), b, brk, T). b = b' \<and> brk = brk' \<and>
+        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
+    if \<open>(b, b') \<in> bool_rel\<close>
+    for b b'
+    using assms that by fast
+
+  have 2: \<open>unit_propagation_outer_loop_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+       (unit_propagation_outer_loop_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> for S T
+    using unit_propagation_outer_loop_wl_D_spec[of S] that by fast
+  have 3: \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+    (cdcl_twl_o_prog_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> for S T
+    using cdcl_twl_o_prog_wl_D_spec[of S] that by fast
+  show ?thesis
+    unfolding cdcl_twl_stgy_prog_break_wl_D_def cdcl_twl_stgy_prog_break_wl_def f_def[symmetric]
+    apply (refine_vcg 1 2 3)
+    subgoal by auto
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by (fast intro!: cdcl_twl_stgy_prog_wl_D_spec)
+    done
+qed
+
+lemma cdcl_twl_stgy_prog_break_wl_D_spec_final:
+  assumes
+    \<open>cdcl_twl_stgy_prog_wl_D_pre S S'\<close>
+  shows
+    \<open>cdcl_twl_stgy_prog_break_wl_D S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
+proof -
+  have T: \<open>cdcl_twl_stgy_prog_wl_pre S S' \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+    using assms unfolding cdcl_twl_stgy_prog_wl_D_pre_def by blast
+  show ?thesis
+    apply (rule order_trans[OF cdcl_twl_stgy_prog_break_wl_D_spec])
+    subgoal using T by auto
+    subgoal
+      apply (rule order_trans)
+      apply (rule ref_two_step')
+       apply (rule cdcl_twl_stgy_prog_break_wl_spec_final[of _ S'])
+      subgoal using T by fast
+      subgoal unfolding conc_fun_chain by (rule conc_fun_R_mono) blast
+      done
+    done
+qed
+
+end \<comment> \<open>end of locale @{locale isasat_input_bounded}\<close>
 
 end
