@@ -1,5 +1,5 @@
 theory Watched_Literals_Transition_System_Restart
-  imports Watched_Literals_Transition_System
+  imports IsaSAT_pre.Watched_Literals_Transition_System
 begin
 
 

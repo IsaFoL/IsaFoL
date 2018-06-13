@@ -1,5 +1,5 @@
 theory IsaSAT_Restart
-  imports IsaSAT_pre.Watched_Literals_Watch_List_Domain_Restart
+  imports Watched_Literals_Watch_List_Domain_Restart
      IsaSAT_pre.IsaSAT_CDCL
 begin
 
@@ -23,6 +23,95 @@ text \<open>
        \<^text>\<open>conflictsRestarts > LOWER_BOUND_FOR_BLOCKING_RESTART && lbdQueue.isvalid() && trail.size() > R * trailQueue.getavg()\<close>
 \<close>
 
+declare dom_m_fmdrop[simp del]
+lemma dom_m_fmdrop[simp]: \<open>dom_m (fmdrop C N) = removeAll_mset C (dom_m N)\<close>
+  unfolding dom_m_def
+  by (cases \<open>C |\<in>| fmdom N\<close>)
+    (auto simp: mset_set.remove fmember.rep_eq)
+
+lemma butlast_Nil_iff: \<open>butlast xs = [] \<longleftrightarrow> length xs = 1 \<or> length xs = 0\<close>
+  by (cases xs) auto
+
+definition tight_domain where
+  \<open>tight_domain NU NU' \<longleftrightarrow>  Suc (Max_mset (add_mset 0 (dom_m NU))) = length NU'\<close>
+
+lemma Max_insert_remove1_is_Max_insert:
+  fixes x :: \<open>nat\<close>
+  assumes \<open>0 < x\<close> \<open>finite A\<close>
+  shows \<open>Max (insert x A - {0}) = Max (insert x A)\<close>
+proof -
+  show ?thesis
+    apply (rule Max_eq_if)
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal 
+      apply (intro ballI)
+      subgoal for b
+        apply (cases \<open>b = 0\<close>)
+         apply (rule_tac x = x in bexI)
+        using assms apply auto[2]
+        apply (rule_tac x = b in bexI)
+        using assms apply auto[2]
+        done
+      done
+    done
+qed
+
+lemma (in -)mset_fset_empty_iff: \<open>mset_fset a = {#} \<longleftrightarrow> a = fempty\<close>
+  by (cases a) (auto simp: mset_set_empty_iff)
+
+lemma (in -) dom_m_empty_iff:
+  \<open>dom_m NU = {#} \<longleftrightarrow> NU = fmempty\<close>
+  by (cases NU) (auto simp: dom_m_def mset_fset_empty_iff)
+
+lemma Max_mset_eq: \<open>((\<forall>m\<in>#M. m \<le> a) \<and> a\<in>#M) \<Longrightarrow> Max_mset M = a\<close>
+  by (subst Max_eq_iff) auto
+
+lemma Suc_eq_minus_iff: \<open>b \<noteq> 0 \<Longrightarrow> Suc a = b \<longleftrightarrow> a = b - 1\<close>
+  by auto
+
+lemma tight_domain_alt_def: \<open>0 \<notin># dom_m NU \<Longrightarrow> tight_domain NU NU' \<longleftrightarrow>
+      (\<forall>j \<in>#dom_m NU. j < length NU') \<and> NU' \<noteq> [] \<and>
+      ((NU = fmempty \<and> length NU' = 1) \<or> (NU \<noteq> fmempty \<and> length NU' \<ge> 1 \<and> length NU' - 1 \<in># dom_m NU))\<close>
+  apply (intro iffI conjI impI)
+  subgoal
+    using distinct_mset_dom[of \<open>NU\<close>]
+    by (auto simp: tight_domain_def Max.insert_remove Max_insert_remove1_is_Max_insert
+        add_mset_eq_add_mset
+        split: if_splits 
+        dest!: multi_member_split[of _ \<open>dom_m NU\<close>])
+  subgoal
+    using distinct_mset_dom[of \<open>NU\<close>]
+    by (auto simp: tight_domain_def Max.insert_remove Max_insert_remove1_is_Max_insert
+        add_mset_eq_add_mset
+        split: if_splits 
+        dest!: multi_member_split[of _ \<open>dom_m NU\<close>])
+  subgoal
+    using distinct_mset_dom[of \<open>NU\<close>] 
+    apply (auto simp: tight_domain_def Max.insert_remove Max_insert_remove1_is_Max_insert
+        add_mset_eq_add_mset dom_m_empty_iff
+        split: if_splits 
+        dest: multi_member_split[of _ \<open>dom_m NU\<close>] Max_dom_empty)
+    using Max_in_lits Suc_to_right dom_m_empty_iff by auto
+  subgoal
+    using distinct_mset_dom[of \<open>NU\<close>]
+    by (auto simp: tight_domain_def Max.insert_remove Max_insert_remove1_is_Max_insert
+        add_mset_eq_add_mset Suc_eq_minus_iff max_def
+        split: if_splits 
+        dest: multi_member_split[of _ \<open>dom_m NU\<close>]
+        intro!: Max_mset_eq)
+  done
+
+lemma tight_domain_fmdrop: 
+  \<open>0 \<notin># dom_m ba \<Longrightarrow> aa < length NU' - 1 \<Longrightarrow> tight_domain (fmdrop aa ba) NU' \<longleftrightarrow> tight_domain ba NU'\<close>
+  by (auto simp: tight_domain_alt_def)
+
+lemma tight_domain_fmdrop_last:
+  \<open>0 \<notin># dom_m ba \<Longrightarrow> length NU' > 1 \<Longrightarrow> tight_domain ba NU' \<Longrightarrow> tight_domain (fmdrop (length NU' - 1) ba) (butlast NU')\<close>
+  apply (auto simp: tight_domain_alt_def butlast_Nil_iff)
+  oops
+
 lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
   by (auto simp: bounded_def) presburger
 
@@ -34,6 +123,96 @@ sublocale isasat_input_ops \<subseteq> isasat_restart_ops id
 
 context isasat_input_bounded_nempty
 begin
+
+definition (in -)butlast_if_last_removed where
+  \<open>butlast_if_last_removed i N = (if i = length N-1 then butlast N else N)\<close>
+definition (in -) fmdrop_ref where
+  \<open>fmdrop_ref i = (\<lambda>(N, N'). do {
+     ASSERT(i < length N \<and> i < length N' \<and> i > 0);
+     let N = N[i := []];
+     let N' = N'[i := (DELETED, 0, 0)];
+     let N = butlast_if_last_removed i N;
+     let N' = butlast_if_last_removed i N';
+     RETURN (N, N')
+  })\<close>
+lemma (in -) butlast_if_last_removed_simps[simp]:
+  \<open>aa = length b - 1 \<Longrightarrow> length (butlast_if_last_removed aa b) = length b -1\<close>
+  \<open>aa \<noteq> length b - 1 \<Longrightarrow> length (butlast_if_last_removed aa b) = length b\<close>
+  unfolding butlast_if_last_removed_def
+  by auto
+
+lemma
+  \<open>(uncurry fmdrop_ref, uncurry (RETURN oo fmdrop)) \<in>
+     [\<lambda>(i, xs). i \<in># dom_m xs \<and> i > 0 \<and> 0 \<notin># dom_m xs]\<^sub>f nat_rel \<times>\<^sub>f \<langle>Id\<rangle>clauses_l_fmat \<rightarrow> \<langle>\<langle>Id\<rangle>clauses_l_fmat\<rangle>nres_rel\<close>
+  unfolding fmdrop_ref_def list_fmap_rel_def Let_def tight_domain_def[symmetric]
+  apply (intro frefI nres_relI)
+  apply (case_tac x; case_tac y)
+  apply (simp only: prod.case in_pair_collect_simp prod_rel_iff uncurry_def
+      RETURN_refine_iff comp_def)
+  apply (intro conjI impI ballI ASSERT_refine_left)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  apply (subst RETURN_refine_iff)
+  apply (simp only: prod.case in_pair_collect_simp prod_rel_iff uncurry_def
+      RETURN_refine_iff comp_def)
+  apply (intro conjI impI ballI ASSERT_refine_left allI)
+  subgoal by (force simp: distinct_mset_remove1_All distinct_mset_dom butlast_if_last_removed_def)
+  subgoal for x y a b c aa ba i
+    by (auto simp: distinct_mset_remove1_All distinct_mset_dom nth_butlast butlast_if_last_removed_def
+        dest!: multi_member_split[of i])
+  subgoal for x y a b c aa ba i
+    apply (cases \<open>aa = length c - Suc 0\<close>; cases \<open>i \<in># dom_m ba\<close>)
+    subgoal
+      by (clarsimp simp: )
+    subgoal
+      apply (clarsimp simp: butlast_if_last_removed_def)
+      by (smt One_nat_def diff_is_0_eq diff_le_self le_trans length_butlast length_list_update
+          neq0_conv nth_butlast nth_list_update_neq zero_less_diff)
+    subgoal
+      by (clarsimp simp: butlast_if_last_removed_def)
+    subgoal
+      apply (clarsimp simp: butlast_if_last_removed_def)
+      by (smt One_nat_def diff_is_0_eq diff_le_self le_trans length_butlast length_list_update
+          neq0_conv nth_butlast nth_list_update_neq zero_less_diff)
+    done
+  subgoal
+    by (clarsimp simp add: butlast_Nil_iff butlast_if_last_removed_def)
+  subgoal for x y a b c aa ba
+    apply (cases \<open>aa = length c - Suc 0\<close>)
+    apply (clarsimp_all simp add: tight_domain_fmdrop)
+    sorry
+  subgoal for x y a b c aa ba i
+    by (auto simp: butlast_if_last_removed_def nth_butlast dest!: multi_member_split[of i])
+  subgoal for x y a b c aa ba i
+    by (auto simp: butlast_if_last_removed_def nth_butlast dest!: multi_member_split[of i])
+  subgoal
+    by (auto simp: butlast_if_last_removed_def)
+
+    sorry
+  oops
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal for x y a b c aa ba
+    by (force simp add: distinct_mset_remove1_All distinct_mset_dom
+        dest!: multi_member_split[of aa])
+  subgoal for x y a b c aa ba i
+    by (clarsimp simp add: distinct_mset_remove1_All distinct_mset_dom nth_butlast
+        dest!: multi_member_split[of i])
+  subgoal for x y a b c aa ba
+    apply (clarsimp simp add: distinct_mset_remove1_All distinct_mset_dom nth_butlast
+        dest!: multi_member_split[of aa])
+    try0
+    oops
+    sorry
 
 text \<open>
   We first fix the function that proves termination. We don't take the ``smallest'' function
