@@ -144,14 +144,6 @@ lemma twl_st_l_init_alt_def:
     (fst S, fst T) \<in> twl_st_l None \<and> other_clauses_l_init S = other_clauses_init T\<close>
   by (cases S; cases T) (auto simp: twl_st_l_init_def twl_st_l_def)
 
-lemma convert_lits_l_lit_of_mset[simp]:
-  \<open>(a, af) \<in> convert_lits_l N E \<Longrightarrow> lit_of `# mset af = lit_of `# mset a\<close>
-  apply (induction a arbitrary: af)
-  subgoal by auto
-  subgoal for L M af
-    by (cases af) auto
-  done
-
 lemma [twl_st_init]:
   assumes \<open>(S, T) \<in> twl_st_l_init\<close>
   shows
@@ -1301,7 +1293,7 @@ proof -
     apply -
     apply normalize_goal+
     by presburger
-  have dec': \<open>\<forall>s\<in>set (get_trail_init T). \<not> is_decided s\<close> 
+  have dec': \<open>\<forall>s\<in>set (get_trail_init T). \<not> is_decided s\<close>
     using SOC_T dec by (rule twl_st_l_init_no_decision_iff[THEN iffD2])
 
   obtain M N D NE UE Q where

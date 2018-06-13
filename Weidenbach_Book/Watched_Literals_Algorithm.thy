@@ -647,6 +647,17 @@ definition extract_shorter_conflict :: \<open>'v twl_st \<Rightarrow> 'v twl_st 
     SPEC(\<lambda>S'. \<exists>D'. S' = (M, N, U, Some D', NE, UE, WS, Q) \<and>
        D' \<subseteq># the D \<and> clause `# (N + U) + NE + UE \<Turnstile>pm D' \<and> -lit_of (hd M) \<in># D'))\<close>
 
+fun equality_except_conflict :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
+\<open>equality_except_conflict (M, N, U, D, NE, UE, WS, Q) (M', N', U', D', NE', UE', WS', Q') \<longleftrightarrow>
+    M = M' \<and> N = N' \<and> U = U' \<and> NE = NE' \<and> UE = UE' \<and> WS = WS' \<and> Q = Q'\<close>
+
+lemma extract_shorter_conflict_alt_def:
+  \<open>extract_shorter_conflict S =
+    SPEC(\<lambda>S'. \<exists>D'. equality_except_conflict S S' \<and> Some D' = get_conflict S' \<and>
+       D' \<subseteq># the (get_conflict S) \<and> clause `# (get_clauses S) + unit_clss S \<Turnstile>pm D' \<and>
+       -lit_of (hd (get_trail S)) \<in># D')\<close>
+  unfolding extract_shorter_conflict_def
+  by (cases S) (auto simp: ac_simps)
 
 definition reduce_trail_bt :: \<open>'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>reduce_trail_bt = (\<lambda>L (M, N, U, D', NE, UE, WS, Q). do {
@@ -1291,7 +1302,7 @@ definition cdcl_twl_stgy_prog_break :: \<open>'v twl_st \<Rightarrow> 'v twl_st 
         })
         (b, False, S\<^sub>0);
     if brk then RETURN T
-    else (*finish iteration is required only*)
+    else \<comment>\<open>finish iteration is required only\<close>
       cdcl_twl_stgy_prog T
   }
   \<close>

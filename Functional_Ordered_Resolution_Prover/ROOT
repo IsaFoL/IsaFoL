@@ -36,7 +36,6 @@ session Functional_Ordered_Resolution_Prover = Functional_Ordered_Resolution_Pro
     "Decreasing-Diagrams-II"
     "Polynomial_Factorization"
     Show
-  theories [document = false]
   theories
     Executable_FO_Ordered_Resolution_Prover
   document_files

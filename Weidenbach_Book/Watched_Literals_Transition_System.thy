@@ -253,6 +253,13 @@ fun no_duplicate_queued :: \<open>'v twl_st \<Rightarrow> bool\<close> where
   (\<forall>C. C \<in># WS \<longrightarrow> add_mset (fst C) Q \<subseteq># uminus `# lit_of `# mset M) \<and>
   Q \<subseteq># uminus `# lit_of `# mset M\<close>
 
+lemma no_duplicate_queued_alt_def:
+   \<open>no_duplicate_queued S =
+    ((\<forall>C C'. C \<in># clauses_to_update S \<longrightarrow> C' \<in># clauses_to_update S \<longrightarrow> fst C = fst C') \<and>
+     (\<forall>C. C \<in># clauses_to_update S \<longrightarrow> add_mset (fst C) (literals_to_update S) \<subseteq># uminus `# lit_of `# mset (get_trail S)) \<and>
+     literals_to_update S \<subseteq># uminus `# lit_of `# mset (get_trail S))\<close>
+  by (cases S) auto
+
 fun distinct_queued :: \<open>'v twl_st \<Rightarrow> bool\<close> where
 \<open>distinct_queued (M, N, U, D, NE, UE, WS, Q) \<longleftrightarrow>
   distinct_mset Q \<and>

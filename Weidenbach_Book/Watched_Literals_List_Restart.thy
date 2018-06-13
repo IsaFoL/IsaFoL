@@ -1,6 +1,6 @@
 theory Watched_Literals_List_Restart
-  imports Watched_Literals_List Watched_Literals_Algorithm_Restart
-      Array_UInt
+  imports IsaSAT_pre.Watched_Literals_List Watched_Literals_Algorithm_Restart
+      IsaSAT_pre.Array_UInt
 begin
 
 text \<open>
@@ -632,13 +632,15 @@ definition (in -) restart_abs_l_pre :: \<open>'v twl_st_l \<Rightarrow> bool \<R
     (\<exists>S'. (S, S') \<in> twl_st_l None \<and> restart_prog_pre S' brk
       \<and> twl_list_invs S \<and> clauses_to_update_l S = {#})\<close>
 
-context twl_restart
+context twl_restart_ops
 begin
 
 definition restart_required_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_l S n = SPEC (\<lambda>b. b \<longrightarrow> size (get_learned_clss_l S) > f n)\<close>
 
-definition restart_abs_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres" where
+definition restart_abs_l
+  :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres"
+where
   \<open>restart_abs_l S n brk = do {
      ASSERT(restart_abs_l_pre S brk);
      b \<leftarrow> restart_required_l S n;
@@ -677,7 +679,7 @@ lemma restart_abs_l_restart_prog:
      unfolding restart_abs_l_pre_def
      by (rule exI[of _ \<open>fst (fst (Snb'))\<close>]) simp
     subgoal by simp
-    subgoal by simp -- \<open>If condition\<close>
+    subgoal by simp \<comment> \<open>If condition\<close>
     subgoal by simp
     subgoal by simp
     subgoal unfolding restart_prog_pre_def by meson
@@ -750,7 +752,7 @@ text \<open>
   We here start the refinement towards an executable version of the restarts. The idea of the
   restart is the following:
   \<^enum> We backtrack to level 0. This simplifies further steps.
-  \<^enum> We first move all clause annotating a literal to  \<^term>\<open>NE\<close> or \<^term>\<open>UE\<close>.
+  \<^enum> We first move all clause annotating a literal to \<^term>\<open>NE\<close> or \<^term>\<open>UE\<close>.
   \<^enum> Then, we move remaining clauses that are watching the some literal at level 0.
   \<^enum> Now we can safely deleting any remaining learned clauses.
   \<^enum> Once all that is done, we have to recalculate the watch lists (and can on the way GC the set of
@@ -759,7 +761,7 @@ text \<open>
 
 subsubsection \<open>Handle true clauses from the trail\<close>
 
-lemma (in -) in_set_mset_eq_in:
+lemma in_set_mset_eq_in:
   \<open>i \<in> set A \<Longrightarrow> mset A = B \<Longrightarrow> i \<in># B\<close>
   by fastforce
 
@@ -2469,15 +2471,14 @@ proof -
     done
 qed
 
-definition cdcl_twl_restart_l_prog where
-\<open>cdcl_twl_restart_l_prog S = do {
+definition cdcl_twl_full_restart_l_prog where
+\<open>cdcl_twl_full_restart_l_prog S = do {
     S \<leftarrow> remove_one_annot_true_clause_imp S;
     ASSERT(mark_to_delete_clauses_l_pre S);
     T \<leftarrow> mark_to_delete_clauses_l S;
     ASSERT (mark_to_delete_clauses_l_post S T);
     RETURN T
   }\<close>
-
 
 lemma cdcl_twl_restart_l_refl:
   assumes
@@ -2515,14 +2516,14 @@ proof -
     by (auto simp: S cdcl_twl_restart_l.simps valid_trail_reduction_refl)
 qed
 
-lemma cdcl_twl_restart_l_prog_spec:
+lemma cdcl_twl_full_restart_l_prog_spec:
   assumes
     ST: \<open>(S, T) \<in> twl_st_l None\<close> and
     list_invs: \<open>twl_list_invs S\<close> and
     struct_invs: \<open>twl_struct_invs T\<close> and
     confl: \<open>get_conflict_l S = None\<close> and
     upd: \<open>clauses_to_update_l S = {#}\<close>
-  shows \<open>cdcl_twl_restart_l_prog S \<le> \<Down> Id (SPEC(remove_one_annot_true_clause\<^sup>*\<^sup>* S))\<close>
+  shows \<open>cdcl_twl_full_restart_l_prog S \<le> \<Down> Id (SPEC(remove_one_annot_true_clause\<^sup>*\<^sup>* S))\<close>
 proof -
   have mark_to_delete_clauses_l:
     \<open>mark_to_delete_clauses_l x \<le> SPEC (\<lambda>T. ASSERT (mark_to_delete_clauses_l_post U T) \<bind>
@@ -2552,7 +2553,7 @@ proof -
       by auto
     have list_U: \<open>twl_list_invs U\<close>
       using SU' list_invs rtranclp_cdcl_twl_restart_l_list_invs by blast
-     have [simp]: 
+     have [simp]:
       \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* U V' \<Longrightarrow>  mark_to_delete_clauses_l_post U V'\<close> for V'
       unfolding mark_to_delete_clauses_l_post_def
       using UV struct_invs_V list_U confl_U upd_U
@@ -2569,7 +2570,7 @@ proof -
     }\<close>
   by (auto simp: RES_RES_RETURN_RES)
   have H: \<open>mark_to_delete_clauses_l_pre T\<close>
-    if 
+    if
       \<open>(T, U) \<in> Id\<close> and
       \<open>U \<in> Collect (remove_one_annot_true_clause\<^sup>*\<^sup>* S)\<close>
     for T U
@@ -2582,7 +2583,7 @@ proof -
   qed
   show ?thesis
     apply (subst 1)
-    unfolding cdcl_twl_restart_l_prog_def
+    unfolding cdcl_twl_full_restart_l_prog_def
     apply (refine_vcg mark_to_delete_clauses_l
       remove_one_annot_true_clause_imp_spec[OF ST list_invs struct_invs confl upd])
     subgoal by (rule H)
@@ -2625,10 +2626,159 @@ proof -
     by auto
 qed
 
-context twl_restart
+
+definition (in -) cdcl_twl_local_restart_l_spec :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>cdcl_twl_local_restart_l_spec = (\<lambda>(M, N, D, NE, UE, W, Q). do {
+      (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
+            Q' = {#}) \<or> (M' = M \<and> Q' = Q));
+      RETURN (M, N, D, NE, UE, W, Q)
+   })\<close>
+
+definition cdcl_twl_restart_l_prog where
+\<open>cdcl_twl_restart_l_prog S = do {
+   b \<leftarrow> SPEC(\<lambda>_. True);
+   if b then cdcl_twl_local_restart_l_spec S else cdcl_twl_full_restart_l_prog S
+  }\<close>
+
+
+lemma cdcl_twl_local_restart_l_spec_cdcl_twl_restart_l:
+  assumes inv: \<open>restart_abs_l_pre S False\<close>
+  shows \<open>cdcl_twl_local_restart_l_spec S \<le> SPEC (cdcl_twl_restart_l S)\<close>
+proof -
+  obtain T where
+    ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+    struct_invs: \<open>twl_struct_invs T\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    upd: \<open>clauses_to_update_l S = {#}\<close> and
+    stgy_invs: \<open>twl_stgy_invs T\<close> and
+    confl: \<open>get_conflict_l S = None\<close>
+    using inv unfolding restart_abs_l_pre_def restart_prog_pre_def
+    apply - apply normalize_goal+
+    by (auto simp: twl_st_l twl_st)
+  have S: \<open>S = (get_trail_l S, snd S)\<close>
+    by (cases S) auto
+
+  obtain M N D NE UE W Q where
+    S: \<open>S = (M, N, D, NE, UE, W, Q)\<close>
+    by (cases S)
+  have restart: \<open>cdcl_twl_restart_l S (M', N, D, NE, UE, W, Q')\<close>
+    if decomp': \<open>(\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
+            Q' = {#}) \<or> (M' = M \<and> Q' = Q)\<close>
+    for M' K M2 Q'
+  proof -
+    consider
+      (nope) \<open>M = M'\<close> and \<open>Q' = Q\<close> |
+      (decomp) K M2 where \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> and
+        \<open>Q' = {#}\<close>
+      using decomp' by auto
+    then show ?thesis
+    proof cases
+      case [simp]: nope
+      have valid: \<open>valid_trail_reduction M M'\<close>
+        by (use valid_trail_reduction.keep_red[of M'] in \<open>auto simp: S\<close>)
+      have
+        S1: \<open>S = (M, N, None, NE, UE, {#}, Q)\<close> and
+        S2 : \<open>(M', N, D, NE, UE, W, Q') = (M', N, None, NE + mset `# {#}, UE + mset `# {#}, {#}, Q)\<close>
+        using confl upd unfolding S
+        by auto
+      have
+        \<open>\<forall>C\<in>#clauses_to_update_l S. C \<in># dom_m (get_clauses_l S)\<close> and
+        dom0: \<open>0 \<notin># dom_m (get_clauses_l S)\<close> and
+        annot: \<open>\<And>L C. Propagated L C \<in> set (get_trail_l S) \<Longrightarrow>
+           0 < C \<Longrightarrow>
+             (C \<in># dom_m (get_clauses_l S) \<and>
+            L \<in> set (watched_l (get_clauses_l S \<propto> C)) \<and>
+            L = get_clauses_l S \<propto> C ! 0)\<close> and
+        \<open>distinct_mset (clauses_to_update_l S)\<close>
+        using list_invs unfolding twl_list_invs_def S[symmetric] by auto
+      have n_d: \<open>no_dup M\<close>
+        using struct_invs ST unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: twl_st_l twl_st S)
+      have propa_MM: \<open>Propagated L E \<in> set M \<Longrightarrow> Propagated L E' \<in> set M' \<Longrightarrow> E=E'\<close> for L E E'
+        using n_d
+        by (auto simp: S twl_list_invs_def
+            dest!: split_list[of \<open>Propagated L E\<close> M]
+            split_list[of \<open>Propagated L E'\<close> M]
+            dest: no_dup_same_annotD
+            elim!: list_match_lel_lel)
+
+      show ?thesis
+        unfolding S[symmetric] S1 S2
+        apply (rule cdcl_twl_restart_l.intros)
+        subgoal by (rule valid)
+        subgoal by auto
+        subgoal by auto
+        subgoal by auto
+        subgoal using propa_MM annot unfolding S by fastforce
+        subgoal using propa_MM annot unfolding S by fastforce
+        subgoal using propa_MM annot unfolding S by fastforce
+        subgoal using dom0 unfolding S by auto
+        subgoal by auto
+        done
+    next
+      case decomp note decomp = this(1) and Q = this(2)
+      have valid: \<open>valid_trail_reduction M M'\<close>
+        by (use valid_trail_reduction.backtrack_red[OF decomp, of M'] in \<open>auto simp: S\<close>)
+      have
+        \<open>\<forall>C\<in>#clauses_to_update_l S. C \<in># dom_m (get_clauses_l S)\<close> and
+        dom0: \<open>0 \<notin># dom_m (get_clauses_l S)\<close> and
+        annot: \<open>\<And>L C. Propagated L C \<in> set (get_trail_l S) \<Longrightarrow>
+           0 < C \<Longrightarrow>
+             (C \<in># dom_m (get_clauses_l S) \<and>
+            L \<in> set (watched_l (get_clauses_l S \<propto> C)) \<and>
+            L = get_clauses_l S \<propto> C ! 0)\<close> and
+        \<open>distinct_mset (clauses_to_update_l S)\<close>
+        using list_invs unfolding twl_list_invs_def S[symmetric] by auto
+      obtain M3 where M: \<open>M = M3 @ Decided K # M'\<close>
+        using decomp by auto
+      have n_d: \<open>no_dup M\<close>
+        using struct_invs ST unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: twl_st_l twl_st S)
+      have
+        S1: \<open>S = (M, N, None, NE, UE, {#}, Q)\<close> and
+        S2 : \<open>(M', N, D, NE, UE, W, Q') = (M', N, None, NE + mset `# {#}, UE + mset `# {#}, {#}, {#})\<close>
+        using confl upd unfolding S Q
+        by auto
+      have propa_MM: \<open>Propagated L E \<in> set M \<Longrightarrow> Propagated L E' \<in> set M' \<Longrightarrow> E=E'\<close> for L E E'
+        using n_d unfolding M
+        by (auto simp: S twl_list_invs_def
+            dest!: split_list[of \<open>Propagated L E\<close> M]
+            split_list[of \<open>Propagated L E'\<close> M]
+            dest: no_dup_same_annotD
+            elim!: list_match_lel_lel)
+
+      show ?thesis
+        unfolding S[symmetric] S1 S2
+        apply (rule cdcl_twl_restart_l.intros)
+        subgoal by (rule valid)
+        subgoal by auto
+        subgoal by auto
+        subgoal by auto
+        subgoal using propa_MM annot unfolding S by fastforce
+        subgoal using propa_MM annot unfolding S by fastforce
+        subgoal using propa_MM annot unfolding S by fastforce
+        subgoal using dom0 unfolding S by auto
+        subgoal using decomp unfolding S by auto
+        done
+    qed
+  qed
+  show ?thesis
+    apply (subst S)
+    unfolding cdcl_twl_local_restart_l_spec_def prod.case RES_RETURN_RES2 less_eq_nres.simps
+      uncurry_def
+    apply clarify
+    apply (rule restart)
+    apply assumption
+    done
+qed
+
+
+context twl_restart_ops
 begin
 
-definition restart_prog_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres" where
+definition restart_prog_l
+  :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres"
+where
   \<open>restart_prog_l S n brk = do {
      ASSERT(restart_abs_l_pre S brk);
      b \<leftarrow> restart_required_l S n;
@@ -2640,10 +2790,11 @@ definition restart_prog_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \
        RETURN (S, n)
    }\<close>
 
+
 lemma restart_prog_l_restart_abs_l:
   \<open>(uncurry2 restart_prog_l, uncurry2 restart_abs_l) \<in> Id \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
 proof -
-  have cdcl_twl_restart_l_prog: \<open>cdcl_twl_restart_l_prog S \<le> SPEC (cdcl_twl_restart_l S)\<close>
+  have cdcl_twl_full_restart_l_prog: \<open>cdcl_twl_full_restart_l_prog S \<le> SPEC (cdcl_twl_restart_l S)\<close>
     if
       inv: \<open>restart_abs_l_pre S brk\<close> and
       \<open>(b, ba) \<in> bool_rel\<close> and
@@ -2661,9 +2812,9 @@ proof -
       confl: \<open>get_conflict_l S = None\<close>
       using inv brk unfolding restart_abs_l_pre_def restart_prog_pre_def
       apply - apply normalize_goal+
-      by (auto simp: twl_st_l twl_st)
+      by (auto simp: twl_st)
     show ?thesis
-      using cdcl_twl_restart_l_prog_spec[OF ST list_invs struct_invs
+      using cdcl_twl_full_restart_l_prog_spec[OF ST list_invs struct_invs
          confl upd]
         remove_one_annot_true_clause_cdcl_twl_restart_l_spec[OF ST list_invs struct_invs
          confl upd]
@@ -2671,10 +2822,11 @@ proof -
   qed
 
   have \<open>restart_prog_l S n brk \<le> \<Down> Id (restart_abs_l S n brk)\<close> for S n brk
-    unfolding restart_prog_l_def restart_abs_l_def restart_required_l_def
+    unfolding restart_prog_l_def restart_abs_l_def restart_required_l_def cdcl_twl_restart_l_prog_def
     apply (refine_vcg)
     subgoal by auto
-    subgoal by (rule cdcl_twl_restart_l_prog)
+    subgoal by (rule cdcl_twl_local_restart_l_spec_cdcl_twl_restart_l) auto
+    subgoal by (rule cdcl_twl_full_restart_l_prog)
     subgoal by auto
     done
   then show ?thesis
@@ -2732,19 +2884,19 @@ proof -
       by fastforce
     subgoal by auto
     subgoal
-      by (simp add: twl_st_l twl_st)
-    subgoal by (auto simp: twl_st_l twl_st)
+      by (simp add: twl_st)
+    subgoal by (auto simp: twl_st)
     subgoal
        unfolding cdcl_twl_stgy_restart_prog_inv_def cdcl_twl_stgy_restart_abs_l_inv_def
-       by (auto simp: twl_st_l twl_st)
+       by (auto simp: twl_st)
     subgoal by auto
     done
 qed
 
-lemma cdcl_twl_stgy_restart_prog_l_cdcl_twl_stgy_restart_prog:
- \<open>(cdcl_twl_stgy_restart_prog_l, cdcl_twl_stgy_restart_prog)
-  \<in> {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}} \<rightarrow>\<^sub>f
-   \<langle>{(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S}\<rangle>nres_rel\<close>
+lemma (in twl_restart) cdcl_twl_stgy_restart_prog_l_cdcl_twl_stgy_restart_prog:
+  \<open>(cdcl_twl_stgy_restart_prog_l, cdcl_twl_stgy_restart_prog)
+    \<in> {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}} \<rightarrow>\<^sub>f
+      \<langle>{(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S}\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (rule order_trans)
   defer

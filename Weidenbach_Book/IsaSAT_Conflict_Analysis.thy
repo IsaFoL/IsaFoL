@@ -190,7 +190,9 @@ definition (in isasat_input_ops) tl_state_wl_heur_pre :: \<open>twl_st_wl_heur \
   \<open>tl_state_wl_heur_pre =
       (\<lambda>(M, N, D, WS, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, _). M \<noteq> [] \<and>
          atm_of (lit_of (hd M)) < length \<phi> \<and>
-         atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A))\<close>
+         atm_of (lit_of (hd M)) < length A \<and>
+         (next_search \<noteq> None \<longrightarrow>  the next_search < length A) \<and>
+         is_proped (hd M))\<close>
 
 definition (in isasat_input_ops) tl_state_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>tl_state_wl_heur = (\<lambda>(M, N, D, WS, Q, vmtf, \<phi>, clvls).
@@ -515,6 +517,7 @@ where
       L = lit_of (hd M) \<and>
       clvls = card_max_lvl M (the D) \<and>
       literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+      is_proped (hd M) \<and>
       no_dup M \<and>
       out_learned M D outl)\<close>
 
@@ -747,6 +750,8 @@ proof -
     moreover have \<open>next_search = Some y \<Longrightarrow> y < length A\<close> for y
       using vmtf 1 unfolding vmtf_def
       by (auto dest: atm_of_lit_in_atms_of)
+    moreover have \<open>is_proped (hd M)\<close>
+      using dec unfolding is_decided_no_proped_iff x2_M by fast
     ultimately show ?tl_heur if \<open>- x1a \<notin># the (get_conflict_wl x2)\<close>
       using nempty' unfolding tl_state_wl_heur_pre_def x2b
       by auto

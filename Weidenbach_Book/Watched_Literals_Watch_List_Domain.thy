@@ -193,7 +193,6 @@ lemma lit_of_natP_same_rightD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_
 lemma lit_of_natP_same_leftD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_natP ai b \<Longrightarrow> ai = bi\<close>
   apply (auto simp: p2rel_def lit_of_natP_def split: if_splits)
   apply presburger
-  apply presburger
   done
 
 
@@ -345,6 +344,18 @@ lemma length_ll_length_ll_f:
 
 abbreviation array_watched_assn :: \<open>(nat literal \<Rightarrow> nat list) \<Rightarrow> (nat array_list) array \<Rightarrow> assn\<close> where
   \<open>array_watched_assn \<equiv> hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<close>
+
+lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_empty[simp]:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail []\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def)
+
+lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_Cons:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (a # M) \<longleftrightarrow> lit_of a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def)
+
+lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_lit_of_mset:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M = literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M)\<close>
+  by (induction M) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset literals_are_in_\<L>\<^sub>i\<^sub>n_Cons)
 
 lemma ex_list_watched:
   fixes W :: \<open>nat literal \<Rightarrow> nat list\<close>
@@ -754,6 +765,42 @@ lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max: \<open>Pos xa \<in># \<L>
   using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by (auto simp: uint_max_def)
 
 
+lemma length_trail_uint_max_div2:
+  assumes
+    M_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and n_d: \<open>no_dup M\<close>
+  shows \<open>length M \<le> uint_max div 2 + 1\<close>
+proof -
+  have dist_atm_M: \<open>distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
+    using n_d by (metis distinct_mset_mset_distinct mset_map no_dup_def)
+  have incl: \<open>atm_of `# lit_of `# mset M \<subseteq># remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
+    apply (subst distinct_subseteq_iff[THEN iffD1])
+    using assms dist_atm_M
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def no_dup_distinct
+        atm_of_eq_atm_of)
+
+  have inj_on: \<open>inj_on nat_of_lit (set_mset (remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l))\<close>
+    by (auto simp: inj_on_def)
+  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> atm_of xa \<le> uint_max div 2\<close> for xa
+    using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
+    by (cases xa) (auto simp: uint_max_def)
+  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l) \<subseteq># mset [0..< 1 + (uint_max div 2)]\<close>
+    apply (subst distinct_subseteq_iff[THEN iffD1])
+    using H distinct_image_mset_inj[OF inj_on]
+    by (force simp del: literal_of_nat.simps simp: distinct_mset_mset_set
+        dest: le_neq_implies_less)+
+  note _ = size_mset_mono[OF this]
+  moreover have \<open>size (nat_of_lit `# remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l) = size (remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
+    by simp
+  ultimately have 2: \<open>size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l)) \<le> 1 + uint_max div 2\<close>
+    by auto
+  from size_mset_mono[OF incl] have 1: \<open>length M \<le> size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l))\<close>
+    unfolding uint_max_def count_decided_def
+    by (auto simp del: length_filter_le)
+  with 2 show ?thesis
+    by (auto simp: uint32_max_def)
+qed
+
+
 definition (in isasat_input_ops) unit_prop_body_wl_D_inv where
 \<open>unit_prop_body_wl_D_inv T' i L \<longleftrightarrow>
     unit_prop_body_wl_inv T' i L \<and> literals_are_\<L>\<^sub>i\<^sub>n T' \<and> L \<in> snd ` D\<^sub>0
@@ -851,21 +898,6 @@ next
   assume ?y
   then show ?eq by blast
 qed
-
-text \<open>TODO Move\<close>
-
-lemma [twl_st_wl]: \<open>get_clauses_wl (set_conflict_wl D S) = get_clauses_wl S\<close>
-  by (cases S) (auto simp: set_conflict_wl_def)
-lemma [twl_st_wl]:
-  \<open>get_unit_init_clss_wl (set_conflict_wl D S) = get_unit_init_clss_wl S\<close>
-  \<open>get_unit_clauses_wl (set_conflict_wl D S) = get_unit_clauses_wl S\<close>
-  by (cases S; auto simp: set_conflict_wl_def; fail)+
-
-lemma (in -) lookup_None_notin_dom_m[simp]:
-  \<open>fmlookup N i = None \<longleftrightarrow> i \<notin># dom_m N\<close>
-  by (auto simp: dom_m_def fmlookup_dom_iff fmember.rep_eq[symmetric])
-text \<open>END Move\<close>
-
 
 lemma unit_propagation_inner_loop_body_wl_D_spec:
   fixes S :: \<open>nat twl_st_wl\<close> and K :: \<open>nat literal\<close> and w :: nat
@@ -1105,7 +1137,7 @@ proof -
     subgoal for S' S T'L' TL T' L' T L
       apply (auto simp: twl_st_wl is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_of_mm_union)
       unfolding image_image
-      apply simp_all -- \<open>TODO: but why does it loop\<close>
+      apply simp_all \<comment> \<open>TODO: but why does it loop\<close>
       done
     done
 qed
@@ -1883,6 +1915,6 @@ proof -
     done
 qed
 
-end -- \<open>end of locale @{locale isasat_input_bounded}\<close>
+end \<comment> \<open>end of locale @{locale isasat_input_bounded}\<close>
 
 end

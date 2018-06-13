@@ -267,7 +267,7 @@ proof -
     done
 qed
 
-end -- \<open>end of @{locale isasat_input_ops}\<close>
+end \<comment> \<open>end of @{locale isasat_input_ops}\<close>
 
 context isasat_input_bounded_nempty
 begin
@@ -315,8 +315,8 @@ lemma cdcl_twl_enum_wl_D_cdcl_twl_enum_wl:
   subgoal by auto
   done
 
-end -- \<open>end of context with \<^term>\<open>P\<close>\<close>
+end \<comment> \<open>end of context with \<^term>\<open>P\<close>\<close>
 
-end  -- \<open>end of @{locale isasat_input_bounded_nempty}\<close>
+end  \<comment> \<open>end of @{locale isasat_input_bounded_nempty}\<close>
 
 end

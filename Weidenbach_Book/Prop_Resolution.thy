@@ -1050,7 +1050,7 @@ proof (rule ccontr)
       proof (induction rule: simplify.induct)
         case (tautology_deletion P A)
         then have "{#Neg P#} + ({#Pos P#} + (A + {#l#})) \<in> {\<psi>}"
-          using A by (auto simp: single_remove1_mset_eq)
+          using A by auto
         then show ?thesis
           using simplified_no_both by fastforce
       next
@@ -1653,19 +1653,19 @@ qed
 
 
 definition sum_count_ge_2 :: "'a multiset set \<Rightarrow> nat" ("\<Xi>") where
-"sum_count_ge_2 \<equiv> folding.F (\<lambda>\<phi>. op +(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
+"sum_count_ge_2 \<equiv> folding.F (\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
 
 
 interpretation sum_count_ge_2:
-  folding "\<lambda>\<phi>. op +(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0
+  folding "\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0
 rewrites
-  "folding.F (\<lambda>\<phi>. op +(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
+  "folding.F (\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
 proof -
-  show "folding (\<lambda>\<phi>. op + (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#})))"
+  show "folding (\<lambda>\<phi>. (+) (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#})))"
     by standard auto
   then interpret sum_count_ge_2:
-    folding "\<lambda>\<phi>. op +(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0 .
-  show "folding.F (\<lambda>\<phi>. op + (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#}))) 0
+    folding "\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0 .
+  show "folding.F (\<lambda>\<phi>. (+) (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#}))) 0
     = sum_count_ge_2" by (auto simp add: sum_count_ge_2_def)
 qed
 

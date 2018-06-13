@@ -319,6 +319,9 @@ lemma total_union_2:
 lemma total_over_m_alt_def: \<open>total_over_m I S \<longleftrightarrow> atms_of_ms S \<subseteq> atms_of_s I\<close>
   by (auto simp: total_over_m_def total_over_set_def)
 
+lemma total_over_set_alt_def: \<open>total_over_set M A \<longleftrightarrow> A \<subseteq> atms_of_s M\<close>
+  by (auto simp: total_over_set_def)
+
 subsubsection \<open>Interpretations\<close>
 
 definition true_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>" 50) where
@@ -1055,8 +1058,8 @@ lemma simple_clss_empty[simp]:
 lemma simple_clss_insert:
   assumes "l \<notin> atms"
   shows "simple_clss (insert l atms) =
-    (op + {#Pos l#}) ` (simple_clss atms)
-    \<union> (op + {#Neg l#}) ` (simple_clss atms)
+    ((+) {#Pos l#}) ` (simple_clss atms)
+    \<union> ((+) {#Neg l#}) ` (simple_clss atms)
     \<union> simple_clss atms"(is "?I = ?U")
 proof (standard; standard)
   fix C
@@ -1176,8 +1179,8 @@ next
         by (simp add: atm_iff_pos_or_neg_lit)
       then show False using D l unfolding simple_clss_def by auto
     qed
-  let ?P = "(op + {#Pos l#}) ` (simple_clss C)"
-  let ?N = "(op + {#Neg l#}) ` (simple_clss C)"
+  let ?P = "((+) {#Pos l#}) ` (simple_clss C)"
+  let ?N = "((+) {#Neg l#}) ` (simple_clss C)"
   let ?O = "simple_clss C"
   have "card (?P \<union> ?N \<union> ?O) = card (?P \<union> ?N) + card ?O"
     apply (subst card_Un_disjoint)
@@ -1187,10 +1190,10 @@ next
     using l fin H by (auto simp: simple_clss_finite notin)
   moreover
     have "card ?P = card ?O"
-      using inj_on_iff_eq_card[of ?O "op + {#Pos l#}"]
+      using inj_on_iff_eq_card[of ?O "(+) {#Pos l#}"]
       by (auto simp: fin simple_clss_finite inj_on_def)
   moreover have "card ?N = card ?O"
-      using inj_on_iff_eq_card[of ?O "op + {#Neg l#}"]
+      using inj_on_iff_eq_card[of ?O "(+) {#Neg l#}"]
       by (auto simp: fin simple_clss_finite inj_on_def)
   moreover have "(3::nat) ^ card (insert l C) = 3 ^ (card C) + 3 ^ (card C) + 3 ^ (card C)"
     using l by (simp add: fin mult_2_right numeral_3_eq_3)

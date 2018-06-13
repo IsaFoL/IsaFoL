@@ -59,7 +59,6 @@ definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset
 lemma all_lits_of_mm_empty[simp]: \<open>all_lits_of_mm {#} = {#}\<close>
   by (auto simp: all_lits_of_mm_def)
 
-
 text \<open>
   We cannot just extract the literals of the clauses: we cannot be sure that atoms appear \<^emph>\<open>both\<close>
   positively and negatively in the clauses. If we could ensure that there are no pure literals, the
@@ -116,6 +115,25 @@ lemma all_lits_of_m_mono:
   \<open>D \<subseteq># D' \<Longrightarrow> all_lits_of_m D \<subseteq># all_lits_of_m D'\<close>
   by (auto elim!: mset_le_addE simp: all_lits_of_m_union)
 
+lemma in_all_lits_of_mm_uminusD: \<open>x2 \<in># all_lits_of_mm N \<Longrightarrow> -x2 \<in># all_lits_of_mm N\<close>
+  by (auto simp: all_lits_of_mm_def)
+
+lemma in_all_lits_of_mm_uminus_iff: \<open>-x2 \<in># all_lits_of_mm N \<longleftrightarrow> x2 \<in># all_lits_of_mm N\<close>
+  by (cases x2) (auto simp: all_lits_of_mm_def)
+
+lemma all_lits_of_mm_diffD:
+  \<open>L \<in># all_lits_of_mm (A - B) \<Longrightarrow> L \<in># all_lits_of_mm A\<close>
+  apply (induction A arbitrary: B)
+  subgoal by auto
+  subgoal for a A' B
+    by (cases \<open>a \<in># B\<close>)
+      (fastforce dest!: multi_member_split[of a B] simp: all_lits_of_mm_add_mset)+
+  done
+
+lemma all_lits_of_mm_mono:
+  \<open>set_mset A \<subseteq> set_mset B \<Longrightarrow> set_mset (all_lits_of_mm A) \<subseteq> set_mset (all_lits_of_mm B)\<close>
+  by (auto simp: all_lits_of_mm_def)
+
 fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_l\<close> where
   \<open>st_l_of_wl None (M, N, D, NE, UE, Q, W) = (M, N, D, NE, UE, {#}, Q)\<close>
 | \<open>st_l_of_wl (Some (L, j)) (M, N, D, NE, UE, Q, W) =
@@ -128,8 +146,6 @@ definition state_wl_l :: \<open>('v literal \<times> nat) option \<Rightarrow> (
 fun twl_st_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> ('v twl_st_wl \<times> 'v twl_st) set\<close> where
   \<open>twl_st_of_wl L = state_wl_l L O twl_st_l (map_option fst L)\<close>
 
-fun remove_one_lit_from_wq :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>remove_one_lit_from_wq L (M, N, D, NE, UE, WS, Q) = (M, N, D, NE, UE, remove1_mset L WS, Q)\<close>
 
 named_theorems twl_st_wl \<open>Conversions simp rules\<close>
 
@@ -163,25 +179,29 @@ lemma correct_watching_set_literals_to_update[simp]:
   \<open>correct_watching (set_literals_to_update_wl WS T') = correct_watching T'\<close>
   by (cases T') (auto simp: correct_watching.simps)
 
-lemma get_conflict_wl_set_literals_to_update_wl[twl_st_l]:
+lemma get_unit_init_clauses_l_get_unit_init_clss_wl[twl_st_wl]: \<open>(S, S') \<in> state_wl_l L \<Longrightarrow>
+  get_unit_init_clauses_l S' = get_unit_init_clss_wl S\<close>
+  by (cases S; cases L) (auto simp: state_wl_l_def)
+
+lemma [twl_st_wl]:
+  \<open>get_clauses_wl (set_literals_to_update_wl W S) = get_clauses_wl S\<close>
+  \<open>get_unit_init_clss_wl (set_literals_to_update_wl W S) = get_unit_init_clss_wl S\<close>
+  by (cases S; auto; fail)+
+
+lemma get_conflict_wl_set_literals_to_update_wl[twl_st_wl]:
   \<open>get_conflict_wl (set_literals_to_update_wl P S) = get_conflict_wl S\<close>
   \<open>get_unit_clauses_wl (set_literals_to_update_wl P S) = get_unit_clauses_wl S\<close>
   by (cases S; auto; fail)+
 
-lemma [twl_st_l]:
-  \<open>get_clauses_l (remove_one_lit_from_wq L S) = get_clauses_l S\<close>
-  \<open>get_trail_l (remove_one_lit_from_wq L S) = get_trail_l S\<close>
-  by (cases S; auto; fail)+
+definition set_conflict_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+  \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, Q, W). (M, N, Some (mset C), NE, UE, {#}, W))\<close>
 
-lemma [twl_st_l]:
-  \<open>get_unit_learned_clauses_l (set_clauses_to_update_l Cs S) = get_unit_learned_clauses_l S\<close>
-  by (cases S) auto
-
-lemma [twl_st_l]:
-  \<open>get_unit_learned_clauses_l (remove_one_lit_from_wq L S) = get_unit_learned_clauses_l S\<close>
-  by (cases S) auto
-
-declare twl_st_l[simp]
+lemma [twl_st_wl]: \<open>get_clauses_wl (set_conflict_wl D S) = get_clauses_wl S\<close>
+  by (cases S) (auto simp: set_conflict_wl_def)
+lemma [twl_st_wl]:
+  \<open>get_unit_init_clss_wl (set_conflict_wl D S) = get_unit_init_clss_wl S\<close>
+  \<open>get_unit_clauses_wl (set_conflict_wl D S) = get_unit_clauses_wl S\<close>
+  by (cases S; auto simp: set_conflict_wl_def; fail)+
 
 text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<close>.\<close>
 declare twl_st_wl[simp]
@@ -195,10 +215,6 @@ definition unit_prop_body_wl_inv where
     correct_watching T \<and>
     i < length (watched_by T L) \<and>
     get_conflict_wl T = None)\<close>
-
-
-definition set_conflict_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, Q, W). (M, N, Some (mset C), NE, UE, {#}, W))\<close>
 
 definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>propagate_lit_wl = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W).
@@ -245,60 +261,6 @@ definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow
    }\<close>
 
 
-text \<open>TODO Move\<close>
-lemma no_duplicate_queued_alt_def:
-   \<open>no_duplicate_queued S =
-    ((\<forall>C C'. C \<in># clauses_to_update S \<longrightarrow> C' \<in># clauses_to_update S \<longrightarrow> fst C = fst C') \<and>
-     (\<forall>C. C \<in># clauses_to_update S \<longrightarrow> add_mset (fst C) (literals_to_update S) \<subseteq># uminus `# lit_of `# mset (get_trail S)) \<and>
-     literals_to_update S \<subseteq># uminus `# lit_of `# mset (get_trail S))\<close>
-  by (cases S) auto
-
-declare clauses_to_update_l_set_clauses_to_update_l[twl_st_l]
-
-lemma [twl_st_l]: \<open>get_conflict_l (set_clauses_to_update_l W S) = get_conflict_l S\<close>
-  by (cases S) auto
-
-lemma  [twl_st_l]: \<open>get_conflict_l (remove_one_lit_from_wq L S) = get_conflict_l S\<close>
-  by (cases S) auto
-
-lemma [twl_st_l]: \<open>literals_to_update_l (set_clauses_to_update_l Cs S) = literals_to_update_l S\<close>
-  by (cases S) auto
-
-lemma [twl_st_l]: \<open>get_unit_clauses_l (set_clauses_to_update_l Cs S) = get_unit_clauses_l S\<close>
-  by (cases S) auto
-
-lemma  [twl_st_l]: \<open>get_unit_clauses_l (remove_one_lit_from_wq L S) = get_unit_clauses_l S\<close>
-  by (cases S) auto
-
-lemma init_clss_state_to_l[twl_st_l]: \<open>(S, S') \<in> twl_st_l L \<Longrightarrow>
-  init_clss (state\<^sub>W_of S') = mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S\<close>
-  by (cases S) (auto simp: twl_st_l_def init_clss.simps mset_take_mset_drop_mset')
-
-lemma get_unit_init_clauses_l_get_unit_init_clss_wl[twl_st_wl]: \<open>(S, S') \<in> state_wl_l L \<Longrightarrow>
-  get_unit_init_clauses_l S' = get_unit_init_clss_wl S\<close>
-  by (cases S; cases L) (auto simp: state_wl_l_def)
-
-
-lemma [twl_st_l]:
-  \<open>get_unit_init_clauses_l (set_clauses_to_update_l Cs S) = get_unit_init_clauses_l S\<close>
-  by (cases S; auto; fail)+
-
-lemma [twl_st_l]:
-  \<open>get_unit_init_clauses_l (remove_one_lit_from_wq L S) = get_unit_init_clauses_l S\<close>
-  by (cases S; auto; fail)+
-
-lemma unit_init_clauses_get_unit_init_clauses_l[twl_st_l]:
-  \<open>(S, T) \<in> twl_st_l L \<Longrightarrow> unit_init_clauses T = get_unit_init_clauses_l S\<close>
-  by (cases S) (auto simp: twl_st_l_def init_clss.simps)
-
-lemma clauses_state_to_l[twl_st_l]: \<open>(S, S') \<in> twl_st_l L \<Longrightarrow>
-  cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of S') = mset `# ran_mf (get_clauses_l S) +
-     get_unit_init_clauses_l S + get_unit_learned_clauses_l S\<close>
-  by (cases S) (auto simp: twl_st_l_def init_clss.simps mset_take_mset_drop_mset')
-
-text \<open>END Move\<close>
-
-
 subsection \<open>The Functions\<close>
 
 subsubsection \<open>Inner Loop\<close>
@@ -327,11 +289,6 @@ proof -
     unfolding clause_to_update_def
     by auto
 qed
-
-text \<open>TODO: Move\<close>
-lemma mset_butlast_update_last[simp]:
-  \<open>w < length xs \<Longrightarrow> mset (butlast (xs[w := last (xs)])) = remove1_mset (xs ! w) (mset xs)\<close>
-  by (simp add: last_list_update_to_last mset_butlast_remove1_mset mset_update)
 
 lemma
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
@@ -801,11 +758,6 @@ definition unit_propagation_outer_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> '
       (S\<^sub>0 :: 'v twl_st_wl)
 \<close>
 
-text \<open>TODO Move\<close>
-lemma [twl_st_wl]:
-  \<open>get_clauses_wl (set_literals_to_update_wl W S) = get_clauses_wl S\<close>
-  \<open>get_unit_init_clss_wl (set_literals_to_update_wl W S) = get_unit_init_clss_wl S\<close>
-  by (cases S; auto; fail)+
 
 lemma unit_propagation_outer_loop_wl_spec:
   \<open>(unit_propagation_outer_loop_wl, unit_propagation_outer_loop_l)
@@ -859,15 +811,16 @@ proof -
         by auto
       obtain K where \<open>L = - lit_of K\<close> and \<open>K \<in># mset (trail (state\<^sub>W_of R))\<close>
         using that no_dup_q LQ S_R S
-        mset_le_add_mset_decr_left2[of L \<open>remove1_mset L Q\<close>]
-        by (force simp: S' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
-          all_lits_of_mm_def atms_of_ms_def twl_st_l_def state_wl_l_def
-          dest!: multi_member_split[of L Q])
+        mset_le_add_mset_decr_left2[of L \<open>remove1_mset L Q\<close> Q]
+        by (fastforce simp: S' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+          all_lits_of_mm_def atms_of_ms_def twl_st_l_def state_wl_l_def uminus_lit_swap
+          convert_lit.simps
+          dest!: multi_member_split[of L Q] mset_subset_eq_insertD in_convert_lits_lD2)
       from imageI[OF this(2), of \<open>atm_of o lit_of\<close>]
       have \<open>atm_of L \<in> atm_of ` lits_of_l (get_trail_wl S')\<close> and
         [simp]: \<open>atm_of ` lits_of_l (trail (state\<^sub>W_of R)) = atm_of ` lits_of_l (get_trail_wl S')\<close>
         using S_R S S \<open>L = - lit_of K\<close>
-        by (simp_all add: twl_st_wl twl_st_l twl_st image_image[symmetric]
+        by (simp_all add: twl_st image_image[symmetric]
             lits_of_def[symmetric])
       then have \<open>atm_of L \<in> atm_of ` lits_of_l M\<close>
         using S'  by auto
@@ -1481,7 +1434,7 @@ proof -
     have U: \<open>U = (MU, NS, Some DT, NES, UES, {#}, {#})\<close>
       using UU' by (auto simp: U' state_wl_l_def)
     obtain S1 S2 where
-      S1: \<open>(S', S1) \<in> state_wl_l None\<close> and 
+      S1: \<open>(S', S1) \<in> state_wl_l None\<close> and
       S2: \<open>(S1, S2) \<in> twl_st_l None\<close> and
       struct_invs: \<open>twl_struct_invs S2\<close>
       using bt unfolding backtrack_wl_inv_def backtrack_l_inv_def

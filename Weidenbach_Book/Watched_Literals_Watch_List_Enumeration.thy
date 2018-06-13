@@ -20,19 +20,12 @@ definition negate_mode_bj_unit_wl   :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_
     RETURN (propagate_unit_and_add_wl K S)
   })\<close>
 
-(* TODO Move or duplicate *)
-lemma in_all_lits_of_mm_uminusD: \<open>x2 \<in># all_lits_of_mm N \<Longrightarrow> -x2 \<in># all_lits_of_mm N\<close>
-  by (auto simp: all_lits_of_mm_def)
-lemma in_all_lits_of_mm_uminus_iff: \<open>-x2 \<in># all_lits_of_mm N \<longleftrightarrow> x2 \<in># all_lits_of_mm N\<close>
-  by (cases x2) (auto simp: all_lits_of_mm_def)
-(* End Move *)
-
 abbreviation find_decomp_target_wl_ref where
   \<open>find_decomp_target_wl_ref S \<equiv>
      {((T, K), (T', K')). (T, T') \<in> {(T, T'). (T, T') \<in> state_wl_l None \<and> correct_watching T} \<and>
         (K , K') \<in> Id \<and>
         K \<in># all_lits_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl T) +
-           get_unit_clauses_wl T) \<and> 
+           get_unit_clauses_wl T) \<and>
         K \<in># all_lits_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl T) +
            get_unit_init_clss_wl T) \<and> equality_except_trail_wl S T \<and>
         atms_of (DECO_clause (get_trail_wl S)) \<subseteq> atms_of_mm (clause `# twl_clause_of `# ran_mf (get_clauses_wl T) +
@@ -161,14 +154,14 @@ proof -
   show ?thesis
     using SS' unfolding negate_mode_bj_unit_wl_def negate_mode_bj_unit_l_def
     apply (refine_rcg find_decomp_target_wl_find_decomp_target_l 2)
-    subgoal unfolding negate_mode_bj_unit_l_inv_def by blast 
+    subgoal unfolding negate_mode_bj_unit_l_inv_def by blast
     subgoal unfolding negate_mode_bj_unit_l_inv_def by blast
     subgoal by blast
     apply assumption+
     done
 qed
 
-definition propagate_nonunit_and_add_wl_pre 
+definition propagate_nonunit_and_add_wl_pre
   :: \<open>'v literal \<Rightarrow> 'v clause_l \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>propagate_nonunit_and_add_wl_pre K C i S \<longleftrightarrow>
      length C \<ge> 2 \<and> i > 0 \<and> i \<notin># dom_m (get_clauses_wl S) \<and>
@@ -299,7 +292,7 @@ proof -
            apply (smt "1" UnE add_mset_add_single image_eqI mset.simps(2) set_mset_mset subsetCE
             union_iff union_single_eq_member)
           done
-        subgoal -- \<open>TODO Proof\<close>
+        subgoal \<comment> \<open>TODO Proof\<close>
          apply (auto simp: mset_take_mset_drop_mset' in_DECO_clause_l_in_DECO_clause_iff
            dest!: in_set_dropD)
            by (metis UnE atms_of_ms_union atms_of_subset_in_atms_ofI)
@@ -469,7 +462,7 @@ proof -
            apply (smt "1" UnE add_mset_add_single image_eqI mset.simps(2) set_mset_mset subsetCE
               union_iff union_single_eq_member)
            done
-        subgoal -- \<open>TODO Proof\<close>
+        subgoal \<comment> \<open>TODO Proof\<close>
           using TK le apply (auto simp: mset_take_mset_drop_mset' in_DECO_clause_l_in_DECO_clause_iff
            dest!: in_set_dropD)
            by (metis UnE atms_of_ms_union atms_of_subset_in_atms_ofI)

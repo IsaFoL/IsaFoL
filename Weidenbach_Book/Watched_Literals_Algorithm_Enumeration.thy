@@ -197,11 +197,6 @@ lemma mod_restriction_next_modelD:
   \<open>mod_restriction N N' \<Longrightarrow> atms_of_mm N \<subseteq> atms_of_mm N' \<Longrightarrow> next_model M N \<Longrightarrow> next_model M N'\<close>
   by (auto simp: mod_restriction_def next_model.simps)
 
-(* TODO Move *)
-lemma total_over_set_alt_def:
-  \<open>total_over_set M A \<longleftrightarrow> A \<subseteq> atms_of_s M\<close>
-  by (auto simp: total_over_set_def)
-
 definition enum_mod_restriction_st_clss_after :: \<open>('v twl_st \<times> ('v literal list option \<times> 'v clauses)) set\<close> where
   \<open>enum_mod_restriction_st_clss_after = {(S, (M, N)).
       (get_conflict S = None \<longrightarrow> count_decided (get_trail S) = 0 \<longrightarrow>

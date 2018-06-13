@@ -187,7 +187,7 @@ definition update_raa :: "('a::{heap,default}) arrayO_raa \<Rightarrow> nat \<Ri
       x \<leftarrow> arl_get a i;
       a' \<leftarrow> Array.upd j y x;
       arl_set a i a'
-    }\<close> -- \<open>is the Array.upd really needed?\<close>
+    }\<close> \<comment> \<open>is the Array.upd really needed?\<close>
 
 definition update_rll :: "'a list_rll \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
   \<open>update_rll xs i j y = xs[i:= (xs ! i)[j := y]]\<close>

@@ -30,9 +30,6 @@ lemma watched_by_app_heur_alt_def:
 definition (in -) watched_by_app :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>watched_by_app S L K = watched_by S L ! K\<close>
 
-fun get_vmtf_heur :: \<open>twl_st_wl_heur \<Rightarrow> vmtf_remove_int\<close> where
-  \<open>get_vmtf_heur (M, N, D, WS, W, cvmtf, _) = cvmtf\<close>
-
 
 subsection \<open>Propagations\<close>
 
@@ -358,6 +355,13 @@ where
             vm))
   })\<close>
 
+(* TODO Move *)
+lemma (in -) learned_clss_l_update[simp]:
+  \<open>bh \<in># dom_m ax \<Longrightarrow> size (learned_clss_l (ax(bh \<hookrightarrow> C))) = size (learned_clss_l ax)\<close>
+  by (auto simp: ran_m_clause_upd size_Diff_singleton_if dest!: multi_member_split)
+     (auto simp: ran_m_def)
+(* TODO Move *)
+
 lemma update_clause_wl_heur_update_clause_wl:
   \<open>(uncurry5 update_clause_wl_heur, uncurry5 (update_clause_wl)) \<in>
    [\<lambda>(((((L, C), w), i), f), S). C \<in># dom_m(get_clauses_wl S) \<and> (get_clauses_wl S \<propto> C) ! f \<noteq> L]\<^sub>f
@@ -501,7 +505,7 @@ proof  -
       using n_d_q S_T T_T' L_WS
       by (cases \<open>clauses_to_update T'\<close>)
          (auto simp add: no_duplicate_queued_alt_def twl_st_wl twl_st_l twl_st)
-    note mset_subset_eq_insertD[OF this] 
+    note mset_subset_eq_insertD[OF this]
     moreover have \<open>xa \<in> set x \<Longrightarrow>
        (M, x) \<in> convert_lits_l N (NE + UE) \<Longrightarrow>
        lit_of xa \<in> lit_of ` set M\<close> for xa x

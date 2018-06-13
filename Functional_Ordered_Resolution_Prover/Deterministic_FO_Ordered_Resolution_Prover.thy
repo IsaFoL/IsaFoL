@@ -77,8 +77,8 @@ type_synonym 'a dclause = "'a lclause \<times> nat"
 type_synonym 'a dstate = "'a dclause list \<times> 'a dclause list \<times> 'a dclause list \<times> nat"
 
 locale deterministic_FO_resolution_prover =
-  weighted_FO_resolution_prover_with_size_generation_factors S subst_atm id_subst comp_subst
-    renamings_apart atm_of_atms mgu less_atm size_atm generation_factor size_factor
+  weighted_FO_resolution_prover_with_size_timestamp_factors S subst_atm id_subst comp_subst
+    renamings_apart atm_of_atms mgu less_atm size_atm timestamp_factor size_factor
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -89,7 +89,7 @@ locale deterministic_FO_resolution_prover =
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
     size_atm :: "'a \<Rightarrow> nat" and
-    generation_factor :: nat and
+    timestamp_factor :: nat and
     size_factor :: nat +
   assumes
     S_empty: "S C = {#}"
@@ -115,10 +115,10 @@ fun is_final_dstate :: "'a dstate \<Rightarrow> bool" where
 declare is_final_dstate.simps [simp del]
 
 abbreviation rtrancl_weighted_RP (infix "\<leadsto>\<^sub>w\<^sup>*" 50) where
-  "op \<leadsto>\<^sub>w\<^sup>* \<equiv> (op \<leadsto>\<^sub>w)\<^sup>*\<^sup>*"
+  "(\<leadsto>\<^sub>w\<^sup>*) \<equiv> (\<leadsto>\<^sub>w)\<^sup>*\<^sup>*"
 
 abbreviation trancl_weighted_RP (infix "\<leadsto>\<^sub>w\<^sup>+" 50) where
-  "op \<leadsto>\<^sub>w\<^sup>+ \<equiv> (op \<leadsto>\<^sub>w)\<^sup>+\<^sup>+"
+  "(\<leadsto>\<^sub>w\<^sup>+) \<equiv> (\<leadsto>\<^sub>w)\<^sup>+\<^sup>+"
 
 definition is_tautology :: "'a lclause \<Rightarrow> bool" where
   "is_tautology C \<longleftrightarrow> (\<exists>A \<in> set (map atm_of C). Pos A \<in> set C \<and> Neg A \<in> set C)"
@@ -184,7 +184,7 @@ fun resolve_on_old :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a list
 
 fun remove_all :: "'b list \<Rightarrow> 'b list \<Rightarrow> 'b list" where
   "remove_all xs [] = xs"
-| "remove_all xs (y#ys) = (if y \<in> set xs then remove_all (remove1 y xs) ys else remove_all xs ys)"
+| "remove_all xs (y # ys) = (if y \<in> set xs then remove_all (remove1 y xs) ys else remove_all xs ys)"
 
 lemma remove_all_mset_minus: "mset ys \<subseteq># mset xs \<Longrightarrow> mset (remove_all xs ys) = mset xs - mset ys"
 proof (induction ys arbitrary: xs)
@@ -245,8 +245,7 @@ definition resolve_rename_either_way :: "'a lclause \<Rightarrow> 'a lclause \<R
 fun select_min_weight_clause :: "'a dclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause" where
   "select_min_weight_clause Ci [] = Ci"
 | "select_min_weight_clause Ci (Dj # Djs) =
-   select_min_weight_clause (if weight (apfst mset Dj) < weight (apfst mset Ci) then Dj else Ci)
-     Djs"
+   select_min_weight_clause (if weight (apfst mset Dj) < weight (apfst mset Ci) then Dj else Ci) Djs"
 
 lemma select_min_weight_clause_in: "select_min_weight_clause P0 P \<in> set (P0 # P)"
   by (induct P arbitrary: P0) auto
@@ -475,7 +474,7 @@ lemma empty_N_if_Nil_in_P_or_Q:
 proof (induct N)
   case ih: (Cons N0 N)
   have "wstate_of_dstate (N0 # N, P, Q, n) \<leadsto>\<^sub>w wstate_of_dstate (N, P, Q, n)"
-    by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+    by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
           wrp.forward_subsumption[of "{#}" "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)"
             "mset (fst N0)" "mset (map (apfst mset) N)" "snd N0" n]])
       (use nil_in in \<open>force simp: image_def apfst_fst_snd\<close>)+
@@ -524,14 +523,14 @@ proof (induct "length P'" arbitrary: P P' rule: less_induct)
 
       have "wstate_of_dstate (N, P @ P', Q, n)
         \<leadsto>\<^sub>w wstate_of_dstate (N, P @ filter (\<lambda>(E, l). mset E \<noteq> mset (fst ?Dj)) ?P'', Q, n)"
-        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
               wrp.backward_subsumption_P[of "mset C" "mset (map (apfst mset) N)" "mset (fst ?Dj)"
                 "mset (map (apfst mset) (P @ P'))" "mset (map (apfst mset) Q)" n]],
           use c_in subs in \<open>auto simp add: p_filtered p'_filtered arg_cong[OF p', of set]
             strictly_subsume_def\<close>)
       also have "\<dots>
         \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) P', Q, n)"
-        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w\<^sup>*)", OF _ _
               ih[of "filter (\<lambda>(E, l). mset E \<noteq> mset (fst ?Dj)) ?P''" P]])
            apply simp_all
           apply (subst (3) p')
@@ -551,7 +550,7 @@ proof (induct "length P'" arbitrary: P P' rule: less_induct)
     next
       case nsubs: False
       show ?thesis
-        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w\<^sup>*)", OF _ _
               ih[of ?P'' "P @ [?Dj]"]])
         using nsubs p_nsubs
            apply (simp_all add: arg_cong[OF p', of mset] arg_cong[OF p', of "filter f" for f])
@@ -573,7 +572,7 @@ proof (induct Q' arbitrary: Q)
   proof (cases "strictly_subsume [C] (fst Dj)")
     case subs: True
     have "wstate_of_dstate (N, P, Q @ Dj # Q', n) \<leadsto>\<^sub>w wstate_of_dstate (N, P, Q @ Q', n)"
-      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
             wrp.backward_subsumption_Q[of "mset C" "mset (map (apfst mset) N)" "mset (fst Dj)"
               "mset (map (apfst mset) P)" "mset (map (apfst mset) (Q @ Q'))" "snd Dj" n]])
         (use c_in subs in \<open>auto simp: apfst_fst_snd strictly_subsume_def\<close>)
@@ -610,7 +609,7 @@ proof (induct D' arbitrary: D)
 
     have "wstate_of_dstate (N, P @ (D @ L # D', j) # P', Q, n)
       \<leadsto>\<^sub>w wstate_of_dstate (N, P @ (D @ D', j) # P', Q, n)"
-      apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+      apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
             wrp.backward_reduction_P[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)" L \<sigma>
               "mset (D @ D')" "mset (map (apfst mset) (P @ P'))" j "mset (map (apfst mset) Q)" n]])
       using l'_in not_l subs c_in apply auto[5]
@@ -649,7 +648,7 @@ proof (induct D' arbitrary: D)
 
     have "wstate_of_dstate (N, P, Q @ (D @ L # D', j) # Q', n)
       \<leadsto>\<^sub>w wstate_of_dstate (N, (D @ D', j) # P, Q @ Q', n)"
-      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
             wrp.backward_reduction_Q[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)" L \<sigma>
               "mset (D @ D')" "mset (map (apfst mset) P)" "mset (map (apfst mset) (Q @ Q'))" j n]],
           use l'_in not_l subs c_in in auto)
@@ -707,7 +706,7 @@ proof (induct "length P'" arbitrary: P P')
     done
   moreover have "wstate_of_dstate (N, P @ P1' @ apfst (reduce [C] []) Dj # P2', Q, n)
      \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ map (apfst (reduce [C] [])) (P1' @ Dj # P2'), Q, n)"
-    apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+    apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w\<^sup>*)", OF _ _
           ih[of "P1' @ P2'" "apfst (reduce [C] []) Dj # P"]])
        apply auto
     using suc_l unfolding p'
@@ -1273,8 +1272,8 @@ lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_
   unfolding ord_FO_\<Gamma>_infer_from_Collect_eq inference_system.inferences_between_def by auto
 
 (* FIXME: rename *)
-lemma fooo: "add_mset x A = add_mset y B \<longleftrightarrow> x = y \<and> A = B \<or> x \<in># B \<and> y \<in># A \<and> A - {#y#} = B - {#x#}"
-  by (smt add_eq_conv_diff remove_1_mset_id_iff_notin single_remove1_mset_eq)
+lemma fooo: "add_mset x A = add_mset y B \<longleftrightarrow> x = y \<and> A = B \<or> x \<in># B \<and> y \<in># A \<and> A - {#y#} = B - {#x#}" 
+  by (smt add_eq_conv_diff remove_1_mset_id_iff_notin add_mset_remove_trivial_eq) 
 
 lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
   "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C) =
@@ -1319,7 +1318,7 @@ proof -
     using ci_in by force
 
   show ?thesis
-    apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+    apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
           wrp.inference_computation[of "mset (map (apfst mset) P) - {#(mset C, i)#}" "mset C" i
             "mset (map (apfst mset) ?N)" n "mset (map (apfst mset) Q)"]])
        apply (simp add: add_mset_remove_trivial_eq[THEN iffD2, OF ms_ci_in, symmetric])
@@ -1418,7 +1417,7 @@ proof -
         "\<dots> \<leadsto>\<^sub>w wstate_of_dstate (N', ?P', (C, i) # Q, Suc n)"
         by (atomize_elim, rule exI, rule compute_inferences[OF ci_in], use ci_min in fastforce)
       also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remdups_clss P @ Q, n + length (remdups_clss P))"
-        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w\<^sup>*)", OF _ _
             ih[of ?P' "(C, i) # Q" N' "Suc n"], OF refl])
         using ms_p'_ci_q_eq
           apply (auto simp: len_p)[1]
@@ -1507,7 +1506,7 @@ proof -
             unfolding is_reducible_lit_def by (auto simp: comp_def)
           have "wstate_of_dstate ((E @ L # C, i) # N', P, Q, n)
               \<leadsto>\<^sub>w wstate_of_dstate ((E @ C, i) # N', P, Q, n)"
-            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
                   wrp.forward_reduction[of "mset D'" L' "mset (map (apfst mset) P)"
                     "mset (map (apfst mset) Q)" L \<sigma> "mset (E @ C)" "mset (map (apfst mset) N')" i n]])
               (use \<sigma> in \<open>auto simp: comp_def\<close>)
@@ -1525,7 +1524,7 @@ proof -
 
       have proc_C: "wstate_of_dstate ((C', i) # N', P', Q', n')
           \<leadsto>\<^sub>w wstate_of_dstate (N', (C', i) # P', Q', n')" for P' Q' n'
-        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
               wrp.clause_processing[of "mset (map (apfst mset) N')" "mset C'" i
                 "mset (map (apfst mset) P')" "mset (map (apfst mset) Q')" n']],
             simp+)
@@ -1544,21 +1543,21 @@ proof -
         note red_C[unfolded c'_nil]
         also have "wstate_of_dstate (([], i) # N', P, Q, n)
             \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], Q, n)"
-          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w\<^sup>*)", OF _ _
                 remove_strictly_subsumed_clauses_in_P[of "[]" _ "[]", unfolded append_Nil],
                 OF refl])
             (auto simp: filter_p)
         also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], [], n)"
-          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w\<^sup>*)", OF _ _
                 remove_strictly_subsumed_clauses_in_Q[of "[]" _ _ "[]", unfolded append_Nil],
                 OF refl])
             (auto simp: filter_q)
-        also note proc_C[unfolded c'_nil, THEN tranclp.r_into_trancl[of "op \<leadsto>\<^sub>w"]]
+        also note proc_C[unfolded c'_nil, THEN tranclp.r_into_trancl[of "(\<leadsto>\<^sub>w)"]]
         also have "wstate_of_dstate (N', [([], i)], [], n)
             \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [([], i)], [], n)"
           by (rule empty_N_if_Nil_in_P_or_Q) simp
         also have "\<dots> \<leadsto>\<^sub>w wstate_of_dstate ([], [], [([], i)], Suc n)"
-          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
                 wrp.inference_computation[of "{#}" "{#}" i "{#}" n "{#}"]])
             (auto simp: ord_FO_resolution_inferences_between_empty_empty)
         finally show ?thesis
@@ -1578,7 +1577,7 @@ proof -
               neg_a: "Neg A \<in> set C'" and pos_a: "Pos A \<in> set C'"
               unfolding is_tautology_def by blast
             show ?thesis
-              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
                     wrp.tautology_deletion[of A "mset C'" "mset (map (apfst mset) N')" i
                       "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" n]])
                 (use neg_a pos_a in simp_all)
@@ -1591,7 +1590,7 @@ proof -
               subs: "subsumes (mset D) (mset C')"
               unfolding subsume_def by blast
             show ?thesis
-              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
                     wrp.forward_subsumption[of "mset D" "mset (map (apfst mset) P)"
                       "mset (map (apfst mset) Q)" "mset C'" "mset (map (apfst mset) N')" i n]],
                   use d_in subs in \<open>auto simp: subsume_def\<close>)
@@ -1636,7 +1635,7 @@ proof -
           also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P'', Q'', n)"
             unfolding P''_def
             by (rule remove_strictly_subsumed_clauses_in_P[of _ _ "[]", unfolded append_Nil]) auto
-          also note proc_C[THEN tranclp.r_into_trancl[of "op \<leadsto>\<^sub>w"]]
+          also note proc_C[THEN tranclp.r_into_trancl[of "(\<leadsto>\<^sub>w)"]]
           finally show ?thesis
             unfolding step st n_cons ci P''_def by simp
         qed
@@ -1684,19 +1683,6 @@ proof (induct rule: deterministic_RP.raw_induct[OF _ assms])
   qed
 qed
 
-lemma deterministic_RP_step_weighted_RP:
-  "wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (deterministic_RP_step St)"
-  by (cases "is_final_dstate St")
-    (simp add: final_deterministic_RP_step nonfinal_deterministic_RP_step tranclp_into_rtranclp)+
-
-lemma funpow_deterministic_RP_step_weighted_RP:
-  "wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((deterministic_RP_step ^^ k) St)"
-  by (induct k; simp) (meson deterministic_RP_step_weighted_RP rtranclp_trans)
-
-lemma funpow_deterministic_RP_step_imp_weighted_RP:
-  "(\<exists>k. (deterministic_RP_step ^^ k) St = St') \<Longrightarrow> wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate St'"
-  using funpow_deterministic_RP_step_weighted_RP by blast
-
 context
   fixes
     N0 :: "'a dclause list" and
@@ -1724,9 +1710,9 @@ abbreviation Sts :: "'a dstate llist" where
 abbreviation gSts :: "'a wstate llist" where
   "gSts \<equiv> lmap wstate_of_dstate Sts"
 
-lemma full_deriv_gSts_trancl_weighted_RP: "full_chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
+lemma full_deriv_gSts_trancl_weighted_RP: "full_chain (\<leadsto>\<^sub>w\<^sup>+) gSts"
 proof -
-  have "Sts' = derivation_from St0' \<Longrightarrow> full_chain (op \<leadsto>\<^sub>w\<^sup>+) (lmap wstate_of_dstate Sts')"
+  have "Sts' = derivation_from St0' \<Longrightarrow> full_chain (\<leadsto>\<^sub>w\<^sup>+) (lmap wstate_of_dstate Sts')"
     for St0' Sts'
   proof (coinduction arbitrary: St0' Sts' rule: full_chain.coinduct)
     case sts': full_chain
@@ -1762,11 +1748,11 @@ qed
 lemmas deriv_gSts_trancl_weighted_RP = full_chain_imp_chain[OF full_deriv_gSts_trancl_weighted_RP]
 
 definition ssgSts :: "'a wstate llist" where
-  "ssgSts = (SOME gSts'. full_chain (op \<leadsto>\<^sub>w) gSts' \<and> emb gSts gSts'
+  "ssgSts = (SOME gSts'. full_chain (\<leadsto>\<^sub>w) gSts' \<and> emb gSts gSts'
      \<and> (lfinite gSts' \<longleftrightarrow> lfinite gSts) \<and> lhd gSts' = lhd gSts \<and> llast gSts' = llast gSts)"
 
 lemma ssgSts:
-  "full_chain (op \<leadsto>\<^sub>w) ssgSts \<and> emb gSts ssgSts \<and> (lfinite ssgSts \<longleftrightarrow> lfinite gSts)
+  "full_chain (\<leadsto>\<^sub>w) ssgSts \<and> emb gSts ssgSts \<and> (lfinite ssgSts \<longleftrightarrow> lfinite gSts)
    \<and> lhd ssgSts = lhd gSts
    \<and> llast ssgSts = llast gSts"
   unfolding ssgSts_def
@@ -1917,7 +1903,7 @@ proof -
       by auto
     moreover have ?model
       unfolding gr_r_fls[THEN eq_False[THEN iffD2]]
-      by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s wrp.grounding_of_wstate St", OF _ wrp,
+      by (rule rtranclp_imp_eq_image[of "(\<leadsto>\<^sub>w)" "\<lambda>St. I \<Turnstile>s wrp.grounding_of_wstate St", OF _ wrp,
             unfolded gr_st0 gr_last_fls[THEN eq_False[THEN iffD2]]])
         (use wrp.weighted_RP_model[OF ssgSts_thms] in blast)
     ultimately show ?thesis
@@ -1934,7 +1920,7 @@ proof -
     have ?saturated
       using wrp.weighted_RP_saturated[OF ssgSts_thms, unfolded gr_last lim_last] by auto
     moreover have ?model
-      by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s wrp.grounding_of_wstate St", OF _ wrp,
+      by (rule rtranclp_imp_eq_image[of "(\<leadsto>\<^sub>w)" "\<lambda>St. I \<Turnstile>s wrp.grounding_of_wstate St", OF _ wrp,
             unfolded gr_st0 gr_last_st])
         (use wrp.weighted_RP_model[OF ssgSts_thms] in blast)
     ultimately show ?thesis

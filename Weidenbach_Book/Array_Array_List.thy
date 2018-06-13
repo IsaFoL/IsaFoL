@@ -16,7 +16,7 @@ fun heap_list_all :: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a 
 
 text \<open>It is often useful to speak about arrays except at one index (e.g., because it is updated).\<close>
 definition heap_list_all_nth:: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> nat list \<Rightarrow>  'a list \<Rightarrow> 'b list \<Rightarrow> assn" where
-  \<open>heap_list_all_nth R is xs ys = foldr (op *) (map (\<lambda>i. R (xs ! i) (ys ! i)) is) emp\<close>
+  \<open>heap_list_all_nth R is xs ys = foldr (( * )) (map (\<lambda>i. R (xs ! i) (ys ! i)) is) emp\<close>
 
 lemma heap_list_all_nth_emty[simp]: \<open>heap_list_all_nth R [] xs ys = emp\<close>
   unfolding heap_list_all_nth_def by auto
@@ -302,7 +302,7 @@ proof -
   have [simp]: \<open>(\<exists>\<^sub>Ax. arrayO_assn (arl_assn R) a ai * R x r * true * \<up> (x = a ! ba ! b)) =
      (arrayO_assn (arl_assn R) a ai * R (a ! ba ! b) r * true)\<close> for a ai ba b r
     by (auto simp: ex_assn_def)
-  show ?thesis -- \<open>TODO tune proof\<close>
+  show ?thesis \<comment> \<open>TODO tune proof\<close>
     apply sepref_to_hoare
     apply (sep_auto simp: append_el_aa_def)
      apply (simp add: arrayO_except_assn_def)
@@ -324,7 +324,7 @@ definition update_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<Right
       x \<leftarrow> Array.nth a i;
       a' \<leftarrow> arl_set x j y;
       Array.upd i a' a
-    }\<close> -- \<open>is the Array.upd really needed?\<close>
+    }\<close> \<comment> \<open>is the Array.upd really needed?\<close>
 
 definition update_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
   \<open>update_ll xs i j y = xs[i:= (xs ! i)[j := y]]\<close>
@@ -386,7 +386,7 @@ definition set_butlast_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<
       x \<leftarrow> Array.nth a i;
       a' \<leftarrow> arl_butlast x;
       Array.upd i a' a
-    }\<close> -- \<open>Replace the \<^term>\<open>i\<close>-th element by the itself except the last element.\<close>
+    }\<close> \<comment> \<open>Replace the \<^term>\<open>i\<close>-th element by the itself except the last element.\<close>
 
 
 lemma list_rel_butlast:
@@ -543,7 +543,7 @@ lemma nth_a_hnr[sepref_fr_rules]:
      [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> arl_assn R\<close>
   unfolding nth_a_def
   apply sepref_to_hoare
-  subgoal for b b' xs a -- \<open>TODO proof\<close>
+  subgoal for b b' xs a \<comment> \<open>TODO proof\<close>
     apply sep_auto
     apply (subst arrayO_except_assn_array0_index[symmetric, of b])
      apply simp
@@ -669,7 +669,7 @@ sepref_definition
   is "RETURN o arrayO_ara_empty_sz"
   :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl_assn (R::'a \<Rightarrow> 'b::{heap, default} \<Rightarrow> assn))\<close>
   unfolding arrayO_ara_empty_sz_def op_list_empty_def[symmetric]
-  apply (rewrite at \<open>op # \<hole>\<close> op_arl_empty_def[symmetric])
+  apply (rewrite at \<open>(#) \<hole>\<close> op_arl_empty_def[symmetric])
   apply (rewrite at \<open>fold _ _ \<hole>\<close> op_HOL_list_empty_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref

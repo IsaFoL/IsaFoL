@@ -12,19 +12,20 @@ TODO.
 
 theory Executable_FO_Ordered_Resolution_Prover
   imports Deterministic_FO_Ordered_Resolution_Prover Executable_Subsumption
+    "HOL-Library.Code_Target_Nat"
 begin
 
 global_interpretation RP: deterministic_FO_resolution_prover where
   S = "\<lambda>_. {#}" and
-  subst_atm = "op \<cdot>" and
+  subst_atm = "(\<cdot>)" and
   id_subst = "Var :: _ \<Rightarrow> ('f :: {weighted, compare_order}, nat) term" and
-  comp_subst = "op \<circ>\<^sub>s" and
+  comp_subst = "(\<circ>\<^sub>s)" and
   renamings_apart = renamings_apart and
   atm_of_atms = "Fun undefined" and
   mgu = mgu_sets and
   less_atm = less_kbo and
   size_atm = size and
-  generation_factor = 1 and
+  timestamp_factor = 1 and
   size_factor = 1
   defines deterministic_RP = RP.deterministic_RP
   and deterministic_RP_step = RP.deterministic_RP_step
@@ -143,19 +144,6 @@ declare
 export_code St0 in SML
 export_code deterministic_RP in SML module_name RP
 
-definition prover where
-  "prover N = (case deterministic_RP (St0 N 0) of
-      None \<Rightarrow> True
-    | Some R \<Rightarrow> if [] \<in> set R then False else True)"
-
-lemma "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
-  unfolding prover_def St0_def
-  using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
-  by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
-    split: option.splits if_splits)
-
-export_code prover in SML module_name RP
-
 
 (*arbitrary*)
 instantiation nat :: weighted begin
@@ -167,6 +155,21 @@ instance
     (auto simp: weights_nat_def SN_iff_wf asymp.simps irreflp_def prod_encode_def
       intro!: wf_subset[OF wf_lex_prod])
 end
+
+
+
+definition prover:: "((nat, nat) Term.term literal list \<times> nat) list \<Rightarrow> bool" where
+  "prover N = (case deterministic_RP (St0 N 0) of
+      None \<Rightarrow> True
+    | Some R \<Rightarrow> if [] \<in> set R then False else True)"
+
+lemma "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
+  unfolding prover_def St0_def
+  using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
+  by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
+    split: option.splits if_splits)
+
+export_code prover in SML module_name RP
 
 abbreviation "\<pp> \<equiv> Fun 42"
 abbreviation "\<aa> \<equiv> Fun 0 []"
