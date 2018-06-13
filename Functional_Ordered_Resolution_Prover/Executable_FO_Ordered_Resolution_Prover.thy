@@ -25,7 +25,7 @@ global_interpretation RP: deterministic_FO_resolution_prover where
   mgu = mgu_sets and
   less_atm = less_kbo and
   size_atm = size and
-  generation_factor = 1 and
+  timestamp_factor = 1 and
   size_factor = 1
   defines deterministic_RP = RP.deterministic_RP
   and deterministic_RP_step = RP.deterministic_RP_step

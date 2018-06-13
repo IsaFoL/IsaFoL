@@ -77,8 +77,8 @@ type_synonym 'a dclause = "'a lclause \<times> nat"
 type_synonym 'a dstate = "'a dclause list \<times> 'a dclause list \<times> 'a dclause list \<times> nat"
 
 locale deterministic_FO_resolution_prover =
-  weighted_FO_resolution_prover_with_size_generation_factors S subst_atm id_subst comp_subst
-    renamings_apart atm_of_atms mgu less_atm size_atm generation_factor size_factor
+  weighted_FO_resolution_prover_with_size_timestamp_factors S subst_atm id_subst comp_subst
+    renamings_apart atm_of_atms mgu less_atm size_atm timestamp_factor size_factor
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -89,7 +89,7 @@ locale deterministic_FO_resolution_prover =
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
     size_atm :: "'a \<Rightarrow> nat" and
-    generation_factor :: nat and
+    timestamp_factor :: nat and
     size_factor :: nat +
   assumes
     S_empty: "S C = {#}"
