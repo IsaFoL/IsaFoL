@@ -3098,14 +3098,12 @@ proof (induction rule: cdcl_twl_o.induct)
           K': \<open>K' \<in># UW\<close>
         then have \<open>-L = K\<close>
           using H[OF W uL L'] by fast
-        then have \<open>get_level (Decided K # M) K' \<le> get_level (Decided K # M) L\<close>
-          using lev_le_Suc[of K'] by (auto simp: get_level_cons_if)
-        moreover have \<open>-K'  \<in> lits_of_l (Decided K # M)\<close>
-          sledgehammer
-          sorry
-        ultimately show \<open>get_level (Decided K # M) K' \<le> get_level (Decided K # M) L \<and>
+        then have False
+          using exception W
+          by (auto simp: C_W twl_is_an_exception_def)
+        then show \<open>get_level (Decided K # M) K' \<le> get_level (Decided K # M) L \<and>
              -K'  \<in> lits_of_l (Decided K # M)\<close>
-          using lev_le_Suc[of K'] by (auto simp: get_level_cons_if)
+          by fast
       qed
     }
   qed
@@ -3127,10 +3125,7 @@ proof (induction rule: cdcl_twl_o.induct)
       using inv C unfolding twl_st_inv.simps by auto
     then show \<open>twl_lazy_update M1 C\<close>
       using IH M by blast
-    have \<open>twl_inv M C\<close>
-      using inv C unfolding twl_st_inv.simps by auto
-    then show \<open>twl_inv M1 C\<close>
-      using IH M by blast
+
     have \<open>watched_literals_false_of_max_level M C\<close>
       using inv C unfolding twl_st_inv.simps by auto
     then show \<open>watched_literals_false_of_max_level M1 C\<close>
@@ -3243,8 +3238,7 @@ next
       assume exception: \<open>\<not> twl_is_an_exception C {#-K'#} {#}\<close>
       have
         lazy: \<open>twl_lazy_update M1 C\<close> and
-        watched_max: \<open>watched_literals_false_of_max_level M1 C\<close> and
-        twl_inv_C: \<open>twl_inv M1 C\<close>
+        watched_max: \<open>watched_literals_false_of_max_level M1 C\<close>
         using C past M by (auto simp: past_invs.simps)
       have lev_le_Suc: \<open>get_level M Ka \<le> Suc (count_decided M)\<close> for Ka
         using count_decided_ge_get_level le_Suc_eq by blast
@@ -3252,7 +3246,7 @@ next
         apply (rule lazy_update_Propagated)
         using exception apply (simp add: twl_is_an_exception_add_mset_to_queue; fail)
         using watched_max by auto
-
+(* 
       show \<open>twl_inv ?M1 C\<close>
         unfolding twl_inv.simps C_W
       proof (intro allI impI conjI)
@@ -3309,7 +3303,7 @@ next
           ultimately show ?thesis
             by auto
         qed
-      qed
+      qed *)
     }
 
     have \<open>watched_literals_false_of_max_level M1 C\<close>
@@ -3325,14 +3319,14 @@ next
     assume \<open>?M1 = M2'' @ Decided K'' # M1''\<close> and C: \<open>C \<in># N + U\<close>
     then have M1: \<open>M1 = tl M2'' @ Decided K'' # M1''\<close>
       by (cases M2'') auto
-    have \<open>twl_lazy_update M1'' C\<close>\<open>twl_inv M1'' C\<close>\<open>watched_literals_false_of_max_level M1'' C\<close>
+    have \<open>twl_lazy_update M1'' C\<close>\<open>watched_literals_false_of_max_level M1'' C\<close>
       using past C unfolding past_invs.simps M M1 twl_exception_inv.simps by auto
     moreover {
       have \<open>twl_exception_inv (M1'', N, U, None, NE, UE, {#}, {#}) C\<close>
         using past C unfolding past_invs.simps M M1 by auto
       then have \<open>twl_exception_inv (M1'', N, U, None, NE, add_mset {#K'#} UE, {#}, {#}) C\<close>
       using C unfolding twl_exception_inv.simps by auto }
-    ultimately show \<open>twl_lazy_update M1'' C\<close>\<open>twl_inv M1'' C\<close>\<open>watched_literals_false_of_max_level M1'' C\<close>
+    ultimately show \<open>twl_lazy_update M1'' C\<close>\<open>watched_literals_false_of_max_level M1'' C\<close>
       \<open>twl_exception_inv (M1'', N, U, None, NE, add_mset {#K'#} UE, {#}, {#}) C\<close>
       by fast+
   next
@@ -3453,8 +3447,7 @@ next
       by (cases C)
     have
       lazy: \<open>twl_lazy_update M1 C\<close> and
-      watched_max: \<open>watched_literals_false_of_max_level M1 C\<close> and
-      twl_inv_C: \<open>twl_inv M1 C\<close> if \<open>C \<noteq> ?D\<close>
+      watched_max: \<open>watched_literals_false_of_max_level M1 C\<close> if \<open>C \<noteq> ?D\<close>
       using C past M' that by (auto simp: past_invs.simps)
     from M1_CNot_D have in_D_M1: \<open>L \<in># remove1_mset K' D' \<Longrightarrow> - L \<in> lits_of_l M1\<close> for L
       by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
@@ -3462,8 +3455,7 @@ next
       by (metis K'_D' add_mset_diff_bothsides add_mset_remove_trivial in_diffD mset_add)
     have
       lazy_D: \<open>twl_lazy_update ?M1 C\<close> and
-      watched_max_D: \<open>watched_literals_false_of_max_level ?M1 C\<close> and
-      twl_inv_D: \<open>twl_inv ?M1 C\<close> if \<open>C = ?D\<close>
+      watched_max_D: \<open>watched_literals_false_of_max_level ?M1 C\<close> if \<open>C = ?D\<close>
       using that
         apply (auto simp: add_mset_eq_add_mset count_decided_ge_get_level get_level_cons_if; fail)
       using that
@@ -3484,7 +3476,7 @@ next
         using watched_max that by auto
       then show \<open>twl_lazy_update ?M1 C\<close>
         using lazy_D by blast
-      have \<open>twl_inv ?M1 C\<close> if \<open>C \<noteq> ?D\<close>
+(*       have \<open>twl_inv ?M1 C\<close> if \<open>C \<noteq> ?D\<close>
         unfolding twl_inv.simps C_W
       proof (intro allI impI conjI)
         fix L L'
@@ -3543,7 +3535,7 @@ next
         qed
       qed
       then show \<open>twl_inv ?M1 C\<close>
-        using twl_inv_D by blast
+        using twl_inv_D by blast *)
     }
 
     have \<open>watched_literals_false_of_max_level M1 C\<close> if \<open>C \<noteq> ?D\<close>
@@ -3562,7 +3554,7 @@ next
     assume M1: \<open>?M1 = M2'' @ Decided K''' # M1''\<close> and C: \<open>C \<in># N + add_mset ?D U\<close>
     then have M1: \<open>M1 = tl M2'' @ Decided K''' # M1''\<close>
       by (cases M2'') auto
-    have \<open>twl_lazy_update M1'' C\<close>\<open>twl_inv M1'' C\<close>\<open>watched_literals_false_of_max_level M1'' C\<close>
+    have \<open>twl_lazy_update M1'' C\<close>\<open>watched_literals_false_of_max_level M1'' C\<close>
       if \<open>C \<noteq> ?D\<close>
       using past C that unfolding past_invs.simps M M1 twl_exception_inv.simps by auto
     moreover {
@@ -3591,13 +3583,13 @@ next
             using lev_M1_K''  count_decided_ge_get_level[of M1'' K''] unfolding M1
             by (auto simp: image_Un Int_Un_distrib)
         qed }
-      ultimately have \<open>twl_lazy_update M1'' ?D\<close> and \<open>twl_inv M1'' ?D\<close> and
+      ultimately have \<open>twl_lazy_update M1'' ?D\<close> and
          \<open>watched_literals_false_of_max_level M1'' ?D\<close> and
          \<open>twl_exception_inv (M1'', N, add_mset (TWL_Clause {#K', K''#} (D' - {#K', K''#})) U, None,
            NE, UE, {#}, {#}) ?D\<close>
         by (auto simp: add_mset_eq_add_mset twl_exception_inv.simps get_level_cons_if
             Decided_Propagated_in_iff_in_lits_of_l) }
-    ultimately show \<open>twl_lazy_update M1'' C\<close>\<open>twl_inv M1'' C\<close>
+    ultimately show \<open>twl_lazy_update M1'' C\<close>
       \<open>watched_literals_false_of_max_level M1'' C\<close>
       \<open>twl_exception_inv (M1'', N, add_mset (TWL_Clause {#K', K''#} (D' - {#K', K''#})) U, None,
          NE, UE, {#}, {#}) C\<close>
