@@ -1,5 +1,5 @@
 theory Watched_Literals_Algorithm_Restart
-  imports Watched_Literals_Algorithm Watched_Literals_Transition_System_Restart
+  imports Watched_Literals_Transition_System_Restart IsaSAT_pre.Watched_Literals_Algorithm 
 begin
 
 context twl_restart_ops
