@@ -825,7 +825,10 @@ definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow>
                else RETURN (propagate_lit_l L' C i S)
           | Some f \<Rightarrow> do {
                ASSERT(f < length (get_clauses_l S \<propto> C));
-               update_clause_l C i f S
+               if (get_clauses_l S \<propto> C)!f \<in> lits_of_l (get_trail_l S) then
+                 RETURN S
+               else
+                 update_clause_l C i f S
             }
        }
    }\<close>
@@ -869,19 +872,9 @@ lemma set_clauses_simp[simp]:
    f ` {a. a \<in># ran_m N} \<union> A\<close>
   by auto
 
-lemma twl_st_inv_alt_def:
-  \<open>twl_st_inv S \<longleftrightarrow>
-  (\<forall>C \<in># get_clauses S. struct_wf_twl_cls C) \<and>
-  (\<forall>C \<in># get_clauses S. get_conflict S = None \<longrightarrow>
-     \<not>twl_is_an_exception C (literals_to_update S) (clauses_to_update S) \<longrightarrow>
-     (twl_lazy_update (get_trail S) C \<and> twl_inv (get_trail S) C)) \<and>
-  (\<forall>C \<in># get_clauses S. get_conflict S = None \<longrightarrow>
-     watched_literals_false_of_max_level (get_trail S) C)\<close>
-  by (cases S) (auto simp: twl_st_inv.simps)
-
 lemma init_clss_l_clause_upd:
   \<open>C \<in># dom_m N \<Longrightarrow> irred N C \<Longrightarrow>
-   init_clss_l (N(C \<hookrightarrow> C')) =
+    init_clss_l (N(C \<hookrightarrow> C')) =
      add_mset (C', irred N C) (remove1_mset (N \<propto> C, irred N C) (init_clss_l N))\<close>
   by (auto simp: ran_m_mapsto_upd)
 
@@ -1173,12 +1166,13 @@ proof -
       propagate_lit_l_def mset_take_mset_drop_mset' S learned_unchanged
       init_unchanged mset_un_watched_swap intro: convert_lit.simps)
   qed
-  have update_clause_rel: \<open>update_clause_l C i (the K)
-       (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)
-      \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S}
-         (update_clauseS L (twl_clause_of C')
-           (set_clauses_to_update
-             (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S'))\<close>
+  have update_clause_rel: \<open>(if get_clauses_l (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S) \<propto> C ! the K
+        \<in> lits_of_l (get_trail_l (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S))
+     then RETURN (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)
+     else update_clause_l C i (the K) (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S))
+    \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S}
+        (update_clauseS L (twl_clause_of C') (set_clauses_to_update (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S'))\<close>
+    (is \<open>?update_clss \<le> \<Down> _ _\<close>)
   if
     L': \<open>(get_clauses_l ?S \<propto> C ! (1 - i), L') \<in> Id\<close> and
     L'_M: \<open>L' \<notin> lits_of_l
@@ -1391,6 +1385,24 @@ proof -
         using L' L'_M SS' uL_M n_d
         by (auto simp: S i_def dest: no_dup_consistentD split: if_splits)
     qed
+    have A: \<open>?update_clss = do {let x = N \<propto> C ! K';
+         if x \<in> lits_of_l (get_trail_l (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S))
+        then RETURN (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)
+        else update_clause_l C
+              (if get_clauses_l (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S) \<propto>
+                  C !
+                  0 =
+                  L
+               then 0 else 1)
+              (the K) (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)}\<close>
+      unfolding i_def
+      by (simp add: S)
+    have alt_defs: \<open>C' = N \<propto> C\<close>
+      unfolding C' S by auto
+    have list_invs_blit: \<open>twl_list_invs (M, N, D, NE, UE, WS', Q)\<close>
+      using add_inv C_N_U two_le_length_C
+      unfolding twl_list_invs_def
+      by (auto dest: in_diffD simp: S WS'_def')
     have \<open>twl_list_invs (M, N(C \<hookrightarrow> swap (N \<propto> C) i K'), D, NE, UE, WS', Q)\<close>
       using add_inv C_N_U two_le_length_C
       unfolding twl_list_invs_def
@@ -1402,10 +1414,21 @@ proof -
       apply (rule convert_lits_l_extend_mono)
       by auto
     ultimately show ?thesis
-      using SS' init_unchanged
-      by (auto simp: S update_clause_l_def update_clauseS_def twl_st_l_def WS'_def'
-        RETURN_SPEC_refine RES_RES_RETURN_RES RETURN_def RES_RES2_RETURN_RES H
-        intro!: RES_refine exI[of _ \<open>N \<propto> C ! the K\<close>])
+      apply (cases S')
+      unfolding update_clauseS_def
+      apply (clarsimp simp only: clauses_to_update.simps set_clauses_to_update.simps)
+      apply (subst A)
+      apply refine_vcg
+      subgoal unfolding C' S by auto
+      subgoal using L'_M SS' K'_M unfolding C' S by (auto simp: twl_st_l_def)
+      subgoal using L'_M SS' K'_M unfolding C' S by (auto simp: twl_st_l_def)
+      subgoal using L'_M SS' K'_M add_inv list_invs_blit unfolding C' S by (auto simp: twl_st_l_def WS'_def')
+      subgoal 
+        using SS' init_unchanged unfolding i_def[symmetric] get_clauses_l_set_clauses_to_update_l
+        by (auto simp: S update_clause_l_def update_clauseS_def twl_st_l_def WS'_def'
+            RETURN_SPEC_refine RES_RES_RETURN_RES RETURN_def RES_RES2_RETURN_RES H
+            intro!: RES_refine exI[of _ \<open>N \<propto> C ! the K\<close>])
+      done
   qed
 
   have H: \<open>?A \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S} ?B\<close>

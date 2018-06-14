@@ -4,7 +4,7 @@ theory Watched_Literals_Algorithm
     WB_More_Refinement
 begin
 
-term image_mset
+
 section \<open>First Refinement: Deterministic Rule Application\<close>
 
 subsection \<open>Unit Propagation Loops\<close>
@@ -19,8 +19,12 @@ definition propagate_lit :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightar
 definition update_clauseS :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>update_clauseS = (\<lambda>L C (M, N, U, D, NE, UE, WS, Q). do {
         K \<leftarrow> SPEC (\<lambda>L. L \<in># unwatched C \<and> -L \<notin> lits_of_l M);
-        (N', U') \<leftarrow> SPEC (\<lambda>(N', U'). update_clauses (N, U) C L K (N', U'));
-        RETURN (M, N', U', D, NE, UE, WS, Q)
+        if K \<in> lits_of_l M
+        then RETURN (M, N, U, D, NE, UE, WS, Q)
+        else do {
+          (N', U') \<leftarrow> SPEC (\<lambda>(N', U'). update_clauses (N, U) C L K (N', U'));
+          RETURN (M, N', U', D, NE, UE, WS, Q)
+        }
   })\<close>
 
 definition unit_propagation_inner_loop_body :: \<open>'v literal \<times> 'v twl_cls \<Rightarrow>
@@ -89,11 +93,12 @@ proof -
       WS: \<open>(L, C) \<in># clauses_to_update S\<close> and
       twl_inv: \<open>twl_struct_invs S\<close> and
       L': \<open>L' \<in># remove1_mset L (watched C)\<close>
-    have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close>
-      using twl_inv WS unfolding twl_struct_invs_def twl_st_inv.simps S by auto
+    have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close> 
+      using twl_inv WS unfolding twl_struct_invs_def twl_st_inv.simps S by (auto; fail)+
     show watched: \<open>watched C = {#L, L'#}\<close>
       by (cases C) (use struct L_C L' in \<open>auto simp: size_2_iff\<close>)
-
+    then have L_C': \<open>L \<in># clause C\<close> and L'_C': \<open>L' \<in># clause C\<close>
+      by (cases C; auto; fail)+
     define WS' where \<open>WS' = WS - {#(L, C)#}\<close>
     have WS_WS': \<open>WS = add_mset (L, C) WS'\<close>
       using WS unfolding WS'_def S by auto
@@ -108,7 +113,7 @@ proof -
       assume L': \<open>L' \<in> lits_of_l (get_trail ?T)\<close>
 
       have \<open>cdcl_twl_cp ?S' ?T'\<close>
-        by (rule cdcl_twl_cp.delete_from_working) (use L' watched S in simp_all)
+        by (rule cdcl_twl_cp.delete_from_working) (use L' L'_C' watched S in simp_all)
 
       then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
         using L' watched D by (simp add: S WS_WS')
@@ -196,13 +201,41 @@ proof -
           apply clarify
         proof refine_vcg
           fix x xa a b
-          assume K: \<open>x \<in># unwatched C \<and> - x \<notin> lits_of_l M\<close> and
+          assume K: \<open>x \<in># unwatched C \<and> - x \<notin> lits_of_l M\<close>
+          have uL: \<open>- L \<in> lits_of_l M\<close>
+            using inv unfolding twl_struct_invs_def S WS_WS' by auto
+          { \<comment> \<open>BLIT\<close>
+            let ?T = \<open>(M, N, U, D, NE, UE, remove1_mset (L, C) WS, Q)\<close>
+            let ?T' = \<open>(M, N, U, None, NE, UE, WS', Q)\<close>
+
+            assume \<open>x \<in> lits_of_l M\<close>
+            have uL: \<open>- L \<in> lits_of_l M\<close>
+              using inv unfolding twl_struct_invs_def S WS_WS' by auto
+            have \<open>L \<in># clause C\<close> \<open>x \<in># clause C\<close>
+              using watched K by (cases C; simp; fail)+
+            have \<open>cdcl_twl_cp ?S' ?T'\<close>
+              by (rule cdcl_twl_cp.delete_from_working[OF \<open>x \<in># clause C\<close> \<open>x \<in> lits_of_l M\<close>])
+            then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
+              by (auto simp: S D WS_WS')
+
+            show \<open>twl_struct_invs ?T\<close>
+              using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
+
+            have uL: \<open>- L \<in> lits_of_l M\<close>
+              using inv unfolding twl_struct_invs_def S WS_WS' by auto
+
+            show \<open>twl_stgy_invs ?T\<close>
+              using cdcl inv inv_s D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
+            show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
+              using D WS_WS' cdcl by auto
+            show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
+              by (simp add: WS'_def[symmetric] WS_WS' S)
+          }
+          assume
             update: \<open>case xa of (N', U') \<Rightarrow> update_clauses (N, U) C L x (N', U')\<close> and
             [simp]: \<open>xa = (a, b)\<close>
           let ?T' = \<open>(M, a, b, None, NE, UE, WS', Q)\<close>
           let ?T = \<open>(M, a, b, D, NE, UE, remove1_mset (L, C) WS, Q)\<close>
-          have uL: \<open>- L \<in> lits_of_l M\<close>
-            using inv unfolding twl_struct_invs_def S WS_WS' by auto
           have \<open>cdcl_twl_cp ?S' ?T'\<close>
             by (rule cdcl_twl_cp.update_clause)
              (use uL L' K update watched S in \<open>simp_all add: true_annot_iff_decided_or_true_lit\<close>)
@@ -221,6 +254,7 @@ proof -
             using D WS_WS' cdcl by auto
           show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
             by (simp add: WS'_def[symmetric] WS_WS' S)
+
         qed
         moreover assume \<open>\<not>?upd\<close>
         ultimately show \<open>- La \<in>
