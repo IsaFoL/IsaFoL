@@ -343,6 +343,16 @@ fun twl_st_inv :: \<open>'v twl_st \<Rightarrow> bool\<close> where
   (\<forall>C \<in># N + U. D = None \<longrightarrow> \<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C)) \<and>
   (\<forall>C \<in># N + U. D = None \<longrightarrow> watched_literals_false_of_max_level M C)\<close>
 
+lemma twl_st_inv_alt_def:
+  \<open>twl_st_inv S \<longleftrightarrow>
+  (\<forall>C \<in># get_clauses S. struct_wf_twl_cls C) \<and>
+  (\<forall>C \<in># get_clauses S. get_conflict S = None \<longrightarrow>
+     \<not>twl_is_an_exception C (literals_to_update S) (clauses_to_update S) \<longrightarrow>
+     (twl_lazy_update (get_trail S) C)) \<and>
+  (\<forall>C \<in># get_clauses S. get_conflict S = None \<longrightarrow>
+     watched_literals_false_of_max_level (get_trail S) C)\<close>
+  by (cases S) (auto simp: twl_st_inv.simps)
+
 text \<open>All the unit clauses are all propagated initially except when we have found a conflict of
   level \<^term>\<open>0::nat\<close>.\<close>
 fun entailed_clss_inv :: \<open>'v twl_st \<Rightarrow> bool\<close> where
@@ -1502,24 +1512,6 @@ next
         \<open>\<not> has_blit M (clause D) L'\<close>
         using L_M w_max_D D watched L' uL that
         by simp
-          (*       moreover have \<open>get_level M L' = count_decided M \<Longrightarrow>
-             - L \<in> lits_of_l M \<Longrightarrow>
-             L' \<notin> lits_of_l M \<Longrightarrow>
-             - L' \<in> lits_of_l M \<Longrightarrow>
-          has_blit M (add_mset L (add_mset L' UWD)) L'\<close>
-        unfolding has_blit_def
-        apply (rule exI[of _ L])
-        using watched uL L' undef L_M unfolding  twl_lazy_update.simps D' mset_D'
-        apply (auto simp: uK_M D add_mset_eq_add_mset lev_L count_decided_ge_get_level)
-        sledgehammer
-        sorry *)
-          (*       have \<open>K \<in> lits_of_l M \<Longrightarrow> has_blit M (add_mset L (add_mset L' UWD)) L'\<close>
-        unfolding has_blit_def
-        apply (rule exI[of _ K])
-        using watched uL L' undef L_M K unfolding  twl_lazy_update.simps D' mset_D' D
-        apply (auto simp: uK_M D add_mset_eq_add_mset lev_L count_decided_ge_get_level)
-        sledgehammer
-        sorry *)
       have \<open>\<forall>C. C \<in># WS \<longrightarrow> fst C = L\<close>
         using  no_dup
         using watched uL L' undef D (* excep wq *)
@@ -2470,13 +2462,6 @@ next
         simp: consistent_interp_def lits_of_def uminus_lit_swap)
   have w_max_D: \<open>watched_literals_false_of_max_level M D\<close>
     using D_N_U twl by (auto simp: twl_st_inv.simps)
-(*   have lev_L': \<open>get_level M L' = count_decided M\<close> if \<open>- L' \<in> lits_of_l M \<close>
-    using L_M w_max_D D watched L' uL that
-    apply (simp add: all_conj_distrib)
-    apply auto
-    sledgehammer
-    sorry
-    by (auto simp: ) *)
 
   show ?case unfolding past_invs.simps Ball_def
   proof (intro allI conjI impI)
@@ -2485,34 +2470,7 @@ next
 
     fix M1 M2 :: \<open>('a, 'a clause) ann_lits\<close> and K'
     assume M: \<open>M = M2 @ Decided K' # M1\<close>
-    thm  L_M w_max_D D watched L' uL K
-(*     have H: False if \<open>- L' \<in> lits_of_l M1\<close>(*  and \<open>\<not> has_blit M1
-        (add_mset L (add_mset K (add_mset L' (remove1_mset K UWD))))
-        L'\<close> *)
-    proof -
-      have [simp]:\<open>- L' \<in> lits_of_l M\<close>
-        using that unfolding M by auto
-      have \<open>\<not>twl_exception_inv (M, N', U', None, NE, UE, {#}, {#}) D\<close>
-        using D watched uK_M
-        apply (simp add: twl_exception_inv.simps)
-        apply (rule exI[of _ L'])
-        apply auto
-        sorry
-        apply (auto simp: M add_mset_eq_add_mset twl_exception_inv.simps dest!: )
-      sorry
-      have atm: \<open>undefined_lit (M2 @ [Decided K']) (-L')\<close>
-        using that n_d by (metis M append.simps(1) append.simps(2) append_assoc
-            cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
-      moreover have uL_M: \<open>-L' \<in> lits_of_l M\<close>
-        using that M by auto
-      ultimately show False
-        using n_d w_max_D unfolding M
-        apply (auto dest: no_dup_consistentD simp: Decided_Propagated_in_iff_in_lits_of_l)
-        using lev_L atm count_decided_ge_get_level[of M1 L'] n_d L'
-        apply (auto simp: M get_level_append_if D all_conj_distrib uminus_lit_swap
-            split: if_splits)
-        sorry
-    qed *)
+
     have lev_L_M1: \<open>get_level M1 L = 0\<close>
       using lev_L n_d unfolding M
       apply (auto simp: get_level_append_if get_level_cons_if

@@ -1572,7 +1572,9 @@ lemma refine_add_inv_pair:
 lemma clauses_to_update_l_empty_tw_st_of_Some_None[simp]:
   \<open>clauses_to_update_l S = {#} \<Longrightarrow> (S, S')\<in> twl_st_l (Some L) \<longleftrightarrow> (S, S') \<in> twl_st_l None\<close>
   by (cases S) (auto simp: twl_st_l_def)
-thm frefI
+
+find_theorems WHILEIT name:skip
+
 lemma unit_propagation_inner_loop_l:
   \<open>(uncurry unit_propagation_inner_loop_l,  unit_propagation_inner_loop) \<in>
   {((L, S), S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_struct_invs S' \<and>
