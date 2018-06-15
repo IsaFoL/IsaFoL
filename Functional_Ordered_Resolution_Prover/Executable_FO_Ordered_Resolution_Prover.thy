@@ -34,8 +34,6 @@ global_interpretation RP: deterministic_FO_resolution_prover where
   and is_tautology = RP.is_tautology
   and maximal_wrt = RP.maximal_wrt
   and reduce = RP.reduce
-(*  and reduce_from = RP.reduce_from*)
-(*  and reduce_on = RP.reduce_on*)
   and reduce_all = RP.reduce_all
   and reduce_all2 = RP.reduce_all2
   and remdups_clss = RP.remdups_clss
@@ -208,6 +206,7 @@ value "prover (mk_MSC015_1 4)"
 value "prover (mk_MSC015_1 5)"
 value "prover (mk_MSC015_1 10)"
 value "prover (mk_MSC015_1 12)"
+value "prover (mk_MSC015_1 13)"
 (*
 value "prover (mk_MSC015_1 14)" -- 400s
 value "prover (mk_MSC015_1 15)" -- mem out
