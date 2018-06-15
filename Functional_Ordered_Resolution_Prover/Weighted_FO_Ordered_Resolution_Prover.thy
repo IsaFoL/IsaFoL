@@ -11,7 +11,7 @@ TODO. Formalizes footnote.
 \<close>
 
 theory Weighted_FO_Ordered_Resolution_Prover 
-  imports "Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover" "../lib/Explorer" (* TODO: remove Explorer when finished *)
+  imports "Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover"
 begin
 
 type_synonym 'a wclause = "'a clause \<times> nat"
@@ -72,7 +72,7 @@ abbreviation grounding_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" wher
 abbreviation Liminf_wstate :: "'a wstate llist \<Rightarrow> 'a state" where
   "Liminf_wstate Sts \<equiv> Liminf_state (lmap state_of_wstate Sts)"
 
-lemma generation_le_weight: "n \<le> weight (C, n)"
+lemma timestamp_le_weight: "n \<le> weight (C, n)"
   by (induct n, simp, metis weight_mono[of k "Suc k" for k] Suc_le_eq le_less le_trans)
 
 inductive weighted_RP :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50) where
@@ -430,7 +430,7 @@ next
     have "weight (C', i') \<le> weight (C, i)"
       using inference_computation by auto
     then have i'_le_w_Ci: "i' \<le> weight (C, i)"
-      using generation_le_weight[of i' C'] by auto
+      using timestamp_le_weight[of i' C'] by auto
 
     have subs: "{#(D, ia) \<in># N + {#(D, j) \<in># P. D \<noteq> C'#} + (Q + {#(C', i')#}). ia \<le> weight (C, i)#}
             \<subseteq># {#(D, ia) \<in># {#} + (P + {#(C', i')#}) + Q. ia \<le> weight (C, i)#}"
@@ -1028,7 +1028,7 @@ end
 end
 
 (* FIXME: inherit "weighted_FO_resolution_prover" directly? *)
-locale weighted_FO_resolution_prover_with_size_generation_factors =
+locale weighted_FO_resolution_prover_with_size_timestamp_factors =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
@@ -1042,16 +1042,16 @@ locale weighted_FO_resolution_prover_with_size_generation_factors =
   fixes
     size_atm :: "'a \<Rightarrow> nat" and
     size_factor :: nat and
-    generation_factor :: nat
+    timestamp_factor :: nat
   assumes
-    generation_factor_pos: "generation_factor > 0"
+    timestamp_factor_pos: "timestamp_factor > 0"
 begin
 
 fun weight :: "'a wclause \<Rightarrow> nat" where
-  "weight (C, i) = size_factor * size_multiset (size_literal size_atm) C + generation_factor * i"
+  "weight (C, i) = size_factor * size_multiset (size_literal size_atm) C + timestamp_factor * i"
 
 lemma weight_mono: "i < j \<Longrightarrow> weight (C, i) < weight (C, j)"
-  using generation_factor_pos by simp
+  using timestamp_factor_pos by simp
 
 declare weight.simps [simp del]
 

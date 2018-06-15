@@ -1,5 +1,5 @@
 theory Watched_Literals_Watch_List_Domain_Restart
-  imports Watched_Literals_Watch_List_Domain Watched_Literals_Watch_List_Restart
+  imports IsaSAT_pre.Watched_Literals_Watch_List_Domain Watched_Literals_Watch_List_Restart
 begin
 
 locale isasat_restart_ops =

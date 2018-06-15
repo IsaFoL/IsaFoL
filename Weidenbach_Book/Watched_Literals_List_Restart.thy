@@ -1,6 +1,6 @@
 theory Watched_Literals_List_Restart
-  imports Watched_Literals_List Watched_Literals_Algorithm_Restart
-      Array_UInt
+  imports IsaSAT_pre.Watched_Literals_List Watched_Literals_Algorithm_Restart
+      IsaSAT_pre.Array_UInt
 begin
 
 text \<open>
@@ -2812,7 +2812,7 @@ proof -
       confl: \<open>get_conflict_l S = None\<close>
       using inv brk unfolding restart_abs_l_pre_def restart_prog_pre_def
       apply - apply normalize_goal+
-      by (auto simp: twl_st_l twl_st)
+      by (auto simp: twl_st)
     show ?thesis
       using cdcl_twl_full_restart_l_prog_spec[OF ST list_invs struct_invs
          confl upd]
@@ -2884,11 +2884,11 @@ proof -
       by fastforce
     subgoal by auto
     subgoal
-      by (simp add: twl_st_l twl_st)
-    subgoal by (auto simp: twl_st_l twl_st)
+      by (simp add: twl_st)
+    subgoal by (auto simp: twl_st)
     subgoal
        unfolding cdcl_twl_stgy_restart_prog_inv_def cdcl_twl_stgy_restart_abs_l_inv_def
-       by (auto simp: twl_st_l twl_st)
+       by (auto simp: twl_st)
     subgoal by auto
     done
 qed
