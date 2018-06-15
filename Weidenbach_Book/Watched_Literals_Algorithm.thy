@@ -27,9 +27,9 @@ definition update_clauseS :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Righta
         }
   })\<close>
 
-definition unit_propagation_inner_loop_body :: \<open>'v literal \<times> 'v twl_cls \<Rightarrow>
+definition unit_propagation_inner_loop_body :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightarrow>
   'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
-  \<open>unit_propagation_inner_loop_body = (\<lambda>(L, C) S. do {
+  \<open>unit_propagation_inner_loop_body = (\<lambda>L C S. do {
     do {
       L' \<leftarrow> SPEC (\<lambda>K. K \<in># watched C - {#L#});
       ASSERT (watched C = {#L, L'#});
@@ -52,13 +52,13 @@ definition unit_propagation_inner_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_
   \<open>unit_propagation_inner_loop S\<^sub>0 = do {
     n \<leftarrow> SPEC(\<lambda>_::nat. True);
     (S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(S, n). twl_struct_invs S \<and> twl_stgy_invs S \<and> cdcl_twl_cp\<^sup>*\<^sup>* S\<^sub>0 S\<^esup>
-      (\<lambda>(S, n). clauses_to_update S \<noteq> {#})
+      (\<lambda>(S, n). clauses_to_update S \<noteq> {#} \<or> n > 0)
       (\<lambda>(S, n). do {
         b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> n > 0);
         if \<not>b then do {
-          C \<leftarrow> SPEC (\<lambda>C. C \<in># clauses_to_update S);
-          let S' = set_clauses_to_update (clauses_to_update S - {#C#}) S;
-          T \<leftarrow> unit_propagation_inner_loop_body C S';
+          (L, C) \<leftarrow> SPEC (\<lambda>C. C \<in># clauses_to_update S);
+          let S' = set_clauses_to_update (clauses_to_update S - {#(L, C)#}) S;
+          T \<leftarrow> unit_propagation_inner_loop_body L C S';
           RETURN (T, n)
         } else do { \<^cancel>\<open>This branch allows us to do skip some problems.\<close>
           RETURN (S, n - 1)
@@ -73,33 +73,32 @@ lemma unit_propagation_inner_loop_body:
   fixes S :: \<open>'v twl_st\<close>
   assumes
     \<open>clauses_to_update S \<noteq> {#}\<close> and
-    x_WS: \<open>x \<in># clauses_to_update S\<close> and
+    x_WS: \<open>(L, C) \<in># clauses_to_update S\<close> and
     inv: \<open>twl_struct_invs S\<close> and
     inv_s: \<open>twl_stgy_invs S\<close> and
     confl: \<open>get_conflict S = None\<close>
   shows
-     \<open>unit_propagation_inner_loop_body x 
-          (set_clauses_to_update (remove1_mset x (clauses_to_update S)) S)
+     \<open>unit_propagation_inner_loop_body L C
+          (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)
         \<le> (SPEC (\<lambda>T'.  twl_struct_invs T' \<and> twl_stgy_invs T' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S T' \<and>
            (T', S) \<in> measure (size \<circ> clauses_to_update)))\<close> (is ?spec) and
-    \<open>nofail (unit_propagation_inner_loop_body x
-       (set_clauses_to_update (remove1_mset x (clauses_to_update S)) S))\<close> (is ?fail)
+    \<open>nofail (unit_propagation_inner_loop_body L C
+       (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S))\<close> (is ?fail)
 proof -
   obtain M N U D NE UE WS Q where
     S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
     by (cases S) auto
 
-    then obtain L C where x[simp]: \<open>x = (L, C)\<close> by (cases x) auto
     have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close>
       using inv  multi_member_split[OF x_WS] 
-      unfolding twl_struct_invs_def twl_st_inv.simps S x
+      unfolding twl_struct_invs_def twl_st_inv.simps S
       by force+
     show ?fail
-      unfolding unit_propagation_inner_loop_body_def Let_def x S
-      by (cases C) (use struct L_C in \<open>auto simp: refine_pw_simps S x size_2_iff update_clauseS_def\<close>)
+      unfolding unit_propagation_inner_loop_body_def Let_def S
+      by (cases C) (use struct L_C in \<open>auto simp: refine_pw_simps S size_2_iff update_clauseS_def\<close>)
     note [[goals_limit=15]]
     show ?spec
-      using assms unfolding unit_propagation_inner_loop_body_def x update_clause.simps
+      using assms unfolding unit_propagation_inner_loop_body_def update_clause.simps
     proof (refine_vcg; (unfold prod.inject clauses_to_update.simps set_clauses_to_update.simps
           ball_simps)?;  clarify?; (unfold triv_forall_equality)?)
       fix L' :: \<open>'v literal\<close>
@@ -295,7 +294,8 @@ lemma unit_propagation_inner_loop:
   subgoal by auto
   subgoal by auto
   subgoal by auto
-  subgoal by (simp add: twl_struct_invs_def)
+  subgoal by auto
+  subgoal by (auto simp add: twl_struct_invs_def)
   subgoal by auto
   subgoal by auto
   subgoal by auto
