@@ -9,75 +9,14 @@ section \<open>First Refinement: Deterministic Rule Application\<close>
 
 subsection \<open>Unit Propagation Loops\<close>
 
-datatype 'v WS_clause = DELETED (get_cls_of_WS: \<open>'v literal \<times> 'v twl_cls\<close>) 
-   | is_kept: KEPT (get_cls_of_WS:  \<open>'v literal \<times> 'v twl_cls\<close>)
-
-abbreviation get_clss_of_WS where
-  \<open>get_clss_of_WS WS \<equiv> get_cls_of_WS `# filter_mset is_kept WS\<close>
-
-type_synonym 'v twl_st_algo =
-  \<open>('v, 'v clause) ann_lits \<times> 'v twl_clss \<times> 'v twl_clss \<times>
-    'v clause option \<times> 'v clauses \<times> 'v clauses \<times>  'v WS_clause multiset \<times> 'v lit_queue\<close>
-
-definition twl_st_algo :: \<open>('v twl_st_algo \<times> 'v twl_st) set\<close> where
-  \<open>twl_st_algo = {((M, N, U, D, NE, UE, WS, Q), (M', N', U', D', NE', UE', WS', Q')).
-    M = M' \<and> N = N' \<and> U = U' \<and> D = D' \<and> NE = NE' \<and> UE = UE' \<and> Q = Q' \<and>
-     WS' = get_clss_of_WS WS}\<close>
-
-
-fun get_trail_algo :: \<open>'v twl_st_algo \<Rightarrow> ('v, 'v clause) ann_lit list\<close> where
-  \<open>get_trail_algo (M, _, _, _, _, _, _, _) = M\<close>
-
-fun clauses_to_update_algo :: \<open>'v twl_st_algo \<Rightarrow> 'v WS_clause multiset\<close> where
-  \<open>clauses_to_update_algo (_, _, _, _, _, _, WS, _) = WS\<close>
-
-fun set_clauses_to_update_algo:: \<open>'v WS_clause multiset \<Rightarrow> 'v twl_st_algo \<Rightarrow> 'v twl_st_algo\<close> where
-  \<open>set_clauses_to_update_algo WS (M, N, U, D, NE, UE, _, Q) = (M, N, U, D, NE, UE, WS, Q)\<close>
-
-fun literals_to_update_algo :: \<open>'v twl_st_algo \<Rightarrow> 'v lit_queue\<close> where
-  \<open>literals_to_update_algo (_, _, _, _, _, _, _, Q) = Q\<close>
-
-fun set_literals_to_update_algo :: \<open>'v lit_queue \<Rightarrow> 'v twl_st_algo \<Rightarrow> 'v twl_st_algo\<close> where
-  \<open>set_literals_to_update_algo Q (M, N, U, D, NE, UE, WS, _) = (M, N, U, D, NE, UE, WS, Q)\<close>
-
-fun set_conflict_algo :: \<open>'v clause \<Rightarrow> 'v twl_st_algo \<Rightarrow> 'v twl_st_algo\<close> where
-  \<open>set_conflict_algo D (M, N, U, _, NE, UE, WS, Q) = (M, N, U, Some D, NE, UE, WS, Q)\<close>
-
-fun get_conflict_algo :: \<open>'v twl_st_algo \<Rightarrow> 'v clause option\<close> where
-  \<open>get_conflict_algo (M, N, U, D, NE, UE, WS, Q) = D\<close>
-
-fun get_clauses_algo :: \<open>'v twl_st_algo \<Rightarrow> 'v twl_clss\<close> where
-  \<open>get_clauses_algo (M, N, U, D, NE, UE, WS, Q) = N + U\<close>
-
-fun unit_clss_algo :: \<open>'v twl_st_algo \<Rightarrow> 'v clause multiset\<close> where
-  \<open>unit_clss_algo (M, N, U, D, NE, UE, WS, Q) = NE + UE\<close>
-
-fun unit_init_clauses_algo :: \<open>'v twl_st_algo \<Rightarrow> 'v clauses\<close> where
-  \<open>unit_init_clauses_algo (M, N, U, D, NE, UE, WS, Q) = NE\<close>
-
-fun get_all_init_clss_algo :: \<open>'v twl_st_algo \<Rightarrow> 'v clause multiset\<close> where
-  \<open>get_all_init_clss_algo (M, N, U, D, NE, UE, WS, Q) = clause `# N + NE\<close>
-
-fun get_learned_clss_algo :: \<open>'v twl_st_algo \<Rightarrow> 'v twl_clss\<close> where
-  \<open>get_learned_clss_algo (M, N, U, D, NE, UE, WS, Q) = U\<close>
-
-fun get_init_learned_clss_algo :: \<open>'v twl_st_algo \<Rightarrow> 'v clauses\<close> where
-  \<open>get_init_learned_clss_algo (_, N, U, _, _, UE, _) = UE\<close>
-
-fun get_all_learned_clss_algo :: \<open>'v twl_st_algo \<Rightarrow> 'v clauses\<close> where
-  \<open>get_all_learned_clss_algo (_, N, U, _, _, UE, _) = clause `# U + UE\<close>
-
-fun get_all_clss_algo :: \<open>'v twl_st_algo \<Rightarrow> 'v clause multiset\<close> where
-  \<open>get_all_clss_algo (M, N, U, D, NE, UE, WS, Q) = clause `# N + NE + clause `# U + UE\<close>
-
-definition set_conflicting :: \<open>'v twl_cls \<Rightarrow> 'v twl_st_algo \<Rightarrow> 'v twl_st_algo\<close> where
+definition set_conflicting :: \<open>'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
   \<open>set_conflicting = (\<lambda>C (M, N, U, D, NE, UE, WS, Q). (M, N, U, Some (clause C), NE, UE, {#}, {#}))\<close>
 
-definition propagate_lit :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightarrow> 'v twl_st_algo \<Rightarrow> 'v twl_st_algo\<close> where
+definition propagate_lit :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
   \<open>propagate_lit = (\<lambda>L' C (M, N, U, D, NE, UE, WS, Q).
       (Propagated L' (clause C) # M, N, U, D, NE, UE, WS, add_mset (-L') Q))\<close>
 
-definition update_clauseS :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightarrow> 'v twl_st_algo \<Rightarrow> 'v twl_st_algo nres\<close> where
+definition update_clauseS :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>update_clauseS = (\<lambda>L C (M, N, U, D, NE, UE, WS, Q). do {
         K \<leftarrow> SPEC (\<lambda>L. L \<in># unwatched C \<and> -L \<notin> lits_of_l M);
         if K \<in> lits_of_l M
@@ -88,20 +27,18 @@ definition update_clauseS :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Righta
         }
   })\<close>
 
-definition unit_propagation_inner_loop_body :: \<open>'v WS_clause \<Rightarrow>
-  'v twl_st_algo \<Rightarrow> 'v twl_st_algo nres\<close> where
-  \<open>unit_propagation_inner_loop_body = (\<lambda>LC S. do {
-    if \<not>is_kept LC then RETURN S
-    else do {
-      let (L, C :: 'v twl_cls) =  get_cls_of_WS LC;
+definition unit_propagation_inner_loop_body :: \<open>'v literal \<times> 'v twl_cls \<Rightarrow>
+  'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
+  \<open>unit_propagation_inner_loop_body = (\<lambda>(L, C) S. do {
+    do {
       L' \<leftarrow> SPEC (\<lambda>K. K \<in># watched C - {#L#});
       ASSERT (watched C = {#L, L'#});
-      if L' \<in> lits_of_l (get_trail_algo S)
+      if L' \<in> lits_of_l (get_trail S)
       then RETURN S
       else
-        if \<forall>L \<in># unwatched C. -L \<in> lits_of_l (get_trail_algo S)
+        if \<forall>L \<in># unwatched C. -L \<in> lits_of_l (get_trail S)
         then
-          if -L' \<in> lits_of_l (get_trail_algo S)
+          if -L' \<in> lits_of_l (get_trail S)
           then do {RETURN (set_conflicting C S)}
           else do {RETURN (propagate_lit L' C S)}
         else do {
@@ -111,67 +48,58 @@ definition unit_propagation_inner_loop_body :: \<open>'v WS_clause \<Rightarrow>
   })
 \<close>
 
-definition unit_propagation_inner_loop :: \<open>'v twl_st_algo \<Rightarrow> 'v twl_st_algo nres\<close> where
-  \<open>unit_propagation_inner_loop S\<^sub>0 =
-    WHILE\<^sub>T\<^bsup>\<lambda>S. \<exists>S\<^sub>0' S'. (S\<^sub>0, S\<^sub>0') \<in> twl_st_algo \<and> (S, S') \<in> twl_st_algo \<and> twl_struct_invs S' \<and>
-          twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S\<^sub>0' S'\<^esup>
-      (\<lambda>S. clauses_to_update_algo S \<noteq> {#})
-      (\<lambda>S. do {
-        C \<leftarrow> SPEC (\<lambda>C. C \<in># clauses_to_update_algo S);
-        let S' = set_clauses_to_update_algo (clauses_to_update_algo S - {#C#}) S;
-        unit_propagation_inner_loop_body C S'
+definition unit_propagation_inner_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
+  \<open>unit_propagation_inner_loop S\<^sub>0 = do {
+    n \<leftarrow> SPEC(\<lambda>_::nat. True);
+    (S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(S, n). twl_struct_invs S \<and> twl_stgy_invs S \<and> cdcl_twl_cp\<^sup>*\<^sup>* S\<^sub>0 S\<^esup>
+      (\<lambda>(S, n). clauses_to_update S \<noteq> {#})
+      (\<lambda>(S, n). do {
+        b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> n > 0);
+        if \<not>b then do {
+          C \<leftarrow> SPEC (\<lambda>C. C \<in># clauses_to_update S);
+          let S' = set_clauses_to_update (clauses_to_update S - {#C#}) S;
+          T \<leftarrow> unit_propagation_inner_loop_body C S';
+          RETURN (T, n)
+        } else do { \<^cancel>\<open>This branch allows us to do skip some problems.\<close>
+          RETURN (S, n - 1)
+        }
       })
-      S\<^sub>0
+      (S\<^sub>0, n);
+    RETURN S
+  }
 \<close>
 
 lemma unit_propagation_inner_loop_body:
-  fixes S :: \<open>'v twl_st\<close> and S' :: \<open>'v twl_st_algo\<close>
+  fixes S :: \<open>'v twl_st\<close>
   assumes
     \<open>clauses_to_update S \<noteq> {#}\<close> and
-    x_WS: \<open>x \<in># clauses_to_update_algo S'\<close> and
+    x_WS: \<open>x \<in># clauses_to_update S\<close> and
     inv: \<open>twl_struct_invs S\<close> and
     inv_s: \<open>twl_stgy_invs S\<close> and
-    confl: \<open>get_conflict S = None\<close> and
-    SS': \<open>(S', S) \<in> twl_st_algo\<close>
+    confl: \<open>get_conflict S = None\<close>
   shows
      \<open>unit_propagation_inner_loop_body x 
-          (set_clauses_to_update_algo (remove1_mset x (clauses_to_update_algo S')) S')
-        \<le> (SPEC (\<lambda>T'. RETURN T' \<le> \<Down> twl_st_algo (SPEC (\<lambda>T'. twl_struct_invs T' \<and> twl_stgy_invs T' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S T')) \<and>
-           (T', S') \<in> measure (size \<circ> clauses_to_update_algo)))\<close> (is ?spec) and
+          (set_clauses_to_update (remove1_mset x (clauses_to_update S)) S)
+        \<le> (SPEC (\<lambda>T'.  twl_struct_invs T' \<and> twl_stgy_invs T' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S T' \<and>
+           (T', S) \<in> measure (size \<circ> clauses_to_update)))\<close> (is ?spec) and
     \<open>nofail (unit_propagation_inner_loop_body x
-       (set_clauses_to_update_algo (remove1_mset x (clauses_to_update_algo S')) S'))\<close> (is ?fail)
+       (set_clauses_to_update (remove1_mset x (clauses_to_update S)) S))\<close> (is ?fail)
 proof -
   obtain M N U D NE UE WS Q where
     S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
     by (cases S) auto
-  obtain WS' where
-    S': \<open>S' = (M, N, U, D, NE, UE, WS', Q)\<close> and WS: \<open>WS = get_clss_of_WS WS'\<close>
-    using SS' by (cases S') (auto simp: S twl_st_algo_def)
-  show ?spec
-  proof (cases \<open>\<not>is_kept x\<close>)
-    case True then show ?thesis
-      using SS' assms
-      by (cases S')
-        (auto simp: unit_propagation_inner_loop_body_def RETURN_RES_refine_iff
-          simp: twl_st_algo_def dest!: multi_member_split)
-(*     show ?fail
-      using True
-      unfolding unit_propagation_inner_loop_body_def Let_def x S
-      by (cases C) (use struct L_C in \<open>auto simp: refine_pw_simps S x size_2_iff update_clauseS_def\<close>) *)
-  next
-    case False
-    then obtain L C where x[simp]: \<open>x = KEPT (L, C)\<close> by (cases x) auto
+
+    then obtain L C where x[simp]: \<open>x = (L, C)\<close> by (cases x) auto
     have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close>
-      using inv WS multi_member_split[of x WS'] x_WS
+      using inv  multi_member_split[OF x_WS] 
       unfolding twl_struct_invs_def twl_st_inv.simps S x
-        apply clarsimp
-      sorry
-(*     show ?fail
+      by force+
+    show ?fail
       unfolding unit_propagation_inner_loop_body_def Let_def x S
-      by (cases C) (use struct L_C in \<open>auto simp: refine_pw_simps S x size_2_iff update_clauseS_def\<close>) *)
+      by (cases C) (use struct L_C in \<open>auto simp: refine_pw_simps S x size_2_iff update_clauseS_def\<close>)
     note [[goals_limit=15]]
     show ?spec
-      using assms unfolding unit_propagation_inner_loop_body_def x update_clause.simps WS_clause.sel
+      using assms unfolding unit_propagation_inner_loop_body_def x update_clause.simps
     proof (refine_vcg; (unfold prod.inject clauses_to_update.simps set_clauses_to_update.simps
           ball_simps)?;  clarify?; (unfold triv_forall_equality)?)
       fix L' :: \<open>'v literal\<close>
@@ -225,23 +153,23 @@ proof -
 
           { \<comment> \<open>if \<^term>\<open>-L' \<in> lits_of_l ?M\<close> then\<close>
             let ?T' = \<open>(M, N, U, Some (clause C), NE, UE, {#}, {#})\<close>
-            let ?T = \<open>set_conflict C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
+            let ?T = \<open>set_conflicting C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
             assume uL': \<open>-L' \<in> lits_of_l ?M\<close>
             have cdcl: \<open>cdcl_twl_cp ?S' ?T'\<close>
               by (rule cdcl_twl_cp.conflict) (use uL' L' watched unwatched S in simp_all)
             then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
-              using uL' L' watched unwatched by (simp add: set_conflict_def WS_WS' S D)
+              using uL' L' watched unwatched by (simp add: set_conflicting_def WS_WS' S D)
 
             show \<open>twl_struct_invs ?T\<close>
-              using cdcl inv D unfolding WS_WS' set_conflict_def
+              using cdcl inv D unfolding WS_WS'
               by (force intro: cdcl_twl_cp_twl_struct_invs)
             show \<open>twl_stgy_invs ?T\<close>
-              using cdcl inv inv_s D unfolding WS_WS' set_conflict_def
+              using cdcl inv inv_s D unfolding WS_WS'
               by (force intro: cdcl_twl_cp_twl_stgy_invs)
             show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
-              using D WS_WS' cdcl S set_conflict_def by auto
+              using D WS_WS' cdcl S by auto
             show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
-              by (simp add: S WS'_def[symmetric] WS_WS' set_conflict_def)
+              by (simp add: S WS'_def[symmetric] WS_WS' set_conflicting_def)
           }
 
 
@@ -345,12 +273,11 @@ proof -
           qed
           moreover assume \<open>\<not>?upd\<close>
           ultimately show \<open>- La \<in>
-           lits_of_l (get_trail (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S))\<close>
+            lits_of_l (get_trail (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S))\<close>
             by fast
         }
       }
     qed
-
 qed
 
 declare unit_propagation_inner_loop_body(1)[THEN order_trans, refine_vcg]
@@ -360,9 +287,27 @@ lemma unit_propagation_inner_loop:
   shows \<open>unit_propagation_inner_loop S \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
     cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and> clauses_to_update S' = {#})\<close>
   unfolding unit_propagation_inner_loop_def
-  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (size o clauses_to_update)\<close>])
-          apply (auto simp: assms)
-  apply (simp add: twl_struct_invs_def)
+  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(S, n). (size o clauses_to_update) S + n)\<close>])
+  subgoal by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (simp add: twl_struct_invs_def)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
   done
 
 declare unit_propagation_inner_loop[THEN order_trans, refine_vcg]
