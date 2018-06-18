@@ -31,19 +31,24 @@ definition unit_propagation_inner_loop_body :: \<open>'v literal \<Rightarrow> '
   'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>unit_propagation_inner_loop_body = (\<lambda>L C S. do {
     do {
-      L' \<leftarrow> SPEC (\<lambda>K. K \<in># watched C - {#L#});
-      ASSERT (watched C = {#L, L'#});
-      if L' \<in> lits_of_l (get_trail S)
+      bL' \<leftarrow> SPEC (\<lambda>K. K \<in># clause C);
+      if bL' \<in> lits_of_l (get_trail S)
       then RETURN S
-      else
-        if \<forall>L \<in># unwatched C. -L \<in> lits_of_l (get_trail S)
-        then
-          if -L' \<in> lits_of_l (get_trail S)
-          then do {RETURN (set_conflicting C S)}
-          else do {RETURN (propagate_lit L' C S)}
-        else do {
-          update_clauseS L C S 
-       }
+      else do {
+        L' \<leftarrow> SPEC (\<lambda>K. K \<in># watched C - {#L#});
+        ASSERT (watched C = {#L, L'#});
+        if L' \<in> lits_of_l (get_trail S)
+        then RETURN S
+        else
+          if \<forall>L \<in># unwatched C. -L \<in> lits_of_l (get_trail S)
+          then
+            if -L' \<in> lits_of_l (get_trail S)
+            then do {RETURN (set_conflicting C S)}
+            else do {RETURN (propagate_lit L' C S)}
+          else do {
+            update_clauseS L C S 
+        }
+        }
     }
   })
 \<close>
@@ -60,7 +65,7 @@ definition unit_propagation_inner_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_
           let S' = set_clauses_to_update (clauses_to_update S - {#(L, C)#}) S;
           T \<leftarrow> unit_propagation_inner_loop_body L C S';
           RETURN (T, n)
-        } else do { \<^cancel>\<open>This branch allows us to do skip some problems.\<close>
+        } else do { \<^cancel>\<open>This branch allows us to do skip some clauses.\<close>
           RETURN (S, n - 1)
         }
       })
@@ -105,23 +110,50 @@ proof -
       assume
         \<open>clauses_to_update S \<noteq> {#}\<close> and
         WS: \<open>(L, C) \<in># clauses_to_update S\<close> and
-        twl_inv: \<open>twl_struct_invs S\<close> and
-        L': \<open>L' \<in># remove1_mset L (watched C)\<close>
+        twl_inv: \<open>twl_struct_invs S\<close>
       have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close> 
         using twl_inv WS unfolding twl_struct_invs_def twl_st_inv.simps S by (auto; fail)+
-      show watched: \<open>watched C = {#L, L'#}\<close>
-        by (cases C) (use struct L_C L' in \<open>auto simp: size_2_iff\<close>)
-      then have L_C': \<open>L \<in># clause C\<close> and L'_C': \<open>L' \<in># clause C\<close>
-        by (cases C; auto; fail)+
+   
       define WS' where \<open>WS' = WS - {#(L, C)#}\<close>
       have WS_WS': \<open>WS = add_mset (L, C) WS'\<close>
         using WS unfolding WS'_def S by auto
+
       have D: \<open>D = None\<close>
         using confl S by auto
 
       let ?S' = \<open>(M, N, U, None, NE, UE, add_mset (L, C) WS', Q)\<close>
       let ?T = \<open>(set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
       let ?T' = \<open>(M, N, U, None, NE, UE, WS', Q)\<close>
+
+      { \<comment> \<open>blocking literal\<close>
+        fix K'
+        assume
+           K': \<open>K' \<in># clause C\<close> and
+           L': \<open>K' \<in> lits_of_l (get_trail ?T)\<close>
+
+        have \<open>cdcl_twl_cp ?S' ?T'\<close>
+          by (rule cdcl_twl_cp.delete_from_working) (use L' K' S in simp_all)
+
+        then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
+          using L' D by (simp add: S WS_WS')
+        show \<open>twl_struct_invs ?T\<close>
+          using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
+
+        show \<open>twl_stgy_invs ?T\<close>
+          using cdcl inv_s inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
+
+        show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
+          using D WS_WS' cdcl by auto
+
+        show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
+          by (simp add: WS'_def[symmetric] WS_WS' S)
+      }
+
+      assume L': \<open>L' \<in># remove1_mset L (watched C)\<close>
+      show watched: \<open>watched C = {#L, L'#}\<close>
+        by (cases C) (use struct L_C L' in \<open>auto simp: size_2_iff\<close>)
+      then have L_C': \<open>L \<in># clause C\<close> and L'_C': \<open>L' \<in># clause C\<close>
+        by (cases C; auto; fail)+
 
       { \<comment> \<open>if \<^term>\<open>L' \<in> lits_of_l M\<close>, then:\<close>
         assume L': \<open>L' \<in> lits_of_l (get_trail ?T)\<close>

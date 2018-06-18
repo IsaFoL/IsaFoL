@@ -810,26 +810,31 @@ definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow>
   'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>unit_propagation_inner_loop_body_l L C S = do {
       ASSERT(unit_propagation_inner_loop_body_l_inv L C S);
-      let i = (if (get_clauses_l S \<propto> C) ! 0 = L then 0 else 1);
-      let L' = (get_clauses_l S \<propto> C) ! (1 - i);
-      let val_L' = polarity (get_trail_l S) L';
-      if val_L' = Some True
-      then RETURN S
+      K \<leftarrow> SPEC(\<lambda>K. K \<in> set (get_clauses_l S \<propto> C));
+      let val_K = polarity (get_trail_l S) K;
+      if val_K = Some True then RETURN S
       else do {
-          f \<leftarrow> find_unwatched_l (get_trail_l S) (get_clauses_l S \<propto> C);
-          case f of
-            None \<Rightarrow>
-               if val_L' = Some False
-               then RETURN (set_conflict_l (get_clauses_l S \<propto> C) S)
-               else RETURN (propagate_lit_l L' C i S)
-          | Some f \<Rightarrow> do {
-               ASSERT(f < length (get_clauses_l S \<propto> C));
-               if (get_clauses_l S \<propto> C)!f \<in> lits_of_l (get_trail_l S) then
-                 RETURN S
-               else
-                 update_clause_l C i f S
-            }
-       }
+        let i = (if (get_clauses_l S \<propto> C) ! 0 = L then 0 else 1);
+        let L' = (get_clauses_l S \<propto> C) ! (1 - i);
+        let val_L' = polarity (get_trail_l S) L';
+        if val_L' = Some True
+        then RETURN S
+        else do {
+            f \<leftarrow> find_unwatched_l (get_trail_l S) (get_clauses_l S \<propto> C);
+            case f of
+              None \<Rightarrow>
+                if val_L' = Some False
+                then RETURN (set_conflict_l (get_clauses_l S \<propto> C) S)
+                else RETURN (propagate_lit_l L' C i S)
+            | Some f \<Rightarrow> do {
+                ASSERT(f < length (get_clauses_l S \<propto> C));
+                if (get_clauses_l S \<propto> C)!f \<in> lits_of_l (get_trail_l S) then
+                  RETURN S
+                else
+                  update_clause_l C i f S
+              }
+          }
+      }
    }\<close>
 
 lemma refine_add_invariants:
@@ -918,6 +923,8 @@ lemma learned_clss_l_mapsto_upd_notin_irrelev: \<open>C \<notin># dom_m N \<Long
   learned_clss_l (fmupd C  (C', True) N) = learned_clss_l N\<close>
   by (auto simp: ran_m_mapsto_upd_notin)
 
+lemma clause_twl_clause_of:  \<open>clause (twl_clause_of C) = mset C\<close> for C
+    by (cases C; cases \<open>tl C\<close>) auto 
 
 lemma unit_propagation_inner_loop_body_l:
   fixes i C :: nat and S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close> and L :: \<open>'v literal\<close>
@@ -1430,7 +1437,6 @@ proof -
             intro!: RES_refine exI[of _ \<open>N \<propto> C ! the K\<close>])
       done
   qed
-
   have H: \<open>?A \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S} ?B\<close>
     unfolding unit_propagation_inner_loop_body_l_def unit_propagation_inner_loop_body_def
       option.case_eq_if find_unwatched_l_def
@@ -1440,6 +1446,9 @@ proof -
         bind_refine_spec[where M' = \<open>RETURN (polarity _ _)\<close>, OF _ polarity_spec]
         case_prod_bind[of _ \<open>If _ _\<close>]; remove_dummy_vars)
     subgoal by (rule pre_inv)
+    subgoal unfolding C' clause_twl_clause_of by auto
+    subgoal using SS' by (auto simp: polarity_def Decided_Propagated_in_iff_in_lits_of_l)
+    subgoal by (rule upd_rel)
     subgoal
       using mset_watched_C by (auto simp: i_def)
     subgoal for L'
@@ -1530,20 +1539,24 @@ definition unit_propagation_inner_loop_l_inv where
     (\<exists>S'. (S, S') \<in> twl_st_l (Some L) \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
       twl_list_invs S)\<close>
 
+definition unit_propagation_inner_loop_body_l_with_skip where
+  \<open>unit_propagation_inner_loop_body_l_with_skip L = (\<lambda>(S, n). do {
+    ASSERT (clauses_to_update_l S \<noteq> {#} \<or> n > 0);
+    ASSERT(unit_propagation_inner_loop_l_inv L S);
+    b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> n > 0);
+    if \<not>b then do {
+      (S', C) \<leftarrow> select_from_clauses_to_update S;
+      T \<leftarrow> unit_propagation_inner_loop_body_l L C S';
+      RETURN (T, n)
+    } else RETURN (S, n-1)
+  })\<close>
+
 definition unit_propagation_inner_loop_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>unit_propagation_inner_loop_l L S\<^sub>0 = do {
     n \<leftarrow> SPEC(\<lambda>_::nat. True);
     (S, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(T, _). unit_propagation_inner_loop_l_inv L T\<^esup>
       (\<lambda>(S, n). clauses_to_update_l S \<noteq> {#} \<or> n > 0)
-      (\<lambda>(S, n). do {
-        ASSERT (clauses_to_update_l S \<noteq> {#} \<or> n > 0);
-        b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> n > 0);
-        if \<not>b then do {
-          (S', C) \<leftarrow> select_from_clauses_to_update S;
-          T \<leftarrow> unit_propagation_inner_loop_body_l L C S';
-          RETURN (T, n)
-        } else RETURN (S, n-1)
-      })
+      (unit_propagation_inner_loop_body_l_with_skip L)
       (S\<^sub>0, n);
     RETURN S
   }\<close>
@@ -1625,6 +1638,7 @@ proof -
     by (auto simp: conc_fun_def image_mset_remove1_mset_if twl_st_l_def)
   show ?thesis
     unfolding unit_propagation_inner_loop_l_def unit_propagation_inner_loop_def uncurry_def
+      unit_propagation_inner_loop_body_l_with_skip_def
     apply (intro frefI nres_relI)
     subgoal for LS S'
       apply (rewrite in \<open>let _ = set_clauses_to_update _ _ in _\<close> Let_def)
@@ -1640,6 +1654,7 @@ proof -
         remove_dummy_vars)
       subgoal by simp
       subgoal unfolding unit_propagation_inner_loop_l_inv_def by fastforce
+      subgoal by auto
       subgoal by auto
       subgoal by auto
       subgoal by auto
