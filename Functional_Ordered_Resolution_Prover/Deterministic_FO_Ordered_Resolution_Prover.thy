@@ -1873,8 +1873,7 @@ proof -
 
   have lim_last: "Liminf_llist (lmap wrp.grounding_of_wstate ssgSts) =
     wrp.grounding_of_wstate (llast ssgSts)"
-    unfolding lfinite_Liminf_llist[OF fin_gr_fgsts]
-      llast_lmap[OF lfinite_ssgSts not_lnull_ssgSts]
+    unfolding lfinite_Liminf_llist[OF fin_gr_fgsts] llast_lmap[OF lfinite_ssgSts not_lnull_ssgSts]
     using not_lnull_ssgSts by simp
 
   have gr_st0: "wrp.grounding_of_wstate (wstate_of_dstate St0) = grounded_N0"

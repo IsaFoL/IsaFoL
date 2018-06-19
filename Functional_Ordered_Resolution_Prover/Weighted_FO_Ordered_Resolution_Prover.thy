@@ -174,28 +174,26 @@ lemmas ord_\<Gamma>_saturated_upto_def = src.saturated_upto_def
 lemmas ord_\<Gamma>_saturated_upto_complete = src.saturated_upto_complete
 lemmas ord_\<Gamma>_contradiction_Rf = src.contradiction_Rf
 
-lemma weighted_RP_sound:
+theorem weighted_RP_sound:
   assumes "{#} \<in> clss_of_state (Liminf_wstate Sts)"
   shows "\<not> satisfiable (grounding_of_wstate (lhd Sts))"
   by (rule RP_sound[OF deriv_RP empty_Q0_RP assms, unfolded lhd_lmap_Sts])
 
 abbreviation RP_filtered_measure :: "('a wclause \<Rightarrow> bool) \<Rightarrow> 'a wstate \<Rightarrow> nat \<times> nat \<times> nat" where
   "RP_filtered_measure \<equiv> (\<lambda>p (N, P, Q, n). 
-                              (sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) {#Di \<in># N + P + Q. p Di#}), size {#Di \<in># N. p Di#}, size {#Di \<in># P. p Di#}))"
+     (sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) {#Di \<in># N + P + Q. p Di#}), size {#Di \<in># N. p Di#}, size {#Di \<in># P. p Di#}))"
 
 abbreviation RP_combined_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> nat \<times> (nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat)" where
   "RP_combined_measure \<equiv> (\<lambda>w St. ((w + 1) - n_of_wstate St, RP_filtered_measure (\<lambda>(C, i). i \<le> w) St, RP_filtered_measure (\<lambda>Ci. True) St))"
 
-abbreviation(input) RP_filtered_relation :: "((nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat)) set" where
+abbreviation (input) RP_filtered_relation :: "((nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat)) set" where
   "RP_filtered_relation \<equiv> natLess <*lex*> natLess <*lex*> natLess"
 
-abbreviation(input) RP_combined_relation :: "((nat \<times> ((nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat))) \<times>
+abbreviation (input) RP_combined_relation :: "((nat \<times> ((nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat))) \<times>
     (nat \<times> ((nat \<times> nat \<times> nat) \<times> (nat \<times> nat \<times> nat)))) set" where
   "RP_combined_relation \<equiv> natLess <*lex*> RP_filtered_relation <*lex*> RP_filtered_relation"
 
-term "(RP_combined_measure w St, RP_combined_measure w St2) \<in> RP_combined_relation"
-
-(* FIXME: these should probably be avioded *)
+(* FIXME: rename and give more specific types (and declare properly with "where") *)
 abbreviation "(fst3 :: 'b * 'c * 'd \<Rightarrow> 'b) == fst"
 abbreviation "(snd3 :: 'b * 'c * 'd \<Rightarrow> 'c) == \<lambda>x. fst (snd x)"
 abbreviation "(trd3 :: 'b * 'c * 'd \<Rightarrow> 'd) == \<lambda>x. snd (snd x)"
@@ -251,8 +249,7 @@ proof -
     by auto
   have "count {#E \<in># M. p E#} x = 0"
     using assms by auto
-  moreover
-  have "0 < count M x"
+  moreover have "0 < count M x"
     using assms by auto
   ultimately have lt_count: "count {#y \<in># M. p y#} x < count M x"
     by auto
