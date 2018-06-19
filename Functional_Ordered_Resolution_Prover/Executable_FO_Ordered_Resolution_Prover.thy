@@ -142,7 +142,6 @@ declare
 export_code St0 in SML
 export_code deterministic_RP in SML module_name RP
 
-
 (*arbitrary*)
 instantiation nat :: weighted begin
 definition weights_nat :: "nat weights" where "weights_nat =
@@ -154,14 +153,12 @@ instance
       intro!: wf_subset[OF wf_lex_prod])
 end
 
-
-
-definition prover:: "((nat, nat) Term.term literal list \<times> nat) list \<Rightarrow> bool" where
+definition prover :: "((nat, nat) Term.term literal list \<times> nat) list \<Rightarrow> bool" where
   "prover N = (case deterministic_RP (St0 N 0) of
       None \<Rightarrow> True
     | Some R \<Rightarrow> if [] \<in> set R then False else True)"
 
-lemma "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
+theorem FIXME_name_me: "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
   unfolding prover_def St0_def
   using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
   by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
