@@ -56,15 +56,17 @@ definition unit_propagation_inner_loop_body :: \<open>'v literal \<Rightarrow> '
 definition unit_propagation_inner_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>unit_propagation_inner_loop S\<^sub>0 = do {
     n \<leftarrow> SPEC(\<lambda>_::nat. True);
-    (S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(S, n). twl_struct_invs S \<and> twl_stgy_invs S \<and> cdcl_twl_cp\<^sup>*\<^sup>* S\<^sub>0 S\<^esup>
+    (S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(S, n). twl_struct_invs S \<and> twl_stgy_invs S \<and> cdcl_twl_cp\<^sup>*\<^sup>* S\<^sub>0 S \<and>
+          (clauses_to_update S \<noteq> {#} \<or> n > 0 \<longrightarrow> get_conflict S = None)\<^esup>
       (\<lambda>(S, n). clauses_to_update S \<noteq> {#} \<or> n > 0)
       (\<lambda>(S, n). do {
-        b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> n > 0);
+        b \<leftarrow> SPEC(\<lambda>b. (b \<longrightarrow> n > 0) \<and> (\<not>b \<longrightarrow> clauses_to_update S \<noteq> {#}));
         if \<not>b then do {
+          ASSERT(clauses_to_update S \<noteq> {#});
           (L, C) \<leftarrow> SPEC (\<lambda>C. C \<in># clauses_to_update S);
           let S' = set_clauses_to_update (clauses_to_update S - {#(L, C)#}) S;
           T \<leftarrow> unit_propagation_inner_loop_body L C S';
-          RETURN (T, n)
+          RETURN (T, if get_conflict T = None then n else 0)
         } else do { \<^cancel>\<open>This branch allows us to do skip some clauses.\<close>
           RETURN (S, n - 1)
         }
@@ -147,6 +149,7 @@ proof -
 
         show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
           by (simp add: WS'_def[symmetric] WS_WS' S)
+
       }
 
       assume L': \<open>L' \<in># remove1_mset L (watched C)\<close>
@@ -174,6 +177,7 @@ proof -
 
         show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
           by (simp add: WS'_def[symmetric] WS_WS' S)
+
       }
         \<comment> \<open>if \<^term>\<open>L' \<in> lits_of_l M\<close>, else:\<close>
       let ?M = \<open>get_trail ?T\<close>
@@ -230,8 +234,8 @@ proof -
               by (simp add: WS'_def[symmetric] WS_WS' S propagate_lit_def)
           }
         }
-        fix La
 
+        fix La
 \<comment> \<open>if \<^term>\<open>\<forall>L \<in># unwatched C. -L \<in> lits_of_l M\<close>, else\<close>
         {
           let ?S = \<open>(M, N, U, D, NE, UE, WS, Q)\<close>
@@ -314,7 +318,7 @@ qed
 declare unit_propagation_inner_loop_body(1)[THEN order_trans, refine_vcg]
 
 lemma unit_propagation_inner_loop:
-  assumes \<open>twl_struct_invs S\<close> and inv: \<open>twl_stgy_invs S\<close>
+  assumes \<open>twl_struct_invs S\<close> and inv: \<open>twl_stgy_invs S\<close> and \<open>get_conflict S = None\<close>
   shows \<open>unit_propagation_inner_loop S \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
     cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and> clauses_to_update S' = {#})\<close>
   unfolding unit_propagation_inner_loop_def
@@ -323,13 +327,16 @@ lemma unit_propagation_inner_loop:
   subgoal using assms by auto
   subgoal using assms by auto
   subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
   subgoal by auto
   subgoal by auto
   subgoal by auto
   subgoal by auto
   subgoal by (auto simp add: twl_struct_invs_def)
-  subgoal by auto
-  subgoal by auto
   subgoal by auto
   subgoal by auto
   subgoal by auto
@@ -422,6 +429,9 @@ proof -
     subgoal by (rule assert_twl_cp) \<comment> \<open>Assertion\<close>
     subgoal by (rule assert_twl_struct_invs) \<comment> \<open>WHILE-loop invariants\<close>
     subgoal by (rule assert_stgy_invs)
+    subgoal for S L
+      by (cases S)
+       (auto simp: twl_st twl_struct_invs_def)
     subgoal by (simp; fail)
     subgoal by auto
     subgoal by auto

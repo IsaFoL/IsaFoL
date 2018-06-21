@@ -1535,26 +1535,27 @@ definition select_from_clauses_to_update :: \<open>'v twl_st_l \<Rightarrow> ('v
      S' = set_clauses_to_update_l (clauses_to_update_l S - {#C#}) S)\<close>
 
 definition unit_propagation_inner_loop_l_inv where
-  \<open>unit_propagation_inner_loop_l_inv L S \<longleftrightarrow>
+  \<open>unit_propagation_inner_loop_l_inv L = (\<lambda>(S, n).
     (\<exists>S'. (S, S') \<in> twl_st_l (Some L) \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
-      twl_list_invs S)\<close>
+      twl_list_invs S \<and> (clauses_to_update S' \<noteq> {#} \<or> n > 0 \<longrightarrow> get_conflict S' = None)))\<close>
 
 definition unit_propagation_inner_loop_body_l_with_skip where
   \<open>unit_propagation_inner_loop_body_l_with_skip L = (\<lambda>(S, n). do {
     ASSERT (clauses_to_update_l S \<noteq> {#} \<or> n > 0);
-    ASSERT(unit_propagation_inner_loop_l_inv L S);
-    b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> n > 0);
+    ASSERT(unit_propagation_inner_loop_l_inv L (S, n));
+    b \<leftarrow> SPEC(\<lambda>b. (b \<longrightarrow> n > 0) \<and> (\<not>b \<longrightarrow> clauses_to_update_l S \<noteq> {#}));
     if \<not>b then do {
+      ASSERT (clauses_to_update_l S \<noteq> {#});
       (S', C) \<leftarrow> select_from_clauses_to_update S;
       T \<leftarrow> unit_propagation_inner_loop_body_l L C S';
-      RETURN (T, n)
+      RETURN (T, if get_conflict_l T = None then n else 0)
     } else RETURN (S, n-1)
   })\<close>
 
 definition unit_propagation_inner_loop_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>unit_propagation_inner_loop_l L S\<^sub>0 = do {
     n \<leftarrow> SPEC(\<lambda>_::nat. True);
-    (S, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(T, _). unit_propagation_inner_loop_l_inv L T\<^esup>
+    (S, n) \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_l_inv L\<^esup>
       (\<lambda>(S, n). clauses_to_update_l S \<noteq> {#} \<or> n > 0)
       (unit_propagation_inner_loop_body_l_with_skip L)
       (S\<^sub>0, n);
@@ -1617,7 +1618,7 @@ lemma clauses_to_update_l_empty_tw_st_of_Some_None[simp]:
 
 
 lemma unit_propagation_inner_loop_l:
-  \<open>(uncurry unit_propagation_inner_loop_l,  unit_propagation_inner_loop) \<in>
+  \<open>(uncurry unit_propagation_inner_loop_l, unit_propagation_inner_loop) \<in>
   {((L, S), S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_struct_invs S' \<and>
      twl_stgy_invs S' \<and> twl_list_invs S} \<rightarrow>\<^sub>f
   \<langle>{(T, T'). (T, T') \<in> twl_st_l None \<and> clauses_to_update_l T = {#} \<and>
@@ -1654,6 +1655,7 @@ proof -
         remove_dummy_vars)
       subgoal by simp
       subgoal unfolding unit_propagation_inner_loop_l_inv_def by fastforce
+      subgoal by auto
       subgoal by auto
       subgoal by auto
       subgoal by auto
