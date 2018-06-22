@@ -172,6 +172,7 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     "root.tex"
     "biblio.bib"
 
+(*
 session "IsaSAT_pre" (Weidenbach_Book) = "CDCL"  +
   description \<open>This intermediate session loads all things prior to IsaSAT. This should fasten the development by faster startup-time. Therefore, we also don't want any documentation\<close>
   options[document = false]
@@ -203,15 +204,10 @@ session "IsaSAT_Restart" (Weidenbach_Book) = "IsaSAT_pre"  +
     IsaSAT_pre
   theories
     Watched_Literals_Transition_System_Restart
-(*
-    Watched_Literals_Algorithm_Restart
-    Watched_Literals_List_Restart
-    Watched_Literals_Watch_List_Domain_Restart
-    IsaSAT_Restart
-    IsaSAT_with_Restart*)
   document_files
     "root.tex"
     "biblio.bib"
+*)
 
 session "CDCL_B" (Weidenbach_Book) = "CDCL_no_Sepref"  +
   description \<open>This session contains Sophie Tourret's variants of Weidenbach's
