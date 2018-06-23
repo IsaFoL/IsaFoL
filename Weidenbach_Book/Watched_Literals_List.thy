@@ -828,7 +828,9 @@ definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow>
                 else RETURN (propagate_lit_l L' C i S)
             | Some f \<Rightarrow> do {
                 ASSERT(f < length (get_clauses_l S \<propto> C));
-                if (get_clauses_l S \<propto> C)!f \<in> lits_of_l (get_trail_l S) then
+                let K = (get_clauses_l S \<propto> C)!f;
+                let val_K = polarity (get_trail_l S) K;
+                if val_K = Some True then
                   RETURN S
                 else
                   update_clause_l C i f S
@@ -1173,8 +1175,16 @@ proof -
       propagate_lit_l_def mset_take_mset_drop_mset' S learned_unchanged
       init_unchanged mset_un_watched_swap intro: convert_lit.simps)
   qed
-  have update_clause_rel: \<open>(if get_clauses_l (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S) \<propto> C ! the K
-        \<in> lits_of_l (get_trail_l (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S))
+  have update_clause_rel: \<open>(if polarity
+         (get_trail_l
+           (set_clauses_to_update_l
+             (remove1_mset C (clauses_to_update_l S)) S))
+         (get_clauses_l
+           (set_clauses_to_update_l
+             (remove1_mset C (clauses_to_update_l S)) S) \<propto>
+          C !
+          the K) =
+        Some True
      then RETURN (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)
      else update_clause_l C i (the K) (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S))
     \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S}
@@ -1403,7 +1413,7 @@ proof -
                then 0 else 1)
               (the K) (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)}\<close>
       unfolding i_def
-      by (simp add: S)
+      by (auto simp add: S polarity_def dest: in_lits_of_l_defined_litD)
     have alt_defs: \<open>C' = N \<propto> C\<close>
       unfolding C' S by auto
     have list_invs_blit: \<open>twl_list_invs (M, N, D, NE, UE, WS', Q)\<close>
