@@ -629,7 +629,7 @@ lemma shiftr_uint64[sepref_fr_rules]:
   by sepref_to_hoare sep_auto
 
 text \<open>
-  Taken from theory @{theory Uint64}. We use real Word64 instead of the unbounded integer as
+  Taken from theory @{theory Watched_Literals.Uint64}. We use real Word64 instead of the unbounded integer as
   done by default.
 
   Remark that all this setup is taken from @{theory Uint64}.
