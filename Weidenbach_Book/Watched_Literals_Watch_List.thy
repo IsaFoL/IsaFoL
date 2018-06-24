@@ -170,6 +170,8 @@ proof -
     by (auto simp: in_set_drop_conv_nth)
 qed
 
+declare correct_watching_except.simps[simp del]
+
 lemma in_all_lits_of_mm_ain_atms_of_iff:
   \<open>L \<in># all_lits_of_mm N \<longleftrightarrow> atm_of L \<in> atms_of_mm N\<close>
   by (cases L) (auto simp: all_lits_of_mm_def atms_of_ms_def atms_of_def)
@@ -1695,7 +1697,7 @@ proof -
     \<le> SPEC(\<lambda>(i, j, T'). correct_watching_except i j L T')\<close>
       using X2 confl SLw unfolding C'_bl
       apply (cases S)
-      by (auto simp del: correct_watching_except.simps simp: keep_watch_def state_wl_l_def
+      by (auto simp: keep_watch_def state_wl_l_def
           update_blit_wl_def)
     moreover have \<open>get_conflict_wl S = None\<close>
       using S_S' loop_inv cond unfolding unit_propagation_inner_loop_l_inv_def prod.case apply -
@@ -1706,8 +1708,7 @@ proof -
     ultimately show ?thesis
       using j_w w_le S_S' X2
       by (cases S)
-        (auto simp: update_blit_wl_def keep_watch_def state_wl_l_def drop_map
-          simp del: correct_watching_except.simps)
+        (auto simp: update_blit_wl_def keep_watch_def state_wl_l_def drop_map)
   qed
   have update_clss_final: \<open>update_clause_wl L x1 j w
        (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1) xa
@@ -1924,8 +1925,7 @@ proof -
       apply (rule correct_watching_except_correct_watching_except_update_clause)
       subgoal
         using corr j_w w_le unfolding S
-        by (auto simp: keep_watch_def
-            simp del: correct_watching_except.simps)
+        by (auto simp: keep_watch_def)
       subgoal using j_w .
       subgoal using w_le by (auto simp: S)
       subgoal using alien_L'[OF unit_T] by (auto simp: S twl_st_wl)
@@ -1954,8 +1954,7 @@ proof -
       using S_S' w_le j_w SLw confl
       unfolding update_clause_wl_def update_clause_l_def i[symmetric] C'_bl
       by (cases S')
-        (auto simp: Let_def X2 keep_watch_def state_wl_l_def S
-          simp del: correct_watching_except.simps)
+        (auto simp: Let_def X2 keep_watch_def state_wl_l_def S)
   qed
   have blit_final_in_dom: \<open>update_blit_wl L x1 j w
         (get_clauses_wl (keep_watch L j w S) \<propto> x1 !
@@ -2196,14 +2195,12 @@ proof -
         using SLw unfolding C'_bl apply -
         apply (rule correct_watching_except_update_blit)
         using N_x1_in_L corr i_le distinct_N_x1 i_le unfolding S
-        by (auto simp del: correct_watching_except.simps
-          simp: keep_watch_def L_i nth_eq_iff_index_eq)
+        by (auto simp: keep_watch_def L_i nth_eq_iff_index_eq)
     }
     ultimately show ?thesis
     using j_w w_le
       unfolding i[symmetric]
-      by (auto simp: S update_blit_wl_def keep_watch_def
-          simp del: correct_watching_except.simps)
+      by (auto simp: S update_blit_wl_def keep_watch_def)
   qed
 
   show 1: ?propa
@@ -2425,7 +2422,7 @@ proof -
         if \<open>get_conflict_wl T' = None\<close>
         using that iT'_T
         by (cases \<open>get_conflict_wl T'\<close>; cases T')
-          (auto simp add: state_wl_l_def drop_map simp del: correct_watching_except.simps)
+          (auto simp add: state_wl_l_def drop_map)
       then show ?thesis
         using iT'_T
         by (cases \<open>get_conflict_wl T' = None\<close>) auto
@@ -2469,12 +2466,10 @@ proof -
         apply (simp only: prod.case in_pair_collect_simp)
         apply normalize_goal+
         by (auto simp del: twl_st_of_wl.simps)
-      subgoal by (auto
-          simp del: correct_watching_except.simps)
+      subgoal by auto
       subgoal for n i'w'T' Tn i' w'T' j L' w' T'
         apply (cases T')
         by (auto simp: state_wl_l_def cut_watch_list_def
-          simp del: correct_watching_except.simps
           dest!: correct_watching_except_correct_watching_cut_watch)
       done
   }
@@ -3090,7 +3085,7 @@ proof -
           get_conflict_wl U' \<noteq> None} (extract_shorter_conflict_l S)\<close>
     (is \<open>_ \<le> \<Down> ?extract _\<close>)
     if  \<open>(S', S) \<in> ?A\<close>
-    for S' S L
+    for S' S
     apply (cases S'; cases S)
     apply clarify
     unfolding extract_shorter_conflict_wl_def extract_shorter_conflict_l_def
