@@ -333,11 +333,15 @@ definition unit_prop_body_wl_find_unwatched_inv where
    get_clauses_wl S \<propto> C \<noteq> [] \<and>
    (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (get_clauses_wl S \<propto> C)). - L \<in> lits_of_l (get_trail_wl S)))\<close>
 
+abbreviation remaining_nondom_wl where
+\<open>remaining_nondom_wl w L S \<equiv> 
+  (if get_conflict_wl S = None
+          then size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl S)) (mset (drop w (watched_by S L)))) else 0)\<close>
+
 definition unit_propagation_inner_loop_wl_loop_inv where
   \<open>unit_propagation_inner_loop_wl_loop_inv L = (\<lambda>(j, w, S).
     (\<exists>S'. (S, S') \<in> state_wl_l (Some (L, w)) \<and>
-       unit_propagation_inner_loop_l_inv L (S',
-          size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl S)) (mset (drop w (watched_by S L))))) \<and>
+       unit_propagation_inner_loop_l_inv L (S', remaining_nondom_wl w L S) \<and>
       correct_watching_except j w L S \<and> w \<le> length (watched_by S L)))\<close>
 
 lemma correct_watching_except_correct_watching_except_Suc_Suc_keep_watch:
@@ -1136,7 +1140,8 @@ lemma
     j_w: \<open>j \<le> w\<close> and
     corr_w: \<open>correct_watching_except j w L S\<close> and
     inner_loop_inv: \<open>unit_propagation_inner_loop_wl_loop_inv L (j, w, S)\<close> and
-    n: \<open>n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl S)) (mset (drop w (watched_by S L))))\<close>
+    n: \<open>n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl S)) (mset (drop w (watched_by S L))))\<close> and
+    confl_S: \<open>get_conflict_wl S = None\<close>
   shows unit_propagation_inner_loop_body_wl_spec: \<open>unit_propagation_inner_loop_body_wl L j w S \<le>
    \<Down> {((i, j, T'), (T, n)).
         (T', T) \<in> state_wl_l (Some (L, j)) \<and>
@@ -1144,7 +1149,8 @@ lemma
         j \<le> length (watched_by T' L) \<and>
         i \<le> j \<and>
         (get_conflict_wl T' = None \<longrightarrow> 
-           n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl T')) (mset (drop j (watched_by T' L)))))}
+           n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl T')) (mset (drop j (watched_by T' L))))) \<and>
+        (get_conflict_wl T' \<noteq> None \<longrightarrow> n = 0)}
      (unit_propagation_inner_loop_body_l_with_skip L (S', n))\<close> (is \<open>?propa\<close> is \<open>_ \<le> \<Down> ?unit _\<close>)and
     unit_propagation_inner_loop_body_wl_update:
       \<open>unit_propagation_inner_loop_body_l_inv L C' T \<Longrightarrow>
@@ -1468,6 +1474,7 @@ proof -
       using S_S' X2 SLw that unfolding C'
       by (auto simp: twl_st_wl find_unwatched_l_def intro!: SPEC_refine)
   qed
+
   have blit_final:
    \<open>(if polarity (get_trail_wl (keep_watch L j w S)) x2 = Some True
         then RETURN (j + 1, w + 1, keep_watch L j w S)
@@ -1480,11 +1487,12 @@ proof -
       \<open>x1 \<notin># dom_m (get_clauses_wl S)\<close> and
       \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w x1 L\<close>
     for b x1 x2
-    using S_S' w_le j_w n that 
-    by (auto simp: keep_watch_state_wl assert_bind_spec_conv Let_def
+    using S_S' w_le j_w n that confl_S
+    by (auto simp: keep_watch_state_wl assert_bind_spec_conv Let_def twl_st_wl
         Cons_nth_drop_Suc[symmetric] correct_watching_except_correct_watching_except_Suc_Suc_keep_watch
         corr_w correct_watching_except_correct_watching_except_Suc_notin
         split: if_splits)
+  
   have conflict_final: \<open>((j + 1, w + 1,
           set_conflict_wl (get_clauses_wl (keep_watch L j w S) \<propto> x1)
           (keep_watch L j w S)),
@@ -2221,9 +2229,9 @@ proof -
     subgoal
       using S_S' by auto
     subgoal
-      using S_S' w_le j_w n
+      using S_S' w_le j_w n confl_S
       by (auto simp: correct_watching_except_correct_watching_except_Suc_Suc_keep_watch
-        Cons_nth_drop_Suc[symmetric] corr_w)
+        Cons_nth_drop_Suc[symmetric] corr_w twl_st_wl)
     subgoal
       using S_S' by auto
     subgoal for b x1 x2 X2 K x
@@ -2268,11 +2276,85 @@ definition unit_propagation_inner_loop_wl_loop
   }
   \<close>
 
+lemma correct_watching_except_correct_watching_cut_watch:
+  assumes corr: \<open>correct_watching_except j w L (a, b, c, d, e, f, g)\<close>
+  shows \<open>correct_watching (a, b, c, d, e, f, g(L := take j (g L) @ drop w (g L)))\<close>
+proof -
+  have all: \<open>all_blits_are_in_problem (a, b, c, d, e, f, g)\<close> and
+    Heq:
+      \<open>\<And>La i K. La \<in>#all_lits_of_mm (mset `# ran_mf b + (d + e)) \<Longrightarrow>
+      (La = L \<longrightarrow>
+       ((i, K)\<in>#mset (take j (g La) @ drop w (g La)) \<longrightarrow>
+           i \<in># dom_m b \<longrightarrow> K \<in> set (b \<propto> i) \<and> K \<noteq> La) \<and>
+       {#i \<in># fst `# mset (take j (g La) @ drop w (g La)). i \<in># dom_m b#} =
+       clause_to_update La (a, b, c, d, e, {#}, {#}))\<close> and
+    Hneq:
+      \<open>\<And>La i K. La\<in>#all_lits_of_mm (mset `# ran_mf b + (d + e)) \<Longrightarrow>
+      (La \<noteq> L \<longrightarrow>
+       ((i, K)\<in>#mset (g La) \<longrightarrow> i \<in># dom_m b \<longrightarrow> K \<in> set (b \<propto> i) \<and> K \<noteq> La) \<and>
+       {#i \<in># fst `# mset (g La). i \<in># dom_m b#} =
+       clause_to_update La (a, b, c, d, e, {#}, {#}))\<close>
+    using corr
+    unfolding correct_watching.simps correct_watching_except.simps
+    by blast+
+  have \<open>all_blits_are_in_problem (a, b, c, d, e, f, g(L := take j (g L) @ drop w (g L)))\<close>
+    using all unfolding all_blits_are_in_problem.simps
+    by (auto dest!: in_set_takeD in_set_dropD)
+  moreover have
+    \<open>((i, K)\<in>#mset ((g(L := take j (g L) @ drop w (g L))) La) \<Longrightarrow>
+            i \<in># dom_m b \<longrightarrow> K \<in> set (b \<propto> i) \<and> K \<noteq> La)\<close> and
+    \<open>{#i \<in># fst `# mset ((g(L := take j (g L) @ drop w (g L))) La).
+         i \<in># dom_m b#} =
+        clause_to_update La (a, b, c, d, e, {#}, {#})\<close>
+  if \<open>La\<in>#all_lits_of_mm (mset `# ran_mf b + (d + e))\<close>  
+  for La i K
+    apply (cases \<open>La = L\<close>)
+    subgoal
+      using Heq[of La i K] that by auto
+    subgoal
+      using Hneq[of La i K] that by auto
+    apply (cases \<open>La = L\<close>)
+    subgoal
+      using Heq[of La i K] that by auto
+    subgoal
+      using Hneq[of La i K] that by auto
+    done
+  ultimately show ?thesis
+    unfolding correct_watching.simps
+    by blast
+qed
+
+lemma unit_propagation_inner_loop_wl_loop_alt_def:
+  \<open>unit_propagation_inner_loop_wl_loop L S\<^sub>0 = do {
+    let (_ :: nat) = (if get_conflict_wl S\<^sub>0 = None then remaining_nondom_wl 0 L S\<^sub>0 else 0);
+    WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_inv L\<^esup>
+      (\<lambda>(j, w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
+      (\<lambda>(j, w, S). do {
+        unit_propagation_inner_loop_body_wl L j w S
+      })
+      (0, 0, S\<^sub>0)
+  }
+  \<close>
+  unfolding unit_propagation_inner_loop_wl_loop_def by auto
+
+definition cut_watch_list :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>cut_watch_list j w L =(\<lambda>(M, N, D, NE, UE, Q, W). do {
+      ASSERT(j \<le> length (W L));
+      RETURN (M, N, D, NE, UE, Q, W(L := take j (W L) @ drop w (W L)))
+    })\<close>
+
 definition unit_propagation_inner_loop_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>unit_propagation_inner_loop_wl L S\<^sub>0 = do {
      (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop L S\<^sub>0;
-     RETURN (S) (*cut the watch list!*)
+     cut_watch_list j w L S
   }\<close>
+
+lemma correct_watching_correct_watching_except00:
+  \<open>correct_watching S \<Longrightarrow> correct_watching_except 0 0 L S\<close>
+  apply (cases S)
+  apply (simp only: correct_watching.simps correct_watching_except.simps
+    take0 drop0 append.left_neutral)
+  by fast
 
 lemma unit_propagation_inner_loop_wl_spec:
   shows \<open>(uncurry unit_propagation_inner_loop_wl, uncurry unit_propagation_inner_loop_l) \<in>
@@ -2288,109 +2370,120 @@ proof -
       SS': \<open>(S, S') \<in> state_wl_l (Some (L, 0))\<close>
     text \<open>To ease the finding the correspondence between the body of the loops, we introduce
       following function:\<close>
-    define unit_propagation_body_wl_loop_fantom where
-      \<open>unit_propagation_body_wl_loop_fantom L w S = do {
-        let C = watched_by S L! w;
-        unit_propagation_inner_loop_body_wl L w S}\<close>
-      for L :: \<open>'v literal\<close> and S :: \<open>'v twl_st_wl\<close> and w :: nat
-
-    have unit_propagation_body_wl_loop_fantom: \<open>unit_propagation_inner_loop_body_wl L w S \<le> \<Down>Id
-          (unit_propagation_body_wl_loop_fantom L w S)\<close>
-      if \<open>w <  length (watched_by S L)\<close> for w and S :: \<open>'v twl_st_wl\<close>
-      using that unfolding unit_propagation_body_wl_loop_fantom_def
-      by auto
-    have watched_by_select_from_clauses_to_update:
-      \<open>RETURN (watched_by T L ! i)
-        \<le> \<Down> {(C', (S, C)). C' = C \<and> S = remove_one_lit_from_wq (watched_by T L ! i) T'}
-        (select_from_clauses_to_update T')\<close>
-      if
-        \<open>i < length (watched_by T L)\<close> and
-        \<open>get_conflict_wl T = None\<close> and
-        \<open>(T, T') \<in> state_wl_l (Some (L, i))\<close>
-      for i :: nat and L :: \<open>'v literal\<close> and T :: \<open>'v twl_st_wl\<close> and T'
-      unfolding select_from_clauses_to_update_def
-      apply (rule RETURN_SPEC_refine)
-      by (cases T) (use that in \<open>auto simp: in_set_drop_conv_nth remove_one_lit_from_wq_def\<close>)
-    have H: \<open>unit_propagation_body_wl_loop_fantom L i T'
-    \<le> \<Down> {((i, T'), T).
-          (T', T) \<in> state_wl_l (Some (L, i)) \<and>
-            correct_watching T' \<and> i \<le> length (watched_by T' L)}
-        (do {
-           (S', C) \<leftarrow>
-             select_from_clauses_to_update T;
-           unit_propagation_inner_loop_body_l L C S'
-         })\<close>
-      if \<open>i < length (watched_by T' L)\<close> and
-      \<open>correct_watching T'\<close> and
-        \<open>(T', T) \<in> state_wl_l (Some (L, i))\<close> and
-        \<open>get_conflict_wl T' = None\<close>
-      for i T T'
-      unfolding unit_propagation_body_wl_loop_fantom_def
-      apply (refine_rcg watched_by_select_from_clauses_to_update)
-      using that
-        apply (auto intro!: unit_propagation_inner_loop_body_wl_spec
-          simp del: twl_st_of_wl.simps)
-      done
-    let ?R' = \<open>{((i, T'), T). (T', T) \<in> state_wl_l (Some (L, i)) \<and>
-                        correct_watching T' \<and> i \<le> length (watched_by T' L)}\<close>
+    let ?R' = \<open>{((i, j, T'), (T, n)).
+        (T', T) \<in> state_wl_l (Some (L, j)) \<and>
+        correct_watching_except i j L T' \<and>
+        j \<le> length (watched_by T' L) \<and>
+        i \<le> j \<and>
+        (get_conflict_wl T' = None \<longrightarrow> 
+           n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl T')) (mset (drop j (watched_by T' L))))) \<and>
+        (get_conflict_wl T' \<noteq> None \<longrightarrow> n = 0)}\<close>
     have inv: \<open>unit_propagation_inner_loop_wl_loop_inv L iT'\<close>
       if
-        \<open>(iT', T) \<in> ?R'\<close> and
-        \<open>unit_propagation_inner_loop_l_inv L T\<close>
-        for T iT'
+        iT'_Tn: \<open>(iT', Tn) \<in> ?R'\<close> and
+        \<open>unit_propagation_inner_loop_l_inv L Tn\<close>
+        for Tn iT'
     proof -
-      obtain i T' where iT': \<open>iT' = (i, T')\<close> by (cases iT')
-      show ?thesis
-        unfolding unit_propagation_inner_loop_wl_loop_inv_def iT' prod.simps
+      obtain i j :: nat and T' where iT': \<open>iT' = (i, j, T')\<close> by (cases iT')
+      obtain T n where Tn[simp]: \<open>Tn = (T, n)\<close> by (cases Tn)
+      have \<open>unit_propagation_inner_loop_l_inv L (T, 0::nat)\<close>
+        if \<open>unit_propagation_inner_loop_l_inv L (T, n)\<close> and \<open>get_conflict_l T \<noteq> None\<close>
+        using that iT'_Tn
+        unfolding unit_propagation_inner_loop_l_inv_def iT' prod.case
+        apply - apply normalize_goal+
+        apply (rule_tac x=x in exI)
+        by auto
+      then show ?thesis
+        unfolding unit_propagation_inner_loop_wl_loop_inv_def iT' prod.simps apply -
         apply (rule exI[of _ T])
         using that by (auto simp: iT')
     qed
-    have cond: \<open>(i < length (watched_by T' L) \<and> get_conflict_wl T' = None) =
-      (clauses_to_update_l T \<noteq> {#})\<close>
+    have cond: \<open>(j < length (watched_by T' L) \<and> get_conflict_wl T' = None) =
+      (clauses_to_update_l T \<noteq> {#} \<or> n > 0)\<close>
       if
-        \<open>(iT', T) \<in> ?R'\<close> and
-        \<open>iT' = (i, T')\<close>
-        for iT' T i T'
-      using that
-      apply (cases \<open>get_conflict_wl T'\<close>)
-      by (auto simp: twl_st_wl)
+        iT'_T: \<open>(ijT', Tn) \<in> ?R'\<close> and
+        [simp]: \<open>ijT' = (i, jT')\<close> \<open>jT' = (j, T')\<close>  \<open>Tn = (T, n)\<close>
+        for ijT' Tn i j T' n T jT'
+    proof -
+      have [simp]: \<open>size {#(i, _) \<in># mset (drop j xs). i \<notin># dom_m b#} =
+        size {#i \<in># fst `# mset (drop j xs). i \<notin># dom_m b#}\<close> for xs b
+        apply (induction \<open>xs\<close> arbitrary: j)
+        subgoal by auto
+        subgoal premises p for a xs j
+          using p[of 0] p
+          by (cases j) auto
+        done
+      have [simp]: \<open>size (filter_mset (\<lambda>i. (i \<in># (dom_m b))) (fst `# (mset (drop j (g L))))) +
+          size {#i \<in># fst `# mset (drop j (g L)). i \<notin># dom_m b#} =
+          length (g L) - j\<close> for g j b
+        apply (subst size_union[symmetric])
+        apply (subst multiset_partition[symmetric])
+        by auto
+      have [simp]: \<open>A \<noteq> {#} \<Longrightarrow> size A > 0\<close> for A
+        by (auto dest!: multi_member_split)
+      have \<open>length (watched_by T' L) = size (clauses_to_update_wl T' L j) + n + j\<close>
+        if \<open>get_conflict_wl T' = None\<close>
+        using that iT'_T
+        by (cases \<open>get_conflict_wl T'\<close>; cases T')
+          (auto simp add: state_wl_l_def drop_map simp del: correct_watching_except.simps)
+      then show ?thesis
+        using iT'_T
+        by (cases \<open>get_conflict_wl T' = None\<close>) auto
+    qed
+    have remaining: \<open>RETURN (if get_conflict_wl S = None then remaining_nondom_wl 0 L S else 0) \<le> SPEC (\<lambda>_. True)\<close>
+      by auto
 
-    have \<open>unit_propagation_inner_loop_wl_loop L S \<le>
-            \<Down> {((i, T'), T). (T', T) \<in> state_wl_l None \<and> ?P T T'}
+    have unit_propagation_inner_loop_l_alt_def: \<open>unit_propagation_inner_loop_l L S' = do {
+        n \<leftarrow> SPEC (\<lambda>_::nat. True);
+        (S, n) \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_l_inv L\<^esup>
+              (\<lambda>(S, n). clauses_to_update_l S \<noteq> {#} \<or> 0 < n)
+              (unit_propagation_inner_loop_body_l_with_skip L) (S', n);
+        RETURN S}\<close> for L S'
+      unfolding unit_propagation_inner_loop_l_def by auto
+    have unit_propagation_inner_loop_wl_alt_def: \<open>unit_propagation_inner_loop_wl L S = do {
+      let (n::nat) = (if get_conflict_wl S = None then remaining_nondom_wl 0 L S else 0);
+      (j, w, S) \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_inv L\<^esup>
+         (\<lambda>(j, w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
+         (\<lambda>(j, x, y). unit_propagation_inner_loop_body_wl L j x y) (0, 0, S);
+      cut_watch_list j w L S}\<close>
+      unfolding unit_propagation_inner_loop_wl_loop_alt_def unit_propagation_inner_loop_wl_def
+      by auto
+    have \<open>unit_propagation_inner_loop_wl L S \<le>
+            \<Down> {((T'), T). (T', T) \<in> state_wl_l None \<and> ?P T T'}
               (unit_propagation_inner_loop_l L S')\<close>
       (is \<open>_ \<le> \<Down> ?R _\<close>)
-      unfolding unit_propagation_inner_loop_wl_loop_def unit_propagation_inner_loop_l_def uncurry_def
-      apply (refine_rcg WHILEIT_refine_genR[where
-            R = \<open>?R\<close> and
-            R' = \<open>?R'\<close>])
-      subgoal using corr_w SS' by auto
+      unfolding unit_propagation_inner_loop_l_alt_def uncurry_def 
+        unit_propagation_inner_loop_wl_alt_def 
+      apply (refine_vcg WHILEIT_refine_genR[where
+            R' = \<open>?R'\<close> and
+            R = \<open>{((i, j, T'), (T, n)). ((i, j, T'), (T, n)) \<in> ?R' \<and>
+               (j \<ge> length (watched_by T' L) \<or> get_conflict_wl T' \<noteq> None)}\<close>]
+          remaining)
+      subgoal using corr_w SS' by (auto simp: correct_watching_correct_watching_except00)
       subgoal by (rule inv)
       subgoal by (rule cond)
-      subgoal for i'T' T i' T'
+      subgoal for n i'w'T' Tn i' w'T' w' T'
+        apply (cases Tn)
         apply (rule order_trans)
-        by (rule unit_propagation_body_wl_loop_fantom; simp; fail) (auto intro!: H
-          simp del: twl_st_of_wl.simps)
-      subgoal for iT' T by (auto simp: state_wl_l_def)
+        apply (rule unit_propagation_inner_loop_body_wl_spec[of _ \<open>fst Tn\<close>])
+        apply (simp only: prod.case in_pair_collect_simp)
+        apply normalize_goal+
+        by (auto simp del: twl_st_of_wl.simps)
+      subgoal by (auto
+          simp del: correct_watching_except.simps)
+      subgoal for n i'w'T' Tn i' w'T' j L' w' T'
+        apply (cases T')
+        by (auto simp: state_wl_l_def cut_watch_list_def
+          simp del: correct_watching_except.simps
+          dest!: correct_watching_except_correct_watching_cut_watch)
       done
   }
   note H = this
-  text \<open>Another phantom function to help the refine generator to align goals:\<close>
-  define unit_propagation_inner_loop_l_fantom where
-    \<open>unit_propagation_inner_loop_l_fantom L S = do {
-        S' \<leftarrow> unit_propagation_inner_loop_l L S;
-        RETURN S'}
-      \<close> for L :: \<open>'v literal\<close> and S :: \<open>'v twl_st_l\<close>
-  have \<open>(uncurry unit_propagation_inner_loop_wl, uncurry unit_propagation_inner_loop_l_fantom)
-    \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>
-    unfolding unit_propagation_inner_loop_wl_def unit_propagation_inner_loop_l_fantom_def uncurry_def
-    apply clarify
-    apply (refine_rcg H)
-    subgoal by force
-    done
-  moreover have \<open>unit_propagation_inner_loop_l_fantom = unit_propagation_inner_loop_l\<close>
-    by (intro ext) (auto simp: unit_propagation_inner_loop_l_fantom_def)
-  ultimately show ?thesis
-    by fast
+
+  show ?thesis
+    unfolding fref_param1
+    apply (intro frefI nres_relI)
+    by (auto simp: intro!: H)
 qed
 
 
@@ -2509,10 +2602,12 @@ proof -
       then show ?thesis
         using that by (auto simp: in_all_lits_of_mm_ain_atms_of_iff)
     qed
-    then have H: \<open>clause_to_update L S = mset (W L)\<close> and
+    have H: \<open>clause_to_update L S = {#i \<in># fst `# mset (W L). i \<in># dom_m N#}\<close> and
        \<open>L \<in># all_lits_of_mm (mset `# ran_mf N + NE + UE)\<close>
         if \<open>L \<in># Q\<close> for L
-      using corr_w that S by (auto simp: correct_watching.simps S' clause_to_update_def)
+      using corr_w that S H1[OF that] by (auto simp: correct_watching.simps S' clause_to_update_def
+        Ball_def ac_simps all_conj_distrib
+        dest!: multi_member_split)
     show ?thesis
       unfolding select_and_remove_from_literals_to_update_wl_def select_and_remove_from_literals_to_update_def
       apply (rule RES_refine)
@@ -2622,7 +2717,8 @@ proof -
     subgoal by auto
     subgoal for S S'
       by (cases S) (auto simp: correct_watching.simps clause_to_update_def
-          decide_lit_l_def decide_lit_wl_def state_wl_l_def)
+          decide_lit_l_def decide_lit_wl_def state_wl_l_def
+          all_blits_are_in_problem.simps)
     done
 qed
 
@@ -2696,15 +2792,18 @@ proof -
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
     using that by (cases S') (auto simp: state_wl_l_def)
   have [simp]: \<open>correct_watching (tl_state_wl S) = correct_watching S\<close> for S
-    by (cases S) (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
+    by (cases S) (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def
+     all_blits_are_in_problem.simps)
   have [simp]: \<open>correct_watching  (tl aa, ca, da, ea, fa, ha, h) \<longleftrightarrow>
     correct_watching (aa, ca, None, ea, fa, ha, h)\<close>
     for aa ba ca L da ea fa ha h
-    by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
+    by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def
+     all_blits_are_in_problem.simps)
   have [simp]: \<open>NO_MATCH None da \<Longrightarrow> correct_watching  (aa, ca, da, ea, fa, ha, h) \<longleftrightarrow>
     correct_watching (aa, ca, None, ea, fa, ha, h)\<close>
     for aa ba ca L da ea fa ha h
-    by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
+    by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def
+     all_blits_are_in_problem.simps)
   have update_confl_tl_wl: \<open>
     (brkT, brkT') \<in> bool_rel \<times>\<^sub>f {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T'} \<Longrightarrow>
     case brkT' of (brk, S) \<Rightarrow> skip_and_resolve_loop_inv_l S' brk S \<Longrightarrow>
@@ -2785,7 +2884,7 @@ definition propagate_bt_wl :: \<open>'v literal \<Rightarrow> 'v literal \<Right
     i \<leftarrow> get_fresh_index N;
     RETURN (Propagated (-L) i # M,
         fmupd i ([-L, L'] @ (remove1 (-L) (remove1 L' D'')), False) N,
-          None, NE, UE, {#L#}, W(-L:= W (-L) @ [i], L':= W L' @ [i]))
+          None, NE, UE, {#L#}, W(-L:= W (-L) @ [(i, L')], L':= W L' @ [(i, L)]))
       })\<close>
 
 definition propagate_unit_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
@@ -2817,25 +2916,42 @@ lemma correct_watching_learn:
     UW: \<open>atms_of (mset UW) \<subseteq> atms_of_mm (mset `# ran_mf N + NE)\<close> and
     i_dom: \<open>i \<notin># dom_m N\<close>
   shows
-  \<open>correct_watching (K # M, fmupd i (L1 # L2 # UW,  b) N,
-    D, NE, UE, Q, W (L1 := W L1 @ [i], L2 := W L2 @ [i])) \<longleftrightarrow>
+  \<open>correct_watching (K # M, fmupd i (L1 # L2 # UW, b) N,
+    D, NE, UE, Q, W (L1 := W L1 @ [(i, L2)], L2 := W L2 @ [(i, L1)])) \<longleftrightarrow>
   correct_watching (M, N, D, NE, UE, Q, W)\<close>
   (is \<open>?l \<longleftrightarrow> ?c\<close> is \<open>correct_watching (_, ?N, _) = _\<close>)
 proof (rule iffI)
   assume corr: ?l
-  have H: \<open>\<And>x. x \<in># all_lits_of_mm (mset `# ran_mf ?N) +
-              all_lits_of_mm NE + all_lits_of_mm UE \<longrightarrow>
-        mset ((W(L1 := W L1 @ [i], L2 := W L2 @ [i])) x) =
-        clause_to_update x
-         (K # M, ?N, D, NE, UE, {#}, {#})\<close>
-    using corr
-    by (auto simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset if_distrib[of mset]
-        uminus_lit_swap correct_watching.simps all_lits_of_mm_union Ball_def
-        all_conj_distrib)
+  have blits: \<open>all_blits_are_in_problem
+   (K # M, fmupd i (L1 # L2 # UW, b) N, D, NE, UE, Q, W
+    (L1 := W L1 @ [(i, L2)], L2 := W L2 @ [(i, L1)]))\<close> and
+  \<open>\<And>L ia K'. (L\<in>#all_lits_of_mm
+        (mset `# ran_mf (fmupd i (L1 # L2 # UW, b) N) + (NE + UE)) \<Longrightarrow>
+      ((ia, K')\<in>#mset ((W(L1 := W L1 @ [(i, L2)], L2 := W L2 @ [(i, L1)])) L) \<longrightarrow>
+          ia \<in># dom_m (fmupd i (L1 # L2 # UW, b) N) \<longrightarrow>
+          K' \<in> set (fmupd i (L1 # L2 # UW, b) N \<propto> ia) \<and> K' \<noteq> L) \<and>
+      {#ia \<in># fst `#
+              mset ((W(L1 := W L1 @ [(i, L2)], L2 := W L2 @ [(i, L1)])) L).
+       ia \<in># dom_m (fmupd i (L1 # L2 # UW, b) N)#} =
+      clause_to_update L
+       (K # M, fmupd i (L1 # L2 # UW, b) N, D, NE, UE, {#}, {#}))\<close>
+    using corr unfolding correct_watching.simps
+    by blast+
+
   have K[iff]: \<open>{x.  x = i \<or> (x = i \<or> Q x) \<and> P x} = Set.insert i {x. x \<noteq> i \<and> Q x \<and> P x}\<close>
      for P Q :: \<open>nat \<Rightarrow> bool\<close> and i :: nat
     by auto
-  have [simp]: \<open>mset (W x) = clause_to_update x (M, N, D, NE, UE, {#}, {#})\<close>
+  have \<open>set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m ?N#} + (NE + UE))) = 
+    set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE)))\<close>
+    using i_dom L1 L2
+    apply (auto simp: all_blits_are_in_problem.simps ran_m_mapsto_upd_notin
+      all_lits_of_mm_add_mset all_lits_of_m_add_mset)
+    sorry
+
+  have blits': \<open>all_blits_are_in_problem (K # M, fmupd i (L1 # L2 # UW, b) N, D, NE, UE, Q, W)\<close>
+    using blits apply (auto simp: all_blits_are_in_problem.simps)
+  sorry
+  (* have [simp]: \<open>mset (W x) = clause_to_update x (M, N, D, NE, UE, {#}, {#})\<close>
     if \<open>x \<in># all_lits_of_mm NE \<or> x \<in># all_lits_of_mm UE\<close>
     for x
     using that H[of x] i_dom
@@ -2856,10 +2972,11 @@ proof (rule iffI)
     using that H[of x] i_dom L1 L2
     unfolding all_lits_of_mm_union[symmetric] K
     by (auto split: if_splits simp: clause_to_update_def
-        in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of intro: filter_mset_cong)
+        in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of intro: filter_mset_cong) *)
   show ?c
+    using H[of]
     unfolding correct_watching.simps Ball_def
-    by (auto simp add: all_lits_of_mm_add_mset all_lits_of_m_add_mset
+    apply (auto simp add: all_lits_of_mm_add_mset all_lits_of_m_add_mset
         all_conj_distrib all_lits_of_mm_union)
 next
   assume corr: ?c
@@ -3014,7 +3131,8 @@ proof -
     have \<open>correct_watching S'\<close>
       using SS' by fast
     then have corr: \<open>correct_watching (MU, NS, None, NES, UES, {#K'#}, W)\<close>
-       unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps .
+       unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps
+       by (simp add: all_blits_are_in_problem.simps)
     have K_hd[simp]: \<open>lit_of (hd MS) = K'\<close>
       using SS' unfolding K'_def by (auto simp: S')
     have [simp]: \<open>L = L'\<close>
