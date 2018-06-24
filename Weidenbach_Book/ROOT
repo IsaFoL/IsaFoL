@@ -154,7 +154,6 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     "HOL-Eisbach"
   theories [quick_and_dirty = false, document = true]
     Bits_Natural
-    Uint64
     WB_Word_Assn
     WB_More_Refinement
 
