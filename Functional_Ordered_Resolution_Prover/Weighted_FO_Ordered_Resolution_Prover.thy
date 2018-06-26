@@ -257,7 +257,7 @@ proof -
     using subseteq by (metis less_not_refl2 subset_mset.le_neq_trans)  
 qed
 
-lemma weighted_RP_Non_Inference_measure_decreasing:
+lemma weighted_RP_measure_decreasing_N:
   assumes "St \<leadsto>\<^sub>w St'"
   assumes "(C, l) \<in># wN_of_wstate St"
   shows "((RP_filtered_measure (\<lambda>Ci. True)) St', (RP_filtered_measure (\<lambda>Ci. True)) St) \<in> RP_filtered_relation"
@@ -323,7 +323,7 @@ proof -
     by (rule empty_empty)
 qed
 
-lemma weighted_RP_Inference_measure_decreasing:
+lemma weighted_RP_measure_decreasing_P:
   assumes "St \<leadsto>\<^sub>w St'"
   assumes "(C, i) \<in># wP_of_wstate St"
   shows "(RP_combined_measure (weight (C, i)) St', RP_combined_measure (weight (C, i)) St) \<in> RP_combined_relation"
@@ -462,7 +462,7 @@ next
   qed
 qed
 
-(* FIXME: come up with better name *)
+(* FIXME: Get rid of this and prove preserve_min_P directly *)
 lemma preserve_min_or_delete_completely:
   assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St" 
     "\<forall>k. (C, k) \<in># wP_of_wstate St \<longrightarrow> i \<le> k"
@@ -551,18 +551,21 @@ next
   then show ?case by auto
 qed
 
+lemma preserve_min_P:
+  assumes "St \<leadsto>\<^sub>w St'" "(C, j) \<in># wP_of_wstate St'" "(C,i) \<in># wP_of_wstate St" 
+    "\<forall>k. (C, k) \<in># wP_of_wstate St \<longrightarrow> i \<le> k"
+  shows "(C, i) \<in># wP_of_wstate St'"
+  using assms preserve_min_or_delete_completely by blast
+
 (* FIXME: come up with better name *)
 lemma preserve_min_or_delete_completely_Sts:
   assumes "enat (Suc k) < llength Sts"
   assumes "(C, i) \<in># wP_of_wstate (lnth Sts k)"
+  assumes "(C, j) \<in># wP_of_wstate (lnth Sts (Suc k))"
   assumes "\<forall>j. (C, j) \<in># wP_of_wstate (lnth Sts k) \<longrightarrow> i \<le> j"
-  shows "(C, i) \<in># wP_of_wstate (lnth Sts (Suc k)) \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate (lnth Sts (Suc k)))"
-proof -
-  from deriv have "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
-    using assms chain_lnth_rel by auto
-  then show ?thesis
-    using preserve_min_or_delete_completely[of "lnth Sts k" "lnth Sts (Suc k)" C i] assms by metis
-qed
+  shows "(C, i) \<in># wP_of_wstate (lnth Sts (Suc k))"
+  using deriv assms chain_lnth_rel preserve_min_or_delete_completely[of "lnth Sts k" "lnth Sts (Suc k)" C i] assms by metis
+
 
 lemma in_lnth_in_Supremum_ldrop:
   assumes llength_infty: "llength xs = \<infinity>"
@@ -665,7 +668,7 @@ proof -
       then have "\<exists>k. (C, k) \<in># wP_of_wstate (lnth Sts (Suc (x + xb + xc)))"
         by (smt Ci_in_nth_wP add.commute add.left_commute add_Suc_right enat_ord_code(4) ldrop_enat llength_infty lnth_ldropn)
       ultimately have "(C, j) \<in># wP_of_wstate (lnth Sts (Suc (x + xb + xc)))"
-        using preserve_min_or_delete_completely_Sts[of "x + xb + xc" C j, OF _ Cj_in_wP any_Ck_in_wP] 
+        using preserve_min_or_delete_completely_Sts Cj_in_wP any_Ck_in_wP 
         by (auto simp add: llength_infty)
       then have "(C, j) \<in># lnth (lmap wP_of_wstate Sts) (Suc ((x+xb) + xc))"
         by (simp add: llength_infty)
@@ -724,17 +727,17 @@ next
   qed
 qed
 
-lemma infinite_if_not_fair:
-  assumes "\<not> fair_state_seq (lmap state_of_wstate Sts)"
-  shows "\<not> lfinite Sts"
+lemma fair_if_finite:
+  assumes "lfinite Sts"
+  shows "fair_state_seq (lmap state_of_wstate Sts)" 
 proof (rule ccontr)
-  assume "\<not> \<not> lfinite Sts"
-  then have "lfinite Sts"
+  assume unfair: "\<not> fair_state_seq (lmap state_of_wstate Sts)"
+  from assms have "lfinite Sts"
     by auto
   then have no_inf_from_last: "\<forall>y. \<not> llast Sts \<leadsto>\<^sub>w y" 
     using full_chain_iff_chain[of "(\<leadsto>\<^sub>w)" Sts] full_deriv by auto
 
-  from assms obtain C where
+  from unfair obtain C where
     "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))
        \<union> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
     unfolding fair_state_seq_def Liminf_state_def by auto
@@ -945,7 +948,7 @@ qed
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
   assume asm: "\<not> fair_state_seq (lmap state_of_wstate Sts)"
-  then have inff: "\<not> lfinite Sts" using infinite_if_not_fair
+  then have inff: "\<not> lfinite Sts" using fair_if_finite
     by auto
   then have inf: "llength Sts = \<infinity>"
     using llength_eq_infty_conv_lfinite by auto
@@ -970,7 +973,7 @@ proof (rule ccontr)
     have in_N_j: "\<And>j. \<exists>i. (C, i) \<in># wN_of_wstate (lnth (ldrop k Sts) j)"
       using k_p by (simp add: add.commute inf)
     then have "chain (\<lambda>x y. (x, y) \<in> RP_filtered_relation)\<inverse>\<inverse> (lmap (RP_filtered_measure (\<lambda>Ci. True)) (ldrop k Sts))"
-      using inff inf infinite_chain_relation_measure[of "\<lambda>St. \<exists>i. (C, i) \<in># wN_of_wstate St" "(\<leadsto>\<^sub>w)"] weighted_RP_Non_Inference_measure_decreasing chain_drop_Sts by blast
+      using inff inf infinite_chain_relation_measure[of "\<lambda>St. \<exists>i. (C, i) \<in># wN_of_wstate St" "(\<leadsto>\<^sub>w)"] weighted_RP_measure_decreasing_N chain_drop_Sts by blast
     then show False
       using wfP_iff_no_infinite_down_chain_llist[of "\<lambda>x y. (x, y) \<in> RP_filtered_relation"] 
         wf_RP_filtered_relation inff
@@ -1002,7 +1005,7 @@ proof (rule ccontr)
     then have "chain (\<lambda>x y. (x, y) \<in> RP_combined_relation)\<inverse>\<inverse> (lmap (RP_combined_measure (weight (C, i))) (ldrop k Sts))"
       using inff inf Ci_in
       using infinite_chain_relation_measure[of "\<lambda>St. (C, i) \<in># wP_of_wstate St" "(\<leadsto>\<^sub>w)" "RP_combined_measure (weight (C, i))" ]
-      using weighted_RP_Inference_measure_decreasing
+      using weighted_RP_measure_decreasing_P
       by auto
     then show False
       using wfP_iff_no_infinite_down_chain_llist[of "\<lambda>x y. (x, y) \<in> RP_combined_relation"] 

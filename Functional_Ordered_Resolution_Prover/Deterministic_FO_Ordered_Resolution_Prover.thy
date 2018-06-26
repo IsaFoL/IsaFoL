@@ -1167,9 +1167,8 @@ proof (intro order_antisym subsetI)
 
   have tl_\<rho>s: "tl ?\<rho>s = [\<rho>]"
     unfolding \<rho>_def
-    using renames_apart[THEN conjunct1, of "[mset D, mset C]"]
-    apply auto
-    by (smt Nitpick.size_list_simp(2) Suc_length_conv last.simps last_tl nat.distinct(1) old.nat.inject)
+    using renamings_apart_length Nitpick.size_list_simp(2) Suc_length_conv last.simps
+    by (smt length_greater_0_conv list.sel(3))
 
   {
     fix E

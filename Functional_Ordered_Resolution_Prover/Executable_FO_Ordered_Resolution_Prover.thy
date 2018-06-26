@@ -261,4 +261,6 @@ lemma
    shows False
   using assms by metis
 
+find_theorems name: weighted_RP_Non_Inference_measure_decreasing
+
 end
