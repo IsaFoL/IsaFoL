@@ -297,7 +297,7 @@ declare twl_st_wl[simp]
 
 definition unit_prop_body_wl_inv where
 \<open>unit_prop_body_wl_inv T j i C L \<longleftrightarrow> (C \<in># dom_m (get_clauses_wl T) \<longrightarrow>
-    (\<exists>T'. (T, T') \<in> state_wl_l (Some (L, i)) \<and>
+    (\<exists>T'. (T, T') \<in> state_wl_l (Some (L, i)) \<and> j \<le> i \<and>
     unit_propagation_inner_loop_body_l_inv L (fst (watched_by T L ! i))
        (remove_one_lit_from_wq (fst (watched_by T L ! i)) T')\<and>
     L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) + get_unit_clauses_wl T) \<and>
@@ -342,7 +342,7 @@ abbreviation remaining_nondom_wl where
 
 definition unit_propagation_inner_loop_wl_loop_inv where
   \<open>unit_propagation_inner_loop_wl_loop_inv L = (\<lambda>(j, w, S).
-    (\<exists>S'. (S, S') \<in> state_wl_l (Some (L, w)) \<and>
+    (\<exists>S'. (S, S') \<in> state_wl_l (Some (L, w)) \<and> j\<le> w \<and>
        unit_propagation_inner_loop_l_inv L (S', remaining_nondom_wl w L S) \<and>
       correct_watching_except j w L S \<and> w \<le> length (watched_by S L)))\<close>
 
@@ -1372,7 +1372,7 @@ proof -
     if
       \<open>clauses_to_update_l S' \<noteq> {#} \<or> 0 < n\<close> and
       loop_l: \<open>unit_propagation_inner_loop_l_inv L (S', n)\<close> and
-      \<open>unit_propagation_inner_loop_wl_loop_inv L (j, w, S)\<close> and
+      loop_wl: \<open>unit_propagation_inner_loop_wl_loop_inv L (j, w, S)\<close> and
       \<open>((C', bL), b) \<in> ?blit\<close> and
       \<open>(C', bL) = (x1, x2)\<close> and
       \<open>\<not> x1 \<notin># dom_m (get_clauses_wl S)\<close> and
@@ -1391,7 +1391,6 @@ proof -
        apply (auto dest!: multi_member_split simp: in_set_conv_nth split: if_splits simp del: nth_mem)
       using nth_mem apply force+
       done
-
     have corr_w':
        \<open>correct_watching_except j w L S \<Longrightarrow> correct_watching_except j w L (keep_watch L j w S)\<close>
       using j_w w_le
@@ -1417,6 +1416,7 @@ proof -
     then have \<open>L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_clauses_wl S)\<close>
       using alien_L'' by fast
     then show ?thesis
+      using j_w
       unfolding unit_prop_body_wl_inv_def
       apply (intro impI)
       apply (rule exI[of _ S'])
@@ -1588,7 +1588,7 @@ proof -
       by (cases \<open>get_clauses_wl S \<propto> x1\<close>; cases \<open>tl (get_clauses_wl S \<propto> x1)\<close>)
         auto
 
-    have n: \<open>n = size {#(i, uu) \<in># mset (drop (Suc w) (watched_by S L)).
+    have n: \<open>n = size {#(i, _) \<in># mset (drop (Suc w) (watched_by S L)).
         i \<notin># dom_m (get_clauses_wl S)#}\<close>
       using n
       apply (subst (asm) Cons_nth_drop_Suc[symmetric])

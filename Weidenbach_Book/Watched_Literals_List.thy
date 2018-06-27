@@ -1517,7 +1517,7 @@ lemma unit_propagation_inner_loop_body_l2:
   by (auto simp: nres_rel_def)
 
 text \<open>This a work around equality: it allows to instantiate variables that appear in goals by
-  hand in a reasonable way.\<close>
+  hand in a reasonable way (\<^text>\<open>rule\_tac I=x in EQI)\<close>.\<close>
 definition EQ where
   [simp]: \<open>EQ = (=)\<close>
 
