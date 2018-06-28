@@ -2343,6 +2343,7 @@ definition cut_watch_list :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v liter
 definition unit_propagation_inner_loop_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>unit_propagation_inner_loop_wl L S\<^sub>0 = do {
      (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop L S\<^sub>0;
+     ASSERT(j \<le> w \<and> w \<le> length (watched_by S L));
      cut_watch_list j w L S
   }\<close>
 
@@ -2442,6 +2443,7 @@ proof -
       (j, w, S) \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_inv L\<^esup>
          (\<lambda>(j, w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
          (\<lambda>(j, x, y). unit_propagation_inner_loop_body_wl L j x y) (0, 0, S);
+      ASSERT (j \<le> w \<and> w \<le> length (watched_by S L));
       cut_watch_list j w L S}\<close>
       unfolding unit_propagation_inner_loop_wl_loop_alt_def unit_propagation_inner_loop_wl_def
       by auto
@@ -2466,6 +2468,8 @@ proof -
         apply (simp only: prod.case in_pair_collect_simp)
         apply normalize_goal+
         by (auto simp del: twl_st_of_wl.simps)
+      subgoal by auto
+      subgoal by auto
       subgoal by auto
       subgoal for n i'w'T' Tn i' w'T' j L' w' T'
         apply (cases T')

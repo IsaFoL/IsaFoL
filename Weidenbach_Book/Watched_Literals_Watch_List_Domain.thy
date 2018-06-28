@@ -824,7 +824,8 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_inv where
       literals_are_\<L>\<^sub>i\<^sub>n S \<and> L \<in> snd ` D\<^sub>0 \<and>
       unit_propagation_inner_loop_wl_loop_inv L (j, w, S))\<close>
 
-definition unit_propagation_inner_loop_body_wl_D :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow>
+definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D
+  :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> nat twl_st_wl) nres\<close> where
   \<open>unit_propagation_inner_loop_body_wl_D L j w S = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_D_inv L (j, w, S));
@@ -870,15 +871,15 @@ declare Id_refine[refine_vcg del] refine0(5)[refine_vcg del]
 lemma unit_prop_body_wl_D_inv_clauses_distinct_eq:
   assumes
     x[simp]: \<open>watched_by S K ! w = (x1, x2)\<close> and
-    inv: \<open>unit_prop_body_wl_D_inv (keep_watch K j w' S) i w x1 K\<close> and
+    inv: \<open>unit_prop_body_wl_D_inv (keep_watch K i w S) i w x1 K\<close> and
     y: \<open>y < length (get_clauses_wl S \<propto> (fst (watched_by S K ! w)))\<close> and
-    w: \<open>fst(watched_by S K ! w) \<in># dom_m (get_clauses_wl (keep_watch K j w' S))\<close> and
+    w: \<open>fst(watched_by S K ! w) \<in># dom_m (get_clauses_wl (keep_watch K i w S))\<close> and
     y': \<open>y' < length (get_clauses_wl S \<propto> (fst (watched_by S K ! w)))\<close>
   shows \<open>get_clauses_wl S \<propto> x1 ! y =
      get_clauses_wl S \<propto> x1 ! y' \<longleftrightarrow> y = y'\<close> (is \<open>?eq \<longleftrightarrow> ?y\<close>)
 proof
   assume eq: ?eq
-  let ?S = \<open>keep_watch K j w' S\<close>
+  let ?S = \<open>keep_watch K i w S\<close>
   let ?C = \<open>fst (watched_by ?S K ! w)\<close>
   obtain T U where
       ST: \<open>(?S, T) \<in> state_wl_l (Some (K, w))\<close> and
@@ -889,7 +890,9 @@ proof
               (remove_one_lit_from_wq ?C T),
               U)
             \<in> twl_st_l (Some K)\<close> and
-      struct_U: \<open>twl_struct_invs U\<close>
+      struct_U: \<open>twl_struct_invs U\<close> and
+      i_w: \<open>i \<le> w\<close> and
+      w_le: \<open>w < length (watched_by (keep_watch K i w S) K)\<close>
     using inv w unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
       unit_prop_body_wl_inv_def unit_propagation_inner_loop_body_l_inv_def x fst_conv
     apply -
@@ -923,8 +926,9 @@ proof
       done
   ultimately have \<open>distinct (get_clauses_wl S \<propto> ?C)\<close>
     by blast
-  moreover have \<open>fst (watched_by (keep_watch K j w' S) K ! w) = fst (watched_by S K ! w)\<close>
-    by (cases S) (auto simp: keep_watch_def)
+  moreover have \<open>fst (watched_by (keep_watch K i w S) K ! w) = fst (watched_by S K ! w)\<close>
+    using i_w w_le
+    by (cases S; cases \<open>i=w\<close>) (auto simp: keep_watch_def)
   ultimately show ?y
     using y y' eq
     by (auto simp: nth_eq_iff_index_eq twl_st_wl x)
@@ -933,7 +937,6 @@ next
   then show ?eq by blast
 qed
 
-find_theorems watched_by keep_watch 
 lemma (in isasat_input_ops) literals_are_\<L>\<^sub>i\<^sub>n_keep_watch[twl_st_wl, simp]:
   \<open>literals_are_\<L>\<^sub>i\<^sub>n (keep_watch K j w S) \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
   by (cases S) (auto simp: keep_watch_def)
@@ -967,24 +970,26 @@ proof -
   have propagate_lit_wl:
       \<open>((j+1, w + 1,
         propagate_lit_wl
-         (get_clauses_wl S \<propto> ?C ! (1 - (if get_clauses_wl S \<propto> ?C ! 0 = K then 0 else 1)))
-         ?C
-         (if get_clauses_wl S \<propto> ?C ! 0 = K then 0 else 1)
+         (get_clauses_wl S \<propto> x1a ! (1 - (if get_clauses_wl S \<propto> x1a ! 0 = K then 0 else 1)))
+         x1a
+         (if get_clauses_wl S \<propto> x1a ! 0 = K then 0 else 1)
           S),
        j+1, w + 1,
        propagate_lit_wl
-        (get_clauses_wl S \<propto> ?C !
-         (1 - (if get_clauses_wl S \<propto> ?C ! 0 = K then 0
+        (get_clauses_wl S \<propto> x1 !
+         (1 - (if get_clauses_wl S \<propto> x1 ! 0 = K then 0
                else 1)))
-       ?C
-        (if get_clauses_wl S \<propto> ?C ! 0 = K then 0 else 1) S)
+       x1
+        (if get_clauses_wl S \<propto> x1 ! 0 = K then 0 else 1) S)
       \<in> {((j', n', T'), j, n, T).
-         j = j' \<and>
+         j' = j \<and>
          n' = n \<and>
          T = T' \<and>
          literals_are_\<L>\<^sub>i\<^sub>n T'}\<close>
-  if \<open>unit_prop_body_wl_D_inv S j w ?C K\<close> and \<open>fst (W K ! w) \<in># dom_m (get_clauses_wl S)\<close>
-  for f f' j
+  if \<open>unit_prop_body_wl_D_inv S j w x1a K\<close> and \<open>\<not>x1 \<notin># dom_m (get_clauses_wl S)\<close> and
+    \<open>(watched_by S K) ! w = (x1a, x2a)\<close> and
+    \<open>(watched_by S K) ! w = (x1, x2)\<close>
+  for f f' j S x1 x2 x1a x2a
   unfolding propagate_lit_wl_def S
   apply clarify
   apply refine_vcg
@@ -1079,13 +1084,11 @@ proof -
     subgoal
       using assms
       unfolding unit_prop_body_wl_D_find_unwatched_inv_def
-      apply (auto simp: unit_prop_body_wl_D_inv_clauses_distinct_eq twl_st_wl)
-      apply (subst (asm) unit_prop_body_wl_D_inv_clauses_distinct_eq)
-      sorry
+      by (auto simp: unit_prop_body_wl_D_inv_clauses_distinct_eq twl_st_wl)
     subgoal by (auto simp: twl_st_wl)
     subgoal by (auto simp: twl_st_wl)
-    subgoal by (auto simp: twl_st_wl)
-    subgoal by (rule propagate_lit_wl)
+    subgoal using assms by (cases S) (auto simp: twl_st_wl keep_watch_def)
+    subgoal by (rule propagate_lit_wl[OF _ _ H H])
     subgoal by (auto simp: twl_st_wl)
     subgoal by (rule update_blit_wl')
     subgoal by (rule update_clause_wl[OF _ _ _ _ _ _ _ H H])
@@ -1095,23 +1098,22 @@ qed
 
 lemma
   shows unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D:
-  \<open>(uncurry2 unit_propagation_inner_loop_body_wl_D, uncurry2 unit_propagation_inner_loop_body_wl) \<in>
-    [\<lambda>((K, w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0]\<^sub>f
-    Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close>
+  \<open>(uncurry3 unit_propagation_inner_loop_body_wl_D, uncurry3 unit_propagation_inner_loop_body_wl) \<in>
+    [\<lambda>(((K, j), w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0]\<^sub>f
+    Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close>
      (is \<open>?G1\<close>) and
   unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D_weak:
-   \<open>(uncurry2 unit_propagation_inner_loop_body_wl_D, uncurry2 unit_propagation_inner_loop_body_wl) \<in>
-    [\<lambda>((K, w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0]\<^sub>f
-    Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
+   \<open>(uncurry3 unit_propagation_inner_loop_body_wl_D, uncurry3 unit_propagation_inner_loop_body_wl) \<in>
+    [\<lambda>(((K, j), w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0]\<^sub>f
+    Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
    (is \<open>?G2\<close>)
 proof -
-  have 1: \<open>nat_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} =
-     {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}\<close>
+  have 1: \<open>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} =
+     {((j', n', T'), (j, (n, T))). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}\<close>
     by auto
   show ?G1
-    unfolding 1
     by (auto simp add: fref_def nres_rel_def uncurry_def simp del: twl_st_of_wl.simps
-        intro!: unit_propagation_inner_loop_body_wl_D_spec)
+        intro!: unit_propagation_inner_loop_body_wl_D_spec[unfolded 1[symmetric]])
   then show ?G2
     apply -
     apply (match_spec)
@@ -1119,38 +1121,37 @@ proof -
     by fastforce+
 qed
 
-
 definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D
-  :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres\<close>
+  :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat \<times> nat twl_st_wl) nres\<close>
 where
   \<open>unit_propagation_inner_loop_wl_loop_D L S\<^sub>0 = do {
     WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_D_inv L\<^esup>
-      (\<lambda>(w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
-      (\<lambda>(w, S). do {
-        unit_propagation_inner_loop_body_wl_D L w S
+      (\<lambda>(j, w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
+      (\<lambda>(j, w, S). do {
+        unit_propagation_inner_loop_body_wl_D L j w S
       })
-      (0, S\<^sub>0)
+      (0, 0, S\<^sub>0)
   }
   \<close>
 
 lemma unit_propagation_inner_loop_wl_spec:
   assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and K: \<open>K \<in> snd ` local.D\<^sub>0\<close>
   shows \<open>unit_propagation_inner_loop_wl_loop_D K S \<le>
-     \<Down> {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
+     \<Down> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
        (unit_propagation_inner_loop_wl_loop K S)\<close>
 proof -
-  have u: \<open>unit_propagation_inner_loop_body_wl_D K w S \<le>
-         \<Down> {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
-           (unit_propagation_inner_loop_body_wl K' w' S')\<close>
+  have u: \<open>unit_propagation_inner_loop_body_wl_D K j w S \<le>
+         \<Down> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
+           (unit_propagation_inner_loop_body_wl K' j' w' S')\<close>
   if \<open>K \<in> snd ` D\<^sub>0\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    \<open>S = S'\<close> \<open>K = K'\<close> \<open>w = w'\<close>
-  for S S' and w w' and K K'
-    using unit_propagation_inner_loop_body_wl_D_spec[of K S w] that by auto
+    \<open>S = S'\<close> \<open>K = K'\<close> \<open>w = w'\<close> \<open>j'=j\<close>
+  for S S' and w w' and K K' and j' j
+    using unit_propagation_inner_loop_body_wl_D_spec[of K S j w] that by auto
 
   show ?thesis
     unfolding unit_propagation_inner_loop_wl_loop_D_def unit_propagation_inner_loop_wl_loop_def
     apply (refine_vcg u)
-    subgoal using \<A>\<^sub>i\<^sub>n by simp
+    subgoal using assms by auto
     subgoal using assms unfolding unit_propagation_inner_loop_wl_loop_D_inv_def by auto
     subgoal by auto
     subgoal using K by auto
@@ -1158,13 +1159,18 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
     done
 qed
 
-definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+thm unit_propagation_inner_loop_wl_def
+definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D
+ :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>unit_propagation_inner_loop_wl_D L S\<^sub>0 = do {
-     wS \<leftarrow> unit_propagation_inner_loop_wl_loop_D L S\<^sub>0;
-     RETURN (snd wS)
+     (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop_D L S\<^sub>0;
+     ASSERT (j \<le> w \<and> w \<le> length (watched_by S L));
+     S \<leftarrow> cut_watch_list j w L S;
+     RETURN S
   }\<close>
 
 lemma unit_propagation_inner_loop_wl_D_spec:
@@ -1173,12 +1179,33 @@ lemma unit_propagation_inner_loop_wl_D_spec:
      \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
        (unit_propagation_inner_loop_wl K S)\<close>
 proof -
+  have cut_watch_list: \<open>cut_watch_list x1b x1c K x2c \<bind> RETURN
+        \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+          (cut_watch_list x1 x1a K x2a)\<close>
+    if 
+      \<open>(x, x')
+      \<in> {((j', n', T'), j, n, T).
+          j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}\<close> and
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>x' = (x1, x2)\<close> and
+      \<open>x2b = (x1c, x2c)\<close> and
+      \<open>x = (x1b, x2b)\<close> and
+      \<open>x1 \<le> x1a \<and> x1a \<le> length (watched_by x2a K)\<close>
+    for x x' x1 x2 x1a x2a x1b x2b x1c x2c
+  proof -
+    show ?thesis
+      using that
+      by (cases x2c) (auto simp: cut_watch_list_def)
+  qed
+
   show ?thesis
     unfolding unit_propagation_inner_loop_wl_D_def unit_propagation_inner_loop_wl_def
     apply (refine_vcg unit_propagation_inner_loop_wl_spec)
     subgoal using \<A>\<^sub>i\<^sub>n .
     subgoal using K .
     subgoal by auto
+    subgoal by auto
+    subgoal by (rule cut_watch_list)
     done
 qed
 
@@ -1356,9 +1383,9 @@ definition (in isasat_input_ops) propagate_bt_wl_D
 where
   \<open>propagate_bt_wl_D = (\<lambda>L L' (M, N, D, NE, UE, Q, W). do {
     D'' \<leftarrow> list_of_mset2 (-L) L' (the D);
-    i \<leftarrow> get_fresh_index N;
+    i \<leftarrow> get_fresh_index_wl N (NE+UE) W;
     RETURN (Propagated (-L) i # M, fmupd i (D'', False) N,
-          None, NE, UE, {#L#}, W(-L:= W (-L) @ [i], L':= W L' @ [i]))
+          None, NE, UE, {#L#}, W(-L:= W (-L) @ [(i, L')], L':= W L' @ [(i, -L)]))
       })\<close>
 
 definition (in isasat_input_ops) propagate_unit_bt_wl_D
@@ -1537,22 +1564,22 @@ proof -
         x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + (NES + UES))\<close>
       for x
       using DT all_lits_of_m_mono by blast
-    have propa_ref: \<open>((Propagated (- lit_of (hd (get_trail_wl S))) i # MU,
-            fmupd i (D, False) NS, None, NES, UES, unmark (hd (get_trail_wl S)), W
-            (- lit_of (hd (get_trail_wl S)) :=
-              W (- lit_of (hd (get_trail_wl S))) @ [i],
-            L := W L @ [i])),
-          Propagated (- lit_of (hd (get_trail_wl S))) i' # MU,
-          fmupd i'
-            ([- lit_of (hd (get_trail_wl S)), L'] @
-            remove1 (- lit_of (hd (get_trail_wl S))) (remove1 L' D'),
-            False)
-            NS,
-          None, NES, UES, unmark (hd (get_trail_wl S)), W
-          (- lit_of (hd (get_trail_wl S)) :=
-              W (- lit_of (hd (get_trail_wl S))) @ [i'],
-            L' := W L' @ [i']))
-          \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
+    have propa_ref: \<open>((Propagated (- lit_of (hd (get_trail_wl S))) i # MU, fmupd i (D, False) NS,
+      None, NES, UES, unmark (hd (get_trail_wl S)), W
+      (- lit_of (hd (get_trail_wl S)) :=
+         W (- lit_of (hd (get_trail_wl S))) @ [(i, L)],
+       L := W L @ [(i, -lit_of (hd (get_trail_wl S)))])),
+     Propagated (- lit_of (hd (get_trail_wl S))) i' # MU,
+     fmupd i'
+      ([- lit_of (hd (get_trail_wl S)), L'] @
+       remove1 (- lit_of (hd (get_trail_wl S))) (remove1 L' D'),
+       False)
+      NS,
+     None, NES, UES, unmark (hd (get_trail_wl S)), W
+     (- lit_of (hd (get_trail_wl S)) :=
+        W (- lit_of (hd (get_trail_wl S))) @ [(i', L')],
+      L' := W L' @ [(i', - lit_of (hd (get_trail_wl S)))]))
+    \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
       if
         DD': \<open>(D, D') \<in> list_of_mset (the (Some DT)) (- lit_of (hd (get_trail_wl S))) L\<close> and
         ii': \<open>(i, i') \<in> {(i, i'). i = i' \<and> i \<notin># dom_m NS}\<close>
@@ -1580,10 +1607,13 @@ proof -
         by (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset
           is_\<L>\<^sub>a\<^sub>l\<^sub>l_add S dest!: H[unfolded DT_D])
     qed
-    define get_fresh_index2 where \<open>get_fresh_index2 N = get_fresh_index (N :: nat clauses_l)\<close> for N
-    have fresh: \<open>get_fresh_index N \<le> \<Down> {(i, i'). i = i' \<and> i \<notin># dom_m N} (get_fresh_index2 N')\<close>
-      if \<open>N = N'\<close> for N N'
-      using that by (auto simp: get_fresh_index_def get_fresh_index2_def intro!: RES_refine)
+    define get_fresh_index2 where
+      \<open>get_fresh_index2 N NUE W = get_fresh_index_wl (N :: nat clauses_l) (NUE :: nat clauses)
+          (W::nat literal \<Rightarrow> (nat \<times> nat literal) list)\<close>
+      for N NUE W
+    have fresh: \<open>get_fresh_index_wl N NUE W \<le> \<Down> {(i, i'). i = i' \<and> i \<notin># dom_m N} (get_fresh_index2 N' NUE' W')\<close>
+      if \<open>N = N'\<close> \<open>NUE = NUE'\<close> \<open>W=W'\<close>for N N' NUE NUE' W W'
+      using that by (auto simp: get_fresh_index_wl_def get_fresh_index2_def intro!: RES_refine)
     show ?thesis
       unfolding propagate_bt_wl_D_def propagate_bt_wl_def propagate_bt_wl_D_def U U' S T
       apply (subst (2) get_fresh_index2_def[symmetric])
@@ -1593,6 +1623,8 @@ proof -
       subgoal using TT' T by (auto simp: U S)
       subgoal using LL' by (auto simp: T U S dest: in_diffD)
       subgoal by auto
+      subgoal ..
+      subgoal ..
       subgoal ..
       subgoal for D D' i i'
         unfolding list_of_mset_def[symmetric] U[symmetric] U'[symmetric] S[symmetric] T[symmetric]
