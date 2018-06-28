@@ -11,7 +11,8 @@ section \<open>Third Refinement: Remembering watched\<close>
 subsection \<open>Types\<close>
 
 type_synonym clauses_to_update_wl = \<open>nat multiset\<close>
-type_synonym 'v watched = \<open>(nat \<times> 'v literal) list\<close>
+type_synonym 'v watcher = \<open>(nat \<times> 'v literal)\<close>
+type_synonym 'v watched = \<open>'v watcher list\<close>
 type_synonym 'v lit_queue_wl = \<open>'v literal multiset\<close>
 
 type_synonym 'v twl_st_wl =
@@ -296,14 +297,14 @@ text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<c
 declare twl_st_wl[simp]
 
 definition unit_prop_body_wl_inv where
-\<open>unit_prop_body_wl_inv T j i C L \<longleftrightarrow> (C \<in># dom_m (get_clauses_wl T) \<longrightarrow>
+\<open>unit_prop_body_wl_inv T j i L \<longleftrightarrow> (i < length (watched_by T L) \<and>
+   (fst (watched_by T L ! i) \<in># dom_m (get_clauses_wl T) \<longrightarrow>
     (\<exists>T'. (T, T') \<in> state_wl_l (Some (L, i)) \<and> j \<le> i \<and>
     unit_propagation_inner_loop_body_l_inv L (fst (watched_by T L ! i))
        (remove_one_lit_from_wq (fst (watched_by T L ! i)) T')\<and>
     L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) + get_unit_clauses_wl T) \<and>
-    correct_watching_except j i L T \<and>
-    i < length (watched_by T L) \<and>
-    get_conflict_wl T = None))\<close>
+     correct_watching_except j i L T \<and>
+    get_conflict_wl T = None)))\<close>
 
 definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>propagate_lit_wl = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W).
@@ -313,6 +314,10 @@ definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow>
 definition keep_watch where
   \<open>keep_watch = (\<lambda>L i j (M, N,  D, NE, UE, Q, W).
       (M, N,  D, NE, UE, Q, W(L := W L[i := W L ! j])))\<close>
+
+lemma length_watched_by_keep_watch[twl_st_wl]:
+  \<open>length (watched_by (keep_watch L i j S) K) = length (watched_by S K)\<close>
+  by (cases S) (auto simp: keep_watch_def)
 
 definition update_clause_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
@@ -756,7 +761,7 @@ definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow
       ASSERT(unit_propagation_inner_loop_wl_loop_inv L (j, w, S));
       let (C, K) = (watched_by S L) ! w;
       let S = keep_watch L j w S;
-      ASSERT(unit_prop_body_wl_inv S j w C L);
+      ASSERT(unit_prop_body_wl_inv S j w L);
       let val_K = polarity (get_trail_wl S) K;
       if val_K = Some True
       then RETURN (j+1, w+1, S)
@@ -812,7 +817,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
       let b = (C \<notin># dom_m (get_clauses_wl S));
       if b then do {
         let S = keep_watch L j w S;
-        ASSERT(unit_prop_body_wl_inv S j w C L);
+        ASSERT(unit_prop_body_wl_inv S j w L);
         let K = K;
         let val_K = polarity (get_trail_wl S) K in
         if val_K = Some True
@@ -822,7 +827,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
       }
       else do {
         let S' = keep_watch L j w S;
-        ASSERT(unit_prop_body_wl_inv S' j w C L);
+        ASSERT(unit_prop_body_wl_inv S' j w L);
         K \<leftarrow> SPEC((=) K);
         let val_K = polarity (get_trail_wl S') K in
         if val_K = Some True
@@ -861,7 +866,7 @@ proof -
       let b = (C \<notin># dom_m (get_clauses_wl S));
       if b then do {
         let S = keep_watch L j w S;
-        ASSERT(unit_prop_body_wl_inv S j w C L);
+        ASSERT(unit_prop_body_wl_inv S j w L);
         let K = K;
         let val_K = polarity (get_trail_wl S) K in
         if val_K = Some True
@@ -897,7 +902,7 @@ proof -
       }
       else do {
         let S' = keep_watch L j w S;
-        ASSERT(unit_prop_body_wl_inv S' j w C L);
+        ASSERT(unit_prop_body_wl_inv S' j w L);
         K \<leftarrow> SPEC((=) K);
         let val_K = polarity (get_trail_wl S') K in
         if val_K = Some True
@@ -1069,7 +1074,7 @@ lemma [twl_st_wl]:
   \<open>get_conflict_wl (keep_watch L j w S) = get_conflict_wl S\<close>
   \<open>get_trail_wl (keep_watch L j w S) = get_trail_wl S\<close>
   by (cases S; auto simp: keep_watch_def; fail)+
-
+declare twl_st_wl[simp]
 
 lemma correct_watching_except_correct_watching_except_propagate_lit_wl:
   assumes
@@ -1128,6 +1133,16 @@ proof -
     by blast
 qed
 
+(* TODO Move *)
+lemma watched_by_keep_watch_neq[twl_st_wl, simp]:
+  \<open>w < length (watched_by S L) \<Longrightarrow> watched_by (keep_watch L j w S) L ! w = watched_by S L ! w\<close>
+  by (cases S) (auto simp: keep_watch_def)
+
+lemma watched_by_keep_watch_eq[twl_st_wl, simp]:
+  \<open>j < length (watched_by S L) \<Longrightarrow> watched_by (keep_watch L j w S) L ! j = watched_by S L ! w\<close>
+  by (cases S) (auto simp: keep_watch_def)
+(* End Move *)
+
 lemma
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
   defines [simp]: \<open>C' \<equiv> fst (watched_by S L ! w)\<close>
@@ -1178,7 +1193,7 @@ proof -
   define i :: nat where
     \<open>i \<equiv> (if get_clauses_wl S \<propto> C' ! 0 = L then 0 else 1)\<close>
   have
-    l_wl_inv: \<open>unit_prop_body_wl_inv S j w C' L\<close> (is ?inv) and
+    l_wl_inv: \<open>unit_prop_body_wl_inv S j w L\<close> (is ?inv) and
     clause_ge_0: \<open>0 < length (get_clauses_l T \<propto> C')\<close> (is ?ge) and
     L_def: \<open>defined_lit (get_trail_wl S) L\<close> \<open>-L \<in> lits_of_l (get_trail_wl S)\<close>
       \<open>L \<notin> lits_of_l (get_trail_wl S)\<close> (is ?L_def) and
@@ -1368,7 +1383,7 @@ proof -
   qed
   have trail_keep_w: \<open>get_trail_wl (keep_watch L j w S) = get_trail_wl S\<close> for L j w S
     by (cases S) (auto simp: keep_watch_def)
-  have unit_prop_body_wl_inv: \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w x1 L\<close>
+  have unit_prop_body_wl_inv: \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w L\<close>
     if
       \<open>clauses_to_update_l S' \<noteq> {#} \<or> 0 < n\<close> and
       loop_l: \<open>unit_propagation_inner_loop_l_inv L (S', n)\<close> and
@@ -1416,12 +1431,15 @@ proof -
     then have \<open>L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_clauses_wl S)\<close>
       using alien_L'' by fast
     then show ?thesis
-      using j_w
+      using j_w w_le
       unfolding unit_prop_body_wl_inv_def
-      apply (intro impI)
-      apply (rule exI[of _ S'])
-      using inv X2 w_le S_S'
-      by (auto simp: corr_w' corr_w remove_one_lit_from_wq_def twl_st_wl)
+      apply (intro impI conjI)
+      subgoal using w_le by auto
+      subgoal
+        apply (rule exI[of _ S'])
+        using inv X2 w_le S_S'
+        by (auto simp: corr_w' corr_w remove_one_lit_from_wq_def)
+      done
   qed
   have [refine0]: \<open>SPEC ((=) x2) \<le> SPEC (\<lambda>K. K \<in> set (get_clauses_l (fst X2) \<propto> snd X2))\<close>
     if
@@ -1435,7 +1453,7 @@ proof -
       \<open>clauses_to_update_l S' \<noteq> {#}\<close> and
       X2: \<open>(keep_watch L j w S, X2) \<in> ?keep_watch\<close> and
       \<open>unit_propagation_inner_loop_body_l_inv L (snd X2) (fst X2)\<close> and
-      \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w x1 L\<close>
+      \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w L\<close>
       for x1 x2 X2 b
   proof -
     have [simp]: \<open>x2 = bL\<close> \<open>x1 = C'\<close>
@@ -1487,7 +1505,7 @@ proof -
       \<open>((C', bL), b) \<in> ?blit\<close> and
       \<open>(C', bL) = (x1, x2)\<close> and
       \<open>x1 \<notin># dom_m (get_clauses_wl S)\<close> and
-      \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w x1 L\<close>
+      \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w L\<close>
     for b x1 x2
     using S_S' w_le j_w n that confl_S
     by (auto simp: keep_watch_state_wl assert_bind_spec_conv Let_def twl_st_wl
@@ -1633,7 +1651,7 @@ proof -
       \<open>clauses_to_update_l S' \<noteq> {#}\<close> and
       X2: \<open>(keep_watch L j w S, X2) \<in> ?keep_watch\<close> and
       \<open>unit_propagation_inner_loop_body_l_inv L (snd X2) (fst X2)\<close> and
-      \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w x1 L\<close> and
+      \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w L\<close> and
       \<open>(K, x) \<in> Id\<close> and
       \<open>K \<in> Collect ((=) x2)\<close> and
       \<open>x \<in> {K. K \<in> set (get_clauses_l (fst X2) \<propto> snd X2)}\<close> and
@@ -1727,7 +1745,7 @@ proof -
       \<open>\<not> b\<close> and
       \<open>clauses_to_update_l S' \<noteq> {#}\<close> and
       X2: \<open>(keep_watch L j w S, X2) \<in> ?keep_watch\<close> and
-      wl_inv: \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w x1 L\<close> and
+      wl_inv: \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w L\<close> and
       \<open>(K, x) \<in> Id\<close> and
       \<open>K \<in> Collect ((=) x2)\<close> and
       \<open>x \<in> {K. K \<in> set (get_clauses_l (fst X2) \<propto> snd X2)}\<close> and
@@ -1763,6 +1781,11 @@ proof -
       by (cases S) (auto simp: twl_st_l)
     have dom': \<open>x1 \<in># dom_m (get_clauses_wl (keep_watch L j w S)) \<longleftrightarrow> True\<close>
       using dom by auto
+    moreover have watch_by_S_w: \<open>watched_by (keep_watch L j w S) L ! w = (x1, x2)\<close>
+      using j_w w_le SLw unfolding i_def C'_bl
+      by (cases S) (auto simp: keep_watch_def)
+    ultimately have C'_dom: \<open>fst (watched_by (keep_watch L j w S) L ! w) \<in># dom_m (get_clauses_wl (keep_watch L j w S)) \<longleftrightarrow> True\<close>
+      using SLw unfolding C'_bl by (auto simp: twl_st_wl)
     obtain x where
       S_x: \<open>(keep_watch L j w S, x) \<in> state_wl_l (Some (L, w))\<close> and
       unit_loop_inv:
@@ -1774,7 +1797,7 @@ proof -
       \<open>correct_watching_except j w L (keep_watch L j w S)\<close> and
       \<open>w < length (watched_by (keep_watch L j w S) L)\<close> and
       \<open>get_conflict_wl (keep_watch L j w S) = None\<close>
-      using wl_inv unfolding unit_prop_body_wl_inv_def dom' simp_thms apply -
+      using wl_inv unfolding unit_prop_body_wl_inv_def C'_dom simp_thms apply -
       by blast
     obtain x' where
       x_x': \<open>(set_clauses_to_update_l
@@ -1895,12 +1918,8 @@ proof -
       using dom
       by (auto simp: S ran_m_def mset_take_mset_drop_mset' dest!: multi_member_split)
 
-    have watch_by_S_w: \<open>watched_by (keep_watch L j w S) L ! w = (x1, x2)\<close>
-      using j_w w_le SLw unfolding i_def C'_bl
-      by (cases S)
-        (auto simp: keep_watch_def split: if_splits)
     then have L_i: \<open>L = N \<propto> x1 ! i\<close>
-      using L_watched ge0 ge1i SLw S_x unfolding i_def C'_bl
+      using watch_by_S_w L_watched ge0 ge1i SLw S_x unfolding i_def C'_bl
       by (auto simp: take_2_if twl_st_wl S split: if_splits)
     have i_le: \<open>i < length (N \<propto> x1)\<close>  \<open>1-i < length (N \<propto> x1)\<close>
       using watch_by_S_w ge0 ge1i S_x unfolding i'[symmetric]
@@ -1974,7 +1993,7 @@ proof -
       \<open>clauses_to_update_l S' \<noteq> {#}\<close> and
       X2: \<open>(keep_watch L j w S, X2) \<in> ?keep_watch\<close> and
       \<open>unit_propagation_inner_loop_body_l_inv L (snd X2) (fst X2)\<close> and
-      wl_inv: \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w x1 L\<close> and
+      wl_inv: \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w L\<close> and
       \<open>(K, x) \<in> Id\<close> and
       \<open>K \<in> Collect ((=) x2)\<close> and
       \<open>x \<in> {K. K \<in> set (get_clauses_l (fst X2) \<propto> snd X2)}\<close> and
@@ -2000,6 +2019,10 @@ proof -
       by (cases S) (auto simp: twl_st_l)
     have dom': \<open>x1 \<in># dom_m (get_clauses_wl (keep_watch L j w S)) \<longleftrightarrow> True\<close>
       using dom by auto
+    then have SLW_dom': \<open>fst (watched_by (keep_watch L j w S) L ! w)
+        \<in># dom_m (get_clauses_wl (keep_watch L j w S))\<close>
+      using SLw w_le unfolding C'_bl by auto
+ 
     obtain x where
       S_x: \<open>(keep_watch L j w S, x) \<in> state_wl_l (Some (L, w))\<close> and
       unit_loop_inv:
@@ -2011,7 +2034,7 @@ proof -
       \<open>correct_watching_except j w L (keep_watch L j w S)\<close> and
       \<open>w < length (watched_by (keep_watch L j w S) L)\<close> and
       \<open>get_conflict_wl (keep_watch L j w S) = None\<close>
-      using wl_inv unfolding unit_prop_body_wl_inv_def dom' simp_thms apply -
+      using wl_inv SLW_dom' unfolding unit_prop_body_wl_inv_def
       by blast
     obtain x' where
       x_x': \<open>(set_clauses_to_update_l
@@ -2218,7 +2241,7 @@ proof -
     apply (refine_rcg val f f' (*r ef*) keep_watch find_unwatched_l)
     subgoal using inner_loop_inv .
     subgoal by auto
-    subgoal unfolding unit_prop_body_wl_inv_def by auto
+    subgoal using w_le unfolding unit_prop_body_wl_inv_def by auto
     subgoal by (rule blit_final)
     subgoal by fast
     subgoal by (rule unit_prop_body_wl_inv)

@@ -496,7 +496,7 @@ definition (in isasat_input_ops) skip_and_resolve_loop_wl_D_heur_inv where
       skip_and_resolve_loop_wl_D_inv S\<^sub>0 brk S)\<close>
 
 definition  (in isasat_input_ops) update_confl_tl_wl_heur_pre
-   :: \<open>(nat \<times> nat literal) \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
+   :: \<open>(nat watcher) \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
 where
 \<open>update_confl_tl_wl_heur_pre =
   (\<lambda>((i, L), (M, N, D, W, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, clvls, cach, lbd,

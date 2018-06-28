@@ -3,7 +3,6 @@ theory IsaSAT_Decide
 begin
 
 
-
 paragraph \<open>Decide\<close>
 
 context isasat_input_bounded_nempty
