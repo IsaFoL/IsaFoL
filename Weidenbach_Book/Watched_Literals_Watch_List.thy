@@ -72,7 +72,7 @@ text \<open>
 \<close>
 
 fun all_blits_are_in_problem where
-  \<open> all_blits_are_in_problem (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
+  \<open>all_blits_are_in_problem (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
       (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)). (\<forall>(i, K)\<in>#mset (W L). K \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))))\<close>
 
 declare all_blits_are_in_problem.simps[simp del]
@@ -260,7 +260,7 @@ lemma [twl_st_wl]:
     \<open>get_unit_learned_clauses_l T = get_unit_learned_clss_wl S\<close>
     \<open>get_unit_init_clauses_l T = get_unit_init_clss_wl S\<close>
     \<open>get_unit_learned_clauses_l T = get_unit_learned_clss_wl S\<close>
-   \<open>get_unit_clauses_l T = get_unit_clauses_wl S\<close>
+    \<open>get_unit_clauses_l T = get_unit_clauses_wl S\<close>
   using assms unfolding state_wl_l_def all_clss_lf_ran_m[symmetric]
   by (cases S; cases T; cases L; auto split: option.splits simp: trail.simps; fail)+
 
@@ -297,7 +297,7 @@ text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<c
 declare twl_st_wl[simp]
 
 definition unit_prop_body_wl_inv where
-\<open>unit_prop_body_wl_inv T j i L \<longleftrightarrow> (i < length (watched_by T L) \<and>
+\<open>unit_prop_body_wl_inv T j i L \<longleftrightarrow> (i < length (watched_by T L) \<and> j \<le> i \<and>
    (fst (watched_by T L ! i) \<in># dom_m (get_clauses_wl T) \<longrightarrow>
     (\<exists>T'. (T, T') \<in> state_wl_l (Some (L, i)) \<and> j \<le> i \<and>
     unit_propagation_inner_loop_body_l_inv L (fst (watched_by T L ! i))
@@ -755,10 +755,15 @@ proof -
       (simp_all add: L' W_W' W_W2 H3 H4 drop_map)
 qed
 
+definition unit_propagation_inner_loop_wl_loop_pre where
+  \<open>unit_propagation_inner_loop_wl_loop_pre L = (\<lambda>(j, w, S).
+     w < length (watched_by S L) \<and> j \<le> w \<and>
+     unit_propagation_inner_loop_wl_loop_inv L (j, w, S))\<close>
+
 definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
   \<open>unit_propagation_inner_loop_body_wl L j w S = do {
-      ASSERT(unit_propagation_inner_loop_wl_loop_inv L (j, w, S));
+      ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       let (C, K) = (watched_by S L) ! w;
       let S = keep_watch L j w S;
       ASSERT(unit_prop_body_wl_inv S j w L);
@@ -812,7 +817,7 @@ lemma if_replace_cond: \<open>(if b then P b else Q b) = (if b then P True else 
 
 lemma unit_propagation_inner_loop_body_wl_alt_def:
  \<open>unit_propagation_inner_loop_body_wl L j w S = do {
-      ASSERT(unit_propagation_inner_loop_wl_loop_inv L (j, w, S));
+      ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       let (C, K) = (watched_by S L) ! w;
       let b = (C \<notin># dom_m (get_clauses_wl S));
       if b then do {
@@ -861,7 +866,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
 proof -
   text \<open>We first define an intermediate step where both then and else branches are the same.\<close>
   have E: \<open>unit_propagation_inner_loop_body_wl L j w S = do {
-      ASSERT(unit_propagation_inner_loop_wl_loop_inv L (j, w, S));
+      ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       let (C, K) = (watched_by S L) ! w;
       let b = (C \<notin># dom_m (get_clauses_wl S));
       if b then do {
@@ -938,7 +943,7 @@ proof -
       }
    }\<close>
   (is \<open>_ = do {
-      ASSERT(unit_propagation_inner_loop_wl_loop_inv L (j, w, S));
+      ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       let (C, K) = (watched_by S L) ! w;
       let b = (C \<notin># dom_m (get_clauses_wl S));
       if b then do {
@@ -955,12 +960,12 @@ proof -
     apply (subst if_cancel)
     apply (intro bind_cong_nres case_prod_cong if_cong[OF refl] refl)
     done
-    show ?thesis
-      unfolding E
-      apply (subst if_replace_cond[of _ \<open>?P _ _\<close>])
-      unfolding if_True if_False
-      apply auto
-      done
+  show ?thesis
+    unfolding E
+    apply (subst if_replace_cond[of _ \<open>?P _ _\<close>])
+    unfolding if_True if_False
+    apply auto
+    done
 qed
 
 subsection \<open>The Functions\<close>
@@ -1000,8 +1005,7 @@ proof -
 qed
 
 lemma unit_propagation_inner_loop_body_l_with_skip_alt_def:
-  \<open>unit_propagation_inner_loop_body_l_with_skip L (S', n) =
-do {
+  \<open>unit_propagation_inner_loop_body_l_with_skip L (S', n) = do {
       ASSERT (clauses_to_update_l S' \<noteq> {#} \<or> 0 < n);
       ASSERT (unit_propagation_inner_loop_l_inv L (S', n));
       b \<leftarrow> SPEC (\<lambda>b. (b \<longrightarrow> 0 < n) \<and> (\<not> b \<longrightarrow> clauses_to_update_l S' \<noteq> {#}));
@@ -1069,7 +1073,7 @@ lemma (in -) ex_geI: \<open>P n \<Longrightarrow> n \<ge> m \<Longrightarrow> \<
   by auto
 (* End Move *)
 
-lemma [twl_st_wl]:
+lemma keep_watch_st_wl[twl_st_wl]:
   \<open>get_unit_clauses_wl (keep_watch L j w S) = get_unit_clauses_wl S\<close>
   \<open>get_conflict_wl (keep_watch L j w S) = get_conflict_wl S\<close>
   \<open>get_trail_wl (keep_watch L j w S) = get_trail_wl S\<close>
@@ -1387,7 +1391,7 @@ proof -
     if
       \<open>clauses_to_update_l S' \<noteq> {#} \<or> 0 < n\<close> and
       loop_l: \<open>unit_propagation_inner_loop_l_inv L (S', n)\<close> and
-      loop_wl: \<open>unit_propagation_inner_loop_wl_loop_inv L (j, w, S)\<close> and
+      loop_wl: \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
       \<open>((C', bL), b) \<in> ?blit\<close> and
       \<open>(C', bL) = (x1, x2)\<close> and
       \<open>\<not> x1 \<notin># dom_m (get_clauses_wl S)\<close> and
@@ -1435,6 +1439,7 @@ proof -
       unfolding unit_prop_body_wl_inv_def
       apply (intro impI conjI)
       subgoal using w_le by auto
+      subgoal using j_w by auto
       subgoal
         apply (rule exI[of _ S'])
         using inv X2 w_le S_S'
@@ -1445,7 +1450,7 @@ proof -
     if
       \<open>clauses_to_update_l S' \<noteq> {#} \<or> 0 < n\<close> and
       \<open>unit_propagation_inner_loop_l_inv L (S', n)\<close> and
-      \<open>unit_propagation_inner_loop_wl_loop_inv L (j, w, S)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
       bL: \<open>((C', bL), b) \<in> ?blit\<close> and
       x: \<open>(C', bL) = (x1, x2)\<close> and
       x1: \<open>\<not> x1 \<notin># dom_m (get_clauses_wl S)\<close> and
@@ -1643,7 +1648,7 @@ proof -
     if
       cond: \<open>clauses_to_update_l S' \<noteq> {#} \<or> 0 < n\<close> and
       loop_inv: \<open>unit_propagation_inner_loop_l_inv L (S', n)\<close> and
-      \<open>unit_propagation_inner_loop_wl_loop_inv L (j, w, S)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
       \<open>((C', bL), b) \<in> ?blit\<close> and
       C'_bl: \<open>(C', bL) = (x1, x2)\<close> and
       dom: \<open>\<not> x1 \<notin># dom_m (get_clauses_wl S)\<close> and
@@ -1738,7 +1743,7 @@ proof -
     if
       cond: \<open>clauses_to_update_l S' \<noteq> {#} \<or> 0 < n\<close> and
       loop_inv: \<open>unit_propagation_inner_loop_l_inv L (S', n)\<close> and
-      \<open>unit_propagation_inner_loop_wl_loop_inv L (j, w, S)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
       \<open>((C', bL), b) \<in> ?blit\<close> and
       C'_bl: \<open>(C', bL) = (x1, x2)\<close> and
       dom: \<open>\<not> x1 \<notin># dom_m (get_clauses_wl S)\<close> and
@@ -1985,7 +1990,7 @@ proof -
     if
       cond: \<open>clauses_to_update_l S' \<noteq> {#} \<or> 0 < n\<close> and
       loop_inv: \<open>unit_propagation_inner_loop_l_inv L (S', n)\<close> and
-      \<open>unit_propagation_inner_loop_wl_loop_inv L (j, w, S)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
       \<open>((C', bL), b) \<in> ?blit\<close> and
       C'_bl: \<open>(C', bL) = (x1, x2)\<close> and
       dom: \<open>\<not> x1 \<notin># dom_m (get_clauses_wl S)\<close> and
@@ -2022,7 +2027,7 @@ proof -
     then have SLW_dom': \<open>fst (watched_by (keep_watch L j w S) L ! w)
         \<in># dom_m (get_clauses_wl (keep_watch L j w S))\<close>
       using SLw w_le unfolding C'_bl by auto
- 
+
     obtain x where
       S_x: \<open>(keep_watch L j w S, x) \<in> state_wl_l (Some (L, w))\<close> and
       unit_loop_inv:
@@ -2239,11 +2244,14 @@ proof -
     supply RETURN_as_SPEC_refine[refine2 del]
     supply [[goals_limit=50]]
     apply (refine_rcg val f f' (*r ef*) keep_watch find_unwatched_l)
-    subgoal using inner_loop_inv .
-    subgoal by auto
+    subgoal using inner_loop_inv w_le j_w
+      unfolding unit_propagation_inner_loop_wl_loop_pre_def by auto
+    subgoal using assms by auto
     subgoal using w_le unfolding unit_prop_body_wl_inv_def by auto
+    subgoal using w_le j_w unfolding unit_prop_body_wl_inv_def by auto
     subgoal by (rule blit_final)
-    subgoal by fast
+    subgoal unfolding unit_propagation_inner_loop_wl_loop_pre_def by fast
+    subgoal by auto
     subgoal by (rule unit_prop_body_wl_inv)
     apply assumption+
     subgoal
@@ -2293,8 +2301,7 @@ definition unit_propagation_inner_loop_wl_loop
         unit_propagation_inner_loop_body_wl L j w S
       })
       (0, 0, S\<^sub>0)
-  }
-  \<close>
+  }\<close>
 
 lemma correct_watching_except_correct_watching_cut_watch:
   assumes corr: \<open>correct_watching_except j w L (a, b, c, d, e, f, g)\<close>

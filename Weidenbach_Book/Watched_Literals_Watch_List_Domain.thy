@@ -826,11 +826,16 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_inv where
       literals_are_\<L>\<^sub>i\<^sub>n S \<and> L \<in> snd ` D\<^sub>0 \<and>
       unit_propagation_inner_loop_wl_loop_inv L (j, w, S))\<close>
 
+definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_pre where
+  \<open>unit_propagation_inner_loop_wl_loop_D_pre L = (\<lambda>(j, w, S).
+     unit_propagation_inner_loop_wl_loop_D_inv L (j, w, S) \<and>
+     unit_propagation_inner_loop_wl_loop_pre L (j, w, S))\<close>
+
 definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> nat twl_st_wl) nres\<close> where
   \<open>unit_propagation_inner_loop_body_wl_D L j w S = do {
-      ASSERT(unit_propagation_inner_loop_wl_loop_D_inv L (j, w, S));
+      ASSERT(unit_propagation_inner_loop_wl_loop_D_pre L (j, w, S));
       let (C, K) = (watched_by S L) ! w;
       let S = keep_watch L j w S;
       ASSERT(unit_prop_body_wl_D_inv S j w L);
@@ -1075,7 +1080,9 @@ proof -
     unfolding unit_propagation_inner_loop_body_wl_def
     supply [[goals_limit=1]]
     apply (refine_rcg find_unwatched f')
-    subgoal using assms unfolding unit_propagation_inner_loop_wl_loop_D_inv_def by auto
+    subgoal using assms unfolding unit_propagation_inner_loop_wl_loop_D_inv_def
+        unit_propagation_inner_loop_wl_loop_D_pre_def unit_propagation_inner_loop_wl_loop_pre_def
+      by auto
     subgoal using assms unfolding unit_prop_body_wl_D_inv_def by auto
     subgoal by simp
     subgoal by (auto simp: unit_prop_body_wl_D_inv_def)
