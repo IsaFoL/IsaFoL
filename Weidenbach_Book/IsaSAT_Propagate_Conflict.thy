@@ -876,7 +876,7 @@ lemma literals_to_update_wl_empty_heur_fast_code_literals_to_update_wl_empty[sep
 
 lemma literals_to_update_wl_literals_to_update_wl_empty:
   \<open>literals_to_update_wl_heur S = {#} \<longleftrightarrow> literals_to_update_wl_empty_heur S\<close>
-  by (cases S) (auto simp: literals_to_update_wl_empty_def literals_to_update_wl_empty_heur_def)
+  by (cases S) (auto simp: literals_to_update_wl_empty_dePf literals_to_update_wl_empty_heur_def)
 
 sepref_register unit_propagation_inner_loop_wl_D_heur
   select_and_remove_from_literals_to_update_wl_heur
