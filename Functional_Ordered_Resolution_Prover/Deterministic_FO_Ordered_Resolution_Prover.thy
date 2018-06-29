@@ -1167,7 +1167,7 @@ proof (intro order_antisym subsetI)
 
   have tl_\<rho>s: "tl ?\<rho>s = [\<rho>]"
     unfolding \<rho>_def
-    using renames_apart Nitpick.size_list_simp(2) Suc_length_conv last.simps
+    using renamings_apart_length Nitpick.size_list_simp(2) Suc_length_conv last.simps
     by (smt length_greater_0_conv list.sel(3))
 
   {

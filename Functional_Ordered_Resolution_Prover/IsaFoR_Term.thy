@@ -518,8 +518,8 @@ next
         length_nth_simps(2) length_zip min.idem nat.inject not_less_eq subst_cls_lists_def) 
 qed
 
-interpretation substitution "(\<cdot>)" "Var :: _ \<Rightarrow> ('f, nat) term" "(\<circ>\<^sub>s)" "Fun undefined" renamings_apart
-proof (standard, safe del: iffI)
+interpretation substitution "(\<cdot>)" "Var :: _ \<Rightarrow> ('f, nat) term" "(\<circ>\<^sub>s)" renamings_apart "Fun undefined"
+proof (standard)
   show "\<And>A. A \<cdot> Var = A"
     by auto
 next
