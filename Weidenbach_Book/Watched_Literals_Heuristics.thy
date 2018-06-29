@@ -2296,10 +2296,13 @@ lemma get_conflict_wl_is_None_heur_alt_def:
   by (auto simp: get_conflict_wl_is_None_heur_def split: option.splits)
 (* End Move *)
 
+thm unit_propagation_inner_loop_wl_loop_D_def
+
+
 lemma unit_propagation_inner_loop_wl_loop_D_heur_unit_propagation_inner_loop_wl_loop_D:
   \<open>(uncurry unit_propagation_inner_loop_wl_loop_D_heur,
        uncurry unit_propagation_inner_loop_wl_loop_D)
-   \<in> Id \<times>\<^sub>f twl_st_heur' \<D> \<rightarrow>\<^sub>f \<langle>nat_rel \<times>\<^sub>f twl_st_heur' \<D>\<rangle>nres_rel\<close>
+   \<in> Id \<times>\<^sub>f twl_st_heur' \<D> \<rightarrow>\<^sub>f \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur' \<D>\<rangle>nres_rel\<close>
 proof -
   have unit_propagation_inner_loop_wl_loop_D_heur_inv:
     \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv x2a x1a xa\<close>
@@ -2307,12 +2310,12 @@ proof -
       \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur' \<D>\<close> and
       \<open>y = (x1, x2)\<close> and
       \<open>x = (x1a, x2a)\<close> and
-      \<open>(xa, x') \<in> nat_rel \<times>\<^sub>f twl_st_heur' \<D>\<close> and
+      \<open>(xa, x') \<in> nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur' \<D>\<close> and
       H: \<open>unit_propagation_inner_loop_wl_loop_D_inv x1 x'\<close>
     for x y x1 x2 x1a x2a xa x'
   proof -
-    obtain w S w' S' where
-      xa: \<open>xa = (w, S)\<close> and x': \<open>x' = (w', S')\<close>
+    obtain w S w' S' j j' where
+      xa: \<open>xa = (j, w, S)\<close> and x': \<open>x' = (j', w', S')\<close>
       by (cases xa; cases x') auto
     show ?thesis
       unfolding xa unit_propagation_inner_loop_wl_loop_D_heur_inv_def prod.case
@@ -2322,7 +2325,7 @@ proof -
       by auto
   qed
   note H[refine] = unit_propagation_inner_loop_body_wl_heur_unit_propagation_inner_loop_body_wl_D
-     [THEN fref_to_Down_curry2']
+     [THEN fref_to_Down_curry3]
   show ?thesis
     unfolding unit_propagation_inner_loop_wl_loop_D_heur_def
       unit_propagation_inner_loop_wl_loop_D_def uncurry_def
@@ -2338,11 +2341,267 @@ proof -
     done
 qed
 
+
+text \<open>Must be replcaed by the real code!\<close>
+definition (in isasat_input_ops) cut_watch_list_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>cut_watch_list_heur j w L =(\<lambda>(M, N, D, Q, W, oth). do {
+      ASSERT(j \<le> length (W!nat_of_lit L) \<and> j \<le> w  \<and> nat_of_lit L < length W \<and>
+         w \<le> length (W ! (nat_of_lit L)));
+      RETURN (M, N, D, Q, W[nat_of_lit L := take j (W!(nat_of_lit L)) @ drop w (W!(nat_of_lit L))], oth)
+    })\<close>
+
+
+definition cut_watch_list_heur2
+ :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+where
+\<open>cut_watch_list_heur2 = (\<lambda>j w L (M, N, D, Q, W, oth). do {
+  ASSERT(j \<le> length (W ! nat_of_lit L) \<and> j \<le> w \<and> nat_of_lit L < length W \<and>
+     w \<le> length (W ! (nat_of_lit L)));
+  (j, w, W) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(j, w, W). j \<le> w \<and> nat_of_lit L < length W\<^esup>
+    (\<lambda>(j, w, W). w < length (W!(nat_of_lit L)))
+    (\<lambda>(j, w, W). do {
+      ASSERT(w < length (W!(nat_of_lit L)));
+      RETURN (j+1, w+1, W[nat_of_lit L := (W!(nat_of_lit L))[j := W!(nat_of_lit L)!w]])
+    }) 
+    (j, w, W);
+  RETURN (M, N, D, Q, W, oth)
+})\<close>
+
+lemma
+  fixes W :: \<open>(nat \<times> nat literal) list list\<close>
+  shows
+    \<open>cut_watch_list_heur2 j w L (M, N, D, Q, W, oth) \<le> \<Down> Id (cut_watch_list_heur j w L (M, N, D, Q, W, oth))\<close>
+proof -
+  let ?R = \<open>measure (\<lambda>(j'::nat, w' :: nat, _ :: (nat \<times> nat literal) list list). length (W!nat_of_lit L) - w')\<close>
+  define I' where
+    \<open>I' \<equiv> \<lambda>(j', w', W'). length (W' ! (nat_of_lit L)) = length (W ! (nat_of_lit L)) \<and> j' \<le> w' \<and> w' \<ge> w \<and>
+        w' - w = j' - j \<and> j' \<ge> j \<and>
+        drop w' (W' ! (nat_of_lit L)) = drop w' (W ! (nat_of_lit L)) \<and>
+        w' \<le> length (W' ! (nat_of_lit L)) \<and>
+        W'[nat_of_lit L := take (j + w' - w) (W' ! nat_of_lit L)] =
+        W[nat_of_lit L := take (j + w' - w) ((take j (W!(nat_of_lit L)) @ drop w (W!(nat_of_lit L))))]\<close>
+  
+  have cut_watch_list_heur_alt_def:
+  \<open>cut_watch_list_heur j w L =(\<lambda>(M, N, D, Q, W, oth). do {
+      ASSERT(j \<le> length (W!nat_of_lit L) \<and> j \<le> w  \<and> nat_of_lit L < length W \<and>
+         w \<le> length (W ! (nat_of_lit L)));
+      let S =  (M, N, D, Q, W[nat_of_lit L := take j (W!(nat_of_lit L)) @ drop w (W!(nat_of_lit L))], oth);
+      RETURN S
+    })\<close>
+    unfolding cut_watch_list_heur_def by auto
+  have REC: \<open>ASSERT (x1k < length (x2k ! nat_of_lit L)) \<bind>
+        (\<lambda>_. RETURN
+              (x1j + 1, x1k + 1, x2k
+                [nat_of_lit L := (x2k ! nat_of_lit L)
+                  [x1j := x2k ! nat_of_lit L ! x1k]]))
+        \<le> SPEC
+            (\<lambda>s'. \<forall>x1 x2 x1a x2a.
+                    x2 = (x1a, x2a) \<longrightarrow>
+                    s' = (x1, x2) \<longrightarrow>
+                    (x1 \<le> x1a \<and> nat_of_lit L < length x2a) \<and>
+                    I' s' \<and>
+                    (s', s)
+                    \<in> measure (\<lambda>(j', w', _). length (W ! nat_of_lit L) - w'))\<close>
+    if 
+      st:
+        \<open>x2c = (x1d, x2d)\<close>
+        \<open>x2b = (x1c, x2c)\<close>
+        \<open>x2a = (x1b, x2b)\<close>
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>(M, N, D, Q, W, oth) = (x1, x2)\<close>
+        \<open>x2h = (x1i, x2i)\<close>
+        \<open>x2g = (x1h, x2h)\<close>
+        \<open>x2f = (x1g, x2g)\<close>
+        \<open>x2e = (x1f, x2f)\<close>
+        \<open>(M, N, D, Q, W, oth) = (x1e, x2e)\<close>
+        \<open>x2j = (x1k, x2k)\<close>
+        \<open>s = (x1j, x2j)\<close> and
+        \<open>j \<le> length (x1d ! nat_of_lit L) \<and>
+        j \<le> w \<and> nat_of_lit L < length x1d \<and> w \<le> length (x1d ! nat_of_lit L)\<close> and
+      pre: \<open>j \<le> length (x1i ! nat_of_lit L) \<and>
+        j \<le> w \<and> nat_of_lit L < length x1i \<and> w \<le> length (x1i ! nat_of_lit L)\<close> and
+      I: \<open>case s of (j, w, W) \<Rightarrow> j \<le> w \<and> nat_of_lit L < length W\<close> and
+      I': \<open>I' s\<close> and
+      cond: \<open>case s of (j, w, W) \<Rightarrow> w < length (W ! nat_of_lit L)\<close>
+      for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i
+          x2i s x1j x2j x1k x2k
+    proof -
+      have [simp]:
+        \<open>x2c = (W, oth)\<close>
+        \<open>x2b = (Q, W, oth)\<close>
+        \<open>x2a = (D, Q, W, oth)\<close>
+        \<open>x2 = (N, D, Q, W, oth)\<close>
+        \<open>x2h = (W, oth)\<close>
+        \<open>x2g = (Q, W, oth)\<close>
+        \<open>x2f = (D, Q, W, oth)\<close>
+        \<open>x2e = (N, D, Q, W, oth)\<close>
+        \<open>x1 = M\<close>
+        \<open>x1e = M\<close>
+        \<open>x1a = N\<close>
+        \<open>x1f = N\<close>
+        \<open>x1b = D\<close>
+        \<open>x1g = D\<close>
+        \<open>x1c = Q\<close>
+        \<open>x1h = Q\<close>
+        \<open>x1d = W\<close>
+        \<open>x2d = oth\<close>
+        \<open>x1i = W\<close>
+        \<open>x2i = oth\<close>
+        \<open>s = (x1j, x1k, x2k)\<close>
+        using st(1-4,6-9,11-12) st(5)[symmetric] st(10)[symmetric]
+        by auto
+      have [simp]: \<open>x1k < length (x2k ! nat_of_lit L)\<close> and
+        \<open>length (W ! nat_of_lit L) - Suc x1k < length (W ! nat_of_lit L) - x1k\<close>
+        using cond I I' unfolding I'_def by auto
+      moreover have \<open>x1j \<le> x1k\<close> \<open>nat_of_lit L < length x2k\<close>
+        using I I' unfolding I'_def by auto
+      moreover have \<open>I' (Suc x1j, Suc x1k, x2k
+        [nat_of_lit L := (x2k ! nat_of_lit L)[x1j := x2k ! nat_of_lit L ! x1k]])\<close>
+      proof -
+        have ball_leI:  \<open>(\<And>x. x < A \<Longrightarrow> P x) \<Longrightarrow> (\<forall>x < A. P x)\<close> for A P
+          by auto
+        have H: \<open>\<And>i. x2k[nat_of_lit L := take (j + x1k - w) (x2k ! nat_of_lit L)] ! i = W
+    [nat_of_lit L :=
+       take (min (j + x1k - w) j) (W ! nat_of_lit L) @
+       take (j + x1k - (w + min (length (W ! nat_of_lit L)) j))
+        (drop w (W ! nat_of_lit L))] ! i\<close> and
+      H': \<open>x2k[nat_of_lit L := take (j + x1k - w) (x2k ! nat_of_lit L)] = W
+          [nat_of_lit L :=
+       take (min (j + x1k - w) j) (W ! nat_of_lit L) @
+       take (j + x1k - (w + min (length (W ! nat_of_lit L)) j))
+        (drop w (W ! nat_of_lit L))]\<close> and
+        \<open>j < length (W ! nat_of_lit L)\<close> and
+        \<open>(length (W ! nat_of_lit L) - w) \<ge> (Suc x1k - w)\<close> and
+        \<open>x1k \<ge> w\<close>
+        \<open>nat_of_lit L < length x1i\<close> and
+        \<open>j + x1k - w = x1j\<close> and
+        \<open>x1j - j = x1k - w\<close> and
+         \<open>x1j < length (W ! nat_of_lit L)\<close> and
+         \<open>length (x2k ! nat_of_lit L) = length (W ! nat_of_lit L)\<close> and
+         \<open>drop x1k (x2k ! (nat_of_lit L)) = drop x1k (W ! (nat_of_lit L))\<close>
+        \<open>x1j \<ge> j\<close>  and
+        \<open>w + x1j - j = x1k\<close>
+          using I I' pre cond unfolding I'_def by auto
+        have
+          [simp]: \<open>min x1j j = j\<close>
+          using \<open>x1j \<ge> j\<close> unfolding min_def by auto
+        have \<open>x2k[nat_of_lit L := take (Suc (j + x1k) - w) (x2k[nat_of_lit L := (x2k ! nat_of_lit L)
+                  [x1j := x2k ! nat_of_lit L ! x1k]] ! nat_of_lit L)] =
+           W[nat_of_lit L := take j (W ! nat_of_lit L) @ take (Suc (j + x1k) - (w + min (length (W ! nat_of_lit L)) j))
+               (drop w (W ! nat_of_lit L))]\<close>
+          using cond I \<open>j < length (W ! nat_of_lit L)\<close> and
+           \<open>(length (W ! nat_of_lit L) - w) \<ge> (Suc x1k - w)\<close> and
+            \<open>x1k \<ge> w\<close>
+            \<open>nat_of_lit L < length x1i\<close>
+            \<open>j + x1k - w = x1j\<close> \<open>x1j < length (W ! nat_of_lit L)\<close> 
+          apply (subst list_eq_iff_nth_eq)
+          apply -
+          apply (intro conjI ball_leI)
+          subgoal using arg_cong[OF H', of length] by auto
+          subgoal for k
+            apply (cases \<open>k \<noteq> nat_of_lit L\<close>)
+            subgoal using H[of k] by auto
+            subgoal
+              using H[of k] \<open>x1j < length (W ! nat_of_lit L)\<close> 
+                \<open>length (x2k ! nat_of_lit L) = length (W ! nat_of_lit L)\<close>
+                arg_cong[OF \<open>drop x1k (x2k ! (nat_of_lit L)) = drop x1k (W ! (nat_of_lit L))\<close>,
+                   of \<open>\<lambda>xs. xs ! 0\<close>] \<open>x1j \<ge> j\<close>
+              apply (cases \<open>Suc x1j = length (W ! nat_of_lit L)\<close>)
+              apply (auto simp add: Suc_diff_le take_Suc_conv_app_nth \<open>j + x1k - w = x1j\<close>
+                 \<open>x1j - j = x1k - w\<close>[symmetric] \<open>w + x1j - j = x1k\<close>)
+                 apply (metis append.assoc le_neq_implies_less list_update_id nat_in_between_eq(1)
+                   not_less_eq take_Suc_conv_app_nth take_all)
+                by (metis (no_types, lifting) \<open>x1j < length (W ! nat_of_lit L)\<close> append.assoc
+                  take_Suc_conv_app_nth take_update_last)
+            done
+          done
+        then show ?thesis
+          unfolding I'_def prod.case
+          using I I' cond unfolding I'_def by (auto simp: Cons_nth_drop_Suc[symmetric])
+      qed
+      ultimately show ?thesis
+        by auto
+    qed
+  (* have \<open>(s, x1, x1a, x1b, x1c, x1d
+        [nat_of_lit L :=
+            take j (x1d ! nat_of_lit L) @ drop w (x1d ! nat_of_lit L)],
+        x2d)
+        \<in> Id\<close>
+    if 
+      \<open>x2c = (x1d, x2d)\<close> and
+      \<open>x2b = (x1c, x2c)\<close> and
+      \<open>x2a = (x1b, x2b)\<close> and
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>(M, N, D, Q, W, oth) = (x1, x2)\<close> and
+      \<open>x2h = (x1i, x2i)\<close> and
+      \<open>x2g = (x1h, x2h)\<close> and
+      \<open>x2f = (x1g, x2g)\<close> and
+      \<open>x2e = (x1f, x2f)\<close> and
+      \<open>(M, N, D, Q, W, oth) = (x1e, x2e)\<close> and
+      \<open>j \<le> length (x1d ! nat_of_lit L) \<and>
+      j \<le> w \<and> nat_of_lit L < length x1d \<and> w \<le> length (x1d ! nat_of_lit L)\<close> and
+      \<open>j \<le> length (x1i ! nat_of_lit L) \<and>
+      j \<le> w \<and> nat_of_lit L < length x1i \<and> w \<le> length (x1i ! nat_of_lit L)\<close> and
+      \<open>case s of (j, w, W) \<Rightarrow> j \<le> w \<and> nat_of_lit L < length W\<close> and
+      \<open>I' s\<close> and
+      \<open>\<not> (case s of (j, w, W) \<Rightarrow> w < length (W ! nat_of_lit L))\<close>
+    for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i
+       x2i s
+  proof -
+    show ?thesis sorry
+  qed *)
+
+  show ?thesis
+    unfolding cut_watch_list_heur2_def cut_watch_list_heur_alt_def
+    apply (refine_rcg WHILEIT_rule_stronger_inv[where R = ?R and 
+      I' = I'])
+
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal unfolding I'_def by auto
+    subgoal unfolding I'_def by auto
+    subgoal by (rule REC)
+    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i
+       x2i s
+       explore_have
+       
+        sorry
+    subgoal sorry
+    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i
+        x2i s x1j x2j x1k x2k
+    explore_have
+    
+     unfolding I'_def apply (auto simp: all_set_conv_all_nth) sorry
+    subgoal unfolding I'_def sorry
+    subgoal by auto
+find_theorems nth Ball " _ = _"
+thm all_set_conv_all_nth
+
+lemma cut_watch_list_heur_cut_watch_list_heur:
+  \<open>(uncurry3 cut_watch_list_heur, uncurry3 cut_watch_list) \<in> 
+  [\<lambda>(((j, w), L), S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> j \<le> length (watched_by S L)]\<^sub>f
+  nat_rel  \<times>\<^sub>f  nat_rel  \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur' \<D> \<rightarrow> \<langle>twl_st_heur' \<D>\<rangle>nres_rel\<close>
+    unfolding cut_watch_list_heur_def cut_watch_list_def uncurry_def
+  apply (intro frefI nres_relI)
+  apply refine_vcg
+  subgoal
+    by (auto simp: cut_watch_list_heur_def cut_watch_list_def twl_st_heur'_def
+      twl_st_heur_def map_fun_rel_def)
+  subgoal
+    by (auto simp: cut_watch_list_heur_def cut_watch_list_def twl_st_heur'_def
+      twl_st_heur_def map_fun_rel_def)
+  done
+
 definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>unit_propagation_inner_loop_wl_D_heur L S\<^sub>0 = do {
-     wS \<leftarrow> unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0;
-     RETURN (snd wS)
+     (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0;
+     S \<leftarrow> cut_watch_list_heur j w L S;
+     RETURN S
   }\<close>
 
 lemma unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D:
@@ -2351,8 +2610,8 @@ lemma unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D:
   unfolding unit_propagation_inner_loop_wl_D_heur_def
     unit_propagation_inner_loop_wl_D_def uncurry_def
     apply (intro frefI nres_relI)
-  apply (refine_vcg
-      unit_propagation_inner_loop_wl_loop_D_heur_unit_propagation_inner_loop_wl_loop_D[THEN fref_to_Down_curry])
+  apply (refine_vcg cut_watch_list_heur_cut_watch_list_heur[of \<D>, THEN fref_to_Down_curry3]
+      unit_propagation_inner_loop_wl_loop_D_heur_unit_propagation_inner_loop_wl_loop_D[of \<D>, THEN fref_to_Down_curry])
   by auto
 
 definition (in isasat_input_ops)  select_and_remove_from_literals_to_update_wl_heur
@@ -2426,6 +2685,7 @@ theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle> nres_rel\<close>
   using twl_st_heur'D_twl_st_heurD[OF unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D']
   .
-end
+
+end 
 
 end
