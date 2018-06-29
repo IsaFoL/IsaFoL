@@ -2364,10 +2364,11 @@ where
       RETURN (j+1, w+1, W[nat_of_lit L := (W!(nat_of_lit L))[j := W!(nat_of_lit L)!w]])
     }) 
     (j, w, W);
+  let W = W[nat_of_lit L := take j (W ! nat_of_lit L)];
   RETURN (M, N, D, Q, W, oth)
 })\<close>
 
-lemma
+lemma cut_watch_list_heur2_cut_watch_list_heur:
   fixes W :: \<open>(nat \<times> nat literal) list list\<close>
   shows
     \<open>cut_watch_list_heur2 j w L (M, N, D, Q, W, oth) \<le> \<Down> Id (cut_watch_list_heur j w L (M, N, D, Q, W, oth))\<close>
@@ -2385,71 +2386,29 @@ proof -
   \<open>cut_watch_list_heur j w L =(\<lambda>(M, N, D, Q, W, oth). do {
       ASSERT(j \<le> length (W!nat_of_lit L) \<and> j \<le> w  \<and> nat_of_lit L < length W \<and>
          w \<le> length (W ! (nat_of_lit L)));
-      let S =  (M, N, D, Q, W[nat_of_lit L := take j (W!(nat_of_lit L)) @ drop w (W!(nat_of_lit L))], oth);
-      RETURN S
+      let W = W[nat_of_lit L := take j (W!(nat_of_lit L)) @ drop w (W!(nat_of_lit L))];
+      RETURN (M, N, D, Q, W, oth)
     })\<close>
     unfolding cut_watch_list_heur_def by auto
   have REC: \<open>ASSERT (x1k < length (x2k ! nat_of_lit L)) \<bind>
-        (\<lambda>_. RETURN
-              (x1j + 1, x1k + 1, x2k
-                [nat_of_lit L := (x2k ! nat_of_lit L)
-                  [x1j := x2k ! nat_of_lit L ! x1k]]))
-        \<le> SPEC
-            (\<lambda>s'. \<forall>x1 x2 x1a x2a.
-                    x2 = (x1a, x2a) \<longrightarrow>
-                    s' = (x1, x2) \<longrightarrow>
-                    (x1 \<le> x1a \<and> nat_of_lit L < length x2a) \<and>
-                    I' s' \<and>
-                    (s', s)
-                    \<in> measure (\<lambda>(j', w', _). length (W ! nat_of_lit L) - w'))\<close>
+      (\<lambda>_. RETURN (x1j + 1, x1k + 1, x2k [nat_of_lit L := (x2k ! nat_of_lit L) [x1j :=
+                    x2k ! nat_of_lit L !
+                    x1k]]))
+      \<le> SPEC (\<lambda>s'. \<forall>x1 x2 x1a x2a. x2 = (x1a, x2a) \<longrightarrow> s' = (x1, x2) \<longrightarrow>
+          (x1 \<le> x1a \<and> nat_of_lit L < length x2a) \<and> I' s' \<and>
+          (s', s) \<in> measure (\<lambda>(j', w', _). length (W ! nat_of_lit L) - w'))\<close>
     if 
-      st:
-        \<open>x2c = (x1d, x2d)\<close>
-        \<open>x2b = (x1c, x2c)\<close>
-        \<open>x2a = (x1b, x2b)\<close>
-        \<open>x2 = (x1a, x2a)\<close>
-        \<open>(M, N, D, Q, W, oth) = (x1, x2)\<close>
-        \<open>x2h = (x1i, x2i)\<close>
-        \<open>x2g = (x1h, x2h)\<close>
-        \<open>x2f = (x1g, x2g)\<close>
-        \<open>x2e = (x1f, x2f)\<close>
-        \<open>(M, N, D, Q, W, oth) = (x1e, x2e)\<close>
-        \<open>x2j = (x1k, x2k)\<close>
-        \<open>s = (x1j, x2j)\<close> and
-        \<open>j \<le> length (x1d ! nat_of_lit L) \<and>
-        j \<le> w \<and> nat_of_lit L < length x1d \<and> w \<le> length (x1d ! nat_of_lit L)\<close> and
-      pre: \<open>j \<le> length (x1i ! nat_of_lit L) \<and>
-        j \<le> w \<and> nat_of_lit L < length x1i \<and> w \<le> length (x1i ! nat_of_lit L)\<close> and
+      \<open>j \<le> length (W ! nat_of_lit L) \<and> j \<le> w \<and> nat_of_lit L < length W \<and>
+          w \<le> length (W ! nat_of_lit L)\<close> and
+      pre: \<open>j \<le> length (W ! nat_of_lit L) \<and> j \<le> w \<and> nat_of_lit L < length W \<and>
+          w \<le> length (W ! nat_of_lit L)\<close> and
       I: \<open>case s of (j, w, W) \<Rightarrow> j \<le> w \<and> nat_of_lit L < length W\<close> and
       I': \<open>I' s\<close> and
-      cond: \<open>case s of (j, w, W) \<Rightarrow> w < length (W ! nat_of_lit L)\<close>
-      for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i
-          x2i s x1j x2j x1k x2k
-    proof -
-      have [simp]:
-        \<open>x2c = (W, oth)\<close>
-        \<open>x2b = (Q, W, oth)\<close>
-        \<open>x2a = (D, Q, W, oth)\<close>
-        \<open>x2 = (N, D, Q, W, oth)\<close>
-        \<open>x2h = (W, oth)\<close>
-        \<open>x2g = (Q, W, oth)\<close>
-        \<open>x2f = (D, Q, W, oth)\<close>
-        \<open>x2e = (N, D, Q, W, oth)\<close>
-        \<open>x1 = M\<close>
-        \<open>x1e = M\<close>
-        \<open>x1a = N\<close>
-        \<open>x1f = N\<close>
-        \<open>x1b = D\<close>
-        \<open>x1g = D\<close>
-        \<open>x1c = Q\<close>
-        \<open>x1h = Q\<close>
-        \<open>x1d = W\<close>
-        \<open>x2d = oth\<close>
-        \<open>x1i = W\<close>
-        \<open>x2i = oth\<close>
-        \<open>s = (x1j, x1k, x2k)\<close>
-        using st(1-4,6-9,11-12) st(5)[symmetric] st(10)[symmetric]
-        by auto
+      cond: \<open>case s of (j, w, W) \<Rightarrow> w < length (W ! nat_of_lit L)\<close> and
+      [simp]: \<open>x2 = (x1k, x2k)\<close> and
+      [simp]: \<open>s = (x1j, x2)\<close>
+    for s x1j x2 x1k x2k
+  proof -
       have [simp]: \<open>x1k < length (x2k ! nat_of_lit L)\<close> and
         \<open>length (W ! nat_of_lit L) - Suc x1k < length (W ! nat_of_lit L) - x1k\<close>
         using cond I I' unfolding I'_def by auto
@@ -2465,22 +2424,22 @@ proof -
        take (min (j + x1k - w) j) (W ! nat_of_lit L) @
        take (j + x1k - (w + min (length (W ! nat_of_lit L)) j))
         (drop w (W ! nat_of_lit L))] ! i\<close> and
-      H': \<open>x2k[nat_of_lit L := take (j + x1k - w) (x2k ! nat_of_lit L)] = W
+          H': \<open>x2k[nat_of_lit L := take (j + x1k - w) (x2k ! nat_of_lit L)] = W
           [nat_of_lit L :=
        take (min (j + x1k - w) j) (W ! nat_of_lit L) @
        take (j + x1k - (w + min (length (W ! nat_of_lit L)) j))
         (drop w (W ! nat_of_lit L))]\<close> and
-        \<open>j < length (W ! nat_of_lit L)\<close> and
-        \<open>(length (W ! nat_of_lit L) - w) \<ge> (Suc x1k - w)\<close> and
-        \<open>x1k \<ge> w\<close>
-        \<open>nat_of_lit L < length x1i\<close> and
-        \<open>j + x1k - w = x1j\<close> and
-        \<open>x1j - j = x1k - w\<close> and
-         \<open>x1j < length (W ! nat_of_lit L)\<close> and
-         \<open>length (x2k ! nat_of_lit L) = length (W ! nat_of_lit L)\<close> and
-         \<open>drop x1k (x2k ! (nat_of_lit L)) = drop x1k (W ! (nat_of_lit L))\<close>
-        \<open>x1j \<ge> j\<close>  and
-        \<open>w + x1j - j = x1k\<close>
+          \<open>j < length (W ! nat_of_lit L)\<close> and
+          \<open>(length (W ! nat_of_lit L) - w) \<ge> (Suc x1k - w)\<close> and
+          \<open>x1k \<ge> w\<close>
+          \<open>nat_of_lit L < length W\<close> and
+          \<open>j + x1k - w = x1j\<close> and
+          \<open>x1j - j = x1k - w\<close> and
+          \<open>x1j < length (W ! nat_of_lit L)\<close> and
+          \<open>length (x2k ! nat_of_lit L) = length (W ! nat_of_lit L)\<close> and
+          \<open>drop x1k (x2k ! (nat_of_lit L)) = drop x1k (W ! (nat_of_lit L))\<close>
+          \<open>x1j \<ge> j\<close>  and
+          \<open>w + x1j - j = x1k\<close>
           using I I' pre cond unfolding I'_def by auto
         have
           [simp]: \<open>min x1j j = j\<close>
@@ -2492,7 +2451,7 @@ proof -
           using cond I \<open>j < length (W ! nat_of_lit L)\<close> and
            \<open>(length (W ! nat_of_lit L) - w) \<ge> (Suc x1k - w)\<close> and
             \<open>x1k \<ge> w\<close>
-            \<open>nat_of_lit L < length x1i\<close>
+            \<open>nat_of_lit L < length W\<close>
             \<open>j + x1k - w = x1j\<close> \<open>x1j < length (W ! nat_of_lit L)\<close> 
           apply (subst list_eq_iff_nth_eq)
           apply -
@@ -2522,40 +2481,55 @@ proof -
       ultimately show ?thesis
         by auto
     qed
-  (* have \<open>(s, x1, x1a, x1b, x1c, x1d
-        [nat_of_lit L :=
-            take j (x1d ! nat_of_lit L) @ drop w (x1d ! nat_of_lit L)],
-        x2d)
-        \<in> Id\<close>
-    if 
-      \<open>x2c = (x1d, x2d)\<close> and
-      \<open>x2b = (x1c, x2c)\<close> and
-      \<open>x2a = (x1b, x2b)\<close> and
-      \<open>x2 = (x1a, x2a)\<close> and
-      \<open>(M, N, D, Q, W, oth) = (x1, x2)\<close> and
-      \<open>x2h = (x1i, x2i)\<close> and
-      \<open>x2g = (x1h, x2h)\<close> and
-      \<open>x2f = (x1g, x2g)\<close> and
-      \<open>x2e = (x1f, x2f)\<close> and
-      \<open>(M, N, D, Q, W, oth) = (x1e, x2e)\<close> and
-      \<open>j \<le> length (x1d ! nat_of_lit L) \<and>
-      j \<le> w \<and> nat_of_lit L < length x1d \<and> w \<le> length (x1d ! nat_of_lit L)\<close> and
-      \<open>j \<le> length (x1i ! nat_of_lit L) \<and>
-      j \<le> w \<and> nat_of_lit L < length x1i \<and> w \<le> length (x1i ! nat_of_lit L)\<close> and
-      \<open>case s of (j, w, W) \<Rightarrow> j \<le> w \<and> nat_of_lit L < length W\<close> and
-      \<open>I' s\<close> and
-      \<open>\<not> (case s of (j, w, W) \<Rightarrow> w < length (W ! nat_of_lit L))\<close>
-    for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i
-       x2i s
-  proof -
-    show ?thesis sorry
-  qed *)
 
+    have step: \<open>(s, W[nat_of_lit L := take j (W ! nat_of_lit L) @ drop w (W ! nat_of_lit L)])
+      \<in>  {((i, j, W'), W). (W'[nat_of_lit L := take i (W' ! nat_of_lit L)], W) \<in> Id}\<close>
+      if 
+        \<open>j \<le> length (W ! nat_of_lit L) \<and> j \<le> w \<and> nat_of_lit L < length W \<and>
+     w \<le> length (W ! nat_of_lit L)\<close> and
+        \<open>j \<le> length (W ! nat_of_lit L) \<and> j \<le> w \<and> nat_of_lit L < length W \<and>
+     w \<le> length (W ! nat_of_lit L)\<close> and
+        \<open>case s of (j, w, W) \<Rightarrow> j \<le> w \<and> nat_of_lit L < length W\<close> and
+        \<open>I' s\<close> and
+        \<open>\<not> (case s of (j, w, W) \<Rightarrow> w < length (W ! nat_of_lit L))\<close>
+      for s
+    proof -
+      obtain j' w' W' where s: \<open>s = (j', w', W')\<close> by (cases s)
+      have
+        \<open>\<not> w' < length (W' ! nat_of_lit L)\<close> and
+        \<open>j \<le> length (W ! nat_of_lit L)\<close> and
+        \<open>j' \<le> w'\<close> and
+        \<open>nat_of_lit L < length W'\<close> and
+        \<open>length (W' ! nat_of_lit L) = length (W ! nat_of_lit L)\<close> and
+        \<open>j \<le> w\<close> and
+        \<open>j' \<le> w'\<close> and
+        \<open>nat_of_lit L < length W\<close> and
+        \<open>w \<le> length (W ! nat_of_lit L)\<close> and
+        \<open>w \<le> w'\<close> and
+        \<open>w' - w = j' - j\<close> and
+        \<open>j \<le> j'\<close> and
+        \<open>drop w' (W' ! nat_of_lit L) =
+     drop w' (W ! nat_of_lit L)\<close> and
+        \<open>w' \<le> length (W' ! nat_of_lit L)\<close> and
+        eq: \<open>W'[nat_of_lit L := take (j + w' - w) (W' ! nat_of_lit L)] =
+            W[nat_of_lit L := take (j + w' - w) (take j (W ! nat_of_lit L) @ drop w (W ! nat_of_lit L))]\<close>
+        using that unfolding I'_def that prod.case s
+        by blast+
+      then have
+        j_j': \<open>j + w' - w = j'\<close> and
+        j_le: \<open>j + w' - w = length (take j (W ! nat_of_lit L) @ drop w (W ! nat_of_lit L))\<close> and
+        w': \<open>w' = length (W ! nat_of_lit L)\<close>
+        by auto
+      show ?thesis
+        using eq \<open>j \<le> w\<close> \<open>w \<le> length (W ! nat_of_lit L)\<close> \<open>j \<le> j'\<close> \<open>w' - w = j' - j\<close>
+          \<open>w \<le> w'\<close> w'
+        unfolding j_j' j_le s
+        by (auto simp: min_def split: if_splits)
+    qed
   show ?thesis
-    unfolding cut_watch_list_heur2_def cut_watch_list_heur_alt_def
+    unfolding cut_watch_list_heur2_def cut_watch_list_heur_alt_def prod.case
     apply (refine_rcg WHILEIT_rule_stronger_inv[where R = ?R and 
-      I' = I'])
-
+      I' = I'] step)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -2565,21 +2539,18 @@ proof -
     subgoal unfolding I'_def by auto
     subgoal unfolding I'_def by auto
     subgoal by (rule REC)
-    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i
-       x2i s
-       explore_have
-       
-        sorry
-    subgoal sorry
-    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i
-        x2i s x1j x2j x1k x2k
-    explore_have
-    
-     unfolding I'_def apply (auto simp: all_set_conv_all_nth) sorry
-    subgoal unfolding I'_def sorry
-    subgoal by auto
-find_theorems nth Ball " _ = _"
-thm all_set_conv_all_nth
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal for s j is' w W'
+      by auto
+    done
+qed
 
 lemma cut_watch_list_heur_cut_watch_list_heur:
   \<open>(uncurry3 cut_watch_list_heur, uncurry3 cut_watch_list) \<in> 
