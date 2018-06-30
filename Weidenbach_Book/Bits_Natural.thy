@@ -156,4 +156,104 @@ lemma shiftl_Suc_uint32: \<open>n << Suc m = (n << m) << 1\<close> for n :: uint
   apply transfer
   by auto
 
+
+lemma nat_set_bit_0: \<open>set_bit x 0 b = nat ((bin_rest (int x)) BIT b)\<close> for x :: nat
+  by (auto simp: set_bit_nat_def)
+
+lemma nat_test_bit0_iff: \<open>n !! 0 \<longleftrightarrow> n mod 2 = 1\<close> for n :: nat
+proof -
+  have 2: \<open>2 = int 2\<close>
+    by auto
+  have [simp]: \<open>int n mod 2 = 1 \<longleftrightarrow> n mod 2 = Suc 0\<close>
+    unfolding 2 zmod_int[symmetric]
+    by auto
+
+  show ?thesis
+    unfolding test_bit_nat_def
+    by (auto simp: bin_last_def zmod_int)
+qed
+lemma test_bit_2: \<open>m > 0 \<Longrightarrow> (2*n) !! m \<longleftrightarrow> n !! (m - 1)\<close> for n :: nat
+  by (cases m)
+    (auto simp: test_bit_nat_def bin_rest_def)
+
+lemma test_bit_Suc_2: \<open>m > 0 \<Longrightarrow> Suc (2 * n) !! m \<longleftrightarrow> (2 * n) !! m\<close> for n :: nat
+  by (cases m)
+    (auto simp: test_bit_nat_def bin_rest_def)
+
+lemma bin_rest_prev_eq:
+  assumes [simp]: \<open>m > 0\<close>
+  shows  \<open>nat ((bin_rest (int w))) !! (m - Suc (0::nat)) = w !! m\<close>
+proof -
+  define m' where \<open>m' = w div 2\<close>
+  have w: \<open>w = 2 * m' \<or> w = Suc (2 * m')\<close>
+    unfolding m'_def
+    by auto
+  moreover have \<open>bin_nth (int m') (m - Suc 0) = m' !! (m - Suc 0)\<close>
+    unfolding test_bit_nat_def test_bit_int_def ..
+  ultimately show ?thesis
+    by (auto simp: bin_rest_def test_bit_2 test_bit_Suc_2)
+qed
+
+lemma bin_sc_ge0: \<open>w >= 0 ==> (0::int) \<le> bin_sc n b w\<close>
+  by (induction n arbitrary: w) auto
+
+lemma bin_to_bl_eq_nat:
+  \<open>bin_to_bl (size a) (int a) = bin_to_bl (size b) (int b) ==> a=b\<close>
+  by (metis Nat.size_nat_def size_bin_to_bl)
+
+lemma nat_bin_nth_bl: "n < m \<Longrightarrow> w !! n = nth (rev (bin_to_bl m (int w))) n" for w :: nat
+  apply (induct n arbitrary: m w)
+  subgoal for m w
+    apply clarsimp
+    apply (case_tac m, clarsimp)
+    using bin_nth_bl bin_to_bl_def test_bit_int_def test_bit_nat_def apply presburger
+    done
+  subgoal for n m w
+    apply (clarsimp simp: bin_to_bl_def)
+    apply (case_tac m, clarsimp)
+    apply (clarsimp simp: bin_to_bl_def)
+    apply (subst bin_to_bl_aux_alt)
+    apply (simp add: bin_nth_bl test_bit_nat_def)
+    done
+  done
+
+lemma bin_nth_ge_size: \<open>nat na \<le> n \<Longrightarrow> 0 \<le> na \<Longrightarrow> bin_nth na n = False\<close>
+proof (induction \<open>n\<close> arbitrary: na)
+  case 0
+  then show ?case by auto
+next
+  case (Suc n na) note IH = this(1) and H = this(2-)
+  have \<open>na = 1 \<or> 0 \<le> na div 2\<close>
+    using H by auto
+  moreover have
+    \<open>na = 0 \<or> na = 1 \<or> nat (na div 2) \<le> n\<close>
+    using H by auto
+  ultimately show ?case
+    using IH[rule_format,  of \<open>bin_rest na\<close>] H
+    by (auto simp: bin_rest_def)
+qed
+
+lemma test_bit_nat_outside: "n > size w \<Longrightarrow> \<not>w !! n" for w :: nat
+  unfolding test_bit_nat_def
+  by (auto simp: bin_nth_ge_size)
+
+lemma nat_bin_nth_bl':
+  \<open>a !! n \<longleftrightarrow> (n < size a \<and> (rev (bin_to_bl (size a) (int a)) ! n))\<close>
+  by (metis (full_types) Nat.size_nat_def bin_nth_ge_size leI nat_bin_nth_bl nat_int
+      of_nat_less_0_iff test_bit_int_def test_bit_nat_def)
+
+lemma nat_set_bit_test_bit: \<open>set_bit w n x !! m = (if m = n then x else w !! m)\<close> for w n :: nat
+  unfolding nat_bin_nth_bl'
+  apply auto
+        apply (metis bin_nth_bl bin_nth_sc bin_nth_simps(3) bin_to_bl_def int_nat_eq set_bit_nat_def)
+       apply (metis bin_nth_ge_size bin_nth_sc bin_sc_ge0 leI of_nat_less_0_iff set_bit_nat_def)
+      apply (metis bin_nth_bl bin_nth_ge_size bin_nth_sc bin_sc_ge0 bin_to_bl_def int_nat_eq leI
+      of_nat_less_0_iff set_bit_nat_def)
+     apply (metis Nat.size_nat_def bin_nth_sc_gen bin_nth_simps(3) bin_to_bl_def int_nat_eq
+      nat_bin_nth_bl' set_bit_nat_def test_bit_int_def test_bit_nat_def)
+    apply (metis Nat.size_nat_def bin_nth_bl bin_nth_sc_gen bin_to_bl_def int_nat_eq nat_bin_nth_bl
+      nat_bin_nth_bl' of_nat_less_0_iff of_nat_less_iff set_bit_nat_def)
+   apply (metis (full_types) bin_nth_bl bin_nth_ge_size bin_nth_sc_gen bin_sc_ge0 bin_to_bl_def leI of_nat_less_0_iff set_bit_nat_def)
+  by (metis bin_nth_bl bin_nth_ge_size bin_nth_sc_gen bin_sc_ge0 bin_to_bl_def int_nat_eq leI of_nat_less_0_iff set_bit_nat_def)
+
 end
