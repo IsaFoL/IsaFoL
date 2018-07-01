@@ -6,7 +6,7 @@
 section \<open>An Executable Algorithm for Clause Subsumption\<close>
 
 theory Executable_Subsumption
-  imports IsaFoR_Term TRS.Matching TRS.Term_More 
+  imports IsaFoR_Term TRS.Matching TRS.Term_More
 begin
 
 fun subsumes_list where

@@ -1167,9 +1167,8 @@ proof (intro order_antisym subsetI)
 
   have tl_\<rho>s: "tl ?\<rho>s = [\<rho>]"
     unfolding \<rho>_def
-    using renames_apart[THEN conjunct1, of "[mset D, mset C]"]
-    apply auto
-    by (smt Nitpick.size_list_simp(2) Suc_length_conv last.simps last_tl nat.distinct(1) old.nat.inject)
+    using renamings_apart_length Nitpick.size_list_simp(2) Suc_length_conv last.simps
+    by (smt length_greater_0_conv list.sel(3))
 
   {
     fix E
@@ -1707,10 +1706,10 @@ primcorec derivation_from :: "'a dstate \<Rightarrow> 'a dstate llist" where
 abbreviation Sts :: "'a dstate llist" where
   "Sts \<equiv> derivation_from St0"
 
-abbreviation gSts :: "'a wstate llist" where
-  "gSts \<equiv> lmap wstate_of_dstate Sts"
+abbreviation wSts :: "'a wstate llist" where
+  "wSts \<equiv> lmap wstate_of_dstate Sts"
 
-lemma full_deriv_gSts_trancl_weighted_RP: "full_chain (\<leadsto>\<^sub>w\<^sup>+) gSts"
+lemma full_deriv_wSts_trancl_weighted_RP: "full_chain (\<leadsto>\<^sub>w\<^sup>+) wSts"
 proof -
   have "Sts' = derivation_from St0' \<Longrightarrow> full_chain (\<leadsto>\<^sub>w\<^sup>+) (lmap wstate_of_dstate Sts')"
     for St0' Sts'
@@ -1745,54 +1744,38 @@ proof -
     by blast
 qed
 
-lemmas deriv_gSts_trancl_weighted_RP = full_chain_imp_chain[OF full_deriv_gSts_trancl_weighted_RP]
+lemmas deriv_wSts_trancl_weighted_RP = full_chain_imp_chain[OF full_deriv_wSts_trancl_weighted_RP]
 
-definition ssgSts :: "'a wstate llist" where
-  "ssgSts = (SOME gSts'. full_chain (\<leadsto>\<^sub>w) gSts' \<and> emb gSts gSts'
-     \<and> (lfinite gSts' \<longleftrightarrow> lfinite gSts) \<and> lhd gSts' = lhd gSts \<and> llast gSts' = llast gSts)"
+definition sswSts :: "'a wstate llist" where
+  "sswSts = (SOME wSts'.
+    full_chain (\<leadsto>\<^sub>w) wSts' \<and> emb wSts wSts' \<and> lhd wSts' = lhd wSts \<and> llast wSts' = llast wSts)"
 
-lemma ssgSts:
-  "full_chain (\<leadsto>\<^sub>w) ssgSts \<and> emb gSts ssgSts \<and> (lfinite ssgSts \<longleftrightarrow> lfinite gSts)
-   \<and> lhd ssgSts = lhd gSts
-   \<and> llast ssgSts = llast gSts"
-  unfolding ssgSts_def
-  by (rule someI_ex[OF full_chain_tranclp_imp_exists_full_chain[OF full_deriv_gSts_trancl_weighted_RP]])
+lemma sswSts:
+  "full_chain (\<leadsto>\<^sub>w) sswSts \<and> emb wSts sswSts \<and> lhd sswSts = lhd wSts \<and> llast sswSts = llast wSts"
+  unfolding sswSts_def
+  by (rule someI_ex[OF full_chain_tranclp_imp_exists_full_chain[OF full_deriv_wSts_trancl_weighted_RP]])
 
-lemmas full_deriv_ssgSts_weighted_RP = ssgSts[THEN conjunct1]
-lemmas emb_ssgSts = ssgSts[THEN conjunct2, THEN conjunct1]
-lemmas lfinite_ssgSts_iff = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
-lemmas lhd_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct1]
-lemmas llast_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct2]
+lemmas full_deriv_sswSts_weighted_RP = sswSts[THEN conjunct1]
+lemmas emb_sswSts = sswSts[THEN conjunct2, THEN conjunct1]
+lemmas lfinite_sswSts_iff = emb_lfinite[OF emb_sswSts]
+lemmas lhd_sswSts = sswSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
+lemmas llast_sswSts = sswSts[THEN conjunct2, THEN conjunct2, THEN conjunct2]
 
-lemmas deriv_ssgSts_weighted_RP = full_chain_imp_chain[OF full_deriv_ssgSts_weighted_RP]
+lemmas deriv_sswSts_weighted_RP = full_chain_imp_chain[OF full_deriv_sswSts_weighted_RP]
 
-lemma not_lnull_ssgSts: "\<not> lnull ssgSts"
-  using deriv_ssgSts_weighted_RP by (cases rule: chain.cases) auto
+lemma not_lnull_sswSts: "\<not> lnull sswSts"
+  using deriv_sswSts_weighted_RP by (cases rule: chain.cases) auto
 
-lemma empty_ssgP0: "wrp.P_of_wstate (lhd ssgSts) = {}"
-  unfolding lhd_ssgSts by (subst derivation_from.code) simp
+lemma empty_ssgP0: "wrp.P_of_wstate (lhd sswSts) = {}"
+  unfolding lhd_sswSts by (subst derivation_from.code) simp
 
-lemma empty_ssgQ0: "wrp.Q_of_wstate (lhd ssgSts) = {}"
-  unfolding lhd_ssgSts by (subst derivation_from.code) simp
+lemma empty_ssgQ0: "wrp.Q_of_wstate (lhd sswSts) = {}"
+  unfolding lhd_sswSts by (subst derivation_from.code) simp
 
-lemmas ssgSts_thms = full_deriv_ssgSts_weighted_RP empty_ssgP0 empty_ssgQ0
-
-lemma "clss_of_state (wrp.Liminf_wstate ssgSts) \<subseteq> clss_of_state (wrp.Liminf_wstate gSts)"
-proof (cases "lfinite Sts")
-  case fin: True
-  show ?thesis
-    by (rule equalityD1)
-      (smt fin Liminf_state_fin chain_not_lnull[OF deriv_gSts_trancl_weighted_RP]
-        lfinite_lmap[THEN iffD2] lfinite_ssgSts_iff[THEN iffD2] llast_lmap llast_ssgSts
-        llist.map_disc_iff not_lnull_ssgSts)
-next
-  case False
-  then show ?thesis
-    using clss_of_Liminf_state_inf[OF _ emb_lmap[OF emb_ssgSts], of state_of_wstate] by simp
-qed
+lemmas sswSts_thms = full_deriv_sswSts_weighted_RP empty_ssgP0 empty_ssgQ0
 
 abbreviation S_ssgQ :: "'a clause \<Rightarrow> 'a clause" where
-  "S_ssgQ \<equiv> wrp.S_gQ ssgSts"
+  "S_ssgQ \<equiv> wrp.S_gQ sswSts"
 
 abbreviation ord_\<Gamma> :: "'a inference set" where
   "ord_\<Gamma> \<equiv> ground_resolution_with_selection.ord_\<Gamma> S_ssgQ"
@@ -1818,10 +1801,10 @@ proof (induct rule: deterministic_RP.raw_induct[OF _ drp_some])
     using step by (subst derivation_from.code, cases "is_final_dstate St", auto intro!: ih)
 qed
 
-lemma lfinite_gSts: "lfinite gSts"
+lemma lfinite_wSts: "lfinite wSts"
   by (rule lfinite_lmap[THEN iffD2, OF lfinite_Sts])
 
-lemmas lfinite_ssgSts = lfinite_ssgSts_iff[THEN iffD2, OF lfinite_gSts]
+lemmas lfinite_sswSts = lfinite_sswSts_iff[THEN iffD2, OF lfinite_wSts]
 
 theorem
   deterministic_RP_saturated: "saturated_upto grounded_R" (is ?saturated) and
@@ -1835,8 +1818,8 @@ proof -
 
   have wrp: "wstate_of_dstate St0 \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (llast Sts)"
     using lfinite_chain_imp_rtranclp_lhd_llast
-    by (metis (no_types) deriv_ssgSts_weighted_RP derivation_from.disc_iff
-        derivation_from.simps(2) lfinite_Sts lfinite_ssgSts lhd_ssgSts llast_lmap llast_ssgSts
+    by (metis (no_types) deriv_sswSts_weighted_RP derivation_from.disc_iff
+        derivation_from.simps(2) lfinite_Sts lfinite_sswSts lhd_sswSts llast_lmap llast_sswSts
         llist.map_sel(1))
 
   have last_sts: "llast Sts = ?Stk"
@@ -1868,14 +1851,13 @@ proof -
       using k_steps by blast
   qed
 
-  have fin_gr_fgsts: "lfinite (lmap wrp.grounding_of_wstate ssgSts)"
-    by (rule lfinite_lmap[THEN iffD2, OF lfinite_ssgSts])
+  have fin_gr_fgsts: "lfinite (lmap wrp.grounding_of_wstate sswSts)"
+    by (rule lfinite_lmap[THEN iffD2, OF lfinite_sswSts])
 
-  have lim_last: "Liminf_llist (lmap wrp.grounding_of_wstate ssgSts) =
-    wrp.grounding_of_wstate (llast ssgSts)"
-    unfolding lfinite_Liminf_llist[OF fin_gr_fgsts]
-      llast_lmap[OF lfinite_ssgSts not_lnull_ssgSts]
-    using not_lnull_ssgSts by simp
+  have lim_last: "Liminf_llist (lmap wrp.grounding_of_wstate sswSts) =
+    wrp.grounding_of_wstate (llast sswSts)"
+    unfolding lfinite_Liminf_llist[OF fin_gr_fgsts] llast_lmap[OF lfinite_sswSts not_lnull_sswSts]
+    using not_lnull_sswSts by simp
 
   have gr_st0: "wrp.grounding_of_wstate (wstate_of_dstate St0) = grounded_N0"
     by (simp add: clss_of_state_def comp_def)
@@ -1886,11 +1868,11 @@ proof -
     then have emp_in: "{#} \<in> grounded_R"
       unfolding grounding_of_clss_def grounding_of_cls_def by (auto intro: ex_ground_subst)
 
-    have "grounded_R \<subseteq> wrp.grounding_of_wstate (llast ssgSts)"
-      unfolding r llast_ssgSts
+    have "grounded_R \<subseteq> wrp.grounding_of_wstate (llast sswSts)"
+      unfolding r llast_sswSts
       by (simp add: last_sts llast_lmap[OF lfinite_Sts] clss_of_state_def grounding_of_clss_def)
     then have gr_last_st: "grounded_R \<subseteq> wrp.grounding_of_wstate (wstate_of_dstate (llast Sts))"
-      by (simp add: lfinite_Sts llast_lmap llast_ssgSts)
+      by (simp add: lfinite_Sts llast_lmap llast_sswSts)
 
     have gr_r_fls: "\<not> I \<Turnstile>s grounded_R"
       using emp_in unfolding true_clss_def by force
@@ -1898,31 +1880,31 @@ proof -
       using gr_last_st unfolding true_clss_def by auto
 
     have ?saturated
-      unfolding wrp.ord_\<Gamma>_saturated_upto_def[OF ssgSts_thms]
-        wrp.ord_\<Gamma>_contradiction_Rf[OF ssgSts_thms emp_in] inference_system.inferences_from_def
+      unfolding wrp.ord_\<Gamma>_saturated_upto_def[OF sswSts_thms]
+        wrp.ord_\<Gamma>_contradiction_Rf[OF sswSts_thms emp_in] inference_system.inferences_from_def
       by auto
     moreover have ?model
       unfolding gr_r_fls[THEN eq_False[THEN iffD2]]
       by (rule rtranclp_imp_eq_image[of "(\<leadsto>\<^sub>w)" "\<lambda>St. I \<Turnstile>s wrp.grounding_of_wstate St", OF _ wrp,
             unfolded gr_st0 gr_last_fls[THEN eq_False[THEN iffD2]]])
-        (use wrp.weighted_RP_model[OF ssgSts_thms] in blast)
+        (use wrp.weighted_RP_model[OF sswSts_thms] in blast)
     ultimately show ?thesis
       by blast
   next
     case False
-    then have gr_last: "wrp.grounding_of_wstate (llast ssgSts) = grounded_R"
-      using final unfolding r llast_ssgSts
+    then have gr_last: "wrp.grounding_of_wstate (llast sswSts) = grounded_R"
+      using final unfolding r llast_sswSts
       by (simp add: last_sts llast_lmap[OF lfinite_Sts] clss_of_state_def comp_def
           is_final_dstate.simps)
     then have gr_last_st: "wrp.grounding_of_wstate (wstate_of_dstate (llast Sts)) = grounded_R"
-      by (simp add: lfinite_Sts llast_lmap llast_ssgSts)
+      by (simp add: lfinite_Sts llast_lmap llast_sswSts)
 
     have ?saturated
-      using wrp.weighted_RP_saturated[OF ssgSts_thms, unfolded gr_last lim_last] by auto
+      using wrp.weighted_RP_saturated[OF sswSts_thms, unfolded gr_last lim_last] by auto
     moreover have ?model
       by (rule rtranclp_imp_eq_image[of "(\<leadsto>\<^sub>w)" "\<lambda>St. I \<Turnstile>s wrp.grounding_of_wstate St", OF _ wrp,
             unfolded gr_st0 gr_last_st])
-        (use wrp.weighted_RP_model[OF ssgSts_thms] in blast)
+        (use wrp.weighted_RP_model[OF sswSts_thms] in blast)
     ultimately show ?thesis
       by blast
   qed
@@ -1943,7 +1925,7 @@ next
   then have "\<not> satisfiable grounded_R"
     using deterministic_RP_model[THEN iffD2] by blast
   then show ?rhs
-    unfolding wrp.ord_\<Gamma>_saturated_upto_complete[OF ssgSts_thms deterministic_RP_saturated] .
+    unfolding wrp.ord_\<Gamma>_saturated_upto_complete[OF sswSts_thms deterministic_RP_saturated] .
 qed
 
 end
@@ -1956,28 +1938,28 @@ theorem deterministic_RP_complete: "satisfiable grounded_N0"
 proof (rule ccontr)
   assume unsat: "\<not> satisfiable grounded_N0"
 
-  have unsat_gSts0: "\<not> satisfiable (wrp.grounding_of_wstate (lhd gSts))"
+  have unsat_wSts0: "\<not> satisfiable (wrp.grounding_of_wstate (lhd wSts))"
     using unsat by (subst derivation_from.code) (simp add: clss_of_state_def comp_def)
 
-  have bot_in_ss: "{#} \<in> Q_of_state (wrp.Liminf_wstate ssgSts)"
-    by (rule wrp.weighted_RP_complete[OF ssgSts_thms unsat_gSts0[folded lhd_ssgSts]])
-  have bot_in_lim: "{#} \<in> Q_of_state (wrp.Liminf_wstate gSts)"
+  have bot_in_ss: "{#} \<in> Q_of_state (wrp.Liminf_wstate sswSts)"
+    by (rule wrp.weighted_RP_complete[OF sswSts_thms unsat_wSts0[folded lhd_sswSts]])
+  have bot_in_lim: "{#} \<in> Q_of_state (wrp.Liminf_wstate wSts)"
   proof (cases "lfinite Sts")
     case fin: True
-    have "wrp.Liminf_wstate ssgSts = wrp.Liminf_wstate gSts"
-      by (rule Liminf_state_fin, simp_all add: fin lfinite_ssgSts_iff not_lnull_ssgSts,
+    have "wrp.Liminf_wstate sswSts = wrp.Liminf_wstate wSts"
+      by (rule Liminf_state_fin, simp_all add: fin lfinite_sswSts_iff not_lnull_sswSts,
           subst (1 2) llast_lmap,
-          simp_all add: lfinite_ssgSts_iff fin not_lnull_ssgSts llast_ssgSts)
+          simp_all add: lfinite_sswSts_iff fin not_lnull_sswSts llast_sswSts)
     then show ?thesis
       using bot_in_ss by simp
   next
     case False
     then show ?thesis
-      using bot_in_ss Q_of_Liminf_state_inf[OF _ emb_lmap[OF emb_ssgSts]] by auto
+      using bot_in_ss Q_of_Liminf_state_inf[OF _ emb_lmap[OF emb_sswSts]] by auto
   qed
   then obtain k :: nat where
     k_lt: "enat k < llength Sts" and
-    emp_in: "{#} \<in> wrp.Q_of_wstate (lnth gSts k)"
+    emp_in: "{#} \<in> wrp.Q_of_wstate (lnth wSts k)"
     unfolding Liminf_state_def Liminf_llist_def by auto
   have emp_in: "{#} \<in> Q_of_state (state_of_dstate ((deterministic_RP_step ^^ k) St0))"
   proof -

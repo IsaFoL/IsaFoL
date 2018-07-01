@@ -34,8 +34,6 @@ global_interpretation RP: deterministic_FO_resolution_prover where
   and is_tautology = RP.is_tautology
   and maximal_wrt = RP.maximal_wrt
   and reduce = RP.reduce
-(*  and reduce_from = RP.reduce_from*)
-(*  and reduce_on = RP.reduce_on*)
   and reduce_all = RP.reduce_all
   and reduce_all2 = RP.reduce_all2
   and remdups_clss = RP.remdups_clss
@@ -144,7 +142,6 @@ declare
 export_code St0 in SML
 export_code deterministic_RP in SML module_name RP
 
-
 (*arbitrary*)
 instantiation nat :: weighted begin
 definition weights_nat :: "nat weights" where "weights_nat =
@@ -156,14 +153,12 @@ instance
       intro!: wf_subset[OF wf_lex_prod])
 end
 
-
-
-definition prover:: "((nat, nat) Term.term literal list \<times> nat) list \<Rightarrow> bool" where
+definition prover :: "((nat, nat) Term.term literal list \<times> nat) list \<Rightarrow> bool" where
   "prover N = (case deterministic_RP (St0 N 0) of
       None \<Rightarrow> True
     | Some R \<Rightarrow> if [] \<in> set R then False else True)"
 
-lemma "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
+theorem FIXME_name_me: "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
   unfolding prover_def St0_def
   using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
   by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
@@ -208,13 +203,17 @@ value "prover (mk_MSC015_1 4)"
 value "prover (mk_MSC015_1 5)"
 value "prover (mk_MSC015_1 10)"
 value "prover (mk_MSC015_1 12)"
+value "prover (mk_MSC015_1 13)"
+value "prover (mk_MSC015_1 14)"
+value "prover (mk_MSC015_1 15)"
+value "prover (mk_MSC015_1 16)"
+value "prover (mk_MSC015_1 17)"
+value "prover (mk_MSC015_1 18)"
+value "prover (mk_MSC015_1 20)" \<comment>\<open>100 s\<close>
+value "prover (mk_MSC015_1 22)" \<comment>\<open>200 s\<close>
 (*
-value "prover (mk_MSC015_1 14)" -- 400s
-value "prover (mk_MSC015_1 15)" -- mem out
-value "prover (mk_MSC015_1 20)"
 value "prover (mk_MSC015_1 25)"
 *)
-
 lemma
   assumes
      "p a a a a a a a a a a a a a a"
