@@ -11,10 +11,9 @@ TODO.
 \<close>
 
 theory Deterministic_FO_Ordered_Resolution_Prover
-  imports Polynomial_Factorization.Missing_List Weighted_FO_Ordered_Resolution_Prover "../lib/Explorer"
+  imports Polynomial_Factorization.Missing_List Weighted_FO_Ordered_Resolution_Prover
 begin
 
-setup Explorer_Lib.switch_to_quotes
 
 section \<open>Library\<close>
 
