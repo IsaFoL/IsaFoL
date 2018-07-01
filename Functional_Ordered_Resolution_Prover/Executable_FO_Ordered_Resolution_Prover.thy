@@ -204,13 +204,16 @@ value "prover (mk_MSC015_1 5)"
 value "prover (mk_MSC015_1 10)"
 value "prover (mk_MSC015_1 12)"
 value "prover (mk_MSC015_1 13)"
+value "prover (mk_MSC015_1 14)"
+value "prover (mk_MSC015_1 15)"
+value "prover (mk_MSC015_1 16)"
+value "prover (mk_MSC015_1 17)"
+value "prover (mk_MSC015_1 18)"
+value "prover (mk_MSC015_1 20)" \<comment>\<open>100 s\<close>
+value "prover (mk_MSC015_1 22)" \<comment>\<open>200 s\<close>
 (*
-value "prover (mk_MSC015_1 14)" -- 400s
-value "prover (mk_MSC015_1 15)" -- mem out
-value "prover (mk_MSC015_1 20)"
 value "prover (mk_MSC015_1 25)"
 *)
-
 lemma
   assumes
      "p a a a a a a a a a a a a a a"

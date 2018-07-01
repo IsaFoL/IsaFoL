@@ -518,8 +518,8 @@ next
         length_nth_simps(2) length_zip min.idem nat.inject not_less_eq subst_cls_lists_def) 
 qed
 
-interpretation substitution "(\<cdot>)" "Var :: _ \<Rightarrow> ('f, nat) term" "(\<circ>\<^sub>s)" "Fun undefined" renamings_apart
-proof
+interpretation substitution "(\<cdot>)" "Var :: _ \<Rightarrow> ('f, nat) term" "(\<circ>\<^sub>s)" renamings_apart "Fun undefined"
+proof (standard)
   show "\<And>A. A \<cdot> Var = A"
     by auto
 next
@@ -575,11 +575,12 @@ next
     by auto
 next
   fix Cs :: "('f, nat) term clause list"
-  {
-    have "length (renamings_apart Cs) = length Cs"
-      using len_renamings_apart by auto
-  }
-  moreover
+  show "length (renamings_apart Cs) = length Cs"
+    using len_renamings_apart by auto
+next
+  fix Cs :: "('f, nat) term clause list"
+  fix \<rho> ::  "nat \<Rightarrow> ('f, nat) Term.term"
+  assume \<rho>_renaming: "\<rho> \<in> set (renamings_apart Cs)"
   {
     have inj_is_renaming:
       "\<And>\<sigma> :: ('f, nat) subst. (\<And>x. is_Var (\<sigma> x)) \<Longrightarrow> inj \<sigma> \<Longrightarrow> is_renaming \<sigma>"
@@ -611,16 +612,14 @@ next
     then have "\<forall>\<sigma> \<in> (set (renamings_apart Cs)). is_renaming \<sigma>"
       using renamings_apart_is_Var renamings_apart_inj by blast
   }
-  moreover
-  {
-    have "vars_partitioned (subst_cls_lists Cs (renamings_apart Cs))"
-      using vars_partitioned_renamings_apart by auto
-    then have "var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
-      using vars_partitioned_var_disjoint by auto
-  }
-  ultimately show "length (renamings_apart Cs) = length Cs \<and>
-    Ball (set (renamings_apart Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
-    by simp
+  then show "is_renaming \<rho>"
+    using \<rho>_renaming by auto
+next
+  fix Cs :: "('f, nat) term clause list"
+  have "vars_partitioned (subst_cls_lists Cs (renamings_apart Cs))"
+    using vars_partitioned_renamings_apart by auto
+  then show "var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
+    using vars_partitioned_var_disjoint by auto
 next
   show "\<And>\<sigma> As Bs. Fun undefined As \<cdot> \<sigma> = Fun undefined Bs \<longleftrightarrow> map (\<lambda>A. A \<cdot> \<sigma>) As = Bs"
     by simp

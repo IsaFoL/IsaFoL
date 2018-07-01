@@ -1167,9 +1167,8 @@ proof (intro order_antisym subsetI)
 
   have tl_\<rho>s: "tl ?\<rho>s = [\<rho>]"
     unfolding \<rho>_def
-    using renames_apart[THEN conjunct1, of "[mset D, mset C]"]
-    apply auto
-    by (smt Nitpick.size_list_simp(2) Suc_length_conv last.simps last_tl nat.distinct(1) old.nat.inject)
+    using renamings_apart_length Nitpick.size_list_simp(2) Suc_length_conv last.simps
+    by (smt length_greater_0_conv list.sel(3))
 
   {
     fix E
@@ -1748,21 +1747,19 @@ qed
 lemmas deriv_wSts_trancl_weighted_RP = full_chain_imp_chain[OF full_deriv_wSts_trancl_weighted_RP]
 
 definition sswSts :: "'a wstate llist" where
-  "sswSts = (SOME wSts'. full_chain (\<leadsto>\<^sub>w) wSts' \<and> emb wSts wSts'
-     \<and> (lfinite wSts' \<longleftrightarrow> lfinite wSts) \<and> lhd wSts' = lhd wSts \<and> llast wSts' = llast wSts)"
+  "sswSts = (SOME wSts'.
+    full_chain (\<leadsto>\<^sub>w) wSts' \<and> emb wSts wSts' \<and> lhd wSts' = lhd wSts \<and> llast wSts' = llast wSts)"
 
 lemma sswSts:
-  "full_chain (\<leadsto>\<^sub>w) sswSts \<and> emb wSts sswSts \<and> (lfinite sswSts \<longleftrightarrow> lfinite wSts)
-   \<and> lhd sswSts = lhd wSts
-   \<and> llast sswSts = llast wSts"
+  "full_chain (\<leadsto>\<^sub>w) sswSts \<and> emb wSts sswSts \<and> lhd sswSts = lhd wSts \<and> llast sswSts = llast wSts"
   unfolding sswSts_def
   by (rule someI_ex[OF full_chain_tranclp_imp_exists_full_chain[OF full_deriv_wSts_trancl_weighted_RP]])
 
 lemmas full_deriv_sswSts_weighted_RP = sswSts[THEN conjunct1]
 lemmas emb_sswSts = sswSts[THEN conjunct2, THEN conjunct1]
-lemmas lfinite_sswSts_iff = sswSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
-lemmas lhd_sswSts = sswSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct1]
-lemmas llast_sswSts = sswSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct2]
+lemmas lfinite_sswSts_iff = emb_lfinite[OF emb_sswSts]
+lemmas lhd_sswSts = sswSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
+lemmas llast_sswSts = sswSts[THEN conjunct2, THEN conjunct2, THEN conjunct2]
 
 lemmas deriv_sswSts_weighted_RP = full_chain_imp_chain[OF full_deriv_sswSts_weighted_RP]
 
