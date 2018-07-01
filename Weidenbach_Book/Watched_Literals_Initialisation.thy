@@ -425,10 +425,8 @@ proof -
     subgoal using wf by (auto simp: T)
     subgoal for C
       by (cases C)
-        (auto simp: T twl_st_inv.simps twl_lazy_update.simps)
-    subgoal for C
-      by (cases C)
-        (auto simp: T twl_st_inv.simps twl_lazy_update.simps)
+        (auto simp: T twl_st_inv.simps twl_lazy_update.simps twl_is_an_exception_def
+          lits_of_def uminus_lit_swap)
     subgoal for C
       using lev by (cases C)
         (auto simp: T twl_st_inv.simps twl_lazy_update.simps)

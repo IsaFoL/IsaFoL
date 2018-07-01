@@ -154,20 +154,45 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     "HOL-Eisbach"
   theories [quick_and_dirty = false, document = true]
     Bits_Natural
+    Array_UInt
     WB_Word_Assn
     WB_More_Refinement
+    Watched_Literals_Algorithm
+    Watched_Literals_List
+    Watched_Literals_Watch_List
+    Watched_Literals_Watch_List_Domain
+    Watched_Literals_Watch_List_Initialisation
 
-    Watched_Literals_VMTF
-    IsaSAT_CDCL
-    IsaSAT
-
-    (* Restarts not clear if different session of not 
+(* Restarts not clear if different session of not 
     Watched_Literals_Transition_System_Restart
     Watched_Literals_Algorithm_Restart
     Watched_Literals_List_Restart
     Watched_Literals_Watch_List_Restart
     Watched_Literals_Watch_List_Domain_Restart*)
+    
+  document_files
+    "root.tex"
+    "biblio.bib"
+
+session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
+  description \<open>IsaSAT solver\<close>
+  sessions
+    CDCL
+    "HOL-Eisbach"
+    Watched_Literals
+  theories
+    (*Watched_Literals_Transition_System_Restart*)
+    CDCL_Conflict_Minimisation
+    Watched_Literals_VMTF
+    LBD
+    IsaSAT_Setup
+    IsaSAT_CDCL
+    IsaSAT_Backtrack
     IsaSAT_Initialisation
+    IsaSAT_Propagate_Conflict
+    IsaSAT_Decide
+    IsaSAT
+
   document_files
     "root.tex"
     "biblio.bib"
@@ -195,18 +220,6 @@ session "IsaSAT_pre" (Weidenbach_Book) = "CDCL"  +
     "biblio.bib"
 
 
-session "IsaSAT_Restart" (Weidenbach_Book) = "IsaSAT_pre"  +
-  description \<open>This intermediate session loads all things prior to IsaSAT. This should fasten the development by faster startup-time. Therefore, we also don't want any documentation\<close>
-  options[document = false]
-  sessions
-    CDCL
-    "HOL-Eisbach"
-    IsaSAT_pre
-  theories
-    Watched_Literals_Transition_System_Restart
-  document_files
-    "root.tex"
-    "biblio.bib"
 *)
 
 session "CDCL_B" (Weidenbach_Book) = "CDCL_no_Sepref"  +
@@ -243,6 +256,7 @@ session Weidenbach_Book (Weidenbach_Book) = Watched_Literals +
     CDCL
     Watched_Literals
     Model_Enumeration
+    IsaSAT
   theories[document = true, quick_and_dirty]
     Weidenbach_Book
   document_files

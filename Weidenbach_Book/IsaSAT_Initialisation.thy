@@ -1,5 +1,5 @@
 theory IsaSAT_Initialisation
-  imports IsaSAT_Setup Watched_Literals_Watch_List_Initialisation
+  imports IsaSAT_Setup Watched_Literals.Watched_Literals_Watch_List_Initialisation
 begin
 
 no_notation Ref.update ("_ := _" 62)

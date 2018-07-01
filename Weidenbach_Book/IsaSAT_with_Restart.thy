@@ -1,5 +1,5 @@
 theory IsaSAT_with_Restart
-imports IsaSAT_Restart IsaSAT_pre.IsaSAT_Initialisation
+imports IsaSAT_Restart IsaSAT_Initialisation
 begin
 
 text \<open>
