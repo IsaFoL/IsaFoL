@@ -148,7 +148,7 @@ lemma empty_Q0_RP: "Q_of_state (lhd (lmap state_of_wstate Sts)) = {}"
 
 lemmas Sts_thms = deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP
 
-lemma weighted_RP_model:
+theorem weighted_RP_model:
   assumes step: "St \<leadsto>\<^sub>w St'"
   shows "I \<Turnstile>s grounding_of_wstate St' \<longleftrightarrow> I \<Turnstile>s grounding_of_wstate St"
   using RP_model Sts_thms weighted_RP_imp_RP step by (simp only: comp_def)
