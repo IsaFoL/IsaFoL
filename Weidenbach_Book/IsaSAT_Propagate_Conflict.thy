@@ -19,7 +19,7 @@ lemma watched_by_app_watched_by_app_heur:
 sepref_thm watched_by_app_heur_code
   is \<open>uncurry2 (RETURN ooo watched_by_app_heur)\<close>
   :: \<open>[watched_by_app_heur_pre]\<^sub>a
-        isasat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+        isasat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> (nat_assn *a unat_lit_assn)\<close>
   supply [[goals_limit=1]] length_rll_def[simp]
   unfolding watched_by_app_heur_alt_def isasat_assn_def nth_rll_def[symmetric]
    watched_by_app_heur_pre_def
@@ -37,7 +37,7 @@ lemmas watched_by_app_heur_code_refine[sepref_fr_rules] =
 sepref_thm watched_by_app_heur_fast_code
   is \<open>uncurry2 (RETURN ooo watched_by_app_heur)\<close>
   :: \<open>[watched_by_app_heur_pre]\<^sub>a
-        isasat_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+        isasat_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn *a unat_lit_assn\<close>
   supply [[goals_limit=1]] length_rll_def[simp]
   unfolding watched_by_app_heur_alt_def isasat_fast_assn_def nth_rll_def[symmetric]
    watched_by_app_heur_pre_def
@@ -103,13 +103,6 @@ lemma case_tri_bool_If:
     else if b = SET_TRUE then f2 else f3)\<close>
   by (auto split: option.splits)
 
-
-definition two_uint64_nat where
-  [simp]: \<open>two_uint64_nat = (2 :: nat)\<close>
-
-lemma uint64_nat_assn_two_uint64_nat[sepref_fr_rules]:
-  \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint64_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
 
 context isasat_input_bounded_nempty
 begin
@@ -506,7 +499,8 @@ proof -
     by fast
   have \<open>L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T)\<close>
     using lits_in L by (auto simp: image_image is_\<L>\<^sub>a\<^sub>l\<^sub>l_def)
-  moreover have \<open>set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T)) =
+  moreover have
+    \<open>set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T)) =
       set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl T) + get_unit_init_clss_wl T))\<close>
     apply (subst all_clss_lf_ran_m[symmetric])+
     apply (subst image_mset_union)+
@@ -514,7 +508,8 @@ proof -
     by (cases T; cases U; cases V)
       (auto simp: in_all_lits_of_mm_ain_atms_of_iff state_wl_l_def twl_st_l_def
       cdcl\<^sub>W_restart_mset.no_strange_atm_def mset_take_mset_drop_mset')
-  ultimately have 1: \<open>mset ((get_watched_wl T) L) = {#C \<in># dom_m (get_clauses_wl T). L \<in> set (watched_l ((get_clauses_wl T) \<propto> C))#}\<close>
+  ultimately have 1: \<open>mset ((get_watched_wl T) L) =
+      {#C \<in># dom_m (get_clauses_wl T). L \<in> set (watched_l ((get_clauses_wl T) \<propto> C))#}\<close>
     using corr_w by (cases T)
       (auto simp: correct_watching.simps clause_to_update_def all_lits_of_mm_union)
   then have \<open>size (mset ((get_watched_wl T) L)) \<le> size (dom_m (get_clauses_wl T))\<close>
@@ -564,7 +559,8 @@ concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_fast_code
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_fast_code_def
 
 lemmas unit_propagation_inner_loop_wl_loop_D_fast_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_loop_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+   unit_propagation_inner_loop_wl_loop_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n,
+     OF isasat_input_bounded_nempty_axioms]
 
 sepref_register unit_propagation_inner_loop_wl_loop_D_heur
 sepref_thm unit_propagation_inner_loop_wl_D
@@ -769,7 +765,8 @@ proof -
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     apply (cases x)
     using that unfolding comp_PRE_def twl_st_heur_def literals_to_update_wl_empty_heur_def
-      literals_to_update_wl_empty_def twl_st_wl_heur_W_list_rel_def literals_to_update_wl_empty_heur'_def
+      literals_to_update_wl_empty_def twl_st_wl_heur_W_list_rel_def
+      literals_to_update_wl_empty_heur'_def
     by (auto simp: image_image map_fun_rel_def Nil_list_mset_rel_iff)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep

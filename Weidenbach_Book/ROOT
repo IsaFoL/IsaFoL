@@ -162,6 +162,7 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_Watch_List
     Watched_Literals_Watch_List_Domain
     Watched_Literals_Watch_List_Initialisation
+    Watched_Literals_Watch_List_Code_Common
 
 (* Restarts not clear if different session of not 
     Watched_Literals_Transition_System_Restart

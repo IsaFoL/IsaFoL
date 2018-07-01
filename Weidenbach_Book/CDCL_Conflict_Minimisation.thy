@@ -1,5 +1,5 @@
 theory CDCL_Conflict_Minimisation
-  imports Watched_Literals_Watch_List_Domain WB_More_Refinement
+  imports Watched_Literals.Watched_Literals_Watch_List_Domain Watched_Literals.WB_More_Refinement
   IsaSAT_Trail
 begin
 

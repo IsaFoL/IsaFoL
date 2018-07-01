@@ -1,6 +1,6 @@
 theory Watched_Literals_Watch_List_Code_Common
   imports Watched_Literals_Watch_List_Domain
-    Bits_Natural WB_Word_Assn
+     Bits_Natural WB_Word_Assn
 begin
 text \<open>
   First we instantiate our types with sort heap and default, to have compatibility with code

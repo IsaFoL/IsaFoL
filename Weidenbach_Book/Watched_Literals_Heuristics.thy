@@ -1,5 +1,5 @@
 theory Watched_Literals_Heuristics
-  imports Watched_Literals_Watch_List_Code_Common IsaSAT_Setup IsaSAT_Clauses
+  imports Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT_Setup IsaSAT_Clauses
 begin
 
 subsection \<open>Getters\<close>
@@ -2559,6 +2559,15 @@ lemma cut_watch_list_heur_cut_watch_list_heur:
     unfolding cut_watch_list_heur_def cut_watch_list_def uncurry_def
   apply (intro frefI nres_relI)
   apply refine_vcg
+  subgoal
+    by (auto simp: cut_watch_list_heur_def cut_watch_list_def twl_st_heur'_def
+      twl_st_heur_def map_fun_rel_def)
+  subgoal
+    by (auto simp: cut_watch_list_heur_def cut_watch_list_def twl_st_heur'_def
+      twl_st_heur_def map_fun_rel_def)
+  subgoal
+    by (auto simp: cut_watch_list_heur_def cut_watch_list_def twl_st_heur'_def
+      twl_st_heur_def map_fun_rel_def)
   subgoal
     by (auto simp: cut_watch_list_heur_def cut_watch_list_def twl_st_heur'_def
       twl_st_heur_def map_fun_rel_def)

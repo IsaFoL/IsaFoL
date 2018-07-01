@@ -1,5 +1,5 @@
 theory Watched_Literals_VMTF
-imports Watched_Literals_Watch_List_Domain
+imports Watched_Literals.Watched_Literals_Watch_List_Domain
 begin
 
 

@@ -1,5 +1,5 @@
 theory IsaSAT_Clauses
-imports Watched_Literals_Watch_List_Code_Common
+imports  Watched_Literals.Watched_Literals_Watch_List_Code_Common
 begin
 
 subsubsection \<open>Representation of Clauses\<close>

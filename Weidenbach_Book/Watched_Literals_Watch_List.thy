@@ -2366,14 +2366,14 @@ lemma unit_propagation_inner_loop_wl_loop_alt_def:
 
 definition cut_watch_list :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>cut_watch_list j w L =(\<lambda>(M, N, D, NE, UE, Q, W). do {
-      ASSERT(j \<le> length (W L));
+      ASSERT(j \<le> w \<and> j \<le> length (W L) \<and> w \<le> length (W L));
       RETURN (M, N, D, NE, UE, Q, W(L := take j (W L) @ drop w (W L)))
     })\<close>
 
 definition unit_propagation_inner_loop_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>unit_propagation_inner_loop_wl L S\<^sub>0 = do {
      (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop L S\<^sub>0;
-     ASSERT(j \<le> w \<and> w \<le> length (watched_by S L));
+     ASSERT(j \<le> w \<and> j \<le> w \<and> w \<le> length (watched_by S L));
      cut_watch_list j w L S
   }\<close>
 
@@ -2485,7 +2485,7 @@ proof -
         unit_propagation_inner_loop_wl_alt_def
       apply (refine_vcg WHILEIT_refine_genR[where
             R' = \<open>?R'\<close> and
-            R = \<open>{((i, j, T'), (T, n)). ((i, j, T'), (T, n)) \<in> ?R' \<and>
+            R = \<open>{((i, j, T'), (T, n)). ((i, j, T'), (T, n)) \<in> ?R' \<and> i \<le> j \<and>
                (j \<ge> length (watched_by T' L) \<or> get_conflict_wl T' \<noteq> None)}\<close>]
           remaining)
       subgoal using corr_w SS' by (auto simp: correct_watching_correct_watching_except00)
