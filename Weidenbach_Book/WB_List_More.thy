@@ -97,6 +97,9 @@ section \<open>More Lists\<close>
 
 subsection \<open>set, nth, tl\<close>
 
+lemma ex_geI: \<open>P n \<Longrightarrow> n \<ge> m \<Longrightarrow> \<exists>n\<ge>m. P n\<close>
+  by auto
+
 lemma Ball_atLeastLessThan_iff: \<open>(\<forall>L\<in>{a..<b}. P L) \<longleftrightarrow> (\<forall>L. L \<ge> a \<and> L < b \<longrightarrow> P L) \<close>
   unfolding set_nths by auto
 
@@ -1382,6 +1385,10 @@ lemma dom_m_fmupd[simp]: \<open>dom_m (fmupd k C N) = add_mset k (remove1_mset k
   by (cases \<open>k |\<in>| fmdom N\<close>)
     (auto simp: mset_set.remove fmember.rep_eq mset_set.insert
     mset_set.insert_remove)
+
+lemma (in -) fmupd_same[simp]:
+  \<open>x1 \<in># dom_m x1aa \<Longrightarrow>  fmupd x1 (the (fmlookup x1aa x1)) x1aa = x1aa\<close>
+  by (metis fmap_ext fmupd_lookup in_dom_m_lookup_iff option.collapse)
 
 lemma distinct_mset_dom: \<open>distinct_mset (dom_m N)\<close>
   by (simp add: distinct_mset_mset_set dom_m_def)

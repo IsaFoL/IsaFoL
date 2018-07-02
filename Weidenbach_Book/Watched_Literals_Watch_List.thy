@@ -319,6 +319,15 @@ lemma length_watched_by_keep_watch[twl_st_wl]:
   \<open>length (watched_by (keep_watch L i j S) K) = length (watched_by S K)\<close>
   by (cases S) (auto simp: keep_watch_def)
 
+lemma watched_by_keep_watch_neq[twl_st_wl, simp]:
+  \<open>w < length (watched_by S L) \<Longrightarrow> watched_by (keep_watch L j w S) L ! w = watched_by S L ! w\<close>
+  by (cases S) (auto simp: keep_watch_def)
+
+lemma watched_by_keep_watch_eq[twl_st_wl, simp]:
+  \<open>j < length (watched_by S L) \<Longrightarrow> watched_by (keep_watch L j w S) L ! j = watched_by S L ! w\<close>
+  by (cases S) (auto simp: keep_watch_def)
+
+
 definition update_clause_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
   \<open>update_clause_wl = (\<lambda>(L::'v literal) C j w i f (M, N,  D, NE, UE, Q, W). do {
@@ -1131,21 +1140,11 @@ proof -
     using i_le
     by (cases \<open>C = ia\<close>; cases i; cases \<open>N \<propto> ia\<close>; cases \<open>tl (N \<propto> ia)\<close>) (auto simp: S swap_def)
   show ?thesis
-    using blits corr
+    using corr
     unfolding S propagate_lit_wl_def prod.simps correct_watching_except.simps Let_def
       H1 H2 H3 H4 clause_to_update_def get_clauses_l.simps H5
     by blast
 qed
-
-(* TODO Move *)
-lemma watched_by_keep_watch_neq[twl_st_wl, simp]:
-  \<open>w < length (watched_by S L) \<Longrightarrow> watched_by (keep_watch L j w S) L ! w = watched_by S L ! w\<close>
-  by (cases S) (auto simp: keep_watch_def)
-
-lemma watched_by_keep_watch_eq[twl_st_wl, simp]:
-  \<open>j < length (watched_by S L) \<Longrightarrow> watched_by (keep_watch L j w S) L ! j = watched_by S L ! w\<close>
-  by (cases S) (auto simp: keep_watch_def)
-(* End Move *)
 
 lemma
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat

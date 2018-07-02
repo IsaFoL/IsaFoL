@@ -2,32 +2,6 @@ theory IsaSAT_Propagate_Conflict
   imports IsaSAT_Setup Watched_Literals_Heuristics
 begin
 
-(* TODO Move + replace the theorems by *)
-
-lemma append_el_aa_hnr'[sepref_fr_rules]:
-  assumes \<open>CONSTRAINT is_pure R\<close>
-  shows \<open>(uncurry2 append_el_aa_u', uncurry2 (RETURN ooo append_ll))
-     \<in> [\<lambda>((W,L), j). L < length W]\<^sub>a
-        (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl_assn R))\<close>
-    (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
-  using append_aa_hnr_u[of R, simplified] assms unfolding hfref_def uint32_nat_rel_def br_def pure_def
-   hn_refine_def append_el_aa_append_el_aa_u'
-  by auto
-
-lemma append_el_aa_uint32_hnr'[sepref_fr_rules]:
-  assumes \<open>CONSTRAINT is_pure R\<close>
-  shows \<open>(uncurry2 append_el_aa_u', uncurry2 (RETURN ooo append_ll))
-     \<in> [\<lambda>((W,L), j). L < length W]\<^sub>a
-        (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow>
-       (arrayO_assn (arl_assn R))\<close>
-    (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
-  using append_aa_hnr_u[of R, simplified] assms
-   unfolding hfref_def uint32_nat_rel_def br_def pure_def
-   hn_refine_def append_el_aa_append_el_aa_u'
-  by auto
-
-(* End Move *)
-
 
 subsubsection \<open>Refining Propagate And Conflict\<close>
 
