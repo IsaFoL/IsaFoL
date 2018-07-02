@@ -2,6 +2,33 @@ theory IsaSAT_Propagate_Conflict
   imports IsaSAT_Setup Watched_Literals_Heuristics
 begin
 
+(* TODO Move + replace the theorems by *)
+
+lemma append_el_aa_hnr'[sepref_fr_rules]:
+  assumes \<open>CONSTRAINT is_pure R\<close>
+  shows \<open>(uncurry2 append_el_aa_u', uncurry2 (RETURN ooo append_ll))
+     \<in> [\<lambda>((W,L), j). L < length W]\<^sub>a
+        (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl_assn R))\<close>
+    (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
+  using append_aa_hnr_u[of R, simplified] assms unfolding hfref_def uint32_nat_rel_def br_def pure_def
+   hn_refine_def append_el_aa_append_el_aa_u'
+  by auto
+
+lemma append_el_aa_uint32_hnr'[sepref_fr_rules]:
+  assumes \<open>CONSTRAINT is_pure R\<close>
+  shows \<open>(uncurry2 append_el_aa_u', uncurry2 (RETURN ooo append_ll))
+     \<in> [\<lambda>((W,L), j). L < length W]\<^sub>a
+        (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow>
+       (arrayO_assn (arl_assn R))\<close>
+    (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
+  using append_aa_hnr_u[of R, simplified] assms
+   unfolding hfref_def uint32_nat_rel_def br_def pure_def
+   hn_refine_def append_el_aa_append_el_aa_u'
+  by auto
+
+(* End Move *)
+
+
 subsubsection \<open>Refining Propagate And Conflict\<close>
 
 paragraph \<open>Propagation, Inner Loop\<close>
@@ -196,10 +223,10 @@ lemmas set_conflict_wl_heur_fast_code[sepref_fr_rules] =
   set_conflict_wl_heur_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 sepref_thm update_clause_wl_code
-  is \<open>uncurry5 update_clause_wl_heur\<close>
+  is \<open>uncurry6 update_clause_wl_heur\<close>
   :: \<open>[update_clause_wl_code_pre]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>
-       nat_assn *a isasat_assn\<close>
+     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>
+       nat_assn *a nat_assn *a isasat_assn\<close>
   supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
   unfolding update_clause_wl_heur_def isasat_assn_def Array_List_Array.swap_ll_def[symmetric]
     fmap_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
@@ -210,21 +237,22 @@ sepref_thm update_clause_wl_code
     fmap_swap_ll_def[symmetric]
   by sepref
 
-
 concrete_definition (in -) update_clause_wl_code
   uses isasat_input_bounded_nempty.update_clause_wl_code.refine_raw
-  is \<open>(uncurry5 ?f,_)\<in>_\<close>
+  is \<open>(uncurry6 ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) update_clause_wl_code_def
 
 lemmas update_clause_wl_code[sepref_fr_rules] =
   update_clause_wl_code.refine[OF isasat_input_bounded_nempty_axioms]
 
+thm update_clause_wl_code_pre_def
 sepref_thm update_clause_wl_fast_code
-  is \<open>uncurry5 update_clause_wl_heur\<close>
-  :: \<open>[update_clause_wl_code_pre]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow>
-       uint64_nat_assn *a isasat_fast_assn\<close>
+  is \<open>uncurry6 update_clause_wl_heur\<close>
+  :: \<open>[\<lambda>((((((L, C), j), w), i), f), S). update_clause_wl_code_pre ((((((L, C), j), w), i), f), S) \<and>
+      w < uint64_max]\<^sub>a
+     unat_lit_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow>
+       uint64_nat_assn *a  uint64_nat_assn *a isasat_fast_assn\<close>
   supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
   unfolding update_clause_wl_heur_def isasat_fast_assn_def Array_List_Array.swap_ll_def[symmetric]
     fmap_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
@@ -232,12 +260,12 @@ sepref_thm update_clause_wl_fast_code
     append_ll_def[symmetric] update_clause_wl_code_pre_def
     fmap_rll_u64_def[symmetric]
     fmap_swap_ll_u64_def[symmetric]
+    one_uint64_nat_def[symmetric]
   by sepref
-
 
 concrete_definition (in -) update_clause_wl_fast_code
   uses isasat_input_bounded_nempty.update_clause_wl_fast_code.refine_raw
-  is \<open>(uncurry5 ?f,_)\<in>_\<close>
+  is \<open>(uncurry6 ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) update_clause_wl_fast_code_def
 
