@@ -2351,7 +2351,7 @@ definition (in isasat_input_ops) cut_watch_list_heur :: \<open>nat \<Rightarrow>
     })\<close>
 
 
-definition cut_watch_list_heur2
+definition (in isasat_input_ops) cut_watch_list_heur2
  :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>cut_watch_list_heur2 = (\<lambda>j w L (M, N, D, Q, W, oth). do {
@@ -2369,10 +2369,11 @@ where
 })\<close>
 
 lemma cut_watch_list_heur2_cut_watch_list_heur:
-  fixes W :: \<open>(nat \<times> nat literal) list list\<close>
   shows
-    \<open>cut_watch_list_heur2 j w L (M, N, D, Q, W, oth) \<le> \<Down> Id (cut_watch_list_heur j w L (M, N, D, Q, W, oth))\<close>
+    \<open>cut_watch_list_heur2 j w L S \<le> \<Down> Id (cut_watch_list_heur j w L S)\<close>
 proof -
+  obtain M N D Q W oth where S: \<open>S = (M, N, D, Q, W, oth)\<close>
+    by (cases S)
   let ?R = \<open>measure (\<lambda>(j'::nat, w' :: nat, _ :: (nat \<times> nat literal) list list). length (W!nat_of_lit L) - w')\<close>
   define I' where
     \<open>I' \<equiv> \<lambda>(j', w', W'). length (W' ! (nat_of_lit L)) = length (W ! (nat_of_lit L)) \<and> j' \<le> w' \<and> w' \<ge> w \<and>
@@ -2527,7 +2528,7 @@ proof -
         by (auto simp: min_def split: if_splits)
     qed
   show ?thesis
-    unfolding cut_watch_list_heur2_def cut_watch_list_heur_alt_def prod.case
+    unfolding cut_watch_list_heur2_def cut_watch_list_heur_alt_def prod.case S
     apply (refine_rcg WHILEIT_rule_stronger_inv[where R = ?R and 
       I' = I'] step)
     subgoal by auto
@@ -2580,9 +2581,12 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>unit_propagation_inner_loop_wl_D_heur L S\<^sub>0 = do {
      (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0;
-     S \<leftarrow> cut_watch_list_heur j w L S;
+     S \<leftarrow> cut_watch_list_heur2 j w L S;
      RETURN S
   }\<close>
+
+lemma (in -) Down_id_eq: "\<Down> Id a = a"
+  by auto
 
 lemma unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D:
   \<open>(uncurry unit_propagation_inner_loop_wl_D_heur, uncurry unit_propagation_inner_loop_wl_D) \<in>
@@ -2592,6 +2596,11 @@ lemma unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D:
     apply (intro frefI nres_relI)
   apply (refine_vcg cut_watch_list_heur_cut_watch_list_heur[of \<D>, THEN fref_to_Down_curry3]
       unit_propagation_inner_loop_wl_loop_D_heur_unit_propagation_inner_loop_wl_loop_D[of \<D>, THEN fref_to_Down_curry])
+  subgoal by auto
+  apply (rule order.trans)
+  apply (rule cut_watch_list_heur2_cut_watch_list_heur)
+  apply (subst Down_id_eq)
+  apply (rule cut_watch_list_heur_cut_watch_list_heur[of \<D>, THEN fref_to_Down_curry3])
   by auto
 
 definition (in isasat_input_ops)  select_and_remove_from_literals_to_update_wl_heur
@@ -2663,7 +2672,8 @@ qed
 theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
   \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl_D) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle> nres_rel\<close>
-  using twl_st_heur'D_twl_st_heurD[OF unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D']
+  using twl_st_heur'D_twl_st_heurD[OF
+     unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D']
   .
 
 end 

@@ -2373,7 +2373,7 @@ definition cut_watch_list :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v liter
 definition unit_propagation_inner_loop_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>unit_propagation_inner_loop_wl L S\<^sub>0 = do {
      (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop L S\<^sub>0;
-     ASSERT(j \<le> w \<and> j \<le> w \<and> w \<le> length (watched_by S L));
+     ASSERT(j \<le> w \<and> w \<le> length (watched_by S L));
      cut_watch_list j w L S
   }\<close>
 
