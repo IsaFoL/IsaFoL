@@ -325,6 +325,20 @@ lemmas keep_watch_heur_code[sepref_fr_rules] =
   keep_watch_heur_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def]
 
 
+sepref_thm clause_not_marked_to_delete_heur_code
+  is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
+  :: \<open>isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding clause_not_marked_to_delete_heur_def
+  by sepref
+
+concrete_definition (in -) clause_not_marked_to_delete_heur_code
+   uses isasat_input_bounded_nempty.clause_not_marked_to_delete_heur_code.refine_raw
+   is \<open>(uncurry ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) clause_not_marked_to_delete_heur_code_def
+
+lemmas clause_not_marked_to_delete_heur_refine[sepref_fr_rules] =
+   clause_not_marked_to_delete_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 end
 

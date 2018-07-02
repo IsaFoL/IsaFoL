@@ -285,6 +285,39 @@ lemma convert_wlists_to_nat_conv_hnr[sepref_fr_rules]:
 context isasat_input_ops
 begin
 
+text \<open>The virtual domain is composed of the addressable (and accessible) elements, i.e.,
+  the domain and all the deleted clauses that are still present in the watch lists.
+
+  With restarts, the property is \<^term>\<open>vdom_m W N \<subseteq># dom_m N\<close>.
+\<close>
+definition vdom_m :: \<open>(nat literal \<Rightarrow> (nat \<times> _) list) \<Rightarrow> (nat, 'b) fmap \<Rightarrow> nat set\<close> where
+  \<open>vdom_m W N = \<Union>(((`) fst) ` set ` W ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l) \<union> set_mset (dom_m N)\<close>
+
+lemma vdom_m_simps[simp]:
+  \<open>bh \<in># dom_m N \<Longrightarrow> vdom_m W (N(bh \<hookrightarrow> C)) = vdom_m W N\<close>
+  \<open>bh \<notin># dom_m N \<Longrightarrow> vdom_m W (N(bh \<hookrightarrow> C)) = insert bh (vdom_m W N)\<close>
+  by (force simp: vdom_m_def split: if_splits)+
+
+lemma vdom_m_simps2[simp]:
+  \<open>i \<in># dom_m N \<Longrightarrow> vdom_m (W(L := W L @ [(i, C)])) N = vdom_m W N\<close>
+  \<open>bi \<in># dom_m ax \<Longrightarrow> vdom_m (bp(L:= bp L @ [(bi, av')])) ax = vdom_m bp ax\<close>
+  by (force simp: vdom_m_def split: if_splits)+
+
+lemma vdom_m_simps3[simp]:
+  \<open>fst biav' \<in># dom_m ax \<Longrightarrow> vdom_m (bp(L:= bp L @ [biav'])) ax = vdom_m bp ax\<close>
+  by (cases biav'; auto simp: dest: multi_member_split[of L] split: if_splits)
+
+text \<open>What is the difference with the next lemma?\<close>
+lemma (in isasat_input_ops) [simp]:
+  \<open>bf \<in># dom_m ax \<Longrightarrow>
+       dom_m ax \<subseteq># mset au \<Longrightarrow>
+       vdom_m bj (ax(bf \<hookrightarrow> C')) = vdom_m bj (ax)\<close>
+  by (force simp: vdom_m_def split: if_splits)+
+
+definition vdom_m_heur :: \<open>((nat \<times> _) list list) \<Rightarrow> (nat, 'b) fmap \<Rightarrow> nat set\<close> where
+  \<open>vdom_m_heur W N = \<Union>(((`) fst) ` set ` (!) W ` nat_of_lit ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l) \<union> set_mset (dom_m N)\<close>
+
+
 definition cach_refinement_empty where
   \<open>cach_refinement_empty cach \<longleftrightarrow>
      (\<forall>L\<in>#\<A>\<^sub>i\<^sub>n. cach L = SEEN_UNKNOWN)\<close>
@@ -305,9 +338,15 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     cach_refinement_empty cach \<and>
     out_learned M D outl \<and>
     dom_m N \<subseteq># mset vdom \<and>
-    lcount = size (learned_clss_lf N)
+    lcount = size (learned_clss_lf N) \<and>
+    vdom_m W N = set_mset (dom_m N)
   }\<close>
 
+lemma vdom_m_heur_vdom_m: \<open>(S, S') \<in> twl_st_heur \<Longrightarrow> 
+    vdom_m_heur (get_watched_list_heur S) (get_clauses_wl_heur S) = vdom_m (get_watched_wl S') (get_clauses_wl S')\<close>
+   by (auto simp: twl_st_heur_def vdom_m_heur_def
+    vdom_m_def map_fun_rel_def
+    dest!: multi_member_split[of _ \<L>\<^sub>a\<^sub>l\<^sub>l])
 
 definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur' N =
