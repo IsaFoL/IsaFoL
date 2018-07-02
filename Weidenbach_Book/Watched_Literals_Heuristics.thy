@@ -781,6 +781,7 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_heur
       let (C, K) = watched_by_app_heur S L w;
       S \<leftarrow> keep_watch_heur L j w S;
       ASSERT(unit_prop_body_wl_heur_inv S j w L);
+      ASSERT(polarity_st_pre (S, K));
       let val_K = polarity_st_heur S K;
       if val_K = Some True
       then RETURN (j+1, w+1, S)
@@ -2213,6 +2214,35 @@ proof -
     update_clause_wl_heur_update_clause_wl[of \<D>, THEN fref_to_Down_curry6, unfolded comp_def]
     keep_watch_heur_keep_watch[of \<D>, THEN fref_to_Down_curry3, unfolded comp_def]
     update_blit_wl_heur_update_blit_wl[of \<D>, THEN fref_to_Down_curry5, unfolded comp_def]
+  have \<open>x2h \<in> snd ` D\<^sub>0\<close>
+    if
+      \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur' \<D>\<close> and
+      \<open>x1a = (x1b, x2)\<close> and
+      \<open>x1 = (x1a, x2a)\<close> and
+      \<open>y = (x1, x2b)\<close> and
+      \<open>x1d = (x1e, x2c)\<close> and
+      \<open>x1c = (x1d, x2d)\<close> and
+      \<open>x = (x1c, x2e)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_D_pre x1b (x2, x2a, x2b)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv0 x1e (x2c, x2d, x2e)\<close> and
+      \<open>watched_by_app_heur_pre ((x2e, x1e), x2d)\<close> and
+      \<open>watched_by x2b x1b ! x2a = (x1f, x2f)\<close> and
+      \<open>watched_by_int x2e x1e ! x2d = (x1g, x2g)\<close> and
+      \<open>inres (keep_watch_heur x1e x2c x2d x2e) S\<close> and
+      \<open>(S, keep_watch x1b x2 x2a x2b) \<in> twl_st_heur' \<D>\<close> and
+      unit: \<open>unit_prop_body_wl_D_inv (keep_watch x1b x2 x2a x2b) x2 x2a x1b\<close> and
+      \<open>unit_prop_body_wl_heur_inv S x2c x2d x1e\<close> and
+      \<open>(S, x2g) = (x1h, x2h)\<close>
+     for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e x1f x2f x1g x2g S x1h x2h
+  proof -
+    have \<open>correct_watching_except x2 x2a x1b (keep_watch x1b x2 x2a x2b)\<close>
+      using unit unfolding unit_prop_body_wl_heur_inv_def
+         unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def apply -
+      apply normalize_goal+
+         try0
+      by blast
+    show ?thesis sorry
+  qed
 
   show ?thesis
     supply [[goals_limit=1]] twl_st_heur'_def[simp]
@@ -2232,6 +2262,9 @@ proof -
     subgoal by (rule keep_watch_heur_pre)
     subgoal by auto
     subgoal unfolding unit_prop_body_wl_heur_inv_def by fastforce
+    subgoal  for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e x1f x2f x1g x2g S x1h x2h
+      explore_have
+    sorry
     subgoal by (auto simp del: keep_watch_st_wl simp: twl_st_heur_state_simp)
     subgoal by auto
     subgoal by auto

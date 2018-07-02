@@ -295,6 +295,37 @@ prepare_code_thms (in -) propagate_lit_wl_fast_code_def
 lemmas propagate_lit_wl_fast_code[sepref_fr_rules] =
   propagate_lit_wl_fast_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def]
 
+
+sepref_thm keep_watch_heur
+  is \<open>uncurry3 (PR_CONST keep_watch_heur)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply
+    [[goals_limit=1]]
+    if_splits[split]
+    length_rll_def[simp] length_ll_def[simp]
+    watched_by_app_heur_code_refine[sepref_fr_rules]
+  supply undefined_lit_polarity_st_iff[iff]
+    unit_prop_body_wl_D_find_unwatched_heur_inv_def[simp]
+    update_raa_hnr[sepref_fr_rules]
+  unfolding keep_watch_heur_def length_rll_def[symmetric] PR_CONST_def
+  unfolding fmap_rll_def[symmetric] isasat_assn_def
+  unfolding fast_minus_def[symmetric]
+    nth_rll_def[symmetric]
+    SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
+    update_ll_def[symmetric]
+  by sepref           
+
+concrete_definition (in -) keep_watch_heur_code
+  uses isasat_input_bounded_nempty.keep_watch_heur.refine_raw
+  is \<open>(uncurry3 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) keep_watch_heur_code_def
+
+lemmas keep_watch_heur_code[sepref_fr_rules] =
+  keep_watch_heur_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def]
+
+
+
 end
 
 text \<open>Find a less hack-like solution\<close>
@@ -306,29 +337,40 @@ begin
 context
 begin
 
+thm unit_propagation_inner_loop_wl_loop_D_heur_inv0_def unit_propagation_inner_loop_wl_loop_D_inv_def
+unit_prop_body_wl_heur_inv_def
 sepref_register find_unwatched_wl_st_heur
 sepref_thm unit_propagation_inner_loop_body_wl_heur
-  is \<open>uncurry2 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *a isasat_assn\<close>
+  is \<open>uncurry3 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *a nat_assn *a isasat_assn\<close>
   supply
+    [[goals_limit=1]]
     if_splits[split]
     length_rll_def[simp]
     watched_by_app_heur_code_refine[sepref_fr_rules]
   supply undefined_lit_polarity_st_iff[iff]
     unit_prop_body_wl_D_find_unwatched_heur_inv_def[simp]
+    unit_propagation_inner_loop_wl_loop_D_heur_inv0_def[simp]
+    unit_propagation_inner_loop_wl_loop_D_inv_def[simp]
+    image_image[simp]
   unfolding unit_propagation_inner_loop_body_wl_heur_def length_rll_def[symmetric] PR_CONST_def
   unfolding fmap_rll_def[symmetric]
   unfolding fast_minus_def[symmetric]
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
   apply (rewrite in \<open>let _ = \<hole> in _\<close> zero_uint64_nat_def[symmetric])+
   apply (rewrite in \<open>let _ = \<hole> in _\<close> one_uint64_nat_def[symmetric])+
+    apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
+oops
   by sepref
 
 sepref_thm unit_propagation_inner_loop_body_wl_fast_heur
-  is \<open>uncurry2 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
+  is \<open>uncurry3 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
   :: \<open>[\<lambda>((L, w), S). w+1 \<le> uint64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow>
-      uint64_nat_assn *a isasat_fast_assn\<close>
+      unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow>
+      uint64_nat_assn *a uint64_nat_assn *a isasat_fast_assn\<close>
   supply
     if_splits[split]
     length_rll_def[simp]
