@@ -629,10 +629,10 @@ lemma shiftr_uint64[sepref_fr_rules]:
   by sepref_to_hoare sep_auto
 
 text \<open>
-  Taken from theory @{theory Uint64}. We use real Word64 instead of the unbounded integer as
+  Taken from theory @{theory Native_Word.Uint64}. We use real Word64 instead of the unbounded integer as
   done by default.
 
-  Remark that all this setup is taken from @{theory Uint64}.
+  Remark that all this setup is taken from @{theory Native_Word.Uint64}.
 \<close>
 code_printing code_module "Uint64" \<rightharpoonup> (SML) \<open>(* Test that words can handle numbers between 0 and 63 *)
 val _ = if 6 <= Word.wordSize then () else raise (Fail ("wordSize less than 6"));

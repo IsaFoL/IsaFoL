@@ -47,6 +47,9 @@ lemma uncurry_fst_snd: \<open>uncurry f x = f (fst x) (snd x)\<close>
 lemma H: \<open>\<forall>x. P x (fst x) (snd x) \<equiv> \<forall>x y. P (x,y) x y\<close>
   by auto
 
+lemma in_pair_collect_simp: "(a,b)\<in>{(a,b). P a b} \<longleftrightarrow> P a b"
+  by auto
+
 ML \<open>
 signature MORE_REFINEMENT = sig
   val down_converse: Proof.context -> thm -> thm

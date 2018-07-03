@@ -78,7 +78,7 @@ definition extract_stats_init where
   [simp]: \<open>extract_stats_init = None\<close>
 
 definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list option nres\<close> where
-  \<open>IsaSAT CS = do{
+  \<open>IsaSAT CS = do {
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
@@ -254,7 +254,7 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
     let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
-    if IsaSAT_use_fast_mode \<and> length CS < uint_max - 1
+    (*if IsaSAT_use_fast_mode \<and> length CS < uint_max - 1
     then do {
         S \<leftarrow> isasat_input_ops.init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur_fast \<A>\<^sub>i\<^sub>n'' CS S;
@@ -276,7 +276,7 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
              else extract_state_stat U)
          }
       }
-    else do {
+    else*) do {
         S \<leftarrow> isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur \<A>\<^sub>i\<^sub>n'' CS S;
         let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
@@ -344,7 +344,7 @@ lemma cdcl_twl_stgy_prog_wl_D_code_ref':
         \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
   done
 
-
+(* 
 lemma cdcl_twl_stgy_prog_wl_D_break_fast_code_ref':
   \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_fast_code),
       uncurry isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break)
@@ -362,10 +362,10 @@ lemma cdcl_twl_stgy_prog_wl_D_break_fast_code_ref':
       (sep_auto simp:
       dest!: frame_rule_left[of \<open>isasat_input_ops.isasat_fast_assn _ _ _\<close> _ _
        \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
-  done
+  done *)
 
 declare cdcl_twl_stgy_prog_wl_D_code_ref'[to_hnr, OF refl, sepref_fr_rules]
-declare cdcl_twl_stgy_prog_wl_D_break_fast_code_ref'[to_hnr, OF refl, sepref_fr_rules]
+(* declare cdcl_twl_stgy_prog_wl_D_break_fast_code_ref'[to_hnr, OF refl, sepref_fr_rules] *)
 
 definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_list option \<times> stats\<close> where
   \<open>get_trail_wl_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (Some M, stat))\<close>
@@ -589,7 +589,24 @@ proof -
         dest!: split_list)
 qed
 
+lemma finite_extract_atms_clss[simp]: \<open>finite (extract_atms_clss CS' {})\<close> for CS'
+  by (auto simp: extract_atms_clss_alt_def)
 
+lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_extract_atms_clss_in_all_lits_of_mm:
+  shows \<open>L \<in># isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS' {})) \<longleftrightarrow> 
+    L\<in>#all_lits_of_mm (mset `# mset CS')\<close>
+    (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof -
+  have 1: \<open>?A \<longleftrightarrow> L\<in>#all_lits_of_m (mset_set (Pos ` extract_atms_clss CS' {}))\<close>
+    unfolding isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
+    by (cases L)
+      (auto simp: in_all_lits_of_m_ain_atms_of_iff atms_of_def image_image)
+  also have \<open>... \<longleftrightarrow> ?B\<close>
+    using 1 is_\<L>\<^sub>a\<^sub>l\<^sub>l_extract_atms_clss isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by auto
+  finally show ?thesis .
+qed
+    
+  
 lemma cdcl_twl_stgy_prog_wl_spec_final2:
   shows
     \<open>(SAT_wl, SAT) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and>
@@ -1016,6 +1033,13 @@ proof -
       using T_V by (auto simp: S\<^sub>0 state_wl_l_def state_wl_l_init_def)
     have V_W': \<open>(fst V, fst W) \<in> twl_st_l None\<close>
       using V_W by (auto simp: S\<^sub>0 twl_st_l_init_def twl_st_l_def)
+    have valid_blits: \<open>\<And>L x. x\<in>set (Wa L) \<Longrightarrow>
+           case x of (i, K) \<Rightarrow> K \<in># all_lits_of_mm (mset `# mset CS')\<close>
+      using corr_w unfolding correct_watching_init.simps st 
+      by (auto simp: st N_NE \<L>\<^sub>a\<^sub>l\<^sub>l S\<^sub>0 isasat_input_ops.literals_are_\<L>\<^sub>i\<^sub>n_def
+        isasat_input_ops.blits_in_\<L>\<^sub>i\<^sub>n_def correct_watching.simps
+        all_blits_are_in_problem_init.simps
+        state_wl_l_def   correct_watching_init.simps in_\<L>\<^sub>a\<^sub>l\<^sub>l_extract_atms_clss_in_all_lits_of_mm)
     have \<open>cdcl_twl_stgy_prog_l_pre (fst V) (fst W)\<close>
       unfolding cdcl_twl_stgy_prog_l_pre_def
       using V_W' struct_invs corr_w add_invs clss confl clss stgy_invs confl T_V clss_upd
@@ -1026,7 +1050,12 @@ proof -
       using T_V' corr_w by (simp add: correct_watching_init_correct_watching)
     then have 1: \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D_pre (mset_set (extract_atms_clss CS' {})) (fst T) (fst W)\<close>
       unfolding isasat_input_ops.cdcl_twl_stgy_prog_wl_D_pre_def
-      by (auto simp: st N_NE \<L>\<^sub>a\<^sub>l\<^sub>l S\<^sub>0)
+        cdcl_twl_stgy_prog_wl_pre_def
+      by (auto simp: st N_NE \<L>\<^sub>a\<^sub>l\<^sub>l S\<^sub>0 isasat_input_ops.literals_are_\<L>\<^sub>i\<^sub>n_def
+        isasat_input_ops.blits_in_\<L>\<^sub>i\<^sub>n_def correct_watching.simps
+        all_blits_are_in_problem_init.simps in_\<L>\<^sub>a\<^sub>l\<^sub>l_extract_atms_clss_in_all_lits_of_mm
+        state_wl_l_def   correct_watching_init.simps
+        dest!:  valid_blits)
     have 2:\<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset_set (extract_atms_clss CS' {}))
              (from_init_state T)
             \<le> \<Down> (state_wl_l None O twl_st_l None)
@@ -1149,9 +1178,7 @@ proof -
     using that
     by (auto simp: init_dt_wl_pre_def init_dt_pre_def state_wl_l_init_def
         twl_st_l_init_def state_wl_l_def correct_watching_init.simps clause_to_update_def
-        twl_init_invs)
-  have [simp]: \<open>finite (extract_atms_clss CS' {})\<close> for CS'
-    by  (auto simp: extract_atms_clss_alt_def)
+        twl_init_invs all_blits_are_in_problem_init.simps)
 
   have K: \<open>mset_set (extract_atms_clss CS' {}) = {#} \<longleftrightarrow> (\<forall>C \<in>set CS'. C = [])\<close> for CS'
     by  (auto simp: extract_atms_clss_alt_def mset_set_empty_iff)
@@ -1310,7 +1337,7 @@ proof -
     let \<A>\<^sub>i\<^sub>n'' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n'');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n'');
-    let b = IsaSAT_use_fast_mode;
+    let b = False;
     if b \<and> length CS < uint_max - 1
     then do {
         S \<leftarrow> isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n'';
@@ -1363,9 +1390,9 @@ proof -
         empty_conflict_code_def empty_conflict_code_def empty_init_code_def convert_state_def
       apply (refine_vcg lhs_step_If)
        apply (auto intro!:  Refine_Basic.bind_mono)
-      apply (subst isasat_input_ops.init_dt_wl_heur_fast_init_dt_wl_heur)
+      (* apply (subst isasat_input_ops.init_dt_wl_heur_fast_init_dt_wl_heur)
       apply (auto simp: isasat_input_ops.init_state_wl_heur_def map_fun_rel_def
-          RES_RES_RETURN_RES RETURN_def in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n Max_dom_fmempty)
+          RES_RES_RETURN_RES RETURN_def in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n Max_dom_fmempty) *)
       done
 
     have 2: \<open>?B \<le> ?A\<close>
@@ -1373,9 +1400,9 @@ proof -
         empty_conflict_code_def empty_conflict_code_def empty_init_code_def convert_state_def
       apply (refine_vcg lhs_step_If)
       apply (auto intro!:  Refine_Basic.bind_mono)
-      apply (subst isasat_input_ops.init_dt_wl_heur_fast_init_dt_wl_heur)
+      (* apply (subst isasat_input_ops.init_dt_wl_heur_fast_init_dt_wl_heur)
       apply (auto simp: isasat_input_ops.init_state_wl_heur_def map_fun_rel_def
-          RES_RES_RETURN_RES RETURN_def in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n Max_dom_fmempty)
+          RES_RES_RETURN_RES RETURN_def in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n Max_dom_fmempty) *)
       done
     show ?thesis using 1 2 by simp
   qed

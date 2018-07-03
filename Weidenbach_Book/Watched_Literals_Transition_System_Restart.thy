@@ -1,11 +1,11 @@
 theory Watched_Literals_Transition_System_Restart
-  imports IsaSAT_pre.Watched_Literals_Transition_System
+  imports Watched_Literals_Transition_System
 begin
 
 
 text \<open>
   Unlike the basic CDCL, it does not make any sense to fully restart the trail:
-  the part propagated at level 0 (only the part due to unit clauses) have to be kept.
+  the part propagated at level 0 (only the part due to unit clauses) has to be kept.
   Therefore, we allow fast restarts (i.e. a restart where part of the trail is reused).
 
   There are two cases:
@@ -240,7 +240,6 @@ proof (induction rule: cdcl_twl_restart.induct)
     using inv unfolding twl_struct_invs_def by clarify+
   have
     ex: \<open>(\<forall>C\<in>#N + U. twl_lazy_update M' C \<and>
-           twl_inv M' C \<and>
            watched_literals_false_of_max_level M' C \<and>
            twl_exception_inv (M', N, U, None, NE, UE, {#}, {#}) C)\<close> and
      conf_cands: \<open>confl_cands_enqueued (M', N, U, None, NE, UE, {#}, {#})\<close> and
@@ -306,7 +305,6 @@ proof (induction rule: cdcl_twl_restart.induct)
      then have
        1: \<open>\<forall>C\<in>#N + U.
            twl_lazy_update M1 C \<and>
-           twl_inv M1 C \<and>
            watched_literals_false_of_max_level M1 C \<and>
            twl_exception_inv ?U C\<close> and
        2: \<open>confl_cands_enqueued ?U\<close> and
@@ -315,7 +313,6 @@ proof (induction rule: cdcl_twl_restart.induct)
        using past unfolding past_invs.simps by blast+
      show \<open>\<forall>C\<in>#N' + U'.
           twl_lazy_update M1 C \<and>
-          twl_inv M1 C \<and>
           watched_literals_false_of_max_level M1 C \<and>
           twl_exception_inv ?U' C\<close>
        using 1 learned twl_st_exception_inv_mono[OF learned NN', of M1 None NE \<open>UE\<close>
@@ -434,7 +431,6 @@ next
      have
        1: \<open>\<forall>C\<in>#N + U.
            twl_lazy_update M1 C \<and>
-           twl_inv M1 C \<and>
            watched_literals_false_of_max_level M1 C \<and>
            twl_exception_inv ?U C\<close> and
        2: \<open>confl_cands_enqueued ?U\<close> and
@@ -443,7 +439,6 @@ next
        using H past unfolding past_invs.simps by blast+
      show \<open>\<forall>C\<in>#N' + U'.
           twl_lazy_update M1 C \<and>
-          twl_inv M1 C \<and>
           watched_literals_false_of_max_level M1 C \<and>
           twl_exception_inv ?U' C\<close>
        using 1 learned twl_st_exception_inv_mono[OF learned NN', of M1 None NE UE \<open>{#}\<close> \<open>{#}\<close>] N

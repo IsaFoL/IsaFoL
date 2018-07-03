@@ -1,6 +1,6 @@
 theory IsaSAT_Restart
   imports Watched_Literals_Watch_List_Domain_Restart
-     IsaSAT_pre.IsaSAT_CDCL
+     IsaSAT_CDCL
 begin
 
 

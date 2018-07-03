@@ -1,5 +1,5 @@
 theory LBD
-  imports Watched_Literals_Watch_List_Code_Common
+  imports Watched_Literals.Watched_Literals_Watch_List_Code_Common
 begin
 
 type_synonym lbd = \<open>bool list\<close>

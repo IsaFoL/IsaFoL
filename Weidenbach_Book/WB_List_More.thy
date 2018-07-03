@@ -97,6 +97,9 @@ section \<open>More Lists\<close>
 
 subsection \<open>set, nth, tl\<close>
 
+lemma ex_geI: \<open>P n \<Longrightarrow> n \<ge> m \<Longrightarrow> \<exists>n\<ge>m. P n\<close>
+  by auto
+
 lemma Ball_atLeastLessThan_iff: \<open>(\<forall>L\<in>{a..<b}. P L) \<longleftrightarrow> (\<forall>L. L \<ge> a \<and> L < b \<longrightarrow> P L) \<close>
   unfolding set_nths by auto
 
@@ -1392,6 +1395,10 @@ lemma in_dom_m_lookup_iff: \<open>C \<in># dom_m N' \<longleftrightarrow> fmlook
 lemma in_dom_in_ran_m[simp]: \<open>i \<in># dom_m N \<Longrightarrow> the (fmlookup N i) \<in># ran_m N\<close>
   by (auto simp: ran_m_def)
 
+lemma fmupd_same[simp]:
+  \<open>x1 \<in># dom_m x1aa \<Longrightarrow>  fmupd x1 (the (fmlookup x1aa x1)) x1aa = x1aa\<close>
+  by (metis fmap_ext fmupd_lookup in_dom_m_lookup_iff option.collapse)
+
 definition Max_dom where
   \<open>Max_dom N = Max (set_mset (add_mset 0 (dom_m N)))\<close>
 
@@ -1492,8 +1499,6 @@ lemma ge_Max_dom_notin_dom_m: \<open>a > Max_dom ao \<Longrightarrow> a \<notin>
 
 lemma packed_in_dom_mI: \<open>packed bc \<Longrightarrow> j \<le> Max_dom bc \<Longrightarrow> 0 < j \<Longrightarrow> j \<in># dom_m bc\<close>
   by (auto simp: packed_def)
-
-
 
 lemma fmrestrict_set_fmupd:
   \<open>a \<in> xs \<Longrightarrow> fmrestrict_set xs (fmupd a C N) = fmupd a C (fmrestrict_set xs N)\<close>

@@ -1,5 +1,5 @@
 theory Watched_Literals_Watch_List_Restart
-  imports Watched_Literals_List_Restart IsaSAT_pre.Watched_Literals_Watch_List
+  imports Watched_Literals_List_Restart Watched_Literals_Watch_List
 begin
 
 (* TODO Move *)
@@ -7,24 +7,9 @@ lemma (in -) dom_mI: \<open>fmlookup m x = Some y \<Longrightarrow> x \<in># dom
   by (drule fmdomI)  (auto simp: dom_m_def fmember.rep_eq)
 (* End Move *)
 
-text \<open>
-  We relax the condition on the invariant on the watch list to allow to point to non-existing
-  clauses.
-\<close>
-fun (in -) partial_correct_watching :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
-  [simp del]: \<open>partial_correct_watching (M, N, D, NE, UE, Q, W)  \<longleftrightarrow>
-      (\<forall>L\<in>#all_lits_of_mm (mset `# ran_mf N + NE + UE).
-        (\<forall>i\<in>set (W L). i \<notin># dom_m N \<or> L \<in> set (watched_l(N\<propto>i))))\<close>
-
-lemma partial_correct_watching_correct_watching:
-  \<open>correct_watching S \<Longrightarrow> partial_correct_watching S\<close>
-  by (cases S)
-    (auto simp: correct_watching.simps partial_correct_watching.simps clause_to_update_def
-    simp del: set_mset_mset dest: in_set_mset_eq_in dest!: in_set_takeD)
-
 definition remove_all_annot_true_clause_imp_wl_inv where
   \<open>remove_all_annot_true_clause_imp_wl_inv S xs = (\<lambda>(i, T).
-     partial_correct_watching S \<and> partial_correct_watching T \<and>
+     correct_watching S \<and> correct_watching T \<and>
      (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
         remove_all_annot_true_clause_imp_inv S' xs (i, T')))\<close>
 
@@ -39,9 +24,10 @@ where
       (\<lambda>(i, N, NE). i < length xs)
       (\<lambda>(i, N, NE). do {
         ASSERT(i < length xs);
-        if xs!i \<in># dom_m N
+        let (C, _) = xs!i;
+        if C \<in># dom_m N
         then do {
-          (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (xs!i, N, NE);
+          (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (C, N, NE);
           ASSERT(remove_all_annot_true_clause_imp_wl_inv (M, N0, D, NE0, UE, Q, W) xs
             (i, M, N, D, NE, UE, Q, W));
           RETURN (i+1, N, NE)
@@ -60,12 +46,13 @@ lemma reduce_dom_clauses_fmdrop:
   using distinct_mset_dom[of N]
   by (auto simp: reduce_dom_clauses_def distinct_mset_remove1_All)
 
-lemma partial_correct_watching_fmdrop:
-  \<open>partial_correct_watching (M, N, D, NE, UE, Q, W) \<Longrightarrow>
-     partial_correct_watching (M, fmdrop C N, D, NE, UE, Q, W)\<close>
+text \<open>change definition to all blits in \<^term>\<open>\<L>\<^sub>a\<^sub>l\<^sub>l\<close>?\<close>
+lemma correct_watching_fmdrop:
+  \<open>correct_watching (M, N, D, NE, UE, Q, W) \<Longrightarrow>
+     correct_watching (M, fmdrop C N, D, NE, UE, Q, W)\<close>
   using distinct_mset_dom[of N]
   by (cases \<open>C \<in># dom_m N\<close>)
-   (auto simp: partial_correct_watching.simps image_mset_remove1_mset_if
+   (auto simp: correct_watching.simps image_mset_remove1_mset_if
     distinct_mset_remove1_All dest: all_lits_of_mm_diffD)
 
 lemma \<open>remove_one_annot_true_clause S T \<Longrightarrow>
@@ -79,26 +66,24 @@ lemma \<open>remove_one_annot_true_clause S T \<Longrightarrow>
   apply (auto intro!: image_mset_cong2)
   done
 
-(* TODO Move *)
-
-(* End Move *)
 
 lemma remove_all_annot_true_clause_imp_wl_remove_all_annot_true_clause_imp:
   \<open>(uncurry remove_all_annot_true_clause_imp_wl, uncurry remove_all_annot_true_clause_imp) \<in>
-   Id \<times>\<^sub>f {(S::'v twl_st_wl, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S} \<rightarrow>\<^sub>f
-     \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<rangle>nres_rel\<close>
+   Id \<times>\<^sub>f {(S::'v twl_st_wl, T). (S, T) \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
 proof -
   have H: \<open>((0, x1i, x1k), 0, x1b, x1d) \<in> nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>
     if \<open>(x1i, x1b) \<in> Id\<close> and  \<open>(x1k, x1d) \<in> Id\<close>
     for x1i x1k x1b x1d
     using that by auto
-  have L'_in_clause: \<open>L' \<in> set (N0 \<propto> x)\<close>
+  have L'_in_clause: \<open>L' \<in> set (N0 \<propto> C)\<close>
     if
       pre: \<open>remove_all_annot_true_clause_imp_pre L' (M, N0, D, NE, UE, {#}, Q)\<close> and
       x: \<open>x \<in> set (W L')\<close> and
-      part: \<open>partial_correct_watching (M, N0, D, NE, UE, Q, W)\<close> and
-      dom:  \<open>x \<in># dom_m N0\<close>
-    for L' :: \<open>'v literal\<close> and M :: \<open>('v, nat) ann_lits\<close> and N0 D NE UE Q W x
+      part: \<open>correct_watching (M, N0, D, NE, UE, Q, W)\<close> and
+      \<open>x = (C, i)\<close> and 
+      dom:  \<open>C \<in># dom_m N0\<close>
+    for L' :: \<open>'v literal\<close> and M :: \<open>('v, nat) ann_lits\<close> and N0 D NE UE Q W x and C i
   proof -
     define S :: \<open>'v twl_st_l\<close> where \<open>S \<equiv> (M, N0, D, NE, UE, {#}, Q)\<close>
     obtain x where
@@ -118,11 +103,11 @@ proof -
       atms_of_mm (get_unit_init_clauses_l S)\<close>
       using Sx unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
       by (auto simp add: twl_st twl_st_l)
-    from this[of \<open>atm_of L'\<close>] have \<open>L' \<in>#all_lits_of_mm (mset `# ran_mf N0 + NE + UE)\<close>
+    from this[of \<open>atm_of L'\<close>] have \<open>L' \<in># all_lits_of_mm (mset `# ran_mf N0 + NE + UE)\<close>
       using L' by (auto simp: S_def in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
         dest!: multi_member_split)
     then show ?thesis
-      using part dom x unfolding partial_correct_watching.simps
+      using part dom x unfolding correct_watching.simps
       by (fast dest: in_set_takeD)
   qed
   have [refine0]: \<open>remove_all_annot_true_clause_one_imp (C, N0, NE0) \<le>
@@ -135,13 +120,13 @@ proof -
     if \<open>(C, C') \<in> Id\<close> and \<open>(N0, N') \<in> Id\<close> and \<open>(NE0, NE') \<in> Id\<close>
     for C C' N' NE0 NE' N0
     using that distinct_mset_dom[of N0]
-     unfolding remove_all_annot_true_clause_one_imp_def by (auto simp: distinct_mset_remove1_All)
+    unfolding remove_all_annot_true_clause_one_imp_def by (auto simp: distinct_mset_remove1_All)
   have remove_all_annot_true_clause_imp_wl_inv:
      \<open>remove_all_annot_true_clause_imp_wl_inv
         (SM', SN', SD', SNE', SUE', SQ', SW') (SW' SL')
         (j, SM', N2', SD', NE2', SUE', SQ', SW')\<close>
     if
-      LST: \<open>(LS, LT) \<in> Id \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<close> and
+      LST: \<open>(LS, LT) \<in> Id \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<close> and
       NNE: \<open>(NNE2, NNE2') \<in> ?remove_all_one (SW' SL' ! j) (xs ! j') NE1 N1\<close> and
       st:
         \<open>LS = (L, M, N0, D, NE, UE, Q, W)\<close>
@@ -169,7 +154,7 @@ proof -
       \<open>remove_all_annot_true_clause_imp_pre TL' (TM', TN', TD', TNE', TUE', TQ', TW')\<close> and
       \<open>(SW' SL', xs) \<in> Id\<close> and
       jNNE: \<open>(jNNE1, jNNE') \<in> {((i, N, NE), i', N', NE'). i = i' \<and> N = N' \<and>
-          NE = NE' \<and> partial_correct_watching (M, N, D, NE, UE, Q, W)}\<close> and
+          NE = NE' \<and> correct_watching (M, N, D, NE, UE, Q, W)}\<close> and
       \<open>case jNNE1 of (i, N, NE) \<Rightarrow> i < length (SW' SL')\<close> and
       \<open>case jNNE' of (i, N, NE) \<Rightarrow> i < length xs\<close> and
       jNNE: \<open>case jNNE1 of
@@ -200,7 +185,7 @@ proof -
       rem_post: \<open>remove_all_annot_true_clause_imp_inv (TM', TN', TD', TNE', TUE', TQ', TW')
         (SW' TL')
         (j', TM', N2', TD', NE2, TUE', TQ', TW')\<close> and
-      part_S: \<open>partial_correct_watching (SM', SN', SD', SNE', SUE', SQ', SW')\<close> and
+      part_S: \<open>correct_watching (SM', SN', SD', SNE', SUE', SQ', SW')\<close> and
       st':
         \<open>M' = TM'\<close>
         \<open>M = SM'\<close>
@@ -225,7 +210,7 @@ proof -
         \<open>L = TL'\<close>
         \<open>j = j'\<close>
       using that unfolding st by simp_all
-    have part_U: \<open>partial_correct_watching (SM', N1', SD', NE1', SUE', SQ', SW')\<close>
+    have part_U: \<open>correct_watching (SM', N1', SD', NE1', SUE', SQ', SW')\<close>
       using inv unfolding remove_all_annot_true_clause_imp_wl_inv_def prod.case
       by fast
     have SU: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* (TM', TN', TD', TNE', TUE', TQ', TW')
@@ -233,8 +218,8 @@ proof -
       using H unfolding remove_all_annot_true_clause_imp_inv_def prod.case
       by auto
     obtain x xa where
-      \<open>partial_correct_watching (SM', SN', SD', SNE', SUE', SQ', SW')\<close> and
-      part_V: \<open>partial_correct_watching (SM', N1', SD', NE1', SUE', SQ', SW')\<close> and
+      \<open>correct_watching (SM', SN', SD', SNE', SUE', SQ', SW')\<close> and
+      part_V: \<open>correct_watching (SM', N1', SD', NE1', SUE', SQ', SW')\<close> and
       \<open>((SM', SN', SD', SNE', SUE', SQ', SW'), x) \<in> state_wl_l None\<close> and
       \<open>((SM', N1, SD', NE1, SUE', SQ', SW'), xa) \<in> state_wl_l None\<close> and
       \<open>remove_all_annot_true_clause_imp_inv x (SW' SL') (j, xa)\<close>
@@ -242,23 +227,23 @@ proof -
 
     have \<open>reduce_dom_clauses TN' N2\<close>
       using rtranclp_remove_one_annot_true_clause_reduce_dom_clauses[OF SU] by simp
-    then have \<open>partial_correct_watching (SM', SN', SD', SNE', SUE', SQ', SW') \<Longrightarrow>
+    then have \<open>correct_watching (SM', SN', SD', SNE', SUE', SQ', SW') \<Longrightarrow>
     SW' TL' ! j' \<in># dom_m N1' \<Longrightarrow>
-    partial_correct_watching (SM', N1', SD', NE1', SUE', SQ', SW') \<Longrightarrow>
+    correct_watching (SM', N1', SD', NE1', SUE', SQ', SW') \<Longrightarrow>
     N2' = fmdrop (SW' TL' ! j') N1' \<Longrightarrow>
     N2 = fmdrop (SW' TL' ! j') N1' \<Longrightarrow>
     NE2 = add_mset (mset (N1' \<propto> (SW' TL' ! j'))) NE1' \<Longrightarrow>
-    \<not> partial_correct_watching
+    \<not> correct_watching
        (SM', N1', SD', add_mset (mset (N1' \<propto> (SW' TL' ! j'))) NE1', SUE', SQ',
         SW') \<Longrightarrow>
     irred N1' (SW' TL' ! j') \<Longrightarrow> False\<close>
       using multi_member_split[of \<open>xs!j'\<close> \<open>dom_m N1'\<close>]
-      by (auto simp: partial_correct_watching.simps ran_m_def all_lits_of_mm_add_mset
+      by (auto simp: correct_watching.simps ran_m_def all_lits_of_mm_add_mset
         st st')
-    then have part_V: \<open>partial_correct_watching (SM', N2', SD', NE2', SUE', SQ', SW')\<close>
+    then have part_V: \<open>correct_watching (SM', N2', SD', NE2', SUE', SQ', SW')\<close>
       using part_S NNE dom part_V
       unfolding st st' remove_all_annot_true_clause_imp_wl_inv_def
-      by (auto intro!: partial_correct_watching_fmdrop)
+      by (auto intro!: correct_watching_fmdrop)
     show ?thesis
       unfolding remove_all_annot_true_clause_imp_wl_inv_def prod.case
       apply (intro conjI)
@@ -283,7 +268,7 @@ proof -
       subgoal for L M N0 D NE UE Q W L' M' N' D' NE' UE' Q' W'
       apply (refine_rcg H
         WHILEIT_refine[where R=\<open>{((i, N, NE), (i', N', NE')). i = i' \<and> N = N' \<and> NE = NE' \<and>
-            partial_correct_watching (M, N, D, NE, UE, Q, W)}\<close>])
+            correct_watching (M, N, D, NE, UE, Q, W)}\<close>])
       subgoal by (auto simp: state_wl_l_def L'_in_clause)
       subgoal by (auto simp: state_wl_l_def)
       subgoal by (auto simp: state_wl_l_def remove_all_annot_true_clause_imp_wl_inv_def)
@@ -310,7 +295,7 @@ definition remove_one_annot_true_clause_one_imp_wl_pre where
   \<open>remove_one_annot_true_clause_one_imp_wl_pre i T \<longleftrightarrow>
      (\<exists>T'. (T, T') \<in> state_wl_l None \<and>
        remove_one_annot_true_clause_one_imp_pre i T' \<and>
-       partial_correct_watching T)\<close>
+       correct_watching T)\<close>
 
 definition remove_one_annot_true_clause_one_imp_wl
   :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres\<close>
@@ -332,8 +317,8 @@ where
 
 lemma remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp:
     \<open>(uncurry remove_one_annot_true_clause_one_imp_wl, uncurry remove_one_annot_true_clause_one_imp)
-    \<in> nat_rel \<times>\<^sub>f  {(S, T).  (S, T) \<in> state_wl_l None \<and>  partial_correct_watching S} \<rightarrow>\<^sub>f
-      \<langle>nat_rel \<times>\<^sub>f {(S, T).  (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<rangle>nres_rel\<close>
+    \<in> nat_rel \<times>\<^sub>f  {(S, T).  (S, T) \<in> state_wl_l None \<and>  correct_watching S} \<rightarrow>\<^sub>f
+      \<langle>nat_rel \<times>\<^sub>f {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>replace_annot_in_trail_spec L S \<le> \<Down> Id (replace_annot_in_trail_spec L' T')\<close>
     if \<open>(L, L') \<in> Id\<close> and \<open>(S, T') \<in> Id\<close> for L L' S T'
@@ -345,24 +330,24 @@ proof -
     if \<open>(j, j') \<in> Id\<close> and \<open>(N, N') \<in> Id\<close> for j j' N N'
     using that unfolding extract_and_remove_def
     by refine_rcg (auto intro!: RES_refine)
-  have partial_correct_watching_drop:
-    \<open>partial_correct_watching (x1h, x1i, x1j, x1k, x1l, x1m, x2m) \<Longrightarrow> x2n \<in># dom_m x1i \<Longrightarrow>
-    partial_correct_watching
+  have correct_watching_drop:
+    \<open>correct_watching (x1h, x1i, x1j, x1k, x1l, x1m, x2m) \<Longrightarrow> x2n \<in># dom_m x1i \<Longrightarrow>
+    correct_watching
      (Ma, fmdrop x2n x1i, x1j, add_mset (mset (x1i \<propto> x2n)) x1k, x1l,
       x1m, x2m)\<close>
     for x1h x1i x1j x1k x1l x1m x2m Ma x2n
       using distinct_mset_dom[of x1i] ran_m_fmdrop[of x2n x1i]
-      by (auto simp: partial_correct_watching.simps image_mset_remove1_mset_if
+      by (auto simp: correct_watching.simps image_mset_remove1_mset_if
         dest!: multi_member_split[of x2n] cong: multiset.map_cong0 image_mset_cong2
         simp del: ran_m_fmdrop)
-  have partial_correct_watching_drop':
-    \<open>partial_correct_watching (x1h, x1i, x1j, x1k, x1l, x1m, x2m) \<Longrightarrow> x2n \<in># dom_m x1i \<Longrightarrow>
-    partial_correct_watching
+  have correct_watching_drop':
+    \<open>correct_watching (x1h, x1i, x1j, x1k, x1l, x1m, x2m) \<Longrightarrow> x2n \<in># dom_m x1i \<Longrightarrow>
+    correct_watching
      (Ma, fmdrop x2n x1i, x1j, x1k, add_mset (mset (x1i \<propto> x2n)) x1l,
       x1m, x2m)\<close>
     for x1h x1i x1j x1k x1l x1m x2m Ma x2n
       using distinct_mset_dom[of x1i] ran_m_fmdrop[of x2n x1i]
-      by (auto simp: partial_correct_watching.simps image_mset_remove1_mset_if
+      by (auto simp: correct_watching.simps image_mset_remove1_mset_if
         dest!: multi_member_split[of x2n] cong: multiset.map_cong0 image_mset_cong2
         simp del: ran_m_fmdrop)
 
@@ -381,17 +366,17 @@ proof -
     subgoal by simp
     subgoal by (simp add: state_wl_l_def)
     subgoal by (simp add: state_wl_l_def)
-    subgoal by (auto simp add: state_wl_l_def intro: partial_correct_watching_drop
-      partial_correct_watching_drop')
-    subgoal by (auto simp add: state_wl_l_def intro: partial_correct_watching_drop
-      partial_correct_watching_drop')
+    subgoal by (auto simp add: state_wl_l_def intro: correct_watching_drop
+      correct_watching_drop')
+    subgoal by (auto simp add: state_wl_l_def intro: correct_watching_drop
+      correct_watching_drop')
     done
 qed
 
 definition remove_one_annot_true_clause_imp_wl_inv where
   \<open>remove_one_annot_true_clause_imp_wl_inv S = (\<lambda>(i, T).
      (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
-       partial_correct_watching S \<and> partial_correct_watching T \<and>
+       correct_watching S \<and> correct_watching T \<and>
        remove_one_annot_true_clause_imp_inv S' (i, T')))\<close>
 
 definition remove_one_annot_true_clause_imp_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_st_wl) nres\<close>
@@ -406,8 +391,8 @@ where
 
 lemma remove_one_annot_true_clause_imp_wl_remove_one_annot_true_clause_imp:
   \<open>(remove_one_annot_true_clause_imp_wl, remove_one_annot_true_clause_imp)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and>  partial_correct_watching S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<rangle>nres_rel\<close>
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and>  correct_watching S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
 proof -
   show ?thesis
     unfolding remove_one_annot_true_clause_imp_wl_def remove_one_annot_true_clause_imp_def
@@ -415,7 +400,7 @@ proof -
     apply (intro frefI nres_relI)
     apply (refine_vcg
       WHILEIT_refine[where
-         R = \<open>nat_rel \<times>\<^sub>f {(S, T).  (S, T) \<in> state_wl_l None \<and>  partial_correct_watching S}\<close>]
+         R = \<open>nat_rel \<times>\<^sub>f {(S, T).  (S, T) \<in> state_wl_l None \<and>  correct_watching S}\<close>]
       remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
     subgoal by auto
     subgoal for x y xa x'
@@ -440,7 +425,7 @@ definition mark_to_delete_clauses_wl_inv
 where
   \<open>mark_to_delete_clauses_wl_inv = (\<lambda>S xs0 (brk, i, N, xs).
      \<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_inv T xs0 (brk, i, N, xs) \<and>
-      partial_correct_watching S)\<close>
+      correct_watching S)\<close>
 
 definition mark_to_delete_clauses_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close>
 where
@@ -474,11 +459,11 @@ definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl
 
 lemma mark_to_delete_clauses_wl_mark_to_delete_clauses_l:
   \<open>(mark_to_delete_clauses_wl, mark_to_delete_clauses_l)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> partial_correct_watching S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> partial_correct_watching S}\<rangle>nres_rel\<close>
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>collect_valid_indices_wl S  \<le> \<Down> Id  (collect_valid_indices S')\<close>
-    if \<open>(S, S') \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and>  partial_correct_watching S \<and>
+    if \<open>(S, S') \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and>  correct_watching S \<and>
            mark_to_delete_clauses_wl_pre S}\<close>
     for S S'
     using that by (auto simp: collect_valid_indices_wl_def collect_valid_indices_def)
@@ -498,7 +483,7 @@ proof -
          R = \<open>{((brk' :: bool, i' :: nat, N', xs), (brk'', i'', N'', xs')).
              brk' = brk'' \<and> i' = i'' \<and> N' = N'' \<and> xs = xs' \<and>
              ((M, N', D, NE, UE, Q, W), (M, N'', D, NE, UE, WS', Q')) \<in> state_wl_l None \<and>
-             partial_correct_watching (M, N', D, NE, UE, Q, W)}\<close>]
+             correct_watching (M, N', D, NE, UE, Q, W)}\<close>]
       remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
     subgoal unfolding mark_to_delete_clauses_wl_pre_def by blast
     subgoal by auto
@@ -512,7 +497,7 @@ proof -
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)
     subgoal by auto
-    subgoal by (force simp: state_wl_l_def partial_correct_watching_fmdrop)
+    subgoal by (force simp: state_wl_l_def correct_watching_fmdrop)
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)
     done
@@ -536,8 +521,8 @@ definition rewatch_clauses :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nre
 definition mark_to_delete_clauses_wl_post where
   \<open>mark_to_delete_clauses_wl_post S T \<longleftrightarrow>
      (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
-       mark_to_delete_clauses_l_post S' T' \<and> partial_correct_watching S  \<and>
-       partial_correct_watching T)\<close>
+       mark_to_delete_clauses_l_post S' T' \<and> correct_watching S  \<and>
+       correct_watching T)\<close>
 
 definition cdcl_twl_full_restart_wl_prog :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>cdcl_twl_full_restart_wl_prog S = do {
@@ -569,9 +554,9 @@ lemma cdcl_twl_full_restart_wl_prog_cdcl_full_twl_restart_l_prog:
   apply (refine_vcg
      mark_to_delete_clauses_wl_mark_to_delete_clauses_l[THEN fref_to_Down]
      remove_one_annot_true_clause_imp_wl_remove_one_annot_true_clause_imp[THEN fref_to_Down])
-  subgoal unfolding mark_to_delete_clauses_wl_pre_def by (blast intro: partial_correct_watching_correct_watching)
-  subgoal unfolding mark_to_delete_clauses_wl_pre_def by (blast intro: partial_correct_watching_correct_watching)
-  subgoal unfolding mark_to_delete_clauses_wl_post_def by (blast intro: partial_correct_watching_correct_watching)
+  subgoal unfolding mark_to_delete_clauses_wl_pre_def by (blast intro: correct_watching_correct_watching)
+  subgoal unfolding mark_to_delete_clauses_wl_pre_def by (blast intro: correct_watching_correct_watching)
+  subgoal unfolding mark_to_delete_clauses_wl_post_def by (blast intro: correct_watching_correct_watching)
   subgoal by (auto simp: state_wl_l_def)
   done
 
@@ -638,7 +623,7 @@ lemma cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog:
 definition (in -) restart_abs_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_wl_pre S brk \<longleftrightarrow>
     (\<exists>S'. (S, S') \<in> state_wl_l None \<and> restart_abs_l_pre S' brk
-      \<and> partial_correct_watching S)\<close>
+      \<and> correct_watching S)\<close>
 
 definition (in -) get_learned_clss_wl where
   \<open>get_learned_clss_wl S = learned_clss_lf (get_clauses_wl S)\<close>
@@ -706,7 +691,7 @@ definition rewatch_clauses_prog_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<c
         (S, T) \<in> state_wl_l None \<and>
         (T, U) \<in> twl_st_l None \<and>
         twl_struct_invs U \<and>
-        partial_correct_watching S)\<close>
+        correct_watching S)\<close>
 
 definition rewatch_clauses_prog :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>rewatch_clauses_prog = (\<lambda>(M, N, D, NE, UE, Q, W0). do {
@@ -732,7 +717,7 @@ lemma rewatch_clauses_prog_rewatch_clauses:
     TU: \<open>(T, U) \<in> twl_st_l None\<close> and
     struct_invs: \<open>twl_struct_invs U\<close> and
     \<open>twl_list_invs T\<close>
-    \<open>partial_correct_watching S\<close>
+    \<open>correct_watching S\<close>
   shows
     \<open>rewatch_clauses_prog S \<le> rewatch_clauses S\<close>
 proof -
@@ -923,14 +908,14 @@ proof -
     apply (refine_rcg
       cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down])
     subgoal unfolding restart_abs_wl_pre_def
-       by (fastforce simp: partial_correct_watching_correct_watching)
+       by (fastforce simp: correct_watching_correct_watching)
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: partial_correct_watching_correct_watching)
+    subgoal by (auto simp: correct_watching_correct_watching)
     subgoal
       unfolding RES_RETURN_RES less_eq_nres.simps(2)
-      by (auto simp: partial_correct_watching_correct_watching
+      by (auto simp: correct_watching_correct_watching
         state_wl_l_def)
     subgoal by auto
     done
@@ -978,14 +963,14 @@ proof -
     unfolding cdcl_twl_stgy_restart_prog_wl_def cdcl_twl_stgy_restart_prog_l_def
     apply (intro frefI nres_relI)
     apply (refine_rcg WHILEIT_refine[where
-      R=\<open>{(S, T).  (S, T) \<in> state_wl_l None \<and>  partial_correct_watching S}\<close>]
+      R=\<open>{(S, T).  (S, T) \<in> state_wl_l None \<and>  correct_watching S}\<close>]
       unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
       cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down_curry2]
       cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
     subgoal unfolding cdcl_twl_stgy_restart_abs_wl_inv_def by fastforce
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: partial_correct_watching_correct_watching)
+    subgoal by (auto simp: correct_watching_correct_watching)
     subgoal by auto
     subgoal by auto
     done

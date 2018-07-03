@@ -3,7 +3,6 @@ theory IsaSAT_Decide
 begin
 
 
-
 paragraph \<open>Decide\<close>
 
 context isasat_input_bounded_nempty
@@ -174,7 +173,9 @@ proof -
       using inv unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+
     then show ?thesis
-      using \<A>\<^sub>i\<^sub>n confl S_T T_U unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def state_wl_l_def twl_st_l_def apply -
+      using \<A>\<^sub>i\<^sub>n confl S_T T_U unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def state_wl_l_def twl_st_l_def 
+      literals_are_\<L>\<^sub>i\<^sub>n_def
+      apply -
       by (subst (asm) all_clss_l_ran_m[symmetric], subst (asm) image_mset_union)
         (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def entailed_clss_inv.simps
           mset_take_mset_drop_mset mset_take_mset_drop_mset'
