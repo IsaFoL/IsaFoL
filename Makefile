@@ -25,7 +25,7 @@ HOL:
 
 Weidenbach_Book:
 	$(RUN_ISABELLE) build -d '$$AFP' -b Sepref_IICF
-	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -d Weidenbach_Book CDCL Watched_Literals
+	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -d Weidenbach_Book CDCL Watched_Literals IsaSAT
 
 Ordered_Resolution_Prover:
 	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -v -b -D Ordered_Resolution_Prover
