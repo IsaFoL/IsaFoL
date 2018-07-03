@@ -338,6 +338,18 @@ lemma (in isasat_input_ops) [simp]:
        vdom_m bj (ax(bf \<hookrightarrow> C')) = vdom_m bj (ax)\<close>
   by (force simp: vdom_m_def split: if_splits)+
 
+lemma (in isasat_input_ops) vdom_m_simps4[simp]:
+  \<open>i \<in># dom_m N \<Longrightarrow>
+     vdom_m (W (L1 := W L1 @ [(i, C1)], L2 := W L2 @ [(i, C2)])) N = vdom_m W N\<close>
+ by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
+
+text \<open>The following rule makes the previous not applicable. Therefore we ensure that the previous
+  applies first.\<close>
+lemma (in isasat_input_ops) vdom_m_simps5:
+  \<open>i \<notin># dom_m N \<Longrightarrow> vdom_m W (fmupd i C N) = insert i (vdom_m W N)\<close>
+  by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
+
+
 definition vdom_m_heur :: \<open>((nat \<times> _) list list) \<Rightarrow> (nat, 'b) fmap \<Rightarrow> nat set\<close> where
   \<open>vdom_m_heur W N = \<Union>(((`) fst) ` set ` (!) W ` nat_of_lit ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l) \<union> set_mset (dom_m N)\<close>
 

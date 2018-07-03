@@ -14,8 +14,15 @@ lemma (in isasat_input_ops) in_watch_list_in_vdom:
   shows \<open>fst (watched_by S L ! w) \<in> vdom_m (get_watched_wl S) (get_clauses_wl S)\<close>
   using assms
   unfolding vdom_m_def
-  by (cases S)  (auto dest: multi_member_split)
+  by (cases S) (auto dest: multi_member_split)
 
+
+lemma (in isasat_input_ops) in_watch_list_in_vdom':
+  assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and \<open>A \<in> set (watched_by S L)\<close>
+  shows \<open>fst A \<in> vdom_m (get_watched_wl S) (get_clauses_wl S)\<close>
+  using assms
+  unfolding vdom_m_def
+  by (cases S) (auto dest: multi_member_split)
 
 lemma (in isasat_input_ops) in_dom_in_vdom[simp]:
   \<open>x \<in># dom_m N \<Longrightarrow> x \<in> vdom_m W N\<close>

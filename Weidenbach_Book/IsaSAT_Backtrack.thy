@@ -423,7 +423,7 @@ where
     let b = False;
     (N, i) \<leftarrow> fm_add_new b D'' N;
     RETURN (Propagated (-L) i # M,
-        N, None, NE, UE, {#L#}, W(-L:= W (-L) @ [i], L':= W L' @ [i]))
+        N, None, NE, UE, {#L#}, W(-L:= W (-L) @ [(i, L')], L':= W L' @ [(i, L)]))
       })\<close>
 
 definition (in isasat_input_ops) backtrack_wl_D_heur_inv where
@@ -717,8 +717,8 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       (N, i) \<leftarrow> fm_add_new b C N;
       ASSERT (i \<in># dom_m N);
       let N = set_LBD i glue N;
-      let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [i]];
-      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [i]];
+      let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [(i, L')]];
+      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L)]];
       lbd \<leftarrow> lbd_empty lbd;
       RETURN (Propagated (- L) i # M, N, D, {#L#}, W, vm, \<phi>, zero_uint32_nat,
          cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
@@ -821,7 +821,8 @@ definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<time
     cach_refinement_empty cach \<and>
     out_learned M D' outl \<and>
     dom_m N \<subseteq># mset vdom \<and>
-    lcount = size (learned_clss_l N)
+    lcount = size (learned_clss_l N) \<and>
+    vdom_m W N = set_mset (dom_m N)
   }\<close>
 
 lemma (in isasat_input_ops) twl_st_heur_bt_get_clauses_wl:
@@ -831,7 +832,7 @@ lemma (in isasat_input_ops) twl_st_heur_bt_get_clauses_wl:
 lemma lcount_add_clause[simp]: \<open>i \<notin># dom_m N \<Longrightarrow>
        size (learned_clss_l (fmupd i (C, False) N)) = Suc (size (learned_clss_l N))\<close>
   by (simp add: learned_clss_l_mapsto_upd_notin)
-       
+
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
@@ -881,7 +882,8 @@ proof -
               literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S)) \<and>
               get_conflict_wl S \<noteq> None \<and>
               - lit_of (hd (get_trail_wl S)) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
-              find_decomp_wl_pre (n, T')}
+              find_decomp_wl_pre (n, T') \<and>
+              literals_are_\<L>\<^sub>i\<^sub>n T}
            (extract_shorter_conflict_wl S)\<close>
      (is \<open>_ \<le> \<Down> ?shorter _\<close>)
     if
@@ -904,7 +906,8 @@ proof -
       cach_empty: \<open>cach_refinement_empty cach\<close> and
       outl: \<open>out_learned M D outl\<close> and
       \<open>dom_m N \<subseteq># mset vdom\<close> and
-      lcount: \<open>lcount = size (learned_clss_l N)\<close>
+      lcount: \<open>lcount = size (learned_clss_l N)\<close> and
+      \<open>vdom_m W N = set_mset (dom_m N)\<close>
       using S'_S unfolding S S'
       by (auto simp: twl_st_heur_def S)
     obtain T U where
@@ -1137,6 +1140,7 @@ proof -
             \<open>phase_saving \<phi>\<close>
             \<open>no_dup M\<close>
             \<open>cach_refinement_empty cach\<close> \<open>c \<noteq> []\<close> \<open>outl' \<noteq> []\<close> \<open>dom_m N \<subseteq># mset vdom\<close> lcount
+            \<open>vdom_m W N = set_mset (dom_m N)\<close>
           by (auto simp: twl_st_heur_def S' del_conflict_wl_def
               empty_cach_def cach_refinement_empty_def out_learned_def)
         moreover have \<open>Suc 0 < length c \<Longrightarrow>
@@ -1173,9 +1177,13 @@ proof -
           unfolding find_decomp_wl_pre_def find_decomp_w_ns_pre_def
           by (auto simp: S S' twl_st)
       }
+      moreover have \<open>literals_are_\<L>\<^sub>i\<^sub>n
+      (M, N, Some (add_mset (- lit_of (hd M)) (mset (tl c))), NE, UE, Q, W)\<close>
+        using \<L>\<^sub>i\<^sub>n unfolding literals_are_\<L>\<^sub>i\<^sub>n_def
+        by (auto simp add: S' S hd_conv_nth blits_in_\<L>\<^sub>i\<^sub>n_def)
       ultimately show ?TR
           using \<open>c \<noteq> []\<close> outl0 not_none \<L>\<^sub>i\<^sub>n_S dist_D uM_\<L>\<^sub>a\<^sub>l\<^sub>l S_T T_U
-          unfolding s \<open>c ! 0 = outl' ! 0\<close>[symmetric] by (auto simp: S' S hd_conv_nth)
+          unfolding s \<open>c ! 0 = outl' ! 0\<close>[symmetric] by (simp add: S' S hd_conv_nth)
       qed
       show ?thesis
         apply (rule RES_refine)
@@ -1199,7 +1207,7 @@ proof -
       by (auto simp: twl_st S)
     have pre2: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N) \<equiv> True\<close>
       using M_\<L>\<^sub>i\<^sub>n S_T T_U not_none \<L>\<^sub>i\<^sub>n
-      unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def
+      unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def literals_are_\<L>\<^sub>i\<^sub>n_def
       by (auto simp: twl_st S all_lits_of_mm_union)
     have empty_conflict_and_extract_clause_pre:
         \<open>empty_conflict_and_extract_clause_pre ((M, mset (tl E)), E)\<close>
@@ -1273,7 +1281,7 @@ proof -
       [simp]: \<open>TnC = (T, nC)\<close>
     for S S' TnC T' T nC n C
   proof -
-    obtain M N U D NE UE Q W where
+    obtain M N D NE UE Q W where
       T': \<open>T' = (M, N, D, NE, UE, Q, W)\<close>
       by (cases T')
     obtain W' vm \<phi> clvls cach lbd outl stats where
@@ -1428,7 +1436,8 @@ proof -
       dist_S': \<open>distinct_mset (the (get_conflict_wl S'))\<close> and
       list_confl_S': \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S'))\<close> and
       \<open>get_conflict_wl S' \<noteq> None\<close> and
-      uM_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>-lit_of (hd (get_trail_wl S')) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+      uM_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>-lit_of (hd (get_trail_wl S')) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+      lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n T'\<close>
       using \<open>(TnC, T') \<in> ?shorter S'\<close>  \<open>1 < length C\<close>
       by auto
     obtain K M2 where
@@ -1462,7 +1471,8 @@ proof -
         U: \<open>U = (M1, N, None, Q, W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
            vdom, lcount)\<close> and
         vm': \<open>vm' \<in> vmtf M1\<close> and
-        \<phi>: \<open>phase_saving \<phi>\<close>
+        \<phi>: \<open>phase_saving \<phi>\<close> and
+        \<open>vdom_m W N = set_mset (dom_m N)\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
     have
       W'W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close> and
@@ -1473,7 +1483,8 @@ proof -
       \<open>length outl = Suc 0\<close> and
       outl: \<open>out_learned M1 None outl\<close>and
       vdom: \<open>dom_m N \<subseteq># mset vdom\<close> and
-      lcount: \<open>lcount = size (learned_clss_l N)\<close>
+      lcount: \<open>lcount = size (learned_clss_l N)\<close> and
+      vdom_m: \<open>vdom_m W N = set_mset (dom_m N)\<close>
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U')
     have [simp]: \<open>get_trail_wl_heur S = M\<close> \<open>C ! 1 = L'\<close> \<open>C ! 0 = - lit_of (hd M)\<close> and
       n_d: \<open>no_dup M\<close>
@@ -1496,6 +1507,20 @@ proof -
         by (auto intro: ext simp: intro_spec_iff bind_RES)
       ultimately show ?thesis by auto
     qed
+    have[simp]: \<open>bk \<in># dom_m N\<close>
+      if 
+        \<open>L \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE))\<close> and
+        \<open>(bk, bl) \<in> set (W L)\<close>
+      for bk bl L
+    proof -
+      have \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+        using lits that unfolding T' literals_are_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+        by auto
+      then have \<open>bk \<in> vdom_m W N\<close>
+        using in_watch_list_in_vdom'[of L] that by auto
+      then show ?thesis
+        using vdom_m by simp
+    qed
     have [simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close>
       using literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF list_confl_S' incl] .
     then have \<open>C ! Suc 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
@@ -1505,16 +1530,19 @@ proof -
       using W'W unfolding map_fun_rel_def by (auto simp: image_image)
     then show ?thesis
       supply [[goals_limit=1]]
-      using empty_cach n_d_M1 C_L' W'W outl vmtf undef \<open>1 < length C\<close> uM_\<L>\<^sub>a\<^sub>l\<^sub>l vdom lcount
-      unfolding U U' H
+      using empty_cach n_d_M1 C_L' W'W outl vmtf undef \<open>1 < length C\<close> lits
+        uM_\<L>\<^sub>a\<^sub>l\<^sub>l vdom lcount vdom_m
+      unfolding U U' H get_fresh_index_wl_def prod.case
         propagate_bt_wl_D_heur_def propagate_bt_wl_D_def set_LBD_def Let_def rescore_clause_def
-      by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
+      apply (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
           propagate_bt_wl_D_def Let_def T' U' U rescore_clause_def S' map_fun_rel_def
           list_of_mset2_def flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
           fm_add_new_def get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2
           RES_RES_RETURN_RES lbd_empty_def get_LBD_def set_LBD_def H nat_of_uint32_conv_def
           intro!: ASSERT_refine_left RES_refine exI[of _ C]
           intro!: vmtf_consD)
+        by (auto simp: vdom_m_simps5)
+      \<comment> \<open>@{thm vdom_m_simps} must apply after the other simp rules.\<close>
   qed
 
   have propagate_unit_bt_wl_D_int: \<open>propagate_unit_bt_wl_D_int
@@ -1590,7 +1618,8 @@ proof -
       \<open>length outl = Suc 0\<close> and
       outl: \<open>out_learned M1 None outl\<close> and
       vdom: \<open>dom_m N \<subseteq># mset vdom\<close> and
-      lcount: \<open>lcount = size (learned_clss_l N)\<close>
+      lcount: \<open>lcount = size (learned_clss_l N)\<close> and
+      vdom_m: \<open>vdom_m W N = set_mset (dom_m N)\<close>
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U')
     have [simp]: \<open>get_trail_wl_heur S = M\<close> \<open>C ! 0 = - lit_of (hd M)\<close> and
       n_d: \<open>no_dup M\<close>
@@ -1603,13 +1632,14 @@ proof -
       using \<open>C \<noteq> []\<close> \<open>C ! 0 = - lit_of (hd M)\<close> \<open>\<not>1 < length C\<close>
       by (cases C) (auto simp del: \<open>C ! 0 = - lit_of (hd M)\<close>)
     show ?thesis
-      using empty_cach n_d_M1  W'W outl vmtf C \<phi> undef uL_M vdom lcount unfolding U U'
+      using empty_cach n_d_M1  W'W outl vmtf C \<phi> undef uL_M vdom lcount vdom_m unfolding U U'
       by (auto simp: propagate_unit_bt_wl_D_int_def
           propagate_unit_bt_wl_D_def U U' lit_of_hd_trail_st_heur_def
           single_of_mset_def flush_def twl_st_heur_def lbd_empty_def get_LBD_def
           RES_RES2_RETURN_RES RES_RETURN_RES S' uminus_\<A>\<^sub>i\<^sub>n_iff RES_RES_RETURN_RES
           intro!: ASSERT_refine_left RES_refine exI[of _ \<open>-lit_of (hd M)\<close>]
           intro!: vmtf_consD)
+        
   qed
   have trail_nempty: \<open>get_trail_wl_heur S \<noteq> []\<close>
     if

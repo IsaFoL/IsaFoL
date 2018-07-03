@@ -23,7 +23,7 @@ where
 
 type_synonym (in -) twl_st_wl_heur_init =
   \<open>(nat,nat)ann_lits \<times> nat clauses_l \<times> nat clause option \<times> nat lit_queue_wl \<times>
-    nat list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times>
+    (nat \<times> nat literal) list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times>
     nat \<times> nat conflict_min_cach \<times> lbd \<times> vdom\<close>
 
 abbreviation (in -) vmtf_conc_option_fst_As where
@@ -54,7 +54,8 @@ where
     no_dup M \<and>
     cach_refinement_empty cach \<and>
     packed N \<and>
-    dom_m N \<subseteq># mset vdom
+    dom_m N \<subseteq># mset vdom \<and>
+    vdom_m W N = set_mset (dom_m N)
   }\<close>
 
 type_synonym (in -)twl_st_wll_trail_init =
@@ -75,7 +76,7 @@ where
   trail_assn *a clauses_ll_assn *a
   option_lookup_clause_assn *a
   clause_l_assn *a
-  arrayO_assn (arl_assn nat_assn) *a
+  arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)) *a
   vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
   uint32_nat_assn *a
   cach_refinement_assn *a
@@ -94,7 +95,7 @@ where
   trail_fast_assn *a clauses_ll_assn *a
   option_lookup_clause_assn *a
   clause_l_assn *a
-  arrayO_assn (arl_assn uint32_nat_assn) *a
+  arrayO_assn (arl_assn (uint32_nat_assn *a unat_lit_assn)) *a
   vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
   uint32_nat_assn *a
   cach_refinement_assn *a
@@ -112,7 +113,7 @@ fun (in -)get_conflict_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> 
 fun (in -)get_clauses_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat clauses_l\<close> where
   \<open>get_clauses_wl_heur_init (_, N, _) = N\<close>
 
-fun (in -) get_watched_list_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat list list\<close> where
+fun (in -) get_watched_list_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> (nat \<times> nat literal) list list\<close> where
   \<open>get_watched_list_heur_init (_, _, _, _, W, _) = W\<close>
 
 fun (in -) get_trail_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> (nat,nat) ann_lits\<close> where
@@ -384,8 +385,8 @@ definition (in isasat_input_ops) add_init_cls_heur
      let L = hd C; let L' = hd (tl C);
      let b = True; let C = op_array_of_list C;
      (N, i) \<leftarrow> fm_add_new_packed b C N;
-     let WS = WS[nat_of_lit L := WS ! nat_of_lit L @ [i]];
-     let WS = WS[nat_of_lit L' := WS ! nat_of_lit L' @ [i]];
+     let WS = WS[nat_of_lit L := WS ! nat_of_lit L @ [(i, L')]];
+     let WS = WS[nat_of_lit L' := WS ! nat_of_lit L' @ [(i, L)]];
      RETURN (M, N, D, Q, WS, vm, \<phi>, clvls, cach, lbd, vdom @ [nat_of_uint32_conv i])})\<close>
 
 lemma length_C_nempty_iff: \<open>length C \<ge> 2 \<longleftrightarrow> C \<noteq> [] \<and> tl C \<noteq> []\<close>
@@ -443,16 +444,19 @@ lemma add_init_cls_heur_add_init_cls:
   \<open>(uncurry add_init_cls_heur, uncurry (add_to_clauses_init_wl)) \<in>
    [\<lambda>(C, S). length C \<ge> 2 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and> distinct C]\<^sub>f
    Id \<times>\<^sub>r twl_st_heur_init \<rightarrow> \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
+  unfolding add_init_cls_heur_def add_to_clauses_init_wl_def
   apply (intro frefI nres_relI)
+  apply (case_tac \<open>fst x\<close>; case_tac \<open>tl (fst x)\<close>)
   apply (auto simp: twl_st_heur_init_def add_init_cls_heur_def add_to_clauses_init_wl_def Let_def
       fm_add_new_packed_def get_fresh_index_packed_alt_def RES_RETURN_RES RES_RETURN_RES2
       RES_RES2_RETURN_RES ge_Max_dom_notin_dom_m nat_of_uint32_conv_def
       RES_RETURN_RES_RES2 length_C_nempty_iff get_fresh_index_def
-      map_fun_rel_def neq_Nil_conv packed0_fmud_Suc_Max_dom
+       neq_Nil_conv packed0_fmud_Suc_Max_dom map_fun_rel_def
       intro!: RES_refine intro: exI[of _ \<open>Suc (Max_dom _)\<close>])
   apply (rule_tac x=\<open>Suc (Max_dom ap)\<close> in exI)
-  apply (auto simp: packed0_fmud_Suc_Max_dom ge_Max_dom_notin_dom_m)
-  done
+  apply (simp_all add: packed0_fmud_Suc_Max_dom ge_Max_dom_notin_dom_m
+    vdom_m_simps5)
+  by (auto simp: map_fun_rel_def)
 
 definition (in isasat_input_ops) already_propagated_unit_cls_conflict
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
@@ -1592,9 +1596,17 @@ lemma in_extract_atms_clssD:
 context isasat_input_bounded
 begin
 
+text \<open>The difference between this definition and \<^term>\<open>correct_watching\<close> is not really important:
+  \<^enum> the former talks about all literals that can appear in the problem, while the later talks about
+    all literals that appear in the problem. This is only different during the initialisation.
+  \<^enum> The watch list can only contain clauses that are in the problem.
+\<close>
 fun (in isasat_input_ops) correct_watching_init :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching_init (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_of_atms_m \<A>\<^sub>i\<^sub>n. mset (W L) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
+    (\<forall>L \<in># all_lits_of_atms_m \<A>\<^sub>i\<^sub>n.
+      (\<forall>(i, K)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L) \<and>
+      {#i \<in># fst `# mset (W L). i \<in># dom_m N#} = 
+         clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
 
 
 definition (in isasat_input_ops) init_dt_wl_heur_spec
@@ -1611,7 +1623,7 @@ definition (in isasat_input_ops) init_state :: \<open>nat clauses \<Rightarrow> 
       (None :: nat clause option))\<close>
 
 text \<open>We add a spurious dependency to the parameter of the locale:\<close>
-definition (in isasat_input_ops) empty_watched :: \<open>nat literal \<Rightarrow> nat list\<close> where
+definition (in isasat_input_ops) empty_watched :: \<open>nat literal \<Rightarrow> (nat \<times> nat literal) list\<close> where
   \<open>empty_watched = (let _ = \<A>\<^sub>i\<^sub>n in (\<lambda>_. []))\<close>
 
 lemma (in isasat_input_ops) empty_watched_alt_def:
@@ -1646,16 +1658,17 @@ definition (in isasat_input_ops) twl_st_heur_init_wl :: \<open>(twl_st_wl_heur_i
     no_dup M \<and>
     cach_refinement_empty cach \<and>
     packed N \<and>
-    dom_m N \<subseteq># mset vdom
+    dom_m N \<subseteq># mset vdom \<and>
+    vdom_m W N = set_mset (dom_m N)
   }\<close>
 
 lemma (in isasat_input_ops) init_state_wl_heur_init_state_wl:
   \<open>(uncurry0 init_state_wl_heur, uncurry0 (RETURN init_state_wl)) \<in>
      unit_rel \<rightarrow>\<^sub>f \<langle>twl_st_heur_init_wl\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-      (auto simp: init_state_wl_heur_def init_state_wl_def
+    (auto simp: init_state_wl_heur_def init_state_wl_def
         RES_RETURN_RES bind_RES_RETURN_eq RES_RES_RETURN_RES RETURN_def
-        twl_st_heur_init_wl_def
+        twl_st_heur_init_wl_def vdom_m_def empty_watched_def
         intro!: RES_refine)
 
 lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
@@ -1696,7 +1709,8 @@ lemma (in isasat_input_ops) get_conflict_wl_is_None_heur_init_get_conflict_wl_is
 
 lemma (in isasat_input_ops) id_to_init_state:
   \<open>(RETURN o id, RETURN o to_init_state) \<in> twl_st_heur_init_wl \<rightarrow>\<^sub>f \<langle>twl_st_heur_init\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: to_init_state_def twl_st_heur_init_wl_def
+  by (intro frefI nres_relI)
+    (auto simp: to_init_state_def twl_st_heur_init_wl_def
       twl_st_heur_init_def)
 
 definition to_init_state_code where
@@ -2320,7 +2334,7 @@ sepref_definition init_state_wl_D'_code
   :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint32_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn *a clauses_ll_assn *a
     conflict_option_rel_assn *a
     list_assn unat_lit_assn *a
-    (arrayO_assn (arl_assn nat_assn)) *a
+    (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn))) *a
     vmtf_remove_conc_option_fst_As *a
     phase_saver_conc *a uint32_nat_assn *a
     cach_refinement_l_assn *a lbd_assn *a vdom_assn\<close>
@@ -2330,7 +2344,7 @@ sepref_definition init_state_wl_D'_code
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>clauses_ll_assn\<close>])
-  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn nat_assn))\<close>])
+  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)))\<close>])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -2340,7 +2354,7 @@ sepref_definition init_state_wl_D'_fast_code
   :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint32_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn *a clauses_ll_assn *a
     conflict_option_rel_assn *a
     list_assn unat_lit_assn *a
-    (arrayO_assn (arl_assn uint32_nat_assn)) *a
+    (arrayO_assn (arl_assn (uint32_nat_assn *a unat_lit_assn))) *a
     vmtf_remove_conc_option_fst_As *a
     phase_saver_conc *a uint32_nat_assn *a
     cach_refinement_l_assn *a lbd_assn *a vdom_assn\<close>
@@ -2350,7 +2364,7 @@ sepref_definition init_state_wl_D'_fast_code
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>clauses_ll_assn\<close>])
-  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn uint32_nat_assn))\<close>])
+  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn (uint32_nat_assn *a unat_lit_assn)))\<close>])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -2616,7 +2630,7 @@ proof -
    clauses_ll_assn *a
    hr_comp conflict_option_rel_assn (isasat_input_ops.option_lookup_clause_rel \<A>\<^sub>i\<^sub>n) *a
    hr_comp (list_assn unat_lit_assn) list_mset_rel *a
-   hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel) *a
+   hr_comp (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn))) (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel) *a
    vmtf_remove_conc_option_fst_As *a
    hr_comp IsaSAT_Setup.phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
    uint32_nat_assn *a
@@ -2681,7 +2695,7 @@ proof -
    clauses_ll_assn *a
    hr_comp conflict_option_rel_assn (isasat_input_ops.option_lookup_clause_rel \<A>\<^sub>i\<^sub>n) *a
    hr_comp (list_assn unat_lit_assn) list_mset_rel *a
-   hr_comp (arrayO_assn (arl_assn uint32_nat_assn)) (\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel) *a
+   hr_comp (arrayO_assn (arl_assn (uint32_nat_assn *a unat_lit_assn))) (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel) *a
    vmtf_remove_conc_option_fst_As *a
    hr_comp IsaSAT_Setup.phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
    uint32_nat_assn *a

@@ -247,7 +247,7 @@ where
         cdcl_twl_stgy_prog_wl_D_heur T'
     }
   }\<close>
-
+(* 
 sepref_register isasat_fast_slow
 sepref_thm cdcl_twl_stgy_prog_wl_D_fast_code
   is \<open>PR_CONST cdcl_twl_stgy_prog_break_wl_D_heur_break\<close>
@@ -263,7 +263,7 @@ concrete_definition (in -) cdcl_twl_stgy_prog_wl_D_fast_code
 prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_fast_code_def
 
 lemmas cdcl_twl_stgy_prog_wl_D_fast_code[sepref_fr_rules] =
-   cdcl_twl_stgy_prog_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n]
+   cdcl_twl_stgy_prog_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n] *)
 
 definition  (in -)isasat_fast_wl where
   \<open>isasat_fast_wl S = (\<forall>L\<in>#dom_m (get_clauses_wl S). L < uint_max)\<close>
@@ -351,8 +351,8 @@ qed
 
 end
 
-export_code cdcl_twl_stgy_prog_wl_D_fast_code in SML_imp module_name SAT_Solver
-  file "code/CDCL_Cached_Array_Trail_Fast.sml"
+(* export_code cdcl_twl_stgy_prog_wl_D_fast_code in SML_imp module_name SAT_Solver
+  file "code/CDCL_Cached_Array_Trail_Fast.sml" *)
 
 export_code cdcl_twl_stgy_prog_wl_D_code in SML_imp module_name SAT_Solver
   file "code/CDCL_Cached_Array_Trail.sml"
