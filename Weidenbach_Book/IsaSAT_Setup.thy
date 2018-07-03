@@ -124,8 +124,32 @@ fun get_trail_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (nat,nat) ann_lits\
 fun get_conflict_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat clause option\<close> where
   \<open>get_conflict_wl_heur (_, _, D, _) = D\<close>
 
-fun get_watched_list_heur :: \<open>twl_st_wl_heur \<Rightarrow> (nat watcher) list list\<close> where
-  \<open>get_watched_list_heur (_, _, _, _, W, _) = W\<close>
+
+fun watched_by_int :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat watched\<close> where
+  \<open>watched_by_int (M, N, D, Q, W, _) L = W ! nat_of_lit L\<close>
+
+fun (in -) get_watched_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (nat watcher) list list\<close> where
+  \<open>get_watched_wl_heur (_, _, _, _, W, _) = W\<close>
+
+fun literals_to_update_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat lit_queue_wl\<close> where
+  \<open>literals_to_update_wl_heur (M, N, D, Q, W, _, _)  = Q\<close>
+
+fun set_literals_to_update_wl_heur :: \<open>nat lit_queue_wl \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>set_literals_to_update_wl_heur Q (M, N, D, _, W') = (M, N, D, Q, W')\<close>
+
+definition watched_by_app_heur_pre where
+  \<open>watched_by_app_heur_pre = (\<lambda>((S, L), K). nat_of_lit L < length (get_watched_wl_heur S) \<and>
+          K < length (watched_by_int S L))\<close>
+
+definition (in -) watched_by_app_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
+  \<open>watched_by_app_heur S L K = watched_by_int S L ! K\<close>
+
+lemma watched_by_app_heur_alt_def:
+  \<open>watched_by_app_heur = (\<lambda>(M, N, D, Q, W, _) L K. W ! nat_of_lit L ! K)\<close>
+  by (auto simp: watched_by_app_heur_def intro!: ext)
+
+definition (in -) watched_by_app :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
+  \<open>watched_by_app S L K = watched_by S L ! K\<close>
 
 fun get_vmtf_heur :: \<open>twl_st_wl_heur \<Rightarrow> vmtf_remove_int\<close> where
   \<open>get_vmtf_heur (_, _, _, _, _, vm, _) = vm\<close>
@@ -343,7 +367,7 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
   }\<close>
 
 lemma vdom_m_heur_vdom_m: \<open>(S, S') \<in> twl_st_heur \<Longrightarrow> 
-    vdom_m_heur (get_watched_list_heur S) (get_clauses_wl_heur S) = vdom_m (get_watched_wl S') (get_clauses_wl S')\<close>
+    vdom_m_heur (get_watched_wl_heur S) (get_clauses_wl_heur S) = vdom_m (get_watched_wl S') (get_clauses_wl S')\<close>
    by (auto simp: twl_st_heur_def vdom_m_heur_def
     vdom_m_def map_fun_rel_def
     dest!: multi_member_split[of _ \<L>\<^sub>a\<^sub>l\<^sub>l])
