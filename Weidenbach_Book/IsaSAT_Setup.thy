@@ -219,11 +219,14 @@ lemma op_map_to_map:
 lemma op_map_to_map_rel:
   \<open>(uncurry2 (op_map_to R e), uncurry2 (RETURN ooo (\<lambda>xs W' j. W'[j := W'!j @ map R xs]))) \<in>
     [\<lambda>((xs, ys), j). j < length ys]\<^sub>f
-   \<langle>Id\<rangle>list_rel \<times>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+    \<langle>Id\<rangle>list_rel \<times>\<^sub>f
+    \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow>
+    \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: op_map_to_map)
 
 definition convert_single_wl_to_nat where
-\<open>convert_single_wl_to_nat W i W' j = op_map_to (\<lambda>(i, C). (nat_of_uint32_conv i, C)) (0, Pos 0) (W!i) W' j\<close>
+\<open>convert_single_wl_to_nat W i W' j =
+  op_map_to (\<lambda>(i, C). (nat_of_uint32_conv i, C)) (0, Pos 0) (W!i) W' j\<close>
 
 sepref_definition convert_single_wl_to_nat_code
   is \<open>uncurry3 convert_single_wl_to_nat\<close>
@@ -244,7 +247,8 @@ lemma convert_single_wl_to_nat:
   \<open>(uncurry3 convert_single_wl_to_nat,
     uncurry3 (RETURN oooo convert_single_wl_to_nat_conv)) \<in>
    [\<lambda>(((xs, i), ys), j). i < length xs \<and> j < length ys \<and> ys!j = []]\<^sub>f
-   \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow> 
+   \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
+     \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow> 
      \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: convert_single_wl_to_nat_def convert_single_wl_to_nat_conv_def
@@ -293,7 +297,8 @@ sepref_definition convert_wlists_to_nat_code
 
 lemma convert_wlists_to_nat_convert_wlists_to_nat_conv:
   \<open>(convert_wlists_to_nat, RETURN o convert_wlists_to_nat_conv) \<in>
-     \<langle>\<langle>nat_rel \<times>\<^sub>r Id\<rangle>list_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>\<langle>nat_rel \<times>\<^sub>r Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+     \<langle>\<langle>nat_rel \<times>\<^sub>r Id\<rangle>list_rel\<rangle>list_rel \<rightarrow>\<^sub>f
+     \<langle>\<langle>\<langle>nat_rel \<times>\<^sub>r Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: convert_wlists_to_nat_def nat_of_uint32_conv_def convert_wlists_to_nat_conv_def
       nat_of_uint32_conv_def[abs_def]
