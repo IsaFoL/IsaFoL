@@ -573,125 +573,75 @@ lemma in_lnth_in_Supremum_ldrop:
   by (metis (no_types, hide_lams) ldrop_eq_LConsD ldropn_0 llist.simps(13) contra_subsetD ldrop_enat
       ldropn_Suc_conv_ldropn lnth_0 lnth_lmap lnth_subset_Sup_llist)
 
-lemma persistent_wclause_in_P_if_persistent_clause_in_P: (* TODO: Clean up *)
+lemma persistent_wclause_in_P_if_persistent_clause_in_P:
   assumes "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
   shows "\<exists>i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
 proof -
-  from assms obtain x where x_p:
-    "enat x < llength Sts"
-    "\<And>xa. x \<le> xa \<Longrightarrow> xa < llength Sts \<Longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts xa))"
+  from assms obtain t_C where t_C_p:
+    "enat t_C < llength Sts"
+    "\<And>t. t_C \<le> t \<Longrightarrow> t < llength Sts \<Longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts t))"
     unfolding Liminf_llist_def by auto
-  have "\<exists>i. (C,i) \<in># wP_of_wstate (lnth Sts x)"
-  proof -
-    from x_p have "C \<in> P_of_state (state_of_wstate (lnth Sts x))"
-      by auto
-    then show ?thesis
-      by (cases "(lnth Sts x)") auto
-  qed
   then obtain i where i_p:
-    "(C,i) \<in># wP_of_wstate (lnth Sts x)"
-    by auto
-  have C_in_nth_P: "\<And>xa. xa + x < llength Sts \<longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts (xa + x)))"
-    using x_p(2)[of "x + _"] by (force simp add: add.commute) 
-  have Ci_in_nth_wP: "\<forall>xa. xa + x < llength Sts \<longrightarrow> (\<exists>i. (C,i) \<in># wP_of_wstate (lnth Sts (xa+x)))"
-    apply rule
-    subgoal for xa
-      using C_in_nth_P[of xa]
-      apply (cases "lnth Sts (xa + x)")
-      apply auto
-      done
-    done
+    "(C,i) \<in># wP_of_wstate (lnth Sts t_C)"
+    using t_C_p by (cases "(lnth Sts t_C)") force
+  have Ci_in_nth_wP: "\<And>t. t_C + t < llength Sts \<Longrightarrow> (\<exists>i. (C,i) \<in># wP_of_wstate (lnth Sts (t_C + t)))"
+  proof -
+    fix t
+    assume "t_C + t < llength Sts"
+    then show "\<exists>i. (C, i) \<in># wP_of_wstate (lnth Sts (t_C +t))"
+      using t_C_p(2)[of "t_C + _"] by (cases "lnth Sts (t_C + t)") force
+  qed
   define in_Sup_wP :: "nat \<Rightarrow> bool" where 
-    "in_Sup_wP = (\<lambda>i. (C, i) \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop x Sts)))"
+    "in_Sup_wP = (\<lambda>i. (C, i) \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop t_C Sts)))"
   have "in_Sup_wP i"
-    unfolding in_Sup_wP_def using i_p assms(1) in_lnth_in_Supremum_ldrop[of x "lmap wP_of_wstate Sts" "(C, i)"]
-    using x_p by (simp add: llist.map_comp )
+    unfolding in_Sup_wP_def using i_p assms(1) in_lnth_in_Supremum_ldrop[of t_C "lmap wP_of_wstate Sts" "(C, i)"]
+    using t_C_p by (simp add: llist.map_comp )
   then obtain j where j_p: "is_least in_Sup_wP j"
     unfolding in_Sup_wP_def[symmetric] using least_exists by metis
-  then have "(\<forall>n'<j. (C, n') \<notin> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop x Sts)))"
-    unfolding is_least_def in_Sup_wP_def by auto
-  then have "\<forall>i. (C, i) \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop x Sts)) \<longrightarrow> j \<le> i"
-    apply auto
-    subgoal for i
-      apply (rule_tac P="\<lambda>n'. n'<j \<longrightarrow> (C, n') \<notin> Sup_llist (lmap (\<lambda>z. set_mset (wP_of_wstate z)) (ldrop (enat x) Sts))"
-             and x=i in allE)
-      by auto
-    done
-  then have j_smallest: "\<And>i. (\<exists>xd. xd + x < llength Sts \<and> (C, i) \<in># wP_of_wstate (lnth Sts (xd + x))) \<Longrightarrow> j \<le> i"
-    apply auto
-    subgoal for i xd
-      apply (rule_tac P="\<lambda>i. (C, i) \<in> Sup_llist (lmap (\<lambda>z. set_mset (wP_of_wstate z)) (ldrop x Sts)) \<longrightarrow> j \<le> i"
-          and x=i in allE)
-       apply simp
-      apply (subgoal_tac "(C, i) \<in> Sup_llist (lmap (\<lambda>z. set_mset (wP_of_wstate z)) (ldrop x Sts))")
-       apply simp
-      apply auto
-      unfolding Sup_llist_def
-      apply auto
-      apply (rule_tac x=xd in exI)
-      apply (auto simp add: add.commute)
-      by (metis (mono_tags, hide_lams) add.commute ldrop_enat ldrop_eq_LConsD ldrop_ldrop ldropn_Suc_conv_ldropn plus_enat_simps(1))
-    done
-  from j_p have "\<exists>xb. (C,j) \<in># wP_of_wstate (lnth Sts (x + xb)) \<and> x + xb < llength Sts"
-    unfolding in_Sup_wP_def Sup_llist_def is_least_def
-    apply auto
-    subgoal for xa
-      apply (rule_tac x=xa in exI)
-      apply auto
-       apply (smt add.commute ldrop_enat ldrop_eq_LConsD ldrop_ldrop ldropn_Suc_conv_ldropn plus_enat_simps(1) lhd_ldropn)
-      by (metis (no_types, hide_lams) add.commute ldrop_enat ldrop_eq_LConsD ldrop_ldrop ldropn_Suc_conv_ldropn plus_enat_simps(1))
-    done
-  then obtain xb where j_p:
-    "(C,j) \<in># wP_of_wstate (lnth Sts (x + xb))"
-    "enat (x + xb) < llength Sts"
-    by auto
-  have Ci_stays: "\<And>xc. x+xb+xc < llength Sts \<Longrightarrow> (C,j) \<in># wP_of_wstate (lnth Sts (x+xb+xc))"
-    subgoal for xc
-    proof (induction xc)
+  then have "\<forall>i. (C, i) \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop t_C Sts)) \<longrightarrow> j \<le> i"
+    unfolding is_least_def in_Sup_wP_def using not_less by blast
+  then have j_smallest: "\<And>i t. enat (t_C + t) < llength Sts \<Longrightarrow> (C, i) \<in># wP_of_wstate (lnth Sts (t_C + t)) \<Longrightarrow> j \<le> i"
+    unfolding comp_def
+    by (smt add.commute ldrop_enat ldrop_eq_LConsD ldrop_ldrop ldropn_Suc_conv_ldropn plus_enat_simps(1) 
+        lnth_ldropn Sup_llist_def UN_I ldrop_lmap llength_lmap lnth_lmap mem_Collect_eq)
+  from j_p have "(\<exists>t_Cj. t_Cj < llength (ldrop (enat t_C) Sts) \<and> (C, j) \<in># wP_of_wstate (lnth (ldrop t_C Sts) t_Cj))"
+    unfolding in_Sup_wP_def Sup_llist_def is_least_def by simp
+  then obtain t_Cj where j_p:
+    "(C,j) \<in># wP_of_wstate (lnth Sts (t_C + t_Cj))"
+    "enat (t_C + t_Cj) < llength Sts"
+    by (smt add.commute ldrop_enat ldrop_eq_LConsD ldrop_ldrop ldropn_Suc_conv_ldropn plus_enat_simps(1) lhd_ldropn)
+  have Ci_stays: "\<And>t. t_C + t_Cj + t < llength Sts \<Longrightarrow> (C,j) \<in># wP_of_wstate (lnth Sts (t_C + t_Cj + t))"
+    subgoal for t
+    proof (induction t)
       case 0
       then show ?case
-        using j_p
-        by (simp add: add.commute) 
+        using j_p by (simp add: add.commute) 
     next
-      case (Suc xc)
-      have any_Ck_in_wP: "\<forall>k. (C, k) \<in># wP_of_wstate (lnth Sts (x + xb + xc)) \<longrightarrow> j \<le> k"
+      case (Suc t)
+      have any_Ck_in_wP: "\<forall>k. (C, k) \<in># wP_of_wstate (lnth Sts (t_C + t_Cj + t)) \<longrightarrow> j \<le> k"
       proof (rule, rule)
         fix k :: nat
-        assume "(C, k) \<in># wP_of_wstate (lnth Sts (x + xb + xc))"
+        assume "(C, k) \<in># wP_of_wstate (lnth Sts (t_C + t_Cj + t))"
         then show "j \<le> k" 
-          using j_p j_smallest[of k] Suc
+          using j_p j_smallest Suc
           by (smt Suc_ile_eq add.commute add.left_commute add_Suc less_imp_le plus_enat_simps(1) the_enat.simps) 
       qed
-      from Suc have Cj_in_wP: "(C, j) \<in># wP_of_wstate (lnth Sts (x+xb+xc))"
-        using Suc_ile_eq
-        by (metis (no_types, hide_lams) add.commute add_Suc_right less_imp_le) 
-      moreover have "C \<in> P_of_state (state_of_wstate (lnth Sts (Suc (x + xb + xc))))"
-        using x_p(2)
-        using Suc.prems by auto 
-      then have "\<exists>k. (C, k) \<in># wP_of_wstate (lnth Sts (Suc (x + xb + xc)))"
+      from Suc have Cj_in_wP: "(C, j) \<in># wP_of_wstate (lnth Sts (t_C + t_Cj + t))"
+        by (metis (no_types, hide_lams) Suc_ile_eq add.commute add_Suc_right less_imp_le) 
+      moreover have "C \<in> P_of_state (state_of_wstate (lnth Sts (Suc (t_C + t_Cj + t))))"
+        using t_C_p(2) Suc.prems by auto 
+      then have "\<exists>k. (C, k) \<in># wP_of_wstate (lnth Sts (Suc (t_C + t_Cj + t)))"
         by (smt Suc.prems Ci_in_nth_wP add.commute add.left_commute add_Suc_right enat_ord_code(4)) 
-      ultimately have "(C, j) \<in># wP_of_wstate (lnth Sts (Suc (x + xb + xc)))"
-        using preserve_min_P_Sts Cj_in_wP any_Ck_in_wP
-        using Suc.prems by force 
-      then have "(C, j) \<in># lnth (lmap wP_of_wstate Sts) (Suc ((x+xb) + xc))"
+      ultimately have "(C, j) \<in># wP_of_wstate (lnth Sts (Suc (t_C + t_Cj + t)))"
+        using preserve_min_P_Sts Cj_in_wP any_Ck_in_wP Suc.prems by force 
+      then have "(C, j) \<in># lnth (lmap wP_of_wstate Sts) (Suc (t_C + t_Cj + t))"
         using Suc.prems by auto
       then show ?case
         by (smt Suc.prems add.commute add_Suc_right lnth_lmap) 
     qed
     done
-  then have "(\<And>xa. x+xb \<le> xa \<Longrightarrow> xa < llength (lmap (set_mset \<circ> wP_of_wstate) Sts) \<Longrightarrow> (C, j) \<in># wP_of_wstate (lnth Sts xa))"
-  proof -
-    fix xa :: nat
-    assume a:
-      "x+xb \<le> xa"
-    assume b:
-      "xa < llength (lmap (set_mset \<circ> wP_of_wstate) Sts)"
-    have "(C, j) \<in># wP_of_wstate (lnth Sts (x + xb + xa - (x+xb)))"
-      using Ci_stays[of "xa - (x+xb)"]
-      using a b by auto 
-    then show "(C, j) \<in># wP_of_wstate (lnth Sts xa)"
-      using a b by auto
-  qed
+  then have "(\<And>t. t_C+t_Cj \<le> t \<Longrightarrow> t < llength (lmap (set_mset \<circ> wP_of_wstate) Sts) \<Longrightarrow> (C, j) \<in># wP_of_wstate (lnth Sts t))"
+    using Ci_stays[of "_ - (t_C + t_Cj)"] by (metis le_add_diff_inverse llength_lmap)
   then have "(C, j) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
     unfolding Liminf_llist_def using j_p by auto
   then show "\<exists>i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
