@@ -1,5 +1,5 @@
 theory Watched_Literals_Algorithm_Enumeration
-  imports Watched_Literals_Algorithm Watched_Literals_Transition_System_Enumeration
+  imports Watched_Literals.Watched_Literals_Algorithm Watched_Literals_Transition_System_Enumeration
 begin
 
 definition cdcl_twl_enum_inv :: \<open>'v twl_st \<Rightarrow> bool\<close> where

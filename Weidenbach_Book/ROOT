@@ -197,31 +197,6 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     "root.tex"
     "biblio.bib"
 
-(*
-session "IsaSAT_pre" (Weidenbach_Book) = "CDCL"  +
-  description \<open>This intermediate session loads all things prior to IsaSAT. This should fasten the development by faster startup-time. Therefore, we also don't want any documentation\<close>
-  options[document = false]
-  sessions
-    CDCL
-    "HOL-Eisbach"
-  theories
-    (* Restarts not clear if different session of not *)
-    Watched_Literals_Watch_List_Initialisation
-    Watched_Literals_Watch_List_Domain
-    Watched_Literals_Watch_List_Code_Common
-    LBD
-    IsaSAT_CDCL
-    Array_UInt
-    Watched_Literals_Initialisation
-    IsaSAT_Initialisation
-    IsaSAT
-  document_files
-    "root.tex"
-    "biblio.bib"
-
-
-*)
-
 session "CDCL_B" (Weidenbach_Book) = "CDCL_no_Sepref"  +
   description \<open>This session contains Sophie Tourret's variants of Weidenbach's
   CDCL calculus, where multiple decisions are done at the same time.

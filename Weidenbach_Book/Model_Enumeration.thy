@@ -1,6 +1,6 @@
 theory Model_Enumeration
-  imports Entailment_Definition.Partial_Annotated_Clausal_Logic "../lib/Explorer"
-    Wellfounded_More
+  imports Entailment_Definition.Partial_Annotated_Clausal_Logic
+    Weidenbach_Book_Base.Wellfounded_More
 begin
 
 lemma Ex_sat_model:

@@ -1,5 +1,5 @@
 theory Watched_Literals_Transition_System_Enumeration
-  imports Watched_Literals_Transition_System Model_Enumeration
+  imports Watched_Literals.Watched_Literals_Transition_System Model_Enumeration
 begin
 
 text \<open>
@@ -625,7 +625,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
   then have M': \<open>M = M2' @ Decided K # M1\<close>
     using M by auto
   then have
-    st_invs_M1': \<open>\<forall>C\<in>#N + U. twl_lazy_update M1 C \<and> twl_inv M1 C \<and>
+    st_invs_M1': \<open>\<forall>C\<in>#N + U. twl_lazy_update M1 C \<and>
          watched_literals_false_of_max_level M1 C \<and>
          twl_exception_inv (M1, N, U, None, NP, UP, {#}, {#}) C\<close> and
     confl_enqueued_M1: \<open>confl_cands_enqueued (M1, N, U, None, NP, UP, {#}, {#})\<close> and
@@ -639,7 +639,8 @@ proof (induction rule: negate_model_and_add_twl.induct)
     using struct_invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (simp add: trail.simps)
-
+  hence undef_K: \<open>undefined_lit M1 K\<close> and n_d1:  \<open>no_dup M1\<close>
+    unfolding M' by (auto dest: no_dup_appendD)
   have dist: \<open>distinct (map atm_of (map lit_of M))\<close>
     using no_dup by (auto simp: no_dup_def comp_def)
 
@@ -827,7 +828,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
       let ?SM1a = \<open>(M1a, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
       have
         struct:
-        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and>
           watched_literals_false_of_max_level M1a C \<and>
           twl_exception_inv (M1a, N, U, None, NP, UP, {#}, {#}) C\<close>
         for C
@@ -849,18 +850,16 @@ proof (induction rule: negate_model_and_add_twl.induct)
         using no_dup M1 unfolding deco_M unfolding M' M1a
         by (auto simp: deco_M add_mset_eq_add_mset
             dest: in_lits_of_l_defined_litD)
-      moreover have \<open>twl_inv M1a (TWL_DECO_clause M)\<close>
-        unfolding deco_M by (auto simp: add_mset_eq_add_mset)
       moreover have \<open>watched_literals_false_of_max_level M1a (TWL_DECO_clause M)\<close>
         unfolding deco_M by (auto simp: add_mset_eq_add_mset)
       moreover have \<open>twl_exception_inv ?SM1a (TWL_DECO_clause M)\<close>
         unfolding deco_M by (auto simp: add_mset_eq_add_mset twl_exception_inv.simps)
-      ultimately have \<open>C\<in>#add_mset (TWL_DECO_clause M) N + U \<Longrightarrow> twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+      ultimately have \<open>C\<in>#add_mset (TWL_DECO_clause M) N + U \<Longrightarrow> twl_lazy_update M1a C \<and>
          watched_literals_false_of_max_level M1a C \<and>
          twl_exception_inv ?SM1a C\<close> for C
         using struct[of C]
         by (auto simp: twl_exception_inv.simps)
-      then show \<open>\<forall>C\<in>#add_mset (TWL_DECO_clause M) N + U. twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+      then show \<open>\<forall>C\<in>#add_mset (TWL_DECO_clause M) N + U. twl_lazy_update M1a C \<and>
          watched_literals_false_of_max_level M1a C \<and>
          twl_exception_inv ?SM1a C\<close>
         by blast
@@ -908,11 +907,17 @@ proof (induction rule: negate_model_and_add_twl.induct)
       subgoal using no_dup by (simp add: cdcl\<^sub>W_restart_mset_state M')
       subgoal by (simp add: cdcl\<^sub>W_restart_mset_state)
       done
+    have lazy: \<open>twl_lazy_update M1 C\<close> if \<open>C\<in>#N + U\<close> for C
+      using that st_invs_M1' by blast
+    have excep: \<open>twl_exception_inv (M1, N, U, None, NP, UP, {#}, {#}) C\<close>  if \<open>C\<in>#N + U\<close> for C
+      using that st_invs_M1' by blast
 
-    have \<open>twl_lazy_update (Propagated (- K) {#- K#} # M1) C\<close> for C
-      by (cases C) (auto simp: get_level_cons_if)
-    moreover have \<open>twl_inv (Propagated (- K) {#- K#} # M1) C\<close> for C
-      by (cases C) (auto simp: get_level_cons_if)
+    have \<open>\<not>twl_is_an_exception C {#K#} {#} \<Longrightarrow> twl_lazy_update (Propagated (- K) {#- K#} # M1) C\<close> if \<open>C\<in>#N + U\<close> for C
+      using lazy[OF that] no_dup undef_K n_d1 excep[OF that]
+      by (cases C)
+        (auto simp: get_level_cons_if all_conj_distrib twl_exception_inv.simps
+          twl_is_an_exception_def
+          dest!: no_has_blit_propagate multi_member_split)
     moreover have \<open>watched_literals_false_of_max_level (Propagated (- K) {#- K#} # M1) C\<close> for C
       by (cases C) (auto simp: get_level_cons_if)
     ultimately have \<open>twl_st_inv ?S\<close>
@@ -929,7 +934,9 @@ proof (induction rule: negate_model_and_add_twl.induct)
       by (auto 5 5 simp: dest!: cdcl\<^sub>W_restart_mset.propagate cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.propagate'
           intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_no_smaller_propa)
     moreover have \<open>twl_st_exception_inv ?S\<close>
-      using st_invs_M1' by (simp add: twl_exception_inv.simps)
+      using st_invs_M1'  no_dup undef_K n_d1
+      by (auto simp add: twl_exception_inv.simps
+          dest!: no_has_blit_propagate')
     moreover have \<open>no_duplicate_queued ?S\<close>
       by auto
     moreover have \<open>distinct_queued ?S\<close>
@@ -998,15 +1005,30 @@ proof (induction rule: negate_model_and_add_twl.induct)
         (* TODO Proof *)
         using H no_dup undef dist_C
         unfolding true_annots_true_cls_def_iff_negation_in_model M' C' Ball_def
-        apply (cases \<open>L = L1\<close>; cases \<open>L = L2\<close>)
-        by (auto dest: in_lits_of_l_defined_litD no_dup_appendD no_dup_consistentD
-            simp: all_conj_distrib)
+        by (cases \<open>L = L1\<close>; cases \<open>L = L2\<close>;
+            auto dest: in_lits_of_l_defined_litD no_dup_appendD no_dup_consistentD
+            simp: all_conj_distrib)+
       moreover have \<open>L1 \<notin> lits_of_l M1\<close>
         using H no_dup undef dist_C
         unfolding true_annots_true_cls_def_iff_negation_in_model M' C' Ball_def
         apply (cases \<open>L = L1\<close>; cases \<open>L = L2\<close>)
         by (auto dest: in_lits_of_l_defined_litD no_dup_appendD no_dup_consistentD
             simp: all_conj_distrib)
+      moreover {
+        have \<open>L' \<in> lits_of_l M1 \<Longrightarrow> L' \<in># UW \<Longrightarrow> False\<close> for L'
+          using H no_dup undef dist_C \<open>L1 \<notin> lits_of_l M1\<close> \<open>L2 \<notin> lits_of_l M1\<close> n_d1
+          unfolding true_annots_true_cls_def_iff_negation_in_model M' C' Ball_def
+          apply (cases \<open>L = L1\<close>; cases \<open>L = L2\<close>)
+          apply (auto dest: in_lits_of_l_defined_litD no_dup_appendD no_dup_consistentD
+              simp: all_conj_distrib)
+          by (metis diff_single_trivial in_lits_of_l_defined_litD insert_DiffM
+              insert_noteq_member n_d1 no_dup_consistentD)+
+        then have \<open>\<not> has_blit M1 (clause (TWL_Clause {#L1, L2#} UW)) L1\<close> and
+          \<open>\<not> has_blit M1 (clause (TWL_Clause {#L1, L2#} UW)) L2\<close>
+          using \<open>L1 \<notin> lits_of_l M1\<close> \<open>L2 \<notin> lits_of_l M1\<close>
+          unfolding has_blit_def
+          by auto
+      }
       ultimately have
          \<open>- L1 \<in> lits_of_l M1 \<Longrightarrow> (\<forall>K\<in>#UW. - K \<in> lits_of_l M1)\<close>
          \<open>- L2 \<in> lits_of_l M1 \<Longrightarrow> (\<forall>K\<in>#UW. - K \<in> lits_of_l M1)\<close>
@@ -1014,13 +1036,12 @@ proof (induction rule: negate_model_and_add_twl.induct)
         by fastforce+
       moreover have \<open>L1 \<noteq> L2\<close>
         using dist_C by (auto simp: C')
-      ultimately have \<open>L \<noteq> L1 \<Longrightarrow> L \<noteq> L2 \<Longrightarrow> False\<close>
-        \<open>K \<noteq> L1 \<Longrightarrow> K \<noteq> L2 \<Longrightarrow> False\<close>
+      ultimately have \<open>K \<noteq> L1 \<Longrightarrow> K \<noteq> L2 \<Longrightarrow> False\<close>
         using M1_C' L undef K_C'_C no_dup[unfolded M']
         by (cases \<open>- L1 \<in> lits_of_l M1\<close>; cases \<open>- L2 \<in> lits_of_l M1\<close>;
             auto simp add: C' true_annots_true_cls_def_iff_negation_in_model
             add_mset_eq_add_mset
-            dest!: multi_member_split[of _ UW] dest: in_lits_of_l_defined_litD; fail)+
+            dest!: multi_member_split[of _ UW] dest: in_lits_of_l_defined_litD)
       then show \<open>(\<exists>L'. L' \<in># watched C \<and> L' \<in># {#K#}) \<or> (\<exists>L. (L, C) \<in># {#})\<close>
         by (auto simp: C')
     qed
@@ -1038,12 +1059,12 @@ proof (induction rule: negate_model_and_add_twl.induct)
     moreover {
       have \<open>\<not>clauses_to_update_prop {#} (M1) (L, La) \<Longrightarrow>
          clauses_to_update_prop {#K#} (Propagated (- K) {#- K#} # M1) (L, La) \<Longrightarrow> False\<close> for L La
-        using no_dup
+        using no_dup n_d1 undef_K
         by (auto simp: clauses_to_update_prop.simps M'
             dest: in_lits_of_l_defined_litD)
       then have \<open>clauses_to_update_inv ?S\<close>
-        using clss_upd no_dup by (force simp: filter_mset_empty_conv
-          dest: in_lits_of_l_defined_litD)
+        using clss_upd no_dup n_d1 undef_K by (force simp: filter_mset_empty_conv
+          dest: in_lits_of_l_defined_litD dest!: no_has_blit_propagate')
     }
     moreover have \<open>past_invs ?S\<close>
       unfolding past_invs.simps
@@ -1055,7 +1076,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
       let ?SM1a = \<open>(M1a, N, U, None, add_mset (DECO_clause M) NP, UP, {#}, {#})\<close>
       have
         struct:
-        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and>
           watched_literals_false_of_max_level M1a C \<and>
           twl_exception_inv (M1a, N, U, None, NP, UP, {#}, {#}) C\<close>
         for C
@@ -1067,7 +1088,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
         clss_to_upd: \<open>clauses_to_update_inv (M1a, N, U, None, NP, UP, {#}, {#})\<close>
         using past_M1 unfolding past_invs.simps unfolding M1a
         by fast+
-      show \<open>\<forall>C\<in>#N + U. twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+      show \<open>\<forall>C\<in>#N + U. twl_lazy_update M1a C \<and>
          watched_literals_false_of_max_level M1a C \<and>
          twl_exception_inv ?SM1a C\<close>
         using struct by (simp add: twl_exception_inv.simps)
@@ -1136,8 +1157,6 @@ proof (induction rule: negate_model_and_add_twl.induct)
       by (auto simp: simp del: clause_TWL_Deco_clause)
     moreover have \<open>twl_lazy_update M1 (TWL_DECO_clause M)\<close>
       by (auto simp: deco_M add_mset_eq_add_mset)
-    moreover have \<open>twl_inv M1 (TWL_DECO_clause M)\<close>
-      by (auto simp: deco_M add_mset_eq_add_mset)
     moreover have \<open>watched_literals_false_of_max_level M1 (TWL_DECO_clause M)\<close>
       by (auto simp: deco_M add_mset_eq_add_mset)
     ultimately have \<open>twl_st_inv ?S\<close>
@@ -1184,7 +1203,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
        - L \<in> lits_of_l M1 \<Longrightarrow> False\<close> for L L'
         by (auto simp: deco_M add_mset_eq_add_mset)
       ultimately have \<open>clauses_to_update_inv ?S\<close>
-        using clss_upd no_dup by (auto simp: filter_mset_empty_conv
+        using clss_upd no_dup by (auto simp: filter_mset_empty_conv clauses_to_update_prop.simps
           dest: in_lits_of_l_defined_litD)
     }
     moreover have \<open>past_invs ?S\<close>
@@ -1195,7 +1214,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
       let ?SM1a = \<open>(M1a, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
       have
         struct:
-        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and>
           watched_literals_false_of_max_level M1a C \<and>
           twl_exception_inv (M1a, N, U, None, NP, UP, {#}, {#}) C\<close>
         for C
@@ -1210,7 +1229,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
         clss_to_upd: \<open>clauses_to_update_inv (M1a, N, U, None, NP, UP, {#}, {#})\<close>
         using past_M1 unfolding past_invs.simps unfolding M1a
         by fast+
-      show \<open>\<forall>C\<in>#add_mset (TWL_DECO_clause M) N + U. twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+      show \<open>\<forall>C\<in>#add_mset (TWL_DECO_clause M) N + U. twl_lazy_update M1a C \<and>
          watched_literals_false_of_max_level M1a C \<and>
          twl_exception_inv ?SM1a C\<close>
         using struct by (auto simp add: twl_exception_inv.simps deco_M add_mset_eq_add_mset)

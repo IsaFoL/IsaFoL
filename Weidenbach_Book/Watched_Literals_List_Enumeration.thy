@@ -1,5 +1,5 @@
 theory Watched_Literals_List_Enumeration
-  imports Watched_Literals_Algorithm_Enumeration Watched_Literals_List
+  imports Watched_Literals_Algorithm_Enumeration Watched_Literals.Watched_Literals_List
 begin
 
 lemma convert_lits_l_DECO_clause[simp]:
