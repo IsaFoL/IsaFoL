@@ -146,7 +146,8 @@ session "CDCL" (Weidenbach_Book) = "Sepref_IICF"  +
     "biblio.bib"
 
 session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
-  description \<open>This session contains all theories related to the two-watched literals.\<close>
+  description \<open>This session contains all theories related to the two-watched literals. It linls
+    the abstract CDCL calculus to a more concrete version with watched literals.\<close>
   options [document = pdf, document_output = "output"]
   sessions
     CDCL
@@ -175,7 +176,7 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     "biblio.bib"
 
 session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
-  description \<open>IsaSAT solver\<close>
+  description \<open>We here refine the previous session to generate code.\<close>
   sessions
     CDCL
     "HOL-Eisbach"
@@ -199,7 +200,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
 
 
 session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
-  description \<open>Model enumeration with filtering\<close>
+  description \<open>This extends the previous version to a very simple 'SMT' solver: we enumerate all models and let an unspecified theoty solver checks if a model is valid or another must be found.\<close>
   sessions
     Normalisation
     Resolution_Superposition
