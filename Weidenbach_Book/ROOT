@@ -197,15 +197,6 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     "root.tex"
     "biblio.bib"
 
-session "CDCL_B" (Weidenbach_Book) = "CDCL_no_Sepref"  +
-  description \<open>This session contains Sophie Tourret's variants of Weidenbach's
-  CDCL calculus, where multiple decisions are done at the same time.
-  \<close>
-  options [document = false, document_output = "output_CDCL_B"]
-  sessions
-    CDCL
-  theories[document = false, quick_and_dirty]
-    CDCL_B
 
 session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
   description \<open>Model enumeration with filtering\<close>
