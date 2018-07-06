@@ -1,6 +1,0 @@
-[0m[[0mdebug[0m] [0mjavaOptions: List(-Xss512M, -agentlib:hprof=cpu=y)[0m
-[0m[[0minfo[0m] [0mRunning example.Hello [0m
-[0m[[0minfo[0m] [0mp cnf 7606 26317[0m
-[0m[[0minfo[0m] [0mend of init[0m
-[0m[[0minfo[0m] [0mtrue[0m
-[0m[[31merror[0m] [0mDumping CPU usage by sampling running threads ... done.[0m
