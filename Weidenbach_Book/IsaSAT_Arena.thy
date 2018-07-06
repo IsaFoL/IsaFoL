@@ -2,7 +2,23 @@ theory IsaSAT_Arena
 imports IsaSAT_Setup
 begin
 
-text \<open>The order in memory is in the following order:
+
+subsection \<open>The memory representation: Arenas\<close>
+
+text \<open>
+We implement an ``arena'' memory representation: This is a flat representation of clauses, where
+all clauses and their headers are put one after the other. A lot of the work done here could be done
+automatically by a C compiler (see paragraph on Cadical below).
+
+While this has some advantages from a performance point of view compared to an array of arrays, it
+allows to emulate pointers to the middle of array with extra information put before the pointer.
+
+In Cadical, the representation is done that way although it is implicit by putting an array into a
+structure (and rely on UB behaviour to make sure that the array is ``inlined'' into the structure).
+Cadical also uses another trick: the array is but inside a union. This union contains either the
+clause or a pointer to the new position if it has been moved (during GC-ing).
+
+The order in memory is in the following order:
   \<^enum> the saved position (is optional in cadical);
   \<^enum> the status;
   \<^enum> the activity;
@@ -16,8 +32,25 @@ Remark that the information can be compressed to reduce the size in memory:
     approximation can be kept and the remaining bits be reused;
   \<^enum> the activity is not kept by cadical (to use instead a MTF-like scheme).
 
-As we are already wasteful with memory, we implement the first optimisation.
+As we are already wasteful with memory, we implement the first optimisation. Point two can be
+implemented automatically by a C compiler.
+
+
+In our case, the refinement is done in two steps:
+  \<^enum> First, we refine our clause-mapping to a big list. This list contains the original elements.
+    For type safety, we introduce a datatype that enumerates all possible kind of elements.
+  \<^enum> Then, we refine all these elements to uint32 elements.
+
+
+In our formalisation, we distinguish active clauses (clauses that are not marked to be deleted) from
+dead clauses (that have been marked to be deleted but can still be accessed). Any dead clause can be
+removed from the addressable clauses (\<^term>\<open>vdom\<close> for virtual domain).
+
+Remark that in our formalisation, we don't (at least not yet) plan to reuse freed spaces.
 \<close>
+
+
+subsubsection \<open>Definition\<close>
 
 definition POS_SHIFT :: nat where
   \<open>POS_SHIFT = 5\<close>
@@ -42,6 +75,8 @@ abbreviation is_long_clause where
 
 definition header_size :: \<open>nat clause_l \<Rightarrow> nat\<close> where
 \<open>header_size C = (if is_short_clause C then 4 else 5)\<close>
+
+lemmas SHIFTS_def = POS_SHIFT_def STATUS_SHIFT_def ACTIVITY_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
 
 lemma arena_shift_distinct[simp]:
   \<open>i >  3 \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - LBD_SHIFT\<close>
@@ -75,12 +110,12 @@ lemma arena_shift_distinct[simp]:
   \<open>i \<ge> header_size C \<Longrightarrow> is_long_clause C \<Longrightarrow> i - ACTIVITY_SHIFT \<noteq> i - POS_SHIFT\<close>
   \<open>i \<ge> header_size C \<Longrightarrow> is_long_clause C \<Longrightarrow> i - STATUS_SHIFT \<noteq> i - POS_SHIFT\<close>
 
-
   \<open>i \<ge> header_size C \<Longrightarrow> j \<ge> header_size C' \<Longrightarrow> i - SIZE_SHIFT = j - SIZE_SHIFT \<longleftrightarrow> i = j\<close>
   \<open>i \<ge> header_size C \<Longrightarrow> j \<ge> header_size C' \<Longrightarrow> i - LBD_SHIFT = j - LBD_SHIFT \<longleftrightarrow> i = j\<close>
   \<open>i \<ge> header_size C \<Longrightarrow> j \<ge> header_size C' \<Longrightarrow> i - ACTIVITY_SHIFT = j - ACTIVITY_SHIFT \<longleftrightarrow> i = j\<close>
   \<open>i \<ge> header_size C \<Longrightarrow> j \<ge> header_size C' \<Longrightarrow> i - STATUS_SHIFT = j - STATUS_SHIFT \<longleftrightarrow> i = j\<close>
-  \<open>i \<ge> header_size C \<Longrightarrow> j \<ge> header_size C' \<Longrightarrow> is_long_clause C \<Longrightarrow> is_long_clause C' \<Longrightarrow> i - POS_SHIFT = j - POS_SHIFT \<longleftrightarrow> i = j\<close>
+  \<open>i \<ge> header_size C \<Longrightarrow> j \<ge> header_size C' \<Longrightarrow> is_long_clause C \<Longrightarrow> is_long_clause C' \<Longrightarrow>
+     i - POS_SHIFT = j - POS_SHIFT \<longleftrightarrow> i = j\<close>
   unfolding POS_SHIFT_def STATUS_SHIFT_def ACTIVITY_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
     header_size_def
   by (auto split: if_splits simp: is_short_clause_def)
@@ -99,7 +134,7 @@ type_synonym arena = \<open>arena_el list\<close>
 
 definition arena_active_clause :: \<open>arena \<Rightarrow> nat clause_l \<times> bool \<Rightarrow> bool\<close> where
   \<open>arena_active_clause arena = (\<lambda>(C, red).
-     (length C \<ge> 2 \<and> 
+     (length C \<ge> 2 \<and>
        header_size C + length C = length arena \<and>
      (is_long_clause C \<longrightarrow> (is_Pos (arena!(header_size C - POS_SHIFT)) \<and>
        arena_pos(arena!(header_size C - POS_SHIFT)) < length C - 2)) \<and>
@@ -115,7 +150,7 @@ definition arena_active_clause :: \<open>arena \<Rightarrow> nat clause_l \<time
 
 lemma arena_active_clause_alt_def:
   \<open>arena_active_clause arena (the (fmlookup N i)) = (
-     (length (N\<propto>i) \<ge> 2 \<and> 
+     (length (N\<propto>i) \<ge> 2 \<and>
        header_size (N\<propto>i) + length (N\<propto>i) = length arena \<and>
      (is_long_clause (N\<propto>i) \<longrightarrow> (is_Pos (arena!(header_size (N\<propto>i) - POS_SHIFT)) \<and>
        arena_pos(arena!(header_size (N\<propto>i) - POS_SHIFT)) < length (N\<propto>i) - 2)) \<and>
@@ -137,9 +172,13 @@ proof -
     by meson
 qed
 
+text \<open>The extra information is required to prove ``separation'' between active and dead clauses.\<close>
 definition arena_dead_clause :: \<open>arena \<Rightarrow> bool\<close> where
   \<open>arena_dead_clause arena \<longleftrightarrow>
-     is_Status(arena!(4 - STATUS_SHIFT)) \<and> arena_status(arena!(4 - STATUS_SHIFT)) = DELETED
+     is_Status(arena!(4 - STATUS_SHIFT)) \<and> arena_status(arena!(4 - STATUS_SHIFT)) = DELETED \<and>
+     is_LBD(arena!(4 - LBD_SHIFT)) \<and>
+     is_Act(arena!(4 - ACTIVITY_SHIFT)) \<and>
+     is_Size(arena!(4 - SIZE_SHIFT))
 \<close>
 
 definition extra_information_mark_to_delete where
@@ -151,14 +190,23 @@ abbreviation clause_slice where
 abbreviation dead_clause_slice where
   \<open>dead_clause_slice arena N i \<equiv> Misc.slice (i - 4) i arena\<close>
 
+text \<open>In our first try, the predicated \<^term>\<open>arena_active_clause\<close> took the whole
+arena as parameter. This however turned out to make the proof about updates less modular, since the
+slicing already takes care to ignore not relevant changes.
+\<close>
 definition valid_arena where
   \<open>valid_arena arena N vdom \<longleftrightarrow>
-    (\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and> 
+    (\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and>
          arena_active_clause (clause_slice arena N i) (the (fmlookup N i))) \<and>
-    (\<forall>i \<in> vdom. i \<notin># dom_m N \<longrightarrow> (i < length arena \<and> i \<ge> 4 \<and> 
+    (\<forall>i \<in> vdom. i \<notin># dom_m N \<longrightarrow> (i < length arena \<and> i \<ge> 4 \<and>
       arena_dead_clause (dead_clause_slice arena N i)))
 \<close>
 
+definition astatus where
+  \<open>astatus arena i = arena!(i - STATUS_SHIFT)\<close>
+
+definition asize where
+  \<open>asize arena i = arena!(i - SIZE_SHIFT)\<close>
 
 (* TODO Move to replace @{thm slice_nth} *)
 lemma slice_nth: "\<lbrakk>from \<le> length xs; i < to - from \<rbrakk> \<Longrightarrow> Misc.slice from to xs ! i = xs ! (from + i)"
@@ -188,8 +236,11 @@ lemma take_slice[simp]:
   using antisym_conv by (fastforce simp: Misc.slice_def drop_take ac_simps min_def)
 (* End Move *)
 
+
+subsubsection \<open>Separation properties\<close>
+
 lemma minimal_difference_between_valid_index:
-  assumes \<open>\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and> 
+  assumes \<open>\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and>
          arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> and
     \<open>i \<in># dom_m N\<close> and \<open>j \<in># dom_m N\<close> and \<open>j > i\<close>
   shows \<open>j - i \<ge> length (N\<propto>i) + header_size (N\<propto>j)\<close>
@@ -325,7 +376,7 @@ proof (rule ccontr)
     act: \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close> and
     size: \<open>is_Size (arena ! (i - SIZE_SHIFT))\<close> and
     st_init: \<open>(arena_status (arena ! (i - STATUS_SHIFT)) = INIT) = (irred N i)\<close> and
-    st_learned: \<open> (arena_status (arena ! (i - STATUS_SHIFT)) = LEARNED) = (\<not> irred N i)\<close>
+    st_learned: \<open>(arena_status (arena ! (i - STATUS_SHIFT)) = LEARNED) = (\<not> irred N i)\<close>
     using 1 i_ge i_le
     unfolding arena_active_clause_def extra_information_mark_to_delete_def prod.case
       unfolding STATUS_SHIFT_def LBD_SHIFT_def ACTIVITY_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def
@@ -340,7 +391,7 @@ proof (rule ccontr)
     by (simp_all add: header_size_def slice_nth)
   consider
     \<open>j - STATUS_SHIFT \<ge> i\<close> |
-    \<open>j - STATUS_SHIFT < i\<close> 
+    \<open>j - STATUS_SHIFT < i\<close>
     using False \<open>j \<ge> i\<close> unfolding STATUS_SHIFT_def
     by linarith
   then show False
@@ -363,7 +414,7 @@ proof (rule ccontr)
       \<open>j - STATUS_SHIFT = i - ACTIVITY_SHIFT\<close> |
       \<open>j - STATUS_SHIFT = i - SIZE_SHIFT\<close> |
       \<open>is_long_clause (N \<propto> i)\<close> and \<open>j - STATUS_SHIFT = i - POS_SHIFT\<close>
-      using \<open>j \<ge> i\<close> 
+      using \<open>j \<ge> i\<close>
       unfolding STATUS_SHIFT_def LBD_SHIFT_def ACTIVITY_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def
       by force
     then show False
@@ -378,12 +429,16 @@ proof (rule ccontr)
 qed
 
 
+text \<open>At first we had the weaker \<^term>\<open>i - j \<ge> 1\<close> with was able to solve many more goals due
+to different handling between \<^term>\<open>1\<close> (which is \<^term>\<open>Suc 0\<close>) and \<^term>\<open>4\<close> (which is not
+reduced)...
+\<close>
 lemma minimal_difference_between_invalid_index2:
   assumes \<open>valid_arena arena N vdom\<close> and
     \<open>i \<in># dom_m N\<close> and \<open>j \<notin># dom_m N\<close> and \<open>j < i\<close> and \<open>j \<in> vdom\<close>
-  shows \<open>i - j \<ge> 1\<close>
-proof (rule ccontr)
-  assume False: \<open>\<not> ?thesis\<close>
+  shows \<open>i - j \<ge> Suc (Suc (Suc (Suc 0)))\<close> and
+     \<open>is_long_clause (N \<propto> i) \<Longrightarrow> i - j \<ge> Suc (Suc (Suc (Suc (Suc 0))))\<close>
+proof -
   let ?Ci = \<open>the (fmlookup N i)\<close>
   let ?Cj = \<open>the (fmlookup N j)\<close>
   have
@@ -420,25 +475,72 @@ proof (rule ccontr)
 
   have
     st: \<open>is_Status (arena ! (j - STATUS_SHIFT))\<close> and
-    del: \<open>arena_status (arena ! (j - STATUS_SHIFT)) = DELETED\<close>
-    using 2 j_le j_ge unfolding arena_dead_clause_def STATUS_SHIFT_def
+    del: \<open>arena_status (arena ! (j - STATUS_SHIFT)) = DELETED\<close> and
+    lbd': \<open>is_LBD (arena ! (j - LBD_SHIFT))\<close> and
+    act': \<open>is_Act (arena ! (j - ACTIVITY_SHIFT))\<close> and
+    size': \<open>is_Size (arena ! (j - SIZE_SHIFT))\<close>
+    using 2 j_le j_ge unfolding arena_dead_clause_def SHIFTS_def
     by (simp_all add: header_size_def slice_nth)
-  then have
-    \<open>j = i\<close>
-    using False \<open>i > j\<close> unfolding STATUS_SHIFT_def
-    by linarith
-  then show False
-    using st status st_init st_learned del by auto
+  have 4: \<open>4 = Suc (Suc (Suc (Suc 0)))\<close>  and 5: \<open>5 = Suc (Suc (Suc (Suc (Suc 0))))\<close>
+    by auto
+  have [simp]: \<open>a < 4 \<Longrightarrow> j - Suc a = i - Suc 0 \<longleftrightarrow> i = j - a\<close> for a
+    using \<open>i > j\<close> j_ge i_ge
+    by (auto split: if_splits simp: not_less_eq_eq le_Suc_eq )
+  have [simp]: \<open>Suc i - j = Suc a \<longleftrightarrow> i - j = a\<close> for a
+    using \<open>i > j\<close> j_ge i_ge
+    by (auto split: if_splits simp: not_less_eq_eq le_Suc_eq)
+
+  show 1: \<open>i - j \<ge> Suc (Suc (Suc (Suc 0)))\<close> (is ?A)
+  proof (rule ccontr)
+    assume False: \<open>\<not>?A\<close>
+    consider
+        \<open>i - STATUS_SHIFT = j - STATUS_SHIFT\<close> |
+        \<open>i - STATUS_SHIFT = j - LBD_SHIFT\<close> |
+        \<open>i - STATUS_SHIFT = j - ACTIVITY_SHIFT\<close> |
+        \<open>i - STATUS_SHIFT = j - SIZE_SHIFT\<close>
+      using False \<open>i > j\<close> j_ge i_ge unfolding SHIFTS_def header_size_def 4
+      by (auto split: if_splits simp: not_less_eq_eq le_Suc_eq )
+    then show False
+      apply cases
+      subgoal using st status st_init st_learned del by auto
+      subgoal using status lbd' by auto
+      subgoal using status act' by auto
+      subgoal using status size' by auto
+      done
+  qed
+
+  show \<open>i - j \<ge> Suc (Suc (Suc (Suc (Suc 0))))\<close> (is ?A)
+    if long: \<open>is_long_clause (N \<propto> i)\<close>
+  proof (rule ccontr)
+    assume False: \<open>\<not>?A\<close>
+
+    have [simp]: \<open>a < 5 \<Longrightarrow> a' < 4 \<Longrightarrow> i - Suc a = j - Suc a' \<longleftrightarrow> i - a = j - a'\<close> for a a'
+      using \<open>i > j\<close> j_ge i_ge long
+      by (auto split: if_splits simp: not_less_eq_eq le_Suc_eq )
+    have \<open>i - j = Suc (Suc (Suc (Suc 0)))\<close>
+      using 1 \<open>i > j\<close> False j_ge i_ge long unfolding SHIFTS_def header_size_def 4
+      by (auto split: if_splits simp: not_less_eq_eq le_Suc_eq)
+    then have \<open>i - POS_SHIFT = j - SIZE_SHIFT\<close>
+      using 1 \<open>i > j\<close> j_ge i_ge long unfolding SHIFTS_def header_size_def 4 5
+      by (auto split: if_splits simp: not_less_eq_eq le_Suc_eq)
+    then show False
+      using pos long size'
+      by auto
+  qed
 qed
 
+
+subsubsection \<open>Updates\<close>
+
+paragraph \<open>Mark to delete\<close>
 
 lemma clause_slice_extra_information_mark_to_delete:
   assumes
     i: \<open>i \<in># dom_m N\<close> and
     ia: \<open>ia \<in># dom_m N\<close> and
-    dom: \<open>\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and> 
-         arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> 
-  shows 
+    dom: \<open>\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and>
+         arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>
+  shows
     \<open>clause_slice (extra_information_mark_to_delete arena i) N ia =
       (if ia = i then extra_information_mark_to_delete (clause_slice arena  N ia) (header_size (N\<propto>i))
          else clause_slice arena N ia)\<close>
@@ -461,8 +563,8 @@ lemma clause_slice_extra_information_mark_to_delete_dead:
   assumes
     i: \<open>i \<in># dom_m N\<close> and
     ia: \<open>ia \<notin># dom_m N\<close> \<open>ia \<in> vdom\<close> and
-    dom: \<open>valid_arena arena N vdom\<close> 
-  shows 
+    dom: \<open>valid_arena arena N vdom\<close>
+  shows
     \<open>arena_dead_clause (dead_clause_slice (extra_information_mark_to_delete arena i) N ia) =
       arena_dead_clause (dead_clause_slice arena N ia)\<close>
 proof -
@@ -488,7 +590,7 @@ lemma valid_arena_extra_information_mark_to_delete:
   shows \<open>valid_arena (extra_information_mark_to_delete arena i) (fmdrop i N) (insert i vdom)\<close>
 proof -
   let ?arena = \<open>extra_information_mark_to_delete arena i\<close>
-  have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close> 
+  have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close>
      \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia =i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
     using assms distinct_mset_dom[of N] by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
   have
@@ -502,7 +604,7 @@ proof -
         arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>  and
     vdom: \<open>\<And>i. i\<in>vdom \<longrightarrow> i \<notin># dom_m N \<longrightarrow> 4 \<le> i \<and> arena_dead_clause (dead_clause_slice arena N i)\<close>
     using assms unfolding valid_arena_def by auto
-  have \<open>ia\<in>#dom_m (fmdrop i N) \<Longrightarrow> 
+  have \<open>ia\<in>#dom_m (fmdrop i N) \<Longrightarrow>
         ia < length ?arena \<and>
         header_size (fmdrop i N \<propto> ia) \<le> ia \<and>
         arena_active_clause (clause_slice ?arena (fmdrop i N) ia) (the (fmlookup (fmdrop i N) ia))\<close> for ia
@@ -519,159 +621,19 @@ proof -
     using dom'[of i, OF i]
     unfolding arena_dead_clause_def arena_active_clause_alt_def
       extra_information_mark_to_delete_def apply -
-    by (simp add: STATUS_SHIFT_def header_size_def Misc.slice_def drop_update_swap
+    apply (simp_all add: SHIFTS_def header_size_def Misc.slice_def drop_update_swap min_def
       split: if_splits)
+      apply force
+     apply force
+    apply force
+    done
   ultimately show ?thesis
     using assms unfolding valid_arena_def
     by auto
 qed
 
 
-lemma arena_active_clause_delete_clause:
-  fixes ia :: \<open>nat\<close>
-  assumes
-    i: \<open>i \<in># dom_m N\<close> and
-    dom: \<open>Multiset.Ball (dom_m N) (arena_active_clause arena N)\<close> and
-    \<open>\<forall>i\<in>vdom. i \<notin># dom_m N \<longrightarrow> arena_dead_clause arena N i\<close> and
-    ia: \<open>ia \<in># remove1_mset i (dom_m N)\<close>
-  shows \<open>arena_active_clause (extra_information_mark_to_delete arena i)
-          (fmdrop i N) ia\<close>
-proof -
-  have \<open>arena_active_clause arena N ia\<close> and [simp]: \<open>ia \<noteq> i\<close>\<open>i \<noteq> ia\<close>  and
-      ia': \<open>header_size (N \<propto> ia) \<le> ia\<close> and
-      ia: \<open>ia \<in># dom_m N\<close>
-    using assms distinct_mset_dom[of N] by (auto dest: in_diffD multi_member_split
-      simp: arena_active_clause_def)
-  moreover have i_header: \<open>i \<ge> header_size (N \<propto> i)\<close> and \<open>i < length arena\<close>
-    using assms
-    unfolding arena_active_clause_def extra_information_mark_to_delete_def
-    by auto
-  moreover {
-    have \<open>arena_active_clause arena N i\<close>
-      using assms distinct_mset_dom[of N] by (auto dest: in_diffD multi_member_split)
-    then have \<open>is_Status(arena!(i - STATUS_SHIFT))\<close>
-      unfolding arena_active_clause_def extra_information_mark_to_delete_def
-      by auto
-  }
-  moreover have \<open>take (length (N \<propto> ia))
-        (drop ia (arena[i - STATUS_SHIFT := AStatus DELETED])) =
-        map ALit (N \<propto> ia)\<close>
-    if
-      cl:\<open>take (length (N \<propto> ia)) (drop ia arena) = map ALit (N \<propto> ia)\<close> and
-      ia: \<open>ia \<in># dom_m N\<close>
-  proof -
-    show ?thesis
-      using cl minimal_difference_between_valid_index[OF dom ia i]
-        minimal_difference_between_valid_index[OF dom i ia]
-      by (cases \<open>ia < i\<close>; cases \<open>i < ia\<close>)
-        (auto simp: drop_update_swap STATUS_SHIFT_def
-        header_size_def split: if_splits)
-  qed
-  moreover have
-    \<open>i - STATUS_SHIFT \<noteq> ia - SIZE_SHIFT\<close> (is ?A) and
-    \<open>is_long_clause(N\<propto>ia) \<Longrightarrow> i - STATUS_SHIFT \<noteq> ia - POS_SHIFT\<close> and
-    \<open>i - STATUS_SHIFT \<noteq> ia - LBD_SHIFT\<close> (is ?C) and
-    \<open>i - STATUS_SHIFT \<noteq> ia - ACTIVITY_SHIFT\<close> (is ?D)
-  proof -
-    show  ?A
-      using minimal_difference_between_valid_index[OF dom ia i]
-        minimal_difference_between_valid_index[OF dom i ia] ia'
-      by (cases \<open>ia < i\<close>; cases \<open>i < ia\<close>)
-        (auto simp: drop_update_swap STATUS_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def
-        header_size_def split: if_splits)
-    show  \<open>is_long_clause(N\<propto>ia) \<Longrightarrow> i - STATUS_SHIFT \<noteq> ia - POS_SHIFT\<close>
-      using minimal_difference_between_valid_index[OF dom ia i] i_header
-        minimal_difference_between_valid_index[OF dom i ia] ia'
-      by (cases \<open>ia < i\<close>; cases \<open>i < ia\<close>)
-        (auto simp: drop_update_swap STATUS_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def
-        header_size_def split: if_splits)
-    show  ?C
-      using minimal_difference_between_valid_index[OF dom ia i]
-        minimal_difference_between_valid_index[OF dom i ia] ia'
-      by (cases \<open>ia < i\<close>; cases \<open>i < ia\<close>)
-        (auto simp: drop_update_swap STATUS_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def LBD_SHIFT_def
-        header_size_def split: if_splits)
-    show  ?D
-      using minimal_difference_between_valid_index[OF dom ia i]
-        minimal_difference_between_valid_index[OF dom i ia] ia'
-      by (cases \<open>ia < i\<close>; cases \<open>i < ia\<close>)
-        (auto simp: drop_update_swap STATUS_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def LBD_SHIFT_def
-          ACTIVITY_SHIFT_def header_size_def split: if_splits)
-  qed
-  ultimately show ?thesis
-    unfolding arena_active_clause_def extra_information_mark_to_delete_def
-    apply (intro conjI)
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by (simp add: Misc.slice_def)
-    done
-qed
-
-lemma arena_dead_clause_extra_information_mark_to_delete_same:
-  assumes
-    \<open>i \<in># dom_m N\<close> and
-    \<open>Multiset.Ball (dom_m N) (arena_active_clause arena N)\<close> and
-    \<open>\<forall>i\<in>vdom. i \<notin># dom_m N \<longrightarrow> arena_dead_clause arena N i\<close> and
-    \<open>i \<notin># remove1_mset i (dom_m N)\<close>
-  shows \<open>arena_dead_clause (extra_information_mark_to_delete arena i)
-          (fmdrop i N) i\<close>
-proof -
-  have \<open>arena_active_clause arena N i\<close>
-    using assms distinct_mset_dom[of N] by (auto dest: in_diffD multi_member_split)
-  then show ?thesis
-  using distinct_mset_dom[of N]
-    unfolding arena_dead_clause_def arena_active_clause_def
-      extra_information_mark_to_delete_def
-    by (clarsimp simp: header_size_def split: if_splits
-      dest!: multi_member_split[of i])
-qed
-
-lemma arena_dead_clause_extra_information_mark_to_delete:
-  fixes ia :: \<open>nat\<close>
-  assumes
-    i_dom: \<open>i \<in># dom_m N\<close> and
-    \<open>Multiset.Ball (dom_m N) (arena_active_clause arena N)\<close> and
-    \<open>\<forall>i\<in>vdom. i \<notin># dom_m N \<longrightarrow> arena_dead_clause arena N i\<close> and
-    \<open>ia \<in> vdom\<close> and
-    \<open>ia \<notin># remove1_mset i (dom_m N)\<close>
-  shows \<open>arena_dead_clause (extra_information_mark_to_delete arena i)
-          (fmdrop i N) ia\<close>
-proof -
-  have \<open>arena_active_clause arena N i\<close>
-    using assms distinct_mset_dom[of N] by (auto dest: in_diffD multi_member_split)
-  then have \<open>ia = i \<Longrightarrow> ?thesis\<close>
-    using arena_dead_clause_extra_information_mark_to_delete_same[OF assms(1-3)]
-    using distinct_mset_dom[of N] i_dom
-    by (auto dest!: multi_member_split)
-  moreover have \<open>i \<noteq> ia \<Longrightarrow> arena_dead_clause arena N ia\<close>
-    using assms distinct_mset_dom[of N] by (auto dest: in_diffD multi_member_split
-      simp: distinct_mset_remove1_All)
-  then have \<open>ia \<noteq> i \<Longrightarrow> ?thesis\<close>
-    using distinct_mset_dom[of N]
-    unfolding arena_dead_clause_def arena_active_clause_def extra_information_mark_to_delete_def
-    by (clarsimp simp: header_size_def split: if_splits
-      dest!: multi_member_split[of i])
-  ultimately show ?thesis
-    by blast
-qed
-
-lemma valid_arena_extra_information_mark_to_delete:
-  assumes \<open>valid_arena arena N vdom\<close> and \<open>i \<in># dom_m N\<close>
-  shows \<open>valid_arena (extra_information_mark_to_delete arena i) (fmdrop i N) (insert i vdom)\<close>
-  using assms
-  by (auto simp: valid_arena_def arena_active_clause_delete_clause
-    arena_dead_clause_extra_information_mark_to_delete_same
-    arena_dead_clause_extra_information_mark_to_delete)
+paragraph \<open>Removable from addressable space\<close>
 
 lemma valid_arena_remove_from_vdom:
   assumes \<open>valid_arena arena N (insert i vdom)\<close>
@@ -679,330 +641,349 @@ lemma valid_arena_remove_from_vdom:
   using assms valid_arena_def
   by (auto dest!: in_diffD)
 
-definition astatus where
-  \<open>astatus arena i = arena!(i - STATUS_SHIFT)\<close>
 
-definition asize where
-  \<open>asize arena i = arena!(i - SIZE_SHIFT)\<close>
-
-lemma valid_arena_cong_imp:
-  assumes
-    arena: \<open>valid_arena arena N vdom\<close> and
-    clss: \<open>\<And>i. i \<in># dom_m N \<Longrightarrow> 2 \<le> length (N \<propto> i) \<Longrightarrow>
-       Misc.slice i (i + length(N\<propto>i)) arena = Misc.slice i (i + length(N\<propto>i)) arena2\<close> and
-    status: \<open>\<And>i. i \<in># dom_m N \<Longrightarrow> astatus arena i = astatus arena2 i\<close> and
-    size: \<open>\<And>i. i \<in># dom_m N \<Longrightarrow> asize arena i = asize arena2 i\<close> and
-    pos: \<open>\<And>i. i \<in># dom_m N \<Longrightarrow> is_long_clause (N\<propto>i) \<Longrightarrow> is_Pos (arena!(i - POS_SHIFT)) \<Longrightarrow>
-        arena_pos(arena!(i - POS_SHIFT)) < length (N \<propto> i) - 2 \<Longrightarrow>
-       is_Pos (arena2!(i - POS_SHIFT)) \<and>
-       arena_pos(arena2!(i - POS_SHIFT)) < length (N \<propto> i) - 2\<close> and
-    lbd: \<open>\<And>i. i \<in># dom_m N \<Longrightarrow> is_LBD (arena ! (i - LBD_SHIFT)) \<Longrightarrow> is_LBD (arena2 ! (i - LBD_SHIFT))\<close> and
-    act: \<open>\<And>i. i \<in># dom_m N \<Longrightarrow> is_Act (arena ! (i - ACTIVITY_SHIFT))\<Longrightarrow> is_Act (arena2 ! (i - ACTIVITY_SHIFT))\<close> and
-    vdom: \<open>\<And>i. i \<in> vdom \<Longrightarrow> i \<notin># dom_m N \<Longrightarrow> astatus arena i = astatus arena2 i\<close> and
-    [simp]: \<open>length arena = length arena2\<close>
-  shows \<open>valid_arena arena2 N vdom\<close>
-proof -
-  have \<open>Multiset.Ball (dom_m N) (arena_active_clause arena2 N)\<close>
-  proof (intro ballI)
-    fix C
-    assume C: \<open>C \<in># dom_m N\<close>
-    then have \<open>arena_active_clause arena N C\<close>
-      using arena
-      unfolding valid_arena_def
-      by auto
-    hence
-      \<open>header_size (N \<propto> C) \<le> C\<close> and
-      \<open>C \<in># dom_m N\<close> and
-      \<open>2 \<le> length (N \<propto> C)\<close> and
-      \<open>C + length (N \<propto> C) \<le> length arena\<close> and
-      \<open>is_long_clause (N \<propto> C) \<longrightarrow>
-      is_Pos (arena ! (C - POS_SHIFT)) \<and>
-      arena_pos (arena ! (C - POS_SHIFT)) < length (N \<propto> C) - 2\<close> and
-      \<open>is_Status (arena ! (C - STATUS_SHIFT))\<close> and
-      \<open>(arena_status (arena ! (C - STATUS_SHIFT)) = INIT) = irred N C\<close> and
-      \<open>(arena_status (arena ! (C - STATUS_SHIFT)) = LEARNED) = (\<not> irred N C)\<close> and
-      \<open>is_LBD (arena ! (C - LBD_SHIFT))\<close> and
-      \<open>is_Act (arena ! (C - ACTIVITY_SHIFT))\<close> and
-      \<open>is_Size (arena ! (C - SIZE_SHIFT))\<close> and
-      \<open>arena_size (arena ! (C - SIZE_SHIFT)) + 2 = length (N \<propto> C)\<close> and
-      \<open>Misc.slice C (C + length (N \<propto> C)) arena = map ALit (N \<propto> C)\<close>
-      unfolding arena_active_clause_def by blast+
-    then show \<open>arena_active_clause arena2 N C\<close>
-      using pos[OF C] lbd[OF C] act[OF C] clss[OF C] size[OF C, unfolded asize_def]
-        status[OF C, unfolded astatus_def]
-      unfolding arena_active_clause_def
-      by simp_all
-  qed
-  moreover have \<open>arena_dead_clause arena2 N i\<close>
-  if
-    \<open>i \<in> vdom\<close> and
-    \<open>i \<notin># dom_m N\<close>
-  for i
-  proof -
-    have \<open>arena_dead_clause arena N i\<close>
-      using arena that
-      unfolding valid_arena_def
-      by auto
-    then show ?thesis
-    using vdom[of i] that
-    unfolding arena_dead_clause_def astatus_def
-    by auto
-  qed
-  ultimately show ?thesis
-    unfolding valid_arena_def
-    by blast
-qed
-
+paragraph \<open>Update activity\<close>
 
 definition update_act where
   \<open>update_act C act arena = arena[C - ACTIVITY_SHIFT := AActivity act]\<close>
 
-lemma
-  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close> and j: \<open>j \<in># dom_m N\<close>
+lemma clause_slice_update_act:
+  assumes
+    i: \<open>i \<in># dom_m N\<close> and
+    ia: \<open>ia \<in># dom_m N\<close> and
+    dom: \<open>\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and>
+         arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>
   shows
-     arena_valid_index_separation_activity:
-      \<open>i \<ge> header_size (N\<propto>i)\<close> (is ?A)
-      \<open>i \<ge> 4\<close> (is ?A')
-      \<open>length (N \<propto> i) \<ge> 2\<close> (is ?L)
-      \<open>i < length arena\<close> (is ?L')
-      \<open>j = i \<or> (i - ACTIVITY_SHIFT < j \<and> i - LBD_SHIFT < j \<and> length (N \<propto> i) + header_size (N \<propto> j) \<le> j - i) \<or>
-        (i - ACTIVITY_SHIFT > j + length (N\<propto>j) \<and> i - LBD_SHIFT > j + length (N\<propto>j) \<and>
-            length (N \<propto> j) + header_size (N \<propto> i) \<le> i - j)\<close> (is ?B)
-        \<open>i - ACTIVITY_SHIFT \<noteq> j - STATUS_SHIFT\<close> (is ?diff1)
-        \<open>i - ACTIVITY_SHIFT \<noteq> i - SIZE_SHIFT\<close> (is ?diff2)
-        \<open>i - ACTIVITY_SHIFT \<noteq> j - SIZE_SHIFT\<close> (is ?diff3)
-        \<open>i - ACTIVITY_SHIFT \<noteq> i - SIZE_SHIFT\<close> (is ?diff4)
-        \<open>i - ACTIVITY_SHIFT \<noteq> j - SIZE_SHIFT\<close> (is ?diff5)
-        \<open>i - ACTIVITY_SHIFT \<noteq> i - LBD_SHIFT\<close> (is ?diff6)
-        \<open>i - ACTIVITY_SHIFT \<noteq> j - LBD_SHIFT\<close> (is ?diff7)
-        \<open>is_long_clause (N\<propto>j) \<Longrightarrow> i - ACTIVITY_SHIFT \<noteq> j - POS_SHIFT\<close> (is \<open>?long \<Longrightarrow> ?diff8\<close>)
-        \<open>i - ACTIVITY_SHIFT < i\<close> (is ?notin1) and
-
-     arena_valid_index_separation_lbd:
-
-        \<open>i - LBD_SHIFT \<noteq> j - STATUS_SHIFT\<close> (is ?diff1')
-        \<open>i - LBD_SHIFT \<noteq> i - SIZE_SHIFT\<close> (is ?diff2')
-        \<open>i - LBD_SHIFT \<noteq> j - SIZE_SHIFT\<close> (is ?diff3')
-        \<open>i - LBD_SHIFT \<noteq> i - SIZE_SHIFT\<close> (is ?diff4')
-        \<open>i - LBD_SHIFT \<noteq> j - SIZE_SHIFT\<close> (is ?diff5')
-        \<open>i - LBD_SHIFT \<noteq> i - ACTIVITY_SHIFT\<close> (is ?diff6')
-        \<open>i - LBD_SHIFT \<noteq> j - ACTIVITY_SHIFT\<close> (is ?diff7')
-        \<open>is_long_clause (N\<propto>j) \<Longrightarrow> i - LBD_SHIFT \<noteq> j - POS_SHIFT\<close> (is \<open>?long \<Longrightarrow> ?diff8'\<close>)
-
-        \<open>i - LBD_SHIFT < i\<close> (is ?notin1') and
-
-     arena_valid_index_separation_pos:
-        \<open>is_long_clause (N\<propto>i) \<Longrightarrow> j = i \<or> (i - POS_SHIFT < j \<and> length (N \<propto> i) + header_size (N \<propto> j) \<le> j - i) \<or>
-          (i - POS_SHIFT >= j + length (N\<propto>j) \<and>
-            length (N \<propto> j) + header_size (N \<propto> i) \<le> i - j)\<close> (is \<open>_ \<Longrightarrow> ?B'\<close>)
-
-        \<open>is_long_clause (N\<propto>i) \<Longrightarrow> i - POS_SHIFT \<noteq> j - STATUS_SHIFT\<close> (is \<open>?long'' \<Longrightarrow>?diff1''\<close>)
-        \<open>is_long_clause (N\<propto>i) \<Longrightarrow> i - POS_SHIFT \<noteq> i - SIZE_SHIFT\<close> (is \<open>_ \<Longrightarrow> ?diff2''\<close>)
-        \<open>is_long_clause (N\<propto>i) \<Longrightarrow> i - POS_SHIFT \<noteq> j - SIZE_SHIFT\<close> (is \<open>_ \<Longrightarrow> ?diff3''\<close>)
-        \<open>is_long_clause (N\<propto>i) \<Longrightarrow> i - POS_SHIFT \<noteq> i - SIZE_SHIFT\<close> (is \<open>_ \<Longrightarrow> ?diff4''\<close>)
-        \<open>is_long_clause (N\<propto>i) \<Longrightarrow> i - POS_SHIFT \<noteq> j - SIZE_SHIFT\<close> (is \<open>_ \<Longrightarrow> ?diff5''\<close>)
-        \<open>is_long_clause (N\<propto>i) \<Longrightarrow> i - POS_SHIFT \<noteq> i - ACTIVITY_SHIFT\<close> (is \<open>_ \<Longrightarrow> ?diff6''\<close>)
-        \<open>is_long_clause (N\<propto>i) \<Longrightarrow> i - POS_SHIFT \<noteq> j - ACTIVITY_SHIFT\<close> (is \<open>_ \<Longrightarrow> ?diff7''\<close>)
-        \<open>is_long_clause (N\<propto>i) \<Longrightarrow> i - POS_SHIFT \<noteq> i - LBD_SHIFT\<close> (is \<open>_ \<Longrightarrow> ?diff8''\<close>)
-        \<open>is_long_clause (N\<propto>i) \<Longrightarrow> i - POS_SHIFT \<noteq> j - LBD_SHIFT\<close> (is \<open>_ \<Longrightarrow> ?diff9''\<close>)
-        \<open>is_long_clause (N\<propto>i) \<Longrightarrow> i - POS_SHIFT < i\<close> (is \<open>_ \<Longrightarrow> ?notin1''\<close>)
-        \<open>is_long_clause (N\<propto>i) \<Longrightarrow> is_long_clause (N\<propto>j) \<Longrightarrow> i - POS_SHIFT = j - POS_SHIFT \<longleftrightarrow> i = j\<close>
+    \<open>clause_slice (update_act i act arena) N ia =
+      (if ia = i then update_act (header_size (N\<propto>i)) act (clause_slice arena N ia)
+         else clause_slice arena N ia)\<close>
 proof -
-  have dom: \<open>Multiset.Ball (dom_m N) (arena_active_clause arena N)\<close>
-    using arena unfolding valid_arena_def by blast
-  then show ?A and ?L and ?L'
-    using i unfolding arena_active_clause_def by auto
-  then show ?A'
-    unfolding header_size_def by (auto split: if_splits)
-  show ?B
-     using minimal_difference_between_valid_index[OF dom i j]
-       minimal_difference_between_valid_index[OF dom j i]
-      by (cases \<open> i < j\<close>) (auto simp: ACTIVITY_SHIFT_def LBD_SHIFT_def header_size_def split: if_splits)
+  have ia_ge: \<open>ia \<ge> header_size(N \<propto> ia)\<close> \<open>ia < length arena\<close> and
+   i_ge:  \<open>i \<ge> header_size(N \<propto> i)\<close> \<open>i < length arena\<close>
+    using dom ia i unfolding arena_active_clause_def
+    by auto
 
-  show ?diff1 ?diff2 ?diff3 ?diff4 ?diff5 ?diff6 ?diff7 \<open>?long \<Longrightarrow> ?diff8\<close>
-   ?diff1' ?diff2' ?diff3' ?diff4' ?diff5' ?diff6' ?diff7' \<open>?long \<Longrightarrow> ?diff8'\<close>
-    using \<open>?B\<close> \<open>?A\<close> \<open>?L\<close>
-    by (auto simp: ACTIVITY_SHIFT_def STATUS_SHIFT_def header_size_def SIZE_SHIFT_def LBD_SHIFT_def
-      POS_SHIFT_def
-      split: if_splits)
-  show \<open>?long'' \<Longrightarrow>?B'\<close>
-     using minimal_difference_between_valid_index[OF dom i j]
-       minimal_difference_between_valid_index[OF dom j i]
-      by (cases \<open> i < j\<close>) (auto simp: ACTIVITY_SHIFT_def LBD_SHIFT_def header_size_def
-        POS_SHIFT_def split: if_splits)
-  moreover have \<open>j \<ge> 4\<close> \<open>header_size (N \<propto> j) \<le> j\<close>
-    using dom j unfolding arena_active_clause_def by (auto simp: header_size_def split: if_splits)
-  ultimately show \<open>?long'' \<Longrightarrow>?diff1''\<close>  \<open>?long'' \<Longrightarrow>?diff2''\<close>  \<open>?long'' \<Longrightarrow>?diff3''\<close>  \<open>?long'' \<Longrightarrow>?diff4''\<close>
-     \<open>?long'' \<Longrightarrow>?diff5''\<close>  \<open>?long'' \<Longrightarrow>?diff6''\<close>  \<open>?long'' \<Longrightarrow>?diff7''\<close>   \<open>?long'' \<Longrightarrow>?diff8''\<close>  \<open>?long'' \<Longrightarrow>?diff9''\<close>
-    using \<open>?L\<close> \<open>?A\<close>
-    by (auto simp: ACTIVITY_SHIFT_def STATUS_SHIFT_def header_size_def SIZE_SHIFT_def LBD_SHIFT_def
-      POS_SHIFT_def
-      split: if_splits)
-  show ?notin1 ?notin1' ?notin1''
-    using \<open>?B\<close> \<open>?A\<close>
-    by (auto simp: ACTIVITY_SHIFT_def STATUS_SHIFT_def header_size_def SIZE_SHIFT_def LBD_SHIFT_def
-      POS_SHIFT_def
-      split: if_splits)
-  show \<open>is_long_clause (N\<propto>i) \<Longrightarrow> is_long_clause (N\<propto>j) \<Longrightarrow>  i - POS_SHIFT = j - POS_SHIFT \<longleftrightarrow> i = j\<close>
-    using \<open>?A\<close> \<open>header_size (N \<propto> j) \<le> j\<close>
-    by (cases \<open>i \<ge> 5\<close>)
-      (auto simp: ACTIVITY_SHIFT_def STATUS_SHIFT_def header_size_def SIZE_SHIFT_def LBD_SHIFT_def
-      POS_SHIFT_def
-      split: if_splits)
+  show ?thesis
+    using minimal_difference_between_valid_index[OF dom i ia] i_ge
+    minimal_difference_between_valid_index[OF dom ia i] ia_ge
+    by (cases \<open>ia < i\<close>)
+     (auto simp: extra_information_mark_to_delete_def STATUS_SHIFT_def drop_update_swap
+       ACTIVITY_SHIFT_def update_act_def
+       Misc.slice_def header_size_def split: if_splits)
 qed
 
-lemma arena_valid_index_vdom_separation:
-  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close> and
-   j: \<open>j \<notin># dom_m N\<close> and
-   j: \<open>j \<in> vdom\<close>
-  shows
-    \<open>i - 3 \<noteq> j - 4\<close>
-    \<open>i - 2 \<noteq> j - 4\<close>
-    \<open>is_long_clause (N \<propto> i) \<longrightarrow> i - 5 \<noteq> j - 4\<close>
-proof -
+lemma length_update_act[simp]:
+  \<open>length (update_act i act arena) = length arena\<close>
+  by (auto simp: update_act_def)
 
-  have \<open>arena_active_clause arena N i\<close> and \<open>arena_dead_clause arena N j\<close>
+lemma clause_slice_update_act_dead:
+  assumes
+    i: \<open>i \<in># dom_m N\<close> and
+    ia: \<open>ia \<notin># dom_m N\<close> \<open>ia \<in> vdom\<close> and
+    dom: \<open>valid_arena arena N vdom\<close>
+  shows
+    \<open>arena_dead_clause (dead_clause_slice (update_act i act arena) N ia) =
+      arena_dead_clause (dead_clause_slice arena N ia)\<close>
+proof -
+  have ia_ge: \<open>ia \<ge> 4\<close> \<open>ia < length arena\<close> and
+   i_ge:  \<open>i \<ge> header_size(N \<propto> i)\<close> \<open>i < length arena\<close>
+    using dom ia i unfolding valid_arena_def
+    by auto
+  show ?thesis
+    using minimal_difference_between_invalid_index[OF dom i ia(1) _ ia(2)] i_ge ia_ge
+    using minimal_difference_between_invalid_index2[OF dom i ia(1) _ ia(2)] ia_ge
+    by (cases \<open>ia < i\<close>)
+     (auto simp: extra_information_mark_to_delete_def STATUS_SHIFT_def drop_update_swap
+      arena_dead_clause_def update_act_def ACTIVITY_SHIFT_def
+       Misc.slice_def header_size_def split: if_splits)
+qed
+
+lemma arena_active_clause_update_act_same:
+  assumes
+    \<open>i \<ge> header_size (N \<propto> i)\<close> and
+    \<open>i < length arena\<close> and
+    \<open>arena_active_clause (clause_slice arena N i)
+     (the (fmlookup N i))\<close>
+  shows \<open>arena_active_clause (update_act (header_size (N\<propto>i)) act (clause_slice arena N i))
+     (the (fmlookup N i))\<close>
+  using assms
+  by (cases \<open>is_short_clause (N \<propto> i)\<close>)
+    (simp_all add: arena_active_clause_alt_def update_act_def SHIFTS_def Misc.slice_def
+    header_size_def)
+
+
+lemma valid_arena_update_act:
+  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close>
+  shows \<open>valid_arena (update_act i act arena) N vdom\<close>
+proof -
+  let ?arena = \<open>update_act i act arena\<close>
+  have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close>
+     \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia =i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
+    using assms distinct_mset_dom[of N] by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+  have
+    dom: \<open>\<forall>i\<in>#dom_m N.
+        i < length arena \<and>
+        header_size (N \<propto> i) \<le> i \<and>
+        arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> and
+    dom': \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
+        i < length arena \<and>
+        header_size (N \<propto> i) \<le> i \<and>
+        arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>  and
+    vdom: \<open>\<And>i. i\<in>vdom \<longrightarrow> i \<notin># dom_m N \<longrightarrow> 4 \<le> i \<and> arena_dead_clause (dead_clause_slice arena N i)\<close>
     using assms unfolding valid_arena_def by auto
-  then have \<open>is_Status (arena ! (j - STATUS_SHIFT))\<close> and \<open>is_Act (arena!(i - ACTIVITY_SHIFT))\<close> and
-    \<open>is_LBD (arena ! (i - LBD_SHIFT))\<close>
-    \<open>is_long_clause (N \<propto> i) \<longrightarrow> is_Pos (arena ! (i - POS_SHIFT))\<close>
-    unfolding arena_active_clause_def arena_dead_clause_def
-    by fast+
-  then show
-    \<open>i - 3 \<noteq> j - 4\<close>
-    \<open>i - 2 \<noteq> j - 4\<close>
-    \<open>is_long_clause (N \<propto> i) \<longrightarrow> i - 5 \<noteq> j - 4\<close>
-    unfolding STATUS_SHIFT_def ACTIVITY_SHIFT_def is_LBD_def LBD_SHIFT_def POS_SHIFT_def
+  have \<open>ia\<in>#dom_m N \<Longrightarrow> ia \<noteq> i \<Longrightarrow>
+        ia < length ?arena \<and>
+        header_size (N \<propto> ia) \<le> ia \<and>
+        arena_active_clause (clause_slice ?arena N ia) (the (fmlookup N ia))\<close> for ia
+    using dom'[of ia] clause_slice_update_act[OF i _ dom, of ia act]
+    by auto
+  moreover have \<open>ia = i \<Longrightarrow>
+        ia < length ?arena \<and>
+        header_size (N \<propto> ia) \<le> ia \<and>
+        arena_active_clause (clause_slice ?arena N ia) (the (fmlookup N ia))\<close> for ia
+    using dom'[of ia] clause_slice_update_act[OF i _ dom, of ia act] i
+    by (simp add: arena_active_clause_update_act_same)
+  moreover have \<open>ia\<in>vdom \<longrightarrow>
+        ia \<notin># dom_m N \<longrightarrow>
+        4 \<le> ia \<and> arena_dead_clause
+         (dead_clause_slice (update_act i act arena) (fmdrop i N) ia)\<close> for ia
+    using vdom[of ia] clause_slice_update_act_dead[OF i _ _ arena, of ia] i
+    by auto
+  ultimately show ?thesis
+    using assms unfolding valid_arena_def
     by auto
 qed
 
-lemma
-  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close>
-  shows \<open>valid_arena (update_act i act arena) N vdom\<close>
-  apply (rule valid_arena_cong_imp)
-  apply (rule arena)
-  subgoal for j
-    unfolding update_act_def
-    using arena_valid_index_separation_activity[OF arena i, of j]
-    by (auto simp: )
-  subgoal for j
-    unfolding update_act_def
-    using arena_valid_index_separation_activity[OF arena i, of j] i
-    by (auto simp: astatus_def update_act_def)
-  subgoal for j
-    unfolding update_act_def
-    using arena_valid_index_separation_activity[OF arena i, of j] i
-    by (auto simp: asize_def update_act_def)
-  subgoal for j
-    unfolding update_act_def
-    using arena_valid_index_separation_activity[OF arena i, of j] i
-    by (simp add: asize_def update_act_def)
-  subgoal for j
-    unfolding update_act_def
-    using arena_valid_index_separation_activity[OF arena i, of j] i
-    by (auto simp: asize_def update_act_def)
-  subgoal for j
-    unfolding update_act_def
-    using arena_valid_index_separation_activity[OF arena i, of j] i
-    by (auto simp: asize_def update_act_def)
-  subgoal for j
-    unfolding update_act_def
-    using i arena_valid_index_vdom_separation[OF arena i, of j]
-    by (auto simp: astatus_def update_act_def ACTIVITY_SHIFT_def STATUS_SHIFT_def)
-  subgoal
-    by (simp add: update_act_def)
-  done
-
+paragraph \<open>Update LBD\<close>
 
 definition update_lbd where
   \<open>update_lbd C lbd arena = arena[C - LBD_SHIFT := ALBD lbd]\<close>
 
+
+lemma clause_slice_update_lbd:
+  assumes
+    i: \<open>i \<in># dom_m N\<close> and
+    ia: \<open>ia \<in># dom_m N\<close> and
+    dom: \<open>\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and>
+         arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>
+  shows
+    \<open>clause_slice (update_lbd i lbd arena) N ia =
+      (if ia = i then update_lbd (header_size (N\<propto>i)) lbd (clause_slice arena N ia)
+         else clause_slice arena N ia)\<close>
+proof -
+  have ia_ge: \<open>ia \<ge> header_size(N \<propto> ia)\<close> \<open>ia < length arena\<close> and
+   i_ge:  \<open>i \<ge> header_size(N \<propto> i)\<close> \<open>i < length arena\<close>
+    using dom ia i unfolding arena_active_clause_def
+    by auto
+
+  show ?thesis
+    using minimal_difference_between_valid_index[OF dom i ia] i_ge
+    minimal_difference_between_valid_index[OF dom ia i] ia_ge
+    by (cases \<open>ia < i\<close>)
+     (auto simp: extra_information_mark_to_delete_def drop_update_swap
+       update_lbd_def SHIFTS_def
+       Misc.slice_def header_size_def split: if_splits)
+qed
+
+lemma length_update_lbd[simp]:
+  \<open>length (update_lbd i lbd arena) = length arena\<close>
+  by (auto simp: update_lbd_def)
+
+lemma clause_slice_update_lbd_dead:
+  assumes
+    i: \<open>i \<in># dom_m N\<close> and
+    ia: \<open>ia \<notin># dom_m N\<close> \<open>ia \<in> vdom\<close> and
+    dom: \<open>valid_arena arena N vdom\<close>
+  shows
+    \<open>arena_dead_clause (dead_clause_slice (update_lbd i lbd arena) N ia) =
+      arena_dead_clause (dead_clause_slice arena N ia)\<close>
+proof -
+  have ia_ge: \<open>ia \<ge> 4\<close> \<open>ia < length arena\<close> and
+   i_ge:  \<open>i \<ge> header_size(N \<propto> i)\<close> \<open>i < length arena\<close>
+    using dom ia i unfolding valid_arena_def
+    by auto
+  show ?thesis
+    using minimal_difference_between_invalid_index[OF dom i ia(1) _ ia(2)] i_ge ia_ge
+    using minimal_difference_between_invalid_index2[OF dom i ia(1) _ ia(2)] ia_ge
+    by (cases \<open>ia < i\<close>)
+     (auto simp: extra_information_mark_to_delete_def STATUS_SHIFT_def drop_update_swap
+      arena_dead_clause_def update_lbd_def SHIFTS_def
+       Misc.slice_def header_size_def split: if_splits)
+qed
+
+lemma arena_active_clause_update_lbd_same:
+  assumes
+    \<open>i \<ge> header_size (N \<propto> i)\<close> and
+    \<open>i < length arena\<close> and
+    \<open>arena_active_clause (clause_slice arena N i)
+     (the (fmlookup N i))\<close>
+  shows \<open>arena_active_clause (update_lbd (header_size (N\<propto>i)) lbd (clause_slice arena N i))
+     (the (fmlookup N i))\<close>
+  using assms
+  by (cases \<open>is_short_clause (N \<propto> i)\<close>)
+    (simp_all add: arena_active_clause_alt_def update_lbd_def SHIFTS_def Misc.slice_def
+    header_size_def)
+
+
+lemma valid_arena_update_lbd:
+  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close>
+  shows \<open>valid_arena (update_lbd i lbd arena) N vdom\<close>
+proof -
+  let ?arena = \<open>update_lbd i lbd arena\<close>
+  have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close>
+     \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia =i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
+    using assms distinct_mset_dom[of N] by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+  have
+    dom: \<open>\<forall>i\<in>#dom_m N.
+        i < length arena \<and>
+        header_size (N \<propto> i) \<le> i \<and>
+        arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> and
+    dom': \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
+        i < length arena \<and>
+        header_size (N \<propto> i) \<le> i \<and>
+        arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>  and
+    vdom: \<open>\<And>i. i\<in>vdom \<longrightarrow> i \<notin># dom_m N \<longrightarrow> 4 \<le> i \<and> arena_dead_clause (dead_clause_slice arena N i)\<close>
+    using assms unfolding valid_arena_def by auto
+  have \<open>ia\<in>#dom_m N \<Longrightarrow> ia \<noteq> i \<Longrightarrow>
+        ia < length ?arena \<and>
+        header_size (N \<propto> ia) \<le> ia \<and>
+        arena_active_clause (clause_slice ?arena N ia) (the (fmlookup N ia))\<close> for ia
+    using dom'[of ia] clause_slice_update_lbd[OF i _ dom, of ia lbd]
+    by auto
+  moreover have \<open>ia = i \<Longrightarrow>
+        ia < length ?arena \<and>
+        header_size (N \<propto> ia) \<le> ia \<and>
+        arena_active_clause (clause_slice ?arena N ia) (the (fmlookup N ia))\<close> for ia
+    using dom'[of ia] clause_slice_update_lbd[OF i _ dom, of ia lbd] i
+    by (simp add: arena_active_clause_update_lbd_same)
+  moreover have \<open>ia\<in>vdom \<longrightarrow>
+        ia \<notin># dom_m N \<longrightarrow>
+        4 \<le> ia \<and> arena_dead_clause
+         (dead_clause_slice (update_lbd i lbd arena) (fmdrop i N) ia)\<close> for ia
+    using vdom[of ia] clause_slice_update_lbd_dead[OF i _ _ arena, of ia] i
+    by auto
+  ultimately show ?thesis
+    using assms unfolding valid_arena_def
+    by auto
+qed
+
+
+paragraph \<open>Update saved position\<close>
+
 definition update_pos where
   \<open>update_pos C pos arena = arena[C - POS_SHIFT := APos pos]\<close>
 
-lemma
-  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close>
-  shows \<open>valid_arena (update_lbd i act arena) N vdom\<close>
-  apply (rule valid_arena_cong_imp)
-  apply (rule arena)
-  subgoal for j
-    unfolding update_lbd_def
-    using arena_valid_index_separation_lbd[OF arena i, of j]
-    arena_valid_index_separation_activity(5)[OF arena i, of j]
-    by (auto simp: )
-  subgoal for j
-    unfolding update_lbd_def
-    using arena_valid_index_separation_lbd[OF arena i, of j] i
-    by (auto simp: astatus_def update_lbd_def)
-  subgoal for j
-    unfolding update_lbd_def
-    using arena_valid_index_separation_lbd[OF arena i, of j] i
-    by (auto simp: asize_def update_lbd_def)
-  subgoal for j
-    unfolding update_lbd_def
-    using arena_valid_index_separation_lbd[OF arena i, of j] i
-    by (simp add: asize_def update_lbd_def)
-  subgoal for j
-    unfolding update_lbd_def
-    using arena_valid_index_separation_lbd[OF arena i, of j] i
-    arena_valid_index_separation_activity(1-5)[OF arena i, of j]
-    by (simp add: asize_def update_lbd_def)
-  subgoal for j
-    unfolding update_lbd_def
-    using arena_valid_index_separation_lbd[OF arena i, of j] i
-    by (auto simp: asize_def update_lbd_def)
-  subgoal for j
-    unfolding update_lbd_def
-    using i arena_valid_index_vdom_separation[OF arena i, of j]
-    by (auto simp: astatus_def update_lbd_def ACTIVITY_SHIFT_def STATUS_SHIFT_def
-      LBD_SHIFT_def)
-  subgoal
-    by (simp add: update_lbd_def)
-  done
+
+lemma clause_slice_update_pos:
+  assumes
+    i: \<open>i \<in># dom_m N\<close> and
+    ia: \<open>ia \<in># dom_m N\<close> and
+    dom: \<open>\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and>
+         arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> and
+    long: \<open>is_long_clause (N \<propto> i)\<close>
+  shows
+    \<open>clause_slice (update_pos i pos arena) N ia =
+      (if ia = i then update_pos (header_size (N\<propto>i)) pos (clause_slice arena N ia)
+         else clause_slice arena N ia)\<close>
+proof -
+  have ia_ge: \<open>ia \<ge> header_size(N \<propto> ia)\<close> \<open>ia < length arena\<close> and
+   i_ge:  \<open>i \<ge> header_size(N \<propto> i)\<close> \<open>i < length arena\<close>
+    using dom ia i unfolding arena_active_clause_def
+    by auto
+
+  show ?thesis
+    using minimal_difference_between_valid_index[OF dom i ia] i_ge
+    minimal_difference_between_valid_index[OF dom ia i] ia_ge long
+    by (cases \<open>ia < i\<close>)
+     (auto simp: extra_information_mark_to_delete_def drop_update_swap
+       update_pos_def SHIFTS_def
+       Misc.slice_def header_size_def split: if_splits)
+qed
 
 
-lemma
-  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close> and \<open>pos < length (N\<propto>i) - 2\<close> and
-    [simp]: \<open>is_long_clause (N\<propto>i)\<close>
+lemma clause_slice_update_pos_dead:
+  assumes
+    i: \<open>i \<in># dom_m N\<close> and
+    ia: \<open>ia \<notin># dom_m N\<close> \<open>ia \<in> vdom\<close> and
+    dom: \<open>valid_arena arena N vdom\<close> and
+    long: \<open>is_long_clause (N \<propto> i)\<close>
+  shows
+    \<open>arena_dead_clause (dead_clause_slice (update_pos i pos arena) N ia) =
+      arena_dead_clause (dead_clause_slice arena N ia)\<close>
+proof -
+  have ia_ge: \<open>ia \<ge> 4\<close> \<open>ia < length arena\<close> and
+   i_ge:  \<open>i \<ge> header_size(N \<propto> i)\<close> \<open>i < length arena\<close>
+    using dom ia i long unfolding valid_arena_def
+    by auto
+  show ?thesis
+    using minimal_difference_between_invalid_index[OF dom i ia(1) _ ia(2)] i_ge ia_ge
+    using minimal_difference_between_invalid_index2[OF dom i ia(1) _ ia(2)] ia_ge long
+    by (cases \<open>ia < i\<close>)
+     (auto simp: extra_information_mark_to_delete_def STATUS_SHIFT_def drop_update_swap
+      arena_dead_clause_def update_pos_def SHIFTS_def
+       Misc.slice_def header_size_def split: if_splits)
+qed
+
+lemma arena_active_clause_update_pos_same:
+  assumes
+    \<open>i \<ge> header_size (N \<propto> i)\<close> and
+    \<open>i < length arena\<close> and
+    \<open>arena_active_clause (clause_slice arena N i)
+     (the (fmlookup N i))\<close> and
+    long: \<open>is_long_clause (N \<propto> i)\<close> and
+    \<open>pos < length (N \<propto> i) - 2\<close>
+  shows \<open>arena_active_clause (update_pos (header_size (N\<propto>i)) pos (clause_slice arena N i))
+     (the (fmlookup N i))\<close>
+  using assms
+  by (simp_all add: arena_active_clause_alt_def update_pos_def SHIFTS_def Misc.slice_def
+    header_size_def)
+
+lemma length_update_pos[simp]:
+  \<open>length (update_pos i pos arena) = length arena\<close>
+  by (auto simp: update_pos_def)
+
+lemma valid_arena_update_pos:
+  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close> and
+    long: \<open>is_long_clause (N \<propto> i)\<close>and
+    pos: \<open>pos < length (N \<propto> i) - 2\<close>
   shows \<open>valid_arena (update_pos i pos arena) N vdom\<close>
-  apply (rule valid_arena_cong_imp)
-  apply (rule arena)
-  subgoal for j
-    unfolding update_pos_def
-    using arena_valid_index_separation_pos[OF arena i, of j]
-    arena_valid_index_separation_activity(1-4)[OF arena i, of j]
-    by (auto simp: )
-  subgoal for j
-    unfolding update_pos_def
-    using arena_valid_index_separation_pos[OF arena i, of j] i
-    by (auto simp: astatus_def update_pos_def)
-  subgoal for j
-    unfolding update_pos_def
-    using arena_valid_index_separation_pos[OF arena i, of j] i
-    arena_valid_index_separation_activity(5)[OF arena i, of j]
-    by (auto simp: asize_def update_pos_def)
-  subgoal for j
-    unfolding update_pos_def
-    using arena_valid_index_separation_pos[OF arena i, of j] i  \<open>pos < length (N\<propto>i) - 2\<close>
-    arena_valid_index_separation_activity(1-4)[OF arena i, of j]
-    by (clarsimp simp add: asize_def update_pos_def)
-  subgoal for j
-    unfolding update_pos_def
-    using arena_valid_index_separation_pos[OF arena i, of j] i
-    arena_valid_index_separation_activity(1-4)[OF arena i, of j]
-    by (simp add: asize_def update_pos_def)
-  subgoal for j
-    unfolding update_pos_def
-    using arena_valid_index_separation_pos[OF arena i, of j] i
-    arena_valid_index_separation_activity(1-4)[OF arena i, of j]
-    by (auto simp: asize_def update_pos_def)
-  subgoal for j
-    unfolding update_pos_def
-    using i arena_valid_index_vdom_separation[OF arena i, of j]
-    by (auto simp: astatus_def update_pos_def ACTIVITY_SHIFT_def STATUS_SHIFT_def
-      LBD_SHIFT_def POS_SHIFT_def)
-  subgoal
-    by (simp add: update_pos_def)
-  done
+proof -
+  let ?arena = \<open>update_pos i pos arena\<close>
+  have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close>
+     \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia =i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
+    using assms distinct_mset_dom[of N] by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+  have
+    dom: \<open>\<forall>i\<in>#dom_m N.
+        i < length arena \<and>
+        header_size (N \<propto> i) \<le> i \<and>
+        arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> and
+    dom': \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
+        i < length arena \<and>
+        header_size (N \<propto> i) \<le> i \<and>
+        arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>  and
+    vdom: \<open>\<And>i. i\<in>vdom \<longrightarrow> i \<notin># dom_m N \<longrightarrow> 4 \<le> i \<and> arena_dead_clause (dead_clause_slice arena N i)\<close>
+    using assms unfolding valid_arena_def by auto
+  have \<open>ia\<in>#dom_m N \<Longrightarrow> ia \<noteq> i \<Longrightarrow>
+        ia < length ?arena \<and>
+        header_size (N \<propto> ia) \<le> ia \<and>
+        arena_active_clause (clause_slice ?arena N ia) (the (fmlookup N ia))\<close> for ia
+    using dom'[of ia] clause_slice_update_pos[OF i _ dom, of ia pos] long
+    by auto
+  moreover have \<open>ia = i \<Longrightarrow>
+        ia < length ?arena \<and>
+        header_size (N \<propto> ia) \<le> ia \<and>
+        arena_active_clause (clause_slice ?arena N ia) (the (fmlookup N ia))\<close> for ia
+    using dom'[of ia] clause_slice_update_pos[OF i _ dom, of ia pos] i long pos
+    by (simp add: arena_active_clause_update_pos_same)
+  moreover have \<open>ia\<in>vdom \<longrightarrow>
+        ia \<notin># dom_m N \<longrightarrow>
+        4 \<le> ia \<and> arena_dead_clause
+         (dead_clause_slice (update_pos i pos arena) N ia)\<close> for ia
+    using vdom[of ia] clause_slice_update_pos_dead[OF i _ _ arena, of ia] i long
+    by auto
+  ultimately show ?thesis
+    using assms unfolding valid_arena_def
+    by auto
+qed
 
 end
