@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="org.scala-sbt.temp"
+		module="temp-module-926c08c6fcee167b243e4fa4851a85997a4f15bc"
+		revision="0.1.0"
+		status="integration"
+		publication="20170319114735"
+	/>
+	<configurations>
+		<conf name="component" visibility="private" description=""/>
+	</configurations>
+	<publications>
+	</publications>
+	<dependencies>
+		<dependency org="org.scala-sbt.sbt-giter8-resolver" name="sbt-giter8-resolver_2.10" rev="0.1.0" conf="component->default(compile)"/>
+	</dependencies>
+</ivy-module>

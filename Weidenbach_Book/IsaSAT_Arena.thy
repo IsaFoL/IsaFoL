@@ -46,7 +46,13 @@ In our formalisation, we distinguish active clauses (clauses that are not marked
 dead clauses (that have been marked to be deleted but can still be accessed). Any dead clause can be
 removed from the addressable clauses (\<^term>\<open>vdom\<close> for virtual domain).
 
-Remark that in our formalisation, we don't (at least not yet) plan to reuse freed spaces.
+Remark that in our formalisation, we don't (at least not yet) plan to reuse freed spaces
+(the predicate about dead clauses must be strengthened in that case).
+
+Some technical details: due to the fact that we plan to refine the arena to uint32 and that our
+clauses can contains duplicates, the size does not fit into uint32 (technically, we have the bound
+\<^term>\<open>uint32_max +1\<close>). Therefore, we restrict the clauses to have at least length 2 and we keep
+\<^term>\<open>length C - 2\<close> instead of \<^term>\<open>length C\<close>.
 \<close>
 
 
@@ -78,7 +84,7 @@ definition header_size :: \<open>nat clause_l \<Rightarrow> nat\<close> where
 
 lemmas SHIFTS_def = POS_SHIFT_def STATUS_SHIFT_def ACTIVITY_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
 
-lemma arena_shift_distinct[simp]:
+lemma arena_shift_distinct:
   \<open>i >  3 \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - LBD_SHIFT\<close>
   \<open>i >  3 \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - ACTIVITY_SHIFT\<close>
   \<open>i >  3 \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - STATUS_SHIFT\<close>
@@ -919,7 +925,7 @@ proof -
     using minimal_difference_between_invalid_index[OF dom i ia(1) _ ia(2)] i_ge ia_ge
     using minimal_difference_between_invalid_index2[OF dom i ia(1) _ ia(2)] ia_ge long
     by (cases \<open>ia < i\<close>)
-     (auto simp: extra_information_mark_to_delete_def STATUS_SHIFT_def drop_update_swap
+     (auto simp: extra_information_mark_to_delete_def drop_update_swap
       arena_dead_clause_def update_pos_def SHIFTS_def
        Misc.slice_def header_size_def split: if_splits)
 qed
