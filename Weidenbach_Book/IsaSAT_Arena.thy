@@ -992,4 +992,151 @@ proof -
     by auto
 qed
 
+
+
+
+paragraph \<open>Swap literals\<close>
+
+definition swap_lits where
+  \<open>swap_lits C i j arena = swap arena (C +i) (C + j)\<close>
+
+
+lemma clause_slice_swap_lits:
+  assumes
+    i: \<open>i \<in># dom_m N\<close> and
+    ia: \<open>ia \<in># dom_m N\<close> and
+    dom: \<open>\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and>
+         arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> and
+    k: \<open>k < length (N \<propto> i)\<close> and
+    l: \<open>l < length (N \<propto> i)\<close>
+  shows
+    \<open>clause_slice (swap_lits i k l arena) N ia =
+      (if ia = i then swap_lits (header_size (N\<propto>i)) k l (clause_slice arena N ia)
+         else clause_slice arena N ia)\<close>
+proof -
+  have ia_ge: \<open>ia \<ge> header_size(N \<propto> ia)\<close> \<open>ia < length arena\<close> and
+   i_ge:  \<open>i \<ge> header_size(N \<propto> i)\<close> \<open>i < length arena\<close>
+    using dom ia i unfolding arena_active_clause_def
+    by auto
+
+  show ?thesis
+    using minimal_difference_between_valid_index[OF dom i ia] i_ge
+    minimal_difference_between_valid_index[OF dom ia i] ia_ge k l
+    by (cases \<open>ia < i\<close>)
+     (auto simp: extra_information_mark_to_delete_def drop_update_swap
+       swap_lits_def SHIFTS_def swap_def ac_simps
+       Misc.slice_def header_size_def split: if_splits)
+qed
+
+lemma length_swap_lits[simp]:
+  \<open>length (swap_lits i k l arena) = length arena\<close>
+  by (auto simp: swap_lits_def)
+
+lemma clause_slice_swap_lits_dead:
+  assumes
+    i: \<open>i \<in># dom_m N\<close> and
+    ia: \<open>ia \<notin># dom_m N\<close> \<open>ia \<in> vdom\<close> and
+    dom: \<open>valid_arena arena N vdom\<close>and
+    k: \<open>k < length (N \<propto> i)\<close> and
+    l: \<open>l < length (N \<propto> i)\<close>
+  shows
+    \<open>arena_dead_clause (dead_clause_slice (swap_lits i k l arena) N ia) =
+      arena_dead_clause (dead_clause_slice arena N ia)\<close>
+proof -
+  have ia_ge: \<open>ia \<ge> 4\<close> \<open>ia < length arena\<close> and
+   i_ge:  \<open>i \<ge> header_size(N \<propto> i)\<close> \<open>i < length arena\<close>
+    using dom ia i unfolding valid_arena_def
+    by auto
+  show ?thesis
+    using minimal_difference_between_invalid_index[OF dom i ia(1) _ ia(2)] i_ge ia_ge
+    using minimal_difference_between_invalid_index2[OF dom i ia(1) _ ia(2)] ia_ge k l
+    by (cases \<open>ia < i\<close>)
+     (auto simp: extra_information_mark_to_delete_def drop_update_swap
+      arena_dead_clause_def swap_lits_def SHIFTS_def swap_def ac_simps
+       Misc.slice_def header_size_def split: if_splits)
+qed
+
+lemma slice_swap[simp]:
+   \<open>l \<ge> from \<Longrightarrow> l < to \<Longrightarrow> k \<ge> from \<Longrightarrow> k < to \<Longrightarrow> from < length arena \<Longrightarrow>
+     Misc.slice from to (swap arena l k) = swap (Misc.slice from to arena) (k - from) (l - from)\<close>
+  by (cases \<open>k = l\<close>) (auto simp: Misc.slice_def swap_def drop_update_swap list_update_swap)
+
+lemma drop_swap_relevant[simp]:
+  \<open>i \<ge> k \<Longrightarrow> j \<ge> k \<Longrightarrow> j < length outl' \<Longrightarrow>drop k (swap outl' j i) = swap (drop k outl') (j - k) (i - k)\<close>
+  by (cases \<open>j = i\<close>)
+    (auto simp: Misc.slice_def swap_def drop_update_swap list_update_swap)
+
+
+lemma swap_swap: \<open>k < length xs \<Longrightarrow> l < length xs \<Longrightarrow> swap xs k l = swap xs l k\<close>
+  by (cases \<open>k = l\<close>)
+    (auto simp: Misc.slice_def swap_def drop_update_swap list_update_swap)
+
+lemma arena_active_clause_swap_lits_same:
+  assumes
+    \<open>i \<ge> header_size (N \<propto> i)\<close> and
+    \<open>i < length arena\<close> and
+    \<open>arena_active_clause (clause_slice arena N i)
+     (the (fmlookup N i))\<close>and
+    k: \<open>k < length (N \<propto> i)\<close> and
+    l: \<open>l < length (N \<propto> i)\<close>
+  shows \<open>arena_active_clause (clause_slice (swap_lits i k l arena) N i)
+     (the (fmlookup (N(i \<hookrightarrow> swap (N \<propto> i) k l)) i))\<close>
+  using assms
+  unfolding arena_active_clause_alt_def
+  by (cases \<open>is_short_clause (N \<propto> i)\<close>)
+    (simp_all add:  swap_lits_def SHIFTS_def min_def swap_nth_if map_swap swap_swap
+   (* drop_update_swap Misc.slice_def swap_def *)
+    header_size_def  ac_simps is_short_clause_def split: if_splits)
+
+lemma is_short_clause_swap[simp]: \<open>is_short_clause (swap (N \<propto> i) k l) = is_short_clause (N \<propto> i)\<close>
+  by (auto simp: header_size_def is_short_clause_def split: if_splits)
+
+lemma header_size_swap[simp]: \<open>header_size (swap (N \<propto> i) k l) = header_size (N \<propto> i)\<close>
+  by (auto simp: header_size_def split: if_splits)
+
+lemma valid_arena_swap_lits:
+  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close> and
+    k: \<open>k < length (N \<propto> i)\<close> and
+    l: \<open>l < length (N \<propto> i)\<close>
+  shows \<open>valid_arena (swap_lits i k l arena) (N(i \<hookrightarrow> swap (N \<propto> i) k l)) vdom\<close>
+proof -
+  let ?arena = \<open>swap_lits i k l arena\<close>
+  have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close>
+     \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia =i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
+    using assms distinct_mset_dom[of N] by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+  have
+    dom: \<open>\<forall>i\<in>#dom_m N.
+        i < length arena \<and>
+        header_size (N \<propto> i) \<le> i \<and>
+        arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> and
+    dom': \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
+        i < length arena \<and>
+        header_size (N \<propto> i) \<le> i \<and>
+        arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>  and
+    vdom: \<open>\<And>i. i\<in>vdom \<longrightarrow> i \<notin># dom_m N \<longrightarrow> 4 \<le> i \<and> arena_dead_clause (dead_clause_slice arena N i)\<close>
+    using assms unfolding valid_arena_def by auto
+  have \<open>ia\<in>#dom_m N \<Longrightarrow> ia \<noteq> i \<Longrightarrow>
+        ia < length ?arena \<and>
+        header_size (N \<propto> ia) \<le> ia \<and>
+        arena_active_clause (clause_slice ?arena N ia) (the (fmlookup N ia))\<close> for ia
+    using dom'[of ia] clause_slice_swap_lits[OF i _ dom, of ia k l] k l
+    by auto
+  moreover have \<open>ia = i \<Longrightarrow>
+        ia < length ?arena \<and>
+        header_size (N \<propto> ia) \<le> ia \<and>
+        arena_active_clause (clause_slice ?arena N ia) (the (fmlookup (N(i \<hookrightarrow> swap (N \<propto> i) k l)) ia))\<close> for ia
+    using dom'[of ia] clause_slice_swap_lits[OF i _ dom, of ia k l] i k l
+    arena_active_clause_swap_lits_same[OF _ _ _ k l, of arena]
+    by auto
+  moreover have \<open>ia\<in>vdom \<longrightarrow>
+        ia \<notin># dom_m N \<longrightarrow>
+        4 \<le> ia \<and> arena_dead_clause
+         (dead_clause_slice (swap_lits i k l arena) (fmdrop i N) ia)\<close> for ia
+    using vdom[of ia] clause_slice_swap_lits_dead[OF i _ _ arena, of ia] i k l
+    by auto
+  ultimately show ?thesis
+    using assms unfolding valid_arena_def
+    by auto
+qed
+
 end
