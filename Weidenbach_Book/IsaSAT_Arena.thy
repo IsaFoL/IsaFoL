@@ -143,7 +143,7 @@ definition arena_active_clause :: \<open>arena \<Rightarrow> nat clause_l \<time
      (length C \<ge> 2 \<and>
        header_size C + length C = length arena \<and>
      (is_long_clause C \<longrightarrow> (is_Pos (arena!(header_size C - POS_SHIFT)) \<and>
-       arena_pos(arena!(header_size C - POS_SHIFT)) < length C - 2)) \<and>
+       arena_pos(arena!(header_size C - POS_SHIFT)) \<le> length C - 2)) \<and>
      is_Status(arena!(header_size C - STATUS_SHIFT)) \<and>
         (arena_status(arena!(header_size C - STATUS_SHIFT)) = INIT \<longleftrightarrow> red) \<and>
         (arena_status(arena!(header_size C - STATUS_SHIFT)) = LEARNED \<longleftrightarrow> \<not>red) \<and>
@@ -159,7 +159,7 @@ lemma arena_active_clause_alt_def:
      (length (N\<propto>i) \<ge> 2 \<and>
        header_size (N\<propto>i) + length (N\<propto>i) = length arena \<and>
      (is_long_clause (N\<propto>i) \<longrightarrow> (is_Pos (arena!(header_size (N\<propto>i) - POS_SHIFT)) \<and>
-       arena_pos(arena!(header_size (N\<propto>i) - POS_SHIFT)) < length (N\<propto>i) - 2)) \<and>
+       arena_pos(arena!(header_size (N\<propto>i) - POS_SHIFT)) \<le> length (N\<propto>i) - 2)) \<and>
      is_Status(arena!(header_size (N\<propto>i) - STATUS_SHIFT)) \<and>
         (arena_status(arena!(header_size (N\<propto>i) - STATUS_SHIFT)) = INIT \<longleftrightarrow> irred N i) \<and>
         (arena_status(arena!(header_size (N\<propto>i) - STATUS_SHIFT)) = LEARNED \<longleftrightarrow> \<not>irred N i) \<and>
@@ -495,6 +495,7 @@ proof -
   have [simp]: \<open>Suc i - j = Suc a \<longleftrightarrow> i - j = a\<close> for a
     using \<open>i > j\<close> j_ge i_ge
     by (auto split: if_splits simp: not_less_eq_eq le_Suc_eq)
+
 
   show 1: \<open>i - j \<ge> Suc (Suc (Suc (Suc 0)))\<close> (is ?A)
   proof (rule ccontr)
@@ -937,7 +938,7 @@ lemma arena_active_clause_update_pos_same:
     \<open>arena_active_clause (clause_slice arena N i)
      (the (fmlookup N i))\<close> and
     long: \<open>is_long_clause (N \<propto> i)\<close> and
-    \<open>pos < length (N \<propto> i) - 2\<close>
+    \<open>pos \<le> length (N \<propto> i) - 2\<close>
   shows \<open>arena_active_clause (update_pos (header_size (N\<propto>i)) pos (clause_slice arena N i))
      (the (fmlookup N i))\<close>
   using assms
@@ -951,7 +952,7 @@ lemma length_update_pos[simp]:
 lemma valid_arena_update_pos:
   assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close> and
     long: \<open>is_long_clause (N \<propto> i)\<close>and
-    pos: \<open>pos < length (N \<propto> i) - 2\<close>
+    pos: \<open>pos \<le> length (N \<propto> i) - 2\<close>
   shows \<open>valid_arena (update_pos i pos arena) N vdom\<close>
 proof -
   let ?arena = \<open>update_pos i pos arena\<close>
@@ -1135,7 +1136,135 @@ proof -
     using vdom[of ia] clause_slice_swap_lits_dead[OF i _ _ arena, of ia] i k l
     by auto
   ultimately show ?thesis
-    using assms unfolding valid_arena_def
+    using i k l arena unfolding valid_arena_def
+    by auto
+qed
+
+
+paragraph \<open>Learning a clause\<close>
+
+definition append_clause where
+  \<open>append_clause b C arena =
+    (if is_short_clause C then
+      arena @ (if b then AStatus INIT else AStatus LEARNED) # AActivity (0) # ALBD (size C) #
+         ASize (length C - 2) # map ALit C
+    else arena @ APos 0 # (if b then AStatus INIT else AStatus LEARNED) # AActivity (0)  # ALBD (size C)#
+         ASize (length C - 2) # map ALit C) \<close>
+
+lemma slice_append[simp]:
+  \<open>to \<le> length xs \<Longrightarrow> Misc.slice from to (xs @ ys) = Misc.slice from to xs\<close>
+  by (auto simp: Misc.slice_def)
+
+lemma slice_prepend[simp]:
+  \<open>from \<ge> length xs \<Longrightarrow> Misc.slice from to (xs @ ys) = Misc.slice (from - length xs) (to - length xs) ys\<close>
+  by (auto simp: Misc.slice_def)
+find_theorems length Misc.slice
+
+lemma slice_len_min_If:
+  \<open>length (Misc.slice from to xs) = (if from < length xs then min (length xs - from) (to - from) else 0)\<close>
+  unfolding min_def by (auto simp: Misc.slice_def)
+
+lemma arena_active_clause_append_clause:
+  assumes
+    \<open>i \<ge> header_size (N \<propto> i)\<close> and
+    \<open>i < length arena\<close> and
+    \<open>arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>
+  shows \<open>arena_active_clause (clause_slice (append_clause b C arena) N i)
+     (the (fmlookup N i))\<close>
+proof -
+  have \<open>drop (header_size (N \<propto> i)) (clause_slice arena N i) = map ALit (N \<propto> i)\<close> and
+    \<open>header_size (N \<propto> i) \<le> i\<close> and
+    \<open>i < length arena\<close>
+    using assms
+    unfolding arena_active_clause_alt_def
+    by auto
+   from arg_cong[OF this(1), of length] this(2-)
+   have \<open>i + length (N \<propto> i) \<le> length arena\<close>
+    unfolding arena_active_clause_alt_def
+    by (auto simp add: slice_len_min_If header_size_def is_short_clause_def split: if_splits)
+  then have \<open>clause_slice (append_clause b C arena) N i = clause_slice arena N i\<close>
+    by (auto simp add: append_clause_def)
+  then show ?thesis
+    using assms by simp
+qed
+
+lemma length_append_clause[simp]:
+  \<open>length (append_clause b C arena) = length arena + length C + header_size C\<close>
+  by (auto simp: append_clause_def header_size_def)
+
+lemma
+  slice_start0: \<open>Misc.slice 0 to xs = take to xs\<close>
+  unfolding Misc.slice_def
+  by auto
+
+lemma arena_active_clause_append_clause_same: \<open>2 \<le> length C \<Longrightarrow>
+    arena_active_clause
+     (Misc.slice (length arena) (length arena + header_size C + length C)
+       (append_clause b C arena))
+     ((the (fmlookup (fmupd (length arena + header_size C) (C, b) N) (length arena + header_size C))))\<close>
+  unfolding arena_active_clause_alt_def append_clause_def
+  by (auto simp: header_size_def slice_start0 SHIFTS_def slice_Cons split: if_splits)
+
+lemma clause_slice_append_clause:
+  assumes
+    ia: \<open>ia \<notin># dom_m N\<close> \<open>ia \<in> vdom\<close> and
+    dom: \<open>valid_arena arena N vdom\<close> and
+    \<open>arena_dead_clause (dead_clause_slice (arena) N ia)\<close>
+  shows
+    \<open>arena_dead_clause (dead_clause_slice (append_clause b C arena) N ia)\<close>
+proof -
+  have ia_ge: \<open>ia \<ge> 4\<close> \<open>ia < length arena\<close>
+    using dom ia unfolding valid_arena_def
+    by auto
+  then have \<open>dead_clause_slice (arena) N ia = dead_clause_slice (append_clause b C arena) N ia\<close>
+    by (auto simp add: extra_information_mark_to_delete_def drop_update_swap append_clause_def
+      arena_dead_clause_def swap_lits_def SHIFTS_def swap_def ac_simps
+       Misc.slice_def header_size_def split: if_splits)  
+  then show ?thesis
+    using assms by simp
+qed
+
+
+lemma valid_arena_append_clause:
+  assumes arena: \<open>valid_arena arena N vdom\<close> and le_C: \<open>length C \<ge> 2\<close>
+  shows \<open>valid_arena (append_clause b C arena) (fmupd (length arena + header_size C) (C, b) N) vdom\<close>
+proof -
+  let ?arena = \<open>append_clause b C arena\<close>
+  let ?i= \<open>length arena + header_size C\<close>
+  let ?N = \<open>(fmupd (length arena + header_size C) (C, b) N)\<close>
+  have
+    dom: \<open>\<forall>i\<in>#dom_m N.
+        i < length arena \<and>
+        header_size (N \<propto> i) \<le> i \<and>
+        arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> and
+    dom': \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
+        i < length arena \<and>
+        header_size (N \<propto> i) \<le> i \<and>
+        arena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>  and
+    vdom: \<open>\<And>i. i\<in>vdom \<longrightarrow> i \<notin># dom_m N \<longrightarrow> i \<le> length arena \<and> 4 \<le> i \<and> arena_dead_clause (dead_clause_slice arena N i)\<close>
+    using assms unfolding valid_arena_def by auto
+  have [simp]: \<open>?i \<notin># dom_m N\<close>
+    using dom'[of ?i]
+    by auto
+  have \<open>ia\<in>#dom_m N \<Longrightarrow>
+        ia < length ?arena \<and>
+        header_size (N \<propto> ia) \<le> ia \<and>
+        arena_active_clause (clause_slice ?arena N ia) (the (fmlookup N ia))\<close> for ia
+    using dom'[of ia] arena_active_clause_append_clause[of N ia arena]
+    by auto
+  moreover have \<open>ia = ?i \<Longrightarrow>
+        ia < length ?arena \<and>
+        header_size (?N \<propto> ia) \<le> ia \<and>
+        arena_active_clause (clause_slice ?arena ?N ia) (the (fmlookup ?N ia))\<close> for ia
+    using dom'[of ia] le_C arena_active_clause_append_clause_same[of C arena b]
+    by auto
+  moreover have \<open>ia\<in>vdom \<longrightarrow>
+        ia \<notin># dom_m N \<longrightarrow> ia < length (append_clause b C arena) \<and>
+        4 \<le> ia \<and> arena_dead_clause (Misc.slice (ia - 4) ia (append_clause b C arena))\<close> for ia
+    using vdom[of ia] clause_slice_append_clause[of ia N vdom arena b C, OF _ _ arena] le_C
+    by auto
+  ultimately show ?thesis
+    unfolding valid_arena_def
     by auto
 qed
 
