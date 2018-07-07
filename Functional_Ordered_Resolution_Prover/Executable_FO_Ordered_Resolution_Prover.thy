@@ -158,11 +158,13 @@ definition prover :: "((nat, nat) Term.term literal list \<times> nat) list \<Ri
       None \<Rightarrow> True
     | Some R \<Rightarrow> if [] \<in> set R then False else True)"
 
-theorem FIXME_name_me: "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
+theorem prover_complete_refutation: "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
   unfolding prover_def St0_def
   using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
   by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
     split: option.splits if_splits)
+
+find_theorems name: deterministic_RP_refutation
 
 export_code prover in SML module_name RP
 
