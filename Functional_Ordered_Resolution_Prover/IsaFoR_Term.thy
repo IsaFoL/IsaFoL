@@ -20,15 +20,9 @@ begin
 
 text \<open>
 This theory implements the abstract interface for atoms and substitutions using the IsaFoR library.
-Since the IsaFoR files we need are not in the \emph{Archive of Formal Proof}, we cannot put this
+Since not all IsaFoR files we need are in the \emph{Archive of Formal Proof}, we cannot put this
 theory file in the archive.
 \<close>
-
-(* FIXME: Use these once they are moved to AFP:
-    "AFP_IsaFoR/AFP_Unifiers"
-    "AFP_IsaFoR/AFP_Subsumption"
-    "AFP_IsaFoR/AFP_Unification"
-*)
 
 record 'f weights =
   w :: "'f \<times> nat \<Rightarrow> nat"

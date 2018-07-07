@@ -984,7 +984,6 @@ end
 
 end
 
-(* FIXME: inherit "weighted_FO_resolution_prover" directly? *)
 locale weighted_FO_resolution_prover_with_size_timestamp_factors =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
   for
