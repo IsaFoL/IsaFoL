@@ -290,7 +290,7 @@ qed simp
 
 subsection \<open>Definition of deterministic QuickSort\<close>
 
-(*stolen from Manuel Eberls Quick_Sort_Cost AFP entry,
+(*stolen from Manuel Eberl's Quick_Sort_Cost AFP entry,
    but without invoking probability theory and using a predicate instead of a set*)
 
 text \<open>

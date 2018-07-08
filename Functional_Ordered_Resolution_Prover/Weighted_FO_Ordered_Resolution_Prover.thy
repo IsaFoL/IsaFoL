@@ -10,7 +10,7 @@ text \<open>
 TODO. Formalizes footnote.
 \<close>
 
-theory Weighted_FO_Ordered_Resolution_Prover 
+theory Weighted_FO_Ordered_Resolution_Prover                                    
   imports "Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover"
 begin
 
@@ -38,18 +38,17 @@ locale weighted_FO_resolution_prover =
     weight_mono: "i < j \<Longrightarrow> weight (C, i) < weight (C, j)"
 begin
 
-(* FIXME: don't use \<circ> in abbreviations -- fragile w.r.t. simplifier when applied *)
 abbreviation clss_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
-  "clss_of_wstate \<equiv> clss_of_state \<circ> state_of_wstate"
+  "clss_of_wstate St \<equiv> clss_of_state (state_of_wstate St)"
 
 abbreviation N_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
-  "N_of_wstate \<equiv> N_of_state \<circ> state_of_wstate"
+  "N_of_wstate St \<equiv> N_of_state (state_of_wstate St)"
 
 abbreviation P_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
-  "P_of_wstate \<equiv> P_of_state \<circ> state_of_wstate"
+  "P_of_wstate St \<equiv> P_of_state (state_of_wstate St)"
 
 abbreviation Q_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
-  "Q_of_wstate \<equiv> Q_of_state \<circ> state_of_wstate"
+  "Q_of_wstate St \<equiv> Q_of_state (state_of_wstate St)"
 
 fun wN_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
   "wN_of_wstate (N, P, Q, n) = N"
