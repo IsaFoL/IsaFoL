@@ -62,9 +62,9 @@ refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
 
 clean:
-	$(RUN_ISABELLE2017) build -d '$$AFP' -c -v -n -D Weidenbach_Book
-	$(RUN_ISABELLE2017) build -c -v -n -D Ordered_Resolution_Prover
-	$(RUN_ISABELLE2017) build -c -v -n -D Unordered_Resolution
+	$(RUN_ISABELLE) build -d '$$AFP' -c -v -n -D Weidenbach_Book
+	$(RUN_ISABELLE) build -c -v -n -D Ordered_Resolution_Prover
+	$(RUN_ISABELLE) build -c -v -n -D Unordered_Resolution
 	rm -rf $(DESTINATION)/current
 
 
