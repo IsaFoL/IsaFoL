@@ -1939,62 +1939,7 @@ proof -
 qed
 
 end
-(* TODO Move *)
 
-lemma swap_nth_irrelevant:
-  \<open>k \<noteq> i \<Longrightarrow> k \<noteq> j \<Longrightarrow> swap xs i j ! k = xs ! k\<close>
-  by (auto simp: swap_def)
-
-lemma swap_nth_relevant:
-  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs i j ! i = xs ! j\<close>
-  by (auto simp: swap_def)
-
-lemma swap_nth_relevant2:
-  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs j i ! i = xs ! j\<close>
-  by (auto simp: swap_def)
-
-lemma swap_nth_if:
-  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs i j ! k =
-    (if k = i then xs ! j else if k = j then xs ! i else xs ! k)\<close>
-  by (auto simp: swap_def)
-
-lemma drop_swap_irrelevant:
-  \<open>k > i \<Longrightarrow> k > j \<Longrightarrow> drop k (swap outl' j i) = drop k outl'\<close>
-  by (subst list_eq_iff_nth_eq) auto
-
-lemma take_swap_relevant:
-  \<open>k > i \<Longrightarrow> k > j \<Longrightarrow>  take k (swap outl' j i) = swap (take k outl') i j\<close>
-  by (subst list_eq_iff_nth_eq) (auto simp: swap_def)
-
-lemma tl_swap_relevant:
-  \<open>i > 0 \<Longrightarrow> j > 0 \<Longrightarrow> tl (swap outl' j i) = swap (tl outl') (i - 1) (j - 1)\<close>
-  by (subst list_eq_iff_nth_eq)
-    (cases \<open>outl' = []\<close>; cases i; cases j; auto simp: swap_def tl_update_swap nth_tl)
-
-lemma mset_tl:
-  \<open>mset (tl xs) = remove1_mset (hd xs) (mset xs)\<close>
-  by (cases xs) auto
-
-lemma hd_take:
-  \<open>0 < length outl' \<Longrightarrow> i > 0 \<Longrightarrow> hd (take i outl') = hd outl'\<close>
-  by (cases outl'; cases i) auto
-
-lemma hd_list_update_If:
-  \<open>i < length outl' \<Longrightarrow> hd (outl'[i := w]) = (if i = 0 then w else hd outl')\<close>
-  by (cases outl') (auto split: nat.splits)
-
-lemma mset_tl_delete_index_and_swap:
-  assumes
-    \<open>0 < i\<close> and
-    \<open>i < length outl'\<close>
-  shows \<open>mset (tl (delete_index_and_swap outl' i)) =
-         remove1_mset (outl' ! i) (mset (tl outl'))\<close>
-  using assms
-  by (subst mset_tl)+
-    (auto simp: hd_butlast hd_list_update_If mset_butlast_remove1_mset
-      mset_update last_list_update_to_last ac_simps)
-
-(* End Move *)
 
 context isasat_input_bounded
 begin

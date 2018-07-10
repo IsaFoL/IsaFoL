@@ -466,7 +466,7 @@ definition trail_pol :: \<open>(trail_pol \<times> (nat, nat) ann_lits) set\<clo
 
 end
 
-abbreviation trail_pol_assn :: \<open>trail_pol \<Rightarrow> trail_pol_assn \<Rightarrow> assn\<close> where
+abbreviation (in -) trail_pol_assn :: \<open>trail_pol \<Rightarrow> trail_pol_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_assn \<equiv>
       arl_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
       array_assn uint32_nat_assn *a

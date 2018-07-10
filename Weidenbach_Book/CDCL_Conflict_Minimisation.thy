@@ -1,6 +1,8 @@
 theory CDCL_Conflict_Minimisation
-  imports Watched_Literals.Watched_Literals_Watch_List_Domain Watched_Literals.WB_More_Refinement
-  IsaSAT_Trail
+  imports
+    Watched_Literals.Watched_Literals_Watch_List_Domain
+    Watched_Literals.WB_More_Refinement
+    IsaSAT_Trail \<comment>\<open>Required to get the reason of a propagation\<close>
 begin
 
 no_notation Ref.update ("_ := _" 62)

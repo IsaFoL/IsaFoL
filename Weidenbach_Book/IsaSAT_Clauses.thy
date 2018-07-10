@@ -1,129 +1,49 @@
 theory IsaSAT_Clauses
-imports  Watched_Literals.Watched_Literals_Watch_List_Code_Common
+imports  Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT_Arena
 begin
+
 
 subsubsection \<open>Representation of Clauses\<close>
 
-text \<open>The representation of clauses relies on two important properties:
-  \<^item> the empty clause indicates that the clause is not present.
-  \<^item> the elements are accessed through type \<^typ>\<open>nat\<close>.
-\<close>
-
 named_theorems isasat_codegen \<open>lemmas that should be unfolded to generate (efficient) code\<close>
-
-
-datatype clause_status = INIT | LEARNED | DELETED
-
-instance clause_status :: heap
-proof standard
-  let ?f = \<open>(\<lambda>x. case x of INIT \<Rightarrow> (0::nat) | LEARNED  \<Rightarrow> 1 | DELETED \<Rightarrow> 2)\<close>
-  have \<open>inj ?f\<close>
-    by (auto simp: inj_def split: clause_status.splits)
-  then show \<open>\<exists>f. inj (f::clause_status \<Rightarrow> nat)\<close>
-    by blast
-qed
-
-instantiation clause_status :: default
-begin
-definition default_clause_status where \<open>default_clause_status = DELETED\<close>
-instance by standard
-end
-
-abbreviation clause_status_assn where
-  \<open>clause_status_assn \<equiv> (id_assn :: clause_status \<Rightarrow> _)\<close>
-
-lemma INIT_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return INIT), uncurry0 (RETURN INIT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a clause_status_assn\<close>
-  by sepref_to_hoare sep_auto
-
-lemma LEARNED_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return LEARNED), uncurry0 (RETURN LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a clause_status_assn\<close>
-  by sepref_to_hoare sep_auto
-
-lemma DELETED_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return DELETED), uncurry0 (RETURN DELETED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a clause_status_assn\<close>
-  by sepref_to_hoare sep_auto
 
 type_synonym clause_annot = \<open>clause_status \<times> nat \<times> nat\<close>
 
 type_synonym clause_annots = \<open>clause_annot list\<close>
 
-fun get_status :: \<open>clause_annot \<Rightarrow> clause_status\<close> where
-\<open>get_status (st, lbd, act) = st\<close>
 
-fun get_lbd :: \<open>clause_annot \<Rightarrow> nat\<close> where
-\<open>get_lbd (st, lbd, act) = lbd\<close>
-
-fun set_lbd :: \<open>nat \<Rightarrow> clause_annot \<Rightarrow> clause_annot\<close> where
-\<open>set_lbd lbd (st, _, act) = (st, lbd, act)\<close>
-
-fun extra_clause_information where
-  \<open>extra_clause_information NU i (st, lbd, act) \<longleftrightarrow>
-      (st = DELETED \<longleftrightarrow> i \<notin># dom_m NU) \<and>
-      (st = LEARNED \<longleftrightarrow> \<not>irred NU i) \<and>
-      (st = INIT \<longleftrightarrow> irred NU i)\<close>
-
-lemma extra_clause_information_simps:
-  \<open>extra_clause_information NU i st \<longleftrightarrow>
-      (fst st = DELETED \<longleftrightarrow> i \<notin># dom_m NU) \<and>
-      (fst st = LEARNED \<longleftrightarrow> \<not>irred NU i) \<and>
-      (fst st = INIT \<longleftrightarrow> irred NU i)
-      \<close>
-  by (cases st) auto
-
-lemma extra_clause_information_update[simp]:
-  \<open>i \<in># dom_m aa \<Longrightarrow> extra_clause_information (aa(bd \<hookrightarrow> C)) i (bi) \<longleftrightarrow>
-    extra_clause_information aa i (bi)\<close>
-  by (cases bi) auto
-
-definition list_fmap_rel :: \<open>_ \<Rightarrow> _ \<Rightarrow> (('a list \<times> clause_annots) \<times> nat clauses_l) set\<close> where
-  list_fmap_rel_internal_def:
-  \<open>list_fmap_rel unused R = {((NU', extra), (NU)). (\<forall>i\<in>#dom_m NU. i < length NU' \<and> (NU'!i, NU \<propto> i) \<in> R) \<and>
-         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> (NU'!i = unused \<and> fst (extra!i) = DELETED)) \<and> NU' \<noteq> [] \<and>
-         Suc (Max_mset (add_mset 0 (dom_m NU))) = length NU' \<and>
-         (\<forall>i\<in>#dom_m NU. i < length extra \<and> extra_clause_information NU i (extra!i)) \<and>
-         length NU' = length extra}\<close>
-
-lemma list_fmap_rel_def:
-  \<open>\<langle>R\<rangle>list_fmap_rel unused = {((NU', extra), (NU)). (\<forall>i\<in>#dom_m NU. i < length NU' \<and> (NU'!i, NU \<propto> i) \<in> R) \<and>
-         (\<forall>i. i \<notin># dom_m NU \<longrightarrow> i \<ge> length NU' \<or> (NU'!i = unused \<and> fst (extra!i) = DELETED)) \<and> NU' \<noteq> [] \<and>
-          Suc (Max_mset (add_mset 0 (dom_m NU))) = length NU' \<and>
-         (\<forall>i\<in>#dom_m NU. i < length extra \<and> extra_clause_information NU i  (extra!i)) \<and>
-         length NU' = length extra}\<close>
-  by (simp add: relAPP_def list_fmap_rel_internal_def)
-
-definition clause_nth_fmap where
-  \<open>clause_nth_fmap = (\<lambda>(N, _) i. N!i)\<close>
+definition list_fmap_rel :: \<open>_ \<Rightarrow> (arena \<times> nat clauses_l) set\<close> where
+  \<open>list_fmap_rel vdom = {(arena, N). valid_arena arena N vdom}\<close>
 
 lemma nth_clauses_l:
-  \<open>(uncurry (RETURN oo clause_nth_fmap), uncurry (RETURN oo (\<lambda>N i. N \<propto> i)))
-    \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f \<langle>R\<rangle>list_fmap_rel unused \<times>\<^sub>r nat_rel \<rightarrow> \<langle>R\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: list_fmap_rel_def clause_nth_fmap_def)
+  \<open>(uncurry2 (RETURN ooo (\<lambda>N i j. arena_lit N (i+j))), uncurry2 (RETURN ooo (\<lambda>N i j. N \<propto> i ! j)))
+    \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>f
+      list_fmap_rel vdom \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: list_fmap_rel_def arena_lifting)
 
 abbreviation clauses_l_fmat where
-  \<open>clauses_l_fmat \<equiv> list_fmap_rel []\<close>
+  \<open>clauses_l_fmat \<equiv> list_fmap_rel\<close>
 
 abbreviation isasat_clauses_assn where
   \<open>isasat_clauses_assn \<equiv> arlO_assn clause_ll_assn *a arl_assn (clause_status_assn *a uint32_nat_assn *a uint32_nat_assn)\<close>
 
 definition clauses_ll_assn
-   :: \<open>nat clauses_l \<Rightarrow> uint32 array array_list \<times> (clause_status \<times> uint32 \<times> uint32)array_list \<Rightarrow>
-      assn\<close>
+   :: \<open>_ \<Rightarrow> nat clauses_l \<Rightarrow> uint32 array_list \<Rightarrow> assn\<close>
 where
-  \<open>clauses_ll_assn = hr_comp isasat_clauses_assn (\<langle>Id\<rangle>clauses_l_fmat)\<close>
+  \<open>clauses_ll_assn vdom = hr_comp arena_assn (clauses_l_fmat vdom)\<close>
 
 definition fmap_rll :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal" where
   [simp]: \<open>fmap_rll l i j = l \<propto> i ! j\<close>
 
-
 definition fmap_rll_u :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal" where
   [simp]: \<open>fmap_rll_u  = fmap_rll\<close>
-
+(* 
 lemma nth_clauses_rll:
   \<open>(uncurry2 (RETURN ooo (\<lambda>(N, _) i. Array_List_Array.nth_rll N i)), uncurry2 (RETURN ooo IsaSAT_Clauses.fmap_rll))
     \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>f
       \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_rll_def nth_rll_def)
+  by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_rll_def nth_rll_def) *)
 
 lemma nth_raa_hnr':
   assumes p: \<open>is_pure R\<close>
@@ -133,7 +53,7 @@ lemma nth_raa_hnr':
        (arlO_assn (array_assn R) *a GG )\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
   using assms
   by sepref_to_hoare  sep_auto
-
+(* 
 lemma fmap_rll_hnr[sepref_fr_rules]:
   \<open>(uncurry2 (\<lambda>(N, _) i. nth_raa N i), uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll))
      \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>a
@@ -162,9 +82,9 @@ proof -
      defer
     using H unfolding f im apply assumption
     using pre ..
-qed
+qed *)
 
-
+term arena_update_status
 definition fmap_rll_u64 :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal" where
   [simp]: \<open>fmap_rll_u64  = fmap_rll\<close>
 
@@ -192,7 +112,7 @@ sepref_definition nth_rll_u64_i64_clauses
      (isasat_clauses_assn)\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   by sepref
 
-lemma fmap_rll_u64_hnr[sepref_fr_rules]:
+(* lemma fmap_rll_u64_hnr[sepref_fr_rules]:
   \<open>(uncurry2 (\<lambda>(N, _) j. nth_raa_i_u64 N j), uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll_u64))
      \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>a
      clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
@@ -270,7 +190,7 @@ proof -
      defer
     using H unfolding f im fmap_rll_u_def apply assumption
     using pre unfolding length_rll_def ..
-qed
+qed *)
 
 
 definition fmap_length_rll_u :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat" where
@@ -279,10 +199,10 @@ definition fmap_length_rll_u :: "(nat, 'a literal list \<times> bool) fmap \<Rig
 declare fmap_length_rll_u_def[symmetric, isasat_codegen]
 
 (*TODO rename length_rll_n_uint32*)
-lemma fmap_length_rll_u:
+(* lemma fmap_length_rll_u:
   \<open>(uncurry (RETURN oo (\<lambda>(N, _) i. length_rll_n_uint32 N i)), uncurry (RETURN oo fmap_length_rll_u))
     \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_length_rll_u_def length_rll_def)
+  by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_length_rll_u_def length_rll_def) *)
 
 sepref_definition length_rll_n_uint32_clss
   is \<open>uncurry (RETURN oo (\<lambda>(N, _) i. length_rll_n_uint32 N i))\<close>
@@ -290,7 +210,7 @@ sepref_definition length_rll_n_uint32_clss
        isasat_clauses_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref
 
-lemma fmap_length_rll_u_hnr[sepref_fr_rules]:
+(* lemma fmap_length_rll_u_hnr[sepref_fr_rules]:
   \<open>(uncurry length_rll_n_uint32_clss, uncurry (RETURN \<circ>\<circ> fmap_length_rll_u))
      \<in> [\<lambda>(N, i). i \<in># dom_m N \<and> length (N \<propto> i) \<le> uint_max]\<^sub>a
      clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
@@ -318,7 +238,7 @@ proof -
      defer
     using H unfolding f im apply assumption
     using pre ..
-qed
+qed *)
 
 sepref_definition length_raa_i64_u_clss
   is \<open>uncurry (RETURN oo (\<lambda>(N, _) i. length_rll_n_uint32 N i))\<close>
@@ -326,7 +246,7 @@ sepref_definition length_raa_i64_u_clss
        isasat_clauses_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref
 
-lemma fmap_length_rll_i64_u_hnr[sepref_fr_rules]:
+(* lemma fmap_length_rll_i64_u_hnr[sepref_fr_rules]:
   \<open>(uncurry length_raa_i64_u_clss, uncurry (RETURN \<circ>\<circ> fmap_length_rll_u))
      \<in> [\<lambda>(N, i). i \<in># dom_m N \<and> length (N \<propto> i) \<le> uint_max]\<^sub>a
      clauses_ll_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
@@ -354,7 +274,7 @@ proof -
      defer
     using H unfolding f im apply assumption
     using pre ..
-qed
+qed *)
 
 definition fmap_length_rll_u64 :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat" where
   \<open>fmap_length_rll_u64 l i = length_u (l \<propto> i)\<close>
@@ -363,10 +283,10 @@ definition fmap_length_rll_u64 :: "(nat, 'a literal list \<times> bool) fmap \<R
 declare fmap_length_rll_u_def[symmetric, isasat_codegen]
 
 (*TODO rename length_rll_n_uint32*)
-lemma fmap_length_rll_u64:
+(* lemma fmap_length_rll_u64:
   \<open>(uncurry (RETURN oo (\<lambda>(N, _) i. length_rll_n_uint64 N i)), uncurry (RETURN oo fmap_length_rll_u64))
     \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_length_rll_u64_def length_rll_def)
+  by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_length_rll_u64_def length_rll_def) *)
 
 definition length_raa_u32_u64 :: \<open>'a::heap arrayO_raa \<Rightarrow> uint32 \<Rightarrow> uint64 Heap\<close> where
   \<open>length_raa_u32_u64 xs i = do {
@@ -449,7 +369,7 @@ proof -
     apply (sep_auto simp: array_assn_def arl_get_def nat_of_uint64_uint64_of_nat_id)
     done
 qed
-thm fmap_length_rll_u64
+
 sepref_definition length_raa_u64_clss
   is \<open>uncurry ((RETURN \<circ>\<circ>\<circ> case_prod) (\<lambda>N _. length_rll_n_uint64 N))\<close>
   :: \<open>[\<lambda>((xs, _), i). i < length xs \<and> length (xs ! i) \<le> uint64_max]\<^sub>a
@@ -468,7 +388,7 @@ sepref_definition length_raa_u64_u64_clss
         isasat_clauses_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
   by sepref
 
-lemma fmap_length_rll_u64_hnr[sepref_fr_rules]:
+(* lemma fmap_length_rll_u64_hnr[sepref_fr_rules]:
   \<open>(uncurry length_raa_u64_clss, uncurry (RETURN \<circ>\<circ> fmap_length_rll_u64))
      \<in> [\<lambda>(N, i). i \<in># dom_m N \<and> length (N \<propto> i) \<le> uint64_max]\<^sub>a
      clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
@@ -543,7 +463,7 @@ proof -
      defer
     using H unfolding f im apply assumption
     using pre ..
-qed
+qed *)
 
 
 definition fmap_length_rll :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat" where
@@ -551,10 +471,10 @@ definition fmap_length_rll :: "(nat, 'a literal list \<times> bool) fmap \<Right
 
 
 (*TODO rename length_rll_n_uint32*)
-lemma fmap_length_rll:
+(* lemma fmap_length_rll:
   \<open>(uncurry (RETURN oo (\<lambda>(N, _) j. length_rll N j)), uncurry (RETURN oo fmap_length_rll))
     \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_length_rll_def length_rll_def)
+  by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_length_rll_def length_rll_def) *)
 
 
 definition length_raa_u32 :: \<open>'a::heap arrayO_raa \<Rightarrow> uint32 \<Rightarrow> nat Heap\<close> where
@@ -599,7 +519,7 @@ sepref_definition length_raa_clss
   :: \<open>[\<lambda>((xs, _), i). i < length xs]\<^sub>a isasat_clauses_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   by sepref
 
-lemma fmap_length_rll_hnr[sepref_fr_rules]:
+(* lemma fmap_length_rll_hnr[sepref_fr_rules]:
   \<open>(uncurry length_raa_clss, uncurry (RETURN \<circ>\<circ> fmap_length_rll))
      \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>a
      clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
@@ -652,18 +572,18 @@ proof -
      defer
     using H unfolding f im apply assumption
     using pre ..
-qed
+qed *)
 
 definition fmap_swap_ll where
   [simp]: \<open>fmap_swap_ll N i j f = (N(i \<hookrightarrow> swap (N \<propto> i) j f))\<close>
 
-lemma swap_ll_fmap_swap_ll:
+(* lemma swap_ll_fmap_swap_ll:
   \<open>(uncurry3 (RETURN oooo (\<lambda>(N, xs) i j k. (swap_ll N i j k, xs))), uncurry3 (RETURN oooo fmap_swap_ll))
     \<in> [\<lambda>(((N, i), j), k). i \<in># dom_m N \<and> j < length (N \<propto> i) \<and> k < length (N \<propto> i)]\<^sub>f
         \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>\<langle>Id\<rangle>clauses_l_fmat\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
      (auto 5 5 simp: list_fmap_rel_def Array_List_Array.swap_ll_def
-      split: if_splits)
+      split: if_splits) *)
 
 sepref_definition swap_aa_clss
   is \<open>uncurry3 (RETURN oooo (\<lambda>(N, xs) i j k. (swap_ll N i j k, xs)))\<close>
@@ -671,7 +591,7 @@ sepref_definition swap_aa_clss
       isasat_clauses_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> isasat_clauses_assn\<close>
   by sepref
 
-lemma fmap_swap_ll_hnr[sepref_fr_rules]:
+(* lemma fmap_swap_ll_hnr[sepref_fr_rules]:
   \<open>(uncurry3 swap_aa_clss, uncurry3 (RETURN oooo fmap_swap_ll))
      \<in> [\<lambda>(((N, i), j), k). i \<in># dom_m N \<and> j < length (N \<propto> i) \<and> k < length (N \<propto> i)]\<^sub>a
      clauses_ll_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> clauses_ll_assn\<close>
@@ -700,41 +620,73 @@ proof -
      defer
     using H unfolding f im apply assumption
     using pre ..
-qed
+qed *)
 
-
+text \<open>From a performance point of view, appending several time a single element is less efficient
+than reserving a space that is large enough directly. However, in this case the list of clauses \<^term>\<open>N\<close>
+is so large that there should not be any difference\<close>
 definition fm_add_new where
  \<open>fm_add_new b C N = do {
-    i \<leftarrow> get_fresh_index N;
-    let N = fmupd i (C, b) N;
-    RETURN (N, i)
+    let st = (if b then AStatus INIT else AStatus LEARNED);
+    let l = length N;
+    let s = length C - 2;
+    let N = (if is_short_clause C then
+          (((N @ [st]) @ [AActivity zero_uint32_nat]) @ [ALBD s]) @ [ASize s]
+          else ((((N @ [APos zero_uint32_nat]) @ [st]) @ [AActivity zero_uint32_nat]) @ [ALBD s]) @ [ASize (s)]);
+    (i, N) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, N). i < length C)
+      (\<lambda>(i, N). do {
+        ASSERT(i < length C);
+        RETURN (i+one_uint64_nat, N @ [ALit (C ! i)])
+      })
+      (zero_uint64_nat, N);
+    RETURN (N, l)
   }\<close>
+
+lemma header_size_Suc_def:
+  \<open>header_size C =
+    (if is_short_clause C then Suc (Suc (Suc (Suc 0))) else Suc (Suc (Suc (Suc (Suc 0)))))\<close>
+  unfolding header_size_def
+  by auto
+
+lemma nth_append_clause:
+  \<open>a < length C \<Longrightarrow> append_clause b C N ! (length N + header_size C + a) = ALit (C ! a)\<close>
+  unfolding append_clause_def header_size_Suc_def
+  by (auto simp: nth_Cons nth_append)
+
+lemma fm_add_new_append_clause:
+  \<open>fm_add_new b C N \<le> RETURN (append_clause b C N, length N)\<close>
+  unfolding fm_add_new_def
+  apply (rewrite at \<open>let _ = length _ in _\<close> Let_def)
+  apply (refine_vcg WHILET_rule[where R = \<open>measure (\<lambda>(i, _). Suc (length C) - i)\<close> and
+    I = \<open>\<lambda>(i, N'). N' = take (length N + header_size C + i) (append_clause b C N) \<and>
+      i \<le> length C\<close>])
+  subgoal by auto
+  subgoal by (auto simp: append_clause_def header_size_def)
+  subgoal by simp
+  subgoal by simp
+  subgoal by (auto simp: take_Suc_conv_app_nth nth_append_clause)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
 
 definition fm_add_new_at_position
    :: \<open>bool \<Rightarrow> nat \<Rightarrow> 'v clause_l \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clauses_l\<close>
 where
   \<open>fm_add_new_at_position b i C N = fmupd i (C, b) N\<close>
 
-definition append_and_length
+(* definition append_and_length
    :: \<open>bool \<Rightarrow> 'v clause_l \<Rightarrow> 'v clause_l list \<times> clause_annots \<Rightarrow> ('v clause_l list \<times> clause_annots) \<times> nat\<close>
 where
 \<open>append_and_length b C = (\<lambda>(N, cs).
      let k = length N in
      let b' = (if b then INIT else LEARNED, 0, 0) in
-       ((op_list_append N C, op_list_append cs b'), k))\<close>
-
-lemma extra_clause_information_upd[simp]:
-  \<open>extra_clause_information (fmupd i C bc) i (ba) \<longleftrightarrow> fst ba = (if snd C then INIT else LEARNED)\<close>
-  by (cases ba) (auto simp: extra_clause_information.simps)
-
-lemma extra_clause_information_upd_irrel[simp]:
-  \<open>length ba \<notin># dom_m bc \<Longrightarrow> i \<in># dom_m bc \<Longrightarrow> extra_clause_information (fmupd (length ba) C bc) i (bai) \<longleftrightarrow>
-    extra_clause_information bc i (bai)\<close>
-  by (cases bai)(auto simp: )
-
+       ((op_list_append N C, op_list_append cs b'), k))\<close> *)
+(* 
 lemma append_and_length_fm_add_new:
   \<open>(uncurry2 (RETURN ooo append_and_length), uncurry2 fm_add_new)
-     \<in> bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (\<langle>Id\<rangle>clauses_l_fmat) \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+     \<in> bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (clauses_l_fmat) \<rightarrow>\<^sub>f \<langle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (auto simp: fm_add_new_at_position_def list_fmap_rel_def Let_def
       max_def nth_append append_and_length_def fm_add_new_def get_fresh_index_def
@@ -763,14 +715,111 @@ lemma append_and_length_fm_add_new:
     apply force
   apply (subst extra_clause_information_upd_irrel)
   apply auto
-  done
+  done *)
 
-sepref_definition append_and_length_code
-  is \<open>uncurry2 (RETURN ooo append_and_length)\<close>
-  :: \<open>bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a (isasat_clauses_assn)\<^sup>d \<rightarrow>\<^sub>a
-       isasat_clauses_assn *a nat_assn\<close>
-  unfolding append_and_length_def zero_uint32_nat_def[symmetric]
+definition AStatus_INIT where
+  \<open>AStatus_INIT = AStatus INIT\<close>
+
+lemma AStatus_INIT [sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN AStatus_INIT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_INIT_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    status_rel_def)
+
+definition AStatus_LEARNED where
+  \<open>AStatus_LEARNED = AStatus LEARNED\<close>
+
+lemma AStatus_LEARNED [sepref_fr_rules]:
+  \<open>(uncurry0 (return 1), uncurry0 (RETURN AStatus_LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    status_rel_def)
+
+sepref_definition is_short_clause_code
+  is \<open>RETURN o is_short_clause\<close>
+  :: \<open>clause_ll_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding is_short_clause_def
   by sepref
+
+lemma AActivity_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o AActivity) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    status_rel_def)
+
+lemma ALBD_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o ALBD) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    status_rel_def)
+
+lemma ASize_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o ASize) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    status_rel_def)
+
+lemma APos_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o APos) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    status_rel_def)
+
+lemma ALit_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o ALit) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  apply sepref_to_hoare
+  by sep_auto
+    (sep_auto simp: arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def unat_lit_rel_def)
+
+declare is_short_clause_code.refine[sepref_fr_rules]
+
+
+lemma le_uint32_max_le_uint64_max: \<open>a \<le> uint32_max + 1 \<Longrightarrow> a \<le> uint64_max\<close>
+  by (auto simp: uint32_max_def uint64_max_def)
+
+lemma nat_of_uint64_ge_minus:
+  \<open>ai >= bi \<Longrightarrow>
+       nat_of_uint64 (ai - bi) = nat_of_uint64 ai - nat_of_uint64 bi\<close>
+  apply transfer
+  unfolding unat_def
+  by (subst uint_sub_lem[THEN iffD1])
+    (auto simp: unat_def uint_nonnegative nat_diff_distrib word_le_def[symmetric] intro: leI)
+
+lemma minus_uint64_nat_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (-)), uncurry (RETURN oo (-))) \<in> 
+    [\<lambda>(a, b). a \<ge> b]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_ge_minus
+   nat_of_uint64_le_iff)
+
+term uint32_of_uint64
+definition uint32_of_uint64 where
+  \<open>uint32_of_uint64 n = uint32_of_nat (nat_of_uint64 n)\<close>
+
+definition uint32_of_uint64_rel where
+  [simp]: \<open>uint32_of_uint64_rel n = n\<close>
+
+lemma uint32_of_uint64_rel_hnr[sepref_fr_rules]:
+  \<open>(return o uint32_of_uint64, RETURN o uint32_of_uint64_rel) \<in>
+     [\<lambda>a. a \<le> uint32_max]\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_of_uint64_def uint32_nat_rel_def br_def nat_of_uint64_le_iff
+      nat_of_uint32_uint32_of_nat_id uint64_nat_rel_def)
+thm op_list_append_def
+find_theorems op_list_append
+sepref_definition append_and_length_code
+  is \<open>uncurry2 fm_add_new\<close>
+  :: \<open>[\<lambda>((b, C), N). length C \<le> uint32_max+1 \<and> length C \<ge> 2]\<^sub>a bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a (arena_assn)\<^sup>d \<rightarrow>
+       arena_assn *a nat_assn\<close>
+  supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro]
+  unfolding fm_add_new_def AStatus_INIT_def[symmetric]
+   AStatus_LEARNED_def[symmetric]
+   two_uint64_nat_def[symmetric]
+   apply (rewrite in \<open>let _ = _ - _ in _\<close> length_uint64_nat_def[symmetric])
+   apply (rewrite in \<open>let _ = _ in let _ = _ in let _ = \<hole> in _\<close> uint32_of_uint64_rel_def[symmetric])
+   apply (rewrite in \<open>_ < length _\<close> length_uint64_nat_def[symmetric])
+  by sepref
+
 
 lemma fm_add_new_hnr[sepref_fr_rules]:
   \<open>(uncurry2 append_and_length_code, uncurry2 fm_add_new)

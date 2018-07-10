@@ -1,5 +1,5 @@
 theory IsaSAT_Arena
-imports IsaSAT_Setup
+imports Watched_Literals.Watched_Literals_Watch_List_Code_Common
 begin
 
 
@@ -54,6 +54,96 @@ clauses can contains duplicates, the size does not fit into uint32 (technically,
 \<^term>\<open>uint32_max +1\<close>). Therefore, we restrict the clauses to have at least length 2 and we keep
 \<^term>\<open>length C - 2\<close> instead of \<^term>\<open>length C\<close>.
 \<close>
+
+subsubsection \<open>To Move\<close>
+
+(* TODO Move *)
+
+lemma swap_nth_irrelevant:
+  \<open>k \<noteq> i \<Longrightarrow> k \<noteq> j \<Longrightarrow> swap xs i j ! k = xs ! k\<close>
+  by (auto simp: swap_def)
+
+lemma swap_nth_relevant:
+  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs i j ! i = xs ! j\<close>
+  by (auto simp: swap_def)
+
+lemma swap_nth_relevant2:
+  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs j i ! i = xs ! j\<close>
+  by (auto simp: swap_def)
+
+lemma swap_nth_if:
+  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs i j ! k =
+    (if k = i then xs ! j else if k = j then xs ! i else xs ! k)\<close>
+  by (auto simp: swap_def)
+
+lemma drop_swap_irrelevant:
+  \<open>k > i \<Longrightarrow> k > j \<Longrightarrow> drop k (swap outl' j i) = drop k outl'\<close>
+  by (subst list_eq_iff_nth_eq) auto
+
+lemma take_swap_relevant:
+  \<open>k > i \<Longrightarrow> k > j \<Longrightarrow>  take k (swap outl' j i) = swap (take k outl') i j\<close>
+  by (subst list_eq_iff_nth_eq) (auto simp: swap_def)
+
+lemma tl_swap_relevant:
+  \<open>i > 0 \<Longrightarrow> j > 0 \<Longrightarrow> tl (swap outl' j i) = swap (tl outl') (i - 1) (j - 1)\<close>
+  by (subst list_eq_iff_nth_eq)
+    (cases \<open>outl' = []\<close>; cases i; cases j; auto simp: swap_def tl_update_swap nth_tl)
+
+lemma mset_tl:
+  \<open>mset (tl xs) = remove1_mset (hd xs) (mset xs)\<close>
+  by (cases xs) auto
+
+lemma hd_list_update_If:
+  \<open>outl' \<noteq> [] \<Longrightarrow> hd (outl'[i := w]) = (if i = 0 then w else hd outl')\<close>
+  by (cases outl') (auto split: nat.splits)
+
+lemma mset_tl_delete_index_and_swap:
+  assumes
+    \<open>0 < i\<close> and
+    \<open>i < length outl'\<close>
+  shows \<open>mset (tl (delete_index_and_swap outl' i)) =
+         remove1_mset (outl' ! i) (mset (tl outl'))\<close>
+  using assms
+  by (subst mset_tl)+
+    (auto simp: hd_butlast hd_list_update_If mset_butlast_remove1_mset
+      mset_update last_list_update_to_last ac_simps)
+
+(* End Move *)
+
+
+subsubsection \<open>Status of a clause\<close>
+
+datatype clause_status = INIT | LEARNED | DELETED
+
+instance clause_status :: heap
+proof standard
+  let ?f = \<open>(\<lambda>x. case x of INIT \<Rightarrow> (0::nat) | LEARNED  \<Rightarrow> 1 | DELETED \<Rightarrow> 2)\<close>
+  have \<open>inj ?f\<close>
+    by (auto simp: inj_def split: clause_status.splits)
+  then show \<open>\<exists>f. inj (f::clause_status \<Rightarrow> nat)\<close>
+    by blast
+qed
+
+instantiation clause_status :: default
+begin
+definition default_clause_status where \<open>default_clause_status = DELETED\<close>
+instance by standard
+end
+
+abbreviation clause_status_assn where
+  \<open>clause_status_assn \<equiv> (id_assn :: clause_status \<Rightarrow> _)\<close>
+
+lemma INIT_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return INIT), uncurry0 (RETURN INIT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a clause_status_assn\<close>
+  by sepref_to_hoare sep_auto
+
+lemma LEARNED_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return LEARNED), uncurry0 (RETURN LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a clause_status_assn\<close>
+  by sepref_to_hoare sep_auto
+
+lemma DELETED_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return DELETED), uncurry0 (RETURN DELETED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a clause_status_assn\<close>
+  by sepref_to_hoare sep_auto
 
 
 subsubsection \<open>Definition\<close>
@@ -155,7 +245,7 @@ definition xarena_active_clause :: \<open>arena \<Rightarrow> nat clause_l \<tim
   )\<close>
 
 lemma xarena_active_clause_alt_def:
-  \<open>xarena_active_clause arena (the (fmlookup N i)) = (
+  \<open>xarena_active_clause arena (the (fmlookup N i)) \<longleftrightarrow> (
      (length (N\<propto>i) \<ge> 2 \<and>
        header_size (N\<propto>i) + length (N\<propto>i) = length arena \<and>
      (is_long_clause (N\<propto>i) \<longrightarrow> (is_Pos (arena!(header_size (N\<propto>i) - POS_SHIFT)) \<and>
@@ -1158,10 +1248,10 @@ paragraph \<open>Learning a clause\<close>
 definition append_clause where
   \<open>append_clause b C arena =
     (if is_short_clause C then
-      arena @ (if b then AStatus INIT else AStatus LEARNED) # AActivity (0) # ALBD (size C) #
+      arena @ (if b then AStatus INIT else AStatus LEARNED) # AActivity (0) # ALBD (length C - 2) #
          ASize (length C - 2) # map ALit C
-    else arena @ APos 0 # (if b then AStatus INIT else AStatus LEARNED) # AActivity (0)  # ALBD (size C)#
-         ASize (length C - 2) # map ALit C) \<close>
+    else arena @ APos 0 # (if b then AStatus INIT else AStatus LEARNED) # AActivity (0)  # ALBD (length C - 2)#
+         ASize (length C - 2) # map ALit C)\<close>
 
 lemma slice_append[simp]:
   \<open>to \<le> length xs \<Longrightarrow> Misc.slice from to (xs @ ys) = Misc.slice from to xs\<close>
@@ -1290,8 +1380,9 @@ definition arena_el_relation where
      AStatus n \<Rightarrow> (x, n) \<in> status_rel
    | APos n \<Rightarrow> (x, n) \<in> nat_rel
    | ASize n \<Rightarrow> (x, n) \<in> nat_rel
-   | ALBD n \<Rightarrow>(x, n) \<in> nat_rel
-   | AActivity n \<Rightarrow>(x, n) \<in> nat_rel
+   | ALBD n \<Rightarrow> (x, n) \<in> nat_rel
+   | AActivity n \<Rightarrow> (x, n) \<in> nat_rel
+   | ALit n \<Rightarrow> (x, n) \<in> nat_lit_rel
 )\<close>
 
 definition arena_el_rel where
@@ -1314,10 +1405,15 @@ lemma arena_lifting:
   shows
     \<open>i \<ge> header_size (N \<propto> i)\<close> and
     \<open>i < length arena\<close>
+    \<open>is_Size (arena ! (i - SIZE_SHIFT))\<close>
     \<open>length (N \<propto> i) = arena_length arena i\<close>
     \<open>\<And>j. j < length (N \<propto> i) \<Longrightarrow> N \<propto> i ! j = arena_lit arena (i + j)\<close> and
+    \<open>\<And>j. j < length (N \<propto> i) \<Longrightarrow> is_Lit (arena ! (i+j))\<close> and
     \<open>i + length (N \<propto> i) \<le> length arena\<close> and
-    \<open>is_long_clause (N \<propto> i) \<Longrightarrow> arena_pos arena i \<le> length (N \<propto> i)\<close>
+    \<open>is_long_clause (N \<propto> i) \<Longrightarrow> is_Pos (arena ! ( i - POS_SHIFT))\<close> and
+    \<open>is_long_clause (N \<propto> i) \<Longrightarrow> arena_pos arena i \<le> length (N \<propto> i)\<close> and
+    \<open>is_LBD (arena ! (i - LBD_SHIFT))\<close> and
+    \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close>
 proof -
   have
    dom: \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
@@ -1351,8 +1447,7 @@ proof -
       LEARNED) =
      (\<not> irred N i)\<close> and
     lbd: \<open>is_LBD (clause_slice arena N i ! (header_size (N \<propto> i) - LBD_SHIFT))\<close> and
-    \<open>is_Act
-      (clause_slice arena N i ! (header_size (N \<propto> i) - ACTIVITY_SHIFT))\<close> and
+    act: \<open>is_Act (clause_slice arena N i ! (header_size (N \<propto> i) - ACTIVITY_SHIFT))\<close> and
     size: \<open>is_Size (clause_slice arena N i ! (header_size (N \<propto> i) - SIZE_SHIFT))\<close> and
     size': \<open>Suc (Suc (xarena_length
                 (clause_slice arena N i !
@@ -1368,35 +1463,35 @@ proof -
     unfolding header_size_def arena_length_def arena_lbd_def arena_status_def
     by (auto simp: SHIFTS_def slice_nth)
   have HH:
-    \<open>arena_length arena i = length (N \<propto> i)\<close>
+    \<open>arena_length arena i = length (N \<propto> i)\<close> and \<open>is_Size (arena ! (i - SIZE_SHIFT))\<close>
     using size size' i_le i_ge ge2 lbd status size' ge2
     unfolding header_size_def arena_length_def arena_lbd_def arena_status_def
-    by (cases \<open>arena ! (i - Suc 0)\<close>)
-      (auto simp: SHIFTS_def slice_nth)
-    
-  show  \<open>length (N \<propto> i) = arena_length arena i\<close>
-    using i_le i_ge size' ge2 HH unfolding numeral_2_eq_2
+    by (cases \<open>arena ! (i - Suc 0)\<close>;auto simp: SHIFTS_def slice_nth; fail)+
+  then show  \<open>length (N \<propto> i) = arena_length arena i\<close> and \<open>is_Size (arena ! (i - SIZE_SHIFT))\<close>
+    using i_le i_ge size' size ge2 HH unfolding numeral_2_eq_2
     by (simp_all split:)
 
   show 
     \<open>i \<ge> header_size (N \<propto> i)\<close> and
     \<open>i < length arena\<close>
     using i_le i_ge by auto
-  show \<open>N \<propto> i ! j = arena_lit arena (i + j)\<close>
+  show \<open>is_Lit (arena ! (i+j))\<close> and \<open>N \<propto> i ! j = arena_lit arena (i + j)\<close>
     if \<open>j < length (N \<propto> i)\<close>
     for j
     using arg_cong[OF clause, of \<open>\<lambda>xs. xs ! j\<close>] i_le i_ge that
     by (auto simp: slice_nth arena_lit_def)
   
-  show \<open>i + length (N \<propto> i) <= length arena\<close>
+  show \<open>i + length (N \<propto> i) \<le> length arena\<close>
     using arg_cong[OF clause, of length] i_le i_ge
-    by (auto simp: arena_lit_def slice_len_min_If 
-  )
-
-  show \<open>is_long_clause (N \<propto> i) \<Longrightarrow> arena_pos arena i \<le> length (N \<propto> i)\<close>
-    using pos ge2 i_le i_ge unfolding arena_pos_def
+    by (auto simp: arena_lit_def slice_len_min_If)
+  show \<open>is_Pos (arena ! ( i - POS_SHIFT))\<close> and \<open>arena_pos arena i \<le> length (N \<propto> i)\<close>
+  if \<open>is_long_clause (N \<propto> i)\<close>
+    using pos ge2 i_le i_ge that unfolding arena_pos_def
     by (auto simp: SHIFTS_def slice_nth header_size_def)
-    
+  show  \<open>is_LBD (arena ! (i - LBD_SHIFT))\<close> and
+    \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close>
+    using lbd act ge2 i_le i_ge unfolding arena_pos_def
+    by (auto simp: SHIFTS_def slice_nth header_size_def)
 qed
-    
+
 end

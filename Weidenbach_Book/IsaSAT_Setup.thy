@@ -1,5 +1,5 @@
 theory IsaSAT_Setup
-  imports IsaSAT_Trail CDCL_Conflict_Minimisation IsaSAT_Clauses
+  imports CDCL_Conflict_Minimisation IsaSAT_Clauses IsaSAT_Arena
     Watched_Literals_VMTF IsaSAT_Lookup_Conflict LBD
 begin
 
@@ -33,6 +33,10 @@ subsubsection \<open>Types and Refinement Relations\<close>
 
 paragraph \<open>Statistics\<close>
 
+text \<open>
+We do some statistics on the run. NB: the statistics are not proven correct (especially they might
+overflow), there are just there to look for regressions and do some comparisons.
+\<close>
 type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 
 abbreviation stats_assn where
@@ -393,12 +397,24 @@ definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur \<t
 \<open>twl_st_heur' N =
   {(S, S'). (S, S') \<in> twl_st_heur \<and> dom_m (get_clauses_wl_heur S) = N}\<close>
 
+abbreviation (in -) watchers_assn where
+  \<open>watchers_assn \<equiv> arl_assn (nat_assn *a unat_lit_assn)\<close>
+
+abbreviation (in -) watchlist_assn where
+  \<open>watchlist_assn \<equiv> arrayO_assn watchers_assn\<close>
+
+abbreviation (in -) watchers_fast_assn where
+  \<open>watchers_fast_assn \<equiv> arl_assn (uint32_nat_assn *a unat_lit_assn)\<close>
+
+abbreviation (in -) watchlist_fast_assn where
+  \<open>watchlist_fast_assn \<equiv> arrayO_assn watchers_fast_assn\<close>
+
 definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>isasat_assn =
   trail_assn *a clauses_ll_assn *a
   option_lookup_clause_assn *a
   clause_l_assn *a
-  arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)) *a
+  watchlist_assn *a
   vmtf_remove_conc *a phase_saver_conc *a
   uint32_nat_assn *a
   cach_refinement_assn *a
@@ -416,7 +432,7 @@ definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_tr
   trail_fast_assn *a clauses_ll_assn *a
   option_lookup_clause_assn *a
   clause_l_assn *a
-  arrayO_assn (arl_assn (uint32_nat_assn *a unat_lit_assn)) *a
+  watchlist_fast_assn *a
   vmtf_remove_conc *a phase_saver_conc *a
   uint32_nat_assn *a
   cach_refinement_assn *a
@@ -686,7 +702,8 @@ abbreviation (in -) nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
 
 text \<open>We here define a variant of the trail representation, where the the control stack is out of
-  sync of the trail. This might make backtracking a little faster.
+  sync of the trail (i.e., there are some leftovers at the end). This might make backtracking a
+  little faster.
 \<close>
 
 context isasat_input_bounded
@@ -700,7 +717,8 @@ where
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length xs \<and> xs ! (nat_of_lit L) = polarity M L) \<and>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < length lvls \<and> lvls ! (atm_of L) = get_level M L) \<and>
     (\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<and>
-    control_stack (take (count_decided M) cs) M}\<close>
+    control_stack (take (count_decided M) cs) M
+  }\<close>
 
 definition (in isasat_input_ops) tl_trailt_tr_no_CS :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
   \<open>tl_trailt_tr_no_CS = (\<lambda>(M', xs, lvls, reasons, k, cs).
@@ -753,7 +771,7 @@ lemmas tl_trail_tr_no_CS_fast_coded_refine[sepref_fr_rules] =
    tl_trail_tr_no_CS_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma (in -) control_stack_take_Suc_count_dec_unstack:
- \<open> control_stack (take (Suc (count_decided M's)) cs) (Decided x1 # M's) \<Longrightarrow>
+ \<open>control_stack (take (Suc (count_decided M's)) cs) (Decided x1 # M's) \<Longrightarrow>
     control_stack (take (count_decided M's) cs) M's\<close>
   using control_stack_length_count_dec[of \<open>take (Suc (count_decided M's)) cs\<close> \<open>Decided x1 # M's\<close>]
   by (auto simp: min_def take_Suc_conv_app_nth split: if_splits elim: control_stackE)
