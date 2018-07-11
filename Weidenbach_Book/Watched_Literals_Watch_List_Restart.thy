@@ -2,11 +2,6 @@ theory Watched_Literals_Watch_List_Restart
   imports Watched_Literals_List_Restart Watched_Literals_Watch_List
 begin
 
-(* TODO Move *)
-lemma (in -) dom_mI: \<open>fmlookup m x = Some y \<Longrightarrow> x \<in># dom_m m\<close>
-  by (drule fmdomI)  (auto simp: dom_m_def fmember.rep_eq)
-(* End Move *)
-
 definition remove_all_annot_true_clause_imp_wl_inv where
   \<open>remove_all_annot_true_clause_imp_wl_inv S xs = (\<lambda>(i, T).
      correct_watching S \<and> correct_watching T \<and>
@@ -625,29 +620,17 @@ definition (in -) restart_abs_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool \
     (\<exists>S'. (S, S') \<in> state_wl_l None \<and> restart_abs_l_pre S' brk
       \<and> correct_watching S)\<close>
 
-definition (in -) get_learned_clss_wl where
-  \<open>get_learned_clss_wl S = learned_clss_lf (get_clauses_wl S)\<close>
-
-(* TODO move + remove simp flag *)
-lemma [twl_st_l, simp]:
-  \<open>(a, a') \<in> state_wl_l None \<Longrightarrow>
-        get_learned_clss_l a' = get_learned_clss_wl a\<close>
-  unfolding state_wl_l_def by (cases a; cases a')
-   (auto simp: get_learned_clss_l_def get_learned_clss_wl_def)
-(* End Move *)
-
-
-definition empty_WL :: \<open>('v literal \<Rightarrow> watched) \<Rightarrow> ('v literal \<Rightarrow> watched)\<close>  where
+definition empty_WL :: \<open>('v literal \<Rightarrow> 'v watched) \<Rightarrow> ('v literal \<Rightarrow> 'v watched)\<close>  where
   \<open>empty_WL W = (\<lambda>_. [])\<close>
 
 definition rewatch_clause
-  :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> ('v literal \<Rightarrow> watched) \<Rightarrow> ('v literal \<Rightarrow> watched) nres\<close>
+  :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> ('v literal \<Rightarrow> 'v watched) \<Rightarrow> ('v literal \<Rightarrow> 'v watched) nres\<close>
 where
   \<open>rewatch_clause N C W = do {
     ASSERT(length (N \<propto> C) > 1);
     let L = N \<propto> C ! 0;
     let L' = N \<propto> C ! 1;
-    RETURN (W(L := W L @ [C], L' := W L' @ [C]))
+    RETURN (W(L := W L @ [(C, L')], L' := W L' @ [(C, L)]))
   }\<close>
 
 fun correct_watching_on :: \<open>nat set \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where

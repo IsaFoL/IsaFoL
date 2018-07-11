@@ -622,10 +622,6 @@ proof -
 qed
 
 
-definition (in -) get_learned_clss_l where
-  \<open>get_learned_clss_l S = learned_clss_lf (get_clauses_l S)\<close>
-
-
 definition (in -) restart_abs_l_pre :: \<open>'v twl_st_l \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_l_pre S brk \<longleftrightarrow>
     (\<exists>S'. (S, S') \<in> twl_st_l None \<and> restart_prog_pre S' brk
@@ -2248,21 +2244,6 @@ definition mark_to_delete_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_s
     RETURN (M, N, D, NE, UE, WS, Q)
   })\<close>
 
-(* TODO Move *)
-lemma (in -) distinct_count_msetD:
-  \<open>distinct xs \<Longrightarrow> count (mset xs) a = (if a \<in> set xs then 1 else 0)\<close>
-  unfolding distinct_count_atmost_1 by auto
-
-lemma (in -) filter_mset_and_implied:
-  \<open>(\<And>ia. ia \<in># xs \<Longrightarrow> Q ia \<Longrightarrow> P ia) \<Longrightarrow> {#ia \<in># xs. P ia \<and> Q ia#} = {#ia \<in># xs. Q ia#}\<close>
-  by (rule filter_mset_cong2) auto
-
-lemma filter_mset_eq_add_msetD: \<open>filter_mset P xs = add_mset a A \<Longrightarrow> a \<in># xs \<and> P a\<close>
-  by (induction xs arbitrary: A)
-    (auto split: if_splits simp: add_mset_eq_add_mset)
-lemma filter_mset_eq_add_msetD': \<open>add_mset a A  = filter_mset P xs \<Longrightarrow> a \<in># xs \<and> P a\<close>
-  using filter_mset_eq_add_msetD[of P xs a A] by auto
-(* End Move *)
 
 definition mark_to_delete_clauses_l_post where
   \<open>mark_to_delete_clauses_l_post S T \<longleftrightarrow>

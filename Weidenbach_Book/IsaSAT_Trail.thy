@@ -466,12 +466,42 @@ definition trail_pol :: \<open>(trail_pol \<times> (nat, nat) ann_lits) set\<clo
 
 end
 
+context isasat_input_bounded
+begin
+
+lemma trail_pol_alt_def:
+  \<open>trail_pol = {((M', xs, lvls, reasons, k, cs), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<and>
+    no_dup M \<and>
+    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length xs \<and> xs ! (nat_of_lit L) = polarity M L) \<and>
+    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < length lvls \<and> lvls ! (atm_of L) = get_level M L) \<and>
+    k = count_decided M \<and>
+    (\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<and>
+    control_stack cs M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+   length M < uint32_max \<and>
+   length M \<le> uint32_max div 2 + 1 \<and>
+   count_decided M < uint32_max \<and>
+   length M' = length M \<and>
+   M' = map lit_of (rev M)
+   }\<close>
+proof -
+  have [intro!]: \<open>length M < n \<Longrightarrow> count_decided M < n\<close> for M n
+    using length_filter_le[of is_decided M]
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def uint_max_def count_decided_def
+        simp del: length_filter_le
+        dest: length_trail_uint_max_div2)
+  show ?thesis
+    unfolding trail_pol_def
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def uint_max_def ann_lits_split_reasons_def
+        dest: length_trail_uint_max_div2)
+qed
+
+end
+
 abbreviation trail_pol_assn :: \<open>trail_pol \<Rightarrow> trail_pol_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_assn \<equiv>
       arl_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
       array_assn uint32_nat_assn *a
       array_assn (option_assn nat_assn) *a uint32_nat_assn *a arl_assn uint32_nat_assn\<close>
-
 
 abbreviation trail_pol_fast_assn :: \<open>trail_pol \<Rightarrow> trail_pol_fast_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_fast_assn \<equiv>

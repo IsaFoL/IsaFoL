@@ -57,6 +57,9 @@ lemma get_unit_clauses_wl_alt_def:
 fun get_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v literal \<Rightarrow> 'v watched)\<close> where
   \<open>get_watched_wl (_, _, _, _, _, _, W) = W\<close>
 
+definition get_learned_clss_wl where
+  \<open>get_learned_clss_wl S = learned_clss_lf (get_clauses_wl S)\<close>
+
 definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset\<close> where
 \<open>all_lits_of_mm Ls = Pos `# (atm_of `# (\<Union># Ls)) + Neg `# (atm_of `# (\<Union># Ls))\<close>
 
@@ -257,6 +260,12 @@ lemma [twl_st_wl]:
     \<open>get_unit_clauses_l T = get_unit_clauses_wl S\<close>
   using assms unfolding state_wl_l_def all_clss_lf_ran_m[symmetric]
   by (cases S; cases T; cases L; auto split: option.splits simp: trail.simps; fail)+
+
+lemma [twl_st_l]:
+  \<open>(a, a') \<in> state_wl_l None \<Longrightarrow>
+        get_learned_clss_l a' = get_learned_clss_wl a\<close>
+  unfolding state_wl_l_def by (cases a; cases a')
+   (auto simp: get_learned_clss_l_def get_learned_clss_wl_def)
 
 lemma remove_one_lit_from_wq_def:
   \<open>remove_one_lit_from_wq L S = set_clauses_to_update_l (clauses_to_update_l S - {#L#}) S\<close>

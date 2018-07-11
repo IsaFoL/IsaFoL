@@ -426,6 +426,9 @@ abbreviation learned_clss_l :: \<open>'v clauses_l \<Rightarrow> ('v clause_l \<
 abbreviation learned_clss_lf :: \<open>'v clauses_l \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>learned_clss_lf N \<equiv> fst `# learned_clss_l N\<close>
 
+definition get_learned_clss_l where
+  \<open>get_learned_clss_l S = learned_clss_lf (get_clauses_l S)\<close>
+
 abbreviation init_clss_l :: \<open>'v clauses_l \<Rightarrow> ('v clause_l \<times> bool) multiset\<close> where
   \<open>init_clss_l N \<equiv> {#C \<in># ran_m N. snd C#}\<close>
 
@@ -688,7 +691,6 @@ lemma clauses_to_update_l_set_clauses_to_update_l[twl_st_l]:
   \<open>clauses_to_update_l (set_clauses_to_update_l WS S) = WS\<close>
   by (cases S) auto
 
-
 lemma hd_get_trail_twl_st_of_get_trail_l:
   \<open>(S, T) \<in> twl_st_l L \<Longrightarrow> get_trail_l S \<noteq> [] \<Longrightarrow>
     lit_of (hd (get_trail T)) = lit_of (hd (get_trail_l S))\<close>
@@ -845,18 +847,6 @@ lemma refine_add_invariants:
     \<open>y \<le> \<Down> {(S, S'). P S S'} (f S)\<close>
   shows \<open>y \<le> \<Down> {(S, S'). P S S' \<and> Q S'} (f S)\<close>
   using assms unfolding pw_le_iff pw_conc_inres pw_conc_nofail by force
-
-context conflict_driven_clause_learning\<^sub>W
-begin
-(* TODO Move + use instead of distinct_cdcl\<^sub>W_state_def *)
-lemma distinct_cdcl\<^sub>W_state_alt_def:
-  \<open>distinct_cdcl\<^sub>W_state S =
-    ((\<forall>T. conflicting S = Some T \<longrightarrow> distinct_mset T) \<and>
-     distinct_mset_mset (clauses S) \<and>
-     (\<forall>L mark. Propagated L mark \<in> set (trail S) \<longrightarrow> distinct_mset mark))\<close>
-  unfolding distinct_cdcl\<^sub>W_state_def clauses_def
-  by auto
-end
 
 lemma clauses_tuple[simp]:
   \<open>cdcl\<^sub>W_restart_mset.clauses (M, {#f x . x \<in># init_clss_l N#} + NE,
