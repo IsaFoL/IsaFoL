@@ -568,6 +568,20 @@ lemma fref_to_Down_curry5:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
+lemma fref_to_Down_curry6:
+  \<open>(uncurry6 f, uncurry6 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z' a a' b b' c c' d d'. P ((((((x', y'), z'), a'), b'), c'), d') \<Longrightarrow>
+        (((((((x, y), z), a), b), c), d), ((((((x', y'), z'), a'), b'), c'), d')) \<in> A \<Longrightarrow>
+         f x y z a b c d \<le> \<Down> B (g x' y' z' a' b' c' d'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def by auto
+
+lemma fref_to_Down_curry7:
+  \<open>(uncurry7 f, uncurry7 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z' a a' b b' c c' d d' e e'. P (((((((x', y'), z'), a'), b'), c'), d'), e') \<Longrightarrow>
+        ((((((((x, y), z), a), b), c), d), e), (((((((x', y'), z'), a'), b'), c'), d'), e')) \<in> A \<Longrightarrow>
+         f x y z a b c d e \<le> \<Down> B (g x' y' z' a' b' c' d' e'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def by auto
+
 lemma fref_to_Down_explode:
   \<open>(f a, g a) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' b. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> b = a \<Longrightarrow> f a x \<le> \<Down> B (g b x'))\<close>

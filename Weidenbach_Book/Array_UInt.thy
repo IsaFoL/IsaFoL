@@ -769,6 +769,9 @@ lemma last_aa_u_code[code]:
   unfolding last_aa_u_def last_aa_def nth_nat_of_uint32_nth' nth_nat_of_uint32_nth'
     arl_get_u_def[symmetric] nth_u_code_def[symmetric] ..
 
+lemma length_delete_index_and_swap_ll[simp]:
+  \<open>length (delete_index_and_swap_ll s i j) = length s\<close>
+  by (auto simp: delete_index_and_swap_ll_def)
 
 definition set_butlast_aa_u where
   \<open>set_butlast_aa_u xs i = set_butlast_aa xs (nat_of_uint32 i)\<close>

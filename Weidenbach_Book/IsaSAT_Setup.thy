@@ -531,6 +531,10 @@ definition polarity_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightar
 definition (in -) get_conflict_wl_is_None_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>get_conflict_wl_is_None_heur = (\<lambda>(M, N, D, Q, W, _). is_None D)\<close>
 
+lemma (in -)get_conflict_wl_is_None_heur_alt_def:
+   \<open>get_conflict_wl_is_None_heur S = (get_conflict_wl_heur S = None)\<close>
+  by (auto simp: get_conflict_wl_is_None_heur_def split: option.splits)
+
 lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
     \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
