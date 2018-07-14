@@ -302,6 +302,20 @@ lemma lit_of_hd_convert_lits_l[simp]:
     \<open>lit_of (hd M') = lit_of (hd M)\<close>
   by (cases M; cases M') (use assms in auto)
 
+lemma lit_of_l_convert_lits_l[simp]:
+  assumes \<open>(M, M') \<in> convert_lits_l N E\<close>
+  shows
+      \<open>lit_of ` set M' = lit_of ` set M\<close>
+  using assms
+  apply (induction M arbitrary: M' rule: ann_lit_list_induct)
+  subgoal by auto
+  subgoal for L M M'
+    by (cases M')
+      (auto simp: convert_lits_l_def p2rel_def)
+  subgoal for L C M M'
+    by (cases M') (auto simp: convert_lits_l_def p2rel_def)
+  done
+
 text \<open>The order of the assumption is important for simpler use.\<close>
 lemma convert_lits_l_extend_mono:
   assumes \<open>(a,b) \<in> convert_lits_l N E\<close>
@@ -426,6 +440,9 @@ abbreviation learned_clss_l :: \<open>'v clauses_l \<Rightarrow> ('v clause_l \<
 abbreviation learned_clss_lf :: \<open>'v clauses_l \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>learned_clss_lf N \<equiv> fst `# learned_clss_l N\<close>
 
+definition get_learned_clss_l where
+  \<open>get_learned_clss_l S = learned_clss_lf (get_clauses_l S)\<close>
+
 abbreviation init_clss_l :: \<open>'v clauses_l \<Rightarrow> ('v clause_l \<times> bool) multiset\<close> where
   \<open>init_clss_l N \<equiv> {#C \<in># ran_m N. snd C#}\<close>
 
@@ -500,6 +517,11 @@ lemma ran_m_mapsto_upd_notin:
   using NC
   by (auto simp: ran_m_def mset_set.insert_remove image_mset_remove1_mset_if
       intro!: image_mset_cong split: if_splits)
+
+lemma learned_clss_l_update[simp]:
+  \<open>bh \<in># dom_m ax \<Longrightarrow> size (learned_clss_l (ax(bh \<hookrightarrow> C))) = size (learned_clss_l ax)\<close>
+  by (auto simp: ran_m_clause_upd size_Diff_singleton_if dest!: multi_member_split)
+     (auto simp: ran_m_def)
 
 lemma Ball_ran_m_dom:
   \<open>(\<forall>x\<in>#ran_m N. P (fst x)) \<longleftrightarrow> (\<forall>x\<in>#dom_m N. P (N \<propto> x))\<close>
@@ -670,6 +692,13 @@ lemma [twl_st_l]:
 lemma [twl_st_l]:
   \<open>get_unit_learned_clauses_l (remove_one_lit_from_wq L S) = get_unit_learned_clauses_l S\<close>
   by (cases S) auto
+lemma literals_to_update_l_remove_one_lit_from_wq[simp]:
+  \<open>literals_to_update_l (remove_one_lit_from_wq L T) = literals_to_update_l T\<close>
+  by (cases T) auto
+
+lemma clauses_to_update_l_remove_one_lit_from_wq[simp]:
+  \<open>clauses_to_update_l (remove_one_lit_from_wq L T) = remove1_mset L (clauses_to_update_l T)\<close>
+  by (cases T) auto
 
 declare twl_st_l[simp]
 
@@ -687,7 +716,6 @@ lemma clauses_state_to_l[twl_st_l]: \<open>(S, S') \<in> twl_st_l L \<Longrighta
 lemma clauses_to_update_l_set_clauses_to_update_l[twl_st_l]:
   \<open>clauses_to_update_l (set_clauses_to_update_l WS S) = WS\<close>
   by (cases S) auto
-
 
 lemma hd_get_trail_twl_st_of_get_trail_l:
   \<open>(S, T) \<in> twl_st_l L \<Longrightarrow> get_trail_l S \<noteq> [] \<Longrightarrow>
@@ -845,18 +873,6 @@ lemma refine_add_invariants:
     \<open>y \<le> \<Down> {(S, S'). P S S'} (f S)\<close>
   shows \<open>y \<le> \<Down> {(S, S'). P S S' \<and> Q S'} (f S)\<close>
   using assms unfolding pw_le_iff pw_conc_inres pw_conc_nofail by force
-
-context conflict_driven_clause_learning\<^sub>W
-begin
-(* TODO Move + use instead of distinct_cdcl\<^sub>W_state_def *)
-lemma distinct_cdcl\<^sub>W_state_alt_def:
-  \<open>distinct_cdcl\<^sub>W_state S =
-    ((\<forall>T. conflicting S = Some T \<longrightarrow> distinct_mset T) \<and>
-     distinct_mset_mset (clauses S) \<and>
-     (\<forall>L mark. Propagated L mark \<in> set (trail S) \<longrightarrow> distinct_mset mark))\<close>
-  unfolding distinct_cdcl\<^sub>W_state_def clauses_def
-  by auto
-end
 
 lemma clauses_tuple[simp]:
   \<open>cdcl\<^sub>W_restart_mset.clauses (M, {#f x . x \<in># init_clss_l N#} + NE,

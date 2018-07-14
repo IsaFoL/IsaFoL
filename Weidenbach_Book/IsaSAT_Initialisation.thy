@@ -836,6 +836,10 @@ definition get_conflict_wl_is_None_init :: \<open>nat twl_st_wl_init \<Rightarro
 definition (in -) get_conflict_wl_is_None_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
   \<open>get_conflict_wl_is_None_heur_init = (\<lambda>(M, N, D, Q, W, _). is_None D)\<close>
 
+lemma (in -) get_conflict_wl_is_None_heur_init_alt_def:
+  \<open>get_conflict_wl_is_None_heur_init S \<longleftrightarrow> get_conflict_wl_heur_init S = None\<close>
+  by (auto simp: get_conflict_wl_is_None_heur_init_def split: option.splits)
+
 lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_init:
     \<open>(RETURN o get_conflict_wl_is_None_heur_init,  RETURN o get_conflict_wl_is_None_init ) \<in>
     twl_st_heur_init \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
@@ -896,6 +900,10 @@ lemma get_conflict_wl_is_None_fast_code_get_conflict_wl_is_None_no_lvls[sepref_f
 definition polarity_st_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _ \<Rightarrow> bool option\<close> where
   \<open>polarity_st_heur_init = (\<lambda>(M, _) L. polarity M L)\<close>
 
+lemma polarity_st_heur_init_alt_def:
+  \<open>polarity_st_heur_init S L = polarity (get_trail_wl_heur_init S) L\<close>
+  by (cases S) (auto simp: polarity_st_heur_init_def)
+
 sepref_thm polarity_st_heur_init_code
   is \<open>uncurry (RETURN oo polarity_st_heur_init)\<close>
   :: \<open>[\<lambda>(S, L). L \<in> snd ` D\<^sub>0]\<^sub>a isasat_init_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
@@ -938,17 +946,6 @@ lemma get_conflict_wl_is_None_init:
 lemma is_Nil_hnr[sepref_fr_rules]:
  \<open>(return o is_Nil, RETURN o is_Nil) \<in> (list_assn R)\<^sup>k\<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare (sep_auto split: list.splits)
-
-(* TODO Move *)
-lemma get_conflict_wl_is_None_heur_init_alt_def:
-  \<open>get_conflict_wl_is_None_heur_init S \<longleftrightarrow> get_conflict_wl_heur_init S = None\<close>
-  by (auto simp: get_conflict_wl_is_None_heur_init_def split: option.splits)
-
-lemma polarity_st_heur_init_alt_def:
-  \<open>polarity_st_heur_init S L = polarity (get_trail_wl_heur_init S) L\<close>
-  by (cases S) (auto simp: polarity_st_heur_init_def)
-
-(* End Move *)
 
 sepref_register (in isasat_input_ops) init_dt_step_wl
   get_conflict_wl_is_None_heur_init already_propagated_unit_cls_heur

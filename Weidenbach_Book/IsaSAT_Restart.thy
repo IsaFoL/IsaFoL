@@ -434,32 +434,6 @@ lemma find_local_restart_target_level_alt_def:
     }\<close>
   unfolding find_local_restart_target_level_def by (auto simp: RES_RETURN_RES2 uncurry_def)
 
-(* TODO Move and use! *)
-lemma trail_pol_alt_def:
-  \<open>trail_pol = {((M', xs, lvls, reasons, k, cs), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<and>
-    no_dup M \<and>
-    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length xs \<and> xs ! (nat_of_lit L) = polarity M L) \<and>
-    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < length lvls \<and> lvls ! (atm_of L) = get_level M L) \<and>
-    k = count_decided M \<and>
-    (\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<and>
-    control_stack cs M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-   length M < uint32_max \<and>
-   length M \<le> uint32_max div 2 + 1 \<and>
-   count_decided M < uint32_max \<and>
-   length M' = length M \<and>
-   M' = map lit_of (rev M)
-   }\<close>
-proof -
-  have [intro!]: \<open>length M < n \<Longrightarrow> count_decided M < n\<close> for M n
-    using length_filter_le[of is_decided M]
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def uint_max_def count_decided_def
-        simp del: length_filter_le
-        dest: length_trail_uint_max_div2)
-  show ?thesis
-    unfolding trail_pol_def
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def uint_max_def ann_lits_split_reasons_def
-        dest: length_trail_uint_max_div2)
-qed
 
 lemma find_local_restart_target_level_int_find_local_restart_target_level:
    \<open>(uncurry find_local_restart_target_level_int, uncurry find_local_restart_target_level) \<in>
@@ -714,12 +688,6 @@ proof -
     using assms unfolding find_decomp_w_ns_pre_def prod.case
     by blast
 qed
-
-(* TODO Move *)
-lemma no_dup_appendD1:
-  \<open>no_dup (a @ b) \<Longrightarrow> no_dup a\<close>
-  by (auto simp: no_dup_def)
-(* End Move *)
 
 lemma cdcl_twl_local_restart_wl_D_spec_int:
   \<open>cdcl_twl_local_restart_wl_D_spec (M, N, D, NE, UE, Q, W) \<ge> ( do {

@@ -1055,6 +1055,10 @@ lemma no_dup_appendD:
   \<open>no_dup (a @ b) \<Longrightarrow> no_dup b\<close>
   by (auto simp: no_dup_def)
 
+lemma no_dup_appendD1:
+  \<open>no_dup (a @ b) \<Longrightarrow> no_dup a\<close>
+  by (auto simp: no_dup_def)
+
 lemma no_dup_length_eq_card_atm_of_lits_of_l:
   assumes \<open>no_dup M\<close>
   shows \<open>length M = card (atm_of ` lits_of_l M)\<close>

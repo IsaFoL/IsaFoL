@@ -6,7 +6,7 @@
 section \<open>An Executable Algorithm for Clause Subsumption\<close>
 
 theory Executable_Subsumption
-  imports IsaFoR_Term TRS.Matching TRS.Term_More
+  imports IsaFoR_Term First_Order_Terms.Matching
 begin
 
 fun subsumes_list where
@@ -290,7 +290,7 @@ qed simp
 
 subsection \<open>Definition of deterministic QuickSort\<close>
 
-(*stolen from Manuel Eberls Quick_Sort_Cost AFP entry,
+(*stolen from Manuel Eberl's Quick_Sort_Cost AFP entry,
    but without invoking probability theory and using a predicate instead of a set*)
 
 text \<open>

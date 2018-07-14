@@ -11,8 +11,8 @@ val gn_of_int = SAT_Solver.uint32_of_nat o SAT_Solver.nat_of_integer o IntInf.fr
 exception LitTooLarge of Int.int
 
 fun lit_of_nat n =
-  if Word.toLargeInt n mod 2 = 0 then Word.toLargeInt n div 2
-  else ~(Word.toLargeInt n div 2)
+  if Word.toLargeInt n mod 2 = 0 then 1+(Word.toLargeInt n div 2)
+  else ~(1+((Word.toLargeInt n) div 2))
 
 fun print_model (xs, i) =
     let
@@ -22,7 +22,7 @@ fun print_model (xs, i) =
             ((print o (fn n => IntInf.toString n ^ " ") o lit_of_nat)
                 (Array.sub (xs, j));
                  map_from (j+1))
-    in map_from 0 end
+    in (print "v "; map_from 0; print "\n") end
 
 fun nat_of_lit n =
   let val m = if n < 0 then (2*(~n-1)+1) else (2*(n-1))
@@ -86,7 +86,7 @@ fun checker print_modelb print_stats cnf_name = let
   val _ =
         (case SAT of
              NONE => print "s UNSATISFIABLE\n"
-           | SOME SAT => if print_modelb then ignore (print_model SAT) else print "s SATISFIABLE\n")
+           | SOME SAT => (if print_modelb then ignore (print_model SAT) else (); print "s SATISFIABLE\n"))
   in
     ()
   end

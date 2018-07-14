@@ -349,20 +349,6 @@ where
      RETURN (j, w+1, (M, N', D, Q, W, vm))
   })\<close>
 
-(* TODO Move *)
-lemma (in -) learned_clss_l_update[simp]:
-  \<open>bh \<in># dom_m ax \<Longrightarrow> size (learned_clss_l (ax(bh \<hookrightarrow> C))) = size (learned_clss_l ax)\<close>
-  by (auto simp: ran_m_clause_upd size_Diff_singleton_if dest!: multi_member_split)
-     (auto simp: ran_m_def)
-
-lemma fref_to_Down_curry6:
-  \<open>(uncurry6 f, uncurry6 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x' y y' z z' a a' b b' c c' d d'. P ((((((x', y'), z'), a'), b'), c'), d') \<Longrightarrow>
-        (((((((x, y), z), a), b), c), d), ((((((x', y'), z'), a'), b'), c'), d')) \<in> A \<Longrightarrow>
-         f x y z a b c d \<le> \<Down> B (g x' y' z' a' b' c' d'))\<close>
-  unfolding fref_def uncurry_def nres_rel_def by auto
-(* TODO Move *)
-
 definition (in isasat_input_ops) update_clause_wl_pre where
   \<open>update_clause_wl_pre = (\<lambda>((((((L, C), j), w), i), f), S). C \<in># dom_m(get_clauses_wl S) \<and>
      L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
@@ -376,11 +362,6 @@ lemma update_clause_wl_heur_update_clause_wl:
    (auto simp: update_clause_wl_heur_def update_clause_wl_def twl_st_heur_def Let_def
       map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def)
 
-text \<open>TODO MOVE\<close>
-lemma (in -)length_delete_index_and_swap_ll[simp]:
-  \<open>length (delete_index_and_swap_ll s i j) = length s\<close>
-  by (auto simp: delete_index_and_swap_ll_def)
-text \<open>END MOVE\<close>
 
 definition (in -) access_lit_in_clauses where
   \<open>access_lit_in_clauses S i j = (get_clauses_wl S) \<propto> i ! j\<close>
@@ -419,30 +400,6 @@ lemma clause_not_marked_to_delete_rel:
   by (intro frefI nres_relI)
     (auto simp: clause_not_marked_to_delete_def twl_st_heur_def clause_not_marked_to_delete_heur_def
       clause_not_marked_to_delete_pre_def)
-
-(* TODO Move *)
-lemma literals_to_update_l_remove_one_lit_from_wq[simp]:
-  \<open>literals_to_update_l (remove_one_lit_from_wq L T) = literals_to_update_l T\<close>
-  by (cases T) auto
-
-lemma clauses_to_update_l_remove_one_lit_from_wq[simp]:
-  \<open>clauses_to_update_l (remove_one_lit_from_wq L T) = remove1_mset L (clauses_to_update_l T)\<close>
-  by (cases T) auto
-
-lemma lit_of_l_convert_lits_l[simp]:
-  assumes \<open>(M, M') \<in> convert_lits_l N E\<close>
-  shows
-      \<open>lit_of ` set M' = lit_of ` set M\<close>
-  using assms
-  apply (induction M arbitrary: M' rule: ann_lit_list_induct)
-  subgoal by auto
-  subgoal for L M M'
-    by (cases M')
-      (auto simp: convert_lits_l_def p2rel_def)
-  subgoal for L C M M'
-    by (cases M') (auto simp: convert_lits_l_def p2rel_def)
-  done
-(* End Move *)
 
 lemma
   find_unwatched_not_tauto:
@@ -2565,14 +2522,6 @@ where
       })
       (0, 0, S\<^sub>0)
   }\<close>
-
-(* TODO Move *)
-lemma get_conflict_wl_is_None_heur_alt_def:
-   \<open>get_conflict_wl_is_None_heur S = (get_conflict_wl_heur S = None)\<close>
-  by (auto simp: get_conflict_wl_is_None_heur_def split: option.splits)
-(* End Move *)
-
-thm unit_propagation_inner_loop_wl_loop_D_def
 
 
 lemma unit_propagation_inner_loop_wl_loop_D_heur_unit_propagation_inner_loop_wl_loop_D:

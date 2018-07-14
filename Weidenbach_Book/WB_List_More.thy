@@ -995,6 +995,21 @@ lemma distinct_mset_set_mset_remove1_mset:
   \<open>distinct_mset M \<Longrightarrow> set_mset (remove1_mset c M) = set_mset M - {c}\<close>
   by (cases \<open>c \<in># M\<close>) (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
 
+lemma (in -) distinct_count_msetD:
+  \<open>distinct xs \<Longrightarrow> count (mset xs) a = (if a \<in> set xs then 1 else 0)\<close>
+  unfolding distinct_count_atmost_1 by auto
+
+lemma filter_mset_and_implied:
+  \<open>(\<And>ia. ia \<in># xs \<Longrightarrow> Q ia \<Longrightarrow> P ia) \<Longrightarrow> {#ia \<in># xs. P ia \<and> Q ia#} = {#ia \<in># xs. Q ia#}\<close>
+  by (rule filter_mset_cong2) auto
+
+lemma filter_mset_eq_add_msetD: \<open>filter_mset P xs = add_mset a A \<Longrightarrow> a \<in># xs \<and> P a\<close>
+  by (induction xs arbitrary: A)
+    (auto split: if_splits simp: add_mset_eq_add_mset)
+
+lemma filter_mset_eq_add_msetD': \<open>add_mset a A  = filter_mset P xs \<Longrightarrow> a \<in># xs \<and> P a\<close>
+  using filter_mset_eq_add_msetD[of P xs a A] by auto
+
 
 subsection \<open>Sorting\<close>
 
@@ -1519,5 +1534,8 @@ lemma dom_m_fmresctrict_set': \<open>dom_m (fmrestrict_set xs N) = mset_set (xs 
   using fset_fmdom_fmrestrict_set[of \<open>xs\<close> N] distinct_mset_dom[of N]
   by (auto simp: dom_m_def fset_mset_mset_fset finite_mset_set_inter multiset_inter_commute
     remdups_mset_def)
+
+lemma ndom_mI: \<open>fmlookup m x = Some y \<Longrightarrow> x \<in># dom_m m\<close>
+  by (drule fmdomI)  (auto simp: dom_m_def fmember.rep_eq)
 
 end

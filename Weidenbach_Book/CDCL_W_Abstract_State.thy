@@ -206,6 +206,19 @@ interpretation cdcl\<^sub>W_restart_mset: cdcl\<^sub>W_restart_restart where
 
 end
 
+context conflict_driven_clause_learning\<^sub>W
+begin
+
+lemma distinct_cdcl\<^sub>W_state_alt_def:
+  \<open>distinct_cdcl\<^sub>W_state S =
+    ((\<forall>T. conflicting S = Some T \<longrightarrow> distinct_mset T) \<and>
+     distinct_mset_mset (clauses S) \<and>
+     (\<forall>L mark. Propagated L mark \<in> set (trail S) \<longrightarrow> distinct_mset mark))\<close>
+  unfolding distinct_cdcl\<^sub>W_state_def clauses_def
+  by auto
+end
+
+
 lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step:
   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state {#}) S \<longleftrightarrow> False\<close>
   unfolding rtranclp_unfold
