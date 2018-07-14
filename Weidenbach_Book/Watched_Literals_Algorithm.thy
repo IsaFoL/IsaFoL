@@ -96,199 +96,175 @@ proof -
     S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
     by (cases S) auto
 
-    have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close>
-      using inv  multi_member_split[OF x_WS] 
-      unfolding twl_struct_invs_def twl_st_inv.simps S
-      by force+
-    show ?fail
-      unfolding unit_propagation_inner_loop_body_def Let_def S
-      by (cases C) (use struct L_C in \<open>auto simp: refine_pw_simps S size_2_iff update_clauseS_def\<close>)
-    note [[goals_limit=15]]
-    show ?spec
-      using assms unfolding unit_propagation_inner_loop_body_def update_clause.simps
-    proof (refine_vcg; (unfold prod.inject clauses_to_update.simps set_clauses_to_update.simps
-          ball_simps)?;  clarify?; (unfold triv_forall_equality)?)
-      fix L' :: \<open>'v literal\<close>
+  have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close>
+    using inv  multi_member_split[OF x_WS] 
+    unfolding twl_struct_invs_def twl_st_inv.simps S
+    by force+
+  show ?fail
+    unfolding unit_propagation_inner_loop_body_def Let_def S
+    by (cases C) (use struct L_C in \<open>auto simp: refine_pw_simps S size_2_iff update_clauseS_def\<close>)
+  note [[goals_limit=15]]
+  show ?spec
+    using assms unfolding unit_propagation_inner_loop_body_def update_clause.simps
+  proof (refine_vcg; (unfold prod.inject clauses_to_update.simps set_clauses_to_update.simps
+        ball_simps)?;  clarify?; (unfold triv_forall_equality)?)
+    fix L' :: \<open>'v literal\<close>
+    assume
+      \<open>clauses_to_update S \<noteq> {#}\<close> and
+      WS: \<open>(L, C) \<in># clauses_to_update S\<close> and
+      twl_inv: \<open>twl_struct_invs S\<close>
+    have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close> 
+      using twl_inv WS unfolding twl_struct_invs_def twl_st_inv.simps S by (auto; fail)+
+  
+    define WS' where \<open>WS' = WS - {#(L, C)#}\<close>
+    have WS_WS': \<open>WS = add_mset (L, C) WS'\<close>
+      using WS unfolding WS'_def S by auto
+
+    have D: \<open>D = None\<close>
+      using confl S by auto
+
+    let ?S' = \<open>(M, N, U, None, NE, UE, add_mset (L, C) WS', Q)\<close>
+    let ?T = \<open>(set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
+    let ?T' = \<open>(M, N, U, None, NE, UE, WS', Q)\<close>
+
+    { \<comment> \<open>blocking literal\<close>
+      fix K'
       assume
-        \<open>clauses_to_update S \<noteq> {#}\<close> and
-        WS: \<open>(L, C) \<in># clauses_to_update S\<close> and
-        twl_inv: \<open>twl_struct_invs S\<close>
-      have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close> 
-        using twl_inv WS unfolding twl_struct_invs_def twl_st_inv.simps S by (auto; fail)+
-   
-      define WS' where \<open>WS' = WS - {#(L, C)#}\<close>
-      have WS_WS': \<open>WS = add_mset (L, C) WS'\<close>
-        using WS unfolding WS'_def S by auto
+          K': \<open>K' \<in># clause C\<close> and
+          L': \<open>K' \<in> lits_of_l (get_trail ?T)\<close>
 
-      have D: \<open>D = None\<close>
-        using confl S by auto
+      have \<open>cdcl_twl_cp ?S' ?T'\<close>
+        by (rule cdcl_twl_cp.delete_from_working) (use L' K' S in simp_all)
 
-      let ?S' = \<open>(M, N, U, None, NE, UE, add_mset (L, C) WS', Q)\<close>
-      let ?T = \<open>(set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
-      let ?T' = \<open>(M, N, U, None, NE, UE, WS', Q)\<close>
+      then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
+        using L' D by (simp add: S WS_WS')
+      show \<open>twl_struct_invs ?T\<close>
+        using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
 
-      { \<comment> \<open>blocking literal\<close>
-        fix K'
-        assume
-           K': \<open>K' \<in># clause C\<close> and
-           L': \<open>K' \<in> lits_of_l (get_trail ?T)\<close>
+      show \<open>twl_stgy_invs ?T\<close>
+        using cdcl inv_s inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
 
-        have \<open>cdcl_twl_cp ?S' ?T'\<close>
-          by (rule cdcl_twl_cp.delete_from_working) (use L' K' S in simp_all)
+      show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
+        using D WS_WS' cdcl by auto
 
-        then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
-          using L' D by (simp add: S WS_WS')
-        show \<open>twl_struct_invs ?T\<close>
-          using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
+      show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
+        by (simp add: WS'_def[symmetric] WS_WS' S)
 
-        show \<open>twl_stgy_invs ?T\<close>
-          using cdcl inv_s inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
+    }
 
-        show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
-          using D WS_WS' cdcl by auto
+    assume L': \<open>L' \<in># remove1_mset L (watched C)\<close>
+    show watched: \<open>watched C = {#L, L'#}\<close>
+      by (cases C) (use struct L_C L' in \<open>auto simp: size_2_iff\<close>)
+    then have L_C': \<open>L \<in># clause C\<close> and L'_C': \<open>L' \<in># clause C\<close>
+      by (cases C; auto; fail)+
 
-        show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
-          by (simp add: WS'_def[symmetric] WS_WS' S)
+    { \<comment> \<open>if \<^term>\<open>L' \<in> lits_of_l M\<close>, then:\<close>
+      assume L': \<open>L' \<in> lits_of_l (get_trail ?T)\<close>
 
-      }
+      have \<open>cdcl_twl_cp ?S' ?T'\<close>
+        by (rule cdcl_twl_cp.delete_from_working) (use L' L'_C' watched S in simp_all)
 
-      assume L': \<open>L' \<in># remove1_mset L (watched C)\<close>
-      show watched: \<open>watched C = {#L, L'#}\<close>
-        by (cases C) (use struct L_C L' in \<open>auto simp: size_2_iff\<close>)
-      then have L_C': \<open>L \<in># clause C\<close> and L'_C': \<open>L' \<in># clause C\<close>
-        by (cases C; auto; fail)+
+      then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
+        using L' watched D by (simp add: S WS_WS')
+      show \<open>twl_struct_invs ?T\<close>
+        using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
 
-      { \<comment> \<open>if \<^term>\<open>L' \<in> lits_of_l M\<close>, then:\<close>
-        assume L': \<open>L' \<in> lits_of_l (get_trail ?T)\<close>
+      show \<open>twl_stgy_invs ?T\<close>
+        using cdcl inv_s inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
 
-        have \<open>cdcl_twl_cp ?S' ?T'\<close>
-          by (rule cdcl_twl_cp.delete_from_working) (use L' L'_C' watched S in simp_all)
+      show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
+        using D WS_WS' cdcl by auto
 
-        then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
-          using L' watched D by (simp add: S WS_WS')
-        show \<open>twl_struct_invs ?T\<close>
-          using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
+      show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
+        by (simp add: WS'_def[symmetric] WS_WS' S)
 
-        show \<open>twl_stgy_invs ?T\<close>
-          using cdcl inv_s inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
+    }
+      \<comment> \<open>if \<^term>\<open>L' \<in> lits_of_l M\<close>, else:\<close>
+    let ?M = \<open>get_trail ?T\<close>
+    assume L': \<open>L' \<notin> lits_of_l ?M\<close>
+    {
+      { \<comment> \<open>if \<^term>\<open>\<forall>L \<in># unwatched C. -L \<in> lits_of_l ?M\<close>, then\<close>
+        assume unwatched: \<open>\<forall>L\<in>#unwatched C. - L \<in> lits_of_l ?M\<close>
 
-        show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
-          using D WS_WS' cdcl by auto
+        { \<comment> \<open>if \<^term>\<open>-L' \<in> lits_of_l ?M\<close> then\<close>
+          let ?T' = \<open>(M, N, U, Some (clause C), NE, UE, {#}, {#})\<close>
+          let ?T = \<open>set_conflicting C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
+          assume uL': \<open>-L' \<in> lits_of_l ?M\<close>
+          have cdcl: \<open>cdcl_twl_cp ?S' ?T'\<close>
+            by (rule cdcl_twl_cp.conflict) (use uL' L' watched unwatched S in simp_all)
+          then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
+            using uL' L' watched unwatched by (simp add: set_conflicting_def WS_WS' S D)
 
-        show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
-          by (simp add: WS'_def[symmetric] WS_WS' S)
-
-      }
-        \<comment> \<open>if \<^term>\<open>L' \<in> lits_of_l M\<close>, else:\<close>
-      let ?M = \<open>get_trail ?T\<close>
-      assume L': \<open>L' \<notin> lits_of_l ?M\<close>
-      {
-        { \<comment> \<open>if \<^term>\<open>\<forall>L \<in># unwatched C. -L \<in> lits_of_l ?M\<close>, then\<close>
-          assume unwatched: \<open>\<forall>L\<in>#unwatched C. - L \<in> lits_of_l ?M\<close>
-
-          { \<comment> \<open>if \<^term>\<open>-L' \<in> lits_of_l ?M\<close> then\<close>
-            let ?T' = \<open>(M, N, U, Some (clause C), NE, UE, {#}, {#})\<close>
-            let ?T = \<open>set_conflicting C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
-            assume uL': \<open>-L' \<in> lits_of_l ?M\<close>
-            have cdcl: \<open>cdcl_twl_cp ?S' ?T'\<close>
-              by (rule cdcl_twl_cp.conflict) (use uL' L' watched unwatched S in simp_all)
-            then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
-              using uL' L' watched unwatched by (simp add: set_conflicting_def WS_WS' S D)
-
-            show \<open>twl_struct_invs ?T\<close>
-              using cdcl inv D unfolding WS_WS'
-              by (force intro: cdcl_twl_cp_twl_struct_invs)
-            show \<open>twl_stgy_invs ?T\<close>
-              using cdcl inv inv_s D unfolding WS_WS'
-              by (force intro: cdcl_twl_cp_twl_stgy_invs)
-            show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
-              using D WS_WS' cdcl S by auto
-            show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
-              by (simp add: S WS'_def[symmetric] WS_WS' set_conflicting_def)
-          }
-
-
-          { \<comment> \<open>if \<^term>\<open>-L' \<in> lits_of_l M \<close> else\<close>
-            let ?S = \<open>(M, N, U, D, NE, UE, WS, Q)\<close>
-            let ?T' = \<open>(Propagated L' (clause C) # M, N, U, None, NE, UE, WS', add_mset (- L') Q)\<close>
-            let ?S' = \<open>(M, N, U, None, NE, UE, add_mset (L, C) WS', Q)\<close>
-            let ?T = \<open>propagate_lit L' C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
-            assume uL': \<open>- L' \<notin> lits_of_l ?M\<close>
-
-            have undef: \<open>undefined_lit M L'\<close>
-              using uL' L' by (auto simp: S defined_lit_map lits_of_def atm_of_eq_atm_of)
-
-            have cdcl: \<open>cdcl_twl_cp ?S' ?T'\<close>
-              by (rule cdcl_twl_cp.propagate) (use uL' L' undef watched unwatched D S in simp_all)
-            then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
-              using uL' L' undef watched unwatched D S WS_WS' by (simp add: propagate_lit_def)
-
-            show \<open>twl_struct_invs ?T\<close>
-              using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
-
-            show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
-              using cdcl D WS_WS' by force
-            show \<open>twl_stgy_invs ?T\<close>
-              using cdcl inv inv_s D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
-            show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
-              by (simp add: WS'_def[symmetric] WS_WS' S propagate_lit_def)
-          }
+          show \<open>twl_struct_invs ?T\<close>
+            using cdcl inv D unfolding WS_WS'
+            by (force intro: cdcl_twl_cp_twl_struct_invs)
+          show \<open>twl_stgy_invs ?T\<close>
+            using cdcl inv inv_s D unfolding WS_WS'
+            by (force intro: cdcl_twl_cp_twl_stgy_invs)
+          show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
+            using D WS_WS' cdcl S by auto
+          show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
+            by (simp add: S WS'_def[symmetric] WS_WS' set_conflicting_def)
         }
 
-        fix La
-\<comment> \<open>if \<^term>\<open>\<forall>L \<in># unwatched C. -L \<in> lits_of_l M\<close>, else\<close>
-        {
+
+        { \<comment> \<open>if \<^term>\<open>-L' \<in> lits_of_l M \<close> else\<close>
           let ?S = \<open>(M, N, U, D, NE, UE, WS, Q)\<close>
+          let ?T' = \<open>(Propagated L' (clause C) # M, N, U, None, NE, UE, WS', add_mset (- L') Q)\<close>
           let ?S' = \<open>(M, N, U, None, NE, UE, add_mset (L, C) WS', Q)\<close>
-          let ?T = \<open>set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S\<close>
-          fix K M' N' U' D' WS'' NE' UE' Q' N'' U''
-          have \<open>update_clauseS L C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)
-               \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and>
-               (S', S) \<in> measure (size \<circ> clauses_to_update))\<close> (is ?upd)
-            apply (rewrite at \<open>set_clauses_to_update _ \<hole>\<close> S)
-            apply (rewrite at \<open>clauses_to_update \<hole>\<close> S)
-            unfolding update_clauseS_def clauses_to_update.simps set_clauses_to_update.simps
-            apply clarify
-          proof refine_vcg
-            fix x xa a b
-            assume K: \<open>x \<in># unwatched C \<and> - x \<notin> lits_of_l M\<close>
+          let ?T = \<open>propagate_lit L' C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
+          assume uL': \<open>- L' \<notin> lits_of_l ?M\<close>
+
+          have undef: \<open>undefined_lit M L'\<close>
+            using uL' L' by (auto simp: S defined_lit_map lits_of_def atm_of_eq_atm_of)
+
+          have cdcl: \<open>cdcl_twl_cp ?S' ?T'\<close>
+            by (rule cdcl_twl_cp.propagate) (use uL' L' undef watched unwatched D S in simp_all)
+          then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
+            using uL' L' undef watched unwatched D S WS_WS' by (simp add: propagate_lit_def)
+
+          show \<open>twl_struct_invs ?T\<close>
+            using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
+
+          show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
+            using cdcl D WS_WS' by force
+          show \<open>twl_stgy_invs ?T\<close>
+            using cdcl inv inv_s D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
+          show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
+            by (simp add: WS'_def[symmetric] WS_WS' S propagate_lit_def)
+        }
+      }
+
+      fix La
+\<comment> \<open>if \<^term>\<open>\<forall>L \<in># unwatched C. -L \<in> lits_of_l M\<close>, else\<close>
+      {
+        let ?S = \<open>(M, N, U, D, NE, UE, WS, Q)\<close>
+        let ?S' = \<open>(M, N, U, None, NE, UE, add_mset (L, C) WS', Q)\<close>
+        let ?T = \<open>set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S\<close>
+        fix K M' N' U' D' WS'' NE' UE' Q' N'' U''
+        have \<open>update_clauseS L C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)
+              \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and>
+              (S', S) \<in> measure (size \<circ> clauses_to_update))\<close> (is ?upd)
+          apply (rewrite at \<open>set_clauses_to_update _ \<hole>\<close> S)
+          apply (rewrite at \<open>clauses_to_update \<hole>\<close> S)
+          unfolding update_clauseS_def clauses_to_update.simps set_clauses_to_update.simps
+          apply clarify
+        proof refine_vcg
+          fix x xa a b
+          assume K: \<open>x \<in># unwatched C \<and> - x \<notin> lits_of_l M\<close>
+          have uL: \<open>- L \<in> lits_of_l M\<close>
+            using inv unfolding twl_struct_invs_def S WS_WS' by auto
+          { \<comment> \<open>BLIT\<close>
+            let ?T = \<open>(M, N, U, D, NE, UE, remove1_mset (L, C) WS, Q)\<close>
+            let ?T' = \<open>(M, N, U, None, NE, UE, WS', Q)\<close>
+
+            assume \<open>x \<in> lits_of_l M\<close>
             have uL: \<open>- L \<in> lits_of_l M\<close>
               using inv unfolding twl_struct_invs_def S WS_WS' by auto
-            { \<comment> \<open>BLIT\<close>
-              let ?T = \<open>(M, N, U, D, NE, UE, remove1_mset (L, C) WS, Q)\<close>
-              let ?T' = \<open>(M, N, U, None, NE, UE, WS', Q)\<close>
-
-              assume \<open>x \<in> lits_of_l M\<close>
-              have uL: \<open>- L \<in> lits_of_l M\<close>
-                using inv unfolding twl_struct_invs_def S WS_WS' by auto
-              have \<open>L \<in># clause C\<close> \<open>x \<in># clause C\<close>
-                using watched K by (cases C; simp; fail)+
-              have \<open>cdcl_twl_cp ?S' ?T'\<close>
-                by (rule cdcl_twl_cp.delete_from_working[OF \<open>x \<in># clause C\<close> \<open>x \<in> lits_of_l M\<close>])
-              then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
-                by (auto simp: S D WS_WS')
-
-              show \<open>twl_struct_invs ?T\<close>
-                using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
-
-              have uL: \<open>- L \<in> lits_of_l M\<close>
-                using inv unfolding twl_struct_invs_def S WS_WS' by auto
-
-              show \<open>twl_stgy_invs ?T\<close>
-                using cdcl inv inv_s D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
-              show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
-                using D WS_WS' cdcl by auto
-              show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
-                by (simp add: WS'_def[symmetric] WS_WS' S)
-            }
-            assume
-              update: \<open>case xa of (N', U') \<Rightarrow> update_clauses (N, U) C L x (N', U')\<close> and
-              [simp]: \<open>xa = (a, b)\<close>
-            let ?T' = \<open>(M, a, b, None, NE, UE, WS', Q)\<close>
-            let ?T = \<open>(M, a, b, D, NE, UE, remove1_mset (L, C) WS, Q)\<close>
+            have \<open>L \<in># clause C\<close> \<open>x \<in># clause C\<close>
+              using watched K by (cases C; simp; fail)+
             have \<open>cdcl_twl_cp ?S' ?T'\<close>
-              by (rule cdcl_twl_cp.update_clause)
-                (use uL L' K update watched S in \<open>simp_all add: true_annot_iff_decided_or_true_lit\<close>)
+              by (rule cdcl_twl_cp.delete_from_working[OF \<open>x \<in># clause C\<close> \<open>x \<in> lits_of_l M\<close>])
             then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
               by (auto simp: S D WS_WS')
 
@@ -304,15 +280,39 @@ proof -
               using D WS_WS' cdcl by auto
             show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
               by (simp add: WS'_def[symmetric] WS_WS' S)
+          }
+          assume
+            update: \<open>case xa of (N', U') \<Rightarrow> update_clauses (N, U) C L x (N', U')\<close> and
+            [simp]: \<open>xa = (a, b)\<close>
+          let ?T' = \<open>(M, a, b, None, NE, UE, WS', Q)\<close>
+          let ?T = \<open>(M, a, b, D, NE, UE, remove1_mset (L, C) WS, Q)\<close>
+          have \<open>cdcl_twl_cp ?S' ?T'\<close>
+            by (rule cdcl_twl_cp.update_clause)
+              (use uL L' K update watched S in \<open>simp_all add: true_annot_iff_decided_or_true_lit\<close>)
+          then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
+            by (auto simp: S D WS_WS')
 
-          qed
-          moreover assume \<open>\<not>?upd\<close>
-          ultimately show \<open>- La \<in>
-            lits_of_l (get_trail (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S))\<close>
-            by fast
-        }
+          show \<open>twl_struct_invs ?T\<close>
+            using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
+
+          have uL: \<open>- L \<in> lits_of_l M\<close>
+            using inv unfolding twl_struct_invs_def S WS_WS' by auto
+
+          show \<open>twl_stgy_invs ?T\<close>
+            using cdcl inv inv_s D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
+          show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
+            using D WS_WS' cdcl by auto
+          show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
+            by (simp add: WS'_def[symmetric] WS_WS' S)
+
+        qed
+        moreover assume \<open>\<not>?upd\<close>
+        ultimately show \<open>- La \<in>
+          lits_of_l (get_trail (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S))\<close>
+          by fast
       }
-    qed
+    }
+  qed
 qed
 
 declare unit_propagation_inner_loop_body(1)[THEN order_trans, refine_vcg]
