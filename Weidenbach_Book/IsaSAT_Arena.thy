@@ -1396,6 +1396,9 @@ abbreviation arena_el_assn :: "arena_el \<Rightarrow> uint32 \<Rightarrow> assn"
 abbreviation arena_assn :: "arena_el list \<Rightarrow> uint32 array_list \<Rightarrow> assn" where
 \<open>arena_assn \<equiv> arl_assn arena_el_assn\<close>
 
+
+subsubsection \<open>Preconditions and Assertions for the refinement\<close>
+
 text \<open>The following lemma expresses the relation between the arena and the clauses and especially
   shows the preconditions to be able to generate code.
 \<close>
@@ -1413,7 +1416,10 @@ lemma arena_lifting:
     \<open>is_long_clause (N \<propto> i) \<Longrightarrow> is_Pos (arena ! ( i - POS_SHIFT))\<close> and
     \<open>is_long_clause (N \<propto> i) \<Longrightarrow> arena_pos arena i \<le> length (N \<propto> i)\<close> and
     \<open>is_LBD (arena ! (i - LBD_SHIFT))\<close> and
-    \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close>
+    \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close> and
+    \<open>SIZE_SHIFT \<le> i\<close> and
+    \<open>LBD_SHIFT \<le> i\<close>
+    \<open>ACTIVITY_SHIFT \<le> i\<close>
 proof -
   have
    dom: \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
@@ -1492,6 +1498,16 @@ proof -
     \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close>
     using lbd act ge2 i_le i_ge unfolding arena_pos_def
     by (auto simp: SHIFTS_def slice_nth header_size_def)
+  show \<open>SIZE_SHIFT \<le> i\<close> and  \<open>LBD_SHIFT \<le> i\<close> and
+    \<open>ACTIVITY_SHIFT \<le> i\<close>
+    using i_ge unfolding header_size_def SHIFTS_def by (auto split: if_splits)
 qed
 
+text \<open>This is supposed to be used as for assertions. There might be a more ``local'' way to define
+it, without the need for an existentially quantified clause set. However, I did not find a definition
+which was really much more useful and practical.
+\<close>
+definition arena_is_valid_clause_idx :: \<open>arena \<Rightarrow> nat \<Rightarrow> bool\<close> where
+\<open>arena_is_valid_clause_idx arena i \<longleftrightarrow>
+  (\<exists>N vdom. valid_arena arena N vdom \<and> i \<in># dom_m N)\<close>
 end

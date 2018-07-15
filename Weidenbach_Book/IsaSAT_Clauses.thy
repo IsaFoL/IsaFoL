@@ -1053,7 +1053,7 @@ sepref_definition fmap_swap_ll_u64_clss
            isasat_clauses_assn\<close>
   by sepref
 
-lemma fmap_swap_ll_u64_hnr[sepref_fr_rules]:
+(* lemma fmap_swap_ll_u64_hnr[sepref_fr_rules]:
   \<open>(uncurry3 fmap_swap_ll_u64_clss, uncurry3 (RETURN oooo fmap_swap_ll_u64))
      \<in> [\<lambda>(((N, i), j), k). i \<in># dom_m N \<and> j < length (N \<propto> i) \<and> k < length (N \<propto> i)]\<^sub>a
      isasat_clauses_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> isasat_clauses_assn\<close>
@@ -1122,7 +1122,7 @@ proof -
      defer
     using H unfolding f im apply assumption
     using pre ..
-qed
+qed *)
 
 sepref_definition fmap_rll_u_clss
   is \<open>uncurry2 (RETURN ooo (\<lambda>(N, _) i. Array_List_Array.nth_rll N i))\<close>
@@ -1139,7 +1139,7 @@ sepref_definition fmap_rll_u32_clss
   supply length_rll_def[simp]
   by sepref
 
-lemma
+(* lemma
   fmap_rll_u_hnr[sepref_fr_rules]:
     \<open>(uncurry2 fmap_rll_u_clss, uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll_u))
      \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>a
@@ -1407,6 +1407,6 @@ lemma increase_activity_slow_hnr[sepref_fr_rules]:
   \<open>(uncurry2 increase_activity_fmap_slow, uncurry2 (RETURN \<circ>\<circ>\<circ> increase_activity))
     \<in> [\<lambda>((a, b), ba). a \<in># dom_m ba]\<^sub>a nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow>
      clauses_ll_assn\<close>
-  using increase_activity_fmap_slow.refine[FCOMP increase_activity_fmap] unfolding clauses_ll_assn_def .
+  using increase_activity_fmap_slow.refine[FCOMP increase_activity_fmap] unfolding clauses_ll_assn_def . *)
 
 end
