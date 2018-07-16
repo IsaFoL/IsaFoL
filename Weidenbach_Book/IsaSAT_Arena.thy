@@ -1370,7 +1370,7 @@ proof -
 qed
 
 
-subsubsection \<open>Refinement\<close>
+subsubsection \<open>Refinement Relation\<close>
 
 definition status_rel:: "(nat \<times> clause_status) set" where
   \<open>status_rel = {(0, INIT), (1, LEARNED), (3, DELETED)}\<close>
@@ -1410,8 +1410,9 @@ lemma arena_lifting:
     \<open>i < length arena\<close>
     \<open>is_Size (arena ! (i - SIZE_SHIFT))\<close>
     \<open>length (N \<propto> i) = arena_length arena i\<close>
-    \<open>\<And>j. j < length (N \<propto> i) \<Longrightarrow> N \<propto> i ! j = arena_lit arena (i + j)\<close> and
-    \<open>\<And>j. j < length (N \<propto> i) \<Longrightarrow> is_Lit (arena ! (i+j))\<close> and
+    \<open>j < length (N \<propto> i) \<Longrightarrow> N \<propto> i ! j = arena_lit arena (i + j)\<close> and
+    \<open>j < length (N \<propto> i) \<Longrightarrow> is_Lit (arena ! (i+j))\<close> and
+    \<open>j < length (N \<propto> i) \<Longrightarrow> i + j < length arena\<close> and
     \<open>i + length (N \<propto> i) \<le> length arena\<close> and
     \<open>is_long_clause (N \<propto> i) \<Longrightarrow> is_Pos (arena ! ( i - POS_SHIFT))\<close> and
     \<open>is_long_clause (N \<propto> i) \<Longrightarrow> arena_pos arena i \<le> length (N \<propto> i)\<close> and
@@ -1487,7 +1488,7 @@ proof -
     using arg_cong[OF clause, of \<open>\<lambda>xs. xs ! j\<close>] i_le i_ge that
     by (auto simp: slice_nth arena_lit_def)
   
-  show \<open>i + length (N \<propto> i) \<le> length arena\<close>
+  show i_le_arena: \<open>i + length (N \<propto> i) \<le> length arena\<close>
     using arg_cong[OF clause, of length] i_le i_ge
     by (auto simp: arena_lit_def slice_len_min_If)
   show \<open>is_Pos (arena ! ( i - POS_SHIFT))\<close> and \<open>arena_pos arena i \<le> length (N \<propto> i)\<close>
@@ -1501,6 +1502,8 @@ proof -
   show \<open>SIZE_SHIFT \<le> i\<close> and  \<open>LBD_SHIFT \<le> i\<close> and
     \<open>ACTIVITY_SHIFT \<le> i\<close>
     using i_ge unfolding header_size_def SHIFTS_def by (auto split: if_splits)
+  show \<open>j < length (N \<propto> i) \<Longrightarrow> i + j < length arena\<close>
+    using i_le_arena by linarith
 qed
 
 text \<open>This is supposed to be used as for assertions. There might be a more ``local'' way to define
@@ -1510,4 +1513,198 @@ which was really much more useful and practical.
 definition arena_is_valid_clause_idx :: \<open>arena \<Rightarrow> nat \<Rightarrow> bool\<close> where
 \<open>arena_is_valid_clause_idx arena i \<longleftrightarrow>
   (\<exists>N vdom. valid_arena arena N vdom \<and> i \<in># dom_m N)\<close>
+
+
+subsubsection \<open>Code Generation\<close>
+
+
+definition uint64_of_uint32_conv :: \<open>nat \<Rightarrow> nat\<close> where
+  [simp]: \<open>uint64_of_uint32_conv x = x\<close>
+
+lemma nat_of_uint32_le_uint32_max: \<open>nat_of_uint32 n \<le> uint32_max\<close>
+  using nat_of_uint32_plus[of n 0]
+  pos_mod_bound[of \<open>uint32_max + 1\<close> \<open>nat_of_uint32 n\<close>]
+  by auto
+
+
+lemma nat_of_uint32_le_uint64_max: \<open>nat_of_uint32 n \<le> uint64_max\<close>
+  using nat_of_uint32_le_uint32_max[of n] unfolding uint64_max_def uint32_max_def
+  by auto
+
+lemma nat_of_uint64_uint64_of_uint32: \<open>nat_of_uint64 (uint64_of_uint32 n) = nat_of_uint32 n\<close>
+  unfolding uint64_of_uint32_def
+  by (auto simp: nat_of_uint64_uint64_of_nat_id nat_of_uint32_le_uint64_max)
+
+lemma uint64_of_uint32_hnr[sepref_fr_rules]:
+  \<open>(return o uint64_of_uint32, RETURN o uint64_of_uint32_conv) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: br_def uint64_of_uint32_conv_def
+     uint32_nat_rel_def uint64_nat_rel_def nat_of_uint32_code nat_of_uint64_uint64_of_uint32)
+
+definition isa_arena_length where
+  \<open>isa_arena_length arena i = do {
+      ASSERT(i \<ge> SIZE_SHIFT \<and> i < length arena);
+      RETURN (two_uint64 + uint64_of_uint32 ((arena ! (fast_minus i SIZE_SHIFT))))
+  }\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>(uncurry0 (return 1), uncurry0 (RETURN SIZE_SHIFT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: SIZE_SHIFT_def)
+
+lemma [sepref_fr_rules]:
+  \<open>(return o id, RETURN o xarena_length) \<in> [is_Size]\<^sub>a arena_el_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: SIZE_SHIFT_def uint32_nat_rel_def
+    arena_el_rel_def br_def hr_comp_def split: arena_el.splits)
+
+lemma nat_of_uint64_eq_2_iff[simp]: \<open>nat_of_uint64 c = 2 \<longleftrightarrow> c = 2\<close>
+  using word_nat_of_uint64_Rep_inject by fastforce
+
+lemma arena_el_assn_alt_def:
+  \<open>arena_el_assn = hr_comp uint32_assn (uint32_nat_rel O arena_el_rel)\<close>
+  by (auto simp: hr_comp_assoc[symmetric])
+
+lemma arena_el_comp: \<open>hn_val (uint32_nat_rel O arena_el_rel) = hn_ctxt arena_el_assn\<close>
+  by (auto simp: hn_ctxt_def arena_el_assn_alt_def)
+
+lemma sum_uint64_assn:
+  \<open>(uncurry (return oo (+)), uncurry (RETURN oo (+))) \<in> uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by (sepref_to_hoare) sep_auto
+
+sepref_definition isa_arena_length_code 
+  is \<open>uncurry isa_arena_length\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  supply arena_el_assn_alt_def[symmetric, simp] sum_uint64_assn[sepref_fr_rules]
+  unfolding isa_arena_length_def
+  by sepref
+
+lemma arena_length_uint64_conv:
+  assumes 
+    a: \<open>(a, aa) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
+    ba: \<open>ba \<in># dom_m N\<close> and
+    valid: \<open>valid_arena aa N vdom\<close>
+  shows \<open>Suc (Suc (xarena_length (aa ! (ba - SIZE_SHIFT)))) =
+         nat_of_uint64 (2 + uint64_of_uint32 (a ! (ba - SIZE_SHIFT)))\<close>
+proof -
+  have ba_le: \<open>ba < length aa\<close> and
+    size: \<open>is_Size (aa ! (ba - SIZE_SHIFT))\<close> and
+    length: \<open>length (N \<propto> ba) = arena_length aa ba\<close>
+    using ba valid by (auto simp: arena_lifting)
+  have \<open>(a ! (ba - SIZE_SHIFT), aa ! (ba - SIZE_SHIFT))
+      \<in> uint32_nat_rel O arena_el_rel\<close>
+    by (rule param_nth[OF _ _ a, of \<open>ba - SIZE_SHIFT\<close> \<open>ba - SIZE_SHIFT\<close>])
+      (use ba_le in auto)
+  then have \<open>aa ! (ba - SIZE_SHIFT) = ASize (nat_of_uint32 (a ! (ba - SIZE_SHIFT)))\<close>
+    using size unfolding arena_el_rel_def
+    by (auto split: arena_el.splits simp: uint32_nat_rel_def br_def)
+  moreover have \<open>Suc (Suc (nat_of_uint32 (a ! (ba - SIZE_SHIFT)))) \<le> uint64_max\<close>
+    using nat_of_uint32_le_uint32_max[of \<open>a ! (ba - SIZE_SHIFT)\<close>]
+    by (auto simp: uint64_max_def uint32_max_def)
+  ultimately show ?thesis by (simp add: nat_of_uint64_add nat_of_uint64_uint64_of_uint32)
+qed
+
+lemma isa_arena_length_arena_length:
+  \<open>(uncurry (isa_arena_length), uncurry (RETURN oo arena_length)) \<in> 
+    [uncurry arena_is_valid_clause_idx]\<^sub>f
+     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>uint64_nat_rel\<rangle>nres_rel\<close>
+  unfolding isa_arena_length_def arena_length_def
+  by (intro frefI nres_relI)
+    (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
+       br_def list_rel_imp_same_length arena_length_uint64_conv arena_lifting
+    intro!: ASSERT_refine_left)
+
+lemma isa_arena_length_code_refine[sepref_fr_rules]:
+  \<open>(uncurry isa_arena_length_code, uncurry (RETURN \<circ>\<circ> arena_length))
+  \<in> [uncurry arena_is_valid_clause_idx]\<^sub>a 
+    arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  using isa_arena_length_code.refine[FCOMP isa_arena_length_arena_length]
+  unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp
+  by (simp add: arl_assn_comp)
+
+definition nat_of_uint64_conv where
+  [simp]: \<open>nat_of_uint64_conv x = x\<close>
+
+lemma nat_of_uint64_conv[sepref_fr_rules]:
+  \<open>(return o nat_of_uint64, RETURN o nat_of_uint64_conv) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
+
+
+definition isa_arena_lit where
+  \<open>isa_arena_lit arena i = do {
+      ASSERT(i < length arena);
+      RETURN (arena ! i)
+  }\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>(return o id, RETURN o xarena_lit) \<in> [is_Lit]\<^sub>a arena_el_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  by sepref_to_hoare (sep_auto simp: SIZE_SHIFT_def uint32_nat_rel_def unat_lit_rel_def
+    arena_el_rel_def br_def hr_comp_def split: arena_el.splits)
+
+sepref_definition isa_arena_lit_code 
+  is \<open>uncurry isa_arena_lit\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  supply arena_el_assn_alt_def[symmetric, simp] sum_uint64_assn[sepref_fr_rules]
+  unfolding isa_arena_lit_def
+  by sepref
+
+lemma arena_length_literal_conv:
+  assumes 
+    valid: \<open>valid_arena arena N x\<close> and
+    j: \<open>j \<in># dom_m N\<close> and
+    ba_le: \<open>ba - j < arena_length arena j\<close> and
+    a: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
+    ba_j: \<open>ba \<ge> j\<close>
+  shows
+    \<open>ba < length arena\<close> (is ?le) and
+    \<open>(a ! ba, xarena_lit (arena ! ba)) \<in> unat_lit_rel\<close> (is ?unat)
+proof -
+  have j_le: \<open>j < length arena\<close> and
+    length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
+    k1:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
+    k2:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
+    le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
+    j_ge: \<open>header_size (N \<propto> j) \<le> j\<close>
+    using arena_lifting[OF valid j] by (auto simp: )
+  show le': ?le
+     using le ba_le  j_ge unfolding length[symmetric] header_size_def
+     by (auto split: if_splits)
+
+  have \<open>(a ! ba, arena ! ba)
+      \<in> uint32_nat_rel O arena_el_rel\<close>
+    by (rule param_nth[OF _ _ a, of \<open>ba\<close> \<open>ba\<close>])
+      (use ba_le le' in auto)
+  then show ?unat
+     using k1[of \<open>ba - j\<close>] k2[of \<open>ba - j\<close>] ba_le length ba_j
+     by (cases \<open>arena ! ba\<close>)
+      (auto simp: arena_el_rel_def unat_lit_rel_def arena_lit_def
+       split: arena_el.splits)
+qed
+
+
+definition (in -) arena_is_valid_clause_idx_and_access :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
+\<open>arena_is_valid_clause_idx_and_access arena i j \<longleftrightarrow>
+  (\<exists>N vdom. valid_arena arena N vdom \<and> i \<in># dom_m N \<and> j < length (N \<propto> i))\<close>
+
+definition (in -) arena_lit_pre where
+\<open>arena_lit_pre arena i \<longleftrightarrow>
+  (\<exists>j. i \<ge> j \<and> arena_is_valid_clause_idx_and_access arena j (i - j))\<close>
+
+lemma isa_arena_lit_arena_lit:
+  \<open>(uncurry (isa_arena_lit), uncurry (RETURN oo arena_lit)) \<in> 
+    [uncurry arena_lit_pre]\<^sub>f
+     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>unat_lit_rel\<rangle>nres_rel\<close>
+  unfolding isa_arena_lit_def arena_lit_def
+  by (intro frefI nres_relI)
+    (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
+       br_def list_rel_imp_same_length arena_length_uint64_conv arena_lifting
+       arena_is_valid_clause_idx_and_access_def arena_length_literal_conv
+       arena_lit_pre_def
+    intro!: ASSERT_refine_left)
+
+lemma isa_arena_lit_code_refine[sepref_fr_rules]:
+  \<open>(uncurry isa_arena_lit_code, uncurry (RETURN \<circ>\<circ> arena_lit))
+  \<in> [uncurry arena_lit_pre]\<^sub>a 
+    arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  using isa_arena_lit_code.refine[FCOMP isa_arena_lit_arena_lit]
+  unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp
+  by (simp add: arl_assn_comp)
+
 end

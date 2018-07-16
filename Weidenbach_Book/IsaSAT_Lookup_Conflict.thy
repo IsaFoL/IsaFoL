@@ -639,27 +639,22 @@ lemma (in -) Suc_uint32_nat_assn_hnr:
 (* End Move *)
 
 
-definition (in -) arena_is_valid_clause_idx_and_access :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
-\<open>arena_is_valid_clause_idx_and_access arena i j \<longleftrightarrow>
-  (\<exists>N vdom. valid_arena arena N vdom \<and> i \<in># dom_m N \<and> j < length (N \<propto> i))\<close>
-
-definition (in -) arena_lit_pre where
-\<open>arena_lit_pre arena i \<longleftrightarrow>
-  (\<exists>j. i \<ge> j \<and> arena_is_valid_clause_idx_and_access arena j (i - j))\<close>
-
 definition isa_lookup_conflict_merge
   :: \<open>nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
         out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close>
 where
   \<open>isa_lookup_conflict_merge init M N i  = (\<lambda>(b, xs) clvls lbd outl. do {
+     ASSERT( arena_is_valid_clause_idx N i \<and> no_dup M);
      (_, clvls, zs, lbd, outl) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs, lbd, outl).
          length (snd zs) = length (snd xs) \<and>
-             Suc i \<le> uint_max \<and> Suc (fst zs) \<le> uint_max \<and> Suc clvls \<le> uint_max\<^esup>
+             Suc (fst zs) \<le> uint_max \<and> Suc clvls \<le> uint_max\<^esup>
        (\<lambda>(j :: nat, clvls, zs, lbd, outl). j < i + arena_length N i)
        (\<lambda>(j :: nat, clvls, zs, lbd, outl). do {
-           ASSERT(j < length_u N);
+           ASSERT(j < length N);
            ASSERT(arena_lit_pre N j);
+           ASSERT(arena_lit N j \<in> snd ` D\<^sub>0);
            let lbd = lbd_write lbd (get_level M (arena_lit N j)) True;
+           ASSERT(atm_of (arena_lit N j) < length (snd zs));
            let outl = outlearned_add M (arena_lit N j) zs outl;
            let clvls = clvls_add M (arena_lit N j) zs clvls;
            let zs = add_to_lookup_conflict (arena_lit N j) zs;
@@ -672,197 +667,51 @@ where
 
 end
 
-definition uint64_of_uint32_conv :: \<open>nat \<Rightarrow> nat\<close> where
-  [simp]: \<open>uint64_of_uint32_conv x = x\<close>
-
-lemma nat_of_uint32_le_uint32_max: \<open>nat_of_uint32 n \<le> uint32_max\<close>
-  using nat_of_uint32_plus[of n 0]
-  pos_mod_bound[of \<open>uint32_max + 1\<close> \<open>nat_of_uint32 n\<close>]
-  by auto
-
-
-lemma nat_of_uint32_le_uint64_max: \<open>nat_of_uint32 n \<le> uint64_max\<close>
-  using nat_of_uint32_le_uint32_max[of n] unfolding uint64_max_def uint32_max_def
-  by auto
-
-lemma nat_of_uint64_uint64_of_uint32: \<open>nat_of_uint64 (uint64_of_uint32 n) = nat_of_uint32 n\<close>
-  unfolding uint64_of_uint32_def
-  by (auto simp: nat_of_uint64_uint64_of_nat_id nat_of_uint32_le_uint64_max)
-
-lemma uint64_of_uint32_hnr[sepref_fr_rules]:
-  \<open>(return o uint64_of_uint32, RETURN o uint64_of_uint32_conv) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: br_def uint64_of_uint32_conv_def
-     uint32_nat_rel_def uint64_nat_rel_def nat_of_uint32_code nat_of_uint64_uint64_of_uint32)
-
-definition isa_arena_length where
-  \<open>isa_arena_length arena i = do {
-      ASSERT(i \<ge> SIZE_SHIFT \<and> i < length arena);
-      RETURN (two_uint64 + uint64_of_uint32 ((arena ! (fast_minus i SIZE_SHIFT))))
-  }\<close>
-
-lemma [sepref_fr_rules]:
-  \<open>(uncurry0 (return 1), uncurry0 (RETURN SIZE_SHIFT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: SIZE_SHIFT_def)
-
-lemma [sepref_fr_rules]:
-  \<open>(return o id, RETURN o xarena_length) \<in> [is_Size]\<^sub>a arena_el_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: SIZE_SHIFT_def uint32_nat_rel_def
-    arena_el_rel_def br_def hr_comp_def split: arena_el.splits)
-
-lemma nat_of_uint64_eq_2_iff[simp]: \<open>nat_of_uint64 c = 2 \<longleftrightarrow> c = 2\<close>
-  using word_nat_of_uint64_Rep_inject by fastforce
-
-lemma arena_el_assn_alt_def:
-  \<open>arena_el_assn = hr_comp uint32_assn (uint32_nat_rel O arena_el_rel)\<close>
-  by (auto simp: hr_comp_assoc[symmetric])
-
-lemma arena_el_comp: \<open>hn_val (uint32_nat_rel O arena_el_rel) = hn_ctxt arena_el_assn\<close>
-  by (auto simp: hn_ctxt_def arena_el_assn_alt_def)
-
-lemma sum_uint64_assn:
-  \<open>(uncurry (return oo (+)), uncurry (RETURN oo (+))) \<in> uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by (sepref_to_hoare) sep_auto
-
-sepref_definition isa_arena_length_code 
-  is \<open>uncurry isa_arena_length\<close>
-  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  supply arena_el_assn_alt_def[symmetric, simp] sum_uint64_assn[sepref_fr_rules]
-  unfolding isa_arena_length_def
-  by sepref
-
-lemma arena_length_uint64_conv:
-  assumes 
-    a: \<open>(a, aa) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
-    ba: \<open>ba \<in># dom_m N\<close> and
-    valid: \<open>valid_arena aa N vdom\<close>
-  shows \<open>Suc (Suc (xarena_length (aa ! (ba - SIZE_SHIFT)))) =
-         nat_of_uint64 (2 + uint64_of_uint32 (a ! (ba - SIZE_SHIFT)))\<close>
-proof -
-  have ba_le: \<open>ba < length aa\<close> and
-    size: \<open>is_Size (aa ! (ba - SIZE_SHIFT))\<close> and
-    length: \<open>length (N \<propto> ba) = arena_length aa ba\<close>
-    using ba valid by (auto simp: arena_lifting)
-  have \<open>(a ! (ba - SIZE_SHIFT), aa ! (ba - SIZE_SHIFT))
-      \<in> uint32_nat_rel O arena_el_rel\<close>
-    by (rule param_nth[OF _ _ a, of \<open>ba - SIZE_SHIFT\<close> \<open>ba - SIZE_SHIFT\<close>])
-      (use ba_le in auto)
-  then have \<open>aa ! (ba - SIZE_SHIFT) = ASize (nat_of_uint32 (a ! (ba - SIZE_SHIFT)))\<close>
-    using size unfolding arena_el_rel_def
-    by (auto split: arena_el.splits simp: uint32_nat_rel_def br_def)
-  moreover have \<open>Suc (Suc (nat_of_uint32 (a ! (ba - SIZE_SHIFT)))) \<le> uint64_max\<close>
-    using nat_of_uint32_le_uint32_max[of \<open>a ! (ba - SIZE_SHIFT)\<close>]
-    by (auto simp: uint64_max_def uint32_max_def)
-  ultimately show ?thesis by (simp add: nat_of_uint64_add nat_of_uint64_uint64_of_uint32)
-qed
-
-lemma isa_arena_length_arena_length:
-  \<open>(uncurry (isa_arena_length), uncurry (RETURN oo arena_length)) \<in> 
-    [uncurry arena_is_valid_clause_idx]\<^sub>f
-     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>uint64_nat_rel\<rangle>nres_rel\<close>
-  unfolding isa_arena_length_def arena_length_def
-  by (intro frefI nres_relI)
-    (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
-       br_def list_rel_imp_same_length arena_length_uint64_conv arena_lifting
-    intro!: ASSERT_refine_left)
-
-lemma isa_arena_length_code_refine[sepref_fr_rules]:
-  \<open>(uncurry isa_arena_length_code, uncurry (RETURN \<circ>\<circ> arena_length))
-  \<in> [uncurry arena_is_valid_clause_idx]\<^sub>a 
-    arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-  using isa_arena_length_code.refine[FCOMP isa_arena_length_arena_length]
-  unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp
-  by (simp add: arl_assn_comp)
-
-definition nat_of_uint64_conv where
-  [simp]: \<open>nat_of_uint64_conv x = x\<close>
-
-lemma nat_of_uint64_conv[sepref_fr_rules]:
-  \<open>(return o nat_of_uint64, RETURN o nat_of_uint64_conv) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
-
-
-definition isa_arena_lit where
-  \<open>isa_arena_lit arena i = do {
-      ASSERT(i < length arena);
-      RETURN (arena ! i)
-  }\<close>
-
-lemma [sepref_fr_rules]:
-  \<open>(return o id, RETURN o xarena_lit) \<in> [is_Lit]\<^sub>a arena_el_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  by sepref_to_hoare (sep_auto simp: SIZE_SHIFT_def uint32_nat_rel_def unat_lit_rel_def
-    arena_el_rel_def br_def hr_comp_def split: arena_el.splits)
-
-sepref_definition isa_arena_lit_code 
-  is \<open>uncurry isa_arena_lit\<close>
-  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  supply arena_el_assn_alt_def[symmetric, simp] sum_uint64_assn[sepref_fr_rules]
-  unfolding isa_arena_lit_def
-  by sepref
-
-lemma arena_length_literal_conv:
-  assumes 
-    valid: \<open>valid_arena arena N x\<close> and
-    j: \<open>j \<in># dom_m N\<close> and
-    ba_le: \<open>ba - j < arena_length arena j\<close> and
-    a: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
-    ba_j: \<open>ba \<ge> j\<close>
-  shows
-    \<open>ba < length arena\<close> (is ?le) and
-    \<open>(a ! ba, xarena_lit (arena ! ba)) \<in> unat_lit_rel\<close> (is ?unat)
-proof -
-  have j_le: \<open>j < length arena\<close> and
-    length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
-    k1:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
-    k2:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
-    le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
-    j_ge: \<open>header_size (N \<propto> j) \<le> j\<close>
-    using arena_lifting[OF valid j] by (auto simp: )
-  show le': ?le
-     using le ba_le  j_ge unfolding length[symmetric] header_size_def
-     by (auto split: if_splits)
-
-  have \<open>(a ! ba, arena ! ba)
-      \<in> uint32_nat_rel O arena_el_rel\<close>
-    by (rule param_nth[OF _ _ a, of \<open>ba\<close> \<open>ba\<close>])
-      (use ba_le le' in auto)
-  then show ?unat
-     using k1[of \<open>ba - j\<close>] k2[of \<open>ba - j\<close>] ba_le length ba_j
-     by (cases \<open>arena ! ba\<close>)
-      (auto simp: arena_el_rel_def unat_lit_rel_def arena_lit_def
-       split: arena_el.splits)
-qed
-
-lemma isa_arena_lit_arena_lit:
-  \<open>(uncurry (isa_arena_lit), uncurry (RETURN oo arena_lit)) \<in> 
-    [uncurry arena_lit_pre]\<^sub>f
-     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>unat_lit_rel\<rangle>nres_rel\<close>
-  unfolding isa_arena_lit_def arena_lit_def
-  by (intro frefI nres_relI)
-    (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
-       br_def list_rel_imp_same_length arena_length_uint64_conv arena_lifting
-       arena_is_valid_clause_idx_and_access_def arena_length_literal_conv
-       arena_lit_pre_def
-    intro!: ASSERT_refine_left)
-
-lemma isa_arena_lit_code_refine[sepref_fr_rules]:
-  \<open>(uncurry isa_arena_lit_code, uncurry (RETURN \<circ>\<circ> arena_lit))
-  \<in> [uncurry arena_lit_pre]\<^sub>a 
-    arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  using isa_arena_lit_code.refine[FCOMP isa_arena_lit_arena_lit]
-  unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp
-  by (simp add: arl_assn_comp)
 
 context isasat_input_bounded
 begin
 
-sepref_register resolve_lookup_conflict_aa
+definition isa_resolve_lookup_conflict_merge where
+  \<open>isa_resolve_lookup_conflict_merge = isa_lookup_conflict_merge 0\<close>
+
+lemma isa_lookup_conflict_merge_lookup_conflict_merge_ext:
+  assumes valid: \<open>valid_arena arena N vdom\<close> and \<open>no_dup M\<close> and i: \<open>i \<in># dom_m N\<close> and
+    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N)\<close> and
+    bxs: \<open>((b, xs), Some C) \<in> option_lookup_clause_rel\<close>
+  shows
+    \<open>isa_lookup_conflict_merge init M arena i (b, xs) clvls lbd outl \<le> \<Down> Id
+      (lookup_conflict_merge init M (N \<propto> i) (b, xs) clvls lbd outl)\<close>
+proof -
+  have [refine0]: \<open>((i + init, clvls, xs, lbd, outl), init, clvls, xs, lbd, outl) \<in> 
+     {(k, l). k = l + i} \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>
+    by auto
+  show ?thesis
+    unfolding isa_lookup_conflict_merge_def lookup_conflict_merge_def prod.case
+    apply refine_vcg
+    subgoal using assms unfolding arena_is_valid_clause_idx_def by fast
+    subgoal using assms by fast
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using valid i by (auto simp: arena_lifting)
+    subgoal using valid i by (auto simp: arena_lifting ac_simps)
+    subgoal using valid i 
+      by (auto simp: arena_lifting arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
+        intro!: exI[of _ i])
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g
+      using i literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of N i x1] lits valid
+      by (auto simp: arena_lifting ac_simps image_image)
+    subgoal using bxs by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
+      in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    subgoal using valid i by (auto simp: arena_lifting ac_simps)
+    subgoal by auto
+    done
+qed
+
 sepref_thm resolve_lookup_conflict_merge_code
-  is \<open>uncurry6 (PR_CONST isa_lookup_conflict_merge 0)\<close>
-  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-        (\<forall>j<arena_length N i. atm_of (xarena_lit (N!(i+j))) < length (snd xs) \<and>
-        xarena_lit (N!(i+j)) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<and> no_dup M \<and>
-        arena_length N i \<le> uint_max \<and>
-        arena_is_valid_clause_idx N i]\<^sub>a
+  is \<open>uncurry6 (PR_CONST isa_resolve_lookup_conflict_merge)\<close>
+  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M
+        ]\<^sub>a
       trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
@@ -872,18 +721,13 @@ sepref_thm resolve_lookup_conflict_merge_code
     Suc_uint32_nat_assn_hnr[sepref_fr_rules] fmap_length_rll_u_def[simp]
   unfolding isa_lookup_conflict_merge_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric]
-    outlearned_add_def clvls_add_def
+    outlearned_add_def clvls_add_def isa_resolve_lookup_conflict_merge_def
     isasat_codegen
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
     is_NOTIN_def[symmetric]
   apply (rewrite at \<open>_ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
   supply [[goals_limit = 1]]
-    apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
-           apply sepref_dbg_side_unfold apply (auto simp: )[]
-oops
   by sepref
 
 concrete_definition (in -) resolve_lookup_conflict_merge_code
@@ -895,13 +739,14 @@ prepare_code_thms (in -) resolve_lookup_conflict_merge_code_def
 lemmas resolve_lookup_conflict_aa_hnr[sepref_fr_rules] =
    resolve_lookup_conflict_merge_code.refine[OF isasat_input_bounded_axioms]
 
+(* 
 sepref_thm resolve_lookup_conflict_merge_fast_code
-  is \<open>uncurry6 (PR_CONST resolve_lookup_conflict_aa)\<close>
+  is \<open>uncurry6 (PR_CONST isa_resolve_lookup_conflict)\<close>
   :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i \<in># dom_m N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
         (\<forall>j<length (N\<propto>i). atm_of (N\<propto>i!j) < length (snd xs)) \<and> no_dup M \<and>
         literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N\<propto>i)) \<and>
         length (N\<propto>i) \<le> uint_max]\<^sub>a
-      trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
@@ -911,7 +756,7 @@ sepref_thm resolve_lookup_conflict_merge_fast_code
   unfolding resolve_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric]
     outlearned_add_def clvls_add_def
-    isasat_codegen
+    isasat_codegen isa_resolve_lookup_conflict_def
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
     is_NOTIN_def[symmetric]
@@ -926,30 +771,34 @@ concrete_definition (in -) resolve_lookup_conflict_merge_fast_code
 prepare_code_thms (in -) resolve_lookup_conflict_merge_fast_code_def
 
 lemmas resolve_lookup_conflict_aa_fast_hnr[sepref_fr_rules] =
-   resolve_lookup_conflict_merge_fast_code.refine[OF isasat_input_bounded_axioms]
+   resolve_lookup_conflict_merge_fast_code.refine[OF isasat_input_bounded_axioms] *)
+
+
+definition isa_set_lookup_conflict_aa where
+  \<open>isa_set_lookup_conflict_aa = isa_lookup_conflict_merge 1\<close>
 
 sepref_register set_lookup_conflict_aa
 sepref_thm set_lookup_conflict_aa_code
-  is \<open>uncurry6 (PR_CONST set_lookup_conflict_aa)\<close>
-  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), _). i \<in># dom_m N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-        (\<forall>j<length (N\<propto>i). atm_of (N\<propto>i!j) < length (snd xs)) \<and> no_dup M \<and>
-        literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N\<propto>i)) \<and>
-        length (N\<propto>i) \<le> uint_max]\<^sub>a
-      trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
-         uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d  *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+  is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict_aa)\<close>
+  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M
+        ]\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+         uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
-    uint32_nat_assn_one[sepref_fr_rules] image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
+    image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
-    Suc_uint32_nat_assn_hnr[sepref_fr_rules]  fmap_length_rll_u_def[simp]
+    fmap_length_rll_u_def[simp]
   unfolding set_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric] length_rll_def[symmetric]
     length_aa_u_def[symmetric] outlearned_add_def clvls_add_def
-    isasat_codegen
+    isasat_codegen isa_set_lookup_conflict_aa_def isa_lookup_conflict_merge_def
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
     is_NOTIN_def[symmetric]
-  apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
+  apply (rewrite at \<open>_ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
+  apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -962,7 +811,7 @@ prepare_code_thms (in -) set_lookup_conflict_aa_code_def
 lemmas set_lookup_conflict_aa_code[sepref_fr_rules] =
    set_lookup_conflict_aa_code.refine[OF isasat_input_bounded_axioms]
 
-sepref_thm set_lookup_conflict_aa_fast_code
+(* sepref_thm set_lookup_conflict_aa_fast_code
   is \<open>uncurry6 (PR_CONST set_lookup_conflict_aa)\<close>
   :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), _). i \<in># dom_m N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
         (\<forall>j<length (N\<propto>i). atm_of (N\<propto>i!j) < length (snd xs)) \<and> no_dup M \<and>
@@ -994,7 +843,8 @@ prepare_code_thms (in -) set_lookup_conflict_aa_fast_code_def
 
 lemmas set_lookup_conflict_aa_fast_code[sepref_fr_rules] =
    set_lookup_conflict_aa_fast_code.refine[OF isasat_input_bounded_axioms]
-
+ *)
+ 
 lemma lookup_conflict_merge'_spec:
   assumes
     o: \<open>((b, n, xs), Some C) \<in> option_lookup_clause_rel\<close> and
