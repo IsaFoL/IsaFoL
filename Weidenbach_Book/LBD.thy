@@ -2,6 +2,21 @@ theory LBD
   imports Watched_Literals.Watched_Literals_Watch_List_Code_Common
 begin
 
+subsubsection \<open>LBD\<close>
+
+text \<open>LBD (literal block distance) or glue is a measure of usefulness of clauses: It is the number
+of different levels involved in a clause. This measure has been introduced by Glucose in 2009
+(Audemart and Simon).
+
+LBD has also another advantage, explaining why we implemented it even before working on restarts: It
+can speed the conflict minimisation. Indeed a literal might be redundant only if there is a literal
+of the same level in the conflict.
+
+The LBD data structure is well-suited to do so: We mark every level that appears in the conflict in
+a hash-table like data structure.
+\<close>
+
+paragraph \<open>Types and relations\<close>
 type_synonym lbd = \<open>bool list\<close>
 type_synonym lbd_ref = \<open>bool list \<times> nat\<close>
 type_synonym lbd_assn = \<open>bool array \<times> uint32\<close>
@@ -9,7 +24,12 @@ type_synonym lbd_assn = \<open>bool array \<times> uint32\<close>
 abbreviation lbd_int_assn :: \<open>lbd_ref \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
   \<open>lbd_int_assn \<equiv> array_assn bool_assn *a uint32_nat_assn\<close>
 
-
+text \<open>Beside the actual ``lookup'' table, we also keep the highest level marked so far to unmark
+all levels faster (but we currently don't save the LBD and have to iterate over the data structure).
+We also handle growing of the structure by hand instead of using a proper hash-table. We do so,
+because there are much stronger guarantees on the key that there is in a general hash-table
+(especially, our numbers are all small).
+\<close>
 definition lbd_ref where
   \<open>lbd_ref = {((lbd, n), lbd'). lbd = lbd' \<and> n < length lbd \<and>
       (\<forall>k > n. k < length lbd \<longrightarrow> \<not>lbd!k) \<and>
@@ -17,6 +37,9 @@ definition lbd_ref where
 
 definition lbd_assn :: \<open>lbd \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
   \<open>lbd_assn \<equiv> hr_comp lbd_int_assn lbd_ref\<close>
+
+
+paragraph \<open>Testing if a level is marked\<close>
 
 definition level_in_lbd :: \<open>nat \<Rightarrow> lbd \<Rightarrow> bool\<close> where
   \<open>level_in_lbd i = (\<lambda>lbd. i < length lbd \<and> lbd!i)\<close>
@@ -29,6 +52,7 @@ lemma level_in_lbd_ref_level_in_lbd:
     nat_rel \<times>\<^sub>r lbd_ref \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: level_in_lbd_ref_def level_in_lbd_def lbd_ref_def)
 
+(* TODO Move *)
 definition length_arl_u_code :: \<open>('a::heap) array_list \<Rightarrow> uint32 Heap\<close> where
   \<open>length_arl_u_code xs = do {
    n \<leftarrow> arl_length xs;
@@ -42,7 +66,7 @@ lemma length_arl_u_hnr[sepref_fr_rules]:
       length_arl_u_code_def arl_assn_def
       arl_length_def hr_comp_def is_array_list_def list_rel_pres_length[symmetric]
       uint32_nat_rel_def br_def)
-
+(* End Move *)
 
 sepref_definition level_in_lbd_code
   is \<open>uncurry (RETURN oo level_in_lbd_ref)\<close>
@@ -59,6 +83,8 @@ lemma level_in_lbd_hnr[sepref_fr_rules]:
   using level_in_lbd_code.refine[FCOMP level_in_lbd_ref_level_in_lbd]
   unfolding lbd_assn_def .
 
+
+paragraph \<open>Marking more levels\<close>
 definition list_grow where
   \<open>list_grow xs n x = xs @ replicate (n - length xs) x\<close>
 
@@ -99,7 +125,7 @@ definition lbd_ref_write :: \<open>lbd_ref \<Rightarrow> nat \<Rightarrow> bool 
         ASSERT(i + 1 \<le> uint_max);
         RETURN (list_grow lbd (i + one_uint32_nat) False[i := b], max i m)
      })
-    })\<close>
+  })\<close>
 
 lemma length_list_grow[simp]:
   \<open>length (list_grow xs n a) = max (length xs) n\<close>
@@ -126,6 +152,9 @@ lemma lbd_write_hnr_[sepref_fr_rules]:
       lbd_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow> lbd_assn\<close>
   using lbd_write_code.refine[FCOMP lbd_ref_write_lbd_write]
   unfolding lbd_assn_def .
+
+
+paragraph \<open>Cleaning the marked levels\<close>
 
 definition lbd_emtpy_inv :: \<open>nat \<Rightarrow> lbd_ref \<Rightarrow> bool\<close> where
   \<open>lbd_emtpy_inv m = (\<lambda>(xs, i). i \<le> Suc m \<and> (\<forall>j < i. xs ! j = False) \<and>
@@ -274,6 +303,11 @@ lemma empty_lbd_hnr[sepref_fr_rules]:
   using empty_lbd_code.refine[FCOMP empty_lbd_ref_empty_lbd]
   unfolding lbd_assn_def .
 
+
+paragraph \<open>Extracting the LBD\<close>
+
+text \<open>We do not prove correctness of our algorithm, as we don't care about the actual returned
+value (for correctness).\<close>
 definition get_LBD :: \<open>lbd \<Rightarrow> nat nres\<close> where
   \<open>get_LBD lbd = SPEC(\<lambda>_. True)\<close>
 
