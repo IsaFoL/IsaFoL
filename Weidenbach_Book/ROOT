@@ -181,6 +181,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     CDCL
     "HOL-Eisbach"
     Watched_Literals
+    Show
   theories
     (*Watched_Literals_Transition_System_Restart*)
     CDCL_Conflict_Minimisation
