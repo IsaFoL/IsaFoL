@@ -1,9 +1,30 @@
 theory IsaSAT_Trail
-imports Watched_Literals.Watched_Literals_Watch_List_Code_Common Show.Show_Instances
+imports Watched_Literals.Watched_Literals_Watch_List_Code_Common
 begin
 
-(* TODO Move *)
+subsubsection \<open>Trail\<close>
 
+text \<open>Our trail contains several additional information compared to the simple trail:
+  \<^item> the (reversed) trail in an array (i.e., the trail in the same order as presented in \BOOK);
+  \<^item> the mapping from any \<^emph>\<open>literal\<close> (and not an atom) to its polarity;
+  \<^item> the mapping from a \<^emph>\<open>atom\<close> to its level or reason (in two different arrays);
+  \<^item> the current level of the state;
+  \<^item> the control stack.
+
+We copied the idea from the mapping from a literals to it polarity instead of an atom to its
+polarity from a comment by Armin Biere in CaDiCal. We did not really observe a (at best) slight
+performance increase, but as it seemed slightly faster and does not increase the length of the
+formalisation, we kept it.
+
+The control stack is the latest addition: it contains the positions of the decisions in the trail.
+It is mostly to enable fast restarts (since it allows to directly iterate over all decision of the
+trail), but might also slightly speed up backjumping (since we know how far we are going back in the
+trail). Remark that the control stack contains is not updated during the backjumping, but only
+\<^emph>\<open>after\<close> doing it (as we keep only the the beginning of it).
+\<close>
+
+(* TODO Move *)
+paragraph \<open>Type converstion\<close>
 definition nat_of_uint32_conv :: \<open>nat \<Rightarrow> nat\<close> where
 \<open>nat_of_uint32_conv i = i\<close>
 
@@ -136,6 +157,9 @@ lemma nat_of_uint32_spec_hnr[sepref_fr_rules]:
       nat_of_uint32_uint32_of_nat_id)
 (* End Move *)
 
+
+paragraph \<open>Polarities\<close>
+
 type_synonym tri_bool = \<open>bool option\<close>
 type_synonym tri_bool_assn = \<open>uint32\<close>
 
@@ -205,6 +229,8 @@ lemma [safe_constraint_rules]:
   unfolding tri_bool_assn_def
   by auto
 
+paragraph \<open>Types\<close>
+
 type_synonym trail_pol =
    \<open>nat literal list \<times> tri_bool list \<times> nat list \<times> nat option list \<times> nat \<times> nat list\<close>
 
@@ -231,6 +257,9 @@ definition defined_atm :: \<open>('v, nat) ann_lits \<Rightarrow> 'v \<Rightarro
 abbreviation undefined_atm where
   \<open>undefined_atm M L \<equiv> \<not>defined_atm M L\<close>
 
+
+paragraph \<open>Control Stack\<close>
+
 inductive control_stack where
 empty:
   \<open>control_stack [] []\<close> |
@@ -240,7 +269,7 @@ cons_dec:
   \<open>control_stack cs M \<Longrightarrow> n = length M \<Longrightarrow> control_stack (cs @ [n]) (Decided L # M)\<close>
 
 inductive_cases control_stackE: \<open>control_stack cs M\<close>
-thm control_stackE
+
 lemma control_stack_length_count_dec:
   \<open>control_stack cs M \<Longrightarrow> length cs = count_decided M\<close>
   by (induction rule: control_stack.induct) auto
@@ -269,15 +298,19 @@ lemma control_stack_empty_cs[simp]: \<open>control_stack [] M \<longleftrightarr
   by (induction M rule:ann_lit_list_induct)
     (auto simp: control_stack.empty control_stack.cons_prop elim: control_stackE)
 
+text \<open>This is an other possible definition. It is not inductive, which makes it easier to reason
+about appending (or removing) some literals from the trail. It is however much less clear if the
+definition is correct.\<close>
 definition control_stack' where
   \<open>control_stack' cs M \<longleftrightarrow>
      (length cs = count_decided M \<and>
-      (\<forall>L\<in>set M. is_decided L \<longrightarrow> (cs ! (get_level M (lit_of L) - 1) < length M \<and>
+       (\<forall>L\<in>set M. is_decided L \<longrightarrow> (cs ! (get_level M (lit_of L) - 1) < length M \<and>
           rev M!(cs ! (get_level M (lit_of L) - 1)) = L)))\<close>
 
+(* TODO Move *)
 lemma undefined_notin: \<open>undefined_lit M (lit_of x) \<Longrightarrow> x \<notin> set M\<close> for x M
   by (metis in_lits_of_l_defined_litD insert_iff lits_of_insert mk_disjoint_insert)
-
+(* End Move *)
 lemma control_stack_rev_get_lev:
   \<open>control_stack cs M  \<Longrightarrow>
     no_dup M \<Longrightarrow> L\<in>set M \<Longrightarrow> is_decided L \<Longrightarrow> rev M!(cs ! (get_level M (lit_of L) - 1)) = L\<close>
@@ -419,6 +452,8 @@ proof -
     done
 qed
 
+
+paragraph \<open>Reasons\<close>
 context isasat_input_ops
 begin
 
@@ -440,6 +475,9 @@ definition trail_pol :: \<open>(trail_pol \<times> (nat, nat) ann_lits) set\<clo
 
 end
 
+
+paragraph \<open>Definition of the full trail\<close>
+
 context isasat_input_bounded
 begin
 
@@ -451,11 +489,11 @@ lemma trail_pol_alt_def:
     k = count_decided M \<and>
     (\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<and>
     control_stack cs M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-   length M < uint32_max \<and>
-   length M \<le> uint32_max div 2 + 1 \<and>
-   count_decided M < uint32_max \<and>
-   length M' = length M \<and>
-   M' = map lit_of (rev M)
+    length M < uint32_max \<and>
+    length M \<le> uint32_max div 2 + 1 \<and>
+    count_decided M < uint32_max \<and>
+    length M' = length M \<and>
+    M' = map lit_of (rev M)
    }\<close>
 proof -
   have [intro!]: \<open>length M < n \<Longrightarrow> count_decided M < n\<close> for M n
@@ -483,8 +521,14 @@ abbreviation trail_pol_fast_assn :: \<open>trail_pol \<Rightarrow> trail_pol_fas
       array_assn uint32_nat_assn *a
       array_assn (option_assn uint32_nat_assn) *a uint32_nat_assn *a arl_assn uint32_nat_assn\<close>
 
+(* TODO Move *)
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
+(* End Move *)
+
+paragraph \<open>Code generation\<close>
+
+subparagraph \<open>Conversion between incomplete and complete mode\<close>
 
 definition trail_fast_of_slow :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>trail_fast_of_slow = id\<close>
@@ -535,7 +579,7 @@ lemma trail_pol_slow_of_fast_trail_slow_of_fast:
     \<in> trail_pol \<rightarrow>\<^sub>f \<langle>trail_pol\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
    (auto simp: trail_pol_def trail_pol_fast_of_slow_def array_option_nat_of_uint32_conv_def
-    trail_fast_of_slow_def array_option_uint32_of_nat_conv_def trail_slow_of_fast_def
+     trail_fast_of_slow_def array_option_uint32_of_nat_conv_def trail_slow_of_fast_def
      trail_pol_slow_of_fast_def)
 
 lemma trail_fast_of_slow_hnr[sepref_fr_rules]:
@@ -550,6 +594,9 @@ definition counts_maximum_level where
 lemma counts_maximum_level_None[simp]: \<open>counts_maximum_level M None = Collect (\<lambda>_. True)\<close>
   by (auto simp: counts_maximum_level_def)
 
+
+
+subparagraph \<open>Level of a literal\<close>
 
 context isasat_input_bounded
 begin
@@ -694,6 +741,9 @@ prepare_code_thms (in -) get_level_fast_code_def
 lemmas get_level_fast_code_get_level_code[sepref_fr_rules] =
    get_level_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
+
+subparagraph \<open>Current level\<close>
+
 definition (in -) count_decided_pol where
   \<open>count_decided_pol = (\<lambda>(_, _, _, _, k, _). k)\<close>
 
@@ -718,14 +768,7 @@ lemmas count_decided_trail_fast_code[sepref_fr_rules] =
    count_decided_trail_fast[FCOMP count_decided_trail_ref]
 
 
-paragraph \<open>Value of a literal\<close>
-
-definition (in -) invert_pol where
-  \<open>invert_pol b L =
-    (case b of
-       None \<Rightarrow> UNSET
-     | Some v \<Rightarrow> if is_pos L then (Some v)
-       else (Some (\<not>v)))\<close>
+subparagraph \<open>Polarity\<close>
 
 definition (in -) polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
   \<open>polarity_pol = (\<lambda>(M, xs, lvls, k) L. do {
@@ -783,7 +826,7 @@ proof -
   have 2: \<open>(uncurry polarity_pol, uncurry (RETURN oo polarity)) \<in>
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trail_pol \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI)
-      (auto simp: trail_pol_def polarity_def polarity_pol_def invert_pol_def
+      (auto simp: trail_pol_def polarity_def polarity_pol_def
         dest!: multi_member_split)
   show ?slow
     using polarity_pol_code.refine[FCOMP 2, OF isasat_input_bounded_axioms] by simp
@@ -793,6 +836,8 @@ qed
 
 end
 
+
+subparagraph \<open>Consign elements\<close>
 
 context isasat_input_bounded
 begin
@@ -898,6 +943,8 @@ proof -
     by (auto simp: uint32_max_def)
 qed
 
+(* 
+TODO This should be useless. Commented out to check later
 definition (in -) get_pol where
   \<open>get_pol L = Some (is_pos L)\<close>
 
@@ -931,13 +978,13 @@ proof -
   show ?thesis
     unfolding get_pol_code_def get_pol_def
     by sepref_to_hoare
-     (sep_auto simp: invert_pol_def
+     (sep_auto simp:
         tri_bool_ref_def unat_lit_rel_def uint32_nat_rel_def
         br_def nat_lit_rel_def lit_of_natP_def
         tri_bool_assn_def pure_app_eq
         Collect_eq_comp
         split: option.splits if_splits)
-qed
+qed *)
 
 sepref_thm cons_trail_Propagated_tr_code
   is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
@@ -945,7 +992,7 @@ sepref_thm cons_trail_Propagated_tr_code
         atm_of L < length lvls \<and> atm_of L < length reasons]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
   unfolding cons_trail_Propagated_tr_def cons_trail_Propagated_tr_def
-    get_pol_def[symmetric] SET_TRUE_def[symmetric] SET_FALSE_def[symmetric]
+    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -965,7 +1012,7 @@ sepref_thm cons_trail_Propagated_tr_fast_code
         atm_of L < length lvls \<and> atm_of L < length reasons]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   unfolding cons_trail_Propagated_tr_def cons_trail_Propagated_tr_def
-    get_pol_def[symmetric] SET_TRUE_def[symmetric] SET_FALSE_def[symmetric]
+    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1553,6 +1600,8 @@ proof -
 qed
 
 
+subparagraph \<open>Setting a new literal\<close>
+
 definition cons_trail_Decided :: \<open>nat literal \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>cons_trail_Decided L M' = Decided L # M'\<close>
 
@@ -1580,7 +1629,7 @@ sepref_thm cons_trail_Decided_tr_code
       Suc k \<le> uint_max \<and> length M \<le> uint32_max]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
   unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def one_uint32_nat_def[symmetric]
-    get_pol_def[symmetric] SET_TRUE_def[symmetric] SET_FALSE_def[symmetric]
+    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1601,7 +1650,7 @@ sepref_thm cons_trail_Decided_tr_fast_code
       Suc k \<le> uint_max \<and> length M \<le> uint32_max]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def one_uint32_nat_def[symmetric]
-    get_pol_def[symmetric] SET_TRUE_def[symmetric] SET_FALSE_def[symmetric]
+    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1673,9 +1722,12 @@ proof -
     using H unfolding im pre .
 qed
 
+
+subparagraph \<open>Polarity: Defined or Undefined\<close>
+
+(* TODO Move *)
 lemma (in -) nat_of_uint32_mult_le:
    \<open>nat_of_uint32 ai * nat_of_uint32 bi \<le> uint_max \<Longrightarrow>
-       (a, b) \<Turnstile> emp \<Longrightarrow>
        nat_of_uint32 (ai * bi) = nat_of_uint32 ai * nat_of_uint32 bi\<close>
   apply transfer
   by (auto simp: unat_word_ariths uint_max_def)
@@ -1685,6 +1737,7 @@ lemma (in -) uint32_nat_assn_mult:
       uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_mult_le)
+(* End Move *)
 
 definition (in -) defined_atm_pol where
   \<open>defined_atm_pol = (\<lambda>(M, xs, lvls, k) L. do {
@@ -1767,6 +1820,9 @@ lemma undefined_atm_fast_code_ref[sepref_fr_rules]:
       bool_assn\<close>
   using undefined_atm_fast_code_refine[FCOMP undefined_atm_code] .
 end
+
+
+subparagraph \<open>Reasons\<close>
 
 definition get_propagation_reason :: \<open>('v, 'mark) ann_lits \<Rightarrow> 'v literal \<Rightarrow> 'mark option nres\<close> where
   \<open>get_propagation_reason M L = SPEC(\<lambda>C. C \<noteq> None \<longrightarrow> Propagated L (the C) \<in> set M)\<close>

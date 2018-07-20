@@ -12,11 +12,17 @@ automatically by a C compiler (see paragraph on Cadical below).
 
 While this has some advantages from a performance point of view compared to an array of arrays, it
 allows to emulate pointers to the middle of array with extra information put before the pointer.
+This is an optimisation that is considered as important (at least according to Armin Biere).
 
 In Cadical, the representation is done that way although it is implicit by putting an array into a
 structure (and rely on UB behaviour to make sure that the array is ``inlined'' into the structure).
 Cadical also uses another trick: the array is but inside a union. This union contains either the
-clause or a pointer to the new position if it has been moved (during GC-ing).
+clause or a pointer to the new position if it has been moved (during GC-ing). There is no
+way for us to do so in a type-safe manner that works both for \<^typ>\<open>uint64\<close> and \<^typ>\<open>nat\<close> (unless we
+know some details of the implementation). For \<^typ>\<open>uint64\<close>, we could use the space used by the
+headers. However, it is not clear if we want to do do, since the behaviour would change between the
+two types, making a comparison impossible. This means that half of the blocking literals will be
+lost (if we iterate over the watch lists) or all (if we iterate over the clauses directly).
 
 The order in memory is in the following order:
   \<^enum> the saved position (is optional in cadical);
@@ -33,7 +39,7 @@ Remark that the information can be compressed to reduce the size in memory:
   \<^enum> the activity is not kept by cadical (to use instead a MTF-like scheme).
 
 As we are already wasteful with memory, we implement the first optimisation. Point two can be
-implemented automatically by a C compiler.
+implemented automatically by a (non-standard-compliant) C compiler.
 
 
 In our case, the refinement is done in two steps:
@@ -41,16 +47,18 @@ In our case, the refinement is done in two steps:
     For type safety, we introduce a datatype that enumerates all possible kind of elements.
   \<^enum> Then, we refine all these elements to uint32 elements.
 
-
 In our formalisation, we distinguish active clauses (clauses that are not marked to be deleted) from
 dead clauses (that have been marked to be deleted but can still be accessed). Any dead clause can be
 removed from the addressable clauses (\<^term>\<open>vdom\<close> for virtual domain).
 
 Remark that in our formalisation, we don't (at least not yet) plan to reuse freed spaces
-(the predicate about dead clauses must be strengthened in that case).
+(the predicate about dead clauses must be strengthened in that case). Due to the fact that an arena
+is very different from an array of clauses, we refine our data structure by hand to the long list
+instead of introducing refinement rules. This is mostly done because iteration is very different
+(and it does not change what we had before anyway).
 
 Some technical details: due to the fact that we plan to refine the arena to uint32 and that our
-clauses can contains duplicates, the size does not fit into uint32 (technically, we have the bound
+clauses can be tautologies, the size does not fit into uint32 (technically, we have the bound
 \<^term>\<open>uint32_max +1\<close>). Therefore, we restrict the clauses to have at least length 2 and we keep
 \<^term>\<open>length C - 2\<close> instead of \<^term>\<open>length C\<close>.
 \<close>
@@ -108,11 +116,42 @@ lemma mset_tl_delete_index_and_swap:
     (auto simp: hd_butlast hd_list_update_If mset_butlast_remove1_mset
       mset_update last_list_update_to_last ac_simps)
 
+text \<open>TODO this should go to a different place from the previous lemmas, since it concerns
+\<^term>\<open>Misc.slice\<close>, which is not part of \<^theory>\<open>HOL.List\<close> but only part of the Refinement Framework.
+\<close>
+lemma slice_nth:
+  \<open>\<lbrakk>from \<le> length xs; i < to - from\<rbrakk> \<Longrightarrow> Misc.slice from to xs ! i = xs ! (from + i)\<close>
+  unfolding slice_def Misc.slice_def
+  apply (subst nth_take, assumption)
+  apply (subst nth_drop, assumption)
+  ..
+
+lemma slice_irrelevant[simp]:
+  \<open>i < from \<Longrightarrow> Misc.slice from to (xs[i := C]) = Misc.slice from to xs\<close>
+  \<open>i \<ge> to \<Longrightarrow> Misc.slice from to (xs[i := C]) = Misc.slice from to xs\<close>
+  \<open>i \<ge> to \<or> i < from \<Longrightarrow> Misc.slice from to (xs[i := C]) = Misc.slice from to xs\<close>
+  unfolding Misc.slice_def apply auto
+  by (metis drop_take take_update_cancel)+
+
+lemma slice_update_swap[simp]:
+  \<open>i < to \<Longrightarrow> i \<ge> from \<Longrightarrow> i < length xs \<Longrightarrow>
+     Misc.slice from to (xs[i := C]) = (Misc.slice from to xs)[(i - from) := C]\<close>
+  unfolding Misc.slice_def by (auto simp: drop_update_swap)
+
+lemma drop_slice[simp]:
+  \<open>drop n (Misc.slice from to xs) = Misc.slice (from + n) to xs\<close> for "from" n to xs
+    by (auto simp: Misc.slice_def drop_take ac_simps)
+
+lemma take_slice[simp]:
+  \<open>take n (Misc.slice from to xs) = Misc.slice from (min to (from + n)) xs\<close> for "from" n to xs
+  using antisym_conv by (fastforce simp: Misc.slice_def drop_take ac_simps min_def)
+
 (* End Move *)
 
 
 subsubsection \<open>Status of a clause\<close>
 
+(* TODO INIT \<leadsto> IRRED *)
 datatype clause_status = INIT | LEARNED | DELETED
 
 instance clause_status :: heap
@@ -164,13 +203,13 @@ definition SIZE_SHIFT :: nat where
   \<open>SIZE_SHIFT = 1\<close>
 
 definition is_short_clause where
-\<open>is_short_clause C \<longleftrightarrow> length C \<le> 5\<close>
+  \<open>is_short_clause C \<longleftrightarrow> length C \<le> 5\<close>
 
 abbreviation is_long_clause where
-\<open>is_long_clause C \<equiv> \<not>is_short_clause C\<close>
+  \<open>is_long_clause C \<equiv> \<not>is_short_clause C\<close>
 
 definition header_size :: \<open>nat clause_l \<Rightarrow> nat\<close> where
-\<open>header_size C = (if is_short_clause C then 4 else 5)\<close>
+   \<open>header_size C = (if is_short_clause C then 4 else 5)\<close>
 
 lemmas SHIFTS_def = POS_SHIFT_def STATUS_SHIFT_def ACTIVITY_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
 
@@ -186,7 +225,6 @@ lemma arena_shift_distinct:
   \<open>i >  4 \<Longrightarrow> i - LBD_SHIFT \<noteq> i - POS_SHIFT\<close>
   \<open>i >  4 \<Longrightarrow> i - ACTIVITY_SHIFT \<noteq> i - POS_SHIFT\<close>
   \<open>i >  4 \<Longrightarrow> i - STATUS_SHIFT \<noteq> i - POS_SHIFT\<close>
-
 
   \<open>i >  3 \<Longrightarrow> j >  3 \<Longrightarrow> i - SIZE_SHIFT = j - SIZE_SHIFT \<longleftrightarrow> i = j\<close>
   \<open>i >  3 \<Longrightarrow> j >  3 \<Longrightarrow> i - LBD_SHIFT = j - LBD_SHIFT \<longleftrightarrow> i = j\<close>
@@ -226,7 +264,6 @@ datatype arena_el =
   is_Status: AStatus (xarena_status: clause_status)
 
 type_synonym arena = \<open>arena_el list\<close>
-
 
 definition xarena_active_clause :: \<open>arena \<Rightarrow> nat clause_l \<times> bool \<Rightarrow> bool\<close> where
   \<open>xarena_active_clause arena = (\<lambda>(C, red).
@@ -268,7 +305,8 @@ proof -
     by meson
 qed
 
-text \<open>The extra information is required to prove ``separation'' between active and dead clauses.\<close>
+text \<open>The extra information is required to prove ``separation'' between active and dead clauses. And
+it is true anyway and does not require any extra work to prove.\<close>
 definition arena_dead_clause :: \<open>arena \<Rightarrow> bool\<close> where
   \<open>arena_dead_clause arena \<longleftrightarrow>
      is_Status(arena!(4 - STATUS_SHIFT)) \<and> xarena_status(arena!(4 - STATUS_SHIFT)) = DELETED \<and>
@@ -315,34 +353,6 @@ definition arena_pos where
 
 definition arena_lit where
   \<open>arena_lit arena i = xarena_lit (arena!i)\<close>
-
-(* TODO Move to replace @{thm slice_nth} *)
-lemma slice_nth: "\<lbrakk>from \<le> length xs; i < to - from \<rbrakk> \<Longrightarrow> Misc.slice from to xs ! i = xs ! (from + i)"
-  unfolding slice_def Misc.slice_def
-  apply (subst nth_take, assumption)
-  apply (subst nth_drop, assumption)
-  ..
-
-lemma slice_irrelevant[simp]:
-  \<open>i < from \<Longrightarrow> Misc.slice from to (xs[i := C]) = Misc.slice from to xs\<close>
-  \<open>i >= to \<Longrightarrow> Misc.slice from to (xs[i := C]) = Misc.slice from to xs\<close>
-  \<open>i >= to \<or> i < from \<Longrightarrow> Misc.slice from to (xs[i := C]) = Misc.slice from to xs\<close>
-  unfolding Misc.slice_def apply auto
-  by (metis drop_take take_update_cancel)+
-
-lemma slice_update_swap[simp]:
-  \<open>i < to \<Longrightarrow> i \<ge> from \<Longrightarrow> i < length xs \<Longrightarrow>
-     Misc.slice from to (xs[i := C]) = (Misc.slice from to xs)[(i - from) := C]\<close>
-  unfolding Misc.slice_def by (auto simp: drop_update_swap)
-
-lemma drop_slice[simp]:
-  \<open>drop n (Misc.slice from to xs) = Misc.slice (from + n) to xs\<close> for "from" n to xs
-    by (auto simp: Misc.slice_def drop_take ac_simps)
-
-lemma take_slice[simp]:
-  \<open>take n (Misc.slice from to xs) = Misc.slice from (min to (from + n)) xs\<close> for "from" n to xs
-  using antisym_conv by (fastforce simp: Misc.slice_def drop_take ac_simps min_def)
-(* End Move *)
 
 
 subsubsection \<open>Separation properties\<close>
@@ -1320,7 +1330,7 @@ proof -
   then have \<open>dead_clause_slice (arena) N ia = dead_clause_slice (append_clause b C arena) N ia\<close>
     by (auto simp add: extra_information_mark_to_delete_def drop_update_swap append_clause_def
       arena_dead_clause_def swap_lits_def SHIFTS_def swap_def ac_simps
-       Misc.slice_def header_size_def split: if_splits)  
+       Misc.slice_def header_size_def split: if_splits)
   then show ?thesis
     using assms by simp
 qed
@@ -1429,7 +1439,7 @@ proof -
       xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>
     using valid unfolding valid_arena_def
     by blast+
-  
+
   have
     i_le: \<open>i < length arena\<close> and
     i_ge: \<open>header_size (N \<propto> i) \<le> i\<close> and
@@ -1478,7 +1488,7 @@ proof -
     using i_le i_ge size' size ge2 HH unfolding numeral_2_eq_2
     by (simp_all split:)
 
-  show 
+  show
     \<open>i \<ge> header_size (N \<propto> i)\<close> and
     \<open>i < length arena\<close>
     using i_le i_ge by auto
@@ -1487,7 +1497,7 @@ proof -
     for j
     using arg_cong[OF clause, of \<open>\<lambda>xs. xs ! j\<close>] i_le i_ge that
     by (auto simp: slice_nth arena_lit_def)
-  
+
   show i_le_arena: \<open>i + length (N \<propto> i) \<le> length arena\<close>
     using arg_cong[OF clause, of length] i_le i_ge
     by (auto simp: arena_lit_def slice_len_min_If)
@@ -1508,7 +1518,7 @@ qed
 
 text \<open>This is supposed to be used as for assertions. There might be a more ``local'' way to define
 it, without the need for an existentially quantified clause set. However, I did not find a definition
-which was really much more useful and practical.
+which was really much more useful and more practical.
 \<close>
 definition arena_is_valid_clause_idx :: \<open>arena \<Rightarrow> nat \<Rightarrow> bool\<close> where
 \<open>arena_is_valid_clause_idx arena i \<longleftrightarrow>
@@ -1516,7 +1526,6 @@ definition arena_is_valid_clause_idx :: \<open>arena \<Rightarrow> nat \<Rightar
 
 
 subsubsection \<open>Code Generation\<close>
-
 
 definition uint64_of_uint32_conv :: \<open>nat \<Rightarrow> nat\<close> where
   [simp]: \<open>uint64_of_uint32_conv x = x\<close>
@@ -1536,9 +1545,10 @@ lemma nat_of_uint64_uint64_of_uint32: \<open>nat_of_uint64 (uint64_of_uint32 n) 
   by (auto simp: nat_of_uint64_uint64_of_nat_id nat_of_uint32_le_uint64_max)
 
 lemma uint64_of_uint32_hnr[sepref_fr_rules]:
-  \<open>(return o uint64_of_uint32, RETURN o uint64_of_uint32_conv) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: br_def uint64_of_uint32_conv_def
-     uint32_nat_rel_def uint64_nat_rel_def nat_of_uint32_code nat_of_uint64_uint64_of_uint32)
+  \<open>(return o uint64_of_uint32, RETURN o uint64_of_uint32_conv) \<in>
+    uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def uint64_nat_rel_def
+      nat_of_uint32_code nat_of_uint64_uint64_of_uint32)
 
 definition isa_arena_length where
   \<open>isa_arena_length arena i = do {
@@ -1565,11 +1575,13 @@ lemma arena_el_assn_alt_def:
 lemma arena_el_comp: \<open>hn_val (uint32_nat_rel O arena_el_rel) = hn_ctxt arena_el_assn\<close>
   by (auto simp: hn_ctxt_def arena_el_assn_alt_def)
 
+(* TODO Move *)
 lemma sum_uint64_assn:
   \<open>(uncurry (return oo (+)), uncurry (RETURN oo (+))) \<in> uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by (sepref_to_hoare) sep_auto
+(* End Move *)
 
-sepref_definition isa_arena_length_code 
+sepref_definition isa_arena_length_code
   is \<open>uncurry isa_arena_length\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   supply arena_el_assn_alt_def[symmetric, simp] sum_uint64_assn[sepref_fr_rules]
@@ -1577,7 +1589,7 @@ sepref_definition isa_arena_length_code
   by sepref
 
 lemma arena_length_uint64_conv:
-  assumes 
+  assumes
     a: \<open>(a, aa) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
     ba: \<open>ba \<in># dom_m N\<close> and
     valid: \<open>valid_arena aa N vdom\<close>
@@ -1602,7 +1614,7 @@ proof -
 qed
 
 lemma isa_arena_length_arena_length:
-  \<open>(uncurry (isa_arena_length), uncurry (RETURN oo arena_length)) \<in> 
+  \<open>(uncurry (isa_arena_length), uncurry (RETURN oo arena_length)) \<in>
     [uncurry arena_is_valid_clause_idx]\<^sub>f
      \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>uint64_nat_rel\<rangle>nres_rel\<close>
   unfolding isa_arena_length_def arena_length_def
@@ -1613,7 +1625,7 @@ lemma isa_arena_length_arena_length:
 
 lemma isa_arena_length_code_refine[sepref_fr_rules]:
   \<open>(uncurry isa_arena_length_code, uncurry (RETURN \<circ>\<circ> arena_length))
-  \<in> [uncurry arena_is_valid_clause_idx]\<^sub>a 
+  \<in> [uncurry arena_is_valid_clause_idx]\<^sub>a
     arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
   using isa_arena_length_code.refine[FCOMP isa_arena_length_arena_length]
   unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp
@@ -1638,7 +1650,7 @@ lemma [sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: SIZE_SHIFT_def uint32_nat_rel_def unat_lit_rel_def
     arena_el_rel_def br_def hr_comp_def split: arena_el.splits)
 
-sepref_definition isa_arena_lit_code 
+sepref_definition isa_arena_lit_code
   is \<open>uncurry isa_arena_lit\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
   supply arena_el_assn_alt_def[symmetric, simp] sum_uint64_assn[sepref_fr_rules]
@@ -1646,7 +1658,7 @@ sepref_definition isa_arena_lit_code
   by sepref
 
 lemma arena_length_literal_conv:
-  assumes 
+  assumes
     valid: \<open>valid_arena arena N x\<close> and
     j: \<open>j \<in># dom_m N\<close> and
     ba_le: \<open>ba - j < arena_length arena j\<close> and
@@ -1688,7 +1700,7 @@ definition (in -) arena_lit_pre where
   (\<exists>j. i \<ge> j \<and> arena_is_valid_clause_idx_and_access arena j (i - j))\<close>
 
 lemma isa_arena_lit_arena_lit:
-  \<open>(uncurry (isa_arena_lit), uncurry (RETURN oo arena_lit)) \<in> 
+  \<open>(uncurry (isa_arena_lit), uncurry (RETURN oo arena_lit)) \<in>
     [uncurry arena_lit_pre]\<^sub>f
      \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>unat_lit_rel\<rangle>nres_rel\<close>
   unfolding isa_arena_lit_def arena_lit_def
@@ -1701,7 +1713,7 @@ lemma isa_arena_lit_arena_lit:
 
 lemma isa_arena_lit_code_refine[sepref_fr_rules]:
   \<open>(uncurry isa_arena_lit_code, uncurry (RETURN \<circ>\<circ> arena_lit))
-  \<in> [uncurry arena_lit_pre]\<^sub>a 
+  \<in> [uncurry arena_lit_pre]\<^sub>a
     arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   using isa_arena_lit_code.refine[FCOMP isa_arena_lit_arena_lit]
   unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp

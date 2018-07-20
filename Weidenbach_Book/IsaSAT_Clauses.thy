@@ -2,6 +2,7 @@ theory IsaSAT_Clauses
 imports  Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT_Arena
 begin
 
+(* TODO This file should probably be merge with IsaSAT_Arena*)
 
 subsubsection \<open>Representation of Clauses\<close>
 
@@ -50,7 +51,7 @@ lemma nth_raa_hnr':
   shows
     \<open>(uncurry2 (\<lambda>(N, _) j k. nth_raa N j k), uncurry2 (RETURN \<circ>\<circ>\<circ> (\<lambda>(N, _) i. Array_List_Array.nth_rll N i))) \<in>
        [\<lambda>(((l, _),i),j). i < length l \<and> j < length_rll l i]\<^sub>a
-       (arlO_assn (array_assn R) *a GG )\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
+       (arlO_assn (array_assn R) *a GG)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
   using assms
   by sepref_to_hoare  sep_auto
 (* 

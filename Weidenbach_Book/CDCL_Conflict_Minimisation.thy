@@ -1746,7 +1746,7 @@ definition (in -) conflict_min_cach_l :: \<open>conflict_min_cach_l \<Rightarrow
   \<open>conflict_min_cach_l = (\<lambda>(cach, sup) L. do {
      ASSERT(L < length cach);
      RETURN (cach ! L)
-   })\<close>
+  })\<close>
 
 sepref_definition (in -) conflict_min_cach_l_code
   is \<open>uncurry conflict_min_cach_l\<close>
@@ -1840,7 +1840,8 @@ definition mark_failed_lits_stack_inv where
   \<open>mark_failed_lits_stack_inv NU analyse = (\<lambda>cach.
        (\<forall>(i, j) \<in> set analyse. j \<le> length (NU \<propto> i) \<and> i \<in># dom_m NU \<and> j \<ge> 1 \<and> i > 0))\<close>
 
-
+text \<open>We mark all the literals from the current literal stack as failed, since every minimisation
+call will find the same minimisation problem.\<close>
 definition (in isasat_input_ops) mark_failed_lits_stack where
   \<open>mark_failed_lits_stack NU analyse cach = do {
     ( _, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, cach). mark_failed_lits_stack_inv NU analyse cach\<^esup>
@@ -1852,7 +1853,7 @@ definition (in isasat_input_ops) mark_failed_lits_stack where
         RETURN (i+1, cach (atm_of (NU \<propto> cls_idx ! (idx - 1)) := SEEN_FAILED))
       })
       (0, cach);
-   RETURN cach
+    RETURN cach
    }\<close>
 
 lemma mark_failed_lits_stack_mark_failed_lits_wl:
