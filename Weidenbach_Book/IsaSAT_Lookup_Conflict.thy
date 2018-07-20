@@ -1,10 +1,10 @@
 theory IsaSAT_Lookup_Conflict
   imports Watched_Literals.Watched_Literals_Watch_List_Domain
     Watched_Literals.Watched_Literals_Watch_List_Code_Common
-    IsaSAT_Trail
-    CDCL_Conflict_Minimisation
-    LBD
-    IsaSAT_Clauses
+    IsaSAT.IsaSAT_Trail
+    IsaSAT.CDCL_Conflict_Minimisation
+    IsaSAT.LBD
+    IsaSAT.IsaSAT_Clauses
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -12,12 +12,36 @@ no_notation Ref.update ("_ := _" 62)
 
 subsubsection \<open>Clauses Encoded as Positions\<close>
 
-inductive mset_as_position :: \<open>bool option list \<Rightarrow> nat literal multiset \<Rightarrow> bool\<close>where
+text \<open>We use represent the conflict in two data structures close to the one used by the most SAT
+solvers: We keep an array that represent the clause (for efficient iteration on the clause) and a
+``hash-table'' to efficiently test if a literal belongs to the clause.
+
+The first data structure is simply an array to represent the clause. This theory is only about
+the second data structure. We refine it from the clause (seen as a  multiset) in two steps:
+  \<^enum> First, we represent the clause as a ``hash-table'', where the \<^term>\<open>i\<close>-th position indicates
+    \<^term>\<open>Some True\<close> (respectively \<^term>\<open>Some False\<close>, \<^term>\<open>None\<close>) if \<^term>\<open>Pos i\<close> is present in the
+    clause (respectively \<^term>\<open>Neg i\<close>, not at all). This allows to represent every not-tautological
+    clause whose literals fits in the underlying array.
+  \<^enum> Then we refine it to an array of booleans indicating if the atom is present or not. This
+    information is redundant because we already know that a literal can only appear negated
+    compared to the trail.
+
+The first step makes it easier to reason about the clause (since we have the full clause), while the
+second step should generate (slightly) more efficient code.
+
+Most solvers also merge the underlying array with the array used to cache information for the
+conflict minimisation (see theory \<^theory>\<open>IsaSAT.CDCL_Conflict_Minimisation\<close>).
+
+As far as we know, versat stops at the first refinement (stating that there is no significant
+overhead, which is probably true, but the second refinement is not much additional work anyhow and
+we don't have to rely on the ability of the compiler to not represent the option type as a pointer).
+\<close>
+inductive mset_as_position :: \<open>bool option list \<Rightarrow> nat literal multiset \<Rightarrow> bool\<close> where
 empty:
   \<open>mset_as_position (replicate n None) {#}\<close> |
 add:
   \<open>mset_as_position xs' (add_mset L P)\<close>
-   if \<open>mset_as_position xs P\<close> \<open>atm_of L < length xs\<close> and \<open>L \<notin># P\<close> and \<open>-L \<notin># P\<close> and
+  if \<open>mset_as_position xs P\<close> and \<open>atm_of L < length xs\<close> and \<open>L \<notin># P\<close> and \<open>-L \<notin># P\<close> and
      \<open>xs' = xs[atm_of L := Some (is_pos L)]\<close>
 
 lemma mset_as_position_distinct_mset:

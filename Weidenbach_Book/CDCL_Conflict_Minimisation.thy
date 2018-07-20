@@ -5,8 +5,36 @@ theory CDCL_Conflict_Minimisation
     IsaSAT_Trail \<comment>\<open>Required to get the reason of a propagation\<close>
 begin
 
-no_notation Ref.update ("_ := _" 62)
+text \<open>We implement the conflict minimisation as presented by Sörensson and Biere
+(``Minimizing Learned Clauses''').
 
+We refer to the paper for further details, but the general idea is to produce a series of resolution
+steps such that eventually (i.e., after enough resolution steps) no new literals has been introduced
+in the conflict clause.
+
+The resolution steps are only done with the reasons of the of literals
+appearing in the trail. Hence these steps are terminating: we are ``shortening'' the trail we have
+to consider with each resolution step. Remark that the shortening refers to the length of the trail
+we have to consider, not the levels.
+
+The concrete proof was harder than we initially expected. Our first proof try was to certify the 
+resolution steps. While this worked out, adding caching on top of that turned to be rather hard,
+since it is not obvious how to add resolution steps in the middle of the current proof if the
+literal has already been removed (basically we would have to prove termination and confluence of the
+rewriting system).
+Therefore, we worked instead directly on the entailment of the literals of the conflict clause
+(up to the point in the trail we currently considering, which is also the termination measure).
+The previous try is still present in our formalisation (see \<^term>\<open>minimize_conflict_support\<close>, which
+we however mostly use for the termination proof).
+
+The algorithm presented above does not distinguish between literals propagated at the same level:
+we cannot reuse information about failures to cut branches. There is a variant of the algorithm
+presented above that is able to do so (Van Gelder, ``Improved Conflict-Clause Minimization
+Leads to Improved Propositional Proof Traces''). The algorithm is however more complicated and has
+only be implemented in very few solvers (at least lingeling and cadical) and is especially not part
+of glucose. Therefore, we have decided to not implement it: It is probably not worth it and requires
+some additional data structures.
+\<close>
 declare cdcl\<^sub>W_restart_mset_state[simp]
 
 type_synonym out_learned = \<open>nat clause_l\<close>
@@ -16,6 +44,10 @@ type_synonym out_learned_assn = \<open>uint32 array_list\<close>
 abbreviation out_learned_assn :: \<open>out_learned \<Rightarrow> out_learned_assn \<Rightarrow> assn\<close> where
   \<open>out_learned_assn \<equiv> arl_assn unat_lit_assn\<close>
 
+text \<open>The data structure contains the (unique) literal of highest at position one. This is useful
+since this is what we want to have at the end (propagation clause) and we can skip the first
+literal when minimising the clause.
+\<close>
 definition out_learned :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause option \<Rightarrow> out_learned \<Rightarrow> bool\<close> where
   \<open>out_learned M D out \<longleftrightarrow>
      out \<noteq> [] \<and>
@@ -94,6 +126,7 @@ proof -
   qed
 qed
 
+text \<open>This predicate corresponds to one resolution step.\<close>
 inductive minimize_conflict_support :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close>
   for M where
 resolve_propa:
@@ -105,6 +138,8 @@ remdups: \<open>minimize_conflict_support M (add_mset L C) C\<close>
 lemma index_in_trail_uminus[simp]: \<open>index_in_trail M (-L) = index_in_trail M L\<close>
   by (auto simp: index_in_trail_def)
 
+text \<open>This is the termination argument of the conflict minimisation: the multiset of the levels
+decreases (for the multiset ordering).\<close>
 definition minimize_conflict_support_mes :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> nat multiset\<close>
 where
   \<open>minimize_conflict_support_mes M C = index_in_trail M `# C\<close>
@@ -217,6 +252,8 @@ proof -
   qed
 qed
 
+text \<open>This function filters the clause by the levels up the level of the given literal. This is
+the part the conflict clause that is considered when testing if the given literal is redundant.\<close>
 definition filter_to_poslev where
   \<open>filter_to_poslev M L D = filter_mset (\<lambda>K. index_in_trail M K < index_in_trail M L) D\<close>
 
@@ -413,30 +450,30 @@ where
             ASSERT(-fst (hd analyse) \<in> lits_of_l M);
             if snd (hd analyse) = {#}
             then
-               RETURN(cach (atm_of (fst (hd analyse)) := SEEN_REMOVABLE), tl analyse, True)
+              RETURN(cach (atm_of (fst (hd analyse)) := SEEN_REMOVABLE), tl analyse, True)
             else do {
-               (L, analyse) \<leftarrow> get_literal_and_remove_of_analyse analyse;
-               ASSERT(-L \<in> lits_of_l M);
-               b \<leftarrow> RES UNIV;
-               if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
-               then RETURN (cach, analyse, False)
-               else if b \<or> cach (atm_of L) = SEEN_FAILED
-               then do {
-                  cach \<leftarrow> mark_failed_lits NU analyse cach;
-                  RETURN (cach, [], False)
-               }
-               else do {
-                  C \<leftarrow> get_propagation_reason M (-L);
-                  case C of
-                    Some C \<Rightarrow> RETURN (cach, (L, C - {#-L#}) # analyse, False)
-                  | None \<Rightarrow> do {
-                      cach \<leftarrow> mark_failed_lits NU analyse cach;
-                      RETURN (cach, [], False)
-                  }
+              (L, analyse) \<leftarrow> get_literal_and_remove_of_analyse analyse;
+              ASSERT(-L \<in> lits_of_l M);
+              b \<leftarrow> RES UNIV;
+              if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
+              then RETURN (cach, analyse, False)
+              else if b \<or> cach (atm_of L) = SEEN_FAILED
+              then do {
+                 cach \<leftarrow> mark_failed_lits NU analyse cach;
+                 RETURN (cach, [], False)
               }
+              else do {
+                 C \<leftarrow> get_propagation_reason M (-L);
+                 case C of
+                   Some C \<Rightarrow> RETURN (cach, (L, C - {#-L#}) # analyse, False)
+                 | None \<Rightarrow> do {
+                     cach \<leftarrow> mark_failed_lits NU analyse cach;
+                     RETURN (cach, [], False)
+                 }
+            }
           }
         })
-       (cach, analysis, False)\<close>
+        (cach, analysis, False)\<close>
 
 definition lit_redundant_rec_spec where
   \<open>lit_redundant_rec_spec M NU D L =
@@ -630,7 +667,7 @@ proof -
       using stack_hd unfolding analysis by auto
 
     have NU_D: \<open>?N \<Turnstile>pm add_mset (- fst (hd analysis)) (filter_to_poslev M (fst (hd analysis)) D)\<close>
-      using conflict_minimize_intermediate_step_filter_to_poslev[OF _ NU_C _, simplified, OF index_K]
+      using conflict_minimize_intermediate_step_filter_to_poslev[OF _ NU_C, simplified, OF index_K]
         IH
       unfolding analysis by auto
     have ana': \<open>conflict_min_analysis_stack M ?N D (tl analysis)\<close>
