@@ -1,34 +1,8 @@
 theory IsaSAT_Trail
-imports Watched_Literals.Watched_Literals_Watch_List_Code_Common
+imports Watched_Literals.Watched_Literals_Watch_List_Code_Common Show.Show_Instances
 begin
 
 (* TODO Move *)
-lemma list_rel_take:
-  \<open>(ba, ab) \<in> \<langle>A\<rangle>list_rel \<Longrightarrow> (take b ba, take b ab) \<in> \<langle>A\<rangle>list_rel\<close>
-  by (auto simp: list_rel_def)
-
-text \<open>
-  This function does not resize the array: this makes sense for our purpose, but may be not in
-  general.\<close>
-definition butlast_arl where
-  \<open>butlast_arl = (\<lambda>(xs, i). (xs, fast_minus i 1))\<close>
-
-lemma butlast_arl_hnr[sepref_fr_rules]:
-  \<open>(return o butlast_arl, RETURN o butlast) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl_assn A)\<^sup>d \<rightarrow> arl_assn A\<close>
-proof -
-  have [simp]: \<open>b \<le> length l' \<Longrightarrow> (take b l', x) \<in> \<langle>the_pure A\<rangle>list_rel \<Longrightarrow>
-     (take (b - Suc 0) l', take (length x - Suc 0) x) \<in> \<langle>the_pure A\<rangle>list_rel\<close>
-    for b l' x
-    using list_rel_take[of \<open>take b l'\<close> x \<open>the_pure A\<close> \<open>b -1\<close>]
-    by (auto simp: list_rel_imp_same_length[symmetric]
-      butlast_conv_take min_def
-      simp del: take_butlast_conv)
-  show ?thesis
-    by sepref_to_hoare
-      (sep_auto simp: butlast_arl_def arl_assn_def hr_comp_def is_array_list_def
-         butlast_conv_take
-        simp del: take_butlast_conv)
-qed
 
 definition nat_of_uint32_conv :: \<open>nat \<Rightarrow> nat\<close> where
 \<open>nat_of_uint32_conv i = i\<close>
@@ -66,7 +40,7 @@ definition op_map :: "('b \<Rightarrow> 'a::default) \<Rightarrow> 'a \<Rightarr
       (\<lambda>(i, zs). do {ASSERT(i < length zs); RETURN (i+1, zs[i := R (xs!i)])})
       (0, zs);
     RETURN zs
-     }\<close>
+  }\<close>
 
 lemma op_map_map: \<open>op_map R e xs \<le> RETURN (map R xs)\<close>
   unfolding op_map_def Let_def
@@ -1042,13 +1016,13 @@ proof -
 
   have H: \<open>(uncurry2 cons_trail_Propagated_tr_fast_code, uncurry2 (RETURN \<circ>\<circ>\<circ> cons_trail_Propagated))
     \<in> [comp_PRE (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_pol)
-     (\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0)
-     (\<lambda>_ ((L, C), (M, xs, lvls, reasons, k)). nat_of_lit L < length xs \<and> nat_of_lit (-L) < length xs \<and>
-        atm_of L < length lvls \<and> atm_of L < length reasons)
-     (\<lambda>_. True)]\<^sub>a hrp_comp
-                     (unat_lit_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d)
-                     (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f
-                      trail_pol) \<rightarrow> hr_comp trail_pol_fast_assn trail_pol\<close>
+      (\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0)
+      (\<lambda>_ ((L, C), (M, xs, lvls, reasons, k)). nat_of_lit L < length xs \<and> nat_of_lit (-L) < length xs \<and>
+         atm_of L < length lvls \<and> atm_of L < length reasons)
+      (\<lambda>_. True)]\<^sub>a hrp_comp
+                      (unat_lit_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d)
+                      (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f
+                       trail_pol) \<rightarrow> hr_comp trail_pol_fast_assn trail_pol\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF cons_trail_Propagated_tr_fast_code.refine cons_trail_Propagated_tr,
         OF isasat_input_bounded_axioms] .
@@ -1089,7 +1063,8 @@ lemma (in -)is_propedE: \<open>is_proped L \<Longrightarrow> (\<And>K C. L = Pro
 
 lemma last_trail_pol_op_list_last:
   \<open>(last_trail_pol, RETURN o op_list_hd) \<in> [\<lambda>M. M \<noteq> []]\<^sub>f trail_pol \<rightarrow>
-     \<langle>{((L, C), L'). (C = None \<longrightarrow> L' = Decided L) \<and> (C \<noteq> None \<longrightarrow> L' = Propagated L (the C))}\<rangle> nres_rel\<close>
+     \<langle>{((L, C), L'). (C = None \<longrightarrow> L' = Decided L) \<and>
+       (C \<noteq> None \<longrightarrow> L' = Propagated L (the C))}\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: trail_pol_def last_trail_pol_def ann_lits_split_reasons_def last_map
       elim!: neq_NilE is_decided_ex_Decided not_is_decidedE
@@ -1116,7 +1091,9 @@ lemma (in -) nat_ann_lit_rel_alt_def: \<open>nat_ann_lit_rel = (unat_lit_rel \<t
 
 type_synonym (in -) ann_lit_wl_uint32 = \<open>uint32 \<times> uint32 option\<close>
 
-abbreviation (in -) pair_nat_ann_lit_uint32_assn :: \<open>(nat, nat) ann_lit \<Rightarrow> ann_lit_wl_uint32 \<Rightarrow> assn\<close> where
+abbreviation (in -) pair_nat_ann_lit_uint32_assn
+  :: \<open>(nat, nat) ann_lit \<Rightarrow> ann_lit_wl_uint32 \<Rightarrow> assn\<close>
+where
   \<open>pair_nat_ann_lit_uint32_assn \<equiv>
     hr_comp (uint32_assn \<times>\<^sub>a option_assn uint32_nat_assn) nat_ann_lit_rel\<close>
 
@@ -1762,7 +1739,8 @@ proof -
        \<open>M' = map lit_of (rev M)\<close> and
        \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length xs \<and> xs ! nat_of_lit L = polarity M L\<close>
       using tr unfolding trail_pol_def ann_lits_split_reasons_def by fast+
-    then have L: \<open>nat_of_lit (Pos L) < length xs\<close> and xsL: \<open>xs ! (nat_of_lit (Pos L)) = polarity M (Pos L)\<close>
+    then have L: \<open>nat_of_lit (Pos L) < length xs\<close> and
+      xsL: \<open>xs ! (nat_of_lit (Pos L)) = polarity M (Pos L)\<close>
       using L_N by (auto dest!: multi_member_split)
     show ?length
       using L by simp
@@ -1779,12 +1757,14 @@ qed
 
 lemma undefined_atm_code_ref[sepref_fr_rules]:
   \<open>(uncurry defined_atm_code, uncurry (RETURN \<circ>\<circ> defined_atm)) \<in>
-     [\<lambda>(a, b). Pos b \<in> snd ` D\<^sub>0]\<^sub>a (hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+     [\<lambda>(a, b). Pos b \<in> snd ` D\<^sub>0]\<^sub>a (hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+     bool_assn\<close>
   using undefined_atm_code_refine[FCOMP undefined_atm_code] .
 
 lemma undefined_atm_fast_code_ref[sepref_fr_rules]:
   \<open>(uncurry defined_atm_fast_code, uncurry (RETURN \<circ>\<circ> defined_atm)) \<in>
-     [\<lambda>(a, b). Pos b \<in> snd ` D\<^sub>0]\<^sub>a (hr_comp trail_pol_fast_assn trail_pol)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+     [\<lambda>(a, b). Pos b \<in> snd ` D\<^sub>0]\<^sub>a (hr_comp trail_pol_fast_assn trail_pol)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+      bool_assn\<close>
   using undefined_atm_fast_code_refine[FCOMP undefined_atm_code] .
 end
 
@@ -1830,7 +1810,8 @@ lemma get_propagation_reason_hnr[sepref_fr_rules]:
 
 lemma get_propagation_reason_fast_hnr[sepref_fr_rules]:
    \<open>(uncurry get_propagation_reason_fast_code, uncurry get_propagation_reason)
-     \<in> [\<lambda>(a, b). b \<in> lits_of_l a]\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn uint32_nat_assn\<close>
+     \<in> [\<lambda>(a, b). b \<in> lits_of_l a]\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>
+        option_assn uint32_nat_assn\<close>
   using get_propagation_reason_fast_code.refine[FCOMP get_propagation_reason_pol] .
 
 end

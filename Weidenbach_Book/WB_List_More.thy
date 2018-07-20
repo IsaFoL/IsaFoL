@@ -9,11 +9,10 @@ text \<open>More Sledgehammer parameters\<close>
 
 section \<open>Various Lemmas\<close>
 
-
 subsection \<open>Not-Related to Refinement or lists\<close>
 
 text \<open>
-  Unlike clarify, this does not split tuple of the form \<^term>\<open>\<exists>T. P T\<close> in the assumption.
+  Unlike clarify/auto/simp, this does not split tuple of the form \<^term>\<open>\<exists>T. P T\<close> in the assumption.
   After calling it, as the variable are not quantified anymore, the simproc does not trigger,
   allowing to safely call auto/simp/...
 \<close>
@@ -133,8 +132,8 @@ lemma set_Collect_Pair_to_fst_snd:
   \<open>{((a, b), (a', b')). P a b a' b'} = {(e, f). P (fst e) (snd e) (fst f) (snd f)}\<close>
   by auto
 
-subsection \<open>Update\<close>
 
+subsection \<open>Update\<close>
 
 lemma tl_update_swap:
   \<open>i \<ge> 1 \<Longrightarrow> tl (N[i := C]) = tl N[i-1 := C]\<close>
@@ -693,324 +692,6 @@ lemma sum_length_filter_compl': \<open>length [x\<leftarrow>xs . \<not> P x] + l
   using sum_length_filter_compl[of P xs] by auto
 
 
-subsection \<open>Multisets\<close>
-
-notation image_mset (infixr "`#" 90)
-
-lemma in_multiset_nempty: \<open>L \<in># D \<Longrightarrow> D \<noteq> {#}\<close>
-  by auto
-
-text \<open>The definition and the correctness theorem are from the multiset theory
-  @{file \<open>~~/src/HOL/Library/Multiset.thy\<close>}, but a name is necessary to refer to them:\<close>
-definition union_mset_list where
-\<open>union_mset_list xs ys \<equiv> case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))\<close>
-
-lemma union_mset_list:
-  \<open>mset xs \<union># mset ys = mset (union_mset_list xs ys)\<close>
-proof -
-  have \<open>\<And>zs. mset (case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, zs))) =
-      (mset xs \<union># mset ys) + mset zs\<close>
-    by (induct xs arbitrary: ys) (simp_all add: multiset_eq_iff)
-  then show ?thesis by (simp add: union_mset_list_def)
-qed
-
-lemma union_mset_list_Nil[simp]: \<open>union_mset_list [] bi = bi\<close>
-  by (auto simp: union_mset_list_def)
-
-lemma size_le_Suc_0_iff: \<open>size M \<le> Suc 0 \<longleftrightarrow> ((\<exists>a b. M = {#a#}) \<or> M = {#})\<close>
-   using size_1_singleton_mset by (auto simp: le_Suc_eq)
-
-lemma size_2_iff: \<open>size M = 2 \<longleftrightarrow> (\<exists>a b. M = {#a, b#})\<close>
-  by (metis One_nat_def Suc_1 Suc_pred empty_not_add_mset nonempty_has_size size_Diff_singleton
-      size_eq_Suc_imp_eq_union size_single union_single_eq_diff union_single_eq_member)
-
-lemma subset_eq_mset_single_iff: \<open>x2 \<subseteq># {#L#} \<longleftrightarrow> x2 = {#} \<or> x2 = {#L#}\<close>
-  by (metis single_is_union subset_mset.add_diff_inverse subset_mset.eq_refl subset_mset.zero_le)
-
-lemma mset_eq_size_2:
-  \<open>mset xs = {#a, b#} \<longleftrightarrow> xs = [a, b] \<or> xs = [b, a]\<close>
-  by (cases xs) (auto simp: add_mset_eq_add_mset Diff_eq_empty_iff_mset subset_eq_mset_single_iff)
-
-
-lemma butlast_list_update:
-  \<open>w < length xs \<Longrightarrow> butlast (xs[w := last xs]) = take w xs @ butlast (last xs # drop (Suc w) xs)\<close>
-  by (induction xs arbitrary: w) (auto split: nat.splits if_splits simp: upd_conv_take_nth_drop)
-
-lemma mset_butlast_remove1_mset: \<open>xs \<noteq> [] \<Longrightarrow> mset (butlast xs) = remove1_mset (last xs) (mset xs)\<close>
-  apply (subst(2) append_butlast_last_id[of xs, symmetric])
-   apply assumption
-  apply (simp only: mset_append)
-  by auto
-
-lemma distinct_mset_mono: \<open>D' \<subseteq># D \<Longrightarrow> distinct_mset D \<Longrightarrow> distinct_mset D'\<close>
-  by (metis distinct_mset_union subset_mset.le_iff_add)
-
-lemma subset_mset_trans_add_mset:
-  \<open>D \<subseteq># D' \<Longrightarrow> D \<subseteq># add_mset L D'\<close>
-  by (metis add_mset_remove_trivial diff_subset_eq_self subset_mset.dual_order.trans)
-
-lemma remove1_mset_empty_iff: \<open>remove1_mset L N = {#} \<longleftrightarrow> N = {#L#} \<or> N = {#}\<close>
-  by (cases \<open>L \<in># N\<close>; cases N) auto
-
-lemma distinct_subseteq_iff :
-  assumes dist: "distinct_mset M" and fin: "distinct_mset N"
-  shows "set_mset M \<subseteq> set_mset N \<longleftrightarrow> M \<subseteq># N"
-proof
-  assume "set_mset M \<subseteq> set_mset N"
-  then show "M \<subseteq># N"
-    using dist fin by auto
-next
-  assume "M \<subseteq># N"
-  then show "set_mset M \<subseteq> set_mset N"
-    by (metis set_mset_mono)
-qed
-
-lemma in_remove1_msetI: \<open>x \<noteq> a \<Longrightarrow> x \<in># M \<Longrightarrow> x \<in># remove1_mset a M\<close>
-  by (simp add: in_remove1_mset_neq)
-
-lemma count_multi_member_split:
-   \<open>count M a \<ge> n \<Longrightarrow> \<exists>M'. M = replicate_mset n a + M'\<close>
-  apply (induction n arbitrary: M)
-  subgoal by auto
-  subgoal premises IH for n M
-    using IH(1)[of \<open>remove1_mset a M\<close>] IH(2)
-    apply (cases \<open>n \<le> count M a - Suc 0\<close>)
-     apply (auto dest!: Suc_le_D)
-    by (metis count_greater_zero_iff insert_DiffM zero_less_Suc)
-  done
-
-lemma count_image_mset_multi_member_split:
-  \<open>count (image_mset f M) L \<ge> Suc 0 \<Longrightarrow>  \<exists>K. f K = L \<and> K \<in># M\<close>
-  by auto
-
-lemma count_image_mset_multi_member_split_2:
-  assumes count: \<open>count (image_mset f M) L \<ge> 2\<close>
-  shows \<open>\<exists>K K' M'. f K = L \<and> K \<in># M \<and> f K' = L \<and> K' \<in># remove1_mset K M \<and>
-       M = {#K, K'#} + M'\<close>
-proof -
-  obtain K where
-    K: \<open>f K = L\<close> \<open>K \<in># M\<close>
-    using count_image_mset_multi_member_split[of f M L] count by fastforce
-  then obtain K' where
-    K': \<open>f K' = L\<close> \<open>K' \<in># remove1_mset K M\<close>
-    using count_image_mset_multi_member_split[of f \<open>remove1_mset K M\<close> L] count
-    by (auto dest!: multi_member_split)
-  moreover have \<open>\<exists>M'. M = {#K, K'#} + M'\<close>
-    using multi_member_split[of K M] multi_member_split[of K' \<open>remove1_mset K M\<close>] K K'
-    by (auto dest!: multi_member_split)
-  then show ?thesis
-    using K K' by blast
-qed
-
-lemma minus_notin_trivial: "L \<notin># A \<Longrightarrow> A - add_mset L B = A - B"
-  by (metis diff_intersect_left_idem inter_add_right1)
-
-lemma minus_notin_trivial2: \<open>b \<notin># A \<Longrightarrow> A - add_mset e (add_mset b B) = A - add_mset e B\<close>
-  by (subst add_mset_commute) (auto simp: minus_notin_trivial)
-
-lemma diff_union_single_conv3: \<open>a \<notin># I \<Longrightarrow> remove1_mset a (I + J) = I + remove1_mset a J\<close>
-  by (metis diff_union_single_conv remove_1_mset_id_iff_notin union_iff)
-
-lemma filter_union_or_split:
-  \<open>{#L \<in># C. P L \<or> Q L#} = {#L \<in># C. P L#} + {#L \<in># C. \<not>P L \<and> Q L#}\<close>
-  by (induction C) auto
-
-lemma subset_mset_minus_eq_add_mset_noteq: \<open>A \<subset># C \<Longrightarrow> A - B \<noteq> C\<close>
-  by (auto simp: dest: in_diffD)
-
-lemma minus_eq_id_forall_notin_mset:
-  \<open>A - B = A \<longleftrightarrow> (\<forall>L \<in># B. L \<notin># A)\<close>
-  by (induction A)
-   (auto dest!: multi_member_split simp: subset_mset_minus_eq_add_mset_noteq)
-
-lemma in_multiset_minus_notin_snd[simp]: \<open>a \<notin># B \<Longrightarrow> a \<in># A - B \<longleftrightarrow> a \<in># A\<close>
-  by (metis count_greater_zero_iff count_inI in_diff_count)
-
-lemma distinct_mset_in_diff:
-  \<open>distinct_mset C \<Longrightarrow> a \<in># C - D \<longleftrightarrow> a \<in># C \<and> a \<notin># D\<close>
-  by (meson distinct_mem_diff_mset in_multiset_minus_notin_snd)
-
-lemma diff_le_mono2_mset: \<open>A \<subseteq># B \<Longrightarrow> C - B \<subseteq># C - A\<close>
-  apply (auto simp: subseteq_mset_def ac_simps)
-  by (simp add: diff_le_mono2)
-
-lemma subseteq_remove1[simp]: \<open>C \<subseteq># C' \<Longrightarrow> remove1_mset L C \<subseteq># C'\<close>
-  by (meson diff_subset_eq_self subset_mset.dual_order.trans)
-
-lemma filter_mset_cong2:
-  "(\<And>x. x \<in># M \<Longrightarrow> f x = g x) \<Longrightarrow> M = N \<Longrightarrow> filter_mset f M = filter_mset g N"
-  by (hypsubst, rule filter_mset_cong, simp)
-
-lemma filter_mset_cong_inner_outer:
-  assumes
-     M_eq: \<open>(\<And>x. x \<in># M \<Longrightarrow> f x = g x)\<close> and
-     notin: \<open>(\<And>x. x \<in># N - M \<Longrightarrow> \<not>g x)\<close> and
-     MN: \<open>M \<subseteq># N\<close>
-  shows \<open>filter_mset f M = filter_mset g N\<close>
-proof -
-  define NM where \<open>NM = N - M\<close>
-  have N: \<open>N = M + NM\<close>
-    unfolding NM_def using MN by simp
-  have \<open>filter_mset g NM = {#}\<close>
-    using notin unfolding NM_def[symmetric] by (auto simp: filter_mset_empty_conv)
-  moreover have \<open>filter_mset f M = filter_mset g M\<close>
-    by (rule filter_mset_cong) (use M_eq in auto)
-  ultimately show ?thesis
-    unfolding N by simp
-qed
-
-lemma notin_filter_mset:
-  \<open>K \<notin># C \<Longrightarrow> filter_mset P C = filter_mset (\<lambda>L. P L \<and> L \<noteq> K) C\<close>
-  by (rule filter_mset_cong) auto
-
-lemma distinct_mset_add_mset_filter:
-  assumes \<open>distinct_mset C\<close> and \<open>L \<in># C\<close> and \<open>\<not>P L\<close>
-  shows \<open>add_mset L (filter_mset P C) = filter_mset (\<lambda>x. P x \<or> x = L) C\<close>
-  using assms
-proof (induction C)
-  case empty
-  then show ?case by simp
-next
-  case (add x C) note dist = this(2) and LC = this(3) and P[simp] = this(4) and _ = this
-  then have IH: \<open>L \<in># C \<Longrightarrow> add_mset L (filter_mset P C) = {#x \<in># C. P x \<or> x = L#}\<close> by auto
-  show ?case
-  proof (cases \<open>x = L\<close>)
-    case [simp]: True
-    have \<open>filter_mset P C = {#x \<in># C. P x \<or> x = L#}\<close>
-      by (rule filter_mset_cong2) (use dist in auto)
-    then show ?thesis
-      by auto
-  next
-    case False
-    then show ?thesis
-      using IH LC by auto
-  qed
-qed
-
-lemma set_mset_set_mset_eq_iff: \<open>set_mset A = set_mset B \<longleftrightarrow> (\<forall>a\<in>#A. a \<in># B) \<and> (\<forall>a\<in>#B. a \<in># A)\<close>
-  by blast
-
-lemma remove1_mset_union_distrib:
-  \<open>remove1_mset a (M \<union># N) = remove1_mset a M \<union># remove1_mset a N\<close>
-  by (auto simp: multiset_eq_iff)
-
-(* useful for sledgehammer/proof reconstruction ?*)
-lemma member_add_mset: \<open>a \<in># add_mset x xs \<longleftrightarrow> a = x \<or> a \<in># xs\<close>
-  by simp
-
-lemma sup_union_right_if:
-  \<open>N \<union># add_mset x M =
-     (if x \<notin># N then add_mset x (N \<union># M) else add_mset x (remove1_mset x N \<union># M))\<close>
-  by (auto simp: sup_union_right2)
-
-lemma same_mset_distinct_iff:
-  \<open>mset M = mset M' \<Longrightarrow> distinct M \<longleftrightarrow> distinct M'\<close>
-  by (auto simp: distinct_mset_mset_distinct[symmetric] simp del: distinct_mset_mset_distinct)
-
-lemma inj_on_image_mset_eq_iff:
-  assumes inj: \<open>inj_on f (set_mset (M + M'))\<close>
-  shows \<open>image_mset f M' = image_mset f M \<longleftrightarrow> M' = M\<close> (is \<open>?A = ?B\<close>)
-proof
-  assume ?B
-  then show ?A by auto
-next
-  assume ?A
-  then show ?B
-    using inj
-  proof(induction M arbitrary: M')
-    case empty
-    then show ?case by auto
-  next
-    case (add x M) note IH = this(1) and H = this(2) and inj = this(3)
-
-    obtain M1 x' where
-      M': \<open>M' = add_mset x' M1\<close> and
-      f_xx': \<open>f x' = f x\<close> and
-      M1_M: \<open>image_mset f M1 = image_mset f M\<close>
-      using H by (auto dest!: msed_map_invR)
-    moreover have \<open>M1 = M\<close>
-      apply (rule IH[OF M1_M])
-      using inj by (auto simp: M')
-    moreover have \<open>x = x'\<close>
-      using inj f_xx' by (auto simp: M')
-    ultimately show ?case by fast
-  qed
-qed
-
-lemma inj_image_mset_eq_iff:
-  assumes inj: \<open>inj f\<close>
-  shows \<open>image_mset f M' = image_mset f M \<longleftrightarrow> M' = M\<close>
-  using inj_on_image_mset_eq_iff[of f M' M] assms
-  by (simp add: inj_eq multiset.inj_map)
-
-lemma singleton_eq_image_mset_iff:  \<open>{#a#} = f `# NE' \<longleftrightarrow> (\<exists>b. NE' = {#b#} \<and> f b = a)\<close>
-  by (cases NE') auto
-
-lemma image_mset_If_eq_notin:
-   \<open>C \<notin># A \<Longrightarrow> {#f (if x = C then a x else b x). x \<in># A#} = {# f(b x). x \<in># A #}\<close>
-  by (induction A) auto
-
-lemma finite_mset_set_inter:
-  \<open>finite A \<Longrightarrow> finite B \<Longrightarrow> mset_set (A \<inter> B) = mset_set A \<inter># mset_set B\<close>
-  apply (induction A rule: finite_induct)
-  subgoal by auto
-  subgoal for a A
-    apply (cases \<open>a \<in> B\<close>; cases \<open>a \<in># mset_set B\<close>)
-    using multi_member_split[of a \<open>mset_set B\<close>]
-    by (auto simp: mset_set.insert_remove)
-  done
-
-lemma distinct_mset_inter_remdups_mset:
-  assumes dist: \<open>distinct_mset A\<close>
-  shows \<open>A \<inter># remdups_mset B = A \<inter># B\<close>
-proof -
-  have [simp]: \<open>A' \<inter># remove1_mset a (remdups_mset Aa) = A' \<inter># Aa\<close>
-    if
-      \<open>A' \<inter># remdups_mset Aa = A' \<inter># Aa\<close> and
-      \<open>a \<notin># A'\<close> and
-      \<open>a \<in># Aa\<close>
-    for A' Aa :: \<open>'a multiset\<close> and a
-  by (metis insert_DiffM inter_add_right1 set_mset_remdups_mset that)
-
-  show ?thesis
-    using dist
-    apply (induction A)
-    subgoal by auto
-     subgoal for a A'
-      apply (cases \<open>a \<in># B\<close>)
-      using multi_member_split[of a \<open>B\<close>]  multi_member_split[of a \<open>A\<close>]
-      by (auto simp: mset_set.insert_remove)
-    done
-qed
-
-lemma mset_butlast_update_last[simp]:
-  \<open>w < length xs \<Longrightarrow> mset (butlast (xs[w := last (xs)])) = remove1_mset (xs ! w) (mset xs)\<close>
-  by (cases \<open>xs = []\<close>)
-    (auto simp add: last_list_update_to_last mset_butlast_remove1_mset mset_update)
-
-lemma in_multiset_ge_Max: \<open>a \<in># N \<Longrightarrow> a > Max (insert 0 (set_mset N)) \<Longrightarrow> False\<close>
-  by (simp add: leD)
-
-lemma distinct_mset_set_mset_remove1_mset:
-  \<open>distinct_mset M \<Longrightarrow> set_mset (remove1_mset c M) = set_mset M - {c}\<close>
-  by (cases \<open>c \<in># M\<close>) (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
-
-lemma (in -) distinct_count_msetD:
-  \<open>distinct xs \<Longrightarrow> count (mset xs) a = (if a \<in> set xs then 1 else 0)\<close>
-  unfolding distinct_count_atmost_1 by auto
-
-lemma filter_mset_and_implied:
-  \<open>(\<And>ia. ia \<in># xs \<Longrightarrow> Q ia \<Longrightarrow> P ia) \<Longrightarrow> {#ia \<in># xs. P ia \<and> Q ia#} = {#ia \<in># xs. Q ia#}\<close>
-  by (rule filter_mset_cong2) auto
-
-lemma filter_mset_eq_add_msetD: \<open>filter_mset P xs = add_mset a A \<Longrightarrow> a \<in># xs \<and> P a\<close>
-  by (induction xs arbitrary: A)
-    (auto split: if_splits simp: add_mset_eq_add_mset)
-
-lemma filter_mset_eq_add_msetD': \<open>add_mset a A  = filter_mset P xs \<Longrightarrow> a \<in># xs \<and> P a\<close>
-  using filter_mset_eq_add_msetD[of P xs a A] by auto
-
-
 subsection \<open>Sorting\<close>
 
 text \<open>See @{thm sorted_distinct_set_unique}.\<close>
@@ -1359,6 +1040,328 @@ lemma list_all2_conj:
 lemma list_all2_replicate:
   \<open>(bi, b) \<in> R' \<Longrightarrow> list_all2 (\<lambda>x x'. (x, x') \<in> R') (replicate n bi) (replicate n b)\<close>
   by (induction n) auto
+
+
+subsection \<open>Multisets\<close>
+
+text \<open>We have a lit of lemmas about multisets. Some of them have already moved to
+ \<^theory>\<open>Nested_Multisets_Ordinals.Multiset_More\<close>, but others are too specific (especially the
+ \<^term>\<open>distinct_mset\<close> property, which roughly corresponds to finite sets).
+\<close>
+notation image_mset (infixr "`#" 90)
+
+lemma in_multiset_nempty: \<open>L \<in># D \<Longrightarrow> D \<noteq> {#}\<close>
+  by auto
+
+text \<open>The definition and the correctness theorem are from the multiset theory
+  @{file \<open>~~/src/HOL/Library/Multiset.thy\<close>}, but a name is necessary to refer to them:\<close>
+definition union_mset_list where
+\<open>union_mset_list xs ys \<equiv> case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))\<close>
+
+lemma union_mset_list:
+  \<open>mset xs \<union># mset ys = mset (union_mset_list xs ys)\<close>
+proof -
+  have \<open>\<And>zs. mset (case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, zs))) =
+      (mset xs \<union># mset ys) + mset zs\<close>
+    by (induct xs arbitrary: ys) (simp_all add: multiset_eq_iff)
+  then show ?thesis by (simp add: union_mset_list_def)
+qed
+
+lemma union_mset_list_Nil[simp]: \<open>union_mset_list [] bi = bi\<close>
+  by (auto simp: union_mset_list_def)
+
+lemma size_le_Suc_0_iff: \<open>size M \<le> Suc 0 \<longleftrightarrow> ((\<exists>a b. M = {#a#}) \<or> M = {#})\<close>
+   using size_1_singleton_mset by (auto simp: le_Suc_eq)
+
+lemma size_2_iff: \<open>size M = 2 \<longleftrightarrow> (\<exists>a b. M = {#a, b#})\<close>
+  by (metis One_nat_def Suc_1 Suc_pred empty_not_add_mset nonempty_has_size size_Diff_singleton
+      size_eq_Suc_imp_eq_union size_single union_single_eq_diff union_single_eq_member)
+
+lemma subset_eq_mset_single_iff: \<open>x2 \<subseteq># {#L#} \<longleftrightarrow> x2 = {#} \<or> x2 = {#L#}\<close>
+  by (metis single_is_union subset_mset.add_diff_inverse subset_mset.eq_refl subset_mset.zero_le)
+
+lemma mset_eq_size_2:
+  \<open>mset xs = {#a, b#} \<longleftrightarrow> xs = [a, b] \<or> xs = [b, a]\<close>
+  by (cases xs) (auto simp: add_mset_eq_add_mset Diff_eq_empty_iff_mset subset_eq_mset_single_iff)
+
+
+lemma butlast_list_update:
+  \<open>w < length xs \<Longrightarrow> butlast (xs[w := last xs]) = take w xs @ butlast (last xs # drop (Suc w) xs)\<close>
+  by (induction xs arbitrary: w) (auto split: nat.splits if_splits simp: upd_conv_take_nth_drop)
+
+lemma mset_butlast_remove1_mset: \<open>xs \<noteq> [] \<Longrightarrow> mset (butlast xs) = remove1_mset (last xs) (mset xs)\<close>
+  apply (subst(2) append_butlast_last_id[of xs, symmetric])
+   apply assumption
+  apply (simp only: mset_append)
+  by auto
+
+lemma distinct_mset_mono: \<open>D' \<subseteq># D \<Longrightarrow> distinct_mset D \<Longrightarrow> distinct_mset D'\<close>
+  by (metis distinct_mset_union subset_mset.le_iff_add)
+
+lemma subset_mset_trans_add_mset:
+  \<open>D \<subseteq># D' \<Longrightarrow> D \<subseteq># add_mset L D'\<close>
+  by (metis add_mset_remove_trivial diff_subset_eq_self subset_mset.dual_order.trans)
+
+lemma remove1_mset_empty_iff: \<open>remove1_mset L N = {#} \<longleftrightarrow> N = {#L#} \<or> N = {#}\<close>
+  by (cases \<open>L \<in># N\<close>; cases N) auto
+
+lemma distinct_subseteq_iff :
+  assumes dist: "distinct_mset M" and fin: "distinct_mset N"
+  shows "set_mset M \<subseteq> set_mset N \<longleftrightarrow> M \<subseteq># N"
+proof
+  assume "set_mset M \<subseteq> set_mset N"
+  then show "M \<subseteq># N"
+    using dist fin by auto
+next
+  assume "M \<subseteq># N"
+  then show "set_mset M \<subseteq> set_mset N"
+    by (metis set_mset_mono)
+qed
+
+lemma in_remove1_msetI: \<open>x \<noteq> a \<Longrightarrow> x \<in># M \<Longrightarrow> x \<in># remove1_mset a M\<close>
+  by (simp add: in_remove1_mset_neq)
+
+lemma count_multi_member_split:
+   \<open>count M a \<ge> n \<Longrightarrow> \<exists>M'. M = replicate_mset n a + M'\<close>
+  apply (induction n arbitrary: M)
+  subgoal by auto
+  subgoal premises IH for n M
+    using IH(1)[of \<open>remove1_mset a M\<close>] IH(2)
+    apply (cases \<open>n \<le> count M a - Suc 0\<close>)
+     apply (auto dest!: Suc_le_D)
+    by (metis count_greater_zero_iff insert_DiffM zero_less_Suc)
+  done
+
+lemma count_image_mset_multi_member_split:
+  \<open>count (image_mset f M) L \<ge> Suc 0 \<Longrightarrow>  \<exists>K. f K = L \<and> K \<in># M\<close>
+  by auto
+
+lemma count_image_mset_multi_member_split_2:
+  assumes count: \<open>count (image_mset f M) L \<ge> 2\<close>
+  shows \<open>\<exists>K K' M'. f K = L \<and> K \<in># M \<and> f K' = L \<and> K' \<in># remove1_mset K M \<and>
+       M = {#K, K'#} + M'\<close>
+proof -
+  obtain K where
+    K: \<open>f K = L\<close> \<open>K \<in># M\<close>
+    using count_image_mset_multi_member_split[of f M L] count by fastforce
+  then obtain K' where
+    K': \<open>f K' = L\<close> \<open>K' \<in># remove1_mset K M\<close>
+    using count_image_mset_multi_member_split[of f \<open>remove1_mset K M\<close> L] count
+    by (auto dest!: multi_member_split)
+  moreover have \<open>\<exists>M'. M = {#K, K'#} + M'\<close>
+    using multi_member_split[of K M] multi_member_split[of K' \<open>remove1_mset K M\<close>] K K'
+    by (auto dest!: multi_member_split)
+  then show ?thesis
+    using K K' by blast
+qed
+
+lemma minus_notin_trivial: "L \<notin># A \<Longrightarrow> A - add_mset L B = A - B"
+  by (metis diff_intersect_left_idem inter_add_right1)
+
+lemma minus_notin_trivial2: \<open>b \<notin># A \<Longrightarrow> A - add_mset e (add_mset b B) = A - add_mset e B\<close>
+  by (subst add_mset_commute) (auto simp: minus_notin_trivial)
+
+lemma diff_union_single_conv3: \<open>a \<notin># I \<Longrightarrow> remove1_mset a (I + J) = I + remove1_mset a J\<close>
+  by (metis diff_union_single_conv remove_1_mset_id_iff_notin union_iff)
+
+lemma filter_union_or_split:
+  \<open>{#L \<in># C. P L \<or> Q L#} = {#L \<in># C. P L#} + {#L \<in># C. \<not>P L \<and> Q L#}\<close>
+  by (induction C) auto
+
+lemma subset_mset_minus_eq_add_mset_noteq: \<open>A \<subset># C \<Longrightarrow> A - B \<noteq> C\<close>
+  by (auto simp: dest: in_diffD)
+
+lemma minus_eq_id_forall_notin_mset:
+  \<open>A - B = A \<longleftrightarrow> (\<forall>L \<in># B. L \<notin># A)\<close>
+  by (induction A)
+   (auto dest!: multi_member_split simp: subset_mset_minus_eq_add_mset_noteq)
+
+lemma in_multiset_minus_notin_snd[simp]: \<open>a \<notin># B \<Longrightarrow> a \<in># A - B \<longleftrightarrow> a \<in># A\<close>
+  by (metis count_greater_zero_iff count_inI in_diff_count)
+
+lemma distinct_mset_in_diff:
+  \<open>distinct_mset C \<Longrightarrow> a \<in># C - D \<longleftrightarrow> a \<in># C \<and> a \<notin># D\<close>
+  by (meson distinct_mem_diff_mset in_multiset_minus_notin_snd)
+
+lemma diff_le_mono2_mset: \<open>A \<subseteq># B \<Longrightarrow> C - B \<subseteq># C - A\<close>
+  apply (auto simp: subseteq_mset_def ac_simps)
+  by (simp add: diff_le_mono2)
+
+lemma subseteq_remove1[simp]: \<open>C \<subseteq># C' \<Longrightarrow> remove1_mset L C \<subseteq># C'\<close>
+  by (meson diff_subset_eq_self subset_mset.dual_order.trans)
+
+lemma filter_mset_cong2:
+  "(\<And>x. x \<in># M \<Longrightarrow> f x = g x) \<Longrightarrow> M = N \<Longrightarrow> filter_mset f M = filter_mset g N"
+  by (hypsubst, rule filter_mset_cong, simp)
+
+lemma filter_mset_cong_inner_outer:
+  assumes
+     M_eq: \<open>(\<And>x. x \<in># M \<Longrightarrow> f x = g x)\<close> and
+     notin: \<open>(\<And>x. x \<in># N - M \<Longrightarrow> \<not>g x)\<close> and
+     MN: \<open>M \<subseteq># N\<close>
+  shows \<open>filter_mset f M = filter_mset g N\<close>
+proof -
+  define NM where \<open>NM = N - M\<close>
+  have N: \<open>N = M + NM\<close>
+    unfolding NM_def using MN by simp
+  have \<open>filter_mset g NM = {#}\<close>
+    using notin unfolding NM_def[symmetric] by (auto simp: filter_mset_empty_conv)
+  moreover have \<open>filter_mset f M = filter_mset g M\<close>
+    by (rule filter_mset_cong) (use M_eq in auto)
+  ultimately show ?thesis
+    unfolding N by simp
+qed
+
+lemma notin_filter_mset:
+  \<open>K \<notin># C \<Longrightarrow> filter_mset P C = filter_mset (\<lambda>L. P L \<and> L \<noteq> K) C\<close>
+  by (rule filter_mset_cong) auto
+
+lemma distinct_mset_add_mset_filter:
+  assumes \<open>distinct_mset C\<close> and \<open>L \<in># C\<close> and \<open>\<not>P L\<close>
+  shows \<open>add_mset L (filter_mset P C) = filter_mset (\<lambda>x. P x \<or> x = L) C\<close>
+  using assms
+proof (induction C)
+  case empty
+  then show ?case by simp
+next
+  case (add x C) note dist = this(2) and LC = this(3) and P[simp] = this(4) and _ = this
+  then have IH: \<open>L \<in># C \<Longrightarrow> add_mset L (filter_mset P C) = {#x \<in># C. P x \<or> x = L#}\<close> by auto
+  show ?case
+  proof (cases \<open>x = L\<close>)
+    case [simp]: True
+    have \<open>filter_mset P C = {#x \<in># C. P x \<or> x = L#}\<close>
+      by (rule filter_mset_cong2) (use dist in auto)
+    then show ?thesis
+      by auto
+  next
+    case False
+    then show ?thesis
+      using IH LC by auto
+  qed
+qed
+
+lemma set_mset_set_mset_eq_iff: \<open>set_mset A = set_mset B \<longleftrightarrow> (\<forall>a\<in>#A. a \<in># B) \<and> (\<forall>a\<in>#B. a \<in># A)\<close>
+  by blast
+
+lemma remove1_mset_union_distrib:
+  \<open>remove1_mset a (M \<union># N) = remove1_mset a M \<union># remove1_mset a N\<close>
+  by (auto simp: multiset_eq_iff)
+
+(* useful for sledgehammer/proof reconstruction ?*)
+lemma member_add_mset: \<open>a \<in># add_mset x xs \<longleftrightarrow> a = x \<or> a \<in># xs\<close>
+  by simp
+
+lemma sup_union_right_if:
+  \<open>N \<union># add_mset x M =
+     (if x \<notin># N then add_mset x (N \<union># M) else add_mset x (remove1_mset x N \<union># M))\<close>
+  by (auto simp: sup_union_right2)
+
+lemma same_mset_distinct_iff:
+  \<open>mset M = mset M' \<Longrightarrow> distinct M \<longleftrightarrow> distinct M'\<close>
+  by (auto simp: distinct_mset_mset_distinct[symmetric] simp del: distinct_mset_mset_distinct)
+
+lemma inj_on_image_mset_eq_iff:
+  assumes inj: \<open>inj_on f (set_mset (M + M'))\<close>
+  shows \<open>image_mset f M' = image_mset f M \<longleftrightarrow> M' = M\<close> (is \<open>?A = ?B\<close>)
+proof
+  assume ?B
+  then show ?A by auto
+next
+  assume ?A
+  then show ?B
+    using inj
+  proof(induction M arbitrary: M')
+    case empty
+    then show ?case by auto
+  next
+    case (add x M) note IH = this(1) and H = this(2) and inj = this(3)
+
+    obtain M1 x' where
+      M': \<open>M' = add_mset x' M1\<close> and
+      f_xx': \<open>f x' = f x\<close> and
+      M1_M: \<open>image_mset f M1 = image_mset f M\<close>
+      using H by (auto dest!: msed_map_invR)
+    moreover have \<open>M1 = M\<close>
+      apply (rule IH[OF M1_M])
+      using inj by (auto simp: M')
+    moreover have \<open>x = x'\<close>
+      using inj f_xx' by (auto simp: M')
+    ultimately show ?case by fast
+  qed
+qed
+
+lemma inj_image_mset_eq_iff:
+  assumes inj: \<open>inj f\<close>
+  shows \<open>image_mset f M' = image_mset f M \<longleftrightarrow> M' = M\<close>
+  using inj_on_image_mset_eq_iff[of f M' M] assms
+  by (simp add: inj_eq multiset.inj_map)
+
+lemma singleton_eq_image_mset_iff:  \<open>{#a#} = f `# NE' \<longleftrightarrow> (\<exists>b. NE' = {#b#} \<and> f b = a)\<close>
+  by (cases NE') auto
+
+lemma image_mset_If_eq_notin:
+   \<open>C \<notin># A \<Longrightarrow> {#f (if x = C then a x else b x). x \<in># A#} = {# f(b x). x \<in># A #}\<close>
+  by (induction A) auto
+
+lemma finite_mset_set_inter:
+  \<open>finite A \<Longrightarrow> finite B \<Longrightarrow> mset_set (A \<inter> B) = mset_set A \<inter># mset_set B\<close>
+  apply (induction A rule: finite_induct)
+  subgoal by auto
+  subgoal for a A
+    apply (cases \<open>a \<in> B\<close>; cases \<open>a \<in># mset_set B\<close>)
+    using multi_member_split[of a \<open>mset_set B\<close>]
+    by (auto simp: mset_set.insert_remove)
+  done
+
+lemma distinct_mset_inter_remdups_mset:
+  assumes dist: \<open>distinct_mset A\<close>
+  shows \<open>A \<inter># remdups_mset B = A \<inter># B\<close>
+proof -
+  have [simp]: \<open>A' \<inter># remove1_mset a (remdups_mset Aa) = A' \<inter># Aa\<close>
+    if
+      \<open>A' \<inter># remdups_mset Aa = A' \<inter># Aa\<close> and
+      \<open>a \<notin># A'\<close> and
+      \<open>a \<in># Aa\<close>
+    for A' Aa :: \<open>'a multiset\<close> and a
+  by (metis insert_DiffM inter_add_right1 set_mset_remdups_mset that)
+
+  show ?thesis
+    using dist
+    apply (induction A)
+    subgoal by auto
+     subgoal for a A'
+      apply (cases \<open>a \<in># B\<close>)
+      using multi_member_split[of a \<open>B\<close>]  multi_member_split[of a \<open>A\<close>]
+      by (auto simp: mset_set.insert_remove)
+    done
+qed
+
+lemma mset_butlast_update_last[simp]:
+  \<open>w < length xs \<Longrightarrow> mset (butlast (xs[w := last (xs)])) = remove1_mset (xs ! w) (mset xs)\<close>
+  by (cases \<open>xs = []\<close>)
+    (auto simp add: last_list_update_to_last mset_butlast_remove1_mset mset_update)
+
+lemma in_multiset_ge_Max: \<open>a \<in># N \<Longrightarrow> a > Max (insert 0 (set_mset N)) \<Longrightarrow> False\<close>
+  by (simp add: leD)
+
+lemma distinct_mset_set_mset_remove1_mset:
+  \<open>distinct_mset M \<Longrightarrow> set_mset (remove1_mset c M) = set_mset M - {c}\<close>
+  by (cases \<open>c \<in># M\<close>) (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+
+lemma (in -) distinct_count_msetD:
+  \<open>distinct xs \<Longrightarrow> count (mset xs) a = (if a \<in> set xs then 1 else 0)\<close>
+  unfolding distinct_count_atmost_1 by auto
+
+lemma filter_mset_and_implied:
+  \<open>(\<And>ia. ia \<in># xs \<Longrightarrow> Q ia \<Longrightarrow> P ia) \<Longrightarrow> {#ia \<in># xs. P ia \<and> Q ia#} = {#ia \<in># xs. Q ia#}\<close>
+  by (rule filter_mset_cong2) auto
+
+lemma filter_mset_eq_add_msetD: \<open>filter_mset P xs = add_mset a A \<Longrightarrow> a \<in># xs \<and> P a\<close>
+  by (induction xs arbitrary: A)
+    (auto split: if_splits simp: add_mset_eq_add_mset)
+
+lemma filter_mset_eq_add_msetD': \<open>add_mset a A  = filter_mset P xs \<Longrightarrow> a \<in># xs \<and> P a\<close>
+  using filter_mset_eq_add_msetD[of P xs a A] by auto
 
 
 section \<open>Finite maps and multisets\<close>

@@ -2,6 +2,31 @@ theory Array_UInt
   imports Array_List_Array WB_Word_Assn "../lib/Explorer"
 begin
 
+subsection \<open>More about general arrays\<close>
+
+text \<open>
+  This function does not resize the array: this makes sense for our purpose, but may be not in
+  general.\<close>
+definition butlast_arl where
+  \<open>butlast_arl = (\<lambda>(xs, i). (xs, fast_minus i 1))\<close>
+
+lemma butlast_arl_hnr[sepref_fr_rules]:
+  \<open>(return o butlast_arl, RETURN o butlast) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl_assn A)\<^sup>d \<rightarrow> arl_assn A\<close>
+proof -
+  have [simp]: \<open>b \<le> length l' \<Longrightarrow> (take b l', x) \<in> \<langle>the_pure A\<rangle>list_rel \<Longrightarrow>
+     (take (b - Suc 0) l', take (length x - Suc 0) x) \<in> \<langle>the_pure A\<rangle>list_rel\<close>
+    for b l' x
+    using list_rel_take[of \<open>take b l'\<close> x \<open>the_pure A\<close> \<open>b -1\<close>]
+    by (auto simp: list_rel_imp_same_length[symmetric]
+      butlast_conv_take min_def
+      simp del: take_butlast_conv)
+  show ?thesis
+    by sepref_to_hoare
+      (sep_auto simp: butlast_arl_def arl_assn_def hr_comp_def is_array_list_def
+         butlast_conv_take
+        simp del: take_butlast_conv)
+qed
+
 subsection \<open>Setup for array accesses via unsigned integer\<close>
 
 text \<open>

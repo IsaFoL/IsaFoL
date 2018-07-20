@@ -4,7 +4,9 @@ theory WB_More_Refinement
     Weidenbach_Book_Base.WB_List_More
 begin
 
-lemma (in -)finite_length_le_CARD:
+text \<open>This lemma cannot be moved to \<^theory>\<open>Weidenbach_Book_Base.WB_List_More\<close>, because the syntax
+ \<^term>\<open>CARD('a)\<close> does not exist there.\<close>
+lemma finite_length_le_CARD:
   assumes \<open>distinct (xs :: 'a :: finite list)\<close>
   shows \<open>length xs \<le> CARD('a)\<close>
 proof -
@@ -855,6 +857,23 @@ lemma
 lemma ex_assn_up_eq2: \<open>(\<exists>\<^sub>Aba. f ba * \<up> (ba = c)) = (f c)\<close>
   by (simp add: ex_assn_def)
 
+lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
+  by (subst ex_assn_def, subst (1) ex_assn_def, auto)+
+
+lemma snd_hnr_pure:
+   \<open>CONSTRAINT is_pure B \<Longrightarrow> (return \<circ> snd, RETURN \<circ> snd) \<in> A\<^sup>d *\<^sub>a B\<^sup>k \<rightarrow>\<^sub>a B\<close>
+  apply sepref_to_hoare
+  apply sep_auto
+  by (metis SLN_def SLN_left assn_times_comm ent_pure_pre_iff_sng ent_refl ent_star_mono
+      ent_true is_pure_assn_def is_pure_iff_pure_assn)
+
+
+subsection \<open>List relation\<close>
+
+lemma list_rel_take:
+  \<open>(ba, ab) \<in> \<langle>A\<rangle>list_rel \<Longrightarrow> (take b ba, take b ab) \<in> \<langle>A\<rangle>list_rel\<close>
+  by (auto simp: list_rel_def)
+
 lemma list_rel_update:
   fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>
   assumes rel: \<open>(xs, ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close> and
@@ -898,16 +917,6 @@ lemma list_mset_assn_pure_conv:
       list_mset_rel_def[abs_def] Collect_eq_comp br_def
       list_rel_def Collect_eq_comp_right
     intro!: arg_cong[of _ _ \<open>\<lambda>b. pure b _ _\<close>])
-
-lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
-  by (subst ex_assn_def, subst (1) ex_assn_def, auto)+
-
-lemma snd_hnr_pure:
-   \<open>CONSTRAINT is_pure B \<Longrightarrow> (return \<circ> snd, RETURN \<circ> snd) \<in> A\<^sup>d *\<^sub>a B\<^sup>k \<rightarrow>\<^sub>a B\<close>
-  apply sepref_to_hoare
-  apply sep_auto
-  by (metis SLN_def SLN_left assn_times_comm ent_pure_pre_iff_sng ent_refl ent_star_mono
-      ent_true is_pure_assn_def is_pure_iff_pure_assn)
 
 lemma list_assn_list_mset_rel_eq_list_mset_assn:
   assumes p: \<open>is_pure R\<close>
@@ -1118,7 +1127,7 @@ lemma arl_fold_custom_replicate:
   unfolding op_arl_replicate_def op_list_replicate_def ..
 
 lemma list_replicate_arl_hnr[sepref_fr_rules]:
-  assumes p:  \<open>CONSTRAINT is_pure R\<close>
+  assumes p: \<open>CONSTRAINT is_pure R\<close>
   shows \<open>(uncurry arl_replicate, uncurry (RETURN oo op_arl_replicate)) \<in> nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow>\<^sub>a arl_assn R\<close>
 proof -
   obtain R' where
