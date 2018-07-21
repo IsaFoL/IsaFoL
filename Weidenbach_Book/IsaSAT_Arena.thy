@@ -60,7 +60,8 @@ instead of introducing refinement rules. This is mostly done because iteration i
 Some technical details: due to the fact that we plan to refine the arena to uint32 and that our
 clauses can be tautologies, the size does not fit into uint32 (technically, we have the bound
 \<^term>\<open>uint32_max +1\<close>). Therefore, we restrict the clauses to have at least length 2 and we keep
-\<^term>\<open>length C - 2\<close> instead of \<^term>\<open>length C\<close>.
+\<^term>\<open>length C - 2\<close> instead of \<^term>\<open>length C\<close> (same for position saving). If we ever add a
+preprocessing path that removes tautologies, we can get rid of these two limitations.
 \<close>
 
 subsubsection \<open>To Move\<close>
@@ -187,6 +188,10 @@ lemma DELETED_hnr[sepref_fr_rules]:
 
 subsubsection \<open>Definition\<close>
 
+text \<open>The following definition are the offset between the beginning of the clause and the
+specific headers before the beginning of the clause. Remark that the first offset is not always
+valid.
+\<close>
 definition POS_SHIFT :: nat where
   \<open>POS_SHIFT = 5\<close>
 
@@ -357,6 +362,9 @@ definition arena_lit where
 
 subsubsection \<open>Separation properties\<close>
 
+text \<open>The following two lemmas talk about the minimal distance between two clauses in memory. They
+are important for the proof of correctness of all update function.
+\<close>
 lemma minimal_difference_between_valid_index:
   assumes \<open>\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and>
          xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> and
@@ -424,13 +432,29 @@ proof (rule ccontr)
     by (simp_all add: slice_nth)
   have False if ji: \<open>j - i \<ge> length (N\<propto>i)\<close>
   proof -
+    have Suc3: \<open>3 = Suc (Suc (Suc 0))\<close>
+      by auto
     have Suc4: \<open>4 = Suc (Suc (Suc (Suc 0)))\<close>
       by auto
     have Suc5: \<open>5 = Suc (Suc (Suc (Suc (Suc 0))))\<close>
       by auto
-    have [simp]: \<open>j - Suc 0 = i + length (N \<propto> i) - Suc 0 \<longleftrightarrow> j = i + length (N \<propto> i)\<close>
-      using False that j_ge i_ge length_Ni
-      by auto
+    have j_i_1[iff]:
+      \<open>j - 1 = i + length (N \<propto> i) - 1 \<longleftrightarrow> j = i + length (N \<propto> i)\<close>
+      \<open>j - 2 = i + length (N \<propto> i) - 1 \<longleftrightarrow> j = i + length (N \<propto> i) + 1\<close>
+      \<open>j - 3 = i + length (N \<propto> i) - 1 \<longleftrightarrow> j = i + length (N \<propto> i) + 2\<close>
+      \<open>j - 4 = i + length (N \<propto> i) - 1 \<longleftrightarrow> j = i + length (N \<propto> i) + 3\<close>
+      \<open>j - 5 = i + length (N \<propto> i) - 1 \<longleftrightarrow> j = i + length (N \<propto> i) + 4\<close>
+      using False that j_ge i_ge length_Ni unfolding Suc4 Suc5 header_size_def numeral_2_eq_2
+      by (auto split: if_splits)
+    have H4: \<open>Suc (j - i) \<le> length (N \<propto> i) + 4 \<Longrightarrow> j - i = length (N \<propto> i) \<or>
+       j - i = length (N \<propto> i) + 1 \<or> j - i = length (N \<propto> i) + 2 \<or> j - i = length (N \<propto> i) + 3\<close>
+      using False ji j_ge i_ge length_Ni unfolding Suc3 Suc4
+      by (auto simp: le_Suc_eq header_size_def split: if_splits)
+    have H5: \<open>Suc (j - i) \<le> length (N \<propto> i) + 5 \<Longrightarrow> j - i = length (N \<propto> i) \<or>
+       j - i = length (N \<propto> i) + 1 \<or> j - i = length (N \<propto> i) + 2 \<or> j - i = length (N \<propto> i) + 3 \<or>
+      (is_long_clause (N \<propto> j) \<and> j = i+length (N \<propto> i) + 4)\<close>
+      using False ji j_ge i_ge length_Ni unfolding Suc3 Suc4
+      by (auto simp: le_Suc_eq header_size_def split: if_splits)
     consider
        \<open>is_long_clause (N \<propto> j)\<close> \<open>j - POS_SHIFT = i + length(N\<propto>i) - 1\<close> |
        \<open>j - STATUS_SHIFT = i + length(N\<propto>i) - 1\<close> |
@@ -439,12 +463,13 @@ proof (rule ccontr)
        \<open>j - SIZE_SHIFT = i + length(N\<propto>i) - 1\<close>
       using False ji j_ge i_ge length_Ni
       unfolding header_size_def not_less_eq_eq STATUS_SHIFT_def SIZE_SHIFT_def
-       LBD_SHIFT_def ACTIVITY_SHIFT_def Suc4 le_Suc_eq POS_SHIFT_def Suc5
-      apply (cases \<open>is_short_clause (N \<propto> j)\<close>; cases \<open>is_short_clause (N \<propto> i)\<close>;
-        clarsimp_all simp only: if_True if_False add_Suc_right add_0_right
-        le_Suc_eq; elim disjE Misc.slice_def)
-      apply linarith
-      by (solves simp)+
+       LBD_SHIFT_def ACTIVITY_SHIFT_def le_Suc_eq POS_SHIFT_def j_i_1
+      apply (cases \<open>is_short_clause (N \<propto> j)\<close>)
+      subgoal
+        using H4 by auto
+      subgoal
+        using H5 by auto
+      done
     then show False
       using lit pos st size lbd act
       by cases auto
@@ -1620,7 +1645,7 @@ lemma isa_arena_length_arena_length:
   unfolding isa_arena_length_def arena_length_def
   by (intro frefI nres_relI)
     (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
-       br_def list_rel_imp_same_length arena_length_uint64_conv arena_lifting
+       list_rel_imp_same_length arena_length_uint64_conv arena_lifting
     intro!: ASSERT_refine_left)
 
 lemma isa_arena_length_code_refine[sepref_fr_rules]:
