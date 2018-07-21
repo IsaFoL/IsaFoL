@@ -147,6 +147,22 @@ lemma take_slice[simp]:
   \<open>take n (Misc.slice from to xs) = Misc.slice from (min to (from + n)) xs\<close> for "from" n to xs
   using antisym_conv by (fastforce simp: Misc.slice_def drop_take ac_simps min_def)
 
+lemma slice_append[simp]:
+  \<open>to \<le> length xs \<Longrightarrow> Misc.slice from to (xs @ ys) = Misc.slice from to xs\<close>
+  by (auto simp: Misc.slice_def)
+
+lemma slice_prepend[simp]:
+  \<open>from \<ge> length xs \<Longrightarrow> Misc.slice from to (xs @ ys) = Misc.slice (from - length xs) (to - length xs) ys\<close>
+  by (auto simp: Misc.slice_def)
+
+lemma slice_len_min_If:
+  \<open>length (Misc.slice from to xs) = (if from < length xs then min (length xs - from) (to - from) else 0)\<close>
+  unfolding min_def by (auto simp: Misc.slice_def)
+
+lemma slice_start0: \<open>Misc.slice 0 to xs = take to xs\<close>
+  unfolding Misc.slice_def
+  by auto
+
 (* End Move *)
 
 
@@ -329,9 +345,12 @@ abbreviation clause_slice where
 abbreviation dead_clause_slice where
   \<open>dead_clause_slice arena N i \<equiv> Misc.slice (i - 4) i arena\<close>
 
-text \<open>In our first try, the predicated \<^term>\<open>xarena_active_clause\<close> took the whole
+text \<open>We now can lift the validity of the active and dead clauses to the whole memory and link it
+the mapping to clauses and the addressable space.
+
+In our first try, the predicated \<^term>\<open>xarena_active_clause\<close> took the whole
 arena as parameter. This however turned out to make the proof about updates less modular, since the
-slicing already takes care to ignore not relevant changes.
+slicing already takes care to ignore all irrelevant changes.
 \<close>
 definition valid_arena where
   \<open>valid_arena arena N vdom \<longleftrightarrow>
@@ -523,7 +542,7 @@ proof (rule ccontr)
     using 1 i_ge i_le
     unfolding xarena_active_clause_def extra_information_mark_to_delete_def prod.case
       unfolding STATUS_SHIFT_def LBD_SHIFT_def ACTIVITY_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def
-     apply  (simp_all add: header_size_def slice_nth split: if_splits)
+     apply (simp_all add: header_size_def slice_nth split: if_splits)
     apply force+
     done
 
@@ -572,9 +591,10 @@ proof (rule ccontr)
 qed
 
 
-text \<open>At first we had the weaker \<^term>\<open>i - j \<ge> 1\<close> with was able to solve many more goals due
-to different handling between \<^term>\<open>1\<close> (which is \<^term>\<open>Suc 0\<close>) and \<^term>\<open>4\<close> (which is not
-reduced)...
+text \<open>At first we had the weaker \<^term>\<open>i - j \<ge> 1\<close> which we replaced by \<^term>\<open>i - j \<ge> 4\<close>.
+The former however was able to solve many more goals due to different handling between \<^term>\<open>1\<close>
+(which is simplified to \<^term>\<open>Suc 0\<close>) and \<^term>\<open>4\<close> (which is not). Therefore, we replaced \<^term>\<open>4\<close>
+by \<^term>\<open>Suc (Suc (Suc (Suc 0)))\<close>
 \<close>
 lemma minimal_difference_between_invalid_index2:
   assumes \<open>valid_arena arena N vdom\<close> and
@@ -612,7 +632,7 @@ proof -
     using 1 i_ge i_le
     unfolding xarena_active_clause_def extra_information_mark_to_delete_def prod.case
       unfolding STATUS_SHIFT_def LBD_SHIFT_def ACTIVITY_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def
-     apply  (simp_all add: header_size_def slice_nth split: if_splits)
+     apply (simp_all add: header_size_def slice_nth split: if_splits)
     apply force+
     done
 
@@ -721,7 +741,7 @@ proof -
     using minimal_difference_between_invalid_index2[OF dom i ia(1) _ ia(2)] ia_ge
     by (cases \<open>ia < i\<close>)
      (auto simp: extra_information_mark_to_delete_def STATUS_SHIFT_def drop_update_swap
-      arena_dead_clause_def
+       arena_dead_clause_def
        Misc.slice_def header_size_def split: if_splits)
 qed
 
@@ -950,7 +970,7 @@ proof -
     using minimal_difference_between_invalid_index[OF dom i ia(1) _ ia(2)] i_ge ia_ge
     using minimal_difference_between_invalid_index2[OF dom i ia(1) _ ia(2)] ia_ge
     by (cases \<open>ia < i\<close>)
-     (auto simp: extra_information_mark_to_delete_def STATUS_SHIFT_def drop_update_swap
+     (auto simp: extra_information_mark_to_delete_def drop_update_swap
       arena_dead_clause_def update_lbd_def SHIFTS_def
        Misc.slice_def header_size_def split: if_splits)
 qed
@@ -1017,7 +1037,6 @@ paragraph \<open>Update saved position\<close>
 definition update_pos where
   \<open>update_pos C pos arena = arena[C - POS_SHIFT := APos pos]\<close>
 
-
 lemma clause_slice_update_pos:
   assumes
     i: \<open>i \<in># dom_m N\<close> and
@@ -1034,7 +1053,6 @@ proof -
    i_ge:  \<open>i \<ge> header_size(N \<propto> i)\<close> \<open>i < length arena\<close>
     using dom ia i unfolding xarena_active_clause_def
     by auto
-
   show ?thesis
     using minimal_difference_between_valid_index[OF dom i ia] i_ge
     minimal_difference_between_valid_index[OF dom ia i] ia_ge long
@@ -1095,7 +1113,8 @@ proof -
   let ?arena = \<open>update_pos i pos arena\<close>
   have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close>
      \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia =i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
-    using assms distinct_mset_dom[of N] by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+    using assms distinct_mset_dom[of N]
+    by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
   have
     dom: \<open>\<forall>i\<in>#dom_m N.
         i < length arena \<and>
@@ -1241,7 +1260,8 @@ proof -
   let ?arena = \<open>swap_lits i k l arena\<close>
   have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close>
      \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia =i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
-    using assms distinct_mset_dom[of N] by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+    using assms distinct_mset_dom[of N]
+    by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
   have
     dom: \<open>\<forall>i\<in>#dom_m N.
         i < length arena \<and>
@@ -1260,16 +1280,18 @@ proof -
     using dom'[of ia] clause_slice_swap_lits[OF i _ dom, of ia k l] k l
     by auto
   moreover have \<open>ia = i \<Longrightarrow>
-        ia < length ?arena \<and>
-        header_size (N \<propto> ia) \<le> ia \<and>
-        xarena_active_clause (clause_slice ?arena N ia) (the (fmlookup (N(i \<hookrightarrow> swap (N \<propto> i) k l)) ia))\<close> for ia
+      ia < length ?arena \<and>
+      header_size (N \<propto> ia) \<le> ia \<and>
+      xarena_active_clause (clause_slice ?arena N ia)
+        (the (fmlookup (N(i \<hookrightarrow> swap (N \<propto> i) k l)) ia))\<close>
+    for ia
     using dom'[of ia] clause_slice_swap_lits[OF i _ dom, of ia k l] i k l
     xarena_active_clause_swap_lits_same[OF _ _ _ k l, of arena]
     by auto
   moreover have \<open>ia\<in>vdom \<longrightarrow>
         ia \<notin># dom_m N \<longrightarrow>
-        4 \<le> ia \<and> arena_dead_clause
-         (dead_clause_slice (swap_lits i k l arena) (fmdrop i N) ia)\<close> for ia
+        4 \<le> ia \<and> arena_dead_clause (dead_clause_slice (swap_lits i k l arena) (fmdrop i N) ia)\<close>
+      for ia
     using vdom[of ia] clause_slice_swap_lits_dead[OF i _ _ arena, of ia] i k l
     by auto
   ultimately show ?thesis
@@ -1284,21 +1306,9 @@ definition append_clause where
   \<open>append_clause b C arena =
     (if is_short_clause C then
       arena @ (if b then AStatus INIT else AStatus LEARNED) # AActivity (0) # ALBD (length C - 2) #
-         ASize (length C - 2) # map ALit C
-    else arena @ APos 0 # (if b then AStatus INIT else AStatus LEARNED) # AActivity (0)  # ALBD (length C - 2)#
-         ASize (length C - 2) # map ALit C)\<close>
-
-lemma slice_append[simp]:
-  \<open>to \<le> length xs \<Longrightarrow> Misc.slice from to (xs @ ys) = Misc.slice from to xs\<close>
-  by (auto simp: Misc.slice_def)
-
-lemma slice_prepend[simp]:
-  \<open>from \<ge> length xs \<Longrightarrow> Misc.slice from to (xs @ ys) = Misc.slice (from - length xs) (to - length xs) ys\<close>
-  by (auto simp: Misc.slice_def)
-
-lemma slice_len_min_If:
-  \<open>length (Misc.slice from to xs) = (if from < length xs then min (length xs - from) (to - from) else 0)\<close>
-  unfolding min_def by (auto simp: Misc.slice_def)
+      ASize (length C - 2) # map ALit C
+    else arena @ APos 0 # (if b then AStatus INIT else AStatus LEARNED) # AActivity 0 #
+      ALBD (length C - 2)# ASize (length C - 2) # map ALit C)\<close>
 
 lemma arena_active_clause_append_clause:
   assumes
@@ -1327,11 +1337,6 @@ qed
 lemma length_append_clause[simp]:
   \<open>length (append_clause b C arena) = length arena + length C + header_size C\<close>
   by (auto simp: append_clause_def header_size_def)
-
-lemma
-  slice_start0: \<open>Misc.slice 0 to xs = take to xs\<close>
-  unfolding Misc.slice_def
-  by auto
 
 lemma arena_active_clause_append_clause_same: \<open>2 \<le> length C \<Longrightarrow>
     xarena_active_clause
@@ -1682,6 +1687,8 @@ sepref_definition isa_arena_lit_code
   unfolding isa_arena_lit_def
   by sepref
 
+declare isa_arena_lit_code.refine[sepref_fr_rules]
+
 lemma arena_length_literal_conv:
   assumes
     valid: \<open>valid_arena arena N x\<close> and
@@ -1716,11 +1723,13 @@ proof -
 qed
 
 
-definition (in -) arena_is_valid_clause_idx_and_access :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
+definition arena_is_valid_clause_idx_and_access :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
 \<open>arena_is_valid_clause_idx_and_access arena i j \<longleftrightarrow>
   (\<exists>N vdom. valid_arena arena N vdom \<and> i \<in># dom_m N \<and> j < length (N \<propto> i))\<close>
 
-definition (in -) arena_lit_pre where
+text \<open>This is the precondition for direct memory access: \<^term>\<open>N ! (i::nat)\<close> where
+\<^term>\<open>(i::nat) = j + (j - i)\<close> instead of \<^term>\<open>N \<propto> j ! (i - j)\<close>.\<close>
+definition arena_lit_pre where
 \<open>arena_lit_pre arena i \<longleftrightarrow>
   (\<exists>j. i \<ge> j \<and> arena_is_valid_clause_idx_and_access arena j (i - j))\<close>
 
@@ -1731,10 +1740,10 @@ lemma isa_arena_lit_arena_lit:
   unfolding isa_arena_lit_def arena_lit_def
   by (intro frefI nres_relI)
     (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
-       br_def list_rel_imp_same_length arena_length_uint64_conv arena_lifting
-       arena_is_valid_clause_idx_and_access_def arena_length_literal_conv
-       arena_lit_pre_def
-    intro!: ASSERT_refine_left)
+        list_rel_imp_same_length arena_length_uint64_conv arena_lifting
+        arena_is_valid_clause_idx_and_access_def arena_length_literal_conv
+        arena_lit_pre_def
+      intro!: ASSERT_refine_left)
 
 lemma isa_arena_lit_code_refine[sepref_fr_rules]:
   \<open>(uncurry isa_arena_lit_code, uncurry (RETURN \<circ>\<circ> arena_lit))

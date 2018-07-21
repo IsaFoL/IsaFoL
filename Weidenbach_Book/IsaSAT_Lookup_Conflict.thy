@@ -1,10 +1,10 @@
 theory IsaSAT_Lookup_Conflict
   imports Watched_Literals.Watched_Literals_Watch_List_Domain
     Watched_Literals.Watched_Literals_Watch_List_Code_Common
-    IsaSAT.IsaSAT_Trail
-    IsaSAT.CDCL_Conflict_Minimisation
-    IsaSAT.LBD
-    IsaSAT.IsaSAT_Clauses
+    IsaSAT_Trail
+    CDCL_Conflict_Minimisation
+    LBD
+    IsaSAT_Clauses
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -35,6 +35,10 @@ conflict minimisation (see theory \<^theory>\<open>IsaSAT.CDCL_Conflict_Minimisa
 As far as we know, versat stops at the first refinement (stating that there is no significant
 overhead, which is probably true, but the second refinement is not much additional work anyhow and
 we don't have to rely on the ability of the compiler to not represent the option type as a pointer).
+\<close>
+
+text \<open>This is the first level of the refinement. We tried a few different definitions (including a
+direct one) but the inductive version is the easiest one to use.
 \<close>
 inductive mset_as_position :: \<open>bool option list \<Rightarrow> nat literal multiset \<Rightarrow> bool\<close> where
 empty:
@@ -1520,13 +1524,15 @@ where
   \<open>is_in_lookup_option_conflict = (\<lambda>L (_, _, xs). xs ! atm_of L = Some (is_pos L))\<close>
 
 lemma is_in_lookup_option_conflict_is_in_conflict:
-  \<open>(uncurry (RETURN oo is_in_lookup_option_conflict), uncurry (RETURN oo is_in_conflict)) \<in>
-     [\<lambda>(L, C). C \<noteq> None \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>r option_lookup_clause_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  \<open>(uncurry (RETURN oo is_in_lookup_option_conflict),
+     uncurry (RETURN oo is_in_conflict)) \<in>
+     [\<lambda>(L, C). C \<noteq> None \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>r option_lookup_clause_rel \<rightarrow>
+     \<langle>Id\<rangle>nres_rel\<close>
   apply (intro nres_relI frefI)
   subgoal for Lxs LC
     using lookup_clause_rel_atm_in_iff[of _ \<open>snd (snd (snd Lxs))\<close>]
     apply (cases Lxs)
-    by (auto simp: is_in_lookup_option_conflict_def is_in_conflict_def option_lookup_clause_rel_def)
+    by (auto simp: is_in_lookup_option_conflict_def option_lookup_clause_rel_def)
   done
 
 (* TODO not needed?
@@ -1747,6 +1753,9 @@ qed
 
 end
 
+text \<open>During the conflict analysis, the literal of highest level is at the beginning. During the
+rest of the time the conflict is \<^term>\<open>None\<close>.
+\<close>
 definition highest_lit where
   \<open>highest_lit M C L \<longleftrightarrow>
      (L = None \<longrightarrow> C = {#}) \<and>
@@ -1755,6 +1764,8 @@ definition highest_lit where
         fst (the L) \<in># C
         )\<close>
 
+
+paragraph \<open>Conflict Minimisation\<close>
 definition iterate_over_conflict_inv where
   \<open>iterate_over_conflict_inv M D\<^sub>0 = (\<lambda>(D, D'). D \<subseteq># D\<^sub>0 \<and> D' \<subseteq># D)\<close>
 
@@ -1802,6 +1813,7 @@ sepref_definition (in -) atm_in_conflict_code
 
 declare atm_in_conflict_code.refine[sepref_fr_rules]
 
+
 context isasat_input_ops
 begin
 
@@ -1813,12 +1825,10 @@ lemma atm_in_conflict_lookup_atm_in_conflict:
   subgoal for x y
     using mset_as_position_in_iff_nth[of \<open>snd (snd x)\<close> \<open>snd y\<close> \<open>Pos (fst x)\<close>]
       mset_as_position_in_iff_nth[of \<open>snd (snd x)\<close> \<open>snd y\<close> \<open>Neg (fst x)\<close>]
-    apply (cases x; cases y) (* TODO Proof *)
-    apply (auto simp: atm_in_conflict_lookup_def atm_in_conflict_def
-        lookup_clause_rel_def atms_of_def)
-      apply (smt atm_of_uminus atms_of_def imageE image_eqI is_pos_neg_not_is_pos
-        mset_as_position_in_iff_nth)+
-    done
+    by (cases x; cases y)
+      (auto simp: atm_in_conflict_lookup_def atm_in_conflict_def
+        lookup_clause_rel_def atm_iff_pos_or_neg_lit
+        pos_lit_in_atms_of neg_lit_in_atms_of)
   done
 
 
@@ -1834,8 +1844,8 @@ proof -
      (\<lambda>_. True)]\<^sub>a
    hrp_comp (uint32_nat_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k) (nat_rel \<times>\<^sub>f lookup_clause_rel) \<rightarrow>
    hr_comp bool_assn bool_rel\<close> (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-     using hfref_compI_PRE_aux[OF atm_in_conflict_code.refine atm_in_conflict_lookup_atm_in_conflict]
-     .
+    using hfref_compI_PRE_aux[OF atm_in_conflict_code.refine atm_in_conflict_lookup_atm_in_conflict]
+    .
    have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
     by (auto simp: comp_PRE_def lookup_clause_rel_def)
   have im: \<open>?im' = ?im\<close>
@@ -2521,14 +2531,121 @@ private lemma mark_failed_lits_stack_inv_helper2: \<open>mark_failed_lits_stack_
   using nth_mem[of a1' ba] unfolding mark_failed_lits_stack_inv_def
   by (auto simp del: nth_mem)
 
-sepref_thm mark_failed_lits_stack_code
-  is \<open>uncurry2 mark_failed_lits_stack\<close>
-  :: \<open>clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a
+definition isa_mark_failed_lits_stack where
+  \<open>isa_mark_failed_lits_stack NU analyse cach = do {
+    let l = length analyse;
+    (_, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, cach). True\<^esup>
+      (\<lambda>(i, cach). i < l)
+      (\<lambda>(i, cach). do {
+        ASSERT(i < length analyse);
+        let (cls_idx, idx) = analyse ! i;
+        ASSERT(cls_idx + idx - 1 < length NU);
+        ASSERT(is_Lit (NU ! (cls_idx + idx - 1)));
+        ASSERT(atm_of (xarena_lit (NU ! (cls_idx + idx - 1))) \<in># \<A>\<^sub>i\<^sub>n);
+        RETURN (i+1, cach (atm_of (xarena_lit (NU ! (cls_idx + idx - 1))) := SEEN_FAILED))
+      })
+      (0, cach);
+    RETURN cach
+   }\<close>
+
+lemma isa_mark_failed_lits_stack_mark_failed_lits_stack:
+  \<open>(uncurry2 isa_mark_failed_lits_stack, uncurry2 mark_failed_lits_stack) \<in> 
+     [\<lambda>((N, ana), cach). True]\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+proof -
+  have [refine0]: \<open>((0, x2c), 0, x2a) \<in> nat_rel \<times>\<^sub>f Id\<close>
+    if \<open>(x2c, x2a) \<in> Id\<close> for x2c x2a
+    using that by auto
+  have le_length_arena: \<open>x1g + x2g - 1 < length x1c\<close> (is ?le) and
+    is_lit: \<open>is_Lit (x1c ! (x1g + x2g - 1))\<close> (is ?lit) and
+    isA: \<open>atm_of (xarena_lit (x1c ! (x1g + x2g - 1))) \<in># \<A>\<^sub>i\<^sub>n\<close> (is ?A) and
+    final: \<open>((x1e + 1, x2e(atm_of (xarena_lit (x1c ! (x1g + x2g - 1))) := SEEN_FAILED)),
+     x1d + 1, x2d(atm_of (x1a \<propto> x1f ! (x2f - 1)) := SEEN_FAILED))
+    \<in> nat_rel \<times>\<^sub>f Id\<close> (is ?final)
+    if 
+      \<open>case y of (x, xa) \<Rightarrow> (case x of (N, ana) \<Rightarrow> \<lambda>cach. True) xa\<close> and
+      xy: \<open>(x, y) \<in> {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f Id \<times>\<^sub>f Id\<close> and
+      st:
+        \<open>x1 = (x1a, x2)\<close>
+        \<open>y = (x1, x2a)\<close>
+        \<open>x1b = (x1c, x2b)\<close>
+        \<open>x = (x1b, x2c)\<close>
+        \<open>x' = (x1d, x2d)\<close>
+        \<open>xa = (x1e, x2e)\<close>
+        \<open>x2 ! x1d = (x1f, x2f)\<close>
+        \<open>x2b ! x1e = (x1g, x2g)\<close> and
+      xax': \<open>(xa, x') \<in> nat_rel \<times>\<^sub>f Id\<close> and
+      cond: \<open>case xa of (i, cach) \<Rightarrow> i < length x2b\<close> and
+      cond': \<open>case x' of (i, cach) \<Rightarrow> i < length x2\<close> and
+      inv: \<open>case x' of (_, x) \<Rightarrow> mark_failed_lits_stack_inv x1a x2 x\<close> and
+      \<open>x1d < length x2\<close> and
+      le: \<open>x1e < length x2b\<close> and
+      atm: \<open>atm_of (x1a \<propto> x1f ! (x2f - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
+    for x y x1 x1a x2 x2a x1b x1c x2b x2c xa x' x1d x2d x1e x2e x1f x2f x1g x2g
+  proof -
+    obtain i cach where x': \<open>x' = (i, cach)\<close> by (cases x')
+    have [simp]:
+      \<open>x1 = (x1a, x2)\<close>
+      \<open>y = ((x1a, x2), x2a)\<close>
+      \<open>x1b = (x1c, x2)\<close>
+      \<open>x = ((x1c, x2), x2a)\<close>
+      \<open>x' = (x1d, x2d)\<close>
+      \<open>xa = (x1d, x2d)\<close>
+      \<open>x1f = x1g\<close>
+      \<open>x2f = x2g\<close>
+      \<open>x1e = x1d\<close>
+      \<open>x2e = x2d\<close>
+      \<open>x2b = x2\<close>
+      \<open>x2c = x2a\<close> and
+      st': \<open>x2 ! x1e = (x1g, x2g)\<close>
+      using xy st xax'
+      by auto
+    have arena: \<open>valid_arena x1c x1a vdom\<close>
+      using xy unfolding st by auto
+    have \<open>x2 ! x1e \<in> set x2\<close>
+      using le
+      by auto
+    then have \<open>x2 ! x1d \<in> set x2\<close> and
+      x2f: \<open>x2f \<le> length (x1a \<propto> x1f)\<close> and
+      x1f: \<open>x1g \<in># dom_m x1a\<close> and
+      x2g: \<open>1 \<le> x2g\<close> and
+      \<open>0 < x1g\<close>
+      using inv le unfolding mark_failed_lits_stack_inv_def x' prod.case st st'
+      by (auto simp del: nth_mem)
+    have \<open>is_Lit (x1c ! (x1g + (x2g - 1)))\<close>
+      by (rule arena_lifting[OF arena x1f]) (use x2f x2g in auto)
+    then show ?le and ?lit and ?A and ?final
+      using arena_lifting[OF arena x1f] le x2f x1f x2g atm by (auto simp: arena_lit_def)
+  qed
+
+  show ?thesis
+    unfolding isa_mark_failed_lits_stack_def mark_failed_lits_stack_def uncurry_def
+    apply (rewrite at \<open>let _ = length _ in _\<close> Let_def)
+    apply (intro frefI nres_relI)
+    apply refine_vcg
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal
+      by (rule le_length_arena)
+    subgoal
+      by (rule is_lit)
+    subgoal
+      by (rule isA)
+    subgoal
+      by (rule final)
+    subgoal by auto
+    done
+qed
+
+sepref_thm isa_mark_failed_lits_stack_code
+  is \<open>uncurry2 isa_mark_failed_lits_stack\<close>
+  :: \<open>arena_assn\<^sup>k *\<^sub>a analyse_refinement_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a
       cach_refinement_assn\<close>
   supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] length_rll_def[simp]
     mark_failed_lits_stack_inv_helper1[dest] mark_failed_lits_stack_inv_helper2[dest]
     fmap_length_rll_u_def[simp]
-  unfolding mark_failed_lits_stack_def
+  unfolding isa_mark_failed_lits_stack_def
     conflict_min_cach_set_failed_def[symmetric]
     conflict_min_cach_def[symmetric]
     get_literal_and_remove_of_analyse_wl_def
@@ -2536,7 +2653,7 @@ sepref_thm mark_failed_lits_stack_code
     fmap_rll_def[symmetric]
   by sepref
 
-
+(* 
 sepref_thm mark_failed_lits_stack_fast_code
   is \<open>uncurry2 mark_failed_lits_stack\<close>
   :: \<open>clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a
@@ -2551,30 +2668,30 @@ sepref_thm mark_failed_lits_stack_fast_code
     nth_rll_def[symmetric]
     fmap_rll_def[symmetric]
     fmap_rll_u_def[symmetric]
-  by sepref
+  by sepref *)
 end
 
-sepref_register mark_failed_lits_stack
-concrete_definition (in -) mark_failed_lits_stack_code
-   uses isasat_input_ops.mark_failed_lits_stack_code.refine_raw
+sepref_register isa_mark_failed_lits_stack
+concrete_definition (in -) isa_mark_failed_lits_stack_code
+   uses isasat_input_ops.isa_mark_failed_lits_stack_code.refine_raw
    is \<open>(uncurry2 ?f, _)\<in>_\<close>
 
-prepare_code_thms (in -) mark_failed_lits_stack_code_def
+prepare_code_thms (in -) isa_mark_failed_lits_stack_code_def
 
-lemmas mark_failed_lits_stack_code_hnr =
-   mark_failed_lits_stack_code.refine[of \<A>\<^sub>i\<^sub>n]
+lemmas isa_mark_failed_lits_stack_code_hnr =
+   isa_mark_failed_lits_stack_code.refine[of \<A>\<^sub>i\<^sub>n]
 
-concrete_definition (in -) mark_failed_lits_stack_fast_code
+(* concrete_definition (in -) mark_failed_lits_stack_fast_code
    uses isasat_input_ops.mark_failed_lits_stack_fast_code.refine_raw
    is \<open>(uncurry2 ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) mark_failed_lits_stack_fast_code_def
 
 lemmas mark_failed_lits_stack_fast_code_hnr =
-   mark_failed_lits_stack_fast_code.refine[of \<A>\<^sub>i\<^sub>n]
+   mark_failed_lits_stack_fast_code.refine[of \<A>\<^sub>i\<^sub>n] *)
 
-lemma mark_failed_lits_wl_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 mark_failed_lits_stack_code, uncurry2 mark_failed_lits_wl)
+(* lemma mark_failed_lits_wl_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 isa_mark_failed_lits_stack_code, uncurry2 mark_failed_lits_wl)
      \<in> [\<lambda>((a, b), ba). literals_are_in_\<L>\<^sub>i\<^sub>n_mm ((mset \<circ> fst) `# ran_m a) \<and>
          mark_failed_lits_stack_inv a b ba]\<^sub>a
         clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>
@@ -2589,7 +2706,7 @@ lemma mark_failed_lits_wl_fast_hnr[sepref_fr_rules]:
         clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>
         cach_refinement_assn\<close>
   using mark_failed_lits_stack_fast_code_hnr[FCOMP mark_failed_lits_stack_mark_failed_lits_wl]
-  .
+  . *)
 
 end
 
