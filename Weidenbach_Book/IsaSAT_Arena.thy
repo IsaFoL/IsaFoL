@@ -1,5 +1,6 @@
 theory IsaSAT_Arena
 imports Watched_Literals.Watched_Literals_Watch_List_Code_Common
+  WB_More_Refinement_List
 begin
 
 
@@ -67,45 +68,6 @@ preprocessing path that removes tautologies, we can get rid of these two limitat
 subsubsection \<open>To Move\<close>
 
 (* TODO Move *)
-
-lemma swap_nth_irrelevant:
-  \<open>k \<noteq> i \<Longrightarrow> k \<noteq> j \<Longrightarrow> swap xs i j ! k = xs ! k\<close>
-  by (auto simp: swap_def)
-
-lemma swap_nth_relevant:
-  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs i j ! i = xs ! j\<close>
-  by (auto simp: swap_def)
-
-lemma swap_nth_relevant2:
-  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs j i ! i = xs ! j\<close>
-  by (auto simp: swap_def)
-
-lemma swap_nth_if:
-  \<open>i < length xs \<Longrightarrow> j < length xs \<Longrightarrow> swap xs i j ! k =
-    (if k = i then xs ! j else if k = j then xs ! i else xs ! k)\<close>
-  by (auto simp: swap_def)
-
-lemma drop_swap_irrelevant:
-  \<open>k > i \<Longrightarrow> k > j \<Longrightarrow> drop k (swap outl' j i) = drop k outl'\<close>
-  by (subst list_eq_iff_nth_eq) auto
-
-lemma take_swap_relevant:
-  \<open>k > i \<Longrightarrow> k > j \<Longrightarrow>  take k (swap outl' j i) = swap (take k outl') i j\<close>
-  by (subst list_eq_iff_nth_eq) (auto simp: swap_def)
-
-lemma tl_swap_relevant:
-  \<open>i > 0 \<Longrightarrow> j > 0 \<Longrightarrow> tl (swap outl' j i) = swap (tl outl') (i - 1) (j - 1)\<close>
-  by (subst list_eq_iff_nth_eq)
-    (cases \<open>outl' = []\<close>; cases i; cases j; auto simp: swap_def tl_update_swap nth_tl)
-
-lemma mset_tl:
-  \<open>mset (tl xs) = remove1_mset (hd xs) (mset xs)\<close>
-  by (cases xs) auto
-
-lemma hd_list_update_If:
-  \<open>outl' \<noteq> [] \<Longrightarrow> hd (outl'[i := w]) = (if i = 0 then w else hd outl')\<close>
-  by (cases outl') (auto split: nat.splits)
-
 lemma mset_tl_delete_index_and_swap:
   assumes
     \<open>0 < i\<close> and
@@ -116,52 +78,6 @@ lemma mset_tl_delete_index_and_swap:
   by (subst mset_tl)+
     (auto simp: hd_butlast hd_list_update_If mset_butlast_remove1_mset
       mset_update last_list_update_to_last ac_simps)
-
-text \<open>TODO this should go to a different place from the previous lemmas, since it concerns
-\<^term>\<open>Misc.slice\<close>, which is not part of \<^theory>\<open>HOL.List\<close> but only part of the Refinement Framework.
-\<close>
-lemma slice_nth:
-  \<open>\<lbrakk>from \<le> length xs; i < to - from\<rbrakk> \<Longrightarrow> Misc.slice from to xs ! i = xs ! (from + i)\<close>
-  unfolding slice_def Misc.slice_def
-  apply (subst nth_take, assumption)
-  apply (subst nth_drop, assumption)
-  ..
-
-lemma slice_irrelevant[simp]:
-  \<open>i < from \<Longrightarrow> Misc.slice from to (xs[i := C]) = Misc.slice from to xs\<close>
-  \<open>i \<ge> to \<Longrightarrow> Misc.slice from to (xs[i := C]) = Misc.slice from to xs\<close>
-  \<open>i \<ge> to \<or> i < from \<Longrightarrow> Misc.slice from to (xs[i := C]) = Misc.slice from to xs\<close>
-  unfolding Misc.slice_def apply auto
-  by (metis drop_take take_update_cancel)+
-
-lemma slice_update_swap[simp]:
-  \<open>i < to \<Longrightarrow> i \<ge> from \<Longrightarrow> i < length xs \<Longrightarrow>
-     Misc.slice from to (xs[i := C]) = (Misc.slice from to xs)[(i - from) := C]\<close>
-  unfolding Misc.slice_def by (auto simp: drop_update_swap)
-
-lemma drop_slice[simp]:
-  \<open>drop n (Misc.slice from to xs) = Misc.slice (from + n) to xs\<close> for "from" n to xs
-    by (auto simp: Misc.slice_def drop_take ac_simps)
-
-lemma take_slice[simp]:
-  \<open>take n (Misc.slice from to xs) = Misc.slice from (min to (from + n)) xs\<close> for "from" n to xs
-  using antisym_conv by (fastforce simp: Misc.slice_def drop_take ac_simps min_def)
-
-lemma slice_append[simp]:
-  \<open>to \<le> length xs \<Longrightarrow> Misc.slice from to (xs @ ys) = Misc.slice from to xs\<close>
-  by (auto simp: Misc.slice_def)
-
-lemma slice_prepend[simp]:
-  \<open>from \<ge> length xs \<Longrightarrow> Misc.slice from to (xs @ ys) = Misc.slice (from - length xs) (to - length xs) ys\<close>
-  by (auto simp: Misc.slice_def)
-
-lemma slice_len_min_If:
-  \<open>length (Misc.slice from to xs) = (if from < length xs then min (length xs - from) (to - from) else 0)\<close>
-  unfolding min_def by (auto simp: Misc.slice_def)
-
-lemma slice_start0: \<open>Misc.slice 0 to xs = take to xs\<close>
-  unfolding Misc.slice_def
-  by auto
 
 (* End Move *)
 
@@ -1453,6 +1369,8 @@ lemma arena_lifting:
     \<open>j < length (N \<propto> i) \<Longrightarrow> N \<propto> i ! j = arena_lit arena (i + j)\<close> and
     \<open>j < length (N \<propto> i) \<Longrightarrow> is_Lit (arena ! (i+j))\<close> and
     \<open>j < length (N \<propto> i) \<Longrightarrow> i + j < length arena\<close> and
+    \<open>N \<propto> i ! 0 = arena_lit arena i\<close> and
+    \<open>is_Lit (arena ! i)\<close> and
     \<open>i + length (N \<propto> i) \<le> length arena\<close> and
     \<open>is_long_clause (N \<propto> i) \<Longrightarrow> is_Pos (arena ! ( i - POS_SHIFT))\<close> and
     \<open>is_long_clause (N \<propto> i) \<Longrightarrow> arena_pos arena i \<le> length (N \<propto> i)\<close> and
@@ -1522,7 +1440,7 @@ proof -
     \<open>i \<ge> header_size (N \<propto> i)\<close> and
     \<open>i < length arena\<close>
     using i_le i_ge by auto
-  show \<open>is_Lit (arena ! (i+j))\<close> and \<open>N \<propto> i ! j = arena_lit arena (i + j)\<close>
+  show is_lit: \<open>is_Lit (arena ! (i+j))\<close> \<open>N \<propto> i ! j = arena_lit arena (i + j)\<close>
     if \<open>j < length (N \<propto> i)\<close>
     for j
     using arg_cong[OF clause, of \<open>\<lambda>xs. xs ! j\<close>] i_le i_ge that
@@ -1544,6 +1462,10 @@ proof -
     using i_ge unfolding header_size_def SHIFTS_def by (auto split: if_splits)
   show \<open>j < length (N \<propto> i) \<Longrightarrow> i + j < length arena\<close>
     using i_le_arena by linarith
+  show 
+    \<open>N \<propto> i ! 0 = arena_lit arena i\<close> and
+    \<open>is_Lit (arena ! i)\<close>
+    using is_lit[of 0] ge2 by fastforce+
 qed
 
 text \<open>This is supposed to be used as for assertions. There might be a more ``local'' way to define

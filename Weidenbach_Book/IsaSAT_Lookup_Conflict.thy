@@ -2640,13 +2640,13 @@ proof -
 qed
 
 sepref_thm isa_mark_failed_lits_stack_code
-  is \<open>uncurry2 isa_mark_failed_lits_stack\<close>
+  is \<open>uncurry2 (PR_CONST isa_mark_failed_lits_stack)\<close>
   :: \<open>arena_assn\<^sup>k *\<^sub>a analyse_refinement_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a
       cach_refinement_assn\<close>
   supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] length_rll_def[simp]
     mark_failed_lits_stack_inv_helper1[dest] mark_failed_lits_stack_inv_helper2[dest]
     fmap_length_rll_u_def[simp]
-  unfolding isa_mark_failed_lits_stack_def
+  unfolding isa_mark_failed_lits_stack_def PR_CONST_def
     conflict_min_cach_set_failed_def[symmetric]
     conflict_min_cach_def[symmetric]
     get_literal_and_remove_of_analyse_wl_def
@@ -2679,7 +2679,7 @@ concrete_definition (in -) isa_mark_failed_lits_stack_code
 
 prepare_code_thms (in -) isa_mark_failed_lits_stack_code_def
 
-lemmas isa_mark_failed_lits_stack_code_hnr =
+lemmas isa_mark_failed_lits_stack_code_hnr[sepref_fr_rules] =
    isa_mark_failed_lits_stack_code.refine[of \<A>\<^sub>i\<^sub>n]
 
 (* concrete_definition (in -) mark_failed_lits_stack_fast_code
@@ -2729,7 +2729,32 @@ definition (in isasat_input_ops) isa_get_literal_and_remove_of_analyse_wl
    :: \<open>arena \<Rightarrow> (nat \<times> nat) list \<Rightarrow> nat literal \<times> (nat \<times> nat) list\<close> where
   \<open>isa_get_literal_and_remove_of_analyse_wl C analyse =
     (let (i, j) = last analyse in
-     (xarena_lit (C ! (i + j)), analyse[length analyse - 1 := (i, j + 1)]))\<close>
+     (arena_lit C (i + j), analyse[length analyse - 1 := (i, j + 1)]))\<close>
+
+definition (in isasat_input_ops) isa_get_literal_and_remove_of_analyse_wl_pre
+   :: \<open>arena \<Rightarrow> (nat \<times> nat) list \<Rightarrow> bool\<close> where
+\<open>isa_get_literal_and_remove_of_analyse_wl_pre arena analyse \<longleftrightarrow>
+  (let (i, j) = last analyse in
+    (i + j) < length arena \<and> analyse \<noteq> [] \<and> is_Lit (arena ! (i + j)))\<close>
+
+sepref_thm isa_get_literal_and_remove_of_analyse_wl_code
+  is \<open>uncurry (RETURN oo isa_get_literal_and_remove_of_analyse_wl)\<close>
+  :: \<open>[uncurry isa_get_literal_and_remove_of_analyse_wl_pre]\<^sub>a
+      arena_assn\<^sup>k *\<^sub>a analyse_refinement_assn\<^sup>d \<rightarrow>
+      unat_lit_assn *a analyse_refinement_assn\<close>
+  unfolding isa_get_literal_and_remove_of_analyse_wl_pre_def
+  isa_get_literal_and_remove_of_analyse_wl_def
+  by sepref
+
+
+concrete_definition (in -) isa_get_literal_and_remove_of_analyse_wl_code
+   uses isasat_input_bounded.isa_get_literal_and_remove_of_analyse_wl_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) isa_get_literal_and_remove_of_analyse_wl_code_def
+
+lemmas isa_get_literal_and_remove_of_analyse_wl_hnr[sepref_fr_rules] =
+   isa_get_literal_and_remove_of_analyse_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 definition (in isasat_input_ops) isa_lit_redundant_rec_wl_lookup
   :: \<open>(nat, nat) ann_lits \<Rightarrow> _ \<Rightarrow> nat clause \<Rightarrow>
@@ -2741,14 +2766,20 @@ where
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
             ASSERT(fst (last analyse) < length NU);
-            let i = snd (last analyse);
+            let C = map xarena_lit 
+               ((Misc.slice
+                  (snd (last analyse))
+                  (snd (last analyse) + arena_length NU (snd (last analyse)) ))
+                  NU);
             ASSERT(arena_is_valid_clause_idx NU (fst (last analyse)));
-            ASSERT(xarena_lit (NU!fst (last analyse)) \<in> lits_of_l M);
-            ASSERT(is_Lit (NU!fst (last analyse)));
+            let i = snd (last analyse);
+            ASSERT(arena_lit NU (fst (last analyse)) \<in> lits_of_l M);
             if i \<ge> nat_of_uint64_conv (arena_length NU (fst (last analyse)))
             then
-               RETURN(cach (atm_of (xarena_lit (NU!fst (last analyse))) := SEEN_REMOVABLE), butlast analyse, True)
+               RETURN(cach (atm_of (arena_lit NU (fst (last analyse))) := SEEN_REMOVABLE),
+                 butlast analyse, True)
             else do {
+               ASSERT (isa_get_literal_and_remove_of_analyse_wl_pre NU analyse);
                let (L, analyse) = isa_get_literal_and_remove_of_analyse_wl NU analyse;
                ASSERT(-L \<in> lits_of_l M \<and> atm_of L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l);
                let b = \<not>level_in_lbd (get_level M L) lbd;
@@ -2774,12 +2805,77 @@ where
         })
        (cach, analysis, False)\<close>
 
+lemma isa_lit_redundant_rec_wl_lookup_lit_redundant_rec_wl_lookup:
+  \<open>(uncurry5 isa_lit_redundant_rec_wl_lookup, uncurry5 lit_redundant_rec_wl_lookup) \<in> 
+    [\<lambda>(((((_, N), _), _), _), _). literals_are_in_\<L>\<^sub>i\<^sub>n_mm ((mset \<circ> fst) `# ran_m N)]\<^sub>f
+     Id \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f Id  \<times>\<^sub>f Id  \<times>\<^sub>f Id  \<times>\<^sub>f Id \<rightarrow>
+      \<langle>Id \<times>\<^sub>r Id \<times>\<^sub>r bool_rel\<rangle>nres_rel\<close>
+proof -
+  have isa_mark_failed_lits_stack: \<open>(uncurry2 isa_mark_failed_lits_stack, uncurry2 mark_failed_lits_wl)
+    \<in> [\<lambda>((a, b), ba).
+          literals_are_in_\<L>\<^sub>i\<^sub>n_mm ((mset \<circ> fst) `# ran_m a) \<and>
+          mark_failed_lits_stack_inv a b
+           ba]\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f Id \<times>\<^sub>f
+                 Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+    using isa_mark_failed_lits_stack_isa_mark_failed_lits_stack[FCOMP
+       mark_failed_lits_stack_mark_failed_lits_wl] .
+  have [refine0]: \<open>get_propagation_reason M (- L)
+    \<le> \<Down> (\<langle>Id\<rangle>option_rel)
+       (get_propagation_reason M' (- L'))\<close>
+    if \<open>(M, M') \<in> Id\<close> and \<open>(L, L') \<in> Id\<close>
+    for M M' L L'
+    using that by auto
+  note [simp]=get_literal_and_remove_of_analyse_wl_def isa_get_literal_and_remove_of_analyse_wl_def
+    arena_lifting and [split] = prod.splits
+  show ?thesis
+    supply [[goals_limit=3]]
+    unfolding isa_lit_redundant_rec_wl_lookup_def lit_redundant_rec_wl_lookup_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg
+      isa_mark_failed_lits_stack[THEN fref_to_Down_curry2])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
+       x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m
+        by (auto simp: arena_lifting)
+    subgoal by (auto simp: arena_is_valid_clause_idx_def)
+    subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
+       x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m
+      by (auto simp: arena_lifting arena_is_valid_clause_idx_def)
+    subgoal by (auto simp: arena_lifting)
+    subgoal by (auto simp: arena_lifting arena_is_valid_clause_idx_def)
+    subgoal by (auto simp: arena_lifting arena_is_valid_clause_idx_def)
+    subgoal by (auto simp: arena_lifting arena_is_valid_clause_idx_def
+      isa_get_literal_and_remove_of_analyse_wl_pre_def)
+    subgoal
+      by (auto simp: isa_get_literal_and_remove_of_analyse_wl_def arena_lifting
+        arena_is_valid_clause_idx_def
+        get_literal_and_remove_of_analyse_wl_def split: prod.splits)
+    subgoal by (auto simp: split: prod.splits)
+    subgoal by (auto simp: split: prod.splits)
+    subgoal by (auto simp: split: prod.splits)
+    subgoal by (auto simp: split: prod.splits)
+    subgoal by (auto simp: split: prod.splits)
+    subgoal by (auto simp: split: prod.splits)
+    subgoal by (auto simp: split: prod.splits)
+    subgoal by (auto simp: split: prod.splits)
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal by (auto simp: split: prod.splits)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
 (* TODO fst (lst last) \<le> uint_max? *)
-sepref_register lit_redundant_rec_wl_lookup
+sepref_register lit_redundant_rec_wl_lookup isa_mark_failed_lits_stack
 sepref_thm lit_redundant_rec_wl_lookup_code
   is \<open>uncurry5 (PR_CONST isa_lit_redundant_rec_wl_lookup)\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), analysis), lbd).
-         (* literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU) \<and> *)
          literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
       trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
         cach_refinement_assn\<^sup>d *\<^sub>a analyse_refinement_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
@@ -2802,10 +2898,6 @@ sepref_thm lit_redundant_rec_wl_lookup_code
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
     fmap_rll_def[symmetric]
     fmap_length_rll_def[symmetric]
-           apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold
   by sepref (* slow *)
 
 concrete_definition (in -) lit_redundant_rec_wl_lookup_code
@@ -2817,12 +2909,11 @@ prepare_code_thms (in -) lit_redundant_rec_wl_lookup_code_def
 lemmas lit_redundant_rec_wl_lookup_hnr[sepref_fr_rules] =
    lit_redundant_rec_wl_lookup_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-sepref_thm lit_redundant_rec_wl_lookup_fast_code
+(* sepref_thm lit_redundant_rec_wl_lookup_fast_code
   is \<open>uncurry5 (PR_CONST lit_redundant_rec_wl_lookup)\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), analysis), lbd).
-         literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU) \<and>
          literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
-      trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
         cach_refinement_assn\<^sup>d *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
       cach_refinement_assn *a analyse_refinement_fast_assn *a bool_assn\<close>
   supply [[goals_limit = 1]] neq_Nil_revE[elim] image_image[simp]
@@ -2855,7 +2946,7 @@ concrete_definition (in -) lit_redundant_rec_wl_lookup_fast_code
 prepare_code_thms (in -) lit_redundant_rec_wl_lookup_fast_code_def
 
 lemmas lit_redundant_rec_wl_lookup_fast_hnr[sepref_fr_rules] =
-   lit_redundant_rec_wl_lookup_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+   lit_redundant_rec_wl_lookup_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms] *)
 
 end
 

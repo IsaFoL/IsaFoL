@@ -156,6 +156,7 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Bits_Natural
     Array_UInt
     WB_Word_Assn
+    WB_More_Refinement_List
     WB_More_Refinement
     Watched_Literals_Algorithm
     Watched_Literals_List
