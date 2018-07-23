@@ -1,5 +1,5 @@
 theory IsaSAT_Clauses
-imports  Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT_Arena
+imports  Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT.IsaSAT_Arena
 begin
 
 (* TODO This file should probably be merge with IsaSAT_Arena*)

@@ -135,6 +135,14 @@ next
   qed
 qed
 
+lemma mset_as_position_empty_iff: \<open>mset_as_position xs {#} \<longleftrightarrow> (\<exists>n. xs = replicate n None)\<close>
+  apply (rule iffI)
+  subgoal
+    by (cases rule: mset_as_position.cases, assumption) auto
+  subgoal 
+    by (auto intro: mset_as_position.intros)
+  done
+
 context isasat_input_ops
 begin
 
@@ -254,6 +262,9 @@ abbreviation (in -)conflict_option_rel_assn
   :: \<open>conflict_option_rel \<Rightarrow> option_lookup_clause_assn \<Rightarrow> assn\<close>
 where
  \<open>conflict_option_rel_assn \<equiv> (bool_assn *a lookup_clause_rel_assn)\<close>
+
+abbreviation isasat_conflict_assn where
+  \<open>isasat_conflict_assn \<equiv> bool_assn *a uint32_nat_assn *a array_assn option_bool_assn\<close>
 
 definition option_lookup_clause_assn
   :: \<open>nat clause option \<Rightarrow> option_lookup_clause_assn \<Rightarrow> assn\<close>
@@ -487,7 +498,7 @@ where
        n = card_max_lvl M (mset (drop init (Ni))  \<union># the D) \<and>
        out_learned M C outl)\<close>
 
-definition add_to_lookup_conflict :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel\<close> where
+definition (in isasat_input_ops) add_to_lookup_conflict :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel\<close> where
   \<open>add_to_lookup_conflict = (\<lambda>L (n, xs). (if xs ! atm_of L = NOTIN then n + 1 else n,
       xs[atm_of L := ISIN (is_pos L)]))\<close>
 
@@ -572,19 +583,19 @@ proof -
 qed
 
 
-definition outlearned_add
+definition (in isasat_input_ops) outlearned_add
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat literal \<Rightarrow> nat \<times> bool option list \<Rightarrow> out_learned \<Rightarrow> out_learned\<close> where
   \<open>outlearned_add = (\<lambda>M L zs outl.
     (if get_level M L < count_decided M \<and> \<not>is_in_lookup_conflict zs L then outl @ [L]
            else outl))\<close>
 
-definition clvls_add
+definition (in isasat_input_ops)  clvls_add
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat literal \<Rightarrow> nat \<times> bool option list \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>clvls_add = (\<lambda>M L zs clvls.
     (if get_level M L = count_decided M \<and> \<not>is_in_lookup_conflict zs L then clvls + 1
            else clvls))\<close>
 
-definition lookup_conflict_merge
+definition (in isasat_input_ops) lookup_conflict_merge
   :: \<open>nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
         out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close>
 where
@@ -601,7 +612,7 @@ where
            let clvls = clvls_add M (D!i) zs clvls;
            let zs = add_to_lookup_conflict (D!i) zs;
            RETURN(Suc i, clvls, zs, lbd, outl)
-           })
+        })
        (init, clvls, xs, lbd, outl);
      RETURN ((False, zs), clvls, lbd, outl)
    })\<close>
@@ -667,7 +678,7 @@ lemma (in -) Suc_uint32_nat_assn_hnr:
 (* End Move *)
 
 
-definition isa_lookup_conflict_merge
+definition (in isasat_input_ops) isa_lookup_conflict_merge
   :: \<open>nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
         out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close>
 where
@@ -699,7 +710,7 @@ end
 context isasat_input_bounded
 begin
 
-definition isa_resolve_lookup_conflict_merge where
+definition (in isasat_input_ops)  isa_resolve_lookup_conflict_merge where
   \<open>isa_resolve_lookup_conflict_merge = isa_lookup_conflict_merge 0\<close>
 
 lemma isa_lookup_conflict_merge_lookup_conflict_merge_ext:
@@ -802,7 +813,7 @@ lemmas resolve_lookup_conflict_aa_fast_hnr[sepref_fr_rules] =
    resolve_lookup_conflict_merge_fast_code.refine[OF isasat_input_bounded_axioms] *)
 
 
-definition isa_set_lookup_conflict_aa where
+definition (in isasat_input_ops) isa_set_lookup_conflict_aa where
   \<open>isa_set_lookup_conflict_aa = isa_lookup_conflict_merge 0\<close>
 
 sepref_register set_lookup_conflict_aa
@@ -1198,7 +1209,8 @@ proof -
 qed
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_literals_are_in_\<L>\<^sub>i\<^sub>n:
-  assumes lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N)\<close> and i: \<open>i \<in># dom_m N\<close>
+  assumes lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N)\<close> and
+    i: \<open>i \<in># dom_m N\<close>
   shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> i))\<close>
   unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def
 proof (standard)

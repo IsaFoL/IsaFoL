@@ -521,10 +521,6 @@ abbreviation trail_pol_fast_assn :: \<open>trail_pol \<Rightarrow> trail_pol_fas
       array_assn uint32_nat_assn *a
       array_assn (option_assn uint32_nat_assn) *a uint32_nat_assn *a arl_assn uint32_nat_assn\<close>
 
-(* TODO Move *)
-abbreviation phase_saver_conc where
-  \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
-(* End Move *)
 
 paragraph \<open>Code generation\<close>
 

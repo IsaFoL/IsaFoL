@@ -1,6 +1,6 @@
 theory IsaSAT_Arena
 imports Watched_Literals.Watched_Literals_Watch_List_Code_Common
-  WB_More_Refinement_List
+  Watched_Literals.WB_More_Refinement_List
 begin
 
 

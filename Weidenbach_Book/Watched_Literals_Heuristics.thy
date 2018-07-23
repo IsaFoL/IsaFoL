@@ -3,7 +3,8 @@ theory Watched_Literals_Heuristics
 begin
 
 subsection \<open>Propagations\<close>
-
+(* TODO This file should be split into the additional refinement step like find_unwatched and
+the part specific to IsaSAT (i.e., the refinement from find_unwatched to arenas) *)
 (* TODO Move *)
 
 context isasat_input_bounded
@@ -193,7 +194,7 @@ lemma find_unwatched_l_find_unwatched_wl_s:
   \<open>find_unwatched_l (get_trail_wl S) (get_clauses_wl S \<propto> C) = find_unwatched_wl_st S C\<close>
   by (cases S) (auto simp: find_unwatched_wl_st_def)
 
-definition (in -) find_unwatched :: \<open>('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Rightarrow> (nat option) nres\<close> where
+definition (in isasat_input_ops) find_unwatched :: \<open>(nat, 'b) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> (nat option) nres\<close> where
 \<open>find_unwatched M C = do {
    S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length C \<and> (\<forall>j\<in>{2..<i}. -(C!j) \<in> lits_of_l M) \<and>
       (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and>
@@ -201,6 +202,7 @@ definition (in -) find_unwatched :: \<open>('a, 'b) ann_lits \<Rightarrow> 'a cl
     (\<lambda>(found, i). found = None \<and> i < length C)
     (\<lambda>(_, i). do {
       ASSERT(i < length C);
+      ASSERT(C!i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
       case polarity M (C!i) of
         None \<Rightarrow> do { RETURN (Some i, i)}
       | Some v \<Rightarrow>
@@ -213,18 +215,42 @@ definition (in -) find_unwatched :: \<open>('a, 'b) ann_lits \<Rightarrow> 'a cl
 
 definition (in isasat_input_ops) find_unwatched_wl_st_heur_pre where
   \<open>find_unwatched_wl_st_heur_pre =
-     (\<lambda>(S, i). i \<in># dom_m (get_clauses_wl_heur S) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_heur S \<and>
-        length (get_clauses_wl_heur S \<propto> i) \<ge> 2 \<and> length (get_clauses_wl_heur S \<propto> i) < uint64_max)\<close>
+     (\<lambda>(S, i). i \<in># dom_m (get_clauses_wl S) \<and> literals_are_\<L>\<^sub>i\<^sub>n S \<and>
+        length (get_clauses_wl S \<propto> i) \<ge> 2 \<and> length (get_clauses_wl S \<propto> i) < uint64_max)\<close>
 
-definition (in isasat_input_ops) find_unwatched_wl_st_heur
-  :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
-\<open>find_unwatched_wl_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>) i. do {
+definition (in isasat_input_ops) find_unwatched_wl_st
+  :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
+\<open>find_unwatched_wl_st = (\<lambda>(M, N, D, Q, W, vm, \<phi>) i. do {
     find_unwatched M (N \<propto> i)
   })\<close>
 
+(* TODO change to return the iterator (i) instead of the position in the clause *)
+definition (in isasat_input_ops) isa_find_unwatched :: \<open>(nat, 'b) ann_lits \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> (nat option) nres\<close> where
+\<open>isa_find_unwatched M NU C = do {
+   S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). True\<^esup>
+    (\<lambda>(found, i). found = None \<and> i < C + nat_of_uint64_conv (arena_length NU C))
+    (\<lambda>(_, i). do {
+      ASSERT(i < C + nat_of_uint64_conv (arena_length NU C));
+      ASSERT(arena_lit NU i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+      ASSERT(i \<ge> C);
+      case polarity M (arena_lit NU i) of
+        None \<Rightarrow> do { RETURN (Some (i - C), i)}
+      | Some v \<Rightarrow>
+         (if v then do { RETURN (Some (i - C), i)} else do { RETURN (None, i+1)})
+    })
+    (None, C+2);
+  RETURN (fst S)
+  }
+\<close>
+definition (in isasat_input_ops) isa_find_unwatched_wl_st_heur
+  :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
+\<open>isa_find_unwatched_wl_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>) i. do {
+    isa_find_unwatched M N i
+  })\<close>
 
-lemma (in -) find_unwatched:
-  assumes \<open>no_dup M\<close> and \<open>length C \<ge> 2\<close>
+
+lemma (in isasat_input_ops) find_unwatched:
+  assumes \<open>no_dup M\<close> and \<open>length C \<ge> 2\<close> and \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close>
   shows \<open>find_unwatched M C \<le> \<Down> Id (find_unwatched_l M C)\<close>
   unfolding find_unwatched_def find_unwatched_l_def
   apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(found, i). Suc (length C) - i +
@@ -238,6 +264,7 @@ lemma (in -) find_unwatched:
   subgoal by auto
   subgoal by auto
   subgoal by auto
+  subgoal using assms literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l by blast
   subgoal by auto
   subgoal for s
     by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq polarity_def
@@ -283,17 +310,57 @@ lemma (in -) find_unwatched:
 definition (in isasat_input_ops) find_unwatched_wl_st_pre where
   \<open>find_unwatched_wl_st_pre =  (\<lambda>(S, i).
     i \<in># dom_m (get_clauses_wl S) \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n S \<and> 2 \<le> length (get_clauses_wl S \<propto> i) \<and>
-    length (get_clauses_wl S \<propto> i) < uint64_max)\<close>
+    literals_are_\<L>\<^sub>i\<^sub>n S \<and> 2 \<le> length (get_clauses_wl S \<propto> i)
+    )\<close>
 
 theorem find_unwatched_wl_st_heur_find_unwatched_wl_s:
-  \<open>(uncurry find_unwatched_wl_st_heur, uncurry find_unwatched_wl_st)
+  \<open>(uncurry isa_find_unwatched_wl_st_heur, uncurry find_unwatched_wl_st)
     \<in> [find_unwatched_wl_st_pre]\<^sub>f
       twl_st_heur \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-     (auto simp: find_unwatched_wl_st_def find_unwatched_wl_st_heur_def twl_st_heur_def
-    find_unwatched[simplified] find_unwatched_wl_st_pre_def)
+proof -
+  have [refine0]: \<open>((None, x2m + 2), None, 2) \<in> \<langle>Id\<rangle>option_rel \<times>\<^sub>r {(n', n). n' = x2m + n}\<close>
+    for x2m
+    by auto
+  have [refine0]:
+    \<open>(polarity M (arena_lit arena i'), polarity M' (N \<propto> C' ! j))
+    \<in> \<langle>Id\<rangle>option_rel\<close>
+    if \<open>\<exists>vdom. valid_arena arena N vdom\<close> and
+      \<open>C' \<in># dom_m N\<close> and
+      \<open>i' = C' + j \<and> j < length (N \<propto> C')\<close> and
+       \<open>M = M'\<close>
+    for M arena i i' N j M' C'
+    using that by (auto simp: arena_lifting)
+  have H: \<open>isa_find_unwatched M arena C \<le> \<Down> Id (find_unwatched M' (N \<propto> C'))\<close>
+    if \<open>valid_arena arena N vdom\<close> and \<open>C \<in># dom_m N\<close> and \<open>M = M'\<close> and \<open>C = C'\<close>
+    for arena M N C vdom M' C'
+    unfolding  isa_find_unwatched_def find_unwatched_def
+    apply refine_vcg
+    subgoal by auto
+    subgoal using that by (simp add: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal for S S' by (cases S; cases S'; auto simp: arena_lifting)
+    done
 
+  show ?thesis
+    unfolding isa_find_unwatched_wl_st_heur_def find_unwatched_wl_st_def
+      (* isa_find_unwatched_def find_unwatched_def *)
+       uncurry_def twl_st_heur_def
+      find_unwatched_wl_st_pre_def
+    apply (intro frefI nres_relI)
+    apply refine_vcg
+    subgoal by (rule H) auto
+    done
+qed
 
 lemmas unit_prop_body_wl_D_invD' =
   unit_prop_body_wl_D_invD[of \<open>(M, N, D, NE, UE, WS, Q)\<close> for M N D NE UE WS Q,
@@ -311,10 +378,7 @@ lemma set_conflict_wl'_alt_def:
 
 definition (in isasat_input_ops) set_conflict_wl_heur_pre where
   \<open>set_conflict_wl_heur_pre =
-     (\<lambda>(C, S). get_conflict_wl_heur S = None \<and> C \<in># dom_m (get_clauses_wl_heur S) \<and>
-        distinct (get_clauses_wl_heur S \<propto> C) \<and>
-        literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl_heur S \<propto> C)) \<and>
-        \<not> tautology (mset (get_clauses_wl_heur S \<propto> C)) \<and>
+     (\<lambda>(C, S). get_conflict_wl_heur S = None \<and>
         literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl_heur S) \<and>
         no_dup (get_trail_wl_heur S) \<and>
        out_learned (get_trail_wl_heur S) (get_conflict_wl_heur S) (get_outlearned_heur S))\<close>
@@ -324,7 +388,7 @@ definition (in isasat_input_ops) set_conflict_wl_heur
 where
   \<open>set_conflict_wl_heur = (\<lambda>C (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema). do {
     let n = zero_uint32_nat;
-    (D, clvls, lbd, outl) \<leftarrow> set_conflict_m M N C D n lbd outl;
+    (D, clvls, lbd, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n lbd outl;
     RETURN (M, N, D, {#}, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_conflict stats, fema, sema)})\<close>
 
 

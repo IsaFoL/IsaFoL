@@ -93,8 +93,8 @@ abbreviation vdom_assn :: \<open>vdom \<Rightarrow> nat array_list \<Rightarrow>
 
 type_synonym vdom_assn = \<open>nat array_list\<close>
 
-type_synonym isasat_clauses_assn =
-  \<open>uint32 array array_list \<times> (clause_status \<times> uint32 \<times> uint32)array_list\<close>
+type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
+
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
@@ -108,9 +108,10 @@ type_synonym twl_st_wll_trail_fast =
     vdom_assn \<times> nat\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
+(* TODO rename to isasat *)
 type_synonym twl_st_wl_heur =
-  \<open>(nat,nat)ann_lits \<times> nat clauses_l \<times>
-    nat clause option \<times> nat lit_queue_wl \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times>
+  \<open>(nat,nat)ann_lits \<times> arena \<times>
+    conflict_option_rel \<times> nat lit_queue_wl \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times>
     nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
     vdom \<times> nat\<close>
 
@@ -119,15 +120,14 @@ type_synonym (in -) twl_st_wl_heur_W_list =
     nat cconflict \<times> nat clause_l \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
     nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times> vdom \<times> nat\<close>
 
-fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat clauses_l\<close> where
+fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
   \<open>get_clauses_wl_heur (M, N, D, _) = N\<close>
 
 fun get_trail_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (nat,nat) ann_lits\<close> where
   \<open>get_trail_wl_heur (M, N, D, _) = M\<close>
 
-fun get_conflict_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat clause option\<close> where
+fun get_conflict_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> conflict_option_rel\<close> where
   \<open>get_conflict_wl_heur (_, _, D, _) = D\<close>
-
 
 fun watched_by_int :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat watched\<close> where
   \<open>watched_by_int (M, N, D, Q, W, _) L = W ! nat_of_lit L\<close>
@@ -320,8 +320,6 @@ begin
 
 text \<open>The virtual domain is composed of the addressable (and accessible) elements, i.e.,
   the domain and all the deleted clauses that are still present in the watch lists.
-
-  With restarts, the property is \<^term>\<open>vdom_m W N \<subseteq># dom_m N\<close>.
 \<close>
 definition vdom_m :: \<open>(nat literal \<Rightarrow> (nat \<times> _) list) \<Rightarrow> (nat, 'b) fmap \<Rightarrow> nat set\<close> where
   \<open>vdom_m W N = \<Union>(((`) fst) ` set ` W ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l) \<union> set_mset (dom_m N)\<close>
@@ -343,7 +341,6 @@ lemma vdom_m_simps3[simp]:
 text \<open>What is the difference with the next lemma?\<close>
 lemma (in isasat_input_ops) [simp]:
   \<open>bf \<in># dom_m ax \<Longrightarrow>
-       dom_m ax \<subseteq># mset au \<Longrightarrow>
        vdom_m bj (ax(bf \<hookrightarrow> C')) = vdom_m bj (ax)\<close>
   by (force simp: vdom_m_def split: if_splits)+
 
@@ -358,10 +355,8 @@ lemma (in isasat_input_ops) vdom_m_simps5:
   \<open>i \<notin># dom_m N \<Longrightarrow> vdom_m W (fmupd i C N) = insert i (vdom_m W N)\<close>
   by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
 
-
 definition vdom_m_heur :: \<open>((nat \<times> _) list list) \<Rightarrow> (nat, 'b) fmap \<Rightarrow> nat set\<close> where
   \<open>vdom_m_heur W N = \<Union>(((`) fst) ` set ` (!) W ` nat_of_lit ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l) \<union> set_mset (dom_m N)\<close>
-
 
 definition cach_refinement_empty where
   \<open>cach_refinement_empty cach \<longleftrightarrow>
@@ -372,8 +367,9 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
   {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, lcount),
      (M, N, D, NE, UE, Q, W)).
-    M = M' \<and> N' = N \<and>
-    D' = D \<and>
+    M = M' \<and>
+    valid_arena N' N (vdom_m W N) \<and>
+    (D', D) \<in> option_lookup_clause_rel \<and>
     Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf M \<and>
@@ -384,18 +380,11 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     out_learned M D outl \<and>
     dom_m N \<subseteq># mset vdom \<and>
     lcount = size (learned_clss_lf N) \<and>
-    vdom_m W N = set_mset (dom_m N)
+    set vdom \<subseteq> vdom_m W N
   }\<close>
 
-lemma vdom_m_heur_vdom_m: \<open>(S, S') \<in> twl_st_heur \<Longrightarrow> 
-    vdom_m_heur (get_watched_wl_heur S) (get_clauses_wl_heur S) = vdom_m (get_watched_wl S') (get_clauses_wl S')\<close>
-   by (auto simp: twl_st_heur_def vdom_m_heur_def
-    vdom_m_def map_fun_rel_def
-    dest!: multi_member_split[of _ \<L>\<^sub>a\<^sub>l\<^sub>l])
-
 definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
-\<open>twl_st_heur' N =
-  {(S, S'). (S, S') \<in> twl_st_heur \<and> dom_m (get_clauses_wl_heur S) = N}\<close>
+\<open>twl_st_heur' N = {(S, S'). (S, S') \<in> twl_st_heur \<and> dom_m (get_clauses_wl S') = N}\<close>
 
 abbreviation (in -) watchers_assn where
   \<open>watchers_assn \<equiv> arl_assn (nat_assn *a unat_lit_assn)\<close>
@@ -411,8 +400,8 @@ abbreviation (in -) watchlist_fast_assn where
 
 definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>isasat_assn =
-  trail_assn *a clauses_ll_assn *a
-  option_lookup_clause_assn *a
+  trail_assn *a arena_assn *a
+  isasat_conflict_assn *a
   clause_l_assn *a
   watchlist_assn *a
   vmtf_remove_conc *a phase_saver_conc *a
@@ -429,8 +418,8 @@ definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \
 
 definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_fast_assn =
-  trail_fast_assn *a clauses_ll_assn *a
-  option_lookup_clause_assn *a
+  trail_fast_assn *a arena_assn *a
+  isasat_conflict_assn *a
   clause_l_assn *a
   watchlist_fast_assn *a
   vmtf_remove_conc *a phase_saver_conc *a
@@ -450,8 +439,10 @@ text \<open>
   following condition:
 \<close>
 abbreviation (in -) isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>isasat_fast S \<equiv> (\<forall>L \<in># dom_m (get_clauses_wl_heur S). L < uint32_max)\<close>
+  \<open>isasat_fast S \<equiv> (length (get_clauses_wl_heur S) \<le> uint64_max - (uint32_max + 5))\<close>
 
+text \<open>The condition \<^term>\<open>clvls \<in> counts_maximum_level M D\<close> does not hold in this setting.\<close>
+(* TODO is it used anywhere? *)
 definition twl_st_heur_no_clvls
   :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
@@ -459,8 +450,8 @@ where
   {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom,
        lcount),
      (M, N, D, NE, UE, Q, W)).
-    M = M' \<and> N' = N \<and>
-    D' = D \<and>
+    M = M' \<and> valid_arena N' N (vdom_m W N) \<and>
+    (D', D) \<in> option_lookup_clause_rel \<and>
     Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf M \<and>
@@ -469,7 +460,8 @@ where
     cach_refinement_empty cach \<and>
     out_learned_confl M D outl \<and>
     dom_m N \<subseteq># mset vdom \<and>
-    lcount = size (learned_clss_lf N)
+    lcount = size (learned_clss_lf N) \<and>
+    set vdom \<subseteq> vdom_m W N
   }\<close>
 
 definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
@@ -507,6 +499,8 @@ lemma isasat_fast_slow_isasat_fast_slow_wl_D:
   by (intro nres_relI frefI)
     (auto simp: isasat_fast_slow_alt_def isasat_fast_slow_wl_D_def)
 
+(* 
+TODO: kill. This the wrong level to do that. We should inherit these properties.
 definition literals_are_in_\<L>\<^sub>i\<^sub>n_heur where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S = literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf (get_clauses_wl_heur S))\<close>
 
@@ -524,7 +518,7 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0':
     \<open>j < length (get_clauses_wl_heur S \<propto> i)\<close> and
     N: \<open>N = get_clauses_wl_heur S\<close>
   shows \<open>N \<propto> i ! j \<in> snd ` D\<^sub>0\<close>
-  using literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0[OF assms(1-3)] unfolding N .
+  using literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0[OF assms(1-3)] unfolding N . *)
 
 end
 
@@ -545,11 +539,7 @@ definition polarity_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightar
   \<open>polarity_st S = polarity (get_trail_wl S)\<close>
 
 definition (in -) get_conflict_wl_is_None_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None_heur = (\<lambda>(M, N, D, Q, W, _). is_None D)\<close>
-
-lemma (in -)get_conflict_wl_is_None_heur_alt_def:
-   \<open>get_conflict_wl_is_None_heur S = (get_conflict_wl_heur S = None)\<close>
-  by (auto simp: get_conflict_wl_is_None_heur_def split: option.splits)
+  \<open>get_conflict_wl_is_None_heur = (\<lambda>(M, N, (b, _), Q, W, _). b)\<close>
 
 lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
     \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
@@ -557,12 +547,18 @@ lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
   apply (intro frefI nres_relI)
   apply (rename_tac x y, case_tac x, case_tac y)
   by (auto simp: twl_st_heur_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
+      option_lookup_clause_rel_def
      split: option.splits)
+
+lemma get_conflict_wl_is_None_heur_alt_def:
+    \<open>RETURN o get_conflict_wl_is_None_heur = (\<lambda>(M, N, (b, _), Q, W, _). RETURN b)\<close>
+  unfolding get_conflict_wl_is_None_heur_def
+  by auto
 
 sepref_thm get_conflict_wl_is_None_code
   is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
   :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding get_conflict_wl_is_None_heur_def isasat_assn_def length_ll_def[symmetric]
+  unfolding get_conflict_wl_is_None_heur_alt_def isasat_assn_def length_ll_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
 
@@ -578,7 +574,7 @@ lemmas get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
 sepref_thm get_conflict_wl_is_None_fast_code
   is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
   :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding get_conflict_wl_is_None_heur_def isasat_fast_assn_def length_ll_def[symmetric]
+  unfolding get_conflict_wl_is_None_heur_alt_def isasat_fast_assn_def length_ll_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
 
@@ -640,20 +636,23 @@ definition (in -) is_in_conflict_st :: \<open>nat literal \<Rightarrow> nat twl_
   \<open>is_in_conflict_st L S \<longleftrightarrow> is_in_conflict L (get_conflict_wl S)\<close>
 
 definition (in isasat_input_ops) atm_is_in_conflict_st_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>atm_is_in_conflict_st_heur L S \<longleftrightarrow> atm_of L \<in> atms_of (the (get_conflict_wl_heur S))\<close>
+  \<open>atm_is_in_conflict_st_heur L = (\<lambda>(M, N, (_, (_, D)), _). D ! (atm_of L) \<noteq> None)\<close>
 
 lemma atm_is_in_conflict_st_heur_alt_def:
-  \<open>atm_is_in_conflict_st_heur = (\<lambda>L (M, N, D, _). atm_of L \<in> atms_of (the D))\<close>
+  \<open>RETURN oo atm_is_in_conflict_st_heur = (\<lambda>L (M, N, (_, (_, D)), _). RETURN (D ! (atm_of L) \<noteq> None))\<close>
   unfolding atm_is_in_conflict_st_heur_def by (auto intro!: ext)
 
 lemma atm_is_in_conflict_st_heur_is_in_conflict_st:
   \<open>(uncurry (RETURN oo atm_is_in_conflict_st_heur), uncurry (RETURN oo is_in_conflict_st)) \<in>
-   [\<lambda>(L, S). -L \<notin># the (get_conflict_wl S)]\<^sub>f
+   [\<lambda>(L, S). -L \<notin># the (get_conflict_wl S) \<and> get_conflict_wl S \<noteq> None \<and>
+     L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f
    Id \<times>\<^sub>r twl_st_heur \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
-  apply (case_tac x, case_tac y)
-  by (auto simp: atm_is_in_conflict_st_heur_def is_in_conflict_st_def twl_st_heur_def
-      atms_of_def atm_of_eq_atm_of)
+  by (case_tac x, case_tac y)
+    (auto simp: atm_is_in_conflict_st_heur_def is_in_conflict_st_def twl_st_heur_def
+      atms_of_def atm_of_eq_atm_of option_lookup_clause_rel_def lookup_clause_rel_def
+      mset_as_position_in_iff_nth is_pos_neg_not_is_pos mset_as_position_empty_iff)
+
 
 definition (in isasat_input_ops) polarity_st_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option\<close>
