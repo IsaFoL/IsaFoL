@@ -1,5 +1,5 @@
 theory IsaSAT_Clauses
-imports  Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT.IsaSAT_Arena
+imports  Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT_Arena
 begin
 
 (* TODO This file should probably be merge with IsaSAT_Arena*)
@@ -17,7 +17,8 @@ definition list_fmap_rel :: \<open>_ \<Rightarrow> (arena \<times> nat clauses_l
   \<open>list_fmap_rel vdom = {(arena, N). valid_arena arena N vdom}\<close>
 
 lemma nth_clauses_l:
-  \<open>(uncurry2 (RETURN ooo (\<lambda>N i j. arena_lit N (i+j))), uncurry2 (RETURN ooo (\<lambda>N i j. N \<propto> i ! j)))
+  \<open>(uncurry2 (RETURN ooo (\<lambda>N i j. arena_lit N (i+j))),
+      uncurry2 (RETURN ooo (\<lambda>N i j. N \<propto> i ! j)))
     \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>f
       list_fmap_rel vdom \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)

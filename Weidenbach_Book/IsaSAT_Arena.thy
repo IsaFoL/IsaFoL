@@ -1468,6 +1468,46 @@ proof -
     using is_lit[of 0] ge2 by fastforce+
 qed
 
+
+lemma arena_dom_status_iff:
+  assumes valid: \<open>valid_arena arena N vdom\<close> and
+   i: \<open>i \<in> vdom\<close>
+  shows \<open>i \<in># dom_m N \<longleftrightarrow> arena_status arena i \<noteq> DELETED\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof
+  assume ?A
+  then have
+    \<open>xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> and
+    i_ge: \<open>header_size (N \<propto> i) \<le> i\<close> and
+    i_le: \<open>i < length arena\<close>
+    using assms unfolding valid_arena_def by blast+
+  then have \<open>is_Status (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT))\<close> and
+  \<open>(xarena_status (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT)) = INIT) =
+  irred N i\<close> and
+  \<open>(xarena_status (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT)) = LEARNED) =
+  (\<not> irred N i)\<close>
+    unfolding xarena_active_clause_alt_def arena_status_def
+    by blast+
+  then show ?B
+    using i_ge i_le
+    unfolding xarena_active_clause_alt_def arena_status_def
+    by (auto simp: SHIFTS_def header_size_def slice_nth split: if_splits)
+next
+  assume ?B
+  show ?A
+  proof (rule ccontr)
+    assume \<open>i \<notin># dom_m N\<close>
+    then have
+      \<open>arena_dead_clause (Misc.slice (i - 4) i arena)\<close> and
+      i_ge: \<open>4 \<le> i\<close> and
+      i_le: \<open>i < length arena\<close>
+      using assms unfolding valid_arena_def by blast+
+    then show False
+      using  \<open>?B\<close>
+      unfolding arena_dead_clause_def
+      by (auto simp: arena_status_def slice_nth SHIFTS_def)
+  qed
+qed
+  
 text \<open>This is supposed to be used as for assertions. There might be a more ``local'' way to define
 it, without the need for an existentially quantified clause set. However, I did not find a definition
 which was really much more useful and more practical.
@@ -1475,6 +1515,13 @@ which was really much more useful and more practical.
 definition arena_is_valid_clause_idx :: \<open>arena \<Rightarrow> nat \<Rightarrow> bool\<close> where
 \<open>arena_is_valid_clause_idx arena i \<longleftrightarrow>
   (\<exists>N vdom. valid_arena arena N vdom \<and> i \<in># dom_m N)\<close>
+
+text \<open>This precondition has weaker preconditions is restricted to extracting the status (the other
+headers can be extracted but only garbage is returned).
+\<close>
+definition arena_is_valid_clause_vdom :: \<open>arena \<Rightarrow> nat \<Rightarrow> bool\<close> where
+\<open>arena_is_valid_clause_vdom arena i \<longleftrightarrow>
+  (\<exists>N vdom. valid_arena arena N vdom \<and> i \<in> vdom)\<close>
 
 
 subsubsection \<open>Code Generation\<close>

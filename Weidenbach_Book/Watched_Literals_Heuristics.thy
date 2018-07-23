@@ -100,15 +100,12 @@ proof -
                (get_clauses_l (remove_one_lit_from_wq (?C) T) \<propto>
                 (?C)))\<close> and
     \<open>get_conflict_l (remove_one_lit_from_wq (?C) T) = None\<close>
-    using assms C_dom unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_alt_def watched_by_app_def
-      unit_propagation_inner_loop_body_l_inv_def
+    using assms C_dom unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_alt_def
+      watched_by_app_def unit_propagation_inner_loop_body_l_inv_def
     apply - apply normalize_goal+
     by blast
   show S_L_W_le_S: \<open>?C \<in># dom_m (get_clauses_wl S)\<close>
     using C_dom unfolding watched_by_app_def by auto
-    (* using assms C_dom unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
-      unit_propagation_inner_loop_body_l_inv_def
-    apply - by normalize_goal+ simp *)
   show
     \<open>get_clauses_wl S \<propto> ?C \<noteq> []\<close> and
     le: \<open>Suc 0 < length (get_clauses_wl S \<propto> ?C)\<close>
@@ -215,9 +212,10 @@ definition (in isasat_input_ops) find_unwatched :: \<open>(nat, 'b) ann_lits \<R
 
 definition (in isasat_input_ops) find_unwatched_wl_st_heur_pre where
   \<open>find_unwatched_wl_st_heur_pre =
-     (\<lambda>(S, i). i \<in># dom_m (get_clauses_wl S) \<and> literals_are_\<L>\<^sub>i\<^sub>n S \<and>
-        length (get_clauses_wl S \<propto> i) \<ge> 2 \<and> length (get_clauses_wl S \<propto> i) < uint64_max)\<close>
+     (\<lambda>(S, i).
+         arena_is_valid_clause_idx (get_clauses_wl S) i\<close>
 
+thm find_unwatched_wl_st_def
 definition (in isasat_input_ops) find_unwatched_wl_st
   :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
 \<open>find_unwatched_wl_st = (\<lambda>(M, N, D, Q, W, vm, \<phi>) i. do {
@@ -378,10 +376,13 @@ lemma set_conflict_wl'_alt_def:
 
 definition (in isasat_input_ops) set_conflict_wl_heur_pre where
   \<open>set_conflict_wl_heur_pre =
-     (\<lambda>(C, S). get_conflict_wl_heur S = None \<and>
+     (\<lambda>(C, S). 
+     \<^cancel>\<open>get_conflict_wl_heur S = None \<and> \<close>
         literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl_heur S) \<and>
-        no_dup (get_trail_wl_heur S) \<and>
-       out_learned (get_trail_wl_heur S) (get_conflict_wl_heur S) (get_outlearned_heur S))\<close>
+        no_dup (get_trail_wl_heur S)
+      \<^cancel>\<open> \<and>
+       out_learned (get_trail_wl_heur S) (get_conflict_wl_heur S) (get_outlearned_heur S) \<close>
+       )\<close>
 
 definition (in isasat_input_ops) set_conflict_wl_heur
   :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -394,11 +395,12 @@ where
 
 definition (in isasat_input_ops) update_clause_wl_code_pre where
   \<open>update_clause_wl_code_pre = (\<lambda>((((((L, C), j), w), i), f), S).
-      C \<in># dom_m (get_clauses_wl_heur S) \<and>
-      f < length (get_clauses_wl_heur S \<propto> C) \<and>
-      i < length (get_clauses_wl_heur S \<propto> C) \<and>
+      \<comment>\<open>C \<in># dom_m (get_clauses_wl_heur S) \<and>
+        f < length (get_clauses_wl_heur S \<propto> C) \<and>
+        i < length (get_clauses_wl_heur S \<propto> C) \<and> \<close>
+      arena_is_valid_clause_idx_and_access (get_clauses_wl_heur S) C f \<and>
       nat_of_lit L < length (get_watched_wl_heur S) \<and>
-      nat_of_lit ((get_clauses_wl_heur S \<propto> C) ! f)  < length (get_watched_wl_heur S) \<and>
+      nat_of_lit (arena_lit (get_clauses_wl_heur S)  (C + f))  < length (get_watched_wl_heur S) \<and>
       w < length (get_watched_wl_heur S ! nat_of_lit L) \<and>
       j \<le> w)\<close>
 
@@ -407,15 +409,17 @@ definition (in isasat_input_ops) update_clause_wl_heur
     (nat \<times> nat \<times> twl_st_wl_heur) nres\<close>
 where
   \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) C j w i f (M, N, D, Q, W, vm). do {
-     let K' = (N\<propto>C) ! f;
-     let N' = N( C \<hookrightarrow> (swap (N\<propto>C) i f));
+     let K' = arena_lit N (C + f);
+     ASSERT(C+i < length N);
+     ASSERT(C+f < length N);
+     let N' = swap_lits C i f N;
      let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L)]];
      RETURN (j, w+1, (M, N', D, Q, W, vm))
   })\<close>
 
 definition (in isasat_input_ops) update_clause_wl_pre where
   \<open>update_clause_wl_pre = (\<lambda>((((((L, C), j), w), i), f), S). C \<in># dom_m(get_clauses_wl S) \<and>
-     L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
+     L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> i < length (get_clauses_wl S \<propto> C) \<and> f < length (get_clauses_wl S \<propto> C))\<close>
 
 lemma update_clause_wl_heur_update_clause_wl:
   \<open>(uncurry6 update_clause_wl_heur, uncurry6 (update_clause_wl)) \<in>
@@ -423,24 +427,23 @@ lemma update_clause_wl_heur_update_clause_wl:
    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur' \<D> \<rightarrow>
   \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur' \<D>\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-   (auto simp: update_clause_wl_heur_def update_clause_wl_def twl_st_heur_def Let_def
-      map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def)
-
+    (auto simp: update_clause_wl_heur_def update_clause_wl_def twl_st_heur_def Let_def
+      map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting
+    intro!: ASSERT_refine_left valid_arena_swap_lits)
 
 definition (in -) access_lit_in_clauses where
   \<open>access_lit_in_clauses S i j = (get_clauses_wl S) \<propto> i ! j\<close>
 
 definition (in -) access_lit_in_clauses_heur_pre where
   \<open>access_lit_in_clauses_heur_pre =
-      (\<lambda>((S, i), j). i \<in># dom_m (get_clauses_wl_heur S) \<and>
-           j < length (get_clauses_wl_heur S \<propto> i) \<and>
-           length (get_clauses_wl_heur S \<propto> i) \<le> uint64_max)\<close>
+      (\<lambda>((S, i), j).
+           arena_lit_pre (get_clauses_wl_heur S) (i+j))\<close>
 
 definition (in -) access_lit_in_clauses_heur where
-  \<open>access_lit_in_clauses_heur S i j = get_clauses_wl_heur S \<propto> i ! j\<close>
+  \<open>access_lit_in_clauses_heur S i j = arena_lit (get_clauses_wl_heur S) (i + j)\<close>
 
 lemma access_lit_in_clauses_heur_alt_def:
-  \<open>access_lit_in_clauses_heur = (\<lambda>(M, N, _) i j.  N \<propto> i ! j)\<close>
+  \<open>access_lit_in_clauses_heur = (\<lambda>(M, N, _) i j.  arena_lit N (i + j))\<close>
   by (auto simp: access_lit_in_clauses_heur_def intro!: ext)
 
 definition (in isasat_input_ops) clause_not_marked_to_delete where
@@ -451,10 +454,11 @@ definition (in isasat_input_ops) clause_not_marked_to_delete_pre where
 
 definition (in isasat_input_ops) clause_not_marked_to_delete_heur_pre where
   \<open>clause_not_marked_to_delete_heur_pre =
-     (\<lambda>(S, C). C \<in> vdom_m_heur (get_watched_wl_heur S) (get_clauses_wl_heur S))\<close>
+     (\<lambda>(S, C). arena_is_valid_clause_vdom (get_clauses_wl_heur S) C)\<close>
 
-definition (in isasat_input_ops) clause_not_marked_to_delete_heur where
-  \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow> True\<close>
+definition (in isasat_input_ops) clause_not_marked_to_delete_heur :: "_ \<Rightarrow> nat \<Rightarrow> bool"
+where
+  \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow> arena_status (get_clauses_wl_heur S) C \<noteq> DELETED\<close>
 
 lemma clause_not_marked_to_delete_rel:
   \<open>(uncurry (RETURN oo clause_not_marked_to_delete_heur),
@@ -462,8 +466,10 @@ lemma clause_not_marked_to_delete_rel:
     [clause_not_marked_to_delete_pre]\<^sub>f
      twl_st_heur \<times>\<^sub>f nat_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: clause_not_marked_to_delete_def twl_st_heur_def clause_not_marked_to_delete_heur_def
-      clause_not_marked_to_delete_pre_def)
+    (use arena_dom_status_iff in_dom_in_vdom in
+      \<open>auto 5 5 simp: clause_not_marked_to_delete_def twl_st_heur_def
+        clause_not_marked_to_delete_heur_def arena_dom_status_iff
+        clause_not_marked_to_delete_pre_def\<close>)
 
 lemma
   find_unwatched_not_tauto:
@@ -711,20 +717,22 @@ qed
 definition (in isasat_input_ops) propagate_lit_wl_heur_pre where
   \<open>propagate_lit_wl_heur_pre =
      (\<lambda>(((L, C), i), S). undefined_lit (get_trail_wl_heur S) L \<and> L \<in> snd ` D\<^sub>0 \<and>
-       1 - i < length (get_clauses_wl_heur S \<propto> C) \<and> i \<le> 1 \<and>
-       C \<in># dom_m (get_clauses_wl_heur S))\<close>
+        i \<le> 1)\<close>
 
 definition (in isasat_input_ops) propagate_lit_wl_heur
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>
 where
   \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema).
-      let N' = N(C \<hookrightarrow> swap (N\<propto>C) 0 (fast_minus 1 i)) in
+      let N' = swap_lits C 0 (fast_minus 1 i) N in
       (Propagated L' C # M, N', D, add_mset (-L') Q, W, vm, \<phi>, clvls, cach, lbd, outl,
          incr_propagation stats, fema, sema))\<close>
 
 definition propagate_lit_wl_pre where
-  \<open>propagate_lit_wl_pre = (\<lambda>(((L, C), i), S). undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None \<and>
-     C \<in># dom_m (get_clauses_wl S))\<close>
+  \<open>propagate_lit_wl_pre = (\<lambda>(((L, C), i), S). 
+     undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None \<and>
+     C \<in># dom_m (get_clauses_wl S) \<and>
+    1 - i < length (get_clauses_wl S \<propto> C) \<and>
+    0 < length (get_clauses_wl S \<propto> C))\<close>
 
 
 lemma propagate_lit_wl_heur_propagate_lit_wl:
@@ -734,24 +742,28 @@ lemma propagate_lit_wl_heur_propagate_lit_wl:
   apply (intro frefI nres_relI)
   supply [[show_types]]
   by (auto simp: twl_st_heur_def propagate_lit_wl_heur_def propagate_lit_wl_def
-      vmtf_consD twl_st_heur'_def propagate_lit_wl_pre_def)
+      vmtf_consD twl_st_heur'_def propagate_lit_wl_pre_def
+      valid_arena_swap_lits)
 
 lemma undefined_lit_polarity_st_iff:
    \<open>undefined_lit (get_trail_wl S) L \<longleftrightarrow>
       polarity_st S L \<noteq> Some True \<and> polarity_st S L \<noteq> Some False\<close>
   by (auto simp: polarity_st_def polarity_def)
 
+(* TODO deduplicate def *)
 lemma find_unwatched_le_length:
   \<open>xj < length (get_clauses_wl S \<propto> fst (watched_by_app S L C))\<close>
   if
-    find_unw: \<open>RETURN (Some xj) \<le> find_unwatched_wl_st S (fst (watched_by_app S L C))\<close>
+    find_unw: \<open>RETURN (Some xj) \<le>
+       Watched_Literals_Heuristics.find_unwatched_wl_st S (fst (watched_by_app S L C))\<close>
   for S L C xj
-  using that unfolding find_unwatched_wl_st_def find_unwatched_l_def
+  using that unfolding find_unwatched_wl_st_def Watched_Literals_Heuristics.find_unwatched_wl_st_def
+    find_unwatched_l_def
   by (cases S) auto
 
 lemma find_unwatched_in_D\<^sub>0: \<open>get_clauses_wl S \<propto> fst (watched_by_app S L C) ! xj \<in> snd ` D\<^sub>0\<close>
   if
-    find_unw: \<open>RETURN (Some xj) \<le> find_unwatched_wl_st S (fst (watched_by_app S L C))\<close> and
+    find_unw: \<open>RETURN (Some xj) \<le> Watched_Literals_Heuristics.find_unwatched_wl_st S (fst (watched_by_app S L C))\<close> and
     inv: \<open>unit_prop_body_wl_D_inv S j C L\<close> and
     dom: \<open>fst (watched_by_app S L C) \<in># dom_m (get_clauses_wl S)\<close>
   for S C xj L
@@ -761,7 +773,8 @@ proof -
     using inv dom by (blast intro: unit_prop_body_wl_D_invD)
   moreover {
     have xj: \<open>xj < length (get_clauses_wl S \<propto> ?C)\<close>
-      using find_unw by (cases S) (auto simp: find_unwatched_wl_st_def find_unwatched_l_def)
+      using find_unw by (cases S) (auto simp: Watched_Literals_Heuristics.find_unwatched_wl_st_def
+         find_unwatched_l_def)
     have \<open>?C > 0\<close>
       using inv dom by (blast intro: unit_prop_body_wl_D_invD)+
     then have \<open>get_clauses_wl S \<propto> ?C ! xj \<in>#
@@ -837,8 +850,8 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_heur
           if val_L' = Some True
           then update_blit_wl_heur L C j w L' S
           else do {
-             ASSERT(find_unwatched_wl_st_heur_pre (S, C));
-            f \<leftarrow> find_unwatched_wl_st_heur S C;
+             \<comment>\<open>ASSERT(find_unwatched_wl_st_heur_pre (S, C));\<close>
+            f \<leftarrow> isa_find_unwatched_wl_st_heur S C;
             ASSERT (unit_prop_body_wl_D_find_unwatched_heur_inv f C S);
             case f of
               None \<Rightarrow> do {
@@ -872,57 +885,30 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_heur
 lemma twl_st_heur_state_simp:
   assumes \<open>(S, S') \<in> twl_st_heur\<close>
   shows
-     \<open>get_clauses_wl_heur S = get_clauses_wl S'\<close>
      \<open>get_trail_wl_heur S = get_trail_wl S'\<close> and
      twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> watched_by_int S C = watched_by S' C\<close> and
-     \<open>get_conflict_wl_heur S = get_conflict_wl S'\<close> and
      \<open>literals_to_update_wl_heur S = literals_to_update_wl S'\<close>
   using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
 
-lemma twl_st_heur_literals_are_in_\<L>\<^sub>i\<^sub>n_heur:
-  assumes lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n S'\<close> and SS': \<open>(S, S') \<in> twl_st_heur\<close>
-  shows
-    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S\<close>
-  using SS' lits[unfolded is_\<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_\<L>\<^sub>i\<^sub>n_def] unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-   literals_are_in_\<L>\<^sub>i\<^sub>n_heur_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def
-  by (auto simp: twl_st_heur_state_simp all_lits_of_mm_union literals_are_\<L>\<^sub>i\<^sub>n_def
-    simp del: twl_st_of_wl.simps)
+lemma set_conflict_wl'_alt_def2:
+  \<open>RETURN oo set_conflict_wl' =
+    (\<lambda>C (M, N, D, NE, UE, Q, W). do {
+      let D = Some (mset (N \<propto> C));
+      RETURN (M, N, D, NE, UE, {#}, W) })
+  \<close>
+  unfolding set_conflict_wl'_def
+  by (auto intro!: ext)
 
-
-ML \<open>
-signature MORE_REFINEMENT = sig
-  val down_converse: Proof.context -> thm -> thm
-end
-
-structure More_Refinement: MORE_REFINEMENT = struct
-  val unfold_refine = (fn context => Local_Defs.unfold (context)
-   @{thms refine_rel_defs nres_rel_def in_pair_collect_simp fref_def})
-  val unfold_Ball = (fn context => Local_Defs.unfold (context)
-    @{thms Ball2_split_def all_to_meta})
-  val replace_ALL_by_meta = (fn context => fn thm => Object_Logic.rulify context thm)
-  val down_converse = (fn context =>
-    replace_ALL_by_meta context o (unfold_Ball context) o (unfold_refine context))
-end
-\<close>
-attribute_setup "to_\<Down>" = \<open>
-    Scan.succeed (Thm.rule_attribute [] (More_Refinement.down_converse o Context.proof_of))
-  \<close> "convert theorem from @{text \<rightarrow>}-form to @{text \<Down>}-form."
-
-method "to_\<Down>" =
-   (unfold refine_rel_defs nres_rel_def in_pair_collect_simp fref_def uncurry_def;
-   unfold Ball2_split_def all_to_meta fref_def uncurry_def;
-   intro allI impI)
-
-
-
+declare RETURN_as_SPEC_refine[refine2 del]
 lemma set_conflict_wl_heur_set_conflict_wl':
   \<open>(uncurry set_conflict_wl_heur, uncurry (RETURN oo set_conflict_wl')) \<in>
     nat_rel \<times>\<^sub>r twl_st_heur' \<D> \<rightarrow>\<^sub>f \<langle>twl_st_heur' \<D>\<rangle>nres_rel\<close>
   apply (intro nres_relI frefI)
-  unfolding set_conflict_wl_heur_def uncurry_def Let_def set_conflict_m_def RES_RETURN_RES4
-  by (auto simp: twl_st_heur_def set_conflict_wl_heur_def set_conflict_wl'_def
-        RETURN_def counts_maximum_level_def twl_st_heur'_def
-      intro!: RES_refine)
+  unfolding uncurry_def RES_RETURN_RES4 set_conflict_wl'_alt_def2 set_conflict_wl_heur_def
+  apply (rewrite at \<open>let _ = zero_uint32_nat in _\<close> Let_def)
+  apply (refine_vcg
+    resolve_lookup_conflict_aa_set_conflict[THEN fref_to_Down_curry6])
+  sorry
 
 lemma in_Id_in_Id_option_rel[refine]:
   \<open>(f, f') \<in> Id \<Longrightarrow> (f, f') \<in> \<langle>Id\<rangle> option_rel\<close>
