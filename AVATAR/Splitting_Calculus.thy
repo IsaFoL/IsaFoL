@@ -21,6 +21,7 @@ abbreviation aconcls_of :: "('a, 'b) ainference set \<Rightarrow> ('a, 'b) aclau
 abbreviation ainfer_from :: "('a, 'b) aclause set \<Rightarrow> ('a, 'b) ainference \<Rightarrow> bool" where
   "ainfer_from CC \<gamma> \<equiv> set_mset (aprems_of \<gamma>) \<subseteq> CC"
 
+(* TODO: rename to reflect truncating semantics *)
 fun infer_of_ainfer :: "('a, 'b) ainference \<Rightarrow> 'a inference"  where
   "infer_of_ainfer (AInfer CC D E) = Infer (image_mset clause_of CC) (clause_of D) E"
 
