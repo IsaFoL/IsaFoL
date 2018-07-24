@@ -185,15 +185,17 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     Show
   theories
     (*Watched_Literals_Transition_System_Restart*)
+    IsaSAT_Trail
     CDCL_Conflict_Minimisation
     Watched_Literals_VMTF
     LBD
     IsaSAT_Setup
-    IsaSAT_CDCL
     IsaSAT_Backtrack
     IsaSAT_Initialisation
+    IsaSAT_Conflict_Analysis
     IsaSAT_Propagate_Conflict
     IsaSAT_Decide
+    IsaSAT_CDCL
     IsaSAT
 
   document_files

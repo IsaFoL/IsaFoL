@@ -362,13 +362,15 @@ definition cach_refinement_empty where
   \<open>cach_refinement_empty cach \<longleftrightarrow>
      (\<forall>L\<in>#\<A>\<^sub>i\<^sub>n. cach L = SEEN_UNKNOWN)\<close>
 
+text \<open>\<^term>\<open>vdom\<close> is an upper bound on all the address of the clauses that are used in the
+state.\<close>
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
   {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, lcount),
      (M, N, D, NE, UE, Q, W)).
     M = M' \<and>
-    valid_arena N' N (vdom_m W N) \<and>
+    valid_arena N' N (set vdom) \<and>
     (D', D) \<in> option_lookup_clause_rel \<and>
     Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
@@ -380,7 +382,7 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     out_learned M D outl \<and>
     dom_m N \<subseteq># mset vdom \<and>
     lcount = size (learned_clss_lf N) \<and>
-    set vdom \<subseteq> vdom_m W N
+    vdom_m W N \<subseteq> set vdom
   }\<close>
 
 definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
@@ -450,7 +452,7 @@ where
   {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom,
        lcount),
      (M, N, D, NE, UE, Q, W)).
-    M = M' \<and> valid_arena N' N (vdom_m W N) \<and>
+    M = M' \<and> valid_arena N' N (set vdom) \<and>
     (D', D) \<in> option_lookup_clause_rel \<and>
     Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
@@ -461,7 +463,7 @@ where
     out_learned_confl M D outl \<and>
     dom_m N \<subseteq># mset vdom \<and>
     lcount = size (learned_clss_lf N) \<and>
-    set vdom \<subseteq> vdom_m W N
+    vdom_m W N \<subseteq> set vdom
   }\<close>
 
 definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where

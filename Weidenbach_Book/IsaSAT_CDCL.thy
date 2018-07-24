@@ -1,5 +1,6 @@
 theory IsaSAT_CDCL
-  imports IsaSAT_Propagate_Conflict IsaSAT_Conflict_Analysis IsaSAT_Backtrack IsaSAT_Decide
+  imports IsaSAT_Propagate_Conflict IsaSAT_Conflict_Analysis IsaSAT_Backtrack
+    IsaSAT_Decide
 begin
 
 context isasat_input_bounded_nempty
