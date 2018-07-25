@@ -661,7 +661,7 @@ definition (in isasat_input_ops) polarity_st_heur
 where
   \<open>polarity_st_heur S = polarity (get_trail_wl_heur S)\<close>
 
-abbreviation (in isasat_input_ops) polarity_st_pre where
+definition (in isasat_input_ops) polarity_st_pre where
 \<open>polarity_st_pre \<equiv> \<lambda>(M, L). L \<in> snd ` D\<^sub>0\<close>
 
 lemma polarity_st_heur_alt_def:
@@ -671,7 +671,7 @@ lemma polarity_st_heur_alt_def:
 sepref_thm polarity_st_heur_pol
   is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
   :: \<open>[polarity_st_pre]\<^sub>a isasat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
-  unfolding polarity_st_heur_alt_def isasat_assn_def
+  unfolding polarity_st_heur_alt_def isasat_assn_def polarity_st_pre_def
   supply [[goals_limit = 1]]
   by sepref
 
@@ -688,7 +688,7 @@ lemmas polarity_st_heur_pol_polarity_st_refine[sepref_fr_rules] =
 sepref_thm polarity_st_heur_pol_fast
   is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
   :: \<open>[polarity_st_pre]\<^sub>a isasat_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
-  unfolding polarity_st_heur_alt_def isasat_fast_assn_def
+  unfolding polarity_st_heur_alt_def isasat_fast_assn_def polarity_st_pre_def
   supply [[goals_limit = 1]]
   by sepref
 

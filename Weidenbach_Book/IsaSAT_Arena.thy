@@ -1380,10 +1380,11 @@ lemma arena_lifting:
     \<open>is_Status (arena ! (i - STATUS_SHIFT))\<close> and
     \<open>SIZE_SHIFT \<le> i\<close> and
     \<open>LBD_SHIFT \<le> i\<close>
-    \<open>ACTIVITY_SHIFT \<le> i\<close>
+    \<open>ACTIVITY_SHIFT \<le> i\<close> and
+    \<open>length (N \<propto> i) \<ge> 2\<close>
 proof -
   have
-   dom: \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
+    dom: \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
       i < length arena \<and>
       header_size (N \<propto> i) \<le> i \<and>
       xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>
@@ -1437,7 +1438,8 @@ proof -
   then show  \<open>length (N \<propto> i) = arena_length arena i\<close> and \<open>is_Size (arena ! (i - SIZE_SHIFT))\<close>
     using i_le i_ge size' size ge2 HH unfolding numeral_2_eq_2
     by (simp_all split:)
-
+  show \<open>length (N \<propto> i) \<ge> 2\<close>
+    using ge2 .
   show
     \<open>i \<ge> header_size (N \<propto> i)\<close> and
     \<open>i < length arena\<close>
