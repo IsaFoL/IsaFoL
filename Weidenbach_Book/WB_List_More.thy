@@ -24,7 +24,6 @@ method normalize_goal =
 
 text \<open>Close to the theorem @{thm [source] nat_less_induct} (@{thm nat_less_induct}), but with a
   separation between the zero and non-zero case.\<close>
-thm nat_less_induct
 lemma nat_less_induct_case[case_names 0 Suc]:
   assumes
     \<open>P 0\<close> and
@@ -218,7 +217,7 @@ lemma in_set_distinct_take_drop_iff:
   shows \<open>D ! b \<in> set (take (a - init) (drop init D)) \<longleftrightarrow> (init \<le> b \<and> b < a)\<close>
   using assms apply (auto 5 5 simp: distinct_in_set_take_iff in_set_conv_iff
       nth_eq_iff_index_eq dest: in_set_takeD)
-  by (metis add_diff_cancel_left' diff_less_mono le_iff_add less_imp_le_nat nth_drop)
+  by (metis add_diff_cancel_left' diff_less_mono le_iff_add)
 
 
 subsection \<open>Replicate\<close>
@@ -350,14 +349,14 @@ text \<open>The following two lemmas are useful as simp rules for case-distincti
 lemma length_list_Suc_0:
   \<open>length W = Suc 0 \<longleftrightarrow> (\<exists>L. W = [L])\<close>
   apply (cases W)
-    apply simp
+    apply (simp; fail)
   apply (rename_tac a W', case_tac W')
   apply auto
   done
 
 lemma length_list_2: \<open>length S = 2 \<longleftrightarrow> (\<exists>a b. S = [a, b])\<close>
   apply (cases S)
-   apply simp
+   apply (simp; fail)
   apply (rename_tac a S')
   apply (case_tac S')
   by simp_all
@@ -1357,7 +1356,7 @@ lemma distinct_mset_set_mset_remove1_mset:
   \<open>distinct_mset M \<Longrightarrow> set_mset (remove1_mset c M) = set_mset M - {c}\<close>
   by (cases \<open>c \<in># M\<close>) (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
 
-lemma (in -) distinct_count_msetD:
+lemma distinct_count_msetD:
   \<open>distinct xs \<Longrightarrow> count (mset xs) a = (if a \<in> set xs then 1 else 0)\<close>
   unfolding distinct_count_atmost_1 by auto
 
