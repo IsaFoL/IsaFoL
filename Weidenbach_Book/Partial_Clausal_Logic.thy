@@ -26,6 +26,7 @@ text \<open>We define here entailment by a set of literals. This is \<^emph>\<op
   Satisfiability is defined by the existence of a total and consistent model.
   \<close>
 
+
 subsection \<open>Clauses\<close>
 
 text \<open>
@@ -85,7 +86,8 @@ lemma consistent_interp_insert_not_in:
 lemma consistent_interp_unionD: \<open>consistent_interp (I \<union> I') \<Longrightarrow> consistent_interp I'\<close>
   unfolding consistent_interp_def by auto
 
-lemma consistent_interp_insert_iff: \<open>consistent_interp (insert L C) \<longleftrightarrow> consistent_interp C \<and> -L \<notin> C\<close>
+lemma consistent_interp_insert_iff:
+  \<open>consistent_interp (insert L C) \<longleftrightarrow> consistent_interp C \<and> -L \<notin> C\<close>
   by (metis consistent_interp_def consistent_interp_insert_pos insert_absorb)
 
 
@@ -199,7 +201,9 @@ lemma atm_of_in_atm_of_set_in_uminus:
   "atm_of L' \<in> atm_of ` B \<Longrightarrow> L' \<in> B \<or> - L' \<in> B"
   using atms_of_s_def by (cases L') fastforce+
 
+
 subsubsection \<open>Totality\<close>
+
 definition total_over_set :: "'a interp \<Rightarrow> 'a set \<Rightarrow> bool" where
 "total_over_set I S = (\<forall>l\<in>S. Pos l \<in> I \<or> Neg l \<in> I)"
 
@@ -322,6 +326,7 @@ lemma total_over_m_alt_def: \<open>total_over_m I S \<longleftrightarrow> atms_o
 lemma total_over_set_alt_def: \<open>total_over_set M A \<longleftrightarrow> A \<subseteq> atms_of_s M\<close>
   by (auto simp: total_over_set_def)
 
+
 subsubsection \<open>Interpretations\<close>
 
 definition true_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>" 50) where
@@ -438,7 +443,7 @@ lemma true_cls_def_set_mset_eq:
 subsubsection \<open>Satisfiability\<close>
 
 definition satisfiable :: "'a clause set \<Rightarrow> bool" where
-  "satisfiable CC \<equiv> \<exists>I. (I \<Turnstile>s CC \<and> consistent_interp I \<and> total_over_m I CC)"
+  "satisfiable CC \<longleftrightarrow> (\<exists>I. (I \<Turnstile>s CC \<and> consistent_interp I \<and> total_over_m I CC))"
 
 lemma satisfiable_single[simp]:
   "satisfiable {{#L#}}"
@@ -718,6 +723,7 @@ lemma tautology_decomp':
   apply (case_tac L)
    apply auto
   done
+
 
 subsubsection \<open>Entailment for clauses and propositions\<close>
 
@@ -1305,7 +1311,9 @@ end
 interpretation true_cls: entail true_cls
   by standard (auto simp add: true_cls_def)
 
+
 subsection \<open>Entailment to be extended\<close>
+
 text \<open>In some cases we want a more general version of entailment to have for example
   @{term "{} \<Turnstile> {#L, -L#}"}. This is useful when the model we are building might not be total (the
   literal @{term L} might have been definitely removed from the set of clauses), but we still want
@@ -1341,7 +1349,7 @@ proof (intro allI impI)
     using tot unfolding total_over_m_def total_over_set_def atms_of_ms_def
     apply clarify
     apply (rename_tac l a, case_tac "a \<in> N - {C}")
-      apply auto[]
+      apply (auto; fail)
     using atms_of_s_def atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
     by (fastforce simp: atms_of_def)
   ultimately have "?J \<Turnstile>s N"
@@ -1365,4 +1373,5 @@ lemma not_consistent_true_clss_ext:
   assumes "\<not>consistent_interp I"
   shows "I \<Turnstile>sext A"
   by (meson assms consistent_interp_subset true_clss_ext_def)
+
 end
