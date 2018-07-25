@@ -107,7 +107,7 @@ subsubsection \<open>Entailment\<close>
 definition true_annot :: \<open>('a, 'm) ann_lits \<Rightarrow> 'a clause \<Rightarrow> bool\<close> (infix "\<Turnstile>a" 49) where
   \<open>I \<Turnstile>a C \<longleftrightarrow> (lits_of_l I) \<Turnstile> C\<close>
 
-definition true_annots :: \<open>('a, 'm) ann_lits \<Rightarrow> 'a clauses \<Rightarrow> bool\<close> (infix "\<Turnstile>as" 49) where
+definition true_annots :: \<open>('a, 'm) ann_lits \<Rightarrow> 'a clause_set \<Rightarrow> bool\<close> (infix "\<Turnstile>as" 49) where
   \<open>I \<Turnstile>as CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile>a C)\<close>
 
 lemma true_annot_empty_model[simp]:
@@ -799,7 +799,7 @@ subsection \<open>Negation of a Clause\<close>
 text \<open>
   We define the negation of a @{typ \<open>'a clause\<close>}: it converts a single clause to a set of clauses,
   where each clause is a single literal (whose negation is in the original clause).\<close>
-definition CNot :: \<open>'v clause \<Rightarrow> 'v clauses\<close> where
+definition CNot :: \<open>'v clause \<Rightarrow> 'v clause_set\<close> where
 \<open>CNot \<psi> = { {#-L#} | L. L \<in># \<psi> }\<close>
 
 lemma in_CNot_uminus[iff]:
@@ -1181,8 +1181,6 @@ abbreviation true_clss_m:: \<open>'a interp \<Rightarrow> 'a clause multiset \<R
 
 abbreviation true_clss_ext_m (infix "\<Turnstile>sextm" 49) where
 \<open>I \<Turnstile>sextm C \<equiv> I \<Turnstile>sext set_mset C\<close>
-
-type_synonym 'v clauses = \<open>'v clause multiset\<close>
 
 
 subsection \<open>More Lemmas\<close>

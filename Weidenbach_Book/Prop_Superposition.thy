@@ -1,6 +1,7 @@
 theory Prop_Superposition
 imports Entailment_Definition.Partial_Clausal_Logic Ordered_Resolution_Prover.Herbrand_Interpretation
 begin
+
 section \<open>Superposition\<close>
 
 no_notation Herbrand_Interpretation.true_cls (infix "\<Turnstile>" 50)
@@ -31,7 +32,7 @@ lemma herbrand_interp_iff_partial_interp_clss:
   unfolding true_clss_def Ball_def herbrand_interp_iff_partial_interp_cls
   Partial_Clausal_Logic.true_clss_def by auto
 
-definition clss_lt :: "'a::wellorder clauses \<Rightarrow> 'a clause \<Rightarrow> 'a clauses" where
+definition clss_lt :: "'a::wellorder clause_set \<Rightarrow> 'a clause \<Rightarrow> 'a clause_set" where
 "clss_lt N C = {D \<in> N. D < C}"
 
 notation (latex output)
@@ -371,11 +372,11 @@ inductive superposition_rules :: "'a clause \<Rightarrow> 'a clause \<Rightarrow
 factoring: "superposition_rules (C + {#Pos P#} + {#Pos P#}) B (C + {#Pos P#})" |
 superposition_l: "superposition_rules (C\<^sub>1 + {#Pos P#}) (C\<^sub>2 + {#Neg P#}) (C\<^sub>1+ C\<^sub>2)"
 
-inductive superposition :: "'a clauses \<Rightarrow> 'a clauses \<Rightarrow> bool" where
+inductive superposition :: "'a clause_set \<Rightarrow> 'a clause_set \<Rightarrow> bool" where
 superposition: "A \<in> N \<Longrightarrow> B \<in> N \<Longrightarrow> superposition_rules A B C
   \<Longrightarrow> superposition N (N \<union> {C})"
 
-definition abstract_red :: "'a::wellorder clause \<Rightarrow> 'a clauses \<Rightarrow> bool" where
+definition abstract_red :: "'a::wellorder clause \<Rightarrow> 'a clause_set \<Rightarrow> bool" where
 "abstract_red C N = (clss_lt N C \<Turnstile>p C)"
 
 lemma herbrand_true_clss_true_clss_cls_herbrand_true_clss:
@@ -494,12 +495,12 @@ oops
 
 locale ground_ordered_resolution_with_redundancy =
   ground_resolution_with_selection +
-  fixes redundant :: "'a::wellorder clause \<Rightarrow> 'a clauses \<Rightarrow> bool"
+  fixes redundant :: "'a::wellorder clause \<Rightarrow> 'a clause_set \<Rightarrow> bool"
   assumes
     redundant_iff_abstract: "redundant A N \<longleftrightarrow> abstract_red A N"
 begin
 
-definition saturated :: "'a clauses \<Rightarrow> bool" where
+definition saturated :: "'a clause_set \<Rightarrow> bool" where
 "saturated N \<longleftrightarrow>
   (\<forall>A B C. A \<in> N \<longrightarrow> B \<in> N \<longrightarrow> \<not>redundant A N \<longrightarrow> \<not>redundant B N \<longrightarrow>
       superposition_rules A B C \<longrightarrow> redundant C N \<or> C \<in> N)"
@@ -793,11 +794,11 @@ proof -
     by blast
 qed
 
-inductive redundant :: "'a clause \<Rightarrow> 'a clauses \<Rightarrow> bool" where
+inductive redundant :: "'a clause \<Rightarrow> 'a clause_set \<Rightarrow> bool" where
 subsumption: "A \<in> N \<Longrightarrow> A \<subset># B \<Longrightarrow> redundant B N"
 
 lemma redundant_is_redundancy_criterion:
-  fixes A :: "'a :: wellorder clause" and N :: "'a :: wellorder clauses"
+  fixes A :: "'a :: wellorder clause" and N :: "'a :: wellorder clause_set"
   assumes "redundant A N"
   shows "abstract_red A N"
   using assms

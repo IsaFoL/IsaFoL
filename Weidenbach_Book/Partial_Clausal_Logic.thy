@@ -30,11 +30,10 @@ text \<open>We define here entailment by a set of literals. This is \<^emph>\<op
 subsection \<open>Clauses\<close>
 
 text \<open>
-Clauses are (finite) multisets of literals.
+Clauses are set of literals or (finite) multisets of literals.
 \<close>
-
-type_synonym 'a clause = "'a literal multiset"
-type_synonym 'v clauses = "'v clause set"
+type_synonym 'v clause_set = "'v clause set"
+type_synonym 'v clauses = "'v clause multiset"
 
 lemma is_neg_neg_not_is_neg: "is_neg (- L) \<longleftrightarrow> \<not> is_neg L"
   by (cases L) auto
@@ -247,7 +246,7 @@ lemma total_over_m_insert[iff]:
   unfolding total_over_m_def total_over_set_def by fastforce
 
 lemma total_over_m_extension:
-  fixes I :: "'v literal set" and A :: "'v clauses"
+  fixes I :: "'v literal set" and A :: "'v clause_set"
   assumes total: "total_over_m I A"
   shows "\<exists>I'. total_over_m (I \<union> I') (A\<union>B)
     \<and> (\<forall>x\<in>I'. atm_of x \<in> atms_of_ms B \<and> atm_of x \<notin> atms_of_ms A)"
@@ -260,7 +259,7 @@ proof -
 qed
 
 lemma total_over_m_consistent_extension:
-  fixes I :: "'v literal set" and A :: "'v clauses"
+  fixes I :: "'v literal set" and A :: "'v clause_set"
   assumes
     total: "total_over_m I A" and
     cons: "consistent_interp I"
@@ -374,7 +373,7 @@ lemma true_cls_not_in_remove:
   shows "I \<Turnstile> \<chi>"
   using assms unfolding true_cls_def by auto
 
-definition true_clss :: "'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>s" 50) where
+definition true_clss :: "'a interp \<Rightarrow> 'a clause_set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) where
   "I \<Turnstile>s CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile> C)"
 
 lemma true_clss_empty[simp]: "I \<Turnstile>s {}"
@@ -591,7 +590,7 @@ lemma multiset_not_empty:
   using assms literal.exhaust_sel by blast
 
 lemma atms_of_ms_empty:
-  fixes \<psi> :: "'v clauses"
+  fixes \<psi> :: "'v clause_set"
   assumes "atms_of_ms \<psi> = {}"
   shows "\<psi> = {} \<or> \<psi> = {{#}}"
   using assms by (auto simp add: atms_of_ms_def)
@@ -628,7 +627,7 @@ lemma total_over_set_atm_of:
   unfolding total_over_set_def by (metis atms_of_s_def in_atms_of_s_decomp)
 
 subsubsection \<open>Tautologies\<close>
-text \<open>We define tautologies as clauses entailed by every total model and show later that is
+text \<open>We define tautologies as clause entailed by every total model and show later that is
   equivalent to containing a literal and its negation.\<close>
 definition "tautology (\<psi>:: 'v clause) \<equiv> \<forall>I. total_over_set I (atms_of \<psi>) \<longrightarrow> I \<Turnstile> \<psi>"
 
@@ -731,13 +730,13 @@ text \<open>We also need entailment of clauses by other clauses.\<close>
 definition true_cls_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>f" 49) where
 "\<psi> \<Turnstile>f \<chi> \<longleftrightarrow> (\<forall>I. total_over_m I ({\<psi>} \<union> {\<chi>}) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile> \<psi> \<longrightarrow> I \<Turnstile> \<chi>)"
 
-definition true_cls_clss :: "'a clause \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>fs" 49) where
+definition true_cls_clss :: "'a clause \<Rightarrow> 'a clause_set \<Rightarrow> bool" (infix "\<Turnstile>fs" 49) where
 "\<psi> \<Turnstile>fs \<chi> \<longleftrightarrow> (\<forall>I. total_over_m I ({\<psi>} \<union> \<chi>) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile> \<psi> \<longrightarrow> I \<Turnstile>s \<chi>)"
 
-definition true_clss_cls :: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>p" 49) where
+definition true_clss_cls :: "'a clause_set \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>p" 49) where
 "N \<Turnstile>p \<chi> \<longleftrightarrow> (\<forall>I. total_over_m I (N \<union> {\<chi>}) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile> \<chi>)"
 
-definition true_clss_clss :: "'a clauses \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>ps" 49) where
+definition true_clss_clss :: "'a clause_set \<Rightarrow> 'a clause_set \<Rightarrow> bool" (infix "\<Turnstile>ps" 49) where
 "N \<Turnstile>ps N' \<longleftrightarrow> (\<forall>I. total_over_m I (N \<union> N') \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N')"
 
 lemma true_cls_cls_refl[simp]:
@@ -821,7 +820,7 @@ lemma true_clss_clss_union_and[iff]:
   "A \<Turnstile>ps C \<union> D \<longleftrightarrow> (A \<Turnstile>ps C \<and> A \<Turnstile>ps D)"
 proof
   {
-    fix A C D :: "'a clauses"
+    fix A C D :: "'a clause_set"
     assume A: "A \<Turnstile>ps C \<union> D"
     have "A \<Turnstile>ps C"
         unfolding true_clss_clss_def true_clss_cls_def insert_def total_over_m_insert
@@ -1249,17 +1248,17 @@ Shared by the second layer of type 'a \<Rightarrow> 'b set \<Rightarrow> bool:
 
 *   true_lit  \<Turnstile>   'a interp \<Rightarrow> 'a literal \<Rightarrow> bool
 *   true_cls  \<Turnstile>l 'a interp \<Rightarrow> 'a clause \<Rightarrow> bool
-\<longrightarrow> true_clss \<Turnstile>s 'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool
+\<longrightarrow> true_clss \<Turnstile>s 'a interp \<Rightarrow> 'a clause_set \<Rightarrow> bool
 
 *   true_annot \<Turnstile>a ann_lits \<Rightarrow> 'a clause \<Rightarrow> bool
-\<longrightarrow> true_annots \<Turnstile>as ann_lits \<Rightarrow> 'a clauses \<Rightarrow> bool
+\<longrightarrow> true_annots \<Turnstile>as ann_lits \<Rightarrow> 'a clause_set \<Rightarrow> bool
 
 Formula version :
 *   true_cls_cls \<Turnstile>f 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool
-\<longrightarrow> true_cls_clss \<Turnstile>fs 'a clause \<Rightarrow> 'a clauses \<Rightarrow> bool
+\<longrightarrow> true_cls_clss \<Turnstile>fs 'a clause \<Rightarrow> 'a clause_set \<Rightarrow> bool
 
-*   true_clss_cls \<Turnstile>p 'a clauses \<Rightarrow> 'a clause \<Rightarrow> bool
-\<longrightarrow> true_clss_clss \<Turnstile>ps 'a clauses \<Rightarrow> 'a clauses \<Rightarrow> bool
+*   true_clss_cls \<Turnstile>p 'a clause_set \<Rightarrow> 'a clause \<Rightarrow> bool
+\<longrightarrow> true_clss_clss \<Turnstile>ps 'a clause_set \<Rightarrow> 'a clause_set \<Rightarrow> bool
 *)
 locale entail =
   fixes entail :: "'a set \<Rightarrow> 'b \<Rightarrow> bool" (infix "\<Turnstile>e" 50)
