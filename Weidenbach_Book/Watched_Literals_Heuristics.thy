@@ -485,6 +485,12 @@ lemma (in -)fref_to_Down_unRET_uncurry_Id:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
+lemma (in -)fref_to_Down_unRET_Id:
+  \<open>((RETURN o f), (RETURN o g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> f x = (g x'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
 lemma
   find_unwatched_not_tauto:
     \<open>\<not>tautology(mset (get_clauses_wl S \<propto> fst (watched_by_app S L C)))\<close>
@@ -1232,7 +1238,6 @@ proof -
   }
 qed
 
-
 context
   fixes x y x1a L x2 x2a x1 S x1c x2d L' x1d x2c T \<D>
   assumes
@@ -1248,7 +1253,7 @@ context
       \<open>x = (x1c, S)\<close>
 begin
 
-private lemma [simp]:
+private lemma state_simp_ST[simp]:
   \<open>x1a = (L, x2)\<close>
   \<open>x1 = ((L, x2), x2a)\<close>
   \<open>y = (((L, x2), x2a), T)\<close>
@@ -1729,8 +1734,7 @@ lemma propagate_lit_wl_rel:
 
 end
 
-end  
-
+end
 
 context \<comment> \<open>No replacement found\<close>
   fixes i j
@@ -1802,6 +1806,7 @@ lemma update_blit_unw_rel:
 
 end
 
+
 context
   assumes \<open>polarity (get_trail_wl (keep_watch L x2 x2a T))
      (get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! j) \<noteq>
@@ -1869,17 +1874,20 @@ lemma update_watched_unw_rel:
 end
 
 
-declare ij[simp del]
-end
-
+declare ij[simp del] ff[simp del] arena_lit_x1g_j[simp del] f'[simp del]
 end
 
 end
 
 declare xg_S[simp del] xg_T[simp del]
+end
+
+declare xg_S[simp del] xg_T[simp del] state_simp_ST[simp del]  eq[simp del]
+  x1b[simp del] x2b[simp del]
 
 end
 
+declare state_simp_ST[simp del] x1b[simp del] x2b[simp del]
 end
 
 lemma unit_propagation_inner_loop_body_wl_heur_unit_propagation_inner_loop_body_wl_D:
@@ -2123,11 +2131,60 @@ proof -
       by (cases xa; cases x') auto
     show ?thesis
       unfolding xa unit_propagation_inner_loop_wl_loop_D_heur_inv_def prod.case
+      apply (rule exI[of _ x2])
       apply (rule exI[of _ S'])
       using that xa x' that
       unfolding unit_propagation_inner_loop_wl_loop_D_inv_def twl_st_heur'_def
       by auto
   qed
+  have cond_eq: \<open>(x1c < length (watched_by_int x2c x1a) \<and>
+        get_conflict_wl_is_None_heur x2c) =
+        (x1e < length (watched_by x2e x1) \<and> get_conflict_wl x2e = None)\<close>
+    if 
+      \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur' \<D>\<close> and
+      \<open>y = (x1, x2)\<close> and
+      \<open>x = (x1a, x2a)\<close> and
+      \<open>(xa, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f twl_st_heur' \<D>)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv x2a x1a xa\<close> and
+      inv: \<open>unit_propagation_inner_loop_wl_loop_D_inv x1 x'\<close> and
+      \<open>x2b = (x1c, x2c)\<close> and
+      \<open>xa = (x1b, x2b)\<close> and
+      \<open>x2d = (x1e, x2e)\<close> and
+      \<open>x' = (x1d, x2d)\<close>
+    for x y x1 x2 x1a x2a xa x' x1b x2b x1c x2c x1d x2d x1e x2e
+  proof -
+
+    have H:
+      \<open>x1e < length (watched_by x2e x1) \<longleftrightarrow> x1c < length (watched_by_int x2c x1a)\<close>
+      if \<open>(x2c, x2e) \<in> twl_st_heur' \<D>\<close> and
+      \<open>(x1c, x1e) \<in> nat_rel\<close> and
+      \<open>(x1, x1a) \<in> Id\<close> and
+      \<open>x1a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+      for x1e x2e x1 x1c x1a
+      using that
+      by (cases x2e)
+        (auto simp add: twl_st_heur'_def twl_st_heur_def map_fun_rel_def
+            dest!: multi_member_split)
+    have \<open>get_conflict_wl_is_None_heur x2c \<longleftrightarrow> get_conflict_wl_is_None x2e\<close>
+      apply (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id,
+        of x2c x2e])
+      subgoal by auto
+      subgoal using that unfolding twl_st_heur'_def by auto
+      subgoal by auto
+      done
+    moreover have \<open>x1e < length (watched_by x2e x1) \<longleftrightarrow> x1c < length (watched_by_int x2c x1a)\<close>
+      apply (subst H[of _ x1e _ _ x1])
+      subgoal using that by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal using that unfolding unit_propagation_inner_loop_wl_loop_D_inv_def 
+        by auto
+      subgoal using that by auto
+      done
+    ultimately show ?thesis
+      unfolding get_conflict_wl_is_None by blast
+  qed
+
   note H[refine] = unit_propagation_inner_loop_body_wl_heur_unit_propagation_inner_loop_body_wl_D
      [THEN fref_to_Down_curry3]
   show ?thesis
@@ -2138,9 +2195,8 @@ proof -
     apply (refine_vcg)
     subgoal by auto
     subgoal by (rule unit_propagation_inner_loop_wl_loop_D_heur_inv)
-    subgoal by (auto simp: get_conflict_wl_is_None_heur_alt_def twl_st_heur'_def
-          twl_st_heur_state_simp unit_propagation_inner_loop_wl_loop_D_inv_def
-          split: option.splits)
+    subgoal for x y x1 x2 x1a x2a xa x' x1b x2b x1c x2c x1d x2d x1e x2e
+     by (rule cond_eq)
     subgoal by auto
     done
 qed
