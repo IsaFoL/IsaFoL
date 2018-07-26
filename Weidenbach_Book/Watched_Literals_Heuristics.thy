@@ -2202,7 +2202,6 @@ proof -
 qed
 
 
-text \<open>Must be replcaed by the real code!\<close>
 definition (in isasat_input_ops) cut_watch_list_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>cut_watch_list_heur j w L =(\<lambda>(M, N, D, Q, W, oth). do {
       ASSERT(j \<le> length (W!nat_of_lit L) \<and> j \<le> w  \<and> nat_of_lit L < length W \<and>
@@ -2391,10 +2390,15 @@ proof -
         unfolding j_j' j_le s
         by (auto simp: min_def split: if_splits)
   qed
+
+  have HHH[refine0]: \<open>X \<le> RES (R\<inverse> `` {S}) \<Longrightarrow> X \<le> \<Down> R (RETURN S)\<close> for X S R
+    by (auto simp: RETURN_def conc_fun_RES)
+
   show ?thesis
     unfolding cut_watch_list_heur2_def cut_watch_list_heur_alt_def prod.case S
-    apply (refine_rcg WHILEIT_rule_stronger_inv[where R = ?R and
-      I' = I'] step)
+    apply (refine_vcg WHILEIT_rule_stronger_inv_RES[where R = ?R and
+      I' = I' and \<Phi> = \<open>{((i, j, W'), W). (W'[nat_of_lit L := take i (W' ! nat_of_lit L)], W) \<in> Id \<and>
+         i \<le> length (W' ! nat_of_lit L) \<and> nat_of_lit L < length W'}\<inverse> `` _\<close>] HHH)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -2403,24 +2407,28 @@ proof -
     subgoal by auto
     subgoal unfolding I'_def by auto
     subgoal unfolding I'_def by auto
-    subgoal by (rule REC)
-    subgoal by fast
-    subgoal by fast
-    subgoal by fast
-    subgoal by fast
-    subgoal by fast
-    subgoal by fast
-    subgoal by fast
-    subgoal by fast
-    subgoal for s j is' w W'
-      by auto
+    subgoal unfolding I'_def by auto
+    subgoal unfolding I'_def by auto
+    subgoal unfolding I'_def by auto
+    subgoal using REC by auto
+    subgoal unfolding I'_def by auto
+    subgoal using step unfolding I'_def by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     done
 qed
 
 lemma (in isasat_input_ops) vdom_m_cut_watch_list:
-  \<open>set G \<subseteq> set (W L) \<Longrightarrow>  vdom_m W N = set_mset (dom_m N) \<Longrightarrow> vdom_m (W(L := G)) N = set_mset (dom_m N)\<close>
-  by (cases \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>; cases \<open>G = []\<close>)
+  \<open>set xs \<subseteq> set (W L) \<Longrightarrow> vdom_m (W(L := xs)) d \<subseteq> vdom_m W d\<close>
+  by (cases \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>)
     (force simp: vdom_m_def split: if_splits)+
+
+text \<open>The following order allows the rule to be used as a destruction rule, make it more
+useful for refinement proofs.\<close>
+lemma (in isasat_input_ops) vdom_m_cut_watch_listD:
+  \<open>x \<in> vdom_m (W(L := xs)) d \<Longrightarrow> set xs \<subseteq> set (W L) \<Longrightarrow> x \<in> vdom_m W d\<close>
+  using vdom_m_cut_watch_list[of xs W L] by auto
 
 lemma cut_watch_list_heur_cut_watch_list_heur:
   \<open>(uncurry3 cut_watch_list_heur, uncurry3 cut_watch_list) \<in>
@@ -2444,7 +2452,8 @@ lemma cut_watch_list_heur_cut_watch_list_heur:
   subgoal
     by (auto simp: cut_watch_list_heur_def cut_watch_list_def twl_st_heur'_def
       twl_st_heur_def map_fun_rel_def vdom_m_cut_watch_list set_take_subset
-        set_drop_subset)
+        set_drop_subset dest!: vdom_m_cut_watch_listD
+        dest!: in_set_dropD in_set_takeD)
   done
 
 definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D_heur
@@ -2484,8 +2493,8 @@ definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D_heur_inv
  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close>
 where
   \<open>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0 S' \<longleftrightarrow>
-     (\<exists>S. (S', S) \<in> twl_st_heur \<and> unit_propagation_outer_loop_wl_D_inv S \<and>
-       dom_m (get_clauses_wl_heur S') = dom_m (get_clauses_wl_heur S\<^sub>0))\<close>
+     (\<exists>S\<^sub>0' S. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur \<and> (S', S) \<in> twl_st_heur \<and> unit_propagation_outer_loop_wl_D_inv S \<and>
+       dom_m (get_clauses_wl S) = dom_m (get_clauses_wl S\<^sub>0'))\<close>
 
 definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D_heur
    :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
@@ -2533,7 +2542,7 @@ proof -
     apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
     apply (intro conjI impI allI)
     subgoal for x y
-      apply (rule "weaken_\<Down>'"[of _ \<open>twl_st_heur' (dom_m (get_clauses_wl_heur x))\<close>])
+      apply (rule "weaken_\<Down>'"[of _ \<open>twl_st_heur' (dom_m (get_clauses_wl y))\<close>])
       apply (fastforce simp: twl_st_heur'_def)+
       done
     done

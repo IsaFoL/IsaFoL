@@ -167,7 +167,7 @@ lemmas watched_by_app_heur_fast_code_refine[sepref_fr_rules] =
 sepref_thm access_lit_in_clauses_heur_code
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
   :: \<open>[access_lit_in_clauses_heur_pre]\<^sub>a
-      isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+      isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   supply length_rll_def[simp] [[goals_limit=1]]
   unfolding isasat_assn_def access_lit_in_clauses_heur_alt_def
     fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
@@ -182,7 +182,7 @@ prepare_code_thms (in -) access_lit_in_clauses_heur_code_def
 
 lemmas access_lit_in_clauses_heur_code_refine[sepref_fr_rules] =
    access_lit_in_clauses_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
+(* 
 sepref_thm access_lit_in_clauses_heur_fast_code
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
   :: \<open>[access_lit_in_clauses_heur_pre]\<^sub>a
@@ -200,7 +200,7 @@ concrete_definition (in -) access_lit_in_clauses_heur_fast_code
 prepare_code_thms (in -) access_lit_in_clauses_heur_fast_code_def
 
 lemmas access_lit_in_clauses_heur_fast_code_refine[sepref_fr_rules] =
-   access_lit_in_clauses_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+   access_lit_in_clauses_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms] *)
 
 end
 
@@ -220,18 +220,16 @@ begin
 
 (* TODO most of the unfolding should move to the definition *)
 sepref_thm find_unwatched_wl_st_heur_code
-  is \<open>uncurry ((PR_CONST find_unwatched_wl_st_heur))\<close>
+  is \<open>uncurry ((PR_CONST isa_find_unwatched_wl_st_heur))\<close>
   :: \<open>[find_unwatched_wl_st_heur_pre]\<^sub>a
-         isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn uint64_nat_assn\<close>
-  supply [[goals_limit = 1]] literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0'[intro]
+         isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
+  supply [[goals_limit = 1]]
     fmap_length_rll_def[simp] fmap_length_rll_u64_def[simp]
-  unfolding find_unwatched_wl_st_heur_def isasat_assn_def PR_CONST_def
+  unfolding isa_find_unwatched_wl_st_heur_def isasat_assn_def PR_CONST_def
   find_unwatched_def fmap_rll_def[symmetric] fmap_length_rll_u64_def[symmetric]
-  length_u_def[symmetric]
+  length_u_def[symmetric] isa_find_unwatched_def
   case_tri_bool_If find_unwatched_wl_st_heur_pre_def
-  two_uint64_nat_def[symmetric]
   fmap_rll_u64_def[symmetric]
-  one_uint64_nat_def[symmetric]
   by sepref
 
 concrete_definition (in -) find_unwatched_wl_st_heur_code
