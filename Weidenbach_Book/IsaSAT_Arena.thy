@@ -1823,4 +1823,41 @@ lemma isa_arena_status_refine[sepref_fr_rules]:
   unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp status_assn_alt_def
   by (simp add: arl_assn_comp)
 
+
+definition isa_arena_swap where
+  \<open>isa_arena_swap C i j arena = do {
+      ASSERT(C + i < length arena \<and> C + j < length arena);
+      RETURN (swap arena (C+i) (C+j))
+  }\<close>
+
+sepref_definition swap_lits_code
+  is \<open>uncurry3 isa_arena_swap\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
+  unfolding isa_arena_swap_def
+  by sepref
+
+definition swap_lits_pre where
+  \<open>swap_lits_pre C i j arena \<longleftrightarrow> C + i < length arena \<and> C + j < length arena\<close>
+
+lemma isa_arena_swap:
+  \<open>(uncurry3 isa_arena_swap, uncurry3 (RETURN oooo swap_lits)) \<in>
+    [uncurry3 swap_lits_pre]\<^sub>f
+     nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<rightarrow> 
+    \<langle>\<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  unfolding isa_arena_status_def arena_status_def
+  by (intro frefI nres_relI)
+   (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
+        list_rel_imp_same_length arena_length_uint64_conv arena_lifting
+        arena_is_valid_clause_idx_and_access_def arena_length_literal_conv
+        arena_is_valid_clause_vdom_def arena_status_literal_conv
+        isa_arena_swap_def swap_lits_def swap_lits_pre_def
+      intro!: ASSERT_refine_left swap_param)
+
+lemma swap_lits_refine[sepref_fr_rules]:
+  \<open>(uncurry3 swap_lits_code, uncurry3 (RETURN oooo swap_lits))
+  \<in> [uncurry3 swap_lits_pre]\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
+  using swap_lits_code.refine[FCOMP isa_arena_swap]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp)
+
 end

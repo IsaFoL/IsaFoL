@@ -816,11 +816,14 @@ lemmas resolve_lookup_conflict_aa_fast_hnr[sepref_fr_rules] =
 definition (in isasat_input_ops) isa_set_lookup_conflict_aa where
   \<open>isa_set_lookup_conflict_aa = isa_lookup_conflict_merge 0\<close>
 
+definition (in isasat_input_ops) isa_set_lookup_conflict_aa_pre where
+  \<open>isa_set_lookup_conflict_aa_pre = 
+    (\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M)\<close>
+
 sepref_register set_lookup_conflict_aa
 sepref_thm set_lookup_conflict_aa_code
   is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict_aa)\<close>
-  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M
-        ]\<^sub>a
+  :: \<open>[isa_set_lookup_conflict_aa_pre]\<^sub>a
       trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
@@ -834,7 +837,7 @@ sepref_thm set_lookup_conflict_aa_code
     isasat_codegen isa_set_lookup_conflict_aa_def isa_lookup_conflict_merge_def
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
-    is_NOTIN_def[symmetric]
+    is_NOTIN_def[symmetric] isa_set_lookup_conflict_aa_pre_def
   apply (rewrite at \<open>_ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
   apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])
   apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])

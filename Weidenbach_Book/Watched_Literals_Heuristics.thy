@@ -7,6 +7,8 @@ subsection \<open>Propagations\<close>
 (* TODO This file should be split into the additional refinement step like find_unwatched and
 the part specific to IsaSAT (i.e., the refinement from find_unwatched to arenas) *)
 (* TODO Move *)
+lemma (in -)bex_leI: "P j \<Longrightarrow> j \<le> n \<Longrightarrow> \<exists>j\<le>n. P j"
+  by auto
 
 context isasat_input_bounded
 begin
@@ -239,6 +241,7 @@ definition (in isasat_input_ops) isa_find_unwatched :: \<open>(nat, 'b) ann_lits
       ASSERT(i < C + nat_of_uint64_conv (arena_length NU C));
       ASSERT(arena_lit NU i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
       ASSERT(i \<ge> C);
+      ASSERT(arena_lit_pre NU i);
       case polarity M (arena_lit NU i) of
         None \<Rightarrow> do { RETURN (Some (i - C), i)}
       | Some v \<Rightarrow>
@@ -346,6 +349,10 @@ proof -
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
+    subgoal using that 
+      unfolding arena_lit_pre_def apply -
+      by (rule bex_leI[of _ C])
+        (auto simp: arena_is_valid_clause_idx_and_access_def)
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
@@ -397,6 +404,7 @@ definition (in isasat_input_ops) set_conflict_wl_heur
 where
   \<open>set_conflict_wl_heur = (\<lambda>C (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema). do {
     let n = zero_uint32_nat;
+    ASSERT(curry6 isa_set_lookup_conflict_aa_pre M N C D n lbd outl);
     (D, clvls, lbd, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n lbd outl;
     RETURN (M, N, D, {#}, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_conflict stats, fema, sema)})\<close>
 
@@ -417,6 +425,7 @@ definition (in isasat_input_ops) update_clause_wl_heur
     (nat \<times> nat \<times> twl_st_wl_heur) nres\<close>
 where
   \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) C j w i f (M, N, D, Q, W, vm). do {
+     ASSERT(arena_lit_pre N (C+f));
      let K' = arena_lit N (C + f);
      ASSERT(C+i < length N);
      ASSERT(C+f < length N);
@@ -434,10 +443,13 @@ lemma update_clause_wl_heur_update_clause_wl:
    [update_clause_wl_pre]\<^sub>f
    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur' \<D> \<rightarrow>
   \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur' \<D>\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: update_clause_wl_heur_def update_clause_wl_def twl_st_heur_def Let_def
-      map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting
-    intro!: ASSERT_refine_left valid_arena_swap_lits)
+  apply (intro frefI nres_relI)
+  apply (auto 0 0 simp: update_clause_wl_heur_def update_clause_wl_def twl_st_heur_def Let_def
+      map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def
+      arena_is_valid_clause_idx_and_access_def
+    intro!: ASSERT_refine_left valid_arena_swap_lits
+    intro!: bex_leI exI)
+  by (auto 0 0 simp add: arena_lifting)
 
 definition (in -) access_lit_in_clauses where
   \<open>access_lit_in_clauses S i j = (get_clauses_wl S) \<propto> i ! j\<close>
@@ -617,122 +629,6 @@ proof  -
   show ?thesis
     using consistent_CNot_not_tautology[OF cons Not] .
 qed
-
-(* lemma
-  find_unwatched_get_clause_neq_L:
-    \<open>False\<close> (is ?neq)
-  if
-    find_unw: \<open>unit_prop_body_wl_D_find_unwatched_inv (Some xj) (fst (watched_by S L ! C)) S\<close> and
-    inv: \<open>unit_prop_body_wl_D_inv S j C L\<close> and
-    eq: \<open>get_clauses_wl S \<propto> fst (watched_by_app S L C) ! xj = L\<close> and
-    dom: \<open>fst (watched_by S L ! C) \<in># dom_m (get_clauses_wl S)\<close>
-  for S C xj L
-proof -
-  have is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def_sym: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm A) \<longleftrightarrow> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l = atms_of_mm A\<close> for A
-    unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def by metis
-
-  let ?w = \<open>fst (watched_by_app S L C)\<close>
-  let ?C = \<open>get_clauses_wl S \<propto> ?w\<close>
-  let ?L = \<open>get_clauses_wl S \<propto> ?w ! xj\<close>
-
-  obtain T T' where
-    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    alien_L: \<open>L \<in> snd ` D\<^sub>0\<close> and
-    S_T: \<open>(S, T) \<in> state_wl_l (Some (L, C))\<close> and
-    T_T': \<open>(set_clauses_to_update_l
-       (clauses_to_update_l (remove_one_lit_from_wq ?w T) +
-        {#fst (watched_by S L ! C)#})
-       (remove_one_lit_from_wq ?w T),
-      T')
-     \<in> twl_st_l (Some L)\<close>  and
-    struct_inv: \<open>twl_struct_invs T'\<close> and
-    C_le: \<open>C < length (watched_by S L)\<close> and
-    confl: \<open>get_conflict_wl S = None\<close> and
-    stgy_invs: \<open>twl_stgy_invs T'\<close> and
-    in_dom: \<open>?w \<in># dom_m
-         (get_clauses_l (remove_one_lit_from_wq ?w T))\<close> and
-    watched_by_ge: \<open>0 < ?w\<close> and
-    \<open>0 < length
-          (get_clauses_l (remove_one_lit_from_wq ?w T) \<propto>
-           ?w)\<close> and
-    \<open>no_dup (get_trail_l (remove_one_lit_from_wq ?w T))\<close> and
-    i_le: \<open>(if get_clauses_l (remove_one_lit_from_wq ?w T) \<propto>
-         ?w !
-         0 =
-         L
-      then 0 else 1)
-     < length
-        (get_clauses_l (remove_one_lit_from_wq ?w T) \<propto>
-         ?w)\<close> and
-    ui_le: \<open>1 - (if get_clauses_l (remove_one_lit_from_wq ?w T) \<propto>
-             ?w !
-             0 =
-             L
-          then 0 else 1)
-     < length
-        (get_clauses_l (remove_one_lit_from_wq ?w T) \<propto>
-         ?w)\<close> and
-    \<open>L \<in> set (watched_l
-               (get_clauses_l (remove_one_lit_from_wq ?w T) \<propto>
-                ?w))\<close> and
-    \<open>get_conflict_l (remove_one_lit_from_wq ?w T) = None\<close>
-    using inv dom unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
-      unit_propagation_inner_loop_body_l_inv_def watched_by_app_def
-    apply (simp only: simp_thms)
-    apply -
-    apply normalize_goal+
-    by blast
-
-  have
-    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T')\<close> and
-    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of T')\<close>
-    using struct_inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
-    unfolding correct_watching.simps twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast+
-  have in_watched: \<open>?w \<in># fst `# mset (watched_by S L)\<close>
-    using C_le by (auto simp: watched_by_app_def)
-
-  have
-    \<open>L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S)\<close>
-    using alien alien_L lits
-    by (auto simp: clauses_def mset_take_mset_drop_mset drop_Suc get_unit_clauses_wl_alt_def
-        mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset.no_strange_atm_def
-        is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def_sym in_all_lits_of_mm_ain_atms_of_iff in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-  then have
-    \<open>L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_init_clss_wl S)\<close>
-    using alien alien_L lits S_T T_T'
-    unfolding all_clss_lf_ran_m[symmetric] image_mset_union
-    by (auto simp: clauses_def mset_take_mset_drop_mset drop_Suc get_unit_clauses_wl_alt_def
-        mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset.no_strange_atm_def
-        is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def_sym in_all_lits_of_mm_ain_atms_of_iff in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        twl_st_wl twl_st_l twl_st)
-  then have H: \<open>mset (watched_by S L) =
-       {#x \<in># dom_m (get_clauses_wl S).
-         L \<in> set (watched_l (get_clauses_wl S \<propto> x))#}\<close>
-      using corr by (cases S)
-          (auto simp: correct_watching.simps watched_by_app_def clause_to_update_def
-         all_lits_of_mm_union)
-  have L_in_watched: \<open>L \<in> set (watched_l ?C)\<close>
-    using in_watched unfolding H
-    by (cases S)
-        (auto simp: correct_watching.simps watched_by_app_def clause_to_update_def)
-  have \<open>xj \<ge> 2\<close> and \<open>xj < length (get_clauses_wl S \<propto> ?w)\<close>
-    using find_unw unfolding unit_prop_body_wl_D_find_unwatched_inv_def
-      unit_prop_body_wl_find_unwatched_inv_def
-    by (cases S; auto simp: watched_by_app_def)+
-
-  then have L_in_unwatched: \<open>L \<in> set (unwatched_l ?C)\<close>
-    using eq by (auto simp: in_set_drop_conv_nth intro!: exI[of _ xj])
-  have \<open>distinct_mset_mset (mset `# ran_mf (get_clauses_wl S))\<close>
-    using dist S_T T_T' unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def set_append
-      all_clss_lf_ran_m[symmetric] image_mset_union
-    by (auto simp: mset_take_mset_drop_mset image_Un drop_Suc twl_st_wl twl_st_l twl_st)
-  then have dist_C: \<open>distinct ?C\<close>
-    using unit_prop_body_wl_D_invD[OF inv] by (auto simp: )
-  then show False
-    using L_in_watched L_in_unwatched by (cases ?C; cases \<open>tl ?C\<close>; cases \<open>tl (tl ?C)\<close>) auto
-qed
- *)
 
 definition (in isasat_input_ops) propagate_lit_wl_heur_pre where
   \<open>propagate_lit_wl_heur_pre =
@@ -926,7 +822,8 @@ definition (in isasat_input_ops) set_conflict_wl'_pre where
     get_conflict_wl S = None \<and> i \<in># dom_m (get_clauses_wl S) \<and>
     literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf (get_clauses_wl S)) \<and>
     \<not> tautology (mset (get_clauses_wl S \<propto> i)) \<and>
-    distinct (get_clauses_wl S \<propto> i)\<close>
+    distinct (get_clauses_wl S \<propto> i) \<and>
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S)\<close>
 
 lemma set_conflict_wl_heur_set_conflict_wl':
   \<open>(uncurry set_conflict_wl_heur, uncurry (RETURN oo set_conflict_wl')) \<in>
@@ -998,12 +895,48 @@ proof -
           twl_st_heur_def)
       done
   qed
+  have isa_set_lookup_conflict_aa_pre:
+   \<open>curry6 isa_set_lookup_conflict_aa_pre x1h x1i x1g x1j zero_uint32_nat x1q x1r\<close>
+    if 
+      \<open>case y of (x, xa) \<Rightarrow> set_conflict_wl'_pre x xa\<close> and
+      \<open>(x, y) \<in> nat_rel \<times>\<^sub>f twl_st_heur' \<D>\<close> and
+      \<open>x2e = (x1f, x2f)\<close> and
+      \<open>x2d = (x1e, x2e)\<close> and
+      \<open>x2c = (x1d, x2d)\<close> and
+      \<open>x2b = (x1c, x2c)\<close> and
+      \<open>x2a = (x1b, x2b)\<close> and
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>y = (x1, x2)\<close> and
+      \<open>x2s = (x1t, x2t)\<close> and
+      \<open>x2r = (x1s, x2s)\<close> and
+      \<open>x2q = (x1r, x2r)\<close> and
+      \<open>x2p = (x1q, x2q)\<close> and
+      \<open>x2o = (x1p, x2p)\<close> and
+      \<open>x2n = (x1o, x2o)\<close> and
+      \<open>x2m = (x1n, x2n)\<close> and
+      \<open>x2l = (x1m, x2m)\<close> and
+      \<open>x2k = (x1l, x2l)\<close> and
+      \<open>x2j = (x1k, x2k)\<close> and
+      \<open>x2i = (x1j, x2j)\<close> and
+      \<open>x2h = (x1i, x2i)\<close> and
+      \<open>x2g = (x1h, x2h)\<close> and
+      \<open>x = (x1g, x2g)\<close>
+    for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q x2q
+       x1r x2r x1s x2s x1t x2t
+  proof -
+    show ?thesis
+     using that unfolding isa_set_lookup_conflict_aa_pre_def set_conflict_wl'_pre_def
+     twl_st_heur'_def twl_st_heur_def
+     by (auto simp: arena_lifting)
+  qed
 
   show ?thesis
     apply (intro nres_relI frefI)
     unfolding uncurry_def RES_RETURN_RES4 set_conflict_wl'_alt_def2 set_conflict_wl_heur_def
     apply (rewrite at \<open>let _ = zero_uint32_nat in _\<close> Let_def)
     apply (refine_vcg)
+    subgoal by (rule isa_set_lookup_conflict_aa_pre)
     apply assumption+
     subgoal by (auto simp: twl_st_heur'_def twl_st_heur_def counts_maximum_level_def)
     done
@@ -1161,8 +1094,6 @@ lemma (in isasat_input_ops) in_vdom_m_upd:
   by (auto dest!: multi_member_split intro!: set_update_memI img_fst)
 
 (* TODO Move *)
-lemma (in -)bex_leI: "P j \<Longrightarrow> j \<le> n \<Longrightarrow> \<exists>j\<le>n. P j"
-  by auto
 
 lemma twl_st_heur_get_clauses_access_lit[simp]:
   \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
@@ -1620,7 +1551,7 @@ proof -
     using x2b unfolding literals_are_\<L>\<^sub>i\<^sub>n_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
     by (simp add: all_lits_of_mm_union)
   show ?thesis
-    using not_tauto confl_T dist_Tx1g lits
+    using not_tauto confl_T dist_Tx1g lits lits_in_trail
     unfolding set_conflict_wl'_pre_def uncurry_def prod.simps
     by auto
 qed
