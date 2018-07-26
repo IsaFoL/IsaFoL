@@ -507,6 +507,12 @@ lemma (in -)fref_to_Down_unRET_Id:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
+lemma (in -)fref_to_Down_unRET:
+  \<open>((RETURN o f), (RETURN o g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> (f x, g x') \<in> B)\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
 lemma
   find_unwatched_not_tauto:
     \<open>\<not>tautology(mset (get_clauses_wl S \<propto> fst (watched_by_app S L C)))\<close>

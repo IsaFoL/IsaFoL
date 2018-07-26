@@ -656,7 +656,16 @@ lemma atm_is_in_conflict_st_heur_pre: \<open>atm_is_in_conflict_st_heur_pre (- x
 private lemma lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n x2\<close> and
   confl_x2: \<open>get_conflict_wl x2 \<noteq> None\<close> and
   x1c: \<open>x1c \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
-  x1c_notin: \<open>x1c \<notin># the (get_conflict_wl x2)\<close>
+  x1c_notin: \<open>x1c \<notin># the (get_conflict_wl x2)\<close> and
+  trail_nempty: \<open>get_trail_wl x2 \<noteq> []\<close> and
+  not_tauto: \<open>\<not>tautology (the (get_conflict_wl x2))\<close> and
+  dist_confl: \<open>distinct_mset (the (get_conflict_wl x2))\<close> and
+  count_dec_not0: \<open>count_decided (get_trail_wl x2) \<noteq> 0\<close> and
+  no_dup_x2: \<open>no_dup (get_trail_wl x2)\<close> and
+  not_dec_ge0: \<open>0 < mark_of (hd (get_trail_wl x2))\<close> and
+  lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close> and
+  x2c_dom: \<open>x2c \<in># dom_m (get_clauses_wl x2)\<close> and
+  lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl x2))\<close>
 proof -
   obtain x xa xb xc where
     lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n x2\<close> and
@@ -666,7 +675,7 @@ proof -
     x_xb: \<open>(x, xb) \<in> twl_st_l None\<close> and
     xa_xc: \<open>(xa, xc) \<in> twl_st_l None\<close> and
     \<open>cdcl_twl_o\<^sup>*\<^sup>* xc xb\<close> and
-    \<open>twl_list_invs x\<close> and
+    list_invs: \<open>twl_list_invs x\<close> and
     struct: \<open>twl_struct_invs xb\<close> and
     \<open>clauses_to_update_l x = {#}\<close> and
     \<open>\<not> is_decided (hd (get_trail_l x)) \<longrightarrow> 0 < mark_of (hd (get_trail_l x))\<close> and
@@ -674,7 +683,7 @@ proof -
     \<open>clauses_to_update xb = {#}\<close> and
     \<open>literals_to_update xb = {#}\<close> and
     confl: \<open>get_conflict xb \<noteq> None\<close> and
-    \<open>count_decided (get_trail xb) \<noteq> 0\<close> and
+    count_dec: \<open>count_decided (get_trail xb) \<noteq> 0\<close> and
     trail_nempty: \<open>get_trail xb \<noteq> []\<close> and
     \<open>get_conflict xb \<noteq> Some {#}\<close> and
     \<open>x1 \<longrightarrow>
@@ -690,10 +699,10 @@ proof -
   show \<open>get_conflict_wl x2 \<noteq> None\<close>
     using x2_x y_xa confl x_xb
     by auto
-  have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close>
+  show \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close>
      using \<open>twl_struct_invs xb\<close> literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail' lits x2_x x_xb
      by blast
-  moreover have \<open>get_trail_wl x2 \<noteq> []\<close>
+  moreover show \<open>get_trail_wl x2 \<noteq> []\<close>
     using x2_x y_xa confl x_xb trail_nempty
     by auto
   ultimately show \<open>x1c \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
@@ -702,7 +711,8 @@ proof -
     by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons)
   
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of xb)\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of xb)\<close>
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of xb)\<close> and
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of xb)\<close>
     using struct
     unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by blast+
@@ -721,7 +731,33 @@ proof -
     by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>)
       (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons dest!: multi_member_split
       dest: in_lits_of_l_defined_litD)
+  show \<open>\<not>tautology (the (get_conflict_wl x2))\<close>
+    using \<open>get_conflict_wl x2 \<noteq> None\<close> conflict_not_tautology
+      struct x2_x x_xb by blast
+  show \<open>distinct_mset (the (get_conflict_wl x2))\<close> and
+    \<open>count_decided (get_trail_wl x2) \<noteq> 0\<close>
+    using dist x2_x x_xb \<open>get_conflict_wl x2 \<noteq> None\<close> count_dec
+    by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+        twl_st)
+  show \<open>no_dup (get_trail_wl x2)\<close>
+    using \<open>no_dup (get_trail_wl x2)\<close> .
+  show \<open>0 < mark_of (hd (get_trail_wl x2))\<close>
+    using \<open>\<not> is_decided (hd (get_trail_l x)) \<longrightarrow> 0 < mark_of (hd (get_trail_l x))\<close>
+    x2_x assert by auto
+  then show \<open>x2c \<in># dom_m (get_clauses_wl x2)\<close>
+    using list_invs x2_x assert \<open>get_trail_wl x2 \<noteq> []\<close> hd_xa
+    by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>)
+      (auto simp: twl_list_invs_def all_conj_distrib)
+
+  show lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl x2))\<close>
+    by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_conflict[OF x2_x struct x_xb lits])
+      (use x2_x x_xb confl in auto)
 qed
+
+private lemma hd_x2:
+  \<open>hd (get_trail_wl x2) = Propagated x1c x2c\<close>
+  using trail_nempty assert hd_xa
+  by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>) auto
 
 lemma atm_is_in_conflict_st_heur_iff: \<open>(\<not> atm_is_in_conflict_st_heur (- x1c) x2b) =
         (- x1a \<notin># the (get_conflict_wl x2))\<close>
@@ -736,6 +772,85 @@ proof -
       using x2b_x2 by (auto simp: lit_and_ann_of_propagated_st_heur_def)
     done
 qed
+
+context
+  assumes x1a_notin: \<open>- x1a \<notin># the (get_conflict_wl x2)\<close>
+begin
+lemma tl_state_wl_heur_pre: \<open>tl_state_wl_heur_pre x2b\<close>
+  using trail_nempty x2b_x2 xc x1c assert
+  unfolding tl_state_wl_heur_pre_def
+  by (cases x2b; cases \<open>get_trail_wl x2\<close>)
+     (auto simp: twl_st_heur_def lit_and_ann_of_propagated_st_heur_def
+      phase_saving_def atms_of_def vmtf_def is_decided_no_proped_iff
+      neq_Nil_conv)
+
+private lemma tl_state_wl_pre: \<open>tl_state_wl_pre x2\<close>
+  using trail_nempty x2b_x2 xc x1c assert hd_x2 x1c_notin x1a_notin not_tauto
+    dist_confl count_dec_not0
+  unfolding tl_state_wl_pre_def
+  by (cases \<open>get_trail_wl x2\<close>)
+    (auto simp:
+      phase_saving_def atms_of_def vmtf_def is_decided_no_proped_iff
+      neq_Nil_conv image_image st)
+
+lemma tl_state_wl_heur_rel:
+  \<open>((False, tl_state_wl_heur x2b), False, tl_state_wl x2)
+    \<in> bool_rel \<times>\<^sub>f twl_st_heur\<close>
+  using x2b_x2 tl_state_wl_pre
+  by (auto intro!: tl_state_wl_heur_tl_state_wl[THEN fref_to_Down_unRET])
+
+end
+
+context
+  assumes x1a_notin: \<open>\<not> - x1a \<notin># the (get_conflict_wl x2)\<close>
+begin
+lemma maximum_level_removed_eq_count_dec_pre:
+  \<open>maximum_level_removed_eq_count_dec_pre (- x1a, x2)\<close>
+  using trail_nempty x2b_x2 xc x1c assert hd_x2 x1c_notin x1a_notin not_tauto
+    dist_confl count_dec_not0 confl_x2
+  unfolding maximum_level_removed_eq_count_dec_pre_def prod.simps
+  apply -
+  apply (intro conjI)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
+lemma skip_rel:
+  \<open>((- x1c, x2b), - x1a, x2) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur\<close>
+  using x2b_x2
+  by auto
+
+
+context
+  assumes \<open>maximum_level_removed_eq_count_dec_heur (- x1c) x2b\<close>
+    \<open>maximum_level_removed_eq_count_dec (- x1a) x2\<close>
+begin
+
+lemma update_confl_tl_wl_heur_pre:
+  \<open>update_confl_tl_wl_heur_pre ((x2c, x1c), x2b)\<close>
+  using trail_nempty x2b_x2 xc x1c assert hd_x2 x1c_notin x1a_notin not_tauto
+    dist_confl count_dec_not0 confl_x2 no_dup_x2 x1c not_dec_ge0 lits_trail
+  unfolding update_confl_tl_wl_heur_pre_def
+  by (auto simp: twl_st_heur_def atms_of_def phase_saving_def
+      vmtf_def neq_Nil_conv)
+
+lemma update_confl_tl_wl_pre:
+  \<open>update_confl_tl_wl_pre ((x2a, x1a), x2)\<close>
+  using trail_nempty x2b_x2 xc x1c assert hd_x2 x1c_notin x1a_notin not_tauto
+    dist_confl count_dec_not0 confl_x2 no_dup_x2 x1c not_dec_ge0 lits_trail
+    x2c_dom lits lits_confl
+  unfolding update_confl_tl_wl_pre_def
+  apply auto
+  sorry
+
+lemma update_confl_tl_rel: \<open>(((x2c, x1c), x2b), (x2a, x1a), x2)
+    \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur\<close>
+  using x2b_x2 by auto
+end
+end
 
 declare st[simp del]
 end
@@ -1063,29 +1178,26 @@ proof -
     subgoal by (auto simp: twl_st_heur_state_simp)
     subgoal by (auto simp: twl_st_heur_state_simp)
     subgoal
-      by (rule atm_is_in_conflict_st_heur_pre) assumption+
+      by (rule atm_is_in_conflict_st_heur_pre)
     subgoal for x y xa x' x1 x2 x1a x2a x1b x2b x1c x2c
       by (rule atm_is_in_conflict_st_heur_iff)
-    subgoal by (rule tl_state_wl_heur_pre) assumption
     subgoal
-      apply (subst prod_rel_iff)
-      apply (intro conjI)
-       apply (solves simp)
-      apply (rule tl_state_wl_heur_tl_state_wl[THEN fref_to_Down_no_nres])
-       apply (rule tl_state_wl_pre; assumption)
-      apply (solves simp)
-      sorry
-    subgoal by (rule maximum_level_removed_eq_count_dec_pre)
-    subgoal by (auto simp: twl_st_heur_state_simp is_decided_no_proped_iff
-          lit_and_ann_of_propagated_st_def
-          twl_st_heur_lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st)
-    subgoal by (rule update_confl_tl_wl_heur_pre) assumption+
-    subgoal by (rule update_confl_tl_wl_pre) assumption+
-    subgoal by (auto simp: twl_st_heur_state_simp is_decided_no_proped_iff
-          lit_and_ann_of_propagated_st_def
-          twl_st_heur_lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st)
-    subgoal by (auto simp: twl_st_heur_state_simp)
-    subgoal by (auto simp: twl_st_heur_state_simp)
+      by (rule tl_state_wl_heur_pre)
+    subgoal by (rule tl_state_wl_heur_rel)
+    subgoal
+      by (rule maximum_level_removed_eq_count_dec_pre)
+    subgoal
+      by (rule skip_rel)
+    subgoal
+      by (rule update_confl_tl_wl_heur_pre)
+    subgoal
+      by (rule update_confl_tl_wl_pre)
+    subgoal
+      by (rule update_confl_tl_rel)
+    subgoal
+      by auto
+    subgoal
+      by auto
     done
 qed
 
