@@ -286,12 +286,13 @@ lemma lookup_conflict_remove1:
 definition (in isasat_input_ops) update_confl_tl_wl_heur
   :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where
-  \<open>update_confl_tl_wl_heur = (\<lambda>C L (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats). do {
+  \<open>update_confl_tl_wl_heur = (\<lambda>C L (M, N, (b, (n, xs)), Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats). do {
       ASSERT (clvls \<ge> 1);
       let L' = atm_of L;
-      (D', clvls, lbd, outl) \<leftarrow> isa_merge_conflict_a M N C D clvls lbd outl;
-      let D' = remove1_mset (-L) (the D');
-      RETURN (False, (tl M, N, Some D', Q, W, vmtf_mark_to_rescore_and_unset L' vmtf,
+      ((b, (n, xs)), clvls, lbd, outl) \<leftarrow> isa_resolve_merge_conflict M N C (b, (n, xs)) clvls lbd outl;
+      ASSERT(atm_of L < length xs);
+      let xs = xs [atm_of L := None];
+      RETURN (False, (tl M, N, (b, (n, xs)), Q, W, vmtf_mark_to_rescore_and_unset L' vmtf,
           save_phase L \<phi>, fast_minus clvls one_uint32_nat, cach, lbd, outl, stats))
    })\<close>
 
@@ -351,7 +352,7 @@ lemma update_confl_tl_wl_heur_update_confl_tl_wl:
   [update_confl_tl_wl_pre]\<^sub>f
    nat_rel \<times>\<^sub>f Id \<times>\<^sub>f twl_st_heur \<rightarrow> \<langle>bool_rel \<times>\<^sub>f twl_st_heur\<rangle>nres_rel\<close>
 proof -
-   have H2: \<open>merge_conflict_m M N clvls' D clvls lbd outl
+(*   have H2: \<open>merge_conflict_m M N clvls' D clvls lbd outl
       \<le> SPEC
           (\<lambda>x. (case x of (E, clvls, lbd, outl) \<Rightarrow> RETURN (False,
                      tl M, N, Some (remove1_mset (- L') (the E)), Q, W,
@@ -471,7 +472,7 @@ proof -
        using rel inv
        by (auto simp: twl_st_heur_def merge_conflict_m_def update_confl_tl_wl_pre_def
            resolve_cls_wl'_def ac_simps no_dup_tlD)
-  qed
+  qed *)
   show ?thesis
     supply [[goals_limit = 2]]
     apply (intro frefI nres_relI)
@@ -480,7 +481,7 @@ proof -
         update_confl_tl_wl_def Let_def
       apply (cases CLS'; cases CLS)
       apply clarify
-      apply (refine_rcg lhs_step_If specify_left H2; remove_dummy_vars)
+      apply (refine_rcg lhs_step_If specify_left; remove_dummy_vars)
       subgoal
         by  (auto simp: twl_st_heur_def update_confl_tl_wl_pre_def
             RES_RETURN_RES RETURN_def counts_maximum_level_def)
