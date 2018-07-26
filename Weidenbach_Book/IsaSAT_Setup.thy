@@ -116,8 +116,8 @@ type_synonym twl_st_wl_heur =
     vdom \<times> nat\<close>
 
 type_synonym (in -) twl_st_wl_heur_W_list =
-  \<open>(nat,nat) ann_lits \<times> nat clauses_l \<times>
-    nat cconflict \<times> nat clause_l \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
+  \<open>(nat,nat) ann_lits \<times> arena \<times>
+    conflict_option_rel \<times> nat clause_l \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
     nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times> vdom \<times> nat\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where

@@ -427,8 +427,7 @@ where
   \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) C j w i f (M, N, D, Q, W, vm). do {
      ASSERT(arena_lit_pre N (C+f));
      let K' = arena_lit N (C + f);
-     ASSERT(C+i < length N);
-     ASSERT(C+f < length N);
+     ASSERT(swap_lits_pre C i f N);
      let N' = swap_lits C i f N;
      let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L)]];
      RETURN (j, w+1, (M, N', D, Q, W, vm))
@@ -446,7 +445,7 @@ lemma update_clause_wl_heur_update_clause_wl:
   apply (intro frefI nres_relI)
   apply (auto 0 0 simp: update_clause_wl_heur_def update_clause_wl_def twl_st_heur_def Let_def
       map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def
-      arena_is_valid_clause_idx_and_access_def
+      arena_is_valid_clause_idx_and_access_def swap_lits_pre_def
     intro!: ASSERT_refine_left valid_arena_swap_lits
     intro!: bex_leI exI)
   by (auto 0 0 simp add: arena_lifting)
@@ -636,12 +635,15 @@ definition (in isasat_input_ops) propagate_lit_wl_heur_pre where
         i \<le> 1)\<close>
 
 definition (in isasat_input_ops) propagate_lit_wl_heur
-  :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>
+  :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
-  \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema).
+  \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+    fema, sema). do {
+      ASSERT(swap_lits_pre C 0 (fast_minus 1 i) N);
       let N' = swap_lits C 0 (fast_minus 1 i) N in
-      (Propagated L' C # M, N', D, add_mset (-L') Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-         incr_propagation stats, fema, sema))\<close>
+      RETURN (Propagated L' C # M, N', D, add_mset (-L') Q, W, vm, \<phi>, clvls, cach, lbd, outl,
+         incr_propagation stats, fema, sema)
+  })\<close>
 
 definition propagate_lit_wl_pre where
   \<open>propagate_lit_wl_pre = (\<lambda>(((L, C), i), S).
@@ -652,14 +654,15 @@ definition propagate_lit_wl_pre where
 
 
 lemma propagate_lit_wl_heur_propagate_lit_wl:
-  \<open>(uncurry3 (RETURN oooo propagate_lit_wl_heur), uncurry3 (RETURN oooo propagate_lit_wl)) \<in>
+  \<open>(uncurry3 propagate_lit_wl_heur, uncurry3 (RETURN oooo propagate_lit_wl)) \<in>
   [propagate_lit_wl_pre]\<^sub>f
   Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur' \<D> \<rightarrow> \<langle>twl_st_heur' \<D>\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   supply [[show_types]]
   by (auto simp: twl_st_heur_def propagate_lit_wl_heur_def propagate_lit_wl_def
-      vmtf_consD twl_st_heur'_def propagate_lit_wl_pre_def
-      valid_arena_swap_lits)
+      vmtf_consD twl_st_heur'_def propagate_lit_wl_pre_def swap_lits_pre_def
+      valid_arena_swap_lits arena_lifting
+      intro!: ASSERT_refine_left)
 
 lemma undefined_lit_polarity_st_iff:
    \<open>undefined_lit (get_trail_wl S) L \<longleftrightarrow>
@@ -766,7 +769,7 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_heur
           if val_L' = Some True
           then update_blit_wl_heur L C j w L' S
           else do {
-             \<comment>\<open>ASSERT(find_unwatched_wl_st_heur_pre (S, C));\<close>
+            ASSERT(find_unwatched_wl_st_heur_pre (S, C));
             f \<leftarrow> isa_find_unwatched_wl_st_heur S C;
             ASSERT (unit_prop_body_wl_D_find_unwatched_heur_inv f C S);
             case f of
@@ -778,7 +781,7 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_heur
                   RETURN (j+1, w+1, S)}
                 else do {
                   ASSERT(propagate_lit_wl_heur_pre (((L', C), i), S));
-                  let S = propagate_lit_wl_heur L' C i S;
+                  S \<leftarrow> propagate_lit_wl_heur L' C i S;
                   RETURN (j+1, w+1, S)}
               }
             | Some f \<Rightarrow> do {
@@ -1058,7 +1061,7 @@ lemma (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D_alt_def:
           if val_L' = Some True
           then update_blit_wl L C j w L' S
           else do {
-            f \<leftarrow> find_unwatched_l (get_trail_wl S) (get_clauses_wl S \<propto>C);
+            f \<leftarrow> find_unwatched_l (get_trail_wl S) (get_clauses_wl S \<propto> C);
             ASSERT (unit_prop_body_wl_D_find_unwatched_inv f C S);
             case f of
               None \<Rightarrow> do {
@@ -1411,6 +1414,14 @@ lemma find_unwatched_wl_st_pre:
   using x2_x2a x2a_le Tx1g_le2
   unfolding find_unwatched_wl_st_pre_def prod.simps
   by auto
+
+lemma find_unwatched_wl_st_heur_pre:
+  \<open>find_unwatched_wl_st_heur_pre (U, x1g)\<close>
+  unfolding find_unwatched_wl_st_heur_pre_def access_lit_in_clauses_heur_pre_def
+  arena_is_valid_clause_idx_def arena_lit_pre_def prod.simps
+  by (rule exI[of _ \<open>get_clauses_wl T\<close>],
+     rule exI[of _ \<open>set (get_vdom U)\<close>])
+   (use valid_UT Tx1g_le2 in auto)
 
 lemma isa_find_unwatched_wl_st_heur_pre:
     \<open>((U, x1g), keep_watch L x2 x2a T, x1f) \<in> twl_st_heur \<times>\<^sub>f nat_rel\<close> and
@@ -1894,26 +1905,9 @@ proof -
     for V x1f L x2 x2a T x2d
     by auto
   
-  have propagate_lit_wl_heur_final_rel: \<open>(propagate_lit_wl_heur
-      (arena_lit (get_clauses_wl_heur U)
-        (x1g +
-         (1 -
-          (if arena_lit (get_clauses_wl_heur U) (x1g + 0) = L' then 0 else 1))))
-      x1g (if arena_lit (get_clauses_wl_heur U) (x1g + 0) = L' then 0 else 1) U,
-     V)
-    \<in> twl_st_heur' \<D> \<Longrightarrow> (x2d, x2a) \<in> nat_rel \<Longrightarrow>
-    ((x2d + 1,
-      propagate_lit_wl_heur
-       (arena_lit (get_clauses_wl_heur U)
-         (x1g +
-          (1 -
-           (if arena_lit (get_clauses_wl_heur U) (x1g + 0) = L' then 0
-            else 1))))
-       x1g (if arena_lit (get_clauses_wl_heur U) (x1g + 0) = L' then 0 else 1)
-       U),
-     x2a + 1, V)
-    \<in>  nat_rel \<times>\<^sub>f  twl_st_heur' \<D>\<close>
-    for V x1f L x2 x2a T x2d U x1g L'
+  have propagate_lit_wl_heur_final_rel: \<open>(Sa, Sb) \<in> twl_st_heur' \<D> \<Longrightarrow>  (x2d, x2a) \<in> nat_rel \<Longrightarrow>
+    ((x2d + 1, Sa), x2a + 1, Sb) \<in> nat_rel \<times>\<^sub>r twl_st_heur' \<D>\<close>
+    for V x1f L x2 x2a T x2d U x1g L' Sa Sb
     by auto
 
   note find_unw = find_unwatched_wl_st_heur_find_unwatched_wl_s[THEN fref_to_Down_curry]
@@ -1975,6 +1969,8 @@ proof -
       by (rule update_blit_wl_heur_pre)
     subgoal
       by (rule update_blit_wl_rel)
+    subgoal
+      by (rule find_unwatched_wl_st_heur_pre)
     subgoal
       by (rule find_unwatched_wl_st_pre)
     subgoal
