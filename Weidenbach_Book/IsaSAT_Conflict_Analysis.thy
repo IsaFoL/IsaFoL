@@ -2,7 +2,6 @@ theory IsaSAT_Conflict_Analysis
   imports IsaSAT_Setup Watched_Literals_Heuristics
 begin
 
-sledgehammer_params[verbose = false]
 
 paragraph \<open>Skip and resolve\<close>
 
@@ -290,7 +289,7 @@ where
   \<open>update_confl_tl_wl_heur = (\<lambda>C L (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats). do {
       ASSERT (clvls \<ge> 1);
       let L' = atm_of L;
-      (D', clvls, lbd, outl) \<leftarrow> merge_conflict_m M N C D clvls lbd outl;
+      (D', clvls, lbd, outl) \<leftarrow> isa_merge_conflict_a M N C D clvls lbd outl;
       let D' = remove1_mset (-L) (the D');
       RETURN (False, (tl M, N, Some D', Q, W, vmtf_mark_to_rescore_and_unset L' vmtf,
           save_phase L \<phi>, fast_minus clvls one_uint32_nat, cach, lbd, outl, stats))

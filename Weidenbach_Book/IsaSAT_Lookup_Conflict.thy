@@ -622,7 +622,7 @@ definition resolve_lookup_conflict_aa
      out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close>
 where
   \<open>resolve_lookup_conflict_aa M N i xs clvls lbd outl =
-     lookup_conflict_merge one_uint32_nat M (N \<propto> i) xs clvls lbd outl\<close>
+     lookup_conflict_merge 1 M (N \<propto> i) xs clvls lbd outl\<close>
 
 
 definition set_lookup_conflict_aa
@@ -710,13 +710,13 @@ end
 context isasat_input_bounded
 begin
 
-definition (in isasat_input_ops)  isa_resolve_lookup_conflict_merge where
-  \<open>isa_resolve_lookup_conflict_merge = isa_lookup_conflict_merge 0\<close>
+definition (in isasat_input_ops)  isa_set_lookup_conflict where
+  \<open>isa_set_lookup_conflict = isa_lookup_conflict_merge 0\<close>
 
 lemma isa_lookup_conflict_merge_lookup_conflict_merge_ext:
   assumes valid: \<open>valid_arena arena N vdom\<close> and \<open>no_dup M\<close> and i: \<open>i \<in># dom_m N\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N)\<close> and
-    bxs: \<open>((b, xs), None) \<in> option_lookup_clause_rel\<close>
+    bxs: \<open>((b, xs), C) \<in> option_lookup_clause_rel\<close>
   shows
     \<open>isa_lookup_conflict_merge init M arena i (b, xs) clvls lbd outl \<le> \<Down> Id
       (lookup_conflict_merge init M (N \<propto> i) (b, xs) clvls lbd outl)\<close>
@@ -748,7 +748,7 @@ proof -
 qed
 
 sepref_thm resolve_lookup_conflict_merge_code
-  is \<open>uncurry6 (PR_CONST isa_resolve_lookup_conflict_merge)\<close>
+  is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict)\<close>
   :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M
         ]\<^sub>a
       trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
@@ -760,7 +760,7 @@ sepref_thm resolve_lookup_conflict_merge_code
     Suc_uint32_nat_assn_hnr[sepref_fr_rules] fmap_length_rll_u_def[simp]
   unfolding isa_lookup_conflict_merge_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric]
-    outlearned_add_def clvls_add_def isa_resolve_lookup_conflict_merge_def
+    outlearned_add_def clvls_add_def isa_set_lookup_conflict_def
     isasat_codegen
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
@@ -1239,7 +1239,7 @@ abbreviation (in -) uncurry4' where
 abbreviation (in -) uncurry6' where
   "uncurry6' f \<equiv> uncurry2 (uncurry4' f)"
 
-lemma resolve_lookup_conflict_aa_set_conflict:
+lemma isa_set_lookup_conflict:
   \<open>(uncurry6 isa_set_lookup_conflict_aa, uncurry6 set_conflict_m) \<in>
     [\<lambda>((((((M, N), i), xs), clvls), lbd), outl). i \<in># dom_m N \<and> xs = None \<and> distinct (N \<propto> i) \<and>
        literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N) \<and>
@@ -1340,7 +1340,7 @@ proof -
     hr_comp (conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn)
       (option_lookup_clause_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f Id)))\<close> (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
      using hfref_compI_PRE_aux[OF set_lookup_conflict_aa_code.refine[unfolded PR_CONST_def]
-        resolve_lookup_conflict_aa_set_conflict[unfolded PR_CONST_def],
+        isa_set_lookup_conflict[unfolded PR_CONST_def],
         OF isasat_input_bounded_axioms]
      unfolding PR_CONST_def
      .
@@ -1378,7 +1378,7 @@ proof -
     hr_comp (conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn)
       (option_lookup_clause_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f Id)))\<close> (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
      using hfref_compI_PRE_aux[OF set_lookup_conflict_aa_fast_code.refine[unfolded PR_CONST_def]
-        resolve_lookup_conflict_aa_set_conflict[unfolded PR_CONST_def],
+        isa_set_lookup_conflict[unfolded PR_CONST_def],
         OF isasat_input_bounded_axioms]
      unfolding PR_CONST_def
      .
@@ -1397,40 +1397,130 @@ proof -
 qed
  *)
 
-(* lemma resolve_lookup_conflict_aa_merge_conflict_m:
-  \<open>(uncurry6 resolve_lookup_conflict_aa, uncurry6 merge_conflict_m) \<in>
-    [\<lambda>((((((M, N), i), xs), clvls), lbd), out). i \<in># dom_m N \<and> xs \<noteq> None \<and> distinct (N \<propto> i) \<and>
-       literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> i)) \<and> \<not>tautology (mset (N \<propto> i)) \<and>
+
+definition (in isasat_input_ops) isa_resolve_merge_conflict where
+  \<open>isa_resolve_merge_conflict = isa_lookup_conflict_merge 1\<close>
+
+sepref_register isa_resolve_merge_conflict
+sepref_thm resolve_merge_conflict_code
+  is \<open>uncurry6 (PR_CONST isa_resolve_merge_conflict)\<close>
+  :: \<open>[isa_set_lookup_conflict_aa_pre]\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+         uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+      conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
+  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+    image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    fmap_length_rll_u_def[simp]
+  unfolding set_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
+    PR_CONST_def nth_rll_def[symmetric] length_rll_def[symmetric]
+    length_aa_u_def[symmetric] outlearned_add_def clvls_add_def
+    isasat_codegen isa_set_lookup_conflict_aa_def isa_lookup_conflict_merge_def
+    fmap_rll_u_def[symmetric]
+    fmap_rll_def[symmetric]
+    is_NOTIN_def[symmetric] isa_set_lookup_conflict_aa_pre_def
+    isa_resolve_merge_conflict_def
+  apply (rewrite at \<open>_ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
+  apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) resolve_merge_conflict_code
+   uses isasat_input_bounded.resolve_merge_conflict_code.refine_raw
+   is \<open>(uncurry6 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) resolve_merge_conflict_code_def
+
+lemmas resolve_merge_conflict_code[sepref_fr_rules] =
+   resolve_merge_conflict_code.refine[OF isasat_input_bounded_axioms]
+
+definition merge_conflict_m_pre where
+  \<open>merge_conflict_m_pre = 
+  (\<lambda>((((((M, N), i), xs), clvls), lbd), out). i \<in># dom_m N \<and> xs \<noteq> None \<and> distinct (N \<propto> i) \<and>
+       \<not>tautology (mset (N \<propto> i)) \<and>
        (\<forall>L \<in> set (tl (N \<propto> i)). - L \<notin># the xs) \<and>
        literals_are_in_\<L>\<^sub>i\<^sub>n (the xs) \<and> clvls = card_max_lvl M (the xs) \<and>
-       out_learned M xs out]\<^sub>f
-    \<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f Id
-         \<times>\<^sub>f Id \<rightarrow>
-    \<langle>option_lookup_clause_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id\<rangle>nres_rel\<close>
+       out_learned M xs out \<and> no_dup M \<and>
+      literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N))\<close>
+
+lemma isa_resolve_merge_conflict:
+  \<open>(uncurry6 isa_resolve_merge_conflict, uncurry6 merge_conflict_m) \<in>
+    [merge_conflict_m_pre]\<^sub>f
+    \<langle>Id\<rangle>list_rel \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel
+        \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id  \<rightarrow>
+      \<langle>option_lookup_clause_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<rangle>nres_rel\<close>
 proof -
-  have H: \<open>resolve_lookup_conflict_aa M N i (b, n, xs) clvls lbd outl
+  have H1: \<open>resolve_lookup_conflict_aa M N i (b, n, xs) clvls lbd outl
     \<le> \<Down> (option_lookup_clause_rel \<times>\<^sub>r Id)
-       (merge_conflict_m M N i (Some D) clvls lbd outl)\<close>
+       (merge_conflict_m M N i C clvls lbd outl)\<close>
     if
-      \<open>i \<in># dom_m N\<close> and
-      ocr: \<open>((b, n, xs), Some D) \<in> option_lookup_clause_rel\<close> and
-      dist: \<open>distinct (N \<propto> i)\<close> and
-      lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> i))\<close> and
-      tauto: \<open>\<not>tautology (mset (N \<propto> i))\<close> and
-      \<open>\<forall>L \<in> set (tl (N \<propto> i)). - L \<notin># D\<close> and
-      lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close> and
-      clvls: \<open>clvls = card_max_lvl M D\<close> and
-      out: \<open>out_learned M (Some D) outl\<close>
-    for b n xs N i M clvls lbd D outl
-    using lookup_conflict_merge'_spec[of b n xs D \<open>N\<propto>i\<close> clvls M 1 outl lbd] that dist lits_D clvls
-      out
-    unfolding merge_conflict_m_g_def tl_drop_def[symmetric] resolve_lookup_conflict_aa_def
-      merge_conflict_m_def
-    by (auto simp: uint_max_def)
+      i: \<open>i \<in># dom_m N\<close> and
+      ocr: \<open>((b, n, xs), C) \<in> option_lookup_clause_rel\<close> and
+     dist: \<open>distinct (N \<propto> i)\<close> and
+     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N)\<close> and
+     lits': \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the C)\<close> and
+     tauto: \<open>\<not>tautology (mset (N \<propto> i))\<close> and
+     out: \<open>out_learned M C outl\<close> and
+     not_neg: \<open>\<And>L. L \<in> set (tl (N \<propto> i)) \<Longrightarrow> - L \<notin># the C\<close> and
+     \<open>clvls = card_max_lvl M (the C)\<close> and
+     C_None: \<open>C \<noteq> None\<close>
+    for b n xs N i M clvls lbd outl C
+  proof -
+    have lookup_conflict_merge_normalise:
+        \<open>lookup_conflict_merge 1 M C (b, zs) = lookup_conflict_merge 1 M C (False, zs)\<close>
+      for M C zs
+      unfolding lookup_conflict_merge_def by auto
+    have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> i))\<close>
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_literals_are_in_\<L>\<^sub>i\<^sub>n[OF lits i] .
+    then show ?thesis unfolding resolve_lookup_conflict_aa_def merge_conflict_m_def
+      using lookup_conflict_merge'_spec[of b n xs \<open>the C\<close> \<open>N\<propto>i\<close> clvls M 1 outl lbd] that dist
+         not_neg ocr C_None lits'
+      by (auto simp: lookup_conflict_merge_normalise uint_max_def merge_conflict_m_g_def
+         drop_Suc)
+  qed
+
+  have H2: \<open>isa_resolve_merge_conflict M arena i (b, n, xs) clvls lbd outl
+    \<le> \<Down> (Id \<times>\<^sub>r Id)
+       (resolve_lookup_conflict_aa M N i (b, n, xs) clvls lbd outl)\<close>
+    if
+      i: \<open>i \<in># dom_m N\<close> and
+      ocr: \<open>((b, n, xs), C) \<in> option_lookup_clause_rel\<close> and
+     dist: \<open>distinct (N \<propto> i)\<close> and
+     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N)\<close> and
+     lits': \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the C)\<close> and
+     tauto: \<open>\<not>tautology (mset (N \<propto> i))\<close> and
+     out: \<open>out_learned M C outl\<close> and
+     not_neg: \<open>\<And>L. L \<in> set (tl (N \<propto> i)) \<Longrightarrow> - L \<notin># the C\<close> and
+     \<open>clvls = card_max_lvl M (the C)\<close> and
+     C_None: \<open>C \<noteq> None\<close> and
+     n_d: \<open>no_dup M\<close> and
+     valid: \<open>valid_arena arena N vdom\<close> and
+
+      i: \<open>i \<in># dom_m N\<close> and
+     dist: \<open>distinct (N \<propto> i)\<close> and
+     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N)\<close> and
+     tauto: \<open>\<not>tautology (mset (N \<propto> i))\<close> and
+     \<open>clvls = card_max_lvl M (the C)\<close> and
+     out: \<open>out_learned M C outl\<close> and
+     ocr: \<open>((b, n, xs), C) \<in> option_lookup_clause_rel\<close>
+    for b n xs N i M clvls lbd outl arena vdom C
+    unfolding isa_resolve_merge_conflict_def
+    apply (rule order.trans)
+    apply (rule isa_lookup_conflict_merge_lookup_conflict_merge_ext[OF valid n_d i lits ocr])
+    unfolding resolve_lookup_conflict_aa_def[symmetric] set_lookup_conflict_aa_def[symmetric]
+    by (auto intro: H1[OF that(1-7)])
   show ?thesis
     unfolding lookup_conflict_merge_def uncurry_def
-    by (intro nres_relI frefI) (auto simp: H)
-qed *)
+    apply (intro nres_relI frefI)
+    apply clarify
+    subgoal
+      unfolding merge_conflict_m_pre_def
+      apply (rule order_trans)
+      apply (rule H2; auto; auto; fail)
+      by (auto intro!: H1 simp: merge_conflict_m_pre_def)
+    done
+qed
 
 (* theorem resolve_lookup_conflict_merge_code_merge_conflict_m[sepref_fr_rules]:
   \<open>(uncurry6 resolve_lookup_conflict_merge_code, uncurry6 merge_conflict_m) \<in>
@@ -3312,7 +3402,7 @@ lemmas literal_redundant_wl_lookup_fast_code_hnr[sepref_fr_rules] =
 abbreviation (in -) highest_lit_assn where
   \<open>highest_lit_assn \<equiv> option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
 
-definition isa_minimize_and_extract_highest_lookup_conflict
+definition (in isasat_input_ops) isa_minimize_and_extract_highest_lookup_conflict
   :: \<open>(nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat clause \<Rightarrow> (nat \<Rightarrow> minimize_status) \<Rightarrow> lbd \<Rightarrow>
      out_learned \<Rightarrow> (nat clause \<times> (nat \<Rightarrow> minimize_status) \<times> out_learned) nres\<close>
 where

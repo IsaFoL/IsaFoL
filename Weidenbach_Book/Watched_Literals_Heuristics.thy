@@ -849,7 +849,7 @@ proof -
           literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf y') \<and>
          \<not> tautology (mset (y' \<propto> z')) \<and> b' = 0 \<and> out_learned x' None d' \<and> no_dup x'\<close>
       for x x' y y' z z' a a' b b' c c' d d' vdom
-    by (rule  resolve_lookup_conflict_aa_set_conflict[THEN fref_to_Down_curry6,
+    by (rule  isa_set_lookup_conflict[THEN fref_to_Down_curry6,
       unfolded prod.case, OF that(2,1)])
   have [refine0]: \<open>isa_set_lookup_conflict_aa x1h x1i x1g x1j zero_uint32_nat x1q x1r
         \<le> \<Down> {((C, n, lbd, outl), D). (C, D) \<in> option_lookup_clause_rel \<and> n = card_max_lvl x1h (the D) \<and>

@@ -21,7 +21,7 @@ where
        (length C = 1 \<longrightarrow> n = 0)
       )\<close>
 
-definition empty_conflict_and_extract_clause_heur where
+definition (in isasat_input_ops) empty_conflict_and_extract_clause_heur where
   \<open>empty_conflict_and_extract_clause_heur M D outl = do {
      let C = replicate (length outl) (outl!0);
      (D, C, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(E, C, i). mset (take i C) = mset (take i outl) \<and> E = D - mset (take i outl) \<and>
@@ -413,7 +413,7 @@ where
         let K = -lit_of (hd M);
         let n = get_maximum_level M (remove1_mset K (the D));
         RETURN ((M, N, D, NE, UE, WS, Q), n)})\<close>
-
+(* 
 definition (in isasat_input_ops) propagate_bt_wl_D_ext
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
 where
@@ -421,10 +421,10 @@ where
     L' \<leftarrow> find_lit_of_max_level_wl (M, N, D, NE, UE, Q, W) L;
     D'' \<leftarrow> list_of_mset2 (-L) L' (the D);
     let b = False;
-    (N, i) \<leftarrow> fm_add_new b D'' N;
+    (N, i) \<leftarrow> RETURN (append_clause b C N, length N);
     RETURN (Propagated (-L) i # M,
         N, None, NE, UE, {#L#}, W(-L:= W (-L) @ [(i, L')], L':= W L' @ [(i, L)]))
-      })\<close>
+      })\<close> *)
 
 definition (in isasat_input_ops) backtrack_wl_D_heur_inv where
   \<open>backtrack_wl_D_heur_inv S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> twl_st_heur \<and> backtrack_wl_D_inv S')\<close>
@@ -455,15 +455,14 @@ where
      ASSERT(M \<noteq> []);
      let K = lit_of (hd M);
      ASSERT(-K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
-     ASSERT(D \<noteq> None \<and> delete_from_lookup_conflict_pre (-K, the D));
-     let D = remove1_mset (-K) (the D);
+     (* ASSERT( delete_from_lookup_conflict_pre (-K, the D)); *)
+     (* let D = remove1_mset (-K) (the D); *)
      ASSERT(0 < length outl);
      let outl = outl[0 := -K];
-     ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N));
-     (D, cach, outl) \<leftarrow> minimize_and_extract_highest_lookup_conflict M N D cach lbd outl;
+     (D, cach, outl) \<leftarrow> isa_minimize_and_extract_highest_lookup_conflict M N D cach lbd outl;
      let cach = empty_cach cach;
-     ASSERT(empty_conflict_and_extract_clause_pre ((M, D), outl));
-     (D, C, n) \<leftarrow> empty_conflict_and_extract_clause M D outl;
+     (* ASSERT(empty_conflict_and_extract_clause_pre ((M, D), outl)); *)
+     (D, C, n) \<leftarrow> empty_conflict_and_extract_clause_heur M D outl;
      RETURN ((M, N, D, Q', W', vm, \<phi>, clvls, cach, lbd, take 1 outl, stats, ccont, vdom), n, C)
   })\<close>
 
