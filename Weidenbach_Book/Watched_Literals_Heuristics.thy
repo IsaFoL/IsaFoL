@@ -495,6 +495,11 @@ lemma (in -)fref_to_Down_unRET_uncurry_Id:
      (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y = (g x' y'))\<close>
   unfolding fref_def uncurry_def nres_rel_def
   by auto
+lemma (in -)fref_to_Down_unRET_uncurry:
+  \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> (f x y, g x' y') \<in> B)\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
 
 lemma (in -)fref_to_Down_unRET_Id:
   \<open>((RETURN o f), (RETURN o g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
