@@ -462,7 +462,7 @@ lemma (in isasat_input_ops) delete_from_lookup_conflict_op_mset_delete:
   done
 
 definition (in isasat_input_ops) delete_from_lookup_conflict_pre where
-  \<open>delete_from_lookup_conflict_pre \<equiv> \<lambda>(a, b). - a \<notin># b \<and> a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> a \<in># b\<close>
+  \<open>delete_from_lookup_conflict_pre = (\<lambda>(a, b). - a \<notin># b \<and> a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> a \<in># b)\<close>
 
 lemma (in isasat_input_ops) op_mset_delete_lookup_conflict_hnr[sepref_fr_rules]:
   \<open>(uncurry delete_from_lookup_conflict_code, uncurry (RETURN \<circ>\<circ> op_mset_delete))
@@ -1900,7 +1900,7 @@ where
 
 definition minimize_and_extract_highest_lookup_conflict_inv where
   \<open>minimize_and_extract_highest_lookup_conflict_inv = (\<lambda>(D, i, s, outl).
-    length outl \<le> uint_max)\<close>
+    length outl \<le> uint_max \<and> mset (tl outl) = D \<and> outl \<noteq> [] \<and> i \<ge> 1)\<close>
 
 type_synonym 'v conflict_highest_conflict = \<open>('v literal \<times> nat) option\<close>
 
@@ -3274,7 +3274,10 @@ declare lookup_conflict_upd_None_code.refine[sepref_fr_rules]
 declare lit_redundant_rec_wl_lookup_hnr[sepref_fr_rules]
 
 
-definition (in isasat_input_ops) isa_literal_redundant_wl_lookup where
+definition (in isasat_input_ops) isa_literal_redundant_wl_lookup ::
+    "(nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> lookup_clause_rel \<Rightarrow> (nat \<Rightarrow> minimize_status)
+           \<Rightarrow> nat literal \<Rightarrow> lbd \<Rightarrow> ((nat \<Rightarrow> minimize_status) \<times> (nat \<times> nat) list \<times> bool) nres"
+where
   \<open>isa_literal_redundant_wl_lookup M NU D cach L lbd = do {
      ASSERT(-L \<in> lits_of_l M);
      if get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE
@@ -3294,7 +3297,7 @@ definition (in isasat_input_ops) isa_literal_redundant_wl_lookup where
 lemma isa_literal_redundant_wl_lookup_literal_redundant_wl_lookup:
   \<open>(uncurry5 isa_literal_redundant_wl_lookup, uncurry5 literal_redundant_wl_lookup) \<in>
     [\<lambda>(((((_, N), _), _), _), _). literals_are_in_\<L>\<^sub>i\<^sub>n_mm ((mset \<circ> fst) `# ran_m N)]\<^sub>f
-     Id \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f Id  \<times>\<^sub>f Id  \<times>\<^sub>f Id  \<times>\<^sub>f Id \<rightarrow>
+     Id \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f lookup_clause_rel  \<times>\<^sub>f Id  \<times>\<^sub>f Id  \<times>\<^sub>f Id \<rightarrow>
       \<langle>Id \<times>\<^sub>r Id \<times>\<^sub>r bool_rel\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>get_propagation_reason M (- L)
@@ -3326,7 +3329,7 @@ sepref_register isa_lit_redundant_rec_wl_lookup
 sepref_thm literal_redundant_wl_lookup_code
   is \<open>uncurry5 (PR_CONST isa_literal_redundant_wl_lookup)\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), L), lbd). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
-      trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k *\<^sub>a
       cach_refinement_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
       cach_refinement_assn *a analyse_refinement_assn *a bool_assn\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
@@ -3380,13 +3383,52 @@ lemmas literal_redundant_wl_lookup_fast_code_hnr[sepref_fr_rules] =
 abbreviation (in -) highest_lit_assn where
   \<open>highest_lit_assn \<equiv> option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
 
+definition (in -) lookup_conflict_remove1 :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel\<close> where
+  \<open>lookup_conflict_remove1 =
+     (\<lambda>L (n,xs). (n-1, xs [atm_of L := NOTIN]))\<close>
+
+lemma lookup_conflict_remove1:
+  \<open>(uncurry (RETURN oo lookup_conflict_remove1), uncurry (RETURN oo remove1_mset))
+   \<in> [\<lambda>(L,C). L \<in># C \<and> -L \<notin># C \<and> L \<in> snd ` D\<^sub>0]\<^sub>f
+     Id \<times>\<^sub>f lookup_clause_rel \<rightarrow> \<langle>lookup_clause_rel\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (case_tac y; case_tac x)
+  subgoal for x y a b aa ab c
+    using mset_as_position_remove[of c b \<open>atm_of aa\<close>]
+    by (cases \<open>aa\<close>)
+      (auto simp: lookup_clause_rel_def lookup_conflict_remove1_def lookup_clause_rel_atm_in_iff
+        minus_notin_trivial2 size_remove1_mset_If in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff minus_notin_trivial
+        mset_as_position_in_iff_nth)
+   done
+
+definition (in -) lookup_conflict_remove1_pre :: \<open>nat literal \<times> nat \<times> bool option list \<Rightarrow> bool\<close> where
+\<open>lookup_conflict_remove1_pre = (\<lambda>(L,(n,xs)). n > 0 \<and> atm_of L < length xs)\<close>
+
+sepref_thm conflict_remove1_code
+  is \<open>uncurry (RETURN oo lookup_conflict_remove1)\<close>
+  :: \<open>[lookup_conflict_remove1_pre]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d \<rightarrow>
+     lookup_clause_rel_assn\<close>
+  supply [[goals_limit=2]] one_uint32_nat[sepref_fr_rules]
+  unfolding lookup_conflict_remove1_def one_uint32_nat_def[symmetric] fast_minus_def[symmetric]
+  lookup_conflict_remove1_pre_def
+  by sepref
+
+concrete_definition (in -) conflict_remove1_code
+  uses isasat_input_bounded.conflict_remove1_code.refine_raw
+  is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) conflict_remove1_code_def
+
+lemmas conflict_remove1_code_refine[sepref_fr_rules] =
+   conflict_remove1_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
 definition (in isasat_input_ops) isa_minimize_and_extract_highest_lookup_conflict
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat clause \<Rightarrow> (nat \<Rightarrow> minimize_status) \<Rightarrow> lbd \<Rightarrow>
-     out_learned \<Rightarrow> (nat clause \<times> (nat \<Rightarrow> minimize_status) \<times> out_learned) nres\<close>
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> lookup_clause_rel \<Rightarrow> (nat \<Rightarrow> minimize_status) \<Rightarrow> lbd \<Rightarrow>
+     out_learned \<Rightarrow> (lookup_clause_rel \<times> (nat \<Rightarrow> minimize_status) \<times> out_learned) nres\<close>
 where
   \<open>isa_minimize_and_extract_highest_lookup_conflict  = (\<lambda>M NU nxs s lbd outl. do {
     (D, _, s, outl) \<leftarrow>
-       WHILE\<^sub>T\<^bsup>minimize_and_extract_highest_lookup_conflict_inv\<^esup>
+       WHILE\<^sub>T\<^bsup>\<lambda>(nxs, i, s, outl). length outl \<le> uint32_max\<^esup>
          (\<lambda>(nxs, i, s, outl). i < length outl)
          (\<lambda>(nxs, x, s, outl). do {
             ASSERT(x < length outl);
@@ -3396,8 +3438,8 @@ where
             if \<not>red
             then RETURN (nxs, x+1, s', outl)
             else do {
-               ASSERT (delete_from_lookup_conflict_pre (L, nxs));
-               RETURN (remove1_mset L nxs, x, s',  delete_index_and_swap outl x)
+               ASSERT(lookup_conflict_remove1_pre (L, nxs));
+               RETURN (lookup_conflict_remove1 L nxs, x, s',  delete_index_and_swap outl x)
             }
          })
          (nxs, one_uint32_nat, s, outl);
@@ -3408,15 +3450,16 @@ where
 lemma isa_minimize_and_extract_highest_lookup_conflict_minimize_and_extract_highest_lookup_conflict:
   \<open>(uncurry5 isa_minimize_and_extract_highest_lookup_conflict,
     uncurry5 minimize_and_extract_highest_lookup_conflict) \<in>
-    [\<lambda>(((((_, N), _), _), _), _). literals_are_in_\<L>\<^sub>i\<^sub>n_mm ((mset \<circ> fst) `# ran_m N)]\<^sub>f
-     Id \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f Id  \<times>\<^sub>f Id  \<times>\<^sub>f Id  \<times>\<^sub>f Id \<rightarrow>
-      \<langle>Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<rangle>nres_rel\<close>
+    [\<lambda>(((((_, N), D), _), _), _). literals_are_in_\<L>\<^sub>i\<^sub>n_mm ((mset \<circ> fst) `# ran_m N) \<and>
+       \<not>tautology D]\<^sub>f
+     Id \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f lookup_clause_rel  \<times>\<^sub>f Id  \<times>\<^sub>f Id  \<times>\<^sub>f Id \<rightarrow>
+      \<langle>lookup_clause_rel \<times>\<^sub>r Id \<times>\<^sub>r Id\<rangle>nres_rel\<close>
 proof -
   have init: \<open>((x2f, one_uint32_nat, x2g, x2i), x2a::nat literal multiset, one_uint32_nat, x2b, x2d)
-        \<in> Id  \<times>\<^sub>r Id  \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>
+        \<in> lookup_clause_rel  \<times>\<^sub>r Id \<times>\<^sub>r Id  \<times>\<^sub>r Id \<close>
     if
       \<open>(x, y)
-      \<in> Id \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f
+      \<in> Id \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f lookup_clause_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f
         Id\<close> and
       \<open>x1c = (x1d, x2)\<close> and
       \<open>x1b = (x1c, x2a)\<close> and
@@ -3435,7 +3478,6 @@ proof -
     show ?thesis
       using that by auto
   qed
-
   show ?thesis
     unfolding isa_minimize_and_extract_highest_lookup_conflict_def uncurry_def
       minimize_and_extract_highest_lookup_conflict_def
@@ -3443,6 +3485,7 @@ proof -
     apply (refine_vcg
       isa_literal_redundant_wl_lookup_literal_redundant_wl_lookup[of vdom, THEN fref_to_Down_curry5])
     apply (rule init; assumption)
+    subgoal by (auto simp: minimize_and_extract_highest_lookup_conflict_inv_def)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -3450,9 +3493,14 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
+    subgoal 
+      by (auto simp: lookup_conflict_remove1_pre_def lookup_clause_rel_def atms_of_def
+        minimize_and_extract_highest_lookup_conflict_inv_def)
+    subgoal
+      by (auto simp: minimize_and_extract_highest_lookup_conflict_inv_def
+      intro!: lookup_conflict_remove1[THEN fref_to_Down_unRET_uncurry]
+      simp: nth_in_set_tl delete_from_lookup_conflict_pre_def
+      dest!: in_set_takeD)
     subgoal by auto
     done
 qed
@@ -3461,9 +3509,9 @@ sepref_register isa_minimize_and_extract_highest_lookup_conflict isa_literal_red
 sepref_thm minimize_and_extract_highest_lookup_conflict_code
   is \<open>uncurry5 (PR_CONST isa_minimize_and_extract_highest_lookup_conflict)\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), lbd), outl). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
-       trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a
+       trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a
         cach_refinement_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
-      lookup_clause_assn *a cach_refinement_assn *a out_learned_assn\<close>
+      lookup_clause_rel_assn *a cach_refinement_assn *a out_learned_assn\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
     minimize_and_extract_highest_lookup_conflict_inv_def[simp]

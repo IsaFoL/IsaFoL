@@ -21,20 +21,27 @@ where
        (length C = 1 \<longrightarrow> n = 0)
       )\<close>
 
-definition (in isasat_input_ops) empty_conflict_and_extract_clause_heur where
-  \<open>empty_conflict_and_extract_clause_heur M D outl = do {
-     let C = replicate (length outl) (outl!0);
-     (D, C, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(E, C, i). mset (take i C) = mset (take i outl) \<and> E = D - mset (take i outl) \<and>
+definition (in isasat_input_ops) empty_conflict_and_extract_clause_heur_inv where
+  \<open>empty_conflict_and_extract_clause_heur_inv M outl = (\<lambda>(E, C, i). mset (take i C) = mset (take i outl) \<and> 
             length C = length outl \<and> C ! 0 = outl ! 0 \<and> i \<ge> 1 \<and> i \<le> length outl \<and>
             (1 < length (take i C) \<longrightarrow>
                  highest_lit M (mset (tl (take i C)))
-                  (Some (C ! 1, get_level M (C ! 1))))\<^esup>
+                  (Some (C ! 1, get_level M (C ! 1)))))\<close>
+
+definition (in isasat_input_ops) empty_conflict_and_extract_clause_heur ::
+    "(nat, nat) ann_lits
+     \<Rightarrow> lookup_clause_rel
+       \<Rightarrow> nat literal list \<Rightarrow> (_ \<times> nat literal list \<times> nat) nres" 
+where
+  \<open>empty_conflict_and_extract_clause_heur M D outl = do {
+     let C = replicate (length outl) (outl!0);
+     (D, C, _) \<leftarrow> WHILE\<^sub>T\<^bsup>empty_conflict_and_extract_clause_heur_inv M outl\<^esup>
          (\<lambda>(D, C, i). i < length_u outl)
          (\<lambda>(D, C, i). do {
            ASSERT(i < length outl);
            ASSERT(i < length C);
-           ASSERT(delete_from_lookup_conflict_pre (outl ! i, D));
-           let D = remove1_mset (outl ! i) D;
+           ASSERT(lookup_conflict_remove1_pre (outl ! i, D));
+           let D = lookup_conflict_remove1 (outl ! i) D;
            let C = C[i := outl ! i];
            ASSERT(C!i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> C!1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
            let C = (if get_level M (C!i) > get_level M (C!one_uint32_nat) then swap C one_uint32_nat i else C);
@@ -42,33 +49,49 @@ definition (in isasat_input_ops) empty_conflict_and_extract_clause_heur where
            RETURN (D, C, i+one_uint32_nat)
          })
         (D, C, one_uint32_nat);
-     ASSERT(D = {#});
      ASSERT(length outl \<noteq> 1 \<longrightarrow> length C > 1);
      ASSERT(length outl \<noteq> 1 \<longrightarrow> C!1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
-     RETURN (set_empty_conflict_to_none D, C, if length outl = 1 then zero_uint32_nat else get_level M (C!1))
+     RETURN ((True, D), C, if length outl = 1 then zero_uint32_nat else get_level M (C!1))
     }\<close>
 
 lemma empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause:
   assumes
     \<open>D = mset (tl outl)\<close> \<open>outl \<noteq> []\<close> and dist: \<open>distinct outl\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset outl)\<close> and
-    consistent: \<open>\<not> tautology (mset outl)\<close>
+    consistent: \<open>\<not> tautology (mset outl)\<close> and
+    \<open>(D', D) \<in> lookup_clause_rel\<close>
   shows
-    \<open>empty_conflict_and_extract_clause_heur M D outl \<le> empty_conflict_and_extract_clause M D outl\<close>
+    \<open>empty_conflict_and_extract_clause_heur M D' outl \<le> \<Down> (option_lookup_clause_rel \<times>\<^sub>r Id \<times>\<^sub>r Id)
+        (empty_conflict_and_extract_clause M D outl)\<close>
 proof -
   have size_out: \<open>size (mset outl) \<le> 1 + uint_max div 2\<close>
     using simple_clss_size_upper_div2[OF lits _ consistent]
       \<open>distinct outl\<close> by auto
-
+      thm empty_conflict_and_extract_clause_def[of M D outl]
+  have empty_conflict_and_extract_clause_alt_def:
+    \<open>empty_conflict_and_extract_clause M D outl = do {
+      (D', outl') \<leftarrow> SPEC (\<lambda>(E, F). E = {#} \<and> mset F = D);
+      SPEC
+        (\<lambda>(D, C, n).
+            D = None \<and>
+            mset C = mset outl \<and>
+            C ! 0 = outl ! 0 \<and>
+            (1 < length C \<longrightarrow>
+              highest_lit M (mset (tl C)) (Some (C ! 1, get_level M (C ! 1)))) \<and>
+            (1 < length C \<longrightarrow> n = get_level M (C ! 1)) \<and> (length C = 1 \<longrightarrow> n = 0))
+    }\<close> for M D outl
+    unfolding empty_conflict_and_extract_clause_def RES_RES2_RETURN_RES
+    by (auto simp: ex_mset)
   define I where
-    \<open>I \<equiv> \<lambda>(E, C, i). mset (take i C) = mset (take i outl) \<and> E = D - mset (take i outl) \<and>
+    \<open>I \<equiv> \<lambda>(E, C, i). mset (take i C) = mset (take i outl) \<and>
+       (E, D - mset (take i outl)) \<in> lookup_clause_rel \<and>
             length C = length outl \<and> C ! 0 = outl ! 0 \<and> i \<ge> 1 \<and> i \<le> length outl \<and>
             (1 < length (take i C) \<longrightarrow>
                  highest_lit M (mset (tl (take i C)))
                   (Some (C ! 1, get_level M (C ! 1))))\<close>
-  have I0: \<open>I (D, replicate (length outl) (outl ! 0), one_uint32_nat)\<close>
+  have I0: \<open>I (D', replicate (length outl) (outl ! 0), one_uint32_nat)\<close>
     using assms by (cases outl) (auto simp: I_def)
-  have I_Loop: \<open>I (remove1_mset (outl ! i) E,
+  (* have I_Loop: \<open>I (lookup_conflict_remove1 (outl ! i) E,
          if get_level M (C[i := outl ! i] ! one_uint32_nat)
             < get_level M (C[i := outl ! i] ! i)
          then swap (C[i := outl ! i]) one_uint32_nat i else C[i := outl ! i],
@@ -322,32 +345,53 @@ proof -
     show ?thesis
       using lits multi_member_split[OF C_1] \<open>1 \<le> i\<close> \<open>length outl \<noteq> 1\<close>
       by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset nth_list_update')
-  qed
+  qed *)
+  have H1: \<open>WHILE\<^sub>T\<^bsup>empty_conflict_and_extract_clause_heur_inv M outl\<^esup>
+     (\<lambda>(D, C, i). i < length_u outl)
+     (\<lambda>(D, C, i). do {
+           _ \<leftarrow> ASSERT (i < length outl);
+           _ \<leftarrow> ASSERT (i < length C);
+           _ \<leftarrow> ASSERT (lookup_conflict_remove1_pre (outl ! i, D));
+           _ \<leftarrow> ASSERT
+                (C[i := outl ! i] ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+                 C[i := outl ! i] ! 1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+           _ \<leftarrow> ASSERT (i + 1 \<le> uint_max);
+           RETURN
+            (lookup_conflict_remove1 (outl ! i) D,
+             if get_level M (C[i := outl ! i] ! one_uint32_nat)
+                < get_level M (C[i := outl ! i] ! i)
+             then swap (C[i := outl ! i]) one_uint32_nat i
+             else C[i := outl ! i],
+             i + one_uint32_nat)
+         })
+     (D', replicate (length outl) (outl ! 0), one_uint32_nat)
+    \<le> \<Down> {((E, C, n), (E', F')). (E, E') \<in> lookup_clause_rel \<and> mset C = mset outl \<and>
+             C ! 0 = outl ! 0 \<and>
+            (1 < length C \<longrightarrow>
+              highest_lit M (mset (tl C)) (Some (C ! 1, get_level M (C ! 1)))) \<and>
+            (1 < length C \<longrightarrow> n = get_level M (C ! 1)) \<and> (length C = 1 \<longrightarrow> n = 0) \<and>
+            I (E, C, n)}
+          (SPEC (\<lambda>(E, F). E = {#} \<and> mset F = D))\<close>
+    unfolding conc_fun_RES
+  apply (refine_vcg WHILEIT_rule_stronger_inv_RES[where R = \<open>measure (\<lambda>(_, _, i). length outl - i)\<close>  and
+          I' = \<open>I\<close>])
+  subgoal by auto
+  subgoal using assms by (cases outl; auto) 
+  subgoal by auto
+  subgoal using assms by (cases outl; auto) 
+  sorry
 
   show ?thesis
-    unfolding empty_conflict_and_extract_clause_heur_def empty_conflict_and_extract_clause_def Let_def
-    I_def[symmetric]
-    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(_, _, i). length outl - i)\<close> and
-          I = \<open>I\<close>])
-    subgoal by auto
-    subgoal by (rule I0)
-    subgoal by auto
-    subgoal by (auto simp: I_def)
-    subgoal by (rule delete)
-    subgoal by (auto simp: delete_from_lookup_conflict_pre_def)
-    subgoal by (rule C_1)
-    subgoal using size_out by (auto simp: uint_max_def)
-    subgoal by (rule I_Loop)
-    subgoal by auto
-    subgoal using assms by (cases outl) (auto simp: I_def)
+    unfolding empty_conflict_and_extract_clause_heur_def empty_conflict_and_extract_clause_alt_def
+      Let_def I_def[symmetric] 
+    apply (subst empty_conflict_and_extract_clause_alt_def)
+    unfolding conc_fun_RES
+    apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(_, _, i). length outl - i)\<close> and
+          I' = \<open>I\<close>] H1)
     subgoal using assms by (auto simp: I_def)
-    subgoal by (rule C_1')
-    subgoal by (auto simp: set_empty_conflict_to_none_def)
-    subgoal by (auto simp: I_def)
-    subgoal by (auto simp: I_def)
-    subgoal by (auto simp: I_def)
-    subgoal by (auto simp: I_def)
-    subgoal by (auto simp: I_def)
+    subgoal sorry
+    subgoal using assms 
+      by (auto intro!: RETURN_RES_refine simp: option_lookup_clause_rel_def I_def) 
     done
 qed
 
