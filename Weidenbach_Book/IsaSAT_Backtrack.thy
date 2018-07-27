@@ -56,7 +56,9 @@ where
 
 lemma empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause:
   assumes
-    \<open>D = mset (tl outl)\<close> \<open>outl \<noteq> []\<close> and dist: \<open>distinct outl\<close> and
+    D: \<open>D = mset (tl outl)\<close> and
+    outl: \<open>outl \<noteq> []\<close> and
+    dist: \<open>distinct outl\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset outl)\<close> and
     consistent: \<open>\<not> tautology (mset outl)\<close> and
     \<open>(D', D) \<in> lookup_clause_rel\<close>
@@ -346,6 +348,24 @@ proof -
       using lits multi_member_split[OF C_1] \<open>1 \<le> i\<close> \<open>length outl \<noteq> 1\<close>
       by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset nth_list_update')
   qed *)
+  have [simp]: \<open>ba \<ge> 1 \<Longrightarrow> mset (tl outl) - mset (take ba outl) = mset ((drop ba outl))\<close>
+   
+   for ba
+    apply (subst append_take_drop_id[of \<open>ba - 1\<close>, symmetric])
+    using dist
+    unfolding mset_append
+    by (cases outl; cases ba)
+      (auto simp: take_tl drop_Suc[symmetric] remove_1_mset_id_iff_notin dest: in_set_dropD)
+  have empty_conflict_and_extract_clause_heur_inv:
+    \<open>empty_conflict_and_extract_clause_heur_inv M outl
+     (D', replicate (length outl) (outl ! 0), one_uint32_nat)\<close>
+    using assms
+    unfolding empty_conflict_and_extract_clause_heur_inv_def
+    by (cases outl) auto
+  have I0: \<open>I (D', replicate (length outl) (outl ! 0), one_uint32_nat)\<close>
+    using assms
+    unfolding I_def
+    by (cases outl) auto
   have H1: \<open>WHILE\<^sub>T\<^bsup>empty_conflict_and_extract_clause_heur_inv M outl\<^esup>
      (\<lambda>(D, C, i). i < length_u outl)
      (\<lambda>(D, C, i). do {
@@ -376,11 +396,35 @@ proof -
   apply (refine_vcg WHILEIT_rule_stronger_inv_RES[where R = \<open>measure (\<lambda>(_, _, i). length outl - i)\<close>  and
           I' = \<open>I\<close>])
   subgoal by auto
-  subgoal using assms by (cases outl; auto) 
-  subgoal by auto
-  subgoal using assms by (cases outl; auto) 
+  subgoal by (rule empty_conflict_and_extract_clause_heur_inv)
+  subgoal by (rule I0)
+  subgoal using assms by (cases outl; auto)
+  subgoal
+    by (auto simp: I_def)
+  subgoal for s a b aa ba
+   using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l lits
+    unfolding lookup_conflict_remove1_pre_def prod.simps
+    by (auto simp: I_def empty_conflict_and_extract_clause_heur_inv_def
+      lookup_clause_rel_def D atms_of_def)
+  subgoal for s a b aa ba
+   using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l lits
+    unfolding lookup_conflict_remove1_pre_def prod.simps
+    by (auto simp: I_def empty_conflict_and_extract_clause_heur_inv_def
+      lookup_clause_rel_def D atms_of_def)
+  subgoal for s a b aa ba
+   using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l lits
+    unfolding lookup_conflict_remove1_pre_def prod.simps
+    apply (auto simp: I_def empty_conflict_and_extract_clause_heur_inv_def
+      lookup_clause_rel_def D atms_of_def)
   sorry
-
+  subgoal for s a b aa ba
+   using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l lits
+    unfolding lookup_conflict_remove1_pre_def prod.simps
+    apply (auto simp: I_def empty_conflict_and_extract_clause_heur_inv_def
+      lookup_clause_rel_def D atms_of_def)
+      explore_have
+  sorry
+term lookup_conflict_remove1_pre
   show ?thesis
     unfolding empty_conflict_and_extract_clause_heur_def empty_conflict_and_extract_clause_alt_def
       Let_def I_def[symmetric] 
