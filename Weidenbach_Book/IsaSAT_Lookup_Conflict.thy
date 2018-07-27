@@ -139,7 +139,7 @@ lemma mset_as_position_empty_iff: \<open>mset_as_position xs {#} \<longleftright
   apply (rule iffI)
   subgoal
     by (cases rule: mset_as_position.cases, assumption) auto
-  subgoal 
+  subgoal
     by (auto intro: mset_as_position.intros)
   done
 
@@ -817,7 +817,7 @@ definition (in isasat_input_ops) isa_set_lookup_conflict_aa where
   \<open>isa_set_lookup_conflict_aa = isa_lookup_conflict_merge 0\<close>
 
 definition (in isasat_input_ops) isa_set_lookup_conflict_aa_pre where
-  \<open>isa_set_lookup_conflict_aa_pre = 
+  \<open>isa_set_lookup_conflict_aa_pre =
     (\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M)\<close>
 
 sepref_register set_lookup_conflict_aa
@@ -1436,7 +1436,7 @@ lemmas resolve_merge_conflict_code[sepref_fr_rules] =
    resolve_merge_conflict_code.refine[OF isasat_input_bounded_axioms]
 
 definition merge_conflict_m_pre where
-  \<open>merge_conflict_m_pre = 
+  \<open>merge_conflict_m_pre =
   (\<lambda>((((((M, N), i), xs), clvls), lbd), out). i \<in># dom_m N \<and> xs \<noteq> None \<and> distinct (N \<propto> i) \<and>
        \<not>tautology (mset (N \<propto> i)) \<and>
        (\<forall>L \<in> set (tl (N \<propto> i)). - L \<notin># the xs) \<and>
@@ -1910,10 +1910,13 @@ definition (in -) atm_in_conflict where
 definition atm_in_conflict_lookup :: \<open>nat \<Rightarrow> lookup_clause_rel \<Rightarrow> bool\<close> where
   \<open>atm_in_conflict_lookup = (\<lambda>L (_, xs). xs ! L \<noteq> None)\<close>
 
+definition atm_in_conflict_lookup_pre  :: \<open>nat \<Rightarrow> lookup_clause_rel \<Rightarrow> bool\<close> where
+\<open>atm_in_conflict_lookup_pre L xs \<longleftrightarrow> L < length (snd xs)\<close>
 sepref_definition (in -) atm_in_conflict_code
   is \<open>uncurry (RETURN oo atm_in_conflict_lookup)\<close>
-  :: \<open>[\<lambda>(L, xs). L < length (snd xs)]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding atm_in_conflict_lookup_def
+  :: \<open>[uncurry atm_in_conflict_lookup_pre]\<^sub>a
+     uint32_nat_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  unfolding atm_in_conflict_lookup_def atm_in_conflict_lookup_pre_def
   by sepref
 
 declare atm_in_conflict_code.refine[sepref_fr_rules]
@@ -1935,37 +1938,6 @@ lemma atm_in_conflict_lookup_atm_in_conflict:
         lookup_clause_rel_def atm_iff_pos_or_neg_lit
         pos_lit_in_atms_of neg_lit_in_atms_of)
   done
-
-
-theorem atm_in_conflict_hnr[sepref_fr_rules]:
-  \<open>(uncurry atm_in_conflict_code, uncurry (RETURN oo atm_in_conflict)) \<in>
-   [\<lambda>(L, xs). L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k \<rightarrow> bool_assn\<close>
-   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-   have H: \<open>?c
-  \<in> [comp_PRE (nat_rel \<times>\<^sub>f lookup_clause_rel)
-     (\<lambda>(L, xs). L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l)
-     (\<lambda>_ (L, xs). L < length (snd xs))
-     (\<lambda>_. True)]\<^sub>a
-   hrp_comp (uint32_nat_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k) (nat_rel \<times>\<^sub>f lookup_clause_rel) \<rightarrow>
-   hr_comp bool_assn bool_rel\<close> (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF atm_in_conflict_code.refine atm_in_conflict_lookup_atm_in_conflict]
-    .
-   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
-    by (auto simp: comp_PRE_def lookup_clause_rel_def)
-  have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp option_lookup_clause_assn_def lookup_clause_assn_def
-    by (auto simp: prod_hrp_comp hrp_comp_def hr_comp_invalid)
-
-  have f: \<open>?f' = ?f\<close>
-    by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn
-       option_lookup_clause_assn_def)
-  show ?thesis
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f PR_CONST_def apply assumption
-    using pre ..
-qed
 
 definition is_literal_redundant_lookup_spec where
    \<open>is_literal_redundant_lookup_spec M NU NUE D' L s =
@@ -2862,7 +2834,7 @@ lemmas isa_get_literal_and_remove_of_analyse_wl_hnr[sepref_fr_rules] =
    isa_get_literal_and_remove_of_analyse_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 definition (in isasat_input_ops) isa_lit_redundant_rec_wl_lookup
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> _ \<Rightarrow> nat clause \<Rightarrow>
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> lookup_clause_rel \<Rightarrow>
      _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> (_ \<times> _ \<times> bool) nres\<close>
 where
   \<open>isa_lit_redundant_rec_wl_lookup M NU D cach analysis lbd =
@@ -2884,9 +2856,10 @@ where
                let (L, analyse) = isa_get_literal_and_remove_of_analyse_wl NU analyse;
                ASSERT(-L \<in> lits_of_l M \<and> atm_of L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l);
                let b = \<not>level_in_lbd (get_level M L) lbd;
+               ASSERT(atm_in_conflict_lookup_pre (atm_of L) D);
                if (get_level M L = zero_uint32_nat \<or>
                    conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE \<or>
-                   atm_in_conflict (atm_of L) D)
+                   atm_in_conflict_lookup (atm_of L) D)
                then RETURN (cach, analyse, False)
                else if b \<or> conflict_min_cach cach (atm_of L) = SEEN_FAILED
                then do {
@@ -2900,8 +2873,8 @@ where
                   | None \<Rightarrow> do {
                       cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
                       RETURN (cach, [], False)
-                  }
-              }
+                }
+            }
           }
         })
        (cach, analysis, False)\<close>
@@ -2931,9 +2904,10 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
               let (L, analyse) = isa_get_literal_and_remove_of_analyse_wl NU analyse;
               ASSERT(-L \<in> lits_of_l M \<and> atm_of L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l);
               let b = \<not>level_in_lbd (get_level M L) lbd;
+               ASSERT(atm_in_conflict_lookup_pre (atm_of L) D);
               if (get_level M L = zero_uint32_nat \<or>
                   conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE \<or>
-                  atm_in_conflict (atm_of L) D)
+                  atm_in_conflict_lookup (atm_of L) D)
               then RETURN (cach, analyse, False)
               else if b \<or> conflict_min_cach cach (atm_of L) = SEEN_FAILED
               then do {
@@ -2957,7 +2931,7 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
 lemma isa_lit_redundant_rec_wl_lookup_lit_redundant_rec_wl_lookup:
   \<open>(uncurry5 isa_lit_redundant_rec_wl_lookup, uncurry5 lit_redundant_rec_wl_lookup) \<in>
     [\<lambda>(((((_, N), _), _), _), _). literals_are_in_\<L>\<^sub>i\<^sub>n_mm ((mset \<circ> fst) `# ran_m N)]\<^sub>f
-     Id \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f Id  \<times>\<^sub>f Id  \<times>\<^sub>f Id  \<times>\<^sub>f Id \<rightarrow>
+     Id \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f lookup_clause_rel  \<times>\<^sub>f Id  \<times>\<^sub>f Id  \<times>\<^sub>f Id \<rightarrow>
       \<langle>Id \<times>\<^sub>r Id \<times>\<^sub>r bool_rel\<rangle>nres_rel\<close>
 proof -
   have isa_mark_failed_lits_stack: \<open>(uncurry2 isa_mark_failed_lits_stack, uncurry2 mark_failed_lits_wl)
@@ -3014,7 +2988,11 @@ proof -
         arena_is_valid_clause_idx_def
         get_literal_and_remove_of_analyse_wl_def split: prod.splits)
     subgoal by (auto simp: split: prod.splits)
-    subgoal by (auto simp: split: prod.splits)
+    subgoal
+      unfolding atm_in_conflict_lookup_pre_def lookup_clause_rel_def
+      by auto
+    subgoal by (auto simp: atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id]
+       split: prod.splits)
     subgoal by (auto simp: split: prod.splits)
     subgoal by (auto simp: split: prod.splits)
     subgoal by (auto simp: split: prod.splits)
@@ -3038,7 +3016,7 @@ sepref_thm lit_redundant_rec_wl_lookup_code
   is \<open>uncurry5 (PR_CONST isa_lit_redundant_rec_wl_lookup)\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), analysis), lbd).
          literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
-      trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a (uint32_nat_assn *a array_assn option_bool_assn)\<^sup>k *\<^sub>a
         cach_refinement_assn\<^sup>d *\<^sub>a analyse_refinement_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
       cach_refinement_assn *a analyse_refinement_assn *a bool_assn\<close>
   supply [[goals_limit = 1]] neq_Nil_revE[elim] image_image[simp]

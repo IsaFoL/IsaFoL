@@ -455,13 +455,10 @@ where
      ASSERT(M \<noteq> []);
      let K = lit_of (hd M);
      ASSERT(-K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
-     (* ASSERT( delete_from_lookup_conflict_pre (-K, the D)); *)
-     (* let D = remove1_mset (-K) (the D); *)
      ASSERT(0 < length outl);
      let outl = outl[0 := -K];
      (D, cach, outl) \<leftarrow> isa_minimize_and_extract_highest_lookup_conflict M N D cach lbd outl;
      let cach = empty_cach cach;
-     (* ASSERT(empty_conflict_and_extract_clause_pre ((M, D), outl)); *)
      (D, C, n) \<leftarrow> empty_conflict_and_extract_clause_heur M D outl;
      RETURN ((M, N, D, Q', W', vm, \<phi>, clvls, cach, lbd, take 1 outl, stats, ccont, vdom), n, C)
   })\<close>

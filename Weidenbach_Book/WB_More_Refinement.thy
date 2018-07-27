@@ -620,6 +620,30 @@ lemma RES_RETURN_RES4:
 declare RETURN_as_SPEC_refine[refine2 del]
 
 
+lemma (in -)fref_to_Down_unRET_uncurry_Id:
+  \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y = (g x' y'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+lemma (in -)fref_to_Down_unRET_uncurry:
+  \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> (f x y, g x' y') \<in> B)\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma (in -)fref_to_Down_unRET_Id:
+  \<open>((RETURN o f), (RETURN o g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> f x = (g x'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma (in -)fref_to_Down_unRET:
+  \<open>((RETURN o f), (RETURN o g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> (f x, g x') \<in> B)\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+
 subsubsection \<open>More Simplification Theorems\<close>
 
 lemma ex_assn_swap: \<open>(\<exists>\<^sub>Aa b. P a b) = (\<exists>\<^sub>Ab a. P a b)\<close>

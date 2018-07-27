@@ -490,29 +490,6 @@ lemma clause_not_marked_to_delete_rel:
         clause_not_marked_to_delete_heur_def arena_dom_status_iff
         clause_not_marked_to_delete_pre_def\<close>)
 
-lemma (in -)fref_to_Down_unRET_uncurry_Id:
-  \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y = (g x' y'))\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-lemma (in -)fref_to_Down_unRET_uncurry:
-  \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> (f x y, g x' y') \<in> B)\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma (in -)fref_to_Down_unRET_Id:
-  \<open>((RETURN o f), (RETURN o g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> f x = (g x'))\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma (in -)fref_to_Down_unRET:
-  \<open>((RETURN o f), (RETURN o g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> (f x, g x') \<in> B)\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
 lemma
   find_unwatched_not_tauto:
     \<open>\<not>tautology(mset (get_clauses_wl S \<propto> fst (watched_by_app S L C)))\<close>
