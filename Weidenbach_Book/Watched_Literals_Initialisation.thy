@@ -1,5 +1,5 @@
 theory Watched_Literals_Initialisation
-  imports Watched_Literals_List "../lib/Explorer"
+  imports Watched_Literals_List
 begin
 
 subsection \<open>Initialise Data structure\<close>

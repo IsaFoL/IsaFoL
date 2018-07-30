@@ -1,5 +1,5 @@
 theory Array_UInt
-  imports Array_List_Array WB_Word_Assn "../lib/Explorer"
+  imports Array_List_Array WB_Word_Assn
 begin
 
 subsection \<open>More about general arrays\<close>

@@ -637,7 +637,6 @@ proof -
        Misc.slice_def header_size_def split: if_splits)
 qed
 
-
 lemma clause_slice_extra_information_mark_to_delete_dead:
   assumes
     i: \<open>i \<in># dom_m N\<close> and
