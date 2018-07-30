@@ -91,7 +91,7 @@ proof standard
   let ?f = \<open>(\<lambda>x. case x of INIT \<Rightarrow> (0::nat) | LEARNED  \<Rightarrow> 1 | DELETED \<Rightarrow> 2)\<close>
   have \<open>inj ?f\<close>
     by (auto simp: inj_def split: clause_status.splits)
-  then show \<open>\<exists>f. inj (f::clause_status \<Rightarrow> nat)\<close>
+  then show \<open>\<exists>f. inj (f::clause_status\<Rightarrow> nat)\<close>
     by blast
 qed
 
