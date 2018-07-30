@@ -9,7 +9,7 @@
 
 theory Explorer
 imports Main
-keywords "explore" "explore_have" "explore_lemma" :: diag
+keywords "explore" "explore_have" "explore_lemma" "explore_context" :: diag
 begin
 
 subsection {* Explore command *}
@@ -62,13 +62,13 @@ ML {*
 
 signature EXPLORER =
 sig
-  datatype explore = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS
+  datatype explore = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS | CONTEXT
   val explore: explore -> Toplevel.state -> Proof.state
 end
 
 structure Explorer: EXPLORER =
 struct
-datatype explore = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS
+datatype explore = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS | CONTEXT
 
 fun split_clause t =
   let
@@ -150,6 +150,143 @@ fun generate_text ASSUME_SHOW context enclosure clauses =
       separate "\n" raw_lines_with_lemma_and_proof_body
     end;
 
+
+datatype proof_step = ASSUMPTION of term | FIXES of (string * typ) | GOAL of term
+  | Step of (proof_step * proof_step)
+  | Branch of (proof_step * proof_step)
+
+datatype cproof_step = cASSUMPTION of term list | cFIXES of ((string * typ) list) | cGOAL of term
+  | cStep of (cproof_step * cproof_step)
+  | cBranch of (cproof_step * cproof_step)
+  | cLemma of ((string * typ) list * term list * term)
+
+fun explore_context_init (var :: fixes, assms, shows) = 
+    Step ((FIXES var), explore_context_init (fixes, assms, shows))
+  | explore_context_init ([], assm :: assms, shows) = 
+    Step ((ASSUMPTION assm), explore_context_init ([], assms, shows))
+  | explore_context_init ([], [], show) = 
+    GOAL show
+ 
+fun explore_context_merge (var :: fixes, assms, shows)  (Step (FIXES var', steps)) =
+    if var = var' then 
+       Step (FIXES var',
+         explore_context_merge  (fixes, assms, shows) steps)
+    else
+    Branch (Step (FIXES var', steps), explore_context_init (var :: fixes, assms, shows))
+  | explore_context_merge ([], assms, shows)  (Step (FIXES var',  steps)) =
+       Step (FIXES var',
+         explore_context_merge ([], assms, shows) steps)
+  | explore_context_merge (var :: fixes, assms, shows) steps =
+       Step (FIXES var,
+         explore_context_merge (fixes, assms, shows) steps)
+
+  | explore_context_merge (var :: fixes, assms, shows)
+       (Branch (Step (FIXES var1, st1), Step (FIXES var2, st2))) =
+    if var = var1 then 
+       Branch (explore_context_merge  (fixes, assms, shows) (Step (FIXES var1, st1)),
+          Step (FIXES var2, st2))
+    else if var = var2 then 
+       Branch (Step (FIXES var1, st1),
+         explore_context_merge  (fixes, assms, shows) (Step (FIXES var2, st2)))
+    else 
+      Branch (Step (FIXES var, explore_context_init (var :: fixes, assms, shows)),
+       Branch (Step (FIXES var1, st1), Step (FIXES var2, st2)))
+
+  | explore_context_merge ([], assm :: assms, shows)  (Step (ASSUMPTION assm',  steps)) =
+    if assm = assm' then 
+      Step (ASSUMPTION assm',  explore_context_merge ([], assms, shows) steps)
+    else
+      Branch (Step (ASSUMPTION assm',  steps), explore_context_init ([], assm :: assms, shows))
+  | explore_context_merge ([], [], show)  (Step (GOAL show',  steps)) =
+    if show = show' then 
+      GOAL show'
+    else
+      Branch (Step (GOAL show',  steps), explore_context_init ([], [], show))
+  | explore_context_merge clause ps =
+    Branch (explore_context_init clause, ps)
+    
+fun explore_context_all (clause :: clauses) =
+  fold explore_context_merge clauses (explore_context_init clause)
+
+fun convert_proof (ASSUMPTION a) = cASSUMPTION [a]
+  | convert_proof (FIXES a) = cFIXES [a]
+  |  convert_proof (GOAL a) = cGOAL a
+  |  convert_proof (Step (a, b)) = cStep (convert_proof a, convert_proof b)
+  |  convert_proof (Branch (a, b)) = cBranch (convert_proof a, convert_proof b)
+
+fun compress_proof (cStep (cASSUMPTION a, cStep (cASSUMPTION b, step))) = 
+  compress_proof (cStep (cASSUMPTION (a @ b), step))
+  | compress_proof (cStep (cFIXES a, cStep (cFIXES b, step))) = 
+  compress_proof (cStep (cFIXES (a @ b), step))
+  | compress_proof (cStep (a, b)) = 
+  cStep (compress_proof a , compress_proof b)
+  | compress_proof (cBranch (a, b)) = 
+  cBranch (compress_proof a , compress_proof b)
+  | compress_proof a = a
+
+fun compress_proof2 (cStep (cFIXES a, cStep (cASSUMPTION b, cGOAL g))) = 
+      (cLemma (a, b, g))
+  |  compress_proof2 (cStep (cASSUMPTION b, cGOAL g)) = 
+      (cLemma ([], b, g))
+  | compress_proof2 (cStep (a, b)) = 
+  cStep (compress_proof2 a, compress_proof2 b)
+  | compress_proof2 (cBranch (a, b)) = 
+  cBranch (compress_proof2 a, compress_proof2 b)
+  | compress_proof2 a = a
+  
+fun generate_context_proof ctxt enclosure (cFIXES fixes) =
+  let
+    val kw_fix = "  fixes "
+    val fixes_s = if null fixes then NONE
+      else SOME (kw_fix ^ space_implode " and "
+        (map (fn (v, T) => v ^ " :: " ^ enclosure (Syntax.string_of_typ ctxt T)) fixes));
+  in the_default "" fixes_s end 
+  | generate_context_proof ctxt enclosure (cASSUMPTION assms) =
+  let
+    val kw_assume = "  assumes "
+    val assumes_s = if null assms then NONE
+      else SOME (kw_assume ^ space_implode_with_line_break
+        (map (enclosure o Syntax.string_of_term ctxt) assms))
+  in the_default "" assumes_s end
+  | generate_context_proof ctxt enclosure (cGOAL shows) =
+  let
+    val kw_goal = "lemma "
+    val shows_s = (kw_goal ^ (enclosure o Syntax.string_of_term ctxt) shows)
+  in shows_s ^ "\nsorry" end
+  | generate_context_proof ctxt enclosure (cStep (cFIXES f, cStep (cASSUMPTION assms, st))) =
+    ["context" ,
+     generate_context_proof ctxt enclosure (cFIXES f),
+     generate_context_proof ctxt enclosure (cASSUMPTION assms),
+     "begin",
+     generate_context_proof ctxt enclosure st,
+     "end"]
+    |> cat_lines
+  | generate_context_proof ctxt enclosure (cStep (cFIXES f, st)) =
+    ["context" ,
+     generate_context_proof ctxt enclosure (cFIXES f),
+     "begin",
+     generate_context_proof ctxt enclosure st,
+     "end"]
+    |> cat_lines
+  | generate_context_proof ctxt enclosure (cStep (cASSUMPTION assms, st)) =
+    ["context" ,
+     generate_context_proof ctxt enclosure (cASSUMPTION assms),
+     "begin",
+     generate_context_proof ctxt enclosure st,
+     "end"]
+    |> cat_lines
+  | generate_context_proof ctxt enclosure (cStep (st, st')) =
+    [generate_context_proof ctxt enclosure st,
+     generate_context_proof ctxt enclosure st']
+    |> cat_lines
+  | generate_context_proof ctxt enclosure (cBranch (st, st')) =
+    separate "\n"
+      [generate_context_proof ctxt enclosure st,
+      generate_context_proof ctxt enclosure st' ]
+    |> cat_lines
+  | generate_context_proof ctxt enclosure (cLemma (fixes, assms, shows)) =
+     hd (generate_text ASSUMES_SHOWS ctxt enclosure [(fixes, assms, shows)])
+  
 fun explore aim st  =
   let
     val thy = Toplevel.theory_of st
@@ -162,7 +299,14 @@ fun explore aim st  =
     val { context, facts = _, goal } = Proof.goal st;
     val goal_props = Logic.strip_imp_prems (Thm.prop_of goal);
     val clauses = map split_clause goal_props;
-    val text = cat_lines (generate_text aim context enclosure clauses);
+    val text =
+      if aim = CONTEXT then
+          (explore_context_all (List.rev clauses) 
+          |> convert_proof
+          |> compress_proof
+          |> compress_proof2
+          |> generate_context_proof context enclosure)
+        else cat_lines (generate_text aim context enclosure clauses);
     val message = Active.sendback_markup_properties [] text;
   in
     (st |> tap (fn _ => Output.information message))
@@ -194,19 +338,39 @@ val _ =
     "explore current goal state as Isar proof with have, if and for"
     (Scan.succeed explore_lemma_cmd)
 
+val explore_ctxt_cmd =
+  Toplevel.keep_proof (K () o Explorer.explore Explorer.CONTEXT)
+
+val _ =
+  Outer_Syntax.command @{command_keyword "explore_context"}
+    "explore current goal state as Isar proof with have, if and for"
+    (Scan.succeed explore_ctxt_cmd)
 *}
 
 subsection {* Examples *}
 
 text \<open>You can choose cartouches\<close>
 setup Explorer_Lib.switch_to_cartouches
-
 lemma
   "distinct xs \<Longrightarrow> P xs \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1" for xs
   apply (induct xs)
 (*   apply simp_all
   apply auto *)
   explore
+  explore_have
+  explore_lemma
+  oops
+
+lemma
+  "\<And>x. A1 x \<Longrightarrow> A2"
+  "\<And>x y. A1 x \<Longrightarrow> B2 y"
+  "\<And>x y z s. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C3 s"
+  "\<And>x y z s t. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C3 s \<Longrightarrow> C3' t"
+  "\<And>x y z s. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C4 s"
+  "\<And>x y z s t. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C4 s \<Longrightarrow> C4' t"
+(*   apply simp_all
+  apply auto *)
+  explore_context
   explore_have
   explore_lemma
   oops
