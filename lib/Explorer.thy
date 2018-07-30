@@ -174,7 +174,9 @@ fun branch_hd_fixes_is P (Step (FIXES var, _)) = P var
   | branch_hd_fixes_is P _ = false
 
 fun branch_hd_assms_is P (Step (ASSUMPTION var, _)) = P var
-  | branch_hd_assms_is P _ = false
+  | branch_hd_assms_is P (Step (GOAL var, _)) = P var
+  | branch_hd_assms_is P (GOAL var) = P var
+  | branch_hd_assms_is _ _ = false
 
 fun find_find_pos P brs =
     let
@@ -193,7 +195,7 @@ fun explore_context_merge (FIXES var :: cgoal)  (Step (FIXES var', steps)) =
   | explore_context_merge (FIXES var :: cgoal) (Branch brs) =
     (case find_find_pos (branch_hd_fixes_is (curry (op =) var)) brs of
       SOME (b, (Step (fixe, st)), after) =>
-         Branch (b @ Step (fixe, explore_context_merge (FIXES var :: cgoal) st) :: after)
+         Branch (b @ Step (fixe, explore_context_merge cgoal st) :: after)
     | NONE =>
          Branch (brs @ [Step (FIXES var, explore_context_init cgoal)]))
   | explore_context_merge (FIXES var :: cgoal) steps =
@@ -203,16 +205,23 @@ fun explore_context_merge (FIXES var :: cgoal)  (Step (FIXES var', steps)) =
     if assm = assm' then
       Step (ASSUMPTION assm',  explore_context_merge cgoal steps)
     else
-      Branch [Step (ASSUMPTION assm',  steps), explore_context_init cgoal]
+      Branch [Step (ASSUMPTION assm',  steps), explore_context_init (ASSUMPTION assm :: cgoal)]
   | explore_context_merge (ASSUMPTION assm :: cgoal) (Step (GOAL assm',  steps)) =
     if assm = assm' then
       Step (GOAL assm',  explore_context_merge cgoal steps)
     else
-      Branch [Step (GOAL assm',  steps), explore_context_init cgoal]
+      Branch [Step (GOAL assm',  steps), explore_context_init (ASSUMPTION assm :: cgoal)]
+  | explore_context_merge (ASSUMPTION assm :: cgoal) (GOAL assm') =
+    if assm = assm' then
+      Step (GOAL assm',  explore_context_init cgoal)
+    else
+      Branch [GOAL assm', explore_context_init (ASSUMPTION assm :: cgoal)]
   | explore_context_merge (ASSUMPTION assm :: cgoal)  (Branch brs) =
-    (case find_find_pos (branch_hd_assms_is  (curry (op =) assm)) brs of
+    (case find_find_pos (branch_hd_assms_is (fn t => assm = (t))) brs of
       SOME (b, (Step (assm, st)), after) =>
          Branch (b @ Step (assm, explore_context_merge cgoal st) :: after)
+    | SOME (b, (GOAL goal), after) =>
+         Branch (b @ Step (GOAL goal, explore_context_init cgoal) :: after)
     | NONE =>
          Branch (brs @ [Step (ASSUMPTION assm, explore_context_init cgoal)]))
 
@@ -237,6 +246,9 @@ fun compress_proof (cStep (cASSUMPTION a, cStep (cASSUMPTION b, step))) =
     compress_proof (cStep (cASSUMPTION (a @ b), step))
   | compress_proof (cStep (cFIXES a, cStep (cFIXES b, step))) =
     compress_proof (cStep (cFIXES (a @ b), step))
+  | compress_proof (cStep (cFIXES a, cStep (cASSUMPTION b,
+              cStep (cFIXES a', cStep (cASSUMPTION b', step))))) =
+    compress_proof (cStep (cFIXES (a @ a'), cStep (cASSUMPTION (b @ b'), step)))
 
   | compress_proof (cStep (a, b)) =
     cStep (compress_proof a , compress_proof b)
@@ -263,7 +275,7 @@ fun reorder_assumptions_wrt_fixes (fixes, assms, goal) =
       | depends_on_any _ [] = false
      fun insert_all_assms [] assms = map ASSUMPTION assms
       | insert_all_assms fixes [] = map FIXES fixes
-      | insert_all_assms (fix :: fixes) (assm :: assms) = 
+      | insert_all_assms (fix :: fixes) (assm :: assms) =
         if depends_on_any assm (fix :: fixes) then
           FIXES fix :: insert_all_assms fixes (assm :: assms)
         else
@@ -404,13 +416,13 @@ lemma
   oops
 
 lemma
-  "\<And>x. A1 x \<Longrightarrow> A2"
+   "\<And>x. A1 x \<Longrightarrow> A2"
   "\<And>x y. A1 x \<Longrightarrow> B2 y"
   "\<And>x y z s. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C3 s"
-  "\<And>x y z s t. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C4 s \<Longrightarrow> C3' t"
   "\<And>x y z s. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C4 s"
-  "\<And>x y z s t'. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C4 s \<Longrightarrow> C4' t'"
-  "\<And>x y z s t. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 t \<Longrightarrow> C4 s \<Longrightarrow> C5' t"
+  "\<And>x y z s t. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C4 s \<Longrightarrow> C3' t"
+  "\<And>x y z s t. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C4 s \<Longrightarrow> C4' t"
+  "\<And>x y z s t. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C4 s \<Longrightarrow> C5' t"
 (*   apply simp_all
   apply auto *)
   explore_context
