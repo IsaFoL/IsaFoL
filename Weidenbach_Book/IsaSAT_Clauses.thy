@@ -776,7 +776,7 @@ lemma ALit_hnr[sepref_fr_rules]:
 declare is_short_clause_code.refine[sepref_fr_rules]
 
 
-lemma le_uint32_max_le_uint64_max: \<open>a \<le> uint32_max + 1 \<Longrightarrow> a \<le> uint64_max\<close>
+lemma le_uint32_max_le_uint64_max: \<open>a \<le> uint32_max + 2 \<Longrightarrow> a \<le> uint64_max\<close>
   by (auto simp: uint32_max_def uint64_max_def)
 
 lemma nat_of_uint64_ge_minus:
@@ -817,7 +817,7 @@ declare header_size_code.refine[sepref_fr_rules]
 
 sepref_definition append_and_length_code
   is \<open>uncurry2 fm_add_new\<close>
-  :: \<open>[\<lambda>((b, C), N). length C \<le> uint32_max+1 \<and> length C \<ge> 2]\<^sub>a bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a (arena_assn)\<^sup>d \<rightarrow>
+  :: \<open>[\<lambda>((b, C), N). length C \<le> uint32_max+2 \<and> length C \<ge> 2]\<^sub>a bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a (arena_assn)\<^sup>d \<rightarrow>
        arena_assn *a nat_assn\<close>
   supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro]
   unfolding fm_add_new_def AStatus_INIT_def[symmetric]
@@ -827,6 +827,8 @@ sepref_definition append_and_length_code
    apply (rewrite in \<open>let _ = _ in let _ = _ in let _ = \<hole> in _\<close> uint32_of_uint64_rel_def[symmetric])
    apply (rewrite in \<open>_ < length _\<close> length_uint64_nat_def[symmetric])
   by sepref
+
+declare append_and_length_code.refine[sepref_fr_rules]
 
 (* 
 lemma fm_add_new_hnr[sepref_fr_rules]:

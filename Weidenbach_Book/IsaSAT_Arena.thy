@@ -1851,4 +1851,95 @@ lemma swap_lits_refine[sepref_fr_rules]:
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp)
 
+
+definition isa_update_lbd :: \<open>nat \<Rightarrow> uint32 \<Rightarrow> uint32 list \<Rightarrow> uint32 list nres\<close> where
+  \<open>isa_update_lbd C lbd arena = do {
+      ASSERT(C - LBD_SHIFT < length arena \<and> C \<ge> LBD_SHIFT);
+      RETURN (arena [C - LBD_SHIFT := lbd])
+  }\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>(uncurry0 (return 2), uncurry0 (RETURN LBD_SHIFT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: LBD_SHIFT_def)
+
+sepref_definition isa_update_lbd_code
+  is \<open>uncurry2 isa_update_lbd\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
+  unfolding isa_update_lbd_def
+  by sepref
+
+(* TODO Move *)
+
+lemma list_rel_update':
+  fixes R
+  assumes rel: \<open>(xs, ys) \<in> \<langle>R\<rangle>list_rel\<close> and
+   h: \<open>(bi, b) \<in> R\<close> 
+  shows \<open>(list_update xs ba bi, list_update ys ba b) \<in> \<langle>R\<rangle>list_rel\<close>
+proof -
+  have [simp]: \<open>(bi, b) \<in> R\<close>
+    using h by auto
+  have \<open>length xs = length ys\<close>
+    using assms list_rel_imp_same_length by blast
+
+  then show ?thesis
+    using rel
+    by (induction xs ys arbitrary: ba rule: list_induct2) (auto split: nat.splits)
+qed
+(* End Move *)
+
+lemma arena_lbd_conv:
+  assumes
+    valid: \<open>valid_arena arena N x\<close> and
+    j: \<open>j \<in># dom_m N\<close> and
+    a: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
+    b: \<open>(b, bb) \<in> uint32_nat_rel\<close>
+  shows
+    \<open>j - LBD_SHIFT < length arena\<close> (is ?le) and
+    \<open>(a[j - LBD_SHIFT := b], update_lbd j bb arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> (is ?unat)
+proof -
+  have j_le: \<open>j < length arena\<close> and
+    length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
+    k1:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
+    k2:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
+    le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
+    j_ge: \<open>header_size (N \<propto> j) \<le> j\<close>
+    using arena_lifting[OF valid j] by (auto simp: )
+  show le': ?le
+     using le  j_ge unfolding length[symmetric] header_size_def
+     by (auto split: if_splits simp: LBD_SHIFT_def)
+
+  show ?unat
+     using length a b
+     by 
+      (auto simp: arena_el_rel_def unat_lit_rel_def arena_lit_def update_lbd_def
+        uint32_nat_rel_def br_def Collect_eq_comp
+       split: arena_el.splits
+       intro!: list_rel_update')
+qed
+
+definition update_lbd_pre where
+  \<open>update_lbd_pre = (\<lambda>((C, lbd), arena). arena_is_valid_clause_idx arena C)\<close>
+
+lemma isa_update_lbd:
+  \<open>(uncurry2 isa_update_lbd, uncurry2 (RETURN ooo update_lbd)) \<in>
+    [update_lbd_pre]\<^sub>f
+     nat_rel \<times>\<^sub>f uint32_nat_rel \<times>\<^sub>f \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<rightarrow> 
+    \<langle>\<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  unfolding isa_arena_status_def arena_status_def
+  by (intro frefI nres_relI)
+   (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
+        list_rel_imp_same_length arena_length_uint64_conv arena_lifting
+        arena_is_valid_clause_idx_and_access_def arena_lbd_conv
+        arena_is_valid_clause_vdom_def arena_status_literal_conv
+        update_lbd_pre_def
+        isa_arena_swap_def swap_lits_def swap_lits_pre_def isa_update_lbd_def
+      intro!: ASSERT_refine_left swap_param)
+
+lemma update_lbd_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 isa_update_lbd_code, uncurry2 (RETURN ooo update_lbd))
+  \<in> [update_lbd_pre]\<^sub>a nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
+  using isa_update_lbd_code.refine[FCOMP isa_update_lbd]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
 end
