@@ -607,6 +607,12 @@ proof -
   qed
 qed
 
+lemma valid_arena_in_vdom_le_arena:
+  assumes \<open>valid_arena arena N vdom\<close> and \<open>j \<in> vdom\<close>
+  shows \<open>j < length arena\<close>
+  using assms unfolding valid_arena_def
+  by auto
+
 
 subsubsection \<open>Updates\<close>
 
@@ -1266,11 +1272,13 @@ qed
 
 lemma valid_arena_append_clause:
   assumes arena: \<open>valid_arena arena N vdom\<close> and le_C: \<open>length C \<ge> 2\<close>
-  shows \<open>valid_arena (append_clause b C arena) (fmupd (length arena + header_size C) (C, b) N) vdom\<close>
+  shows \<open>valid_arena (append_clause b C arena) (fmupd (length arena + header_size C) (C, b) N)
+     (insert (length arena + header_size C) vdom)\<close>
 proof -
   let ?arena = \<open>append_clause b C arena\<close>
   let ?i= \<open>length arena + header_size C\<close>
   let ?N = \<open>(fmupd (length arena + header_size C) (C, b) N)\<close>
+  let ?vdom = \<open>insert (length arena + header_size C) vdom\<close>
   have
     dom: \<open>\<forall>i\<in>#dom_m N.
         i < length arena \<and>

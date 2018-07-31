@@ -642,7 +642,7 @@ definition fm_add_new where
         RETURN (i+one_uint64_nat, N @ [ALit (C ! i)])
       })
       (zero_uint64_nat, N);
-    RETURN (N, l)
+    RETURN (N, l + header_size C)
   }\<close>
 
 lemma header_size_Suc_def:
@@ -657,7 +657,7 @@ lemma nth_append_clause:
   by (auto simp: nth_Cons nth_append)
 
 lemma fm_add_new_append_clause:
-  \<open>fm_add_new b C N \<le> RETURN (append_clause b C N, length N)\<close>
+  \<open>fm_add_new b C N \<le> RETURN (append_clause b C N, length N + header_size C)\<close>
   unfolding fm_add_new_def
   apply (rewrite at \<open>let _ = length _ in _\<close> Let_def)
   apply (refine_vcg WHILET_rule[where R = \<open>measure (\<lambda>(i, _). Suc (length C) - i)\<close> and
@@ -806,6 +806,14 @@ lemma uint32_of_uint64_rel_hnr[sepref_fr_rules]:
   by sepref_to_hoare
     (sep_auto simp: uint32_of_uint64_def uint32_nat_rel_def br_def nat_of_uint64_le_iff
       nat_of_uint32_uint32_of_nat_id uint64_nat_rel_def)
+
+sepref_definition header_size_code
+  is \<open>RETURN o header_size\<close>
+  :: \<open>clause_ll_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding header_size_def
+  by sepref
+
+declare header_size_code.refine[sepref_fr_rules]
 
 sepref_definition append_and_length_code
   is \<open>uncurry2 fm_add_new\<close>
@@ -985,13 +993,11 @@ lemma fm_add_new_alt_def:
                 RETURN (i + one_uint64_nat, N @ [ALit (C ! i)])
               })
           (zero_uint64_nat, N);
-      RETURN (N, l)
+      RETURN (N, l + header_size C)
     }\<close>
   unfolding fm_add_new_def Let_def AStatus_LEARNED_def AStatus_INIT_def
   by auto
-
-find_theorems uint32_max uint64_max
-
+(* 
 sepref_definition append_and_length_u32_code
   is \<open>uncurry2 (fm_add_new)\<close>
   :: \<open>[\<lambda>((b, C), N). length C \<le> uint32_max+1 \<and> length C \<ge> 2 \<and>
@@ -1000,17 +1006,21 @@ sepref_definition append_and_length_u32_code
       arena_assn *a uint64_nat_assn\<close>
   supply le_uint32_max_le_uint64_max[simp]
   unfolding fm_add_new_alt_def
-  by sepref
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold apply (auto simp: )[]
+  by sepref *)
 
 definition fm_add_new_fast where
   [simp, symmetric]: \<open>fm_add_new_fast = fm_add_new\<close>
-
+(* 
 lemma fm_add_new_fast_hnr[sepref_fr_rules]:
   \<open>(uncurry2 append_and_length_u32_code, uncurry2 fm_add_new_fast)
     \<in> [\<lambda>((b, C), N). length C \<le> uint32_max+1 \<and> length C \<ge> 2 \<and>
         length N \<le> uint64_max]\<^sub>a 
        bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn *a uint64_nat_assn\<close>
-  using append_and_length_u32_code.refine by simp
+  using append_and_length_u32_code.refine by simp *)
 
 (* 
 lemma append_and_length_u32_fm_add_new_packed:

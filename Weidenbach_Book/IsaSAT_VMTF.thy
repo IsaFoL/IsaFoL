@@ -265,8 +265,7 @@ definition (in isasat_input_ops) find_decomp_w_ns_pre where
        no_dup M \<and>
        highest < count_decided M \<and>
        literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-       vm \<in> vmtf M \<and>
-       highest < count_decided M)\<close>
+       vm \<in> vmtf M)\<close>
 
 definition  (in isasat_input_ops) find_decomp_wl_pre
    :: \<open>nat \<times> twl_st_wl_heur \<Rightarrow> bool\<close>

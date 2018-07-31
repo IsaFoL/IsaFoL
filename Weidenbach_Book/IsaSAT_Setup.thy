@@ -380,7 +380,6 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty cach \<and>
     out_learned M D outl \<and>
-    dom_m N \<subseteq># mset vdom \<and>
     lcount = size (learned_clss_lf N) \<and>
     vdom_m W N \<subseteq> set vdom
   }\<close>
