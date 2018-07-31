@@ -13,14 +13,14 @@ definition (in isasat_input_ops) cdcl_twl_o_prog_wl_D_heur
 where
   \<open>cdcl_twl_o_prog_wl_D_heur S =
     do {
-      if get_conflict_wl_heur S = None
+      if get_conflict_wl_is_None_heur S
       then decide_wl_or_skip_D_heur S
       else do {
 
         if count_decided_st S > zero_uint32_nat
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
-          ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur T);
+          (* ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur T); *)
           U \<leftarrow> backtrack_wl_D_nlit_heur T;
           RETURN (False, U)
         }
@@ -28,7 +28,7 @@ where
       }
     }
   \<close>
-
+thm get_conflict_wl_is_None_heur_alt_def
 sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolve_loop_wl_D_heur
   backtrack_wl_D_nlit_heur
 
@@ -52,7 +52,7 @@ prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
 lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-
+(* 
 sepref_thm cdcl_twl_o_prog_wl_D_fast_code
   is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> bool_assn *a isasat_fast_assn\<close>
@@ -68,7 +68,7 @@ concrete_definition (in -) cdcl_twl_o_prog_wl_D_fast_code
 prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_fast_code_def
 
 lemmas cdcl_twl_o_prog_wl_D_fast_code[sepref_fr_rules] =
-   cdcl_twl_o_prog_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+   cdcl_twl_o_prog_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms] *)
 
 lemma (in isasat_input_ops) twl_st_heur_count_decided_st_alt_def:
   fixes S :: twl_st_wl_heur
@@ -76,18 +76,22 @@ lemma (in isasat_input_ops) twl_st_heur_count_decided_st_alt_def:
   unfolding count_decided_st_def twl_st_heur_def
   by (cases S) auto
 
+find_theorems get_conflict_wl_is_None_heur
+thm get_conflict_wl_is_None_heur_get_conflict_wl_is_None
+find_theorems get_conflict_wl_is_None
 lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
   \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>f twl_st_heur\<rangle>nres_rel\<close>
   unfolding cdcl_twl_o_prog_wl_D_heur_def cdcl_twl_o_prog_wl_D_def
+    get_conflict_wl_is_None
   apply (intro frefI nres_relI)
   apply (refine_vcg
       decide_wl_or_skip_D_heur_decide_wl_or_skip_D[THEN fref_to_Down]
       skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D[THEN fref_to_Down]
       backtrack_wl_D_nlit_backtrack_wl_D[THEN fref_to_Down])
-  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal
+   by (auto simp: twl_st_heur_state_simp
+     get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id])
   subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_count_decided_st_alt_def)
-  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_count_decided_st_alt_def)
-  subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp)
   done
@@ -146,7 +150,7 @@ prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_code_def
 lemmas cdcl_twl_stgy_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_stgy_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n]
 end
-
+(* 
 definition (in -)isasat_fast2 where
   \<open>isasat_fast2 = isasat_fast\<close>
 
@@ -197,7 +201,7 @@ lemma isasat_fast_clss_dom_hnr [sepref_fr_rules]:
 
 lemma (in -)isasat_fast2_alt_def:
   \<open>isasat_fast2 = (\<lambda>(M,N,_). isasat_fast_clss_dom N)\<close>
-  by (auto simp: isasat_fast2_def isasat_fast_clss_dom_def)
+  by (auto simp: isasat_fast2_def isasat_fast_clss_dom_def) *)
 
 
 context isasat_input_bounded_nempty
@@ -205,7 +209,7 @@ begin
 
 declare isasat_fast_slow_code.refine[sepref_fr_rules]
 
-sepref_register isasat_fast2
+(* sepref_register isasat_fast2
 sepref_thm isasat_fast2_code
   is \<open>RETURN o isasat_fast2\<close>
   :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -220,11 +224,11 @@ concrete_definition (in -) isasat_fast2_code
 prepare_code_thms (in -) isasat_fast2_code_def
 
 lemmas isasat_fast2_code[sepref_fr_rules] =
-   isasat_fast2_code.refine[OF isasat_input_bounded_nempty_axioms]
+   isasat_fast2_code.refine[OF isasat_input_bounded_nempty_axioms] *)
 
 sepref_register cdcl_twl_stgy_prog_wl_D_heur
 
-definition (in isasat_input_ops) cdcl_twl_stgy_prog_break_wl_D_heur_break
+(* definition (in isasat_input_ops) cdcl_twl_stgy_prog_break_wl_D_heur_break
    :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
   \<open>cdcl_twl_stgy_prog_break_wl_D_heur_break S\<^sub>0 =
@@ -247,7 +251,7 @@ where
         T' \<leftarrow> isasat_fast_slow T;
         cdcl_twl_stgy_prog_wl_D_heur T'
     }
-  }\<close>
+  }\<close> *)
 (* 
 sepref_register isasat_fast_slow
 sepref_thm cdcl_twl_stgy_prog_wl_D_fast_code
@@ -266,7 +270,7 @@ prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_fast_code_def
 lemmas cdcl_twl_stgy_prog_wl_D_fast_code[sepref_fr_rules] =
    cdcl_twl_stgy_prog_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n] *)
 
-definition  (in -)isasat_fast_wl where
+(* definition  (in -)isasat_fast_wl where
   \<open>isasat_fast_wl S = (\<forall>L\<in>#dom_m (get_clauses_wl S). L < uint_max)\<close>
 
 lemma twl_st_heur_isasat_fast_wl:
@@ -348,7 +352,7 @@ proof -
   subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_isasat_fast_wl)
   done
 
-qed
+qed *)
 
 end
 
