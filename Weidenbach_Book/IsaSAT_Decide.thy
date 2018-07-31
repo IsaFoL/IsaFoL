@@ -325,7 +325,7 @@ definition (in isasat_input_ops) decide_lit_wl_heur :: \<open>nat literal \<Righ
 
 sepref_thm decide_lit_wl_code
   is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
-  :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and> get_conflict_wl_heur S = None \<and>
+  :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and>
         L \<in> snd ` D\<^sub>0]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
@@ -346,7 +346,7 @@ lemmas decide_lit_wl_heur_hnr[sepref_fr_rules] =
 
 sepref_thm decide_lit_wl_fast_code
   is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
-  :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and> get_conflict_wl_heur S = None \<and>
+  :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and>
         L \<in> snd ` D\<^sub>0]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
@@ -373,8 +373,8 @@ where
     case L of
       None \<Rightarrow> RETURN (True, S)
     | Some L \<Rightarrow>
-       do {ASSERT(undefined_lit (get_trail_wl_heur S) L \<and> get_conflict_wl_heur S = None \<and>
-             L \<in> snd ` D\<^sub>0);
+       do {
+        ASSERT(undefined_lit (get_trail_wl_heur S) L \<and> L \<in> snd ` D\<^sub>0);
          RETURN (False, decide_lit_wl_heur L S) }
   })
 \<close>
@@ -399,7 +399,6 @@ lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:
      apply auto
     done
   apply (rule same_in_Id_option_rel)
-  subgoal by (auto simp del: simp: twl_st_heur_def)
   subgoal by (auto simp del: simp: twl_st_heur_def)
   subgoal by (auto simp del: simp: twl_st_heur_def)
   subgoal by (auto simp del: simp: twl_st_heur_def)
