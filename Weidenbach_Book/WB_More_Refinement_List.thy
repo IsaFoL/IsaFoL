@@ -89,4 +89,20 @@ lemma slice_end_length: \<open>n \<ge> length xs \<Longrightarrow> Misc.slice to
   unfolding Misc.slice_def
   by auto
 
+lemma slice_swap[simp]:
+   \<open>l \<ge> from \<Longrightarrow> l < to \<Longrightarrow> k \<ge> from \<Longrightarrow> k < to \<Longrightarrow> from < length arena \<Longrightarrow>
+     Misc.slice from to (swap arena l k) = swap (Misc.slice from to arena) (k - from) (l - from)\<close>
+  by (cases \<open>k = l\<close>) (auto simp: Misc.slice_def swap_def drop_update_swap list_update_swap)
+
+lemma drop_swap_relevant[simp]:
+  \<open>i \<ge> k \<Longrightarrow> j \<ge> k \<Longrightarrow> j < length outl' \<Longrightarrow>drop k (swap outl' j i) = swap (drop k outl') (j - k) (i - k)\<close>
+  by (cases \<open>j = i\<close>)
+    (auto simp: Misc.slice_def swap_def drop_update_swap list_update_swap)
+
+
+lemma swap_swap: \<open>k < length xs \<Longrightarrow> l < length xs \<Longrightarrow> swap xs k l = swap xs l k\<close>
+  by (cases \<open>k = l\<close>)
+    (auto simp: Misc.slice_def swap_def drop_update_swap list_update_swap)
+
+
 end

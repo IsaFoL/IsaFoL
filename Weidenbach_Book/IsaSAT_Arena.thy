@@ -3,7 +3,6 @@ imports Watched_Literals.Watched_Literals_Watch_List_Code_Common
   Watched_Literals.WB_More_Refinement_List
 begin
 
-
 subsection \<open>The memory representation: Arenas\<close>
 
 text \<open>
@@ -1126,21 +1125,6 @@ proof -
       arena_dead_clause_def swap_lits_def SHIFTS_def swap_def ac_simps
        Misc.slice_def header_size_def split: if_splits)
 qed
-
-lemma slice_swap[simp]:
-   \<open>l \<ge> from \<Longrightarrow> l < to \<Longrightarrow> k \<ge> from \<Longrightarrow> k < to \<Longrightarrow> from < length arena \<Longrightarrow>
-     Misc.slice from to (swap arena l k) = swap (Misc.slice from to arena) (k - from) (l - from)\<close>
-  by (cases \<open>k = l\<close>) (auto simp: Misc.slice_def swap_def drop_update_swap list_update_swap)
-
-lemma drop_swap_relevant[simp]:
-  \<open>i \<ge> k \<Longrightarrow> j \<ge> k \<Longrightarrow> j < length outl' \<Longrightarrow>drop k (swap outl' j i) = swap (drop k outl') (j - k) (i - k)\<close>
-  by (cases \<open>j = i\<close>)
-    (auto simp: Misc.slice_def swap_def drop_update_swap list_update_swap)
-
-
-lemma swap_swap: \<open>k < length xs \<Longrightarrow> l < length xs \<Longrightarrow> swap xs k l = swap xs l k\<close>
-  by (cases \<open>k = l\<close>)
-    (auto simp: Misc.slice_def swap_def drop_update_swap list_update_swap)
 
 lemma xarena_active_clause_swap_lits_same:
   assumes
