@@ -1307,11 +1307,6 @@ proof -
     have trail_nempty: \<open>M \<noteq> []\<close>
       using trail_nempty S_T T_U
       by (auto simp: twl_st S)
-      thm isa_minimize_and_extract_highest_lookup_conflict_minimize_and_extract_highest_lookup_conflict
-      mini
-      thm empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause
-      thm empty_conflict_and_extract_clause_def
-      thm extract_shorter_conflict_wl_def
 
     have lookup_conflict_remove1_pre: \<open>lookup_conflict_remove1_pre (-lit_of (hd M), D')\<close>
       using D' not_none not_empty S_T uM_\<L>\<^sub>a\<^sub>l\<^sub>l
@@ -1345,7 +1340,8 @@ proof -
          (E, mset (tl outl)) \<in> lookup_clause_rel \<and>
          mset outl = E' \<and>
          outl ! 0 = - lit_of (hd M) \<and>
-         E' \<subseteq># the D \<and> outl \<noteq> []})
+         E' \<subseteq># the D \<and> outl \<noteq> [] \<and> distinct outl \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset outl) \<and>
+         \<not>tautology (mset outl)})
        (SPEC
          (\<lambda>E'.
              E' \<subseteq>#
@@ -1355,6 +1351,7 @@ proof -
              mset `# ran_mf N +
              (get_unit_learned_clss_wl S + get_unit_init_clss_wl S) \<Turnstile>pm
              E'))\<close>
+        (is \<open>_ \<le> \<Down> ?minimize (RES ?E)\<close>)
       apply (rule order_trans)
       apply (rule isa_minimize_and_extract_highest_lookup_conflict_minimize_and_extract_highest_lookup_conflict[THEN fref_to_Down_curry5,
         of M N \<open>remove1_mset (-lit_of (hd M)) (the D)\<close> cach lbd \<open>outl[0 := - lit_of (hd M)]\<close> _ _ _ _ _ _ \<open>set vdom\<close>])
@@ -1366,41 +1363,67 @@ proof -
       apply (rule order_trans)
       apply (rule mini[THEN conc_fun_mono])
       subgoal
-        using uL_D
-        by (auto simp: conc_fun_chain conc_fun_RES image_iff S union_assoc insert_subset_eq_iff
-          neq_Nil_conv)
+        using uL_D dist_D tauto_D \<L>\<^sub>i\<^sub>n_S \<L>\<^sub>i\<^sub>n_D tauto_D L_D
+        by (fastforce simp: conc_fun_chain conc_fun_RES image_iff S union_assoc insert_subset_eq_iff
+          neq_Nil_conv literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset tautology_add_mset
+          intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono
+          dest: distinct_mset_mono not_tautology_mono
+          dest!: multi_member_split)
       done
+    have empty_conflict_and_extract_clause_heur: \<open>empty_conflict_and_extract_clause_heur M x1 x2a
+          \<le> \<Down>  ({((E, outl, n), E').
+         (E, None) \<in> option_lookup_clause_rel \<and>
+         mset outl = the E' \<and>
+         outl ! 0 = - lit_of (hd M) \<and>
+         the E' \<subseteq># the D \<and> outl \<noteq> [] \<and>
+         (1 < length outl \<longrightarrow>
+            highest_lit M (mset (tl outl)) (Some (outl ! 1, get_level M (outl ! 1)))) \<and>
+         (1 < length outl \<longrightarrow> n = get_level M (outl ! 1)) \<and> (length outl = 1 \<longrightarrow> n = 0)}) (RETURN (Some E'))\<close>
+      if 
+        \<open>M \<noteq> []\<close> and
+        \<open>- lit_of (hd M) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+        \<open>0 < length outl\<close> and
+        \<open>lookup_conflict_remove1_pre (- lit_of (hd M), D')\<close> and
+        \<open>(x, E')  \<in> ?minimize\<close> and
+        \<open>E' \<in> ?E\<close> and
+        \<open>x2 = (x1a, x2a)\<close> and
+        \<open>x = (x1, x2)\<close>
+      for x :: \<open>(nat \<times> bool option list) \<times>  (nat \<Rightarrow> minimize_status) \<times> nat literal list\<close> and
+        E' :: \<open>nat literal multiset\<close> and
+        x1 :: \<open>nat \<times> bool option list\<close> and
+        x2 :: \<open>(nat \<Rightarrow> minimize_status) \<times>  nat literal list\<close> and
+        x1a :: \<open>nat \<Rightarrow> minimize_status\<close> and
+        x2a :: \<open>nat literal list\<close>
+    proof -
+      show ?thesis
+        apply (rule order_trans)
+        apply (rule empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause[of \<open>mset (tl x2a)\<close>])
+        subgoal by auto
+        subgoal using that by auto
+        subgoal using that by auto
+        subgoal using that by auto
+        subgoal using that by auto
+        subgoal using that by auto
+        subgoal unfolding empty_conflict_and_extract_clause_def
+          using that
+          by (auto simp: conc_fun_RES RETURN_def)
+       done
+    qed
+
     show ?thesis
       unfolding extract_shorter_conflict_list_heur_st_def 
         empty_conflict_and_extract_clause_def S S' prod.simps
       apply (rewrite at  \<open>let _ = list_update _ _ _ in _ \<close>Let_def)
-      apply (rewrite at  \<open>let _ = empty_cach  _ in _ \<close>Let_def)
+      apply (rewrite at  \<open>let _ = empty_cach  _ in _ \<close> Let_def)
       apply (subst extract_shorter_conflict_wl_alt_def)
-      apply (refine_vcg isa_minimize_and_extract_highest_lookup_conflict)
+      apply (refine_vcg isa_minimize_and_extract_highest_lookup_conflict empty_conflict_and_extract_clause_heur)
       subgoal using trail_nempty .
       subgoal using  uM_\<L>\<^sub>a\<^sub>l\<^sub>l .
       subgoal using  \<open>0 < length outl\<close> .
       subgoal by (rule lookup_conflict_remove1_pre)
-      apply clarify
-      apply (subst trail_nempty)
-      apply (subst uM_\<L>\<^sub>a\<^sub>l\<^sub>l)
-      apply (subst not_False_eq_True)+
-      unfolding assert_true_bind_conv not_False_eq_True
-      apply (subst \<open>0 < length outl\<close>)
-      unfolding assert_true_bind_conv not_False_eq_True
-      apply (subst pre1)+ 
-      apply (subst True_and_True)
-      apply (subst pre2)
-      apply (rule bind_refine_res)
-       prefer 2
-       apply (rule mini[unfolded conc_fun_RES])
-      apply clarify
-      apply (rule ASSERT_refine_left)
-      subgoal by (rule empty_conflict_and_extract_clause_pre)
-      subgoal
-        unfolding RES_RES3_RETURN_RES RETURN_def S'[symmetric] S[symmetric]
-        supply [[unify_trace_failure]]
-        apply (rule ref; assumption)
+      apply assumption+
+      subgoal for x E' x1 x2 x1a x2a xa Da x1b x2b x1c x2c
+        apply simp
         sorry
       done
   qed
