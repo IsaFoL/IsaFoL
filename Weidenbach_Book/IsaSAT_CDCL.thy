@@ -20,7 +20,6 @@ where
         if count_decided_st S > zero_uint32_nat
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
-          (* ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur T); *)
           U \<leftarrow> backtrack_wl_D_nlit_heur T;
           RETURN (False, U)
         }
@@ -28,7 +27,7 @@ where
       }
     }
   \<close>
-thm get_conflict_wl_is_None_heur_alt_def
+
 sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolve_loop_wl_D_heur
   backtrack_wl_D_nlit_heur
 
