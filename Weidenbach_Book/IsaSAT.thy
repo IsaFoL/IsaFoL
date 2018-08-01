@@ -201,7 +201,7 @@ lemma init_dt_wl_code_refine[sepref_fr_rules]:
        (sep_auto dest!: frame_rule_left[of \<open>_ * isasat_input_ops.isasat_init_assn _ _ _\<close> _ _
             \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst (fst a))\<close>])
   done
-
+(*
 lemma init_dt_wl_fast_code_refine[sepref_fr_rules]:
   \<open>(uncurry2 (\<lambda>_. init_dt_wl_fast_code), uncurry2 (isasat_input_ops.init_dt_wl_heur_fast))
   \<in> [\<lambda>((N, S), S'). isasat_input_bounded \<A>\<^sub>i\<^sub>n \<and> N = \<A>\<^sub>i\<^sub>n]\<^sub>a
@@ -219,7 +219,7 @@ lemma init_dt_wl_fast_code_refine[sepref_fr_rules]:
     by (cases a)
        (sep_auto dest!: frame_rule_left[of \<open>_ * isasat_input_ops.isasat_init_fast_assn _ _ _\<close> _ _
             \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst (fst a))\<close>])
-  done
+  done *)
 
 definition (in -)convert_state where
   \<open>convert_state _ S = S\<close>
@@ -230,14 +230,14 @@ lemma (in -) convert_state_hnr:
      virtual_copy_assn\<^sup>k *\<^sub>a (isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
      isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n'\<close>
   by sepref_to_hoare (sep_auto simp: convert_state_def)
-
+(*
 
 lemma (in -) convert_state_fast_hnr:
   \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
    \<in> [\<lambda>(N, S). N = \<A>\<^sub>i\<^sub>n \<and> N = \<A>\<^sub>i\<^sub>n']\<^sub>a
      virtual_copy_assn\<^sup>k *\<^sub>a (isasat_input_ops.isasat_init_fast_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
      isasat_input_ops.isasat_init_fast_assn \<A>\<^sub>i\<^sub>n'\<close>
-  by sepref_to_hoare (sep_auto simp: convert_state_def)
+  by sepref_to_hoare (sep_auto simp: convert_state_def) *)
 
 definition IsaSAT_use_fast_mode where
   \<open>IsaSAT_use_fast_mode = True\<close>
@@ -254,7 +254,7 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
     let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
-    (*if IsaSAT_use_fast_mode \<and> length CS < uint_max - 1
+    \<^cancel>\<open>if IsaSAT_use_fast_mode \<and> length CS < uint_max - 1
     then do {
         S \<leftarrow> isasat_input_ops.init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur_fast \<A>\<^sub>i\<^sub>n'' CS S;
@@ -276,7 +276,7 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
              else extract_state_stat U)
          }
       }
-    else*) do {
+    else\<close> do {
         S \<leftarrow> isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur \<A>\<^sub>i\<^sub>n'' CS S;
         let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
@@ -286,10 +286,10 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
         else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
-           ASSERT(mset `# ran_mf (get_clauses_wl_heur_init T) \<subseteq># mset `# mset CS);
+           \<^cancel>\<open>ASSERT(mset `# ran_mf (get_clauses_wl_heur_init T) \<subseteq># mset `# mset CS);\<close>
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
-           ASSERT(size (learned_clss_l (get_clauses_wl_heur_init T)) = 0);
+           \<^cancel>\<open>ASSERT(size (learned_clss_l (get_clauses_wl_heur_init T)) = 0);\<close>
            T \<leftarrow> finalise_init_code (T::twl_st_wl_heur_init);
            U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur \<A>\<^sub>i\<^sub>n'' T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
@@ -344,7 +344,7 @@ lemma cdcl_twl_stgy_prog_wl_D_code_ref':
         \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
   done
 
-(* 
+(*
 lemma cdcl_twl_stgy_prog_wl_D_break_fast_code_ref':
   \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_fast_code),
       uncurry isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break)
@@ -425,14 +425,14 @@ end
 
 declare isasat_input_ops.extract_model_of_state_stat_hnr[sepref_fr_rules]
 declare isasat_input_ops.finalise_init_hnr[unfolded PR_CONST_def, sepref_fr_rules]
-declare isasat_input_ops.finalise_init_fast_hnr[unfolded PR_CONST_def, sepref_fr_rules]
+(* declare isasat_input_ops.finalise_init_fast_hnr[unfolded PR_CONST_def, sepref_fr_rules] *)
 sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extract_stats
   isasat_input_ops.init_dt_wl_heur
 
 declare init_state_wl_heur_hnr[to_hnr, OF refl, sepref_fr_rules]
   init_dt_wl_code.refine[sepref_fr_rules]
   isasat_input_ops.get_stats_code[sepref_fr_rules]
-  init_state_wl_heur_fast_hnr[to_hnr, OF refl, sepref_fr_rules]
+  (* init_state_wl_heur_fast_hnr[to_hnr, OF refl, sepref_fr_rules] *)
 
 lemma uint_max_nat_assn_hnr[sepref_fr_rules]:
   \<open>(uncurry0 (return uint_max), uncurry0 (RETURN uint_max)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
@@ -440,9 +440,9 @@ lemma uint_max_nat_assn_hnr[sepref_fr_rules]:
 
 text \<open>Crucial and subtil point for the refinement\<close>
 declare convert_state_hnr[to_hnr, OF _ refl, sepref_fr_rules]
-   convert_state_fast_hnr[to_hnr, OF _ refl, sepref_fr_rules]
-sepref_register isasat_input_ops.init_dt_wl_heur_fast
-declare init_dt_wl_fast_code.refine[sepref_fr_rules]
+   (* convert_state_fast_hnr[to_hnr, OF _ refl, sepref_fr_rules] *)
+(* sepref_register isasat_input_ops.init_dt_wl_heur_fast *)
+(* declare init_dt_wl_fast_code.refine[sepref_fr_rules] *)
 
 sepref_definition IsaSAT_code
   is \<open>IsaSAT_heur\<close>
@@ -454,7 +454,7 @@ sepref_definition IsaSAT_code
   supply get_conflict_wl_is_None_heur_init_def[simp]
   isasat_input_bounded.get_conflict_wl_is_None_code_refine[sepref_fr_rules]
   isasat_input_bounded.get_conflict_wl_is_None_init_code_hnr[sepref_fr_rules]
-  isasat_input_bounded.get_conflict_wl_is_None_init_fast_code_hnr[sepref_fr_rules]
+  (* isasat_input_bounded.get_conflict_wl_is_None_init_fast_code_hnr[sepref_fr_rules] *)
   isasat_input_ops.to_init_state_hnr[sepref_fr_rules]
   isasat_input_ops.from_init_state_hnr[sepref_fr_rules]
   isasat_input_bounded.get_conflict_wl_is_None_init_wl_hnr[
@@ -593,7 +593,7 @@ lemma finite_extract_atms_clss[simp]: \<open>finite (extract_atms_clss CS' {})\<
   by (auto simp: extract_atms_clss_alt_def)
 
 lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_extract_atms_clss_in_all_lits_of_mm:
-  shows \<open>L \<in># isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS' {})) \<longleftrightarrow> 
+  shows \<open>L \<in># isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS' {})) \<longleftrightarrow>
     L\<in>#all_lits_of_mm (mset `# mset CS')\<close>
     (is \<open>?A \<longleftrightarrow> ?B\<close>)
 proof -
@@ -605,8 +605,8 @@ proof -
     using 1 is_\<L>\<^sub>a\<^sub>l\<^sub>l_extract_atms_clss isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by auto
   finally show ?thesis .
 qed
-    
-  
+
+
 lemma cdcl_twl_stgy_prog_wl_spec_final2:
   shows
     \<open>(SAT_wl, SAT) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and>
@@ -1035,7 +1035,7 @@ proof -
       using V_W by (auto simp: S\<^sub>0 twl_st_l_init_def twl_st_l_def)
     have valid_blits: \<open>\<And>L x. x\<in>set (Wa L) \<Longrightarrow>
            case x of (i, K) \<Rightarrow> K \<in># all_lits_of_mm (mset `# mset CS')\<close>
-      using corr_w unfolding correct_watching_init.simps st 
+      using corr_w unfolding correct_watching_init.simps st
       by (auto simp: st N_NE \<L>\<^sub>a\<^sub>l\<^sub>l S\<^sub>0 isasat_input_ops.literals_are_\<L>\<^sub>i\<^sub>n_def
         isasat_input_ops.blits_in_\<L>\<^sub>i\<^sub>n_def correct_watching.simps
         all_blits_are_in_problem_init.simps
@@ -1303,7 +1303,7 @@ lemma get_conflict_wl_is_None_init_get_conflict_wl_is_None_heur_init[simp]:
   by (cases Ta; cases Tb)
    (auto simp: isasat_input_ops.twl_st_heur_init_wl_def from_init_state_def
       get_conflict_wl_is_None_init_def get_conflict_wl_is_None_heur_init_def
-      isasat_input_ops.twl_st_heur_init_def
+      isasat_input_ops.twl_st_heur_init_def isasat_input_ops.option_lookup_clause_rel_def
       get_conflict_wl_is_None_def split: option.splits)
 
 lemma (in isasat_input_ops) twl_st_heur_init_wl:
@@ -1311,19 +1311,15 @@ lemma (in isasat_input_ops) twl_st_heur_init_wl:
   by (cases T; cases Ta)
     (auto simp: twl_st_heur_init_def twl_st_heur_init_wl_def from_init_state_def)
 
-lemma(in isasat_input_ops) get_clauses_wl_from_init_get_clauses_wl_heur_init:
-  \<open>(T, Ta) \<in> twl_st_heur_init \<Longrightarrow> get_clauses_wl (from_init_state Ta) = get_clauses_wl_heur_init T\<close>
-  by (cases T; cases Ta)
-    (auto simp: twl_st_heur_init_def twl_st_heur_init_wl_def from_init_state_def)
 
-lemma isasat_input_bounded_nempty_cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D':
+(* lemma isasat_input_bounded_nempty_cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D':
   \<open>isasat_input_bounded_nempty \<A> \<Longrightarrow> (S, S') \<in> isasat_input_ops.twl_st_heur \<A> \<Longrightarrow> \<A> = \<A>' \<Longrightarrow>
    isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break \<A> S
     \<le> \<Down> (isasat_input_ops.twl_st_heur \<A>)
          (isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D \<A>' S')\<close>
   using  isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D
              [THEN fref_to_Down, unfolded comp_def, of \<A> S S']
-  by fast
+  by fast *)
 
 lemma IsaSAT_heur_IsaSAT: \<open>(IsaSAT_heur, IsaSAT) \<in>
      [\<lambda>CS.  Multiset.Ball (mset CS) distinct \<and> (\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max)]\<^sub>f
@@ -1349,13 +1345,11 @@ proof -
         else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
-           ASSERT(mset `# ran_mf (get_clauses_wl_heur_init T) \<subseteq># mset `# mset CS);
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
-           ASSERT(size (learned_clss_l (get_clauses_wl_heur_init T)) = 0);
            T \<leftarrow> finalise_init_code (T::twl_st_wl_heur_init);
            ASSERT(isasat_fast T);
-           U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break \<A>\<^sub>i\<^sub>n'' T;
+           U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur \<A>\<^sub>i\<^sub>n'' T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
              else extract_state_stat U)
          }
@@ -1370,10 +1364,8 @@ proof -
         else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
-           ASSERT(mset `# ran_mf (get_clauses_wl_heur_init T) \<subseteq># mset `# mset CS);
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
-           ASSERT(size (learned_clss_l (get_clauses_wl_heur_init T)) = 0);
            T \<leftarrow> finalise_init_code (T::twl_st_wl_heur_init);
            U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur \<A>\<^sub>i\<^sub>n'' T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
@@ -1465,7 +1457,7 @@ proof -
       by (auto simp: isasat_input_ops.twl_st_heur_init_def from_init_state_def
          isasat_input_ops.twl_st_heur_init_wl_def)
   qed
-  have dom_m_le_uint_max: \<open>\<forall>L\<in>#dom_m (get_clauses_wl_heur U). L < uint_max\<close>
+  (* have dom_m_le_uint_max: \<open>\<forall>L\<in>#dom_m (get_clauses_wl_heur U). L < uint_max\<close>
     if
       CS_CS': \<open>(CS, CS') \<in> Id\<close> and
       length_CS': \<open>b \<and> length CS' < uint_max - 1\<close> and
@@ -1488,8 +1480,9 @@ proof -
           xb\<close> and
       UT: \<open>inres (finalise_init_code T) U\<close> and
       UU': \<open>(U, finalise_init (from_init_state U'))
-      \<in> isasat_input_ops.twl_st_heur (mset_set (extract_atms_clss CS' {}))\<close> and
-      dom: \<open>mset `# ran_mf (get_clauses_wl_heur_init T) \<subseteq># mset `# mset CS\<close>
+      \<in> isasat_input_ops.twl_st_heur (mset_set (extract_atms_clss CS' {}))\<close>
+      (* and
+      dom: \<open>mset `# ran_mf (get_clauses_wl_heur_init T) \<subseteq># mset `# mset CS\<close> *)
     for CS CS' b S' S T U' U
   proof -
     obtain M N D R where
@@ -1519,10 +1512,10 @@ proof -
         (auto simp: finalise_init_code_def take1_def from_init_state_def finalise_init_def
         inres_def isasat_input_ops.twl_st_heur_def isasat_input_ops.twl_st_heur_init_wl_def
         isasat_input_ops.twl_st_heur_init_def)
-  qed
+  qed *)
   show ?thesis
     supply RETURN_as_SPEC_refine[refine2 del]
-  unfolding IsaSAT_heur_alt_def IsaSAT_def
+    unfolding IsaSAT_heur_alt_def IsaSAT_def
     apply (intro frefI nres_relI bind_refine if_refine)
     apply (refine_vcg
            init_state_wl_heur_init_state_wl[THEN fref_to_Down, unfolded comp_def, OF refl]
@@ -1531,7 +1524,8 @@ proof -
            isasat_input_ops.finalise_init_finalise_init[THEN fref_to_Down, unfolded comp_def]
            isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D
              [THEN fref_to_Down_explode, unfolded comp_def]
-           isasat_input_bounded_nempty_cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D')
+           (* isasat_input_bounded_nempty_cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D' *)
+           )
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1550,8 +1544,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal
-      by (auto simp: isasat_input_ops.get_clauses_wl_from_init_get_clauses_wl_heur_init
-        intro: mset_subset_eq_add_left dest: H)
+      by (auto simp: intro: mset_subset_eq_add_left dest: H)
     subgoal
       by (auto dest: isasat_input_ops.twl_st_heur_init_vmtf_next_emptyD)
     subgoal
@@ -1562,14 +1555,20 @@ proof -
     subgoal
       by (auto simp: get_conflict_wl_is_None_init_def get_conflict_wl_is_None_def
           split: option.splits)
+    subgoal by auto
+    subgoal
+      (* by (rule isasat_input_ops.twl_st_heur_init_wl) *)
+      by auto
+    subgoal for CS CS' b S' S T U' U
+      (* by (rule dom_m_le_uint_max) *)
+      by auto
+    subgoal by fast
+    apply assumption+
+    subgoal by fast
     apply assumption+
     subgoal
-      by (rule isasat_input_ops.twl_st_heur_init_wl)
-    subgoal for CS CS' b S' S T U' U
-      by (rule dom_m_le_uint_max)
-    subgoal by fast
-    subgoal by fast
-    subgoal premises p
+      by (auto simp: get_conflict_wl_is_None_init_get_conflict_wl_is_None_heur_init)
+    (* subgoal premises p
       using p(32)
       by (auto simp: extract_model_of_state_stat_def extract_model_of_state_def
           isasat_input_ops.twl_st_heur_def get_conflict_wl_is_None_heur_def
@@ -1579,22 +1578,23 @@ proof -
     apply assumption+
     subgoal by fast
     apply assumption+
-    subgoal by simp
+    subgoal by simp *)
     subgoal premises p by (simp add: empty_init_code_def)
     subgoal by simp
     subgoal premises p by (simp add: empty_conflict_code_def op_arl_empty_def)
     subgoal by auto
     subgoal by auto
-    subgoal
-      by (auto simp: isasat_input_ops.get_clauses_wl_from_init_get_clauses_wl_heur_init
-        intro: mset_subset_eq_add_left dest: H)
+    (* subgoal apply (auto simp: get_conflict_wl_is_None_heur_init_def
+      isasat_input_ops.twl_st_heur_init_def
+      isasat_input_ops.option_lookup_clause_rel_def)
+      by (auto simp: intro: mset_subset_eq_add_left dest: H)*)
     subgoal
       by (auto dest: isasat_input_ops.twl_st_heur_init_vmtf_next_emptyD)
     subgoal
       by (auto dest!: isasat_input_ops.twl_st_heur_init_vmtf_fstD)
-    subgoal
+    (* subgoal
       by (auto simp: isasat_input_ops.twl_st_heur_init_def
-        state_wl_l_def from_init_state_def)
+        state_wl_l_def from_init_state_def) *)
     subgoal
       unfolding get_conflict_wl_is_None_init_def get_conflict_wl_is_None by meson
     apply assumption+
@@ -1604,10 +1604,11 @@ proof -
     subgoal by fast
     subgoal by fast
     subgoal premises p
-      using p(31)
+      using p(29)
       by (auto simp: extract_model_of_state_stat_def extract_model_of_state_def
           isasat_input_ops.twl_st_heur_def get_conflict_wl_is_None_heur_def
           get_conflict_wl_is_None_heur_init_def extract_state_stat_def rev_map
+          isasat_input_ops.option_lookup_clause_rel_def
           get_conflict_wl_is_None_def split: option.splits)
     done
 qed
