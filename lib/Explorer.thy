@@ -5,6 +5,7 @@
    License: ?
    From: The isabelle-dev mailing list. "Re: [isabelle-dev] The coming release of Isabelle2017"
    Link: http://www.mail-archive.com/isabelle-dev@mailbroy.informatik.tu-muenchen.de/msg07448.html
+
 *)
 
 theory Explorer
@@ -14,6 +15,21 @@ begin
 
 
 subsection {* Explore command *}
+
+text \<open>This theory contains the definition of four tactics that work on goals
+and put them in an Isar proof:
+  \<^item> \<open>explore\<close> generates an assume-show proof block
+  \<^item> \<open>explore_have\<close> generates an have-if-for block
+  \<^item> \<open>lemma\<close> generates a lemma-fixes-assumes-shows block
+  \<^item> \<open>explore_context\<close> is mostly meaningful on several goals: it combines assumptions and variables
+    between the goals to generate a context-fixes-begin-end bloc with lemmas in the middle. This
+    tactic is mostly useful when a lot of assumption and proof steps would be shared.
+
+
+If you use any of those tactic or have an idea how to improve it, please send an email to the
+current maintainer!
+\<close>
+
 ML \<open>
 signature EXPLORER_LIB =
 sig
@@ -243,15 +259,21 @@ fun convert_proof (ASSUMPTION a) = cASSUMPTION [a]
   |  convert_proof (Branch brs) = cBranch (map convert_proof brs)
 
 fun compress_proof (cStep (cASSUMPTION a, cStep (cASSUMPTION b, step))) =
-    compress_proof (cStep (cASSUMPTION (a @ b), step))
+    compress_proof (cStep (cASSUMPTION (a @ b), compress_proof step))
   | compress_proof (cStep (cFIXES a, cStep (cFIXES b, step))) =
-    compress_proof (cStep (cFIXES (a @ b), step))
+    compress_proof (cStep (cFIXES (a @ b), compress_proof step))
   | compress_proof (cStep (cFIXES a, cStep (cASSUMPTION b,
-              cStep (cFIXES a', cStep (cASSUMPTION b', step))))) =
-    compress_proof (cStep (cFIXES (a @ a'), cStep (cASSUMPTION (b @ b'), step)))
+              cStep (cFIXES a', step)))) =
+    compress_proof (cStep (cFIXES (a @ a'), compress_proof (cStep (cASSUMPTION b, step))))
 
   | compress_proof (cStep (a, b)) =
-    cStep (compress_proof a , compress_proof b)
+    let
+      val a' = compress_proof a
+      val b' = compress_proof b
+    in
+      if a = a' andalso b = b' then cStep (a', b')
+      else compress_proof (cStep (a', b'))
+   end
   | compress_proof (cBranch brs) =
     cBranch (map compress_proof brs)
   | compress_proof a = a
@@ -272,54 +294,51 @@ fun reorder_assumptions_wrt_fixes (fixes, assms, goal) =
   let
      fun depends_on t (fix) = Term.exists_subterm (curry (op =) (Term.Free fix)) t
      fun depends_on_any t (fix :: fixes) = depends_on t fix orelse depends_on_any t fixes
-      | depends_on_any _ [] = false
+       | depends_on_any _ [] = false
      fun insert_all_assms [] assms = map ASSUMPTION assms
-      | insert_all_assms fixes [] = map FIXES fixes
-      | insert_all_assms (fix :: fixes) (assm :: assms) =
-        if depends_on_any assm (fix :: fixes) then
-          FIXES fix :: insert_all_assms fixes (assm :: assms)
-        else
-            ASSUMPTION assm :: insert_all_assms (fix :: fixes) assms
+       | insert_all_assms fixes [] = map FIXES fixes
+       | insert_all_assms (fix :: fixes) (assm :: assms) =
+         if depends_on_any assm (fix :: fixes) then
+           FIXES fix :: insert_all_assms fixes (assm :: assms)
+         else
+           ASSUMPTION assm :: insert_all_assms (fix :: fixes) assms
   in
     insert_all_assms fixes assms @ [GOAL goal]
   end
 fun generate_context_proof ctxt enclosure (cFIXES fixes) =
-  let
-    val kw_fix = "  fixes "
-    val fixes_s = if null fixes then NONE
-      else SOME (kw_fix ^ space_implode " and "
-        (map (fn (v, T) => v ^ " :: " ^ enclosure (Syntax.string_of_typ ctxt T)) fixes));
-  in the_default "" fixes_s end
+    let
+      val kw_fix = "  fixes "
+      val fixes_s = if null fixes then NONE
+        else SOME (kw_fix ^ space_implode " and "
+          (map (fn (v, T) => v ^ " :: " ^ enclosure (Syntax.string_of_typ ctxt T)) fixes));
+    in the_default "" fixes_s end
   | generate_context_proof ctxt enclosure (cASSUMPTION assms) =
-  let
-    val kw_assume = "  assumes "
-    val assumes_s = if null assms then NONE
-      else SOME (kw_assume ^ space_implode_with_line_break
-        (map (enclosure o Syntax.string_of_term ctxt) assms))
-  in the_default "" assumes_s end
+    let
+      val kw_assume = "  assumes "
+      val assumes_s = if null assms then NONE
+        else SOME (kw_assume ^ space_implode_with_line_break
+          (map (enclosure o Syntax.string_of_term ctxt) assms))
+    in the_default "" assumes_s end
   | generate_context_proof ctxt enclosure (cGOAL shows) =
-  let
-    val kw_goal = "lemma "
-    val shows_s = (kw_goal ^ (enclosure o Syntax.string_of_term ctxt) shows)
-  in shows_s ^ "\nsorry" end
+    hd (generate_text ASSUMES_SHOWS ctxt enclosure [([], [], shows)])
   | generate_context_proof ctxt enclosure (cStep (cFIXES f, cStep (cASSUMPTION assms, st))) =
     let val (_, ctxt') = Variable.add_fixes (map fst f) ctxt in
-    ["context" ,
-     generate_context_proof ctxt enclosure (cFIXES f),
-     generate_context_proof ctxt' enclosure (cASSUMPTION assms),
-     "begin",
-     generate_context_proof ctxt' enclosure st,
-     "end"]
+      ["context" ,
+       generate_context_proof ctxt enclosure (cFIXES f),
+       generate_context_proof ctxt' enclosure (cASSUMPTION assms),
+       "begin",
+       generate_context_proof ctxt' enclosure st,
+       "end"]
     |> cat_lines
     end
   | generate_context_proof ctxt enclosure (cStep (cFIXES f, st)) =
     let val (_, ctxt') = Variable.add_fixes (map fst f) ctxt in
-    ["context" ,
-     generate_context_proof ctxt enclosure (cFIXES f),
-     "begin",
-     generate_context_proof ctxt' enclosure st,
-     "end"]
-    |> cat_lines
+      ["context" ,
+       generate_context_proof ctxt enclosure (cFIXES f),
+       "begin",
+       generate_context_proof ctxt' enclosure st,
+       "end"]
+      |> cat_lines
     end
   | generate_context_proof ctxt enclosure (cStep (cASSUMPTION assms, st)) =
     ["context" ,
@@ -333,11 +352,10 @@ fun generate_context_proof ctxt enclosure (cFIXES fixes) =
      generate_context_proof ctxt enclosure st']
     |> cat_lines
   | generate_context_proof ctxt enclosure (cBranch st) =
-    separate "\n"
-      (map (generate_context_proof ctxt enclosure) st)
+    separate "\n" (map (generate_context_proof ctxt enclosure) st)
     |> cat_lines
   | generate_context_proof ctxt enclosure (cLemma (fixes, assms, shows)) =
-     hd (generate_text ASSUMES_SHOWS ctxt enclosure [(fixes, assms, shows)])
+    hd (generate_text ASSUMES_SHOWS ctxt enclosure [(fixes, assms, shows)])
 
 fun explore aim st  =
   let
@@ -416,7 +434,7 @@ lemma
   oops
 
 lemma
-   "\<And>x. A1 x \<Longrightarrow> A2"
+  "\<And>x. A1 x \<Longrightarrow> A2"
   "\<And>x y. A1 x \<Longrightarrow> B2 y"
   "\<And>x y z s. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C3 s"
   "\<And>x y z s. B2 y \<Longrightarrow>  A1 x \<Longrightarrow> C2 z \<Longrightarrow> C4 s"

@@ -146,7 +146,7 @@ session "CDCL" (Weidenbach_Book) = "Sepref_IICF"  +
     "biblio.bib"
 
 session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
-  description \<open>This session contains all theories related to the two-watched literals. It linls
+  description \<open>This session contains all theories related to the two-watched literals. It links
     the abstract CDCL calculus to a more concrete version with watched literals.\<close>
   options [document = pdf, document_output = "output"]
   sessions
