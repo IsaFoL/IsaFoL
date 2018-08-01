@@ -411,9 +411,6 @@ where
 
 definition (in isasat_input_ops) update_clause_wl_code_pre where
   \<open>update_clause_wl_code_pre = (\<lambda>((((((L, C), j), w), i), f), S).
-      \<comment>\<open>C \<in># dom_m (get_clauses_wl_heur S) \<and>
-        f < length (get_clauses_wl_heur S \<propto> C) \<and>
-        i < length (get_clauses_wl_heur S \<propto> C) \<and> \<close>
       arena_is_valid_clause_idx_and_access (get_clauses_wl_heur S) C f \<and>
       nat_of_lit L < length (get_watched_wl_heur S) \<and>
       nat_of_lit (arena_lit (get_clauses_wl_heur S)  (C + f))  < length (get_watched_wl_heur S) \<and>
