@@ -77,8 +77,8 @@ lemma remove_all_annot_true_clause_imp_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n:
   shows \<open>literals_are_\<L>\<^sub>i\<^sub>n T\<close>
 proof -
   obtain S2 T2 S3 where
-    part_S: \<open>partial_correct_watching S\<close> and
-    part_T: \<open>partial_correct_watching T\<close> and
+    part_S: \<open>correct_watching S\<close> and
+    part_T: \<open>correct_watching T\<close> and
     S_S2: \<open>(S, S2) \<in> state_wl_l None\<close> and
     T_T2: \<open>(T, T2) \<in> state_wl_l None\<close> and
     S2_T2:\<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S2 T2\<close> and
@@ -91,6 +91,7 @@ proof -
     struct_invs_S3: \<open>twl_struct_invs S3\<close>
     using inv unfolding remove_all_annot_true_clause_imp_wl_inv_def
       remove_all_annot_true_clause_imp_inv_def prod.case
+      oops
     by blast
 
   obtain T3 where

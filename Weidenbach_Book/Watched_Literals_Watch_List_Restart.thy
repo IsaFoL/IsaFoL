@@ -1,8 +1,10 @@
 theory Watched_Literals_Watch_List_Restart
-  imports Watched_Literals_List_Restart Watched_Literals_Watch_List
+  imports Watched_Literals_List_Restart Watched_Literals.Watched_Literals_Watch_List "../lib/Explorer"
 begin
 
-definition remove_all_annot_true_clause_imp_wl_inv where
+definition remove_all_annot_true_clause_imp_wl_inv
+  :: \<open>'v twl_st_wl \<Rightarrow> _ \<Rightarrow> nat \<times> 'v twl_st_wl \<Rightarrow> bool\<close>
+where
   \<open>remove_all_annot_true_clause_imp_wl_inv S xs = (\<lambda>(i, T).
      correct_watching S \<and> correct_watching T \<and>
      (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
@@ -41,14 +43,80 @@ lemma reduce_dom_clauses_fmdrop:
   using distinct_mset_dom[of N]
   by (auto simp: reduce_dom_clauses_def distinct_mset_remove1_All)
 
+lemma image_filter_replicate_mset:
+  \<open>{#Ca \<in># replicate_mset m C. P Ca#} = (if P C then replicate_mset m  C else {#})\<close>
+  by (induction m) auto
+
+
+lemma ran_m_lf_fmdrop:
+  \<open>C \<in># dom_m N \<Longrightarrow> ran_m (fmdrop C N) = remove1_mset (the (fmlookup N C)) (ran_m N)\<close>
+  using distinct_mset_dom[of N]
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>] dest!: multi_member_split
+    intro!: image_mset_cong)
+
+text \<open>To ease the proof, we introduce the following ``alternative'' definitions, that only considers
+  variables that are present in the initial clauses (which are not deleted from the set of clauses).
+\<close>
+fun correct_watching' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>correct_watching' (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_lits_of_mm (mset `# init_clss_lf N + NE).
+       (\<forall>(i, K)\<in>#mset (W L). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L) \<and>
+        filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
+
 text \<open>change definition to all blits in \<^term>\<open>\<L>\<^sub>a\<^sub>l\<^sub>l\<close>?\<close>
 lemma correct_watching_fmdrop:
-  \<open>correct_watching (M, N, D, NE, UE, Q, W) \<Longrightarrow>
-     correct_watching (M, fmdrop C N, D, NE, UE, Q, W)\<close>
-  using distinct_mset_dom[of N]
-  by (cases \<open>C \<in># dom_m N\<close>)
-   (auto simp: correct_watching.simps image_mset_remove1_mset_if
-    distinct_mset_remove1_All dest: all_lits_of_mm_diffD)
+  assumes 
+    irred: \<open>\<not> irred N C\<close> and
+    C: \<open>C \<in># dom_m N\<close> and
+    \<open>correct_watching' (M, N, D, NE, UE, Q, W)\<close>
+  shows \<open>correct_watching' (M, fmdrop C N, D, NE, UE, Q, W)\<close>
+proof -
+  have
+    H1: \<open>\<And>L i K. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+       (i, K)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L\<close> and
+    H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+       {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
+       {#C \<in># dom_m (get_clauses_l (M, N, D, NE, UE, {#}, {#})).
+        L \<in> set (watched_l (get_clauses_l (M, N, D, NE, UE, {#}, {#}) \<propto> C))#}\<close>
+    using assms
+    unfolding correct_watching'.simps clause_to_update_def
+    by blast+
+  have 1: \<open>{#Ca \<in># dom_m (fmdrop C N). L \<in> set (watched_l (fmdrop C N \<propto> Ca))#} =
+    {#Ca \<in># dom_m (fmdrop C N). L \<in> set (watched_l (N \<propto> Ca))#}\<close> for L
+    apply (rule filter_mset_cong2)
+      using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>snd iK\<close>] C irred
+    by (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
+      distinct_mset_remove1_All filter_mset_neq_cond dest: all_lits_of_mm_diffD
+        dest: multi_member_split)
+  have 2: \<open>remove1_mset C {#Ca \<in># dom_m N. L \<in> set (watched_l (N \<propto> Ca))#} =
+     removeAll_mset C {#Ca \<in># dom_m N. L \<in> set (watched_l (N \<propto> Ca))#}\<close> for L
+    apply (rule distinct_mset_remove1_All)
+    using distinct_mset_dom[of N] 
+    by (auto intro: distinct_mset_filter)
+  have [simp]: \<open>filter_mset (\<lambda>i. i \<in># remove1_mset C (dom_m N)) A  =
+    removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
+    by (induction A)
+      (auto simp: distinct_mset_remove1_All distinct_mset_dom)
+  show ?thesis
+    unfolding correct_watching'.simps clause_to_update_def
+    apply (intro conjI impI ballI)
+    subgoal for L iK
+      using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>snd iK\<close>] C irred
+      apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
+      distinct_mset_remove1_All filter_mset_neq_cond dest: all_lits_of_mm_diffD
+        dest: multi_member_split)
+      done
+    subgoal for L
+      using C irred apply -
+      unfolding get_clauses_l.simps
+      apply (subst 1)
+      apply (subst (asm) init_clss_lf_fmdrop_irrelev, assumption)
+      by (auto 5 1  simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
+        distinct_mset_remove1_All filter_mset_neq_cond 2 H2 dest: all_lits_of_mm_diffD
+        dest: multi_member_split)
+    done
+qed
+
 
 lemma \<open>remove_one_annot_true_clause S T \<Longrightarrow>
    mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S =
@@ -64,7 +132,7 @@ lemma \<open>remove_one_annot_true_clause S T \<Longrightarrow>
 
 lemma remove_all_annot_true_clause_imp_wl_remove_all_annot_true_clause_imp:
   \<open>(uncurry remove_all_annot_true_clause_imp_wl, uncurry remove_all_annot_true_clause_imp) \<in>
-   Id \<times>\<^sub>f {(S::'v twl_st_wl, T). (S, T) \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
+   Id \<times>\<^sub>f {(S::'v twl_st_wl, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S} \<rightarrow>\<^sub>f
      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
 proof -
   have H: \<open>((0, x1i, x1k), 0, x1b, x1d) \<in> nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>
@@ -74,23 +142,23 @@ proof -
   have L'_in_clause: \<open>L' \<in> set (N0 \<propto> C)\<close>
     if
       pre: \<open>remove_all_annot_true_clause_imp_pre L' (M, N0, D, NE, UE, {#}, Q)\<close> and
-      x: \<open>x \<in> set (W L')\<close> and
+      x_W: \<open>x \<in> set (W L')\<close> and
       part: \<open>correct_watching (M, N0, D, NE, UE, Q, W)\<close> and
-      \<open>x = (C, i)\<close> and 
+      x: \<open>x = (C, i)\<close> and 
       dom:  \<open>C \<in># dom_m N0\<close>
     for L' :: \<open>'v literal\<close> and M :: \<open>('v, nat) ann_lits\<close> and N0 D NE UE Q W x and C i
   proof -
     define S :: \<open>'v twl_st_l\<close> where \<open>S \<equiv> (M, N0, D, NE, UE, {#}, Q)\<close>
-    obtain x where
+    obtain x' where
       \<open>twl_list_invs S\<close> and
       \<open>twl_list_invs S\<close> and
       \<open>get_conflict_l S = None\<close> and
-      Sx: \<open>(S, x) \<in> twl_st_l None\<close> and
-      struct_invs: \<open>twl_struct_invs x\<close> and
+      Sx: \<open>(S, x') \<in> twl_st_l None\<close> and
+      struct_invs: \<open>twl_struct_invs x'\<close> and
       \<open>clauses_to_update_l S = {#}\<close> and
       L': \<open>L' \<in> lits_of_l (get_trail_l S)\<close>
       using pre unfolding remove_all_annot_true_clause_imp_pre_def S_def[symmetric] by blast
-    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of x)\<close>
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of x')\<close>
       using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+
     then have \<open>\<And>L. L \<in> atm_of ` lits_of_l (get_trail_l S) \<Longrightarrow> L \<in> atms_of_ms
@@ -98,12 +166,15 @@ proof -
       atms_of_mm (get_unit_init_clauses_l S)\<close>
       using Sx unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
       by (auto simp add: twl_st twl_st_l)
-    from this[of \<open>atm_of L'\<close>] have \<open>L' \<in># all_lits_of_mm (mset `# ran_mf N0 + NE + UE)\<close>
+    from this[of \<open>atm_of L'\<close>] have \<open>L' \<in># all_lits_of_mm (mset `# ran_mf N0 + (NE + UE))\<close>
       using L' by (auto simp: S_def in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
         dest!: multi_member_split)
-    then show ?thesis
-      using part dom x unfolding correct_watching.simps
-      by (fast dest: in_set_takeD)
+    moreover have \<open>C \<in># {#i \<in># fst `# mset (W L'). i \<in># dom_m N0#}\<close>
+      using x_W dom unfolding x by auto
+    ultimately show ?thesis
+      using part dom x x_W unfolding correct_watching.simps
+      by (auto dest!: multi_member_split[of L'] simp: clause_to_update_def
+        dest: in_set_takeD)
   qed
   have [refine0]: \<open>remove_all_annot_true_clause_one_imp (C, N0, NE0) \<le>
         \<Down> {((N, NE), (N', NE')). N = N' \<and> NE = NE' \<and>
@@ -116,13 +187,13 @@ proof -
     for C C' N' NE0 NE' N0
     using that distinct_mset_dom[of N0]
     unfolding remove_all_annot_true_clause_one_imp_def by (auto simp: distinct_mset_remove1_All)
-  have remove_all_annot_true_clause_imp_wl_inv:
+  (* have remove_all_annot_true_clause_imp_wl_inv:
      \<open>remove_all_annot_true_clause_imp_wl_inv
         (SM', SN', SD', SNE', SUE', SQ', SW') (SW' SL')
         (j, SM', N2', SD', NE2', SUE', SQ', SW')\<close>
     if
       LST: \<open>(LS, LT) \<in> Id \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<close> and
-      NNE: \<open>(NNE2, NNE2') \<in> ?remove_all_one (SW' SL' ! j) (xs ! j') NE1 N1\<close> and
+      NNE: \<open>(NNE2, NNE2') \<in> ?remove_all_one (fst (SW' SL' ! j)) (xs ! j') NE1 N1\<close> and
       st:
         \<open>LS = (L, M, N0, D, NE, UE, Q, W)\<close>
         \<open>LT = (L', M', N', D', NE', UE', Q', W')\<close>
@@ -147,7 +218,7 @@ proof -
         \<open>oNNE1' = (N1', NE1')\<close>
         \<open>oNNE = (N1, NE1)\<close> and
       \<open>remove_all_annot_true_clause_imp_pre TL' (TM', TN', TD', TNE', TUE', TQ', TW')\<close> and
-      \<open>(SW' SL', xs) \<in> Id\<close> and
+      \<open>(map fst (SW' SL'), xs) \<in> Id\<close> and
       jNNE: \<open>(jNNE1, jNNE') \<in> {((i, N, NE), i', N', NE'). i = i' \<and> N = N' \<and>
           NE = NE' \<and> correct_watching (M, N, D, NE, UE, Q, W)}\<close> and
       \<open>case jNNE1 of (i, N, NE) \<Rightarrow> i < length (SW' SL')\<close> and
@@ -252,7 +323,35 @@ proof -
         using NNE rem_post LST unfolding st st'
         by (auto simp: state_wl_l_def)
       done
-  qed
+  qed *)
+  have [refine0]: \<open>RETURN (x2m x1g)
+       \<le> \<Down> {(xs, xs'). map fst xs = xs'}
+          (SPEC (\<lambda>xs. \<forall>x\<in>set xs. x \<in># dom_m x1b \<longrightarrow> x1 \<in> set (x1b \<propto> x)))\<close>
+     if 
+    \<open>(LS, LT)
+     \<in> Id \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S}\<close> and
+    \<open>LS = (L, M, N0, D, NE, UE, Q, W)\<close> and
+    \<open>LT = (L', M', N', D', NE', UE', Q', W')\<close> and
+    \<open>x2e = (x1f, x2f)\<close> and
+    \<open>x2d = (x1e, x2e)\<close> and
+    \<open>x2c = (x1d, x2d)\<close> and
+    \<open>x2b = (x1c, x2c)\<close> and
+    \<open>x2a = (x1b, x2b)\<close> and
+    \<open>x2 = (x1a, x2a)\<close> and
+    \<open>LT = (x1, x2)\<close> and
+    \<open>x2l = (x1m, x2m)\<close> and
+    \<open>x2k = (x1l, x2l)\<close> and
+    \<open>x2j = (x1k, x2k)\<close> and
+    \<open>x2i = (x1j, x2j)\<close> and
+    \<open>x2h = (x1i, x2i)\<close> and
+    \<open>x2g = (x1h, x2h)\<close> and
+    \<open>LS = (x1g, x2g)\<close> and
+    \<open>remove_all_annot_true_clause_imp_pre x1
+      (x1a, x1b, x1c, x1d, x1e, x1f, x2f)\<close>
+    for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i
+       x2i x1j x2j x1k x2k x1l x2l x1m x2m LS LT
+       L M N0 D NE UE Q W L' M' N' D' NE' UE' Q' W'
+    sorry
   show ?thesis
     supply [[goals_limit=1]]
     apply (intro frefI nres_relI)
@@ -264,6 +363,7 @@ proof -
       apply (refine_rcg H
         WHILEIT_refine[where R=\<open>{((i, N, NE), (i', N', NE')). i = i' \<and> N = N' \<and> NE = NE' \<and>
             correct_watching (M, N, D, NE, UE, Q, W)}\<close>])
+      apply assumption+
       subgoal by (auto simp: state_wl_l_def L'_in_clause)
       subgoal by (auto simp: state_wl_l_def)
       subgoal by (auto simp: state_wl_l_def remove_all_annot_true_clause_imp_wl_inv_def)
@@ -277,9 +377,9 @@ proof -
         for TL' oTL' TM' oTM' TN' oTN' TD' oTD' TNE' oTNE' TUE' oTUE' TQ' TW' SL' oSL' SM' oSM' SN'
         oSN' SD' oSD' SNE' oSNE' SUE' oSUE' SQ' SW' xs jNNE1 jNNE' j' oNNE1' N1' NE1' j oNNE N1
         NE1 NNE2 NNE2' N2 NE2 N2' NE2'
+        apply auto
         by (rule remove_all_annot_true_clause_imp_wl_inv)
       subgoal by (auto simp: state_wl_l_def remove_all_annot_true_clause_imp_wl_inv_def)
-      subgoal by (auto simp: state_wl_l_def)
       subgoal by (auto simp: state_wl_l_def)
       done
       done
@@ -312,8 +412,8 @@ where
 
 lemma remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp:
     \<open>(uncurry remove_one_annot_true_clause_one_imp_wl, uncurry remove_one_annot_true_clause_one_imp)
-    \<in> nat_rel \<times>\<^sub>f  {(S, T).  (S, T) \<in> state_wl_l None \<and>  correct_watching S} \<rightarrow>\<^sub>f
-      \<langle>nat_rel \<times>\<^sub>f {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+    \<in> nat_rel \<times>\<^sub>f  {(S, T). (S, T) \<in> state_wl_l None \<and>  correct_watching S} \<rightarrow>\<^sub>f
+      \<langle>nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>replace_annot_in_trail_spec L S \<le> \<Down> Id (replace_annot_in_trail_spec L' T')\<close>
     if \<open>(L, L') \<in> Id\<close> and \<open>(S, T') \<in> Id\<close> for L L' S T'
