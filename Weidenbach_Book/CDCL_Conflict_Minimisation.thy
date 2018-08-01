@@ -25,7 +25,7 @@ rewriting system).
 Therefore, we worked instead directly on the entailment of the literals of the conflict clause
 (up to the point in the trail we currently considering, which is also the termination measure).
 The previous try is still present in our formalisation (see \<^term>\<open>minimize_conflict_support\<close>, which
-we however mostly use for the termination proof).
+we however only use for the termination proof).
 
 The algorithm presented above does not distinguish between literals propagated at the same level:
 we cannot reuse information about failures to cut branches. There is a variant of the algorithm

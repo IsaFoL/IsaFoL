@@ -581,18 +581,6 @@ fun stamp (VMTF_Node (x1, x2, x3)) = x1;
 
 fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nata)));
 
-fun heap_array_set_ua A_ =
-  (fn a => fn b => fn c => (fn () => Array.update (a, (Word32.toInt b), c)));
-
-fun heap_array_set_u A_ a i x =
-  (fn () => let
-              val _ = heap_array_set_ua A_ a i x ();
-            in
-              a
-            end);
-
-fun arl_get A_ = (fn (a, _) => nth A_ a);
-
 fun arl_length A_ = (fn (_, a) => (fn () => a));
 
 fun int_of_nat n = Int_of_integer (integer_of_nat n);
@@ -608,6 +596,18 @@ fun length_arl_u_code A_ xs = (fn () => let
 in
   uint32_of_nat n
 end);
+
+fun heap_array_set_ua A_ =
+  (fn a => fn b => fn c => (fn () => Array.update (a, (Word32.toInt b), c)));
+
+fun heap_array_set_u A_ a i x =
+  (fn () => let
+              val _ = heap_array_set_ua A_ a i x ();
+            in
+              a
+            end);
+
+fun arl_get A_ = (fn (a, _) => nth A_ a);
 
 fun initialise_VMTF_code x =
   (fn ai => fn bi => fn () =>

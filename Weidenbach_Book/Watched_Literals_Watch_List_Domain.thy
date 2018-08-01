@@ -480,11 +480,11 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def:
   apply (auto simp: atms_of_def)
   done
 
-lemma
+lemma (in isasat_input_ops)
   assumes
-      x2_T: \<open>(x2, T) \<in> state_wl_l None\<close> and
+      x2_T: \<open>(x2, T) \<in> state_wl_l b\<close> and
       struct: \<open>twl_struct_invs U\<close> and
-      T_U: \<open>(T, U) \<in> twl_st_l None\<close>
+      T_U: \<open>(T, U) \<in> twl_st_l b'\<close>
   shows
     literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail:
       \<open>literals_are_\<L>\<^sub>i\<^sub>n x2 \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close>

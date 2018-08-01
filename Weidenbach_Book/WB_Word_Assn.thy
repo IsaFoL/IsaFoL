@@ -965,4 +965,8 @@ lemma two_uint32_hnr[sepref_fr_rules]:
   \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
   by sepref_to_hoare sep_auto
 
+lemma sum_uint64_assn:
+  \<open>(uncurry (return oo (+)), uncurry (RETURN oo (+))) \<in> uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by (sepref_to_hoare) sep_auto
+
 end

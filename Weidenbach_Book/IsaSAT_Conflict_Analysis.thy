@@ -813,7 +813,7 @@ proof -
     using x2_x y_xa confl x_xb
     by auto
   show \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close>
-     using \<open>twl_struct_invs xb\<close> literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail' lits x2_x x_xb
+     using \<open>twl_struct_invs xb\<close> literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail lits x2_x x_xb
      by blast
   moreover show trail_nempty_x2: \<open>get_trail_wl x2 \<noteq> []\<close>
     using x2_x y_xa confl x_xb trail_nempty

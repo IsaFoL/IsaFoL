@@ -762,6 +762,17 @@ subsubsection \<open>Delete at index\<close>
 fun delete_index_and_swap where
   \<open>delete_index_and_swap l i = butlast(l[i := last l])\<close>
 
+lemma mset_tl_delete_index_and_swap:
+  assumes
+    \<open>0 < i\<close> and
+    \<open>i < length outl'\<close>
+  shows \<open>mset (tl (delete_index_and_swap outl' i)) =
+         remove1_mset (outl' ! i) (mset (tl outl'))\<close>
+  using assms
+  by (subst mset_tl)+
+    (auto simp: hd_butlast hd_list_update_If mset_butlast_remove1_mset
+      mset_update last_list_update_to_last ac_simps)
+
 definition delete_index_and_swap_ll where
   \<open>delete_index_and_swap_ll xs i j =
      xs[i:= delete_index_and_swap (xs!i) j]\<close>
@@ -1651,5 +1662,33 @@ proof -
 qed
 
 
+(* TODO Move inside the file *)
+definition length_arl_u_code :: \<open>('a::heap) array_list \<Rightarrow> uint32 Heap\<close> where
+  \<open>length_arl_u_code xs = do {
+   n \<leftarrow> arl_length xs;
+   return (uint32_of_nat n)}\<close>
+
+lemma length_arl_u_hnr[sepref_fr_rules]:
+  \<open>(length_arl_u_code, RETURN o length_u) \<in>
+     [\<lambda>xs. length xs \<le> uint32_max]\<^sub>a (arl_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: length_u_code_def nat_of_uint32_uint32_of_nat_id
+      length_arl_u_code_def arl_assn_def
+      arl_length_def hr_comp_def is_array_list_def list_rel_pres_length[symmetric]
+      uint32_nat_rel_def br_def)
+
+lemma (in -) nat_of_uint32_mult_le:
+   \<open>nat_of_uint32 ai * nat_of_uint32 bi \<le> uint32_max \<Longrightarrow>
+       nat_of_uint32 (ai * bi) = nat_of_uint32 ai * nat_of_uint32 bi\<close>
+  apply transfer
+  by (auto simp: unat_word_ariths uint32_max_def)
+
+lemma (in -) uint32_nat_assn_mult:
+  \<open>(uncurry (return oo (( * ))), uncurry (RETURN oo (( * )))) \<in> [\<lambda>(a, b). a * b \<le> uint32_max]\<^sub>a
+      uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+     (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_mult_le)
+
+(* End Move *)
 
 end

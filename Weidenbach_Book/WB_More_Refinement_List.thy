@@ -37,6 +37,10 @@ lemma tl_swap_relevant:
   by (subst list_eq_iff_nth_eq)
     (cases \<open>outl' = []\<close>; cases i; cases j; auto simp: swap_def tl_update_swap nth_tl)
 
+lemma swap_only_first_relevant:
+  \<open>b \<ge> i \<Longrightarrow> a < length xs  \<Longrightarrow>take i (swap xs a b) = take i (xs[a := xs ! b])\<close>
+  by (auto simp: swap_def)
+
 text \<open>TODO this should go to a different place from the previous lemmas, since it concerns
 \<^term>\<open>Misc.slice\<close>, which is not part of \<^theory>\<open>HOL.List\<close> but only part of the Refinement Framework.
 \<close>

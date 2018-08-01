@@ -276,4 +276,10 @@ lemma get_level_neq_Suc_count_decided[simp]:
 lemma length_get_all_ann_decomposition: \<open>length (get_all_ann_decomposition M) = 1+count_decided M\<close>
   by (induction M rule: ann_lit_list_induct) auto
 
+lemma get_maximum_level_remove_non_max_lvl:
+   \<open>get_level M a < get_maximum_level M D \<Longrightarrow> 
+  get_maximum_level M (remove1_mset a D) = get_maximum_level M D\<close>
+  by (cases \<open>a \<in># D\<close>)
+    (auto dest!: multi_member_split simp: get_maximum_level_add_mset)
+
 end

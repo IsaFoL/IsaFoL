@@ -7,9 +7,6 @@ subsection \<open>Propagations\<close>
 (* TODO This file should be split into the additional refinement step like find_unwatched and
 the part specific to IsaSAT (i.e., the refinement from find_unwatched to arenas) *)
 (* TODO Move *)
-lemma (in -)bex_leI: "P j \<Longrightarrow> j \<le> n \<Longrightarrow> \<exists>j\<le>n. P j"
-  by auto
-
 context isasat_input_bounded
 begin
 
@@ -461,6 +458,14 @@ definition (in -) access_lit_in_clauses_heur where
 lemma access_lit_in_clauses_heur_alt_def:
   \<open>access_lit_in_clauses_heur = (\<lambda>(M, N, _) i j.  arena_lit N (i + j))\<close>
   by (auto simp: access_lit_in_clauses_heur_def intro!: ext)
+
+lemma twl_st_heur_get_clauses_access_lit[simp]:
+  \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
+    i < length (get_clauses_wl T \<propto> C) \<Longrightarrow>
+    get_clauses_wl T \<propto> C ! i = access_lit_in_clauses_heur S C i\<close>
+    for S T C i
+    by (cases S; cases T)
+      (auto simp: arena_lifting twl_st_heur_def access_lit_in_clauses_heur_def)
 
 definition (in isasat_input_ops) clause_not_marked_to_delete where
   \<open>clause_not_marked_to_delete S C \<longleftrightarrow> C \<in># dom_m (get_clauses_wl S)\<close>
@@ -1081,82 +1086,10 @@ lemma (in isasat_input_ops) in_vdom_m_upd:
   unfolding vdom_m_def
   by (auto dest!: multi_member_split intro!: set_update_memI img_fst)
 
-(* TODO Move *)
-
-lemma twl_st_heur_get_clauses_access_lit[simp]:
-  \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
-    i < length (get_clauses_wl T \<propto> C) \<Longrightarrow>
-    get_clauses_wl T \<propto> C ! i = access_lit_in_clauses_heur S C i\<close>
-    for S T C i
-    by (cases S; cases T)
-      (auto simp: arena_lifting twl_st_heur_def access_lit_in_clauses_heur_def)
-
-(* End Move *)
 
 text \<open>The lemmas below are used in the refinement proof of \<^term>\<open>unit_propagation_inner_loop_body_wl_D\<close>.
 None of them makes sense in any other context. However having like below allows to share
 intermediate steps in a much easier fashion that in an Isar proof.\<close>
-(* TODO replace the original version by that version  *)
-lemma (in isasat_input_ops)
-  assumes
-      x2_T: \<open>(x2, T) \<in> state_wl_l b\<close> and
-      struct: \<open>twl_struct_invs U\<close> and
-      T_U: \<open>(T, U) \<in> twl_st_l b'\<close>
-  shows
-    literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail':
-      \<open>literals_are_\<L>\<^sub>i\<^sub>n x2 \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close>
-     (is \<open>_\<Longrightarrow> ?trail\<close>) and
-    literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_conflict':
-      \<open>literals_are_\<L>\<^sub>i\<^sub>n x2 \<Longrightarrow> get_conflict_wl x2 \<noteq> None \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl x2))\<close> and
-    conflict_not_tautology':
-      \<open>get_conflict_wl x2 \<noteq> None \<Longrightarrow> \<not>tautology (the (get_conflict_wl x2))\<close>
-proof -
-  have
-    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of U)\<close> and
-    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of U)\<close> and
-    M_lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of U)\<close> and
-    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of U)\<close>
-   using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-   by fast+
-
-  show lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close>
-    if \<open>literals_are_\<L>\<^sub>i\<^sub>n x2\<close>
-    using alien that x2_T T_U unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-      literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
-      literals_are_\<L>\<^sub>i\<^sub>n_def
-    by (subst (asm) all_clss_l_ran_m[symmetric])
-     (auto simp: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
-        convert_lits_l_def image_image in_all_lits_of_mm_ain_atms_of_iff
-        get_unit_clauses_wl_alt_def
-        simp del: all_clss_l_ran_m)
-
-  {
-    assume conf: \<open>get_conflict_wl x2 \<noteq> None\<close>
-    show lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl x2))\<close>
-      if \<open>literals_are_\<L>\<^sub>i\<^sub>n x2\<close>
-      using x2_T T_U alien that conf unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
-       cdcl\<^sub>W_restart_mset.no_strange_atm_def literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def
-       literals_are_\<L>\<^sub>i\<^sub>n_def
-      apply (subst (asm) all_clss_l_ran_m[symmetric])
-      unfolding image_mset_union all_lits_of_mm_union
-      by (auto simp add: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
-         image_image in_all_lits_of_mm_ain_atms_of_iff
-        in_all_lits_of_m_ain_atms_of_iff
-        get_unit_clauses_wl_alt_def
-        simp del: all_clss_l_ran_m)
-
-    have M_confl: \<open>get_trail_wl x2 \<Turnstile>as CNot (the (get_conflict_wl x2))\<close>
-      using confl conf x2_T T_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-      by (auto 5 5 simp: twl_st twl_st_l true_annots_def)
-    moreover have n_d: \<open>no_dup (get_trail_wl x2)\<close>
-      using M_lev x2_T T_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-      by (auto simp: twl_st twl_st_l)
-    ultimately show 4: \<open>\<not>tautology (the (get_conflict_wl x2))\<close>
-      using n_d M_confl
-      by (meson no_dup_consistentD tautology_decomp' true_annots_true_cls_def_iff_negation_in_model)
-  }
-qed
-
 context
   fixes x y x1a L x2 x2a x1 S x1c x2d L' x1d x2c T \<D>
   assumes
@@ -1481,7 +1414,7 @@ proof -
     by metis
   from Tx struct xxa lits
   show \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl T)\<close>
-    by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail')
+    by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail)
   have \<open>no_dup (trail (state\<^sub>W_of xa))\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def

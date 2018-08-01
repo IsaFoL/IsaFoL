@@ -52,22 +52,6 @@ lemma level_in_lbd_ref_level_in_lbd:
     nat_rel \<times>\<^sub>r lbd_ref \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: level_in_lbd_ref_def level_in_lbd_def lbd_ref_def)
 
-(* TODO Move *)
-definition length_arl_u_code :: \<open>('a::heap) array_list \<Rightarrow> uint32 Heap\<close> where
-  \<open>length_arl_u_code xs = do {
-   n \<leftarrow> arl_length xs;
-   return (uint32_of_nat n)}\<close>
-
-lemma length_arl_u_hnr[sepref_fr_rules]:
-  \<open>(length_arl_u_code, RETURN o length_u) \<in>
-     [\<lambda>xs. length xs \<le> uint_max]\<^sub>a (arl_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: length_u_code_def nat_of_uint32_uint32_of_nat_id
-      length_arl_u_code_def arl_assn_def
-      arl_length_def hr_comp_def is_array_list_def list_rel_pres_length[symmetric]
-      uint32_nat_rel_def br_def)
-(* End Move *)
-
 sepref_definition level_in_lbd_code
   is \<open>uncurry (RETURN oo level_in_lbd_ref)\<close>
   :: \<open>[\<lambda>(n, (lbd, m)). length lbd \<le> uint_max]\<^sub>a

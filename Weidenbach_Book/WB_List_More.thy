@@ -39,6 +39,18 @@ lemma if_0_1_ge_0[simp]:
   \<open>0 < (if P then a else (0::nat)) \<longleftrightarrow> P \<and> 0 < a\<close>
   by auto
 
+lemma bex_lessI: "P j \<Longrightarrow> j < n \<Longrightarrow> \<exists>j<n. P j"
+  by auto
+
+lemma bex_gtI: "P j \<Longrightarrow> j > n \<Longrightarrow> \<exists>j>n. P j"
+  by auto
+
+lemma bex_geI: "P j \<Longrightarrow> j \<ge> n \<Longrightarrow> \<exists>j\<ge>n. P j"
+  by auto
+
+lemma bex_leI: "P j \<Longrightarrow> j \<le> n \<Longrightarrow> \<exists>j\<le>n. P j"
+  by auto
+
 text \<open>Bounded function have not yet been defined in Isabelle.\<close>
 definition bounded :: "('a \<Rightarrow> 'b::ord) \<Rightarrow> bool" where
 \<open>bounded f \<longleftrightarrow> (\<exists>b. \<forall>n. f n \<le> b)\<close>

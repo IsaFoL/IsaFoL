@@ -629,7 +629,7 @@ than reserving a space that is large enough directly. However, in this case the 
 is so large that there should not be any difference\<close>
 definition fm_add_new where
  \<open>fm_add_new b C N = do {
-    let st = (if b then AStatus INIT else AStatus LEARNED);
+    let st = (if b then AStatus IRRED else AStatus LEARNED);
     let l = length N;
     let s = length C - 2;
     let N = (if is_short_clause C then
@@ -683,7 +683,7 @@ where
 where
 \<open>append_and_length b C = (\<lambda>(N, cs).
      let k = length N in
-     let b' = (if b then INIT else LEARNED, 0, 0) in
+     let b' = (if b then IRRED else LEARNED, 0, 0) in
        ((op_list_append N C, op_list_append cs b'), k))\<close> *)
 (* 
 lemma append_and_length_fm_add_new:
@@ -719,13 +719,13 @@ lemma append_and_length_fm_add_new:
   apply auto
   done *)
 
-definition AStatus_INIT where
-  \<open>AStatus_INIT = AStatus INIT\<close>
+definition AStatus_IRRED where
+  \<open>AStatus_IRRED = AStatus IRRED\<close>
 
-lemma AStatus_INIT [sepref_fr_rules]:
-  \<open>(uncurry0 (return 0), uncurry0 (RETURN AStatus_INIT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+lemma AStatus_IRRED [sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN AStatus_IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
   by sepref_to_hoare
-    (sep_auto simp: AStatus_INIT_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    (sep_auto simp: AStatus_IRRED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
     status_rel_def)
 
 definition AStatus_LEARNED where
@@ -820,7 +820,7 @@ sepref_definition append_and_length_code
   :: \<open>[\<lambda>((b, C), N). length C \<le> uint32_max+2 \<and> length C \<ge> 2]\<^sub>a bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a (arena_assn)\<^sup>d \<rightarrow>
        arena_assn *a nat_assn\<close>
   supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro]
-  unfolding fm_add_new_def AStatus_INIT_def[symmetric]
+  unfolding fm_add_new_def AStatus_IRRED_def[symmetric]
    AStatus_LEARNED_def[symmetric]
    two_uint64_nat_def[symmetric]
    apply (rewrite in \<open>let _ = _ - _ in _\<close> length_uint64_nat_def[symmetric])
@@ -928,7 +928,7 @@ definition append_and_length_u32
 \<open>append_and_length_u32 b C = (\<lambda>(N, ex). do {
     ASSERT(length N \<le> uint32_max);
     let k = length N;
-    let b' = (if b then INIT else LEARNED, 0, 0);
+    let b' = (if b then IRRED else LEARNED, 0, 0);
     RETURN ((op_list_append N C, op_list_append ex b'), convert_to_uint32 k)})\<close> *)
 (* 
 lemma append_and_length_u32_fm_add_new:
@@ -977,7 +977,7 @@ lemma append_and_length_u32_fm_add_new:
 
 lemma fm_add_new_alt_def:
  \<open>fm_add_new b C N = do {
-      let st = (if b then AStatus_INIT else AStatus_LEARNED);
+      let st = (if b then AStatus_IRRED else AStatus_LEARNED);
       let l = length_uint64_nat N;
       let s = uint32_of_uint64_rel (length_uint64_nat C - two_uint64_nat);
       let N =
@@ -997,7 +997,7 @@ lemma fm_add_new_alt_def:
           (zero_uint64_nat, N);
       RETURN (N, l + header_size C)
     }\<close>
-  unfolding fm_add_new_def Let_def AStatus_LEARNED_def AStatus_INIT_def
+  unfolding fm_add_new_def Let_def AStatus_LEARNED_def AStatus_IRRED_def
   by auto
 (* 
 sepref_definition append_and_length_u32_code
@@ -1293,7 +1293,7 @@ qed
 definition irred_clauses_l_fmat where
   \<open>irred_clauses_l_fmat = (\<lambda>(N, ex) i. do {
      ASSERT(i < length ex);
-     RETURN (fst (ex ! i) = INIT)
+     RETURN (fst (ex ! i) = IRRED)
     })\<close>
 
 lemma irred_clauses_l_fmat:

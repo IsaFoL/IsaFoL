@@ -64,30 +64,13 @@ clauses can be tautologies, the size does not fit into uint32 (technically, we h
 preprocessing path that removes tautologies, we can get rid of these two limitations.
 \<close>
 
-subsubsection \<open>To Move\<close>
-
-(* TODO Move *)
-lemma mset_tl_delete_index_and_swap:
-  assumes
-    \<open>0 < i\<close> and
-    \<open>i < length outl'\<close>
-  shows \<open>mset (tl (delete_index_and_swap outl' i)) =
-         remove1_mset (outl' ! i) (mset (tl outl'))\<close>
-  using assms
-  by (subst mset_tl)+
-    (auto simp: hd_butlast hd_list_update_If mset_butlast_remove1_mset
-      mset_update last_list_update_to_last ac_simps)
-(* End Move *)
-
-
 subsubsection \<open>Status of a clause\<close>
 
-(* TODO INIT \<leadsto> IRRED *)
-datatype clause_status = INIT | LEARNED | DELETED
+datatype clause_status = IRRED | LEARNED | DELETED
 
 instance clause_status :: heap
 proof standard
-  let ?f = \<open>(\<lambda>x. case x of INIT \<Rightarrow> (0::nat) | LEARNED  \<Rightarrow> 1 | DELETED \<Rightarrow> 2)\<close>
+  let ?f = \<open>(\<lambda>x. case x of IRRED \<Rightarrow> (0::nat) | LEARNED  \<Rightarrow> 1 | DELETED \<Rightarrow> 2)\<close>
   have \<open>inj ?f\<close>
     by (auto simp: inj_def split: clause_status.splits)
   then show \<open>\<exists>f. inj (f::clause_status\<Rightarrow> nat)\<close>
@@ -103,8 +86,8 @@ end
 abbreviation clause_status_assn where
   \<open>clause_status_assn \<equiv> (id_assn :: clause_status \<Rightarrow> _)\<close>
 
-lemma INIT_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return INIT), uncurry0 (RETURN INIT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a clause_status_assn\<close>
+lemma IRRED_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return IRRED), uncurry0 (RETURN IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a clause_status_assn\<close>
   by sepref_to_hoare sep_auto
 
 lemma LEARNED_hnr[sepref_fr_rules]:
@@ -207,7 +190,7 @@ definition xarena_active_clause :: \<open>arena \<Rightarrow> nat clause_l \<tim
      (is_long_clause C \<longrightarrow>  (is_Pos (arena!(header_size C - POS_SHIFT)) \<and>
        xarena_pos(arena!(header_size C - POS_SHIFT)) \<le> length C - 2))) \<and>
      is_Status(arena!(header_size C - STATUS_SHIFT)) \<and>
-        (xarena_status(arena!(header_size C - STATUS_SHIFT)) = INIT \<longleftrightarrow> red) \<and>
+        (xarena_status(arena!(header_size C - STATUS_SHIFT)) = IRRED \<longleftrightarrow> red) \<and>
         (xarena_status(arena!(header_size C - STATUS_SHIFT)) = LEARNED \<longleftrightarrow> \<not>red) \<and>
      is_LBD(arena!(header_size C - LBD_SHIFT)) \<and>
      is_Act(arena!(header_size C - ACTIVITY_SHIFT)) \<and>
@@ -223,7 +206,7 @@ lemma xarena_active_clause_alt_def:
      (is_long_clause (N\<propto>i) \<longrightarrow> (is_Pos (arena!(header_size (N\<propto>i) - POS_SHIFT)) \<and>
        xarena_pos(arena!(header_size (N\<propto>i) - POS_SHIFT)) \<le> length (N\<propto>i) - 2)) \<and>
      is_Status(arena!(header_size (N\<propto>i) - STATUS_SHIFT)) \<and>
-        (xarena_status(arena!(header_size (N\<propto>i) - STATUS_SHIFT)) = INIT \<longleftrightarrow> irred N i) \<and>
+        (xarena_status(arena!(header_size (N\<propto>i) - STATUS_SHIFT)) = IRRED \<longleftrightarrow> irred N i) \<and>
         (xarena_status(arena!(header_size (N\<propto>i) - STATUS_SHIFT)) = LEARNED \<longleftrightarrow> \<not>irred N i) \<and>
      is_LBD(arena!(header_size (N\<propto>i) - LBD_SHIFT)) \<and>
      is_Act(arena!(header_size (N\<propto>i) - ACTIVITY_SHIFT)) \<and>
@@ -451,7 +434,7 @@ proof (rule ccontr)
     lbd: \<open>is_LBD (arena ! (i - LBD_SHIFT))\<close> and
     act: \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close> and
     size: \<open>is_Size (arena ! (i - SIZE_SHIFT))\<close> and
-    st_init: \<open>(xarena_status (arena ! (i - STATUS_SHIFT)) = INIT) = (irred N i)\<close> and
+    st_init: \<open>(xarena_status (arena ! (i - STATUS_SHIFT)) = IRRED) = (irred N i)\<close> and
     st_learned: \<open>(xarena_status (arena ! (i - STATUS_SHIFT)) = LEARNED) = (\<not> irred N i)\<close>
     using 1 i_ge i_le
     unfolding xarena_active_clause_def extra_information_mark_to_delete_def prod.case
@@ -541,7 +524,7 @@ proof -
     lbd: \<open>is_LBD (arena ! (i - LBD_SHIFT))\<close> and
     act: \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close> and
     size: \<open>is_Size (arena ! (i - SIZE_SHIFT))\<close> and
-    st_init: \<open>(xarena_status (arena ! (i - STATUS_SHIFT)) = INIT) \<longleftrightarrow> (irred N i)\<close> and
+    st_init: \<open>(xarena_status (arena ! (i - STATUS_SHIFT)) = IRRED) \<longleftrightarrow> (irred N i)\<close> and
     st_learned: \<open> (xarena_status (arena ! (i - STATUS_SHIFT)) = LEARNED) \<longleftrightarrow> \<not>irred N i\<close>
     using 1 i_ge i_le
     unfolding xarena_active_clause_def extra_information_mark_to_delete_def prod.case
@@ -704,12 +687,9 @@ proof -
     using dom'[of i, OF i]
     unfolding arena_dead_clause_def xarena_active_clause_alt_def
       extra_information_mark_to_delete_def apply -
-    apply (simp_all add: SHIFTS_def header_size_def Misc.slice_def drop_update_swap min_def
+    by (simp_all add: SHIFTS_def header_size_def Misc.slice_def drop_update_swap min_def
       split: if_splits)
-      apply force
-     apply force
-    apply force
-    done
+       force+
   ultimately show ?thesis
     using assms unfolding valid_arena_def
     by auto
@@ -1209,9 +1189,9 @@ paragraph \<open>Learning a clause\<close>
 definition append_clause where
   \<open>append_clause b C arena =
     (if is_short_clause C then
-      arena @ (if b then AStatus INIT else AStatus LEARNED) # AActivity (0) # ALBD (length C - 2) #
+      arena @ (if b then AStatus IRRED else AStatus LEARNED) # AActivity (0) # ALBD (length C - 2) #
       ASize (length C - 2) # map ALit C
-    else arena @ APos 0 # (if b then AStatus INIT else AStatus LEARNED) # AActivity 0 #
+    else arena @ APos 0 # (if b then AStatus IRRED else AStatus LEARNED) # AActivity 0 #
       ALBD (length C - 2)# ASize (length C - 2) # map ALit C)\<close>
 
 lemma arena_active_clause_append_clause:
@@ -1319,7 +1299,7 @@ qed
 subsubsection \<open>Refinement Relation\<close>
 
 definition status_rel:: "(nat \<times> clause_status) set" where
-  \<open>status_rel = {(0, INIT), (1, LEARNED), (3, DELETED)}\<close>
+  \<open>status_rel = {(0, IRRED), (1, LEARNED), (3, DELETED)}\<close>
 
 definition arena_el_relation where
 \<open>arena_el_relation x el  = (case el of
@@ -1399,7 +1379,7 @@ proof -
       (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT))\<close> and
     init: \<open>(xarena_status
        (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT)) =
-      INIT) =
+      IRRED) =
      irred N i\<close> and
     learned: \<open>(xarena_status
        (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT)) =
@@ -1483,7 +1463,7 @@ proof -
       i_le: \<open>i < length arena\<close>
       using assms that unfolding valid_arena_def by blast+
     then have \<open>is_Status (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT))\<close> and
-      \<open>(xarena_status (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT)) = INIT) =
+      \<open>(xarena_status (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT)) = IRRED) =
        irred N i\<close> and
       \<open>(xarena_status (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT)) = LEARNED) =
         (\<not> irred N i)\<close> and
@@ -1597,12 +1577,6 @@ lemma arena_el_assn_alt_def:
 
 lemma arena_el_comp: \<open>hn_val (uint32_nat_rel O arena_el_rel) = hn_ctxt arena_el_assn\<close>
   by (auto simp: hn_ctxt_def arena_el_assn_alt_def)
-
-(* TODO Move *)
-lemma sum_uint64_assn:
-  \<open>(uncurry (return oo (+)), uncurry (RETURN oo (+))) \<in> uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by (sepref_to_hoare) sep_auto
-(* End Move *)
 
 sepref_definition isa_arena_length_code
   is \<open>uncurry isa_arena_length\<close>
@@ -1867,25 +1841,6 @@ sepref_definition isa_update_lbd_code
   :: \<open>nat_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
   unfolding isa_update_lbd_def
   by sepref
-
-(* TODO Move *)
-
-lemma list_rel_update':
-  fixes R
-  assumes rel: \<open>(xs, ys) \<in> \<langle>R\<rangle>list_rel\<close> and
-   h: \<open>(bi, b) \<in> R\<close> 
-  shows \<open>(list_update xs ba bi, list_update ys ba b) \<in> \<langle>R\<rangle>list_rel\<close>
-proof -
-  have [simp]: \<open>(bi, b) \<in> R\<close>
-    using h by auto
-  have \<open>length xs = length ys\<close>
-    using assms list_rel_imp_same_length by blast
-
-  then show ?thesis
-    using rel
-    by (induction xs ys arbitrary: ba rule: list_induct2) (auto split: nat.splits)
-qed
-(* End Move *)
 
 lemma arena_lbd_conv:
   assumes

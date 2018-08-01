@@ -452,9 +452,9 @@ lemma (in -) status_assn_hnr_eq[sepref_fr_rules]:
     bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def
     nat_of_uint32_0_iff nat_of_uint32_Suc03_iff nat_of_uint32_013_neq)
-find_theorems INIT status_assn
-lemma INIT_status_assn[sepref_fr_rules]:
-  \<open>(uncurry0 (return 0), uncurry0 (RETURN INIT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
+find_theorems IRRED status_assn
+lemma IRRED_status_assn[sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
   by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def)
 
 lemma LEARNED_status_assn[sepref_fr_rules]:

@@ -1721,20 +1721,6 @@ qed
 
 subparagraph \<open>Polarity: Defined or Undefined\<close>
 
-(* TODO Move *)
-lemma (in -) nat_of_uint32_mult_le:
-   \<open>nat_of_uint32 ai * nat_of_uint32 bi \<le> uint_max \<Longrightarrow>
-       nat_of_uint32 (ai * bi) = nat_of_uint32 ai * nat_of_uint32 bi\<close>
-  apply transfer
-  by (auto simp: unat_word_ariths uint_max_def)
-
-lemma (in -) uint32_nat_assn_mult:
-  \<open>(uncurry (return oo (( * ))), uncurry (RETURN oo (( * )))) \<in> [\<lambda>(a, b). a * b \<le> uint_max]\<^sub>a
-      uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  by sepref_to_hoare
-     (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_mult_le)
-(* End Move *)
-
 definition (in -) defined_atm_pol where
   \<open>defined_atm_pol = (\<lambda>(M, xs, lvls, k) L. do {
       ASSERT(2*L < length xs);

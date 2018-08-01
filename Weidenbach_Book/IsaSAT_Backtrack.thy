@@ -2,26 +2,6 @@ theory IsaSAT_Backtrack
   imports IsaSAT_Setup Watched_Literals_Heuristics IsaSAT_VMTF
 begin
 subsection \<open>Backtrack\<close>
-(* TODO Move *)
-lemma (in -)bex_lessI: "P j \<Longrightarrow> j < n \<Longrightarrow> \<exists>j<n. P j"
-  by auto
-
-lemma (in -)bex_gtI: "P j \<Longrightarrow> j > n \<Longrightarrow> \<exists>j>n. P j"
-  by auto
-
-lemma (in -)bex_geI: "P j \<Longrightarrow> j \<ge> n \<Longrightarrow> \<exists>j\<ge>n. P j"
-  by auto
-
-lemma swap_only_first_relevant:
-  \<open>b \<ge> i \<Longrightarrow> a < length xs  \<Longrightarrow>take i (swap xs a b) = take i (xs[a := xs ! b])\<close>
-  by (auto simp: swap_def)
-
-lemma get_maximum_level_remove_non_max_lvl:
-   \<open>get_level M a < get_maximum_level M D \<Longrightarrow> 
-  get_maximum_level M (remove1_mset a D) = get_maximum_level M D\<close>
-  by (cases \<open>a \<in># D\<close>)
-    (auto dest!: multi_member_split simp: get_maximum_level_add_mset)
-(* End Move *)
 
 context isasat_input_bounded_nempty
 begin

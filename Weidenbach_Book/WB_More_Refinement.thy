@@ -898,6 +898,22 @@ lemma list_rel_take:
   \<open>(ba, ab) \<in> \<langle>A\<rangle>list_rel \<Longrightarrow> (take b ba, take b ab) \<in> \<langle>A\<rangle>list_rel\<close>
   by (auto simp: list_rel_def)
 
+lemma list_rel_update':
+  fixes R
+  assumes rel: \<open>(xs, ys) \<in> \<langle>R\<rangle>list_rel\<close> and
+   h: \<open>(bi, b) \<in> R\<close> 
+  shows \<open>(list_update xs ba bi, list_update ys ba b) \<in> \<langle>R\<rangle>list_rel\<close>
+proof -
+  have [simp]: \<open>(bi, b) \<in> R\<close>
+    using h by auto
+  have \<open>length xs = length ys\<close>
+    using assms list_rel_imp_same_length by blast
+
+  then show ?thesis
+    using rel
+    by (induction xs ys arbitrary: ba rule: list_induct2) (auto split: nat.splits)
+qed
+
 lemma list_rel_update:
   fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>
   assumes rel: \<open>(xs, ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close> and
