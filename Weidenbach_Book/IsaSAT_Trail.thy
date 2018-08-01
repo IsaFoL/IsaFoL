@@ -5,7 +5,7 @@ begin
 subsubsection \<open>Trail\<close>
 
 text \<open>Our trail contains several additional information compared to the simple trail:
-  \<^item> the (reversed) trail in an array (i.e., the trail in the same order as presented in \BOOK);
+  \<^item> the (reversed) trail in an array (i.e., the trail in the same order as presented in ``Automated Reasoning'');
   \<^item> the mapping from any \<^emph>\<open>literal\<close> (and not an atom) to its polarity;
   \<^item> the mapping from a \<^emph>\<open>atom\<close> to its level or reason (in two different arrays);
   \<^item> the current level of the state;
