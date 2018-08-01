@@ -24,7 +24,7 @@ session Functional_Ordered_Resolution_Prover_Base = "HOL-Library" +
     First_Order_Terms.Unification
     First_Order_Terms.Fun_More
     First_Order_Terms.Subsumption
-    TRS.Matching
+    First_Order_Terms.Matching
     TRS.Term_More
 
 session Functional_Ordered_Resolution_Prover = Functional_Ordered_Resolution_Prover_Base +
