@@ -3,7 +3,10 @@ theory WB_List_More
     "HOL-Eisbach.Eisbach"
     "HOL-Eisbach.Eisbach_Tools"
 begin
-
+text \<open>This theory contains various lemmas that have been used in the formalisation. Some of them
+could probably be moved to the Isabelle distribution or
+\<^theory>\<open>Nested_Multisets_Ordinals.Multiset_More\<close>.
+\<close>
 text \<open>More Sledgehammer parameters\<close>
 (* sledgehammer_params[debug] *)
 
@@ -88,6 +91,14 @@ lemma bounded_const_product:
   by (metis Suc_leI add.right_neutral assms mult.commute mult_0_right mult_Suc_right mult_le_mono
       nat_mult_le_cancel1)
 
+lemma bounded_const_add:
+  fixes k :: nat and f :: \<open>nat \<Rightarrow> nat\<close>
+  assumes \<open>k > 0\<close>
+  shows \<open>bounded f \<longleftrightarrow> bounded (\<lambda>i. k + f i)\<close>
+  unfolding bounded_def apply (rule iffI)
+   using nat_add_left_cancel_le apply blast
+  using add_leE by blast
+
 text \<open>This lemma is not used, but here to show that property that can be expected from
   @{term bounded} holds.\<close>
 lemma bounded_finite_linorder:
@@ -153,7 +164,7 @@ lemma set_Collect_Pair_to_fst_snd:
   by auto
 
 
-subsection \<open>Update\<close>
+subsection \<open>List Updates\<close>
 
 lemma tl_update_swap:
   \<open>i \<ge> 1 \<Longrightarrow> tl (N[i := C]) = tl N[i-1 := C]\<close>
@@ -243,7 +254,7 @@ lemma list_eq_replicate_iff:
   by (cases n) (auto simp: list_eq_replicate_iff_nempty simp del: replicate.simps)
 
 
-subsection \<open>@{term upt}\<close>
+subsection \<open>List intervals (@{term upt})\<close>
 
 text \<open>
   The simplification rules are not very handy, because theorem @{thm [source] upt.simps(2)}
@@ -432,8 +443,8 @@ next
     case False
     have [simp]:
       \<open>map (\<lambda>a. if a < length xs then xs ! a else [x] ! (a - length xs)) [0..<length xs] =
-       map (\<lambda>a. xs ! a) [0..<length xs]\<close> for xs x
-     by (rule map_cong) auto
+       map (\<lambda>a. xs ! a) [0..<length xs]\<close> for xs and x :: 'b
+      by (rule map_cong) auto
     show ?thesis
       using IH False by (auto simp: nth_append min_def)
   qed
@@ -633,10 +644,10 @@ fun removeAll_cond :: \<open>('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rig
 \<open>removeAll_cond f [] = []\<close> |
 \<open>removeAll_cond f (C' # L) = (if f C' then removeAll_cond f L else C' # removeAll_cond f L)\<close>
 
-lemma \<open>removeAll x xs = removeAll_cond ((=) x) xs\<close>
+lemma removeAll_removeAll_cond: \<open>removeAll x xs = removeAll_cond ((=) x) xs\<close>
   by (induction xs) auto
 
-lemma \<open>removeAll_cond P xs = filter (\<lambda>x. \<not>P x) xs\<close>
+lemma removeAll_cond_filter: \<open>removeAll_cond P xs = filter (\<lambda>x. \<not>P x) xs\<close>
   by (induction xs) auto
 
 lemma mset_map_mset_removeAll_cond:
@@ -750,7 +761,17 @@ lemma removeAll_insort:
   by (simp add: filter_insort removeAll_filter_not_eq)
 
 
-subsection \<open>Distinct Set of Multisets\<close>
+subsection \<open>Distinct Multisets\<close>
+
+lemma distinct_mset_remdups_mset_id: \<open>distinct_mset C \<Longrightarrow> remdups_mset C = C\<close>
+  by (induction C)  auto
+
+lemma notin_add_mset_remdups_mset:
+  \<open>a \<notin># A \<Longrightarrow> add_mset a (remdups_mset A) = remdups_mset (add_mset a A)\<close>
+  by auto
+
+
+subsection \<open>Set of Distinct Multisets\<close>
 
 definition distinct_mset_set :: \<open>'a multiset set \<Rightarrow> bool\<close> where
   \<open>distinct_mset_set \<Sigma> \<longleftrightarrow> (\<forall>S \<in> \<Sigma>. distinct_mset S)\<close>
@@ -781,13 +802,6 @@ lemma distinct_mset_mset_set: \<open>distinct_mset (mset_set A)\<close>
 
 lemma distinct_mset_set_distinct: \<open>distinct_mset_set (mset ` set Cs) \<longleftrightarrow> (\<forall>c\<in> set Cs. distinct c)\<close>
   unfolding distinct_mset_set_def by auto
-
-lemma distinct_mset_remdups_mset_id: \<open>distinct_mset C \<Longrightarrow> remdups_mset C = C\<close>
-  by (induction C)  auto
-
-lemma notin_add_mset_remdups_mset:
-  \<open>a \<notin># A \<Longrightarrow> add_mset a (remdups_mset A) = remdups_mset (add_mset a A)\<close>
-  by auto
 
 
 subsection \<open>Sublists\<close>
@@ -900,10 +914,17 @@ proof (induction xs arbitrary: A)
   then show ?case by auto
 next
   case (Cons a xs) note IH = this(1)
-  have \<open>{..<length xs} \<inter> {j. Suc j \<in> A} = {} \<Longrightarrow> (\<forall>x<length xs. x \<noteq> 0 \<longrightarrow> x \<notin> A)\<close>
-    apply auto
-     apply (metis IntI empty_iff gr0_implies_Suc lessI lessThan_iff less_trans mem_Collect_eq)
-    done
+  have \<open>(\<forall>x<length xs. x \<noteq> 0 \<longrightarrow> x \<notin> A)\<close>
+    if a1: \<open>{..<length xs} \<inter> {j. Suc j \<in> A} = {}\<close>
+  proof (intro allI impI)
+    fix nn
+    assume nn: \<open>nn < length xs\<close> \<open>nn \<noteq> 0\<close>
+    moreover have "\<forall>n. Suc n \<notin> A \<or> \<not> n < length xs"
+      using a1 by blast
+    then show "nn \<notin> A"
+      using nn
+      by (metis (no_types) lessI less_trans list_decode.cases)
+  qed
   show ?case
   proof (cases \<open>0 \<in> A\<close>)
     case True
@@ -1421,8 +1442,7 @@ lemma dom_m_fmdrop[simp]: \<open>dom_m (fmdrop C N) = remove1_mset C (dom_m N)\<
 lemma dom_m_fmupd[simp]: \<open>dom_m (fmupd k C N) = add_mset k (remove1_mset k (dom_m N))\<close>
   unfolding dom_m_def
   by (cases \<open>k |\<in>| fmdom N\<close>)
-    (auto simp: mset_set.remove fmember.rep_eq mset_set.insert
-    mset_set.insert_remove)
+    (auto simp: mset_set.remove fmember.rep_eq mset_set.insert_remove)
 
 lemma distinct_mset_dom: \<open>distinct_mset (dom_m N)\<close>
   by (simp add: distinct_mset_mset_set dom_m_def)
@@ -1447,7 +1467,8 @@ text \<open>\<^term>\<open>packed\<close> is a predicate to indicate that the do
 definition packed where
   \<open>packed N \<longleftrightarrow> dom_m N = mset [1..<Suc (Max_dom N)]\<close>
 
-text \<open>Marking this rule as simp is not compatible with unfolding the definition of packed when marked as\<close>
+text \<open>Marking this rule as simp is not compatible with unfolding the definition of packed when
+marked as:\<close>
 lemma Max_dom_empty: \<open>dom_m b = {#}  \<Longrightarrow> Max_dom b = 0\<close>
   by (auto simp: Max_dom_def)
 
@@ -1494,7 +1515,7 @@ lemma Max_dom_alt_def: \<open>Max_dom b = Max (insert 0 (set_mset (dom_m b)))\<c
   unfolding Max_dom_def by auto
 
 lemma Max_insert_Suc_Max_dim_dom[simp]:
-   \<open>Max (insert (Suc (Max_dom b)) (set_mset (dom_m b))) = Suc (Max_dom b)\<close>
+  \<open>Max (insert (Suc (Max_dom b)) (set_mset (dom_m b))) = Suc (Max_dom b)\<close>
   unfolding Max_dom_alt_def
   by (cases \<open>set_mset (dom_m b) = {}\<close>) auto
 
@@ -1516,7 +1537,7 @@ lemma Max_atLeastLessThan_plus: \<open>Max {(a::nat) ..< a+n} = (if n = 0 then M
   subgoal for n a
     by (cases n)
       (auto simp: image_Suc_atLeastLessThan[symmetric] mono_Max_commute[symmetric] mono_def
-        atLeastLessThanSuc
+          atLeastLessThanSuc
         simp del: image_Suc_atLeastLessThan)
   done
 
@@ -1547,13 +1568,13 @@ lemma fset_fmdom_fmrestrict_set:
   \<open>fset (fmdom (fmrestrict_set xs N)) = fset (fmdom N) \<inter> xs\<close>
   by (auto simp: fmfilter_alt_defs)
 
-lemma dom_m_fmresctrict_set: \<open>dom_m (fmrestrict_set (set xs) N) = mset xs \<inter># dom_m N\<close>
+lemma dom_m_fmrestrict_set: \<open>dom_m (fmrestrict_set (set xs) N) = mset xs \<inter># dom_m N\<close>
   using fset_fmdom_fmrestrict_set[of \<open>set xs\<close> N] distinct_mset_dom[of N]
   distinct_mset_inter_remdups_mset[of \<open>mset_fset (fmdom N)\<close> \<open>mset xs\<close>]
   by (auto simp: dom_m_def fset_mset_mset_fset finite_mset_set_inter multiset_inter_commute
     remdups_mset_def)
 
-lemma dom_m_fmresctrict_set': \<open>dom_m (fmrestrict_set xs N) = mset_set (xs \<inter> set_mset (dom_m N))\<close>
+lemma dom_m_fmrestrict_set': \<open>dom_m (fmrestrict_set xs N) = mset_set (xs \<inter> set_mset (dom_m N))\<close>
   using fset_fmdom_fmrestrict_set[of \<open>xs\<close> N] distinct_mset_dom[of N]
   by (auto simp: dom_m_def fset_mset_mset_fset finite_mset_set_inter multiset_inter_commute
     remdups_mset_def)

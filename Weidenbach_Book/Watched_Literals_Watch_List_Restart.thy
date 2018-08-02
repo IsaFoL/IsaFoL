@@ -752,10 +752,10 @@ lemma correct_watching_on_correct_watching:
   shows \<open>correct_watching (M, N, D, NE, UE, Q, W)\<close>
 proof -
   have \<open>xs \<inter> set_mset (dom_m N) = set_mset (dom_m N)\<close>
-    using incl by (auto simp: dom_m_fmresctrict_set')
+    using incl by (auto simp: dom_m_fmrestrict_set')
   then have 1: \<open>dom_m (fmrestrict_set xs N) = dom_m N\<close>
     using incl distinct_mset_dom[of N]
-    by (auto simp: dom_m_fmresctrict_set' remdups_mset_def[symmetric] distinct_mset_remdups_mset_id)
+    by (auto simp: dom_m_fmrestrict_set' remdups_mset_def[symmetric] distinct_mset_remdups_mset_id)
   then show ?thesis
     using assms
     unfolding correct_watching_on.simps correct_watching.simps
@@ -864,7 +864,7 @@ proof -
       by (auto simp: take_Suc_conv_app_nth N0_def C_def fmfilter_alt_defs N')
     have [simp]: \<open>C \<notin># dom_m N0\<close>
       unfolding N0_def
-      by (auto simp: dom_m_fmresctrict_set C_def)
+      by (auto simp: dom_m_fmrestrict_set C_def)
     have H: \<open>{#Ca \<in># dom_m N0. (C = Ca \<longrightarrow> P Ca) \<and> (C \<noteq> Ca \<longrightarrow> P' Ca)#} =
        {#Ca \<in># dom_m N0. P' Ca#}\<close> for P P'
       by (rule filter_mset_cong2) auto
