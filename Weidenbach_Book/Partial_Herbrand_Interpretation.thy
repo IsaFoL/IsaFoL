@@ -3,9 +3,9 @@
 
 This theory is based on Blanchette's and Traytel's Clausal logic
 *)
-section \<open>Partial Clausal Logic\<close>
+section \<open>Partial Herbrand Interpretation\<close>
 
-theory Partial_Clausal_Logic
+theory Partial_Herbrand_Interpretation
   imports
     Weidenbach_Book_Base.WB_List_More
     Ordered_Resolution_Prover.Clausal_Logic
@@ -19,12 +19,13 @@ lemma atm_of_notin_atms_of_iff_Pos_Neg:
   by (auto simp: atm_iff_pos_or_neg_lit)
 
 
-text \<open>We define here entailment by a set of literals. This is \<^emph>\<open>not\<close> an Herbrand interpretation and
-  has different properties. One key difference is that such a set can be inconsistent (i.e.\
+text \<open>We define here entailment by a set of literals. This is an Herbrand interpretation, but not
+  the same as used for the resolution prover. Both has different properties.
+  One key difference is that such a set can be inconsistent (i.e.\
   containing both @{term "L::'a literal"} and @{term "-L::'a literal"}).
 
   Satisfiability is defined by the existence of a total and consistent model.
-  \<close>
+\<close>
 
 
 subsection \<open>Clauses\<close>
@@ -41,9 +42,9 @@ lemma is_neg_neg_not_is_neg: "is_neg (- L) \<longleftrightarrow> \<not> is_neg L
 
 subsection \<open>Partial Interpretations\<close>
 
-type_synonym 'a interp = "'a literal set"
+type_synonym 'a partial_interp = "'a literal set"
 
-definition true_lit :: "'a interp \<Rightarrow> 'a literal \<Rightarrow> bool" (infix "\<Turnstile>l" 50) where
+definition true_lit :: "'a partial_interp \<Rightarrow> 'a literal \<Rightarrow> bool" (infix "\<Turnstile>l" 50) where
   "I \<Turnstile>l L \<longleftrightarrow> L \<in> I"
 
 declare true_lit_def[simp]
@@ -203,7 +204,7 @@ lemma atm_of_in_atm_of_set_in_uminus:
 
 subsubsection \<open>Totality\<close>
 
-definition total_over_set :: "'a interp \<Rightarrow> 'a set \<Rightarrow> bool" where
+definition total_over_set :: "'a partial_interp \<Rightarrow> 'a set \<Rightarrow> bool" where
 "total_over_set I S = (\<forall>l\<in>S. Pos l \<in> I \<or> Neg l \<in> I)"
 
 definition total_over_m :: "'a literal set \<Rightarrow> 'a clause set \<Rightarrow> bool" where
@@ -328,7 +329,7 @@ lemma total_over_set_alt_def: \<open>total_over_set M A \<longleftrightarrow> A 
 
 subsubsection \<open>Interpretations\<close>
 
-definition true_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>" 50) where
+definition true_cls :: "'a partial_interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>" 50) where
   "I \<Turnstile> C \<longleftrightarrow> (\<exists>L \<in># C. I \<Turnstile>l L)"
 
 lemma true_cls_empty[iff]: "\<not> I \<Turnstile> {#}"
@@ -373,7 +374,7 @@ lemma true_cls_not_in_remove:
   shows "I \<Turnstile> \<chi>"
   using assms unfolding true_cls_def by auto
 
-definition true_clss :: "'a interp \<Rightarrow> 'a clause_set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) where
+definition true_clss :: "'a partial_interp \<Rightarrow> 'a clause_set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) where
   "I \<Turnstile>s CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile> C)"
 
 lemma true_clss_empty[simp]: "I \<Turnstile>s {}"
@@ -520,7 +521,7 @@ lemma unsatisfiable_mono:
 
 subsubsection \<open>Entailment for Multisets of Clauses\<close>
 
-definition true_cls_mset :: "'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<Turnstile>m" 50) where
+definition true_cls_mset :: "'a partial_interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<Turnstile>m" 50) where
   "I \<Turnstile>m CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile> C)"
 
 lemma true_cls_mset_empty[simp]: "I \<Turnstile>m {#}"
@@ -622,7 +623,7 @@ lemma true_cls_remove_hd_if_notin_vars:
   using assms by (auto simp add: atm_of_lit_in_atms_of true_cls_def)
 
 lemma total_over_set_atm_of:
-  fixes I :: "'v interp" and K :: "'v set"
+  fixes I :: "'v partial_interp" and K :: "'v set"
   shows "total_over_set I K \<longleftrightarrow> (\<forall>l \<in> K. l \<in> (atm_of ` I))"
   unfolding total_over_set_def by (metis atms_of_s_def in_atms_of_s_decomp)
 
@@ -1246,9 +1247,9 @@ Shared by the second layer of type 'a \<Rightarrow> 'b set \<Rightarrow> bool:
 * A \<subseteq> B \<Longrightarrow> I \<Turnstile>s B \<Longrightarrow> I \<Turnstile>s A
 * I \<Turnstile>s {}
 
-*   true_lit  \<Turnstile>   'a interp \<Rightarrow> 'a literal \<Rightarrow> bool
-*   true_cls  \<Turnstile>l 'a interp \<Rightarrow> 'a clause \<Rightarrow> bool
-\<longrightarrow> true_clss \<Turnstile>s 'a interp \<Rightarrow> 'a clause_set \<Rightarrow> bool
+*   true_lit  \<Turnstile>   'a partial_interp \<Rightarrow> 'a literal \<Rightarrow> bool
+*   true_cls  \<Turnstile>l 'a partial_interp \<Rightarrow> 'a clause \<Rightarrow> bool
+\<longrightarrow> true_clss \<Turnstile>s 'a partial_interp \<Rightarrow> 'a clause_set \<Rightarrow> bool
 
 *   true_annot \<Turnstile>a ann_lits \<Rightarrow> 'a clause \<Rightarrow> bool
 \<longrightarrow> true_annots \<Turnstile>as ann_lits \<Rightarrow> 'a clause_set \<Rightarrow> bool

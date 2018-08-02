@@ -1,5 +1,5 @@
 theory Prop_Superposition
-imports Entailment_Definition.Partial_Clausal_Logic Ordered_Resolution_Prover.Herbrand_Interpretation
+imports Entailment_Definition.Partial_Herbrand_Interpretation Ordered_Resolution_Prover.Herbrand_Interpretation
 begin
 
 section \<open>Superposition\<close>
@@ -12,7 +12,7 @@ notation Herbrand_Interpretation.true_clss (infix "\<Turnstile>hs" 50)
 
 lemma herbrand_interp_iff_partial_interp_cls:
   "S \<Turnstile>h C \<longleftrightarrow> {Pos P|P. P\<in>S} \<union> {Neg P|P. P\<notin>S} \<Turnstile> C"
-  unfolding Herbrand_Interpretation.true_cls_def Partial_Clausal_Logic.true_cls_def
+  unfolding Herbrand_Interpretation.true_cls_def Partial_Herbrand_Interpretation.true_cls_def
   by auto
 
 lemma herbrand_consistent_interp:
@@ -30,7 +30,7 @@ lemma herbrand_total_over_m:
 lemma herbrand_interp_iff_partial_interp_clss:
   "S \<Turnstile>hs C \<longleftrightarrow> {Pos P|P. P\<in>S} \<union> {Neg P|P. P\<notin>S} \<Turnstile>s C"
   unfolding true_clss_def Ball_def herbrand_interp_iff_partial_interp_cls
-  Partial_Clausal_Logic.true_clss_def by auto
+  Partial_Herbrand_Interpretation.true_clss_def by auto
 
 definition clss_lt :: "'a::wellorder clause_set \<Rightarrow> 'a clause \<Rightarrow> 'a clause_set" where
 "clss_lt N C = {D \<in> N. D < C}"
@@ -481,7 +481,7 @@ proof -
       using remove_literal_in_model_tautology[of \<open>I \<union> Pos ` BB\<close>]
     apply -
     apply (rule ccontr)
-    apply (auto simp: Partial_Clausal_Logic.true_cls_def total_over_set_def total_over_m_def
+    apply (auto simp: Partial_Herbrand_Interpretation.true_cls_def total_over_set_def total_over_m_def
         atms_of_ms_def)
 
 oops
@@ -549,7 +549,7 @@ proof clarify
       using assms unfolding true_clss_cls_def by auto
 
     then show \<open>I \<Turnstile> add_mset L C\<close>
-      unfolding Partial_Clausal_Logic.true_cls_def
+      unfolding Partial_Herbrand_Interpretation.true_cls_def
       apply (auto simp: true_cls_def dest: in_C_pm_I)
       oops
 
@@ -790,7 +790,7 @@ proof -
   have "A \<in> clss_lt N B" using AN AB unfolding clss_lt_def
     by (auto dest: subset_eq_imp_le_multiset simp add: dual_order.order_iff_strict)
   then show ?thesis
-    using AB unfolding abstract_red_def true_clss_cls_def Partial_Clausal_Logic.true_clss_def
+    using AB unfolding abstract_red_def true_clss_cls_def Partial_Herbrand_Interpretation.true_clss_def
     by blast
 qed
 

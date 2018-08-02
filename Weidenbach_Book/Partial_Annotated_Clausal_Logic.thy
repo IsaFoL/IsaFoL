@@ -7,8 +7,8 @@ text \<open>We here define decided literals (that will be used in both DPLL and 
   corresponding to it.\<close>
 
 theory Partial_Annotated_Clausal_Logic
-imports Partial_Clausal_Logic
-
+imports
+   Partial_Herbrand_Interpretation
 begin
 
 subsection \<open>More Literals\<close>
@@ -1176,7 +1176,7 @@ text \<open>Other definition using @{term \<open>Union_mset\<close>}\<close>
 lemma \<open>atms_of_mm U \<equiv> set_mset (\<Union># image_mset (image_mset atm_of) U)\<close>
   unfolding atms_of_ms_def by (auto simp: atms_of_def)
 
-abbreviation true_clss_m:: \<open>'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool\<close> (infix "\<Turnstile>sm" 50) where
+abbreviation true_clss_m:: \<open>'a partial_interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool\<close> (infix "\<Turnstile>sm" 50) where
 \<open>I \<Turnstile>sm C \<equiv> I \<Turnstile>s set_mset C\<close>
 
 abbreviation true_clss_ext_m (infix "\<Turnstile>sextm" 49) where

@@ -1,5 +1,5 @@
 theory Prop_Resolution
-imports Entailment_Definition.Partial_Clausal_Logic
+imports Entailment_Definition.Partial_Herbrand_Interpretation
   Weidenbach_Book_Base.WB_List_More
   Weidenbach_Book_Base.Wellfounded_More
 
@@ -482,7 +482,7 @@ lemma sem_tree_size[case_names bigger]:
   by (fact Nat.measure_induct_rule)
 
 
-fun partial_interps :: "'v sem_tree \<Rightarrow> 'v interp \<Rightarrow> 'v clause_set \<Rightarrow> bool" where
+fun partial_interps :: "'v sem_tree \<Rightarrow> 'v partial_interp \<Rightarrow> 'v clause_set \<Rightarrow> bool" where
 "partial_interps Leaf I \<psi> = (\<exists>\<chi>. \<not> I \<Turnstile> \<chi> \<and> \<chi> \<in> \<psi> \<and> total_over_m I {\<chi>})" |
 "partial_interps (Node v ag ad) I \<psi> \<longleftrightarrow>
   (partial_interps ag (I \<union> {Pos v}) \<psi> \<and> partial_interps ad (I\<union> {Neg v}) \<psi>)"

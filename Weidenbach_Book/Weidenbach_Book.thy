@@ -26,7 +26,8 @@ imports
 
   IsaSAT.IsaSAT
 begin
-text \<open>This theory imports all the other theories (and is not needed in the documentation).\<close>
+text \<open>This theory imports all the other theories (and is not needed in the documentation,
+just as a sanity check that everything works).\<close>
 
 end
 (*>*)
