@@ -28,14 +28,33 @@ lemma op_eq_word_nat:
 
 subsubsection \<open>32-bits\<close>
 
+lemma word_nat_of_uint32_Rep_inject[simp]: \<open>nat_of_uint32 ai = nat_of_uint32 bi \<longleftrightarrow> ai = bi\<close>
+  by transfer simp
+
+lemma nat_of_uint32_012[simp]: \<open>nat_of_uint32 0 = 0\<close> \<open>nat_of_uint32 2 = 2\<close> \<open>nat_of_uint32 1 = 1\<close>
+  by (transfer, auto)+
+
+lemma nat_of_uint32_3: \<open>nat_of_uint32 3 = 3\<close>
+  by (transfer, auto)+
+
+lemma nat_of_uint32_Suc03_iff:
+ \<open>nat_of_uint32 a = Suc 0 \<longleftrightarrow> a = 1\<close>
+   \<open>nat_of_uint32 a = 3 \<longleftrightarrow> a = 3\<close>
+   using word_nat_of_uint32_Rep_inject nat_of_uint32_3 by fastforce+
+
+lemma  (in -) nat_of_uint32_013_neq:
+  "(1::uint32) \<noteq> (0 :: uint32)" "(0::uint32) \<noteq> (1 :: uint32)"
+  "(3::uint32) \<noteq> (0 :: uint32)"
+  "(3::uint32) \<noteq> (1 :: uint32)"
+  "(0::uint32) \<noteq> (3 :: uint32)"
+  "(1::uint32) \<noteq> (3 :: uint32)"
+  by (auto dest: arg_cong[of _ _ nat_of_uint32] simp: nat_of_uint32_3)
+
 definition uint32_nat_rel :: "(uint32 \<times> nat) set" where
   \<open>uint32_nat_rel = br nat_of_uint32 (\<lambda>_. True)\<close>
 
 abbreviation uint32_nat_assn :: "nat \<Rightarrow> uint32 \<Rightarrow> assn" where
   \<open>uint32_nat_assn \<equiv> pure uint32_nat_rel\<close>
-
-lemma word_nat_of_uint32_Rep_inject[simp]: \<open>nat_of_uint32 ai = nat_of_uint32 bi \<longleftrightarrow> ai = bi\<close>
-  by transfer simp
 
 lemma op_eq_uint32_nat[sepref_fr_rules]:
   \<open>(uncurry (return oo ((=) :: uint32 \<Rightarrow> _)), uncurry (RETURN oo (=))) \<in>
@@ -114,12 +133,6 @@ lemma nat_of_uint32_ao:
   subgoal apply (transfer, unfold unat_def, transfer, unfold nat_bin_trunc_ao) ..
   subgoal apply (transfer, unfold unat_def, transfer, unfold nat_bin_trunc_ao) ..
   done
-
-lemma nat_of_uint32_012[simp]: \<open>nat_of_uint32 0 = 0\<close> \<open>nat_of_uint32 2 = 2\<close> \<open>nat_of_uint32 1 = 1\<close>
-  by (transfer, auto)+
-
-lemma nat_of_uint32_3: \<open>nat_of_uint32 3 = 3\<close>
-  by (transfer, auto)+
 
 lemma nat_of_uint32_mod_2:
   \<open>nat_of_uint32 L mod 2 = nat_of_uint32 (L mod 2)\<close>

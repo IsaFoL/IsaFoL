@@ -1897,4 +1897,24 @@ lemma update_lbd_hnr[sepref_fr_rules]:
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
 
+
+lemma (in -) status_assn_hnr_eq[sepref_fr_rules]:
+  \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in> status_assn\<^sup>k *\<^sub>a status_assn\<^sup>k \<rightarrow>\<^sub>a
+    bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def
+    nat_of_uint32_0_iff nat_of_uint32_Suc03_iff nat_of_uint32_013_neq)
+find_theorems IRRED status_assn
+lemma IRRED_status_assn[sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
+  by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def)
+
+lemma LEARNED_status_assn[sepref_fr_rules]:
+  \<open>(uncurry0 (return 1), uncurry0 (RETURN LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
+  by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def)
+
+lemma DELETED_status_assn[sepref_fr_rules]:
+  \<open>(uncurry0 (return 3), uncurry0 (RETURN DELETED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
+  by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def
+    nat_of_uint32_Suc03_iff)
+
 end

@@ -1677,17 +1677,38 @@ lemma length_arl_u_hnr[sepref_fr_rules]:
       arl_length_def hr_comp_def is_array_list_def list_rel_pres_length[symmetric]
       uint32_nat_rel_def br_def)
 
-lemma (in -) nat_of_uint32_mult_le:
+lemma nat_of_uint32_mult_le:
    \<open>nat_of_uint32 ai * nat_of_uint32 bi \<le> uint32_max \<Longrightarrow>
        nat_of_uint32 (ai * bi) = nat_of_uint32 ai * nat_of_uint32 bi\<close>
   apply transfer
   by (auto simp: unat_word_ariths uint32_max_def)
 
-lemma (in -) uint32_nat_assn_mult:
+lemma uint32_nat_assn_mult:
   \<open>(uncurry (return oo (( * ))), uncurry (RETURN oo (( * )))) \<in> [\<lambda>(a, b). a * b \<le> uint32_max]\<^sub>a
       uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_mult_le)
+
+
+definition shorten_take_aa_u32 where
+  \<open>shorten_take_aa_u32 L j W =  do {
+      (a, n) \<leftarrow> nth_u_code W L;
+      heap_array_set_u W L (a, j)
+    }\<close>
+
+lemma shorten_take_aa_u32_alt_def:
+  \<open>shorten_take_aa_u32 L j W = shorten_take_aa (nat_of_uint32 L) j W\<close>
+  by (auto simp: shorten_take_aa_u32_def shorten_take_aa_def uint32_nat_rel_def br_def
+    Array.nth'_def heap_array_set_u_def heap_array_set'_u_def Array.upd'_def
+    nth_u_code_def nat_of_uint32_code[symmetric] upd_return)
+
+lemma shorten_take_aa_u32_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 shorten_take_aa_u32, uncurry2 (RETURN ooo shorten_take_ll)) \<in>
+     [\<lambda>((L, j), W). j \<le> length (W ! L) \<and> L < length W]\<^sub>a
+    uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d \<rightarrow> arrayO_assn (arl_assn R)\<close>
+  unfolding shorten_take_aa_u32_alt_def shorten_take_ll_def nth_u_code_def uint32_nat_rel_def br_def
+    Array.nth'_def heap_array_set_u_def heap_array_set'_u_def Array.upd'_def shorten_take_aa_def
+  by sepref_to_hoare (sep_auto simp: nat_of_uint32_code[symmetric])
 
 (* End Move *)
 

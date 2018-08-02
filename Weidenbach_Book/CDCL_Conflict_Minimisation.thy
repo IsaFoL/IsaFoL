@@ -32,8 +32,8 @@ we cannot reuse information about failures to cut branches. There is a variant o
 presented above that is able to do so (Van Gelder, ``Improved Conflict-Clause Minimization
 Leads to Improved Propositional Proof Traces''). The algorithm is however more complicated and has
 only be implemented in very few solvers (at least lingeling and cadical) and is especially not part
-of glucose. Therefore, we have decided to not implement it: It is probably not worth it and requires
-some additional data structures.
+of glucose nor cryptominisat. Therefore, we have decided to not implement it: It is probably not
+worth it and requires some additional data structures.
 \<close>
 declare cdcl\<^sub>W_restart_mset_state[simp]
 

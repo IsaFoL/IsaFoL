@@ -54,39 +54,8 @@ lemma nth_raa_hnr':
        [\<lambda>(((l, _),i),j). i < length l \<and> j < length_rll l i]\<^sub>a
        (arlO_assn (array_assn R) *a GG)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
   using assms
-  by sepref_to_hoare  sep_auto
-(* 
-lemma fmap_rll_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 (\<lambda>(N, _) i. nth_raa N i), uncurry2 (RETURN \<circ>\<circ>\<circ> fmap_rll))
-     \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>a
-     clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-   (is \<open>?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have H:
-    \<open>?c
-       \<in> [comp_PRE (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel)
-         (\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i))
-        (\<lambda>_ (((l, _), i), j). i < length l \<and> j < length_rll l i)
-         (\<lambda>_. True)]\<^sub>a
-       hrp_comp (isasat_clauses_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
-                   (\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel) \<rightarrow> hr_comp unat_lit_assn Id\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    by (rule hfref_compI_PRE_aux[OF nth_raa_hnr' nth_clauses_rll, of unat_lit_assn]) simp
-  have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
-    by (auto simp: comp_PRE_def list_fmap_rel_def length_rll_def intro!: ext)
-  have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep clauses_ll_assn_def
-    by (auto simp: hrp_comp_def hr_comp_def)
-  have f: \<open>?f' = ?f\<close>
-    by auto
-  show ?thesis
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding f im apply assumption
-    using pre ..
-qed *)
+  by sepref_to_hoare sep_auto
 
-term arena_update_status
 definition fmap_rll_u64 :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal" where
   [simp]: \<open>fmap_rll_u64  = fmap_rll\<close>
 
@@ -283,12 +252,6 @@ definition fmap_length_rll_u64 :: "(nat, 'a literal list \<times> bool) fmap \<R
 
 
 declare fmap_length_rll_u_def[symmetric, isasat_codegen]
-
-(*TODO rename length_rll_n_uint32*)
-(* lemma fmap_length_rll_u64:
-  \<open>(uncurry (RETURN oo (\<lambda>(N, _) i. length_rll_n_uint64 N i)), uncurry (RETURN oo fmap_length_rll_u64))
-    \<in> [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_length_rll_u64_def length_rll_def) *)
 
 definition length_raa_u32_u64 :: \<open>'a::heap arrayO_raa \<Rightarrow> uint32 \<Rightarrow> uint64 Heap\<close> where
   \<open>length_raa_u32_u64 xs i = do {
@@ -920,60 +883,6 @@ lemma convert_to_uint32_hnr[sepref_fr_rules]:
     \<in> [\<lambda>n. n \<le> uint32_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare
     (sep_auto simp: uint32_nat_rel_def br_def uint32_max_def nat_of_uint32_uint32_of_nat_id)
-(* 
-definition append_and_length_u32
-  :: \<open>bool \<Rightarrow> 'v clause_l \<Rightarrow> 'v clause_l list \<times> clause_annots \<Rightarrow>
-    (('v clause_l list \<times> clause_annots) \<times> nat) nres\<close>
-  where
-\<open>append_and_length_u32 b C = (\<lambda>(N, ex). do {
-    ASSERT(length N \<le> uint32_max);
-    let k = length N;
-    let b' = (if b then IRRED else LEARNED, 0, 0);
-    RETURN ((op_list_append N C, op_list_append ex b'), convert_to_uint32 k)})\<close> *)
-(* 
-lemma append_and_length_u32_fm_add_new:
-  \<open>(uncurry2 append_and_length_u32, uncurry2 fm_add_new)
-     \<in> [\<lambda>((b, C), N). Max (insert 0 (set_mset (dom_m N))) < uint32_max]\<^sub>f
-     bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (\<langle>Id\<rangle>clauses_l_fmat) \<rightarrow> \<langle>\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
-(* TODO Tune proof *)
-  apply (intro frefI nres_relI)
-  apply (auto simp: fm_add_new_at_position_def list_fmap_rel_def Let_def
-      max_def nth_append append_and_length_u32_def fm_add_new_def get_fresh_index_def
-      RETURN_RES_refine_iff RES_RETURN_RES
-      intro!: RETURN_SPEC_refine ASSERT_refine_left
-      dest: multi_member_split
-      split: if_splits)
-                 apply (metis Max_in_lits Suc_leI empty_iff insert_iff set_mset_add_mset_insert
-      set_mset_empty)
-                apply blast
-               apply blast
-              apply force
-             apply fastforce
-             apply fastforce
-            apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
-             apply force
-            apply force
-           apply fastforce
-          apply (subst extra_clause_information_upd_irrel)
-            apply force
-           apply force
-          apply force
-         apply (metis Max_in_lits Suc_leI empty_iff insert_iff set_mset_add_mset_insert
-      set_mset_empty)
-        apply blast
-       apply blast
-      apply force
-     apply fastforce
-     apply fastforce
-    apply (case_tac \<open>set_mset (dom_m bc) = {}\<close>)
-     apply force
-    apply force
-   apply fastforce
-  apply (subst extra_clause_information_upd_irrel)
-    apply force
-   apply force
-  apply force
-  done *)
 
 lemma fm_add_new_alt_def:
  \<open>fm_add_new b C N = do {
@@ -999,20 +908,6 @@ lemma fm_add_new_alt_def:
     }\<close>
   unfolding fm_add_new_def Let_def AStatus_LEARNED_def AStatus_IRRED_def
   by auto
-(* 
-sepref_definition append_and_length_u32_code
-  is \<open>uncurry2 (fm_add_new)\<close>
-  :: \<open>[\<lambda>((b, C), N). length C \<le> uint32_max+1 \<and> length C \<ge> 2 \<and>
-        length N \<le> uint64_max]\<^sub>a 
-     bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a arena_assn\<^sup>d \<rightarrow>
-      arena_assn *a uint64_nat_assn\<close>
-  supply le_uint32_max_le_uint64_max[simp]
-  unfolding fm_add_new_alt_def
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold apply (auto simp: )[]
-  by sepref *)
 
 definition fm_add_new_fast where
   [simp, symmetric]: \<open>fm_add_new_fast = fm_add_new\<close>

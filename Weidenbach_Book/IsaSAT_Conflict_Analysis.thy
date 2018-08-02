@@ -1,5 +1,5 @@
 theory IsaSAT_Conflict_Analysis
-  imports IsaSAT_Setup Watched_Literals_Heuristics
+  imports IsaSAT_Setup
 begin
 
 

@@ -1,34 +1,11 @@
-theory Watched_Literals_Heuristics
+theory IsaSAT_Inner_Propagation
   imports Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT_Setup
      IsaSAT_Clauses
 begin
 
-subsection \<open>Propagations\<close>
-(* TODO This file should be split into the additional refinement step like find_unwatched and
-the part specific to IsaSAT (i.e., the refinement from find_unwatched to arenas) *)
-(* TODO Move *)
+subsection \<open>Propagations Step\<close>
 context isasat_input_bounded
 begin
-
-lemma (in isasat_input_ops) in_watch_list_in_vdom:
-  assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and \<open>w < length (watched_by S L)\<close>
-  shows \<open>fst (watched_by S L ! w) \<in> vdom_m (get_watched_wl S) (get_clauses_wl S)\<close>
-  using assms
-  unfolding vdom_m_def
-  by (cases S) (auto dest: multi_member_split)
-
-
-lemma (in isasat_input_ops) in_watch_list_in_vdom':
-  assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and \<open>A \<in> set (watched_by S L)\<close>
-  shows \<open>fst A \<in> vdom_m (get_watched_wl S) (get_clauses_wl S)\<close>
-  using assms
-  unfolding vdom_m_def
-  by (cases S) (auto dest: multi_member_split)
-
-lemma (in isasat_input_ops) in_dom_in_vdom[simp]:
-  \<open>x \<in># dom_m N \<Longrightarrow> x \<in> vdom_m W N\<close>
-  unfolding vdom_m_def
-  by (auto dest: multi_member_split)
 
 lemma unit_prop_body_wl_D_invD:
   assumes \<open>unit_prop_body_wl_D_inv S j w L\<close>
@@ -389,11 +366,8 @@ lemma set_conflict_wl'_alt_def:
 definition (in isasat_input_ops) set_conflict_wl_heur_pre where
   \<open>set_conflict_wl_heur_pre =
      (\<lambda>(C, S).
-     \<^cancel>\<open>get_conflict_wl_heur S = None \<and> \<close>
         literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl_heur S) \<and>
         no_dup (get_trail_wl_heur S)
-      \<^cancel>\<open> \<and>
-       out_learned (get_trail_wl_heur S) (get_conflict_wl_heur S) (get_outlearned_heur S) \<close>
        )\<close>
 
 definition (in isasat_input_ops) set_conflict_wl_heur
@@ -664,15 +638,15 @@ lemma find_unwatched_le_length:
   \<open>xj < length (get_clauses_wl S \<propto> fst (watched_by_app S L C))\<close>
   if
     find_unw: \<open>RETURN (Some xj) \<le>
-       Watched_Literals_Heuristics.find_unwatched_wl_st S (fst (watched_by_app S L C))\<close>
+       IsaSAT_Inner_Propagation.find_unwatched_wl_st S (fst (watched_by_app S L C))\<close>
   for S L C xj
-  using that unfolding find_unwatched_wl_st_def Watched_Literals_Heuristics.find_unwatched_wl_st_def
+  using that unfolding find_unwatched_wl_st_def IsaSAT_Inner_Propagation.find_unwatched_wl_st_def
     find_unwatched_l_def
   by (cases S) auto
 
 lemma find_unwatched_in_D\<^sub>0: \<open>get_clauses_wl S \<propto> fst (watched_by_app S L C) ! xj \<in> snd ` D\<^sub>0\<close>
   if
-    find_unw: \<open>RETURN (Some xj) \<le> Watched_Literals_Heuristics.find_unwatched_wl_st S (fst (watched_by_app S L C))\<close> and
+    find_unw: \<open>RETURN (Some xj) \<le> IsaSAT_Inner_Propagation.find_unwatched_wl_st S (fst (watched_by_app S L C))\<close> and
     inv: \<open>unit_prop_body_wl_D_inv S j C L\<close> and
     dom: \<open>fst (watched_by_app S L C) \<in># dom_m (get_clauses_wl S)\<close>
   for S C xj L
@@ -682,7 +656,7 @@ proof -
     using inv dom by (blast intro: unit_prop_body_wl_D_invD)
   moreover {
     have xj: \<open>xj < length (get_clauses_wl S \<propto> ?C)\<close>
-      using find_unw by (cases S) (auto simp: Watched_Literals_Heuristics.find_unwatched_wl_st_def
+      using find_unw by (cases S) (auto simp: IsaSAT_Inner_Propagation.find_unwatched_wl_st_def
          find_unwatched_l_def)
     have \<open>?C > 0\<close>
       using inv dom by (blast intro: unit_prop_body_wl_D_invD)+
@@ -790,14 +764,6 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_heur
         }
       }
    }\<close>
-
-lemma twl_st_heur_state_simp:
-  assumes \<open>(S, S') \<in> twl_st_heur\<close>
-  shows
-     \<open>get_trail_wl_heur S = get_trail_wl S'\<close> and
-     twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> watched_by_int S C = watched_by S' C\<close> and
-     \<open>literals_to_update_wl_heur S = literals_to_update_wl S'\<close>
-  using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
 
 lemma set_conflict_wl'_alt_def2:
   \<open>RETURN oo set_conflict_wl' =
@@ -1775,7 +1741,7 @@ proof -
 
   have isa_find_unwatched_wl_st_heur_find_unwatched_wl_st:
      \<open>isa_find_unwatched_wl_st_heur x' y'
-        \<le> \<Down> Id (Watched_Literals_Heuristics.find_unwatched_wl_st x y)\<close>
+        \<le> \<Down> Id (IsaSAT_Inner_Propagation.find_unwatched_wl_st x y)\<close>
     if 
       find_unw: \<open>find_unwatched_wl_st_pre (x, y)\<close> and
       xy: \<open>((x', y'), x, y) \<in> twl_st_heur \<times>\<^sub>f nat_rel\<close> and
@@ -1793,8 +1759,8 @@ proof -
       subgoal using lits .
       done
 
-    have K: \<open>local.find_unwatched_wl_st x y \<le> Watched_Literals_Heuristics.find_unwatched_wl_st x y\<close>
-      unfolding local.find_unwatched_wl_st_def Watched_Literals_Heuristics.find_unwatched_wl_st_def
+    have K: \<open>local.find_unwatched_wl_st x y \<le> IsaSAT_Inner_Propagation.find_unwatched_wl_st x y\<close>
+      unfolding local.find_unwatched_wl_st_def IsaSAT_Inner_Propagation.find_unwatched_wl_st_def
       apply (cases x)
       apply clarify
       apply (rule order_trans)
@@ -2399,6 +2365,442 @@ theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
   using twl_st_heur'D_twl_st_heurD[OF
      unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D']
   .
+
+end
+
+
+context isasat_input_bounded
+begin
+
+lemma watched_by_app_watched_by_app_heur:
+  \<open>(uncurry2 (RETURN ooo watched_by_app_heur), uncurry2 (RETURN ooo watched_by_app)) \<in>
+    [\<lambda>((S, L), K). L \<in> snd ` D\<^sub>0 \<and> K < length (get_watched_wl S L)]\<^sub>f
+     twl_st_heur \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+     (auto simp: watched_by_app_heur_def watched_by_app_def twl_st_heur_def map_fun_rel_def)
+
+sepref_thm watched_by_app_heur_code
+  is \<open>uncurry2 (RETURN ooo watched_by_app_heur)\<close>
+  :: \<open>[watched_by_app_heur_pre]\<^sub>a
+        isasat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> (nat_assn *a unat_lit_assn)\<close>
+  supply [[goals_limit=1]] length_rll_def[simp]
+  unfolding watched_by_app_heur_alt_def isasat_assn_def nth_rll_def[symmetric]
+   watched_by_app_heur_pre_def
+  by sepref
+
+concrete_definition (in -) watched_by_app_heur_code
+   uses isasat_input_bounded.watched_by_app_heur_code.refine_raw
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) watched_by_app_heur_code_def
+
+lemmas watched_by_app_heur_code_refine[sepref_fr_rules] =
+   watched_by_app_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+sepref_thm watched_by_app_heur_fast_code
+  is \<open>uncurry2 (RETURN ooo watched_by_app_heur)\<close>
+  :: \<open>[watched_by_app_heur_pre]\<^sub>a
+        isasat_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn *a unat_lit_assn\<close>
+  supply [[goals_limit=1]] length_rll_def[simp]
+  unfolding watched_by_app_heur_alt_def isasat_fast_assn_def nth_rll_def[symmetric]
+   watched_by_app_heur_pre_def
+  by sepref
+
+concrete_definition (in -) watched_by_app_heur_fast_code
+   uses isasat_input_bounded.watched_by_app_heur_fast_code.refine_raw
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) watched_by_app_heur_fast_code_def
+
+lemmas watched_by_app_heur_fast_code_refine[sepref_fr_rules] =
+   watched_by_app_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+
+sepref_thm access_lit_in_clauses_heur_code
+  is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
+  :: \<open>[access_lit_in_clauses_heur_pre]\<^sub>a
+      isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  supply length_rll_def[simp] [[goals_limit=1]]
+  unfolding isasat_assn_def access_lit_in_clauses_heur_alt_def
+    fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
+    fmap_rll_u64_def[symmetric]
+  by sepref
+
+concrete_definition (in -) access_lit_in_clauses_heur_code
+   uses isasat_input_bounded.access_lit_in_clauses_heur_code.refine_raw
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) access_lit_in_clauses_heur_code_def
+
+lemmas access_lit_in_clauses_heur_code_refine[sepref_fr_rules] =
+   access_lit_in_clauses_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+(* 
+sepref_thm access_lit_in_clauses_heur_fast_code
+  is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
+  :: \<open>[access_lit_in_clauses_heur_pre]\<^sub>a
+      isasat_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  supply length_rll_def[simp] [[goals_limit=1]]
+  unfolding isasat_fast_assn_def access_lit_in_clauses_heur_alt_def
+    fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
+    fmap_rll_u64_def[symmetric]
+  by sepref
+
+concrete_definition (in -) access_lit_in_clauses_heur_fast_code
+   uses isasat_input_bounded.access_lit_in_clauses_heur_fast_code.refine_raw
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) access_lit_in_clauses_heur_fast_code_def
+
+lemmas access_lit_in_clauses_heur_fast_code_refine[sepref_fr_rules] =
+   access_lit_in_clauses_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms] *)
+
+end
+
+
+
+lemma case_tri_bool_If:
+  \<open>(case a of
+       None \<Rightarrow> f1
+     | Some v \<Rightarrow>
+        (if v then f2 else f3)) =
+   (let b = a in if b = UNSET
+    then f1
+    else if b = SET_TRUE then f2 else f3)\<close>
+  by (auto split: option.splits)
+
+
+context isasat_input_bounded_nempty
+begin
+(* TODO most of the unfolding should move to the definition *)
+sepref_register isa_find_unwatched_wl_st_heur
+sepref_thm find_unwatched_wl_st_heur_code
+  is \<open>uncurry ((PR_CONST isa_find_unwatched_wl_st_heur))\<close>
+  :: \<open>[find_unwatched_wl_st_heur_pre]\<^sub>a
+         isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
+  supply [[goals_limit = 1]]
+    fmap_length_rll_def[simp] fmap_length_rll_u64_def[simp]
+  unfolding isa_find_unwatched_wl_st_heur_def isasat_assn_def PR_CONST_def
+  find_unwatched_def fmap_rll_def[symmetric]
+  length_u_def[symmetric] isa_find_unwatched_def
+  case_tri_bool_If find_unwatched_wl_st_heur_pre_def
+  fmap_rll_u64_def[symmetric]
+  by sepref
+
+concrete_definition (in -) find_unwatched_wl_st_heur_code
+   uses isasat_input_bounded_nempty.find_unwatched_wl_st_heur_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) find_unwatched_wl_st_heur_code_def
+
+lemmas find_unwatched_wl_st_heur_code_find_unwatched_wl_st_heur[sepref_fr_rules] =
+   find_unwatched_wl_st_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+(* 
+sepref_thm find_unwatched_wl_st_heur_fast_code
+  is \<open>uncurry ((PR_CONST find_unwatched_wl_st_heur))\<close>
+  :: \<open>[find_unwatched_wl_st_heur_pre]\<^sub>a
+         isasat_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> option_assn uint64_nat_assn\<close>
+  supply [[goals_limit = 1]] literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0'[intro]
+    fmap_length_rll_def[simp] fmap_length_rll_u64_def[simp]
+  unfolding find_unwatched_wl_st_heur_def isasat_fast_assn_def PR_CONST_def
+  find_unwatched_def fmap_rll_def[symmetric] fmap_length_rll_u64_def[symmetric]
+  length_u_def[symmetric]
+  case_tri_bool_If find_unwatched_wl_st_heur_pre_def
+  two_uint64_nat_def[symmetric]
+  fmap_rll_u64_def[symmetric]
+  one_uint64_nat_def[symmetric]
+  by sepref 
+
+concrete_definition (in -) find_unwatched_wl_st_heur_fast_code
+   uses isasat_input_bounded_nempty.find_unwatched_wl_st_heur_fast_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) find_unwatched_wl_st_heur_fast_code_def
+
+lemmas find_unwatched_wl_st_heur_code_find_unwatched_wl_st_fast_heur[sepref_fr_rules] =
+   find_unwatched_wl_st_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
+     unfolded PR_CONST_def]
+*)
+
+find_theorems swap_lits
+sepref_register update_clause_wl_heur
+sepref_thm update_clause_wl_code
+  is \<open>uncurry6 (PR_CONST update_clause_wl_heur)\<close>
+  :: \<open>[update_clause_wl_code_pre]\<^sub>a
+     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>
+       nat_assn *a nat_assn *a isasat_assn\<close>
+  supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
+  unfolding update_clause_wl_heur_def isasat_assn_def Array_List_Array.swap_ll_def[symmetric]
+    fmap_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
+    delete_index_and_swap_ll_def[symmetric] fmap_swap_ll_def[symmetric]
+    append_ll_def[symmetric] update_clause_wl_code_pre_def
+    fmap_rll_u64_def[symmetric]
+    fmap_swap_ll_u64_def[symmetric]
+    fmap_swap_ll_def[symmetric]
+    PR_CONST_def
+  by sepref
+
+concrete_definition (in -) update_clause_wl_code
+  uses isasat_input_bounded_nempty.update_clause_wl_code.refine_raw
+  is \<open>(uncurry6 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) update_clause_wl_code_def
+
+lemmas update_clause_wl_code[sepref_fr_rules] =
+  update_clause_wl_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def]
+(* 
+thm update_clause_wl_code_pre_def
+sepref_thm update_clause_wl_fast_code
+  is \<open>uncurry6 update_clause_wl_heur\<close>
+  :: \<open>[\<lambda>((((((L, C), j), w), i), f), S). update_clause_wl_code_pre ((((((L, C), j), w), i), f), S) \<and>
+      w < uint64_max]\<^sub>a
+     unat_lit_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow>
+       uint64_nat_assn *a  uint64_nat_assn *a isasat_fast_assn\<close>
+  supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
+  unfolding update_clause_wl_heur_def isasat_fast_assn_def Array_List_Array.swap_ll_def[symmetric]
+    fmap_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
+    delete_index_and_swap_ll_def[symmetric] fmap_swap_ll_def[symmetric]
+    append_ll_def[symmetric] update_clause_wl_code_pre_def
+    fmap_rll_u64_def[symmetric]
+    fmap_swap_ll_u64_def[symmetric]
+    one_uint64_nat_def[symmetric]
+  by sepref
+
+concrete_definition (in -) update_clause_wl_fast_code
+  uses isasat_input_bounded_nempty.update_clause_wl_fast_code.refine_raw
+  is \<open>(uncurry6 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) update_clause_wl_fast_code_def
+
+lemmas update_clause_wl_fast_code[sepref_fr_rules] =
+  update_clause_wl_fast_code.refine[OF isasat_input_bounded_nempty_axioms] *)
+
+sepref_register propagate_lit_wl_heur
+sepref_thm propagate_lit_wl_code
+  is \<open>uncurry3 (PR_CONST propagate_lit_wl_heur)\<close>
+  :: \<open>[propagate_lit_wl_heur_pre]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
+  unfolding PR_CONST_def propagate_lit_wl_heur_def isasat_assn_def
+    cons_trail_Propagated_def[symmetric]
+  supply [[goals_limit=1]]length_rll_def[simp] length_ll_def[simp]
+  unfolding update_clause_wl_heur_def isasat_assn_def
+    propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
+  by sepref
+
+
+concrete_definition (in -) propagate_lit_wl_code
+  uses isasat_input_bounded_nempty.propagate_lit_wl_code.refine_raw
+  is \<open>(uncurry3 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) propagate_lit_wl_code_def
+
+lemmas propagate_lit_wl_code[sepref_fr_rules] =
+  propagate_lit_wl_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def]
+
+(* sepref_thm propagate_lit_wl_fast_code
+  is \<open>uncurry3 (RETURN oooo (PR_CONST propagate_lit_wl_heur))\<close>
+  :: \<open>[\<lambda>(((L', C), w), S). propagate_lit_wl_heur_pre (((L', C), w), S) \<and>
+        w + 1 \<le> uint64_max]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+  unfolding PR_CONST_def propagate_lit_wl_heur_def isasat_assn_def
+    cons_trail_Propagated_def[symmetric]
+  supply [[goals_limit=1]]length_rll_def[simp] length_ll_def[simp]
+  unfolding update_clause_wl_heur_def isasat_fast_assn_def
+    propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
+    fmap_swap_ll_u64_def[symmetric]
+    zero_uint64_nat_def[symmetric]
+    one_uint64_nat_def[symmetric]
+  by sepref
+
+
+concrete_definition (in -) propagate_lit_wl_fast_code
+  uses isasat_input_bounded_nempty.propagate_lit_wl_fast_code.refine_raw
+  is \<open>(uncurry3 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) propagate_lit_wl_fast_code_def
+
+lemmas propagate_lit_wl_fast_code[sepref_fr_rules] =
+  propagate_lit_wl_fast_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def] *)
+
+lemma clause_not_marked_to_delete_heur_alt_def:
+  \<open>RETURN \<circ>\<circ> clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C.
+     RETURN (arena_status arena C \<noteq> DELETED))\<close>
+  unfolding clause_not_marked_to_delete_heur_def by (auto intro!: ext)
+
+
+sepref_thm clause_not_marked_to_delete_heur_code
+  is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
+  :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding clause_not_marked_to_delete_heur_alt_def isasat_assn_def
+     clause_not_marked_to_delete_heur_pre_def
+  by sepref
+
+concrete_definition (in -) clause_not_marked_to_delete_heur_code
+   uses isasat_input_bounded_nempty.clause_not_marked_to_delete_heur_code.refine_raw
+   is \<open>(uncurry ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) clause_not_marked_to_delete_heur_code_def
+
+lemmas clause_not_marked_to_delete_heur_refine[sepref_fr_rules] =
+   clause_not_marked_to_delete_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm update_blit_wl_heur_code
+  is \<open>uncurry5 update_blit_wl_heur\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a 
+     nat_assn *a nat_assn *a isasat_assn\<close>
+  supply [[goals_limit=1]] length_ll_def[simp]
+  unfolding update_blit_wl_heur_def isasat_assn_def update_ll_def[symmetric]
+  by sepref
+
+concrete_definition (in -) update_blit_wl_heur_code
+   uses isasat_input_bounded_nempty.update_blit_wl_heur_code.refine_raw
+   is \<open>(uncurry5 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) update_blit_wl_heur_code_def
+
+lemmas update_blit_wl_heur_heur_refine[sepref_fr_rules] =
+   update_blit_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_register keep_watch_heur
+sepref_thm keep_watch_heur
+  is \<open>uncurry3 (PR_CONST keep_watch_heur)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply
+    [[goals_limit=1]]
+    if_splits[split]
+    length_rll_def[simp] length_ll_def[simp]
+    watched_by_app_heur_code_refine[sepref_fr_rules]
+  supply undefined_lit_polarity_st_iff[iff]
+    unit_prop_body_wl_D_find_unwatched_heur_inv_def[simp]
+    update_raa_hnr[sepref_fr_rules]
+  unfolding keep_watch_heur_def length_rll_def[symmetric] PR_CONST_def
+  unfolding fmap_rll_def[symmetric] isasat_assn_def
+  unfolding fast_minus_def[symmetric]
+    nth_rll_def[symmetric]
+    SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
+    update_ll_def[symmetric]
+  by sepref           
+
+concrete_definition (in -) keep_watch_heur_code
+  uses isasat_input_bounded_nempty.keep_watch_heur.refine_raw
+  is \<open>(uncurry3 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) keep_watch_heur_code_def
+
+lemmas keep_watch_heur_code[sepref_fr_rules] =
+  keep_watch_heur_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def]
+
+sepref_register isa_set_lookup_conflict_aa set_conflict_wl_heur
+sepref_thm set_conflict_wl_heur_code
+  is \<open>uncurry (PR_CONST set_conflict_wl_heur)\<close>
+  :: \<open>[set_conflict_wl_heur_pre]\<^sub>a
+    nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding set_conflict_wl_heur_def isasat_assn_def IICF_List_Mset.lms_fold_custom_empty
+    set_conflict_wl_heur_pre_def PR_CONST_def
+  by sepref
+
+concrete_definition (in -) set_conflict_wl_heur_code
+  uses isasat_input_bounded_nempty.set_conflict_wl_heur_code.refine_raw
+  is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) set_conflict_wl_heur_code_def
+
+lemmas set_conflict_wl_heur_code[sepref_fr_rules] =
+  set_conflict_wl_heur_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+
+(* sepref_thm set_conflict_wl_heur_fast_code
+  is \<open>uncurry set_conflict_wl_heur\<close>
+  :: \<open>[set_conflict_wl_heur_pre]\<^sub>a
+    uint32_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding set_conflict_wl_heur_def isasat_fast_assn_def IICF_List_Mset.lms_fold_custom_empty
+    set_conflict_wl_heur_pre_def
+  by sepref
+
+concrete_definition (in -) set_conflict_wl_heur_fast_code
+  uses isasat_input_bounded_nempty.set_conflict_wl_heur_fast_code.refine_raw
+  is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) set_conflict_wl_heur_fast_code_def
+
+lemmas set_conflict_wl_heur_fast_code[sepref_fr_rules] =
+  set_conflict_wl_heur_fast_code.refine[OF isasat_input_bounded_nempty_axioms] *)
+
+end
+
+text \<open>Find a less hack-like solution\<close>
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
+
+context isasat_input_bounded_nempty
+begin
+
+context
+begin
+sepref_register update_blit_wl_heur clause_not_marked_to_delete_heur
+sepref_thm unit_propagation_inner_loop_body_wl_heur
+  is \<open>uncurry3 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *a nat_assn *a isasat_assn\<close>
+  supply
+    [[goals_limit=1]]
+    if_splits[split]
+    length_rll_def[simp]
+    watched_by_app_heur_code_refine[sepref_fr_rules]
+  supply undefined_lit_polarity_st_iff[iff]
+    unit_prop_body_wl_D_find_unwatched_heur_inv_def[simp]
+    unit_propagation_inner_loop_wl_loop_D_heur_inv0_def[simp]
+    unit_propagation_inner_loop_wl_loop_D_inv_def[simp]
+    image_image[simp]
+  unfolding unit_propagation_inner_loop_body_wl_heur_def length_rll_def[symmetric] PR_CONST_def
+  unfolding fmap_rll_def[symmetric]
+  unfolding fast_minus_def[symmetric]
+    SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
+  by sepref
+
+(* sepref_thm unit_propagation_inner_loop_body_wl_fast_heur
+  is \<open>uncurry3 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
+  :: \<open>[\<lambda>((L, w), S). w+1 \<le> uint64_max]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow>
+      uint64_nat_assn *a uint64_nat_assn *a isasat_fast_assn\<close>
+  supply
+    if_splits[split]
+    length_rll_def[simp]
+    watched_by_app_heur_code_refine[sepref_fr_rules]
+  supply undefined_lit_polarity_st_iff[iff]
+    unit_prop_body_wl_D_find_unwatched_heur_inv_def[simp] uint64_max_def[simp]
+  unfolding unit_propagation_inner_loop_body_wl_heur_def length_rll_def[symmetric] PR_CONST_def
+  unfolding fmap_rll_def[symmetric]
+  unfolding fast_minus_def[symmetric]
+    SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> zero_uint64_nat_def[symmetric])+
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> one_uint64_nat_def[symmetric])+
+  apply (rewrite in \<open>RETURN (_ + _, _)\<close> one_uint64_nat_def[symmetric])+
+  by sepref *)
+
+end
+
+
+sepref_register unit_propagation_inner_loop_body_wl_D
+
+concrete_definition (in -) unit_propagation_inner_loop_body_wl_heur_code
+   uses isasat_input_bounded_nempty.unit_propagation_inner_loop_body_wl_heur.refine_raw
+   is \<open>(uncurry3 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_heur_code_def
+
+lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_body_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+(* 
+concrete_definition (in -) unit_propagation_inner_loop_body_wl_heur_fast_code
+   uses isasat_input_bounded_nempty.unit_propagation_inner_loop_body_wl_fast_heur.refine_raw
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_heur_fast_code_def
+
+lemmas unit_propagation_inner_loop_body_wl_D_fast_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_body_wl_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms] *)
 
 end
 

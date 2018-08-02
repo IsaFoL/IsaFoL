@@ -1,6 +1,7 @@
 theory IsaSAT_Backtrack
-  imports IsaSAT_Setup Watched_Literals_Heuristics IsaSAT_VMTF
+  imports IsaSAT_Setup IsaSAT_VMTF
 begin
+
 subsection \<open>Backtrack\<close>
 
 context isasat_input_bounded_nempty
@@ -8,7 +9,6 @@ begin
 
 
 subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
-
 
 definition (in -) empty_conflict_and_extract_clause
   :: \<open>(nat,nat) ann_lits \<Rightarrow> nat clause \<Rightarrow> nat clause_l \<Rightarrow>
@@ -22,7 +22,8 @@ where
       )\<close>
 
 definition (in isasat_input_ops) empty_conflict_and_extract_clause_heur_inv where
-  \<open>empty_conflict_and_extract_clause_heur_inv M outl = (\<lambda>(E, C, i). mset (take i C) = mset (take i outl) \<and> 
+  \<open>empty_conflict_and_extract_clause_heur_inv M outl =
+    (\<lambda>(E, C, i). mset (take i C) = mset (take i outl) \<and> 
             length C = length outl \<and> C ! 0 = outl ! 0 \<and> i \<ge> 1 \<and> i \<le> length outl \<and>
             (1 < length (take i C) \<longrightarrow>
                  highest_lit M (mset (tl (take i C)))
@@ -139,7 +140,7 @@ proof -
       \<open>lookup_conflict_remove1_pre (outl ! ba, a)\<close>
     for s a b aa ba
   proof -
-   have
+    have
       mset_aa: \<open>mset (take ba aa) = mset (take ba outl)\<close> and
       aD: \<open>(a, D - mset (take ba outl)) \<in> lookup_clause_rel\<close> and
       l_aa_outl: \<open>length aa = length outl\<close> and
@@ -194,7 +195,7 @@ proof -
                 < get_level M (aa[ba := outl ! ba] ! ba)
              then swap (aa[ba := outl ! ba]) one_uint32_nat ba
              else aa[ba := outl ! ba])) \<longrightarrow>
-     highest_lit M
+      highest_lit M
       (mset
         (tl (take (ba + one_uint32_nat)
               (if get_level M (aa[ba := outl ! ba] ! one_uint32_nat)
@@ -1289,7 +1290,7 @@ proof -
         x1c: \<open>x1c \<noteq> []\<close> and
         hd_x1c: \<open>hd x1c = - lit_of (hd M)\<close> and
         highest: \<open>Suc 0 < length x1c \<Longrightarrow> x2c = get_level M (x1c ! 1) \<and>
-         highest_lit M (mset (tl x1c))
+          highest_lit M (mset (tl x1c))
           (Some (x1c ! Suc 0, get_level M (x1c ! Suc 0)))\<close> and
         highest2: \<open>length x1c = Suc 0 \<Longrightarrow> x2c = 0\<close> and
         \<open>E' = mset x2a\<close> and

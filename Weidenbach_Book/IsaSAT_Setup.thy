@@ -349,11 +349,32 @@ lemma (in isasat_input_ops) vdom_m_simps4[simp]:
      vdom_m (W (L1 := W L1 @ [(i, C1)], L2 := W L2 @ [(i, C2)])) N = vdom_m W N\<close>
  by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
 
-text \<open>The following rule makes the previous not applicable. Therefore we ensure that the previous
-  applies first.\<close>
+text \<open>The following rule makes the previous not applicable. Therefore, we do not mark this lemma as
+simp.\<close>
 lemma (in isasat_input_ops) vdom_m_simps5:
   \<open>i \<notin># dom_m N \<Longrightarrow> vdom_m W (fmupd i C N) = insert i (vdom_m W N)\<close>
   by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
+
+
+lemma  in_watch_list_in_vdom:
+  assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and \<open>w < length (watched_by S L)\<close>
+  shows \<open>fst (watched_by S L ! w) \<in> vdom_m (get_watched_wl S) (get_clauses_wl S)\<close>
+  using assms
+  unfolding vdom_m_def
+  by (cases S) (auto dest: multi_member_split)
+
+
+lemma in_watch_list_in_vdom':
+  assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and \<open>A \<in> set (watched_by S L)\<close>
+  shows \<open>fst A \<in> vdom_m (get_watched_wl S) (get_clauses_wl S)\<close>
+  using assms
+  unfolding vdom_m_def
+  by (cases S) (auto dest: multi_member_split)
+
+lemma in_dom_in_vdom[simp]:
+  \<open>x \<in># dom_m N \<Longrightarrow> x \<in> vdom_m W N\<close>
+  unfolding vdom_m_def
+  by (auto dest: multi_member_split)
 
 definition vdom_m_heur :: \<open>((nat \<times> _) list list) \<Rightarrow> (nat, 'b) fmap \<Rightarrow> nat set\<close> where
   \<open>vdom_m_heur W N = \<Union>(((`) fst) ` set ` (!) W ` nat_of_lit ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l) \<union> set_mset (dom_m N)\<close>
@@ -383,6 +404,14 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     lcount = size (learned_clss_lf N) \<and>
     vdom_m W N \<subseteq> set vdom
   }\<close>
+
+lemma twl_st_heur_state_simp:
+  assumes \<open>(S, S') \<in> twl_st_heur\<close>
+  shows
+     \<open>get_trail_wl_heur S = get_trail_wl S'\<close> and
+     twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> watched_by_int S C = watched_by S' C\<close> and
+     \<open>literals_to_update_wl_heur S = literals_to_update_wl S'\<close>
+  using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
 
 definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur' N = {(S, S'). (S, S') \<in> twl_st_heur \<and> dom_m (get_clauses_wl S') = N}\<close>
