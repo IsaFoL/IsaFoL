@@ -287,19 +287,32 @@ lemma (in isasat_input_ops) isasat_fast_assn_W_list:
   \<open>isasat_fast_assn = hr_comp twl_st_heur_W_list_fast_assn twl_st_wl_heur_W_list_rel\<close>
   unfolding isasat_fast_assn_def twl_st_heur_W_list_fast_assn_def twl_st_wl_heur_W_list_rel_def
   by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn) *)
+find_theorems "(+)" uint32_nat_assn
+term rev_trail_nth
+
+lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
+  \<open>select_and_remove_from_literals_to_update_wl_heur =
+   (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, lcount). do {
+      ASSERT(j < length M');
+      ASSERT(j + 1 \<le> uint32_max);
+      let L = - rev_trail_nth M' j;
+      RETURN ((M', N', D', j+1, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, lcount), L)
+     })
+    \<close>
+  unfolding select_and_remove_from_literals_to_update_wl_heur_def
+  apply (intro ext)
+  apply (rename_tac S; case_tac S)
+  by (auto intro!: ext simp: rev_trail_nth_def Let_def)
 
 sepref_thm select_and_remove_from_literals_to_update_wl_code
   is \<open>select_and_remove_from_literals_to_update_wl_heur\<close>
-  :: \<open>[\<lambda>S. \<not>literals_to_update_wl_empty_heur' S]\<^sub>a
-      isasat_assn\<^sup>d \<rightarrow> isasat_assn *a unat_lit_assn\<close>
-  supply [[goals_limit=1]]
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn *a unat_lit_assn\<close>
+  supply [[goals_limit=1]] uint32_nat_assn_plus[sepref_fr_rules]
   unfolding select_and_remove_from_literals_to_update_wl_heur_alt_def isasat_assn_def
-    one_uint32_nat_def
+    one_uint32_nat_def[symmetric]
   supply [[goals_limit = 1]]
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref
 
 concrete_definition (in -) select_and_remove_from_literals_to_update_wl_code
@@ -331,156 +344,8 @@ prepare_code_thms (in -) select_and_remove_from_literals_to_update_wl_fast_code_
 
 lemmas select_and_remove_from_literals_to_update_wl_fast_code_refine[sepref_fr_rules] =
    select_and_remove_from_literals_to_update_wl_fast_code.refine[of \<A>\<^sub>i\<^sub>n,
-     OF isasat_input_bounded_nempty_axioms] *) *)
+     OF isasat_input_bounded_nempty_axioms] *)
 
-definition (in -)literals_to_update_wl_empty_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close>  where
-  \<open>literals_to_update_wl_empty_heur S \<longleftrightarrow> literals_to_update_wl_heur S \<ge> length (get_trail_wl_heur S)\<close>
-
-lemma
-  select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl:
-  \<open>(RETURN o select_and_remove_from_literals_to_update_wl_heur',
-    select_and_remove_from_literals_to_update_wl_heur) \<in>
-    [\<lambda>S. \<not>literals_to_update_wl_empty_heur S]\<^sub>f
-      (twl_st_wl_heur_W_list_rel) \<rightarrow>
-       \<langle>(twl_st_wl_heur_W_list_rel) \<times>\<^sub>r Id\<rangle>nres_rel\<close>
-  unfolding select_and_remove_from_literals_to_update_wl_heur_def
-    get_literals_to_update_wl_heur_W_list_def
-    get_literals_to_update_wl_def
-    literals_to_update_wl_empty_heur_def literals_to_update_wl_empty_heur_def
-    select_and_remove_from_literals_to_update_wl_heur'_def literals_to_update_wl_empty_heur_def
-  apply (intro frefI nres_relI)
-  apply (rename_tac x y, case_tac x, case_tac y,
-      case_tac \<open>literals_to_update_wl_empty_heur y\<close>)
-  unfolding get_literals_to_update_wl_def get_literals_to_update_wl_heur_W_list_def
-  by (auto intro!: RETURN_SPEC_refine simp: nempty_list_mset_rel_iff
-      twl_st_wl_heur_W_list_rel_def
-      literals_to_update_wl_empty_heur_def)
-
-theorem
-  select_and_remove_from_literals_to_update_wl_code_select_and_remove_from_literals_to_update_wl
-  [sepref_fr_rules]:
-  \<open>(select_and_remove_from_literals_to_update_wl_code,
-     select_and_remove_from_literals_to_update_wl_heur)
-    \<in> [\<lambda>S. \<not> literals_to_update_wl_empty_heur S]\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn *a
-          unat_lit_assn\<close>
-    (is ?slow is \<open>?fun \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-  (* select_and_remove_from_literals_to_update_wl_fast_code_select_and_remove_from_literals_to_update_wl
-  [sepref_fr_rules]:
-  \<open>(select_and_remove_from_literals_to_update_wl_fast_code,
-     select_and_remove_from_literals_to_update_wl_heur)
-    \<in> [\<lambda>S. \<not> literals_to_update_wl_empty_heur S]\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn *a
-          unat_lit_assn\<close>
-    (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>) *)
-proof -
-  have H: \<open>?fun
-    \<in> [comp_PRE twl_st_wl_heur_W_list_rel (\<lambda>S. \<not> literals_to_update_wl_empty_heur S)
-     (\<lambda>_ S. \<not> literals_to_update_wl_empty_heur' S)
-     (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_heur_W_list_assn\<^sup>d)
-                    twl_st_wl_heur_W_list_rel \<rightarrow> hr_comp (twl_st_heur_W_list_assn *a unat_lit_assn)
-                                                  (twl_st_wl_heur_W_list_rel \<times>\<^sub>f nat_lit_lit_rel)\<close>
-     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF select_and_remove_from_literals_to_update_wl_code_refine
-     select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl]
-    .
-  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    apply (cases x)
-    using that unfolding comp_PRE_def twl_st_heur_def literals_to_update_wl_empty_heur_def
-      literals_to_update_wl_empty_def twl_st_wl_heur_W_list_rel_def
-      literals_to_update_wl_empty_heur'_def
-    by (auto simp: image_image map_fun_rel_def Nil_list_mset_rel_iff)
-  have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    isasat_assn_W_list[symmetric]
-    by (auto simp: hrp_comp_def hr_comp_def)
-  have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    isasat_assn_W_list[symmetric] hr_comp_prod_conv
-    by (auto simp: hrp_comp_def hr_comp_def)
-  show ?slow
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f PR_CONST_def apply assumption
-    using pre ..
-  (* have H: \<open>?cfast
-    \<in> [comp_PRE twl_st_wl_heur_W_list_rel (\<lambda>S. \<not> literals_to_update_wl_empty_heur S)
-     (\<lambda>_ S. \<not> literals_to_update_wl_empty_heur' S)
-     (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_heur_W_list_fast_assn\<^sup>d)
-                    twl_st_wl_heur_W_list_rel \<rightarrow>
-     hr_comp (twl_st_heur_W_list_fast_assn *a unat_lit_assn)
-                                                  (twl_st_wl_heur_W_list_rel \<times>\<^sub>f nat_lit_lit_rel)\<close>
-     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF select_and_remove_from_literals_to_update_wl_fast_code_refine
-     select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl]
-    .
-  have im: \<open>?im' = ?imfast\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    isasat_fast_assn_W_list[symmetric]
-    by (auto simp: hrp_comp_def hr_comp_def)
-  have f: \<open>?f' = ?ffast\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    isasat_fast_assn_W_list[symmetric] hr_comp_prod_conv
-    by (auto simp: hrp_comp_def hr_comp_def)
-  show ?fast
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f PR_CONST_def apply assumption
-    using pre .. *)
-qed
-
-sepref_thm literals_to_update_wl_empty_heur_code
-  is \<open>RETURN o literals_to_update_wl_empty_heur'\<close>
-  :: \<open>twl_st_heur_W_list_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding select_and_remove_from_literals_to_update_wl_heur'_def twl_st_heur_W_list_assn_def
-    literals_to_update_wl_empty_heur'_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-concrete_definition (in -) literals_to_update_wl_empty_heur_code
-   uses isasat_input_bounded_nempty.literals_to_update_wl_empty_heur_code.refine_raw
-   is \<open>(?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) literals_to_update_wl_empty_heur_code_def
-
-lemmas literals_to_update_wl_empty_heur_code_refine[sepref_fr_rules] =
-   literals_to_update_wl_empty_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-
-(* sepref_thm literals_to_update_wl_empty_heur_fast_code
-  is \<open>RETURN o literals_to_update_wl_empty_heur'\<close>
-  :: \<open>twl_st_heur_W_list_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding select_and_remove_from_literals_to_update_wl_heur'_def twl_st_heur_W_list_fast_assn_def
-    literals_to_update_wl_empty_heur'_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-concrete_definition (in -) literals_to_update_wl_empty_heur_fast_code
-   uses isasat_input_bounded_nempty.literals_to_update_wl_empty_heur_fast_code.refine_raw
-   is \<open>(?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) literals_to_update_wl_empty_heur_fast_code_def
-
-lemmas literals_to_update_wl_empty_heur_fast_code_refine[sepref_fr_rules] =
-   literals_to_update_wl_empty_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-*)
-lemma literals_to_update_wl_empty_heur_literals_to_update_wl_empty:
-  \<open>(RETURN o literals_to_update_wl_empty_heur', RETURN o literals_to_update_wl_empty_heur) \<in>
-    twl_st_wl_heur_W_list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
-  unfolding literals_to_update_wl_empty_heur_def literals_to_update_wl_empty_heur_def
-    literals_to_update_wl_empty_heur'_def
-  apply (intro frefI nres_relI)
-  apply (rename_tac x y, case_tac x, case_tac y)
-  by (auto simp: Nil_list_mset_rel_iff empty_list_mset_rel_iff
-      twl_st_wl_heur_W_list_rel_def)
-
-lemma literals_to_update_wl_empty_heur_code_literals_to_update_wl_empty[sepref_fr_rules]:
-  \<open>(literals_to_update_wl_empty_heur_code, RETURN \<circ> literals_to_update_wl_empty_heur)
-     \<in> isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using literals_to_update_wl_empty_heur_code_refine[FCOMP
-      literals_to_update_wl_empty_heur_literals_to_update_wl_empty]
-  unfolding isasat_assn_W_list[symmetric]
-  .
 
 (* 
 lemma literals_to_update_wl_empty_heur_fast_code_literals_to_update_wl_empty[sepref_fr_rules]:
@@ -491,12 +356,37 @@ lemma literals_to_update_wl_empty_heur_fast_code_literals_to_update_wl_empty[sep
   unfolding isasat_fast_assn_W_list[symmetric]
   . *)
 
-lemma literals_to_update_wl_literals_to_update_wl_empty:
-  \<open>literals_to_update_wl_heur S = {#} \<longleftrightarrow> literals_to_update_wl_empty_heur S\<close>
-  by (cases S) (auto simp: literals_to_update_wl_empty_def literals_to_update_wl_empty_heur_def)
+definition (in -) literals_to_update_wl_literals_to_update_wl_empty :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>literals_to_update_wl_literals_to_update_wl_empty S \<longleftrightarrow>
+    literals_to_update_wl_heur S < length (get_trail_wl_heur S)\<close>
 
-sepref_register unit_propagation_inner_loop_wl_D_heur
+
+lemma literals_to_update_wl_literals_to_update_wl_empty_alt_def:
+  \<open>literals_to_update_wl_literals_to_update_wl_empty =
+    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, lcount). j < length_u M')\<close>
+  unfolding literals_to_update_wl_literals_to_update_wl_empty_def
+  by (auto intro!: ext)
+
+sepref_thm literals_to_update_wl_literals_to_update_wl_empty_code
+  is \<open>RETURN o literals_to_update_wl_literals_to_update_wl_empty\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding literals_to_update_wl_literals_to_update_wl_empty_alt_def
+    isasat_assn_def
+  by sepref
+
+concrete_definition (in -) literals_to_update_wl_literals_to_update_wl_empty_code
+   uses isasat_input_bounded_nempty.literals_to_update_wl_literals_to_update_wl_empty_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) literals_to_update_wl_literals_to_update_wl_empty_code_def
+
+lemmas literals_to_update_wl_literals_to_update_wl_empty_code_hnr[sepref_fr_rules] =
+   literals_to_update_wl_literals_to_update_wl_empty_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_register literals_to_update_wl_literals_to_update_wl_empty
   select_and_remove_from_literals_to_update_wl_heur
+  unit_propagation_inner_loop_wl_D_heur
 
 sepref_thm unit_propagation_outer_loop_wl_D
   is \<open>PR_CONST unit_propagation_outer_loop_wl_D_heur\<close>
@@ -504,7 +394,7 @@ sepref_thm unit_propagation_outer_loop_wl_D
   supply [[goals_limit=1]]
   apply (subst PR_CONST_def)
   unfolding unit_propagation_outer_loop_wl_D_heur_def
-    literals_to_update_wl_literals_to_update_wl_empty
+    literals_to_update_wl_literals_to_update_wl_empty_def[symmetric]
   by sepref
 
 concrete_definition (in -) unit_propagation_outer_loop_wl_D

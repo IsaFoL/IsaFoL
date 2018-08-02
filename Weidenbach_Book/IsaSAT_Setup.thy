@@ -489,8 +489,7 @@ where
     phase_saving \<phi> \<and>
     no_dup M \<and>
     cach_refinement_empty cach \<and>
-    out_learned_confl M D outl \<and>
-    dom_m N \<subseteq># mset vdom \<and>
+    out_learned M D outl \<and>
     lcount = size (learned_clss_lf N) \<and>
     vdom_m W N \<subseteq> set vdom
   }\<close>

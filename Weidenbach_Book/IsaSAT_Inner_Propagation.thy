@@ -2308,18 +2308,6 @@ where
      -lit_of (rev (get_trail_wl_heur S) ! (literals_to_update_wl_heur S)))
   }\<close>
 
-lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
-  \<open>select_and_remove_from_literals_to_update_wl_heur =
-   (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, lcount). do {
-        ASSERT(j < length M');
-        ASSERT(j + 1 \<le> uint32_max);
-         RETURN ((M', N', D', j+1, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, lcount), - rev_trail_nth M' j)
-     })
-    \<close>
-  unfolding select_and_remove_from_literals_to_update_wl_heur_def
-  by (auto intro!: ext simp: rev_trail_nth_def)
 
 definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D_heur_inv
  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close>

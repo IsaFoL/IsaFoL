@@ -1,6 +1,68 @@
 theory IsaSAT_Backtrack
   imports IsaSAT_Setup IsaSAT_VMTF
 begin
+(* TODO Move *)
+context isasat_input_ops
+begin
+
+lemma isa_trail_nth_rev_trail_nth_no_CS:
+  \<open>(uncurry isa_trail_nth, uncurry (RETURN oo rev_trail_nth)) \<in> 
+    [\<lambda>(M, i). i < length M]\<^sub>f trail_pol_no_CS \<times>\<^sub>r nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: isa_trail_nth_def rev_trail_nth_def trail_pol_def ann_lits_split_reasons_def
+      trail_pol_no_CS_def
+    intro!: ASSERT_leI)
+
+lemma isa_trail_nth_hnr[sepref_fr_rules]:
+  \<open>(uncurry isa_trail_nth_code, uncurry (RETURN \<circ>\<circ> rev_trail_nth))
+    \<in> [\<lambda>(a, b). b < length a]\<^sub>a (hr_comp trail_pol_assn' trail_pol_no_CS)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  using isa_trail_nth_code.refine[FCOMP isa_trail_nth_rev_trail_nth_no_CS]
+  by simp
+
+end
+
+context isasat_input_bounded
+begin
+
+lemma trail_pol_no_CS_alt_def:
+  \<open>trail_pol_no_CS = {((M', xs, lvls, reasons, k, cs), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<and>
+    no_dup M \<and>
+    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length xs \<and> xs ! (nat_of_lit L) = polarity M L) \<and>
+    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < length lvls \<and> lvls ! (atm_of L) = get_level M L) \<and>
+    (\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<and>
+    control_stack (take (count_decided M) cs) M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+    length M < uint32_max \<and>
+    length M \<le> uint32_max div 2 + 1 \<and>
+    count_decided M < uint32_max \<and>
+    length M' = length M \<and>
+    M' = map lit_of (rev M)
+   }\<close>
+proof -
+  have [intro!]: \<open>length M < n \<Longrightarrow> count_decided M < n\<close> for M n
+    using length_filter_le[of is_decided M]
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def uint_max_def count_decided_def
+        simp del: length_filter_le
+        dest: length_trail_uint_max_div2)
+  show ?thesis
+    unfolding trail_pol_no_CS_def
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def uint_max_def ann_lits_split_reasons_def
+        dest: length_trail_uint_max_div2)
+qed
+
+(* TODO: potentially needs a different name! *)
+lemma isa_length_trail_length_u_no_CS:
+  \<open>(isa_length_trail, RETURN o length_u) \<in> trail_pol_no_CS \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+  (auto simp: isa_length_trail_def trail_pol_no_CS_alt_def ann_lits_split_reasons_def
+    intro!: ASSERT_leI)
+
+lemma isa_length_trail_hnr[sepref_fr_rules]:
+  \<open>(isa_length_trail_code, RETURN \<circ> op_list_length) \<in> (hr_comp trail_pol_assn' trail_pol_no_CS)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  using isa_length_trail_code.refine[FCOMP isa_length_trail_length_u_no_CS]
+  unfolding op_list_length_def length_u_def .
+
+end
+(* End Move *)
 
 subsection \<open>Backtrack\<close>
 
@@ -767,7 +829,8 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [(i, L')]];
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L)]];
       lbd \<leftarrow> lbd_empty lbd;
-      RETURN (Propagated (- L) i # M, N, D, {#L#}, W, vm, \<phi>, zero_uint32_nat,
+      let j = length M;
+      RETURN (Propagated (- L) i # M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
          cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
           ccount + one_uint32, vdom @ [nat_of_uint32_conv i], Suc lcount)
     })\<close>
@@ -789,7 +852,8 @@ where
       vm \<leftarrow> flush M vm;
       glue \<leftarrow> get_LBD lbd;
       lbd \<leftarrow> lbd_empty lbd;
-      RETURN (Propagated (- L) 0 # M, N, D, {#L#}, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+      let j = length M;
+      RETURN (Propagated (- L) 0 # M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
          ema_update_fast fema glue, ema_update_slow sema glue,
         ccount + one_uint32, vdom)})\<close>
 
@@ -863,7 +927,6 @@ definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<time
     M = M' \<and>
     valid_arena N' N (set vdom) \<and>
     (D', None) \<in> option_lookup_clause_rel \<and>
-    Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf M \<and>
     phase_saving \<phi> \<and>
@@ -913,7 +976,7 @@ proof -
     by (cases S; cases S') (blast intro: exI[of _ S'])
   have shorter:
      \<open>extract_shorter_conflict_list_heur_st S'
-       \<le> \<Down> {((T', n, C), T). (T', del_conflict_wl T) \<in> twl_st_heur \<and>
+       \<le> \<Down> {((T', n, C), T). (T', del_conflict_wl T) \<in> twl_st_heur_no_clvls  \<and>
               n = get_maximum_level (get_trail_wl T)
                   (remove1_mset (-lit_of(hd (get_trail_wl T))) (the (get_conflict_wl T))) \<and>
               mset C = the (get_conflict_wl T) \<and>
@@ -941,8 +1004,8 @@ proof -
     obtain M N D NE UE Q W where
       S: \<open>S = (M, N, D, NE, UE, Q, W)\<close>
       by (cases S)
-    obtain W' vm \<phi> clvls cach lbd outl stats cc cc2 cc3 vdom lcount D' arena b where
-      S': \<open>S' = (M, arena, (b, D'), Q, W', vm, \<phi>, clvls, cach, lbd, outl, stats, cc, cc2, cc3, vdom,
+    obtain W' vm \<phi> clvls cach lbd outl stats cc cc2 cc3 vdom lcount D' arena b Q' where
+      S': \<open>S' = (M, arena, (b, D'), Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, cc, cc2, cc3, vdom,
         lcount)\<close>
       using S'_S by (cases S') (auto simp: twl_st_heur_def S)
     have
@@ -1229,12 +1292,12 @@ proof -
        done
     qed
 
-    have final: \<open>(((M, arena, x1b, Q, W', vm, \<phi>, clvls, empty_cach x1a, lbd, take 1 x2a,
+    have final: \<open>(((M, arena, x1b, Q', W', vm, \<phi>, clvls, empty_cach x1a, lbd, take 1 x2a,
             stats, cc, cc2, cc3, vdom, lcount),
             x2c, x1c),
           M, N, Da, NE, UE, Q, W)
           \<in> {((T', n, C), T).
-            (T', del_conflict_wl T) \<in> twl_st_heur \<and>
+            (T', del_conflict_wl T) \<in> twl_st_heur_no_clvls \<and>
             n =
             get_maximum_level (get_trail_wl T)
               (remove1_mset (- lit_of (hd (get_trail_wl T)))
@@ -1242,7 +1305,7 @@ proof -
             mset C = the (get_conflict_wl T) \<and>
             get_conflict_wl T \<noteq> None \<and>
             equality_except_conflict_wl T (M, N, D, NE, UE, Q, W) \<and>
-            get_clauses_wl_heur T' = get_clauses_wl_heur (M, arena, (b, D'), Q, W', vm, \<phi>, clvls, cach, lbd, outl, stats, cc,
+            get_clauses_wl_heur T' = get_clauses_wl_heur (M, arena, (b, D'), Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, cc,
               cc2, cc3, vdom, lcount)  \<and>
             (1 < length C \<longrightarrow>
               highest_lit (get_trail_wl T) (mset (tl C))
@@ -1329,18 +1392,18 @@ proof -
       then have max_lvl_le:
          \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the Da)) < count_decided M\<close>
         using get_maximum_level_mono[OF Da_D', of M] by auto
-      have \<open>((M, arena, x1b, Q, W', vm, \<phi>, clvls, empty_cach x1a, lbd, take (Suc 0) x2a,
+      have \<open>((M, arena, x1b, Q', W', vm, \<phi>, clvls, empty_cach x1a, lbd, take (Suc 0) x2a,
           stats, cc, cc2, cc3, vdom, lcount),
         del_conflict_wl (M, N, Da, NE, UE, Q, W))
-        \<in> twl_st_heur\<close>
-        using S'_S x1b_None cach out
-        by (auto simp: twl_st_heur_def del_conflict_wl_def S S')
+        \<in> twl_st_heur_no_clvls\<close>
+        using S'_S x1b_None cach out unfolding twl_st_heur_no_clvls_def
+        by (auto simp: twl_st_heur_def del_conflict_wl_def S S' twl_st_heur_no_clvls_def)
       moreover have x2c: \<open>x2c = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the Da))\<close>
         using highest highest2 x1c_nempty hd_x1c
         by (cases \<open>length x1c = Suc 0\<close>; cases x1c)
           (auto simp: highest_lit_def Da mset_tl)
       moreover have \<open>find_decomp_wl_pre
-          (x2c, M, arena, x1b, Q, W', vm, \<phi>, clvls, empty_cach x1a, lbd,
+          (x2c, M, arena, x1b, Q', W', vm, \<phi>, clvls, empty_cach x1a, lbd,
            take (Suc 0) x2a, stats, cc, cc2, cc3, vdom, lcount)\<close>
         using vm n_d M_\<L>\<^sub>i\<^sub>n highest max_lvl_le
         unfolding find_decomp_wl_pre_def find_decomp_w_ns_pre_def
@@ -1391,15 +1454,15 @@ proof -
     obtain M N D NE UE Q W where
       T': \<open>T' = (M, N, D, NE, UE, Q, W)\<close>
       by (cases T')
-    obtain W' vm \<phi> clvls cach lbd outl stats arena D' where
-      T: \<open>T = (M, arena, D', Q, W', vm, \<phi>, clvls, cach, lbd, outl, stats)\<close>
-      using TT' by (cases T) (auto simp: twl_st_heur_def T' del_conflict_wl_def)
+    obtain W' vm \<phi> clvls cach lbd outl stats arena D' Q' where
+      T: \<open>T = (M, arena, D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats)\<close>
+      using TT' by (cases T) (auto simp: twl_st_heur_no_clvls_def T' del_conflict_wl_def)
     have n: \<open>n = get_maximum_level M (remove1_mset (- lit_of (hd M)) (mset C))\<close> and
       eq: \<open>equality_except_conflict_wl T' S'\<close> and
       \<open>the D = mset C\<close> \<open>D \<noteq> None\<close> and
       \<open>no_dup M\<close> and
       clss_eq: \<open>get_clauses_wl_heur S = arena\<close>
-      using TT' by (auto simp: T T' twl_st_heur_def)
+      using TT' by (auto simp: T T' twl_st_heur_no_clvls_def)
     have [simp]: \<open>get_trail_wl S' = M\<close>
       using eq \<open>the D = mset C\<close> \<open>D \<noteq> None\<close> by (cases S'; auto simp: T')
     have H: \<open>\<exists>s'\<in>{S. \<exists>K M2 M1.
@@ -1409,11 +1472,11 @@ proof -
                     (remove1_mset (- lit_of (hd (get_trail_wl S'))) (the D)) + 1}.
          (s, s') \<in> ?find_decomp\<close>
          (is \<open>\<exists>s' \<in> ?H. _\<close>)
-      if s: \<open>s \<in> Collect (find_decomp_wl_nlit_prop n (M, arena, D', Q, W', vm, \<phi>, clvls, cach, lbd, outl, stats))\<close>
+      if s: \<open>s \<in> Collect (find_decomp_wl_nlit_prop n (M, arena, D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats))\<close>
       for s :: \<open>twl_st_wl_heur\<close>
     proof -
       obtain K M2 M1 vm' lbd' where
-        s: \<open>s = (M1, arena, D',  Q, W', vm', \<phi>, clvls, cach, lbd', outl, stats)\<close> and
+        s: \<open>s = (M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd', outl, stats)\<close> and
         decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
         n_M_K: \<open>get_level M K = Suc n\<close> and
         vm': \<open>vm' \<in> vmtf M1\<close>
@@ -1426,9 +1489,9 @@ proof -
       have \<open>no_dup M1\<close>
         using \<open>no_dup M\<close> decomp by (auto dest!: get_all_ann_decomposition_exists_prepend
             dest: no_dup_appendD)
-      have twl: \<open>((M1, arena, D', Q, W', vm', \<phi>, clvls, cach, lbd', outl, stats),
+      have twl: \<open>((M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd', outl, stats),
            M1, N, D, NE, UE, Q, W) \<in> twl_st_heur_bt\<close>
-        using TT' vm' \<open>no_dup M1\<close> by (auto simp: T T' twl_st_heur_bt_def twl_st_heur_def
+        using TT' vm' \<open>no_dup M1\<close> by (auto simp: T T' twl_st_heur_bt_def twl_st_heur_no_clvls_def
             del_conflict_wl_def)
       have \<open>equality_except_trail_wl (M1, N, D, NE, UE, Q, W) T'\<close>
         using eq by (auto simp: T')
@@ -1531,7 +1594,7 @@ proof -
     for S S' TnC T' T nC n C U U' L'
   proof -
     have
-      TT': \<open>(T, del_conflict_wl T') \<in> twl_st_heur\<close> and
+      TT': \<open>(T, del_conflict_wl T') \<in> twl_st_heur_no_clvls\<close> and
       n: \<open>n = get_maximum_level (get_trail_wl T')
           (remove1_mset (- lit_of (hd (get_trail_wl T'))) (mset C))\<close> and
       T_C: \<open>get_conflict_wl T' = Some (mset C)\<close> and
@@ -1576,8 +1639,8 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> \<open>1 < length C\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T')
-    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom lcount arena D' where
-        U: \<open>U = (M1, arena, D', Q, W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
+    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom lcount arena D' Q' where
+        U: \<open>U = (M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
            vdom, lcount)\<close> and
         vm': \<open>vm' \<in> vmtf M1\<close> and
         \<phi>: \<open>phase_saving \<phi>\<close> and
@@ -1638,7 +1701,8 @@ proof -
           let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [(i, L')]];
           let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L)]];
           lbd \<leftarrow> lbd_empty lbd;
-          RETURN (Propagated (- L) i # M, N, D, {#L#}, W, vm, \<phi>, zero_uint32_nat,
+          let j = length_u M;
+          RETURN (Propagated (- L) i # M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
             cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
               ccount + one_uint32, vdom @ [nat_of_uint32_conv i], Suc lcount)
       })\<close>
@@ -1791,7 +1855,7 @@ proof -
     for S S' TnC T' T nC n C U U'
   proof -
     have
-      TT': \<open>(T, del_conflict_wl T') \<in> twl_st_heur\<close> and
+      TT': \<open>(T, del_conflict_wl T') \<in> twl_st_heur_no_clvls\<close> and
       n: \<open>n = get_maximum_level (get_trail_wl T')
           (remove1_mset (- lit_of (hd (get_trail_wl T'))) (mset C))\<close> and
       T_C: \<open>get_conflict_wl T' = Some (mset C)\<close> and
@@ -1832,8 +1896,8 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T')
-    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom lcount arena D' where
-        U: \<open>U = (M1, arena, D', Q, W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
+    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom lcount arena D' Q' where
+        U: \<open>U = (M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
            vdom, lcount)\<close> and
         vm': \<open>vm' \<in> vmtf M1\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
@@ -1986,7 +2050,8 @@ definition extract_shorter_conflict_list_lookup_heur_pre where
 
 
 subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
-
+(* length_u_def shoudl be put in the definition; moreover, op_length should be replaced by
+length_u *)
 sepref_thm propagate_bt_wl_D_code
   is \<open>uncurry2 (PR_CONST propagate_bt_wl_D_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
@@ -1996,7 +2061,7 @@ sepref_thm propagate_bt_wl_D_code
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric] nat_of_uint32_conv_def
     cons_trail_Propagated_def[symmetric] PR_CONST_def
-  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
+    length_u_def[symmetric]
   by sepref \<comment> \<open>slow\<close>
 
 concrete_definition (in -) propagate_bt_wl_D_code
@@ -2036,8 +2101,7 @@ sepref_thm propagate_unit_bt_wl_D_code
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
   supply [[goals_limit = 1]] flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
   unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_assn_def
-  PR_CONST_def
-  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
+  PR_CONST_def length_u_def[symmetric]
   by sepref
 
 concrete_definition (in -) propagate_unit_bt_wl_D_code
@@ -2188,7 +2252,7 @@ sepref_register find_lit_of_max_level_wl
    extract_shorter_conflict_list_heur_st lit_of_hd_trail_st_heur propagate_bt_wl_D_heur
    propagate_unit_bt_wl_D_int
 sepref_register backtrack_wl_D
-find_theorems extract_shorter_conflict_list_heur_st
+
 sepref_thm backtrack_wl_D_code
   is \<open>PR_CONST backtrack_wl_D_nlit_heur\<close>
   :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
