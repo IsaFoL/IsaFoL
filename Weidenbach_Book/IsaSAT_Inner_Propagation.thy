@@ -199,7 +199,6 @@ definition (in isasat_input_ops) find_unwatched_wl_st_heur_pre where
   \<open>find_unwatched_wl_st_heur_pre =
      (\<lambda>(S, i). arena_is_valid_clause_idx (get_clauses_wl_heur S) i)\<close>
 
-thm find_unwatched_wl_st_def
 definition (in isasat_input_ops) find_unwatched_wl_st
   :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
 \<open>find_unwatched_wl_st = (\<lambda>(M, N, D, Q, W, vm, \<phi>) i. do {
@@ -377,7 +376,7 @@ where
     let n = zero_uint32_nat;
     ASSERT(curry6 isa_set_lookup_conflict_aa_pre M N C D n lbd outl);
     (D, clvls, lbd, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n lbd outl;
-    RETURN (M, N, D, {#}, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_conflict stats, fema, sema)})\<close>
+    RETURN (M, N, D, length_u M, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_conflict stats, fema, sema)})\<close>
 
 
 definition (in isasat_input_ops) update_clause_wl_code_pre where
@@ -605,7 +604,7 @@ where
     fema, sema). do {
       ASSERT(swap_lits_pre C 0 (fast_minus 1 i) N);
       let N' = swap_lits C 0 (fast_minus 1 i) N in
-      RETURN (Propagated L' C # M, N', D, add_mset (-L') Q, W, vm, \<phi>, clvls, cach, lbd, outl,
+      RETURN (Propagated L' C # M, N', D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
          incr_propagation stats, fema, sema)
   })\<close>
 
@@ -691,7 +690,7 @@ definition (in isasat_input_ops) keep_watch_heur where
      ASSERT(nat_of_lit L < length W);
      ASSERT(i < length (W ! nat_of_lit L));
      ASSERT(j < length (W ! nat_of_lit L));
-     RETURN (M, N,  D, Q, W[nat_of_lit L := (W!(nat_of_lit L))[i := W ! (nat_of_lit L) ! j]], vm)
+     RETURN (M, N, D, Q, W[nat_of_lit L := (W!(nat_of_lit L))[i := W ! (nat_of_lit L) ! j]], vm)
    })\<close>
 
 definition (in isasat_input_ops) update_blit_wl_heur :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow>
@@ -988,10 +987,16 @@ definition (in isasat_input_ops) update_blit_wl_heur_pre where
   apply (auto simp: update_blit_wl_heur_def update_blit_wl_def twl_st_heur'_def keep_watch_heur_pre_alt_def
        twl_st_heur_def map_fun_rel_def update_blit_wl_heur_pre_def
       simp: vdom_m_update_subset)
-  subgoal for aa ab ac ad bd af ag ah ai aj be bf ak al am ao av aw bi bj bk bl ay az bp
-       x
-    apply (subgoal_tac \<open>vdom_m (bp(aw := bp aw[bj := (bi, bl)])) ay \<subseteq>
-      vdom_m bp ay\<close>)
+  subgoal for aa ab ac ad bd ae af ag ah ai aj be bf ak al am ao av aw bi bj bk ay az
+       bp x
+    apply (subgoal_tac \<open>vdom_m (az(av := az av[bi := (aw, bk)])) ay \<subseteq> vdom_m az ay\<close>)
+    apply fast
+    apply (rule vdom_m_update_subset')
+    apply auto
+    done
+  subgoal for aa ab ac ad bd ae af ag ah ai aj be bf ak al am ao av aw bi bj bk bl ay az
+       bp x
+    apply (subgoal_tac \<open>vdom_m (bp(aw := bp aw[bj := (bi, bl)])) ay \<subseteq> vdom_m bp ay\<close>)
     apply fast
     apply (rule vdom_m_update_subset')
     apply auto
@@ -2293,12 +2298,28 @@ lemma unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D:
   apply (rule cut_watch_list_heur_cut_watch_list_heur[of \<D>, THEN fref_to_Down_curry3])
   by auto
 
-definition (in isasat_input_ops)  select_and_remove_from_literals_to_update_wl_heur
+definition (in isasat_input_ops) select_and_remove_from_literals_to_update_wl_heur
    :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat literal) nres\<close>
 where
-  \<open>select_and_remove_from_literals_to_update_wl_heur S = SPEC(\<lambda>(S', L).
-        L \<in># literals_to_update_wl_heur S \<and>
-     S' = set_literals_to_update_wl_heur (literals_to_update_wl_heur S - {#L#}) S)\<close>
+  \<open>select_and_remove_from_literals_to_update_wl_heur S = do {
+    ASSERT(literals_to_update_wl_heur S < length (get_trail_wl_heur S));
+    ASSERT(literals_to_update_wl_heur S + 1 \<le> uint32_max);
+    RETURN (set_literals_to_update_wl_heur (literals_to_update_wl_heur S + 1) S,
+     -lit_of (rev (get_trail_wl_heur S) ! (literals_to_update_wl_heur S)))
+  }\<close>
+
+lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
+  \<open>select_and_remove_from_literals_to_update_wl_heur =
+   (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, lcount). do {
+        ASSERT(j < length M');
+        ASSERT(j + 1 \<le> uint32_max);
+         RETURN ((M', N', D', j+1, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, lcount), - rev_trail_nth M' j)
+     })
+    \<close>
+  unfolding select_and_remove_from_literals_to_update_wl_heur_def
+  by (auto intro!: ext simp: rev_trail_nth_def)
 
 definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D_heur_inv
  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close>
@@ -2311,9 +2332,9 @@ definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D_heur
    :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>unit_propagation_outer_loop_wl_D_heur S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0\<^esup>
-      (\<lambda>S. literals_to_update_wl_heur S \<noteq> {#})
+      (\<lambda>S. literals_to_update_wl_heur S < length (get_trail_wl_heur S))
       (\<lambda>S. do {
-        ASSERT(literals_to_update_wl_heur S \<noteq> {#});
+        ASSERT(literals_to_update_wl_heur S < length (get_trail_wl_heur S));
         (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl_heur S;
         unit_propagation_inner_loop_wl_D_heur L S'
       })
@@ -2321,12 +2342,49 @@ definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D_heur
 
 lemma select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl:
   \<open>(select_and_remove_from_literals_to_update_wl_heur, select_and_remove_from_literals_to_update_wl) \<in>
-   twl_st_heur' \<D> \<rightarrow>\<^sub>f \<langle>twl_st_heur' \<D> \<times>\<^sub>f nat_lit_lit_rel\<rangle> nres_rel\<close>
+  [\<lambda>S. literals_to_update_wl S \<noteq> {#} \<and>
+     length (get_trail_wl S) < uint32_max]\<^sub>f
+   twl_st_heur' \<D> \<rightarrow> \<langle>twl_st_heur' \<D> \<times>\<^sub>f nat_lit_lit_rel\<rangle> nres_rel\<close>
   unfolding select_and_remove_from_literals_to_update_wl_heur_def
     select_and_remove_from_literals_to_update_wl_def
   by (intro frefI nres_relI)
-    (auto intro!: RES_refine simp: twl_st_heur_def twl_st_heur'_def)
+    (auto simp: Cons_nth_drop_Suc[symmetric] intro!: ASSERT_leI 
+      simp: twl_st_heur_def twl_st_heur'_def RETURN_RES_refine_iff)
 
+lemma unit_propagation_outer_loop_wl_D_heur_inv_length_trail_le:
+  assumes
+    \<open>(S, T) \<in> twl_st_heur' \<D>\<close>
+    \<open>(U, V) \<in> twl_st_heur' \<D>\<close> and
+    \<open>literals_to_update_wl_heur U < length (get_trail_wl_heur U)\<close> and
+    \<open>literals_to_update_wl V \<noteq> {#}\<close> and
+    \<open>unit_propagation_outer_loop_wl_D_heur_inv S U\<close> and
+    \<open>unit_propagation_outer_loop_wl_D_inv V\<close> and
+    \<open>literals_to_update_wl V \<noteq> {#}\<close> and
+    \<open>literals_to_update_wl_heur U < length (get_trail_wl_heur U)\<close>
+   shows \<open>length (get_trail_wl V) < uint_max\<close>
+proof -
+  obtain T U b b' where
+    VT: \<open>(V, T) \<in> state_wl_l b\<close> and
+    struct: \<open>twl_struct_invs U\<close> and
+    TU: \<open>(T, U) \<in> twl_st_l b'\<close> and
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n V\<close>
+    using assms
+    unfolding unit_propagation_outer_loop_wl_D_inv_def unit_propagation_outer_loop_wl_D_heur_inv_def
+    unit_propagation_outer_loop_wl_inv_def
+    unit_propagation_outer_loop_l_inv_def apply -
+    apply normalize_goal+
+    by blast
+  then have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl V)\<close>  
+    by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail)
+  moreover have \<open>no_dup (get_trail_wl V)\<close>
+    using VT TU struct
+    unfolding twl_struct_invs_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (simp add: twl_st)
+  ultimately show ?thesis
+    using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_length_le_uint32_max[of \<open>get_trail_wl V\<close>]
+    by (auto simp: uint32_max_def)
+qed
 theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D':
   \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl_D) \<in>
     twl_st_heur' \<D> \<rightarrow>\<^sub>f \<langle>twl_st_heur' \<D>\<rangle> nres_rel\<close>
@@ -2339,6 +2397,7 @@ theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D':
           [of \<D>, THEN fref_to_Down])
   subgoal unfolding unit_propagation_outer_loop_wl_D_heur_inv_def twl_st_heur'_def by blast
   subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur'_def)
+  subgoal by (rule unit_propagation_outer_loop_wl_D_heur_inv_length_trail_le)
   subgoal by (auto simp: twl_st_heur'_def)
   done
 

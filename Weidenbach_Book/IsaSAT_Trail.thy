@@ -830,13 +830,39 @@ proof -
     using polarity_pol_fast_code.refine[FCOMP 2, OF isasat_input_bounded_axioms] by simp
 qed
 
+subsection \<open>Length of the trail\<close>
+
+
+definition (in -) isa_length_trail where
+  \<open>isa_length_trail = (\<lambda> (M', xs, lvls, reasons, k, cs). do {
+      ASSERT(length M' \<le> uint32_max);
+      RETURN (length_u M')
+  })\<close>
+
+lemma isa_length_trail_length_u:
+  \<open>(isa_length_trail, RETURN o length_u) \<in> trail_pol \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: isa_length_trail_def trail_pol_alt_def
+    intro!: ASSERT_leI)
+
 end
 
+sepref_definition isa_length_trail_code
+  is \<open>isa_length_trail\<close>
+  :: \<open>trail_pol_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding isa_length_trail_def
+  by sepref
 
-subparagraph \<open>Consign elements\<close>
 
 context isasat_input_bounded
 begin
+
+lemma isa_length_trail_hnr[sepref_fr_rules]:
+  \<open>(isa_length_trail_code, RETURN \<circ> length_u) \<in> (trail_assn)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  using isa_length_trail_code.refine[FCOMP isa_length_trail_length_u] .
+
+
+subparagraph \<open>Consing elements\<close>
 
 definition cons_trail_Propagated :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>cons_trail_Propagated L C M' = Propagated L C # M'\<close>
@@ -1851,6 +1877,41 @@ lemma get_propagation_reason_fast_hnr[sepref_fr_rules]:
      \<in> [\<lambda>(a, b). b \<in> lits_of_l a]\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>
         option_assn uint32_nat_assn\<close>
   using get_propagation_reason_fast_code.refine[FCOMP get_propagation_reason_pol] .
+
+
+paragraph \<open>Direct acces to elements in the trail\<close>
+
+definition rev_trail_nth where
+  \<open>rev_trail_nth M i = lit_of (rev M ! i)\<close>
+
+definition (in -) isa_trail_nth :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
+  \<open>isa_trail_nth = (\<lambda>(M, _) i. do {
+    ASSERT(i < length M);
+    RETURN (M ! i)
+  })\<close>
+
+lemma isa_trail_nth_rev_trail_nth:
+  \<open>(uncurry isa_trail_nth, uncurry (RETURN oo rev_trail_nth)) \<in> 
+    [\<lambda>(M, i). i < length M]\<^sub>f trail_pol \<times>\<^sub>r nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: isa_trail_nth_def rev_trail_nth_def trail_pol_def ann_lits_split_reasons_def
+    intro!: ASSERT_leI)
+
+end
+
+sepref_definition isa_trail_nth_code
+  is \<open>uncurry isa_trail_nth\<close>
+  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
+  unfolding isa_trail_nth_def
+  by sepref 
+
+context isasat_input_ops
+begin
+lemma isa_trail_nth_hnr[sepref_fr_rules]:
+  \<open>(uncurry isa_trail_nth_code, uncurry (RETURN \<circ>\<circ> rev_trail_nth))
+    \<in> [\<lambda>(a, b). b < length a]\<^sub>a trail_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  using isa_trail_nth_code.refine[FCOMP isa_trail_nth_rev_trail_nth]
+  by simp
 
 end
 

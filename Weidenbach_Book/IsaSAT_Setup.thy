@@ -97,13 +97,13 @@ type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
 
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
-    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
+    uint32 \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
     vdom_assn \<times> nat\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
-    lit_queue_l \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
+    uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
     vdom_assn \<times> nat\<close>
 
@@ -111,13 +111,13 @@ text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 (* TODO rename to isasat *)
 type_synonym twl_st_wl_heur =
   \<open>(nat,nat)ann_lits \<times> arena \<times>
-    conflict_option_rel \<times> nat lit_queue_wl \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times>
+    conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times>
     nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
     vdom \<times> nat\<close>
 
 type_synonym (in -) twl_st_wl_heur_W_list =
   \<open>(nat,nat) ann_lits \<times> arena \<times>
-    conflict_option_rel \<times> nat clause_l \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
+    conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
     nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times> vdom \<times> nat\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
@@ -135,11 +135,11 @@ fun watched_by_int :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarr
 fun (in -) get_watched_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (nat watcher) list list\<close> where
   \<open>get_watched_wl_heur (_, _, _, _, W, _) = W\<close>
 
-fun literals_to_update_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat lit_queue_wl\<close> where
+fun literals_to_update_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>literals_to_update_wl_heur (M, N, D, Q, W, _, _)  = Q\<close>
 
-fun set_literals_to_update_wl_heur :: \<open>nat lit_queue_wl \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>set_literals_to_update_wl_heur Q (M, N, D, _, W') = (M, N, D, Q, W')\<close>
+fun set_literals_to_update_wl_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>set_literals_to_update_wl_heur i (M, N, D, _, W') = (M, N, D, i, W')\<close>
 
 definition watched_by_app_heur_pre where
   \<open>watched_by_app_heur_pre = (\<lambda>((S, L), K). nat_of_lit L < length (get_watched_wl_heur S) \<and>
@@ -387,13 +387,14 @@ text \<open>\<^term>\<open>vdom\<close> is an upper bound on all the address of 
 state.\<close>
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
-  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, lcount),
      (M, N, D, NE, UE, Q, W)).
     M = M' \<and>
     valid_arena N' N (set vdom) \<and>
     (D', D) \<in> option_lookup_clause_rel \<and>
-    Q' = Q \<and>
+    (D = None \<longrightarrow> j \<le> length M) \<and>
+    Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf M \<and>
     phase_saving \<phi> \<and>
@@ -410,7 +411,8 @@ lemma twl_st_heur_state_simp:
   shows
      \<open>get_trail_wl_heur S = get_trail_wl S'\<close> and
      twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> watched_by_int S C = watched_by S' C\<close> and
-     \<open>literals_to_update_wl_heur S = literals_to_update_wl S'\<close>
+     \<open>literals_to_update_wl S' = 
+         uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close>
   using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
 
 definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
@@ -432,7 +434,7 @@ definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \
 \<open>isasat_assn =
   trail_assn *a arena_assn *a
   isasat_conflict_assn *a
-  clause_l_assn *a
+  uint32_nat_assn *a
   watchlist_assn *a
   vmtf_remove_conc *a phase_saver_conc *a
   uint32_nat_assn *a
@@ -450,7 +452,7 @@ definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_tr
 \<open>isasat_fast_assn =
   trail_fast_assn *a arena_assn *a
   isasat_conflict_assn *a
-  clause_l_assn *a
+  uint32_nat_assn *a
   watchlist_fast_assn *a
   vmtf_remove_conc *a phase_saver_conc *a
   uint32_nat_assn *a
@@ -477,12 +479,11 @@ definition twl_st_heur_no_clvls
   :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur_no_clvls =
-  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom,
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom,
        lcount),
      (M, N, D, NE, UE, Q, W)).
     M = M' \<and> valid_arena N' N (set vdom) \<and>
     (D', D) \<in> option_lookup_clause_rel \<and>
-    Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf M \<and>
     phase_saving \<phi> \<and>

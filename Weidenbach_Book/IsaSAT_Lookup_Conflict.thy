@@ -640,11 +640,15 @@ lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_atm_of:
   subgoal by (fastforce simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def lits_of_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
   done
 
-lemma (in isasat_input_bounded) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_count_decided_uint_max:
+lemma (in isasat_input_bounded)
   assumes
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     n_d: \<open>no_dup M\<close>
-  shows \<open>count_decided M \<le> Suc (uint_max div 2)\<close>
+  shows
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_length_le_uint32_max:
+      \<open>length M \<le> Suc (uint_max div 2)\<close> and
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_count_decided_uint_max:
+      \<open>count_decided M \<le> Suc (uint_max div 2)\<close>
 proof -
   have \<open>length M = card (atm_of ` lits_of_l M)\<close>
     using no_dup_length_eq_card_atm_of_lits_of_l[OF n_d] .
@@ -659,11 +663,11 @@ proof -
     from subset_eq_atLeast0_lessThan_card[OF this] have \<open>card (set_mset \<A>\<^sub>i\<^sub>n) \<le> uint_max div 2 + 1\<close>
       .
   }
-  ultimately have \<open>length M \<le> uint_max div 2 + 1\<close>
+  ultimately show \<open>length M \<le> Suc (uint_max div 2)\<close>
     by linarith
   moreover have \<open>count_decided M \<le> length M\<close>
     unfolding count_decided_def by auto
-  ultimately show ?thesis by simp
+  ultimately show \<open>count_decided M \<le> Suc (uint_max div 2)\<close> by simp
 qed
 
 lemma (in isasat_input_bounded) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max:

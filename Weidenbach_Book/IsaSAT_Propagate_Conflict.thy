@@ -257,61 +257,17 @@ lemmas unit_propagation_inner_loop_wl_D_fast_code_refine[sepref_fr_rules] =
 
 
 paragraph \<open>Unit propagation, Outer Loop\<close>
-
-definition (in -) select_and_remove_from_literals_to_update_wl_heur'
-  :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wl_heur_W_list \<times> _\<close> where
+ 
+(* definition (in -) select_and_remove_from_literals_to_update_wl_heur'
+  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur \<times> _\<close> where
   \<open>select_and_remove_from_literals_to_update_wl_heur' =
-     (\<lambda>(M, N, D, Q, W, other).  ((M, N, D, tl Q, W, other), hd Q))\<close>
+     (\<lambda>(M, N, D, Q, W, other).  ((M, N, D, Q+1, W, other), rev M ! Q))\<close>
 
 definition get_literals_to_update_wl where
    \<open>get_literals_to_update_wl = (\<lambda>(M, N, U, D, NE, UE, Q, W). Q)\<close>
 
-definition get_literals_to_update_wl_heur_W_list where
-   \<open>get_literals_to_update_wl_heur_W_list = (\<lambda>(M, N, D, Q, W, _). Q)\<close>
-
-definition literals_to_update_wl_empty_heur' :: \<open>twl_st_wl_heur_W_list \<Rightarrow> bool\<close>  where
-  \<open>literals_to_update_wl_empty_heur' = (\<lambda>(M, N, D, Q, W, oth). Q = [])\<close>
-
-thm isasat_assn_def
-definition (in isasat_input_ops) twl_st_wl_heur_W_list_rel
-  :: \<open>(twl_st_wl_heur_W_list \<times> twl_st_wl_heur) set\<close>
-where
-  \<open>twl_st_wl_heur_W_list_rel =
-     (Id :: ((nat,nat) ann_lits \<times> _) set) \<times>\<^sub>r
-     (Id :: (arena  \<times> _) set) \<times>\<^sub>r
-     (Id :: (conflict_option_rel \<times> _)set) \<times>\<^sub>r
-     (list_mset_rel :: (nat literal list \<times> nat lit_queue_wl) set)  \<times>\<^sub>r
-     (Id :: ((nat watcher) list list \<times> _)set) \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     nat_rel \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     \<langle>Id\<rangle>list_rel \<times>\<^sub>r
-     Id\<close>
-
-definition (in isasat_input_ops) twl_st_heur_W_list_assn
-  :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close>
-where
-\<open>twl_st_heur_W_list_assn =
-  trail_assn *a arena_assn *a
-  isasat_conflict_assn *a
-  (list_assn unat_lit_assn) *a
-  watchlist_assn *a
-  vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn *a
-  lbd_assn *a out_learned_assn *a stats_assn *a ema_assn *a ema_assn *a
-  conflict_count_assn *a vdom_assn *a nat_assn
-\<close>
-
-lemma (in isasat_input_ops) isasat_assn_W_list:
-  \<open>isasat_assn = hr_comp twl_st_heur_W_list_assn twl_st_wl_heur_W_list_rel\<close>
-  unfolding isasat_assn_def twl_st_heur_W_list_assn_def twl_st_wl_heur_W_list_rel_def
-  by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn)
+definition literals_to_update_wl_empty_heur' :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close>  where
+  \<open>literals_to_update_wl_empty_heur' = (\<lambda>(M, N, D, Q, W, oth). Q \<ge> length_u M)\<close> *)
 
 (* 
 definition (in isasat_input_ops) twl_st_heur_W_list_fast_assn
@@ -333,13 +289,17 @@ lemma (in isasat_input_ops) isasat_fast_assn_W_list:
   by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn) *)
 
 sepref_thm select_and_remove_from_literals_to_update_wl_code
-  is \<open>RETURN o select_and_remove_from_literals_to_update_wl_heur'\<close>
+  is \<open>select_and_remove_from_literals_to_update_wl_heur\<close>
   :: \<open>[\<lambda>S. \<not>literals_to_update_wl_empty_heur' S]\<^sub>a
-      twl_st_heur_W_list_assn\<^sup>d \<rightarrow> twl_st_heur_W_list_assn *a unat_lit_assn\<close>
+      isasat_assn\<^sup>d \<rightarrow> isasat_assn *a unat_lit_assn\<close>
   supply [[goals_limit=1]]
-  unfolding select_and_remove_from_literals_to_update_wl_heur'_def twl_st_heur_W_list_assn_def
-    literals_to_update_wl_empty_heur'_def
+  unfolding select_and_remove_from_literals_to_update_wl_heur_alt_def isasat_assn_def
+    one_uint32_nat_def
   supply [[goals_limit = 1]]
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref
 
 concrete_definition (in -) select_and_remove_from_literals_to_update_wl_code
@@ -371,10 +331,10 @@ prepare_code_thms (in -) select_and_remove_from_literals_to_update_wl_fast_code_
 
 lemmas select_and_remove_from_literals_to_update_wl_fast_code_refine[sepref_fr_rules] =
    select_and_remove_from_literals_to_update_wl_fast_code.refine[of \<A>\<^sub>i\<^sub>n,
-     OF isasat_input_bounded_nempty_axioms] *)
+     OF isasat_input_bounded_nempty_axioms] *) *)
 
 definition (in -)literals_to_update_wl_empty_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close>  where
-  \<open>literals_to_update_wl_empty_heur S \<longleftrightarrow> literals_to_update_wl_heur S = {#}\<close>
+  \<open>literals_to_update_wl_empty_heur S \<longleftrightarrow> literals_to_update_wl_heur S \<ge> length (get_trail_wl_heur S)\<close>
 
 lemma
   select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl:
