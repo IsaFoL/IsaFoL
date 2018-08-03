@@ -917,31 +917,6 @@ lemma [simp]:
 context isasat_input_bounded_nempty
 begin
 
-lemma twl_st_heur_conflict_ana_twl_st_heur_no_clvls:
-  \<open>(S, T) \<in> twl_st_heur_conflict_ana \<Longrightarrow> (S, T) \<in> twl_st_heur_no_clvls\<close>
-  by (auto simp: twl_st_heur_conflict_ana_def twl_st_heur_no_clvls_def)
-
-text \<open>This relations decouples the conflict that has been minimised and appears abstractly
-from the refined state, where the conflict has been removed from the data structure to a 
-separate array.\<close>
-definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
-\<open>twl_st_heur_bt =
-  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, _, _, _, vdom, lcount),
-     (M, N, D, NE, UE, Q, W)).
-    M = M' \<and>
-    valid_arena N' N (set vdom) \<and>
-    (D', None) \<in> option_lookup_clause_rel \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-    vm \<in> vmtf M \<and>
-    phase_saving \<phi> \<and>
-    no_dup M \<and>
-    clvls \<in> counts_maximum_level M None \<and>
-    cach_refinement_empty cach \<and>
-    out_learned M None outl \<and>
-    lcount = size (learned_clss_l N) \<and>
-    vdom_m W N \<subseteq> set vdom
-  }\<close>
-
 lemma lcount_add_clause[simp]: \<open>i \<notin># dom_m N \<Longrightarrow>
        size (learned_clss_l (fmupd i (C, False) N)) = Suc (size (learned_clss_l N))\<close>
   by (simp add: learned_clss_l_mapsto_upd_notin)
@@ -980,7 +955,7 @@ proof -
     by (cases S; cases S') (blast intro: exI[of _ S'])
   have shorter:
      \<open>extract_shorter_conflict_list_heur_st S'
-       \<le> \<Down> {((T', n, C), T). (T', del_conflict_wl T) \<in> twl_st_heur_no_clvls  \<and>
+       \<le> \<Down> {((T', n, C), T). (T', del_conflict_wl T) \<in> twl_st_heur_bt  \<and>
               n = get_maximum_level (get_trail_wl T)
                   (remove1_mset (-lit_of(hd (get_trail_wl T))) (the (get_conflict_wl T))) \<and>
               mset C = the (get_conflict_wl T) \<and>
@@ -1301,7 +1276,7 @@ proof -
             x2c, x1c),
           M, N, Da, NE, UE, Q, W)
           \<in> {((T', n, C), T).
-            (T', del_conflict_wl T) \<in> twl_st_heur_no_clvls \<and>
+            (T', del_conflict_wl T) \<in> twl_st_heur_bt \<and>
             n =
             get_maximum_level (get_trail_wl T)
               (remove1_mset (- lit_of (hd (get_trail_wl T)))
@@ -1399,9 +1374,9 @@ proof -
       have \<open>((M, arena, x1b, Q', W', vm, \<phi>, clvls, empty_cach x1a, lbd, take (Suc 0) x2a,
           stats, cc, cc2, cc3, vdom, lcount),
         del_conflict_wl (M, N, Da, NE, UE, Q, W))
-        \<in> twl_st_heur_no_clvls\<close>
-        using S'_S x1b_None cach out unfolding twl_st_heur_no_clvls_def
-        by (auto simp: twl_st_heur_def del_conflict_wl_def S S' twl_st_heur_no_clvls_def
+        \<in> twl_st_heur_bt\<close>
+        using S'_S x1b_None cach out unfolding twl_st_heur_bt_def
+        by (auto simp: twl_st_heur_def del_conflict_wl_def S S' twl_st_heur_bt_def
           twl_st_heur_conflict_ana_def)
       moreover have x2c: \<open>x2c = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the Da))\<close>
         using highest highest2 x1c_nempty hd_x1c
@@ -1461,13 +1436,13 @@ proof -
       by (cases T')
     obtain W' vm \<phi> clvls cach lbd outl stats arena D' Q' where
       T: \<open>T = (M, arena, D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats)\<close>
-      using TT' by (cases T) (auto simp: twl_st_heur_no_clvls_def T' del_conflict_wl_def)
+      using TT' by (cases T) (auto simp: twl_st_heur_bt_def T' del_conflict_wl_def)
     have n: \<open>n = get_maximum_level M (remove1_mset (- lit_of (hd M)) (mset C))\<close> and
       eq: \<open>equality_except_conflict_wl T' S'\<close> and
       \<open>the D = mset C\<close> \<open>D \<noteq> None\<close> and
       \<open>no_dup M\<close> and
       clss_eq: \<open>get_clauses_wl_heur S = arena\<close>
-      using TT' by (auto simp: T T' twl_st_heur_no_clvls_def)
+      using TT' by (auto simp: T T' twl_st_heur_bt_def)
     have [simp]: \<open>get_trail_wl S' = M\<close>
       using eq \<open>the D = mset C\<close> \<open>D \<noteq> None\<close> by (cases S'; auto simp: T')
     have H: \<open>\<exists>s'\<in>{S. \<exists>K M2 M1.
@@ -1496,7 +1471,7 @@ proof -
             dest: no_dup_appendD)
       have twl: \<open>((M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd', outl, stats),
            M1, N, D, NE, UE, Q, W) \<in> twl_st_heur_bt\<close>
-        using TT' vm' \<open>no_dup M1\<close> by (auto simp: T T' twl_st_heur_bt_def twl_st_heur_no_clvls_def
+        using TT' vm' \<open>no_dup M1\<close> by (auto simp: T T' twl_st_heur_bt_def twl_st_heur_bt_def
             del_conflict_wl_def)
       have \<open>equality_except_trail_wl (M1, N, D, NE, UE, Q, W) T'\<close>
         using eq by (auto simp: T')
@@ -1599,7 +1574,7 @@ proof -
     for S S' TnC T' T nC n C U U' L'
   proof -
     have
-      TT': \<open>(T, del_conflict_wl T') \<in> twl_st_heur_no_clvls\<close> and
+      TT': \<open>(T, del_conflict_wl T') \<in> twl_st_heur_bt\<close> and
       n: \<open>n = get_maximum_level (get_trail_wl T')
           (remove1_mset (- lit_of (hd (get_trail_wl T'))) (mset C))\<close> and
       T_C: \<open>get_conflict_wl T' = Some (mset C)\<close> and
@@ -1860,7 +1835,7 @@ proof -
     for S S' TnC T' T nC n C U U'
   proof -
     have
-      TT': \<open>(T, del_conflict_wl T') \<in> twl_st_heur_no_clvls\<close> and
+      TT': \<open>(T, del_conflict_wl T') \<in> twl_st_heur_bt\<close> and
       n: \<open>n = get_maximum_level (get_trail_wl T')
           (remove1_mset (- lit_of (hd (get_trail_wl T'))) (mset C))\<close> and
       T_C: \<open>get_conflict_wl T' = Some (mset C)\<close> and

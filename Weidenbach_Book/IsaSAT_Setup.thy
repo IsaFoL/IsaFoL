@@ -418,7 +418,6 @@ lemma twl_st_heur_state_simp:
 definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur' N = {(S, S'). (S, S') \<in> twl_st_heur \<and> dom_m (get_clauses_wl S') = N}\<close>
 
-
 definition (in isasat_input_ops) twl_st_heur_conflict_ana
   :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
@@ -449,6 +448,27 @@ lemma twl_st_heur_ana_state_simp:
     \<open>get_trail_wl_heur S = get_trail_wl S'\<close> and
     \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> watched_by_int S C = watched_by S' C\<close>
   using assms unfolding twl_st_heur_conflict_ana_def by (auto simp: map_fun_rel_def)
+
+text \<open>This relations decouples the conflict that has been minimised and appears abstractly
+from the refined state, where the conflict has been removed from the data structure to a 
+separate array.\<close>
+definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
+\<open>twl_st_heur_bt =
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, _, _, _, vdom, lcount),
+     (M, N, D, NE, UE, Q, W)).
+    M = M' \<and>
+    valid_arena N' N (set vdom) \<and>
+    (D', None) \<in> option_lookup_clause_rel \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
+    vm \<in> vmtf M \<and>
+    phase_saving \<phi> \<and>
+    no_dup M \<and>
+    clvls \<in> counts_maximum_level M None \<and>
+    cach_refinement_empty cach \<and>
+    out_learned M None outl \<and>
+    lcount = size (learned_clss_l N) \<and>
+    vdom_m W N \<subseteq> set vdom
+  }\<close>
 
 abbreviation (in -) watchers_assn where
   \<open>watchers_assn \<equiv> arl_assn (nat_assn *a unat_lit_assn)\<close>
@@ -502,29 +522,8 @@ text \<open>
   The difference between \<^term>\<open>isasat_assn\<close> and \<^term>\<open>isasat_fast_assn\<close> corresponds to the
   following condition:
 \<close>
-abbreviation (in -) isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>isasat_fast S \<equiv> (length (get_clauses_wl_heur S) \<le> uint64_max - (uint32_max + 5))\<close>
-
-text \<open>The condition \<^term>\<open>clvls \<in> counts_maximum_level M D\<close> does not hold in this setting.\<close>
-(* TODO is it used anywhere? *)
-definition twl_st_heur_no_clvls
-  :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
-where
-\<open>twl_st_heur_no_clvls =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom,
-       lcount),
-     (M, N, D, NE, UE, Q, W)).
-    M = M' \<and> valid_arena N' N (set vdom) \<and>
-    (D', D) \<in> option_lookup_clause_rel \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-    vm \<in> vmtf M \<and>
-    phase_saving \<phi> \<and>
-    no_dup M \<and>
-    cach_refinement_empty cach \<and>
-    out_learned M D outl \<and>
-    lcount = size (learned_clss_lf N) \<and>
-    vdom_m W N \<subseteq> set vdom
-  }\<close>
+definition (in -) isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> uint64_max - (uint32_max + 5))\<close>
 
 definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>isasat_fast_slow =
@@ -560,27 +559,6 @@ lemma isasat_fast_slow_isasat_fast_slow_wl_D:
   \<open>(isasat_fast_slow, RETURN o isasat_fast_slow_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
     (auto simp: isasat_fast_slow_alt_def isasat_fast_slow_wl_D_def)
-
-(* 
-TODO: kill. This the wrong level to do that. We should inherit these properties.
-definition literals_are_in_\<L>\<^sub>i\<^sub>n_heur where
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S = literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf (get_clauses_wl_heur S))\<close>
-
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0:
-  assumes \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S\<close> and
-    \<open>i \<in># dom_m (get_clauses_wl_heur S)\<close> and
-    \<open>j < length (get_clauses_wl_heur S \<propto> i)\<close>
-  shows \<open>get_clauses_wl_heur S \<propto> i ! j \<in> snd ` D\<^sub>0\<close>
-  using assms literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>get_clauses_wl_heur S\<close> i j]
-  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_heur_def image_image nth_tl)
-
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0':
-  assumes \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S\<close> and
-    \<open>i \<in># dom_m (get_clauses_wl_heur S)\<close> and
-    \<open>j < length (get_clauses_wl_heur S \<propto> i)\<close> and
-    N: \<open>N = get_clauses_wl_heur S\<close>
-  shows \<open>N \<propto> i ! j \<in> snd ` D\<^sub>0\<close>
-  using literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0[OF assms(1-3)] unfolding N . *)
 
 end
 

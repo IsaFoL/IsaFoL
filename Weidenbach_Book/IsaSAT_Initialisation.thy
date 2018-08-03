@@ -502,10 +502,6 @@ prepare_code_thms (in -) add_init_cls_fast_code_def
 
 lemmas add_init_cls_heur_fast_hnr[sepref_fr_rules] =
    add_init_cls_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms] *)
-(* TODO Move *)
-lemma header_size_ge0[simp]: \<open>0 < header_size x1\<close>
-  by (auto simp: header_size_def)
-(* End Move *)
 
 context
   fixes x :: \<open>nat literal list \<times>
@@ -2068,12 +2064,6 @@ definition (in isasat_input_ops) twl_st_heur_init_wl :: \<open>(twl_st_wl_heur_i
     set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + NE + UE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l
   }\<close>
 
-(* TODO Move *)
-lemma (in -) valid_arena_empty: \<open>valid_arena [] fmempty {}\<close>
-  unfolding valid_arena_def
-  by auto
-(* End Move *)
-
 lemma (in isasat_input_ops) init_state_wl_heur_init_state_wl:
   \<open>(uncurry0 init_state_wl_heur, uncurry0 (RETURN init_state_wl)) \<in>
      unit_rel \<rightarrow>\<^sub>f \<langle>twl_st_heur_init_wl\<rangle>nres_rel\<close>
@@ -2831,19 +2821,6 @@ proof -
       list_mset_rel_def Collect_eq_comp)
     done
 qed
-
-(* TODO Move *)
-lemma (in -) in_mset_rel_eq_f_iff:
-  \<open>(a, b) \<in> \<langle>{(c, a). a = f c}\<rangle>mset_rel \<longleftrightarrow> b = f `# a\<close>
-  using ex_mset[of a]
-  by (auto simp: mset_rel_def br_def rel2p_def[abs_def] p2rel_def rel_mset_def
-      list_all2_op_eq_map_right_iff' cong: ex_cong)
-
-
-lemma (in -) in_mset_rel_eq_f_iff_set:
-  \<open>\<langle>{(c, a). a = f c}\<rangle>mset_rel = {(b, a). a = f `# b}\<close>
-  using in_mset_rel_eq_f_iff[of _ _ f] by blast
-(* End Mode *)
 
 abbreviation (in -)lits_with_max_assn_clss where
   \<open>lits_with_max_assn_clss \<equiv> hr_comp lits_with_max_assn (\<langle>nat_rel\<rangle>mset_rel)\<close>

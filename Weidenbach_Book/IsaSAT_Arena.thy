@@ -3,6 +3,19 @@ imports Watched_Literals.Watched_Literals_Watch_List_Code_Common
   Watched_Literals.WB_More_Refinement_List
 begin
 
+(* TODO Move *)
+lemma (in -) in_mset_rel_eq_f_iff:
+  \<open>(a, b) \<in> \<langle>{(c, a). a = f c}\<rangle>mset_rel \<longleftrightarrow> b = f `# a\<close>
+  using ex_mset[of a]
+  by (auto simp: mset_rel_def br_def rel2p_def[abs_def] p2rel_def rel_mset_def
+      list_all2_op_eq_map_right_iff' cong: ex_cong)
+
+
+lemma (in -) in_mset_rel_eq_f_iff_set:
+  \<open>\<langle>{(c, a). a = f c}\<rangle>mset_rel = {(b, a). a = f `# b}\<close>
+  using in_mset_rel_eq_f_iff[of _ _ f] by blast
+(* End Mode *)
+
 subsection \<open>The memory representation: Arenas\<close>
 
 text \<open>
@@ -172,6 +185,8 @@ lemma arena_shift_distinct:
     header_size_def
   by (auto split: if_splits simp: is_short_clause_def)
 
+lemma header_size_ge0[simp]: \<open>0 < header_size x1\<close>
+  by (auto simp: header_size_def)
 
 datatype arena_el =
   is_Lit: ALit (xarena_lit: \<open>nat literal\<close>) |
@@ -277,6 +292,10 @@ definition arena_lit where
 
 
 subsubsection \<open>Separation properties\<close>
+
+lemma valid_arena_empty: \<open>valid_arena [] fmempty {}\<close>
+  unfolding valid_arena_def
+  by auto
 
 text \<open>The following two lemmas talk about the minimal distance between two clauses in memory. They
 are important for the proof of correctness of all update function.
