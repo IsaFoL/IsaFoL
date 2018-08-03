@@ -418,6 +418,38 @@ lemma twl_st_heur_state_simp:
 definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur' N = {(S, S'). (S, S') \<in> twl_st_heur \<and> dom_m (get_clauses_wl S') = N}\<close>
 
+
+definition (in isasat_input_ops) twl_st_heur_conflict_ana
+  :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
+where
+\<open>twl_st_heur_conflict_ana =
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom,
+       lcount),
+     (M, N, D, NE, UE, Q, W)).
+    M = M' \<and> valid_arena N' N (set vdom) \<and>
+    (D', D) \<in> option_lookup_clause_rel \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
+    vm \<in> vmtf M \<and>
+    phase_saving \<phi> \<and>
+    no_dup M \<and>
+    clvls \<in> counts_maximum_level M D \<and>
+    cach_refinement_empty cach \<and>
+    out_learned M D outl \<and>
+    lcount = size (learned_clss_lf N) \<and>
+    vdom_m W N \<subseteq> set vdom
+  }\<close>
+
+lemma twl_st_heur_twl_st_heur_conflict_ana:
+  \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> (S, T) \<in> twl_st_heur_conflict_ana\<close>
+  by (auto simp: twl_st_heur_def twl_st_heur_conflict_ana_def)
+
+lemma twl_st_heur_ana_state_simp:
+  assumes \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close>
+  shows
+    \<open>get_trail_wl_heur S = get_trail_wl S'\<close> and
+    \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> watched_by_int S C = watched_by S' C\<close>
+  using assms unfolding twl_st_heur_conflict_ana_def by (auto simp: map_fun_rel_def)
+
 abbreviation (in -) watchers_assn where
   \<open>watchers_assn \<equiv> arl_assn (nat_assn *a unat_lit_assn)\<close>
 

@@ -106,13 +106,13 @@ lemma maximum_level_removed_eq_count_dec_heur_maximum_level_removed_eq_count_dec
   \<open>(uncurry (RETURN oo maximum_level_removed_eq_count_dec_heur),
       uncurry (RETURN oo maximum_level_removed_eq_count_dec)) \<in>
    [maximum_level_removed_eq_count_dec_pre]\<^sub>f
-    Id \<times>\<^sub>r twl_st_heur \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
+    Id \<times>\<^sub>r twl_st_heur_conflict_ana \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   subgoal for x y
     using get_maximum_level_remove_count_max_lvls[of \<open>fst x\<close> \<open>get_trail_wl (snd y)\<close>
       \<open>the (get_conflict_wl (snd y))\<close>]
     by (cases x)
-       (auto simp: count_decided_st_def counts_maximum_level_def twl_st_heur_def
+       (auto simp: count_decided_st_def counts_maximum_level_def twl_st_heur_conflict_ana_def
      maximum_level_removed_eq_count_dec_heur_def maximum_level_removed_eq_count_dec_def
      maximum_level_removed_eq_count_dec_pre_def)
   done
@@ -126,9 +126,9 @@ lemma is_decided_hd_trail_wl_heur_alt_def:
 
 lemma is_decided_hd_trail_wl_heur_is_decided_hd_trail_wl:
   \<open>(RETURN o is_decided_hd_trail_wl_heur, RETURN o is_decided_hd_trail_wl) \<in>
-    [\<lambda>S. get_trail_wl S \<noteq> []]\<^sub>f twl_st_heur \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
+    [\<lambda>S. get_trail_wl S \<noteq> []]\<^sub>f twl_st_heur_conflict_ana \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: is_decided_hd_trail_wl_heur_def is_decided_hd_trail_wl_def twl_st_heur_def)
+    (auto simp: is_decided_hd_trail_wl_heur_def is_decided_hd_trail_wl_def twl_st_heur_conflict_ana_def)
 
 lemma get_trail_wl_heur_def: \<open>get_trail_wl_heur = (\<lambda>(M, S). M)\<close>
   by (intro ext, rename_tac S, case_tac S) auto
@@ -172,17 +172,17 @@ qed
 
 lemma lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st:
    \<open>(RETURN o lit_and_ann_of_propagated_st_heur, RETURN o lit_and_ann_of_propagated_st) \<in>
-   [\<lambda>S. is_proped (hd (get_trail_wl S))]\<^sub>f twl_st_heur \<rightarrow> \<langle>Id \<times>\<^sub>f Id\<rangle>nres_rel\<close>
+   [\<lambda>S. is_proped (hd (get_trail_wl S))]\<^sub>f twl_st_heur_conflict_ana \<rightarrow> \<langle>Id \<times>\<^sub>f Id\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (rename_tac x y; case_tac x; case_tac y; case_tac \<open>hd (fst x)\<close>)
-  by (auto simp: twl_st_heur_def lit_and_ann_of_propagated_st_heur_def
+  by (auto simp: twl_st_heur_conflict_ana_def lit_and_ann_of_propagated_st_heur_def
       lit_and_ann_of_propagated_st_def)
 
-lemma twl_st_heur_lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st:
-  \<open>(x, y) \<in> twl_st_heur \<Longrightarrow> is_proped (hd (get_trail_wl y)) \<Longrightarrow>
+lemma twl_st_heur_conflict_ana_lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st:
+  \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow> is_proped (hd (get_trail_wl y)) \<Longrightarrow>
     lit_and_ann_of_propagated_st_heur x = lit_and_ann_of_propagated_st y\<close>
   by (cases \<open>hd (get_trail_wl y)\<close>)
-    (auto simp: twl_st_heur_def lit_and_ann_of_propagated_st_heur_def
+    (auto simp: twl_st_heur_conflict_ana_def lit_and_ann_of_propagated_st_heur_def
       lit_and_ann_of_propagated_st_def)
 
 definition (in isasat_input_ops) tl_state_wl_heur_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
@@ -255,9 +255,9 @@ lemma tl_state_out_learned:
 
 lemma tl_state_wl_heur_tl_state_wl:
   \<open>(RETURN o tl_state_wl_heur, RETURN o tl_state_wl) \<in>
-  [tl_state_wl_pre]\<^sub>f twl_st_heur \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  [tl_state_wl_pre]\<^sub>f twl_st_heur_conflict_ana \<rightarrow> \<langle>twl_st_heur_conflict_ana\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-   (auto simp: twl_st_heur_def tl_state_wl_heur_def tl_state_wl_def vmtf_unset_vmtf_tl
+   (auto simp: twl_st_heur_conflict_ana_def tl_state_wl_heur_def tl_state_wl_def vmtf_unset_vmtf_tl
     in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff phase_saving_def counts_maximum_level_def
     card_max_lvl_tl tl_state_wl_pre_def tl_state_out_learned
     dest: no_dup_tlD)
@@ -337,7 +337,7 @@ lemma (in isasat_input_ops) phase_saving_save_phase[simp]:
 lemma update_confl_tl_wl_heur_update_confl_tl_wl:
   \<open>(uncurry2 (update_confl_tl_wl_heur), uncurry2 (RETURN ooo update_confl_tl_wl)) \<in>
   [update_confl_tl_wl_pre]\<^sub>f
-   nat_rel \<times>\<^sub>f Id \<times>\<^sub>f twl_st_heur \<rightarrow> \<langle>bool_rel \<times>\<^sub>f twl_st_heur\<rangle>nres_rel\<close>
+   nat_rel \<times>\<^sub>f Id \<times>\<^sub>f twl_st_heur_conflict_ana \<rightarrow> \<langle>bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana\<rangle>nres_rel\<close>
 proof -
   have H: \<open>isa_resolve_merge_conflict ba c a (aa, ab, bb) i k ag
         \<le> SPEC
@@ -357,7 +357,7 @@ proof -
                             lbd, outl, (ah, ai, aj, be), ak, al, am, an, bf)
                         })
                     xa)
-                \<le> \<Down> (bool_rel \<times>\<^sub>f twl_st_heur)
+                \<le> \<Down> (bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana)
                   (RETURN
                     (let D = resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) ao bg
                       in (False, tl baa, ca, Some D, ea, fa, ga, ha))))\<close>
@@ -366,7 +366,7 @@ proof -
       rel: \<open>(((a, b), ba, c, (aa, ab, bb), e, f, ivmtf, h, i, j,
         k, ag, (ah, ai, aj, be), ak, al, am, an, bf),
         (ao, bg), baa, ca, da, ea, fa, ga, ha)
-      \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur\<close> and
+      \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_conflict_ana\<close> and
       CLS[simp]: \<open>CLS = ((ao, bg), baa, ca, da, ea, fa, ga, ha)\<close> and
       \<open>CLS' = ((a, b), ba, c, (aa, ab, bb), e, f, ivmtf, h, i, j, k,
         ag, (ah, ai, aj, be), ak, al, am, an, bf)\<close>
@@ -404,7 +404,7 @@ proof -
       n_d: \<open>no_dup ba\<close> and
       outl: \<open>out_learned baa da ag\<close> and
       i: \<open>i \<in> counts_maximum_level baa da\<close>
-      using rel unfolding twl_st_heur_def
+      using rel unfolding twl_st_heur_conflict_ana_def
       by auto
     have
       [simp]: \<open>a = ao\<close> and
@@ -413,7 +413,7 @@ proof -
       n_d: \<open>no_dup ba\<close> and
       arena: \<open>valid_arena c ca (set an)\<close> and
       ocr: \<open>((aa, ab, bb), da) \<in> option_lookup_clause_rel\<close>
-      using rel by (auto simp: CLS twl_st_heur_def)
+      using rel by (auto simp: CLS twl_st_heur_conflict_ana_def)
     have lookup_remove1_uminus:
        \<open>lookup_conflict_remove1 (-bg) A = lookup_conflict_remove1 bg A\<close> for A
       by (auto simp: lookup_conflict_remove1_def)
@@ -459,7 +459,7 @@ proof -
     have \<open>vmtf_mark_to_rescore_and_unset (atm_of bg) ivmtf \<in> vmtf (tl ba)\<close>
       using inv rel vmtf_mark_to_rescore_unset[where M = ba]
       apply (cases \<open>ivmtf\<close>; cases \<open>hd ba\<close>)
-      by (auto simp: atms_of_def update_confl_tl_wl_pre_def twl_st_heur_def)
+      by (auto simp: atms_of_def update_confl_tl_wl_pre_def twl_st_heur_conflict_ana_def)
     moreover have
       \<open>out_learned (tl ba) (Some (remove1_mset (- bg) ((the da) \<union># mset (tl (ca \<propto> ao))))) b\<close>
       if H: \<open>out_learned ba (Some ((the da) \<union># mset (tl (ca \<propto> ao)))) b\<close> for b
@@ -479,7 +479,7 @@ proof -
         by (cases ba; cases \<open>hd ba\<close>; auto simp: resolve_cls_wl'_def split: if_splits; fail)+
     then show ?thesis
       using rel
-      by (auto simp: twl_st_heur_def merge_conflict_m_def update_confl_tl_wl_pre_def
+      by (auto simp: twl_st_heur_conflict_ana_def merge_conflict_m_def update_confl_tl_wl_pre_def
           resolve_cls_wl'_def ac_simps)
     qed
     moreover have \<open>card_max_lvl ba (mset (tl (ca \<propto> ao)) \<union># (the da)) - Suc 0
@@ -529,7 +529,7 @@ proof -
        apply (rule isa_resolve_merge_conflict[of\<open>set an\<close>, THEN fref_to_Down_curry6, OF merge_conflict_m_pre])
        subgoal using arena ocr by auto
        subgoal unfolding merge_conflict_m_def conc_fun_SPEC
-         by (auto simp: twl_st_heur_def merge_conflict_m_def update_confl_tl_wl_pre_def
+        by (auto simp: twl_st_heur_conflict_ana_def merge_conflict_m_def update_confl_tl_wl_pre_def
            resolve_cls_wl'_def ac_simps no_dup_tlD lookup_remove1_uminus
            intro!: ASSERT_refine_left)
       done
@@ -542,7 +542,7 @@ proof -
       rel: \<open>(((a, b), ba, c, (aa, ab, bb), e, f, ((ac, ad, ae, af, bc), bd), h, i, j,
         k, ag, (ah, ai, aj, be), ak, al, am, an, bf),
         (ao, bg), baa, ca, da, ea, fa, ga, ha)
-      \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur\<close> and
+      \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_conflict_ana\<close> and
       CLS: \<open>CLS = ((ao, bg), baa, ca, da, ea, fa, ga, ha)\<close> and
       \<open>CLS' =
       ((a, b), ba, c, (aa, ab, bb), e, f, ((ac, ad, ae, af, bc), bd), h, i, j, k,
@@ -586,7 +586,7 @@ proof -
       n_d: \<open>no_dup ba\<close> and
       arena: \<open>valid_arena c ca (set an)\<close> and
       ocr: \<open>((aa, ab, bb), da) \<in> option_lookup_clause_rel\<close>
-      using rel by (auto simp: CLS twl_st_heur_def)
+      using rel by (auto simp: CLS twl_st_heur_conflict_ana_def)
     show ?thesis
       using ao arena lits_trail
       unfolding isa_set_lookup_conflict_aa_pre_def
@@ -604,7 +604,7 @@ proof -
       apply clarify
       apply (refine_rcg lhs_step_If specify_left; remove_dummy_vars)
       subgoal
-        by  (auto simp: twl_st_heur_def update_confl_tl_wl_pre_def
+        by  (auto simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre_def
             RES_RETURN_RES RETURN_def counts_maximum_level_def)
       subgoal
         by (rule isa_set_lookup_conflict_aa_pre)
@@ -615,7 +615,7 @@ qed
 
 definition (in isasat_input_ops) skip_and_resolve_loop_wl_D_heur_inv where
  \<open>skip_and_resolve_loop_wl_D_heur_inv S\<^sub>0' =
-    (\<lambda>(brk, S'). \<exists>S S\<^sub>0. (S', S) \<in> twl_st_heur \<and> (S\<^sub>0', S\<^sub>0) \<in> twl_st_heur \<and>
+    (\<lambda>(brk, S'). \<exists>S S\<^sub>0. (S', S) \<in> twl_st_heur_conflict_ana \<and> (S\<^sub>0', S\<^sub>0) \<in> twl_st_heur_conflict_ana \<and>
       skip_and_resolve_loop_wl_D_inv S\<^sub>0 brk S)\<close>
 
 definition  (in isasat_input_ops) update_confl_tl_wl_heur_pre
@@ -720,9 +720,9 @@ lemma state_wl_l_mark_of_is_proped:
 (* End Move *)
 
 lemma skip_and_resolve_loop_wl_D_inv_skip_and_resolve_loop_wl_D_heur_inv:
-  \<open>(x, y) \<in> twl_st_heur \<Longrightarrow>
+  \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow>
        get_conflict_wl y \<noteq> None \<Longrightarrow>
-       (xa, x') \<in> bool_rel \<times>\<^sub>f twl_st_heur \<Longrightarrow>
+       (xa, x') \<in> bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana \<Longrightarrow>
        skip_and_resolve_loop_wl_D_inv y (fst x') (snd x') \<Longrightarrow>
        skip_and_resolve_loop_wl_D_heur_inv x xa\<close>
   unfolding skip_and_resolve_loop_wl_D_heur_inv_def
@@ -735,9 +735,9 @@ lemma skip_and_resolve_loop_wl_D_inv_skip_and_resolve_loop_wl_D_heur_inv:
 context
   fixes x y xa x' x1 x2 x1a x2a x1b x2b x1c x2c
   assumes
-    xy:  \<open>(x, y) \<in> twl_st_heur\<close> and
+    xy:  \<open>(x, y) \<in> twl_st_heur_conflict_ana\<close> and
     confl:  \<open>get_conflict_wl y \<noteq> None\<close> and
-    xa_x':  \<open>(xa, x') \<in> bool_rel \<times>\<^sub>f twl_st_heur\<close> and
+    xa_x':  \<open>(xa, x') \<in> bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana\<close> and
     cond_heur:  \<open>case xa of (brk, S) \<Rightarrow> \<not> brk \<and> \<not> is_decided_hd_trail_wl_heur S\<close> and
     cond:  \<open>case x' of (brk, S) \<Rightarrow> \<not> brk \<and> \<not> is_decided (hd (get_trail_wl S))\<close> and
     sor_heur_inv:  \<open>skip_and_resolve_loop_wl_D_heur_inv x xa\<close> and
@@ -751,8 +751,8 @@ context
 begin
 
 lemma st[simp]: \<open>x1a = x1c\<close> \<open>x2a = x2c\<close> \<open>x1 = False\<close>  \<open>x1b = False\<close> and
-  x2b_x2: \<open>(x2b, x2) \<in> twl_st_heur\<close>
-  using xy xa_x' x' xc twl_st_heur_lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st[of x2b x2]
+  x2b_x2: \<open>(x2b, x2) \<in> twl_st_heur_conflict_ana\<close>
+  using xy xa_x' x' xc twl_st_heur_conflict_ana_lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st[of x2b x2]
   assert xa
   by (auto simp: is_decided_hd_trail_wl_heur_alt_def is_decided_no_proped_iff xc
     lit_and_ann_of_propagated_st_def hd_xa)
@@ -928,13 +928,26 @@ proof -
       dest: no_dup_tlD)
 qed
 
+lemma atm_is_in_conflict_st_heur_ana_is_in_conflict_st:
+  \<open>(uncurry (RETURN oo atm_is_in_conflict_st_heur), uncurry (RETURN oo is_in_conflict_st)) \<in>
+   [\<lambda>(L, S). -L \<notin># the (get_conflict_wl S) \<and> get_conflict_wl S \<noteq> None \<and>
+     L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f
+   Id \<times>\<^sub>r twl_st_heur_conflict_ana \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+  apply (intro frefI nres_relI)
+  by (case_tac x, case_tac y)
+    (auto simp: atm_is_in_conflict_st_heur_def is_in_conflict_st_def twl_st_heur_conflict_ana_def
+      atms_of_def atm_of_eq_atm_of option_lookup_clause_rel_def lookup_clause_rel_def
+      mset_as_position_in_iff_nth is_pos_neg_not_is_pos mset_as_position_empty_iff)
+
+
+
 lemma atm_is_in_conflict_st_heur_iff: \<open>(\<not> atm_is_in_conflict_st_heur (- x1c) x2b) =
         (- x1a \<notin># the (get_conflict_wl x2))\<close>
 proof -
   show ?thesis
     unfolding is_in_conflict_st_def[symmetric] is_in_conflict_def[symmetric]
     apply (subst Not_eq_iff)
-    apply (rule atm_is_in_conflict_st_heur_is_in_conflict_st[THEN fref_to_Down_unRET_uncurry_Id])
+    apply (rule atm_is_in_conflict_st_heur_ana_is_in_conflict_st[THEN fref_to_Down_unRET_uncurry_Id])
     subgoal
       using confl_x2 x1c x1c_notin by (auto simp: uminus_\<A>\<^sub>i\<^sub>n_iff)
     subgoal
@@ -947,7 +960,7 @@ lemma atm_is_in_conflict_st_heur_pre: \<open>atm_is_in_conflict_st_heur_pre (- x
   using x1c xa_x' confl_x2
   unfolding atm_is_in_conflict_st_heur_pre_def xa x'
   by (cases x2b)
-    (auto simp: twl_st_heur_def option_lookup_clause_rel_def lookup_clause_rel_def
+    (auto simp: twl_st_heur_conflict_ana_def option_lookup_clause_rel_def lookup_clause_rel_def
     atms_of_def)
 
 
@@ -958,7 +971,7 @@ lemma tl_state_wl_heur_pre: \<open>tl_state_wl_heur_pre x2b\<close>
   using trail_nempty x2b_x2 xc x1c assert
   unfolding tl_state_wl_heur_pre_def
   by (cases x2b; cases \<open>get_trail_wl x2\<close>)
-     (auto simp: twl_st_heur_def lit_and_ann_of_propagated_st_heur_def
+     (auto simp: twl_st_heur_conflict_ana_def lit_and_ann_of_propagated_st_heur_def
       phase_saving_def atms_of_def vmtf_def is_decided_no_proped_iff
       neq_Nil_conv)
 
@@ -973,7 +986,7 @@ private lemma tl_state_wl_pre: \<open>tl_state_wl_pre x2\<close>
 
 lemma tl_state_wl_heur_rel:
   \<open>((False, tl_state_wl_heur x2b), False, tl_state_wl x2)
-    \<in> bool_rel \<times>\<^sub>f twl_st_heur\<close>
+    \<in> bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana\<close>
   using x2b_x2 tl_state_wl_pre
   by (auto intro!: tl_state_wl_heur_tl_state_wl[THEN fref_to_Down_unRET])
 
@@ -997,7 +1010,7 @@ lemma maximum_level_removed_eq_count_dec_pre:
   done
 
 lemma skip_rel:
-  \<open>((- x1c, x2b), - x1a, x2) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur\<close>
+  \<open>((- x1c, x2b), - x1a, x2) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_conflict_ana\<close>
   using x2b_x2
   by auto
 
@@ -1012,13 +1025,13 @@ lemma update_confl_tl_wl_heur_pre:
   using trail_nempty x2b_x2 xc x1c assert hd_x2 x1c_notin x1a_notin not_tauto
     dist_confl count_dec_not0 confl_x2 no_dup_x2 x1c not_dec_ge0 lits_trail
   unfolding update_confl_tl_wl_heur_pre_def
-  by (auto simp: twl_st_heur_def atms_of_def phase_saving_def
+  by (auto simp: twl_st_heur_conflict_ana_def atms_of_def phase_saving_def
       vmtf_def neq_Nil_conv)
 
 term get_trail_wl_heur
 private lemma counts_maximum_level:
   \<open>get_count_max_lvls_heur x2b \<in> counts_maximum_level (get_trail_wl x2) (get_conflict_wl x2)\<close>
-  using x2b_x2 unfolding twl_st_heur_def
+  using x2b_x2 unfolding twl_st_heur_conflict_ana_def
   by auto
 
 private lemma card_max_lvl_ge0:
@@ -1041,7 +1054,7 @@ lemma update_confl_tl_wl_pre:
   by auto
 
 lemma update_confl_tl_rel: \<open>(((x2c, x1c), x2b), (x2a, x1a), x2)
-    \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur\<close>
+    \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_conflict_ana\<close>
   using x2b_x2 by auto
 
 end
@@ -1050,9 +1063,10 @@ end
 declare st[simp del]
 end
 
+
 lemma skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D:
   \<open>(skip_and_resolve_loop_wl_D_heur, skip_and_resolve_loop_wl_D)
-    \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+    \<in> twl_st_heur_conflict_ana \<rightarrow>\<^sub>f \<langle>twl_st_heur_conflict_ana\<rangle>nres_rel\<close>
 proof -
   show ?thesis
     supply [[goals_limit=1]]
@@ -1066,11 +1080,11 @@ proof -
         maximum_level_removed_eq_count_dec_heur_maximum_level_removed_eq_count_dec
           [THEN fref_to_Down_curry_no_nres_Id]
        tl_state_wl_heur_tl_state_wl[THEN fref_to_Down_no_nres])
-    subgoal by (auto simp: twl_st_heur_state_simp)
+    subgoal by (auto simp: )
     subgoal by (rule skip_and_resolve_loop_wl_D_inv_skip_and_resolve_loop_wl_D_heur_inv) auto
-    subgoal by (auto simp: twl_st_heur_state_simp is_decided_hd_trail_wl_heur_def)
-    subgoal by (auto simp: twl_st_heur_state_simp)
-    subgoal by (auto simp: twl_st_heur_state_simp)
+    subgoal by (auto simp: is_decided_hd_trail_wl_heur_def twl_st_heur_ana_state_simp)
+    subgoal by (auto simp: )
+    subgoal by (auto simp:)
     subgoal
       by (rule atm_is_in_conflict_st_heur_pre)
     subgoal for x y xa x' x1 x2 x1a x2a x1b x2b x1c x2c
@@ -1424,7 +1438,7 @@ proof -
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that neq0_conv
     unfolding comp_PRE_def option_lookup_clause_rel_def lookup_clause_rel_def
-    by (fastforce simp: image_image twl_st_heur_def phase_saving_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+    by (fastforce simp: image_image twl_st_heur_conflict_ana_def phase_saving_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
       vmtf_def)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep lookup_clause_assn_def
@@ -1490,7 +1504,7 @@ lemma skip_and_resolve_loop_wl_D_heur_inv_nempty:
     skip_and_resolve_loop_wl_D_inv_def prod.case
   apply -
   apply normalize_goal+
-   by (auto simp: twl_st_heur_state_simp)
+   by (auto simp: twl_st_heur_ana_state_simp)
 
 sepref_register skip_and_resolve_loop_wl_D is_in_conflict_st
 sepref_thm skip_and_resolve_loop_wl_D

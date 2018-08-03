@@ -318,9 +318,11 @@ prepare_code_thms (in -) find_unassigned_lit_wl_D_fast_code_def
 lemmas find_unassigned_lit_wl_D_fast_heur_hnr[sepref_fr_rules] =
    find_unassigned_lit_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+(* TODO: the length_u M is not necessary *)
 definition (in isasat_input_ops) decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema).
-      (Decided L' # M, N, D, {#- L'#}, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_decision stats,
+      let j = length_u M in
+      (Decided L' # M, N, D, j, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_decision stats,
          fema, sema))\<close>
 
 sepref_thm decide_lit_wl_code
@@ -331,7 +333,6 @@ sepref_thm decide_lit_wl_code
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
   unfolding decide_lit_wl_heur_def isasat_assn_def PR_CONST_def
     cons_trail_Decided_def[symmetric]
-  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
   by sepref
 
 concrete_definition (in -) decide_lit_wl_code
@@ -343,7 +344,7 @@ prepare_code_thms (in -) decide_lit_wl_code_def
 lemmas decide_lit_wl_heur_hnr[sepref_fr_rules] =
   decide_lit_wl_code.refine[OF isasat_input_bounded_nempty_axioms]
 
-
+(* 
 sepref_thm decide_lit_wl_fast_code
   is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
   :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and>
@@ -352,7 +353,10 @@ sepref_thm decide_lit_wl_fast_code
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
   unfolding decide_lit_wl_heur_def isasat_fast_assn_def PR_CONST_def
     cons_trail_Decided_def[symmetric]
-  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
+    apply sepref_dbg_keep
+    apply sepref_dbg_trans_keep
+    apply sepref_dbg_trans_step_keep
+    apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref
 
 concrete_definition (in -) decide_lit_wl_fast_code
@@ -363,7 +367,7 @@ prepare_code_thms (in -) decide_lit_wl_fast_code_def
 
 lemmas decide_lit_wl_fast_heur_hnr[sepref_fr_rules] =
   decide_lit_wl_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
-
+ *)
 
 definition(in isasat_input_ops) decide_wl_or_skip_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
@@ -403,8 +407,9 @@ lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:
   subgoal by (auto simp del: simp: twl_st_heur_def)
   subgoal by (auto simp del: simp: twl_st_heur_def)
   subgoal by (auto simp del: simp: twl_st_heur_def)
-  subgoal by (auto simp: twl_st_heur_def decide_lit_wl_heur_def
-        decide_lit_wl_def counts_maximum_level_def intro!: vmtf_consD)
+  subgoal for x y xa x' x1 x2 x1a x2a xb x'a
+    by (clarsimp simp add: twl_st_heur_def decide_lit_wl_heur_def
+        decide_lit_wl_def counts_maximum_level_def  vmtf_consD)
   done
 
 sepref_register decide_wl_or_skip_D find_unassigned_lit_wl_D_heur decide_lit_wl_heur
@@ -424,7 +429,7 @@ prepare_code_thms (in -) decide_wl_or_skip_D_code_def
 
 lemmas decide_wl_or_skip_D_hnr[sepref_fr_rules] =
    decide_wl_or_skip_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
+(* 
 sepref_thm decide_wl_or_skip_D_fast_code
   is \<open>PR_CONST decide_wl_or_skip_D_heur\<close>
   :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_fast_assn\<close>
@@ -440,7 +445,7 @@ concrete_definition (in -) decide_wl_or_skip_D_fast_code
 prepare_code_thms (in -) decide_wl_or_skip_D_fast_code_def
 
 lemmas decide_wl_or_skip_D_fast_hnr[sepref_fr_rules] =
-   decide_wl_or_skip_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+   decide_wl_or_skip_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms] *)
 
 end
 

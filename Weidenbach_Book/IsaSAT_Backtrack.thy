@@ -535,7 +535,7 @@ where
       })\<close> *)
 
 definition (in isasat_input_ops) backtrack_wl_D_heur_inv where
-  \<open>backtrack_wl_D_heur_inv S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> twl_st_heur \<and> backtrack_wl_D_inv S')\<close>
+  \<open>backtrack_wl_D_heur_inv S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> twl_st_heur_conflict_ana \<and> backtrack_wl_D_inv S')\<close>
 
 definition extract_shorter_conflict_heur where
   \<open>extract_shorter_conflict_heur = (\<lambda>M NU NUE C outl. do {
@@ -917,6 +917,10 @@ lemma [simp]:
 context isasat_input_bounded_nempty
 begin
 
+lemma twl_st_heur_conflict_ana_twl_st_heur_no_clvls:
+  \<open>(S, T) \<in> twl_st_heur_conflict_ana \<Longrightarrow> (S, T) \<in> twl_st_heur_no_clvls\<close>
+  by (auto simp: twl_st_heur_conflict_ana_def twl_st_heur_no_clvls_def)
+
 text \<open>This relations decouples the conflict that has been minimised and appears abstractly
 from the refined state, where the conflict has been removed from the data structure to a 
 separate array.\<close>
@@ -943,7 +947,7 @@ lemma lcount_add_clause[simp]: \<open>i \<notin># dom_m N \<Longrightarrow>
   by (simp add: learned_clss_l_mapsto_upd_notin)
 
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
-  \<open>(backtrack_wl_D_nlit_heur, backtrack_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  \<open>(backtrack_wl_D_nlit_heur, backtrack_wl_D) \<in> twl_st_heur_conflict_ana \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
   have backtrack_wl_D_nlit_heur_alt_def: \<open>backtrack_wl_D_nlit_heur S\<^sub>0 =
     do {
@@ -970,7 +974,7 @@ proof -
   have inv: \<open>backtrack_wl_D_heur_inv S'\<close>
     if
       \<open>backtrack_wl_D_inv S\<close> and
-      \<open>(S', S) \<in> twl_st_heur\<close>
+      \<open>(S', S) \<in> twl_st_heur_conflict_ana\<close>
     for S S'
     using that unfolding backtrack_wl_D_heur_inv_def
     by (cases S; cases S') (blast intro: exI[of _ S'])
@@ -998,7 +1002,7 @@ proof -
      (is \<open>_ \<le> \<Down> ?shorter _\<close>)
     if
       inv: \<open>backtrack_wl_D_inv S\<close> and
-      S'_S: \<open>(S', S) \<in> twl_st_heur\<close>
+      S'_S: \<open>(S', S) \<in> twl_st_heur_conflict_ana\<close>
     for S S'
   proof -
     obtain M N D NE UE Q W where
@@ -1007,7 +1011,7 @@ proof -
     obtain W' vm \<phi> clvls cach lbd outl stats cc cc2 cc3 vdom lcount D' arena b Q' where
       S': \<open>S' = (M, arena, (b, D'), Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, cc, cc2, cc3, vdom,
         lcount)\<close>
-      using S'_S by (cases S') (auto simp: twl_st_heur_def S)
+      using S'_S by (cases S') (auto simp: twl_st_heur_conflict_ana_def S)
     have
       \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close> and
       vm: \<open>vm \<in> vmtf M\<close> and
@@ -1020,7 +1024,7 @@ proof -
       \<open>vdom_m W N \<subseteq> set vdom\<close> and
       D': \<open>((b, D'), D) \<in> option_lookup_clause_rel\<close> and
       arena: \<open>valid_arena arena N (set vdom)\<close>
-      using S'_S unfolding S S' twl_st_heur_def
+      using S'_S unfolding S S' twl_st_heur_conflict_ana_def
       by (auto simp: S)
     obtain T U where
       \<L>\<^sub>i\<^sub>n :\<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
@@ -1397,7 +1401,8 @@ proof -
         del_conflict_wl (M, N, Da, NE, UE, Q, W))
         \<in> twl_st_heur_no_clvls\<close>
         using S'_S x1b_None cach out unfolding twl_st_heur_no_clvls_def
-        by (auto simp: twl_st_heur_def del_conflict_wl_def S S' twl_st_heur_no_clvls_def)
+        by (auto simp: twl_st_heur_def del_conflict_wl_def S S' twl_st_heur_no_clvls_def
+          twl_st_heur_conflict_ana_def)
       moreover have x2c: \<open>x2c = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the Da))\<close>
         using highest highest2 x1c_nempty hd_x1c
         by (cases \<open>length x1c = Suc 0\<close>; cases x1c)
@@ -1443,7 +1448,7 @@ proof -
           (find_decomp_wl (lit_of (hd (get_trail_wl S'))) T')\<close>
     (is \<open>_ \<le>  \<Down> ?find_decomp _\<close>)
     if
-      \<open>(S, S') \<in> twl_st_heur\<close> and
+      \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close> and
       \<open>backtrack_wl_D_inv S'\<close> and
       \<open>backtrack_wl_D_heur_inv S\<close> and
       TT': \<open>(TnC, T') \<in> ?shorter S' S\<close> and
@@ -1515,7 +1520,7 @@ proof -
           (find_lit_of_max_level_wl U'
             (lit_of (hd (get_trail_wl S'))))\<close>
     if
-      \<open>(S, S') \<in> twl_st_heur\<close> and
+      \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close> and
       \<open>backtrack_wl_D_inv S'\<close> and
       \<open>backtrack_wl_D_heur_inv S\<close> and
       \<open>(TnC, T') \<in> ?shorter S' S\<close> and
@@ -1581,7 +1586,7 @@ proof -
   have propagate_bt_wl_D_heur: \<open>propagate_bt_wl_D_heur (lit_of_hd_trail_st_heur S) C U
       \<le> \<Down> twl_st_heur (propagate_bt_wl_D (lit_of (hd (get_trail_wl S'))) L' U')\<close>
     if
-      SS': \<open>(S, S') \<in> twl_st_heur\<close> and
+      SS': \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close> and
       \<open>backtrack_wl_D_inv S'\<close> and
       \<open>backtrack_wl_D_heur_inv S\<close> and
       \<open>(TnC, T') \<in> ?shorter S' S\<close> and
@@ -1662,7 +1667,7 @@ proof -
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U')
     have [simp]: \<open>get_trail_wl_heur S = M\<close> \<open>C ! 1 = L'\<close> \<open>C ! 0 = - lit_of (hd M)\<close> and
       n_d: \<open>no_dup M\<close>
-      using SS' C_L' hd_C \<open>C \<noteq> []\<close> by (auto simp: S' U' T' twl_st_heur_def hd_conv_nth)
+      using SS' C_L' hd_C \<open>C \<noteq> []\<close> by (auto simp: S' U' T' twl_st_heur_conflict_ana_def hd_conv_nth)
     have undef: \<open>undefined_lit M1 (lit_of (hd M))\<close>
       using decomp n_d
       by (auto dest!: get_all_ann_decomposition_exists_prepend simp: T' hd_append U' neq_Nil_conv
@@ -1843,7 +1848,7 @@ proof -
           (propagate_unit_bt_wl_D
             (lit_of (hd (get_trail_wl S'))) U')\<close>
     if
-      SS': \<open>(S, S') \<in> twl_st_heur\<close> and
+      SS': \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close> and
       \<open>backtrack_wl_D_inv S'\<close> and
       \<open>backtrack_wl_D_heur_inv S\<close> and
       \<open>(TnC, T') \<in> ?shorter S' S\<close> and
@@ -1916,7 +1921,7 @@ proof -
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U')
     have [simp]: \<open>get_trail_wl_heur S = M\<close> \<open>C ! 0 = - lit_of (hd M)\<close> and
       n_d: \<open>no_dup M\<close>
-      using SS' hd_C \<open>C \<noteq> []\<close> by (auto simp: S' U' T' twl_st_heur_def hd_conv_nth)
+      using SS' hd_C \<open>C \<noteq> []\<close> by (auto simp: S' U' T' twl_st_heur_conflict_ana_def hd_conv_nth)
     have undef: \<open>undefined_lit M1 (lit_of (hd M))\<close>
       using decomp n_d
       by (auto dest!: get_all_ann_decomposition_exists_prepend simp: T' hd_append U' neq_Nil_conv
@@ -1937,7 +1942,7 @@ proof -
 
   have trail_nempty: \<open>get_trail_wl_heur S \<noteq> []\<close>
     if
-      \<open>(S, S') \<in> twl_st_heur\<close> and
+      \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close> and
       \<open>backtrack_wl_D_inv S'\<close>
     for S S'
   proof -
@@ -1945,7 +1950,7 @@ proof -
       using that unfolding backtrack_wl_D_inv_def backtrack_wl_D_heur_inv_def backtrack_wl_inv_def
         backtrack_l_inv_def apply -
       apply normalize_goal+
-      by (auto simp: twl_st twl_st_heur_state_simp)
+      by (auto simp: twl_st twl_st_heur_ana_state_simp)
   qed
 
   show ?thesis

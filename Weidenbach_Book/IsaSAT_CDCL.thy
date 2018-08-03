@@ -75,11 +75,9 @@ lemma (in isasat_input_ops) twl_st_heur_count_decided_st_alt_def:
   unfolding count_decided_st_def twl_st_heur_def
   by (cases S) auto
 
-find_theorems get_conflict_wl_is_None_heur
-thm get_conflict_wl_is_None_heur_get_conflict_wl_is_None
-find_theorems get_conflict_wl_is_None
 lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
-  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>f twl_st_heur\<rangle>nres_rel\<close>
+  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f
+     \<langle>bool_rel \<times>\<^sub>f twl_st_heur\<rangle>nres_rel\<close>
   unfolding cdcl_twl_o_prog_wl_D_heur_def cdcl_twl_o_prog_wl_D_def
     get_conflict_wl_is_None
   apply (intro frefI nres_relI)
@@ -91,6 +89,7 @@ lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
    by (auto simp: twl_st_heur_state_simp
      get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id])
   subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_count_decided_st_alt_def)
+  subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
   subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp)
   done
