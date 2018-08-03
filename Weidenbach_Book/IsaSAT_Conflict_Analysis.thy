@@ -237,7 +237,7 @@ context isasat_input_bounded_nempty
 begin
 
 definition (in isasat_input_ops) tl_state_wl_pre where
-  \<open>tl_state_wl_pre S \<longleftrightarrow> get_trail_wl S \<noteq> [] \<and> lit_of(hd (get_trail_wl S)) \<in> snd ` D\<^sub>0 \<and>
+  \<open>tl_state_wl_pre S \<longleftrightarrow> get_trail_wl S \<noteq> [] \<and> lit_of(hd (get_trail_wl S)) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
      (lit_of (hd (get_trail_wl S))) \<notin># the (get_conflict_wl S) \<and>
      -(lit_of (hd (get_trail_wl S))) \<notin># the (get_conflict_wl S) \<and>
     \<not>tautology (the (get_conflict_wl S)) \<and>
@@ -299,7 +299,7 @@ definition update_confl_tl_wl_pre where
       get_conflict_wl S \<noteq> None \<and> get_trail_wl S \<noteq> [] \<and>
       - L \<in># the (get_conflict_wl S) \<and>
       (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S)) \<and>
-      L \<in> snd ` D\<^sub>0 \<and>
+      L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
       is_proped (hd (get_trail_wl S)) \<and>
       C > 0 \<and>
       card_max_lvl (get_trail_wl S) (the (get_conflict_wl S)) \<ge> 1 \<and>
@@ -380,7 +380,7 @@ proof -
       uL_D: \<open>- bg \<in># the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
       L_M: \<open>(bg, ao) = lit_and_ann_of_propagated
         (hd (get_trail_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
-      bg_D0: \<open>bg \<in> snd ` D\<^sub>0\<close> and
+      bg_D0: \<open>bg \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
       proped: \<open>is_proped (hd (get_trail_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
       \<open>0 < ao\<close> and
       card_max_lvl: \<open>1 \<le> card_max_lvl (get_trail_wl (baa, ca, da, ea, fa, ga, ha))
@@ -558,7 +558,7 @@ proof -
       uL_D: \<open>- bg \<in># the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
       L_M: \<open>(bg, ao) = lit_and_ann_of_propagated
         (hd (get_trail_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
-      bg_D0: \<open>bg \<in> snd ` D\<^sub>0\<close> and
+      bg_D0: \<open>bg \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
       proped: \<open>is_proped (hd (get_trail_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
       \<open>0 < ao\<close> and
       \<open>1 \<le> card_max_lvl (get_trail_wl (baa, ca, da, ea, fa, ga, ha))
@@ -1178,11 +1178,16 @@ prepare_code_thms is_decided_hd_trail_wl_code_def
 
 lemmas is_decided_hd_trail_wl_code[sepref_fr_rules] =
    is_decided_hd_trail_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
+(* 
 sepref_thm is_decided_hd_trail_wl_fast_code
   is \<open>RETURN o is_decided_hd_trail_wl_heur\<close>
   :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_fast_assn\<^sup>k \<rightarrow> bool_assn\<close>
   unfolding is_decided_hd_trail_wl_heur_alt_def isasat_fast_assn_def
+    apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
+
   by sepref
 
 
@@ -1194,7 +1199,7 @@ prepare_code_thms is_decided_hd_trail_wl_fast_code_def
 
 lemmas is_decided_hd_trail_wl_fast_code[sepref_fr_rules] =
    is_decided_hd_trail_wl_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
+ *)
 
 sepref_thm lit_and_ann_of_propagated_st_heur_code
   is \<open>RETURN o lit_and_ann_of_propagated_st_heur\<close>
@@ -1213,7 +1218,7 @@ prepare_code_thms (in -) lit_and_ann_of_propagated_st_heur_code_def
 
 lemmas lit_and_ann_of_propagated_st_heur_code_refine[sepref_fr_rules] =
    lit_and_ann_of_propagated_st_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
+(* 
 sepref_thm lit_and_ann_of_propagated_st_heur_fast_code
   is \<open>RETURN o lit_and_ann_of_propagated_st_heur\<close>
   :: \<open>[\<lambda>S. is_proped (hd (get_trail_wl_heur S)) \<and> get_trail_wl_heur S \<noteq> []]\<^sub>a
@@ -1231,7 +1236,7 @@ prepare_code_thms (in -) lit_and_ann_of_propagated_st_heur_fast_code_def
 
 lemmas lit_and_ann_of_propagated_st_heur_fast_code_refine[sepref_fr_rules] =
    lit_and_ann_of_propagated_st_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
+ *)
 end
 
 
@@ -1260,7 +1265,7 @@ prepare_code_thms (in -) tl_state_wl_heur_code_def
 lemmas tl_state_wl_heur_code_refine[sepref_fr_rules] =
    tl_state_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-
+(* 
 sepref_thm tl_state_wl_heur_fast_code
   is \<open>RETURN o tl_state_wl_heur\<close>
   :: \<open>[tl_state_wl_heur_pre]\<^sub>a
@@ -1280,7 +1285,7 @@ prepare_code_thms (in -) tl_state_wl_heur_fast_code_def
 
 lemmas tl_state_wl_heur_fast_code_refine[sepref_fr_rules] =
    tl_state_wl_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
+ *)
 lemma option_lookup_clause_assn_the[sepref_fr_rules]:
   \<open>(return o snd, RETURN o the) \<in> [\<lambda>C. C \<noteq> None]\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow> lookup_clause_assn\<close>
   by sepref_to_hoare

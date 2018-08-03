@@ -16,9 +16,9 @@ lemma unit_prop_body_wl_D_invD:
     \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S)\<close> and
     \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> get_clauses_wl S \<propto> fst (watched_by_app S L w) \<noteq> []\<close> and
     \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> Suc 0 < length (get_clauses_wl S \<propto> fst (watched_by_app S L w))\<close> and
-    \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> get_clauses_wl S \<propto> fst (watched_by_app S L w) ! 0 \<in> snd ` D\<^sub>0\<close> and
-    \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> get_clauses_wl S \<propto> fst (watched_by_app S L w) ! Suc 0 \<in> snd ` D\<^sub>0\<close> and
-    \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> L \<in> snd ` D\<^sub>0\<close> and
+    \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> get_clauses_wl S \<propto> fst (watched_by_app S L w) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+    \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> get_clauses_wl S \<propto> fst (watched_by_app S L w) ! Suc 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+    \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
     \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> fst (watched_by_app S L w) > 0\<close> and
     \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
     \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> get_conflict_wl S = None\<close> and
@@ -31,7 +31,7 @@ proof -
   show \<open>w < length (watched_by S L)\<close> and \<open>j \<le> w\<close>
     using assms unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
       unit_propagation_inner_loop_body_l_inv_def by fast+
-  have \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close> and \<open>L \<in> snd ` D\<^sub>0\<close>
+  have \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close> and \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
     using assms unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
       unit_propagation_inner_loop_body_l_inv_def literals_are_\<L>\<^sub>i\<^sub>n_def by fast+
   then show \<open>snd (watched_by_app S L w) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
@@ -42,7 +42,7 @@ proof -
   assume C_dom: \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S)\<close>
   obtain T T' where
     lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    \<open>L \<in> snd ` D\<^sub>0\<close> and
+    \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
     S_T: \<open>(S, T) \<in> state_wl_l (Some (L, w))\<close> and
     \<open>L \<in># all_lits_of_mm
            (mset `# init_clss_lf (get_clauses_wl S) + get_unit_clauses_wl S)\<close> and
@@ -106,11 +106,11 @@ proof -
     apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_nth[of ])
     apply (rule S_L_W_le_S)
     using lits by auto
-  then show \<open>get_clauses_wl S \<propto> ?C ! 0 \<in> snd ` D\<^sub>0\<close>
+  then show \<open>get_clauses_wl S \<propto> ?C ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
     using le apply (cases \<open>get_clauses_wl S \<propto> ?C\<close>)
     by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_add_mset)
 
-  show \<open>get_clauses_wl S \<propto> ?C ! Suc 0 \<in> snd ` D\<^sub>0\<close>
+  show \<open>get_clauses_wl S \<propto> ?C ! Suc 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
     using lits_N le apply (cases \<open>get_clauses_wl S \<propto> ?C\<close>;
         cases \<open>tl (get_clauses_wl S \<propto> ?C)\<close>;
         cases \<open>tl (tl (get_clauses_wl S \<propto> ?C))\<close>)
@@ -142,8 +142,8 @@ proof -
     using S_L_W_le_S S_L_W_ge_0
     by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def distinct_mset_set_distinct
          clauses_def mset_take_mset_drop_mset watched_by_app_def)
-  show \<open>L \<in> snd ` D\<^sub>0\<close>
-    using  \<open>L \<in> snd ` D\<^sub>0\<close>  .
+  show \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    using  \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>  .
   have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T')\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast
@@ -485,7 +485,7 @@ proof  -
   let ?C = \<open>fst (watched_by S L ! C)\<close>
   obtain T T' where
     \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-     \<open>L \<in> snd ` D\<^sub>0\<close> and
+     \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
      S_T: \<open>(S, T) \<in> state_wl_l (Some (L, C))\<close> and
     \<open>L \<in># all_lits_of_mm
                   (mset `# init_clss_lf (get_clauses_wl S) + get_unit_clauses_wl S)\<close> and
@@ -594,8 +594,8 @@ qed
 
 definition (in isasat_input_ops) propagate_lit_wl_heur_pre where
   \<open>propagate_lit_wl_heur_pre =
-     (\<lambda>(((L, C), i), S). undefined_lit (get_trail_wl_heur S) L \<and> L \<in> snd ` D\<^sub>0 \<and>
-        i \<le> 1)\<close>
+     (\<lambda>(((L, C), i), S). undefined_lit (get_trail_wl_heur S) L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+        i \<le> 1 \<and> C \<noteq> DECISION_REASON)\<close>
 
 definition (in isasat_input_ops) propagate_lit_wl_heur
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -643,7 +643,7 @@ lemma find_unwatched_le_length:
     find_unwatched_l_def
   by (cases S) auto
 
-lemma find_unwatched_in_D\<^sub>0: \<open>get_clauses_wl S \<propto> fst (watched_by_app S L C) ! xj \<in> snd ` D\<^sub>0\<close>
+lemma find_unwatched_in_D\<^sub>0: \<open>get_clauses_wl S \<propto> fst (watched_by_app S L C) ! xj \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   if
     find_unw: \<open>RETURN (Some xj) \<le> IsaSAT_Inner_Propagation.find_unwatched_wl_st S (fst (watched_by_app S L C))\<close> and
     inv: \<open>unit_prop_body_wl_D_inv S j C L\<close> and
@@ -1100,7 +1100,8 @@ private lemma
 private lemma x2d_le: \<open>x2d < length (watched_by_int S L)\<close> and
   x1e_le: \<open>nat_of_lit L < length (get_watched_wl_heur S)\<close> and
   x2_x2a: \<open>x2 \<le> x2a\<close> and
-  x2a_le: \<open>x2a < length (watched_by T L)\<close>
+  x2a_le: \<open>x2a < length (watched_by T L)\<close> and
+  valid: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl T) (set (get_vdom S))\<close>
   using pre pre_inv0 st
   unfolding watched_by_app_heur_pre_def prod.simps
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv0_def
@@ -1517,7 +1518,10 @@ lemma propagate_lit_wl_heur_pre:
 proof -
   have \<open>i = 0 \<or> i = 1\<close>
     unfolding i_def by auto
-  then show ?A
+  moreover have \<open>x1g \<noteq> DECISION_REASON\<close>
+    using arena_lifting(1)[OF valid x1g]
+    by (auto simp: header_size_def DECISION_REASON_def split: if_splits)
+  ultimately show ?A
     using unit_prop_body_wl_D_invD[OF prop_inv] undef_lit1i
     unfolding propagate_lit_wl_heur_pre_def prod.simps  i_def[symmetric] i_alt_def_L'[symmetric]
       i_alt_def[symmetric] watched_by_app_def
@@ -1912,7 +1916,7 @@ qed
 definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_heur_inv where
   \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv S\<^sub>0 L =
    (\<lambda>(j, w, S'). \<exists>S\<^sub>0' S. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur \<and> (S', S) \<in> twl_st_heur \<and> unit_propagation_inner_loop_wl_loop_D_inv L (j, w, S) \<and>
-        L \<in> snd ` D\<^sub>0 \<and> dom_m (get_clauses_wl S) = dom_m (get_clauses_wl S\<^sub>0'))\<close>
+        L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> dom_m (get_clauses_wl S) = dom_m (get_clauses_wl S\<^sub>0'))\<close>
 
 definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> (nat \<times> nat \<times> twl_st_wl_heur) nres\<close>
@@ -2421,7 +2425,7 @@ begin
 
 lemma watched_by_app_watched_by_app_heur:
   \<open>(uncurry2 (RETURN ooo watched_by_app_heur), uncurry2 (RETURN ooo watched_by_app)) \<in>
-    [\<lambda>((S, L), K). L \<in> snd ` D\<^sub>0 \<and> K < length (get_watched_wl S L)]\<^sub>f
+    [\<lambda>((S, L), K). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> K < length (get_watched_wl S L)]\<^sub>f
      twl_st_heur \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
      (auto simp: watched_by_app_heur_def watched_by_app_def twl_st_heur_def map_fun_rel_def)
@@ -2443,7 +2447,7 @@ prepare_code_thms (in -) watched_by_app_heur_code_def
 
 lemmas watched_by_app_heur_code_refine[sepref_fr_rules] =
    watched_by_app_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
+(* 
 sepref_thm watched_by_app_heur_fast_code
   is \<open>uncurry2 (RETURN ooo watched_by_app_heur)\<close>
   :: \<open>[watched_by_app_heur_pre]\<^sub>a
@@ -2451,6 +2455,11 @@ sepref_thm watched_by_app_heur_fast_code
   supply [[goals_limit=1]] length_rll_def[simp]
   unfolding watched_by_app_heur_alt_def isasat_fast_assn_def nth_rll_def[symmetric]
    watched_by_app_heur_pre_def
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
+
   by sepref
 
 concrete_definition (in -) watched_by_app_heur_fast_code
@@ -2461,7 +2470,7 @@ prepare_code_thms (in -) watched_by_app_heur_fast_code_def
 
 lemmas watched_by_app_heur_fast_code_refine[sepref_fr_rules] =
    watched_by_app_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
+ *)
 
 sepref_thm access_lit_in_clauses_heur_code
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
@@ -2502,7 +2511,6 @@ lemmas access_lit_in_clauses_heur_fast_code_refine[sepref_fr_rules] =
    access_lit_in_clauses_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms] *)
 
 end
-
 
 
 lemma case_tri_bool_If:

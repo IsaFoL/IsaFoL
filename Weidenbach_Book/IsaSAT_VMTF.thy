@@ -824,7 +824,6 @@ proof -
     .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
     unfolding comp_PRE_def find_decomp_wl_pre_def find_decomp_w_ns_pre_def highest_lit_def
-        twl_st_heur_no_clvls_def
     by (fastforce simp del: twl_st_of_wl.simps)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep

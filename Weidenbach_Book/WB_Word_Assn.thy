@@ -982,4 +982,48 @@ lemma sum_uint64_assn:
   \<open>(uncurry (return oo (+)), uncurry (RETURN oo (+))) \<in> uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by (sepref_to_hoare) sep_auto
 
+paragraph \<open>Conversions\<close>
+
+definition nat_of_uint64_spec :: \<open>nat \<Rightarrow> nat\<close> where
+  [simp]: \<open>nat_of_uint64_spec n = n\<close>
+
+lemma nat_of_uint64_spec_hnr[sepref_fr_rules]:
+  \<open>(return o uint64_of_nat, RETURN o nat_of_uint64_spec) \<in>
+     [\<lambda>n. n \<le> uint64_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_spec_def
+      nat_of_uint64_uint64_of_nat_id)
+
+
+definition nat_of_uint32_spec :: \<open>nat \<Rightarrow> nat\<close> where
+  [simp]: \<open>nat_of_uint32_spec n = n\<close>
+
+lemma nat_of_uint32_spec_hnr[sepref_fr_rules]:
+  \<open>(return o uint32_of_nat, RETURN o nat_of_uint32_spec) \<in>
+     [\<lambda>n. n \<le> uint32_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_spec_def
+      nat_of_uint32_uint32_of_nat_id)
+
+definition nat_of_uint64_conv :: \<open>nat \<Rightarrow> nat\<close> where
+[simp]: \<open>nat_of_uint64_conv i = i\<close>
+
+lemma nat_of_uint64_conv_hnr[sepref_fr_rules]:
+  \<open>(return o nat_of_uint64, RETURN o nat_of_uint64_conv) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_conv_def)
+
+lemma nat_of_uint64[sepref_fr_rules]:
+  \<open>(return o nat_of_uint64, RETURN o nat_of_uint64) \<in>
+    (uint64_assn)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def
+     nat_of_uint64_conv_def nat_of_uint64_def
+    split: option.splits)
+
+definition nat_of_uint32_conv :: \<open>nat \<Rightarrow> nat\<close> where
+[simp]: \<open>nat_of_uint32_conv i = i\<close>
+
+lemma nat_of_uint32_conv_hnr[sepref_fr_rules]:
+  \<open>(return o nat_of_uint32, RETURN o nat_of_uint32_conv) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_conv_def)
+
 end

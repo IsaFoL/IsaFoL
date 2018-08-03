@@ -150,12 +150,12 @@ definition (in isasat_input_ops) propagate_unit_cls_heur
  :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
   \<open>propagate_unit_cls_heur = (\<lambda>L (M, N, D, Q, oth). do {
-     ASSERT(undefined_lit M L \<and> L \<in> snd ` D\<^sub>0);
+     ASSERT(undefined_lit M L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
      RETURN (Propagated L 0 # M, N, D, Q, oth)})\<close>
 
 lemma propagate_unit_cls_heur_propagate_unit_cls:
   \<open>(uncurry propagate_unit_cls_heur, uncurry (RETURN oo propagate_unit_init_wl)) \<in>
-   [\<lambda>(L, S). undefined_lit (get_trail_wl (fst S)) L \<and> L \<in> snd ` D\<^sub>0]\<^sub>f
+   [\<lambda>(L, S). undefined_lit (get_trail_wl (fst S)) L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f
     Id \<times>\<^sub>r twl_st_heur_init \<rightarrow> \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_init_def propagate_unit_cls_heur_def propagate_unit_init_wl_def
@@ -165,7 +165,7 @@ lemma propagate_unit_cls_heur_propagate_unit_cls:
 sepref_thm propagate_unit_cls_code
   is \<open>uncurry (PR_CONST propagate_unit_cls_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
-  supply [[goals_limit=1]]
+  supply [[goals_limit=1]] DECISION_REASON_def[simp]
   unfolding propagate_unit_cls_heur_def isasat_init_assn_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   by sepref
@@ -273,7 +273,7 @@ definition (in isasat_input_ops) set_conflict_unit_heur where
 
 lemma set_conflict_unit_heur_set_conflict_unit:
   \<open>(uncurry set_conflict_unit_heur, uncurry (RETURN oo set_conflict_unit)) \<in>
-    [\<lambda>(L, D). D = None \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f option_lookup_clause_rel \<rightarrow>
+    [\<lambda>(L, D). D = None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f Id \<times>\<^sub>f option_lookup_clause_rel \<rightarrow>
      \<langle>option_lookup_clause_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_def set_conflict_unit_heur_def set_conflict_unit_def
@@ -314,7 +314,7 @@ where
 
 lemma conflict_propagated_unit_cls_heur_conflict_propagated_unit_cls:
   \<open>(uncurry conflict_propagated_unit_cls_heur, uncurry (RETURN oo set_conflict_init_wl)) \<in>
-   [\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> get_conflict_init_wl S = None]\<^sub>f
+   [\<lambda>(L, S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> get_conflict_init_wl S = None]\<^sub>f
       nat_lit_lit_rel \<times>\<^sub>r twl_st_heur_init \<rightarrow> \<langle>twl_st_heur_init\<rangle> nres_rel\<close>
 proof -
   have set_conflict_init_wl_alt_def:
@@ -323,7 +323,7 @@ proof -
       RETURN ((M, N, Some {#L#}, add_mset {#L#} NE, UE, {#}, W), OC)
    })\<close>
     by (auto intro!: ext simp: set_conflict_init_wl_def)
-  have [refine0]: \<open>D = None \<and> L \<in> snd ` D\<^sub>0 \<Longrightarrow> (y, None) \<in> option_lookup_clause_rel \<Longrightarrow> L = L' \<Longrightarrow>
+  have [refine0]: \<open>D = None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> (y, None) \<in> option_lookup_clause_rel \<Longrightarrow> L = L' \<Longrightarrow>
     set_conflict_unit_heur L' y \<le> \<Down> {(D, D'). (D, D') \<in> option_lookup_clause_rel \<and> D' = Some {#L#}}
        (RETURN (set_conflict_unit L D))\<close>
     for L D y L'
@@ -368,13 +368,13 @@ qed
 
 theorem set_conflict_unit_hnr[sepref_fr_rules]:
   \<open>(uncurry set_conflict_unit_code, uncurry (RETURN oo set_conflict_unit))
-    \<in> [\<lambda>(L, D). D = None \<and> L \<in> snd ` D\<^sub>0]\<^sub>a
+    \<in> [\<lambda>(L, D). D = None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow> option_lookup_clause_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
     \<in> [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f option_lookup_clause_rel)
-     (\<lambda>(L, D). D = None \<and> L \<in> snd ` D\<^sub>0)
+     (\<lambda>(L, D). D = None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)
      (\<lambda>_ (L, b, n, xs). atm_of L < length xs)
      (\<lambda>_. True)]\<^sub>a hrp_comp
                      (unat_lit_assn\<^sup>k *\<^sub>a
@@ -403,7 +403,7 @@ qed
 
 sepref_thm conflict_propagated_unit_cls_code
   is \<open>uncurry (PR_CONST conflict_propagated_unit_cls_heur)\<close>
-  :: \<open>[\<lambda>(L, S). L \<in> snd ` D\<^sub>0]\<^sub>a
+  :: \<open>[\<lambda>(L, S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow> isasat_init_assn\<close>
   supply [[goals_limit=1]]
   unfolding conflict_propagated_unit_cls_heur_def isasat_init_assn_def
@@ -422,7 +422,7 @@ lemmas conflict_propagated_unit_cls_heur_hnr[sepref_fr_rules] =
 (*
 sepref_thm conflict_propagated_unit_cls_fast_code
   is \<open>uncurry (PR_CONST conflict_propagated_unit_cls_heur)\<close>
-  :: \<open>[\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> get_conflict_wl_heur_init S = None]\<^sub>a
+  :: \<open>[\<lambda>(L, S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> get_conflict_wl_heur_init S = None]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a isasat_init_fast_assn\<^sup>d  \<rightarrow> isasat_init_fast_assn\<close>
   supply [[goals_limit=1]]
   unfolding conflict_propagated_unit_cls_heur_def isasat_init_fast_assn_def
@@ -1147,7 +1147,7 @@ where
         then do {
           ASSERT (C \<noteq> []);
           let L = hd C;
-          ASSERT(L \<in> snd ` D\<^sub>0);
+          ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
           let val_L = polarity (get_trail_wl_heur_init S) L;
           if val_L = None
           then propagate_unit_cls_heur L S
@@ -1311,7 +1311,7 @@ lemma polarity_st_heur_init_alt_def:
 
 sepref_thm polarity_st_heur_init_code
   is \<open>uncurry (RETURN oo polarity_st_heur_init)\<close>
-  :: \<open>[\<lambda>(S, L). L \<in> snd ` D\<^sub>0]\<^sub>a isasat_init_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
+  :: \<open>[\<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a isasat_init_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
   unfolding polarity_st_heur_init_def isasat_init_assn_def
   supply [[goals_limit = 1]]
   by sepref
@@ -1327,7 +1327,7 @@ lemmas polarity_st_heur_init_hr[sepref_fr_rules] =
 (*
 sepref_thm polarity_st_heur_init_fast_code
   is \<open>uncurry (RETURN oo polarity_st_heur_init)\<close>
-  :: \<open>[\<lambda>(S, L). L \<in> snd ` D\<^sub>0]\<^sub>a isasat_init_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
+  :: \<open>[\<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a isasat_init_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
   unfolding polarity_st_heur_init_def isasat_init_fast_assn_def
   supply [[goals_limit = 1]]
   by sepref
@@ -1481,8 +1481,8 @@ lemma (in isasat_input_ops)init_dt_wl_heur_fast_le:
    \<open>Max_dom (get_clauses_wl_heur_init S) + length CS < uint_max - 1 \<Longrightarrow>
    \<forall>C\<in>set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<Longrightarrow>
 packed (get_clauses_wl_heur_init S) \<Longrightarrow>
-\<forall>L\<in>snd ` D\<^sub>0. nat_of_lit L < length (get_watched_list_heur_init S) \<Longrightarrow>
-  \<forall>L\<in>snd ` D\<^sub>0. nat_of_lit L < length (get_watched_list_heur_init S) \<Longrightarrow>
+\<forall>L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length (get_watched_list_heur_init S) \<Longrightarrow>
+  \<forall>L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length (get_watched_list_heur_init S) \<Longrightarrow>
     init_dt_wl_heur_fast CS S \<le> init_dt_wl_heur CS S\<close>
   unfolding init_dt_wl_heur_fast_def init_dt_wl_heur_def Max_dom_def init_dt_wl_heur_fast_def
   apply (induction CS arbitrary: S)
@@ -1510,8 +1510,8 @@ lemma (in isasat_input_ops)init_dt_wl_heur_fast_ge:
    \<open>Max_dom (get_clauses_wl_heur_init S) + length CS < uint_max - 1 \<Longrightarrow>
    \<forall>C\<in>set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<Longrightarrow>
 packed (get_clauses_wl_heur_init S) \<Longrightarrow>
-\<forall>L\<in>snd ` D\<^sub>0. nat_of_lit L < length (get_watched_list_heur_init S) \<Longrightarrow>
-  \<forall>L\<in>snd ` D\<^sub>0. nat_of_lit L < length (get_watched_list_heur_init S) \<Longrightarrow>
+\<forall>L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length (get_watched_list_heur_init S) \<Longrightarrow>
+  \<forall>L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length (get_watched_list_heur_init S) \<Longrightarrow>
     init_dt_wl_heur_fast CS S \<ge> init_dt_wl_heur CS S\<close>
   unfolding init_dt_wl_heur_fast_def init_dt_wl_heur_def Max_dom_def init_dt_wl_heur_fast_def
   apply (induction CS arbitrary: S)
@@ -1535,8 +1535,8 @@ lemma (in isasat_input_ops)init_dt_wl_heur_fast_init_dt_wl_heur:
     \<open>Max_dom_wl_heur S + length CS < uint_max - 1\<close> and
     \<open>\<forall>C\<in>set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close> and
     \<open>packed (get_clauses_wl_heur_init S)\<close> and
-    \<open>\<forall>L\<in>snd ` D\<^sub>0. nat_of_lit L < length (get_watched_list_heur_init S)\<close> and
-    \<open>\<forall>L\<in>snd ` D\<^sub>0. nat_of_lit L < length (get_watched_list_heur_init S)\<close>
+    \<open>\<forall>L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length (get_watched_list_heur_init S)\<close> and
+    \<open>\<forall>L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length (get_watched_list_heur_init S)\<close>
   shows \<open>init_dt_wl_heur_fast CS S =
          init_dt_wl_heur CS S\<close>
   using init_dt_wl_heur_fast_le[OF assms]
@@ -2634,7 +2634,7 @@ definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> na
      let cs = [];
      let M = replicate m UNSET;
      let M' = replicate n zero_uint32_nat;
-     let M'' = replicate n None;
+     let M'' = replicate n 1;
      RETURN ((M0, M, M', M'', zero_uint32_nat, cs))
   }\<close>
 
@@ -2678,6 +2678,7 @@ sepref_definition init_trail_D_fast_code
   apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
   apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
   apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
+  apply (rewrite in \<open>let _ = op_array_replicate _ \<hole> in _\<close> one_uint64_nat_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
 

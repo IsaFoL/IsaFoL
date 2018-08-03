@@ -114,8 +114,8 @@ definition (in isasat_input_ops) find_undefined_atm
        (((nat,nat) ann_lits \<times> vmtf_remove_int) \<times> nat option) nres\<close>
 where
   \<open>find_undefined_atm M _ = SPEC(\<lambda>((M', vm), L).
-     (L \<noteq> None \<longrightarrow> Pos (the L) \<in> snd ` D\<^sub>0 \<and> undefined_atm M (the L)) \<and>
-     (L = None \<longrightarrow> (\<forall>K\<in>snd ` D\<^sub>0. defined_lit M K)) \<and> M = M' \<and> vm \<in> vmtf M)\<close>
+     (L \<noteq> None \<longrightarrow> Pos (the L) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> undefined_atm M (the L)) \<and>
+     (L = None \<longrightarrow> (\<forall>K\<in># \<L>\<^sub>a\<^sub>l\<^sub>l. defined_lit M K)) \<and> M = M' \<and> vm \<in> vmtf M)\<close>
 
 definition (in isasat_input_ops) find_unassigned_lit_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat literal option) nres\<close>
@@ -238,7 +238,7 @@ definition (in isasat_input_ops) lit_of_found_atm_D
   })\<close>
 
 definition (in isasat_input_ops) lit_of_found_atm_D_pre where
-\<open>lit_of_found_atm_D_pre = (\<lambda>(\<phi>, L). L \<noteq> None \<longrightarrow> (Pos (the L) \<in> snd ` D\<^sub>0 \<and> the L < length \<phi>))\<close>
+\<open>lit_of_found_atm_D_pre = (\<lambda>(\<phi>, L). L \<noteq> None \<longrightarrow> (Pos (the L) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> the L < length \<phi>))\<close>
 
 sepref_thm lit_of_found_atm_D_code
   is \<open>uncurry (PR_CONST lit_of_found_atm_D)\<close>
@@ -328,7 +328,7 @@ definition (in isasat_input_ops) decide_lit_wl_heur :: \<open>nat literal \<Righ
 sepref_thm decide_lit_wl_code
   is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
   :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and>
-        L \<in> snd ` D\<^sub>0]\<^sub>a
+        L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
   unfolding decide_lit_wl_heur_def isasat_assn_def PR_CONST_def
@@ -348,7 +348,7 @@ lemmas decide_lit_wl_heur_hnr[sepref_fr_rules] =
 sepref_thm decide_lit_wl_fast_code
   is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
   :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and>
-        L \<in> snd ` D\<^sub>0]\<^sub>a
+        L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
   unfolding decide_lit_wl_heur_def isasat_fast_assn_def PR_CONST_def
@@ -378,7 +378,7 @@ where
       None \<Rightarrow> RETURN (True, S)
     | Some L \<Rightarrow>
        do {
-        ASSERT(undefined_lit (get_trail_wl_heur S) L \<and> L \<in> snd ` D\<^sub>0);
+        ASSERT(undefined_lit (get_trail_wl_heur S) L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
          RETURN (False, decide_lit_wl_heur L S) }
   })
 \<close>

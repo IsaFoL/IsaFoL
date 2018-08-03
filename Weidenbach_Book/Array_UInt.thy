@@ -1710,6 +1710,89 @@ lemma shorten_take_aa_u32_hnr[sepref_fr_rules]:
     Array.nth'_def heap_array_set_u_def heap_array_set'_u_def Array.upd'_def shorten_take_aa_def
   by sepref_to_hoare (sep_auto simp: nat_of_uint32_code[symmetric])
 
+
+paragraph \<open>Type converstion\<close>
+
+definition op_map :: "('b \<Rightarrow> 'a::default) \<Rightarrow> 'a \<Rightarrow> 'b list \<Rightarrow> 'a list nres" where
+  \<open>op_map R e xs = do {
+    let zs = replicate (length xs) e;
+    (_, zs) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i,zs). i \<le> length xs \<and> take i zs = map R (take i xs) \<and>
+        length zs = length xs \<and> (\<forall>k\<ge>i. k < length xs \<longrightarrow> zs ! k = e)\<^esup>
+      (\<lambda>(i, zs). i < length zs)
+      (\<lambda>(i, zs). do {ASSERT(i < length zs); RETURN (i+1, zs[i := R (xs!i)])})
+      (0, zs);
+    RETURN zs
+  }\<close>
+
+lemma op_map_map: \<open>op_map R e xs \<le> RETURN (map R xs)\<close>
+  unfolding op_map_def Let_def
+  by (refine_vcg WHILEIT_rule[where R=\<open>measure (\<lambda>(i,_). length xs - i)\<close>])
+    (auto simp: last_conv_nth take_Suc_conv_app_nth list_update_append split: nat.splits)
+
+lemma op_map_map_rel:
+  \<open>(op_map R e, RETURN o (map R)) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: op_map_map)
+
+definition array_nat_of_uint64_conv :: \<open>nat list \<Rightarrow> nat list\<close> where
+\<open>array_nat_of_uint64_conv = id\<close>
+
+definition array_nat_of_uint64 :: "nat list \<Rightarrow> nat list nres" where
+\<open>array_nat_of_uint64 xs = op_map nat_of_uint64_conv 0 xs\<close>
+
+sepref_definition array_nat_of_uint64_code
+  is array_nat_of_uint64
+  :: \<open>(array_assn uint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a array_assn nat_assn\<close>
+  unfolding op_map_def array_nat_of_uint64_def array_fold_custom_replicate
+  apply (rewrite at \<open>do {let _ = \<hole>; _}\<close> annotate_assn[where A=\<open>array_assn nat_assn\<close>])
+  by sepref
+
+lemma array_nat_of_uint64_conv_alt_def:
+  \<open>array_nat_of_uint64_conv = map nat_of_uint64_conv\<close>
+  unfolding nat_of_uint64_conv_def array_nat_of_uint64_conv_def by auto
+
+lemma array_nat_of_uint64_conv_hnr[sepref_fr_rules]:
+  \<open>(array_nat_of_uint64_code, (RETURN \<circ> array_nat_of_uint64_conv))
+    \<in> (array_assn uint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a array_assn nat_assn\<close>
+  using array_nat_of_uint64_code.refine[unfolded array_nat_of_uint64_def,
+    FCOMP op_map_map_rel] unfolding array_nat_of_uint64_conv_alt_def
+  by simp
+
+definition uint64_of_nat_conv :: \<open>nat \<Rightarrow> nat\<close> where
+\<open>uint64_of_nat_conv i = i\<close>
+
+lemma uint64_of_nat_conv_hnr[sepref_fr_rules]:
+  \<open>(return o uint64_of_nat, RETURN o uint64_of_nat_conv) \<in>
+    [\<lambda>n. n \<le> uint64_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def uint64_of_nat_conv_def
+      nat_of_uint64_uint64_of_nat_id)
+
+definition array_uint64_of_nat_conv :: \<open>nat list \<Rightarrow> nat list\<close> where
+\<open>array_uint64_of_nat_conv = id\<close>
+
+definition array_uint64_of_nat :: "nat list \<Rightarrow> nat list nres" where
+\<open>array_uint64_of_nat xs = op_map uint64_of_nat_conv zero_uint64_nat xs\<close>
+
+sepref_definition array_uint64_of_nat_code
+  is array_uint64_of_nat
+  :: \<open>[\<lambda>xs. \<forall>a\<in>set xs. a \<le> uint64_max]\<^sub>a
+       (array_assn nat_assn)\<^sup>k \<rightarrow> array_assn uint64_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding op_map_def array_uint64_of_nat_def array_fold_custom_replicate
+  apply (rewrite at \<open>do {let _ = \<hole>; _}\<close> annotate_assn[where A=\<open>array_assn uint64_nat_assn\<close>])
+  by sepref
+
+lemma array_uint64_of_nat_conv_alt_def:
+  \<open>array_uint64_of_nat_conv = map uint64_of_nat_conv\<close>
+  unfolding uint64_of_nat_conv_def array_uint64_of_nat_conv_def by auto
+
+lemma array_uint64_of_nat_conv_hnr[sepref_fr_rules]:
+  \<open>(array_uint64_of_nat_code, (RETURN \<circ> array_uint64_of_nat_conv))
+    \<in> [\<lambda>xs. \<forall>a\<in>set xs. a \<le> uint64_max]\<^sub>a
+       (array_assn nat_assn)\<^sup>k \<rightarrow> array_assn uint64_nat_assn\<close>
+  using array_uint64_of_nat_code.refine[unfolded array_uint64_of_nat_def,
+    FCOMP op_map_map_rel] unfolding array_uint64_of_nat_conv_alt_def
+  by simp
+
 (* End Move *)
 
 end

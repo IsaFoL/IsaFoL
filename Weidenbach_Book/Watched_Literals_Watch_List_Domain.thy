@@ -341,7 +341,7 @@ definition length_ll_f where
 
 lemma length_ll_length_ll_f:
   \<open>(uncurry (RETURN oo length_ll), uncurry (RETURN oo length_ll_f)) \<in>
-     [\<lambda>(W, L). L \<in> snd ` D\<^sub>0]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r nat_lit_rel) \<rightarrow>
+     [\<lambda>(W, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r nat_lit_rel) \<rightarrow>
        \<langle>nat_rel\<rangle> nres_rel\<close>
   unfolding length_ll_def length_ll_f_def
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def
@@ -414,7 +414,7 @@ qed
 
 lemma length_aa_length_ll_f[sepref_fr_rules]:
   \<open>(uncurry length_aa_u, uncurry (RETURN oo length_ll_f)) \<in>
-    [\<lambda>(W, L). L \<in> snd ` D\<^sub>0]\<^sub>a
+    [\<lambda>(W, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
       array_watched_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -422,7 +422,7 @@ proof -
     by auto
   have H: \<open>(uncurry length_aa_u, uncurry (RETURN \<circ>\<circ> length_ll_f))
      \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel)
-     (\<lambda>(W, L). L \<in> snd ` D\<^sub>0) (\<lambda>_ (xs, i). i < length xs)
+     (\<lambda>(W, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) (\<lambda>_ (xs, i). i < length xs)
      (\<lambda>_. True)]\<^sub>a hrp_comp
                      ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)))\<^sup>k *\<^sub>a
                       uint32_nat_assn\<^sup>k)
@@ -461,7 +461,7 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
 
 lemma in_literals_are_in_\<L>\<^sub>i\<^sub>n_in_D\<^sub>0:
   assumes \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close> and \<open>L \<in># D\<close>
-  shows \<open>L \<in> snd ` D\<^sub>0\<close>
+  shows \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   using assms by (cases L) (auto simp: image_image literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_def)
 
 lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm A) \<longleftrightarrow> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l = atms_of_mm A\<close>
@@ -812,7 +812,7 @@ qed
 definition (in isasat_input_ops) unit_prop_body_wl_D_inv
   :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> bool\<close> where
 \<open>unit_prop_body_wl_D_inv T' j w L \<longleftrightarrow>
-    unit_prop_body_wl_inv T' j w L \<and> literals_are_\<L>\<^sub>i\<^sub>n T' \<and> L \<in> snd ` D\<^sub>0
+    unit_prop_body_wl_inv T' j w L \<and> literals_are_\<L>\<^sub>i\<^sub>n T' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l
   \<close>
 
 text \<open>
@@ -829,7 +829,7 @@ definition (in -) unit_prop_body_wl_D_find_unwatched_inv where
 
 definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_inv where
   \<open>unit_propagation_inner_loop_wl_loop_D_inv L = (\<lambda>(j, w, S).
-      literals_are_\<L>\<^sub>i\<^sub>n S \<and> L \<in> snd ` D\<^sub>0 \<and>
+      literals_are_\<L>\<^sub>i\<^sub>n S \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
       unit_propagation_inner_loop_wl_loop_inv L (j, w, S))\<close>
 
 definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_pre where
@@ -1031,7 +1031,7 @@ qed
 lemma unit_propagation_inner_loop_body_wl_D_spec:
   fixes S :: \<open>nat twl_st_wl\<close> and K :: \<open>nat literal\<close> and w :: nat
   assumes
-    K: \<open>K \<in> snd ` D\<^sub>0\<close> and
+    K: \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
     \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
   shows \<open>unit_propagation_inner_loop_body_wl_D K j w S \<le>
       \<Down> {((j', n', T'), (j, n, T)). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
@@ -1257,12 +1257,12 @@ qed
 lemma
   shows unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D:
   \<open>(uncurry3 unit_propagation_inner_loop_body_wl_D, uncurry3 unit_propagation_inner_loop_body_wl) \<in>
-    [\<lambda>(((K, j), w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0]\<^sub>f
+    [\<lambda>(((K, j), w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f
     Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close>
      (is \<open>?G1\<close>) and
   unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D_weak:
    \<open>(uncurry3 unit_propagation_inner_loop_body_wl_D, uncurry3 unit_propagation_inner_loop_body_wl) \<in>
-    [\<lambda>(((K, j), w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0]\<^sub>f
+    [\<lambda>(((K, j), w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f
     Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
    (is \<open>?G2\<close>)
 proof -
@@ -1293,7 +1293,7 @@ where
   \<close>
 
 lemma unit_propagation_inner_loop_wl_spec:
-  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and K: \<open>K \<in> snd ` local.D\<^sub>0\<close>
+  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and K: \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   shows \<open>unit_propagation_inner_loop_wl_loop_D K S \<le>
      \<Down> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
        (unit_propagation_inner_loop_wl_loop K S)\<close>
@@ -1301,7 +1301,7 @@ proof -
   have u: \<open>unit_propagation_inner_loop_body_wl_D K j w S \<le>
          \<Down> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
            (unit_propagation_inner_loop_body_wl K' j' w' S')\<close>
-  if \<open>K \<in> snd ` D\<^sub>0\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
+  if \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
     \<open>S = S'\<close> \<open>K = K'\<close> \<open>w = w'\<close> \<open>j'=j\<close>
   for S S' and w w' and K K' and j' j
     using unit_propagation_inner_loop_body_wl_D_spec[of K S j w] that by auto
@@ -1331,7 +1331,7 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D
   }\<close>
 
 lemma unit_propagation_inner_loop_wl_D_spec:
-  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and K: \<open>K \<in> snd ` local.D\<^sub>0\<close>
+  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and K: \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   shows \<open>unit_propagation_inner_loop_wl_D K S \<le>
      \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
        (unit_propagation_inner_loop_wl K S)\<close>
@@ -1407,7 +1407,7 @@ proof -
     apply (rule RES_refine)
     using that unfolding select_and_remove_from_literals_to_update_wl_def by blast
   have unit_prop: \<open>literals_are_\<L>\<^sub>i\<^sub>n S \<Longrightarrow>
-          K \<in> snd ` D\<^sub>0 \<Longrightarrow>
+          K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow>
           unit_propagation_inner_loop_wl_D K S
           \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} (unit_propagation_inner_loop_wl K' S')\<close>
     if \<open>K = K'\<close> and \<open>S = S'\<close> for K K' and S S' :: \<open>nat twl_st_wl\<close>
@@ -1424,11 +1424,9 @@ proof -
     subgoal by auto
     subgoal using \<A>\<^sub>i\<^sub>n by (auto simp: twl_st_wl)
     subgoal for S' S T'L' TL T' L' T L
-      apply (auto simp: twl_st_wl is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_of_mm_union
+      by auto
+        (auto simp add: is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_of_mm_union 
           literals_are_\<L>\<^sub>i\<^sub>n_def)
-      unfolding image_image
-      apply simp_all \<comment> \<open>TODO: but why does it loop\<close>
-      done
     done
 qed
 
@@ -1898,7 +1896,7 @@ where
      SPEC(\<lambda>((M, N, D, NE, UE, WS, Q), L).
          S = (M, N, D, NE, UE, WS, Q) \<and>
          (L \<noteq> None \<longrightarrow>
-            undefined_lit M (the L) \<and> the L \<in> snd ` D\<^sub>0 \<and>
+            undefined_lit M (the L) \<and> the L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
             atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE)) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
             atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE)))))

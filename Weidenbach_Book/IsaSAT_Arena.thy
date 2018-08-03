@@ -1471,9 +1471,10 @@ lemma arena_dom_status_iff:
      \<open>i \<in># dom_m N \<longleftrightarrow> arena_status arena i \<noteq> DELETED\<close> (is \<open>?eq\<close> is \<open>?A \<longleftrightarrow> ?B\<close>) and
      \<open>is_LBD (arena ! (i - LBD_SHIFT))\<close> (is ?lbd) and
      \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close> (is ?act) and
-    \<open>is_Status (arena ! (i - STATUS_SHIFT))\<close> (is ?stat)
+     \<open>is_Status (arena ! (i - STATUS_SHIFT))\<close> (is ?stat) and
+     \<open>4 \<le> i\<close> (is ?ge)
 proof -
-  have H1: ?eq ?lbd ?act ?stat
+  have H1: ?eq ?lbd ?act ?stat ?ge
     if \<open>?A\<close>
   proof -
     have
@@ -1490,7 +1491,7 @@ proof -
       \<open>is_Act (clause_slice arena N i ! (header_size (N \<propto> i) - ACTIVITY_SHIFT)) \<close>
       unfolding xarena_active_clause_alt_def arena_status_def
       by blast+
-    then show ?eq and ?lbd and ?act and ?stat
+    then show ?eq and ?lbd and ?act and ?stat and ?ge
       using i_ge i_le that
       unfolding xarena_active_clause_alt_def arena_status_def
       by (auto simp: SHIFTS_def header_size_def slice_nth split: if_splits)
@@ -1515,7 +1516,7 @@ proof -
       using arena_lifting[OF valid, of i] that
       by auto
   qed
-  moreover have ?lbd ?act ?stat
+  moreover have ?lbd ?act ?stat ?ge
     if \<open>\<not>?A\<close>
   proof -
     have
@@ -1523,13 +1524,18 @@ proof -
       i_ge: \<open>4 \<le> i\<close> and
       i_le: \<open>i < length arena\<close>
       using assms that unfolding valid_arena_def by blast+
-    then show ?lbd ?act ?stat
+    then show ?lbd ?act ?stat ?ge
       unfolding arena_dead_clause_def
       by (auto simp: SHIFTS_def slice_nth)
   qed
-  ultimately show ?eq and ?lbd and ?act and ?stat
+  ultimately show ?eq and ?lbd and ?act and ?stat and ?ge
     by blast+
 qed
+
+lemma valid_arena_one_notin_vdomD:
+  \<open>valid_arena M N vdom \<Longrightarrow> Suc 0 \<notin> vdom\<close>
+  using arena_dom_status_iff[of M N vdom 1]
+  by auto
 
 text \<open>This is supposed to be used as for assertions. There might be a more ``local'' way to define
 it, without the need for an existentially quantified clause set. However, I did not find a definition
@@ -1646,14 +1652,6 @@ lemma isa_arena_length_code_refine[sepref_fr_rules]:
   using isa_arena_length_code.refine[FCOMP isa_arena_length_arena_length]
   unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp
   by (simp add: arl_assn_comp)
-
-definition nat_of_uint64_conv where
-  [simp]: \<open>nat_of_uint64_conv x = x\<close>
-
-lemma nat_of_uint64_conv[sepref_fr_rules]:
-  \<open>(return o nat_of_uint64, RETURN o nat_of_uint64_conv) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
-
 
 definition isa_arena_lit where
   \<open>isa_arena_lit arena i = do {
@@ -1922,7 +1920,7 @@ lemma (in -) status_assn_hnr_eq[sepref_fr_rules]:
     bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def
     nat_of_uint32_0_iff nat_of_uint32_Suc03_iff nat_of_uint32_013_neq)
-find_theorems IRRED status_assn
+
 lemma IRRED_status_assn[sepref_fr_rules]:
   \<open>(uncurry0 (return 0), uncurry0 (RETURN IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
   by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def)
