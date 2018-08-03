@@ -252,17 +252,6 @@ fun heap_array A_ =
   {countable_heap = countable_array, typerep_heap = typerep_array A_} :
   ('a array) heap;
 
-fun typerep_optiona A_ t = Typerep ("Option.option", [typerep A_ Type]);
-
-fun countable_option A_ = {} : ('a option) countable;
-
-fun typerep_option A_ = {typerep = typerep_optiona A_} : ('a option) typerep;
-
-fun heap_option A_ =
-  {countable_heap = countable_option (countable_heap A_),
-    typerep_heap = typerep_option (typerep_heap A_)}
-  : ('a option) heap;
-
 fun typerep_uint32a t = Typerep ("Uint32.uint32", []);
 
 val countable_uint32 = {} : Word32.word countable;
@@ -705,7 +694,7 @@ fun init_trail_D_code x =
       val x_b = arl_empty (default_uint32, heap_uint32) zero_nat ();
       val x_d = new heap_uint32 bi uNSET_code ();
       val x_f = new heap_uint32 bia (Word32.fromInt 0) ();
-      val x_h = new (heap_option heap_nat) bia NONE ();
+      val x_h = new heap_nat bia one_nat ();
     in
       (xa, (x_d, (x_f, (x_h, ((Word32.fromInt 0), x_b)))))
     end)
@@ -1345,9 +1334,7 @@ fun cons_trail_Propagated_tr_code x =
       val xab =
         heap_array_set_u heap_uint32 xaa (uminus_code ai) sET_FALSE_code ();
       val xb = heap_array_set_u heap_uint32 a1b (atm_of_code ai) a1d ();
-      val xc =
-        heap_array_set_u (heap_option heap_nat) a1c (atm_of_code ai) (SOME bia)
-          ();
+      val xc = heap_array_set_u heap_nat a1c (atm_of_code ai) bia ();
     in
       (xa, (xab, (xb, (xc, (a1d, a2d)))))
     end)
@@ -1587,10 +1574,10 @@ fun last_trail_code x =
   (fn (a1, (_, (_, (a1c, _)))) => fn () =>
     let
       val xa = arl_last heap_uint32 a1 ();
-      val xaa = arl_last heap_uint32 a1 ();
-      val x_a = nth_u_code (heap_option heap_nat) a1c (atm_of_code xaa) ();
+      val xb = nth_u_code heap_nat a1c (atm_of_code xa) ();
+      val x_b = arl_last heap_uint32 a1 ();
     in
-      (xa, x_a)
+      (x_b, (if equal_nat xb one_nat then NONE else SOME xb))
     end)
     x;
 
@@ -2061,11 +2048,16 @@ fun atm_in_conflict_code x =
     x;
 
 fun get_propagation_reason_code x =
-  (fn ai => fn bi => let
-                       val (_, (_, (_, (a1c, _)))) = ai;
-                     in
-                       nth_u_code (heap_option heap_nat) a1c (atm_of_code bi)
-                     end)
+  (fn ai => fn bi =>
+    let
+      val (_, (_, (_, (a1c, _)))) = ai;
+    in
+      (fn () => let
+                  val xa = nth_u_code heap_nat a1c (atm_of_code bi) ();
+                in
+                  (if equal_nat xa one_nat then NONE else SOME xa)
+                end)
+    end)
     x;
 
 fun level_in_lbd_code x =
@@ -3159,8 +3151,7 @@ fun cons_trail_Decided_tr_code x =
       val xb =
         heap_array_set_u heap_uint32 a1b (atm_of_code ai)
           (Word32.+ (a1d, (Word32.fromInt 1))) ();
-      val xc =
-        heap_array_set_u (heap_option heap_nat) a1c (atm_of_code ai) NONE ();
+      val xc = heap_array_set_u heap_nat a1c (atm_of_code ai) one_nat ();
       val xd =
         arl_append (default_uint32, heap_uint32) a2d (uint32_of_nat xa) ();
     in
