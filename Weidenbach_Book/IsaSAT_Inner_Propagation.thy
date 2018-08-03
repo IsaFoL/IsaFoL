@@ -1,6 +1,6 @@
 theory IsaSAT_Inner_Propagation
   imports Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT_Setup
-     IsaSAT_Clauses
+     IsaSAT_Clauses "../lib/Explorer"
 begin
 
 subsection \<open>Propagations Step\<close>
@@ -176,22 +176,159 @@ lemma find_unwatched_l_find_unwatched_wl_s:
   \<open>find_unwatched_l (get_trail_wl S) (get_clauses_wl S \<propto> C) = find_unwatched_wl_st S C\<close>
   by (cases S) (auto simp: find_unwatched_wl_st_def)
 
-definition (in isasat_input_ops) find_unwatched :: \<open>(nat, 'b) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> (nat option) nres\<close> where
-\<open>find_unwatched M C = do {
-   S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length C \<and> (\<forall>j\<in>{2..<i}. -(C!j) \<in> lits_of_l M) \<and>
-      (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and>
-       j < length C \<and> j \<ge> 2))\<^esup>
-    (\<lambda>(found, i). found = None \<and> i < length C)
+definition (in -) find_in_list_between :: \<open>('a \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> nat option nres\<close> where
+  \<open>find_in_list_between P a b C = do {
+      (x, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> a \<and> i \<le> length C \<and> i \<le> b \<and> (\<forall>j\<in>{a..<i}. \<not>P (C!j)) \<and>
+        (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> P (C ! j) \<and> j < b \<and> j \<ge> a))\<^esup>
+        (\<lambda>(found, i). found = None \<and> i < b)
+        (\<lambda>(_, i). do {
+          ASSERT(i < length C);
+          if P (C!i) then RETURN (Some i, i) else RETURN (None, i+1)
+        })
+        (None, a);
+      RETURN x
+  }\<close>
+
+lemma (in -) find_in_list_between_spec:
+  assumes \<open>a \<le> length C\<close> and \<open>b \<le> length C\<close> and \<open>a \<le> b\<close>
+  shows
+    \<open>find_in_list_between P a b C \<le> SPEC(\<lambda>i.
+       (i \<noteq> None \<longrightarrow>  P (C ! the i) \<and> the i \<ge> a \<and> the i < b) \<and>
+       (i = None \<longrightarrow> (\<forall>j. j \<ge> a \<longrightarrow> j < b \<longrightarrow> \<not>P (C!j))))\<close>
+  unfolding find_in_list_between_def
+  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(f, i). Suc (length C) - (i + (if f = None then 0 else 1)))\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal using assms by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: less_Suc_eq)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
+definition (in isasat_input_ops) find_non_false_literal_between where
+  \<open>find_non_false_literal_between M a b C =
+     find_in_list_between (\<lambda>L. polarity M L \<noteq> Some False) a b C\<close>
+
+
+(* TODO change to return the iterator (i) instead of the position in the clause *)
+definition (in isasat_input_ops) isa_find_unwatched_between
+ :: \<open>_ \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> (nat option) nres\<close> where
+\<open>isa_find_unwatched_between P NU a b C = do {
+   (x, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). True\<^esup>
+    (\<lambda>(found, i). found = None \<and> i < C + b)
     (\<lambda>(_, i). do {
-      ASSERT(i < length C);
-      ASSERT(C!i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
-      case polarity M (C!i) of
-        None \<Rightarrow> do { RETURN (Some i, i)}
-      | Some v \<Rightarrow>
-         (if v then do { RETURN (Some i, i)} else do { RETURN (None, i+1)})
+      ASSERT(i < C + nat_of_uint64_conv (arena_length NU C));
+      ASSERT(arena_lit NU i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+      ASSERT(i \<ge> C);
+      ASSERT(arena_lit_pre NU i);
+      if P (arena_lit NU i) then RETURN (Some (i - C), i) else RETURN (None, i+1)
     })
-    (None, 2::nat);
-  RETURN (fst S)
+    (None, C+a);
+  RETURN x
+  }
+\<close>
+
+
+lemma (in isasat_input_ops) isa_find_unwatched_between_find_in_list_between_spec:
+  assumes \<open>a \<le> length (N \<propto> C)\<close> and \<open>b \<le> length (N \<propto> C)\<close> and \<open>a \<le> b\<close> and \<open>valid_arena arena N vdom\<close>
+    and \<open>C \<in># dom_m N\<close> and eq: \<open>a' = a\<close> \<open>b' = b\<close>
+  assumes lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> C))\<close>
+  shows
+    \<open>isa_find_unwatched_between P arena a' b' C \<le> \<Down> Id (find_in_list_between P a b (N \<propto> C))\<close>
+proof -
+  have [refine0]: \<open>((None, x2m + a), None, a) \<in> \<langle>Id\<rangle>option_rel \<times>\<^sub>r {(n', n). n' = x2m + n}\<close>
+    for x2m
+    by auto
+  have [simp]: \<open>arena_lit arena (C + x2) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> if \<open>x2 < length (N \<propto> C)\<close> for x2
+    using that lits assms by (auto simp: arena_lifting
+       dest!: literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of _ x2])
+  have arena_lit_pre: \<open>arena_lit_pre arena x2a\<close>
+    if 
+      \<open>(x, x') \<in> \<langle>nat_rel\<rangle>option_rel \<times>\<^sub>f {(n', n). n' = C + n}\<close> and
+      \<open>case x of (found, i) \<Rightarrow> found = None \<and> i < C + b\<close> and
+      \<open>case x' of (found, i) \<Rightarrow> found = None \<and> i < b\<close> and
+      \<open>case x of (found, i) \<Rightarrow> True\<close> and
+      \<open>case x' of
+      (found, i) \<Rightarrow>
+        a \<le> i \<and>
+        i \<le> length (N \<propto> C) \<and>
+        i \<le> b \<and>
+        (\<forall>j\<in>{a..<i}. \<not> P (N \<propto> C ! j)) \<and>
+        (\<forall>j. found = Some j \<longrightarrow> i = j \<and> P (N \<propto> C ! j) \<and> j < b \<and> a \<le> j)\<close> and
+      \<open>x' = (x1, x2)\<close> and
+      \<open>x = (x1a, x2a)\<close> and
+      \<open>x2 < length (N \<propto> C)\<close> and
+      \<open>x2a < C + nat_of_uint64_conv (arena_length arena C)\<close> and
+      \<open>arena_lit arena x2a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+      \<open>C \<le> x2a\<close>
+    for x x' x1 x2 x1a x2a
+  proof -
+    show ?thesis
+      unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
+      apply (rule bex_leI[of _ C])
+      apply (rule exI[of _ N])
+      apply (rule exI[of _ vdom])
+      using assms that by auto
+  qed
+
+  show ?thesis
+    unfolding isa_find_unwatched_between_def find_in_list_between_def eq
+    apply refine_vcg
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by (auto simp: arena_lifting)
+    subgoal using assms by (auto simp: arena_lifting)
+    subgoal by auto
+    subgoal by (rule arena_lit_pre)
+    subgoal using assms by (auto simp: arena_lifting)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+definition (in isasat_input_ops) isa_find_non_false_literal_between where
+  \<open>isa_find_non_false_literal_between M arena a b C =
+     isa_find_unwatched_between (\<lambda>L. polarity M L \<noteq> Some False) arena a b C\<close>
+
+definition (in isasat_input_ops) find_unwatched
+  :: \<open>(nat literal \<Rightarrow> bool) \<Rightarrow> nat clause_l \<Rightarrow> (nat option) nres\<close> where
+\<open>find_unwatched M C = do {
+    b \<leftarrow> SPEC(\<lambda>b::bool. True);
+    if b then find_in_list_between M 2 (length C) C
+    else do {
+      pos \<leftarrow> SPEC (\<lambda>i. i \<le> length C \<and> i \<ge> 2);
+      n \<leftarrow> find_in_list_between M pos (length C) C;
+      if n = None then find_in_list_between M 2 pos C
+      else RETURN n
+    }
   }
 \<close>
 
@@ -202,92 +339,186 @@ definition (in isasat_input_ops) find_unwatched_wl_st_heur_pre where
 definition (in isasat_input_ops) find_unwatched_wl_st
   :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
 \<open>find_unwatched_wl_st = (\<lambda>(M, N, D, Q, W, vm, \<phi>) i. do {
-    find_unwatched M (N \<propto> i)
+    find_unwatched (\<lambda>L. polarity M L \<noteq> Some False) (N \<propto> i)
   })\<close>
 
+
 (* TODO change to return the iterator (i) instead of the position in the clause *)
-definition (in isasat_input_ops) isa_find_unwatched :: \<open>(nat, 'b) ann_lits \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> (nat option) nres\<close> where
-\<open>isa_find_unwatched M NU C = do {
-   S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). True\<^esup>
-    (\<lambda>(found, i). found = None \<and> i < C + nat_of_uint64_conv (arena_length NU C))
-    (\<lambda>(_, i). do {
-      ASSERT(i < C + nat_of_uint64_conv (arena_length NU C));
-      ASSERT(arena_lit NU i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
-      ASSERT(i \<ge> C);
-      ASSERT(arena_lit_pre NU i);
-      case polarity M (arena_lit NU i) of
-        None \<Rightarrow> do { RETURN (Some (i - C), i)}
-      | Some v \<Rightarrow>
-         (if v then do { RETURN (Some (i - C), i)} else do { RETURN (None, i+1)})
-    })
-    (None, C+2);
-  RETURN (fst S)
+definition (in isasat_input_ops) isa_find_unwatched
+  :: \<open>(nat literal \<Rightarrow> bool) \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> (nat option) nres\<close>
+where
+\<open>isa_find_unwatched P arena C = do {
+    b \<leftarrow> RETURN(arena_length arena C \<le> 5);
+    if b then isa_find_unwatched_between P arena 2 (arena_length arena C) C
+    else do {
+      let pos = arena_pos arena C;
+      n \<leftarrow> isa_find_unwatched_between P arena pos (arena_length arena C) C;
+      if n = None then isa_find_unwatched_between P arena 2 pos C
+      else RETURN n
+    }
   }
 \<close>
+
+lemma isa_find_unwatched_find_unwatched:
+  assumes valid: \<open>valid_arena arena N vdom\<close> and
+     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> C))\<close> and
+     ge2: \<open>2 \<le> length (N \<propto> C)\<close> and
+     C: \<open>C \<in># dom_m N\<close>
+  shows \<open>isa_find_unwatched P arena C \<le> \<Down> Id (find_unwatched P (N \<propto> C))\<close>
+proof -
+  have [refine0]:
+    \<open>RETURN(arena_length arena C \<le> 5) \<le>
+      \<Down> {(b,b'). b = b' \<and> (b \<longleftrightarrow> is_short_clause (N\<propto>C))}
+        (SPEC (\<lambda>_. True))\<close>
+    using assms
+    by (auto simp: RETURN_RES_refine_iff is_short_clause_def arena_lifting)
+  show ?thesis
+    unfolding isa_find_unwatched_def find_unwatched_def
+    apply (refine_vcg isa_find_unwatched_between_find_in_list_between_spec[of _ _ _ _ _ vdom])
+    subgoal by auto
+    subgoal using ge2 .
+    subgoal by auto
+    subgoal using ge2 .
+    subgoal using valid .
+    subgoal using C .
+    subgoal using assms by auto
+    subgoal using assms by (auto simp: arena_lifting)
+    subgoal using assms by auto
+    subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal by (auto simp: arena_pos_def)
+    subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal using assms by auto
+    subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by (auto simp: arena_lifting)
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal by (auto simp: arena_pos_def)
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    done
+qed
+
+find_theorems isa_find_unwatched_between find_in_list_between
 definition (in isasat_input_ops) isa_find_unwatched_wl_st_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
 \<open>isa_find_unwatched_wl_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>) i. do {
-    isa_find_unwatched M N i
+    isa_find_unwatched (\<lambda>L. polarity M L \<noteq> Some False) N i
   })\<close>
 
 
+
 lemma (in isasat_input_ops) find_unwatched:
-  assumes \<open>no_dup M\<close> and \<open>length C \<ge> 2\<close> and \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close>
-  shows \<open>find_unwatched M C \<le> \<Down> Id (find_unwatched_l M C)\<close>
-  unfolding find_unwatched_def find_unwatched_l_def
-  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(found, i). Suc (length C) - i +
-        If (found = None) 1 0)\<close>])
-  subgoal by auto
-  subgoal by auto
-  subgoal using assms by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal using assms literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l by blast
-  subgoal by auto
-  subgoal for s
-    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq polarity_def
-        split: if_splits intro!: exI[of _ \<open>snd s - 2\<close>])
-  subgoal for s
-    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq
-        split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
-  subgoal for s
-    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq polarity_def
-        split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
-  subgoal by (auto simp: polarity_def split: if_splits)
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by (auto simp: polarity_def split: if_splits)
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal for s using distinct_consistent_interp[OF assms(1)]
-    apply (auto simp: Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def all_set_conv_nth
-       polarity_def split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
-    by (metis atLeastLessThan_iff less_antisym)
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal for s using no_dup_consistentD[OF assms(1)]
-    by (cases s, cases \<open>fst s\<close>)
-      (auto simp: Decided_Propagated_in_iff_in_lits_of_l all_set_conv_nth
-        intro!: exI[of _ \<open>snd s - 2\<close>])
-  subgoal by auto
-  subgoal for s j by auto
-  subgoal by auto
-  done
+  assumes n_d: \<open>no_dup M\<close> and \<open>length C \<ge> 2\<close> and \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close>
+  shows \<open>find_unwatched (\<lambda>L. polarity M L \<noteq> Some False) C \<le> \<Down> Id (find_unwatched_l M C)\<close>
+proof -
+  have [refine0]: \<open>find_in_list_between (\<lambda>L. polarity M L \<noteq> Some False) 2 (length C) C
+        \<le> SPEC
+          (\<lambda>found.
+              (found = None) = (\<forall>L\<in>set (unwatched_l C). - L \<in> lits_of_l M) \<and>
+              (\<forall>j. found = Some j \<longrightarrow>
+                    j < length C \<and>
+                    (undefined_lit M (C ! j) \<or> C ! j \<in> lits_of_l M) \<and> 2 \<le> j))\<close>
+  proof -
+    show ?thesis
+      apply (rule order_trans)
+      apply (rule find_in_list_between_spec)
+      subgoal using assms by auto
+      subgoal using assms by auto
+      subgoal using assms by auto
+      subgoal
+        using n_d
+        by (auto simp add: polarity_def in_set_drop_conv_nth Ball_def
+          Decided_Propagated_in_iff_in_lits_of_l split: if_splits dest: no_dup_consistentD)
+      done
+  qed
+  have [refine0]: \<open>find_in_list_between (\<lambda>L. polarity M L \<noteq> Some False) xa (length C) C
+        \<le> SPEC
+          (\<lambda>n. (if n = None
+                then find_in_list_between (\<lambda>L. polarity M L \<noteq> Some False) 2 xa C
+                else RETURN n)
+                \<le> SPEC
+                  (\<lambda>found.
+                      (found = None) =
+                      (\<forall>L\<in>set (unwatched_l C). - L \<in> lits_of_l M) \<and>
+                      (\<forall>j. found = Some j \<longrightarrow>
+                            j < length C \<and>
+                            (undefined_lit M (C ! j) \<or> C ! j \<in> lits_of_l M) \<and>
+                            2 \<le> j)))\<close>
+    if
+      \<open>xa \<le> length C \<and> 2 \<le> xa\<close>
+    for xa
+  proof -
+    show ?thesis
+      apply (rule order_trans)
+      apply (rule find_in_list_between_spec)
+      subgoal using that by auto
+      subgoal using assms by auto
+      subgoal using that by auto
+      subgoal
+        apply (rule SPEC_rule)
+        subgoal for x
+          apply (cases \<open>x = None\<close>; simp only: if_True if_False refl)
+        subgoal
+          apply (rule order_trans)
+          apply (rule find_in_list_between_spec)
+          subgoal using that by auto
+          subgoal using that by auto
+          subgoal using that by auto
+          subgoal
+            apply (rule SPEC_rule)
+            apply (intro impI conjI iffI ballI)
+            unfolding in_set_drop_conv_nth Ball_def
+            apply normalize_goal
+            subgoal for x L xaa
+              apply (cases \<open>xaa \<ge> xa\<close>)
+              subgoal
+                using n_d
+                by (auto simp add: polarity_def  Ball_def all_conj_distrib
+                Decided_Propagated_in_iff_in_lits_of_l split: if_splits dest: no_dup_consistentD)
+              subgoal
+                using n_d
+                by (auto simp add: polarity_def  Ball_def all_conj_distrib
+                Decided_Propagated_in_iff_in_lits_of_l split: if_splits dest: no_dup_consistentD)
+              done
+            subgoal for x  (* TODO Proof *)
+              using n_d that assms
+              by (auto simp add: polarity_def  Ball_def all_conj_distrib
+              Decided_Propagated_in_iff_in_lits_of_l split: if_splits dest: no_dup_consistentD,
+                force)
+               (metis diff_is_0_eq' le_neq_implies_less le_trans less_imp_le_nat
+                no_dup_consistentD zero_less_diff)
+            subgoal
+              using n_d assms that
+              by (auto simp add: polarity_def Ball_def all_conj_distrib
+                Decided_Propagated_in_iff_in_lits_of_l
+                  split: if_splits dest: no_dup_consistentD) 
+            done
+          done
+        subgoal (* TODO Proof *)
+          using n_d that assms le_trans
+          by (auto simp add: polarity_def  Ball_def all_conj_distrib in_set_drop_conv_nth
+               Decided_Propagated_in_iff_in_lits_of_l split: if_splits dest: no_dup_consistentD)
+            (use le_trans no_dup_consistentD in blast)+
+        done
+      done
+    done
+  qed
+
+  show ?thesis
+    unfolding find_unwatched_def find_unwatched_l_def
+    apply (refine_vcg)
+    subgoal by blast
+    subgoal by blast
+    done
+qed
 
 definition (in isasat_input_ops) find_unwatched_wl_st_pre where
   \<open>find_unwatched_wl_st_pre =  (\<lambda>(S, i).
