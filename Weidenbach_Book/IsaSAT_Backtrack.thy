@@ -1,68 +1,6 @@
 theory IsaSAT_Backtrack
   imports IsaSAT_Setup IsaSAT_VMTF
 begin
-(* TODO Move *)
-context isasat_input_ops
-begin
-
-lemma isa_trail_nth_rev_trail_nth_no_CS:
-  \<open>(uncurry isa_trail_nth, uncurry (RETURN oo rev_trail_nth)) \<in>
-    [\<lambda>(M, i). i < length M]\<^sub>f trail_pol_no_CS \<times>\<^sub>r nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: isa_trail_nth_def rev_trail_nth_def trail_pol_def ann_lits_split_reasons_def
-      trail_pol_no_CS_def
-    intro!: ASSERT_leI)
-
-lemma isa_trail_nth_hnr[sepref_fr_rules]:
-  \<open>(uncurry isa_trail_nth_code, uncurry (RETURN \<circ>\<circ> rev_trail_nth))
-    \<in> [\<lambda>(a, b). b < length a]\<^sub>a (hr_comp trail_pol_assn' trail_pol_no_CS)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  using isa_trail_nth_code.refine[FCOMP isa_trail_nth_rev_trail_nth_no_CS]
-  by simp
-
-end
-
-context isasat_input_bounded
-begin
-
-lemma trail_pol_no_CS_alt_def:
-  \<open>trail_pol_no_CS = {((M', xs, lvls, reasons, k, cs), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<and>
-    no_dup M \<and>
-    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < length xs \<and> xs ! (nat_of_lit L) = polarity M L) \<and>
-    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < length lvls \<and> lvls ! (atm_of L) = get_level M L) \<and>
-    (\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<and>
-    control_stack (take (count_decided M) cs) M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-    length M < uint32_max \<and>
-    length M \<le> uint32_max div 2 + 1 \<and>
-    count_decided M < uint32_max \<and>
-    length M' = length M \<and>
-    M' = map lit_of (rev M)
-   }\<close>
-proof -
-  have [intro!]: \<open>length M < n \<Longrightarrow> count_decided M < n\<close> for M n
-    using length_filter_le[of is_decided M]
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def uint_max_def count_decided_def
-        simp del: length_filter_le
-        dest: length_trail_uint_max_div2)
-  show ?thesis
-    unfolding trail_pol_no_CS_def
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def uint_max_def ann_lits_split_reasons_def
-        dest: length_trail_uint_max_div2)
-qed
-
-(* TODO: potentially needs a different name! *)
-lemma isa_length_trail_length_u_no_CS:
-  \<open>(isa_length_trail, RETURN o length_u) \<in> trail_pol_no_CS \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-  (auto simp: isa_length_trail_def trail_pol_no_CS_alt_def ann_lits_split_reasons_def
-    intro!: ASSERT_leI)
-
-lemma isa_length_trail_hnr[sepref_fr_rules]:
-  \<open>(isa_length_trail_code, RETURN \<circ> op_list_length) \<in> (hr_comp trail_pol_assn' trail_pol_no_CS)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  using isa_length_trail_code.refine[FCOMP isa_length_trail_length_u_no_CS]
-  unfolding op_list_length_def length_u_def .
-
-end
-(* End Move *)
 
 subsection \<open>Backtrack\<close>
 
@@ -1218,7 +1156,7 @@ proof -
         of M N \<open>remove1_mset (-lit_of (hd M)) (the D)\<close> cach lbd \<open>outl[0 := - lit_of (hd M)]\<close>
            _ _ _ _ _ _ \<open>set vdom\<close>])
       subgoal using tauto_confl' pre2 by auto
-      subgoal using D' not_none arena S_T uL_D  uM_\<L>\<^sub>a\<^sub>l\<^sub>l  not_empty D' L_D b
+      subgoal using D' not_none arena S_T uL_D uM_\<L>\<^sub>a\<^sub>l\<^sub>l not_empty D' L_D b
         by (auto simp: option_lookup_clause_rel_def S state_wl_l_def image_image
           intro!: lookup_conflict_remove1[THEN fref_to_Down_unRET_uncurry]
           dest: multi_member_split lookup_clause_rel_unique)
@@ -1402,12 +1340,12 @@ proof -
       unfolding extract_shorter_conflict_list_heur_st_def
         empty_conflict_and_extract_clause_def S S' prod.simps
       apply (rewrite at  \<open>let _ = list_update _ _ _ in _ \<close>Let_def)
-      apply (rewrite at  \<open>let _ = empty_cach  _ in _ \<close> Let_def)
+      apply (rewrite at  \<open>let _ = empty_cach _ in _ \<close> Let_def)
       apply (subst extract_shorter_conflict_wl_alt_def)
       apply (refine_vcg isa_minimize_and_extract_highest_lookup_conflict empty_conflict_and_extract_clause_heur)
       subgoal using trail_nempty .
       subgoal using pre2 by blast
-      subgoal using  uM_\<L>\<^sub>a\<^sub>l\<^sub>l .
+      subgoal using uM_\<L>\<^sub>a\<^sub>l\<^sub>l .
       subgoal using  \<open>0 < length outl\<close> .
       subgoal by (rule lookup_conflict_remove1_pre)
       subgoal by auto
@@ -1939,7 +1877,7 @@ proof -
     apply (refine_rcg shorter)
     subgoal by (rule inv)
     subgoal by (rule trail_nempty)
-    subgoal for x  y xa S x1 x2 x1a x2a
+    subgoal for x y xa S x1 x2 x1a x2a
       by (auto simp: twl_st_heur_state_simp equality_except_conflict_wl_get_clauses_wl)
     subgoal by auto
        apply (rule find_decomp_wl_nlit; solves assumption)

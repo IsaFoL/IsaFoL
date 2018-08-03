@@ -1,5 +1,5 @@
 theory Model_Enumeration
-imports Entailment_Definition.Partial_Annotated_Clausal_Logic "../lib/Explorer"
+imports Entailment_Definition.Partial_Annotated_Herbrand_Interpretation "../lib/Explorer"
 begin
 
 

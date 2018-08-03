@@ -2,7 +2,6 @@ theory CDCL_Conflict_Minimisation
   imports
     Watched_Literals.Watched_Literals_Watch_List_Domain
     Watched_Literals.WB_More_Refinement
-    IsaSAT_Trail \<comment>\<open>Required to get the reason of a propagation\<close>
 begin
 
 text \<open>We implement the conflict minimisation as presented by Sörensson and Biere

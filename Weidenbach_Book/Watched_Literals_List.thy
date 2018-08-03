@@ -408,14 +408,14 @@ lemma in_convert_lits_lD:
   \<open>K \<in> set TM \<Longrightarrow>
     (M, TM) \<in> convert_lits_l N NE \<Longrightarrow>
       \<exists>K'. K' \<in> set M \<and> convert_lit N NE K' K\<close>
-  by (auto 5 5 simp: convert_lits_l_def list_rel_append2 dest!: split_list  p2relD
+  by (auto 5 5 simp: convert_lits_l_def list_rel_append2 dest!: split_list p2relD
     elim!: list_relE)
 
 lemma in_convert_lits_lD2:
   \<open>K \<in> set M \<Longrightarrow>
     (M, TM) \<in> convert_lits_l N NE \<Longrightarrow>
       \<exists>K'. K' \<in> set TM \<and> convert_lit N NE K K'\<close>
-  by (auto 5 5 simp: convert_lits_l_def list_rel_append1 dest!: split_list  p2relD
+  by (auto 5 5 simp: convert_lits_l_def list_rel_append1 dest!: split_list p2relD
     elim!: list_relE)
 
 lemma convert_lits_l_filter_decided: \<open>(S, S') \<in> convert_lits_l M N \<Longrightarrow>
@@ -721,6 +721,39 @@ lemma hd_get_trail_twl_st_of_get_trail_l:
   \<open>(S, T) \<in> twl_st_l L \<Longrightarrow> get_trail_l S \<noteq> [] \<Longrightarrow>
     lit_of (hd (get_trail T)) = lit_of (hd (get_trail_l S))\<close>
   by (cases S; cases \<open>get_trail_l S\<close>; cases \<open>get_trail T\<close>) (auto simp: twl_st_l_def)
+
+lemma twl_st_l_mark_of_hd:
+  \<open>(x, y) \<in> twl_st_l b \<Longrightarrow>
+       get_trail_l x \<noteq> [] \<Longrightarrow>
+       is_proped (hd (get_trail_l x)) \<Longrightarrow>
+       mark_of (hd (get_trail_l x)) > 0 \<Longrightarrow>
+       mark_of (hd (get_trail y)) = mset (get_clauses_l x \<propto> mark_of (hd (get_trail_l x)))\<close>
+  by (cases \<open>get_trail_l x\<close>; cases \<open>get_trail y\<close>; cases \<open>hd (get_trail_l x)\<close>;
+     cases \<open>hd (get_trail y)\<close>)
+   (auto simp: twl_st_l_def convert_lit.simps)
+
+lemma twl_st_l_lits_of_tl:
+  \<open>(x, y) \<in> twl_st_l b \<Longrightarrow>
+       lits_of_l (tl (get_trail y)) = (lits_of_l (tl (get_trail_l x)))\<close>
+  by (cases \<open>get_trail_l x\<close>; cases \<open>get_trail y\<close>; cases \<open>hd (get_trail_l x)\<close>;
+     cases \<open>hd (get_trail y)\<close>)
+   (auto simp: twl_st_l_def convert_lit.simps)
+
+lemma twl_st_l_mark_of_is_decided:
+  \<open>(x, y) \<in> twl_st_l b \<Longrightarrow>
+       get_trail_l x \<noteq> [] \<Longrightarrow>
+       is_decided (hd (get_trail y)) = is_decided (hd (get_trail_l x))\<close>
+  by (cases \<open>get_trail_l x\<close>; cases \<open>get_trail y\<close>; cases \<open>hd (get_trail_l x)\<close>;
+     cases \<open>hd (get_trail y)\<close>)
+   (auto simp: twl_st_l_def convert_lit.simps)
+
+lemma twl_st_l_mark_of_is_proped:
+  \<open>(x, y) \<in> twl_st_l b \<Longrightarrow>
+       get_trail_l x \<noteq> [] \<Longrightarrow>
+       is_proped (hd (get_trail y)) = is_proped (hd (get_trail_l x))\<close>
+  by (cases \<open>get_trail_l x\<close>; cases \<open>get_trail y\<close>; cases \<open>hd (get_trail_l x)\<close>;
+     cases \<open>hd (get_trail y)\<close>)
+   (auto simp: twl_st_l_def convert_lit.simps)
 
 fun equality_except_trail :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
 \<open>equality_except_trail (M, N, D, NE, UE, WS, Q) (M', N', D', NE', UE', WS', Q') \<longleftrightarrow>
@@ -2106,7 +2139,7 @@ proof -
     using M unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
     by (auto simp: twl_st)
   moreover have n_d: \<open>no_dup (get_trail T)\<close>
-    using lev_inv unfolding  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: twl_st)
+    using lev_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: twl_st)
   ultimately have \<open>L = K\<close>
     using \<open>K \<in># C\<close> M K_M
     by (auto dest!: multi_member_split simp: add_mset_eq_add_mset
@@ -2231,7 +2264,7 @@ proof -
     unfolding RETURN_def
     by (rule RES_refine; solves \<open>auto split: if_splits simp: twl_st_l_def convert_lit.simps\<close>)+
   have skip_and_resolve_loop_inv_trail_nempty: \<open>skip_and_resolve_loop_inv S' (False, S) \<Longrightarrow>
-        get_trail S \<noteq> []\<close> for S :: \<open>'v twl_st\<close> and  S'
+        get_trail S \<noteq> []\<close> for S :: \<open>'v twl_st\<close> and S'
     unfolding skip_and_resolve_loop_inv_def
     by auto
 

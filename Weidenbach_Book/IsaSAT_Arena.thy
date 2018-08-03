@@ -3,19 +3,6 @@ imports Watched_Literals.Watched_Literals_Watch_List_Code_Common
   Watched_Literals.WB_More_Refinement_List
 begin
 
-(* TODO Move *)
-lemma (in -) in_mset_rel_eq_f_iff:
-  \<open>(a, b) \<in> \<langle>{(c, a). a = f c}\<rangle>mset_rel \<longleftrightarrow> b = f `# a\<close>
-  using ex_mset[of a]
-  by (auto simp: mset_rel_def br_def rel2p_def[abs_def] p2rel_def rel_mset_def
-      list_all2_op_eq_map_right_iff' cong: ex_cong)
-
-
-lemma (in -) in_mset_rel_eq_f_iff_set:
-  \<open>\<langle>{(c, a). a = f c}\<rangle>mset_rel = {(b, a). a = f `# b}\<close>
-  using in_mset_rel_eq_f_iff[of _ _ f] by blast
-(* End Mode *)
-
 subsection \<open>The memory representation: Arenas\<close>
 
 text \<open>
@@ -628,7 +615,7 @@ lemma clause_slice_extra_information_mark_to_delete:
          xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>
   shows
     \<open>clause_slice (extra_information_mark_to_delete arena i) N ia =
-      (if ia = i then extra_information_mark_to_delete (clause_slice arena  N ia) (header_size (N\<propto>i))
+      (if ia = i then extra_information_mark_to_delete (clause_slice arena N ia) (header_size (N\<propto>i))
          else clause_slice arena N ia)\<close>
 proof -
   have ia_ge: \<open>ia \<ge> header_size(N \<propto> ia)\<close> \<open>ia < length arena\<close> and
@@ -1146,7 +1133,7 @@ lemma xarena_active_clause_swap_lits_same:
   by (cases \<open>is_short_clause (N \<propto> i)\<close>)
     (simp_all add:  swap_lits_def SHIFTS_def min_def swap_nth_if map_swap swap_swap
    (* drop_update_swap Misc.slice_def swap_def *)
-    header_size_def  ac_simps is_short_clause_def split: if_splits)
+    header_size_def ac_simps is_short_clause_def split: if_splits)
 
 lemma is_short_clause_swap[simp]: \<open>is_short_clause (swap (N \<propto> i) k l) = is_short_clause (N \<propto> i)\<close>
   by (auto simp: header_size_def is_short_clause_def split: if_splits)
@@ -1692,7 +1679,7 @@ proof -
     j_ge: \<open>header_size (N \<propto> j) \<le> j\<close>
     using arena_lifting[OF valid j] by (auto simp: )
   show le': ?le
-     using le ba_le  j_ge unfolding length[symmetric] header_size_def
+     using le ba_le j_ge unfolding length[symmetric] header_size_def
      by (auto split: if_splits)
 
   have \<open>(a ! ba, arena ! ba)
@@ -1877,7 +1864,7 @@ proof -
     j_ge: \<open>header_size (N \<propto> j) \<le> j\<close>
     using arena_lifting[OF valid j] by (auto simp: )
   show le': ?le
-     using le  j_ge unfolding length[symmetric] header_size_def
+     using le j_ge unfolding length[symmetric] header_size_def
      by (auto split: if_splits simp: LBD_SHIFT_def)
 
   show ?unat

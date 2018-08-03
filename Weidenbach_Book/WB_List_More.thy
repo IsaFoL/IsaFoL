@@ -1502,7 +1502,7 @@ lemma Max_dom_le:
   \<open>L \<in># dom_m N \<Longrightarrow> L \<le> Max_dom N\<close>
   by (auto simp: Max_dom_def)
 
-lemma remove1_mset_ge_Max_some: \<open>a > Max_dom b \<Longrightarrow> remove1_mset a (dom_m b) = dom_m  b\<close>
+lemma remove1_mset_ge_Max_some: \<open>a > Max_dom b \<Longrightarrow> remove1_mset a (dom_m b) = dom_m b\<close>
   by (auto simp: Max_dom_def remove_1_mset_id_iff_notin
       dest!: multi_member_split)
 

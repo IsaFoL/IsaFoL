@@ -303,7 +303,7 @@ proof -
         subgoal by (solves \<open>auto simp add: mset_take_mset_drop_mset'
           DECO_clause_l_DECO_clause[symmetric]
            simp del: DECO_clause_l_DECO_clause\<close>)
-        subgoal apply (use  in \<open>auto simp add: mset_take_mset_drop_mset' DECO_clause_l_DECO_clause[symmetric]
+        subgoal apply (use in \<open>auto simp add: mset_take_mset_drop_mset' DECO_clause_l_DECO_clause[symmetric]
            simp del: DECO_clause_l_DECO_clause\<close>)
            apply (smt "1" UnE add_mset_add_single image_eqI mset.simps(2) set_mset_mset subsetCE
             union_iff union_single_eq_member)
@@ -371,7 +371,7 @@ proof -
 qed
 
 definition negate_mode_restart_nonunit_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
-\<open>negate_mode_restart_nonunit_wl_inv  S \<longleftrightarrow>
+\<open>negate_mode_restart_nonunit_wl_inv S \<longleftrightarrow>
   (\<exists>S' b. (S, S') \<in> state_wl_l b \<and> negate_mode_restart_nonunit_l_inv S' \<and> correct_watching S)\<close>
 
 definition restart_nonunit_and_add_wl_inv where
@@ -505,7 +505,7 @@ proof -
         subgoal using TK le by (solves \<open>auto simp add: mset_take_mset_drop_mset'
           DECO_clause_l_DECO_clause[symmetric]
            simp del: DECO_clause_l_DECO_clause\<close>)
-        subgoal apply (use TK le  in \<open>auto simp add: mset_take_mset_drop_mset' DECO_clause_l_DECO_clause[symmetric]
+        subgoal apply (use TK le in \<open>auto simp add: mset_take_mset_drop_mset' DECO_clause_l_DECO_clause[symmetric]
            simp del: DECO_clause_l_DECO_clause\<close>)
            apply (smt "1" UnE add_mset_add_single image_eqI mset.simps(2) set_mset_mset subsetCE
               union_iff union_single_eq_member)

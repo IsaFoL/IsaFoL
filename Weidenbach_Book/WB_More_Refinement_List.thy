@@ -108,5 +108,15 @@ lemma swap_swap: \<open>k < length xs \<Longrightarrow> l < length xs \<Longrigh
   by (cases \<open>k = l\<close>)
     (auto simp: Misc.slice_def swap_def drop_update_swap list_update_swap)
 
+lemma in_mset_rel_eq_f_iff:
+  \<open>(a, b) \<in> \<langle>{(c, a). a = f c}\<rangle>mset_rel \<longleftrightarrow> b = f `# a\<close>
+  using ex_mset[of a]
+  by (auto simp: mset_rel_def br_def rel2p_def[abs_def] p2rel_def rel_mset_def
+      list_all2_op_eq_map_right_iff' cong: ex_cong)
+
+
+lemma in_mset_rel_eq_f_iff_set:
+  \<open>\<langle>{(c, a). a = f c}\<rangle>mset_rel = {(b, a). a = f `# b}\<close>
+  using in_mset_rel_eq_f_iff[of _ _ f] by blast
 
 end

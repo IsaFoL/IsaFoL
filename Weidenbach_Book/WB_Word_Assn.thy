@@ -42,7 +42,7 @@ lemma nat_of_uint32_Suc03_iff:
    \<open>nat_of_uint32 a = 3 \<longleftrightarrow> a = 3\<close>
    using word_nat_of_uint32_Rep_inject nat_of_uint32_3 by fastforce+
 
-lemma  (in -) nat_of_uint32_013_neq:
+lemma   nat_of_uint32_013_neq:
   "(1::uint32) \<noteq> (0 :: uint32)" "(0::uint32) \<noteq> (1 :: uint32)"
   "(3::uint32) \<noteq> (0 :: uint32)"
   "(3::uint32) \<noteq> (1 :: uint32)"
@@ -212,7 +212,7 @@ lemma nat_0_AND: \<open>0 AND n = 0\<close> for n :: nat
 lemma uint32_0_AND: \<open>0 AND n = 0\<close> for n :: uint32
   by transfer auto
 
-definition (in -) uint32_safe_minus where
+definition uint32_safe_minus where
   \<open>uint32_safe_minus m n = (if m < n then 0 else m - n)\<close>
 
 lemma nat_of_uint32_le_minus: \<open>ai \<le> bi \<Longrightarrow> 0 = nat_of_uint32 ai - nat_of_uint32 bi\<close>
@@ -506,14 +506,14 @@ lemma uint32_nat_assn_nat_assn_nat_of_uint32:
    \<open>uint32_nat_assn aa a = nat_assn aa (nat_of_uint32 a)\<close>
   by (auto simp: pure_def uint32_nat_rel_def br_def)
 
-definition (in -) sum_mod_uint32_max where
+definition sum_mod_uint32_max where
   \<open>sum_mod_uint32_max a b = (a + b) mod (uint32_max + 1)\<close>
 
-lemma (in -) nat_of_uint32_plus:
+lemma nat_of_uint32_plus:
   \<open>nat_of_uint32 (a + b) = (nat_of_uint32 a + nat_of_uint32 b) mod (uint32_max + 1)\<close>
   by transfer (auto simp: unat_word_ariths uint32_max_def)
 
-lemma (in -) sum_mod_uint32_max: \<open>(uncurry (return oo (+)), uncurry (RETURN oo sum_mod_uint32_max)) \<in>
+lemma sum_mod_uint32_max: \<open>(uncurry (return oo (+)), uncurry (RETURN oo sum_mod_uint32_max)) \<in>
   uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a
   uint32_nat_assn\<close>
   by sepref_to_hoare
@@ -531,9 +531,13 @@ lemma one_uint32_hnr[sepref_fr_rules]:
   \<open>(uncurry0 (return 1), uncurry0 (RETURN one_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
   by sepref_to_hoare (sep_auto simp: one_uint32_def)
 
-lemma (in -) sum_uint32_assn[sepref_fr_rules]:
+lemma sum_uint32_assn[sepref_fr_rules]:
   \<open>(uncurry (return oo (+)), uncurry (RETURN oo (+))) \<in> uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
   by sepref_to_hoare sep_auto
+
+lemma Suc_uint32_nat_assn_hnr:
+  \<open>(return o (\<lambda>n. n + 1), RETURN o Suc) \<in> [\<lambda>n. n < uint32_max]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def nat_of_uint32_add)
 
 
 subsubsection \<open>64-bits\<close>
@@ -812,7 +816,7 @@ proof -
     unfolding bitOR_1_if_mod_2_nat[symmetric] L ..
 qed
 
-lemma (in -) nat_of_uint64_plus:
+lemma nat_of_uint64_plus:
   \<open>nat_of_uint64 (a + b) = (nat_of_uint64 a + nat_of_uint64 b) mod (uint64_max + 1)\<close>
   by transfer (auto simp: unat_word_ariths uint64_max_def)
 
@@ -891,7 +895,7 @@ lemma fast_minus_uint64[sepref_fr_rules]:
     (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_notle_minus
       nat_of_uint64_less_iff nat_of_uint64_le_iff)
 
-definition (in -) sum_mod_uint64_max where
+definition sum_mod_uint64_max where
   \<open>sum_mod_uint64_max a b = (a + b) mod (uint64_max + 1)\<close>
 
 definition uint32_max_uint32 :: uint32 where

@@ -116,7 +116,7 @@ proof -
         intro!: is_\<L>\<^sub>a\<^sub>l\<^sub>l_add_all_lits_of_m[unfolded get_unit_clauses_wl_alt_def]
         lall[unfolded get_unit_clauses_wl_alt_def])
   moreover have blits: \<open>blits_in_\<L>\<^sub>i\<^sub>n ?S\<close>
-    using blits  i' atms le lall unfolding length_DECO_clause_l[symmetric] is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+    using blits i' atms le lall unfolding length_DECO_clause_l[symmetric] is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
     by (cases \<open>DECO_clause_l (get_trail_wl S')\<close>; cases \<open>tl (DECO_clause_l (get_trail_wl S'))\<close>)
       (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset blits_in_\<L>\<^sub>i\<^sub>n_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n DECO_clause_l_DECO_clause[symmetric] Ball_def
@@ -134,7 +134,7 @@ proof -
         intro!: is_\<L>\<^sub>a\<^sub>l\<^sub>l_add_all_lits_of_m[unfolded get_unit_clauses_wl_alt_def]
         lall[unfolded get_unit_clauses_wl_alt_def])
   moreover have blits: \<open>?eq \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n ?S'\<close>
-    using blits  i' atms le lall unfolding length_DECO_clause_l[symmetric] is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+    using blits i' atms le lall unfolding length_DECO_clause_l[symmetric] is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
     by (cases \<open>DECO_clause_l (get_trail_wl S')\<close>)
       (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset blits_in_\<L>\<^sub>i\<^sub>n_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n DECO_clause_l_DECO_clause[symmetric] Ball_def
@@ -207,7 +207,7 @@ qed
 definition negate_mode_restart_nonunit_wl_D_inv
  :: \<open>nat twl_st_wl \<Rightarrow> bool\<close>
 where
-  \<open>negate_mode_restart_nonunit_wl_D_inv  S \<longleftrightarrow>
+  \<open>negate_mode_restart_nonunit_wl_D_inv S \<longleftrightarrow>
     (negate_mode_restart_nonunit_wl_inv S \<and>  literals_are_\<L>\<^sub>i\<^sub>n S)\<close>
 
 definition restart_nonunit_and_add_wl_D_inv

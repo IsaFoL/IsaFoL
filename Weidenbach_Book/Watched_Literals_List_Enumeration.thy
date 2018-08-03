@@ -119,7 +119,7 @@ proof -
         clauses_to_update_l S = {#}}\<close>
         using S_S' S_x1 tr_M1 decomp decomp' lev_x2 add_inv conv_M1 unfolding x
         apply (cases x1; cases S')
-        by (auto simp: twl_st_l_def twl_list_invs_def  convert_lit.simps split: option.splits
+        by (auto simp: twl_st_l_def twl_list_invs_def convert_lit.simps split: option.splits
           intro: convert_lits_l_extend_mono)
       moreover have \<open>negate_model_and_add_twl S' ?y1\<close>
         using S_S' confl lev_x2 count_dec tr_M1 S_x1 decomp decomp' M1_drop
@@ -317,7 +317,7 @@ fun restart_nonunit_and_add_l :: \<open>'v clause_l \<Rightarrow> nat \<Rightarr
     }\<close>
 
 definition negate_mode_restart_nonunit_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool\<close> where
-\<open>negate_mode_restart_nonunit_l_inv  S \<longleftrightarrow>
+\<open>negate_mode_restart_nonunit_l_inv S \<longleftrightarrow>
   (\<exists>S' b. (S, S') \<in> twl_st_l b \<and> twl_struct_invs S' \<and> twl_list_invs S \<and> twl_stgy_invs S' \<and>
      count_decided (get_trail_l S) > 1 \<and> get_conflict_l S = None)\<close>
 

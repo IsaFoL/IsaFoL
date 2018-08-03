@@ -808,12 +808,46 @@ proof -
     by (auto simp: uint32_max_def)
 qed
 
+lemma (in isasat_input_bounded)
+  assumes
+    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
+    n_d: \<open>no_dup M\<close>
+  shows
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_length_le_uint32_max:
+      \<open>length M \<le> Suc (uint_max div 2)\<close> and
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_count_decided_uint_max:
+      \<open>count_decided M \<le> Suc (uint_max div 2)\<close> and
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max:
+      \<open>get_level M L \<le> Suc (uint_max div 2)\<close>
+proof -
+  have \<open>length M = card (atm_of ` lits_of_l M)\<close>
+    using no_dup_length_eq_card_atm_of_lits_of_l[OF n_d] .
+  moreover have \<open>atm_of ` lits_of_l M \<subseteq> set_mset \<A>\<^sub>i\<^sub>n\<close>
+    using lits unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_trail_atm_of by auto
+  ultimately have \<open>length M \<le> card (set_mset \<A>\<^sub>i\<^sub>n)\<close>
+    by (simp add: card_mono)
+  moreover {
+    have \<open>set_mset \<A>\<^sub>i\<^sub>n \<subseteq> {0 ..< (uint_max div 2) + 1}\<close>
+      using in_\<A>\<^sub>i\<^sub>n_less_than_uint_max_div_2 by (fastforce simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+          Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n uint_max_def)
+    from subset_eq_atLeast0_lessThan_card[OF this] have \<open>card (set_mset \<A>\<^sub>i\<^sub>n) \<le> uint_max div 2 + 1\<close>
+      .
+  }
+  ultimately show \<open>length M \<le> Suc (uint_max div 2)\<close>
+    by linarith
+  moreover have \<open>count_decided M \<le> length M\<close>
+    unfolding count_decided_def by auto
+  ultimately show \<open>count_decided M \<le> Suc (uint_max div 2)\<close> by simp
+  then show \<open>get_level M L \<le> Suc (uint_max div 2)\<close>
+    using count_decided_ge_get_level[of M L]
+    by simp
+qed
+
 
 definition (in isasat_input_ops) unit_prop_body_wl_D_inv
   :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> bool\<close> where
 \<open>unit_prop_body_wl_D_inv T' j w L \<longleftrightarrow>
-    unit_prop_body_wl_inv T' j w L \<and> literals_are_\<L>\<^sub>i\<^sub>n T' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l
-  \<close>
+    unit_prop_body_wl_inv T' j w L \<and> literals_are_\<L>\<^sub>i\<^sub>n T' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
 
 text \<open>
   \<^item> should be the definition of \<^term>\<open>unit_prop_body_wl_find_unwatched_inv\<close>.
@@ -1163,7 +1197,7 @@ proof -
       unit: \<open>unit_prop_body_wl_D_inv (keep_watch K j w S) j w K\<close> and
       f: \<open>f = Some x\<close> and
       xx': \<open>(x, x') \<in> nat_rel\<close>
-    for x1 x2 x1a x2a  f fa x x'
+    for x1 x2 x1a x2a f fa x x'
   proof -
     have [simp]: \<open>x1a = x1\<close> \<open>x = x'\<close>
       using x1 xa xx' by auto
@@ -1425,7 +1459,7 @@ proof -
     subgoal using \<A>\<^sub>i\<^sub>n by (auto simp: twl_st_wl)
     subgoal for S' S T'L' TL T' L' T L
       by auto
-        (auto simp add: is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_of_mm_union 
+        (auto simp add: is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_of_mm_union
           literals_are_\<L>\<^sub>i\<^sub>n_def)
     done
 qed
@@ -2221,5 +2255,9 @@ proof -
 qed
 
 end \<comment> \<open>end of locale @{locale isasat_input_bounded}\<close>
+
+text \<open>The definition is here to be shared later.\<close>
+definition get_propagation_reason :: \<open>('v, 'mark) ann_lits \<Rightarrow> 'v literal \<Rightarrow> 'mark option nres\<close> where
+  \<open>get_propagation_reason M L = SPEC(\<lambda>C. C \<noteq> None \<longrightarrow> Propagated L (the C) \<in> set M)\<close>
 
 end

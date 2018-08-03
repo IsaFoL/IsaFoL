@@ -409,7 +409,7 @@ lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:
   subgoal by (auto simp del: simp: twl_st_heur_def)
   subgoal for x y xa x' x1 x2 x1a x2a xb x'a
     by (clarsimp simp add: twl_st_heur_def decide_lit_wl_heur_def
-        decide_lit_wl_def counts_maximum_level_def  vmtf_consD)
+        decide_lit_wl_def counts_maximum_level_def vmtf_consD)
   done
 
 sepref_register decide_wl_or_skip_D find_unassigned_lit_wl_D_heur decide_lit_wl_heur

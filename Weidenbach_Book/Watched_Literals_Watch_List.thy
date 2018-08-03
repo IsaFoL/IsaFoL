@@ -296,6 +296,22 @@ lemma [twl_st_wl]:
   \<open>get_unit_clauses_wl (set_conflict_wl D S) = get_unit_clauses_wl S\<close>
   by (cases S; auto simp: set_conflict_wl_def; fail)+
 
+lemma state_wl_l_mark_of_is_decided:
+  \<open>(x, y) \<in> state_wl_l b \<Longrightarrow>
+       get_trail_wl x \<noteq> [] \<Longrightarrow>
+       is_decided (hd (get_trail_l y)) = is_decided (hd (get_trail_wl x))\<close>
+  by (cases \<open>get_trail_wl x\<close>; cases \<open>get_trail_l y\<close>; cases \<open>hd (get_trail_wl x)\<close>;
+     cases \<open>hd (get_trail_l y)\<close>; cases b; cases x)
+   (auto simp: state_wl_l_def convert_lit.simps st_l_of_wl.simps)
+
+lemma state_wl_l_mark_of_is_proped:
+  \<open>(x, y) \<in> state_wl_l b \<Longrightarrow>
+       get_trail_wl x \<noteq> [] \<Longrightarrow>
+       is_proped (hd (get_trail_l y)) = is_proped (hd (get_trail_wl x))\<close>
+  by (cases \<open>get_trail_wl x\<close>; cases \<open>get_trail_l y\<close>; cases \<open>hd (get_trail_wl x)\<close>;
+     cases \<open>hd (get_trail_l y)\<close>; cases b; cases x)
+   (auto simp: state_wl_l_def convert_lit.simps)
+
 text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<close>.\<close>
 declare twl_st_wl[simp]
 
@@ -589,7 +605,7 @@ proof -
          {#i \<in># fst `# mset (take i ((g'(L := g' L[j' := (x1, C')])) La) @ drop j ((g'(L := g' L[j' := (x1, C')])) La)).
           i \<in># dom_m b#} =
          clause_to_update La (a, b, c, d, e, {#}, {#}))\<close> for La i' K
-    using C' Heq[of La i' K] unfolding  g_g'  g'_def[symmetric]
+    using C' Heq[of La i' K] unfolding g_g'  g'_def[symmetric]
     by (cases \<open>j' < j\<close>)
      (auto elim!: in_set_upd_cases simp: drop_update_swap)
 
@@ -768,13 +784,13 @@ proof -
   have \<open> L \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE)) \<Longrightarrow> La = L \<Longrightarrow>
        x \<in> set (take j (W L)) \<or> x \<in> set (drop (Suc w) (W L)) \<Longrightarrow>
        case x of (i, K) \<Rightarrow> i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L\<close> for La x
-    using Heq[of L \<open>fst x\<close> \<open>snd x\<close>] j_w  w_le
+    using Heq[of L \<open>fst x\<close> \<open>snd x\<close>] j_w w_le
     by (auto simp: take_Suc_conv_app_nth W'_def list_update_append)
   moreover have \<open>L \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE)) \<Longrightarrow>
           La = L \<Longrightarrow>
           {#i \<in># fst `# mset (take j (W L)). i \<in># dom_m N#} + {#i \<in># fst `# mset (drop (Suc w) (W L)). i \<in># dom_m N#} =
           clause_to_update L (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, {#}, {#})\<close> for La
-    using Heq[of L x1 x2] j_w  w_le dom  L_notin_swap N_xa_in_swap distinct_mset_dom[of N]
+    using Heq[of L x1 x2] j_w w_le dom L_notin_swap N_xa_in_swap distinct_mset_dom[of N]
     by (auto simp: take_Suc_conv_app_nth W'_def list_update_append set_N_x1 assms(11)
         clause_to_update_def dest!: multi_member_split split: if_splits
         intro: filter_mset_cong2)
@@ -786,7 +802,7 @@ proof -
                  else (W(L := W L[j := (x1, x2)])) La) \<Longrightarrow>
        case x of
        (i, K) \<Rightarrow> i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> La\<close> for La x
-    using Hneq[of La \<open>fst x\<close> \<open>snd x\<close>] j_w  w_le L' L_neq
+    using Hneq[of La \<open>fst x\<close> \<open>snd x\<close>] j_w w_le L' L_neq
     by (auto simp: take_Suc_conv_app_nth W'_def list_update_append split: if_splits)
   moreover {
     have \<open>N \<propto> x1 ! xa \<notin> set (watched_l (N \<propto> x1))\<close>
@@ -799,7 +815,7 @@ proof -
        N \<propto> x1 ! xa \<noteq> L \<Longrightarrow>
        {#i \<in># fst `# mset (W (N \<propto> x1 ! xa)). i = x1 \<or> i \<in># Ab#} =
          {#C \<in># Ab. N \<propto> x1 ! xa \<in> set (watched_l (N \<propto> C))#} \<close>
-      using Hneq2[of \<open>N \<propto> x1 ! xa\<close>] L_neq  unfolding W_W' W_W2
+      using Hneq2[of \<open>N \<propto> x1 ! xa\<close>] L_neq unfolding W_W' W_W2
       by (auto simp: clause_to_update_def split: if_splits)
   then have \<open>La \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE)) \<Longrightarrow>
           La \<noteq> L \<Longrightarrow>
@@ -817,7 +833,7 @@ proof -
            (La \<noteq> N \<propto> x1 ! xa \<longrightarrow>
             {#i \<in># fst `# mset (W La). i \<in># dom_m N#} =
             clause_to_update La (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, {#}, {#})))\<close> for La
-    using Hneq2[of La] j_w  w_le L' dom distinct_mset_dom[of N] L_notin_swap N_xa_in_swap L_neq
+    using Hneq2[of La] j_w w_le L' dom distinct_mset_dom[of N] L_notin_swap N_xa_in_swap L_neq
     by (auto simp: take_Suc_conv_app_nth W'_def list_update_append clause_to_update_def
         add_mset_eq_add_mset set_N_x1 set_N_swap_x1 assms(11) N_i
         dest!: multi_member_split La_in_notin_swap
@@ -1435,7 +1451,7 @@ proof -
       by auto
     then show ?thesis
       using S_S' that w_le j_w
-      unfolding select_from_clauses_to_update_def  keep_watch_def
+      unfolding select_from_clauses_to_update_def keep_watch_def
       by (cases S)
         (auto intro!: RETURN_RES_refine simp: state_wl_l_def drop_map
           Cons_nth_drop_Suc[symmetric])
@@ -1765,8 +1781,8 @@ proof -
             intro!: in_clause_in_all_lits_of_m)
 
       moreover have \<open>b \<propto> x1 ! xa \<noteq> L\<close>
-        using pol X2 L_def[OF unit_T] S_S' SLw  fx' x' f' xa unfolding C'_bl
-        by (auto simp: polarity_def  split: if_splits)
+        using pol X2 L_def[OF unit_T] S_S' SLw fx' x' f' xa unfolding C'_bl
+        by (auto simp: polarity_def split: if_splits)
 
       ultimately show ?thesis
         by (rule correct_watching_except_update_blit[OF corr])
@@ -1991,7 +2007,7 @@ proof -
       using dom n w_le SLw unfolding C'_bl
       by (auto simp: Cons_nth_drop_Suc[symmetric] dest!: multi_member_split)
     moreover have \<open>L \<noteq> get_clauses_wl S \<propto> x1 ! xa\<close>
-      using pol X2 L_def[OF unit_T] S_S' SLw  xa fx' unfolding C'_bl f x'
+      using pol X2 L_def[OF unit_T] S_S' SLw xa fx' unfolding C'_bl f x'
       by (auto simp: polarity_def twl_st_wl split: if_splits)
     moreover have \<open>remove1_mset x1 {#i \<in># mset (drop w (map fst (watched_by S L))). i \<in># dom_m (get_clauses_wl S)#} =
        {#i \<in># mset (drop (Suc w) (map fst (watched_by S L[j := (x1, x2)]))). i = x1 \<or> i \<in># remove1_mset x1 (dom_m (get_clauses_wl S))#}\<close>
@@ -3001,7 +3017,7 @@ lemma correct_watching_learn:
     L2: \<open>atm_of L2 \<in> atms_of_mm (mset `# ran_mf N + NE)\<close> and
     UW: \<open>atms_of (mset UW) \<subseteq> atms_of_mm (mset `# ran_mf N + NE)\<close> and
     i_dom: \<open>i \<notin># dom_m N\<close> and
-   fresh: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# ran_mf  N + (NE + UE)) \<Longrightarrow> i \<notin> fst ` set (W L)\<close> and
+   fresh: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<Longrightarrow> i \<notin> fst ` set (W L)\<close> and
    [iff]: \<open>L1 \<noteq> L2\<close>
   shows
   \<open>correct_watching (K # M, fmupd i (L1 # L2 # UW, b) N,

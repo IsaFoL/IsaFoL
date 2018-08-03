@@ -1,5 +1,5 @@
 theory IsaSAT_Clauses
-imports  Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT_Arena
+imports Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT_Arena
 begin
 
 (* TODO This file should probably be merge with IsaSAT_Arena*)
@@ -1264,7 +1264,7 @@ lemma set_LBD_fast_hnr[sepref_fr_rules]:
   \<open>(uncurry2 set_LBD_fmap_fast, uncurry2 (RETURN \<circ>\<circ>\<circ> set_LBD))
     \<in> [\<lambda>((a, b), ba). a \<in># dom_m ba]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow>
      clauses_ll_assn\<close>
-  using  set_LBD_fmap_fast.refine[FCOMP set_LBD_fmap] unfolding clauses_ll_assn_def .
+  using set_LBD_fmap_fast.refine[FCOMP set_LBD_fmap] unfolding clauses_ll_assn_def .
 
 lemma set_LBD_slow_hnr[sepref_fr_rules]:
   \<open>(uncurry2 set_LBD_fmap_slow, uncurry2 (RETURN \<circ>\<circ>\<circ> set_LBD))
@@ -1309,7 +1309,7 @@ lemma increase_activity_fast_hnr[sepref_fr_rules]:
   \<open>(uncurry2 increase_activity_fmap_fast, uncurry2 (RETURN \<circ>\<circ>\<circ> increase_activity))
     \<in> [\<lambda>((a, b), ba). a \<in># dom_m ba]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow>
      clauses_ll_assn\<close>
-  using  increase_activity_fmap_fast.refine[FCOMP increase_activity_fmap] unfolding clauses_ll_assn_def .
+  using increase_activity_fmap_fast.refine[FCOMP increase_activity_fmap] unfolding clauses_ll_assn_def .
 
 lemma increase_activity_slow_hnr[sepref_fr_rules]:
   \<open>(uncurry2 increase_activity_fmap_slow, uncurry2 (RETURN \<circ>\<circ>\<circ> increase_activity))

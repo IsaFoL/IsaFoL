@@ -528,7 +528,7 @@ proof -
       have lev_M2_M': \<open>get_level M2 L = get_level M' L\<close> for L
         using trail_renumber_get_level[OF backtrack_red(2-3)] by (auto simp: )
       have drop_M_M2: \<open>drop (length M - length M') M = M2\<close>
-        using  backtrack_red(1) by auto
+        using backtrack_red(1) by auto
       have H: \<open>L \<in> lits_of_l (drop (length M - length M') TM) \<and>
           get_level (drop (length M - length M') TM) L = 0\<close>
         if \<open>L \<in> lits_of_l M \<and> get_level M L = 0\<close> for L
@@ -537,7 +537,7 @@ proof -
           using decomp that n_d
           by (auto dest!: get_all_ann_decomposition_exists_prepend
             dest: in_lits_of_l_defined_litD
-            simp: get_level_append_if get_level_cons_if  split: if_splits)
+            simp: get_level_append_if get_level_cons_if split: if_splits)
         then show ?thesis
           using M_TM
           by (auto dest!: simp: drop_M_M2)
@@ -663,7 +663,7 @@ lemma restart_required_l_restart_required:
 lemma restart_abs_l_restart_prog:
   \<open>(uncurry2 restart_abs_l, uncurry2 restart_prog) \<in>
      {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}}
-        \<times>\<^sub>f  nat_rel  \<times>\<^sub>f  bool_rel \<rightarrow>\<^sub>f
+        \<times>\<^sub>f nat_rel  \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f
     \<langle>{(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}}
         \<times>\<^sub>f nat_rel\<rangle> nres_rel\<close>
     unfolding restart_abs_l_def restart_prog_def uncurry_def
@@ -1819,7 +1819,7 @@ proof -
       using I unfolding s prod.case remove_one_annot_true_clause_imp_inv_def
       by blast
     have n_d: \<open>no_dup (get_trail_l U)\<close>
-      using Ux struct_x unfolding twl_struct_invs_def  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      using Ux struct_x unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
         by (auto simp: twl_st twl_st_l)
     have SU': \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S (M, N', D, NE', UE, WS, Q)\<close>

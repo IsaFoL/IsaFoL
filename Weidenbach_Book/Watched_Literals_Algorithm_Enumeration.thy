@@ -575,7 +575,7 @@ proof -
           using neg negate_model_and_add_twl_cdcl\<^sub>W_learned_clauses_entailed_by_init by blast+
         have invs_V: \<open>twl_struct_invs V\<close> \<open>twl_stgy_invs V\<close>
           using U neg unfolding cdcl_twl_enum_inv_def
-          using negate_model_and_add_twl_twl_struct_invs  negate_model_and_add_twl_twl_stgy_invs
+          using negate_model_and_add_twl_twl_struct_invs negate_model_and_add_twl_twl_stgy_invs
           by blast+
         have [simp]: \<open>get_all_init_clss V = add_mset (DECO_clause (get_trail U))(get_all_init_clss U)\<close>
           using neg by (auto simp: negate_model_and_add_twl.simps)

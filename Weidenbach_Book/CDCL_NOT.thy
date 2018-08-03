@@ -2,7 +2,7 @@ theory CDCL_NOT
 imports
   Weidenbach_Book_Base.WB_List_More
   Weidenbach_Book_Base.Wellfounded_More
-  Entailment_Definition.Partial_Annotated_Clausal_Logic
+  Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
   CDCL_WNOT_Measure
 begin
 

@@ -1,5 +1,5 @@
 theory Model_Enumeration
-  imports Entailment_Definition.Partial_Annotated_Clausal_Logic
+  imports Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
     Weidenbach_Book_Base.Wellfounded_More
 begin
 
@@ -200,7 +200,7 @@ lemma wf_next_model_filtered:
   \<open>wf {(y, x). next_model_filtered x y}\<close>
 proof -
   have \<open>wf {(y, x). True \<and> next_model_filtered x y}\<close>
-    by (rule  wfP_if_measure[of \<open>\<lambda>_. True\<close> next_model_filtered
+    by (rule wfP_if_measure[of \<open>\<lambda>_. True\<close> next_model_filtered
           \<open>\<lambda>N. (if fst N = None then 1 else 0) + card (all_models (snd N))\<close>])
       (auto dest: next_model_decreasing simp: next_model_filtered.simps)
   then show ?thesis

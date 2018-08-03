@@ -1288,20 +1288,19 @@ qed
 lemma (in isasat_input_ops) twl_st_heur_init_vmtf_next_emptyD:
   \<open>((x1, x1a, x1b, x1c, x1d, ((x1g, x1h, x1i, x1j, x2h), x2i), x1k, x2k), Ta)
        \<in> twl_st_heur_init \<Longrightarrow> \<A>\<^sub>i\<^sub>n \<noteq> {#} \<Longrightarrow> x1i \<noteq> None\<close>
-  by (auto simp: isasat_input_ops.twl_st_heur_init_def  isasat_input_ops.vmtf_init_def)
+  by (auto simp: isasat_input_ops.twl_st_heur_init_def isasat_input_ops.vmtf_init_def)
 
 lemma (in isasat_input_ops) twl_st_heur_init_vmtf_fstD:
   \<open>((x1, x1a, x1b, x1c, x1d, ((x1g, x1h, x1i, x1j, x2h), x2i), x1k, x2k), Ta)
        \<in> twl_st_heur_init \<Longrightarrow> \<A>\<^sub>i\<^sub>n \<noteq> {#} \<Longrightarrow> x1j \<noteq> None\<close>
-  by (auto simp: isasat_input_ops.twl_st_heur_init_def  isasat_input_ops.vmtf_init_def)
-
+  by (auto simp: isasat_input_ops.twl_st_heur_init_def isasat_input_ops.vmtf_init_def)
 
 
 lemma get_conflict_wl_is_None_init_get_conflict_wl_is_None_heur_init[simp]:
   \<open>(Tb, Ta) \<in> isasat_input_ops.twl_st_heur_init A \<Longrightarrow>
      get_conflict_wl_is_None_init (from_init_state Ta) = get_conflict_wl_is_None_heur_init Tb\<close>
   by (cases Ta; cases Tb)
-   (auto simp: isasat_input_ops.twl_st_heur_init_wl_def from_init_state_def
+    (auto simp: isasat_input_ops.twl_st_heur_init_wl_def from_init_state_def
       get_conflict_wl_is_None_init_def get_conflict_wl_is_None_heur_init_def
       isasat_input_ops.twl_st_heur_init_def isasat_input_ops.option_lookup_clause_rel_def
       get_conflict_wl_is_None_def split: option.splits)
@@ -1317,7 +1316,7 @@ lemma (in isasat_input_ops) twl_st_heur_init_wl:
    isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break \<A> S
     \<le> \<Down> (isasat_input_ops.twl_st_heur \<A>)
          (isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D \<A>' S')\<close>
-  using  isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D
+  using isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D
              [THEN fref_to_Down, unfolded comp_def, of \<A> S S']
   by fast *)
 
@@ -1328,7 +1327,7 @@ proof -
   have H: \<open>A + B = C \<Longrightarrow> A \<subseteq># C\<close> for A B C
     by auto
   define f :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where \<open>f = RETURN\<close>
-  have  IsaSAT_heur_alt_def: \<open>IsaSAT_heur CS = do{
+  have IsaSAT_heur_alt_def: \<open>IsaSAT_heur CS = do{
     ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
     let \<A>\<^sub>i\<^sub>n'' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n'');

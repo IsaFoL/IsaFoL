@@ -1422,7 +1422,7 @@ proof -
 
       have invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant T\<close>
         \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv T\<close>
-        using st  cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_restart_dcl\<^sub>W_all_struct_inv[OF st]
+        using st cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_restart_dcl\<^sub>W_all_struct_inv[OF st]
           cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_restart_dcl\<^sub>W_stgy_invariant[OF st]
           H[OF dist] by auto
       have res: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<^sup>*\<^sup>* ([], CS', {#}, None) T\<close>
@@ -1487,12 +1487,12 @@ qed
 lemma (in isasat_input_ops) twl_st_heur_init_vmtf_next_emptyD:
   \<open>((x1, x1a, x1b, x1c, x1d, ((x1g, x1h, x1i, x1j, x2h), x2i), x1k, x2k), Ta)
        \<in> twl_st_heur_init \<Longrightarrow> \<A>\<^sub>i\<^sub>n \<noteq> {#} \<Longrightarrow> x1i \<noteq> None\<close>
-  by (auto simp: isasat_input_ops.twl_st_heur_init_def  isasat_input_ops.vmtf_init_def)
+  by (auto simp: isasat_input_ops.twl_st_heur_init_def isasat_input_ops.vmtf_init_def)
 
 lemma (in isasat_input_ops) twl_st_heur_init_vmtf_fstD:
   \<open>((x1, x1a, x1b, x1c, x1d, ((x1g, x1h, x1i, x1j, x2h), x2i), x1k, x2k), Ta)
        \<in> twl_st_heur_init \<Longrightarrow> \<A>\<^sub>i\<^sub>n \<noteq> {#} \<Longrightarrow> x1j \<noteq> None\<close>
-  by (auto simp: isasat_input_ops.twl_st_heur_init_def  isasat_input_ops.vmtf_init_def)
+  by (auto simp: isasat_input_ops.twl_st_heur_init_def isasat_input_ops.vmtf_init_def)
 
 
 
@@ -1520,7 +1520,7 @@ lemma isasat_input_bounded_nempty_cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_st
    isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break \<A> S
     \<le> \<Down> (isasat_input_ops.twl_st_heur \<A>)
          (isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D \<A>' S')\<close>
-  using  isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D
+  using isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_heur_break_cdcl_twl_stgy_prog_wl_D
              [THEN fref_to_Down, unfolded comp_def, of \<A> S S']
   by fast
 
@@ -1564,7 +1564,7 @@ proof -
          }
       }
     else *)
-  have  IsaSAT_heur_alt_def: \<open>IsaSAT_heur CS = do{
+  have IsaSAT_heur_alt_def: \<open>IsaSAT_heur CS = do{
     ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
     let \<A>\<^sub>i\<^sub>n'' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n'');

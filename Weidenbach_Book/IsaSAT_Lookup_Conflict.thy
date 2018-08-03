@@ -17,7 +17,7 @@ solvers: We keep an array that represent the clause (for efficient iteration on 
 ``hash-table'' to efficiently test if a literal belongs to the clause.
 
 The first data structure is simply an array to represent the clause. This theory is only about
-the second data structure. We refine it from the clause (seen as a  multiset) in two steps:
+the second data structure. We refine it from the clause (seen as a multiset) in two steps:
   \<^enum> First, we represent the clause as a ``hash-table'', where the \<^term>\<open>i\<close>-th position indicates
     \<^term>\<open>Some True\<close> (respectively \<^term>\<open>Some False\<close>, \<^term>\<open>None\<close>) if \<^term>\<open>Pos i\<close> is present in the
     clause (respectively \<^term>\<open>Neg i\<close>, not at all). This allows to represent every not-tautological
@@ -632,56 +632,6 @@ where
   \<open>set_lookup_conflict_aa M C i xs clvls lbd outl =
      lookup_conflict_merge zero_uint32_nat M (C\<propto>i) xs clvls lbd outl\<close>
 
-(* TODO Move *)
-lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_atm_of:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<longleftrightarrow> atm_of ` lits_of_l M \<subseteq> set_mset \<A>\<^sub>i\<^sub>n\<close>
-  apply (rule iffI)
-  subgoal by (auto dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms)
-  subgoal by (fastforce simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def lits_of_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
-  done
-
-lemma (in isasat_input_bounded)
-  assumes
-    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
-    n_d: \<open>no_dup M\<close>
-  shows
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_length_le_uint32_max:
-      \<open>length M \<le> Suc (uint_max div 2)\<close> and
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_count_decided_uint_max:
-      \<open>count_decided M \<le> Suc (uint_max div 2)\<close>
-proof -
-  have \<open>length M = card (atm_of ` lits_of_l M)\<close>
-    using no_dup_length_eq_card_atm_of_lits_of_l[OF n_d] .
-  moreover have \<open>atm_of ` lits_of_l M \<subseteq> set_mset \<A>\<^sub>i\<^sub>n\<close>
-    using lits unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_trail_atm_of by auto
-  ultimately have \<open>length M \<le> card (set_mset \<A>\<^sub>i\<^sub>n)\<close>
-    by (simp add: card_mono)
-  moreover {
-    have \<open>set_mset \<A>\<^sub>i\<^sub>n \<subseteq> {0 ..< (uint_max div 2) + 1}\<close>
-      using in_\<A>\<^sub>i\<^sub>n_less_than_uint_max_div_2 by (fastforce simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-          Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n uint_max_def)
-    from subset_eq_atLeast0_lessThan_card[OF this] have \<open>card (set_mset \<A>\<^sub>i\<^sub>n) \<le> uint_max div 2 + 1\<close>
-      .
-  }
-  ultimately show \<open>length M \<le> Suc (uint_max div 2)\<close>
-    by linarith
-  moreover have \<open>count_decided M \<le> length M\<close>
-    unfolding count_decided_def by auto
-  ultimately show \<open>count_decided M \<le> Suc (uint_max div 2)\<close> by simp
-qed
-
-lemma (in isasat_input_bounded) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<Longrightarrow> no_dup M \<Longrightarrow> get_level M L \<le> Suc (uint_max div 2)\<close>
-  using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_count_decided_uint_max[of M]
-    count_decided_ge_get_level[of M L]
-  by simp
-
-lemma (in -) Suc_uint32_nat_assn_hnr:
-  \<open>(return o (\<lambda>n. n + 1), RETURN o Suc) \<in> [\<lambda>n. n < uint_max]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def nat_of_uint32_add)
-(* End Move *)
-
-
 definition (in isasat_input_ops) isa_lookup_conflict_merge
   :: \<open>nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
         out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close>
@@ -1233,17 +1183,6 @@ proof (standard)
     unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
     by blast
 qed
-
-(* TODO Move *)
-text \<open>The following two abbreviation are variants from \<^term>\<open>uncurry4\<close> and
-   \<^term>\<open>uncurry6\<close>. The problem is that \<^term>\<open>uncurry2 (uncurry2 f)\<close> and
-   \<^term>\<open>uncurry (uncurry3 f)\<close> are the same term, but only the latter is folded
-   to \<^term>\<open>uncurry4\<close>.\<close>
-abbreviation (in -) uncurry4' where
-  "uncurry4' f \<equiv> uncurry2 (uncurry2 f)"
-
-abbreviation (in -) uncurry6' where
-  "uncurry6' f \<equiv> uncurry2 (uncurry4' f)"
 
 lemma isa_set_lookup_conflict:
   \<open>(uncurry6 isa_set_lookup_conflict_aa, uncurry6 set_conflict_m) \<in>

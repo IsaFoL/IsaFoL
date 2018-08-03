@@ -1910,7 +1910,7 @@ sepref_definition extract_atms_clss_imp
   unfolding extract_atms_clss_i_def
   by sepref
 
-lemma  extract_atms_clss_hnr[sepref_fr_rules]:
+lemma extract_atms_clss_hnr[sepref_fr_rules]:
   \<open>(uncurry extract_atms_clss_imp, uncurry (RETURN \<circ>\<circ> extract_atms_clss))
     \<in> [\<lambda>(a, b). \<forall>C\<in>set a. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max]\<^sub>a
       (list_assn (list_assn unat_lit_assn))\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
@@ -2317,7 +2317,7 @@ proof -
       apply clarify
       apply (subst RETURN_RES_refine_iff)
       apply (auto dest: list_rel_mset_rel_imp_same_length)
-      unfolding  isasat_input_ops.vmtf_def in_pair_collect_simp prod.case
+      unfolding isasat_input_ops.vmtf_def in_pair_collect_simp prod.case
       apply (rule exI[of _ \<open>map nat_of_uint32 (rev (fst N'))\<close>])
       apply (rule_tac exI[of _ \<open>[]\<close>])
       apply (intro conjI)
@@ -2519,7 +2519,7 @@ proof -
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that by (auto simp: comp_PRE_def isasat_atms_ext_rel_def init_valid_rep_def)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep  by simp
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep by simp
   show ?thesis
     apply (rule hfref_weaken_pre[OF ])
      defer
@@ -2673,7 +2673,7 @@ sepref_definition init_trail_D_fast_code
   apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> arl.fold_custom_empty)
   apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
 
-  apply (rewrite in \<open>let  _ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
+  apply (rewrite in \<open>let _ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
   apply (rewrite in \<open>let _ = _;_ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
   apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
   apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
@@ -2997,7 +2997,7 @@ lemma init_state_wl_heur_hnr:
     (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?im \<rightarrow> ?ffast\<close>) *)
 proof -
   have H: \<open>?c \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n]\<^sub>a
-      hrp_comp ((arl_assn conflict_count_assn)\<^sup>d *\<^sub>a  conflict_count_assn\<^sup>d)
+      hrp_comp ((arl_assn conflict_count_assn)\<^sup>d *\<^sub>a conflict_count_assn\<^sup>d)
         (lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>mset_rel) \<rightarrow> hr_comp trail_pol_assn'
        (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *a
           arl_assn (pure (uint32_nat_rel O arena_el_rel)) *a

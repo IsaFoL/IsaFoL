@@ -315,7 +315,7 @@ proof -
   have H: \<open>isa_find_unwatched M arena C \<le> \<Down> Id (find_unwatched M' (N \<propto> C'))\<close>
     if \<open>valid_arena arena N vdom\<close> and \<open>C \<in># dom_m N\<close> and \<open>M = M'\<close> and \<open>C = C'\<close>
     for arena M N C vdom M' C'
-    unfolding  isa_find_unwatched_def find_unwatched_def
+    unfolding isa_find_unwatched_def find_unwatched_def
     apply refine_vcg
     subgoal by auto
     subgoal using that by (simp add: arena_lifting)
@@ -804,7 +804,7 @@ proof -
           literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf y') \<and>
          \<not> tautology (mset (y' \<propto> z')) \<and> b' = 0 \<and> out_learned x' None d' \<and> no_dup x'\<close>
       for x x' y y' z z' a a' b b' c c' d d' vdom
-    by (rule  isa_set_lookup_conflict[THEN fref_to_Down_curry6,
+    by (rule isa_set_lookup_conflict[THEN fref_to_Down_curry6,
       unfolded prod.case, OF that(2,1)])
   have [refine0]: \<open>isa_set_lookup_conflict_aa x1h x1i x1g x1j zero_uint32_nat x1q x1r
         \<le> \<Down> {((C, n, lbd, outl), D). (C, D) \<in> option_lookup_clause_rel \<and> n = card_max_lvl x1h (the D) \<and>
@@ -1179,7 +1179,7 @@ private lemma x1g_vdom: \<open>x1f \<in> vdom_m (get_watched_wl (keep_watch L x2
 
 lemma clause_not_marked_to_delete_heur_pre:
   \<open>clause_not_marked_to_delete_heur_pre (U, x1g)\<close>
-  using x1g_vdom valid_UT  vdom_m_UT
+  using x1g_vdom valid_UT vdom_m_UT
   unfolding clause_not_marked_to_delete_heur_pre_def prod.simps arena_is_valid_clause_vdom_def
   by auto
 
@@ -1523,7 +1523,7 @@ proof -
     by (auto simp: header_size_def DECISION_REASON_def split: if_splits)
   ultimately show ?A
     using unit_prop_body_wl_D_invD[OF prop_inv] undef_lit1i
-    unfolding propagate_lit_wl_heur_pre_def prod.simps  i_def[symmetric] i_alt_def_L'[symmetric]
+    unfolding propagate_lit_wl_heur_pre_def prod.simps i_def[symmetric] i_alt_def_L'[symmetric]
       i_alt_def[symmetric] watched_by_app_def
     unfolding access_x1g1i access_x1g
     by (auto simp: image_image)
@@ -1741,7 +1741,7 @@ proof -
     for w :: nat and S' and f
     by auto
   have keep_watch_skip: \<open>((x2d + 1, U), x2a + 1, keep_watch L x2 x2a T)
-      \<in> nat_rel \<times>\<^sub>f  twl_st_heur' \<D>\<close>
+      \<in> nat_rel \<times>\<^sub>f twl_st_heur' \<D>\<close>
     if \<open>(x2d + 1, x2a + 1) \<in> nat_rel\<close> and
       \<open>(U, keep_watch L x2 x2a T) \<in>  twl_st_heur' \<D>\<close>
     for x2d U x2a x2 L T
@@ -1794,7 +1794,7 @@ proof -
    \<open>(V, set_conflict_wl' x1f (keep_watch L x2 x2a T)) \<in> twl_st_heur' \<D> \<Longrightarrow>
      (x2d, x2a) \<in> nat_rel \<Longrightarrow>
     ((x2d + 1, V), x2a + 1, set_conflict_wl' x1f (keep_watch L x2 x2a T))
-    \<in> nat_rel \<times>\<^sub>f  twl_st_heur' \<D>\<close>
+    \<in> nat_rel \<times>\<^sub>f twl_st_heur' \<D>\<close>
     for V x1f L x2 x2a T x2d
     by auto
   
@@ -2253,7 +2253,7 @@ lemma (in isasat_input_ops) vdom_m_cut_watch_listD:
 lemma cut_watch_list_heur_cut_watch_list_heur:
   \<open>(uncurry3 cut_watch_list_heur, uncurry3 cut_watch_list) \<in>
   [\<lambda>(((j, w), L), S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> j \<le> length (watched_by S L)]\<^sub>f
-  nat_rel  \<times>\<^sub>f  nat_rel  \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur' \<D> \<rightarrow> \<langle>twl_st_heur' \<D>\<rangle>nres_rel\<close>
+  nat_rel  \<times>\<^sub>f nat_rel  \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur' \<D> \<rightarrow> \<langle>twl_st_heur' \<D>\<rangle>nres_rel\<close>
     unfolding cut_watch_list_heur_def cut_watch_list_def uncurry_def
   apply (intro frefI nres_relI)
   apply refine_vcg
@@ -2539,6 +2539,13 @@ sepref_thm find_unwatched_wl_st_heur_code
   length_u_def[symmetric] isa_find_unwatched_def
   case_tri_bool_If find_unwatched_wl_st_heur_pre_def
   fmap_rll_u64_def[symmetric]
+  apply (rewrite in \<open>(None, _)\<close> annotate_assn[where A = \<open>option_assn nat_assn\<close>])
+  apply (rewrite in \<open>(None, _)\<close> annotate_assn[where A = \<open>option_assn nat_assn\<close>])
+  apply (rewrite in \<open>UNSET\<close> annotate_assn[where A = \<open>tri_bool_assn\<close>])
+  apply (rewrite in \<open>SET_TRUE\<close> annotate_assn[where A = \<open>tri_bool_assn\<close>])
+  apply (rewrite in \<open>let _ = polarity _ _ in _\<close> annotate_assn[where A = \<open>tri_bool_assn\<close>])
+  apply (rewrite in \<open>if \<hole> then _ else _\<close>  tri_bool_eq_def[symmetric])
+  apply (rewrite in \<open>if \<hole> then _ else _\<close>  tri_bool_eq_def[symmetric])
   by sepref
 
 concrete_definition (in -) find_unwatched_wl_st_heur_code
@@ -2610,7 +2617,7 @@ sepref_thm update_clause_wl_fast_code
   :: \<open>[\<lambda>((((((L, C), j), w), i), f), S). update_clause_wl_code_pre ((((((L, C), j), w), i), f), S) \<and>
       w < uint64_max]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow>
-       uint64_nat_assn *a  uint64_nat_assn *a isasat_fast_assn\<close>
+       uint64_nat_assn *a uint64_nat_assn *a isasat_fast_assn\<close>
   supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
   unfolding update_clause_wl_heur_def isasat_fast_assn_def Array_List_Array.swap_ll_def[symmetric]
     fmap_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
@@ -2794,6 +2801,7 @@ begin
 
 context
 begin
+
 sepref_register update_blit_wl_heur clause_not_marked_to_delete_heur
 sepref_thm unit_propagation_inner_loop_body_wl_heur
   is \<open>uncurry3 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
@@ -2811,7 +2819,7 @@ sepref_thm unit_propagation_inner_loop_body_wl_heur
   unfolding unit_propagation_inner_loop_body_wl_heur_def length_rll_def[symmetric] PR_CONST_def
   unfolding fmap_rll_def[symmetric]
   unfolding fast_minus_def[symmetric]
-    SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
+    SET_FALSE_def[symmetric] SET_TRUE_def[symmetric] tri_bool_eq_def[symmetric]
   by sepref
 
 (* sepref_thm unit_propagation_inner_loop_body_wl_fast_heur

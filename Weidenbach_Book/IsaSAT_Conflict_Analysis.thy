@@ -669,54 +669,7 @@ where
   \<close>
 
 (* TODO Move *)
-lemma twl_st_l_mark_of_hd:
-  \<open>(x, y) \<in> twl_st_l b \<Longrightarrow>
-       get_trail_l x \<noteq> [] \<Longrightarrow>
-       is_proped (hd (get_trail_l x)) \<Longrightarrow>
-       mark_of (hd (get_trail_l x)) > 0 \<Longrightarrow>
-       mark_of (hd (get_trail y)) = mset (get_clauses_l x \<propto> mark_of (hd (get_trail_l x)))\<close>
-  by (cases \<open>get_trail_l x\<close>; cases \<open>get_trail y\<close>; cases \<open>hd (get_trail_l x)\<close>;
-     cases \<open>hd (get_trail y)\<close>)
-   (auto simp: twl_st_l_def convert_lit.simps)
 
-lemma twl_st_l_lits_of_tl:
-  \<open>(x, y) \<in> twl_st_l b \<Longrightarrow>
-       lits_of_l (tl (get_trail y)) = (lits_of_l (tl (get_trail_l x)))\<close>
-  by (cases \<open>get_trail_l x\<close>; cases \<open>get_trail y\<close>; cases \<open>hd (get_trail_l x)\<close>;
-     cases \<open>hd (get_trail y)\<close>)
-   (auto simp: twl_st_l_def convert_lit.simps)
-
-lemma twl_st_l_mark_of_is_decided:
-  \<open>(x, y) \<in> twl_st_l b \<Longrightarrow>
-       get_trail_l x \<noteq> [] \<Longrightarrow>
-       is_decided (hd (get_trail y)) = is_decided (hd (get_trail_l x))\<close>
-  by (cases \<open>get_trail_l x\<close>; cases \<open>get_trail y\<close>; cases \<open>hd (get_trail_l x)\<close>;
-     cases \<open>hd (get_trail y)\<close>)
-   (auto simp: twl_st_l_def convert_lit.simps)
-
-lemma twl_st_l_mark_of_is_proped:
-  \<open>(x, y) \<in> twl_st_l b \<Longrightarrow>
-       get_trail_l x \<noteq> [] \<Longrightarrow>
-       is_proped (hd (get_trail y)) = is_proped (hd (get_trail_l x))\<close>
-  by (cases \<open>get_trail_l x\<close>; cases \<open>get_trail y\<close>; cases \<open>hd (get_trail_l x)\<close>;
-     cases \<open>hd (get_trail y)\<close>)
-   (auto simp: twl_st_l_def convert_lit.simps)
-
-lemma state_wl_l_mark_of_is_decided:
-  \<open>(x, y) \<in> state_wl_l b \<Longrightarrow>
-       get_trail_wl x \<noteq> [] \<Longrightarrow>
-       is_decided (hd (get_trail_l y)) = is_decided (hd (get_trail_wl x))\<close>
-  by (cases \<open>get_trail_wl x\<close>; cases \<open>get_trail_l y\<close>; cases \<open>hd (get_trail_wl x)\<close>;
-     cases \<open>hd (get_trail_l y)\<close>)
-   (auto simp: state_wl_l_def convert_lit.simps)
-
-lemma state_wl_l_mark_of_is_proped:
-  \<open>(x, y) \<in> state_wl_l b \<Longrightarrow>
-       get_trail_wl x \<noteq> [] \<Longrightarrow>
-       is_proped (hd (get_trail_l y)) = is_proped (hd (get_trail_wl x))\<close>
-  by (cases \<open>get_trail_wl x\<close>; cases \<open>get_trail_l y\<close>; cases \<open>hd (get_trail_wl x)\<close>;
-     cases \<open>hd (get_trail_l y)\<close>)
-   (auto simp: state_wl_l_def convert_lit.simps)
 (* End Move *)
 
 lemma skip_and_resolve_loop_wl_D_inv_skip_and_resolve_loop_wl_D_heur_inv:
@@ -1558,7 +1511,7 @@ lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
   apply sepref_dbg_trans_step_keep
   thm update_confl_tl_wl_code_refine[to_hnr]
   supply [[unify_trace_failure]]
-  apply (rule  update_confl_tl_wl_code_refine[to_hnr])
+  apply (rule update_confl_tl_wl_code_refine[to_hnr])
   oops
   apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref (* slow *)

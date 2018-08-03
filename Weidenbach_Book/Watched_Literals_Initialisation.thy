@@ -708,7 +708,7 @@ lemma entailed_clss_inv_add_to_unit_init_clauses:
   by (cases T; cases C; auto simp: twl_st_inv.simps twl_exception_inv.simps)
 
 lemma convert_lits_l_no_decision_iff: \<open>(S, T) \<in> convert_lits_l M N \<Longrightarrow>
-        (\<forall>s\<in>set  T. \<not> is_decided s) \<longleftrightarrow>
+        (\<forall>s\<in>set T. \<not> is_decided s) \<longleftrightarrow>
         (\<forall>s\<in>set S. \<not> is_decided s)\<close>
   unfolding convert_lits_l_def
   by (induction rule: list_rel_induct)
@@ -1201,7 +1201,7 @@ proof -
     apply normalize_goal+
     by force
   have dec': \<open>\<forall>L \<in> set (get_trail_init T). \<not>is_decided L\<close>
-    using  SOC_T dec apply -
+    using SOC_T dec apply -
     apply (rule twl_st_l_init_no_decision_iff[THEN iffD2])
     using SOC_T dec SOC_T by (auto simp: twl_st_l_init twl_st_init convert_lits_l_def)
   obtain M N NE UE Q OC where

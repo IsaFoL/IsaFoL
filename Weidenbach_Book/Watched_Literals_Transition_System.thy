@@ -1513,7 +1513,7 @@ next
         using L_M w_max_D D watched L' uL that
         by simp
       have \<open>\<forall>C. C \<in># WS \<longrightarrow> fst C = L\<close>
-        using  no_dup
+        using no_dup
         using watched uL L' undef D (* excep wq *)
         by (auto simp del: set_mset_union simp: )
       then have \<open>(L', TWL_Clause {#L, L'#} UWD) \<notin># WS\<close>
@@ -1850,7 +1850,7 @@ next
           using excep C CD Q W WS uab uba by (auto simp: twl_exception_inv.simps simp del: set_mset_union
               dest: multi_member_split)
         moreover have \<open>watched C = {#La, L''#} \<longrightarrow>- La \<in> lits_of_l M \<longrightarrow> \<not>has_blit M (clause C) La\<close> for La L''
-          using in_CNot_implies_uminus[OF _ L'_M_C]  wf_C L' uL'_M  undef_K_M undef uab uba
+          using in_CNot_implies_uminus[OF _ L'_M_C]  wf_C L' uL'_M undef_K_M undef uab uba
           unfolding C_W_UW has_blit_def apply -
           apply (cases \<open>La = K\<close>)
            apply (auto simp: has_blit_def Decided_Propagated_in_iff_in_lits_of_l W
@@ -1999,7 +1999,7 @@ next
       have \<open>C \<in># add_mset (L, TWL_Clause WD UWD) WS \<longrightarrow>
         C' \<in># add_mset (L, TWL_Clause WD UWD) WS \<longrightarrow>
         fst C = fst C'\<close> for C C'
-        using no_dup  unfolding D no_duplicate_queued.simps
+        using no_dup unfolding D no_duplicate_queued.simps
         by blast
       from this[of \<open>(L, TWL_Clause WD UWD)\<close> \<open>(L', TWL_Clause {#L, L'#} UWD)\<close>]
       have notin: \<open>False\<close> if \<open>(L', TWL_Clause {#L, L'#} UWD) \<in># WS\<close>
@@ -2485,7 +2485,7 @@ next
     then have
       lazy_L': \<open>- L' \<in> lits_of_l M1 \<Longrightarrow> \<not> has_blit M1 (add_mset L (add_mset L' UWD)) L' \<Longrightarrow>
             (\<forall>K\<in>#UWD. get_level M1 K \<le> get_level M1 L' \<and> - K \<in> lits_of_l M1)\<close>
-      using  watched unfolding D twl_lazy_update.simps
+      using watched unfolding D twl_lazy_update.simps
       by (simp_all add: all_conj_distrib)
     have excep_inv: \<open>twl_exception_inv (M1, N, U, None, NE, UE, {#}, {#}) C\<close> if \<open>C \<noteq> ?D\<close>
       using * C past_invs that M by (auto simp add: past_invs.simps)
@@ -2560,7 +2560,7 @@ next
     then have
       lazy_L': \<open>- L' \<in> lits_of_l M1 \<Longrightarrow> \<not> has_blit M1 (add_mset L (add_mset L' UWD)) L' \<Longrightarrow>
             (\<forall>K\<in>#UWD. get_level M1 K \<le> get_level M1 L' \<and> - K \<in> lits_of_l M1)\<close>
-      using  watched unfolding D twl_lazy_update.simps
+      using watched unfolding D twl_lazy_update.simps
       by (simp_all add: all_conj_distrib)
     have uL'_M1: \<open>has_blit M1 (clause (update_clause D L K)) L'\<close> if \<open>- L' \<in> lits_of_l M1\<close>
     proof -
@@ -3014,7 +3014,7 @@ proof (induction rule: cdcl_twl_o.induct)
         using propa_cands C by auto
 
       then have \<open>-L' \<in> lits_of_l M\<close>
-        using L' W' False uL  C_W L'_C H no_has_blit (* TODO Proof *)
+        using L' W' False uL C_W L'_C H no_has_blit (* TODO Proof *)
         apply (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
         by (metis C_W L'_C no_has_blit clause.simps
             count_decided_ge_get_level has_blit_def is_blit_def)
@@ -3655,7 +3655,7 @@ next
     using lev_L' lev_L'_M1
     by auto
   ultimately show ?case
-    using  n_d excep undef
+    using n_d excep undef
     unfolding twl_struct_invs_def
     by (auto simp: twl_exception_inv.simps dest!: no_has_blit_propagate')
 qed
@@ -5722,7 +5722,7 @@ proof -
   have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
     by (rule true_clss_clss_true_clss_cls_true_clss_clss[OF N_U_M M_D])
   then have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close> \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>
-    using  N_U_D true_clss_clss_left_right by blast+
+    using N_U_D true_clss_clss_left_right by blast+
   then have \<open>unsatisfiable (set_mset N  \<union> set_mset U)\<close>
     by (rule true_clss_clss_CNot_true_clss_cls_unsatisfiable)
 

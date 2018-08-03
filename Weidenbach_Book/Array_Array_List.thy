@@ -179,7 +179,8 @@ lemma length_a_rule[sep_heap_rules]:
   by (sep_auto simp: arrayO_assn_def length_a_def array_assn_def is_array_def mod_star_conv
       dest: heap_list_add_same_length)
 
-lemma length_a_hnr[sepref_fr_rules]: \<open>(length_a, RETURN o length) \<in> (arrayO_assn R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+lemma length_a_hnr[sepref_fr_rules]:
+  \<open>(length_a, RETURN o op_list_length) \<in> (arrayO_assn R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare sep_auto
 
 definition length_ll :: \<open>'a list list \<Rightarrow> nat \<Rightarrow> nat\<close> where

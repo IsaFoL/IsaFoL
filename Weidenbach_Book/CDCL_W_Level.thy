@@ -1,6 +1,6 @@
 theory CDCL_W_Level
 imports
-  Entailment_Definition.Partial_Annotated_Clausal_Logic
+  Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
 begin
 
 subsubsection \<open>Level of literals and clauses\<close>

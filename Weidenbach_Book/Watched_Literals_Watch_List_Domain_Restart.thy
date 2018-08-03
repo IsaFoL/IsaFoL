@@ -978,7 +978,7 @@ definition rewatch_clauses_prog_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_
       if xs!i \<in># dom_m N then do {
         W \<leftarrow> rewatch_clause_D N (xs!i) W;
         RETURN(i+1, W)
-      } else  RETURN(i+1, W)
+      } else RETURN(i+1, W)
     })
     (0, W0);
   RETURN (M, N, D, NE, UE, Q, W)

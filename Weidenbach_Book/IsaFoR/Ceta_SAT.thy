@@ -150,7 +150,7 @@ where
   | (Subterm_Criterion_Proc projL rseqL trsLL term,
        Subterm_Criterion_Proc projL' rseqL' trsLL' term') \<Rightarrow>
     projL_assn (lab_assn id_assn id_assn) projL projL' *
-    rseqL_assn id_assn id_assn id_assn  rseqL rseqL' *
+    rseqL_assn id_assn id_assn id_assn rseqL rseqL' *
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     dp_termination_proof_assn term term'
   | (Gen_Subterm_Criterion_Proc projL trsLL term,
@@ -221,7 +221,7 @@ where
     trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
     dp_termination_proof_assn term term' *
     dp_termination_proof_assn term2 term2'
-  | (Semlab_Proc sl  trsLL2 unc trsLL3 term,
+  | (Semlab_Proc sl trsLL2 unc trsLL3 term,
       Semlab_Proc sl' trsLL2' unc' trsLL3' term') \<Rightarrow>
     id_assn sl sl' *
     list_assn (term_assn id_assn id_assn) unc unc' *
@@ -518,7 +518,7 @@ lemma hn_case_dp_termination_proof_assn[sepref_prep_comb_rule, sepref_comb_rules
        p'= Subterm_Criterion_Proc projL' rseqL' trsLL' term'\<rbrakk> \<Longrightarrow>
     hn_refine (INVE * F) (f2' projL' rseqL' trsLL' term')
        (projL_assn (lab_assn id_assn id_assn) projL projL' *
-    rseqL_assn id_assn id_assn id_assn  rseqL rseqL' *
+    rseqL_assn id_assn id_assn id_assn rseqL rseqL' *
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     dp_termination_proof_assn term term' * hn_ctxt XX2 p p' * \<Gamma>2') R (f2 projL rseqL trsLL term)"
   assumes Gen_Subterm_Criterion_Proc:
@@ -536,8 +536,8 @@ lemma hn_case_dp_termination_proof_assn[sepref_prep_comb_rule, sepref_comb_rules
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     dp_termination_proof_assn term term' * hn_ctxt XX4 p p' * \<Gamma>4') R (f4 projL trsLL term)"
   assumes Redpair_UR_Proc:
-    "\<And> projL trsLL trsLL2 term  projL' trsLL' trsLL2' term'. \<lbrakk>p=Redpair_UR_Proc projL trsLL trsLL2 term;
-       p'= Redpair_UR_Proc  projL' trsLL' trsLL2' term'\<rbrakk> \<Longrightarrow>
+    "\<And> projL trsLL trsLL2 term projL' trsLL' trsLL2' term'. \<lbrakk>p=Redpair_UR_Proc projL trsLL trsLL2 term;
+       p'= Redpair_UR_Proc projL' trsLL' trsLL2' term'\<rbrakk> \<Longrightarrow>
     hn_refine (INVE * F) (f5' projL' trsLL' trsLL2' term')
        ((root_redtriple_impl_assn +\<^sub>a redtriple_impl_assn) projL projL' *
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
@@ -588,8 +588,8 @@ lemma hn_case_dp_termination_proof_assn[sepref_prep_comb_rule, sepref_comb_rules
        ( list_assn (rule_assn (lab_assn id_assn id_assn) id_assn *a
        list_assn (nat_assn *a nat_assn) *a list_assn (nat_assn *a nat_assn)) term term' * hn_ctxt XX11 p p' * \<Gamma>11') R (f11 term)"
   assumes Size_Change_Redpair_Proc:
-    "\<And>red trsLL term  red' trsLL' term'. \<lbrakk>p=Size_Change_Redpair_Proc  red trsLL term;
-       p'= Size_Change_Redpair_Proc  red' trsLL' term'\<rbrakk> \<Longrightarrow>
+    "\<And>red trsLL term red' trsLL' term'. \<lbrakk>p=Size_Change_Redpair_Proc red trsLL term;
+       p'= Size_Change_Redpair_Proc red' trsLL' term'\<rbrakk> \<Longrightarrow>
     hn_refine (INVE * F) (f12'  red' trsLL' term')
        (redtriple_impl_assn red red' * option_assn (trsLL_assn id_assn id_assn id_assn) trsLL trsLL' *
     list_assn (rule_assn (lab_assn id_assn id_assn) id_assn *a
@@ -625,7 +625,7 @@ lemma hn_case_dp_termination_proof_assn[sepref_prep_comb_rule, sepref_comb_rules
     dp_termination_proof_assn term2 term2' *
         hn_ctxt XX15 p p' * \<Gamma>15') R (f15 trsLL trsLL2 term term2)"
   assumes Semlab_Proc:
-    "\<And> sl  trsLL2 unc trsLL3 term  sl' trsLL2' unc' trsLL3' term'. \<lbrakk>p=Semlab_Proc  sl  trsLL2 unc trsLL3 term;
+    "\<And> sl trsLL2 unc trsLL3 term sl' trsLL2' unc' trsLL3' term'. \<lbrakk>p=Semlab_Proc sl trsLL2 unc trsLL3 term;
        p'= Semlab_Proc sl' trsLL2' unc' trsLL3' term'\<rbrakk> \<Longrightarrow>
     hn_refine (INVE * F) (f16' sl' trsLL2' unc' trsLL3' term')
        (id_assn sl sl' *
@@ -633,7 +633,7 @@ lemma hn_case_dp_termination_proof_assn[sepref_prep_comb_rule, sepref_comb_rules
     trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
     trsLL_assn id_assn id_assn id_assn trsLL3 trsLL3' *
     dp_termination_proof_assn term term' *
-        hn_ctxt XX16 p p' * \<Gamma>16') R (f16  sl  trsLL2 unc trsLL3 term)"
+        hn_ctxt XX16 p p' * \<Gamma>16') R (f16  sl trsLL2 unc trsLL3 term)"
   assumes Switch_Innermost_Proc:
     "\<And> sl term sl' term'. \<lbrakk>p=Switch_Innermost_Proc sl term;
        p'= Switch_Innermost_Proc sl' term'\<rbrakk> \<Longrightarrow>

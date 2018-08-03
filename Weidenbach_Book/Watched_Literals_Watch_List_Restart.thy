@@ -56,7 +56,7 @@ lemma reduce_dom_clauses_fmdrop:
   by (auto simp: reduce_dom_clauses_def distinct_mset_remove1_All)
 
 lemma image_filter_replicate_mset:
-  \<open>{#Ca \<in># replicate_mset m C. P Ca#} = (if P C then replicate_mset m  C else {#})\<close>
+  \<open>{#Ca \<in># replicate_mset m C. P Ca#} = (if P C then replicate_mset m C else {#})\<close>
   by (induction m) auto
 
 
@@ -1141,7 +1141,7 @@ definition rewatch_clauses_prog :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_w
       if xs!i \<in># dom_m N then do {
         W \<leftarrow> rewatch_clause N (xs!i) W;
         RETURN(i+1, W)
-      } else  RETURN(i+1, W)
+      } else RETURN(i+1, W)
     })
     (0, W0);
   RETURN (M, N, D, NE, UE, Q, W)
@@ -1238,7 +1238,7 @@ proof -
       unfolding N1 N0_def[symmetric] D'[symmetric] C_def[symmetric]
          correct_watching_on.simps clause_to_update_def get_clauses_l.simps
       by (auto simp: correct_watching.simps clause_to_update_def H
-        correct_watching_on.simps  N0_def[symmetric] D' C_def[symmetric])
+        correct_watching_on.simps N0_def[symmetric] D' C_def[symmetric])
     then show ?thesis
       using cond unfolding rewatch_clauses_prog_inv_def prod.case s
       by linarith
@@ -1272,7 +1272,7 @@ proof -
       unfolding N0_def[symmetric]
          correct_watching_on.simps clause_to_update_def get_clauses_l.simps
       by (auto simp: correct_watching.simps clause_to_update_def H
-        correct_watching_on.simps  N0_def[symmetric])
+        correct_watching_on.simps N0_def[symmetric])
     then show ?thesis
       using cond unfolding rewatch_clauses_prog_inv_def prod.case s
       by linarith

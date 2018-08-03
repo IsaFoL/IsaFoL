@@ -620,24 +620,24 @@ lemma RES_RETURN_RES4:
 declare RETURN_as_SPEC_refine[refine2 del]
 
 
-lemma (in -)fref_to_Down_unRET_uncurry_Id:
+lemma fref_to_Down_unRET_uncurry_Id:
   \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y = (g x' y'))\<close>
   unfolding fref_def uncurry_def nres_rel_def
   by auto
-lemma (in -)fref_to_Down_unRET_uncurry:
+lemma fref_to_Down_unRET_uncurry:
   \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> (f x y, g x' y') \<in> B)\<close>
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma (in -)fref_to_Down_unRET_Id:
+lemma fref_to_Down_unRET_Id:
   \<open>((RETURN o f), (RETURN o g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> f x = (g x'))\<close>
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma (in -)fref_to_Down_unRET:
+lemma fref_to_Down_unRET:
   \<open>((RETURN o f), (RETURN o g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> (f x, g x') \<in> B)\<close>
   unfolding fref_def uncurry_def nres_rel_def
@@ -1186,5 +1186,31 @@ proof -
         intro!: list_all2_replicate)
 qed
 
+lemma option_bool_assn_direct_eq_hnr:
+  \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in>
+    (option_assn bool_assn)\<^sup>k *\<^sub>a (option_assn bool_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: option_assn_alt_def split:option.splits)
 
+text \<open>This function does not change the size of the underlying array.\<close>
+definition take1 where
+  \<open>take1 xs = take 1 xs\<close>
+
+lemma take1_hnr[sepref_fr_rules]:
+  \<open>(return o (\<lambda>(a, _). (a, 1::nat)), RETURN o take1) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl_assn R)\<^sup>d \<rightarrow> arl_assn R\<close>
+  apply sepref_to_hoare
+  apply (sep_auto simp: arl_assn_def hr_comp_def take1_def list_rel_def
+      is_array_list_def)
+  apply (case_tac b; case_tac x; case_tac l')
+   apply (auto)
+  done
+
+text \<open>The following two abbreviation are variants from \<^term>\<open>uncurry4\<close> and
+   \<^term>\<open>uncurry6\<close>. The problem is that \<^term>\<open>uncurry2 (uncurry2 f)\<close> and
+   \<^term>\<open>uncurry (uncurry3 f)\<close> are the same term, but only the latter is folded
+   to \<^term>\<open>uncurry4\<close>.\<close>
+abbreviation uncurry4' where
+  "uncurry4' f \<equiv> uncurry2 (uncurry2 f)"
+
+abbreviation uncurry6' where
+  "uncurry6' f \<equiv> uncurry2 (uncurry4' f)"
 end

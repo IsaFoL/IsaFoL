@@ -100,7 +100,7 @@ the same as the bj\_unit.
 \<close>
 
 
-(* TODO Merge with the proof from  thm after_fast_restart_replay*)
+(* TODO Merge with the proof from thm after_fast_restart_replay*)
 lemma after_fast_restart_replay:
   assumes
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N, U, None)\<close> and
@@ -425,7 +425,7 @@ proof -
           apply (rule cdcl\<^sub>W_restart_mset.decide_rule[of _ \<open>lit_of (?L m)\<close>])
           subgoal by simp
           subgoal using undef_nth_Suc[of m] le by simp
-          subgoal using le  atm_in by auto
+          subgoal using le atm_in by auto
           subgoal using le k_le_M' K unfolding k_def[symmetric] Sk
             by (auto simp: state_eq_def state_def Cons_nth_drop_Suc[symmetric])
           done

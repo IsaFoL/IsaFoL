@@ -97,7 +97,7 @@ proof -
     by (cases S) auto
 
   have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close>
-    using inv  multi_member_split[OF x_WS] 
+    using inv multi_member_split[OF x_WS] 
     unfolding twl_struct_invs_def twl_st_inv.simps S
     by force+
   show ?fail

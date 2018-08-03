@@ -2,11 +2,11 @@
     Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2014
 *)
 
-section \<open>Partial Clausal Logic\<close>
+section \<open>Partial Annotated Herbrand Interpretation\<close>
 text \<open>We here define decided literals (that will be used in both DPLL and CDCL) and the entailment
   corresponding to it.\<close>
 
-theory Partial_Annotated_Clausal_Logic
+theory Partial_Annotated_Herbrand_Interpretation
 imports
    Partial_Herbrand_Interpretation
 begin
@@ -18,8 +18,8 @@ text \<open>The following lemma is very useful when in the goal appears an axiom
 lemma uminus_lit_swap: \<open>-(a::'a literal) = i \<longleftrightarrow> a = -i\<close>
   by auto
 
-lemma (in -) in_image_uminus_uminus: \<open>a \<in> uminus ` A \<longleftrightarrow> -a \<in> A\<close> for a :: \<open>'v literal\<close>
-  using Partial_Annotated_Clausal_Logic.uminus_lit_swap by auto
+lemma in_image_uminus_uminus: \<open>a \<in> uminus ` A \<longleftrightarrow> -a \<in> A\<close> for a :: \<open>'v literal\<close>
+  using Partial_Annotated_Herbrand_Interpretation.uminus_lit_swap by auto
 
 
 subsection \<open>Decided Literals\<close>
@@ -306,6 +306,9 @@ lemma defined_lit_append:
 
 lemma in_lits_of_l_defined_litD: \<open>L_max \<in> lits_of_l M \<Longrightarrow> defined_lit M L_max\<close>
   by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+
+lemma undefined_notin: \<open>undefined_lit M (lit_of x) \<Longrightarrow> x \<notin> set M\<close> for x M
+  by (metis in_lits_of_l_defined_litD insert_iff lits_of_insert mk_disjoint_insert)
 
 
 subsection \<open>Backtracking\<close>
