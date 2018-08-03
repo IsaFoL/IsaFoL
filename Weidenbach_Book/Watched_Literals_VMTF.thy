@@ -1920,12 +1920,12 @@ qed
 definition (in isasat_input_ops) vmtf_find_next_undef :: \<open>vmtf_remove_int \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat option) nres\<close> where
 \<open>vmtf_find_next_undef \<equiv> (\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove) M. do {
     WHILE\<^sub>T\<^bsup>\<lambda>next_search. ((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf M \<and>
-         (next_search \<noteq> None \<longrightarrow> Pos (the next_search) \<in> snd ` D\<^sub>0)\<^esup>
+         (next_search \<noteq> None \<longrightarrow> Pos (the next_search) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)\<^esup>
       (\<lambda>next_search. next_search \<noteq> None \<and> defined_lit M (Pos (the next_search)))
       (\<lambda>next_search. do {
          ASSERT(next_search \<noteq> None);
          let n = the next_search;
-         ASSERT(Pos n \<in> snd ` D\<^sub>0);
+         ASSERT(Pos n \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
          ASSERT (n < length ns);
          RETURN (get_next (ns!n))
         }
@@ -1939,7 +1939,7 @@ lemma vmtf_find_next_undef_ref:
   shows \<open>vmtf_find_next_undef ((ns, m, fst_As, lst_As, next_search), to_remove) M
      \<le> \<Down> Id (SPEC (\<lambda>L. ((ns, m, fst_As, lst_As, L), to_remove) \<in> vmtf M \<and>
         (L = None \<longrightarrow> (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. defined_lit M L)) \<and>
-        (L \<noteq> None \<longrightarrow> Pos (the L) \<in> snd ` D\<^sub>0 \<and> undefined_lit M (Pos (the L)))))\<close>
+        (L \<noteq> None \<longrightarrow> Pos (the L) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> undefined_lit M (Pos (the L)))))\<close>
 proof -
   obtain xs' ys' where
     vmtf_ns: \<open>vmtf_ns (ys' @ xs') m ns\<close> and

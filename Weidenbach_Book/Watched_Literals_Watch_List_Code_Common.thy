@@ -451,7 +451,7 @@ definition (in -) find_decomp_wl_imp' :: \<open>(nat, nat) ann_lits \<Rightarrow
 
 lemma nth_ll_watched_app:
   \<open>(uncurry2 (RETURN ooo nth_rll), uncurry2 (RETURN ooo watched_app)) \<in>
-     [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r p2rel lit_of_natP) \<times>\<^sub>r nat_rel \<rightarrow>
+     [\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r p2rel lit_of_natP) \<times>\<^sub>r nat_rel \<rightarrow>
        \<langle>nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
   unfolding watched_app_def nth_rll_def
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
@@ -459,7 +459,7 @@ lemma nth_ll_watched_app:
 term nth_aa_u
 lemma nth_aa_watched_app[sepref_fr_rules]:
   \<open>(uncurry2 nth_aa_u, uncurry2 (RETURN ooo op_watched_app)) \<in>
-   [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0 \<and> i < length (W L)]\<^sub>a
+   [\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> i < length (W L)]\<^sub>a
      array_watched_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn *a unat_lit_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -468,7 +468,7 @@ proof -
   have H: \<open>(uncurry2 nth_aa_u, uncurry2 (RETURN \<circ>\<circ>\<circ> watched_app))
   \<in> [comp_PRE
        (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f p2rel lit_of_natP \<times>\<^sub>f nat_rel)
-       (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
+       (\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)
        (\<lambda>_ ((x, L), L'). L < length x \<and> L' < length (x ! L))
        (\<lambda>_. True)]\<^sub>a 
     hrp_comp ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
@@ -525,7 +525,7 @@ definition delete_index_and_swap_update :: \<open>('a \<Rightarrow> 'b list) \<R
 text \<open>The precondition is not necessary.\<close>
 lemma delete_index_and_swap_ll_delete_index_and_swap_update:
   \<open>(uncurry2 (RETURN ooo delete_index_and_swap_ll), uncurry2 (RETURN ooo delete_index_and_swap_update))
-  \<in>[\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0]\<^sub>f (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel \<rightarrow>
+  \<in>[\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel \<rightarrow>
       \<langle>\<langle>Id\<rangle>map_fun_rel D\<^sub>0\<rangle>nres_rel\<close>
   by (auto simp: delete_index_and_swap_ll_def uncurry_def fref_def nres_rel_def
       delete_index_and_swap_update_def map_fun_rel_def p2rel_def lit_of_natP_def
@@ -534,12 +534,12 @@ lemma delete_index_and_swap_ll_delete_index_and_swap_update:
 
 lemma delete_index_and_swap_aa_hnr[sepref_fr_rules]:
   shows \<open>(uncurry2  delete_index_and_swap_aa_u, uncurry2 (RETURN ooo delete_index_and_swap_update))
-     \<in> [\<lambda>((W,L), j). L \<in> snd ` D\<^sub>0 \<and> j < length (W L)]\<^sub>a
+     \<in> [\<lambda>((W,L), j). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> j < length (W L)]\<^sub>a
         array_watched_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> array_watched_assn\<close>
     (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
 proof -
   have H: \<open>(uncurry2 delete_index_and_swap_aa_u, uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update))
-  \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f nat_lit_rel \<times>\<^sub>f nat_rel) (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0) (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>j. i < length l \<and> j < length_ll l i) xa)
+  \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f nat_lit_rel \<times>\<^sub>f nat_rel) (\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>j. i < length l \<and> j < length_ll l i) xa)
        (\<lambda>x. nofail (uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update)
                       x))]\<^sub>a hrp_comp ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
                               (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f nat_lit_rel \<times>\<^sub>f nat_rel) \<rightarrow>
@@ -598,7 +598,7 @@ definition (in isasat_input_ops) append_update :: \<open>('a \<Rightarrow> 'b li
 
 lemma append_ll_append_update:
   \<open>(uncurry2 (RETURN ooo (\<lambda>xs i j. append_ll xs (nat_of_uint32 i) j)), uncurry2 (RETURN ooo append_update))
-  \<in>  [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0]\<^sub>f
+  \<in>  [\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f
      \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>Id\<rangle>map_fun_rel D\<^sub>0\<rangle>nres_rel\<close>
   by (auto simp: append_ll_def uncurry_def fref_def nres_rel_def
       delete_index_and_swap_update_def map_fun_rel_def p2rel_def lit_of_natP_def
@@ -608,13 +608,13 @@ lemma append_ll_append_update:
 
 lemma append_el_aa_hnr[sepref_fr_rules]:
   shows \<open>(uncurry2 append_el_aa_u', uncurry2 (RETURN ooo append_update))
-     \<in> [\<lambda>((W,L), j). L \<in> snd ` D\<^sub>0]\<^sub>a
+     \<in> [\<lambda>((W,L), j). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
         array_watched_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (nat_assn *a unat_lit_assn)\<^sup>k \<rightarrow> array_watched_assn\<close>
     (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
 proof -
   have H: \<open> ?a \<in> 
   [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f Id)
-    (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
+    (\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)
     (\<lambda>x y. case y of
            (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>x. nat_of_uint32 i < length l) xa)
     (\<lambda>x. nofail

@@ -119,7 +119,7 @@ proof -
   obtain T where
     ST: \<open>(S, T) \<in> twl_st_heur\<close> and
     inner: \<open>unit_propagation_inner_loop_wl_loop_D_inv L (j, w, T)\<close> and
-    L: \<open>L \<in> snd ` D\<^sub>0\<close> and
+    L: \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
     dom_eq: \<open>dom_m (get_clauses_wl_heur S) = dom_m (get_clauses_wl_heur S0)\<close>
     using assms unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv_def by blast
   obtain U V where
