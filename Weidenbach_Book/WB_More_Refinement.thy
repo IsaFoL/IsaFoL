@@ -38,17 +38,6 @@ subsubsection \<open>From @{text \<rightarrow>} to @{text \<Down>}\<close>
 lemma Ball2_split_def: \<open>(\<forall>(x, y) \<in> A. P x y) \<longleftrightarrow> (\<forall>x y. (x, y) \<in> A \<longrightarrow> P x y)\<close>
   by blast
 
-method find_cases_and_split =
-  (match conclusion in \<open>?P (case x of (_, _) \<Rightarrow> _)\<close> for x \<Rightarrow> \<open>cases x\<close>)
-
-method curry_goal =
-  (match conclusion in \<open>f x y\<close> for f x y \<Rightarrow> \<open>unfold do_uncurry\<close>)
-lemma uncurry_fst_snd: \<open>uncurry f x = f (fst x) (snd x)\<close>
-  by (cases x) (auto simp: uncurry_def)
-
-lemma H: \<open>\<forall>x. P x (fst x) (snd x) \<equiv> \<forall>x y. P (x,y) x y\<close>
-  by auto
-
 lemma in_pair_collect_simp: "(a,b)\<in>{(a,b). P a b} \<longleftrightarrow> P a b"
   by auto
 
