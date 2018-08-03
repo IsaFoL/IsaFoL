@@ -1411,7 +1411,7 @@ proof -
       by arith
   qed
   ultimately show ?thesis
-    using H L_xs_ys next_search_xs dist by auto
+    using L_xs_ys next_search_xs dist by auto
 qed
 
 lemma vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_to_remove_mono:
