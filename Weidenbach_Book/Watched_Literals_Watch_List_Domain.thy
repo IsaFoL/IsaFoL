@@ -1536,7 +1536,7 @@ proof -
 
 
   show ?thesis
-    unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_def H
+    unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_def
     apply (subst (2) WHILEIT_add_post_condition)
     apply (refine_rcg 1 WHILEIT_refine[where R = \<open>{((i', S'), (i, S)). i = i' \<and> (S', S) \<in> ?R}\<close>])
     subgoal using assms by auto
