@@ -748,8 +748,9 @@ fun init_state_wl_D_code x =
           val x_s = arl_empty (default_nat, heap_nat) zero_nat ();
         in
           (x_e, (x_f, ((true, ((Word32.fromInt 0), xa)),
-                        ([], (x_j, (x_l, (x_m,
-   ((Word32.fromInt 0), ((xaa, xb), (x_q, x_s))))))))))
+                        ((Word32.fromInt 0),
+                          (x_j, (x_l, (x_m,
+((Word32.fromInt 0), ((xaa, xb), (x_q, x_s))))))))))
         end)
     end)
     x;
@@ -932,18 +933,44 @@ fun finalise_init_code x =
     end)
     x;
 
-fun op_list_tl x = tl x;
+fun isa_length_trail_code x =
+  (fn (a1, (_, (_, (_, (_, _))))) => length_arl_u_code heap_uint32 a1) x;
 
-fun op_list_hd x = hd x;
+fun literals_to_update_wl_literals_to_update_wl_empty_code x =
+  (fn (a1, (_, (_, (a1c, (_, (_, (_, (_, (_,
+   (_, (_, (_, (_, (_, (_, (_, _))))))))))))))))
+     =>
+    fn () => let
+               val xa = isa_length_trail_code a1 ();
+             in
+               Word32.< (a1c, xa)
+             end)
+    x;
+
+fun uminus_code l = Word32.xorb (l, (Word32.fromInt 1));
+
+fun isa_trail_nth_code x =
+  (fn ai => fn bi =>
+    let
+      val (a1, _) = ai;
+    in
+      (fn () => Array.sub ((fn (a,b) => a) a1, Word32.toInt bi))
+    end)
+    x;
 
 fun select_and_remove_from_literals_to_update_wl_code x =
-  (fn xi =>
-    (fn () =>
-      let
-        val (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) = xi;
-      in
-        ((a1, (a1a, (a1b, (op_list_tl a1c, (a1d, a2d))))), op_list_hd a1c)
-      end))
+  (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
+     =>
+    fn () =>
+    let
+      val xa = isa_trail_nth_code a1 a1c ();
+    in
+      ((a1, (a1a, (a1b, (Word32.+ (a1c, (Word32.fromInt 1)),
+                          (a1d, (a1e, (a1f,
+(a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o)))))))))))))))),
+        uminus_code xa)
+    end)
     x;
 
 fun fast_minus_nat x = (fn a => (Nat(integer_of_nat x - integer_of_nat a)));
@@ -1200,9 +1227,11 @@ fun set_conflict_wl_heur_code x =
       let
         val (a1m, (a1n, (a1o, a2o))) = a;
       in
-        (fn () =>
-          (a1, (a1a, (a1m, ([], (a1d, (a1e,
-(a1f, (a1n, (a1h, (a1o, (a2o, (incr_conflict a1k, (a1l, a2l))))))))))))))
+        (fn f_ => fn () => f_ ((isa_length_trail_code a1) ()) ())
+          (fn xa =>
+            (fn () =>
+              (a1, (a1a, (a1m, (xa, (a1d, (a1e,
+    (a1f, (a1n, (a1h, (a1o, (a2o, (incr_conflict a1k, (a1l, a2l)))))))))))))))
       end
         ()
     end)
@@ -1305,8 +1334,6 @@ fun update_clause_wl_code x =
     end)
     x;
 
-fun uminus_code l = Word32.xorb (l, (Word32.fromInt 1));
-
 val sET_FALSE_code : Word32.word =
   Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int));
 
@@ -1339,9 +1366,8 @@ fun propagate_lit_wl_code x =
       val xa = swap_lits_code bib zero_nata (fast_minus_nat one_nat bia) a1a ();
       val x_b = cons_trail_Propagated_tr_code ai bib a1 ();
     in
-      (x_b, (xa, (a1b, (uminus_code ai :: a1c,
-                         (a1d, (a1e, (a1f, (a1g,
-     (a1h, (a1i, (a1j, (incr_propagation a1k, (a1l, a2l)))))))))))))
+      (x_b, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
+   (a1g, (a1h, (a1i, (a1j, (incr_propagation a1k, (a1l, a2l)))))))))))))
     end)
     x;
 
@@ -1532,23 +1558,8 @@ fun unit_propagation_inner_loop_wl_D_code x =
     end)
     x;
 
-fun op_list_is_empty x = null x;
-
-fun literals_to_update_wl_empty_heur_code x =
-  (fn xi => (fn () => let
-                        val (_, (_, (_, (a1c, (_, _))))) = xi;
-                      in
-                        op_list_is_empty a1c
-                      end))
-    x;
-
 fun unit_propagation_outer_loop_wl_D x =
-  heap_WHILET
-    (fn s => fn () => let
-                        val xa = literals_to_update_wl_empty_heur_code s ();
-                      in
-                        not xa
-                      end)
+  heap_WHILET literals_to_update_wl_literals_to_update_wl_empty_code
     (fn s => fn () =>
       let
         val a = select_and_remove_from_literals_to_update_wl_code s ();
@@ -2682,16 +2693,17 @@ fun propagate_unit_bt_wl_D_code x =
       val xa = vmtf_flush_all_code a1 a1e ();
       val x_a = get_LBD_code a1i ();
       val x_b = lbd_empty_code a1i ();
-      val x_c = cons_trail_Propagated_tr_code (uminus_code ai) zero_nata a1 ();
+      val x_c = isa_length_trail_code a1 ();
+      val x_e = cons_trail_Propagated_tr_code (uminus_code ai) zero_nata a1 ();
     in
-      (x_c, (a1a, (a1b, ([ai],
-                          (a1d, (xa, (a1f, (a1g,
-     (a1h, (x_b, (a1j, (a1k, (ema_update_ref (nat_of_integer (5 : IntInf.int))
-                                a1l x_a,
-                               (ema_update_ref
-                                  (nat_of_integer (14 : IntInf.int)) a1m x_a,
-                                 (Word32.+ (a1n, (Word32.fromInt 1)),
-                                   a2n)))))))))))))))
+      (x_e, (a1a, (a1b, (x_c, (a1d, (xa, (a1f,
+   (a1g, (a1h, (x_b, (a1j, (a1k, (ema_update_ref
+                                    (nat_of_integer (5 : IntInf.int)) a1l x_a,
+                                   (ema_update_ref
+                                      (nat_of_integer (14 : IntInf.int)) a1m
+                                      x_a,
+                                     (Word32.+ (a1n, (Word32.fromInt 1)),
+                                       a2n)))))))))))))))
     end)
     x;
 
@@ -2895,22 +2907,23 @@ fun propagate_bt_wl_D_code x =
                                   ())
                                   (fn x_n =>
                                     (fn f_ => fn () => f_
-                                      ((cons_trail_Propagated_tr_code
- (uminus_code ai) a2q a1)
-                                      ()) ())
+                                      ((isa_length_trail_code a1) ()) ())
                                       (fn x_o =>
-(fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a1o a2q) ()) ())
-  (fn xb =>
-    (fn () =>
-      (x_o, (x_h, (a1b, ([ai],
-                          (x_l, (x_c, (a2p,
-((Word32.fromInt 0),
-  (a1h, (x_n, (a1j, (a1k, (ema_update_ref (nat_of_integer (5 : IntInf.int)) a1l
-                             x_d,
-                            (ema_update_ref (nat_of_integer (14 : IntInf.int))
-                               a1m x_d,
-                              (Word32.+ (a1n, (Word32.fromInt 1)),
-                                (xb, suc a2o))))))))))))))))))))))))))
+(fn f_ => fn () => f_ ((cons_trail_Propagated_tr_code (uminus_code ai) a2q a1)
+  ()) ())
+  (fn x_q =>
+    (fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a1o a2q) ()) ())
+      (fn xb =>
+        (fn () =>
+          (x_q, (x_h, (a1b, (x_o, (x_l, (x_c,
+  (a2p, ((Word32.fromInt 0),
+          (a1h, (x_n, (a1j, (a1k, (ema_update_ref
+                                     (nat_of_integer (5 : IntInf.int)) a1l x_d,
+                                    (ema_update_ref
+                                       (nat_of_integer (14 : IntInf.int)) a1m
+                                       x_d,
+                                      (Word32.+ (a1n, (Word32.fromInt 1)),
+(xb, suc a2o)))))))))))))))))))))))))))
       end
         ()
     end)
@@ -3167,11 +3180,11 @@ fun decide_lit_wl_code x =
       =>
     fn () =>
     let
-      val xa = cons_trail_Decided_tr_code ai a1 ();
+      val xa = isa_length_trail_code a1 ();
+      val x_a = cons_trail_Decided_tr_code ai a1 ();
     in
-      (xa, (a1a, (a1b, ([uminus_code ai],
-                         (a1d, (a1e, (a1f, (a1g,
-     (a1h, (a1i, (a1j, (incr_decision a1k, (a1l, a2l)))))))))))))
+      (x_a, (a1a, (a1b, (xa, (a1d, (a1e, (a1f,
+   (a1g, (a1h, (a1i, (a1j, (incr_decision a1k, (a1l, a2l)))))))))))))
     end)
     x;
 
@@ -3235,11 +3248,12 @@ fun cdcl_twl_stgy_prog_wl_D_code x =
     x;
 
 fun set_empty_clause_as_conflict_code x =
-  (fn xi => (fn () => let
-                        val (a1, (a1a, ((_, (a1d, a2d)), (_, a2e)))) = xi;
-                      in
-                        (a1, (a1a, ((false, (a1d, a2d)), ([], a2e))))
-                      end))
+  (fn (a1, (a1a, ((_, (a1d, a2d)), (_, a2e)))) => fn () =>
+    let
+      val xa = isa_length_trail_code a1 ();
+    in
+      (a1, (a1a, ((false, (a1d, a2d)), (xa, a2e))))
+    end)
     x;
 
 fun set_conflict_unit_code x =
@@ -3255,8 +3269,9 @@ fun conflict_propagated_unit_cls_code x =
   (fn ai => fn (a1, (a1a, (a1b, (_, a2c)))) => fn () =>
     let
       val xa = set_conflict_unit_code ai a1b ();
+      val xaa = isa_length_trail_code a1 ();
     in
-      (a1, (a1a, (xa, ([], a2c))))
+      (a1, (a1a, (xa, (xaa, a2c))))
     end)
     x;
 
@@ -3289,12 +3304,16 @@ fun propagate_unit_cls_code x =
     let
       val xa = cons_trail_Propagated_tr_code ai zero_nata a1 ();
     in
-      (xa, (a1a, (a1b, (uminus_code ai :: a1c, a2c))))
+      (xa, (a1a, (a1b, (a1c, a2c))))
     end)
     x;
 
 fun list_length_1_code c =
   (case c of [] => false | [_] => true | _ :: _ :: _ => false);
+
+fun op_list_tl x = tl x;
+
+fun op_list_hd x = hd x;
 
 fun add_init_cls_code x =
   (fn ai =>
@@ -3379,6 +3398,8 @@ val empty_conflict_code :
       in
         (SOME x, (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))))
       end);
+
+fun op_list_is_empty x = null x;
 
 fun get_trail_wl_code x =
   (fn (a, b) =>
