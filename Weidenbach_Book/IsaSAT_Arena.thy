@@ -939,8 +939,8 @@ qed
 
 paragraph \<open>Update saved position\<close>
 
-definition update_pos where
-  \<open>update_pos C pos arena = arena[C - POS_SHIFT := APos pos]\<close>
+definition update_pos_direct where
+  \<open>update_pos_direct C pos arena = arena[C - POS_SHIFT := APos pos]\<close>
 
 lemma clause_slice_update_pos:
   assumes
@@ -950,8 +950,8 @@ lemma clause_slice_update_pos:
          xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> and
     long: \<open>is_long_clause (N \<propto> i)\<close>
   shows
-    \<open>clause_slice (update_pos i pos arena) N ia =
-      (if ia = i then update_pos (header_size (N\<propto>i)) pos (clause_slice arena N ia)
+    \<open>clause_slice (update_pos_direct i pos arena) N ia =
+      (if ia = i then update_pos_direct (header_size (N\<propto>i)) pos (clause_slice arena N ia)
          else clause_slice arena N ia)\<close>
 proof -
   have ia_ge: \<open>ia \<ge> header_size(N \<propto> ia)\<close> \<open>ia < length arena\<close> and
@@ -963,7 +963,7 @@ proof -
     minimal_difference_between_valid_index[OF dom ia i] ia_ge long
     by (cases \<open>ia < i\<close>)
      (auto simp: extra_information_mark_to_delete_def drop_update_swap
-       update_pos_def SHIFTS_def
+       update_pos_direct_def SHIFTS_def
        Misc.slice_def header_size_def split: if_splits)
 qed
 
@@ -975,7 +975,7 @@ lemma clause_slice_update_pos_dead:
     dom: \<open>valid_arena arena N vdom\<close> and
     long: \<open>is_long_clause (N \<propto> i)\<close>
   shows
-    \<open>arena_dead_clause (dead_clause_slice (update_pos i pos arena) N ia) =
+    \<open>arena_dead_clause (dead_clause_slice (update_pos_direct i pos arena) N ia) =
       arena_dead_clause (dead_clause_slice arena N ia)\<close>
 proof -
   have ia_ge: \<open>ia \<ge> 4\<close> \<open>ia < length arena\<close> and
@@ -987,7 +987,7 @@ proof -
     using minimal_difference_between_invalid_index2[OF dom i ia(1) _ ia(2)] ia_ge long
     by (cases \<open>ia < i\<close>)
      (auto simp: extra_information_mark_to_delete_def drop_update_swap
-      arena_dead_clause_def update_pos_def SHIFTS_def
+      arena_dead_clause_def update_pos_direct_def SHIFTS_def
        Misc.slice_def header_size_def split: if_splits)
 qed
 
@@ -999,23 +999,23 @@ lemma xarena_active_clause_update_pos_same:
      (the (fmlookup N i))\<close> and
     long: \<open>is_long_clause (N \<propto> i)\<close> and
     \<open>pos \<le> length (N \<propto> i) - 2\<close>
-  shows \<open>xarena_active_clause (update_pos (header_size (N\<propto>i)) pos (clause_slice arena N i))
+  shows \<open>xarena_active_clause (update_pos_direct (header_size (N\<propto>i)) pos (clause_slice arena N i))
      (the (fmlookup N i))\<close>
   using assms
-  by (simp_all add:  update_pos_def SHIFTS_def Misc.slice_def
+  by (simp_all add:  update_pos_direct_def SHIFTS_def Misc.slice_def
     header_size_def xarena_active_clause_alt_def)
 
 lemma length_update_pos[simp]:
-  \<open>length (update_pos i pos arena) = length arena\<close>
-  by (auto simp: update_pos_def)
+  \<open>length (update_pos_direct i pos arena) = length arena\<close>
+  by (auto simp: update_pos_direct_def)
 
 lemma valid_arena_update_pos:
   assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close> and
     long: \<open>is_long_clause (N \<propto> i)\<close>and
     pos: \<open>pos \<le> length (N \<propto> i) - 2\<close>
-  shows \<open>valid_arena (update_pos i pos arena) N vdom\<close>
+  shows \<open>valid_arena (update_pos_direct i pos arena) N vdom\<close>
 proof -
-  let ?arena = \<open>update_pos i pos arena\<close>
+  let ?arena = \<open>update_pos_direct i pos arena\<close>
   have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close>
      \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia =i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
     using assms distinct_mset_dom[of N]
@@ -1046,7 +1046,7 @@ proof -
   moreover have \<open>ia\<in>vdom \<longrightarrow>
         ia \<notin># dom_m N \<longrightarrow>
         4 \<le> ia \<and> arena_dead_clause
-         (dead_clause_slice (update_pos i pos arena) N ia)\<close> for ia
+         (dead_clause_slice (update_pos_direct i pos arena) N ia)\<close> for ia
     using vdom[of ia] clause_slice_update_pos_dead[OF i _ _ arena, of ia] i long
     by auto
   ultimately show ?thesis
@@ -1542,6 +1542,9 @@ definition arena_is_valid_clause_vdom :: \<open>arena \<Rightarrow> nat \<Righta
 
 subsubsection \<open>Code Generation\<close>
 
+(* TODO Move *)
+paragraph \<open>Conversion between 64 and 32 bits\<close>
+
 definition uint64_of_uint32_conv :: \<open>nat \<Rightarrow> nat\<close> where
   [simp]: \<open>uint64_of_uint32_conv x = x\<close>
 
@@ -1565,6 +1568,10 @@ lemma uint64_of_uint32_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def uint64_nat_rel_def
       nat_of_uint32_code nat_of_uint64_uint64_of_uint32)
 
+(* End Move *)
+
+
+paragraph \<open>Length\<close>
 definition isa_arena_length where
   \<open>isa_arena_length arena i = do {
       ASSERT(i \<ge> SIZE_SHIFT \<and> i < length arena);
@@ -1639,6 +1646,9 @@ lemma isa_arena_length_code_refine[sepref_fr_rules]:
   using isa_arena_length_code.refine[FCOMP isa_arena_length_arena_length]
   unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp
   by (simp add: arl_assn_comp)
+
+
+paragraph \<open>Literal at given position\<close>
 
 definition isa_arena_lit where
   \<open>isa_arena_lit arena i = do {
@@ -1725,6 +1735,29 @@ lemma isa_arena_lit_code_refine[sepref_fr_rules]:
   by (simp add: arl_assn_comp)
 
 
+paragraph \<open>Status of the clause\<close>
+
+
+lemma (in -) status_assn_hnr_eq[sepref_fr_rules]:
+  \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in> status_assn\<^sup>k *\<^sub>a status_assn\<^sup>k \<rightarrow>\<^sub>a
+    bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def
+    nat_of_uint32_0_iff nat_of_uint32_Suc03_iff nat_of_uint32_013_neq)
+
+lemma IRRED_status_assn[sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
+  by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def)
+
+lemma LEARNED_status_assn[sepref_fr_rules]:
+  \<open>(uncurry0 (return 1), uncurry0 (RETURN LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
+  by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def)
+
+lemma DELETED_status_assn[sepref_fr_rules]:
+  \<open>(uncurry0 (return 3), uncurry0 (RETURN DELETED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
+  by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def
+    nat_of_uint32_Suc03_iff)
+
+
 definition isa_arena_status where
   \<open>isa_arena_status arena i = do {
       ASSERT(i < length arena);
@@ -1793,6 +1826,8 @@ lemma isa_arena_status_refine[sepref_fr_rules]:
   by (simp add: arl_assn_comp)
 
 
+paragraph \<open>Swap literals\<close>
+
 definition isa_arena_swap where
   \<open>isa_arena_swap C i j arena = do {
       ASSERT(C + i < length arena \<and> C + j < length arena);
@@ -1829,6 +1864,8 @@ lemma swap_lits_refine[sepref_fr_rules]:
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp)
 
+
+paragraph \<open>Update LBD\<close>
 
 definition isa_update_lbd :: \<open>nat \<Rightarrow> uint32 \<Rightarrow> uint32 list \<Rightarrow> uint32 list nres\<close> where
   \<open>isa_update_lbd C lbd arena = do {
@@ -1902,23 +1939,253 @@ lemma update_lbd_hnr[sepref_fr_rules]:
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
 
 
-lemma (in -) status_assn_hnr_eq[sepref_fr_rules]:
-  \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in> status_assn\<^sup>k *\<^sub>a status_assn\<^sup>k \<rightarrow>\<^sub>a
-    bool_assn\<close>
-  by sepref_to_hoare (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def
-    nat_of_uint32_0_iff nat_of_uint32_Suc03_iff nat_of_uint32_013_neq)
+paragraph \<open>Get LBD\<close>
 
-lemma IRRED_status_assn[sepref_fr_rules]:
-  \<open>(uncurry0 (return 0), uncurry0 (RETURN IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
-  by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def)
+definition get_clause_LBD :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>get_clause_LBD arena C =  xarena_lbd (arena ! (C - LBD_SHIFT))\<close>
 
-lemma LEARNED_status_assn[sepref_fr_rules]:
-  \<open>(uncurry0 (return 1), uncurry0 (RETURN LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
-  by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def)
+definition get_clause_LBD_pre where
+  \<open>get_clause_LBD_pre = arena_is_valid_clause_idx\<close>
 
-lemma DELETED_status_assn[sepref_fr_rules]:
-  \<open>(uncurry0 (return 3), uncurry0 (RETURN DELETED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
-  by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def
-    nat_of_uint32_Suc03_iff)
+definition isa_get_clause_LBD :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> uint32 nres\<close> where
+  \<open>isa_get_clause_LBD arena C = do {
+      ASSERT(C - LBD_SHIFT < length arena \<and> C \<ge> LBD_SHIFT);
+      RETURN (arena ! (C - LBD_SHIFT))
+  }\<close>
+
+lemma arena_get_lbd_conv:
+  assumes
+    valid: \<open>valid_arena arena N x\<close> and
+    j: \<open>j \<in># dom_m N\<close> and
+    a: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close>
+  shows
+    \<open>j - LBD_SHIFT < length arena\<close> (is ?le) and
+    \<open>LBD_SHIFT \<le> j\<close> (is ?ge) and
+    \<open>(a ! (j - LBD_SHIFT),
+        xarena_lbd (arena ! (j - LBD_SHIFT)))
+       \<in> uint32_nat_rel\<close>
+proof -
+  have j_le: \<open>j < length arena\<close> and
+    length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
+    k1:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
+    k2:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
+    le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
+    j_ge: \<open>header_size (N \<propto> j) \<le> j\<close> and
+    lbd: \<open>is_LBD (arena ! (j - LBD_SHIFT))\<close>
+    using arena_lifting[OF valid j] by (auto simp: )
+  show le': ?le
+     using le j_ge unfolding length[symmetric] header_size_def
+     by (auto split: if_splits simp: LBD_SHIFT_def)
+  show ?ge
+    using j_ge by (auto simp: SHIFTS_def header_size_def split: if_splits)
+  have
+    \<open>(a ! (j - LBD_SHIFT),
+         (arena ! (j - LBD_SHIFT)))
+       \<in> uint32_nat_rel O arena_el_rel\<close>
+    by (rule param_nth[OF _ _ a]) (use j_le in auto)
+  then show \<open>(a ! (j - LBD_SHIFT),
+        xarena_lbd (arena ! (j - LBD_SHIFT)))
+       \<in> uint32_nat_rel\<close>
+    using lbd by (cases \<open>arena ! (j - LBD_SHIFT)\<close>) (auto simp: arena_el_rel_def)
+qed
+
+lemma isa_get_clause_LBD_get_clause_LBD:
+  \<open>(uncurry isa_get_clause_LBD, uncurry (RETURN oo get_clause_LBD)) \<in>
+    [uncurry get_clause_LBD_pre]\<^sub>f
+     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow> 
+    \<langle>uint32_nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: isa_get_clause_LBD_def get_clause_LBD_def arena_get_lbd_conv
+      get_clause_LBD_pre_def arena_is_valid_clause_idx_def
+      list_rel_imp_same_length
+      intro!: ASSERT_leI)
+
+sepref_definition isa_get_clause_LBD_code
+  is \<open>uncurry isa_get_clause_LBD\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  unfolding isa_get_clause_LBD_def
+  by sepref
+
+lemma isa_get_clause_LBD_code[sepref_fr_rules]:
+  \<open>(uncurry isa_get_clause_LBD_code, uncurry (RETURN \<circ>\<circ> get_clause_LBD))
+     \<in> [uncurry get_clause_LBD_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  using isa_get_clause_LBD_code.refine[FCOMP isa_get_clause_LBD_get_clause_LBD]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+
+paragraph \<open>Saved position\<close>
+
+definition get_saved_pos :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>get_saved_pos arena C =  xarena_pos (arena ! (C - POS_SHIFT))\<close>
+
+definition get_saved_pos_pre where
+  \<open>get_saved_pos_pre arena C \<longleftrightarrow> arena_is_valid_clause_idx arena C \<and>
+      arena_length arena C > 5\<close>
+
+definition isa_get_saved_pos :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> uint32 nres\<close> where
+  \<open>isa_get_saved_pos arena C = do {
+      ASSERT(C - POS_SHIFT < length arena \<and> C \<ge> POS_SHIFT);
+      RETURN (arena ! (C - POS_SHIFT))
+  }\<close>
+
+lemma arena_get_pos_conv:
+  assumes
+    valid: \<open>valid_arena arena N x\<close> and
+    j: \<open>j \<in># dom_m N\<close> and
+    a: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
+    length: \<open>arena_length arena j > 5\<close>
+  shows
+    \<open>j - POS_SHIFT < length arena\<close> (is ?le) and
+    \<open>POS_SHIFT \<le> j\<close> (is ?ge) and
+    \<open>(a ! (j - POS_SHIFT),
+        xarena_pos (arena ! (j - POS_SHIFT)))
+       \<in> uint32_nat_rel\<close>
+proof -
+  have j_le: \<open>j < length arena\<close> and
+    length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
+    k1:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
+    k2:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
+    le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
+    j_ge: \<open>header_size (N \<propto> j) \<le> j\<close> and
+    lbd: \<open>is_Pos (arena ! (j - POS_SHIFT))\<close> and
+    ge: \<open>length (N \<propto> j) > 5\<close>
+    using arena_lifting[OF valid j] length by (auto simp: is_short_clause_def)
+  show le': ?le
+     using le j_ge unfolding length[symmetric] header_size_def
+     by (auto split: if_splits simp: POS_SHIFT_def)
+  show ?ge
+    using j_ge ge by (auto simp: SHIFTS_def header_size_def is_short_clause_def
+        split: if_splits)
+  have
+    \<open>(a ! (j - POS_SHIFT),
+         (arena ! (j - POS_SHIFT)))
+       \<in> uint32_nat_rel O arena_el_rel\<close>
+    by (rule param_nth[OF _ _ a]) (use j_le in auto)
+  then show \<open>(a ! (j - POS_SHIFT),
+        xarena_pos (arena ! (j - POS_SHIFT)))
+       \<in> uint32_nat_rel\<close>
+    using lbd by (cases \<open>arena ! (j - POS_SHIFT)\<close>) (auto simp: arena_el_rel_def)
+qed
+
+lemma isa_get_saved_pos_get_saved_pos:
+  \<open>(uncurry isa_get_saved_pos, uncurry (RETURN oo get_saved_pos)) \<in>
+    [uncurry get_saved_pos_pre]\<^sub>f
+     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow> 
+    \<langle>uint32_nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: isa_get_saved_pos_def get_saved_pos_def arena_get_lbd_conv
+      arena_is_valid_clause_idx_def arena_get_pos_conv
+      list_rel_imp_same_length get_saved_pos_pre_def
+      intro!: ASSERT_leI)
+
+
+lemma [sepref_fr_rules]:
+  \<open>(uncurry0 (return 5), uncurry0 (RETURN POS_SHIFT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: SHIFTS_def)
+
+sepref_definition isa_get_saved_pos_code
+  is \<open>uncurry isa_get_saved_pos\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  unfolding isa_get_saved_pos_def
+  by sepref
+
+lemma get_saved_pos_code[sepref_fr_rules]:
+  \<open>(uncurry isa_get_saved_pos_code, uncurry (RETURN \<circ>\<circ> get_saved_pos))
+     \<in> [uncurry get_saved_pos_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  using isa_get_saved_pos_code.refine[FCOMP isa_get_saved_pos_get_saved_pos]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+
+paragraph \<open>Update Saved Position\<close>
+
+lemma minus_uint32_assn:
+ \<open>(uncurry (return oo (-)), uncurry (RETURN oo (-))) \<in> uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+ by sepref_to_hoare sep_auto
+
+definition isa_update_pos :: \<open>nat \<Rightarrow> uint32 \<Rightarrow> uint32 list \<Rightarrow> uint32 list nres\<close> where
+  \<open>isa_update_pos C lbd arena = do {
+      ASSERT(C - POS_SHIFT < length arena \<and> C \<ge> POS_SHIFT \<and> lbd \<ge> 2);
+      RETURN (arena [C - POS_SHIFT := (lbd - two_uint32)])
+  }\<close>
+
+sepref_definition isa_update_pos_code
+  is \<open>uncurry2 isa_update_pos\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
+  supply minus_uint32_assn[sepref_fr_rules]
+  unfolding isa_update_pos_def
+  by sepref
+
+definition arena_update_pos where
+  \<open>arena_update_pos C pos arena = arena[C - POS_SHIFT := APos (pos - 2)]\<close>
+
+lemma arena_update_pos_conv:
+  assumes
+    valid: \<open>valid_arena arena N x\<close> and
+    j: \<open>j \<in># dom_m N\<close> and
+    a: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
+    b: \<open>(b, bb) \<in> uint32_nat_rel\<close> and
+    length: \<open>arena_length arena j > 5\<close> and
+    \<open>pos \<le> arena_length arena j\<close> and
+    b': \<open>bb \<ge> 2\<close>
+  shows
+    \<open>j - POS_SHIFT < length arena\<close> (is ?le) and
+    \<open>j \<ge> POS_SHIFT\<close> (is ?ge)
+    \<open>(a[j - POS_SHIFT := b - 2], arena_update_pos j bb arena) \<in>
+      \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> (is ?unat) and
+    \<open>2 \<le> b\<close>
+proof -
+  have j_le: \<open>j < length arena\<close> and
+    length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
+    k1:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
+    k2:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
+    le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
+    j_ge: \<open>header_size (N \<propto> j) \<le> j\<close> and
+    long: \<open>is_long_clause (N \<propto> j)\<close> and
+    pos: \<open>is_Pos (arena ! (j - POS_SHIFT))\<close>
+    using arena_lifting[OF valid j] length by (auto simp: is_short_clause_def header_size_def)
+  show le': ?le and ?ge
+    using le j_ge long unfolding length[symmetric] header_size_def
+    by (auto split: if_splits simp: POS_SHIFT_def)
+  show \<open>2 \<le> b\<close>
+    using b' b nat_of_uint32_le_iff by (force simp: uint32_nat_rel_def br_def)
+  then show ?unat
+    using length a b pos b'
+      valid_arena_update_pos[OF valid j \<open>is_long_clause (N \<propto> j)\<close> ]
+    by 
+      (auto simp: arena_el_rel_def unat_lit_rel_def arena_lit_def arena_update_pos_def
+        uint32_nat_rel_def br_def Collect_eq_comp nat_of_uint32_notle_minus
+       split: arena_el.splits
+       intro!: list_rel_update')
+qed
+
+definition isa_update_pos_pre where
+  \<open>isa_update_pos_pre = (\<lambda>((C, lbd), arena). arena_is_valid_clause_idx arena C \<and> lbd \<ge> 2 \<and>
+      lbd \<le> arena_length arena C \<and> arena_length arena C > 5 \<and>
+      lbd \<ge> 2)\<close>
+
+lemma isa_update_pos:
+  \<open>(uncurry2 isa_update_pos, uncurry2 (RETURN ooo arena_update_pos)) \<in>
+    [isa_update_pos_pre]\<^sub>f
+     nat_rel \<times>\<^sub>f uint32_nat_rel \<times>\<^sub>f \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<rightarrow> 
+    \<langle>\<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  unfolding isa_arena_status_def arena_status_def
+  by (intro frefI nres_relI)
+    (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
+        list_rel_imp_same_length arena_length_uint64_conv arena_lifting
+        arena_is_valid_clause_idx_and_access_def arena_lbd_conv
+        arena_is_valid_clause_vdom_def arena_status_literal_conv
+        update_lbd_pre_def isa_update_pos_def update_pos_direct_def isa_update_pos_pre_def
+        isa_arena_swap_def swap_lits_def swap_lits_pre_def isa_update_lbd_def
+        arena_update_pos_conv
+      intro!: ASSERT_refine_left swap_param)
+
+lemma isa_update_pos_code_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 isa_update_pos_code, uncurry2 (RETURN ooo arena_update_pos))
+  \<in> [isa_update_pos_pre]\<^sub>a nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
+  using isa_update_pos_code.refine[FCOMP isa_update_pos]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp isa_update_pos_pre_def)
 
 end
