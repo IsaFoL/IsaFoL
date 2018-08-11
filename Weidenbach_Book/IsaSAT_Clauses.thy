@@ -2,7 +2,7 @@ theory IsaSAT_Clauses
 imports Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT_Arena
 begin
 
-(* TODO This file should probably be merge with IsaSAT_Arena*)
+(* TODO This file should probably be merged with IsaSAT_Arena*)
 
 subsubsection \<open>Representation of Clauses\<close>
 
@@ -30,8 +30,10 @@ abbreviation clauses_l_fmat where
 abbreviation isasat_clauses_assn where
   \<open>isasat_clauses_assn \<equiv> arlO_assn clause_ll_assn *a arl_assn (clause_status_assn *a uint32_nat_assn *a uint32_nat_assn)\<close>
 
+type_synonym vdom = \<open>nat set\<close>
+
 definition clauses_ll_assn
-   :: \<open>_ \<Rightarrow> nat clauses_l \<Rightarrow> uint32 array_list \<Rightarrow> assn\<close>
+   :: \<open>vdom \<Rightarrow> nat clauses_l \<Rightarrow> uint32 array_list \<Rightarrow> assn\<close>
 where
   \<open>clauses_ll_assn vdom = hr_comp arena_assn (clauses_l_fmat vdom)\<close>
 

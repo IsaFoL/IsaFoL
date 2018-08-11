@@ -257,10 +257,10 @@ definition (in isasat_input_ops) isa_find_unwatched_between
 
 lemma (in isasat_input_ops) isa_find_unwatched_between_find_in_list_between_spec:
   assumes \<open>a \<le> length (N \<propto> C)\<close> and \<open>b \<le> length (N \<propto> C)\<close> and \<open>a \<le> b\<close> and \<open>valid_arena arena N vdom\<close>
-    and \<open>C \<in># dom_m N\<close> and eq: \<open>a' = a\<close> \<open>b' = b\<close>
+    and \<open>C \<in># dom_m N\<close> and eq: \<open>a' = a\<close> \<open>b' = b\<close> \<open>P' = P\<close> \<open>C' = C\<close>
   assumes lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> C))\<close>
   shows
-    \<open>isa_find_unwatched_between P arena a' b' C \<le> \<Down> Id (find_in_list_between P a b (N \<propto> C))\<close>
+    \<open>isa_find_unwatched_between P' arena a' b' C' \<le> \<Down> Id (find_in_list_between P a b (N \<propto> C))\<close>
 proof -
   have [refine0]: \<open>((None, x2m + a), None, a) \<in> \<langle>Id\<rangle>option_rel \<times>\<^sub>r {(n', n). n' = x2m + n}\<close>
     for x2m
@@ -363,7 +363,8 @@ lemma isa_find_unwatched_find_unwatched:
   assumes valid: \<open>valid_arena arena N vdom\<close> and
      \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> C))\<close> and
      ge2: \<open>2 \<le> length (N \<propto> C)\<close> and
-     C: \<open>C \<in># dom_m N\<close>
+     C: \<open>C \<in># dom_m N\<close> and
+    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> C))\<close>
   shows \<open>isa_find_unwatched P arena C \<le> \<Down> Id (find_unwatched P (N \<propto> C))\<close>
 proof -
   have [refine0]:
@@ -385,19 +386,25 @@ proof -
     subgoal using assms by (auto simp: arena_lifting)
     subgoal using assms by auto
     subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal using assms by auto
+    subgoal using assms arena_lifting[OF valid C] by auto
     subgoal by (auto simp: arena_pos_def)
     subgoal using assms arena_lifting[OF valid C] by auto
     subgoal using assms by auto
     subgoal using assms arena_lifting[OF valid C] by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by (auto simp: arena_lifting)
     subgoal using assms by auto
+    subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal using assms by auto
+    subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms arena_lifting[OF valid C] by auto
     subgoal by (auto simp: arena_pos_def)
+    subgoal using assms by auto
+    subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
@@ -406,7 +413,6 @@ proof -
     done
 qed
 
-find_theorems isa_find_unwatched_between find_in_list_between
 definition (in isasat_input_ops) isa_find_unwatched_wl_st_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
 \<open>isa_find_unwatched_wl_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>) i. do {
@@ -523,7 +529,8 @@ qed
 definition (in isasat_input_ops) find_unwatched_wl_st_pre where
   \<open>find_unwatched_wl_st_pre =  (\<lambda>(S, i).
     i \<in># dom_m (get_clauses_wl S) \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n S \<and> 2 \<le> length (get_clauses_wl S \<propto> i)
+    literals_are_\<L>\<^sub>i\<^sub>n S \<and> 2 \<le> length (get_clauses_wl S \<propto> i) \<and>
+    literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl S \<propto> i))
     )\<close>
 
 theorem find_unwatched_wl_st_heur_find_unwatched_wl_s:
@@ -543,20 +550,31 @@ proof -
        \<open>M = M'\<close>
     for M arena i i' N j M' C'
     using that by (auto simp: arena_lifting)
+  have [refine0]: \<open>RETURN (arena_pos arena C) \<le> \<Down> {(pos, pos'). pos = pos' \<and> pos \<ge> 2 \<and> pos \<le> length (N \<propto> C)}
+         (SPEC (\<lambda>i. i \<le> length (N \<propto> C') \<and> 2 \<le> i))\<close>
+    if valid: \<open>valid_arena arena N vdom\<close> and C: \<open>C \<in># dom_m N\<close> and \<open>C = C'\<close> and
+       \<open>is_long_clause (N \<propto> C')\<close>
+    for arena N vdom C C'
+    using that arena_lifting[OF valid C] by (auto simp: RETURN_RES_refine_iff
+      arena_pos_def)
+  have [refine0]:
+    \<open>RETURN (arena_length arena C \<le> 5) \<le> \<Down> {(b, b'). b = b' \<and> (b \<longleftrightarrow> is_short_clause (N \<propto> C))}
+     (SPEC(\<lambda>_. True))\<close> 
+    if valid: \<open>valid_arena arena N vdom\<close> and C: \<open>C \<in># dom_m N\<close>
+    for arena N vdom C
+    using that arena_lifting[OF valid C] by (auto simp: RETURN_RES_refine_iff is_short_clause_def)
+
   have H: \<open>isa_find_unwatched M arena C \<le> \<Down> Id (find_unwatched M' (N \<propto> C'))\<close>
-    if \<open>valid_arena arena N vdom\<close> and \<open>C \<in># dom_m N\<close> and \<open>M = M'\<close> and \<open>C = C'\<close>
+    if \<open>valid_arena arena N vdom\<close> and \<open>C \<in># dom_m N\<close> and \<open>M = M'\<close> and \<open>C = C'\<close> and
+      \<open>2 \<le> length (N \<propto> C')\<close> and \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> C'))\<close>
     for arena M N C vdom M' C'
     unfolding isa_find_unwatched_def find_unwatched_def
-    apply refine_vcg
+    apply (refine_vcg isa_find_unwatched_between_find_in_list_between_spec[of _ _ _ _ _ vdom])
+    using that apply - apply assumption
+    using that apply - apply assumption
     subgoal by auto
     subgoal using that by (simp add: arena_lifting)
-    subgoal using that by (auto simp: arena_lifting)
-    subgoal using that by (auto simp: arena_lifting)
-    subgoal using that by (auto simp: arena_lifting)
-    subgoal using that 
-      unfolding arena_lit_pre_def apply -
-      by (rule bex_leI[of _ C])
-        (auto simp: arena_is_valid_clause_idx_and_access_def)
+    subgoal using that by auto
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
@@ -565,18 +583,81 @@ proof -
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
-    subgoal for S S' by (cases S; cases S'; auto simp: arena_lifting)
+    using that apply - apply assumption
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting)
     done
 
   show ?thesis
     unfolding isa_find_unwatched_wl_st_heur_def find_unwatched_wl_st_def
-      (* isa_find_unwatched_def find_unwatched_def *)
        uncurry_def twl_st_heur_def
       find_unwatched_wl_st_pre_def
     apply (intro frefI nres_relI)
     apply refine_vcg
     subgoal for x y by (rule H[of _ _ \<open>set (get_vdom (fst x))\<close>]) auto
     done
+qed
+
+definition (in isasat_input_ops) isa_save_pos :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+where
+  \<open>isa_save_pos C i = (\<lambda>(M, N, oth). do {
+      if arena_length N C > 5 then do {
+        ASSERT(isa_update_pos_pre ((C, i), N));
+        RETURN (M, arena_update_pos C i N, oth)
+      } else RETURN (M, N, oth)
+    })
+  \<close>
+
+(* TODO Move *)
+lemma (in -) arena_update_pos_alt_def:
+  \<open>arena_update_pos C i N = update_pos_direct C (i - 2) N\<close>
+  by (auto simp: arena_update_pos_def update_pos_direct_def)
+(* End Move *)
+
+lemma (in isasat_input_ops) isa_save_pos_is_Id:
+  assumes
+     \<open>(S, T) \<in> twl_st_heur\<close>
+     \<open>C \<in># dom_m (get_clauses_wl T)\<close> and
+     \<open>is_long_clause (get_clauses_wl T \<propto> C)\<close> and
+     \<open>i \<le> length (get_clauses_wl T \<propto> C)\<close> and
+     \<open>i \<ge> 2\<close>
+  shows \<open>isa_save_pos C i S \<le> \<Down> twl_st_heur (RETURN T)\<close>
+proof -
+  have  \<open>isa_update_pos_pre ((C, i), get_clauses_wl_heur S)\<close>
+    unfolding isa_update_pos_pre_def
+    using assms
+    by (cases S; cases T)
+      (auto simp: isa_save_pos_def twl_st_heur_def arena_update_pos_alt_def
+          isa_update_pos_pre_def arena_is_valid_clause_idx_def arena_lifting
+          is_short_clause_def)
+  then show ?thesis
+    using assms
+    by (cases S; cases T)
+      (auto simp: isa_save_pos_def twl_st_heur_def arena_update_pos_alt_def
+          isa_update_pos_pre_def arena_is_valid_clause_idx_def arena_lifting
+          intro!: valid_arena_update_pos)
 qed
 
 lemmas unit_prop_body_wl_D_invD' =
@@ -979,6 +1060,7 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_heur
                   RETURN (j+1, w+1, S)}
               }
             | Some f \<Rightarrow> do {
+                S \<leftarrow> isa_save_pos C f S;
                 ASSERT(access_lit_in_clauses_heur_pre ((S, C), f));
                 let K = access_lit_in_clauses_heur S C f;
                 ASSERT(polarity_st_pre (S, K));
@@ -1268,6 +1350,7 @@ lemma (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D_alt_def:
                 }
               }
             | Some f \<Rightarrow> do {
+                S \<leftarrow> RETURN S;
                 let K = get_clauses_wl S \<propto> C ! f;
                 let val_L' = polarity (get_trail_wl S) K;
                 if val_L' = Some True
@@ -1476,7 +1559,7 @@ lemma polarity_st_pre1i:
       twl_st_heur_state_simp_watched twl_st_heur'_def i_def
       split: if_splits)
 
-private lemma 
+private lemma
   access_x1g:
     \<open>arena_lit (get_clauses_wl_heur U) (x1g + 0) =
      get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! 0\<close> and
@@ -1534,7 +1617,9 @@ lemma find_unwatched_wl_st_pre:
   \<open>find_unwatched_wl_st_pre (keep_watch L x2 x2a T, x1f)\<close>
   using x2_x2a x2a_le Tx1g_le2
   unfolding find_unwatched_wl_st_pre_def prod.simps
-  by auto
+  apply auto
+  sorry
+
 
 lemma find_unwatched_wl_st_heur_pre:
   \<open>find_unwatched_wl_st_heur_pre (U, x1g)\<close>

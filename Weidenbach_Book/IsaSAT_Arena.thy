@@ -49,10 +49,11 @@ In our case, the refinement is done in two steps:
 
 In our formalisation, we distinguish active clauses (clauses that are not marked to be deleted) from
 dead clauses (that have been marked to be deleted but can still be accessed). Any dead clause can be
-removed from the addressable clauses (\<^term>\<open>vdom\<close> for virtual domain).
+removed from the addressable clauses (\<^term>\<open>vdom\<close> for virtual domain). Remark that we actually do not
+need the full virtual domain, just the list of all active position (TODO?).
 
 Remark that in our formalisation, we don't (at least not yet) plan to reuse freed spaces
-(the predicate about dead clauses must be strengthened in that case). Due to the fact that an arena
+(the predicate about dead clauses must be strengthened to do so). Due to the fact that an arena
 is very different from an array of clauses, we refine our data structure by hand to the long list
 instead of introducing refinement rules. This is mostly done because iteration is very different
 (and it does not change what we had before anyway).
@@ -62,6 +63,17 @@ clauses can be tautologies, the size does not fit into uint32 (technically, we h
 \<^term>\<open>uint32_max +1\<close>). Therefore, we restrict the clauses to have at least length 2 and we keep
 \<^term>\<open>length C - 2\<close> instead of \<^term>\<open>length C\<close> (same for position saving). If we ever add a
 preprocessing path that removes tautologies, we can get rid of these two limitations.
+
+
+To our own surprise, using an arena (without position saving) was exactly as fast as the our former
+resizable array of arrays. We did not expect this result since:
+  \<^enum> First, we cannot use \<^typ>\<open>uint32\<close> to iterate over clauses anymore (at least no without an
+  additional trick like considering a slice).
+  \<^enum> Second, there is no reason why MLton would not already use the trick for array.
+
+(We assume that there is no gain due the order in which we iterate over clauses, which seems a
+reasonnable assumption, even when considering than some clauses will subsume the previous one, and
+therefore, have a high chance to be in the same watch lists).
 \<close>
 
 subsubsection \<open>Status of a clause\<close>
@@ -70,10 +82,10 @@ datatype clause_status = IRRED | LEARNED | DELETED
 
 instance clause_status :: heap
 proof standard
-  let ?f = \<open>(\<lambda>x. case x of IRRED \<Rightarrow> (0::nat) | LEARNED  \<Rightarrow> 1 | DELETED \<Rightarrow> 2)\<close>
+  let ?f = \<open>(\<lambda>x. case x of IRRED \<Rightarrow> (0::nat) | LEARNED \<Rightarrow> 1 | DELETED \<Rightarrow> 2)\<close>
   have \<open>inj ?f\<close>
     by (auto simp: inj_def split: clause_status.splits)
-  then show \<open>\<exists>f. inj (f::clause_status\<Rightarrow> nat)\<close>
+  then show \<open>\<exists>f. inj (f:: clause_status \<Rightarrow> nat)\<close>
     by blast
 qed
 
@@ -120,8 +132,11 @@ definition LBD_SHIFT :: nat where
 definition SIZE_SHIFT :: nat where
   \<open>SIZE_SHIFT = 1\<close>
 
+definition MAX_LENGTH_SHORT_CLAUSE :: nat where
+ [simp]: \<open>MAX_LENGTH_SHORT_CLAUSE = 5\<close>
+
 definition is_short_clause where
-  \<open>is_short_clause C \<longleftrightarrow> length C \<le> 5\<close>
+  [simp]: \<open>is_short_clause C \<longleftrightarrow> length C \<le> MAX_LENGTH_SHORT_CLAUSE\<close>
 
 abbreviation is_long_clause where
   \<open>is_long_clause C \<equiv> \<not>is_short_clause C\<close>
@@ -201,6 +216,8 @@ definition xarena_active_clause :: \<open>arena \<Rightarrow> nat clause_l \<tim
      drop (header_size C) arena = map ALit C
   )\<close>
 
+text \<open>As \<^term>\<open>(N\<propto>i, irred N i)\<close> is automatically simplified to \<^term>\<open>the (fmlookup N i)\<close>, we provide an
+alternative definition that uses the result after the simplification.\<close>
 lemma xarena_active_clause_alt_def:
   \<open>xarena_active_clause arena (the (fmlookup N i)) \<longleftrightarrow> (
      (length (N\<propto>i) \<ge> 2 \<and>
@@ -259,6 +276,10 @@ definition valid_arena where
       arena_dead_clause (dead_clause_slice arena N i)))
 \<close>
 
+lemma valid_arena_empty: \<open>valid_arena [] fmempty {}\<close>
+  unfolding valid_arena_def
+  by auto
+
 definition arena_status where
   \<open>arena_status arena i = xarena_status (arena!(i - STATUS_SHIFT))\<close>
 
@@ -279,10 +300,6 @@ definition arena_lit where
 
 
 subsubsection \<open>Separation properties\<close>
-
-lemma valid_arena_empty: \<open>valid_arena [] fmempty {}\<close>
-  unfolding valid_arena_def
-  by auto
 
 text \<open>The following two lemmas talk about the minimal distance between two clauses in memory. They
 are important for the proof of correctness of all update function.
@@ -306,7 +323,7 @@ proof (rule ccontr)
     using assms
     by auto
 
-  have Ci: \<open>?Ci = (N \<propto> i, irred N i)\<close> and Cj:  \<open>?Cj = (N \<propto> j, irred N j)\<close>
+  have Ci: \<open>?Ci = (N \<propto> i, irred N i)\<close> and Cj: \<open>?Cj = (N \<propto> j, irred N j)\<close>
     by auto
 
   have
@@ -788,7 +805,8 @@ proof -
   let ?arena = \<open>update_act i act arena\<close>
   have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close>
      \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia =i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
-    using assms distinct_mset_dom[of N] by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+    using assms distinct_mset_dom[of N]
+    by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
   have
     dom: \<open>\<forall>i\<in>#dom_m N.
         i < length arena \<and>
@@ -900,8 +918,9 @@ lemma valid_arena_update_lbd:
 proof -
   let ?arena = \<open>update_lbd i lbd arena\<close>
   have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close>
-     \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia =i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
-    using assms distinct_mset_dom[of N] by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+     \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia = i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
+    using assms distinct_mset_dom[of N]
+    by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
   have
     dom: \<open>\<forall>i\<in>#dom_m N.
         i < length arena \<and>
@@ -1061,7 +1080,6 @@ paragraph \<open>Swap literals\<close>
 
 definition swap_lits where
   \<open>swap_lits C i j arena = swap arena (C +i) (C + j)\<close>
-
 
 lemma clause_slice_swap_lits:
   assumes
@@ -1232,7 +1250,8 @@ lemma arena_active_clause_append_clause_same: \<open>2 \<le> length C \<Longrigh
     xarena_active_clause
      (Misc.slice (length arena) (length arena + header_size C + length C)
        (append_clause b C arena))
-     ((the (fmlookup (fmupd (length arena + header_size C) (C, b) N) (length arena + header_size C))))\<close>
+     ((the (fmlookup (fmupd (length arena + header_size C) (C, b) N)
+     (length arena + header_size C))))\<close>
   unfolding xarena_active_clause_alt_def append_clause_def
   by (auto simp: header_size_def slice_start0 SHIFTS_def slice_Cons split: if_splits)
 
@@ -1274,7 +1293,8 @@ proof -
         i < length arena \<and>
         header_size (N \<propto> i) \<le> i \<and>
         xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>  and
-    vdom: \<open>\<And>i. i\<in>vdom \<longrightarrow> i \<notin># dom_m N \<longrightarrow> i \<le> length arena \<and> 4 \<le> i \<and> arena_dead_clause (dead_clause_slice arena N i)\<close>
+    vdom: \<open>\<And>i. i\<in>vdom \<longrightarrow> i \<notin># dom_m N \<longrightarrow> i \<le> length arena \<and> 4 \<le> i \<and>
+      arena_dead_clause (dead_clause_slice arena N i)\<close>
     using assms unfolding valid_arena_def by auto
   have [simp]: \<open>?i \<notin># dom_m N\<close>
     using dom'[of ?i]
@@ -1351,14 +1371,14 @@ lemma arena_lifting:
     \<open>is_Lit (arena ! i)\<close> and
     \<open>i + length (N \<propto> i) \<le> length arena\<close> and
     \<open>is_long_clause (N \<propto> i) \<Longrightarrow> is_Pos (arena ! ( i - POS_SHIFT))\<close> and
-    \<open>is_long_clause (N \<propto> i) \<Longrightarrow> arena_pos arena i \<le> length (N \<propto> i)\<close> and
+    \<open>is_long_clause (N \<propto> i) \<Longrightarrow> arena_pos arena i \<le> arena_length arena i\<close> and
     \<open>is_LBD (arena ! (i - LBD_SHIFT))\<close> and
     \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close> and
     \<open>is_Status (arena ! (i - STATUS_SHIFT))\<close> and
     \<open>SIZE_SHIFT \<le> i\<close> and
     \<open>LBD_SHIFT \<le> i\<close>
     \<open>ACTIVITY_SHIFT \<le> i\<close> and
-    \<open>length (N \<propto> i) \<ge> 2\<close>
+    \<open>arena_length arena i \<ge> 2\<close>
 proof -
   have
     dom: \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
@@ -1411,12 +1431,12 @@ proof -
     \<open>arena_length arena i = length (N \<propto> i)\<close> and \<open>is_Size (arena ! (i - SIZE_SHIFT))\<close>
     using size size' i_le i_ge ge2 lbd status size' ge2
     unfolding header_size_def arena_length_def arena_lbd_def arena_status_def
-    by (cases \<open>arena ! (i - Suc 0)\<close>;auto simp: SHIFTS_def slice_nth; fail)+
+    by (cases \<open>arena ! (i - Suc 0)\<close>; auto simp: SHIFTS_def slice_nth; fail)+
   then show  \<open>length (N \<propto> i) = arena_length arena i\<close> and \<open>is_Size (arena ! (i - SIZE_SHIFT))\<close>
     using i_le i_ge size' size ge2 HH unfolding numeral_2_eq_2
     by (simp_all split:)
-  show \<open>length (N \<propto> i) \<ge> 2\<close>
-    using ge2 .
+  show \<open>arena_length arena i \<ge> 2\<close>
+    using ge2 unfolding HH .
   show
     \<open>i \<ge> header_size (N \<propto> i)\<close> and
     \<open>i < length arena\<close>
@@ -1430,9 +1450,9 @@ proof -
   show i_le_arena: \<open>i + length (N \<propto> i) \<le> length arena\<close>
     using arg_cong[OF clause, of length] i_le i_ge
     by (auto simp: arena_lit_def slice_len_min_If)
-  show \<open>is_Pos (arena ! ( i - POS_SHIFT))\<close> and \<open>arena_pos arena i \<le> length (N \<propto> i)\<close>
+  show \<open>is_Pos (arena ! (i - POS_SHIFT))\<close> and \<open>arena_pos arena i \<le> arena_length arena i\<close>
   if \<open>is_long_clause (N \<propto> i)\<close>
-    using pos ge2 i_le i_ge that unfolding arena_pos_def
+    using pos ge2 i_le i_ge that unfolding arena_pos_def HH
     by (auto simp: SHIFTS_def slice_nth header_size_def)
   show  \<open>is_LBD (arena ! (i - LBD_SHIFT))\<close> and
     \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close> and
@@ -1846,7 +1866,7 @@ definition swap_lits_pre where
 lemma isa_arena_swap:
   \<open>(uncurry3 isa_arena_swap, uncurry3 (RETURN oooo swap_lits)) \<in>
     [uncurry3 swap_lits_pre]\<^sub>f
-     nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<rightarrow> 
+     nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<rightarrow>
     \<langle>\<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<rangle>nres_rel\<close>
   unfolding isa_arena_status_def arena_status_def
   by (intro frefI nres_relI)
@@ -1906,7 +1926,7 @@ proof -
 
   show ?unat
      using length a b
-     by 
+     by
       (auto simp: arena_el_rel_def unat_lit_rel_def arena_lit_def update_lbd_def
         uint32_nat_rel_def br_def Collect_eq_comp
        split: arena_el.splits
@@ -1919,7 +1939,7 @@ definition update_lbd_pre where
 lemma isa_update_lbd:
   \<open>(uncurry2 isa_update_lbd, uncurry2 (RETURN ooo update_lbd)) \<in>
     [update_lbd_pre]\<^sub>f
-     nat_rel \<times>\<^sub>f uint32_nat_rel \<times>\<^sub>f \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<rightarrow> 
+     nat_rel \<times>\<^sub>f uint32_nat_rel \<times>\<^sub>f \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<rightarrow>
     \<langle>\<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<rangle>nres_rel\<close>
   unfolding isa_arena_status_def arena_status_def
   by (intro frefI nres_relI)
@@ -1992,7 +2012,7 @@ qed
 lemma isa_get_clause_LBD_get_clause_LBD:
   \<open>(uncurry isa_get_clause_LBD, uncurry (RETURN oo get_clause_LBD)) \<in>
     [uncurry get_clause_LBD_pre]\<^sub>f
-     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow> 
+     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow>
     \<langle>uint32_nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: isa_get_clause_LBD_def get_clause_LBD_def arena_get_lbd_conv
@@ -2073,23 +2093,23 @@ proof -
     unfolding uint64_max_def uint32_max_def
     by auto
   ultimately show ?rel
-    using lbd apply (cases \<open>arena ! (j - POS_SHIFT)\<close>) 
+    using lbd apply (cases \<open>arena ! (j - POS_SHIFT)\<close>)
     by (auto simp: arena_el_rel_def
       uint64_nat_rel_def br_def two_uint64_def uint32_nat_rel_def nat_of_uint64_add
-      uint64_of_uint32_def nat_of_uint64_add 
+      uint64_of_uint32_def nat_of_uint64_add
       nat_of_uint64_uint64_of_nat_id nat_of_uint32_le_uint64_max)
   then show ?eq'
-    using lbd \<open>?rel\<close> apply (cases \<open>arena ! (j - POS_SHIFT)\<close>) 
+    using lbd \<open>?rel\<close> apply (cases \<open>arena ! (j - POS_SHIFT)\<close>)
     by (auto simp: arena_el_rel_def
       uint64_nat_rel_def br_def two_uint64_def uint32_nat_rel_def nat_of_uint64_add
-      uint64_of_uint32_def nat_of_uint64_add 
+      uint64_of_uint32_def nat_of_uint64_add
       nat_of_uint64_uint64_of_nat_id nat_of_uint32_le_uint64_max)
 qed
 
 lemma isa_get_saved_pos_get_saved_pos:
   \<open>(uncurry isa_get_saved_pos, uncurry (RETURN oo get_saved_pos)) \<in>
     [uncurry get_saved_pos_pre]\<^sub>f
-     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow> 
+     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow>
     \<langle>uint64_nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: isa_get_saved_pos_def get_saved_pos_def arena_get_lbd_conv
@@ -2133,7 +2153,7 @@ sepref_definition isa_get_saved_pos_code
 lemma isa_get_saved_pos_get_saved_pos':
   \<open>(uncurry isa_get_saved_pos', uncurry (RETURN oo get_saved_pos)) \<in>
     [uncurry get_saved_pos_pre]\<^sub>f
-     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow> 
+     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow>
     \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: isa_get_saved_pos_def get_saved_pos_def
@@ -2204,7 +2224,7 @@ proof -
   then show ?unat
     using length a b pos b'
       valid_arena_update_pos[OF valid j \<open>is_long_clause (N \<propto> j)\<close> ]
-    by 
+    by
       (auto simp: arena_el_rel_def unat_lit_rel_def arena_lit_def arena_update_pos_def
         uint32_nat_rel_def br_def Collect_eq_comp nat_of_uint32_notle_minus
        split: arena_el.splits
@@ -2219,7 +2239,7 @@ definition isa_update_pos_pre where
 lemma isa_update_pos:
   \<open>(uncurry2 isa_update_pos, uncurry2 (RETURN ooo arena_update_pos)) \<in>
     [isa_update_pos_pre]\<^sub>f
-     nat_rel \<times>\<^sub>f uint32_nat_rel \<times>\<^sub>f \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<rightarrow> 
+     nat_rel \<times>\<^sub>f uint32_nat_rel \<times>\<^sub>f \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<rightarrow>
     \<langle>\<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<rangle>nres_rel\<close>
   unfolding isa_arena_status_def arena_status_def
   by (intro frefI nres_relI)
