@@ -705,7 +705,7 @@ lemma AStatus_LEARNED [sepref_fr_rules]:
 sepref_definition is_short_clause_code
   is \<open>RETURN o is_short_clause\<close>
   :: \<open>clause_ll_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding is_short_clause_def
+  unfolding is_short_clause_def MAX_LENGTH_SHORT_CLAUSE_def
   by sepref
 
 lemma AActivity_hnr[sepref_fr_rules]:
