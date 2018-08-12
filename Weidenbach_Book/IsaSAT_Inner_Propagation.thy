@@ -2897,29 +2897,64 @@ lemma case_tri_bool_If:
     else if b = SET_TRUE then f2 else f3)\<close>
   by (auto split: option.splits)
 
+(* TODO Move *)
+lemma le_uint64_nat_assn_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo (\<le>)), uncurry (RETURN oo (\<le>))) \<in> uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_le_iff)
+(* End Move *)
+
+(* TODO deduplicate def *)
+lemma get_saved_pos_arena_pos:\<open>get_saved_pos arena C = arena_pos arena C\<close>
+  by (auto simp: get_saved_pos_def arena_pos_def)
+(* End Move *)
 
 context isasat_input_bounded_nempty
 begin
+
+definition isa_find_unset_lit :: \<open>(nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
+  \<open>isa_find_unset_lit M = isa_find_unwatched_between (\<lambda>L. polarity M L \<noteq> Some False)\<close>
+
 (* TODO most of the unfolding should move to the definition *)
-sepref_register isa_find_unwatched_wl_st_heur
+sepref_register isa_find_unwatched_wl_st_heur isa_find_unwatched_between isa_find_unset_lit
+
+sepref_thm isa_find_unwatched_between_code
+  is \<open>uncurry4 (PR_CONST isa_find_unset_lit)\<close>
+  :: \<open>trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a
+       option_assn nat_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding isa_find_unset_lit_def isa_find_unwatched_between_def SET_FALSE_def[symmetric]
+    PR_CONST_def
+  apply (rewrite in \<open>(None, _)\<close> annotate_assn[where A = \<open>option_assn nat_assn\<close>])
+  apply (rewrite in \<open>(None, _)\<close> annotate_assn[where A = \<open>option_assn nat_assn\<close>])
+  apply (rewrite in \<open>if \<hole> then _ else _\<close>  tri_bool_eq_def[symmetric])
+  by sepref
+  
+
+concrete_definition (in -) isa_find_unwatched_between_code
+   uses isasat_input_bounded_nempty.isa_find_unwatched_between_code.refine_raw
+   is \<open>(uncurry4 ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) isa_find_unwatched_between_code_def
+
+lemmas isa_find_unwatched_between_code_hnr[sepref_fr_rules] =
+   isa_find_unwatched_between_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
 sepref_thm find_unwatched_wl_st_heur_code
   is \<open>uncurry ((PR_CONST isa_find_unwatched_wl_st_heur))\<close>
   :: \<open>[find_unwatched_wl_st_heur_pre]\<^sub>a
          isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
   supply [[goals_limit = 1]]
     fmap_length_rll_def[simp] fmap_length_rll_u64_def[simp]
+    get_saved_pos_code[sepref_fr_rules]
   unfolding isa_find_unwatched_wl_st_heur_def isasat_assn_def PR_CONST_def
   find_unwatched_def fmap_rll_def[symmetric]
   length_u_def[symmetric] isa_find_unwatched_def
   case_tri_bool_If find_unwatched_wl_st_heur_pre_def
   fmap_rll_u64_def[symmetric]
-  apply (rewrite in \<open>(None, _)\<close> annotate_assn[where A = \<open>option_assn nat_assn\<close>])
-  apply (rewrite in \<open>(None, _)\<close> annotate_assn[where A = \<open>option_assn nat_assn\<close>])
-  apply (rewrite in \<open>UNSET\<close> annotate_assn[where A = \<open>tri_bool_assn\<close>])
-  apply (rewrite in \<open>SET_TRUE\<close> annotate_assn[where A = \<open>tri_bool_assn\<close>])
-  apply (rewrite in \<open>let _ = polarity _ _ in _\<close> annotate_assn[where A = \<open>tri_bool_assn\<close>])
-  apply (rewrite in \<open>if \<hole> then _ else _\<close>  tri_bool_eq_def[symmetric])
-  apply (rewrite in \<open>if \<hole> then _ else _\<close>  tri_bool_eq_def[symmetric])
+  MAX_LENGTH_SHORT_CLAUSE_def[symmetric]
+  isa_find_unset_lit_def[symmetric]
+  get_saved_pos_arena_pos[symmetric]
   by sepref
 
 concrete_definition (in -) find_unwatched_wl_st_heur_code
@@ -3194,8 +3229,13 @@ sepref_thm unit_propagation_inner_loop_body_wl_heur
   unfolding fmap_rll_def[symmetric]
   unfolding fast_minus_def[symmetric]
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric] tri_bool_eq_def[symmetric]
+    apply sepref_dbg_keep
+    apply sepref_dbg_trans_keep
+    apply sepref_dbg_trans_step_keep
+    oops
+    apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref
-
+find_theorems isa_save_pos
 (* sepref_thm unit_propagation_inner_loop_body_wl_fast_heur
   is \<open>uncurry3 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
   :: \<open>[\<lambda>((L, w), S). w+1 \<le> uint64_max]\<^sub>a
