@@ -681,7 +681,8 @@ proof -
   let ?arena = \<open>extra_information_mark_to_delete arena i\<close>
   have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close>
      \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia =i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
-    using assms distinct_mset_dom[of N] by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+    using assms distinct_mset_dom[of N]
+    by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
   have
     dom: \<open>\<forall>i\<in>#dom_m N.
         i < length arena \<and>
@@ -1911,7 +1912,8 @@ lemma arena_lbd_conv:
     b: \<open>(b, bb) \<in> uint32_nat_rel\<close>
   shows
     \<open>j - LBD_SHIFT < length arena\<close> (is ?le) and
-    \<open>(a[j - LBD_SHIFT := b], update_lbd j bb arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> (is ?unat)
+    \<open>(a[j - LBD_SHIFT := b], update_lbd j bb arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close>
+       (is ?unat)
 proof -
   have j_le: \<open>j < length arena\<close> and
     length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
@@ -2170,20 +2172,27 @@ lemma get_saved_pos_code':
 
 
 paragraph \<open>Update Saved Position\<close>
-
+(* TODO Move *)
 lemma minus_uint32_assn:
  \<open>(uncurry (return oo (-)), uncurry (RETURN oo (-))) \<in> uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
  by sepref_to_hoare sep_auto
+(* End Move *)
 
-definition isa_update_pos :: \<open>nat \<Rightarrow> uint32 \<Rightarrow> uint32 list \<Rightarrow> uint32 list nres\<close> where
+(* TODO: converting to uint32 is a little stupid and always useless (uint64 is enough everytime) *)
+definition isa_update_pos :: \<open>nat \<Rightarrow> nat \<Rightarrow> uint32 list \<Rightarrow> uint32 list nres\<close> where
   \<open>isa_update_pos C lbd arena = do {
-      ASSERT(C - POS_SHIFT < length arena \<and> C \<ge> POS_SHIFT \<and> lbd \<ge> 2);
-      RETURN (arena [C - POS_SHIFT := (lbd - two_uint32)])
+      ASSERT(C - POS_SHIFT < length arena \<and> C \<ge> POS_SHIFT \<and> lbd \<ge> 2 \<and> lbd - 2 \<le> uint32_max);
+      RETURN (arena [C - POS_SHIFT := (uint32_of_nat (lbd - 2))])
   }\<close>
+
+lemma (in -) uint32_of_nat[sepref_fr_rules]:
+  \<open>(return o uint32_of_nat, RETURN o uint32_of_nat) \<in> [\<lambda>n. n \<le> uint32_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_assn\<close>
+  by sepref_to_hoare
+    sep_auto
 
 sepref_definition isa_update_pos_code
   is \<open>uncurry2 isa_update_pos\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
   supply minus_uint32_assn[sepref_fr_rules]
   unfolding isa_update_pos_def
   by sepref
@@ -2196,16 +2205,15 @@ lemma arena_update_pos_conv:
     valid: \<open>valid_arena arena N x\<close> and
     j: \<open>j \<in># dom_m N\<close> and
     a: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
-    b: \<open>(b, bb) \<in> uint32_nat_rel\<close> and
     length: \<open>arena_length arena j > 5\<close> and
-    \<open>pos \<le> arena_length arena j\<close> and
-    b': \<open>bb \<ge> 2\<close>
+    pos_le: \<open>pos \<le> arena_length arena j\<close> and
+    b': \<open>pos \<ge> 2\<close>
   shows
     \<open>j - POS_SHIFT < length arena\<close> (is ?le) and
     \<open>j \<ge> POS_SHIFT\<close> (is ?ge)
-    \<open>(a[j - POS_SHIFT := b - 2], arena_update_pos j bb arena) \<in>
+    \<open>(a[j - POS_SHIFT := uint32_of_nat (pos - 2)], arena_update_pos j pos arena) \<in>
       \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> (is ?unat) and
-    \<open>2 \<le> b\<close>
+    \<open>pos - 2 \<le> uint_max\<close>
 proof -
   have j_le: \<open>j < length arena\<close> and
     length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
@@ -2214,19 +2222,28 @@ proof -
     le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
     j_ge: \<open>header_size (N \<propto> j) \<le> j\<close> and
     long: \<open>is_long_clause (N \<propto> j)\<close> and
-    pos: \<open>is_Pos (arena ! (j - POS_SHIFT))\<close>
+    pos: \<open>is_Pos (arena ! (j - POS_SHIFT))\<close> and
+    is_size: \<open>is_Size (arena ! (j - SIZE_SHIFT))\<close>
     using arena_lifting[OF valid j] length by (auto simp: is_short_clause_def header_size_def)
   show le': ?le and ?ge
     using le j_ge long unfolding length[symmetric] header_size_def
     by (auto split: if_splits simp: POS_SHIFT_def)
-  show \<open>2 \<le> b\<close>
-    using b' b nat_of_uint32_le_iff by (force simp: uint32_nat_rel_def br_def)
+  have
+    \<open>(a ! (j - SIZE_SHIFT),
+         (arena ! (j - SIZE_SHIFT)))
+       \<in> uint32_nat_rel O arena_el_rel\<close>
+    by (rule param_nth[OF _ _ a]) (use j_le in auto)
+  then show \<open>pos - 2 \<le> uint_max\<close>
+    using b' length is_size pos_le nat_of_uint32_le_uint32_max[of \<open>a ! (j - SIZE_SHIFT)\<close>]
+    by (cases \<open>arena ! (j - SIZE_SHIFT)\<close>)
+      (auto simp: uint32_nat_rel_def br_def arena_el_rel_def arena_length_def)
   then show ?unat
-    using length a b pos b'
+    using length a pos b'
       valid_arena_update_pos[OF valid j \<open>is_long_clause (N \<propto> j)\<close> ]
     by
       (auto simp: arena_el_rel_def unat_lit_rel_def arena_lit_def arena_update_pos_def
         uint32_nat_rel_def br_def Collect_eq_comp nat_of_uint32_notle_minus
+        nat_of_uint32_uint32_of_nat_id
        split: arena_el.splits
        intro!: list_rel_update')
 qed
@@ -2239,7 +2256,7 @@ definition isa_update_pos_pre where
 lemma isa_update_pos:
   \<open>(uncurry2 isa_update_pos, uncurry2 (RETURN ooo arena_update_pos)) \<in>
     [isa_update_pos_pre]\<^sub>f
-     nat_rel \<times>\<^sub>f uint32_nat_rel \<times>\<^sub>f \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<rightarrow>
+     nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<rightarrow>
     \<langle>\<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<rangle>nres_rel\<close>
   unfolding isa_arena_status_def arena_status_def
   by (intro frefI nres_relI)
@@ -2254,26 +2271,13 @@ lemma isa_update_pos:
 
 lemma isa_update_pos_code_hnr[sepref_fr_rules]:
   \<open>(uncurry2 isa_update_pos_code, uncurry2 (RETURN ooo arena_update_pos))
-  \<in> [isa_update_pos_pre]\<^sub>a nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
+  \<in> [isa_update_pos_pre]\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
   using isa_update_pos_code.refine[FCOMP isa_update_pos]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp isa_update_pos_pre_def)
 
-lemma nat_of_uint32_5: \<open>nat_of_uint32 5 = 5\<close>
-proof -
-  have alt5: \<open>(5 :: uint32) = 2 * 2 + 1\<close>
-    by (metis distrib_right_numeral mult.left_neutral numeral_Bit1 one_add_one)
-  have \<open>nat_of_uint32 5 = nat_of_uint32 (2 * 2 + 1)\<close>
-    by (auto simp: ac_simps alt5)
-  also have \<open>\<dots> = 5\<close>
-    by (subst nat_of_uint32_distrib_mult2_plus1)
-      (auto simp: uint32_max_def)
-  finally show ?thesis
-    .
-qed
-
 lemma MAX_LENGTH_SHORT_CLAUSE_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return 5), uncurry0 (RETURN MAX_LENGTH_SHORT_CLAUSE)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
+  \<open>(uncurry0 (return 5), uncurry0 (RETURN MAX_LENGTH_SHORT_CLAUSE)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
 
 end
