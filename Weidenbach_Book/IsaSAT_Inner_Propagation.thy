@@ -637,17 +637,26 @@ where
     })
   \<close>
 
-sepref_thm unit_propagation_inner_loop_body_wl_heur
+sepref_register isa_save_pos
+sepref_thm isa_save_pos_code
   is \<open>uncurry2 (PR_CONST isa_save_pos)\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
   supply
     [[goals_limit=1]]
     if_splits[split]
     length_rll_def[simp]
   unfolding isa_save_pos_def PR_CONST_def isasat_assn_def
   by sepref
-  thm isa_update_pos_code_hnr
-find_theorems uint32_nat_assn arena_update_pos
+
+concrete_definition (in -) isa_save_pos_code
+   uses isasat_input_bounded.isa_save_pos_code.refine_raw
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) isa_save_pos_code_def
+
+lemmas isa_save_pos_code_hnr[sepref_fr_rules] =
+   isa_save_pos_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms, unfolded PR_CONST_def]
+
 (* TODO Move *)
 lemma (in -) arena_update_pos_alt_def:
   \<open>arena_update_pos C i N = update_pos_direct C (i - 2) N\<close>
@@ -1945,7 +1954,7 @@ lemma isa_save_pos:
     using j_ge2 isa_update_pos_pre U x1g j_le
     by (cases U; cases T)
       (auto simp: isa_save_pos_def twl_st_heur_def keep_watch_def twl_st_heur'_def
-      arena_update_pos_alt_def arena_lifting ij
+      arena_update_pos_alt_def arena_lifting ij arena_is_valid_clause_idx_def
       intro!: ASSERT_leI valid_arena_update_pos)
 
 context
@@ -3229,13 +3238,8 @@ sepref_thm unit_propagation_inner_loop_body_wl_heur
   unfolding fmap_rll_def[symmetric]
   unfolding fast_minus_def[symmetric]
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric] tri_bool_eq_def[symmetric]
-    apply sepref_dbg_keep
-    apply sepref_dbg_trans_keep
-    apply sepref_dbg_trans_step_keep
-    oops
-    apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref
-find_theorems isa_save_pos
+
 (* sepref_thm unit_propagation_inner_loop_body_wl_fast_heur
   is \<open>uncurry3 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
   :: \<open>[\<lambda>((L, w), S). w+1 \<le> uint64_max]\<^sub>a
