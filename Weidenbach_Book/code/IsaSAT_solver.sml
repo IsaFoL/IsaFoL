@@ -994,7 +994,57 @@ fun access_lit_in_clauses_heur_code x =
                                end)
     x;
 
+fun polarity_pol_code x = (fn ai => fn bi => let
+       val (_, (a1a, (_, _))) = ai;
+     in
+       nth_u_code heap_uint32 a1a bi
+     end)
+                            x;
+
+fun is_None a = (case a of NONE => true | SOME _ => false);
+
+val sET_FALSE_code : Word32.word =
+  Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int));
+
+fun isa_find_unwatched_between_code x =
+  (fn ai => fn bic => fn bib => fn bia => fn bi => fn () =>
+    let
+      val a =
+        heap_WHILET
+          (fn (a1, a2) =>
+            (fn () => (is_None a1 andalso less_nat a2 (plus_nat bi bia))))
+          (fn (_, a2) =>
+            (fn f_ => fn () => f_ ((isa_arena_lit_code bic a2) ()) ())
+              (fn xa =>
+                (fn f_ => fn () => f_ ((polarity_pol_code ai xa) ()) ())
+                  (fn xb =>
+                    (fn () =>
+                      (if not ((xb : Word32.word) = sET_FALSE_code)
+                        then (SOME (minus_nat a2 bi), a2)
+                        else (NONE, plus_nat a2 one_nat))))))
+          (NONE, plus_nat bi bib) ();
+    in
+      let
+        val (a1, _) = a;
+      in
+        (fn () => a1)
+      end
+        ()
+    end)
+    x;
+
 fun uint64_of_uint32 x = (Uint64.fromLarge (Word32.toLarge x));
+
+fun isa_get_saved_pos_fast_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl_get heap_uint32 ai (minus_nat bi (nat_of_integer (5 : IntInf.int)))
+          ();
+    in
+      Uint64.plus (uint64_of_uint32 xa) (Uint64.fromInt (2 : IntInf.int))
+    end)
+    x;
 
 fun isa_arena_length_code x =
   (fn ai => fn bi => fn () =>
@@ -1005,20 +1055,6 @@ fun isa_arena_length_code x =
     end)
     x;
 
-fun polarity_pol_code x = (fn ai => fn bi => let
-       val (_, (a1a, (_, _))) = ai;
-     in
-       nth_u_code heap_uint32 a1a bi
-     end)
-                            x;
-
-fun is_None a = (case a of NONE => true | SOME _ => false);
-
-val sET_TRUE_code : Word32.word =
-  Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int));
-
-fun fst (x1, x2) = x1;
-
 fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
 
 fun find_unwatched_wl_st_heur_code x =
@@ -1028,28 +1064,34 @@ fun find_unwatched_wl_st_heur_code x =
     in
       (fn () =>
         let
-          val xa =
-            heap_WHILET
-              (fn (a1f, a2f) =>
-                (fn f_ => fn () => f_ ((isa_arena_length_code a1a bi) ()) ())
-                  (fn xa =>
-                    (fn () =>
-                      (is_None a1f andalso
-                        less_nat a2f (plus_nat bi (nat_of_uint64 xa))))))
-              (fn (_, a2f) =>
-                (fn f_ => fn () => f_ ((isa_arena_lit_code a1a a2f) ()) ())
-                  (fn xa =>
-                    (fn f_ => fn () => f_ ((polarity_pol_code a1 xa) ()) ())
-                      (fn x_a =>
-                        (fn () =>
-                          (if ((x_a : Word32.word) = uNSET_code)
-                            then (SOME (minus_nat a2f bi), a2f)
-                            else (if ((x_a : Word32.word) = sET_TRUE_code)
-                                   then (SOME (minus_nat a2f bi), a2f)
-                                   else (NONE, plus_nat a2f one_nat)))))))
-              (NONE, plus_nat bi (nat_of_integer (2 : IntInf.int))) ();
+          val xa = isa_arena_length_code a1a bi ();
         in
-          fst xa
+          let
+            val xb = nat_of_uint64 xa;
+          in
+            (fn f_ => fn () => f_ ((isa_arena_length_code a1a bi) ()) ())
+              (fn xaa =>
+                (if Uint64.less_eq xaa (Uint64.fromInt (5 : IntInf.int))
+                  then isa_find_unwatched_between_code a1 a1a
+                         (nat_of_integer (2 : IntInf.int)) xb bi
+                  else (fn f_ => fn () => f_
+                         ((isa_get_saved_pos_fast_code a1a bi) ()) ())
+                         (fn xab =>
+                           let
+                             val x_c = nat_of_uint64 xab;
+                           in
+                             (fn f_ => fn () => f_
+                               ((isa_find_unwatched_between_code a1 a1a x_c xb
+                                  bi)
+                               ()) ())
+                               (fn x_d =>
+                                 (if is_None x_d
+                                   then isa_find_unwatched_between_code a1 a1a
+  (nat_of_integer (2 : IntInf.int)) x_c bi
+                                   else (fn () => x_d)))
+                           end)))
+          end
+            ()
         end)
     end)
     x;
@@ -1323,8 +1365,8 @@ fun update_clause_wl_code x =
     end)
     x;
 
-val sET_FALSE_code : Word32.word =
-  Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int));
+val sET_TRUE_code : Word32.word =
+  Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int));
 
 fun cons_trail_Propagated_tr_code x =
   (fn ai => fn bia => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
@@ -1366,6 +1408,25 @@ fun keep_watch_heur_code x =
       val xb = update_aa_u (heap_prod heap_nat heap_uint32) a1d ai bib xa ();
     in
       (a1, (a1a, (a1b, (a1c, (xb, a2d)))))
+    end)
+    x;
+
+fun isa_update_pos_code x =
+  (fn ai => fn bia => fn bi =>
+    arl_set heap_uint32 bi (minus_nat ai (nat_of_integer (5 : IntInf.int)))
+      (uint32_of_nat (minus_nat bia (nat_of_integer (2 : IntInf.int)))))
+    x;
+
+fun isa_save_pos_code x =
+  (fn ai => fn bia => fn (a1, (a1a, a2a)) => fn () =>
+    let
+      val xa = isa_arena_length_code a1a ai ();
+    in
+      (if Uint64.less (Uint64.fromInt (5 : IntInf.int)) xa
+        then (fn f_ => fn () => f_ ((isa_update_pos_code ai bia a1a) ()) ())
+               (fn xb => (fn () => (a1, (xb, a2a))))
+        else (fn () => (a1, (a1a, a2a))))
+        ()
     end)
     x;
 
@@ -1431,17 +1492,21 @@ val x_g = (if ((xb : Word32.word) = ai) then zero_nata else one_nat);
                                     (plus_nat bib one_nat,
                                       (plus_nat bia one_nat, x_p)))))
                      | SOME x_o =>
-                       (fn f_ => fn () => f_
-                         ((access_lit_in_clauses_heur_code x_b a1 x_o) ()) ())
+                       (fn f_ => fn () => f_ ((isa_save_pos_code a1 x_o x_b) ())
+                         ())
                          (fn x_p =>
                            (fn f_ => fn () => f_
-                             ((polarity_st_heur_pol_code x_b x_p) ()) ())
-                             (fn x_r =>
-                               (if ((x_r : Word32.word) = sET_TRUE_code)
-                                 then update_blit_wl_heur_code ai a1 bib bia x_p
-x_b
-                                 else update_clause_wl_code ai a1 bib bia x_g
-x_o x_b))))))))
+                             ((access_lit_in_clauses_heur_code x_p a1 x_o) ())
+                             ())
+                             (fn x_q =>
+                               (fn f_ => fn () => f_
+                                 ((polarity_st_heur_pol_code x_p x_q) ()) ())
+                                 (fn x_s =>
+                                   (if ((x_s : Word32.word) = sET_TRUE_code)
+                                     then update_blit_wl_heur_code ai a1 bib bia
+    x_q x_p
+                                     else update_clause_wl_code ai a1 bib bia
+    x_g x_o x_p)))))))))
                                       end))))))
       end
         ()
@@ -1582,6 +1647,8 @@ fun last_trail_code x =
     x;
 
 fun snd (x1, x2) = x2;
+
+fun fst (x1, x2) = x1;
 
 fun lit_and_ann_of_propagated_st_heur_code x =
   (fn (a1, _) => fn () => let
