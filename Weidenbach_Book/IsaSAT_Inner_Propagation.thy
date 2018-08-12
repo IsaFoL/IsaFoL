@@ -240,7 +240,7 @@ definition (in isasat_input_ops) find_non_false_literal_between where
 definition (in isasat_input_ops) isa_find_unwatched_between
  :: \<open>_ \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> (nat option) nres\<close> where
 \<open>isa_find_unwatched_between P NU a b C = do {
-   (x, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). True\<^esup>
+  (x, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). True\<^esup>
     (\<lambda>(found, i). found = None \<and> i < C + b)
     (\<lambda>(_, i). do {
       ASSERT(i < C + nat_of_uint64_conv (arena_length NU C));
@@ -251,7 +251,7 @@ definition (in isasat_input_ops) isa_find_unwatched_between
     })
     (None, C+a);
   RETURN x
-  }
+}
 \<close>
 
 
@@ -348,11 +348,13 @@ definition (in isasat_input_ops) isa_find_unwatched
   :: \<open>(nat literal \<Rightarrow> bool) \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> (nat option) nres\<close>
 where
 \<open>isa_find_unwatched P arena C = do {
+    let l = nat_of_uint64_conv (arena_length arena C);
     b \<leftarrow> RETURN(arena_length arena C \<le> 5);
-    if b then isa_find_unwatched_between P arena 2 (arena_length arena C) C
+    if b then isa_find_unwatched_between P arena 2 l C
     else do {
-      let pos = arena_pos arena C;
-      n \<leftarrow> isa_find_unwatched_between P arena pos (arena_length arena C) C;
+      ASSERT(get_saved_pos_pre arena C);
+      pos \<leftarrow> RETURN (nat_of_uint64_conv (arena_pos arena C));
+      n \<leftarrow> isa_find_unwatched_between P arena pos l C;
       if n = None then isa_find_unwatched_between P arena 2 pos C
       else RETURN n
     }
@@ -374,7 +376,7 @@ proof -
     using assms
     by (auto simp: RETURN_RES_refine_iff is_short_clause_def arena_lifting)
   show ?thesis
-    unfolding isa_find_unwatched_def find_unwatched_def
+    unfolding isa_find_unwatched_def find_unwatched_def nat_of_uint64_conv_def Let_def
     apply (refine_vcg isa_find_unwatched_between_find_in_list_between_spec[of _ _ _ _ _ vdom])
     subgoal by auto
     subgoal using ge2 .
@@ -387,6 +389,8 @@ proof -
     subgoal using assms by auto
     subgoal using assms arena_lifting[OF valid C] by auto
     subgoal using assms by auto
+    subgoal using assms unfolding get_saved_pos_pre_def   arena_is_valid_clause_idx_def
+      by (auto simp: arena_lifting)
     subgoal using assms arena_lifting[OF valid C] by auto
     subgoal by (auto simp: arena_pos_def)
     subgoal using assms arena_lifting[OF valid C] by auto
@@ -568,7 +572,7 @@ proof -
     if \<open>valid_arena arena N vdom\<close> and \<open>C \<in># dom_m N\<close> and \<open>M = M'\<close> and \<open>C = C'\<close> and
       \<open>2 \<le> length (N \<propto> C')\<close> and \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> C'))\<close>
     for arena M N C vdom M' C'
-    unfolding isa_find_unwatched_def find_unwatched_def
+    unfolding isa_find_unwatched_def find_unwatched_def nat_of_uint64_conv_def Let_def
     apply (refine_vcg isa_find_unwatched_between_find_in_list_between_spec[of _ _ _ _ _ vdom])
     using that apply - apply assumption
     using that apply - apply assumption
@@ -583,6 +587,8 @@ proof -
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
+    subgoal using that by (auto simp: arena_lifting get_saved_pos_pre_def
+       arena_is_valid_clause_idx_def)
     using that apply - apply assumption
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
@@ -623,13 +629,25 @@ qed
 definition (in isasat_input_ops) isa_save_pos :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
   \<open>isa_save_pos C i = (\<lambda>(M, N, oth). do {
-      if arena_length N C > 5 then do {
+      ASSERT(arena_is_valid_clause_idx N C);
+      if arena_length N C > MAX_LENGTH_SHORT_CLAUSE then do {
         ASSERT(isa_update_pos_pre ((C, i), N));
         RETURN (M, arena_update_pos C i N, oth)
       } else RETURN (M, N, oth)
     })
   \<close>
 
+sepref_thm unit_propagation_inner_loop_body_wl_heur
+  is \<open>uncurry2 (PR_CONST isa_save_pos)\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply
+    [[goals_limit=1]]
+    if_splits[split]
+    length_rll_def[simp]
+  unfolding isa_save_pos_def PR_CONST_def isasat_assn_def
+  by sepref
+  thm isa_update_pos_code_hnr
+find_theorems uint32_nat_assn arena_update_pos
 (* TODO Move *)
 lemma (in -) arena_update_pos_alt_def:
   \<open>arena_update_pos C i N = update_pos_direct C (i - 2) N\<close>
@@ -1390,7 +1408,7 @@ context
       \<open>x = (x1c, S)\<close>
 begin
 
-private lemma state_simp_ST[simp]:
+private lemma state_simp_ST:
   \<open>x1a = (L, x2)\<close>
   \<open>x1 = ((L, x2), x2a)\<close>
   \<open>y = (((L, x2), x2a), T)\<close>
@@ -1404,8 +1422,8 @@ private lemma state_simp_ST[simp]:
   using xy st unfolding twl_st_heur'_def by auto
 
 private lemma
-  x1b[simp]: \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>  and
-  x2b[simp]: \<open>literals_are_\<L>\<^sub>i\<^sub>n T\<close> and
+  x1b: \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>  and
+  x2b: \<open>literals_are_\<L>\<^sub>i\<^sub>n T\<close> and
   loop_inv_T: \<open>unit_propagation_inner_loop_wl_loop_inv L (x2, x2a, T)\<close>
   using pre unfolding unit_propagation_inner_loop_wl_loop_D_pre_def
     unit_propagation_inner_loop_wl_loop_D_inv_def prod.simps image_image
@@ -1419,22 +1437,23 @@ private lemma x2d_le: \<open>x2d < length (watched_by_int S L)\<close> and
   using pre pre_inv0 st
   unfolding watched_by_app_heur_pre_def prod.simps
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv0_def
-  twl_st_heur'_def
-  unit_propagation_inner_loop_wl_loop_D_pre_def twl_st_heur_def map_fun_rel_def
-  unit_propagation_inner_loop_wl_loop_pre_def prod.simps
-  by auto
+    twl_st_heur'_def
+    unit_propagation_inner_loop_wl_loop_D_pre_def twl_st_heur_def map_fun_rel_def
+    unit_propagation_inner_loop_wl_loop_pre_def prod.simps
+  by (auto simp: state_simp_ST x1b x2b)
 
 lemma watched_by_app_heur_pre: \<open>watched_by_app_heur_pre ((S, L'), x2d)\<close>
   using pre pre_inv0 st x2d_le x1e_le
   unfolding watched_by_app_heur_pre_def prod.simps
-  by simp
+  by (simp add: state_simp_ST)
 
 lemma keep_watch_heur_pre: \<open>keep_watch_heur_pre (((L, x2), x2a), T)\<close>
   using x2_x2a x2a_le unfolding keep_watch_heur_pre_def
-  by auto
+  by (auto simp: x1b x2b)
 
 
 context \<comment> \<open>Now we copy the watch literals\<close>
+  notes _[simp]= state_simp_ST x1b x2b
   fixes x1f x2f x1g x2g U x2e
   assumes
     xf: \<open>watched_by T L ! x2a = (x1f, x2f)\<close> and
@@ -1448,27 +1467,29 @@ begin
 private lemma U': \<open>(U, keep_watch L x2 x2a T) \<in> twl_st_heur\<close>
   using U unfolding twl_st_heur'_def by auto
 
-private lemma eq[simp]: \<open>watched_by T L = watched_by_int S L\<close> \<open>x1f = x1g\<close> \<open>x2f = x2g\<close>
+private lemma eq: \<open>watched_by T L = watched_by_int S L\<close> \<open>x1f = x1g\<close> \<open>x2f = x2g\<close>
   using xf xg st
   by (auto simp: twl_st_heur_state_simp_watched)
 
-lemma xg_S[simp]: \<open>watched_by_int S L ! x2a = (x1g, x2g)\<close>
+lemma xg_S: \<open>watched_by_int S L ! x2a = (x1g, x2g)\<close>
   using xg by auto
 
-lemma xg_T[simp]: \<open>watched_by T L ! x2a = (x1g, x2g)\<close>
+lemma xg_T: \<open>watched_by T L ! x2a = (x1g, x2g)\<close>
   using U eq xf xg by (cases T)
-    (auto simp add: twl_st_heur_state_simp image_image
+    (auto simp add: image_image
         twl_st_heur_state_simp_watched twl_st_heur'_def
-         twl_st_heur_def keep_watch_def
-         simp del: eq)
+         twl_st_heur_def keep_watch_def)
+
+context
+  notes _[simp]= eq xg_S xg_T
+begin
 
 lemma in_D0:
   shows \<open>polarity_st_pre (U, x2g)\<close>
   using unit_prop_body_wl_D_invD[OF prop_inv]
   unfolding find_unwatched_wl_st_heur_pre_def watched_by_app_def polarity_st_pre_def
-  by (auto simp add: twl_st_heur_state_simp image_image
-      twl_st_heur_state_simp_watched twl_st_heur'_def
-      keep_watch_st_wl)
+  by (auto simp add: image_image
+      twl_st_heur_state_simp_watched twl_st_heur'_def)
 
 
 lemma polarity_eq:
@@ -1514,7 +1535,7 @@ context  \<comment> \<open>Now we know that the clause has not been deleted\<clo
   assumes not_del: \<open>\<not> \<not> clause_not_marked_to_delete (keep_watch L x2 x2a T) x1f\<close>
 begin
 
-private lemma x1g[simp]:
+private lemma x1g:
   \<open>x1g \<in># dom_m (get_clauses_wl T)\<close>
   using not_del unfolding clause_not_marked_to_delete_def
   by auto
@@ -1522,7 +1543,7 @@ private lemma x1g[simp]:
 private lemma Tx1g_le2:
   \<open>length (get_clauses_wl T \<propto> x1g) \<ge> 2\<close>
   using arena_lifting[OF valid_UT, of x1g]
-  by auto
+  by (auto simp: x1g)
 
 lemma access_lit_in_clauses_heur_pre0:
   \<open>access_lit_in_clauses_heur_pre ((U, x1g), 0)\<close>
@@ -1530,7 +1551,7 @@ lemma access_lit_in_clauses_heur_pre0:
     arena_is_valid_clause_idx_and_access_def
   by (rule bex_leI[of _ x1g], rule exI[of _ \<open>get_clauses_wl T\<close>],
      rule exI[of _ \<open>set (get_vdom U)\<close>])
-   (use valid_UT Tx1g_le2 in auto)
+   (use valid_UT Tx1g_le2 x1g in auto)
 
 
 private definition i :: nat where
@@ -1546,7 +1567,7 @@ lemma access_lit_in_clauses_heur_pre1i:
     arena_is_valid_clause_idx_and_access_def i_def
   by (rule bex_leI[of _ x1g], rule exI[of _ \<open>get_clauses_wl T\<close>],
      rule exI[of _ \<open>set (get_vdom U)\<close>])
-   (use valid_UT Tx1g_le2 in auto)
+   (use valid_UT Tx1g_le2 x1g in auto)
 
 
 lemma polarity_st_pre1i:
@@ -1555,7 +1576,7 @@ lemma polarity_st_pre1i:
   unfolding polarity_st_pre_def prod.case
   using unit_prop_body_wl_D_invD[OF prop_inv] arena_lifting[OF valid_UT x1g]
   unfolding find_unwatched_wl_st_heur_pre_def watched_by_app_def polarity_st_pre_def
-  by (auto simp add: twl_st_heur_state_simp image_image
+  by (auto simp add: x1g image_image
       twl_st_heur_state_simp_watched twl_st_heur'_def i_def
       split: if_splits)
 
@@ -1588,7 +1609,7 @@ lemma update_blit_wl_heur_pre:
   \<open>update_blit_wl_heur_pre (((((L, x1f), x2), x2a), get_clauses_wl (keep_watch L x2 x2a T) \<propto>
        x1f ! (1 - (if get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! 0 = L then 0 else 1))),
       keep_watch L x2 x2a T)\<close>
-  using x2_x2a x2a_le
+  using x2_x2a x2a_le x1g
   unfolding i_def[symmetric] i_alt_def[symmetric] update_blit_wl_heur_pre_def prod.simps
   by auto
 
@@ -1615,11 +1636,10 @@ lemma update_blit_wl_rel:
 
 lemma find_unwatched_wl_st_pre:
   \<open>find_unwatched_wl_st_pre (keep_watch L x2 x2a T, x1f)\<close>
-  using x2_x2a x2a_le Tx1g_le2
+  using x2_x2a x2a_le Tx1g_le2 unit_prop_body_wl_D_invD[OF prop_inv]
   unfolding find_unwatched_wl_st_pre_def prod.simps
-  apply auto
-  sorry
-
+  unfolding access_x1g access_x1g1i
+  by (auto simp: xf xg x1g watched_by_app_def)
 
 lemma find_unwatched_wl_st_heur_pre:
   \<open>find_unwatched_wl_st_heur_pre (U, x1g)\<close>
@@ -1627,7 +1647,7 @@ lemma find_unwatched_wl_st_heur_pre:
   arena_is_valid_clause_idx_def arena_lit_pre_def prod.simps
   by (rule exI[of _ \<open>get_clauses_wl T\<close>],
      rule exI[of _ \<open>set (get_vdom U)\<close>])
-   (use valid_UT Tx1g_le2 in auto)
+   (use valid_UT Tx1g_le2 x1g in auto)
 
 lemma isa_find_unwatched_wl_st_heur_pre:
     \<open>((U, x1g), keep_watch L x2 x2a T, x1f) \<in> twl_st_heur \<times>\<^sub>f nat_rel\<close> and
@@ -1637,12 +1657,13 @@ lemma isa_find_unwatched_wl_st_heur_pre:
 
 
 context \<comment> \<open>Now we try to find another literal to watch\<close>
+  notes _ [simp] = x1g
   fixes f f'
   assumes ff: \<open>(f, f') \<in> Id\<close> and
     find_unw_pre: \<open>unit_prop_body_wl_D_find_unwatched_inv f' x1f (keep_watch L x2 x2a T)\<close>
 begin
 
-private lemma ff[simp]: \<open>f = f'\<close>
+private lemma ff: \<open>f = f'\<close>
   using ff by auto
 
 lemma unit_prop_body_wl_D_find_unwatched_heur_inv:
@@ -1651,10 +1672,11 @@ lemma unit_prop_body_wl_D_find_unwatched_heur_inv:
   unfolding 
     unit_prop_body_wl_D_find_unwatched_heur_inv_def
   apply -
-  by (rule exI[of _ \<open>keep_watch L x2 x2a T\<close>]) auto
+  by (rule exI[of _ \<open>keep_watch L x2 x2a T\<close>]) (auto simp: ff)
 
 context \<comment> \<open>No replacement found\<close>
- assumes
+  notes _[simp] = ff
+  assumes
     f: \<open>f = None\<close> and
     f'[simp]: \<open>f' = None\<close>
 begin 
@@ -1675,8 +1697,6 @@ lemma pol_other_lit_false:
      Some False)\<close>
   unfolding i_def[symmetric] i_alt_def[symmetric] i_alt_def_L'[symmetric]  access_x1g1i
   using U' by (auto simp: twl_st_heur_state_simp)
-
-declare ff[simp del]
 
   
 private lemma lits_in_trail:
@@ -1894,90 +1914,129 @@ context \<comment> \<open>No replacement found\<close>
     f'[simp]: \<open>f' = Some j\<close>
 begin
 
-private lemma ij[simp]: \<open>i = j\<close>
+private lemma ij: \<open>i = j\<close>
   using ff unfolding f f' by auto
 
-lemma
+private lemma
     \<open>unit_prop_body_wl_find_unwatched_inv (Some j) x1g
       (keep_watch L x2 x2a T)\<close> and
-    \<open>2 \<le> j\<close> and
+    j_ge2: \<open>2 \<le> j\<close> and
     j_le: \<open>j < length (get_clauses_wl T \<propto> x1g)\<close> and
     \<open>get_clauses_wl T \<propto> x1g ! j \<noteq> get_clauses_wl T \<propto> x1g ! 0\<close> and
     \<open>get_clauses_wl T \<propto> x1g ! j \<noteq> get_clauses_wl T \<propto> x1g ! Suc 0\<close>
   using find_unw_pre unfolding unit_prop_body_wl_D_find_unwatched_inv_def f'
   by auto
 
-lemma access_lit_in_clauses_heur_pre3: \<open>access_lit_in_clauses_heur_pre ((U, x1g), i)\<close>
-  unfolding access_lit_in_clauses_heur_pre_def prod.simps arena_lit_pre_def
-     arena_is_valid_clause_idx_and_access_def
-  by (rule bex_leI[of _ x1g], rule exI[of _ \<open>get_clauses_wl T\<close>],
-     rule exI[of _ \<open>set (get_vdom U)\<close>])
-    (use valid_UT j_le in auto)
+private lemma isa_update_pos_pre:
+  \<open>5 < arena_length (get_clauses_wl_heur U) x1g \<Longrightarrow> isa_update_pos_pre ((x1g, j), get_clauses_wl_heur U)\<close>
+  using j_ge2 valid_UT j_le
+  unfolding isa_update_pos_pre_def access_lit_in_clauses_heur_pre_def
+    arena_lit_pre_def arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def
+  by (auto simp: arena_lifting)
 
-private lemma arena_lit_x1g_j[simp]:
-  \<open>arena_lit (get_clauses_wl_heur U) (x1g + j) = get_clauses_wl T \<propto> x1g ! j\<close>
-  using arena_lifting[OF valid_UT, of x1g] j_le
-  by auto
+private abbreviation isa_save_pos_rel where
+  \<open>isa_save_pos_rel \<equiv> {(V, V'). get_vdom V = get_vdom x2e \<and> (V, V') \<in> twl_st_heur' \<D> \<and>
+        V' = keep_watch L x2 x2a T \<and> get_trail_wl_heur V = get_trail_wl_heur U \<and>
+        get_vdom V = get_vdom U \<and> get_watched_wl_heur V = get_watched_wl_heur U} \<close>
 
-lemma polarity_st_pre_unwatched: \<open>polarity_st_pre (U, arena_lit (get_clauses_wl_heur U) (x1g + i))\<close>
-  unfolding polarity_st_pre_def arena_lit_x1g_j
-  by (simp add: image_iff j_le literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l literals_are_in_\<L>\<^sub>i\<^sub>n_nth)
-
-lemma polarity_eq_unwatched: \<open>(polarity (get_trail_wl_heur U)
-      (arena_lit (get_clauses_wl_heur U) (x1g + i)) =
-     Some True) =
-    (polarity (get_trail_wl (keep_watch L x2 x2a T))
-      (get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! j) =
-     Some True)\<close>
-  using U' unfolding arena_lit_x1g_j
-  by (auto simp: twl_st_heur_state_simp)
+lemma isa_save_pos:
+  \<open>isa_save_pos x1g i U \<le> \<Down> isa_save_pos_rel 
+      (RETURN (keep_watch L x2 x2a T))\<close>
+    using j_ge2 isa_update_pos_pre U x1g j_le
+    by (cases U; cases T)
+      (auto simp: isa_save_pos_def twl_st_heur_def keep_watch_def twl_st_heur'_def
+      arena_update_pos_alt_def arena_lifting ij
+      intro!: ASSERT_leI valid_arena_update_pos)
 
 context
-  assumes \<open>polarity (get_trail_wl (keep_watch L x2 x2a T))
-     (get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! j) =
-    Some True\<close>
+  notes _[simp] = ij
+  fixes V V'
+  assumes VV': \<open>(V, V') \<in> isa_save_pos_rel\<close>
+begin
+
+private lemma
+    \<open>get_vdom U = get_vdom x2e\<close> and
+    V_T_rel: \<open>(V, keep_watch L x2 x2a T) \<in> twl_st_heur' \<D>\<close> and
+    valid_VT: \<open>valid_arena (get_clauses_wl_heur V) (get_clauses_wl T) (set (get_vdom U))\<close> and
+    VV':
+      \<open>V' = keep_watch L x2 x2a T\<close>
+      \<open>get_trail_wl_heur V = get_trail_wl_heur U\<close>
+      \<open>get_vdom V = get_vdom x2e\<close>
+      \<open>get_watched_wl_heur V = get_watched_wl_heur U\<close>
+  using VV'
+  apply (auto simp: twl_st_heur'_def twl_st_heur_def keep_watch_def)
+  apply (cases T; auto; fail)+
+  done
+
+lemma access_lit_in_clauses_heur_pre3: \<open>access_lit_in_clauses_heur_pre ((V, x1g), i)\<close>
+  unfolding access_lit_in_clauses_heur_pre_def prod.simps arena_lit_pre_def
+     arena_is_valid_clause_idx_and_access_def
+  by (rule bex_leI[of _ x1g], rule exI[of _ \<open>get_clauses_wl V'\<close>],
+     rule exI[of _ \<open>set (get_vdom U)\<close>])
+    (use valid_VT j_le in \<open>auto simp: VV'\<close>)
+      
+
+private lemma arena_lit_x1g_j:
+  \<open>arena_lit (get_clauses_wl_heur V) (x1g + j) = get_clauses_wl T \<propto> x1g ! j\<close>
+  using arena_lifting[OF valid_VT, of x1g] j_le
+  by auto
+
+lemma polarity_st_pre_unwatched: \<open>polarity_st_pre (V, arena_lit (get_clauses_wl_heur V) (x1g + i))\<close>
+  unfolding polarity_st_pre_def arena_lit_x1g_j
+  by (simp add: image_iff j_le literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l literals_are_in_\<L>\<^sub>i\<^sub>n_nth
+    arena_lit_x1g_j)
+
+lemma polarity_eq_unwatched: \<open>(polarity (get_trail_wl_heur V)
+      (arena_lit (get_clauses_wl_heur V) (x1g + i)) =
+     Some True) =
+    (polarity (get_trail_wl V')
+      (get_clauses_wl V' \<propto> x1f ! j) =
+     Some True)\<close>
+  using U' unfolding arena_lit_x1g_j
+  by (auto simp: twl_st_heur_state_simp VV' arena_lit_x1g_j)
+
+context
+  notes _[simp] =  VV' arena_lit_x1g_j
+  assumes \<open>polarity (get_trail_wl V') (get_clauses_wl V' \<propto> x1f ! j) = Some True\<close>
 begin
 
 lemma update_blit_wl_heur_pre_unw: \<open>update_blit_wl_heur_pre
-     (((((L, x1f), x2), x2a), get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! j),
-      keep_watch L x2 x2a T)\<close>
+     (((((L, x1f), x2), x2a), get_clauses_wl V' \<propto> x1f ! j), V')\<close>
   using x2_x2a x2a_le
   unfolding update_blit_wl_heur_pre_def
   by auto
 
 lemma update_blit_unw_rel:
-   \<open>((((((L', x1g), x2c), x2d), arena_lit (get_clauses_wl_heur U) (x1g + i)),
-      U),
-     ((((L, x1f), x2), x2a), get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! j),
-     keep_watch L x2 x2a T)
+   \<open>((((((L', x1g), x2c), x2d), arena_lit (get_clauses_wl_heur V) (x1g + i)),
+      V),
+     ((((L, x1f), x2), x2a), get_clauses_wl V' \<propto> x1f ! j), V')
     \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
       nat_lit_lit_rel \<times>\<^sub>f
       twl_st_heur' \<D>\<close>
-  using U by auto
+  using U V_T_rel by auto
 
 end
 
 
 context
-  assumes \<open>polarity (get_trail_wl (keep_watch L x2 x2a T))
-     (get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! j) \<noteq>
-    Some True\<close>
+  notes _ [simp] =  VV'
+  assumes \<open>polarity (get_trail_wl V') (get_clauses_wl V' \<propto> x1f ! j) \<noteq> Some True\<close>
 begin
 
 private lemma arena_is_valid_clause_idx_and_access_x1g_j:
- \<open>arena_is_valid_clause_idx_and_access (get_clauses_wl_heur U) x1g j\<close>
+ \<open>arena_is_valid_clause_idx_and_access (get_clauses_wl_heur V) x1g j\<close>
   unfolding access_lit_in_clauses_heur_pre_def prod.simps arena_lit_pre_def
      arena_is_valid_clause_idx_and_access_def
   by (rule exI[of _ \<open>get_clauses_wl T\<close>],
      rule exI[of _ \<open>set (get_vdom U)\<close>])
-    (use valid_UT j_le in auto)
+    (use valid_VT j_le in auto)
 
-private lemma j_Lall: \<open>get_clauses_wl T \<propto> x1g ! j \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+private lemma j_Lall: \<open>get_clauses_wl V' \<propto> x1g ! j \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   by (simp add: image_iff j_le literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l literals_are_in_\<L>\<^sub>i\<^sub>n_nth)
 
 private lemma L_le:
-  \<open>nat_of_lit L < length (get_watched_wl_heur U)\<close>
-  \<open>nat_of_lit (get_clauses_wl T \<propto> x1g ! j) < length (get_watched_wl_heur U)\<close>
+  \<open>nat_of_lit L < length (get_watched_wl_heur V)\<close>
+  \<open>nat_of_lit (get_clauses_wl V' \<propto> x1g ! j) < length (get_watched_wl_heur V)\<close>
   using U' j_Lall
   by (cases T; cases U; auto simp: twl_st_heur_def keep_watch_def map_fun_rel_def; fail)+
 
@@ -1995,17 +2054,17 @@ lemma update_clause_wl_code_pre_unw: \<open>update_clause_wl_code_pre
      ((((((L', x1g), x2c), x2d),
         if arena_lit (get_clauses_wl_heur U) (x1g + 0) = L' then 0 else 1),
        i),
-      U)\<close>
+      V)\<close>
   using x2a_le x2_x2a arena_is_valid_clause_idx_and_access_x1g_j x1e_le U' x1b L_le
-  length_get_watched_wl_heur_U_T length_get_watched_wl_heur_S_T
+  length_get_watched_wl_heur_U_T length_get_watched_wl_heur_S_T valid_VT j_le
   unfolding update_clause_wl_code_pre_def 
-  by auto
+  by (auto simp: arena_lifting)
 
 lemma update_clause_wl_pre_unw: \<open>update_clause_wl_pre
      ((((((L, x1f), x2), x2a),
         if get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! 0 = L then 0 else 1),
        j),
-      keep_watch L x2 x2a T)\<close>
+      V')\<close>
   using Tx1g_le2 j_le
   unfolding update_clause_wl_pre_def
   by auto
@@ -2014,31 +2073,28 @@ lemma update_watched_unw_rel:
   \<open>(((((((L', x1g), x2c), x2d),
         if arena_lit (get_clauses_wl_heur U) (x1g + 0) = L' then 0 else 1),
        i),
-      U),
+      V),
      (((((L, x1f), x2), x2a),
        if get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! 0 = L then 0 else 1),
       j),
-     keep_watch L x2 x2a T)
+     V')
     \<in> Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur' \<D>\<close>
-  using U unfolding access_x1g1i access_x1g by auto
+  using U V_T_rel unfolding access_x1g1i access_x1g by auto
 
-end
-
-
-declare ij[simp del] ff[simp del] arena_lit_x1g_j[simp del] f'[simp del]
 end
 
 end
 
-declare xg_S[simp del] xg_T[simp del]
 end
-
-declare xg_S[simp del] xg_T[simp del] state_simp_ST[simp del]  eq[simp del]
-  x1b[simp del] x2b[simp del]
 
 end
 
-declare state_simp_ST[simp del] x1b[simp del] x2b[simp del]
+end
+
+end
+
+end
+
 end
 
 lemma unit_propagation_inner_loop_body_wl_heur_unit_propagation_inner_loop_body_wl_D:
@@ -2142,7 +2198,7 @@ proof -
     unfolding set_conflict_wl'_alt_def[symmetric]
       clause_not_marked_to_delete_def[symmetric]
 
-    apply (refine_rcg find_unw)
+    apply (refine_rcg find_unw isa_save_pos)
     subgoal unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv0_def twl_st_heur'_def
       unit_propagation_inner_loop_wl_loop_D_pre_def
       by fastforce
@@ -2209,8 +2265,8 @@ proof -
     subgoal for x y x1 x1a L x2 x2a T x1c x1d L' x2c
        x2d x2e x1f x2f x1g x2g U f f' V
       by force
-    subgoal
-      by (rule access_lit_in_clauses_heur_pre3)
+    apply assumption+
+    subgoal by (rule access_lit_in_clauses_heur_pre3)
     subgoal
       by (rule polarity_st_pre_unwatched)
     subgoal
@@ -2340,7 +2396,7 @@ qed
 
 definition (in isasat_input_ops) cut_watch_list_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>cut_watch_list_heur j w L =(\<lambda>(M, N, D, Q, W, oth). do {
-      ASSERT(j \<le> length (W!nat_of_lit L) \<and> j \<le> w  \<and> nat_of_lit L < length W \<and>
+      ASSERT(j \<le> length (W!nat_of_lit L) \<and> j \<le> w \<and> nat_of_lit L < length W \<and>
          w \<le> length (W ! (nat_of_lit L)));
       RETURN (M, N, D, Q, W[nat_of_lit L := take j (W!(nat_of_lit L)) @ drop w (W!(nat_of_lit L))], oth)
     })\<close>
@@ -2600,8 +2656,10 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D_heur
      RETURN S
   }\<close>
 
+(* TODO Move *)
 lemma (in -) Down_id_eq: "\<Down> Id a = a"
   by auto
+(* End Move *)
 
 lemma unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D:
   \<open>(uncurry unit_propagation_inner_loop_wl_D_heur, uncurry unit_propagation_inner_loop_wl_D) \<in>
