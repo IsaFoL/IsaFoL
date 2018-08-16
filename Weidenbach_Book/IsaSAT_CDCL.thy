@@ -1,6 +1,6 @@
 theory IsaSAT_CDCL
   imports IsaSAT_Propagate_Conflict IsaSAT_Conflict_Analysis IsaSAT_Backtrack
-    IsaSAT_Decide
+    IsaSAT_Decide IsaSAT_Show
 begin
 
 context isasat_input_bounded_nempty
@@ -16,7 +16,6 @@ where
       if get_conflict_wl_is_None_heur S
       then decide_wl_or_skip_D_heur S
       else do {
-
         if count_decided_st S > zero_uint32_nat
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
@@ -28,6 +27,26 @@ where
     }
   \<close>
 
+lemma cdcl_twl_o_prog_wl_D_heur_alt_def:
+  \<open>cdcl_twl_o_prog_wl_D_heur S =
+    do {
+      if get_conflict_wl_is_None_heur S
+      then decide_wl_or_skip_D_heur S
+      else do {
+        if count_decided_st S > zero_uint32_nat
+        then do {
+          T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
+          U \<leftarrow> backtrack_wl_D_nlit_heur T;
+          _ \<leftarrow> isasat_current_status U; \<comment> \<open>Print some information every once in a while\<close>
+          RETURN (False, U)
+        }
+        else RETURN (True, S)
+      }
+    }
+  \<close>
+  unfolding cdcl_twl_o_prog_wl_D_heur_def isasat_current_status_def
+  by auto
+
 sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolve_loop_wl_D_heur
   backtrack_wl_D_nlit_heur
 
@@ -37,7 +56,7 @@ sepref_register cdcl_twl_o_prog_wl_D
 sepref_thm cdcl_twl_o_prog_wl_D_code
   is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_assn\<close>
-  unfolding cdcl_twl_o_prog_wl_D_heur_def PR_CONST_def
+  unfolding cdcl_twl_o_prog_wl_D_heur_alt_def PR_CONST_def
   unfolding get_conflict_wl_is_None get_conflict_wl_is_None_heur_alt_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
@@ -93,6 +112,7 @@ lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
   subgoal by (auto simp: twl_st_heur_state_simp)
   subgoal by (auto simp: twl_st_heur_state_simp)
   done
+
 
 paragraph \<open>Combining Together: Full Strategy\<close>
 

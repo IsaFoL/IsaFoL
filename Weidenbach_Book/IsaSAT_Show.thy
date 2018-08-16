@@ -15,11 +15,8 @@ text \<open>We provide a function to print some information about the state.
   However, it seems that the PolyML by \<open>export_code checking\<close> does
   not support that print function. Therefore, we cannot provide the code printing equations
   by default.\<close>
-definition print_string :: \<open>String.literal \<Rightarrow> unit\<close> where
-  \<open>print_string _ = ()\<close>
-
-definition print_lvl where
-  \<open>print_lvl n = print_string (String.implode (show n))\<close>
+definition println_string :: \<open>String.literal \<Rightarrow> unit\<close> where
+  \<open>println_string _ = ()\<close>
 
 instantiation uint64 :: "show"
 begin
@@ -48,11 +45,61 @@ instance
 end
 
 code_printing constant
-  print_string \<rightharpoonup> (SML) "ignore/ (print/ ((_)))"
+  println_string \<rightharpoonup> (SML) "ignore/ (print/ ((_) ^ \"\\n\"))"
 
-export_code print_lvl in SML
 code_printing constant
-  print_string \<rightharpoonup> (SML)
-export_code print_lvl checking SML
+  println_string \<rightharpoonup> (SML)
+
+
+
+subsection \<open>Print Information for IsaSAT\<close>
+
+definition isasat_header :: string where
+  \<open>isasat_header = show ''Conflict | Decision | Propagation | Restarts''\<close>
+
+definition isasat_current_information :: \<open>stats \<Rightarrow> unit\<close> where
+\<open>isasat_current_information =
+   (\<lambda>(propa, confl, decs, restarts). 
+     if confl AND 4095 = 4095 \<comment> \<open>\<^term>\<open>4095 = 4096 - 1\<close>, i.e., we print when all first bits are 1.\<close>
+     then
+        println_string (String.implode (show ''c | '' @ show confl @ show '' | '' @ show propa @
+          show '' | '' @ show decs @ show '' | '' @ show restarts))
+      else ())\<close>
+
+
+definition print_current_information :: \<open>stats \<Rightarrow> unit\<close> where
+\<open>print_current_information S = ()\<close>
+
+lemma print_current_information_hnr[sepref_fr_rules]:
+   \<open>(return o isasat_current_information, RETURN o print_current_information) \<in>
+   stats_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  by sepref_to_hoare sep_auto
+
+definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> unit nres\<close> where
+\<open>isasat_current_status =
+   (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
+       fast_ema, slow_ema, ccount,
+       vdom, lcount). RETURN (print_current_information stats))\<close>
+
+context isasat_input_ops
+begin
+
+sepref_thm isasat_current_status_code
+  is \<open>isasat_current_status\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_assn_def isasat_current_status_def
+  by sepref
+
+concrete_definition (in -) isasat_current_status_code
+   uses isasat_input_ops.isasat_current_status_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) isasat_current_status_code_def
+
+lemmas isasat_current_status_code[sepref_fr_rules] =
+   isasat_current_status_code.refine[of \<A>\<^sub>i\<^sub>n]
+
+end
 
 end
