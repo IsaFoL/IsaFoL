@@ -1,0 +1,3 @@
+session "Saturation_Framework" = "Ordered_Resolution_Prover" +
+  theories [document = false, quick_and_dirty=true]
+    Saturation_Framework
