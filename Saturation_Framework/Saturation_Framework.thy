@@ -32,11 +32,11 @@ locale consequence_relation =
     transitive_entails: "(N1 |= N2 \<and> N2 |= N3) \<Longrightarrow> N1 |= N3"
 begin
 
-lemma easy1[iff]: "(entails N1 N2) \<longleftrightarrow> (\<forall>C \<in># N2. entails N1 {# C#})"
+lemma easy1[iff]: "(N1 |= N2) \<longleftrightarrow> (\<forall>C \<in># N2. N1 |= {# C#})"
 by (meson all_formulas_entailed mset_subset_eq_single subset_entailed transitive_entails)
 
-lemma easy2[iff]: "(entails N N1 \<and> entails N N2) \<longleftrightarrow> entails N (N1 \<union># N2)"
-sorry
+lemma easy2[iff]: "(N |= N1 \<and> N |= N2) \<longleftrightarrow> N |= (N1 \<union># N2)"
+by blast
 
 end
 
@@ -46,6 +46,12 @@ datatype 'f inference =
 
 (* abbreviation prems_of :: "'a inference \<Rightarrow> 'a clause multiset" where
   "prems_of \<gamma> \<equiv> side_prems_of \<gamma> + {#main_prem_of \<gamma>#}" *)
+
+type_synonym 'f inference_system = "'f inference multiset"
+
+definition Inf :: "'f inference_system \<Rightarrow> 'f formula \<Rightarrow> 'f inference_system" where
+  "Inf I N = {# \<iota>. \<iota> \<in># I #}" (*TODO: find out list syntax*)
+
 
 
 abbreviation concls_of :: "'a inference set \<Rightarrow> 'a clause set" where
