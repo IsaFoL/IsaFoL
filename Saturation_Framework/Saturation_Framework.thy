@@ -32,21 +32,14 @@ locale consequence_relation =
     transitive_entails: "(N1 |= N2 \<and> N2 |= N3) \<Longrightarrow> N1 |= N3"
 begin
 
-lemma easy1[iff]: "(N1 |= N2) \<longleftrightarrow> (\<forall>C \<in># N2. N1 |= {# C#})"
+lemma easy1: "(N1 |= N2) \<longleftrightarrow> (\<forall>C \<in># N2. N1 |= {# C#})"
 by (meson all_formulas_entailed mset_subset_eq_single subset_entailed transitive_entails)
 
-lemma easy2[iff]: "(N |= N1 \<and> N |= N2) \<longleftrightarrow> N |= (N1 \<union># N2)"
-proof
-  assume "N |= N1 \<and> N |= N2"
-  show "N |= (N1 \<union># N2)"
-  proof
-    fix C
-    assume C: "C \<in># (N1 \<union># N2)"
-    have "(C \<in># N1) \<or> (C \<in># N2)" using C by auto
-    then have "N |= {# C #}" using easy1 by (meson \<open>N |= N1 \<and> N |= N2\<close>)
-    then have "N |= (N1 \<union># N2)" using easy1 by oops
-  next
-oops
+lemma easy2: "(N |= N1 \<and> N |= N2) \<longleftrightarrow> N |= (N1 \<union># N2)"
+  apply (subst easy1)
+  apply (subst (2) easy1)
+  apply (subst (3) easy1)
+  by auto
 
 end
 
