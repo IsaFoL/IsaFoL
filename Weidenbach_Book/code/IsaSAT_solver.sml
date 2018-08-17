@@ -3123,6 +3123,20 @@ fun backtrack_wl_D_nlit_heur_code x =
     end)
     x;
 
+fun isasat_current_information x = (fn (_, (_, (_, _))) => ()) x;
+
+fun isasat_current_status_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, (a1k, (_, (_, (_, (_, _))))))))))))))))
+          = xi;
+      in
+        isasat_current_information a1k
+      end))
+    x;
+
 fun update_next_search l =
   (fn (a, b) => let
                   val (ns, (m, (fst_As, (lst_As, _)))) = a;
@@ -3280,7 +3294,10 @@ fun cdcl_twl_o_prog_wl_D_code x =
                           (fn x_b =>
                             (fn f_ => fn () => f_
                               ((backtrack_wl_D_nlit_heur_code x_b) ()) ())
-                              (fn x_c => (fn () => (false, x_c))))
+                              (fn x_c =>
+                                (fn f_ => fn () => f_
+                                  ((isasat_current_status_code x_c) ()) ())
+                                  (fn _ => (fn () => (false, x_c)))))
                    else (fn () => (true, xi)))))
         ()
     end)
