@@ -57,15 +57,19 @@ subsection \<open>Print Information for IsaSAT\<close>
 definition isasat_header :: string where
   \<open>isasat_header = show ''Conflict | Decision | Propagation | Restarts''\<close>
 
+text \<open>Printing the information slows down the solver by a huge factor.\<close>
 definition isasat_current_information :: \<open>stats \<Rightarrow> unit\<close> where
 \<open>isasat_current_information =
    (\<lambda>(propa, confl, decs, restarts). 
-     if confl AND 4095 = 4095 \<comment> \<open>\<^term>\<open>4095 = 4096 - 1\<close>, i.e., we print when all first bits are 1.\<close>
+      ())\<close>
+
+(*
+if confl AND 4095 = 4095 \<comment> \<open>\<^term>\<open>4095 = 4096 - 1\<close>, i.e., we print when all first bits are 1.\<close>
      then
         println_string (String.implode (show ''c | '' @ show confl @ show '' | '' @ show propa @
           show '' | '' @ show decs @ show '' | '' @ show restarts))
-      else ())\<close>
-
+      else ()
+*)
 
 definition print_current_information :: \<open>stats \<Rightarrow> unit\<close> where
 \<open>print_current_information S = ()\<close>
