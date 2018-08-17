@@ -36,7 +36,17 @@ lemma easy1[iff]: "(N1 |= N2) \<longleftrightarrow> (\<forall>C \<in># N2. N1 |=
 by (meson all_formulas_entailed mset_subset_eq_single subset_entailed transitive_entails)
 
 lemma easy2[iff]: "(N |= N1 \<and> N |= N2) \<longleftrightarrow> N |= (N1 \<union># N2)"
-by blast
+proof
+  assume "N |= N1 \<and> N |= N2"
+  show "N |= (N1 \<union># N2)"
+  proof
+    fix C
+    assume C: "C \<in># (N1 \<union># N2)"
+    have "(C \<in># N1) \<or> (C \<in># N2)" using C by auto
+    then have "N |= {# C #}" using easy1 by (meson \<open>N |= N1 \<and> N |= N2\<close>)
+    then have "N |= (N1 \<union># N2)" using easy1 by oops
+  next
+oops
 
 end
 
@@ -49,8 +59,8 @@ datatype 'f inference =
 
 type_synonym 'f inference_system = "'f inference multiset"
 
-definition Inf :: "'f inference_system \<Rightarrow> 'f formula \<Rightarrow> 'f inference_system" where
-  "Inf I N = {# \<iota>. \<iota> \<in># I #}" (*TODO: find out list syntax*)
+definition Inf :: "'f inference_system \<Rightarrow> 'f formulas  \<Rightarrow> 'f inference_system" where
+  "Inf I N = {# \<iota>. \<iota> \<in># I #}" (*TODO: find out list syntax to complete this definition*)
 
 
 
