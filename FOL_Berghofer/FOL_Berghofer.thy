@@ -3,11 +3,13 @@
 
 theory FOL_Berghofer imports Main begin
 
+
 section \<open>Miscellaneous Utilities\<close>
 
 text \<open>Some facts about (in)finite sets\<close>
 
 theorem set_inter_compl_diff [simp]: \<open>- A \<inter> B = B - A\<close> by blast
+
 
 section \<open>Terms and formulae\<close>
 
@@ -259,6 +261,7 @@ theorem psubstt_image [simp]:
 theorem psubst_image [simp]: \<open>params (psubst f p) = f ` params p\<close>
   by (induct p) (simp_all add: image_Un)
 
+
 section \<open>Semantics\<close>
 
 text \<open>
@@ -377,6 +380,7 @@ Simplification yields the following proof state:
 This is easily proved using intuitionistic logic:
 \<close>
   by iprover
+
 
 section \<open>Proof calculus\<close>
 
@@ -552,6 +556,7 @@ proof -
     using Class' by blast
 qed
 
+
 section \<open>Correctness\<close>
 
 text \<open>
@@ -585,7 +590,8 @@ next
     then show \<open>e,f,g,G \<Turnstile> b\<close>
       using ExistsE unfolding model_def by simp
   qed
-qed (simp_all add: model_def, blast+)
+qed (fastforce simp add: model_def)+
+
 
 section \<open>Completeness\<close>
 
@@ -636,6 +642,7 @@ It can be shown that a maximal consistent set is a {\em Hintikka set}
 (see \secref{sec:hintikka}). Hintikka sets are satisfiable in {\em Herbrand}
 models, where closed terms coincide with their interpretation.
 \<close>
+
 
 subsection \<open>Consistent sets\<close>
 
@@ -2874,11 +2881,12 @@ proof (rule Class, rule ccontr)
   ultimately show False by simp
 qed
 
-section \<open>L\\<open>owenheim-Skolem theorem\<close>
+
+section \<open>L\"owenheim-Skolem theorem\<close>
 
 text \<open>
 Another application of the model existence theorem presented in \secref{sec:model-existence}
-is the L\\<close>owenheim-Skolem theorem. It says that a set of formulae that is satisfiable in an
+is the L\"owenheim-Skolem theorem. It says that a set of formulae that is satisfiable in an
 {\em arbitrary model} is also satisfiable in a {\em Herbrand model}. The main idea behind the
 proof is to show that satisfiable sets are consistent, hence they must be satisfiable in a
 Herbrand model.
@@ -3121,6 +3129,7 @@ proof (intro ballI impI)
   then show \<open>eval e' (\<lambda>n. HApp (2 * n)) ?g p\<close>
     using psubst_eval by blast
 qed
+
 
 section \<open>Completeness for open formulas\<close>
 
@@ -4203,6 +4212,7 @@ proof -
   ultimately show \<open>[] \<turnstile> p\<close>
     using vars_for_consts_for_unis * ** by metis
 qed
+
 
 subsection \<open>Completeness\<close>
 
