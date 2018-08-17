@@ -543,9 +543,9 @@ code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.
 
 export_code IsaSAT_code checking SML_imp
 
-code_printing constant \<comment> \<open>print with line break\<close>
+(*code_printing constant \<comment> \<open>print with line break\<close>
   println_string \<rightharpoonup> (SML) "ignore/ (print/ ((_) ^ \"\\n\"))"
-
+*)
 export_code IsaSAT_code
     int_of_integer
     integer_of_int

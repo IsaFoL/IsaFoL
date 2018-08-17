@@ -3253,13 +3253,15 @@ fun shows_prec_uint64 n m xs = shows_prec_nat n (nat_of_uint64 m) xs;
 
 fun shows_prec_list A_ p xs = shows_list A_ xs;
 
+fun print_string _ = ();
+
 fun isasat_current_information x =
   (fn (propa, (confl, (decs, restarts))) =>
     (if (((Uint64.andb confl
             (Uint64.fromInt
               (4095 : IntInf.int))) : Uint64.uint64) = (Uint64.fromInt
                  (4095 : IntInf.int)))
-      then ignore (print
+      then ignore (print_string
              (implode
                 (shows_prec_list show_char zero_nata
                    [Chara (true, true, false, false, false, true, true, false),
