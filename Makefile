@@ -56,9 +56,11 @@ refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
 
 clean:
-	$(RUN_ISABELLE) build -d '$$AFP' -c -v -n -D Weidenbach_Book
-	$(RUN_ISABELLE) build -c -v -n -D Ordered_Resolution_Prover
-	$(RUN_ISABELLE) build -c -v -n -D Unordered_Resolution
+# We need the '|| true' since Isabelle can return a non-zero status for cleaning
+# (because we do not rebuild the sesssions probably)
+	$(RUN_ISABELLE2018) build -d '$$AFP' -c -n -D Weidenbach_Book || true
+	$(RUN_ISABELLE2018) build -c -n -D FOL_Berghofer || true
+	$(RUN_ISABELLE2018) build -d '$$AFP' -d '$$ISAFOR' -c -n -D Functional_Ordered_Resolution_Prover || true
 	rm -rf $(DESTINATION)/current
 
 
