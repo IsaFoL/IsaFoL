@@ -3075,7 +3075,7 @@ proof (rule infinite_super)
 next
   have \<open>\<And>m n. Suc (2 * m) \<noteq> 2 * n\<close> by arith
   then show \<open>range (\<lambda>n::nat. (2::nat) * n + (1::nat))
-    \<subseteq> - (\<Union>p::(nat, 'a) form \<in> psubst (op * (2::nat)) ` S. params p)\<close>
+    \<subseteq> - (\<Union>p::(nat, 'a) form \<in> psubst (( * ) (2::nat)) ` S. params p)\<close>
     by auto
 qed
 
@@ -3106,17 +3106,17 @@ proof (intro ballI impI)
     using evalS by blast
   then have \<open>\<forall>x \<in> S. eval e f g x\<close>
     using evalS by blast
-  then have \<open>\<forall>p \<in> psubst (op * 2) ` S. eval e (\<lambda>n. f (n div 2)) g p\<close>
+  then have \<open>\<forall>p \<in> psubst (( * ) 2) ` S. eval e (\<lambda>n. f (n div 2)) g p\<close>
     by (simp add: psubst_eval)
-  then have \<open>psubst (op * 2) ` S \<in> ?C\<close>
+  then have \<open>psubst (( * ) 2) ` S \<in> ?C\<close>
     using doublep_infinite_params by blast
-  moreover have \<open>psubst (op * 2) p \<in> psubst (op * 2) ` S\<close>
+  moreover have \<open>psubst (( * ) 2) p \<in> psubst (( * ) 2) ` S\<close>
     using \<open>p \<in> S\<close> by blast
-  moreover have \<open>closed 0 (psubst (op * 2) p)\<close>
+  moreover have \<open>closed 0 (psubst (( * ) 2) p)\<close>
     using \<open>closed 0 p\<close> by simp
   moreover have \<open>consistency ?C\<close>
     using sat_consistency by blast
-  ultimately have \<open>eval e' HApp ?g (psubst (op * 2) p)\<close>
+  ultimately have \<open>eval e' HApp ?g (psubst (( * ) 2) p)\<close>
     using model_existence by blast
   then show \<open>eval e' (\<lambda>n. HApp (2 * n)) ?g p\<close>
     using psubst_eval by blast
