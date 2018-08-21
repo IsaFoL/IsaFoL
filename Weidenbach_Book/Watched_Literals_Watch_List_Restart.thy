@@ -1097,7 +1097,7 @@ lemma (in -) [twl_st_l, simp]:
  \<open>(Sa, x) \<in> twl_st_l None \<Longrightarrow> get_all_learned_clss x =  mset `# (get_learned_clss_l Sa) + get_unit_learned_clauses_l Sa\<close>
   by (cases Sa; cases x) (auto simp: twl_st_l_def get_learned_clss_l_def mset_take_mset_drop_mset')
 
-lemma
+lemma cdcl_twl_full_restart_wl_prog_final_rel:
   assumes 
     \<open>(x, y) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<close> and
     S_Sa: \<open>(S, Sa) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S}\<close> and
@@ -1184,8 +1184,7 @@ lemma cdcl_twl_full_restart_wl_prog_cdcl_full_twl_restart_l_prog:
    by (blast intro: correct_watching_correct_watching)
   subgoal unfolding mark_to_delete_clauses_wl_pre_def by (blast intro: correct_watching_correct_watching)
   subgoal for x y S Sa T Ta
-    explore_lemma
-   unfolding mark_to_delete_clauses_wl_post_def by (blast intro: correct_watching_correct_watching)
+    by (rule cdcl_twl_full_restart_wl_prog_final_rel)
   subgoal by (auto simp: state_wl_l_def)
   done
 
