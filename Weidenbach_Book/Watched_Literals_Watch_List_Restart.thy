@@ -1073,15 +1073,24 @@ definition cdcl_twl_full_restart_wl_prog :: \<open>'v twl_st_wl \<Rightarrow> 'v
     ASSERT(mark_to_delete_clauses_wl_pre S);
     T \<leftarrow> mark_to_delete_clauses_wl S;
     ASSERT(mark_to_delete_clauses_wl_post S T);
-    rewatch_clauses T
+    RETURN T
   }\<close>
+
+lemma cdcl_twl_full_restart_wl_prog_alt_def:
+  \<open>cdcl_twl_full_restart_wl_prog S = do {
+    S \<leftarrow> remove_one_annot_true_clause_imp_wl S;
+    ASSERT(mark_to_delete_clauses_wl_pre S);
+    T \<leftarrow> mark_to_delete_clauses_wl S;
+    ASSERT(mark_to_delete_clauses_wl_post S T);
+    RETURN T
+  }\<close>
+  unfolding cdcl_twl_full_restart_wl_prog_def by auto
 
 lemma cdcl_twl_full_restart_l_prog_alt_def: \<open>cdcl_twl_full_restart_l_prog S = do {
     S \<leftarrow> remove_one_annot_true_clause_imp S;
     ASSERT(mark_to_delete_clauses_l_pre S);
     T \<leftarrow> mark_to_delete_clauses_l S;
     ASSERT (mark_to_delete_clauses_l_post S T);
-    let T = T;
     RETURN T
   }\<close>
   unfolding cdcl_twl_full_restart_l_prog_def
@@ -1173,7 +1182,7 @@ lemma cdcl_twl_full_restart_wl_prog_cdcl_full_twl_restart_l_prog:
   \<open>(cdcl_twl_full_restart_wl_prog, cdcl_twl_full_restart_l_prog)
     \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
       \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
-  unfolding cdcl_twl_full_restart_wl_prog_def cdcl_twl_full_restart_l_prog_def
+  unfolding cdcl_twl_full_restart_wl_prog_alt_def cdcl_twl_full_restart_l_prog_def
     rewatch_clauses_def
   apply (intro frefI nres_relI)
   apply (refine_vcg
@@ -1185,7 +1194,7 @@ lemma cdcl_twl_full_restart_wl_prog_cdcl_full_twl_restart_l_prog:
   subgoal unfolding mark_to_delete_clauses_wl_pre_def by (blast intro: correct_watching_correct_watching)
   subgoal for x y S Sa T Ta
     by (rule cdcl_twl_full_restart_wl_prog_final_rel)
-  subgoal by (auto simp: state_wl_l_def)
+  subgoal by (auto simp: state_wl_l_def mark_to_delete_clauses_wl_post_def)
   done
 
 definition (in -) cdcl_twl_local_restart_wl_spec :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where

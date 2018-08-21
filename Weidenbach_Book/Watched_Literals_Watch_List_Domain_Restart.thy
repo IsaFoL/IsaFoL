@@ -22,6 +22,59 @@ lemma rtranclp_cdcl_twl_restart_get_all_init_clss:
 context isasat_input_ops
 begin
 
+text \<open>As we have a specialised version of \<^term>\<open>correct_watching\<close>, we defined a special version for
+the inclusion of the domain:\<close>
+definition literals_are_\<L>\<^sub>i\<^sub>n' :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<equiv>
+     is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm ((\<lambda>C. mset (fst C)) `# init_clss_l (get_clauses_wl S)
+        + get_unit_init_clss_wl S)) \<and>
+     blits_in_\<L>\<^sub>i\<^sub>n S\<close>
+
+lemma literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff:
+  assumes
+    Sx: \<open>(S, x) \<in> state_wl_l None\<close> and
+    x_xa: \<open>(x, xa) \<in> twl_st_l None\<close> and
+    struct_invs: \<open>twl_struct_invs xa\<close>
+  shows  \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+proof -
+  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of xa)\<close>
+    using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  then have \<open>\<And>L. L \<in> atm_of ` lits_of_l (get_trail_wl S) \<Longrightarrow> L \<in> atms_of_ms
+      ((\<lambda>x. mset (fst x)) ` {a. a \<in># ran_m (get_clauses_wl S) \<and> snd a}) \<union>
+      atms_of_mm (get_unit_init_clss_wl S)\<close> and
+    alien_learned: \<open>atms_of_mm (learned_clss (state\<^sub>W_of xa))
+      \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of xa))\<close>
+    using Sx x_xa unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (auto simp add: twl_st twl_st_l twl_st_wl)
+
+  have \<open>set_mset
+     (all_lits_of_mm
+       ({#mset (fst C). C \<in># init_clss_l (get_clauses_wl S)#} +
+        get_unit_init_clss_wl S)) = set_mset
+     (all_lits_of_mm
+       ({#mset (fst C). C \<in># ran_m (get_clauses_wl S)#} +
+        get_unit_clauses_wl S))\<close>
+    apply (subst (2) all_clss_l_ran_m[symmetric])
+    using alien_learned Sx x_xa
+    unfolding image_mset_union all_lits_of_mm_union
+    by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_unit_clauses_wl_alt_def
+      twl_st twl_st_l twl_st_wl get_learned_clss_wl_def)
+  then have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l
+     (all_lits_of_mm
+       ({#mset (fst C). C \<in># init_clss_l (get_clauses_wl S)#} +
+        get_unit_init_clss_wl S)) \<longleftrightarrow>
+    is_\<L>\<^sub>a\<^sub>l\<^sub>l
+     (all_lits_of_mm
+       ({#mset (fst C). C \<in># ran_m (get_clauses_wl S)#} +
+        get_unit_clauses_wl S))\<close>
+    unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by presburger
+  then show ?thesis
+    using Sx x_xa unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def literals_are_\<L>\<^sub>i\<^sub>n'_def
+      literals_are_\<L>\<^sub>i\<^sub>n_def
+    by auto
+qed
+
 lemma cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l:
   assumes
     ST: \<open>cdcl_twl_restart\<^sup>*\<^sup>* S T\<close> and
@@ -55,10 +108,34 @@ proof -
     by argo
 qed
 
+
+lemma cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l':
+  assumes
+    ST: \<open>cdcl_twl_restart\<^sup>*\<^sup>* S T\<close> and
+    struct_invs_S: \<open>twl_struct_invs S\<close> and
+    L: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (get_all_init_clss S))\<close>
+  shows  \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (get_all_init_clss T))\<close>
+proof -
+  have \<open>twl_struct_invs T\<close>
+    using rtranclp_cdcl_twl_restart_twl_struct_invs[OF ST struct_invs_S] .
+  then have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close>
+    unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  then have \<open>?thesis \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (get_all_init_clss T))\<close>
+    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
+    by (cases T)
+      (auto simp: cdcl\<^sub>W_restart_mset_state)
+  moreover have \<open>get_all_init_clss T = get_all_init_clss S\<close>
+    using rtranclp_cdcl_twl_restart_get_all_init_clss[OF ST] .
+  then show ?thesis
+    using L
+    by argo
+qed
+
 end
 
 sublocale isasat_restart_bounded \<subseteq> isasat_restart_ops
-  .
+ .
 
 context isasat_restart_ops
 begin
@@ -68,49 +145,13 @@ definition (in isasat_restart_ops) remove_all_annot_true_clause_imp_wl_D_inv
 where
   \<open>remove_all_annot_true_clause_imp_wl_D_inv S xs = (\<lambda>(i, T).
      remove_all_annot_true_clause_imp_wl_inv S xs (i, T) \<and>
-     literals_are_\<L>\<^sub>i\<^sub>n T)\<close>
+     literals_are_\<L>\<^sub>i\<^sub>n' T)\<close>
 
-lemma remove_all_annot_true_clause_imp_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n:
-  assumes
-    inv: \<open>remove_all_annot_true_clause_imp_wl_inv S xs (i, T)\<close> and
-    L: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
-  shows \<open>literals_are_\<L>\<^sub>i\<^sub>n T\<close>
-proof -
-  obtain S2 T2 S3 where
-    part_S: \<open>correct_watching' S\<close> and
-    part_T: \<open>correct_watching' T\<close> and
-    S_S2: \<open>(S, S2) \<in> state_wl_l None\<close> and
-    T_T2: \<open>(T, T2) \<in> state_wl_l None\<close> and
-    S2_T2:\<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S2 T2\<close> and
-    list_invs_S2: \<open>twl_list_invs S2\<close> and
-    \<open>i \<le> length xs\<close> and
-    \<open>twl_list_invs S2\<close> and
-    confl_S2: \<open>get_conflict_l S2 = None\<close> and
-    upd_S2: \<open>clauses_to_update_l S2 = {#}\<close> and
-    S2_S3: \<open>(S2, S3) \<in> twl_st_l None\<close> and
-    struct_invs_S3: \<open>twl_struct_invs S3\<close>
-    using inv unfolding remove_all_annot_true_clause_imp_wl_inv_def
-      remove_all_annot_true_clause_imp_inv_def prod.case
-    by blast
-
-  obtain T3 where
-    T2_T2: \<open>(T2, T3) \<in> twl_st_l None\<close> and
-    struct_invs_T3: \<open>twl_struct_invs T3\<close> and
-    S3_T3: \<open>cdcl_twl_restart\<^sup>*\<^sup>* S3 T3\<close> and
-    \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* S2 T2\<close>
-    using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[OF S2_T2 list_invs_S2
-      confl_S2 upd_S2 S2_S3 struct_invs_S3] by blast
-
-  show ?thesis
-    using cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l[OF S3_T3  struct_invs_S3] L
-    S_S2 T_T2 S2_S3 T2_T2
-    by (auto simp: mset_take_mset_drop_mset' literals_are_\<L>\<^sub>i\<^sub>n_def)
-qed
 
 definition remove_all_annot_true_clause_imp_wl_D_pre
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close>
 where
-  \<open>remove_all_annot_true_clause_imp_wl_D_pre L S \<longleftrightarrow> (L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> literals_are_\<L>\<^sub>i\<^sub>n S)\<close>
+  \<open>remove_all_annot_true_clause_imp_wl_D_pre L S \<longleftrightarrow> (L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition remove_all_annot_true_clause_imp_wl_D
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
@@ -137,29 +178,34 @@ where
     RETURN (M, N, D, NE, UE, Q, W)
   })\<close>
 
-text \<open>
-  We are actually slighty ``cheating'' in this refinement step: thanks to the assertion
-  after the call to \<^term>\<open>remove_all_annot_true_clause_one_imp\<close>, we do not need to refine it.
-\<close>
+(* TODO Move *)
+lemma (in -) init_clss_l_fmdrop_irrelev:
+  \<open>\<not>irred N C \<Longrightarrow> init_clss_l (fmdrop C N) = init_clss_l N\<close>
+  using distinct_mset_dom[of N]
+  apply (cases \<open>C \<in># dom_m N\<close>)
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
+
+lemma (in -) init_clss_l_fmdrop:
+  \<open>irred N C \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> init_clss_l (fmdrop C N) = remove1_mset (the (fmlookup N C)) (init_clss_l N)\<close>
+  using distinct_mset_dom[of N]
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
+(* End Move *)
+
 lemma remove_all_annot_true_clause_imp_wl_remove_all_annot_true_clause_imp:
   \<open>(uncurry remove_all_annot_true_clause_imp_wl_D, uncurry remove_all_annot_true_clause_imp_wl) \<in>
-   {(L, L'). L = L' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l} \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
-     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+   {(L, L'). L = L' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l} \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
 proof -
-  have remove_all_annot_true_clause_imp_wl_D_inv:
-    \<open>remove_all_annot_true_clause_imp_wl_D_inv S xs(i, T)\<close>
-    if
-      \<open>remove_all_annot_true_clause_imp_wl_inv S xs (i, T)\<close> and
-      \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
-    for S xs i T
-    using that remove_all_annot_true_clause_imp_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n[of S xs i T]
-    unfolding remove_all_annot_true_clause_imp_wl_D_inv_def
-    by blast
   have [refine0]:
-    \<open>remove_all_annot_true_clause_one_imp S \<le> \<Down> Id (remove_all_annot_true_clause_one_imp S')\<close>
+    \<open>remove_all_annot_true_clause_one_imp S \<le>
+       \<Down> {((N, NE), (N', NE')). N = N' \<and> NE = NE'
+        \<and> mset `# init_clss_lf (fst (snd S)) + snd (snd S) = mset `# init_clss_lf N + NE'}
+        (remove_all_annot_true_clause_one_imp S')\<close>
     if \<open>(S, S') \<in> Id\<close>
     for S S'
-    using that by auto
+    using that unfolding remove_all_annot_true_clause_one_imp_def
+    by (cases S) (auto simp: init_clss_l_fmdrop_irrelev init_clss_l_fmdrop image_mset_remove1_mset_if)
+
   show ?thesis
     supply [[goals_limit=1]]
     unfolding uncurry_def remove_all_annot_true_clause_imp_wl_D_def
@@ -169,15 +215,18 @@ proof -
     subgoal for L M N0 D NE0 UE Q W L' M' N0' D' NE0' UE' Q' W'
       apply (refine_vcg
           WHILEIT_refine[where R = \<open>{((i, N, NE), (i', N', NE')). i = i' \<and> N=N' \<and>NE=NE' \<and>
-            literals_are_\<L>\<^sub>i\<^sub>n (M, N, D, NE, UE, Q, W)}\<close>])
+            literals_are_\<L>\<^sub>i\<^sub>n' (M, N, D, NE, UE, Q, W)}\<close>])
       subgoal unfolding remove_all_annot_true_clause_imp_wl_D_pre_def by force
       subgoal by auto
-      subgoal by (rule remove_all_annot_true_clause_imp_wl_D_inv) auto
+      subgoal
+        unfolding remove_all_annot_true_clause_imp_wl_D_inv_def by auto
       subgoal by auto
       subgoal by auto
       subgoal by auto
       subgoal by auto
-      subgoal unfolding remove_all_annot_true_clause_imp_wl_D_inv_def by auto
+      subgoal unfolding remove_all_annot_true_clause_imp_wl_D_inv_def literals_are_\<L>\<^sub>i\<^sub>n'_def
+        blits_in_\<L>\<^sub>i\<^sub>n_def
+        by auto
       subgoal by auto
       subgoal unfolding remove_all_annot_true_clause_imp_wl_D_pre_def by auto
       done
@@ -187,7 +236,7 @@ qed
 definition remove_one_annot_true_clause_one_imp_wl_D_pre where
   \<open>remove_one_annot_true_clause_one_imp_wl_D_pre i T \<longleftrightarrow>
      remove_one_annot_true_clause_one_imp_wl_pre i T \<and>
-     literals_are_\<L>\<^sub>i\<^sub>n T\<close>
+     literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
 
 definition remove_one_annot_true_clause_one_imp_wl_D
   :: \<open>nat \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres\<close>
@@ -211,8 +260,8 @@ where
 lemma remove_one_annot_true_clause_one_imp_wl_D_remove_one_annot_true_clause_one_imp_wl:
   \<open>(uncurry remove_one_annot_true_clause_one_imp_wl_D,
     uncurry remove_one_annot_true_clause_one_imp_wl) \<in>
-   nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
-     \<langle>nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+   nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+     \<langle>nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
 proof -
 
   have [refine0]: \<open>replace_annot_in_trail_spec L M \<le> \<Down> Id (replace_annot_in_trail_spec L' M')\<close>
@@ -232,12 +281,12 @@ proof -
       pre: \<open>remove_one_annot_true_clause_one_imp_wl_pre L'
       (M', N0', D', NE0', UE', Q', W')\<close> and
       x1: \<open>rev M' ! L' = Propagated x1 x2\<close> and
-      L: \<open>literals_are_\<L>\<^sub>i\<^sub>n (M', N0', D', NE0', UE', Q', W')\<close>
+      L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M', N0', D', NE0', UE', Q', W')\<close>
     for x1 L' N0' D' NE0' UE' Q' W' M' x2
   proof -
     obtain x xa where
       x: \<open>((M', N0', D', NE0', UE', Q', W'), x) \<in> state_wl_l None\<close> and
-      \<open>partial_correct_watching
+      \<open>correct_watching'
       (M', N0', D', NE0', UE', Q', W')\<close> and
       \<open>twl_list_invs x\<close> and
       le: \<open>L' < length (get_trail_l x)\<close> and
@@ -255,6 +304,10 @@ proof -
          apply (rule x)
         apply (rule struct_invs_xa)
        apply (rule x_xa)
+       apply (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[THEN iffD1])
+         apply (rule x)
+        apply (rule x_xa)
+       apply (rule struct_invs_xa)
       apply (rule L)
       done
     from literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms[OF this, of \<open>lit_of (rev M' ! L')\<close>]
@@ -277,10 +330,10 @@ proof -
              add_mset (mset x1c) UE', Q', W'))
       \<in> {(L, L'). L = L' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l} \<times>\<^sub>f
          {(S, T).
-          (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<close>
+          (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
     if
       eq': \<open>((L, M, N0, D, NE0, UE, Q, W), L', M', N0', D', NE0', UE', Q', W') \<in> nat_rel \<times>\<^sub>f
-        {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<close>
+        {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
       \<open>(Ma, Maa) \<in> Id\<close>
       \<open>(x, x') \<in> Id\<close> and
       \<open>remove_one_annot_true_clause_one_imp_wl_pre L' (M', N0', D', NE0', UE', Q', W')\<close> and
@@ -336,9 +389,9 @@ proof -
       using \<open>x = (x1a, x2a)\<close> unfolding \<open>x = (x1, x2)\<close>
       by auto
     obtain x xa where
-      L: \<open>literals_are_\<L>\<^sub>i\<^sub>n (M, N0, D, NE0, UE, Q, W)\<close> and
+      L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, N0, D, NE0, UE, Q, W)\<close> and
       x: \<open>((M, N0, D, NE0, UE, Q, W), x) \<in> state_wl_l None\<close> and
-      \<open>partial_correct_watching (M, N0, D, NE0, UE, Q, W)\<close> and
+      \<open>correct_watching' (M, N0, D, NE0, UE, Q, W)\<close> and
       \<open>twl_list_invs x\<close> and
       le: \<open>L < length (get_trail_l x)\<close> and
       \<open>twl_list_invs x\<close> and
@@ -356,6 +409,10 @@ proof -
          apply (rule x)
         apply (rule struct_invs_xa)
        apply (rule x_xa)
+       apply (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[THEN iffD1])
+         apply (rule x)
+        apply (rule x_xa)
+       apply (rule struct_invs_xa)
       apply (rule L)
       done
     from literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms[OF this, of \<open>lit_of (rev M ! L)\<close>]
@@ -366,7 +423,7 @@ proof -
           split: if_splits)
     then show ?thesis
       using x \<open>x2a \<in># dom_m N0\<close> L unfolding st by (auto simp: st' ran_m_fmdrop
-          image_mset_remove1_mset_if)
+          image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n_def)
   qed
   show ?thesis
     supply [[goals_limit=1]]
@@ -393,9 +450,10 @@ proof -
       done
     done
 qed
+
 definition remove_one_annot_true_clause_imp_wl_D_inv where
   \<open>remove_one_annot_true_clause_imp_wl_D_inv S = (\<lambda>(i, T).
-     remove_one_annot_true_clause_imp_wl_inv S (i, T) \<and> literals_are_\<L>\<^sub>i\<^sub>n T)\<close>
+     remove_one_annot_true_clause_imp_wl_inv S (i, T) \<and> literals_are_\<L>\<^sub>i\<^sub>n' T)\<close>
 
 definition remove_one_annot_true_clause_imp_wl_D :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
@@ -410,15 +468,15 @@ where
 
 lemma remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl:
   \<open>(remove_one_annot_true_clause_imp_wl_D, remove_one_annot_true_clause_imp_wl) \<in>
-   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
-     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
 proof -
   show ?thesis
     unfolding uncurry_def remove_one_annot_true_clause_imp_wl_D_def
       remove_one_annot_true_clause_imp_wl_def
     apply (intro frefI nres_relI)
     apply (refine_vcg
-      WHILEIT_refine[where R=\<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<close>]
+      WHILEIT_refine[where R=\<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>]
       remove_one_annot_true_clause_one_imp_wl_D_remove_one_annot_true_clause_one_imp_wl[THEN fref_to_Down_curry])
     subgoal by auto
     subgoal for S S' T T'
@@ -430,12 +488,12 @@ proof -
 qed
 
 definition mark_to_delete_clauses_wl_D_pre where
-  \<open>mark_to_delete_clauses_wl_D_pre S \<longleftrightarrow> mark_to_delete_clauses_wl_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+  \<open>mark_to_delete_clauses_wl_D_pre S \<longleftrightarrow> mark_to_delete_clauses_wl_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
 
 definition mark_to_delete_clauses_wl_D_inv where
   \<open>mark_to_delete_clauses_wl_D_inv = (\<lambda>(M, N0, D, NE, UE, Q, W) xs0 (b, i, N, xs).
        mark_to_delete_clauses_wl_inv (M, N0, D, NE, UE, Q, W) xs0 (b, i, N, xs) \<and>
-        literals_are_\<L>\<^sub>i\<^sub>n (M, N, D, NE, UE, Q, W))\<close>
+        literals_are_\<L>\<^sub>i\<^sub>n' (M, N, D, NE, UE, Q, W))\<close>
 
 definition mark_to_delete_clauses_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
 \<open>mark_to_delete_clauses_wl_D  = (\<lambda>(M, N, D, NE, UE, Q, W). do {
@@ -471,10 +529,16 @@ lemma (in -) Union_bool_expand: \<open>(\<Union>can_del\<in>{b::bool. P b}. f ca
   apply (case_tac x; solves \<open>auto\<close>)
   done
 
+(* TODO Move *)
+lemma (in -) [twl_st_l, simp]:
+ \<open>(S, T)\<in>twl_st_l b \<Longrightarrow> get_all_init_clss T = mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses S\<close>
+  by (cases S; cases T; cases b) (auto simp: twl_st_l_def mset_take_mset_drop_mset')
+(* Env Move *)
+
 lemma mark_to_delete_clauses_wl_D_mark_to_delete_clauses_wl:
   \<open>(mark_to_delete_clauses_wl_D, mark_to_delete_clauses_wl) \<in>
-   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
-     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>collect_valid_indices_wl S \<le> \<Down> Id (collect_valid_indices_wl T)\<close>
     if \<open>(S, T) \<in> Id\<close> for S T
@@ -492,7 +556,7 @@ proof -
     if
       T: \<open>T = (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       S: \<open>S = (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
-      \<open>literals_are_\<L>\<^sub>i\<^sub>n (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
+      \<open>literals_are_\<L>\<^sub>i\<^sub>n' (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       \<open>mark_to_delete_clauses_wl_D_pre (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       xs: \<open>(xs0, xs0') \<in> {(N, N'). N = N' \<and> distinct N}\<close> and
       \<open>xs0 \<in> {N. distinct N}\<close> and
@@ -537,7 +601,7 @@ proof -
       \<open>i = i'\<close>
       \<open>N = N'\<close>
       \<open>xs = xs'\<close>
-      \<open>brk =brk'\<close> and
+      \<open>brk = brk'\<close> and
       \<open>mark_to_delete_clauses_wl_D_inv S xs0 (brk, i', N', xs')\<close>
       using st ss' by auto
     have post: \<open>mark_to_delete_clauses_wl_inv (SM, SN, SD, SNE, SUE, SQ, SW) xs0'
@@ -554,6 +618,7 @@ proof -
     if
       T: \<open>T = (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       S: \<open>S = (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
+      lits_T: \<open>literals_are_\<L>\<^sub>i\<^sub>n' (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       ss': \<open>(s, s') \<in> {((brk, i, N, xs), brk', i', N', xs'). brk = brk' \<and> i = i' \<and>
          N = N' \<and> xs = xs' \<and> mark_to_delete_clauses_wl_D_inv S xs0 (brk, i, N, xs)}\<close> and
       st:
@@ -579,12 +644,54 @@ proof -
       \<open>i = i'\<close>
       \<open>N = N'\<close>
       \<open>xs = xs'\<close>
-      \<open>brk =brk'\<close> and
+      \<open>brk = brk'\<close> and
       inv_x: \<open>mark_to_delete_clauses_wl_D_inv S xs0 (brk, i', N', xs')\<close>
       using st ss' by auto
-    have \<open>literals_are_\<L>\<^sub>i\<^sub>n  (SM, N', SD, SNE, SUE, SQ, SW)\<close>
+    have lits_T': \<open>literals_are_\<L>\<^sub>i\<^sub>n' (SM, N', SD, SNE, SUE, SQ, SW)\<close>
       using inv_x unfolding mark_to_delete_clauses_wl_D_inv_def prod.case S
       by fast
+    have \<open>literals_are_\<L>\<^sub>i\<^sub>n (SM, N', SD, SNE, SUE, SQ, SW)\<close>
+    proof -
+      obtain x a b c d e f g xa where
+        lits_T': \<open>literals_are_\<L>\<^sub>i\<^sub>n' (SM, N', SD, SNE, SUE, SQ, SW)\<close> and
+        Ta_x: \<open>((SM, SN, SD, SNE, SUE, SQ, SW), a, b, c, d, e, f, g)
+          \<in> state_wl_l None\<close> and
+        \<open>correct_watching' (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
+        \<open>x = (a, b, c, d, e, f, g)\<close> and
+        rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* (a, b, c, d, e, f, g)
+          (a, N', c, d, e, f, g)\<close> and
+        list: \<open>twl_list_invs (a, b, c, d, e, f, g)\<close> and
+        Ta_y: \<open>((a, b, c, d, e, f, g), xa) \<in> twl_st_l None\<close> and
+        struct: \<open>twl_struct_invs xa\<close> and
+        confl: \<open>get_conflict_l (a, b, c, d, e, f, g) = None\<close> and
+        upd: \<open>clauses_to_update_l (a, b, c, d, e, f, g) = {#}\<close> and
+        \<open>filter_mset (\<lambda>i. i \<in># dom_m N') (mset xs') = {#i \<in># mset xs0. i \<in># dom_m N'#}\<close> and
+        \<open>distinct xs'\<close>
+        using inv_x unfolding mark_to_delete_clauses_wl_D_inv_def S prod.case
+          mark_to_delete_clauses_wl_inv_def mark_to_delete_clauses_l_inv_def
+        apply -
+        apply normalize_goal+
+        apply (case_tac x, simp only: prod.case)
+        by blast
+
+      have Ta_x': \<open>((SM, N', SD, SNE, SUE, SQ, SW), a, N', c, d, e, f, g)
+          \<in> state_wl_l None\<close>
+        using Ta_x
+        by (auto simp: state_wl_l_def)
+
+      obtain y where
+        Ta_y': \<open>((a, N', c, d, e, f, g), y) \<in> twl_st_l None\<close>  and
+        struct': \<open>twl_struct_invs y\<close>
+        using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[OF rem list confl upd Ta_y
+          struct] by blast
+
+      have \<open>literals_are_\<L>\<^sub>i\<^sub>n (SM, SN, SD, SNE, SUE, SQ, SW)\<close>
+        by (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[THEN iffD1,
+          OF Ta_x Ta_y struct lits_T])
+      show ?thesis
+        by (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[THEN iffD1,
+          OF Ta_x' Ta_y' struct' lits_T'])
+    qed
     then have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N \<propto> (xs ! i)))\<close>
       using literals_are_in_\<L>\<^sub>i\<^sub>n_nth[of \<open>xs!i\<close> \<open>(SM, N', SD, SNE, SUE, SQ, SW)\<close>] dom
       by (auto simp: st)
@@ -605,7 +712,7 @@ proof -
     if
       \<open>T = (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       S: \<open>S = (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
-      \<open>literals_are_\<L>\<^sub>i\<^sub>n (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
+      \<open>literals_are_\<L>\<^sub>i\<^sub>n' (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       pre: \<open>mark_to_delete_clauses_wl_D_pre (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       xs0_xs0': \<open>(xs0, xs0') \<in> {(N, N'). N = N' \<and> distinct N}\<close> and
       \<open>xs0 \<in> {N. distinct N}\<close> and
@@ -642,7 +749,7 @@ proof -
         \<open>sbrk = (i, si)\<close>
         \<open>s = (brk, sbrk)\<close> and
       dom: \<open>\<not> xs ! i \<notin># dom_m N\<close> and
-      \<open>\<not> xs' ! i' \<notin># dom_m N'\<close> and
+      dom': \<open>\<not> xs' ! i' \<notin># dom_m N'\<close> and
       length: \<open>0 < length (N' \<propto> (xs' ! i'))\<close> and
       \<open>0 < length (N \<propto> (xs ! i))\<close> and
       \<open>N \<propto> (xs ! i) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
@@ -701,7 +808,7 @@ proof -
           split: if_splits)
     then obtain a aa ab ac ad ae b af ba c d e f g U' where
       SU: \<open>((SM, SN, SD, SNE, SUE, SQ, SW), af, ba, c, d, e, f, g) \<in> state_wl_l None\<close> and
-        \<open>partial_correct_watching (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
+        \<open>correct_watching' (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* (af, ba, c, d, e, f, g)
           (af, fmdrop (xs' ! i') N', c, d, e, f, g)\<close> and
        \<open>filter_mset (\<lambda>i. i \<in># dom_m (fmdrop (xs' ! i') N')) (mset xs') =
@@ -728,15 +835,17 @@ proof -
       using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[OF rem list_invs_U confl upd
           UU' struct_U']
       by blast
-    have lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n (SM, SN, SD, SNE, SUE, SQ, SW)\<close>
+    have lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' (SM, SN, SD, SNE, SUE, SQ, SW)\<close>
       using inv pre unfolding mark_to_delete_clauses_wl_D_pre_def prod.case s by fast+
     have SV: \<open>((SM, fmdrop (xs' ! i') N', SD, SNE, SUE, SQ, SW), af, fmdrop (xs' ! i') N', c, d, e, f, g) \<in> state_wl_l None\<close>
       using SU by (auto simp: state_wl_l_def)
-    have \<open>literals_are_\<L>\<^sub>i\<^sub>n (SM, fmdrop (xs' ! i') N', SD, SNE, SUE, SQ, SW)\<close>
-      using cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l[OF U'V struct_U' ] lits SU UU' UV SV
-      by (auto simp del: get_clauses.simps get_clauses_wl.simps get_clauses_l.simps
-          unit_clss.simps get_unit_clauses_l.simps get_unit_clauses_wl.simps
-          simp: mset_take_mset_drop_mset')
+    then have \<open>d = SNE\<close> \<open>SN = ba\<close>
+      using SU
+      by (auto simp: state_wl_l_def)
+    then have \<open>literals_are_\<L>\<^sub>i\<^sub>n' (SM, fmdrop (xs' ! i') N', SD, SNE, SUE, SQ, SW)\<close>
+      using cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l'[OF U'V struct_U'] lits SU UU' UV SV dom' can_del'
+      by (auto simp: init_clss_l_fmdrop_irrelev mset_take_mset_drop_mset' blits_in_\<L>\<^sub>i\<^sub>n_def
+         literals_are_\<L>\<^sub>i\<^sub>n'_def)
     then have \<open>mark_to_delete_clauses_wl_D_inv S xs0' (break1', Suc i', fmdrop (xs' ! i') N', xs')\<close>
       using st' unfolding mark_to_delete_clauses_wl_D_inv_def S prod.case
       by auto
@@ -754,7 +863,7 @@ proof -
     if
       T: \<open>T = (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       S: \<open>S = (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
-      \<open>literals_are_\<L>\<^sub>i\<^sub>n (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
+      \<open>literals_are_\<L>\<^sub>i\<^sub>n' (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       \<open>mark_to_delete_clauses_wl_pre (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       pre: \<open>mark_to_delete_clauses_wl_D_pre (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       xs0_xs0': \<open>(xs0, xs0') \<in> {(N, N'). N = N' \<and> distinct N}\<close> and
@@ -792,7 +901,7 @@ proof -
         \<open>sbrk = (i, si)\<close>
         \<open>s = (brk, sbrk)\<close> and
       dom: \<open>\<not> xs ! i \<notin># dom_m N\<close> and
-      \<open>\<not> xs' ! i' \<notin># dom_m N'\<close> and
+      dom': \<open>\<not> xs' ! i' \<notin># dom_m N'\<close> and
       length: \<open>0 < length (N' \<propto> (xs' ! i'))\<close> and
       \<open>0 < length (N \<propto> (xs ! i))\<close> and
       \<open>N \<propto> (xs ! i) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
@@ -800,7 +909,7 @@ proof -
      \<in> {b. b \<longrightarrow>
             Propagated (N \<propto> (xs ! i) ! 0) (xs ! i) \<notin> set SM \<and>
             \<not> irred N (xs ! i)}\<close> and
-      \<open>can_del' \<in> {b. b \<longrightarrow>
+      can_del': \<open>can_del' \<in> {b. b \<longrightarrow>
             Propagated (N' \<propto> (xs' ! i') ! 0) (xs' ! i')
             \<notin> set SM \<and>
             \<not> irred N' (xs' ! i')}\<close> and
@@ -854,7 +963,7 @@ proof -
     then obtain a aa ab ac ad ae b af ba c d e f g U' where
     \<open>distinct xs'\<close> and
       SU: \<open>((SM, SN, SD, SNE, SUE, SQ, SW), af, ba, c, d, e, f, g) \<in> state_wl_l None\<close> and
-      \<open>partial_correct_watching (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
+      \<open>correct_watching' (SM, SN, SD, SNE, SUE, SQ, SW)\<close> and
       rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* (af, ba, c, d, e, f, g)
           (af, N', c, d, e, f, g)\<close> and
       \<open>filter_mset (\<lambda>i. i \<in># dom_m N') (mset xs') =
@@ -879,15 +988,17 @@ proof -
       using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[OF rem list_invs_U confl upd
           UU' struct_U']
       by blast
-    have lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n (SM, SN, SD, SNE, SUE, SQ, SW)\<close>
+    have lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' (SM, SN, SD, SNE, SUE, SQ, SW)\<close>
       using pre unfolding mark_to_delete_clauses_wl_D_pre_def prod.case s by fast+
     have SV: \<open>((SM, N', SD, SNE, SUE, SQ, SW), af, N', c, d, e, f, g) \<in> state_wl_l None\<close>
       using SU by (auto simp: state_wl_l_def)
-    have \<open>literals_are_\<L>\<^sub>i\<^sub>n (SM, N', SD, SNE, SUE, SQ, SW)\<close>
-      using cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l[OF U'V struct_U' ] lits SU UU' UV SV
-      by (auto simp del: get_clauses.simps get_clauses_wl.simps get_clauses_l.simps
-          unit_clss.simps get_unit_clauses_l.simps get_unit_clauses_wl.simps
-          simp: mset_take_mset_drop_mset')
+    then have \<open>d = SNE\<close> \<open>SN = ba\<close>
+      using SU
+      by (auto simp: state_wl_l_def)
+    then have \<open>literals_are_\<L>\<^sub>i\<^sub>n' (SM, N', SD, SNE, SUE, SQ, SW)\<close>
+      using cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l'[OF U'V struct_U'] lits SU UU' UV SV dom' can_del'
+      by (auto simp: init_clss_l_fmdrop_irrelev mset_take_mset_drop_mset' blits_in_\<L>\<^sub>i\<^sub>n_def
+         literals_are_\<L>\<^sub>i\<^sub>n'_def)
     then have \<open>mark_to_delete_clauses_wl_D_inv S xs0' (break1', Suc i', N', xs')\<close>
       using st' unfolding mark_to_delete_clauses_wl_D_inv_def S prod.case
       by auto
@@ -933,7 +1044,7 @@ proof -
       done
     done
 qed
-
+(*
 
 definition rewatch_clause_D
   :: \<open>nat clauses_l \<Rightarrow> nat \<Rightarrow> (nat literal \<Rightarrow> watched) \<Rightarrow> (nat literal \<Rightarrow> watched) nres\<close>
@@ -961,7 +1072,7 @@ lemma rewatch_clause_D_rewatch_clause:
 
 definition rewatch_clauses_prog_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool\<close>  where
   \<open>rewatch_clauses_prog_D_pre S \<longleftrightarrow>
-     (rewatch_clauses_prog_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n S)\<close>
+     (rewatch_clauses_prog_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition rewatch_clauses_prog_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
 \<open>rewatch_clauses_prog_D = (\<lambda>(M, N, D, NE, UE, Q, W0). do {
@@ -984,8 +1095,8 @@ definition rewatch_clauses_prog_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_
 
 lemma rewatch_clauses_prog_D_rewatch_clauses_prog:
   \<open>(rewatch_clauses_prog_D, rewatch_clauses_prog) \<in>
-   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
-     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
 proof -
   show ?thesis
     unfolding rewatch_clauses_prog_D_def rewatch_clauses_prog_def
@@ -1009,65 +1120,67 @@ proof -
     subgoal by auto
     done
 qed
-
+*)
 
 definition mark_to_delete_clauses_wl_D_post where
   \<open>mark_to_delete_clauses_wl_D_post S T \<longleftrightarrow>
-     (mark_to_delete_clauses_wl_post S T \<and> literals_are_\<L>\<^sub>i\<^sub>n S)\<close>
+     (mark_to_delete_clauses_wl_post S T \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition cdcl_twl_full_restart_wl_prog_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
 \<open>cdcl_twl_full_restart_wl_prog_D S = do {
     S \<leftarrow> remove_one_annot_true_clause_imp_wl_D S;
     ASSERT(mark_to_delete_clauses_wl_D_pre S);
     T \<leftarrow> mark_to_delete_clauses_wl_D S;
-    rewatch_clauses_prog_D T
+    ASSERT (mark_to_delete_clauses_wl_post S T);
+    RETURN T
   }\<close>
+
+lemma cdcl_twl_full_restart_wl_prog_D_final_rel:
+  assumes
+    \<open>(S, Sa) \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close> and
+    \<open>mark_to_delete_clauses_wl_D_pre S\<close> and
+    \<open>(T, Ta) \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close> and
+    post: \<open>mark_to_delete_clauses_wl_post Sa Ta\<close> and
+    \<open>mark_to_delete_clauses_wl_post S T\<close>
+  shows \<open>(T, Ta) \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<close>
+proof -
+  have lits_T: \<open>literals_are_\<L>\<^sub>i\<^sub>n' Ta\<close> and T: \<open>T = Ta\<close>
+    using assms by auto
+  obtain x xa xb where
+    Sa_x: \<open>(Sa, x) \<in> state_wl_l None\<close> and
+    Ta_x: \<open>(Ta, xa) \<in> state_wl_l None\<close> and
+    corr_S: \<open>correct_watching Sa\<close> and
+    corr_T: \<open>correct_watching Ta\<close> and
+    x_xb: \<open>(x, xb) \<in> twl_st_l None\<close> and
+    rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* x xa\<close> and
+    list: \<open>twl_list_invs x\<close> and
+    struct: \<open>twl_struct_invs xb\<close> and
+    confl: \<open>get_conflict_l x = None\<close> and
+    upd: \<open>clauses_to_update_l x = {#}\<close>
+    using post unfolding mark_to_delete_clauses_wl_post_def mark_to_delete_clauses_l_post_def
+    by blast
+  obtain y where
+    \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* x xa\<close> and
+    Ta_y: \<open>(xa, y) \<in> twl_st_l None\<close>  and
+    \<open>cdcl_twl_restart\<^sup>*\<^sup>* xb y\<close> and
+    struct: \<open>twl_struct_invs y\<close>
+    using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[OF rem list confl upd x_xb
+       struct]
+    by blast
+
+  have \<open>literals_are_\<L>\<^sub>i\<^sub>n Ta\<close>
+    by (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[THEN iffD1,
+       OF Ta_x Ta_y struct lits_T])
+  then show ?thesis
+    using T by auto
+qed
+
 
 lemma cdcl_twl_full_restart_wl_prog_D_cdcl_twl_restart_wl_prog:
   \<open>(cdcl_twl_full_restart_wl_prog_D, cdcl_twl_full_restart_wl_prog) \<in>
-   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
      \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
 proof -
-  have [refine0]: \<open>rewatch_clauses_prog_D U \<le> \<Down> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}
-          (rewatch_clauses U')\<close>
-    if
-      UU': \<open>(U, U') \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<close> and
-      post: \<open>mark_to_delete_clauses_wl_post T' U'\<close>
-    for S S' T T' U U'
-  proof -
-    have le: \<open>rewatch_clauses_prog_D U \<le> \<Down> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}
-            (rewatch_clauses_prog U')\<close>
-      using rewatch_clauses_prog_D_rewatch_clauses_prog[THEN fref_to_Down, of U U']
-        UU' by auto
-    obtain x xa xb where
-      \<open>(T', x) \<in> state_wl_l None\<close> and
-      U'_xa: \<open>(U', xa) \<in> state_wl_l None\<close> and
-      xxb: \<open>(x, xb) \<in> twl_st_l None\<close> and
-      rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* x xa\<close> and
-      list_invs: \<open>twl_list_invs x\<close> and
-      struct_xb: \<open>twl_struct_invs xb\<close> and
-      part_T': \<open>partial_correct_watching T'\<close> and
-      confl: \<open>get_conflict_l x = None\<close> and
-      upd: \<open>clauses_to_update_l x = {#}\<close> and
-      \<open>partial_correct_watching T'\<close> and
-      part_U': \<open>partial_correct_watching U'\<close>
-      using post unfolding mark_to_delete_clauses_wl_post_def mark_to_delete_clauses_l_post_def
-      by blast
-    obtain xc where
-      xa_xc: \<open>(xa, xc) \<in> twl_st_l None\<close> and
-      struct_xc: \<open>twl_struct_invs xc\<close> and
-      x_xa: \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* x xa\<close> and
-      \<open>cdcl_twl_restart\<^sup>*\<^sup>* xb xc\<close>
-      using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[OF rem list_invs confl upd
-          xxb struct_xb]
-      by blast
-    have list_xa: \<open>twl_list_invs xa\<close>
-      using rtranclp_cdcl_twl_restart_l_list_invs[OF x_xa list_invs] .
-    have \<open>rewatch_clauses_prog U' \<le> rewatch_clauses U'\<close>
-      using rewatch_clauses_prog_rewatch_clauses[of U', OF U'_xa xa_xc struct_xc list_xa part_U'] .
-    then show ?thesis
-      using ref_two_step[OF le] by blast
-  qed
   show ?thesis
     unfolding uncurry_def cdcl_twl_full_restart_wl_prog_D_def cdcl_twl_full_restart_wl_prog_def
     apply (intro frefI nres_relI)
@@ -1077,13 +1190,15 @@ proof -
       mark_to_delete_clauses_wl_D_mark_to_delete_clauses_wl[THEN fref_to_Down])
     subgoal for S T U V
       unfolding mark_to_delete_clauses_wl_D_pre_def by blast
-    apply assumption
+    subgoal by auto
+    subgoal for x y S Sa T Ta
+      by (rule cdcl_twl_full_restart_wl_prog_D_final_rel)
     done
 qed
 
 definition (in isasat_input_ops) restart_abs_wl_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_wl_D_pre S brk \<longleftrightarrow>
-    (restart_abs_wl_pre S brk \<and> literals_are_\<L>\<^sub>i\<^sub>n S)\<close>
+    (restart_abs_wl_pre S brk \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition (in isasat_input_ops) cdcl_twl_local_restart_wl_D_spec
   :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
@@ -1108,7 +1223,8 @@ proof -
     apply (refine_vcg)
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
-    subgoal by (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def)
+    subgoal by (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def
+      literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def)
     done
 qed
 
@@ -1117,6 +1233,34 @@ definition cdcl_twl_restart_wl_D_prog where
    b \<leftarrow> SPEC(\<lambda>_. True);
    if b then cdcl_twl_local_restart_wl_D_spec S else cdcl_twl_full_restart_wl_prog_D S
   }\<close>
+
+lemma cdcl_twl_restart_wl_D_prog_final_rel:
+  assumes
+    post: \<open>restart_abs_wl_D_pre Sa b\<close> and
+    \<open>(S, Sa) \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<close>
+  shows \<open>(S, Sa) \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
+proof -
+  have lits_T: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and T: \<open>S = Sa\<close>
+    using assms by auto
+  obtain x xa where
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> and
+    S_x: \<open>(S, x) \<in> state_wl_l None\<close> and
+    \<open>correct_watching S\<close> and
+    x_xa: \<open>(x, xa) \<in> twl_st_l None\<close> and
+    struct: \<open>twl_struct_invs xa\<close> and
+    list: \<open>twl_list_invs x\<close> and
+    \<open>clauses_to_update_l x = {#}\<close> and
+    \<open>twl_stgy_invs xa\<close> and
+    confl: \<open>\<not>b \<longrightarrow> get_conflict xa = None\<close>
+    using post unfolding restart_abs_wl_D_pre_def restart_abs_wl_pre_def restart_abs_l_pre_def
+      restart_prog_pre_def T by blast
+
+  have \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+    by (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[THEN iffD2,
+       OF S_x x_xa struct lits_T])
+  then show ?thesis
+    using T by auto
+qed
 
 lemma cdcl_twl_restart_wl_D_prog_cdcl_twl_restart_wl_prog:
   \<open>(cdcl_twl_restart_wl_D_prog, cdcl_twl_restart_wl_prog)
@@ -1130,6 +1274,8 @@ lemma cdcl_twl_restart_wl_D_prog_cdcl_twl_restart_wl_prog:
       cdcl_twl_full_restart_wl_prog_D_cdcl_twl_restart_wl_prog[THEN fref_to_Down])
   subgoal by (auto simp: state_wl_l_def)
   subgoal by (auto simp: state_wl_l_def)
+  subgoal for x y b b'
+    by (rule cdcl_twl_restart_wl_D_prog_final_rel)
   done
 
 definition restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (nat twl_st_wl \<times> nat) nres" where
@@ -1144,24 +1290,55 @@ definition restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat \<Rightarrow> b
        RETURN (S, n)
    }\<close>
 
+
 lemma restart_prog_wl_D_restart_prog_wl:
   \<open>(uncurry2 restart_prog_wl_D, uncurry2 restart_prog_wl) \<in>
-     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>f nat_rel  \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f
+     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f
      \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>restart_required_wl x1c x2b \<le> \<Down> Id (restart_required_wl x1a x2)\<close>
     if \<open>(x1c, x1a) \<in> Id\<close> \<open>(x2b, x2) \<in> Id\<close>
     for x1c x1a x2b x2
     using that by auto
+  have restart_abs_wl_D_pre: \<open>restart_abs_wl_D_pre x1c x2c\<close>
+    if
+      \<open>(x, y) \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel\<close> and
+      \<open>x1 = (x1a, x2)\<close> and
+      \<open>y = (x1, x2a)\<close> and
+      \<open>x1b = (x1c, x2b)\<close> and
+      \<open>x = (x1b, x2c)\<close> and
+      pre: \<open>restart_abs_wl_pre x1a x2a\<close>
+    for x y x1 x1a x2 x2a x1b x1c x2b x2c
+  proof -
+    have \<open>restart_abs_wl_pre x1a x2c\<close> and lits_T: \<open>literals_are_\<L>\<^sub>i\<^sub>n x1a\<close>
+      using pre that
+      unfolding restart_abs_wl_D_pre_def
+      by auto
+    then obtain xa x where
+        S_x: \<open>(x1a, x) \<in> state_wl_l None\<close> and
+        \<open>correct_watching x1a\<close> and
+        x_xa: \<open>(x, xa) \<in> twl_st_l None\<close> and
+        struct: \<open>twl_struct_invs xa\<close> and
+        list: \<open>twl_list_invs x\<close> and
+        \<open>clauses_to_update_l x = {#}\<close> and
+        \<open>twl_stgy_invs xa\<close> and
+        \<open>\<not> x2c \<longrightarrow> get_conflict xa = None\<close>
+      unfolding restart_abs_wl_pre_def restart_abs_l_pre_def restart_prog_pre_def by blast
+
+    show ?thesis
+      using pre that literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[THEN iffD2,
+       OF S_x x_xa struct lits_T]
+      unfolding restart_abs_wl_D_pre_def
+      by auto
+  qed
 
   show ?thesis
     unfolding uncurry_def restart_prog_wl_D_def restart_prog_wl_def
     apply (intro frefI nres_relI)
     apply (refine_vcg
-      rewatch_clauses_prog_D_rewatch_clauses_prog[THEN fref_to_Down]
       remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
       cdcl_twl_restart_wl_D_prog_cdcl_twl_restart_wl_prog[THEN fref_to_Down])
-    subgoal unfolding restart_abs_wl_D_pre_def by auto
+    subgoal by (rule restart_abs_wl_D_pre)
     subgoal by auto
     subgoal by auto
     subgoal by auto
