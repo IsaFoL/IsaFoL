@@ -242,6 +242,10 @@ val typerep_bool = {typerep = typerep_boola} : bool typerep;
 val heap_bool = {countable_heap = countable_bool, typerep_heap = typerep_bool} :
   bool heap;
 
+val default_boola : bool = false;
+
+val default_bool = {default = default_boola} : bool default;
+
 fun typerep_arraya A_ t = Typerep ("Heap.array", [typerep A_ Type]);
 
 val countable_array = {} : ('a array) countable;
@@ -726,8 +730,9 @@ fun init_state_wl_D_code x =
           val xa = new heap_bool x_a false ();
           val x_j =
             arrayO_ara_empty_sz_code
-              (default_prod default_nat default_uint32,
-                heap_prod heap_nat heap_uint32)
+              (default_prod default_nat
+                 (default_prod default_uint32 default_bool),
+                heap_prod heap_nat (heap_prod heap_uint32 heap_bool))
               x_c ();
           val x_l = initialise_VMTF_code a1 x_a ();
           val x_m = new heap_bool x_a false ();
@@ -1283,7 +1288,7 @@ fun watched_by_app_heur_code x =
     let
       val (_, (_, (_, (_, (a1d, _))))) = ai;
     in
-      nth_aa_u (heap_prod heap_nat heap_uint32) a1d bia bi
+      nth_aa_u (heap_prod heap_nat (heap_prod heap_uint32 heap_bool)) a1d bia bi
     end)
     x;
 
@@ -1311,11 +1316,12 @@ fun update_aa_u A_ a i j y =
     end);
 
 fun update_blit_wl_heur_code x =
-  (fn ai => fn bid => fn bic => fn bib => fn bia =>
+  (fn ai => fn bie => fn bid => fn bic => fn bib => fn bia =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
     let
       val xa =
-        update_aa_u (heap_prod heap_nat heap_uint32) a1d ai bic (bid, bia) ();
+        update_aa_u (heap_prod heap_nat (heap_prod heap_uint32 heap_bool)) a1d
+          ai bic (bie, (bia, bid)) ();
     in
       (plus_nat bic one_nat,
         (plus_nat bib one_nat, (a1, (a1a, (a1b, (a1c, (xa, a2d)))))))
@@ -1350,16 +1356,16 @@ fun append_el_aa_u (A1_, A2_) =
     end);
 
 fun update_clause_wl_code x =
-  (fn ai => fn bie => fn bid => fn bic => fn bib => fn bia =>
+  (fn ai => fn bif => fn bie => fn bid => fn bic => fn bib => fn bia =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
     let
-      val xa = isa_arena_lit_code a1a (plus_nat bie bia) ();
-      val x_b = swap_lits_code bie bib bia a1a ();
+      val xa = isa_arena_lit_code a1a (plus_nat bif bia) ();
+      val x_b = swap_lits_code bif bib bia a1a ();
       val x_d =
         append_el_aa_u
-          (default_prod default_nat default_uint32,
-            heap_prod heap_nat heap_uint32)
-          a1d xa (bie, ai) ();
+          (default_prod default_nat (default_prod default_uint32 default_bool),
+            heap_prod heap_nat (heap_prod heap_uint32 heap_bool))
+          a1d xa (bif, (ai, bie)) ();
     in
       (bid, (plus_nat bic one_nat, (a1, (x_b, (a1b, (a1c, (x_d, a2d)))))))
     end)
@@ -1404,8 +1410,12 @@ fun keep_watch_heur_code x =
   (fn ai => fn bib => fn bia => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) =>
     fn () =>
     let
-      val xa = nth_aa_u (heap_prod heap_nat heap_uint32) a1d ai bia ();
-      val xb = update_aa_u (heap_prod heap_nat heap_uint32) a1d ai bib xa ();
+      val xa =
+        nth_aa_u (heap_prod heap_nat (heap_prod heap_uint32 heap_bool)) a1d ai
+          bia ();
+      val xb =
+        update_aa_u (heap_prod heap_nat (heap_prod heap_uint32 heap_bool)) a1d
+          ai bib xa ();
     in
       (a1, (a1a, (a1b, (a1c, (xb, a2d)))))
     end)
@@ -1444,11 +1454,11 @@ fun unit_propagation_inner_loop_body_wl_heur_code x =
       val a = watched_by_app_heur_code bi ai bia ();
     in
       let
-        val (a1, a2) = a;
+        val (a1, (a1a, a2a)) = a;
       in
         (fn f_ => fn () => f_ ((keep_watch_heur_code ai bib bia bi) ()) ())
           (fn x_b =>
-            (fn f_ => fn () => f_ ((polarity_st_heur_pol_code x_b a2) ()) ())
+            (fn f_ => fn () => f_ ((polarity_st_heur_pol_code x_b a1a) ()) ())
               (fn x_c =>
                 (if ((x_c : Word32.word) = sET_TRUE_code)
                   then (fn () =>
@@ -1472,7 +1482,7 @@ val x_g = (if ((xb : Word32.word) = ai) then zero_nata else one_nat);
     (fn f_ => fn () => f_ ((polarity_st_heur_pol_code x_b x_i) ()) ())
       (fn x_k =>
         (if ((x_k : Word32.word) = sET_TRUE_code)
-          then update_blit_wl_heur_code ai a1 bib bia x_i x_b
+          then update_blit_wl_heur_code ai a1 a2a bib bia x_i x_b
           else (fn f_ => fn () => f_ ((find_unwatched_wl_st_heur_code x_b a1)
                  ()) ())
                  (fn aa =>
@@ -1503,10 +1513,10 @@ val x_g = (if ((xb : Word32.word) = ai) then zero_nata else one_nat);
                                  ((polarity_st_heur_pol_code x_p x_q) ()) ())
                                  (fn x_s =>
                                    (if ((x_s : Word32.word) = sET_TRUE_code)
-                                     then update_blit_wl_heur_code ai a1 bib bia
-    x_q x_p
-                                     else update_clause_wl_code ai a1 bib bia
-    x_g x_o x_p)))))))))
+                                     then update_blit_wl_heur_code ai a1 a2a bib
+    bia x_q x_p
+                                     else update_clause_wl_code ai a1 a2a bib
+    bia x_g x_o x_p)))))))))
                                       end))))))
       end
         ()
@@ -1523,11 +1533,12 @@ fun length_aa_u A_ xs i =
     end);
 
 fun length_ll_fs_heur_code x =
-  (fn ai => fn bi => let
-                       val (_, (_, (_, (_, (a1d, _))))) = ai;
-                     in
-                       length_aa_u (heap_prod heap_nat heap_uint32) a1d bi
-                     end)
+  (fn ai => fn bi =>
+    let
+      val (_, (_, (_, (_, (a1d, _))))) = ai;
+    in
+      length_aa_u (heap_prod heap_nat (heap_prod heap_uint32 heap_bool)) a1d bi
+    end)
     x;
 
 fun unit_propagation_inner_loop_wl_loop_D_code x =
@@ -1568,14 +1579,20 @@ fun cut_watch_list_heur2_code x =
         heap_WHILET
           (fn (_, (a1f, a2f)) =>
             (fn f_ => fn () => f_
-              ((length_aa_u (heap_prod heap_nat heap_uint32) a2f bia) ()) ())
+              ((length_aa_u
+                 (heap_prod heap_nat (heap_prod heap_uint32 heap_bool)) a2f bia)
+              ()) ())
               (fn x_a => (fn () => (less_nat a1f x_a))))
           (fn (a1e, (a1f, a2f)) =>
             (fn f_ => fn () => f_
-              ((nth_aa_u (heap_prod heap_nat heap_uint32) a2f bia a1f) ()) ())
+              ((nth_aa_u (heap_prod heap_nat (heap_prod heap_uint32 heap_bool))
+                 a2f bia a1f)
+              ()) ())
               (fn xa =>
                 (fn f_ => fn () => f_
-                  ((update_aa_u (heap_prod heap_nat heap_uint32) a2f bia a1e xa)
+                  ((update_aa_u
+                     (heap_prod heap_nat (heap_prod heap_uint32 heap_bool)) a2f
+                     bia a1e xa)
                   ()) ())
                   (fn xb =>
                     (fn () =>
@@ -1587,7 +1604,10 @@ fun cut_watch_list_heur2_code x =
       in
         (fn f_ => fn () => f_
           ((shorten_take_aa_u32 heap_nat
-             (heap_array (typerep_prod typerep_nat typerep_uint32)) bia a1e a2f)
+             (heap_array
+               (typerep_prod typerep_nat
+                 (typerep_prod typerep_uint32 typerep_bool)))
+             bia a1e a2f)
           ()) ())
           (fn x_a => (fn () => (a1, (a1a, (a1b, (a1c, (x_a, a2d)))))))
       end
@@ -2942,47 +2962,54 @@ fun propagate_bt_wl_D_code x =
           (fn x_c =>
             (fn f_ => fn () => f_ ((get_LBD_code a1i) ()) ())
               (fn x_d =>
-                (fn f_ => fn () => f_ ((append_and_length_code false bia a1a)
-                  ()) ())
-                  (fn (a1q, a2q) =>
-                    (fn f_ => fn () => f_ ((isa_update_lbd_code a2q x_d a1q) ())
-                      ())
-                      (fn x_h =>
-                        (fn f_ => fn () => f_
-                          ((append_el_aa_u
-                             (default_prod default_nat default_uint32,
-                               heap_prod heap_nat heap_uint32)
-                             a1d (uminus_code ai) (a2q, xa))
-                          ()) ())
-                          (fn x_j =>
-                            (fn f_ => fn () => f_
-                              ((append_el_aa_u
-                                 (default_prod default_nat default_uint32,
-                                   heap_prod heap_nat heap_uint32)
-                                 x_j xa (a2q, uminus_code ai))
-                              ()) ())
-                              (fn x_l =>
-                                (fn f_ => fn () => f_ ((lbd_empty_code a1i) ())
-                                  ())
-                                  (fn x_n =>
-                                    (fn f_ => fn () => f_
-                                      ((isa_length_trail_code a1) ()) ())
-                                      (fn x_o =>
-(fn f_ => fn () => f_ ((cons_trail_Propagated_tr_code (uminus_code ai) a2q a1)
-  ()) ())
-  (fn x_q =>
-    (fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a1o a2q) ()) ())
-      (fn xb =>
-        (fn () =>
-          (x_q, (x_h, (a1b, (x_o, (x_l, (x_c,
-  (a2p, ((Word32.fromInt 0),
-          (a1h, (x_n, (a1j, (a1k, (ema_update_ref
-                                     (nat_of_integer (5 : IntInf.int)) a1l x_d,
-                                    (ema_update_ref
-                                       (nat_of_integer (14 : IntInf.int)) a1m
-                                       x_d,
-                                      (Word32.+ (a1n, (Word32.fromInt 1)),
-(xb, suc a2o)))))))))))))))))))))))))))
+                (fn f_ => fn () => f_ ((len heap_uint32 bia) ()) ())
+                  (fn xaa =>
+                    let
+                      val x_g = equal_nat xaa (nat_of_integer (2 : IntInf.int));
+                    in
+                      (fn f_ => fn () => f_
+                        ((append_and_length_code false bia a1a) ()) ())
+                        (fn (a1q, a2q) =>
+                          (fn f_ => fn () => f_
+                            ((isa_update_lbd_code a2q x_d a1q) ()) ())
+                            (fn x_j =>
+                              (fn f_ => fn () => f_
+                                ((append_el_aa_u
+                                   (default_prod default_nat
+                                      (default_prod default_uint32
+default_bool),
+                                     heap_prod heap_nat
+                                       (heap_prod heap_uint32 heap_bool))
+                                   a1d (uminus_code ai) (a2q, (xa, x_g)))
+                                ()) ())
+                                (fn x_l =>
+                                  (fn f_ => fn () => f_
+                                    ((append_el_aa_u
+                                       (default_prod default_nat
+  (default_prod default_uint32 default_bool),
+ heap_prod heap_nat (heap_prod heap_uint32 heap_bool))
+                                       x_l xa (a2q, (uminus_code ai, x_g)))
+                                    ()) ())
+                                    (fn x_n =>
+                                      (fn f_ => fn () => f_
+((lbd_empty_code a1i) ()) ())
+(fn x_p =>
+  (fn f_ => fn () => f_ ((isa_length_trail_code a1) ()) ())
+    (fn x_q =>
+      (fn f_ => fn () => f_
+        ((cons_trail_Propagated_tr_code (uminus_code ai) a2q a1) ()) ())
+        (fn x_s =>
+          (fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a1o a2q)
+            ()) ())
+            (fn xb =>
+              (fn () =>
+                (x_s, (x_j, (a1b, (x_q, (x_n,
+  (x_c, (a2p, ((Word32.fromInt 0),
+                (a1h, (x_p, (a1j, (a1k, (ema_update_ref
+   (nat_of_integer (5 : IntInf.int)) a1l x_d,
+  (ema_update_ref (nat_of_integer (14 : IntInf.int)) a1m x_d,
+    (Word32.+ (a1n, (Word32.fromInt 1)), (xb, suc a2o)))))))))))))))))))))))))
+                    end)))
       end
         ()
     end)
@@ -3401,31 +3428,35 @@ fun add_init_cls_code x =
       (fn () =>
         let
           val x_f = (fn () => Array.fromList ai) ();
-          val a = append_and_length_code true x_f a1a ();
+          val xaa = len heap_uint32 x_f ();
         in
           let
-            val (a1j, a2j) = a;
+            val x_h = equal_nat xaa (nat_of_integer (2 : IntInf.int));
           in
-            (fn f_ => fn () => f_
-              ((append_el_aa_u
-                 (default_prod default_nat default_uint32,
-                   heap_prod heap_nat heap_uint32)
-                 a1d xa (a2j, x_b))
-              ()) ())
-              (fn x_i =>
+            (fn f_ => fn () => f_ ((append_and_length_code true x_f a1a) ()) ())
+              (fn (a1j, a2j) =>
                 (fn f_ => fn () => f_
                   ((append_el_aa_u
-                     (default_prod default_nat default_uint32,
-                       heap_prod heap_nat heap_uint32)
-                     x_i x_b (a2j, xa))
+                     (default_prod default_nat
+                        (default_prod default_uint32 default_bool),
+                       heap_prod heap_nat (heap_prod heap_uint32 heap_bool))
+                     a1d xa (a2j, (x_b, x_h)))
                   ()) ())
                   (fn x_k =>
                     (fn f_ => fn () => f_
-                      ((arl_append (default_nat, heap_nat) a2i a2j) ()) ())
-                      (fn xb =>
-                        (fn () =>
-                          (a1, (a1j, (a1b, (a1c,
-     (x_k, (a1e, (a1f, (a1g, (a1h, (a1i, xb))))))))))))))
+                      ((append_el_aa_u
+                         (default_prod default_nat
+                            (default_prod default_uint32 default_bool),
+                           heap_prod heap_nat (heap_prod heap_uint32 heap_bool))
+                         x_k x_b (a2j, (xa, x_h)))
+                      ()) ())
+                      (fn x_m =>
+                        (fn f_ => fn () => f_
+                          ((arl_append (default_nat, heap_nat) a2i a2j) ()) ())
+                          (fn xb =>
+                            (fn () =>
+                              (a1, (a1j, (a1b,
+   (a1c, (x_m, (a1e, (a1f, (a1g, (a1h, (a1i, xb)))))))))))))))
           end
             ()
         end)
