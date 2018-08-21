@@ -77,8 +77,8 @@ lemma remove_all_annot_true_clause_imp_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n:
   shows \<open>literals_are_\<L>\<^sub>i\<^sub>n T\<close>
 proof -
   obtain S2 T2 S3 where
-    part_S: \<open>correct_watching S\<close> and
-    part_T: \<open>correct_watching T\<close> and
+    part_S: \<open>correct_watching' S\<close> and
+    part_T: \<open>correct_watching' T\<close> and
     S_S2: \<open>(S, S2) \<in> state_wl_l None\<close> and
     T_T2: \<open>(T, T2) \<in> state_wl_l None\<close> and
     S2_T2:\<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S2 T2\<close> and
@@ -91,7 +91,6 @@ proof -
     struct_invs_S3: \<open>twl_struct_invs S3\<close>
     using inv unfolding remove_all_annot_true_clause_imp_wl_inv_def
       remove_all_annot_true_clause_imp_inv_def prod.case
-      oops
     by blast
 
   obtain T3 where
@@ -105,7 +104,7 @@ proof -
   show ?thesis
     using cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l[OF S3_T3  struct_invs_S3] L
     S_S2 T_T2 S2_S3 T2_T2
-    by (auto simp: mset_take_mset_drop_mset')
+    by (auto simp: mset_take_mset_drop_mset' literals_are_\<L>\<^sub>i\<^sub>n_def)
 qed
 
 definition remove_all_annot_true_clause_imp_wl_D_pre
@@ -125,11 +124,10 @@ where
       (\<lambda>(i, N, NE). i < length xs)
       (\<lambda>(i, N, NE). do {
         ASSERT(i < length xs);
-        if xs!i \<in># dom_m N
+        let (C, _ , _) = xs ! i;
+        if C \<in># dom_m N
         then do {
-          (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (xs!i, N, NE);
-          ASSERT(remove_all_annot_true_clause_imp_wl_D_inv (M, N0, D, NE0, UE, Q, W) xs
-            (i, M, N, D, NE, UE, Q, W));
+          (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (C, N, NE);
           RETURN (i+1, N, NE)
         }
         else
@@ -179,7 +177,6 @@ proof -
       subgoal by auto
       subgoal by auto
       subgoal by auto
-      subgoal by (rule remove_all_annot_true_clause_imp_wl_D_inv) auto
       subgoal unfolding remove_all_annot_true_clause_imp_wl_D_inv_def by auto
       subgoal by auto
       subgoal unfolding remove_all_annot_true_clause_imp_wl_D_pre_def by auto
