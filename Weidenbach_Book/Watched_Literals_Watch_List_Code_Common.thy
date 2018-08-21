@@ -230,7 +230,7 @@ sepref_decl_op watched_app:
   \<open>watched_app ::(nat literal \<Rightarrow> (nat \<times> _) list) \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close>
 ::
   \<open>(Id :: ((nat literal \<Rightarrow> (nat watcher) list) \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow> nat_rel \<rightarrow>
-     nat_rel \<times>\<^sub>r (Id :: (nat literal \<times> _) set)\<close>
+     nat_rel \<times>\<^sub>r (Id :: (nat literal \<times> _) set) \<times>\<^sub>r bool_rel\<close>
   .
 
 lemma [def_pat_rules]:
@@ -456,26 +456,25 @@ lemma nth_ll_watched_app:
   unfolding watched_app_def nth_rll_def
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
 
-term nth_aa_u
 lemma nth_aa_watched_app[sepref_fr_rules]:
   \<open>(uncurry2 nth_aa_u, uncurry2 (RETURN ooo op_watched_app)) \<in>
    [\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> i < length (W L)]\<^sub>a
-     array_watched_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn *a unat_lit_assn\<close>
+     array_watched_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn *a unat_lit_assn *a bool_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
-  have P: \<open>CONSTRAINT is_pure (nat_assn *a unat_lit_assn)\<close>
+  have P: \<open>CONSTRAINT is_pure (nat_assn *a unat_lit_assn *a bool_assn)\<close>
     by auto
   have H: \<open>(uncurry2 nth_aa_u, uncurry2 (RETURN \<circ>\<circ>\<circ> watched_app))
   \<in> [comp_PRE
        (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f p2rel lit_of_natP \<times>\<^sub>f nat_rel)
        (\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)
        (\<lambda>_ ((x, L), L'). L < length x \<and> L' < length (x ! L))
-       (\<lambda>_. True)]\<^sub>a 
-    hrp_comp ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
+       (\<lambda>_. True)]\<^sub>a
+    hrp_comp ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
                         nat_assn\<^sup>k)
               (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f
                         p2rel lit_of_natP \<times>\<^sub>f
-                        nat_rel) \<rightarrow> hr_comp (nat_assn *a unat_lit_assn) (nat_rel \<times>\<^sub>f Id)\<close>
+                        nat_rel) \<rightarrow> hr_comp (nat_assn *a unat_lit_assn *a bool_assn) (nat_rel \<times>\<^sub>f Id)\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF nth_aa_uint_hnr nth_ll_watched_app, OF P]
      .
@@ -541,12 +540,12 @@ proof -
   have H: \<open>(uncurry2 delete_index_and_swap_aa_u, uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update))
   \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f nat_lit_rel \<times>\<^sub>f nat_rel) (\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>j. i < length l \<and> j < length_ll l i) xa)
        (\<lambda>x. nofail (uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update)
-                      x))]\<^sub>a hrp_comp ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                      x))]\<^sub>a hrp_comp ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
                               (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f nat_lit_rel \<times>\<^sub>f nat_rel) \<rightarrow>
-     hr_comp (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn))) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<close>
+     hr_comp (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn))) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<close>
     (is \<open>?a \<in> [?pre']\<^sub>a ?init' \<rightarrow> ?post'\<close>)
     using hfref_compI_PRE[OF delete_index_and_swap_aa_ll_hnr_u
-        delete_index_and_swap_ll_delete_index_and_swap_update, of "nat_assn *a unat_lit_assn"] by simp
+        delete_index_and_swap_ll_delete_index_and_swap_update, of "nat_assn *a unat_lit_assn *a bool_assn"] by simp
   have b: \<open>\<exists>bb. (bb, b) \<in> nat_lit_rel\<close> for b
     apply (auto simp: p2rel_def lit_of_natP_def Pos_div2_iff Neg_div2_iff nat_lit_rel_def)
     using even_Suc by blast
@@ -577,7 +576,7 @@ proof -
         Pos_div2_iff Neg_div2_iff all_conj_distrib length_ll_def
         intro!: ext split: if_splits)
     apply (auto simp: p2rel_def nat_lit_rel_def lit_of_natP_def split: if_splits)
-    by (metis atm_of_lit_of_nat ex_list_watched 
+    by (metis atm_of_lit_of_nat ex_list_watched
       lit_of_nat_nat_of_lit literal_of_nat.simps)
 
   have
@@ -609,10 +608,10 @@ lemma append_ll_append_update:
 lemma append_el_aa_hnr[sepref_fr_rules]:
   shows \<open>(uncurry2 append_el_aa_u', uncurry2 (RETURN ooo append_update))
      \<in> [\<lambda>((W,L), j). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
-        array_watched_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (nat_assn *a unat_lit_assn)\<^sup>k \<rightarrow> array_watched_assn\<close>
+        array_watched_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (nat_assn *a unat_lit_assn *a bool_assn)\<^sup>k \<rightarrow> array_watched_assn\<close>
     (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
 proof -
-  have H: \<open> ?a \<in> 
+  have H: \<open> ?a \<in>
   [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f Id)
     (\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)
     (\<lambda>x y. case y of
@@ -620,17 +619,17 @@ proof -
     (\<lambda>x. nofail
           (uncurry2 (RETURN \<circ>\<circ>\<circ> append_update)
             x))]\<^sub>a hrp_comp
-                    ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)))\<^sup>d *\<^sub>a
+                    ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))\<^sup>d *\<^sub>a
                      uint32_assn\<^sup>k *\<^sub>a
-                     (nat_assn *a unat_lit_assn)\<^sup>k)
+                     (nat_assn *a unat_lit_assn *a bool_assn)\<^sup>k)
                     (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f
                      Id) \<rightarrow> hr_comp
-                            (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)))
+                            (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))
                             (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)
      \<close>
     (is \<open>?a \<in> [?pre']\<^sub>a ?init' \<rightarrow> ?post'\<close>)
     using hfref_compI_PRE[OF append_aa_hnr_u
-        append_ll_append_update, of \<open>(nat_assn *a unat_lit_assn)\<close>]
+        append_ll_append_update, of \<open>(nat_assn *a unat_lit_assn *a bool_assn)\<close>]
     unfolding append_el_aa_append_el_aa_u' by simp
   have b: \<open>\<exists>bb. (bb, b) \<in> nat_lit_rel\<close> for b
     apply (auto simp: p2rel_def lit_of_natP_def Pos_div2_iff Neg_div2_iff nat_lit_rel_def)
@@ -644,7 +643,7 @@ proof -
         split: if_splits)
 
   have
-    1: \<open>hrp_comp ((nat_assn *a unat_lit_assn)\<^sup>k) Id = (nat_assn *a unat_lit_assn)\<^sup>k\<close> and
+    1: \<open>hrp_comp ((nat_assn *a unat_lit_assn *a bool_assn)\<^sup>k) Id = (nat_assn *a unat_lit_assn *a bool_assn)\<^sup>k\<close> and
     2: \<open>hrp_comp (uint32_assn\<^sup>k) unat_lit_rel = unat_lit_assn\<^sup>k\<close>
      by (auto simp: hrp_comp_def)
   have init: \<open>?init' = ?init\<close>

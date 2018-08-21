@@ -225,7 +225,7 @@ lemma (in -)isasat_fast2_alt_def:
 context isasat_input_bounded_nempty
 begin
 
-declare isasat_fast_slow_code.refine[sepref_fr_rules]
+(* declare isasat_fast_slow_code.refine[sepref_fr_rules] *)
 
 (* sepref_register isasat_fast2
 sepref_thm isasat_fast2_code

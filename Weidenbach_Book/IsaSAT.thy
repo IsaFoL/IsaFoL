@@ -1038,7 +1038,7 @@ proof -
     have V_W': \<open>(fst V, fst W) \<in> twl_st_l None\<close>
       using V_W by (auto simp: S\<^sub>0 twl_st_l_init_def twl_st_l_def)
     have valid_blits: \<open>\<And>L x. x\<in>set (Wa L) \<Longrightarrow>
-           case x of (i, K) \<Rightarrow> K \<in># all_lits_of_mm (mset `# mset CS')\<close>
+           case x of (i, K, b) \<Rightarrow> K \<in># all_lits_of_mm (mset `# mset CS')\<close>
       using corr_w unfolding correct_watching_init.simps st
       by (auto simp: st N_NE \<L>\<^sub>a\<^sub>l\<^sub>l S\<^sub>0 isasat_input_ops.literals_are_\<L>\<^sub>i\<^sub>n_def
         isasat_input_ops.blits_in_\<L>\<^sub>i\<^sub>n_def correct_watching.simps
@@ -1696,7 +1696,7 @@ proof -
      apply (rule 2)
     by (auto simp: TWL_to_clauses_state_conv_def extract_model_of_state_def
         state_wl_l_def twl_st_l_def convert_lits_l_map_lit_of)
-  have [simp]: \<open> \<up> (x = map_option rev ac) =  \<up> (ac = map_option rev x)\<close> for x ac
+  have [simp]: \<open>\<up> (x = map_option rev ac) =  \<up> (ac = map_option rev x)\<close> for x ac
     by (cases ac; cases x) auto
   have H: \<open>hr_comp model_stat_assn
         (Collect (case_prod (\<lambda>(M, stat). (=) (map_option rev M)))) = model_assn\<close>
