@@ -46,7 +46,8 @@ fun add_to_clauses_init_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init
   add_to_clauses_init_wl_def[simp del]:
    \<open>add_to_clauses_init_wl C ((M, N, D, NE, UE, Q, W), OC) = do {
         i \<leftarrow> get_fresh_index N;
-        let W = W((C!0) := W (C!0) @ [(i, C!1)], (C!1) := W (C!1) @ [(i, C ! 0)]);
+        let b = (length C = 2);
+        let W = W((C!0) := W (C!0) @ [(i, C!1, b)], (C!1) := W (C!1) @ [(i, C ! 0, b)]);
         RETURN ((M, fmupd i (C, True) N, D, NE, UE, Q, W), OC)
     }\<close>
 
@@ -80,7 +81,7 @@ definition state_wl_l_init :: \<open>('v twl_st_wl_init \<times> 'v twl_st_l_ini
 
 fun all_blits_are_in_problem_init where
   [simp del]: \<open>all_blits_are_in_problem_init (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
-      (\<forall>L. (\<forall>(i, K)\<in>#mset (W L). K \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))))\<close>
+      (\<forall>L. (\<forall>(i, K, b)\<in>#mset (W L). K \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))))\<close>
 
 text \<open>We assume that no clause has been deleted during initialisation. The definition is
   slightly redundant since \<^term>\<open>i \<in># dom_m N\<close> is already entailed by
@@ -89,7 +90,8 @@ fun correct_watching_init :: \<open>'v twl_st_wl_init \<Rightarrow> bool\<close>
   [simp del]: \<open>correct_watching_init ((M, N, D, NE, UE, Q, W), _) \<longleftrightarrow>
     all_blits_are_in_problem_init (M, N, D, NE, UE, Q, W) \<and>
     (\<forall>L.
-        (\<forall>(i, K)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L) \<and>
+        (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and>
+           is_binary N (i, K, b)) \<and>
         fst `# mset (W L) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
 
 named_theorems twl_st_wl_init
@@ -205,7 +207,8 @@ lemma correct_watching_init_add_clause:
     dist[iff]: \<open>C ! 0 \<noteq> C ! Suc 0\<close>
   shows \<open>correct_watching_init
           ((a, fmupd i (C, True) aa, None, ac, ad, {#}, b
-            (C ! 0 := b (C ! 0) @ [(i, C ! Suc 0)], C ! Suc 0 := b (C ! Suc 0) @ [(i, C ! 0)])),
+            (C ! 0 := b (C ! 0) @ [(i, C ! Suc 0, length C = 2)],
+             C ! Suc 0 := b (C ! Suc 0) @ [(i, C ! 0, length C = 2)])),
            baa)\<close>
 proof -
   have [iff]: \<open>C ! Suc 0 \<noteq> C ! 0\<close>
@@ -219,7 +222,7 @@ proof -
   show ?thesis
     using corr
     by (force simp: correct_watching_init.simps all_blits_are_in_problem_init.simps ran_m_mapsto_upd_notin
-        all_lits_of_mm_add_mset all_lits_of_mm_union clause_to_update_mapsto_upd_notin
+        all_lits_of_mm_add_mset all_lits_of_mm_union clause_to_update_mapsto_upd_notin is_binary.simps
         split: if_splits)
 qed
 
@@ -278,7 +281,7 @@ proof -
         (auto 5 5 simp: add_to_clauses_init_wl_def add_to_clauses_init_l_def get_fresh_index_def
           state_wl_l_init_def state_wl_l_def clause_to_update_def
           all_lits_of_mm_add_mset all_lits_of_m_add_mset
-          RES_RETURN_RES
+          RES_RETURN_RES Let_def
           intro!: RES_refine filter_mset_cong2 correct_watching_init_add_clause)
   qed
   have add_to_other_init:

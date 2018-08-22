@@ -72,7 +72,7 @@ abbreviation vdom_assn :: \<open>vdom \<Rightarrow> nat array_list \<Rightarrow>
 type_synonym vdom_assn = \<open>nat array_list\<close>
 
 type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
-type_synonym watched_wl_uint32 = \<open>((uint64 \<times> uint32) array_list) array\<close>
+type_synonym watched_wl_uint32 = \<open>((uint64 \<times> uint32 \<times> bool) array_list) array\<close>
 
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
@@ -246,7 +246,7 @@ definition convert_wlists_to_nat_conv where
   \<open>convert_wlists_to_nat_conv = id\<close>
 
 definition convert_wlists_to_nat where
-  \<open>convert_wlists_to_nat = op_map (map (\<lambda>(n, bL). (nat_of_uint64_conv n, bL))) []\<close>
+  \<open>convert_wlists_to_nat = op_map (map (\<lambda>(n, L, b). (nat_of_uint64_conv n, L, b))) []\<close>
 
 lemma convert_wlists_to_nat_alt_def:
   \<open>convert_wlists_to_nat = op_map id []\<close>
@@ -257,15 +257,22 @@ proof -
     by (auto simp: convert_wlists_to_nat_def)
 qed
 
-
-sepref_definition convert_wlists_to_nat_code
+find_theorems \<open>init_lrl\<close>
+(* sepref_definition convert_wlists_to_nat_code
   is \<open>convert_wlists_to_nat\<close>
-  :: \<open>(arrayO_assn (arl_assn (uint64_nat_assn *a unat_lit_assn)))\<^sup>d \<rightarrow>\<^sub>a
-          arrayO_assn (arl_assn (nat_assn *a unat_lit_assn))\<close>
+  :: \<open>(arrayO_assn (arl_assn (uint64_nat_assn *a unat_lit_assn *a bool_assn)))\<^sup>d \<rightarrow>\<^sub>a
+          arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn))\<close>
   unfolding convert_wlists_to_nat_def
-    op_map_def[of \<open>map (\<lambda>(n, y). (nat_of_uint64_conv n, y))\<close> \<open>[]\<close>,
+    op_map_def[of \<open>map (\<lambda>(n, y, y'). (nat_of_uint64_conv n, y, y'))\<close> \<open>[]\<close>,
   unfolded convert_single_wl_to_nat_conv_def[symmetric] init_lrl_def[symmetric]]
-  by sepref
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  supply [[unify_trace_failure]]
+  apply (rule arrayO_raa_empty_sz_init_lrl[to_hnr])
+  sorry
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold apply (auto simp: )[]
+  by sepref *)
 
 lemma convert_wlists_to_nat_convert_wlists_to_nat_conv:
   \<open>(convert_wlists_to_nat, RETURN o convert_wlists_to_nat_conv) \<in>
@@ -275,13 +282,13 @@ lemma convert_wlists_to_nat_convert_wlists_to_nat_conv:
     (auto simp: convert_wlists_to_nat_def nat_of_uint64_conv_def
        convert_wlists_to_nat_conv_def
       intro: order.trans op_map_map)
-
+(* 
 lemma convert_wlists_to_nat_conv_hnr[sepref_fr_rules]:
   \<open>(convert_wlists_to_nat_code, RETURN \<circ> convert_wlists_to_nat_conv)
     \<in> (arrayO_assn (arl_assn (uint64_nat_assn *a unat_lit_assn)))\<^sup>d \<rightarrow>\<^sub>a
       arrayO_assn (arl_assn (nat_assn *a unat_lit_assn))\<close>
   using convert_wlists_to_nat_code.refine[FCOMP convert_wlists_to_nat_convert_wlists_to_nat_conv]
-  by simp
+  by simp *)
 
 
 context isasat_input_ops
@@ -440,13 +447,13 @@ definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<time
   }\<close>
 
 abbreviation (in -) watchers_assn where
-  \<open>watchers_assn \<equiv> arl_assn (nat_assn *a unat_lit_assn)\<close>
+  \<open>watchers_assn \<equiv> arl_assn (nat_assn *a unat_lit_assn *a bool_assn)\<close>
 
 abbreviation (in -) watchlist_assn where
   \<open>watchlist_assn \<equiv> arrayO_assn watchers_assn\<close>
 
 abbreviation (in -) watchers_fast_assn where
-  \<open>watchers_fast_assn \<equiv> arl_assn (uint64_nat_assn *a unat_lit_assn)\<close>
+  \<open>watchers_fast_assn \<equiv> arl_assn (uint64_nat_assn *a unat_lit_assn *a bool_assn)\<close>
 
 abbreviation (in -) watchlist_fast_assn where
   \<open>watchlist_fast_assn \<equiv> arrayO_assn watchers_fast_assn\<close>
@@ -499,7 +506,7 @@ definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heu
     (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, lcount).
       RETURN (trail_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
         clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, lcount))\<close>
-
+(* 
 sepref_thm isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
   :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
@@ -514,7 +521,7 @@ concrete_definition (in -) isasat_fast_slow_code
 prepare_code_thms (in -) isasat_fast_slow_code_def
 
 lemmas isasat_fast_slow_code[sepref_fr_rules] =
-   isasat_fast_slow_code.refine
+   isasat_fast_slow_code.refine *)
 
 definition (in -)isasat_fast_slow_wl_D where
   \<open>isasat_fast_slow_wl_D = id\<close>

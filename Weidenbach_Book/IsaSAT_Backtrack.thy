@@ -761,13 +761,14 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       vm \<leftarrow> flush M vm;
       glue \<leftarrow> get_LBD lbd;
       let b = False;
+      let b' = (length C = 2);
       (N, i) \<leftarrow> fm_add_new b C N;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
-      let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [(i, L')]];
-      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L)]];
+      let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [(i, L', b')]];
+      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
-      let j = length M;
+      let j = length_u M;
       ASSERT(i \<noteq> DECISION_REASON);
       RETURN (Propagated (- L) i # M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
          cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
@@ -1618,8 +1619,8 @@ proof -
           (N, i) \<leftarrow> fm_add_new b C N;
           ASSERT(update_lbd_pre ((i, glue), N));
           let N = update_lbd i glue N;
-          let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [(i, L')]];
-          let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L)]];
+          let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [(i, L', length C = 2)]];
+          let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, length C = 2)]];
           lbd \<leftarrow> lbd_empty lbd;
           let j = length_u M;
           ASSERT(i \<noteq> DECISION_REASON);
@@ -1627,7 +1628,7 @@ proof -
             cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
               ccount + one_uint32, vdom @ [nat_of_uint32_conv i], Suc lcount)
       })\<close>
-      unfolding propagate_bt_wl_D_heur_def
+      unfolding propagate_bt_wl_D_heur_def Let_def
       by auto
     have propagate_bt_wl_D_alt_def:
       \<open>propagate_bt_wl_D (lit_of (hd (get_trail_wl S'))) L' U' = do {
@@ -1646,8 +1647,8 @@ proof -
               (Propagated (- lit_of (hd (get_trail_wl S'))) i # M1,
                 N, None, NE, UE, unmark (hd (get_trail_wl S')),
                 W(- lit_of (hd (get_trail_wl S')) :=
-                   W (- lit_of (hd (get_trail_wl S'))) @ [(i, L')],
-                  L' := W L' @ [(i, - lit_of (hd (get_trail_wl S')))]))
+                   W (- lit_of (hd (get_trail_wl S'))) @ [(i, L', length D'' = 2)],
+                  L' := W L' @ [(i, - lit_of (hd (get_trail_wl S')), length D'' = 2)]))
           }\<close>
       unfolding propagate_bt_wl_D_def Let_def
          U U' H get_fresh_index_wl_def prod.case
@@ -1972,8 +1973,7 @@ definition extract_shorter_conflict_list_lookup_heur_pre where
 
 
 subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
-(* length_u_def shoudl be put in the definition; moreover, op_length should be replaced by
-length_u *)
+(* TODO length C should be replaced by length_u64 *)
 sepref_thm propagate_bt_wl_D_code
   is \<open>uncurry2 (PR_CONST propagate_bt_wl_D_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
@@ -1983,7 +1983,6 @@ sepref_thm propagate_bt_wl_D_code
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric] nat_of_uint32_conv_def
     cons_trail_Propagated_def[symmetric] PR_CONST_def
-    length_u_def[symmetric]
   by sepref \<comment> \<open>slow\<close>
 
 concrete_definition (in -) propagate_bt_wl_D_code

@@ -145,7 +145,7 @@ proof -
     show ?thesis
       using that
       by (cases x1a; cases x1)
-        (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def
+        (auto, auto simp: state_wl_l_def correct_watching.simps clause_to_update_def
           all_lits_of_mm_add_mset
           all_lits_of_m_add_mset all_lits_of_mm_union mset_take_mset_drop_mset'
           dest: in_all_lits_of_mm_uminusD)
@@ -173,8 +173,9 @@ fun propagate_nonunit_and_add_wl
 where
   \<open>propagate_nonunit_and_add_wl K C i (M, N, D, NE, UE, Q, W) = do {
       ASSERT(propagate_nonunit_and_add_wl_pre K C i (M, N, D, NE, UE, Q, W));
-      let W = W(C!0 := W (C!0) @ [(i, C!1)]);
-      let W = W(C!1 := W (C!1) @ [(i, C!0)]);
+      let b = (length C = 2);
+      let W = W(C!0 := W (C!0) @ [(i, C!1, b)]);
+      let W = W(C!1 := W (C!1) @ [(i, C!0, b)]);
       RETURN (Propagated (-K) i # M, fmupd i (C, True) N, None,
       NE, UE, {#K#}, W)
     }\<close>
@@ -305,9 +306,8 @@ proof -
            simp del: DECO_clause_l_DECO_clause\<close>)
         subgoal apply (use in \<open>auto simp add: mset_take_mset_drop_mset' DECO_clause_l_DECO_clause[symmetric]
            simp del: DECO_clause_l_DECO_clause\<close>)
-           apply (smt "1" UnE add_mset_add_single image_eqI mset.simps(2) set_mset_mset subsetCE
-            union_iff union_single_eq_member)
-          done
+          by (metis (no_types, lifting) "1" UnE add_mset_commute image_eqI mset.simps(2)
+              set_mset_mset subsetCE union_single_eq_member)
         subgoal \<comment> \<open>TODO Proof\<close>
          apply (auto simp: mset_take_mset_drop_mset' in_DECO_clause_l_in_DECO_clause_iff
            dest!: in_set_dropD)
@@ -321,6 +321,8 @@ proof -
           by (cases S; cases T; cases T')
            (auto simp: equality_except_trail_wl.simps state_wl_l_def correct_watching.simps
              clause_to_update_def)
+        subgoal
+          by (subst 1) auto
         subgoal using corr
           by (cases S; cases T; cases T')
            (auto simp: equality_except_trail_wl.simps state_wl_l_def correct_watching.simps
@@ -383,8 +385,9 @@ definition restart_nonunit_and_add_wl_inv where
 fun restart_nonunit_and_add_wl :: \<open>'v clause_l \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>restart_nonunit_and_add_wl C i (M, N, D, NE, UE, Q, W) = do {
       ASSERT(restart_nonunit_and_add_wl_inv C i (M, N, D, NE, UE, Q, W));
-      let W = W(C!0 := W (C!0) @ [(i, C!1)]);
-      let W = W(C!1 := W (C!1) @ [(i, C!0)]);
+     let b = (length C = 2);
+      let W = W(C!0 := W (C!0) @ [(i, C!1, b)]);
+      let W = W(C!1 := W (C!1) @ [(i, C!0, b)]);
       RETURN (M, fmupd i (C, True) N, None, NE, UE, {#}, W)
   }\<close>
 
@@ -421,10 +424,11 @@ lemma correct_watching_learn_no_propa:
     UW: \<open>atms_of (mset UW) \<subseteq> atms_of_mm (mset `# ran_mf N + NE)\<close> and
     \<open>L1 \<noteq> L2\<close> and
     i_dom: \<open>i \<notin># dom_m N\<close> and
-    \<open>\<And>L. L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<Longrightarrow> i \<notin> fst ` set (W L)\<close>
+    \<open>\<And>L. L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<Longrightarrow> i \<notin> fst ` set (W L)\<close> and
+    \<open>b \<longleftrightarrow>  length (L1 # L2 # UW) = 2\<close>
   shows
-  \<open>correct_watching (M, fmupd i (L1 # L2 # UW,  b) N,
-    D, NE, UE, Q, W (L1 := W L1 @ [(i, L2)], L2 := W L2 @ [(i, L1)])) \<longleftrightarrow>
+  \<open>correct_watching (M, fmupd i (L1 # L2 # UW, b') N,
+    D, NE, UE, Q, W (L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) \<longleftrightarrow>
   correct_watching (M, N, D, NE, UE, Q, W)\<close>
   apply (subst correct_watching_learn[OF assms(1-3, 5-6), symmetric])
   unfolding correct_watching.simps clause_to_update_def
@@ -523,6 +527,7 @@ proof -
           by (cases S; cases T; cases T')
             (auto simp: state_wl_l_def correct_watching.simps
              clause_to_update_def)
+        subgoal by (subst 1) auto
         subgoal using inv TK SS' unfolding negate_mode_restart_nonunit_wl_inv_def
           by (cases S; cases T; cases T')
             (auto simp: state_wl_l_def correct_watching.simps

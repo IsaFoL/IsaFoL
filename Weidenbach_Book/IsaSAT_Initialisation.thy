@@ -15,6 +15,7 @@ section \<open>Code for the initialisation of the Data Structure\<close>
 context isasat_input_bounded
 begin
 
+term map_fun_rel
 type_synonym (in -) 'v twl_st_wl_init = \<open>'v twl_st_wl \<times> 'v clauses\<close>
 
 
@@ -29,7 +30,7 @@ where
 
 type_synonym (in -) twl_st_wl_heur_init =
   \<open>(nat,nat)ann_lits \<times> arena \<times> conflict_option_rel \<times> nat \<times>
-    (nat \<times> nat literal) list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times>
+    (nat \<times> nat literal \<times> bool) list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times>
     nat \<times> nat conflict_min_cach \<times> lbd \<times> vdom\<close>
 
 abbreviation (in -) vmtf_conc_option_fst_As where
@@ -91,7 +92,7 @@ where
   trail_assn *a arena_assn *a
   isasat_conflict_assn *a
   uint32_nat_assn *a
-  arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)) *a
+  arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)) *a
   vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
   uint32_nat_assn *a
   cach_refinement_assn *a
@@ -128,7 +129,7 @@ fun (in -)get_conflict_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> 
 fun (in -)get_clauses_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> arena\<close> where
   \<open>get_clauses_wl_heur_init (_, N, _) = N\<close>
 
-fun (in -) get_watched_list_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> (nat \<times> nat literal) list list\<close> where
+fun (in -) get_watched_list_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> (nat \<times> nat literal \<times> bool) list list\<close> where
   \<open>get_watched_list_heur_init (_, _, _, _, W, _) = W\<close>
 
 fun (in -) get_trail_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> (nat,nat) ann_lits\<close> where
@@ -445,11 +446,12 @@ definition (in isasat_input_ops) add_init_cls_heur
   \<open>add_init_cls_heur = (\<lambda>C (M, N, D, Q, WS, vm, \<phi>, clvls, cach, lbd, vdom). do {
      let L = hd C; let L' = hd (tl C);
      let b = True; let C = op_array_of_list C;
+     let b' = (length C = 2);
      ASSERT(length C \<le> uint_max + 2);
      ASSERT(length C \<ge> 2);
      (N, i) \<leftarrow> fm_add_new b C N;
-     let WS = WS[nat_of_lit L := WS ! nat_of_lit L @ [(i, L')]];
-     let WS = WS[nat_of_lit L' := WS ! nat_of_lit L' @ [(i, L)]];
+     let WS = WS[nat_of_lit L := WS ! nat_of_lit L @ [(i, L', b')]];
+     let WS = WS[nat_of_lit L' := WS ! nat_of_lit L' @ [(i, L, b')]];
      RETURN (M, N, D, Q, WS, vm, \<phi>, clvls, cach, lbd, vdom @ [nat_of_uint32_conv i])})\<close>
 
 lemma length_C_nempty_iff: \<open>length C \<ge> 2 \<longleftrightarrow> C \<noteq> [] \<and> tl C \<noteq> []\<close>
@@ -509,7 +511,7 @@ context
               arena_el list \<times>
               (bool \<times> nat \<times> bool option list) \<times>
               nat \<times>
-              (nat \<times> nat literal) list list \<times>
+              (nat \<times> nat literal \<times> bool) list list \<times>
               (((nat, nat) vmtf_node list \<times>
                 nat \<times> nat option \<times> nat option \<times> nat option) \<times>
                nat list) \<times>
@@ -525,7 +527,7 @@ context
                                    nat literal multiset multiset \<times>
                                    nat literal multiset multiset \<times>
                                    nat literal multiset \<times>
-                                   (nat literal \<Rightarrow> (nat \<times> nat literal) list)) \<times>
+                                   (nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list)) \<times>
                                   nat literal multiset multiset\<close>
   assumes
     pre: \<open>case y of
@@ -543,7 +545,7 @@ context
      nat literal multiset option \<times>
      nat literal multiset multiset \<times>
      nat literal multiset multiset \<times>
-     nat literal multiset \<times> (nat literal \<Rightarrow> (nat \<times> nat literal) list)) \<times>
+     nat literal multiset \<times> (nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list)) \<times>
     nat literal multiset multiset\<close> and x1a :: \<open>(nat literal, nat literal,
         nat) annotated_lit list \<times>
        (nat, nat literal list \<times> bool) fmap \<times>
@@ -551,38 +553,26 @@ context
        nat literal multiset multiset \<times>
        nat literal multiset multiset \<times>
        nat literal multiset \<times>
-       (nat literal
-        \<Rightarrow> (nat \<times>
-           nat literal) list)\<close> and x1b :: \<open>(nat literal, nat literal,
+       (nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list)\<close> and x1b :: \<open>(nat literal, nat literal,
     nat) annotated_lit list\<close> and x2a :: \<open>(nat, nat literal list \<times> bool) fmap \<times>
  nat literal multiset option \<times>
  nat literal multiset multiset \<times>
  nat literal multiset multiset \<times>
  nat literal multiset \<times>
- (nat literal
-  \<Rightarrow> (nat \<times>
-     nat literal) list)\<close> and x1c :: \<open>(nat,
-                                      nat literal list \<times>
-                                      bool) fmap\<close> and x2b :: \<open>nat literal multiset option \<times>
+  (nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list)\<close> and 
+ x1c :: \<open>(nat, nat literal list \<times> bool) fmap\<close> and x2b :: \<open>nat literal multiset option \<times>
                       nat literal multiset multiset \<times>
                       nat literal multiset multiset \<times>
                       nat literal multiset \<times>
-                      (nat literal
-                       \<Rightarrow> (nat \<times>
-                          nat literal) list)\<close> and x1d :: \<open>nat literal multiset option\<close> and x2c :: \<open>nat literal multiset multiset \<times>
+                      (nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list)\<close> and x1d :: \<open>nat literal multiset option\<close> and x2c :: \<open>nat literal multiset multiset \<times>
                    nat literal multiset multiset \<times>
                    nat literal multiset \<times>
-                   (nat literal
-                    \<Rightarrow> (nat \<times>
-                       nat literal) list)\<close> and x1e :: \<open>nat literal multiset multiset\<close> and x2d :: \<open>nat literal multiset multiset \<times>
+                   (nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list)\<close> and x1e :: \<open>nat literal multiset multiset\<close> and x2d :: \<open>nat literal multiset multiset \<times>
                   nat literal multiset \<times>
-                  (nat literal
-                   \<Rightarrow> (nat \<times>
-                      nat literal) list)\<close> and x1f :: \<open>nat literal multiset multiset\<close> and x2e :: \<open>nat literal multiset \<times>
-                 (nat literal
-                  \<Rightarrow> (nat \<times>
-                     nat literal) list)\<close> and x1g :: \<open>nat literal multiset\<close> and x2f :: \<open>nat literal
-       \<Rightarrow> (nat \<times> nat literal) list\<close>
+                  (nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list)\<close> and x1f :: \<open>nat literal multiset multiset\<close> and
+     x2e :: \<open>nat literal multiset \<times> (nat literal  \<Rightarrow> (nat \<times> nat literal \<times> bool) list)\<close> and
+    x1g :: \<open>nat literal multiset\<close> and
+    x2f :: \<open>nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list\<close>
   assumes
    x1:
     \<open>x2e = (x1g, x2f)\<close>
@@ -614,7 +604,7 @@ context
       arena_el list \<times>
       (bool \<times> nat \<times> bool option list) \<times>
       nat \<times>
-      (nat \<times> nat literal) list list \<times>
+      (nat \<times> nat literal \<times> bool) list list \<times>
       (((nat, nat) vmtf_node list \<times>
         nat \<times> nat option \<times> nat option \<times> nat option) \<times>
        nat list) \<times>
@@ -627,7 +617,7 @@ context
     x2i :: \<open>arena_el list \<times>
                           (bool \<times> nat \<times> bool option list) \<times>
                           nat \<times>
-                          (nat \<times> nat literal) list list \<times>
+                          (nat \<times> nat literal \<times> bool) list list \<times>
                           (((nat, nat) vmtf_node list \<times>
                             nat \<times> nat option \<times> nat option \<times> nat option) \<times>
                            nat list) \<times>
@@ -639,7 +629,7 @@ context
     x1j :: \<open>arena_el list\<close> and
     x2j :: \<open>(bool \<times> nat \<times> bool option list) \<times>
                                    nat \<times>
-                                   (nat \<times> nat literal) list list \<times>
+                                   (nat \<times> nat literal \<times> bool) list list \<times>
                                    (((nat, nat) vmtf_node list \<times>
                                      nat \<times>
                                      nat option \<times> nat option \<times> nat option) \<times>
@@ -652,7 +642,7 @@ context
                  nat \<times>
                  bool option list\<close> and
     x2k :: \<open>nat \<times>
-       (nat \<times> nat literal) list list \<times>
+       (nat \<times> nat literal \<times> bool) list list \<times>
        (((nat, nat) vmtf_node list \<times>
          nat \<times> nat option \<times> nat option \<times> nat option) \<times>
         nat list) \<times>
@@ -661,8 +651,7 @@ context
        (nat \<Rightarrow> minimize_status) \<times>
        bool list \<times>
        nat list\<close> and
-    x1l :: \<open>nat\<close> and x2l :: \<open>(nat \<times>
-                        nat literal) list list \<times>
+    x1l :: \<open>nat\<close> and x2l :: \<open>(nat \<times> nat literal \<times> bool) list list \<times>
                        (((nat, nat) vmtf_node list \<times>
                          nat \<times> nat option \<times> nat option \<times> nat option) \<times>
                         nat list) \<times>
@@ -670,8 +659,8 @@ context
                        nat \<times>
                        (nat \<Rightarrow> minimize_status) \<times>
                        bool list \<times>
-                       nat list\<close> and x1m :: \<open>(nat \<times>
-      nat literal) list list\<close> and x2m :: \<open>(((nat, nat) vmtf_node list \<times>
+                       nat list\<close> and
+    x1m :: \<open>(nat \<times> nat literal \<times> bool) list list\<close> and x2m :: \<open>(((nat, nat) vmtf_node list \<times>
     nat \<times> nat option \<times> nat option \<times> nat option) \<times>
    nat list) \<times>
   bool list \<times>
@@ -777,16 +766,16 @@ lemma add_init_cls_final_rel:
     \<open>xa = (x1t, x2t)\<close>
   shows \<open>((x1i, x1t, x1k, x1l, x1m
            [nat_of_lit (hd x1h) :=
-              x1m ! nat_of_lit (hd x1h) @ [(x2t, hd (tl x1h))],
+              x1m ! nat_of_lit (hd x1h) @ [(x2t, hd (tl x1h), length (op_array_of_list x1h) = 2)],
             nat_of_lit (hd (tl x1h)) :=
               x1m[nat_of_lit (hd x1h) :=
-                    x1m ! nat_of_lit (hd x1h) @ [(x2t, hd (tl x1h))]] !
+                    x1m ! nat_of_lit (hd x1h) @ [(x2t, hd (tl x1h), length (op_array_of_list x1h) = 2)]] !
               nat_of_lit (hd (tl x1h)) @
-              [(x2t, hd x1h)]],
+              [(x2t, hd x1h, length (op_array_of_list x1h) = 2)]],
            x1n, x1o, x1p, x1q, x1r, x2r @ [nat_of_uint32_conv x2t]),
           (x1b, x1s, x1d, x1e, x1f, x1g, x2f
-           (x1 ! 0 := x2f (x1 ! 0) @ [(x2s, x1 ! 1)],
-            x1 ! 1 := x2f (x1 ! 1) @ [(x2s, x1 ! 0)])),
+           (x1 ! 0 := x2f (x1 ! 0) @ [(x2s, x1 ! 1, length x1 = 2)],
+            x1 ! 1 := x2f (x1 ! 1) @ [(x2s, x1 ! 0, length x1 = 2)])),
           x2g)
          \<in> twl_st_heur_init\<close>
 proof -
@@ -795,16 +784,16 @@ proof -
     by (auto simp: twl_st_heur_init_def nat_of_uint32_conv_def)
   then have \<open>(x1m[nat_of_lit (hd x1) :=
            x1m ! nat_of_lit (hd x1) @
-           [(length x1j + header_size x1, hd (tl x1))],
+           [(length x1j + header_size x1, hd (tl x1), length x1 = 2)],
          nat_of_lit (hd (tl x1)) :=
            x1m[nat_of_lit (hd x1) :=
                  x1m ! nat_of_lit (hd x1) @
-                 [(length x1j + header_size x1, hd (tl x1))]] !
+                 [(length x1j + header_size x1, hd (tl x1), length x1 = 2)]] !
            nat_of_lit (hd (tl x1)) @
-           [(length x1j + header_size x1, hd x1)]],
-     x2f(x1 ! 0 := x2f (x1 ! 0) @ [(length x1j + header_size x1, x1 ! Suc 0)],
+           [(length x1j + header_size x1, hd x1, length x1 = 2)]],
+     x2f(x1 ! 0 := x2f (x1 ! 0) @ [(length x1j + header_size x1, x1 ! Suc 0, length x1 = 2)],
          x1 ! Suc 0 :=
-           x2f (x1 ! Suc 0) @ [(length x1j + header_size x1, x1 ! 0)]))
+           x2f (x1 ! Suc 0) @ [(length x1j + header_size x1, x1 ! 0, length x1 = 2)]))
     \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close>
     using pre
     apply (cases x1; cases \<open>tl x1\<close>)
@@ -830,12 +819,13 @@ lemma add_init_cls_heur_add_init_cls:
 proof -
   have add_to_clauses_init_wl_alt_def:
    \<open>add_to_clauses_init_wl = (\<lambda>i ((M, N, D, NE, UE, Q, W), OC). do {
+     let b = (length i = 2);
     (N', ia) \<leftarrow> SPEC (\<lambda>(N', ia). ia > 0 \<and> ia \<notin># dom_m N \<and> N' = fmupd ia (i, True) N);
     let W = W
-      (i ! 0 := W (i ! 0) @ [(ia, i ! 1)], i ! 1 := W (i ! 1) @ [(ia, i ! 0)]);
+      (i ! 0 := W (i ! 0) @ [(ia, i ! 1, b)], i ! 1 := W (i ! 1) @ [(ia, i ! 0, b)]);
     RETURN ((M, N', D, NE, UE, Q, W), OC)
   })\<close>
-    by (auto simp: add_to_clauses_init_wl_def get_fresh_index_def
+    by (auto simp: add_to_clauses_init_wl_def get_fresh_index_def Let_def
      RES_RES2_RETURN_RES RES_RES_RETURN_RES2 RES_RETURN_RES uncurry_def image_iff
     intro!: ext)
   show ?thesis
@@ -2005,7 +1995,7 @@ text \<open>The difference between this definition and \<^term>\<open>correct_wa
 fun (in isasat_input_ops) correct_watching_init :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching_init (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
     (\<forall>L \<in># all_lits_of_atms_m \<A>\<^sub>i\<^sub>n.
-      (\<forall>(i, K)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L) \<and>
+      (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> is_binary N (i, K, b)) \<and>
       {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
          clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
 
@@ -2024,7 +2014,7 @@ definition (in isasat_input_ops) init_state :: \<open>nat clauses \<Rightarrow> 
       (None :: nat clause option))\<close>
 
 text \<open>We add a spurious dependency to the parameter of the locale:\<close>
-definition (in isasat_input_ops) empty_watched :: \<open>nat literal \<Rightarrow> (nat \<times> nat literal) list\<close> where
+definition (in isasat_input_ops) empty_watched :: \<open>nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list\<close> where
   \<open>empty_watched = (let _ = \<A>\<^sub>i\<^sub>n in (\<lambda>_. []))\<close>
 
 lemma (in isasat_input_ops) empty_watched_alt_def:
@@ -2705,7 +2695,7 @@ sepref_definition init_state_wl_D'_code
   :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint32_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn *a arena_assn *a
     conflict_option_rel_assn *a
     uint32_nat_assn *a
-    (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn))) *a
+    (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn))) *a
     vmtf_remove_conc_option_fst_As *a
     phase_saver_conc *a uint32_nat_assn *a
     cach_refinement_l_assn *a lbd_assn *a vdom_assn\<close>
@@ -2714,7 +2704,7 @@ sepref_definition init_state_wl_D'_code
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> arl.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arena_assn\<close>])
-  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)))\<close>])
+  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))\<close>])
   supply [[goals_limit = 1]]
   by sepref
 
