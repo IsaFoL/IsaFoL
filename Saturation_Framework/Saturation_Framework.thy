@@ -52,8 +52,12 @@ datatype 'f inference =
 
 type_synonym 'f inference_system = "'f inference multiset"
 
+
+abbreviation not_in_N :: "'f formulas \<Rightarrow> 'f \<Rightarrow> bool" where 
+  "not_in_N N C \<equiv> \<not>(C \<in># N)"
+
 definition Inf :: "'f inference_system \<Rightarrow> 'f formulas  \<Rightarrow> 'f inference_system" where
-  "Inf I N = {# \<iota>. \<iota> \<in># I #}" (*TODO: find out list syntax to complete this definition*)
+  "Inf I N = {# \<iota> \<in># I. set (prems_of \<iota>) \<subseteq> set_mset N #}" (*TODO: find out list syntax to complete this definition*)
 
 
 
