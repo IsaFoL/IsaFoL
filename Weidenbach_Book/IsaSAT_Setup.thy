@@ -72,7 +72,7 @@ abbreviation vdom_assn :: \<open>vdom \<Rightarrow> nat array_list \<Rightarrow>
 type_synonym vdom_assn = \<open>nat array_list\<close>
 
 type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
-type_synonym watched_wl_uint32 = \<open>((uint64 \<times> uint32 \<times> bool) array_list) array\<close>
+typ watched_wl
 
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
