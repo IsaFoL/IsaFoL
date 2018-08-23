@@ -144,6 +144,11 @@ lemma uint64_enumerate_all:
     by (metis nat_geq_1_eq_neqz nat_of_uint64_012(1) nat_of_uint64_012(3) nat_of_uint64_le_iff word_nat_of_uint64_Rep_inject)
   done
 
+lemma \<open>n !! na \<longleftrightarrow> unat n !! na\<close>
+  apply auto
+  apply (metis test_bit_int_def test_bit_nat_def test_bit_wi word_of_int_int_unat)
+   by (simp add: test_bit_nat_def uint_nat word_test_bit_def)
+
 lemma take_only_lower32_le_uint32_max_ge_uint32_max:
   \<open>nat_of_uint64 n \<le> uint32_max \<Longrightarrow> nat_of_uint64 m \<ge> uint32_max \<Longrightarrow> take_only_lower32 m = 0 \<Longrightarrow> take_only_lower32 (n + m) = n\<close>
   unfolding take_only_lower32_def
