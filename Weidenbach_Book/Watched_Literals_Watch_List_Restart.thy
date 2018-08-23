@@ -231,8 +231,8 @@ context
 begin
 
 context
-  fixes x1 :: \<open>'v literal\<close> and x2 :: \<open>('v literal, 'v literal,
-                                       nat) annotated_lit list \<times>
+  fixes x1 :: \<open>'v literal\<close> and
+    x2 :: \<open>('v literal, 'v literal, nat) annotated_lit list \<times>
                                       (nat, 'v literal list \<times> bool) fmap \<times>
                                       'v literal multiset option \<times>
                                       'v literal multiset multiset \<times>
