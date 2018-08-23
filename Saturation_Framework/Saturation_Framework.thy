@@ -50,38 +50,33 @@ datatype 'f inference =
 (* abbreviation prems_of :: "'a inference \<Rightarrow> 'a clause multiset" where
   "prems_of \<gamma> \<equiv> side_prems_of \<gamma> + {#main_prem_of \<gamma>#}" *)
 
-type_synonym 'f inference_system = "'f inference multiset"
 
-
-abbreviation not_in_N :: "'f formulas \<Rightarrow> 'f \<Rightarrow> bool" where 
-  "not_in_N N C \<equiv> \<not>(C \<in># N)"
-
-definition Inf :: "'f inference_system \<Rightarrow> 'f formulas  \<Rightarrow> 'f inference_system" where
-  "Inf I N = {# \<iota> \<in># I. set (prems_of \<iota>) \<subseteq> set_mset N #}" (*TODO: find out list syntax to complete this definition*)
-
-
-
-abbreviation concls_of :: "'a inference set \<Rightarrow> 'a clause set" where
-  "concls_of \<Gamma> \<equiv> concl_of ` \<Gamma>"
+abbreviation concls_of :: "'f inference set \<Rightarrow> 'f set" where
+  "concls_of \<iota> \<equiv> concl_of ` \<iota>"
 
 (* FIXME: make an abbreviation *)
-definition infer_from :: "'a clause set \<Rightarrow> 'a inference \<Rightarrow> bool" where
-  "infer_from CC \<gamma> \<longleftrightarrow> set_mset (prems_of \<gamma>) \<subseteq> CC"
+(* definition infer_from :: "'a clause set \<Rightarrow> 'a inference \<Rightarrow> bool" where
+  "infer_from CC \<gamma> \<longleftrightarrow> set_mset (prems_of \<gamma>) \<subseteq> CC" *)
 
-locale inference_system =
-  fixes \<Gamma> :: "'a inference set"
+locale inference_system = consequence_relation +
+  fixes I :: "'f inference set"
 begin
 
-definition inferences_from :: "'a clause set \<Rightarrow> 'a inference set" where
-  "inferences_from CC = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from CC \<gamma>}"
+definition Inf :: "'f formulas  \<Rightarrow> 'f inference set" where
+  "Inf N = { \<iota> \<in> I. set (prems_of \<iota>) \<subseteq> set_mset N }"
 
-definition inferences_between :: "'a clause set \<Rightarrow> 'a clause \<Rightarrow> 'a inference set" where
-  "inferences_between CC C = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from (CC \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>}"
+(* definition redundancy_criterion :: ""  TODO: decide if multiset powerset is necessary or of set suffices*)
 
-lemma inferences_from_mono: "CC \<subseteq> DD \<Longrightarrow> inferences_from CC \<subseteq> inferences_from DD"
-  unfolding inferences_from_def infer_from_def by fast
+(* definition inferences_from :: "'a clause set \<Rightarrow> 'a inference set" where
+  "inferences_from CC = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from CC \<gamma>}" *)
 
-definition saturated :: "'a clause set \<Rightarrow> bool" where
+(* definition inferences_between :: "'a clause set \<Rightarrow> 'a clause \<Rightarrow> 'a inference set" where
+  "inferences_between CC C = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from (CC \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>}" *)
+
+(* lemma inferences_from_mono: "CC \<subseteq> DD \<Longrightarrow> inferences_from CC \<subseteq> inferences_from DD"
+  unfolding inferences_from_def infer_from_def by fast *)
+
+(* definition saturated :: "'a clause set \<Rightarrow> bool" where
   "saturated N \<longleftrightarrow> concls_of (inferences_from N) \<subseteq> N"
 
 lemma saturatedD:
@@ -98,22 +93,24 @@ proof -
     unfolding image_iff by (metis inference.sel(3))
   then show "E \<in> N"
     using satur unfolding saturated_def by blast
-qed
+qed *)
 
 end
 
+(* 
 text \<open>
 Satisfiability preservation is a weaker requirement than soundness.
 \<close>
 
 locale sat_preserving_inference_system = inference_system +
   assumes \<Gamma>_sat_preserving: "satisfiable N \<Longrightarrow> satisfiable (N \<union> concls_of (inferences_from N))"
+*)
 
 locale sound_inference_system = inference_system +
-  assumes \<Gamma>_sound: "Infer CC D E \<in> \<Gamma> \<Longrightarrow> I \<Turnstile>m CC \<Longrightarrow> I \<Turnstile> D \<Longrightarrow> I \<Turnstile> E"
+  assumes I_sound: "Infer CC C \<in> I \<Longrightarrow> mset CC |= {# C #}"
 begin
 
-lemma \<Gamma>_sat_preserving:
+(* lemma \<Gamma>_sat_preserving:
   assumes sat_n: "satisfiable N"
   shows "satisfiable (N \<union> concls_of (inferences_from N))"
 proof -
@@ -132,7 +129,7 @@ proof -
 qed
 
 sublocale sat_preserving_inference_system
-  by unfold_locales (erule \<Gamma>_sat_preserving)
+  by unfold_locales (erule \<Gamma>_sat_preserving) *)
 
 end
 
