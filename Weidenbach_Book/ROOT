@@ -190,6 +190,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     CDCL_Conflict_Minimisation
     Watched_Literals_VMTF
     LBD
+    IsaSAT_Watch_List
     IsaSAT_Setup
     IsaSAT_Backtrack
     IsaSAT_Initialisation
