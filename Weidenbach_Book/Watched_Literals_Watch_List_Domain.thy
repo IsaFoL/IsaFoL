@@ -18,8 +18,6 @@ type_synonym nat_trail = \<open>(uint32 \<times> nat option) list\<close>
 type_synonym clause_wl = \<open>uint32 array\<close>
 type_synonym unit_lits_wl = \<open>uint32 list list\<close>
 
-type_synonym watched_wl = \<open>((nat \<times> uint32 \<times> bool) array_list) array\<close>
-type_synonym watched_wl_uint32 = \<open>((uint32 \<times> uint32 \<times> bool) array_list) array\<close>
 
 
 subsubsection \<open>Refinement of the Watched Function\<close>

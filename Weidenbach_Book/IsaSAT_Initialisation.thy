@@ -92,7 +92,7 @@ where
   trail_assn *a arena_assn *a
   isasat_conflict_assn *a
   uint32_nat_assn *a
-  arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)) *a
+  arrayO_assn (arl_assn (watcher_assn)) *a
   vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
   uint32_nat_assn *a
   cach_refinement_assn *a
@@ -450,8 +450,8 @@ definition (in isasat_input_ops) add_init_cls_heur
      ASSERT(length C \<le> uint_max + 2);
      ASSERT(length C \<ge> 2);
      (N, i) \<leftarrow> fm_add_new b C N;
-     let WS = WS[nat_of_lit L := WS ! nat_of_lit L @ [(i, L', b')]];
-     let WS = WS[nat_of_lit L' := WS ! nat_of_lit L' @ [(i, L, b')]];
+     let WS = WS[nat_of_lit L := WS ! nat_of_lit L @ [to_watcher i L' b']];
+     let WS = WS[nat_of_lit L' := WS ! nat_of_lit L' @ [to_watcher i L b']];
      RETURN (M, N, D, Q, WS, vm, \<phi>, clvls, cach, lbd, vdom @ [nat_of_uint32_conv i])})\<close>
 
 lemma length_C_nempty_iff: \<open>length C \<ge> 2 \<longleftrightarrow> C \<noteq> [] \<and> tl C \<noteq> []\<close>
@@ -830,6 +830,7 @@ proof -
     intro!: ext)
   show ?thesis
   unfolding add_init_cls_heur_def add_to_clauses_init_wl_alt_def uncurry_def Let_def
+    to_watcher_def id_def
   apply (intro frefI nres_relI)
   apply (refine_rcg init_fm_add_new)
   subgoal for x y x1 x2 x1a x1b x2a x1c x2b x1d x2c x1e x2d x1f x2e x1g x2f x2g x1h x2h
@@ -2695,7 +2696,7 @@ sepref_definition init_state_wl_D'_code
   :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint32_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn *a arena_assn *a
     conflict_option_rel_assn *a
     uint32_nat_assn *a
-    (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn))) *a
+    (arrayO_assn (arl_assn watcher_assn)) *a
     vmtf_remove_conc_option_fst_As *a
     phase_saver_conc *a uint32_nat_assn *a
     cach_refinement_l_assn *a lbd_assn *a vdom_assn\<close>
@@ -2704,7 +2705,7 @@ sepref_definition init_state_wl_D'_code
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> arl.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arena_assn\<close>])
-  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))\<close>])
+  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn watcher_assn))\<close>])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -2714,7 +2715,7 @@ sepref_definition init_state_wl_D'_fast_code
   :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint32_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn *a arena_assn *a
     conflict_option_rel_assn *a
     uint32_nat_assn *a
-    (arrayO_assn (arl_assn (uint32_nat_assn *a unat_lit_assn))) *a
+    (arrayO_assn (arl_assn (watcher_fast_assn))) *a
     vmtf_remove_conc_option_fst_As *a
     phase_saver_conc *a uint32_nat_assn *a
     cach_refinement_l_assn *a lbd_assn *a vdom_assn\<close>
@@ -2723,7 +2724,7 @@ sepref_definition init_state_wl_D'_fast_code
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> arl.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arena_assn\<close>])
-  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn (uint32_nat_assn *a unat_lit_assn)))\<close>])
+  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn watcher_fast_assn))\<close>])
   supply [[goals_limit = 1]]
   by sepref
 

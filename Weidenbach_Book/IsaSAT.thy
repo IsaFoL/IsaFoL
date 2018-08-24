@@ -541,6 +541,8 @@ definition arl_get_u64' where
 
 code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Uint64.toFixedInt (_)))"
 
+code_printing constant uint32_of_uint64 \<rightharpoonup> (SML) "Word32.fromLargeWord ((_))"
+
 export_code IsaSAT_code checking SML_imp
 
 (*code_printing constant \<comment> \<open>print with line break\<close>

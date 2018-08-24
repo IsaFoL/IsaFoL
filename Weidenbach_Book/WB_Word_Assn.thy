@@ -26,6 +26,164 @@ lemma op_eq_word_nat:
   by sepref_to_hoare (sep_auto simp: word_nat_rel_def br_def)
 
 
+lemma bintrunc_eq_bits_eqI: \<open> (\<And>n. (n < r \<and> bin_nth c n) = (n < r \<and> bin_nth a n)) \<Longrightarrow>
+       bintrunc r (a) = bintrunc r c\<close>
+proof (induction r arbitrary: a c)
+  case 0
+  then show ?case by (simp_all flip: bin_nth.Z)
+next
+  case (Suc r a c) note IH = this(1) and eq = this(2)
+  have 1: \<open>(n < r \<and> bin_nth (bin_rest a) n) = (n < r \<and> bin_nth (bin_rest c) n)\<close> for n
+    using eq[of \<open>Suc n\<close>] eq[of 1] by (clarsimp simp flip: bin_nth.Z)
+  show ?case
+    using IH[OF 1] eq[of 0] by (simp_all flip: bin_nth.Z)
+qed
+
+lemma and_eq_bits_eqI: \<open>(\<And>n. c !! n = (a !! n \<and> b !! n))\<Longrightarrow> a AND b = c\<close> for a b c :: \<open>_ word\<close>
+  by transfer
+    (rule bintrunc_eq_bits_eqI, auto simp add: bin_nth_ops)
+
+
+lemma pow2_mono_word_less:
+   \<open>m < LENGTH('a) \<Longrightarrow> n < LENGTH('a) \<Longrightarrow> m < n \<Longrightarrow> (2 :: 'a :: len word) ^m  < 2 ^ n\<close>
+proof (induction n arbitrary: m)
+  case 0
+  then show ?case by auto
+next
+  case (Suc n m) note IH = this(1) and le = this(2-)
+  have [simp]: \<open>nat (bintrunc LENGTH('a) (2::int)) = 2\<close>
+    by (metis add_lessD1 le(2) plus_1_eq_Suc power_one_right uint_bintrunc unat_def unat_p2)
+  have 1: \<open>unat ((2 :: 'a word) ^ n) \<le> (2 :: nat) ^ n\<close>
+    by (metis Suc.prems(2) eq_imp_le le_SucI linorder_not_less unat_p2)
+  have 2: \<open>unat ((2 :: 'a word)) \<le> (2 :: nat)\<close>
+     by (metis le_unat_uoi nat_le_linear of_nat_numeral)
+  have \<open>unat (2 :: 'a word) * unat ((2 :: 'a word) ^ n) \<le> (2 :: nat) ^ Suc n\<close>
+    using mult_le_mono[OF 2 1] by auto
+  also have \<open>(2 :: nat) ^ Suc n < (2 :: nat) ^ LENGTH('a)\<close>
+    using le(2) by (metis unat_lt2p unat_p2)
+  finally have \<open>unat (2 :: 'a word) * unat ((2 :: 'a word) ^ n) < 2 ^ LENGTH('a)\<close>
+     .
+  then have [simp]: \<open>unat (2 * (2 :: 'a word) ^ n) = unat (2 :: 'a word) * unat ((2 :: 'a word) ^ n)\<close>
+    using unat_mult_lem[of \<open>2 :: 'a word\<close> \<open>(2 :: 'a word) ^ n\<close>]
+    by auto
+  have [simp]: \<open>(0::nat) < unat ((2::'a word) ^ n)\<close>
+    by (simp add: Suc_lessD le(2) unat_p2)
+
+  show ?case
+    using IH(1)[of m] le(2-)
+    by (auto simp: less_Suc_eq word_less_nat_alt
+      simp del: unat_lt2p)
+qed
+
+lemma pow2_mono_word_le:
+  \<open>m < LENGTH('a) \<Longrightarrow> n < LENGTH('a) \<Longrightarrow> m \<le> n \<Longrightarrow> (2 :: 'a :: len word) ^m  \<le> 2 ^ n\<close>
+  using pow2_mono_word_less[of m n, where 'a = 'a]
+  by (cases \<open>m = n\<close>) auto
+
+definition uint32_max :: nat where
+  \<open>uint32_max = 2 ^32 - 1\<close>
+
+lemma unat_le_uint32_max_no_bit_set:
+  fixes n :: \<open>'a::len word\<close>
+  assumes less: \<open>unat n \<le> uint32_max\<close> and
+    n: \<open>n !! na\<close> and
+    32: \<open>32 < LENGTH('a)\<close>
+  shows \<open>na < 32\<close>
+proof (rule ccontr)
+  assume H: \<open>\<not> ?thesis\<close>
+  have na_le: \<open>na < LENGTH('a)\<close>
+    using test_bit_bin[THEN iffD1, OF n]
+    by auto
+  have \<open>(2 :: nat) ^ 32 < (2 :: nat) ^ LENGTH('a)\<close>
+    using 32 power_strict_increasing_iff rel_simps(49) semiring_norm(76) by blast
+  then have [simp]: \<open>(4294967296::nat) mod (2::nat) ^ LENGTH('a) = (4294967296::nat)\<close>
+    by (auto simp:  word_le_nat_alt unat_numeral uint32_max_def mod_less
+      simp del: unat_bintrunc)
+  have \<open>(2 :: 'a word) ^ na \<ge> 2 ^ 32\<close>
+    using pow2_mono_word_le[OF 32 na_le] H by auto
+  also have \<open>n \<ge> (2 :: 'a word) ^ na\<close>
+    using assms
+    unfolding uint32_max_def
+    by (auto dest!: bang_is_le)
+  finally have \<open>unat n > uint32_max\<close>
+      supply [[show_sorts]]
+    unfolding word_le_nat_alt
+    by (auto simp:  word_le_nat_alt unat_numeral uint32_max_def
+      simp del: unat_bintrunc)
+
+   then show False
+    using less by auto
+qed
+
+
+text \<open>This lemma is very trivial but maps an \<^typ>\<open>64 word\<close> to its list counterpart. This
+  especially allows to combine two numbers together via ther bit representation (which should be
+  faster than enumerating all numbers).
+\<close>
+lemma ex_rbl_word64:
+   \<open>\<exists>a64 a63 a62 a61 a60 a59 a58 a57 a56 a55 a54 a53 a52 a51 a50 a49 a48 a47 a46 a45 a44 a43 a42 a41
+     a40 a39 a38 a37 a36 a35 a34 a33 a32 a31 a30 a29 a28 a27 a26 a25 a24 a23 a22 a21 a20 a19 a18 a17
+     a16 a15 a14 a13 a12 a11 a10 a9 a8 a7 a6 a5 a4 a3 a2 a1.
+     to_bl (n :: 64 word) =
+         [a64, a63, a62, a61, a60, a59, a58, a57, a56, a55, a54, a53, a52, a51, a50, a49, a48, a47,
+          a46, a45, a44, a43, a42, a41, a40, a39, a38, a37, a36, a35, a34, a33, a32, a31, a30, a29,
+          a28, a27, a26, a25, a24, a23, a22, a21, a20, a19, a18, a17, a16, a15, a14, a13, a12, a11,
+          a10, a9, a8, a7, a6, a5, a4, a3, a2, a1]\<close> (is ?A) and
+  ex_rbl_word64_le_uint32_max:
+    \<open>unat n \<le> uint32_max \<Longrightarrow> \<exists>a31 a30 a29 a28 a27 a26 a25 a24 a23 a22 a21 a20 a19 a18 a17 a16 a15
+        a14 a13 a12 a11 a10 a9 a8 a7 a6 a5 a4 a3 a2 a1 a32.
+      to_bl (n :: 64 word) =
+      [False, False, False, False, False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False,
+        a32, a31, a30, a29, a28, a27, a26, a25, a24, a23, a22, a21, a20, a19, a18, a17, a16, a15,
+        a14, a13, a12, a11, a10, a9, a8, a7, a6, a5, a4, a3, a2, a1]\<close> (is \<open>_ \<Longrightarrow> ?B\<close>) and
+  ex_rbl_word64_ge_uint32_max:
+    \<open>n AND (2^32 - 1) = 0 \<Longrightarrow> \<exists>a64 a63 a62 a61 a60 a59 a58 a57 a56 a55 a54 a53 a52 a51 a50 a49 a48
+      a47 a46 a45 a44 a43 a42 a41 a40 a39 a38 a37 a36 a35 a34 a33.
+      to_bl (n :: 64 word) =
+      [a64, a63, a62, a61, a60, a59, a58, a57, a56, a55, a54, a53, a52, a51, a50, a49, a48, a47,
+          a46, a45, a44, a43, a42, a41, a40, a39, a38, a37, a36, a35, a34, a33,
+        False, False, False, False, False, False, False, False, False, False, False, False, False,
+        False, False, False, False, False, False, False, False, False, False, False, False, False,
+        False, False, False, False, False, False]\<close> (is \<open>_ \<Longrightarrow> ?C\<close>)
+proof -
+  have [simp]: "n > 0 \<Longrightarrow> length xs = n \<longleftrightarrow>
+     (\<exists>y ys. xs = y # ys \<and> length ys = n - 1)" for ys n xs
+    by (cases xs) auto
+  show H: ?A
+    using word_bl_Rep'[of n]
+    by (auto simp del: word_bl_Rep')
+
+  show ?B  if \<open>unat n \<le> uint32_max\<close>
+  proof -
+    have H': \<open>m \<ge> 32 \<Longrightarrow> \<not>n !! m\<close> for m
+      using unat_le_uint32_max_no_bit_set[of n m, OF that] by auto
+    show ?thesis using that H'[of 64] H'[of 63] H'[of 62] H'[of 61] H'[of 60] H'[of 59] H'[of 58]
+      H'[of 57] H'[of 56] H'[of 55] H'[of 54] H'[of 53] H'[of 52] H'[of 51] H'[of 50] H'[of 49]
+      H'[of 48] H'[of 47] H'[of 46] H'[of 45] H'[of 44] H'[of 43] H'[of 42] H'[of 41] H'[of 40]
+      H'[of 39] H'[of 38] H'[of 37] H'[of 36] H'[of 35] H'[of 34] H'[of 33] H'[of 32]
+      H'[of 31]
+      using H unfolding unat_def
+      by (clarsimp simp add: test_bit_bl word_size)
+  qed
+  show ?C if \<open>n AND (2^32 - 1) = 0\<close>
+  proof -
+    note H' =  test_bit_bl[of \<open>n AND (2^32 - 1)\<close> m for m, unfolded word_size, simplified]
+    have [simp]: \<open>(n AND 4294967295) !! m = False\<close> for m
+      using that by auto
+    show ?thesis
+      using H H'[of 0]
+      H'[of 32] H'[of 31] H'[of 30] H'[of 29] H'[of 28] H'[of 27] H'[of 26] H'[of 25] H'[of 24]
+      H'[of 23] H'[of 22] H'[of 21] H'[of 20] H'[of 19] H'[of 18] H'[of 17] H'[of 16] H'[of 15]
+      H'[of 14] H'[of 13] H'[of 12] H'[of 11] H'[of 10] H'[of 9] H'[of 8] H'[of 7] H'[of 6]
+      H'[of 5] H'[of 4] H'[of 3] H'[of 2] H'[of 1]
+      unfolding unat_def word_size that
+      by (clarsimp simp add: word_size bl_word_and word_add_rbl)
+  qed
+qed
+
+
 subsubsection \<open>32-bits\<close>
 
 lemma word_nat_of_uint32_Rep_inject[simp]: \<open>nat_of_uint32 ai = nat_of_uint32 bi \<longleftrightarrow> ai = bi\<close>
@@ -80,6 +238,9 @@ end
 
 instance uint32 :: heap
   by standard (auto simp: inj_def exI[of _ nat_of_uint32])
+
+instance uint32 :: semiring_numeral
+  by standard
 
 instantiation uint32 :: hashable
 begin
@@ -237,9 +398,6 @@ lemma [safe_constraint_rules]:
   \<open>CONSTRAINT IS_LEFT_UNIQUE uint32_nat_rel\<close>
   \<open>CONSTRAINT IS_RIGHT_UNIQUE uint32_nat_rel\<close>
   by (auto simp: IS_LEFT_UNIQUE_def single_valued_def uint32_nat_rel_def br_def)
-
-definition uint32_max :: nat where
-  \<open>uint32_max = 2 ^32 - 1\<close>
 
 lemma nat_of_uint32_uint32_of_nat_id: \<open>n \<le> uint32_max \<Longrightarrow> nat_of_uint32 (uint32_of_nat n) = n\<close>
   unfolding uint32_of_nat_def uint32_max_def
@@ -539,6 +697,127 @@ lemma Suc_uint32_nat_assn_hnr:
   \<open>(return o (\<lambda>n. n + 1), RETURN o Suc) \<in> [\<lambda>n. n < uint32_max]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def nat_of_uint32_add)
 
+lemma minus_uint32_assn:
+ \<open>(uncurry (return oo (-)), uncurry (RETURN oo (-))) \<in> uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+ by sepref_to_hoare sep_auto
+text \<open>This lemma is meant to be used to simplify expressions like \<^term>\<open>nat_of_uint32 5\<close> and therefore
+we add the bound explicitely instead of keeping \<^term>\<open>uint32_max\<close>.
+Remark the types are non trivial here: we convert a \<^typ>\<open>uint32\<close> to a \<^typ>\<open>nat\<close>, even if the
+experession \<^term>\<open>numeral n\<close> looks the same.\<close>
+lemma nat_of_uint32_numeral[simp]:
+  \<open>numeral n \<le> ((2 ^32 - 1)::nat) \<Longrightarrow> nat_of_uint32 (numeral n) = numeral n\<close>
+proof (induction n)
+ case One
+  then show ?case by auto
+next
+  case (Bit0 n) note IH = this(1)[unfolded uint32_max_def[symmetric]] and le = this(2)
+  define m :: nat where \<open>m \<equiv> numeral n\<close>
+  have n_le: \<open>numeral n \<le> uint32_max\<close>
+    using le
+    by (subst (asm) numeral.numeral_Bit0) (auto simp: m_def[symmetric] uint32_max_def)
+  have n_le_div2: \<open>nat_of_uint32 (numeral n) \<le> uint32_max div 2\<close>
+    apply (subst IH[OF n_le])
+    using le by (subst (asm) numeral.numeral_Bit0) (auto simp: m_def[symmetric] uint32_max_def)
+
+  have \<open>nat_of_uint32 (numeral (num.Bit0 n)) = nat_of_uint32 (2 * numeral n)\<close>
+    by (subst numeral.numeral_Bit0)
+      (metis comm_monoid_mult_class.mult_1 distrib_right_numeral one_add_one)
+  also have \<open>\<dots> = 2 * nat_of_uint32 (numeral n)\<close>
+    by (subst nat_of_uint32_distrib_mult2[OF n_le_div2]) (rule refl)
+  also have \<open>\<dots> = 2 * numeral n\<close>
+    by (subst IH[OF n_le]) (rule refl)
+  also have \<open>\<dots> = numeral (num.Bit0 n)\<close>
+    by (subst (2) numeral.numeral_Bit0, subst mult_2)
+      (rule refl)
+  finally show ?case by simp
+next
+  case (Bit1 n) note IH = this(1)[unfolded uint32_max_def[symmetric]] and le = this(2)
+
+  define m :: nat where \<open>m \<equiv> numeral n\<close>
+  have n_le: \<open>numeral n \<le> uint32_max\<close>
+    using le
+    by (subst (asm) numeral.numeral_Bit1) (auto simp: m_def[symmetric] uint32_max_def)
+  have n_le_div2: \<open>nat_of_uint32 (numeral n) \<le> uint32_max div 2\<close>
+    apply (subst IH[OF n_le])
+    using le by (subst (asm) numeral.numeral_Bit1) (auto simp: m_def[symmetric] uint32_max_def)
+
+  have \<open>nat_of_uint32 (numeral (num.Bit1 n)) = nat_of_uint32 (2 * numeral n + 1)\<close>
+    by (subst numeral.numeral_Bit1)
+      (metis comm_monoid_mult_class.mult_1 distrib_right_numeral one_add_one)
+  also have \<open>\<dots> = 2 * nat_of_uint32 (numeral n) + 1\<close>
+    by (subst nat_of_uint32_distrib_mult2_plus1[OF n_le_div2]) (rule refl)
+  also have \<open>\<dots> = 2 * numeral n + 1\<close>
+    by (subst IH[OF n_le]) (rule refl)
+  also have \<open>\<dots> = numeral (num.Bit1 n)\<close>
+    by (subst numeral.numeral_Bit1) linarith
+  finally show ?case by simp
+qed
+
+lemma nat_of_uint32_mod_232:
+  shows \<open>nat_of_uint32 xi = nat_of_uint32 xi mod 2^32\<close>
+proof -
+  show ?thesis
+    unfolding uint32_max_def
+    subgoal apply transfer
+      subgoal for xi
+      by (use word_unat.norm_Rep[of xi] in
+         \<open>auto simp: uint_word_ariths nat_mult_distrib mult_mod_mod_mult
+           simp del: word_unat.norm_Rep\<close>)
+    done
+  done
+qed
+
+lemma transfer_pow_uint32:
+  \<open>Transfer.Rel (rel_fun cr_uint32 (rel_fun (=) cr_uint32)) ((^)) ((^))\<close>
+proof -
+  have [simp]: \<open>Rep_uint32 y ^ x = Rep_uint32 (y ^ x)\<close> for y :: uint32 and x :: nat
+    by (induction x)
+       (auto simp: one_uint32.rep_eq times_uint32.rep_eq)
+  show ?thesis
+    by (auto simp: Transfer.Rel_def rel_fun_def cr_uint32_def)
+qed
+
+lemma uint32_mod_232_eq:
+  fixes xi :: uint32
+  shows \<open>xi = xi mod 2^32\<close>
+proof -
+  have H: \<open>nat_of_uint32 (xi mod 2 ^ 32) = nat_of_uint32 xi\<close>
+    apply transfer
+    prefer 2
+      apply (rule transfer_pow_uint32)
+    subgoal for xi
+      using uint_word_ariths(1)[of xi 0]
+      supply [[show_types]]
+      apply auto
+      apply (rule word_uint_eq_iff[THEN iffD2])
+      apply (subst uint_mod_alt)
+      by auto
+    done
+
+  show ?thesis
+    by (rule word_nat_of_uint32_Rep_inject[THEN iffD1, OF H[symmetric]])  
+qed
+
+lemma nat_of_uint32_numeral_mod_232:
+  \<open>nat_of_uint32 (numeral n) = numeral n mod 2^32\<close>
+  apply transfer
+  apply (subst unat_numeral)
+  by auto
+
+lemma int_of_uint32_alt_def: \<open>int_of_uint32 n = int (nat_of_uint32 n)\<close>
+   by (simp add: int_of_uint32.rep_eq nat_of_uint32.rep_eq unat_def)
+
+lemma int_of_uint32_numeral[simp]:
+  \<open>numeral n \<le> ((2 ^ 32 - 1)::nat) \<Longrightarrow> int_of_uint32 (numeral n) = numeral n\<close>
+  by (subst int_of_uint32_alt_def) simp
+
+lemma nat_of_uint32_numeral_iff[simp]:
+  \<open>numeral n \<le> ((2 ^ 32 - 1)::nat) \<Longrightarrow> nat_of_uint32 a = numeral n \<longleftrightarrow> a = numeral n\<close>
+  apply (rule iffI)
+  prefer 2 apply (solves simp)
+  using word_nat_of_uint32_Rep_inject by fastforce
+
+
 
 subsubsection \<open>64-bits\<close>
 
@@ -578,6 +857,9 @@ end
 
 instance uint64 :: heap
   by standard (auto simp: inj_def exI[of _ nat_of_uint64])
+
+instance uint64 :: semiring_numeral
+  by standard
 
 lemma nat_of_uint64_012[simp]: \<open>nat_of_uint64 0 = 0\<close> \<open>nat_of_uint64 2 = 2\<close> \<open>nat_of_uint64 1 = 1\<close>
   by (transfer, auto)+
@@ -642,8 +924,119 @@ lemma mult_uint64[sepref_fr_rules]:
 
 lemma shiftr_uint64[sepref_fr_rules]:
  \<open>(uncurry (return oo (>>) ), uncurry (RETURN oo (>>)))
-  \<in>  uint64_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+    \<in> uint64_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by sepref_to_hoare sep_auto
+
+
+
+lemma nat_of_uint64_distrib_mult2:
+  assumes \<open>nat_of_uint64 xi \<le> uint64_max div 2\<close>
+  shows \<open>nat_of_uint64 (2 * xi) = 2 * nat_of_uint64 xi\<close>
+proof -
+  show ?thesis
+    using assms unfolding uint64_max_def
+    apply (case_tac \<open>xi = 0\<close>)
+    subgoal by auto
+    subgoal by transfer (auto simp: unat_def uint_word_ariths nat_mult_distrib mult_mod_mod_mult)
+    done
+qed
+
+lemma (in -)nat_of_uint64_distrib_mult2_plus1:
+  assumes \<open>nat_of_uint64 xi \<le> uint64_max div 2\<close>
+  shows \<open>nat_of_uint64 (2 * xi + 1) = 2 * nat_of_uint64 xi + 1\<close>
+proof -
+  show ?thesis
+    using assms by transfer (auto simp: unat_def uint_word_ariths nat_mult_distrib mult_mod_mod_mult
+        nat_mod_distrib nat_add_distrib uint64_max_def)
+qed
+
+lemma nat_of_uint64_numeral[simp]:
+  \<open>numeral n \<le> ((2 ^ 64 - 1)::nat) \<Longrightarrow> nat_of_uint64 (numeral n) = numeral n\<close>
+proof (induction n)
+ case One
+  then show ?case by auto
+next
+  case (Bit0 n) note IH = this(1)[unfolded uint64_max_def[symmetric]] and le = this(2)
+  define m :: nat where \<open>m \<equiv> numeral n\<close>
+  have n_le: \<open>numeral n \<le> uint64_max\<close>
+    using le
+    by (subst (asm) numeral.numeral_Bit0) (auto simp: m_def[symmetric] uint64_max_def)
+  have n_le_div2: \<open>nat_of_uint64 (numeral n) \<le> uint64_max div 2\<close>
+    apply (subst IH[OF n_le])
+    using le by (subst (asm) numeral.numeral_Bit0) (auto simp: m_def[symmetric] uint64_max_def)
+
+  have \<open>nat_of_uint64 (numeral (num.Bit0 n)) = nat_of_uint64 (2 * numeral n)\<close>
+    by (subst numeral.numeral_Bit0)
+      (metis comm_monoid_mult_class.mult_1 distrib_right_numeral one_add_one)
+  also have \<open>\<dots> = 2 * nat_of_uint64 (numeral n)\<close>
+    by (subst nat_of_uint64_distrib_mult2[OF n_le_div2]) (rule refl)
+  also have \<open>\<dots> = 2 * numeral n\<close>
+    by (subst IH[OF n_le]) (rule refl)
+  also have \<open>\<dots> = numeral (num.Bit0 n)\<close>
+    by (subst (2) numeral.numeral_Bit0, subst mult_2)
+      (rule refl)
+  finally show ?case by simp
+next
+  case (Bit1 n) note IH = this(1)[unfolded uint64_max_def[symmetric]] and le = this(2)
+
+  define m :: nat where \<open>m \<equiv> numeral n\<close>
+  have n_le: \<open>numeral n \<le> uint64_max\<close>
+    using le
+    by (subst (asm) numeral.numeral_Bit1) (auto simp: m_def[symmetric] uint64_max_def)
+  have n_le_div2: \<open>nat_of_uint64 (numeral n) \<le> uint64_max div 2\<close>
+    apply (subst IH[OF n_le])
+    using le by (subst (asm) numeral.numeral_Bit1) (auto simp: m_def[symmetric] uint64_max_def)
+
+  have \<open>nat_of_uint64 (numeral (num.Bit1 n)) = nat_of_uint64 (2 * numeral n + 1)\<close>
+    by (subst numeral.numeral_Bit1)
+      (metis comm_monoid_mult_class.mult_1 distrib_right_numeral one_add_one)
+
+  also have \<open>\<dots> = 2 * nat_of_uint64 (numeral n) + 1\<close>
+    by (subst nat_of_uint64_distrib_mult2_plus1[OF n_le_div2]) (rule refl)
+  also have \<open>\<dots> = 2 * numeral n + 1\<close>
+    by (subst IH[OF n_le]) (rule refl)
+  also have \<open>\<dots> = numeral (num.Bit1 n)\<close>
+    by (subst numeral.numeral_Bit1) linarith
+  finally show ?case by simp
+qed
+
+
+lemma int_of_uint64_alt_def: \<open>int_of_uint64 n = int (nat_of_uint64 n)\<close>
+   by (simp add: int_of_uint64.rep_eq nat_of_uint64.rep_eq unat_def)
+
+lemma int_of_uint64_numeral[simp]:
+  \<open>numeral n \<le> ((2 ^ 64 - 1)::nat) \<Longrightarrow> int_of_uint64 (numeral n) = numeral n\<close>
+  by (subst int_of_uint64_alt_def) simp
+
+lemma nat_of_uint64_numeral_iff[simp]:
+  \<open>numeral n \<le> ((2 ^ 64 - 1)::nat) \<Longrightarrow> nat_of_uint64 a = numeral n \<longleftrightarrow> a = numeral n\<close>
+  apply (rule iffI)
+  prefer 2 apply (solves simp)
+  using word_nat_of_uint64_Rep_inject by fastforce
+
+lemma numeral_uint64_eq_iff[simp]:
+ \<open>numeral m \<le> (2^64-1 :: nat) \<Longrightarrow> numeral n \<le> (2^64-1 :: nat) \<Longrightarrow> ((numeral m :: uint64) = numeral n) \<longleftrightarrow> numeral m = (numeral n :: nat)\<close>
+  by (subst word_nat_of_uint64_Rep_inject[symmetric])
+    (auto simp: uint64_max_def)
+
+
+lemma numeral_uint64_eq0_iff[simp]:
+ \<open>numeral n \<le> (2^64-1 :: nat) \<Longrightarrow> ((0 :: uint64) = numeral n) \<longleftrightarrow> 0 = (numeral n :: nat)\<close>
+  by (subst word_nat_of_uint64_Rep_inject[symmetric])
+    (auto simp: uint64_max_def)
+
+
+lemma transfer_pow_uint64: \<open>Transfer.Rel (rel_fun cr_uint64 (rel_fun (=) cr_uint64)) (^) (^)\<close>
+  apply (auto simp: Transfer.Rel_def rel_fun_def cr_uint64_def)
+  subgoal for x y
+    by (induction y)
+      (auto simp: one_uint64.rep_eq times_uint64.rep_eq)
+  done
+
+lemma shiftl_t2n_uint64: \<open>n << m = n * 2 ^ m\<close> for n :: uint64
+  apply transfer
+  prefer 2 apply (rule transfer_pow_uint64)
+  by (auto simp: shiftl_t2n)
 
 text \<open>
   Taken from theory @{theory Native_Word.Uint64}. We use real Word64 instead of the unbounded integer as
@@ -895,6 +1288,11 @@ lemma fast_minus_uint64[sepref_fr_rules]:
     (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_notle_minus
       nat_of_uint64_less_iff nat_of_uint64_le_iff)
 
+lemma le_uint64_nat_assn_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo (\<le>)), uncurry (RETURN oo (\<le>))) \<in> uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_le_iff)
+
 definition sum_mod_uint64_max where
   \<open>sum_mod_uint64_max a b = (a + b) mod (uint64_max + 1)\<close>
 
@@ -1030,209 +1428,5 @@ lemma nat_of_uint32_conv_hnr[sepref_fr_rules]:
   \<open>(return o nat_of_uint32, RETURN o nat_of_uint32_conv) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_conv_def)
 
-(* TODO Move inside this file + remove theorems about nat_of_uint32 2 = 2 *)
-text \<open>This lemma is meant to be used to simplify expressions like \<^term>\<open>nat_of_uint32 5\<close> and therefore
-we add the bound explicitely instead of keeping \<^term>\<open>uint32_max\<close>.
-Remark the types are non trivial here: we convert a \<^typ>\<open>uint32\<close> to a \<^typ>\<open>nat\<close>, even if the
-experession \<^term>\<open>numeral n\<close> looks the same.\<close>
-lemma nat_of_uint32_numeral[simp]:
-  \<open>numeral n \<le> ((2 ^32 - 1)::nat) \<Longrightarrow> nat_of_uint32 (numeral n) = numeral n\<close>
-proof (induction n)
- case One
-  then show ?case by auto
-next
-  case (Bit0 n) note IH = this(1)[unfolded uint32_max_def[symmetric]] and le = this(2)
-  define m :: nat where \<open>m \<equiv> numeral n\<close>
-  have n_le: \<open>numeral n \<le> uint32_max\<close>
-    using le
-    by (subst (asm) numeral.numeral_Bit0) (auto simp: m_def[symmetric] uint32_max_def)
-  have n_le_div2: \<open>nat_of_uint32 (numeral n) \<le> uint32_max div 2\<close>
-    apply (subst IH[OF n_le])
-    using le by (subst (asm) numeral.numeral_Bit0) (auto simp: m_def[symmetric] uint32_max_def)
-
-  have \<open>nat_of_uint32 (numeral (num.Bit0 n)) = nat_of_uint32 (2 * numeral n)\<close>
-    by (subst numeral.numeral_Bit0)
-      (metis comm_monoid_mult_class.mult_1 distrib_right_numeral one_add_one)
-  also have \<open>\<dots> = 2 * nat_of_uint32 (numeral n)\<close>
-    by (subst nat_of_uint32_distrib_mult2[OF n_le_div2]) (rule refl)
-  also have \<open>\<dots> = 2 * numeral n\<close>
-    by (subst IH[OF n_le]) (rule refl)
-  also have \<open>\<dots> = numeral (num.Bit0 n)\<close>
-    by (subst (2) numeral.numeral_Bit0, subst mult_2)
-      (rule refl)
-  finally show ?case by simp
-next
-  case (Bit1 n) note IH = this(1)[unfolded uint32_max_def[symmetric]] and le = this(2)
-
-  define m :: nat where \<open>m \<equiv> numeral n\<close>
-  have n_le: \<open>numeral n \<le> uint32_max\<close>
-    using le
-    by (subst (asm) numeral.numeral_Bit1) (auto simp: m_def[symmetric] uint32_max_def)
-  have n_le_div2: \<open>nat_of_uint32 (numeral n) \<le> uint32_max div 2\<close>
-    apply (subst IH[OF n_le])
-    using le by (subst (asm) numeral.numeral_Bit1) (auto simp: m_def[symmetric] uint32_max_def)
-
-  have \<open>nat_of_uint32 (numeral (num.Bit1 n)) = nat_of_uint32 (2 * numeral n + 1)\<close>
-    by (subst numeral.numeral_Bit1)
-      (metis comm_monoid_mult_class.mult_1 distrib_right_numeral one_add_one)
-  also have \<open>\<dots> = 2 * nat_of_uint32 (numeral n) + 1\<close>
-    by (subst nat_of_uint32_distrib_mult2_plus1[OF n_le_div2]) (rule refl)
-  also have \<open>\<dots> = 2 * numeral n + 1\<close>
-    by (subst IH[OF n_le]) (rule refl)
-  also have \<open>\<dots> = numeral (num.Bit1 n)\<close>
-    by (subst numeral.numeral_Bit1) linarith
-  finally show ?case by simp
-qed
-
-lemma nat_of_uint32_mod_232:
-  shows \<open>nat_of_uint32 xi = nat_of_uint32 xi mod 2^32\<close>
-proof -
-  show ?thesis
-    unfolding uint32_max_def
-    subgoal apply transfer
-      subgoal for xi
-      by (use word_unat.norm_Rep[of xi] in
-         \<open>auto simp: uint_word_ariths nat_mult_distrib mult_mod_mod_mult
-           simp del: word_unat.norm_Rep\<close>)
-    done
-  done
-qed
-
-lemma transfer_pow_uint32:
-  \<open>Transfer.Rel (rel_fun cr_uint32 (rel_fun (=) cr_uint32)) ((^)) ((^))\<close>
-proof -
-  have [simp]: \<open>Rep_uint32 y ^ x = Rep_uint32 (y ^ x)\<close> for y :: uint32 and x :: nat
-    by (induction x)
-       (auto simp: one_uint32.rep_eq times_uint32.rep_eq)
-  show ?thesis
-    by (auto simp: Transfer.Rel_def rel_fun_def cr_uint32_def)
-qed
-
-lemma uint32_mod_232_eq:
-  fixes xi :: uint32
-  shows \<open>xi = xi mod 2^32\<close>
-proof -
-  have [simp]: \<open>nat_of_uint32 (xi mod 2 ^ 32) = nat_of_uint32 xi\<close>
-    apply transfer
-    prefer 2
-      apply (rule transfer_pow_uint32)
-    subgoal for xi
-      using uint_word_ariths(1)[of xi 0]
-      supply [[show_types]]
-      apply auto
-      apply (rule word_uint_eq_iff[THEN iffD2])
-      apply (subst uint_mod_alt)
-      by auto
-    done
-
-  show ?thesis
-    by (rule word_nat_of_uint32_Rep_inject[THEN iffD1]) auto
-qed
-
-lemma nat_of_uint32_numeral_mod_232:
-  \<open>nat_of_uint32 (numeral n) = numeral n mod 2^32\<close>
-  apply transfer
-  apply (subst unat_numeral)
-  by auto
-
-lemma int_of_uint32_alt_def: \<open>int_of_uint32 n = int (nat_of_uint32 n)\<close>
-   by (simp add: int_of_uint32.rep_eq nat_of_uint32.rep_eq unat_def)
-
-lemma int_of_uint32_numeral[simp]:
-  \<open>numeral n \<le> ((2 ^ 32 - 1)::nat) \<Longrightarrow> int_of_uint32 (numeral n) = numeral n\<close>
-  by (subst int_of_uint32_alt_def) simp
-
-lemma nat_of_uint64_distrib_mult2:
-  assumes \<open>nat_of_uint64 xi \<le> uint64_max div 2\<close>
-  shows \<open>nat_of_uint64 (2 * xi) = 2 * nat_of_uint64 xi\<close>
-proof -
-  show ?thesis
-    using assms unfolding uint64_max_def
-    apply (case_tac \<open>xi = 0\<close>)
-    subgoal by auto
-    subgoal by transfer (auto simp: unat_def uint_word_ariths nat_mult_distrib mult_mod_mod_mult)
-    done
-qed
-
-lemma (in -)nat_of_uint64_distrib_mult2_plus1:
-  assumes \<open>nat_of_uint64 xi \<le> uint64_max div 2\<close>
-  shows \<open>nat_of_uint64 (2 * xi + 1) = 2 * nat_of_uint64 xi + 1\<close>
-proof -
-  show ?thesis
-    using assms by transfer (auto simp: unat_def uint_word_ariths nat_mult_distrib mult_mod_mod_mult
-        nat_mod_distrib nat_add_distrib uint64_max_def)
-qed
-
-lemma nat_of_uint64_numeral[simp]:
-  \<open>numeral n \<le> ((2 ^ 64 - 1)::nat) \<Longrightarrow> nat_of_uint64 (numeral n) = numeral n\<close>
-proof (induction n)
- case One
-  then show ?case by auto
-next
-  case (Bit0 n) note IH = this(1)[unfolded uint64_max_def[symmetric]] and le = this(2)
-  define m :: nat where \<open>m \<equiv> numeral n\<close>
-  have n_le: \<open>numeral n \<le> uint64_max\<close>
-    using le
-    by (subst (asm) numeral.numeral_Bit0) (auto simp: m_def[symmetric] uint64_max_def)
-  have n_le_div2: \<open>nat_of_uint64 (numeral n) \<le> uint64_max div 2\<close>
-    apply (subst IH[OF n_le])
-    using le by (subst (asm) numeral.numeral_Bit0) (auto simp: m_def[symmetric] uint64_max_def)
-
-  have \<open>nat_of_uint64 (numeral (num.Bit0 n)) = nat_of_uint64 (2 * numeral n)\<close>
-    by (subst numeral.numeral_Bit0)
-      (metis comm_monoid_mult_class.mult_1 distrib_right_numeral one_add_one)
-  also have \<open>\<dots> = 2 * nat_of_uint64 (numeral n)\<close>
-    by (subst nat_of_uint64_distrib_mult2[OF n_le_div2]) (rule refl)
-  also have \<open>\<dots> = 2 * numeral n\<close>
-    by (subst IH[OF n_le]) (rule refl)
-  also have \<open>\<dots> = numeral (num.Bit0 n)\<close>
-    by (subst (2) numeral.numeral_Bit0, subst mult_2)
-      (rule refl)
-  finally show ?case by simp
-next
-  case (Bit1 n) note IH = this(1)[unfolded uint64_max_def[symmetric]] and le = this(2)
-
-  define m :: nat where \<open>m \<equiv> numeral n\<close>
-  have n_le: \<open>numeral n \<le> uint64_max\<close>
-    using le
-    by (subst (asm) numeral.numeral_Bit1) (auto simp: m_def[symmetric] uint64_max_def)
-  have n_le_div2: \<open>nat_of_uint64 (numeral n) \<le> uint64_max div 2\<close>
-    apply (subst IH[OF n_le])
-    using le by (subst (asm) numeral.numeral_Bit1) (auto simp: m_def[symmetric] uint64_max_def)
-
-  have \<open>nat_of_uint64 (numeral (num.Bit1 n)) = nat_of_uint64 (2 * numeral n + 1)\<close>
-    by (subst numeral.numeral_Bit1)
-      (metis comm_monoid_mult_class.mult_1 distrib_right_numeral one_add_one)
-
-  also have \<open>\<dots> = 2 * nat_of_uint64 (numeral n) + 1\<close>
-    by (subst nat_of_uint64_distrib_mult2_plus1[OF n_le_div2]) (rule refl)
-  also have \<open>\<dots> = 2 * numeral n + 1\<close>
-    by (subst IH[OF n_le]) (rule refl)
-  also have \<open>\<dots> = numeral (num.Bit1 n)\<close>
-    by (subst numeral.numeral_Bit1) linarith
-  finally show ?case by simp
-qed
-
-
-lemma int_of_uint64_alt_def: \<open>int_of_uint64 n = int (nat_of_uint64 n)\<close>
-   by (simp add: int_of_uint64.rep_eq nat_of_uint64.rep_eq unat_def)
-
-lemma int_of_uint64_numeral[simp]:
-  \<open>numeral n \<le> ((2 ^ 64 - 1)::nat) \<Longrightarrow> int_of_uint64 (numeral n) = numeral n\<close>
-  by (subst int_of_uint64_alt_def) simp
-
-lemma nat_of_uint32_numeral_iff[simp]:
-  \<open>numeral n \<le> ((2 ^ 32 - 1)::nat) \<Longrightarrow> nat_of_uint32 a = numeral n \<longleftrightarrow> a = numeral n\<close>
-  apply (rule iffI)
-  prefer 2 apply (solves simp)
-  using word_nat_of_uint32_Rep_inject by fastforce
-
-lemma nat_of_uint64_numeral_iff[simp]:
-  \<open>numeral n \<le> ((2 ^ 64 - 1)::nat) \<Longrightarrow> nat_of_uint64 a = numeral n \<longleftrightarrow> a = numeral n\<close>
-  apply (rule iffI)
-  prefer 2 apply (solves simp)
-  using word_nat_of_uint64_Rep_inject by fastforce
-
-(* End Move *)
 
 end
