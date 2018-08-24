@@ -1202,4 +1202,8 @@ abbreviation uncurry4' where
 
 abbreviation uncurry6' where
   "uncurry6' f \<equiv> uncurry2 (uncurry4' f)"
+
+lemma Down_id_eq: "\<Down> Id a = a"
+  by auto
+
 end

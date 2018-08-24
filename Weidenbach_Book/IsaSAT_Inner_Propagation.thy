@@ -657,12 +657,6 @@ prepare_code_thms (in -) isa_save_pos_code_def
 lemmas isa_save_pos_code_hnr[sepref_fr_rules] =
    isa_save_pos_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms, unfolded PR_CONST_def]
 
-(* TODO Move *)
-lemma (in -) arena_update_pos_alt_def:
-  \<open>arena_update_pos C i N = update_pos_direct C (i - 2) N\<close>
-  by (auto simp: arena_update_pos_def update_pos_direct_def)
-(* End Move *)
-
 lemma (in isasat_input_ops) isa_save_pos_is_Id:
   assumes
      \<open>(S, T) \<in> twl_st_heur\<close>
@@ -2668,11 +2662,6 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D_heur
      S \<leftarrow> cut_watch_list_heur2 j w L S;
      RETURN S
   }\<close>
-
-(* TODO Move *)
-lemma (in -) Down_id_eq: "\<Down> Id a = a"
-  by auto
-(* End Move *)
 
 lemma unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D:
   \<open>(uncurry unit_propagation_inner_loop_wl_D_heur, uncurry unit_propagation_inner_loop_wl_D) \<in>

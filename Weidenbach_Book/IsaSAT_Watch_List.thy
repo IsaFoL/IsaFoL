@@ -75,7 +75,7 @@ lemma watcher_enc_extract_blit:
       take_only_lower32_le_uint32_max_ge_uint32_max)
 
 abbreviation watcher_enc_assn where
-  \<open>watcher_enc_assn \<equiv> pure watcher_enc \<close>
+  \<open>watcher_enc_assn \<equiv> pure watcher_enc\<close>
 
 abbreviation watcher_assn where
   \<open>watcher_assn \<equiv> nat_assn *a watcher_enc_assn\<close>

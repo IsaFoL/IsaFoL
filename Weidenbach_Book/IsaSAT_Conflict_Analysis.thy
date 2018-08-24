@@ -668,10 +668,6 @@ where
     }
   \<close>
 
-(* TODO Move *)
-
-(* End Move *)
-
 lemma skip_and_resolve_loop_wl_D_inv_skip_and_resolve_loop_wl_D_heur_inv:
   \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow>
        get_conflict_wl y \<noteq> None \<Longrightarrow>
