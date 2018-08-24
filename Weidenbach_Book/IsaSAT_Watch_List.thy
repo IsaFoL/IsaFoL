@@ -17,7 +17,7 @@ text \<open>There is not much to say about watch list,s since they are arrays of
 type_synonym watched_wl_uint32 = \<open>((uint64 \<times> uint32 \<times> bool) array_list) array\<close>
 
 definition watcher_enc where
-  \<open>watcher_enc = {(n, (L, b)). \<exists>L'. (L', L) \<in>unat_lit_rel \<and>
+  \<open>watcher_enc = {(n, (L, b)). \<exists>L'. (L', L) \<in> unat_lit_rel \<and>
       n = uint64_of_uint32 L' + (if b then 1 << 32 else 0)}\<close>
 
 definition take_only_lower32 :: \<open>uint64 \<Rightarrow> uint64\<close> where
@@ -32,7 +32,7 @@ next
   case (Suc r a c) note IH = this(1) and eq = this(2)
   have 1: \<open>(n < r \<and> bin_nth (bin_rest a) n) = (n < r \<and> bin_nth (bin_rest c) n)\<close> for n
     using eq[of \<open>Suc n\<close>] eq[of 1] by (clarsimp simp flip: bin_nth.Z)
-  show ?case 
+  show ?case
     using IH[OF 1] eq[of 0] by (simp_all flip: bin_nth.Z)
 qed
 
@@ -40,7 +40,7 @@ lemma and_eq_bits_eqI: \<open>(\<And>n. c !! n = (a !! n \<and> b !! n))\<Longri
   by transfer
     (rule bintrunc_eq_bits_eqI, auto simp add: bin_nth_ops)
 
-  
+
 lemma pow2_mono_word_less:
    \<open>m < LENGTH('a) \<Longrightarrow> n < LENGTH('a) \<Longrightarrow> m < n \<Longrightarrow> (2 :: 'a :: len word) ^m  < 2 ^ n\<close>
 proof (induction n arbitrary: m)
@@ -66,9 +66,9 @@ next
   have [simp]: \<open>(0::nat) < unat ((2::'a word) ^ n)\<close>
     by (simp add: Suc_lessD le(2) unat_p2)
 
-  show ?case 
-    using IH(1)[of m] le(2-) 
-    by (auto simp: less_Suc_eq word_less_nat_alt 
+  show ?case
+    using IH(1)[of m] le(2-)
+    by (auto simp: less_Suc_eq word_less_nat_alt
       simp del: unat_lt2p)
 qed
 
@@ -82,7 +82,7 @@ lemma unat_le_uint32_max_no_bit_set:
   assumes less: \<open>unat n \<le> uint32_max\<close> and
     n: \<open>n !! na\<close> and
     32: \<open>32 < LENGTH('a)\<close>
-  shows \<open>na < 32\<close> 
+  shows \<open>na < 32\<close>
 proof (rule ccontr)
   assume H: \<open>\<not> ?thesis\<close>
   have na_le: \<open>na < LENGTH('a)\<close>
@@ -151,15 +151,15 @@ lemma ex_rbl_word64:
    \<open>\<exists>a64 a63 a62 a61 a60 a59 a58 a57 a56 a55 a54 a53 a52 a51 a50 a49 a48 a47 a46 a45 a44 a43 a42 a41
      a40 a39 a38 a37 a36 a35 a34 a33 a32 a31 a30 a29 a28 a27 a26 a25 a24 a23 a22 a21 a20 a19 a18 a17
      a16 a15 a14 a13 a12 a11 a10 a9 a8 a7 a6 a5 a4 a3 a2 a1.
-     to_bl (n :: 64 word) = 
+     to_bl (n :: 64 word) =
          [a64, a63, a62, a61, a60, a59, a58, a57, a56, a55, a54, a53, a52, a51, a50, a49, a48, a47,
           a46, a45, a44, a43, a42, a41, a40, a39, a38, a37, a36, a35, a34, a33, a32, a31, a30, a29,
-          a28, a27, a26, a25, a24, a23, a22, a21, a20, a19, a18, a17, a16, a15, a14, a13, a12, a11, 
+          a28, a27, a26, a25, a24, a23, a22, a21, a20, a19, a18, a17, a16, a15, a14, a13, a12, a11,
           a10, a9, a8, a7, a6, a5, a4, a3, a2, a1]\<close> (is ?A) and
   ex_rbl_word64_le_uint32_max:
     \<open>unat n \<le> uint32_max \<Longrightarrow> \<exists>a31 a30 a29 a28 a27 a26 a25 a24 a23 a22 a21 a20 a19 a18 a17 a16 a15
         a14 a13 a12 a11 a10 a9 a8 a7 a6 a5 a4 a3 a2 a1 a32.
-      to_bl (n :: 64 word) = 
+      to_bl (n :: 64 word) =
       [False, False, False, False, False, False, False, False, False, False, False, False, False,
        False, False, False, False, False, False, False, False, False, False, False, False, False,
        False, False, False, False, False, False,
@@ -168,7 +168,7 @@ lemma ex_rbl_word64:
   ex_rbl_word64_ge_uint32_max:
     \<open>n AND (2^32 - 1) = 0 \<Longrightarrow> \<exists>a64 a63 a62 a61 a60 a59 a58 a57 a56 a55 a54 a53 a52 a51 a50 a49 a48
       a47 a46 a45 a44 a43 a42 a41 a40 a39 a38 a37 a36 a35 a34 a33.
-      to_bl (n :: 64 word) = 
+      to_bl (n :: 64 word) =
       [a64, a63, a62, a61, a60, a59, a58, a57, a56, a55, a54, a53, a52, a51, a50, a49, a48, a47,
           a46, a45, a44, a43, a42, a41, a40, a39, a38, a37, a36, a35, a34, a33,
         False, False, False, False, False, False, False, False, False, False, False, False, False,
@@ -177,11 +177,11 @@ lemma ex_rbl_word64:
 proof -
   have [simp]: "n > 0 \<Longrightarrow> length xs = n \<longleftrightarrow>
      (\<exists>y ys. xs = y # ys \<and> length ys = n - 1)" for ys n xs
-    by (cases xs) auto 
+    by (cases xs) auto
   show H: ?A
     using word_bl_Rep'[of n]
     by (auto simp del: word_bl_Rep')
-  
+
   show ?B  if \<open>unat n \<le> uint32_max\<close>
   proof -
     have H': \<open>m \<ge> 32 \<Longrightarrow> \<not>n !! m\<close> for m
@@ -219,7 +219,7 @@ lemma take_only_lower32_le_uint32_max_ge_uint32_max:
     apply (auto intro: and_eq_bits_eqI simp: bin_nth2_32_iff word_add_rbl
       dest: unat_le_uint32_max_no_bit_set)
     apply (rule word_bl.Rep_inject[THEN iffD1])
-    apply (auto simp del: word_bl.Rep_inject simp: bl_word_and word_add_rbl 
+    apply (auto simp del: word_bl.Rep_inject simp: bl_word_and word_add_rbl
       split!: if_splits)
     done
   done
@@ -239,5 +239,113 @@ lemma watcher_enc_extract_blit:
   by (auto simp: watcher_enc_def take_only_lower32_le_uint32_max nat_of_uint64_uint64_of_uint32
     nat_of_uint32_le_uint32_max nat_of_uint64_1_32 take_only_lower32_1_32
       take_only_lower32_le_uint32_max_ge_uint32_max)
+
+abbreviation watcher_enc_assn where
+  \<open>watcher_enc_assn \<equiv> pure watcher_enc \<close>
+
+abbreviation watcher_assn where
+  \<open>watcher_assn \<equiv> nat_assn *a watcher_enc_assn \<close>
+
+fun blit_of where
+  \<open>blit_of (_, (L, _)) = L\<close>
+
+fun blit_of_code where
+  \<open>blit_of_code (n, bL) = uint32_of_uint64 (take_only_lower32 bL)\<close>
+
+lemma blit_of_code_hnr:
+  \<open>(return o blit_of_code, RETURN o blit_of) \<in> watcher_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: watcher_enc_extract_blit)
+
+fun is_binary where
+  \<open>is_binary (_, (_, b)) = b\<close>
+
+fun is_binary_code where
+  \<open>is_binary_code (n, bL) = (bL AND (2^32) = 2^32)\<close>
+
+lemma AND_2_32_bool:
+  \<open>nat_of_uint64 n \<le> uint32_max \<Longrightarrow> n + (1 << 32) AND 4294967296 = 4294967296\<close>
+  apply transfer
+  subgoal for n
+    using ex_rbl_word64_ge_uint32_max[of \<open>1 << 32\<close>] ex_rbl_word64_le_uint32_max[of n]
+    apply (auto intro: and_eq_bits_eqI simp: bin_nth2_32_iff word_add_rbl
+      dest: unat_le_uint32_max_no_bit_set)
+    apply (rule word_bl.Rep_inject[THEN iffD1])
+    apply (auto simp del: word_bl.Rep_inject simp: bl_word_and word_add_rbl
+      split!: if_splits)
+    done
+  done
+
+
+instance uint64 :: semiring_numeral
+  by standard
+
+instance uint32 :: semiring_numeral
+  by standard
+
+lemma watcher_enc_extract_bool_True:
+  assumes \<open>(n, (L, True)) \<in> watcher_enc\<close>
+  shows \<open>n AND 4294967296 = 4294967296\<close>
+  using assms
+  by (auto simp: watcher_enc_def take_only_lower32_le_uint32_max nat_of_uint64_uint64_of_uint32
+    nat_of_uint32_le_uint32_max nat_of_uint64_1_32 take_only_lower32_1_32 AND_2_32_bool
+      take_only_lower32_le_uint32_max_ge_uint32_max)
+
+lemma le_uint32_max_AND2_32_eq0: \<open>nat_of_uint64 n \<le> uint32_max \<Longrightarrow> n AND 4294967296 = 0\<close>
+  apply transfer
+  subgoal for n
+    using ex_rbl_word64_le_uint32_max[of n]
+    apply (auto intro!: )
+    apply (rule word_bl.Rep_inject[THEN iffD1])
+    apply (auto simp del: word_bl.Rep_inject simp: bl_word_and word_add_rbl
+      split!: if_splits)
+    done
+  done
+
+lemma watcher_enc_extract_bool_False:
+  assumes \<open>(n, (L, False)) \<in> watcher_enc\<close>
+  shows \<open>(n AND 4294967296 = 0)\<close>
+  using assms
+  by (auto simp: watcher_enc_def take_only_lower32_le_uint32_max nat_of_uint64_uint64_of_uint32
+    nat_of_uint32_le_uint32_max nat_of_uint64_1_32 take_only_lower32_1_32 AND_2_32_bool
+      take_only_lower32_le_uint32_max_ge_uint32_max le_uint32_max_AND2_32_eq0)
+
+lemma numeral_uint64_eq_iff[simp]:
+ \<open>numeral m \<le> (2^64-1 :: nat) \<Longrightarrow> numeral n \<le> (2^64-1 :: nat) \<Longrightarrow> ((numeral m :: uint64) = numeral n) \<longleftrightarrow> numeral m = (numeral n :: nat)\<close>
+  by (subst word_nat_of_uint64_Rep_inject[symmetric])
+    (auto simp: uint64_max_def)
+
+
+lemma numeral_uint64_eq0_iff[simp]:
+ \<open>numeral n \<le> (2^64-1 :: nat) \<Longrightarrow> ((0 :: uint64) = numeral n) \<longleftrightarrow> 0 = (numeral n :: nat)\<close>
+  by (subst word_nat_of_uint64_Rep_inject[symmetric])
+    (auto simp: uint64_max_def)
+
+
+lemma watcher_enc_extract_bool:
+  assumes \<open>(n, (L, b)) \<in> watcher_enc \<close>
+  shows \<open>b \<longleftrightarrow> (n AND 4294967296 \<noteq> 0)\<close>
+  using assms
+  supply [[show_sorts]]
+  by (cases b)
+   (auto dest!: watcher_enc_extract_bool_False watcher_enc_extract_bool_True)
+
+lemma is_binary_code_hnr:
+  \<open>(return o is_binary_code, RETURN o is_binary) \<in> watcher_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare
+    (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True)
+
+definition watcher_of :: \<open>nat \<times> (nat literal \<times> bool) \<Rightarrow> _\<close> where
+  [simp]: \<open>watcher_of = id\<close>
+
+definition watcher_of_code :: \<open>nat \<times> uint64 \<Rightarrow> nat \<times> (uint32 \<times> bool)\<close> where
+  \<open>watcher_of_code = (\<lambda>(a, b). (a, (blit_of_code (a, b), is_binary_code (a, b))))\<close>
+
+lemma watcher_of_code_hnr:
+  \<open>(return o watcher_of_code, RETURN o watcher_of) \<in>
+    watcher_assn\<^sup>k \<rightarrow>\<^sub>a (nat_assn *a unat_lit_assn *a bool_assn)\<close>
+  by sepref_to_hoare
+    (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
+      simp: watcher_of_code_def)
 
 end
