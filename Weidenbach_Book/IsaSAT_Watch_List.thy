@@ -72,7 +72,6 @@ next
       simp del: unat_lt2p)
 qed
 
-
 lemma pow2_mono_word_le:
   \<open>m < LENGTH('a) \<Longrightarrow> n < LENGTH('a) \<Longrightarrow> m \<le> n \<Longrightarrow> (2 :: 'a :: len word) ^m  \<le> 2 ^ n\<close>
   using pow2_mono_word_less[of m n, where 'a = 'a]
@@ -144,21 +143,86 @@ lemma uint64_enumerate_all:
     by (metis nat_geq_1_eq_neqz nat_of_uint64_012(1) nat_of_uint64_012(3) nat_of_uint64_le_iff word_nat_of_uint64_Rep_inject)
   done
 
-lemma \<open>n !! na \<longleftrightarrow> unat n !! na\<close>
-  apply auto
-  apply (metis test_bit_int_def test_bit_nat_def test_bit_wi word_of_int_int_unat)
-   by (simp add: test_bit_nat_def uint_nat word_test_bit_def)
+text \<open>This lemma is very trivial but maps an \<^typ>\<open>64 word\<close> to its list counterpart. This
+  especially allows to combine two numbers together via ther bit representation (which should be
+  faster than enumerating all numbers).
+\<close>
+lemma ex_rbl_word64:
+   \<open>\<exists>a64 a63 a62 a61 a60 a59 a58 a57 a56 a55 a54 a53 a52 a51 a50 a49 a48 a47 a46 a45 a44 a43 a42 a41
+     a40 a39 a38 a37 a36 a35 a34 a33 a32 a31 a30 a29 a28 a27 a26 a25 a24 a23 a22 a21 a20 a19 a18 a17
+     a16 a15 a14 a13 a12 a11 a10 a9 a8 a7 a6 a5 a4 a3 a2 a1.
+     to_bl (n :: 64 word) = 
+         [a64, a63, a62, a61, a60, a59, a58, a57, a56, a55, a54, a53, a52, a51, a50, a49, a48, a47,
+          a46, a45, a44, a43, a42, a41, a40, a39, a38, a37, a36, a35, a34, a33, a32, a31, a30, a29,
+          a28, a27, a26, a25, a24, a23, a22, a21, a20, a19, a18, a17, a16, a15, a14, a13, a12, a11, 
+          a10, a9, a8, a7, a6, a5, a4, a3, a2, a1]\<close> (is ?A) and
+  ex_rbl_word64_le_uint32_max:
+    \<open>unat n \<le> uint32_max \<Longrightarrow> \<exists>a31 a30 a29 a28 a27 a26 a25 a24 a23 a22 a21 a20 a19 a18 a17 a16 a15
+        a14 a13 a12 a11 a10 a9 a8 a7 a6 a5 a4 a3 a2 a1 a32.
+      to_bl (n :: 64 word) = 
+      [False, False, False, False, False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False,
+        a32, a31, a30, a29, a28, a27, a26, a25, a24, a23, a22, a21, a20, a19, a18, a17, a16, a15,
+        a14, a13, a12, a11, a10, a9, a8, a7, a6, a5, a4, a3, a2, a1]\<close> (is \<open>_ \<Longrightarrow> ?B\<close>) and
+  ex_rbl_word64_ge_uint32_max:
+    \<open>n AND (2^32 - 1) = 0 \<Longrightarrow> \<exists>a64 a63 a62 a61 a60 a59 a58 a57 a56 a55 a54 a53 a52 a51 a50 a49 a48
+      a47 a46 a45 a44 a43 a42 a41 a40 a39 a38 a37 a36 a35 a34 a33.
+      to_bl (n :: 64 word) = 
+      [a64, a63, a62, a61, a60, a59, a58, a57, a56, a55, a54, a53, a52, a51, a50, a49, a48, a47,
+          a46, a45, a44, a43, a42, a41, a40, a39, a38, a37, a36, a35, a34, a33,
+        False, False, False, False, False, False, False, False, False, False, False, False, False,
+        False, False, False, False, False, False, False, False, False, False, False, False, False,
+        False, False, False, False, False, False]\<close> (is \<open>_ \<Longrightarrow> ?C\<close>)
+proof -
+  have [simp]: "n > 0 \<Longrightarrow> length xs = n \<longleftrightarrow>
+     (\<exists>y ys. xs = y # ys \<and> length ys = n - 1)" for ys n xs
+    by (cases xs) auto 
+  show H: ?A
+    using word_bl_Rep'[of n]
+    by (auto simp del: word_bl_Rep')
+  
+  show ?B  if \<open>unat n \<le> uint32_max\<close>
+  proof -
+    have H': \<open>m \<ge> 32 \<Longrightarrow> \<not>n !! m\<close> for m
+      using unat_le_uint32_max_no_bit_set[of n m, OF that] by auto
+    show ?thesis using that H'[of 64] H'[of 63] H'[of 62] H'[of 61] H'[of 60] H'[of 59] H'[of 58]
+      H'[of 57] H'[of 56] H'[of 55] H'[of 54] H'[of 53] H'[of 52] H'[of 51] H'[of 50] H'[of 49]
+      H'[of 48] H'[of 47] H'[of 46] H'[of 45] H'[of 44] H'[of 43] H'[of 42] H'[of 41] H'[of 40]
+      H'[of 39] H'[of 38] H'[of 37] H'[of 36] H'[of 35] H'[of 34] H'[of 33] H'[of 32]
+      H'[of 31]
+      using H unfolding unat_def
+      by (clarsimp simp add: test_bit_bl word_size)
+  qed
+  show ?C if \<open>n AND (2^32 - 1) = 0\<close>
+  proof -
+    note H' =  test_bit_bl[of \<open>n AND (2^32 - 1)\<close> m for m, unfolded word_size, simplified]
+    have [simp]: \<open>(n AND 4294967295) !! m = False\<close> for m
+      using that by auto
+    show ?thesis
+      using H H'[of 0]
+      H'[of 32] H'[of 31] H'[of 30] H'[of 29] H'[of 28] H'[of 27] H'[of 26] H'[of 25] H'[of 24]
+      H'[of 23] H'[of 22] H'[of 21] H'[of 20] H'[of 19] H'[of 18] H'[of 17] H'[of 16] H'[of 15]
+      H'[of 14] H'[of 13] H'[of 12] H'[of 11] H'[of 10] H'[of 9] H'[of 8] H'[of 7] H'[of 6]
+      H'[of 5] H'[of 4] H'[of 3] H'[of 2] H'[of 1]
+      unfolding unat_def word_size that
+      by (clarsimp simp add: word_size bl_word_and word_add_rbl)
+  qed
+qed
 
 lemma take_only_lower32_le_uint32_max_ge_uint32_max:
   \<open>nat_of_uint64 n \<le> uint32_max \<Longrightarrow> nat_of_uint64 m \<ge> uint32_max \<Longrightarrow> take_only_lower32 m = 0 \<Longrightarrow> take_only_lower32 (n + m) = n\<close>
   unfolding take_only_lower32_def
   apply transfer
-  apply (auto intro!: and_eq_bits_eqI simp: bin_nth2_32_iff
-    dest: unat_le_uint32_max_no_bit_set)
-
-
-    sorry
-
+  subgoal for m n
+    using ex_rbl_word64_le_uint32_max[of m] ex_rbl_word64_ge_uint32_max[of n]
+    apply (auto intro: and_eq_bits_eqI simp: bin_nth2_32_iff word_add_rbl
+      dest: unat_le_uint32_max_no_bit_set)
+    apply (rule word_bl.Rep_inject[THEN iffD1])
+    apply (auto simp del: word_bl.Rep_inject simp: bl_word_and word_add_rbl 
+      split!: if_splits)
+    done
+  done
 
 lemma take_only_lower32_1_32: \<open>take_only_lower32 (1 << 32) = 0\<close>
   unfolding take_only_lower32_def
@@ -168,7 +232,7 @@ lemma nat_of_uint64_1_32: \<open>nat_of_uint64 (1 << 32) = uint32_max + 1\<close
   unfolding uint32_max_def
   by transfer auto
 
-lemma 
+lemma watcher_enc_extract_blit:
   assumes \<open>(n, (L, b)) \<in> watcher_enc\<close>
   shows \<open>(uint32_of_uint64 (take_only_lower32 n), L) \<in> unat_lit_rel\<close>
   using assms
