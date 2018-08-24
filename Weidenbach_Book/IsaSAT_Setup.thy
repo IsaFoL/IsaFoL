@@ -1,6 +1,6 @@
 theory IsaSAT_Setup
   imports CDCL_Conflict_Minimisation IsaSAT_Clauses IsaSAT_Arena
-    Watched_Literals_VMTF IsaSAT_Lookup_Conflict LBD
+    Watched_Literals_VMTF IsaSAT_Lookup_Conflict LBD IsaSAT_Watch_List
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -72,7 +72,7 @@ abbreviation vdom_assn :: \<open>vdom \<Rightarrow> nat array_list \<Rightarrow>
 type_synonym vdom_assn = \<open>nat array_list\<close>
 
 type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
-typ watched_wl
+
 
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
@@ -447,13 +447,13 @@ definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<time
   }\<close>
 
 abbreviation (in -) watchers_assn where
-  \<open>watchers_assn \<equiv> arl_assn (nat_assn *a unat_lit_assn *a bool_assn)\<close>
+  \<open>watchers_assn \<equiv> arl_assn (watcher_assn)\<close>
 
 abbreviation (in -) watchlist_assn where
   \<open>watchlist_assn \<equiv> arrayO_assn watchers_assn\<close>
 
 abbreviation (in -) watchers_fast_assn where
-  \<open>watchers_fast_assn \<equiv> arl_assn (uint64_nat_assn *a unat_lit_assn *a bool_assn)\<close>
+  \<open>watchers_fast_assn \<equiv> arl_assn (watcher_fast_assn)\<close>
 
 abbreviation (in -) watchlist_fast_assn where
   \<open>watchlist_fast_assn \<equiv> arrayO_assn watchers_fast_assn\<close>

@@ -459,18 +459,6 @@ where
         let K = -lit_of (hd M);
         let n = get_maximum_level M (remove1_mset K (the D));
         RETURN ((M, N, D, NE, UE, WS, Q), n)})\<close>
-(*
-definition (in isasat_input_ops) propagate_bt_wl_D_ext
-  :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
-where
-  \<open>propagate_bt_wl_D_ext = (\<lambda>L highest (M, N, D, NE, UE, Q, W). do {
-    L' \<leftarrow> find_lit_of_max_level_wl (M, N, D, NE, UE, Q, W) L;
-    D'' \<leftarrow> list_of_mset2 (-L) L' (the D);
-    let b = False;
-    (N, i) \<leftarrow> RETURN (append_clause b C N, length N);
-    RETURN (Propagated (-L) i # M,
-        N, None, NE, UE, {#L#}, W(-L:= W (-L) @ [(i, L')], L':= W L' @ [(i, L)]))
-      })\<close> *)
 
 definition (in isasat_input_ops) backtrack_wl_D_heur_inv where
   \<open>backtrack_wl_D_heur_inv S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> twl_st_heur_conflict_ana \<and> backtrack_wl_D_inv S')\<close>
@@ -765,8 +753,8 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       (N, i) \<leftarrow> fm_add_new b C N;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
-      let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [(i, L', b')]];
-      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
+      let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [to_watcher i L' b']];
+      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [to_watcher i (-L) b']];
       lbd \<leftarrow> lbd_empty lbd;
       let j = length_u M;
       ASSERT(i \<noteq> DECISION_REASON);

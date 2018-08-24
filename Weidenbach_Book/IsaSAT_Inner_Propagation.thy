@@ -735,7 +735,7 @@ where
      let K' = arena_lit N (C + f);
      ASSERT(swap_lits_pre C i f N);
      let N' = swap_lits C i f N;
-     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L, b)]];
+     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [to_watcher C L b]];
      RETURN (j, w+1, (M, N', D, Q, W, vm))
   })\<close>
 
@@ -1037,7 +1037,7 @@ definition (in isasat_input_ops) update_blit_wl_heur :: \<open>nat literal \<Rig
   \<open>update_blit_wl_heur = (\<lambda>(L::nat literal) C b j w K (M, N,  D, Q, W, vm). do {
      ASSERT(nat_of_lit L < length W);
      ASSERT(j < length (W ! nat_of_lit L));
-     RETURN (j+1, w+1, (M, N, D, Q, W[nat_of_lit L := (W!nat_of_lit L)[j:=(C, K, b)]], vm))
+     RETURN (j+1, w+1, (M, N, D, Q, W[nat_of_lit L := (W!nat_of_lit L)[j:=to_watcher C K b]], vm))
   })\<close>
 
 definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_heur_inv0 where
@@ -1050,7 +1050,7 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_heur
   \<open>unit_propagation_inner_loop_body_wl_heur L j w (S :: twl_st_wl_heur) = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_D_heur_inv0 L (j, w, S));
       ASSERT(watched_by_app_heur_pre ((S, L), w));
-      let (C, K, b) = watched_by_app_heur S L w;
+      let (C, K, b) = watcher_of (watched_by_app_heur S L w);
       S \<leftarrow> keep_watch_heur L j w S;
       ASSERT(unit_prop_body_wl_heur_inv S j w L);
       ASSERT(polarity_st_pre (S, K));
@@ -2209,6 +2209,7 @@ proof -
       watched_by_app_heur_def access_lit_in_clauses_heur_def
     unfolding set_conflict_wl'_alt_def[symmetric]
       clause_not_marked_to_delete_def[symmetric]
+      to_watcher_def watcher_of_def id_def
 
     apply (refine_rcg find_unw isa_save_pos)
     subgoal unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv0_def twl_st_heur'_def
@@ -2819,7 +2820,7 @@ lemma watched_by_app_watched_by_app_heur:
 sepref_thm watched_by_app_heur_code
   is \<open>uncurry2 (RETURN ooo watched_by_app_heur)\<close>
   :: \<open>[watched_by_app_heur_pre]\<^sub>a
-        isasat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> (nat_assn *a unat_lit_assn *a bool_assn)\<close>
+        isasat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> watcher_assn\<close>
   supply [[goals_limit=1]] length_rll_def[simp]
   unfolding watched_by_app_heur_alt_def isasat_assn_def nth_rll_def[symmetric]
    watched_by_app_heur_pre_def

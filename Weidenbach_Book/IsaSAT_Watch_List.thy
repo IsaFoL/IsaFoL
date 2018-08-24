@@ -12,16 +12,28 @@ text \<open>There is not much to say about watch list,s since they are arrays of
   the tuples with booleans were using 40 bytes instead of 24 previously. Just merging the
   \<^typ>\<open>uint32\<close> and the \<^typ>\<open>bool\<close> to a single \<^typ>\<open>uint64\<close> was sufficient to get the
   performance back.
+
+  Remark that however, the evaluation of terms like \<^term>\<open>(2::uint64) ^ 32\<close> was not done automatically
+  and even worse, was redone each time, leading to a complete performance blow-up (75s on my macbook
+  for eq.atree.braun.7.unsat.cnf instead of 7s).
 \<close>
 
-type_synonym watched_wl_uint32 = \<open>((uint64 \<times> uint32 \<times> bool) array_list) array\<close>
+(* TODO Move *)
+instance uint64 :: semiring_numeral
+  by standard
+
+instance uint32 :: semiring_numeral
+  by standard
+(* End Move *)
+type_synonym watched_wl = \<open>((nat \<times> uint64) array_list) array\<close>
+type_synonym watched_wl_uint32 = \<open>((uint64 \<times> uint64) array_list) array\<close>
 
 definition watcher_enc where
   \<open>watcher_enc = {(n, (L, b)). \<exists>L'. (L', L) \<in> unat_lit_rel \<and>
       n = uint64_of_uint32 L' + (if b then 1 << 32 else 0)}\<close>
 
 definition take_only_lower32 :: \<open>uint64 \<Rightarrow> uint64\<close> where
-  \<open>take_only_lower32 n = n AND ((1 << 32) - 1)\<close>
+  [code del]: \<open>take_only_lower32 n = n AND ((1 << 32) - 1)\<close>
 
 lemma bintrunc_eq_bits_eqI: \<open> (\<And>n. (n < r \<and> bin_nth c n) = (n < r \<and> bin_nth a n)) \<Longrightarrow>
        bintrunc r (a) = bintrunc r c\<close>
@@ -130,7 +142,7 @@ lemma uint32_of_uint64_uint64_of_uint32[simp]: \<open>uint32_of_uint64 (uint64_o
 lemma uint64_enumerate_all:
   fixes  n :: uint64
    assumes \<open>(P 0)\<close> and
-      \<open>(\<And>n. nat_of_uint64 n \<le> 2 ^64 \<Longrightarrow> n \<ge> 1 \<Longrightarrow> P (n))\<close>
+      \<open>(\<And>n. nat_of_uint64 n \<le> 2 ^ 64 \<Longrightarrow> n \<ge> 1 \<Longrightarrow> P (n))\<close>
     shows \<open>P n\<close>
     using assms(1) assms(2)[of \<open>n\<close>] nat_of_uint64_le_uint64_max[of n]
   apply (cases \<open>n = 0\<close>)
@@ -244,7 +256,10 @@ abbreviation watcher_enc_assn where
   \<open>watcher_enc_assn \<equiv> pure watcher_enc \<close>
 
 abbreviation watcher_assn where
-  \<open>watcher_assn \<equiv> nat_assn *a watcher_enc_assn \<close>
+  \<open>watcher_assn \<equiv> nat_assn *a watcher_enc_assn\<close>
+
+abbreviation watcher_fast_assn where
+  \<open>watcher_fast_assn \<equiv> uint64_nat_assn *a watcher_enc_assn\<close>
 
 fun blit_of where
   \<open>blit_of (_, (L, _)) = L\<close>
@@ -257,11 +272,15 @@ lemma blit_of_code_hnr:
   by sepref_to_hoare
     (sep_auto simp: watcher_enc_extract_blit)
 
-fun is_binary where
-  \<open>is_binary (_, (_, b)) = b\<close>
+fun is_marked_binary where
+  \<open>is_marked_binary (_, (_, b)) = b\<close>
 
-fun is_binary_code where
-  \<open>is_binary_code (n, bL) = (bL AND (2^32) = 2^32)\<close>
+fun is_marked_binary_code :: \<open>_ \<times> uint64 \<Rightarrow> bool\<close> where
+  [code del]: \<open>is_marked_binary_code (_, bL) = (bL AND ((2 :: uint64)^32) \<noteq> 0)\<close>
+
+lemma [code]:
+  \<open>is_marked_binary_code (n, bL) = (bL AND 4294967296 \<noteq> 0)\<close>
+  by auto
 
 lemma AND_2_32_bool:
   \<open>nat_of_uint64 n \<le> uint32_max \<Longrightarrow> n + (1 << 32) AND 4294967296 = 4294967296\<close>
@@ -275,13 +294,6 @@ lemma AND_2_32_bool:
       split!: if_splits)
     done
   done
-
-
-instance uint64 :: semiring_numeral
-  by standard
-
-instance uint32 :: semiring_numeral
-  by standard
 
 lemma watcher_enc_extract_bool_True:
   assumes \<open>(n, (L, True)) \<in> watcher_enc\<close>
@@ -330,8 +342,8 @@ lemma watcher_enc_extract_bool:
   by (cases b)
    (auto dest!: watcher_enc_extract_bool_False watcher_enc_extract_bool_True)
 
-lemma is_binary_code_hnr:
-  \<open>(return o is_binary_code, RETURN o is_binary) \<in> watcher_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+lemma is_marked_binary_code_hnr:
+  \<open>(return o is_marked_binary_code, RETURN o is_marked_binary) \<in> watcher_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare
     (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True)
 
@@ -339,7 +351,7 @@ definition watcher_of :: \<open>nat \<times> (nat literal \<times> bool) \<Right
   [simp]: \<open>watcher_of = id\<close>
 
 definition watcher_of_code :: \<open>nat \<times> uint64 \<Rightarrow> nat \<times> (uint32 \<times> bool)\<close> where
-  \<open>watcher_of_code = (\<lambda>(a, b). (a, (blit_of_code (a, b), is_binary_code (a, b))))\<close>
+  \<open>watcher_of_code = (\<lambda>(a, b). (a, (blit_of_code (a, b), is_marked_binary_code (a, b))))\<close>
 
 lemma watcher_of_code_hnr[sepref_fr_rules]:
   \<open>(return o watcher_of_code, RETURN o watcher_of) \<in>
@@ -349,11 +361,38 @@ lemma watcher_of_code_hnr[sepref_fr_rules]:
       simp: watcher_of_code_def)
 
 
+definition watcher_of_fast_code :: \<open>uint64 \<times> uint64 \<Rightarrow> uint64 \<times> (uint32 \<times> bool)\<close> where
+  \<open>watcher_of_fast_code = (\<lambda>(a, b). (a, (blit_of_code (a, b), is_marked_binary_code (a, b))))\<close>
+
+lemma watcher_of_fast_code_hnr[sepref_fr_rules]:
+  \<open>(return o watcher_of_fast_code, RETURN o watcher_of) \<in>
+    watcher_fast_assn\<^sup>k \<rightarrow>\<^sub>a (uint64_nat_assn *a unat_lit_assn *a bool_assn)\<close>
+  by sepref_to_hoare
+    (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
+      simp: watcher_of_fast_code_def)
+
 definition to_watcher :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> bool \<Rightarrow> _\<close> where
   [simp]: \<open>to_watcher n L b = (n, (L, b))\<close>
 
 definition to_watcher_code :: \<open>nat \<Rightarrow> uint32 \<Rightarrow> bool \<Rightarrow> nat \<times> uint64\<close> where
-  \<open>to_watcher_code = (\<lambda>a L b. (a, uint64_of_uint32 L OR (if b then 1 << 32 else (0 :: uint64))))\<close>
+  [code del]:
+    \<open>to_watcher_code = (\<lambda>a L b. (a, uint64_of_uint32 L OR (if b then 1 << 32 else (0 :: uint64))))\<close>
+
+lemma transfer_pow_uint64: \<open>Transfer.Rel (rel_fun cr_uint64 (rel_fun (=) cr_uint64)) (^) (^)\<close>
+  apply (auto simp: Transfer.Rel_def rel_fun_def cr_uint64_def)
+  subgoal for x y
+    by (induction y)
+      (auto simp: one_uint64.rep_eq times_uint64.rep_eq)
+  done
+
+lemma shiftl_t2n_uint64: \<open>n << m = n * 2 ^ m\<close> for n :: uint64
+  apply transfer
+  prefer 2 apply (rule transfer_pow_uint64)
+  by (auto simp: shiftl_t2n)
+
+lemma to_watcher_code[code]:
+  \<open>to_watcher_code a L b = (a, uint64_of_uint32 L OR (if b then 4294967296 else (0 :: uint64)))\<close>
+  by (auto simp: shiftl_integer_conv_mult_pow2 to_watcher_code_def shiftl_t2n_uint64)
 
 lemma OR_int64_0[simp]: \<open>A OR (0 :: uint64) = A\<close>
   by transfer auto
@@ -377,5 +416,21 @@ lemma to_watcher_code_hnr[sepref_fr_rules]:
     (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
       simp: to_watcher_code_def watcher_enc_def OR_132_is_sum nat_of_uint64_uint64_of_uint32
        nat_of_uint32_le_uint32_max)
+
+definition to_watcher_fast_code :: \<open>uint64 \<Rightarrow> uint32 \<Rightarrow> bool \<Rightarrow> uint64 \<times> uint64\<close> where
+  \<open>to_watcher_fast_code = (\<lambda>a L b. (a, uint64_of_uint32 L OR (if b then 1 << 32 else (0 :: uint64))))\<close>
+
+lemma to_watcher_fast_code_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 (return ooo to_watcher_fast_code), uncurry2 (RETURN ooo to_watcher)) \<in>
+    uint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a watcher_fast_assn\<close>
+  by sepref_to_hoare
+    (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
+      simp: to_watcher_fast_code_def watcher_enc_def OR_132_is_sum nat_of_uint64_uint64_of_uint32
+       nat_of_uint32_le_uint32_max)
+
+lemma take_only_lower_code[code]:
+  \<open>take_only_lower32 n = n AND 4294967295\<close>
+  by (auto simp: take_only_lower32_def shiftl_t2n_uint64)
+
 
 end
