@@ -341,11 +341,41 @@ definition watcher_of :: \<open>nat \<times> (nat literal \<times> bool) \<Right
 definition watcher_of_code :: \<open>nat \<times> uint64 \<Rightarrow> nat \<times> (uint32 \<times> bool)\<close> where
   \<open>watcher_of_code = (\<lambda>(a, b). (a, (blit_of_code (a, b), is_binary_code (a, b))))\<close>
 
-lemma watcher_of_code_hnr:
+lemma watcher_of_code_hnr[sepref_fr_rules]:
   \<open>(return o watcher_of_code, RETURN o watcher_of) \<in>
     watcher_assn\<^sup>k \<rightarrow>\<^sub>a (nat_assn *a unat_lit_assn *a bool_assn)\<close>
   by sepref_to_hoare
     (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
       simp: watcher_of_code_def)
+
+
+definition to_watcher :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> bool \<Rightarrow> _\<close> where
+  [simp]: \<open>to_watcher n L b = (n, (L, b))\<close>
+
+definition to_watcher_code :: \<open>nat \<Rightarrow> uint32 \<Rightarrow> bool \<Rightarrow> nat \<times> uint64\<close> where
+  \<open>to_watcher_code = (\<lambda>a L b. (a, uint64_of_uint32 L OR (if b then 1 << 32 else (0 :: uint64))))\<close>
+
+lemma OR_int64_0[simp]: \<open>A OR (0 :: uint64) = A\<close>
+  by transfer auto
+
+lemma OR_132_is_sum:
+  \<open>nat_of_uint64 n \<le> uint32_max \<Longrightarrow> n OR (1 << 32) = n + (1 << 32)\<close>
+  apply transfer
+  subgoal for n
+    using ex_rbl_word64_le_uint32_max[of n]
+    apply (auto intro: and_eq_bits_eqI simp: bin_nth2_32_iff word_add_rbl
+      dest: unat_le_uint32_max_no_bit_set)
+    apply (rule word_bl.Rep_inject[THEN iffD1])
+    by (auto simp del: word_bl.Rep_inject simp: bl_word_or word_add_rbl
+      split!: if_splits)
+  done
+
+lemma to_watcher_code_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 (return ooo to_watcher_code), uncurry2 (RETURN ooo to_watcher)) \<in>
+    nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a watcher_assn\<close>
+  by sepref_to_hoare
+    (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
+      simp: to_watcher_code_def watcher_enc_def OR_132_is_sum nat_of_uint64_uint64_of_uint32
+       nat_of_uint32_le_uint32_max)
 
 end
