@@ -1128,7 +1128,7 @@ definition mark_to_delete_clauses_wl_D_post where
 
 definition cdcl_twl_full_restart_wl_prog_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
 \<open>cdcl_twl_full_restart_wl_prog_D S = do {
-    S \<leftarrow> remove_one_annot_true_clause_imp_wl_D S;
+   \<comment> \<open>S \<leftarrow> remove_one_annot_true_clause_imp_wl_D S;\<close>
     ASSERT(mark_to_delete_clauses_wl_D_pre S);
     T \<leftarrow> mark_to_delete_clauses_wl_D S;
     ASSERT (mark_to_delete_clauses_wl_post S T);
@@ -1188,10 +1188,10 @@ proof -
       remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
       remove_one_annot_true_clause_one_imp_wl_D_remove_one_annot_true_clause_one_imp_wl[THEN fref_to_Down_curry]
       mark_to_delete_clauses_wl_D_mark_to_delete_clauses_wl[THEN fref_to_Down])
-    subgoal for S T U V
+    subgoal for S T
       unfolding mark_to_delete_clauses_wl_D_pre_def by blast
     subgoal by auto
-    subgoal for x y S Sa T Ta
+    subgoal for x y S Sa
       by (rule cdcl_twl_full_restart_wl_prog_D_final_rel)
     done
 qed
