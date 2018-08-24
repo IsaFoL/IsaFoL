@@ -205,10 +205,6 @@ abbreviation unit_lits_assn :: \<open>nat clauses \<Rightarrow> unit_lits_wl \<R
 
 type_synonym nat_clauses_l = \<open>nat list list\<close>
 
-type_synonym twl_st_wll =
-  \<open>nat_trail \<times> clauses_wl \<times> uint32 array_list option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
-    lit_queue_l \<times> watched_wl\<close>
-
 lemma clause_l_assn_alt_def:
   \<open>clause_l_assn = hr_comp (list_assn unat_lit_assn) list_mset_rel\<close>
   by (simp add: list_assn_list_mset_rel_eq_list_mset_assn)
@@ -292,18 +288,8 @@ subsection \<open>Code Generation\<close>
 
 subsubsection \<open>More Operations\<close>
 
-fun literals_to_update_wll :: \<open>twl_st_wll \<Rightarrow> lit_queue_l\<close> where
-  \<open>literals_to_update_wll (M, N, D, NE, UE, Q, W) = Q\<close>
-
-definition literals_to_update_wll_empty :: \<open>twl_st_wll \<Rightarrow> bool\<close> where
-  \<open>literals_to_update_wll_empty = (\<lambda>(M, N, D, NE, UE, Q, W). is_Nil Q)\<close>
-
 definition literals_to_update_wl_empty :: \<open>nat twl_st_wl \<Rightarrow> bool\<close>  where
   \<open>literals_to_update_wl_empty = (\<lambda>(M, N, D, NE, UE, Q, W). Q = {#})\<close>
-
-definition select_and_remove_from_literals_to_update_wl' :: \<open>twl_st_wll \<Rightarrow> twl_st_wll \<times> uint32\<close> where
-  \<open>select_and_remove_from_literals_to_update_wl' =
-    (\<lambda>(M, N, D, NE, UE, Q, W).  ((M, N, D, NE, UE, tl Q, W), hd Q))\<close>
 
 lemma in_nat_list_rel_list_all2_in_set_iff:
     \<open>(a, aa) \<in> nat_lit_rel \<Longrightarrow>

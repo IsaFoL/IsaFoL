@@ -73,7 +73,6 @@ type_synonym vdom_assn = \<open>nat array_list\<close>
 
 type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
 
-
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>

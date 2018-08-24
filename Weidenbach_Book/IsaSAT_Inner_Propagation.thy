@@ -2910,17 +2910,6 @@ lemma case_tri_bool_If:
     else if b = SET_TRUE then f2 else f3)\<close>
   by (auto split: option.splits)
 
-(* TODO Move *)
-lemma le_uint64_nat_assn_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo (\<le>)), uncurry (RETURN oo (\<le>))) \<in> uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by sepref_to_hoare
-   (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_le_iff)
-(* End Move *)
-
-(* TODO deduplicate def *)
-lemma get_saved_pos_arena_pos:\<open>get_saved_pos arena C = arena_pos arena C\<close>
-  by (auto simp: get_saved_pos_def arena_pos_def)
-(* End Move *)
 
 context isasat_input_bounded_nempty
 begin
@@ -2967,7 +2956,6 @@ sepref_thm find_unwatched_wl_st_heur_code
   fmap_rll_u64_def[symmetric]
   MAX_LENGTH_SHORT_CLAUSE_def[symmetric]
   isa_find_unset_lit_def[symmetric]
-  get_saved_pos_arena_pos[symmetric]
   by sepref
 
 concrete_definition (in -) find_unwatched_wl_st_heur_code

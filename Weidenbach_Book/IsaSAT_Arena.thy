@@ -2038,9 +2038,6 @@ lemma isa_get_clause_LBD_code[sepref_fr_rules]:
 
 paragraph \<open>Saved position\<close>
 
-definition get_saved_pos :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat\<close> where
-  \<open>get_saved_pos arena C =  xarena_pos (arena ! (C - POS_SHIFT)) + 2\<close>
-
 definition get_saved_pos_pre where
   \<open>get_saved_pos_pre arena C \<longleftrightarrow> arena_is_valid_clause_idx arena C \<and>
       arena_length arena C > 5\<close>
@@ -2061,7 +2058,7 @@ lemma arena_get_pos_conv:
     \<open>j - POS_SHIFT < length arena\<close> (is ?le) and
     \<open>POS_SHIFT \<le> j\<close> (is ?ge) and
     \<open>(uint64_of_uint32 (a ! (j - POS_SHIFT)) + two_uint64,
-        Suc (Suc (xarena_pos (arena ! (j - POS_SHIFT)))))
+        arena_pos arena j)
        \<in> uint64_nat_rel\<close> (is ?rel) and
     \<open>nat_of_uint64
         (uint64_of_uint32
@@ -2098,23 +2095,23 @@ proof -
     using lbd apply (cases \<open>arena ! (j - POS_SHIFT)\<close>)
     by (auto simp: arena_el_rel_def
       uint64_nat_rel_def br_def two_uint64_def uint32_nat_rel_def nat_of_uint64_add
-      uint64_of_uint32_def nat_of_uint64_add
+      uint64_of_uint32_def nat_of_uint64_add arena_pos_def
       nat_of_uint64_uint64_of_nat_id nat_of_uint32_le_uint64_max)
   then show ?eq'
     using lbd \<open>?rel\<close> apply (cases \<open>arena ! (j - POS_SHIFT)\<close>)
     by (auto simp: arena_el_rel_def
       uint64_nat_rel_def br_def two_uint64_def uint32_nat_rel_def nat_of_uint64_add
-      uint64_of_uint32_def nat_of_uint64_add
+      uint64_of_uint32_def nat_of_uint64_add arena_pos_def
       nat_of_uint64_uint64_of_nat_id nat_of_uint32_le_uint64_max)
 qed
 
 lemma isa_get_saved_pos_get_saved_pos:
-  \<open>(uncurry isa_get_saved_pos, uncurry (RETURN oo get_saved_pos)) \<in>
+  \<open>(uncurry isa_get_saved_pos, uncurry (RETURN oo arena_pos)) \<in>
     [uncurry get_saved_pos_pre]\<^sub>f
      \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow>
     \<langle>uint64_nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: isa_get_saved_pos_def get_saved_pos_def arena_get_lbd_conv
+    (auto simp: isa_get_saved_pos_def arena_get_lbd_conv
       arena_is_valid_clause_idx_def arena_get_pos_conv
       list_rel_imp_same_length get_saved_pos_pre_def
       intro!: ASSERT_leI)
@@ -2132,7 +2129,7 @@ sepref_definition isa_get_saved_pos_fast_code
   by sepref
 
 lemma get_saved_pos_code:
-  \<open>(uncurry isa_get_saved_pos_fast_code, uncurry (RETURN \<circ>\<circ> get_saved_pos))
+  \<open>(uncurry isa_get_saved_pos_fast_code, uncurry (RETURN \<circ>\<circ> arena_pos))
      \<in> [uncurry get_saved_pos_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
   using isa_get_saved_pos_fast_code.refine[FCOMP isa_get_saved_pos_get_saved_pos]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
@@ -2153,18 +2150,18 @@ sepref_definition isa_get_saved_pos_code
   by sepref
 
 lemma isa_get_saved_pos_get_saved_pos':
-  \<open>(uncurry isa_get_saved_pos', uncurry (RETURN oo get_saved_pos)) \<in>
+  \<open>(uncurry isa_get_saved_pos', uncurry (RETURN oo arena_pos)) \<in>
     [uncurry get_saved_pos_pre]\<^sub>f
      \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow>
     \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: isa_get_saved_pos_def get_saved_pos_def
+    (auto simp: isa_get_saved_pos_def arena_pos_def
       arena_is_valid_clause_idx_def arena_get_pos_conv isa_get_saved_pos'_def
       list_rel_imp_same_length get_saved_pos_pre_def
       intro!: ASSERT_leI)
 
 lemma get_saved_pos_code':
-  \<open>(uncurry isa_get_saved_pos_code, uncurry (RETURN \<circ>\<circ> get_saved_pos))
+  \<open>(uncurry isa_get_saved_pos_code, uncurry (RETURN \<circ>\<circ> arena_pos))
      \<in> [uncurry get_saved_pos_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   using isa_get_saved_pos_code.refine[FCOMP isa_get_saved_pos_get_saved_pos']
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
