@@ -58,12 +58,72 @@ abbreviation concls_of :: "'f inference set \<Rightarrow> 'f set" where
 (* definition infer_from :: "'a clause set \<Rightarrow> 'a inference \<Rightarrow> bool" where
   "infer_from CC \<gamma> \<longleftrightarrow> set_mset (prems_of \<gamma>) \<subseteq> CC" *)
 
+notation image_mset (infixr "`#" 90)
+
+definition Pow_mset where
+  "Pow_mset A = fold_mset (\<lambda>a A. (A + (add_mset a) `# A)) {#{#}#} A"
+
+lemma Pow_mset_alt_def:
+  "Pow_mset (mset A) = mset `# mset (subseqs A)"
+proof -
+  interpret mset: comp_fun_commute "(\<lambda>a A. (A + (add_mset a) `# A))"
+    by (auto simp: comp_fun_commute_def add_mset_commute intro!: ext)
+
+  show ?thesis
+    apply (induction A)
+    subgoal by (auto simp: Pow_mset_def)
+    subgoal
+      by (auto simp: Let_def Pow_mset_def)
+    done
+qed
+
+interpretation pow_mset_commute: comp_fun_commute "(\<lambda>a A. (A + (add_mset a) `# A))"
+  by (auto simp: comp_fun_commute_def add_mset_commute intro!: ext)
+
+lemma Pow_mset_empty[simp]:
+  \<open>Pow_mset {#} = {#{#}#}\<close>
+  by (auto simp: Pow_mset_def)
+
+lemma Pow_mset_add_mset:
+  \<open>Pow_mset (add_mset a A) = Pow_mset A + (add_mset a) `# Pow_mset A\<close>
+  by (auto simp: Let_def Pow_mset_def)  
+
+lemma in_Pow_mset_iff:
+   \<open>A \<in># Pow_mset B \<longleftrightarrow> A \<subseteq># B\<close>
+proof
+  assume \<open>A \<subseteq># B\<close>
+  then show \<open>A \<in># Pow_mset B\<close>
+    apply (induction B arbitrary: A)
+    subgoal by auto
+    subgoal premises p for b B A
+      using p(1)[of A] p(1)[of \<open>A - {#b#}\<close>] p(2)
+      apply (cases \<open>b \<in># A\<close>)
+      by (auto simp: Pow_mset_add_mset dest: subset_add_mset_notin_subset_mset
+          dest!: multi_member_split)
+    done
+next
+  assume \<open>A \<in># Pow_mset B\<close>
+  then show \<open>A \<subseteq># B\<close>
+    apply (induction B arbitrary: A)
+    subgoal by auto
+    subgoal premises p for b B A
+      using p apply (auto simp: Pow_mset_add_mset )
+      by (metis add_mset_add_single mset_subset_eq_add_left subset_mset.add_increasing2)       
+    done
+qed
+
 locale inference_system = consequence_relation +
-  fixes I :: "'f inference set"
+  fixes 
+    I :: "'f inference multiset" and
+    Red_I :: "'f formulas \<Rightarrow> 'f inference multiset" and
+    Red_F :: "'f formulas \<Rightarrow> 'f formulas"
+  assumes
+    Red_I_to_I: "Red_I N \<in># Pow_mset I"
+    (* TODO add all constraints defining Red_I and Red_F *)
 begin
 
-definition Inf :: "'f formulas  \<Rightarrow> 'f inference set" where
-  "Inf N = { \<iota> \<in> I. set (prems_of \<iota>) \<subseteq> set_mset N }"
+definition Inf :: "'f formulas  \<Rightarrow> 'f inference multiset" where
+  "Inf N = {# \<iota> \<in># I. set (prems_of \<iota>) \<subseteq> set_mset N #}"
 
 (* definition redundancy_criterion :: ""  TODO: decide if multiset powerset is necessary or of set suffices*)
 
