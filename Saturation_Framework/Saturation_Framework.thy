@@ -84,15 +84,17 @@ lemma Pow_mset_empty[simp]:
   \<open>Pow_mset {#} = {#{#}#}\<close>
   by (auto simp: Pow_mset_def)
 
-lemma Pow_mset_add_mset:
+lemma Pow_mset_add_mset[simp]:
   \<open>Pow_mset (add_mset a A) = Pow_mset A + (add_mset a) `# Pow_mset A\<close>
   by (auto simp: Let_def Pow_mset_def)  
 
 lemma Pow_mset_nempty[simp]:
   \<open>Pow_mset A \<noteq> {#}\<close>
-  by (induction A) (auto simp: Pow_mset_add_mset)
+  by (induction A) auto
 
-lemma in_Pow_mset_iff:
+
+text \<open>Equivalent set version: @{thm Pow_iff}\<close>
+lemma Pow_mset_iff[iff]:
    \<open>A \<in># Pow_mset B \<longleftrightarrow> A \<subseteq># B\<close>
 proof
   assume \<open>A \<subseteq># B\<close>
@@ -102,8 +104,7 @@ proof
     subgoal premises p for b B A
       using p(1)[of A] p(1)[of \<open>A - {#b#}\<close>] p(2)
       apply (cases \<open>b \<in># A\<close>)
-      by (auto simp: Pow_mset_add_mset dest: subset_add_mset_notin_subset_mset
-          dest!: multi_member_split)
+      by (auto dest: subset_add_mset_notin_subset_mset dest!: multi_member_split)
     done
 next
   assume \<open>A \<in># Pow_mset B\<close>
@@ -111,7 +112,7 @@ next
     apply (induction B arbitrary: A)
     subgoal by auto
     subgoal premises p for b B A
-      using p apply (auto simp: Pow_mset_add_mset)
+      using p apply auto
       by (metis add_mset_add_single mset_subset_eq_add_left subset_mset.add_increasing2)       
     done
 qed
@@ -126,8 +127,7 @@ proof -
 qed
 
 lemma count_image_mset_add_mset_notin: \<open>a \<notin># B \<Longrightarrow> count (add_mset a `# A) B = 0\<close>
-  by (induction A)
-     (auto simp: Pow_mset_add_mset add_mset_commute[of _ a])
+  by (induction A) (auto simp: add_mset_commute[of _ a])
 
 lemma count_Pow_mset_prod:
   \<open>count (Pow_mset A) B = (prod (\<lambda>a. (count A a) choose (count B a)) (set_mset B))\<close>
@@ -144,18 +144,16 @@ next
             (if a = aa then Suc (count A aa)
              else count A aa)) = (\<Prod>aa\<in>set_mset A - {a}.
             count A' aa choose
-            (count A aa))\<close> for a A A'
-    by (rule prod.cong)
-      auto
+            (count A aa))\<close> for a and A :: \<open>'a multiset\<close> and A' :: \<open>'a multiset\<close>
+    by (rule prod.cong) auto
   have H': \<open>a \<notin># B \<Longrightarrow> (\<Prod>aa\<in>set_mset B.
        (if a = aa then Suc (count A' aa)
         else count A' aa) choose
        count B aa) =
          (\<Prod>aa\<in>set_mset B.
        (count A' aa) choose
-       count B aa)\<close> for a A A'
-    by (rule prod.cong)
-      auto
+       count B aa)\<close> for a and A :: \<open>'a multiset\<close> and A' :: \<open>'a multiset\<close>
+    by (rule prod.cong) auto
   have H'': \<open>(\<Prod>aa\<in>set_mset A - {a}.
             (if a = aa then Suc (count A' aa)
              else count A' aa) choose
@@ -163,17 +161,16 @@ next
              else count A aa)) =
          (\<Prod>aa\<in>set_mset A - {a}.
             (count A' aa) choose
-            (count A aa))\<close> for a A A'
-    by (rule prod.cong)
-      auto
-  have count_image_mset_add_mset: \<open>count (add_mset a `# A) (add_mset a B) = count A B\<close> for A B a
-    by (induction A)
-     (auto simp: Pow_mset_add_mset add_mset_commute[of _ a])
+            (count A aa))\<close> for a and A :: \<open>'a multiset\<close> and A' :: \<open>'a multiset\<close>
+    by (rule prod.cong) auto
+  have count_image_mset_add_mset: \<open>count (add_mset a `# A) (add_mset a B) = count A B\<close>
+    for a and A :: \<open>'a multiset multiset\<close> and B :: \<open>'a multiset\<close>
+    by (induction A) (auto simp: add_mset_commute[of _ a])
 
   show ?case
     apply (cases \<open>b \<in># B\<close>)
     subgoal
-      apply (auto simp: Pow_mset_add_mset add prod.insert_remove count_image_mset_add_mset H H'
+      apply (auto simp: add prod.insert_remove count_image_mset_add_mset H H'
       count_image_mset_add_mset_notin H'' distrib_right
       dest!: multi_member_split[of b B])
       apply (cases \<open>b \<in># B - {#b#}\<close>)
@@ -181,9 +178,9 @@ next
       apply (auto simp: prod.insert_remove intro: count_inI)
       done
     subgoal
-      by (auto simp: Pow_mset_add_mset add count_image_mset_add_mset H H' prod.insert_remove
-        count_image_mset_add_mset_notin
-        dest!: multi_member_split[of b B])
+      by (auto simp: add count_image_mset_add_mset H H' prod.insert_remove
+             count_image_mset_add_mset_notin
+           dest!: multi_member_split[of b B])
     done
 qed
 
@@ -191,11 +188,11 @@ lemma Pow_mset_union:
   \<open>Pow_mset (A + B) = (\<lambda>(a, b). a + b) `# (Pow_mset A \<times># Pow_mset B)\<close>
 proof (induction A)
   case empty
-  then show ?case by (auto simp: Pow_mset_add_mset Times_mset_single_left)
+  then show ?case by (auto simp: Times_mset_single_left)
 next
   case (add x A)
   have 1: \<open>{#(add_mset x a, y). (a, y) \<in># A \<times># B#} =
-        add_mset x `# A \<times># B\<close> for A B x
+        add_mset x `# A \<times># B\<close> for A :: \<open>'a multiset multiset\<close> and B :: \<open>'b multiset\<close> and x
     by (induction B)
       (auto simp: Times_insert_left)
   have \<open>{#add_mset x (case xa of (x, xa) \<Rightarrow> x + xa). xa \<in># Pow_mset A \<times># Pow_mset B#} =
@@ -204,8 +201,13 @@ next
     by (rule image_mset_cong)  auto
   also have \<open>\<dots> = {# (case xa of (x, xa) \<Rightarrow> x + xa). xa \<in># add_mset x `# Pow_mset A \<times># Pow_mset B#}\<close>
     by (subst image_mset.compositionality[symmetric], subst 1) (rule refl)
-  finally show ?case by (auto simp: Pow_mset_add_mset Times_mset_single_left add)
+  finally show ?case by (auto simp: Times_mset_single_left add)
 qed
+
+text \<open>Equivalent set version: @{thm card_Pow}\<close>
+lemma size_Pow_mset:
+  \<open>size (Pow_mset A) = 2 ^ size A\<close>
+  by (induction A) auto
 
 
 locale inference_system = consequence_relation +
