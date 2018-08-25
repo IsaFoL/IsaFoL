@@ -88,6 +88,10 @@ lemma Pow_mset_add_mset:
   \<open>Pow_mset (add_mset a A) = Pow_mset A + (add_mset a) `# Pow_mset A\<close>
   by (auto simp: Let_def Pow_mset_def)  
 
+lemma Pow_mset_nempty[simp]:
+  \<open>Pow_mset A \<noteq> {#}\<close>
+  by (induction A) (auto simp: Pow_mset_add_mset)
+
 lemma in_Pow_mset_iff:
    \<open>A \<in># Pow_mset B \<longleftrightarrow> A \<subseteq># B\<close>
 proof
@@ -107,10 +111,102 @@ next
     apply (induction B arbitrary: A)
     subgoal by auto
     subgoal premises p for b B A
-      using p apply (auto simp: Pow_mset_add_mset )
+      using p apply (auto simp: Pow_mset_add_mset)
       by (metis add_mset_add_single mset_subset_eq_add_left subset_mset.add_increasing2)       
     done
 qed
+
+lemma Pow_mset_Pow: \<open>set_mset ` set_mset (Pow_mset A) = Pow (set_mset A)\<close>
+proof -
+  obtain A' where A: \<open>A = mset A'\<close>
+    using ex_mset[of A] by auto
+  show ?thesis
+    unfolding A Pow_mset_alt_def 
+    by (simp add: subseqs_powset image_image)
+qed
+
+lemma count_image_mset_add_mset_notin: \<open>a \<notin># B \<Longrightarrow> count (add_mset a `# A) B = 0\<close>
+  by (induction A)
+     (auto simp: Pow_mset_add_mset add_mset_commute[of _ a])
+
+lemma count_Pow_mset_prod:
+  \<open>count (Pow_mset A) B = (prod (\<lambda>a. (count A a) choose (count B a)) (set_mset B))\<close>
+proof (induction A arbitrary: B)
+  case (empty B)
+  then show ?case
+    by (cases B)
+      (auto simp: card_insert)
+next
+  case (add b A' B)
+  \<comment> \<open>First, let's fight one weakness of the simplifier:\<close>
+  have H: \<open>(\<Prod>aa\<in>set_mset A - {a}.
+            count A' aa choose
+            (if a = aa then Suc (count A aa)
+             else count A aa)) = (\<Prod>aa\<in>set_mset A - {a}.
+            count A' aa choose
+            (count A aa))\<close> for a A A'
+    by (rule prod.cong)
+      auto
+  have H': \<open>a \<notin># B \<Longrightarrow> (\<Prod>aa\<in>set_mset B.
+       (if a = aa then Suc (count A' aa)
+        else count A' aa) choose
+       count B aa) =
+         (\<Prod>aa\<in>set_mset B.
+       (count A' aa) choose
+       count B aa)\<close> for a A A'
+    by (rule prod.cong)
+      auto
+  have H'': \<open>(\<Prod>aa\<in>set_mset A - {a}.
+            (if a = aa then Suc (count A' aa)
+             else count A' aa) choose
+            (if a = aa then Suc (count A aa)
+             else count A aa)) =
+         (\<Prod>aa\<in>set_mset A - {a}.
+            (count A' aa) choose
+            (count A aa))\<close> for a A A'
+    by (rule prod.cong)
+      auto
+  have count_image_mset_add_mset: \<open>count (add_mset a `# A) (add_mset a B) = count A B\<close> for A B a
+    by (induction A)
+     (auto simp: Pow_mset_add_mset add_mset_commute[of _ a])
+
+  show ?case
+    apply (cases \<open>b \<in># B\<close>)
+    subgoal
+      apply (auto simp: Pow_mset_add_mset add prod.insert_remove count_image_mset_add_mset H H'
+      count_image_mset_add_mset_notin H'' distrib_right
+      dest!: multi_member_split[of b B])
+      apply (cases \<open>b \<in># B - {#b#}\<close>)
+      using multi_member_split[of b \<open>B - {#b#}\<close>]
+      apply (auto simp: prod.insert_remove intro: count_inI)
+      done
+    subgoal
+      by (auto simp: Pow_mset_add_mset add count_image_mset_add_mset H H' prod.insert_remove
+        count_image_mset_add_mset_notin
+        dest!: multi_member_split[of b B])
+    done
+qed
+
+lemma Pow_mset_union:
+  \<open>Pow_mset (A + B) = (\<lambda>(a, b). a + b) `# (Pow_mset A \<times># Pow_mset B)\<close>
+proof (induction A)
+  case empty
+  then show ?case by (auto simp: Pow_mset_add_mset Times_mset_single_left)
+next
+  case (add x A)
+  have 1: \<open>{#(add_mset x a, y). (a, y) \<in># A \<times># B#} =
+        add_mset x `# A \<times># B\<close> for A B x
+    by (induction B)
+      (auto simp: Times_insert_left)
+  have \<open>{#add_mset x (case xa of (x, xa) \<Rightarrow> x + xa). xa \<in># Pow_mset A \<times># Pow_mset B#} =
+      {# ((\<lambda>xa. case xa of (x, xa) \<Rightarrow> x + xa) o (\<lambda>(a, b). (add_mset x a, b))) xa.
+         xa \<in># Pow_mset A \<times># Pow_mset B#}\<close>
+    by (rule image_mset_cong)  auto
+  also have \<open>\<dots> = {# (case xa of (x, xa) \<Rightarrow> x + xa). xa \<in># add_mset x `# Pow_mset A \<times># Pow_mset B#}\<close>
+    by (subst image_mset.compositionality[symmetric], subst 1) (rule refl)
+  finally show ?case by (auto simp: Pow_mset_add_mset Times_mset_single_left add)
+qed
+
 
 locale inference_system = consequence_relation +
   fixes 
