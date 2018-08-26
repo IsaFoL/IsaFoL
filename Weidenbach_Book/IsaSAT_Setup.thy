@@ -537,13 +537,6 @@ lemma isasat_fast_slow_isasat_fast_slow_wl_D:
 
 end
 
-lemma Pos_unat_lit_assn':
-  \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. L \<le> uint_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
-     unat_lit_assn\<close>
-  apply sepref_to_hoare
-  by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
-      lit_of_natP_def nat_of_uint32_distrib_mult2 uint_max_def)
-
 
 subsubsection \<open>Lift Operations to State\<close>
 

@@ -1793,6 +1793,146 @@ lemma array_uint64_of_nat_conv_hnr[sepref_fr_rules]:
     FCOMP op_map_map_rel] unfolding array_uint64_of_nat_conv_alt_def
   by simp
 
+definition length_raa_u32 :: \<open>'a::heap arrayO_raa \<Rightarrow> uint32 \<Rightarrow> nat Heap\<close> where
+  \<open>length_raa_u32 xs i = do {
+     x \<leftarrow> arl_get_u xs i;
+    Array.len x}\<close>
+
+lemma length_raa_u32_rule[sep_heap_rules]:
+  \<open>b < length xs \<Longrightarrow> (b', b) \<in> uint32_nat_rel \<Longrightarrow> <arlO_assn (array_assn R) xs a> length_raa_u32 a b'
+   <\<lambda>r. arlO_assn (array_assn R) xs a * \<up> (r = length_rll xs b)>\<^sub>t\<close>
+  supply arrayO_raa_nth_rule[sep_heap_rules]
+  unfolding length_raa_u32_def arl_get_u_def arl_get'_def uint32_nat_rel_def br_def
+  apply (cases a)
+  apply (sep_auto simp: nat_of_uint32_code[symmetric])
+  apply (sep_auto simp: arlO_assn_except_def arl_length_def array_assn_def
+      eq_commute[of \<open>(_, _)\<close>] is_array_def hr_comp_def length_rll_def
+      dest: list_all2_lengthD)
+   apply (sep_auto simp: arlO_assn_except_def arl_length_def arl_assn_def
+      hr_comp_def[abs_def] arl_get'_def
+      eq_commute[of \<open>(_, _)\<close>] is_array_list_def hr_comp_def length_rll_def list_rel_def
+      dest: list_all2_lengthD)[]
+  unfolding arlO_assn_def[symmetric] arl_assn_def[symmetric]
+  apply (subst arlO_assn_except_array0_index[symmetric, of b])
+   apply simp
+  unfolding arlO_assn_except_def arl_assn_def hr_comp_def is_array_def
+  apply sep_auto
+  done
+
+lemma length_raa_u32_hnr[sepref_fr_rules]:
+  \<open>(uncurry length_raa_u32, uncurry (RETURN \<circ>\<circ> length_rll)) \<in>
+     [\<lambda>(xs, i). i < length xs]\<^sub>a (arlO_assn (array_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  by sepref_to_hoare sep_auto
+
+
+
+definition length_raa_u32_u64 :: \<open>'a::heap arrayO_raa \<Rightarrow> uint32 \<Rightarrow> uint64 Heap\<close> where
+  \<open>length_raa_u32_u64 xs i = do {
+     x \<leftarrow> arl_get_u xs i;
+    length_u64_code x}\<close>
+
+lemma length_raa_u32_u64_hnr[sepref_fr_rules]:
+  shows \<open>(uncurry length_raa_u32_u64, uncurry (RETURN \<circ>\<circ> length_rll_n_uint64)) \<in>
+     [\<lambda>(xs, i). i < length xs \<and> length (xs ! i) \<le> uint64_max]\<^sub>a
+       (arlO_assn (array_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+proof -
+   have 1: \<open>a * b * c = c * a * b\<close> for a b c :: assn
+    by (auto simp: ac_simps)
+  have H: \<open><arlO_assn_except (array_assn R) [nat_of_uint32 bi] a (aa, ba)
+        (\<lambda>r'. array_assn R (a ! nat_of_uint32 bi) x *
+              \<up> (x = r' ! nat_of_uint32 bi))>
+      Array.len x <\<lambda>r. \<up>(r = length (a ! nat_of_uint32 bi)) *
+          arlO_assn (array_assn R) a (aa, ba)>\<close>
+    if
+      \<open>nat_of_uint32 bi < length a\<close> and
+      \<open>length (a ! nat_of_uint32 bi) \<le> uint64_max\<close>
+    for bi :: \<open>uint32\<close> and a :: \<open>'b list list\<close> and aa :: \<open>'a array array\<close> and ba :: \<open>nat\<close> and
+      x :: \<open>'a array\<close>
+  proof -
+    show ?thesis
+      using that apply -
+      apply (subst arlO_assn_except_array0_index[symmetric, OF that(1)])
+      by (sep_auto simp: array_assn_def arl_get_def hr_comp_def is_array_def
+          list_rel_imp_same_length arlO_assn_except_def)
+  qed
+  show ?thesis
+  apply sepref_to_hoare
+  apply (sep_auto simp: uint64_nat_rel_def br_def length_rll_def
+      nat_of_uint64_uint64_of_nat_id length_raa_u32_u64_def arl_get_u_def arl_get'_def
+      uint32_nat_rel_def nat_of_uint32_code[symmetric] length_u64_code_def
+      intro!:)+
+     apply (rule H; assumption)
+    apply (sep_auto simp: array_assn_def arl_get_def nat_of_uint64_uint64_of_nat_id)
+    done
+qed
+
+definition length_raa_u64_u64 :: \<open>'a::heap arrayO_raa \<Rightarrow> uint64 \<Rightarrow> uint64 Heap\<close> where
+  \<open>length_raa_u64_u64 xs i = do {
+     x \<leftarrow> arl_get_u64 xs i;
+    length_u64_code x}\<close>
+
+lemma length_raa_u64_u64_hnr[sepref_fr_rules]:
+  shows \<open>(uncurry length_raa_u64_u64, uncurry (RETURN \<circ>\<circ> length_rll_n_uint64)) \<in>
+     [\<lambda>(xs, i). i < length xs \<and> length (xs ! i) \<le> uint64_max]\<^sub>a
+       (arlO_assn (array_assn R))\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+proof -
+   have 1: \<open>a * b * c = c * a * b\<close> for a b c :: assn
+    by (auto simp: ac_simps)
+  have H: \<open><arlO_assn_except (array_assn R) [nat_of_uint64 bi] a (aa, ba)
+        (\<lambda>r'. array_assn R (a ! nat_of_uint64 bi) x *
+              \<up> (x = r' ! nat_of_uint64 bi))>
+      Array.len x <\<lambda>r. \<up>(r = length (a ! nat_of_uint64 bi)) *
+          arlO_assn (array_assn R) a (aa, ba)>\<close>
+    if
+      \<open>nat_of_uint64 bi < length a\<close> and
+      \<open>length (a ! nat_of_uint64 bi) \<le> uint64_max\<close>
+    for bi :: \<open>uint64\<close> and a :: \<open>'b list list\<close> and aa :: \<open>'a array array\<close> and ba :: \<open>nat\<close> and
+      x :: \<open>'a array\<close>
+  proof -
+    show ?thesis
+      using that apply -
+      apply (subst arlO_assn_except_array0_index[symmetric, OF that(1)])
+      by (sep_auto simp: array_assn_def arl_get_def hr_comp_def is_array_def
+          list_rel_imp_same_length arlO_assn_except_def)
+  qed
+  show ?thesis
+  apply sepref_to_hoare
+  apply (sep_auto simp: uint64_nat_rel_def br_def length_rll_def
+      nat_of_uint64_uint64_of_nat_id length_raa_u32_u64_def arl_get_u64_def arl_get'_def
+      uint32_nat_rel_def nat_of_uint32_code[symmetric] length_u64_code_def length_raa_u64_u64_def
+      nat_of_uint64_code[symmetric]
+      intro!:)+
+     apply (rule H; assumption)
+    apply (sep_auto simp: array_assn_def arl_get_def nat_of_uint64_uint64_of_nat_id)
+    done
+qed
+
+
+definition length_arlO_u where
+  \<open>length_arlO_u xs = do {
+      n \<leftarrow> length_ra xs;
+      return (uint32_of_nat n)}\<close>
+
+lemma length_arlO_u[sepref_fr_rules]:
+  \<open>(length_arlO_u, RETURN o length_u) \<in> [\<lambda>xs. length xs \<le> uint32_max]\<^sub>a (arlO_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: length_arlO_u_def arl_length_def uint32_nat_rel_def
+      br_def nat_of_uint32_uint32_of_nat_id)
+
+definition arl_length_u64_code where
+\<open>arl_length_u64_code C = do {
+  n \<leftarrow> arl_length C;
+  return (uint64_of_nat n)
+}\<close>
+
+lemma arl_length_u64_code[sepref_fr_rules]:
+  \<open>(arl_length_u64_code, RETURN o length_uint64_nat) \<in>
+     [\<lambda>xs. length xs \<le> uint64_max]\<^sub>a (arl_assn R)\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: arl_length_u64_code_def arl_length_def uint64_nat_rel_def
+      br_def nat_of_uint64_uint64_of_nat_id arl_assn_def hr_comp_def[abs_def]
+      is_array_list_def dest: list_rel_imp_same_length)
+
 (* End Move *)
 
 end

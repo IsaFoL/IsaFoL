@@ -1920,7 +1920,7 @@ lemma extract_atms_clss_alt_def:
 definition op_extract_list_empty where
   \<open>op_extract_list_empty = {}\<close>
 
-(* TODO 256 should be replace by a proper parameter given by the parser *)
+(* TODO 1024 should be replace by a proper parameter given by the parser *)
 definition extract_atms_clss_imp_empty_rel where
   \<open>extract_atms_clss_imp_empty_rel = (RETURN (op_array_replicate 1024 zero_uint64_nat, 0, []))\<close>
 

@@ -1,5 +1,5 @@
 theory Watched_Literals_VMTF
-imports Watched_Literals.Watched_Literals_Watch_List_Domain
+  imports IsaSAT_Literals
 begin
 
 

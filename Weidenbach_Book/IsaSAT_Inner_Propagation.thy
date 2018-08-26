@@ -1,5 +1,5 @@
 theory IsaSAT_Inner_Propagation
-  imports Watched_Literals.Watched_Literals_Watch_List_Code_Common IsaSAT_Setup
+  imports IsaSAT_Setup
      IsaSAT_Clauses "../lib/Explorer"
 begin
 

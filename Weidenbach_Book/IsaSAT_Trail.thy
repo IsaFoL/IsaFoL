@@ -1,5 +1,5 @@
 theory IsaSAT_Trail
-imports Watched_Literals.Watched_Literals_Watch_List_Code_Common
+imports IsaSAT_Literals
 begin
 
 subsubsection \<open>Trail\<close>
@@ -517,7 +517,7 @@ lemma
     (is ?Fast is \<open>_ \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?f\<close>)
 proof -
   have [simp]: \<open>(ba, bb) \<in> nat_lit_rel \<Longrightarrow> ba div 2 = atm_of bb\<close> for ba bb
-    by (auto simp: p2rel_def lit_of_natP_def atm_of_lit_of_nat nat_lit_rel_def
+    by (auto simp: p2rel_def atm_of_lit_of_nat nat_lit_rel_def br_def
         simp del: literal_of_nat.simps)
 
   have 1: \<open>(uncurry (RETURN oo get_level_atm_pol), uncurry (RETURN oo get_level_atm)) \<in>
@@ -978,13 +978,13 @@ lemma (in -) nat_ann_lit_rel_alt_def: \<open>nat_ann_lit_rel = (unat_lit_rel \<t
     by (cases x; cases \<open>fst x\<close>)
       (auto simp: nat_ann_lit_rel_def pure_def ann_lit_of_pair_alt_def hr_comp_def
         ex_assn_pair_split unat_lit_rel_def uint32_nat_rel_def br_def nat_lit_rel_def
-        Collect_eq_comp lit_of_natP_def case_prod_beta relcomp.simps
+        Collect_eq_comp case_prod_beta relcomp.simps
         split: if_splits)
   subgoal for x
     by (cases x; cases \<open>fst x\<close>)
       (auto simp: nat_ann_lit_rel_def pure_def ann_lit_of_pair_alt_def hr_comp_def
         ex_assn_pair_split unat_lit_rel_def uint32_nat_rel_def br_def nat_lit_rel_def
-        Collect_eq_comp lit_of_natP_def case_prod_beta relcomp.simps
+        Collect_eq_comp case_prod_beta relcomp.simps
         split: if_splits)
   done
 
