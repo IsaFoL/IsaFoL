@@ -1206,4 +1206,60 @@ abbreviation uncurry6' where
 lemma Down_id_eq: "\<Down> Id a = a"
   by auto
 
+
+definition find_in_list_between :: \<open>('a \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> nat option nres\<close> where
+  \<open>find_in_list_between P a b C = do {
+      (x, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> a \<and> i \<le> length C \<and> i \<le> b \<and> (\<forall>j\<in>{a..<i}. \<not>P (C!j)) \<and>
+        (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> P (C ! j) \<and> j < b \<and> j \<ge> a))\<^esup>
+        (\<lambda>(found, i). found = None \<and> i < b)
+        (\<lambda>(_, i). do {
+          ASSERT(i < length C);
+          if P (C!i) then RETURN (Some i, i) else RETURN (None, i+1)
+        })
+        (None, a);
+      RETURN x
+  }\<close>
+
+lemma find_in_list_between_spec:
+  assumes \<open>a \<le> length C\<close> and \<open>b \<le> length C\<close> and \<open>a \<le> b\<close>
+  shows
+    \<open>find_in_list_between P a b C \<le> SPEC(\<lambda>i.
+       (i \<noteq> None \<longrightarrow>  P (C ! the i) \<and> the i \<ge> a \<and> the i < b) \<and>
+       (i = None \<longrightarrow> (\<forall>j. j \<ge> a \<longrightarrow> j < b \<longrightarrow> \<not>P (C!j))))\<close>
+  unfolding find_in_list_between_def
+  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(f, i). Suc (length C) - (i + (if f = None then 0 else 1)))\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal using assms by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: less_Suc_eq)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
 end
