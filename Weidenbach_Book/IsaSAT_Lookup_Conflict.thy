@@ -30,11 +30,13 @@ The first step makes it easier to reason about the clause (since we have the ful
 second step should generate (slightly) more efficient code.
 
 Most solvers also merge the underlying array with the array used to cache information for the
-conflict minimisation (see theory \<^theory>\<open>IsaSAT.CDCL_Conflict_Minimisation\<close>).
+conflict minimisation (see theory \<^theory>\<open>Watched_Literals.CDCL_Conflict_Minimisation\<close>,
+where we only test if atoms appear in the clause, not literals).
 
 As far as we know, versat stops at the first refinement (stating that there is no significant
 overhead, which is probably true, but the second refinement is not much additional work anyhow and
-we don't have to rely on the ability of the compiler to not represent the option type as a pointer).
+we don't have to rely on the ability of the compiler to not represent the option type on booleans
+as a pointer, which it might be able to or not).
 \<close>
 
 text \<open>This is the first level of the refinement. We tried a few different definitions (including a

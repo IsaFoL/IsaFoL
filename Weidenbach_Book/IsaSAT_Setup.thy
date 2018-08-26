@@ -1,5 +1,5 @@
 theory IsaSAT_Setup
-  imports CDCL_Conflict_Minimisation IsaSAT_Clauses IsaSAT_Arena
+  imports IsaSAT_Clauses IsaSAT_Arena
     Watched_Literals_VMTF IsaSAT_Lookup_Conflict LBD IsaSAT_Watch_List
 begin
 

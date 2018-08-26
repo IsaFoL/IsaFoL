@@ -165,6 +165,7 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_Watch_List_Domain
     Watched_Literals_Watch_List_Initialisation
     CDCL_Conflict_Minimisation
+
 (* Restarts not clear if different session of not 
     Watched_Literals_Transition_System_Restart
     Watched_Literals_Algorithm_Restart
@@ -187,7 +188,6 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     (*Watched_Literals_Transition_System_Restart*)
     IsaSAT_Literals
     IsaSAT_Trail
-    CDCL_Conflict_Minimisation
     Watched_Literals_VMTF
     LBD
     IsaSAT_Watch_List
