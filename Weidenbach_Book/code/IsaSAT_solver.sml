@@ -3426,34 +3426,34 @@ fun add_init_cls_code x =
     in
       (fn () =>
         let
-          val x_f = (fn () => Array.fromList ai) ();
-          val xaa = len heap_uint32 x_f ();
+          val x_d = (fn () => Array.fromList ai) ();
+          val xaa = len heap_uint32 x_d ();
         in
           let
-            val x_h = equal_nat xaa (nat_of_integer (2 : IntInf.int));
+            val x_f = equal_nat xaa (nat_of_integer (2 : IntInf.int));
           in
-            (fn f_ => fn () => f_ ((append_and_length_code true x_f a1a) ()) ())
+            (fn f_ => fn () => f_ ((append_and_length_code true x_d a1a) ()) ())
               (fn (a1j, a2j) =>
                 (fn f_ => fn () => f_
                   ((append_el_aa_u
                      (default_prod default_nat default_uint64,
                        heap_prod heap_nat heap_uint64)
-                     a1d xa (to_watcher_code a2j x_b x_h))
+                     a1d xa (to_watcher_code a2j x_b x_f))
                   ()) ())
-                  (fn x_k =>
+                  (fn x_i =>
                     (fn f_ => fn () => f_
                       ((append_el_aa_u
                          (default_prod default_nat default_uint64,
                            heap_prod heap_nat heap_uint64)
-                         x_k x_b (to_watcher_code a2j xa x_h))
+                         x_i x_b (to_watcher_code a2j xa x_f))
                       ()) ())
-                      (fn x_m =>
+                      (fn x_k =>
                         (fn f_ => fn () => f_
                           ((arl_append (default_nat, heap_nat) a2i a2j) ()) ())
                           (fn xb =>
                             (fn () =>
                               (a1, (a1j, (a1b,
-   (a1c, (x_m, (a1e, (a1f, (a1g, (a1h, (a1i, xb)))))))))))))))
+   (a1c, (x_k, (a1e, (a1f, (a1g, (a1h, (a1i, xb)))))))))))))))
           end
             ()
         end)
