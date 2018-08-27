@@ -440,16 +440,17 @@ prepare_code_thms (in -) conflict_propagated_unit_cls_fast_code_def
 lemmas conflict_propagated_unit_cls_heur_fast_hnr[sepref_fr_rules] =
    conflict_propagated_unit_cls_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms] *)
 
-text \<open>TODO: why is sepref not able to handle the inlined version of the Let for True?\<close>
+sepref_register fm_add_new
+
 definition (in isasat_input_ops) add_init_cls_heur
   :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>  where
   \<open>add_init_cls_heur = (\<lambda>C (M, N, D, Q, WS, vm, \<phi>, clvls, cach, lbd, vdom). do {
      let L = hd C; let L' = hd (tl C);
-     let b = True; let C = op_array_of_list C;
+     let C = op_array_of_list C;
      let b' = (length C = 2);
      ASSERT(length C \<le> uint_max + 2);
      ASSERT(length C \<ge> 2);
-     (N, i) \<leftarrow> fm_add_new b C N;
+     (N, i) \<leftarrow> fm_add_new True C N;
      let WS = WS[nat_of_lit L := WS ! nat_of_lit L @ [to_watcher i L' b']];
      let WS = WS[nat_of_lit L' := WS ! nat_of_lit L' @ [to_watcher i L b']];
      RETURN (M, N, D, Q, WS, vm, \<phi>, clvls, cach, lbd, vdom @ [nat_of_uint32_conv i])})\<close>
