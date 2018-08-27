@@ -3,6 +3,12 @@ theory IsaSAT_Restart
      IsaSAT_CDCL
 begin
 
+locale isasat_restart_bounded =
+  twl_restart + isasat_input_bounded
+
+
+sublocale isasat_restart_bounded \<subseteq> isasat_restart_ops
+ .
 
 text \<open>
   This is a list of comments (how does it work for glucose and cadical) to prepare the future

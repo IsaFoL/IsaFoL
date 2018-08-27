@@ -5,9 +5,6 @@ begin
 locale isasat_restart_ops =
   twl_restart_ops + isasat_input_ops
 
-locale isasat_restart_bounded =
-  twl_restart + isasat_input_bounded
-
 lemma cdcl_twl_restart_get_all_init_clss:
   assumes \<open>cdcl_twl_restart S T\<close>
   shows \<open>get_all_init_clss T = get_all_init_clss S\<close>
@@ -133,9 +130,6 @@ proof -
 qed
 
 end
-
-sublocale isasat_restart_bounded \<subseteq> isasat_restart_ops
- .
 
 context isasat_restart_ops
 begin
@@ -1367,7 +1361,7 @@ where
     RETURN T
   }\<close>
 
-lemma (in isasat_restart_bounded) cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl:
+lemma (in isasat_restart_ops) cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl:
   \<open>(cdcl_twl_stgy_restart_prog_wl_D, cdcl_twl_stgy_restart_prog_wl) \<in>
      {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
      \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
