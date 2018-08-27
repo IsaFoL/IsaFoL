@@ -112,48 +112,41 @@ next
     done
 qed
 
+term "A - B"
+
 locale inference_system = consequence_relation +
   fixes 
     I :: "'f inference multiset" and
     Red_I :: "'f formulas \<Rightarrow> 'f inference multiset" and
     Red_F :: "'f formulas \<Rightarrow> 'f formulas"
   assumes
-    Red_I_to_I: "Red_I N \<in># Pow_mset I"
-    (* TODO add all constraints defining Red_I and Red_F *)
+    Red_I_to_I: "Red_I N \<in># Pow_mset I" and
+    Red_F_Bot_F: "N |= {#Bot_F#} \<Longrightarrow> N - Red_F N |= {#Bot_F#}" and
+    Red_F_of_subset: "N \<subseteq># N' \<Longrightarrow> Red_F N \<subseteq># Red_F N'" and
+    Red_I_of_subset: "N \<subseteq># N' \<Longrightarrow> Red_I N \<subseteq># Red_I N'" and
+    Red_F_of_Red_F_subset: "N' \<subseteq># Red_F N \<Longrightarrow> Red_F N \<subseteq># Red_F (N - N')" and
+    Red_I_of_Red_F_subset: "N' \<subseteq># Red_F N \<Longrightarrow> Red_I N \<subseteq># Red_I (N - N')" and
+    Red_I_of_I_to_N: "\<iota> \<in># I \<and> concl_of \<iota> \<in># N \<Longrightarrow> \<iota> \<in># Red_I N" and
+    same_with_other_syntax: "{#\<iota> \<in># I. (concl_of \<iota> \<in># N)#} \<subseteq># Red_I N"
 begin
 
 definition Inf :: "'f formulas  \<Rightarrow> 'f inference multiset" where
   "Inf N = {# \<iota> \<in># I. set (prems_of \<iota>) \<subseteq> set_mset N #}"
 
-(* definition redundancy_criterion :: ""  TODO: decide if multiset powerset is necessary or of set suffices*)
-
-(* definition inferences_from :: "'a clause set \<Rightarrow> 'a inference set" where
-  "inferences_from CC = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from CC \<gamma>}" *)
-
-(* definition inferences_between :: "'a clause set \<Rightarrow> 'a clause \<Rightarrow> 'a inference set" where
-  "inferences_between CC C = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from (CC \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>}" *)
-
-(* lemma inferences_from_mono: "CC \<subseteq> DD \<Longrightarrow> inferences_from CC \<subseteq> inferences_from DD"
-  unfolding inferences_from_def infer_from_def by fast *)
-
-(* definition saturated :: "'a clause set \<Rightarrow> bool" where
-  "saturated N \<longleftrightarrow> concls_of (inferences_from N) \<subseteq> N"
-
-lemma saturatedD:
-  assumes
-    satur: "saturated N" and
-    inf: "Infer CC D E \<in> \<Gamma>" and
-    cc_subs_n: "set_mset CC \<subseteq> N" and
-    d_in_n: "D \<in> N"
-  shows "E \<in> N"
+lemma red_concl_to_red_inf: 
+  assumes 
+    i: "\<iota> \<in># I" and
+    concl: "concl_of \<iota> \<in># Red_F N"
+  shows "\<iota> \<in># Red_I N"
 proof -
-  have "Infer CC D E \<in> inferences_from N"
-    unfolding inferences_from_def infer_from_def using inf cc_subs_n d_in_n by simp
-  then have "E \<in> concls_of (inferences_from N)"
-    unfolding image_iff by (metis inference.sel(3))
-  then show "E \<in> N"
-    using satur unfolding saturated_def by blast
-qed *)
+  have i2: "\<iota> \<in># Red_I (Red_F N)" by (simp add: Red_I_of_I_to_N i concl)
+  then have i3: "\<iota> \<in># Red_I (N \<union># Red_F N)" by (simp add: Red_I_of_I_to_N concl i)
+  also have red_n_subs: "Red_F N \<subseteq># Red_F (N \<union># Red_F N)" by (simp add: Red_F_of_subset)
+  then have "\<iota> \<in># Red_I ((N \<union># Red_F N) - (Red_F N - N))" using Red_I_of_Red_F_subset i3 
+    by (meson diff_subset_eq_self mset_subset_eqD subset_mset.order_trans)
+  then show ?thesis by (simp add: sup_subset_mset_def)
+qed
+
 
 end
 
