@@ -127,6 +127,51 @@ global_interpretation twl_restart_ops id
 sublocale isasat_input_ops \<subseteq> isasat_restart_ops id
   .
 
+definition mark_garbage_pre where
+  \<open>mark_garbage_pre = (\<lambda>(arena, C). arena_is_valid_clause_idx arena C)\<close>
+
+definition mark_garbage where
+  \<open>mark_garbage arena C = do {
+    ASSERT(C \<ge> STATUS_SHIFT \<and> C - STATUS_SHIFT < length arena);
+    RETURN (arena[C - STATUS_SHIFT := (3 :: uint32)])
+  }\<close>
+
+lemma mark_garbage_pre:
+  assumes 
+    j: \<open>j \<in># dom_m N\<close> and
+    valid: \<open>valid_arena arena N x\<close> and
+    arena: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close>
+  shows
+    \<open>STATUS_SHIFT \<le> j\<close> (is ?ge) and
+    \<open>(a[j - STATUS_SHIFT := 3], arena[j - STATUS_SHIFT := AStatus DELETED])
+         \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> (is ?rel) and
+    \<open>j - STATUS_SHIFT < length arena\<close> (is ?le)
+proof -
+  have j_le: \<open>j < length arena\<close> and
+    length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
+    k1:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
+    k2:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
+    le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
+    j_ge: \<open>header_size (N \<propto> j) \<le> j\<close>
+    using arena_lifting[OF valid j] by (auto simp: )
+  show le': ?le
+     using le j_ge unfolding length[symmetric] header_size_def
+     by (auto split: if_splits simp: SHIFTS_def)
+
+  show ?rel
+     apply (rule list_rel_update'[OF arena])
+     using length
+     by
+      (auto simp: arena_el_rel_def unat_lit_rel_def arena_lit_def update_lbd_def
+        uint32_nat_rel_def br_def Collect_eq_comp status_rel_def
+       split: arena_el.splits
+       intro!: )
+
+  show ?ge
+     using le j_ge unfolding length[symmetric] header_size_def
+     by (auto split: if_splits simp: SHIFTS_def)
+qed
+
 (* TODO Move *)
 lemmas [id_rules] = 
   itypeI[Pure.of numeral "TYPE (num \<Rightarrow> uint32)"]
@@ -143,11 +188,45 @@ lemma param_uint64[sepref_import_param]:
   \<open>(numeral n, numeral n) \<in> uint64_rel\<close>
   by auto
 (* End Move *)
+
+sepref_definition mark_garbage_code
+  is \<open>uncurry mark_garbage\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
+  unfolding mark_garbage_def
+  by sepref
+
+declare mark_garbage_code.refine[sepref_fr_rules]
+
+lemma isa_mark_garbage:
+  \<open>(uncurry mark_garbage, uncurry (RETURN oo extra_information_mark_to_delete)) \<in>
+    [mark_garbage_pre]\<^sub>f
+     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>f nat_rel  \<rightarrow>
+    \<langle>\<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  unfolding isa_arena_status_def arena_status_def
+  by (intro frefI nres_relI)
+    (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
+        list_rel_imp_same_length arena_length_uint64_conv arena_lifting
+        arena_is_valid_clause_idx_and_access_def arena_lbd_conv
+        arena_is_valid_clause_vdom_def arena_status_literal_conv mark_garbage_pre
+        mark_garbage_def mark_garbage_pre_def extra_information_mark_to_delete_def
+        isa_arena_swap_def swap_lits_def swap_lits_pre_def isa_update_lbd_def
+      intro!: ASSERT_refine_left)
+
+lemma update_lbd_hnr[sepref_fr_rules]:
+  \<open>(uncurry mark_garbage_code, uncurry (RETURN oo extra_information_mark_to_delete))
+  \<in> [mark_garbage_pre]\<^sub>a  arena_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
+  using mark_garbage_code.refine[FCOMP isa_mark_garbage]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+
+
 context isasat_input_bounded_nempty
 begin
 
 definition (in -)butlast_if_last_removed where
   \<open>butlast_if_last_removed i N = (if i = length N-1 then butlast N else N)\<close>
+
 definition (in -) fmdrop_ref where
   \<open>fmdrop_ref i = (\<lambda>(N, N'). do {
      ASSERT(i < length N \<and> i < length N' \<and> i > 0);
