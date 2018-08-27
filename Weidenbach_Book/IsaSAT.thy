@@ -1066,7 +1066,7 @@ proof -
              (from_init_state T)
             \<le> \<Down> (state_wl_l None O twl_st_l None)
                  (conclusive_TWL_run (fst W))\<close>
-      apply (rule isasat_input_bounded.cdcl_twl_stgy_prog_wl_D_spec_final
+      apply (rule isasat_input_ops.cdcl_twl_stgy_prog_wl_D_spec_final
         [of \<open>(mset_set (extract_atms_clss CS' {}))\<close>])
       using CS_p \<L>\<^sub>a\<^sub>l\<^sub>l
         struct_invs corr_w add_invs clss confl clss
@@ -1159,7 +1159,7 @@ proof -
              (from_init_state T)
             \<le> \<Down> (state_wl_l None O twl_st_l None)
                  (conclusive_TWL_run (fst W))\<close>
-      apply (rule isasat_input_bounded.cdcl_twl_stgy_prog_break_wl_D_spec_final
+      apply (rule isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_spec_final
         [of \<open>(mset_set (extract_atms_clss CS' {}))\<close>])
       using CS_p \<L>\<^sub>a\<^sub>l\<^sub>l
         struct_invs corr_w add_invs clss confl clss
@@ -1284,7 +1284,7 @@ proof -
     using ex_mset[of \<open>map (\<lambda>x. literal_of_nat (nat_of_uint32 x)) `# mset xs'\<close>]
     by (auto simp add: list_mset_rel_def br_def mset_rel_def unat_lit_rel_def
         uint32_nat_rel_def nat_lit_rel_def
-        p2rel_def Collect_eq_comp rel2p_def lit_of_natP_def[abs_def]
+        p2rel_def Collect_eq_comp rel2p_def
         list_all2_op_eq_map_map_right_iff rel_mset_def rel2p_def[abs_def]
         list_all2_op_eq_map_right_iff' ex_remove_xs list_rel_def
         list_all2_op_eq_map_right_iff

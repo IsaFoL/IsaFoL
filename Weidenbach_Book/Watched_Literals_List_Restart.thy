@@ -1610,6 +1610,9 @@ definition remove_one_annot_true_clause_one_imp_pre where
            (\<exists>S'. (T, S') \<in> twl_st_l None \<and> twl_struct_invs S') \<and>
            get_conflict_l T = None \<and> clauses_to_update_l T = {#})\<close>
 
+text \<open>The following progrom removes all clauses that are annotations. However, this is not compatible
+with binary clauses, since we want to make sure that they should not been deleted.
+\<close>
 definition remove_one_annot_true_clause_one_imp
 where
 \<open>remove_one_annot_true_clause_one_imp = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
@@ -2454,7 +2457,7 @@ qed
 
 definition cdcl_twl_full_restart_l_prog where
 \<open>cdcl_twl_full_restart_l_prog S = do {
-    S \<leftarrow> remove_one_annot_true_clause_imp S;
+   \<comment> \<open> S \<leftarrow> remove_one_annot_true_clause_imp S;\<close> 
     ASSERT(mark_to_delete_clauses_l_pre S);
     T \<leftarrow> mark_to_delete_clauses_l S;
     ASSERT (mark_to_delete_clauses_l_post S T);
@@ -2563,15 +2566,15 @@ proof -
       by (force intro: rtranclp_cdcl_twl_restart_l_list_invs)
   qed
   show ?thesis
-    apply (subst 1)
     unfolding cdcl_twl_full_restart_l_prog_def
     apply (refine_vcg mark_to_delete_clauses_l
       remove_one_annot_true_clause_imp_spec[OF ST list_invs struct_invs confl upd])
-    subgoal by (rule H)
-    apply assumption
+    subgoal
+      using assms
+      unfolding mark_to_delete_clauses_l_pre_def
+      by blast
     subgoal by auto
     subgoal by (auto simp: assert_bind_spec_conv)
-    subgoal by auto
     done
 qed
 

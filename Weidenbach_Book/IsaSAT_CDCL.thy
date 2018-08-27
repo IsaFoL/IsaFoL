@@ -52,7 +52,6 @@ sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolv
 
 sepref_register cdcl_twl_o_prog_wl_D
 
-(* TODO KILL get_conflict_wl_get_conflict_wl_is_Nil & co *)
 sepref_thm cdcl_twl_o_prog_wl_D_code
   is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_assn\<close>

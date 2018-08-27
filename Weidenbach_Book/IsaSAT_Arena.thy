@@ -1,5 +1,5 @@
 theory IsaSAT_Arena
-imports Watched_Literals.Watched_Literals_Watch_List_Code_Common
+imports IsaSAT_Literals
   Watched_Literals.WB_More_Refinement_List
 begin
 
@@ -1563,34 +1563,6 @@ definition arena_is_valid_clause_vdom :: \<open>arena \<Rightarrow> nat \<Righta
 
 subsubsection \<open>Code Generation\<close>
 
-(* TODO Move *)
-paragraph \<open>Conversion between 64 and 32 bits\<close>
-
-definition uint64_of_uint32_conv :: \<open>nat \<Rightarrow> nat\<close> where
-  [simp]: \<open>uint64_of_uint32_conv x = x\<close>
-
-lemma nat_of_uint32_le_uint32_max: \<open>nat_of_uint32 n \<le> uint32_max\<close>
-  using nat_of_uint32_plus[of n 0]
-  pos_mod_bound[of \<open>uint32_max + 1\<close> \<open>nat_of_uint32 n\<close>]
-  by auto
-
-
-lemma nat_of_uint32_le_uint64_max: \<open>nat_of_uint32 n \<le> uint64_max\<close>
-  using nat_of_uint32_le_uint32_max[of n] unfolding uint64_max_def uint32_max_def
-  by auto
-
-lemma nat_of_uint64_uint64_of_uint32: \<open>nat_of_uint64 (uint64_of_uint32 n) = nat_of_uint32 n\<close>
-  unfolding uint64_of_uint32_def
-  by (auto simp: nat_of_uint64_uint64_of_nat_id nat_of_uint32_le_uint64_max)
-
-lemma uint64_of_uint32_hnr[sepref_fr_rules]:
-  \<open>(return o uint64_of_uint32, RETURN o uint64_of_uint32_conv) \<in>
-    uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def uint64_nat_rel_def
-      nat_of_uint32_code nat_of_uint64_uint64_of_uint32)
-
-(* End Move *)
-
 
 paragraph \<open>Length\<close>
 definition isa_arena_length where
@@ -2169,11 +2141,6 @@ lemma get_saved_pos_code':
 
 
 paragraph \<open>Update Saved Position\<close>
-(* TODO Move *)
-lemma minus_uint32_assn:
- \<open>(uncurry (return oo (-)), uncurry (RETURN oo (-))) \<in> uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
- by sepref_to_hoare sep_auto
-(* End Move *)
 
 (* TODO: converting to uint32 is a little stupid and always useless (uint64 is enough everytime) *)
 definition isa_update_pos :: \<open>nat \<Rightarrow> nat \<Rightarrow> uint32 list \<Rightarrow> uint32 list nres\<close> where
@@ -2196,6 +2163,10 @@ sepref_definition isa_update_pos_code
 
 definition arena_update_pos where
   \<open>arena_update_pos C pos arena = arena[C - POS_SHIFT := APos (pos - 2)]\<close>
+
+lemma arena_update_pos_alt_def:
+  \<open>arena_update_pos C i N = update_pos_direct C (i - 2) N\<close>
+  by (auto simp: arena_update_pos_def update_pos_direct_def)
 
 lemma arena_update_pos_conv:
   assumes

@@ -1,7 +1,7 @@
 theory CDCL_Conflict_Minimisation
   imports
-    Watched_Literals.Watched_Literals_Watch_List_Domain
-    Watched_Literals.WB_More_Refinement
+    Watched_Literals_Watch_List_Domain
+    WB_More_Refinement
 begin
 
 text \<open>We implement the conflict minimisation as presented by Sörensson and Biere
@@ -38,10 +38,6 @@ declare cdcl\<^sub>W_restart_mset_state[simp]
 
 type_synonym out_learned = \<open>nat clause_l\<close>
 
-type_synonym out_learned_assn = \<open>uint32 array_list\<close>
-
-abbreviation out_learned_assn :: \<open>out_learned \<Rightarrow> out_learned_assn \<Rightarrow> assn\<close> where
-  \<open>out_learned_assn \<equiv> arl_assn unat_lit_assn\<close>
 
 text \<open>The data structure contains the (unique) literal of highest at position one. This is useful
 since this is what we want to have at the end (propagation clause) and we can skip the first
@@ -1678,162 +1674,6 @@ proof -
     subgoal by auto
     done
 qed
-
-abbreviation (in -) minimize_status_rel where
-  \<open>minimize_status_rel \<equiv> Id :: (minimize_status \<times> minimize_status) set\<close>
-
-abbreviation (in -) minimize_status_assn where
-  \<open>minimize_status_assn \<equiv> (id_assn :: minimize_status\<Rightarrow> _)\<close>
-
-lemma (in -) SEEN_REMOVABLE[sepref_fr_rules]:
-  \<open>(uncurry0 (return SEEN_REMOVABLE),uncurry0 (RETURN SEEN_REMOVABLE)) \<in>
-     unit_assn\<^sup>k \<rightarrow>\<^sub>a minimize_status_assn\<close>
-  by (sepref_to_hoare) sep_auto
-
-lemma (in -) SEEN_FAILED[sepref_fr_rules]:
-  \<open>(uncurry0 (return SEEN_FAILED),uncurry0 (RETURN SEEN_FAILED)) \<in>
-     unit_assn\<^sup>k \<rightarrow>\<^sub>a minimize_status_assn\<close>
-  by (sepref_to_hoare) sep_auto
-
-lemma (in -) SEEN_UNKNOWN[sepref_fr_rules]:
-  \<open>(uncurry0 (return SEEN_UNKNOWN),uncurry0 (RETURN SEEN_UNKNOWN)) \<in>
-     unit_assn\<^sup>k \<rightarrow>\<^sub>a minimize_status_assn\<close>
-  by (sepref_to_hoare) sep_auto
-
-definition cach_refinement_list :: \<open>(minimize_status list \<times> (nat conflict_min_cach)) set\<close> where
-  \<open>cach_refinement_list = \<langle>Id\<rangle>map_fun_rel {(a, a'). a = a' \<and> a \<in># \<A>\<^sub>i\<^sub>n}\<close>
-
-definition cach_refinement_nonull
-  :: \<open>((minimize_status list \<times> nat list) \<times> minimize_status list) set\<close>
-where
-  \<open>cach_refinement_nonull = {((cach, support), cach'). cach = cach' \<and>
-       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
-       (\<forall>L \<in> set support. L < length cach)}\<close>
-
-definition cach_refinement
-  :: \<open>((minimize_status list \<times> nat list) \<times> (nat conflict_min_cach)) set\<close>
-where
-  \<open>cach_refinement = cach_refinement_nonull O cach_refinement_list\<close>
-
-lemma cach_refinement_alt_def:
-  \<open>cach_refinement = {((cach, support), cach').
-       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
-       (\<forall>L \<in> set support. L < length cach) \<and>
-       (\<forall>L \<in># \<A>\<^sub>i\<^sub>n. L < length cach \<and> cach ! L = cach' L)}\<close>
-  unfolding cach_refinement_def cach_refinement_nonull_def cach_refinement_list_def
-  by (auto simp: map_fun_rel_def)
-
-abbreviation (in -) cach_refinement_l_assn where
-  \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn *a arl_assn uint32_nat_assn\<close>
-
-definition cach_refinement_assn where
-  \<open>cach_refinement_assn = hr_comp cach_refinement_l_assn cach_refinement\<close>
-
-lemma in_cach_refinement_alt_def:
-  \<open>((cach, support), cach') \<in> cach_refinement \<longleftrightarrow>
-     (cach, cach') \<in> cach_refinement_list \<and>
-     (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
-      (\<forall>L \<in> set support. L < length cach)\<close>
-  by (auto simp: cach_refinement_def cach_refinement_nonull_def cach_refinement_list_def)
-
-type_synonym (in -) conflict_min_cach_l = \<open>minimize_status list \<times> nat list\<close>
-
-definition (in -) conflict_min_cach :: \<open>nat conflict_min_cach \<Rightarrow> nat \<Rightarrow> minimize_status\<close> where
-  [simp]: \<open>conflict_min_cach cach L = cach L\<close>
-
-definition (in -) conflict_min_cach_l :: \<open>conflict_min_cach_l \<Rightarrow> nat \<Rightarrow> minimize_status nres\<close> where
-  \<open>conflict_min_cach_l = (\<lambda>(cach, sup) L. do {
-     ASSERT(L < length cach);
-     RETURN (cach ! L)
-  })\<close>
-
-sepref_definition (in -) conflict_min_cach_l_code
-  is \<open>uncurry conflict_min_cach_l\<close>
-  :: \<open>cach_refinement_l_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a minimize_status_assn\<close>
-  unfolding conflict_min_cach_l_def
-  by sepref
-
-lemma nth_conflict_min_cach:
-  \<open>(uncurry conflict_min_cach_l, uncurry (RETURN oo conflict_min_cach)) \<in>
-     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<times>\<^sub>r nat_rel \<rightarrow> \<langle>minimize_status_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: cach_refinement_def map_fun_rel_def
-      cach_refinement_nonull_def cach_refinement_list_def conflict_min_cach_l_def)
-
-lemma conflict_min_cach_hnr[sepref_fr_rules]:
-  \<open>(uncurry conflict_min_cach_l_code, uncurry (RETURN \<circ>\<circ> conflict_min_cach))
-   \<in> [\<lambda>(a, b). b \<in># \<A>\<^sub>i\<^sub>n]\<^sub>a cach_refinement_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> minimize_status_assn\<close>
-  using conflict_min_cach_l_code.refine[FCOMP nth_conflict_min_cach,
-     unfolded cach_refinement_assn_def[symmetric]] .
-
-definition (in -) conflict_min_cach_set_failed
-   :: \<open>nat conflict_min_cach \<Rightarrow> nat \<Rightarrow> nat conflict_min_cach\<close>
-where
-  [simp]: \<open>conflict_min_cach_set_failed cach L = cach(L := SEEN_FAILED)\<close>
-
-definition (in -) conflict_min_cach_set_failed_l
-  :: \<open>conflict_min_cach_l \<Rightarrow> nat \<Rightarrow> conflict_min_cach_l nres\<close>
-where
-  \<open>conflict_min_cach_set_failed_l = (\<lambda>(cach, sup) L. do {
-     ASSERT(L < length cach);
-     RETURN (cach[L := SEEN_FAILED], sup @ [L])
-   })\<close>
-
-lemma conflict_min_cach_set_failed:
-  \<open>(uncurry conflict_min_cach_set_failed_l, uncurry (RETURN oo conflict_min_cach_set_failed)) \<in>
-     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-     (auto simp: cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
-      conflict_min_cach_set_failed_l_def)
-
-
-sepref_definition (in -) conflict_min_cach_set_failed_l_code
-  is \<open>uncurry conflict_min_cach_set_failed_l\<close>
-  :: \<open>cach_refinement_l_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
-  supply arl_append_hnr[sepref_fr_rules]
-  unfolding conflict_min_cach_set_failed_l_def
-  by sepref
-
-lemma conflict_min_cach_set_failed_hnr[sepref_fr_rules]:
-   \<open>(uncurry conflict_min_cach_set_failed_l_code,
-        uncurry (RETURN \<circ>\<circ> conflict_min_cach_set_failed))
-    \<in> [\<lambda>(a, b). b \<in># \<A>\<^sub>i\<^sub>n]\<^sub>a cach_refinement_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> cach_refinement_assn\<close>
-  using conflict_min_cach_set_failed_l_code.refine[FCOMP conflict_min_cach_set_failed,
-    unfolded cach_refinement_assn_def[symmetric]] .
-
-definition (in -) conflict_min_cach_set_removable
-  :: \<open>nat conflict_min_cach \<Rightarrow> nat \<Rightarrow> nat conflict_min_cach\<close>
-where
-  [simp]: \<open>conflict_min_cach_set_removable cach L = cach(L:= SEEN_REMOVABLE)\<close>
-
-definition (in -) conflict_min_cach_set_removable_l
-  :: \<open>conflict_min_cach_l \<Rightarrow> nat \<Rightarrow> conflict_min_cach_l nres\<close>
-where
-  \<open>conflict_min_cach_set_removable_l = (\<lambda>(cach, sup) L. do {
-     ASSERT(L < length cach);
-     RETURN (cach[L := SEEN_REMOVABLE], sup @ [L])
-   })\<close>
-
-sepref_definition (in -) conflict_min_cach_set_removable_l_code
-  is \<open>uncurry conflict_min_cach_set_removable_l\<close>
-  :: \<open>cach_refinement_l_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
-  supply arl_append_hnr[sepref_fr_rules]
-  unfolding conflict_min_cach_set_removable_l_def
-  by sepref
-
-lemma conflict_min_cach_set_removable:
-  \<open>(uncurry conflict_min_cach_set_removable_l,
-    uncurry (RETURN oo conflict_min_cach_set_removable)) \<in>
-     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-     (auto simp: cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
-      conflict_min_cach_set_removable_l_def)
-
-lemma conflict_min_cach_set_removable_hnr[sepref_fr_rules]:
-   \<open>(uncurry conflict_min_cach_set_removable_l_code,
-        uncurry (RETURN \<circ>\<circ> conflict_min_cach_set_removable))
-    \<in> [\<lambda>(a, b). b \<in># \<A>\<^sub>i\<^sub>n]\<^sub>a cach_refinement_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> cach_refinement_assn\<close>
-  using conflict_min_cach_set_removable_l_code.refine[FCOMP conflict_min_cach_set_removable,
-    unfolded cach_refinement_assn_def[symmetric]] .
 
 definition mark_failed_lits_stack_inv where
   \<open>mark_failed_lits_stack_inv NU analyse = (\<lambda>cach.

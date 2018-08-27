@@ -940,8 +940,6 @@ fun literals_to_update_wl_literals_to_update_wl_empty_code x =
              end)
     x;
 
-fun uminus_code l = Word32.xorb (l, (Word32.fromInt 1));
-
 fun isa_trail_nth_code x =
   (fn ai => fn bi =>
     let
@@ -950,6 +948,8 @@ fun isa_trail_nth_code x =
       (fn () => Array.sub ((fn (a,b) => a) a1, Word32.toInt bi))
     end)
     x;
+
+fun uminus_code l = Word32.xorb (l, (Word32.fromInt 1));
 
 fun select_and_remove_from_literals_to_update_wl_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
@@ -1739,9 +1739,6 @@ fun vmtf_mark_to_rescore_and_unset_code x =
     end)
     x;
 
-fun is_pos_code l =
-  (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
-
 fun resolve_merge_conflict_code x =
   (fn ai => fn bie => fn bid => fn bic => fn bib => fn bia => fn bi =>
     let
@@ -1901,6 +1898,9 @@ fun tl_trail_proped_tr_code x =
       (x_a, (xab, (xb, (a1c, (a1d, a2d)))))
     end)
     x;
+
+fun is_pos_code l =
+  (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
 
 fun update_confl_tl_wl_code x =
   (fn ai => fn bia =>

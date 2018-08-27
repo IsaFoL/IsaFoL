@@ -818,7 +818,6 @@ lemma nat_of_uint32_numeral_iff[simp]:
   using word_nat_of_uint32_Rep_inject by fastforce
 
 
-
 subsubsection \<open>64-bits\<close>
 
 definition uint64_nat_rel :: "(uint64 \<times> nat) set" where
@@ -1139,7 +1138,6 @@ fun xorb x y = Word64.xorb(x, y);
 end (*struct Uint64*)
 \<close>
 
-(* TODO Move *)
 lemma mod2_bin_last: \<open>a mod 2 = 0 \<longleftrightarrow> \<not>bin_last a\<close>
   by (auto simp: bin_last_def)
 
@@ -1167,7 +1165,7 @@ proof -
     by simp
 qed
 
-lemma uint64_max_uint_def:\<open>unat (-1 :: 64 Word.word) = uint64_max\<close>
+lemma uint64_max_uint_def: \<open>unat (-1 :: 64 Word.word) = uint64_max\<close>
   by normalization
 
 lemma nat_of_uint64_le_uint64_max: \<open>nat_of_uint64 x \<le> uint64_max\<close>
@@ -1288,6 +1286,24 @@ lemma fast_minus_uint64[sepref_fr_rules]:
     (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_notle_minus
       nat_of_uint64_less_iff nat_of_uint64_le_iff)
 
+lemma le_uint32_max_le_uint64_max: \<open>a \<le> uint32_max + 2 \<Longrightarrow> a \<le> uint64_max\<close>
+  by (auto simp: uint32_max_def uint64_max_def)
+
+lemma nat_of_uint64_ge_minus:
+  \<open>ai \<ge> bi \<Longrightarrow>
+       nat_of_uint64 (ai - bi) = nat_of_uint64 ai - nat_of_uint64 bi\<close>
+  apply transfer
+  unfolding unat_def
+  by (subst uint_sub_lem[THEN iffD1])
+    (auto simp: unat_def uint_nonnegative nat_diff_distrib word_le_def[symmetric] intro: leI)
+
+lemma minus_uint64_nat_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (-)), uncurry (RETURN oo (-))) \<in> 
+    [\<lambda>(a, b). a \<ge> b]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_ge_minus
+   nat_of_uint64_le_iff)
+
 lemma le_uint64_nat_assn_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo (\<le>)), uncurry (RETURN oo (\<le>))) \<in> uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare
@@ -1349,9 +1365,6 @@ proof -
     by (subst nat_of_uint64_uint64_of_nat_id) auto
 qed
 
-lemma uint64_of_uint32_hnr[sepref_fr_rules]:
-  \<open>(return o uint64_of_uint32, RETURN o uint64_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare (sep_auto simp: br_def)
 
 definition zero_uint64 where
   \<open>zero_uint64 \<equiv> (0 :: uint64)\<close>
@@ -1384,7 +1397,10 @@ lemma sum_uint64_assn:
   \<open>(uncurry (return oo (+)), uncurry (RETURN oo (+))) \<in> uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by (sepref_to_hoare) sep_auto
 
-paragraph \<open>Conversions\<close>
+
+subsubsection \<open>Conversions\<close>
+
+paragraph \<open>From nat to 64 bits\<close>
 
 definition nat_of_uint64_spec :: \<open>nat \<Rightarrow> nat\<close> where
   [simp]: \<open>nat_of_uint64_spec n = n\<close>
@@ -1397,6 +1413,8 @@ lemma nat_of_uint64_spec_hnr[sepref_fr_rules]:
       nat_of_uint64_uint64_of_nat_id)
 
 
+paragraph \<open>From nat to 32 bits\<close>
+
 definition nat_of_uint32_spec :: \<open>nat \<Rightarrow> nat\<close> where
   [simp]: \<open>nat_of_uint32_spec n = n\<close>
 
@@ -1406,6 +1424,9 @@ lemma nat_of_uint32_spec_hnr[sepref_fr_rules]:
   by sepref_to_hoare
     (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_spec_def
       nat_of_uint32_uint32_of_nat_id)
+
+
+paragraph \<open>From 64 to nat bits\<close>
 
 definition nat_of_uint64_conv :: \<open>nat \<Rightarrow> nat\<close> where
 [simp]: \<open>nat_of_uint64_conv i = i\<close>
@@ -1421,6 +1442,8 @@ lemma nat_of_uint64[sepref_fr_rules]:
      nat_of_uint64_conv_def nat_of_uint64_def
     split: option.splits)
 
+paragraph \<open>From 32 to nat bits\<close>
+
 definition nat_of_uint32_conv :: \<open>nat \<Rightarrow> nat\<close> where
 [simp]: \<open>nat_of_uint32_conv i = i\<close>
 
@@ -1428,5 +1451,59 @@ lemma nat_of_uint32_conv_hnr[sepref_fr_rules]:
   \<open>(return o nat_of_uint32, RETURN o nat_of_uint32_conv) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_conv_def)
 
+definition convert_to_uint32 :: \<open>nat \<Rightarrow> nat\<close> where
+  [simp]: \<open>convert_to_uint32 = id\<close>
+
+lemma convert_to_uint32_hnr[sepref_fr_rules]:
+  \<open>(return o uint32_of_nat, RETURN o convert_to_uint32)
+    \<in> [\<lambda>n. n \<le> uint32_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def uint32_max_def nat_of_uint32_uint32_of_nat_id)
+
+
+paragraph \<open>From 32 to 64 bits\<close>
+
+definition uint64_of_uint32_conv :: \<open>nat \<Rightarrow> nat\<close> where
+  [simp]: \<open>uint64_of_uint32_conv x = x\<close>
+
+lemma nat_of_uint32_le_uint32_max: \<open>nat_of_uint32 n \<le> uint32_max\<close>
+  using nat_of_uint32_plus[of n 0]
+  pos_mod_bound[of \<open>uint32_max + 1\<close> \<open>nat_of_uint32 n\<close>]
+  by auto
+
+
+lemma nat_of_uint32_le_uint64_max: \<open>nat_of_uint32 n \<le> uint64_max\<close>
+  using nat_of_uint32_le_uint32_max[of n] unfolding uint64_max_def uint32_max_def
+  by auto
+
+lemma nat_of_uint64_uint64_of_uint32: \<open>nat_of_uint64 (uint64_of_uint32 n) = nat_of_uint32 n\<close>
+  unfolding uint64_of_uint32_def
+  by (auto simp: nat_of_uint64_uint64_of_nat_id nat_of_uint32_le_uint64_max)
+
+lemma uint64_of_uint32_hnr[sepref_fr_rules]:
+  \<open>(return o uint64_of_uint32, RETURN o uint64_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare (sep_auto simp: br_def)
+
+lemma uint64_of_uint32_conv_hnr[sepref_fr_rules]:
+  \<open>(return o uint64_of_uint32, RETURN o uint64_of_uint32_conv) \<in>
+    uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def uint64_nat_rel_def
+      nat_of_uint32_code nat_of_uint64_uint64_of_uint32)
+
+
+paragraph \<open>From 64 to 32 bits\<close>
+
+definition uint32_of_uint64 where
+  \<open>uint32_of_uint64 n = uint32_of_nat (nat_of_uint64 n)\<close>
+
+definition uint32_of_uint64_conv where
+  [simp]: \<open>uint32_of_uint64_conv n = n\<close>
+
+lemma uint32_of_uint64_conv_hnr[sepref_fr_rules]:
+  \<open>(return o uint32_of_uint64, RETURN o uint32_of_uint64_conv) \<in>
+     [\<lambda>a. a \<le> uint32_max]\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_of_uint64_def uint32_nat_rel_def br_def nat_of_uint64_le_iff
+      nat_of_uint32_uint32_of_nat_id uint64_nat_rel_def)
 
 end

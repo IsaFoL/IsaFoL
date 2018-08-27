@@ -1,8 +1,8 @@
 theory IsaSAT_Lookup_Conflict
-  imports Watched_Literals.Watched_Literals_Watch_List_Domain
-    Watched_Literals.Watched_Literals_Watch_List_Code_Common
+  imports
+    IsaSAT_Literals
     IsaSAT_Trail
-    CDCL_Conflict_Minimisation
+    Watched_Literals.CDCL_Conflict_Minimisation
     LBD
     IsaSAT_Clauses
 begin
@@ -30,11 +30,13 @@ The first step makes it easier to reason about the clause (since we have the ful
 second step should generate (slightly) more efficient code.
 
 Most solvers also merge the underlying array with the array used to cache information for the
-conflict minimisation (see theory \<^theory>\<open>IsaSAT.CDCL_Conflict_Minimisation\<close>).
+conflict minimisation (see theory \<^theory>\<open>Watched_Literals.CDCL_Conflict_Minimisation\<close>,
+where we only test if atoms appear in the clause, not literals).
 
 As far as we know, versat stops at the first refinement (stating that there is no significant
 overhead, which is probably true, but the second refinement is not much additional work anyhow and
-we don't have to rely on the ability of the compiler to not represent the option type as a pointer).
+we don't have to rely on the ability of the compiler to not represent the option type on booleans
+as a pointer, which it might be able to or not).
 \<close>
 
 text \<open>This is the first level of the refinement. We tried a few different definitions (including a
@@ -440,7 +442,7 @@ definition (in -) delete_from_lookup_conflict
      ASSERT(n\<ge>1);
      ASSERT(atm_of L < length xs);
      RETURN (fast_minus n one_uint32_nat, xs[atm_of L := None])
-     })\<close>
+   })\<close>
 
 sepref_definition (in -) delete_from_lookup_conflict_code
   is \<open>uncurry delete_from_lookup_conflict\<close>
@@ -664,7 +666,7 @@ end
 context isasat_input_bounded
 begin
 
-definition (in isasat_input_ops)  isa_set_lookup_conflict where
+definition (in isasat_input_ops) isa_set_lookup_conflict where
   \<open>isa_set_lookup_conflict = isa_lookup_conflict_merge 0\<close>
 
 lemma isa_lookup_conflict_merge_lookup_conflict_merge_ext:
@@ -700,6 +702,33 @@ proof -
     subgoal by auto
     done
 qed
+
+type_synonym (in -) out_learned_assn = \<open>uint32 array_list\<close>
+
+abbreviation (in -) out_learned_assn :: \<open>out_learned \<Rightarrow> out_learned_assn \<Rightarrow> assn\<close> where
+  \<open>out_learned_assn \<equiv> arl_assn unat_lit_assn\<close>
+
+abbreviation (in -) minimize_status_rel where
+  \<open>minimize_status_rel \<equiv> Id :: (minimize_status \<times> minimize_status) set\<close>
+
+abbreviation (in -) minimize_status_assn where
+  \<open>minimize_status_assn \<equiv> (id_assn :: minimize_status \<Rightarrow> _)\<close>
+
+lemma (in -) SEEN_REMOVABLE[sepref_fr_rules]:
+  \<open>(uncurry0 (return SEEN_REMOVABLE),uncurry0 (RETURN SEEN_REMOVABLE)) \<in>
+     unit_assn\<^sup>k \<rightarrow>\<^sub>a minimize_status_assn\<close>
+  by (sepref_to_hoare) sep_auto
+
+lemma (in -) SEEN_FAILED[sepref_fr_rules]:
+  \<open>(uncurry0 (return SEEN_FAILED),uncurry0 (RETURN SEEN_FAILED)) \<in>
+     unit_assn\<^sup>k \<rightarrow>\<^sub>a minimize_status_assn\<close>
+  by (sepref_to_hoare) sep_auto
+
+lemma (in -) SEEN_UNKNOWN[sepref_fr_rules]:
+  \<open>(uncurry0 (return SEEN_UNKNOWN),uncurry0 (RETURN SEEN_UNKNOWN)) \<in>
+     unit_assn\<^sup>k \<rightarrow>\<^sub>a minimize_status_assn\<close>
+  by (sepref_to_hoare) sep_auto
+
 
 sepref_thm resolve_lookup_conflict_merge_code
   is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict)\<close>
@@ -1680,83 +1709,6 @@ lemma id_conflict_from_lookup:
 
 end
 
-(* TODO: kill *)
-definition confl_find_next_index_spec where
- \<open>confl_find_next_index_spec = (\<lambda>(n, xs) i.
-     SPEC(\<lambda>j. (j \<ge> i \<and> j < length xs \<and> xs ! j \<noteq> None \<and>
-        (\<forall>k. k \<ge> i \<longrightarrow> k < j \<longrightarrow> xs ! k = None))))\<close>
-
-definition confl_find_next_index :: \<open>lookup_clause_rel \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
-   \<open>confl_find_next_index = (\<lambda>(n, xs) i.
-      WHILE\<^sub>T\<^bsup>\<lambda>j. j < length xs \<and> (\<forall>k. k \<ge> i \<longrightarrow> k < j \<longrightarrow> xs ! k = None) \<and> j \<ge> i\<^esup>
-           (\<lambda>j. xs ! j = None)
-           (\<lambda>j. do{ASSERT(j + 1 \<le> uint_max); RETURN (j + 1)})
-           i
-    )
-\<close>
-
-
-context isasat_input_ops
-begin
-
-fun confl_find_next_index_pre where
-  confl_find_next_index_pre_def:
-  \<open>confl_find_next_index_pre (n, xs) i \<longleftrightarrow>  i < length xs \<and>
-     (\<exists>j. j \<ge> i \<and> j < length xs \<and> j < uint_max \<and> xs ! j \<noteq> None)\<close>
-
-declare confl_find_next_index_pre.simps[simp del]
-
-lemma confl_find_next_index_confl_find_next_index_spec:
-  assumes
-    ocr: \<open>confl_find_next_index_pre (n, xs) i\<close>
-  shows
-    \<open>confl_find_next_index (n, xs) i \<le> confl_find_next_index_spec (n,xs) i\<close>
-proof -
-  have i_xs: \<open>i < length xs\<close>
-    using ocr unfolding confl_find_next_index_pre_def by blast
-  have H: False if \<open>\<forall>k\<ge>i. k < l \<longrightarrow> xs ! k = None\<close> and \<open>l \<ge> uint_max\<close> for l
-    using ocr that unfolding confl_find_next_index_pre_def
-    by (auto simp: uint_max_def)
-
-  have Sucj_le_xs: \<open>j + 1 < length xs\<close>
-    if
-      j_xs: \<open>j < length xs \<and> (\<forall>k\<ge>i. k < j \<longrightarrow> xs ! k = None) \<and> i \<le> j\<close> and
-      xs_j: \<open>xs ! j = None\<close>
-    for j
-  proof (rule ccontr)
-    assume \<open>\<not> ?thesis\<close>
-    then have \<open>\<forall>k\<ge>i. k \<le> length xs - 1 \<longrightarrow> xs ! k = None\<close>
-      using j_xs xs_j by (auto simp: linorder_not_less le_Suc_eq)
-    then show False
-      using ocr unfolding confl_find_next_index_pre_def by fastforce
-  qed
-
-  show ?thesis
-    unfolding confl_find_next_index_def confl_find_next_index_spec_def prod.case
-    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>i. length xs - i)\<close>])
-    subgoal by auto
-    subgoal by (rule i_xs)
-    subgoal by auto
-    subgoal by auto
-    subgoal for k using H[of k] by  (cases \<open>k \<ge> uint_max\<close>)(auto simp: uint_max_def)
-    subgoal for k using Sucj_le_xs by blast
-    subgoal for j j' using nat_less_le by fastforce
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    done
-qed
-
-
-lemma confl_find_next_index_confl_find_next_index_spec_fref:
-  \<open>(uncurry confl_find_next_index, uncurry confl_find_next_index_spec) \<in>
-      [uncurry confl_find_next_index_pre]\<^sub>f
-      Id \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto intro!: confl_find_next_index_confl_find_next_index_spec)
-end
-
 
 context isasat_input_bounded
 begin
@@ -1816,6 +1768,7 @@ definition highest_lit where
 
 
 paragraph \<open>Conflict Minimisation\<close>
+
 definition iterate_over_conflict_inv where
   \<open>iterate_over_conflict_inv M D\<^sub>0 = (\<lambda>(D, D'). D \<subseteq># D\<^sub>0 \<and> D' \<subseteq># D)\<close>
 
@@ -1870,7 +1823,6 @@ declare atm_in_conflict_code.refine[sepref_fr_rules]
 context isasat_input_ops
 begin
 
-
 lemma atm_in_conflict_lookup_atm_in_conflict:
   \<open>(uncurry (RETURN oo atm_in_conflict_lookup), uncurry (RETURN oo atm_in_conflict)) \<in>
      [\<lambda>(L, xs). L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f Id \<times>\<^sub>f lookup_clause_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
@@ -1889,6 +1841,18 @@ definition is_literal_redundant_lookup_spec where
     SPEC(\<lambda>(s', b). b \<longrightarrow> (\<forall>D. (D', D) \<in> lookup_clause_rel \<longrightarrow>
        (mset `# mset (tl NU)) + NUE \<Turnstile>pm remove1_mset L D))\<close>
 
+type_synonym (in -) conflict_min_cach_l = \<open>minimize_status list \<times> nat list\<close>
+
+definition (in -) conflict_min_cach_set_removable_l
+  :: \<open>conflict_min_cach_l \<Rightarrow> nat \<Rightarrow> conflict_min_cach_l nres\<close>
+where
+  \<open>conflict_min_cach_set_removable_l = (\<lambda>(cach, sup) L. do {
+     ASSERT(L < length cach);
+     RETURN (cach[L := SEEN_REMOVABLE], sup @ [L])
+   })\<close>
+
+definition (in -) conflict_min_cach :: \<open>nat conflict_min_cach \<Rightarrow> nat \<Rightarrow> minimize_status\<close> where
+  [simp]: \<open>conflict_min_cach cach L = cach L\<close>
 
 definition lit_redundant_rec_wl_lookup
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat clause \<Rightarrow>
@@ -2066,7 +2030,6 @@ definition (in -) lookup_conflict_size where
 definition (in -) lookup_conflict_upd_None where
   [simp]: \<open>lookup_conflict_upd_None = (\<lambda>(n, xs) i. (n-1, xs [i :=None]))\<close>
 
-term minimize_and_extract_highest_lookup_conflict_inv
 definition minimize_and_extract_highest_lookup_conflict
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat clause \<Rightarrow> (nat \<Rightarrow> minimize_status) \<Rightarrow> lbd \<Rightarrow>
      out_learned \<Rightarrow> (nat clause \<times> (nat \<Rightarrow> minimize_status) \<times> out_learned) nres\<close>
@@ -2124,8 +2087,6 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
   fixes D :: \<open>nat clause\<close> and S' :: \<open>nat twl_st_l\<close> and NU :: \<open>nat clauses_l\<close> and S :: \<open>nat twl_st_wl\<close>
      and S'' :: \<open>nat twl_st\<close>
    defines
- (*   \<open>S' \<equiv> st_l_of_wl None S\<close> and
-    \<open>S'' \<equiv> twl_st_of_wl None S\<close> and *)
     \<open>S''' \<equiv> state\<^sub>W_of S''\<close>
   defines
     \<open>M \<equiv> get_trail_wl S\<close> and
@@ -2516,6 +2477,136 @@ qed
 
 end
 
+
+context isasat_input_ops
+begin
+
+
+definition cach_refinement_list :: \<open>(minimize_status list \<times> (nat conflict_min_cach)) set\<close> where
+  \<open>cach_refinement_list = \<langle>Id\<rangle>map_fun_rel {(a, a'). a = a' \<and> a \<in># \<A>\<^sub>i\<^sub>n}\<close>
+
+definition cach_refinement_nonull
+  :: \<open>((minimize_status list \<times> nat list) \<times> minimize_status list) set\<close>
+where
+  \<open>cach_refinement_nonull = {((cach, support), cach'). cach = cach' \<and>
+       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
+       (\<forall>L \<in> set support. L < length cach)}\<close>
+
+
+definition cach_refinement
+  :: \<open>((minimize_status list \<times> nat list) \<times> (nat conflict_min_cach)) set\<close>
+where
+  \<open>cach_refinement = cach_refinement_nonull O cach_refinement_list\<close>
+
+lemma cach_refinement_alt_def:
+  \<open>cach_refinement = {((cach, support), cach').
+       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
+       (\<forall>L \<in> set support. L < length cach) \<and>
+       (\<forall>L \<in># \<A>\<^sub>i\<^sub>n. L < length cach \<and> cach ! L = cach' L)}\<close>
+  unfolding cach_refinement_def cach_refinement_nonull_def cach_refinement_list_def
+  by (auto simp: map_fun_rel_def)
+
+abbreviation (in -) cach_refinement_l_assn where
+  \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn *a arl_assn uint32_nat_assn\<close>
+
+definition cach_refinement_assn where
+  \<open>cach_refinement_assn = hr_comp cach_refinement_l_assn cach_refinement\<close>
+
+lemma in_cach_refinement_alt_def:
+  \<open>((cach, support), cach') \<in> cach_refinement \<longleftrightarrow>
+     (cach, cach') \<in> cach_refinement_list \<and>
+     (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
+      (\<forall>L \<in> set support. L < length cach)\<close>
+  by (auto simp: cach_refinement_def cach_refinement_nonull_def cach_refinement_list_def)
+
+definition (in -) conflict_min_cach_l :: \<open>conflict_min_cach_l \<Rightarrow> nat \<Rightarrow> minimize_status nres\<close> where
+  \<open>conflict_min_cach_l = (\<lambda>(cach, sup) L. do {
+     ASSERT(L < length cach);
+     RETURN (cach ! L)
+  })\<close>
+
+
+sepref_definition (in -) conflict_min_cach_l_code
+  is \<open>uncurry conflict_min_cach_l\<close>
+  :: \<open>cach_refinement_l_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a minimize_status_assn\<close>
+  unfolding conflict_min_cach_l_def
+  by sepref
+
+lemma nth_conflict_min_cach:
+  \<open>(uncurry conflict_min_cach_l, uncurry (RETURN oo conflict_min_cach)) \<in>
+     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<times>\<^sub>r nat_rel \<rightarrow> \<langle>minimize_status_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: cach_refinement_def map_fun_rel_def
+      cach_refinement_nonull_def cach_refinement_list_def conflict_min_cach_l_def)
+
+lemma conflict_min_cach_hnr[sepref_fr_rules]:
+  \<open>(uncurry conflict_min_cach_l_code, uncurry (RETURN \<circ>\<circ> conflict_min_cach))
+   \<in> [\<lambda>(a, b). b \<in># \<A>\<^sub>i\<^sub>n]\<^sub>a cach_refinement_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> minimize_status_assn\<close>
+  using conflict_min_cach_l_code.refine[FCOMP nth_conflict_min_cach,
+     unfolded cach_refinement_assn_def[symmetric]] .
+
+definition (in -) conflict_min_cach_set_failed
+   :: \<open>nat conflict_min_cach \<Rightarrow> nat \<Rightarrow> nat conflict_min_cach\<close>
+where
+  [simp]: \<open>conflict_min_cach_set_failed cach L = cach(L := SEEN_FAILED)\<close>
+
+definition (in -) conflict_min_cach_set_failed_l
+  :: \<open>conflict_min_cach_l \<Rightarrow> nat \<Rightarrow> conflict_min_cach_l nres\<close>
+where
+  \<open>conflict_min_cach_set_failed_l = (\<lambda>(cach, sup) L. do {
+     ASSERT(L < length cach);
+     RETURN (cach[L := SEEN_FAILED], sup @ [L])
+   })\<close>
+
+lemma conflict_min_cach_set_failed:
+  \<open>(uncurry conflict_min_cach_set_failed_l, uncurry (RETURN oo conflict_min_cach_set_failed)) \<in>
+     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+     (auto simp: cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
+      conflict_min_cach_set_failed_l_def)
+
+
+sepref_definition (in -) conflict_min_cach_set_failed_l_code
+  is \<open>uncurry conflict_min_cach_set_failed_l\<close>
+  :: \<open>cach_refinement_l_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
+  supply arl_append_hnr[sepref_fr_rules]
+  unfolding conflict_min_cach_set_failed_l_def
+  by sepref
+
+lemma conflict_min_cach_set_failed_hnr[sepref_fr_rules]:
+   \<open>(uncurry conflict_min_cach_set_failed_l_code,
+        uncurry (RETURN \<circ>\<circ> conflict_min_cach_set_failed))
+    \<in> [\<lambda>(a, b). b \<in># \<A>\<^sub>i\<^sub>n]\<^sub>a cach_refinement_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> cach_refinement_assn\<close>
+  using conflict_min_cach_set_failed_l_code.refine[FCOMP conflict_min_cach_set_failed,
+    unfolded cach_refinement_assn_def[symmetric]] .
+
+definition (in -) conflict_min_cach_set_removable
+  :: \<open>nat conflict_min_cach \<Rightarrow> nat \<Rightarrow> nat conflict_min_cach\<close>
+where
+  [simp]: \<open>conflict_min_cach_set_removable cach L = cach(L:= SEEN_REMOVABLE)\<close>
+
+sepref_definition (in -) conflict_min_cach_set_removable_l_code
+  is \<open>uncurry conflict_min_cach_set_removable_l\<close>
+  :: \<open>cach_refinement_l_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
+  supply arl_append_hnr[sepref_fr_rules]
+  unfolding conflict_min_cach_set_removable_l_def
+  by sepref
+
+lemma conflict_min_cach_set_removable:
+  \<open>(uncurry conflict_min_cach_set_removable_l,
+    uncurry (RETURN oo conflict_min_cach_set_removable)) \<in>
+     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+     (auto simp: cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
+      conflict_min_cach_set_removable_l_def)
+
+lemma conflict_min_cach_set_removable_hnr[sepref_fr_rules]:
+   \<open>(uncurry conflict_min_cach_set_removable_l_code,
+        uncurry (RETURN \<circ>\<circ> conflict_min_cach_set_removable))
+    \<in> [\<lambda>(a, b). b \<in># \<A>\<^sub>i\<^sub>n]\<^sub>a cach_refinement_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> cach_refinement_assn\<close>
+  using conflict_min_cach_set_removable_l_code.refine[FCOMP conflict_min_cach_set_removable,
+    unfolded cach_refinement_assn_def[symmetric]] .
+
+end
 
 context isasat_input_ops
 begin
@@ -3135,17 +3226,8 @@ proof -
      apply (rule conc_fun_mono[OF iterate_over_conflict_spec[OF NU_P_D dist_D]])
     by (auto simp: conc_fun_RES)
 qed
+
 end
-
-(* TODO Kill *)
-sepref_definition (in -) confl_find_next_index_code
-  is \<open>uncurry confl_find_next_index\<close>
-  :: \<open>lookup_clause_rel_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding confl_find_next_index_def one_uint32_nat_def[symmetric]
-  by sepref
-
-declare (in -) confl_find_next_index_code.refine[sepref_fr_rules]
 
 
 sepref_definition delete_index_and_swap_code
@@ -3160,31 +3242,6 @@ declare delete_index_and_swap_code.refine[sepref_fr_rules]
 
 context isasat_input_bounded
 begin
-
-lemma Pos_unat_lit_assn:
-  \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
-     unat_lit_assn\<close>
-  apply sepref_to_hoare
-  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
-  by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
-      lit_of_natP_def nat_of_uint32_distrib_mult2)
-
-lemma Neg_unat_lit_assn:
-  \<open>(return o (\<lambda>n. two_uint32 * n +1), RETURN o Neg) \<in> [\<lambda>L. Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
-      unat_lit_assn\<close>
-  apply sepref_to_hoare
-  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
-  by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
-      lit_of_natP_def nat_of_uint32_distrib_mult2_plus1 uint_max_def)
-
-
-lemma confl_find_next_index_spec_hnr[sepref_fr_rules]:
-  \<open>(uncurry confl_find_next_index_code, uncurry confl_find_next_index_spec)
-    \<in> [uncurry confl_find_next_index_pre]\<^sub>a
-      lookup_clause_rel_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  using confl_find_next_index_code.refine[FCOMP
-      confl_find_next_index_confl_find_next_index_spec_fref]
-  unfolding uncurry_def by simp
 
 lemma lookup_conflict_size_hnr[sepref_fr_rules]:
   \<open>(return o fst, RETURN o lookup_conflict_size) \<in> lookup_clause_rel_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
@@ -3450,7 +3507,7 @@ sepref_thm minimize_and_extract_highest_lookup_conflict_code
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
     minimize_and_extract_highest_lookup_conflict_inv_def[simp]
-    in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max[intro] length_u_hnr[sepref_fr_rules]
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max'[intro] length_u_hnr[sepref_fr_rules]
     array_set_hnr_u[sepref_fr_rules]
   unfolding isa_minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric] PR_CONST_def
@@ -3476,7 +3533,7 @@ lemmas minimize_and_extract_highest_lookup_conflict_code_hnr[sepref_fr_rules] =
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
     minimize_and_extract_highest_lookup_conflict_inv_def[simp]
-    in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max[intro] length_u_hnr[sepref_fr_rules]
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max'[intro] length_u_hnr[sepref_fr_rules]
     array_set_hnr_u[sepref_fr_rules]
   unfolding minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric] PR_CONST_def
