@@ -109,14 +109,6 @@ lemma tight_domain_alt_def: \<open>0 \<notin># dom_m NU \<Longrightarrow> tight_
         intro!: Max_mset_eq)
   done
 
-lemma tight_domain_fmdrop: 
-  \<open>0 \<notin># dom_m ba \<Longrightarrow> aa < length NU' - 1 \<Longrightarrow> tight_domain (fmdrop aa ba) NU' \<longleftrightarrow> tight_domain ba NU'\<close>
-  by (auto simp: tight_domain_alt_def)
-
-lemma tight_domain_fmdrop_last:
-  \<open>0 \<notin># dom_m ba \<Longrightarrow> length NU' > 1 \<Longrightarrow> tight_domain ba NU' \<Longrightarrow> tight_domain (fmdrop (length NU' - 1) ba) (butlast NU')\<close>
-  apply (auto simp: tight_domain_alt_def butlast_Nil_iff)
-  oops
 
 lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
   by (auto simp: bounded_def) presburger

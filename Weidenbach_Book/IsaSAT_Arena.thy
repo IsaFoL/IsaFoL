@@ -1151,7 +1151,6 @@ lemma xarena_active_clause_swap_lits_same:
   unfolding xarena_active_clause_alt_def
   by (cases \<open>is_short_clause (N \<propto> i)\<close>)
     (simp_all add:  swap_lits_def SHIFTS_def min_def swap_nth_if map_swap swap_swap
-   (* drop_update_swap Misc.slice_def swap_def *)
     header_size_def ac_simps is_short_clause_def split: if_splits)
 
 lemma is_short_clause_swap[simp]: \<open>is_short_clause (swap (N \<propto> i) k l) = is_short_clause (N \<propto> i)\<close>
