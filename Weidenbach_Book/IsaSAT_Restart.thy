@@ -127,6 +127,22 @@ global_interpretation twl_restart_ops id
 sublocale isasat_input_ops \<subseteq> isasat_restart_ops id
   .
 
+(* TODO Move *)
+lemmas [id_rules] = 
+  itypeI[Pure.of numeral "TYPE (num \<Rightarrow> uint32)"]
+  itypeI[Pure.of numeral "TYPE (num \<Rightarrow> uint64)"]
+
+lemma id_uint32_const[id_rules]: "(PR_CONST (a::uint32)) ::\<^sub>i TYPE(uint32)" by simp
+lemma id_uint64_const[id_rules]: "(PR_CONST (a::uint64)) ::\<^sub>i TYPE(uint64)" by simp
+
+lemma param_uint32[sepref_import_param]:
+  \<open>(numeral n, numeral n) \<in> uint32_rel\<close>
+  by auto
+
+lemma param_uint64[sepref_import_param]:
+  \<open>(numeral n, numeral n) \<in> uint64_rel\<close>
+  by auto
+(* End Move *)
 context isasat_input_bounded_nempty
 begin
 
