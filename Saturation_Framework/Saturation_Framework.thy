@@ -242,8 +242,38 @@ proof -
   then show ?thesis by (simp add: sup_subset_mset_def)
 qed
 
+definition saturated_set :: "'f formulas \<Rightarrow> bool" where 
+  "saturated_set N \<equiv> Inf N \<subseteq># Red_I N"
+
+(* derivation are finite or infinite sequences - are lists the best datastructures to represent such them*)
+inductive derivation :: "'f formulas list \<Rightarrow> bool" where
+  empty: "derivation []"
+  | one: "derivation [N]"
+  | more: "derivation (N2 # T) \<Longrightarrow> (N2 |= {# Bot_F #} \<Longrightarrow> N1 |= {# Bot_F #}) 
+            \<Longrightarrow> (N1 - N2) \<subseteq># Red_F N2 \<Longrightarrow> derivation (N1 # (N2 # T))"
+
 
 end
+
+locale static_refutational_complete_inference_system = inference_system +
+  assumes
+    static_refutational_complete: "saturated_set N \<and> N |= {# Bot_F #} \<Longrightarrow> Bot_F \<in># N"
+begin
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 (* 
 text \<open>
