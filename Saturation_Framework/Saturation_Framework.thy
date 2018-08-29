@@ -6,6 +6,8 @@ section \<open>Saturation Framework\<close>
 
 theory Saturation_Framework
   imports Ordered_Resolution_Prover.Herbrand_Interpretation
+    Ordered_Resolution_Prover.Lazy_List_Liminf
+    Ordered_Resolution_Prover.Lazy_List_Chain
 begin
 
 text \<open>
@@ -228,6 +230,9 @@ begin
 definition Inf :: "'f formulas  \<Rightarrow> 'f inference multiset" where
   "Inf N = {# \<iota> \<in># I. set (prems_of \<iota>) \<subseteq> set_mset N #}"
 
+
+
+
 lemma red_concl_to_red_inf: 
   assumes 
     i: "\<iota> \<in># I" and
@@ -242,8 +247,18 @@ proof -
   then show ?thesis by (simp add: sup_subset_mset_def)
 qed
 
+inductive "derive" :: "'f formulas \<Rightarrow> 'f formulas \<Rightarrow> bool" (infix "\<turnstile>" 50) where
+  unsat_preserving_derive: "(N |= {# Bot_F #} \<Longrightarrow> M |= {# Bot_F #}) \<Longrightarrow> M - N \<subseteq># Red_F N 
+                              \<Longrightarrow> M \<turnstile> N"
+
 definition saturated_set :: "'f formulas \<Rightarrow> bool" where 
   "saturated_set N \<equiv> Inf N \<subseteq># Red_I N"
+
+definition Sup_Red_I_llist :: "'f formulas llist \<Rightarrow> 'f inference multiset" where
+    "Sup_Red_I_llist d = mset_set (\<Union>i \<in> {i. enat i < llength d}. set_mset (Red_I (lnth d i)))"
+
+definition fair_derivation :: "'f formulas llist \<Rightarrow> bool" where
+  "fair_derivation d \<equiv> Inf (Liminf_llist d) \<subseteq># Sup_Red_I_llist d" (* TODO: choose if I use sets or multisets *)
 
 (* derivation are finite or infinite sequences - are lists the best datastructures to represent such them*)
 inductive derivation :: "'f formulas list \<Rightarrow> bool" where
@@ -262,7 +277,12 @@ begin
 
 end
 
+locale dynamic_refutational_complete_inference_system = inference_system +
+  assumes
+    dynamic_refutational_complete: ""
+begin
 
+end
 
 
 
