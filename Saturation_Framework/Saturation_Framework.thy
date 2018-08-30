@@ -21,23 +21,23 @@ text \<open>
 Inferences have one distinguished main premise, any number of side premises, and a conclusion.
 \<close>
 
-type_synonym 'f formulas = "'f multiset"
+type_synonym 'f formulas = "'f set"
 
 locale consequence_relation =
   fixes
     Bot_F :: 'f and
     entails :: "'f formulas \<Rightarrow> 'f formulas \<Rightarrow> bool" (infix "|=" 50)
   assumes
-    bot_implies_all: "{#Bot_F#} |= N1" and
-    subset_entailed: "N2 \<subseteq># N1 \<Longrightarrow> N1 |= N2" and
-    all_formulas_entailed: "(\<forall>C \<in># N2. N1 |= {# C #}) \<Longrightarrow> N1 |= N2" and
+    bot_implies_all: "{Bot_F} |= N1" and
+    subset_entailed: "N2 \<subseteq> N1 \<Longrightarrow> N1 |= N2" and
+    all_formulas_entailed: "(\<forall>C \<in> N2. N1 |= {C}) \<Longrightarrow> N1 |= N2" and
     transitive_entails: "(N1 |= N2 \<and> N2 |= N3) \<Longrightarrow> N1 |= N3"
 begin
 
-lemma easy1: "(N1 |= N2) \<longleftrightarrow> (\<forall>C \<in># N2. N1 |= {# C#})"
-by (meson all_formulas_entailed mset_subset_eq_single subset_entailed transitive_entails)
+lemma easy1: "(N1 |= N2) \<longleftrightarrow> (\<forall>C \<in> N2. N1 |= {C})"
+by (meson all_formulas_entailed empty_subsetI insert_subset subset_entailed transitive_entails)
 
-lemma easy2: "(N |= N1 \<and> N |= N2) \<longleftrightarrow> N |= (N1 \<union># N2)"
+lemma easy2: "(N |= N1 \<and> N |= N2) \<longleftrightarrow> N |= (N1 \<union> N2)"
   apply (subst easy1)
   apply (subst (2) easy1)
   apply (subst (3) easy1)
@@ -60,227 +60,94 @@ abbreviation concls_of :: "'f inference set \<Rightarrow> 'f set" where
 (* definition infer_from :: "'a clause set \<Rightarrow> 'a inference \<Rightarrow> bool" where
   "infer_from CC \<gamma> \<longleftrightarrow> set_mset (prems_of \<gamma>) \<subseteq> CC" *)
 
-notation image_mset (infixr "`#" 90)
-
-definition Pow_mset where
-  "Pow_mset A = fold_mset (\<lambda>a A. (A + (add_mset a) `# A)) {#{#}#} A"
-
-lemma Pow_mset_alt_def:
-  "Pow_mset (mset A) = mset `# mset (subseqs A)"
-proof -
-  interpret mset: comp_fun_commute "(\<lambda>a A. (A + (add_mset a) `# A))"
-    by (auto simp: comp_fun_commute_def add_mset_commute intro!: ext)
-
-  show ?thesis
-    apply (induction A)
-    subgoal by (auto simp: Pow_mset_def)
-    subgoal
-      by (auto simp: Let_def Pow_mset_def)
-    done
-qed
-
-interpretation pow_mset_commute: comp_fun_commute "(\<lambda>a A. (A + (add_mset a) `# A))"
-  by (auto simp: comp_fun_commute_def add_mset_commute intro!: ext)
-
-lemma Pow_mset_empty[simp]:
-  \<open>Pow_mset {#} = {#{#}#}\<close>
-  by (auto simp: Pow_mset_def)
-
-lemma Pow_mset_add_mset[simp]:
-  \<open>Pow_mset (add_mset a A) = Pow_mset A + (add_mset a) `# Pow_mset A\<close>
-  by (auto simp: Let_def Pow_mset_def)  
-
-lemma Pow_mset_nempty[simp]:
-  \<open>Pow_mset A \<noteq> {#}\<close>
-  by (induction A) auto
-
-
-text \<open>Equivalent set version: @{thm Pow_iff}\<close>
-lemma Pow_mset_iff[iff]:
-   \<open>A \<in># Pow_mset B \<longleftrightarrow> A \<subseteq># B\<close>
-proof
-  assume \<open>A \<subseteq># B\<close>
-  then show \<open>A \<in># Pow_mset B\<close>
-    apply (induction B arbitrary: A)
-    subgoal by auto
-    subgoal premises p for b B A
-      using p(1)[of A] p(1)[of \<open>A - {#b#}\<close>] p(2)
-      apply (cases \<open>b \<in># A\<close>)
-      by (auto dest: subset_add_mset_notin_subset_mset dest!: multi_member_split)
-    done
-next
-  assume \<open>A \<in># Pow_mset B\<close>
-  then show \<open>A \<subseteq># B\<close>
-    apply (induction B arbitrary: A)
-    subgoal by auto
-    subgoal premises p for b B A
-      using p apply auto
-      by (metis add_mset_add_single mset_subset_eq_add_left subset_mset.add_increasing2)       
-    done
-qed
-
-lemma Pow_mset_Pow: \<open>set_mset ` set_mset (Pow_mset A) = Pow (set_mset A)\<close>
-proof -
-  obtain A' where A: \<open>A = mset A'\<close>
-    using ex_mset[of A] by auto
-  show ?thesis
-    unfolding A Pow_mset_alt_def 
-    by (simp add: subseqs_powset image_image)
-qed
-
-lemma count_image_mset_add_mset_notin: \<open>a \<notin># B \<Longrightarrow> count (add_mset a `# A) B = 0\<close>
-  by (induction A) (auto simp: add_mset_commute[of _ a])
-
-lemma count_Pow_mset_prod:
-  \<open>count (Pow_mset A) B = (prod (\<lambda>a. (count A a) choose (count B a)) (set_mset B))\<close>
-proof (induction A arbitrary: B)
-  case (empty B)
-  then show ?case
-    by (cases B)
-      (auto simp: card_insert)
-next
-  case (add b A' B)
-  \<comment> \<open>First, let's fight one weakness of the simplifier:\<close>
-  have H: \<open>(\<Prod>aa\<in>set_mset A - {a}.
-            count A' aa choose
-            (if a = aa then Suc (count A aa)
-             else count A aa)) = (\<Prod>aa\<in>set_mset A - {a}.
-            count A' aa choose
-            (count A aa))\<close> for a and A :: \<open>'a multiset\<close> and A' :: \<open>'a multiset\<close>
-    by (rule prod.cong) auto
-  have H': \<open>a \<notin># B \<Longrightarrow> (\<Prod>aa\<in>set_mset B.
-       (if a = aa then Suc (count A' aa)
-        else count A' aa) choose
-       count B aa) =
-         (\<Prod>aa\<in>set_mset B.
-       (count A' aa) choose
-       count B aa)\<close> for a and A :: \<open>'a multiset\<close> and A' :: \<open>'a multiset\<close>
-    by (rule prod.cong) auto
-  have H'': \<open>(\<Prod>aa\<in>set_mset A - {a}.
-            (if a = aa then Suc (count A' aa)
-             else count A' aa) choose
-            (if a = aa then Suc (count A aa)
-             else count A aa)) =
-         (\<Prod>aa\<in>set_mset A - {a}.
-            (count A' aa) choose
-            (count A aa))\<close> for a and A :: \<open>'a multiset\<close> and A' :: \<open>'a multiset\<close>
-    by (rule prod.cong) auto
-  have count_image_mset_add_mset: \<open>count (add_mset a `# A) (add_mset a B) = count A B\<close>
-    for a and A :: \<open>'a multiset multiset\<close> and B :: \<open>'a multiset\<close>
-    by (induction A) (auto simp: add_mset_commute[of _ a])
-
-  show ?case
-    apply (cases \<open>b \<in># B\<close>)
-    subgoal
-      apply (auto simp: add prod.insert_remove count_image_mset_add_mset H H'
-      count_image_mset_add_mset_notin H'' distrib_right
-      dest!: multi_member_split[of b B])
-      apply (cases \<open>b \<in># B - {#b#}\<close>)
-      using multi_member_split[of b \<open>B - {#b#}\<close>]
-      apply (auto simp: prod.insert_remove intro: count_inI)
-      done
-    subgoal
-      by (auto simp: add count_image_mset_add_mset H H' prod.insert_remove
-             count_image_mset_add_mset_notin
-           dest!: multi_member_split[of b B])
-    done
-qed
-
-lemma Pow_mset_union:
-  \<open>Pow_mset (A + B) = (\<lambda>(a, b). a + b) `# (Pow_mset A \<times># Pow_mset B)\<close>
-proof (induction A)
-  case empty
-  then show ?case by (auto simp: Times_mset_single_left)
-next
-  case (add x A)
-  have 1: \<open>{#(add_mset x a, y). (a, y) \<in># A \<times># B#} =
-        add_mset x `# A \<times># B\<close> for A :: \<open>'a multiset multiset\<close> and B :: \<open>'b multiset\<close> and x
-    by (induction B)
-      (auto simp: Times_insert_left)
-  have \<open>{#add_mset x (case xa of (x, xa) \<Rightarrow> x + xa). xa \<in># Pow_mset A \<times># Pow_mset B#} =
-      {# ((\<lambda>xa. case xa of (x, xa) \<Rightarrow> x + xa) o (\<lambda>(a, b). (add_mset x a, b))) xa.
-         xa \<in># Pow_mset A \<times># Pow_mset B#}\<close>
-    by (rule image_mset_cong)  auto
-  also have \<open>\<dots> = {# (case xa of (x, xa) \<Rightarrow> x + xa). xa \<in># add_mset x `# Pow_mset A \<times># Pow_mset B#}\<close>
-    by (subst image_mset.compositionality[symmetric], subst 1) (rule refl)
-  finally show ?case by (auto simp: Times_mset_single_left add)
-qed
-
-text \<open>Equivalent set version: @{thm card_Pow}\<close>
-lemma size_Pow_mset:
-  \<open>size (Pow_mset A) = 2 ^ size A\<close>
-  by (induction A) auto
-
 locale inference_system = consequence_relation +
   fixes 
-    I :: "'f inference multiset" and
-    Red_I :: "'f formulas \<Rightarrow> 'f inference multiset" and
+    I :: "'f inference set" and
+    Red_I :: "'f formulas \<Rightarrow> 'f inference set" and
     Red_F :: "'f formulas \<Rightarrow> 'f formulas"
   assumes
-    Red_I_to_I: "Red_I N \<in># Pow_mset I" and
-    Red_F_Bot_F: "N |= {#Bot_F#} \<Longrightarrow> N - Red_F N |= {#Bot_F#}" and
-    Red_F_of_subset: "N \<subseteq># N' \<Longrightarrow> Red_F N \<subseteq># Red_F N'" and
-    Red_I_of_subset: "N \<subseteq># N' \<Longrightarrow> Red_I N \<subseteq># Red_I N'" and
-    Red_F_of_Red_F_subset: "N' \<subseteq># Red_F N \<Longrightarrow> Red_F N \<subseteq># Red_F (N - N')" and
-    Red_I_of_Red_F_subset: "N' \<subseteq># Red_F N \<Longrightarrow> Red_I N \<subseteq># Red_I (N - N')" and
-    Red_I_of_I_to_N: "\<iota> \<in># I \<and> concl_of \<iota> \<in># N \<Longrightarrow> \<iota> \<in># Red_I N" and
-    same_with_other_syntax: "{#\<iota> \<in># I. (concl_of \<iota> \<in># N)#} \<subseteq># Red_I N"
+    Red_I_to_I: "Red_I N \<in> Pow I" and
+    Red_F_Bot_F: "N |= {Bot_F} \<Longrightarrow> N - Red_F N |= {Bot_F}" and
+    Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'" and
+    Red_I_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'" and
+    Red_F_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')" and
+    Red_I_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_I N \<subseteq> Red_I (N - N')" and
+    Red_I_of_I_to_N: "\<iota> \<in> I \<and> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I N" and
+    same_with_other_syntax: "{\<iota> \<in> I. (concl_of \<iota> \<in> N)} \<subseteq> Red_I N"
 begin
 
-definition Inf :: "'f formulas  \<Rightarrow> 'f inference multiset" where
-  "Inf N = {# \<iota> \<in># I. set (prems_of \<iota>) \<subseteq> set_mset N #}"
-
-
+definition Inf :: "'f formulas  \<Rightarrow> 'f inference set" where
+  "Inf N = {\<iota> \<in> I. set (prems_of \<iota>) \<subseteq> N}"
 
 
 lemma red_concl_to_red_inf: 
   assumes 
-    i: "\<iota> \<in># I" and
-    concl: "concl_of \<iota> \<in># Red_F N"
-  shows "\<iota> \<in># Red_I N"
+    i: "\<iota> \<in> I" and
+    concl: "concl_of \<iota> \<in> Red_F N"
+  shows "\<iota> \<in> Red_I N"
 proof -
-  have i2: "\<iota> \<in># Red_I (Red_F N)" by (simp add: Red_I_of_I_to_N i concl)
-  then have i3: "\<iota> \<in># Red_I (N \<union># Red_F N)" by (simp add: Red_I_of_I_to_N concl i)
-  also have red_n_subs: "Red_F N \<subseteq># Red_F (N \<union># Red_F N)" by (simp add: Red_F_of_subset)
-  then have "\<iota> \<in># Red_I ((N \<union># Red_F N) - (Red_F N - N))" using Red_I_of_Red_F_subset i3 
-    by (meson diff_subset_eq_self mset_subset_eqD subset_mset.order_trans)
-  then show ?thesis by (simp add: sup_subset_mset_def)
+  have i2: "\<iota> \<in> Red_I (Red_F N)" by (simp add: Red_I_of_I_to_N i concl)
+  then have i3: "\<iota> \<in> Red_I (N \<union> Red_F N)" by (simp add: Red_I_of_I_to_N concl i)
+  also have red_n_subs: "Red_F N \<subseteq> Red_F (N \<union> Red_F N)" by (simp add: Red_F_of_subset)
+  then have "\<iota> \<in> Red_I ((N \<union> Red_F N) - (Red_F N - N))" using Red_I_of_Red_F_subset i3
+    by (meson Diff_subset subsetCE subset_trans)
+  then show ?thesis by (metis Diff_cancel Diff_subset Un_Diff Un_Diff_cancel contra_subsetD 
+    inference_system.Red_I_of_subset inference_system_axioms sup_bot.right_neutral)
 qed
 
 inductive "derive" :: "'f formulas \<Rightarrow> 'f formulas \<Rightarrow> bool" (infix "\<turnstile>" 50) where
-  unsat_preserving_derive: "(N |= {# Bot_F #} \<Longrightarrow> M |= {# Bot_F #}) \<Longrightarrow> M - N \<subseteq># Red_F N 
-                              \<Longrightarrow> M \<turnstile> N"
+  unsat_preserving_derive: "(N |= {Bot_F} \<Longrightarrow> M |= {Bot_F}) \<Longrightarrow> M - N \<subseteq> Red_F N \<Longrightarrow> M \<turnstile> N"
 
-definition saturated_set :: "'f formulas \<Rightarrow> bool" where 
-  "saturated_set N \<equiv> Inf N \<subseteq># Red_I N"
+definition saturated :: "'f formulas \<Rightarrow> bool" where 
+  "saturated N \<equiv> Inf N \<subseteq> Red_I N"
 
-definition Sup_Red_I_llist :: "'f formulas llist \<Rightarrow> 'f inference multiset" where
-    "Sup_Red_I_llist d = mset_set (\<Union>i \<in> {i. enat i < llength d}. set_mset (Red_I (lnth d i)))"
+definition Sup_Red_I_llist :: "'f formulas llist \<Rightarrow> 'f inference set" where
+    "Sup_Red_I_llist D = (\<Union>i \<in> {i. enat i < llength D}. (Red_I (lnth D i)))"
 
-definition fair_derivation :: "'f formulas llist \<Rightarrow> bool" where
-  "fair_derivation d \<equiv> Inf (Liminf_llist d) \<subseteq># Sup_Red_I_llist d" (* TODO: choose if I use sets or multisets *)
+lemma Sup_Red_I_unit: "Sup_Red_I_llist (LCons X LNil) = Red_I X" 
+  using Sup_Red_I_llist_def enat_0_iff(1) by simp
+
+definition fair :: "'f formulas llist \<Rightarrow> bool" where
+  "fair D \<equiv> Inf (Liminf_llist D) \<subseteq> Sup_Red_I_llist D"
 
 (* derivation are finite or infinite sequences - are lists the best datastructures to represent such them*)
-inductive derivation :: "'f formulas list \<Rightarrow> bool" where
+(* inductive derivation :: "'f formulas list \<Rightarrow> bool" where
   empty: "derivation []"
   | one: "derivation [N]"
   | more: "derivation (N2 # T) \<Longrightarrow> (N2 |= {# Bot_F #} \<Longrightarrow> N1 |= {# Bot_F #}) 
             \<Longrightarrow> (N1 - N2) \<subseteq># Red_F N2 \<Longrightarrow> derivation (N1 # (N2 # T))"
-
+*)
 
 end
 
 locale static_refutational_complete_inference_system = inference_system +
   assumes
-    static_refutational_complete: "saturated_set N \<and> N |= {# Bot_F #} \<Longrightarrow> Bot_F \<in># N"
+    static_refutational_complete: "saturated N \<and> N |= {Bot_F} \<Longrightarrow> Bot_F \<in> N"
 begin
 
 end
 
 locale dynamic_refutational_complete_inference_system = inference_system +
   assumes
-    dynamic_refutational_complete: ""
+    dynamic_refutational_complete: "fair D \<and> (lnth D 0) |= {Bot_F}
+      \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. Bot_F \<in> (lnth D i)"
 begin
+
+sublocale static_refutational_complete_inference_system
+proof -
+  fix N
+  assume 
+    saturated_N: "saturated N" and 
+    unsat_N: "N |= {Bot_F}"
+  define D where "D = LCons N LNil"
+  have liminf_is_N: "Liminf_llist D = N" by (simp add: D_def Liminf_llist_LCons)
+  also have head_D: "N = lnth D 0" by (simp add: D_def)
+  also have "Sup_Red_I_llist D = Red_I N" by (simp add: D_def Sup_Red_I_unit)
+  then have fair_D: "fair D" using saturated_N by (simp add: fair_def saturated_def liminf_is_N)  
+  obtain i where "Bot_F \<in> (lnth D i)" using dynamic_refutational_complete fair_D head_D unsat_N 
+    by auto
+  then have "lnth D i |= {Bot_F}" by (simp add: subset_entailed)
+  then have "Bot_F \<in> N" using fair_D dynamic_refutational_complete
 
 end
 
