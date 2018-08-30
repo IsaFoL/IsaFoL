@@ -133,20 +133,27 @@ locale dynamic_refutational_complete_inference_system = inference_system +
       \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. Bot_F \<in> (lnth D i)"
 begin
 
+
+
 sublocale static_refutational_complete_inference_system
-proof -
+proof standard
   fix N
   assume 
-    saturated_N: "saturated N" and 
-    unsat_N: "N |= {Bot_F}"
+    saturated_N: "saturated N \<and> N |= {Bot_F}"
   define D where "D = LCons N LNil"
   have liminf_is_N: "Liminf_llist D = N" by (simp add: D_def Liminf_llist_LCons)
   also have head_D: "N = lnth D 0" by (simp add: D_def)
   also have "Sup_Red_I_llist D = Red_I N" by (simp add: D_def Sup_Red_I_unit)
   then have fair_D: "fair D" using saturated_N by (simp add: fair_def saturated_def liminf_is_N)  
-  obtain i where "Bot_F \<in> (lnth D i)" using dynamic_refutational_complete fair_D head_D unsat_N 
+  obtain i where "Bot_F \<in> (lnth D i)" and \<open>i < llength D\<close>
+    using dynamic_refutational_complete fair_D head_D saturated_N 
     by auto
-  then have "i = 0" by oops
+  then have "i = 0"
+    by (auto simp: D_def enat_0_iff)
+  show \<open>Bot_F \<in> N\<close>
+    using \<open>Bot_F \<in> (lnth D i)\<close> unfolding \<open>i = 0\<close> head_D[symmetric] .
+qed
+
 
 end
 
