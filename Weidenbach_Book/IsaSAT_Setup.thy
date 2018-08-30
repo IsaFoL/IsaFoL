@@ -125,7 +125,7 @@ lemma watched_by_app_heur_alt_def:
   \<open>watched_by_app_heur = (\<lambda>(M, N, D, Q, W, _) L K. W ! nat_of_lit L ! K)\<close>
   by (auto simp: watched_by_app_heur_def intro!: ext)
 
-definition (in -) watched_by_app :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
+definition watched_by_app :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
   \<open>watched_by_app S L K = watched_by S L ! K\<close>
 
 fun get_vmtf_heur :: \<open>twl_st_wl_heur \<Rightarrow> vmtf_remove_int\<close> where
@@ -203,14 +203,14 @@ lemma op_map_to_map_rel:
 
 definition convert_single_wl_to_nat where
 \<open>convert_single_wl_to_nat W i W' j =
-  op_map_to (\<lambda>(i, C). (nat_of_uint64_conv i, C)) (0, Pos 0) (W!i) W' j\<close>
+  op_map_to (\<lambda>(i, C). (nat_of_uint64_conv i, C)) (to_watcher 0 (Pos 0) False) (W!i) W' j\<close>
 
 sepref_definition convert_single_wl_to_nat_code
   is \<open>uncurry3 convert_single_wl_to_nat\<close>
   :: \<open>[\<lambda>(((W, i), W'), j). i < length W \<and> j < length W']\<^sub>a
-       (arrayO_assn (arl_assn (uint64_nat_assn *a unat_lit_assn)))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
-       (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-      arrayO_assn (arl_assn (nat_assn *a unat_lit_assn))\<close>
+       (arrayO_assn (arl_assn (watcher_fast_assn)))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
+       (arrayO_assn (arl_assn (watcher_assn)))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
+      arrayO_assn (arl_assn (watcher_assn))\<close>
   supply [[goals_limit=1]]
   unfolding convert_single_wl_to_nat_def op_map_to_def nth_ll_def[symmetric]
     length_ll_def[symmetric]
@@ -235,9 +235,9 @@ lemma convert_single_wl_to_nat_conv_hnr[sepref_fr_rules]:
   \<open>(uncurry3 convert_single_wl_to_nat_code,
      uncurry3 (RETURN \<circ>\<circ>\<circ> convert_single_wl_to_nat_conv))
   \<in> [\<lambda>(((a, b), ba), bb). b < length a \<and> bb < length ba \<and> ba ! bb = []]\<^sub>a
-    (arrayO_assn (arl_assn (uint64_nat_assn *a unat_lit_assn)))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
-    (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn)))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-    arrayO_assn (arl_assn (nat_assn *a unat_lit_assn))\<close>
+    (arrayO_assn (arl_assn watcher_fast_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
+    (arrayO_assn (arl_assn watcher_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
+    arrayO_assn (arl_assn watcher_assn)\<close>
   using convert_single_wl_to_nat_code.refine[FCOMP convert_single_wl_to_nat]
   by auto
 
@@ -256,22 +256,58 @@ proof -
     by (auto simp: convert_wlists_to_nat_def)
 qed
 
-find_theorems \<open>init_lrl\<close>
-(* sepref_definition convert_wlists_to_nat_code
-  is \<open>convert_wlists_to_nat\<close>
-  :: \<open>(arrayO_assn (arl_assn (uint64_nat_assn *a unat_lit_assn *a bool_assn)))\<^sup>d \<rightarrow>\<^sub>a
-          arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn))\<close>
+
+abbreviation (in -) watchers_assn where
+  \<open>watchers_assn \<equiv> arl_assn (watcher_assn)\<close>
+
+abbreviation (in -) watchlist_assn where
+  \<open>watchlist_assn \<equiv> arrayO_assn watchers_assn\<close>
+
+abbreviation (in -) watchers_fast_assn where
+  \<open>watchers_fast_assn \<equiv> arl_assn (watcher_fast_assn)\<close>
+
+abbreviation (in -) watchlist_fast_assn where
+  \<open>watchlist_fast_assn \<equiv> arrayO_assn watchers_fast_assn\<close>
+
+lemma convert_single_wl_to_nat_conv_alt_def:
+  \<open>convert_single_wl_to_nat_conv zs i xs i = xs[i := map (\<lambda>(i, y, y'). (nat_of_uint64_conv i, y, y')) (zs ! i)]\<close>
+  unfolding convert_single_wl_to_nat_conv_def
+  by auto
+
+(* TODO n should also be sued in the condition *)
+lemma convert_wlists_to_nat_alt_def2:
+  \<open>convert_wlists_to_nat xs = do {
+    let n = length xs;
+    let zs = init_lrl n;
+    (uu, zs) \<leftarrow>
+      WHILE\<^sub>T\<^bsup>\<lambda>(i, zs).
+                 i \<le> length xs \<and>
+                 take i zs =
+                 map (map (\<lambda>(n, y, y'). (nat_of_uint64_conv n, y, y')))
+                  (take i xs) \<and>
+                 length zs = length xs \<and> (\<forall>k\<ge>i. k < length xs \<longrightarrow> zs ! k = [])\<^esup>
+       (\<lambda>(i, zs). i < length zs)
+       (\<lambda>(i, zs). do {
+             _ \<leftarrow> ASSERT (i < length zs);
+             RETURN
+              (i + 1, convert_single_wl_to_nat_conv xs i zs i)
+           })
+       (0, zs);
+    RETURN zs
+  }\<close>
   unfolding convert_wlists_to_nat_def
     op_map_def[of \<open>map (\<lambda>(n, y, y'). (nat_of_uint64_conv n, y, y'))\<close> \<open>[]\<close>,
-  unfolded convert_single_wl_to_nat_conv_def[symmetric] init_lrl_def[symmetric]]
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  supply [[unify_trace_failure]]
-  apply (rule arrayO_raa_empty_sz_init_lrl[to_hnr])
-  sorry
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold apply (auto simp: )[]
-  by sepref *)
+      unfolded convert_single_wl_to_nat_conv_alt_def[symmetric] init_lrl_def[symmetric]] Let_def
+  by auto
+
+sepref_register init_lrl
+
+sepref_definition convert_wlists_to_nat_code
+  is \<open>convert_wlists_to_nat\<close>
+  :: \<open>watchlist_fast_assn\<^sup>d \<rightarrow>\<^sub>a watchlist_assn\<close>
+  supply length_a_hnr[sepref_fr_rules]
+  unfolding convert_wlists_to_nat_alt_def2
+  by sepref
 
 lemma convert_wlists_to_nat_convert_wlists_to_nat_conv:
   \<open>(convert_wlists_to_nat, RETURN o convert_wlists_to_nat_conv) \<in>
@@ -281,13 +317,13 @@ lemma convert_wlists_to_nat_convert_wlists_to_nat_conv:
     (auto simp: convert_wlists_to_nat_def nat_of_uint64_conv_def
        convert_wlists_to_nat_conv_def
       intro: order.trans op_map_map)
-(* 
+
 lemma convert_wlists_to_nat_conv_hnr[sepref_fr_rules]:
   \<open>(convert_wlists_to_nat_code, RETURN \<circ> convert_wlists_to_nat_conv)
-    \<in> (arrayO_assn (arl_assn (uint64_nat_assn *a unat_lit_assn)))\<^sup>d \<rightarrow>\<^sub>a
-      arrayO_assn (arl_assn (nat_assn *a unat_lit_assn))\<close>
+    \<in> (arrayO_assn (arl_assn watcher_fast_assn))\<^sup>d \<rightarrow>\<^sub>a
+      arrayO_assn (arl_assn watcher_assn)\<close>
   using convert_wlists_to_nat_code.refine[FCOMP convert_wlists_to_nat_convert_wlists_to_nat_conv]
-  by simp *)
+  by simp
 
 
 context isasat_input_ops
@@ -445,17 +481,6 @@ definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<time
     vdom_m W N \<subseteq> set vdom
   }\<close>
 
-abbreviation (in -) watchers_assn where
-  \<open>watchers_assn \<equiv> arl_assn (watcher_assn)\<close>
-
-abbreviation (in -) watchlist_assn where
-  \<open>watchlist_assn \<equiv> arrayO_assn watchers_assn\<close>
-
-abbreviation (in -) watchers_fast_assn where
-  \<open>watchers_fast_assn \<equiv> arl_assn (watcher_fast_assn)\<close>
-
-abbreviation (in -) watchlist_fast_assn where
-  \<open>watchlist_fast_assn \<equiv> arrayO_assn watchers_fast_assn\<close>
 
 definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>isasat_assn =
@@ -500,12 +525,15 @@ text \<open>
 definition (in -) isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> uint64_max - (uint32_max + 5))\<close>
 
+lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> uint64_max\<close>
+  by (cases S) (auto simp: isasat_fast_def)
+
 definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>isasat_fast_slow =
     (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, lcount).
       RETURN (trail_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
         clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, lcount))\<close>
-(* 
+
 sepref_thm isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
   :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
@@ -520,7 +548,7 @@ concrete_definition (in -) isasat_fast_slow_code
 prepare_code_thms (in -) isasat_fast_slow_code_def
 
 lemmas isasat_fast_slow_code[sepref_fr_rules] =
-   isasat_fast_slow_code.refine *)
+   isasat_fast_slow_code.refine
 
 definition (in -)isasat_fast_slow_wl_D where
   \<open>isasat_fast_slow_wl_D = id\<close>
