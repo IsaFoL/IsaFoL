@@ -146,8 +146,7 @@ proof -
   then have fair_D: "fair D" using saturated_N by (simp add: fair_def saturated_def liminf_is_N)  
   obtain i where "Bot_F \<in> (lnth D i)" using dynamic_refutational_complete fair_D head_D unsat_N 
     by auto
-  then have "lnth D i |= {Bot_F}" by (simp add: subset_entailed)
-  then have "Bot_F \<in> N" using fair_D dynamic_refutational_complete
+  then have "i = 0" by oops
 
 end
 
