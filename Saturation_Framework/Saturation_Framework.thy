@@ -118,6 +118,37 @@ definition fair :: "'f formulas llist \<Rightarrow> bool" where
             \<Longrightarrow> (N1 - N2) \<subseteq># Red_F N2 \<Longrightarrow> derivation (N1 # (N2 # T))"
 *)
 
+
+lemma equiv_Sup_Liminf:
+  assumes deriv: "chain (\<turnstile>) D" and
+    in_Sup: "C \<in> Sup_llist D" and
+    not_in_Liminf: "C \<notin> Liminf_llist D"
+  shows
+    "\<exists> i \<in> {i. enat (Suc i) < llength D}. C \<in> (lnth D i) - (lnth D (Suc i))"
+proof
+  obtain i where "C \<in> (lnth D i)" and "C \<notin> (lnth D (Suc i))" and "Suc i < llength D" 
+  using assms chain_lnth_rel
+  unfolding Sup_llist_def  
+
+
+lemma Red_in_Sup: 
+  assumes deriv: "chain (\<turnstile>) D"
+  shows "Sup_llist D - Liminf_llist D \<subseteq> Red_F (Sup_llist D)"
+proof
+  assume C_in_subset: "C \<in> Sup_llist D - Liminf_llist D"
+  {
+    fix C i
+    assume 
+      in_ith_elem: "C \<in> (lnth D i) - (lnth D (Suc i))" and
+      i: "enat (Suc i) < llength D"
+    have "(lnth D i) \<turnstile> (lnth D (Suc i))" using i deriv in_ith_elem chain_lnth_rel by auto
+    then have "C \<in> Red_F (lnth D (Suc i))" using in_ith_elem derive.cases by blast
+    then have "C \<in> Red_F (Sup_llist D)" using Red_F_of_subset 
+      by (meson contra_subsetD i lnth_subset_Sup_llist)
+  }
+  then have ?thesis unfolding 
+    
+
 end
 
 locale static_refutational_complete_inference_system = inference_system +
