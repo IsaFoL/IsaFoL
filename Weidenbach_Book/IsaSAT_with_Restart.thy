@@ -322,7 +322,7 @@ lemma init_dt_wl_code_refine[sepref_fr_rules]:
        (sep_auto dest!: frame_rule_left[of \<open>_ * isasat_input_ops.isasat_init_assn _ _ _\<close> _ _
             \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst (fst a))\<close>])
   done
-
+(*
 lemma init_dt_wl_fast_code_refine[sepref_fr_rules]:
   \<open>(uncurry2 (\<lambda>_. init_dt_wl_fast_code), uncurry2 (isasat_input_ops.init_dt_wl_heur_fast))
   \<in> [\<lambda>((N, S), S'). isasat_input_bounded \<A>\<^sub>i\<^sub>n \<and> N = \<A>\<^sub>i\<^sub>n]\<^sub>a
@@ -340,7 +340,7 @@ lemma init_dt_wl_fast_code_refine[sepref_fr_rules]:
     by (cases a)
        (sep_auto dest!: frame_rule_left[of \<open>_ * isasat_input_ops.isasat_init_fast_assn _ _ _\<close> _ _
             \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst (fst a))\<close>])
-  done
+  done*)
 
 definition (in -)convert_state where
   \<open>convert_state _ S = S\<close>
@@ -352,13 +352,13 @@ lemma (in -) convert_state_hnr:
      isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n'\<close>
   by sepref_to_hoare (sep_auto simp: convert_state_def)
 
-
+(*
 lemma (in -) convert_state_fast_hnr:
   \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
    \<in> [\<lambda>(N, S). N = \<A>\<^sub>i\<^sub>n \<and> N = \<A>\<^sub>i\<^sub>n']\<^sub>a
      virtual_copy_assn\<^sup>k *\<^sub>a (isasat_input_ops.isasat_init_fast_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
      isasat_input_ops.isasat_init_fast_assn \<A>\<^sub>i\<^sub>n'\<close>
-  by sepref_to_hoare (sep_auto simp: convert_state_def)
+  by sepref_to_hoare (sep_auto simp: convert_state_def)*)
 
 definition IsaSAT_use_fast_mode where
   \<open>IsaSAT_use_fast_mode = True\<close>
@@ -397,7 +397,6 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
     let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
-
      do {
         S \<leftarrow> isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur \<A>\<^sub>i\<^sub>n'' CS S;
@@ -408,10 +407,8 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
         else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
-           ASSERT(mset `# ran_mf (get_clauses_wl_heur_init T) \<subseteq># mset `# mset CS);
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
-           ASSERT(size (learned_clss_l (get_clauses_wl_heur_init T)) = 0);
            T \<leftarrow> finalise_init_code (T::twl_st_wl_heur_init);
            U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_restart_prog_wl_heur \<A>\<^sub>i\<^sub>n'' T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
@@ -466,7 +463,7 @@ lemma cdcl_twl_stgy_prog_wl_D_code_ref':
         \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
   done
 
-
+(*
 lemma cdcl_twl_stgy_prog_wl_D_break_fast_code_ref':
   \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_fast_code),
       uncurry isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break)
@@ -484,7 +481,7 @@ lemma cdcl_twl_stgy_prog_wl_D_break_fast_code_ref':
       (sep_auto simp:
       dest!: frame_rule_left[of \<open>isasat_input_ops.isasat_fast_assn _ _ _\<close> _ _
        \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
-  done
+  done*)
 
 
 lemma cdcl_twl_stgy_restart_prog_wl_D_code_ref':
@@ -506,7 +503,7 @@ lemma cdcl_twl_stgy_restart_prog_wl_D_code_ref':
   done
 
 declare cdcl_twl_stgy_prog_wl_D_code_ref'[to_hnr, OF refl, sepref_fr_rules]
-declare cdcl_twl_stgy_prog_wl_D_break_fast_code_ref'[to_hnr, OF refl, sepref_fr_rules]
+(*declare cdcl_twl_stgy_prog_wl_D_break_fast_code_ref'[to_hnr, OF refl, sepref_fr_rules]*)
 declare cdcl_twl_stgy_restart_prog_wl_D_code_ref'[to_hnr, OF refl, sepref_fr_rules]
 
 definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_list option \<times> stats\<close> where
@@ -567,14 +564,14 @@ end
 
 declare isasat_input_ops.extract_model_of_state_stat_hnr[sepref_fr_rules]
 declare isasat_input_ops.finalise_init_hnr[unfolded PR_CONST_def, sepref_fr_rules]
-declare isasat_input_ops.finalise_init_fast_hnr[unfolded PR_CONST_def, sepref_fr_rules]
+(*declare isasat_input_ops.finalise_init_fast_hnr[unfolded PR_CONST_def, sepref_fr_rules]*)
 sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extract_stats
   isasat_input_ops.init_dt_wl_heur
 
 declare init_state_wl_heur_hnr[to_hnr, OF refl, sepref_fr_rules]
   init_dt_wl_code.refine[sepref_fr_rules]
   isasat_input_ops.get_stats_code[sepref_fr_rules]
-  init_state_wl_heur_fast_hnr[to_hnr, OF refl, sepref_fr_rules]
+(*  init_state_wl_heur_fast_hnr[to_hnr, OF refl, sepref_fr_rules]*)
 
 lemma uint_max_nat_assn_hnr[sepref_fr_rules]:
   \<open>(uncurry0 (return uint_max), uncurry0 (RETURN uint_max)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
@@ -582,12 +579,9 @@ lemma uint_max_nat_assn_hnr[sepref_fr_rules]:
 
 text \<open>Crucial and subtil point for the refinement\<close>
 declare convert_state_hnr[to_hnr, OF _ refl, sepref_fr_rules]
-   convert_state_fast_hnr[to_hnr, OF _ refl, sepref_fr_rules]
-sepref_register isasat_input_ops.init_dt_wl_heur_fast
+  (* convert_state_fast_hnr[to_hnr, OF _ refl, sepref_fr_rules]*)
+sepref_register (*isasat_input_ops.init_dt_wl_heur_fast*)
    isasat_input_ops.cdcl_twl_stgy_restart_prog_wl_heur
-declare init_dt_wl_fast_code.refine[sepref_fr_rules]
-thm
-  isasat_input_bounded_nempty.cdcl_twl_stgy_restart_prog_wl_heur_hnr[sepref_fr_rules]
 
 sepref_definition IsaSAT_code
   is \<open>IsaSAT_heur\<close>
@@ -599,7 +593,7 @@ sepref_definition IsaSAT_code
   supply get_conflict_wl_is_None_heur_init_def[simp]
   isasat_input_bounded.get_conflict_wl_is_None_code_refine[sepref_fr_rules]
   isasat_input_bounded.get_conflict_wl_is_None_init_code_hnr[sepref_fr_rules]
-  isasat_input_bounded.get_conflict_wl_is_None_init_fast_code_hnr[sepref_fr_rules]
+ (* isasat_input_bounded.get_conflict_wl_is_None_init_fast_code_hnr[sepref_fr_rules]*)
   isasat_input_ops.to_init_state_hnr[sepref_fr_rules]
   isasat_input_ops.from_init_state_hnr[sepref_fr_rules]
   isasat_input_bounded.get_conflict_wl_is_None_init_wl_hnr[
