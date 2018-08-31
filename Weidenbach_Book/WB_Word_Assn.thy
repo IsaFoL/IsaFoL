@@ -820,6 +820,15 @@ lemma nat_of_uint32_numeral_iff[simp]:
 
 subsubsection \<open>64-bits\<close>
 
+lemmas [id_rules] =
+  itypeI[Pure.of 0 "TYPE (uint64)"]
+  itypeI[Pure.of 1 "TYPE (uint64)"]
+
+lemma param_uint64[param, sepref_import_param]:
+  "(0, 0::uint64) \<in> Id"
+  "(1, 1::uint64) \<in> Id"
+  by (rule IdI)+
+
 definition uint64_nat_rel :: "(uint64 \<times> nat) set" where
   \<open>uint64_nat_rel = br nat_of_uint64 (\<lambda>_. True)\<close>
 
@@ -1505,5 +1514,26 @@ lemma uint32_of_uint64_conv_hnr[sepref_fr_rules]:
   by sepref_to_hoare
     (sep_auto simp: uint32_of_uint64_def uint32_nat_rel_def br_def nat_of_uint64_le_iff
       nat_of_uint32_uint32_of_nat_id uint64_nat_rel_def)
+
+
+paragraph \<open>Setup for numerals\<close>
+text \<open>Remark that the refinement framework still defaults to \<^typ>\<open>nat\<close>, making the constants
+like \<^term>\<open>two_uint32_nat\<close> still useful, but they can be omitted in most cases.
+\<close>
+
+lemmas [id_rules] = 
+  itypeI[Pure.of numeral "TYPE (num \<Rightarrow> uint32)"]
+  itypeI[Pure.of numeral "TYPE (num \<Rightarrow> uint64)"]
+
+lemma id_uint32_const[id_rules]: "(PR_CONST (a::uint32)) ::\<^sub>i TYPE(uint32)" by simp
+lemma id_uint64_const[id_rules]: "(PR_CONST (a::uint64)) ::\<^sub>i TYPE(uint64)" by simp
+
+lemma param_uint32_numeral[sepref_import_param]:
+  \<open>(numeral n, numeral n) \<in> uint32_rel\<close>
+  by auto
+
+lemma param_uint64_numeral[sepref_import_param]:
+  \<open>(numeral n, numeral n) \<in> uint64_rel\<close>
+  by auto
 
 end

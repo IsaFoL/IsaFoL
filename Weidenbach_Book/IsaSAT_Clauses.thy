@@ -1099,4 +1099,52 @@ lemma increase_activity_slow_hnr[sepref_fr_rules]:
      clauses_ll_assn\<close>
   using increase_activity_fmap_slow.refine[FCOMP increase_activity_fmap] unfolding clauses_ll_assn_def . *)
 
+(* TODO Move *)
+definition (in -) swap_arl_u64 where
+  \<open>swap_arl_u64  = (\<lambda>(xs, n) i j. do {
+    ki \<leftarrow> nth_u64_code xs i;
+    kj \<leftarrow> nth_u64_code xs j;
+    xs \<leftarrow> heap_array_set_u64 xs i kj;
+    xs \<leftarrow> heap_array_set_u64 xs j ki;
+    return (xs, n)
+  })\<close>
+
+lemma (in -) swap_arl_u64_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 swap_arl_u64, uncurry2 (RETURN ooo op_list_swap)) \<in>
+  [pre_list_swap]\<^sub>a (arl_assn A)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arl_assn A\<close>
+  unfolding swap_arl_u64_def arl_assn_def is_array_list_def hr_comp_def
+    nth_u64_code_def Array.nth'_def heap_array_set_u64_def heap_array_set_def
+    heap_array_set'_u64_def Array.upd'_def
+  apply sepref_to_hoare
+  apply (sep_auto simp: nat_of_uint64_code[symmetric] uint64_nat_rel_def br_def
+      list_rel_imp_same_length[symmetric] swap_def)
+  apply (subst_tac n=\<open>bb\<close> in nth_take[symmetric])
+    apply (simp; fail)
+  apply (subst_tac (2) n=\<open>bb\<close> in nth_take[symmetric])
+    apply (simp; fail)
+  by (sep_auto simp: nat_of_uint64_code[symmetric] uint64_nat_rel_def br_def
+      list_rel_imp_same_length[symmetric] swap_def
+      simp del: nth_take
+    intro!: list_rel_update' param_nth)
+
+sepref_definition (in -) swap_lits_fast_code
+  is \<open>uncurry3 isa_arena_swap\<close>
+  :: \<open>[\<lambda>(((_, _), _), N). length N \<le> uint64_max]\<^sub>a
+      uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>
+         arl_assn uint32_assn\<close>
+  unfolding isa_arena_swap_def
+  by sepref
+
+declare swap_lits_fast_code.refine[sepref_fr_rules]
+
+lemma swap_lits_refine[sepref_fr_rules]:
+  \<open>(uncurry3 swap_lits_fast_code, uncurry3 (RETURN oooo swap_lits))
+  \<in> [\<lambda>(((C, i), j), arena). swap_lits_pre C i j arena \<and> length arena \<le> uint64_max]\<^sub>a
+     uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
+  using swap_lits_fast_code.refine[FCOMP isa_arena_swap]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp)
+
+(* End Move *)
+
 end
