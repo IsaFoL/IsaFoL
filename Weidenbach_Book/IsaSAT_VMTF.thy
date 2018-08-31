@@ -365,9 +365,9 @@ definition (in -) find_decomp_wl_st :: \<open>nat literal \<Rightarrow> nat twl_
 
 definition (in isasat_input_ops) find_decomp_wl_st_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow>
     twl_st_wl_heur nres\<close> where
-  \<open>find_decomp_wl_st_int = (\<lambda>highest (M, N, D, W, Q, vm, \<phi>, clvls, cach, lbd, stats). do{
+  \<open>find_decomp_wl_st_int = (\<lambda>highest (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, stats). do{
      (M', vm) \<leftarrow> find_decomp_w_ns M highest vm;
-     RETURN (M', N, D, W, Q, vm, \<phi>, clvls, cach, lbd, stats)
+     RETURN (M', N, D, Q, W, vm, \<phi>, clvls, cach, lbd, stats)
   })\<close>
 
 

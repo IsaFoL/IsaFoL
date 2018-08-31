@@ -45,7 +45,10 @@ instance
 end
 
 code_printing constant
-  println_string \<rightharpoonup> (SML) "ignore/ (print/ ((_) ^ \"\\n\"))"
+  println_string \<rightharpoonup> (SML) "ignore/ (PolyML.print/ ((_) ^ \"\\n\"))"
+
+definition test where
+\<open>test  = println_string\<close>
 
 code_printing constant
   println_string \<rightharpoonup> (SML)
