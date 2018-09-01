@@ -163,6 +163,9 @@ lemma set_Collect_Pair_to_fst_snd:
   \<open>{((a, b), (a', b')). P a b a' b'} = {(e, f). P (fst e) (snd e) (fst f) (snd f)}\<close>
   by auto
 
+lemma butlast_Nil_iff: \<open>butlast xs = [] \<longleftrightarrow> length xs = 1 \<or> length xs = 0\<close>
+  by (cases xs) auto
+
 
 subsection \<open>List Updates\<close>
 
@@ -1432,9 +1435,14 @@ definition dom_m where
   \<open>dom_m N = mset_fset (fmdom N)\<close>
 
 definition ran_m where
-  \<open>ran_m N =  the `# fmlookup N `# dom_m N\<close>
+  \<open>ran_m N = the `# fmlookup N `# dom_m N\<close>
 
 lemma dom_m_fmdrop[simp]: \<open>dom_m (fmdrop C N) = remove1_mset C (dom_m N)\<close>
+  unfolding dom_m_def
+  by (cases \<open>C |\<in>| fmdom N\<close>)
+    (auto simp: mset_set.remove fmember.rep_eq)
+
+lemma dom_m_fmdrop_All: \<open>dom_m (fmdrop C N) = removeAll_mset C (dom_m N)\<close>
   unfolding dom_m_def
   by (cases \<open>C |\<in>| fmdom N\<close>)
     (auto simp: mset_set.remove fmember.rep_eq)
@@ -1461,7 +1469,7 @@ definition Max_dom where
   \<open>Max_dom N = Max (set_mset (add_mset 0 (dom_m N)))\<close>
 
 text \<open>\<^term>\<open>packed\<close> is a predicate to indicate that the domain of finite mapping starts at
-   \<^term>\<open>1::nat\<close> and does not contain holes. We use it in the SAT solver for the mapping from
+   \<^term>\<open>1::nat\<close> and does not contain holes. We used it in the SAT solver for the mapping from
    indexes to clauses.
 \<close>
 definition packed where
@@ -1581,5 +1589,12 @@ lemma dom_m_fmrestrict_set': \<open>dom_m (fmrestrict_set xs N) = mset_set (xs \
 
 lemma ndom_mI: \<open>fmlookup m x = Some y \<Longrightarrow> x \<in># dom_m m\<close>
   by (drule fmdomI)  (auto simp: dom_m_def fmember.rep_eq)
+
+lemma mset_fset_empty_iff: \<open>mset_fset a = {#} \<longleftrightarrow> a = fempty\<close>
+  by (cases a) (auto simp: mset_set_empty_iff)
+
+lemma dom_m_empty_iff[iff]:
+  \<open>dom_m NU = {#} \<longleftrightarrow> NU = fmempty\<close>
+  by (cases NU) (auto simp: dom_m_def mset_fset_empty_iff mset_set.insert_remove)
 
 end

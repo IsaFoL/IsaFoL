@@ -27,16 +27,6 @@ text \<open>
      \<^item> (lbdQueue.getavg() * K) > (sumLBD / conflictsRestarts),
        \<^text>\<open>conflictsRestarts > LOWER_BOUND_FOR_BLOCKING_RESTART && lbdQueue.isvalid() && trail.size() > R * trailQueue.getavg()\<close>
 \<close>
-(* TODO Move *)
-declare dom_m_fmdrop[simp del]
-lemma dom_m_fmdrop[simp]: \<open>dom_m (fmdrop C N) = removeAll_mset C (dom_m N)\<close>
-  unfolding dom_m_def
-  by (cases \<open>C |\<in>| fmdom N\<close>)
-    (auto simp: mset_set.remove fmember.rep_eq)
-
-lemma butlast_Nil_iff: \<open>butlast xs = [] \<longleftrightarrow> length xs = 1 \<or> length xs = 0\<close>
-  by (cases xs) auto
-(* End Move *)
 
 definition tight_domain where
   \<open>tight_domain NU NU' \<longleftrightarrow>  Suc (Max_mset (add_mset 0 (dom_m NU))) = length NU'\<close>
@@ -63,15 +53,6 @@ proof -
       done
     done
 qed
-
-(* TODO Move *)
-lemma (in -)mset_fset_empty_iff: \<open>mset_fset a = {#} \<longleftrightarrow> a = fempty\<close>
-  by (cases a) (auto simp: mset_set_empty_iff)
-
-lemma (in -) dom_m_empty_iff:
-  \<open>dom_m NU = {#} \<longleftrightarrow> NU = fmempty\<close>
-  by (cases NU) (auto simp: dom_m_def mset_fset_empty_iff)
-(* End Move *)
 
 lemma Max_mset_eq: \<open>((\<forall>m\<in>#M. m \<le> a) \<and> a\<in>#M) \<Longrightarrow> Max_mset M = a\<close>
   by (subst Max_eq_iff) auto
