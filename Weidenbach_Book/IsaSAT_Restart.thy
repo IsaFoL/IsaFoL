@@ -822,6 +822,20 @@ definition (in isasat_input_ops) mark_garbage_heur :: \<open>nat \<Rightarrow> t
     (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, lcount - 1))\<close>
 
+lemma (in isasat_input_ops) get_vdom_mark_garbage[simp]:
+  \<open>get_vdom (mark_garbage_heur C S) = get_vdom S\<close>
+  by (cases S) (auto simp: mark_garbage_heur_def)
+
+lemma (in isasat_input_ops) mark_garbage_heur_wl:
+  \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
+  \<not>irred (get_clauses_wl T) C \<Longrightarrow>
+ (mark_garbage_heur C S, mark_garbage_wl C T) \<in> twl_st_heur\<close>
+  by (cases S; cases T)
+    (auto simp: twl_st_heur_def mark_garbage_heur_def mark_garbage_wl_def
+      learned_clss_l_l_fmdrop size_remove1_mset_If
+    intro: valid_arena_extra_information_mark_to_delete'
+    dest: in_vdom_m_fmdropD)
+
 lemma (in isasat_input_ops) [twl_st_heur]:
   assumes
     \<open>(S, T) \<in> twl_st_heur\<close> and
@@ -853,7 +867,7 @@ proof -
         split: prod.splits)
 qed
 
-
+(* Missing : The sorting function *)
 definition (in isasat_input_ops) mark_to_delete_clauses_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
@@ -881,39 +895,6 @@ where
     RETURN T
   })\<close>
 
-lemma (in isasat_input_ops) get_vdom_mark_garbage[simp]:
-  \<open>get_vdom (mark_garbage_heur C S) = get_vdom S\<close>
-  by (cases S) (auto simp: mark_garbage_heur_def)
-
-(* TODO Move *)
-lemma (in -) valid_arena_extra_information_mark_to_delete':
-  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close>
-  shows \<open>valid_arena (extra_information_mark_to_delete arena i) (fmdrop i N) vdom\<close>
-  using valid_arena_extra_information_mark_to_delete[OF assms]
-  by (auto intro: valid_arena_mono)
-
-lemma (in isasat_input_ops) in_vdom_m_fmdropD:
-  \<open>x \<in> vdom_m ga (fmdrop C baa) \<Longrightarrow> x \<in> (vdom_m ga baa)\<close>
-  unfolding vdom_m_def
-  by (auto dest: in_diffD)
-
-lemma (in -) learned_clss_l_l_fmdrop: \<open>\<not> irred N C \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
-  learned_clss_l (fmdrop C N) = remove1_mset (the (fmlookup N C)) (learned_clss_l N)\<close>
-  using distinct_mset_dom[of N]
-  apply (cases \<open>C \<in># dom_m N\<close>)
-  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
-
-(* END MOVE *)
-
-lemma (in isasat_input_ops) mark_garbage_heur_wl:
-  \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
-  \<not>irred (get_clauses_wl T) C \<Longrightarrow>
- (mark_garbage_heur C S, mark_garbage_wl C T) \<in> twl_st_heur\<close>
-  by (cases S; cases T)
-    (auto simp: twl_st_heur_def mark_garbage_heur_def mark_garbage_wl_def
-      learned_clss_l_l_fmdrop size_remove1_mset_If
-    intro: valid_arena_extra_information_mark_to_delete'
-    dest: in_vdom_m_fmdropD)
 
 lemma mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_wl_D:
   \<open>(mark_to_delete_clauses_wl_D_heur, mark_to_delete_clauses_wl_D) \<in>
@@ -990,26 +971,45 @@ proof-
     done
 qed
 
+definition (in isasat_input_ops) cdcl_twl_full_restart_wl_prog_heur where
+\<open>cdcl_twl_full_restart_wl_prog_heur S = do {
+  _ \<leftarrow> ASSERT (mark_to_delete_clauses_wl_D_heur_pre S);
+  T \<leftarrow> mark_to_delete_clauses_wl_D_heur S;
+  RETURN T
+}\<close>
+
+lemma cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D:
+  \<open>(cdcl_twl_full_restart_wl_prog_heur, cdcl_twl_full_restart_wl_prog_D) \<in>
+     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  unfolding cdcl_twl_full_restart_wl_prog_heur_def cdcl_twl_full_restart_wl_prog_D_def
+  apply (intro frefI nres_relI)
+  apply (refine_vcg
+    mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_wl_D[THEN fref_to_Down])
+  subgoal
+    unfolding mark_to_delete_clauses_wl_D_heur_pre_def by fast
+  done
+
+definition (in isasat_input_ops) local_restart_only :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>local_restart_only = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, (props, decs, confl, restarts), fast_ema, slow_ema, ccount,
+       vdom, lcount).
+    lcount < 2000 + 300 * nat_of_uint64 restarts)\<close>
+
 definition (in isasat_input_ops) cdcl_twl_restart_wl_heur where
 \<open>cdcl_twl_restart_wl_heur S = do {
-   cdcl_twl_local_restart_wl_D_heur S
+    let b = local_restart_only S;
+    if b then cdcl_twl_local_restart_wl_D_heur S
+    else cdcl_twl_full_restart_wl_prog_heur S
   }\<close>
 
-lemma cdcl_twl_restart_wl_heur_alt_def:
-  \<open>cdcl_twl_restart_wl_heur S = do {
-   let b = True;
-   if b then cdcl_twl_local_restart_wl_D_heur S else cdcl_twl_local_restart_wl_D_heur S
-  }\<close>
-  unfolding cdcl_twl_restart_wl_heur_def by auto
 
 lemma cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog:
   \<open>(cdcl_twl_restart_wl_heur, cdcl_twl_restart_wl_D_prog) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
-  unfolding cdcl_twl_restart_wl_D_prog_def cdcl_twl_restart_wl_heur_alt_def
+  unfolding cdcl_twl_restart_wl_D_prog_def cdcl_twl_restart_wl_heur_def
   apply (intro frefI nres_relI)
   apply (refine_rcg
-    cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec[THEN fref_to_Down])
-  subgoal by auto
+    cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec[THEN fref_to_Down]
+    cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D[THEN fref_to_Down])
   subgoal by auto
   subgoal by auto
   done
@@ -1097,6 +1097,45 @@ proof -
     subgoal by auto
     done
 qed
+
+sepref_register local_restart_only
+sepref_thm local_restart_only_impl
+  is \<open>PR_CONST (RETURN o local_restart_only)\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding local_restart_only_def PR_CONST_def isasat_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) local_restart_only_impl
+   uses isasat_input_bounded_nempty.local_restart_only_impl.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) local_restart_only_impl_def
+
+lemmas local_restart_only_impl[sepref_fr_rules] =
+   local_restart_only_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+
+sepref_register mark_to_delete_clauses_wl_D_heur
+sepref_thm mark_to_delete_clauses_wl_D_heur_impl
+  is \<open>PR_CONST mark_to_delete_clauses_wl_D_heur\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  unfolding mark_to_delete_clauses_wl_D_heur_def PR_CONST_def
+  supply [[goals_limit = 1]]
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold apply (auto simp: )[]
+  by sepref
+
+concrete_definition (in -) local_restart_only_impl
+   uses isasat_input_bounded_nempty.local_restart_only_impl.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) local_restart_only_impl_def
+
+lemmas local_restart_only_impl[sepref_fr_rules] =
+   local_restart_only_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 sepref_thm cdcl_twl_restart_wl_heur_code
   is \<open>PR_CONST cdcl_twl_restart_wl_heur\<close>

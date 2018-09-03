@@ -366,14 +366,12 @@ lemma (in isasat_input_ops) vdom_m_simps5:
   \<open>i \<notin># dom_m N \<Longrightarrow> vdom_m W (fmupd i C N) = insert i (vdom_m W N)\<close>
   by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
 
-
 lemma in_watch_list_in_vdom:
   assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and \<open>w < length (watched_by S L)\<close>
   shows \<open>fst (watched_by S L ! w) \<in> vdom_m (get_watched_wl S) (get_clauses_wl S)\<close>
   using assms
   unfolding vdom_m_def
   by (cases S) (auto dest: multi_member_split)
-
 
 lemma in_watch_list_in_vdom':
   assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and \<open>A \<in> set (watched_by S L)\<close>
@@ -387,6 +385,13 @@ lemma in_dom_in_vdom[simp]:
   unfolding vdom_m_def
   by (auto dest: multi_member_split)
 
+lemma (in isasat_input_ops) in_vdom_m_fmdropD:
+  \<open>x \<in> vdom_m ga (fmdrop C baa) \<Longrightarrow> x \<in> (vdom_m ga baa)\<close>
+  unfolding vdom_m_def
+  by (auto dest: in_diffD)
+
+
+text \<open>TODO: check if used (and suspicious). \<close>
 definition vdom_m_heur :: \<open>((nat \<times> _) list list) \<Rightarrow> (nat, 'b) fmap \<Rightarrow> nat set\<close> where
   \<open>vdom_m_heur W N = \<Union>(((`) fst) ` set ` (!) W ` nat_of_lit ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l) \<union> set_mset (dom_m N)\<close>
 

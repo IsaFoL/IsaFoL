@@ -549,6 +549,11 @@ lemma learned_clss_lf_lf_fmdrop[simp]:
   apply (cases \<open>C \<in># dom_m N\<close>)
   by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
 
+lemma learned_clss_l_l_fmdrop: \<open>\<not> irred N C \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
+  learned_clss_l (fmdrop C N) = remove1_mset (the (fmlookup N C)) (learned_clss_l N)\<close>
+  using distinct_mset_dom[of N]
+  apply (cases \<open>C \<in># dom_m N\<close>)
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
 
 lemma learned_clss_lf_lf_fmdrop_irrelev[simp]:
   \<open>irred N C \<Longrightarrow> learned_clss_lf (fmdrop C N) = learned_clss_lf N\<close>

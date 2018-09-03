@@ -675,6 +675,10 @@ lemma length_extra_information_mark_to_delete[simp]:
   \<open>length (extra_information_mark_to_delete arena i) = length arena\<close>
   unfolding extra_information_mark_to_delete_def by auto
 
+lemma valid_arena_mono: \<open>valid_arena ab ar vdom1 \<Longrightarrow> vdom2 \<subseteq> vdom1 \<Longrightarrow> valid_arena ab ar vdom2\<close>
+  unfolding valid_arena_def
+  by fast
+
 lemma valid_arena_extra_information_mark_to_delete:
   assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close>
   shows \<open>valid_arena (extra_information_mark_to_delete arena i) (fmdrop i N) (insert i vdom)\<close>
@@ -719,6 +723,12 @@ proof -
     using assms unfolding valid_arena_def
     by auto
 qed
+
+lemma valid_arena_extra_information_mark_to_delete':
+  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close>
+  shows \<open>valid_arena (extra_information_mark_to_delete arena i) (fmdrop i N) vdom\<close>
+  using valid_arena_extra_information_mark_to_delete[OF assms]
+  by (auto intro: valid_arena_mono)
 
 
 paragraph \<open>Removable from addressable space\<close>

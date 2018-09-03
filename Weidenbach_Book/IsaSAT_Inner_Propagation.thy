@@ -1236,9 +1236,6 @@ lemma (in isasat_input_ops) vdom_m_update_subset:
   by (fastforce split: if_splits elim!: in_set_upd_cases)
 
 
-lemma (in -)valid_arena_mono: \<open>valid_arena ab ar vdom1 \<Longrightarrow> vdom2 \<subseteq> vdom1 \<Longrightarrow> valid_arena ab ar vdom2\<close>
-  unfolding valid_arena_def
-  by fast
 
 lemma (in isasat_input_ops) keep_watch_heur_keep_watch:
   \<open>(uncurry3 keep_watch_heur, uncurry3 (RETURN oooo keep_watch)) \<in>
