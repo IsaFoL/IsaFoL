@@ -9,6 +9,7 @@ locale isasat_restart_bounded =
 sublocale isasat_restart_bounded \<subseteq> isasat_restart_ops
  .
 
+
 text \<open>
   This is a list of comments (how does it work for glucose and cadical) to prepare the future
   refinement:
@@ -104,24 +105,6 @@ sublocale isasat_input_ops \<subseteq> isasat_restart_ops id
 
 context isasat_input_bounded_nempty
 begin
-
-definition (in -)butlast_if_last_removed where
-  \<open>butlast_if_last_removed i N = (if i = length N-1 then butlast N else N)\<close>
-
-definition (in -) fmdrop_ref where
-  \<open>fmdrop_ref i = (\<lambda>(N, N'). do {
-     ASSERT(i < length N \<and> i < length N' \<and> i > 0);
-     let N = N[i := []];
-     let N' = N'[i := (DELETED, 0, 0)];
-     let N = butlast_if_last_removed i N;
-     let N' = butlast_if_last_removed i N';
-     RETURN (N, N')
-  })\<close>
-lemma (in -) butlast_if_last_removed_simps[simp]:
-  \<open>aa = length b - 1 \<Longrightarrow> length (butlast_if_last_removed aa b) = length b -1\<close>
-  \<open>aa \<noteq> length b - 1 \<Longrightarrow> length (butlast_if_last_removed aa b) = length b\<close>
-  unfolding butlast_if_last_removed_def
-  by auto
 
 text \<open>
   We first fix the function that proves termination. We don't take the ``smallest'' function
@@ -644,12 +627,13 @@ lemma count_decided_st_alt_def':
   \<open>count_decided_st S = count_decided (get_trail_wl_heur S)\<close>
   by (cases S) (auto simp: count_decided_st_def)
 
-thm RES_RES3_RETURN_RES
+(* TODO Move *)
 lemma RES_RES13_RETURN_RES: \<open>do {
   (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, oth) \<leftarrow> RES A;
   RES (f M N D Q W vm \<phi> clvls cach lbd outl stats oth)
 } = RES (\<Union>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, oth)\<in>A. f M N D Q W vm \<phi> clvls cach lbd outl stats oth)\<close>
   by (force simp:  pw_eq_iff refine_pw_simps uncurry_def)
+(* End Move *)
 
 lemma cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec:
   \<open>(cdcl_twl_local_restart_wl_D_heur, cdcl_twl_local_restart_wl_D_spec) \<in>
@@ -704,17 +688,19 @@ proof -
 qed
 
 definition(in isasat_input_ops)  remove_all_annot_true_clause_imp_wl_D_heur_inv
-  :: \<open>twl_st_wl_heur \<Rightarrow> nat list \<Rightarrow> nat \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
+  :: \<open>twl_st_wl_heur \<Rightarrow> nat watcher list \<Rightarrow> nat \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
 where
   \<open>remove_all_annot_true_clause_imp_wl_D_heur_inv S xs = (\<lambda>(i, T).
        \<exists>S' T'. (S, S') \<in> twl_st_heur \<and> (T, T') \<in> twl_st_heur \<and>
-         remove_all_annot_true_clause_imp_wl_D_inv S' xs (i, T'))
+         remove_all_annot_true_clause_imp_wl_D_inv S' (map fst xs) (i, T'))
      \<close>
 
 definition (in isasat_input_ops) remove_all_annot_true_clause_one_imp_heur
+  :: \<open>nat \<times> arena \<Rightarrow> arena nres\<close>
 where
 \<open>remove_all_annot_true_clause_one_imp_heur = (\<lambda>(C, N). do {
-      if C \<in># dom_m N then RETURN (fmdrop C N)
+      if arena_status N C = DELETED
+         then RETURN (extra_information_mark_to_delete N C)
       else do {
         RETURN N
       }
@@ -725,7 +711,7 @@ definition(in isasat_input_ops) remove_all_annot_true_clause_imp_wl_D_heur_pre w
     (\<exists>S'. (S, S') \<in> twl_st_heur \<and> remove_all_annot_true_clause_imp_wl_D_pre L S')\<close>
 
 
-(* TODO: unfold Let when generating code! 
+(* TODO: unfold Let when generating code! *)
 definition(in isasat_input_ops) remove_all_annot_true_clause_imp_wl_D_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
@@ -743,7 +729,7 @@ where
         ASSERT(i < length xs);
         if clause_not_marked_to_delete_heur (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats) i
         then do {
-          N \<leftarrow> remove_all_annot_true_clause_one_imp_heur (xs!i, N);
+          N \<leftarrow> remove_all_annot_true_clause_one_imp_heur (fst (xs!i), N);
           ASSERT(remove_all_annot_true_clause_imp_wl_D_heur_inv
              (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats) xs
              (i, M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats));
@@ -755,7 +741,7 @@ where
       (0, N0);
     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats)
   })\<close>
-*)
+
 
 definition (in -) minimum_number_between_restarts :: \<open>uint32\<close> where
   \<open>minimum_number_between_restarts = 50\<close>
@@ -785,11 +771,10 @@ lemma (in -) two_uint64[sepref_fr_rules]:
 definition (in -) restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_heur S n = do {
     let sema = get_slow_ema_heur S;
-    let sema' = (five_uint64 * get_slow_ema_heur S) >> 2;
+    let sema' = (5 * get_slow_ema_heur S) >> 2;
        \<comment>\<open>roughly speaking 125/100 with hopefully no overflow (there is currently no division
          on \<^typ>\<open>uint64\<close>\<close>
     let fema = get_fast_ema_heur S;
-    
     let ccount = get_conflict_count_heur S ;
     let lcount = get_learned_count S;
     let can_res = (lcount > n );
@@ -827,6 +812,124 @@ prepare_code_thms (in -) restart_required_heur_slow_code_def
 lemmas restart_required_heur_slow_code_hnr[sepref_fr_rules] =
    restart_required_heur_slow_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+definition (in isasat_input_ops) mark_to_delete_clauses_wl_D_heur_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>mark_to_delete_clauses_wl_D_heur_pre S \<longleftrightarrow>
+    (\<exists>S'. (S, S') \<in> twl_st_heur \<and> mark_to_delete_clauses_wl_D_pre S')\<close>
+
+definition (in isasat_input_ops) mark_garbage_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>mark_garbage_heur C = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats).
+    (M, extra_information_mark_to_delete N C, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats))\<close>
+
+definition (in isasat_input_ops) mark_to_delete_clauses_wl_D_heur 
+  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+where
+\<open>mark_to_delete_clauses_wl_D_heur  = (\<lambda>S. do {
+    ASSERT(mark_to_delete_clauses_wl_D_heur_pre S);
+    l \<leftarrow> SPEC(\<lambda>_::nat. True);
+    (_, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
+      (\<lambda>(i, S). i < length (get_vdom S))
+      (\<lambda>(i, T). do {
+        ASSERT(i < length (get_vdom T));
+        let C = get_vdom T ! i;
+        if(\<not>clause_not_marked_to_delete_heur T C) then RETURN (i+1, T)
+        else do {
+          let L = arena_lit (get_clauses_wl_heur T) C;
+          can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated L C \<notin> set (get_trail_wl_heur T)) \<and>
+             arena_status (get_clauses_wl_heur T) C = LEARNED);
+          if can_del
+          then
+            RETURN (i+1, mark_garbage_heur C T)
+          else
+            RETURN (i+1, T)
+        }
+      })
+      (l, S);
+    RETURN T
+  })\<close>
+
+lemma
+  \<open>(mark_to_delete_clauses_wl_D_heur, mark_to_delete_clauses_wl_D) \<in>
+     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+proof-
+  have mark_to_delete_clauses_wl_D_heur_alt_def:
+    \<open>mark_to_delete_clauses_wl_D_heur  = (\<lambda>S. do {
+      ASSERT(mark_to_delete_clauses_wl_D_heur_pre S);
+      _ \<leftarrow> RETURN (get_vdom S);
+      l \<leftarrow> SPEC(\<lambda>_::nat. True);
+      (_, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
+        (\<lambda>(i, S). i < length (get_vdom S))
+        (\<lambda>(i, T). do {
+          ASSERT(i < length (get_vdom T));
+          let C = get_vdom T ! i;
+          if(\<not>clause_not_marked_to_delete_heur T C) then RETURN (i+1, T)
+          else do {
+            let L = arena_lit (get_clauses_wl_heur T) C;
+            can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated L C \<notin> set (get_trail_wl_heur T)) \<and>
+              arena_status (get_clauses_wl_heur T) C = LEARNED);
+            if can_del
+            then
+              RETURN (i+1, mark_garbage_heur C T)
+            else
+              RETURN (i+1, T)
+          }
+        })
+        (l, S);
+      RETURN T
+    })\<close>
+    unfolding mark_to_delete_clauses_wl_D_heur_def
+    by (auto intro!: ext)
+
+  have [refine0]: \<open>RETURN (get_vdom x) \<le> \<Down> {(xs, xs'). xs = xs' \<and> xs = get_vdom x} (collect_valid_indices_wl y)\<close>
+    if 
+      \<open>(x, y) \<in> twl_st_heur\<close> and
+      \<open>mark_to_delete_clauses_wl_D_pre y\<close> and
+      \<open>mark_to_delete_clauses_wl_D_heur_pre x\<close>
+    for x y
+  proof -
+    show ?thesis by (auto simp: collect_valid_indices_wl_def simp: RETURN_RES_refine_iff)
+  qed
+  have init_rel[refine0]: \<open>(x, y) \<in> twl_st_heur \<Longrightarrow>
+       (l, la) \<in> nat_rel \<Longrightarrow>
+       ((l, x), la, y) \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and> get_vdom S = get_vdom x}\<close>
+    for x y l la
+    by auto
+      find_theorems arena_status dom_m 
+  show ?thesis
+    unfolding mark_to_delete_clauses_wl_D_heur_alt_def mark_to_delete_clauses_wl_D_def Let_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg)
+    subgoal
+      unfolding mark_to_delete_clauses_wl_D_heur_pre_def by fast
+    subgoal
+      by auto
+    subgoal
+      by auto
+    subgoal for x y _ xs l la xa x' x1 x2 x1a x2a
+      apply (cases x; cases y)
+      apply (simp add: twl_st_heur_def clause_not_marked_to_delete_heur_def
+        split: prod.splits)
+        apply normalize_goal+
+      apply (subst arena_dom_status_iff(1))
+      apply assumption
+      apply (rule nth_mem)
+      apply auto
+      done
+    subgoal
+      by auto
+    subgoal
+      apply (auto simp add:)
+      sorry
+    subgoal
+      apply auto
+      by auto
+    subgoal
+      by auto
+    subgoal
+      by (auto simp: mark_garbage_heur_def twl_st_heur_def split: prod.splits)
+    subgoal
+      by auto
+
+oops
 definition (in isasat_input_ops) cdcl_twl_restart_wl_heur where
 \<open>cdcl_twl_restart_wl_heur S = do {
    cdcl_twl_local_restart_wl_D_heur S
