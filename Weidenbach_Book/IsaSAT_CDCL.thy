@@ -69,7 +69,7 @@ prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
 lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-(* 
+(*
 sepref_thm cdcl_twl_o_prog_wl_D_fast_code
   is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> bool_assn *a isasat_fast_assn\<close>
@@ -167,7 +167,7 @@ prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_code_def
 lemmas cdcl_twl_stgy_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_stgy_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n]
 end
-(* 
+(*
 definition (in -)isasat_fast2 where
   \<open>isasat_fast2 = isasat_fast\<close>
 
@@ -269,7 +269,7 @@ where
         cdcl_twl_stgy_prog_wl_D_heur T'
     }
   }\<close> *)
-(* 
+(*
 sepref_register isasat_fast_slow
 sepref_thm cdcl_twl_stgy_prog_wl_D_fast_code
   is \<open>PR_CONST cdcl_twl_stgy_prog_break_wl_D_heur_break\<close>

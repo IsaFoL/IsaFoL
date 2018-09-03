@@ -890,7 +890,7 @@ lemma list_rel_take:
 lemma list_rel_update':
   fixes R
   assumes rel: \<open>(xs, ys) \<in> \<langle>R\<rangle>list_rel\<close> and
-   h: \<open>(bi, b) \<in> R\<close> 
+   h: \<open>(bi, b) \<in> R\<close>
   shows \<open>(list_update xs ba bi, list_update ys ba b) \<in> \<langle>R\<rangle>list_rel\<close>
 proof -
   have [simp]: \<open>(bi, b) \<in> R\<close>

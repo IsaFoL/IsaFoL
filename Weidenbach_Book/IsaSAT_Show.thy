@@ -8,10 +8,10 @@ subsection \<open>Printing information about progress\<close>
 
 text \<open>We provide a function to print some information about the state.
   This is mostly meant to ease extracting statistics and printing information
-  during the run. 
+  during the run.
   Remark that this function is basically an FFI (to follow Andreas Lochbihler words) and is
   not unsafe (since printing has not side effects), but we do not need any correctness theorems.
-  
+
   However, it seems that the PolyML by \<open>export_code checking\<close> does
   not support that print function. Therefore, we cannot provide the code printing equations
   by default.\<close>
@@ -63,7 +63,7 @@ definition isasat_header :: string where
 text \<open>Printing the information slows down the solver by a huge factor.\<close>
 definition isasat_current_information :: \<open>stats \<Rightarrow> unit\<close> where
 \<open>isasat_current_information =
-   (\<lambda>(propa, confl, decs, restarts). 
+   (\<lambda>(propa, confl, decs, restarts).
       ())\<close>
 
 (*

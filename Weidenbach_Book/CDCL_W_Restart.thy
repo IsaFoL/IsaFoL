@@ -108,7 +108,7 @@ locale cdcl\<^sub>W_restart_restart =
   cdcl\<^sub>W_restart_restart_ops +
   assumes
     f: \<open>unbounded f\<close>
-  
+
 
 text \<open>The condition of the differences of cardinality has to be strict.
   Otherwise, you could be in a strange state, where nothing remains to do, but a restart is done.

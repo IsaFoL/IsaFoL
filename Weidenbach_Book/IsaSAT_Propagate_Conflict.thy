@@ -106,7 +106,7 @@ lemma (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
       b
   }\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_def Let_def zero_uint64_nat_def ..
-(* 
+(*
 (* This bound absolutely not thight *)
 lemma unit_propagation_inner_loop_wl_loop_D_heur_inv_length_watchlist:
   assumes \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv S0 L (j, w, S)\<close> and
@@ -357,7 +357,7 @@ proof -
       unit_propagation_outer_loop_wl_D_heur_inv_def)
 qed *)
 
-(* 
+(*
 sepref_thm unit_propagation_outer_loop_wl_D_fast
   is \<open>PR_CONST unit_propagation_outer_loop_wl_D_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>

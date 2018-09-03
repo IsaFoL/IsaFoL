@@ -560,7 +560,7 @@ context
  nat literal multiset multiset \<times>
  nat literal multiset multiset \<times>
  nat literal multiset \<times>
-  (nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list)\<close> and 
+  (nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list)\<close> and
  x1c :: \<open>(nat, nat literal list \<times> bool) fmap\<close> and x2b :: \<open>nat literal multiset option \<times>
                       nat literal multiset multiset \<times>
                       nat literal multiset multiset \<times>

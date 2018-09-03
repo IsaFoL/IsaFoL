@@ -23,7 +23,7 @@ type_synonym unit_lits_wl = \<open>uint32 list list\<close>
 subsection \<open>Refinement\<close>
 
 
-text \<open>We start in a context where we have an initial set of atoms. We later extend the locale to 
+text \<open>We start in a context where we have an initial set of atoms. We later extend the locale to
   include a bound on the largest atom (in order to generate more efficient code).
 \<close>
 locale isasat_input_ops =

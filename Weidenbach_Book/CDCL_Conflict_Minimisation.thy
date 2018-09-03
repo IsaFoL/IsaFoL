@@ -16,7 +16,7 @@ appearing in the trail. Hence these steps are terminating: we are ``shortening''
 to consider with each resolution step. Remark that the shortening refers to the length of the trail
 we have to consider, not the levels.
 
-The concrete proof was harder than we initially expected. Our first proof try was to certify the 
+The concrete proof was harder than we initially expected. Our first proof try was to certify the
 resolution steps. While this worked out, adding caching on top of that turned to be rather hard,
 since it is not obvious how to add resolution steps in the middle of the current proof if the
 literal has already been removed (basically we would have to prove termination and confluence of the

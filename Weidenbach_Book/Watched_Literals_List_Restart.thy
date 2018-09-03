@@ -2282,7 +2282,7 @@ proof -
       by auto
   qed
   have mark_to_delete_clauses_l_inv_notin: \<open>mark_to_delete_clauses_l_inv S xs0 (a+1, aa)\<close>
-    if 
+    if
       \<open>mark_to_delete_clauses_l_pre S\<close> and
       \<open>xs0 \<in> {N. True}\<close> and
       \<open>mark_to_delete_clauses_l_inv S xs0 s\<close> and
@@ -2298,7 +2298,7 @@ proof -
       by auto
   qed
   have I_notin: \<open>I xs0 (a+1, aa)\<close>
-    if 
+    if
       \<open>mark_to_delete_clauses_l_pre S\<close> and
       \<open>xs0 \<in> {N. True}\<close> and
       \<open>mark_to_delete_clauses_l_inv S xs0 s\<close> and
@@ -2344,7 +2344,7 @@ proof -
   have mark_to_delete_clauses_l_inv_del:
       \<open>mark_to_delete_clauses_l_inv S xs0 (i + 1, mark_garbage_l (xs0 ! i) T)\<close> and
     I_del: \<open>I xs0 (i + 1, mark_garbage_l (xs0 ! i) T)\<close>
-    if 
+    if
       \<open>mark_to_delete_clauses_l_pre S\<close> and
       \<open>xs0 \<in> {N. True}\<close> and
       inv: \<open>mark_to_delete_clauses_l_inv S xs0 s\<close> and
@@ -2367,7 +2367,7 @@ proof -
     have
       rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T\<close>
       using I unfolding I_def st prod.case by blast+
-      
+
     obtain V where
       SU: \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* S T\<close> and
       UV: \<open>(T, V) \<in> twl_st_l None\<close> and
@@ -2378,7 +2378,7 @@ proof -
       by auto
     have list_invs_U': \<open>twl_list_invs T\<close>
       using SU list_invs rtranclp_cdcl_twl_restart_l_list_invs by blast
-    
+
     have \<open>xs0 ! i > 0\<close>
       apply (rule ccontr)
       using in_dom list_invs_U' unfolding twl_list_invs_def by (auto dest: multi_member_split)
@@ -2399,20 +2399,20 @@ proof -
       subgoal using can_del unfolding T by auto
       subgoal using not_annot unfolding T by auto
       done
-    
-    then show \<open>mark_to_delete_clauses_l_inv S xs0 (i + 1, mark_garbage_l (xs0 ! i) T)\<close> 
+
+    then show \<open>mark_to_delete_clauses_l_inv S xs0 (i + 1, mark_garbage_l (xs0 ! i) T)\<close>
       using inv
       unfolding mark_to_delete_clauses_l_inv_def prod.simps st
       by force
-    
+
     show \<open>I xs0 (i + 1, mark_garbage_l (xs0 ! i) T)\<close>
-      using rem star unfolding st I_def by simp 
+      using rem star unfolding st I_def by simp
   qed
   have
     mark_to_delete_clauses_l_inv_keep:
       \<open>mark_to_delete_clauses_l_inv S xs0 (i + 1, T)\<close> and
     I_keep: \<open>I xs0 (i + 1, T)\<close>
-    if 
+    if
       \<open>mark_to_delete_clauses_l_pre S\<close> and
       inv: \<open>mark_to_delete_clauses_l_inv S xs0 s\<close> and
       I: \<open>I xs0 s\<close> and
@@ -2428,7 +2428,7 @@ proof -
       \<open>\<not> b\<close>
     for x s i T b xs0
   proof -
-    show \<open>mark_to_delete_clauses_l_inv S xs0 (i + 1, T)\<close> 
+    show \<open>mark_to_delete_clauses_l_inv S xs0 (i + 1, T)\<close>
       using inv
       unfolding mark_to_delete_clauses_l_inv_def prod.simps st
       by fast
@@ -2481,7 +2481,7 @@ qed
 
 definition cdcl_twl_full_restart_l_prog where
 \<open>cdcl_twl_full_restart_l_prog S = do {
-   \<comment> \<open> S \<leftarrow> remove_one_annot_true_clause_imp S;\<close> 
+   \<comment> \<open> S \<leftarrow> remove_one_annot_true_clause_imp S;\<close>
     ASSERT(mark_to_delete_clauses_l_pre S);
     T \<leftarrow> mark_to_delete_clauses_l S;
     ASSERT (mark_to_delete_clauses_l_post S T);

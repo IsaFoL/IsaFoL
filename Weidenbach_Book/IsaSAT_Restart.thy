@@ -42,7 +42,7 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal by auto
-    subgoal 
+    subgoal
       apply (intro ballI)
       subgoal for b
         apply (cases \<open>b = 0\<close>)
@@ -69,26 +69,26 @@ lemma tight_domain_alt_def: \<open>0 \<notin># dom_m NU \<Longrightarrow> tight_
     using distinct_mset_dom[of \<open>NU\<close>]
     by (auto simp: tight_domain_def Max.insert_remove Max_insert_remove1_is_Max_insert
         add_mset_eq_add_mset
-        split: if_splits 
+        split: if_splits
         dest!: multi_member_split[of _ \<open>dom_m NU\<close>])
   subgoal
     using distinct_mset_dom[of \<open>NU\<close>]
     by (auto simp: tight_domain_def Max.insert_remove Max_insert_remove1_is_Max_insert
         add_mset_eq_add_mset
-        split: if_splits 
+        split: if_splits
         dest!: multi_member_split[of _ \<open>dom_m NU\<close>])
   subgoal
-    using distinct_mset_dom[of \<open>NU\<close>] 
+    using distinct_mset_dom[of \<open>NU\<close>]
     apply (auto simp: tight_domain_def Max.insert_remove Max_insert_remove1_is_Max_insert
         add_mset_eq_add_mset dom_m_empty_iff
-        split: if_splits 
+        split: if_splits
         dest: multi_member_split[of _ \<open>dom_m NU\<close>] Max_dom_empty)
     using Max_in_lits Suc_to_right dom_m_empty_iff by auto
   subgoal
     using distinct_mset_dom[of \<open>NU\<close>]
     by (auto simp: tight_domain_def Max.insert_remove Max_insert_remove1_is_Max_insert
         add_mset_eq_add_mset Suc_eq_minus_iff max_def
-        split: if_splits 
+        split: if_splits
         dest: multi_member_split[of _ \<open>dom_m NU\<close>]
         intro!: Max_mset_eq)
   done
@@ -820,7 +820,7 @@ definition (in isasat_input_ops) mark_garbage_heur :: \<open>nat \<Rightarrow> t
   \<open>mark_garbage_heur C = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats).
     (M, extra_information_mark_to_delete N C, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats))\<close>
 
-definition (in isasat_input_ops) mark_to_delete_clauses_wl_D_heur 
+definition (in isasat_input_ops) mark_to_delete_clauses_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>mark_to_delete_clauses_wl_D_heur  = (\<lambda>S. do {
@@ -880,7 +880,7 @@ proof-
     by (auto intro!: ext)
 
   have [refine0]: \<open>RETURN (get_vdom x) \<le> \<Down> {(xs, xs'). xs = xs' \<and> xs = get_vdom x} (collect_valid_indices_wl y)\<close>
-    if 
+    if
       \<open>(x, y) \<in> twl_st_heur\<close> and
       \<open>mark_to_delete_clauses_wl_D_pre y\<close> and
       \<open>mark_to_delete_clauses_wl_D_heur_pre x\<close>
@@ -893,7 +893,7 @@ proof-
        ((l, x), la, y) \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and> get_vdom S = get_vdom x}\<close>
     for x y l la
     by auto
-      find_theorems arena_status dom_m 
+      find_theorems arena_status dom_m
   show ?thesis
     unfolding mark_to_delete_clauses_wl_D_heur_alt_def mark_to_delete_clauses_wl_D_def Let_def
     apply (intro frefI nres_relI)
@@ -956,7 +956,7 @@ lemma cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog:
 
 
 definition (in isasat_input_ops) restart_prog_wl_D_heur
-  :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur \<times> nat) nres" 
+  :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur \<times> nat) nres"
 where
   \<open>restart_prog_wl_D_heur S n brk = do {
     b \<leftarrow> restart_required_heur S n;

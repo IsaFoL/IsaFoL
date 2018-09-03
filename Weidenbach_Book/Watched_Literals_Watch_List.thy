@@ -176,7 +176,7 @@ proof -
        dest!: multi_member_split[of L] dest!: bspec)
     apply (drule bspec')
     apply assumption
-    apply clarsimp  
+    apply clarsimp
     done
   have \<open>\<exists>i\<ge>j. i < length (watched_by S L) \<and>
             watched_by S L ! w = watched_by S L ! i\<close>
@@ -3369,7 +3369,7 @@ proof -
        if \<open>N = N'\<close> for N N' NUE W
       unfolding that get_fresh_index_def get_fresh_index_wl_def
       by (auto intro: RES_refine)
-    have [refine0]: \<open>SPEC (\<lambda>D'. the D = mset D') \<le> \<Down> {(D', E'). D' = E' \<and> the D = mset D'} 
+    have [refine0]: \<open>SPEC (\<lambda>D'. the D = mset D') \<le> \<Down> {(D', E'). D' = E' \<and> the D = mset D'}
         (SPEC (\<lambda>D'. the E = mset D'))\<close>
       if \<open>D = E\<close> for D E
       using that by (auto intro!: RES_refine)

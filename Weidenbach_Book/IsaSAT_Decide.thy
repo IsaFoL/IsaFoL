@@ -173,7 +173,7 @@ proof -
       using inv unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+
     then show ?thesis
-      using \<A>\<^sub>i\<^sub>n confl S_T T_U unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def state_wl_l_def twl_st_l_def 
+      using \<A>\<^sub>i\<^sub>n confl S_T T_U unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def state_wl_l_def twl_st_l_def
       literals_are_\<L>\<^sub>i\<^sub>n_def
       apply -
       by (subst (asm) all_clss_l_ran_m[symmetric], subst (asm) image_mset_union)
@@ -344,7 +344,7 @@ prepare_code_thms (in -) decide_lit_wl_code_def
 lemmas decide_lit_wl_heur_hnr[sepref_fr_rules] =
   decide_lit_wl_code.refine[OF isasat_input_bounded_nempty_axioms]
 
-(* 
+(*
 sepref_thm decide_lit_wl_fast_code
   is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
   :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and>
@@ -429,7 +429,7 @@ prepare_code_thms (in -) decide_wl_or_skip_D_code_def
 
 lemmas decide_wl_or_skip_D_hnr[sepref_fr_rules] =
    decide_wl_or_skip_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-(* 
+(*
 sepref_thm decide_wl_or_skip_D_fast_code
   is \<open>PR_CONST decide_wl_or_skip_D_heur\<close>
   :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_fast_assn\<close>

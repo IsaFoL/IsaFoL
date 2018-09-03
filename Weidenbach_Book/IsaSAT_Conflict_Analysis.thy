@@ -1127,7 +1127,7 @@ prepare_code_thms is_decided_hd_trail_wl_code_def
 
 lemmas is_decided_hd_trail_wl_code[sepref_fr_rules] =
    is_decided_hd_trail_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-(* 
+(*
 sepref_thm is_decided_hd_trail_wl_fast_code
   is \<open>RETURN o is_decided_hd_trail_wl_heur\<close>
   :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_fast_assn\<^sup>k \<rightarrow> bool_assn\<close>
@@ -1167,7 +1167,7 @@ prepare_code_thms (in -) lit_and_ann_of_propagated_st_heur_code_def
 
 lemmas lit_and_ann_of_propagated_st_heur_code_refine[sepref_fr_rules] =
    lit_and_ann_of_propagated_st_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-(* 
+(*
 sepref_thm lit_and_ann_of_propagated_st_heur_fast_code
   is \<open>RETURN o lit_and_ann_of_propagated_st_heur\<close>
   :: \<open>[\<lambda>S. is_proped (hd (get_trail_wl_heur S)) \<and> get_trail_wl_heur S \<noteq> []]\<^sub>a
@@ -1214,7 +1214,7 @@ prepare_code_thms (in -) tl_state_wl_heur_code_def
 lemmas tl_state_wl_heur_code_refine[sepref_fr_rules] =
    tl_state_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-(* 
+(*
 sepref_thm tl_state_wl_heur_fast_code
   is \<open>RETURN o tl_state_wl_heur\<close>
   :: \<open>[tl_state_wl_heur_pre]\<^sub>a

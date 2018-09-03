@@ -795,7 +795,7 @@ proof -
     done
 
   show ?thesis
-    by (rule word_nat_of_uint32_Rep_inject[THEN iffD1, OF H[symmetric]])  
+    by (rule word_nat_of_uint32_Rep_inject[THEN iffD1, OF H[symmetric]])
 qed
 
 lemma nat_of_uint32_numeral_mod_232:
@@ -1307,7 +1307,7 @@ lemma nat_of_uint64_ge_minus:
     (auto simp: unat_def uint_nonnegative nat_diff_distrib word_le_def[symmetric] intro: leI)
 
 lemma minus_uint64_nat_assn[sepref_fr_rules]:
-  \<open>(uncurry (return oo (-)), uncurry (RETURN oo (-))) \<in> 
+  \<open>(uncurry (return oo (-)), uncurry (RETURN oo (-))) \<in>
     [\<lambda>(a, b). a \<ge> b]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
   by sepref_to_hoare
     (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_ge_minus
@@ -1521,7 +1521,7 @@ text \<open>Remark that the refinement framework still defaults to \<^typ>\<open
 like \<^term>\<open>two_uint32_nat\<close> still useful, but they can be omitted in most cases.
 \<close>
 
-lemmas [id_rules] = 
+lemmas [id_rules] =
   itypeI[Pure.of numeral "TYPE (num \<Rightarrow> uint32)"]
   itypeI[Pure.of numeral "TYPE (num \<Rightarrow> uint64)"]
 

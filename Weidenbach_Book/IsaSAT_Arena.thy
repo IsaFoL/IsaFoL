@@ -2313,7 +2313,7 @@ definition mark_garbage where
   }\<close>
 
 lemma mark_garbage_pre:
-  assumes 
+  assumes
     j: \<open>j \<in># dom_m N\<close> and
     valid: \<open>valid_arena arena N x\<close> and
     arena: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close>

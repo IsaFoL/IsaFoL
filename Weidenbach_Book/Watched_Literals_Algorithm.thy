@@ -46,7 +46,7 @@ definition unit_propagation_inner_loop_body :: \<open>'v literal \<Rightarrow> '
             then do {RETURN (set_conflicting C S)}
             else do {RETURN (propagate_lit L' C S)}
           else do {
-            update_clauseS L C S 
+            update_clauseS L C S
         }
         }
     }
@@ -97,7 +97,7 @@ proof -
     by (cases S) auto
 
   have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close>
-    using inv multi_member_split[OF x_WS] 
+    using inv multi_member_split[OF x_WS]
     unfolding twl_struct_invs_def twl_st_inv.simps S
     by force+
   show ?fail
@@ -113,9 +113,9 @@ proof -
       \<open>clauses_to_update S \<noteq> {#}\<close> and
       WS: \<open>(L, C) \<in># clauses_to_update S\<close> and
       twl_inv: \<open>twl_struct_invs S\<close>
-    have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close> 
+    have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close>
       using twl_inv WS unfolding twl_struct_invs_def twl_st_inv.simps S by (auto; fail)+
-  
+
     define WS' where \<open>WS' = WS - {#(L, C)#}\<close>
     have WS_WS': \<open>WS = add_mset (L, C) WS'\<close>
       using WS unfolding WS'_def S by auto

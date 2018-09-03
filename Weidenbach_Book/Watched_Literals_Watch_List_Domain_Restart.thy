@@ -540,7 +540,7 @@ proof -
   have [iff]: \<open>(\<forall>(x::bool) xa. P x xa) \<longleftrightarrow> (\<forall>xa.( P True xa \<and> P False xa))\<close> for P
     by metis
   have in_Lit: \<open>get_clauses_wl T' \<propto> (xs ! j) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-    if 
+    if
       xs: \<open>(xs, xs') \<in> Id\<close> and
       \<open>(l, l') \<in> nat_rel\<close> and
       rel: \<open>(st, st') \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close> and
@@ -569,7 +569,7 @@ proof -
       \<open>\<not> xs' ! i \<notin># dom_m (get_clauses_wl T)\<close> and
       assert: \<open>0 < length (get_clauses_wl T \<propto> (xs' ! i))\<close> and
       \<open>0 < length (get_clauses_wl T' \<propto> (xs ! j))\<close>
-    for S S' xs xs' l l' st st' i T j T' 
+    for S S' xs xs' l l' st st' i T j T'
   proof -
 
     have lits_T': \<open>literals_are_\<L>\<^sub>i\<^sub>n' T'\<close>
@@ -614,7 +614,7 @@ proof -
   have final_rel_del:
     \<open>((j + 1, mark_garbage_wl (xs ! j) T'), i + 1, mark_garbage_wl (xs' ! i) T)
         \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
-    if 
+    if
       \<open>mark_to_delete_clauses_wl_pre S'\<close> and
       \<open>mark_to_delete_clauses_wl_D_pre S\<close> and
       xs: \<open>(xs, xs') \<in> Id\<close> and
@@ -667,23 +667,23 @@ proof -
       WHILEIT_refine_with_post[where R = \<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>])
     subgoal
       unfolding mark_to_delete_clauses_wl_D_pre_def by auto
-    subgoal by auto  
+    subgoal by auto
     subgoal for x y xs xsa l la xa x'
       unfolding mark_to_delete_clauses_wl_D_inv_def by (cases x') auto
-    subgoal by auto  
-    subgoal by auto  
-    subgoal by auto  
-    subgoal by auto  
-    subgoal for S S' xs xs' l l' st st' i T j T' 
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for S S' xs xs' l l' st st' i T j T'
       by (rule in_Lit)
-    subgoal by auto  
-    subgoal by auto  
-    subgoal by auto  
-    subgoal by auto  
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal for S S' xs xs' l l' st st' i T j T' can_del can_del'
       by (rule final_rel_del)
-    subgoal by auto  
-    subgoal by auto  
+    subgoal by auto
+    subgoal by auto
     done
 qed
 

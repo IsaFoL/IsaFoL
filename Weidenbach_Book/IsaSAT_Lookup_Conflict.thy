@@ -760,7 +760,7 @@ prepare_code_thms (in -) resolve_lookup_conflict_merge_code_def
 lemmas resolve_lookup_conflict_aa_hnr[sepref_fr_rules] =
    resolve_lookup_conflict_merge_code.refine[OF isasat_input_bounded_axioms]
 
-(* 
+(*
 sepref_thm resolve_lookup_conflict_merge_fast_code
   is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict)\<close>
   :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
@@ -3485,7 +3485,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal 
+    subgoal
       by (auto simp: lookup_conflict_remove1_pre_def lookup_clause_rel_def atms_of_def
         minimize_and_extract_highest_lookup_conflict_inv_def)
     subgoal

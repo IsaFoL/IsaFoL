@@ -67,7 +67,7 @@ lemma ran_m_lf_fmdrop:
 
 text \<open>change definition to all blits in \<^term>\<open>\<L>\<^sub>a\<^sub>l\<^sub>l\<close>?\<close>
 lemma correct_watching_fmdrop:
-  assumes 
+  assumes
     irred: \<open>\<not> irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
     \<open>correct_watching' (M', N, D, NE, UE, Q, W)\<close>
@@ -93,7 +93,7 @@ proof -
   have 2: \<open>remove1_mset C {#Ca \<in># dom_m N. L \<in> set (watched_l (N \<propto> Ca))#} =
      removeAll_mset C {#Ca \<in># dom_m N. L \<in> set (watched_l (N \<propto> Ca))#}\<close> for L
     apply (rule distinct_mset_remove1_All)
-    using distinct_mset_dom[of N] 
+    using distinct_mset_dom[of N]
     by (auto intro: distinct_mset_filter)
   have [simp]: \<open>filter_mset (\<lambda>i. i \<in># remove1_mset C (dom_m N)) A  =
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
@@ -120,7 +120,7 @@ proof -
 qed
 
 lemma correct_watching_fmdrop':
-  assumes 
+  assumes
     irred: \<open>irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
     \<open>correct_watching' (M', N, D, NE, UE, Q, W)\<close>
@@ -146,7 +146,7 @@ proof -
   have 2: \<open>remove1_mset C {#Ca \<in># dom_m N. L \<in> set (watched_l (N \<propto> Ca))#} =
      removeAll_mset C {#Ca \<in># dom_m N. L \<in> set (watched_l (N \<propto> Ca))#}\<close> for L
     apply (rule distinct_mset_remove1_All)
-    using distinct_mset_dom[of N] 
+    using distinct_mset_dom[of N]
     by (auto intro: distinct_mset_filter)
   have [simp]: \<open>filter_mset (\<lambda>i. i \<in># remove1_mset C (dom_m N)) A  =
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
@@ -173,7 +173,7 @@ qed
 
 
 lemma correct_watching_fmdrop'':
-  assumes 
+  assumes
     irred: \<open>\<not>irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
     \<open>correct_watching' (M', N, D, NE, UE, Q, W)\<close>
@@ -199,7 +199,7 @@ proof -
   have 2: \<open>remove1_mset C {#Ca \<in># dom_m N. L \<in> set (watched_l (N \<propto> Ca))#} =
      removeAll_mset C {#Ca \<in># dom_m N. L \<in> set (watched_l (N \<propto> Ca))#}\<close> for L
     apply (rule distinct_mset_remove1_All)
-    using distinct_mset_dom[of N] 
+    using distinct_mset_dom[of N]
     by (auto intro: distinct_mset_filter)
   have [simp]: \<open>filter_mset (\<lambda>i. i \<in># remove1_mset C (dom_m N)) A  =
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
@@ -225,7 +225,7 @@ proof -
 qed
 
 context
-  fixes LS :: \<open>'v literal \<times> 'v twl_st_wl\<close> and LT :: \<open>'v literal \<times> 'v twl_st_l\<close> 
+  fixes LS :: \<open>'v literal \<times> 'v twl_st_wl\<close> and LT :: \<open>'v literal \<times> 'v twl_st_l\<close>
   assumes
    LS_LT:  \<open>(LS, LT) \<in> Id \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S}\<close>
 begin
@@ -293,7 +293,7 @@ nat multiset \<times>
     x1l :: \<open>'v literal multiset multiset\<close> and x2l :: \<open>'v literal multiset \<times>
                             ('v literal \<Rightarrow> (nat \<times> 'v literal \<times> bool) list)\<close> and x1m :: \<open>'v literal multiset\<close> and
     x2m :: \<open>'v literal \<Rightarrow> (nat \<times> 'v literal \<times> bool) list\<close>
-  assumes 
+  assumes
     st:
       \<open>x2e = (x1f, x2f)\<close>
       \<open>x2d = (x1e, x2e)\<close>
@@ -455,7 +455,7 @@ lemma remove_all_annot_true_clause_imp_wl_inv_in_loop:
                                  'v literal multiset multiset\<close> and x1o :: \<open>(nat,
                                     'v literal list \<times>
                                     bool) fmap\<close> and x2o :: \<open>'v literal multiset multiset\<close>
-  assumes 
+  assumes
     \<open>x2n = (x1o, x2o)\<close> and
     \<open>x = (x1n, x2n)\<close>
   shows \<open>remove_all_annot_true_clause_imp_wl_inv
@@ -463,7 +463,7 @@ lemma remove_all_annot_true_clause_imp_wl_inv_in_loop:
           (x1n, x1h, x1o, x1j, x2o, x1l, x1m, x2m)\<close>
 proof -
   show ?thesis
-    using assms xx' x' corr 
+    using assms xx' x' corr
     unfolding remove_all_annot_true_clause_imp_wl_inv_def prod.case apply -
     apply (intro conjI)
     subgoal by auto
@@ -478,7 +478,7 @@ end
 
 
 context
-  assumes 
+  assumes
     \<open>case x of
      (i, N, NE) \<Rightarrow>
        remove_all_annot_true_clause_imp_wl_inv
@@ -497,7 +497,7 @@ lemma
 'v literal list \<times> bool) fmap \<times>
                                        'v literal multiset multiset\<close> and x1q :: \<open>(nat,
   'v literal list \<times> bool) fmap\<close> and x2q :: \<open>'v literal multiset multiset\<close>
-  assumes 
+  assumes
     \<open>x2n = (x1o, x2o)\<close> and
     \<open>x = (x1n, x2n)\<close> and
     \<open>x2p = (x1q, x2q)\<close> and
@@ -511,7 +511,7 @@ end
 
 
 context
-  assumes 
+  assumes
     \<open>case x of (i, N, NE) \<Rightarrow> i < length (x2m x1g)\<close> and
     \<open>case x' of (i, N, NE) \<Rightarrow> i < length xs\<close> and
     x_inv: \<open>case x of
@@ -534,7 +534,7 @@ context
 'v literal list \<times> bool) fmap \<times>
                                        'v literal multiset multiset\<close> and x1q :: \<open>(nat,
   'v literal list \<times> bool) fmap\<close> and x2q :: \<open>'v literal multiset multiset\<close>
-  assumes 
+  assumes
     xx'_eq:
       \<open>x2n = (x1o, x2o)\<close>
       \<open>x' = (x1n, x2n)\<close>
@@ -586,7 +586,7 @@ private lemma x2m': \<open>x2m x1 ! x1n = (x1r, x2r, x2s')\<close>
 
 context
   notes _[simp] = x2m'
-  assumes 
+  assumes
     x1r_dom: \<open>x1r \<in># dom_m x1q\<close> and
     xs_x1n_dom: \<open>xs ! x1n \<in># dom_m x1o\<close>
 begin
@@ -618,7 +618,7 @@ context
                     'v literal list \<times>
                     bool) fmap\<close> and x2s :: \<open>'v literal multiset multiset\<close> and x1t :: \<open>(nat,
        'v literal list \<times> bool) fmap\<close> and x2t :: \<open>'v literal multiset multiset\<close>
-  assumes 
+  assumes
     xa_x'a: \<open>(xa, x'a)
      \<in> {((N, NE), (N', NE')). N = N' \<and> NE = NE' \<and>
             correct_watching' (get_trail_wl (snd LS), N, get_conflict_wl (snd LS), NE,
@@ -661,7 +661,7 @@ end
 
 
 lemma
-  assumes 
+  assumes
     \<open>x1r \<notin># dom_m x1q\<close> and
     \<open>xs ! x1n \<notin># dom_m x1o\<close>
   shows \<open>((x1p + 1, x1q, x2q), x1n + 1, x1o, x2o)
@@ -692,7 +692,7 @@ lemma
 'v literal list \<times> bool) fmap \<times>
                                        'v literal multiset multiset\<close> and x1q :: \<open>(nat,
   'v literal list \<times> bool) fmap\<close> and x2q :: \<open>'v literal multiset multiset\<close>
-  assumes 
+  assumes
     \<open>x2n = (x1o, x2o)\<close> and
     \<open>x' = (x1n, x2n)\<close> and
     \<open>x2p = (x1q, x2q)\<close> and
@@ -728,7 +728,7 @@ proof -
       pre: \<open>remove_all_annot_true_clause_imp_pre L' (M, N0, D, NE, UE, {#}, Q)\<close> and
       x_W: \<open>x \<in> set (W L')\<close> and
       part: \<open>correct_watching (M, N0, D, NE, UE, Q, W)\<close> and
-      x: \<open>x = (C, i)\<close> and 
+      x: \<open>x = (C, i)\<close> and
       dom:  \<open>C \<in># dom_m N0\<close>
     for L' :: \<open>'v literal\<close> and M :: \<open>('v, nat) ann_lits\<close> and N0 D NE UE Q W x and C i
   proof -

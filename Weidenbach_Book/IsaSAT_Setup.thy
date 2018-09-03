@@ -225,7 +225,7 @@ lemma convert_single_wl_to_nat:
     uncurry3 (RETURN oooo convert_single_wl_to_nat_conv)) \<in>
    [\<lambda>(((xs, i), ys), j). i < length xs \<and> j < length ys \<and> ys!j = []]\<^sub>f
    \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
-     \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow> 
+     \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow>
      \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: convert_single_wl_to_nat_def convert_single_wl_to_nat_conv_def nat_of_uint64_conv_def
@@ -422,7 +422,7 @@ lemma twl_st_heur_state_simp:
   shows
      \<open>get_trail_wl_heur S = get_trail_wl S'\<close> and
      twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> watched_by_int S C = watched_by S' C\<close> and
-     \<open>literals_to_update_wl S' = 
+     \<open>literals_to_update_wl S' =
          uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close>
   using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
 
@@ -461,7 +461,7 @@ lemma twl_st_heur_ana_state_simp:
   using assms unfolding twl_st_heur_conflict_ana_def by (auto simp: map_fun_rel_def)
 
 text \<open>This relations decouples the conflict that has been minimised and appears abstractly
-from the refined state, where the conflict has been removed from the data structure to a 
+from the refined state, where the conflict has been removed from the data structure to a
 separate array.\<close>
 definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_bt =

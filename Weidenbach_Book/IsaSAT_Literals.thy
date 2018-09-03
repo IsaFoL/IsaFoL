@@ -200,7 +200,7 @@ abbreviation array_watched_assn
   :: \<open>(nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list) \<Rightarrow> ((nat \<times> uint32 \<times> bool) array_list) array \<Rightarrow>
      assn\<close>
 where
-  \<open>array_watched_assn \<equiv> hr_comp (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn))) 
+  \<open>array_watched_assn \<equiv> hr_comp (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))
     (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<close>
 
 

@@ -975,7 +975,7 @@ lemma learned_clss_l_mapsto_upd_notin_irrelev: \<open>C \<notin># dom_m N \<Long
   by (auto simp: ran_m_mapsto_upd_notin)
 
 lemma clause_twl_clause_of:  \<open>clause (twl_clause_of C) = mset C\<close> for C
-    by (cases C; cases \<open>tl C\<close>) auto 
+    by (cases C; cases \<open>tl C\<close>) auto
 
 lemma unit_propagation_inner_loop_body_l:
   fixes i C :: nat and S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close> and L :: \<open>'v literal\<close>
