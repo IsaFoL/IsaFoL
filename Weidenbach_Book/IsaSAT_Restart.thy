@@ -556,9 +556,9 @@ lemmas cdcl_twl_local_restart_wl_D_heur_fast_hnr [sepref_fr_rules] =
    cdcl_twl_local_restart_wl_D_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 *)
 
-named_theorems twl_st_heur
+named_theorems (in isasat_input_ops) twl_st_heur
 
-lemma [twl_st_heur]:
+lemma (in isasat_input_ops) [twl_st_heur]:
   assumes \<open>(S, T) \<in> twl_st_heur\<close>
   shows \<open>get_trail_wl T = get_trail_wl_heur S\<close>
   using assms by (cases S; cases T; auto simp: twl_st_heur_def; fail)
@@ -817,8 +817,42 @@ definition (in isasat_input_ops) mark_to_delete_clauses_wl_D_heur_pre :: \<open>
     (\<exists>S'. (S, S') \<in> twl_st_heur \<and> mark_to_delete_clauses_wl_D_pre S')\<close>
 
 definition (in isasat_input_ops) mark_garbage_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>mark_garbage_heur C = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats).
-    (M, extra_information_mark_to_delete N C, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats))\<close>
+  \<open>mark_garbage_heur C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, lcount).
+    (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, lcount - 1))\<close>
+
+lemma (in isasat_input_ops) [twl_st_heur]:
+  assumes
+    \<open>(S, T) \<in> twl_st_heur\<close> and
+    \<open>i < length (get_vdom S)\<close> and
+    \<open>C \<in> set (get_vdom S)\<close>
+  shows \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow>
+         (C \<in># dom_m (get_clauses_wl T))\<close> and
+    \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_lit (get_clauses_wl_heur S) C = get_clauses_wl T \<propto> C ! 0\<close>and
+    \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED \<longleftrightarrow> \<not>irred (get_clauses_wl T) C\<close>
+proof -
+  show \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow> (C \<in># dom_m (get_clauses_wl T))\<close>
+    using assms
+    by (cases S; cases T)
+      (auto simp add: twl_st_heur_def clause_not_marked_to_delete_heur_def
+          arena_dom_status_iff(1)
+        split: prod.splits)
+  assume C: \<open>C \<in># dom_m (get_clauses_wl T)\<close>
+  show \<open>arena_lit (get_clauses_wl_heur S) C = get_clauses_wl T \<propto> C ! 0\<close>
+    using assms C
+    by (cases S; cases T)
+      (auto simp add: twl_st_heur_def clause_not_marked_to_delete_heur_def
+          arena_lifting
+        split: prod.splits)
+  show \<open>arena_status (get_clauses_wl_heur S) C = LEARNED \<longleftrightarrow> \<not>irred (get_clauses_wl T) C\<close>
+    using assms C
+    by (cases S; cases T)
+      (auto simp add: twl_st_heur_def clause_not_marked_to_delete_heur_def
+          arena_lifting
+        split: prod.splits)
+qed
+
 
 definition (in isasat_input_ops) mark_to_delete_clauses_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -847,7 +881,41 @@ where
     RETURN T
   })\<close>
 
-lemma
+lemma (in isasat_input_ops) get_vdom_mark_garbage[simp]:
+  \<open>get_vdom (mark_garbage_heur C S) = get_vdom S\<close>
+  by (cases S) (auto simp: mark_garbage_heur_def)
+
+(* TODO Move *)
+lemma (in -) valid_arena_extra_information_mark_to_delete':
+  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close>
+  shows \<open>valid_arena (extra_information_mark_to_delete arena i) (fmdrop i N) vdom\<close>
+  using valid_arena_extra_information_mark_to_delete[OF assms]
+  by (auto intro: valid_arena_mono)
+
+lemma (in isasat_input_ops) in_vdom_m_fmdropD:
+  \<open>x \<in> vdom_m ga (fmdrop C baa) \<Longrightarrow> x \<in> (vdom_m ga baa)\<close>
+  unfolding vdom_m_def
+  by (auto dest: in_diffD)
+
+lemma (in -) learned_clss_l_l_fmdrop: \<open>\<not> irred N C \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
+  learned_clss_l (fmdrop C N) = remove1_mset (the (fmlookup N C)) (learned_clss_l N)\<close>
+  using distinct_mset_dom[of N]
+  apply (cases \<open>C \<in># dom_m N\<close>)
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
+
+(* END MOVE *)
+
+lemma (in isasat_input_ops) mark_garbage_heur_wl:
+  \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
+  \<not>irred (get_clauses_wl T) C \<Longrightarrow>
+ (mark_garbage_heur C S, mark_garbage_wl C T) \<in> twl_st_heur\<close>
+  by (cases S; cases T)
+    (auto simp: twl_st_heur_def mark_garbage_heur_def mark_garbage_wl_def
+      learned_clss_l_l_fmdrop size_remove1_mset_If
+    intro: valid_arena_extra_information_mark_to_delete'
+    dest: in_vdom_m_fmdropD)
+
+lemma mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_wl_D:
   \<open>(mark_to_delete_clauses_wl_D_heur, mark_to_delete_clauses_wl_D) \<in>
      twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof-
@@ -893,7 +961,6 @@ proof-
        ((l, x), la, y) \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and> get_vdom S = get_vdom x}\<close>
     for x y l la
     by auto
-      find_theorems arena_status dom_m
   show ?thesis
     unfolding mark_to_delete_clauses_wl_D_heur_alt_def mark_to_delete_clauses_wl_D_def Let_def
     apply (intro frefI nres_relI)
@@ -904,32 +971,25 @@ proof-
       by auto
     subgoal
       by auto
-    subgoal for x y _ xs l la xa x' x1 x2 x1a x2a
-      apply (cases x; cases y)
-      apply (simp add: twl_st_heur_def clause_not_marked_to_delete_heur_def
-        split: prod.splits)
-        apply normalize_goal+
-      apply (subst arena_dom_status_iff(1))
-      apply assumption
-      apply (rule nth_mem)
-      apply auto
-      done
+    subgoal
+      by (auto simp: twl_st_heur)
     subgoal
       by auto
     subgoal
-      apply (auto simp add:)
-      sorry
+      by (auto simp: twl_st_heur)
     subgoal
-      apply auto
-      by auto
+      by (auto simp: twl_st_heur)
     subgoal
       by auto
     subgoal
-      by (auto simp: mark_garbage_heur_def twl_st_heur_def split: prod.splits)
+      by (auto simp: mark_garbage_heur_wl)
     subgoal
       by auto
+    subgoal
+      by auto
+    done
+qed
 
-oops
 definition (in isasat_input_ops) cdcl_twl_restart_wl_heur where
 \<open>cdcl_twl_restart_wl_heur S = do {
    cdcl_twl_local_restart_wl_D_heur S

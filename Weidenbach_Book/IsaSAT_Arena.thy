@@ -76,6 +76,7 @@ reasonnable assumption, even when considering than some clauses will subsume the
 therefore, have a high chance to be in the same watch lists).
 \<close>
 
+
 subsubsection \<open>Status of a clause\<close>
 
 datatype clause_status = IRRED | LEARNED | DELETED
@@ -1355,6 +1356,10 @@ subsubsection \<open>Preconditions and Assertions for the refinement\<close>
 
 text \<open>The following lemma expresses the relation between the arena and the clauses and especially
   shows the preconditions to be able to generate code.
+
+  The conditions on \<^term>\<open>arena_status\<close> are in the direction to simplify proofs: If we would try to go
+  in the opposite direction, we could rewrite \<^term>\<open>\<not>irred N i\<close> into \<^term>\<open>arena_status arena i \<noteq> LEARNED\<close>,
+  which is a weaker property.
 \<close>
 lemma arena_lifting:
   assumes valid: \<open>valid_arena arena N vdom\<close> and
@@ -1378,7 +1383,10 @@ lemma arena_lifting:
     \<open>SIZE_SHIFT \<le> i\<close> and
     \<open>LBD_SHIFT \<le> i\<close>
     \<open>ACTIVITY_SHIFT \<le> i\<close> and
-    \<open>arena_length arena i \<ge> 2\<close>
+    \<open>arena_length arena i \<ge> 2\<close> and
+    \<open>arena_status arena i = LEARNED \<longleftrightarrow> \<not>irred N i\<close> and
+    \<open>arena_status arena i = IRRED \<longleftrightarrow> irred N i\<close> and
+    \<open>arena_status arena i \<noteq> DELETED\<close> 
 proof -
   have
     dom: \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
@@ -1468,6 +1476,12 @@ proof -
     \<open>N \<propto> i ! 0 = arena_lit arena i\<close> and
     \<open>is_Lit (arena ! i)\<close>
     using is_lit[of 0] ge2 by fastforce+
+  show 
+    \<open>arena_status arena i = LEARNED \<longleftrightarrow> \<not>irred N i \<close>and
+    \<open>arena_status arena i = IRRED \<longleftrightarrow> irred N i\<close> and
+    \<open>arena_status arena i \<noteq> DELETED\<close> 
+    using learned init unfolding arena_status_def
+    by (auto simp: arena_status_def)
 qed
 
 
