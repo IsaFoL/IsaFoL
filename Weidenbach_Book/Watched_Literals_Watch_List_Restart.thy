@@ -901,14 +901,15 @@ proof -
     done
 qed
 
-definition collect_valid_indices_wl where
-  \<open>collect_valid_indices_wl S = SPEC (\<lambda>N. distinct N)\<close>
+definition collect_valid_indices_wl :: \<open>'v twl_st_wl \<Rightarrow> nat list nres\<close> where
+  \<open>collect_valid_indices_wl S = SPEC (\<lambda>N. True)\<close>
 
 definition mark_to_delete_clauses_wl_inv
-  :: \<open>'v twl_st_wl \<Rightarrow> nat list \<Rightarrow> bool \<times> nat \<times> 'v clauses_l \<times> nat list \<Rightarrow> bool\<close>
+  :: \<open>'v twl_st_wl \<Rightarrow> nat list \<Rightarrow> nat \<times> 'v twl_st_wl \<Rightarrow> bool\<close>
 where
-  \<open>mark_to_delete_clauses_wl_inv = (\<lambda>S xs0 (brk, i, N, xs).
-     \<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_inv T xs0 (brk, i, N, xs) \<and>
+  \<open>mark_to_delete_clauses_wl_inv = (\<lambda>S xs0 (i, T).
+     \<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
+      mark_to_delete_clauses_l_inv S' xs0 (i, T') \<and>
       correct_watching' S)\<close>
 
 definition mark_to_delete_clauses_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close>
@@ -916,30 +917,34 @@ where
   \<open>mark_to_delete_clauses_wl_pre S \<longleftrightarrow>
    (\<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_pre T)\<close>
 
+definition mark_garbage_wl:: \<open>nat \<Rightarrow>  'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close>  where
+  \<open>mark_garbage_wl = (\<lambda>C (M, N0, D, NE, UE, WS, Q). (M, fmdrop C N0, D, NE, UE, WS, Q))\<close>
+
 definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-\<open>mark_to_delete_clauses_wl  = (\<lambda>(M, N, D, NE, UE, Q, W). do {
-    ASSERT(mark_to_delete_clauses_wl_pre (M, N, D, NE, UE, Q, W));
-    xs0 \<leftarrow> collect_valid_indices_wl (M, N, D, NE, UE, Q, W);
-    (_, _, N, xs) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_inv (M, N, D, NE, UE, Q, W) xs0\<^esup>
-      (\<lambda>(brk, i, N, xs). \<not>brk \<and> i < length xs)
-      (\<lambda>(brk, i, N, xs). do {
-        if(xs!i \<notin># dom_m N) then RETURN (brk, i, N, delete_index_and_swap xs i)
+\<open>mark_to_delete_clauses_wl  = (\<lambda>S. do {
+    ASSERT(mark_to_delete_clauses_wl_pre S);
+    xs \<leftarrow> collect_valid_indices_wl S;
+    l \<leftarrow> SPEC(\<lambda>_:: nat. True);
+    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_inv S xs\<^esup>
+      (\<lambda>(i, S). i < length xs)
+      (\<lambda>(i, T). do {
+        if(xs!i \<notin># dom_m (get_clauses_wl T)) then RETURN (i+1, T)
         else do {
-          ASSERT(0 < length (N\<propto>(xs!i)));
-          can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (N\<propto>(xs!i)!0) (xs!i) \<notin> set M) \<and> \<not>irred N (xs!i));
-          brk \<leftarrow> SPEC(\<lambda>_. True);
+          ASSERT(0 < length (get_clauses_wl T\<propto>(xs!i)));
+          can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow>
+             (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and>
+              \<not>irred (get_clauses_wl T) (xs!i));
           ASSERT(i < length xs);
           if can_del
           then
-            RETURN (brk, i+1, fmdrop (xs!i) N, xs)
+            RETURN (i+1, mark_garbage_wl (xs!i) T)
           else
-            RETURN (brk, i+1, N, xs)
+            RETURN (i+1, T)
        }
       })
-      (False, 0, N, xs0);
-    RETURN (M, N, D, NE, UE, Q, W)
+      (l, S);
+    RETURN S
   })\<close>
-
 
 lemma mark_to_delete_clauses_wl_mark_to_delete_clauses_l:
   \<open>(mark_to_delete_clauses_wl, mark_to_delete_clauses_l)
@@ -959,15 +964,9 @@ proof -
     unfolding mark_to_delete_clauses_wl_def mark_to_delete_clauses_l_def
       uncurry_def
     apply (intro frefI nres_relI)
-    subgoal for x y
-    apply (cases x; cases y)
-    subgoal for M N D NE UE Q W M' N' D' NE' UE' WS' Q'
     apply (refine_vcg
       WHILEIT_refine_with_post[where
-         R = \<open>{((brk' :: bool, i' :: nat, N', xs), (brk'', i'', N'', xs')).
-             brk' = brk'' \<and> i' = i'' \<and> N' = N'' \<and> xs = xs' \<and>
-             ((M, N', D, NE, UE, Q, W), (M, N'', D, NE, UE, WS', Q')) \<in> state_wl_l None \<and>
-             correct_watching' (M, N', D, NE, UE, Q, W)}\<close>]
+         R = \<open>{((i, S), (j, T)). i = j \<and> (S, T) \<in> state_wl_l None \<and> correct_watching' S}\<close>]
       remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
     subgoal unfolding mark_to_delete_clauses_wl_pre_def by blast
     subgoal by auto
@@ -981,12 +980,13 @@ proof -
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)
     subgoal by auto
-    subgoal by (force simp: state_wl_l_def correct_watching_fmdrop)
+    subgoal
+      by (auto simp: state_wl_l_def correct_watching_fmdrop mark_garbage_wl_def
+          mark_garbage_l_def
+        split: prod.splits)
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)
     done
-  done
-  done
 qed
 
 text \<open>
