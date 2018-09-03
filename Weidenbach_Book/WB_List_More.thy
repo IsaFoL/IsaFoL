@@ -1410,8 +1410,8 @@ lemma filter_mset_eq_add_msetD': \<open>add_mset a A  = filter_mset P xs \<Longr
 
 section \<open>Finite maps and multisets\<close>
 
-text \<open>Roughly the same as \<^term>\<open>ran\<close>, but with duplication (unlike sets or finite sets) and
-  it works only on finite domains (unlike a function mapping).\<close>
+subsubsection \<open>Finite sets and multisets\<close>
+
 abbreviation mset_fset :: \<open>'a fset \<Rightarrow> 'a multiset\<close> where
   \<open>mset_fset N \<equiv> mset_set (fset N)\<close>
 
@@ -1431,6 +1431,14 @@ lemma in_mset_fset_fmember[simp]: \<open>x \<in># mset_fset N \<longleftrightarr
 lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow> x \<in># N\<close>
   by (auto simp: fmember.rep_eq fset_mset_def Abs_fset_inverse)
 
+
+subsubsection \<open>Finite map and multisets\<close>
+
+text \<open>Roughly the same as \<^term>\<open>ran\<close> and \<^term>\<open>dom\<close>, but with duplication in the content (unlike their
+  finite sets counterpart) and it works only on finite domains (unlike a function mapping).
+  Remark that \<^term>\<open>dom_m\<close> (the keys) does not contain duplicates, but we keep for symmetry (and for
+  easier use of multiset operators as in the definition of \<^term>\<open>ran_m\<close>).
+\<close>
 definition dom_m where
   \<open>dom_m N = mset_fset (fmdom N)\<close>
 
@@ -1462,27 +1470,56 @@ lemma in_dom_in_ran_m[simp]: \<open>i \<in># dom_m N \<Longrightarrow> the (fmlo
   by (auto simp: ran_m_def)
 
 lemma fmupd_same[simp]:
-  \<open>x1 \<in># dom_m x1aa \<Longrightarrow>  fmupd x1 (the (fmlookup x1aa x1)) x1aa = x1aa\<close>
+  \<open>x1 \<in># dom_m x1aa \<Longrightarrow> fmupd x1 (the (fmlookup x1aa x1)) x1aa = x1aa\<close>
   by (metis fmap_ext fmupd_lookup in_dom_m_lookup_iff option.collapse)
 
-definition Max_dom where
-  \<open>Max_dom N = Max (set_mset (add_mset 0 (dom_m N)))\<close>
+lemma ran_m_fmempty[simp]: \<open>ran_m fmempty = {#}\<close> and
+    dom_m_fmempty[simp]: \<open>dom_m fmempty = {#}\<close>
+  by (auto simp: ran_m_def dom_m_def)
+
+lemma fmrestrict_set_fmupd:
+  \<open>a \<in> xs \<Longrightarrow> fmrestrict_set xs (fmupd a C N) = fmupd a C (fmrestrict_set xs N)\<close>
+  \<open>a \<notin> xs \<Longrightarrow> fmrestrict_set xs (fmupd a C N) = fmrestrict_set xs N\<close>
+  by (auto simp: fmfilter_alt_defs)
+
+lemma fset_fmdom_fmrestrict_set:
+  \<open>fset (fmdom (fmrestrict_set xs N)) = fset (fmdom N) \<inter> xs\<close>
+  by (auto simp: fmfilter_alt_defs)
+
+lemma dom_m_fmrestrict_set: \<open>dom_m (fmrestrict_set (set xs) N) = mset xs \<inter># dom_m N\<close>
+  using fset_fmdom_fmrestrict_set[of \<open>set xs\<close> N] distinct_mset_dom[of N]
+  distinct_mset_inter_remdups_mset[of \<open>mset_fset (fmdom N)\<close> \<open>mset xs\<close>]
+  by (auto simp: dom_m_def fset_mset_mset_fset finite_mset_set_inter multiset_inter_commute
+    remdups_mset_def)
+
+lemma dom_m_fmrestrict_set': \<open>dom_m (fmrestrict_set xs N) = mset_set (xs \<inter> set_mset (dom_m N))\<close>
+  using fset_fmdom_fmrestrict_set[of \<open>xs\<close> N] distinct_mset_dom[of N]
+  by (auto simp: dom_m_def fset_mset_mset_fset finite_mset_set_inter multiset_inter_commute
+    remdups_mset_def)
+
+lemma indom_mI: \<open>fmlookup m x = Some y \<Longrightarrow> x \<in># dom_m m\<close>
+  by (drule fmdomI)  (auto simp: dom_m_def fmember.rep_eq)
+
+
+subsubsection \<open>Compact domain for finite maps\<close>
 
 text \<open>\<^term>\<open>packed\<close> is a predicate to indicate that the domain of finite mapping starts at
    \<^term>\<open>1::nat\<close> and does not contain holes. We used it in the SAT solver for the mapping from
-   indexes to clauses.
+   indexes to clauses, to ensure that there not holes and therefore giving an upper bound on the
+   highest key.
+
+TODO KILL!
 \<close>
+definition Max_dom where
+  \<open>Max_dom N = Max (set_mset (add_mset 0 (dom_m N)))\<close>
+
 definition packed where
   \<open>packed N \<longleftrightarrow> dom_m N = mset [1..<Suc (Max_dom N)]\<close>
 
 text \<open>Marking this rule as simp is not compatible with unfolding the definition of packed when
 marked as:\<close>
-lemma Max_dom_empty: \<open>dom_m b = {#}  \<Longrightarrow> Max_dom b = 0\<close>
+lemma Max_dom_empty: \<open>dom_m b = {#} \<Longrightarrow> Max_dom b = 0\<close>
   by (auto simp: Max_dom_def)
-
-lemma ran_m_fmempty[simp]: \<open>ran_m fmempty = {#}\<close> and
-    dom_m_fmempty[simp]: \<open>dom_m fmempty = {#}\<close>
-  by (auto simp: ran_m_def dom_m_def)
 
 lemma Max_dom_fmempty: \<open>Max_dom fmempty = 0\<close>
   by (auto simp: Max_dom_empty)
@@ -1567,28 +1604,6 @@ lemma ge_Max_dom_notin_dom_m: \<open>a > Max_dom ao \<Longrightarrow> a \<notin>
 lemma packed_in_dom_mI: \<open>packed bc \<Longrightarrow> j \<le> Max_dom bc \<Longrightarrow> 0 < j \<Longrightarrow> j \<in># dom_m bc\<close>
   by (auto simp: packed_def)
 
-lemma fmrestrict_set_fmupd:
-  \<open>a \<in> xs \<Longrightarrow> fmrestrict_set xs (fmupd a C N) = fmupd a C (fmrestrict_set xs N)\<close>
-  \<open>a \<notin> xs \<Longrightarrow> fmrestrict_set xs (fmupd a C N) = fmrestrict_set xs N\<close>
-  by (auto simp: fmfilter_alt_defs)
-
-lemma fset_fmdom_fmrestrict_set:
-  \<open>fset (fmdom (fmrestrict_set xs N)) = fset (fmdom N) \<inter> xs\<close>
-  by (auto simp: fmfilter_alt_defs)
-
-lemma dom_m_fmrestrict_set: \<open>dom_m (fmrestrict_set (set xs) N) = mset xs \<inter># dom_m N\<close>
-  using fset_fmdom_fmrestrict_set[of \<open>set xs\<close> N] distinct_mset_dom[of N]
-  distinct_mset_inter_remdups_mset[of \<open>mset_fset (fmdom N)\<close> \<open>mset xs\<close>]
-  by (auto simp: dom_m_def fset_mset_mset_fset finite_mset_set_inter multiset_inter_commute
-    remdups_mset_def)
-
-lemma dom_m_fmrestrict_set': \<open>dom_m (fmrestrict_set xs N) = mset_set (xs \<inter> set_mset (dom_m N))\<close>
-  using fset_fmdom_fmrestrict_set[of \<open>xs\<close> N] distinct_mset_dom[of N]
-  by (auto simp: dom_m_def fset_mset_mset_fset finite_mset_set_inter multiset_inter_commute
-    remdups_mset_def)
-
-lemma ndom_mI: \<open>fmlookup m x = Some y \<Longrightarrow> x \<in># dom_m m\<close>
-  by (drule fmdomI)  (auto simp: dom_m_def fmember.rep_eq)
 
 lemma mset_fset_empty_iff: \<open>mset_fset a = {#} \<longleftrightarrow> a = fempty\<close>
   by (cases a) (auto simp: mset_set_empty_iff)
