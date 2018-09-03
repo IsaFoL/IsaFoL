@@ -117,24 +117,42 @@ definition fair :: "'f formulas llist \<Rightarrow> bool" where
   | more: "derivation (N2 # T) \<Longrightarrow> (N2 |= {# Bot_F #} \<Longrightarrow> N1 |= {# Bot_F #}) 
             \<Longrightarrow> (N1 - N2) \<subseteq># Red_F N2 \<Longrightarrow> derivation (N1 # (N2 # T))"
 *)
+text \<open>TODO: replace in Lazy_List_Liminf\<close>
+lemma (in-) elem_Sup_llist_imp_Sup_upto_llist': "x \<in> Sup_llist Xs \<Longrightarrow> \<exists>j < llength Xs. x \<in> Sup_upto_llist Xs j"
+  unfolding Sup_llist_def Sup_upto_llist_def by blast 
 
+lemma gt_Max_notin: \<open>finite A \<Longrightarrow> A \<noteq> {} \<Longrightarrow> x > Max A \<Longrightarrow> x \<notin> A\<close> by auto
 
 lemma equiv_Sup_Liminf:
-  assumes deriv: "chain (\<turnstile>) D" and
+  assumes 
     in_Sup: "C \<in> Sup_llist D" and
     not_in_Liminf: "C \<notin> Liminf_llist D"
   shows
     "\<exists> i \<in> {i. enat (Suc i) < llength D}. C \<in> (lnth D i) - (lnth D (Suc i))"
-proof
-  obtain i where "C \<in> (lnth D i)" and "C \<notin> (lnth D (Suc i))" and "Suc i < llength D" 
-  using assms chain_lnth_rel
-  unfolding Sup_llist_def  
-
+proof -
+  obtain i where C_D_i: "C \<in> Sup_upto_llist D i" and "i < llength D" 
+    using elem_Sup_llist_imp_Sup_upto_llist' in_Sup by fast
+  then obtain j where j: "j \<ge> i \<and> enat j < llength D \<and> C \<notin> lnth D j" using not_in_Liminf   
+    unfolding Sup_llist_def chain_def Liminf_llist_def by auto
+  obtain k where k: "C \<in> (lnth D k)" "enat k < llength D" "k \<le> i" using C_D_i 
+    unfolding Sup_upto_llist_def by auto
+  let ?S = "{i. i < j \<and> i \<ge> k \<and> C \<in> (lnth D i)}"
+  define l where "l \<equiv> Max ?S"
+  have \<open>k \<in> {i. i < j \<and> k \<le> i \<and> C \<in> lnth D i}\<close> using k j by (auto simp: order.order_iff_strict)
+  then have nempty: "{i. i < j \<and> k \<le> i \<and> C \<in> lnth D i} \<noteq> {}" by auto 
+  then have l_prop: "l < j \<and> l \<ge> k \<and> C \<in> (lnth D l)" using Max_in[of ?S, OF _ nempty] unfolding l_def by auto 
+  then have "C \<in> (lnth D l) - (lnth D (Suc l))" using j gt_Max_notin[OF _ nempty, of "Suc l"] 
+    unfolding l_def[symmetric] by (auto intro: Suc_lessI)
+  then show ?thesis apply (rule bexI[of _ l]) using l_prop j 
+    apply auto 
+    by (metis Suc_leI dual_order.order_iff_strict enat_ord_simps(2) less_trans)
+qed
 
 lemma Red_in_Sup: 
   assumes deriv: "chain (\<turnstile>) D"
   shows "Sup_llist D - Liminf_llist D \<subseteq> Red_F (Sup_llist D)"
 proof
+  fix C
   assume C_in_subset: "C \<in> Sup_llist D - Liminf_llist D"
   {
     fix C i
@@ -146,8 +164,9 @@ proof
     then have "C \<in> Red_F (Sup_llist D)" using Red_F_of_subset 
       by (meson contra_subsetD i lnth_subset_Sup_llist)
   }
-  then have ?thesis unfolding 
-    
+  then show "C \<in> Red_F (Sup_llist D)" using equiv_Sup_Liminf[of C ] C_in_subset by fast
+qed
+
 
 end
 
