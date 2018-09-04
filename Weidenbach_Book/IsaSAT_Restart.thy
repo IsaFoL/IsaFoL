@@ -867,14 +867,20 @@ proof -
         split: prod.splits)
 qed
 
-(* TODO Missing : The sorting function *)
-thm get_propagation_reason_def
+definition (in isasat_input_ops) number_clss_to_keep :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+  \<open>number_clss_to_keep = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, (props, decs, confl, restarts), fast_ema, slow_ema, ccount,
+       vdom, lcount).
+    2000 + 300 * nat_of_uint64 restarts)\<close>
+
+(* TODO Missing : The sorting function + definition of l should depend on the number of initial
+  clauses *)
+
 definition (in isasat_input_ops) mark_to_delete_clauses_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>mark_to_delete_clauses_wl_D_heur  = (\<lambda>S. do {
     ASSERT(mark_to_delete_clauses_wl_D_heur_pre S);
-    l \<leftarrow> SPEC(\<lambda>_::nat. True);
+    let l = number_clss_to_keep S;
     (_, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
       (\<lambda>(i, S). i < length (get_vdom S))
       (\<lambda>(i, T). do {
@@ -883,6 +889,7 @@ where
         if \<not>clause_not_marked_to_delete_heur T C then RETURN (i+1, T)
         else do {
           let L = arena_lit (get_clauses_wl_heur T) C;
+          ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
           D \<leftarrow> get_the_propagation_reason (get_trail_wl_heur T) L;
           let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > 3 \<and>
              arena_status (get_clauses_wl_heur T) C = LEARNED;
@@ -896,6 +903,14 @@ where
       (l, S);
     RETURN T
   })\<close>
+
+lemma (in isasat_input_ops) twl_st_heur_same_annotD:
+  \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> Propagated L C \<in> set (get_trail_wl_heur S) \<Longrightarrow> 
+     Propagated L C' \<in> set (get_trail_wl_heur S) \<Longrightarrow> C = C'\<close>
+  \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> Propagated L C \<in> set (get_trail_wl_heur S) \<Longrightarrow> 
+     Decided L \<in> set (get_trail_wl_heur S) \<Longrightarrow> False\<close>
+  by (auto simp: twl_st_heur_def dest: no_dup_no_propa_and_dec
+    no_dup_same_annotD)
 
 
 lemma mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_wl_D:
@@ -933,7 +948,7 @@ proof -
     \<open>mark_to_delete_clauses_wl_D_heur  = (\<lambda>S. do {
       ASSERT(mark_to_delete_clauses_wl_D_heur_pre S);
       _ \<leftarrow> RETURN (get_vdom S);
-      l \<leftarrow> SPEC(\<lambda>_::nat. True);
+      l \<leftarrow> RETURN (number_clss_to_keep S);
       (_, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
         (\<lambda>(i, S). i < length (get_vdom S))
         (\<lambda>(i, T). do {
@@ -942,6 +957,7 @@ proof -
           if(\<not>clause_not_marked_to_delete_heur T C) then RETURN (i+1, T)
           else do {
             let L = arena_lit (get_clauses_wl_heur T) C;
+            ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
             D \<leftarrow> get_the_propagation_reason (get_trail_wl_heur T) L;
             let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > 3 \<and>
                arena_status (get_clauses_wl_heur T) C = LEARNED;
@@ -1003,9 +1019,9 @@ proof -
   proof -
     show ?thesis
       using that unfolding get_the_propagation_reason_def apply -
-      apply (rule RES_refine)
-      apply (auto simp: twl_st_heur intro!: )
-     sorry
+      by (rule RES_refine)
+        (auto simp: twl_st_heur lits_of_def intro!: 
+        dest: twl_st_heur_same_annotD imageI[of _ _ lit_of])
   qed
 
 
@@ -1023,8 +1039,10 @@ proof -
       by (auto simp: twl_st_heur)
     subgoal
       by auto
+    subgoal
+      by (auto simp: twl_st_heur)
     apply (rule get_the_propagation_reason; assumption)
-    subgoal for x y _ xs l la xa x' x1 x2 x1a x2a
+    subgoal
       by (auto simp: twl_st_heur)
     subgoal
       by (auto simp: mark_garbage_heur_wl)
@@ -1180,6 +1198,33 @@ lemmas local_restart_only_impl[sepref_fr_rules] =
    local_restart_only_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 
+sepref_register number_clss_to_keep
+
+sepref_thm number_clss_to_keep_impl
+  is \<open>PR_CONST (RETURN o number_clss_to_keep)\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding number_clss_to_keep_def PR_CONST_def isasat_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) number_clss_to_keep_impl
+   uses isasat_input_bounded_nempty.number_clss_to_keep_impl.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) number_clss_to_keep_impl_def
+
+lemmas number_clss_to_keep_impl[sepref_fr_rules] =
+   number_clss_to_keep_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
+     unfolded PR_CONST_def]
+
+definition access_vdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>access_vdom_at S i = get_vdom S ! i\<close>
+
+lemma access_vdom_at_alt_def:
+  \<open>access_vdom_at = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+     ccount, vdom, lcount) i. vdom ! i)\<close>
+  by (intro ext) (auto simp: access_vdom_at_def)
+
 sepref_register mark_to_delete_clauses_wl_D_heur
 sepref_thm mark_to_delete_clauses_wl_D_heur_impl
   is \<open>PR_CONST mark_to_delete_clauses_wl_D_heur\<close>
@@ -1189,6 +1234,7 @@ sepref_thm mark_to_delete_clauses_wl_D_heur_impl
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
   apply sepref_dbg_trans_step_keep
+  oops
   apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref
 
