@@ -308,7 +308,7 @@ proof -
 qed
 
 
-paragraph \<open>Reasons\<close>
+paragraph \<open>Encoding of the reasons\<close>
 
 definition DECISION_REASON :: \<open>nat\<close> where
   \<open>DECISION_REASON = 1\<close>
@@ -1711,7 +1711,49 @@ lemma get_propagation_reason_fast_hnr[sepref_fr_rules]:
   using get_propagation_reason_fast_code.refine[FCOMP get_propagation_reason_pol] .
 
 
-paragraph \<open>Direct acces to elements in the trail\<close>
+text \<open>The version \<^term>\<open>get_propagation_reason\<close> can return the reason, but does not have to: it can be
+more suitable for specification (like for the conflict minimisation, where finding the reason is
+not mandatory).
+
+The following version \<^emph>\<open>always\<close> returns the reasons if there is one. Remark that both functions
+are linked to the same code (but \<^term>\<open>get_propagation_reason\<close> can be called first with some additional
+filtering later).
+\<close>
+definition (in -) get_the_propagation_reason
+  :: \<open>('v, 'mark) ann_lits \<Rightarrow> 'v literal \<Rightarrow> 'mark option nres\<close>
+where
+  \<open>get_the_propagation_reason M L = SPEC(\<lambda>C. 
+     (C \<noteq> None \<longleftrightarrow> Propagated L (the C) \<in> set M) \<and>
+     (C = None \<longleftrightarrow> Decided L \<in> set M \<or> L \<notin> lits_of_l M))\<close>
+
+lemma (in -) no_dup_Decided_PropedD: \<open>no_dup ad \<Longrightarrow> Decided L \<in> set ad \<Longrightarrow> Propagated L C \<in> set ad \<Longrightarrow> False\<close>
+  by (metis annotated_lit.distinct(1) in_set_conv_decomp lit_of.simps(1) lit_of.simps(2)
+  no_dup_appendD no_dup_cons undefined_notin xy_in_set_cases)
+
+lemma get_the_propagation_reason_pol:
+  \<open>(uncurry get_propagation_reason_pol, uncurry get_the_propagation_reason) \<in>
+       [\<lambda>(M, L). L \<in> lits_of_l M]\<^sub>f trail_pol \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>nat_rel\<rangle>option_rel\<rangle> nres_rel\<close>
+  apply (intro frefI nres_relI)
+  unfolding lits_of_def
+  apply clarify
+  apply (rename_tac a aa ab ac b ba ad bb x, case_tac x)
+  by (auto simp: get_the_propagation_reason_def get_propagation_reason_pol_def Let_def
+      trail_pol_def ann_lits_split_reasons_def lits_of_def assert_bind_spec_conv
+      dest: imageI[of _ _ lit_of] no_dup_Decided_PropedD)
+
+lemma get_the_propagation_reason_hnr[sepref_fr_rules]:
+   \<open>(uncurry get_propagation_reason_code, uncurry get_the_propagation_reason)
+     \<in> [\<lambda>(a, b). b \<in> lits_of_l a]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
+  using get_propagation_reason_code.refine[FCOMP get_the_propagation_reason_pol] .
+
+lemma get_the_propagation_reason_fast_hnr[sepref_fr_rules]:
+   \<open>(uncurry get_propagation_reason_fast_code, uncurry get_the_propagation_reason)
+     \<in> [\<lambda>(a, b). b \<in> lits_of_l a]\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>
+        option_assn uint64_nat_assn\<close>
+  using get_propagation_reason_fast_code.refine[FCOMP get_the_propagation_reason_pol] .
+
+
+paragraph \<open>Direct access to elements in the trail\<close>
 
 definition (in -) rev_trail_nth where
   \<open>rev_trail_nth M i = lit_of (rev M ! i)\<close>

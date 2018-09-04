@@ -867,7 +867,8 @@ proof -
         split: prod.splits)
 qed
 
-(* Missing : The sorting function *)
+(* TODO Missing : The sorting function *)
+thm get_propagation_reason_def
 definition (in isasat_input_ops) mark_to_delete_clauses_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
@@ -879,11 +880,12 @@ where
       (\<lambda>(i, T). do {
         ASSERT(i < length (get_vdom T));
         let C = get_vdom T ! i;
-        if(\<not>clause_not_marked_to_delete_heur T C) then RETURN (i+1, T)
+        if \<not>clause_not_marked_to_delete_heur T C then RETURN (i+1, T)
         else do {
           let L = arena_lit (get_clauses_wl_heur T) C;
-          can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated L C \<notin> set (get_trail_wl_heur T)) \<and>
-             arena_status (get_clauses_wl_heur T) C = LEARNED);
+          D \<leftarrow> get_the_propagation_reason (get_trail_wl_heur T) L;
+          let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > 3 \<and>
+             arena_status (get_clauses_wl_heur T) C = LEARNED;
           if can_del
           then
             RETURN (i+1, mark_garbage_heur C T)
@@ -899,7 +901,34 @@ where
 lemma mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_wl_D:
   \<open>(mark_to_delete_clauses_wl_D_heur, mark_to_delete_clauses_wl_D) \<in>
      twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
-proof-
+proof -
+  have mark_to_delete_clauses_wl_D_alt_def:
+    \<open>mark_to_delete_clauses_wl_D  = (\<lambda>S. do {
+      ASSERT(mark_to_delete_clauses_wl_D_pre S);
+      xs \<leftarrow> collect_valid_indices_wl S;
+      l \<leftarrow> SPEC(\<lambda>_::nat. True);
+      (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_D_inv S xs\<^esup>
+        (\<lambda>(i, T). i < length xs)
+        (\<lambda>(i, T). do {
+          if(xs!i \<notin># dom_m (get_clauses_wl T)) then RETURN (i+1, T)
+          else do {
+            ASSERT(0 < length (get_clauses_wl T\<propto>(xs!i)));
+            ASSERT(get_clauses_wl T\<propto>(xs!i)!0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+            can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and> \<not>irred (get_clauses_wl T) (xs!i));
+            ASSERT(i < length xs);
+            if can_del
+            then
+              RETURN (i+1, mark_garbage_wl (xs!i) T)
+            else
+              RETURN (i+1, T)
+          }
+        })
+        (l, S);
+      RETURN S
+    })\<close>
+    unfolding mark_to_delete_clauses_wl_D_def
+    by (auto intro!: ext)
+
   have mark_to_delete_clauses_wl_D_heur_alt_def:
     \<open>mark_to_delete_clauses_wl_D_heur  = (\<lambda>S. do {
       ASSERT(mark_to_delete_clauses_wl_D_heur_pre S);
@@ -913,8 +942,9 @@ proof-
           if(\<not>clause_not_marked_to_delete_heur T C) then RETURN (i+1, T)
           else do {
             let L = arena_lit (get_clauses_wl_heur T) C;
-            can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated L C \<notin> set (get_trail_wl_heur T)) \<and>
-              arena_status (get_clauses_wl_heur T) C = LEARNED);
+            D \<leftarrow> get_the_propagation_reason (get_trail_wl_heur T) L;
+            let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > 3 \<and>
+               arena_status (get_clauses_wl_heur T) C = LEARNED;
             if can_del
             then
               RETURN (i+1, mark_garbage_heur C T)
@@ -942,6 +972,43 @@ proof-
        ((l, x), la, y) \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and> get_vdom S = get_vdom x}\<close>
     for x y l la
     by auto
+  have get_the_propagation_reason: \<open>get_the_propagation_reason (get_trail_wl_heur x2a)
+        (arena_lit (get_clauses_wl_heur x2a) (get_vdom x2a ! x1a))
+        \<le> \<Down> {(D, b). b \<longleftrightarrow> ((D \<noteq> Some (get_vdom x2a ! x1a)) \<and> arena_lbd (get_clauses_wl_heur x2a) (get_vdom x2a ! x1a) > 3 \<and>
+             arena_status (get_clauses_wl_heur x2a) (get_vdom x2a ! x1a) = LEARNED)}
+          (SPEC
+            (\<lambda>b. b \<longrightarrow>
+                  Propagated (get_clauses_wl x2 \<propto> (xs ! x1) ! 0) (xs ! x1)
+                  \<notin> set (get_trail_wl x2) \<and>
+                  \<not> irred (get_clauses_wl x2) (xs ! x1)))\<close>
+    if
+      \<open>(x, y) \<in> twl_st_heur\<close> and
+      \<open>mark_to_delete_clauses_wl_D_pre y\<close> and
+      \<open>mark_to_delete_clauses_wl_D_heur_pre x\<close> and
+      \<open>(xs', xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_vdom x}\<close> and
+      \<open>(l, la) \<in> nat_rel\<close> and
+      \<open>(xa, x')
+      \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and> get_vdom S = get_vdom x}\<close> and
+      \<open>case xa of (i, S) \<Rightarrow> i < length (get_vdom S)\<close> and
+      \<open>case x' of (i, T) \<Rightarrow> i < length xs\<close> and
+      \<open>mark_to_delete_clauses_wl_D_inv y xs x'\<close> and
+      \<open>x' = (x1, x2)\<close> and
+      \<open>xa = (x1a, x2a)\<close> and
+      \<open>x1a < length (get_vdom x2a)\<close> and
+      \<open>\<not> \<not> clause_not_marked_to_delete_heur x2a (get_vdom x2a ! x1a)\<close> and
+      \<open>\<not> xs ! x1 \<notin># dom_m (get_clauses_wl x2)\<close> and
+      \<open>0 < length (get_clauses_wl x2 \<propto> (xs ! x1))\<close> and
+      \<open>get_clauses_wl x2 \<propto> (xs ! x1) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    for x y xs xs' l la xa x' x1 x2 x1a x2a
+  proof -
+    show ?thesis
+      using that unfolding get_the_propagation_reason_def apply -
+      apply (rule RES_refine)
+      apply (auto simp: twl_st_heur intro!: )
+     sorry
+  qed
+
+
   show ?thesis
     unfolding mark_to_delete_clauses_wl_D_heur_alt_def mark_to_delete_clauses_wl_D_def Let_def
     apply (intro frefI nres_relI)
@@ -956,12 +1023,9 @@ proof-
       by (auto simp: twl_st_heur)
     subgoal
       by auto
-    subgoal
+    apply (rule get_the_propagation_reason; assumption)
+    subgoal for x y _ xs l la xa x' x1 x2 x1a x2a
       by (auto simp: twl_st_heur)
-    subgoal
-      by (auto simp: twl_st_heur)
-    subgoal
-      by auto
     subgoal
       by (auto simp: mark_garbage_heur_wl)
     subgoal
