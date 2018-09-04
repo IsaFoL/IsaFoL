@@ -148,6 +148,7 @@ proof -
     by (metis Suc_leI dual_order.order_iff_strict enat_ord_simps(2) less_trans)
 qed
 
+text \<open>lemma 2 in Uwe's notes\<close>
 lemma Red_in_Sup: 
   assumes deriv: "chain (\<turnstile>) D"
   shows "Sup_llist D - Liminf_llist D \<subseteq> Red_F (Sup_llist D)"
@@ -164,9 +165,59 @@ proof
     then have "C \<in> Red_F (Sup_llist D)" using Red_F_of_subset 
       by (meson contra_subsetD i lnth_subset_Sup_llist)
   }
-  then show "C \<in> Red_F (Sup_llist D)" using equiv_Sup_Liminf[of C ] C_in_subset by fast
+  then show "C \<in> Red_F (Sup_llist D)" using equiv_Sup_Liminf[of C] C_in_subset by fast
 qed
 
+text \<open>lemma 3 in Uwe's notes part 1/2\<close>
+lemma Red_I_subset_Liminf: 
+  assumes deriv: \<open>chain (\<turnstile>) D\<close> and
+    i: \<open>enat i < llength D\<close>
+  shows \<open>Red_I (lnth D i) \<subseteq> Red_I (Liminf_llist D)\<close>
+proof -
+  have Sup_in_diff: \<open>Red_I (Sup_llist D) \<subseteq> Red_I ((Sup_llist D) - ((Sup_llist D) - (Liminf_llist D)))\<close> 
+    using Red_I_of_Red_F_subset[OF Red_in_Sup] deriv by auto
+  also have \<open>(Sup_llist D) - ((Sup_llist D) - (Liminf_llist D)) = Liminf_llist D\<close> 
+    by (simp add: Liminf_llist_subset_Sup_llist double_diff)
+  then have Red_I_Sup_in_Liminf: \<open>Red_I (Sup_llist D) \<subseteq> Red_I (Liminf_llist D)\<close> using Sup_in_diff by auto
+  have \<open>(lnth D i) \<subseteq> (Sup_llist D)\<close> unfolding Sup_llist_def using i by blast
+  then have "Red_I (lnth D i) \<subseteq> Red_I (Sup_llist D)" using Red_I_of_subset 
+    unfolding Sup_llist_def by auto 
+  then show ?thesis using Red_I_Sup_in_Liminf by auto
+qed
+
+text \<open>lemma 3 in Uwe's notes part 2/2\<close>
+lemma Red_F_subset_Liminf:
+ assumes deriv: \<open>chain (\<turnstile>) D\<close> and
+    i: \<open>enat i < llength D\<close>
+  shows \<open>Red_F (lnth D i) \<subseteq> Red_F (Liminf_llist D)\<close>
+proof -
+  have Sup_in_diff: \<open>Red_F (Sup_llist D) \<subseteq> Red_F ((Sup_llist D) - ((Sup_llist D) - (Liminf_llist D)))\<close> 
+    using Red_F_of_Red_F_subset[OF Red_in_Sup] deriv by auto
+  also have \<open>(Sup_llist D) - ((Sup_llist D) - (Liminf_llist D)) = Liminf_llist D\<close> 
+    by (simp add: Liminf_llist_subset_Sup_llist double_diff)
+  then have Red_F_Sup_in_Liminf: \<open>Red_F (Sup_llist D) \<subseteq> Red_F (Liminf_llist D)\<close>
+    using Sup_in_diff by auto
+  have \<open>(lnth D i) \<subseteq> (Sup_llist D)\<close> unfolding Sup_llist_def using i by blast
+  then have "Red_F (lnth D i) \<subseteq> Red_F (Sup_llist D)" using Red_F_of_subset 
+    unfolding Sup_llist_def by auto 
+  then show ?thesis using Red_F_Sup_in_Liminf by auto
+qed
+
+text \<open>lemma 4 in Uwe's notes\<close>
+lemma i_in_Liminf_or_Red_F:
+  assumes deriv: \<open>chain (\<turnstile>) D\<close> and
+    i: \<open>enat i < llength D\<close>
+  shows \<open>(lnth D i) \<subseteq> (Liminf_llist D) \<union> (Red_F (Liminf_llist D))\<close>
+proof
+  fix C
+  assume C: \<open>C \<in> (lnth D i)\<close>
+  and C_not_Liminf: \<open>C \<notin> (Liminf_llist D)\<close>
+  have \<open>C \<in> Sup_llist D\<close> unfolding Sup_llist_def using C i by auto
+  then obtain j where j: \<open>C \<in> (lnth D j) - (lnth D (Suc j))\<close> \<open>enat (Suc j) < llength D\<close> 
+    using equiv_Sup_Liminf[of C D] C_not_Liminf by auto
+  then have \<open>C \<in> Red_F (lnth D (Suc j))\<close> 
+    using deriv by (meson chain_lnth_rel contra_subsetD derive.cases)
+  then have \<open>C \<in> Red_F (Liminf_llist D)\<close> using Red_F_subset_Liminf[of D "Suc j"] deriv j(2) by blast
 
 end
 
