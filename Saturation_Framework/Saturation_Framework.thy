@@ -205,10 +205,11 @@ qed
 
 text \<open>lemma 4 in Uwe's notes\<close>
 lemma i_in_Liminf_or_Red_F:
-  assumes deriv: \<open>chain (\<turnstile>) D\<close> and
+  assumes 
+    deriv: \<open>chain (\<turnstile>) D\<close> and
     i: \<open>enat i < llength D\<close>
-  shows \<open>(lnth D i) \<subseteq> (Liminf_llist D) \<union> (Red_F (Liminf_llist D))\<close>
-proof
+  shows \<open>(lnth D i) \<subseteq> (Red_F (Liminf_llist D)) \<union> (Liminf_llist D)\<close>
+proof (rule,rule)
   fix C
   assume C: \<open>C \<in> (lnth D i)\<close>
   and C_not_Liminf: \<open>C \<notin> (Liminf_llist D)\<close>
@@ -217,7 +218,26 @@ proof
     using equiv_Sup_Liminf[of C D] C_not_Liminf by auto
   then have \<open>C \<in> Red_F (lnth D (Suc j))\<close> 
     using deriv by (meson chain_lnth_rel contra_subsetD derive.cases)
-  then have \<open>C \<in> Red_F (Liminf_llist D)\<close> using Red_F_subset_Liminf[of D "Suc j"] deriv j(2) by blast
+  then show \<open>C \<in> Red_F (Liminf_llist D)\<close> using Red_F_subset_Liminf[of D "Suc j"] deriv j(2) by blast
+qed
+
+text \<open>lemma 5 in Uwe's notes\<close>
+lemma fair_implies_Liminf_saturated:
+  assumes 
+    deriv: \<open>chain (\<turnstile>) D\<close> and
+    fair: \<open>fair D\<close>
+  shows \<open>Inf (Liminf_llist D) \<subseteq> Red_I (Liminf_llist D)\<close>
+proof
+  fix \<iota>
+  assume \<iota>: \<open>\<iota> \<in> Inf (Liminf_llist D)\<close>
+  have \<open>\<iota> \<in> Sup_Red_I_llist D\<close> using fair \<iota> unfolding fair_def by auto
+  then obtain i where i: \<open>enat i < llength D\<close> \<open>\<iota> \<in> Red_I (lnth D i)\<close>
+    unfolding Sup_Red_I_llist_def by auto
+  then show \<open>\<iota> \<in> Red_I (Liminf_llist D)\<close> 
+    using deriv i_in_Liminf_or_Red_F[of D i] Red_I_subset_Liminf by blast
+qed
+
+
 
 end
 
