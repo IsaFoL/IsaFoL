@@ -57,8 +57,8 @@ current: Ordered_Resolution_Prover Functional_Ordered_Resolution_Prover
 # move the html documentation to the locale directory
 doc:
 	mkdir -p $(DESTINATION)/current
-	cp -R $(ISABELLE_HOME)/Weidenbach_Book $(DESTINATION)/current || :
-	cp -R $(ISABELLE_HOME)/Functional_Ordered_Resolution_Prover $(DESTINATION)/current || :
+	cp -R $(ISABELLE2018_HOME)/Weidenbach_Book $(DESTINATION)/current || :
+	cp -R $(ISABELLE2018_HOME)/Functional_Ordered_Resolution_Prover $(DESTINATION)/current || :
 	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2018" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2018_version)"
 
 refs:
