@@ -8,6 +8,38 @@ locale isasat_restart_bounded =
 
 sublocale isasat_restart_bounded \<subseteq> isasat_restart_ops
  .
+  
+instantiation prod :: (ord, ord) ord
+begin
+  definition less_prod where
+    \<open>less_prod = (\<lambda>(a, b) (c,d). a < c \<or> (a = c \<and> b < d)) \<close>
+
+  definition less_eq_prod where
+    \<open>less_eq_prod = (\<lambda>(a, b) (c,d). (a < c) \<or> (a = c \<and> b \<le> d)) \<close>
+
+instance
+  by standard
+end
+
+instance prod :: (preorder, preorder) preorder
+  apply standard
+  subgoal for x y
+    by (auto simp: less_prod_def less_eq_prod_def less_le_not_le)
+  subgoal for x
+    by (auto simp: less_prod_def less_eq_prod_def less_le_not_le)
+  subgoal
+    using less_trans order_trans by (fastforce simp: less_prod_def less_eq_prod_def intro: less_trans) 
+  done
+ 
+ instance prod :: (order, order) order
+  apply standard
+  subgoal for x y
+    by (auto simp: less_prod_def less_eq_prod_def)
+  done
+
+instance prod :: (linorder, linorder) linorder
+  by standard
+   (auto simp: less_prod_def less_eq_prod_def)
 
 
 text \<open>
@@ -28,71 +60,6 @@ text \<open>
      \<^item> (lbdQueue.getavg() * K) > (sumLBD / conflictsRestarts),
        \<^text>\<open>conflictsRestarts > LOWER_BOUND_FOR_BLOCKING_RESTART && lbdQueue.isvalid() && trail.size() > R * trailQueue.getavg()\<close>
 \<close>
-
-definition tight_domain where
-  \<open>tight_domain NU NU' \<longleftrightarrow>  Suc (Max_mset (add_mset 0 (dom_m NU))) = length NU'\<close>
-
-lemma Max_insert_remove1_is_Max_insert:
-  fixes x :: \<open>nat\<close>
-  assumes \<open>0 < x\<close> \<open>finite A\<close>
-  shows \<open>Max (insert x A - {0}) = Max (insert x A)\<close>
-proof -
-  show ?thesis
-    apply (rule Max_eq_if)
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal by auto
-    subgoal
-      apply (intro ballI)
-      subgoal for b
-        apply (cases \<open>b = 0\<close>)
-         apply (rule_tac x = x in bexI)
-        using assms apply auto[2]
-        apply (rule_tac x = b in bexI)
-        using assms apply auto[2]
-        done
-      done
-    done
-qed
-
-lemma Max_mset_eq: \<open>((\<forall>m\<in>#M. m \<le> a) \<and> a\<in>#M) \<Longrightarrow> Max_mset M = a\<close>
-  by (subst Max_eq_iff) auto
-
-lemma Suc_eq_minus_iff: \<open>b \<noteq> 0 \<Longrightarrow> Suc a = b \<longleftrightarrow> a = b - 1\<close>
-  by auto
-
-lemma tight_domain_alt_def: \<open>0 \<notin># dom_m NU \<Longrightarrow> tight_domain NU NU' \<longleftrightarrow>
-      (\<forall>j \<in>#dom_m NU. j < length NU') \<and> NU' \<noteq> [] \<and>
-      ((NU = fmempty \<and> length NU' = 1) \<or> (NU \<noteq> fmempty \<and> length NU' \<ge> 1 \<and> length NU' - 1 \<in># dom_m NU))\<close>
-  apply (intro iffI conjI impI)
-  subgoal
-    using distinct_mset_dom[of \<open>NU\<close>]
-    by (auto simp: tight_domain_def Max.insert_remove Max_insert_remove1_is_Max_insert
-        add_mset_eq_add_mset
-        split: if_splits
-        dest!: multi_member_split[of _ \<open>dom_m NU\<close>])
-  subgoal
-    using distinct_mset_dom[of \<open>NU\<close>]
-    by (auto simp: tight_domain_def Max.insert_remove Max_insert_remove1_is_Max_insert
-        add_mset_eq_add_mset
-        split: if_splits
-        dest!: multi_member_split[of _ \<open>dom_m NU\<close>])
-  subgoal
-    using distinct_mset_dom[of \<open>NU\<close>]
-    apply (auto simp: tight_domain_def Max.insert_remove Max_insert_remove1_is_Max_insert
-        add_mset_eq_add_mset dom_m_empty_iff
-        split: if_splits
-        dest: multi_member_split[of _ \<open>dom_m NU\<close>] Max_dom_empty)
-    using Max_in_lits Suc_to_right dom_m_empty_iff by auto
-  subgoal
-    using distinct_mset_dom[of \<open>NU\<close>]
-    by (auto simp: tight_domain_def Max.insert_remove Max_insert_remove1_is_Max_insert
-        add_mset_eq_add_mset Suc_eq_minus_iff max_def
-        split: if_splits
-        dest: multi_member_split[of _ \<open>dom_m NU\<close>]
-        intro!: Max_mset_eq)
-  done
-
 
 lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
   by (auto simp: bounded_def) presburger
@@ -808,6 +775,157 @@ lemmas local_restart_only_fast_impl[sepref_fr_rules] =
    local_restart_only_fast_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
      unfolded PR_CONST_def]
 
+end
+
+definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat \<times> nat\<close> where
+  \<open>clause_score_extract arena xs C = (
+     let C = (xs ! C) in
+     if arena_status arena C = DELETED then (uint32_max, uint32_max) \<comment> \<open>deleted elements are the
+        smallest possible\<close>
+     else
+       let lbd = get_clause_LBD arena C in
+       let act = arena_act arena C in
+       (lbd, act)
+  )\<close>
+sepref_register clause_score_extract
+
+lemma uint32_max_uint32_nat_assn:
+  \<open>(uncurry0 (return 4294967295), uncurry0 (RETURN uint32_max)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_max_def uint32_max_def uint32_nat_rel_def br_def)
+
+definition (in -)valid_sort_clause_score_pre_at where
+  \<open>valid_sort_clause_score_pre_at arena vdom i \<longleftrightarrow>
+    arena_is_valid_clause_vdom arena (vdom!i) \<and>
+          (arena_status arena (vdom!i) \<noteq> DELETED \<longrightarrow>
+             (get_clause_LBD_pre arena (vdom!i) \<and> arena_act_pre arena (vdom!i)))
+          \<and> i < length vdom\<close>
+
+sepref_definition (in -) clause_score_extract_code
+  is \<open>uncurry2 (RETURN ooo clause_score_extract)\<close>
+  :: \<open>[uncurry2 valid_sort_clause_score_pre_at]\<^sub>a
+      arena_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn *a uint32_nat_assn\<close>
+  supply uint32_max_uint32_nat_assn[sepref_fr_rules]
+  unfolding clause_score_extract_def insert_sort_inner_def valid_sort_clause_score_pre_at_def
+  by sepref
+
+declare clause_score_extract_code.refine[sepref_fr_rules]
+
+definition (in -)valid_sort_clause_score_pre where
+  \<open>valid_sort_clause_score_pre arena vdom \<longleftrightarrow>
+    (\<forall>C \<in> set vdom. arena_is_valid_clause_vdom arena C \<and>
+        (arena_status arena C \<noteq> DELETED \<longrightarrow>
+             (get_clause_LBD_pre arena C \<and> arena_act_pre arena C)))\<close>
+
+definition (in -)insort_inner_clauses_by_score :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
+  \<open>insort_inner_clauses_by_score arena = insert_sort_inner (clause_score_extract arena)\<close>
+
+definition (in -) sort_clauses_by_score :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
+  \<open>sort_clauses_by_score arena = insert_sort (clause_score_extract arena)\<close>
+
+definition reorder_vdom_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>reorder_vdom_wl S = RETURN S\<close>
+
+definition (in -) sort_vdom_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>sort_vdom_heur = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, lcount). do {
+    ASSERT(valid_sort_clause_score_pre arena vdom);
+    vdom \<leftarrow> sort_clauses_by_score arena vdom;
+    RETURN (M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, lcount)
+    })\<close>
+
+lemma sort_clauses_by_score_reorder:
+  \<open>sort_clauses_by_score arena vdom \<le> SPEC(\<lambda>vdom'. mset vdom = mset vdom')\<close>
+  unfolding sort_clauses_by_score_def
+  by (rule order.trans, rule insert_sort_reorder_remove[THEN fref_to_Down, of _ vdom])
+     (auto simp add: reorder_remove_def)
+
+lemma (in isasat_input_ops) sort_vdom_heur_reorder_vdom_wl:
+  \<open>(sort_vdom_heur, reorder_vdom_wl) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding  reorder_vdom_wl_def sort_vdom_heur_def
+    apply (intro frefI nres_relI)
+    apply refine_rcg
+    apply (subst assert_bind_spec_conv, intro conjI)
+    subgoal for x y
+      unfolding valid_sort_clause_score_pre_def arena_is_valid_clause_vdom_def
+        get_clause_LBD_pre_def arena_is_valid_clause_idx_def arena_act_pre_def
+      by (auto simp: valid_sort_clause_score_pre_def twl_st_heur_def arena_dom_status_iff
+        arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def)
+    subgoal
+      apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
+      apply (rule bind_refine_spec)
+      prefer 2
+      apply (rule sort_clauses_by_score_reorder)
+      by (auto simp: twl_st_heur_def dest: mset_eq_setD)
+    done
+qed
+
+lemma (in -) less_pair_uint32_nat_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo (<)), uncurry (RETURN oo (<))) \<in> (uint32_nat_assn *a uint32_nat_assn)\<^sup>d *\<^sub>a (uint32_nat_assn *a uint32_nat_assn)\<^sup>d \<rightarrow>\<^sub>a bool_assn\<close>
+   by sepref_to_hoare
+     (sep_auto simp: less_prod_def uint32_nat_rel_def br_def nat_of_uint32_less_iff)
+
+lemma (in -) insort_inner_clauses_by_score_invI:
+   \<open>valid_sort_clause_score_pre a ba \<Longrightarrow>
+       mset ba = mset a2' \<Longrightarrow>
+       a1' < length a2' \<Longrightarrow>
+       valid_sort_clause_score_pre_at a a2' a1'\<close>
+  unfolding valid_sort_clause_score_pre_def all_set_conv_nth valid_sort_clause_score_pre_at_def
+  by (metis in_mset_conv_nth)+
+
+sepref_definition (in -) insort_inner_clauses_by_score_code
+  is \<open>uncurry2 insort_inner_clauses_by_score\<close>
+  :: \<open>[\<lambda>((arena, vdom), _). valid_sort_clause_score_pre arena vdom]\<^sub>a
+      arena_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> vdom_assn\<close>
+  supply insort_inner_clauses_by_score_invI[intro]
+  unfolding insort_inner_clauses_by_score_def insert_sort_inner_def
+  by sepref
+
+declare insort_inner_clauses_by_score_code.refine[sepref_fr_rules]
+
+lemma sort_clauses_by_score_invI:
+  \<open>valid_sort_clause_score_pre a b \<Longrightarrow>
+       mset b = mset a2' \<Longrightarrow> valid_sort_clause_score_pre a a2'\<close>
+  using mset_eq_setD unfolding valid_sort_clause_score_pre_def by blast
+
+sepref_definition (in -) sort_clauses_by_score_code
+  is \<open>uncurry sort_clauses_by_score\<close>
+  :: \<open>[uncurry valid_sort_clause_score_pre]\<^sub>a
+      arena_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn\<close>
+  supply sort_clauses_by_score_invI[intro]
+  unfolding insert_sort_def insort_inner_clauses_by_score_def[symmetric]
+    sort_clauses_by_score_def
+  by sepref
+
+declare sort_clauses_by_score_code.refine[sepref_fr_rules]
+
+context isasat_input_ops
+begin
+sepref_thm (in isasat_input_ops) sort_vdom_heur_code
+  is \<open>sort_vdom_heur\<close>
+  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply sort_clauses_by_score_invI[intro]
+  unfolding sort_vdom_heur_def isasat_assn_def
+  by sepref
+
+
+concrete_definition (in -) sort_vdom_heur_code
+   uses isasat_input_ops.sort_vdom_heur_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) sort_vdom_heur_code_def
+
+lemmas sort_vdom_heur_code_hnr[sepref_fr_rules] =
+   sort_vdom_heur_code.refine[of \<A>\<^sub>i\<^sub>n]
+
+end
+
+context isasat_input_bounded_nempty
+begin
+
 definition (in -) restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_heur S n = do {
     let sema = get_slow_ema_heur S;
@@ -944,6 +1062,7 @@ definition (in isasat_input_ops) mark_to_delete_clauses_wl_D_heur
 where
 \<open>mark_to_delete_clauses_wl_D_heur  = (\<lambda>S. do {
     ASSERT(mark_to_delete_clauses_wl_D_heur_pre S);
+    S \<leftarrow> sort_vdom_heur S;
     let l = number_clss_to_keep S;
     (_, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
       (\<lambda>(i, S). i < length (get_vdom S))
@@ -992,6 +1111,7 @@ proof -
   have mark_to_delete_clauses_wl_D_alt_def:
     \<open>mark_to_delete_clauses_wl_D  = (\<lambda>S. do {
       ASSERT(mark_to_delete_clauses_wl_D_pre S);
+      S \<leftarrow> reorder_vdom_wl S;
       xs \<leftarrow> collect_valid_indices_wl S;
       l \<leftarrow> SPEC(\<lambda>_::nat. True);
       (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_D_inv S xs\<^esup>
@@ -1013,12 +1133,13 @@ proof -
         (l, S);
       RETURN S
     })\<close>
-    unfolding mark_to_delete_clauses_wl_D_def
+    unfolding mark_to_delete_clauses_wl_D_def reorder_vdom_wl_def
     by (auto intro!: ext)
 
   have mark_to_delete_clauses_wl_D_heur_alt_def:
     \<open>mark_to_delete_clauses_wl_D_heur  = (\<lambda>S. do {
       ASSERT(mark_to_delete_clauses_wl_D_heur_pre S);
+      S \<leftarrow> sort_vdom_heur S;
       _ \<leftarrow> RETURN (get_vdom S);
       l \<leftarrow> RETURN (number_clss_to_keep S);
       (_, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
@@ -1067,35 +1188,51 @@ proof -
        ((l, x), la, y) \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and> get_vdom S = get_vdom x}\<close>
     for x y l la
     by auto
-  have get_the_propagation_reason: \<open>get_the_propagation_reason (get_trail_wl_heur x2a)
-        (arena_lit (get_clauses_wl_heur x2a) (get_vdom x2a ! x1a + 0))
+  have get_the_propagation_reason:
+    \<open>get_the_propagation_reason (get_trail_wl_heur x2a)
+       (arena_lit (get_clauses_wl_heur x2a) (get_vdom x2a ! x1a + 0))
         \<le> \<Down> {(D, b). b \<longleftrightarrow> ((D \<noteq> Some (get_vdom x2a ! x1a)) \<and>
                arena_lbd (get_clauses_wl_heur x2a) (get_vdom x2a ! x1a) > MINIMUM_DELETION_LBD \<and>
                arena_status (get_clauses_wl_heur x2a) (get_vdom x2a ! x1a) = LEARNED)}
-          (SPEC
-            (\<lambda>b. b \<longrightarrow>
-                  Propagated (get_clauses_wl x2 \<propto> (xs ! x1) ! 0) (xs ! x1)
-                  \<notin> set (get_trail_wl x2) \<and>
-                  \<not> irred (get_clauses_wl x2) (xs ! x1)))\<close>
-    if
-      \<open>(x, y) \<in> twl_st_heur\<close> and
-      \<open>mark_to_delete_clauses_wl_D_pre y\<close> and
-      \<open>mark_to_delete_clauses_wl_D_heur_pre x\<close> and
-      \<open>(xs', xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_vdom x}\<close> and
-      \<open>(l, la) \<in> nat_rel\<close> and
-      \<open>(xa, x')
-      \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and> get_vdom S = get_vdom x}\<close> and
-      \<open>case xa of (i, S) \<Rightarrow> i < length (get_vdom S)\<close> and
-      \<open>case x' of (i, T) \<Rightarrow> i < length xs\<close> and
-      \<open>mark_to_delete_clauses_wl_D_inv y xs x'\<close> and
-      \<open>x' = (x1, x2)\<close> and
-      \<open>xa = (x1a, x2a)\<close> and
-      \<open>x1a < length (get_vdom x2a)\<close> and
-      \<open>\<not> \<not> clause_not_marked_to_delete_heur x2a (get_vdom x2a ! x1a)\<close> and
-      \<open>\<not> xs ! x1 \<notin># dom_m (get_clauses_wl x2)\<close> and
-      \<open>0 < length (get_clauses_wl x2 \<propto> (xs ! x1))\<close> and
-      \<open>get_clauses_wl x2 \<propto> (xs ! x1) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-    for x y xs xs' l la xa x' x1 x2 x1a x2a
+       (SPEC
+           (\<lambda>b. b \<longrightarrow>
+                Propagated (get_clauses_wl x2 \<propto> (xs ! x1) ! 0) (xs ! x1)
+                \<notin> set (get_trail_wl x2) \<and>
+                \<not> irred (get_clauses_wl x2) (xs ! x1)))\<close>
+  if
+    \<open>(x, y) \<in> twl_st_heur\<close> and
+    \<open>mark_to_delete_clauses_wl_D_pre y\<close> and
+    \<open>mark_to_delete_clauses_wl_D_heur_pre x\<close> and
+    \<open>(S, Sa)
+     \<in> {(U, V).
+        (U, V) \<in> twl_st_heur \<and>
+        V = y \<and>
+        (mark_to_delete_clauses_wl_D_pre y \<longrightarrow>
+         mark_to_delete_clauses_wl_D_pre V) \<and>
+        (mark_to_delete_clauses_wl_D_heur_pre x \<longrightarrow>
+         mark_to_delete_clauses_wl_D_heur_pre U)}\<close> and
+    \<open>(xs', xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_vdom S}\<close> and
+    \<open>(l, la) \<in> nat_rel\<close> and
+    \<open>la \<in> {_. True}\<close> and
+    \<open>(xa, x')
+     \<in> nat_rel \<times>\<^sub>f
+       {(Sa, T). (Sa, T) \<in> twl_st_heur \<and> get_vdom Sa = get_vdom S}\<close> and
+    \<open>case xa of (i, S) \<Rightarrow> i < length (get_vdom S)\<close> and
+    \<open>case x' of (i, T) \<Rightarrow> i < length xs\<close> and
+    \<open>True\<close> and
+    \<open>mark_to_delete_clauses_wl_D_inv Sa xs x'\<close> and
+    \<open>x' = (x1, x2)\<close> and
+    \<open>xa = (x1a, x2a)\<close> and
+    \<open>x1a < length (get_vdom x2a)\<close> and
+    \<open>access_vdom_at_pre x2a x1a\<close> and
+    \<open>clause_not_marked_to_delete_heur_pre (x2a, get_vdom x2a ! x1a)\<close> and
+    \<open>\<not> \<not> clause_not_marked_to_delete_heur x2a (get_vdom x2a ! x1a)\<close> and
+    \<open>\<not> xs ! x1 \<notin># dom_m (get_clauses_wl x2)\<close> and
+    \<open>0 < length (get_clauses_wl x2 \<propto> (xs ! x1))\<close> and
+    \<open>get_clauses_wl x2 \<propto> (xs ! x1) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+    \<open>access_lit_in_clauses_heur_pre ((x2a, get_vdom x2a ! x1a), 0)\<close> and
+    \<open>arena_lit (get_clauses_wl_heur x2a) (get_vdom x2a ! x1a + 0) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    for x y S Sa xs' xs l la xa x' x1 x2 x1a x2a
   proof -
     show ?thesis
       using that unfolding get_the_propagation_reason_def apply -
@@ -1103,12 +1240,61 @@ proof -
         (auto simp: twl_st_heur lits_of_def intro!: 
         dest: twl_st_heur_same_annotD imageI[of _ _ lit_of])
   qed
+  have \<open>((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema,
+            slow_ema, ccount, vdom, lcount),
+           S')
+          \<in> twl_st_heur \<longleftrightarrow>
+    ((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema,
+            slow_ema, ccount, vdom', lcount),
+           S')
+          \<in> twl_st_heur\<close>
+    if \<open>set vdom = set vdom'\<close>
+    for M' N' D' j W' vm \<phi> clvls cach lbd outl stats fast_ema slow_ema
+      ccount vdom lcount vdom' S'
+    using that unfolding twl_st_heur_def
+    by auto
+  then have mark_to_delete_clauses_wl_D_heur_pre_vdom':
+    \<open>mark_to_delete_clauses_wl_D_heur_pre (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+ ccount, vdom, lcount) \<longleftrightarrow>
+      mark_to_delete_clauses_wl_D_heur_pre (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+ ccount, vdom', lcount)\<close>
+    if \<open>set vdom = set vdom'\<close>
+    for M' N' D' j W' vm \<phi> clvls cach lbd outl stats fast_ema slow_ema
+      ccount vdom lcount vdom'
+    using that
+    unfolding mark_to_delete_clauses_wl_D_heur_pre_def
+    by blast
+  have [refine0]:
+    \<open>sort_vdom_heur S \<le> \<Down> {(U, V). (U, V) \<in> twl_st_heur \<and> V = T \<and>
+         (mark_to_delete_clauses_wl_D_pre T \<longrightarrow> mark_to_delete_clauses_wl_D_pre V) \<and>
+         (mark_to_delete_clauses_wl_D_heur_pre S \<longrightarrow> mark_to_delete_clauses_wl_D_heur_pre U)}
+         (reorder_vdom_wl T)\<close>
+    if \<open>(S, T) \<in> twl_st_heur\<close> for S T
+    using that unfolding reorder_vdom_wl_def sort_vdom_heur_def
+    apply refine_rcg
+    subgoal for x y
+      unfolding valid_sort_clause_score_pre_def arena_is_valid_clause_vdom_def
+        get_clause_LBD_pre_def arena_is_valid_clause_idx_def arena_act_pre_def
+      by (auto simp: valid_sort_clause_score_pre_def twl_st_heur_def arena_dom_status_iff
+        arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def)
+    subgoal
+      apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
+      apply (rule bind_refine_spec)
+      prefer 2
+      apply (rule sort_clauses_by_score_reorder)
+      by (auto simp: twl_st_heur_def
+         intro: mark_to_delete_clauses_wl_D_heur_pre_vdom'[THEN iffD1]
+         dest: mset_eq_setD)
+    done
 
   show ?thesis
-    unfolding mark_to_delete_clauses_wl_D_heur_alt_def mark_to_delete_clauses_wl_D_def Let_def
-      access_lit_in_clauses_heur_def
+    supply sort_vdom_heur_def[simp]
+    unfolding mark_to_delete_clauses_wl_D_heur_alt_def mark_to_delete_clauses_wl_D_alt_def
+      access_lit_in_clauses_heur_def Let_def
     apply (intro frefI nres_relI)
-    apply (refine_vcg)
+    apply (refine_vcg sort_vdom_heur_reorder_vdom_wl[THEN fref_to_Down])
+    subgoal
+      unfolding mark_to_delete_clauses_wl_D_heur_pre_def by fast
     subgoal
       unfolding mark_to_delete_clauses_wl_D_heur_pre_def by fast
     subgoal
@@ -1116,16 +1302,19 @@ proof -
     subgoal
       by auto
     subgoal by (auto simp: access_vdom_at_pre_def)
-    subgoal for x y _ xs l la xa x' x1 x2 x1a x2a
+    subgoal by (auto simp: access_vdom_at_pre_def)
+    subgoal by (auto simp: access_vdom_at_pre_def)
+    subgoal by (auto simp: access_vdom_at_pre_def)
+    subgoal for x y S xs l la xa x' _ _ x1 x2 x1a x2a
       unfolding clause_not_marked_to_delete_heur_pre_def arena_is_valid_clause_vdom_def
         prod.simps
-      by (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom x2a)\<close>])
+      by (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom S)\<close>])
         (auto simp: twl_st_heur_def)
     subgoal
       by (auto simp: twl_st_heur)
     subgoal
       by auto
-    subgoal for x y _ xs l la xa x' x1 x2 x1a x2a
+    subgoal for x y _ _ _ xs l la xa x' x1 x2 x1a x2a
       unfolding access_lit_in_clauses_heur_pre_def prod.simps arena_lit_pre_def
         arena_is_valid_clause_idx_and_access_def
       by (rule bex_leI[of _ \<open>get_vdom x2a ! x1a\<close>], simp, rule exI[of _ \<open>get_clauses_wl x2\<close>])
@@ -1133,19 +1322,19 @@ proof -
     subgoal
       by (auto simp: twl_st_heur)
     apply (rule get_the_propagation_reason; assumption)
-    subgoal for x y _ xs l la xa x' x1 x2 x1a x2a
+    subgoal for x y _ xs l la xa _ _ x' x1 x2 x1a x2a
       unfolding prod.simps
         get_clause_LBD_pre_def arena_is_valid_clause_idx_def
       by (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom x2a)\<close>])
         (auto simp: twl_st_heur dest: twl_st_heur_valid_arena)
-    subgoal for x y _ xs l la xa x' x1 x2 x1a x2a
+    subgoal for x y _ xs l la xa _ _ x' x1 x2 x1a x2a
       unfolding prod.simps
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
       by (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom x2a)\<close>])
         (auto simp: twl_st_heur dest: twl_st_heur_valid_arena)
     subgoal
       by (auto simp: twl_st_heur)
-    subgoal for x y _ xs l la xa x' x1 x2 x1a x2a
+    subgoal for x y _ xs l la xa _ _ x' x1 x2 x1a x2a
       unfolding prod.simps mark_garbage_pre_def
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
       by (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom x2a)\<close>])
