@@ -252,6 +252,12 @@ fun heap_array A_ =
   {countable_heap = countable_array, typerep_heap = typerep_array A_} :
   ('a array) heap;
 
+type 'a equal = {equal : 'a -> 'a -> bool};
+val equal = #equal : 'a equal -> 'a -> 'a -> bool;
+
+val equal_uint32 = {equal = (fn a => fn b => ((a : Word32.word) = b))} :
+  Word32.word equal;
+
 fun typerep_uint32a t = Typerep ("Uint32.uint32", []);
 
 val countable_uint32 = {} : Word32.word countable;
@@ -457,6 +463,8 @@ val heap_minimize_status =
   : minimize_status heap;
 
 datatype int = Int_of_integer of IntInf.int;
+
+fun eq A_ a b = equal A_ a b;
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
@@ -1055,6 +1063,11 @@ fun fast_minus_uint32 x = fast_minus minus_uint32 x;
 
 fun uint32_safe_minus (A1_, A2_, A3_) m n =
   (if less A3_ m n then zero A2_ else minus A1_ m n);
+
+fun isa_arena_act_code x =
+  (fn ai => fn bi =>
+    arl_get heap_uint32 ai (minus_nat bi (nat_of_integer (3 : IntInf.int))))
+    x;
 
 fun isa_arena_lit_code x = arl_get heap_uint32 x;
 
@@ -2064,6 +2077,95 @@ fun clause_lbd_heur_code x =
     end)
     x;
 
+fun clause_score_extract_code x =
+  (fn ai => fn bia => fn bi => fn () =>
+    let
+      val xa = arl_get heap_nat bia bi ();
+      val xaa = arena_status_code ai xa ();
+    in
+      (if ((xaa : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
+        then (fn () =>
+               (Word32.fromLargeInt (IntInf.toLarge (4294967295 : IntInf.int)),
+                 Word32.fromLargeInt (IntInf.toLarge (4294967295 : IntInf.int))))
+        else (fn f_ => fn () => f_ ((isa_get_clause_LBD_code ai xa) ()) ())
+               (fn x_b =>
+                 (fn f_ => fn () => f_ ((isa_arena_act_code ai xa) ()) ())
+                   (fn x_c => (fn () => (x_b, x_c)))))
+        ()
+    end)
+    x;
+
+fun less_prod (A1_, A2_) B_ =
+  (fn (a, b) => fn (c, d) =>
+    less A2_ a c orelse eq A1_ a c andalso less B_ b d);
+
+fun insort_inner_clauses_by_score_code x =
+  (fn ai => fn bia => fn bi => fn () =>
+    let
+      val a =
+        heap_WHILET
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((clause_score_extract_code ai a2 a1) ()) ())
+              (fn xa =>
+                (fn f_ => fn () => f_
+                  ((clause_score_extract_code ai a2 (minus_nat a1 one_nat)) ())
+                  ())
+                  (fn xaa =>
+                    (fn () =>
+                      (less_nat zero_nata a1 andalso
+                        less_prod (equal_uint32, ord_uint32) ord_uint32 xa
+                          xaa)))))
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_
+              ((arl_swap heap_nat a2 a1 (minus_nat a1 one_nat)) ()) ())
+              (fn x_a => (fn () => (minus_nat a1 one_nat, x_a))))
+          (bi, bia) ();
+    in
+      let
+        val (_, aa) = a;
+      in
+        (fn () => aa)
+      end
+        ()
+    end)
+    x;
+
+fun sort_clauses_by_score_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val a =
+        heap_WHILET
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((arl_length heap_nat a2) ()) ())
+              (fn x_a => (fn () => (less_nat a1 x_a))))
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((insort_inner_clauses_by_score_code ai a2 a1)
+              ()) ())
+              (fn x_a => (fn () => (plus_nat a1 one_nat, x_a))))
+          (one_nat, bi) ();
+    in
+      let
+        val (_, aa) = a;
+      in
+        (fn () => aa)
+      end
+        ()
+    end)
+    x;
+
+fun sort_vdom_heur_code x =
+  (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
+     =>
+    fn () =>
+    let
+      val xa = sort_clauses_by_score_code a1a a1o ();
+    in
+      (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (xa, a2o))))))))))))))))
+    end)
+    x;
+
 fun access_vdom_at_code x =
   (fn ai => fn bi =>
     let
@@ -2078,44 +2180,45 @@ fun access_vdom_at_code x =
 fun mark_to_delete_clauses_wl_D_heur_impl x =
   (fn xi => fn () =>
     let
-      val xa = number_clss_to_keep_impl xi ();
+      val xa = sort_vdom_heur_code xi ();
+      val x_a = number_clss_to_keep_impl xa ();
       val a =
         heap_WHILET
           (fn (a1, a2) =>
             (fn f_ => fn () => f_ ((length_vdom_code a2) ()) ())
-              (fn x_c => (fn () => (less_nat a1 x_c))))
+              (fn x_d => (fn () => (less_nat a1 x_d))))
           (fn (a1, a2) =>
             (fn f_ => fn () => f_ ((access_vdom_at_code a2 a1) ()) ())
-              (fn x_c =>
+              (fn x_d =>
                 (fn f_ => fn () => f_
-                  ((clause_not_marked_to_delete_heur_code a2 x_c) ()) ())
+                  ((clause_not_marked_to_delete_heur_code a2 x_d) ()) ())
                   (fn xb =>
                     (if not xb then (fn () => (plus_nat a1 one_nat, a2))
                       else (fn f_ => fn () => f_
-                             ((access_lit_in_clauses_heur_code a2 x_c zero_nata)
+                             ((access_lit_in_clauses_heur_code a2 x_d zero_nata)
                              ()) ())
-                             (fn x_f =>
+                             (fn x_g =>
                                (fn f_ => fn () => f_
-                                 ((get_the_propagation_reason_heur_code a2 x_f)
+                                 ((get_the_propagation_reason_heur_code a2 x_g)
                                  ()) ())
-                                 (fn x_h =>
+                                 (fn x_i =>
                                    (fn f_ => fn () => f_
                                      ((imp_option_eq
-(fn va => fn vb => (fn () => (equal_nat va vb))) x_h (SOME x_c))
+(fn va => fn vb => (fn () => (equal_nat va vb))) x_i (SOME x_d))
                                      ()) ())
                                      (fn xc =>
                                        (fn f_ => fn () => f_
- ((clause_lbd_heur_code a2 x_c) ()) ())
+ ((clause_lbd_heur_code a2 x_d) ()) ())
  (fn xaa =>
-   (fn f_ => fn () => f_ ((clause_is_learned_heur_code a2 x_c) ()) ())
+   (fn f_ => fn () => f_ ((clause_is_learned_heur_code a2 x_d) ()) ())
      (fn xba =>
        (if not xc andalso
              (Word32.< (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int)), xaa) andalso
                xba)
-         then (fn f_ => fn () => f_ ((mark_garbage_heur_code x_c a2) ()) ())
-                (fn x_l => (fn () => (plus_nat a1 one_nat, x_l)))
+         then (fn f_ => fn () => f_ ((mark_garbage_heur_code x_d a2) ()) ())
+                (fn x_m => (fn () => (plus_nat a1 one_nat, x_m)))
          else (fn () => (plus_nat a1 one_nat, a2))))))))))))
-          (xa, xi) ();
+          (x_a, xa) ();
     in
       let
         val (_, aa) = a;
