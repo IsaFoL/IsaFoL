@@ -1,4 +1,4 @@
-(*  Title:       Saturation Framework (originating from Ordered_Resolution_Prover.Inference_System)
+(*  Title:       Saturation Framework
     Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018
 *)
 
@@ -13,7 +13,6 @@ begin
 text \<open>
 TODO
 \<close>
-
 
 subsection \<open>Preliminaries\<close>
 
@@ -47,18 +46,9 @@ end
 
 datatype 'f inference =
   Infer (prems_of: "'f list") (concl_of: "'f ")
-  (* Infer (side_prems_of: "'a clause multiset") (main_prem_of: "'a clause") (concl_of: "'a clause") *)
-
-(* abbreviation prems_of :: "'a inference \<Rightarrow> 'a clause multiset" where
-  "prems_of \<gamma> \<equiv> side_prems_of \<gamma> + {#main_prem_of \<gamma>#}" *)
-
 
 abbreviation concls_of :: "'f inference set \<Rightarrow> 'f set" where
   "concls_of \<iota> \<equiv> concl_of ` \<iota>"
-
-(* FIXME: make an abbreviation *)
-(* definition infer_from :: "'a clause set \<Rightarrow> 'a inference \<Rightarrow> bool" where
-  "infer_from CC \<gamma> \<longleftrightarrow> set_mset (prems_of \<gamma>) \<subseteq> CC" *)
 
 locale inference_system = consequence_relation +
   fixes 
@@ -110,13 +100,6 @@ lemma Sup_Red_I_unit: "Sup_Red_I_llist (LCons X LNil) = Red_I X"
 definition fair :: "'f formulas llist \<Rightarrow> bool" where
   "fair D \<equiv> Inf (Liminf_llist D) \<subseteq> Sup_Red_I_llist D"
 
-(* derivation are finite or infinite sequences - are lists the best datastructures to represent such them*)
-(* inductive derivation :: "'f formulas list \<Rightarrow> bool" where
-  empty: "derivation []"
-  | one: "derivation [N]"
-  | more: "derivation (N2 # T) \<Longrightarrow> (N2 |= {# Bot_F #} \<Longrightarrow> N1 |= {# Bot_F #}) 
-            \<Longrightarrow> (N1 - N2) \<subseteq># Red_F N2 \<Longrightarrow> derivation (N1 # (N2 # T))"
-*)
 text \<open>TODO: replace in Lazy_List_Liminf\<close>
 lemma (in-) elem_Sup_llist_imp_Sup_upto_llist': "x \<in> Sup_llist Xs \<Longrightarrow> \<exists>j < llength Xs. x \<in> Sup_upto_llist Xs j"
   unfolding Sup_llist_def Sup_upto_llist_def by blast 
@@ -237,8 +220,6 @@ proof
     using deriv i_in_Liminf_or_Red_F[of D i] Red_I_subset_Liminf by blast
 qed
 
-
-
 end
 
 locale static_refutational_complete_inference_system = inference_system +
@@ -248,26 +229,28 @@ begin
 
 end
 
+
 locale dynamic_refutational_complete_inference_system = inference_system +
   assumes
-    dynamic_refutational_complete: "fair D \<and> (lnth D 0) |= {Bot_F}
+    dynamic_refutational_complete: "\<not> lnull D \<Longrightarrow> chain (\<turnstile>) D \<Longrightarrow> fair D \<Longrightarrow> (lnth D 0) |= {Bot_F}
       \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. Bot_F \<in> (lnth D i)"
 begin
 
-
-
+text \<open>not in Uwe's notes, personal addition for practice\<close>
 sublocale static_refutational_complete_inference_system
 proof standard
   fix N
   assume 
     saturated_N: "saturated N \<and> N |= {Bot_F}"
   define D where "D = LCons N LNil"
+  have[simp]: \<open>\<not> lnull D\<close> by (auto simp: D_def)
+  have deriv_D: \<open>chain (\<turnstile>) D\<close> by (simp add: chain.chain_singleton D_def)
   have liminf_is_N: "Liminf_llist D = N" by (simp add: D_def Liminf_llist_LCons)
-  also have head_D: "N = lnth D 0" by (simp add: D_def)
-  also have "Sup_Red_I_llist D = Red_I N" by (simp add: D_def Sup_Red_I_unit)
+  have head_D: "N = lnth D 0" by (simp add: D_def)
+  have "Sup_Red_I_llist D = Red_I N" by (simp add: D_def Sup_Red_I_unit)
   then have fair_D: "fair D" using saturated_N by (simp add: fair_def saturated_def liminf_is_N)  
   obtain i where "Bot_F \<in> (lnth D i)" and \<open>i < llength D\<close>
-    using dynamic_refutational_complete fair_D head_D saturated_N 
+    using dynamic_refutational_complete[of D] fair_D head_D saturated_N deriv_D
     by auto
   then have "i = 0"
     by (auto simp: D_def enat_0_iff)
@@ -278,238 +261,32 @@ qed
 
 end
 
-
-
-
-
-
-
-
-
-
-
-
-(* 
-text \<open>
-Satisfiability preservation is a weaker requirement than soundness.
-\<close>
-
-locale sat_preserving_inference_system = inference_system +
-  assumes \<Gamma>_sat_preserving: "satisfiable N \<Longrightarrow> satisfiable (N \<union> concls_of (inferences_from N))"
-*)
-
-locale sound_inference_system = inference_system +
-  assumes I_sound: "Infer CC C \<in> I \<Longrightarrow> mset CC |= {# C #}"
-begin
-
-(* lemma \<Gamma>_sat_preserving:
-  assumes sat_n: "satisfiable N"
-  shows "satisfiable (N \<union> concls_of (inferences_from N))"
-proof -
-  obtain I where i: "I \<Turnstile>s N"
-    using sat_n by blast
-  then have "\<And>CC D E. Infer CC D E \<in> \<Gamma> \<Longrightarrow> set_mset CC \<subseteq> N \<Longrightarrow> D \<in> N \<Longrightarrow> I \<Turnstile> E"
-    using \<Gamma>_sound unfolding true_clss_def true_cls_mset_def by (simp add: subset_eq)
-  then have "\<And>\<gamma>. \<gamma> \<in> \<Gamma> \<Longrightarrow> infer_from N \<gamma> \<Longrightarrow> I \<Turnstile> concl_of \<gamma>"
-    unfolding infer_from_def by (case_tac \<gamma>) clarsimp
-  then have "I \<Turnstile>s concls_of (inferences_from N)"
-    unfolding inferences_from_def image_def true_clss_def infer_from_def by blast
-  then have "I \<Turnstile>s N \<union> concls_of (inferences_from N)"
-    using i by simp
-  then show ?thesis
-    by blast
-qed
-
-sublocale sat_preserving_inference_system
-  by unfold_locales (erule \<Gamma>_sat_preserving) *)
-
-end
-
-locale reductive_inference_system = inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set" +
-  assumes \<Gamma>_reductive: "\<gamma> \<in> \<Gamma> \<Longrightarrow> concl_of \<gamma> < main_prem_of \<gamma>"
-
-
-subsection \<open>Refutational Completeness\<close>
-
-text \<open>
-Refutational completeness can be established once and for all for counterexample-reducing inference
-systems. The material formalized here draws from both the general framework of Section 4.2 and the
-concrete instances of Section 3.
-\<close>
-
-locale counterex_reducing_inference_system =
-  inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set" +
-  fixes I_of :: "'a clause set \<Rightarrow> 'a interp"
-  assumes \<Gamma>_counterex_reducing:
-    "{#} \<notin> N \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> D \<Longrightarrow> (\<And>C. C \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> C \<Longrightarrow> D \<le> C) \<Longrightarrow>
-     \<exists>CC E. set_mset CC \<subseteq> N \<and> I_of N \<Turnstile>m CC \<and> Infer CC D E \<in> \<Gamma> \<and> \<not> I_of N \<Turnstile> E \<and> E < D"
-begin
-
-lemma ex_min_counterex:
-  fixes N :: "('a :: wellorder) clause set"
-  assumes "\<not> I \<Turnstile>s N"
-  shows "\<exists>C \<in> N. \<not> I \<Turnstile> C \<and> (\<forall>D \<in> N. D < C \<longrightarrow> I \<Turnstile> D)"
-proof -
-  obtain C where "C \<in> N" and "\<not> I \<Turnstile> C"
-    using assms unfolding true_clss_def by auto
-  then have c_in: "C \<in> {C \<in> N. \<not> I \<Turnstile> C}"
-    by blast
-  show ?thesis
-    using wf_eq_minimal[THEN iffD1, rule_format, OF wf_less_multiset c_in] by blast
-qed
-
-(* Theorem 4.4 (generalizes Theorems 3.9 and 3.16) *)
-
-theorem saturated_model:
-  assumes
-    satur: "saturated N" and
-    ec_ni_n: "{#} \<notin> N"
-  shows "I_of N \<Turnstile>s N"
-proof -
-  have ec_ni_n: "{#} \<notin> N"
-    using ec_ni_n by auto
-
-  {
-    assume "\<not> I_of N \<Turnstile>s N"
-    then obtain D where
-      d_in_n: "D \<in> N" and
-      d_cex: "\<not> I_of N \<Turnstile> D" and
-      d_min: "\<And>C. C \<in> N \<Longrightarrow> C < D \<Longrightarrow> I_of N \<Turnstile> C"
-      by (meson ex_min_counterex)
-    then obtain CC E where
-      cc_subs_n: "set_mset CC \<subseteq> N" and
-      inf_e: "Infer CC D E \<in> \<Gamma>" and
-      e_cex: "\<not> I_of N \<Turnstile> E" and
-      e_lt_d: "E < D"
-      using \<Gamma>_counterex_reducing[OF ec_ni_n] not_less by metis
-    from cc_subs_n inf_e have "E \<in> N"
-      using d_in_n satur by (blast dest: saturatedD)
-    then have False
-      using e_cex e_lt_d d_min not_less by blast
-  }
-  then show ?thesis
-    by satx
-qed
-
-text \<open>
-Cf. Corollary 3.10:
-\<close>
-
-corollary saturated_complete: "saturated N \<Longrightarrow> \<not> satisfiable N \<Longrightarrow> {#} \<in> N"
-  using saturated_model by blast
-
-end
-
-
-subsection \<open>Compactness\<close>
-
-text \<open>
-Bachmair and Ganzinger claim that compactness follows from refutational completeness but leave the
-proof to the readers' imagination. Our proof relies on an inductive definition of saturation in
-terms of a base set of clauses.
-\<close>
-
-context inference_system
-begin
-
-inductive_set saturate :: "'a clause set \<Rightarrow> 'a clause set" for CC :: "'a clause set" where
-  base: "C \<in> CC \<Longrightarrow> C \<in> saturate CC"
-| step: "Infer CC' D E \<in> \<Gamma> \<Longrightarrow> (\<And>C'. C' \<in># CC' \<Longrightarrow> C' \<in> saturate CC) \<Longrightarrow> D \<in> saturate CC \<Longrightarrow>
-    E \<in> saturate CC"
-
-lemma saturate_mono: "C \<in> saturate CC \<Longrightarrow> CC \<subseteq> DD \<Longrightarrow> C \<in> saturate DD"
-  by (induct rule: saturate.induct) (auto intro: saturate.intros)
-
-lemma saturated_saturate[simp, intro]: "saturated (saturate N)"
-  unfolding saturated_def inferences_from_def infer_from_def image_def
-  by clarify (rename_tac x, case_tac x, auto elim!: saturate.step)
-
-lemma saturate_finite: "C \<in> saturate CC \<Longrightarrow> \<exists>DD. DD \<subseteq> CC \<and> finite DD \<and> C \<in> saturate DD"
-proof (induct rule: saturate.induct)
-  case (base C)
-  then have "{C} \<subseteq> CC" and "finite {C}" and "C \<in> saturate {C}"
-    by (auto intro: saturate.intros)
-  then show ?case
-    by blast
-next
-  case (step CC' D E)
-  obtain DD_of where
-    "\<And>C. C \<in># CC' \<Longrightarrow> DD_of C \<subseteq> CC \<and> finite (DD_of C) \<and> C \<in> saturate (DD_of C)"
-    using step(3) by metis
-  then have
-    "(\<Union>C \<in> set_mset CC'. DD_of C) \<subseteq> CC"
-    "finite (\<Union>C \<in> set_mset CC'. DD_of C) \<and> set_mset CC' \<subseteq> saturate (\<Union>C \<in> set_mset CC'. DD_of C)"
-    by (auto intro: saturate_mono)
-  then obtain DD where
-    d_sub: "DD \<subseteq> CC" and d_fin: "finite DD" and in_sat_d: "set_mset CC' \<subseteq> saturate DD"
-    by blast
-  obtain EE where
-    e_sub: "EE \<subseteq> CC" and e_fin: "finite EE" and in_sat_ee: "D \<in> saturate EE"
-    using step(5) by blast
-  have "DD \<union> EE \<subseteq> CC"
-    using d_sub e_sub step(1) by fast
-  moreover have "finite (DD \<union> EE)"
-    using d_fin e_fin by fast
-  moreover have "E \<in> saturate (DD \<union> EE)"
-    using in_sat_d in_sat_ee step.hyps(1)
-    by (blast intro: inference_system.saturate.step saturate_mono)
-  ultimately show ?case
-    by blast
-qed
-
-end
-
-context sound_inference_system
-begin
-
-theorem saturate_sound: "C \<in> saturate CC \<Longrightarrow> I \<Turnstile>s CC \<Longrightarrow> I \<Turnstile> C"
-  by (induct rule: saturate.induct) (auto simp: true_cls_mset_def true_clss_def \<Gamma>_sound)
-
-end
-
-context sat_preserving_inference_system
-begin
-
-text \<open>
-This result surely holds, but we have yet to prove it. The challenge is: Every time a new clause is
-introduced, we also get a new interpretation (by the definition of
-@{text sat_preserving_inference_system}). But the interpretation we want here is then the one that
-exists "at the limit". Maybe we can use compactness to prove it.
-\<close>
-
-theorem saturate_sat_preserving: "satisfiable CC \<Longrightarrow> satisfiable (saturate CC)"
-  oops
-
-end
-
-locale sound_counterex_reducing_inference_system =
-  counterex_reducing_inference_system + sound_inference_system
-begin
-
-text \<open>
-Compactness of clausal logic is stated as Theorem 3.12 for the case of unordered ground resolution.
-The proof below is a generalization to any sound counterexample-reducing inference system. The
-actual theorem will become available once the locale has been instantiated with a concrete inference
-system.
-\<close>
-
-theorem clausal_logic_compact:
-  fixes N :: "('a :: wellorder) clause set"
-  shows "\<not> satisfiable N \<longleftrightarrow> (\<exists>DD \<subseteq> N. finite DD \<and> \<not> satisfiable DD)"
+text \<open>lemma 6 in Uwe's notes\<close>
+text \<open>The assumption that the derivation is not the empty derivation had to be added to the 
+  hypotheses of dynamic_refutational_complete for the proof of lemma 6 to work. Otherwise, 
+  (lnth D 0) is undefined and the first 'have' can't be proven.\<close>
+sublocale static_refutational_complete_inference_system \<subseteq> dynamic_refutational_complete_inference_system
 proof
-  assume "\<not> satisfiable N"
-  then have "{#} \<in> saturate N"
-    using saturated_complete saturated_saturate saturate.base unfolding true_clss_def by meson
-  then have "\<exists>DD \<subseteq> N. finite DD \<and> {#} \<in> saturate DD"
-    using saturate_finite by fastforce
-  then show "\<exists>DD \<subseteq> N. finite DD \<and> \<not> satisfiable DD"
-    using saturate_sound by auto
-next
-  assume "\<exists>DD \<subseteq> N. finite DD \<and> \<not> satisfiable DD"
-  then show "\<not> satisfiable N"
-    by (blast intro: true_clss_mono)
+  fix D
+  assume
+    deriv: \<open>chain (\<turnstile>) D\<close> and
+    fair: \<open>fair D\<close> and
+    unsat: \<open>(lnth D 0) |= {Bot_F}\<close> and
+    non_empty: \<open>\<not> lnull D\<close>
+    have subs: \<open>(lnth D 0) \<subseteq> Sup_llist D\<close>
+      using lhd_subset_Sup_llist[of D] non_empty by (simp add: lhd_conv_lnth)
+    have \<open>Sup_llist D |= {Bot_F}\<close> 
+      using unsat subset_entailed[OF subs] transitive_entails[of "Sup_llist D" "lnth D 0"] by auto
+    then have Sup_no_Red: \<open>Sup_llist D - Red_F (Sup_llist D) |= {Bot_F}\<close> using Red_F_Bot_F by auto
+    have Sup_no_Red_in_Liminf: \<open>Sup_llist D - Red_F (Sup_llist D) \<subseteq> Liminf_llist D\<close>
+      using deriv Red_in_Sup by auto
+    have Liminf_entails_Bot_F: \<open>Liminf_llist D |= {Bot_F}\<close>
+      using Sup_no_Red subset_entailed[OF Sup_no_Red_in_Liminf] transitive_entails by blast
+    have \<open>saturated (Liminf_llist D)\<close> 
+      using deriv fair fair_implies_Liminf_saturated unfolding saturated_def by auto
+    then have \<open>Bot_F \<in> (Liminf_llist D)\<close> 
+      using static_refutational_complete Liminf_entails_Bot_F by auto
+    then show \<open>\<exists>i\<in>{i. enat i < llength D}. Bot_F \<in> lnth D i\<close> unfolding Liminf_llist_def by auto
 qed
-
-end
 
 end
