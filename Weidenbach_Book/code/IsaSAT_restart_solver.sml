@@ -822,8 +822,6 @@ fun length_u64_code A_ =
 
 fun op_list_is_empty x = null x;
 
-val five_uint64 : Uint64.uint64 = Uint64.fromInt (5 : IntInf.int);
-
 fun incr_conflict x =
   (fn (propa, (confl, dec)) => (propa, (Uint64.plus confl Uint64.one, dec))) x;
 
@@ -1028,6 +1026,12 @@ fun arena_status_code x =
       (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))))
     x;
 
+fun mark_garbage_code x =
+  (fn ai => fn bi =>
+    arl_set heap_uint32 ai (minus_nat bi (nat_of_integer (4 : IntInf.int)))
+      (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
+    x;
+
 fun ema_init (A1_, A2_) =
   shiftl A1_ (one A2_) (nat_of_integer (48 : IntInf.int));
 
@@ -1075,6 +1079,13 @@ fun header_size_code x =
       (if xa then nat_of_integer (4 : IntInf.int)
         else nat_of_integer (5 : IntInf.int))
     end)
+    x;
+
+fun length_vdom_code x =
+  (fn (_, (_, (_, (_, (_, (_, (_, (_, (_,
+(_, (_, (_, (_, (_, (_, (a1o, _))))))))))))))))
+     =>
+    arl_length heap_nat a1o)
     x;
 
 fun isa_trail_nth_code x =
@@ -1918,6 +1929,20 @@ fun get_fast_ema_heur_slow_code x =
       end))
     x;
 
+fun local_restart_only_impl x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, ((_, (_, (_, a2n))), (_, (_, (_, (_, a2r))))))))))))))))
+          = xi;
+      in
+        less_nat a2r
+          (plus_nat (nat_of_integer (2000 : IntInf.int))
+            (times_nat (nat_of_integer (300 : IntInf.int)) (nat_of_uint64 a2n)))
+      end))
+    x;
+
 fun restart_required_heur_slow_code x =
   (fn ai => fn bi => fn () =>
     let
@@ -1926,14 +1951,183 @@ fun restart_required_heur_slow_code x =
       val x_d = get_fast_ema_heur_slow_code ai ();
       val x_f = get_conflict_count_heur_slow_code ai ();
       val x_h = get_learned_count_slow_code ai ();
+      val xaa = local_restart_only_impl ai ();
     in
-      Uint64.less x_d
-        (shiftr_uint64 (Uint64.times five_uint64 xa)
-          (nat_of_integer (2 : IntInf.int))) andalso
+      (if xaa
+        then Uint64.less x_d
+               (shiftr_uint64
+                 (Uint64.times (Uint64.fromInt (5 : IntInf.int)) xa)
+                 (nat_of_integer (2 : IntInf.int)))
+        else true) andalso
         (Word32.< (minimum_number_between_restarts, x_f) andalso
           less_nat bi x_h)
     end)
     x;
+
+fun get_the_propagation_reason_code x =
+  (fn ai => fn bi =>
+    let
+      val (_, (a1a, (_, (a1c, _)))) = ai;
+    in
+      (fn () =>
+        let
+          val xa = nth_u_code heap_nat a1c (atm_of_code bi) ();
+          val xaa = nth_u_code heap_uint32 a1a bi ();
+        in
+          (if ((xaa : Word32.word) = sET_TRUE_code) andalso
+                not (equal_nat xa one_nat)
+            then SOME xa else NONE)
+        end)
+    end)
+    x;
+
+fun get_the_propagation_reason_heur_code x =
+  (fn ai => fn bi =>
+    let
+      val (a1, (_, (_, (_, (_, (_, (_, (_,
+ (_, (_, (_, (_, (_, (_, (_, (_, _))))))))))))))))
+        = ai;
+    in
+      get_the_propagation_reason_code a1 bi
+    end)
+    x;
+
+fun incr_restart_stat_slow_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (a1, (a1a, (a1b, (a1c, (a1d, (a1e,
+   (a1f, (a1g, (a1h, (a1i, (a1j, (a1k, a2k))))))))))))
+          = xi;
+      in
+        (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+     (a1g, (a1h, (a1i, (a1j, (incr_restart a1k, a2k))))))))))))
+      end))
+    x;
+
+fun clause_is_learned_heur_code x =
+  (fn ai => fn bi =>
+    let
+      val (_, (a1a, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, (_, (_, (_, (_, (_, _))))))))))))))))
+        = ai;
+    in
+      (fn () => let
+                  val xa = arena_status_code a1a bi ();
+                in
+                  ((xa : Word32.word) = (Word32.fromInt 1))
+                end)
+    end)
+    x;
+
+fun number_clss_to_keep_impl x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, ((_, (_, (_, a2n))), (_, (_, (_, (_, _))))))))))))))))
+          = xi;
+      in
+        plus_nat (nat_of_integer (2000 : IntInf.int))
+          (times_nat (nat_of_integer (300 : IntInf.int)) (nat_of_uint64 a2n))
+      end))
+    x;
+
+fun mark_garbage_heur_code x =
+  (fn ai =>
+    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
+      =>
+    fn () =>
+    let
+      val xa = mark_garbage_code a1a ai ();
+    in
+      (a1, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
+  (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+(a1n, (a1o, minus_nat a2o one_nat))))))))))))))))
+    end)
+    x;
+
+fun isa_get_clause_LBD_code x =
+  (fn ai => fn bi =>
+    arl_get heap_uint32 ai (minus_nat bi (nat_of_integer (2 : IntInf.int))))
+    x;
+
+fun clause_lbd_heur_code x =
+  (fn ai => fn bi =>
+    let
+      val (_, (a1a, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, (_, (_, (_, (_, (_, _))))))))))))))))
+        = ai;
+    in
+      isa_get_clause_LBD_code a1a bi
+    end)
+    x;
+
+fun access_vdom_at_code x =
+  (fn ai => fn bi =>
+    let
+      val (_, (_, (_, (_, (_, (_, (_, (_,
+(_, (_, (_, (_, (_, (_, (_, (a1o, _))))))))))))))))
+        = ai;
+    in
+      arl_get heap_nat a1o bi
+    end)
+    x;
+
+fun mark_to_delete_clauses_wl_D_heur_impl x =
+  (fn xi => fn () =>
+    let
+      val xa = number_clss_to_keep_impl xi ();
+      val a =
+        heap_WHILET
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((length_vdom_code a2) ()) ())
+              (fn x_c => (fn () => (less_nat a1 x_c))))
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((access_vdom_at_code a2 a1) ()) ())
+              (fn x_c =>
+                (fn f_ => fn () => f_
+                  ((clause_not_marked_to_delete_heur_code a2 x_c) ()) ())
+                  (fn xb =>
+                    (if not xb then (fn () => (plus_nat a1 one_nat, a2))
+                      else (fn f_ => fn () => f_
+                             ((access_lit_in_clauses_heur_code a2 x_c zero_nata)
+                             ()) ())
+                             (fn x_f =>
+                               (fn f_ => fn () => f_
+                                 ((get_the_propagation_reason_heur_code a2 x_f)
+                                 ()) ())
+                                 (fn x_h =>
+                                   (fn f_ => fn () => f_
+                                     ((imp_option_eq
+(fn va => fn vb => (fn () => (equal_nat va vb))) x_h (SOME x_c))
+                                     ()) ())
+                                     (fn xc =>
+                                       (fn f_ => fn () => f_
+ ((clause_lbd_heur_code a2 x_c) ()) ())
+ (fn xaa =>
+   (fn f_ => fn () => f_ ((clause_is_learned_heur_code a2 x_c) ()) ())
+     (fn xba =>
+       (if not xc andalso
+             (Word32.< (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int)), xaa) andalso
+               xba)
+         then (fn f_ => fn () => f_ ((mark_garbage_heur_code x_c a2) ()) ())
+                (fn x_l => (fn () => (plus_nat a1 one_nat, x_l)))
+         else (fn () => (plus_nat a1 one_nat, a2))))))))))))
+          (xa, xi) ();
+    in
+      let
+        val (_, aa) = a;
+      in
+        incr_restart_stat_slow_code aa
+      end
+        ()
+    end)
+    x;
+
+fun cdcl_twl_full_restart_wl_prog_heur_code x =
+  mark_to_delete_clauses_wl_D_heur_impl x;
 
 fun find_local_restart_target_level_code x =
   (fn ai => fn bi =>
@@ -1987,19 +2181,6 @@ else Word32.+ (a2j, (Word32.fromInt 1)))))
 fun find_local_restart_target_level_st_code x =
   (fn (a1, (_, (_, (_, (_, (a1e, (_, (_, (_, (_, _)))))))))) =>
     find_local_restart_target_level_code a1 a1e)
-    x;
-
-fun incr_restart_stat_slow_code x =
-  (fn xi =>
-    (fn () =>
-      let
-        val (a1, (a1a, (a1b, (a1c, (a1d, (a1e,
-   (a1f, (a1g, (a1h, (a1i, (a1j, (a1k, a2k))))))))))))
-          = xi;
-      in
-        (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-     (a1g, (a1h, (a1i, (a1j, (incr_restart a1k, a2k))))))))))))
-      end))
     x;
 
 fun get_pos_of_level_in_trail_imp_code x =
@@ -2139,7 +2320,16 @@ fun cdcl_twl_local_restart_wl_D_heur_code x =
     end)
     x;
 
-fun cdcl_twl_restart_wl_heur_code x = cdcl_twl_local_restart_wl_D_heur_code x;
+fun cdcl_twl_restart_wl_heur_code x =
+  (fn xi => fn () =>
+    let
+      val xa = local_restart_only_impl xi ();
+    in
+      (if xa then cdcl_twl_local_restart_wl_D_heur_code xi
+        else cdcl_twl_full_restart_wl_prog_heur_code xi)
+        ()
+    end)
+    x;
 
 fun restart_wl_D_heur_slow_code x =
   (fn ai => fn bia => fn bi => fn () =>
