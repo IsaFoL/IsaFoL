@@ -1270,15 +1270,15 @@ definition (in isasat_input_ops) update_blit_wl_heur_pre where
        twl_st_heur_def map_fun_rel_def update_blit_wl_heur_pre_def
       simp: vdom_m_update_subset)
   subgoal for aa ab ac ad bd ae af ag ah ai aj be bf ak al am ao av aw bl bi bj bk  ay az
-       bp x
-    apply (subgoal_tac \<open>vdom_m (az(av := az av[bi := (aw, bk, bl)])) ay \<subseteq> vdom_m az ay\<close>)
+       bp x y
+    apply (subgoal_tac \<open>vdom_m (bp(aw := bp aw[bj := (bl, ay, bi)])) az \<subseteq> vdom_m bp az\<close>)
     apply fast
     apply (rule vdom_m_update_subset')
     apply auto
     done
   subgoal for aa ab ac ad bd ae af ag ah ai aj be bf ak al am ao av aw bi bj bk bl bm ay az
-       bp x
-    apply (subgoal_tac \<open>vdom_m (bp(aw := bp aw[bk := (bi, bm, bj)])) ay \<subseteq> vdom_m bp ay\<close>)
+       bp x y
+    apply (subgoal_tac \<open>vdom_m (x(bi := x bi[bl := (bj, ay, bk)])) az \<subseteq> vdom_m x az\<close>)
     apply fast
     apply (rule vdom_m_update_subset')
     apply auto

@@ -2538,14 +2538,14 @@ definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st
     (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
        lbd, vdom). do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
-     let init_stats = (0::uint64, 0::uint64, 0::uint64, 0::uint64);
+     let init_stats = (0::uint64, 0::uint64, 0::uint64, 0::uint64, 0::uint64);
      let fema = ema_init;
      let sema = ema_init;
      let ccount = zero_uint32;
      let lcount = 0;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
        clvls, cach, lbd, take1(replicate 160 (Pos zero_uint32_nat)), init_stats,
-        fema, sema, ccount, vdom, lcount)
+        fema, sema, ccount, vdom, [], lcount)
      })\<close>
 
 lemma (in isasat_input_ops)finalise_init_finalise_init:

@@ -140,7 +140,7 @@ definition (in -)empty_conflict_code :: \<open>(_ list option \<times> stats) nr
   \<open>empty_conflict_code = do{
      let M0 = op_arl_empty;
      let M1 = Some M0;
-     RETURN (M1, (zero_uint64, zero_uint64, zero_uint64, zero_uint64))}\<close>
+     RETURN (M1, (zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64))}\<close>
 
 abbreviation (in -) model_stat_assn where
   \<open>model_stat_assn \<equiv> option_assn (arl_assn unat_lit_assn) *a stats_assn\<close>
@@ -155,7 +155,7 @@ sepref_definition (in -) empty_conflict_code'
 declare empty_conflict_code'.refine[sepref_fr_rules]
 
 definition empty_init_code :: \<open>_ list option \<times> stats\<close> where
-  \<open>empty_init_code = (None, (zero_uint64, zero_uint64, zero_uint64, zero_uint64))\<close>
+  \<open>empty_init_code = (None, (zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64))\<close>
 
 sepref_definition (in -) empty_init_code'
   is \<open>uncurry0 (RETURN empty_init_code)\<close>
@@ -170,6 +170,8 @@ text \<open>
   This is a trick to recover from consumption of a variable (\<^term>\<open>\<A>\<^sub>i\<^sub>n\<close>) that is passed as
   argument and destroyed by the initialisation: We copy it as a zero-cost
   (by creating a \<^term>\<open>()\<close>), because we don't need it in the code and only in the specification.
+
+  TODO rename to ghost
 \<close>
 definition virtual_copy where
   [simp]: \<open>virtual_copy = id\<close>
