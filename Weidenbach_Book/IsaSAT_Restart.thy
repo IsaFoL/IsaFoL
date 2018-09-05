@@ -1014,26 +1014,27 @@ definition (in isasat_input_ops) mark_to_delete_clauses_wl_D_heur_pre :: \<open>
   \<open>mark_to_delete_clauses_wl_D_heur_pre S \<longleftrightarrow>
     (\<exists>S'. (S, S') \<in> twl_st_heur \<and> mark_to_delete_clauses_wl_D_pre S')\<close>
 
-definition (in isasat_input_ops) mark_garbage_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>mark_garbage_heur C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+definition (in isasat_input_ops) mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, avdom, lcount).
     (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount - 1))\<close>
+       vdom, delete_index_and_swap avdom i, lcount - 1))\<close>
 
 lemma (in isasat_input_ops) get_vdom_mark_garbage[simp]:
-  \<open>get_vdom (mark_garbage_heur C S) = get_vdom S\<close>
-  \<open>get_avdom (mark_garbage_heur C S) = get_avdom S\<close>
+  \<open>get_vdom (mark_garbage_heur C i S) = get_vdom S\<close>
+  \<open>get_avdom (mark_garbage_heur C i S) = delete_index_and_swap (get_avdom S) i\<close>
   by (cases S; auto simp: mark_garbage_heur_def; fail)+
 
 lemma (in isasat_input_ops) mark_garbage_heur_wl:
   \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
-  \<not>irred (get_clauses_wl T) C \<Longrightarrow>
- (mark_garbage_heur C S, mark_garbage_wl C T) \<in> twl_st_heur\<close>
+  \<not>irred (get_clauses_wl T) C \<Longrightarrow> 
+ (mark_garbage_heur C i S, mark_garbage_wl C T) \<in> twl_st_heur\<close>
   by (cases S; cases T)
-    (auto simp: twl_st_heur_def mark_garbage_heur_def mark_garbage_wl_def
+     (auto simp: twl_st_heur_def mark_garbage_heur_def mark_garbage_wl_def
       learned_clss_l_l_fmdrop size_remove1_mset_If
     intro: valid_arena_extra_information_mark_to_delete'
-    dest: in_vdom_m_fmdropD)
+    dest!: in_set_butlastD in_vdom_m_fmdropD
+    elim!: in_set_upd_cases)
 
 lemma (in isasat_input_ops) twl_st_heur_valid_arena[twl_st_heur]:
   assumes
@@ -1104,6 +1105,12 @@ lemma (in -) MINIMUM_DELETION_LBD_hnr[sepref_fr_rules]:
  \<open>(uncurry0 (return 3), uncurry0 (RETURN MINIMUM_DELETION_LBD)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: MINIMUM_DELETION_LBD_def uint32_nat_rel_def br_def)
 
+definition (in isasat_input_ops)  delete_index_vdom_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>where
+  \<open>delete_index_vdom_heur = (\<lambda>i (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+     ccount, vdom, avdom, lcount). 
+     (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+       ccount, vdom, delete_index_and_swap avdom i, lcount))\<close>
+
 definition (in isasat_input_ops) mark_to_delete_clauses_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
@@ -1118,7 +1125,7 @@ where
         ASSERT(access_vdom_at_pre T i);
         let C = get_avdom T ! i;
         ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
-        if \<not>clause_not_marked_to_delete_heur T C then RETURN (i+1, T)
+        if \<not>clause_not_marked_to_delete_heur T C then RETURN (i, delete_index_vdom_heur i T)
         else do {
           ASSERT(access_lit_in_clauses_heur_pre ((T, C), 0));
           let L = access_lit_in_clauses_heur T C 0;
@@ -1132,7 +1139,7 @@ where
           then
             do {
               ASSERT(mark_garbage_pre (get_clauses_wl_heur T, C));
-              RETURN (i+1, mark_garbage_heur C T)
+              RETURN (i, mark_garbage_heur C i T)
             }
           else
             RETURN (i+1, T)
@@ -1161,23 +1168,25 @@ proof -
       S \<leftarrow> reorder_vdom_wl S;
       xs \<leftarrow> collect_valid_indices_wl S;
       l \<leftarrow> SPEC(\<lambda>_::nat. True);
-      (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_D_inv S xs\<^esup>
-        (\<lambda>(i, T). i < length xs)
-        (\<lambda>(i, T). do {
-          if(xs!i \<notin># dom_m (get_clauses_wl T)) then RETURN (i+1, T)
+      (_, S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_D_inv S xs\<^esup>
+        (\<lambda>(i, T, xs). i < length xs)
+        (\<lambda>(i, T, xs). do {
+          if(xs!i \<notin># dom_m (get_clauses_wl T)) then RETURN (i, T, delete_index_and_swap xs i)
           else do {
             ASSERT(0 < length (get_clauses_wl T\<propto>(xs!i)));
             ASSERT(get_clauses_wl T\<propto>(xs!i)!0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
-            can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and> \<not>irred (get_clauses_wl T) (xs!i));
+            can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow>
+              (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and>
+               \<not>irred (get_clauses_wl T) (xs!i));
             ASSERT(i < length xs);
             if can_del
             then
-              RETURN (i+1, mark_garbage_wl (xs!i) T)
+              RETURN (i, mark_garbage_wl (xs!i) T, delete_index_and_swap xs i)
             else
-              RETURN (i+1, T)
+              RETURN (i+1, T, xs)
           }
         })
-        (l, S);
+        (l, S, xs);
       RETURN S
     })\<close>
     unfolding mark_to_delete_clauses_wl_D_def reorder_vdom_wl_def
@@ -1196,7 +1205,7 @@ proof -
           ASSERT(access_vdom_at_pre T i);
           let C = get_avdom T ! i;
           ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
-          if(\<not>clause_not_marked_to_delete_heur T C) then RETURN (i+1, T)
+          if(\<not>clause_not_marked_to_delete_heur T C) then RETURN (i, delete_index_vdom_heur i T)
           else do {
             ASSERT(access_lit_in_clauses_heur_pre ((T, C), 0));
             let L = access_lit_in_clauses_heur T C 0;
@@ -1209,7 +1218,7 @@ proof -
             if can_del
             then do {
               ASSERT(mark_garbage_pre (get_clauses_wl_heur T, C));
-              RETURN (i+1, mark_garbage_heur C T)
+              RETURN (i, mark_garbage_heur C i T)
             }
             else
               RETURN (i+1, T)
@@ -1236,16 +1245,16 @@ proof -
     for x y l la
     by auto
   have get_the_propagation_reason:
-    \<open>get_the_propagation_reason (get_trail_wl_heur x2a)
-       (arena_lit (get_clauses_wl_heur x2a) (get_avdom x2a ! x1a + 0))
-        \<le> \<Down> {(D, b). b \<longleftrightarrow> ((D \<noteq> Some (get_avdom x2a ! x1a)) \<and>
-               arena_lbd (get_clauses_wl_heur x2a) (get_avdom x2a ! x1a) > MINIMUM_DELETION_LBD \<and>
-               arena_status (get_clauses_wl_heur x2a) (get_avdom x2a ! x1a) = LEARNED)}
+    \<open>get_the_propagation_reason (get_trail_wl_heur x2b)
+       (arena_lit (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b + 0))
+        \<le> \<Down> {(D, b). b \<longleftrightarrow> ((D \<noteq> Some (get_avdom x2b ! x1b)) \<and>
+               arena_lbd (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) > MINIMUM_DELETION_LBD \<and>
+               arena_status (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) = LEARNED)}
        (SPEC
            (\<lambda>b. b \<longrightarrow>
-                Propagated (get_clauses_wl x2 \<propto> (xs ! x1) ! 0) (xs ! x1)
-                \<notin> set (get_trail_wl x2) \<and>
-                \<not> irred (get_clauses_wl x2) (xs ! x1)))\<close>
+                Propagated (get_clauses_wl x1a \<propto> (x2a ! x1) ! 0) (x2a ! x1)
+                \<notin> set (get_trail_wl x1a) \<and>
+                \<not> irred (get_clauses_wl x1a) (x2a ! x1)))\<close>
   if
     \<open>(x, y) \<in> twl_st_heur\<close> and
     \<open>mark_to_delete_clauses_wl_D_pre y\<close> and
@@ -1258,32 +1267,31 @@ proof -
          mark_to_delete_clauses_wl_D_pre V) \<and>
         (mark_to_delete_clauses_wl_D_heur_pre x \<longrightarrow>
          mark_to_delete_clauses_wl_D_heur_pre U)}\<close> and
-    \<open>(xs', xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_avdom S}\<close> and
+    \<open>(ys, xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_avdom S}\<close> and
     \<open>(l, la) \<in> nat_rel\<close> and
     \<open>la \<in> {_. True}\<close> and
     \<open>(xa, x')
-     \<in> nat_rel \<times>\<^sub>f
-       {(Sa, T). (Sa, T) \<in> twl_st_heur \<and> get_avdom Sa = get_avdom S}\<close> and
+     \<in> nat_rel \<times>\<^sub>f {(Sa, T, xs). (Sa, T) \<in> twl_st_heur \<and> xs = get_avdom Sa}\<close> and
     \<open>case xa of (i, S) \<Rightarrow> i < length (get_avdom S)\<close> and
-    \<open>case x' of (i, T) \<Rightarrow> i < length xs\<close> and
-    \<open>mark_to_delete_clauses_wl_D_inv Sa xs x'\<close> and
+    \<open>case x' of (i, T, xs) \<Rightarrow> i < length xs\<close> and
+    \<open>x1b < length (get_avdom x2b)\<close> and
+    \<open>access_vdom_at_pre x2b x1b\<close> and
+    \<open>clause_not_marked_to_delete_heur_pre (x2b, get_avdom x2b ! x1b)\<close> and
+    \<open>\<not> \<not> clause_not_marked_to_delete_heur x2b (get_avdom x2b ! x1b)\<close> and
+    \<open>\<not> x2a ! x1 \<notin># dom_m (get_clauses_wl x1a)\<close> and
+    \<open>0 < length (get_clauses_wl x1a \<propto> (x2a ! x1))\<close> and
+    \<open>get_clauses_wl x1a \<propto> (x2a ! x1) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+    \<open>access_lit_in_clauses_heur_pre ((x2b, get_avdom x2b ! x1b), 0)\<close> and
+    \<open>x2 = (x1a, x2a)\<close> and
     \<open>x' = (x1, x2)\<close> and
-    \<open>xa = (x1a, x2a)\<close> and
-    \<open>x1a < length (get_avdom x2a)\<close> and
-    \<open>access_vdom_at_pre x2a x1a\<close> and
-    \<open>clause_not_marked_to_delete_heur_pre (x2a, get_avdom x2a ! x1a)\<close> and
-    \<open>\<not> \<not> clause_not_marked_to_delete_heur x2a (get_avdom x2a ! x1a)\<close> and
-    \<open>\<not> xs ! x1 \<notin># dom_m (get_clauses_wl x2)\<close> and
-    \<open>0 < length (get_clauses_wl x2 \<propto> (xs ! x1))\<close> and
-    \<open>get_clauses_wl x2 \<propto> (xs ! x1) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
-    \<open>access_lit_in_clauses_heur_pre ((x2a, get_avdom x2a ! x1a), 0)\<close> and
-    \<open>arena_lit (get_clauses_wl_heur x2a) (get_avdom x2a ! x1a + 0) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-    for x y S Sa xs' xs l la xa x' x1 x2 x1a x2a
+    \<open>xa = (x1b, x2b)\<close> and
+    \<open>arena_lit (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b + 0) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    for x y S Sa xs' xs l la xa x' x1 x2 x1a x2a x1' x2' x3 x1b ys x2b
   proof -
     show ?thesis
       using that unfolding get_the_propagation_reason_def apply -
       by (rule RES_refine)
-        (auto simp: twl_st_heur lits_of_def intro!: 
+        (auto simp: twl_st_heur lits_of_def
         dest: twl_st_heur_same_annotD imageI[of _ _ lit_of])
   qed
   have \<open>((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema,
@@ -1333,7 +1341,60 @@ proof -
          intro: mark_to_delete_clauses_wl_D_heur_pre_vdom'[THEN iffD1]
          dest: mset_eq_setD)
     done
+have already_deleted:
+ \<open>((x1b, delete_index_vdom_heur x1b x2b), x1, x1a,
+       delete_index_and_swap x2a x1)
+      \<in> nat_rel \<times>\<^sub>f {(Sa, T, xs). (Sa, T) \<in> twl_st_heur \<and> xs = get_avdom Sa}\<close>
+  if
+    \<open>(x, y) \<in> twl_st_heur\<close> and
+    \<open>mark_to_delete_clauses_wl_D_pre y\<close> and
+    \<open>mark_to_delete_clauses_wl_D_heur_pre x\<close> and
+    \<open>(S, Sa)
+     \<in> {(U, V).
+        (U, V) \<in> twl_st_heur \<and>
+        V = y \<and>
+        (mark_to_delete_clauses_wl_D_pre y \<longrightarrow>
+         mark_to_delete_clauses_wl_D_pre V) \<and>
+        (mark_to_delete_clauses_wl_D_heur_pre x \<longrightarrow>
+         mark_to_delete_clauses_wl_D_heur_pre U)}\<close> and
+    \<open>(ys, xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_avdom S}\<close> and
+    \<open>(l, la) \<in> nat_rel\<close> and
+    \<open>la \<in> {_. True}\<close> and
+    xx: \<open>(xa, x')
+     \<in> nat_rel \<times>\<^sub>f {(Sa, T, xs). (Sa, T) \<in> twl_st_heur \<and> xs = get_avdom Sa}\<close> and
+    \<open>case xa of (i, S) \<Rightarrow> i < length (get_avdom S)\<close> and
+    \<open>case x' of (i, T, xs) \<Rightarrow> i < length xs\<close> and
+    \<open>mark_to_delete_clauses_wl_D_inv Sa xs x'\<close> and
+    st:
+      \<open>x2 = (x1a, x2a)\<close>
+      \<open>x' = (x1, x2)\<close>
+      \<open>xa = (x1b, x2b)\<close> and
+    \<open>x1b < length (get_avdom x2b)\<close> and
+    \<open>access_vdom_at_pre x2b x1b\<close> and
+    \<open>clause_not_marked_to_delete_heur_pre (x2b, get_avdom x2b ! x1b)\<close> and
+    \<open>\<not> clause_not_marked_to_delete_heur x2b (get_avdom x2b ! x1b)\<close> and
+    \<open>x2a ! x1 \<notin># dom_m (get_clauses_wl x1a)\<close>
+  for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d ys x1b Sa
+proof -
+  show ?thesis
+    using xx unfolding st
+    by (auto simp: twl_st_heur_def delete_index_vdom_heur_def
+        twl_st_heur_def mark_garbage_heur_def mark_garbage_wl_def
+        learned_clss_l_l_fmdrop size_remove1_mset_If
+      intro: valid_arena_extra_information_mark_to_delete'
+      dest!: in_set_butlastD in_vdom_m_fmdropD
+      elim!: in_set_upd_cases)
+qed
 
+  have init:
+    \<open>(u, xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_avdom S} \<Longrightarrow>
+    (l, la) \<in> nat_rel \<Longrightarrow>
+    (S, Sa) \<in> twl_st_heur \<Longrightarrow>
+    mark_to_delete_clauses_wl_D_inv Sa xs (la, Sa, xs) \<Longrightarrow>
+    ((l, S), la, Sa, xs) \<in>  nat_rel \<times>\<^sub>f
+       {(Sa, (T, xs)). (Sa, T) \<in> twl_st_heur \<and> xs = get_avdom Sa}\<close>
+       for x y S Sa xs l la u
+    by auto
   show ?thesis
     supply sort_vdom_heur_def[simp]
     unfolding mark_to_delete_clauses_wl_D_heur_alt_def mark_to_delete_clauses_wl_D_alt_def
@@ -1342,49 +1403,55 @@ proof -
     apply (refine_vcg sort_vdom_heur_reorder_vdom_wl[THEN fref_to_Down])
     subgoal
       unfolding mark_to_delete_clauses_wl_D_heur_pre_def by fast
-    subgoal
-      unfolding mark_to_delete_clauses_wl_D_heur_pre_def by fast
-    subgoal
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule init; solves auto)
+    subgoal by auto
+    subgoal by auto
+    (* subgoal
+      unfolding mark_to_delete_clauses_wl_D_heur_pre_def by fast *)
+    (* subgoal
       by auto
     subgoal
-      by auto
+      by auto *)
     subgoal by (auto simp: access_vdom_at_pre_def)
+    (* subgoal by (auto simp: access_vdom_at_pre_def)
     subgoal by (auto simp: access_vdom_at_pre_def)
-    subgoal by (auto simp: access_vdom_at_pre_def)
-    subgoal by (auto simp: access_vdom_at_pre_def)
-    subgoal for x y S xs l la xa x' _ _ x1 x2 x1a x2a
+    subgoal by (auto simp: access_vdom_at_pre_def) *)
+    subgoal for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d
       unfolding clause_not_marked_to_delete_heur_pre_def arena_is_valid_clause_vdom_def
         prod.simps
-      by (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom x2a)\<close>])
+      by (rule exI[of _ \<open>get_clauses_wl x2a\<close>], rule exI[of _ \<open>set (get_vdom x2d)\<close>])
          (auto simp: twl_st_heur dest: twl_st_heur_get_avdom_nth_get_vdom)
     subgoal
       by (auto simp: twl_st_heur)
     subgoal
-      by auto
-    subgoal for x y _ _ _ xs l la xa x' x1 x2 x1a x2a
+      by (rule already_deleted)
+    subgoal for x y _ _ _ _ _ xs l la xa x' x1 x2 x1a x2a
       unfolding access_lit_in_clauses_heur_pre_def prod.simps arena_lit_pre_def
         arena_is_valid_clause_idx_and_access_def
-      by (rule bex_leI[of _ \<open>get_avdom x2a ! x1a\<close>], simp, rule exI[of _ \<open>get_clauses_wl x2\<close>])
+      by (rule bex_leI[of _ \<open>get_avdom x2a ! x1a\<close>], simp, rule exI[of _ \<open>get_clauses_wl x1\<close>])
         (auto simp: twl_st_heur_def)
     subgoal
       by (auto simp: twl_st_heur)
     apply (rule get_the_propagation_reason; assumption)
-    subgoal for x y _ xs l la xa _ _ x' x1 x2 x1a x2a
+    subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
       unfolding prod.simps
         get_clause_LBD_pre_def arena_is_valid_clause_idx_def
-      by (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom x2a)\<close>])
+      by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur dest: twl_st_heur_valid_arena)
-    subgoal for x y _ xs l la xa _ _ x' x1 x2 x1a x2a
+    subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
       unfolding prod.simps
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
-      by (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom x2a)\<close>])
+      by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur dest: twl_st_heur_valid_arena twl_st_heur_get_avdom_nth_get_vdom)
     subgoal
       by (auto simp: twl_st_heur)
-    subgoal for x y _ xs l la xa _ _ x' x1 x2 x1a x2a
+    subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
       unfolding prod.simps mark_garbage_pre_def
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
-      by (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom x2a)\<close>])
+      by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur dest: twl_st_heur_valid_arena)
     subgoal
       by (auto simp: mark_garbage_heur_wl)
@@ -1667,23 +1734,51 @@ lemmas clause_lbd_heur_code[sepref_fr_rules] =
    clause_lbd_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
      unfolded PR_CONST_def]
 
+(* TODO Move *)
+lemma (in -) delete_index_and_swap_alt_def:
+  \<open>delete_index_and_swap S i =
+    (let x = last S in butlast (S[i := x]))\<close>
+  by auto
+(* End Move *)
+
 sepref_register mark_garbage_heur
 sepref_thm mark_garbage_heur_code
-  is \<open>uncurry (RETURN oo (PR_CONST mark_garbage_heur))\<close>
-  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C)]\<^sub>a
-       nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
-  unfolding mark_garbage_heur_def PR_CONST_def isasat_assn_def
+  is \<open>uncurry2 (RETURN ooo (PR_CONST mark_garbage_heur))\<close>
+  :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S]\<^sub>a
+       nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
+  unfolding mark_garbage_heur_def PR_CONST_def isasat_assn_def delete_index_and_swap_alt_def
+    length_avdom_def
   supply [[goals_limit = 1]]
   by sepref
 
 concrete_definition (in -) mark_garbage_heur_code
    uses isasat_input_bounded_nempty.mark_garbage_heur_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
+   is \<open>(uncurry2 ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) mark_garbage_heur_code_def
 
 lemmas mark_garbage_heur_code[sepref_fr_rules] =
    mark_garbage_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
+     unfolded PR_CONST_def]
+
+sepref_register delete_index_vdom_heur
+sepref_thm delete_index_vdom_heur_code
+  is \<open>uncurry (RETURN oo (PR_CONST delete_index_vdom_heur))\<close>
+  :: \<open>[\<lambda>(i, S). i < length_avdom S]\<^sub>a
+        nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
+  unfolding delete_index_vdom_heur_def PR_CONST_def isasat_assn_def delete_index_and_swap_alt_def
+    length_avdom_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) delete_index_vdom_heur_code
+   uses isasat_input_bounded_nempty.delete_index_vdom_heur_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) delete_index_vdom_heur_code_def
+
+lemmas delete_index_vdom_heur_code[sepref_fr_rules] =
+   delete_index_vdom_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
      unfolded PR_CONST_def]
 
 
