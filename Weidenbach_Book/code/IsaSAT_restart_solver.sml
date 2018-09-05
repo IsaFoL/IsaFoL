@@ -180,7 +180,9 @@ structure SAT_Solver : sig
     (Word32.word list) list ->
       (unit ->
         ((Word32.word array * nat) option *
-          (Uint64.uint64 * (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64)))))
+          (Uint64.uint64 *
+            (Uint64.uint64 *
+              (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))))
 end = struct
 
 datatype typerepa = Typerep of string * typerepa list;
@@ -770,8 +772,8 @@ fun arl_empty (A1_, A2_) B_ =
             end);
 
 fun incr_restart x =
-  (fn (propa, (confl, (dec, res))) =>
-    (propa, (confl, (dec, Uint64.plus res Uint64.one))))
+  (fn (propa, (confl, (dec, (res, lres)))) =>
+    (propa, (confl, (dec, (Uint64.plus res Uint64.one, lres)))))
     x;
 
 fun numeral A_ (Bit1 n) =
@@ -1092,13 +1094,6 @@ fun header_size_code x =
       (if xa then nat_of_integer (4 : IntInf.int)
         else nat_of_integer (5 : IntInf.int))
     end)
-    x;
-
-fun length_vdom_code x =
-  (fn (_, (_, (_, (_, (_, (_, (_, (_, (_,
-(_, (_, (_, (_, (_, (_, (a1o, _))))))))))))))))
-     =>
-    arl_length heap_nat a1o)
     x;
 
 fun isa_trail_nth_code x =
@@ -1923,7 +1918,7 @@ fun get_learned_count_slow_code x =
     (fn () =>
       let
         val (_, (_, (_, (_, (_, (_, (_, (_,
-  (_, (_, (_, (_, (_, (_, (_, (_, b))))))))))))))))
+  (_, (_, (_, (_, (_, (_, (_, (_, (_, b)))))))))))))))))
           = xi;
       in
         b
@@ -1947,12 +1942,12 @@ fun local_restart_only_impl x =
     (fn () =>
       let
         val (_, (_, (_, (_, (_, (_, (_, (_,
-  (_, (_, (_, ((_, (_, (_, a2n))), (_, (_, (_, (_, a2r))))))))))))))))
+  (_, (_, (_, ((_, (_, (_, (a1o, _)))), (_, (_, (_, (_, (_, a2t)))))))))))))))))
           = xi;
       in
-        less_nat a2r
+        less_nat a2t
           (plus_nat (nat_of_integer (2000 : IntInf.int))
-            (times_nat (nat_of_integer (300 : IntInf.int)) (nat_of_uint64 a2n)))
+            (times_nat (nat_of_integer (300 : IntInf.int)) (nat_of_uint64 a1o)))
       end))
     x;
 
@@ -2038,18 +2033,19 @@ fun number_clss_to_keep_impl x =
     (fn () =>
       let
         val (_, (_, (_, (_, (_, (_, (_, (_,
-  (_, (_, (_, ((_, (_, (_, a2n))), (_, (_, (_, (_, _))))))))))))))))
+  (_, (_, (_, ((_, (_, (_, (a1o, _)))), (_, (_, (_, (_, (_, _)))))))))))))))))
           = xi;
       in
-        plus_nat (nat_of_integer (2000 : IntInf.int))
-          (times_nat (nat_of_integer (300 : IntInf.int)) (nat_of_uint64 a2n))
+        plus_nat (nat_of_integer (1000 : IntInf.int))
+          (times_nat (nat_of_integer (300 : IntInf.int)) (nat_of_uint64 a1o))
       end))
     x;
 
 fun mark_garbage_heur_code x =
   (fn ai =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
+    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+  (a1n, (a1o, (a1p, a2p)))))))))))))))))
       =>
     fn () =>
     let
@@ -2057,7 +2053,7 @@ fun mark_garbage_heur_code x =
     in
       (a1, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-(a1n, (a1o, minus_nat a2o one_nat))))))))))))))))
+(a1n, (a1o, (a1p, minus_nat a2p one_nat)))))))))))))))))
     end)
     x;
 
@@ -2155,14 +2151,16 @@ fun sort_clauses_by_score_code x =
 
 fun sort_vdom_heur_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+ (a1n, (a1o, (a1p, a2p)))))))))))))))))
      =>
     fn () =>
     let
-      val xa = sort_clauses_by_score_code a1a a1o ();
+      val xa = sort_clauses_by_score_code a1a a1p ();
     in
       (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (xa, a2o))))))))))))))))
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+ (a1n, (a1o, (xa, a2p)))))))))))))))))
     end)
     x;
 
@@ -2170,11 +2168,18 @@ fun access_vdom_at_code x =
   (fn ai => fn bi =>
     let
       val (_, (_, (_, (_, (_, (_, (_, (_,
-(_, (_, (_, (_, (_, (_, (_, (a1o, _))))))))))))))))
+(_, (_, (_, (_, (_, (_, (_, (_, (a1p, _)))))))))))))))))
         = ai;
     in
-      arl_get heap_nat a1o bi
+      arl_get heap_nat a1p bi
     end)
+    x;
+
+fun length_avdom_code x =
+  (fn (_, (_, (_, (_, (_, (_, (_, (_, (_,
+(_, (_, (_, (_, (_, (_, (_, (a1p, _)))))))))))))))))
+     =>
+    arl_length heap_nat a1p)
     x;
 
 fun mark_to_delete_clauses_wl_D_heur_impl x =
@@ -2185,7 +2190,7 @@ fun mark_to_delete_clauses_wl_D_heur_impl x =
       val a =
         heap_WHILET
           (fn (a1, a2) =>
-            (fn f_ => fn () => f_ ((length_vdom_code a2) ()) ())
+            (fn f_ => fn () => f_ ((length_avdom_code a2) ()) ())
               (fn x_d => (fn () => (less_nat a1 x_d))))
           (fn (a1, a2) =>
             (fn f_ => fn () => f_ ((access_vdom_at_code a2 a1) ()) ())
@@ -3344,7 +3349,7 @@ fun isa_update_lbd_code x =
 fun propagate_bt_wl_D_code x =
   (fn ai => fn bia =>
     fn (a1, (a1a, (a1b, (_, (a1d, (a1e, (a1f,
-  (_, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
+  (_, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, (a1p, a2p)))))))))))))))))
       =>
     fn () =>
     let
@@ -3352,9 +3357,9 @@ fun propagate_bt_wl_D_code x =
       val a = vmtf_rescore_code bia a1 a1e a1f ();
     in
       let
-        val (a1p, a2p) = a;
+        val (a1q, a2q) = a;
       in
-        (fn f_ => fn () => f_ ((vmtf_flush_all_code a1 a1p) ()) ())
+        (fn f_ => fn () => f_ ((vmtf_flush_all_code a1 a1q) ()) ())
           (fn x_c =>
             (fn f_ => fn () => f_ ((get_LBD_code a1i) ()) ())
               (fn x_d =>
@@ -3365,16 +3370,16 @@ fun propagate_bt_wl_D_code x =
                     in
                       (fn f_ => fn () => f_
                         ((append_and_length_code false bia a1a) ()) ())
-                        (fn (a1q, a2q) =>
+                        (fn (a1r, a2r) =>
                           (fn f_ => fn () => f_
-                            ((isa_update_lbd_code a2q x_d a1q) ()) ())
+                            ((isa_update_lbd_code a2r x_d a1r) ()) ())
                             (fn x_j =>
                               (fn f_ => fn () => f_
                                 ((append_el_aa_u
                                    (default_prod default_nat default_uint64,
                                      heap_prod heap_nat heap_uint64)
                                    a1d (uminus_code ai)
-                                   (to_watcher_code a2q xa x_g))
+                                   (to_watcher_code a2r xa x_g))
                                 ()) ())
                                 (fn x_l =>
                                   (fn f_ => fn () => f_
@@ -3382,7 +3387,7 @@ fun propagate_bt_wl_D_code x =
                                        (default_prod default_nat default_uint64,
  heap_prod heap_nat heap_uint64)
                                        x_l xa
-                                       (to_watcher_code a2q (uminus_code ai)
+                                       (to_watcher_code a2r (uminus_code ai)
  x_g))
                                     ()) ())
                                     (fn x_n =>
@@ -3392,18 +3397,22 @@ fun propagate_bt_wl_D_code x =
   (fn f_ => fn () => f_ ((isa_length_trail_code a1) ()) ())
     (fn x_q =>
       (fn f_ => fn () => f_
-        ((cons_trail_Propagated_tr_code (uminus_code ai) a2q a1) ()) ())
+        ((cons_trail_Propagated_tr_code (uminus_code ai) a2r a1) ()) ())
         (fn x_s =>
-          (fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a1o a2q)
+          (fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a1o a2r)
             ()) ())
             (fn xb =>
-              (fn () =>
-                (x_s, (x_j, (a1b, (x_q, (x_n,
-  (x_c, (a2p, ((Word32.fromInt 0),
-                (a1h, (x_p, (a1j, (a1k, (ema_update_ref
-   (nat_of_integer (5 : IntInf.int)) a1l x_d,
+              (fn f_ => fn () => f_
+                ((arl_append (default_nat, heap_nat) a1p a2r) ()) ())
+                (fn xab =>
+                  (fn () =>
+                    (x_s, (x_j, (a1b, (x_q,
+(x_n, (x_c, (a2q, ((Word32.fromInt 0),
+                    (a1h, (x_p, (a1j, (a1k,
+(ema_update_ref (nat_of_integer (5 : IntInf.int)) a1l x_d,
   (ema_update_ref (nat_of_integer (14 : IntInf.int)) a1m x_d,
-    (Word32.+ (a1n, (Word32.fromInt 1)), (xb, suc a2o)))))))))))))))))))))))))
+    (Word32.+ (a1n, (Word32.fromInt 1)),
+      (xb, (xab, suc a2p)))))))))))))))))))))))))))
                     end)))
       end
         ()
@@ -3830,6 +3839,7 @@ fun finalise_init_code x =
       val xa =
         arl_replicate heap_uint32 (nat_of_integer (160 : IntInf.int))
           (Word32.* ((Word32.fromInt 2), (Word32.fromInt 0))) ();
+      val xaa = arl_empty (default_nat, heap_nat) zero_nat ();
     in
       (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (the a1i, (the a1j, a2j)))),
                                       a2f),
@@ -3839,22 +3849,27 @@ fun finalise_init_code x =
                   in
                     (a, one_nat)
                   end,
-                   ((Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))),
+                   ((Uint64.zero,
+                      (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))),
                      (ema_init (bits_uint64, one_uint64),
                        (ema_init (bits_uint64, one_uint64),
-                         ((Word32.fromInt 0), (a2n, zero_nata))))))))))))))))
+                         ((Word32.fromInt 0),
+                           (a2n, (xaa, zero_nata)))))))))))))))))
     end)
     x;
 
 val empty_conflict_code :
   (unit ->
     ((Word32.word array * nat) option *
-      (Uint64.uint64 * (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64)))))
+      (Uint64.uint64 *
+        (Uint64.uint64 * (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))))
   = (fn () =>
       let
         val x = arl_empty (default_uint32, heap_uint32) zero_nat ();
       in
-        (SOME x, (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))))
+        (SOME x,
+          (Uint64.zero,
+            (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))))
       end);
 
 fun get_trail_wl_code x =
@@ -4008,8 +4023,12 @@ fun init_dt_wl_code x =
 val empty_init_code :
   (unit ->
     ((Word32.word array * nat) option *
-      (Uint64.uint64 * (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64)))))
-  = (fn () => (NONE, (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))));
+      (Uint64.uint64 *
+        (Uint64.uint64 * (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))))
+  = (fn () =>
+      (NONE,
+        (Uint64.zero,
+          (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))))));
 
 fun get_stats_code x =
   (fn (a, b) =>
