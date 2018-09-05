@@ -1722,7 +1722,7 @@ filtering later).
 definition (in -) get_the_propagation_reason
   :: \<open>('v, 'mark) ann_lits \<Rightarrow> 'v literal \<Rightarrow> 'mark option nres\<close>
 where
-  \<open>get_the_propagation_reason M L = SPEC(\<lambda>C. 
+  \<open>get_the_propagation_reason M L = SPEC(\<lambda>C.
      (C \<noteq> None \<longleftrightarrow> Propagated L (the C) \<in> set M) \<and>
      (C = None \<longleftrightarrow> Decided L \<in> set M \<or> L \<notin> lits_of_l M))\<close>
 
@@ -1730,27 +1730,135 @@ lemma (in -) no_dup_Decided_PropedD: \<open>no_dup ad \<Longrightarrow> Decided 
   by (metis annotated_lit.distinct(1) in_set_conv_decomp lit_of.simps(1) lit_of.simps(2)
   no_dup_appendD no_dup_cons undefined_notin xy_in_set_cases)
 
+
+definition (in -) get_the_propagation_reason_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close> where
+  \<open>get_the_propagation_reason_pol = (\<lambda>(_, xs, _, reasons, _) L. do {
+      ASSERT(atm_of L < length reasons);
+      ASSERT(nat_of_lit L < length xs);
+      let r = reasons ! atm_of L;
+      RETURN (if xs ! nat_of_lit L = SET_TRUE \<and> r \<noteq> DECISION_REASON then Some r else None)})\<close>
+
 lemma get_the_propagation_reason_pol:
-  \<open>(uncurry get_propagation_reason_pol, uncurry get_the_propagation_reason) \<in>
-       [\<lambda>(M, L). L \<in> lits_of_l M]\<^sub>f trail_pol \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>nat_rel\<rangle>option_rel\<rangle> nres_rel\<close>
-  apply (intro frefI nres_relI)
-  unfolding lits_of_def
-  apply clarify
-  apply (rename_tac a aa ab ac b ba ad bb x, case_tac x)
-  by (auto simp: get_the_propagation_reason_def get_propagation_reason_pol_def Let_def
-      trail_pol_def ann_lits_split_reasons_def lits_of_def assert_bind_spec_conv
-      dest: imageI[of _ _ lit_of] no_dup_Decided_PropedD)
+  \<open>(uncurry get_the_propagation_reason_pol, uncurry get_the_propagation_reason) \<in>
+       [\<lambda>(M, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f trail_pol \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>nat_rel\<rangle>option_rel\<rangle> nres_rel\<close>
+proof -
+  have [dest]: \<open>no_dup bb \<Longrightarrow>
+       Some True = polarity bb (Pos x1) \<Longrightarrow> Pos x1 \<in> lits_of_l bb \<and> Neg x1 \<notin> lits_of_l bb\<close> for bb x1
+    by (auto simp: polarity_def split: if_splits dest: no_dup_consistentD)
+  show ?thesis
+    apply (intro frefI nres_relI)
+    unfolding lits_of_def get_the_propagation_reason_def uncurry_def get_the_propagation_reason_pol_def
+    apply clarify
+    apply (refine_vcg)
+    subgoal
+      by (auto simp: get_the_propagation_reason_def get_the_propagation_reason_pol_def Let_def
+        trail_pol_def ann_lits_split_reasons_def assert_bind_spec_conv
+        dest!: multi_member_split[of _ \<L>\<^sub>a\<^sub>l\<^sub>l])[]
+    subgoal
+      by (auto simp: get_the_propagation_reason_def get_the_propagation_reason_pol_def Let_def
+        trail_pol_def ann_lits_split_reasons_def assert_bind_spec_conv
+        dest!: multi_member_split[of _ \<L>\<^sub>a\<^sub>l\<^sub>l])[]
+    subgoal for a aa ab ac ad b ba ae bb
+      apply (cases \<open>aa ! nat_of_lit ba \<noteq> SET_TRUE\<close>)
+      apply (subgoal_tac \<open>ba \<notin> lits_of_l ae\<close>)
+      prefer 2
+      subgoal
+        by (auto simp: get_the_propagation_reason_def get_the_propagation_reason_pol_def Let_def
+          trail_pol_def ann_lits_split_reasons_def assert_bind_spec_conv polarity_spec'(2)
+          dest: multi_member_split[of _ \<L>\<^sub>a\<^sub>l\<^sub>l])[]
+      subgoal
+        by (auto simp: lits_of_def dest: imageI[of _ _ lit_of])
+
+      apply (subgoal_tac \<open>ba \<in> lits_of_l ae\<close>)
+      prefer 2
+      subgoal
+        by (auto simp: get_the_propagation_reason_def get_the_propagation_reason_pol_def Let_def
+          trail_pol_def ann_lits_split_reasons_def assert_bind_spec_conv polarity_spec'(2)
+          dest: multi_member_split[of _ \<L>\<^sub>a\<^sub>l\<^sub>l])[]
+      subgoal
+       apply (auto simp: get_the_propagation_reason_def get_the_propagation_reason_pol_def Let_def
+        trail_pol_def ann_lits_split_reasons_def assert_bind_spec_conv lits_of_def
+        dest!: multi_member_split[of _ \<L>\<^sub>a\<^sub>l\<^sub>l])[]
+        apply (case_tac x; auto)
+        apply (case_tac x; auto)
+        done
+      done
+    done
+qed
+
+sepref_definition (in -) get_the_propagation_reason_code
+  is \<open>uncurry get_the_propagation_reason_pol\<close>
+  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_assn\<close>
+  unfolding get_the_propagation_reason_pol_def
+    tri_bool_eq_def[symmetric]
+  by sepref
+
+sepref_definition (in -) get_the_propagation_reason_fast_code
+  is \<open>uncurry get_the_propagation_reason_pol\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint64_nat_assn\<close>
+  supply DECISION_REASON_uint64[sepref_fr_rules]
+  unfolding get_the_propagation_reason_pol_def
+    tri_bool_eq_def[symmetric]
+  by sepref
+
 
 lemma get_the_propagation_reason_hnr[sepref_fr_rules]:
-   \<open>(uncurry get_propagation_reason_code, uncurry get_the_propagation_reason)
-     \<in> [\<lambda>(a, b). b \<in> lits_of_l a]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
-  using get_propagation_reason_code.refine[FCOMP get_the_propagation_reason_pol] .
+   \<open>(uncurry get_the_propagation_reason_code, uncurry get_the_propagation_reason)
+     \<in> [\<lambda>(a, b). b \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
+    (is ?slow is \<open>_?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
+   \<open>(uncurry get_the_propagation_reason_fast_code, uncurry get_the_propagation_reason)
+     \<in> [\<lambda>(a, b). b \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn uint64_nat_assn\<close>
+    (is ?fast is \<open>_?cfast \<in> [?prefast]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
+proof -
+  have [dest]: \<open>((a, aa, ab, r, b), x) \<in> trail_pol \<Longrightarrow> a = map lit_of (rev x)\<close> for a aa ab b x r
+    by (auto simp: trail_pol_def ann_lits_split_reasons_def)
+  have [simp]: \<open>x \<noteq> [] \<Longrightarrow> is_decided (last x) \<Longrightarrow> Suc 0 \<le> count_decided x\<close> for x
+    by (cases x rule: rev_cases) auto
+  have H: \<open>?c
+      \<in> [comp_PRE (trail_pol \<times>\<^sub>f Id) (\<lambda>(M, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) (\<lambda>_ _. True)
+    (\<lambda>_. True)]\<^sub>a hrp_comp (trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k)
+                   (trail_pol \<times>\<^sub>f
+                    Id) \<rightarrow> hr_comp (option_assn nat_assn) (\<langle>nat_rel\<rangle>option_rel)\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF get_the_propagation_reason_code.refine get_the_propagation_reason_pol]
+    .
 
-lemma get_the_propagation_reason_fast_hnr[sepref_fr_rules]:
-   \<open>(uncurry get_propagation_reason_fast_code, uncurry get_the_propagation_reason)
-     \<in> [\<lambda>(a, b). b \<in> lits_of_l a]\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>
-        option_assn uint64_nat_assn\<close>
-  using get_propagation_reason_fast_code.refine[FCOMP get_the_propagation_reason_pol] .
+  have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
+    by (auto simp: comp_PRE_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff simp del: rev_map
+        intro!: ext)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?slow
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f apply assumption
+    using pre ..
+
+  have H: \<open>?cfast
+      \<in> [comp_PRE (trail_pol \<times>\<^sub>f Id) (\<lambda>(M, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) (\<lambda>_ _. True)
+    (\<lambda>_. True)]\<^sub>a hrp_comp (trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k)
+                   (trail_pol \<times>\<^sub>f
+                    Id) \<rightarrow> hr_comp (option_assn uint64_nat_assn) (\<langle>nat_rel\<rangle>option_rel)\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF get_the_propagation_reason_fast_code.refine get_the_propagation_reason_pol]
+    .
+
+  have im: \<open>?im' = ?imfast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?ffast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?fast
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f apply assumption
+    using pre ..
+qed
 
 
 paragraph \<open>Direct access to elements in the trail\<close>

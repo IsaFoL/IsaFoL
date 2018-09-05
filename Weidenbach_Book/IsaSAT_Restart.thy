@@ -872,6 +872,18 @@ definition (in isasat_input_ops) number_clss_to_keep :: \<open>twl_st_wl_heur \<
        vdom, lcount).
     2000 + 300 * nat_of_uint64 restarts)\<close>
 
+
+definition (in isasat_input_ops) access_vdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>access_vdom_at S i = get_vdom S ! i\<close>
+
+lemma access_vdom_at_alt_def:
+  \<open>access_vdom_at = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+     ccount, vdom, lcount) i. vdom ! i)\<close>
+  by (intro ext) (auto simp: access_vdom_at_def)
+
+definition (in isasat_input_ops) access_vdom_at_pre where
+  \<open>access_vdom_at_pre S i \<longleftrightarrow> i < length (get_vdom S)\<close>
+
 (* TODO Missing : The sorting function + definition of l should depend on the number of initial
   clauses *)
 
@@ -885,10 +897,13 @@ where
       (\<lambda>(i, S). i < length (get_vdom S))
       (\<lambda>(i, T). do {
         ASSERT(i < length (get_vdom T));
+        ASSERT(access_vdom_at_pre T i);
         let C = get_vdom T ! i;
+        ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
         if \<not>clause_not_marked_to_delete_heur T C then RETURN (i+1, T)
         else do {
-          let L = arena_lit (get_clauses_wl_heur T) C;
+          ASSERT(access_lit_in_clauses_heur_pre ((T, C), 0));
+          let L = access_lit_in_clauses_heur T C 0;
           ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
           D \<leftarrow> get_the_propagation_reason (get_trail_wl_heur T) L;
           let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > 3 \<and>
@@ -953,10 +968,13 @@ proof -
         (\<lambda>(i, S). i < length (get_vdom S))
         (\<lambda>(i, T). do {
           ASSERT(i < length (get_vdom T));
+          ASSERT(access_vdom_at_pre T i);
           let C = get_vdom T ! i;
+          ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
           if(\<not>clause_not_marked_to_delete_heur T C) then RETURN (i+1, T)
           else do {
-            let L = arena_lit (get_clauses_wl_heur T) C;
+            ASSERT(access_lit_in_clauses_heur_pre ((T, C), 0));
+            let L = access_lit_in_clauses_heur T C 0;
             ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
             D \<leftarrow> get_the_propagation_reason (get_trail_wl_heur T) L;
             let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > 3 \<and>
@@ -989,7 +1007,7 @@ proof -
     for x y l la
     by auto
   have get_the_propagation_reason: \<open>get_the_propagation_reason (get_trail_wl_heur x2a)
-        (arena_lit (get_clauses_wl_heur x2a) (get_vdom x2a ! x1a))
+        (arena_lit (get_clauses_wl_heur x2a) (get_vdom x2a ! x1a + 0))
         \<le> \<Down> {(D, b). b \<longleftrightarrow> ((D \<noteq> Some (get_vdom x2a ! x1a)) \<and> arena_lbd (get_clauses_wl_heur x2a) (get_vdom x2a ! x1a) > 3 \<and>
              arena_status (get_clauses_wl_heur x2a) (get_vdom x2a ! x1a) = LEARNED)}
           (SPEC
@@ -1024,9 +1042,9 @@ proof -
         dest: twl_st_heur_same_annotD imageI[of _ _ lit_of])
   qed
 
-
   show ?thesis
     unfolding mark_to_delete_clauses_wl_D_heur_alt_def mark_to_delete_clauses_wl_D_def Let_def
+      access_lit_in_clauses_heur_def
     apply (intro frefI nres_relI)
     apply (refine_vcg)
     subgoal
@@ -1035,10 +1053,21 @@ proof -
       by auto
     subgoal
       by auto
+    subgoal by (auto simp: access_vdom_at_pre_def)
+    subgoal for x y _ xs l la xa x' x1 x2 x1a x2a
+      unfolding clause_not_marked_to_delete_heur_pre_def arena_is_valid_clause_vdom_def
+        prod.simps
+      by (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom x2a)\<close>])
+        (auto simp: twl_st_heur_def)
     subgoal
       by (auto simp: twl_st_heur)
     subgoal
       by auto
+    subgoal for x y _ xs l la xa x' x1 x2 x1a x2a
+      unfolding access_lit_in_clauses_heur_pre_def prod.simps arena_lit_pre_def
+        arena_is_valid_clause_idx_and_access_def
+      by (rule bex_leI[of _ \<open>get_vdom x2a ! x1a\<close>], simp, rule exI[of _ \<open>get_clauses_wl x2\<close>])
+        (auto simp: twl_st_heur_def)
     subgoal
       by (auto simp: twl_st_heur)
     apply (rule get_the_propagation_reason; assumption)
@@ -1217,19 +1246,91 @@ lemmas number_clss_to_keep_impl[sepref_fr_rules] =
    number_clss_to_keep_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
      unfolded PR_CONST_def]
 
-definition access_vdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
-  \<open>access_vdom_at S i = get_vdom S ! i\<close>
+sepref_register access_vdom_at
+sepref_thm access_vdom_at_code
+  is \<open>uncurry (PR_CONST (RETURN oo access_vdom_at))\<close>
+  :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  unfolding access_vdom_at_alt_def PR_CONST_def access_vdom_at_pre_def isasat_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
 
-lemma access_vdom_at_alt_def:
-  \<open>access_vdom_at = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
-     ccount, vdom, lcount) i. vdom ! i)\<close>
-  by (intro ext) (auto simp: access_vdom_at_def)
+concrete_definition (in -) access_vdom_at_code
+   uses isasat_input_bounded_nempty.access_vdom_at_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) access_vdom_at_code_def
+
+lemmas access_vdom_at_code[sepref_fr_rules] =
+   access_vdom_at_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
+     unfolded PR_CONST_def]
+
+
+definition length_vdom :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+  \<open>length_vdom S = length (get_vdom S)\<close>
+
+lemma length_vdom_alt_def:
+  \<open>length_vdom = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+     ccount, vdom, lcount). length vdom)\<close>
+  by (intro ext) (auto simp: length_vdom_def)
+
+sepref_register length_vdom
+sepref_thm length_vdom_code
+  is \<open>PR_CONST (RETURN o length_vdom)\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding length_vdom_alt_def PR_CONST_def access_vdom_at_pre_def isasat_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) length_vdom_code
+   uses isasat_input_bounded_nempty.length_vdom_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) length_vdom_code_def
+
+lemmas length_vdom_code[sepref_fr_rules] =
+   length_vdom_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
+     unfolded PR_CONST_def]
+
+
+definition (in isasat_input_ops) get_the_propagation_reason_heur 
+ :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close>
+where
+  \<open>get_the_propagation_reason_heur S = get_the_propagation_reason (get_trail_wl_heur S)\<close>
+
+lemma get_the_propagation_reason_heur_alt_def:
+  \<open>get_the_propagation_reason_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+     ccount, vdom, lcount) L . get_the_propagation_reason M' L)\<close>
+  by (intro ext) (auto simp: get_the_propagation_reason_heur_def)
+
+sepref_register get_the_propagation_reason_heur
+sepref_thm get_the_propagation_reason_heur
+  is \<open>uncurry (PR_CONST get_the_propagation_reason_heur)\<close>
+  :: \<open>[\<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>aisasat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
+  unfolding get_the_propagation_reason_heur_alt_def PR_CONST_def access_vdom_at_pre_def isasat_assn_def
+  supply [[goals_limit = 1]]
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold apply (auto simp: )[]
+  by sepref
+
+concrete_definition (in -) length_vdom_code
+   uses isasat_input_bounded_nempty.length_vdom_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) length_vdom_code_def
+
+lemmas length_vdom_code[sepref_fr_rules] =
+   length_vdom_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
+     unfolded PR_CONST_def]
+find_theorems \<open>get_the_propagation_reason\<close>
 
 sepref_register mark_to_delete_clauses_wl_D_heur
 sepref_thm mark_to_delete_clauses_wl_D_heur_impl
   is \<open>PR_CONST mark_to_delete_clauses_wl_D_heur\<close>
   :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
   unfolding mark_to_delete_clauses_wl_D_heur_def PR_CONST_def
+    access_vdom_at_def[symmetric] legnth_vdom_def[symmetric]
   supply [[goals_limit = 1]]
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
