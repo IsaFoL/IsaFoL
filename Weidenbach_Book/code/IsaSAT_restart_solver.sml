@@ -2013,6 +2013,24 @@ fun incr_restart_stat_slow_code x =
       end))
     x;
 
+fun delete_index_vdom_heur_code x =
+  (fn ai =>
+    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+  (a1n, (a1o, (a1p, a2p)))))))))))))))))
+      =>
+    fn () =>
+    let
+      val xa = arl_last heap_nat a1p ();
+      val xb = arl_set heap_nat a1p ai xa ();
+      val xc = arl_butlast heap_nat xb ();
+    in
+      (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+ (a1n, (a1o, (xc, a2p)))))))))))))))))
+    end)
+    x;
+
 fun clause_is_learned_heur_code x =
   (fn ai => fn bi =>
     let
@@ -2042,7 +2060,7 @@ fun number_clss_to_keep_impl x =
     x;
 
 fun mark_garbage_heur_code x =
-  (fn ai =>
+  (fn ai => fn bia =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
     (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
   (a1n, (a1o, (a1p, a2p)))))))))))))))))
@@ -2050,10 +2068,13 @@ fun mark_garbage_heur_code x =
     fn () =>
     let
       val xa = mark_garbage_code a1a ai ();
+      val xaa = arl_last heap_nat a1p ();
+      val xab = arl_set heap_nat a1p bia xaa ();
+      val xac = arl_butlast heap_nat xab ();
     in
       (a1, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-(a1n, (a1o, (a1p, minus_nat a2p one_nat)))))))))))))))))
+(a1n, (a1o, (xac, minus_nat a2p one_nat)))))))))))))))))
     end)
     x;
 
@@ -2198,7 +2219,10 @@ fun mark_to_delete_clauses_wl_D_heur_impl x =
                 (fn f_ => fn () => f_
                   ((clause_not_marked_to_delete_heur_code a2 x_d) ()) ())
                   (fn xb =>
-                    (if not xb then (fn () => (plus_nat a1 one_nat, a2))
+                    (if not xb
+                      then (fn f_ => fn () => f_
+                             ((delete_index_vdom_heur_code a1 a2) ()) ())
+                             (fn x_g => (fn () => (a1, x_g)))
                       else (fn f_ => fn () => f_
                              ((access_lit_in_clauses_heur_code a2 x_d zero_nata)
                              ()) ())
@@ -2220,8 +2244,8 @@ fun mark_to_delete_clauses_wl_D_heur_impl x =
        (if not xc andalso
              (Word32.< (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int)), xaa) andalso
                xba)
-         then (fn f_ => fn () => f_ ((mark_garbage_heur_code x_d a2) ()) ())
-                (fn x_m => (fn () => (plus_nat a1 one_nat, x_m)))
+         then (fn f_ => fn () => f_ ((mark_garbage_heur_code x_d a1 a2) ()) ())
+                (fn x_l => (fn () => (a1, x_l)))
          else (fn () => (plus_nat a1 one_nat, a2))))))))))))
           (x_a, xa) ();
     in
