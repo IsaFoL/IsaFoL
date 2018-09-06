@@ -905,11 +905,11 @@ definition collect_valid_indices_wl :: \<open>'v twl_st_wl \<Rightarrow> nat lis
   \<open>collect_valid_indices_wl S = SPEC (\<lambda>N. True)\<close>
 
 definition mark_to_delete_clauses_wl_inv
-  :: \<open>'v twl_st_wl \<Rightarrow> nat list \<Rightarrow> nat \<times> 'v twl_st_wl \<Rightarrow> bool\<close>
+  :: \<open>'v twl_st_wl \<Rightarrow> nat list \<Rightarrow> nat \<times> 'v twl_st_wl\<times> nat list  \<Rightarrow> bool\<close>
 where
-  \<open>mark_to_delete_clauses_wl_inv = (\<lambda>S xs0 (i, T).
+  \<open>mark_to_delete_clauses_wl_inv = (\<lambda>S xs0 (i, T, xs).
      \<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
-      mark_to_delete_clauses_l_inv S' xs0 (i, T') \<and>
+      mark_to_delete_clauses_l_inv S' xs0 (i, T', xs) \<and>
       correct_watching' S)\<close>
 
 definition mark_to_delete_clauses_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close>
@@ -925,10 +925,10 @@ definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl
     ASSERT(mark_to_delete_clauses_wl_pre S);
     xs \<leftarrow> collect_valid_indices_wl S;
     l \<leftarrow> SPEC(\<lambda>_:: nat. True);
-    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_inv S xs\<^esup>
-      (\<lambda>(i, S). i < length xs)
-      (\<lambda>(i, T). do {
-        if(xs!i \<notin># dom_m (get_clauses_wl T)) then RETURN (i+1, T)
+    (_, S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_inv S xs\<^esup>
+      (\<lambda>(i, S, xs). i < length xs)
+      (\<lambda>(i, T, xs). do {
+        if(xs!i \<notin># dom_m (get_clauses_wl T)) then RETURN (i, T, delete_index_and_swap xs i)
         else do {
           ASSERT(0 < length (get_clauses_wl T\<propto>(xs!i)));
           can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow>
@@ -937,12 +937,12 @@ definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl
           ASSERT(i < length xs);
           if can_del
           then
-            RETURN (i+1, mark_garbage_wl (xs!i) T)
+            RETURN (i, mark_garbage_wl (xs!i) T, delete_index_and_swap xs i)
           else
-            RETURN (i+1, T)
+            RETURN (i+1, T, xs)
        }
       })
-      (l, S);
+      (l, S, xs);
     RETURN S
   })\<close>
 
@@ -965,8 +965,9 @@ proof -
       uncurry_def
     apply (intro frefI nres_relI)
     apply (refine_vcg
-      WHILEIT_refine_with_post[where
-         R = \<open>{((i, S), (j, T)). i = j \<and> (S, T) \<in> state_wl_l None \<and> correct_watching' S}\<close>]
+      WHILEIT_refine[where
+         R = \<open>{((i, S, xs), (j, T, ys)). i = j \<and> (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and>
+             xs = ys}\<close>]
       remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
     subgoal unfolding mark_to_delete_clauses_wl_pre_def by blast
     subgoal by auto

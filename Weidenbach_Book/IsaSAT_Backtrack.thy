@@ -738,7 +738,7 @@ abbreviation (in -)ema_update_fast where
 definition (in isasat_input_ops) propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, _, cach, lbd, outl, stats, fema, sema,
-         ccount, vdom, lcount). do {
+         ccount, vdom, avdom, lcount). do {
       ASSERT(phase_saving \<phi> \<and> vm \<in> vmtf M \<and> undefined_lit M (-L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
          nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
       ASSERT(length C > 1);
@@ -760,7 +760,8 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       ASSERT(i \<noteq> DECISION_REASON);
       RETURN (Propagated (- L) i # M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
          cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
-          ccount + one_uint32, vdom @ [nat_of_uint32_conv i], Suc lcount)
+          ccount + one_uint32, vdom @ [nat_of_uint32_conv i], avdom @ [nat_of_uint32_conv i],
+          Suc lcount)
     })\<close>
 
 definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal\<close> where
@@ -912,9 +913,9 @@ proof -
     obtain M N D NE UE Q W where
       S: \<open>S = (M, N, D, NE, UE, Q, W)\<close>
       by (cases S)
-    obtain W' vm \<phi> clvls cach lbd outl stats cc cc2 cc3 vdom lcount D' arena b Q' where
+    obtain W' vm \<phi> clvls cach lbd outl stats cc cc2 cc3 avdom vdom lcount D' arena b Q' where
       S': \<open>S' = (M, arena, (b, D'), Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, cc, cc2, cc3, vdom,
-        lcount)\<close>
+        avdom, lcount)\<close>
       using S'_S by (cases S') (auto simp: twl_st_heur_conflict_ana_def S)
     have
       \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close> and
@@ -927,7 +928,8 @@ proof -
       lcount: \<open>lcount = size (learned_clss_l N)\<close> and
       \<open>vdom_m W N \<subseteq> set vdom\<close> and
       D': \<open>((b, D'), D) \<in> option_lookup_clause_rel\<close> and
-      arena: \<open>valid_arena arena N (set vdom)\<close>
+      arena: \<open>valid_arena arena N (set vdom)\<close> and
+      avdom: \<open>set avdom \<subseteq> set vdom\<close>
       using S'_S unfolding S S' twl_st_heur_conflict_ana_def
       by (auto simp: S)
     obtain T U where
@@ -1201,7 +1203,7 @@ proof -
     qed
 
     have final: \<open>(((M, arena, x1b, Q', W', vm, \<phi>, clvls, empty_cach x1a, lbd, take 1 x2a,
-            stats, cc, cc2, cc3, vdom, lcount),
+            stats, cc, cc2, cc3, vdom, avdom, lcount),
             x2c, x1c),
           M, N, Da, NE, UE, Q, W)
           \<in> {((T', n, C), T).
@@ -1213,8 +1215,9 @@ proof -
             mset C = the (get_conflict_wl T) \<and>
             get_conflict_wl T \<noteq> None \<and>
             equality_except_conflict_wl T (M, N, D, NE, UE, Q, W) \<and>
-            get_clauses_wl_heur T' = get_clauses_wl_heur (M, arena, (b, D'), Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, cc,
-              cc2, cc3, vdom, lcount)  \<and>
+            get_clauses_wl_heur T' = get_clauses_wl_heur (M, arena, (b, D'), Q', W', vm, \<phi>, clvls, 
+              cach, lbd, outl, stats, cc,
+              cc2, cc3, vdom, avdom, lcount)  \<and>
             (1 < length C \<longrightarrow>
               highest_lit (get_trail_wl T) (mset (tl C))
               (Some (C ! 1, get_level (get_trail_wl T) (C ! 1)))) \<and>
@@ -1301,7 +1304,7 @@ proof -
          \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the Da)) < count_decided M\<close>
         using get_maximum_level_mono[OF Da_D', of M] by auto
       have \<open>((M, arena, x1b, Q', W', vm, \<phi>, clvls, empty_cach x1a, lbd, take (Suc 0) x2a,
-          stats, cc, cc2, cc3, vdom, lcount),
+          stats, cc, cc2, cc3, vdom, avdom, lcount),
         del_conflict_wl (M, N, Da, NE, UE, Q, W))
         \<in> twl_st_heur_bt\<close>
         using S'_S x1b_None cach out unfolding twl_st_heur_bt_def
@@ -1313,7 +1316,7 @@ proof -
           (auto simp: highest_lit_def Da mset_tl)
       moreover have \<open>find_decomp_wl_pre
           (x2c, M, arena, x1b, Q', W', vm, \<phi>, clvls, empty_cach x1a, lbd,
-           take (Suc 0) x2a, stats, cc, cc2, cc3, vdom, lcount)\<close>
+           take (Suc 0) x2a, stats, cc, cc2, cc3, vdom, avdom, lcount)\<close>
         using vm n_d M_\<L>\<^sub>i\<^sub>n highest max_lvl_le
         unfolding find_decomp_wl_pre_def find_decomp_w_ns_pre_def
         by (auto simp: S x2c)
@@ -1548,13 +1551,14 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> \<open>1 < length C\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T')
-    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom lcount arena D' Q' where
+    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount avdom vdom lcount arena D' Q' where
         U: \<open>U = (M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
-           vdom, lcount)\<close> and
+           vdom, avdom, lcount)\<close> and
         vm': \<open>vm' \<in> vmtf M1\<close> and
         \<phi>: \<open>phase_saving \<phi>\<close> and
         vdom: \<open>vdom_m W N \<subseteq> set vdom\<close> and
-        valid: \<open>valid_arena arena N (set vdom)\<close>
+        valid: \<open>valid_arena arena N (set vdom)\<close> and
+        avdom: \<open>set avdom \<subseteq> set vdom\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
     have
       W'W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close> and
@@ -1592,7 +1596,7 @@ proof -
     qed
     have propagate_bt_wl_D_heur_alt_def:
        \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, _, cach, lbd, outl, stats, fema, sema,
-         ccount, vdom, lcount). do {
+         ccount, vdom, avdom, lcount). do {
           ASSERT(phase_saving \<phi> \<and> vm \<in> vmtf M \<and> undefined_lit M (-L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
             nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
           ASSERT(length C > 1);
@@ -1614,7 +1618,8 @@ proof -
           ASSERT(i \<noteq> DECISION_REASON);
           RETURN (Propagated (- L) i # M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
             cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
-              ccount + one_uint32, vdom @ [nat_of_uint32_conv i], Suc lcount)
+              ccount + one_uint32, vdom @ [nat_of_uint32_conv i], 
+              avdom @ [nat_of_uint32_conv i], Suc lcount)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
       by auto
@@ -1733,7 +1738,7 @@ proof -
       subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a x1b x2b
         by (auto simp: update_lbd_pre_def arena_is_valid_clause_idx_def)
       subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a x1b x2b
-        using D' C_1_neq_hd vmtf
+        using D' C_1_neq_hd vmtf avdom
         apply (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
           propagate_bt_wl_D_def Let_def T' U' U rescore_clause_def S' map_fun_rel_def
           list_of_mset2_def flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
@@ -1806,10 +1811,11 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T')
-    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom lcount arena D' Q' where
+    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom avdom lcount arena D' Q' where
         U: \<open>U = (M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
-           vdom, lcount)\<close> and
-        vm': \<open>vm' \<in> vmtf M1\<close>
+           vdom, avdom, lcount)\<close> and
+        vm': \<open>vm' \<in> vmtf M1\<close> and
+        avdom: \<open>set avdom \<subseteq> set vdom\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
     have
       W'W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close> and
@@ -1835,7 +1841,7 @@ proof -
       using \<open>C \<noteq> []\<close> \<open>C ! 0 = - lit_of (hd M)\<close> \<open>\<not>1 < length C\<close>
       by (cases C) (auto simp del: \<open>C ! 0 = - lit_of (hd M)\<close>)
     show ?thesis
-      using empty_cach n_d_M1  W'W outl vmtf C \<phi> undef uL_M vdom lcount valid D'
+      using empty_cach n_d_M1  W'W outl vmtf C \<phi> undef uL_M vdom lcount valid D' avdom
       unfolding U U'
       by (auto simp: propagate_unit_bt_wl_D_int_def
           propagate_unit_bt_wl_D_def U U' lit_of_hd_trail_st_heur_def

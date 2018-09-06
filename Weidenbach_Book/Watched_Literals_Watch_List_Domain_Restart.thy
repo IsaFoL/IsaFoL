@@ -485,8 +485,8 @@ definition mark_to_delete_clauses_wl_D_pre where
   \<open>mark_to_delete_clauses_wl_D_pre S \<longleftrightarrow> mark_to_delete_clauses_wl_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
 
 definition mark_to_delete_clauses_wl_D_inv where
-  \<open>mark_to_delete_clauses_wl_D_inv = (\<lambda>S xs0 (i, T).
-       mark_to_delete_clauses_wl_inv S xs0 (i, T) \<and>
+  \<open>mark_to_delete_clauses_wl_D_inv = (\<lambda>S xs0 (i, T, xs).
+       mark_to_delete_clauses_wl_inv S xs0 (i, T, xs) \<and>
         literals_are_\<L>\<^sub>i\<^sub>n' T)\<close>
 
 definition mark_to_delete_clauses_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
@@ -494,23 +494,25 @@ definition mark_to_delete_clauses_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat
     ASSERT(mark_to_delete_clauses_wl_D_pre S);
     xs \<leftarrow> collect_valid_indices_wl S;
     l \<leftarrow> SPEC(\<lambda>_::nat. True);
-    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_D_inv S xs\<^esup>
-      (\<lambda>(i, T). i < length xs)
-      (\<lambda>(i, T). do {
-        if(xs!i \<notin># dom_m (get_clauses_wl T)) then RETURN (i+1, T)
+    (_, S, xs) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_D_inv S xs\<^esup>
+      (\<lambda>(i, _, xs). i < length xs)
+      (\<lambda>(i, T, xs). do {
+        if(xs!i \<notin># dom_m (get_clauses_wl T)) then RETURN (i, T, delete_index_and_swap xs i)
         else do {
           ASSERT(0 < length (get_clauses_wl T\<propto>(xs!i)));
           ASSERT(get_clauses_wl T\<propto>(xs!i)!0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
-          can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and> \<not>irred (get_clauses_wl T) (xs!i));
+          can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow>
+             (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and>
+              \<not>irred (get_clauses_wl T) (xs!i));
           ASSERT(i < length xs);
           if can_del
           then
-            RETURN (i+1, mark_garbage_wl (xs!i) T)
+            RETURN (i, mark_garbage_wl (xs!i) T, delete_index_and_swap xs i)
           else
-            RETURN (i+1, T)
+            RETURN (i+1, T, xs)
         }
       })
-      (l, S);
+      (l, S, xs);
     RETURN S
   })\<close>
 
@@ -541,35 +543,18 @@ proof -
     by metis
   have in_Lit: \<open>get_clauses_wl T' \<propto> (xs ! j) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
     if
-      xs: \<open>(xs, xs') \<in> Id\<close> and
       \<open>(l, l') \<in> nat_rel\<close> and
-      rel: \<open>(st, st') \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close> and
-      le: \<open>case st of (i, T) \<Rightarrow> i < length xs\<close> and
-      \<open>case st' of (i, S) \<Rightarrow> i < length xs'\<close> and
-      inv_x: \<open>mark_to_delete_clauses_wl_D_inv S xs st\<close> and
-      \<open>mark_to_delete_clauses_wl_inv S' xs' st'\<close> and
-      \<open>(case st' of
-        (i, T) \<Rightarrow>
-          if xs' ! i \<notin># dom_m (get_clauses_wl T) then RETURN (i + 1, T)
-          else do {
-                _ \<leftarrow> ASSERT (0 < length (get_clauses_wl T \<propto> (xs' ! i)));
-                can_del \<leftarrow>
-                  SPEC
-                    (\<lambda>b. b \<longrightarrow>
-                        Propagated (get_clauses_wl T \<propto> (xs' ! i) ! 0) (xs' ! i)
-                        \<notin> set (get_trail_wl T) \<and>
-                        \<not> irred (get_clauses_wl T) (xs' ! i));
-                _ \<leftarrow> ASSERT (i < length xs');
-                if can_del then RETURN (i + 1, mark_garbage_wl (xs' ! i) T)
-                else RETURN (i + 1, T)
-              })
-      \<le> SPEC (mark_to_delete_clauses_wl_inv S' xs')\<close> and
-      st: \<open>st' = (i, T)\<close> \<open>st = (j, T')\<close> and
+      rel: \<open>(st, st') \<in> nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<times>\<^sub>r Id\<close> and
+      inv_x: \<open>mark_to_delete_clauses_wl_D_inv S ys st\<close> and
+      \<open>mark_to_delete_clauses_wl_inv S' ys' st'\<close> and
       dom: \<open>\<not> xs ! j \<notin># dom_m (get_clauses_wl T')\<close> and
       \<open>\<not> xs' ! i \<notin># dom_m (get_clauses_wl T)\<close> and
       assert: \<open>0 < length (get_clauses_wl T \<propto> (xs' ! i))\<close> and
+      st: \<open>st' = (i, sT)\<close> \<open>sT = (T, xs)\<close> \<open>st = (j, sT')\<close> \<open>sT' = (T', xs')\<close> and
+      le: \<open>case st of (i, T, xs) \<Rightarrow> i < length xs\<close> and
+      \<open>case st' of (i, S, xs') \<Rightarrow> i < length xs'\<close> and
       \<open>0 < length (get_clauses_wl T' \<propto> (xs ! j))\<close>
-    for S S' xs xs' l l' st st' i T j T'
+    for S S' xs' l l' st st' i T j T' sT xs sT' ys ys'
   proof -
 
     have lits_T': \<open>literals_are_\<L>\<^sub>i\<^sub>n' T'\<close>
@@ -609,22 +594,19 @@ proof -
       using literals_are_in_\<L>\<^sub>i\<^sub>n_nth[of \<open>xs!i\<close> \<open>T\<close>] rel dom
       by (auto simp: st)
     then show ?thesis
-      by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l) (use le assert rel dom xs in \<open>auto simp: st\<close>)
+      by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l) (use le assert rel dom in \<open>auto simp: st\<close>)
   qed
   have final_rel_del:
-    \<open>((j + 1, mark_garbage_wl (xs ! j) T'), i + 1, mark_garbage_wl (xs' ! i) T)
-        \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
+    \<open>((j, mark_garbage_wl (xs ! j) T', delete_index_and_swap xs j),
+         i, mark_garbage_wl (xs' ! i) T, delete_index_and_swap xs' i)
+        \<in> nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<times>\<^sub>r Id\<close>
     if
-      \<open>mark_to_delete_clauses_wl_pre S'\<close> and
-      \<open>mark_to_delete_clauses_wl_D_pre S\<close> and
-      xs: \<open>(xs, xs') \<in> Id\<close> and
-      \<open>(l, l') \<in> nat_rel\<close> and
-      rel: \<open>(st, st') \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close> and
-      \<open>case st of (i, T) \<Rightarrow> i < length xs\<close> and
-      \<open>case st' of (i, S) \<Rightarrow> i < length xs'\<close> and
-      inv: \<open>mark_to_delete_clauses_wl_D_inv S xs st\<close> and
-      \<open>mark_to_delete_clauses_wl_inv S' xs' st'\<close> and
-      st: \<open>st' = (i, T)\<close> \<open>st = (j, T')\<close> and
+      rel: \<open>(st, st') \<in> nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<times>\<^sub>r Id\<close> and
+      \<open>case st of (i, T, xs) \<Rightarrow> i < length xs\<close> and
+      \<open>case st' of (i, S, xs') \<Rightarrow> i < length xs'\<close> and
+      inv: \<open>mark_to_delete_clauses_wl_D_inv S ys st\<close> and
+      \<open>mark_to_delete_clauses_wl_inv S' ys' st'\<close> and
+      st: \<open>st' = (i, sT)\<close> \<open>sT = (T, xs)\<close> \<open>st = (j, sT')\<close> \<open>sT' = (T', xs')\<close> and
       dom: \<open>\<not> xs ! j \<notin># dom_m (get_clauses_wl T')\<close> and
       \<open>\<not> xs' ! i \<notin># dom_m (get_clauses_wl T)\<close> and
       le: \<open>0 < length (get_clauses_wl T \<propto> (xs' ! i))\<close> and
@@ -645,15 +627,15 @@ proof -
       \<open>j < length xs\<close> and
       [simp]: \<open>can_del\<close> and
       [simp]: \<open>can_del'\<close>
-    for S S' xs xs' l l' st st' i T j T' can_del can_del'
+    for S S' xs xs' l l' st st' i T j T' can_del can_del' sT sT' ys ys'
   proof -
     have \<open>literals_are_\<L>\<^sub>i\<^sub>n' (mark_garbage_wl (xs' ! i) T)\<close>
-      using can_del inv xs rel unfolding mark_to_delete_clauses_wl_D_inv_def st mark_garbage_wl_def
+      using can_del inv rel unfolding mark_to_delete_clauses_wl_D_inv_def st mark_garbage_wl_def
       by (cases T)
        (auto simp: literals_are_\<L>\<^sub>i\<^sub>n'_def init_clss_l_fmdrop_irrelev mset_take_mset_drop_mset'
          blits_in_\<L>\<^sub>i\<^sub>n_def)
     then show ?thesis
-      using inv rel xs unfolding st
+      using inv rel unfolding st
       by auto
   qed
 
@@ -664,7 +646,8 @@ proof -
     apply (refine_vcg
       remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
       remove_one_annot_true_clause_one_imp_wl_D_remove_one_annot_true_clause_one_imp_wl[THEN fref_to_Down_curry]
-      WHILEIT_refine_with_post[where R = \<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>])
+      WHILEIT_refine[where
+         R = \<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<times>\<^sub>r Id\<close>])
     subgoal
       unfolding mark_to_delete_clauses_wl_D_pre_def by auto
     subgoal by auto
@@ -675,13 +658,13 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal for S S' xs xs' l l' st st' i T j T'
-      by (rule in_Lit)
+      by (rule in_Lit; assumption?) auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal for S S' xs xs' l l' st st' i T j T' can_del can_del'
-      by (rule final_rel_del)
+      by (rule final_rel_del; assumption?) auto
     subgoal by auto
     subgoal by auto
     done
