@@ -61,32 +61,30 @@ definition isasat_header :: string where
   \<open>isasat_header = show ''Conflict | Decision | Propagation | Restarts''\<close>
 
 text \<open>Printing the information slows down the solver by a huge factor.\<close>
-definition isasat_current_information :: \<open>stats \<Rightarrow> unit\<close> where
+definition isasat_current_information :: \<open>stats \<Rightarrow> nat \<Rightarrow> unit\<close> where
 \<open>isasat_current_information =
-   (\<lambda>(propa, confl, decs, restarts).
-      ())\<close>
-
-(*
-if confl AND 4095 = 4095 \<comment> \<open>\<^term>\<open>4095 = 4096 - 1\<close>, i.e., we print when all first bits are 1.\<close>
+   (\<lambda>(propa, confl, decs, restarts) lcount.
+      if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
      then
         println_string (String.implode (show ''c | '' @ show confl @ show '' | '' @ show propa @
-          show '' | '' @ show decs @ show '' | '' @ show restarts))
+          show '' | '' @ show decs @ show '' | '' @ show restarts @ show '' | '' @ show lcount))
       else ()
-*)
+      )\<close>
 
-definition print_current_information :: \<open>stats \<Rightarrow> unit\<close> where
-\<open>print_current_information S = ()\<close>
+
+definition print_current_information :: \<open>stats \<Rightarrow> nat \<Rightarrow> unit\<close> where
+\<open>print_current_information _ _ = ()\<close>
 
 lemma print_current_information_hnr[sepref_fr_rules]:
-   \<open>(return o isasat_current_information, RETURN o print_current_information) \<in>
-   stats_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+   \<open>(uncurry (return oo isasat_current_information), uncurry (RETURN oo print_current_information)) \<in>
+   stats_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
   by sepref_to_hoare sep_auto
 
 definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> unit nres\<close> where
 \<open>isasat_current_status =
    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
-       fast_ema, slow_ema, ccount,
-       vdom, lcount). RETURN (print_current_information stats))\<close>
+       fast_ema, slow_ema, ccount, avdom, 
+       vdom, lcount). RETURN (print_current_information stats lcount))\<close>
 
 context isasat_input_ops
 begin

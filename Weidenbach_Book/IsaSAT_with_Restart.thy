@@ -682,6 +682,10 @@ definition arl_get_u64' where
 code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Uint64.toFixedInt (_)))"
 
 export_code IsaSAT_code checking SML_imp
+
+code_printing constant \<comment> \<open>print with line break\<close>
+  println_string \<rightharpoonup> (SML) "ignore/ (print/ ((_) ^ \"\\n\"))"
+
 export_code IsaSAT_code
     int_of_integer
     integer_of_int
