@@ -389,8 +389,10 @@ definition (in isasat_input_ops) empty_Q :: \<open>twl_st_wl_heur \<Rightarrow> 
   })\<close>
 
 definition (in isasat_input_ops) incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, oth). do{
-     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_restart stats, oth)
+  \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+       ccount, vdom, avdom, lcount). do{
+     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_restart stats, fast_ema, slow_ema,
+       0, vdom, avdom, lcount)
   })\<close>
 
 sepref_thm incr_restart_stat_slow_code
@@ -426,8 +428,10 @@ lemmas incr_restart_stat_fast_code_hnr [sepref_fr_rules] =
    incr_restart_stat_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 definition (in isasat_input_ops) incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, oth). do{
-     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_lrestart stats, oth)
+  \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount). do{
+     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_lrestart stats, fast_ema, slow_ema, 0,
+       vdom, avdom, lcount)
   })\<close>
 
 sepref_thm incr_lrestart_stat_slow_code
@@ -484,7 +488,7 @@ where
         ASSERT(find_decomp_w_ns_pre ((get_trail_wl_heur S, lvl), get_vmtf_heur S));
         S \<leftarrow> find_decomp_wl_st_int lvl S;
         S \<leftarrow> empty_Q S;
-        incr_restart_stat S
+        incr_lrestart_stat S
       }
    })\<close>
 
@@ -633,9 +637,13 @@ lemma count_decided_st_alt_def':
 
 (* TODO Move *)
 lemma RES_RES13_RETURN_RES: \<open>do {
-  (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, oth) \<leftarrow> RES A;
-  RES (f M N D Q W vm \<phi> clvls cach lbd outl stats oth)
-} = RES (\<Union>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, oth)\<in>A. f M N D Q W vm \<phi> clvls cach lbd outl stats oth)\<close>
+  (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount) \<leftarrow> RES A;
+  RES (f M N D Q W vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
+      vdom avdom lcount)
+} = RES (\<Union>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount)\<in>A. f M N D Q W vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
+      vdom avdom lcount)\<close>
   by (force simp:  pw_eq_iff refine_pw_simps uncurry_def)
 (* End Move *)
 
@@ -662,7 +670,7 @@ proof -
     by (auto intro: RES_refine)
   show ?thesis
     unfolding cdcl_twl_local_restart_wl_D_heur_def count_decided_st_alt_def'
-      find_decomp_wl_st_int_def find_local_restart_target_level_def incr_restart_stat_def
+      find_decomp_wl_st_int_def find_local_restart_target_level_def incr_lrestart_stat_def
       find_decomp_w_ns_def empty_Q_def find_local_restart_target_level_st_def
     apply (intro frefI nres_relI)
     apply clarify
@@ -684,8 +692,10 @@ proof -
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES
       apply (rule RES_refine, rule bexI[of _ \<open>(get_trail_wl_heur S, aw, ax, ay, az, {#}, bf)\<close>];
          ((subst uncurry_def image_iff)+)?; (rule bexI[of _ \<open>(get_trail_wl_heur S, {#})\<close>])?)
-      by ((fastforce simp: twl_st_heur_def)+)[2]
-        (auto simp: twl_st_heur_def)
+      subgoal
+         by (clarsimp simp add: twl_st_heur_def)
+           (auto simp: twl_st_heur_def)[]
+      by ((fastforce simp: twl_st_heur_def))+
         \<comment> \<open>This proof is very slow: a direct call to auto takes around 60s. This is faster,
           but not that much actually.\<close>
     done
@@ -772,44 +782,85 @@ lemma (in -) two_uint64[sepref_fr_rules]:
   by sepref_to_hoare sep_auto
 
 
-definition (in -) local_restart_only :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>local_restart_only = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
+definition (in -) upper_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>upper_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount).
+    lcount < 3000 + 500 * nat_of_uint64 restarts)\<close>
+
+sepref_register upper_restart_bound_not_reached
+sepref_thm upper_restart_bound_not_reached_impl
+  is \<open>PR_CONST (RETURN o upper_restart_bound_not_reached)\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding upper_restart_bound_not_reached_def PR_CONST_def isasat_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) upper_restart_bound_not_reached_impl
+   uses isasat_input_bounded_nempty.upper_restart_bound_not_reached_impl.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) upper_restart_bound_not_reached_impl_def
+
+lemmas upper_restart_bound_not_reached_impl[sepref_fr_rules] =
+   upper_restart_bound_not_reached_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
+     unfolded PR_CONST_def]
+
+sepref_thm upper_restart_bound_not_reached_fast_impl
+  is \<open>PR_CONST (RETURN o upper_restart_bound_not_reached)\<close>
+  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding upper_restart_bound_not_reached_def PR_CONST_def isasat_fast_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) upper_restart_bound_not_reached_fast_impl
+   uses isasat_input_bounded_nempty.upper_restart_bound_not_reached_fast_impl.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) upper_restart_bound_not_reached_fast_impl_def
+
+lemmas upper_restart_bound_not_reached_fast_impl[sepref_fr_rules] =
+   upper_restart_bound_not_reached_fast_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
+     unfolded PR_CONST_def]
+
+
+definition (in -) lower_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>lower_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
        vdom, avdom, lcount).
     lcount < 2000 + 300 * nat_of_uint64 restarts)\<close>
 
-sepref_register local_restart_only
-sepref_thm local_restart_only_impl
-  is \<open>PR_CONST (RETURN o local_restart_only)\<close>
+sepref_register lower_restart_bound_not_reached
+sepref_thm lower_restart_bound_not_reached_impl
+  is \<open>PR_CONST (RETURN o lower_restart_bound_not_reached)\<close>
   :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding local_restart_only_def PR_CONST_def isasat_assn_def
+  unfolding lower_restart_bound_not_reached_def PR_CONST_def isasat_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) local_restart_only_impl
-   uses isasat_input_bounded_nempty.local_restart_only_impl.refine_raw
+concrete_definition (in -) lower_restart_bound_not_reached_impl
+   uses isasat_input_bounded_nempty.lower_restart_bound_not_reached_impl.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
-prepare_code_thms (in -) local_restart_only_impl_def
+prepare_code_thms (in -) lower_restart_bound_not_reached_impl_def
 
-lemmas local_restart_only_impl[sepref_fr_rules] =
-   local_restart_only_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
+lemmas lower_restart_bound_not_reached_impl[sepref_fr_rules] =
+   lower_restart_bound_not_reached_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
      unfolded PR_CONST_def]
 
-sepref_thm local_restart_only_fast_impl
-  is \<open>PR_CONST (RETURN o local_restart_only)\<close>
+sepref_thm lower_restart_bound_not_reached_fast_impl
+  is \<open>PR_CONST (RETURN o lower_restart_bound_not_reached)\<close>
   :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding local_restart_only_def PR_CONST_def isasat_fast_assn_def
+  unfolding lower_restart_bound_not_reached_def PR_CONST_def isasat_fast_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) local_restart_only_fast_impl
-   uses isasat_input_bounded_nempty.local_restart_only_fast_impl.refine_raw
+concrete_definition (in -) lower_restart_bound_not_reached_fast_impl
+   uses isasat_input_bounded_nempty.lower_restart_bound_not_reached_fast_impl.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
-prepare_code_thms (in -) local_restart_only_fast_impl_def
+prepare_code_thms (in -) lower_restart_bound_not_reached_fast_impl_def
 
-lemmas local_restart_only_fast_impl[sepref_fr_rules] =
-   local_restart_only_fast_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
+lemmas lower_restart_bound_not_reached_fast_impl[sepref_fr_rules] =
+   lower_restart_bound_not_reached_fast_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
      unfolded PR_CONST_def]
 
 end
@@ -977,7 +1028,7 @@ definition (in -) restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<R
     let lcount = get_learned_count S;
     let can_res = (lcount > n);
     let min_reached = (ccount > minimum_number_between_restarts);
-    RETURN ((local_restart_only S \<longrightarrow> sema' > fema) \<and> min_reached \<and> can_res)}
+    RETURN ((upper_restart_bound_not_reached S \<longrightarrow> sema' > fema) \<and> min_reached \<and> can_res)}
   \<close>
 
 sepref_thm restart_required_heur_fast_code
@@ -1482,7 +1533,7 @@ lemma cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D:
 
 definition (in isasat_input_ops) cdcl_twl_restart_wl_heur where
 \<open>cdcl_twl_restart_wl_heur S = do {
-    let b = local_restart_only S;
+    let b = lower_restart_bound_not_reached S;
     if b then cdcl_twl_local_restart_wl_D_heur S
     else cdcl_twl_full_restart_wl_prog_heur S
   }\<close>
