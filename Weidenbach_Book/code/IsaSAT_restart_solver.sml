@@ -1572,6 +1572,18 @@ fun set_lookup_conflict_aa_code x =
     end)
     x;
 
+fun isa_arena_incr_act_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl_get heap_uint32 ai (minus_nat bi (nat_of_integer (3 : IntInf.int)))
+          ();
+    in
+      arl_set heap_uint32 ai (minus_nat bi (nat_of_integer (3 : IntInf.int)))
+        (Word32.+ (xa, (Word32.fromInt 1))) ()
+    end)
+    x;
+
 fun set_conflict_wl_heur_code x =
   (fn ai =>
     fn (a1, (a1a, (a1b, (_, (a1d, (a1e, (a1f,
@@ -1585,11 +1597,14 @@ fun set_conflict_wl_heur_code x =
       let
         val (a1m, (a1n, (a1o, a2o))) = a;
       in
-        (fn f_ => fn () => f_ ((isa_length_trail_code a1) ()) ())
+        (fn f_ => fn () => f_ ((isa_arena_incr_act_code a1a ai) ()) ())
           (fn xa =>
-            (fn () =>
-              (a1, (a1a, (a1m, (xa, (a1d, (a1e,
-    (a1f, (a1n, (a1h, (a1o, (a2o, (incr_conflict a1k, (a1l, a2l)))))))))))))))
+            (fn f_ => fn () => f_ ((isa_length_trail_code a1) ()) ())
+              (fn xaa =>
+                (fn () =>
+                  (a1, (xa, (a1m, (xaa, (a1d,
+  (a1e, (a1f, (a1n, (a1h, (a1o, (a2o, (incr_conflict a1k,
+(a1l, a2l))))))))))))))))
       end
         ()
     end)
