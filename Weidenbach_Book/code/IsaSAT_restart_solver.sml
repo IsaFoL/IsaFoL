@@ -2055,7 +2055,7 @@ fun number_clss_to_keep_impl x =
           = xi;
       in
         plus_nat (nat_of_integer (1000 : IntInf.int))
-          (times_nat (nat_of_integer (300 : IntInf.int)) (nat_of_uint64 a1o))
+          (times_nat (nat_of_integer (150 : IntInf.int)) (nat_of_uint64 a1o))
       end))
     x;
 

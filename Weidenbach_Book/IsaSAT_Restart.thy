@@ -1082,7 +1082,7 @@ definition (in isasat_input_ops) number_clss_to_keep :: \<open>twl_st_wl_heur \<
   \<open>number_clss_to_keep = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
       (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
        vdom, avdom, lcount).
-    1000 + 300 * nat_of_uint64 restarts)\<close>
+    1000 + 150 * nat_of_uint64 restarts)\<close>
 
 
 definition (in isasat_input_ops) access_vdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
