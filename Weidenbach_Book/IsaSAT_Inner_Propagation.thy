@@ -4,6 +4,7 @@ theory IsaSAT_Inner_Propagation
 begin
 
 subsection \<open>Propagations Step\<close>
+
 context isasat_input_bounded
 begin
 
@@ -660,7 +661,8 @@ where
     let n = zero_uint32_nat;
     ASSERT(curry6 isa_set_lookup_conflict_aa_pre M N C D n lbd outl);
     (D, clvls, lbd, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n lbd outl;
-    RETURN (M, N, D, length_u M, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_conflict stats, fema, sema)})\<close>
+    ASSERT(arena_act_pre N C);
+    RETURN (M, arena_incr_act N C, D, length_u M, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_conflict stats, fema, sema)})\<close>
 
 
 definition (in isasat_input_ops) update_clause_wl_code_pre where
@@ -1181,7 +1183,14 @@ proof -
     apply (refine_vcg)
     subgoal by (rule isa_set_lookup_conflict_aa_pre)
     apply assumption+
-    subgoal by (auto simp: twl_st_heur'_def twl_st_heur_def counts_maximum_level_def)
+    subgoal for x y
+      unfolding arena_act_pre_def arena_is_valid_clause_idx_def
+      by (rule exI[of _ \<open>get_clauses_wl (snd y)\<close>], rule exI[of _ \<open>set (get_vdom (snd x))\<close>])
+        (auto simp: twl_st_heur'_def twl_st_heur_def set_conflict_wl'_pre_def)
+    subgoal
+      by (auto simp: twl_st_heur'_def twl_st_heur_def counts_maximum_level_def
+        set_conflict_wl'_pre_def
+       intro: valid_arena_arena_incr_act)
     done
 qed
 
