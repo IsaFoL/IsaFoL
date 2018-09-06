@@ -1255,9 +1255,9 @@ paragraph \<open>Learning a clause\<close>
 definition append_clause where
   \<open>append_clause b C arena =
     (if is_short_clause C then
-      arena @ (if b then AStatus IRRED True else AStatus LEARNED True) # AActivity (0) # ALBD (length C - 2) #
+      arena @ (if b then AStatus IRRED False else AStatus LEARNED True) # AActivity 0 # ALBD (length C - 2) #
       ASize (length C - 2) # map ALit C
-    else arena @ APos 0 # (if b then AStatus IRRED True else AStatus LEARNED True) # AActivity 0 #
+    else arena @ APos 0 # (if b then AStatus IRRED False else AStatus LEARNED True) # AActivity 0 #
       ALBD (length C - 2)# ASize (length C - 2) # map ALit C)\<close>
 
 lemma arena_active_clause_append_clause:

@@ -482,7 +482,7 @@ than reserving a space that is large enough directly. However, in this case the 
 is so large that there should not be any difference\<close>
 definition fm_add_new where
  \<open>fm_add_new b C N = do {
-    let st = (if b then AStatus IRRED else AStatus LEARNED);
+    let st = (if b then AStatus IRRED False else AStatus LEARNED True);
     let l = length N;
     let s = length C - 2;
     let N = (if is_short_clause C then
@@ -532,22 +532,22 @@ where
   \<open>fm_add_new_at_position b i C N = fmupd i (C, b) N\<close>
 
 definition AStatus_IRRED where
-  \<open>AStatus_IRRED = AStatus IRRED\<close>
+  \<open>AStatus_IRRED = AStatus IRRED False\<close>
 
 lemma AStatus_IRRED [sepref_fr_rules]:
   \<open>(uncurry0 (return 0), uncurry0 (RETURN AStatus_IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
   by sepref_to_hoare
     (sep_auto simp: AStatus_IRRED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
-    status_rel_def)
+    status_rel_def bitfield_rel_def nat_0_AND)
 
 definition AStatus_LEARNED where
-  \<open>AStatus_LEARNED = AStatus LEARNED\<close>
+  \<open>AStatus_LEARNED = AStatus LEARNED True\<close>
 
 lemma AStatus_LEARNED [sepref_fr_rules]:
-  \<open>(uncurry0 (return 1), uncurry0 (RETURN AStatus_LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  \<open>(uncurry0 (return 0b101), uncurry0 (RETURN AStatus_LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
   by sepref_to_hoare
     (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
-    status_rel_def)
+    status_rel_def bitfield_rel_def)
 
 sepref_definition is_short_clause_code
   is \<open>RETURN o is_short_clause\<close>
