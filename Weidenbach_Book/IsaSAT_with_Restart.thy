@@ -286,29 +286,10 @@ sepref_definition (in -) empty_init_code'
 
 declare empty_init_code'.refine[sepref_fr_rules]
 
-
-text \<open>
-  This is a trick to recover from consumption of a variable (\<^term>\<open>\<A>\<^sub>i\<^sub>n\<close>) that is passed as
-  argument and destroyed by the initialisation: We copy it as a zero-cost
-  (by creating a \<^term>\<open>()\<close>), because we don't need it in the code and only in the specification.
-\<close>
-definition virtual_copy where
-  [simp]: \<open>virtual_copy = id\<close>
-
-definition virtual_copy_rel where
-  \<open>virtual_copy_rel = {(c, b). c = ()}\<close>
-
-abbreviation virtual_copy_assn where
-  \<open>virtual_copy_assn \<equiv> hr_comp unit_assn virtual_copy_rel\<close>
-
-lemma [sepref_fr_rules]:
-  \<open>(return o (\<lambda>_. ()), RETURN o virtual_copy) \<in> R\<^sup>k \<rightarrow>\<^sub>a virtual_copy_assn\<close>
-  by sepref_to_hoare (sep_auto simp: virtual_copy_rel_def)
-
 lemma init_dt_wl_code_refine[sepref_fr_rules]:
   \<open>(uncurry2 (\<lambda>_. init_dt_wl_code), uncurry2 (isasat_input_ops.init_dt_wl_heur))
   \<in> [\<lambda>((N, S), S'). isasat_input_bounded \<A>\<^sub>i\<^sub>n \<and> N = \<A>\<^sub>i\<^sub>n]\<^sub>a
-    virtual_copy_assn\<^sup>k *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>d *\<^sub>a (isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
+    ghost_assn\<^sup>k *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>d *\<^sub>a (isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
     isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n\<close>
   unfolding PR_CONST_def
   unfolding hfref_def hn_refine_def
@@ -320,13 +301,13 @@ lemma init_dt_wl_code_refine[sepref_fr_rules]:
       rule_format, of \<open>(snd (fst c), snd c)\<close> \<open>(snd (fst a), snd a)\<close>]
     by (cases a)
        (sep_auto dest!: frame_rule_left[of \<open>_ * isasat_input_ops.isasat_init_assn _ _ _\<close> _ _
-            \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst (fst a))\<close>])
+            \<open>ghost_assn \<A>\<^sub>i\<^sub>n (fst (fst a))\<close>])
   done
 (*
 lemma init_dt_wl_fast_code_refine[sepref_fr_rules]:
   \<open>(uncurry2 (\<lambda>_. init_dt_wl_fast_code), uncurry2 (isasat_input_ops.init_dt_wl_heur_fast))
   \<in> [\<lambda>((N, S), S'). isasat_input_bounded \<A>\<^sub>i\<^sub>n \<and> N = \<A>\<^sub>i\<^sub>n]\<^sub>a
-    virtual_copy_assn\<^sup>k *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>d *\<^sub>a
+    ghost_assn\<^sup>k *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>d *\<^sub>a
      (isasat_input_ops.isasat_init_fast_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
     isasat_input_ops.isasat_init_fast_assn \<A>\<^sub>i\<^sub>n\<close>
   unfolding PR_CONST_def
@@ -339,7 +320,7 @@ lemma init_dt_wl_fast_code_refine[sepref_fr_rules]:
       rule_format, of \<open>(snd (fst c), snd c)\<close> \<open>(snd (fst a), snd a)\<close>]
     by (cases a)
        (sep_auto dest!: frame_rule_left[of \<open>_ * isasat_input_ops.isasat_init_fast_assn _ _ _\<close> _ _
-            \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst (fst a))\<close>])
+            \<open>ghost_assn \<A>\<^sub>i\<^sub>n (fst (fst a))\<close>])
   done*)
 
 definition (in -)convert_state where
@@ -348,7 +329,7 @@ definition (in -)convert_state where
 lemma (in -) convert_state_hnr:
   \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
    \<in> [\<lambda>(N, S). N = \<A>\<^sub>i\<^sub>n \<and> N = \<A>\<^sub>i\<^sub>n']\<^sub>a
-     virtual_copy_assn\<^sup>k *\<^sub>a (isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
+     ghost_assn\<^sup>k *\<^sub>a (isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
      isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n'\<close>
   by sepref_to_hoare (sep_auto simp: convert_state_def)
 
@@ -356,7 +337,7 @@ lemma (in -) convert_state_hnr:
 lemma (in -) convert_state_fast_hnr:
   \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
    \<in> [\<lambda>(N, S). N = \<A>\<^sub>i\<^sub>n \<and> N = \<A>\<^sub>i\<^sub>n']\<^sub>a
-     virtual_copy_assn\<^sup>k *\<^sub>a (isasat_input_ops.isasat_init_fast_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
+     ghost_assn\<^sup>k *\<^sub>a (isasat_input_ops.isasat_init_fast_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
      isasat_input_ops.isasat_init_fast_assn \<A>\<^sub>i\<^sub>n'\<close>
   by sepref_to_hoare (sep_auto simp: convert_state_def)*)
 
@@ -448,7 +429,7 @@ qed
 lemma cdcl_twl_stgy_prog_wl_D_code_ref':
   \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_code), uncurry isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur)
   \<in> [\<lambda>(N, _). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n]\<^sub>a
-     (virtual_copy_assn)\<^sup>k *\<^sub>a
+     (ghost_assn)\<^sup>k *\<^sub>a
     (isasat_input_ops.isasat_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> isasat_input_ops.isasat_assn \<A>\<^sub>i\<^sub>n\<close>
   unfolding hfref_def hn_refine_def
   apply (subst in_pair_collect_simp)
@@ -460,7 +441,7 @@ lemma cdcl_twl_stgy_prog_wl_D_code_ref':
     apply (cases a)
     by (sep_auto simp:
       dest!: frame_rule_left[of \<open>isasat_input_ops.isasat_assn _ _ _\<close> _ _
-        \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
+        \<open>ghost_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
   done
 
 (*
@@ -468,7 +449,7 @@ lemma cdcl_twl_stgy_prog_wl_D_break_fast_code_ref':
   \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_fast_code),
       uncurry isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D_heur_break)
   \<in> [\<lambda>(N, S). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n \<and> isasat_fast S]\<^sub>a
-     (virtual_copy_assn)\<^sup>k *\<^sub>a
+     (ghost_assn)\<^sup>k *\<^sub>a
     (isasat_input_ops.isasat_fast_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> isasat_input_ops.isasat_assn \<A>\<^sub>i\<^sub>n\<close>
   unfolding hfref_def hn_refine_def
   apply (subst in_pair_collect_simp)
@@ -480,14 +461,14 @@ lemma cdcl_twl_stgy_prog_wl_D_break_fast_code_ref':
     by (cases a)
       (sep_auto simp:
       dest!: frame_rule_left[of \<open>isasat_input_ops.isasat_fast_assn _ _ _\<close> _ _
-       \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
+       \<open>ghost_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
   done*)
 
 
 lemma cdcl_twl_stgy_restart_prog_wl_D_code_ref':
   \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_restart_prog_wl_heur_code), uncurry isasat_input_ops.cdcl_twl_stgy_restart_prog_wl_heur)
   \<in> [\<lambda>(N, _). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n]\<^sub>a
-     (virtual_copy_assn)\<^sup>k *\<^sub>a
+     (ghost_assn)\<^sup>k *\<^sub>a
     (isasat_input_ops.isasat_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> isasat_input_ops.isasat_assn \<A>\<^sub>i\<^sub>n\<close>
   unfolding hfref_def hn_refine_def
   apply (subst in_pair_collect_simp)
@@ -499,7 +480,7 @@ lemma cdcl_twl_stgy_restart_prog_wl_D_code_ref':
     apply (cases a)
     by (sep_auto simp:
       dest!: frame_rule_left[of \<open>isasat_input_ops.isasat_assn _ _ _\<close> _ _
-        \<open>virtual_copy_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
+        \<open>ghost_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
   done
 
 declare cdcl_twl_stgy_prog_wl_D_code_ref'[to_hnr, OF refl, sepref_fr_rules]
@@ -576,6 +557,7 @@ declare init_state_wl_heur_hnr[to_hnr, OF refl, sepref_fr_rules]
 lemma uint_max_nat_assn_hnr[sepref_fr_rules]:
   \<open>(uncurry0 (return uint_max), uncurry0 (RETURN uint_max)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare sep_auto
+
 
 text \<open>Crucial and subtil point for the refinement\<close>
 declare convert_state_hnr[to_hnr, OF _ refl, sepref_fr_rules]

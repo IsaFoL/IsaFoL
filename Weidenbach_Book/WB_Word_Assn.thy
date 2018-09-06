@@ -1536,4 +1536,31 @@ lemma param_uint64_numeral[sepref_import_param]:
   \<open>(numeral n, numeral n) \<in> uint64_rel\<close>
   by auto
 
+
+(* TODO Move in this file + add 64 bits version *)
+lemma bitAND_uint32_nat_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (AND)), uncurry (RETURN oo (AND))) \<in> 
+    uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
+
+lemma bitAND_uint32_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (AND)), uncurry (RETURN oo (AND))) \<in> 
+    uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
+
+lemma bitOR_uint32_nat_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (OR)), uncurry (RETURN oo (OR))) \<in> 
+    uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
+
+lemma bitOR_uint32_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (OR)), uncurry (RETURN oo (OR))) \<in> 
+    uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
+(* END Move *)
+
 end

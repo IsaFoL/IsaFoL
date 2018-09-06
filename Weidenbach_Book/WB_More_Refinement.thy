@@ -1059,6 +1059,29 @@ proof -
     using hfref_imp2[of S S' P R'] assms(3) by auto
 qed
 
+
+subsubsection \<open>Ghost parameters\<close>
+text \<open>
+  This is a trick to recover from consumption of a variable (\<^term>\<open>\<A>\<^sub>i\<^sub>n\<close>) that is passed as
+  argument and destroyed by the initialisation: We copy it as a zero-cost
+  (by creating a \<^term>\<open>()\<close>), because we don't need it in the code and only in the specification.
+
+  This is a way to have ghost parameters, without having them: The parameter is replaced by \<^term>\<open>()\<close>
+  and we hope that the compiler will do the right thing.
+\<close>
+definition virtual_copy where
+  [simp]: \<open>virtual_copy = id\<close>
+
+definition virtual_copy_rel where
+  \<open>virtual_copy_rel = {(c, b). c = ()}\<close>
+
+abbreviation ghost_assn where
+  \<open>ghost_assn \<equiv> hr_comp unit_assn virtual_copy_rel\<close>
+
+lemma [sepref_fr_rules]:
+ \<open>(return o (\<lambda>_. ()), RETURN o virtual_copy) \<in> R\<^sup>k \<rightarrow>\<^sub>a ghost_assn\<close>
+ by sepref_to_hoare (sep_auto simp: virtual_copy_rel_def)
+
 subsection \<open>Sorting\<close>
 
 text \<open>Remark that we do not \<^emph>\<open>prove\<close> that the sorting in correct, since we do not care about the
