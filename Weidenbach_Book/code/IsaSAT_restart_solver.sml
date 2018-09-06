@@ -254,6 +254,23 @@ fun heap_array A_ =
   {countable_heap = countable_array, typerep_heap = typerep_array A_} :
   ('a array) heap;
 
+datatype char = Chara of bool * bool * bool * bool * bool * bool * bool * bool;
+
+fun shows_prec_char p c = (fn a => c :: a);
+
+fun shows_string x = (fn a => x @ a);
+
+fun shows_list_char cs = shows_string cs;
+
+type 'a show =
+  {shows_prec : nat -> 'a -> char list -> char list,
+    shows_list : 'a list -> char list -> char list};
+val shows_prec = #shows_prec : 'a show -> nat -> 'a -> char list -> char list;
+val shows_list = #shows_list : 'a show -> 'a list -> char list -> char list;
+
+val show_char = {shows_prec = shows_prec_char, shows_list = shows_list_char} :
+  char show;
+
 type 'a equal = {equal : 'a -> 'a -> bool};
 val equal = #equal : 'a equal -> 'a -> 'a -> bool;
 
@@ -411,6 +428,117 @@ val heap_uint64 =
   {countable_heap = countable_uint64, typerep_heap = typerep_uint64} :
   Uint64.uint64 heap;
 
+fun sgn_integer k =
+  (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
+    else (if IntInf.< (k, (0 : IntInf.int)) then (~1 : IntInf.int)
+           else (1 : IntInf.int)));
+
+fun apsnd f (x, y) = (x, f y);
+
+fun divmod_integer k l =
+  (if ((k : IntInf.int) = (0 : IntInf.int))
+    then ((0 : IntInf.int), (0 : IntInf.int))
+    else (if ((l : IntInf.int) = (0 : IntInf.int)) then ((0 : IntInf.int), k)
+           else (apsnd o (fn a => fn b => IntInf.* (a, b)) o sgn_integer) l
+                  (if (((sgn_integer k) : IntInf.int) = (sgn_integer l))
+                    then IntInf.divMod (IntInf.abs k, IntInf.abs l)
+                    else let
+                           val (r, s) =
+                             IntInf.divMod (IntInf.abs k, IntInf.abs l);
+                         in
+                           (if ((s : IntInf.int) = (0 : IntInf.int))
+                             then (IntInf.~ r, (0 : IntInf.int))
+                             else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
+                                    IntInf.- (IntInf.abs l, s)))
+                         end)));
+
+fun snd (x1, x2) = x2;
+
+fun modulo_integer k l = snd (divmod_integer k l);
+
+fun modulo_nat m n = Nat (modulo_integer (integer_of_nat m) (integer_of_nat n));
+
+fun fst (x1, x2) = x1;
+
+fun divide_integer k l = fst (divmod_integer k l);
+
+fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
+
+fun string_of_digit n =
+  (if equal_nat n zero_nata
+    then [Chara (false, false, false, false, true, true, false, false)]
+    else (if equal_nat n one_nat
+           then [Chara (true, false, false, false, true, true, false, false)]
+           else (if equal_nat n (nat_of_integer (2 : IntInf.int))
+                  then [Chara (false, true, false, false, true, true, false,
+                                false)]
+                  else (if equal_nat n (nat_of_integer (3 : IntInf.int))
+                         then [Chara (true, true, false, false, true, true,
+                                       false, false)]
+                         else (if equal_nat n (nat_of_integer (4 : IntInf.int))
+                                then [Chara
+(false, false, true, false, true, true, false, false)]
+                                else (if equal_nat n
+   (nat_of_integer (5 : IntInf.int))
+                                       then [Chara
+       (true, false, true, false, true, true, false, false)]
+                                       else (if equal_nat n
+          (nat_of_integer (6 : IntInf.int))
+      then [Chara (false, true, true, false, true, true, false, false)]
+      else (if equal_nat n (nat_of_integer (7 : IntInf.int))
+             then [Chara (true, true, true, false, true, true, false, false)]
+             else (if equal_nat n (nat_of_integer (8 : IntInf.int))
+                    then [Chara (false, false, false, true, true, true, false,
+                                  false)]
+                    else [Chara (true, false, false, true, true, true, false,
+                                  false)])))))))));
+
+fun showsp_nat p n =
+  (if less_nat n (nat_of_integer (10 : IntInf.int))
+    then shows_string (string_of_digit n)
+    else showsp_nat p (divide_nat n (nat_of_integer (10 : IntInf.int))) o
+           shows_string
+             (string_of_digit
+               (modulo_nat n (nat_of_integer (10 : IntInf.int)))));
+
+fun shows_prec_nat x = showsp_nat x;
+
+fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
+
+fun shows_prec_uint64 n m xs = shows_prec_nat n (nat_of_uint64 m) xs;
+
+fun shows_sep s sep [] = shows_string []
+  | shows_sep s sep [x] = s x
+  | shows_sep s sep (x :: v :: va) = s x o sep o shows_sep s sep (v :: va);
+
+fun null [] = true
+  | null (x :: xs) = false;
+
+fun shows_list_gen showsx e l s r xs =
+  (if null xs then shows_string e
+    else shows_string l o shows_sep showsx (shows_string s) xs o
+           shows_string r);
+
+fun showsp_list s p xs =
+  shows_list_gen (s zero_nata)
+    [Chara (true, true, false, true, true, false, true, false),
+      Chara (true, false, true, true, true, false, true, false)]
+    [Chara (true, true, false, true, true, false, true, false)]
+    [Chara (false, false, true, true, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false)]
+    [Chara (true, false, true, true, true, false, true, false)] xs;
+
+fun shows_list_nat x = showsp_list shows_prec_nat zero_nata x;
+
+fun map f [] = []
+  | map f (x21 :: x22) = f x21 :: map f x22;
+
+fun shows_list_uint64 xs ys = shows_list_nat (map nat_of_uint64 xs) ys;
+
+val show_uint64 =
+  {shows_prec = shows_prec_uint64, shows_list = shows_list_uint64} :
+  Uint64.uint64 show;
+
 val one_uint64 = {one = Uint64.one} : Uint64.uint64 one;
 
 val default_uint64a : Uint64.uint64 = Uint64.zero;
@@ -432,6 +560,20 @@ fun heap_prod A_ B_ =
 fun default_proda A_ B_ = (default A_, default B_);
 
 fun default_prod A_ B_ = {default = default_proda A_ B_} : ('a * 'b) default;
+
+val one_integera : IntInf.int = (1 : IntInf.int);
+
+val one_integer = {one = one_integera} : IntInf.int one;
+
+val zero_integer = {zero = (0 : IntInf.int)} : IntInf.int zero;
+
+type 'a zero_neq_one = {one_zero_neq_one : 'a one, zero_zero_neq_one : 'a zero};
+val one_zero_neq_one = #one_zero_neq_one : 'a zero_neq_one -> 'a one;
+val zero_zero_neq_one = #zero_zero_neq_one : 'a zero_neq_one -> 'a zero;
+
+val zero_neq_one_integer =
+  {one_zero_neq_one = one_integer, zero_zero_neq_one = zero_integer} :
+  IntInf.int zero_neq_one;
 
 datatype ('a, 'b) vmtf_node = VMTF_Node of 'b * 'a option * 'a option;
 
@@ -493,13 +635,31 @@ fun upd A_ i x a =
       a
     end);
 
-fun null [] = true
-  | null (x :: xs) = false;
-
 fun hd (x21 :: x22) = x21;
 
 fun tl [] = []
   | tl (x21 :: x22) = x22;
+
+fun of_bool A_ true = one (one_zero_neq_one A_)
+  | of_bool A_ false = zero (zero_zero_neq_one A_);
+
+fun integer_of_char (Chara (b0, b1, b2, b3, b4, b5, b6, b7)) =
+  IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (of_bool
+                        zero_neq_one_integer
+                        b7, (2 : IntInf.int)), of_bool zero_neq_one_integer
+         b6), (2 : IntInf.int)), of_bool zero_neq_one_integer
+                                   b5), (2 : IntInf.int)), of_bool
+                     zero_neq_one_integer
+                     b4), (2 : IntInf.int)), of_bool zero_neq_one_integer
+       b3), (2 : IntInf.int)), of_bool zero_neq_one_integer
+                                 b2), (2 : IntInf.int)), of_bool
+                   zero_neq_one_integer
+                   b1), (2 : IntInf.int)), of_bool zero_neq_one_integer b0);
+
+fun implode cs =
+  (String.implode
+    o map (fn k => if 0 <= k andalso k < 128 then (Char.chr o IntInf.toInt) k else raise Fail "Non-ASCII character in literal"))
+    (map integer_of_char cs);
 
 fun blit A_ src si dst di len =
   (fn () => 
@@ -644,10 +804,6 @@ fun array_upd_u A_ i x a = (fn () => let
                                        a
                                      end);
 
-fun snd (x1, x2) = x2;
-
-fun fst (x1, x2) = x1;
-
 fun arl_set_u A_ a i x = (fn () => let
                                      val b = array_upd_u A_ i x (fst a) ();
                                    in
@@ -665,8 +821,6 @@ fun uint32_of_int i = Word32.fromLargeInt (IntInf.toLarge (integer_of_int i));
 fun int_of_nat n = Int_of_integer (integer_of_nat n);
 
 fun uint32_of_nat x = (uint32_of_int o int_of_nat) x;
-
-fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
 
 fun take_arl x = (fn i => fn (xs, _) => (xs, i)) x;
 
@@ -840,6 +994,11 @@ fun incr_decision x =
     (propa, (confl, (Uint64.plus dec Uint64.one, res))))
     x;
 
+fun incr_lrestart x =
+  (fn (propa, (confl, (dec, (res, lres)))) =>
+    (propa, (confl, (dec, (res, Uint64.plus lres Uint64.one)))))
+    x;
+
 val sET_TRUE_code : Word32.word =
   Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int));
 
@@ -853,6 +1012,15 @@ fun imp_nfoldli (x :: ls) c f s =
         ()
     end)
   | imp_nfoldli [] c f s = (fn () => s);
+
+fun showsp_prod s1 s2 p (x, y) =
+  shows_string [Chara (false, false, false, true, false, true, false, false)] o
+    s1 one_nat x o
+    shows_string
+      [Chara (false, false, true, true, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false)] o
+    s2 one_nat y o
+    shows_string [Chara (true, false, false, true, false, true, false, false)];
 
 fun is_Nil a = (case a of [] => true | _ :: _ => false);
 
@@ -1031,9 +1199,14 @@ fun shorten_take_aa_u32 A_ B_ l j w =
             end);
 
 fun arena_status_code x =
-  (fn ai => fn bi =>
-    arl_get heap_uint32 ai
-      (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))))
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl_get heap_uint32 ai
+          (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))) ();
+    in
+      Word32.andb (xa, Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int)))
+    end)
     x;
 
 fun mark_garbage_code x =
@@ -1074,7 +1247,7 @@ fun isa_arena_act_code x =
 fun isa_arena_lit_code x = arl_get heap_uint32 x;
 
 fun ema_update_ref coeff ema lbd =
-  Uint64.plus (shiftr_uint64 ema coeff)
+  Uint64.plus (Uint64.minus ema (shiftr_uint64 ema coeff))
     (shiftl_uint64 (uint64_of_uint32 lbd)
       (minus_nat (nat_of_integer (48 : IntInf.int)) coeff));
 
@@ -1901,6 +2074,20 @@ fun unit_propagation_outer_loop_wl_D x =
       end)
     x;
 
+fun upper_restart_bound_not_reached_impl x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, ((_, (_, (_, (a1o, _)))), (_, (_, (_, (_, (_, a2t)))))))))))))))))
+          = xi;
+      in
+        less_nat a2t
+          (plus_nat (nat_of_integer (3000 : IntInf.int))
+            (times_nat (nat_of_integer (500 : IntInf.int)) (nat_of_uint64 a1o)))
+      end))
+    x;
+
 fun get_conflict_count_heur_slow_code x =
   (fn xi =>
     (fn () =>
@@ -1952,20 +2139,6 @@ fun get_fast_ema_heur_slow_code x =
       end))
     x;
 
-fun local_restart_only_impl x =
-  (fn xi =>
-    (fn () =>
-      let
-        val (_, (_, (_, (_, (_, (_, (_, (_,
-  (_, (_, (_, ((_, (_, (_, (a1o, _)))), (_, (_, (_, (_, (_, a2t)))))))))))))))))
-          = xi;
-      in
-        less_nat a2t
-          (plus_nat (nat_of_integer (2000 : IntInf.int))
-            (times_nat (nat_of_integer (300 : IntInf.int)) (nat_of_uint64 a1o)))
-      end))
-    x;
-
 fun restart_required_heur_slow_code x =
   (fn ai => fn bi => fn () =>
     let
@@ -1974,7 +2147,7 @@ fun restart_required_heur_slow_code x =
       val x_d = get_fast_ema_heur_slow_code ai ();
       val x_f = get_conflict_count_heur_slow_code ai ();
       val x_h = get_learned_count_slow_code ai ();
-      val xaa = local_restart_only_impl ai ();
+      val xaa = upper_restart_bound_not_reached_impl ai ();
     in
       (if xaa
         then Uint64.less x_d
@@ -2020,11 +2193,14 @@ fun incr_restart_stat_slow_code x =
     (fn () =>
       let
         val (a1, (a1a, (a1b, (a1c, (a1d, (a1e,
-   (a1f, (a1g, (a1h, (a1i, (a1j, (a1k, a2k))))))))))))
+   (a1f, (a1g, (a1h, (a1i, (a1j, (a1k, (a1l,
+ (a1m, (_, (a1o, (a1p, a2p)))))))))))))))))
           = xi;
       in
         (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-     (a1g, (a1h, (a1i, (a1j, (incr_restart a1k, a2k))))))))))))
+     (a1g, (a1h, (a1i, (a1j, (incr_restart a1k,
+                               (a1l, (a1m, ((Word32.fromInt 0),
+     (a1o, (a1p, a2p)))))))))))))))))
       end))
     x;
 
@@ -2330,6 +2506,22 @@ fun find_local_restart_target_level_st_code x =
     find_local_restart_target_level_code a1 a1e)
     x;
 
+fun incr_lrestart_stat_slow_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (a1, (a1a, (a1b, (a1c, (a1d, (a1e,
+   (a1f, (a1g, (a1h, (a1i, (a1j, (a1k, (a1l,
+ (a1m, (_, (a1o, (a1p, a2p)))))))))))))))))
+          = xi;
+      in
+        (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+     (a1g, (a1h, (a1i, (a1j, (incr_lrestart a1k,
+                               (a1l, (a1m, ((Word32.fromInt 0),
+     (a1o, (a1p, a2p)))))))))))))))))
+      end))
+    x;
+
 fun get_pos_of_level_in_trail_imp_code x =
   (fn ai => fn bi =>
     let
@@ -2462,15 +2654,29 @@ fun cdcl_twl_local_restart_wl_D_heur_code x =
                    ())
                    (fn x_c =>
                      (fn f_ => fn () => f_ ((empty_Q_code x_c) ()) ())
-                       incr_restart_stat_slow_code)))
+                       incr_lrestart_stat_slow_code)))
         ()
     end)
+    x;
+
+fun lower_restart_bound_not_reached_impl x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, ((_, (_, (_, (a1o, _)))), (_, (_, (_, (_, (_, a2t)))))))))))))))))
+          = xi;
+      in
+        less_nat a2t
+          (plus_nat (nat_of_integer (2000 : IntInf.int))
+            (times_nat (nat_of_integer (300 : IntInf.int)) (nat_of_uint64 a1o)))
+      end))
     x;
 
 fun cdcl_twl_restart_wl_heur_code x =
   (fn xi => fn () =>
     let
-      val xa = local_restart_only_impl xi ();
+      val xa = lower_restart_bound_not_reached_impl xi ();
     in
       (if xa then cdcl_twl_local_restart_wl_D_heur_code xi
         else cdcl_twl_full_restart_wl_prog_heur_code xi)
@@ -3300,7 +3506,9 @@ fun propagate_unit_bt_wl_D_code x =
 fun append_and_length_code x =
   (fn ai => fn bia => fn bi =>
     let
-      val xa = (if ai then (Word32.fromInt 0) else (Word32.fromInt 1));
+      val xa =
+        (if ai then (Word32.fromInt 0)
+          else Word32.fromLargeInt (IntInf.toLarge (5 : IntInf.int)));
     in
       (fn () =>
         let
@@ -3478,18 +3686,89 @@ fun backtrack_wl_D_nlit_heur_code x =
     end)
     x;
 
-fun isasat_current_information x = (fn (_, (_, (_, _))) => ()) x;
+fun shows_prec_prod A_ B_ = showsp_prod (shows_prec A_) (shows_prec B_);
+
+fun shows_prec_list A_ p xs = shows_list A_ xs;
+
+fun isasat_current_information x =
+  (fn (propa, (confl, (decs, restarts))) => fn lcount =>
+    (if (((Uint64.andb confl
+            (Uint64.fromInt
+              (8191 : IntInf.int))) : Uint64.uint64) = (Uint64.fromInt
+                 (8191 : IntInf.int)))
+      then ignore (print
+             (implode
+                (shows_prec_list show_char zero_nata
+                   [Chara (true, true, false, false, false, true, true, false),
+                     Chara (false, false, false, false, false, true, false,
+                             false),
+                     Chara (false, false, true, true, true, true, true, false),
+                     Chara (false, false, false, false, false, true, false,
+                             false)]
+                   [] @
+                  shows_prec_uint64 zero_nata confl [] @
+                    shows_prec_list show_char zero_nata
+                      [Chara (false, false, false, false, false, true, false,
+                               false),
+                        Chara (false, false, true, true, true, true, true,
+                                false),
+                        Chara (false, false, false, false, false, true, false,
+                                false)]
+                      [] @
+                      shows_prec_uint64 zero_nata propa [] @
+                        shows_prec_list show_char zero_nata
+                          [Chara (false, false, false, false, false, true,
+                                   false, false),
+                            Chara (false, false, true, true, true, true, true,
+                                    false),
+                            Chara (false, false, false, false, false, true,
+                                    false, false)]
+                          [] @
+                          shows_prec_uint64 zero_nata decs [] @
+                            shows_prec_list show_char zero_nata
+                              [Chara (false, false, false, false, false, true,
+                                       false, false),
+                                Chara (false, false, true, true, true, true,
+true, false),
+                                Chara (false, false, false, false, false, true,
+false, false)]
+                              [] @
+                              shows_prec_prod show_uint64 show_uint64 zero_nata
+                                restarts [] @
+                                shows_prec_list show_char zero_nata
+                                  [Chara (false, false, false, false, false,
+   true, false, false),
+                                    Chara (false, false, true, true, true, true,
+    true, false),
+                                    Chara (false, false, false, false, false,
+    true, false, false)]
+                                  [] @
+                                  shows_prec_nat zero_nata lcount []) ^ "\n"))
+      else ()))
+    x;
 
 fun isasat_current_status_code x =
-  (fn xi =>
-    (fn () =>
-      let
-        val (_, (_, (_, (_, (_, (_, (_, (_,
-  (_, (_, (_, (a1k, (_, (_, (_, (_, _))))))))))))))))
-          = xi;
-      in
-        isasat_current_information a1k
-      end))
+  (fn xi => (fn () => let
+                        val (_, a) = xi;
+                        val (_, aa) = a;
+                        val (_, ab) = aa;
+                        val (_, ac) = ab;
+                        val (_, ad) = ac;
+                        val (_, ae) = ad;
+                        val (_, af) = ae;
+                        val (_, ag) = af;
+                        val (_, ah) = ag;
+                        val (_, ai) = ah;
+                        val (_, aj) = ai;
+                        val (a1k, ak) = aj;
+                        val (_, al) = ak;
+                        val (_, am) = al;
+                        val (_, an) = am;
+                        val (_, ao) = an;
+                        val (_, ap) = ao;
+                      in
+                        isasat_current_information a1k ap
+                      end))
     x;
 
 fun update_next_search l =
