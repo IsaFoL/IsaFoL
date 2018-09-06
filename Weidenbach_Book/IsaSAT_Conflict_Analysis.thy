@@ -265,6 +265,37 @@ lemma tl_state_wl_heur_tl_state_wl:
 definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
+definition (in isasat_input_ops) vmtf_mark_to_rescore_and_unset_reason where
+\<open>vmtf_mark_to_rescore_and_unset_reason arena C vm = do {
+    FOREACH
+      (set [C + 1..<C + arena_length arena C])
+      (\<lambda>i vmtf. do {
+        ASSERT(arena_lit_pre arena i);
+        RETURN (vmtf_mark_to_rescore (atm_of (arena_lit arena i)) vm)
+      })
+      vm
+  }\<close>
+
+lemma vmtf_mark_to_rescore_and_unset_reason_spec:
+  \<open>vm \<in> vmtf M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
+   (\<forall>C \<in> set [C + 1..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<Longrightarrow>
+    vmtf_mark_to_rescore_and_unset_reason arena C vm \<le> SPEC (\<lambda>vm. vm \<in>vmtf M)\<close>
+  unfolding vmtf_mark_to_rescore_and_unset_reason_def
+  apply (refine_vcg FOREACH_rule[where I = \<open>\<lambda>_ vm. vm \<in> vmtf M\<close>])
+  subgoal by auto
+  subgoal for x it \<sigma>
+    unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
+    apply (rule exI[of _ C])
+    apply (intro conjI)
+    apply (solves auto)
+    apply (rule exI[of _ N])
+    apply (rule exI[of _ vdom])
+    apply (fastforce simp: arena_lifting)
+    done
+  subgoal for x it \<sigma>
+    by (cases vm)
+      (auto intro!: vmtf_mark_to_rescore simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+  done
 
 definition (in isasat_input_ops) update_confl_tl_wl_heur
   :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
