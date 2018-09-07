@@ -64,10 +64,10 @@ abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close>
   \<open>ema_assn \<equiv> uint64_assn\<close>
 
 definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> nat \<Rightarrow> ema\<close> where
-  \<open>ema_update coeff ema lbd = ema + (ema >> coeff) + ((uint64_of_nat lbd) << (48 - coeff))\<close>
+  \<open>ema_update coeff ema lbd = ema - (ema >> coeff) + ((uint64_of_nat lbd) << (48 - coeff))\<close>
 
 definition (in -) ema_update_ref :: \<open>nat \<Rightarrow> ema \<Rightarrow> uint32 \<Rightarrow> ema\<close> where
-  \<open>ema_update_ref coeff ema lbd = ema + (ema >> coeff) +  ((uint64_of_uint32 lbd) << (48 - coeff))\<close>
+  \<open>ema_update_ref coeff ema lbd = ema - (ema >> coeff) +  ((uint64_of_uint32 lbd) << (48 - coeff))\<close>
 
 lemma (in -) ema_update_hnr[sepref_fr_rules]:
   \<open>(uncurry2 (return ooo ema_update_ref), uncurry2 (RETURN ooo ema_update)) \<in>
