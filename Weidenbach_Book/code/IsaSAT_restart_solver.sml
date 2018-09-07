@@ -1093,7 +1093,7 @@ fun empty_Q_code x =
 fun uint64_of_uint32 x = (Uint64.fromLarge (Word32.toLarge x));
 
 fun ema_update_ref coeff ema lbd =
-  Uint64.plus (Uint64.plus ema (shiftr_uint64 ema coeff))
+  Uint64.plus (Uint64.minus ema (shiftr_uint64 ema coeff))
     (shiftl_uint64 (uint64_of_uint32 lbd)
       (minus_nat (nat_of_integer (48 : IntInf.int)) coeff));
 
@@ -2104,7 +2104,7 @@ fun upper_restart_bound_not_reached_impl x =
     x;
 
 val minimum_number_between_restarts : Uint64.uint64 =
-  Uint64.fromInt (50 : IntInf.int);
+  Uint64.fromInt (1000 : IntInf.int);
 
 fun get_slow_ema_heur_slow_code x =
   (fn xi =>
@@ -2163,15 +2163,15 @@ fun restart_required_heur_slow_code x =
       (if xaa
         then Uint64.less x_d
                (shiftr_uint64
-                 (Uint64.times (Uint64.fromInt (5 : IntInf.int)) xa)
-                 (nat_of_integer (2 : IntInf.int)))
+                 (Uint64.times (Uint64.fromInt (17 : IntInf.int)) xa)
+                 (nat_of_integer (4 : IntInf.int)))
         else true) andalso
         (Uint64.less minimum_number_between_restarts x_f andalso
           (less_nat bi x_h andalso
             (Word32.< ((Word32.fromInt 2), x_n) andalso
               less_nat
                 (nat_of_uint64
-                  (shiftl_uint64 x_d (nat_of_integer (48 : IntInf.int))))
+                  (shiftr_uint64 x_d (nat_of_integer (48 : IntInf.int))))
                 (nat_of_uint32 x_n))))
     end)
     x;

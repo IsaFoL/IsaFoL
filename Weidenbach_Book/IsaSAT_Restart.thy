@@ -1035,7 +1035,7 @@ begin
 definition (in isasat_input_ops) restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_heur S n = do {
     let sema = get_slow_ema_heur S;
-    let sema' = (5 * get_slow_ema_heur S) >> 2;
+    let sema' = (18 * get_slow_ema_heur S) >> 4;
        \<comment>\<open>roughly speaking 125/100 with hopefully no overflow (there is currently no division
          on \<^typ>\<open>uint64\<close>\<close>
     let fema = get_fast_ema_heur S;
@@ -1045,15 +1045,15 @@ definition (in isasat_input_ops) restart_required_heur :: "twl_st_wl_heur \<Righ
     let min_reached = (ccount > minimum_number_between_restarts);
     let level = count_decided_st S;
     RETURN ((upper_restart_bound_not_reached S \<longrightarrow> sema' > fema) \<and> min_reached \<and> can_res \<and>
-      level > two_uint32_nat \<and> nat_of_uint32_conv level > nat_of_uint64 (fema << 48))}
+      level > two_uint32_nat \<and> nat_of_uint32_conv level > nat_of_uint64 (fema >> 48))}
   \<close>
 
 lemma uint64_max_ge_48: \<open>48 \<le> uint64_max\<close>
   by (auto simp: uint64_max_def)
 
-(* TODO Move *)
+(* TODO Move + fix name *)
 lemma bit_lshift_uint64_assn:
-  \<open>(uncurry (return oo (<<)), uncurry (RETURN oo (<<))) \<in>
+  \<open>(uncurry (return oo (>>)), uncurry (RETURN oo (>>))) \<in>
     uint64_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by sepref_to_hoare sep_auto
 
