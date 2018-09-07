@@ -1032,7 +1032,7 @@ end
 context isasat_input_bounded_nempty
 begin
 
-definition (in -) restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
+definition (in isasat_input_ops) restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_heur S n = do {
     let sema = get_slow_ema_heur S;
     let sema' = (5 * get_slow_ema_heur S) >> 2;
@@ -1043,12 +1043,25 @@ definition (in -) restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<R
     let lcount = get_learned_count S;
     let can_res = (lcount > n);
     let min_reached = (ccount > minimum_number_between_restarts);
-    RETURN ((upper_restart_bound_not_reached S \<longrightarrow> sema' > fema) \<and> min_reached \<and> can_res)}
+    let level = count_decided_st S;
+    RETURN ((upper_restart_bound_not_reached S \<longrightarrow> sema' > fema) \<and> min_reached \<and> can_res \<and>
+      level > two_uint32_nat \<and> nat_of_uint32_conv level > nat_of_uint64 (fema << 48))}
   \<close>
+
+lemma uint64_max_ge_48: \<open>48 \<le> uint64_max\<close>
+  by (auto simp: uint64_max_def)
+
+(* TODO Move *)
+lemma bit_lshift_uint64_assn:
+  \<open>(uncurry (return oo (<<)), uncurry (RETURN oo (<<))) \<in>
+    uint64_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
 
 sepref_thm restart_required_heur_fast_code
   is \<open>uncurry restart_required_heur\<close>
   :: \<open>isasat_fast_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  supply [[goals_limit=1]] uint64_max_ge_48[simp]
+  bit_lshift_uint64_assn[sepref_fr_rules]
   unfolding restart_required_heur_def
   by sepref
 
@@ -1064,6 +1077,8 @@ lemmas restart_required_heur_fast_code_hnr[sepref_fr_rules] =
 sepref_thm restart_required_heur_slow_code
   is \<open>uncurry restart_required_heur\<close>
   :: \<open>isasat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  supply [[goals_limit=1]] uint64_max_ge_48[simp]
+  bit_lshift_uint64_assn[sepref_fr_rules]
   unfolding restart_required_heur_def
   by sepref
 
