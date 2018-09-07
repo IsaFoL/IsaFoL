@@ -898,7 +898,6 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset C));
       ASSERT(length C \<le> uint32_max + 2);
       (vm, \<phi>) \<leftarrow> rescore_clause C M vm \<phi>;
-      vm \<leftarrow> flush M vm;
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
@@ -910,7 +909,10 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       lbd \<leftarrow> lbd_empty lbd;
       let j = length_u M;
       ASSERT(i \<noteq> DECISION_REASON);
-      RETURN (Propagated (- L) i # M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
+      let M = Propagated (- L) i # M;
+      ASSERT(vm \<in> vmtf M);
+      vm \<leftarrow> flush M vm;
+      RETURN (M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
          cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
           incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
           avdom @ [nat_of_uint32_conv i],
@@ -1807,7 +1809,6 @@ proof -
           ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset C));
           ASSERT (length C \<le> uint32_max + 2);
           (vm, \<phi>) \<leftarrow> rescore_clause C M vm \<phi>;
-          vm \<leftarrow> flush M vm;
           glue \<leftarrow> get_LBD lbd;
           let _ = C;
           let b = False;
@@ -1819,7 +1820,10 @@ proof -
           lbd \<leftarrow> lbd_empty lbd;
           let j = length_u M;
           ASSERT(i \<noteq> DECISION_REASON);
-          RETURN (Propagated (- L) i # M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
+          let M = Propagated (- L) i # M;
+          ASSERT(vm \<in> vmtf M);
+          vm \<leftarrow> flush M vm;
+          RETURN (M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
             cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
               incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i], 
               avdom @ [nat_of_uint32_conv i], Suc lcount)
@@ -1829,7 +1833,6 @@ proof -
     have propagate_bt_wl_D_alt_def:
       \<open>propagate_bt_wl_D (lit_of (hd (get_trail_wl S'))) L' U' = do {
             _ \<leftarrow> RETURN (); \<^cancel>\<open>phase saving\<close>
-            _ \<leftarrow> RETURN (); \<^cancel>\<open>flush\<close>
             _ \<leftarrow> RETURN (); \<^cancel>\<open>LBD\<close>
             D'' \<leftarrow>
               list_of_mset2 (- lit_of (hd (get_trail_wl S'))) L'
@@ -1839,6 +1842,8 @@ proof -
                       i \<notin># dom_m N \<and>
                       (\<forall>L\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE)).
                           i \<notin> fst ` set (W L)));
+            _ \<leftarrow> RETURN (); \<^cancel>\<open>lbd empty\<close>
+            _ \<leftarrow> RETURN (); \<^cancel>\<open>flush\<close>
             RETURN
               (Propagated (- lit_of (hd (get_trail_wl S'))) i # M1,
                 N, None, NE, UE, unmark (hd (get_trail_wl S')),
@@ -1853,7 +1858,8 @@ proof -
           uncurry_def RES_RES_RETURN_RES
           get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 list_of_mset2_def)
       done
-    have [refine0]: \<open>SPEC (\<lambda>(vm', \<phi>'). vm' \<in> vmtf M1 \<and> phase_saving \<phi>') \<le> \<Down>{((vm', \<phi>'), ()). vm' \<in> vmtf M1 \<and> phase_saving \<phi>'} (RETURN ())\<close>
+    have [refine0]: \<open>SPEC (\<lambda>(vm', \<phi>'). vm' \<in> vmtf M1 \<and> phase_saving \<phi>')
+       \<le> \<Down>{((vm', \<phi>'), ()). vm' \<in> vmtf M1 \<and> phase_saving \<phi>'} (RETURN ())\<close>
       by (auto intro!: RES_refine simp: RETURN_def)
     have [refine0]: \<open>flush M1 x1 \<le> \<Down> {(vm', _). vm' \<in> vmtf M1} (RETURN ())\<close> for x1
       unfolding flush_def by (auto intro!: RES_refine simp: RETURN_def)
@@ -1902,6 +1908,12 @@ proof -
       apply (rule fm_add_new_append_clause)
       using that valid le_C vdom
       by (auto simp: intro!: RETURN_RES_refine valid_arena_append_clause)
+    have [refine0]: 
+      \<open>lbd_empty lbd \<le> SPEC (\<lambda>c. (c, ()) \<in> {(c, _). c = replicate (length lbd) False})\<close>
+      by (auto simp: lbd_empty_def)
+    have [refine0]:
+      \<open>flush M vm \<le> SPEC (\<lambda>c. (c, ()) \<in>  {(vm', _). vm' \<in> vmtf M})\<close> for vm M
+      by (auto simp: flush_def)
     have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close>
       using incl list_confl_S' literals_are_in_\<L>\<^sub>i\<^sub>n_mono by blast
     have le_C_ge: \<open>length C \<le> uint32_max + 2\<close>
@@ -1926,6 +1938,11 @@ proof -
       unfolding U U' H get_fresh_index_wl_def prod.case
         propagate_bt_wl_D_heur_alt_def rescore_clause_def
       apply (rewrite in \<open>let _ = _!1 in _\<close> Let_def)
+      apply (rewrite in \<open>let _ = update_lbd _ _ _ in _\<close> Let_def)
+      apply (rewrite in \<open>let _ = list_update _ (nat_of_lit _) _ in _\<close> Let_def)
+      apply (rewrite in \<open>let _ = list_update _ (nat_of_lit _) _ in _\<close> Let_def)
+      apply (rewrite in \<open>let _ = length_u _ in _\<close> Let_def)
+      apply (rewrite in \<open>let _ = _ # _ in _\<close> Let_def)
       apply (rewrite in \<open>let _ = False in _\<close> Let_def)
       apply refine_rcg
       subgoal using \<phi> .
@@ -1938,12 +1955,22 @@ proof -
         by (auto simp: lit_of_hd_trail_st_heur_def T' U' U rescore_clause_def S' map_fun_rel_def)
       subgoal by auto
       subgoal using le_C_ge .
-      subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a x1b x2b
+      subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a
         by (auto simp: update_lbd_pre_def arena_is_valid_clause_idx_def)
-      subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a x1b x2b
+      subgoal using D' C_1_neq_hd vmtf avdom
+        by (auto simp: DECISION_REASON_def
+          dest: valid_arena_one_notin_vdomD
+          intro!: vm)
+      subgoal
+        using D' C_1_neq_hd vmtf avdom
+        by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
+          intro!: ASSERT_refine_left ASSERT_leI RES_refine exI[of _ C] valid_arena_update_lbd
+          dest: valid_arena_one_notin_vdomD
+          intro!: vm)
+      subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a
         using D' C_1_neq_hd vmtf avdom
         apply (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
-          propagate_bt_wl_D_def Let_def T' U' U rescore_clause_def S' map_fun_rel_def
+          Let_def T' U' U rescore_clause_def S' map_fun_rel_def
           list_of_mset2_def flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
           get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2
           RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def
