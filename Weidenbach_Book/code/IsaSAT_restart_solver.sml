@@ -1065,6 +1065,8 @@ fun is_pos_code l =
 
 fun uminus_code l = Word32.xorb (l, (Word32.fromInt 1));
 
+fun restart_info_restart_done x = (fn (_, a) => (Uint64.zero, a)) x;
+
 fun length_arl_u_code A_ xs = (fn () => let
   val n = arl_length A_ xs ();
 in
@@ -1076,7 +1078,7 @@ fun isa_length_trail_code x =
 
 fun empty_Q_code x =
   (fn (a1, (a1a, (a1b, (_, (a1d, (a1e, (a1f,
- (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (_, (a1o, a2o))))))))))))))))
+ (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
      =>
     fn () =>
     let
@@ -1084,9 +1086,16 @@ fun empty_Q_code x =
     in
       (a1, (a1a, (a1b, (xa, (a1d, (a1e, (a1f,
   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-((Word32.fromInt 0), (a1o, a2o))))))))))))))))
+(restart_info_restart_done a1n, (a1o, a2o))))))))))))))))
     end)
     x;
+
+fun uint64_of_uint32 x = (Uint64.fromLarge (Word32.toLarge x));
+
+fun ema_update_ref coeff ema lbd =
+  Uint64.plus (Uint64.plus ema (shiftr_uint64 ema coeff))
+    (shiftl_uint64 (uint64_of_uint32 lbd)
+      (minus_nat (nat_of_integer (48 : IntInf.int)) coeff));
 
 val sET_FALSE_code : Word32.word =
   Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int));
@@ -1184,8 +1193,6 @@ fun vmtf_rescore_code x =
 
 fun uint32_of_uint64 n = uint32_of_nat (nat_of_uint64 n);
 
-fun uint64_of_uint32 x = (Uint64.fromLarge (Word32.toLarge x));
-
 fun shorten_take_aa_u32 A_ B_ l j w =
   (fn () => let
               val a = nth_u_code (heap_prod B_ A_) w l ();
@@ -1245,11 +1252,6 @@ fun isa_arena_act_code x =
     x;
 
 fun isa_arena_lit_code x = arl_get heap_uint32 x;
-
-fun ema_update_ref coeff ema lbd =
-  Uint64.plus (Uint64.minus ema (shiftr_uint64 ema coeff))
-    (shiftl_uint64 (uint64_of_uint32 lbd)
-      (minus_nat (nat_of_integer (48 : IntInf.int)) coeff));
 
 fun is_short_clause_code x =
   (fn xi => fn () => let
@@ -1992,21 +1994,22 @@ fun get_conflict_wl_is_None_code x =
     x;
 
 fun unit_propagation_inner_loop_wl_loop_D_code x =
-  (fn ai => fn bi =>
-    heap_WHILET
-      (fn (_, (a1a, a2a)) => fn () =>
-        let
-          val xa = length_ll_fs_heur_code a2a ai ();
-          val x_b = get_conflict_wl_is_None_code a2a ();
-        in
-          less_nat a1a xa andalso x_b
-        end)
-      (fn (a1, a) => let
-                       val (aa, b) = a;
-                     in
-                       unit_propagation_inner_loop_body_wl_heur_code ai a1 aa b
-                     end)
-      (zero_nata, (zero_nata, bi)))
+  (fn ai => fn bi => fn () =>
+    let
+      val xa = length_ll_fs_heur_code bi ai ();
+    in
+      heap_WHILET
+        (fn (_, (a1a, a2a)) =>
+          (fn f_ => fn () => f_ ((get_conflict_wl_is_None_code a2a) ()) ())
+            (fn x_d => (fn () => (less_nat a1a xa andalso x_d))))
+        (fn (a1, a) =>
+          let
+            val (aa, b) = a;
+          in
+            unit_propagation_inner_loop_body_wl_heur_code ai a1 aa b
+          end)
+        (zero_nata, (zero_nata, bi)) ()
+    end)
     x;
 
 fun cut_watch_list_heur2_code x =
@@ -2074,6 +2077,18 @@ fun unit_propagation_outer_loop_wl_D x =
       end)
     x;
 
+fun get_conflict_count_since_last_restart_heur_slow_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, (_, (_, (_, ((a1o, _), _)))))))))))))))
+          = xi;
+      in
+        a1o
+      end))
+    x;
+
 fun upper_restart_bound_not_reached_impl x =
   (fn xi =>
     (fn () =>
@@ -2088,27 +2103,15 @@ fun upper_restart_bound_not_reached_impl x =
       end))
     x;
 
-fun get_conflict_count_heur_slow_code x =
-  (fn xi =>
-    (fn () =>
-      let
-        val (_, (_, (_, (_, (_, (_, (_, (_,
-  (_, (_, (_, (_, (_, (_, (a1n, _)))))))))))))))
-          = xi;
-      in
-        a1n
-      end))
-    x;
-
-val minimum_number_between_restarts : Word32.word =
-  Word32.fromLargeInt (IntInf.toLarge (50 : IntInf.int));
+val minimum_number_between_restarts : Uint64.uint64 =
+  Uint64.fromInt (50 : IntInf.int);
 
 fun get_slow_ema_heur_slow_code x =
   (fn xi =>
     (fn () =>
       let
         val (_, (_, (_, (_, (_, (_, (_, (_,
-  (_, (_, (_, (_, (_, (a1m, (_, _)))))))))))))))
+  (_, (_, (_, (_, (_, (a1m, ((_, _), _)))))))))))))))
           = xi;
       in
         a1m
@@ -2145,7 +2148,7 @@ fun restart_required_heur_slow_code x =
       val _ = get_slow_ema_heur_slow_code ai ();
       val xa = get_slow_ema_heur_slow_code ai ();
       val x_d = get_fast_ema_heur_slow_code ai ();
-      val x_f = get_conflict_count_heur_slow_code ai ();
+      val x_f = get_conflict_count_since_last_restart_heur_slow_code ai ();
       val x_h = get_learned_count_slow_code ai ();
       val xaa = upper_restart_bound_not_reached_impl ai ();
     in
@@ -2155,7 +2158,7 @@ fun restart_required_heur_slow_code x =
                  (Uint64.times (Uint64.fromInt (5 : IntInf.int)) xa)
                  (nat_of_integer (2 : IntInf.int)))
         else true) andalso
-        (Word32.< (minimum_number_between_restarts, x_f) andalso
+        (Uint64.less minimum_number_between_restarts x_f andalso
           less_nat bi x_h)
     end)
     x;
@@ -2194,12 +2197,12 @@ fun incr_restart_stat_slow_code x =
       let
         val (a1, (a1a, (a1b, (a1c, (a1d, (a1e,
    (a1f, (a1g, (a1h, (a1i, (a1j, (a1k, (a1l,
- (a1m, (_, (a1o, (a1p, a2p)))))))))))))))))
+ (a1m, (a1n, (a1o, (a1p, a2p)))))))))))))))))
           = xi;
       in
         (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
      (a1g, (a1h, (a1i, (a1j, (incr_restart a1k,
-                               (a1l, (a1m, ((Word32.fromInt 0),
+                               (a1l, (a1m, (restart_info_restart_done a1n,
      (a1o, (a1p, a2p)))))))))))))))))
       end))
     x;
@@ -2512,12 +2515,12 @@ fun incr_lrestart_stat_slow_code x =
       let
         val (a1, (a1a, (a1b, (a1c, (a1d, (a1e,
    (a1f, (a1g, (a1h, (a1i, (a1j, (a1k, (a1l,
- (a1m, (_, (a1o, (a1p, a2p)))))))))))))))))
+ (a1m, (a1n, (a1o, (a1p, a2p)))))))))))))))))
           = xi;
       in
         (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
      (a1g, (a1h, (a1i, (a1j, (incr_lrestart a1k,
-                               (a1l, (a1m, ((Word32.fromInt 0),
+                               (a1l, (a1m, (restart_info_restart_done a1n,
      (a1o, (a1p, a2p)))))))))))))))))
       end))
     x;
@@ -2733,67 +2736,6 @@ fun is_decided_hd_trail_wl_code x =
                           end)
     x;
 
-fun vmtf_mark_to_rescore_code x =
-  (fn ai => fn ((a1a, (a1b, (a1c, a2c))), a2) => fn () =>
-    let
-      val x_a = arl_append (default_uint32, heap_uint32) a2 ai ();
-    in
-      ((a1a, (a1b, (a1c, a2c))), x_a)
-    end)
-    x;
-
-fun vmtf_mark_to_rescore_and_unset_reason_code x =
-  (fn ai => fn bia => fn bi => fn () =>
-    let
-      val xa = isa_arena_length_code ai bia ();
-    in
-      imp_for (plus_nat bia one_nat) (plus_nat bia (nat_of_uint64 xa))
-        (fn xaa => fn sigma =>
-          (fn f_ => fn () => f_ ((isa_arena_lit_code ai xaa) ()) ())
-            (fn xb => vmtf_mark_to_rescore_code (atm_of_code xb) sigma))
-        bi ()
-    end)
-    x;
-
-fun vmtf_mark_to_rescore_and_unset_code x =
-  (fn ai => fn bi => fn () =>
-    let
-      val a =
-        let
-          val ((a1a, (a1b, (a1c, (a1d, a2d)))), a2) = bi;
-        in
-          (fn f_ => fn () => f_
-            ((if is_None a2d then (fn () => true)
-               else (fn f_ => fn () => f_
-                      ((nth_u_code (heap_vmtf_node heap_uint32 heap_nat) a1a
-                         (the a2d))
-                      ()) ())
-                      (fn xa =>
-                        (fn f_ => fn () => f_
-                          ((nth_u_code (heap_vmtf_node heap_uint32 heap_nat) a1a
-                             ai)
-                          ()) ())
-                          (fn xaa =>
-                            (fn () => (less_nat (stamp xa) (stamp xaa))))))
-            ()) ())
-            (fn xa =>
-              (fn () =>
-                (if xa then ((a1a, (a1b, (a1c, (a1d, SOME ai)))), a2)
-                  else ((a1a, (a1b, (a1c, (a1d, a2d)))), a2))))
-        end
-          ();
-    in
-      let
-        val ((a1a, (a1b, (a1c, a2c))), a2) = a;
-      in
-        (fn f_ => fn () => f_ ((arl_append (default_uint32, heap_uint32) a2 ai)
-          ()) ())
-          (fn x_b => (fn () => ((a1a, (a1b, (a1c, a2c))), x_b)))
-      end
-        ()
-    end)
-    x;
-
 fun resolve_merge_conflict_code x =
   (fn ai => fn bie => fn bid => fn bic => fn bib => fn bia => fn bi =>
     let
@@ -2926,26 +2868,21 @@ fun update_confl_tl_wl_code x =
       in
         (fn f_ => fn () => f_ ((conflict_remove1_code bia (a1o, a2o)) ()) ())
           (fn (a1r, a2r) =>
-            (fn f_ => fn () => f_
-              ((vmtf_mark_to_rescore_and_unset_reason_code a1a ai a1g) ()) ())
-              (fn x_e =>
-                (fn f_ => fn () => f_ ((tl_trail_proped_tr_code a1) ()) ())
-                  (fn xa =>
+            (fn f_ => fn () => f_ ((tl_trail_proped_tr_code a1) ()) ())
+              (fn xa =>
+                (fn f_ => fn () => f_ ((vmtf_unset_code (atm_of_code bia) a1g)
+                  ()) ())
+                  (fn xaa =>
                     (fn f_ => fn () => f_
-                      ((vmtf_mark_to_rescore_and_unset_code (atm_of_code bia)
-                         x_e)
+                      ((heap_array_set_u heap_bool a1h (atm_of_code bia)
+                         (is_pos_code bia))
                       ()) ())
-                      (fn xaa =>
-                        (fn f_ => fn () => f_
-                          ((heap_array_set_u heap_bool a1h (atm_of_code bia)
-                             (is_pos_code bia))
-                          ()) ())
-                          (fn xb =>
-                            (fn () =>
-                              (false,
-                                (xa, (a1a, ((a1n, (a1r, a2r)),
-     (a1e, (a1f, (xaa, (xb, (fast_minus_uint32 a1p (Word32.fromInt 1),
-                              (a1j, (a1q, (a2q, a2l))))))))))))))))))
+                      (fn xb =>
+                        (fn () =>
+                          (false,
+                            (xa, (a1a, ((a1n, (a1r, a2r)),
+ (a1e, (a1f, (xaa, (xb, (fast_minus_uint32 a1p (Word32.fromInt 1),
+                          (a1j, (a1q, (a2q, a2l)))))))))))))))))
       end
         ()
     end)
@@ -3430,6 +3367,53 @@ fun empty_conflict_and_extract_clause_heur_code x =
     end)
     x;
 
+fun vmtf_mark_to_rescore_code x =
+  (fn ai => fn ((a1a, (a1b, (a1c, a2c))), a2) => fn () =>
+    let
+      val x_a = arl_append (default_uint32, heap_uint32) a2 ai ();
+    in
+      ((a1a, (a1b, (a1c, a2c))), x_a)
+    end)
+    x;
+
+fun vmtf_mark_to_rescore_clause_code x =
+  (fn ai => fn bia => fn bi => fn () =>
+    let
+      val xa = isa_arena_length_code ai bia ();
+    in
+      imp_for bia (plus_nat bia (nat_of_uint64 xa))
+        (fn xaa => fn sigma =>
+          (fn f_ => fn () => f_ ((isa_arena_lit_code ai xaa) ()) ())
+            (fn xb => vmtf_mark_to_rescore_code (atm_of_code xb) sigma))
+        bi ()
+    end)
+    x;
+
+fun vmtf_mark_to_rescore_also_reasons_code x =
+  (fn ai => fn bib => fn bia => fn bi => fn () =>
+    let
+      val xa = arl_length heap_uint32 bia ();
+    in
+      imp_for zero_nata xa
+        (fn xaa => fn sigma =>
+          (fn f_ => fn () => f_ ((arl_get heap_uint32 bia xaa) ()) ())
+            (fn xb =>
+              (fn f_ => fn () => f_
+                ((get_the_propagation_reason_code ai (uminus_code xb)) ()) ())
+                (fn a =>
+                  (case a
+                    of NONE =>
+                      (fn f_ => fn () => f_ ((arl_get heap_uint32 bia xaa) ())
+                        ())
+                        (fn xc =>
+                          vmtf_mark_to_rescore_code (atm_of_code xc) sigma)
+                    | SOME x_c =>
+                      (if equal_nat x_c zero_nata then (fn () => sigma)
+                        else vmtf_mark_to_rescore_clause_code bib x_c sigma)))))
+        bi ()
+    end)
+    x;
+
 fun empty_cach_code x =
   (fn (a1, a2) => fn () =>
     let
@@ -3476,27 +3460,31 @@ fun extract_shorter_conflict_list_heur_st_code x =
               ((arl_set heap_uint32 a1k zero_nata (uminus_code xb)) ()) ())
               (fn x_d =>
                 (fn f_ => fn () => f_
-                  ((minimize_and_extract_highest_lookup_conflict_code a1 a1a x_b
-                     a1i a1j x_d)
-                  ()) ())
-                  (fn (a1n, (a1o, a2o)) =>
-                    (fn f_ => fn () => f_ ((empty_cach_code a1o) ()) ())
-                      (fn x_g =>
-                        (fn f_ => fn () => f_
-                          ((empty_conflict_and_extract_clause_heur_code a1 a1n
-                             a2o)
-                          ()) ())
-                          (fn (a1p, (a1q, a2q)) =>
-                            (fn () =>
-                              ((a1, (a1a, (a1p,
-    (a1d, (a1e, (a1f, (a1g, (a1h, (x_g, (a1j,
-  (let
-     val (a, _) = a2o;
-   in
-     (a, one_nat)
-   end,
-    (a1l, (a1m, a2m))))))))))))),
-                                (a2q, a1q))))))))
+                  ((vmtf_mark_to_rescore_also_reasons_code a1 a1a x_d a1f) ())
+                  ())
+                  (fn x_f =>
+                    (fn f_ => fn () => f_
+                      ((minimize_and_extract_highest_lookup_conflict_code a1 a1a
+                         x_b a1i a1j x_d)
+                      ()) ())
+                      (fn (a1n, (a1o, a2o)) =>
+                        (fn f_ => fn () => f_ ((empty_cach_code a1o) ()) ())
+                          (fn x_h =>
+                            (fn f_ => fn () => f_
+                              ((empty_conflict_and_extract_clause_heur_code a1
+                                 a1n a2o)
+                              ()) ())
+                              (fn (a1p, (a1q, a2q)) =>
+                                (fn () =>
+                                  ((a1, (a1a,
+  (a1p, (a1d, (a1e, (x_f, (a1g, (a1h, (x_h,
+(a1j, (let
+         val (a, _) = a2o;
+       in
+         (a, one_nat)
+       end,
+        (a1l, (a1m, a2m))))))))))))),
+                                    (a2q, a1q)))))))))
       end
         ()
     end)
@@ -3504,6 +3492,9 @@ fun extract_shorter_conflict_list_heur_st_code x =
 
 fun lit_of_hd_trail_st_heur_code x =
   (fn (a1, (_, (_, (_, (_, (_, _)))))) => lit_of_last_trail_code a1) x;
+
+fun incr_conflict_count_since_last_restart x =
+  (fn (ccount, a) => (Uint64.plus ccount Uint64.one, a)) x;
 
 fun propagate_unit_bt_wl_D_code x =
   (fn ai =>
@@ -3524,7 +3515,8 @@ fun propagate_unit_bt_wl_D_code x =
                                    (ema_update_ref
                                       (nat_of_integer (14 : IntInf.int)) a1m
                                       x_a,
-                                     (Word32.+ (a1n, (Word32.fromInt 1)),
+                                     (incr_conflict_count_since_last_restart
+a1n,
                                        a2n)))))))))))))))
     end)
     x;
@@ -3684,7 +3676,7 @@ fun propagate_bt_wl_D_code x =
                     (a1h, (x_p, (a1j, (a1k,
 (ema_update_ref (nat_of_integer (5 : IntInf.int)) a1l x_d,
   (ema_update_ref (nat_of_integer (14 : IntInf.int)) a1m x_d,
-    (Word32.+ (a1n, (Word32.fromInt 1)),
+    (incr_conflict_count_since_last_restart a1n,
       (xb, (xab, suc a2p)))))))))))))))))))))))))))
                     end)))
       end
@@ -4197,7 +4189,7 @@ fun finalise_init_code x =
                       (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))),
                      (ema_init (bits_uint64, one_uint64),
                        (ema_init (bits_uint64, one_uint64),
-                         ((Word32.fromInt 0),
+                         ((Uint64.zero, Uint64.zero),
                            (a2n, (xaa, zero_nata)))))))))))))))))
     end)
     x;
