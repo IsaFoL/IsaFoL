@@ -2552,15 +2552,18 @@ lemmas trail_dump_code_refine[sepref_fr_rules] =
 
 declare vmtf_flush_code.refine[sepref_fr_rules]
 
+definition (in isasat_input_ops) vmtf_mark_to_rescore_and_unset_pre where
+  \<open>vmtf_mark_to_rescore_and_unset_pre = (\<lambda>(L, ((ns, m, fst_As, lst_As, next_search), _)).
+      L < length ns \<and> (next_search \<noteq> None \<longrightarrow> the next_search < length ns))\<close>
+
 sepref_thm vmtf_mark_to_rescore_and_unset_code
   is \<open>uncurry (RETURN oo vmtf_mark_to_rescore_and_unset)\<close>
-  :: \<open>[\<lambda>(L, ((ns, m, fst_As, lst_As, next_search), _)).
-      L < length ns \<and> (next_search \<noteq> None \<longrightarrow> the next_search < length ns)]\<^sub>a
+  :: \<open>[vmtf_mark_to_rescore_and_unset_pre]\<^sub>a
       uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]]
   unfolding vmtf_mark_to_rescore_and_unset_def vmtf_mark_to_rescore_def
-   vmtf_unset_def save_phase_def
+   vmtf_unset_def save_phase_def vmtf_mark_to_rescore_and_unset_pre_def
   apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
   by sepref
 
