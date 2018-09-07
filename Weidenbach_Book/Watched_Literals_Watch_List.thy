@@ -932,8 +932,6 @@ lemma case_prod_cong:
   \<open>(\<And>a b. f a b = g a b) \<Longrightarrow> (case x of (a, b) \<Rightarrow> f a b) = (case x of (a, b) \<Rightarrow> g a b)\<close>
   by (cases x) auto
 
-definition truc where "truc S = RETURN S"
-
 lemma [twl_st_wl]: \<open>get_clauses_wl (keep_watch L j w S) = get_clauses_wl S\<close>
   by (cases S) (auto simp: keep_watch_def)
 
@@ -1077,10 +1075,10 @@ proof -
       else do {
         ?Q C K b b'
       }
-   }\<close>)
-    unfolding unit_propagation_inner_loop_body_wl_def if_not_swap truc_def bind_to_let_conv
+    }\<close>)
+    unfolding unit_propagation_inner_loop_body_wl_def if_not_swap bind_to_let_conv
       SPEC_eq_is_RETURN twl_st_wl
-    unfolding Let_def if_not_swap truc_def bind_to_let_conv
+    unfolding Let_def if_not_swap bind_to_let_conv
       SPEC_eq_is_RETURN twl_st_wl
     apply (subst if_cancel)
     apply (intro bind_cong_nres case_prod_cong if_cong[OF refl] refl)
@@ -1274,10 +1272,11 @@ lemma
     n: \<open>n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl S)) (mset (drop w (watched_by S L))))\<close> and
     confl_S: \<open>get_conflict_wl S = None\<close>
   shows unit_propagation_inner_loop_body_wl_spec: \<open>unit_propagation_inner_loop_body_wl L j w S \<le>
-   \<Down> {((i, j, T'), (T, n)).
+    \<Down>{((i, j, T'), (T, n)).
         (T', T) \<in> state_wl_l (Some (L, j)) \<and>
         correct_watching_except i j L T' \<and>
         j \<le> length (watched_by T' L) \<and>
+        length (watched_by S L) =  length (watched_by T' L) \<and>
         i \<le> j \<and>
         (get_conflict_wl T' = None \<longrightarrow>
            n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl T')) (mset (drop j (watched_by T' L))))) \<and>
@@ -1816,7 +1815,7 @@ proof -
         \<open>X2 = (set_clauses_to_update_l (remove1_mset x1 (clauses_to_update_l S')) S', x1)\<close> and
         \<open>(a, b, None, d, e,
       {#i \<in># mset (drop (Suc w) (map fst (ga L[j := (x1, x2, x3)]))). i \<in># dom_m b#}, f) =
-     set_clauses_to_update_l (remove1_mset x1 (clauses_to_update_l S')) S'\<close>
+      set_clauses_to_update_l (remove1_mset x1 (clauses_to_update_l S')) S'\<close>
       for a :: \<open>('v literal, 'v literal,nat) annotated_lit list\<close> and
         b :: \<open>(nat, 'v literal list \<times>  bool) fmap\<close> and
         d :: \<open>'v literal multiset multiset\<close> and
@@ -1884,12 +1883,12 @@ proof -
       \<open>polarity (get_trail_l (fst X2)) x \<noteq> Some True\<close> and
       \<open>polarity (get_trail_wl (keep_watch L j w S))
       (get_clauses_wl (keep_watch L j w S) \<propto> x1 !
-       (1 - (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1))) \<noteq>
-     Some True\<close> and
+        (1 - (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1))) \<noteq>
+       Some True\<close> and
       \<open>polarity (get_trail_l (fst X2))
-      (get_clauses_l (fst X2) \<propto> snd X2 !
-       (1 - (if get_clauses_l (fst X2) \<propto> snd X2 ! 0 = L then 0 else 1))) \<noteq>
-     Some True\<close> and
+        (get_clauses_l (fst X2) \<propto> snd X2 !
+          (1 - (if get_clauses_l (fst X2) \<propto> snd X2 ! 0 = L then 0 else 1))) \<noteq>
+      Some True\<close> and
       fx': \<open>(f, x') \<in> ?find_unw x1\<close> and
       \<open>unit_prop_body_wl_find_unwatched_inv f x1 (keep_watch L j w S)\<close> and
       f: \<open>f = Some xa\<close> and
@@ -1897,8 +1896,8 @@ proof -
       xa: \<open>(xa, x'a) \<in> nat_rel\<close> and
       \<open>x'a < length (get_clauses_l (fst X2) \<propto> snd X2)\<close> and
       \<open>polarity (get_trail_wl (keep_watch L j w S))
-      (get_clauses_wl (keep_watch L j w S) \<propto> x1 ! xa) \<noteq>
-     Some True\<close> and
+        (get_clauses_wl (keep_watch L j w S) \<propto> x1 ! xa) \<noteq>
+      Some True\<close> and
       pol: \<open>polarity (get_trail_l (fst X2)) (get_clauses_l (fst X2) \<propto> snd X2 ! x'a) \<noteq> Some True\<close> and
       \<open>unit_propagation_inner_loop_body_l_inv L (snd X2) (fst X2)\<close>
     for b x1 x2 X2 K x f x' xa x'a x2' x3
@@ -2428,8 +2427,9 @@ qed
 definition unit_propagation_inner_loop_wl_loop
    :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
   \<open>unit_propagation_inner_loop_wl_loop L S\<^sub>0 = do {
+    let n = length (watched_by S\<^sub>0 L);
     WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_inv L\<^esup>
-      (\<lambda>(j, w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
+      (\<lambda>(j, w, S). w < n \<and> get_conflict_wl S = None)
       (\<lambda>(j, w, S). do {
         unit_propagation_inner_loop_body_wl L j w S
       })
@@ -2485,15 +2485,16 @@ qed
 lemma unit_propagation_inner_loop_wl_loop_alt_def:
   \<open>unit_propagation_inner_loop_wl_loop L S\<^sub>0 = do {
     let (_ :: nat) = (if get_conflict_wl S\<^sub>0 = None then remaining_nondom_wl 0 L S\<^sub>0 else 0);
+    let n = length (watched_by S\<^sub>0 L);
     WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_inv L\<^esup>
-      (\<lambda>(j, w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
+      (\<lambda>(j, w, S). w < n \<and> get_conflict_wl S = None)
       (\<lambda>(j, w, S). do {
         unit_propagation_inner_loop_body_wl L j w S
       })
       (0, 0, S\<^sub>0)
   }
   \<close>
-  unfolding unit_propagation_inner_loop_wl_loop_def by auto
+  unfolding unit_propagation_inner_loop_wl_loop_def Let_def by auto
 
 definition cut_watch_list :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>cut_watch_list j w L =(\<lambda>(M, N, D, NE, UE, Q, W). do {
@@ -2533,6 +2534,7 @@ proof -
         (T', T) \<in> state_wl_l (Some (L, j)) \<and>
         correct_watching_except i j L T' \<and>
         j \<le> length (watched_by T' L) \<and>
+        length (watched_by S L) =  length (watched_by T' L) \<and>
         i \<le> j \<and>
         (get_conflict_wl T' = None \<longrightarrow>
            n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl T')) (mset (drop j (watched_by T' L))))) \<and>
@@ -2557,7 +2559,7 @@ proof -
         apply (rule exI[of _ T])
         using that by (auto simp: iT')
     qed
-    have cond: \<open>(j < length (watched_by T' L) \<and> get_conflict_wl T' = None) =
+    have cond: \<open>(j < length (watched_by S L) \<and> get_conflict_wl T' = None) =
       (clauses_to_update_l T \<noteq> {#} \<or> n > 0)\<close>
       if
         iT'_T: \<open>(ijT', Tn) \<in> ?R'\<close> and
@@ -2602,7 +2604,7 @@ proof -
     have unit_propagation_inner_loop_wl_alt_def: \<open>unit_propagation_inner_loop_wl L S = do {
       let (n::nat) = (if get_conflict_wl S = None then remaining_nondom_wl 0 L S else 0);
       (j, w, S) \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_inv L\<^esup>
-         (\<lambda>(j, w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
+         (\<lambda>(j, w, T). w < length (watched_by S L)  \<and> get_conflict_wl T = None)
          (\<lambda>(j, x, y). unit_propagation_inner_loop_body_wl L j x y) (0, 0, S);
       ASSERT (j \<le> w \<and> w \<le> length (watched_by S L));
       cut_watch_list j w L S}\<close>
@@ -2617,6 +2619,7 @@ proof -
       apply (refine_vcg WHILEIT_refine_genR[where
             R' = \<open>?R'\<close> and
             R = \<open>{((i, j, T'), (T, n)). ((i, j, T'), (T, n)) \<in> ?R' \<and> i \<le> j \<and>
+                length (watched_by S L) =  length (watched_by T' L) \<and>
                (j \<ge> length (watched_by T' L) \<or> get_conflict_wl T' \<noteq> None)}\<close>]
           remaining)
       subgoal using corr_w SS' by (auto simp: correct_watching_correct_watching_except00)

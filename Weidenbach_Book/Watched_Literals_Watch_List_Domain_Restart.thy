@@ -754,7 +754,7 @@ definition mark_to_delete_clauses_wl_D_post where
 
 definition cdcl_twl_full_restart_wl_prog_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
 \<open>cdcl_twl_full_restart_wl_prog_D S = do {
-   \<comment> \<open>S \<leftarrow> remove_one_annot_true_clause_imp_wl_D S;\<close>
+   \<comment> \<open>\<^text>\<open>S \<leftarrow> remove_one_annot_true_clause_imp_wl_D S;\<close>\<close>
     ASSERT(mark_to_delete_clauses_wl_D_pre S);
     T \<leftarrow> mark_to_delete_clauses_wl_D S;
     ASSERT (mark_to_delete_clauses_wl_post S T);

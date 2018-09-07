@@ -2257,8 +2257,10 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> (nat \<times> nat \<times> twl_st_wl_heur) nres\<close>
 where
   \<open>unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0 = do {
+    ASSERT(nat_of_lit L < length (get_watched_wl_heur S\<^sub>0));
+    let n = length (watched_by_int S\<^sub>0 L);
     WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_D_heur_inv S\<^sub>0 L\<^esup>
-      (\<lambda>(j, w, S). w < length (watched_by_int S L) \<and> get_conflict_wl_is_None_heur S)
+      (\<lambda>(j, w, S). w < n \<and> get_conflict_wl_is_None_heur S)
       (\<lambda>(j, w, S). do {
         unit_propagation_inner_loop_body_wl_heur L j w S
       })
@@ -2292,54 +2294,59 @@ proof -
       unfolding unit_propagation_inner_loop_wl_loop_D_inv_def twl_st_heur'_def
       by auto
   qed
-  have cond_eq: \<open>(x1c < length (watched_by_int x2c x1a) \<and>
-        get_conflict_wl_is_None_heur x2c) =
-        (x1e < length (watched_by x2e x1) \<and> get_conflict_wl x2e = None)\<close>
-    if
-      \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur' \<D>\<close> and
-      \<open>y = (x1, x2)\<close> and
-      \<open>x = (x1a, x2a)\<close> and
-      \<open>(xa, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f twl_st_heur' \<D>)\<close> and
-      \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv x2a x1a xa\<close> and
-      inv: \<open>unit_propagation_inner_loop_wl_loop_D_inv x1 x'\<close> and
-      \<open>x2b = (x1c, x2c)\<close> and
-      \<open>xa = (x1b, x2b)\<close> and
-      \<open>x2d = (x1e, x2e)\<close> and
-      \<open>x' = (x1d, x2d)\<close>
-    for x y x1 x2 x1a x2a xa x' x1b x2b x1c x2c x1d x2d x1e x2e
-  proof -
 
-    have H:
-      \<open>x1e < length (watched_by x2e x1) \<longleftrightarrow> x1c < length (watched_by_int x2c x1a)\<close>
-      if \<open>(x2c, x2e) \<in> twl_st_heur' \<D>\<close> and
-      \<open>(x1c, x1e) \<in> nat_rel\<close> and
-      \<open>(x1, x1a) \<in> Id\<close> and
-      \<open>x1a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-      for x1e x2e x1 x1c x1a
-      using that
-      by (cases x2e)
-        (auto simp add: twl_st_heur'_def twl_st_heur_def map_fun_rel_def
-            dest!: multi_member_split)
-    have \<open>get_conflict_wl_is_None_heur x2c \<longleftrightarrow> get_conflict_wl_is_None x2e\<close>
+  have cond_eq: \<open>(x1c < length (watched_by_int x2a x1a) \<and>
+       get_conflict_wl_is_None_heur x2c) =
+      (x1e < length (watched_by x2 x1) \<and>
+       get_conflict_wl x2e = None)\<close>
+  if
+    \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur' \<D>\<close> and
+    \<open>y = (x1, x2)\<close> and
+    \<open>x = (x1a, x2a)\<close> and
+    \<open>x1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+    \<open>(xa, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f twl_st_heur' \<D>)\<close> and
+    \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv
+      x2a x1a xa\<close> and
+    \<open>unit_propagation_inner_loop_wl_loop_D_inv x1
+      x'\<close> and
+    st:
+      \<open>x2b = (x1c, x2c)\<close>
+      \<open>xa = (x1b, x2b)\<close>
+      \<open>x2d = (x1e, x2e)\<close>
+      \<open>x' = (x1d, x2d)\<close>
+  for x y x1 x2 x1a x2a xa x' x1b x2b x1c x2c x1d x2d
+       x1e x2e
+  proof -
+    have \<open>get_conflict_wl_is_None_heur x2c \<longleftrightarrow> get_conflict_wl x2e = None\<close>
       apply (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id,
         of x2c x2e])
       subgoal by auto
       subgoal using that unfolding twl_st_heur'_def by auto
-      subgoal by auto
+      subgoal by (auto simp: get_conflict_wl_is_None_def split: option.splits)
       done
-    moreover have \<open>x1e < length (watched_by x2e x1) \<longleftrightarrow> x1c < length (watched_by_int x2c x1a)\<close>
-      apply (subst H[of _ x1e _ _ x1])
-      subgoal using that by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal using that unfolding unit_propagation_inner_loop_wl_loop_D_inv_def
-        by auto
-      subgoal using that by auto
-      done
-    ultimately show ?thesis
-      unfolding get_conflict_wl_is_None by blast
+    moreover have
+       \<open>(x1c < length (watched_by_int x2a x1a)) \<longleftrightarrow>
+      (x1e < length (watched_by x2 x1))\<close>
+      using that(1-5) st unfolding get_conflict_wl_is_None_heur_def
+      by (cases x2a)
+        (auto simp add: twl_st_heur'_def twl_st_heur_def map_fun_rel_def
+          dest!: multi_member_split)
+    ultimately show ?thesis by blast
   qed
-
+  have get_watched_wl_heur_pre: \<open>nat_of_lit x1a < length (get_watched_wl_heur x2a)\<close>
+    if
+      \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur' \<D>\<close> and
+      \<open>y = (x1, x2)\<close> and
+      \<open>x = (x1a, x2a)\<close> and
+      \<open>x1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    for x y x1 x2 x1a x2a 
+  proof -
+    show ?thesis
+      using that
+      by (cases x2a)
+        (auto simp add: twl_st_heur'_def twl_st_heur_def map_fun_rel_def
+          dest!: multi_member_split)
+  qed
   note H[refine] = unit_propagation_inner_loop_body_wl_heur_unit_propagation_inner_loop_body_wl_D
      [THEN fref_to_Down_curry3]
   show ?thesis
@@ -2348,16 +2355,18 @@ proof -
       unit_propagation_inner_loop_wl_loop_D_inv_def[symmetric]
     apply (intro frefI nres_relI)
     apply (refine_vcg)
+    subgoal by (rule get_watched_wl_heur_pre)
     subgoal by auto
     subgoal by (rule unit_propagation_inner_loop_wl_loop_D_heur_inv)
-    subgoal
-     by (rule cond_eq)
+    subgoal by (rule cond_eq)
     subgoal by auto
     done
 qed
 
 
-definition (in isasat_input_ops) cut_watch_list_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+definition (in isasat_input_ops) cut_watch_list_heur
+  :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+where
   \<open>cut_watch_list_heur j w L =(\<lambda>(M, N, D, Q, W, oth). do {
       ASSERT(j \<le> length (W!nat_of_lit L) \<and> j \<le> w \<and> nat_of_lit L < length W \<and>
          w \<le> length (W ! (nat_of_lit L)));
