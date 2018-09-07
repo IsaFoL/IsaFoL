@@ -2576,14 +2576,17 @@ prepare_code_thms (in -) vmtf_mark_to_rescore_and_unset_code_def
 lemmas vmtf_mark_to_rescore_and_unset_hnr[sepref_fr_rules] =
    vmtf_mark_to_rescore_and_unset_code.refine[OF isasat_input_bounded_nempty_axioms]
 
+definition (in isasat_input_ops) vmtf_unset_pre where
+  \<open>vmtf_unset_pre = (\<lambda>(L, vm). \<exists>M. L = atm_of(lit_of (hd M)) \<and> vm \<in> vmtf M \<and> M \<noteq> [] \<and>
+          literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M))\<close>
+
 sepref_thm vmtf_unset_code
   is \<open>uncurry (RETURN oo vmtf_unset)\<close>
-  :: \<open>[\<lambda>(L, vm). \<exists>M. L = atm_of(lit_of (hd M)) \<and> vm \<in> vmtf M \<and> M \<noteq> [] \<and>
-          literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M)]\<^sub>a
+  :: \<open>[vmtf_unset_pre]\<^sub>a
      uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
   supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
     neq_NilE[elim!] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
-  unfolding vmtf_unset_def
+  unfolding vmtf_unset_def vmtf_unset_pre_def
   apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
   by sepref
 

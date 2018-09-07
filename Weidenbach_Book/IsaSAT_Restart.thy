@@ -3,6 +3,17 @@ theory IsaSAT_Restart
      IsaSAT_CDCL
 begin
 
+(* TODO Move *)
+definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
+  \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
+
+lemma restart_info_restart_done_hnr[sepref_fr_rules]:
+  \<open>(return o restart_info_restart_done, RETURN o restart_info_restart_done) \<in>
+     restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
+  by sepref_to_hoare (sep_auto simp: restart_info_restart_done_def
+    uint64_nat_rel_def br_def)
+(* End Move *)
+
 locale isasat_restart_bounded =
   twl_restart + isasat_input_bounded
 
@@ -56,7 +67,7 @@ text \<open>
        LBD, but a probability of being useful.
      \<^item> half of the clauses
   \<^enum> Restarts:
-     \<^item> EMA-14, aka restart if enough clauses and slow_glue_avg * opts.restartmargin > fast_glue (file ema.cpp)
+     \<^item> EMA-14, aka restart if enough clauses and slow\_glue\_avg * opts.restartmargin > fast_glue (file ema.cpp)
      \<^item> (lbdQueue.getavg() * K) > (sumLBD / conflictsRestarts),
        \<^text>\<open>conflictsRestarts > LOWER_BOUND_FOR_BLOCKING_RESTART && lbdQueue.isvalid() && trail.size() > R * trailQueue.getavg()\<close>
 \<close>
@@ -85,7 +96,7 @@ sublocale isasat_restart_bounded id
 
 lemma get_slow_ema_heur_alt_def:
    \<open>RETURN o get_slow_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       stats, fema, sema, ccount, lcount). RETURN sema)\<close>
+       stats, fema, sema, (ccount, _), lcount). RETURN sema)\<close>
   by auto
 
 sepref_thm get_slow_ema_heur_fast_code
@@ -155,40 +166,44 @@ prepare_code_thms (in -) get_fast_ema_heur_slow_code_def
 lemmas get_fast_ema_heur_slow_code_hnr[sepref_fr_rules] =
    get_fast_ema_heur_slow_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-lemma get_counflict_count_heur_alt_def:
-   \<open>RETURN o get_conflict_count_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       stats, fema, sema, ccount, lcount). RETURN ccount)\<close>
+fun (in -) get_conflict_count_since_last_restart_heur :: \<open>twl_st_wl_heur \<Rightarrow> uint64\<close> where
+  \<open>get_conflict_count_since_last_restart_heur (_, _, _, _, _, _, _, _, _, _, _, _, _, _, (ccount, _), _)
+      = ccount\<close>
+
+lemma (in -) get_counflict_count_heur_alt_def:
+   \<open>RETURN o get_conflict_count_since_last_restart_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
+       stats, fema, sema, (ccount, _), lcount). RETURN ccount)\<close>
   by auto
 
-sepref_thm get_conflict_count_heur_fast_code
-  is \<open>RETURN o get_conflict_count_heur\<close>
-  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+sepref_thm get_conflict_count_since_last_restart_heur_fast_code
+  is \<open>RETURN o get_conflict_count_since_last_restart_heur\<close>
+  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   unfolding get_counflict_count_heur_alt_def isasat_fast_assn_def
   by sepref
 
-concrete_definition (in -) get_conflict_count_heur_fast_code
-   uses isasat_input_bounded_nempty.get_conflict_count_heur_fast_code.refine_raw
+concrete_definition (in -) get_conflict_count_since_last_restart_heur_fast_code
+   uses isasat_input_bounded_nempty.get_conflict_count_since_last_restart_heur_fast_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
-prepare_code_thms (in -) get_conflict_count_heur_fast_code_def
+prepare_code_thms (in -) get_conflict_count_since_last_restart_heur_fast_code_def
 
-lemmas get_conflict_count_heur_code_hnr[sepref_fr_rules] =
-   get_conflict_count_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+lemmas get_conflict_count_since_last_restart_heur_code_hnr[sepref_fr_rules] =
+   get_conflict_count_since_last_restart_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-sepref_thm get_conflict_count_heur_slow_code
-  is \<open>RETURN o get_conflict_count_heur\<close>
-  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+sepref_thm get_conflict_count_since_last_restart_heur_slow_code
+  is \<open>RETURN o get_conflict_count_since_last_restart_heur\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   unfolding get_counflict_count_heur_alt_def isasat_assn_def
   by sepref
 
-concrete_definition (in -) get_conflict_count_heur_slow_code
-   uses isasat_input_bounded_nempty.get_conflict_count_heur_slow_code.refine_raw
+concrete_definition (in -) get_conflict_count_since_last_restart_heur_slow_code
+   uses isasat_input_bounded_nempty.get_conflict_count_since_last_restart_heur_slow_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
-prepare_code_thms (in -) get_conflict_count_heur_slow_code_def
+prepare_code_thms (in -) get_conflict_count_since_last_restart_heur_slow_code_def
 
-lemmas get_conflict_count_heur_slow_code_hnr[sepref_fr_rules] =
-   get_conflict_count_heur_slow_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+lemmas get_conflict_count_since_last_restart_heur_slow_code_hnr[sepref_fr_rules] =
+   get_conflict_count_since_last_restart_heur_slow_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 lemma get_learned_count_alt_def:
    \<open>RETURN o get_learned_count = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
@@ -385,14 +400,15 @@ lemmas find_local_restart_target_level_st_fast_hnr [sepref_fr_rules] =
 definition (in isasat_input_ops) empty_Q :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>empty_Q = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, lcount). do{
     let j = length_u M;
-    RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, 0, vdom, lcount)
+    RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema,
+       restart_info_restart_done ccount, vdom, lcount)
   })\<close>
 
 definition (in isasat_input_ops) incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
-       ccount, vdom, avdom, lcount). do{
+       res_info, vdom, avdom, lcount). do{
      RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_restart stats, fast_ema, slow_ema,
-       0, vdom, avdom, lcount)
+       restart_info_restart_done res_info, vdom, avdom, lcount)
   })\<close>
 
 sepref_thm incr_restart_stat_slow_code
@@ -428,9 +444,10 @@ lemmas incr_restart_stat_fast_code_hnr [sepref_fr_rules] =
    incr_restart_stat_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 definition (in isasat_input_ops) incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount). do{
-     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_lrestart stats, fast_ema, slow_ema, 0,
+  \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+     res_info, vdom, avdom, lcount). do{
+     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_lrestart stats, fast_ema, slow_ema,
+        restart_info_restart_done res_info,
        vdom, avdom, lcount)
   })\<close>
 
@@ -684,13 +701,11 @@ proof -
     subgoal by auto
     subgoal
       by (force dest: restart_abs_wl_D_pre_find_decomp_w_ns_pre)
-    subgoal for a aa ab ac b ad ae af ag ah ai ba bb aj ak al am an ao ap aq bc ar as at au
-       bd av _ _ aw ax ay az be bf lvl i x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e
-       x2e x1f x2f x1g x2g x1h x2h x1i x2i S x1j x2j x1k x2k x1l x2l x1m x2m x1n
-       x2n x1o x2o x1p x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w
-       x2w x1x x2x x1y x2y
+    subgoal for a aa ab ac b ad ae af ag ah ai ba bb aj ak al am an ao ap aq ar bc as at au bd av aw be ax ay az bf bg bh bi
+       lvl i x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i S x1j x2j x1k x2k x1l
+       x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES
-      apply (rule RES_refine, rule bexI[of _ \<open>(get_trail_wl_heur S, aw, ax, ay, az, {#}, bf)\<close>];
+      apply (rule RES_refine, rule bexI[of _ \<open>(get_trail_wl_heur S, ay, az, bf, bg, {#}, bi)\<close>];
          ((subst uncurry_def image_iff)+)?; (rule bexI[of _ \<open>(get_trail_wl_heur S, {#})\<close>])?)
       subgoal
          by (clarsimp simp add: twl_st_heur_def)
@@ -757,12 +772,12 @@ where
   })\<close>
 
 
-definition (in -) minimum_number_between_restarts :: \<open>uint32\<close> where
+definition (in -) minimum_number_between_restarts :: \<open>uint64\<close> where
   \<open>minimum_number_between_restarts = 50\<close>
 
 lemma (in -) minimum_number_between_restarts[sepref_fr_rules]:
  \<open>(uncurry0 (return minimum_number_between_restarts), uncurry0 (RETURN minimum_number_between_restarts))
-  \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by sepref_to_hoare sep_auto
 
 definition (in -) five_uint64 :: \<open>uint64\<close> where
@@ -1024,7 +1039,7 @@ definition (in -) restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<R
        \<comment>\<open>roughly speaking 125/100 with hopefully no overflow (there is currently no division
          on \<^typ>\<open>uint64\<close>\<close>
     let fema = get_fast_ema_heur S;
-    let ccount = get_conflict_count_heur S;
+    let ccount = get_conflict_count_since_last_restart_heur S;
     let lcount = get_learned_count S;
     let can_res = (lcount > n);
     let min_reached = (ccount > minimum_number_between_restarts);

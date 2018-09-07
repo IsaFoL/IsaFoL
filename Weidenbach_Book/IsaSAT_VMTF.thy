@@ -315,7 +315,7 @@ sepref_thm find_decomp_wl_imp_code
     find_decomp_wl_imp_pre_def
   supply [[goals_limit=1]] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp] trail_conv_to_no_CS_def[simp]
     lit_of_last_trail_code_lit_of_last_trail[sepref_fr_rules del] lit_of_hd_trail_def[simp]
-  supply uint32_nat_assn_one[sepref_fr_rules]
+  supply uint32_nat_assn_one[sepref_fr_rules] vmtf_unset_pre_def[simp]
   supply uint32_nat_assn_minus[sepref_fr_rules]
   by sepref
 
@@ -336,7 +336,7 @@ sepref_thm find_decomp_wl_imp_fast_code
     find_decomp_wl_imp_pre_def
   supply trail_conv_to_no_CS_def[simp] lit_of_hd_trail_def[simp]
   supply [[goals_limit=1]] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
-  supply uint32_nat_assn_one[sepref_fr_rules]
+  supply uint32_nat_assn_one[sepref_fr_rules] vmtf_unset_pre_def[simp]
   supply uint32_nat_assn_minus[sepref_fr_rules]
   by sepref
 

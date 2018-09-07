@@ -2541,7 +2541,7 @@ definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st
      let init_stats = (0::uint64, 0::uint64, 0::uint64, 0::uint64, 0::uint64);
      let fema = ema_init;
      let sema = ema_init;
-     let ccount = zero_uint32;
+     let ccount = (zero_uint64, zero_uint64);
      let lcount = 0;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
        clvls, cach, lbd, take1(replicate 160 (Pos zero_uint32_nat)), init_stats,
@@ -2988,20 +2988,25 @@ lemma init_state_wl_heur_hnr:
       isasat_input_ops.isasat_init_fast_assn \<A>\<^sub>i\<^sub>n\<close>
     (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?im \<rightarrow> ?ffast\<close>) *)
 proof -
-  have H: \<open>?c \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n]\<^sub>a
-      hrp_comp ((arl_assn conflict_count_assn)\<^sup>d *\<^sub>a conflict_count_assn\<^sup>d)
-        (lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>mset_rel) \<rightarrow> hr_comp trail_pol_assn'
-       (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *a
-          arl_assn (pure (uint32_nat_rel O arena_el_rel)) *a
-          conflict_option_rel_assn *a
-          uint32_nat_assn *a
-          hr_comp watchlist_assn (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel) *a
-          vmtf_remove_conc_option_fst_As *a
-          hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
-          uint32_nat_assn *a
-          hr_comp cach_refinement_l_assn
-           (isasat_input_ops.cach_refinement \<A>\<^sub>i\<^sub>n) *a
-          lbd_assn *a vdom_assn\<close>
+  have H: \<open>?c \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and>
+        distinct_mset
+         \<A>\<^sub>i\<^sub>n]\<^sub>a hrp_comp ((arl_assn uint32_assn)\<^sup>d *\<^sub>a uint32_assn\<^sup>d)
+                    (lits_with_max_rel O
+                     \<langle>uint32_nat_rel\<rangle>mset_rel) \<rightarrow> hr_comp
+         (out_learned_assn *a
+          array_assn tri_bool_assn *a
+          array_assn uint32_nat_assn *a
+          array_assn nat_assn *a uint32_nat_assn *a arl_assn uint32_nat_assn)
+         (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *a
+        arl_assn (pure (uint32_nat_rel O arena_el_rel)) *a
+        conflict_option_rel_assn *a
+        uint32_nat_assn *a
+        hr_comp watchlist_assn (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel) *a
+        vmtf_remove_conc_option_fst_As *a
+        hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
+        uint32_nat_assn *a
+        hr_comp cach_refinement_l_assn (isasat_input_ops.cach_refinement \<A>\<^sub>i\<^sub>n) *a
+        lbd_assn *a vdom_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using init_state_wl_D'_code.refine[FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n]
     unfolding isasat_input_ops.cach_refinement_assn_def

@@ -56,17 +56,57 @@ lemma incr_lrestart_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: incr_lrestart_def)
 
 
+paragraph \<open>Moving averages\<close>
+
+type_synonym ema = \<open>uint64\<close>
+
+abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
+  \<open>ema_assn \<equiv> uint64_assn\<close>
+
+definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> nat \<Rightarrow> ema\<close> where
+  \<open>ema_update coeff ema lbd = ema + (ema >> coeff) + ((uint64_of_nat lbd) << (48 - coeff))\<close>
+
+definition (in -) ema_update_ref :: \<open>nat \<Rightarrow> ema \<Rightarrow> uint32 \<Rightarrow> ema\<close> where
+  \<open>ema_update_ref coeff ema lbd = ema + (ema >> coeff) +  ((uint64_of_uint32 lbd) << (48 - coeff))\<close>
+
+lemma (in -) ema_update_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 (return ooo ema_update_ref), uncurry2 (RETURN ooo ema_update)) \<in>
+     nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  unfolding ema_update_def ema_update_ref_def
+  by sepref_to_hoare
+     (sep_auto simp: uint32_nat_rel_def br_def uint64_of_uint32_def)
+
+
+paragraph \<open>Information related to restarts\<close>
+
+type_synonym restart_info = \<open>uint64 \<times> ema\<close>
+
+abbreviation restart_info_assn where
+  \<open>restart_info_assn \<equiv> uint64_assn *a ema_assn\<close>
+
+definition incr_conflict_count_since_last_restart :: \<open>restart_info \<Rightarrow> restart_info\<close> where
+  \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl). (ccount + 1, ema_lvl))\<close>
+
+lemma incr_conflict_count_since_last_restart_hnr[sepref_fr_rules]:
+    \<open>(return o incr_conflict_count_since_last_restart, RETURN o incr_conflict_count_since_last_restart)
+       \<in> restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_conflict_count_since_last_restart_def)
+
+definition restart_info_update_lvl_avg :: \<open>uint32 \<Rightarrow> restart_info \<Rightarrow> restart_info\<close> where
+  \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_update_ref 5 ema_lvl lvl))\<close>
+
+lemma restart_info_update_lvl_avg_hnr[sepref_fr_rules]:
+    \<open>(uncurry (return oo restart_info_update_lvl_avg),
+       uncurry (RETURN oo restart_info_update_lvl_avg))
+       \<in> uint32_assn\<^sup>k *\<^sub>a restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
+  by sepref_to_hoare (sep_auto simp: restart_info_update_lvl_avg_def)
+
+
+
 paragraph \<open>Base state\<close>
 
 type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array \<times> nat\<close>
 type_synonym out_learned = \<open>nat clause_l\<close>
-type_synonym ema = \<open>uint64\<close>
-abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
-  \<open>ema_assn \<equiv> uint64_assn\<close>
-
-type_synonym conflict_count = \<open>uint32\<close>
-abbreviation conflict_count_assn :: \<open>conflict_count \<Rightarrow> conflict_count \<Rightarrow> assn\<close> where
-  \<open>conflict_count_assn \<equiv> uint32_assn\<close>
 
 type_synonym vdom = \<open>nat list\<close>
 
@@ -80,13 +120,13 @@ type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
     vdom_assn \<times> vdom_assn \<times> nat\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
     vdom_assn \<times> vdom_assn \<times> nat\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
@@ -94,7 +134,7 @@ text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 type_synonym twl_st_wl_heur =
   \<open>(nat,nat)ann_lits \<times> arena \<times>
     conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times>
-    nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
+    nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
     vdom \<times> vdom \<times> nat\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
@@ -156,7 +196,7 @@ fun get_fast_ema_heur :: \<open>twl_st_wl_heur \<Rightarrow> ema\<close> where
 fun get_slow_ema_heur :: \<open>twl_st_wl_heur \<Rightarrow> ema\<close> where
   \<open>get_slow_ema_heur (_, _, _, _, _, _, _, _, _, _, _, _, _, slow_ema, _) = slow_ema\<close>
 
-fun get_conflict_count_heur :: \<open>twl_st_wl_heur \<Rightarrow> uint32\<close> where
+fun get_conflict_count_heur :: \<open>twl_st_wl_heur \<Rightarrow> restart_info\<close> where
   \<open>get_conflict_count_heur (_, _, _, _, _, _, _, _, _, _, _, _, _, _, ccount, _) = ccount\<close>
 
 fun get_vdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
@@ -512,7 +552,7 @@ definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \
   stats_assn *a
   ema_assn *a
   ema_assn *a
-  conflict_count_assn *a
+  restart_info_assn *a
   vdom_assn *a
   vdom_assn *a
   nat_assn\<close>
@@ -531,7 +571,7 @@ definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_tr
   stats_assn *a
   ema_assn *a
   ema_assn *a
-  conflict_count_assn *a
+  restart_info_assn *a
   vdom_assn *a
   vdom_assn *a
   nat_assn\<close>
