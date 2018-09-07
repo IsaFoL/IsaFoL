@@ -166,12 +166,6 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_Watch_List_Initialisation
     CDCL_Conflict_Minimisation
 
-(* Restarts not clear if different session of not 
-    Watched_Literals_Transition_System_Restart
-    Watched_Literals_Algorithm_Restart
-    Watched_Literals_List_Restart
-    Watched_Literals_Watch_List_Restart
-    Watched_Literals_Watch_List_Domain_Restart*)
     
   document_files
     "root.tex"
@@ -200,6 +194,15 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     IsaSAT_CDCL
     IsaSAT
 
+    (* Restarts not clear if different session of not *)
+    Watched_Literals_Transition_System_Restart
+    Watched_Literals_Algorithm_Restart
+    Watched_Literals_List_Restart
+    Watched_Literals_Watch_List_Restart
+    Watched_Literals_Watch_List_Domain_Restart
+    IsaSAT_Restart
+    IsaSAT_with_Restart
+ 
   document_files
     "root.tex"
     "biblio.bib"
