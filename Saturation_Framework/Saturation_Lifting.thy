@@ -2,6 +2,10 @@ theory Saturation_Lifting
   imports Saturation_Framework
 begin
 
+text \<open>In Uwe's notes, a well-founded partial strict ordering is used.
+  For simplicity, I will start by using a total one (wellorder), because there is a type class 
+  already defined and lots of theorems. To go from total to partial order, an example to look at is
+  the locale order_pair from the theory SN_Orders in the AFP\<close>
 locale redundancy_criterion_lifting = inference_system Bot_F_G entails_G I_G Red_I_G Red_F_G
   for
     Bot_F_G :: \<open>'g\<close> and
@@ -10,7 +14,8 @@ locale redundancy_criterion_lifting = inference_system Bot_F_G entails_G I_G Red
     Red_I_G :: \<open>'g formulas \<Rightarrow> 'g inference set\<close> and
     Red_F_G :: \<open>'g formulas \<Rightarrow> 'g formulas\<close>
   + fixes
-    Bot_F_F :: \<open>'f\<close> and
+    Bot_F_F :: \<open>'f :: {wellorder}\<close> and
+    (*{wellorder} constrains 'f to have a total strict well-founded order *)
     I_F :: \<open>'f inference set\<close> and
     \<G>_F :: \<open>'f \<Rightarrow> 'g formulas\<close> and
     \<G>_I :: \<open>'f inference \<Rightarrow> 'g inference set\<close>
@@ -50,6 +55,32 @@ next
     trans: \<open>N1 \<Turnstile>\<G> N2 \<and> N2 \<Turnstile>\<G> N3\<close>
   show \<open>N1 \<Turnstile>\<G> N3\<close> using trans entails_\<G>_def transitive_entails by blast
 qed
+
+abbreviation sqsubset :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close>  (infix "\<sqsubset>" 50) where \<open>C1 \<sqsubset> C2 \<equiv> C1 < C2\<close>
+
+abbreviation sqsubseteq ::  \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close>  (infix "\<sqsubseteq>" 50) where \<open>C1 \<sqsubseteq> C2 \<equiv> C1 \<le> C2\<close>
+
+definition Red_I_\<G> :: "'f formulas \<Rightarrow> 'f inference set" where
+  \<open>Red_I_\<G> N = {\<iota> \<in> I_F. \<G>_I \<iota> \<subseteq> Red_I_G (\<G>_set N)}\<close>
+
+definition Red_F_\<G> :: "'f formulas \<Rightarrow> 'f formulas" where
+  \<open>Red_F_\<G> N = {C. \<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> N. E \<sqsubset> C \<and> D \<in> \<G>_F E)}\<close>
+
+text \<open>lemma 8 in Uwe's notes\<close>
+lemma Red_F_\<G>_equiv_def: 
+  \<open>Red_F_\<G> N = {C. \<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)}\<close>
+proof (rule;clarsimp)
+  fix C D
+  assume 
+    C_in: \<open>C \<in> Red_F_\<G> N\<close> and
+    D_in: \<open>D \<in> \<G>_F C\<close> and
+    not_sec_case: \<open>\<forall>E \<in> N - Red_F_\<G> N. E \<sqsubset> C \<longrightarrow> D \<notin> \<G>_F E\<close>
+  have neg_not_sec_case: \<open>\<not> (\<exists>E\<in>N - Red_F_\<G> N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close> using not_sec_case by clarsimp 
+  have \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close> 
+    using C_in D_in unfolding Red_F_\<G>_def by auto
+  then have \<open>D \<in> Red_F_G (\<G>_set N)\<close> using neg_not_sec_case
+    apply auto
+
 
 end
 
