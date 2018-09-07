@@ -2142,6 +2142,13 @@ fun get_fast_ema_heur_slow_code x =
       end))
     x;
 
+fun count_decided_st_code x = (fn xi => (fn () => let
+            val (a1, _) = xi;
+          in
+            count_decided_pol a1
+          end))
+                                x;
+
 fun restart_required_heur_slow_code x =
   (fn ai => fn bi => fn () =>
     let
@@ -2150,6 +2157,7 @@ fun restart_required_heur_slow_code x =
       val x_d = get_fast_ema_heur_slow_code ai ();
       val x_f = get_conflict_count_since_last_restart_heur_slow_code ai ();
       val x_h = get_learned_count_slow_code ai ();
+      val x_n = count_decided_st_code ai ();
       val xaa = upper_restart_bound_not_reached_impl ai ();
     in
       (if xaa
@@ -2159,7 +2167,12 @@ fun restart_required_heur_slow_code x =
                  (nat_of_integer (2 : IntInf.int)))
         else true) andalso
         (Uint64.less minimum_number_between_restarts x_f andalso
-          less_nat bi x_h)
+          (less_nat bi x_h andalso
+            (Word32.< ((Word32.fromInt 2), x_n) andalso
+              less_nat
+                (nat_of_uint64
+                  (shiftl_uint64 x_d (nat_of_integer (48 : IntInf.int))))
+                (nat_of_uint32 x_n))))
     end)
     x;
 
@@ -2636,13 +2649,6 @@ fun find_decomp_wl_imp_codea x =
         ()
     end)
     x;
-
-fun count_decided_st_code x = (fn xi => (fn () => let
-            val (a1, _) = xi;
-          in
-            count_decided_pol a1
-          end))
-                                x;
 
 fun cdcl_twl_local_restart_wl_D_heur_code x =
   (fn xi => fn () =>
@@ -3624,46 +3630,46 @@ fun propagate_bt_wl_D_code x =
       let
         val (a1q, a2q) = a;
       in
-        (fn f_ => fn () => f_ ((vmtf_flush_all_code a1 a1q) ()) ())
+        (fn f_ => fn () => f_ ((get_LBD_code a1i) ()) ())
           (fn x_c =>
-            (fn f_ => fn () => f_ ((get_LBD_code a1i) ()) ())
-              (fn x_d =>
-                (fn f_ => fn () => f_ ((len heap_uint32 bia) ()) ())
-                  (fn xaa =>
-                    let
-                      val x_g = equal_nat xaa (nat_of_integer (2 : IntInf.int));
-                    in
-                      (fn f_ => fn () => f_
-                        ((append_and_length_code false bia a1a) ()) ())
-                        (fn (a1r, a2r) =>
+            (fn f_ => fn () => f_ ((len heap_uint32 bia) ()) ())
+              (fn xaa =>
+                let
+                  val x_f = equal_nat xaa (nat_of_integer (2 : IntInf.int));
+                in
+                  (fn f_ => fn () => f_ ((append_and_length_code false bia a1a)
+                    ()) ())
+                    (fn (a1r, a2r) =>
+                      (fn f_ => fn () => f_ ((isa_update_lbd_code a2r x_c a1r)
+                        ()) ())
+                        (fn x_i =>
                           (fn f_ => fn () => f_
-                            ((isa_update_lbd_code a2r x_d a1r) ()) ())
-                            (fn x_j =>
+                            ((append_el_aa_u
+                               (default_prod default_nat default_uint64,
+                                 heap_prod heap_nat heap_uint64)
+                               a1d (uminus_code ai)
+                               (to_watcher_code a2r xa x_f))
+                            ()) ())
+                            (fn x_k =>
                               (fn f_ => fn () => f_
                                 ((append_el_aa_u
                                    (default_prod default_nat default_uint64,
                                      heap_prod heap_nat heap_uint64)
-                                   a1d (uminus_code ai)
-                                   (to_watcher_code a2r xa x_g))
+                                   x_k xa
+                                   (to_watcher_code a2r (uminus_code ai) x_f))
                                 ()) ())
-                                (fn x_l =>
-                                  (fn f_ => fn () => f_
-                                    ((append_el_aa_u
-                                       (default_prod default_nat default_uint64,
- heap_prod heap_nat heap_uint64)
-                                       x_l xa
-                                       (to_watcher_code a2r (uminus_code ai)
- x_g))
+                                (fn x_m =>
+                                  (fn f_ => fn () => f_ ((lbd_empty_code a1i)
                                     ()) ())
-                                    (fn x_n =>
+                                    (fn x_o =>
                                       (fn f_ => fn () => f_
-((lbd_empty_code a1i) ()) ())
+((isa_length_trail_code a1) ()) ())
 (fn x_p =>
-  (fn f_ => fn () => f_ ((isa_length_trail_code a1) ()) ())
-    (fn x_q =>
-      (fn f_ => fn () => f_
-        ((cons_trail_Propagated_tr_code (uminus_code ai) a2r a1) ()) ())
-        (fn x_s =>
+  (fn f_ => fn () => f_ ((cons_trail_Propagated_tr_code (uminus_code ai) a2r a1)
+    ()) ())
+    (fn x_r =>
+      (fn f_ => fn () => f_ ((vmtf_flush_all_code x_r a1q) ()) ())
+        (fn x_t =>
           (fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a1o a2r)
             ()) ())
             (fn xb =>
@@ -3671,14 +3677,14 @@ fun propagate_bt_wl_D_code x =
                 ((arl_append (default_nat, heap_nat) a1p a2r) ()) ())
                 (fn xab =>
                   (fn () =>
-                    (x_s, (x_j, (a1b, (x_q,
-(x_n, (x_c, (a2q, ((Word32.fromInt 0),
-                    (a1h, (x_p, (a1j, (a1k,
-(ema_update_ref (nat_of_integer (5 : IntInf.int)) a1l x_d,
-  (ema_update_ref (nat_of_integer (14 : IntInf.int)) a1m x_d,
+                    (x_r, (x_i, (a1b, (x_p,
+(x_m, (x_t, (a2q, ((Word32.fromInt 0),
+                    (a1h, (x_o, (a1j, (a1k,
+(ema_update_ref (nat_of_integer (5 : IntInf.int)) a1l x_c,
+  (ema_update_ref (nat_of_integer (14 : IntInf.int)) a1m x_c,
     (incr_conflict_count_since_last_restart a1n,
-      (xb, (xab, suc a2p)))))))))))))))))))))))))))
-                    end)))
+      (xb, (xab, suc a2p))))))))))))))))))))))))))))
+                end))
       end
         ()
     end)
