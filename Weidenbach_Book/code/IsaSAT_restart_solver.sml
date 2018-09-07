@@ -2733,6 +2733,28 @@ fun is_decided_hd_trail_wl_code x =
                           end)
     x;
 
+fun vmtf_mark_to_rescore_code x =
+  (fn ai => fn ((a1a, (a1b, (a1c, a2c))), a2) => fn () =>
+    let
+      val x_a = arl_append (default_uint32, heap_uint32) a2 ai ();
+    in
+      ((a1a, (a1b, (a1c, a2c))), x_a)
+    end)
+    x;
+
+fun vmtf_mark_to_rescore_and_unset_reason_code x =
+  (fn ai => fn bia => fn bi => fn () =>
+    let
+      val xa = isa_arena_length_code ai bia ();
+    in
+      imp_for (plus_nat bia one_nat) (plus_nat bia (nat_of_uint64 xa))
+        (fn xaa => fn sigma =>
+          (fn f_ => fn () => f_ ((isa_arena_lit_code ai xaa) ()) ())
+            (fn xb => vmtf_mark_to_rescore_code (atm_of_code xb) sigma))
+        bi ()
+    end)
+    x;
+
 fun vmtf_mark_to_rescore_and_unset_code x =
   (fn ai => fn bi => fn () =>
     let
@@ -2904,22 +2926,26 @@ fun update_confl_tl_wl_code x =
       in
         (fn f_ => fn () => f_ ((conflict_remove1_code bia (a1o, a2o)) ()) ())
           (fn (a1r, a2r) =>
-            (fn f_ => fn () => f_ ((tl_trail_proped_tr_code a1) ()) ())
-              (fn xa =>
-                (fn f_ => fn () => f_
-                  ((vmtf_mark_to_rescore_and_unset_code (atm_of_code bia) a1g)
-                  ()) ())
-                  (fn xaa =>
+            (fn f_ => fn () => f_
+              ((vmtf_mark_to_rescore_and_unset_reason_code a1a ai a1g) ()) ())
+              (fn x_e =>
+                (fn f_ => fn () => f_ ((tl_trail_proped_tr_code a1) ()) ())
+                  (fn xa =>
                     (fn f_ => fn () => f_
-                      ((heap_array_set_u heap_bool a1h (atm_of_code bia)
-                         (is_pos_code bia))
+                      ((vmtf_mark_to_rescore_and_unset_code (atm_of_code bia)
+                         x_e)
                       ()) ())
-                      (fn xb =>
-                        (fn () =>
-                          (false,
-                            (xa, (a1a, ((a1n, (a1r, a2r)),
- (a1e, (a1f, (xaa, (xb, (fast_minus_uint32 a1p (Word32.fromInt 1),
-                          (a1j, (a1q, (a2q, a2l)))))))))))))))))
+                      (fn xaa =>
+                        (fn f_ => fn () => f_
+                          ((heap_array_set_u heap_bool a1h (atm_of_code bia)
+                             (is_pos_code bia))
+                          ()) ())
+                          (fn xb =>
+                            (fn () =>
+                              (false,
+                                (xa, (a1a, ((a1n, (a1r, a2r)),
+     (a1e, (a1f, (xaa, (xb, (fast_minus_uint32 a1p (Word32.fromInt 1),
+                              (a1j, (a1q, (a2q, a2l))))))))))))))))))
       end
         ()
     end)
