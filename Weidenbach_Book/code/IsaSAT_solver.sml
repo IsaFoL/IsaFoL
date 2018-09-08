@@ -330,88 +330,6 @@ val ord_uint32 =
     less = (fn a => fn b => Word32.< (a, b))}
   : Word32.word ord;
 
-type 'a bit =
-  {bitNOT : 'a -> 'a, bitAND : 'a -> 'a -> 'a, bitOR : 'a -> 'a -> 'a,
-    bitXOR : 'a -> 'a -> 'a};
-val bitNOT = #bitNOT : 'a bit -> 'a -> 'a;
-val bitAND = #bitAND : 'a bit -> 'a -> 'a -> 'a;
-val bitOR = #bitOR : 'a bit -> 'a -> 'a -> 'a;
-val bitXOR = #bitXOR : 'a bit -> 'a -> 'a -> 'a;
-
-val bit_uint64 =
-  {bitNOT = Uint64.notb, bitAND = Uint64.andb, bitOR = Uint64.orb,
-    bitXOR = Uint64.xorb}
-  : Uint64.uint64 bit;
-
-fun max A_ a b = (if less_eq A_ a b then b else a);
-
-val ord_integer =
-  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
-    less = (fn a => fn b => IntInf.< (a, b))}
-  : IntInf.int ord;
-
-fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
-
-datatype num = One | Bit0 of num | Bit1 of num;
-
-fun test_bit_uint64 x n =
-  less_nat n (nat_of_integer (64 : IntInf.int)) andalso
-    Uint64.test_bit x (integer_of_nat n);
-
-fun shiftl_uint64 x n =
-  (if less_nat n (nat_of_integer (64 : IntInf.int))
-    then Uint64.shiftl x (integer_of_nat n) else Uint64.zero);
-
-fun minus_nat m n =
-  Nat (max ord_integer (0 : IntInf.int)
-        (IntInf.- (integer_of_nat m, integer_of_nat n)));
-
-fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
-
-val one_nat : nat = Nat (1 : IntInf.int);
-
-fun uint64_set_bits f w n =
-  (if equal_nat n zero_nata then w
-    else let
-           val na = minus_nat n one_nat;
-         in
-           uint64_set_bits f
-             (Uint64.orb (shiftl_uint64 w one_nat)
-               (if f na then Uint64.one else Uint64.zero))
-             na
-         end);
-
-fun set_bits_uint64 f =
-  uint64_set_bits f Uint64.zero (nat_of_integer (64 : IntInf.int));
-
-fun set_bit_uint64 x n b =
-  (if less_nat n (nat_of_integer (64 : IntInf.int))
-    then Uint64.set_bit x (integer_of_nat n) b else x);
-
-fun shiftr_uint64 x n =
-  (if less_nat n (nat_of_integer (64 : IntInf.int))
-    then Uint64.shiftr x (integer_of_nat n) else Uint64.zero);
-
-fun lsb_uint64 x = test_bit_uint64 x zero_nata;
-
-type 'a bits =
-  {bit_bits : 'a bit, test_bit : 'a -> nat -> bool, lsb : 'a -> bool,
-    set_bit : 'a -> nat -> bool -> 'a, set_bits : (nat -> bool) -> 'a,
-    shiftl : 'a -> nat -> 'a, shiftr : 'a -> nat -> 'a};
-val bit_bits = #bit_bits : 'a bits -> 'a bit;
-val test_bit = #test_bit : 'a bits -> 'a -> nat -> bool;
-val lsb = #lsb : 'a bits -> 'a -> bool;
-val set_bit = #set_bit : 'a bits -> 'a -> nat -> bool -> 'a;
-val set_bits = #set_bits : 'a bits -> (nat -> bool) -> 'a;
-val shiftl = #shiftl : 'a bits -> 'a -> nat -> 'a;
-val shiftr = #shiftr : 'a bits -> 'a -> nat -> 'a;
-
-val bits_uint64 =
-  {bit_bits = bit_uint64, test_bit = test_bit_uint64, lsb = lsb_uint64,
-    set_bit = set_bit_uint64, set_bits = set_bits_uint64,
-    shiftl = shiftl_uint64, shiftr = shiftr_uint64}
-  : Uint64.uint64 bits;
-
 fun typerep_uint64a t = Typerep ("Uint64.uint64", []);
 
 val countable_uint64 = {} : Uint64.uint64 countable;
@@ -421,6 +339,8 @@ val typerep_uint64 = {typerep = typerep_uint64a} : Uint64.uint64 typerep;
 val heap_uint64 =
   {countable_heap = countable_uint64, typerep_heap = typerep_uint64} :
   Uint64.uint64 heap;
+
+datatype num = One | Bit0 of num | Bit1 of num;
 
 fun sgn_integer k =
   (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
@@ -457,6 +377,19 @@ fun fst (x1, x2) = x1;
 fun divide_integer k l = fst (divmod_integer k l);
 
 fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
+
+fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
+
+fun max A_ a b = (if less_eq A_ a b then b else a);
+
+val ord_integer =
+  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
+    less = (fn a => fn b => IntInf.< (a, b))}
+  : IntInf.int ord;
+
+fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
+
+val one_nat : nat = Nat (1 : IntInf.int);
 
 fun string_of_digit n =
   (if equal_nat n zero_nata
@@ -532,8 +465,6 @@ fun shows_list_uint64 xs ys = shows_list_nat (map nat_of_uint64 xs) ys;
 val show_uint64 =
   {shows_prec = shows_prec_uint64, shows_list = shows_list_uint64} :
   Uint64.uint64 show;
-
-val one_uint64 = {one = Uint64.one} : Uint64.uint64 one;
 
 val default_uint64a : Uint64.uint64 = Uint64.zero;
 
@@ -1060,8 +991,18 @@ fun arl_replicate A_ init_cap x =
               end)
   end;
 
-fun ema_init (A1_, A2_) =
-  shiftl A1_ (one A2_) (nat_of_integer (48 : IntInf.int));
+val restart_info_init : Uint64.uint64 * Uint64.uint64 =
+  (Uint64.zero, Uint64.zero);
+
+fun shiftl_uint64 x n =
+  (if less_nat n (nat_of_integer (64 : IntInf.int))
+    then Uint64.shiftl x (integer_of_nat n) else Uint64.zero);
+
+fun ema_init alpha =
+  (Uint64.zero,
+    (alpha,
+      (shiftl_uint64 Uint64.one (nat_of_integer (32 : IntInf.int)),
+        (Uint64.zero, Uint64.zero))));
 
 fun finalise_init_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (a1i, (a1j, a2j)))), a2f),
@@ -1084,9 +1025,9 @@ fun finalise_init_code x =
                   end,
                    ((Uint64.zero,
                       (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))),
-                     (ema_init (bits_uint64, one_uint64),
-                       (ema_init (bits_uint64, one_uint64),
-                         ((Uint64.zero, Uint64.zero),
+                     (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
+                       (ema_init (Uint64.fromInt (429450 : IntInf.int)),
+                         (restart_info_init,
                            (a2n, (xaa, zero_nata)))))))))))))))))
     end)
     x;
@@ -1174,6 +1115,10 @@ fun polarity_pol_code x = (fn ai => fn bi => let
        nth_u_code heap_uint32 a1a bi
      end)
                             x;
+
+fun minus_nat m n =
+  Nat (max ord_integer (0 : IntInf.int)
+        (IntInf.- (integer_of_nat m, integer_of_nat n)));
 
 fun is_None a = (case a of NONE => true | SOME _ => false);
 
@@ -2971,10 +2916,33 @@ fun vmtf_flush_code x =
 
 fun vmtf_flush_all_code x = (fn _ => vmtf_flush_code) x;
 
-fun ema_update_ref coeff ema lbd =
-  Uint64.plus (Uint64.plus ema (shiftr_uint64 ema coeff))
-    (shiftl_uint64 (uint64_of_uint32 lbd)
-      (minus_nat (nat_of_integer (48 : IntInf.int)) coeff));
+fun shiftr_uint64 x n =
+  (if less_nat n (nat_of_integer (64 : IntInf.int))
+    then Uint64.shiftr x (integer_of_nat n) else Uint64.zero);
+
+fun ema_update_ref x =
+  (fn lbd => fn (value, (alpha, (beta, (wait, period)))) =>
+    let
+      val valuea =
+        Uint64.plus value
+          (Uint64.times beta (Uint64.minus (uint64_of_uint32 lbd) value));
+    in
+      (if Uint64.less_eq beta alpha orelse Uint64.less Uint64.zero wait
+        then (valuea, (alpha, (beta, (Uint64.minus wait Uint64.one, period))))
+        else let
+               val waita =
+                 Uint64.plus
+                   (Uint64.times (Uint64.fromInt (2 : IntInf.int)) period)
+                   Uint64.one;
+               val perioda = waita;
+               val betaa = shiftr_uint64 beta one_nat;
+               val betab =
+                 (if Uint64.less_eq betaa alpha then alpha else betaa);
+             in
+               (valuea, (alpha, (betab, (waita, perioda))))
+             end)
+    end)
+    x;
 
 fun lbd_empty_code x =
   (fn (a1, a2) => fn () =>
@@ -3010,11 +2978,8 @@ fun propagate_unit_bt_wl_D_code x =
       val x_e = cons_trail_Propagated_tr_code (uminus_code ai) zero_nata a1 ();
     in
       (x_e, (a1a, (a1b, (x_c, (a1d, (xa, (a1f,
-   (a1g, (a1h, (x_b, (a1j, (a1k, (ema_update_ref
-                                    (nat_of_integer (5 : IntInf.int)) a1l x_a,
-                                   (ema_update_ref
-                                      (nat_of_integer (14 : IntInf.int)) a1m
-                                      x_a,
+   (a1g, (a1h, (x_b, (a1j, (a1k, (ema_update_ref x_a a1l,
+                                   (ema_update_ref x_a a1m,
                                      (incr_conflict_count_since_last_restart
 a1n,
                                        a2n)))))))))))))))
@@ -3243,8 +3208,8 @@ fun propagate_bt_wl_D_code x =
                     (x_r, (x_i, (a1b, (x_p,
 (x_m, (x_t, (a2q, ((Word32.fromInt 0),
                     (a1h, (x_o, (a1j, (a1k,
-(ema_update_ref (nat_of_integer (5 : IntInf.int)) a1l x_c,
-  (ema_update_ref (nat_of_integer (14 : IntInf.int)) a1m x_c,
+(ema_update_ref x_c a1l,
+  (ema_update_ref x_c a1m,
     (incr_conflict_count_since_last_restart a1n,
       (xb, (xab, suc a2p))))))))))))))))))))))))))))
                 end))

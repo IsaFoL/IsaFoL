@@ -541,6 +541,8 @@ val show_uint64 =
 
 val one_uint64 = {one = Uint64.one} : Uint64.uint64 one;
 
+val zero_uint64 = {zero = Uint64.zero} : Uint64.uint64 zero;
+
 val default_uint64a : Uint64.uint64 = Uint64.zero;
 
 val default_uint64 = {default = default_uint64a} : Uint64.uint64 default;
@@ -822,6 +824,12 @@ fun int_of_nat n = Int_of_integer (integer_of_nat n);
 
 fun uint32_of_nat x = (uint32_of_int o int_of_nat) x;
 
+fun ema_init alpha =
+  (Uint64.zero,
+    (alpha,
+      (shiftl_uint64 Uint64.one (nat_of_integer (32 : IntInf.int)),
+        (Uint64.zero, Uint64.zero))));
+
 fun take_arl x = (fn i => fn (xs, _) => (xs, i)) x;
 
 fun level_in_lbd_code x =
@@ -924,6 +932,12 @@ fun arl_empty (A1_, A2_) B_ =
             in
               (a, zero B_)
             end);
+
+fun ema_reinit (F1_, F2_) G_ H_ (value, (alpha, (beta, (wait, period)))) =
+  (value,
+    (alpha,
+      (shiftr F1_ (one F2_) (nat_of_integer (32 : IntInf.int)),
+        (zero G_, zero H_))));
 
 fun incr_restart x =
   (fn (propa, (confl, (dec, (res, lres)))) =>
@@ -1092,10 +1106,29 @@ fun empty_Q_code x =
 
 fun uint64_of_uint32 x = (Uint64.fromLarge (Word32.toLarge x));
 
-fun ema_update_ref coeff ema lbd =
-  Uint64.plus (Uint64.minus ema (shiftr_uint64 ema coeff))
-    (shiftl_uint64 (uint64_of_uint32 lbd)
-      (minus_nat (nat_of_integer (48 : IntInf.int)) coeff));
+fun ema_update_ref x =
+  (fn lbd => fn (value, (alpha, (beta, (wait, period)))) =>
+    let
+      val valuea =
+        Uint64.plus value
+          (Uint64.times beta (Uint64.minus (uint64_of_uint32 lbd) value));
+    in
+      (if Uint64.less_eq beta alpha orelse Uint64.less Uint64.zero wait
+        then (valuea, (alpha, (beta, (Uint64.minus wait Uint64.one, period))))
+        else let
+               val waita =
+                 Uint64.plus
+                   (Uint64.times (Uint64.fromInt (2 : IntInf.int)) period)
+                   Uint64.one;
+               val perioda = waita;
+               val betaa = shiftr_uint64 beta one_nat;
+               val betab =
+                 (if Uint64.less_eq betaa alpha then alpha else betaa);
+             in
+               (valuea, (alpha, (betab, (waita, perioda))))
+             end)
+    end)
+    x;
 
 val sET_FALSE_code : Word32.word =
   Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int));
@@ -1116,6 +1149,8 @@ fun fast_minus_nat x = (fn a => (Nat(integer_of_nat x - integer_of_nat a)));
 fun is_None a = (case a of NONE => true | SOME _ => false);
 
 fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nata)));
+
+fun ema_get_value (v, uu) = v;
 
 fun last_trail_code x =
   (fn (a1, (_, (_, (a1c, _)))) => fn () =>
@@ -1222,8 +1257,8 @@ fun mark_garbage_code x =
       (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
     x;
 
-fun ema_init (A1_, A2_) =
-  shiftl A1_ (one A2_) (nat_of_integer (48 : IntInf.int));
+val restart_info_init : Uint64.uint64 * Uint64.uint64 =
+  (Uint64.zero, Uint64.zero);
 
 fun count_decided_pol x = (fn (_, (_, (_, (_, (k, _))))) => k) x;
 
@@ -2104,7 +2139,7 @@ fun upper_restart_bound_not_reached_impl x =
     x;
 
 val minimum_number_between_restarts : Uint64.uint64 =
-  Uint64.fromInt (1000 : IntInf.int);
+  Uint64.fromInt (50 : IntInf.int);
 
 fun get_slow_ema_heur_slow_code x =
   (fn xi =>
@@ -2152,27 +2187,41 @@ fun count_decided_st_code x = (fn xi => (fn () => let
 fun restart_required_heur_slow_code x =
   (fn ai => fn bi => fn () =>
     let
-      val _ = get_slow_ema_heur_slow_code ai ();
       val xa = get_slow_ema_heur_slow_code ai ();
-      val x_d = get_fast_ema_heur_slow_code ai ();
-      val x_f = get_conflict_count_since_last_restart_heur_slow_code ai ();
-      val x_h = get_learned_count_slow_code ai ();
-      val x_n = count_decided_st_code ai ();
-      val xaa = upper_restart_bound_not_reached_impl ai ();
+      val xaa = get_fast_ema_heur_slow_code ai ();
     in
-      (if xaa
-        then Uint64.less x_d
-               (shiftr_uint64
-                 (Uint64.times (Uint64.fromInt (17 : IntInf.int)) xa)
-                 (nat_of_integer (4 : IntInf.int)))
-        else true) andalso
-        (Uint64.less minimum_number_between_restarts x_f andalso
-          (less_nat bi x_h andalso
-            (Word32.< ((Word32.fromInt 2), x_n) andalso
-              less_nat
-                (nat_of_uint64
-                  (shiftr_uint64 x_d (nat_of_integer (48 : IntInf.int))))
-                (nat_of_uint32 x_n))))
+      let
+        val x_d = ema_get_value xaa;
+      in
+        (fn f_ => fn () => f_
+          ((get_conflict_count_since_last_restart_heur_slow_code ai) ()) ())
+          (fn x_f =>
+            (fn f_ => fn () => f_ ((get_learned_count_slow_code ai) ()) ())
+              (fn x_h =>
+                (fn f_ => fn () => f_ ((count_decided_st_code ai) ()) ())
+                  (fn x_n =>
+                    (fn f_ => fn () => f_
+                      ((upper_restart_bound_not_reached_impl ai) ()) ())
+                      (fn xab =>
+                        (fn () =>
+                          ((if xab
+                             then Uint64.less x_d
+                                    (shiftr_uint64
+                                      (Uint64.times
+(Uint64.fromInt (18 : IntInf.int)) (ema_get_value xa))
+                                      (nat_of_integer (4 : IntInf.int)))
+                             else true) andalso
+                            (Uint64.less minimum_number_between_restarts
+                               x_f andalso
+                              (less_nat bi x_h andalso
+                                (Word32.< ((Word32.fromInt 2), x_n) andalso
+                                  less_nat
+                                    (nat_of_uint64
+                                      (shiftr_uint64 x_d
+(nat_of_integer (48 : IntInf.int))))
+                                    (nat_of_uint32 x_n))))))))))
+      end
+        ()
     end)
     x;
 
@@ -2215,8 +2264,12 @@ fun incr_restart_stat_slow_code x =
       in
         (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
      (a1g, (a1h, (a1i, (a1j, (incr_restart a1k,
-                               (a1l, (a1m, (restart_info_restart_done a1n,
-     (a1o, (a1p, a2p)))))))))))))))))
+                               (ema_reinit (bits_uint64, one_uint64) zero_uint64
+                                  zero_uint64 a1l,
+                                 (ema_reinit (bits_uint64, one_uint64)
+                                    zero_uint64 zero_uint64 a1m,
+                                   (restart_info_restart_done a1n,
+                                     (a1o, (a1p, a2p)))))))))))))))))
       end))
     x;
 
@@ -2533,8 +2586,12 @@ fun incr_lrestart_stat_slow_code x =
       in
         (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
      (a1g, (a1h, (a1i, (a1j, (incr_lrestart a1k,
-                               (a1l, (a1m, (restart_info_restart_done a1n,
-     (a1o, (a1p, a2p)))))))))))))))))
+                               (ema_reinit (bits_uint64, one_uint64) zero_uint64
+                                  zero_uint64 a1l,
+                                 (ema_reinit (bits_uint64, one_uint64)
+                                    zero_uint64 zero_uint64 a1m,
+                                   (restart_info_restart_done a1n,
+                                     (a1o, (a1p, a2p)))))))))))))))))
       end))
     x;
 
@@ -3516,11 +3573,8 @@ fun propagate_unit_bt_wl_D_code x =
       val x_e = cons_trail_Propagated_tr_code (uminus_code ai) zero_nata a1 ();
     in
       (x_e, (a1a, (a1b, (x_c, (a1d, (xa, (a1f,
-   (a1g, (a1h, (x_b, (a1j, (a1k, (ema_update_ref
-                                    (nat_of_integer (5 : IntInf.int)) a1l x_a,
-                                   (ema_update_ref
-                                      (nat_of_integer (14 : IntInf.int)) a1m
-                                      x_a,
+   (a1g, (a1h, (x_b, (a1j, (a1k, (ema_update_ref x_a a1l,
+                                   (ema_update_ref x_a a1m,
                                      (incr_conflict_count_since_last_restart
 a1n,
                                        a2n)))))))))))))))
@@ -3680,8 +3734,8 @@ fun propagate_bt_wl_D_code x =
                     (x_r, (x_i, (a1b, (x_p,
 (x_m, (x_t, (a2q, ((Word32.fromInt 0),
                     (a1h, (x_o, (a1j, (a1k,
-(ema_update_ref (nat_of_integer (5 : IntInf.int)) a1l x_c,
-  (ema_update_ref (nat_of_integer (14 : IntInf.int)) a1m x_c,
+(ema_update_ref x_c a1l,
+  (ema_update_ref x_c a1m,
     (incr_conflict_count_since_last_restart a1n,
       (xb, (xab, suc a2p))))))))))))))))))))))))))))
                 end))
@@ -4193,9 +4247,9 @@ fun finalise_init_code x =
                   end,
                    ((Uint64.zero,
                       (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))),
-                     (ema_init (bits_uint64, one_uint64),
-                       (ema_init (bits_uint64, one_uint64),
-                         ((Uint64.zero, Uint64.zero),
+                     (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
+                       (ema_init (Uint64.fromInt (429450 : IntInf.int)),
+                         (restart_info_init,
                            (a2n, (xaa, zero_nata)))))))))))))))))
     end)
     x;
