@@ -277,7 +277,7 @@ where
       let (n, xs) = lookup_conflict_remove1 L (n, xs);
       ASSERT(vmtf_unset_pre (L', vmtf));
       RETURN (False, (tl M, N, (b, (n, xs)), Q, W, vmtf_unset L' vmtf,
-          save_phase L \<phi>, fast_minus clvls one_uint32_nat, cach, lbd, outl, stats))
+          \<phi>, fast_minus clvls one_uint32_nat, cach, lbd, outl, stats))
    })\<close>
 
 lemma card_max_lvl_remove1_mset_hd:
@@ -330,10 +330,6 @@ lemma (in -)out_learned_tl_Some_notin:
   by (cases M) (auto simp: out_learned_def get_level_cons_if atm_of_eq_atm_of
       intro!: filter_mset_cong2)
 
-lemma (in isasat_input_ops) phase_saving_save_phase[simp]:
-  \<open>phase_saving (save_phase L \<phi>) \<longleftrightarrow> phase_saving \<phi>\<close>
-  by (auto simp: phase_saving_def save_phase_def)
-
 lemma update_confl_tl_wl_heur_update_confl_tl_wl:
   \<open>(uncurry2 (update_confl_tl_wl_heur), uncurry2 (RETURN ooo update_confl_tl_wl)) \<in>
   [update_confl_tl_wl_pre]\<^sub>f
@@ -352,7 +348,7 @@ proof -
                           ASSERT(vmtf_unset_pre (atm_of b, ivmtf));
                           RETURN
                             (False, tl ba, c, (bb, n, xs), e, f, vmtf_unset (atm_of b) ivmtf,
-                            save_phase b h, fast_minus clvls one_uint32_nat, j,
+                            h, fast_minus clvls one_uint32_nat, j,
                             lbd, outl, (ah, ai, aj, be), ak, al, am, an, bf)
                         })
                     xa)
@@ -1292,7 +1288,7 @@ sepref_thm update_confl_tl_wl_code
   nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> bool_assn *a isasat_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]]
-  unfolding update_confl_tl_wl_heur_def isasat_assn_def save_phase_def
+  unfolding update_confl_tl_wl_heur_def isasat_assn_def
     update_confl_tl_wl_heur_pre_def PR_CONST_def
   by sepref (* slow *)
 
@@ -1312,7 +1308,7 @@ sepref_thm update_confl_tl_wl_fast_code
   uint32_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> bool_assn *a isasat_fast_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]]
-  unfolding update_confl_tl_wl_heur_def isasat_fast_assn_def save_phase_def
+  unfolding update_confl_tl_wl_heur_def isasat_fast_assn_def
     update_confl_tl_wl_heur_pre_def
   supply merge_conflict_m_def[simp]
   by sepref (* slow *)
