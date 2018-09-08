@@ -936,7 +936,7 @@ fun arl_empty (A1_, A2_) B_ =
 fun ema_reinit (F1_, F2_) G_ H_ (value, (alpha, (beta, (wait, period)))) =
   (value,
     (alpha,
-      (shiftr F1_ (one F2_) (nat_of_integer (32 : IntInf.int)),
+      (shiftl F1_ (one F2_) (nat_of_integer (32 : IntInf.int)),
         (zero G_, zero H_))));
 
 fun incr_restart x =
