@@ -901,6 +901,12 @@ fun array_shrink A_ a s =
 fun nth_u64_code A_ =
   (fn a => fn b => (fn () => Array.sub (a, Uint64.toFixedInt b)));
 
+fun ema_reinit (F1_, F2_) G_ H_ (value, (alpha, (beta, (wait, period)))) =
+  (value,
+    (alpha,
+      (shiftl F1_ (one F2_) (nat_of_integer (32 : IntInf.int)),
+        (zero G_, zero H_))));
+
 val uNSET_code : Word32.word = (Word32.fromInt 0);
 
 fun imp_for i u f s =
@@ -932,12 +938,6 @@ fun arl_empty (A1_, A2_) B_ =
             in
               (a, zero B_)
             end);
-
-fun ema_reinit (F1_, F2_) G_ H_ (value, (alpha, (beta, (wait, period)))) =
-  (value,
-    (alpha,
-      (shiftl F1_ (one F2_) (nat_of_integer (32 : IntInf.int)),
-        (zero G_, zero H_))));
 
 fun incr_restart x =
   (fn (propa, (confl, (dec, (res, lres)))) =>
@@ -999,6 +999,8 @@ fun length_u64_code A_ =
   (fn a => (fn () => Uint64.fromFixedInt (Array.length a)));
 
 fun op_list_is_empty x = null x;
+
+fun ema_get_value (v, uu) = v;
 
 fun incr_conflict x =
   (fn (propa, (confl, dec)) => (propa, (Uint64.plus confl Uint64.one, dec))) x;
@@ -1149,8 +1151,6 @@ fun fast_minus_nat x = (fn a => (Nat(integer_of_nat x - integer_of_nat a)));
 fun is_None a = (case a of NONE => true | SOME _ => false);
 
 fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nata)));
-
-fun ema_get_value (v, uu) = v;
 
 fun last_trail_code x =
   (fn (a1, (_, (_, (a1c, _)))) => fn () =>
