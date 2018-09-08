@@ -58,31 +58,71 @@ lemma incr_lrestart_hnr[sepref_fr_rules]:
 
 paragraph \<open>Moving averages\<close>
 
-type_synonym ema = \<open>uint64\<close>
+text \<open>We use (at least hopefully) the variant of EMA-14 implemented in Cadical, but with fixed-point
+calculation (\<^term>\<open>1 :: nat\<close> is \<^term>\<open>(1 :: nat) >> 32\<close>).
+
+Remark that the coefficient \<^term>\<open>\<beta>\<close> already takes care of the bixed-point conversion of the glue.
+\<close>
+type_synonym ema = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 
 abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
-  \<open>ema_assn \<equiv> uint64_assn\<close>
+  \<open>ema_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn\<close>
 
-definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> nat \<Rightarrow> ema\<close> where
-  \<open>ema_update coeff ema lbd = ema - (ema >> coeff) + ((uint64_of_nat lbd) << (48 - coeff))\<close>
+definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<close> where
+  \<open>ema_update = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
+     let value = value + \<beta> * ((uint64_of_nat lbd) - value) in
+     if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
+     else
+       let wait = 2 * period + 1 in
+       let period = wait in
+       let \<beta> = \<beta> >> 1 in
+       let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
+       (value, \<alpha>, \<beta>, wait, period))\<close>
 
-definition (in -) ema_update_ref :: \<open>nat \<Rightarrow> ema \<Rightarrow> uint32 \<Rightarrow> ema\<close> where
-  \<open>ema_update_ref coeff ema lbd = ema - (ema >> coeff) +  ((uint64_of_uint32 lbd) << (48 - coeff))\<close>
+definition (in -) ema_update_ref :: \<open>uint32 \<Rightarrow> ema \<Rightarrow> ema\<close> where
+  \<open>ema_update_ref = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
+     let value = value + \<beta> * ((uint64_of_uint32 lbd) - value) in
+     if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
+     else
+       let wait = 2 * period + 1 in
+       let period = wait in
+       let \<beta> = \<beta> >> 1 in
+       let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
+       (value, \<alpha>, \<beta>, wait, period))\<close>
 
 lemma (in -) ema_update_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 (return ooo ema_update_ref), uncurry2 (RETURN ooo ema_update)) \<in>
-     nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  \<open>(uncurry (return oo ema_update_ref), uncurry (RETURN oo ema_update)) \<in>
+      uint32_nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
   unfolding ema_update_def ema_update_ref_def
   by sepref_to_hoare
-     (sep_auto simp: uint32_nat_rel_def br_def uint64_of_uint32_def)
+     (sep_auto simp: uint32_nat_rel_def br_def uint64_of_uint32_def Let_def)
+
+definition (in -) ema_init :: \<open>uint64 \<Rightarrow> ema\<close> where
+  \<open>ema_init \<alpha> = (0, \<alpha>, 1 << 32, 0, 0)\<close>
+
+value "(1::uint32) << 32"
+
+lemma (in -) ema_init_coeff_hnr[sepref_fr_rules]:
+  \<open>((return o ema_init), (RETURN o ema_init)) \<in> uint64_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: ema_init_def uint64_nat_rel_def br_def)
+
+text \<open>We use the default values for Cadical: \<^term>\<open>(3 / 10 ^2)\<close> and  \<^term>\<open>(1 / 10 ^ 5)\<close>  in our fixed-point
+  version. 
+\<close>
+abbreviation ema_fast_init :: ema where
+  \<open>ema_fast_init \<equiv> ema_init (128849010)\<close>
+
+abbreviation ema_slow_init :: ema where
+  \<open>ema_slow_init \<equiv> ema_init (429450)\<close>
 
 
 paragraph \<open>Information related to restarts\<close>
 
-type_synonym restart_info = \<open>uint64 \<times> ema\<close>
+type_synonym restart_info = \<open>uint64 \<times> uint64\<close>
 
 abbreviation restart_info_assn where
-  \<open>restart_info_assn \<equiv> uint64_assn *a ema_assn\<close>
+  \<open>restart_info_assn \<equiv> uint64_assn *a uint64_assn\<close>
 
 definition incr_conflict_count_since_last_restart :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl). (ccount + 1, ema_lvl))\<close>
@@ -93,7 +133,7 @@ lemma incr_conflict_count_since_last_restart_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: incr_conflict_count_since_last_restart_def)
 
 definition restart_info_update_lvl_avg :: \<open>uint32 \<Rightarrow> restart_info \<Rightarrow> restart_info\<close> where
-  \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_update_ref 5 ema_lvl lvl))\<close>
+  \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_lvl))\<close>
 
 lemma restart_info_update_lvl_avg_hnr[sepref_fr_rules]:
     \<open>(uncurry (return oo restart_info_update_lvl_avg),
@@ -101,6 +141,14 @@ lemma restart_info_update_lvl_avg_hnr[sepref_fr_rules]:
        \<in> uint32_assn\<^sup>k *\<^sub>a restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
   by sepref_to_hoare (sep_auto simp: restart_info_update_lvl_avg_def)
 
+definition restart_info_init :: \<open>restart_info\<close> where
+  \<open>restart_info_init = (0, 0)\<close>
+
+lemma restart_info_init_hnr[sepref_fr_rules]:
+    \<open>(uncurry0 (return restart_info_init),
+       uncurry0 (RETURN restart_info_init))
+       \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a restart_info_assn\<close>
+  by sepref_to_hoare (sep_auto simp: restart_info_init_def)
 
 
 paragraph \<open>Base state\<close>

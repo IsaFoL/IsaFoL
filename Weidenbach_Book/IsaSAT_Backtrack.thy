@@ -852,11 +852,6 @@ proof -
     using pre ..
 qed
 
-abbreviation(in -) ema_update_slow where
-  \<open>ema_update_slow \<equiv> ema_update 14\<close>
-abbreviation (in -)ema_update_fast where
-  \<open>ema_update_fast \<equiv> ema_update 5\<close>
-
 
 paragraph \<open>Minimisation of the conflict\<close>
 
@@ -913,7 +908,7 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       ASSERT(vm \<in> vmtf M);
       vm \<leftarrow> flush M vm;
       RETURN (M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
-         cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
+         cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
           incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
           avdom @ [nat_of_uint32_conv i],
           Suc lcount)
@@ -939,7 +934,7 @@ where
       let j = length M;
       ASSERT(0 \<noteq> DECISION_REASON);
       RETURN (Propagated (- L) 0 # M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-         ema_update_fast fema glue, ema_update_slow sema glue,
+        ema_update glue fema, ema_update glue sema,
         incr_conflict_count_since_last_restart res_info, vdom)})\<close>
 
 
@@ -1824,7 +1819,7 @@ proof -
           ASSERT(vm \<in> vmtf M);
           vm \<leftarrow> flush M vm;
           RETURN (M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
-            cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
+            cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
               incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i], 
               avdom @ [nat_of_uint32_conv i], Suc lcount)
       })\<close>

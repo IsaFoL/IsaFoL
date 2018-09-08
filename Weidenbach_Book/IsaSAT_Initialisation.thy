@@ -2518,18 +2518,6 @@ proof -
     using H unfolding im PR_CONST_def apply assumption
     using pre ..
 qed
-
-definition (in -) ema_init where \<open>ema_init = 1 << 48\<close>
-
-lemma nat_of_uint64_ema_init_coeff: \<open>nat_of_uint64 ema_init = ema_init\<close>
-  unfolding ema_init_def
-  by transfer (auto simp: shiftl_nat_def)
-
-lemma (in -) ema_init_coeff_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return ema_init), uncurry0 (RETURN ema_init)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: nat_of_uint64_ema_init_coeff uint64_nat_rel_def br_def)
-
 definition one_uint64 where [simp]: \<open>one_uint64 = 1\<close>
 
 text \<open>The value 160 is random (but larger than the default 16 for array lists).\<close>
@@ -2539,9 +2527,9 @@ definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st
        lbd, vdom). do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
      let init_stats = (0::uint64, 0::uint64, 0::uint64, 0::uint64, 0::uint64);
-     let fema = ema_init;
-     let sema = ema_init;
-     let ccount = (zero_uint64, zero_uint64);
+     let fema = ema_fast_init;
+     let sema = ema_slow_init;
+     let ccount = restart_info_init;
      let lcount = 0;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
        clvls, cach, lbd, take1(replicate 160 (Pos zero_uint32_nat)), init_stats,

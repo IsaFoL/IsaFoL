@@ -12,6 +12,21 @@ lemma restart_info_restart_done_hnr[sepref_fr_rules]:
      restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
   by sepref_to_hoare (sep_auto simp: restart_info_restart_done_def
     uint64_nat_rel_def br_def)
+
+fun ema_reinit where
+  \<open>ema_reinit (value, \<alpha>, \<beta>, wait, period) = (value, \<alpha>, 1 >> 32, 0, 0)\<close>
+
+lemma ema_reinit_hnr[sepref_fr_rules]:
+  \<open>(return o ema_reinit, RETURN o ema_reinit) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  by sepref_to_hoare sep_auto
+
+fun ema_get_value :: \<open>ema \<Rightarrow> uint64\<close> where
+  \<open>ema_get_value (v, _) = v\<close>
+
+lemma ema_get_value_hnr[sepref_fr_rules]:
+  \<open>(return o ema_get_value, RETURN o ema_get_value) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
+
 (* End Move *)
 
 locale isasat_restart_bounded =
@@ -94,6 +109,7 @@ text \<open>
 sublocale isasat_restart_bounded id
   by standard (rule unbounded_id)
 
+
 lemma get_slow_ema_heur_alt_def:
    \<open>RETURN o get_slow_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
        stats, fema, sema, (ccount, _), lcount). RETURN sema)\<close>
@@ -101,7 +117,7 @@ lemma get_slow_ema_heur_alt_def:
 
 sepref_thm get_slow_ema_heur_fast_code
   is \<open>RETURN o get_slow_ema_heur\<close>
-  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
   unfolding get_slow_ema_heur_alt_def isasat_fast_assn_def
   by sepref
 
@@ -117,7 +133,7 @@ lemmas get_slow_ema_heur_fast_code_hnr[sepref_fr_rules] =
 
 sepref_thm get_slow_ema_heur_slow_code
   is \<open>RETURN o get_slow_ema_heur\<close>
-  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
   unfolding get_slow_ema_heur_alt_def isasat_assn_def
   by sepref
 
@@ -138,7 +154,7 @@ lemma get_fast_ema_heur_alt_def:
 
 sepref_thm get_fast_ema_heur_fast_code
   is \<open>RETURN o get_fast_ema_heur\<close>
-  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
   unfolding get_fast_ema_heur_alt_def isasat_fast_assn_def
   by sepref
 
@@ -153,7 +169,7 @@ lemmas get_fast_ema_heur_fast_code_hnr[sepref_fr_rules] =
 
 sepref_thm get_fast_ema_heur_slow_code
   is \<open>RETURN o get_fast_ema_heur\<close>
-  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
   unfolding get_fast_ema_heur_alt_def isasat_assn_def
   by sepref
 
@@ -407,7 +423,8 @@ definition (in isasat_input_ops) empty_Q :: \<open>twl_st_wl_heur \<Rightarrow> 
 definition (in isasat_input_ops) incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
        res_info, vdom, avdom, lcount). do{
-     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_restart stats, fast_ema, slow_ema,
+     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_restart stats,
+       ema_reinit fast_ema, ema_reinit slow_ema,
        restart_info_restart_done res_info, vdom, avdom, lcount)
   })\<close>
 
@@ -446,8 +463,9 @@ lemmas incr_restart_stat_fast_code_hnr [sepref_fr_rules] =
 definition (in isasat_input_ops) incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
      res_info, vdom, avdom, lcount). do{
-     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_lrestart stats, fast_ema, slow_ema,
-        restart_info_restart_done res_info,
+     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_lrestart stats,
+       ema_reinit fast_ema, ema_reinit slow_ema,
+       restart_info_restart_done res_info,
        vdom, avdom, lcount)
   })\<close>
 
@@ -701,11 +719,13 @@ proof -
     subgoal by auto
     subgoal
       by (force dest: restart_abs_wl_D_pre_find_decomp_w_ns_pre)
-    subgoal for a aa ab ac b ad ae af ag ah ai ba bb aj ak al am an ao ap aq ar bc as at au bd av aw be ax ay az bf bg bh bi
-       lvl i x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i S x1j x2j x1k x2k x1l
-       x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y
+    subgoal for a aa ab ac b ad ae af ag ah ai ba bb aj ak al am an ao ap aq ar bc as at au
+       av bd aw ax ay az be bf bg bh bi bj bk bl bm bn bo bp bq lvl i x1 x2 x1a
+       x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i S x1j
+       x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q x2q x1r x2r x1s
+       x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES
-      apply (rule RES_refine, rule bexI[of _ \<open>(get_trail_wl_heur S, ay, az, bf, bg, {#}, bi)\<close>];
+      apply (rule RES_refine, rule bexI[of _ \<open>(get_trail_wl_heur S, bl, bm, bn, bo, {#}, bq)\<close>];
          ((subst uncurry_def image_iff)+)?; (rule bexI[of _ \<open>(get_trail_wl_heur S, {#})\<close>])?)
       subgoal
          by (clarsimp simp add: twl_st_heur_def)
@@ -1034,17 +1054,17 @@ begin
 
 definition (in isasat_input_ops) restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_heur S n = do {
-    let sema = get_slow_ema_heur S;
-    let sema' = (18 * get_slow_ema_heur S) >> 4;
+    let sema = ema_get_value (get_slow_ema_heur S);
+    let limit = (18 * sema) >> 4;
        \<comment>\<open>roughly speaking 125/100 with hopefully no overflow (there is currently no division
          on \<^typ>\<open>uint64\<close>\<close>
-    let fema = get_fast_ema_heur S;
+    let fema = ema_get_value (get_fast_ema_heur S);
     let ccount = get_conflict_count_since_last_restart_heur S;
     let lcount = get_learned_count S;
     let can_res = (lcount > n);
     let min_reached = (ccount > minimum_number_between_restarts);
     let level = count_decided_st S;
-    RETURN ((upper_restart_bound_not_reached S \<longrightarrow> sema' > fema) \<and> min_reached \<and> can_res \<and>
+    RETURN ((upper_restart_bound_not_reached S \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
       level > two_uint32_nat \<and> nat_of_uint32_conv level > nat_of_uint64 (fema >> 48))}
   \<close>
 
