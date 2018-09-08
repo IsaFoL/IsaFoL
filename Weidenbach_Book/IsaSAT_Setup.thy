@@ -164,6 +164,15 @@ lemma restart_info_init_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: restart_info_init_def)
 
 
+definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
+  \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
+
+lemma restart_info_restart_done_hnr[sepref_fr_rules]:
+  \<open>(return o restart_info_restart_done, RETURN o restart_info_restart_done) \<in>
+     restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
+  by sepref_to_hoare (sep_auto simp: restart_info_restart_done_def
+    uint64_nat_rel_def br_def)
+
 paragraph \<open>Base state\<close>
 
 type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array \<times> nat\<close>
