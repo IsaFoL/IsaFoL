@@ -889,17 +889,23 @@ where
   \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
     fema, sema). do {
       ASSERT(swap_lits_pre C 0 (fast_minus 1 i) N);
-      let N' = swap_lits C 0 (fast_minus 1 i) N in
-      RETURN (Propagated L' C # M, N', D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
+      let N' = swap_lits C 0 (fast_minus 1 i) N;
+      ASSERT(atm_of L' < length \<phi>);
+      RETURN (Propagated L' C # M, N', D, Q, W, vm, save_phase L' \<phi>, clvls, cach, lbd, outl,
          incr_propagation stats, fema, sema)
   })\<close>
 
 definition propagate_lit_wl_pre where
   \<open>propagate_lit_wl_pre = (\<lambda>(((L, C), i), S).
      undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None \<and>
-     C \<in># dom_m (get_clauses_wl S) \<and>
+     C \<in># dom_m (get_clauses_wl S) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
     1 - i < length (get_clauses_wl S \<propto> C) \<and>
     0 < length (get_clauses_wl S \<propto> C))\<close>
+
+(* TODO Move + kill duplicate *)
+lemma (in isasat_input_ops) phase_saving_save_phase[simp]:
+  \<open>phase_saving (save_phase L \<phi>) \<longleftrightarrow> phase_saving \<phi>\<close>
+  by (auto simp: phase_saving_def save_phase_def)
 
 
 lemma propagate_lit_wl_heur_propagate_lit_wl:
@@ -910,8 +916,8 @@ lemma propagate_lit_wl_heur_propagate_lit_wl:
   supply [[show_types]]
   by (auto simp: twl_st_heur_def propagate_lit_wl_heur_def propagate_lit_wl_def
       vmtf_consD twl_st_heur'_def propagate_lit_wl_pre_def swap_lits_pre_def
-      valid_arena_swap_lits arena_lifting
-      intro!: ASSERT_refine_left)
+      valid_arena_swap_lits arena_lifting phase_saving_def atms_of_def save_phase_def
+      intro!: ASSERT_refine_left dest: multi_member_split)
 
 lemma undefined_lit_polarity_st_iff:
    \<open>undefined_lit (get_trail_wl S) L \<longleftrightarrow>
@@ -1828,6 +1834,9 @@ proof -
     by (auto simp: image_image)
 qed
 
+private lemma propagate_lit_wl_i_0_1: \<open>i = 0 \<or> i = 1\<close>
+  unfolding i_def by auto
+
 lemma propagate_lit_wl_pre: \<open>propagate_lit_wl_pre
      (((get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f !
         (1 -
@@ -1836,7 +1845,7 @@ lemma propagate_lit_wl_pre: \<open>propagate_lit_wl_pre
         x1f),
        if get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! 0 = L then 0 else 1),
       keep_watch L x2 x2a T)\<close>
-  using unit_prop_body_wl_D_invD[OF prop_inv] undef_lit1i
+  using unit_prop_body_wl_D_invD[OF prop_inv] undef_lit1i propagate_lit_wl_i_0_1
   unfolding propagate_lit_wl_pre_def prod.simps i_def[symmetric] i_alt_def_L'[symmetric]
     i_alt_def[symmetric] watched_by_app_def
   unfolding access_x1g1i access_x1g
@@ -3092,6 +3101,7 @@ sepref_thm propagate_lit_wl_code
   supply [[goals_limit=1]]length_rll_def[simp] length_ll_def[simp]
   unfolding update_clause_wl_heur_def isasat_assn_def
     propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
+    save_phase_def[simp]
   by sepref
 
 
