@@ -2486,7 +2486,7 @@ qed
 
 definition cdcl_twl_full_restart_l_prog where
 \<open>cdcl_twl_full_restart_l_prog S = do {
-   \<comment> \<open> S \<leftarrow> remove_one_annot_true_clause_imp S;\<close>
+   \<comment> \<open> \<^term>\<open>remove_one_annot_true_clause_imp S\<close>\<close>
     ASSERT(mark_to_delete_clauses_l_pre S);
     T \<leftarrow> mark_to_delete_clauses_l S;
     ASSERT (mark_to_delete_clauses_l_post S T);
