@@ -56,7 +56,7 @@ text \<open>
        LBD, but a probability of being useful.
      \<^item> half of the clauses
   \<^enum> Restarts:
-     \<^item> EMA-14, aka restart if enough clauses and slow\_glue\_avg * opts.restartmargin > fast_glue (file ema.cpp)
+     \<^item> EMA-14, aka restart if enough clauses and slow\_glue\_avg * opts.restartmargin > fast\_glue (file ema.cpp)
      \<^item> (lbdQueue.getavg() * K) > (sumLBD / conflictsRestarts),
        \<^text>\<open>conflictsRestarts > LOWER_BOUND_FOR_BLOCKING_RESTART && lbdQueue.isvalid() && trail.size() > R * trailQueue.getavg()\<close>
 \<close>

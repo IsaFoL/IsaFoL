@@ -1011,7 +1011,7 @@ definition mark_to_delete_clauses_wl_post where
 
 definition cdcl_twl_full_restart_wl_prog :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>cdcl_twl_full_restart_wl_prog S = do {
-    \<comment> \<open>S \<leftarrow> remove_one_annot_true_clause_imp_wl S;\<close>
+    \<comment> \<open> \<^term>\<open>remove_one_annot_true_clause_imp_wl S\<close>\<close>
     ASSERT(mark_to_delete_clauses_wl_pre S);
     T \<leftarrow> mark_to_delete_clauses_wl S;
     ASSERT(mark_to_delete_clauses_wl_post S T);
