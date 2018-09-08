@@ -1,5 +1,5 @@
 theory IsaSAT_Decide
-  imports IsaSAT_Setup
+  imports IsaSAT_Setup IsaSAT_VMTF
 begin
 
 

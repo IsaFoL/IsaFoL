@@ -173,6 +173,45 @@ lemma restart_info_restart_done_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: restart_info_restart_done_def
     uint64_nat_rel_def br_def)
 
+
+paragraph \<open>VMTF\<close>
+
+type_synonym vmtf_assn = \<open>(uint32, nat) vmtf_node array \<times> nat \<times> uint32 \<times> uint32 \<times> uint32 option\<close>
+type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> uint32 array_list\<close>
+
+type_synonym phase_saver_assn = \<open>bool array\<close>
+
+instance vmtf_node :: (heap, heap) heap
+proof intro_classes
+  let ?to_pair = \<open>\<lambda>x::('a, 'b) vmtf_node. (stamp x, get_prev x, get_next x)\<close>
+  have inj': \<open>inj ?to_pair\<close>
+    unfolding inj_def by (intro allI) (case_tac x; case_tac y; auto)
+  obtain to_nat :: \<open>'b \<times> 'a option \<times> 'a option \<Rightarrow> nat\<close> where
+    \<open>inj to_nat\<close>
+    by blast
+  then have \<open>inj (to_nat o ?to_pair)\<close>
+    using inj' by (blast intro: inj_comp)
+  then show \<open>\<exists>to_nat :: ('a, 'b) vmtf_node \<Rightarrow> nat. inj to_nat\<close>
+    by blast
+qed
+
+
+definition (in -) nat_vmtf_node_rel where
+\<open>nat_vmtf_node_rel = {(a', a). stamp a = stamp a' \<and>
+   (get_prev a', get_prev a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel \<and>
+   (get_next a', get_next a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel}\<close>
+
+abbreviation (in -)nat_vmtf_node_assn where
+\<open>nat_vmtf_node_assn \<equiv> pure nat_vmtf_node_rel\<close>
+
+abbreviation vmtf_conc where
+  \<open>vmtf_conc \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a uint32_nat_assn *a uint32_nat_assn
+    *a option_assn uint32_nat_assn)\<close>
+
+abbreviation vmtf_remove_conc :: \<open>vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close> where
+  \<open>vmtf_remove_conc \<equiv> vmtf_conc *a arl_assn uint32_nat_assn\<close>
+
+
 paragraph \<open>Base state\<close>
 
 type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array \<times> nat\<close>

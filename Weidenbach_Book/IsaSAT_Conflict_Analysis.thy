@@ -1,5 +1,5 @@
 theory IsaSAT_Conflict_Analysis
-  imports IsaSAT_Setup
+  imports IsaSAT_Setup IsaSAT_VMTF
 begin
 
 
