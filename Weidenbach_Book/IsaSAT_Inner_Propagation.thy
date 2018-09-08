@@ -3101,7 +3101,7 @@ sepref_thm propagate_lit_wl_code
   supply [[goals_limit=1]]length_rll_def[simp] length_ll_def[simp]
   unfolding update_clause_wl_heur_def isasat_assn_def
     propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
-    save_phase_def[simp]
+    save_phase_def
   by sepref
 
 
