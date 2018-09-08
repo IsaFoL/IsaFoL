@@ -1522,6 +1522,9 @@ fun cons_trail_Propagated_tr_code x =
 fun incr_propagation x =
   (fn (propa, (confl, dec)) => (Uint64.plus propa Uint64.one, (confl, dec))) x;
 
+fun is_pos_code l =
+  (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
+
 fun propagate_lit_wl_code x =
   (fn ai => fn bib => fn bia =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
@@ -1531,8 +1534,10 @@ fun propagate_lit_wl_code x =
     let
       val xa = swap_lits_code bib zero_nata (fast_minus_nat one_nat bia) a1a ();
       val x_b = cons_trail_Propagated_tr_code ai bib a1 ();
+      val xaa =
+        heap_array_set_u heap_bool a1f (atm_of_code ai) (is_pos_code ai) ();
     in
-      (x_b, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
+      (x_b, (xa, (a1b, (a1c, (a1d, (a1e, (xaa,
    (a1g, (a1h, (a1i, (a1j, (incr_propagation a1k, (a1l, a2l)))))))))))))
     end)
     x;
@@ -2005,9 +2010,6 @@ fun vmtf_unset_code x =
         else ((a1a, (a1b, (a1c, (a1d, a2d)))), a2))
     end)
     x;
-
-fun is_pos_code l =
-  (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
 
 fun update_confl_tl_wl_code x =
   (fn ai => fn bia =>

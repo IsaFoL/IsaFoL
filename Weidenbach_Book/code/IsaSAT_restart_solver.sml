@@ -1916,8 +1916,10 @@ fun propagate_lit_wl_code x =
     let
       val xa = swap_lits_code bib zero_nata (fast_minus_nat one_nat bia) a1a ();
       val x_b = cons_trail_Propagated_tr_code ai bib a1 ();
+      val xaa =
+        heap_array_set_u heap_bool a1f (atm_of_code ai) (is_pos_code ai) ();
     in
-      (x_b, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
+      (x_b, (xa, (a1b, (a1c, (a1d, (a1e, (xaa,
    (a1g, (a1h, (a1i, (a1j, (incr_propagation a1k, (a1l, a2l)))))))))))))
     end)
     x;
