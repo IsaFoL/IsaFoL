@@ -100,12 +100,25 @@ lemma (in -) ema_update_hnr[sepref_fr_rules]:
 definition (in -) ema_init :: \<open>uint64 \<Rightarrow> ema\<close> where
   \<open>ema_init \<alpha> = (0, \<alpha>, 1 << 32, 0, 0)\<close>
 
-value "(1::uint32) << 32"
+fun ema_reinit where
+  \<open>ema_reinit (value, \<alpha>, \<beta>, wait, period) = (value, \<alpha>, 1 << 32, 0, 0)\<close>
+
+lemma ema_reinit_hnr[sepref_fr_rules]:
+  \<open>(return o ema_reinit, RETURN o ema_reinit) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  by sepref_to_hoare sep_auto
+
+fun ema_get_value :: \<open>ema \<Rightarrow> uint64\<close> where
+  \<open>ema_get_value (v, _) = v\<close>
+
+lemma ema_get_value_hnr[sepref_fr_rules]:
+  \<open>(return o ema_get_value, RETURN o ema_get_value) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
 
 lemma (in -) ema_init_coeff_hnr[sepref_fr_rules]:
   \<open>((return o ema_init), (RETURN o ema_init)) \<in> uint64_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
   by sepref_to_hoare
     (sep_auto simp: ema_init_def uint64_nat_rel_def br_def)
+
 
 text \<open>We use the default values for Cadical: \<^term>\<open>(3 / 10 ^2)\<close> and  \<^term>\<open>(1 / 10 ^ 5)\<close>  in our fixed-point
   version. 

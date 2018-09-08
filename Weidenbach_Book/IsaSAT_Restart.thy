@@ -3,32 +3,6 @@ theory IsaSAT_Restart
      IsaSAT_CDCL
 begin
 
-(* TODO Move *)
-definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
-  \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
-
-lemma restart_info_restart_done_hnr[sepref_fr_rules]:
-  \<open>(return o restart_info_restart_done, RETURN o restart_info_restart_done) \<in>
-     restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
-  by sepref_to_hoare (sep_auto simp: restart_info_restart_done_def
-    uint64_nat_rel_def br_def)
-
-fun ema_reinit where
-  \<open>ema_reinit (value, \<alpha>, \<beta>, wait, period) = (value, \<alpha>, 1 >> 32, 0, 0)\<close>
-
-lemma ema_reinit_hnr[sepref_fr_rules]:
-  \<open>(return o ema_reinit, RETURN o ema_reinit) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  by sepref_to_hoare sep_auto
-
-fun ema_get_value :: \<open>ema \<Rightarrow> uint64\<close> where
-  \<open>ema_get_value (v, _) = v\<close>
-
-lemma ema_get_value_hnr[sepref_fr_rules]:
-  \<open>(return o ema_get_value, RETURN o ema_get_value) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare sep_auto
-
-(* End Move *)
-
 locale isasat_restart_bounded =
   twl_restart + isasat_input_bounded
 
