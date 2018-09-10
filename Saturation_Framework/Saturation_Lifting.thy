@@ -97,13 +97,48 @@ explore
     qed
     have \<open>F \<in> N\<close> using F by (metis (no_types, lifting) LeastI_ex non_empty)
     then have \<open>F \<in> N - Red_F_\<G> N\<close> using F_not_in by auto
-    then show \<open>False\<close> using D_in_F neg_not_sec_case by (smt F dual_order.strict_trans neqE non_empty not_less_Least)
+    then show \<open>False\<close> 
+      using D_in_F neg_not_sec_case by (smt F dual_order.strict_trans neqE non_empty not_less_Least)
   qed
 next
   fix C
   assume only_if: \<open>\<forall>D\<in>\<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N - Red_F_\<G> N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
   show \<open>C \<in> Red_F_\<G> N\<close> unfolding Red_F_\<G>_def using only_if by auto
 qed
+
+text \<open>lemma 9 in Uwe's notes\<close>
+lemma \<open>\<G>_set N - Red_F_G (\<G>_set N) \<subseteq> \<G>_set (N - Red_F_\<G> N)\<close>
+proof
+  fix D
+  assume
+    D_hyp: \<open>D \<in> \<G>_set N - Red_F_G (\<G>_set N)\<close>
+  have D_in: \<open>D \<in> \<G>_set N\<close> using D_hyp by blast
+  have  D_not_in: \<open>D \<notin> Red_F_G (\<G>_set N)\<close> using D_hyp by blast
+  have exist_C: \<open>\<exists>C. C \<in> N \<and> D \<in> \<G>_F C\<close> using D_in by auto
+  obtain C where C: \<open>C = (LEAST C. C \<in> N \<and> D \<in> \<G>_F C)\<close> by auto
+  (*same issue as in lemma 8*)
+  have C_in_N: \<open>C \<in> N\<close> using exist_C LeastI by (metis C)
+  have D_in_C: \<open>D \<in> \<G>_F C\<close> using exist_C LeastI by (metis C)
+  have C_not_in: \<open>C \<notin> Red_F_\<G> N\<close>
+  proof
+    assume C_in: \<open>C \<in> Red_F_\<G> N\<close>
+    have \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+      using C_in D_in_C unfolding Red_F_\<G>_def by auto
+    then show \<open>False\<close>
+      proof
+        assume \<open>D \<in> Red_F_G (\<G>_set N)\<close>
+        then show \<open>False\<close> using D_not_in by simp
+      next
+        assume \<open>\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F E\<close>
+        then show \<open>False\<close> using C using not_less_Least by blast    
+      qed
+  qed
+  show \<open>D \<in> \<G>_set (N - Red_F_\<G> N)\<close> using D_in_C C_not_in C_in_N by blast
+qed
+
+
+
+
 
 
 end
