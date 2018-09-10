@@ -137,7 +137,7 @@ proof
 qed
 
 text \<open>lemma 10 in Uwe's notes\<close>
-lemma \<open>N \<Turnstile>\<G> {Bot_F_F} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {Bot_F_F}\<close>
+lemma Red_F_Bot_F_F: \<open>N \<Turnstile>\<G> {Bot_F_F} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {Bot_F_F}\<close>
 proof -
   fix N
   assume \<open>N \<Turnstile>\<G> {Bot_F_F}\<close>
@@ -149,7 +149,25 @@ proof -
   then show \<open>N - Red_F_\<G> N \<Turnstile>\<G> {Bot_F_F}\<close> using Bot_F_map unfolding entails_\<G>_def by simp
 qed
 
+text \<open>lemma 11 in Uwe's notes 1/2\<close>
+lemma Red_F_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> N'\<close>
+  using Red_F_of_subset unfolding Red_F_\<G>_def by (smt Collect_mono \<G>_subset subset_iff)
 
+text \<open>lemma 11 in Uwe's notes 2/2\<close>
+lemma Red_I_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> Red_I_\<G> N \<subseteq> Red_I_\<G> N'\<close>
+  using Red_I_of_subset unfolding Red_I_\<G>_def by (smt Collect_mono \<G>_subset subset_iff)
+
+text \<open>lemma 12 in Uwe's notes 1/2\<close>
+lemma Red_F_of_Red_F_subset_F: \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> (N - N')\<close>
+proof
+  fix N N' C
+  assume 
+    N'_in_N: \<open>N' \<subseteq> Red_F_\<G> N\<close> and
+    C_in_red_F_N: \<open>C \<in> Red_F_\<G> N\<close>
+    have \<open>\<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+      using Red_F_\<G>_equiv_def C_in_red_F_N by blast
+    then show \<open>C \<in> Red_F_\<G> (N - N')\<close>
+    proof  
 
 
 end
