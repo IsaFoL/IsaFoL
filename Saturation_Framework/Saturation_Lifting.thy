@@ -1,5 +1,5 @@
 theory Saturation_Lifting
-  imports Saturation_Framework
+  imports Saturation_Framework "../lib/Explorer"
 begin
 
 text \<open>In Uwe's notes, a well-founded partial strict ordering is used.
@@ -70,16 +70,40 @@ text \<open>lemma 8 in Uwe's notes\<close>
 lemma Red_F_\<G>_equiv_def: 
   \<open>Red_F_\<G> N = {C. \<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)}\<close>
 proof (rule;clarsimp)
+explore
   fix C D
   assume 
     C_in: \<open>C \<in> Red_F_\<G> N\<close> and
     D_in: \<open>D \<in> \<G>_F C\<close> and
     not_sec_case: \<open>\<forall>E \<in> N - Red_F_\<G> N. E \<sqsubset> C \<longrightarrow> D \<notin> \<G>_F E\<close>
   have neg_not_sec_case: \<open>\<not> (\<exists>E\<in>N - Red_F_\<G> N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close> using not_sec_case by clarsimp 
-  have \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close> 
+  have unfol_C_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close> 
     using C_in D_in unfolding Red_F_\<G>_def by auto
-  then have \<open>D \<in> Red_F_G (\<G>_set N)\<close> using neg_not_sec_case
-    apply auto
+  show \<open>D \<in> Red_F_G (\<G>_set N)\<close> 
+  proof (rule ccontr)
+    assume contrad: \<open>D \<notin> Red_F_G (\<G>_set N)\<close>
+    have non_empty: \<open>\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F E\<close> using contrad unfol_C_D by auto
+    then obtain F where F: \<open>F = (LEAST E. E \<in> N \<and> E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close> by auto 
+      (* LEAST will certainly break if wellorder is replaced by a partial order, 
+      then it could be useful to look toward conditional total latices (maybe) to fix it*)
+    then have D_in_F: \<open>D \<in> \<G>_F F\<close> using non_empty LeastI by (metis (no_types, lifting))
+    have F_not_in: \<open>F \<notin> Red_F_\<G> N\<close>
+    proof
+      assume F_in: \<open>F \<in> Red_F_\<G> N\<close>
+      have unfol_F_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>G\<in>N. G \<sqsubset> F \<and> D \<in> \<G>_F G)\<close>
+        using F_in D_in_F unfolding Red_F_\<G>_def by auto
+    then have \<open>\<exists>G\<in>N. G \<sqsubset> F \<and> D \<in> \<G>_F G\<close> using contrad D_in unfolding Red_F_\<G>_def by auto
+    then show \<open>False\<close> using F by (smt dual_order.strict_trans neqE non_empty not_less_Least)
+    qed
+    have \<open>F \<in> N\<close> using F by (metis (no_types, lifting) LeastI_ex non_empty)
+    then have \<open>F \<in> N - Red_F_\<G> N\<close> using F_not_in by auto
+    then show \<open>False\<close> using D_in_F neg_not_sec_case by (smt F dual_order.strict_trans neqE non_empty not_less_Least)
+  qed
+next
+  fix C
+  assume only_if: \<open>\<forall>D\<in>\<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N - Red_F_\<G> N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+  show \<open>C \<in> Red_F_\<G> N\<close> unfolding Red_F_\<G>_def using only_if by auto
+qed
 
 
 end
