@@ -12,14 +12,75 @@ lemma isasat_input_ops_\<L>\<^sub>a\<^sub>l\<^sub>l_empty[simp]:
 
 section \<open>Code for the initialisation of the Data Structure\<close>
 
+
+definition (in -) atoms_hash_empty where
+ [simp]: \<open>atoms_hash_empty _ = {}\<close>
+
+sepref_register atoms_hash_empty
+
+context isasat_input_ops
+begin
+
+definition (in -) atoms_hash_int_empty where
+  \<open>atoms_hash_int_empty n = RETURN (replicate n False)\<close>
+
+lemma  (in isasat_input_ops)atoms_hash_int_empty_atoms_hash_empty:
+  \<open>(atoms_hash_int_empty, RETURN o atoms_hash_empty) \<in>
+   [\<lambda>n. (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < n)]\<^sub>f nat_rel \<rightarrow> \<langle>atoms_hash_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (use Max_less_iff in \<open>auto simp: atoms_hash_rel_def atoms_hash_int_empty_def atoms_hash_empty_def
+      in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def
+      dest: spec[of _ "Pos _"]\<close>)
+
+sepref_definition (in -) atoms_hash_empty_code
+  is \<open>atoms_hash_int_empty\<close>
+  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a phase_saver_conc\<close>
+  unfolding atoms_hash_int_empty_def array_fold_custom_replicate
+  by sepref
+
+lemmas  (in isasat_input_ops)atoms_hash_empty_hnr[sepref_fr_rules] =
+  atoms_hash_empty_code.refine[FCOMP atoms_hash_int_empty_atoms_hash_empty,
+     unfolded atoms_hash_assn_def[symmetric]]
+
+definition (in -) distinct_atms_empty where
+  \<open>distinct_atms_empty _ = {}\<close>
+
+definition (in -) distinct_atms_int_empty where
+  \<open>distinct_atms_int_empty n = RETURN ([], atoms_hash_empty n)\<close>
+
+lemma distinct_atms_int_empty_distinct_atms_empty:
+  \<open>(distinct_atms_int_empty, RETURN o distinct_atms_empty) \<in>
+     nat_rel \<rightarrow>\<^sub>f \<langle>distinct_atoms_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: distinct_atoms_rel_def distinct_atms_empty_def distinct_atms_int_empty_def)
+
+
+sepref_thm (in isasat_input_ops) distinct_atms_empty_code
+  is \<open>distinct_atms_int_empty\<close>
+  :: \<open>[\<lambda>n. (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < n)]\<^sub>a nat_assn\<^sup>k \<rightarrow> arl_assn uint32_nat_assn *a atoms_hash_assn\<close>
+  unfolding distinct_atms_int_empty_def array_fold_custom_replicate
+    arl.fold_custom_empty
+  by sepref
+
+concrete_definition (in -) distinct_atms_empty_code
+   uses isasat_input_ops.distinct_atms_empty_code.refine_raw
+   is \<open>(?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) distinct_atms_empty_code_def
+
+lemmas distinct_atms_empty_hnr[sepref_fr_rules] =
+   distinct_atms_empty_code.refine[of \<A>\<^sub>i\<^sub>n, FCOMP distinct_atms_int_empty_distinct_atms_empty,
+     unfolded distinct_atoms_assn_def[symmetric]]
+
+end
+
+
 context isasat_input_bounded
 begin
 
-term map_fun_rel
 type_synonym (in -) 'v twl_st_wl_init = \<open>'v twl_st_wl \<times> 'v clauses\<close>
 
-
-type_synonym (in -) vmtf_remove_int_option_fst_As = \<open>vmtf_option_fst_As \<times> nat list\<close>
+type_synonym (in -) vmtf_remove_int_option_fst_As = \<open>vmtf_option_fst_As \<times> nat set\<close>
 
 definition (in isasat_input_ops) vmtf_init
    :: \<open>(nat, nat) ann_lits \<Rightarrow> vmtf_remove_int_option_fst_As set\<close>
@@ -40,12 +101,12 @@ abbreviation (in -) vmtf_conc_option_fst_As where
 type_synonym (in -)vmtf_assn_option_fst_As =
   \<open>(uint32, nat) vmtf_node array \<times> nat \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
 
-type_synonym (in -)vmtf_remove_assn_option_fst_As = \<open>vmtf_assn_option_fst_As \<times> uint32 array_list\<close>
+type_synonym (in -)vmtf_remove_assn_option_fst_As = \<open>vmtf_assn_option_fst_As \<times> (uint32 array \<times> nat) \<times> bool array\<close>
 
-abbreviation (in -)vmtf_remove_conc_option_fst_As
+abbreviation (in isasat_input_ops) vmtf_remove_conc_option_fst_As
   :: \<open>vmtf_remove_int_option_fst_As \<Rightarrow> vmtf_remove_assn_option_fst_As \<Rightarrow> assn\<close>
 where
-  \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As *a arl_assn uint32_nat_assn\<close>
+  \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As *a distinct_atoms_assn\<close>
 
 text \<open>The initialisation relation is stricter in the sense that it already includes the relation
 of atom inclusion.
@@ -515,7 +576,7 @@ context
               (nat \<times> nat literal \<times> bool) list list \<times>
               (((nat, nat) vmtf_node list \<times>
                 nat \<times> nat option \<times> nat option \<times> nat option) \<times>
-               nat list) \<times>
+               nat set) \<times>
               bool list \<times>
               nat \<times>
               (nat \<Rightarrow> minimize_status) \<times>
@@ -608,7 +669,7 @@ context
       (nat \<times> nat literal \<times> bool) list list \<times>
       (((nat, nat) vmtf_node list \<times>
         nat \<times> nat option \<times> nat option \<times> nat option) \<times>
-       nat list) \<times>
+       nat set) \<times>
       bool list \<times>
       nat \<times>
       (nat \<Rightarrow> minimize_status) \<times>
@@ -621,7 +682,7 @@ context
                           (nat \<times> nat literal \<times> bool) list list \<times>
                           (((nat, nat) vmtf_node list \<times>
                             nat \<times> nat option \<times> nat option \<times> nat option) \<times>
-                           nat list) \<times>
+                           nat set) \<times>
                           bool list \<times>
                           nat \<times>
                           (nat \<Rightarrow> minimize_status) \<times>
@@ -634,7 +695,7 @@ context
                                    (((nat, nat) vmtf_node list \<times>
                                      nat \<times>
                                      nat option \<times> nat option \<times> nat option) \<times>
-                                    nat list) \<times>
+                                    nat set) \<times>
                                    bool list \<times>
                                    nat \<times>
                                    (nat \<Rightarrow> minimize_status) \<times>
@@ -646,7 +707,7 @@ context
        (nat \<times> nat literal \<times> bool) list list \<times>
        (((nat, nat) vmtf_node list \<times>
          nat \<times> nat option \<times> nat option \<times> nat option) \<times>
-        nat list) \<times>
+        nat set) \<times>
        bool list \<times>
        nat \<times>
        (nat \<Rightarrow> minimize_status) \<times>
@@ -655,7 +716,7 @@ context
     x1l :: \<open>nat\<close> and x2l :: \<open>(nat \<times> nat literal \<times> bool) list list \<times>
                        (((nat, nat) vmtf_node list \<times>
                          nat \<times> nat option \<times> nat option \<times> nat option) \<times>
-                        nat list) \<times>
+                        nat set) \<times>
                        bool list \<times>
                        nat \<times>
                        (nat \<Rightarrow> minimize_status) \<times>
@@ -663,14 +724,14 @@ context
                        nat list\<close> and
     x1m :: \<open>(nat \<times> nat literal \<times> bool) list list\<close> and x2m :: \<open>(((nat, nat) vmtf_node list \<times>
     nat \<times> nat option \<times> nat option \<times> nat option) \<times>
-   nat list) \<times>
+   nat set) \<times>
   bool list \<times>
   nat \<times>
   (nat \<Rightarrow> minimize_status) \<times>
   bool list \<times>
   nat list\<close> and x1n :: \<open>((nat, nat) vmtf_node list \<times>
                          nat \<times> nat option \<times> nat option \<times> nat option) \<times>
-                        nat list\<close> and x2n :: \<open>bool list \<times>
+                        nat set\<close> and x2n :: \<open>bool list \<times>
       nat \<times>
       (nat \<Rightarrow> minimize_status) \<times>
       bool list \<times>
@@ -2149,6 +2210,7 @@ definition conflict_is_None_heur_wl where
 definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> vmtf_remove_int_option_fst_As nres\<close> where
 \<open>initialise_VMTF N n = do {
    let A = replicate n (VMTF_Node 0 None None);
+   let to_remove = distinct_atms_empty n;
    ASSERT(length N \<le> uint32_max);
    (_, A, n, cnext) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, A, st, cnext). i < length_u N)
@@ -2161,33 +2223,41 @@ definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow>
         RETURN (i + one_uint32_nat, vmtf_cons A L cnext st, st+1, Some L)
       })
       (zero_uint32_nat, A, 0::nat, None);
-   RETURN ((A, n, cnext, (if N = [] then None else Some (nat_of_uint32 (N!0))), cnext), [])
+   RETURN ((A, n, cnext, (if N = [] then None else Some (nat_of_uint32 (N!0))), cnext), to_remove)
   }\<close>
 
-sepref_definition initialise_VMTF_code
+sepref_thm (in isasat_input_ops) initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>
-  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_remove_conc_option_fst_As\<close>
+  :: \<open>[\<lambda>(N, n). (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < n)]\<^sub>a (arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> vmtf_remove_conc_option_fst_As\<close>
   supply nat_of_uint32_int32_assn[sepref_fr_rules]
   unfolding initialise_VMTF_def vmtf_cons_def
-  apply (rewrite in \<open>((_, _, _, _), \<hole>)\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
   apply (rewrite in \<open>(_, _, _, Some \<hole>)\<close> annotate_assn[where A=\<open>uint32_nat_assn\<close>])
   apply (rewrite in \<open>WHILE\<^sub>T _ _ (_, _, _, \<hole>)\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
   apply (rewrite in \<open>do {ASSERT _; let _ = \<hole>; _}\<close> annotate_assn[where A=\<open>uint32_nat_assn\<close>])
-  apply (rewrite in \<open>((_, _, _, _), ASSN_ANNOT _ \<hole>)\<close> arl.fold_custom_empty)
   apply (rewrite in \<open>let _ = \<hole> in _ \<close> array_fold_custom_replicate op_list_replicate_def[symmetric])
   apply (rewrite in \<open>VMTF_Node 0 \<hole> _\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
   apply (rewrite in \<open>VMTF_Node 0 _ \<hole>\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
   supply [[goals_limit = 1]]
   by sepref
 
+
+concrete_definition (in -) initialise_VMTF_code
+  uses "isasat_input_ops.initialise_VMTF_code.refine_raw"
+  is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) initialise_VMTF_code_def 
+
 declare initialise_VMTF_code.refine[sepref_fr_rules]
+
+lemmas (in isasat_input_ops) initialise_VMTF_hnr[sepref_fr_rules] =
+   initialise_VMTF_code.refine[of \<A>\<^sub>i\<^sub>n]
 
 lemma initialise_VMTF:
   shows \<open>(uncurry initialise_VMTF, uncurry (\<lambda>N n. RES (isasat_input_ops.vmtf_init N []))) \<in>
       [\<lambda>(N,n). (\<forall>L\<in># N. L < n) \<and> (distinct_mset N) \<and> size N < uint32_max]\<^sub>f
       (\<langle>uint32_nat_rel\<rangle>list_rel_mset_rel) \<times>\<^sub>f nat_rel \<rightarrow>
       \<langle>(\<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel)
-        \<times>\<^sub>r \<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
+        \<times>\<^sub>r \<langle>Id\<rangle>set_rel\<rangle>nres_rel\<close>
     (is \<open>(?init, ?R) \<in> _\<close>)
 proof -
   have vmtf_ns_notin_empty: \<open>vmtf_ns_notin [] 0 (replicate n (VMTF_Node 0 None None))\<close> for n
@@ -2323,7 +2393,7 @@ proof -
       subgoal by (auto simp: rev_map[symmetric] isasat_input_ops.vmtf_def option_hd_rev
             map_option_option_last hd_map last_map)
       subgoal by (auto simp: rev_map[symmetric] isasat_input_ops.vmtf_def option_hd_rev
-            map_option_option_last hd_rev last_map)
+            map_option_option_last hd_rev last_map distinct_atms_empty_def)
       subgoal by (auto simp: rev_map[symmetric] isasat_input_ops.vmtf_def option_hd_rev
             map_option_option_last list_rel_mset_rel_def)
       subgoal by (auto simp: rev_map[symmetric] isasat_input_ops.vmtf_def option_hd_rev
@@ -2664,10 +2734,11 @@ sepref_definition init_trail_D_fast_code
 
 declare init_trail_D_fast_code.refine[sepref_fr_rules]
 
-definition init_state_wl_D' :: \<open>uint32 list \<times> uint32 \<Rightarrow>  (trail_pol \<times> _ \<times> _) nres\<close> where
+definition (in isasat_input_ops) init_state_wl_D' :: \<open>uint32 list \<times> uint32 \<Rightarrow>  (trail_pol \<times> _ \<times> _) nres\<close> where
   \<open>init_state_wl_D' = (\<lambda>(\<A>\<^sub>i\<^sub>n, n). do {
      let n = Suc (nat_of_uint32 n);
      let m = 2 * n;
+     ASSERT(\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < n);
      M \<leftarrow> init_trail_D \<A>\<^sub>i\<^sub>n n m;
      let N = [];
      let D = (True, zero_uint32_nat, replicate n NOTIN);
@@ -2680,16 +2751,16 @@ definition init_state_wl_D' :: \<open>uint32 list \<times> uint32 \<Rightarrow> 
      RETURN (M, N, D, zero_uint32_nat, WS, vm, \<phi>, zero_uint32_nat, cach, lbd, vdom)
   })\<close>
 
-sepref_definition init_state_wl_D'_code
-  is \<open>init_state_wl_D'\<close>
-  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint32_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn *a arena_assn *a
+sepref_thm (in isasat_input_ops) init_state_wl_D'_code
+  is \<open>PR_CONST init_state_wl_D'\<close>
+  :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn *a arena_assn *a
     conflict_option_rel_assn *a
     uint32_nat_assn *a
     (arrayO_assn (arl_assn watcher_assn)) *a
     vmtf_remove_conc_option_fst_As *a
     phase_saver_conc *a uint32_nat_assn *a
     cach_refinement_l_assn *a lbd_assn *a vdom_assn\<close>
-  unfolding init_state_wl_D'_def
+  unfolding init_state_wl_D'_def PR_CONST_def
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> arl.fold_custom_empty)
@@ -2698,17 +2769,25 @@ sepref_definition init_state_wl_D'_code
   supply [[goals_limit = 1]]
   by sepref
 
+concrete_definition (in -) init_state_wl_D'_code
+   uses isasat_input_ops.init_state_wl_D'_code.refine_raw
+   is \<open>(?f, _)\<in>_\<close>
 
-sepref_definition init_state_wl_D'_fast_code
-  is \<open>init_state_wl_D'\<close>
-  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint32_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn *a arena_assn *a
+prepare_code_thms (in -) init_state_wl_D'_code_def
+
+lemmas (in isasat_input_ops)init_state_wl_D'_hnr[sepref_fr_rules] =
+   init_state_wl_D'_code.refine[of \<A>\<^sub>i\<^sub>n] 
+
+sepref_thm (in isasat_input_ops) init_state_wl_D'_fast_code
+  is \<open>PR_CONST init_state_wl_D'\<close>
+  :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn *a arena_assn *a
     conflict_option_rel_assn *a
     uint32_nat_assn *a
     (arrayO_assn (arl_assn (watcher_fast_assn))) *a
     vmtf_remove_conc_option_fst_As *a
     phase_saver_conc *a uint32_nat_assn *a
     cach_refinement_l_assn *a lbd_assn *a vdom_assn\<close>
-  unfolding init_state_wl_D'_def init_trail_D_fast_def[symmetric]
+  unfolding init_state_wl_D'_def init_trail_D_fast_def[symmetric] PR_CONST_def
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> arl.fold_custom_empty)
@@ -2716,6 +2795,15 @@ sepref_definition init_state_wl_D'_fast_code
   apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn watcher_fast_assn))\<close>])
   supply [[goals_limit = 1]]
   by sepref
+
+concrete_definition (in -) init_state_wl_D'_fast_code
+   uses isasat_input_ops.init_state_wl_D'_fast_code.refine_raw
+   is \<open>(?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) init_state_wl_D'_fast_code_def
+
+lemmas (in isasat_input_ops)init_state_wl_D'_fast_hnr[sepref_fr_rules] =
+   init_state_wl_D'_fast_code.refine[of \<A>\<^sub>i\<^sub>n] 
 
 
 lemma init_trail_D_ref:
@@ -2807,7 +2895,7 @@ abbreviation (in -)lits_with_max_assn_clss where
   \<open>lits_with_max_assn_clss \<equiv> hr_comp lits_with_max_assn (\<langle>nat_rel\<rangle>mset_rel)\<close>
 
 lemma init_state_wl_D':
-  \<open>(init_state_wl_D', isasat_input_ops.init_state_wl_heur) \<in>
+  \<open>(isasat_input_ops.init_state_wl_D' \<A>\<^sub>i\<^sub>n, isasat_input_ops.init_state_wl_heur) \<in>
     [\<lambda>N. N = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n]\<^sub>f
       lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>mset_rel \<rightarrow>
       \<langle>isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n \<times>\<^sub>r Id \<times>\<^sub>r
@@ -2936,11 +3024,13 @@ proof -
   show ?thesis
     apply (intro frefI nres_relI)
     subgoal for x y
-    unfolding init_state_wl_heur_alt_def init_state_wl_D'_def
+    unfolding init_state_wl_heur_alt_def isasat_input_ops.init_state_wl_D'_def
     apply (rewrite in \<open>let _ = Suc _in _\<close> Let_def)
     apply (rewrite in \<open>let _ = 2 * _in _\<close> Let_def)
     apply (cases x; simp only: prod.case)
     apply (refine_rcg init[of y x] initialise_VMTF cach)
+    subgoal by (auto intro!: K[of _ \<A>\<^sub>i\<^sub>n] simp: isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
+     lits_with_max_rel_def isasat_input_ops.atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
     subgoal by auto
     subgoal by auto
     subgoal by (rule conflict)
@@ -2978,9 +3068,9 @@ lemma init_state_wl_heur_hnr:
 proof -
   have H: \<open>?c \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and>
         distinct_mset
-         \<A>\<^sub>i\<^sub>n]\<^sub>a hrp_comp ((arl_assn uint32_assn)\<^sup>d *\<^sub>a uint32_assn\<^sup>d)
+         \<A>\<^sub>i\<^sub>n]\<^sub>a (hr_comp (arl_assn uint32_assn *a uint32_assn)
                     (lits_with_max_rel O
-                     \<langle>uint32_nat_rel\<rangle>mset_rel) \<rightarrow> hr_comp
+                     \<langle>uint32_nat_rel\<rangle>mset_rel))\<^sup>d \<rightarrow> hr_comp
          (out_learned_assn *a
           array_assn tri_bool_assn *a
           array_assn uint32_nat_assn *a
@@ -2990,13 +3080,15 @@ proof -
         conflict_option_rel_assn *a
         uint32_nat_assn *a
         hr_comp watchlist_assn (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel) *a
-        vmtf_remove_conc_option_fst_As *a
+        isasat_input_ops.vmtf_remove_conc_option_fst_As \<A>\<^sub>i\<^sub>n *a
         hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
         uint32_nat_assn *a
         hr_comp cach_refinement_l_assn (isasat_input_ops.cach_refinement \<A>\<^sub>i\<^sub>n) *a
         lbd_assn *a vdom_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using init_state_wl_D'_code.refine[FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n]
+    using isasat_input_ops.init_state_wl_D'_hnr[unfolded PR_CONST_def, 
+      FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n,
+      unfolded PR_CONST_def]
     unfolding isasat_input_ops.cach_refinement_assn_def
     .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x

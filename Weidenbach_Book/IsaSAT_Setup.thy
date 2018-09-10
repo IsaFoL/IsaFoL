@@ -177,7 +177,7 @@ lemma restart_info_restart_done_hnr[sepref_fr_rules]:
 paragraph \<open>VMTF\<close>
 
 type_synonym vmtf_assn = \<open>(uint32, nat) vmtf_node array \<times> nat \<times> uint32 \<times> uint32 \<times> uint32 option\<close>
-type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> uint32 array_list\<close>
+type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (uint32 array_list \<times> bool array)\<close>
 
 type_synonym phase_saver_assn = \<open>bool array\<close>
 
@@ -208,8 +208,10 @@ abbreviation vmtf_conc where
   \<open>vmtf_conc \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a uint32_nat_assn *a uint32_nat_assn
     *a option_assn uint32_nat_assn)\<close>
 
-abbreviation vmtf_remove_conc :: \<open>vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close> where
-  \<open>vmtf_remove_conc \<equiv> vmtf_conc *a arl_assn uint32_nat_assn\<close>
+abbreviation (in isasat_input_ops) vmtf_remove_conc
+  :: \<open>vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
+where
+  \<open>vmtf_remove_conc \<equiv> vmtf_conc *a distinct_atoms_assn\<close>
 
 
 paragraph \<open>Base state\<close>

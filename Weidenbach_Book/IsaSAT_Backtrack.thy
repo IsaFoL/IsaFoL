@@ -21,6 +21,7 @@ definition (in isasat_input_ops) vmtf_mark_to_rescore_clause where
       (\<lambda>_. True)
       (\<lambda>i vm. do {
         ASSERT(arena_lit_pre arena i);
+        ASSERT(atm_of (arena_lit arena i) \<in># \<A>\<^sub>i\<^sub>n);
         RETURN (vmtf_mark_to_rescore (atm_of (arena_lit arena i)) vm)
       })
       vm
@@ -30,7 +31,7 @@ definition (in isasat_input_ops) vmtf_mark_to_rescore_clause where
 sepref_register vmtf_mark_to_rescore
 sepref_thm vmtf_mark_to_rescore_code
   is \<open>uncurry (RETURN oo vmtf_mark_to_rescore)\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+  :: \<open>[\<lambda>(a, vm). a \<in># \<A>\<^sub>i\<^sub>n]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]]
   unfolding vmtf_mark_to_rescore_def
@@ -46,11 +47,12 @@ prepare_code_thms (in -) vmtf_mark_to_rescore_code_def
 lemmas vmtf_mark_to_rescore_hnr[sepref_fr_rules] =
    vmtf_mark_to_rescore_code.refine[OF isasat_input_bounded_nempty_axioms]
 
+sepref_register vmtf_mark_to_rescore_clause
 sepref_thm vmtf_mark_to_rescore_clause_code
-  is \<open>uncurry2 vmtf_mark_to_rescore_clause\<close>
+  is \<open>uncurry2 (PR_CONST vmtf_mark_to_rescore_clause)\<close>
   :: \<open>arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
   supply [[goals_limit=1]]
-  unfolding vmtf_mark_to_rescore_clause_def
+  unfolding vmtf_mark_to_rescore_clause_def PR_CONST_def
   by sepref
 
 concrete_definition (in -) vmtf_mark_to_rescore_clause_code
@@ -93,6 +95,8 @@ lemma vmtf_mark_to_rescore_clause_spec:
     apply (rule exI[of _ vdom])
     apply (fastforce simp: arena_lifting dest: in_list_in_setD)
     done
+  subgoal for x it \<sigma>
+    by (fastforce simp add: atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
   subgoal for x it _ \<sigma>
     by (cases \<sigma>)
       (auto intro!: vmtf_mark_to_rescore simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
@@ -122,6 +126,7 @@ sepref_thm vmtf_mark_to_rescore_also_reasons_code
   is \<open>uncurry3 (PR_CONST vmtf_mark_to_rescore_also_reasons)\<close>
   :: \<open>trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n[simp]
   supply [[goals_limit=1]]
   unfolding vmtf_mark_to_rescore_also_reasons_def PR_CONST_def
   by sepref
@@ -906,7 +911,7 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       ASSERT(i \<noteq> DECISION_REASON);
       let M = Propagated (- L) i # M;
       ASSERT(vm \<in> vmtf M);
-      vm \<leftarrow> flush M vm;
+      vm \<leftarrow> vmtf_flush M vm;
       RETURN (M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
          cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
           incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
@@ -928,7 +933,7 @@ where
   \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
       fema, sema, res_info, vdom). do {
       ASSERT(undefined_lit M L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> vm \<in> vmtf M);
-      vm \<leftarrow> flush M vm;
+      vm \<leftarrow> vmtf_flush M vm;
       glue \<leftarrow> get_LBD lbd;
       lbd \<leftarrow> lbd_empty lbd;
       let j = length M;
@@ -1817,7 +1822,7 @@ proof -
           ASSERT(i \<noteq> DECISION_REASON);
           let M = Propagated (- L) i # M;
           ASSERT(vm \<in> vmtf M);
-          vm \<leftarrow> flush M vm;
+          vm \<leftarrow> vmtf_flush M vm;
           RETURN (M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
             cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
               incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i], 
@@ -1838,7 +1843,7 @@ proof -
                       (\<forall>L\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE)).
                           i \<notin> fst ` set (W L)));
             _ \<leftarrow> RETURN (); \<^cancel>\<open>lbd empty\<close>
-            _ \<leftarrow> RETURN (); \<^cancel>\<open>flush\<close>
+            _ \<leftarrow> RETURN (); \<^cancel>\<open>vmtf_flush\<close>
             RETURN
               (Propagated (- lit_of (hd (get_trail_wl S'))) i # M1,
                 N, None, NE, UE, unmark (hd (get_trail_wl S')),
@@ -1856,8 +1861,8 @@ proof -
     have [refine0]: \<open>SPEC (\<lambda>(vm', \<phi>'). vm' \<in> vmtf M1 \<and> phase_saving \<phi>')
        \<le> \<Down>{((vm', \<phi>'), ()). vm' \<in> vmtf M1 \<and> phase_saving \<phi>'} (RETURN ())\<close>
       by (auto intro!: RES_refine simp: RETURN_def)
-    have [refine0]: \<open>flush M1 x1 \<le> \<Down> {(vm', _). vm' \<in> vmtf M1} (RETURN ())\<close> for x1
-      unfolding flush_def by (auto intro!: RES_refine simp: RETURN_def)
+    have [refine0]: \<open>vmtf_flush M1 x1 \<le> \<Down> {(vm', _). vm' \<in> vmtf M1} (RETURN ())\<close> for x1
+      unfolding vmtf_flush_def by (auto intro!: RES_refine simp: RETURN_def)
     have [refine0]: \<open>get_LBD lbd \<le> \<Down> {(_, _). True}(RETURN ())\<close>
       unfolding get_LBD_def by (auto intro!: RES_refine simp: RETURN_def)
     have [refine0]: \<open>RETURN C
@@ -1907,8 +1912,8 @@ proof -
       \<open>lbd_empty lbd \<le> SPEC (\<lambda>c. (c, ()) \<in> {(c, _). c = replicate (length lbd) False})\<close>
       by (auto simp: lbd_empty_def)
     have [refine0]:
-      \<open>flush M vm \<le> SPEC (\<lambda>c. (c, ()) \<in>  {(vm', _). vm' \<in> vmtf M})\<close> for vm M
-      by (auto simp: flush_def)
+      \<open>vmtf_flush M vm \<le> SPEC (\<lambda>c. (c, ()) \<in>  {(vm', _). vm' \<in> vmtf M})\<close> for vm M
+      by (auto simp: vmtf_flush_def)
     have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close>
       using incl list_confl_S' literals_are_in_\<L>\<^sub>i\<^sub>n_mono by blast
     have le_C_ge: \<open>length C \<le> uint32_max + 2\<close>
@@ -1966,7 +1971,7 @@ proof -
         using D' C_1_neq_hd vmtf avdom
         apply (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
           Let_def T' U' U rescore_clause_def S' map_fun_rel_def
-          list_of_mset2_def flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
+          list_of_mset2_def vmtf_flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
           get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2
           RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def
           intro!: ASSERT_refine_left ASSERT_leI RES_refine exI[of _ C] valid_arena_update_lbd
@@ -2070,7 +2075,7 @@ proof -
       unfolding U U'
       by (auto simp: propagate_unit_bt_wl_D_int_def
           propagate_unit_bt_wl_D_def U U' lit_of_hd_trail_st_heur_def
-          single_of_mset_def flush_def twl_st_heur_def lbd_empty_def get_LBD_def
+          single_of_mset_def vmtf_flush_def twl_st_heur_def lbd_empty_def get_LBD_def
           RES_RES2_RETURN_RES RES_RETURN_RES S' uminus_\<A>\<^sub>i\<^sub>n_iff RES_RES_RETURN_RES
           DECISION_REASON_def
           intro!: ASSERT_refine_left RES_refine exI[of _ \<open>-lit_of (hd M)\<close>]
@@ -2197,7 +2202,7 @@ sepref_thm propagate_bt_wl_D_code
   is \<open>uncurry2 (PR_CONST propagate_bt_wl_D_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
   supply [[goals_limit = 1]] uminus_\<A>\<^sub>i\<^sub>n_iff[simp] image_image[simp] append_ll_def[simp]
-  rescore_clause_def[simp] flush_def[simp]
+  rescore_clause_def[simp] vmtf_flush_def[simp]
   unfolding propagate_bt_wl_D_heur_def isasat_assn_def cons_trail_Propagated_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric] nat_of_uint32_conv_def
@@ -2239,7 +2244,7 @@ lemmas propagate_bt_wl_D_heur_fast_hnr[sepref_fr_rules] =
 sepref_thm propagate_unit_bt_wl_D_code
   is \<open>uncurry (PR_CONST propagate_unit_bt_wl_D_int)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
-  supply [[goals_limit = 1]] flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
+  supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
   unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_assn_def
   PR_CONST_def length_u_def[symmetric]
   by sepref

@@ -51,7 +51,7 @@ lemma get_prev_ref[sepref_fr_rules]: \<open>(return o get_prev, RETURN o get_pre
 definition update_next_search where
   \<open>update_next_search L = (\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). ((ns, m, fst_As, lst_As, L), to_remove))\<close>
 
-lemma update_next_search_ref[sepref_fr_rules]:
+lemma (in isasat_input_ops) update_next_search_ref[sepref_fr_rules]:
   \<open>(uncurry (return oo update_next_search), uncurry (RETURN oo update_next_search)) \<in>
       (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
   unfolding option_assn_pure_conv
@@ -216,19 +216,35 @@ lemma (in -) insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
   using insert_sort_nth_code.refine[FCOMP insert_sort_nth_reorder]
   by auto
 
-sepref_thm vmtf_flush_code
-   is \<open>uncurry (PR_CONST vmtf_flush)\<close>
-   :: \<open>[\<lambda>(M, a). a \<in> vmtf M]\<^sub>a trail_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
-  supply [[goals_limit = 1]]
-  supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest]
-  unfolding vmtf_flush_def PR_CONST_def
-  apply (rewrite
-        at \<open>[]\<close> in \<open>\<lambda>(_, to_remove). do {to_remove' \<leftarrow> _; (vm, _) \<leftarrow> _; RETURN (_, \<hole>)}\<close>
-        to \<open>emptied_list to_remove'\<close>
-          emptied_list_def[symmetric]
-     )
+definition (in -) atoms_hash_del where
+\<open>atoms_hash_del i xs =  do {ASSERT(i < length xs); RETURN (xs[i := False])}
+\<close>
+
+lemma atoms_hash_del_op_set_delete:
+  \<open>(uncurry atoms_hash_del,
+    uncurry (RETURN oo op_set_delete)) \<in>
+     [\<lambda>(i, xs). i \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f
+     nat_rel \<times>\<^sub>r atoms_hash_rel \<rightarrow> \<langle>atoms_hash_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: atoms_hash_del_def atoms_hash_rel_def)
+
+sepref_definition (in -) atoms_hash_del_code
+  is \<open>uncurry atoms_hash_del\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a (array_assn bool_assn)\<^sup>d \<rightarrow>\<^sub>a array_assn bool_assn\<close>
+  unfolding atoms_hash_del_def
   by sepref
 
+lemmas atoms_hash_del_hnr[sepref_fr_rules] =
+   atoms_hash_del_code.refine[FCOMP atoms_hash_del_op_set_delete, unfolded atoms_hash_assn_def[symmetric]]
+
+sepref_thm vmtf_flush_code
+   is \<open>uncurry (PR_CONST vmtf_flush_int)\<close>
+   :: \<open>trail_assn\<^sup>k *\<^sub>a (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
+        (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<close>
+  supply [[goals_limit = 1]]
+  supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest]
+  unfolding vmtf_flush_def PR_CONST_def vmtf_flush_int_def
+  by sepref
 
 concrete_definition (in -) vmtf_flush_code
    uses isasat_input_bounded_nempty.vmtf_flush_code.refine_raw
@@ -237,12 +253,94 @@ concrete_definition (in -) vmtf_flush_code
 prepare_code_thms (in -) vmtf_flush_code_def
 
 lemmas trail_dump_code_refine[sepref_fr_rules] =
-   vmtf_flush_code.refine[OF isasat_input_bounded_nempty_axioms]
+   vmtf_flush_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def,
+     FCOMP vmtf_change_to_remove_order', unfolded distinct_atoms_assn_def[symmetric]]
 
 definition (in isasat_input_ops) vmtf_mark_to_rescore_and_unset_pre where
-  \<open>vmtf_mark_to_rescore_and_unset_pre = (\<lambda>(L, ((ns, m, fst_As, lst_As, next_search), _)).
-      L < length ns \<and> (next_search \<noteq> None \<longrightarrow> the next_search < length ns))\<close>
+  \<open>vmtf_mark_to_rescore_and_unset_pre = (\<lambda>(L, ((ns, m, fst_As, lst_As, next_search), tor)).
+      L < length ns \<and> L \<in># \<A>\<^sub>i\<^sub>n \<and> (next_search \<noteq> None \<longrightarrow> the next_search < length ns))\<close>
 
+definition (in -) atoms_hash_insert where
+\<open>atoms_hash_insert i xs =  do {ASSERT(i < length xs); RETURN (xs[i := True])}
+\<close>
+
+lemma atoms_hash_del_op_set_insert:
+  \<open>(uncurry atoms_hash_insert,
+    uncurry (RETURN oo op_set_insert)) \<in>
+     [\<lambda>(i, xs). i \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f
+     nat_rel \<times>\<^sub>r atoms_hash_rel \<rightarrow> \<langle>atoms_hash_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: atoms_hash_insert_def atoms_hash_rel_def)
+
+sepref_definition (in -) atoms_hash_insert_code
+  is \<open>uncurry atoms_hash_insert\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a (array_assn bool_assn)\<^sup>d \<rightarrow>\<^sub>a array_assn bool_assn\<close>
+  unfolding atoms_hash_insert_def
+  by sepref
+
+lemmas atoms_hash_insert_hnr[sepref_fr_rules] =
+   atoms_hash_insert_code.refine[FCOMP atoms_hash_del_op_set_insert,
+      unfolded atoms_hash_assn_def[symmetric]]
+
+
+definition (in -) atoms_hash_set_member where
+\<open>atoms_hash_set_member i xs =  do {ASSERT(i < length xs); RETURN (xs ! i)}
+\<close>
+
+lemma atoms_hash_set_member:
+  \<open>(uncurry atoms_hash_set_member,
+    uncurry (RETURN oo op_set_member)) \<in>
+     [\<lambda>(i, xs). i \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f
+     nat_rel \<times>\<^sub>r atoms_hash_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: atoms_hash_set_member_def atoms_hash_rel_def)
+
+sepref_definition (in -) atoms_hash_set_member_code
+  is \<open>uncurry atoms_hash_set_member\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a (array_assn bool_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding atoms_hash_set_member_def
+  by sepref
+
+lemmas atoms_hash_set_member_hnr[sepref_fr_rules] =
+   atoms_hash_set_member_code.refine[FCOMP atoms_hash_set_member,
+      unfolded atoms_hash_assn_def[symmetric]]
+
+
+definition (in -) distinct_atoms_insert where
+\<open>distinct_atoms_insert i = (\<lambda>(D, C). do {
+    if i \<in> C
+    then RETURN (D, C)
+    else RETURN( D @ [i], insert i C)
+  })\<close>
+
+
+lemma distinct_atoms_insert:
+  \<open>(uncurry distinct_atoms_insert,
+    uncurry (RETURN oo op_set_insert)) \<in>
+     [\<lambda>(i, xs). i \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f
+     nat_rel \<times>\<^sub>r distinct_atoms_rel \<rightarrow> \<langle>distinct_atoms_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: distinct_atoms_insert_def distinct_atoms_rel_def)
+
+sepref_thm distinct_atoms_insert_code
+  is \<open>uncurry distinct_atoms_insert\<close>
+  :: \<open>[\<lambda>(i, _). i \<in># \<A>\<^sub>i\<^sub>n]\<^sub>a
+      uint32_nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn *a atoms_hash_assn)\<^sup>d \<rightarrow> (arl_assn uint32_nat_assn *a atoms_hash_assn)\<close>
+  unfolding distinct_atoms_insert_def
+  by sepref
+
+concrete_definition (in -) distinct_atoms_insert_code
+  uses isasat_input_bounded_nempty.distinct_atoms_insert_code.refine_raw
+  is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) distinct_atoms_insert_code_def
+
+lemmas distinct_atoms_insert_hnr[sepref_fr_rules] =
+   distinct_atoms_insert_code.refine[OF isasat_input_bounded_nempty_axioms,
+     FCOMP distinct_atoms_insert,
+     unfolded distinct_atoms_assn_def[symmetric]]
+
+(* distinct_atoms_assn *)
 sepref_thm vmtf_mark_to_rescore_and_unset_code
   is \<open>uncurry (RETURN oo vmtf_mark_to_rescore_and_unset)\<close>
   :: \<open>[vmtf_mark_to_rescore_and_unset_pre]\<^sub>a
@@ -510,13 +608,6 @@ definition (in isasat_input_ops) rescore_clause
 where
   \<open>rescore_clause C M vm \<phi> = SPEC (\<lambda>(vm', \<phi>' :: bool list). vm' \<in> vmtf M \<and> phase_saving \<phi>')\<close>
 
-
-definition (in isasat_input_ops) flush
-  :: \<open>(nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int nres\<close>
-where
-  \<open>flush M _ = SPEC (\<lambda>vm'. vm' \<in> vmtf M)\<close>
-
-
 (* TODO ded-uplicate definitions *)
 definition (in isasat_input_ops) find_decomp_w_ns_pre where
   \<open>find_decomp_w_ns_pre = (\<lambda>((M, highest), vm).
@@ -639,6 +730,7 @@ where
            (\<lambda>(i, vm, \<phi>). i < length C)
            (\<lambda>(i, vm, \<phi>). do {
                ASSERT(i < length C);
+               ASSERT(atm_of (C!i) \<in># \<A>\<^sub>i\<^sub>n);
                let vm' = vmtf_mark_to_rescore (atm_of (C!i)) vm;
                let \<phi>' = save_phase_inv (C!i) \<phi>;
                RETURN(i+1, vm', \<phi>')
@@ -656,11 +748,11 @@ where
     }\<close>
 
 sepref_thm vmtf_rescore_code
-  is \<open>uncurry3 vmtf_rescore\<close>
+  is \<open>uncurry3 (PR_CONST vmtf_rescore)\<close>
   :: \<open>(array_assn unat_lit_assn)\<^sup>k *\<^sub>a trail_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>\<^sub>a
        vmtf_remove_conc *a phase_saver_conc\<close>
   unfolding vmtf_rescore_def vmtf_mark_to_rescore_and_unset_def save_phase_inv_def vmtf_mark_to_rescore_def vmtf_unset_def
-  vmtf_rescore_body_def
+  vmtf_rescore_body_def PR_CONST_def
   supply [[goals_limit = 1]] fold_is_None[simp]
   by sepref
 
@@ -675,11 +767,11 @@ lemmas vmtf_rescore_code_refine[sepref_fr_rules] =
 
 
 sepref_thm vmtf_rescore_fast_code
-  is \<open>uncurry3 vmtf_rescore\<close>
+  is \<open>uncurry3 (PR_CONST vmtf_rescore)\<close>
   :: \<open>(array_assn unat_lit_assn)\<^sup>k *\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>\<^sub>a
        vmtf_remove_conc *a phase_saver_conc\<close>
   unfolding vmtf_rescore_def vmtf_mark_to_rescore_and_unset_def save_phase_inv_def vmtf_mark_to_rescore_def vmtf_unset_def
-  vmtf_rescore_body_def
+  vmtf_rescore_body_def PR_CONST_def
   supply [[goals_limit = 1]] fold_is_None[simp]
   by sepref
 
@@ -710,6 +802,7 @@ proof -
     subgoal using C M by auto
     subgoal using M by auto
     subgoal by auto
+    subgoal using C by (auto simp: atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
     subgoal unfolding save_phase_inv_def by auto
     subgoal using C unfolding phase_saving_def save_phase_inv_def by auto
     subgoal unfolding save_phase_inv_def phase_saving_def by auto
@@ -746,30 +839,9 @@ lemma
          phase_saving d]\<^sub>a
        clause_ll_assn\<^sup>k *\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>
         vmtf_remove_conc *a phase_saver_conc\<close>
-  using vmtf_rescore_code_refine[FCOMP vmtf_rescore_score_clause]
-  using vmtf_rescore_fast_code_refine[FCOMP vmtf_rescore_score_clause]
+  using vmtf_rescore_code_refine[unfolded PR_CONST_def, FCOMP vmtf_rescore_score_clause]
+  using vmtf_rescore_fast_code_refine[unfolded PR_CONST_def, FCOMP vmtf_rescore_score_clause]
   by auto
-
-lemma trail_bump_rescore:
-  \<open>(uncurry vmtf_flush, uncurry flush) \<in> [\<lambda>(M, vm). vm \<in> vmtf M]\<^sub>f Id \<times>\<^sub>r Id  \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  unfolding flush_def
-  apply (intro nres_relI frefI)
-  apply clarify
-  subgoal for a aa ab ac b ba ad ae af ag bb bc
-    using vmtf_change_to_remove_order
-    by auto
-  done
-
-lemma
-  trail_dump_code_rescore[sepref_fr_rules]:
-   \<open>(uncurry vmtf_flush_code, uncurry (PR_CONST flush)) \<in> [\<lambda>(M, vm). vm \<in> vmtf M]\<^sub>a
-        trail_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
-(*  and
-  trail_dump_fast_code_rescore[sepref_fr_rules]:
-   \<open>(uncurry vmtf_flush, uncurry (PR_CONST flush)) \<in> [\<lambda>(M, vm). vm \<in> vmtf M]\<^sub>a
-        trail_fast_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close> *)
-  subgoal using trail_dump_code_refine[unfolded PR_CONST_def, FCOMP trail_bump_rescore] by simp
-  done
 
 lemma
   assumes
@@ -1082,7 +1154,7 @@ proof -
     using pre ..
 qed
 
-sepref_register rescore_clause flush
+sepref_register rescore_clause vmtf_flush
 
 end
 
