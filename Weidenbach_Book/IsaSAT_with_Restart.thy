@@ -17,7 +17,7 @@ lemma cdcl_twl_stgy_restart_prog_spec: \<open>twl_struct_invs S \<Longrightarrow
   twl_stgy_invs S \<Longrightarrow>
   clauses_to_update S = {#} \<Longrightarrow>
   get_conflict S = None \<Longrightarrow>
-  cdcl_twl_stgy_restart_prog S \<le>  conclusive_TWL_run S\<close>
+  cdcl_twl_stgy_restart_prog S \<le> conclusive_TWL_run S\<close>
   apply (rule order_trans)
   apply (rule cdcl_twl_stgy_prog_spec; assumption?)
   unfolding conclusive_TWL_run_def

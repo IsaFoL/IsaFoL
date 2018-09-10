@@ -1,5 +1,5 @@
 theory IsaSAT_Conflict_Analysis
-  imports IsaSAT_Setup
+  imports IsaSAT_Setup IsaSAT_VMTF
 begin
 
 
@@ -265,88 +265,6 @@ lemma tl_state_wl_heur_tl_state_wl:
 definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
-definition (in isasat_input_ops) vmtf_mark_to_rescore_and_unset_reason where
-\<open>vmtf_mark_to_rescore_and_unset_reason arena C vm = do {
-    ASSERT(arena_is_valid_clause_idx arena C);
-    nfoldli
-      ([C + 1..<C + nat_of_uint64_conv (arena_length arena C)])
-      (\<lambda>_. True)
-      (\<lambda>i vm. do {
-        ASSERT(arena_lit_pre arena i);
-        RETURN (vmtf_mark_to_rescore (atm_of (arena_lit arena i)) vm)
-      })
-      vm
-  }\<close>
-
-(* TODO Move +  use in vmtf_mark_to_rescore_and_unset *)
-sepref_register vmtf_mark_to_rescore
-sepref_thm vmtf_mark_to_rescore_code
-  is \<open>uncurry (RETURN oo vmtf_mark_to_rescore)\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
-  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
-  supply [[goals_limit=1]]
-  unfolding vmtf_mark_to_rescore_def
-   vmtf_unset_def save_phase_def
-  by sepref
-
-concrete_definition (in -) vmtf_mark_to_rescore_code
-  uses isasat_input_bounded_nempty.vmtf_mark_to_rescore_code.refine_raw
-  is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) vmtf_mark_to_rescore_code_def
-
-lemmas vmtf_mark_to_rescore_hnr[sepref_fr_rules] =
-   vmtf_mark_to_rescore_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-sepref_thm vmtf_mark_to_rescore_and_unset_reason_code
-  is \<open>uncurry2 vmtf_mark_to_rescore_and_unset_reason\<close>
-  :: \<open>arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
-  supply [[goals_limit=1]]
-  unfolding vmtf_mark_to_rescore_and_unset_reason_def
-  by sepref
-
-concrete_definition (in -) vmtf_mark_to_rescore_and_unset_reason_code
-  uses isasat_input_bounded_nempty.vmtf_mark_to_rescore_and_unset_reason_code.refine_raw
-  is \<open>(uncurry2 ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) vmtf_mark_to_rescore_and_unset_reason_code_def
-
-lemmas vmtf_mark_to_rescore_and_unset_reason_hnr[sepref_fr_rules] =
-   vmtf_mark_to_rescore_and_unset_reason_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-
-text \<open>This lemmma is only useful if \<^term>\<open>set xs\<close> can be simplified (which also means that this 
-  simp-rule should not be used...)\<close>
-lemma (in -) in_list_in_setD: \<open>xs = it @ x # \<sigma> \<Longrightarrow> x \<in> set xs\<close>
-  by auto
-
-lemma vmtf_mark_to_rescore_and_unset_reason_spec:
-  \<open>vm \<in> vmtf M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
-   (\<forall>C \<in> set [C + 1..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<Longrightarrow>
-    vmtf_mark_to_rescore_and_unset_reason arena C vm \<le> SPEC (\<lambda>vm. vm \<in>vmtf M)\<close>
-  unfolding vmtf_mark_to_rescore_and_unset_reason_def
-  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> vmtf M\<close>])
-  subgoal
-    unfolding arena_lit_pre_def arena_is_valid_clause_idx_def
-    apply (rule exI[of _ N])
-    apply (rule exI[of _ vdom])
-    apply (fastforce simp: arena_lifting)
-    done
-  subgoal for x it \<sigma>
-    unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
-    apply (rule exI[of _ C])
-    apply (intro conjI)
-    apply (solves \<open>auto dest: in_list_in_setD\<close>)
-    apply (rule exI[of _ N])
-    apply (rule exI[of _ vdom])
-    apply (fastforce simp: arena_lifting dest: in_list_in_setD)
-    done
-  subgoal for x it _ \<sigma>
-    by (cases \<sigma>)
-      (auto intro!: vmtf_mark_to_rescore simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-       dest: in_list_in_setD)
-  done
-
 definition (in isasat_input_ops) update_confl_tl_wl_heur
   :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where
@@ -357,10 +275,9 @@ where
       ((b, (n, xs)), clvls, lbd, outl) \<leftarrow> isa_resolve_merge_conflict M N C (b, (n, xs)) clvls lbd outl;
       ASSERT(curry lookup_conflict_remove1_pre L (n, xs) \<and> clvls \<ge> 1);
       let (n, xs) = lookup_conflict_remove1 L (n, xs);
-      vmtf \<leftarrow> vmtf_mark_to_rescore_and_unset_reason N C vmtf;
-      ASSERT(vmtf_mark_to_rescore_and_unset_pre (L', vmtf));
-      RETURN (False, (tl M, N, (b, (n, xs)), Q, W, vmtf_mark_to_rescore_and_unset L' vmtf,
-          save_phase L \<phi>, fast_minus clvls one_uint32_nat, cach, lbd, outl, stats))
+      ASSERT(vmtf_unset_pre (L', vmtf));
+      RETURN (False, (tl M, N, (b, (n, xs)), Q, W, vmtf_unset L' vmtf,
+          \<phi>, fast_minus clvls one_uint32_nat, cach, lbd, outl, stats))
    })\<close>
 
 lemma card_max_lvl_remove1_mset_hd:
@@ -413,10 +330,6 @@ lemma (in -)out_learned_tl_Some_notin:
   by (cases M) (auto simp: out_learned_def get_level_cons_if atm_of_eq_atm_of
       intro!: filter_mset_cong2)
 
-lemma (in isasat_input_ops) phase_saving_save_phase[simp]:
-  \<open>phase_saving (save_phase L \<phi>) \<longleftrightarrow> phase_saving \<phi>\<close>
-  by (auto simp: phase_saving_def save_phase_def)
-
 lemma update_confl_tl_wl_heur_update_confl_tl_wl:
   \<open>(uncurry2 (update_confl_tl_wl_heur), uncurry2 (RETURN ooo update_confl_tl_wl)) \<in>
   [update_confl_tl_wl_pre]\<^sub>f
@@ -432,13 +345,10 @@ proof -
                           _ \<leftarrow> ASSERT (curry lookup_conflict_remove1_pre b (n, xs) \<and>
                              1 \<le> clvls);
                           let (n, xs) = lookup_conflict_remove1 b (n, xs);
-                          ivmtf \<leftarrow> vmtf_mark_to_rescore_and_unset_reason c a ivmtf;
-                          ASSERT(vmtf_mark_to_rescore_and_unset_pre (atm_of b, ivmtf));
+                          ASSERT(vmtf_unset_pre (atm_of b, ivmtf));
                           RETURN
-                            (False, tl ba, c, (bb, n, xs), e, f,
-                            vmtf_mark_to_rescore_and_unset (atm_of b)
-                              ivmtf,
-                            save_phase b h, fast_minus clvls one_uint32_nat, j,
+                            (False, tl ba, c, (bb, n, xs), e, f, vmtf_unset (atm_of b) ivmtf,
+                            h, fast_minus clvls one_uint32_nat, j,
                             lbd, outl, (ah, ai, aj, be), ak, al, am, an, bf)
                         })
                     xa)
@@ -482,7 +392,8 @@ proof -
             mset (tl (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao))))\<close> and
       count_dec_ge: \<open>0 < count_decided (get_trail_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
       lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
-      lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n (baa, ca, da, ea, fa, ga, ha)\<close>
+      lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n (baa, ca, da, ea, fa, ga, ha)\<close> and
+      lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl (baa, ca, da, ea, fa, ga, ha))\<close>
       using inv unfolding CLS update_confl_tl_wl_pre_def prod.case
       by blast+
     have
@@ -563,16 +474,14 @@ proof -
       by (metis \<open>a = ao\<close> diff_single_trivial in_multiset_in_set multi_drop_mem_not_eq
             remove1_mset_union_distrib)
 
-    have \<open>vmtf_mark_to_rescore_and_unset_pre (atm_of bg, ivmtf)\<close>
+    have \<open>vmtf_unset_pre (atm_of b, ivmtf)\<close>
       if \<open>ivmtf \<in> vmtf ba\<close>
-      for ivmtf
-      using that bg_D0
-      by (auto simp: vmtf_mark_to_rescore_and_unset_pre_def vmtf_def
-        dest: multi_member_split)
-    moreover have \<open>vmtf_mark_to_rescore_and_unset (atm_of bg) ivmtf \<in> vmtf (tl ba)\<close>
+      using nempty that lits_trail
+      by (auto simp: vmtf_unset_pre_def literals_are_in_\<L>\<^sub>i\<^sub>n_trail_lit_of_mset
+        intro!: exI[of _ ba])
+    moreover have \<open>vmtf_unset (atm_of bg) ivmtf \<in> vmtf (tl ba)\<close>
       if \<open>ivmtf \<in> vmtf ba\<close>
-      for ivmtf
-      using inv rel vmtf_mark_to_rescore_unset[where M = ba] that
+      using inv rel vmtf_unset_vmtf_tl[where M = ba] that
       apply (cases \<open>ivmtf\<close>; cases \<open>hd ba\<close>)
       by (auto simp: atms_of_def update_confl_tl_wl_pre_def twl_st_heur_conflict_ana_def)
     moreover have
@@ -588,7 +497,7 @@ proof -
         by (auto simp: resolve_cls_wl'_def out_learned_def ac_simps)
 
       have \<open>out_learned (tl ba)
-      (Some (resolve_cls_wl' (ba, ca, Some (the da), ea, fa, ga, ha) ao bg)) b\<close>
+        (Some (resolve_cls_wl' (ba, ca, Some (the da), ea, fa, ga, ha) ao bg)) b\<close>
         apply (rule out_learned_tl_Some_notin[THEN iffD1])
         using uL_D out proped L_M nempty proped nempty
         by (cases ba; cases \<open>hd ba\<close>; auto simp: resolve_cls_wl'_def split: if_splits; fail)+
@@ -646,8 +555,7 @@ proof -
        subgoal unfolding merge_conflict_m_def conc_fun_SPEC
         by (auto simp: twl_st_heur_conflict_ana_def merge_conflict_m_def update_confl_tl_wl_pre_def
            resolve_cls_wl'_def ac_simps no_dup_tlD lookup_remove1_uminus arena_in_L
-           intro!: ASSERT_refine_left
-             specify_left[OF vmtf_mark_to_rescore_and_unset_reason_spec])
+           intro!: ASSERT_refine_left)
       done
   qed
   have isa_set_lookup_conflict_aa_pre:
@@ -1371,6 +1279,8 @@ lemma lookup_clause_assn_op_nset_is_emty[sepref_fr_rules]:
   by (sep_auto simp: lookup_clause_assn_def lookup_clause_rel_def hr_comp_def
     uint32_nat_assn_0_eq uint32_nat_rel_def br_def pure_def nat_of_uint32_0_iff)+
 
+thm vmtf_unset_code.refine
+
 sepref_register update_confl_tl_wl_heur
 sepref_thm update_confl_tl_wl_code
   is \<open>uncurry2 (PR_CONST update_confl_tl_wl_heur)\<close>
@@ -1378,7 +1288,7 @@ sepref_thm update_confl_tl_wl_code
   nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> bool_assn *a isasat_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]]
-  unfolding update_confl_tl_wl_heur_def isasat_assn_def save_phase_def
+  unfolding update_confl_tl_wl_heur_def isasat_assn_def
     update_confl_tl_wl_heur_pre_def PR_CONST_def
   by sepref (* slow *)
 
@@ -1398,7 +1308,7 @@ sepref_thm update_confl_tl_wl_fast_code
   uint32_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> bool_assn *a isasat_fast_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]]
-  unfolding update_confl_tl_wl_heur_def isasat_fast_assn_def save_phase_def
+  unfolding update_confl_tl_wl_heur_def isasat_fast_assn_def
     update_confl_tl_wl_heur_pre_def
   supply merge_conflict_m_def[simp]
   by sepref (* slow *)

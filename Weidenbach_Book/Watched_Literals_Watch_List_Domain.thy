@@ -753,8 +753,10 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat \<times> nat twl_st_wl) nres\<close>
 where
   \<open>unit_propagation_inner_loop_wl_loop_D L S\<^sub>0 = do {
+    ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+    let n = length (watched_by S\<^sub>0 L);
     WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_D_inv L\<^esup>
-      (\<lambda>(j, w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
+      (\<lambda>(j, w, S). w < n \<and> get_conflict_wl S = None)
       (\<lambda>(j, w, S). do {
         unit_propagation_inner_loop_body_wl_D L j w S
       })
@@ -780,10 +782,10 @@ proof -
     unfolding unit_propagation_inner_loop_wl_loop_D_def unit_propagation_inner_loop_wl_loop_def
     apply (refine_vcg u)
     subgoal using assms by auto
+    subgoal using assms by auto
     subgoal using assms unfolding unit_propagation_inner_loop_wl_loop_D_inv_def by auto
     subgoal by auto
     subgoal using K by auto
-    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto

@@ -1,6 +1,7 @@
 theory IsaSAT_Backtrack
-  imports IsaSAT_Setup IsaSAT_VMTF
+  imports IsaSAT_Setup IsaSAT_VMTF "../lib/Explorer"
 begin
+
 
 subsection \<open>Backtrack\<close>
 
@@ -9,6 +10,165 @@ begin
 
 
 subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
+
+paragraph \<open>Decision heuristic\<close>
+
+definition (in isasat_input_ops) vmtf_mark_to_rescore_clause where
+\<open>vmtf_mark_to_rescore_clause arena C vm = do {
+    ASSERT(arena_is_valid_clause_idx arena C);
+    nfoldli
+      ([C..<C + nat_of_uint64_conv (arena_length arena C)])
+      (\<lambda>_. True)
+      (\<lambda>i vm. do {
+        ASSERT(arena_lit_pre arena i);
+        RETURN (vmtf_mark_to_rescore (atm_of (arena_lit arena i)) vm)
+      })
+      vm
+  }\<close>
+
+(* TODO Move +  use in vmtf_mark_to_rescore_and_unset *)
+sepref_register vmtf_mark_to_rescore
+sepref_thm vmtf_mark_to_rescore_code
+  is \<open>uncurry (RETURN oo vmtf_mark_to_rescore)\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
+  supply [[goals_limit=1]]
+  unfolding vmtf_mark_to_rescore_def
+   vmtf_unset_def save_phase_def
+  by sepref
+
+concrete_definition (in -) vmtf_mark_to_rescore_code
+  uses isasat_input_bounded_nempty.vmtf_mark_to_rescore_code.refine_raw
+  is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_mark_to_rescore_code_def
+
+lemmas vmtf_mark_to_rescore_hnr[sepref_fr_rules] =
+   vmtf_mark_to_rescore_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm vmtf_mark_to_rescore_clause_code
+  is \<open>uncurry2 vmtf_mark_to_rescore_clause\<close>
+  :: \<open>arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+  supply [[goals_limit=1]]
+  unfolding vmtf_mark_to_rescore_clause_def
+  by sepref
+
+concrete_definition (in -) vmtf_mark_to_rescore_clause_code
+  uses isasat_input_bounded_nempty.vmtf_mark_to_rescore_clause_code.refine_raw
+  is \<open>(uncurry2 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_mark_to_rescore_clause_code_def
+
+lemmas vmtf_mark_to_rescore_clause_hnr[sepref_fr_rules] =
+   vmtf_mark_to_rescore_clause_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+
+text \<open>This lemmma is only useful if \<^term>\<open>set xs\<close> can be simplified (which also means that this 
+  simp-rule should not be used...)\<close>
+lemma (in -) in_list_in_setD: \<open>xs = it @ x # \<sigma> \<Longrightarrow> x \<in> set xs\<close>
+  by auto
+
+lemma (in -) RES_SPEC_conv: \<open>RES P = SPEC (\<lambda>v. v \<in> P)\<close>
+  by auto
+
+lemma vmtf_mark_to_rescore_clause_spec:
+  \<open>vm \<in> vmtf M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
+   (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<Longrightarrow>
+    vmtf_mark_to_rescore_clause arena C vm \<le> RES (vmtf M)\<close>
+  unfolding vmtf_mark_to_rescore_clause_def
+  apply (subst RES_SPEC_conv)
+  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> vmtf M\<close>])
+  subgoal
+    unfolding arena_lit_pre_def arena_is_valid_clause_idx_def
+    apply (rule exI[of _ N])
+    apply (rule exI[of _ vdom])
+    apply (fastforce simp: arena_lifting)
+    done
+  subgoal for x it \<sigma>
+    unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
+    apply (rule exI[of _ C])
+    apply (intro conjI)
+    apply (solves \<open>auto dest: in_list_in_setD\<close>)
+    apply (rule exI[of _ N])
+    apply (rule exI[of _ vdom])
+    apply (fastforce simp: arena_lifting dest: in_list_in_setD)
+    done
+  subgoal for x it _ \<sigma>
+    by (cases \<sigma>)
+      (auto intro!: vmtf_mark_to_rescore simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+       dest: in_list_in_setD)
+  done
+
+definition (in isasat_input_ops) vmtf_mark_to_rescore_also_reasons
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> _ \<Rightarrow>_\<close> where
+\<open>vmtf_mark_to_rescore_also_reasons M arena outl vm = do {
+    nfoldli
+      ([0..<length outl])
+      (\<lambda>_. True)
+      (\<lambda>i vm. do {
+        ASSERT(i < length outl);
+        ASSERT(-outl ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+        C \<leftarrow> get_the_propagation_reason M (-(outl ! i));
+        case C of
+          None \<Rightarrow> RETURN (vmtf_mark_to_rescore (atm_of (outl ! i)) vm)
+        | Some C \<Rightarrow> if C = 0 then RETURN vm else vmtf_mark_to_rescore_clause arena C vm
+      })
+      vm
+  }\<close>
+
+(* TODO Move +  use in vmtf_mark_to_rescore_and_unset *)
+sepref_register vmtf_mark_to_rescore_also_reasons get_the_propagation_reason
+sepref_thm vmtf_mark_to_rescore_also_reasons_code
+  is \<open>uncurry3 (PR_CONST vmtf_mark_to_rescore_also_reasons)\<close>
+  :: \<open>trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
+  supply [[goals_limit=1]]
+  unfolding vmtf_mark_to_rescore_also_reasons_def PR_CONST_def
+  by sepref
+
+concrete_definition (in -) vmtf_mark_to_rescore_also_reasons_code
+  uses isasat_input_bounded_nempty.vmtf_mark_to_rescore_also_reasons_code.refine_raw
+  is \<open>(uncurry3 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_mark_to_rescore_also_reasons_code_def
+
+lemma vmtf_mark_to_rescore':
+ \<open>L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> vm \<in> vmtf M \<Longrightarrow> vmtf_mark_to_rescore L vm \<in> vmtf M\<close>
+  by (cases vm) (auto intro: vmtf_mark_to_rescore)
+
+lemmas vmtf_mark_to_rescore_also_reasons_hnr[sepref_fr_rules] =
+   vmtf_mark_to_rescore_also_reasons_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+lemma vmtf_mark_to_rescore_also_reasons_spec:
+  \<open>vm \<in> vmtf M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow>
+   (\<forall>L \<in> set outl. L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<Longrightarrow>
+   (\<forall>L \<in> set outl. \<forall>C. (Propagated (-L) C \<in> set M \<longrightarrow> C \<noteq> 0 \<longrightarrow> (C \<in># dom_m N \<and>
+       (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)))) \<Longrightarrow>
+    vmtf_mark_to_rescore_also_reasons M arena outl vm \<le> RES (vmtf M)\<close>
+  unfolding vmtf_mark_to_rescore_also_reasons_def
+  apply (subst RES_SPEC_conv)
+  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> vmtf M\<close>])
+  subgoal by (auto dest: in_list_in_setD)
+  subgoal for x l1 l2 \<sigma>
+    unfolding all_set_conv_nth
+    by (auto simp: uminus_\<A>\<^sub>i\<^sub>n_iff dest!: in_list_in_setD)
+  subgoal for x l1 l2 \<sigma>
+    unfolding get_the_propagation_reason_def
+    apply (rule SPEC_rule)
+    apply (rename_tac reason, case_tac reason; simp only: option.simps RES_SPEC_conv[symmetric])
+    subgoal
+      by (auto simp: vmtf_mark_to_rescore'
+        in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric])
+    apply (rename_tac D, case_tac \<open>D = 0\<close>; simp)
+    subgoal
+      by (rule vmtf_mark_to_rescore_clause_spec, assumption, assumption)
+       fastforce+
+    done
+  done
+
+
+
+paragraph \<open>Empty conflict\<close>
 
 definition (in -) empty_conflict_and_extract_clause
   :: \<open>(nat,nat) ann_lits \<Rightarrow> nat clause \<Rightarrow> nat clause_l \<Rightarrow>
@@ -474,33 +634,6 @@ definition extract_shorter_conflict_heur where
 definition (in -) empty_cach where
   \<open>empty_cach cach = (\<lambda>_. SEEN_UNKNOWN)\<close>
 
-definition (in isasat_input_ops) extract_shorter_conflict_list_heur_st
-  :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> _ \<times> _) nres\<close>
-where
-  \<open>extract_shorter_conflict_list_heur_st = (\<lambda>(M, N, (_, D), Q', W', vm, \<phi>, clvls, cach, lbd, outl,
-       stats, ccont, vdom). do {
-     ASSERT(M \<noteq> []);
-     ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n_trail M);
-     let K = lit_of (hd M);
-     ASSERT(-K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
-     ASSERT(0 < length outl);
-     ASSERT(lookup_conflict_remove1_pre (-K, D));
-     let D = lookup_conflict_remove1 (-K) D;
-     let outl = outl[0 := -K];
-     (D, cach, outl) \<leftarrow> isa_minimize_and_extract_highest_lookup_conflict M N D cach lbd outl;
-     let cach = empty_cach cach;
-     ASSERT(outl \<noteq> [] \<and> length outl \<le> uint_max);
-     (D, C, n) \<leftarrow> empty_conflict_and_extract_clause_heur M D outl;
-     RETURN ((M, N, D, Q', W', vm, \<phi>, clvls, cach, lbd, take 1 outl, stats, ccont, vdom), n, C)
-  })\<close>
-
-lemma the_option_lookup_clause_assn[sepref_fr_rules]:
-  \<open>(return o snd, RETURN o the) \<in> [\<lambda>D. D \<noteq> None]\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow> lookup_clause_assn\<close>
-  by (sepref_to_hoare)
-    (sep_auto simp: option_lookup_clause_assn_def option_lookup_clause_rel_def
-      lookup_clause_assn_def hr_comp_def)
-
-
 definition (in isasat_input_ops) empty_conflict_and_extract_clause_pre
    :: \<open>(((nat,nat) ann_lits \<times> nat clause) \<times> nat clause_l) \<Rightarrow> bool\<close> where
   \<open>empty_conflict_and_extract_clause_pre =
@@ -628,6 +761,8 @@ proof -
 qed
 
 
+
+
 lemma (in isasat_input_ops) empty_cach_ref_empty_cach:
   \<open>(RETURN o empty_cach_ref, RETURN o empty_cach) \<in> cach_refinement \<rightarrow>\<^sub>f \<langle>cach_refinement\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
@@ -717,28 +852,40 @@ proof -
     using pre ..
 qed
 
-definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> nat \<Rightarrow> ema\<close> where
-  \<open>ema_update coeff ema lbd = ema - (ema >> coeff) + ((uint64_of_nat lbd) << (48 - coeff))\<close>
 
-definition (in -) ema_update_ref :: \<open>nat \<Rightarrow> ema \<Rightarrow> uint32 \<Rightarrow> ema\<close> where
-  \<open>ema_update_ref coeff ema lbd = ema - (ema >> coeff) +  ((uint64_of_uint32 lbd) << (48 - coeff))\<close>
+paragraph \<open>Minimisation of the conflict\<close>
 
-lemma (in -) ema_update_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 (return ooo ema_update_ref), uncurry2 (RETURN ooo ema_update)) \<in>
-     nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding ema_update_def ema_update_ref_def
-  by sepref_to_hoare
-     (sep_auto simp: uint32_nat_rel_def br_def uint64_of_uint32_def)
+definition (in isasat_input_ops) extract_shorter_conflict_list_heur_st
+  :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> _ \<times> _) nres\<close>
+where
+  \<open>extract_shorter_conflict_list_heur_st = (\<lambda>(M, N, (_, D), Q', W', vm, \<phi>, clvls, cach, lbd, outl,
+       stats, ccont, vdom). do {
+     ASSERT(M \<noteq> []);
+     ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n_trail M);
+     let K = lit_of (hd M);
+     ASSERT(-K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+     ASSERT(0 < length outl);
+     ASSERT(lookup_conflict_remove1_pre (-K, D));
+     let D = lookup_conflict_remove1 (-K) D;
+     let outl = outl[0 := -K];
+     vm \<leftarrow> vmtf_mark_to_rescore_also_reasons M N outl vm;
+     (D, cach, outl) \<leftarrow> isa_minimize_and_extract_highest_lookup_conflict M N D cach lbd outl;
+     let cach = empty_cach cach;
+     ASSERT(outl \<noteq> [] \<and> length outl \<le> uint_max);
+     (D, C, n) \<leftarrow> empty_conflict_and_extract_clause_heur M D outl;
+     RETURN ((M, N, D, Q', W', vm, \<phi>, clvls, cach, lbd, take 1 outl, stats, ccont, vdom), n, C)
+  })\<close>
 
-abbreviation(in -) ema_update_slow where
-  \<open>ema_update_slow \<equiv> ema_update 14\<close>
-abbreviation (in -)ema_update_fast where
-  \<open>ema_update_fast \<equiv> ema_update 5\<close>
+lemma the_option_lookup_clause_assn[sepref_fr_rules]:
+  \<open>(return o snd, RETURN o the) \<in> [\<lambda>D. D \<noteq> None]\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow> lookup_clause_assn\<close>
+  by (sepref_to_hoare)
+    (sep_auto simp: option_lookup_clause_assn_def option_lookup_clause_rel_def
+      lookup_clause_assn_def hr_comp_def)
 
 definition (in isasat_input_ops) propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, _, cach, lbd, outl, stats, fema, sema,
-         ccount, vdom, avdom, lcount). do {
+         res_info, vdom, avdom, lcount). do {
       ASSERT(phase_saving \<phi> \<and> vm \<in> vmtf M \<and> undefined_lit M (-L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
          nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
       ASSERT(length C > 1);
@@ -746,7 +893,6 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset C));
       ASSERT(length C \<le> uint32_max + 2);
       (vm, \<phi>) \<leftarrow> rescore_clause C M vm \<phi>;
-      vm \<leftarrow> flush M vm;
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
@@ -758,9 +904,13 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       lbd \<leftarrow> lbd_empty lbd;
       let j = length_u M;
       ASSERT(i \<noteq> DECISION_REASON);
-      RETURN (Propagated (- L) i # M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
-         cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
-          ccount + one_uint32, vdom @ [nat_of_uint32_conv i], avdom @ [nat_of_uint32_conv i],
+      let M = Propagated (- L) i # M;
+      ASSERT(vm \<in> vmtf M);
+      vm \<leftarrow> flush M vm;
+      RETURN (M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
+         cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
+          incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
+          avdom @ [nat_of_uint32_conv i],
           Suc lcount)
     })\<close>
 
@@ -776,7 +926,7 @@ definition (in isasat_input_ops) propagate_unit_bt_wl_D_int
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
   \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-      fema, sema, ccount, vdom). do {
+      fema, sema, res_info, vdom). do {
       ASSERT(undefined_lit M L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> vm \<in> vmtf M);
       vm \<leftarrow> flush M vm;
       glue \<leftarrow> get_LBD lbd;
@@ -784,10 +934,11 @@ where
       let j = length M;
       ASSERT(0 \<noteq> DECISION_REASON);
       RETURN (Propagated (- L) 0 # M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-         ema_update_fast fema glue, ema_update_slow sema glue,
-        ccount + one_uint32, vdom)})\<close>
+        ema_update glue fema, ema_update glue sema,
+        incr_conflict_count_since_last_restart res_info, vdom)})\<close>
 
 
+paragraph \<open>Full function\<close>
 definition (in isasat_input_ops) backtrack_wl_D_nlit_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
@@ -1090,6 +1241,7 @@ proof -
       using not_none uL_D uM_\<L>\<^sub>a\<^sub>l\<^sub>l S_T T_U unfolding delete_from_lookup_conflict_pre_def
       by (auto simp: twl_st S)
     have pre2: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N) \<equiv> True\<close>
+      and lits_N: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N) \<close>
       using M_\<L>\<^sub>i\<^sub>n S_T T_U not_none \<L>\<^sub>i\<^sub>n
       unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def literals_are_\<L>\<^sub>i\<^sub>n_def
       by (auto simp: twl_st S all_lits_of_mm_union)
@@ -1112,6 +1264,7 @@ proof -
       \<open>extract_shorter_conflict_wl (M, N, D, NE, UE, Q, W) = do {
         let K = lit_of (hd M);
         let D = (remove1_mset (-K) (the D));
+        _ \<leftarrow> RETURN (); \<^cancel>\<open>vmtf rescoring\<close>
         E' \<leftarrow> (SPEC
           (\<lambda>(E'). E' \<subseteq># add_mset (-K) D \<and> - lit_of (hd M) :#  E' \<and>
              mset `# ran_mf N +
@@ -1202,7 +1355,7 @@ proof -
        done
     qed
 
-    have final: \<open>(((M, arena, x1b, Q', W', vm, \<phi>, clvls, empty_cach x1a, lbd, take 1 x2a,
+    have final: \<open>(((M, arena, x1b, Q', W', vm', \<phi>, clvls, empty_cach x1a, lbd, take 1 x2a,
             stats, cc, cc2, cc3, vdom, avdom, lcount),
             x2c, x1c),
           M, N, Da, NE, UE, Q, W)
@@ -1249,8 +1402,9 @@ proof -
           \<open>x2b = (x1c, x2c)\<close>
           \<open>x2 = (x1a, x2a)\<close>
           \<open>x = (x1, x2)\<close>
-          \<open>xa = (x1b, x2b)\<close>
-      for x E' x1 x2 x1a x2a xa Da x1b x2b x1c x2c
+          \<open>xa = (x1b, x2b)\<close> and
+        vm': \<open>(vm', uu) \<in> {(c, uu). c \<in> vmtf M}\<close>
+      for x E' x1 x2 x1a x2a xa Da x1b x2b x1c x2c vm' uu
     proof -
       have x1b_None: \<open>(x1b, None) \<in> option_lookup_clause_rel\<close>
         using that apply auto
@@ -1303,11 +1457,11 @@ proof -
       then have max_lvl_le:
          \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the Da)) < count_decided M\<close>
         using get_maximum_level_mono[OF Da_D', of M] by auto
-      have \<open>((M, arena, x1b, Q', W', vm, \<phi>, clvls, empty_cach x1a, lbd, take (Suc 0) x2a,
+      have \<open>((M, arena, x1b, Q', W', vm', \<phi>, clvls, empty_cach x1a, lbd, take (Suc 0) x2a,
           stats, cc, cc2, cc3, vdom, avdom, lcount),
         del_conflict_wl (M, N, Da, NE, UE, Q, W))
         \<in> twl_st_heur_bt\<close>
-        using S'_S x1b_None cach out unfolding twl_st_heur_bt_def
+        using S'_S x1b_None cach out vm' unfolding twl_st_heur_bt_def
         by (auto simp: twl_st_heur_def del_conflict_wl_def S S' twl_st_heur_bt_def
           twl_st_heur_conflict_ana_def)
       moreover have x2c: \<open>x2c = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the Da))\<close>
@@ -1315,31 +1469,77 @@ proof -
         by (cases \<open>length x1c = Suc 0\<close>; cases x1c)
           (auto simp: highest_lit_def Da mset_tl)
       moreover have \<open>find_decomp_wl_pre
-          (x2c, M, arena, x1b, Q', W', vm, \<phi>, clvls, empty_cach x1a, lbd,
+          (x2c, M, arena, x1b, Q', W', vm', \<phi>, clvls, empty_cach x1a, lbd,
            take (Suc 0) x2a, stats, cc, cc2, cc3, vdom, avdom, lcount)\<close>
-        using vm n_d M_\<L>\<^sub>i\<^sub>n highest max_lvl_le
+        using vm n_d M_\<L>\<^sub>i\<^sub>n highest max_lvl_le vm'
         unfolding find_decomp_wl_pre_def find_decomp_w_ns_pre_def
         by (auto simp: S x2c)
       moreover have \<open>literals_are_\<L>\<^sub>i\<^sub>n (M, N, Some (mset x1c), NE, UE, Q, W)\<close>
         using \<L>\<^sub>i\<^sub>n
         by (auto simp: S x2c literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def)
       ultimately show ?thesis
-        using \<L>\<^sub>i\<^sub>n_S x1c_Da Da_None dist_D D_none x1c_D x1c hd_x1c highest uM_\<L>\<^sub>a\<^sub>l\<^sub>l
+        using \<L>\<^sub>i\<^sub>n_S x1c_Da Da_None dist_D D_none x1c_D x1c hd_x1c highest uM_\<L>\<^sub>a\<^sub>l\<^sub>l vm'
         by (auto simp: S x2c)
     qed
+    have vmtf_mark_to_rescore_also_reasons:
+      \<open>vmtf_mark_to_rescore_also_reasons M arena (outl[0 := - lit_of (hd M)]) vm
+          \<le> SPEC (\<lambda>c. (c, ()) \<in> {(c, _). c \<in> vmtf M})\<close>
+      if 
+        \<open>M \<noteq> []\<close> and
+        \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
+        \<open>- lit_of (hd M) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+        \<open>0 < length outl\<close> and
+        \<open>lookup_conflict_remove1_pre (- lit_of (hd M), D')\<close>
+    proof -
+      have outl_hd_tl: \<open>outl[0 := - lit_of (hd M)] = - lit_of (hd M) # tl (outl[0 := - lit_of (hd M)])\<close> and
+        [simp]: \<open>outl \<noteq> []\<close>
+        using outl unfolding out_learned_def
+        by (cases outl; auto; fail)+
+      have uM_D: \<open>- lit_of (hd M) \<in># the D\<close>
+        by (subst D_filter) auto
+      have mset_outl_D: \<open>mset (outl[0 := - lit_of (hd M)]) = (the D)\<close>
+        by (subst outl_hd_tl, subst mset.simps, subst tl_outl_D, subst D_filter)
+          (use uM_D D_filter[symmetric] in auto)
+      from arg_cong[OF this, of set_mset] have set_outl_D: \<open>set (outl[0 := - lit_of (hd M)]) = set_mset (the D)\<close>
+        by auto
 
+      have outl_Lall: \<open>\<forall>L\<in>set (outl[0 := - lit_of (hd M)]). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+        using \<L>\<^sub>i\<^sub>n_S unfolding set_outl_D
+        by (auto simp: S literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_add_mset
+          dest!: multi_member_split)
+      have lit_annots: \<open>\<forall>L\<in>set (outl[0 := - lit_of (hd M)]).
+       \<forall>C. Propagated (- L) C \<in> set M \<longrightarrow>
+           C \<noteq> 0 \<longrightarrow>
+           C \<in># dom_m N \<and>
+           (\<forall>C\<in>set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
+        unfolding set_outl_D
+        apply (intro ballI allI impI conjI)
+        subgoal
+          using list_invs S_T unfolding twl_list_invs_def
+          by (auto simp: S)
+        subgoal for L C i
+          using list_invs S_T arena lits_N literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of N C \<open>i - C\<close>]
+          unfolding twl_list_invs_def
+          by (auto simp: S arena_lifting)
+        done
+      show ?thesis
+        by (rule order.trans, rule vmtf_mark_to_rescore_also_reasons_spec[OF vm arena outl_Lall lit_annots])
+          auto
+    qed
     show ?thesis
       unfolding extract_shorter_conflict_list_heur_st_def
         empty_conflict_and_extract_clause_def S S' prod.simps
       apply (rewrite at  \<open>let _ = list_update _ _ _ in _ \<close>Let_def)
       apply (rewrite at  \<open>let _ = empty_cach _ in _ \<close> Let_def)
       apply (subst extract_shorter_conflict_wl_alt_def)
-      apply (refine_vcg isa_minimize_and_extract_highest_lookup_conflict empty_conflict_and_extract_clause_heur)
+      apply (refine_vcg isa_minimize_and_extract_highest_lookup_conflict 
+         empty_conflict_and_extract_clause_heur)
       subgoal using trail_nempty .
       subgoal using pre2 by blast
       subgoal using uM_\<L>\<^sub>a\<^sub>l\<^sub>l .
       subgoal using  \<open>0 < length outl\<close> .
       subgoal by (rule lookup_conflict_remove1_pre)
+      apply (rule vmtf_mark_to_rescore_also_reasons; assumption)
       subgoal by auto
       subgoal by (auto dest!: simple_clss_size_upper_div2 simp: uint32_max_def)
       apply assumption+
@@ -1596,7 +1796,7 @@ proof -
     qed
     have propagate_bt_wl_D_heur_alt_def:
        \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, _, cach, lbd, outl, stats, fema, sema,
-         ccount, vdom, avdom, lcount). do {
+          res_info, vdom, avdom, lcount). do {
           ASSERT(phase_saving \<phi> \<and> vm \<in> vmtf M \<and> undefined_lit M (-L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
             nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
           ASSERT(length C > 1);
@@ -1604,7 +1804,6 @@ proof -
           ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset C));
           ASSERT (length C \<le> uint32_max + 2);
           (vm, \<phi>) \<leftarrow> rescore_clause C M vm \<phi>;
-          vm \<leftarrow> flush M vm;
           glue \<leftarrow> get_LBD lbd;
           let _ = C;
           let b = False;
@@ -1616,9 +1815,12 @@ proof -
           lbd \<leftarrow> lbd_empty lbd;
           let j = length_u M;
           ASSERT(i \<noteq> DECISION_REASON);
-          RETURN (Propagated (- L) i # M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
-            cach, lbd, outl, stats, ema_update_fast fema glue, ema_update_slow sema glue,
-              ccount + one_uint32, vdom @ [nat_of_uint32_conv i], 
+          let M = Propagated (- L) i # M;
+          ASSERT(vm \<in> vmtf M);
+          vm \<leftarrow> flush M vm;
+          RETURN (M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
+            cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
+              incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i], 
               avdom @ [nat_of_uint32_conv i], Suc lcount)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
@@ -1626,7 +1828,6 @@ proof -
     have propagate_bt_wl_D_alt_def:
       \<open>propagate_bt_wl_D (lit_of (hd (get_trail_wl S'))) L' U' = do {
             _ \<leftarrow> RETURN (); \<^cancel>\<open>phase saving\<close>
-            _ \<leftarrow> RETURN (); \<^cancel>\<open>flush\<close>
             _ \<leftarrow> RETURN (); \<^cancel>\<open>LBD\<close>
             D'' \<leftarrow>
               list_of_mset2 (- lit_of (hd (get_trail_wl S'))) L'
@@ -1636,6 +1837,8 @@ proof -
                       i \<notin># dom_m N \<and>
                       (\<forall>L\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE)).
                           i \<notin> fst ` set (W L)));
+            _ \<leftarrow> RETURN (); \<^cancel>\<open>lbd empty\<close>
+            _ \<leftarrow> RETURN (); \<^cancel>\<open>flush\<close>
             RETURN
               (Propagated (- lit_of (hd (get_trail_wl S'))) i # M1,
                 N, None, NE, UE, unmark (hd (get_trail_wl S')),
@@ -1650,7 +1853,8 @@ proof -
           uncurry_def RES_RES_RETURN_RES
           get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 list_of_mset2_def)
       done
-    have [refine0]: \<open>SPEC (\<lambda>(vm', \<phi>'). vm' \<in> vmtf M1 \<and> phase_saving \<phi>') \<le> \<Down>{((vm', \<phi>'), ()). vm' \<in> vmtf M1 \<and> phase_saving \<phi>'} (RETURN ())\<close>
+    have [refine0]: \<open>SPEC (\<lambda>(vm', \<phi>'). vm' \<in> vmtf M1 \<and> phase_saving \<phi>')
+       \<le> \<Down>{((vm', \<phi>'), ()). vm' \<in> vmtf M1 \<and> phase_saving \<phi>'} (RETURN ())\<close>
       by (auto intro!: RES_refine simp: RETURN_def)
     have [refine0]: \<open>flush M1 x1 \<le> \<Down> {(vm', _). vm' \<in> vmtf M1} (RETURN ())\<close> for x1
       unfolding flush_def by (auto intro!: RES_refine simp: RETURN_def)
@@ -1699,6 +1903,12 @@ proof -
       apply (rule fm_add_new_append_clause)
       using that valid le_C vdom
       by (auto simp: intro!: RETURN_RES_refine valid_arena_append_clause)
+    have [refine0]: 
+      \<open>lbd_empty lbd \<le> SPEC (\<lambda>c. (c, ()) \<in> {(c, _). c = replicate (length lbd) False})\<close>
+      by (auto simp: lbd_empty_def)
+    have [refine0]:
+      \<open>flush M vm \<le> SPEC (\<lambda>c. (c, ()) \<in>  {(vm', _). vm' \<in> vmtf M})\<close> for vm M
+      by (auto simp: flush_def)
     have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close>
       using incl list_confl_S' literals_are_in_\<L>\<^sub>i\<^sub>n_mono by blast
     have le_C_ge: \<open>length C \<le> uint32_max + 2\<close>
@@ -1723,6 +1933,11 @@ proof -
       unfolding U U' H get_fresh_index_wl_def prod.case
         propagate_bt_wl_D_heur_alt_def rescore_clause_def
       apply (rewrite in \<open>let _ = _!1 in _\<close> Let_def)
+      apply (rewrite in \<open>let _ = update_lbd _ _ _ in _\<close> Let_def)
+      apply (rewrite in \<open>let _ = list_update _ (nat_of_lit _) _ in _\<close> Let_def)
+      apply (rewrite in \<open>let _ = list_update _ (nat_of_lit _) _ in _\<close> Let_def)
+      apply (rewrite in \<open>let _ = length_u _ in _\<close> Let_def)
+      apply (rewrite in \<open>let _ = _ # _ in _\<close> Let_def)
       apply (rewrite in \<open>let _ = False in _\<close> Let_def)
       apply refine_rcg
       subgoal using \<phi> .
@@ -1735,12 +1950,22 @@ proof -
         by (auto simp: lit_of_hd_trail_st_heur_def T' U' U rescore_clause_def S' map_fun_rel_def)
       subgoal by auto
       subgoal using le_C_ge .
-      subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a x1b x2b
+      subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a
         by (auto simp: update_lbd_pre_def arena_is_valid_clause_idx_def)
-      subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a x1b x2b
+      subgoal using D' C_1_neq_hd vmtf avdom
+        by (auto simp: DECISION_REASON_def
+          dest: valid_arena_one_notin_vdomD
+          intro!: vm)
+      subgoal
+        using D' C_1_neq_hd vmtf avdom
+        by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
+          intro!: ASSERT_refine_left ASSERT_leI RES_refine exI[of _ C] valid_arena_update_lbd
+          dest: valid_arena_one_notin_vdomD
+          intro!: vm)
+      subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a
         using D' C_1_neq_hd vmtf avdom
         apply (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
-          propagate_bt_wl_D_def Let_def T' U' U rescore_clause_def S' map_fun_rel_def
+          Let_def T' U' U rescore_clause_def S' map_fun_rel_def
           list_of_mset2_def flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
           get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2
           RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def
@@ -2126,7 +2351,7 @@ qed *)
 
 sepref_register isa_minimize_and_extract_highest_lookup_conflict
   empty_conflict_and_extract_clause_heur
-  find_theorems empty_conflict_and_extract_clause_heur
+
 sepref_thm extract_shorter_conflict_list_heur_st
   is \<open>PR_CONST extract_shorter_conflict_list_heur_st\<close>
   :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn *a uint32_nat_assn *a clause_ll_assn\<close>
@@ -2180,7 +2405,6 @@ sepref_thm backtrack_wl_D_code
     cons_trail_Propagated_def[symmetric]
     size_conflict_wl_def[symmetric]
   by sepref
-
 
 concrete_definition (in -) backtrack_wl_D_nlit_heur_code
    uses isasat_input_bounded_nempty.backtrack_wl_D_code.refine_raw

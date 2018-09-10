@@ -65,13 +65,6 @@ lemmas length_ll_fs_heur_fast_code_refine[sepref_fr_rules] =
 
 sepref_register unit_propagation_inner_loop_body_wl_heur
 
-lemma unit_propagation_inner_loop_wl_loop_D_heur_cond:
-  \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv S a s' \<Longrightarrow>  s' = (b2, a1', a2') \<Longrightarrow>
-       nat_of_lit a < length (get_watched_wl_heur a2')\<close>
-  by (auto simp: unit_propagation_inner_loop_wl_loop_D_heur_inv_def
-      twl_st_heur_def map_fun_rel_def)
-
-thm unit_propagation_inner_loop_wl_loop_D_heur_def
 sepref_thm unit_propagation_inner_loop_wl_loop_D
   is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D_heur))\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *a nat_assn *a isasat_assn\<close>
@@ -83,7 +76,7 @@ sepref_thm unit_propagation_inner_loop_wl_loop_D
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     is_None_def[symmetric] get_conflict_wl_is_None_heur_alt_def[symmetric]
     length_ll_fs_def[symmetric]
-  supply [[goals_limit=1]] unit_propagation_inner_loop_wl_loop_D_heur_cond[simp]
+  supply [[goals_limit=1]]
   by sepref
 
 concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
@@ -97,9 +90,11 @@ lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
 
 lemma (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
   \<open>unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0 = do {
+    ASSERT (nat_of_lit L < length (get_watched_wl_heur S\<^sub>0));
+    let n = length (watched_by_int S\<^sub>0 L);
     let b = (zero_uint64_nat, zero_uint64_nat, S\<^sub>0);
     WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_D_heur_inv S\<^sub>0 L\<^esup>
-      (\<lambda>(j, w, S). w < length (watched_by_int S L) \<and> get_conflict_wl_is_None_heur S)
+      (\<lambda>(j, w, S). w < n \<and> get_conflict_wl_is_None_heur S)
       (\<lambda>(j, w, S). do {
         unit_propagation_inner_loop_body_wl_heur L j w S
       })

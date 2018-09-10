@@ -56,17 +56,166 @@ lemma incr_lrestart_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: incr_lrestart_def)
 
 
+paragraph \<open>Moving averages\<close>
+
+text \<open>We use (at least hopefully) the variant of EMA-14 implemented in Cadical, but with fixed-point
+calculation (\<^term>\<open>1 :: nat\<close> is \<^term>\<open>(1 :: nat) >> 32\<close>).
+
+Remark that the coefficient \<^term>\<open>\<beta>\<close> already takes care of the bixed-point conversion of the glue.
+\<close>
+type_synonym ema = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
+
+abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
+  \<open>ema_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn\<close>
+
+definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<close> where
+  \<open>ema_update = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
+     let value = value + \<beta> * ((uint64_of_nat lbd) - value) in
+     if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
+     else
+       let wait = 2 * period + 1 in
+       let period = wait in
+       let \<beta> = \<beta> >> 1 in
+       let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
+       (value, \<alpha>, \<beta>, wait, period))\<close>
+
+definition (in -) ema_update_ref :: \<open>uint32 \<Rightarrow> ema \<Rightarrow> ema\<close> where
+  \<open>ema_update_ref = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
+     let value = value + \<beta> * ((uint64_of_uint32 lbd) - value) in
+     if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
+     else
+       let wait = 2 * period + 1 in
+       let period = wait in
+       let \<beta> = \<beta> >> 1 in
+       let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
+       (value, \<alpha>, \<beta>, wait, period))\<close>
+
+lemma (in -) ema_update_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo ema_update_ref), uncurry (RETURN oo ema_update)) \<in>
+      uint32_nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  unfolding ema_update_def ema_update_ref_def
+  by sepref_to_hoare
+     (sep_auto simp: uint32_nat_rel_def br_def uint64_of_uint32_def Let_def)
+
+definition (in -) ema_init :: \<open>uint64 \<Rightarrow> ema\<close> where
+  \<open>ema_init \<alpha> = (0, \<alpha>, 1 << 32, 0, 0)\<close>
+
+fun ema_reinit where
+  \<open>ema_reinit (value, \<alpha>, \<beta>, wait, period) = (value, \<alpha>, 1 << 32, 0, 0)\<close>
+
+lemma ema_reinit_hnr[sepref_fr_rules]:
+  \<open>(return o ema_reinit, RETURN o ema_reinit) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  by sepref_to_hoare sep_auto
+
+fun ema_get_value :: \<open>ema \<Rightarrow> uint64\<close> where
+  \<open>ema_get_value (v, _) = v\<close>
+
+lemma ema_get_value_hnr[sepref_fr_rules]:
+  \<open>(return o ema_get_value, RETURN o ema_get_value) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
+
+lemma (in -) ema_init_coeff_hnr[sepref_fr_rules]:
+  \<open>((return o ema_init), (RETURN o ema_init)) \<in> uint64_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: ema_init_def uint64_nat_rel_def br_def)
+
+
+text \<open>We use the default values for Cadical: \<^term>\<open>(3 / 10 ^2)\<close> and  \<^term>\<open>(1 / 10 ^ 5)\<close>  in our fixed-point
+  version. 
+\<close>
+abbreviation ema_fast_init :: ema where
+  \<open>ema_fast_init \<equiv> ema_init (128849010)\<close>
+
+abbreviation ema_slow_init :: ema where
+  \<open>ema_slow_init \<equiv> ema_init (429450)\<close>
+
+
+paragraph \<open>Information related to restarts\<close>
+
+type_synonym restart_info = \<open>uint64 \<times> uint64\<close>
+
+abbreviation restart_info_assn where
+  \<open>restart_info_assn \<equiv> uint64_assn *a uint64_assn\<close>
+
+definition incr_conflict_count_since_last_restart :: \<open>restart_info \<Rightarrow> restart_info\<close> where
+  \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl). (ccount + 1, ema_lvl))\<close>
+
+lemma incr_conflict_count_since_last_restart_hnr[sepref_fr_rules]:
+    \<open>(return o incr_conflict_count_since_last_restart, RETURN o incr_conflict_count_since_last_restart)
+       \<in> restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_conflict_count_since_last_restart_def)
+
+definition restart_info_update_lvl_avg :: \<open>uint32 \<Rightarrow> restart_info \<Rightarrow> restart_info\<close> where
+  \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_lvl))\<close>
+
+lemma restart_info_update_lvl_avg_hnr[sepref_fr_rules]:
+    \<open>(uncurry (return oo restart_info_update_lvl_avg),
+       uncurry (RETURN oo restart_info_update_lvl_avg))
+       \<in> uint32_assn\<^sup>k *\<^sub>a restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
+  by sepref_to_hoare (sep_auto simp: restart_info_update_lvl_avg_def)
+
+definition restart_info_init :: \<open>restart_info\<close> where
+  \<open>restart_info_init = (0, 0)\<close>
+
+lemma restart_info_init_hnr[sepref_fr_rules]:
+    \<open>(uncurry0 (return restart_info_init),
+       uncurry0 (RETURN restart_info_init))
+       \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a restart_info_assn\<close>
+  by sepref_to_hoare (sep_auto simp: restart_info_init_def)
+
+
+definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
+  \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
+
+lemma restart_info_restart_done_hnr[sepref_fr_rules]:
+  \<open>(return o restart_info_restart_done, RETURN o restart_info_restart_done) \<in>
+     restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
+  by sepref_to_hoare (sep_auto simp: restart_info_restart_done_def
+    uint64_nat_rel_def br_def)
+
+
+paragraph \<open>VMTF\<close>
+
+type_synonym vmtf_assn = \<open>(uint32, nat) vmtf_node array \<times> nat \<times> uint32 \<times> uint32 \<times> uint32 option\<close>
+type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> uint32 array_list\<close>
+
+type_synonym phase_saver_assn = \<open>bool array\<close>
+
+instance vmtf_node :: (heap, heap) heap
+proof intro_classes
+  let ?to_pair = \<open>\<lambda>x::('a, 'b) vmtf_node. (stamp x, get_prev x, get_next x)\<close>
+  have inj': \<open>inj ?to_pair\<close>
+    unfolding inj_def by (intro allI) (case_tac x; case_tac y; auto)
+  obtain to_nat :: \<open>'b \<times> 'a option \<times> 'a option \<Rightarrow> nat\<close> where
+    \<open>inj to_nat\<close>
+    by blast
+  then have \<open>inj (to_nat o ?to_pair)\<close>
+    using inj' by (blast intro: inj_comp)
+  then show \<open>\<exists>to_nat :: ('a, 'b) vmtf_node \<Rightarrow> nat. inj to_nat\<close>
+    by blast
+qed
+
+
+definition (in -) nat_vmtf_node_rel where
+\<open>nat_vmtf_node_rel = {(a', a). stamp a = stamp a' \<and>
+   (get_prev a', get_prev a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel \<and>
+   (get_next a', get_next a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel}\<close>
+
+abbreviation (in -)nat_vmtf_node_assn where
+\<open>nat_vmtf_node_assn \<equiv> pure nat_vmtf_node_rel\<close>
+
+abbreviation vmtf_conc where
+  \<open>vmtf_conc \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a uint32_nat_assn *a uint32_nat_assn
+    *a option_assn uint32_nat_assn)\<close>
+
+abbreviation vmtf_remove_conc :: \<open>vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close> where
+  \<open>vmtf_remove_conc \<equiv> vmtf_conc *a arl_assn uint32_nat_assn\<close>
+
+
 paragraph \<open>Base state\<close>
 
 type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array \<times> nat\<close>
 type_synonym out_learned = \<open>nat clause_l\<close>
-type_synonym ema = \<open>uint64\<close>
-abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
-  \<open>ema_assn \<equiv> uint64_assn\<close>
-
-type_synonym conflict_count = \<open>uint32\<close>
-abbreviation conflict_count_assn :: \<open>conflict_count \<Rightarrow> conflict_count \<Rightarrow> assn\<close> where
-  \<open>conflict_count_assn \<equiv> uint32_assn\<close>
 
 type_synonym vdom = \<open>nat list\<close>
 
@@ -80,13 +229,13 @@ type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
     vdom_assn \<times> vdom_assn \<times> nat\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
     vdom_assn \<times> vdom_assn \<times> nat\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
@@ -94,7 +243,7 @@ text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 type_synonym twl_st_wl_heur =
   \<open>(nat,nat)ann_lits \<times> arena \<times>
     conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times>
-    nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> conflict_count \<times>
+    nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
     vdom \<times> vdom \<times> nat\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
@@ -156,7 +305,7 @@ fun get_fast_ema_heur :: \<open>twl_st_wl_heur \<Rightarrow> ema\<close> where
 fun get_slow_ema_heur :: \<open>twl_st_wl_heur \<Rightarrow> ema\<close> where
   \<open>get_slow_ema_heur (_, _, _, _, _, _, _, _, _, _, _, _, _, slow_ema, _) = slow_ema\<close>
 
-fun get_conflict_count_heur :: \<open>twl_st_wl_heur \<Rightarrow> uint32\<close> where
+fun get_conflict_count_heur :: \<open>twl_st_wl_heur \<Rightarrow> restart_info\<close> where
   \<open>get_conflict_count_heur (_, _, _, _, _, _, _, _, _, _, _, _, _, _, ccount, _) = ccount\<close>
 
 fun get_vdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
@@ -512,7 +661,7 @@ definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \
   stats_assn *a
   ema_assn *a
   ema_assn *a
-  conflict_count_assn *a
+  restart_info_assn *a
   vdom_assn *a
   vdom_assn *a
   nat_assn\<close>
@@ -531,7 +680,7 @@ definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_tr
   stats_assn *a
   ema_assn *a
   ema_assn *a
-  conflict_count_assn *a
+  restart_info_assn *a
   vdom_assn *a
   vdom_assn *a
   nat_assn\<close>
