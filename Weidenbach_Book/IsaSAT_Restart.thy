@@ -1842,7 +1842,7 @@ sepref_thm delete_index_vdom_heur_code
   :: \<open>[\<lambda>(i, S). i < length_avdom S]\<^sub>a
         nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
   unfolding delete_index_vdom_heur_def PR_CONST_def isasat_assn_def delete_index_and_swap_alt_def
-    length_avdom_def
+    length_avdom_def butlast_nonresizing_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 

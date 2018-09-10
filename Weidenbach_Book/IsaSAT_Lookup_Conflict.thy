@@ -3068,6 +3068,7 @@ sepref_thm lit_redundant_rec_wl_lookup_code
     nth_rll_def[symmetric] PR_CONST_def
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
+    butlast_nonresizing_def[symmetric]
   apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_assn])
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
@@ -3104,6 +3105,7 @@ lemmas lit_redundant_rec_wl_lookup_hnr[sepref_fr_rules] =
     nth_rll_def[symmetric] PR_CONST_def
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
+    butlast_nonresizing_def[symmetric]
   apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_fast_assn])
   apply (rewrite at \<open>let _ = _ \<propto> _ in _\<close> Let_def)

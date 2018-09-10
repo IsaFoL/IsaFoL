@@ -2,6 +2,24 @@ theory IsaSAT_Trail
 imports IsaSAT_Literals
 begin
 
+(* TODO Move *)
+definition butlast_nonresizing :: \<open>'a list \<Rightarrow> 'a list\<close>where
+  [simp]: \<open>butlast_nonresizing = butlast\<close>
+
+definition arl_butlast_nonresizing :: \<open>'a array_list \<Rightarrow> 'a array_list\<close> where
+  \<open>arl_butlast_nonresizing = (\<lambda>(xs, a). (xs, fast_minus a 1))\<close>
+
+lemma butlast_nonresizing_hnr[sepref_fr_rules]:
+  \<open>(return o arl_butlast_nonresizing, RETURN o butlast_nonresizing) \<in>
+    [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl_assn R)\<^sup>d \<rightarrow> arl_assn R\<close>
+  by sepref_to_hoare
+    (sep_auto simp: arl_butlast_nonresizing_def arl_assn_def hr_comp_def
+    is_array_list_def  butlast_take list_rel_imp_same_length
+    dest:
+      list_rel_butlast[of \<open>take _ _\<close>])
+(* End Move *)
+
+
 subsubsection \<open>Trail\<close>
 
 text \<open>Our trail contains several additional information compared to the simple trail:
@@ -1061,7 +1079,7 @@ sepref_thm tl_trail_tr_code
         (reason ! atm_of (last M) = DECISION_REASON \<longrightarrow> k \<ge> 1 \<and> cs \<noteq> [])]\<^sub>a
         trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
   supply if_splits[split] option.splits[split]
-  unfolding tl_trailt_tr_def UNSET_def[symmetric]
+  unfolding tl_trailt_tr_def UNSET_def[symmetric] butlast_nonresizing_def[symmetric]
   apply (rewrite at \<open>_ - one_uint32_nat\<close> fast_minus_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
@@ -1085,6 +1103,7 @@ sepref_thm tl_trail_tr_fast_code
         trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   supply if_splits[split] option.splits[split] DECISION_REASON_uint64[sepref_fr_rules]
   unfolding tl_trailt_tr_def UNSET_def[symmetric] zero_uint64_nat_def[symmetric]
+     butlast_nonresizing_def[symmetric]
   apply (rewrite at \<open>_ - one_uint32_nat\<close> fast_minus_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
@@ -1233,6 +1252,7 @@ sepref_thm tl_trail_proped_tr_code
         trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
   supply if_splits[split] option.splits[split]
   unfolding tl_trail_propedt_tr_def UNSET_def[symmetric]
+     butlast_nonresizing_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1254,6 +1274,7 @@ sepref_thm tl_trail_proped_tr_fast_code
         trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   supply if_splits[split] option.splits[split]
   unfolding tl_trail_propedt_tr_def UNSET_def[symmetric]
+    butlast_nonresizing_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1933,6 +1954,7 @@ sepref_thm tl_trail_tr_no_CS_code
         trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
   supply if_splits[split] option.splits[split]
   unfolding tl_trailt_tr_no_CS_def UNSET_def[symmetric]
+    butlast_nonresizing_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1954,6 +1976,7 @@ sepref_thm tl_trail_tr_no_CS_fast_code
         trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   supply if_splits[split] option.splits[split]
   unfolding tl_trailt_tr_no_CS_def UNSET_def[symmetric]
+    butlast_nonresizing_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
