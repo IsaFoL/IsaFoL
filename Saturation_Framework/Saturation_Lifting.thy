@@ -107,7 +107,7 @@ next
 qed
 
 text \<open>lemma 9 in Uwe's notes\<close>
-lemma \<open>\<G>_set N - Red_F_G (\<G>_set N) \<subseteq> \<G>_set (N - Red_F_\<G> N)\<close>
+lemma not_red_map_in_map_not_red: \<open>\<G>_set N - Red_F_G (\<G>_set N) \<subseteq> \<G>_set (N - Red_F_\<G> N)\<close>
 proof
   fix D
   assume
@@ -136,7 +136,18 @@ proof
   show \<open>D \<in> \<G>_set (N - Red_F_\<G> N)\<close> using D_in_C C_not_in C_in_N by blast
 qed
 
-
+text \<open>lemma 10 in Uwe's notes\<close>
+lemma \<open>N \<Turnstile>\<G> {Bot_F_F} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {Bot_F_F}\<close>
+proof -
+  fix N
+  assume \<open>N \<Turnstile>\<G> {Bot_F_F}\<close>
+  then have to_bot: \<open>\<G>_set N - Red_F_G (\<G>_set N) \<Turnstile>G {Bot_F_G}\<close> 
+    using Red_F_Bot_F Bot_F_map unfolding entails_\<G>_def by auto
+  have from_f: \<open>\<G>_set (N - Red_F_\<G> N) \<Turnstile>G \<G>_set N - Red_F_G (\<G>_set N)\<close>
+    using subset_entailed[OF not_red_map_in_map_not_red] by blast
+  then have \<open>\<G>_set (N - Red_F_\<G> N) \<Turnstile>G {Bot_F_G}\<close> using to_bot transitive_entails by blast
+  then show \<open>N - Red_F_\<G> N \<Turnstile>\<G> {Bot_F_F}\<close> using Bot_F_map unfolding entails_\<G>_def by simp
+qed
 
 
 
