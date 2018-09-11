@@ -129,13 +129,48 @@ lemma (in -) insert_sort_inner_nth_code_helper:
   using nth_mem[of b a2'] mset_eq_setD[OF mset] mset_eq_length[OF mset] assms
   by (auto simp del: nth_mem)
 
+
+find_theorems arl_assn uint32_nat_assn
+definition (in -) arl_swap_u_code
+  :: "'a ::heap array_list \<Rightarrow> uint32 \<Rightarrow> uint32 \<Rightarrow> 'a array_list Heap"
+where
+  \<open>arl_swap_u_code xs i j = do {
+     ki \<leftarrow> arl_get_u xs i;
+     kj \<leftarrow> arl_get_u xs j;
+     xs \<leftarrow> arl_set_u xs i kj;
+     xs \<leftarrow> arl_set_u xs j ki;
+     return xs
+  }\<close>
+
+(* TODO Move *)
+lemma (in -) arl_op_list_swap_u_hnr[sepref_fr_rules]:
+  assumes p: \<open>CONSTRAINT is_pure R\<close>
+  shows \<open>(uncurry2 arl_swap_u_code, uncurry2 (RETURN ooo op_list_swap)) \<in>
+       [\<lambda>((xs, i), j).  i < length xs \<and> j < length xs]\<^sub>a
+      (arl_assn R)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k  *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> arl_assn R\<close>
+proof -
+  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
+    using p by fastforce
+    find_theorems \<open>arl_assn\<close> arl_get
+  show ?thesis
+  by (sepref_to_hoare)
+    (sep_auto simp: arl_swap_u_code_def swap_def nth_u_code_def is_array_def
+      array_assn_def hr_comp_def nth_nat_of_uint32_nth'[symmetric]
+      list_rel_imp_same_length uint32_nat_rel_def br_def arl_assn_def
+      heap_array_set_u_def heap_array_set'_u_def Array.upd'_def 
+      arl_set'_u_def R R'
+      nat_of_uint32_code[symmetric] R arl_set_u_def arl_get'_def arl_get_u_def
+      intro!: list_rel_update[of _ _ R true _ _ \<open>(_, {})\<close>, unfolded R] param_nth)
+qed
+
 sepref_definition (in -) insert_sort_inner_nth_code
    is \<open>uncurry2 insert_sort_inner_nth\<close>
-   :: \<open>[\<lambda>((xs, remove), n). (\<forall>x\<in>#mset remove. x < length xs) \<and> n < length remove]\<^sub>a
-  (array_assn nat_vmtf_node_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
+   :: \<open>[\<lambda>((xs, remove), n). (\<forall>x\<in>#mset remove. x < length xs) \<and> n < length remove \<and> 
+        length remove \<le> uint32_max]\<^sub>a
+  (array_assn nat_vmtf_node_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
   arl_assn uint32_nat_assn\<close>
   unfolding insert_sort_inner_nth_def insert_sort_inner_def fast_minus_def[symmetric]
-    short_circuit_conv
+    short_circuit_conv zero_uint32_nat_def[symmetric] one_uint32_nat_def[symmetric]
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]  insert_sort_inner_nth_code_helper[intro]
     if_splits[split]
@@ -145,10 +180,11 @@ declare insert_sort_inner_nth_code.refine[sepref_fr_rules]
 
 sepref_definition (in -) insert_sort_nth_code
    is \<open>uncurry insert_sort_nth\<close>
-   :: \<open>[\<lambda>(vm, remove). (\<forall>x\<in>#mset remove. x < length (fst vm))]\<^sub>a
+   :: \<open>[\<lambda>(vm, remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
       vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
        arl_assn uint32_nat_assn\<close>
   unfolding insert_sort_nth_def insert_sort_def insert_sort_inner_nth_def[symmetric]
+    length_u_def[symmetric] one_uint32_nat_def[symmetric]
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]
   by sepref
@@ -211,8 +247,9 @@ lemma (in -) insert_sort_nth_reorder:
 
 lemma (in -) insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
    \<open>(uncurry insert_sort_nth_code, uncurry reorder_remove) \<in>
-      [\<lambda>((a, _), b). \<forall>x\<in>set b. x < length a]\<^sub>a
+      [\<lambda>((a, _), b). (\<forall>x\<in>set b. x < length a) \<and> length b \<le> uint32_max]\<^sub>a
       vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d \<rightarrow> arl_assn uint32_nat_assn\<close>
+      supply [[show_types]]
   using insert_sort_nth_code.refine[FCOMP insert_sort_nth_reorder]
   by auto
 

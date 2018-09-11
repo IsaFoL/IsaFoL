@@ -1667,10 +1667,12 @@ definition (in isasat_input_ops) distinct_atoms_assn where
 definition (in isasat_input_ops) vmtf_flush :: \<open>(nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int nres\<close> where
 \<open>vmtf_flush = (\<lambda>M (vm, to_remove). RES (vmtf M))\<close>
 
-definition (in isasat_input_ops) vmtf_flush_int :: \<open>(nat,nat) ann_lits \<Rightarrow> _ \<Rightarrow> _ nres\<close> where
+definition (in isasat_input_bounded) vmtf_flush_int :: \<open>(nat,nat) ann_lits \<Rightarrow> _ \<Rightarrow> _ nres\<close> where
 \<open>vmtf_flush_int = (\<lambda>M (vm, (to_remove, h)). do {
     ASSERT(\<forall>x\<in>set to_remove. x < length (fst vm));
+    ASSERT(length to_remove \<le> uint32_max);
     to_remove' \<leftarrow> reorder_remove vm to_remove;
+    ASSERT(length to_remove' \<le> uint32_max);
     (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm, h). i \<le> length to_remove' \<and>
           (i < length to_remove' \<longrightarrow> vmtf_en_dequeue_pre ((M, to_remove'!i), vm))\<^esup>
       (\<lambda>(i, vm, h). i < length to_remove')
@@ -1815,7 +1817,9 @@ proof -
   }\<close>
     unfolding vmtf_flush_def by (auto simp: RES_RES_RETURN_RES RES_RETURN_RES vmtf)
   have [refine0]:
-     \<open>reorder_remove x1 x1a \<le> SPEC (\<lambda>c. (c, ()) \<in> {(c, c'). ((c, D), to_remove) \<in> distinct_atoms_rel \<and> to_remove = set c})\<close>
+     \<open>reorder_remove x1 x1a \<le> SPEC (\<lambda>c. (c, ()) \<in>
+        {(c, c'). ((c, D), to_remove) \<in> distinct_atoms_rel \<and> to_remove = set c \<and>
+           length C = length c})\<close>
      (is \<open>_ \<le> SPEC(\<lambda>_. _ \<in> ?reorder_remove)\<close>)
     if 
       \<open>x2 = (x1a, x2a)\<close> and
@@ -1824,7 +1828,7 @@ proof -
   proof -
     show ?thesis
       using that assms by (auto simp: reorder_remove_def distinct_atoms_rel_def
-        dest: mset_eq_setD same_mset_distinct_iff)
+        dest: mset_eq_setD same_mset_distinct_iff mset_eq_length)
   qed
   have loop_ref: \<open>WHILE\<^sub>T\<^bsup>\<lambda>(i, vm, h).
                   i \<le> length to_remove' \<and>
@@ -2000,12 +2004,36 @@ proof -
       using vmtf CD_rem that by (auto simp: vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
         distinct_atoms_rel_def)
   qed
- 
+  have length_le: \<open>length x1a \<le> uint32_max\<close>
+    if 
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>((ns, m, fst_As, lst_As, next_search), C, D) = (x1, x2)\<close> and
+      \<open>\<forall>x\<in>set x1a. x < length (fst x1)\<close>
+      for x1 x2 x1a x2a
+  proof -
+    have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (Pos `# mset x1a)\<close> and
+      dist: \<open>distinct x1a\<close>
+      using that vmtf CD_rem unfolding vmtf_def
+        vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+      by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def distinct_atoms_rel_def inj_on_def)
+    have dist: \<open>distinct_mset (Pos `# mset x1a)\<close>
+      by (subst distinct_image_mset_inj)
+        (use dist in \<open>auto simp: inj_on_def\<close>)
+    have tauto: \<open>\<not> tautology (poss (mset x1a))\<close>
+      by (auto simp: tautology_decomp)
+
+    show ?thesis
+      using simple_clss_size_upper_div2[OF lits dist tauto]
+      by (auto simp: uint32_max_def)
+  qed
+
   show ?thesis
     unfolding vmtf_flush_int_def vmtf_flush_alt_def
     apply (refine_rcg)
     subgoal by (rule pre_sort)
+    subgoal by (rule length_le)
     apply (assumption+)[2]
+    subgoal by auto
     apply (rule loop_ref; assumption)
     subgoal by (auto simp: emptied_list_def)
     done
