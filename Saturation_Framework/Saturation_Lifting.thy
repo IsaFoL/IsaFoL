@@ -157,33 +157,65 @@ text \<open>lemma 11 in Uwe's notes 2/2\<close>
 lemma Red_I_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> Red_I_\<G> N \<subseteq> Red_I_\<G> N'\<close>
   using Red_I_of_subset unfolding Red_I_\<G>_def by (smt Collect_mono \<G>_subset subset_iff)
 
-text \<open>lemma 12 in Uwe's notes 1/2\<close>
+text \<open>lemma 12 in Uwe's notes\<close>
 lemma Red_F_of_Red_F_subset_F: \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> (N - N')\<close>
 proof
   fix N N' C
   assume 
-    N'_in_N: \<open>N' \<subseteq> Red_F_\<G> N\<close> and
+    N'_in_Red_F_N: \<open>N' \<subseteq> Red_F_\<G> N\<close> and
     C_in_red_F_N: \<open>C \<in> Red_F_\<G> N\<close>
-    have lem8: \<open>\<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
-      using Red_F_\<G>_equiv_def C_in_red_F_N by blast
-    show \<open>C \<in> Red_F_\<G> (N - N')\<close> unfolding Red_F_\<G>_def
-    proof (rule,rule)
-      fix D
-      assume \<open>D \<in> \<G>_F C\<close>
-      then have \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
-        using lem8 by auto
-      then show \<open>D \<in> Red_F_G (\<G>_set (N - N')) \<or> (\<exists>E\<in>N - N'. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
-      proof
-        assume \<open>D \<in> Red_F_G (\<G>_set N)\<close>
-        then have \<open>D \<in> Red_F_G (\<G>_set N - Red_F_G (\<G>_set N))\<close>
-          using Red_F_of_Red_F_subset[of "Red_F_G (\<G>_set N)" "\<G>_set N"] by auto
-        then have \<open>D \<in> Red_F_G (\<G>_set (N - Red_F_\<G> N))\<close> 
-          using Red_F_of_subset[OF not_red_map_in_map_not_red[of N]] by auto
-        then have \<open>D \<in> Red_F_G (\<G>_set (N - N'))\<close>
-          using N'_in_N \<G>_subset[of "N - Red_F_\<G> N" "N - N'"]
-          by (smt DiffE DiffI Red_F_of_subset subsetCE subsetI)
-        then show ?thesis by blast
-      next
+  have lem8: \<open>\<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+    using Red_F_\<G>_equiv_def C_in_red_F_N by blast
+  show \<open>C \<in> Red_F_\<G> (N - N')\<close> unfolding Red_F_\<G>_def
+  proof (rule,rule)
+    fix D
+    assume \<open>D \<in> \<G>_F C\<close>
+    then have \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+      using lem8 by auto
+    then show \<open>D \<in> Red_F_G (\<G>_set (N - N')) \<or> (\<exists>E\<in>N - N'. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+    proof
+      assume \<open>D \<in> Red_F_G (\<G>_set N)\<close>
+      then have \<open>D \<in> Red_F_G (\<G>_set N - Red_F_G (\<G>_set N))\<close>
+        using Red_F_of_Red_F_subset[of "Red_F_G (\<G>_set N)" "\<G>_set N"] by auto
+      then have \<open>D \<in> Red_F_G (\<G>_set (N - Red_F_\<G> N))\<close> 
+        using Red_F_of_subset[OF not_red_map_in_map_not_red[of N]] by auto
+      then have \<open>D \<in> Red_F_G (\<G>_set (N - N'))\<close>
+        using N'_in_Red_F_N \<G>_subset[of "N - Red_F_\<G> N" "N - N'"]
+        by (smt DiffE DiffI Red_F_of_subset subsetCE subsetI)
+      then show ?thesis by blast
+    next
+      assume \<open>\<exists>E\<in>N - Red_F_\<G> N. E \<sqsubset> C \<and> D \<in> \<G>_F E\<close>
+      then obtain E where 
+        E_in: \<open>E\<in>N - Red_F_\<G> N\<close> and 
+        E_prec_C: \<open>E \<sqsubset> C\<close> and 
+        D_in: \<open>D \<in> \<G>_F E\<close> 
+        by auto
+      have \<open>E \<in> N - N'\<close> using E_in N'_in_Red_F_N by blast
+      then show ?thesis using E_prec_C D_in by blast
+    qed
+  qed
+qed
+
+text \<open>lemma 13 in Uwe's notes\<close>
+lemma Red_I_of_Red_F_subset_F: \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_I_\<G> N \<subseteq> Red_I_\<G> (N - N') \<close>
+proof
+  fix N N' \<iota>
+  assume
+    N'_in_Red_F_N: \<open>N' \<subseteq> Red_F_\<G> N\<close> and
+    i_in_Red_I_N: \<open>\<iota> \<in> Red_I_\<G> N\<close>
+  have i_in: \<open>\<iota> \<in> I_F\<close> using i_in_Red_I_N unfolding Red_I_\<G>_def by blast
+  have \<open>\<forall>\<iota>' \<in> \<G>_I \<iota>. \<iota>' \<in> Red_I_G (\<G>_set N)\<close> using i_in_Red_I_N unfolding Red_I_\<G>_def by fast
+  then have \<open>\<forall>\<iota>' \<in> \<G>_I \<iota>. \<iota>' \<in> Red_I_G (\<G>_set N - Red_F_G (\<G>_set N))\<close> 
+    using Red_I_of_Red_F_subset by blast
+  then have \<open>\<forall>\<iota>' \<in> \<G>_I \<iota>. \<iota>' \<in> Red_I_G (\<G>_set (N - Red_F_\<G> N))\<close>
+    using Red_I_of_subset[OF not_red_map_in_map_not_red[of N]] by auto
+  then have \<open>\<forall>\<iota>' \<in> \<G>_I \<iota>. \<iota>' \<in> Red_I_G (\<G>_set (N - N'))\<close>
+    using  N'_in_Red_F_N by (smt Diff_iff Red_F_\<G>_def Red_F_\<G>_equiv_def Sup_set_def \<G>_subset 
+      inference_system.Red_I_of_subset inference_system_axioms subset_iff)
+  then show \<open>\<iota> \<in> Red_I_\<G> (N - N')\<close> unfolding Red_I_\<G>_def using i_in by blast
+qed
+
+
 end
 
 end
