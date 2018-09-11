@@ -164,12 +164,26 @@ proof
   assume 
     N'_in_N: \<open>N' \<subseteq> Red_F_\<G> N\<close> and
     C_in_red_F_N: \<open>C \<in> Red_F_\<G> N\<close>
-    have \<open>\<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+    have lem8: \<open>\<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
       using Red_F_\<G>_equiv_def C_in_red_F_N by blast
-    then show \<open>C \<in> Red_F_\<G> (N - N')\<close>
-    proof  
-
-
+    show \<open>C \<in> Red_F_\<G> (N - N')\<close> unfolding Red_F_\<G>_def
+    proof (rule,rule)
+      fix D
+      assume \<open>D \<in> \<G>_F C\<close>
+      then have \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+        using lem8 by auto
+      then show \<open>D \<in> Red_F_G (\<G>_set (N - N')) \<or> (\<exists>E\<in>N - N'. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+      proof
+        assume \<open>D \<in> Red_F_G (\<G>_set N)\<close>
+        then have \<open>D \<in> Red_F_G (\<G>_set N - Red_F_G (\<G>_set N))\<close>
+          using Red_F_of_Red_F_subset[of "Red_F_G (\<G>_set N)" "\<G>_set N"] by auto
+        then have \<open>D \<in> Red_F_G (\<G>_set (N - Red_F_\<G> N))\<close> 
+          using Red_F_of_subset[OF not_red_map_in_map_not_red[of N]] by auto
+        then have \<open>D \<in> Red_F_G (\<G>_set (N - N'))\<close>
+          using N'_in_N \<G>_subset[of "N - Red_F_\<G> N" "N - N'"]
+          by (smt DiffE DiffI Red_F_of_subset subsetCE subsetI)
+        then show ?thesis by blast
+      next
 end
 
 end
