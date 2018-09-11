@@ -1682,7 +1682,7 @@ definition (in isasat_input_bounded) vmtf_flush_int :: \<open>(nat,nat) ann_lits
     ASSERT(length to_remove \<le> uint32_max);
     to_remove' \<leftarrow> reorder_remove vm to_remove;
     ASSERT(length to_remove' \<le> uint32_max);
-    (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> \<comment> \<open>fst (snd vm') = i + fst (snd vm) \<and>\<close>
+    (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd vm) \<and>
           (i < length to_remove' \<longrightarrow> vmtf_en_dequeue_pre ((M, to_remove'!i), vm'))\<^esup>
       (\<lambda>(i, vm, h). i < length to_remove')
       (\<lambda>(i, vm, h). do {
@@ -1839,10 +1839,10 @@ proof -
       using that assms by (auto simp: reorder_remove_def distinct_atoms_rel_def
         dest: mset_eq_setD same_mset_distinct_iff mset_eq_length)
   qed
-  have loop_ref: \<open>WHILE\<^sub>T\<^bsup>\<lambda>(i, vm, h).
-                  i \<le> length to_remove' \<and>
+  have loop_ref: \<open>WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h).
+                  i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd x1) \<and>
                   (i < length to_remove' \<longrightarrow>
-                    vmtf_en_dequeue_pre ((M, to_remove' ! i), vm))\<^esup>
+                    vmtf_en_dequeue_pre ((M, to_remove' ! i), vm'))\<^esup>
         (\<lambda>(i, vm, h). i < length to_remove')
         (\<lambda>(i, vm, h). do {
               ASSERT (i < length to_remove');
@@ -1860,10 +1860,10 @@ proof -
       \<open>(to_remove', u) \<in> ?reorder_remove\<close>
     for x1 x2 x1a x2a to_remove' u
   proof -
-    define I where \<open>I \<equiv> \<lambda>(i, vm::vmtf, h::nat set).
-                  i \<le> length to_remove' \<and>
+    define I where \<open>I \<equiv> \<lambda>(i, vm'::vmtf, h::nat set).
+                  i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd x1) \<and>
                   (i < length to_remove' \<longrightarrow>
-                    vmtf_en_dequeue_pre ((M, to_remove' ! i), vm))\<close>
+                    vmtf_en_dequeue_pre ((M, to_remove' ! i), vm'))\<close>
     define I' where \<open>I' \<equiv> \<lambda>(i, vm::vmtf, h:: nat set).
        ((drop i to_remove', h), set(drop i to_remove')) \<in> distinct_atoms_rel \<and>
               (vm, h) \<in> vmtf M\<close>
@@ -1976,7 +1976,9 @@ proof -
       have \<open>I (Suc x2, vmtf_en_dequeue M (to_remove' ! x2) x2aa,
           x2a' - {to_remove' ! x2})\<close>
         using that 1 unfolding I_def
-        by auto
+        by (cases x2aa)
+          (auto simp: vmtf_en_dequeue_def vmtf_enqueue_def vmtf_dequeue_def
+          split: option.splits)
       moreover have \<open>length to_remove' - x2 < Suc (length to_remove') - x2\<close>
         using le by auto
       moreover have \<open>I' (Suc x2, vmtf_en_dequeue M (to_remove' ! x2) x2aa,
