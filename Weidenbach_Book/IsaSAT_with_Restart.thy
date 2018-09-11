@@ -634,7 +634,7 @@ definition length_u64_code' where
 code_printing constant length_u64_code' \<rightharpoonup> (SML_imp)
    "(fn/ ()/ =>/ Uint64.fromFixedInt (Array.length (_)))"
 
-code_printing constant arl_get_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ Word32.toInt (_)))"
+code_printing constant arl_get_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) ((_)),/ Word32.toInt ((_))))"
 (*
 definition arl_set_u64' where
   [symmetric, code]: \<open>arl_set_u64' = arl_set_u64\<close>
