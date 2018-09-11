@@ -3,7 +3,7 @@ imports IsaSAT_Setup
 begin
 
 subsection \<open>Code generation for the VMTF decision heuristic and the trail\<close>
-
+(* TODO used? *)
 definition size_conflict_wl :: \<open>nat twl_st_wl \<Rightarrow> nat\<close> where
   \<open>size_conflict_wl S = size (the (get_conflict_wl S))\<close>
 
@@ -27,23 +27,26 @@ lemmas size_conflict_code_hnr[sepref_fr_rules] = size_conflict_code.refine
 
 lemma VMTF_Node_ref[sepref_fr_rules]:
   \<open>(uncurry2 (return ooo VMTF_Node), uncurry2 (RETURN ooo VMTF_Node)) \<in>
-    nat_assn\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a
+    uint64_nat_assn\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a
     nat_vmtf_node_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: nat_vmtf_node_rel_def uint32_nat_rel_def br_def option_assn_alt_def
      split: option.splits)
 
-lemma stamp_ref[sepref_fr_rules]: \<open>(return o stamp, RETURN o stamp) \<in> nat_vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+lemma stamp_ref[sepref_fr_rules]:
+  \<open>(return o stamp, RETURN o stamp) \<in> nat_vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   by sepref_to_hoare
     (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap nat_vmtf_node_rel_def
       simp del: ex_assn_move_out)
 
-lemma get_next_ref[sepref_fr_rules]: \<open>(return o get_next, RETURN o get_next) \<in> nat_vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a
+lemma get_next_ref[sepref_fr_rules]:
+  \<open>(return o get_next, RETURN o get_next) \<in> nat_vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a
    option_assn uint32_nat_assn\<close>
   unfolding option_assn_pure_conv
   by sepref_to_hoare (sep_auto simp: return_cons_rule nat_vmtf_node_rel_def)
 
-lemma get_prev_ref[sepref_fr_rules]: \<open>(return o get_prev, RETURN o get_prev) \<in> nat_vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a
+lemma get_prev_ref[sepref_fr_rules]:
+  \<open>(return o get_prev, RETURN o get_prev) \<in> nat_vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a
    option_assn uint32_nat_assn\<close>
   unfolding option_assn_pure_conv
   by sepref_to_hoare (sep_auto simp: return_cons_rule nat_vmtf_node_rel_def)
@@ -69,7 +72,7 @@ sepref_definition (in -)ns_vmtf_dequeue_code
 declare ns_vmtf_dequeue_code.refine[sepref_fr_rules]
 
 abbreviation vmtf_conc_option_fst_As where
-  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a option_assn uint32_nat_assn
+  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *a uint64_nat_assn *a option_assn uint32_nat_assn
     *a option_assn uint32_nat_assn
     *a option_assn uint32_nat_assn)\<close>
 
@@ -91,7 +94,8 @@ definition (in isasat_input_ops) vmtf_enqueue_pre where
   \<open>vmtf_enqueue_pre =
      (\<lambda>((M, L),(ns,m,fst_As,lst_As, next_search)). L < length ns \<and> Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
        (fst_As \<noteq> None \<longrightarrow> the fst_As < length ns) \<and>
-       (fst_As \<noteq> None \<longrightarrow> lst_As \<noteq> None))\<close>
+       (fst_As \<noteq> None \<longrightarrow> lst_As \<noteq> None) \<and>
+       m+1 \<le> uint64_max)\<close>
 
 sepref_thm vmtf_enqueue_code
    is \<open>uncurry2 (RETURN ooo vmtf_enqueue)\<close>
@@ -99,6 +103,7 @@ sepref_thm vmtf_enqueue_code
         trail_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc_option_fst_As\<^sup>d \<rightarrow> vmtf_conc\<close>
   supply [[goals_limit = 1]]
   unfolding vmtf_enqueue_def vmtf_enqueue_pre_def defined_atm_def[symmetric]
+   one_uint64_nat_def[symmetric]
   by sepref
 
 concrete_definition (in -) vmtf_enqueue_code
@@ -109,6 +114,7 @@ prepare_code_thms (in -) vmtf_enqueue_code_def
 
 lemmas vmtf_enqueue_code_hnr[sepref_fr_rules] =
    vmtf_enqueue_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
 end
 
 
@@ -180,6 +186,9 @@ lemma vmtf_en_dequeue_pre_vmtf_enqueue_pre:
   subgoal
     by (auto simp: vmtf_dequeue_pre_def vmtf_enqueue_pre_def vmtf_dequeue_def
         Let_def vmtf_en_dequeue_pre_def split: option.splits if_splits)[]
+  subgoal
+    by (auto simp: vmtf_dequeue_pre_def vmtf_enqueue_pre_def vmtf_dequeue_def
+        Let_def vmtf_en_dequeue_pre_def split: option.splits if_splits)[]
   done
 
 lemma vmtf_en_dequeue_preD:
@@ -241,13 +250,79 @@ sepref_definition (in -) atoms_hash_del_code
 lemmas atoms_hash_del_hnr[sepref_fr_rules] =
    atoms_hash_del_code.refine[FCOMP atoms_hash_del_op_set_delete, unfolded atoms_hash_assn_def[symmetric]]
 
+(* TODO Move *)
+lemma (in -) uint64_max_uint64_nat_assn:
+ \<open>(uncurry0 (return 18446744073709551615), uncurry0 (RETURN uint64_max)) \<in>
+  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def uint64_max_def)
+
+lemma (in -) uint64_max_nat_assn[sepref_fr_rules]:
+ \<open>(uncurry0 (return 18446744073709551615), uncurry0 (RETURN uint64_max)) \<in>
+  unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def uint64_max_def)
+
+definition (in -) current_stamp where
+  \<open>current_stamp vm  = fst (snd vm)\<close>
+
+lemma (in -)current_stamp_alt_def:
+  \<open>current_stamp = (\<lambda>(_, m, _). m)\<close>
+  by (auto simp: current_stamp_def intro!: ext)
+
+lemma (in -) current_stamp_hnr[sepref_fr_rules]:
+  \<open>(return o current_stamp, RETURN o current_stamp) \<in> vmtf_conc\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: nat_vmtf_node_rel_def current_stamp_alt_def)
+
+lemma vmtf_rescale_alt_def:
+\<open>vmtf_rescale = (\<lambda>(ns, m, fst_As, lst_As :: nat, next_search). do {
+  (ns, m, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
+     (\<lambda>(ns, n, lst_As). lst_As \<noteq>None)
+     (\<lambda>(ns, n, a). do {
+       ASSERT(a \<noteq> None);
+       ASSERT(n+1 \<le> uint32_max);
+       ASSERT(the a < length ns);
+       let m = the a;
+       let c = ns ! m;
+       let nc = get_next c;
+       let pc = get_prev c; 
+       RETURN (ns[m := VMTF_Node n pc nc], n + 1, pc)
+     })
+     (ns, 0, Some lst_As);
+  RETURN ((ns, m, fst_As, lst_As, next_search))
+  })
+\<close>
+  unfolding update_stamp.simps Let_def vmtf_rescale_def by auto
+
+sepref_register vmtf_rescale
+sepref_thm vmtf_rescale_code
+   is \<open>(PR_CONST vmtf_rescale)\<close>
+   :: \<open>vmtf_conc\<^sup>d \<rightarrow>\<^sub>a
+        vmtf_conc\<close>
+  supply [[goals_limit = 1]]
+  supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
+  unfolding vmtf_rescale_alt_def zero_uint64_nat_def[symmetric] PR_CONST_def update_stamp.simps
+    one_uint64_nat_def[symmetric]
+  by sepref
+
+concrete_definition (in -) vmtf_rescale_code
+   uses isasat_input_bounded_nempty.vmtf_rescale_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_rescale_code_def
+
+lemmas vmtf_rescale_hnr[sepref_fr_rules] =
+   vmtf_rescale_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def]
+
+
 sepref_thm vmtf_flush_code
    is \<open>uncurry (PR_CONST vmtf_flush_int)\<close>
    :: \<open>trail_assn\<^sup>k *\<^sub>a (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
         (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<close>
   supply [[goals_limit = 1]]
-  supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest]
-  unfolding vmtf_flush_def PR_CONST_def vmtf_flush_int_def
+  supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
+  unfolding vmtf_flush_def PR_CONST_def vmtf_flush_int_def zero_uint32_nat_def[symmetric]
+    current_stamp_def[symmetric] one_uint32_nat_def[symmetric]
+  apply (rewrite at \<open>\<lambda>(i, vm, h). _ < \<hole>\<close> length_u_def[symmetric])
+  apply (rewrite at \<open>length _ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
 concrete_definition (in -) vmtf_flush_code

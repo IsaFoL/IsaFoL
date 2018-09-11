@@ -95,11 +95,11 @@ type_synonym (in -) twl_st_wl_heur_init =
     nat \<times> nat conflict_min_cach \<times> lbd \<times> vdom\<close>
 
 abbreviation (in -) vmtf_conc_option_fst_As where
-  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a
+  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *a uint64_nat_assn *a
     option_assn uint32_nat_assn *a option_assn uint32_nat_assn *a option_assn uint32_nat_assn)\<close>
 
 type_synonym (in -)vmtf_assn_option_fst_As =
-  \<open>(uint32, nat) vmtf_node array \<times> nat \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
+  \<open>(uint32, uint64) vmtf_node array \<times> uint64 \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
 
 type_synonym (in -)vmtf_remove_assn_option_fst_As = \<open>vmtf_assn_option_fst_As \<times> (uint32 array \<times> nat) \<times> bool array\<close>
 
@@ -2209,37 +2209,36 @@ definition conflict_is_None_heur_wl where
 
 definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> vmtf_remove_int_option_fst_As nres\<close> where
 \<open>initialise_VMTF N n = do {
-   let A = replicate n (VMTF_Node 0 None None);
+   let A = replicate n (VMTF_Node zero_uint64_nat None None);
    let to_remove = distinct_atms_empty n;
    ASSERT(length N \<le> uint32_max);
-   (_, A, n, cnext) \<leftarrow> WHILE\<^sub>T
-      (\<lambda>(i, A, st, cnext). i < length_u N)
-      (\<lambda>(i, A, st, cnext). do {
+   (n, A, cnext) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, A, cnext). i < length_u N)
+      (\<lambda>(i, A, cnext). do {
         ASSERT(i < length_u N);
         let L = nat_of_uint32 (N ! i);
         ASSERT(L < length A);
         ASSERT(cnext \<noteq> None \<longrightarrow> the cnext < length A);
         ASSERT(i + 1 \<le> uint_max);
-        RETURN (i + one_uint32_nat, vmtf_cons A L cnext st, st+1, Some L)
+        RETURN (i + one_uint32_nat, vmtf_cons A L cnext (uint64_of_uint32_conv i), Some L)
       })
-      (zero_uint32_nat, A, 0::nat, None);
-   RETURN ((A, n, cnext, (if N = [] then None else Some (nat_of_uint32 (N!0))), cnext), to_remove)
+      (zero_uint32_nat, A, None);
+   RETURN ((A, uint64_of_uint32_conv n, cnext, (if N = [] then None else Some (nat_of_uint32 (N!0))), cnext), to_remove)
   }\<close>
 
 sepref_thm (in isasat_input_ops) initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>
   :: \<open>[\<lambda>(N, n). (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < n)]\<^sub>a (arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> vmtf_remove_conc_option_fst_As\<close>
-  supply nat_of_uint32_int32_assn[sepref_fr_rules]
-  unfolding initialise_VMTF_def vmtf_cons_def
-  apply (rewrite in \<open>(_, _, _, Some \<hole>)\<close> annotate_assn[where A=\<open>uint32_nat_assn\<close>])
-  apply (rewrite in \<open>WHILE\<^sub>T _ _ (_, _, _, \<hole>)\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
+  supply nat_of_uint32_int32_assn[sepref_fr_rules] uint64_max_def[simp] uint32_max_def[simp]
+  unfolding initialise_VMTF_def vmtf_cons_def Suc_eq_plus1 one_uint64_nat_def[symmetric]
+  apply (rewrite in \<open>(_, _, Some \<hole>)\<close> annotate_assn[where A=\<open>uint32_nat_assn\<close>])
+  apply (rewrite in \<open>WHILE\<^sub>T _ _ (_, _, \<hole>)\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
   apply (rewrite in \<open>do {ASSERT _; let _ = \<hole>; _}\<close> annotate_assn[where A=\<open>uint32_nat_assn\<close>])
   apply (rewrite in \<open>let _ = \<hole> in _ \<close> array_fold_custom_replicate op_list_replicate_def[symmetric])
-  apply (rewrite in \<open>VMTF_Node 0 \<hole> _\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
-  apply (rewrite in \<open>VMTF_Node 0 _ \<hole>\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>VMTF_Node zero_uint64_nat \<hole> _\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>VMTF_Node zero_uint64_nat _ \<hole>\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
   supply [[goals_limit = 1]]
   by sepref
-
 
 concrete_definition (in -) initialise_VMTF_code
   uses "isasat_input_ops.initialise_VMTF_code.refine_raw"
@@ -2268,21 +2267,23 @@ proof -
     for fst_As x N
     by (metis (no_types, lifting) in_set_conv_nth length_take less_not_refl min_less_iff_conj
       nth_eq_iff_index_eq nth_take)
-  have W_ref: \<open>WHILE\<^sub>T
-      (\<lambda>(i, A, st, cnext). i < length_u N')
-      (\<lambda>(i, A, st, cnext). do {
-        ASSERT(i < length_u N');
-        let L = nat_of_uint32 (N' ! i);
-        ASSERT(L < length A);
-        ASSERT(cnext \<noteq> None \<longrightarrow> the cnext < length A);
-        ASSERT(i + 1 \<le> uint_max);
-        RETURN (i + one_uint32_nat, vmtf_cons A L cnext st, st+1, Some L)
-      })
-      (zero_uint32_nat, replicate n' (VMTF_Node 0 None None), 0::nat, None)
-    \<le> SPEC(\<lambda>(i, A', st, cnext).
-      vmtf_ns (rev (map (nat_of_uint32) (take i N'))) st A'
-        \<and> cnext = map_option (nat_of_uint32) (option_last (take i N')) \<and> st \<le> i \<and> i = length N' \<and>
-          length A' = n \<and> vmtf_ns_notin (rev (map (nat_of_uint32) (take i N'))) st A'
+  have W_ref: \<open>WHILE\<^sub>T (\<lambda>(i, A, cnext). i < length_u N')
+        (\<lambda>(i, A, cnext). do {
+              _ \<leftarrow> ASSERT (i < length_u N');
+              let L = nat_of_uint32 (N' ! i);
+              _ \<leftarrow> ASSERT (L < length A);
+              _ \<leftarrow> ASSERT (cnext \<noteq> None \<longrightarrow> the cnext < length A);
+              _ \<leftarrow> ASSERT (i + 1 \<le> uint_max);
+              RETURN
+               (i + one_uint32_nat,
+                vmtf_cons A L cnext (uint64_of_uint32_conv i), Some L)
+            })
+        (zero_uint32_nat, replicate n' (VMTF_Node zero_uint64_nat None None),
+         None)
+    \<le> SPEC(\<lambda>(i, A', cnext).
+      vmtf_ns (rev (map (nat_of_uint32) (take i N'))) i A'
+        \<and> cnext = map_option (nat_of_uint32) (option_last (take i N')) \<and>  i = length N' \<and>
+          length A' = n \<and> vmtf_ns_notin (rev (map (nat_of_uint32) (take i N'))) i A'
       )\<close>
     (is \<open>_ \<le> SPEC ?P\<close>)
     if H: \<open>case y of (N, n) \<Rightarrow>(\<forall>L\<in># N. L < n) \<and> distinct_mset N \<and> size N < uint32_max\<close> and
@@ -2300,10 +2301,10 @@ proof -
   have L_N: \<open>\<forall>L\<in>set N'. nat_of_uint32 L < n\<close>
     using H ref by (auto simp: list_rel_def uint32_nat_rel_def br_def list_mset_rel_def
       list_all2_op_eq_map_right_iff' list_rel_mset_rel_def)
-  let ?Q = \<open>\<lambda>(i, A', st, cnext).
-      vmtf_ns (rev (map (nat_of_uint32) (take i N'))) st A' \<and> i \<le> length N' \<and>
-      cnext = map_option (nat_of_uint32) (option_last (take i N')) \<and> st \<le> i \<and>
-      length A' = n \<and> vmtf_ns_notin (rev (map (nat_of_uint32) (take i N'))) st A'\<close>
+  let ?Q = \<open>\<lambda>(i, A', cnext).
+      vmtf_ns (rev (map (nat_of_uint32) (take i N'))) i A' \<and> i \<le> length N' \<and>
+      cnext = map_option (nat_of_uint32) (option_last (take i N')) \<and>
+      length A' = n \<and> vmtf_ns_notin (rev (map (nat_of_uint32) (take i N'))) i A'\<close>
   show ?thesis
     apply (refine_vcg WHILET_rule[where R = \<open>measure (\<lambda>(i, _). length N' + 1 - i)\<close> and I = \<open>?Q\<close>])
     subgoal by auto
@@ -2311,8 +2312,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal for S N' x2 A' x2a fst_As
+    subgoal for S N' x2 A'
       unfolding assert_bind_spec_conv vmtf_ns_notin_def
       using L_N dist
       by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
@@ -2335,12 +2335,10 @@ proof -
     subgoal by (auto simp: take_Suc_conv_app_nth)
     subgoal by (auto simp: take_Suc_conv_app_nth)
     subgoal by auto
-    subgoal by auto
     subgoal
       using L_N dist
       by (auto 5 5 simp: take_Suc_conv_app_nth hd_rev last_map option_last_def
           intro!: vmtf_notin_vmtf_cons dest: K2 split: if_splits)
-    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto

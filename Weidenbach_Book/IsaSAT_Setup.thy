@@ -176,7 +176,7 @@ lemma restart_info_restart_done_hnr[sepref_fr_rules]:
 
 paragraph \<open>VMTF\<close>
 
-type_synonym vmtf_assn = \<open>(uint32, nat) vmtf_node array \<times> nat \<times> uint32 \<times> uint32 \<times> uint32 option\<close>
+type_synonym vmtf_assn = \<open>(uint32, uint64) vmtf_node array \<times> uint64 \<times> uint32 \<times> uint32 \<times> uint32 option\<close>
 type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (uint32 array_list \<times> bool array)\<close>
 
 type_synonym phase_saver_assn = \<open>bool array\<close>
@@ -197,15 +197,16 @@ qed
 
 
 definition (in -) nat_vmtf_node_rel where
-\<open>nat_vmtf_node_rel = {(a', a). stamp a = stamp a' \<and>
+\<open>nat_vmtf_node_rel = {(a', a). (stamp a', stamp a) \<in> uint64_nat_rel \<and>
    (get_prev a', get_prev a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel \<and>
    (get_next a', get_next a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel}\<close>
 
+(* TODO rename *)
 abbreviation (in -)nat_vmtf_node_assn where
 \<open>nat_vmtf_node_assn \<equiv> pure nat_vmtf_node_rel\<close>
 
 abbreviation vmtf_conc where
-  \<open>vmtf_conc \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a uint32_nat_assn *a uint32_nat_assn
+  \<open>vmtf_conc \<equiv> (array_assn nat_vmtf_node_assn *a uint64_nat_assn *a uint32_nat_assn *a uint32_nat_assn
     *a option_assn uint32_nat_assn)\<close>
 
 abbreviation (in isasat_input_ops) vmtf_remove_conc
