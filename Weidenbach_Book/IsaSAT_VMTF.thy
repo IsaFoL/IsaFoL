@@ -130,39 +130,6 @@ lemma (in -) insert_sort_inner_nth_code_helper:
   by (auto simp del: nth_mem)
 
 
-find_theorems arl_assn uint32_nat_assn
-definition (in -) arl_swap_u_code
-  :: "'a ::heap array_list \<Rightarrow> uint32 \<Rightarrow> uint32 \<Rightarrow> 'a array_list Heap"
-where
-  \<open>arl_swap_u_code xs i j = do {
-     ki \<leftarrow> arl_get_u xs i;
-     kj \<leftarrow> arl_get_u xs j;
-     xs \<leftarrow> arl_set_u xs i kj;
-     xs \<leftarrow> arl_set_u xs j ki;
-     return xs
-  }\<close>
-
-(* TODO Move *)
-lemma (in -) arl_op_list_swap_u_hnr[sepref_fr_rules]:
-  assumes p: \<open>CONSTRAINT is_pure R\<close>
-  shows \<open>(uncurry2 arl_swap_u_code, uncurry2 (RETURN ooo op_list_swap)) \<in>
-       [\<lambda>((xs, i), j).  i < length xs \<and> j < length xs]\<^sub>a
-      (arl_assn R)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k  *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> arl_assn R\<close>
-proof -
-  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
-    using p by fastforce
-    find_theorems \<open>arl_assn\<close> arl_get
-  show ?thesis
-  by (sepref_to_hoare)
-    (sep_auto simp: arl_swap_u_code_def swap_def nth_u_code_def is_array_def
-      array_assn_def hr_comp_def nth_nat_of_uint32_nth'[symmetric]
-      list_rel_imp_same_length uint32_nat_rel_def br_def arl_assn_def
-      heap_array_set_u_def heap_array_set'_u_def Array.upd'_def 
-      arl_set'_u_def R R'
-      nat_of_uint32_code[symmetric] R arl_set_u_def arl_get'_def arl_get_u_def
-      intro!: list_rel_update[of _ _ R true _ _ \<open>(_, {})\<close>, unfolded R] param_nth)
-qed
-
 sepref_definition (in -) insert_sort_inner_nth_code
    is \<open>uncurry2 insert_sort_inner_nth\<close>
    :: \<open>[\<lambda>((xs, remove), n). (\<forall>x\<in>#mset remove. x < length xs) \<and> n < length remove \<and> 
