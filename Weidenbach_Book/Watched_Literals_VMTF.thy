@@ -431,6 +431,13 @@ lemma vmtf_ns_last_next:
        (force simp: vmtf_ns_le_length)+
   done
 
+lemma vmtf_ns_hd_prev:
+  \<open>vmtf_ns (x # xs) m ns \<Longrightarrow> get_prev (ns ! x) = None\<close>
+  apply (induction "x # xs" m ns arbitrary: xs x rule: vmtf_ns.induct)
+  subgoal by auto
+  subgoal by auto
+  done
+
 lemma vmtf_ns_last_mid_get_next:
   \<open>vmtf_ns (xs @ [x, y] @ zs) m ns \<Longrightarrow> get_next (ns ! x) = Some y\<close>
   apply (induction "xs @ [x, y] @ zs" m ns arbitrary: xs x rule: vmtf_ns.induct)
@@ -898,17 +905,18 @@ lemma vmtf_ns_rescale:
     \<open>\<forall>a \<in> set l. get_next (zs ! a) = get_next (xs ! a)\<close> and
     \<open>\<forall>a \<in> set l. stamp (zs ! a) = st ! a\<close> and
     \<open>length xs \<le> length zs\<close> and
-    \<open>\<forall>a\<in>set l. a < length st\<close>
-  shows \<open>vmtf_ns l (Max (set st)) zs\<close>
+    \<open>\<forall>a\<in>set l. a < length st\<close> and
+    m': \<open>\<forall>a \<in> set l. st ! a < m'\<close>
+  shows \<open>vmtf_ns l m' zs\<close>
   using assms
-proof (induction arbitrary: zs rule: vmtf_ns.induct)
+proof (induction arbitrary: zs m' rule: vmtf_ns.induct)
   case (Nil st xs)
   then show ?case by (auto intro: vmtf_ns.intros)
 next
   case (Cons1 a xs m n)
   then show ?case by (cases \<open>zs ! a\<close>) (auto simp: vmtf_ns_single_iff intro!: Max_ge nth_mem)
 next
-  case (Cons b l m xs a n xs' n' zs) note vmtf_ns = this(1) and a_le_y = this(2) and
+  case (Cons b l m xs a n xs' n' zs m') note vmtf_ns = this(1) and a_le_y = this(2) and
     zs_a = this(3) and ab = this(4) and a_l = this(5) and mn = this(6) and xs' = this(7) and
     nn' = this(8) and IH = this(9) and H = this(10-)
   have [simp]: \<open>b < length xs\<close> \<open>b \<noteq> a\<close> \<open>a \<noteq> b\<close> \<open>b \<notin> set l\<close> \<open>b < length zs\<close> \<open>a < length zs\<close>
@@ -928,7 +936,7 @@ next
     by (metis list.set_intros(1) list.set_intros(2) list_update_id list_update_overwrite
       nth_list_update_eq nth_list_update_neq vmtf_node.collapse vmtf_node.sel(2,3))
 
-  have vtmf_b_l: \<open>vmtf_ns (b # l) (Max (set st)) zs'\<close>
+  have vtmf_b_l: \<open>vmtf_ns (b # l) m' zs'\<close>
     unfolding zs'_def
     apply (rule IH)
     subgoal using H(1) by (simp add: sorted_many_eq_append)
@@ -938,6 +946,7 @@ next
     subgoal using H(5) xs' a_l ab by auto
     subgoal using H(6) xs' by auto
     subgoal using H(7) xs' by auto
+    subgoal using H(8) by auto
     done
   then have \<open>vmtf_ns (b # l) (stamp (zs' ! b)) zs'\<close>
     by (rule vmtf_ns_thighten_stamp)
@@ -1673,8 +1682,8 @@ definition (in isasat_input_bounded) vmtf_flush_int :: \<open>(nat,nat) ann_lits
     ASSERT(length to_remove \<le> uint32_max);
     to_remove' \<leftarrow> reorder_remove vm to_remove;
     ASSERT(length to_remove' \<le> uint32_max);
-    (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm, h). i \<le> length to_remove' \<and>
-          (i < length to_remove' \<longrightarrow> vmtf_en_dequeue_pre ((M, to_remove'!i), vm))\<^esup>
+    (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> \<comment> \<open>fst (snd vm') = i + fst (snd vm) \<and>\<close>
+          (i < length to_remove' \<longrightarrow> vmtf_en_dequeue_pre ((M, to_remove'!i), vm'))\<^esup>
       (\<lambda>(i, vm, h). i < length to_remove')
       (\<lambda>(i, vm, h). do {
          ASSERT(i < length to_remove');
@@ -2570,6 +2579,370 @@ qed
 
 lemma length_vmtf_cons[simp]: \<open>length (vmtf_cons ns L n m) = length ns\<close>
   by (auto simp: vmtf_cons_def Let_def split: option.splits)
+
+lemma (in isasat_input_ops) wf_vmtf_get_prev:
+  assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf M\<close>
+  shows \<open>wf {(get_prev (ns ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l}\<close> (is \<open>wf ?R\<close>)
+proof (rule ccontr)
+  assume \<open>\<not> ?thesis\<close>
+  then obtain f where
+    f: \<open>(f (Suc i), f i) \<in> ?R\<close> for i
+    unfolding wf_iff_no_infinite_down_chain by blast
+
+  obtain xs' ys' where
+    vmtf_ns: \<open>vmtf_ns (ys' @ xs') m ns\<close> and
+    fst_As: \<open>fst_As = hd (ys' @ xs')\<close> and
+    lst_As: \<open>lst_As = last (ys' @ xs')\<close> and
+    next_search: \<open>next_search = option_hd xs'\<close> and
+    abs_vmtf: \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l M ((set xs', set ys'), to_remove)\<close> and
+    notin: \<open>vmtf_ns_notin (ys' @ xs') m ns\<close> and
+    atm_A: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length ns\<close>
+    using vmtf unfolding vmtf_def by fast
+  let ?f0 = \<open>the (f 0)\<close>
+  have f_None: \<open>f i \<noteq> None\<close> for i
+    using f[of i] by fast
+  have f_Suc : \<open>f (Suc n) = get_prev (ns ! the (f n))\<close> for n
+    using f[of n] by auto
+  have f0_length: \<open>?f0 < length ns\<close>
+    using f[of 0] atm_A
+    by auto
+  have f0_in:  \<open>?f0 \<in> set (ys' @ xs')\<close>
+    apply (rule ccontr)
+    using notin f_Suc[of 0] f0_length unfolding vmtf_ns_notin_def
+    by (auto simp: f_None)
+  then obtain i0 where
+    i0: \<open>(ys' @ xs') ! i0 = ?f0\<close> \<open>i0 < length (ys' @ xs')\<close>
+    by (meson in_set_conv_nth)
+  define zs where \<open>zs = ys' @ xs'\<close>
+  have H: \<open>ys' @ xs' = take m (ys' @ xs') @ [(ys' @ xs') ! m, (ys' @ xs') ! (m+1)] @
+     drop (m+2) (ys' @ xs')\<close>
+    if \<open>m + 1 < length (ys' @ xs')\<close>
+    for m
+    using that
+    unfolding zs_def[symmetric]
+    apply -
+    apply (subst id_take_nth_drop[of m])
+    by (auto simp: take_Suc_conv_app_nth Cons_nth_drop_Suc  simp del: append_take_drop_id)
+
+  have \<open>the (f n) = (ys' @ xs') ! (i0 - n) \<and> i0 - n \<ge> 0 \<and> n \<le> i0\<close> for n
+  proof (induction n)
+    case 0
+    then show ?case using i0 by simp
+  next
+    case (Suc n')
+    have i0_le: \<open>n' < i0\<close>
+    proof (rule ccontr)
+      assume \<open>\<not> ?thesis\<close>
+      then have \<open>i0 = n'\<close>
+        using Suc by auto
+      then have \<open>ys' @ xs' = [the (f n')] @ tl (ys' @ xs')\<close>
+        using Suc f0_in
+        by (cases \<open>ys' @ xs'\<close>) auto
+      then show False
+        using vmtf_ns_hd_prev[of \<open>the (f n')\<close> \<open>tl (ys' @ xs')\<close> m ns] vmtf_ns
+         f_Suc[of n'] by (auto simp: f_None)
+    qed
+    have get_prev: \<open>get_prev (ns ! ((ys' @ xs') ! (i0 - (n' +1) + 1))) =
+         Some ((ys' @ xs') ! ((i0 - (n' + 1))))\<close>
+      apply (rule vmtf_ns_last_mid_get_prev[of \<open>take (i0 - (n' +1)) (ys' @ xs')\<close> _ _
+        \<open>drop ((i0 - (n' + 1)) + 2) (ys' @ xs')\<close> m])
+      apply (subst H[symmetric])
+      subgoal using i0_le i0 by auto
+      subgoal using vmtf_ns by simp
+      done
+    then show ?case
+      using f_Suc[of n'] Suc i0_le by auto
+  qed
+  from this[of \<open>Suc i0\<close>] show False
+    by auto
+qed
+
+fun update_stamp where
+  \<open>update_stamp xs n a = xs[a := VMTF_Node n (get_prev (xs!a)) (get_next (xs!a))]\<close>
+
+definition (in isasat_input_ops) vmtf_rescale :: \<open>vmtf_remove_int \<Rightarrow> vmtf_remove_int nres\<close> where
+\<open>vmtf_rescale = (\<lambda>((ns, m, fst_As, lst_As :: nat, next_search), to_remove). do {
+  (ns, m, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
+     (\<lambda>(ns, n, lst_As). lst_As \<noteq>None)
+     (\<lambda>(ns, n, a). do {
+       ASSERT(a \<noteq> None);
+       ASSERT(n+1 \<le> uint32_max);
+       RETURN (update_stamp ns n (the a), n+1, get_prev (ns ! the a))
+     })
+     (ns, 0, Some lst_As);
+  RETURN ((ns, m, fst_As, lst_As, next_search), to_remove)
+  })
+\<close>
+
+(* TODO Move *)
+thm list_update_id
+lemma (in -) list_update_id':
+  \<open>x = xs ! i \<Longrightarrow> xs[i := x] = xs\<close>
+  by auto
+(* End Move *)
+
+lemma (in isasat_input_bounded_nempty) vmtf_rescale_vmtf:
+  assumes vmtf: \<open>vm \<in> vmtf M\<close>
+  shows
+    \<open>vmtf_rescale vm \<le> SPEC (\<lambda>vm. vm \<in> vmtf M \<and> fst (snd (fst vm)) \<le> uint32_max)\<close>
+    (is \<open>?A \<le> ?R\<close>)
+proof -
+  obtain ns m fst_As lst_As next_search to_remove where
+    vm: \<open>vm = ((ns, m, fst_As, lst_As, next_search), to_remove)\<close>
+    by (cases vm) auto
+
+  obtain xs' ys' where
+    vmtf_ns: \<open>vmtf_ns (ys' @ xs') m ns\<close> and
+    fst_As: \<open>fst_As = hd (ys' @ xs')\<close> and
+    lst_As: \<open>lst_As = last (ys' @ xs')\<close> and
+    next_search: \<open>next_search = option_hd xs'\<close> and
+    abs_vmtf: \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l M ((set xs', set ys'), to_remove)\<close> and
+    notin: \<open>vmtf_ns_notin (ys' @ xs') m ns\<close> and
+    atm_A: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length ns\<close> and
+    in_lall: \<open>\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    using vmtf unfolding vmtf_def vm by fast
+  have [dest]: \<open>ys' = [] \<Longrightarrow> xs' = [] \<Longrightarrow> False\<close> and
+    [simp]: \<open>ys' = [] \<longrightarrow> xs' \<noteq> []\<close>
+    using abs_vmtf \<A>\<^sub>i\<^sub>n_nempty unfolding vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+    by (auto simp: atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
+  have 1: \<open>RES (vmtf M) = do {
+    a \<leftarrow> RETURN ();
+    RES (vmtf M)
+    }\<close>
+    by auto
+  define zs where \<open>zs \<equiv> ys' @ xs'\<close>
+
+  define I' where
+    \<open>I' \<equiv> \<lambda>(ns', n::nat, lst::nat option).
+        map get_prev ns = map get_prev ns' \<and> 
+        map get_next ns = map get_next ns' \<and>
+        (\<forall>i<n. stamp (ns' ! (rev zs ! i)) = i) \<and>
+        (lst \<noteq> None \<longrightarrow> n < length (zs) \<and> the lst = zs ! (length zs - Suc n)) \<and>
+        (lst = None \<longrightarrow> n = length zs) \<and>
+          n \<le> length zs\<close>
+  have [simp]: \<open>zs \<noteq> []\<close>
+    unfolding zs_def by auto
+  have I'0: \<open>I' (ns, 0, Some lst_As)\<close>
+    using vmtf lst_As unfolding I'_def vm zs_def[symmetric] by (auto simp: last_conv_nth)
+
+
+  have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (Pos `# mset zs)\<close> and
+    dist: \<open>distinct zs\<close>
+    using abs_vmtf vmtf_ns_distinct[OF vmtf_ns] unfolding vmtf_def zs_def
+      vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def distinct_atoms_rel_def inj_on_def)
+  have dist: \<open>distinct_mset (Pos `# mset zs)\<close>
+    by (subst distinct_image_mset_inj)
+      (use dist in \<open>auto simp: inj_on_def\<close>)
+  have tauto: \<open>\<not> tautology (poss (mset zs))\<close>
+    by (auto simp: tautology_decomp)
+
+  have length_zs_le:  \<open>length zs < uint32_max\<close> using vmtf_ns_distinct[OF vmtf_ns]
+      using simple_clss_size_upper_div2[OF lits dist tauto]
+      by (auto simp: uint32_max_def)
+  
+  have \<open>wf {(a, b). (a, b) \<in> {(get_prev (ns ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l}}\<close>
+    by (rule wf_subset[OF wf_vmtf_get_prev[OF vmtf[unfolded vm]]]) auto
+  from wf_snd_wf_pair[OF wf_snd_wf_pair[OF this]]
+  have wf: \<open>wf {((_, _, a), (_, _, b)). (a, b) \<in> {(get_prev (ns ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l}}\<close>
+    by (rule wf_subset) auto
+  have zs_lall: \<open>zs ! (length zs - Suc n) \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close> for n
+    using abs_vmtf nth_mem[of \<open>length zs - Suc n\<close> zs] unfolding zs_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+    by auto
+  then have zs_le_ns[simp]: \<open>zs ! (length zs - Suc n) < length ns\<close> for n
+    using atm_A by auto
+  have loop_body:  \<open>(case s' of
+        (ns, n, a) \<Rightarrow> do {
+            _ \<leftarrow> ASSERT (a \<noteq> None);
+            _ \<leftarrow> ASSERT (n + 1 \<le> uint_max);
+            RETURN (update_stamp ns n (the a), n + 1, get_prev (ns ! the a))
+          })
+        \<le> SPEC
+          (\<lambda>s'a. True \<and>
+                  I' s'a \<and>
+                  (s'a, s')
+                  \<in> {((_, _, a), _, _, b).
+                    (a, b)
+                    \<in> {(get_prev (ns ! the a), a) |a.
+                        a \<noteq> None \<and> the a \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l}})\<close>
+    if
+      I': \<open>I' s'\<close> and
+      cond: \<open>case s' of (ns, n, lst_As) \<Rightarrow> lst_As \<noteq> None\<close>
+    for s'
+  proof -
+    obtain ns' n' a' where s': \<open>s' = (ns', n' , a')\<close>
+      by (cases s')
+    have
+      a[simp]: \<open>a' = Some (zs ! (length zs - Suc n'))\<close> and
+      eq_prev: \<open>map get_prev ns = map get_prev ns'\<close> and
+      eq_next: \<open>map get_next ns = map get_next ns'\<close> and
+      eq_stamps: \<open>\<And>i. i<n' \<Longrightarrow> stamp (ns' ! (rev zs ! i)) = i\<close> and
+      n'_le: \<open>n' < length zs\<close>
+      using I' cond unfolding I'_def prod.simps s'
+      by auto
+    have [simp]: \<open>length ns' = length ns\<close>
+      using arg_cong[OF eq_prev, of length] by auto
+    have vmtf_as: \<open>vmtf_ns
+      (take (length zs - (n' + 1)) zs @
+       zs ! (length zs - (n' + 1)) #
+       drop (Suc (length zs - (n' + 1))) zs)
+      m ns\<close>
+      apply (subst Cons_nth_drop_Suc)
+      subgoal by auto
+      apply (subst append_take_drop_id)
+      using vmtf_ns unfolding zs_def[symmetric] .
+
+    have \<open>get_prev (ns' ! the a') \<noteq> None \<longrightarrow>
+        n' + 1 < length zs \<and>
+        the (get_prev (ns' ! the a')) = zs ! (length zs - Suc (n' + 1))\<close>
+      using n'_le vmtf_ns arg_cong[OF eq_prev, of \<open>\<lambda>xs. xs ! (zs ! (length zs - Suc n'))\<close>]
+        vmtf_ns_last_mid_get_prev_option_last[OF vmtf_as]
+      by (auto simp: last_conv_nth)
+    moreover have \<open>map get_prev ns = map get_prev (update_stamp ns' n' (the a'))\<close>
+      unfolding update_stamp.simps
+      apply (subst map_update)
+      apply (subst list_update_id')
+      subgoal by auto
+      subgoal using eq_prev .
+      done
+    moreover have \<open>map get_next ns = map get_next (update_stamp ns' n' (the a'))\<close>
+      unfolding update_stamp.simps
+      apply (subst map_update)
+      apply (subst list_update_id')
+      subgoal by auto
+      subgoal using eq_next .
+      done
+    moreover have \<open>i<n' + 1 \<Longrightarrow> stamp (update_stamp ns' n' (the a') ! (rev zs ! i)) = i\<close> for i
+      using eq_stamps[of i] vmtf_ns_distinct[OF vmtf_ns] n'_le
+      unfolding zs_def[symmetric]
+      by (cases \<open>i < n'\<close>)
+        (auto simp: rev_nth nth_eq_iff_index_eq)
+    moreover have \<open>n' + 1 \<le> length zs\<close>
+     using n'_le by (auto simp: Suc_le_eq)
+    moreover have \<open>get_prev (ns' ! the a') = None \<Longrightarrow> n' + 1 = length zs\<close>
+      using n'_le vmtf_ns arg_cong[OF eq_prev, of \<open>\<lambda>xs. xs ! (zs ! (length zs - Suc n'))\<close>]
+        vmtf_ns_last_mid_get_prev_option_last[OF vmtf_as]
+      by auto
+    ultimately have I'_f: \<open>I' (update_stamp ns' n' (the a'), n' + 1, get_prev (ns' ! the a'))\<close>
+      using cond n'_le unfolding I'_def prod.simps s'
+      by simp
+
+    show ?thesis
+      unfolding s' prod.case
+      apply refine_vcg
+      subgoal using cond by auto
+      subgoal using length_zs_le n'_le by auto
+      subgoal by fast
+      subgoal by (rule I'_f)
+      subgoal
+        using arg_cong[OF eq_prev, of \<open>\<lambda>xs. xs ! (zs ! (length zs - Suc n'))\<close>] zs_lall
+        by auto
+      done
+  qed
+  have loop_final: \<open>s \<in> {x. (case x of
+                (ns, m, uua_) \<Rightarrow>
+                  RETURN ((ns, m, fst_As, lst_As, next_search), to_remove))
+                \<le> ?R}\<close>
+    if 
+      \<open>True\<close> and
+      \<open>I' s\<close> and
+      \<open>\<not> (case s of (ns, n, lst_As) \<Rightarrow> lst_As \<noteq> None)\<close>
+    for s
+  proof -
+    obtain ns' n' a' where s: \<open>s = (ns', n' , a')\<close>
+      by (cases s)
+    have
+      [simp]:\<open>a' = None\<close> and
+      eq_prev: \<open>map get_prev ns = map get_prev ns'\<close> and
+      eq_next: \<open>map get_next ns = map get_next ns'\<close> and
+      stamp: \<open>\<forall>i<n'. stamp (ns' ! (rev zs ! i)) = i\<close> and
+      [simp]: \<open>n' = length zs\<close> 
+      using that unfolding I'_def s prod.case by auto
+    have [simp]: \<open>length ns' = length ns\<close>
+      using arg_cong[OF eq_prev, of length] by auto
+    have [simp]: \<open>map ((!) (map stamp ns')) (rev zs) = [0..<length zs]\<close>
+      apply (subst list_eq_iff_nth_eq, intro conjI)
+      subgoal by auto
+      subgoal using stamp by (auto simp: rev_nth)
+      done
+    then have stamps_zs[simp]: \<open>map ((!) (map stamp ns')) zs = rev [0..<length zs]\<close>
+        unfolding rev_map[symmetric]
+        using rev_swap by blast
+
+    have \<open>sorted (map ((!) (map stamp ns')) (rev zs))\<close>  
+      by simp
+    moreover have \<open>distinct (map ((!) (map stamp ns')) zs)\<close>
+      by simp
+    moreover have \<open>\<forall>a\<in>set zs. get_prev (ns' ! a) = get_prev (ns ! a)\<close>
+      using eq_prev map_eq_nth_eq by fastforce
+    moreover have \<open>\<forall>a\<in>set zs. get_next (ns' ! a) = get_next (ns ! a)\<close>
+      using eq_next map_eq_nth_eq by fastforce
+    moreover have \<open>\<forall>a\<in>set zs. stamp (ns' ! a) = map stamp ns' ! a\<close>
+      using vmtf_ns vmtf_ns_le_length zs_def by auto
+    moreover have \<open>length ns \<le> length ns'\<close>
+     by simp
+    moreover have \<open>\<forall>a\<in>set zs. a < length (map stamp ns')\<close>
+      using vmtf_ns vmtf_ns_le_length zs_def by auto
+    moreover have \<open>\<forall>a\<in>set zs. map stamp ns' ! a < n'\<close>
+    proof
+      fix a
+      assume \<open>a \<in> set zs\<close>
+      then have \<open>map stamp ns' ! a \<in> set (map ((!) (map stamp ns')) zs)\<close>
+        by (metis in_set_conv_nth length_map nth_map)
+      then show \<open>map stamp ns' ! a < n'\<close>    
+        unfolding stamps_zs by simp
+    qed
+    ultimately have \<open>vmtf_ns zs n' ns'\<close> 
+      using vmtf_ns_rescale[OF vmtf_ns, of \<open>map stamp ns'\<close> ns', unfolded zs_def[symmetric]]
+      by fast
+    moreover have \<open>vmtf_ns_notin zs (length zs) ns'\<close>
+      using notin map_eq_nth_eq[OF eq_prev] map_eq_nth_eq[OF eq_next]
+      unfolding zs_def[symmetric]
+      by (auto simp: vmtf_ns_notin_def)
+    ultimately have \<open>((ns', n', fst_As, lst_As, next_search), to_remove) \<in> vmtf M\<close>
+      using fst_As lst_As next_search abs_vmtf atm_A notin in_lall
+      unfolding vmtf_def in_pair_collect_simp prod.case apply -
+      apply (rule exI[of _ xs'])
+      apply (rule exI[of _ ys'])
+      unfolding zs_def[symmetric]
+      by auto
+    then show ?thesis
+      using length_zs_le
+      by (auto simp: s)
+  qed
+  
+  have H: \<open>WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup> (\<lambda>(ns, n, lst_As). lst_As \<noteq> None)
+     (\<lambda>(ns, n, a). do {
+           _ \<leftarrow> ASSERT (a \<noteq> None);
+           _ \<leftarrow> ASSERT (n + 1 \<le> uint_max);
+           RETURN (update_stamp ns n (the a), n + 1, get_prev (ns ! the a))
+         })
+     (ns, 0, Some lst_As)
+    \<le> SPEC
+       (\<lambda>x. (case x of
+             (ns, m, uua_) \<Rightarrow>
+               RETURN ((ns, m, fst_As, lst_As, next_search), to_remove))
+            \<le> ?R)
+  \<close>
+  apply (rule WHILEIT_rule_stronger_inv_RES[where I' = I' and
+      R = \<open>{((_, _, a), (_, _, b)). (a, b) \<in>
+         {(get_prev (ns ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l}}\<close>])
+  subgoal
+   by (rule wf)
+  subgoal by fast
+  subgoal by (rule I'0)
+  subgoal for s'
+    by (rule loop_body)
+  subgoal for s
+    by (rule loop_final)
+  done
+
+  show ?thesis
+    unfolding vmtf_rescale_def vm prod.case
+    apply (subst bind_rule_complete_RES)
+    apply (rule H)
+    done
+qed
 
 
 subsection \<open>Phase saving\<close>
