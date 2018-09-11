@@ -818,6 +818,44 @@ lemma nat_of_uint32_numeral_iff[simp]:
   using word_nat_of_uint32_Rep_inject by fastforce
 
 
+lemma bitAND_uint32_nat_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (AND)), uncurry (RETURN oo (AND))) \<in> 
+    uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
+
+lemma bitAND_uint32_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (AND)), uncurry (RETURN oo (AND))) \<in> 
+    uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
+
+lemma bitOR_uint32_nat_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (OR)), uncurry (RETURN oo (OR))) \<in> 
+    uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
+
+lemma bitOR_uint32_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (OR)), uncurry (RETURN oo (OR))) \<in> 
+    uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
+
+
+lemma nat_of_uint32_mult_le:
+   \<open>nat_of_uint32 ai * nat_of_uint32 bi \<le> uint32_max \<Longrightarrow>
+       nat_of_uint32 (ai * bi) = nat_of_uint32 ai * nat_of_uint32 bi\<close>
+  apply transfer
+  by (auto simp: unat_word_ariths uint32_max_def)
+
+lemma uint32_nat_assn_mult:
+  \<open>(uncurry (return oo (( * ))), uncurry (RETURN oo (( * )))) \<in> [\<lambda>(a, b). a * b \<le> uint32_max]\<^sub>a
+      uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+     (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_mult_le)
+
+
 subsubsection \<open>64-bits\<close>
 
 lemmas [id_rules] =
@@ -1406,19 +1444,60 @@ lemma sum_uint64_assn:
   \<open>(uncurry (return oo (+)), uncurry (RETURN oo (+))) \<in> uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by (sepref_to_hoare) sep_auto
 
+lemma nat_of_uint64_ao:
+  \<open>nat_of_uint64 m AND nat_of_uint64 n = nat_of_uint64 (m AND n)\<close>
+  \<open>nat_of_uint64 m OR nat_of_uint64 n = nat_of_uint64 (m OR n)\<close>
+  by (simp_all add: nat_of_uint64_and nat_of_uint64_or nat_of_uint64_le_uint64_max)
+
+lemma bitAND_uint64_nat_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (AND)), uncurry (RETURN oo (AND))) \<in> 
+    uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_ao)
+
+lemma bitAND_uint64_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (AND)), uncurry (RETURN oo (AND))) \<in> 
+    uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_ao)
+
+lemma bitOR_uint64_nat_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (OR)), uncurry (RETURN oo (OR))) \<in> 
+    uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_ao)
+
+lemma bitOR_uint64_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (OR)), uncurry (RETURN oo (OR))) \<in> 
+    uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_ao)
+
+lemma nat_of_uint64_mult_le:
+   \<open>nat_of_uint64 ai * nat_of_uint64 bi \<le> uint64_max \<Longrightarrow>
+       nat_of_uint64 (ai * bi) = nat_of_uint64 ai * nat_of_uint64 bi\<close>
+  apply transfer
+  by (auto simp: unat_word_ariths uint64_max_def)
+
+lemma uint64_nat_assn_mult:
+  \<open>(uncurry (return oo (( * ))), uncurry (RETURN oo (( * )))) \<in> [\<lambda>(a, b). a * b \<le> uint64_max]\<^sub>a
+      uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare
+     (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_mult_le)
+
 
 subsubsection \<open>Conversions\<close>
 
 paragraph \<open>From nat to 64 bits\<close>
 
-definition nat_of_uint64_spec :: \<open>nat \<Rightarrow> nat\<close> where
-  [simp]: \<open>nat_of_uint64_spec n = n\<close>
 
-lemma nat_of_uint64_spec_hnr[sepref_fr_rules]:
-  \<open>(return o uint64_of_nat, RETURN o nat_of_uint64_spec) \<in>
-     [\<lambda>n. n \<le> uint64_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_spec_def
+definition uint64_of_nat_conv :: \<open>nat \<Rightarrow> nat\<close> where
+\<open>uint64_of_nat_conv i = i\<close>
+
+lemma uint64_of_nat_conv_hnr[sepref_fr_rules]:
+  \<open>(return o uint64_of_nat, RETURN o uint64_of_nat_conv) \<in>
+    [\<lambda>n. n \<le> uint64_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def uint64_of_nat_conv_def
       nat_of_uint64_uint64_of_nat_id)
 
 
@@ -1517,8 +1596,12 @@ lemma uint32_of_uint64_conv_hnr[sepref_fr_rules]:
 
 
 paragraph \<open>Setup for numerals\<close>
-text \<open>Remark that the refinement framework still defaults to \<^typ>\<open>nat\<close>, making the constants
-like \<^term>\<open>two_uint32_nat\<close> still useful, but they can be omitted in most cases.
+
+text \<open>The refinement framework still defaults to \<^typ>\<open>nat\<close>, making the constants
+like \<^term>\<open>two_uint32_nat\<close> still useful, but they can be omitted in some cases: For example, in
+\<^term>\<open>2 + n\<close>, \<^term>\<open>2 :: nat\<close> will be refined to \<^typ>\<open>nat\<close> (independently of \<^term>\<open>n\<close>). However,
+if the expression is \<^term>\<open>n + 2\<close> and if  \<^term>\<open>n\<close> is refined to \<^typ>\<open>uint32\<close>, then everything will
+work as one might expect.
 \<close>
 
 lemmas [id_rules] =
@@ -1535,32 +1618,5 @@ lemma param_uint32_numeral[sepref_import_param]:
 lemma param_uint64_numeral[sepref_import_param]:
   \<open>(numeral n, numeral n) \<in> uint64_rel\<close>
   by auto
-
-
-(* TODO Move in this file + add 64 bits version *)
-lemma bitAND_uint32_nat_assn[sepref_fr_rules]:
-  \<open>(uncurry (return oo (AND)), uncurry (RETURN oo (AND))) \<in> 
-    uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
-
-lemma bitAND_uint32_assn[sepref_fr_rules]:
-  \<open>(uncurry (return oo (AND)), uncurry (RETURN oo (AND))) \<in> 
-    uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
-
-lemma bitOR_uint32_nat_assn[sepref_fr_rules]:
-  \<open>(uncurry (return oo (OR)), uncurry (RETURN oo (OR))) \<in> 
-    uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
-
-lemma bitOR_uint32_assn[sepref_fr_rules]:
-  \<open>(uncurry (return oo (OR)), uncurry (RETURN oo (OR))) \<in> 
-    uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
-(* END Move *)
 
 end
