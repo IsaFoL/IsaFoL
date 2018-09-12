@@ -61,13 +61,33 @@ definition isasat_header :: string where
   \<open>isasat_header = show ''Conflict | Decision | Propagation | Restarts''\<close>
 
 text \<open>Printing the information slows down the solver by a huge factor.\<close>
+definition isasat_banner_content where
+\<open>isasat_banner_content =
+''c  conflicts       decisions     restarts
+c        propagations     reductions     Kept Learnt clauses''\<close>
+
+definition isasat_information_banner :: \<open>_ \<Rightarrow> unit nres\<close> where
+\<open>isasat_information_banner _ =
+    RETURN (println_string (String.implode (show isasat_banner_content)))\<close>
+
+definition isasat_information_banner_code :: \<open>_ \<Rightarrow> unit Heap\<close> where
+\<open>isasat_information_banner_code _ =
+    return (println_string (String.implode (show isasat_banner_content)))\<close>
+
+sepref_register isasat_information_banner
+lemma isasat_information_banner_hnr[sepref_fr_rules]:
+   \<open>(isasat_information_banner_code, isasat_information_banner) \<in>
+   R\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  by sepref_to_hoare (sep_auto simp: isasat_information_banner_code_def isasat_information_banner_def)
+
 definition isasat_current_information :: \<open>stats \<Rightarrow> nat \<Rightarrow> unit\<close> where
 \<open>isasat_current_information =
-   (\<lambda>(propa, confl, decs, restarts) lcount.
+   (\<lambda>(propa, confl, decs, frestarts, lrestarts) lcount.
       if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
      then
         println_string (String.implode (show ''c | '' @ show confl @ show '' | '' @ show propa @
-          show '' | '' @ show decs @ show '' | '' @ show restarts @ show '' | '' @ show lcount))
+          show '' | '' @ show decs @ show '' | '' @ show frestarts @ show '' | '' @ show lrestarts
+          @ show '' | '' @ show lcount))
       else ()
       )\<close>
 

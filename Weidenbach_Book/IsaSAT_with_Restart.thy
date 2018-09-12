@@ -388,6 +388,7 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
         else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
+           _ \<leftarrow> isasat_information_banner T;
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
            T \<leftarrow> finalise_init_code (T::twl_st_wl_heur_init);
@@ -1604,6 +1605,7 @@ proof -
     have 1: \<open>?A \<le> ?B\<close>
       unfolding IsaSAT_heur_def Let_def isasat_input_ops.init_state_wl_heur_fast_def f_def
         empty_conflict_code_def empty_conflict_code_def empty_init_code_def convert_state_def
+        isasat_information_banner_def
       apply (refine_vcg lhs_step_If)
        apply (auto intro!:  Refine_Basic.bind_mono)
       (* apply (subst isasat_input_ops.init_dt_wl_heur_fast_init_dt_wl_heur)
@@ -1614,6 +1616,7 @@ proof -
     have 2: \<open>?B \<le> ?A\<close>
       unfolding IsaSAT_heur_def Let_def isasat_input_ops.init_state_wl_heur_fast_def f_def
         empty_conflict_code_def empty_conflict_code_def empty_init_code_def convert_state_def
+        isasat_information_banner_def
       apply (refine_vcg lhs_step_If)
       apply (auto intro!:  Refine_Basic.bind_mono)
       (* apply (subst isasat_input_ops.init_dt_wl_heur_fast_init_dt_wl_heur)

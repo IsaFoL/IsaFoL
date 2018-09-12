@@ -136,7 +136,7 @@ definition SIZE_SHIFT :: nat where
   \<open>SIZE_SHIFT = 1\<close>
 
 definition MAX_LENGTH_SHORT_CLAUSE :: nat where
- [simp]: \<open>MAX_LENGTH_SHORT_CLAUSE = 5\<close>
+ [simp]: \<open>MAX_LENGTH_SHORT_CLAUSE = 4\<close>
 
 definition is_short_clause where
   [simp]: \<open>is_short_clause C \<longleftrightarrow> length C \<le> MAX_LENGTH_SHORT_CLAUSE\<close>
@@ -2087,7 +2087,7 @@ paragraph \<open>Saved position\<close>
 
 definition get_saved_pos_pre where
   \<open>get_saved_pos_pre arena C \<longleftrightarrow> arena_is_valid_clause_idx arena C \<and>
-      arena_length arena C > 5\<close>
+      arena_length arena C > MAX_LENGTH_SHORT_CLAUSE\<close>
 
 definition isa_get_saved_pos :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> uint64 nres\<close> where
   \<open>isa_get_saved_pos arena C = do {
@@ -2100,7 +2100,7 @@ lemma arena_get_pos_conv:
     valid: \<open>valid_arena arena N x\<close> and
     j: \<open>j \<in># dom_m N\<close> and
     a: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
-    length: \<open>arena_length arena j > 5\<close>
+    length: \<open>arena_length arena j > MAX_LENGTH_SHORT_CLAUSE\<close>
   shows
     \<open>j - POS_SHIFT < length arena\<close> (is ?le) and
     \<open>POS_SHIFT \<le> j\<close> (is ?ge) and
@@ -2121,7 +2121,7 @@ proof -
     le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
     j_ge: \<open>header_size (N \<propto> j) \<le> j\<close> and
     lbd: \<open>is_Pos (arena ! (j - POS_SHIFT))\<close> and
-    ge: \<open>length (N \<propto> j) > 5\<close>
+    ge: \<open>length (N \<propto> j) > MAX_LENGTH_SHORT_CLAUSE\<close>
     using arena_lifting[OF valid j] length by (auto simp: is_short_clause_def)
   show le': ?le
      using le j_ge unfolding length[symmetric] header_size_def
@@ -2269,7 +2269,7 @@ lemma arena_update_pos_conv:
     valid: \<open>valid_arena arena N x\<close> and
     j: \<open>j \<in># dom_m N\<close> and
     a: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
-    length: \<open>arena_length arena j > 5\<close> and
+    length: \<open>arena_length arena j > MAX_LENGTH_SHORT_CLAUSE\<close> and
     pos_le: \<open>pos \<le> arena_length arena j\<close> and
     b': \<open>pos \<ge> 2\<close>
   shows
@@ -2304,8 +2304,7 @@ proof -
   then show ?unat
     using length a pos b'
       valid_arena_update_pos[OF valid j \<open>is_long_clause (N \<propto> j)\<close> ]
-    by
-      (auto simp: arena_el_rel_def unat_lit_rel_def arena_lit_def arena_update_pos_def
+    by (auto simp: arena_el_rel_def unat_lit_rel_def arena_lit_def arena_update_pos_def
         uint32_nat_rel_def br_def Collect_eq_comp nat_of_uint32_notle_minus
         nat_of_uint32_uint32_of_nat_id
        split: arena_el.splits
@@ -2314,7 +2313,7 @@ qed
 
 definition isa_update_pos_pre where
   \<open>isa_update_pos_pre = (\<lambda>((C, lbd), arena). arena_is_valid_clause_idx arena C \<and> lbd \<ge> 2 \<and>
-      lbd \<le> arena_length arena C \<and> arena_length arena C > 5 \<and>
+      lbd \<le> arena_length arena C \<and> arena_length arena C > MAX_LENGTH_SHORT_CLAUSE \<and>
       lbd \<ge> 2)\<close>
 
 lemma isa_update_pos:
@@ -2341,7 +2340,7 @@ lemma isa_update_pos_code_hnr[sepref_fr_rules]:
   by (auto simp add: arl_assn_comp isa_update_pos_pre_def)
 
 lemma MAX_LENGTH_SHORT_CLAUSE_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return 5), uncurry0 (RETURN MAX_LENGTH_SHORT_CLAUSE)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  \<open>(uncurry0 (return 4), uncurry0 (RETURN MAX_LENGTH_SHORT_CLAUSE)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
 
 

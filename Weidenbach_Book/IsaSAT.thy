@@ -268,6 +268,7 @@ definition IsaSAT_heur :: \<open>nat clause_l list \<Rightarrow> (nat literal li
         else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
+           n \<leftarrow> isasat_information_banner T;
            \<^cancel>\<open>ASSERT(mset `# ran_mf (get_clauses_wl_heur_init T) \<subseteq># mset `# mset CS);\<close>
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
@@ -291,6 +292,7 @@ lemma in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n:
   apply (subst insert_absorb[OF assms, symmetric])
   apply auto
   done
+
 (* TODO Move *)
 lemma (in -)id_mset_list_assn_list_mset_assn:
   assumes \<open>CONSTRAINT is_pure R\<close>
@@ -308,6 +310,7 @@ proof -
        p2rel_def rel2p_def[abs_def] rel_mset_def br_def Collect_eq_comp list_rel_def)
 qed
 (* END Move *)
+
 lemma cdcl_twl_stgy_prog_wl_D_code_ref':
   \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_code), uncurry isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur)
   \<in> [\<lambda>(N, _). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n]\<^sub>a
@@ -527,9 +530,9 @@ code_printing constant uint32_of_uint64 \<rightharpoonup> (SML) "Word32.fromLarg
 
 export_code IsaSAT_code checking SML_imp
 
-(*code_printing constant \<comment> \<open>print with line break\<close>
+code_printing constant \<comment> \<open>print with line break\<close>
   println_string \<rightharpoonup> (SML) "ignore/ (print/ ((_) ^ \"\\n\"))"
-*)
+
 
 export_code IsaSAT_code
     int_of_integer
@@ -1368,6 +1371,7 @@ proof -
     have 1: \<open>?A \<le> ?B\<close>
       unfolding IsaSAT_heur_def Let_def isasat_input_ops.init_state_wl_heur_fast_def f_def
         empty_conflict_code_def empty_conflict_code_def empty_init_code_def convert_state_def
+        isasat_information_banner_def
       apply (refine_vcg lhs_step_If)
        apply (auto intro!:  Refine_Basic.bind_mono)
       (* apply (subst isasat_input_ops.init_dt_wl_heur_fast_init_dt_wl_heur)
@@ -1378,6 +1382,7 @@ proof -
     have 2: \<open>?B \<le> ?A\<close>
       unfolding IsaSAT_heur_def Let_def isasat_input_ops.init_state_wl_heur_fast_def f_def
         empty_conflict_code_def empty_conflict_code_def empty_init_code_def convert_state_def
+        isasat_information_banner_def
       apply (refine_vcg lhs_step_If)
       apply (auto intro!:  Refine_Basic.bind_mono)
       (* apply (subst isasat_input_ops.init_dt_wl_heur_fast_init_dt_wl_heur)

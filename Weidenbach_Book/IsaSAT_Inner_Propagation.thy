@@ -301,7 +301,7 @@ definition (in isasat_input_ops) isa_find_unwatched
 where
 \<open>isa_find_unwatched P arena C = do {
     let l = nat_of_uint64_conv (arena_length arena C);
-    b \<leftarrow> RETURN(arena_length arena C \<le> 5);
+    b \<leftarrow> RETURN(arena_length arena C \<le> MAX_LENGTH_SHORT_CLAUSE);
     if b then isa_find_unwatched_between P arena 2 l C
     else do {
       ASSERT(get_saved_pos_pre arena C);
@@ -322,7 +322,7 @@ lemma isa_find_unwatched_find_unwatched:
   shows \<open>isa_find_unwatched P arena C \<le> \<Down> Id (find_unwatched P (N \<propto> C))\<close>
 proof -
   have [refine0]:
-    \<open>RETURN(arena_length arena C \<le> 5) \<le>
+    \<open>RETURN(arena_length arena C \<le> MAX_LENGTH_SHORT_CLAUSE) \<le>
       \<Down> {(b,b'). b = b' \<and> (b \<longleftrightarrow> is_short_clause (N\<propto>C))}
         (SPEC (\<lambda>_. True))\<close>
     using assms
@@ -514,7 +514,7 @@ proof -
     using that arena_lifting[OF valid C] by (auto simp: RETURN_RES_refine_iff
       arena_pos_def)
   have [refine0]:
-    \<open>RETURN (arena_length arena C \<le> 5) \<le> \<Down> {(b, b'). b = b' \<and> (b \<longleftrightarrow> is_short_clause (N \<propto> C))}
+    \<open>RETURN (arena_length arena C \<le> MAX_LENGTH_SHORT_CLAUSE) \<le> \<Down> {(b, b'). b = b' \<and> (b \<longleftrightarrow> is_short_clause (N \<propto> C))}
      (SPEC(\<lambda>_. True))\<close>
     if valid: \<open>valid_arena arena N vdom\<close> and C: \<open>C \<in># dom_m N\<close>
     for arena N vdom C
@@ -623,8 +623,7 @@ proof -
     using assms
     by (cases S; cases T)
       (auto simp: isa_save_pos_def twl_st_heur_def arena_update_pos_alt_def
-          isa_update_pos_pre_def arena_is_valid_clause_idx_def arena_lifting
-          is_short_clause_def)
+          isa_update_pos_pre_def arena_is_valid_clause_idx_def arena_lifting)
   then show ?thesis
     using assms
     by (cases S; cases T)
@@ -1900,7 +1899,8 @@ private lemma
   by auto
 
 private lemma isa_update_pos_pre:
-  \<open>5 < arena_length (get_clauses_wl_heur U) x1g \<Longrightarrow> isa_update_pos_pre ((x1g, j), get_clauses_wl_heur U)\<close>
+  \<open>MAX_LENGTH_SHORT_CLAUSE < arena_length (get_clauses_wl_heur U) x1g \<Longrightarrow>
+     isa_update_pos_pre ((x1g, j), get_clauses_wl_heur U)\<close>
   using j_ge2 valid_UT j_le
   unfolding isa_update_pos_pre_def access_lit_in_clauses_heur_pre_def
     arena_lit_pre_def arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def
@@ -1914,11 +1914,11 @@ private abbreviation isa_save_pos_rel where
 lemma isa_save_pos:
   \<open>isa_save_pos x1g i U \<le> \<Down> isa_save_pos_rel
       (RETURN (keep_watch L x2 x2a T))\<close>
-    using j_ge2 isa_update_pos_pre U x1g j_le
-    by (cases U; cases T)
-      (auto simp: isa_save_pos_def twl_st_heur_def keep_watch_def twl_st_heur'_def
-      arena_update_pos_alt_def arena_lifting ij arena_is_valid_clause_idx_def
-      intro!: ASSERT_leI valid_arena_update_pos)
+  using j_ge2 isa_update_pos_pre U x1g j_le
+  by (cases U; cases T)
+    (auto simp: isa_save_pos_def twl_st_heur_def keep_watch_def twl_st_heur'_def
+    arena_update_pos_alt_def arena_lifting ij arena_is_valid_clause_idx_def
+    intro!: ASSERT_leI valid_arena_update_pos)
 
 context
   notes _[simp] = ij
