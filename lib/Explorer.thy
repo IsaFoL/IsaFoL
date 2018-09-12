@@ -14,7 +14,7 @@ keywords "explore" "explore_have" "explore_lemma" "explore_context" :: diag
 begin
 
 
-subsection {* Explore command *}
+subsection \<open>Explore command\<close>
 
 text \<open>This theory contains the definition of four tactics that work on goals
 and put them in an Isar proof:
@@ -75,7 +75,7 @@ ML \<open>
   Explorer_Lib.default_raw_params @{theory}
 \<close>
 
-ML {*
+ML \<open>
 
 signature EXPLORER =
 sig
@@ -407,7 +407,7 @@ val explore_lemma_cmd =
 
 val _ =
   Outer_Syntax.command @{command_keyword "explore_lemma"}
-    "explore current goal state as Isar proof with have, if and for"
+    "explore current goal state as Isar proof with lemma, fixes, assumes, and shows"
     (Scan.succeed explore_lemma_cmd)
 
 val explore_ctxt_cmd =
@@ -415,11 +415,12 @@ val explore_ctxt_cmd =
 
 val _ =
   Outer_Syntax.command @{command_keyword "explore_context"}
-    "explore current goal state as Isar proof with have, if and for"
+    "explore current goal state as Isar proof with context and lemmas"
     (Scan.succeed explore_ctxt_cmd)
-*}
+\<close>
 
-subsection {* Examples *}
+
+subsection \<open>Examples\<close>
 
 text \<open>You can choose cartouches\<close>
 setup Explorer_Lib.switch_to_cartouches
@@ -429,8 +430,65 @@ lemma
 (*   apply simp_all
   apply auto *)
   explore
+(* 
+proof -
+  assume 
+    \<open>distinct []\<close> and
+    \<open>P []\<close>
+  show \<open>length (filter (\<lambda>x. x = y) []) \<le> 1\<close> sorry
+next
+  fix a :: \<open>'a\<close> and xs :: \<open>'a list\<close>
+  assume 
+    \<open>distinct xs \<Longrightarrow> P xs \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1\<close> and
+    \<open>distinct (a # xs)\<close> and
+    \<open>P (a # xs)\<close>
+  show \<open>length (filter (\<lambda>x. x = y) (a # xs)) \<le> 1\<close> sorry
+qed
+ *)
   explore_have
+(* 
+have \<open>length (filter (\<lambda>x. x = y) []) \<le> 1\<close>
+  if 
+    \<open>distinct []\<close> and
+    \<open>P []\<close>
+proof -
+  show ?thesis sorry
+qed
+
+
+have \<open>length (filter (\<lambda>x. x = y) (a # xs)) \<le> 1\<close>
+  if 
+    \<open>distinct xs \<Longrightarrow> P xs \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1\<close> and
+    \<open>distinct (a # xs)\<close> and
+    \<open>P (a # xs)\<close>
+  for a :: \<open>'a\<close> and xs :: \<open>'a list\<close>
+proof -
+  show ?thesis sorry
+qed
+ *)
   explore_lemma
+(* 
+lemma
+  assumes 
+    \<open>distinct []\<close> and
+    \<open>P []\<close>
+  shows \<open>length (filter (\<lambda>x. x = y) []) \<le> 1\<close>
+proof -
+  show ?thesis sorry
+qed
+
+
+lemma
+  fixes a :: \<open>'a\<close> and xs :: \<open>'a list\<close>
+  assumes 
+    \<open>distinct xs \<Longrightarrow> P xs \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1\<close> and
+    \<open>distinct (a # xs)\<close> and
+    \<open>P (a # xs)\<close>
+  shows \<open>length (filter (\<lambda>x. x = y) (a # xs)) \<le> 1\<close>
+proof -
+  show ?thesis sorry
+qed
+ *)
   oops
 
 lemma
