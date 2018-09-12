@@ -1435,7 +1435,7 @@ lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow
 subsubsection \<open>Finite map and multisets\<close>
 
 text \<open>Roughly the same as \<^term>\<open>ran\<close> and \<^term>\<open>dom\<close>, but with duplication in the content (unlike their
-  finite sets counterpart) and it works only on finite domains (unlike a function mapping).
+  finite sets counterpart) while still working on finite domains (unlike a function mapping).
   Remark that \<^term>\<open>dom_m\<close> (the keys) does not contain duplicates, but we keep for symmetry (and for
   easier use of multiset operators as in the definition of \<^term>\<open>ran_m\<close>).
 \<close>
@@ -1499,6 +1499,72 @@ lemma dom_m_fmrestrict_set': \<open>dom_m (fmrestrict_set xs N) = mset_set (xs \
 
 lemma indom_mI: \<open>fmlookup m x = Some y \<Longrightarrow> x \<in># dom_m m\<close>
   by (drule fmdomI)  (auto simp: dom_m_def fmember.rep_eq)
+
+lemma fmupd_fmdrop_id:
+  assumes \<open>k |\<in>| fmdom N'\<close>
+  shows \<open>fmupd k (the (fmlookup N' k)) (fmdrop k N') = N'\<close>
+proof -
+  have [simp]: \<open>map_upd k (the (fmlookup N' k))
+       (\<lambda>x. if x = k then None else fmlookup N' x) =
+     map_upd k (the (fmlookup N' k))
+       (fmlookup N')\<close>
+    by (auto intro!: ext simp: map_upd_def)
+  have [simp]: \<open>map_upd k (the (fmlookup N' k)) (fmlookup N') = fmlookup N'\<close>
+    using assms
+    by (auto intro!: ext simp: map_upd_def)
+  have [simp]: \<open>finite (dom (\<lambda>x. if x = k then None else fmlookup N' x))\<close>
+    by (subst dom_if) auto
+  show ?thesis
+    apply (auto simp: fmupd_def fmupd.abs_eq[symmetric])
+    unfolding fmlookup_drop
+    apply (simp add: fmlookup_inverse)
+    done
+qed
+
+lemma fm_member_split: \<open>k |\<in>| fmdom N' \<Longrightarrow> \<exists>N'' v. N' = fmupd k v N'' \<and> the (fmlookup N' k) = v \<and>
+    k |\<notin>| fmdom N''\<close>
+  by (rule exI[of _ \<open>fmdrop k N'\<close>])
+    (auto simp: fmupd_fmdrop_id)
+
+lemma \<open>fmdrop k (fmupd k va N'') = fmdrop k N''\<close>
+  by (simp add: fmap_ext)
+
+lemma fmap_ext_fmdom:
+  \<open>(fmdom N = fmdom N') \<Longrightarrow> (\<And> x. x |\<in>| fmdom N \<Longrightarrow> fmlookup N x = fmlookup N' x) \<Longrightarrow>
+       N = N'\<close>
+  by (rule fmap_ext)
+    (case_tac \<open>x |\<in>| fmdom N\<close>, auto simp: fmdom_notD)
+
+lemma fmrestrict_set_insert_in:
+  \<open>xa  \<in> fset (fmdom N) \<Longrightarrow>
+    fmrestrict_set (insert xa l1) N = fmupd xa (the (fmlookup N xa)) (fmrestrict_set l1 N)\<close>
+  apply (rule fmap_ext_fmdom)
+   apply (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset dest: fmdom_notD; fail)[]
+  apply (auto simp: fmlookup_dom_iff; fail)
+  done
+
+lemma fmrestrict_set_insert_notin:
+  \<open>xa  \<notin> fset (fmdom N) \<Longrightarrow>
+    fmrestrict_set (insert xa l1) N = fmrestrict_set l1 N\<close>
+  by (rule fmap_ext_fmdom)
+     (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset dest: fmdom_notD)
+
+lemma fmrestrict_set_insert_in_dom_m[simp]:
+  \<open>xa  \<in># dom_m N \<Longrightarrow>
+    fmrestrict_set (insert xa l1) N = fmupd xa (the (fmlookup N xa)) (fmrestrict_set l1 N)\<close>
+  using fmdom'_alt_def fmrestrict_set_insert_in by fastforce
+
+lemma fmrestrict_set_insert_notin_dom_m[simp]:
+  \<open>xa  \<notin># dom_m N \<Longrightarrow>
+    fmrestrict_set (insert xa l1) N = fmrestrict_set l1 N\<close>
+  by (simp add: fmrestrict_set_insert_notin dom_m_def)
+
+lemma fmlookup_restrict_set_id: \<open>fset (fmdom N) \<subseteq> A \<Longrightarrow> fmrestrict_set A N = N\<close>
+  by (metis fmap_ext fmdom'_alt_def fmdom'_notD fmlookup_restrict_set subset_iff)
+
+lemma fmlookup_restrict_set_id': \<open>set_mset (dom_m N) \<subseteq> A \<Longrightarrow> fmrestrict_set A N = N\<close>
+  by (rule fmlookup_restrict_set_id)
+    (auto simp: dom_m_def)
 
 
 subsubsection \<open>Compact domain for finite maps\<close>
