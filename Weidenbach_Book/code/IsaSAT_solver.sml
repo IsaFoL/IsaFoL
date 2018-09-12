@@ -170,10 +170,10 @@ end; (*struct Bits_Integer*)
 structure SAT_Solver : sig
   type nat
   val integer_of_nat : nat -> IntInf.int
-  val nat_of_integer : IntInf.int -> nat
   type ('a, 'b) vmtf_node
   type minimize_status
   datatype int = Int_of_integer of IntInf.int
+  val nat_of_integer : IntInf.int -> nat
   val integer_of_int : int -> IntInf.int
   val uint32_of_nat : nat -> Word32.word
   val isaSAT_code :
@@ -353,125 +353,6 @@ val heap_uint64 =
   {countable_heap = countable_uint64, typerep_heap = typerep_uint64} :
   Uint64.uint64 heap;
 
-datatype num = One | Bit0 of num | Bit1 of num;
-
-fun sgn_integer k =
-  (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
-    else (if IntInf.< (k, (0 : IntInf.int)) then (~1 : IntInf.int)
-           else (1 : IntInf.int)));
-
-fun apsnd f (x, y) = (x, f y);
-
-fun divmod_integer k l =
-  (if ((k : IntInf.int) = (0 : IntInf.int))
-    then ((0 : IntInf.int), (0 : IntInf.int))
-    else (if ((l : IntInf.int) = (0 : IntInf.int)) then ((0 : IntInf.int), k)
-           else (apsnd o (fn a => fn b => IntInf.* (a, b)) o sgn_integer) l
-                  (if (((sgn_integer k) : IntInf.int) = (sgn_integer l))
-                    then IntInf.divMod (IntInf.abs k, IntInf.abs l)
-                    else let
-                           val (r, s) =
-                             IntInf.divMod (IntInf.abs k, IntInf.abs l);
-                         in
-                           (if ((s : IntInf.int) = (0 : IntInf.int))
-                             then (IntInf.~ r, (0 : IntInf.int))
-                             else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
-                                    IntInf.- (IntInf.abs l, s)))
-                         end)));
-
-fun snd (x1, x2) = x2;
-
-fun modulo_integer k l = snd (divmod_integer k l);
-
-fun modulo_nat m n = Nat (modulo_integer (integer_of_nat m) (integer_of_nat n));
-
-fun fst (x1, x2) = x1;
-
-fun divide_integer k l = fst (divmod_integer k l);
-
-fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
-
-fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
-
-fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
-
-val one_nat : nat = Nat (1 : IntInf.int);
-
-fun string_of_digit n =
-  (if equal_nat n zero_nata
-    then [Chara (false, false, false, false, true, true, false, false)]
-    else (if equal_nat n one_nat
-           then [Chara (true, false, false, false, true, true, false, false)]
-           else (if equal_nat n (nat_of_integer (2 : IntInf.int))
-                  then [Chara (false, true, false, false, true, true, false,
-                                false)]
-                  else (if equal_nat n (nat_of_integer (3 : IntInf.int))
-                         then [Chara (true, true, false, false, true, true,
-                                       false, false)]
-                         else (if equal_nat n (nat_of_integer (4 : IntInf.int))
-                                then [Chara
-(false, false, true, false, true, true, false, false)]
-                                else (if equal_nat n
-   (nat_of_integer (5 : IntInf.int))
-                                       then [Chara
-       (true, false, true, false, true, true, false, false)]
-                                       else (if equal_nat n
-          (nat_of_integer (6 : IntInf.int))
-      then [Chara (false, true, true, false, true, true, false, false)]
-      else (if equal_nat n (nat_of_integer (7 : IntInf.int))
-             then [Chara (true, true, true, false, true, true, false, false)]
-             else (if equal_nat n (nat_of_integer (8 : IntInf.int))
-                    then [Chara (false, false, false, true, true, true, false,
-                                  false)]
-                    else [Chara (true, false, false, true, true, true, false,
-                                  false)])))))))));
-
-fun showsp_nat p n =
-  (if less_nat n (nat_of_integer (10 : IntInf.int))
-    then shows_string (string_of_digit n)
-    else showsp_nat p (divide_nat n (nat_of_integer (10 : IntInf.int))) o
-           shows_string
-             (string_of_digit
-               (modulo_nat n (nat_of_integer (10 : IntInf.int)))));
-
-fun shows_prec_nat x = showsp_nat x;
-
-fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
-
-fun shows_prec_uint64 n m xs = shows_prec_nat n (nat_of_uint64 m) xs;
-
-fun shows_sep s sep [] = shows_string []
-  | shows_sep s sep [x] = s x
-  | shows_sep s sep (x :: v :: va) = s x o sep o shows_sep s sep (v :: va);
-
-fun null [] = true
-  | null (x :: xs) = false;
-
-fun shows_list_gen showsx e l s r xs =
-  (if null xs then shows_string e
-    else shows_string l o shows_sep showsx (shows_string s) xs o
-           shows_string r);
-
-fun showsp_list s p xs =
-  shows_list_gen (s zero_nata)
-    [Chara (true, true, false, true, true, false, true, false),
-      Chara (true, false, true, true, true, false, true, false)]
-    [Chara (true, true, false, true, true, false, true, false)]
-    [Chara (false, false, true, true, false, true, false, false),
-      Chara (false, false, false, false, false, true, false, false)]
-    [Chara (true, false, true, true, true, false, true, false)] xs;
-
-fun shows_list_nat x = showsp_list shows_prec_nat zero_nata x;
-
-fun map f [] = []
-  | map f (x21 :: x22) = f x21 :: map f x22;
-
-fun shows_list_uint64 xs ys = shows_list_nat (map nat_of_uint64 xs) ys;
-
-val show_uint64 =
-  {shows_prec = shows_prec_uint64, shows_list = shows_list_uint64} :
-  Uint64.uint64 show;
-
 val default_uint64a : Uint64.uint64 = Uint64.zero;
 
 val default_uint64 = {default = default_uint64a} : Uint64.uint64 default;
@@ -491,6 +372,8 @@ fun heap_prod A_ B_ =
 fun default_proda A_ B_ = (default A_, default B_);
 
 fun default_prod A_ B_ = {default = default_proda A_ B_} : ('a * 'b) default;
+
+datatype num = One | Bit0 of num | Bit1 of num;
 
 val one_integera : IntInf.int = (1 : IntInf.int);
 
@@ -541,7 +424,11 @@ datatype int = Int_of_integer of IntInf.int;
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
+val one_nat : nat = Nat (1 : IntInf.int);
+
 fun suc n = plus_nat n one_nat;
+
+fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
 
 fun len A_ a =
   (fn () => let
@@ -564,10 +451,16 @@ fun upd A_ i x a =
       a
     end);
 
+fun null [] = true
+  | null (x :: xs) = false;
+
 fun hd (x21 :: x22) = x21;
 
 fun tl [] = []
   | tl (x21 :: x22) = x22;
+
+fun map f [] = []
+  | map f (x21 :: x22) = f x21 :: map f x22;
 
 fun of_bool A_ true = one (one_zero_neq_one A_)
   | of_bool A_ false = zero (zero_zero_neq_one A_);
@@ -684,6 +577,8 @@ fun get_next (VMTF_Node (x1, x2, x3)) = x3;
 fun stamp (VMTF_Node (x1, x2, x3)) = x1;
 
 fun uint64_of_uint32 x = (Uint64.fromLarge (Word32.toLarge x));
+
+fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
 
 fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nata)));
 
@@ -993,6 +888,125 @@ fun extract_atms_cls_imp x =
 fun extract_atms_clss_imp x =
   (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) extract_atms_cls_imp) x;
 
+fun shows_prec_list A_ p xs = shows_list A_ xs;
+
+val isasat_banner_content : char list =
+  [Chara (true, true, false, false, false, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (true, true, false, false, false, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (false, true, true, false, false, true, true, false),
+    Chara (false, false, true, true, false, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (true, true, false, false, false, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, true, false, false, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (true, true, false, false, false, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, true, true, false, false, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (true, true, false, false, false, true, true, false),
+    Chara (true, false, false, false, false, true, true, false),
+    Chara (false, false, true, true, false, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, true, false, false, true, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (true, false, false, false, false, true, true, false),
+    Chara (false, true, false, false, true, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (false, true, false, true, false, false, false, false),
+    Chara (true, true, false, false, false, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, true, true, true, false),
+    Chara (false, true, false, false, true, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (false, false, false, false, true, true, true, false),
+    Chara (true, false, false, false, false, true, true, false),
+    Chara (true, true, true, false, false, true, true, false),
+    Chara (true, false, false, false, false, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, true, false, false, true, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (false, false, true, false, false, true, true, false),
+    Chara (true, false, true, false, true, true, true, false),
+    Chara (true, true, false, false, false, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (true, true, false, true, false, false, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (false, false, false, false, true, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, true, true, false, false, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (true, false, false, false, false, true, true, false),
+    Chara (false, true, false, false, true, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (true, true, false, false, false, true, true, false),
+    Chara (false, false, true, true, false, true, true, false),
+    Chara (true, false, false, false, false, true, true, false),
+    Chara (true, false, true, false, true, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (true, true, false, false, true, true, true, false)];
+
+fun isasat_information_banner_code uu =
+  (fn () =>
+    (ignore (print
+      (implode
+         (shows_prec_list show_char zero_nata isasat_banner_content
+           []) ^ "\n"))));
+
 fun get_conflict_wl_is_None_code x =
   (fn xi => (fn () => let
                         val (_, (_, ((a1c, _), (_, (_, _))))) = xi;
@@ -1191,6 +1205,8 @@ fun isa_arena_length_code x =
     end)
     x;
 
+fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
+
 fun find_unwatched_wl_st_heur_code x =
   (fn ai => fn bi =>
     let
@@ -1205,7 +1221,7 @@ fun find_unwatched_wl_st_heur_code x =
           in
             (fn f_ => fn () => f_ ((isa_arena_length_code a1a bi) ()) ())
               (fn xaa =>
-                (if Uint64.less_eq xaa (Uint64.fromInt (5 : IntInf.int))
+                (if Uint64.less_eq xaa (Uint64.fromInt (4 : IntInf.int))
                   then isa_find_unwatched_between_code a1 a1a
                          (nat_of_integer (2 : IntInf.int)) xb bi
                   else (fn f_ => fn () => f_
@@ -1581,7 +1597,7 @@ fun isa_save_pos_code x =
     let
       val xa = isa_arena_length_code a1a ai ();
     in
-      (if Uint64.less (Uint64.fromInt (5 : IntInf.int)) xa
+      (if Uint64.less (Uint64.fromInt (4 : IntInf.int)) xa
         then (fn f_ => fn () => f_ ((isa_update_pos_code ai bia a1a) ()) ())
                (fn xb => (fn () => (a1, (xb, a2a))))
         else (fn () => (a1, (a1a, a2a))))
@@ -1818,6 +1834,10 @@ fun last_trail_code x =
       (x_b, (if equal_nat xb one_nat then NONE else SOME xb))
     end)
     x;
+
+fun snd (x1, x2) = x2;
+
+fun fst (x1, x2) = x1;
 
 fun lit_and_ann_of_propagated_st_heur_code x =
   (fn (a1, _) => fn () => let
@@ -3130,7 +3150,7 @@ fun is_short_clause_code x =
   (fn xi => fn () => let
                        val xa = len heap_uint32 xi ();
                      in
-                       less_eq_nat xa (nat_of_integer (5 : IntInf.int))
+                       less_eq_nat xa (nat_of_integer (4 : IntInf.int))
                      end)
     x;
 
@@ -3471,75 +3491,140 @@ fun backtrack_wl_D_nlit_heur_code x =
     end)
     x;
 
-fun showsp_prod s1 s2 p (x, y) =
-  shows_string [Chara (false, false, false, true, false, true, false, false)] o
-    s1 one_nat x o
-    shows_string
-      [Chara (false, false, true, true, false, true, false, false),
-        Chara (false, false, false, false, false, true, false, false)] o
-    s2 one_nat y o
-    shows_string [Chara (true, false, false, true, false, true, false, false)];
+fun sgn_integer k =
+  (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
+    else (if IntInf.< (k, (0 : IntInf.int)) then (~1 : IntInf.int)
+           else (1 : IntInf.int)));
 
-fun shows_prec_prod A_ B_ = showsp_prod (shows_prec A_) (shows_prec B_);
+fun apsnd f (x, y) = (x, f y);
 
-fun shows_prec_list A_ p xs = shows_list A_ xs;
+fun divmod_integer k l =
+  (if ((k : IntInf.int) = (0 : IntInf.int))
+    then ((0 : IntInf.int), (0 : IntInf.int))
+    else (if ((l : IntInf.int) = (0 : IntInf.int)) then ((0 : IntInf.int), k)
+           else (apsnd o (fn a => fn b => IntInf.* (a, b)) o sgn_integer) l
+                  (if (((sgn_integer k) : IntInf.int) = (sgn_integer l))
+                    then IntInf.divMod (IntInf.abs k, IntInf.abs l)
+                    else let
+                           val (r, s) =
+                             IntInf.divMod (IntInf.abs k, IntInf.abs l);
+                         in
+                           (if ((s : IntInf.int) = (0 : IntInf.int))
+                             then (IntInf.~ r, (0 : IntInf.int))
+                             else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
+                                    IntInf.- (IntInf.abs l, s)))
+                         end)));
 
-fun println_string uu = ();
+fun modulo_integer k l = snd (divmod_integer k l);
+
+fun modulo_nat m n = Nat (modulo_integer (integer_of_nat m) (integer_of_nat n));
+
+fun divide_integer k l = fst (divmod_integer k l);
+
+fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
+
+fun string_of_digit n =
+  (if equal_nat n zero_nata
+    then [Chara (false, false, false, false, true, true, false, false)]
+    else (if equal_nat n one_nat
+           then [Chara (true, false, false, false, true, true, false, false)]
+           else (if equal_nat n (nat_of_integer (2 : IntInf.int))
+                  then [Chara (false, true, false, false, true, true, false,
+                                false)]
+                  else (if equal_nat n (nat_of_integer (3 : IntInf.int))
+                         then [Chara (true, true, false, false, true, true,
+                                       false, false)]
+                         else (if equal_nat n (nat_of_integer (4 : IntInf.int))
+                                then [Chara
+(false, false, true, false, true, true, false, false)]
+                                else (if equal_nat n
+   (nat_of_integer (5 : IntInf.int))
+                                       then [Chara
+       (true, false, true, false, true, true, false, false)]
+                                       else (if equal_nat n
+          (nat_of_integer (6 : IntInf.int))
+      then [Chara (false, true, true, false, true, true, false, false)]
+      else (if equal_nat n (nat_of_integer (7 : IntInf.int))
+             then [Chara (true, true, true, false, true, true, false, false)]
+             else (if equal_nat n (nat_of_integer (8 : IntInf.int))
+                    then [Chara (false, false, false, true, true, true, false,
+                                  false)]
+                    else [Chara (true, false, false, true, true, true, false,
+                                  false)])))))))));
+
+fun showsp_nat p n =
+  (if less_nat n (nat_of_integer (10 : IntInf.int))
+    then shows_string (string_of_digit n)
+    else showsp_nat p (divide_nat n (nat_of_integer (10 : IntInf.int))) o
+           shows_string
+             (string_of_digit
+               (modulo_nat n (nat_of_integer (10 : IntInf.int)))));
+
+fun shows_prec_nat x = showsp_nat x;
+
+fun shows_prec_uint64 n m xs = shows_prec_nat n (nat_of_uint64 m) xs;
 
 fun isasat_current_information x =
-  (fn (propa, (confl, (decs, restarts))) => fn lcount =>
+  (fn (propa, (confl, (decs, (frestarts, lrestarts)))) => fn lcount =>
     (if (((Uint64.andb confl
             (Uint64.fromInt
               (8191 : IntInf.int))) : Uint64.uint64) = (Uint64.fromInt
                  (8191 : IntInf.int)))
-      then println_string
+      then ignore (print
              (implode
-               (shows_prec_list show_char zero_nata
-                  [Chara (true, true, false, false, false, true, true, false),
-                    Chara (false, false, false, false, false, true, false,
-                            false),
-                    Chara (false, false, true, true, true, true, true, false),
-                    Chara (false, false, false, false, false, true, false,
-                            false)]
-                  [] @
-                 shows_prec_uint64 zero_nata confl [] @
-                   shows_prec_list show_char zero_nata
-                     [Chara (false, false, false, false, false, true, false,
-                              false),
-                       Chara (false, false, true, true, true, true, true,
+                (shows_prec_list show_char zero_nata
+                   [Chara (true, true, false, false, false, true, true, false),
+                     Chara (false, false, false, false, false, true, false,
+                             false),
+                     Chara (false, false, true, true, true, true, true, false),
+                     Chara (false, false, false, false, false, true, false,
+                             false)]
+                   [] @
+                  shows_prec_uint64 zero_nata confl [] @
+                    shows_prec_list show_char zero_nata
+                      [Chara (false, false, false, false, false, true, false,
                                false),
-                       Chara (false, false, false, false, false, true, false,
-                               false)]
-                     [] @
-                     shows_prec_uint64 zero_nata propa [] @
-                       shows_prec_list show_char zero_nata
-                         [Chara (false, false, false, false, false, true, false,
-                                  false),
-                           Chara (false, false, true, true, true, true, true,
-                                   false),
-                           Chara (false, false, false, false, false, true,
-                                   false, false)]
-                         [] @
-                         shows_prec_uint64 zero_nata decs [] @
-                           shows_prec_list show_char zero_nata
-                             [Chara (false, false, false, false, false, true,
-                                      false, false),
-                               Chara (false, false, true, true, true, true,
-                                       true, false),
-                               Chara (false, false, false, false, false, true,
-                                       false, false)]
-                             [] @
-                             shows_prec_prod show_uint64 show_uint64 zero_nata
-                               restarts [] @
-                               shows_prec_list show_char zero_nata
-                                 [Chara (false, false, false, false, false,
-  true, false, false),
-                                   Chara (false, false, true, true, true, true,
-   true, false),
-                                   Chara (false, false, false, false, false,
-   true, false, false)]
-                                 [] @
-                                 shows_prec_nat zero_nata lcount []))
+                        Chara (false, false, true, true, true, true, true,
+                                false),
+                        Chara (false, false, false, false, false, true, false,
+                                false)]
+                      [] @
+                      shows_prec_uint64 zero_nata propa [] @
+                        shows_prec_list show_char zero_nata
+                          [Chara (false, false, false, false, false, true,
+                                   false, false),
+                            Chara (false, false, true, true, true, true, true,
+                                    false),
+                            Chara (false, false, false, false, false, true,
+                                    false, false)]
+                          [] @
+                          shows_prec_uint64 zero_nata decs [] @
+                            shows_prec_list show_char zero_nata
+                              [Chara (false, false, false, false, false, true,
+                                       false, false),
+                                Chara (false, false, true, true, true, true,
+true, false),
+                                Chara (false, false, false, false, false, true,
+false, false)]
+                              [] @
+                              shows_prec_uint64 zero_nata frestarts [] @
+                                shows_prec_list show_char zero_nata
+                                  [Chara (false, false, false, false, false,
+   true, false, false),
+                                    Chara (false, false, true, true, true, true,
+    true, false),
+                                    Chara (false, false, false, false, false,
+    true, false, false)]
+                                  [] @
+                                  shows_prec_uint64 zero_nata lrestarts [] @
+                                    shows_prec_list show_char zero_nata
+                                      [Chara
+ (false, false, false, false, false, true, false, false),
+Chara (false, false, true, true, true, true, true, false),
+Chara (false, false, false, false, false, true, false, false)]
+                                      [] @
+                                      shows_prec_nat zero_nata lcount
+[]) ^ "\n"))
       else ()))
     x;
 
@@ -3941,17 +4026,20 @@ fun isaSAT_code x =
     in
       (if not xd then empty_init_code
         else (if op_list_is_empty xi then empty_conflict_code
-               else (fn f_ => fn () => f_ ((finalise_init_code x_e) ()) ())
-                      (fn x_j =>
-                        (fn f_ => fn () => f_
-                          ((cdcl_twl_stgy_prog_wl_D_code x_j) ()) ())
+               else (fn f_ => fn () => f_ ((isasat_information_banner_code x_e)
+                      ()) ())
+                      (fn _ =>
+                        (fn f_ => fn () => f_ ((finalise_init_code x_e) ()) ())
                           (fn x_k =>
                             (fn f_ => fn () => f_
-                              ((get_conflict_wl_is_None_code x_k) ()) ())
+                              ((cdcl_twl_stgy_prog_wl_D_code x_k) ()) ())
                               (fn x_l =>
-                                (fn () =>
-                                  (if x_l then get_trail_wl_code x_k
-                                    else get_stats_code x_k)))))))
+                                (fn f_ => fn () => f_
+                                  ((get_conflict_wl_is_None_code x_l) ()) ())
+                                  (fn x_m =>
+                                    (fn () =>
+                                      (if x_m then get_trail_wl_code x_l
+else get_stats_code x_l))))))))
         ()
     end)
     x;
