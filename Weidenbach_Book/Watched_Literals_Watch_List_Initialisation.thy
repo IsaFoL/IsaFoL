@@ -201,12 +201,12 @@ lemma clause_to_update_mapsto_upd_notin:
 
 lemma correct_watching_init_add_clause:
   assumes
-    corr: \<open>correct_watching_init ((a, aa, None, ac, ad, {#}, b), baa)\<close> and
+    corr: \<open>correct_watching_init ((a, aa, None, ac, ad, Q, b), baa)\<close> and
     leC: \<open>2 \<le> length C\<close> and
     [simp]: \<open>i \<notin># dom_m aa\<close> and
     dist[iff]: \<open>C ! 0 \<noteq> C ! Suc 0\<close>
   shows \<open>correct_watching_init
-          ((a, fmupd i (C, True) aa, None, ac, ad, {#}, b
+          ((a, fmupd i (C, red) aa, None, ac, ad, Q, b
             (C ! 0 := b (C ! 0) @ [(i, C ! Suc 0, length C = 2)],
              C ! Suc 0 := b (C ! Suc 0) @ [(i, C ! 0, length C = 2)])),
            baa)\<close>
@@ -354,6 +354,138 @@ proof -
     apply normalize_goal+
     using SS' corr pre unfolding init_dt_wl_spec_def
     by blast
+qed
+
+definition rewatch
+  :: \<open>'v clauses_l \<Rightarrow> ('v literal \<Rightarrow> 'v watched) \<Rightarrow> ('v literal \<Rightarrow> 'v watched) nres\<close>
+where
+\<open>rewatch N W = do {
+  xs \<leftarrow> SPEC(\<lambda>xs. set_mset (dom_m N) \<subseteq> set xs \<and> distinct xs);
+  nfoldli
+    xs
+    (\<lambda>_. True)
+    (\<lambda>i W. do {
+      if i \<in># dom_m N
+      then do {
+        let L1 = N \<propto> i ! 0;
+        let L2 = N \<propto> i ! 1;
+        let b = (length (N \<propto> i) = 2);
+        let W = W(L1 := W L1 @ [(i, L2, b)]);
+        let W = W(L2 := W L2 @ [(i, L1, b)]);
+        RETURN W
+      }
+      else RETURN W
+    })
+    W
+  }\<close>
+
+(* TODO Move *)
+lemma fmupd_fmdrop_id:
+  assumes \<open>k |\<in>| fmdom N'\<close>
+  shows \<open>fmupd k (the (fmlookup N' k)) (fmdrop k N') = N'\<close>
+proof -
+  have [simp]: \<open>map_upd k (the (fmlookup N' k))
+       (\<lambda>x. if x = k then None else fmlookup N' x) =
+     map_upd k (the (fmlookup N' k))
+       (fmlookup N')\<close>
+    by (auto intro!: ext simp: map_upd_def)
+  have [simp]: \<open>map_upd k (the (fmlookup N' k)) (fmlookup N') = fmlookup N'\<close>
+    using assms
+    by (auto intro!: ext simp: map_upd_def)
+  have [simp]: \<open>finite (dom (\<lambda>x. if x = k then None else fmlookup N' x))\<close>
+    by (subst dom_if) auto
+  show ?thesis
+    apply (auto simp: fmupd_def fmupd.abs_eq[symmetric])
+    unfolding fmlookup_drop
+    apply (simp add: fmlookup_inverse)
+    done
+qed
+
+lemma fm_member_split: \<open>k |\<in>| fmdom N' \<Longrightarrow> \<exists>N'' v. N' = fmupd k v N'' \<and> the (fmlookup N' k) = v \<and>
+    k |\<notin>| fmdom N''\<close>
+  by (rule exI[of _ \<open>fmdrop k N'\<close>])
+    (auto simp: fmupd_fmdrop_id)
+
+lemma \<open>fmdrop k (fmupd k va N'') = fmdrop k N''\<close>
+  by (simp add: fmap_ext)
+
+lemma fmap_ext_fmdom:
+  \<open>(fmdom N = fmdom N') \<Longrightarrow> (\<And> x. x |\<in>| fmdom N \<Longrightarrow> fmlookup N x = fmlookup N' x) \<Longrightarrow>
+       N = N'\<close>
+  by (rule fmap_ext)
+    (case_tac \<open>x |\<in>| fmdom N\<close>, auto simp: fmdom_notD)
+
+
+lemma fmrestrict_set_insert_in:
+  \<open>xa  \<in> fset (fmdom N) \<Longrightarrow>
+    fmrestrict_set (insert xa l1) N = fmupd xa (the (fmlookup N xa)) (fmrestrict_set l1 N)\<close>
+  apply (rule fmap_ext_fmdom)
+   apply (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset dest: fmdom_notD; fail)[]
+  apply (auto simp: fmlookup_dom_iff; fail)
+  done
+
+lemma fmrestrict_set_insert_notin:
+  \<open>xa  \<notin> fset (fmdom N) \<Longrightarrow>
+    fmrestrict_set (insert xa l1) N = fmrestrict_set l1 N\<close>
+  by (rule fmap_ext_fmdom)
+     (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset dest: fmdom_notD)
+
+lemma fmrestrict_set_insert_in_dom_m[simp]:
+  \<open>xa  \<in># dom_m N \<Longrightarrow>
+    fmrestrict_set (insert xa l1) N = fmupd xa (the (fmlookup N xa)) (fmrestrict_set l1 N)\<close>
+  using fmdom'_alt_def fmrestrict_set_insert_in by fastforce
+
+lemma fmrestrict_set_insert_notin_dom_m[simp]:
+  \<open>xa  \<notin># dom_m N \<Longrightarrow>
+    fmrestrict_set (insert xa l1) N = fmrestrict_set l1 N\<close>
+  by (simp add: fmrestrict_set_insert_notin dom_m_def)
+
+lemma fmlookup_restrict_set_id: \<open>fset (fmdom N) \<subseteq> A \<Longrightarrow> fmrestrict_set A N = N\<close>
+  by (metis fmap_ext fmdom'_alt_def fmdom'_notD fmlookup_restrict_set subset_iff)
+
+lemma fmlookup_restrict_set_id': \<open>set_mset (dom_m N) \<subseteq> A \<Longrightarrow> fmrestrict_set A N = N\<close>
+  by (rule fmlookup_restrict_set_id)
+    (auto simp: dom_m_def)
+(* End Move *)
+
+lemma rewatch_correctness:
+  assumes [simp]: \<open>W = (\<lambda>_. [])\<close> and
+    H[dest]: \<open>\<And>x. x \<in># dom_m N \<Longrightarrow> distinct (N \<propto> x) \<and> length (N \<propto> x) \<ge> 2\<close>
+  shows
+    \<open>rewatch N W \<le> SPEC(\<lambda>W. correct_watching_init ((M, N, C, NE, UE, Q, W), OC))\<close>
+proof -
+  define I where
+    \<open>I \<equiv> \<lambda>(a :: nat list) (b :: nat list) W.
+        correct_watching_init ((M, fmrestrict_set (set a) N, C, NE, UE, Q, W), OC)\<close>
+  have I0: \<open>set_mset (dom_m N) \<subseteq> set x \<and> distinct x \<Longrightarrow> I [] x W\<close> for x
+    unfolding I_def by (auto simp: correct_watching_init.simps
+       all_blits_are_in_problem_init.simps clause_to_update_def)
+
+  show ?thesis
+    unfolding rewatch_def
+    apply (refine_vcg
+      nfoldli_rule[where I = \<open>I\<close>])
+    subgoal by (rule I0)
+    subgoal for x xa l1 l2 \<sigma>
+      unfolding I_def
+      apply (cases \<open>the (fmlookup N xa)\<close>)
+      apply auto
+      defer
+       apply (rule correct_watching_init_add_clause)
+          apply (auto simp: dom_m_fmrestrict_set')
+      apply (auto dest!: H simp: nth_eq_iff_index_eq)
+      apply (subst (asm) nth_eq_iff_index_eq)
+      apply simp
+      apply simp
+       apply auto[]
+      by fast
+    subgoal
+      unfolding I_def
+      by auto
+    subgoal by auto
+    subgoal unfolding I_def
+      by (auto simp: fmlookup_restrict_set_id')
+    done
 qed
 
 end
