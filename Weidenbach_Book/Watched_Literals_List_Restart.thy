@@ -1,6 +1,6 @@
 theory Watched_Literals_List_Restart
   imports Watched_Literals.Watched_Literals_List Watched_Literals_Algorithm_Restart
-     Watched_Literals.Array_UInt "../lib/Explorer"
+     Watched_Literals.Array_UInt
 begin
 
 text \<open>

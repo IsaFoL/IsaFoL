@@ -1,5 +1,5 @@
 theory Watched_Literals_VMTF
-  imports IsaSAT_Literals "../lib/Explorer"
+  imports IsaSAT_Literals
 begin
 
 

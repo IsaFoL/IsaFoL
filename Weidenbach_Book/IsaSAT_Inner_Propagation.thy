@@ -1,6 +1,6 @@
 theory IsaSAT_Inner_Propagation
   imports IsaSAT_Setup
-     IsaSAT_Clauses "../lib/Explorer"
+     IsaSAT_Clauses
 begin
 
 subsection \<open>Propagations Step\<close>

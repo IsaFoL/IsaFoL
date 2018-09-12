@@ -1,5 +1,5 @@
 theory IsaSAT_Backtrack
-  imports IsaSAT_Setup IsaSAT_VMTF "../lib/Explorer"
+  imports IsaSAT_Setup IsaSAT_VMTF
 begin
 
 
