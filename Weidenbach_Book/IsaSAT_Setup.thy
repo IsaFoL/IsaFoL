@@ -12,8 +12,11 @@ subsubsection \<open>Types and Refinement Relations\<close>
 paragraph \<open>Statistics\<close>
 
 text \<open>
-We do some statistics on the run. NB: the statistics are not proven correct (especially they might
-overflow), there are just there to look for regressions and do some comparisons.
+We do some statistics on the run.
+
+NB: the statistics are not proven correct (especially they might
+overflow), there are just there to look for regressions finding, some comparisons, and
+heuristics.
 \<close>
 type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 

@@ -24,11 +24,12 @@ lemma option_hd_Nil[simp]: \<open>option_hd [] = None\<close>
   by (auto simp: option_hd_def)
 
 definition option_last where
-\<open>option_last l = (if l = [] then None else Some (last l))\<close>
+  \<open>option_last l = (if l = [] then None else Some (last l))\<close>
 
 lemma
   option_last_None_iff[iff]: \<open>option_last l = None \<longleftrightarrow> l = []\<close> \<open>None = option_last l \<longleftrightarrow> l = []\<close> and
-  option_last_Some_iff[iff]: \<open>option_last l = Some a \<longleftrightarrow> l \<noteq> [] \<and> a = last l\<close>
+  option_last_Some_iff[iff]:
+    \<open>option_last l = Some a \<longleftrightarrow> l \<noteq> [] \<and> a = last l\<close>
     \<open>Some a = option_last l \<longleftrightarrow> l \<noteq> [] \<and> a = last l\<close>
   by (auto simp: option_last_def)
 
