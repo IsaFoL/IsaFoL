@@ -1505,7 +1505,7 @@ lemma fmupd_fmdrop_id:
   shows \<open>fmupd k (the (fmlookup N' k)) (fmdrop k N') = N'\<close>
 proof -
   have [simp]: \<open>map_upd k (the (fmlookup N' k))
-       (\<lambda>x. if x = k then None else fmlookup N' x) =
+       (\<lambda>x. if x \<noteq> k then fmlookup N' x else None) =
      map_upd k (the (fmlookup N' k))
        (fmlookup N')\<close>
     by (auto intro!: ext simp: map_upd_def)
@@ -1552,7 +1552,7 @@ lemma fmrestrict_set_insert_notin:
 lemma fmrestrict_set_insert_in_dom_m[simp]:
   \<open>xa  \<in># dom_m N \<Longrightarrow>
     fmrestrict_set (insert xa l1) N = fmupd xa (the (fmlookup N xa)) (fmrestrict_set l1 N)\<close>
-  using fmdom'_alt_def fmrestrict_set_insert_in by fastforce
+  by (simp add: fmrestrict_set_insert_in dom_m_def)
 
 lemma fmrestrict_set_insert_notin_dom_m[simp]:
   \<open>xa  \<notin># dom_m N \<Longrightarrow>
