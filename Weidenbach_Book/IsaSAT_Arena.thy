@@ -7,6 +7,7 @@ begin
 
 subsection \<open>The memory representation: Arenas\<close>
 
+
 text \<open>
 We implement an ``arena'' memory representation: This is a flat representation of clauses, where
 all clauses and their headers are put one after the other. A lot of the work done here could be done
@@ -27,7 +28,7 @@ two types, making a comparison impossible. This means that half of the blocking 
 lost (if we iterate over the watch lists) or all (if we iterate over the clauses directly).
 
 The order in memory is in the following order:
-  \<^enum> the saved position (is optional in cadical);
+  \<^enum> the saved position (is optional in cadical too);
   \<^enum> the status;
   \<^enum> the activity;
   \<^enum> the LBD;
@@ -64,7 +65,7 @@ Some technical details: due to the fact that we plan to refine the arena to uint
 clauses can be tautologies, the size does not fit into uint32 (technically, we have the bound
 \<^term>\<open>uint32_max +1\<close>). Therefore, we restrict the clauses to have at least length 2 and we keep
 \<^term>\<open>length C - 2\<close> instead of \<^term>\<open>length C\<close> (same for position saving). If we ever add a
-preprocessing path that removes tautologies, we can get rid of these two limitations.
+preprocessing path that removes tautologies, we could get rid of these two limitations.
 
 
 To our own surprise, using an arena (without position saving) was exactly as fast as the our former
@@ -76,6 +77,8 @@ resizable array of arrays. We did not expect this result since:
 (We assume that there is no gain due the order in which we iterate over clauses, which seems a
 reasonnable assumption, even when considering than some clauses will subsume the previous one, and
 therefore, have a high chance to be in the same watch lists).
+
+We can mark clause as used. This trick is used to implement a MTF-like scheme to keep clauses.
 \<close>
 
 
@@ -94,8 +97,10 @@ qed
 
 instantiation clause_status :: default
 begin
+
 definition default_clause_status where \<open>default_clause_status = DELETED\<close>
 instance by standard
+
 end
 
 abbreviation clause_status_assn where
@@ -116,9 +121,9 @@ lemma DELETED_hnr[sepref_fr_rules]:
 
 subsubsection \<open>Definition\<close>
 
-text \<open>The following definition are the offset between the beginning of the clause and the
+text \<open>The following definitions are the offset between the beginning of the clause and the
 specific headers before the beginning of the clause. Remark that the first offset is not always
-valid.
+valid. Also remark that the fields are \<^emph>\<open>before\<close> the actual content of the clause.
 \<close>
 definition POS_SHIFT :: nat where
   \<open>POS_SHIFT = 5\<close>
@@ -149,6 +154,7 @@ definition header_size :: \<open>nat clause_l \<Rightarrow> nat\<close> where
 
 lemmas SHIFTS_def = POS_SHIFT_def STATUS_SHIFT_def ACTIVITY_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
 
+(*TODO is that still used?*)
 lemma arena_shift_distinct:
   \<open>i >  3 \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - LBD_SHIFT\<close>
   \<open>i >  3 \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - ACTIVITY_SHIFT\<close>
@@ -246,7 +252,8 @@ proof -
 qed
 
 text \<open>The extra information is required to prove ``separation'' between active and dead clauses. And
-it is true anyway and does not require any extra work to prove.\<close>
+it is true anyway and does not require any extra work to prove.
+TODO generalise LBD to extract from every clause?\<close>
 definition arena_dead_clause :: \<open>arena \<Rightarrow> bool\<close> where
   \<open>arena_dead_clause arena \<longleftrightarrow>
      is_Status(arena!(4 - STATUS_SHIFT)) \<and> xarena_status(arena!(4 - STATUS_SHIFT)) = DELETED \<and>
@@ -259,6 +266,7 @@ text \<open>When marking a clause as garbage, we do not care whether it was used
 definition extra_information_mark_to_delete where
   \<open>extra_information_mark_to_delete arena i = arena[i - STATUS_SHIFT := AStatus DELETED False]\<close>
 
+text \<open>This extracts a single clause from the complete arena.\<close>
 abbreviation clause_slice where
   \<open>clause_slice arena N i \<equiv> Misc.slice (i - header_size (N\<propto>i)) (i + length(N\<propto>i)) arena\<close>
 
@@ -272,7 +280,7 @@ In our first try, the predicated \<^term>\<open>xarena_active_clause\<close> too
 arena as parameter. This however turned out to make the proof about updates less modular, since the
 slicing already takes care to ignore all irrelevant changes.
 \<close>
-definition valid_arena where
+definition valid_arena :: \<open>arena \<Rightarrow> nat clauses_l \<Rightarrow> nat set \<Rightarrow> bool\<close> where
   \<open>valid_arena arena N vdom \<longleftrightarrow>
     (\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and>
          xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))) \<and>
@@ -3060,8 +3068,8 @@ lemma arena_marked_as_used_conv:
 proof -
   have j_le: \<open>j < length arena\<close> and
     length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
-    k1:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
-    k2:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
+    k1: \<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
+    k2: \<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
     le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
     j_ge: \<open>header_size (N \<propto> j) \<le> j\<close> and
     lbd: \<open>is_Status (arena ! (j - STATUS_SHIFT))\<close>
@@ -3093,8 +3101,10 @@ lemma isa_marked_as_used_marked_as_used:
   by (intro frefI nres_relI)
     (auto simp: marked_as_used_pre_def arena_marked_as_used_conv
       get_clause_LBD_pre_def arena_is_valid_clause_idx_def
-      list_rel_imp_same_length marked_as_used_pre_def isa_marked_as_used_def
+      list_rel_imp_same_length isa_marked_as_used_def
       intro!: ASSERT_leI)
+
+text \<open>Adding some random test\<close>
 
 sepref_definition isa_marked_as_used_code
   is \<open>uncurry isa_marked_as_used\<close>

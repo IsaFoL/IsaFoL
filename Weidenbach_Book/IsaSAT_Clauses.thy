@@ -1,11 +1,13 @@
 theory IsaSAT_Clauses
-imports IsaSAT_Arena
+  imports IsaSAT_Arena
 begin
 
 (* TODO This file should probably be merged with IsaSAT_Arena*)
 
+
 subsubsection \<open>Representation of Clauses\<close>
 
+(* TODO kill *)
 named_theorems isasat_codegen \<open>lemmas that should be unfolded to generate (efficient) code\<close>
 
 type_synonym clause_annot = \<open>clause_status \<times> nat \<times> nat\<close>
@@ -42,12 +44,6 @@ definition fmap_rll :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> 
 
 definition fmap_rll_u :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal" where
   [simp]: \<open>fmap_rll_u  = fmap_rll\<close>
-(*
-lemma nth_clauses_rll:
-  \<open>(uncurry2 (RETURN ooo (\<lambda>(N, _) i. Array_List_Array.nth_rll N i)), uncurry2 (RETURN ooo IsaSAT_Clauses.fmap_rll))
-    \<in> [\<lambda>((N, i), j). i \<in># dom_m N \<and> j < length (N \<propto> i)]\<^sub>f
-      \<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: list_fmap_rel_def fmap_rll_def nth_rll_def) *)
 
 lemma nth_raa_hnr':
   assumes p: \<open>is_pure R\<close>
