@@ -69,20 +69,15 @@ Only the primed operators return indeterminate truth values.
 
 type_synonym id = string
 
-text_raw {*\DefineSnippet{fm}{*}
 datatype fm = Pro id | Truth | Neg' fm | Con' fm fm | Eql fm fm | Eql' fm fm
-text_raw {*}%EndSnippet*}
 term "[]"
-text_raw {*\DefineSnippet{notation}{*}
 notation Pro ("\<langle>_\<rangle>" [39] 39)
 notation Truth ("\<^bold>\<top>")
 notation Neg' ("\<^bold>\<not> _" [40] 40)
 notation Con' (infixr "\<^bold>\<and>" 35)
 notation Eql (infixr "\<^bold>\<Leftrightarrow>" 25)
 notation Eql' (infixr "\<^bold>\<leftrightarrow>" 25)
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{derivedfm}{*}
 abbreviation Falsity :: fm ("\<^bold>\<bottom>") where "\<^bold>\<bottom> \<equiv> \<^bold>\<not> \<^bold>\<top>"
 
 abbreviation Dis' :: "fm \<Rightarrow> fm \<Rightarrow> fm" (infixr "\<^bold>\<or>" 30) where
@@ -111,7 +106,6 @@ abbreviation Cla :: "fm \<Rightarrow> fm" ("\<^bold>\<Delta> _" [40] 40) where
 
 abbreviation Nab :: "fm \<Rightarrow> fm" ("\<^bold>\<nabla> _" [40] 40) where
   "\<^bold>\<nabla> p \<equiv> \<^bold>\<rightharpoondown>\<^bold>\<rightharpoondown> (\<^bold>\<Delta> p)"
-text_raw {*}%EndSnippet*}
 
 subsection \<open>Semantics of Propositional Logic\<close>
 
@@ -120,15 +114,12 @@ text
 There is a countably infinite number of indeterminate truth values.
 \<close>
 
-text_raw {*\DefineSnippet{tv}{*}
 datatype tv = Det bool | Indet nat
-text_raw {*}%EndSnippet*}
 
 abbreviation DetTrue :: tv ("\<bullet>") where "\<bullet> \<equiv> Det True"
 abbreviation DetFalse :: tv ("\<circ>") where "\<circ> \<equiv> Det False"
 notation Indet ("\<lfloor>_\<rfloor>" [39] 39)
 
-text_raw {*\DefineSnippet{eval}{*}
 abbreviation (input) eval_neg :: "tv \<Rightarrow> tv"
 where
   "eval_neg x \<equiv>
@@ -166,7 +157,6 @@ where
             _ \<Rightarrow> Det False
         )
     )"
-text_raw {*}%EndSnippet*}
 
 lemma eval_equality_simplify: "eval i (Eql p q) = Det (eval i p = eval i q)"
   by simp
@@ -207,11 +197,9 @@ text
 Validity gives the set of theorems and the logic has at least a theorem and a non-theorem.
 \<close>
 
-text_raw {*\DefineSnippet{valid}{*}
 definition valid :: "fm \<Rightarrow> bool"
 where
   "valid p \<equiv> \<forall>i. eval i p = \<bullet>"
-text_raw {*}%EndSnippet*}
 
 proposition "valid Truth" and "\<not> valid Falsity"
   unfolding valid_def
@@ -570,11 +558,9 @@ text
 Validity is relativized to a set of indeterminate truth values (called a domain).
 \<close>
 
-text_raw {*\DefineSnippet{domain}{*}
 definition domain :: "nat set \<Rightarrow> tv set"
 where
   "domain U \<equiv> {Det True, Det False} \<union> Indet ` U"
-text_raw {*}%EndSnippet*}
 
 theorem universal_domain: "domain {n. True} = {x. True}"
 proof -
@@ -586,11 +572,9 @@ proof -
     by blast
 qed
 
-text_raw {*\DefineSnippet{validin}{*}
 definition valid_in :: "nat set \<Rightarrow> fm \<Rightarrow> bool"
 where
   "valid_in U p \<equiv> \<forall>i. range i \<subseteq> domain U \<longrightarrow> eval i p = \<bullet>"
-text_raw {*}%EndSnippet*}
 
 abbreviation valid_boole :: "fm \<Rightarrow> bool" where "valid_boole p \<equiv> valid_in {} p"
 
@@ -599,9 +583,7 @@ proposition "valid p \<longleftrightarrow> valid_in {n. True} p"
   using universal_domain
   by simp
 
-text_raw {*\DefineSnippet{validvalidin}{*}
 theorem valid_valid_in: assumes "valid p" shows "valid_in U p"
-text_raw {*}%EndSnippet*}
   using assms
   unfolding valid_in_def valid_def
   by simp
@@ -921,7 +903,6 @@ text
 The function props collects the set of propositional symbols occurring in a formula.
 \<close>
 
-text_raw {*\DefineSnippet{props}{*}
 fun props :: "fm \<Rightarrow> id set"
 where
   "props Truth = {}" |
@@ -930,24 +911,17 @@ where
   "props (Con' p q) = props p \<union> props q" |
   "props (Eql p q) = props p \<union> props q" |
   "props (Eql' p q) = props p \<union> props q"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{relevantprops}{*}
 lemma relevant_props: assumes "\<forall>s \<in> props p. i1 s = i2 s" shows "eval i1 p = eval i2 p"
-text_raw {*}%EndSnippet*}
   using assms
   by (induct p) (simp_all, metis)
 
-text_raw {*\DefineSnippet{changetv}{*}
 fun change_tv :: "(nat \<Rightarrow> nat) \<Rightarrow> tv \<Rightarrow> tv"
 where
   "change_tv f (Det b) = Det b" |
   "change_tv f (Indet n) = Indet (f n)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{changetvinjection}{*}
 lemma change_tv_injection: assumes "inj f" shows "inj (change_tv f)"
-text_raw {*}%EndSnippet*}
 proof -
   have "change_tv f tv1 = change_tv f tv2 \<Longrightarrow> tv1 = tv2" for tv1 tv2
     using assms
@@ -956,16 +930,12 @@ proof -
     by (simp add: injI)
 qed
 
-text_raw {*\DefineSnippet{changeint}{*}
 definition
   change_int :: "(nat \<Rightarrow> nat) \<Rightarrow> (id \<Rightarrow> tv) \<Rightarrow> (id \<Rightarrow> tv)"
 where
   "change_int f i \<equiv> \<lambda>s. change_tv f (i s)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{evalchange}{*}
 lemma eval_change: assumes "inj f" shows "eval (change_int f i) p = change_tv f (eval i p)"
-text_raw {*}%EndSnippet*}
 proof (induct p)
   fix p
   assume "eval (change_int f i) p = change_tv f (eval i p)"
@@ -1239,21 +1209,15 @@ text
 Theorem valid_in_valid is a kind of the reverse of valid_valid_in (or its transfer variant).
 \<close>
 
-text_raw {*\DefineSnippet{isindet}{*}
 abbreviation is_indet :: "tv \<Rightarrow> bool"
 where
   "is_indet tv \<equiv> (case tv of Det _ \<Rightarrow> False | Indet _ \<Rightarrow> True)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{getindet}{*}
 abbreviation get_indet :: "tv \<Rightarrow> nat"
 where
   "get_indet tv \<equiv> (case tv of Det _ \<Rightarrow> undefined | Indet n \<Rightarrow> n)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{validinvalid}{*}
 theorem valid_in_valid: assumes "card U \<ge> card (props p)" and "valid_in U p" shows "valid p"
-text_raw {*}%EndSnippet*}
 proof -
   have "finite U \<Longrightarrow> card (props p) \<le> card U \<Longrightarrow> valid_in U p \<Longrightarrow> valid p" for U p
   proof -
@@ -1408,9 +1372,7 @@ proof -
     by metis
 qed
 
-text_raw {*\DefineSnippet{reduce}{*}
 theorem reduce: "valid p \<longleftrightarrow> valid_in {1..card (props p)} p"
-text_raw {*}%EndSnippet*}
   using valid_in_valid transfer
   by force
 
@@ -1632,10 +1594,8 @@ subsection \<open>Injections from sets to sets\<close>
 
 (* We define the notion of an injection from a set X to a set Y *)
 
-text_raw {*\DefineSnippet{injfromto}{*}
 definition inj_from_to :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a set \<Rightarrow> 'b set \<Rightarrow> bool" where
   "inj_from_to f X Y \<equiv> inj_on f X \<and> f ` X \<subseteq> Y"
-text_raw {*}%EndSnippet*}
 
 lemma bij_betw_inj_from_to: "bij_betw f X Y \<Longrightarrow> inj_from_to f X Y"
   unfolding bij_betw_def inj_from_to_def by simp
@@ -1658,11 +1618,9 @@ subsection \<open>Extension of theory before Appendix\<close>
 (* Could maybe be defined more like is_indet or introduce them in the datatype definition *)
 abbreviation is_det :: "tv \<Rightarrow> bool" where "is_det tv \<equiv> \<not> is_indet tv"
 
-text_raw {*\DefineSnippet{validiffvalidin}{*}
 theorem valid_iff_valid_in:
   assumes "card U \<ge> card (props p)"
   shows "valid p \<longleftrightarrow> valid_in U p"
-text_raw {*}%EndSnippet*}
   using assms valid_in_valid valid_valid_in by blast
 
 (* Generalization of change_tv_injection *)
@@ -1729,12 +1687,10 @@ lemma change_tv_bij_betw:
   using assms change_tv_injection_on change_tv_surj_on unfolding bij_betw_def by simp
 
 (* Generalization of eval_change *)
-text_raw {*\DefineSnippet{evalchangeinjon}{*}
 lemma eval_change_inj_on:
   assumes "inj_on f U"
   assumes "range i \<subseteq> domain U"
   shows "eval (change_int f i) p = change_tv f (eval i p)"
-text_raw {*}%EndSnippet*}
 proof (induct p)
   fix p
   assume "eval (change_int f i) p = change_tv f (eval i p)"
@@ -1783,12 +1739,10 @@ subsection \<open>Logics of equal cardinality are equal\<close>
 
 (* We prove that validity in a set depends only on the cardinality of the set *)
 
-text_raw {*\DefineSnippet{injfromtovalidin}{*}
 lemma inj_from_to_valid_in:
   assumes "inj_from_to f W U"
   assumes "valid_in U p"
   shows "valid_in W p"
-text_raw {*}%EndSnippet*}
   unfolding valid_in_def proof (rule, rule)
   fix i :: "char list \<Rightarrow> tv"
   assume a: "range i \<subseteq> domain W"
@@ -1823,11 +1777,9 @@ corollary
   shows "valid_in U p \<longleftrightarrow> valid_in W p"
   using assms inj_from_to_valid_in by fast
 
-text_raw {*\DefineSnippet{bijbetwvalidin}{*}
 lemma bij_betw_valid_in:
   assumes "bij_betw f U W"
   shows "valid_in U p \<longleftrightarrow> valid_in W p"
-text_raw {*}%EndSnippet*}
   using assms inj_from_to_valid_in bij_betw_inv bij_betw_inj_from_to by blast
 
 theorem eql_finite_eql_card_valid_in:
@@ -1853,13 +1805,11 @@ corollary
   shows "valid_in U p \<longleftrightarrow> valid_in W p"
   using assms eql_finite_eql_card_valid_in card_gt_0_iff by metis
 
-text_raw {*\DefineSnippet{finitevalidincard}{*}
 theorem finite_eql_card_valid_in:
   assumes "finite U"
   assumes "finite W"
   assumes "card U = card W"
   shows "valid_in U p \<longleftrightarrow> valid_in W p"
-text_raw {*}%EndSnippet*}
   using eql_finite_eql_card_valid_in by (simp add: assms)
 
 theorem infinite_valid_in:
@@ -1945,65 +1895,43 @@ subsection \<open>Derived formula constructors\<close>
 definition PRO :: "id list \<Rightarrow> fm list" where
   "PRO ids \<equiv> map Pro ids"
 
-text_raw {*\DefineSnippet{Pronat}{*}
 definition Pro_nat :: "nat \<Rightarrow> fm" ("\<langle>_\<rangle>\<^sub>1" [40] 40) where
   "\<langle>n\<rangle>\<^sub>1 \<equiv> \<langle>string_of_nat n\<rangle>"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{PROnat}{*}
 definition PRO_nat :: "nat list \<Rightarrow> fm list" ("\<langle>_\<rangle>\<^sub>1\<^sub>2\<^sub>3" [40] 40) where
   "\<langle>ns\<rangle>\<^sub>1\<^sub>2\<^sub>3 \<equiv> map Pro_nat ns"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{CON}{*}
 definition CON :: "fm list \<Rightarrow> fm" ("[\<^bold>\<and>\<^bold>\<and>] _" [40] 40) where
   "[\<^bold>\<and>\<^bold>\<and>] ps \<equiv> foldr Con ps \<^bold>\<top>"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{DIS}{*}
 definition DIS :: "fm list \<Rightarrow> fm" ("[\<^bold>\<or>\<^bold>\<or>] _" [40] 40) where
   "[\<^bold>\<or>\<^bold>\<or>] ps \<equiv> foldr Dis ps \<^bold>\<bottom>"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{NAB}{*}
 definition NAB :: "fm list \<Rightarrow> fm" ("[\<^bold>\<nabla>] _" [40] 40) where
   "[\<^bold>\<nabla>] ps \<equiv> [\<^bold>\<and>\<^bold>\<and>] (map Nab ps)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{offdiagonalproduct}{*}
 definition off_diagonal_product :: "'a set \<Rightarrow> 'a set \<Rightarrow> ('a \<times> 'a) set" where
   "off_diagonal_product xs ys \<equiv> {(x,y). (x,y) \<in> (xs \<times> ys) \<and> x \<noteq> y }"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{Listoffdiagonalproduct}{*}
 definition List_off_diagonal_product :: "'a list \<Rightarrow> 'a list \<Rightarrow> ('a \<times> 'a) list" where
   "List_off_diagonal_product xs ys \<equiv> filter (\<lambda>(x,y). not_equal x y) (List.product xs ys)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{ExiEql}{*}
 definition ExiEql :: "fm list \<Rightarrow> fm" ("[\<^bold>\<exists>\<^bold>=] _" [40] 40) where
   "[\<^bold>\<exists>\<^bold>=] ps \<equiv> [\<^bold>\<or>\<^bold>\<or>] (map (\<lambda>(x,y). x \<^bold>\<Leftrightarrow> y) (List_off_diagonal_product ps ps))"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{clafalseImp}{*}
 lemma cla_false_Imp:
   assumes "eval i a = \<bullet>"
   assumes "eval i b = \<circ>"
   shows "eval i (a \<^bold>\<Rightarrow> b) = \<circ>"
-text_raw {*}%EndSnippet*}
   using assms by simp
 
-text_raw {*\DefineSnippet{evalCON}{*}
 lemma eval_CON:
   "eval i ([\<^bold>\<and>\<^bold>\<and>] ps) = Det (\<forall>p \<in> set ps. eval i p = \<bullet>)"
-text_raw {*}%EndSnippet*}
   unfolding CON_def
   by (induct ps) simp_all
 
-text_raw {*\DefineSnippet{evalDIS}{*}
 lemma eval_DIS:
   "eval i ([\<^bold>\<or>\<^bold>\<or>] ps) = Det (\<exists>p \<in> set ps. eval i p = \<bullet>)"
-text_raw {*}%EndSnippet*}
   unfolding DIS_def
 proof (induct ps)
   case Nil
@@ -2014,9 +1942,7 @@ next
   with eval.simps eval_negation foldr.simps list.set_intros o_apply set_ConsD show ?case by smt
 qed
 
-text_raw {*\DefineSnippet{evalNab}{*}
 lemma eval_Nab: "eval i (\<^bold>\<nabla> p) = Det (is_indet (eval i p))"
-text_raw {*}%EndSnippet*}
 proof (induct p)
   case (Pro x)
   then show ?case
@@ -2033,10 +1959,8 @@ next
       eval.simps(2) eval.simps(4) eval.simps(5) by smt
 qed auto
 
-text_raw {*\DefineSnippet{evalNAB}{*}
 lemma eval_NAB:
   "eval i ([\<^bold>\<nabla>] ps) = Det (\<forall>p \<in> set ps. is_indet (eval i p))"
-text_raw {*}%EndSnippet*}
 proof (cases "\<forall>p\<in>set ps. is_indet (eval i p)")
   case True
   then have "eval i (NAB ps) = Det True"
@@ -2055,30 +1979,22 @@ next
     using False by simp
 qed
 
-text_raw {*\DefineSnippet{evalExiEql}{*}
 lemma eval_ExiEql:
   "eval i ([\<^bold>\<exists>\<^bold>=] ps) =
     Det (\<exists>(p1, p2)\<in>(off_diagonal_product (set ps) (set ps)). eval i p1 = eval i p2)"
-text_raw {*}%EndSnippet*}
   using eval_DIS[of i "(map (\<lambda>(x, y). Eql x y) (List_off_diagonal_product ps ps))"]
   unfolding off_diagonal_product_def ExiEql_def List_off_diagonal_product_def
   by auto
 
 subsection \<open>Pigeon hole formula\<close>
 
-text_raw {*\DefineSnippet{pigeonholefm}{*}
 definition pigeonhole_fm :: "nat \<Rightarrow> fm" where
   "pigeonhole_fm n \<equiv> [\<^bold>\<nabla>] \<langle>[0..<n]\<rangle>\<^sub>1\<^sub>2\<^sub>3 \<^bold>\<Rightarrow> [\<^bold>\<exists>\<^bold>=] \<langle>[0..<n]\<rangle>\<^sub>1\<^sub>2\<^sub>3"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{interpofid}{*}
 definition interp_of_id :: "nat \<Rightarrow> id \<Rightarrow> tv" where
   "interp_of_id maxi i \<equiv> if (nat_of_string i) < maxi then Indet (nat_of_string i) else Det True"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{interpofidpigeonholefmFalse}{*}
 lemma interp_of_id_pigeonhole_fm_False: "eval (interp_of_id n) (pigeonhole_fm n) = Det False"
-text_raw {*}%EndSnippet*}
 proof -
   have all_indet: "\<forall>p \<in> set (PRO_nat [0..<n]). is_indet (eval (interp_of_id n) p)"
   proof
@@ -2117,30 +2033,22 @@ proof -
     unfolding pigeonhole_fm_def using cla_false_Imp[of "interp_of_id n"] by blast
 qed
 
-text_raw {*\DefineSnippet{rangeinterpofid}{*}
 lemma range_interp_of_id: "range (interp_of_id n) \<subseteq> domain {0..<n}"
-text_raw {*}%EndSnippet*}
   unfolding interp_of_id_def domain_def by (simp add: image_subset_iff)
 
-text_raw {*\DefineSnippet{notvalidinnpigeonholefm}{*}
 theorem not_valid_in_n_pigeonhole_fm: "\<not> (valid_in {0..<n} (pigeonhole_fm n))"
-text_raw {*}%EndSnippet*}
   unfolding valid_in_def using interp_of_id_pigeonhole_fm_False[of n] range_interp_of_id[of n]
   by fastforce
 
-text_raw {*\DefineSnippet{notvalidpigeonholefm}{*}
 theorem not_valid_pigeonhole_fm: "\<not> (valid (pigeonhole_fm n))"
-text_raw {*}%EndSnippet*}
   unfolding valid_def using interp_of_id_pigeonhole_fm_False[of n]
   by fastforce
 
-text_raw {*\DefineSnippet{claimpI}{*}
 lemma cla_imp_I:
   assumes "is_det (eval i a)"
   assumes "is_det (eval i b)"
   assumes "eval i a = \<bullet> \<Longrightarrow> eval i b = \<bullet>"
   shows "eval i (a \<^bold>\<Rightarrow> b) = \<bullet>"
-text_raw {*}%EndSnippet*}
 proof -
   have "is_det tv = (case tv of Det _ \<Rightarrow> True | Indet _ \<Rightarrow> False)" for tv
     by (metis (full_types) tv.exhaust tv.simps(5) tv.simps(6))
@@ -2149,48 +2057,36 @@ proof -
     by (metis (full_types) eval.simps(4) eval.simps(5) tv.exhaust tv.simps(6))
 qed
 
-text_raw {*\DefineSnippet{NABisdet}{*}
 lemma is_det_NAB: "is_det (eval i ([\<^bold>\<nabla>] ps))"
-text_raw {*}%EndSnippet*}
   unfolding eval_NAB by auto
 
-text_raw {*\DefineSnippet{ExiEqlisdet}{*}
 lemma is_det_ExiEql: "is_det (eval i ([\<^bold>\<exists>\<^bold>=] ps))"
-text_raw {*}%EndSnippet*}
   using eval_ExiEql by auto
 
-text_raw {*\DefineSnippet{pigeonholeprime}{*}
 lemma pigeonhole_nat:
   assumes "finite n"
   assumes "finite m"
   assumes "card n > card m"
   assumes "f ` n \<subseteq> m"
   shows "\<exists>x\<in>n. \<exists>y\<in>n. x \<noteq> y \<and> f x = f y"
-text_raw {*}%EndSnippet*}
   using assms not_le inj_on_iff_card_le unfolding inj_on_def
   by metis
 
-text_raw {*\DefineSnippet{pigeonholeprimeprime}{*}
 lemma pigeonhole_nat_set:
   assumes "f ` {0..<n} \<subseteq> {0..<m}"
   assumes "m < (n :: nat)"
   shows "\<exists>j1\<in>{0..<n}. \<exists>j2\<in>{0..<n}. j1 \<noteq> j2 \<and> f j1 = f j2"
-text_raw {*}%EndSnippet*}
   using assms pigeonhole_nat[of "({0..<n})" "{0..<m}" f]
   by simp
 
-text_raw {*\DefineSnippet{Pronatinj}{*}
 lemma inj_Pro_nat: "(\<langle>p1\<rangle>\<^sub>1) = (\<langle>p2\<rangle>\<^sub>1) \<Longrightarrow> p1 = p2"
-text_raw {*}%EndSnippet*}
   unfolding Pro_nat_def using fm.inject(1) nat_of_string_of_nat
   by metis
 
-text_raw {*\DefineSnippet{evaltrueinltnpigeonholefm}{*}
 lemma eval_true_in_lt_n_pigeonhole_fm:
   assumes "m < n"
   assumes "range i \<subseteq> domain {0..<m}"
   shows "eval i (pigeonhole_fm n) = \<bullet>"
-text_raw {*}%EndSnippet*}
 proof -
   {
     assume "eval i (NAB (PRO_nat [0..<n])) = Det True"
@@ -2271,11 +2167,9 @@ proof -
     unfolding pigeonhole_fm_def using cla_imp_I is_det_ExiEql is_det_NAB by simp
 qed
 
-text_raw {*\DefineSnippet{validinltnpigeonholefm}{*}
 theorem valid_in_lt_n_pigeonhole_fm:
   assumes "m<n"
   shows "valid_in {0..<m} (pigeonhole_fm n)"
-text_raw {*}%EndSnippet*}
   using assms
   unfolding valid_in_def
   using interp_of_id_pigeonhole_fm_False[of n]
@@ -2299,12 +2193,10 @@ proof -
     using assms inj_from_to_valid_in by metis
 qed
 
-text_raw {*\DefineSnippet{validincardltnpigeonholefm}{*}
 theorem valid_in_pigeonhole_fm_n_gt_card:
   assumes "finite U"
   assumes "card U < n"
   shows "valid_in U (pigeonhole_fm n)"
-text_raw {*}%EndSnippet*}
   using assms ex_bij_betw_finite_nat bij_betw_valid_in valid_in_lt_n_pigeonhole_fm by metis
 
 subsection \<open>Validity is the intersection of the finite logics\<close>
@@ -2402,9 +2294,7 @@ qed
 
 subsection \<open>Finite logics are different from infinite logics\<close>
 
-text_raw {*\DefineSnippet{extend}{*}
 theorem extend: "valid \<noteq> valid_in U" if "finite U"
-text_raw {*}%EndSnippet*}
   using that not_valid_pigeonhole_fm valid_in_pigeonhole_fm_n_gt_card by fastforce
 
 corollary "\<not> (\<exists>n. \<forall>p. valid p \<longleftrightarrow> valid_in {0..n} p)"
