@@ -2162,7 +2162,7 @@ begin
 
 subsection \<open>Rewatch\<close>
 
-definition rewatch_heur where
+definition (in isasat_input_ops) rewatch_heur where
 \<open>rewatch_heur vdom arena W = do {
   let _ = vdom;
   nfoldli vdom (\<lambda>_. True)
@@ -2173,21 +2173,27 @@ definition rewatch_heur where
         ASSERT(arena_lit_pre arena i);
         ASSERT(arena_lit_pre arena (i+1));
         let L1 = arena_lit arena i;
-            L2 = arena_lit arena (i + 1);
-            b = (arena_length arena i = 2);
-            W = W(L1 := W L1 @ [(i, L2, b)])
-        in Let (W(L2 := W L2 @ [(i, L1, b)])) RETURN
+        let L2 = arena_lit arena (i + 1);
+        ASSERT(L1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+        ASSERT(nat_of_lit L1 < length W);
+        let b = (arena_length arena i = 2);
+        let W = append_ll W (nat_of_lit L1) (i, L2, b);
+        ASSERT(L2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+        ASSERT(nat_of_lit L2 < length W);
+        let W = append_ll W (nat_of_lit L2) (i, L1, b);
+        RETURN W
       }
       else RETURN W
     })
    W
-}\<close>
+  }\<close>
 
-lemma
+lemma rewatch_heur_rewatch:
   assumes
-    \<open>valid_arena arena N vdom\<close> and \<open>set xs \<subseteq> vdom\<close> and \<open>distinct xs\<close> and \<open>set_mset (dom_m N) \<subseteq> set xs\<close>
+    \<open>valid_arena arena N vdom\<close> and \<open>set xs \<subseteq> vdom\<close> and \<open>distinct xs\<close> and \<open>set_mset (dom_m N) \<subseteq> set xs\<close> and
+    \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close> and lall: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf N)\<close>
   shows
-    \<open>rewatch_heur xs arena W \<le> \<Down> Id (rewatch N W)\<close>
+    \<open>rewatch_heur xs arena W \<le> \<Down> (\<langle>Id\<rangle>map_fun_rel D\<^sub>0) (rewatch N W')\<close>
 proof -
   have [refine0]: \<open>(xs, xsa) \<in> Id \<Longrightarrow> (xs, xsa) \<in> \<langle>{(x, x'). x = x' \<and> x \<in> vdom}\<rangle>list_rel\<close>
     for xsa
@@ -2200,7 +2206,8 @@ proof -
       using assms by fast
     subgoal 
       using assms by fast
-    subgoal by fast
+    subgoal 
+      using assms by fast
     subgoal by fast
     subgoal
       using assms
@@ -2212,10 +2219,32 @@ proof -
     subgoal for xsa xi x si s
       using assms
       unfolding arena_lit_pre_def
-      apply (rule_tac j=xi in bex_leI)
-      apply (auto simp: arena_is_valid_clause_idx_and_access_def arena_lifting)
-      (* TODO why the assumption non-empty? *)
-      oops
+      by (rule_tac j=xi in bex_leI)
+        (auto simp: arena_is_valid_clause_idx_and_access_def
+          intro!: exI[of _ N] exI[of _ vdom])
+    subgoal for xsa xi x si s
+      using assms
+      unfolding arena_lit_pre_def
+      by (rule_tac j=\<open>xi\<close> in bex_leI)
+        (auto simp: arena_is_valid_clause_idx_and_access_def
+          intro!: exI[of _ N] exI[of _ vdom])
+    subgoal for xsa xi x si s
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of xi 0] assms
+      by (auto simp flip: length_greater_0_conv simp: arena_lifting)
+    subgoal for xsa xi x si s
+      using assms
+      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
+    subgoal for xsa xi x si s
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of xi 1] assms
+      by (auto simp flip: length_greater_0_conv simp: arena_lifting)
+    subgoal for xsa xi x si s
+      using assms
+      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
+    subgoal for xsa xi x si s
+      using assms
+      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
+    done
+qed
 
 
 subsection \<open>Conversion to normal state\<close>

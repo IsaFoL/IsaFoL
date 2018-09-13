@@ -380,6 +380,8 @@ where
     (\<lambda>i W. do {
       if i \<in># dom_m N
       then do {
+        ASSERT(i \<in># dom_m N);
+        ASSERT(length (N \<propto> i) \<ge> 2);
         let L1 = N \<propto> i ! 0;
         let L2 = N \<propto> i ! 1;
         let b = (length (N \<propto> i) = 2);
@@ -410,6 +412,7 @@ proof -
     apply (refine_vcg
       nfoldli_rule[where I = \<open>I\<close>])
     subgoal by (rule I0)
+    subgoal using assms unfolding I_def by auto
     subgoal for x xa l1 l2 \<sigma>
       unfolding I_def
       apply (cases \<open>the (fmlookup N xa)\<close>)

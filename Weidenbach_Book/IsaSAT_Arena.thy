@@ -1379,6 +1379,10 @@ text \<open>The following lemma expresses the relation between the arena and the
   The conditions on \<^term>\<open>arena_status\<close> are in the direction to simplify proofs: If we would try to go
   in the opposite direction, we could rewrite \<^term>\<open>\<not>irred N i\<close> into \<^term>\<open>arena_status arena i \<noteq> LEARNED\<close>,
   which is a weaker property.
+
+  The inequality on the length are here to enable simp to prove inequalities \<^term>\<open>arena_length arena C > Suc 0\<close>
+  automatically. Normally the arithmetic part can prove it from \<^term>\<open>arena_length arena C \<ge> 2\<close>,
+  but as this inequality is simplified away, it does not work.
 \<close>
 lemma arena_lifting:
   assumes valid: \<open>valid_arena arena N vdom\<close> and
@@ -1403,6 +1407,10 @@ lemma arena_lifting:
     \<open>LBD_SHIFT \<le> i\<close>
     \<open>ACTIVITY_SHIFT \<le> i\<close> and
     \<open>arena_length arena i \<ge> 2\<close> and
+    \<open>arena_length arena i \<ge> Suc 0\<close> and
+    \<open>arena_length arena i \<ge> 0\<close> and
+    \<open>arena_length arena i > Suc 0\<close> and
+    \<open>arena_length arena i > 0\<close> and
     \<open>arena_status arena i = LEARNED \<longleftrightarrow> \<not>irred N i\<close> and
     \<open>arena_status arena i = IRRED \<longleftrightarrow> irred N i\<close> and
     \<open>arena_status arena i \<noteq> DELETED\<close>
@@ -1464,7 +1472,11 @@ proof -
     using i_le i_ge size' size ge2 HH unfolding numeral_2_eq_2
     by (simp_all split:)
   show \<open>arena_length arena i \<ge> 2\<close>
-    using ge2 unfolding HH .
+    \<open>arena_length arena i \<ge> Suc 0\<close> and
+    \<open>arena_length arena i \<ge> 0\<close> and
+    \<open>arena_length arena i > Suc 0\<close> and
+    \<open>arena_length arena i > 0\<close>
+    using ge2 unfolding HH by auto
   show
     \<open>i \<ge> header_size (N \<propto> i)\<close> and
     \<open>i < length arena\<close>
