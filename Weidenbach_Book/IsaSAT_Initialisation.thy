@@ -9,8 +9,16 @@ lemma isasat_input_ops_\<L>\<^sub>a\<^sub>l\<^sub>l_empty[simp]:
   unfolding isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
   by auto
 
-
 section \<open>Code for the initialisation of the Data Structure\<close>
+
+text \<open>The initialisation is done in three different steps:
+  \<^enum> First, we extract all the atoms that appear in the problem.
+  \<^enum> Then, we go over all clauses and insert them in our memory module
+  \<^enum> Finally, we calculate the watch list.
+
+Splitting the second from the third step makes it easier to add preprocessing and more important
+to add a bounded mode.
+\<close>
 
 subsection \<open>Initialisation of the state\<close>
 
@@ -90,7 +98,7 @@ where
 
 type_synonym (in -) twl_st_wl_heur_init =
   \<open>(nat,nat)ann_lits \<times> arena \<times> conflict_option_rel \<times> nat \<times>
-    vmtf_remove_int_option_fst_As \<times> bool list \<times>
+    (nat \<times> nat literal \<times> bool) list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times>
     nat \<times> nat conflict_min_cach \<times> lbd \<times> vdom\<close>
 
 type_synonym (in -) twl_st_wl_heur_init_full =
@@ -112,6 +120,14 @@ abbreviation (in isasat_input_ops) vmtf_remove_conc_option_fst_As
 where
   \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As *a distinct_atoms_assn\<close>
 
+text \<open>We add a spurious dependency to the parameter of the locale:\<close>
+definition (in isasat_input_ops) empty_watched :: \<open>nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list\<close> where
+  \<open>empty_watched = (let _ = \<A>\<^sub>i\<^sub>n in (\<lambda>_. []))\<close>
+
+lemma (in isasat_input_ops) empty_watched_alt_def:
+  \<open>empty_watched = (\<lambda>_. [])\<close>
+  unfolding empty_watched_def Let_def ..
+
 text \<open>The initialisation relation is stricter in the sense that it already includes the relation
 of atom inclusion.
 
@@ -123,7 +139,7 @@ definition (in isasat_input_ops) twl_st_heur_init
   :: \<open>(twl_st_wl_heur_init \<times> nat twl_st_wl_init) set\<close>
 where
 \<open>twl_st_heur_init =
-  {((M', N', D', j, vm, \<phi>, clvls, cach, lbd, vdom), ((M, N, D, NE, UE, Q), OC)).
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom), ((M, N, D, NE, UE, Q), OC)).
     M' = M \<and> valid_arena N' N (set vdom) \<and>
     (D',  D) \<in> option_lookup_clause_rel \<and>
     j \<le> length M \<and>
@@ -132,21 +148,22 @@ where
     phase_saving \<phi> \<and>
     no_dup M \<and>
     cach_refinement_empty cach \<and>
-    set_mset (dom_m N) \<subseteq> set vdom \<and>
-     set_mset
+    mset vdom = dom_m N \<and>
+    set_mset
      (all_lits_of_mm
-       ({#mset (fst x). x \<in># ran_m N#} + NE + UE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l
+       ({#mset (fst x). x \<in># ran_m N#} + NE + UE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+    (W', empty_watched) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0
   }\<close>
 
 type_synonym (in -)twl_st_wll_trail_init =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
-    uint32 \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
+    uint32 \<times> watched_wl \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> vdom_assn\<close>
 
 
 type_synonym (in -)twl_st_wll_trail_fast_init =
   \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
-    uint32 \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
+    uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> vdom_assn\<close>
 
 definition (in isasat_input_ops) isasat_init_assn
@@ -156,6 +173,7 @@ where
   trail_assn *a arena_assn *a
   isasat_conflict_assn *a
   uint32_nat_assn *a
+  watchlist_assn *a
   vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
   uint32_nat_assn *a
   cach_refinement_assn *a
@@ -704,14 +722,12 @@ sepref_register fm_add_new
 
 definition (in isasat_input_ops) add_init_cls_heur
   :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>  where
-  \<open>add_init_cls_heur = (\<lambda>C (M, N, D, Q, vm, \<phi>, clvls, cach, lbd, vdom). do {
+  \<open>add_init_cls_heur = (\<lambda>C (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom). do {
      let C = op_array_of_list C;
      ASSERT(length C \<le> uint_max + 2);
      ASSERT(length C \<ge> 2);
     (N, i) \<leftarrow> fm_add_new True C N;
-\<comment>\<open>        let WS = WS[nat_of_lit L := WS ! nat_of_lit L @ [to_watcher i L' b']];
-     let WS = WS[nat_of_lit L' := WS ! nat_of_lit L' @ [to_watcher i L b']];\<close>
-     RETURN (M, N, D, Q, vm, \<phi>, clvls, cach, lbd, vdom @ [nat_of_uint32_conv i])})\<close>
+     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom @ [nat_of_uint32_conv i])})\<close>
 
 lemma length_C_nempty_iff: \<open>length C \<ge> 2 \<longleftrightarrow> C \<noteq> [] \<and> tl C \<noteq> []\<close>
   by (cases C; cases \<open>tl C\<close>) auto
@@ -824,6 +840,7 @@ context
       arena \<times>
       (bool \<times> nat \<times> bool option list) \<times>
       nat \<times>
+      (nat \<times> nat literal \<times> bool) list list \<times>
       (((nat, nat) vmtf_node list \<times>
         nat \<times> nat option \<times> nat option \<times> nat option) \<times>
        nat set) \<times>
@@ -835,6 +852,7 @@ context
     x1i :: \<open>(nat, nat) ann_lits\<close> and
     x2i :: \<open>arena \<times>  (bool \<times> nat \<times> bool option list) \<times>
                           nat \<times>
+                                (nat \<times> nat literal \<times> bool) list list \<times>
                           (((nat, nat) vmtf_node list \<times>
                             nat \<times> nat option \<times> nat option \<times> nat option) \<times>
                            nat set) \<times>
@@ -846,6 +864,7 @@ context
     x1j :: \<open>arena\<close> and
     x2j :: \<open>(bool \<times> nat \<times> bool option list) \<times>
                                    nat \<times>
+                                (nat \<times> nat literal \<times> bool) list list \<times>
                                    (((nat, nat) vmtf_node list \<times>
                                      nat \<times>
                                      nat option \<times> nat option \<times> nat option) \<times>
@@ -858,6 +877,7 @@ context
                  nat \<times>
                  bool option list\<close> and
     x2k :: \<open>nat \<times>
+              (nat \<times> nat literal \<times> bool) list list \<times>
        (((nat, nat) vmtf_node list \<times>
          nat \<times> nat option \<times> nat option \<times> nat option) \<times>
         nat set) \<times>
@@ -867,6 +887,15 @@ context
        bool list \<times>
        nat list\<close> and
     x1l :: \<open>nat\<close> and
+    x2l :: \<open>(nat \<times> nat literal \<times> bool) list list \<times>(((nat, nat) vmtf_node list \<times>
+    nat \<times> nat option \<times> nat option \<times> nat option) \<times>
+   nat set) \<times>
+  bool list \<times>
+  nat \<times>
+  (nat \<Rightarrow> minimize_status) \<times>
+  bool list \<times>
+  nat list\<close> and
+  x1m :: \<open>(nat \<times> nat literal \<times> bool) list list\<close> and
     x2m :: \<open>(((nat, nat) vmtf_node list \<times>
     nat \<times> nat option \<times> nat option \<times> nat option) \<times>
    nat set) \<times>
@@ -895,7 +924,8 @@ context
       \<open>x2o = (x1p, x2p)\<close>
       \<open>x2n = (x1o, x2o)\<close>
       \<open>x2m = (x1n, x2n)\<close>
-      \<open>x2k = (x1l, x2m)\<close>
+      \<open>x2l = (x1m, x2m)\<close>
+      \<open>x2k = (x1l, x2l)\<close>
       \<open>x2j = (x1k, x2k)\<close>
       \<open>x2i = (x1j, x2j)\<close>
       \<open>x2h = (x1i, x2i)\<close>
@@ -905,7 +935,7 @@ begin
 
 private lemma st:
     \<open>x1h = x1\<close> and
-    rel: \<open>((x1i, x1j, x1k, x1l, x1n, x1o, x1p, x1q, x1r, x2r), x1a, x2g)
+    rel: \<open>((x1i, x1j, x1k, x1l, x1m, x1n, x1o, x1p, x1q, x1r, x2r), x1a, x2g)
      \<in> twl_st_heur_init\<close>
   using xy x y by auto
 
@@ -919,7 +949,8 @@ private lemma
     \<open>phase_saving x1o\<close> and
     \<open>no_dup x1b\<close> and
     \<open>cach_refinement_empty x1q\<close> and
-    vdom: \<open>set_mset (dom_m x1c) \<subseteq> set x2r\<close> and
+    vdom: \<open>mset x2r = dom_m x1c\<close> and
+    watched: \<open>(x1m, empty_watched) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close> and
     var_incl:
       \<open>set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m x1c#} + x1e + x1f)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   using xy unfolding x y x1 twl_st_heur_init_def
@@ -953,10 +984,9 @@ lemma init_fm_add_new:
   unfolding x1h_x1
   apply (rule order_trans)
   apply (rule fm_add_new_append_clause)
-  using valid vdom pre xy valid_arena_in_vdom_le_arena[OF valid]
-  by (force simp: x1h_x1 y vdom_m_def
+  using valid vdom pre xy valid_arena_in_vdom_le_arena[OF valid] arena_lifting(2)[OF valid]
+  by (fastforce simp: x1h_x1 y vdom_m_def
     intro!: RETURN_RES_refine valid_arena_append_clause)
-
 
 lemma add_init_cls_final_rel:
   fixes xa :: \<open>arena \<times> nat\<close> and x' :: \<open>nat clauses_l \<times> nat\<close> and
@@ -969,7 +999,7 @@ lemma add_init_cls_final_rel:
     \<open>x' \<in> {(N', ia). 0 < ia \<and> ia \<notin># dom_m x1c \<and> N' = fmupd ia (x1, True) x1c}\<close> and
     \<open>x' = (x1s, x2s)\<close> and
     \<open>xa = (x1t, x2t)\<close>
-  shows \<open>((x1i, x1t, x1k, x1l,
+  shows \<open>((x1i, x1t, x1k, x1l, x1m,
            x1n, x1o, x1p, x1q, x1r, x2r @ [nat_of_uint32_conv x2t]),
           (x1b, x1s, x1d, x1e, x1f, x1g), x2g)
          \<in> twl_st_heur_init\<close>
@@ -1294,7 +1324,7 @@ proof -
 qed
 
 definition (in -) get_conflict_wl_is_None_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None_heur_init = (\<lambda>(M, N, (b, _), Q, W, _). b)\<close>
+  \<open>get_conflict_wl_is_None_heur_init = (\<lambda>(M, N, (b, _), Q, _). b)\<close>
 
 
 definition (in isasat_input_ops) init_dt_step_wl_heur
@@ -2160,6 +2190,208 @@ lemma in_extract_atms_clssD:
 context isasat_input_bounded
 begin
 
+
+subsubsection \<open>Creation of an initial state\<close>
+
+text \<open>The difference between this definition and \<^term>\<open>correct_watching\<close> is not really important:
+  \<^enum> the former talks about all literals that can appear in the problem, while the later talks about
+    all literals that appear in the problem. This is only different during the initialisation.
+  \<^enum> The watch list can only contain clauses that are in the problem.
+\<close>
+fun (in isasat_input_ops) correct_watching_init :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>correct_watching_init (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_lits_of_atms_m \<A>\<^sub>i\<^sub>n.
+      (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> is_binary N (i, K, b)) \<and>
+      {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
+         clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
+
+
+definition (in isasat_input_ops) init_dt_wl_heur_spec
+  :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> bool\<close>
+where
+  \<open>init_dt_wl_heur_spec CS T TOC \<longleftrightarrow>
+    (\<exists>T' TOC'. (TOC, TOC') \<in> twl_st_heur_init \<and> (T, T') \<in> twl_st_heur_init \<and>
+        init_dt_wl_spec CS T' TOC')\<close>
+
+definition (in isasat_input_ops) init_state :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset\<close> where
+  \<open>init_state N = (
+    let _ = \<A>\<^sub>i\<^sub>n in
+    ([]:: (nat, nat clause) ann_lits), (N :: nat clauses), ({#}::nat clauses),
+      (None :: nat clause option))\<close>
+
+definition (in isasat_input_ops) init_state_wl :: \<open>nat twl_st_wl_init'\<close> where
+  \<open>init_state_wl = ([], fmempty, None, {#}, {#}, {#})\<close>
+
+definition (in isasat_input_ops) init_state_wl_heur :: \<open>twl_st_wl_heur_init nres\<close> where
+  \<open>init_state_wl_heur = do {
+    D \<leftarrow> SPEC(\<lambda>D. (D, None) \<in> option_lookup_clause_rel);
+    W \<leftarrow> SPEC (\<lambda>W. (W, empty_watched) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0);
+    vm \<leftarrow> RES (vmtf_init []);
+    \<phi> \<leftarrow> SPEC phase_saving;
+    cach \<leftarrow> SPEC cach_refinement_empty;
+    let lbd = empty_lbd;
+    let vdom = [];
+    RETURN ([], [], D, zero_uint32_nat, W, vm, \<phi>, zero_uint32_nat, cach, lbd, vdom)}\<close>
+
+definition (in isasat_input_ops) init_state_wl_heur_fast where
+  \<open>init_state_wl_heur_fast = init_state_wl_heur\<close>
+
+definition (in isasat_input_ops) twl_st_heur_init_wl :: \<open>(_ \<times> nat twl_st_wl_init') set\<close> where
+\<open>twl_st_heur_init_wl =
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom), (M, N, D, NE, UE, Q)).
+    M' = M \<and> valid_arena N' N (set vdom) \<and>
+    (D', D) \<in> option_lookup_clause_rel \<and>
+    j \<le> length M \<and>
+    Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
+    vm \<in> vmtf_init M \<and>
+    phase_saving \<phi> \<and>
+    no_dup M \<and>
+    cach_refinement_empty cach \<and>
+    set_mset (dom_m N) \<subseteq> set vdom \<and>
+    set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + NE + UE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+    (W', empty_watched) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0
+  }\<close>
+
+definition (in isasat_input_ops) twl_st_heur_init_wl_no_watched :: \<open>(twl_st_wl_heur_init_full \<times> nat twl_st_wl_init) set\<close> where
+\<open>twl_st_heur_init_wl_no_watched =
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom), ((M, N, D, NE, UE, Q), OC)).
+    M' = M \<and> valid_arena N' N (set vdom) \<and>
+    (D', D) \<in> option_lookup_clause_rel \<and>
+    j \<le> length M \<and>
+    Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
+    vm \<in> vmtf_init M \<and>
+    phase_saving \<phi> \<and>
+    no_dup M \<and>
+    cach_refinement_empty cach \<and>
+    set_mset (dom_m N) \<subseteq> set vdom \<and>
+    set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + NE + UE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+    (W', empty_watched) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0
+  }\<close>
+
+(* TODO used? *)
+definition (in isasat_input_ops) twl_st_heur_init_wl_full :: \<open>(twl_st_wl_heur_init_full \<times> nat twl_st_wl_init_full) set\<close> where
+\<open>twl_st_heur_init_wl_full =
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom), ((M, N, D, NE, UE, Q, W), OC)).
+    M' = M \<and> valid_arena N' N (set vdom) \<and>
+    (D', D) \<in> option_lookup_clause_rel \<and>
+    j \<le> length M \<and>
+    Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
+    vm \<in> vmtf_init M \<and>
+    phase_saving \<phi> \<and>
+    no_dup M \<and>
+    cach_refinement_empty cach \<and>
+    set_mset (dom_m N) \<subseteq> set vdom \<and>
+    set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + NE + UE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0
+  }\<close>
+definition (in isasat_input_ops) twl_st_heur_init_wl_no_watched_full :: \<open>(twl_st_wl_heur_init_full \<times> _) set\<close> where
+\<open>twl_st_heur_init_wl_no_watched_full =
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom), ((M, N, D, NE, UE, Q), OC)).
+    M' = M \<and> valid_arena N' N (set vdom) \<and>
+    (D', D) \<in> option_lookup_clause_rel \<and>
+    j \<le> length M \<and>
+    Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
+    vm \<in> vmtf_init M \<and>
+    phase_saving \<phi> \<and>
+    no_dup M \<and>
+    cach_refinement_empty cach \<and>
+    set_mset (dom_m N) \<subseteq> set vdom \<and>
+    set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + NE + UE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+    (W', empty_watched) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0
+  }\<close>
+
+
+lemma (in isasat_input_ops) init_state_wl_heur_init_state_wl:
+  \<open>(uncurry0 init_state_wl_heur, uncurry0 (RETURN init_state_wl)) \<in>
+     unit_rel \<rightarrow>\<^sub>f \<langle>twl_st_heur_init_wl\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: init_state_wl_heur_def init_state_wl_def
+        RES_RETURN_RES bind_RES_RETURN_eq RES_RES_RETURN_RES RETURN_def
+        twl_st_heur_init_wl_def vdom_m_def empty_watched_def valid_arena_empty
+        intro!: RES_refine)
+(* 
+lemma (in isasat_input_ops) get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
+    \<open>(RETURN o get_conflict_wl_is_None_heur_init,  RETURN o get_conflict_wl_is_None) \<in>
+    twl_st_heur_init_wl \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (rename_tac x y, case_tac x, case_tac y)
+  by (auto simp: twl_st_heur_init_wl_def option_lookup_clause_rel_def
+      get_conflict_wl_is_None_heur_init_def get_conflict_wl_is_None_def
+      split: option.splits) *)
+
+definition (in isasat_input_ops) twl_st_init_wl_assn
+where
+  \<open>twl_st_init_wl_assn = hr_comp isasat_init_assn twl_st_heur_init_wl\<close>
+
+(* lemma get_conflict_wl_is_None_init_wl_hnr[sepref_fr_rules]:
+  \<open>(get_conflict_wl_is_None_init_code, RETURN \<circ> get_conflict_wl_is_None)
+    \<in> twl_st_init_wl_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  using get_conflict_wl_is_None_init_code_hnr[FCOMP get_conflict_wl_is_None_heur_get_conflict_wl_is_None]
+  unfolding isasat_init_assn_def[symmetric]twl_st_init_wl_assn_def[symmetric]
+  . *)
+term twl_st_heur_init_wl
+definition (in -)to_init_state :: \<open>nat twl_st_wl_init' \<Rightarrow> nat twl_st_wl_init\<close> where
+  \<open>to_init_state S = (S, {#})\<close>
+
+definition (in -) from_init_state :: \<open>nat twl_st_wl_init_full \<Rightarrow> nat twl_st_wl\<close> where
+  \<open>from_init_state = fst\<close>
+(* 
+lemma (in isasat_input_ops) get_conflict_wl_is_None_heur_init_get_conflict_wl_is_None_init:
+  \<open>(T, Ta) \<in> twl_st_heur_init  \<Longrightarrow>
+    get_conflict_wl_is_None_heur_init T \<longleftrightarrow> get_conflict_wl_is_None_init (from_init_state Ta)\<close>
+  by (cases T; cases Ta) (auto simp: get_conflict_wl_is_None_heur_init_def twl_st_heur_init_def
+      get_conflict_wl_is_None_init_def from_init_state_def get_conflict_wl_is_None_def
+      option_lookup_clause_rel_def
+      split: option.splits) *)
+
+lemma (in isasat_input_ops) id_to_init_state:
+  \<open>(RETURN o id, RETURN o to_init_state) \<in> twl_st_heur_init_wl_no_watched \<rightarrow>\<^sub>f \<langle>twl_st_heur_init_wl_no_watched_full\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: to_init_state_def twl_st_heur_init_wl_def
+      twl_st_heur_init_def)
+
+definition (in -) to_init_state_code where
+  \<open>to_init_state_code = id\<close>
+
+lemma (in isasat_input_ops) to_init_state_code_hnr:
+  \<open>(return o to_init_state_code, RETURN o id) \<in> isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  unfolding to_init_state_code_def
+  by (rule id_ref)
+
+
+lemma (in isasat_input_ops) to_init_state_hnr[sepref_fr_rules]:
+ \<open>(return \<circ> to_init_state_code, RETURN \<circ> to_init_state) \<in>
+   twl_st_init_wl_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_init_assn\<close>
+  using to_init_state_code_hnr[FCOMP id_to_init_state]
+  unfolding twl_st_init_wl_assn_def twl_st_init_assn_def .
+
+lemma (in isasat_input_ops) id_from_init_state:
+  \<open>(RETURN o id, RETURN o from_init_state) \<in> twl_st_heur_init_wl_full \<rightarrow>\<^sub>f \<langle>twl_st_heur_init_wl\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: from_init_state_def twl_st_heur_init_wl_def
+      twl_st_heur_init_def twl_st_heur_init_wl_full_def)
+
+definition from_init_state_code where
+  \<open>from_init_state_code = id\<close>
+
+lemma (in isasat_input_ops) from_init_state_code_hnr:
+  \<open>(return o from_init_state_code, RETURN o id) \<in> isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  unfolding from_init_state_code_def
+  by (rule id_ref)
+
+lemma (in isasat_input_ops) from_init_state_hnr[sepref_fr_rules]:
+ \<open>(return \<circ> from_init_state_code, RETURN \<circ> from_init_state) \<in>
+   twl_st_init_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_init_wl_assn\<close>
+  using from_init_state_code_hnr[FCOMP id_from_init_state]
+  unfolding twl_st_init_wl_assn_def twl_st_init_assn_def .
+*)
+definition conflict_is_None_heur_wl where
+  \<open>conflict_is_None_heur_wl = (\<lambda>(M, N, U, D, _). is_None D)\<close>
+
+definition finalise_init where
+  \<open>finalise_init = id\<close>
+
+
+
 subsection \<open>Rewatch\<close>
 
 definition (in isasat_input_ops) rewatch_heur where
@@ -2247,166 +2479,22 @@ proof -
 qed
 
 
-subsection \<open>Conversion to normal state\<close>
+definition rewatch_heur_st :: \<open>twl_st_wl_heur_init_full \<Rightarrow> twl_st_wl_heur_init_full nres\<close> where
+\<open>rewatch_heur_st = (\<lambda>(M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom). do {
+  W \<leftarrow> rewatch_heur vdom N' W;
+  RETURN (M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom)
+  })\<close>
 
-text \<open>The difference between this definition and \<^term>\<open>correct_watching\<close> is not really important:
-  \<^enum> the former talks about all literals that can appear in the problem, while the later talks about
-    all literals that appear in the problem. This is only different during the initialisation.
-  \<^enum> The watch list can only contain clauses that are in the problem.
-\<close>
-fun (in isasat_input_ops) correct_watching_init :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>correct_watching_init (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_of_atms_m \<A>\<^sub>i\<^sub>n.
-      (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> is_binary N (i, K, b)) \<and>
-      {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
-         clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
+subsubsection \<open>Full Initialisation\<close>
 
-
-definition (in isasat_input_ops) init_dt_wl_heur_spec
-  :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> bool\<close>
-where
-  \<open>init_dt_wl_heur_spec CS T TOC \<longleftrightarrow>
-    (\<exists>T' TOC'. (TOC, TOC') \<in> twl_st_heur_init \<and> (T, T') \<in> twl_st_heur_init \<and>
-        init_dt_wl_spec CS T' TOC')\<close>
-
-definition (in isasat_input_ops) init_state :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset\<close> where
-  \<open>init_state N = (
-    let _ = \<A>\<^sub>i\<^sub>n in
-    ([]:: (nat, nat clause) ann_lits), (N :: nat clauses), ({#}::nat clauses),
-      (None :: nat clause option))\<close>
-
-text \<open>We add a spurious dependency to the parameter of the locale:\<close>
-definition (in isasat_input_ops) empty_watched :: \<open>nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list\<close> where
-  \<open>empty_watched = (let _ = \<A>\<^sub>i\<^sub>n in (\<lambda>_. []))\<close>
-
-lemma (in isasat_input_ops) empty_watched_alt_def:
-  \<open>empty_watched = (\<lambda>_. [])\<close>
-  unfolding empty_watched_def Let_def ..
-
-definition (in isasat_input_ops) init_state_wl :: \<open>nat twl_st_wl\<close> where
-  \<open>init_state_wl = ([], fmempty, None, {#}, {#}, {#}, empty_watched)\<close>
-
-definition (in isasat_input_ops) init_state_wl_heur :: \<open>twl_st_wl_heur_init nres\<close> where
-  \<open>init_state_wl_heur = do {
-    D \<leftarrow> SPEC(\<lambda>D. (D, None) \<in> option_lookup_clause_rel);
-    vm \<leftarrow> RES (vmtf_init []);
-    \<phi> \<leftarrow> SPEC phase_saving;
-    cach \<leftarrow> SPEC cach_refinement_empty;
-    let lbd = empty_lbd;
-    let vdom = [];
-    RETURN ([], [], D, zero_uint32_nat, vm, \<phi>, zero_uint32_nat, cach, lbd, vdom)}\<close>
-
-definition (in isasat_input_ops) init_state_wl_heur_fast where
-  \<open>init_state_wl_heur_fast = init_state_wl_heur\<close>
-
-
-end
-
-(*
-term twl_st_heur_init
-definition (in isasat_input_ops) twl_st_heur_init_wl :: \<open>(twl_st_heur_init_full \<times> nat twl_st_wl) set\<close> where
-\<open>twl_st_heur_init_wl =
-  {((M', N', D', j, vm, \<phi>, clvls, cach, lbd, vdom), (M, N, D, NE, UE, Q)).
-    M' = M \<and> valid_arena N' N (set vdom) \<and>
-    (D', D) \<in> option_lookup_clause_rel \<and>
-    j \<le> length M \<and>
-    Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
-    vm \<in> vmtf_init M \<and>
-    phase_saving \<phi> \<and>
-    no_dup M \<and>
-    cach_refinement_empty cach \<and>
-    set_mset (dom_m N) \<subseteq> set vdom \<and>
-    set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + NE + UE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l
+definition init_dt_wl_heur_full:: \<open>_ \<Rightarrow> twl_st_wl_heur_init_full \<Rightarrow> twl_st_wl_heur_init_full nres\<close> where
+\<open>init_dt_wl_heur_full CS S = do {
+    S \<leftarrow> init_dt_wl_heur CS S;
+    rewatch_heur_st S
   }\<close>
 
-lemma (in isasat_input_ops) init_state_wl_heur_init_state_wl:
-  \<open>(uncurry0 init_state_wl_heur, uncurry0 (RETURN init_state_wl)) \<in>
-     unit_rel \<rightarrow>\<^sub>f \<langle>twl_st_heur_init_wl\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: init_state_wl_heur_def init_state_wl_def
-        RES_RETURN_RES bind_RES_RETURN_eq RES_RES_RETURN_RES RETURN_def
-        twl_st_heur_init_wl_def vdom_m_def empty_watched_def valid_arena_empty
-        intro!: RES_refine)
 
-lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
-    \<open>(RETURN o get_conflict_wl_is_None_heur_init,  RETURN o get_conflict_wl_is_None) \<in>
-    twl_st_heur_init_wl \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  apply (rename_tac x y, case_tac x, case_tac y)
-  by (auto simp: twl_st_heur_init_wl_def option_lookup_clause_rel_def
-      get_conflict_wl_is_None_heur_init_def get_conflict_wl_is_None_def
-      split: option.splits)
-
-definition (in isasat_input_ops) twl_st_init_wl_assn
-where
-  \<open>twl_st_init_wl_assn = hr_comp isasat_init_assn twl_st_heur_init_wl\<close>
-
-lemma get_conflict_wl_is_None_init_wl_hnr[sepref_fr_rules]:
-  \<open>(get_conflict_wl_is_None_init_code, RETURN \<circ> get_conflict_wl_is_None)
-    \<in> twl_st_init_wl_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using get_conflict_wl_is_None_init_code_hnr[FCOMP get_conflict_wl_is_None_heur_get_conflict_wl_is_None]
-  unfolding isasat_init_assn_def[symmetric]twl_st_init_wl_assn_def[symmetric]
-  .
-
-definition (in -)to_init_state :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl_init\<close> where
-  \<open>to_init_state S = (S, {#})\<close>
-
-definition (in -) from_init_state :: \<open>nat twl_st_wl_init \<Rightarrow> nat twl_st_wl\<close> where
-  \<open>from_init_state = fst\<close>
-
-lemma (in isasat_input_ops) get_conflict_wl_is_None_heur_init_get_conflict_wl_is_None_init:
-  \<open>(T, Ta) \<in> twl_st_heur_init  \<Longrightarrow>
-    get_conflict_wl_is_None_heur_init T \<longleftrightarrow> get_conflict_wl_is_None_init (from_init_state Ta)\<close>
-  by (cases T; cases Ta) (auto simp: get_conflict_wl_is_None_heur_init_def twl_st_heur_init_def
-      get_conflict_wl_is_None_init_def from_init_state_def get_conflict_wl_is_None_def
-      option_lookup_clause_rel_def
-      split: option.splits)
-
-lemma (in isasat_input_ops) id_to_init_state:
-  \<open>(RETURN o id, RETURN o to_init_state) \<in> twl_st_heur_init_wl \<rightarrow>\<^sub>f \<langle>twl_st_heur_init\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: to_init_state_def twl_st_heur_init_wl_def
-      twl_st_heur_init_def)
-
-definition to_init_state_code where
-  \<open>to_init_state_code = id\<close>
-
-lemma (in isasat_input_ops) to_init_state_code_hnr:
-  \<open>(return o to_init_state_code, RETURN o id) \<in> isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
-  unfolding to_init_state_code_def
-  by (rule id_ref)
-
-
-lemma (in isasat_input_ops) to_init_state_hnr[sepref_fr_rules]:
- \<open>(return \<circ> to_init_state_code, RETURN \<circ> to_init_state) \<in>
-   twl_st_init_wl_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_init_assn\<close>
-  using to_init_state_code_hnr[FCOMP id_to_init_state]
-  unfolding twl_st_init_wl_assn_def twl_st_init_assn_def .
-
-lemma (in isasat_input_ops) id_from_init_state:
-  \<open>(RETURN o id, RETURN o from_init_state) \<in> twl_st_heur_init \<rightarrow>\<^sub>f \<langle>twl_st_heur_init_wl\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: from_init_state_def twl_st_heur_init_wl_def
-      twl_st_heur_init_def)
-
-definition from_init_state_code where
-  \<open>from_init_state_code = id\<close>
-
-lemma (in isasat_input_ops) from_init_state_code_hnr:
-  \<open>(return o from_init_state_code, RETURN o id) \<in> isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
-  unfolding from_init_state_code_def
-  by (rule id_ref)
-
-lemma (in isasat_input_ops) from_init_state_hnr[sepref_fr_rules]:
- \<open>(return \<circ> from_init_state_code, RETURN \<circ> from_init_state) \<in>
-   twl_st_init_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_init_wl_assn\<close>
-  using from_init_state_code_hnr[FCOMP id_from_init_state]
-  unfolding twl_st_init_wl_assn_def twl_st_init_assn_def .
-*)
-definition conflict_is_None_heur_wl where
-  \<open>conflict_is_None_heur_wl = (\<lambda>(M, N, U, D, _). is_None D)\<close>
-
-definition finalise_init where
-  \<open>finalise_init = id\<close>
+subsection \<open>Conversion to normal state\<close>
 
 context isasat_input_bounded
 begin
