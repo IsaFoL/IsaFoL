@@ -215,6 +215,37 @@ proof
   then show \<open>\<iota> \<in> Red_I_\<G> (N - N')\<close> unfolding Red_I_\<G>_def using i_in by blast
 qed
 
+text \<open>lemma 14 in Uwe's notes\<close>
+lemma Red_I_of_I_to_N_F: 
+  assumes
+    i_in: \<open>\<iota> \<in> I_F\<close> and
+    concl_i_in: \<open>concl_of \<iota> \<in> N\<close>
+  shows
+    \<open>\<iota> \<in> Red_I_\<G> N \<close>
+proof -
+  have \<open>\<G>_I \<iota> \<subseteq> Red_I_G (\<G>_F (concl_of \<iota>))\<close> using inf_map by simp
+  moreover have \<open>Red_I_G (\<G>_F (concl_of \<iota>)) \<subseteq> Red_I_G (\<G>_set N)\<close>
+    using concl_i_in Red_I_of_subset by blast
+  ultimately show ?thesis using i_in unfolding Red_I_\<G>_def by simp
+qed
+
+text \<open>theorem 15 in Uwe's notes\<close>
+interpretation lifted_inference_system: inference_system 
+  where
+    Bot_F = Bot_F_F and entails = entails_\<G> and I = I_F  and Red_I = Red_I_\<G> and Red_F = Red_F_\<G>
+proof
+  fix N N' \<iota>
+  show \<open>Red_I_\<G> N \<in> Pow I_F\<close> unfolding Red_I_\<G>_def by blast
+  show \<open>N \<Turnstile>\<G> {Bot_F_F} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {Bot_F_F}\<close> using Red_F_Bot_F_F by simp
+  show \<open>N \<subseteq> N' \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> N'\<close> using Red_F_of_subset_F by simp
+  show \<open>N \<subseteq> N' \<Longrightarrow> Red_I_\<G> N \<subseteq> Red_I_\<G> N'\<close> using Red_I_of_subset_F by simp
+  show \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> (N - N')\<close> using Red_F_of_Red_F_subset_F by simp
+  show \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_I_\<G> N \<subseteq> Red_I_\<G> (N - N')\<close> using Red_I_of_Red_F_subset_F by simp
+  show \<open>\<iota> \<in> I_F \<and> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I_\<G> N\<close> using Red_I_of_I_to_N_F by simp
+  show \<open>{\<iota> \<in> I_F. concl_of \<iota> \<in> N} \<subseteq> Red_I_\<G> N\<close> using Red_I_of_I_to_N_F by auto
+qed
+
+
 
 end
 
