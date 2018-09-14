@@ -731,7 +731,7 @@ proof -
     unfolding arena_dead_clause_def xarena_active_clause_alt_def
       extra_information_mark_to_delete_def apply -
     by (simp_all add: SHIFTS_def header_size_def Misc.slice_def drop_update_swap min_def
-      split: if_splits)
+         split: if_splits)
        force+
   ultimately show ?thesis
     using assms unfolding valid_arena_def
@@ -3104,14 +3104,13 @@ lemma isa_marked_as_used_marked_as_used:
       list_rel_imp_same_length isa_marked_as_used_def
       intro!: ASSERT_leI)
 
-text \<open>Adding some random test\<close>
-
 sepref_definition isa_marked_as_used_code
   is \<open>uncurry isa_marked_as_used\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   supply op_eq_uint32[sepref_fr_rules]
   unfolding isa_marked_as_used_def
   by sepref
+
 
 lemma isa_marked_as_used_code[sepref_fr_rules]:
   \<open>(uncurry isa_marked_as_used_code, uncurry (RETURN \<circ>\<circ> marked_as_used))

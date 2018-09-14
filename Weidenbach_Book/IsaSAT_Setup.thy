@@ -3,7 +3,10 @@ theory IsaSAT_Setup
     Watched_Literals_VMTF IsaSAT_Lookup_Conflict LBD IsaSAT_Watch_List
 begin
 
+
+text \<open>TODO Move and make sure to merge in the right order!\<close>
 no_notation Ref.update ("_ := _" 62)
+
 
 subsection \<open>Code Generation\<close>
 
@@ -13,7 +16,8 @@ paragraph \<open>Statistics\<close>
 
 text \<open>
 We do some statistics on the run. NB: the statistics are not proven correct (especially they might
-overflow), there are just there to look for regressions and do some comparisons.
+overflow), there are just there to look for regressions and do some comparisons (e.g., to conclude that
+we are propagating slower than the other solvers).
 \<close>
 type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 

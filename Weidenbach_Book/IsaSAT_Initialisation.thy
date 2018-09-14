@@ -1,5 +1,6 @@
 theory IsaSAT_Initialisation
   imports IsaSAT_Setup IsaSAT_VMTF Watched_Literals.Watched_Literals_Watch_List_Initialisation
+    "../lib/Explorer"
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -367,8 +368,8 @@ proof -
   show ?thesis
     apply (intro frefI nres_relI)
     unfolding initialise_VMTF_def uncurry_def conc_Id id_def isasat_input_ops.vmtf_init_def
-    apply (refine_rcg)
-    subgoal by (auto dest: list_rel_mset_rel_imp_same_length)
+    apply (refine_rcg) 
+   subgoal by (auto dest: list_rel_mset_rel_imp_same_length)
     apply (rule specify_left)
      apply (rule W_ref; assumption?)
     subgoal for N' N'n' n' Nn N n st
@@ -2216,6 +2217,7 @@ definition (in isasat_input_ops) twl_st_heur_parsing_no_WL_wl_full :: \<open>(tw
     set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + NE + UE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0
   }\<close>
+
 definition (in isasat_input_ops) twl_st_heur_parsing_no_WL_wl_no_watched_full :: \<open>(twl_st_wl_heur_init_full \<times> _) set\<close> where
 \<open>twl_st_heur_parsing_no_WL_wl_no_watched_full =
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom), ((M, N, D, NE, UE, Q), OC)).
@@ -2251,10 +2253,6 @@ lemma (in isasat_input_ops) get_conflict_wl_is_None_heur_get_conflict_wl_is_None
       get_conflict_wl_is_None_heur_init_def get_conflict_wl_is_None_def
       split: option.splits) *)
 
-definition (in isasat_input_ops) twl_st_init_wl_assn
-where
-  \<open>twl_st_init_wl_assn = hr_comp isasat_init_assn twl_st_heur_parsing_no_WL_wl\<close>
-
 (*
  lemma get_conflict_wl_is_None_init_wl_hnr[sepref_fr_rules]:
   \<open>(get_conflict_wl_is_None_init_code, RETURN \<circ> get_conflict_wl_is_None)
@@ -2268,6 +2266,7 @@ definition (in -)to_init_state :: \<open>nat twl_st_wl_init' \<Rightarrow> nat t
 
 definition (in -) from_init_state :: \<open>nat twl_st_wl_init_full \<Rightarrow> nat twl_st_wl\<close> where
   \<open>from_init_state = fst\<close>
+
 (* 
 lemma (in isasat_input_ops) get_conflict_wl_is_None_heur_init_get_conflict_wl_is_None_init:
   \<open>(T, Ta) \<in> twl_st_heur_parsing_no_WL  \<Longrightarrow>
@@ -2333,28 +2332,154 @@ subsection \<open>Rewatch\<close>
 definition (in isasat_input_ops) rewatch_heur where
 \<open>rewatch_heur vdom arena W = do {
   let _ = vdom;
-  nfoldli vdom (\<lambda>_. True)
+  nfoldli [0..<length vdom] (\<lambda>_. True)
    (\<lambda>i W. do {
-      ASSERT(arena_is_valid_clause_vdom arena i);
-     if arena_status arena i \<noteq> DELETED
-     then do {
-        ASSERT(arena_lit_pre arena i);
-        ASSERT(arena_lit_pre arena (i+1));
-        let L1 = arena_lit arena i;
-        let L2 = arena_lit arena (i + 1);
+      let C = vdom ! i;
+      ASSERT(arena_is_valid_clause_vdom arena C);
+      if arena_status arena C \<noteq> DELETED
+      then do {
+        ASSERT(arena_lit_pre arena C);
+        ASSERT(arena_lit_pre arena (C+1));
+        let L1 = arena_lit arena C;
+        let L2 = arena_lit arena (C + 1);
         ASSERT(L1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
         ASSERT(nat_of_lit L1 < length W);
-        let b = (arena_length arena i = 2);
-        let W = append_ll W (nat_of_lit L1) (i, L2, b);
+        ASSERT(arena_is_valid_clause_idx arena C);
+        let b = (arena_length arena C = 2);
+        let W = append_ll W (nat_of_lit L1) (to_watcher C L2 b);
         ASSERT(L2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
         ASSERT(nat_of_lit L2 < length W);
-        let W = append_ll W (nat_of_lit L2) (i, L1, b);
+        let W = append_ll W (nat_of_lit L2) (to_watcher C L1 b);
         RETURN W
       }
       else RETURN W
     })
    W
   }\<close>
+
+(* TODO Move *)
+lemma (in -) nfoldli_cong2:
+  assumes 
+    le: \<open>length l = length l'\<close> and
+    \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
+    c: \<open>c = c'\<close> and
+    H: \<open>\<And>\<sigma> x. x < length l \<Longrightarrow> c' \<sigma> \<Longrightarrow> f (l ! x) \<sigma> = f' (l' ! x) \<sigma>\<close>
+  shows \<open>nfoldli l c f \<sigma> = nfoldli l' c' f' \<sigma>'\<close>
+proof -
+  show ?thesis
+    using le H unfolding c[symmetric] \<sigma>[symmetric]
+  proof (induction l arbitrary: l' \<sigma>)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a l l'') note IH=this(1) and le = this(2) and H = this(3)
+    show ?case
+      using le H[of \<open>Suc _\<close>] H[of 0] IH[of \<open>tl l''\<close> \<open>_\<close>]
+      by (cases l'')
+        (auto intro: bind_cong_nres)
+  qed
+qed
+
+lemma (in -) nfoldli_nfoldli_list_nth:
+  \<open>nfoldli xs c P a = nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) a\<close>
+proof (induction xs arbitrary: a)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons x xs) note IH = this(1)
+  have 1: \<open>[0..<length (x # xs)] = 0 # [1..<length (x#xs)]\<close>
+    by (subst upt_rec)  simp
+  have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
+    by (induction xs) auto
+  have AB: \<open>nfoldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
+      nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close> 
+      (is \<open>?A = ?B\<close>)
+    unfolding 1 ..
+  {
+    assume [simp]: \<open>c a\<close> 
+    have \<open>nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
+       do {
+         \<sigma> \<leftarrow> (P x a);
+         nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>
+        }\<close>
+      by simp
+    moreover have \<open>nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>  = 
+       nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) \<sigma>\<close> for \<sigma>
+      unfolding 2
+      by (rule nfoldli_cong2) auto
+    ultimately have \<open>?A = do {
+         \<sigma> \<leftarrow> (P x a);
+         nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i))  \<sigma>
+        }\<close>
+      using AB
+      by (auto intro: bind_cong_nres)
+  }
+  moreover { 
+    assume [simp]: \<open>\<not>c a\<close> 
+    have \<open>?B = RETURN a\<close>
+      by simp
+  }
+  ultimately show ?case by (auto simp: IH intro: bind_cong_nres)
+qed
+
+
+lemma (in -) foldli_cong2:
+  assumes 
+    le: \<open>length l = length l'\<close> and
+    \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
+    c: \<open>c = c'\<close> and
+    H: \<open>\<And>\<sigma> x. x < length l \<Longrightarrow> c' \<sigma> \<Longrightarrow> f (l ! x) \<sigma> = f' (l' ! x) \<sigma>\<close>
+  shows \<open>foldli l c f \<sigma> = foldli l' c' f' \<sigma>'\<close>
+proof -
+  show ?thesis
+    using le H unfolding c[symmetric] \<sigma>[symmetric]
+  proof (induction l arbitrary: l' \<sigma>)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a l l'') note IH=this(1) and le = this(2) and H = this(3)
+    show ?case
+      using le H[of \<open>Suc _\<close>] H[of 0] IH[of \<open>tl l''\<close> \<open>f' (hd l'') \<sigma>\<close>]
+      by (cases l'') auto
+  qed
+qed
+
+lemma (in -) foldli_foldli_list_nth:
+  \<open>foldli xs c P a = foldli [0..<length xs] c (\<lambda>i. P (xs ! i)) a\<close>
+proof (induction xs arbitrary: a)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons x xs) note IH = this(1)
+  have 1: \<open>[0..<length (x # xs)] = 0 # [1..<length (x#xs)]\<close>
+    by (subst upt_rec)  simp
+  have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
+    by (induction xs) auto
+  have AB: \<open>foldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
+      foldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close> 
+      (is \<open>?A = ?B\<close>)
+    unfolding 1 ..
+  {
+    assume [simp]: \<open>c a\<close> 
+    have \<open>foldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
+       foldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) (P x a)\<close>
+      by simp
+    also have \<open>\<dots>  = foldli [0..<length xs] c (\<lambda>i. P (xs ! i)) (P x a)\<close>
+      unfolding 2
+      by (rule foldli_cong2) auto
+    finally have \<open>?A = foldli [0..<length xs] c (\<lambda>i. P (xs ! i)) (P x a)\<close>
+      using AB
+      by simp
+  }
+  moreover { 
+    assume [simp]: \<open>\<not>c a\<close> 
+    have \<open>?B = a\<close>
+      by simp
+  }
+
+  ultimately show ?case by (auto simp: IH)
+qed
+(* END Move *)
 
 lemma rewatch_heur_rewatch:
   assumes
@@ -2363,18 +2488,20 @@ lemma rewatch_heur_rewatch:
   shows
     \<open>rewatch_heur xs arena W \<le> \<Down> (\<langle>Id\<rangle>map_fun_rel D\<^sub>0) (rewatch N W')\<close>
 proof -
-  have [refine0]: \<open>(xs, xsa) \<in> Id \<Longrightarrow> (xs, xsa) \<in> \<langle>{(x, x'). x = x' \<and> x \<in> vdom}\<rangle>list_rel\<close>
+  have [refine0]: \<open>(xs, xsa) \<in> Id \<Longrightarrow>
+     ([0..<length xs], [0..<length xsa]) \<in> \<langle>{(x, x'). x = x' \<and> xs!x \<in> vdom}\<rangle>list_rel\<close>
     for xsa
     using assms unfolding list_rel_def 
     by (auto simp: list_all2_same)
   show ?thesis
     unfolding rewatch_heur_def rewatch_def
+    apply (subst (2) nfoldli_nfoldli_list_nth)
     apply (refine_vcg)
-    subgoal 
+    subgoal
       using assms by fast
-    subgoal 
+    subgoal
       using assms by fast
-    subgoal 
+    subgoal
       using assms by fast
     subgoal by fast
     subgoal
@@ -2387,23 +2514,28 @@ proof -
     subgoal for xsa xi x si s
       using assms
       unfolding arena_lit_pre_def
-      by (rule_tac j=xi in bex_leI)
+      by (rule_tac j=\<open>xs ! xi\<close> in bex_leI)
         (auto simp: arena_is_valid_clause_idx_and_access_def
           intro!: exI[of _ N] exI[of _ vdom])
     subgoal for xsa xi x si s
       using assms
       unfolding arena_lit_pre_def
-      by (rule_tac j=\<open>xi\<close> in bex_leI)
+      by (rule_tac j=\<open>xs ! xi\<close> in bex_leI)
         (auto simp: arena_is_valid_clause_idx_and_access_def
           intro!: exI[of _ N] exI[of _ vdom])
     subgoal for xsa xi x si s
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of xi 0] assms
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of \<open>xs ! xi\<close> 0] assms
       by (auto simp flip: length_greater_0_conv simp: arena_lifting)
     subgoal for xsa xi x si s
       using assms
       by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
     subgoal for xsa xi x si s
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of xi 1] assms
+      using assms
+      unfolding arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def
+      by (auto simp: arena_is_valid_clause_idx_and_access_def
+          intro!: exI[of _ N] exI[of _ vdom])
+    subgoal for xsa xi x si s
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1] assms
       by (auto simp flip: length_greater_0_conv simp: arena_lifting)
     subgoal for xsa xi x si s
       using assms
@@ -2414,6 +2546,12 @@ proof -
     done
 qed
 
+sepref_thm rewatch_heur_code
+  is \<open>uncurry2 rewatch_heur\<close>
+  :: \<open>vdom_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a watchlist_assn\<^sup>d \<rightarrow>\<^sub>a watchlist_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding rewatch_heur_def Let_def two_uint64_nat_def[symmetric]
+  by sepref
 
 definition rewatch_heur_st :: \<open>twl_st_wl_heur_init_full \<Rightarrow> twl_st_wl_heur_init_full nres\<close> where
 \<open>rewatch_heur_st = (\<lambda>(M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom). do {
@@ -2421,17 +2559,18 @@ definition rewatch_heur_st :: \<open>twl_st_wl_heur_init_full \<Rightarrow> twl_
   RETURN (M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom)
   })\<close>
 
-lemma (in isasat_input_bounded)
+lemma (in isasat_input_bounded) rewatch_heur_st_correct_watching:
   assumes
     \<open>(S, T) \<in> twl_st_heur_parsing_no_WL\<close> and
-    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf (get_clauses_init_wl T))\<close>
+    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf (get_clauses_init_wl T))\<close> and
+    \<open>\<And>x. x \<in># dom_m (get_clauses_init_wl T) \<Longrightarrow> distinct (get_clauses_init_wl T \<propto> x) \<and>
+        2 \<le> length (get_clauses_init_wl T \<propto> x)\<close>
   shows \<open>rewatch_heur_st S \<le> \<Down> twl_st_heur_parsing (SPEC (\<lambda>((M,N, D, NE, UE, Q, W), OC). T = ((M,N,D,NE,UE,Q), OC)\<and>
-    correct_watching (M,N, D, NE, UE, Q, W)))\<close>
+    correct_watching (M, N, D, NE, UE, Q, W)))\<close>
 proof -
-
   obtain M N D NE UE Q OC where
     T: \<open>T = ((M,N, D, NE, UE, Q), OC)\<close>
-    by auto
+    by (cases T) auto
 
   obtain M' N' D' j W vm \<phi> clvls cach lbd vdom where
     S: \<open>S = (M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom)\<close>
@@ -2445,7 +2584,13 @@ proof -
     using assms distinct_mset_dom[of N] apply (auto simp: twl_st_heur_parsing_no_WL_def S T
       simp flip: distinct_mset_mset_distinct)
     by (metis distinct_mset_set_mset_ident set_mset_mset subset_mset.eq_iff)
-
+  have H: \<open>RES ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<inverse> ``
+         {W. Watched_Literals_Watch_List_Initialisation.correct_watching_init
+              (M, N, D, NE, UE, Q, W)})
+    \<le> RES ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<inverse> ``
+         {W. Watched_Literals_Watch_List_Initialisation.correct_watching_init
+              (M, N, D, NE, UE, Q, W)})\<close>
+    by (rule order.refl)
   show ?thesis
     supply [[goals_limit=1]]
     using assms
@@ -2459,12 +2604,14 @@ proof -
     apply (rule order_trans[OF conc_fun_mono])
     apply (rule rewatch_correctness)
     apply (rule empty_watched_alt_def)
-    subgoal sorry
+    subgoal
+      using assms
+      by (auto simp: twl_st_heur_parsing_no_WL_def)
     apply (subst conc_fun_RES)
-    apply (rule order.refl)
-    
-  oops
-
+    apply (rule H)
+    by (force simp: twl_st_heur_parsing_def twl_st_heur_parsing_no_WL_def
+      intro!: RETURN_RES_refine correct_watching_init_correct_watching)
+qed
 
 
 
