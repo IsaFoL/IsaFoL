@@ -54,7 +54,7 @@ sepref_register cdcl_twl_o_prog_wl_D
 
 sepref_thm cdcl_twl_o_prog_wl_D_code
   is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
-  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_unbounded_assn\<close>
   unfolding cdcl_twl_o_prog_wl_D_heur_alt_def PR_CONST_def
   unfolding get_conflict_wl_is_None get_conflict_wl_is_None_heur_alt_def[symmetric]
   supply [[goals_limit = 1]]
@@ -72,7 +72,7 @@ lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
 (*
 sepref_thm cdcl_twl_o_prog_wl_D_fast_code
   is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
-  :: \<open>[isasat_fast]\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> bool_assn *a isasat_fast_assn\<close>
+  :: \<open>[isasat_fast]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_bounded_assn\<close>
   unfolding cdcl_twl_o_prog_wl_D_heur_def PR_CONST_def
   unfolding get_conflict_wl_is_None get_conflict_wl_is_None_heur_alt_def[symmetric]
   supply [[goals_limit = 1]]
@@ -153,7 +153,7 @@ sepref_register cdcl_twl_stgy_prog_wl_D unit_propagation_outer_loop_wl_D_heur
 
 sepref_thm cdcl_twl_stgy_prog_wl_D_code
   is \<open>PR_CONST cdcl_twl_stgy_prog_wl_D_heur\<close>
-  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   unfolding cdcl_twl_stgy_prog_wl_D_heur_def PR_CONST_def
   supply [[goals_limit = 1]]
   by sepref
@@ -229,9 +229,9 @@ begin
 (* sepref_register isasat_fast2
 sepref_thm isasat_fast2_code
   is \<open>RETURN o isasat_fast2\<close>
-  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   supply [[goals_limit=1]]
-  unfolding isasat_fast2_alt_def isasat_fast_assn_def
+  unfolding isasat_fast2_alt_def isasat_bounded_assn_def
   by sepref
 
 concrete_definition (in -) isasat_fast2_code
@@ -273,7 +273,7 @@ where
 sepref_register isasat_fast_slow
 sepref_thm cdcl_twl_stgy_prog_wl_D_fast_code
   is \<open>PR_CONST cdcl_twl_stgy_prog_break_wl_D_heur_break\<close>
-  :: \<open>[isasat_fast]\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_assn\<close>
+  :: \<open>[isasat_fast]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
   unfolding cdcl_twl_stgy_prog_break_wl_D_heur_break_def PR_CONST_def
   supply [[goals_limit = 1]] isasat_input_bounded_nempty_axioms[intro] isasat_fast2_def[simp]
   by sepref

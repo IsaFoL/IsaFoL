@@ -855,6 +855,23 @@ lemma uint32_nat_assn_mult:
   by sepref_to_hoare
      (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_mult_le)
 
+lemma nat_and_numerals [simp]:
+  "(numeral (Num.Bit0 x) :: nat) AND (numeral (Num.Bit0 y) :: nat) = (2 :: nat) * (numeral x AND numeral y)"
+  "numeral (Num.Bit0 x) AND numeral (Num.Bit1 y) = (2 :: nat) * (numeral x AND numeral y)"
+  "numeral (Num.Bit1 x) AND numeral (Num.Bit0 y) = (2 :: nat) * (numeral x AND numeral y)"
+  "numeral (Num.Bit1 x) AND numeral (Num.Bit1 y) = (2 :: nat) * (numeral x AND numeral y)+1"
+  "(1::nat) AND numeral (Num.Bit0 y) = 0"
+  "(1::nat) AND numeral (Num.Bit1 y) = 1"
+  "numeral (Num.Bit0 x) AND (1::nat) = 0"
+  "numeral (Num.Bit1 x) AND (1::nat) = 1"
+  "(Suc 0::nat) AND numeral (Num.Bit0 y) = 0"
+  "(Suc 0::nat) AND numeral (Num.Bit1 y) = 1"
+  "numeral (Num.Bit0 x) AND (Suc 0::nat) = 0"
+  "numeral (Num.Bit1 x) AND (Suc 0::nat) = 1"
+  "Suc 0 AND Suc 0 = 1"
+  supply [[show_types]]
+  by (auto simp: bitAND_nat_def Bit_def nat_add_distrib)
+
 
 subsubsection \<open>64-bits\<close>
 
@@ -972,8 +989,6 @@ lemma shiftr_uint64[sepref_fr_rules]:
  \<open>(uncurry (return oo (>>) ), uncurry (RETURN oo (>>)))
     \<in> uint64_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by sepref_to_hoare sep_auto
-
-
 
 lemma nat_of_uint64_distrib_mult2:
   assumes \<open>nat_of_uint64 xi \<le> uint64_max div 2\<close>
@@ -1485,6 +1500,21 @@ lemma uint64_nat_assn_mult:
   by sepref_to_hoare
      (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_mult_le)
 
+lemma uint64_max_uint64_nat_assn:
+ \<open>(uncurry0 (return 18446744073709551615), uncurry0 (RETURN uint64_max)) \<in>
+  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def uint64_max_def)
+
+lemma uint64_max_nat_assn[sepref_fr_rules]:
+ \<open>(uncurry0 (return 18446744073709551615), uncurry0 (RETURN uint64_max)) \<in>
+  unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def uint64_max_def)
+
+lemma bit_lshift_uint64_assn:
+  \<open>(uncurry (return oo (>>)), uncurry (RETURN oo (>>))) \<in>
+    uint64_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
+
 
 subsubsection \<open>Conversions\<close>
 
@@ -1594,6 +1624,13 @@ lemma uint32_of_uint64_conv_hnr[sepref_fr_rules]:
     (sep_auto simp: uint32_of_uint64_def uint32_nat_rel_def br_def nat_of_uint64_le_iff
       nat_of_uint32_uint32_of_nat_id uint64_nat_rel_def)
 
+
+paragraph \<open>From nat to 32 bits\<close>
+
+
+lemma (in -) uint32_of_nat[sepref_fr_rules]:
+  \<open>(return o uint32_of_nat, RETURN o uint32_of_nat) \<in> [\<lambda>n. n \<le> uint32_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_assn\<close>
+  by sepref_to_hoare sep_auto
 
 paragraph \<open>Setup for numerals\<close>
 

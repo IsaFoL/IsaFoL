@@ -1,5 +1,5 @@
 theory Watched_Literals_VMTF
-  imports IsaSAT_Literals "../lib/Explorer"
+  imports IsaSAT_Literals
 begin
 
 
@@ -1771,31 +1771,6 @@ lemma vmtf_vmtf_en_dequeue_pre_to_remove':
   using vmtf_vmtf_en_dequeue_pre_to_remove assms 
   by (cases vm) auto
 
-(* TODO Move *)
-lemma (in -)WHILEIT_rule_stronger_inv_RES':
-  assumes
-    \<open>wf R\<close> and
-    \<open>I s\<close> and
-    \<open>I' s\<close>
-    \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> b s \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. I s' \<and>  I' s' \<and> (s', s) \<in> R)\<close> and
-   \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> \<not> b s \<Longrightarrow> RETURN s \<le> \<Down> H (RES \<Phi>)\<close>
- shows \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> \<Down> H (RES \<Phi>)\<close>
-proof -
-  have RES_SPEC: \<open>RES \<Phi> = SPEC(\<lambda>s. s \<in> \<Phi>)\<close>
-    by auto
-  have \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s\<close>
-    by (metis (mono_tags, lifting) WHILEIT_weaken)
-  also have \<open>WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s \<le> \<Down> H (RES \<Phi>)\<close>
-    unfolding RES_SPEC conc_fun_SPEC
-    apply (rule WHILEIT_rule[OF assms(1)])
-    subgoal using assms(2,3) by auto
-    subgoal using assms(4) by auto
-    subgoal using assms(5) unfolding RES_SPEC conc_fun_SPEC by auto
-    done
-  finally show ?thesis .
-qed
-
-
 lemma wf_vmtf_get_next:
   assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf M\<close>
   shows \<open>wf {(get_next (ns ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l}\<close> (is \<open>wf ?R\<close>)
@@ -2417,7 +2392,6 @@ definition (in isasat_input_ops) vmtf_rescale :: \<open>vmtf \<Rightarrow> vmtf 
 \<close>
 
 (* TODO Move *)
-thm list_update_id
 lemma (in -) list_update_id':
   \<open>x = xs ! i \<Longrightarrow> xs[i := x] = xs\<close>
   by auto
@@ -2981,6 +2955,10 @@ definition phase_saving :: \<open>phase_saver \<Rightarrow> bool\<close> where
 text \<open>Save phase as given (e.g. for literals in the trail):\<close>
 definition save_phase :: \<open>nat literal \<Rightarrow> phase_saver \<Rightarrow> phase_saver\<close> where
   \<open>save_phase L \<phi> = \<phi>[atm_of L := is_pos L]\<close>
+
+lemma phase_saving_save_phase[simp]:
+  \<open>phase_saving (save_phase L \<phi>) \<longleftrightarrow> phase_saving \<phi>\<close>
+  by (auto simp: phase_saving_def save_phase_def)
 
 text \<open>Save opposite of the phase (e.g. for literals in the conflict clause):\<close>
 definition save_phase_inv :: \<open>nat literal \<Rightarrow> phase_saver \<Rightarrow> phase_saver\<close> where

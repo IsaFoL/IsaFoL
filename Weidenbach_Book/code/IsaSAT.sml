@@ -80,9 +80,9 @@ fun print_stat (propa, (confl, (dec, (res, lres)))) =
   in
    ()
   end
-fun checker print_modelb print_stats cnf_name = let
+fun solver print_modelb print_stats norestart noreduction cnf_name = let
   val problem = Dimacs_Parser.parse_dimacs_file_map_to_list cnf_name nat_of_lit;
-  val (SAT, stat) = SAT_Solver.isaSAT_code problem ();
+  val (SAT, stat) = SAT_Solver.isaSAT_code (not norestart, not noreduction) problem ();
   val _ = (if print_stats then print_stat stat else ());
   val _ =
         (case SAT of
@@ -98,7 +98,9 @@ fun print_help () = (
   println("  The result (SAT or UNSAT) is printed");
   println("  Use option --stat to print the number of propagations,");
   println("   conflicts, and decisions. ");
-  println("  Use option --model to print a model if one exists.")
+  println("  Use option --model to print a model if one exists.");
+  println("  Use option --norestart to deactivate restarts.");
+  println("  Use option --noreduction to DB reduction.")
 )
 
 fun contains x xs =
@@ -108,9 +110,11 @@ fun contains x xs =
 
 fun process_args [] = print_help() 
   | process_args args =
-    checker (contains "--model" args)
-            (contains "--stat" args)
-            (List.last args)
+    solver (contains "--model" args)
+           (contains "--stat" args)
+           (contains "--norestart" args)
+           (contains "--noreduction" args)
+           (List.last args)
 
 fun main () = let
   val args = CommandLine.arguments ();

@@ -1082,6 +1082,191 @@ lemma [sepref_fr_rules]:
  \<open>(return o (\<lambda>_. ()), RETURN o virtual_copy) \<in> R\<^sup>k \<rightarrow>\<^sub>a ghost_assn\<close>
  by sepref_to_hoare (sep_auto simp: virtual_copy_rel_def)
 
+lemma bind_cong_nres: \<open>(\<And>x. g x = g' x) \<Longrightarrow> (do {a \<leftarrow> f :: 'a nres;  g a}) = (do {a \<leftarrow> f :: 'a nres;  g' a})\<close>
+  by auto
+
+lemma case_prod_cong:
+  \<open>(\<And>a b. f a b = g a b) \<Longrightarrow> (case x of (a, b) \<Rightarrow> f a b) = (case x of (a, b) \<Rightarrow> g a b)\<close>
+  by (cases x) auto
+
+lemma if_replace_cond: \<open>(if b then P b else Q b) = (if b then P True else Q False)\<close>
+  by auto
+
+lemma nfoldli_cong2:
+  assumes 
+    le: \<open>length l = length l'\<close> and
+    \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
+    c: \<open>c = c'\<close> and
+    H: \<open>\<And>\<sigma> x. x < length l \<Longrightarrow> c' \<sigma> \<Longrightarrow> f (l ! x) \<sigma> = f' (l' ! x) \<sigma>\<close>
+  shows \<open>nfoldli l c f \<sigma> = nfoldli l' c' f' \<sigma>'\<close>
+proof -
+  show ?thesis
+    using le H unfolding c[symmetric] \<sigma>[symmetric]
+  proof (induction l arbitrary: l' \<sigma>)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a l l'') note IH=this(1) and le = this(2) and H = this(3)
+    show ?case
+      using le H[of \<open>Suc _\<close>] H[of 0] IH[of \<open>tl l''\<close> \<open>_\<close>]
+      by (cases l'')
+        (auto intro: bind_cong_nres)
+  qed
+qed
+
+lemma nfoldli_nfoldli_list_nth:
+  \<open>nfoldli xs c P a = nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) a\<close>
+proof (induction xs arbitrary: a)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons x xs) note IH = this(1)
+  have 1: \<open>[0..<length (x # xs)] = 0 # [1..<length (x#xs)]\<close>
+    by (subst upt_rec)  simp
+  have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
+    by (induction xs) auto
+  have AB: \<open>nfoldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
+      nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close> 
+      (is \<open>?A = ?B\<close>)
+    unfolding 1 ..
+  {
+    assume [simp]: \<open>c a\<close> 
+    have \<open>nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
+       do {
+         \<sigma> \<leftarrow> (P x a);
+         nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>
+        }\<close>
+      by simp
+    moreover have \<open>nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>  = 
+       nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) \<sigma>\<close> for \<sigma>
+      unfolding 2
+      by (rule nfoldli_cong2) auto
+    ultimately have \<open>?A = do {
+         \<sigma> \<leftarrow> (P x a);
+         nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i))  \<sigma>
+        }\<close>
+      using AB
+      by (auto intro: bind_cong_nres)
+  }
+  moreover { 
+    assume [simp]: \<open>\<not>c a\<close> 
+    have \<open>?B = RETURN a\<close>
+      by simp
+  }
+  ultimately show ?case by (auto simp: IH intro: bind_cong_nres)
+qed
+
+
+lemma foldli_cong2:
+  assumes 
+    le: \<open>length l = length l'\<close> and
+    \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
+    c: \<open>c = c'\<close> and
+    H: \<open>\<And>\<sigma> x. x < length l \<Longrightarrow> c' \<sigma> \<Longrightarrow> f (l ! x) \<sigma> = f' (l' ! x) \<sigma>\<close>
+  shows \<open>foldli l c f \<sigma> = foldli l' c' f' \<sigma>'\<close>
+proof -
+  show ?thesis
+    using le H unfolding c[symmetric] \<sigma>[symmetric]
+  proof (induction l arbitrary: l' \<sigma>)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a l l'') note IH=this(1) and le = this(2) and H = this(3)
+    show ?case
+      using le H[of \<open>Suc _\<close>] H[of 0] IH[of \<open>tl l''\<close> \<open>f' (hd l'') \<sigma>\<close>]
+      by (cases l'') auto
+  qed
+qed
+
+lemma foldli_foldli_list_nth:
+  \<open>foldli xs c P a = foldli [0..<length xs] c (\<lambda>i. P (xs ! i)) a\<close>
+proof (induction xs arbitrary: a)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons x xs) note IH = this(1)
+  have 1: \<open>[0..<length (x # xs)] = 0 # [1..<length (x#xs)]\<close>
+    by (subst upt_rec)  simp
+  have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
+    by (induction xs) auto
+  have AB: \<open>foldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
+      foldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close> 
+      (is \<open>?A = ?B\<close>)
+    unfolding 1 ..
+  {
+    assume [simp]: \<open>c a\<close> 
+    have \<open>foldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
+       foldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) (P x a)\<close>
+      by simp
+    also have \<open>\<dots>  = foldli [0..<length xs] c (\<lambda>i. P (xs ! i)) (P x a)\<close>
+      unfolding 2
+      by (rule foldli_cong2) auto
+    finally have \<open>?A = foldli [0..<length xs] c (\<lambda>i. P (xs ! i)) (P x a)\<close>
+      using AB
+      by simp
+  }
+  moreover { 
+    assume [simp]: \<open>\<not>c a\<close> 
+    have \<open>?B = a\<close>
+      by simp
+  }
+  ultimately show ?case by (auto simp: IH)
+qed
+
+
+lemma (in -)WHILEIT_rule_stronger_inv_RES':
+  assumes
+    \<open>wf R\<close> and
+    \<open>I s\<close> and
+    \<open>I' s\<close>
+    \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> b s \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. I s' \<and>  I' s' \<and> (s', s) \<in> R)\<close> and
+   \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> \<not> b s \<Longrightarrow> RETURN s \<le> \<Down> H (RES \<Phi>)\<close>
+ shows \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> \<Down> H (RES \<Phi>)\<close>
+proof -
+  have RES_SPEC: \<open>RES \<Phi> = SPEC(\<lambda>s. s \<in> \<Phi>)\<close>
+    by auto
+  have \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s\<close>
+    by (metis (mono_tags, lifting) WHILEIT_weaken)
+  also have \<open>WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s \<le> \<Down> H (RES \<Phi>)\<close>
+    unfolding RES_SPEC conc_fun_SPEC
+    apply (rule WHILEIT_rule[OF assms(1)])
+    subgoal using assms(2,3) by auto
+    subgoal using assms(4) by auto
+    subgoal using assms(5) unfolding RES_SPEC conc_fun_SPEC by auto
+    done
+  finally show ?thesis .
+qed
+
+lemma RES_RES13_RETURN_RES: \<open>do {
+  (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount) \<leftarrow> RES A;
+  RES (f M N D Q W vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
+      vdom avdom lcount)
+} = RES (\<Union>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount)\<in>A. f M N D Q W vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
+      vdom avdom lcount)\<close>
+  by (force simp:  pw_eq_iff refine_pw_simps uncurry_def)
+
+lemma id_mset_list_assn_list_mset_assn:
+  assumes \<open>CONSTRAINT is_pure R\<close>
+  shows \<open>(return o id, RETURN o mset) \<in> (list_assn R)\<^sup>d \<rightarrow>\<^sub>a list_mset_assn R\<close>
+proof -
+  obtain R' where R: \<open>R = pure R'\<close>
+    using assms is_pure_conv unfolding CONSTRAINT_def by blast
+  then have R': \<open>the_pure R = R'\<close>
+    unfolding R by auto
+  show ?thesis
+    apply (subst R)
+    apply (subst list_assn_pure_conv)
+    apply sepref_to_hoare
+    by (sep_auto simp: list_mset_assn_def R' pure_def list_mset_rel_def mset_rel_def
+       p2rel_def rel2p_def[abs_def] rel_mset_def br_def Collect_eq_comp list_rel_def)
+qed
+
+lemma RES_SPEC_conv: \<open>RES P = SPEC (\<lambda>v. v \<in> P)\<close>
+  by auto
+
+
 subsection \<open>Sorting\<close>
 
 text \<open>Remark that we do not \<^emph>\<open>prove\<close> that the sorting in correct, since we do not care about the

@@ -1087,27 +1087,27 @@ definition (in -) get_count_max_lvls_code where
 
 lemma get_count_max_lvls_heur_hnr[sepref_fr_rules]:
   \<open>(return o get_count_max_lvls_code, RETURN o get_count_max_lvls_heur) \<in>
-     isasat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+     isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   apply sepref_to_hoare
   subgoal for x x'
     by (cases x; cases x')
-     (sep_auto simp: isasat_assn_def get_count_max_lvls_code_def
+     (sep_auto simp: isasat_unbounded_assn_def get_count_max_lvls_code_def
         elim!: mod_starE)
   done
 
 lemma get_count_max_lvls_heur_fast_hnr[sepref_fr_rules]:
   \<open>(return o get_count_max_lvls_code, RETURN o get_count_max_lvls_heur) \<in>
-     isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+     isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   apply sepref_to_hoare
   subgoal for x x'
     by (cases x; cases x')
-     (sep_auto simp: isasat_fast_assn_def get_count_max_lvls_code_def
+     (sep_auto simp: isasat_bounded_assn_def get_count_max_lvls_code_def
         elim!: mod_starE)
   done
 
 sepref_thm maximum_level_removed_eq_count_dec_code
   is \<open>uncurry (RETURN oo maximum_level_removed_eq_count_dec_heur)\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding maximum_level_removed_eq_count_dec_heur_def
   by sepref
 
@@ -1123,7 +1123,7 @@ lemmas maximum_level_removed_eq_count_dec_code_hnr[sepref_fr_rules] =
 
 sepref_thm maximum_level_removed_eq_count_dec_fast_code
   is \<open>uncurry (RETURN oo maximum_level_removed_eq_count_dec_heur)\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding maximum_level_removed_eq_count_dec_heur_def
   by sepref
 
@@ -1139,8 +1139,8 @@ lemmas maximum_level_removed_eq_count_dec_fast_code_hnr[sepref_fr_rules] =
 
 sepref_thm is_decided_hd_trail_wl_code
   is \<open>RETURN o is_decided_hd_trail_wl_heur\<close>
-  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding is_decided_hd_trail_wl_heur_alt_def isasat_assn_def
+  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_unbounded_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  unfolding is_decided_hd_trail_wl_heur_alt_def isasat_unbounded_assn_def
   by sepref
 
 concrete_definition (in -) is_decided_hd_trail_wl_code
@@ -1154,8 +1154,8 @@ lemmas is_decided_hd_trail_wl_code[sepref_fr_rules] =
 (*
 sepref_thm is_decided_hd_trail_wl_fast_code
   is \<open>RETURN o is_decided_hd_trail_wl_heur\<close>
-  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_fast_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding is_decided_hd_trail_wl_heur_alt_def isasat_fast_assn_def
+  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  unfolding is_decided_hd_trail_wl_heur_alt_def isasat_bounded_assn_def
     apply sepref_dbg_keep
       apply sepref_dbg_trans_keep
            apply sepref_dbg_trans_step_keep
@@ -1177,10 +1177,10 @@ lemmas is_decided_hd_trail_wl_fast_code[sepref_fr_rules] =
 sepref_thm lit_and_ann_of_propagated_st_heur_code
   is \<open>RETURN o lit_and_ann_of_propagated_st_heur\<close>
   :: \<open>[\<lambda>S. is_proped (hd (get_trail_wl_heur S)) \<and> get_trail_wl_heur S \<noteq> []]\<^sub>a
-       isasat_assn\<^sup>k \<rightarrow> (unat_lit_assn *a nat_assn)\<close>
+       isasat_unbounded_assn\<^sup>k \<rightarrow> (unat_lit_assn *a nat_assn)\<close>
   supply [[goals_limit=1]]
   supply get_trail_wl_heur_def[simp]
-  unfolding lit_and_ann_of_propagated_st_heur_def isasat_assn_def
+  unfolding lit_and_ann_of_propagated_st_heur_def isasat_unbounded_assn_def
   by sepref
 
 concrete_definition (in -) lit_and_ann_of_propagated_st_heur_code
@@ -1195,10 +1195,10 @@ lemmas lit_and_ann_of_propagated_st_heur_code_refine[sepref_fr_rules] =
 sepref_thm lit_and_ann_of_propagated_st_heur_fast_code
   is \<open>RETURN o lit_and_ann_of_propagated_st_heur\<close>
   :: \<open>[\<lambda>S. is_proped (hd (get_trail_wl_heur S)) \<and> get_trail_wl_heur S \<noteq> []]\<^sub>a
-       isasat_fast_assn\<^sup>k \<rightarrow> (unat_lit_assn *a uint32_nat_assn)\<close>
+       isasat_bounded_assn\<^sup>k \<rightarrow> (unat_lit_assn *a uint32_nat_assn)\<close>
   supply [[goals_limit=1]]
   supply get_trail_wl_heur_def[simp]
-  unfolding lit_and_ann_of_propagated_st_heur_def isasat_fast_assn_def
+  unfolding lit_and_ann_of_propagated_st_heur_def isasat_bounded_assn_def
   by sepref
 
 concrete_definition (in -) lit_and_ann_of_propagated_st_heur_fast_code
@@ -1221,9 +1221,9 @@ begin
 sepref_thm tl_state_wl_heur_code
   is \<open>RETURN o tl_state_wl_heur\<close>
   :: \<open>[tl_state_wl_heur_pre]\<^sub>a
-      isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
+      isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
   supply [[goals_limit=1]] if_splits[split]
-  unfolding tl_state_wl_heur_alt_def[abs_def] isasat_assn_def get_trail_wl_heur_def[simp]
+  unfolding tl_state_wl_heur_alt_def[abs_def] isasat_unbounded_assn_def get_trail_wl_heur_def[simp]
     vmtf_unset_def bind_ref_tag_def[simp] tl_state_wl_heur_pre_def
     short_circuit_conv
   by sepref
@@ -1242,9 +1242,9 @@ lemmas tl_state_wl_heur_code_refine[sepref_fr_rules] =
 sepref_thm tl_state_wl_heur_fast_code
   is \<open>RETURN o tl_state_wl_heur\<close>
   :: \<open>[tl_state_wl_heur_pre]\<^sub>a
-      isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] if_splits[split]
-  unfolding tl_state_wl_heur_alt_def[abs_def] isasat_fast_assn_def get_trail_wl_heur_def[simp]
+  unfolding tl_state_wl_heur_alt_def[abs_def] isasat_bounded_assn_def get_trail_wl_heur_def[simp]
     vmtf_unset_def bind_ref_tag_def[simp] tl_state_wl_heur_pre_def
     short_circuit_conv
   by sepref
@@ -1285,10 +1285,10 @@ sepref_register update_confl_tl_wl_heur
 sepref_thm update_confl_tl_wl_code
   is \<open>uncurry2 (PR_CONST update_confl_tl_wl_heur)\<close>
   :: \<open>[update_confl_tl_wl_heur_pre]\<^sub>a
-  nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> bool_assn *a isasat_assn\<close>
+  nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_unbounded_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]]
-  unfolding update_confl_tl_wl_heur_def isasat_assn_def
+  unfolding update_confl_tl_wl_heur_def isasat_unbounded_assn_def
     update_confl_tl_wl_heur_pre_def PR_CONST_def
   by sepref (* slow *)
 
@@ -1305,10 +1305,10 @@ lemmas update_confl_tl_wl_code_refine[sepref_fr_rules] =
 sepref_thm update_confl_tl_wl_fast_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
   :: \<open>[update_confl_tl_wl_heur_pre]\<^sub>a
-  uint32_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> bool_assn *a isasat_fast_assn\<close>
+  uint32_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_bounded_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]]
-  unfolding update_confl_tl_wl_heur_def isasat_fast_assn_def
+  unfolding update_confl_tl_wl_heur_def isasat_bounded_assn_def
     update_confl_tl_wl_heur_pre_def
   supply merge_conflict_m_def[simp]
   by sepref (* slow *)
@@ -1438,9 +1438,9 @@ sepref_register atm_is_in_conflict_st_heur
 sepref_thm atm_is_in_option_lookup_conflict_code
   is \<open>uncurry (RETURN oo atm_is_in_conflict_st_heur)\<close>
   :: \<open>[atm_is_in_conflict_st_heur_pre]\<^sub>a
-        unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+        unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>k \<rightarrow> bool_assn\<close>
   unfolding atm_is_in_conflict_st_heur_alt_def atm_is_in_conflict_def[symmetric]
-    atm_is_in_conflict_st_heur_pre_def isasat_assn_def PR_CONST_def
+    atm_is_in_conflict_st_heur_pre_def isasat_unbounded_assn_def PR_CONST_def
   by sepref
 
 concrete_definition (in -) atm_is_in_option_lookup_conflict_code
@@ -1455,10 +1455,10 @@ lemmas atm_is_in_option_lookup_conflict_code_def[sepref_fr_rules] =
 sepref_thm atm_is_in_option_lookup_conflict_fast_code
   is \<open>uncurry (RETURN oo atm_is_in_conflict_st_heur)\<close>
   :: \<open>[atm_is_in_conflict_st_heur_pre]\<^sub>a
-        unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>k \<rightarrow> bool_assn\<close>
+        unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> bool_assn\<close>
   supply [[goals_limit=1]]
   unfolding atm_is_in_conflict_st_heur_alt_def atm_is_in_conflict_def[symmetric]
-    atm_is_in_conflict_st_heur_pre_def isasat_fast_assn_def PR_CONST_def
+    atm_is_in_conflict_st_heur_pre_def isasat_bounded_assn_def PR_CONST_def
   by sepref
 
 concrete_definition (in -) atm_is_in_option_lookup_conflict_fast_code
@@ -1489,7 +1489,7 @@ lemma skip_and_resolve_loop_wl_D_heur_inv_nempty:
 sepref_register skip_and_resolve_loop_wl_D is_in_conflict_st
 sepref_thm skip_and_resolve_loop_wl_D
   is \<open>PR_CONST skip_and_resolve_loop_wl_D_heur\<close>
-  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
     is_decided_hd_trail_wl_def[simp]
     is_decided_no_proped_iff[simp]
@@ -1515,7 +1515,7 @@ lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
 
 (* sepref_thm skip_and_resolve_loop_wl_D_fast
   is \<open>PR_CONST skip_and_resolve_loop_wl_D_heur\<close>
-  :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_fast_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
     is_decided_hd_trail_wl_def[simp]
     is_decided_no_proped_iff[simp]

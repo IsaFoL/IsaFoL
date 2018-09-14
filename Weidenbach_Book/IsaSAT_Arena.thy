@@ -7,6 +7,7 @@ begin
 
 subsection \<open>The memory representation: Arenas\<close>
 
+
 text \<open>
 We implement an ``arena'' memory representation: This is a flat representation of clauses, where
 all clauses and their headers are put one after the other. A lot of the work done here could be done
@@ -27,7 +28,7 @@ two types, making a comparison impossible. This means that half of the blocking 
 lost (if we iterate over the watch lists) or all (if we iterate over the clauses directly).
 
 The order in memory is in the following order:
-  \<^enum> the saved position (is optional in cadical);
+  \<^enum> the saved position (is optional in cadical too);
   \<^enum> the status;
   \<^enum> the activity;
   \<^enum> the LBD;
@@ -64,7 +65,7 @@ Some technical details: due to the fact that we plan to refine the arena to uint
 clauses can be tautologies, the size does not fit into uint32 (technically, we have the bound
 \<^term>\<open>uint32_max +1\<close>). Therefore, we restrict the clauses to have at least length 2 and we keep
 \<^term>\<open>length C - 2\<close> instead of \<^term>\<open>length C\<close> (same for position saving). If we ever add a
-preprocessing path that removes tautologies, we can get rid of these two limitations.
+preprocessing path that removes tautologies, we could get rid of these two limitations.
 
 
 To our own surprise, using an arena (without position saving) was exactly as fast as the our former
@@ -76,6 +77,8 @@ resizable array of arrays. We did not expect this result since:
 (We assume that there is no gain due the order in which we iterate over clauses, which seems a
 reasonnable assumption, even when considering than some clauses will subsume the previous one, and
 therefore, have a high chance to be in the same watch lists).
+
+We can mark clause as used. This trick is used to implement a MTF-like scheme to keep clauses.
 \<close>
 
 
@@ -94,8 +97,10 @@ qed
 
 instantiation clause_status :: default
 begin
+
 definition default_clause_status where \<open>default_clause_status = DELETED\<close>
 instance by standard
+
 end
 
 abbreviation clause_status_assn where
@@ -116,9 +121,9 @@ lemma DELETED_hnr[sepref_fr_rules]:
 
 subsubsection \<open>Definition\<close>
 
-text \<open>The following definition are the offset between the beginning of the clause and the
+text \<open>The following definitions are the offset between the beginning of the clause and the
 specific headers before the beginning of the clause. Remark that the first offset is not always
-valid.
+valid. Also remark that the fields are \<^emph>\<open>before\<close> the actual content of the clause.
 \<close>
 definition POS_SHIFT :: nat where
   \<open>POS_SHIFT = 5\<close>
@@ -149,6 +154,7 @@ definition header_size :: \<open>nat clause_l \<Rightarrow> nat\<close> where
 
 lemmas SHIFTS_def = POS_SHIFT_def STATUS_SHIFT_def ACTIVITY_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
 
+(*TODO is that still used?*)
 lemma arena_shift_distinct:
   \<open>i >  3 \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - LBD_SHIFT\<close>
   \<open>i >  3 \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - ACTIVITY_SHIFT\<close>
@@ -246,7 +252,8 @@ proof -
 qed
 
 text \<open>The extra information is required to prove ``separation'' between active and dead clauses. And
-it is true anyway and does not require any extra work to prove.\<close>
+it is true anyway and does not require any extra work to prove.
+TODO generalise LBD to extract from every clause?\<close>
 definition arena_dead_clause :: \<open>arena \<Rightarrow> bool\<close> where
   \<open>arena_dead_clause arena \<longleftrightarrow>
      is_Status(arena!(4 - STATUS_SHIFT)) \<and> xarena_status(arena!(4 - STATUS_SHIFT)) = DELETED \<and>
@@ -259,6 +266,7 @@ text \<open>When marking a clause as garbage, we do not care whether it was used
 definition extra_information_mark_to_delete where
   \<open>extra_information_mark_to_delete arena i = arena[i - STATUS_SHIFT := AStatus DELETED False]\<close>
 
+text \<open>This extracts a single clause from the complete arena.\<close>
 abbreviation clause_slice where
   \<open>clause_slice arena N i \<equiv> Misc.slice (i - header_size (N\<propto>i)) (i + length(N\<propto>i)) arena\<close>
 
@@ -272,7 +280,7 @@ In our first try, the predicated \<^term>\<open>xarena_active_clause\<close> too
 arena as parameter. This however turned out to make the proof about updates less modular, since the
 slicing already takes care to ignore all irrelevant changes.
 \<close>
-definition valid_arena where
+definition valid_arena :: \<open>arena \<Rightarrow> nat clauses_l \<Rightarrow> nat set \<Rightarrow> bool\<close> where
   \<open>valid_arena arena N vdom \<longleftrightarrow>
     (\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and>
          xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))) \<and>
@@ -723,7 +731,7 @@ proof -
     unfolding arena_dead_clause_def xarena_active_clause_alt_def
       extra_information_mark_to_delete_def apply -
     by (simp_all add: SHIFTS_def header_size_def Misc.slice_def drop_update_swap min_def
-      split: if_splits)
+         split: if_splits)
        force+
   ultimately show ?thesis
     using assms unfolding valid_arena_def
@@ -1379,6 +1387,10 @@ text \<open>The following lemma expresses the relation between the arena and the
   The conditions on \<^term>\<open>arena_status\<close> are in the direction to simplify proofs: If we would try to go
   in the opposite direction, we could rewrite \<^term>\<open>\<not>irred N i\<close> into \<^term>\<open>arena_status arena i \<noteq> LEARNED\<close>,
   which is a weaker property.
+
+  The inequality on the length are here to enable simp to prove inequalities \<^term>\<open>arena_length arena C > Suc 0\<close>
+  automatically. Normally the arithmetic part can prove it from \<^term>\<open>arena_length arena C \<ge> 2\<close>,
+  but as this inequality is simplified away, it does not work.
 \<close>
 lemma arena_lifting:
   assumes valid: \<open>valid_arena arena N vdom\<close> and
@@ -1403,6 +1415,10 @@ lemma arena_lifting:
     \<open>LBD_SHIFT \<le> i\<close>
     \<open>ACTIVITY_SHIFT \<le> i\<close> and
     \<open>arena_length arena i \<ge> 2\<close> and
+    \<open>arena_length arena i \<ge> Suc 0\<close> and
+    \<open>arena_length arena i \<ge> 0\<close> and
+    \<open>arena_length arena i > Suc 0\<close> and
+    \<open>arena_length arena i > 0\<close> and
     \<open>arena_status arena i = LEARNED \<longleftrightarrow> \<not>irred N i\<close> and
     \<open>arena_status arena i = IRRED \<longleftrightarrow> irred N i\<close> and
     \<open>arena_status arena i \<noteq> DELETED\<close>
@@ -1464,7 +1480,11 @@ proof -
     using i_le i_ge size' size ge2 HH unfolding numeral_2_eq_2
     by (simp_all split:)
   show \<open>arena_length arena i \<ge> 2\<close>
-    using ge2 unfolding HH .
+    \<open>arena_length arena i \<ge> Suc 0\<close> and
+    \<open>arena_length arena i \<ge> 0\<close> and
+    \<open>arena_length arena i > Suc 0\<close> and
+    \<open>arena_length arena i > 0\<close>
+    using ge2 unfolding HH by auto
   show
     \<open>i \<ge> header_size (N \<propto> i)\<close> and
     \<open>i < length arena\<close>
@@ -2243,13 +2263,6 @@ definition isa_update_pos :: \<open>nat \<Rightarrow> nat \<Rightarrow> uint32 l
       RETURN (arena [C - POS_SHIFT := (uint32_of_nat (n - 2))])
   }\<close>
 
-(* TODO Move *)
-lemma (in -) uint32_of_nat[sepref_fr_rules]:
-  \<open>(return o uint32_of_nat, RETURN o uint32_of_nat) \<in> [\<lambda>n. n \<le> uint32_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_assn\<close>
-  by sepref_to_hoare
-    sep_auto
-(* End Move *)
-
 sepref_definition isa_update_pos_code
   is \<open>uncurry2 isa_update_pos\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
@@ -2355,24 +2368,6 @@ definition mark_garbage where
     RETURN (arena[C - STATUS_SHIFT := (3 :: uint32)])
   }\<close>
 
-(* TODO Move *)
-lemma nat_and_numerals [simp]:
-  "(numeral (Num.Bit0 x) :: nat) AND (numeral (Num.Bit0 y) :: nat) = (2 :: nat) * (numeral x AND numeral y)"
-  "numeral (Num.Bit0 x) AND numeral (Num.Bit1 y) = (2 :: nat) * (numeral x AND numeral y)"
-  "numeral (Num.Bit1 x) AND numeral (Num.Bit0 y) = (2 :: nat) * (numeral x AND numeral y)"
-  "numeral (Num.Bit1 x) AND numeral (Num.Bit1 y) = (2 :: nat) * (numeral x AND numeral y)+1"
-  "(1::nat) AND numeral (Num.Bit0 y) = 0"
-  "(1::nat) AND numeral (Num.Bit1 y) = 1"
-  "numeral (Num.Bit0 x) AND (1::nat) = 0"
-  "numeral (Num.Bit1 x) AND (1::nat) = 1"
-  "(Suc 0::nat) AND numeral (Num.Bit0 y) = 0"
-  "(Suc 0::nat) AND numeral (Num.Bit1 y) = 1"
-  "numeral (Num.Bit0 x) AND (Suc 0::nat) = 0"
-  "numeral (Num.Bit1 x) AND (Suc 0::nat) = 1"
-  "Suc 0 AND Suc 0 = 1"
-  supply [[show_types]]
-  by (auto simp: bitAND_nat_def Bit_def nat_add_distrib)
-(* END Move *)
 
 lemma mark_garbage_pre:
   assumes
@@ -3048,8 +3043,8 @@ lemma arena_marked_as_used_conv:
 proof -
   have j_le: \<open>j < length arena\<close> and
     length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
-    k1:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
-    k2:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
+    k1: \<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
+    k2: \<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
     le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
     j_ge: \<open>header_size (N \<propto> j) \<le> j\<close> and
     lbd: \<open>is_Status (arena ! (j - STATUS_SHIFT))\<close>
@@ -3081,7 +3076,7 @@ lemma isa_marked_as_used_marked_as_used:
   by (intro frefI nres_relI)
     (auto simp: marked_as_used_pre_def arena_marked_as_used_conv
       get_clause_LBD_pre_def arena_is_valid_clause_idx_def
-      list_rel_imp_same_length marked_as_used_pre_def isa_marked_as_used_def
+      list_rel_imp_same_length isa_marked_as_used_def
       intro!: ASSERT_leI)
 
 sepref_definition isa_marked_as_used_code
@@ -3090,6 +3085,7 @@ sepref_definition isa_marked_as_used_code
   supply op_eq_uint32[sepref_fr_rules]
   unfolding isa_marked_as_used_def
   by sepref
+
 
 lemma isa_marked_as_used_code[sepref_fr_rules]:
   \<open>(uncurry isa_marked_as_used_code, uncurry (RETURN \<circ>\<circ> marked_as_used))

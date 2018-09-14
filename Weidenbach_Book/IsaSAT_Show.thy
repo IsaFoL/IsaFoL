@@ -104,16 +104,16 @@ definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> unit nre
 \<open>isasat_current_status =
    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
        fast_ema, slow_ema, ccount, avdom, 
-       vdom, lcount). RETURN (print_current_information stats lcount))\<close>
+       vdom, lcount, opts). RETURN (print_current_information stats lcount))\<close>
 
 context isasat_input_ops
 begin
 
 sepref_thm isasat_current_status_code
   is \<open>isasat_current_status\<close>
-  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
   supply [[goals_limit=1]]
-  unfolding isasat_assn_def isasat_current_status_def
+  unfolding isasat_unbounded_assn_def isasat_current_status_def
   by sepref
 
 concrete_definition (in -) isasat_current_status_code

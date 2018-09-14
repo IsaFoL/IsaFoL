@@ -925,18 +925,9 @@ definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow
       }
    }\<close>
 
-lemma bind_cong_nres: \<open>(\<And>x. g x = g' x) \<Longrightarrow> (do {a \<leftarrow> f :: 'a nres;  g a}) = (do {a \<leftarrow> f :: 'a nres;  g' a})\<close>
-  by auto
-
-lemma case_prod_cong:
-  \<open>(\<And>a b. f a b = g a b) \<Longrightarrow> (case x of (a, b) \<Rightarrow> f a b) = (case x of (a, b) \<Rightarrow> g a b)\<close>
-  by (cases x) auto
-
 lemma [twl_st_wl]: \<open>get_clauses_wl (keep_watch L j w S) = get_clauses_wl S\<close>
   by (cases S) (auto simp: keep_watch_def)
 
-lemma if_replace_cond: \<open>(if b then P b else Q b) = (if b then P True else Q False)\<close>
-  by auto
 
 lemma unit_propagation_inner_loop_body_wl_alt_def:
  \<open>unit_propagation_inner_loop_body_wl L j w S = do {
