@@ -2,23 +2,6 @@ theory IsaSAT_Trail
 imports IsaSAT_Literals
 begin
 
-(* TODO Move *)
-definition butlast_nonresizing :: \<open>'a list \<Rightarrow> 'a list\<close>where
-  [simp]: \<open>butlast_nonresizing = butlast\<close>
-
-definition arl_butlast_nonresizing :: \<open>'a array_list \<Rightarrow> 'a array_list\<close> where
-  \<open>arl_butlast_nonresizing = (\<lambda>(xs, a). (xs, fast_minus a 1))\<close>
-
-lemma butlast_nonresizing_hnr[sepref_fr_rules]:
-  \<open>(return o arl_butlast_nonresizing, RETURN o butlast_nonresizing) \<in>
-    [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl_assn R)\<^sup>d \<rightarrow> arl_assn R\<close>
-  by sepref_to_hoare
-    (sep_auto simp: arl_butlast_nonresizing_def arl_assn_def hr_comp_def
-    is_array_list_def  butlast_take list_rel_imp_same_length
-    dest:
-      list_rel_butlast[of \<open>take _ _\<close>])
-(* End Move *)
-
 
 subsubsection \<open>Trail\<close>
 

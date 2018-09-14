@@ -575,10 +575,9 @@ lemma lookup_None_notin_dom_m[simp]:
   \<open>fmlookup N i = None \<longleftrightarrow> i \<notin># dom_m N\<close>
   by (auto simp: dom_m_def fmlookup_dom_iff fmember.rep_eq[symmetric])
 
-text \<open>While it is temptying to mark the two following theorems as [simp], this would break more
+text \<open>While it is tempting to mark the two following theorems as [simp], this would break more
   simplifications since \<^term>\<open>ran_mf\<close> is only an abbreviation for \<^term>\<open>ran_m\<close>.
 \<close>
-
 lemma ran_m_fmdrop:
   \<open>C \<in># dom_m N \<Longrightarrow>  ran_m (fmdrop C N) = remove1_mset (N \<propto> C, irred N C) (ran_m N)\<close>
   using distinct_mset_dom[of N]
@@ -593,6 +592,17 @@ lemma ran_m_fmdrop_notin:
   by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>]
     dest!: multi_member_split
     intro!: filter_mset_cong2 image_mset_cong2)
+
+lemma init_clss_l_fmdrop_irrelev:
+  \<open>\<not>irred N C \<Longrightarrow> init_clss_l (fmdrop C N) = init_clss_l N\<close>
+  using distinct_mset_dom[of N]
+  apply (cases \<open>C \<in># dom_m N\<close>)
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
+
+lemma init_clss_l_fmdrop:
+  \<open>irred N C \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> init_clss_l (fmdrop C N) = remove1_mset (the (fmlookup N C)) (init_clss_l N)\<close>
+  using distinct_mset_dom[of N]
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
 
 definition twl_st_l   :: \<open>_ \<Rightarrow> ('v twl_st_l \<times> 'v twl_st) set\<close> where
 \<open>twl_st_l L =
@@ -647,6 +657,10 @@ lemma [twl_st_l]:
     \<open>get_trail T \<Turnstile>as D \<longleftrightarrow> get_trail_l S \<Turnstile>as D\<close>
   using assms unfolding twl_st_l_def all_clss_lf_ran_m[symmetric]
   by (auto split: option.splits simp: trail.simps clauses_def mset_take_mset_drop_mset')
+
+lemma (in -) [twl_st_l]:
+ \<open>(S, T)\<in>twl_st_l b \<Longrightarrow> get_all_init_clss T = mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses S\<close>
+  by (cases S; cases T; cases b) (auto simp: twl_st_l_def mset_take_mset_drop_mset')
 
 
 lemma [twl_st_l]:

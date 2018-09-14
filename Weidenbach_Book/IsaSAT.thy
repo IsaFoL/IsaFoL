@@ -293,23 +293,6 @@ lemma in_class_in_literals_are_in_\<L>\<^sub>i\<^sub>n:
   apply auto
   done
 
-(* TODO Move *)
-lemma (in -)id_mset_list_assn_list_mset_assn:
-  assumes \<open>CONSTRAINT is_pure R\<close>
-  shows \<open>(return o id, RETURN o mset) \<in> (list_assn R)\<^sup>d \<rightarrow>\<^sub>a list_mset_assn R\<close>
-proof -
-  obtain R' where R: \<open>R = pure R'\<close>
-    using assms is_pure_conv unfolding CONSTRAINT_def by blast
-  then have R': \<open>the_pure R = R'\<close>
-    unfolding R by auto
-  show ?thesis
-    apply (subst R)
-    apply (subst list_assn_pure_conv)
-    apply sepref_to_hoare
-    by (sep_auto simp: list_mset_assn_def R' pure_def list_mset_rel_def mset_rel_def
-       p2rel_def rel2p_def[abs_def] rel_mset_def br_def Collect_eq_comp list_rel_def)
-qed
-(* END Move *)
 
 lemma cdcl_twl_stgy_prog_wl_D_code_ref':
   \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_code), uncurry isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur)

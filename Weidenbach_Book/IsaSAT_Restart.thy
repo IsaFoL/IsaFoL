@@ -644,18 +644,6 @@ lemma count_decided_st_alt_def':
   \<open>count_decided_st S = count_decided (get_trail_wl_heur S)\<close>
   by (cases S) (auto simp: count_decided_st_def)
 
-(* TODO Move *)
-lemma RES_RES13_RETURN_RES: \<open>do {
-  (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount) \<leftarrow> RES A;
-  RES (f M N D Q W vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
-      vdom avdom lcount)
-} = RES (\<Union>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount)\<in>A. f M N D Q W vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
-      vdom avdom lcount)\<close>
-  by (force simp:  pw_eq_iff refine_pw_simps uncurry_def)
-(* End Move *)
-
 lemma cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec:
   \<open>(cdcl_twl_local_restart_wl_D_heur, cdcl_twl_local_restart_wl_D_spec) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
@@ -1045,11 +1033,6 @@ definition (in isasat_input_ops) restart_required_heur :: "twl_st_wl_heur \<Righ
 lemma uint64_max_ge_48: \<open>48 \<le> uint64_max\<close>
   by (auto simp: uint64_max_def)
 
-(* TODO Move + fix name *)
-lemma bit_lshift_uint64_assn:
-  \<open>(uncurry (return oo (>>)), uncurry (RETURN oo (>>))) \<in>
-    uint64_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare sep_auto
 
 sepref_thm restart_required_heur_fast_code
   is \<open>uncurry restart_required_heur\<close>
@@ -1808,13 +1791,6 @@ prepare_code_thms (in -) clause_lbd_heur_code_def
 lemmas clause_lbd_heur_code[sepref_fr_rules] =
    clause_lbd_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
      unfolded PR_CONST_def]
-
-(* TODO Move *)
-lemma (in -) delete_index_and_swap_alt_def:
-  \<open>delete_index_and_swap S i =
-    (let x = last S in butlast (S[i := x]))\<close>
-  by auto
-(* End Move *)
 
 sepref_register mark_garbage_heur
 sepref_thm mark_garbage_heur_code

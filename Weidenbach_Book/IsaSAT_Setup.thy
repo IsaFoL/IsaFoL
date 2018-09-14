@@ -523,6 +523,24 @@ lemma (in isasat_input_ops) vdom_m_simps4[simp]:
      vdom_m (W (L1 := W L1 @ [(i, C1)], L2 := W L2 @ [(i, C2)])) N = vdom_m W N\<close>
  by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
 
+text \<open>This is @{thm vdom_m_simps4} if the assumption of distinctness is not present in the context.\<close>
+lemma (in isasat_input_ops) vdom_m_simps4'[simp]:
+  \<open>i \<in># dom_m N \<Longrightarrow>
+     vdom_m (W (L1 := W L1 @ [(i, C1), (i, C2)])) N = vdom_m W N\<close>
+  by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
+
+text \<open>We add a spurious dependency to the parameter of the locale:\<close>
+definition (in isasat_input_ops) empty_watched :: \<open>nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list\<close> where
+  \<open>empty_watched = (let _ = \<A>\<^sub>i\<^sub>n in (\<lambda>_. []))\<close>
+
+lemma (in isasat_input_ops) empty_watched_alt_def:
+  \<open>empty_watched = (\<lambda>_. [])\<close>
+  unfolding empty_watched_def Let_def ..
+
+lemma (in isasat_input_ops) vdom_m_empty_watched[simp]:
+  \<open>vdom_m empty_watched N = set_mset (dom_m N)\<close>
+  by (auto simp: vdom_m_def empty_watched_def)
+
 text \<open>The following rule makes the previous not applicable. Therefore, we do not mark this lemma as
 simp.\<close>
 lemma (in isasat_input_ops) vdom_m_simps5:

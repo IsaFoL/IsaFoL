@@ -172,18 +172,6 @@ where
     RETURN (M, N, D, NE, UE, Q, W)
   })\<close>
 
-(* TODO Move *)
-lemma (in -) init_clss_l_fmdrop_irrelev:
-  \<open>\<not>irred N C \<Longrightarrow> init_clss_l (fmdrop C N) = init_clss_l N\<close>
-  using distinct_mset_dom[of N]
-  apply (cases \<open>C \<in># dom_m N\<close>)
-  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
-
-lemma (in -) init_clss_l_fmdrop:
-  \<open>irred N C \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> init_clss_l (fmdrop C N) = remove1_mset (the (fmlookup N C)) (init_clss_l N)\<close>
-  using distinct_mset_dom[of N]
-  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
-(* End Move *)
 
 lemma remove_all_annot_true_clause_imp_wl_remove_all_annot_true_clause_imp:
   \<open>(uncurry remove_all_annot_true_clause_imp_wl_D, uncurry remove_all_annot_true_clause_imp_wl) \<in>
@@ -516,6 +504,7 @@ definition mark_to_delete_clauses_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat
     RETURN S
   })\<close>
 
+(* TODO Move *)
 lemma (in -) Union_bool_expand: \<open>(\<Union>can_del\<in>{b::bool. P b}. f can_del) =
    ((if P True then f True else {}) \<union> (if P False then f False else {})) \<close>
   apply auto
@@ -524,12 +513,7 @@ lemma (in -) Union_bool_expand: \<open>(\<Union>can_del\<in>{b::bool. P b}. f ca
   apply (case_tac can_del; solves \<open>auto\<close>)
   apply (case_tac x; solves \<open>auto\<close>)
   done
-
-(* TODO Move *)
-lemma (in -) [twl_st_l, simp]:
- \<open>(S, T)\<in>twl_st_l b \<Longrightarrow> get_all_init_clss T = mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses S\<close>
-  by (cases S; cases T; cases b) (auto simp: twl_st_l_def mset_take_mset_drop_mset')
-(* Env Move *)
+(* End Move *)
 
 lemma mark_to_delete_clauses_wl_D_mark_to_delete_clauses_wl:
   \<open>(mark_to_delete_clauses_wl_D, mark_to_delete_clauses_wl) \<in>

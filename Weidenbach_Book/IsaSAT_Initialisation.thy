@@ -122,14 +122,6 @@ abbreviation (in isasat_input_ops) vmtf_remove_conc_option_fst_As
 where
   \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As *a distinct_atoms_assn\<close>
 
-text \<open>We add a spurious dependency to the parameter of the locale:\<close>
-definition (in isasat_input_ops) empty_watched :: \<open>nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list\<close> where
-  \<open>empty_watched = (let _ = \<A>\<^sub>i\<^sub>n in (\<lambda>_. []))\<close>
-
-lemma (in isasat_input_ops) empty_watched_alt_def:
-  \<open>empty_watched = (\<lambda>_. [])\<close>
-  unfolding empty_watched_def Let_def ..
-
 text \<open>The initialisation relation is stricter in the sense that it already includes the relation
 of atom inclusion.
 
@@ -2419,136 +2411,6 @@ definition (in isasat_input_ops) rewatch_heur where
    W
   }\<close>
 
-(* TODO Move *)
-lemma (in -) nfoldli_cong2:
-  assumes 
-    le: \<open>length l = length l'\<close> and
-    \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
-    c: \<open>c = c'\<close> and
-    H: \<open>\<And>\<sigma> x. x < length l \<Longrightarrow> c' \<sigma> \<Longrightarrow> f (l ! x) \<sigma> = f' (l' ! x) \<sigma>\<close>
-  shows \<open>nfoldli l c f \<sigma> = nfoldli l' c' f' \<sigma>'\<close>
-proof -
-  show ?thesis
-    using le H unfolding c[symmetric] \<sigma>[symmetric]
-  proof (induction l arbitrary: l' \<sigma>)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons a l l'') note IH=this(1) and le = this(2) and H = this(3)
-    show ?case
-      using le H[of \<open>Suc _\<close>] H[of 0] IH[of \<open>tl l''\<close> \<open>_\<close>]
-      by (cases l'')
-        (auto intro: bind_cong_nres)
-  qed
-qed
-
-lemma (in -) nfoldli_nfoldli_list_nth:
-  \<open>nfoldli xs c P a = nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) a\<close>
-proof (induction xs arbitrary: a)
-  case Nil
-  then show ?case by auto
-next
-  case (Cons x xs) note IH = this(1)
-  have 1: \<open>[0..<length (x # xs)] = 0 # [1..<length (x#xs)]\<close>
-    by (subst upt_rec)  simp
-  have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
-    by (induction xs) auto
-  have AB: \<open>nfoldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
-      nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close> 
-      (is \<open>?A = ?B\<close>)
-    unfolding 1 ..
-  {
-    assume [simp]: \<open>c a\<close> 
-    have \<open>nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
-       do {
-         \<sigma> \<leftarrow> (P x a);
-         nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>
-        }\<close>
-      by simp
-    moreover have \<open>nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>  = 
-       nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) \<sigma>\<close> for \<sigma>
-      unfolding 2
-      by (rule nfoldli_cong2) auto
-    ultimately have \<open>?A = do {
-         \<sigma> \<leftarrow> (P x a);
-         nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i))  \<sigma>
-        }\<close>
-      using AB
-      by (auto intro: bind_cong_nres)
-  }
-  moreover { 
-    assume [simp]: \<open>\<not>c a\<close> 
-    have \<open>?B = RETURN a\<close>
-      by simp
-  }
-  ultimately show ?case by (auto simp: IH intro: bind_cong_nres)
-qed
-
-
-lemma (in -) foldli_cong2:
-  assumes 
-    le: \<open>length l = length l'\<close> and
-    \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
-    c: \<open>c = c'\<close> and
-    H: \<open>\<And>\<sigma> x. x < length l \<Longrightarrow> c' \<sigma> \<Longrightarrow> f (l ! x) \<sigma> = f' (l' ! x) \<sigma>\<close>
-  shows \<open>foldli l c f \<sigma> = foldli l' c' f' \<sigma>'\<close>
-proof -
-  show ?thesis
-    using le H unfolding c[symmetric] \<sigma>[symmetric]
-  proof (induction l arbitrary: l' \<sigma>)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons a l l'') note IH=this(1) and le = this(2) and H = this(3)
-    show ?case
-      using le H[of \<open>Suc _\<close>] H[of 0] IH[of \<open>tl l''\<close> \<open>f' (hd l'') \<sigma>\<close>]
-      by (cases l'') auto
-  qed
-qed
-
-lemma (in -) foldli_foldli_list_nth:
-  \<open>foldli xs c P a = foldli [0..<length xs] c (\<lambda>i. P (xs ! i)) a\<close>
-proof (induction xs arbitrary: a)
-  case Nil
-  then show ?case by auto
-next
-  case (Cons x xs) note IH = this(1)
-  have 1: \<open>[0..<length (x # xs)] = 0 # [1..<length (x#xs)]\<close>
-    by (subst upt_rec)  simp
-  have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
-    by (induction xs) auto
-  have AB: \<open>foldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
-      foldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close> 
-      (is \<open>?A = ?B\<close>)
-    unfolding 1 ..
-  {
-    assume [simp]: \<open>c a\<close> 
-    have \<open>foldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
-       foldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) (P x a)\<close>
-      by simp
-    also have \<open>\<dots>  = foldli [0..<length xs] c (\<lambda>i. P (xs ! i)) (P x a)\<close>
-      unfolding 2
-      by (rule foldli_cong2) auto
-    finally have \<open>?A = foldli [0..<length xs] c (\<lambda>i. P (xs ! i)) (P x a)\<close>
-      using AB
-      by simp
-  }
-  moreover { 
-    assume [simp]: \<open>\<not>c a\<close> 
-    have \<open>?B = a\<close>
-      by simp
-  }
-
-  ultimately show ?case by (auto simp: IH)
-qed
-
-text \<open>This is @{thm vdom_m_simps4} if the assumption of distinctness is not present in the context.\<close>
-lemma (in isasat_input_ops) vdom_m_simps4'[simp]:
-  \<open>i \<in># dom_m N \<Longrightarrow>
-     vdom_m (W (L1 := W L1 @ [(i, C1), (i, C2)])) N = vdom_m W N\<close>
- by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
-
-(* END Move *)
 
 lemma rewatch_heur_rewatch:
   assumes
@@ -2660,12 +2522,6 @@ prepare_code_thms (in -) rewatch_heur_st_code_def
 
 lemmas rewatch_heur_st_hnr[sepref_fr_rules] =
   rewatch_heur_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
-(* TODO move *)
-lemma (in isasat_input_ops) vdom_m_empty_watched[simp]:
-  \<open>vdom_m empty_watched N = set_mset (dom_m N)\<close>
-  by (auto simp: vdom_m_def empty_watched_def)
-(* End move *)
 
 lemma (in isasat_input_bounded) rewatch_heur_st_correct_watching:
   assumes
@@ -3043,7 +2899,6 @@ proof -
 qed
 
 text \<open>TODO Move\<close>
-definition one_uint64 where [simp]: \<open>one_uint64 = 1\<close>
 
 text \<open>The value 160 is random (but larger than the default 16 for array lists).\<close>
 definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur nres\<close> where

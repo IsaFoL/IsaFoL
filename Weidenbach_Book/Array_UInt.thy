@@ -779,6 +779,11 @@ subsubsection \<open>Delete at index\<close>
 fun delete_index_and_swap where
   \<open>delete_index_and_swap l i = butlast(l[i := last l])\<close>
 
+lemma (in -) delete_index_and_swap_alt_def:
+  \<open>delete_index_and_swap S i =
+    (let x = last S in butlast (S[i := x]))\<close>
+  by auto
+
 lemma mset_tl_delete_index_and_swap:
   assumes
     \<open>0 < i\<close> and
@@ -1949,5 +1954,47 @@ lemma array_uint64_of_nat_conv_hnr[sepref_fr_rules]:
     FCOMP op_map_map_rel] unfolding array_uint64_of_nat_conv_alt_def
   by simp
 
+definition swap_arl_u64 where
+  \<open>swap_arl_u64  = (\<lambda>(xs, n) i j. do {
+    ki \<leftarrow> nth_u64_code xs i;
+    kj \<leftarrow> nth_u64_code xs j;
+    xs \<leftarrow> heap_array_set_u64 xs i kj;
+    xs \<leftarrow> heap_array_set_u64 xs j ki;
+    return (xs, n)
+  })\<close>
+
+lemma swap_arl_u64_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 swap_arl_u64, uncurry2 (RETURN ooo op_list_swap)) \<in>
+  [pre_list_swap]\<^sub>a (arl_assn A)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arl_assn A\<close>
+  unfolding swap_arl_u64_def arl_assn_def is_array_list_def hr_comp_def
+    nth_u64_code_def Array.nth'_def heap_array_set_u64_def heap_array_set_def
+    heap_array_set'_u64_def Array.upd'_def
+  apply sepref_to_hoare
+  apply (sep_auto simp: nat_of_uint64_code[symmetric] uint64_nat_rel_def br_def
+      list_rel_imp_same_length[symmetric] swap_def)
+  apply (subst_tac n=\<open>bb\<close> in nth_take[symmetric])
+    apply (simp; fail)
+  apply (subst_tac (2) n=\<open>bb\<close> in nth_take[symmetric])
+    apply (simp; fail)
+  by (sep_auto simp: nat_of_uint64_code[symmetric] uint64_nat_rel_def br_def
+      list_rel_imp_same_length[symmetric] swap_def
+      simp del: nth_take
+    intro!: list_rel_update' param_nth)
+
+
+definition butlast_nonresizing :: \<open>'a list \<Rightarrow> 'a list\<close>where
+  [simp]: \<open>butlast_nonresizing = butlast\<close>
+
+definition arl_butlast_nonresizing :: \<open>'a array_list \<Rightarrow> 'a array_list\<close> where
+  \<open>arl_butlast_nonresizing = (\<lambda>(xs, a). (xs, fast_minus a 1))\<close>
+
+lemma butlast_nonresizing_hnr[sepref_fr_rules]:
+  \<open>(return o arl_butlast_nonresizing, RETURN o butlast_nonresizing) \<in>
+    [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl_assn R)\<^sup>d \<rightarrow> arl_assn R\<close>
+  by sepref_to_hoare
+    (sep_auto simp: arl_butlast_nonresizing_def arl_assn_def hr_comp_def
+    is_array_list_def  butlast_take list_rel_imp_same_length
+    dest:
+      list_rel_butlast[of \<open>take _ _\<close>])
 
 end

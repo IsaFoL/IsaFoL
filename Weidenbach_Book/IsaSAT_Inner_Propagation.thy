@@ -901,12 +901,6 @@ definition propagate_lit_wl_pre where
     1 - i < length (get_clauses_wl S \<propto> C) \<and>
     0 < length (get_clauses_wl S \<propto> C))\<close>
 
-(* TODO Move + kill duplicate *)
-lemma (in isasat_input_ops) phase_saving_save_phase[simp]:
-  \<open>phase_saving (save_phase L \<phi>) \<longleftrightarrow> phase_saving \<phi>\<close>
-  by (auto simp: phase_saving_def save_phase_def)
-
-
 lemma propagate_lit_wl_heur_propagate_lit_wl:
   \<open>(uncurry3 propagate_lit_wl_heur, uncurry3 (RETURN oooo propagate_lit_wl)) \<in>
   [propagate_lit_wl_pre]\<^sub>f

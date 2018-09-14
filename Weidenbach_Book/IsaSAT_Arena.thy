@@ -2263,13 +2263,6 @@ definition isa_update_pos :: \<open>nat \<Rightarrow> nat \<Rightarrow> uint32 l
       RETURN (arena [C - POS_SHIFT := (uint32_of_nat (n - 2))])
   }\<close>
 
-(* TODO Move *)
-lemma (in -) uint32_of_nat[sepref_fr_rules]:
-  \<open>(return o uint32_of_nat, RETURN o uint32_of_nat) \<in> [\<lambda>n. n \<le> uint32_max]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_assn\<close>
-  by sepref_to_hoare
-    sep_auto
-(* End Move *)
-
 sepref_definition isa_update_pos_code
   is \<open>uncurry2 isa_update_pos\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
@@ -2375,24 +2368,6 @@ definition mark_garbage where
     RETURN (arena[C - STATUS_SHIFT := (3 :: uint32)])
   }\<close>
 
-(* TODO Move *)
-lemma nat_and_numerals [simp]:
-  "(numeral (Num.Bit0 x) :: nat) AND (numeral (Num.Bit0 y) :: nat) = (2 :: nat) * (numeral x AND numeral y)"
-  "numeral (Num.Bit0 x) AND numeral (Num.Bit1 y) = (2 :: nat) * (numeral x AND numeral y)"
-  "numeral (Num.Bit1 x) AND numeral (Num.Bit0 y) = (2 :: nat) * (numeral x AND numeral y)"
-  "numeral (Num.Bit1 x) AND numeral (Num.Bit1 y) = (2 :: nat) * (numeral x AND numeral y)+1"
-  "(1::nat) AND numeral (Num.Bit0 y) = 0"
-  "(1::nat) AND numeral (Num.Bit1 y) = 1"
-  "numeral (Num.Bit0 x) AND (1::nat) = 0"
-  "numeral (Num.Bit1 x) AND (1::nat) = 1"
-  "(Suc 0::nat) AND numeral (Num.Bit0 y) = 0"
-  "(Suc 0::nat) AND numeral (Num.Bit1 y) = 1"
-  "numeral (Num.Bit0 x) AND (Suc 0::nat) = 0"
-  "numeral (Num.Bit1 x) AND (Suc 0::nat) = 1"
-  "Suc 0 AND Suc 0 = 1"
-  supply [[show_types]]
-  by (auto simp: bitAND_nat_def Bit_def nat_add_distrib)
-(* END Move *)
 
 lemma mark_garbage_pre:
   assumes
