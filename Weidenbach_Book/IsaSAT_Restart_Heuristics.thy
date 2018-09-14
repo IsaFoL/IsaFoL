@@ -1653,8 +1653,6 @@ lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   apply (intro frefI nres_relI)
   apply (refine_rcg
       restart_required_heur_restart_required_wl[THEN fref_to_Down_curry]
-      cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
-      cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D[THEN fref_to_Down]
       cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[THEN fref_to_Down])
   subgoal by auto
   subgoal by auto
@@ -1662,5 +1660,6 @@ lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   subgoal by auto
   subgoal by auto
   done
+end
 
 end
