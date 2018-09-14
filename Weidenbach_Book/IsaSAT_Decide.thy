@@ -288,9 +288,9 @@ lemma find_unassigned_lit_wl_D_code_helper:
 sepref_register find_undefined_atm
 sepref_thm find_unassigned_lit_wl_D_code
   is \<open>PR_CONST find_unassigned_lit_wl_D_heur\<close>
-  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a (isasat_assn *a option_assn unat_lit_assn)\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a (isasat_unbounded_assn *a option_assn unat_lit_assn)\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
-  unfolding find_unassigned_lit_wl_D_heur_def isasat_assn_def PR_CONST_def
+  unfolding find_unassigned_lit_wl_D_heur_def isasat_unbounded_assn_def PR_CONST_def
   by sepref
 
 concrete_definition (in -) find_unassigned_lit_wl_D_code
@@ -304,9 +304,9 @@ lemmas find_unassigned_lit_wl_D_heur_hnr[sepref_fr_rules] =
 
 sepref_thm find_unassigned_lit_wl_D_fast_code
   is \<open>PR_CONST find_unassigned_lit_wl_D_heur\<close>
-  :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a (isasat_fast_assn *a option_assn unat_lit_assn)\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a (isasat_bounded_assn *a option_assn unat_lit_assn)\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
-  unfolding find_unassigned_lit_wl_D_heur_def isasat_fast_assn_def PR_CONST_def
+  unfolding find_unassigned_lit_wl_D_heur_def isasat_bounded_assn_def PR_CONST_def
   by sepref
 
 concrete_definition (in -) find_unassigned_lit_wl_D_fast_code
@@ -329,9 +329,9 @@ sepref_thm decide_lit_wl_code
   is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
   :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and>
         L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
+     unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
-  unfolding decide_lit_wl_heur_def isasat_assn_def PR_CONST_def
+  unfolding decide_lit_wl_heur_def isasat_unbounded_assn_def PR_CONST_def
     cons_trail_Decided_def[symmetric]
   by sepref
 
@@ -349,9 +349,9 @@ sepref_thm decide_lit_wl_fast_code
   is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
   :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and>
         L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+     unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
-  unfolding decide_lit_wl_heur_def isasat_fast_assn_def PR_CONST_def
+  unfolding decide_lit_wl_heur_def isasat_bounded_assn_def PR_CONST_def
     cons_trail_Decided_def[symmetric]
     apply sepref_dbg_keep
     apply sepref_dbg_trans_keep
@@ -415,7 +415,7 @@ lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:
 sepref_register decide_wl_or_skip_D find_unassigned_lit_wl_D_heur decide_lit_wl_heur
 sepref_thm decide_wl_or_skip_D_code
   is \<open>PR_CONST decide_wl_or_skip_D_heur\<close>
-  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_unbounded_assn\<close>
   unfolding decide_wl_or_skip_D_heur_def PR_CONST_def
   supply [[goals_limit = 1]]
     find_unassigned_lit_wl_D_def[simp] image_image[simp]
@@ -432,7 +432,7 @@ lemmas decide_wl_or_skip_D_hnr[sepref_fr_rules] =
 (*
 sepref_thm decide_wl_or_skip_D_fast_code
   is \<open>PR_CONST decide_wl_or_skip_D_heur\<close>
-  :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_fast_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_bounded_assn\<close>
   unfolding decide_wl_or_skip_D_heur_def PR_CONST_def
   supply [[goals_limit = 1]]
     find_unassigned_lit_wl_D_def[simp] image_image[simp]

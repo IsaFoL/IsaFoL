@@ -29,8 +29,8 @@ lemma (in -) get_watched_wl_heur_def: \<open>get_watched_wl_heur = (\<lambda>(M,
 sepref_thm length_ll_fs_heur_code
   is \<open>uncurry (RETURN oo length_ll_fs_heur)\<close>
   :: \<open>[\<lambda>(S, L). nat_of_lit L < length (get_watched_wl_heur S)]\<^sub>a
-      isasat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding length_ll_fs_heur_alt_def get_watched_wl_heur_def isasat_assn_def
+      isasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  unfolding length_ll_fs_heur_alt_def get_watched_wl_heur_def isasat_unbounded_assn_def
     length_ll_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
@@ -48,8 +48,8 @@ sepref_thm length_ll_fs_heur_fast_code
   is \<open>uncurry (RETURN oo length_ll_fs_heur)\<close>
   :: \<open>[\<lambda>(S, L). nat_of_lit L < length (get_watched_wl_heur S) \<and>
          length (get_watched_wl_heur S ! (nat_of_lit L)) \<le> uint64_max]\<^sub>a
-      isasat_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-  unfolding length_ll_fs_heur_alt_def get_watched_wl_heur_def isasat_fast_assn_def
+      isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  unfolding length_ll_fs_heur_alt_def get_watched_wl_heur_def isasat_bounded_assn_def
     length_ll_def[symmetric]
   supply [[goals_limit=1]] length_ll_def[simp]
   by sepref
@@ -67,7 +67,7 @@ sepref_register unit_propagation_inner_loop_body_wl_heur
 
 sepref_thm unit_propagation_inner_loop_wl_loop_D
   is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D_heur))\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *a nat_assn *a isasat_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *a nat_assn *a isasat_unbounded_assn\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_def PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
     length_ll_fs_heur_def[symmetric]
@@ -175,7 +175,7 @@ qed *)
 (* sepref_thm unit_propagation_inner_loop_wl_loop_D_fast
   is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D_heur))\<close>
   :: \<open>[\<lambda>(L, S). isasat_fast S]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> uint64_nat_assn *a isasat_fast_assn\<close>
+       unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> uint64_nat_assn *a isasat_bounded_assn\<close>
   supply unit_propagation_inner_loop_wl_loop_D_heur_inv_length_watchlist[intro]
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_alt_def PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
@@ -203,9 +203,9 @@ sepref_register unit_propagation_inner_loop_wl_loop_D_heur
 sepref_thm cut_watch_list_heur2
   is \<open>uncurry3 cut_watch_list_heur2\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
-     isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+     isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]] length_ll_def[simp]
-  unfolding cut_watch_list_heur2_def isasat_assn_def length_ll_def[symmetric]
+  unfolding cut_watch_list_heur2_def isasat_unbounded_assn_def length_ll_def[symmetric]
   update_ll_def[symmetric] nth_rll_def[symmetric] shorten_take_ll_def[symmetric]
   by sepref
 
@@ -220,7 +220,7 @@ lemmas cut_watch_list_heur2_refine[sepref_fr_rules] =
 
 sepref_thm unit_propagation_inner_loop_wl_D
   is \<open>uncurry (PR_CONST unit_propagation_inner_loop_wl_D_heur)\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
   by sepref
@@ -236,7 +236,7 @@ lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
 
 (* sepref_thm unit_propagation_inner_loop_wl_D_fast
   is \<open>uncurry (PR_CONST unit_propagation_inner_loop_wl_D_heur)\<close>
-  :: \<open>[\<lambda>(L, S). isasat_fast S]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+  :: \<open>[\<lambda>(L, S). isasat_fast S]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
   by sepref
@@ -271,9 +271,9 @@ lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
 
 sepref_thm select_and_remove_from_literals_to_update_wl_code
   is \<open>select_and_remove_from_literals_to_update_wl_heur\<close>
-  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn *a unat_lit_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn *a unat_lit_assn\<close>
   supply [[goals_limit=1]] uint32_nat_assn_plus[sepref_fr_rules]
-  unfolding select_and_remove_from_literals_to_update_wl_heur_alt_def isasat_assn_def
+  unfolding select_and_remove_from_literals_to_update_wl_heur_alt_def isasat_unbounded_assn_def
     one_uint32_nat_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
@@ -302,9 +302,9 @@ lemma literals_to_update_wl_literals_to_update_wl_empty_alt_def:
 
 sepref_thm literals_to_update_wl_literals_to_update_wl_empty_code
   is \<open>RETURN o literals_to_update_wl_literals_to_update_wl_empty\<close>
-  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding literals_to_update_wl_literals_to_update_wl_empty_alt_def
-    isasat_assn_def
+    isasat_unbounded_assn_def
   by sepref
 
 concrete_definition (in -) literals_to_update_wl_literals_to_update_wl_empty_code
@@ -322,7 +322,7 @@ sepref_register literals_to_update_wl_literals_to_update_wl_empty
 
 sepref_thm unit_propagation_outer_loop_wl_D
   is \<open>PR_CONST unit_propagation_outer_loop_wl_D_heur\<close>
-  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
   apply (subst PR_CONST_def)
   unfolding unit_propagation_outer_loop_wl_D_heur_def
@@ -355,7 +355,7 @@ qed *)
 (*
 sepref_thm unit_propagation_outer_loop_wl_D_fast
   is \<open>PR_CONST unit_propagation_outer_loop_wl_D_heur\<close>
-  :: \<open>[isasat_fast]\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+  :: \<open>[isasat_fast]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] unit_propagation_outer_loop_wl_D_fast_still_fast[intro]
   apply (subst PR_CONST_def)
   unfolding unit_propagation_outer_loop_wl_D_heur_def

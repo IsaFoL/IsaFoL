@@ -728,7 +728,7 @@ lemma the_option_lookup_clause_assn[sepref_fr_rules]:
 definition (in isasat_input_ops) propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, _, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount). do {
+         res_info, vdom, avdom, lcount, opts). do {
       ASSERT(phase_saving \<phi> \<and> vm \<in> vmtf M \<and> undefined_lit M (-L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
          nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
       ASSERT(length C > 1);
@@ -755,7 +755,7 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
          cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
           incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
           avdom @ [nat_of_uint32_conv i],
-          Suc lcount)
+          Suc lcount, opts)
     })\<close>
 
 definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal\<close> where
@@ -908,9 +908,9 @@ proof -
     obtain M N D NE UE Q W where
       S: \<open>S = (M, N, D, NE, UE, Q, W)\<close>
       by (cases S)
-    obtain W' vm \<phi> clvls cach lbd outl stats cc cc2 cc3 avdom vdom lcount D' arena b Q' where
+    obtain W' vm \<phi> clvls cach lbd outl stats cc cc2 cc3 avdom vdom lcount D' arena b Q' opts where
       S': \<open>S' = (M, arena, (b, D'), Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, cc, cc2, cc3, vdom,
-        avdom, lcount)\<close>
+        avdom, lcount, opts)\<close>
       using S'_S by (cases S') (auto simp: twl_st_heur_conflict_ana_def S)
     have
       \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close> and
@@ -1200,7 +1200,7 @@ proof -
     qed
 
     have final: \<open>(((M, arena, x1b, Q', W', vm', \<phi>, clvls, empty_cach x1a, lbd, take 1 x2a,
-            stats, cc, cc2, cc3, vdom, avdom, lcount),
+            stats, cc, cc2, cc3, vdom, avdom, lcount, opts),
             x2c, x1c),
           M, N, Da, NE, UE, Q, W)
           \<in> {((T', n, C), T).
@@ -1214,7 +1214,7 @@ proof -
             equality_except_conflict_wl T (M, N, D, NE, UE, Q, W) \<and>
             get_clauses_wl_heur T' = get_clauses_wl_heur (M, arena, (b, D'), Q', W', vm, \<phi>, clvls, 
               cach, lbd, outl, stats, cc,
-              cc2, cc3, vdom, avdom, lcount)  \<and>
+              cc2, cc3, vdom, avdom, lcount, opts)  \<and>
             (1 < length C \<longrightarrow>
               highest_lit (get_trail_wl T) (mset (tl C))
               (Some (C ! 1, get_level (get_trail_wl T) (C ! 1)))) \<and>
@@ -1302,7 +1302,7 @@ proof -
          \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the Da)) < count_decided M\<close>
         using get_maximum_level_mono[OF Da_D', of M] by auto
       have \<open>((M, arena, x1b, Q', W', vm', \<phi>, clvls, empty_cach x1a, lbd, take (Suc 0) x2a,
-          stats, cc, cc2, cc3, vdom, avdom, lcount),
+          stats, cc, cc2, cc3, vdom, avdom, lcount, opts),
         del_conflict_wl (M, N, Da, NE, UE, Q, W))
         \<in> twl_st_heur_bt\<close>
         using S'_S x1b_None cach out vm' unfolding twl_st_heur_bt_def
@@ -1314,7 +1314,7 @@ proof -
           (auto simp: highest_lit_def Da mset_tl)
       moreover have \<open>find_decomp_wl_pre
           (x2c, M, arena, x1b, Q', W', vm', \<phi>, clvls, empty_cach x1a, lbd,
-           take (Suc 0) x2a, stats, cc, cc2, cc3, vdom, avdom, lcount)\<close>
+           take (Suc 0) x2a, stats, cc, cc2, cc3, vdom, avdom, lcount, opts)\<close>
         using vm n_d M_\<L>\<^sub>i\<^sub>n highest max_lvl_le vm'
         unfolding find_decomp_wl_pre_def find_decomp_w_ns_pre_def
         by (auto simp: S x2c)
@@ -1595,9 +1595,10 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> \<open>1 < length C\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T')
-    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount avdom vdom lcount arena D' Q' where
+    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount avdom vdom lcount arena D' Q' opts 
+      where
         U: \<open>U = (M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
-           vdom, avdom, lcount)\<close> and
+           vdom, avdom, lcount, opts)\<close> and
         vm': \<open>vm' \<in> vmtf M1\<close> and
         \<phi>: \<open>phase_saving \<phi>\<close> and
         vdom: \<open>vdom_m W N \<subseteq> set vdom\<close> and
@@ -1640,7 +1641,7 @@ proof -
     qed
     have propagate_bt_wl_D_heur_alt_def:
        \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, _, cach, lbd, outl, stats, fema, sema,
-          res_info, vdom, avdom, lcount). do {
+          res_info, vdom, avdom, lcount, opts). do {
           ASSERT(phase_saving \<phi> \<and> vm \<in> vmtf M \<and> undefined_lit M (-L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
             nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
           ASSERT(length C > 1);
@@ -1666,7 +1667,7 @@ proof -
           RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, zero_uint32_nat,
             cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
               incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i], 
-              avdom @ [nat_of_uint32_conv i], Suc lcount)
+              avdom @ [nat_of_uint32_conv i], Suc lcount, opts)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
       by auto
@@ -1885,9 +1886,10 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T')
-    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom avdom lcount arena D' Q' where
+    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount vdom avdom lcount arena D' Q' opts
+      where
         U: \<open>U = (M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
-           vdom, avdom, lcount)\<close> and
+           vdom, avdom, lcount, opts)\<close> and
         vm': \<open>vm' \<in> vmtf M1\<close> and
         avdom: \<open>set avdom \<subseteq> set vdom\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
@@ -1969,8 +1971,8 @@ lemma (in -) lit_of_hd_trail_st_heur_alt_def:
 
 sepref_thm lit_of_hd_trail_st_heur
   is \<open>RETURN o lit_of_hd_trail_st_heur\<close>
-  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  unfolding lit_of_hd_trail_st_heur_alt_def isasat_assn_def
+  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_unbounded_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  unfolding lit_of_hd_trail_st_heur_alt_def isasat_unbounded_assn_def
   by sepref
 
  concrete_definition (in -) lit_of_hd_trail_st_heur_code
@@ -1985,8 +1987,8 @@ lemmas lit_of_hd_trail_st_heur_code_refine[sepref_fr_rules] =
 
 sepref_thm lit_of_hd_trail_st_heur_fast
   is \<open>RETURN o lit_of_hd_trail_st_heur\<close>
-  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_fast_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  unfolding lit_of_hd_trail_st_heur_alt_def isasat_fast_assn_def
+  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  unfolding lit_of_hd_trail_st_heur_alt_def isasat_bounded_assn_def
   by sepref
 
  concrete_definition (in -) lit_of_hd_trail_st_heur_fast_code
@@ -2044,10 +2046,10 @@ subsubsection \<open>Backtrack with direct extraction of literal if highest leve
 (* TODO length C should be replaced by length_u64 *)
 sepref_thm propagate_bt_wl_D_code
   is \<open>uncurry2 (PR_CONST propagate_bt_wl_D_heur)\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit = 1]] uminus_\<A>\<^sub>i\<^sub>n_iff[simp] image_image[simp] append_ll_def[simp]
   rescore_clause_def[simp] vmtf_flush_def[simp]
-  unfolding propagate_bt_wl_D_heur_def isasat_assn_def cons_trail_Propagated_def[symmetric]
+  unfolding propagate_bt_wl_D_heur_def isasat_unbounded_assn_def cons_trail_Propagated_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric] nat_of_uint32_conv_def
     cons_trail_Propagated_def[symmetric] PR_CONST_def save_phase_def
@@ -2065,10 +2067,10 @@ lemmas propagate_bt_wl_D_heur_hnr[sepref_fr_rules] =
 sepref_thm propagate_bt_wl_D_fast_code
   is \<open>uncurry2 (PR_CONST propagate_bt_wl_D_heur)\<close>
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+      unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]] uminus_\<A>\<^sub>i\<^sub>n_iff[simp] image_image[simp] append_ll_def[simp]
   rescore_clause_def[simp] flush_def[simp]
-  unfolding propagate_bt_wl_D_heur_def isasat_fast_assn_def cons_trail_Propagated_def[symmetric]
+  unfolding propagate_bt_wl_D_heur_def isasat_bounded_assn_def cons_trail_Propagated_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric]
     cons_trail_Propagated_def[symmetric] PR_CONST_def
@@ -2087,9 +2089,9 @@ lemmas propagate_bt_wl_D_heur_fast_hnr[sepref_fr_rules] =
 
 sepref_thm propagate_unit_bt_wl_D_code
   is \<open>uncurry (PR_CONST propagate_unit_bt_wl_D_int)\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
-  unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_assn_def
+  unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_unbounded_assn_def
   PR_CONST_def length_u_def[symmetric]
   by sepref
 
@@ -2105,9 +2107,9 @@ lemmas propagate_unit_bt_wl_D_int_hnr[sepref_fr_rules] =
 (*
 sepref_thm propagate_unit_bt_wl_D_fast_code
   is \<open>uncurry (PR_CONST propagate_unit_bt_wl_D_int)\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_fast_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit = 1]] flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
-  unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_fast_assn_def
+  unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_bounded_assn_def
   PR_CONST_def zero_uint32_nat_def[symmetric]
   apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
   by sepref
@@ -2203,9 +2205,9 @@ sepref_register isa_minimize_and_extract_highest_lookup_conflict
 
 sepref_thm extract_shorter_conflict_list_heur_st
   is \<open>PR_CONST extract_shorter_conflict_list_heur_st\<close>
-  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn *a uint32_nat_assn *a clause_ll_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn *a uint32_nat_assn *a clause_ll_assn\<close>
   supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
-  unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_assn_def
+  unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_unbounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     take1_def[symmetric]
   by sepref
@@ -2221,9 +2223,9 @@ lemmas extract_shorter_conflict_list_heur_st_hnr[sepref_fr_rules] =
 (*
 sepref_thm extract_shorter_conflict_list_heur_st_fast
   is \<open>PR_CONST extract_shorter_conflict_list_heur_st\<close>
-  :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_fast_assn *a uint32_nat_assn *a clause_ll_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn *a uint32_nat_assn *a clause_ll_assn\<close>
   supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
-  unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_fast_assn_def
+  unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_bounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     take1_def[symmetric]
   by sepref
@@ -2244,7 +2246,7 @@ sepref_register backtrack_wl_D
 
 sepref_thm backtrack_wl_D_code
   is \<open>PR_CONST backtrack_wl_D_nlit_heur\<close>
-  :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
   lit_of_hd_trail_st_def[symmetric, simp]
   size_conflict_wl_def[simp]
@@ -2266,7 +2268,7 @@ lemmas backtrack_wl_D_nlit_heur_hnr[sepref_fr_rules] =
 (*
 sepref_thm backtrack_wl_D_fast_code
   is \<open>PR_CONST backtrack_wl_D_nlit_heur\<close>
-  :: \<open>[isasat_fast]\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+  :: \<open>[isasat_fast]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   lit_of_hd_trail_st_def[symmetric, simp]
   size_conflict_wl_def[simp]

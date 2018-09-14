@@ -199,24 +199,45 @@ proof intro_classes
     by blast
 qed
 
-
-definition (in -) nat_vmtf_node_rel where
-\<open>nat_vmtf_node_rel = {(a', a). (stamp a', stamp a) \<in> uint64_nat_rel \<and>
+definition (in -) vmtf_node_rel where
+\<open>vmtf_node_rel = {(a', a). (stamp a', stamp a) \<in> uint64_nat_rel \<and>
    (get_prev a', get_prev a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel \<and>
    (get_next a', get_next a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel}\<close>
 
-(* TODO rename *)
-abbreviation (in -)nat_vmtf_node_assn where
-\<open>nat_vmtf_node_assn \<equiv> pure nat_vmtf_node_rel\<close>
+abbreviation (in -)vmtf_node_assn where
+\<open>vmtf_node_assn \<equiv> pure vmtf_node_rel\<close>
 
 abbreviation vmtf_conc where
-  \<open>vmtf_conc \<equiv> (array_assn nat_vmtf_node_assn *a uint64_nat_assn *a uint32_nat_assn *a uint32_nat_assn
+  \<open>vmtf_conc \<equiv> (array_assn vmtf_node_assn *a uint64_nat_assn *a uint32_nat_assn *a uint32_nat_assn
     *a option_assn uint32_nat_assn)\<close>
 
 abbreviation (in isasat_input_ops) vmtf_remove_conc
   :: \<open>vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
 where
   \<open>vmtf_remove_conc \<equiv> vmtf_conc *a distinct_atoms_assn\<close>
+
+paragraph \<open>Options\<close>
+
+type_synonym opts = \<open>bool \<times> bool\<close>
+
+abbreviation opts_assn
+  :: \<open>opts \<Rightarrow> opts \<Rightarrow> assn\<close>
+where
+  \<open>opts_assn \<equiv> bool_assn *a bool_assn\<close>
+
+definition opts_restart where
+  \<open>opts_restart = (\<lambda>(a, b). a)\<close>
+
+definition opts_reduce where
+  \<open>opts_reduce = (\<lambda>(a, b). b)\<close>
+
+lemma opts_restart_hnr[sepref_fr_rules]:
+  \<open>(return o opts_restart, RETURN o opts_restart) \<in> opts_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare sep_auto
+
+lemma opts_reduce_hnr[sepref_fr_rules]:
+  \<open>(return o opts_reduce, RETURN o opts_reduce) \<in> opts_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare sep_auto
 
 
 paragraph \<open>Base state\<close>
@@ -237,13 +258,13 @@ type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
-    vdom_assn \<times> vdom_assn \<times> nat\<close>
+    vdom_assn \<times> vdom_assn \<times> nat \<times> opts\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
-    vdom_assn \<times> vdom_assn \<times> nat\<close>
+    vdom_assn \<times> vdom_assn \<times> nat \<times> opts\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 (* TODO rename to isasat *)
@@ -251,7 +272,7 @@ type_synonym twl_st_wl_heur =
   \<open>(nat,nat)ann_lits \<times> arena \<times>
     conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times>
     nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
-    vdom \<times> vdom \<times> nat\<close>
+    vdom \<times> vdom \<times> nat \<times> opts\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
   \<open>get_clauses_wl_heur (M, N, D, _) = N\<close>
@@ -322,7 +343,10 @@ fun get_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
   \<open>get_avdom (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
 
 fun get_learned_count :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
-  \<open>get_learned_count (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount) = lcount\<close>
+  \<open>get_learned_count (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = lcount\<close>
+
+fun get_ops :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
+  \<open>get_ops (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts) = opts\<close>
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -586,7 +610,7 @@ state. \<^term>\<open>avdom\<close> includes the active clauses.
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount),
+       vdom, avdom, lcount, opts),
      (M, N, D, NE, UE, Q, W)).
     M = M' \<and>
     valid_arena N' N (set vdom) \<and>
@@ -622,7 +646,7 @@ definition (in isasat_input_ops) twl_st_heur_conflict_ana
 where
 \<open>twl_st_heur_conflict_ana =
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom,
-       avdom, lcount),
+       avdom, lcount, opts),
      (M, N, D, NE, UE, Q, W)).
     M = M' \<and> valid_arena N' N (set vdom) \<and>
     (D', D) \<in> option_lookup_clause_rel \<and>
@@ -654,7 +678,7 @@ from the refined state, where the conflict has been removed from the data struct
 separate array.\<close>
 definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_bt =
-  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, _, _, _, vdom, avdom, lcount),
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, _, _, _, vdom, avdom, lcount, opts),
      (M, N, D, NE, UE, Q, W)).
     M = M' \<and>
     valid_arena N' N (set vdom) \<and>
@@ -672,8 +696,8 @@ definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<time
   }\<close>
 
 
-definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
-\<open>isasat_assn =
+definition isasat_unbounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
+\<open>isasat_unbounded_assn =
   trail_assn *a arena_assn *a
   isasat_conflict_assn *a
   uint32_nat_assn *a
@@ -689,10 +713,11 @@ definition isasat_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \
   restart_info_assn *a
   vdom_assn *a
   vdom_assn *a
-  nat_assn\<close>
+  nat_assn *a
+  opts_assn\<close>
 
-definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
-\<open>isasat_fast_assn =
+definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
+\<open>isasat_bounded_assn =
   trail_fast_assn *a arena_assn *a
   isasat_conflict_assn *a
   uint32_nat_assn *a
@@ -708,10 +733,11 @@ definition isasat_fast_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_tr
   restart_info_assn *a
   vdom_assn *a
   vdom_assn *a
-  nat_assn\<close>
+  nat_assn *a
+  opts_assn\<close>
 
 text \<open>
-  The difference between \<^term>\<open>isasat_assn\<close> and \<^term>\<open>isasat_fast_assn\<close> corresponds to the
+  The difference between \<^term>\<open>isasat_unbounded_assn\<close> and \<^term>\<open>isasat_bounded_assn\<close> corresponds to the
   following condition:
 \<close>
 definition (in -) isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
@@ -728,9 +754,9 @@ definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heu
 
 sepref_thm isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
-  :: \<open>isasat_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding isasat_fast_assn_def isasat_assn_def isasat_fast_slow_def
+  unfolding isasat_bounded_assn_def isasat_unbounded_assn_def isasat_fast_slow_def
   by sepref
 
 concrete_definition (in -) isasat_fast_slow_code
@@ -785,8 +811,8 @@ lemma get_conflict_wl_is_None_heur_alt_def:
 
 sepref_thm get_conflict_wl_is_None_code
   is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
-  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding get_conflict_wl_is_None_heur_alt_def isasat_assn_def length_ll_def[symmetric]
+  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wl_is_None_heur_alt_def isasat_unbounded_assn_def length_ll_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
 
@@ -801,8 +827,8 @@ lemmas get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
 
 sepref_thm get_conflict_wl_is_None_fast_code
   is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
-  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding get_conflict_wl_is_None_heur_alt_def isasat_fast_assn_def length_ll_def[symmetric]
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wl_is_None_heur_alt_def isasat_bounded_assn_def length_ll_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
 
@@ -820,9 +846,9 @@ definition (in isasat_input_ops) count_decided_st where
 
 sepref_thm count_decided_st_code
   is \<open>RETURN o count_decided_st\<close>
-  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=2]]
-  unfolding count_decided_st_def isasat_assn_def
+  unfolding count_decided_st_def isasat_unbounded_assn_def
   by sepref
 
 concrete_definition (in -) count_decided_st_code
@@ -836,9 +862,9 @@ lemmas count_decided_st_code_refine[sepref_fr_rules] =
 
 sepref_thm count_decided_st_fast_code
   is \<open>RETURN o count_decided_st\<close>
-  :: \<open>isasat_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=2]]
-  unfolding count_decided_st_def isasat_fast_assn_def
+  unfolding count_decided_st_def isasat_bounded_assn_def
   by sepref
 
 concrete_definition (in -) count_decided_st_fast_code
@@ -896,8 +922,8 @@ lemma polarity_st_heur_alt_def:
 
 sepref_thm polarity_st_heur_pol
   is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
-  :: \<open>[polarity_st_pre]\<^sub>a isasat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
-  unfolding polarity_st_heur_alt_def isasat_assn_def polarity_st_pre_def
+  :: \<open>[polarity_st_pre]\<^sub>a isasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
+  unfolding polarity_st_heur_alt_def isasat_unbounded_assn_def polarity_st_pre_def
   supply [[goals_limit = 1]]
   by sepref
 
@@ -913,8 +939,8 @@ lemmas polarity_st_heur_pol_polarity_st_refine[sepref_fr_rules] =
 
 sepref_thm polarity_st_heur_pol_fast
   is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
-  :: \<open>[polarity_st_pre]\<^sub>a isasat_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
-  unfolding polarity_st_heur_alt_def isasat_fast_assn_def polarity_st_pre_def
+  :: \<open>[polarity_st_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
+  unfolding polarity_st_heur_alt_def isasat_bounded_assn_def polarity_st_pre_def
   supply [[goals_limit = 1]]
   by sepref
 

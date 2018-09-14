@@ -109,7 +109,7 @@ type_synonym (in -) twl_st_wl_heur_init_full =
     nat \<times> nat conflict_min_cach \<times> lbd \<times> vdom\<close>
 
 abbreviation (in -) vmtf_conc_option_fst_As where
-  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *a uint64_nat_assn *a
+  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn vmtf_node_assn *a uint64_nat_assn *a
     option_assn uint32_nat_assn *a option_assn uint32_nat_assn *a option_assn uint32_nat_assn)\<close>
 
 type_synonym (in -)vmtf_assn_option_fst_As =
@@ -2901,8 +2901,8 @@ qed
 text \<open>TODO Move\<close>
 
 text \<open>The value 160 is random (but larger than the default 16 for array lists).\<close>
-definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>finalise_init_code =
+definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>finalise_init_code opts =
     (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
        lbd, vdom). do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
@@ -2913,13 +2913,13 @@ definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st
      let lcount = 0;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
        clvls, cach, lbd, take1(replicate 160 (Pos zero_uint32_nat)), init_stats,
-        fema, sema, ccount, vdom, [], lcount)
+        fema, sema, ccount, vdom, [], lcount, opts)
      })\<close>
 
 lemma (in isasat_input_ops)finalise_init_finalise_init:
-  \<open>(finalise_init_code, RETURN o finalise_init) \<in>
-   [\<lambda>(S::nat twl_st_wl). get_conflict_wl S = None \<and> \<A>\<^sub>i\<^sub>n \<noteq> {#} \<and>
-      size (learned_clss_l (get_clauses_wl S)) = 0]\<^sub>f
+  \<open>(uncurry finalise_init_code, uncurry (RETURN oo (\<lambda>_. finalise_init))) \<in>
+   [\<lambda>(_, S::nat twl_st_wl). get_conflict_wl S = None \<and> \<A>\<^sub>i\<^sub>n \<noteq> {#} \<and>
+      size (learned_clss_l (get_clauses_wl S)) = 0]\<^sub>f Id \<times>\<^sub>r
       twl_st_heur_post_parsing_wl \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
      (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def twl_st_heur_parsing_no_WL_wl_def
@@ -2928,17 +2928,17 @@ lemma (in isasat_input_ops)finalise_init_finalise_init:
       intro!: ASSERT_leI)
 
 sepref_thm (in isasat_input_ops) finalise_init_code'
-  is \<open>finalise_init_code\<close>
-  :: \<open>isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  is \<open>uncurry finalise_init_code\<close>
+  :: \<open>opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
-  unfolding finalise_init_code_def isasat_init_assn_def isasat_assn_def
+  unfolding finalise_init_code_def isasat_init_assn_def isasat_unbounded_assn_def
     arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric]
   by sepref
 
 concrete_definition (in -) finalise_init_code'
    uses isasat_input_ops.finalise_init_code'.refine_raw
-   is \<open>(?f, _)\<in>_\<close>
+   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) finalise_init_code'_def
 
@@ -2948,10 +2948,10 @@ lemmas (in isasat_input_ops)finalise_init_hnr[sepref_fr_rules] =
 (*
 sepref_thm (in isasat_input_ops) finalise_init_fast_code'
   is \<open>finalise_init_code\<close>
-  :: \<open>isasat_init_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_fast_assn\<close>
+  :: \<open>isasat_init_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
-  unfolding finalise_init_code_def isasat_init_fast_assn_def isasat_fast_assn_def
+  unfolding finalise_init_code_def isasat_init_fast_assn_def isasat_bounded_assn_def
     arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric]
   by sepref
 

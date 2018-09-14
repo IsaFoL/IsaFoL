@@ -28,28 +28,28 @@ lemmas size_conflict_code_hnr[sepref_fr_rules] = size_conflict_code.refine
 lemma VMTF_Node_ref[sepref_fr_rules]:
   \<open>(uncurry2 (return ooo VMTF_Node), uncurry2 (RETURN ooo VMTF_Node)) \<in>
     uint64_nat_assn\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a
-    nat_vmtf_node_assn\<close>
+    vmtf_node_assn\<close>
   by sepref_to_hoare
-   (sep_auto simp: nat_vmtf_node_rel_def uint32_nat_rel_def br_def option_assn_alt_def
+   (sep_auto simp: vmtf_node_rel_def uint32_nat_rel_def br_def option_assn_alt_def
      split: option.splits)
 
 lemma stamp_ref[sepref_fr_rules]:
-  \<open>(return o stamp, RETURN o stamp) \<in> nat_vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  \<open>(return o stamp, RETURN o stamp) \<in> vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   by sepref_to_hoare
-    (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap nat_vmtf_node_rel_def
+    (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap vmtf_node_rel_def
       simp del: ex_assn_move_out)
 
 lemma get_next_ref[sepref_fr_rules]:
-  \<open>(return o get_next, RETURN o get_next) \<in> nat_vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a
+  \<open>(return o get_next, RETURN o get_next) \<in> vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a
    option_assn uint32_nat_assn\<close>
   unfolding option_assn_pure_conv
-  by sepref_to_hoare (sep_auto simp: return_cons_rule nat_vmtf_node_rel_def)
+  by sepref_to_hoare (sep_auto simp: return_cons_rule vmtf_node_rel_def)
 
 lemma get_prev_ref[sepref_fr_rules]:
-  \<open>(return o get_prev, RETURN o get_prev) \<in> nat_vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a
+  \<open>(return o get_prev, RETURN o get_prev) \<in> vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a
    option_assn uint32_nat_assn\<close>
   unfolding option_assn_pure_conv
-  by sepref_to_hoare (sep_auto simp: return_cons_rule nat_vmtf_node_rel_def)
+  by sepref_to_hoare (sep_auto simp: return_cons_rule vmtf_node_rel_def)
 
 definition update_next_search where
   \<open>update_next_search L = (\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). ((ns, m, fst_As, lst_As, L), to_remove))\<close>
@@ -63,7 +63,7 @@ lemma (in isasat_input_ops) update_next_search_ref[sepref_fr_rules]:
 sepref_definition (in -)ns_vmtf_dequeue_code
    is \<open>uncurry (RETURN oo ns_vmtf_dequeue)\<close>
    :: \<open>[vmtf_dequeue_pre]\<^sub>a
-        uint32_nat_assn\<^sup>k *\<^sub>a (array_assn nat_vmtf_node_assn)\<^sup>d \<rightarrow> array_assn nat_vmtf_node_assn\<close>
+        uint32_nat_assn\<^sup>k *\<^sub>a (array_assn vmtf_node_assn)\<^sup>d \<rightarrow> array_assn vmtf_node_assn\<close>
   supply [[goals_limit = 1]]
   supply option.splits[split]
   unfolding ns_vmtf_dequeue_def vmtf_dequeue_pre_alt_def
@@ -72,7 +72,7 @@ sepref_definition (in -)ns_vmtf_dequeue_code
 declare ns_vmtf_dequeue_code.refine[sepref_fr_rules]
 
 abbreviation vmtf_conc_option_fst_As where
-  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *a uint64_nat_assn *a option_assn uint32_nat_assn
+  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn vmtf_node_assn *a uint64_nat_assn *a option_assn uint32_nat_assn
     *a option_assn uint32_nat_assn
     *a option_assn uint32_nat_assn)\<close>
 
@@ -140,7 +140,7 @@ sepref_definition (in -) insert_sort_inner_nth_code
    is \<open>uncurry2 insert_sort_inner_nth\<close>
    :: \<open>[\<lambda>((xs, remove), n). (\<forall>x\<in>#mset remove. x < length xs) \<and> n < length remove \<and> 
         length remove \<le> uint32_max]\<^sub>a
-  (array_assn nat_vmtf_node_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+  (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
   arl_assn uint32_nat_assn\<close>
   unfolding insert_sort_inner_nth_def insert_sort_inner_def fast_minus_def[symmetric]
     short_circuit_conv zero_uint32_nat_def[symmetric] one_uint32_nat_def[symmetric]
@@ -259,7 +259,7 @@ lemma (in -)current_stamp_alt_def:
 
 lemma (in -) current_stamp_hnr[sepref_fr_rules]:
   \<open>(return o current_stamp, RETURN o current_stamp) \<in> vmtf_conc\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: nat_vmtf_node_rel_def current_stamp_alt_def)
+  by sepref_to_hoare (sep_auto simp: vmtf_node_rel_def current_stamp_alt_def)
 
 lemma vmtf_rescale_alt_def:
 \<open>vmtf_rescale = (\<lambda>(ns, m, fst_As, lst_As :: nat, next_search). do {
@@ -1090,8 +1090,8 @@ sepref_thm find_decomp_wl_imp'_code
   is \<open>uncurry (PR_CONST find_decomp_wl_st_int)\<close>
   :: \<open>[\<lambda>(highest, (M', N, D, W, Q, vm, \<phi>)).
          find_decomp_w_ns_pre ((M', highest), vm)]\<^sub>a
-       uint32_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d  \<rightarrow> isasat_assn\<close>
-  unfolding find_decomp_wl_st_int_def PR_CONST_def isasat_assn_def
+       uint32_nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d  \<rightarrow> isasat_unbounded_assn\<close>
+  unfolding find_decomp_wl_st_int_def PR_CONST_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1109,9 +1109,9 @@ sepref_thm find_decomp_wl_imp'_fast_code
   is \<open>uncurry (PR_CONST find_decomp_wl_st_int)\<close>
   :: \<open>[\<lambda>(highest, (M', N, D, W, Q, vm, \<phi>)).
          find_decomp_w_ns_pre ((M', highest), vm)]\<^sub>a
-       uint32_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d  \<rightarrow>
-        isasat_fast_assn\<close>
-  unfolding find_decomp_wl_st_int_def PR_CONST_def isasat_fast_assn_def
+       uint32_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d  \<rightarrow>
+        isasat_bounded_assn\<close>
+  unfolding find_decomp_wl_st_int_def PR_CONST_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1163,11 +1163,11 @@ lemma
   shows
     find_decomp_wl_imp'_code_find_decomp_wl[sepref_fr_rules]:
       \<open>(uncurry find_decomp_wl_imp'_code, uncurry (PR_CONST find_decomp_wl_nlit)) \<in>
-        [find_decomp_wl_pre]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d \<rightarrow> isasat_assn\<close>
+        [find_decomp_wl_pre]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
       (is ?slow is  \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
     find_decomp_wl_imp'_fast_code_find_decomp_wl[sepref_fr_rules]:
       \<open>(uncurry find_decomp_wl_imp'_fast_code, uncurry (PR_CONST find_decomp_wl_nlit)) \<in>
-        [find_decomp_wl_pre]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d \<rightarrow> isasat_fast_assn\<close>
+        [find_decomp_wl_pre]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
       (is ?fast is  \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
 proof -
   define L where L: \<open>L \<equiv> -lit_of (hd M)\<close>
@@ -1175,8 +1175,8 @@ proof -
        \<in> [comp_PRE (nat_rel \<times>\<^sub>f Id) (\<lambda>(highest, S). True)
      (\<lambda>_ (highest, M', N, D, W, Q, vm, \<phi>).
          find_decomp_w_ns_pre ((M', highest), vm))
-     (\<lambda>_. True)]\<^sub>a hrp_comp (uint32_nat_assn\<^sup>k *\<^sub>a isasat_assn\<^sup>d)
-                    (nat_rel \<times>\<^sub>f Id) \<rightarrow> hr_comp isasat_assn Id\<close>
+     (\<lambda>_. True)]\<^sub>a hrp_comp (uint32_nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d)
+                    (nat_rel \<times>\<^sub>f Id) \<rightarrow> hr_comp isasat_unbounded_assn Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF find_decomp_wl_imp'_code_hnr[unfolded PR_CONST_def]
          find_decomp_wl_st_int_find_decomp_wl_nlit]
@@ -1201,8 +1201,8 @@ proof -
        \<in> [comp_PRE (nat_rel \<times>\<^sub>f Id) (\<lambda>(highest, S). True)
      (\<lambda>_ (highest, M', N, D, W, Q, vm, \<phi>).
          find_decomp_w_ns_pre ((M', highest), vm))
-     (\<lambda>_. True)]\<^sub>a hrp_comp (uint32_nat_assn\<^sup>k *\<^sub>a isasat_fast_assn\<^sup>d)
-                    (nat_rel \<times>\<^sub>f Id) \<rightarrow> hr_comp isasat_fast_assn Id\<close>
+     (\<lambda>_. True)]\<^sub>a hrp_comp (uint32_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d)
+                    (nat_rel \<times>\<^sub>f Id) \<rightarrow> hr_comp isasat_bounded_assn Id\<close>
     (is \<open>_ \<in> [_]\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF find_decomp_wl_imp'_fast_code_hnr[unfolded PR_CONST_def]
          find_decomp_wl_st_int_find_decomp_wl_nlit]
