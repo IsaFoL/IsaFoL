@@ -24,10 +24,10 @@ type_synonym 'f formulas = "'f set"
 
 locale consequence_relation =
   fixes
-    Bot_F :: 'f and
+    Bot_F :: "'f set" and
     entails :: "'f formulas \<Rightarrow> 'f formulas \<Rightarrow> bool" (infix "|=" 50)
   assumes
-    bot_implies_all: "{Bot_F} |= N1" and
+    bot_implies_all: "\<forall>B \<in> Bot_F. {B} |= N1" and
     subset_entailed: "N2 \<subseteq> N1 \<Longrightarrow> N1 |= N2" and
     all_formulas_entailed: "(\<forall>C \<in> N2. N1 |= {C}) \<Longrightarrow> N1 |= N2" and
     transitive_entails: "(N1 |= N2 \<and> N2 |= N3) \<Longrightarrow> N1 |= N3"
@@ -41,6 +41,12 @@ lemma easy2: "(N |= N1 \<and> N |= N2) \<longleftrightarrow> N |= (N1 \<union> N
   apply (subst (2) easy1)
   apply (subst (3) easy1)
   by auto
+
+(*lemma easy3: \<open>\<forall>C \<in> N1. {C} |= N2 \<Longrightarrow> N1 |= N2\<close>
+*)
+
+
+
 
 end
 
@@ -57,7 +63,7 @@ locale inference_system = consequence_relation +
     Red_F :: "'f formulas \<Rightarrow> 'f formulas"
   assumes
     Red_I_to_I: "Red_I N \<in> Pow I" and
-    Red_F_Bot_F: "N |= {Bot_F} \<Longrightarrow> N - Red_F N |= {Bot_F}" and
+    Red_F_Bot_F: "B \<in> Bot_F \<Longrightarrow> N |= {B} \<Longrightarrow> N - Red_F N |= {B}" and
     Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'" and
     Red_I_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'" and
     Red_F_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')" and
@@ -86,7 +92,7 @@ proof -
 qed
 
 inductive "derive" :: "'f formulas \<Rightarrow> 'f formulas \<Rightarrow> bool" (infix "\<turnstile>" 50) where
-  unsat_preserving_derive: "(N |= {Bot_F} \<Longrightarrow> M |= {Bot_F}) \<Longrightarrow> M - N \<subseteq> Red_F N \<Longrightarrow> M \<turnstile> N"
+  unsat_preserving_derive: "(B \<in> Bot_F \<Longrightarrow> N |= {B} \<Longrightarrow> M |= {B}) \<Longrightarrow> M - N \<subseteq> Red_F N \<Longrightarrow> M \<turnstile> N"
 
 definition saturated :: "'f formulas \<Rightarrow> bool" where 
   "saturated N \<equiv> Inf N \<subseteq> Red_I N"
@@ -224,7 +230,7 @@ end
 
 locale static_refutational_complete_inference_system = inference_system +
   assumes
-    static_refutational_complete: "saturated N \<and> N |= {Bot_F} \<Longrightarrow> Bot_F \<in> N"
+    static_refutational_complete: "B \<in> Bot_F \<Longrightarrow> saturated N \<and> N |= {B} \<Longrightarrow> \<exists>B'\<in>Bot_F. B' \<in> N"
 begin
 
 end
@@ -232,16 +238,17 @@ end
 
 locale dynamic_refutational_complete_inference_system = inference_system +
   assumes
-    dynamic_refutational_complete: "\<not> lnull D \<Longrightarrow> chain (\<turnstile>) D \<Longrightarrow> fair D \<Longrightarrow> (lnth D 0) |= {Bot_F}
-      \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. Bot_F \<in> (lnth D i)"
+    dynamic_refutational_complete: "B \<in> Bot_F \<Longrightarrow> \<not> lnull D \<Longrightarrow> chain (\<turnstile>) D \<Longrightarrow> fair D 
+      \<Longrightarrow> (lnth D 0) |= {B} \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. \<exists>B'\<in>Bot_F. B' \<in> (lnth D i)"
 begin
 
 text \<open>not in Uwe's notes, personal addition for practice\<close>
 sublocale static_refutational_complete_inference_system
-proof standard
-  fix N
+proof
+  fix B N
   assume 
-    saturated_N: "saturated N \<and> N |= {Bot_F}"
+    bot_elem: \<open>B \<in> Bot_F\<close> and
+    saturated_N: "saturated N \<and> N |= {B}"
   define D where "D = LCons N LNil"
   have[simp]: \<open>\<not> lnull D\<close> by (auto simp: D_def)
   have deriv_D: \<open>chain (\<turnstile>) D\<close> by (simp add: chain.chain_singleton D_def)
@@ -249,13 +256,13 @@ proof standard
   have head_D: "N = lnth D 0" by (simp add: D_def)
   have "Sup_Red_I_llist D = Red_I N" by (simp add: D_def Sup_Red_I_unit)
   then have fair_D: "fair D" using saturated_N by (simp add: fair_def saturated_def liminf_is_N)  
-  obtain i where "Bot_F \<in> (lnth D i)" and \<open>i < llength D\<close>
-    using dynamic_refutational_complete[of D] fair_D head_D saturated_N deriv_D
+  obtain i B' where B'_is_bot: \<open>B' \<in> Bot_F\<close> and B'_in: "B' \<in> (lnth D i)" and \<open>i < llength D\<close>
+    using dynamic_refutational_complete[of B D] bot_elem fair_D head_D saturated_N deriv_D
     by auto
   then have "i = 0"
     by (auto simp: D_def enat_0_iff)
-  show \<open>Bot_F \<in> N\<close>
-    using \<open>Bot_F \<in> (lnth D i)\<close> unfolding \<open>i = 0\<close> head_D[symmetric] .
+  show \<open>\<exists>B'\<in>Bot_F. B' \<in> N\<close>
+    using B'_is_bot B'_in unfolding \<open>i = 0\<close> head_D[symmetric] by auto
 qed
 
 
@@ -267,26 +274,29 @@ text \<open>The assumption that the derivation is not the empty derivation had t
   (lnth D 0) is undefined and the first 'have' can't be proven.\<close>
 sublocale static_refutational_complete_inference_system \<subseteq> dynamic_refutational_complete_inference_system
 proof
-  fix D
+  fix B D
   assume
+    bot_elem: \<open>B \<in> Bot_F\<close> and
     deriv: \<open>chain (\<turnstile>) D\<close> and
     fair: \<open>fair D\<close> and
-    unsat: \<open>(lnth D 0) |= {Bot_F}\<close> and
+    unsat: \<open>(lnth D 0) |= {B}\<close> and
     non_empty: \<open>\<not> lnull D\<close>
     have subs: \<open>(lnth D 0) \<subseteq> Sup_llist D\<close>
       using lhd_subset_Sup_llist[of D] non_empty by (simp add: lhd_conv_lnth)
-    have \<open>Sup_llist D |= {Bot_F}\<close> 
+    have \<open>Sup_llist D |= {B}\<close> 
       using unsat subset_entailed[OF subs] transitive_entails[of "Sup_llist D" "lnth D 0"] by auto
-    then have Sup_no_Red: \<open>Sup_llist D - Red_F (Sup_llist D) |= {Bot_F}\<close> using Red_F_Bot_F by auto
+    then have Sup_no_Red: \<open>Sup_llist D - Red_F (Sup_llist D) |= {B}\<close>
+      using bot_elem Red_F_Bot_F by auto
     have Sup_no_Red_in_Liminf: \<open>Sup_llist D - Red_F (Sup_llist D) \<subseteq> Liminf_llist D\<close>
       using deriv Red_in_Sup by auto
-    have Liminf_entails_Bot_F: \<open>Liminf_llist D |= {Bot_F}\<close>
+    have Liminf_entails_Bot_F: \<open>Liminf_llist D |= {B}\<close>
       using Sup_no_Red subset_entailed[OF Sup_no_Red_in_Liminf] transitive_entails by blast
     have \<open>saturated (Liminf_llist D)\<close> 
       using deriv fair fair_implies_Liminf_saturated unfolding saturated_def by auto
-    then have \<open>Bot_F \<in> (Liminf_llist D)\<close> 
-      using static_refutational_complete Liminf_entails_Bot_F by auto
-    then show \<open>\<exists>i\<in>{i. enat i < llength D}. Bot_F \<in> lnth D i\<close> unfolding Liminf_llist_def by auto
+    then have \<open>\<exists>B'\<in>Bot_F. B' \<in> (Liminf_llist D)\<close> 
+      using bot_elem static_refutational_complete Liminf_entails_Bot_F by auto
+    then show \<open>\<exists>i\<in>{i. enat i < llength D}. \<exists>B'\<in>Bot_F. B' \<in> lnth D i\<close>
+      unfolding Liminf_llist_def by auto
 qed
 
 end

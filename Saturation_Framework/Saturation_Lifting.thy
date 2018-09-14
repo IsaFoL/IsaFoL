@@ -8,19 +8,19 @@ text \<open>In Uwe's notes, a well-founded partial strict ordering is used.
   the locale order_pair from the theory SN_Orders in the AFP\<close>
 locale redundancy_criterion_lifting = inference_system Bot_F_G entails_G I_G Red_I_G Red_F_G
   for
-    Bot_F_G :: \<open>'g\<close> and
+    Bot_F_G :: \<open>'g set\<close> and
     entails_G :: \<open>'g formulas \<Rightarrow> 'g formulas \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     I_G :: \<open>'g inference set\<close> and
     Red_I_G :: \<open>'g formulas \<Rightarrow> 'g inference set\<close> and
     Red_F_G :: \<open>'g formulas \<Rightarrow> 'g formulas\<close>
   + fixes
-    Bot_F_F :: \<open>'f :: {wellorder}\<close> and
+    Bot_F_F :: \<open>'f :: {wellorder} set\<close> and
     (*{wellorder} constrains 'f to have a total strict well-founded order *)
     I_F :: \<open>'f inference set\<close> and
     \<G>_F :: \<open>'f \<Rightarrow> 'g formulas\<close> and
     \<G>_I :: \<open>'f inference \<Rightarrow> 'g inference set\<close>
   assumes
-    Bot_F_map: \<open>\<G>_F Bot_F_F = {Bot_F_G}\<close> and
+    Bot_F_map: \<open>\<forall>B \<in> Bot_F_F. \<G>_F B \<subseteq> Bot_F_G\<close> and
     inf_map: \<open>\<G>_I \<iota> \<subseteq> Red_I_G (\<G>_F (concl_of \<iota>))\<close>
 begin
 
@@ -37,7 +37,17 @@ interpretation lifted_consequence_relation: consequence_relation
   where Bot_F=Bot_F_F and entails=entails_\<G>
 proof
   fix N
-  show \<open>{Bot_F_F} \<Turnstile>\<G> N\<close> using Bot_F_map bot_implies_all entails_\<G>_def by auto
+  show \<open>\<forall>B\<in>Bot_F_F. {B} \<Turnstile>\<G> N\<close> 
+  proof
+    fix B
+    assume \<open>B\<in> Bot_F_F\<close>
+    then show \<open>{B} \<Turnstile>\<G> N\<close> 
+      using Bot_F_map bot_implies_all[of "\<G>_set N"]
+      unfolding entails_\<G>_def
+      apply auto
+      apply (drule bspec, assumption)      
+      using subset_entailed[of "\<G>_F B" Bot_F_G] transitive_entails[of Bot_F_G _ "\<G>_set N"]
+      
 next
   fix N1 N2 :: \<open>'f formulas\<close>
   assume 
