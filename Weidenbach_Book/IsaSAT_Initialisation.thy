@@ -1,6 +1,5 @@
 theory IsaSAT_Initialisation
   imports IsaSAT_Setup IsaSAT_VMTF Watched_Literals.Watched_Literals_Watch_List_Initialisation
-    "../lib/Explorer"
 begin
 
 no_notation Ref.update ("_ := _" 62)
