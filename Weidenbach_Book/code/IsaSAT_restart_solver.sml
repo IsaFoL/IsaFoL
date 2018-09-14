@@ -1513,17 +1513,7 @@ fun vmtf_rescore_code x =
                        (fn x_b => (fn () => ((a1c, (a1d, (a1e, a2e))), x_b))))
                end
               ()) ())
-              (fn x_a =>
-                (fn f_ => fn () => f_ ((nth heap_uint32 ai a1) ()) ())
-                  (fn xa =>
-                    (fn f_ => fn () => f_ ((nth heap_uint32 ai a1) ()) ())
-                      (fn xaa =>
-                        (fn f_ => fn () => f_
-                          ((heap_array_set_u heap_bool a2a (atm_of_code xa)
-                             (not (is_pos_code xaa)))
-                          ()) ())
-                          (fn x_c =>
-                            (fn () => (plus_nat a1 one_nat, (x_a, x_c))))))))
+              (fn x_a => (fn () => (plus_nat a1 one_nat, (x_a, a2a)))))
           (zero_nata, (bia, bi)) ();
     in
       let
@@ -3797,20 +3787,25 @@ fun propagate_bt_wl_D_code x =
     (fn x_r =>
       (fn f_ => fn () => f_ ((vmtf_flush_code x_r a1q) ()) ())
         (fn x_t =>
-          (fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a1o a2r)
+          (fn f_ => fn () => f_
+            ((heap_array_set_u heap_bool a2q (atm_of_code (uminus_code ai))
+               (is_pos_code (uminus_code ai)))
             ()) ())
             (fn xb =>
               (fn f_ => fn () => f_
-                ((arl_append (default_nat, heap_nat) a1p a2r) ()) ())
+                ((arl_append (default_nat, heap_nat) a1o a2r) ()) ())
                 (fn xab =>
-                  (fn () =>
-                    (x_r, (x_i, (a1b, (x_p,
-(x_m, (x_t, (a2q, ((Word32.fromInt 0),
-                    (a1h, (x_o, (a1j, (a1k,
-(ema_update_ref x_c a1l,
-  (ema_update_ref x_c a1m,
-    (incr_conflict_count_since_last_restart a1n,
-      (xb, (xab, suc a2p))))))))))))))))))))))))))))
+                  (fn f_ => fn () => f_
+                    ((arl_append (default_nat, heap_nat) a1p a2r) ()) ())
+                    (fn xba =>
+                      (fn () =>
+                        (x_r, (x_i, (a1b, (x_p,
+    (x_m, (x_t, (xb, ((Word32.fromInt 0),
+                       (a1h, (x_o, (a1j, (a1k,
+   (ema_update_ref x_c a1l,
+     (ema_update_ref x_c a1m,
+       (incr_conflict_count_since_last_restart a1n,
+         (xab, (xba, suc a2p)))))))))))))))))))))))))))))
                 end))
       end
         ()
