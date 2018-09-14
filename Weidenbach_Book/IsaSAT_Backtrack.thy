@@ -11,7 +11,6 @@ begin
 
 subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
 
-
 paragraph \<open>Empty conflict\<close>
 
 definition (in -) empty_conflict_and_extract_clause
@@ -751,7 +750,8 @@ definition (in isasat_input_ops) propagate_bt_wl_D_heur
       let M = Propagated (- L) i # M;
       ASSERT(vm \<in> vmtf M);
       vm \<leftarrow> vmtf_flush M vm;
-      RETURN (M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
+      ASSERT(atm_of L < length \<phi>);
+      RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, zero_uint32_nat,
          cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
           incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
           avdom @ [nat_of_uint32_conv i],
@@ -1662,7 +1662,8 @@ proof -
           let M = Propagated (- L) i # M;
           ASSERT(vm \<in> vmtf M);
           vm \<leftarrow> vmtf_flush M vm;
-          RETURN (M, N, D, j, W, vm, \<phi>, zero_uint32_nat,
+          ASSERT(atm_of L < length \<phi>);
+          RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, zero_uint32_nat,
             cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
               incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i], 
               avdom @ [nat_of_uint32_conv i], Suc lcount)
@@ -1806,6 +1807,10 @@ proof -
           intro!: ASSERT_refine_left ASSERT_leI RES_refine exI[of _ C] valid_arena_update_lbd
           dest: valid_arena_one_notin_vdomD
           intro!: vm)
+      subgoal
+        using D' C_1_neq_hd vmtf avdom
+        by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
+            phase_saving_def atms_of_def)
       subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a
         using D' C_1_neq_hd vmtf avdom
         apply (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
@@ -2045,7 +2050,7 @@ sepref_thm propagate_bt_wl_D_code
   unfolding propagate_bt_wl_D_heur_def isasat_assn_def cons_trail_Propagated_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric] nat_of_uint32_conv_def
-    cons_trail_Propagated_def[symmetric] PR_CONST_def
+    cons_trail_Propagated_def[symmetric] PR_CONST_def save_phase_def
   by sepref \<comment> \<open>slow\<close>
 
 concrete_definition (in -) propagate_bt_wl_D_code
