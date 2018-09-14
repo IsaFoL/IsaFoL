@@ -1,7 +1,6 @@
 # Simple Prover #
 
-[This directory](https://bitbucket.org/isafol/isafol/src/master/Simple_Prover/) contains an Isabelle formalization of
-a certified simple prover for first-order logic based on Tom Ridge's [AFP entry](https://www.isa-afp.org/entries/Verified-Prover.html).
+[This directory](https://bitbucket.org/isafol/isafol/src/master/Simple_Prover/) contains an Isabelle formalization of a certified simple prover for first-order logic based on Tom Ridge's [AFP entry](https://www.isa-afp.org/entries/Verified-Prover.html).
 
 [GitHub](https://github.com/logic-tools/simpro) contains a preliminary version.
 
