@@ -1093,7 +1093,7 @@ lemma if_replace_cond: \<open>(if b then P b else Q b) = (if b then P True else 
   by auto
 
 lemma nfoldli_cong2:
-  assumes 
+  assumes
     le: \<open>length l = length l'\<close> and
     \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
     c: \<open>c = c'\<close> and
@@ -1126,18 +1126,18 @@ next
   have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
     by (induction xs) auto
   have AB: \<open>nfoldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
-      nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close> 
+      nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close>
       (is \<open>?A = ?B\<close>)
     unfolding 1 ..
   {
-    assume [simp]: \<open>c a\<close> 
+    assume [simp]: \<open>c a\<close>
     have \<open>nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
        do {
          \<sigma> \<leftarrow> (P x a);
          nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>
         }\<close>
       by simp
-    moreover have \<open>nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>  = 
+    moreover have \<open>nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>  =
        nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) \<sigma>\<close> for \<sigma>
       unfolding 2
       by (rule nfoldli_cong2) auto
@@ -1148,8 +1148,8 @@ next
       using AB
       by (auto intro: bind_cong_nres)
   }
-  moreover { 
-    assume [simp]: \<open>\<not>c a\<close> 
+  moreover {
+    assume [simp]: \<open>\<not>c a\<close>
     have \<open>?B = RETURN a\<close>
       by simp
   }
@@ -1158,7 +1158,7 @@ qed
 
 
 lemma foldli_cong2:
-  assumes 
+  assumes
     le: \<open>length l = length l'\<close> and
     \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
     c: \<open>c = c'\<close> and
@@ -1190,11 +1190,11 @@ next
   have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
     by (induction xs) auto
   have AB: \<open>foldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
-      foldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close> 
+      foldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close>
       (is \<open>?A = ?B\<close>)
     unfolding 1 ..
   {
-    assume [simp]: \<open>c a\<close> 
+    assume [simp]: \<open>c a\<close>
     have \<open>foldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
        foldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) (P x a)\<close>
       by simp
@@ -1205,8 +1205,8 @@ next
       using AB
       by simp
   }
-  moreover { 
-    assume [simp]: \<open>\<not>c a\<close> 
+  moreover {
+    assume [simp]: \<open>\<not>c a\<close>
     have \<open>?B = a\<close>
       by simp
   }
@@ -1270,11 +1270,12 @@ lemma RES_SPEC_conv: \<open>RES P = SPEC (\<lambda>v. v \<in> P)\<close>
 subsection \<open>Sorting\<close>
 
 text \<open>Remark that we do not \<^emph>\<open>prove\<close> that the sorting in correct, since we do not care about the
- correctness, only the fact that it is reordered. (Based on wikipedia's algorithm.)\<close>
-definition insert_sort_inner :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 'b :: ord) \<Rightarrow> 'a list \<Rightarrow>  nat \<Rightarrow> 'a list nres\<close> where
-  \<open>insert_sort_inner f xs i = do {
+ correctness, only the fact that it is reordered. (Based on wikipedia's algorithm.)
+Typically \<^term>\<open>R\<close> would be \<^term>\<open>(<)\<close>\<close>
+definition insert_sort_inner :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a list \<Rightarrow> nat \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow>  nat \<Rightarrow> 'a list nres\<close> where
+  \<open>insert_sort_inner R f xs i = do {
      (j, ys) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(j, ys). j \<ge> 0 \<and> mset xs = mset ys \<and> j < length ys\<^esup>
-         (\<lambda>(j, ys). j > 0 \<and> f ys (j - 1) > f ys j)
+         (\<lambda>(j, ys). j > 0 \<and> R (f ys j) (f ys (j - 1)))
          (\<lambda>(j, ys). do {
              ASSERT(j < length ys);
              ASSERT(j > 0);
@@ -1289,19 +1290,19 @@ definition insert_sort_inner :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 
 
 
 (* A check: *)
-lemma \<open>RETURN [Suc 0, 2, 0] = insert_sort_inner (\<lambda>remove n. remove ! n) [2::nat, 1, 0] 1\<close>
+lemma \<open>RETURN [Suc 0, 2, 0] = insert_sort_inner (<) (\<lambda>remove n. remove ! n) [2::nat, 1, 0] 1\<close>
   by (simp add: WHILEIT_unfold insert_sort_inner_def swap_def)
 
 definition reorder_remove :: \<open>'b \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
 \<open>reorder_remove _ removed = SPEC (\<lambda>removed'. mset removed' = mset removed)\<close>
 
-definition insert_sort :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 'b :: ord) \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
-  \<open>insert_sort f xs = do {
+definition insert_sort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a list \<Rightarrow> nat \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
+  \<open>insert_sort R f xs = do {
      (i, ys) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, ys). (ys = [] \<or> i \<le> length ys) \<and> mset xs = mset ys\<^esup>
         (\<lambda>(i, ys). i < length ys)
         (\<lambda>(i, ys). do {
             ASSERT(i < length ys);
-            ys \<leftarrow> insert_sort_inner f ys i;
+            ys \<leftarrow> insert_sort_inner R f ys i;
             RETURN (i+1, ys)
           })
         (1, xs);
@@ -1309,7 +1310,7 @@ definition insert_sort :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 'b :: 
   }\<close>
 
 lemma insert_sort_inner:
-   \<open>(uncurry (insert_sort_inner f), uncurry (\<lambda>m m'. reorder_remove m' m)) \<in>
+   \<open>(uncurry (insert_sort_inner R f), uncurry (\<lambda>m m'. reorder_remove m' m)) \<in>
       [\<lambda>(xs, i). i < length xs]\<^sub>f \<langle>Id:: ('a \<times> 'a) set\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
   unfolding insert_sort_inner_def uncurry_def reorder_remove_def
   apply (intro frefI nres_relI)
@@ -1330,9 +1331,9 @@ lemma insert_sort_inner:
   done
 
 lemma insert_sort_reorder_remove:
-  \<open>(insert_sort f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+  \<open>(insert_sort R f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
 proof -
-  have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close>
+  have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner R f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close>
     for ba aa
     using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified]
     by fast

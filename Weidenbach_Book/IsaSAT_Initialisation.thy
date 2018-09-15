@@ -2749,10 +2749,10 @@ prepare_code_thms (in -) init_dt_wl_code_def *)
 end
 
 definition (in -)insert_sort_inner_nth2 :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
-  \<open>insert_sort_inner_nth2 ns = insert_sort_inner (\<lambda>remove n. ns ! (remove ! n))\<close>
+  \<open>insert_sort_inner_nth2 ns = insert_sort_inner (>) (\<lambda>remove n. ns ! (remove ! n))\<close>
 
 definition (in -)insert_sort_nth2 :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
-  [code del]: \<open>insert_sort_nth2 = (\<lambda>ns. insert_sort (\<lambda>remove n. ns ! (remove ! n)))\<close>
+  [code del]: \<open>insert_sort_nth2 = (\<lambda>ns. insert_sort (>) (\<lambda>remove n. ns ! (remove ! n)))\<close>
 
 sepref_definition (in -) insert_sort_inner_nth_code
    is \<open>uncurry2 insert_sort_inner_nth2\<close>
@@ -2799,7 +2799,7 @@ lemma extract_lits_sorted_mset_set:
 proof -
   have K: \<open>RETURN o mset_set = (\<lambda>v. do {v' \<leftarrow> SPEC(\<lambda>v'. v' = mset_set v); RETURN v'})\<close>
     by auto
-  have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close>
+  have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner (\<lambda>x y. y < x) f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close>
     for ba aa f
     using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified, rule_format]
     by fast

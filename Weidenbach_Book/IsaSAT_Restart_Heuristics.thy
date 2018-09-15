@@ -3,45 +3,6 @@ theory IsaSAT_Restart_Heuristics
     IsaSAT_Inner_Propagation (* TODO remove dependency *)
 begin
 
-locale isasat_restart_bounded =
-  twl_restart + isasat_input_bounded
-
-sublocale isasat_restart_bounded \<subseteq> isasat_restart_ops
- .
-
-instantiation prod :: (ord, ord) ord
-begin
-  definition less_prod where
-    \<open>less_prod = (\<lambda>(a, b) (c,d). a < c \<or> (a = c \<and> b < d)) \<close>
-
-  definition less_eq_prod where
-    \<open>less_eq_prod = (\<lambda>(a, b) (c,d). (a < c) \<or> (a = c \<and> b \<le> d)) \<close>
-
-instance
-  by standard
-end
-
-instance prod :: (preorder, preorder) preorder
-  apply standard
-  subgoal for x y
-    by (auto simp: less_prod_def less_eq_prod_def less_le_not_le)
-  subgoal for x
-    by (auto simp: less_prod_def less_eq_prod_def less_le_not_le)
-  subgoal
-    using less_trans order_trans by (fastforce simp: less_prod_def less_eq_prod_def intro: less_trans)
-  done
-
- instance prod :: (order, order) order
-  apply standard
-  subgoal for x y
-    by (auto simp: less_prod_def less_eq_prod_def)
-  done
-
-instance prod :: (linorder, linorder) linorder
-  by standard
-   (auto simp: less_prod_def less_eq_prod_def)
-
-
 text \<open>
   This is a list of comments (how does it work for glucose and cadical) to prepare the future
   refinement:
@@ -60,6 +21,22 @@ text \<open>
      \<^item> (lbdQueue.getavg() * K) > (sumLBD / conflictsRestarts),
        \<^text>\<open>conflictsRestarts > LOWER_BOUND_FOR_BLOCKING_RESTART && lbdQueue.isvalid() && trail.size() > R * trailQueue.getavg()\<close>
 \<close>
+
+locale isasat_restart_bounded =
+  twl_restart + isasat_input_bounded
+
+sublocale isasat_restart_bounded \<subseteq> isasat_restart_ops
+ .
+
+definition clause_score_ordering where
+  \<open>clause_score_ordering = (\<lambda>(lbd, act) (lbd', act'). lbd < lbd' \<or> (lbd = lbd' \<and> act = act'))\<close>
+
+lemma clause_score_ordering_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo clause_score_ordering), uncurry (RETURN oo clause_score_ordering)) \<in>
+    (uint32_nat_assn *a uint32_nat_assn)\<^sup>k *\<^sub>a (uint32_nat_assn *a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: clause_score_ordering_def uint32_nat_rel_def br_def
+      nat_of_uint32_less_iff)
+
 
 lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
   by (auto simp: bounded_def) presburger
@@ -869,8 +846,8 @@ end
 definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat \<times> nat\<close> where
   \<open>clause_score_extract arena xs C = (
      let C = (xs ! C) in
-     if arena_status arena C = DELETED then (uint32_max, uint32_max) \<comment> \<open>deleted elements are the
-        smallest possible\<close>
+     if arena_status arena C = DELETED then (uint32_max, zero_uint32_nat) \<comment> \<open>deleted elements are the
+        largest possible\<close>
      else
        let lbd = get_clause_LBD arena C in
        let act = arena_act arena C in
@@ -878,10 +855,12 @@ definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat list \<
   )\<close>
 sepref_register clause_score_extract
 
+(* TODO Move *)
 lemma uint32_max_uint32_nat_assn:
   \<open>(uncurry0 (return 4294967295), uncurry0 (RETURN uint32_max)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare
-    (sep_auto simp: uint32_max_def uint32_max_def uint32_nat_rel_def br_def)
+    (sep_auto simp: uint32_max_def uint32_nat_rel_def br_def)
+(* End Move *)
 
 definition (in -)valid_sort_clause_score_pre_at where
   \<open>valid_sort_clause_score_pre_at arena vdom i \<longleftrightarrow>
@@ -907,10 +886,11 @@ definition (in -)valid_sort_clause_score_pre where
              (get_clause_LBD_pre arena C \<and> arena_act_pre arena C)))\<close>
 
 definition (in -)insort_inner_clauses_by_score :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
-  \<open>insort_inner_clauses_by_score arena = insert_sort_inner (clause_score_extract arena)\<close>
+  \<open>insort_inner_clauses_by_score arena =
+     insert_sort_inner clause_score_ordering (clause_score_extract arena)\<close>
 
 definition (in -) sort_clauses_by_score :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
-  \<open>sort_clauses_by_score arena = insert_sort (clause_score_extract arena)\<close>
+  \<open>sort_clauses_by_score arena = insert_sort clause_score_ordering (clause_score_extract arena)\<close>
 
 definition reorder_vdom_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>reorder_vdom_wl S = RETURN S\<close>
@@ -952,11 +932,6 @@ proof -
       by (auto simp: twl_st_heur_def dest: mset_eq_setD)
     done
 qed
-
-lemma (in -) less_pair_uint32_nat_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo (<)), uncurry (RETURN oo (<))) \<in> (uint32_nat_assn *a uint32_nat_assn)\<^sup>d *\<^sub>a (uint32_nat_assn *a uint32_nat_assn)\<^sup>d \<rightarrow>\<^sub>a bool_assn\<close>
-   by sepref_to_hoare
-     (sep_auto simp: less_prod_def uint32_nat_rel_def br_def nat_of_uint32_less_iff)
 
 lemma (in -) insort_inner_clauses_by_score_invI:
    \<open>valid_sort_clause_score_pre a ba \<Longrightarrow>
