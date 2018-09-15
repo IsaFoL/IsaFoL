@@ -1865,12 +1865,12 @@ fun lower_restart_bound_not_reached_impl x =
                 (_, (_, (_, (_, (_, (a1u, a2u))))))))))))))))))
           = xi;
       in
-        opts_reduce a2u orelse
-          opts_restart a2u andalso
-            less_nat a1u
-              (plus_nat (nat_of_integer (2000 : IntInf.int))
-                (times_nat (nat_of_integer (300 : IntInf.int))
-                  (nat_of_uint64 a1o)))
+        (not (opts_reduce a2u) orelse
+         (opts_restart a2u andalso
+         (less_nat a1u
+                   (plus_nat (nat_of_integer (2000 : IntInf.int))
+                             (times_nat (nat_of_integer (300 : IntInf.int))
+                                        (nat_of_uint64 a1o))))))
       end))
     x;
 

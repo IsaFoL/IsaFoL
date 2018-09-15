@@ -827,7 +827,7 @@ definition (in -) lower_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rig
   \<open>lower_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
         (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
        vdom, avdom, lcount, opts).
-    opts_reduce opts \<or> opts_restart opts \<and> lcount < 2000 + 300 * nat_of_uint64 restarts)\<close>
+     (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (lcount < 2000 + 300 * nat_of_uint64 restarts))))\<close>
 
 sepref_register lower_restart_bound_not_reached
 sepref_thm lower_restart_bound_not_reached_impl
