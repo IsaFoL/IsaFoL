@@ -2785,9 +2785,9 @@ declare insert_sort_nth2_def[unfolded insert_sort_def insert_sort_inner_def, cod
 
 definition extract_lits_sorted where
   \<open>extract_lits_sorted = (\<lambda>(xs, n, vars). do {
-    vars \<leftarrow> \<comment>\<open>insert\_sort\_nth2 xs\<close>
-         RETURN vars;
-    RETURN (vars, n)})\<close>
+    vars \<leftarrow> insert_sort_nth2 xs vars;
+    RETURN (vars, n)
+  })\<close>
 
 definition lits_with_max_rel where
   \<open>lits_with_max_rel = {((xs, n), \<A>\<^sub>i\<^sub>n). mset xs = \<A>\<^sub>i\<^sub>n \<and> n = Max (insert 0 (set xs)) \<and>
