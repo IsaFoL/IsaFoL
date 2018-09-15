@@ -2785,7 +2785,7 @@ declare insert_sort_nth2_def[unfolded insert_sort_def insert_sort_inner_def, cod
 
 definition extract_lits_sorted where
   \<open>extract_lits_sorted = (\<lambda>(xs, n, vars). do {
-    vars \<leftarrow> insert_sort_nth2 xs vars;
+    vars \<leftarrow> \<comment>\<open>insert\_sort\_nth2 xs vars\<close>RETURN vars;
     RETURN (vars, n)
   })\<close>
 

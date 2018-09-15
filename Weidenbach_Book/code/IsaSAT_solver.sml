@@ -4312,71 +4312,12 @@ fun init_dt_wl_heur_full_code x =
                               end)
     x;
 
-fun insert_sort_inner_nth_codea x =
-  (fn ai => fn bia => fn bi => fn () =>
-    let
-      val a =
-        heap_WHILET
-          (fn (a1, a2) =>
-            (if less_nat zero_nata a1
-              then (fn f_ => fn () => f_
-                     ((arl_get heap_uint32 a2 (fast_minus_nat a1 one_nat)) ())
-                     ())
-                     (fn xa =>
-                       (fn f_ => fn () => f_ ((nth_u_code heap_uint64 ai xa) ())
-                         ())
-                         (fn x_b =>
-                           (fn f_ => fn () => f_ ((arl_get heap_uint32 a2 a1)
-                             ()) ())
-                             (fn xb =>
-                               (fn f_ => fn () => f_
-                                 ((nth_u_code heap_uint64 ai xb) ()) ())
-                                 (fn x_c => (fn () => (Uint64.less x_b x_c))))))
-              else (fn () => false)))
-          (fn (a1, a2) =>
-            (fn f_ => fn () => f_
-              ((arl_swap heap_uint32 a2 a1 (fast_minus_nat a1 one_nat)) ()) ())
-              (fn x_a => (fn () => (fast_minus_nat a1 one_nat, x_a))))
-          (bi, bia) ();
-    in
-      let
-        val (_, aa) = a;
-      in
-        (fn () => aa)
-      end
-        ()
-    end)
-    x;
-
-fun insert_sort_nth_codea x =
-  (fn ai => fn bi => fn () =>
-    let
-      val a =
-        heap_WHILET
-          (fn (a1, a2) =>
-            (fn f_ => fn () => f_ ((arl_length heap_uint32 a2) ()) ())
-              (fn x_a => (fn () => (less_nat a1 x_a))))
-          (fn (a1, a2) =>
-            (fn f_ => fn () => f_ ((insert_sort_inner_nth_codea ai a2 a1) ())
-              ())
-              (fn x_a => (fn () => (plus_nat a1 one_nat, x_a))))
-          (one_nat, bi) ();
-    in
-      let
-        val (_, aa) = a;
-      in
-        (fn () => aa)
-      end
-        ()
-    end)
-    x;
-
 fun extract_lits_sorted_code x =
-  (fn (a1, (a1a, a2a)) => fn () => let
-                                     val xa = insert_sort_nth_codea a1 a2a ();
-                                   in
-                                     (xa, a1a)
-                                   end)
+  (fn xi => (fn () => let
+                        val (_, (a1a, a2a)) = xi;
+                      in
+                        (a2a, a1a)
+                      end))
     x;
 
 fun atoms_hash_empty_code x = (fn xi => new heap_bool xi false) x;
