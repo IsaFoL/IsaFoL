@@ -47,7 +47,10 @@ inductive GC_remap
 where
 remap_cons:
   \<open>GC_remap (N, m, new) (fmdrop C N, m(C \<mapsto> C'), fmupd C' (the (fmlookup N C)) new)\<close>
-   if \<open>C' \<notin># dom_m new\<close> and \<open>C \<in># dom_m N\<close>
+   if \<open>C' \<notin># dom_m new\<close> and
+      \<open>C \<in># dom_m N\<close> and
+      \<open>C \<notin> dom m\<close> and
+      \<open>C' \<notin> ran m\<close>
 
 lemma GC_remap_ran_m_old_new:
   \<open>GC_remap (old, m, new) (old', m', new')  \<Longrightarrow> ran_m old + ran_m new = ran_m old' + ran_m new'\<close>
@@ -64,7 +67,7 @@ lemma GC_remap_ran_m_remap:
 lemma GC_remap_ran_m_no_rewrite_map:
   \<open>GC_remap (old, m, new) (old', m', new')  \<Longrightarrow> C \<notin># dom_m old \<Longrightarrow> m' C = m C\<close>
   by (induction "(old, m, new)" "(old', m', new')" rule: GC_remap.induct)
-    (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin)
+    (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin split: if_splits)
 
 
 lemma GC_remap_ran_m_no_rewrite_fmap:
@@ -134,30 +137,45 @@ lemma rtranclp_GC_remap_ran_m_no_new_lost:
   apply (induction rule: rtranclp_induct)
   subgoal by auto
   subgoal for y z
-    by (cases \<open>C \<in># dom_m (fst y)\<close>)
-      (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin dest: GC_remap_ran_m_remap GC_remap_ran_m_no_rewrite
+    apply (cases \<open>C \<in># dom_m (fst y)\<close>)
+    apply (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin dest: GC_remap_ran_m_remap GC_remap_ran_m_no_rewrite
         intro: GC_remap_ran_m_lookup_kept GC_remap_ran_m_no_lost)
+	apply (smt GC_remap_ran_m_no_rewrite_map contra_subsetD domI prod.collapse rtranclp_GC_remap_ran_m_no_lost)
+	apply (smt GC_remap_ran_m_no_rewrite_map contra_subsetD domI prod.collapse rtranclp_GC_remap_ran_m_no_lost)
+	done
   done
 
 
-lemma rtranclp_GC_remap_ran_m_no_lost:
-  \<open>GC_remap\<^sup>*\<^sup>* S S'  \<Longrightarrow>  ran (fst (snd S)) = set_mset (dom_m (snd (snd S))) \<Longrightarrow> ran (fst (snd S')) = set_mset (dom_m (snd (snd S')))\<close>
+lemma rtranclp_GC_remap_map_ran:
+  assumes 
+    \<open>GC_remap\<^sup>*\<^sup>* S S'\<close> and
+    \<open>(the \<circ>\<circ> fst) (snd S) `# mset_set (dom (fst (snd S))) = dom_m (snd (snd S))\<close> and
+    \<open>finite (dom (fst (snd S)))\<close>
+  shows \<open>finite (dom (fst (snd S'))) \<and>
+         (the \<circ>\<circ> fst) (snd S') `# mset_set (dom (fst (snd S'))) = dom_m (snd (snd S'))\<close>
+  using assms
 proof (induction rule: rtranclp_induct)
   case base
   then show ?case by auto
 next
-  case (step y z)
-  then show ?case
-    apply (subst (asm)(2) GC_remap.simps)
-    apply (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin dest: GC_remap_ran_m_remap GC_remap_ran_m_no_rewrite
+  case (step y z) note star = this(1) and st = this(2) and IH = this(3) and H = this(4-)  
+  from st
+  show ?case
+  proof cases
+    case (remap_cons C' new C N m)
+    have \<open>C \<notin> dom m\<close>
+      using step remap_cons by auto
+   then have [simp]: \<open>{#the (if x = C then Some C' else m x). x \<in># mset_set (dom m)#} =
+     {#the (m x). x \<in># mset_set (dom m)#}\<close>
+    apply (auto intro!: image_mset_cong split: if_splits)
+    by (metis empty_iff finite_set_mset_mset_set local.remap_cons(5) mset_set.infinite set_mset_empty)
+    
+    show ?thesis
+      using step remap_cons 
+      by (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin
+        dest: GC_remap_ran_m_remap GC_remap_ran_m_no_rewrite
         intro: GC_remap_ran_m_lookup_kept GC_remap_ran_m_no_lost dest: )
-   subgoal for C' new C N m
-     using rtranclp_GC_remap_ran_m_no_lost[of S y C, OF step(1)] step
-     distinct_mset_dom[of \<open>fst S\<close>]
-     distinct_mset_dom[of N]
-    by (auto dest!: multi_member_split[of _ \<open>dom_m N\<close>] multi_member_split[of _ \<open>dom_m (fst S)\<close>]
-       dest: multi_member_split simp: add_mset_eq_add_mset split: if_splits simp: ran_def)
-  done
+  qed
 qed
 
       
@@ -171,51 +189,101 @@ lemma rtranclp_GC_remap_ran_m_no_new_map:
         intro: GC_remap_ran_m_lookup_kept GC_remap_ran_m_no_lost)
   done
 
-(*
-lemma rtranclp_GC_remap_ran_m_remap:
-  \<open>GC_remap\<^sup>*\<^sup>*  S S'  \<Longrightarrow>  dom (fst (snd S)) \<subseteq> set_mset (dom_m (fst S)) \<Longrightarrow> C \<in># dom_m (fst S) \<Longrightarrow> C \<notin># dom_m (fst S') \<Longrightarrow>
-         (fst (snd S')) C \<noteq> None \<and> the ((fst (snd S')) C) \<in># dom_m (snd (snd S')) \<and>
-         fmlookup (snd (snd S')) (the ((fst (snd S)) C)) = fmlookup (fst S') C\<close>
-proof (induction rule: rtranclp_induct)
-  case base
-  then show ?case by auto
-next
-  case (step y z) note star = this(1) and st = this(2) and IH = this(3) and H = this(4-)  
-  show ?case
-  proof (cases \<open>C \<notin># dom_m (fst y)\<close>)
-    case True
-    then show ?thesis
-      using step rtranclp_GC_remap_ran_m_no_new_map[OF star]
-      apply (subst (asm)(2) GC_remap.simps)
-      apply (cases y; cases z)
-      apply (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin
-        distinct_mset_dom distinct_mset_set_mset_remove1_mset
-        dest: multi_member_split dest: rtranclp_GC_remap_ran_m_no_lost
-        simp: )
-    sorry
-  next
-    case False
-    then show ?thesis
-      using step apply auto
-    sorry
+lemma remap_cons2:
+  assumes
+      \<open>C' \<notin># dom_m new\<close> and
+      \<open>C \<in># dom_m N\<close> and
+      \<open>(the \<circ>\<circ> fst) (snd (N, m, new)) `# mset_set (dom (fst (snd (N, m, new)))) = dom_m (snd (snd (N, m, new)))\<close> and
+      \<open>\<And>x. x \<in># dom_m (fst (N, m, new)) \<Longrightarrow> x \<notin> dom (fst (snd (N, m, new)))\<close> and
+      \<open>finite (dom m)\<close>
+  shows
+    \<open>GC_remap (N, m, new) (fmdrop C N, m(C \<mapsto> C'), fmupd C' (the (fmlookup N C)) new)\<close>
+proof -
+  have 3: \<open>C \<in> dom m \<Longrightarrow> False\<close>
+    apply (drule mk_disjoint_insert)
+    using assms 
+    apply (auto 5 5 simp: ran_def)
+    done
+
+  have 4: \<open>False\<close> if C': \<open>C' \<in> ran m\<close>
+  proof -
+    obtain a where a: \<open>a \<in> dom m\<close> and [simp]: \<open>m a = Some C'\<close>
+      using that C' unfolding ran_def
+      by auto
+    show False
+      using mk_disjoint_insert[OF a] assms by (auto simp: union_single_eq_member)
+  qed
+
+  show ?thesis
+    apply (rule remap_cons)
+    apply (rule assms(1))
+    apply (rule assms(2))
+    apply (use 3 in fast)
+    apply (use 4 in fast)
+    done
 qed
-*)
-   
+
+
+inductive_cases GC_remapE: \<open>GC_remap S T\<close>
+
+lemma rtranclp_GC_remap_finite_map:
+  \<open>GC_remap\<^sup>*\<^sup>*  S S'  \<Longrightarrow> finite (dom (fst (snd S))) \<Longrightarrow> finite (dom (fst (snd S')))\<close>
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for y z
+    by (auto elim: GC_remapE)
+  done
+
+
+lemma rtranclp_GC_remap_old_dom_map:
+  \<open>GC_remap\<^sup>*\<^sup>*  R S  \<Longrightarrow> (\<And>x. x \<in># dom_m (fst R) \<Longrightarrow> x \<notin> dom (fst (snd R))) \<Longrightarrow> 
+       (\<And>x. x \<in># dom_m (fst S) \<Longrightarrow> x \<notin> dom (fst (snd S)))\<close>
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for y z x
+    by (fastforce elim!: GC_remapE simp: distinct_mset_dom distinct_mset_set_mset_remove1_mset)
+  done
+
+lemma remap_cons2_rtranclp:
+  assumes
+      \<open>(the \<circ>\<circ> fst) (snd R) `# mset_set (dom (fst (snd R))) = dom_m (snd (snd R))\<close> and
+      \<open>\<And>x. x \<in># dom_m (fst R) \<Longrightarrow> x \<notin> dom (fst (snd R))\<close> and
+      \<open>finite (dom (fst (snd R)))\<close> and
+      st: \<open>GC_remap\<^sup>*\<^sup>* R S\<close> and
+      C': \<open>C' \<notin># dom_m (snd (snd S))\<close> and
+      C: \<open>C \<in># dom_m (fst S)\<close>
+  shows
+    \<open>GC_remap\<^sup>*\<^sup>* R (fmdrop C (fst S), (fst (snd S))(C \<mapsto> C'), fmupd C' (the (fmlookup (fst S) C)) (snd (snd S)))\<close>
+proof -
+  have
+    1: \<open>(the \<circ>\<circ> fst) (snd S) `# mset_set (dom (fst (snd S))) = dom_m (snd (snd S))\<close> and
+    2: \<open>\<And>x. x \<in># dom_m (fst S) \<Longrightarrow> x \<notin> dom (fst (snd S))\<close> and
+    3: \<open>finite (dom (fst (snd S)))\<close>
+      using assms(1) assms(3) assms(4) rtranclp_GC_remap_map_ran apply blast
+     apply (meson assms(2) assms(4) rtranclp_GC_remap_old_dom_map)
+    using assms(3) assms(4) rtranclp_GC_remap_finite_map by blast
+  have 5: \<open>GC_remap S
+     (fmdrop C (fst S), (fst (snd S))(C \<mapsto> C'), fmupd C' (the (fmlookup (fst S) C)) (snd (snd S)))\<close>
+    using remap_cons2[OF C' C, of \<open>(fst (snd S))\<close>] 1 2 3 by (cases S) auto
+  show ?thesis
+    using 5 st by simp
+qed
 
 lemma (in -) fmdom_fmrestrict_set: \<open>fmdrop xa (fmrestrict_set s N) = fmrestrict_set (s - {xa}) N\<close>
   by (rule fmap_ext_fmdom)
    (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset)
 
 lemma (in -) GC_clauses_GC_remap:
-  \<open>GC_clauses N N' \<le> SPEC(\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, N') (fmempty, m, N''))\<close>
+  \<open>GC_clauses N fmempty \<le> SPEC(\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N''))\<close>
 proof -
-  let ?remap = \<open>(GC_remap)\<^sup>*\<^sup>*  (N, \<lambda>_. None, N')\<close>
+  let ?remap = \<open>(GC_remap)\<^sup>*\<^sup>*  (N, \<lambda>_. None, fmempty)\<close>
+  note remap = remap_cons2_rtranclp[of \<open>(N, \<lambda>_. None, fmempty)\<close>, of \<open>(a, b, c)\<close> for a b c, simplified]
   define I where
     \<open>I a b \<equiv> (\<lambda>(old :: nat clauses_l, new :: nat clauses_l, m :: nat \<Rightarrow> nat option).
       ?remap (old, m, new) \<and>
       set_mset (dom_m old) \<subseteq> set b)\<close>
       for a b :: \<open>nat list\<close>
-  have I0: \<open>set_mset (dom_m N) \<subseteq> set x \<Longrightarrow> I [] x (N, N', \<lambda>_. None)\<close> for x
+  have I0: \<open>set_mset (dom_m N) \<subseteq> set x \<Longrightarrow> I [] x (N, fmempty, \<lambda>_. None)\<close> for x
     unfolding I_def
     by (auto intro!: fmap_ext_fmdom simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset dom_m_def)
 
@@ -234,12 +302,13 @@ proof -
   proof -
     have \<open>insert xa (set l2) - set l1 - {xa} = set l2 - insert xa (set l1)\<close>
       by auto
-    have \<open>GC_remap (a, ba, aa) (fmdrop xa a, ba(xa \<mapsto> xb), fmupd xb (the (fmlookup a xa)) aa)\<close>
-      by (rule GC_remap.intros)
-        (use that in auto)
+    have \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmdrop xa a, ba(xa \<mapsto> xb), fmupd xb (the (fmlookup a xa)) aa)\<close>
+      by (rule remap)
+        (use that in \<open>auto simp: I_def\<close>)
     then show ?thesis
       using that distinct_mset_dom[of a] distinct_mset_dom[of aa] unfolding I_def prod.simps
-      apply (auto dest!: mset_le_subtract[of \<open>dom_m _\<close> _ \<open>{#xa#}\<close>] simp: mset_set.insert_remove)
+      apply (auto dest!: mset_le_subtract[of \<open>dom_m _\<close> _ \<open>{#xa#}\<close>] simp: mset_set.insert_remove
+         )
       by (metis Diff_empty Diff_insert0 add_mset_remove_trivial finite_set_mset finite_set_mset_mset_set insert_subset_eq_iff mset_set.remove set_mset_mset subseteq_remove1)
   qed
 
@@ -260,7 +329,7 @@ proof -
       by (auto dest!: multi_member_split)
   qed
 
-  have early_break: \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, N') (fmempty, x2, x1)\<close>
+  have early_break: \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, x2, x1)\<close>
      if 
        \<open>set_mset (dom_m N) \<subseteq> set x\<close> and
        \<open>x = l1 @ l2\<close> and
@@ -274,7 +343,7 @@ proof -
      show ?thesis using that by auto
    qed
  
-  have final_rel: \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, N') (fmempty, x2, x1)\<close>
+  have final_rel: \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, x2, x1)\<close>
   if 
     \<open>set_mset (dom_m N) \<subseteq> set x\<close> and
     \<open>I x [] \<sigma>\<close> and
@@ -283,11 +352,11 @@ proof -
     \<open>b = (aa, ba)\<close> and
     \<open>(aa, ba) = (x1, x2)\<close>
   proof -
-    show \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, N') (fmempty, x2, x1)\<close>
+    show \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, x2, x1)\<close>
       using that
       by (auto simp: I_def)
   qed
-  have final_rel: \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, N') (fmempty, x2, x1)\<close>
+  have final_rel: \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, x2, x1)\<close>
     if 
       \<open>set_mset (dom_m N) \<subseteq> set x\<close> and
       \<open>I x [] \<sigma>\<close> and
@@ -308,7 +377,7 @@ proof -
     subgoal for x l1 l2 \<sigma> a b aa ba x1 x2
       by (rule early_break)
     subgoal
-      by (rule final_rel)
+      by (rule final_rel) assumption+
     done
 qed
 
