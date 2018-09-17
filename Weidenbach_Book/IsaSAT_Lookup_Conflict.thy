@@ -40,7 +40,8 @@ as a pointer, which it might be able to or not).
 \<close>
 
 text \<open>This is the first level of the refinement. We tried a few different definitions (including a
-direct one) but the inductive version is the easiest one to use.
+direct one, i.e., mapping a position to the inclusion in the set) but the inductive version turned out
+to the easiest one to use.
 \<close>
 inductive mset_as_position :: \<open>bool option list \<Rightarrow> nat literal multiset \<Rightarrow> bool\<close> where
 empty:
@@ -3498,6 +3499,8 @@ proof -
     subgoal by auto
     done
 qed
+
+(* TODO Check if the size is actually used anywhere *)
 
 sepref_register isa_minimize_and_extract_highest_lookup_conflict isa_literal_redundant_wl_lookup
 sepref_thm minimize_and_extract_highest_lookup_conflict_code

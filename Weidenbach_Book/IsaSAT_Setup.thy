@@ -18,8 +18,8 @@ text \<open>
 We do some statistics on the run.
 
 NB: the statistics are not proven correct (especially they might
-overflow), there are just there to look for regressions and do some comparisons (e.g., to conclude that
-we are propagating slower than the other solvers).
+overflow), there are just there to look for regressions, do some comparisons (e.g., to conclude that
+we are propagating slower than the other solvers), or to test different option combination.
 \<close>
 type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 
