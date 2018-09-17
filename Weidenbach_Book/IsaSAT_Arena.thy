@@ -141,7 +141,7 @@ definition SIZE_SHIFT :: nat where
   \<open>SIZE_SHIFT = 1\<close>
 
 definition MAX_LENGTH_SHORT_CLAUSE :: nat where
- [simp]: \<open>MAX_LENGTH_SHORT_CLAUSE = 4\<close>
+  [simp]: \<open>MAX_LENGTH_SHORT_CLAUSE = 4\<close>
 
 definition is_short_clause where
   [simp]: \<open>is_short_clause C \<longleftrightarrow> length C \<le> MAX_LENGTH_SHORT_CLAUSE\<close>
@@ -3030,6 +3030,8 @@ definition isa_marked_as_used :: \<open>uint32 list \<Rightarrow> nat \<Rightarr
       RETURN (arena ! (C - STATUS_SHIFT) AND 4 \<noteq> 0)
   }\<close>
 
+
+
 lemma arena_marked_as_used_conv:
   assumes
     valid: \<open>valid_arena arena N x\<close> and
@@ -3068,6 +3070,8 @@ proof -
       marked_as_used_def uint32_nat_rel_def br_def)
 qed
 
+
+
 lemma isa_marked_as_used_marked_as_used:
   \<open>(uncurry isa_marked_as_used, uncurry (RETURN oo marked_as_used)) \<in>
     [uncurry marked_as_used_pre]\<^sub>f
@@ -3087,11 +3091,13 @@ sepref_definition isa_marked_as_used_code
   by sepref
 
 
+
 lemma isa_marked_as_used_code[sepref_fr_rules]:
   \<open>(uncurry isa_marked_as_used_code, uncurry (RETURN \<circ>\<circ> marked_as_used))
      \<in> [uncurry marked_as_used_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
   using isa_marked_as_used_code.refine[FCOMP isa_marked_as_used_marked_as_used]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
 
 end
