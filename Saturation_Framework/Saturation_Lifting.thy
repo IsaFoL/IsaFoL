@@ -20,6 +20,7 @@ locale redundancy_criterion_lifting = inference_system Bot_F_G entails_G I_G Red
     \<G>_F :: \<open>'f \<Rightarrow> 'g formulas\<close> and
     \<G>_I :: \<open>'f inference \<Rightarrow> 'g inference set\<close>
   assumes
+    Bot_F_map_not_empty: \<open>\<forall>B \<in> Bot_F_F. \<G>_F B \<noteq> {}\<close> and
     Bot_F_map: \<open>\<forall>B \<in> Bot_F_F. \<G>_F B \<subseteq> Bot_F_G\<close> and
     inf_map: \<open>\<G>_I \<iota> \<subseteq> Red_I_G (\<G>_F (concl_of \<iota>))\<close>
 begin
@@ -32,6 +33,19 @@ lemma \<G>_subset: \<open>N1 \<subseteq> N2 \<Longrightarrow> \<G>_set N1 \<subs
 definition entails_\<G>  :: \<open>'f formulas \<Rightarrow> 'f formulas \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
 \<open>N1 \<Turnstile>\<G> N2 \<equiv> (\<G>_set N1) \<Turnstile>G (\<G>_set N2)\<close>
 
+lemma subs_Bot_F_G_entails: 
+  assumes
+    not_empty: \<open>sB \<noteq> {}\<close> and
+    in_bot: \<open>sB \<subseteq> Bot_F_G\<close>
+  shows \<open>sB \<Turnstile>G N\<close>
+proof -
+  have \<open>\<exists>B. B \<in> sB\<close> using not_empty by auto
+  then obtain B where B_in: \<open>B \<in> sB\<close> by auto
+  then have r_trans: \<open>{B} \<Turnstile>G N\<close> using bot_implies_all in_bot by auto
+  have l_trans: \<open>sB \<Turnstile>G {B}\<close> using B_in subset_entailed by auto
+  then show ?thesis using r_trans transitive_entails[of sB "{B}"] by auto
+qed
+
 text \<open>lemma 7 in Uwe's notes\<close>
 interpretation lifted_consequence_relation: consequence_relation  
   where Bot_F=Bot_F_F and entails=entails_\<G>
@@ -42,12 +56,10 @@ proof
     fix B
     assume \<open>B\<in> Bot_F_F\<close>
     then show \<open>{B} \<Turnstile>\<G> N\<close> 
-      using Bot_F_map bot_implies_all[of "\<G>_set N"]
+      using Bot_F_map bot_implies_all[of "\<G>_set N"] subs_Bot_F_G_entails Bot_F_map_not_empty
       unfolding entails_\<G>_def
-      apply auto
-      apply (drule bspec, assumption)      
-      using subset_entailed[of "\<G>_F B" Bot_F_G] transitive_entails[of Bot_F_G _ "\<G>_set N"]
-      
+      by auto
+  qed
 next
   fix N1 N2 :: \<open>'f formulas\<close>
   assume 
@@ -147,16 +159,19 @@ proof
 qed
 
 text \<open>lemma 10 in Uwe's notes\<close>
-lemma Red_F_Bot_F_F: \<open>N \<Turnstile>\<G> {Bot_F_F} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {Bot_F_F}\<close>
+lemma Red_F_Bot_F_F: \<open>B \<in> Bot_F_F \<Longrightarrow> N \<Turnstile>\<G> {B} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close>
 proof -
-  fix N
-  assume \<open>N \<Turnstile>\<G> {Bot_F_F}\<close>
-  then have to_bot: \<open>\<G>_set N - Red_F_G (\<G>_set N) \<Turnstile>G {Bot_F_G}\<close> 
-    using Red_F_Bot_F Bot_F_map unfolding entails_\<G>_def by auto
+  fix B N
+  assume
+    B_in: \<open>B \<in> Bot_F_F\<close> and
+    N_entails: \<open>N \<Turnstile>\<G> {B}\<close>
+  then have to_bot: \<open>\<G>_set N - Red_F_G (\<G>_set N) \<Turnstile>G \<G>_F B\<close> 
+    using Red_F_Bot_F Bot_F_map unfolding entails_\<G>_def 
+      by (smt cSup_singleton easy1 image_insert image_is_empty subsetCE)
   have from_f: \<open>\<G>_set (N - Red_F_\<G> N) \<Turnstile>G \<G>_set N - Red_F_G (\<G>_set N)\<close>
     using subset_entailed[OF not_red_map_in_map_not_red] by blast
-  then have \<open>\<G>_set (N - Red_F_\<G> N) \<Turnstile>G {Bot_F_G}\<close> using to_bot transitive_entails by blast
-  then show \<open>N - Red_F_\<G> N \<Turnstile>\<G> {Bot_F_F}\<close> using Bot_F_map unfolding entails_\<G>_def by simp
+  then have \<open>\<G>_set (N - Red_F_\<G> N) \<Turnstile>G \<G>_F B\<close> using to_bot transitive_entails by blast
+  then show \<open>N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close> using Bot_F_map unfolding entails_\<G>_def by simp
 qed
 
 text \<open>lemma 11 in Uwe's notes 1/2\<close>
@@ -244,9 +259,9 @@ interpretation lifted_inference_system: inference_system
   where
     Bot_F = Bot_F_F and entails = entails_\<G> and I = I_F  and Red_I = Red_I_\<G> and Red_F = Red_F_\<G>
 proof
-  fix N N' \<iota>
+  fix B N N' \<iota>
   show \<open>Red_I_\<G> N \<in> Pow I_F\<close> unfolding Red_I_\<G>_def by blast
-  show \<open>N \<Turnstile>\<G> {Bot_F_F} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {Bot_F_F}\<close> using Red_F_Bot_F_F by simp
+  show \<open>B \<in> Bot_F_F \<Longrightarrow> N \<Turnstile>\<G> {B} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close> using Red_F_Bot_F_F by simp
   show \<open>N \<subseteq> N' \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> N'\<close> using Red_F_of_subset_F by simp
   show \<open>N \<subseteq> N' \<Longrightarrow> Red_I_\<G> N \<subseteq> Red_I_\<G> N'\<close> using Red_I_of_subset_F by simp
   show \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> (N - N')\<close> using Red_F_of_Red_F_subset_F by simp
@@ -255,9 +270,6 @@ proof
   show \<open>{\<iota> \<in> I_F. concl_of \<iota> \<in> N} \<subseteq> Red_I_\<G> N\<close> using Red_I_of_I_to_N_F by auto
 qed
 
-
-
 end
 
 end
-
