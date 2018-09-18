@@ -2217,7 +2217,7 @@ text \<open>The difference between this definition and \<^term>\<open>correct_wa
 fun (in isasat_input_ops) correct_watching_init :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching_init (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
     (\<forall>L \<in># all_lits_of_atms_m \<A>\<^sub>i\<^sub>n.
-      (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> is_binary N (i, K, b)) \<and>
+      (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
       {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
          clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
 

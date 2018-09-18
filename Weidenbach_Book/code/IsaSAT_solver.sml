@@ -2073,6 +2073,17 @@ fun number_clss_to_keep_impl x =
       end))
     x;
 
+fun access_length_heur_code x =
+  (fn ai => fn bi =>
+    let
+      val (_, (a1a, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, (_, (_, (_, (_, (_, _))))))))))))))))
+        = ai;
+    in
+      isa_arena_length_code a1a bi
+    end)
+    x;
+
 fun mark_garbage_code x =
   (fn ai => fn bi =>
     arl_set heap_uint32 ai (minus_nata bi (nat_of_integer (4 : IntInf.int)))
@@ -2208,16 +2219,29 @@ fun mark_to_delete_clauses_wl_D_heur_impl x =
                                      ()) ())
                                      (fn xc =>
                                        (fn f_ => fn () => f_
- ((clause_lbd_heur_code a2 x_d) ()) ())
- (fn xaa =>
-   (fn f_ => fn () => f_ ((clause_is_learned_heur_code a2 x_d) ()) ())
-     (fn xba =>
-       (if not xc andalso
-             (Word32.< (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int)), xaa) andalso
-               xba)
-         then (fn f_ => fn () => f_ ((mark_garbage_heur_code x_d a1 a2) ()) ())
-                (fn x_l => (fn () => (a1, x_l)))
-         else (fn () => (plus_nat a1 one_nat, a2))))))))))))
+ ((if not xc
+    then (fn f_ => fn () => f_ ((clause_lbd_heur_code a2 x_d) ()) ())
+           (fn xd =>
+             (if Word32.< (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int)), xd)
+               then (fn f_ => fn () => f_ ((clause_is_learned_heur_code a2 x_d)
+                      ()) ())
+                      (fn x_l =>
+                        (if x_l
+                          then (fn f_ => fn () => f_
+                                 ((access_length_heur_code a2 x_d) ()) ())
+                                 (fn xe =>
+                                   (fn () =>
+                                     (not ((xe : Uint64.uint64) = (Uint64.fromInt
+                            (2 : IntInf.int))))))
+                          else (fn () => false)))
+               else (fn () => false)))
+    else (fn () => false))
+ ()) ())
+ (fn x_j =>
+   (if x_j
+     then (fn f_ => fn () => f_ ((mark_garbage_heur_code x_d a1 a2) ()) ())
+            (fn x_l => (fn () => (a1, x_l)))
+     else (fn () => (plus_nat a1 one_nat, a2)))))))))))
           (x_a, xa) ();
     in
       let

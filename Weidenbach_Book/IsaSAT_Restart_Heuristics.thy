@@ -1525,6 +1525,7 @@ lemma (in isasat_input_ops) [twl_st_heur]:
          (C \<in># dom_m (get_clauses_wl T))\<close> and
     \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_lit (get_clauses_wl_heur S) C = get_clauses_wl T \<propto> C ! 0\<close>and
     \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED \<longleftrightarrow> \<not>irred (get_clauses_wl T) C\<close>
+    \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_length (get_clauses_wl_heur S) C = length (get_clauses_wl T \<propto> C)\<close>
 proof -
   show \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow> (C \<in># dom_m (get_clauses_wl T))\<close>
     using assms
@@ -1540,6 +1541,12 @@ proof -
           arena_lifting
         split: prod.splits)
   show \<open>arena_status (get_clauses_wl_heur S) C = LEARNED \<longleftrightarrow> \<not>irred (get_clauses_wl T) C\<close>
+    using assms C
+    by (cases S; cases T)
+      (auto simp add: twl_st_heur_def clause_not_marked_to_delete_heur_def
+          arena_lifting
+        split: prod.splits)
+  show \<open>arena_length (get_clauses_wl_heur S) C = length (get_clauses_wl T \<propto> C)\<close>
     using assms C
     by (cases S; cases T)
       (auto simp add: twl_st_heur_def clause_not_marked_to_delete_heur_def
@@ -1602,8 +1609,11 @@ where
           D \<leftarrow> get_the_propagation_reason (get_trail_wl_heur T) L;
           ASSERT(get_clause_LBD_pre (get_clauses_wl_heur T) C);
           ASSERT(arena_is_valid_clause_vdom (get_clauses_wl_heur T) C);
+          ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow> 
+            arena_is_valid_clause_idx (get_clauses_wl_heur T) C);
           let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > MINIMUM_DELETION_LBD \<and>
-             arena_status (get_clauses_wl_heur T) C = LEARNED;
+             arena_status (get_clauses_wl_heur T) C = LEARNED \<and>
+             arena_length (get_clauses_wl_heur T) C \<noteq> two_uint64_nat;
           if can_del
           then
             do {
@@ -1646,7 +1656,7 @@ proof -
             ASSERT(get_clauses_wl T\<propto>(xs!i)!0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
             can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow>
               (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and>
-               \<not>irred (get_clauses_wl T) (xs!i));
+               \<not>irred (get_clauses_wl T) (xs!i) \<and> length (get_clauses_wl T \<propto> (xs!i)) \<noteq> 2 );
             ASSERT(i < length xs);
             if can_del
             then
@@ -1682,8 +1692,11 @@ proof -
             D \<leftarrow> get_the_propagation_reason (get_trail_wl_heur T) L;
             ASSERT(get_clause_LBD_pre (get_clauses_wl_heur T) C);
             ASSERT(arena_is_valid_clause_vdom (get_clauses_wl_heur T) C);
+            ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow> 
+                arena_is_valid_clause_idx (get_clauses_wl_heur T) C);
             let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > MINIMUM_DELETION_LBD \<and>
-               arena_status (get_clauses_wl_heur T) C = LEARNED;
+               arena_status (get_clauses_wl_heur T) C = LEARNED \<and>
+               arena_length (get_clauses_wl_heur T) C \<noteq> two_uint64_nat;
             if can_del
             then do {
               ASSERT(mark_garbage_pre (get_clauses_wl_heur T, C));
@@ -1713,17 +1726,20 @@ proof -
        ((l, x), la, y) \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and> get_avdom S = get_avdom x}\<close>
     for x y l la
     by auto
+  thm twl_st_heur
   have get_the_propagation_reason:
     \<open>get_the_propagation_reason (get_trail_wl_heur x2b)
        (arena_lit (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b + 0))
         \<le> \<Down> {(D, b). b \<longleftrightarrow> ((D \<noteq> Some (get_avdom x2b ! x1b)) \<and>
                arena_lbd (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) > MINIMUM_DELETION_LBD \<and>
-               arena_status (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) = LEARNED)}
+               arena_status (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) = LEARNED) \<and>
+                arena_length (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<noteq> two_uint32_nat}
        (SPEC
            (\<lambda>b. b \<longrightarrow>
                 Propagated (get_clauses_wl x1a \<propto> (x2a ! x1) ! 0) (x2a ! x1)
                 \<notin> set (get_trail_wl x1a) \<and>
-                \<not> irred (get_clauses_wl x1a) (x2a ! x1)))\<close>
+                \<not> irred (get_clauses_wl x1a) (x2a ! x1) \<and>
+                length (get_clauses_wl x1a \<propto> (x2a ! x1)) \<noteq> 2 ))\<close>
   if
     \<open>(x, y) \<in> twl_st_heur\<close> and
     \<open>mark_to_delete_clauses_wl_D_pre y\<close> and
@@ -1906,6 +1922,12 @@ proof -
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
       by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur dest: twl_st_heur_valid_arena twl_st_heur_get_avdom_nth_get_vdom)
+    subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
+      unfolding prod.simps
+        arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
+      by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
+        (auto simp: twl_st_heur arena_dom_status_iff
+          dest: twl_st_heur_valid_arena twl_st_heur_get_avdom_nth_get_vdom)
     subgoal
       by (auto simp: twl_st_heur)
     subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b

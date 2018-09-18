@@ -9,7 +9,10 @@ text \<open>To ease the proof, we introduce the following ``alternative'' defini
 fun correct_watching' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching' (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
     (\<forall>L \<in># all_lits_of_mm (mset `# init_clss_lf N + NE).
-       (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> is_binary N (i, K, b)) \<and>
+       (\<forall>(i, K, b)\<in>#mset (W L).
+             i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
+       (\<forall>(i, K, b)\<in>#mset (W L).
+             b \<longrightarrow> i \<in># dom_m N) \<and>
         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
 
 declare correct_watching'.simps[simp del]
@@ -34,7 +37,7 @@ where
       (\<lambda>(i, N, NE). do {
         ASSERT(i < length xs);
         let (C, _, _) = xs!i;
-        if C \<in># dom_m N
+        if C \<in># dom_m N \<and> length (N \<propto> C) \<noteq> 2
         then do {
           (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (C, N, NE);
           RETURN (i+1, N, NE)
@@ -70,23 +73,27 @@ lemma correct_watching_fmdrop:
   assumes
     irred: \<open>\<not> irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
-    \<open>correct_watching' (M', N, D, NE, UE, Q, W)\<close>
+    \<open>correct_watching' (M', N, D, NE, UE, Q, W)\<close> and
+    C2: \<open>length (N \<propto> C) \<noteq> 2\<close>
   shows \<open>correct_watching' (M, fmdrop C N, D, NE, UE, Q, W)\<close>
 proof -
   have
     H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
-       (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> is_binary N (i, K, b)\<close> and
+       (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and>
+         correctly_marked_as_binary N (i, K, b)\<close> and
+    H1': \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+       (i, K, b)\<in>#mset (W L) \<Longrightarrow> b \<Longrightarrow>  i \<in># dom_m N\<close> and
     H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
        {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
        {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, {#}, {#})).
         L \<in> set (watched_l (get_clauses_l (M', N, D, NE, UE, {#}, {#}) \<propto> C))#}\<close>
     using assms
     unfolding correct_watching'.simps clause_to_update_def
-    by blast+
+    by fast+
   have 1: \<open>{#Ca \<in># dom_m (fmdrop C N). L \<in> set (watched_l (fmdrop C N \<propto> Ca))#} =
     {#Ca \<in># dom_m (fmdrop C N). L \<in> set (watched_l (N \<propto> Ca))#}\<close> for L
     apply (rule filter_mset_cong2)
-      using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>snd iK\<close>] C irred
+      using distinct_mset_dom[of N] C irred
     by (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
       distinct_mset_remove1_All filter_mset_neq_cond dest: all_lits_of_mm_diffD
         dest: multi_member_split)
@@ -104,8 +111,16 @@ proof -
     apply (intro conjI impI ballI)
     subgoal for L iK
       using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
+        H1'[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>]
       apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
-      distinct_mset_remove1_All filter_mset_neq_cond is_binary.simps dest: all_lits_of_mm_diffD
+      distinct_mset_remove1_All filter_mset_neq_cond correctly_marked_as_binary.simps dest: all_lits_of_mm_diffD
+        dest: multi_member_split)
+      done
+    subgoal for L iK
+      using distinct_mset_dom[of N] H1'[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred C2
+        H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>]
+      apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
+      distinct_mset_remove1_All filter_mset_neq_cond correctly_marked_as_binary.simps dest: all_lits_of_mm_diffD
         dest: multi_member_split)
       done
     subgoal for L
@@ -123,12 +138,16 @@ lemma correct_watching_fmdrop':
   assumes
     irred: \<open>irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
-    \<open>correct_watching' (M', N, D, NE, UE, Q, W)\<close>
+    \<open>correct_watching' (M', N, D, NE, UE, Q, W)\<close> and
+    C2: \<open>length (N \<propto> C) \<noteq> 2\<close>
   shows \<open>correct_watching' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close>
 proof -
   have
     H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
-       (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> is_binary N (i, K, b)\<close> and
+       (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow>
+          K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)\<close> and
+    H1': \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+       (i, K, b)\<in>#mset (W L) \<Longrightarrow> b \<Longrightarrow> i \<in># dom_m N\<close> and
     H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
        {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
        {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, {#}, {#})).
@@ -158,7 +177,14 @@ proof -
     subgoal for L iK
       using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
       apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
-      distinct_mset_remove1_All filter_mset_neq_cond is_binary.simps dest: all_lits_of_mm_diffD
+      distinct_mset_remove1_All filter_mset_neq_cond correctly_marked_as_binary.simps dest: all_lits_of_mm_diffD
+        dest: multi_member_split)
+      done
+    subgoal for L iK
+      using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
+        H1'[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C2
+      apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
+      distinct_mset_remove1_All filter_mset_neq_cond correctly_marked_as_binary.simps dest: all_lits_of_mm_diffD
         dest: multi_member_split)
       done
     subgoal for L
@@ -176,12 +202,16 @@ lemma correct_watching_fmdrop'':
   assumes
     irred: \<open>\<not>irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
-    \<open>correct_watching' (M', N, D, NE, UE, Q, W)\<close>
+    \<open>correct_watching' (M', N, D, NE, UE, Q, W)\<close> and
+    C2: \<open>length (N \<propto> C) \<noteq> 2\<close>
   shows \<open>correct_watching' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close>
 proof -
   have
     H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
-       (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> is_binary N (i, K, b)\<close> and
+       (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and>
+          K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)\<close> and
+    H1': \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+       (i, K, b)\<in>#mset (W L) \<Longrightarrow> b \<Longrightarrow> i \<in># dom_m N\<close> and
     H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
        {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
        {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, {#}, {#})).
@@ -211,7 +241,14 @@ proof -
     subgoal for L iK
       using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
       apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
-      distinct_mset_remove1_All filter_mset_neq_cond is_binary.simps dest: all_lits_of_mm_diffD
+      distinct_mset_remove1_All filter_mset_neq_cond correctly_marked_as_binary.simps dest: all_lits_of_mm_diffD
+        dest: multi_member_split)
+      done
+    subgoal for L iK
+      using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
+        H1'[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C2
+      apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
+      distinct_mset_remove1_All filter_mset_neq_cond correctly_marked_as_binary.simps dest: all_lits_of_mm_diffD
         dest: multi_member_split)
       done
     subgoal for L
@@ -232,15 +269,15 @@ begin
 
 context
   fixes x1 :: \<open>'v literal\<close> and
-    x2 :: \<open>('v literal, 'v literal, nat) annotated_lit list \<times>
-                                      (nat, 'v literal list \<times> bool) fmap \<times>
+    x2 :: \<open>('v, nat) ann_lits \<times>
+                                      'v clauses_l \<times>
                                       'v literal multiset option \<times>
                                       'v literal multiset multiset \<times>
                                       'v literal multiset multiset \<times>
                                       nat multiset \<times>
                                       'v literal multiset\<close> and
-    x1a :: \<open>('v literal, 'v literal, nat) annotated_lit list\<close> and
-    x2a :: \<open>(nat, 'v literal list \<times> bool) fmap \<times>
+    x1a :: \<open>('v, nat) ann_lits\<close> and
+    x2a :: \<open>'v clauses_l \<times>
                              'v literal multiset option \<times>
                              'v literal multiset multiset \<times>
                              'v literal multiset multiset \<times>
@@ -259,7 +296,7 @@ nat multiset \<times>
                                    'v literal multiset\<close> and x1e :: \<open>'v literal multiset multiset\<close> and x2e :: \<open>nat multiset \<times>
                               'v literal multiset\<close> and x1f :: \<open>nat multiset\<close> and x2f :: \<open>'v literal multiset\<close> and x1g :: \<open>'v literal\<close> and x2g :: \<open>('v literal,
                            'v literal, nat) annotated_lit list \<times>
-                          (nat, 'v literal list \<times> bool) fmap \<times>
+                          'v clauses_l \<times>
                           'v literal multiset option \<times>
                           'v literal multiset multiset \<times>
                           'v literal multiset multiset \<times>
@@ -421,9 +458,9 @@ lemma remove_all_initialisation:
 
 context
   fixes x :: \<open>nat \<times>
-              (nat, 'v literal list \<times> bool) fmap \<times>
+              'v clauses_l \<times>
               'v literal multiset multiset\<close> and x' :: \<open>nat \<times>
-               (nat, 'v literal list \<times> bool) fmap \<times>
+               'v clauses_l \<times>
                'v literal multiset multiset\<close>
   assumes xx': \<open>(x, x')
            \<in> {((i, N, NE), i', N', NE').
@@ -451,7 +488,7 @@ lemma remove_all_annot_true_clause_imp_inv_same_lengthI:
   by auto
 
 lemma remove_all_annot_true_clause_imp_wl_inv_in_loop:
-  fixes x1n :: \<open>nat\<close> and x2n :: \<open>(nat, 'v literal list \<times> bool) fmap \<times>
+  fixes x1n :: \<open>nat\<close> and x2n :: \<open>'v clauses_l \<times>
                                  'v literal multiset multiset\<close> and x1o :: \<open>(nat,
                                     'v literal list \<times>
                                     bool) fmap\<close> and x2o :: \<open>'v literal multiset multiset\<close>
@@ -490,7 +527,7 @@ context
         xs (i, x1a, N, x1c, NE, x1e, x1f, x2f)\<close>
 begin
 lemma
-  fixes x1n :: \<open>nat\<close> and x2n :: \<open>(nat, 'v literal list \<times> bool) fmap \<times>
+  fixes x1n :: \<open>nat\<close> and x2n :: \<open>'v clauses_l \<times>
                                  'v literal multiset multiset\<close> and x1o :: \<open>(nat,
                                     'v literal list \<times>
                                     bool) fmap\<close> and x2o :: \<open>'v literal multiset multiset\<close> and x1p :: \<open>nat\<close> and x2p :: \<open>(nat,
@@ -527,7 +564,7 @@ begin
 
 
 context
-  fixes x1n :: \<open>nat\<close> and x2n :: \<open>(nat, 'v literal list \<times> bool) fmap \<times>
+  fixes x1n :: \<open>nat\<close> and x2n :: \<open>'v clauses_l \<times>
                                  'v literal multiset multiset\<close> and x1o :: \<open>(nat,
                                     'v literal list \<times>
                                     bool) fmap\<close> and x2o :: \<open>'v literal multiset multiset\<close> and x1p :: \<open>nat\<close> and x2p :: \<open>(nat,
@@ -588,7 +625,8 @@ context
   notes _[simp] = x2m'
   assumes
     x1r_dom: \<open>x1r \<in># dom_m x1q\<close> and
-    xs_x1n_dom: \<open>xs ! x1n \<in># dom_m x1o\<close>
+    xs_x1n_dom: \<open>xs ! x1n \<in># dom_m x1o\<close> and
+    x1q_x1n_ge: \<open>length (x1q \<propto> x1r) \<noteq> 2\<close>
 begin
 
 private lemma x1r_xo: \<open>x1r \<in># dom_m x1o\<close>
@@ -604,14 +642,14 @@ lemma remove_all_annot_true_clause_one_imp_le:
             (remove_all_annot_true_clause_one_imp (xs ! x1n, x1o, x2o))\<close>
 proof -
   show ?thesis
-    using x1n_le corr_w' x1r_xo
+    using x1n_le corr_w' x1r_xo x1q_x1n_ge
     by (auto simp: remove_all_annot_true_clause_one_imp_def map_nth
-      intro: correct_watching_fmdrop intro: correct_watching_fmdrop')
+      intro: correct_watching_fmdrop correct_watching_fmdrop')
 qed
 
 
 context
-  fixes xa :: \<open>(nat, 'v literal list \<times> bool) fmap \<times>
+  fixes xa :: \<open>'v clauses_l \<times>
                'v literal multiset multiset\<close> and x'a :: \<open>(nat,
                   'v literal list \<times> bool) fmap \<times>
                  'v literal multiset multiset\<close> and x1s :: \<open>(nat,
@@ -685,7 +723,7 @@ end
 
 
 lemma
-  fixes x1n :: \<open>nat\<close> and x2n :: \<open>(nat, 'v literal list \<times> bool) fmap \<times>
+  fixes x1n :: \<open>nat\<close> and x2n :: \<open>'v clauses_l \<times>
                                  'v literal multiset multiset\<close> and x1o :: \<open>(nat,
                                     'v literal list \<times>
                                     bool) fmap\<close> and x2o :: \<open>'v literal multiset multiset\<close> and x1p :: \<open>nat\<close> and x2p :: \<open>(nat,
@@ -792,6 +830,9 @@ proof -
       subgoal by (auto simp: state_wl_l_def)
       subgoal by (auto simp: state_wl_l_def)
       subgoal by (auto simp: state_wl_l_def)
+      subgoal by (auto simp: state_wl_l_def)
+      subgoal by (auto simp: state_wl_l_def)
+      subgoal by (auto simp: state_wl_l_def)
       done
     done
 qed
@@ -808,7 +849,7 @@ where
 \<open>remove_one_annot_true_clause_one_imp_wl = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
       ASSERT(remove_one_annot_true_clause_one_imp_wl_pre i (M, N, D, NE, UE, Q, W));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
-      if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
+      if C = 0 \<or> length (N \<propto> C) = 2 then RETURN (i+1, M, N, D, NE, UE, Q, W)
       else do {
         ASSERT(C \<in># dom_m N);
         M \<leftarrow> replace_annot_in_trail_spec M L;
@@ -850,7 +891,7 @@ proof -
     subgoal by simp
     subgoal by (simp add: state_wl_l_def)
     subgoal by (simp add: state_wl_l_def)
-    subgoal by (auto simp add: state_wl_l_def intro: correct_watching_fmdrop
+    subgoal by (auto 5 5 simp add: state_wl_l_def intro: correct_watching_fmdrop
       correct_watching_fmdrop' correct_watching_fmdrop'')
     subgoal by (auto simp add: state_wl_l_def intro: correct_watching_fmdrop
       correct_watching_fmdrop')
@@ -933,7 +974,7 @@ definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl
           ASSERT(0 < length (get_clauses_wl T\<propto>(xs!i)));
           can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow>
              (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and>
-              \<not>irred (get_clauses_wl T) (xs!i));
+              \<not>irred (get_clauses_wl T) (xs!i) \<and> length (get_clauses_wl T \<propto> (xs!i)) \<noteq> 2);
           ASSERT(i < length xs);
           if can_del
           then

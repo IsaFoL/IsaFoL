@@ -160,7 +160,7 @@ where
       (\<lambda>(i, N, NE). do {
         ASSERT(i < length xs);
         let (C, _ , _) = xs ! i;
-        if C \<in># dom_m N
+        if C \<in># dom_m N \<and> length (N \<propto> C) \<noteq> 2
         then do {
           (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (C, N, NE);
           RETURN (i+1, N, NE)
@@ -226,7 +226,7 @@ where
 \<open>remove_one_annot_true_clause_one_imp_wl_D = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
       ASSERT(remove_one_annot_true_clause_one_imp_wl_D_pre i (M, N, D, NE, UE, Q, W));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
-      if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
+      if C = 0 \<or> length (N \<propto> C) = 2  then RETURN (i+1, M, N, D, NE, UE, Q, W)
       else do {
         ASSERT(C \<in># dom_m N);
         M \<leftarrow> replace_annot_in_trail_spec M L;
@@ -324,8 +324,8 @@ proof -
       lit:
         \<open>x \<in> {(La, C). rev M ! L = Propagated La C}\<close>
         \<open>x' \<in> {(L, C). rev M' ! L' = Propagated L C}\<close> and
-      \<open>x2a \<noteq> 0\<close> and
-      \<open>x2 \<noteq> 0\<close> and
+      \<open>\<not> (x2a = 0 \<or> length (N0 \<propto> x2a) = 2)\<close> and
+      \<open>\<not> (x2 = 0 \<or> length (N0' \<propto> x2) = 2)\<close> and
       \<open>x2 \<in># dom_m N0'\<close> and
       \<open>x2a \<in># dom_m N0\<close> and
       eq: \<open>(xa, x'a) \<in> {((N1, C1, b1), N1', C1', b1').
@@ -491,7 +491,7 @@ definition mark_to_delete_clauses_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat
           ASSERT(get_clauses_wl T\<propto>(xs!i)!0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
           can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow>
              (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and>
-              \<not>irred (get_clauses_wl T) (xs!i));
+              \<not>irred (get_clauses_wl T) (xs!i) \<and> length (get_clauses_wl T\<propto>(xs!i)) \<noteq> 2 );
           ASSERT(i < length xs);
           if can_del
           then
@@ -643,6 +643,7 @@ proof -
     subgoal by auto
     subgoal for S S' xs xs' l l' st st' i T j T'
       by (rule in_Lit; assumption?) auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto

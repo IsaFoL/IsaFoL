@@ -256,7 +256,7 @@ fun correct_watching_init :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> wher
     all_blits_are_in_problem_init (M, N, D, NE, UE, Q, W) \<and>
     (\<forall>L.
         (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and>
-           is_binary N (i, K, b)) \<and>
+           correctly_marked_as_binary N (i, K, b)) \<and>
         fst `# mset (W L) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
 
 lemma correct_watching_init_correct_watching:
@@ -365,7 +365,7 @@ proof -
   show ?thesis
     using corr
     by (force simp: correct_watching_init.simps all_blits_are_in_problem_init.simps ran_m_mapsto_upd_notin
-        all_lits_of_mm_add_mset all_lits_of_mm_union clause_to_update_mapsto_upd_notin is_binary.simps
+        all_lits_of_mm_add_mset all_lits_of_mm_union clause_to_update_mapsto_upd_notin correctly_marked_as_binary.simps
         split: if_splits)
 qed
 

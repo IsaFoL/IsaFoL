@@ -241,6 +241,33 @@ lemmas delete_index_vdom_heur_code[sepref_fr_rules] =
    delete_index_vdom_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
      unfolded PR_CONST_def]
 
+definition (in -) access_length_heur where
+  \<open>access_length_heur S i = arena_length (get_clauses_wl_heur S) i\<close>
+
+lemma access_length_heur_alt_def:
+  \<open>access_length_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+     ccount, vdom, lcount) C . arena_length N' C)\<close>
+  by (intro ext) (auto simp: access_length_heur_def arena_lbd_def)
+
+sepref_register access_length_heur
+sepref_thm access_length_heur_code
+  is \<open>uncurry (RETURN oo (PR_CONST access_length_heur))\<close>
+  :: \<open>[\<lambda>(S, C). arena_is_valid_clause_idx (get_clauses_wl_heur S) C]\<^sub>a
+       isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  unfolding access_length_heur_alt_def PR_CONST_def isasat_unbounded_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) access_length_heur_code
+   uses isasat_input_bounded_nempty.access_length_heur_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) access_length_heur_code_def
+
+lemmas access_length_heur_code_hnr[sepref_fr_rules] =
+   access_length_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
+     unfolded PR_CONST_def]
+
 
 sepref_register mark_to_delete_clauses_wl_D_heur
 sepref_thm mark_to_delete_clauses_wl_D_heur_impl
@@ -251,6 +278,8 @@ sepref_thm mark_to_delete_clauses_wl_D_heur_impl
     get_the_propagation_reason_heur_def[symmetric]
     clause_is_learned_heur_def[symmetric]
     clause_lbd_heur_def[symmetric]
+    access_length_heur_def[symmetric]
+    short_circuit_conv
   supply [[goals_limit = 1]]
   by sepref
 

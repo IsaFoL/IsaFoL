@@ -1589,7 +1589,7 @@ where
       (\<lambda>(i, N, NE). i < length xs)
       (\<lambda>(i, N, NE). do {
           ASSERT(i < length xs);
-          if xs!i \<in># dom_m N
+          if xs!i \<in># dom_m N \<and> length (N \<propto> (xs!i)) \<noteq> 2
           then do {
             (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (xs!i, N, NE);
             ASSERT(remove_all_annot_true_clause_imp_inv (M, N0, D, NE0, UE, Q, W) xs
@@ -1618,9 +1618,9 @@ where
 \<open>remove_one_annot_true_clause_one_imp = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
       ASSERT(remove_one_annot_true_clause_one_imp_pre i (M, N, D, NE, UE, Q, W));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
-      if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
+      if C = 0 \<or> length (N \<propto> C) = 2 then RETURN (i+1, M, N, D, NE, UE, Q, W)
       else do {
-        ASSERT(C \<in># dom_m N);
+        ASSERT(C \<in># dom_m N \<and> length (N \<propto> C) \<noteq> 2);
         M \<leftarrow> replace_annot_in_trail_spec M L;
         (N', C, b) \<leftarrow> extract_and_remove N C;
         let S = (if b then (M, N', D, add_mset (mset C) NE, UE, Q, W)
@@ -1958,7 +1958,8 @@ proof -
       apply assumption+
       subgoal by (auto simp: remove_all_annot_true_clause_imp_inv_Suc U one_all)
       subgoal by (auto simp: remove_all_annot_true_clause_imp_inv_Suc U one_all)
-      subgoal by auto
+      subgoal by (auto simp: remove_all_annot_true_clause_imp_inv_Suc U one_all)
+      subgoal by (auto simp: remove_all_annot_true_clause_imp_inv_Suc U one_all)
       subgoal by (auto simp: remove_all_annot_true_clause_imp_inv_Suc U one_all)
       subgoal by (auto simp: remove_all_annot_true_clause_imp_inv_Suc U one_all)
       subgoal by auto
@@ -2035,7 +2036,7 @@ proof -
         \<open>TNE = (Q', WS')\<close> and
       \<open>case LC of (L, C) \<Rightarrow> rev M' ! i = Propagated L C\<close> and
       \<open>LC = (L, C)\<close> and
-      \<open>C \<noteq> 0\<close>
+      \<open>\<not>(C = 0 \<or> length (N' \<propto> C) = 2)\<close>
     for M' TM N' TN D' TD UE' TUE NE' TNE Q' WS' LC L C
   proof -
     have \<open>rev M!i \<in> set M\<close>
@@ -2065,7 +2066,7 @@ proof -
       rem_one: \<open>remove_one_annot_true_clause_one_imp_pre i (M', N', D', NE', UE', WS', Q')\<close> and
       LC_d: \<open>case LC of (L, C) \<Rightarrow> rev M' ! i = Propagated L C\<close> and
       LC: \<open>LC = (L, C)\<close> and
-      C0: \<open>C \<noteq> 0\<close> and
+      C0: \<open>\<not>(C = 0 \<or> length (N' \<propto> C) = 2)\<close> and
       Cdom: \<open>C \<in># dom_m N'\<close> and
       \<open>L \<in> lits_of_l M'\<close> and
       decomp: \<open>\<exists>M2 M1 C.
@@ -2179,7 +2180,9 @@ proof -
       by (auto simp add: Ball_suc)
     subgoal using cond length_ST unfolding iT T remove_one_annot_true_clause_one_imp_pre_def by auto
     subgoal by (rule annot_in_dom)
+    subgoal by auto
     subgoal by (rule literal_in_lits_of)
+    subgoal by auto
     subgoal for M' TM N' TN D' TD UE' TUE NE' TNE Q' WS' LC L C M'' NCb N'' Cb C' red
       by (rule remove_all_annot_true_clause_imp_spec)
     done
