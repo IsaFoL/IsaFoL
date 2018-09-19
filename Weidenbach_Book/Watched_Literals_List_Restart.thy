@@ -2852,24 +2852,68 @@ proof -
     by force
 qed
 
-definition cdcl_twl_stgy_restart_prog_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
-  \<open>cdcl_twl_stgy_restart_prog_l S\<^sub>0 =
+definition cdcl_twl_stgy_restart_abs_early_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
+  \<open>cdcl_twl_stgy_restart_abs_early_l S\<^sub>0 =
   do {
-    (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
+    (_, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
+      (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
+      (\<lambda>(_, brk, S, n).
+      do {
+        T \<leftarrow> unit_propagation_outer_loop_l S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
+        (T, n) \<leftarrow> restart_abs_l T n brk;
+	ebrk \<leftarrow> RES UNIV;
+        RETURN (ebrk, brk, T, n)
+      })
+      (False, False, S\<^sub>0, 0);
+    if \<not>brk then do {
+      (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
       (\<lambda>(brk, _). \<not>brk)
       (\<lambda>(brk, S, n).
       do {
         T \<leftarrow> unit_propagation_outer_loop_l S;
         (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
-        (T, n) \<leftarrow> restart_prog_l T n brk;
+        (T, n) \<leftarrow> restart_abs_l T n brk;
         RETURN (brk, T, n)
       })
-      (False, S\<^sub>0, 0);
-    RETURN T
+      (False, T, n);
+      RETURN T
+    } else RETURN T
+  }\<close>
+  
+definition cdcl_twl_stgy_restart_prog_early_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
+  \<open>cdcl_twl_stgy_restart_prog_early_l S\<^sub>0 =
+  do {
+    (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
+      (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
+      (\<lambda>(ebrk, brk, S, n).
+      do {
+        T \<leftarrow> unit_propagation_outer_loop_l S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
+        (T, n) \<leftarrow> restart_prog_l T n brk;
+	ebrk \<leftarrow> RES UNIV;
+        RETURN (ebrk, brk, T, n)
+      })
+      (False, False, S\<^sub>0, 0);
+    if \<not>brk then do {
+      (brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
+	(\<lambda>(brk, _). \<not>brk)
+	(\<lambda>(brk, S, n).
+	do {
+	  T \<leftarrow> unit_propagation_outer_loop_l S;
+	  (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
+	  (T, n) \<leftarrow> restart_prog_l T n brk;
+	  RETURN (brk, T, n)
+	})
+	(False, T, n);
+      RETURN T
+    }
+    else RETURN T
   }\<close>
 
-lemma cdcl_twl_stgy_restart_prog_l_cdcl_twl_stgy_restart_abs_l:
-  \<open>(cdcl_twl_stgy_restart_prog_l, cdcl_twl_stgy_restart_abs_l) \<in> {(S, S').
+
+lemma cdcl_twl_stgy_restart_prog_early_l_cdcl_twl_stgy_restart_abs_early_l:
+  \<open>(cdcl_twl_stgy_restart_prog_early_l, cdcl_twl_stgy_restart_abs_early_l) \<in> {(S, S').
    (S, S') \<in> Id \<and>  twl_list_invs S \<and>  clauses_to_update_l S =  {#}} \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
    (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f _\<close>)
 proof -
@@ -2886,11 +2930,13 @@ proof -
     for x1c x1a
     using that by auto
   show ?thesis
-    unfolding cdcl_twl_stgy_restart_prog_l_def cdcl_twl_stgy_restart_prog_def uncurry_def
-      cdcl_twl_stgy_restart_abs_l_def
+    unfolding cdcl_twl_stgy_restart_prog_early_l_def cdcl_twl_stgy_restart_prog_def uncurry_def
+      cdcl_twl_stgy_restart_abs_early_l_def
     apply (intro frefI nres_relI)
     apply (refine_rcg WHILEIT_refine[where R = \<open>{((brk :: bool, S, n :: nat), (brk', S', n')).
         (S, S') \<in> Id \<and> brk = brk' \<and> n = n'}\<close>]
+	WHILEIT_refine[where R = \<open>{((ebrk :: bool, brk :: bool, S, n :: nat), (ebrk', brk', S', n')).
+        (S, S') \<in> Id \<and> brk = brk' \<and> n = n' \<and> ebrk = ebrk'}\<close> ]
         unit_propagation_outer_loop_l_spec[THEN fref_to_Down]
         cdcl_twl_o_prog_l_spec[THEN fref_to_Down]
         restart_abs_l_restart_prog[THEN fref_to_Down_curry2]
@@ -2906,20 +2952,85 @@ proof -
        unfolding cdcl_twl_stgy_restart_prog_inv_def cdcl_twl_stgy_restart_abs_l_inv_def
        by (auto simp: twl_st)
     subgoal by auto
+    subgoal 
+       unfolding cdcl_twl_stgy_restart_prog_inv_def cdcl_twl_stgy_restart_abs_l_inv_def
+       by (auto simp: twl_st)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     done
 qed
 
-lemma (in twl_restart) cdcl_twl_stgy_restart_prog_l_cdcl_twl_stgy_restart_prog:
-  \<open>(cdcl_twl_stgy_restart_prog_l, cdcl_twl_stgy_restart_prog)
+
+lemma cdcl_twl_stgy_restart_abs_early_l_cdcl_twl_stgy_restart_abs_early_l:
+  \<open>(cdcl_twl_stgy_restart_abs_early_l, cdcl_twl_stgy_restart_prog_early) \<in>
+     {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and>
+       clauses_to_update_l S  = {#}} \<rightarrow>\<^sub>f
+      \<langle>{(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S}\<rangle> nres_rel\<close>
+  unfolding cdcl_twl_stgy_restart_abs_early_l_def cdcl_twl_stgy_restart_prog_early_def uncurry_def
+  apply (intro frefI nres_relI)
+  apply (refine_rcg WHILEIT_refine[where R = \<open>{((brk :: bool, S, n :: nat), (brk', S', n')).
+      (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> brk = brk' \<and> n = n' \<and>
+        clauses_to_update_l S = {#}}\<close>]
+	WHILEIT_refine[where R = \<open>{((ebrk :: bool, brk :: bool, S, n :: nat), (ebrk' :: bool, brk', S', n')).
+      (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> brk = brk' \<and> n = n' \<and> ebrk = ebrk' \<and>
+        clauses_to_update_l S = {#}}\<close>]
+      unit_propagation_outer_loop_l_spec[THEN fref_to_Down]
+      cdcl_twl_o_prog_l_spec[THEN fref_to_Down]
+      restart_abs_l_restart_prog[THEN fref_to_Down_curry2])
+  subgoal by simp
+  subgoal for x y xa x' x1 x2 x1a x2a
+    unfolding cdcl_twl_stgy_restart_abs_l_inv_def
+    apply (rule_tac x=y in exI)
+    apply (rule_tac x=\<open>fst (snd (snd x'))\<close> in exI)
+    by auto
+  subgoal by fast
+  subgoal
+    unfolding cdcl_twl_stgy_restart_prog_inv_def
+      cdcl_twl_stgy_restart_abs_l_inv_def
+    apply (simp only: prod.case)
+    apply (normalize_goal)+
+    by (simp add: twl_st_l twl_st)
+  subgoal by (auto simp: twl_st_l twl_st)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal for x y xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e xb x'a x1f x2f x1g
+    unfolding cdcl_twl_stgy_restart_abs_l_inv_def
+    apply (rule_tac x=y in exI)
+    apply (rule_tac x=\<open>fst (snd x'a)\<close> in exI)
+    by auto
+  subgoal by auto
+  subgoal
+    unfolding cdcl_twl_stgy_restart_prog_inv_def
+      cdcl_twl_stgy_restart_abs_l_inv_def
+    apply (simp only: prod.case)
+    apply (normalize_goal)+
+    by (simp add: twl_st_l twl_st)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
+
+lemma (in twl_restart) cdcl_twl_stgy_restart_prog_early_l_cdcl_twl_stgy_restart_prog_early:
+  \<open>(cdcl_twl_stgy_restart_prog_early_l, cdcl_twl_stgy_restart_prog_early)
     \<in> {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}} \<rightarrow>\<^sub>f
       \<langle>{(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S}\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (rule order_trans)
   defer
-  apply (rule cdcl_twl_stgy_restart_abs_l_cdcl_twl_stgy_restart_abs_l[THEN fref_to_Down])
+  apply (rule cdcl_twl_stgy_restart_abs_early_l_cdcl_twl_stgy_restart_abs_early_l[THEN fref_to_Down])
     apply fast
     apply assumption
-  apply (rule cdcl_twl_stgy_restart_prog_l_cdcl_twl_stgy_restart_abs_l[THEN fref_to_Down,
+  apply (rule cdcl_twl_stgy_restart_prog_early_l_cdcl_twl_stgy_restart_abs_early_l[THEN fref_to_Down,
     simplified])
   apply simp
   done

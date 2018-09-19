@@ -1145,6 +1145,34 @@ proof (rule wf_union_compatible)
   qed
 qed
 
+lemma (in twl_restart) wf_cdcl_twl_stgy_restart_measure_early:
+   \<open>wf ({((ebrk, brkT, T, n), ebrk, brkS, S, m).
+         twl_struct_invs S \<and> cdcl_twl_stgy_restart_with_leftovers1 (S, m) (T, n)} \<union>
+        {((ebrkT, brkT, T), (ebrkS, brkS, S)). S = T \<and> (ebrkT \<or> brkT) \<and> (\<not>brkS \<and> \<not>ebrkS)})\<close>
+  (is \<open>wf (?TWL \<union> ?BOOL)\<close>)
+proof (rule wf_union_compatible)
+  show \<open>wf ?TWL\<close>
+    apply (rule wf_subset)
+    apply (rule wf_snd_wf_pair)
+     apply (rule wf_snd_wf_pair[OF wf_cdcl_twl_stgy_restart_with_leftovers1])
+    by auto
+  show \<open>?TWL O ?BOOL \<subseteq> ?TWL\<close>
+    by auto
+
+  show \<open>wf ?BOOL\<close>
+    unfolding wf_iff_no_infinite_down_chain
+  proof clarify
+    fix f :: \<open>nat \<Rightarrow> bool \<times> bool \<times> _\<close>
+    assume H: \<open>\<forall>i. (f (Suc i), f i) \<in> ?BOOL\<close>
+    then have \<open>(f (Suc 0), f 0) \<in> ?BOOL\<close> and
+      \<open>(f (Suc 1), f 1) \<in> ?BOOL\<close>
+      by presburger+
+    then show False
+      by auto
+  qed
+qed
+
+
 lemma cdcl_twl_stgy_restart_with_leftovers_cdcl\<^sub>W_restart_stgy:
   \<open>cdcl_twl_stgy_restart_with_leftovers S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>  twl_stgy_invs (fst S) \<Longrightarrow>
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (state\<^sub>W_of_restart S) (state\<^sub>W_of_restart T)\<close>
