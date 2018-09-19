@@ -92,7 +92,6 @@ text \<open>lemma 8 in Uwe's notes\<close>
 lemma Red_F_\<G>_equiv_def: 
   \<open>Red_F_\<G> N = {C. \<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)}\<close>
 proof (rule;clarsimp)
-explore
   fix C D
   assume 
     C_in: \<open>C \<in> Red_F_\<G> N\<close> and

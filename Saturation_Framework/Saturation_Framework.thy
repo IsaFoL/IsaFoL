@@ -2,6 +2,7 @@
     Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018
 *)
 
+
 section \<open>Saturation Framework\<close>
 
 theory Saturation_Framework
@@ -45,9 +46,6 @@ lemma easy2: "(N |= N1 \<and> N |= N2) \<longleftrightarrow> N |= (N1 \<union> N
 (*lemma easy3: \<open>\<forall>C \<in> N1. {C} |= N2 \<Longrightarrow> N1 |= N2\<close>
 *)
 
-
-
-
 end
 
 datatype 'f inference =
@@ -72,6 +70,7 @@ locale inference_system = consequence_relation +
     same_with_other_syntax: "{\<iota> \<in> I. (concl_of \<iota> \<in> N)} \<subseteq> Red_I N"
 begin
 
+
 definition Inf :: "'f formulas  \<Rightarrow> 'f inference set" where
   "Inf N = {\<iota> \<in> I. set (prems_of \<iota>) \<subseteq> N}"
 
@@ -84,7 +83,7 @@ lemma red_concl_to_red_inf:
 proof -
   have i2: "\<iota> \<in> Red_I (Red_F N)" by (simp add: Red_I_of_I_to_N i concl)
   then have i3: "\<iota> \<in> Red_I (N \<union> Red_F N)" by (simp add: Red_I_of_I_to_N concl i)
-  also have red_n_subs: "Red_F N \<subseteq> Red_F (N \<union> Red_F N)" by (simp add: Red_F_of_subset)
+  have red_n_subs: "Red_F N \<subseteq> Red_F (N \<union> Red_F N)" by (simp add: Red_F_of_subset)
   then have "\<iota> \<in> Red_I ((N \<union> Red_F N) - (Red_F N - N))" using Red_I_of_Red_F_subset i3
     by (meson Diff_subset subsetCE subset_trans)
   then show ?thesis by (metis Diff_cancel Diff_subset Un_Diff Un_Diff_cancel contra_subsetD 
@@ -94,7 +93,7 @@ qed
 inductive "derive" :: "'f formulas \<Rightarrow> 'f formulas \<Rightarrow> bool" (infix "\<turnstile>" 50) where
   unsat_preserving_derive: "(B \<in> Bot_F \<Longrightarrow> N |= {B} \<Longrightarrow> M |= {B}) \<Longrightarrow> M - N \<subseteq> Red_F N \<Longrightarrow> M \<turnstile> N"
 
-definition saturated :: "'f formulas \<Rightarrow> bool" where 
+definition saturated :: "'f formulas \<Rightarrow> bool" where
   "saturated N \<equiv> Inf N \<subseteq> Red_I N"
 
 definition Sup_Red_I_llist :: "'f formulas llist \<Rightarrow> 'f inference set" where
@@ -293,7 +292,8 @@ proof
       using Sup_no_Red subset_entailed[OF Sup_no_Red_in_Liminf] transitive_entails by blast
     have \<open>saturated (Liminf_llist D)\<close> 
       using deriv fair fair_implies_Liminf_saturated unfolding saturated_def by auto
-    then have \<open>\<exists>B'\<in>Bot_F. B' \<in> (Liminf_llist D)\<close> 
+
+   then have \<open>\<exists>B'\<in>Bot_F. B' \<in> (Liminf_llist D)\<close> 
       using bot_elem static_refutational_complete Liminf_entails_Bot_F by auto
     then show \<open>\<exists>i\<in>{i. enat i < llength D}. \<exists>B'\<in>Bot_F. B' \<in> lnth D i\<close>
       unfolding Liminf_llist_def by auto
