@@ -1003,7 +1003,22 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_heur
       let val_K = polarity_st_heur S K;
       if val_K = Some True
       then RETURN (j+1, w+1, S)
-      else do { \<comment>\<open>Now the costly operations:\<close>
+      else do {
+        if b then do {
+           if val_K = Some False
+           then do {
+             ASSERT(set_conflict_wl_heur_pre (C, S));
+             S \<leftarrow> set_conflict_wl_heur C S;
+             RETURN (j+1, w+1, S)}
+           else do {
+             ASSERT(access_lit_in_clauses_heur_pre ((S, C), 0));
+             let i = (if access_lit_in_clauses_heur S C 0 = L then 0 else 1);
+             ASSERT(propagate_lit_wl_heur_pre (((K, C), i), S));
+             S \<leftarrow> propagate_lit_wl_heur K C i S;
+             RETURN (j+1, w+1, S)}
+        }
+        else do {
+        \<comment>\<open>Now the costly operations:\<close>
         ASSERT(clause_not_marked_to_delete_heur_pre (S, C));
         if \<not>clause_not_marked_to_delete_heur S C
         then RETURN (j, w+1, S)
@@ -1048,6 +1063,7 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_heur
           }
         }
       }
+     }
    }\<close>
 
 lemma set_conflict_wl'_alt_def2:
@@ -1302,7 +1318,21 @@ lemma (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D_alt_def:
       let val_K = polarity (get_trail_wl S) K;
       if val_K = Some True
       then RETURN (j+1, w+1, S)
-      else do { \<comment>\<open>Now the costly operations:\<close>
+      else do { 
+        if b then do {
+             ASSERT (propagate_proper_bin_case S C);
+             if val_K = Some False
+             then
+               let S = set_conflict_wl (get_clauses_wl S \<propto> C) S in
+              RETURN
+                   (j + 1, w + 1, S)
+             else  
+               let i = ((if get_clauses_wl S \<propto> C ! 0 = L then 0 else 1)) in
+               let S = propagate_lit_wl K C i S in
+               RETURN
+                   (j + 1, w + 1, S)
+           }
+        else \<comment>\<open>Now the costly operations:\<close>
         if C \<notin># dom_m (get_clauses_wl S)
         then RETURN (j, w+1, S)
         else do {
@@ -1339,7 +1369,7 @@ lemma (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D_alt_def:
       }
    }\<close>
   unfolding unit_propagation_inner_loop_body_wl_D_def let_to_bind_conv[symmetric] Let_def
-  by auto
+  by (intro bind_cong_nres case_prod_cong if_cong[OF refl] refl)
 
 lemma (in isasat_input_ops) in_vdom_m_upd:
   \<open>x1f \<in> vdom_m (g(x1e := g x1e[x2 := (x1f, x2f)])) b\<close>
@@ -1492,6 +1522,119 @@ lemma clause_not_marked_to_delete_heur_clause_not_marked_to_delete_iff:
   apply (rule clause_not_marked_to_delete_rel[THEN fref_to_Down_unRET_uncurry_Id])
   apply (rule clause_not_marked_to_delete_pre)
   using U by (auto simp: twl_st_heur'_def)
+
+private lemma lits_in_trail:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl T)\<close> and
+  no_dup_T: \<open>no_dup (get_trail_wl T)\<close>
+proof -
+  obtain x xa where
+    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n T\<close> and
+    \<open>(U, keep_watch L x2 x2a T) \<in> twl_st_heur\<close> and
+    Tx: \<open>(T, x) \<in> state_wl_l (Some (L, x2a))\<close> and
+    \<open>x2 \<le> x2a\<close> and
+    \<open>correct_watching_except x2 x2a L T\<close> and
+    \<open>x2a \<le> length (watched_by T L)\<close> and
+    xxa: \<open>(x, xa) \<in> twl_st_l (Some L)\<close> and
+    struct: \<open>twl_struct_invs xa\<close> and
+    \<open>twl_stgy_invs xa\<close> and
+    \<open>twl_list_invs x\<close> and
+    clss: \<open>clauses_to_update xa \<noteq> {#} \<or> 0 < remaining_nondom_wl x2a L T \<longrightarrow>
+                 get_conflict xa = None\<close>
+    using x2b
+    U' loop_inv_T unfolding unit_propagation_inner_loop_wl_loop_inv_def prod.simps
+    unit_propagation_inner_loop_l_inv_def
+    by metis
+  from Tx struct xxa lits
+  show \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl T)\<close>
+    by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail)
+  have \<open>no_dup (trail (state\<^sub>W_of xa))\<close>
+    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by blast
+  then show \<open>no_dup (get_trail_wl T)\<close>
+    using Tx xxa by (auto simp: twl_st)
+qed
+
+
+context
+  fixes x1i x2i x1i' x2i'
+  assumes x2h: \<open>x2f' = (x1i', x2i')\<close> and
+     x2h': \<open>x2g' = (x1i, x2i)\<close>
+begin
+
+lemma bin_last_eq: \<open>x2i = x2i'\<close>
+  using x2h x2h'
+  by auto
+
+
+context
+  assumes proper: \<open>propagate_proper_bin_case (keep_watch L x2 x2a T) x1f\<close>
+begin
+
+private lemma bin_confl_T: \<open>get_conflict_wl T = None\<close> and
+  bin_dist_Tx1g: \<open>distinct (get_clauses_wl T \<propto> x1g)\<close> and
+  in_dom: \<open>x1f \<in># dom_m (get_clauses_wl (keep_watch L x2 x2a T))\<close>
+  using unit_prop_body_wl_D_invD[OF prop_inv] proper
+  by (auto simp: eq watched_by_app_def propagate_proper_bin_case_def)
+
+lemma bin_polarity_eq:
+  \<open>(polarity (get_trail_wl_heur U) x2g = Some False) \<longleftrightarrow>
+    (polarity (get_trail_wl (keep_watch L x2 x2a T)) x2f = Some False)\<close>
+  using U' by (auto simp add: twl_st_heur_state_simp
+     simp del: keep_watch_st_wl)
+
+lemma bin_set_conflict_wl_heur_pre:
+  \<open>set_conflict_wl_heur_pre (x1g, U)\<close>
+proof -
+  have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm  (mset `# ran_mf (get_clauses_wl (keep_watch L x2 x2a T)))\<close>
+    using x2b unfolding literals_are_\<L>\<^sub>i\<^sub>n_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+    by (simp add: all_lits_of_mm_union)
+  then show ?thesis
+    using proper no_dup_T U' lits_in_trail
+    apply (cases T; cases U)
+    unfolding propagate_proper_bin_case_def set_conflict_wl_heur_pre_def
+    by (auto simp: twl_st_heur_def keep_watch_def)
+qed
+
+lemma bin_set_conflict_wl'_pre:
+   \<open>uncurry set_conflict_wl'_pre (x1f, (keep_watch L x2 x2a T))\<close>
+proof -
+  have x2b': \<open>x1f = fst (watched_by_app (keep_watch L x2 x2a T) L x2a)\<close>
+    using x2_x2a x2a_le
+    by (auto simp: watched_by_app_def)
+  have \<open>length (get_clauses_wl T \<propto> fst (watched_by_app (keep_watch L x2 x2a T) L x2a)) = 2\<close>
+    using proper unfolding propagate_proper_bin_case_def x2b'
+    by auto
+  then have unw: \<open>unit_prop_body_wl_D_find_unwatched_inv None
+     (fst (watched_by_app (keep_watch L x2 x2a T) L x2a))
+     (keep_watch L x2 x2a T)\<close>
+    by (auto simp: unit_prop_body_wl_D_find_unwatched_inv_def
+      unit_prop_body_wl_find_unwatched_inv_def)
+  have not_tauto: \<open>\<not> tautology (mset (get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f))\<close>
+    apply (subst x2b')
+    apply (rule find_unwatched_not_tauto[of _ _ _ x2])
+    subgoal by (rule unw)
+    subgoal using prop_inv .
+    subgoal apply auto sorry
+    subgoal using in_dom unfolding watched_by_app_def[symmetric] x2b'[symmetric] .
+    done
+  have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm  (mset `# ran_mf (get_clauses_wl (keep_watch L x2 x2a T)))\<close>
+    using x2b unfolding literals_are_\<L>\<^sub>i\<^sub>n_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+    by (simp add: all_lits_of_mm_union)
+  show ?thesis
+    using not_tauto bin_confl_T bin_dist_Tx1g lits lits_in_trail proper
+    unfolding set_conflict_wl'_pre_def uncurry_def prod.simps propagate_proper_bin_case_def
+    by auto
+qed
+
+lemma bin_conflict_rel:
+  \<open>((x1g, U), x1f, keep_watch L x2 x2a T)
+    \<in> nat_rel \<times>\<^sub>f twl_st_heur' \<D>\<close>
+  using U by auto
+
+end
+
+end
 
 context  \<comment> \<open>Now we know that the clause has not been deleted\<close>
   assumes not_del: \<open>\<not> \<not> clause_not_marked_to_delete (keep_watch L x2 x2a T) x1f\<close>
@@ -1660,44 +1803,10 @@ lemma pol_other_lit_false:
   unfolding i_def[symmetric] i_alt_def[symmetric] i_alt_def_L'[symmetric]  access_x1g1i
   using U' by (auto simp: twl_st_heur_state_simp)
 
-
-private lemma lits_in_trail:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl T)\<close> and
-  no_dup_T: \<open>no_dup (get_trail_wl T)\<close>
-proof -
-  obtain x xa where
-    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n T\<close> and
-    \<open>(U, keep_watch L x2 x2a T) \<in> twl_st_heur\<close> and
-    Tx: \<open>(T, x) \<in> state_wl_l (Some (L, x2a))\<close> and
-    \<open>x2 \<le> x2a\<close> and
-    \<open>correct_watching_except x2 x2a L T\<close> and
-    \<open>x2a \<le> length (watched_by T L)\<close> and
-    xxa: \<open>(x, xa) \<in> twl_st_l (Some L)\<close> and
-    struct: \<open>twl_struct_invs xa\<close> and
-    \<open>twl_stgy_invs xa\<close> and
-    \<open>twl_list_invs x\<close> and
-    clss: \<open>clauses_to_update xa \<noteq> {#} \<or> 0 < remaining_nondom_wl x2a L T \<longrightarrow>
-                 get_conflict xa = None\<close>
-    using x2b
-    U' loop_inv_T unfolding unit_propagation_inner_loop_wl_loop_inv_def prod.simps
-    unit_propagation_inner_loop_l_inv_def
-    by metis
-  from Tx struct xxa lits
-  show \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl T)\<close>
-    by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail)
-  have \<open>no_dup (trail (state\<^sub>W_of xa))\<close>
-    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-    by blast
-  then show \<open>no_dup (get_trail_wl T)\<close>
-    using Tx xxa by (auto simp: twl_st)
-qed
-
 private lemma confl_T: \<open>get_conflict_wl T = None\<close> and
   dist_Tx1g: \<open>distinct (get_clauses_wl T \<propto> x1g)\<close>
   using unit_prop_body_wl_D_invD[OF prop_inv]
   by (auto simp: eq watched_by_app_def)
-
 
 lemma set_conflict_wl_heur_pre: \<open>set_conflict_wl_heur_pre (x1g, U)\<close>
   using lits_in_trail U' no_dup_T
@@ -1734,7 +1843,7 @@ proof -
   have x2b': \<open>x1f = fst (watched_by_app (keep_watch L x2 x2a T) L x2a)\<close>
     using x2_x2a x2a_le
     by (auto simp: watched_by_app_def)
- have not_tauto: \<open>\<not> tautology (mset (get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f))\<close>
+  have not_tauto: \<open>\<not> tautology (mset (get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f))\<close>
     apply (subst x2b')
     apply (rule find_unwatched_not_tauto[of _ _ _ x2])
     subgoal using find_unw_pre unfolding f' x2b' watched_by_app_def by auto
@@ -2185,6 +2294,21 @@ proof -
       by simp
     subgoal
       by simp
+    subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e x1f x2f x1g x2g x1h x2h x1i x2i S
+      by (rule bin_last_eq)
+    subgoal by (rule bin_polarity_eq)
+    subgoal
+      by (rule bin_set_conflict_wl_heur_pre)
+    subgoal by (rule bin_set_conflict_wl'_pre)
+    subgoal by (rule bin_conflict_rel)
+    subgoal by simp
+    subgoal by simp
+    subgoal sorry
+    subgoal sorry
+    subgoal sorry
+    subgoal sorry
+    subgoal by simp
+    subgoal by simp
     subgoal
       by (rule clause_not_marked_to_delete_heur_pre)
     subgoal

@@ -1,5 +1,5 @@
 theory Watched_Literals_Watch_List
-  imports Watched_Literals_List Array_UInt
+  imports Watched_Literals_List Array_UInt "../lib/Explorer"
 begin
 
 text \<open>Remove notation that coonflicts with \<^term>\<open>list_update\<close>:\<close>
@@ -979,9 +979,10 @@ definition unit_propagation_inner_loop_wl_loop_pre where
      w < length (watched_by S L) \<and> j \<le> w \<and>
      unit_propagation_inner_loop_wl_loop_inv L (j, w, S))\<close>
 
-definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
+text \<open>It was too hard to align the programi unto a refinable form directly.\<close>
+definition unit_propagation_inner_loop_body_wl_int :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
-  \<open>unit_propagation_inner_loop_body_wl L j w S = do {
+  \<open>unit_propagation_inner_loop_body_wl_int L j w S = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       let (C, K, b) = (watched_by S L) ! w;
       let S = keep_watch L j w S;
@@ -1019,12 +1020,65 @@ definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow
       }
    }\<close>
 
+
+definition propagate_proper_bin_case where
+  \<open>propagate_proper_bin_case S C \<longleftrightarrow>
+       C \<in># dom_m (get_clauses_wl S) \<and> length ((get_clauses_wl S)\<propto>C) = 2\<close>
+
+definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
+    (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
+  \<open>unit_propagation_inner_loop_body_wl L j w S = do {
+      ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
+      let (C, K, b) = (watched_by S L) ! w;
+      let S = keep_watch L j w S;
+      ASSERT(unit_prop_body_wl_inv S j w L);
+      let val_K = polarity (get_trail_wl S) K;
+      if val_K = Some True
+      then RETURN (j+1, w+1, S)
+      else do {
+        if b then do {
+           ASSERT(propagate_proper_bin_case S C);
+           if val_K = Some False
+           then RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)
+           else do {  \<comment>\<open>This is non-optimal (memory access: relax invariant!):\<close>
+             let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
+             RETURN (j+1, w+1, propagate_lit_wl K C i S)}
+        }  \<comment>\<open>Now the costly operations:\<close>
+        else if C \<notin># dom_m (get_clauses_wl S)
+        then RETURN (j, w+1, S)
+        else do {
+          let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
+          let L' = ((get_clauses_wl S)\<propto>C) ! (1 - i);
+          let val_L' = polarity (get_trail_wl S) L';
+          if val_L' = Some True
+          then update_blit_wl L C b j w L' S
+          else do {
+            f \<leftarrow> find_unwatched_l (get_trail_wl S) (get_clauses_wl S \<propto>C);
+            ASSERT (unit_prop_body_wl_find_unwatched_inv f C S);
+            case f of
+              None \<Rightarrow> do {
+                if val_L' = Some False
+                then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
+                else do {RETURN (j+1, w+1, propagate_lit_wl L' C i S)}
+              }
+            | Some f \<Rightarrow> do {
+                let K = get_clauses_wl S \<propto> C ! f;
+                let val_L' = polarity (get_trail_wl S) K;
+                if val_L' = Some True
+                then update_blit_wl L C b j w K S
+                else update_clause_wl L C b j w i f S
+              }
+          }
+        }
+      }
+   }\<close>
+
 lemma [twl_st_wl]: \<open>get_clauses_wl (keep_watch L j w S) = get_clauses_wl S\<close>
   by (cases S) (auto simp: keep_watch_def)
 
 
-lemma unit_propagation_inner_loop_body_wl_alt_def:
- \<open>unit_propagation_inner_loop_body_wl L j w S = do {
+lemma unit_propagation_inner_loop_body_wl_int_alt_def:
+ \<open>unit_propagation_inner_loop_body_wl_int L j w S = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       let (C, K, b) = (watched_by S L) ! w;
       let b' = (C \<notin># dom_m (get_clauses_wl S));
@@ -1073,7 +1127,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
    }\<close>
 proof -
   text \<open>We first define an intermediate step where both then and else branches are the same.\<close>
-  have E: \<open>unit_propagation_inner_loop_body_wl L j w S = do {
+  have E: \<open>unit_propagation_inner_loop_body_wl_int L j w S = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       let (C, K, b) = (watched_by S L) ! w;
       let b' = (C \<notin># dom_m (get_clauses_wl S));
@@ -1161,7 +1215,7 @@ proof -
         ?Q C K b b'
       }
     }\<close>)
-    unfolding unit_propagation_inner_loop_body_wl_def if_not_swap bind_to_let_conv
+    unfolding unit_propagation_inner_loop_body_wl_int_def if_not_swap bind_to_let_conv
       SPEC_eq_is_RETURN twl_st_wl
     unfolding Let_def if_not_swap bind_to_let_conv
       SPEC_eq_is_RETURN twl_st_wl
@@ -1342,6 +1396,148 @@ proof -
     by fast
 qed
 
+
+lemma unit_propagation_inner_loop_body_wl_int_alt_def2:
+  \<open>unit_propagation_inner_loop_body_wl_int L j w S = do {
+      ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
+      let (C, K, b) = (watched_by S L) ! w;
+      let S = keep_watch L j w S;
+      ASSERT(unit_prop_body_wl_inv S j w L);
+      let val_K = polarity (get_trail_wl S) K;
+      if val_K = Some True
+      then RETURN (j+1, w+1, S)
+      else do { \<comment>\<open>Now the costly operations:\<close>
+        if b then
+          if C \<notin># dom_m (get_clauses_wl S)
+          then RETURN (j, w+1, S)
+          else do {
+            let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
+            let L' = ((get_clauses_wl S)\<propto>C) ! (1 - i);
+            let val_L' = polarity (get_trail_wl S) L';
+            if val_L' = Some True
+            then update_blit_wl L C b j w L' S
+            else do {
+              f \<leftarrow> find_unwatched_l (get_trail_wl S) (get_clauses_wl S \<propto>C);
+              ASSERT (unit_prop_body_wl_find_unwatched_inv f C S);
+              case f of
+                None \<Rightarrow> do {
+                  if val_L' = Some False
+                  then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
+                  else do {RETURN (j+1, w+1, propagate_lit_wl L' C i S)}
+                }
+              | Some f \<Rightarrow> do {
+                  let K = get_clauses_wl S \<propto> C ! f;
+                  let val_L' = polarity (get_trail_wl S) K;
+                  if val_L' = Some True
+                  then update_blit_wl L C b j w K S
+                  else update_clause_wl L C b j w i f S
+                }
+            }
+          }
+        else
+          if C \<notin># dom_m (get_clauses_wl S)
+          then RETURN (j, w+1, S)
+          else do {
+            let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
+            let L' = ((get_clauses_wl S)\<propto>C) ! (1 - i);
+            let val_L' = polarity (get_trail_wl S) L';
+            if val_L' = Some True
+            then update_blit_wl L C b j w L' S
+            else do {
+              f \<leftarrow> find_unwatched_l (get_trail_wl S) (get_clauses_wl S \<propto>C);
+              ASSERT (unit_prop_body_wl_find_unwatched_inv f C S);
+              case f of
+                None \<Rightarrow> do {
+                  if val_L' = Some False
+                  then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
+                  else do {RETURN (j+1, w+1, propagate_lit_wl L' C i S)}
+                }
+              | Some f \<Rightarrow> do {
+                  let K = get_clauses_wl S \<propto> C ! f;
+                  let val_L' = polarity (get_trail_wl S) K;
+                  if val_L' = Some True
+                  then update_blit_wl L C b j w K S
+                  else update_clause_wl L C b j w i f S
+                }
+            }
+          }
+      }
+   }\<close>
+  unfolding unit_propagation_inner_loop_body_wl_int_def if_not_swap bind_to_let_conv
+    SPEC_eq_is_RETURN twl_st_wl
+  unfolding Let_def if_not_swap bind_to_let_conv
+    SPEC_eq_is_RETURN twl_st_wl
+  apply (subst if_cancel)
+  apply (intro bind_cong_nres case_prod_cong if_cong[OF refl] refl)
+  done
+
+lemma unit_propagation_inner_loop_body_wl_alt_def:
+  \<open>unit_propagation_inner_loop_body_wl L j w S = do {
+      ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
+      let (C, K, b) = (watched_by S L) ! w;
+      let S = keep_watch L j w S;
+      ASSERT(unit_prop_body_wl_inv S j w L);
+      let val_K = polarity (get_trail_wl S) K;
+      if val_K = Some True
+      then RETURN (j+1, w+1, S)
+      else do {
+        if b then do {
+          if False
+          then RETURN (j, w+1, S)
+          else
+            if False \<comment> \<open>\<^term>\<open>val_L' = Some True\<close>\<close>
+            then RETURN (j, w+1, S)
+            else do {
+              f \<leftarrow> RETURN (None :: nat option);
+              case f of
+               None \<Rightarrow> do {
+                 ASSERT(propagate_proper_bin_case S C);
+                 if val_K = Some False
+                 then RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)
+                 else do {
+                   let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
+                   RETURN (j+1, w+1, propagate_lit_wl K C i S)}
+               }
+             | _ \<Rightarrow> RETURN (j, w+1, S)
+            }
+        }  \<comment>\<open>Now the costly operations:\<close>
+        else if C \<notin># dom_m (get_clauses_wl S)
+        then RETURN (j, w+1, S)
+        else do {
+          let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
+          let L' = ((get_clauses_wl S)\<propto>C) ! (1 - i);
+          let val_L' = polarity (get_trail_wl S) L';
+          if val_L' = Some True
+          then update_blit_wl L C b j w L' S
+          else do {
+            f \<leftarrow> find_unwatched_l (get_trail_wl S) (get_clauses_wl S \<propto>C);
+            ASSERT (unit_prop_body_wl_find_unwatched_inv f C S);
+            case f of
+              None \<Rightarrow> do {
+                if val_L' = Some False
+                then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
+                else do {RETURN (j+1, w+1, propagate_lit_wl L' C i S)}
+              }
+            | Some f \<Rightarrow> do {
+                let K = get_clauses_wl S \<propto> C ! f;
+                let val_L' = polarity (get_trail_wl S) K;
+                if val_L' = Some True
+                then update_blit_wl L C b j w K S
+                else update_clause_wl L C b j w i f S
+              }
+          }
+        }
+      }
+   }\<close>
+
+  unfolding unit_propagation_inner_loop_body_wl_def if_not_swap bind_to_let_conv
+    SPEC_eq_is_RETURN twl_st_wl
+  unfolding Let_def if_not_swap bind_to_let_conv
+    SPEC_eq_is_RETURN twl_st_wl if_False
+  apply (intro bind_cong_nres case_prod_cong if_cong[OF refl] refl)
+  apply auto
+  done
+
 lemma
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
   defines [simp]: \<open>C' \<equiv> fst (watched_by S L ! w)\<close>
@@ -1358,7 +1554,389 @@ lemma
     inner_loop_inv: \<open>unit_propagation_inner_loop_wl_loop_inv L (j, w, S)\<close> and
     n: \<open>n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl S)) (mset (drop w (watched_by S L))))\<close> and
     confl_S: \<open>get_conflict_wl S = None\<close>
-  shows unit_propagation_inner_loop_body_wl_spec: \<open>unit_propagation_inner_loop_body_wl L j w S \<le>
+  shows unit_propagation_inner_loop_body_wl_wl_int: \<open>unit_propagation_inner_loop_body_wl L j w S \<le>
+     \<Down> Id (unit_propagation_inner_loop_body_wl_int L j w S)\<close>
+proof -
+  obtain bL bin where SLw: \<open>watched_by S L ! w = (C', bL, bin)\<close>
+    using C'_def by (cases \<open>watched_by S L ! w\<close>) auto
+
+  define i :: nat where
+    \<open>i \<equiv> (if get_clauses_wl S \<propto> C' ! 0 = L then 0 else 1)\<close>
+
+  have
+    l_wl_inv: \<open>unit_prop_body_wl_inv S j w L\<close> (is ?inv) and
+    clause_ge_0: \<open>0 < length (get_clauses_l T \<propto> C')\<close> (is ?ge) and
+    L_def: \<open>defined_lit (get_trail_wl S) L\<close> \<open>-L \<in> lits_of_l (get_trail_wl S)\<close>
+      \<open>L \<notin> lits_of_l (get_trail_wl S)\<close> (is ?L_def) and
+    i_le: \<open>i < length (get_clauses_wl S \<propto> C')\<close>  (is ?i_le) and
+    i_le2: \<open>1-i < length (get_clauses_wl S \<propto> C')\<close>  (is ?i_le2) and
+    C'_dom: \<open>C' \<in># dom_m (get_clauses_l T)\<close> (is ?C'_dom) and
+    L_watched: \<open>L \<in> set (watched_l (get_clauses_l T \<propto> C'))\<close> (is ?L_w) and
+    dist_clss: \<open>distinct_mset_mset (mset `# ran_mf (get_clauses_wl S))\<close> and
+    confl: \<open>get_conflict_l T = None\<close> (is ?confl) and
+    alien_L:
+       \<open>L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)\<close>
+       (is ?alien) and
+    alien_L':
+       \<open>L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S)\<close>
+       (is ?alien') and
+    alien_L'':
+       \<open>L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_clauses_wl S)\<close>
+       (is ?alien'') and
+    correctly_marked_as_binary: \<open>correctly_marked_as_binary (get_clauses_wl S) (C', bL, bin)\<close>
+  if
+    \<open>unit_propagation_inner_loop_body_l_inv L C' T\<close>
+  proof -
+    have \<open>unit_propagation_inner_loop_body_l_inv L C' T\<close>
+      using that unfolding unit_prop_body_wl_inv_def by fast+
+    then obtain T' where
+      T_T': \<open>(set_clauses_to_update_l (clauses_to_update_l T + {#C'#}) T, T') \<in> twl_st_l (Some L)\<close> and
+      struct_invs: \<open>twl_struct_invs T'\<close> and
+       \<open>twl_stgy_invs T'\<close> and
+      C'_dom: \<open>C' \<in># dom_m (get_clauses_l T)\<close> and
+       \<open>0 < C'\<close> and
+       ge_0: \<open>0 < length (get_clauses_l T \<propto> C')\<close> and
+       \<open>no_dup (get_trail_l T)\<close> and
+       i_le: \<open>(if get_clauses_l T \<propto> C' ! 0 = L then 0 else 1)
+         < length (get_clauses_l T \<propto> C')\<close> and
+       i_le2: \<open>1 - (if get_clauses_l T \<propto> C' ! 0 = L then 0 else 1)
+         < length (get_clauses_l T \<propto> C')\<close> and
+       L_watched: \<open>L \<in> set (watched_l (get_clauses_l T \<propto> C'))\<close> and
+       confl: \<open>get_conflict_l T = None\<close>
+      unfolding unit_propagation_inner_loop_body_l_inv_def by blast
+    show ?i_le and ?C'_dom and ?L_w and ?i_le2
+      using S_S' i_le C'_dom L_watched i_le2 unfolding i_def by auto
+    have
+        alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T')\<close> and
+        dup: \<open>no_duplicate_queued T'\<close> and
+        lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T')\<close> and
+        dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of T')\<close>
+      using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by blast+
+    have n_d: \<open>no_dup (trail (state\<^sub>W_of T'))\<close>
+       using lev unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by auto
+    have 1: \<open>C \<in># clauses_to_update T' \<Longrightarrow>
+         add_mset (fst C) (literals_to_update T') \<subseteq>#
+         uminus `# lit_of `# mset (get_trail T')\<close> for C
+      using dup unfolding no_duplicate_queued_alt_def
+      by blast
+    have H: \<open>(L, twl_clause_of C'') \<in># clauses_to_update T'\<close>
+      using twl_st_l(5)[OF T_T']
+      by (auto simp: twl_st_l)
+    have uL_M: \<open>-L \<in> lits_of_l (get_trail T')\<close>
+      using mset_le_add_mset_decr_left2[OF 1[OF H]]
+      by (auto simp: lits_of_def)
+    then show \<open>defined_lit (get_trail_wl S) L\<close> \<open>-L \<in> lits_of_l (get_trail_wl S)\<close>
+      \<open>L \<notin> lits_of_l (get_trail_wl S)\<close>
+      using S_S' T_T' n_d by (auto simp: Decided_Propagated_in_iff_in_lits_of_l twl_st
+        dest: no_dup_consistentD)
+    show L: ?alien
+      using alien uL_M twl_st_l(1-8)[OF T_T'] S_S'
+        init_clss_state_to_l[OF T_T']
+        unit_init_clauses_get_unit_init_clauses_l[OF T_T']
+      unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      by (auto simp: in_all_lits_of_mm_ain_atms_of_iff twl_st_wl twl_st twl_st_l)
+    then show alien': ?alien'
+      apply (rule set_rev_mp)
+      apply (rule all_lits_of_mm_mono)
+      by (cases S) auto
+    show ?alien''
+      using L
+      apply (rule set_rev_mp)
+      apply (rule all_lits_of_mm_mono)
+      by (cases S) auto
+    then have l_wl_inv: \<open>(S, S') \<in> state_wl_l (Some (L, w)) \<and>
+         unit_propagation_inner_loop_body_l_inv L (fst (watched_by S L ! w))
+          (remove_one_lit_from_wq (fst (watched_by S L ! w)) S') \<and>
+         L \<in># all_lits_of_mm
+               (mset `# init_clss_lf (get_clauses_wl S) +
+                get_unit_clauses_wl S) \<and>
+         correct_watching_except j w L S \<and>
+         w < length (watched_by S L) \<and> get_conflict_wl S = None\<close>
+      using that assms L unfolding unit_prop_body_wl_inv_def unit_propagation_inner_loop_body_l_inv_def
+      by (auto simp: twl_st)
+
+    then show ?inv
+      using that assms unfolding unit_prop_body_wl_inv_def unit_propagation_inner_loop_body_l_inv_def
+      by blast
+    show ?ge
+      by (rule ge_0)
+    show \<open>distinct_mset_mset (mset `# ran_mf (get_clauses_wl S))\<close>
+      using dist S_S' twl_st_l(1-8)[OF T_T'] T_T' unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_alt_def
+      by (auto simp: twl_st)
+    show ?confl
+      using confl .
+    have \<open>watched_by S L ! w \<in> set (take j (watched_by S L)) \<union> set (drop w (watched_by S L))\<close>
+      using L alien' C'_dom SLw w_le
+      by (cases S)
+        (auto simp: in_set_drop_conv_nth)
+    then show \<open>correctly_marked_as_binary (get_clauses_wl S) (C', bL, bin)\<close>
+      using corr_w alien' C'_dom SLw S_S'
+      by (cases S; cases \<open>watched_by S L ! w\<close>)
+        (clarsimp simp: correct_watching_except.simps Ball_def all_conj_distrib state_wl_l_def
+          simp del: Un_iff
+          dest!: multi_member_split[of L])
+  qed
+
+  have f': \<open>(f, f') \<in> \<langle>Id\<rangle>option_rel\<close>
+    if \<open>(f, f') \<in> {(f, f'). f = f' \<and> f' = None}\<close> for f f'
+    using that by auto
+
+  have f'': \<open>(f, f') \<in> \<langle>Id\<rangle>option_rel\<close>
+    if \<open>(f, f') \<in> Id\<close> for f f'
+    using that by auto
+  have i_def': \<open>i = (if get_clauses_l T \<propto> C' ! 0 = L then 0 else 1)\<close>
+    using S_S' unfolding i_def by auto
+
+  have
+    bin_dom: \<open>propagate_proper_bin_case (keep_watch L j w S) x1\<close> and
+    bin_in_dom:  \<open>False = (x1 \<notin># dom_m (get_clauses_wl (keep_watch L j w S)))\<close> and
+    bin_pol_not_True:
+      \<open>False =
+        (polarity (get_trail_wl (keep_watch L j w S))
+          (get_clauses_wl (keep_watch L j w S) \<propto> x1 !
+           (1 - (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1))) =
+          Some True)\<close> and
+    bin_cannot_find_new:
+       \<open>RETURN None \<le> \<Down> {(f, f'). f = f' \<and> f' = None}
+       (find_unwatched_l (get_trail_wl (keep_watch L j w S)) (get_clauses_wl (keep_watch L j w S) \<propto> x1))\<close>
+      and
+    bin_pol_False:
+     \<open>(polarity (get_trail_wl (keep_watch L j w S)) x1c = Some False) =
+      (polarity (get_trail_wl (keep_watch L j w S))
+        (get_clauses_wl (keep_watch L j w S) \<propto> x1 !
+         (1 - (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1))) =
+       Some False)\<close> and
+    bin_prop:
+     \<open>(let i = if get_clauses_wl (keep_watch L j w S) \<propto> x1b ! 0 = L then 0 else 1
+     in RETURN (j + 1, w + 1, propagate_lit_wl x1c x1b i (keep_watch L j w S)))
+    \<le> SPEC (\<lambda>c. (c, j + 1, w + 1,
+                  propagate_lit_wl
+                   (get_clauses_wl (keep_watch L j w S) \<propto> x1 !
+                    (1 - (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1)))
+                   x1 (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1)
+                   (keep_watch L j w S))
+                 \<in> Id)\<close>
+    if
+      pre: \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
+      st: \<open>x2 = (x1a, x2a)\<close> \<open>x2b = (x1c, x2c)\<close> and
+      SLw': \<open>watched_by S L ! w = (x1, x2)\<close> and
+      SLw'': \<open>watched_by S L ! w = (x1b, x2b)\<close> and
+      inv: \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w L\<close> and
+      \<open>unit_prop_body_wl_inv (keep_watch L j w S) j w L\<close> and
+      \<open>polarity (get_trail_wl (keep_watch L j w S)) x1c \<noteq> Some True\<close> and
+      bin: \<open>x2c\<close> \<open>x2a\<close>
+    for x1 x2 x1a x2a x1b x2b x1c x2c
+  proof -
+
+    obtain T where
+      S_T: \<open>(S, T) \<in> state_wl_l (Some (L, w))\<close> and
+      \<open>j \<le> w\<close> and
+      w_le: \<open>w < length (watched_by S L)\<close>
+      \<open>unit_propagation_inner_loop_l_inv L (T, remaining_nondom_wl w L S)\<close> and
+      \<open>correct_watching_except j w L S \<and> w \<le> length (watched_by S L)\<close>
+      using pre unfolding unit_propagation_inner_loop_wl_loop_pre_def prod.simps
+        unit_propagation_inner_loop_wl_loop_inv_def
+      by fast+
+    then obtain T' where
+      S_T: \<open>(S, T) \<in> state_wl_l (Some (L, w))\<close> and
+      \<open>j \<le> w\<close> and
+      \<open>correct_watching_except j w L S\<close> and
+      \<open>w \<le> length (watched_by S L)\<close> and
+      T_T': \<open>(T, T') \<in> twl_st_l (Some L)\<close> and
+      struct_invs: \<open>twl_struct_invs T'\<close> and
+      \<open>twl_stgy_invs T'\<close> and
+      \<open>twl_list_invs T\<close> and
+      uL: \<open>- L \<in> lits_of_l (get_trail_l T)\<close> and
+      confl: \<open>clauses_to_update T' \<noteq> {#} \<or> 0 < remaining_nondom_wl w L S \<longrightarrow> get_conflict T' = None\<close>
+      unfolding unit_propagation_inner_loop_l_inv_def prod.case
+      by metis
+    have confl: \<open>get_conflict T' = None\<close>
+      using S_T w_le T_T' confl_S
+      by (cases S; cases T')  (auto simp: state_wl_l_def twl_st_l_def)
+    have
+        alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T')\<close> and
+        dup: \<open>no_duplicate_queued T'\<close> and
+        lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T')\<close> and
+        dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of T')\<close>
+      using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by blast+
+    have n_d: \<open>no_dup (trail (state\<^sub>W_of T'))\<close>
+       using lev unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by auto
+    have 1: \<open>C \<in># clauses_to_update T' \<Longrightarrow>
+         add_mset (fst C) (literals_to_update T') \<subseteq>#
+         uminus `# lit_of `# mset (get_trail T')\<close> for C
+      using dup unfolding no_duplicate_queued_alt_def
+      by blast
+    have uL_M: \<open>-L \<in> lits_of_l (get_trail T')\<close>
+      using uL T_T'
+      by (auto simp: lits_of_def)
+    have L: \<open>L \<in># all_lits_of_mm
+           (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)\<close>
+      using alien uL_M twl_st_l(1-8)[OF T_T'] S_S' S_T
+        init_clss_state_to_l[OF T_T']
+        unit_init_clauses_get_unit_init_clauses_l[OF T_T']
+      unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      by (auto simp: in_all_lits_of_mm_ain_atms_of_iff twl_st_wl twl_st twl_st_l)
+    then have alien':
+      \<open>L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S)\<close>
+      apply (rule set_rev_mp)
+      apply (rule all_lits_of_mm_mono)
+      by (cases S) auto
+    have \<open>watched_by S L ! w  \<in> set (drop w (watched_by S L))\<close>
+      using corr_w alien' SLw S_S' inv pre
+      by (cases S; cases \<open>watched_by S L ! w\<close>)
+        (auto simp: correct_watching_except.simps Ball_def all_conj_distrib state_wl_l_def
+          unit_propagation_inner_loop_wl_loop_pre_def in_set_drop_conv_nth
+          intro!: bex_geI[of _  w]
+          simp del: Un_iff
+          dest!: multi_member_split[of L])
+    then have H: \<open>x1 \<in># dom_m (get_clauses_wl S) \<and> bL \<in> set (get_clauses_wl S \<propto> C') \<and>
+             bL \<noteq> L \<and> correctly_marked_as_binary (get_clauses_wl S) (C', bL, bin) \<and>
+       filter_mset (\<lambda>i. i \<in># dom_m (get_clauses_wl S))
+              (fst `# mset (take j (watched_by S L) @ drop w (watched_by S L))) =
+       clause_to_update L (get_trail_wl S, get_clauses_wl S, get_conflict_wl S,
+          get_unit_init_clss_wl S, get_unit_learned_clss_wl S, {#},  {#})\<close>
+      using corr_w alien' S_S' bin SLw' unfolding SLw st
+      by (cases S)
+        (auto simp: correct_watching_except.simps Ball_def all_conj_distrib state_wl_l_def
+          simp del:
+          dest!: multi_member_split[of L])
+    then show \<open>False = (x1 \<notin># dom_m (get_clauses_wl (keep_watch L j w S)))\<close>
+      by auto
+    have dom: \<open>C' \<in># dom_m (get_clauses_wl S)\<close> and
+      filter: \<open>filter_mset (\<lambda>i. i \<in># dom_m (get_clauses_wl S))
+              (fst `# mset (take j (watched_by S L) @ drop w (watched_by S L))) =
+         clause_to_update L (get_trail_wl S, get_clauses_wl S, get_conflict_wl S,
+          get_unit_init_clss_wl S, get_unit_learned_clss_wl S, {#},  {#})\<close>
+      using \<open>watched_by S L ! w  \<in> set (drop w (watched_by S L))\<close> H SLw' unfolding SLw st
+      by auto
+
+    have x1c: \<open>x1c = bL\<close> and x1: \<open>x1 = x1b\<close>
+      using SLw' SLw'' unfolding st SLw
+      by auto
+    have \<open>C' \<in># filter_mset (\<lambda>i. i \<in># dom_m (get_clauses_wl S))
+              (fst `# mset (take j (watched_by S L) @ drop w (watched_by S L)))\<close>
+      using \<open>watched_by S L ! w  \<in> set (drop w (watched_by S L))\<close> dom
+      by auto
+    then have \<open>L \<in> set (watched_l (get_clauses_wl S \<propto> C'))\<close>
+      using L_watched S_T SLw' bin unfolding filter
+      by (auto simp: clause_to_update_def)
+    moreover have le2: \<open>length (get_clauses_wl S \<propto> C') = 2\<close>
+      using H SLw' bin unfolding SLw st
+      by (auto simp: correctly_marked_as_binary.simps)
+    ultimately have lit: \<open>(get_clauses_wl (keep_watch L j w S) \<propto> x1 !
+       (1 - (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1))) = bL\<close> and
+      [simp]: \<open>unwatched_l (get_clauses_wl S \<propto> x1) = []\<close> and
+         lit': \<open>(get_clauses_wl (keep_watch L j w S) \<propto> x1b !
+                    ((if get_clauses_wl (keep_watch L j w S) \<propto> x1b ! 0 = L then 0 else 1))) = L\<close>
+      using H SLw' bin unfolding SLw st length_list_2 x1
+      by (auto simp del:  simp del: C'_def)
+    show \<open>False =
+      (polarity (get_trail_wl (keep_watch L j w S))
+        (get_clauses_wl (keep_watch L j w S) \<propto> x1 !
+         (1 - (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1))) =
+        Some True)\<close>
+      using that(8)
+      unfolding x1c lit
+      by auto
+     show \<open>propagate_proper_bin_case (keep_watch L j w S) x1\<close>
+       using H le2 SLw' unfolding propagate_proper_bin_case_def x1 SLw
+       by auto
+
+    show \<open>RETURN None \<le> \<Down> {(f, f'). f = f' \<and> f' = None}
+     (find_unwatched_l (get_trail_wl (keep_watch L j w S)) (get_clauses_wl (keep_watch L j w S) \<propto> x1))\<close>
+      by (auto simp: find_unwatched_l_def RETURN_RES_refine_iff)
+    show
+     \<open>(polarity (get_trail_wl (keep_watch L j w S)) x1c = Some False) =
+      (polarity (get_trail_wl (keep_watch L j w S))
+        (get_clauses_wl (keep_watch L j w S) \<propto> x1 !
+         (1 - (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1))) =
+       Some False)\<close>
+      unfolding x1c lit ..
+    show
+    bin_prop:
+     \<open>(let i = if get_clauses_wl (keep_watch L j w S) \<propto> x1b ! 0 = L then 0 else 1
+     in RETURN (j + 1, w + 1, propagate_lit_wl x1c x1b i (keep_watch L j w S)))
+    \<le> SPEC (\<lambda>c. (c, j + 1, w + 1,
+                  propagate_lit_wl
+                   (get_clauses_wl (keep_watch L j w S) \<propto> x1 !
+                    (1 - (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1)))
+                   x1 (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1)
+                   (keep_watch L j w S))
+                 \<in> Id)\<close>
+      unfolding x1c lit Let_def unfolding x1
+      by auto
+  qed
+  have find_unwatched_l:
+    \<open>find_unwatched_l (get_trail_wl (keep_watch L j w S)) (get_clauses_wl (keep_watch L j w S) \<propto> x1b)
+      \<le> \<Down> Id
+          (find_unwatched_l (get_trail_wl (keep_watch L j w S)) (get_clauses_wl (keep_watch L j w S) \<propto> x1))\<close>
+    if
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>watched_by S L ! w = (x1, x2)\<close> and
+      \<open>x2b = (x1c, x2c)\<close> and
+      \<open>watched_by S L ! w = (x1b, x2b)\<close>
+    for x1 x2 x1a x2a x1b x2b x1c x2c
+  proof -
+    show ?thesis
+      using that
+      by auto
+  qed
+  show ?thesis
+    unfolding unit_propagation_inner_loop_body_wl_int_alt_def2
+       unit_propagation_inner_loop_body_wl_alt_def
+    apply refine_rcg
+    subgoal by auto
+    subgoal by auto
+    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c
+      by (rule bin_in_dom)
+    subgoal by (rule bin_pol_not_True)
+    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c
+      by fast \<comment>\<open>impossible case\<close>
+                     apply (rule bin_cannot_find_new; assumption)
+    apply (rule f'; assumption)
+    subgoal
+      by (rule bin_dom)
+    subgoal
+      by (rule bin_pol_False)
+    subgoal by auto
+    subgoal
+      by (rule bin_prop)
+    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c
+      by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+            apply (rule find_unwatched_l; assumption)
+    subgoal by auto
+    apply (rule f''; assumption)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+lemma
+  fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
+  defines [simp]: \<open>C' \<equiv> fst (watched_by S L ! w)\<close>
+  defines
+    [simp]: \<open>T \<equiv> remove_one_lit_from_wq C' S'\<close>
+
+  defines
+    [simp]: \<open>C'' \<equiv> get_clauses_l S' \<propto> C'\<close>
+  assumes
+    S_S': \<open>(S, S') \<in> state_wl_l (Some (L, w))\<close> and
+    w_le: \<open>w < length (watched_by S L)\<close> and
+    j_w: \<open>j \<le> w\<close> and
+    corr_w: \<open>correct_watching_except j w L S\<close> and
+    inner_loop_inv: \<open>unit_propagation_inner_loop_wl_loop_inv L (j, w, S)\<close> and
+    n: \<open>n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl S)) (mset (drop w (watched_by S L))))\<close> and
+    confl_S: \<open>get_conflict_wl S = None\<close>
+  shows unit_propagation_inner_loop_body_wl_int_spec: \<open>unit_propagation_inner_loop_body_wl_int L j w S \<le>
     \<Down>{((i, j, T'), (T, n)).
         (T', T) \<in> state_wl_l (Some (L, j)) \<and>
         correct_watching_except i j L T' \<and>
@@ -2453,7 +3031,7 @@ proof -
   show 1: ?propa
     (is \<open>_ \<le> \<Down> ?unit _\<close>)
     supply trail_keep_w[simp]
-    unfolding unit_propagation_inner_loop_body_wl_alt_def
+    unfolding unit_propagation_inner_loop_body_wl_int_alt_def
       i_def[symmetric] i_def'[symmetric] unit_propagation_inner_loop_body_l_with_skip_alt_def
       unit_propagation_inner_loop_body_l_def
     apply (rewrite at "let _ = keep_watch _ _ _ _ in _" Let_def)
@@ -2510,6 +3088,44 @@ proof -
     unfolding i_def[symmetric]
     by (auto simp: ran_m_clause_upd image_mset_remove1_mset_if)
 qed
+
+lemma
+  fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
+  defines [simp]: \<open>C' \<equiv> fst (watched_by S L ! w)\<close>
+  defines
+    [simp]: \<open>T \<equiv> remove_one_lit_from_wq C' S'\<close>
+
+  defines
+    [simp]: \<open>C'' \<equiv> get_clauses_l S' \<propto> C'\<close>
+  assumes
+    S_S': \<open>(S, S') \<in> state_wl_l (Some (L, w))\<close> and
+    w_le: \<open>w < length (watched_by S L)\<close> and
+    j_w: \<open>j \<le> w\<close> and
+    corr_w: \<open>correct_watching_except j w L S\<close> and
+    inner_loop_inv: \<open>unit_propagation_inner_loop_wl_loop_inv L (j, w, S)\<close> and
+    n: \<open>n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl S)) (mset (drop w (watched_by S L))))\<close> and
+    confl_S: \<open>get_conflict_wl S = None\<close>
+  shows unit_propagation_inner_loop_body_wl_spec: \<open>unit_propagation_inner_loop_body_wl L j w S \<le>
+    \<Down>{((i, j, T'), (T, n)).
+        (T', T) \<in> state_wl_l (Some (L, j)) \<and>
+        correct_watching_except i j L T' \<and>
+        j \<le> length (watched_by T' L) \<and>
+        length (watched_by S L) =  length (watched_by T' L) \<and>
+        i \<le> j \<and>
+        (get_conflict_wl T' = None \<longrightarrow>
+           n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl T')) (mset (drop j (watched_by T' L))))) \<and>
+        (get_conflict_wl T' \<noteq> None \<longrightarrow> n = 0)}
+     (unit_propagation_inner_loop_body_l_with_skip L (S', n))\<close>
+  apply (rule order_trans)
+   apply (rule unit_propagation_inner_loop_body_wl_wl_int[OF S_S' w_le j_w corr_w inner_loop_inv n
+       confl_S])
+  apply (subst Down_id_eq)
+   apply (rule unit_propagation_inner_loop_body_wl_int_spec[OF S_S' w_le j_w corr_w inner_loop_inv n
+       confl_S])
+  done
+
+
+
 
 definition unit_propagation_inner_loop_wl_loop
    :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where

@@ -669,6 +669,10 @@ lemma [twl_st_l]:
   using twl_st_l[OF assms] unfolding lits_of_def
   by simp
 
+lemma [twl_st_l]:
+  \<open>get_trail_l (set_literals_to_update_l D S) = get_trail_l S\<close>
+  by (cases S) auto
+
 fun remove_one_lit_from_wq :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
   \<open>remove_one_lit_from_wq L (M, N, D, NE, UE, WS, Q) = (M, N, D, NE, UE, remove1_mset L WS, Q)\<close>
 
@@ -1615,7 +1619,8 @@ definition select_from_clauses_to_update :: \<open>'v twl_st_l \<Rightarrow> ('v
 definition unit_propagation_inner_loop_l_inv where
   \<open>unit_propagation_inner_loop_l_inv L = (\<lambda>(S, n).
     (\<exists>S'. (S, S') \<in> twl_st_l (Some L) \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
-      twl_list_invs S \<and> (clauses_to_update S' \<noteq> {#} \<or> n > 0 \<longrightarrow> get_conflict S' = None)))\<close>
+      twl_list_invs S \<and> (clauses_to_update S' \<noteq> {#} \<or> n > 0 \<longrightarrow> get_conflict S' = None) \<and>
+      -L \<in> lits_of_l (get_trail_l S)))\<close>
 
 definition unit_propagation_inner_loop_body_l_with_skip where
   \<open>unit_propagation_inner_loop_body_l_with_skip L = (\<lambda>(S, n). do {
@@ -1694,11 +1699,21 @@ lemma clauses_to_update_l_empty_tw_st_of_Some_None[simp]:
   \<open>clauses_to_update_l S = {#} \<Longrightarrow> (S, S')\<in> twl_st_l (Some L) \<longleftrightarrow> (S, S') \<in> twl_st_l None\<close>
   by (cases S) (auto simp: twl_st_l_def)
 
+lemma cdcl_twl_cp_in_trail_stays_in:
+  \<open>cdcl_twl_cp\<^sup>*\<^sup>* S' aa \<Longrightarrow> - x1 \<in> lits_of_l (get_trail S') \<Longrightarrow> - x1 \<in> lits_of_l (get_trail aa)\<close>
+  by (induction rule: rtranclp_induct)
+     (auto elim!: cdcl_twl_cpE)
+
+lemma cdcl_twl_cp_in_trail_stays_in_l:
+  \<open>(x2, S') \<in> twl_st_l (Some x1)  \<Longrightarrow> cdcl_twl_cp\<^sup>*\<^sup>* S' aa \<Longrightarrow> - x1 \<in> lits_of_l (get_trail_l x2) \<Longrightarrow>
+       (a, aa) \<in> twl_st_l (Some x1) \<Longrightarrow>  - x1 \<in> lits_of_l (get_trail_l a)\<close>
+  using cdcl_twl_cp_in_trail_stays_in[of S' aa \<open>x1\<close>]
+  by (auto simp: twl_st twl_st_l)
 
 lemma unit_propagation_inner_loop_l:
   \<open>(uncurry unit_propagation_inner_loop_l, unit_propagation_inner_loop) \<in>
   {((L, S), S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_struct_invs S' \<and>
-     twl_stgy_invs S' \<and> twl_list_invs S} \<rightarrow>\<^sub>f
+     twl_stgy_invs S' \<and> twl_list_invs S \<and> -L \<in> lits_of_l (get_trail_l S)} \<rightarrow>\<^sub>f
   \<langle>{(T, T'). (T, T') \<in> twl_st_l None \<and> clauses_to_update_l T = {#} \<and>
     twl_list_invs T \<and> twl_struct_invs T' \<and> twl_stgy_invs T'}\<rangle> nres_rel\<close>
   (is \<open>?unit_prop_inner \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle>nres_rel\<close>)
@@ -1732,7 +1747,10 @@ proof -
         SPEC_remove;
         remove_dummy_vars)
       subgoal by simp
-      subgoal unfolding unit_propagation_inner_loop_l_inv_def by fastforce
+      subgoal for x1 x2 n na x x' unfolding unit_propagation_inner_loop_l_inv_def
+        apply (case_tac x; case_tac x')
+        apply (simp only: prod.simps)
+        by (rule exI[of _ \<open>fst x'\<close>]) (auto intro: cdcl_twl_cp_in_trail_stays_in_l)
       subgoal by auto
       subgoal by auto
       subgoal by auto
@@ -1887,6 +1905,7 @@ proof -
     unfolding twl_list_invs_def T by auto
 qed
 
+
 lemma unit_propagation_outer_loop_l_spec:
   \<open>(unit_propagation_outer_loop_l, unit_propagation_outer_loop) \<in>
   {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_struct_invs S' \<and>
@@ -1908,6 +1927,10 @@ proof -
     using that unfolding select_and_remove_from_literals_to_update_def
     apply (cases x; cases x')
     unfolding conc_fun_def by (clarsimp simp add: twl_st_l_def conc_fun_def)
+  have H': \<open>unit_propagation_outer_loop_l_inv T \<Longrightarrow>
+    x2 \<in># literals_to_update_l T \<Longrightarrow> - x2 \<in> lits_of_l (get_trail_l T)\<close>
+    for S S' T T' L L' C x2
+    by (auto simp: unit_propagation_outer_loop_l_inv_def twl_st_l_def twl_struct_invs_def)
   have H:
     \<open>(unit_propagation_outer_loop_l, unit_propagation_outer_loop) \<in>?R \<rightarrow>\<^sub>f
       \<langle>{(S, S').
@@ -1924,10 +1947,10 @@ proof -
     subgoal by auto
     subgoal by simp
     subgoal by fast
-    subgoal for S S' T T' L L' C
+    subgoal for S S' T T' L L' C x2
       by (auto simp add: twl_st_of_clause_to_update twl_list_invs_set_clauses_to_update_iff
           intro: cdcl_twl_cp_twl_struct_invs cdcl_twl_cp_twl_stgy_invs
-          distinct_mset_clause_to_update
+          distinct_mset_clause_to_update H'
           dest: in_clause_to_updateD)
     done
   have B: \<open>?B = {(T, T'). (T, T') \<in> {(T, T'). (T, T') \<in> twl_st_l None \<and>

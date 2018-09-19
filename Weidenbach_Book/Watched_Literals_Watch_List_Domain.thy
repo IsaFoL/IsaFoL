@@ -315,8 +315,17 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D
       let val_K = polarity (get_trail_wl S) K;
       if val_K = Some True
       then RETURN (j+1, w+1, S)
-      else do { \<comment>\<open>Now the costly operations:\<close>
-        if C \<notin># dom_m (get_clauses_wl S)
+      else do {
+          if b then do {
+            ASSERT(propagate_proper_bin_case S C);
+            if val_K = Some False
+            then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
+            else do {
+              let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
+              RETURN (j+1, w+1, propagate_lit_wl K C i S)
+            }
+        }  \<comment>\<open>Now the costly operations:\<close>
+        else if C \<notin># dom_m (get_clauses_wl S)
         then RETURN (j, w+1, S)
         else do {
           let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
@@ -450,20 +459,23 @@ lemma (in isasat_input_ops) literals_are_\<L>\<^sub>i\<^sub>n_keep_watch[twl_st_
       blits_in_\<L>\<^sub>i\<^sub>n_keep_watch)
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n_propagate:
-  \<open>blits_in_\<L>\<^sub>i\<^sub>n (Propagated (x1aa \<propto> x1 ! Suc 0) x1 # x1b, x1aa
-         (x1 \<hookrightarrow> swap (x1aa \<propto> x1) 0 (Suc 0)), None, x1c, x1d,
-          add_mset (- x1aa \<propto> x1 ! Suc 0) x1e, x2e) \<longleftrightarrow>
-  blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, None, x1c, x1d, x1e, x2e)\<close>
+  \<open>blits_in_\<L>\<^sub>i\<^sub>n (Propagated A x1' # x1b, x1aa
+         (x1 \<hookrightarrow> swap (x1aa \<propto> x1) 0 (Suc 0)), D, x1c, x1d,
+          add_mset A' x1e, x2e) \<longleftrightarrow>
+  blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, x1e, x2e)\<close>
+  \<open>blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa
+         (x1 \<hookrightarrow> swap (x1aa \<propto> x1) 0 (Suc 0)), D, x1c, x1d,x1e, x2e) \<longleftrightarrow>
+  blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, x1e, x2e)\<close>
   \<open>blits_in_\<L>\<^sub>i\<^sub>n
-        (Propagated (x1aa \<propto> x1 ! 0) x1 # x1b, x1aa, None, x1c, x1d,
-         add_mset (- x1aa \<propto> x1 ! 0) x1e, x2e) \<longleftrightarrow>
-  blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, None, x1c, x1d, x1e, x2e)\<close>
+        (Propagated A x1' # x1b, x1aa, D, x1c, x1d,
+         add_mset A' x1e, x2e) \<longleftrightarrow>
+  blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, x1e, x2e)\<close>
   \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n
-        (x1a, x1aa(x1' \<hookrightarrow> swap (x1aa \<propto> x1') n n'), None, x1c, x1d,
+        (x1a, x1aa(x1' \<hookrightarrow> swap (x1aa \<propto> x1') n n'), D, x1c, x1d,
          x1e, x2e
          (x1aa \<propto> x1' ! n' :=
             x2e (x1aa \<propto> x1' ! n') @ [(x1', K, b')])) \<longleftrightarrow>
-  blits_in_\<L>\<^sub>i\<^sub>n (x1a, x1aa, None, x1c, x1d,
+  blits_in_\<L>\<^sub>i\<^sub>n (x1a, x1aa, D, x1c, x1d,
          x1e, x2e)\<close>
   unfolding blits_in_\<L>\<^sub>i\<^sub>n_def
   by (auto split: if_splits)
@@ -551,7 +563,6 @@ proof -
         mset_take_mset_drop_mset' S unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         ran_m_mapsto_upd unit_propagation_inner_loop_body_l_inv_def blits_in_\<L>\<^sub>i\<^sub>n_propagate
         state_wl_l_def image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n_def)
-
   have update_clause_wl: \<open>update_clause_wl K x1' b' j w
      (if get_clauses_wl S \<propto> x1' ! 0 = K then 0 else 1) n S
     \<le> \<Down> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
@@ -688,6 +699,63 @@ proof -
       using assms that by (cases S) (auto simp: twl_st_wl keep_watch_def literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl
           literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_keep_watch')
   qed
+  have bin_set_conflict:
+    \<open>((j + 1, w + 1, set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1b) (keep_watch K j w S)), j + 1, w + 1,
+       set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1) (keep_watch K j w S))
+      \<in> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}\<close>
+    if
+      \<open>unit_propagation_inner_loop_wl_loop_pre K (j, w, S)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_D_pre K (j, w, S)\<close> and
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>watched_by S K ! w = (x1, x2)\<close> and
+      \<open>x2b = (x1c, x2c)\<close> and
+      \<open>watched_by S K ! w = (x1b, x2b)\<close> and
+      \<open>unit_prop_body_wl_inv (keep_watch K j w S) j w K\<close> and
+      \<open>unit_prop_body_wl_D_inv (keep_watch K j w S) j w K\<close> and
+      \<open>polarity (get_trail_wl (keep_watch K j w S)) x1c \<noteq> Some True\<close> and
+      \<open>polarity (get_trail_wl (keep_watch K j w S)) x1a \<noteq> Some True\<close> and
+      \<open>x2c\<close> and
+      \<open>x2a\<close> and
+      \<open>polarity (get_trail_wl (keep_watch K j w S)) x1c = Some False\<close> and
+      \<open>polarity (get_trail_wl (keep_watch K j w S)) x1a = Some False\<close>
+    for x1 x2 x1a x2a x1b x2b x1c x2c
+  proof -
+    show ?thesis
+      using that assms
+      by (auto simp: literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl unit_propagation_inner_loop_wl_loop_pre_def)
+  qed
+  have bin_prop:
+    \<open>((j + 1, w + 1,
+        propagate_lit_wl x1c x1b (if get_clauses_wl (keep_watch K j w S) \<propto> x1b ! 0 = K then 0 else 1) (keep_watch K j w S)),
+       j + 1, w + 1,
+       propagate_lit_wl x1a x1 (if get_clauses_wl (keep_watch K j w S) \<propto> x1 ! 0 = K then 0 else 1) (keep_watch K j w S))
+      \<in> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}\<close>
+    if
+      \<open>unit_propagation_inner_loop_wl_loop_pre K (j, w, S)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_D_pre K (j, w, S)\<close> and
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>watched_by S K ! w = (x1, x2)\<close> and
+      \<open>x2b = (x1c, x2c)\<close> and
+      \<open>watched_by S K ! w = (x1b, x2b)\<close> and
+      \<open>unit_prop_body_wl_inv (keep_watch K j w S) j w K\<close> and
+      \<open>unit_prop_body_wl_D_inv (keep_watch K j w S) j w K\<close> and
+      \<open>polarity (get_trail_wl (keep_watch K j w S)) x1c \<noteq> Some True\<close> and
+      \<open>polarity (get_trail_wl (keep_watch K j w S)) x1a \<noteq> Some True\<close> and
+      \<open>x2c\<close> and
+      \<open>x2a\<close> and
+      \<open>polarity (get_trail_wl (keep_watch K j w S)) x1c \<noteq> Some False\<close> and
+      \<open>polarity (get_trail_wl (keep_watch K j w S)) x1a \<noteq> Some False\<close> and
+      \<open>propagate_proper_bin_case (keep_watch K j w S) x1\<close>
+    for x1 x2 x1a x2a x1b x2b x1c x2c
+  unfolding propagate_lit_wl_def S
+  apply clarify
+  apply refine_vcg
+  using that \<A>\<^sub>i\<^sub>n
+  by (auto simp: clauses_def unit_prop_body_wl_find_unwatched_inv_def
+        propagate_proper_bin_case_def
+        mset_take_mset_drop_mset' S unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+        ran_m_mapsto_upd unit_propagation_inner_loop_body_l_inv_def blits_in_\<L>\<^sub>i\<^sub>n_propagate
+        state_wl_l_def image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n_def)
   show ?thesis
     unfolding unit_propagation_inner_loop_body_wl_D_def find_unwatched_wl_def[symmetric]
     unfolding unit_propagation_inner_loop_body_wl_def
@@ -704,9 +772,18 @@ proof -
     subgoal
       using assms by (auto simp: unit_prop_body_wl_D_inv_clauses_distinct_eq
           unit_propagation_inner_loop_wl_loop_pre_def)
+    subgoal by auto
+    subgoal
+      by (rule bin_set_conflict)
+    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c
+      by (rule bin_prop)
+    subgoal by simp
+    subgoal
+      using assms by (auto simp: unit_prop_body_wl_D_inv_clauses_distinct_eq
+          unit_propagation_inner_loop_wl_loop_pre_def)
     subgoal by simp
     subgoal by (rule update_blit_wl) auto
-    subgoal by (auto simp: twl_st_wl)
+    subgoal by simp
     subgoal
       using assms
       unfolding unit_prop_body_wl_D_find_unwatched_inv_def unit_prop_body_wl_inv_def
