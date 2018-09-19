@@ -1320,7 +1320,7 @@ lemma (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D_alt_def:
       then RETURN (j+1, w+1, S)
       else do { 
         if b then do {
-             ASSERT (propagate_proper_bin_case S C);
+             ASSERT (propagate_proper_bin_case L K S C);
              if val_K = Some False
              then
                let S = set_conflict_wl (get_clauses_wl S \<propto> C) S in
@@ -1525,7 +1525,8 @@ lemma clause_not_marked_to_delete_heur_clause_not_marked_to_delete_iff:
 
 private lemma lits_in_trail:
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl T)\<close> and
-  no_dup_T: \<open>no_dup (get_trail_wl T)\<close>
+  no_dup_T: \<open>no_dup (get_trail_wl T)\<close> and
+  pol_L: \<open>polarity (get_trail_wl T) L = Some False\<close>
 proof -
   obtain x xa where
     lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n T\<close> and
@@ -1539,7 +1540,8 @@ proof -
     \<open>twl_stgy_invs xa\<close> and
     \<open>twl_list_invs x\<close> and
     clss: \<open>clauses_to_update xa \<noteq> {#} \<or> 0 < remaining_nondom_wl x2a L T \<longrightarrow>
-                 get_conflict xa = None\<close>
+                 get_conflict xa = None\<close> and
+   uL:  \<open>- L \<in> lits_of_l (get_trail_l x)\<close>
     using x2b
     U' loop_inv_T unfolding unit_propagation_inner_loop_wl_loop_inv_def prod.simps
     unit_propagation_inner_loop_l_inv_def
@@ -1553,6 +1555,9 @@ proof -
     by blast
   then show \<open>no_dup (get_trail_wl T)\<close>
     using Tx xxa by (auto simp: twl_st)
+  then show \<open>polarity (get_trail_wl T) L = Some False\<close>
+    using uL Tx unfolding polarity_def
+    by (auto dest: no_dup_consistentD in_lits_of_l_defined_litD)
 qed
 
 
@@ -1568,12 +1573,13 @@ lemma bin_last_eq: \<open>x2i = x2i'\<close>
 
 
 context
-  assumes proper: \<open>propagate_proper_bin_case (keep_watch L x2 x2a T) x1f\<close>
+  assumes proper: \<open>propagate_proper_bin_case L x2f (keep_watch L x2 x2a T) x1f\<close>
 begin
 
 private lemma bin_confl_T: \<open>get_conflict_wl T = None\<close> and
   bin_dist_Tx1g: \<open>distinct (get_clauses_wl T \<propto> x1g)\<close> and
-  in_dom: \<open>x1f \<in># dom_m (get_clauses_wl (keep_watch L x2 x2a T))\<close>
+  in_dom: \<open>x1f \<in># dom_m (get_clauses_wl (keep_watch L x2 x2a T))\<close> and
+  length_clss_2: \<open>length (get_clauses_wl T \<propto> x1g) = 2\<close>
   using unit_prop_body_wl_D_invD[OF prop_inv] proper
   by (auto simp: eq watched_by_app_def propagate_proper_bin_case_def)
 
@@ -1596,8 +1602,19 @@ proof -
     by (auto simp: twl_st_heur_def keep_watch_def)
 qed
 
+(* TODO Move *)
+lemma polarity_st_keep_watch:
+  \<open>polarity_st (keep_watch L x2 x2a T) =  polarity_st T\<close>
+  by (intro ext, cases T) (auto simp: keep_watch_def polarity_st_def)
+
+lemma access_lit_in_clauses_keep_watch:
+  \<open>access_lit_in_clauses (keep_watch L x2 x2a T) = access_lit_in_clauses T\<close>
+  by (intro ext, cases T) (auto simp: keep_watch_def access_lit_in_clauses_def)
+(* End Move *)
+
 lemma bin_set_conflict_wl'_pre:
    \<open>uncurry set_conflict_wl'_pre (x1f, (keep_watch L x2 x2a T))\<close>
+   if pol: \<open>polarity (get_trail_wl_heur U) x2g = Some False\<close>
 proof -
   have x2b': \<open>x1f = fst (watched_by_app (keep_watch L x2 x2a T) L x2a)\<close>
     using x2_x2a x2a_le
@@ -1615,7 +1632,10 @@ proof -
     apply (rule find_unwatched_not_tauto[of _ _ _ x2])
     subgoal by (rule unw)
     subgoal using prop_inv .
-    subgoal apply auto sorry
+    subgoal using proper pol pol_L U' unfolding propagate_proper_bin_case_def
+      length_list_2
+       unfolding watched_by_app_def[symmetric] x2b'[symmetric]
+       by (auto simp add: bin_polarity_eq polarity_st_def doubleton_eq_iff)
     subgoal using in_dom unfolding watched_by_app_def[symmetric] x2b'[symmetric] .
     done
   have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm  (mset `# ran_mf (get_clauses_wl (keep_watch L x2 x2a T)))\<close>
@@ -1631,6 +1651,69 @@ lemma bin_conflict_rel:
   \<open>((x1g, U), x1f, keep_watch L x2 x2a T)
     \<in> nat_rel \<times>\<^sub>f twl_st_heur' \<D>\<close>
   using U by auto
+
+lemma bin_access_lit_in_clauses_heur_pre:
+  \<open>access_lit_in_clauses_heur_pre ((U, x1g), 0)\<close>
+  using U' in_dom length_clss_2 apply -
+  unfolding access_lit_in_clauses_heur_pre_def prod.case arena_lit_pre_def
+    arena_is_valid_clause_idx_and_access_def
+  apply (rule bex_leI[of _ x1f])
+  apply (rule exI[of _ \<open>get_clauses_wl T\<close>])
+   apply (rule exI[of _ \<open>set (get_vdom U)\<close>])
+  by (cases T)
+    (auto simp: twl_st_heur_def keep_watch_def)
+
+lemma bin_propagate_lit_wl_heur_pre:
+  \<open>propagate_lit_wl_heur_pre
+     (((x2g, x1g), if arena_lit (get_clauses_wl_heur U) (x1g + 0) = L' then 0 else 1::nat), U)\<close>
+  if pol: \<open>polarity (get_trail_wl_heur U) x2g \<noteq> Some False\<close> and
+   pol': \<open>polarity (get_trail_wl (keep_watch L x2 x2a T)) x2f \<noteq> Some True\<close>
+proof -
+  have \<open>polarity (get_trail_wl_heur U) x2g = None\<close>
+    using pol pol' U' by (cases T; cases \<open>polarity (get_trail_wl_heur U) x2g\<close>)
+    (auto simp: twl_st_heur_def keep_watch_def)
+  then have \<open>undefined_lit (get_trail_wl_heur U) x2g\<close>
+    by (meson pol pol' polarity_def polarity_eq)
+  moreover have \<open>x2g \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    by (metis in_D0 polarity_st_pre_def prod.simps(2))
+  moreover have \<open>x1g \<noteq> DECISION_REASON\<close>
+    using arena_lifting(1)[OF valid, of x1f] in_dom
+    by (auto simp: header_size_def DECISION_REASON_def split: if_splits)
+  ultimately show ?thesis
+    unfolding propagate_lit_wl_heur_pre_def
+    by auto
+qed
+
+lemma bin_propagate_lit_wl_pre:
+  \<open>propagate_lit_wl_pre
+     (((x2f, x1f), if get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! 0 = L then 0 else 1::nat),
+         (keep_watch L x2 x2a T))\<close>
+  if pol: \<open>polarity (get_trail_wl_heur U) x2g \<noteq> Some False\<close> and
+   pol': \<open>polarity (get_trail_wl (keep_watch L x2 x2a T)) x2f \<noteq> Some True\<close>
+proof - 
+  have \<open>undefined_lit (get_trail_wl_heur U) x2g\<close>
+    by (meson pol pol' polarity_def polarity_eq)
+  then have \<open>undefined_lit (get_trail_wl T) x2g\<close>
+    using U' isasat_input_ops.twl_st_heur_state_simp(1) by auto
+  moreover have \<open>x2g \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    by (metis in_D0 polarity_st_pre_def prod.simps(2))
+  ultimately show ?thesis
+    using length_clss_2 in_dom U bin_confl_T
+    unfolding propagate_lit_wl_pre_def
+    by auto
+qed
+
+private lemma bin_arena_lit_eq:
+   \<open>i < 2 \<Longrightarrow> arena_lit (get_clauses_wl_heur U) (x1g + i) = get_clauses_wl T \<propto> x1g ! i\<close>
+  using U' in_dom length_clss_2
+  by (cases U; cases T; cases i)
+    (auto simp: keep_watch_def twl_st_heur_def arena_lifting)
+
+lemma bin_final_rel:
+  \<open>((((x2g, x1g), if arena_lit (get_clauses_wl_heur U) (x1g + 0) = L' then 0 else 1::nat), U),
+     ((x2f, x1f), if get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! 0 = L then 0 else 1::nat),
+         (keep_watch L x2 x2a T)) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur' \<D>\<close>
+  using U bin_arena_lit_eq[of 0] bin_arena_lit_eq[of 1] by auto
 
 end
 
@@ -2303,10 +2386,11 @@ proof -
     subgoal by (rule bin_conflict_rel)
     subgoal by simp
     subgoal by simp
-    subgoal sorry
-    subgoal sorry
-    subgoal sorry
-    subgoal sorry
+    subgoal by (rule bin_access_lit_in_clauses_heur_pre)
+    subgoal 
+      by (rule bin_propagate_lit_wl_heur_pre)
+    subgoal by (rule bin_propagate_lit_wl_pre)
+    subgoal by (rule bin_final_rel)
     subgoal by simp
     subgoal by simp
     subgoal

@@ -317,7 +317,7 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D
       then RETURN (j+1, w+1, S)
       else do {
           if b then do {
-            ASSERT(propagate_proper_bin_case S C);
+            ASSERT(propagate_proper_bin_case L K S C);
             if val_K = Some False
             then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
             else do {
@@ -745,7 +745,7 @@ proof -
       \<open>x2a\<close> and
       \<open>polarity (get_trail_wl (keep_watch K j w S)) x1c \<noteq> Some False\<close> and
       \<open>polarity (get_trail_wl (keep_watch K j w S)) x1a \<noteq> Some False\<close> and
-      \<open>propagate_proper_bin_case (keep_watch K j w S) x1\<close>
+      \<open>propagate_proper_bin_case K x1a (keep_watch K j w S) x1\<close>
     for x1 x2 x1a x2a x1b x2b x1c x2c
   unfolding propagate_lit_wl_def S
   apply clarify

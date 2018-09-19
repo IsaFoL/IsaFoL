@@ -1258,61 +1258,76 @@ fun unit_propagation_inner_loop_body_wl_heur_code x =
                 (if ((x_c : Word32.word) = sET_TRUE_code)
                   then (fn () =>
                          (plus_nat bib one_nat, (plus_nat bia one_nat, x_b)))
-                  else (fn f_ => fn () => f_
-                         ((clause_not_marked_to_delete_heur_code x_b a1) ()) ())
-                         (fn xb =>
-                           (if not xb
-                             then (fn () => (bib, (plus_nat bia one_nat, x_b)))
-                             else (fn f_ => fn () => f_
-                                    ((access_lit_in_clauses_heur_code x_b a1
-                                       zero_nata)
-                                    ()) ())
-                                    (fn xc =>
-                                      let
-val x_g = (if ((xc : Word32.word) = ai) then zero_nata else one_nat);
-                                      in
-(fn f_ => fn () => f_
-  ((access_lit_in_clauses_heur_code x_b a1 (fast_minus_nat one_nat x_g)) ()) ())
-  (fn x_i =>
-    (fn f_ => fn () => f_ ((polarity_st_heur_pol_code x_b x_i) ()) ())
-      (fn x_k =>
-        (if ((x_k : Word32.word) = sET_TRUE_code)
-          then update_blit_wl_heur_code ai a1 a2a bib bia x_i x_b
-          else (fn f_ => fn () => f_ ((find_unwatched_wl_st_heur_code x_b a1)
-                 ()) ())
-                 (fn a =>
-                   (case a
-                     of NONE =>
-                       (if ((x_k : Word32.word) = sET_FALSE_code)
-                         then (fn f_ => fn () => f_
-                                ((set_conflict_wl_heur_code a1 x_b) ()) ())
-                                (fn x_p =>
-                                  (fn () =>
-                                    (plus_nat bib one_nat,
-                                      (plus_nat bia one_nat, x_p))))
+                  else (if a2a
+                         then (if ((x_c : Word32.word) = sET_FALSE_code)
+                                then (fn f_ => fn () => f_
+                                       ((set_conflict_wl_heur_code a1 x_b) ())
+                                       ())
+                                       (fn x_g =>
+ (fn () => (plus_nat bib one_nat, (plus_nat bia one_nat, x_g))))
+                                else (fn f_ => fn () => f_
+                                       ((access_lit_in_clauses_heur_code x_b a1
+  zero_nata)
+                                       ()) ())
+                                       (fn xb =>
+ (fn f_ => fn () => f_
+   ((propagate_lit_wl_code a1a a1
+      (if ((xb : Word32.word) = ai) then zero_nata else one_nat) x_b)
+   ()) ())
+   (fn x_i => (fn () => (plus_nat bib one_nat, (plus_nat bia one_nat, x_i))))))
                          else (fn f_ => fn () => f_
-                                ((propagate_lit_wl_code x_i a1 x_g x_b) ()) ())
+                                ((clause_not_marked_to_delete_heur_code x_b a1)
+                                ()) ())
+                                (fn xb =>
+                                  (if not xb
+                                    then (fn () =>
+   (bib, (plus_nat bia one_nat, x_b)))
+                                    else (fn f_ => fn () => f_
+   ((access_lit_in_clauses_heur_code x_b a1 zero_nata) ()) ())
+   (fn xc =>
+     let
+       val x_g = (if ((xc : Word32.word) = ai) then zero_nata else one_nat);
+     in
+       (fn f_ => fn () => f_
+         ((access_lit_in_clauses_heur_code x_b a1 (fast_minus_nat one_nat x_g))
+         ()) ())
+         (fn x_i =>
+           (fn f_ => fn () => f_ ((polarity_st_heur_pol_code x_b x_i) ()) ())
+             (fn x_k =>
+               (if ((x_k : Word32.word) = sET_TRUE_code)
+                 then update_blit_wl_heur_code ai a1 a2a bib bia x_i x_b
+                 else (fn f_ => fn () => f_
+                        ((find_unwatched_wl_st_heur_code x_b a1) ()) ())
+                        (fn a =>
+                          (case a
+                            of NONE =>
+                              (if ((x_k : Word32.word) = sET_FALSE_code)
+                                then (fn f_ => fn () => f_
+                                       ((set_conflict_wl_heur_code a1 x_b) ())
+                                       ())
+                                       (fn x_p =>
+ (fn () => (plus_nat bib one_nat, (plus_nat bia one_nat, x_p))))
+                                else (fn f_ => fn () => f_
+                                       ((propagate_lit_wl_code x_i a1 x_g x_b)
+                                       ()) ())
+                                       (fn x_p =>
+ (fn () => (plus_nat bib one_nat, (plus_nat bia one_nat, x_p)))))
+                            | SOME x_o =>
+                              (fn f_ => fn () => f_
+                                ((isa_save_pos_code a1 x_o x_b) ()) ())
                                 (fn x_p =>
-                                  (fn () =>
-                                    (plus_nat bib one_nat,
-                                      (plus_nat bia one_nat, x_p)))))
-                     | SOME x_o =>
-                       (fn f_ => fn () => f_ ((isa_save_pos_code a1 x_o x_b) ())
-                         ())
-                         (fn x_p =>
-                           (fn f_ => fn () => f_
-                             ((access_lit_in_clauses_heur_code x_p a1 x_o) ())
-                             ())
-                             (fn x_q =>
-                               (fn f_ => fn () => f_
-                                 ((polarity_st_heur_pol_code x_p x_q) ()) ())
-                                 (fn x_s =>
-                                   (if ((x_s : Word32.word) = sET_TRUE_code)
-                                     then update_blit_wl_heur_code ai a1 a2a bib
-    bia x_q x_p
-                                     else update_clause_wl_code ai a1 a2a bib
-    bia x_g x_o x_p)))))))))
-                                      end))))))
+                                  (fn f_ => fn () => f_
+                                    ((access_lit_in_clauses_heur_code x_p a1
+                                       x_o)
+                                    ()) ())
+                                    (fn x_q =>
+                                      (fn f_ => fn () => f_
+((polarity_st_heur_pol_code x_p x_q) ()) ())
+(fn x_s =>
+  (if ((x_s : Word32.word) = sET_TRUE_code)
+    then update_blit_wl_heur_code ai a1 a2a bib bia x_q x_p
+    else update_clause_wl_code ai a1 a2a bib bia x_g x_o x_p)))))))))
+     end)))))))
       end
         ()
     end)

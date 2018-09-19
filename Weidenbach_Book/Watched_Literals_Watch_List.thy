@@ -1022,8 +1022,9 @@ definition unit_propagation_inner_loop_body_wl_int :: \<open>'v literal \<Righta
 
 
 definition propagate_proper_bin_case where
-  \<open>propagate_proper_bin_case S C \<longleftrightarrow>
-       C \<in># dom_m (get_clauses_wl S) \<and> length ((get_clauses_wl S)\<propto>C) = 2\<close>
+  \<open>propagate_proper_bin_case L L' S C \<longleftrightarrow>
+       C \<in># dom_m (get_clauses_wl S) \<and> length ((get_clauses_wl S)\<propto>C) = 2 \<and>
+       set (get_clauses_wl S\<propto>C) = {L, L'} \<and> L \<noteq> L'\<close>
 
 definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
@@ -1037,7 +1038,7 @@ definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow
       then RETURN (j+1, w+1, S)
       else do {
         if b then do {
-           ASSERT(propagate_proper_bin_case S C);
+           ASSERT(propagate_proper_bin_case L K S C);
            if val_K = Some False
            then RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)
            else do {  \<comment>\<open>This is non-optimal (memory access: relax invariant!):\<close>
@@ -1491,7 +1492,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
               f \<leftarrow> RETURN (None :: nat option);
               case f of
                None \<Rightarrow> do {
-                 ASSERT(propagate_proper_bin_case S C);
+                 ASSERT(propagate_proper_bin_case L K S C);
                  if val_K = Some False
                  then RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)
                  else do {
@@ -1689,7 +1690,7 @@ proof -
     using S_S' unfolding i_def by auto
 
   have
-    bin_dom: \<open>propagate_proper_bin_case (keep_watch L j w S) x1\<close> and
+    bin_dom: \<open>propagate_proper_bin_case L x1c (keep_watch L j w S) x1\<close> and
     bin_in_dom:  \<open>False = (x1 \<notin># dom_m (get_clauses_wl (keep_watch L j w S)))\<close> and
     bin_pol_not_True:
       \<open>False =
@@ -1819,7 +1820,7 @@ proof -
               (fst `# mset (take j (watched_by S L) @ drop w (watched_by S L)))\<close>
       using \<open>watched_by S L ! w  \<in> set (drop w (watched_by S L))\<close> dom
       by auto
-    then have \<open>L \<in> set (watched_l (get_clauses_wl S \<propto> C'))\<close>
+    then have L_in: \<open>L \<in> set (watched_l (get_clauses_wl S \<propto> C'))\<close>
       using L_watched S_T SLw' bin unfolding filter
       by (auto simp: clause_to_update_def)
     moreover have le2: \<open>length (get_clauses_wl S \<propto> C') = 2\<close>
@@ -1840,15 +1841,15 @@ proof -
       using that(8)
       unfolding x1c lit
       by auto
-     show \<open>propagate_proper_bin_case (keep_watch L j w S) x1\<close>
-       using H le2 SLw' unfolding propagate_proper_bin_case_def x1 SLw
+    show \<open>propagate_proper_bin_case L x1c (keep_watch L j w S) x1\<close>
+       using H le2 SLw' L_in unfolding propagate_proper_bin_case_def x1 SLw length_list_2 x1 x1c
        by auto
 
     show \<open>RETURN None \<le> \<Down> {(f, f'). f = f' \<and> f' = None}
      (find_unwatched_l (get_trail_wl (keep_watch L j w S)) (get_clauses_wl (keep_watch L j w S) \<propto> x1))\<close>
       by (auto simp: find_unwatched_l_def RETURN_RES_refine_iff)
     show
-     \<open>(polarity (get_trail_wl (keep_watch L j w S)) x1c = Some False) =
+      \<open>(polarity (get_trail_wl (keep_watch L j w S)) x1c = Some False) =
       (polarity (get_trail_wl (keep_watch L j w S))
         (get_clauses_wl (keep_watch L j w S) \<propto> x1 !
          (1 - (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1))) =
