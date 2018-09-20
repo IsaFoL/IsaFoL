@@ -1000,6 +1000,72 @@ lemma (in isasat_restart_ops) cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_rest
   subgoal by auto
   done
 
+
+definition cdcl_twl_stgy_restart_prog_early_wl_D
+  :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres"
+where
+  \<open>cdcl_twl_stgy_restart_prog_early_wl_D S\<^sub>0 = do {
+    ebrk \<leftarrow> RES UNIV;
+    (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
+      (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
+      (\<lambda>(_, brk, S, n).
+      do {
+        T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+        (T, n) \<leftarrow> restart_prog_wl_D T n brk;
+        ebrk \<leftarrow> RES UNIV;
+        RETURN (ebrk, brk, T, n)
+      })
+      (ebrk, False, S\<^sub>0::nat twl_st_wl, 0);
+    if \<not>brk then do {
+      (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
+	(\<lambda>(brk, _). \<not>brk)
+	(\<lambda>(brk, S, n).
+	do {
+	  T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+	  (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+	  (T, n) \<leftarrow> restart_prog_wl_D T n brk;
+	  RETURN (brk, T, n)
+	})
+	(False, T::nat twl_st_wl, n);
+      RETURN T
+    }
+    else RETURN T
+  }\<close>
+
+
+lemma (in isasat_restart_ops) cdcl_twl_stgy_restart_prog_early_wl_D_cdcl_twl_stgy_restart_prog_early_wl:
+  \<open>(cdcl_twl_stgy_restart_prog_early_wl_D, cdcl_twl_stgy_restart_prog_early_wl) \<in>
+     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+  unfolding uncurry_def cdcl_twl_stgy_restart_prog_early_wl_D_def
+    cdcl_twl_stgy_restart_prog_early_wl_def
+  apply (intro frefI nres_relI)
+  apply (refine_vcg
+      restart_prog_wl_D_restart_prog_wl[THEN fref_to_Down_curry2]
+      cdcl_twl_o_prog_wl_D_spec'[THEN fref_to_Down]
+      unit_propagation_outer_loop_wl_D_spec'[THEN fref_to_Down]
+      WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r bool_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>r nat_rel\<close>]
+      WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>r nat_rel\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
 end
 
 end

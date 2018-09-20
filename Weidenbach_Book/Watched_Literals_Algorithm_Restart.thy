@@ -545,6 +545,7 @@ qed
 definition cdcl_twl_stgy_restart_prog_early :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>cdcl_twl_stgy_restart_prog_early S\<^sub>0 =
   do {
+    ebrk \<leftarrow> RES UNIV;
     (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_prog_inv S\<^sub>0 brk T n\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
       (\<lambda>(ebrk, brk, S, n).
@@ -555,7 +556,7 @@ definition cdcl_twl_stgy_restart_prog_early :: "'v twl_st \<Rightarrow> 'v twl_s
 	ebrk \<leftarrow> RES UNIV;
         RETURN (ebrk, brk, T, n)
       })
-      (False, False, S\<^sub>0, 0);
+      (ebrk, False, S\<^sub>0, 0);
     if \<not>brk then do {
       (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_prog_inv S\<^sub>0 brk T n\<^esup>
 	(\<lambda>(brk, _). \<not>brk)
