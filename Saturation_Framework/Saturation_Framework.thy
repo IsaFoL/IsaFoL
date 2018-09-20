@@ -9,6 +9,7 @@ theory Saturation_Framework
   imports Ordered_Resolution_Prover.Herbrand_Interpretation
     Ordered_Resolution_Prover.Lazy_List_Liminf
     Ordered_Resolution_Prover.Lazy_List_Chain
+    (* abbrevs ">t" = ">\<^sub>t" and "\<ge>t" = "\<ge>\<^sub>t" *)
 begin
 
 text \<open>
@@ -34,10 +35,10 @@ locale consequence_relation =
     transitive_entails: "(N1 |= N2 \<and> N2 |= N3) \<Longrightarrow> N1 |= N3"
 begin
 
-lemma easy1: "(N1 |= N2) \<longleftrightarrow> (\<forall>C \<in> N2. N1 |= {C})"
-by (meson all_formulas_entailed empty_subsetI insert_subset subset_entailed transitive_entails)
+lemma easy1: "N1 |= N2 \<longleftrightarrow> (\<forall>C \<in> N2. N1 |= {C})"
+  by (meson all_formulas_entailed empty_subsetI insert_subset subset_entailed transitive_entails)
 
-lemma easy2: "(N |= N1 \<and> N |= N2) \<longleftrightarrow> N |= (N1 \<union> N2)"
+lemma easy2: "N |= N1 \<and> N |= N2 \<longleftrightarrow> N |= N1 \<union> N2"
   apply (subst easy1)
   apply (subst (2) easy1)
   apply (subst (3) easy1)
@@ -70,21 +71,19 @@ locale inference_system = consequence_relation +
     same_with_other_syntax: "{\<iota> \<in> I. (concl_of \<iota> \<in> N)} \<subseteq> Red_I N"
 begin
 
-
 definition Inf :: "'f formulas  \<Rightarrow> 'f inference set" where
   "Inf N = {\<iota> \<in> I. set (prems_of \<iota>) \<subseteq> N}"
 
-
 lemma red_concl_to_red_inf: 
   assumes 
-    i: "\<iota> \<in> I" and
+    i_in: "\<iota> \<in> I" and
     concl: "concl_of \<iota> \<in> Red_F N"
   shows "\<iota> \<in> Red_I N"
 proof -
-  have i2: "\<iota> \<in> Red_I (Red_F N)" by (simp add: Red_I_of_I_to_N i concl)
-  then have i3: "\<iota> \<in> Red_I (N \<union> Red_F N)" by (simp add: Red_I_of_I_to_N concl i)
+  have "\<iota> \<in> Red_I (Red_F N)" by (simp add: Red_I_of_I_to_N i_in concl)
+  then have i_in_Red: "\<iota> \<in> Red_I (N \<union> Red_F N)" by (simp add: Red_I_of_I_to_N concl i_in)
   have red_n_subs: "Red_F N \<subseteq> Red_F (N \<union> Red_F N)" by (simp add: Red_F_of_subset)
-  then have "\<iota> \<in> Red_I ((N \<union> Red_F N) - (Red_F N - N))" using Red_I_of_Red_F_subset i3
+  then have "\<iota> \<in> Red_I ((N \<union> Red_F N) - (Red_F N - N))" using Red_I_of_Red_F_subset i_in_Red
     by (meson Diff_subset subsetCE subset_trans)
   then show ?thesis by (metis Diff_cancel Diff_subset Un_Diff Un_Diff_cancel contra_subsetD 
     inference_system.Red_I_of_subset inference_system_axioms sup_bot.right_neutral)
