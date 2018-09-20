@@ -761,10 +761,20 @@ prepare_code_thms (in -) resolve_lookup_conflict_merge_code_def
 lemmas resolve_lookup_conflict_aa_hnr[sepref_fr_rules] =
    resolve_lookup_conflict_merge_code.refine[OF isasat_input_bounded_axioms]
 
-(*
+(* TODO Move *)
+lemma (in -) arena_is_valid_clause_idx_le_uint64_max:
+  \<open>arena_is_valid_clause_idx be bd \<Longrightarrow>
+    length be \<le> uint64_max \<Longrightarrow>
+   bd + arena_length be bd \<le> uint64_max\<close>
+  \<open>arena_is_valid_clause_idx be bd \<Longrightarrow> length be \<le> uint64_max \<Longrightarrow>
+   bd \<le> uint64_max\<close>
+  using arena_lifting(10)[of be _ _ bd]
+  by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def)+
+
 sepref_thm resolve_lookup_conflict_merge_fast_code
   is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict)\<close>
-  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
+  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+         length N \<le> uint64_max]\<^sub>a
       trail_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
@@ -772,22 +782,20 @@ sepref_thm resolve_lookup_conflict_merge_fast_code
     uint32_nat_assn_one[sepref_fr_rules] image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
     Suc_uint32_nat_assn_hnr[sepref_fr_rules] fmap_length_rll_u_def[simp]
-  unfolding isa_set_lookup_conflict_def lookup_conflict_merge_def add_to_lookup_conflict_def
+    arena_is_valid_clause_idx_le_uint64_max[intro]
+  unfolding isa_lookup_conflict_merge_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric]
-    outlearned_add_def clvls_add_def
-    isasat_codegen isa_lookup_conflict_merge_def
+    outlearned_add_def clvls_add_def isa_set_lookup_conflict_def
+    isasat_codegen isa_set_lookup_conflict_def
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
     is_NOTIN_def[symmetric]
     zero_uint64_nat_def[symmetric]
-  apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
+  apply (rewrite at \<open>RETURN (\<hole>, _ ,_, _)\<close>  Suc_eq_plus1)
+  apply (rewrite at \<open>RETURN (_ + \<hole>, _ ,_, _)\<close> one_uint64_nat_def[symmetric])
   supply [[goals_limit = 1]]
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
-           apply sepref_dbg_side_unfold apply (auto simp: )[]
-
   by sepref
+
 
 concrete_definition (in -) resolve_lookup_conflict_merge_fast_code
    uses isasat_input_bounded.resolve_lookup_conflict_merge_fast_code.refine_raw
@@ -797,7 +805,7 @@ prepare_code_thms (in -) resolve_lookup_conflict_merge_fast_code_def
 
 lemmas resolve_lookup_conflict_aa_fast_hnr[sepref_fr_rules] =
    resolve_lookup_conflict_merge_fast_code.refine[OF isasat_input_bounded_axioms]
- *)
+
 
 definition (in isasat_input_ops) isa_set_lookup_conflict_aa where
   \<open>isa_set_lookup_conflict_aa = isa_lookup_conflict_merge 0\<close>
@@ -809,8 +817,8 @@ definition (in isasat_input_ops) isa_set_lookup_conflict_aa_pre where
 sepref_register set_lookup_conflict_aa
 sepref_thm set_lookup_conflict_aa_code
   is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict_aa)\<close>
-  :: \<open>[isa_set_lookup_conflict_aa_pre]\<^sub>a
-      trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
@@ -824,10 +832,10 @@ sepref_thm set_lookup_conflict_aa_code
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
     is_NOTIN_def[symmetric] isa_set_lookup_conflict_aa_pre_def
+  supply [[goals_limit = 1]]
   apply (rewrite at \<open>_ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
   apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])
   apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])
-  supply [[goals_limit = 1]]
   by sepref
 
 concrete_definition (in -) set_lookup_conflict_aa_code
@@ -839,27 +847,30 @@ prepare_code_thms (in -) set_lookup_conflict_aa_code_def
 lemmas set_lookup_conflict_aa_code[sepref_fr_rules] =
    set_lookup_conflict_aa_code.refine[OF isasat_input_bounded_axioms]
 
-(* sepref_thm set_lookup_conflict_aa_fast_code
-  is \<open>uncurry6 (PR_CONST set_lookup_conflict_aa)\<close>
-  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), _). i \<in># dom_m N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-        (\<forall>j<length (N\<propto>i). atm_of (N\<propto>i!j) < length (snd xs)) \<and> no_dup M \<and>
-        literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N\<propto>i)) \<and>
-        length (N\<propto>i) \<le> uint_max]\<^sub>a
-      trail_fast_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+sepref_thm set_lookup_conflict_aa_fast_code
+  is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict_aa)\<close>
+  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), _). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+        length N \<le> uint64_max]\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d  *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
-    uint32_nat_assn_one[sepref_fr_rules] image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
+    image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
-    Suc_uint32_nat_assn_hnr[sepref_fr_rules]  fmap_length_rll_u_def[simp]
+    fmap_length_rll_u_def[simp]
+    arena_is_valid_clause_idx_le_uint64_max[intro]
   unfolding set_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric] length_rll_def[symmetric]
     length_aa_u_def[symmetric] outlearned_add_def clvls_add_def
-    isasat_codegen
+    isasat_codegen isa_set_lookup_conflict_aa_def isa_lookup_conflict_merge_def
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
-    is_NOTIN_def[symmetric]
-  apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
+    is_NOTIN_def[symmetric] isa_set_lookup_conflict_aa_pre_def zero_uint64_nat_def[symmetric]
+  supply [[goals_limit = 1]]
+  apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite at \<open>RETURN (\<hole>, _ ,_, _)\<close>  Suc_eq_plus1)
+  apply (rewrite at \<open>RETURN (_ + \<hole>, _ ,_, _)\<close> one_uint64_nat_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -871,7 +882,7 @@ prepare_code_thms (in -) set_lookup_conflict_aa_fast_code_def
 
 lemmas set_lookup_conflict_aa_fast_code[sepref_fr_rules] =
    set_lookup_conflict_aa_fast_code.refine[OF isasat_input_bounded_axioms]
- *)
+
 
 lemma lookup_conflict_merge'_spec:
   assumes
@@ -1278,7 +1289,8 @@ proof -
     by (intro nres_relI frefI) (auto intro!: H)
 qed
 
-(* theorem
+(* TODO KILL
+ theorem
   resolve_lookup_conflict_merge_code_set_conflict[sepref_fr_rules]:
     \<open>(uncurry6 set_lookup_conflict_aa_code, uncurry6 set_conflict_m) \<in>
   [\<lambda>((((((M, N), i), xs), clvls), lbd), outl). clvls = 0 \<and> i \<in># dom_m N \<and> xs = None \<and> distinct (N \<propto> i) \<and>
@@ -1497,7 +1509,8 @@ proof -
     done
 qed
 
-(* theorem resolve_lookup_conflict_merge_code_merge_conflict_m[sepref_fr_rules]:
+(* TODO KILL
+theorem resolve_lookup_conflict_merge_code_merge_conflict_m[sepref_fr_rules]:
   \<open>(uncurry6 resolve_lookup_conflict_merge_code, uncurry6 merge_conflict_m) \<in>
   [\<lambda>((((((M, N), i), xs), clvls), lbd), outl). clvls = card_max_lvl M (the xs) \<and> i \<in># dom_m N \<and>
       xs \<noteq> None \<and> distinct (N \<propto> i) \<and> \<not>tautology (the xs) \<and>
@@ -2616,7 +2629,7 @@ abbreviation (in -)analyse_refinement_assn where
   \<open>analyse_refinement_assn \<equiv> arl_assn (nat_assn *a nat_assn)\<close>
 
 abbreviation (in -)analyse_refinement_fast_assn where
-  \<open>analyse_refinement_fast_assn \<equiv> arl_assn (uint32_nat_assn *a nat_assn)\<close>
+  \<open>analyse_refinement_fast_assn \<equiv> arl_assn (uint64_nat_assn *a uint64_nat_assn)\<close>
 
 end
 
@@ -2635,6 +2648,7 @@ definition (in isasat_input_ops) isa_mark_failed_lits_stack where
       (\<lambda>(i, cach). do {
         ASSERT(i < length analyse);
         let (cls_idx, idx) = analyse ! i;
+	ASSERT(cls_idx + idx \<ge> 1);
         ASSERT(cls_idx + idx - 1 < length NU);
         ASSERT(is_Lit (NU ! (cls_idx + idx - 1)));
         ASSERT(atm_of (xarena_lit (NU ! (cls_idx + idx - 1))) \<in># \<A>\<^sub>i\<^sub>n);
@@ -2675,7 +2689,8 @@ proof -
     isA: \<open>atm_of (xarena_lit (x1c ! (x1g + x2g - 1))) \<in># \<A>\<^sub>i\<^sub>n\<close> (is ?A) and
     final: \<open>((x1e + 1, x2e(atm_of (xarena_lit (x1c ! (x1g + x2g - 1))) := SEEN_FAILED)),
      x1d + 1, x2d(atm_of (x1a \<propto> x1f ! (x2f - 1)) := SEEN_FAILED))
-    \<in> nat_rel \<times>\<^sub>f Id\<close> (is ?final)
+    \<in> nat_rel \<times>\<^sub>f Id\<close> (is ?final) and
+    ge1: \<open>x1g + x2g \<ge> 1\<close>
     if
       \<open>case y of (x, xa) \<Rightarrow> (case x of (N, ana) \<Rightarrow> \<lambda>cach. True) xa\<close> and
       xy: \<open>(x, y) \<in> {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f Id \<times>\<^sub>f Id\<close> and
@@ -2730,6 +2745,8 @@ proof -
       by (rule arena_lifting[OF arena x1f]) (use x2f x2g in auto)
     then show ?le and ?lit and ?A and ?final
       using arena_lifting[OF arena x1f] le x2f x1f x2g atm by (auto simp: arena_lit_def)
+    show \<open>x1g + x2g \<ge> 1\<close>
+      using x2g by auto
   qed
 
   show ?thesis
@@ -2741,8 +2758,8 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal
-      by (rule le_length_arena)
+    subgoal by (rule ge1)
+    subgoal by (rule le_length_arena)
     subgoal
       by (rule is_lit)
     subgoal
@@ -2768,22 +2785,33 @@ sepref_thm isa_mark_failed_lits_stack_code
     fmap_rll_def[symmetric]
   by sepref
 
-(*
+
 sepref_thm mark_failed_lits_stack_fast_code
-  is \<open>uncurry2 mark_failed_lits_stack\<close>
-  :: \<open>clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a
-      cach_refinement_assn\<close>
+  is \<open>uncurry2 isa_mark_failed_lits_stack\<close>
+  :: \<open>[\<lambda>((N, _), _). length N < uint64_max]\<^sub>a
+    arena_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>
+    cach_refinement_assn\<close>
   supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] length_rll_def[simp]
     mark_failed_lits_stack_inv_helper1[dest] mark_failed_lits_stack_inv_helper2[dest]
     fmap_length_rll_u_def[simp]
-  unfolding mark_failed_lits_stack_def
+    arena_is_valid_clause_idx_le_uint64_max[intro]
+  unfolding isa_mark_failed_lits_stack_def PR_CONST_def
     conflict_min_cach_set_failed_def[symmetric]
     conflict_min_cach_def[symmetric]
     get_literal_and_remove_of_analyse_wl_def
     nth_rll_def[symmetric]
     fmap_rll_def[symmetric]
-    fmap_rll_u_def[symmetric]
-  by sepref *)
+    arena_lit_def[symmetric]
+  apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
+  apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
+  apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
+  apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
+           apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold
+oops
+  by sepref
 end
 
 sepref_register isa_mark_failed_lits_stack

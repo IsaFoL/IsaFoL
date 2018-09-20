@@ -51,6 +51,122 @@ proof -
     done
 qed
 
+definition (in isasat_input_ops) cdcl_twl_stgy_restart_prog_early_wl_heur
+   :: "twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres"
+where
+  \<open>cdcl_twl_stgy_restart_prog_early_wl_heur S\<^sub>0 = do {
+    ebrk \<leftarrow> RETURN (\<not>isasat_fast S\<^sub>0);
+    (ebrk, brk, T, n) \<leftarrow>
+     WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n \<and> (\<not>ebrk \<longrightarrow>isasat_fast T)\<^esup>
+      (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
+      (\<lambda>(_, brk, S, n).
+      do {
+        ASSERT(isasat_fast S);
+        T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
+        (T, n) \<leftarrow> restart_prog_wl_D_heur T n brk;
+	ebrk \<leftarrow> RETURN (\<not>isasat_fast T);
+        RETURN (ebrk, brk, T, n)
+      })
+      (ebrk, False, S\<^sub>0::twl_st_wl_heur, 0);
+    if \<not>brk then do {
+       T \<leftarrow> isasat_fast_slow T;
+       (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n\<^esup>
+	 (\<lambda>(brk, _). \<not>brk)
+	 (\<lambda>(brk, S, n).
+	 do {
+	   T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
+	   (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
+	   (T, n) \<leftarrow> restart_prog_wl_D_heur T n brk;
+	   RETURN (brk, T, n)
+	 })
+	 (False, T, n);
+       RETURN T
+    }
+    else RETURN T
+  }\<close>
+
+
+lemma cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D:
+  \<open>(cdcl_twl_stgy_restart_prog_early_wl_heur, cdcl_twl_stgy_restart_prog_early_wl_D) \<in>
+    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+proof -
+  have cdcl_twl_stgy_restart_prog_early_wl_D_alt_def:
+  \<open>cdcl_twl_stgy_restart_prog_early_wl_D S\<^sub>0 = do {
+      ebrk \<leftarrow> RES UNIV;
+      (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
+	(\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
+	(\<lambda>(_, brk, S, n).
+	do {
+	  T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+	  (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+	  (T, n) \<leftarrow> restart_prog_wl_D T n brk;
+	  ebrk \<leftarrow> RES UNIV;
+	  RETURN (ebrk, brk, T, n)
+	})
+	(ebrk, False, S\<^sub>0::nat twl_st_wl, 0);
+      if \<not>brk then do {
+        T \<leftarrow> RETURN T;
+	(brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
+	  (\<lambda>(brk, _). \<not>brk)
+	  (\<lambda>(brk, S, n).
+	  do {
+	    T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+	    (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+	    (T, n) \<leftarrow> restart_prog_wl_D T n brk;
+	    RETURN (brk, T, n)
+	  })
+	  (False, T::nat twl_st_wl, n);
+	RETURN T
+      }
+      else RETURN T
+    }\<close> for S\<^sub>0
+    unfolding cdcl_twl_stgy_restart_prog_early_wl_D_def nres_monad1 by auto
+  have [refine0]: \<open> RETURN (\<not>isasat_fast x) \<le> \<Down>
+      {(b, b'). b = b' \<and> (b = (\<not>isasat_fast x))} (RES UNIV)\<close>
+    for x
+    by (auto intro: RETURN_RES_refine)
+  have [refine0]: \<open>isasat_fast_slow x1e
+      \<le> \<Down> {(S, S'). S = x1e \<and> S' = x1b}
+	   (RETURN x1b)\<close>
+    for x1e x1b
+  proof -
+    show ?thesis
+      unfolding isasat_fast_slow_alt_def by auto
+  qed
+  show ?thesis
+    supply[[goals_limit=1]]
+    unfolding cdcl_twl_stgy_restart_prog_early_wl_heur_def
+      cdcl_twl_stgy_restart_prog_early_wl_D_alt_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg
+        restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry2]
+        cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
+        cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D[THEN fref_to_Down]
+        unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D[THEN fref_to_Down]
+        WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r twl_st_heur \<times>\<^sub>r nat_rel\<close>]
+        WHILEIT_refine[where R = \<open>{((ebrk, brk, T,n), (ebrk', brk', T', n')).
+	    (ebrk = ebrk') \<and> (brk = brk') \<and> (T, T')  \<in> twl_st_heur \<and> n = n' \<and>
+	      (\<not>ebrk \<longrightarrow> isasat_fast T)}\<close>])
+    subgoal by auto
+    subgoal unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def by fastforce
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def by fastforce
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 
 sepref_register number_clss_to_keep
 
@@ -397,18 +513,46 @@ prepare_code_thms (in -) cdcl_twl_stgy_restart_prog_wl_heur_code_def
 lemmas cdcl_twl_stgy_restart_prog_wl_heur_hnr[sepref_fr_rules] =
    cdcl_twl_stgy_restart_prog_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+lemma (in -) isasat_fast_alt_def:
+  \<open>RETURN o isasat_fast = (\<lambda>(M, N, _). RETURN (length N \<le> uint64_max - (uint32_max + 5)))\<close>
+  unfolding isasat_fast_def
+  by (auto intro!:ext)
+
+lemma (in -) uint32_max_nat_hnr:
+  \<open>(uncurry0 (return uint32_max), uncurry0 (RETURN uint32_max)) \<in>
+     unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare sep_auto
+
+sepref_register isasat_fast
+sepref_thm (in isasat_input_ops) isasat_fast_code
+  is \<open>RETURN o (PR_CONST isasat_fast)\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding isasat_fast_alt_def PR_CONST_def isasat_bounded_assn_def
+  supply [[goals_limit = 1]] uint32_max_nat_hnr[sepref_fr_rules]
+  by sepref
+
+
+concrete_definition (in -) isasat_fast_code
+   uses isasat_input_ops.isasat_fast_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) isasat_fast_code_def
+
+lemmas isasat_fast_hnr[sepref_fr_rules] =
+   isasat_fast_code.refine[of \<A>\<^sub>i\<^sub>n, unfolded PR_CONST_def]
+   
 text \<open>TODO There is no fast mode yet!\<close>
-(* sepref_thm cdcl_twl_stgy_restart_prog_wl_heur_fast_code
-  is \<open>PR_CONST cdcl_twl_stgy_restart_prog_wl_heur\<close>
-  :: \<open>[\<lambda>S. isasat_fast S]\<^sub>aisasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  unfolding cdcl_twl_stgy_restart_prog_wl_heur_def PR_CONST_def
+sepref_thm cdcl_twl_stgy_restart_prog_wl_heur_fast_code
+  is \<open>PR_CONST cdcl_twl_stgy_restart_prog_early_wl_heur\<close>
+  :: \<open>[\<lambda>S. isasat_fast S]\<^sub>aisasat_bounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
+  unfolding cdcl_twl_stgy_restart_prog_early_wl_heur_def PR_CONST_def
   supply [[goals_limit = 1]]
     apply sepref_dbg_keep
       apply sepref_dbg_trans_keep
            apply sepref_dbg_trans_step_keep
            apply sepref_dbg_side_unfold apply (auto simp: )[]
 
-  by sepref *)
+  by sepref
 
 
 end

@@ -46,9 +46,9 @@ lemmas length_ll_fs_heur_code_refine[sepref_fr_rules] =
 
 sepref_thm length_ll_fs_heur_fast_code
   is \<open>uncurry (RETURN oo length_ll_fs_heur)\<close>
-  :: \<open>[\<lambda>(S, L). nat_of_lit L < length (get_watched_wl_heur S) \<and>
-         length (get_watched_wl_heur S ! (nat_of_lit L)) \<le> uint64_max]\<^sub>a
-      isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  :: \<open>[\<lambda>(S, L). nat_of_lit L < length (get_watched_wl_heur S)(* \<and>
+         length (get_watched_wl_heur S ! (nat_of_lit L)) \<le> uint64_max*)]\<^sub>a
+      isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>nat_assn\<close>
   unfolding length_ll_fs_heur_alt_def get_watched_wl_heur_def isasat_bounded_assn_def
     length_ll_def[symmetric]
   supply [[goals_limit=1]] length_ll_def[simp]
@@ -172,11 +172,12 @@ proof -
     using w_le le_T by (cases T) auto
 qed *)
 
-(* sepref_thm unit_propagation_inner_loop_wl_loop_D_fast
-  is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D_heur))\<close>
+sepref_register length_ll_fs_heur
+sepref_thm unit_propagation_inner_loop_wl_loop_D_fast
+  is \<open>uncurry (PR_CONST unit_propagation_inner_loop_wl_loop_D_heur)\<close>
   :: \<open>[\<lambda>(L, S). isasat_fast S]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> uint64_nat_assn *a isasat_bounded_assn\<close>
-  supply unit_propagation_inner_loop_wl_loop_D_heur_inv_length_watchlist[intro]
+       unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> nat_assn *a nat_assn *a isasat_bounded_assn\<close>
+(*  supply unit_propagation_inner_loop_wl_loop_D_heur_inv_length_watchlist[intro]*)
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_alt_def PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
     length_ll_fs_heur_def[symmetric]
@@ -185,8 +186,15 @@ qed *)
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     is_None_def[symmetric] get_conflict_wl_is_None_heur_alt_def[symmetric]
     length_ll_fs_def[symmetric]
-  supply [[goals_limit=1]] unit_propagation_inner_loop_wl_loop_D_heur_cond[simp]
+    zero_uint64_nat_def
+  supply [[goals_limit=1]] (*unit_propagation_inner_loop_wl_loop_D_heur_cond[simp]*)
   supply unit_propagation_inner_loop_body_wl_D_fast_code_refine[sepref_fr_rules]
+         apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold
+
+
   by sepref
 
 concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_fast_code

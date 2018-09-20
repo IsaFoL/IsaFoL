@@ -3000,19 +3000,15 @@ prepare_code_thms (in -) watched_by_app_heur_code_def
 lemmas watched_by_app_heur_code_refine[sepref_fr_rules] =
    watched_by_app_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-(* TODO it is not clear how to prove that. We probably need a stonger propery on our WL for that.
+(* TODO We probably need a stonger propery on our WL for uint64 as
+assupmtion*)
 sepref_thm watched_by_app_heur_fast_code
   is \<open>uncurry2 (RETURN ooo watched_by_app_heur)\<close>
   :: \<open>[watched_by_app_heur_pre]\<^sub>a
-        isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn *a unat_lit_assn\<close>
+        isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> watcher_fast_assn\<close>
   supply [[goals_limit=1]] length_rll_def[simp]
   unfolding watched_by_app_heur_alt_def isasat_bounded_assn_def nth_rll_def[symmetric]
    watched_by_app_heur_pre_def
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
-           apply sepref_dbg_side_unfold apply (auto simp: )[]
-
   by sepref
 
 concrete_definition (in -) watched_by_app_heur_fast_code
@@ -3023,7 +3019,6 @@ prepare_code_thms (in -) watched_by_app_heur_fast_code_def
 
 lemmas watched_by_app_heur_fast_code_refine[sepref_fr_rules] =
    watched_by_app_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
- *)
 
 sepref_thm access_lit_in_clauses_heur_code
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
@@ -3410,6 +3405,34 @@ prepare_code_thms (in -) keep_watch_heur_code_def
 lemmas keep_watch_heur_code[sepref_fr_rules] =
   keep_watch_heur_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def]
 
+sepref_thm keep_watch_heur_fast_code
+  is \<open>uncurry3 (PR_CONST keep_watch_heur)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply
+    [[goals_limit=1]]
+    if_splits[split]
+    length_rll_def[simp] length_ll_def[simp]
+    watched_by_app_heur_code_refine[sepref_fr_rules]
+  supply undefined_lit_polarity_st_iff[iff]
+    unit_prop_body_wl_D_find_unwatched_heur_inv_def[simp]
+    update_raa_hnr[sepref_fr_rules]
+  unfolding keep_watch_heur_def length_rll_def[symmetric] PR_CONST_def
+  unfolding fmap_rll_def[symmetric] isasat_bounded_assn_def
+  unfolding fast_minus_def[symmetric]
+    nth_rll_def[symmetric]
+    SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
+    update_ll_def[symmetric]
+  by sepref
+
+concrete_definition (in -) keep_watch_heur_fast_code
+  uses isasat_input_bounded_nempty.keep_watch_heur_fast_code.refine_raw
+  is \<open>(uncurry3 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) keep_watch_heur_fast_code_def
+
+lemmas keep_watch_heur_fast_code[sepref_fr_rules] =
+  keep_watch_heur_fast_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def]
+
 sepref_register isa_set_lookup_conflict_aa set_conflict_wl_heur
 sepref_thm set_conflict_wl_heur_code
   is \<open>uncurry (PR_CONST set_conflict_wl_heur)\<close>
@@ -3429,14 +3452,19 @@ prepare_code_thms (in -) set_conflict_wl_heur_code_def
 lemmas set_conflict_wl_heur_code[sepref_fr_rules] =
   set_conflict_wl_heur_code.refine[OF isasat_input_bounded_nempty_axioms]
 
-
-(* sepref_thm set_conflict_wl_heur_fast_code
+term  isa_set_lookup_conflict_aa
+sepref_thm set_conflict_wl_heur_fast_code
   is \<open>uncurry set_conflict_wl_heur\<close>
   :: \<open>[set_conflict_wl_heur_pre]\<^sub>a
-    uint32_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+    uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding set_conflict_wl_heur_def isasat_bounded_assn_def IICF_List_Mset.lms_fold_custom_empty
     set_conflict_wl_heur_pre_def
+       apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold
+
   by sepref
 
 concrete_definition (in -) set_conflict_wl_heur_fast_code
@@ -3446,7 +3474,7 @@ concrete_definition (in -) set_conflict_wl_heur_fast_code
 prepare_code_thms (in -) set_conflict_wl_heur_fast_code_def
 
 lemmas set_conflict_wl_heur_fast_code[sepref_fr_rules] =
-  set_conflict_wl_heur_fast_code.refine[OF isasat_input_bounded_nempty_axioms] *)
+  set_conflict_wl_heur_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 end
 
@@ -3479,12 +3507,12 @@ sepref_thm unit_propagation_inner_loop_body_wl_heur
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric] tri_bool_eq_def[symmetric]
   by sepref
 
-(* sepref_thm unit_propagation_inner_loop_body_wl_fast_heur
+sepref_thm unit_propagation_inner_loop_body_wl_fast_heur
   is \<open>uncurry3 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
   :: \<open>[\<lambda>((L, w), S). w+1 \<le> uint64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
-      uint64_nat_assn *a uint64_nat_assn *a isasat_bounded_assn\<close>
-  supply
+      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
+      nat_assn *a nat_assn *a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
     if_splits[split]
     length_rll_def[simp]
     watched_by_app_heur_code_refine[sepref_fr_rules]
@@ -3493,11 +3521,16 @@ sepref_thm unit_propagation_inner_loop_body_wl_heur
   unfolding unit_propagation_inner_loop_body_wl_heur_def length_rll_def[symmetric] PR_CONST_def
   unfolding fmap_rll_def[symmetric]
   unfolding fast_minus_def[symmetric]
-    SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> zero_uint64_nat_def[symmetric])+
+    SET_FALSE_def[symmetric] SET_TRUE_def[symmetric] tri_bool_eq_def[symmetric]
+ (* apply (rewrite in \<open>let _ = \<hole> in _\<close> zero_uint64_nat_def[symmetric])+
   apply (rewrite in \<open>let _ = \<hole> in _\<close> one_uint64_nat_def[symmetric])+
-  apply (rewrite in \<open>RETURN (_ + _, _)\<close> one_uint64_nat_def[symmetric])+
-  by sepref *)
+  apply (rewrite in \<open>RETURN (_ + _, _)\<close> one_uint64_nat_def[symmetric])+*)
+       apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold
+
+  by sepref
 
 end
 
