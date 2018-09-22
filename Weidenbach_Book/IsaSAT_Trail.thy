@@ -989,13 +989,6 @@ lemma (in -) nat_ann_lit_rel_alt_def: \<open>nat_ann_lit_rel = (unat_lit_rel \<t
         split: if_splits)
   done
 
-type_synonym (in -) ann_lit_wl_uint64 = \<open>uint32 \<times> uint64 option\<close>
-
-abbreviation (in -) pair_nat_ann_lit_uint64_assn
-  :: \<open>(nat, nat) ann_lit \<Rightarrow> ann_lit_wl_uint64 \<Rightarrow> assn\<close>
-where
-  \<open>pair_nat_ann_lit_uint64_assn \<equiv>
-    hr_comp (uint32_assn \<times>\<^sub>a option_assn uint64_nat_assn) nat_ann_lit_rel\<close>
 
 lemma
  last_trail_code_last[sepref_fr_rules]:
@@ -1003,7 +996,7 @@ lemma
     (is ?slow is \<open>?c \<in> [?pre]\<^sub>a ?imslow \<rightarrow> ?fslow\<close>) and
  last_trail_fast_code_last[sepref_fr_rules]:
     \<open>(last_trail_fast_code, RETURN o op_list_hd) \<in> [\<lambda>M. M \<noteq> []]\<^sub>a trail_fast_assn\<^sup>k \<rightarrow>
-       pair_nat_ann_lit_uint64_assn\<close>
+       pair_nat_ann_lit_fast_assn\<close>
     (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
 proof -
   have H: \<open>?c \<in>  [comp_PRE trail_pol (\<lambda>M. M \<noteq> [])

@@ -120,7 +120,7 @@ definition ann_lit_rel:: \<open>('a \<times> nat) set \<Rightarrow> ('b \<times>
 
 type_synonym ann_lit_wl = \<open>uint32 \<times> nat option\<close>
 type_synonym ann_lits_wl = \<open>ann_lit_wl list\<close>
-type_synonym ann_lit_wl_fast = \<open>uint32 \<times> uint32 option\<close>
+type_synonym ann_lit_wl_fast = \<open>uint32 \<times> uint64 option\<close>
 type_synonym ann_lits_wl_fast = \<open>ann_lit_wl_fast list\<close>
 
 definition nat_ann_lit_rel :: \<open>(ann_lit_wl \<times> (nat, nat) ann_lit) set\<close> where
@@ -151,7 +151,7 @@ abbreviation pair_nat_ann_lits_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> 
   \<open>pair_nat_ann_lits_assn \<equiv> list_assn pair_nat_ann_lit_assn\<close>
 
 abbreviation pair_nat_ann_lit_fast_assn :: \<open>(nat, nat) ann_lit \<Rightarrow> ann_lit_wl_fast \<Rightarrow> assn\<close> where
-  \<open>pair_nat_ann_lit_fast_assn \<equiv> hr_comp (uint32_assn *a option_assn uint32_nat_assn) nat_ann_lit_rel\<close>
+  \<open>pair_nat_ann_lit_fast_assn \<equiv> hr_comp (uint32_assn *a option_assn uint64_nat_assn) nat_ann_lit_rel\<close>
 
 abbreviation pair_nat_ann_lits_fast_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> ann_lits_wl_fast \<Rightarrow> assn\<close> where
   \<open>pair_nat_ann_lits_fast_assn \<equiv> list_assn pair_nat_ann_lit_fast_assn\<close>
@@ -747,7 +747,7 @@ abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rig
   \<open>ann_lit_wl_assn \<equiv> uint32_assn *a (option_assn nat_assn)\<close>
 
 abbreviation ann_lit_wl_fast_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl_fast \<Rightarrow> assn\<close> where
-  \<open>ann_lit_wl_fast_assn \<equiv> uint32_assn *a (option_assn uint32_nat_assn)\<close>
+  \<open>ann_lit_wl_fast_assn \<equiv> uint32_assn *a (option_assn uint64_nat_assn)\<close>
 
 abbreviation ann_lits_wl_assn :: \<open>ann_lits_wl \<Rightarrow> ann_lits_wl \<Rightarrow> assn\<close> where
   \<open>ann_lits_wl_assn \<equiv> list_assn ann_lit_wl_assn\<close>

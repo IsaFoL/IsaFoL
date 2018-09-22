@@ -817,8 +817,8 @@ definition (in isasat_input_ops) isa_set_lookup_conflict_aa_pre where
 sepref_register set_lookup_conflict_aa
 sepref_thm set_lookup_conflict_aa_code
   is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict_aa)\<close>
-  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
-      trail_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
@@ -1421,6 +1421,44 @@ prepare_code_thms (in -) resolve_merge_conflict_code_def
 
 lemmas resolve_merge_conflict_code[sepref_fr_rules] =
    resolve_merge_conflict_code.refine[OF isasat_input_bounded_axioms]
+
+sepref_thm resolve_merge_conflict_fast_code
+  is \<open>uncurry6 (PR_CONST isa_resolve_merge_conflict)\<close>
+  :: \<open>[uncurry6 (\<lambda>M N i (b, xs) clvls lbd outl. length N \<le> uint64_max \<and>
+         isa_set_lookup_conflict_aa_pre ((((((M, N), i), (b, xs)), clvls), lbd), outl))]\<^sub>a
+      trail_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+         uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+      conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
+  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+    image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    fmap_length_rll_u_def[simp]
+    arena_is_valid_clause_idx_le_uint64_max[intro]
+  unfolding set_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
+    PR_CONST_def nth_rll_def[symmetric] length_rll_def[symmetric]
+    length_aa_u_def[symmetric] outlearned_add_def clvls_add_def
+    isasat_codegen isa_set_lookup_conflict_aa_def isa_lookup_conflict_merge_def
+    fmap_rll_u_def[symmetric]
+    fmap_rll_def[symmetric] nat_of_uint64_conv_def
+    is_NOTIN_def[symmetric] isa_set_lookup_conflict_aa_pre_def
+    isa_resolve_merge_conflict_def
+  apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite in \<open>_ + 1\<close> one_uint64_nat_def[symmetric])
+  apply (rewrite in \<open>RETURN (Suc _, _)\<close> Suc_eq_plus1)
+  apply (rewrite in \<open>_ + 1\<close> one_uint64_nat_def[symmetric])
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) resolve_merge_conflict_fast_code
+   uses isasat_input_bounded.resolve_merge_conflict_fast_code.refine_raw
+   is \<open>(uncurry6 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) resolve_merge_conflict_fast_code_def
+
+lemmas resolve_merge_conflict_fast_code[sepref_fr_rules] =
+   resolve_merge_conflict_fast_code.refine[OF isasat_input_bounded_axioms]
+
 
 definition merge_conflict_m_pre where
   \<open>merge_conflict_m_pre =
