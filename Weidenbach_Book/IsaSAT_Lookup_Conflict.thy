@@ -3182,7 +3182,7 @@ sepref_thm lit_redundant_rec_wl_lookup_fast_code
   apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_fast_assn])
   apply (rewrite at \<open>_ @ [(_, \<hole>)]\<close> one_uint64_nat_def[symmetric])+
-  
+
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
     fmap_rll_def[symmetric]
     fmap_length_rll_def[symmetric]

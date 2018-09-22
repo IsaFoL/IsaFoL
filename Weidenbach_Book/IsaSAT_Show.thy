@@ -103,7 +103,7 @@ lemma print_current_information_hnr[sepref_fr_rules]:
 definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> unit nres\<close> where
 \<open>isasat_current_status =
    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
-       fast_ema, slow_ema, ccount, avdom, 
+       fast_ema, slow_ema, ccount, avdom,
        vdom, lcount, opts). RETURN (print_current_information stats lcount))\<close>
 
 context isasat_input_ops

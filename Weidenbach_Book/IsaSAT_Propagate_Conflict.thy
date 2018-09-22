@@ -46,8 +46,7 @@ lemmas length_ll_fs_heur_code_refine[sepref_fr_rules] =
 
 sepref_thm length_ll_fs_heur_fast_code
   is \<open>uncurry (RETURN oo length_ll_fs_heur)\<close>
-  :: \<open>[\<lambda>(S, L). nat_of_lit L < length (get_watched_wl_heur S)(* \<and>
-         length (get_watched_wl_heur S ! (nat_of_lit L)) \<le> uint64_max*)]\<^sub>a
+  :: \<open>[\<lambda>(S, L). nat_of_lit L < length (get_watched_wl_heur S)]\<^sub>a
       isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>nat_assn\<close>
   unfolding length_ll_fs_heur_alt_def get_watched_wl_heur_def isasat_bounded_assn_def
     length_ll_def[symmetric]
@@ -87,6 +86,37 @@ prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
 
 lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
    unit_propagation_inner_loop_wl_loop_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+lemma unit_propagation_inner_loop_wl_loop_D_heur_fast:
+  \<open>length (get_clauses_wl_heur b) \<le> uint64_max \<Longrightarrow>
+    unit_propagation_inner_loop_wl_loop_D_heur_inv b a (a1', a1'a, a2'a) \<Longrightarrow>
+     length (get_clauses_wl_heur a2'a) \<le> uint64_max\<close>
+  unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv_def
+  by auto
+
+sepref_thm unit_propagation_inner_loop_wl_loop_D_fast
+  is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D_heur))\<close>
+  :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> nat_assn *a nat_assn *a isasat_bounded_assn\<close>
+  unfolding unit_propagation_inner_loop_wl_loop_D_heur_def PR_CONST_def
+  unfolding watched_by_nth_watched_app watched_app_def[symmetric]
+    length_ll_fs_heur_def[symmetric]
+  unfolding nth_ll_def[symmetric]
+  unfolding swap_ll_def[symmetric]
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+    is_None_def[symmetric] get_conflict_wl_is_None_heur_alt_def[symmetric]
+    length_ll_fs_def[symmetric]
+  supply [[goals_limit=1]] unit_propagation_inner_loop_wl_loop_D_heur_fast[intro]
+  by sepref
+
+concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_fast_code
+   uses isasat_input_bounded_nempty.unit_propagation_inner_loop_wl_loop_D_fast.refine_raw
+   is \<open>(uncurry ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_fast_code_def
+
+lemmas unit_propagation_inner_loop_wl_loop_D_fast_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_wl_loop_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 lemma (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
   \<open>unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0 = do {
@@ -173,39 +203,6 @@ proof -
 qed *)
 
 sepref_register length_ll_fs_heur
-sepref_thm unit_propagation_inner_loop_wl_loop_D_fast
-  is \<open>uncurry (PR_CONST unit_propagation_inner_loop_wl_loop_D_heur)\<close>
-  :: \<open>[\<lambda>(L, S). isasat_fast S]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> nat_assn *a nat_assn *a isasat_bounded_assn\<close>
-(*  supply unit_propagation_inner_loop_wl_loop_D_heur_inv_length_watchlist[intro]*)
-  unfolding unit_propagation_inner_loop_wl_loop_D_heur_alt_def PR_CONST_def
-  unfolding watched_by_nth_watched_app watched_app_def[symmetric]
-    length_ll_fs_heur_def[symmetric]
-  unfolding nth_ll_def[symmetric]
-  unfolding swap_ll_def[symmetric]
-  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-    is_None_def[symmetric] get_conflict_wl_is_None_heur_alt_def[symmetric]
-    length_ll_fs_def[symmetric]
-    zero_uint64_nat_def
-  supply [[goals_limit=1]] (*unit_propagation_inner_loop_wl_loop_D_heur_cond[simp]*)
-  supply unit_propagation_inner_loop_body_wl_D_fast_code_refine[sepref_fr_rules]
-         apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold
-
-
-  by sepref
-
-concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_fast_code
-   uses isasat_input_bounded_nempty.unit_propagation_inner_loop_wl_loop_D_fast.refine_raw
-   is \<open>(uncurry ?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_fast_code_def
-
-lemmas unit_propagation_inner_loop_wl_loop_D_fast_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_loop_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n,
-     OF isasat_input_bounded_nempty_axioms] *)
 
 sepref_register unit_propagation_inner_loop_wl_loop_D_heur
 sepref_thm cut_watch_list_heur2
@@ -226,6 +223,25 @@ prepare_code_thms (in -) cut_watch_list_heur2_code_def
 lemmas cut_watch_list_heur2_refine[sepref_fr_rules] =
    cut_watch_list_heur2_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+sepref_thm cut_watch_list_heur2_fast
+  is \<open>uncurry3 cut_watch_list_heur2\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
+     isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]] length_ll_def[simp]
+  unfolding cut_watch_list_heur2_def isasat_bounded_assn_def length_ll_def[symmetric]
+  update_ll_def[symmetric] nth_rll_def[symmetric] shorten_take_ll_def[symmetric]
+  by sepref
+
+concrete_definition (in -) cut_watch_list_heur2_fast_code
+   uses isasat_input_bounded_nempty.cut_watch_list_heur2_fast.refine_raw
+   is \<open>(uncurry3 ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) cut_watch_list_heur2_fast_code_def
+
+lemmas cut_watch_list_heur2_fast_refine[sepref_fr_rules] =
+   cut_watch_list_heur2_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+
 sepref_thm unit_propagation_inner_loop_wl_D
   is \<open>uncurry (PR_CONST unit_propagation_inner_loop_wl_D_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
@@ -242,9 +258,10 @@ prepare_code_thms (in -) unit_propagation_inner_loop_wl_D_code_def
 lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
    unit_propagation_inner_loop_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-(* sepref_thm unit_propagation_inner_loop_wl_D_fast
+sepref_thm unit_propagation_inner_loop_wl_D_fast
   is \<open>uncurry (PR_CONST unit_propagation_inner_loop_wl_D_heur)\<close>
-  :: \<open>[\<lambda>(L, S). isasat_fast S]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
+        unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
   by sepref
@@ -256,7 +273,7 @@ concrete_definition (in -) unit_propagation_inner_loop_wl_D_fast_code
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_D_fast_code_def
 
 lemmas unit_propagation_inner_loop_wl_D_fast_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms] *)
+   unit_propagation_inner_loop_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 
 paragraph \<open>Unit propagation, Outer Loop\<close>
@@ -294,6 +311,30 @@ prepare_code_thms (in -) select_and_remove_from_literals_to_update_wl_code_def
 
 lemmas select_and_remove_from_literals_to_update_wl_code_refine[sepref_fr_rules] =
    select_and_remove_from_literals_to_update_wl_code.refine[of \<A>\<^sub>i\<^sub>n,
+     OF isasat_input_bounded_nempty_axioms]
+
+
+sepref_thm select_and_remove_from_literals_to_update_wlfast_code
+  is \<open>select_and_remove_from_literals_to_update_wl_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn *a unat_lit_assn\<close>
+  supply [[goals_limit=1]] uint32_nat_assn_plus[sepref_fr_rules]
+  unfolding select_and_remove_from_literals_to_update_wl_heur_alt_def isasat_bounded_assn_def
+    one_uint32_nat_def[symmetric]
+  supply [[goals_limit = 1]]
+       apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold
+  by sepref
+
+concrete_definition (in -) select_and_remove_from_literals_to_update_wlfast_code
+   uses isasat_input_bounded_nempty.select_and_remove_from_literals_to_update_wlfast_code.refine_raw
+   is \<open>(?f, _)\<in>_\<close>
+
+preparefast_code_thms (in -) select_and_remove_from_literals_to_update_wlfast_code_def
+
+lemmas select_and_remove_from_literals_to_update_wlfast_code_refine[sepref_fr_rules] =
+   select_and_remove_from_literals_to_update_wlfast_code.refine[of \<A>\<^sub>i\<^sub>n,
      OF isasat_input_bounded_nempty_axioms]
 
 definition (in -) literals_to_update_wl_literals_to_update_wl_empty :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where

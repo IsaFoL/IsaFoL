@@ -327,7 +327,7 @@ concrete_definition (in -) initialise_VMTF_code
   uses "isasat_input_ops.initialise_VMTF_code.refine_raw"
   is \<open>(uncurry ?f,_)\<in>_\<close>
 
-prepare_code_thms (in -) initialise_VMTF_code_def 
+prepare_code_thms (in -) initialise_VMTF_code_def
 
 declare initialise_VMTF_code.refine[sepref_fr_rules]
 
@@ -451,7 +451,7 @@ proof -
   show ?thesis
     apply (intro frefI nres_relI)
     unfolding initialise_VMTF_def uncurry_def conc_Id id_def isasat_input_ops.vmtf_init_def
-    apply (refine_rcg) 
+    apply (refine_rcg)
    subgoal by (auto dest: list_rel_mset_rel_imp_same_length)
     apply (rule specify_left)
      apply (rule W_ref; assumption?)
@@ -902,7 +902,7 @@ lemma add_init_pre2: \<open>2 \<le> length (op_array_of_list x1h)\<close>  if  \
   using pre xy that by (auto simp: y)
 
 context
-  fixes x1h :: \<open>nat literal list\<close> and 
+  fixes x1h :: \<open>nat literal list\<close> and
   x2h :: \<open>(nat, nat) ann_lits\<times>
       arena \<times>
       (bool \<times> nat \<times> bool option list) \<times>
@@ -2261,7 +2261,7 @@ lemma (in isasat_input_ops) init_state_wl_heur_init_state_wl:
         RES_RETURN_RES bind_RES_RETURN_eq RES_RES_RETURN_RES RETURN_def
         twl_st_heur_parsing_no_WL_wl_def vdom_m_def empty_watched_def valid_arena_empty
         intro!: RES_refine)
-(* 
+(*
 lemma (in isasat_input_ops) get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
     \<open>(RETURN o get_conflict_wl_is_None_heur_init,  RETURN o get_conflict_wl_is_None) \<in>
     twl_st_heur_parsing_no_WL_wl \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
@@ -2285,7 +2285,7 @@ definition (in -)to_init_state :: \<open>nat twl_st_wl_init' \<Rightarrow> nat t
 definition (in -) from_init_state :: \<open>nat twl_st_wl_init_full \<Rightarrow> nat twl_st_wl\<close> where
   \<open>from_init_state = fst\<close>
 
-(* 
+(*
 lemma (in isasat_input_ops) get_conflict_wl_is_None_heur_init_get_conflict_wl_is_None_init:
   \<open>(T, Ta) \<in> twl_st_heur_parsing_no_WL  \<Longrightarrow>
     get_conflict_wl_is_None_heur_init T \<longleftrightarrow> get_conflict_wl_is_None_init (from_init_state Ta)\<close>
@@ -2422,7 +2422,7 @@ proof -
   have [refine0]: \<open>(xs, xsa) \<in> Id \<Longrightarrow>
      ([0..<length xs], [0..<length xsa]) \<in> \<langle>{(x, x'). x = x' \<and> xs!x \<in> vdom}\<rangle>list_rel\<close>
     for xsa
-    using assms unfolding list_rel_def 
+    using assms unfolding list_rel_def
     by (auto simp: list_all2_same)
   show ?thesis
     unfolding rewatch_heur_def rewatch_def
@@ -2602,7 +2602,7 @@ where
   }\<close>
 
 lemma init_dt_wl_heur_full_init_dt_wl_full:
-  assumes 
+  assumes
     \<open>init_dt_wl_pre CS T\<close> and
     \<open>\<forall>C\<in>set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close> and
     \<open>distinct_mset_set (mset ` set CS)\<close> and
@@ -2612,7 +2612,7 @@ lemma init_dt_wl_heur_full_init_dt_wl_full:
 proof -
   have H: \<open>valid_arena x1g x1b (set (x2o))\<close> \<open>set x2o \<subseteq> set x2o\<close> \<open>set_mset (dom_m x1b) \<subseteq> set x2o\<close>
     \<open>distinct x2o\<close> \<open>(x1j, \<lambda>_. []) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close>
-    if 
+    if
       xx': \<open>(x, x') \<in> twl_st_heur_parsing_no_WL\<close> and
       st: \<open>x2c = (x1e, x2d)\<close>
         \<open>x2b = (x1d, x2c)\<close>
@@ -2660,7 +2660,7 @@ qed
 
 
 lemma init_dt_wl_heur_full_init_dt_wl_spec_full:
-  assumes 
+  assumes
     \<open>init_dt_wl_pre CS T\<close> and
     \<open>\<forall>C\<in>set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close> and
     \<open>distinct_mset_set (mset ` set CS)\<close> and
@@ -3088,7 +3088,7 @@ concrete_definition (in -) init_state_wl_D'_code
 prepare_code_thms (in -) init_state_wl_D'_code_def
 
 lemmas (in isasat_input_ops)init_state_wl_D'_hnr[sepref_fr_rules] =
-   init_state_wl_D'_code.refine[of \<A>\<^sub>i\<^sub>n] 
+   init_state_wl_D'_code.refine[of \<A>\<^sub>i\<^sub>n]
 
 sepref_thm (in isasat_input_ops) init_state_wl_D'_fast_code
   is \<open>PR_CONST init_state_wl_D'\<close>
@@ -3115,7 +3115,7 @@ concrete_definition (in -) init_state_wl_D'_fast_code
 prepare_code_thms (in -) init_state_wl_D'_fast_code_def
 
 lemmas (in isasat_input_ops)init_state_wl_D'_fast_hnr[sepref_fr_rules] =
-   init_state_wl_D'_fast_code.refine[of \<A>\<^sub>i\<^sub>n] 
+   init_state_wl_D'_fast_code.refine[of \<A>\<^sub>i\<^sub>n]
 
 
 lemma init_trail_D_ref:
@@ -3398,7 +3398,7 @@ proof -
         hr_comp cach_refinement_l_assn (isasat_input_ops.cach_refinement \<A>\<^sub>i\<^sub>n) *a
         lbd_assn *a vdom_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using isasat_input_ops.init_state_wl_D'_hnr[unfolded PR_CONST_def, 
+    using isasat_input_ops.init_state_wl_D'_hnr[unfolded PR_CONST_def,
       FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n,
       unfolded PR_CONST_def]
     unfolding isasat_input_ops.cach_refinement_assn_def

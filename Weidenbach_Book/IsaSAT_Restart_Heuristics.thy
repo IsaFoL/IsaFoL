@@ -89,7 +89,7 @@ lemma GC_remap_ran_m_no_rewrite:
       dest: GC_remap_ran_m_remap)
 
 lemma GC_remap_ran_m_lookup_kept:
-  assumes 
+  assumes
     \<open>GC_remap\<^sup>*\<^sup>* S y\<close> and
     \<open>GC_remap y z\<close> and
     \<open>C \<in># dom_m (fst S)\<close> and
@@ -147,7 +147,7 @@ lemma rtranclp_GC_remap_ran_m_no_new_lost:
 
 
 lemma rtranclp_GC_remap_map_ran:
-  assumes 
+  assumes
     \<open>GC_remap\<^sup>*\<^sup>* S S'\<close> and
     \<open>(the \<circ>\<circ> fst) (snd S) `# mset_set (dom (fst (snd S))) = dom_m (snd (snd S))\<close> and
     \<open>finite (dom (fst (snd S)))\<close>
@@ -158,7 +158,7 @@ proof (induction rule: rtranclp_induct)
   case base
   then show ?case by auto
 next
-  case (step y z) note star = this(1) and st = this(2) and IH = this(3) and H = this(4-)  
+  case (step y z) note star = this(1) and st = this(2) and IH = this(3) and H = this(4-)
   from st
   show ?case
   proof cases
@@ -169,16 +169,16 @@ next
      {#the (m x). x \<in># mset_set (dom m)#}\<close>
     apply (auto intro!: image_mset_cong split: if_splits)
     by (metis empty_iff finite_set_mset_mset_set local.remap_cons(5) mset_set.infinite set_mset_empty)
-    
+
     show ?thesis
-      using step remap_cons 
+      using step remap_cons
       by (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin
         dest: GC_remap_ran_m_remap GC_remap_ran_m_no_rewrite
         intro: GC_remap_ran_m_lookup_kept GC_remap_ran_m_no_lost dest: )
   qed
 qed
 
-      
+
 lemma rtranclp_GC_remap_ran_m_no_new_map:
   \<open>GC_remap\<^sup>*\<^sup>*  S S'  \<Longrightarrow> C \<in># dom_m (fst S') \<Longrightarrow> C \<in># dom_m (fst S)\<close>
   apply (induction rule: rtranclp_induct)
@@ -201,7 +201,7 @@ lemma remap_cons2:
 proof -
   have 3: \<open>C \<in> dom m \<Longrightarrow> False\<close>
     apply (drule mk_disjoint_insert)
-    using assms 
+    using assms
     apply (auto 5 5 simp: ran_def)
     done
 
@@ -236,7 +236,7 @@ lemma rtranclp_GC_remap_finite_map:
 
 
 lemma rtranclp_GC_remap_old_dom_map:
-  \<open>GC_remap\<^sup>*\<^sup>*  R S  \<Longrightarrow> (\<And>x. x \<in># dom_m (fst R) \<Longrightarrow> x \<notin> dom (fst (snd R))) \<Longrightarrow> 
+  \<open>GC_remap\<^sup>*\<^sup>*  R S  \<Longrightarrow> (\<And>x. x \<in># dom_m (fst R) \<Longrightarrow> x \<notin> dom (fst (snd R))) \<Longrightarrow>
        (\<And>x. x \<in># dom_m (fst S) \<Longrightarrow> x \<notin> dom (fst (snd S)))\<close>
   apply (induction rule: rtranclp_induct)
   subgoal by auto
@@ -289,7 +289,7 @@ proof -
 
   have I_drop: \<open>I (l1 @ [xa]) l2
        (fmdrop xa a, fmupd xb (a \<propto> xa, irred a xa) aa, ba(xa \<mapsto> xb))\<close>
-  if 
+  if
     \<open>set_mset (dom_m N) \<subseteq> set x\<close> and
     \<open>x = l1 @ xa # l2\<close> and
     \<open>I l1 (xa # l2) \<sigma>\<close> and
@@ -314,7 +314,7 @@ proof -
 
 
   have I_notin: \<open>I (l1 @ [xa]) l2 (a, aa, ba)\<close>
-    if 
+    if
       \<open>set_mset (dom_m N) \<subseteq> set x\<close> and
       \<open>x = l1 @ xa # l2\<close> and
       \<open>I l1 (xa # l2) \<sigma>\<close> and
@@ -330,7 +330,7 @@ proof -
   qed
 
   have early_break: \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, x2, x1)\<close>
-     if 
+     if
        \<open>set_mset (dom_m N) \<subseteq> set x\<close> and
        \<open>x = l1 @ l2\<close> and
        \<open>I l1 l2 \<sigma>\<close> and
@@ -342,9 +342,9 @@ proof -
    proof -
      show ?thesis using that by auto
    qed
- 
+
   have final_rel: \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, x2, x1)\<close>
-  if 
+  if
     \<open>set_mset (dom_m N) \<subseteq> set x\<close> and
     \<open>I x [] \<sigma>\<close> and
     \<open>case \<sigma> of (N, N', m) \<Rightarrow> True\<close> and
@@ -357,7 +357,7 @@ proof -
       by (auto simp: I_def)
   qed
   have final_rel: \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, x2, x1)\<close>
-    if 
+    if
       \<open>set_mset (dom_m N) \<subseteq> set x\<close> and
       \<open>I x [] \<sigma>\<close> and
       \<open>case \<sigma> of (N, N', m) \<Rightarrow> True\<close> and
@@ -1609,7 +1609,7 @@ where
           D \<leftarrow> get_the_propagation_reason (get_trail_wl_heur T) L;
           ASSERT(get_clause_LBD_pre (get_clauses_wl_heur T) C);
           ASSERT(arena_is_valid_clause_vdom (get_clauses_wl_heur T) C);
-          ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow> 
+          ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow>
             arena_is_valid_clause_idx (get_clauses_wl_heur T) C);
           let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > MINIMUM_DELETION_LBD \<and>
              arena_status (get_clauses_wl_heur T) C = LEARNED \<and>
@@ -1692,7 +1692,7 @@ proof -
             D \<leftarrow> get_the_propagation_reason (get_trail_wl_heur T) L;
             ASSERT(get_clause_LBD_pre (get_clauses_wl_heur T) C);
             ASSERT(arena_is_valid_clause_vdom (get_clauses_wl_heur T) C);
-            ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow> 
+            ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow>
                 arena_is_valid_clause_idx (get_clauses_wl_heur T) C);
             let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > MINIMUM_DELETION_LBD \<and>
                arena_status (get_clauses_wl_heur T) C = LEARNED \<and>

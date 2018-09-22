@@ -127,7 +127,7 @@ lemma (in -) ema_init_coeff_hnr[sepref_fr_rules]:
 
 
 text \<open>We use the default values for Cadical: \<^term>\<open>(3 / 10 ^2)\<close> and  \<^term>\<open>(1 / 10 ^ 5)\<close>  in our fixed-point
-  version. 
+  version.
 \<close>
 abbreviation ema_fast_init :: ema where
   \<open>ema_fast_init \<equiv> ema_init (128849010)\<close>

@@ -1884,12 +1884,24 @@ sepref_definition isa_trail_nth_code
   unfolding isa_trail_nth_def
   by sepref
 
+sepref_definition isa_trail_nth_fast_code
+  is \<open>uncurry isa_trail_nth\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
+  unfolding isa_trail_nth_def
+  by sepref
+
 context isasat_input_ops
 begin
 lemma isa_trail_nth_hnr[sepref_fr_rules]:
   \<open>(uncurry isa_trail_nth_code, uncurry (RETURN \<circ>\<circ> rev_trail_nth))
     \<in> [\<lambda>(a, b). b < length a]\<^sub>a trail_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   using isa_trail_nth_code.refine[FCOMP isa_trail_nth_rev_trail_nth]
+  by simp
+
+lemma isa_trail_fast_nth_hnr[sepref_fr_rules]:
+  \<open>(uncurry isa_trail_nth_fast_code, uncurry (RETURN \<circ>\<circ> rev_trail_nth))
+    \<in> [\<lambda>(a, b). b < length a]\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  using isa_trail_nth_fast_code.refine[FCOMP isa_trail_nth_rev_trail_nth]
   by simp
 
 end

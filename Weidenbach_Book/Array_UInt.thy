@@ -1066,7 +1066,7 @@ proof -
     (sep_auto simp: arl_swap_u_code_def swap_def nth_u_code_def is_array_def
       array_assn_def hr_comp_def nth_nat_of_uint32_nth'[symmetric]
       list_rel_imp_same_length uint32_nat_rel_def br_def arl_assn_def
-      heap_array_set_u_def heap_array_set'_u_def Array.upd'_def 
+      heap_array_set_u_def heap_array_set'_u_def Array.upd'_def
       arl_set'_u_def R R'
       nat_of_uint32_code[symmetric] R arl_set_u_def arl_get'_def arl_get_u_def
       intro!: list_rel_update[of _ _ R true _ _ \<open>(_, {})\<close>, unfolded R] param_nth)

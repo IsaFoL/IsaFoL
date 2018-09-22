@@ -48,7 +48,7 @@ definition cdcl_twl_stgy_restart_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres
     RETURN T
   }\<close>
 
-lemma (in twl_restart) 
+lemma (in twl_restart)
   assumes
     inv: \<open>case (brk, T, m) of  (brk, T, m) \<Rightarrow> cdcl_twl_stgy_restart_prog_inv S brk T m\<close> and
     cond: \<open>case (brk, T, m) of (brk, uu_) \<Rightarrow> \<not> brk\<close> and
@@ -263,7 +263,7 @@ proof -
     done
 qed
 
-lemma (in twl_restart) 
+lemma (in twl_restart)
   assumes
     inv: \<open>case (ebrk, brk, T, m) of  (ebrk, brk, T, m) \<Rightarrow> cdcl_twl_stgy_restart_prog_inv S brk T m\<close> and
     cond: \<open>case (ebrk, brk, T, m) of (ebrk, brk, _) \<Rightarrow> \<not> brk \<and> \<not>ebrk\<close> and

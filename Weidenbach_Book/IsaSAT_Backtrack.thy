@@ -1212,7 +1212,7 @@ proof -
             mset C = the (get_conflict_wl T) \<and>
             get_conflict_wl T \<noteq> None \<and>
             equality_except_conflict_wl T (M, N, D, NE, UE, Q, W) \<and>
-            get_clauses_wl_heur T' = get_clauses_wl_heur (M, arena, (b, D'), Q', W', vm, \<phi>, clvls, 
+            get_clauses_wl_heur T' = get_clauses_wl_heur (M, arena, (b, D'), Q', W', vm, \<phi>, clvls,
               cach, lbd, outl, stats, cc,
               cc2, cc3, vdom, avdom, lcount, opts)  \<and>
             (1 < length C \<longrightarrow>
@@ -1328,7 +1328,7 @@ proof -
     have vmtf_mark_to_rescore_also_reasons:
       \<open>vmtf_mark_to_rescore_also_reasons M arena (outl[0 := - lit_of (hd M)]) vm
           \<le> SPEC (\<lambda>c. (c, ()) \<in> {(c, _). c \<in> vmtf M})\<close>
-      if 
+      if
         \<open>M \<noteq> []\<close> and
         \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
         \<open>- lit_of (hd M) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
@@ -1376,7 +1376,7 @@ proof -
       apply (rewrite at  \<open>let _ = list_update _ _ _ in _ \<close>Let_def)
       apply (rewrite at  \<open>let _ = empty_cach _ in _ \<close> Let_def)
       apply (subst extract_shorter_conflict_wl_alt_def)
-      apply (refine_vcg isa_minimize_and_extract_highest_lookup_conflict 
+      apply (refine_vcg isa_minimize_and_extract_highest_lookup_conflict
          empty_conflict_and_extract_clause_heur)
       subgoal using trail_nempty .
       subgoal using pre2 by blast
@@ -1595,7 +1595,7 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> \<open>1 < length C\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T')
-    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount avdom vdom lcount arena D' Q' opts 
+    obtain vm' W' \<phi> clvls cach lbd outl stats fema sema ccount avdom vdom lcount arena D' Q' opts
       where
         U: \<open>U = (M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
            vdom, avdom, lcount, opts)\<close> and
@@ -1666,7 +1666,7 @@ proof -
           ASSERT(atm_of L < length \<phi>);
           RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, zero_uint32_nat,
             cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
-              incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i], 
+              incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
               avdom @ [nat_of_uint32_conv i], Suc lcount, opts)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
@@ -1749,7 +1749,7 @@ proof -
       apply (rule fm_add_new_append_clause)
       using that valid le_C vdom
       by (auto simp: intro!: RETURN_RES_refine valid_arena_append_clause)
-    have [refine0]: 
+    have [refine0]:
       \<open>lbd_empty lbd \<le> SPEC (\<lambda>c. (c, ()) \<in> {(c, _). c = replicate (length lbd) False})\<close>
       by (auto simp: lbd_empty_def)
     have [refine0]:

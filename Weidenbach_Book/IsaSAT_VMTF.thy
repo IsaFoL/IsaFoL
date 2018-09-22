@@ -138,7 +138,7 @@ lemma (in -) insert_sort_inner_nth_code_helper:
 
 sepref_definition (in -) insert_sort_inner_nth_code
    is \<open>uncurry2 insert_sort_inner_nth\<close>
-   :: \<open>[\<lambda>((xs, remove), n). (\<forall>x\<in>#mset remove. x < length xs) \<and> n < length remove \<and> 
+   :: \<open>[\<lambda>((xs, remove), n). (\<forall>x\<in>#mset remove. x < length xs) \<and> n < length remove \<and>
         length remove \<le> uint32_max]\<^sub>a
   (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
   arl_assn uint32_nat_assn\<close>
@@ -272,7 +272,7 @@ lemma vmtf_rescale_alt_def:
        let m = the a;
        let c = ns ! m;
        let nc = get_next c;
-       let pc = get_prev c; 
+       let pc = get_prev c;
        RETURN (ns[m := VMTF_Node n pc nc], n + 1, pc)
      })
      (ns, 0, Some lst_As);
@@ -1259,7 +1259,7 @@ definition (in isasat_input_ops) vmtf_mark_to_rescore_clause where
   }\<close>
 
 (* TODO Move *)
-text \<open>This lemmma is only useful if \<^term>\<open>set xs\<close> can be simplified (which also means that this 
+text \<open>This lemmma is only useful if \<^term>\<open>set xs\<close> can be simplified (which also means that this
   simp-rule should not be used...)\<close>
 lemma (in -) in_list_in_setD: \<open>xs = it @ x # \<sigma> \<Longrightarrow> x \<in> set xs\<close>
   by auto

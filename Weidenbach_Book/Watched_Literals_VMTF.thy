@@ -1271,7 +1271,7 @@ proof clarify
       lst_As': \<open>fst_Asd \<noteq> None \<longrightarrow> lst_As' = the (lst_Asd)\<close>
       \<open>fst_Asd = None \<longrightarrow> lst_As' = L\<close>
       using dequeue unfolding vmtf_en_dequeue_def comp_def de
-      by (auto simp add: vmtf_enqueue_def split: option.splits)  
+      by (auto simp add: vmtf_enqueue_def split: option.splits)
     have \<open>lst_As = L\<close> if \<open>ys' = []\<close> and \<open>xs' = []\<close>
     proof -
       have 1: \<open>set_mset \<A>\<^sub>i\<^sub>n = {L}\<close>
@@ -1343,10 +1343,10 @@ proof clarify
     have L_in_M: \<open>L \<in> atm_of ` lits_of_l M\<close>
       using defined by (auto simp: defined_lit_map lits_of_def)
     have next_search': \<open>fst_Asd \<noteq> None \<longrightarrow> next_search' = next_searchd\<close>
-      \<open>fst_Asd = None \<longrightarrow> next_search' = None\<close> 
+      \<open>fst_Asd = None \<longrightarrow> next_search' = None\<close>
       using dequeue defined unfolding vmtf_en_dequeue_def comp_def de
       by (auto simp add: vmtf_enqueue_def split: option.splits)
-    have next_searchd: 
+    have next_searchd:
       \<open>next_searchd = (if next_search = Some L then get_next (ns ! L) else next_search)\<close>
       using de by (auto simp: vmtf_dequeue_def)
     have abs': \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l M  ((set xs', insert L (set ys')), to_remove')\<close>
@@ -1411,7 +1411,7 @@ proof clarify
     have next_search': \<open>next_search' = Some L\<close>
       using dequeue undef unfolding vmtf_en_dequeue_def comp_def de
       by (auto simp add: vmtf_enqueue_def split: option.splits)
-    have next_searchd: 
+    have next_searchd:
       \<open>next_searchd = (if next_search = Some L then get_next (ns ! L) else next_search)\<close>
       using de by (auto simp: vmtf_dequeue_def)
     have abs': \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l M  ((insert L (set (ys' @ xs')), set []), to_remove')\<close>
@@ -1466,7 +1466,7 @@ proof clarify
       apply (rule exI[of _ \<open>(L # ys') @ xs'\<close>])
       apply (rule exI[of _ \<open>[]\<close>])
       using fst_As' next_search' abs' atm_A vmtf_ns_notin' vmtf_ns ys_xs_\<L>\<^sub>a\<^sub>l\<^sub>l L_xs'_ys'_\<L>\<^sub>a\<^sub>l\<^sub>l'
-        next_searchd 
+        next_searchd
       by simp
   qed
 qed
@@ -1768,7 +1768,7 @@ lemma vmtf_vmtf_en_dequeue_pre_to_remove':
   assumes vmtf: \<open>(vm, to_remove) \<in> vmtf M\<close> and
     i: \<open>A \<in> to_remove\<close> and \<open>fst (snd vm) + 1 \<le> uint64_max\<close>
   shows \<open>vmtf_en_dequeue_pre ((M, A), vm)\<close>
-  using vmtf_vmtf_en_dequeue_pre_to_remove assms 
+  using vmtf_vmtf_en_dequeue_pre_to_remove assms
   by (cases vm) auto
 
 lemma wf_vmtf_get_next:
@@ -2430,7 +2430,7 @@ proof -
 
   define I' where
     \<open>I' \<equiv> \<lambda>(ns', n::nat, lst::nat option).
-        map get_prev ns = map get_prev ns' \<and> 
+        map get_prev ns = map get_prev ns' \<and>
         map get_next ns = map get_next ns' \<and>
         (\<forall>i<n. stamp (ns' ! (rev zs ! i)) = i) \<and>
         (lst \<noteq> None \<longrightarrow> n < length (zs) \<and> the lst = zs ! (length zs - Suc n)) \<and>
@@ -2456,7 +2456,7 @@ proof -
   have length_zs_le:  \<open>length zs < uint32_max\<close> using vmtf_ns_distinct[OF vmtf_ns]
       using simple_clss_size_upper_div2[OF lits dist tauto]
       by (auto simp: uint32_max_def)
-  
+
   have \<open>wf {(a, b). (a, b) \<in> {(get_prev (ns ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l}}\<close>
     by (rule wf_subset[OF wf_vmtf_get_prev[OF vmtf[unfolded vm]]]) auto
   from wf_snd_wf_pair[OF wf_snd_wf_pair[OF this]]
@@ -2561,7 +2561,7 @@ proof -
                 (ns, m, uua_) \<Rightarrow>
                   RETURN ((ns, m, fst_As, lst_As, next_search)))
                 \<le> ?R}\<close>
-    if 
+    if
       \<open>True\<close> and
       \<open>I' s\<close> and
       \<open>\<not> (case s of (ns, n, lst_As) \<Rightarrow> lst_As \<noteq> None)\<close>
@@ -2574,7 +2574,7 @@ proof -
       eq_prev: \<open>map get_prev ns = map get_prev ns'\<close> and
       eq_next: \<open>map get_next ns = map get_next ns'\<close> and
       stamp: \<open>\<forall>i<n'. stamp (ns' ! (rev zs ! i)) = i\<close> and
-      [simp]: \<open>n' = length zs\<close> 
+      [simp]: \<open>n' = length zs\<close>
       using that unfolding I'_def s prod.case by auto
     have [simp]: \<open>length ns' = length ns\<close>
       using arg_cong[OF eq_prev, of length] by auto
@@ -2587,7 +2587,7 @@ proof -
         unfolding rev_map[symmetric]
         using rev_swap by blast
 
-    have \<open>sorted (map ((!) (map stamp ns')) (rev zs))\<close>  
+    have \<open>sorted (map ((!) (map stamp ns')) (rev zs))\<close>
       by simp
     moreover have \<open>distinct (map ((!) (map stamp ns')) zs)\<close>
       by simp
@@ -2607,10 +2607,10 @@ proof -
       assume \<open>a \<in> set zs\<close>
       then have \<open>map stamp ns' ! a \<in> set (map ((!) (map stamp ns')) zs)\<close>
         by (metis in_set_conv_nth length_map nth_map)
-      then show \<open>map stamp ns' ! a < n'\<close>    
+      then show \<open>map stamp ns' ! a < n'\<close>
         unfolding stamps_zs by simp
     qed
-    ultimately have \<open>vmtf_ns zs n' ns'\<close> 
+    ultimately have \<open>vmtf_ns zs n' ns'\<close>
       using vmtf_ns_rescale[OF vmtf_ns, of \<open>map stamp ns'\<close> ns', unfolded zs_def[symmetric]]
       by fast
     moreover have \<open>vmtf_ns_notin zs (length zs) ns'\<close>
@@ -2628,7 +2628,7 @@ proof -
       using length_zs_le
       by (auto simp: s)
   qed
-  
+
   have H: \<open>WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup> (\<lambda>(ns, n, lst_As). lst_As \<noteq> None)
      (\<lambda>(ns, n, a). do {
            _ \<leftarrow> ASSERT (a \<noteq> None);
@@ -2711,7 +2711,7 @@ proof -
         {(c, c'). ((c, D), to_remove) \<in> distinct_atoms_rel \<and> to_remove = set c \<and>
            length C = length c \<and> D = set c})\<close>
      (is \<open>_ \<le> SPEC(\<lambda>_. _ \<in> ?reorder_remove)\<close>)
-    if 
+    if
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>((ns, m, fst_As, lst_As, next_search), C, D) = (x1, x2)\<close>
     for x1 x2 x1a x2a
@@ -2726,7 +2726,7 @@ proof -
         {(vm ,vm'). uint64_max \<ge> length to_remove' + fst (snd vm) \<and>
           (vm, D) \<in> vmtf M}) \<close>
     (is \<open>_ \<le> SPEC(\<lambda>c. (c, ()) \<in> ?rescale)\<close> is \<open>_ \<le> ?H\<close>)
-  if 
+  if
     \<open>x2 = (x1a, x2a)\<close> and
     \<open>((ns, m, fst_As, lst_As, next_search), C, D) = (x1, x2)\<close> and
     \<open>\<forall>x\<in>set x1a. x < length (fst x1)\<close> and
@@ -2761,7 +2761,7 @@ proof -
         (0, x1, x2a)
         \<le> \<Down> {((i, vm::vmtf, h:: nat set), vm'). (vm, {}) = vm' \<and> h = {} \<and> i = length to_remove' \<and>
             ((drop i to_remove', h), set(drop i to_remove')) \<in> distinct_atoms_rel} (RES (vmtf M))\<close>
-    if 
+    if
       x2: \<open>x2 = (x1a, x2a)\<close> and
       CD: \<open>((ns, m, fst_As, lst_As, next_search), C, D) = (x1', x2)\<close> and
       x1: \<open>(x1, u') \<in> ?rescale to_remove'\<close>
@@ -2779,7 +2779,7 @@ proof -
         \<open>x2 = (C, D)\<close>
         \<open>x1' = (ns, m, fst_As, lst_As, next_search)\<close>
         \<open>x1a = C\<close>
-        \<open>x2a = D\<close> and 
+        \<open>x2a = D\<close> and
       rel: \<open>((to_remove', D), to_remove) \<in> distinct_atoms_rel\<close> and
       to_rem: \<open>to_remove = set to_remove'\<close>
       using that by (auto simp: )
@@ -2812,7 +2812,7 @@ proof -
               x2a' - {to_remove' ! x2})
           } \<le> SPEC
               (\<lambda>s'. I s' \<and> I' s' \<and> (s', x1a) \<in> measure (\<lambda>(i, vm, h). Suc (length to_remove') - i))\<close>
-      if 
+      if
         I: \<open>I x1a\<close> and
         I': \<open>I' x1a\<close> and
         \<open>case x1a of (i, vm, h) \<Rightarrow> i < length to_remove'\<close> and
@@ -2852,7 +2852,7 @@ proof -
         \<in> distinct_atoms_rel\<close>
         using I' le to_rem that unfolding I'_def distinct_atoms_rel_def
         by (auto simp: Cons_nth_drop_Suc[symmetric])
-        
+
       have \<open>I (Suc x2, vmtf_en_dequeue M (to_remove' ! x2) x2aa,
           x2a' - {to_remove' ! x2})\<close>
         using that 1 unfolding I_def
@@ -2886,17 +2886,17 @@ proof -
       done
   qed
   have pre_sort: \<open>\<forall>x\<in>set x1a. x < length (fst x1)\<close>
-    if 
+    if
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>((ns, m, fst_As, lst_As, next_search), C, D) = (x1, x2)\<close>
-    for x1 x2 x1a x2a 
+    for x1 x2 x1a x2a
   proof -
     show ?thesis
       using vmtf CD_rem that by (auto simp: vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
         distinct_atoms_rel_def)
   qed
   have length_le: \<open>length x1a \<le> uint32_max\<close>
-    if 
+    if
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>((ns, m, fst_As, lst_As, next_search), C, D) = (x1, x2)\<close> and
       \<open>\<forall>x\<in>set x1a. x < length (fst x1)\<close>

@@ -2971,7 +2971,7 @@ proof -
        unfolding cdcl_twl_stgy_restart_prog_inv_def cdcl_twl_stgy_restart_abs_l_inv_def
        by (auto simp: twl_st)
     subgoal by auto
-    subgoal 
+    subgoal
        unfolding cdcl_twl_stgy_restart_prog_inv_def cdcl_twl_stgy_restart_abs_l_inv_def
        by (auto simp: twl_st)
     subgoal by auto

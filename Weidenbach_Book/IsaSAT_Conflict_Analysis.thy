@@ -452,7 +452,7 @@ proof -
       define D where \<open>D = C - ao\<close>
       with that have [simp]: \<open>C = ao + D\<close> and D_le: \<open>D < arena_length c ao\<close>
         by auto
-      
+
       have is_in: \<open>ca \<propto> ao ! D \<in># mset (ca \<propto> ao)\<close>
         using arena that D_le ao
         by (auto intro!: nth_mem simp: arena_lifting(4))
@@ -463,8 +463,8 @@ proof -
       then have \<open>ca \<propto> ao ! D \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
         using multi_member_split[OF is_in]
         by (auto simp: all_lits_of_m_add_mset)
-      
-      then show ?thesis    
+
+      then show ?thesis
         using arena ao D_le by (auto simp: arena_lifting)
     qed
 
@@ -1523,7 +1523,7 @@ lemma isasat_fast_after_skip_and_resolve_loop_wl_D_heur_inv:
         (False, a2') \<Longrightarrow> isasat_fast a2'\<close>
   unfolding skip_and_resolve_loop_wl_D_heur_inv_def isasat_fast_def
   by auto
-  
+
 sepref_thm skip_and_resolve_loop_wl_D_fast
   is \<open>PR_CONST skip_and_resolve_loop_wl_D_heur\<close>
   :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>

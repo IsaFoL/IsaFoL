@@ -540,7 +540,7 @@ prepare_code_thms (in -) isasat_fast_code_def
 
 lemmas isasat_fast_hnr[sepref_fr_rules] =
    isasat_fast_code.refine[of \<A>\<^sub>i\<^sub>n, unfolded PR_CONST_def]
-   
+
 text \<open>TODO There is no fast mode yet!\<close>
 sepref_thm cdcl_twl_stgy_restart_prog_wl_heur_fast_code
   is \<open>PR_CONST cdcl_twl_stgy_restart_prog_early_wl_heur\<close>
