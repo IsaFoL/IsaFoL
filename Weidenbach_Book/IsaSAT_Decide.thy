@@ -344,19 +344,14 @@ prepare_code_thms (in -) decide_lit_wl_code_def
 lemmas decide_lit_wl_heur_hnr[sepref_fr_rules] =
   decide_lit_wl_code.refine[OF isasat_input_bounded_nempty_axioms]
 
-(*
+
 sepref_thm decide_lit_wl_fast_code
   is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
-  :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and>
-        L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
+  :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
   unfolding decide_lit_wl_heur_def isasat_bounded_assn_def PR_CONST_def
     cons_trail_Decided_def[symmetric]
-    apply sepref_dbg_keep
-    apply sepref_dbg_trans_keep
-    apply sepref_dbg_trans_step_keep
-    apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref
 
 concrete_definition (in -) decide_lit_wl_fast_code
@@ -367,7 +362,7 @@ prepare_code_thms (in -) decide_lit_wl_fast_code_def
 
 lemmas decide_lit_wl_fast_heur_hnr[sepref_fr_rules] =
   decide_lit_wl_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
- *)
+ 
 
 definition(in isasat_input_ops) decide_wl_or_skip_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
@@ -378,7 +373,7 @@ where
       None \<Rightarrow> RETURN (True, S)
     | Some L \<Rightarrow>
        do {
-        ASSERT(undefined_lit (get_trail_wl_heur S) L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+         ASSERT(undefined_lit (get_trail_wl_heur S) L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
          RETURN (False, decide_lit_wl_heur L S) }
   })
 \<close>
@@ -429,7 +424,7 @@ prepare_code_thms (in -) decide_wl_or_skip_D_code_def
 
 lemmas decide_wl_or_skip_D_hnr[sepref_fr_rules] =
    decide_wl_or_skip_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-(*
+
 sepref_thm decide_wl_or_skip_D_fast_code
   is \<open>PR_CONST decide_wl_or_skip_D_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_bounded_assn\<close>
@@ -445,7 +440,7 @@ concrete_definition (in -) decide_wl_or_skip_D_fast_code
 prepare_code_thms (in -) decide_wl_or_skip_D_fast_code_def
 
 lemmas decide_wl_or_skip_D_fast_hnr[sepref_fr_rules] =
-   decide_wl_or_skip_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms] *)
+   decide_wl_or_skip_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 end
 

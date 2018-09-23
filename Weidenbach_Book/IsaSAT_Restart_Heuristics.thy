@@ -855,16 +855,11 @@ prepare_code_thms (in -) empty_Q_code_def
 lemmas empty_Q_hnr [sepref_fr_rules] =
    empty_Q_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-(*
 sepref_thm empty_Q_fast_code
   is \<open>empty_Q\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding empty_Q_def isasat_bounded_assn_def
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref
 
 concrete_definition (in -) empty_Q_fast_code
@@ -875,7 +870,6 @@ prepare_code_thms (in -) empty_Q_fast_code_def
 
 lemmas empty_Q_fast_hnr [sepref_fr_rules] =
    empty_Q_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-*)
 
 sepref_register cdcl_twl_local_restart_wl_D_heur
   empty_Q find_decomp_wl_st_int
@@ -894,7 +888,6 @@ concrete_definition (in -) cdcl_twl_local_restart_wl_D_heur_code
 lemmas cdcl_twl_local_restart_wl_D_heur_hnr [sepref_fr_rules] =
    cdcl_twl_local_restart_wl_D_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-(*
 sepref_thm cdcl_twl_local_restart_wl_D_heur_fast_code
   is \<open>PR_CONST cdcl_twl_local_restart_wl_D_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
@@ -908,7 +901,7 @@ concrete_definition (in -) cdcl_twl_local_restart_wl_D_heur_fast_code
 
 lemmas cdcl_twl_local_restart_wl_D_heur_fast_hnr [sepref_fr_rules] =
    cdcl_twl_local_restart_wl_D_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-*)
+
 
 named_theorems (in isasat_input_ops) twl_st_heur
 

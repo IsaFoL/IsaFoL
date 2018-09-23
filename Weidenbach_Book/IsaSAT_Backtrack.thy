@@ -421,11 +421,11 @@ lemmas empty_conflict_and_extract_clause_heur_hnr[sepref_fr_rules] =
    empty_conflict_and_extract_clause_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 
-(* sepref_thm empty_conflict_and_extract_clause_heur_fast_code
+sepref_thm empty_conflict_and_extract_clause_heur_fast_code
   is \<open>uncurry2 (PR_CONST empty_conflict_and_extract_clause_heur)\<close>
   :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint_max]\<^sub>a
-      trail_fast_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k \<rightarrow>
-       option_lookup_clause_assn *a clause_ll_assn *a uint32_nat_assn\<close>
+      trail_fast_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k \<rightarrow>
+       (bool_assn *a uint32_nat_assn *a array_assn option_bool_assn) *a clause_ll_assn *a uint32_nat_assn\<close>
   supply [[goals_limit=1]] image_image[simp]
   unfolding empty_conflict_and_extract_clause_heur_def PR_CONST_def
   array_fold_custom_replicate
@@ -438,7 +438,9 @@ concrete_definition (in -) empty_conflict_and_extract_clause_heur_fast_code
 prepare_code_thms (in -) empty_conflict_and_extract_clause_heur_fast_code_def
 
 lemmas empty_conflict_and_extract_clause_heur_hnr_fast[sepref_fr_rules] =
-   empty_conflict_and_extract_clause_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms] *)
+   empty_conflict_and_extract_clause_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n,
+      OF isasat_input_bounded_nempty_axioms]
+
 
 definition (in isasat_input_ops) extract_shorter_conflict_wl_nlit where
 \<open>extract_shorter_conflict_wl_nlit K M NU D NE UE =
@@ -602,8 +604,6 @@ proof -
   unfolding empty_cach_ref_set_def empty_cach_ref_def Let_def comp_def
   by (intro frefI nres_relI) (clarify intro!: H)
 qed
-
-
 
 
 lemma (in isasat_input_ops) empty_cach_ref_empty_cach:
@@ -2063,20 +2063,194 @@ prepare_code_thms (in -) propagate_bt_wl_D_code_def
 
 lemmas propagate_bt_wl_D_heur_hnr[sepref_fr_rules] =
   propagate_bt_wl_D_code.refine[OF isasat_input_bounded_nempty_axioms]
-(*
+
+(* TODO Move *)
+definition (in -)four_uint64_nat where
+  [simp]: \<open>four_uint64_nat = (4 :: nat)\<close>
+definition (in -)five_uint64_nat where
+  [simp]: \<open>five_uint64_nat = (5 :: nat)\<close>
+lemma (in-)
+  four_uint64_nat_hnr[sepref_fr_rules]:
+    \<open>(uncurry0 (return 4), uncurry0 (RETURN four_uint64_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close> and
+  five_uint64_nat_hnr[sepref_fr_rules]:
+    \<open>(uncurry0 (return 5), uncurry0 (RETURN five_uint64_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by (sepref_to_hoare; sep_auto simp: uint64_nat_rel_def br_def)+
+
+sepref_definition (in -) header_size_fast_code
+  is \<open>RETURN o header_size\<close>
+  :: \<open>clause_ll_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding header_size_def five_uint64_nat_def[symmetric] four_uint64_nat_def[symmetric]
+  by sepref
+
+declare (in -)header_size_fast_code.refine[sepref_fr_rules]
+(* End Move *)
+
+lemma (in -)append_and_length_code_fast:
+  \<open>length ba \<le> Suc (Suc uint_max) \<Longrightarrow>
+       2 \<le> length ba \<Longrightarrow>
+       length b \<le> uint64_max - (uint_max + 5) \<Longrightarrow>
+       (aa, header_size ba) \<in> uint64_nat_rel \<Longrightarrow>
+       (ab, length b) \<in> uint64_nat_rel \<Longrightarrow>
+       length b + header_size ba \<le> uint64_max\<close>
+  by (auto simp: uint64_max_def uint32_max_def header_size_def)
+
+(* TODO Move *)
+definition (in -)fm_add_new_fast where
+ [simp]: \<open>fm_add_new_fast = fm_add_new\<close>
+
+sepref_definition (in -)append_and_length_code
+  is \<open>uncurry2 fm_add_new_fast\<close>
+  :: \<open>[\<lambda>((b, C), N). length C \<le> uint32_max+2 \<and> length C \<ge> 2 \<and>
+          length N \<le> uint64_max - (uint32_max + 5)]\<^sub>a
+     bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a (arena_assn)\<^sup>d \<rightarrow>
+       arena_assn *a uint64_nat_assn\<close>
+  supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro] append_and_length_code_fast[intro]
+  unfolding fm_add_new_def AStatus_IRRED_def[symmetric]
+   AStatus_LEARNED_def[symmetric]
+   two_uint64_nat_def[symmetric] fm_add_new_fast_def
+   apply (rewrite in \<open>let _ = _ - _ in _\<close> length_uint64_nat_def[symmetric])
+   apply (rewrite in \<open>let _ = _ in _\<close> length_uint64_nat_def[symmetric])
+   apply (rewrite in \<open>let _ = _ in let _ = _ in let _ = \<hole> in _\<close> uint32_of_uint64_conv_def[symmetric])
+  apply (rewrite in \<open>_ < length _\<close> length_uint64_nat_def[symmetric])
+  by sepref
+
+declare append_and_length_code.refine[sepref_fr_rules]
+
+definition (in -)to_watcher_fast where
+ [simp]:  \<open>to_watcher_fast = to_watcher\<close>
+
+lemma (in -)to_watcher_fast_code_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 (return ooo to_watcher_fast_code), uncurry2 (RETURN ooo to_watcher_fast)) \<in>
+    uint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a watcher_fast_assn\<close>
+  by sepref_to_hoare
+    (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
+      simp: to_watcher_fast_code_def watcher_enc_def OR_132_is_sum nat_of_uint64_uint64_of_uint32
+       nat_of_uint32_le_uint32_max)
+
+lemma (in -) LBD_SHIFT_hnr:
+  \<open>(uncurry0 (return 2), uncurry0 (RETURN LBD_SHIFT) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: LBD_SHIFT_def uint64_nat_rel_def br_def)
+
+sepref_definition (in -)isa_update_lbd_fast_code
+  is \<open>uncurry2 isa_update_lbd\<close>
+  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
+  supply LBD_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_update_lbd_def
+  by sepref
+
+lemma update_lbd_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 isa_update_lbd_fast_code, uncurry2 (RETURN ooo update_lbd))
+  \<in> [update_lbd_pre]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
+  using isa_update_lbd_fast_code.refine[FCOMP isa_update_lbd]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+sepref_thm vmtf_enqueue_fast_code
+   is \<open>uncurry2 (RETURN ooo vmtf_enqueue)\<close>
+   :: \<open>[vmtf_enqueue_pre]\<^sub>a
+        trail_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc_option_fst_As\<^sup>d \<rightarrow> vmtf_conc\<close>
+  supply [[goals_limit = 1]]
+  unfolding vmtf_enqueue_def vmtf_enqueue_pre_def defined_atm_def[symmetric]
+   one_uint64_nat_def[symmetric]
+  by sepref
+
+concrete_definition (in -) vmtf_enqueue_fast_code
+   uses isasat_input_bounded_nempty.vmtf_enqueue_fast_code.refine_raw
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) vmtf_enqueue_fast_code_def
+
+lemmas vmtf_enqueue_fast_code_hnr[sepref_fr_rules] =
+   vmtf_enqueue_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm vmtf_en_dequeue_fast_code
+   is \<open>uncurry2 (RETURN ooo vmtf_en_dequeue)\<close>
+   :: \<open>[vmtf_en_dequeue_pre]\<^sub>a
+        trail_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
+  supply [[goals_limit = 1]]
+  supply vmtf_en_dequeue_preD[dest] vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]
+  unfolding vmtf_en_dequeue_def
+  by sepref
+
+
+concrete_definition (in -) vmtf_en_dequeue_fast_code
+   uses isasat_input_bounded_nempty.vmtf_en_dequeue_fast_code.refine_raw
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) vmtf_en_dequeue_fast_code_def
+
+lemmas vmtf_en_dequeue_fast_hnr[sepref_fr_rules] =
+   vmtf_en_dequeue_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm vmtf_flush_fast_code
+   is \<open>uncurry (PR_CONST vmtf_flush_int)\<close>
+   :: \<open>trail_fast_assn\<^sup>k *\<^sub>a (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
+        (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<close>
+  supply [[goals_limit = 1]]
+  supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
+  unfolding vmtf_flush_def PR_CONST_def vmtf_flush_int_def zero_uint32_nat_def[symmetric]
+    current_stamp_def[symmetric] one_uint32_nat_def[symmetric]
+  apply (rewrite at \<open>\<lambda>(i, vm, h). _ < \<hole>\<close> length_u_def[symmetric])
+  apply (rewrite at \<open>length _ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
+  by sepref
+
+concrete_definition (in -) vmtf_flush_fast_code
+   uses isasat_input_bounded_nempty.vmtf_flush_fast_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_flush_fast_code_def
+
+lemmas trail_dump_code_fast_refine[sepref_fr_rules] =
+   vmtf_flush_fast_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def,
+     FCOMP vmtf_change_to_remove_order', unfolded distinct_atoms_assn_def[symmetric]]
+
+(* END Move *)
+lemma propagate_bt_wl_D_heur_alt_def:
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, _, cach, lbd, outl, stats, fema, sema,
+         res_info, vdom, avdom, lcount, opts). do {
+      ASSERT(phase_saving \<phi> \<and> vm \<in> vmtf M \<and> undefined_lit M (-L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+         nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
+      ASSERT(length C > 1);
+      let L' = C!1;
+      ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset C));
+      ASSERT(length C \<le> uint32_max + 2);
+      (vm, \<phi>) \<leftarrow> rescore_clause C M vm \<phi>;
+      glue \<leftarrow> get_LBD lbd;
+      let b = False;
+      let b' = (length C = 2);
+      (N, i) \<leftarrow> fm_add_new_fast b C N;
+      ASSERT(update_lbd_pre ((i, glue), N));
+      let N = update_lbd i glue N;
+      let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [to_watcher_fast i L' b']];
+      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [to_watcher_fast i (-L) b']];
+      lbd \<leftarrow> lbd_empty lbd;
+      let j = length_u M;
+      ASSERT(i \<noteq> DECISION_REASON);
+      let M = Propagated (- L) i # M;
+      ASSERT(vm \<in> vmtf M);
+      vm \<leftarrow> vmtf_flush M vm;
+      ASSERT(atm_of L < length \<phi>);
+      RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, zero_uint32_nat,
+         cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
+          incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint64_conv i],
+          avdom @ [nat_of_uint64_conv i],
+          Suc lcount, opts)
+    })\<close>
+  unfolding propagate_bt_wl_D_heur_def by auto
+
 sepref_thm propagate_bt_wl_D_fast_code
   is \<open>uncurry2 (PR_CONST propagate_bt_wl_D_heur)\<close>
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]] uminus_\<A>\<^sub>i\<^sub>n_iff[simp] image_image[simp] append_ll_def[simp]
-  rescore_clause_def[simp] flush_def[simp]
-  unfolding propagate_bt_wl_D_heur_def isasat_bounded_assn_def cons_trail_Propagated_def[symmetric]
+  rescore_clause_def[simp] vmtf_flush_def[simp] isasat_fast_def[simp]
+  unfolding propagate_bt_wl_D_heur_alt_def
+     isasat_bounded_assn_def cons_trail_Propagated_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-    append_ll_def[symmetric] append_ll_def[symmetric]
-    cons_trail_Propagated_def[symmetric] PR_CONST_def
-    isasat_fast
-  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
-  by sepref
+    append_ll_def[symmetric] append_ll_def[symmetric] nat_of_uint32_conv_def
+    cons_trail_Propagated_def[symmetric] PR_CONST_def save_phase_def
+  by sepref \<comment>\<open>No one expects this to be fast, right? Anyhow, one iteration of debugging is 
+    closer to one full video of any song, than to something reasonable.\<close>
 
 concrete_definition (in -) propagate_bt_wl_D_fast_code
   uses isasat_input_bounded_nempty.propagate_bt_wl_D_fast_code.refine_raw
@@ -2085,7 +2259,7 @@ concrete_definition (in -) propagate_bt_wl_D_fast_code
 prepare_code_thms (in -) propagate_bt_wl_D_fast_code_def
 
 lemmas propagate_bt_wl_D_heur_fast_hnr[sepref_fr_rules] =
-  propagate_bt_wl_D_fast_code.refine[OF isasat_input_bounded_nempty_axioms] *)
+  propagate_bt_wl_D_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 sepref_thm propagate_unit_bt_wl_D_code
   is \<open>uncurry (PR_CONST propagate_unit_bt_wl_D_int)\<close>
@@ -2104,14 +2278,12 @@ prepare_code_thms (in -) propagate_unit_bt_wl_D_code_def
 lemmas propagate_unit_bt_wl_D_int_hnr[sepref_fr_rules] =
   propagate_unit_bt_wl_D_code.refine[OF isasat_input_bounded_nempty_axioms]
 
-(*
 sepref_thm propagate_unit_bt_wl_D_fast_code
   is \<open>uncurry (PR_CONST propagate_unit_bt_wl_D_int)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit = 1]] flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
+  supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
   unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_bounded_assn_def
-  PR_CONST_def zero_uint32_nat_def[symmetric]
-  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
+  PR_CONST_def length_u_def[symmetric] zero_uint64_nat_def[symmetric]
   by sepref
 
 concrete_definition (in -) propagate_unit_bt_wl_D_fast_code
@@ -2121,7 +2293,7 @@ concrete_definition (in -) propagate_unit_bt_wl_D_fast_code
 prepare_code_thms (in -) propagate_unit_bt_wl_D_fast_code_def
 
 lemmas propagate_unit_bt_wl_D_fast_int_hnr[sepref_fr_rules] =
-  propagate_unit_bt_wl_D_fast_code.refine[OF isasat_input_bounded_nempty_axioms] *)
+  propagate_unit_bt_wl_D_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 end
 
@@ -2129,76 +2301,6 @@ setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<
 
 context isasat_input_bounded_nempty
 begin
-
-(* lemma empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause':
-  \<open>(uncurry2 (empty_conflict_and_extract_clause_heur), uncurry2 empty_conflict_and_extract_clause) \<in>
-    [empty_conflict_and_extract_clause_pre]\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto intro!: empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause
-      simp: empty_conflict_and_extract_clause_pre_def) *)
-
-(* theorem
-  empty_conflict_and_extract_clause_hnr[sepref_fr_rules]:
-    \<open>(uncurry2 (empty_conflict_and_extract_clause_heur_code),
-      uncurry2 empty_conflict_and_extract_clause) \<in>
-    [empty_conflict_and_extract_clause_pre]\<^sub>a trail_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a
-                        out_learned_assn\<^sup>k \<rightarrow> option_lookup_clause_assn *a
-     clause_ll_assn *a uint32_nat_assn\<close>
-    (is ?slow is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
-  empty_conflict_and_extract_clause_fast_hnr[sepref_fr_rules]:
-    \<open>(uncurry2 (empty_conflict_and_extract_clause_heur_fast_code),
-      uncurry2 empty_conflict_and_extract_clause) \<in>
-    [empty_conflict_and_extract_clause_pre]\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a
-                        out_learned_assn\<^sup>k \<rightarrow> option_lookup_clause_assn *a
-     clause_ll_assn *a uint32_nat_assn\<close>
-    (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
-proof -
-  have H: \<open>?c
-    \<in> [comp_PRE (Id \<times>\<^sub>f Id \<times>\<^sub>f Id) empty_conflict_and_extract_clause_pre
-       (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (M, D) \<Rightarrow> \<lambda>outl. outl \<noteq> [] \<and> length outl \<le> uint_max)
-              xa)
-       (\<lambda>x. nofail (uncurry2 empty_conflict_and_extract_clause x))]\<^sub>a
-     hrp_comp ((hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k)
-       (Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow>
-    hr_comp (option_lookup_clause_assn *a clause_ll_assn *a uint32_nat_assn) Id\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE[OF empty_conflict_and_extract_clause_heur_hnr[unfolded PR_CONST_def]
-    empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause']
-    .
-  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that by (auto simp: comp_PRE_def empty_conflict_and_extract_clause_pre_def)
-  have im: \<open>?im' = ?im\<close>
-    by simp
-  have f: \<open>?f' = ?f\<close>
-    by auto
-  show ?slow
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f apply assumption
-    using pre ..
-
-  have H: \<open>?cfast
-    \<in> [comp_PRE (Id \<times>\<^sub>f Id \<times>\<^sub>f Id) empty_conflict_and_extract_clause_pre
-       (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (M, D) \<Rightarrow> \<lambda>outl. outl \<noteq> [] \<and> length outl \<le> uint_max)
-              xa)
-       (\<lambda>x. nofail (uncurry2 empty_conflict_and_extract_clause x))]\<^sub>a
-     hrp_comp (trail_fast_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k)
-       (Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow>
-    hr_comp (option_lookup_clause_assn *a clause_ll_assn *a uint32_nat_assn) Id\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE[OF empty_conflict_and_extract_clause_heur_hnr_fast[unfolded PR_CONST_def]
-    empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause']
-    .
-  have im: \<open>?im' = ?imfast\<close>
-    by simp
-  have f: \<open>?f' = ?ffast\<close>
-    by auto
-  show ?fast
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f apply assumption
-    using pre ..
-qed *)
 
 sepref_register isa_minimize_and_extract_highest_lookup_conflict
   empty_conflict_and_extract_clause_heur
@@ -2220,10 +2322,125 @@ prepare_code_thms (in -) extract_shorter_conflict_list_heur_st_code_def
 
 lemmas extract_shorter_conflict_list_heur_st_hnr[sepref_fr_rules] =
    extract_shorter_conflict_list_heur_st_code.refine[OF isasat_input_bounded_nempty_axioms]
-(*
+
+(* TODO Move *)
+lemma (in -) uint64_neq0_gt: \<open>j \<noteq> (0::uint64) \<longleftrightarrow> j > 0\<close>
+  by transfer (auto simp: word_neq_0_conv)
+
+lemma (in -) uint64_gt0_ge1: \<open>j > 0 \<longleftrightarrow> j \<ge> (1::uint64)\<close>
+  apply (subst nat_of_uint64_less_iff[symmetric])
+  apply (subst nat_of_uint64_le_iff[symmetric])
+  by auto
+
+definition upt_uint64 where
+  \<open>upt_uint64 a b = map uint64_of_nat [nat_of_uint64 a..<nat_of_uint64 b]\<close>
+
+lemma
+  \<open>(uncurry (return oo upt_uint64), uncurry (RETURN oo upt))\<in>
+     [\<lambda>(a, b). a \<le> uint64_max \<and> b \<le> uint64_max]\<^sub>a
+     uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>
+     list_assn uint64_nat_assn\<close>
+proof -
+  have [simp]: \<open>(\<lambda>a c. \<up> (a = nat_of_uint64 c)) = pure uint64_nat_rel\<close>
+    by (auto intro!: ext simp: uint64_nat_rel_def br_def pure_def)
+  have [simp]: \<open>nat_of_uint64 ai \<le> uint64_max \<Longrightarrow>
+       nat_of_uint64 bi \<le> uint64_max \<Longrightarrow>
+       map (nat_of_uint64 \<circ> uint64_of_nat) [nat_of_uint64 ai..<nat_of_uint64 bi] =
+       map id [nat_of_uint64 ai..<nat_of_uint64 bi]\<close> for ai bi
+    by (rule map_cong)
+      (auto simp: nat_of_uint64_uint64_of_nat_id)
+  show ?thesis
+  apply sepref_to_hoare
+    apply (sep_auto simp: upt_uint64_def uint64_nat_rel_def br_def)
+    apply (sep_auto simp: list_assn_pure_conv)
+    apply (subst eq_commute)
+    by (auto simp: pure_def list_rel_def list_all2_op_eq_map_right_iff)
+qed
+
+text \<open>TODO we need a \<^term>\<open>imp_for_uint64\<close>\<close>
+sepref_thm vmtf_mark_to_rescore_clause_fast_code
+  is \<open>uncurry2 (PR_CONST vmtf_mark_to_rescore_clause)\<close>
+  :: \<open>[\<lambda>((N, _), _). length N \<le> uint64_max]\<^sub>a 
+       arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
+  supply [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
+  unfolding vmtf_mark_to_rescore_clause_def PR_CONST_def nat_of_uint64_conv_def
+  apply (rewrite at \<open>[\<hole>..<_]\<close> nat_of_uint64_conv_def[symmetric])
+  apply (rewrite at \<open>[_..<\<hole>]\<close> nat_of_uint64_conv_def[symmetric])
+  by sepref
+
+concrete_definition (in -) vmtf_mark_to_rescore_clause_fast_code
+  uses isasat_input_bounded_nempty.vmtf_mark_to_rescore_clause_fast_code.refine_raw
+  is \<open>(uncurry2 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_mark_to_rescore_clause_fast_code_def
+
+lemmas vmtf_mark_to_rescore_clause_fast_hnr[sepref_fr_rules] =
+   vmtf_mark_to_rescore_clause_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+(* TODO MOVE get_the_propagation_reason_hnr already exists but does not have a name!
+  get_the_propagation_reason_hnr *)
+lemma get_the_propagation_reason_hnr[sepref_fr_rules]:
+   \<open>(uncurry get_the_propagation_reason_fast_code, uncurry get_the_propagation_reason)
+     \<in> [\<lambda>(a, b). b \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn uint64_nat_assn\<close>
+    (is ?fast is \<open>_?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
+proof -
+  have [dest]: \<open>((a, aa, ab, r, b), x) \<in> trail_pol \<Longrightarrow> a = map lit_of (rev x)\<close> for a aa ab b x r
+    by (auto simp: trail_pol_def ann_lits_split_reasons_def)
+  have [simp]: \<open>x \<noteq> [] \<Longrightarrow> is_decided (last x) \<Longrightarrow> Suc 0 \<le> count_decided x\<close> for x
+    by (cases x rule: rev_cases) auto
+
+  have H: \<open>?cfast
+      \<in> [comp_PRE (trail_pol \<times>\<^sub>f Id) (\<lambda>(M, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) (\<lambda>_ _. True)
+    (\<lambda>_. True)]\<^sub>a hrp_comp (trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k)
+                   (trail_pol \<times>\<^sub>f
+                    Id) \<rightarrow> hr_comp (option_assn uint64_nat_assn) (\<langle>nat_rel\<rangle>option_rel)\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF get_the_propagation_reason_fast_code.refine get_the_propagation_reason_pol]
+    .
+  have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
+    by (auto simp: comp_PRE_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff simp del: rev_map
+        intro!: ext)
+  have im: \<open>?im' = ?imfast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?ffast\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?fast
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f apply assumption
+    using pre ..
+qed
+
+
+sepref_register vmtf_mark_to_rescore_also_reasons get_the_propagation_reason
+sepref_thm vmtf_mark_to_rescore_also_reasons_fast_code
+  is \<open>uncurry3 (PR_CONST vmtf_mark_to_rescore_also_reasons)\<close>
+  :: \<open>[\<lambda>(((_, N), _), _). length N \<le> uint64_max]\<^sub>a 
+      trail_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
+      vmtf_remove_conc\<close>
+  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n[simp]
+  supply [[goals_limit=1]]
+  unfolding vmtf_mark_to_rescore_also_reasons_def PR_CONST_def 
+  apply (rewrite at \<open>If (_ = \<hole>)\<close> zero_uint64_nat_def[symmetric])
+  by sepref
+
+concrete_definition (in -) vmtf_mark_to_rescore_also_reasons_fast_code
+  uses isasat_input_bounded_nempty.vmtf_mark_to_rescore_also_reasons_fast_code.refine_raw
+  is \<open>(uncurry3 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_mark_to_rescore_also_reasons_fast_code_def
+
+lemmas vmtf_mark_to_rescore_also_reasons_fast_hnr[sepref_fr_rules] =
+   vmtf_mark_to_rescore_also_reasons_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+(* End MOve *)
 sepref_thm extract_shorter_conflict_list_heur_st_fast
   is \<open>PR_CONST extract_shorter_conflict_list_heur_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn *a uint32_nat_assn *a clause_ll_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a 
+        isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn *a uint32_nat_assn *a clause_ll_assn\<close>
   supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
   unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_bounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
@@ -2237,7 +2454,7 @@ concrete_definition (in -) extract_shorter_conflict_list_heur_st_fast_code
 prepare_code_thms (in -) extract_shorter_conflict_list_heur_st_fast_code_def
 
 lemmas extract_shorter_conflict_list_heur_st_fast_hnr[sepref_fr_rules] =
-   extract_shorter_conflict_list_heur_st_fast_code.refine[OF isasat_input_bounded_nempty_axioms] *)
+   extract_shorter_conflict_list_heur_st_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 sepref_register find_lit_of_max_level_wl
    extract_shorter_conflict_list_heur_st lit_of_hd_trail_st_heur propagate_bt_wl_D_heur
@@ -2265,13 +2482,13 @@ prepare_code_thms (in -) backtrack_wl_D_nlit_heur_code_def
 
 lemmas backtrack_wl_D_nlit_heur_hnr[sepref_fr_rules] =
    backtrack_wl_D_nlit_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-(*
+
 sepref_thm backtrack_wl_D_fast_code
   is \<open>PR_CONST backtrack_wl_D_nlit_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   lit_of_hd_trail_st_def[symmetric, simp]
-  size_conflict_wl_def[simp]
+  size_conflict_wl_def[simp] isasat_fast_length_leD[intro] isasat_fast_def[simp]
   unfolding backtrack_wl_D_nlit_heur_def PR_CONST_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] lit_of_hd_trail_st_def[symmetric]
@@ -2287,7 +2504,7 @@ concrete_definition (in -) backtrack_wl_D_nlit_heur_fast_code
 prepare_code_thms (in -) backtrack_wl_D_nlit_heur_fast_code_def
 
 lemmas backtrack_wl_D_nlit_heur_fast_hnr[sepref_fr_rules] =
-   backtrack_wl_D_nlit_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms] *)
+   backtrack_wl_D_nlit_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 end
 

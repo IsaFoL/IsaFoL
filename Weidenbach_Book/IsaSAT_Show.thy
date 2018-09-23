@@ -64,7 +64,7 @@ text \<open>Printing the information slows down the solver by a huge factor.\<cl
 definition isasat_banner_content where
 \<open>isasat_banner_content =
 ''c  conflicts       decisions     restarts
-c        propagations     reductions     Kept Learnt clauses''\<close>
+c        propagations     reductions     Learnt clauses''\<close>
 
 definition isasat_information_banner :: \<open>_ \<Rightarrow> unit nres\<close> where
 \<open>isasat_information_banner _ =
@@ -124,6 +124,22 @@ prepare_code_thms (in -) isasat_current_status_code_def
 
 lemmas isasat_current_status_code[sepref_fr_rules] =
    isasat_current_status_code.refine[of \<A>\<^sub>i\<^sub>n]
+
+sepref_thm isasat_current_status_fast_code
+  is \<open>isasat_current_status\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_bounded_assn_def isasat_current_status_def
+  by sepref
+
+concrete_definition (in -) isasat_current_status_fast_code
+   uses isasat_input_ops.isasat_current_status_fast_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) isasat_current_status_fast_code_def
+
+lemmas isasat_current_status_fast_code[sepref_fr_rules] =
+   isasat_current_status_fast_code.refine[of \<A>\<^sub>i\<^sub>n]
 
 end
 

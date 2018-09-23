@@ -134,6 +134,37 @@ where
   }
   \<close>
 
+lemma twl_st_heur''D_twl_st_heurD:
+  assumes H: \<open>(\<And>\<D> r. f \<in> twl_st_heur'' \<D> r \<rightarrow>\<^sub>f \<langle>twl_st_heur'' \<D> r\<rangle> nres_rel)\<close>
+  shows \<open>f \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle> nres_rel\<close>  (is \<open>_ \<in> ?A B\<close>)
+proof -
+  obtain f1 f2 where f: \<open>f = (f1, f2)\<close>
+    by (cases f) auto
+  show ?thesis
+    unfolding f
+    apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
+    apply (intro conjI impI allI)
+    subgoal for x y
+      using assms[of \<open>dom_m (get_clauses_wl y)\<close>  \<open>length (get_clauses_wl_heur x)\<close>,
+        unfolded ref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
+        rule_format] unfolding f
+      apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
+      apply (drule spec[of _ x])
+      apply (drule spec[of _ y])
+      apply simp
+      apply (rule "weaken_\<Down>'"[of _ \<open>twl_st_heur'' (dom_m (get_clauses_wl y))
+         (length (get_clauses_wl_heur x))\<close>])
+      apply (fastforce simp: twl_st_heur'_def)+
+      done
+    done
+qed
+
+theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
+  \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl_D) \<in>
+    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle> nres_rel\<close>
+  using twl_st_heur''D_twl_st_heurD[OF
+     unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D']
+  .
 
 lemma cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D:
   \<open>(cdcl_twl_stgy_prog_wl_D_heur, cdcl_twl_stgy_prog_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>

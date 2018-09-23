@@ -724,6 +724,12 @@ sepref_definition isa_length_trail_code
   unfolding isa_length_trail_def
   by sepref
 
+sepref_definition isa_length_trail_fast_code
+  is \<open>isa_length_trail\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding isa_length_trail_def
+  by sepref
+
 
 context isasat_input_bounded
 begin
@@ -731,6 +737,10 @@ begin
 lemma isa_length_trail_hnr[sepref_fr_rules]:
   \<open>(isa_length_trail_code, RETURN \<circ> length_u) \<in> (trail_assn)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   using isa_length_trail_code.refine[FCOMP isa_length_trail_length_u] .
+
+lemma isa_length_trail_fast_hnr[sepref_fr_rules]:
+  \<open>(isa_length_trail_fast_code, RETURN \<circ> length_u) \<in> (trail_fast_assn)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  using isa_length_trail_fast_code.refine[FCOMP isa_length_trail_length_u] .
 
 
 subparagraph \<open>Consing elements\<close>
