@@ -656,6 +656,12 @@ lemma twl_st_heur_state_simp:
          uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close>
   using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
 
+abbreviation (in isasat_input_ops) twl_st_heur'''
+   :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
+where
+\<open>twl_st_heur''' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur \<and>
+           length (get_clauses_wl_heur S) = r}\<close>
+
 definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur' N = {(S, S'). (S, S') \<in> twl_st_heur \<and> dom_m (get_clauses_wl S') = N}\<close>
 

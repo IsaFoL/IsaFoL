@@ -141,7 +141,7 @@ definition find_unassigned_lit_wl_D_heur_pre where
 lemma find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D:
   \<open>(find_unassigned_lit_wl_D_heur, find_unassigned_lit_wl_D) \<in>
      [find_unassigned_lit_wl_D_heur_pre]\<^sub>f
-    twl_st_heur \<rightarrow> \<langle>{((T, L), (T', L')). (T, T') \<in> twl_st_heur \<and> L = L' \<and>
+    twl_st_heur''' r \<rightarrow> \<langle>{((T, L), (T', L')). (T, T') \<in> twl_st_heur''' r  \<and> L = L' \<and>
          (L \<noteq> None \<longrightarrow> undefined_lit (get_trail_wl T') (the L) \<and> the L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<and>
          get_conflict_wl T' = None}\<rangle>nres_rel\<close>
 proof -
@@ -362,7 +362,7 @@ prepare_code_thms (in -) decide_lit_wl_fast_code_def
 
 lemmas decide_lit_wl_fast_heur_hnr[sepref_fr_rules] =
   decide_lit_wl_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
- 
+
 
 definition(in isasat_input_ops) decide_wl_or_skip_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
@@ -383,12 +383,12 @@ lemma same_in_Id_option_rel:
   by auto
 
 lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:
-  \<open>(decide_wl_or_skip_D_heur, decide_wl_or_skip_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>f twl_st_heur\<rangle> nres_rel\<close>
+  \<open>(decide_wl_or_skip_D_heur, decide_wl_or_skip_D) \<in> twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>f twl_st_heur''' r\<rangle> nres_rel\<close>
   supply [[goals_limit=1]]
   unfolding decide_wl_or_skip_D_heur_def decide_wl_or_skip_D_def decide_wl_or_skip_D_pre_def
    decide_l_or_skip_pre_def twl_st_of_wl.simps[symmetric]
   apply (intro nres_relI frefI same_in_Id_option_rel)
-  apply (refine_vcg find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D[THEN fref_to_Down])
+  apply (refine_vcg find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D[of r, THEN fref_to_Down])
   subgoal
     unfolding decide_wl_or_skip_pre_def find_unassigned_lit_wl_D_heur_pre_def
       decide_wl_or_skip_pre_def decide_l_or_skip_pre_def
