@@ -122,6 +122,10 @@ lemma distinct_nat_of_uint32[iff]:
 definition cdcl_twl_stgy_restart_prog_wl_D where
   \<open>cdcl_twl_stgy_restart_prog_wl_D \<equiv> isasat_restart_ops.cdcl_twl_stgy_restart_prog_wl_D id\<close>
 
+definition cdcl_twl_stgy_restart_prog_early_wl_D where
+  \<open>cdcl_twl_stgy_restart_prog_early_wl_D \<equiv>
+     isasat_restart_ops.cdcl_twl_stgy_restart_prog_early_wl_D id\<close>
+
 declare isasat_input_bounded.append_el_aa_hnr[sepref_fr_rules]
 declare isasat_input_bounded.polarity_pol_code_polarity_refine[sepref_fr_rules]
   isasat_input_bounded.cons_trail_Propagated_tr_code_cons_trail_Propagated_tr[sepref_fr_rules]
@@ -141,47 +145,66 @@ definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset
     let T = init_state CS;
     SPEC (conclusive_CDCL_run CS T)
   }\<close>
+(* TODO Move *)
+definition init_dt_wl' :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init_full nres\<close> where
+  \<open>init_dt_wl' CS S = do{
+     ((M, N, D, NE, UE, Q), OC) \<leftarrow> init_dt_wl CS S;
+     RETURN ((M, N, D, NE, UE, Q, (\<lambda>_. [])), OC)
+  }\<close>
+definition rewatch_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>rewatch_st S = do{
+     (M, N, D, NE, UE, Q, W) \<leftarrow> RETURN S;
+     W \<leftarrow> rewatch N W;
+     RETURN ((M, N, D, NE, UE, Q, W))
+  }\<close>
+(* END Move *)
 
-text \<open>In the following program, the condition \<^term>\<open>length CS < uint_max - 1\<close> is only necessary
-  to simplify the refinement and should not be necessary.\<close>
-(* if b \<and> length CS < uint_max - 1 \<comment> \<open>simplifies the refinement\<close>
-    then
-     do {
-      let S = isasat_input_ops.init_state_wl (mset_set \<A>\<^sub>i\<^sub>n');
-      T \<leftarrow> init_dt_wl CS (to_init_state S);
-      let T = from_init_state T;
-      if get_conflict_wl T \<noteq> None
-      then RETURN T
-      else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, \<lambda>_. undefined))
-      else do {
-         ASSERT (extract_atms_clss CS {} \<noteq> {});
-         ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
-         ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
-         ASSERT(learned_clss_l (get_clauses_wl T) = {#});
-         isasat_input_ops.cdcl_twl_stgy_prog_break_wl_D (mset_set \<A>\<^sub>i\<^sub>n') (finalise_init T)
-      }
-   }
-   else *)
 definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>SAT_wl CS = do{
     let \<A>\<^sub>i\<^sub>n' = extract_atms_clss CS {};
     b \<leftarrow> SPEC(\<lambda>_::bool. True);
-
-  do {
-      let S = isasat_input_ops.init_state_wl;
-      T \<leftarrow> init_dt_wl_full CS (to_init_state S);
-      let T = from_init_state T;
-      if get_conflict_wl T \<noteq> None
-      then RETURN T
-      else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, \<lambda>_. undefined))
-      else do {
-         ASSERT (extract_atms_clss CS {} \<noteq> {});
-         ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
-         ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
-         ASSERT(learned_clss_l (get_clauses_wl T) = {#});
-         cdcl_twl_stgy_restart_prog_wl_D (mset_set \<A>\<^sub>i\<^sub>n') (finalise_init T)
-      }
-   }
+    if b then do {
+        let S = isasat_input_ops.init_state_wl;
+        T \<leftarrow> init_dt_wl' CS (to_init_state S);
+        T \<leftarrow> rewatch_st (from_init_state T);
+        if get_conflict_wl T \<noteq> None
+        then RETURN T
+        else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, \<lambda>_. undefined))
+        else do {
+           ASSERT (extract_atms_clss CS {} \<noteq> {});
+           ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
+           ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
+           ASSERT(learned_clss_l (get_clauses_wl T) = {#});
+           cdcl_twl_stgy_restart_prog_wl_D (mset_set \<A>\<^sub>i\<^sub>n') (finalise_init T)
+        }
+    }
+    else do {
+        let S = isasat_input_ops.init_state_wl;
+        T \<leftarrow> init_dt_wl' CS (to_init_state S);
+        let T = from_init_state T;
+        if get_conflict_wl T \<noteq> None
+        then RETURN T
+        else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, \<lambda>_. undefined))
+        else do {
+          b \<leftarrow> SPEC(\<lambda>_::bool. True);
+          if b
+          then do {
+             T \<leftarrow> rewatch_st (finalise_init T);
+             ASSERT (extract_atms_clss CS {} \<noteq> {});
+             ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
+             ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
+             ASSERT(learned_clss_l (get_clauses_wl T) = {#});
+             cdcl_twl_stgy_restart_prog_wl_D (mset_set \<A>\<^sub>i\<^sub>n') T
+          } else do {
+             T \<leftarrow> rewatch_st (finalise_init T);
+             ASSERT (extract_atms_clss CS {} \<noteq> {});
+             ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
+             ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
+             ASSERT(learned_clss_l (get_clauses_wl T) = {#});
+             cdcl_twl_stgy_restart_prog_early_wl_D (mset_set \<A>\<^sub>i\<^sub>n') T
+          }
+        }
+     }
   }\<close>
 
 
@@ -196,6 +219,8 @@ definition extract_stats where
 
 definition extract_stats_init where
   [simp]: \<open>extract_stats_init = None\<close>
+
+
 
     (* if b \<and> length CS < uint_max - 1
     then do {
@@ -223,13 +248,31 @@ definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list opt
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
     b \<leftarrow> SPEC(\<lambda>_::bool. True);
-     do {
+    if b then do {
       let S = isasat_input_ops.init_state_wl;
       let S = to_init_state S;
       T \<leftarrow> init_dt_wl_full CS S;
       let T = from_init_state T;
       if \<not>get_conflict_wl_is_None_init T
-      then RETURN (None)
+      then RETURN None
+      else if CS = [] then RETURN (Some [])
+      else do {
+         ASSERT(\<A>\<^sub>i\<^sub>n' \<noteq> {#});
+         ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n');
+         ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
+         ASSERT(size (learned_clss_l (get_clauses_wl T)) = 0);
+         let T = finalise_init T;
+         U \<leftarrow> cdcl_twl_stgy_restart_prog_wl_D \<A>\<^sub>i\<^sub>n' T;
+         RETURN (if get_conflict_wl U = None then extract_model_of_state U else extract_stats U)
+      }
+    }
+    else do {
+      let S = isasat_input_ops.init_state_wl;
+      let S = to_init_state S;
+      T \<leftarrow> init_dt_wl_full CS S;
+      let T = from_init_state T;
+      if \<not>get_conflict_wl_is_None_init T
+      then RETURN None
       else if CS = [] then RETURN (Some [])
       else do {
          ASSERT(\<A>\<^sub>i\<^sub>n' \<noteq> {#});

@@ -2027,6 +2027,25 @@ lemma update_lbd_hnr[sepref_fr_rules]:
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
 
+lemma (in -) LBD_SHIFT_hnr:
+  \<open>(uncurry0 (return 2), uncurry0 (RETURN LBD_SHIFT) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: LBD_SHIFT_def uint64_nat_rel_def br_def)
+
+sepref_definition (in -)isa_update_lbd_fast_code
+  is \<open>uncurry2 isa_update_lbd\<close>
+  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
+  supply LBD_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_update_lbd_def
+  by sepref
+
+lemma update_lbd_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 isa_update_lbd_fast_code, uncurry2 (RETURN ooo update_lbd))
+  \<in> [update_lbd_pre]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
+  using isa_update_lbd_fast_code.refine[FCOMP isa_update_lbd]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+
 
 paragraph \<open>Get LBD\<close>
 

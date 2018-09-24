@@ -606,60 +606,103 @@ sepref_definition append_and_length_code
 
 declare append_and_length_code.refine[sepref_fr_rules]
 
+
+definition (in -)fm_add_new_fast where
+ [simp]: \<open>fm_add_new_fast = fm_add_new\<close>
+
+lemma (in -)append_and_length_code_fast:
+  \<open>length ba \<le> Suc (Suc uint_max) \<Longrightarrow>
+       2 \<le> length ba \<Longrightarrow>
+       length b \<le> uint64_max - (uint_max + 5) \<Longrightarrow>
+       (aa, header_size ba) \<in> uint64_nat_rel \<Longrightarrow>
+       (ab, length b) \<in> uint64_nat_rel \<Longrightarrow>
+       length b + header_size ba \<le> uint64_max\<close>
+  by (auto simp: uint64_max_def uint32_max_def header_size_def)
+
+(* TODO Move + is there a way to generate these constants on the fly? *)
+locale nat_of_uint64 =
+  fixes n :: num
+  assumes le_uint64_max: \<open>numeral n \<le> uint64_max\<close>
+begin
+
+definition nat_of_uint64_numeral :: nat where
+  [simp]: \<open>nat_of_uint64_numeral = (numeral n)\<close>
+
+definition nat_of_uint64 :: uint64 where
+ [simp]: \<open>nat_of_uint64 = (numeral n)\<close>
+
+lemma nat_of_uint64_numeral_hnr:
+  \<open>(uncurry0 (return nat_of_uint64), uncurry0 (PR_CONST (RETURN nat_of_uint64_numeral)))
+      \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  using le_uint64_max
+  by (sepref_to_hoare; sep_auto simp: uint64_nat_rel_def br_def uint64_max_def)
+sepref_register nat_of_uint64_numeral
+end
+
+(* TODO a solution based on that, potentially with a simproc, would make wonders! *)
+lemma (in -) [sepref_fr_rules]:
+  \<open>CONSTRAINT (\<lambda>n. numeral n \<le> uint64_max) n \<Longrightarrow>
+(uncurry0 (return (nat_of_uint64.nat_of_uint64 n)),
+     uncurry0 (RETURN (PR_CONST (nat_of_uint64.nat_of_uint64_numeral n))))
+   \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  using nat_of_uint64.nat_of_uint64_numeral_hnr[of n]
+  by (auto simp: IsaSAT_Clauses.nat_of_uint64_def)
+  
+definition (in -)four_uint64_nat where
+  [simp]: \<open>four_uint64_nat = (4 :: nat)\<close>
+definition (in -)five_uint64_nat where
+  [simp]: \<open>five_uint64_nat = (5 :: nat)\<close>
+lemma (in-)
+  four_uint64_nat_hnr[sepref_fr_rules]:
+    \<open>(uncurry0 (return 4), uncurry0 (RETURN four_uint64_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close> and
+  five_uint64_nat_hnr[sepref_fr_rules]:
+    \<open>(uncurry0 (return 5), uncurry0 (RETURN five_uint64_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by (sepref_to_hoare; sep_auto simp: uint64_nat_rel_def br_def)+
+
+sepref_definition (in -) header_size_fast_code
+  is \<open>RETURN o header_size\<close>
+  :: \<open>clause_ll_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  supply uint64_max_def[simp]
+  unfolding header_size_def  five_uint64_nat_def[symmetric] four_uint64_nat_def[symmetric]
 (*
-lemma fm_add_new_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 append_and_length_code, uncurry2 fm_add_new)
-    \<in> bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow>\<^sub>a clauses_ll_assn *a nat_assn\<close>
-  using append_and_length_code.refine[FCOMP append_and_length_fm_add_new]
-  unfolding clauses_ll_assn_def by simp *)
+  apply (subst nat_of_uint64.nat_of_uint64_numeral_def[symmetric])
+  apply (simp add: uint64_max_def IsaSAT_Clauses.nat_of_uint64_def)
+  apply (subst nat_of_uint64.nat_of_uint64_numeral_def[symmetric])
+   apply (simp add: uint64_max_def IsaSAT_Clauses.nat_of_uint64_def)
+  apply (rewrite at \<open>If _ \<hole>\<close> PR_CONST_def[symmetric])
+  apply (rewrite at \<open>If _ _ \<hole>\<close> PR_CONST_def[symmetric])
+  apply sepref_dbg_preproc
+  apply sepref_dbg_cons_init
+  apply sepref_dbg_id
+  apply sepref_dbg_monadify
+  apply sepref_dbg_opt_init
+  apply sepref_dbg_trans
+  apply sepref_dbg_opt
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_constraints*)
+  by sepref
 
-(*
-definition get_fresh_index_packed :: \<open>'v clauses_l \<Rightarrow> nat nres\<close> where
-\<open>get_fresh_index_packed N = SPEC(\<lambda>i. i > 0 \<and> i \<notin># dom_m N \<and>
-    (\<forall>j < i. j > 0 \<longrightarrow> j \<in># dom_m N))\<close>
+declare (in -)header_size_fast_code.refine[sepref_fr_rules]
+(* End Move *)
 
-lemma (in -)get_fresh_index_packed_alt_def:
-  assumes \<open>packed N\<close>
-  shows \<open>get_fresh_index_packed N = SPEC (\<lambda>i. i = Suc (Max_dom N))\<close>
-proof -
-  have [iff]: \<open>j \<in># dom_m N \<longleftrightarrow> j > 0 \<and> j \<le> Max_dom N\<close> for j
-    using assms in_multiset_ge_Max[of j \<open>dom_m N\<close>]
-    unfolding packed_def
-    by (auto simp: get_fresh_index_packed_def packed_def
-        split: if_splits)
-  have \<open> \<forall>j<x. 0 < j \<longrightarrow> j \<le> Max_dom N \<Longrightarrow>
-         \<not> x \<le> Max_dom N \<Longrightarrow> x = Suc (Max_dom N)\<close> for x
-    by (cases \<open>x > Suc (Max_dom N)\<close>)  auto
-  then show ?thesis
-    by (auto simp: get_fresh_index_packed_def split: if_splits
-      dest: multi_member_split in_multiset_ge_Max)
-qed
+sepref_definition (in -)append_and_length_fast_code
+  is \<open>uncurry2 fm_add_new_fast\<close>
+  :: \<open>[\<lambda>((b, C), N). length C \<le> uint32_max+2 \<and> length C \<ge> 2 \<and>
+          length N \<le> uint64_max - (uint32_max + 5)]\<^sub>a
+     bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a (arena_assn)\<^sup>d \<rightarrow>
+       arena_assn *a uint64_nat_assn\<close>
+  supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro] append_and_length_code_fast[intro]
+  unfolding fm_add_new_def AStatus_IRRED_def[symmetric]
+   AStatus_LEARNED_def[symmetric]
+   two_uint64_nat_def[symmetric] fm_add_new_fast_def
+   apply (rewrite in \<open>let _ = _ - _ in _\<close> length_uint64_nat_def[symmetric])
+   apply (rewrite in \<open>let _ = _ in _\<close> length_uint64_nat_def[symmetric])
+   apply (rewrite in \<open>let _ = _ in let _ = _ in let _ = \<hole> in _\<close> uint32_of_uint64_conv_def[symmetric])
+  apply (rewrite in \<open>_ < length _\<close> length_uint64_nat_def[symmetric])
+  by sepref
 
-definition fm_add_new_packed where
- \<open>fm_add_new_packed b C N = do {
-    i \<leftarrow> get_fresh_index_packed N;
-    let N = fmupd i (C, b) N;
-    RETURN (N, i)
-  }\<close> *)
-
-(* lemma append_and_length_fm_add_new_packed:
-  \<open>(uncurry2 (RETURN ooo append_and_length), uncurry2 fm_add_new_packed)
-     \<in> [\<lambda>((b, C), N). packed N]\<^sub>f
-       bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (\<langle>Id\<rangle>clauses_l_fmat) \<rightarrow> \<langle>\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (force simp:  fm_add_new_at_position_def list_fmap_rel_def Let_def
-      max_def nth_append append_and_length_def fm_add_new_packed_def get_fresh_index_packed_def
-      RETURN_RES_refine_iff RES_RETURN_RES (* packed_def *) Max_n_upt Max_insert_Max_dom_into_packed
-      Max_dom_alt_def[symmetric] Max_dom_fmupd_irrel
-      intro!: RETURN_SPEC_refine
-      intro: packed_in_dom_mI) *)
-(*
-lemma fm_add_new_packed_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 append_and_length_code, uncurry2 fm_add_new_packed)
-    \<in> [\<lambda>(_, N). packed N]\<^sub>a bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow> clauses_ll_assn *a nat_assn\<close>
-  using append_and_length_code.refine[FCOMP append_and_length_fm_add_new_packed]
-  unfolding clauses_ll_assn_def
-  by simp *)
+declare append_and_length_fast_code.refine[sepref_fr_rules]
 
 
 lemma fm_add_new_alt_def:
@@ -686,48 +729,6 @@ lemma fm_add_new_alt_def:
     }\<close>
   unfolding fm_add_new_def Let_def AStatus_LEARNED_def AStatus_IRRED_def
   by auto
-
-definition fm_add_new_fast where
-  [simp, symmetric]: \<open>fm_add_new_fast = fm_add_new\<close>
-(*
-lemma fm_add_new_fast_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 append_and_length_u32_code, uncurry2 fm_add_new_fast)
-    \<in> [\<lambda>((b, C), N). length C \<le> uint32_max+1 \<and> length C \<ge> 2 \<and>
-        length N \<le> uint64_max]\<^sub>a
-       bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn *a uint64_nat_assn\<close>
-  using append_and_length_u32_code.refine by simp *)
-
-(*
-lemma append_and_length_u32_fm_add_new_packed:
-  \<open>(uncurry2 append_and_length_u32, uncurry2 fm_add_new_packed)
-     \<in> [\<lambda>((b, C), N). Max (insert 0 (set_mset (dom_m N))) < uint32_max \<and> packed N]\<^sub>f
-     bool_rel \<times>\<^sub>f (\<langle>Id\<rangle>list_rel) \<times>\<^sub>f (\<langle>Id\<rangle>clauses_l_fmat) \<rightarrow> \<langle>\<langle>Id\<rangle>clauses_l_fmat \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  apply (auto simp: list_fmap_rel_def Let_def
-       nth_append append_and_length_u32_def fm_add_new_packed_def get_fresh_index_packed_def
-      RETURN_RES_refine_iff RES_RETURN_RES Max_dom_alt_def[symmetric] Max_dom_fmupd_irrel
-      intro!: RETURN_SPEC_refine ASSERT_refine_left extra_clause_information_upd_irrel[THEN iffD2]
-      dest: multi_member_split Max_dom_le
-      intro: packed_in_dom_mI
-      split: if_splits) (* slow ~ 25s *)
-  apply (auto simp: list_fmap_rel_def Let_def
-       nth_append append_and_length_u32_def fm_add_new_packed_def get_fresh_index_packed_def
-      RETURN_RES_refine_iff RES_RETURN_RES Max_dom_alt_def[symmetric] Max_dom_fmupd_irrel
-      intro!: RETURN_SPEC_refine ASSERT_refine_left
-      dest: multi_member_split Max_dom_le
-      intro: packed_in_dom_mI
-      split: if_splits)
-  done *)
-(*
-definition fm_add_new_packed_fast where
-  [simp, symmetric]: \<open>fm_add_new_packed_fast = fm_add_new_packed\<close>
-
-lemma fm_add_new_packed_fast_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 append_and_length_u32_code, uncurry2 fm_add_new_packed_fast)
-    \<in> [\<lambda>(_, ba). (\<forall>a\<in>#dom_m ba. a < uint_max) \<and> packed ba]\<^sub>a
-       bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>d \<rightarrow> clauses_ll_assn *a uint32_nat_assn\<close>
-  using append_and_length_u32_code.refine[FCOMP append_and_length_u32_fm_add_new_packed]
-  unfolding clauses_ll_assn_def by (simp add: uint32_max_def) *)
 
 definition fmap_swap_ll_u64 where
   [simp]: \<open>fmap_swap_ll_u64 = fmap_swap_ll\<close>

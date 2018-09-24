@@ -115,6 +115,25 @@ prepare_code_thms (in -) vmtf_enqueue_code_def
 lemmas vmtf_enqueue_code_hnr[sepref_fr_rules] =
    vmtf_enqueue_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+
+sepref_thm vmtf_enqueue_fast_code
+   is \<open>uncurry2 (RETURN ooo vmtf_enqueue)\<close>
+   :: \<open>[vmtf_enqueue_pre]\<^sub>a
+        trail_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc_option_fst_As\<^sup>d \<rightarrow> vmtf_conc\<close>
+  supply [[goals_limit = 1]]
+  unfolding vmtf_enqueue_def vmtf_enqueue_pre_def defined_atm_def[symmetric]
+   one_uint64_nat_def[symmetric]
+  by sepref
+
+concrete_definition (in -) vmtf_enqueue_fast_code
+   uses isasat_input_bounded_nempty.vmtf_enqueue_fast_code.refine_raw
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) vmtf_enqueue_fast_code_def
+
+lemmas vmtf_enqueue_fast_code_hnr[sepref_fr_rules] =
+   vmtf_enqueue_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
 end
 
 
@@ -214,6 +233,26 @@ prepare_code_thms (in -) vmtf_en_dequeue_code_def
 
 lemmas vmtf_en_dequeue_hnr[sepref_fr_rules] =
    vmtf_en_dequeue_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+
+sepref_thm vmtf_en_dequeue_fast_code
+   is \<open>uncurry2 (RETURN ooo vmtf_en_dequeue)\<close>
+   :: \<open>[vmtf_en_dequeue_pre]\<^sub>a
+        trail_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
+  supply [[goals_limit = 1]]
+  supply vmtf_en_dequeue_preD[dest] vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]
+  unfolding vmtf_en_dequeue_def
+  by sepref
+
+concrete_definition (in -) vmtf_en_dequeue_fast_code
+   uses isasat_input_bounded_nempty.vmtf_en_dequeue_fast_code.refine_raw
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) vmtf_en_dequeue_fast_code_def
+
+lemmas vmtf_en_dequeue_fast_hnr[sepref_fr_rules] =
+   vmtf_en_dequeue_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
 
 lemma (in -) insert_sort_nth_reorder:
    \<open>(uncurry insert_sort_nth, uncurry reorder_remove) \<in>
@@ -322,6 +361,29 @@ prepare_code_thms (in -) vmtf_flush_code_def
 
 lemmas trail_dump_code_refine[sepref_fr_rules] =
    vmtf_flush_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def,
+     FCOMP vmtf_change_to_remove_order', unfolded distinct_atoms_assn_def[symmetric]]
+
+
+sepref_thm vmtf_flush_fast_code
+   is \<open>uncurry (PR_CONST vmtf_flush_int)\<close>
+   :: \<open>trail_fast_assn\<^sup>k *\<^sub>a (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
+        (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<close>
+  supply [[goals_limit = 1]]
+  supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
+  unfolding vmtf_flush_def PR_CONST_def vmtf_flush_int_def zero_uint32_nat_def[symmetric]
+    current_stamp_def[symmetric] one_uint32_nat_def[symmetric]
+  apply (rewrite at \<open>\<lambda>(i, vm, h). _ < \<hole>\<close> length_u_def[symmetric])
+  apply (rewrite at \<open>length _ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
+  by sepref
+
+concrete_definition (in -) vmtf_flush_fast_code
+   uses isasat_input_bounded_nempty.vmtf_flush_fast_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_flush_fast_code_def
+
+lemmas trail_dump_code_fast_refine[sepref_fr_rules] =
+   vmtf_flush_fast_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def,
      FCOMP vmtf_change_to_remove_order', unfolded distinct_atoms_assn_def[symmetric]]
 
 definition (in isasat_input_ops) vmtf_mark_to_rescore_and_unset_pre where
@@ -1343,6 +1405,29 @@ concrete_definition (in -) vmtf_mark_to_rescore_also_reasons_code
   is \<open>(uncurry3 ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_mark_to_rescore_also_reasons_code_def
+
+sepref_register vmtf_mark_to_rescore_also_reasons get_the_propagation_reason
+sepref_thm vmtf_mark_to_rescore_also_reasons_fast_code
+  is \<open>uncurry3 (PR_CONST vmtf_mark_to_rescore_also_reasons)\<close>
+  :: \<open>[\<lambda>(((_, N), _), _). length N \<le> uint64_max]\<^sub>a 
+      trail_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
+      vmtf_remove_conc\<close>
+  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n[simp]
+  supply [[goals_limit=1]]
+  unfolding vmtf_mark_to_rescore_also_reasons_def PR_CONST_def 
+  apply (rewrite at \<open>If (_ = \<hole>)\<close> zero_uint64_nat_def[symmetric])
+  by sepref
+
+concrete_definition (in -) vmtf_mark_to_rescore_also_reasons_fast_code
+  uses isasat_input_bounded_nempty.vmtf_mark_to_rescore_also_reasons_fast_code.refine_raw
+  is \<open>(uncurry3 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_mark_to_rescore_also_reasons_fast_code_def
+
+lemmas vmtf_mark_to_rescore_also_reasons_fast_hnr[sepref_fr_rules] =
+   vmtf_mark_to_rescore_also_reasons_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
+
 
 lemma vmtf_mark_to_rescore':
  \<open>L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> vm \<in> vmtf M \<Longrightarrow> vmtf_mark_to_rescore L vm \<in> vmtf M\<close>

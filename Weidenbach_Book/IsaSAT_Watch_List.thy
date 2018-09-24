@@ -217,11 +217,14 @@ lemma to_watcher_code_hnr[sepref_fr_rules]:
       simp: to_watcher_code_def watcher_enc_def OR_132_is_sum nat_of_uint64_uint64_of_uint32
        nat_of_uint32_le_uint32_max)
 
+definition (in -)to_watcher_fast where
+ [simp]:  \<open>to_watcher_fast = to_watcher\<close>
+
 definition to_watcher_fast_code :: \<open>uint64 \<Rightarrow> uint32 \<Rightarrow> bool \<Rightarrow> uint64 \<times> uint64\<close> where
   \<open>to_watcher_fast_code = (\<lambda>a L b. (a, uint64_of_uint32 L OR (if b then 1 << 32 else (0 :: uint64))))\<close>
 
 lemma to_watcher_fast_code_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 (return ooo to_watcher_fast_code), uncurry2 (RETURN ooo to_watcher)) \<in>
+  \<open>(uncurry2 (return ooo to_watcher_fast_code), uncurry2 (RETURN ooo to_watcher_fast)) \<in>
     uint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a watcher_fast_assn\<close>
   by sepref_to_hoare
     (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
@@ -231,6 +234,5 @@ lemma to_watcher_fast_code_hnr[sepref_fr_rules]:
 lemma take_only_lower_code[code]:
   \<open>take_only_lower32 n = n AND 4294967295\<close>
   by (auto simp: take_only_lower32_def shiftl_t2n_uint64)
-
 
 end

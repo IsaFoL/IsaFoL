@@ -1813,9 +1813,10 @@ lemma get_the_propagation_reason_hnr[sepref_fr_rules]:
    \<open>(uncurry get_the_propagation_reason_code, uncurry get_the_propagation_reason)
      \<in> [\<lambda>(a, b). b \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
     (is ?slow is \<open>_?c\<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
-   \<open>(uncurry get_the_propagation_reason_fast_code, uncurry get_the_propagation_reason)
+   get_the_propagation_reason_fast_hnr[sepref_fr_rules]:
+    \<open>(uncurry get_the_propagation_reason_fast_code, uncurry get_the_propagation_reason)
      \<in> [\<lambda>(a, b). b \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a trail_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn uint64_nat_assn\<close>
-    (is ?fast is \<open>_?cfast \<in> [?prefast]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
+      (is ?fast is \<open>_?cfast \<in> [?prefast]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
 proof -
   have [dest]: \<open>((a, aa, ab, r, b), x) \<in> trail_pol \<Longrightarrow> a = map lit_of (rev x)\<close> for a aa ab b x r
     by (auto simp: trail_pol_def ann_lits_split_reasons_def)
