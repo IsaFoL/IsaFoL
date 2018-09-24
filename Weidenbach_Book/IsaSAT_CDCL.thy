@@ -19,6 +19,7 @@ where
         if count_decided_st S > zero_uint32_nat
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
+          ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur T));
           U \<leftarrow> backtrack_wl_D_nlit_heur T;
           RETURN (False, U)
         }
@@ -36,6 +37,7 @@ lemma cdcl_twl_o_prog_wl_D_heur_alt_def:
         if count_decided_st S > zero_uint32_nat
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
+          ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur T));
           U \<leftarrow> backtrack_wl_D_nlit_heur T;
           _ \<leftarrow> isasat_current_status U; \<comment> \<open>Print some information every once in a while\<close>
           RETURN (False, U)
@@ -69,13 +71,18 @@ prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
 lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-(*
+
 sepref_thm cdcl_twl_o_prog_wl_D_fast_code
   is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
-  :: \<open>[isasat_fast]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_bounded_assn\<close>
+  :: \<open>[isasat_fast]\<^sub>a
+      isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_bounded_assn\<close>
   unfolding cdcl_twl_o_prog_wl_D_heur_def PR_CONST_def
   unfolding get_conflict_wl_is_None get_conflict_wl_is_None_heur_alt_def[symmetric]
-  supply [[goals_limit = 1]]
+  supply [[goals_limit = 1]] isasat_fast_def[simp]
+       apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold
   by sepref
 
 concrete_definition (in -) cdcl_twl_o_prog_wl_D_fast_code
@@ -85,7 +92,7 @@ concrete_definition (in -) cdcl_twl_o_prog_wl_D_fast_code
 prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_fast_code_def
 
 lemmas cdcl_twl_o_prog_wl_D_fast_code[sepref_fr_rules] =
-   cdcl_twl_o_prog_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms] *)
+   cdcl_twl_o_prog_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 lemma (in isasat_input_ops) twl_st_heur_count_decided_st_alt_def:
   fixes S :: twl_st_wl_heur

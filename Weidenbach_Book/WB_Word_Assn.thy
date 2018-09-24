@@ -1656,4 +1656,33 @@ lemma param_uint64_numeral[sepref_import_param]:
   \<open>(numeral n, numeral n) \<in> uint64_rel\<close>
   by auto
 
+
+(* TODO Move + is there a way to generate these constants on the fly? *)
+locale nat_of_uint64_loc =
+  fixes n :: num
+  assumes le_uint64_max: \<open>numeral n \<le> uint64_max\<close>
+begin
+
+definition nat_of_uint64_numeral :: nat where
+  [simp]: \<open>nat_of_uint64_numeral = (numeral n)\<close>
+
+definition nat_of_uint64 :: uint64 where
+ [simp]: \<open>nat_of_uint64 = (numeral n)\<close>
+
+lemma nat_of_uint64_numeral_hnr:
+  \<open>(uncurry0 (return nat_of_uint64), uncurry0 (PR_CONST (RETURN nat_of_uint64_numeral)))
+      \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  using le_uint64_max
+  by (sepref_to_hoare; sep_auto simp: uint64_nat_rel_def br_def uint64_max_def)
+sepref_register nat_of_uint64_numeral
+end
+
+(* TODO a solution based on that, potentially with a simproc, would make wonders! *)
+lemma (in -) [sepref_fr_rules]:
+  \<open>CONSTRAINT (\<lambda>n. numeral n \<le> uint64_max) n \<Longrightarrow>
+(uncurry0 (return (nat_of_uint64_loc.nat_of_uint64 n)),
+     uncurry0 (RETURN (PR_CONST (nat_of_uint64_loc.nat_of_uint64_numeral n))))
+   \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  using nat_of_uint64_loc.nat_of_uint64_numeral_hnr[of n]
+  by (auto simp: nat_of_uint64_loc_def)
 end

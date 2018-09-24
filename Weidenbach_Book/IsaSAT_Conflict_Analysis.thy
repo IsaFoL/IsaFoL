@@ -698,7 +698,7 @@ where
   \<close>
 
 lemma skip_and_resolve_loop_wl_D_inv_skip_and_resolve_loop_wl_D_heur_inv:
-  \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow>
+  \<open>(x, y) \<in> twl_st_heur_conflict_ana' r \<Longrightarrow>
        get_conflict_wl y \<noteq> None \<Longrightarrow>
        (xa, x') \<in> bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' (length (get_clauses_wl_heur x)) \<Longrightarrow>
         case x' of (x, xa) \<Rightarrow> skip_and_resolve_loop_wl_D_inv y x xa \<Longrightarrow>
@@ -713,7 +713,7 @@ lemma skip_and_resolve_loop_wl_D_inv_skip_and_resolve_loop_wl_D_heur_inv:
 context
   fixes x y xa x' x1 x2 x1a x2a x1b x2b x1c x2c r
   assumes
-    xy:  \<open>(x, y) \<in> twl_st_heur_conflict_ana\<close> and
+    xy:  \<open>(x, y) \<in> twl_st_heur_conflict_ana' r\<close> and
     confl:  \<open>get_conflict_wl y \<noteq> None\<close> and
     xa_x':  \<open>(xa, x') \<in> bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' (length (get_clauses_wl_heur x))\<close> and
     cond_heur:  \<open>case xa of (brk, S) \<Rightarrow> \<not> brk \<and> \<not> is_decided_hd_trail_wl_heur S\<close> and
@@ -1047,7 +1047,7 @@ end
 
 lemma skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D:
   \<open>(skip_and_resolve_loop_wl_D_heur, skip_and_resolve_loop_wl_D)
-    \<in> twl_st_heur_conflict_ana \<rightarrow>\<^sub>f \<langle>twl_st_heur_conflict_ana\<rangle>nres_rel\<close>
+    \<in> twl_st_heur_conflict_ana' r \<rightarrow>\<^sub>f \<langle>twl_st_heur_conflict_ana' r\<rangle>nres_rel\<close>
 proof -
   have H[refine0]: \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow>
            ((False, x), False, y)
@@ -1067,6 +1067,7 @@ proof -
         maximum_level_removed_eq_count_dec_heur_maximum_level_removed_eq_count_dec
           [THEN fref_to_Down_curry_no_nres_Id]
        tl_state_wl_heur_tl_state_wl[THEN fref_to_Down_no_nres])
+    subgoal  by auto
     subgoal for x y xa x'
       by (rule skip_and_resolve_loop_wl_D_inv_skip_and_resolve_loop_wl_D_heur_inv)
     subgoal by (auto simp: is_decided_hd_trail_wl_heur_def twl_st_heur_ana_state_simp)

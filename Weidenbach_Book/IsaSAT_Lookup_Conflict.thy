@@ -2099,7 +2099,7 @@ where
             then RETURN (nxs, x+1, s', outl)
             else do {
                ASSERT (delete_from_lookup_conflict_pre (L, nxs));
-               RETURN (remove1_mset L nxs, x, s',  delete_index_and_swap outl x)
+               RETURN (remove1_mset L nxs, x, s', delete_index_and_swap outl x)
             }
          })
          (nxs, one_uint32_nat, s, outl);
@@ -3267,8 +3267,6 @@ lemma
   fixes D :: \<open>nat clause\<close> and s and s' and NU :: \<open>nat clauses_l\<close> and
     S :: \<open>nat twl_st_wl\<close> and S' :: \<open>nat twl_st_l\<close> and S'' :: \<open>nat twl_st\<close>
   defines
-(*     \<open>S' \<equiv> st_l_of_wl None S\<close> and
-    \<open>S'' \<equiv> twl_st_of_wl None S\<close> and *)
     \<open>S''' \<equiv> state\<^sub>W_of S''\<close>
   defines
     \<open>M \<equiv> get_trail_wl S\<close> and

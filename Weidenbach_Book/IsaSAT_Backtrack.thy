@@ -2218,25 +2218,6 @@ proof -
 qed
 
 text \<open>TODO we need a \<^term>\<open>imp_for_uint64\<close>\<close>
-sepref_thm vmtf_mark_to_rescore_clause_fast_code
-  is \<open>uncurry2 (PR_CONST vmtf_mark_to_rescore_clause)\<close>
-  :: \<open>[\<lambda>((N, _), _). length N \<le> uint64_max]\<^sub>a 
-       arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
-  supply [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
-  unfolding vmtf_mark_to_rescore_clause_def PR_CONST_def nat_of_uint64_conv_def
-  apply (rewrite at \<open>[\<hole>..<_]\<close> nat_of_uint64_conv_def[symmetric])
-  apply (rewrite at \<open>[_..<\<hole>]\<close> nat_of_uint64_conv_def[symmetric])
-  by sepref
-
-concrete_definition (in -) vmtf_mark_to_rescore_clause_fast_code
-  uses isasat_input_bounded_nempty.vmtf_mark_to_rescore_clause_fast_code.refine_raw
-  is \<open>(uncurry2 ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) vmtf_mark_to_rescore_clause_fast_code_def
-
-lemmas vmtf_mark_to_rescore_clause_fast_hnr[sepref_fr_rules] =
-   vmtf_mark_to_rescore_clause_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
-
 sepref_thm extract_shorter_conflict_list_heur_st_fast
   is \<open>PR_CONST extract_shorter_conflict_list_heur_st\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a 

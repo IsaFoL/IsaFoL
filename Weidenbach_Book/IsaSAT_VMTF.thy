@@ -1406,16 +1406,37 @@ concrete_definition (in -) vmtf_mark_to_rescore_also_reasons_code
 
 prepare_code_thms (in -) vmtf_mark_to_rescore_also_reasons_code_def
 
-sepref_register vmtf_mark_to_rescore_also_reasons get_the_propagation_reason
+lemmas vmtf_mark_to_rescore_also_reasons_code[sepref_fr_rules] =
+   vmtf_mark_to_rescore_also_reasons_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+sepref_thm vmtf_mark_to_rescore_clause_fast_code
+  is \<open>uncurry2 (PR_CONST vmtf_mark_to_rescore_clause)\<close>
+  :: \<open>[\<lambda>((N, _), _). length N \<le> uint64_max]\<^sub>a
+       arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
+  supply [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
+  unfolding vmtf_mark_to_rescore_clause_def PR_CONST_def nat_of_uint64_conv_def
+  apply (rewrite at \<open>[\<hole>..<_]\<close> nat_of_uint64_conv_def[symmetric])
+  apply (rewrite at \<open>[_..<\<hole>]\<close> nat_of_uint64_conv_def[symmetric])
+  by sepref
+
+concrete_definition (in -) vmtf_mark_to_rescore_clause_fast_code
+  uses isasat_input_bounded_nempty.vmtf_mark_to_rescore_clause_fast_code.refine_raw
+  is \<open>(uncurry2 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_mark_to_rescore_clause_fast_code_def
+
+lemmas vmtf_mark_to_rescore_clause_fast_hnr[sepref_fr_rules] =
+   vmtf_mark_to_rescore_clause_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
+
 sepref_thm vmtf_mark_to_rescore_also_reasons_fast_code
   is \<open>uncurry3 (PR_CONST vmtf_mark_to_rescore_also_reasons)\<close>
-  :: \<open>[\<lambda>(((_, N), _), _). length N \<le> uint64_max]\<^sub>a 
+  :: \<open>[\<lambda>(((_, N), _), _). length N \<le> uint64_max]\<^sub>a
       trail_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
       vmtf_remove_conc\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
     in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n[simp]
   supply [[goals_limit=1]]
-  unfolding vmtf_mark_to_rescore_also_reasons_def PR_CONST_def 
+  unfolding vmtf_mark_to_rescore_also_reasons_def PR_CONST_def
   apply (rewrite at \<open>If (_ = \<hole>)\<close> zero_uint64_nat_def[symmetric])
   by sepref
 

@@ -3287,6 +3287,7 @@ sepref_thm update_clause_wl_fast_code
     fmap_swap_ll_u64_def[symmetric]
     fmap_swap_ll_def[symmetric]
     PR_CONST_def
+    to_watcher_fast_def[symmetric]
   by sepref
 
 concrete_definition (in -) update_clause_wl_fast_code
@@ -3439,6 +3440,7 @@ sepref_thm update_blit_wl_heur_fast_code
      nat_assn *a nat_assn *a isasat_bounded_assn\<close>
   supply [[goals_limit=1]] length_ll_def[simp]
   unfolding update_blit_wl_heur_def isasat_bounded_assn_def update_ll_def[symmetric]
+    to_watcher_fast_def[symmetric]
   by sepref
 
 concrete_definition (in -) update_blit_wl_heur_fast_code

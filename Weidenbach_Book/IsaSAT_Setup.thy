@@ -10,6 +10,22 @@ no_notation Ref.update ("_ := _" 62)
 
 subsection \<open>Code Generation\<close>
 
+text \<open>We here define the last step of our refinement: the step with all the heuristics and fully
+  deterministic code.
+
+  After the result of benchmarking, we concluded that the us of \<^typ>\<open>nat\<close> leads to worse performance
+  than using  \<^typ>\<open>uint64\<close>. As, however, the later is not complete, we do so with a switch: as long
+  as it fits, we use the faster (called 'bounded') version. After that we switch to the 'unbounded'
+  version (which is still bounded by memory anyhow).
+
+  We do keep some natural numbers:
+  \<^enum> to iterate over the watch list. Our invariant are currently not strong enough to prove that
+    we do not need that.
+  \<^enum> to keep the indices of all clauses. This mostly simplifies the code if we add inprocessing:
+    We can be sure to never have to switch mode in the middle of an operation (which would nearly
+    impossible to do).
+
+\<close>
 subsubsection \<open>Types and Refinement Relations\<close>
 
 paragraph \<open>Statistics\<close>
