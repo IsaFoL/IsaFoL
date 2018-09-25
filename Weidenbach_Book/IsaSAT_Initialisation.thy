@@ -278,6 +278,26 @@ where
   lbd_assn *a
   vdom_assn\<close>
 
+
+type_synonym (in -)twl_st_wll_trail_init_unbounded =
+  \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
+    uint32 \<times> watched_wl \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> vdom_assn\<close>
+
+definition (in isasat_input_ops) isasat_init_unbounded_assn
+  :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init_unbounded \<Rightarrow> assn\<close>
+where
+\<open>isasat_init_unbounded_assn =
+  trail_assn *a arena_assn *a
+  isasat_conflict_assn *a
+  uint32_nat_assn *a
+  watchlist_assn *a
+  vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
+  uint32_nat_assn *a
+  cach_refinement_assn *a
+  lbd_assn *a
+  vdom_assn\<close>
+
 end
 
 
@@ -2247,10 +2267,10 @@ where
 
 sepref_thm rewatch_heur_st_code
   is \<open>(PR_CONST rewatch_heur_st)\<close>
-  :: \<open>isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  :: \<open>isasat_init_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_unbounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding rewatch_heur_st_def PR_CONST_def
-    isasat_init_assn_def
+    isasat_init_unbounded_assn_def
   by sepref
 
 
@@ -2269,8 +2289,9 @@ lemma (in isasat_input_bounded) rewatch_heur_st_correct_watching:
     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf (get_clauses_init_wl T))\<close> and
     \<open>\<And>x. x \<in># dom_m (get_clauses_init_wl T) \<Longrightarrow> distinct (get_clauses_init_wl T \<propto> x) \<and>
         2 \<le> length (get_clauses_init_wl T \<propto> x)\<close>
-  shows \<open>rewatch_heur_st S \<le> \<Down> twl_st_heur_parsing (SPEC (\<lambda>((M,N, D, NE, UE, Q, W), OC). T = ((M,N,D,NE,UE,Q), OC)\<and>
-    correct_watching (M, N, D, NE, UE, Q, W)))\<close>
+  shows \<open>rewatch_heur_st S \<le> \<Down> twl_st_heur_parsing
+    (SPEC (\<lambda>((M,N, D, NE, UE, Q, W), OC). T = ((M,N,D,NE,UE,Q), OC)\<and>
+       correct_watching (M, N, D, NE, UE, Q, W)))\<close>
 proof -
   obtain M N D NE UE Q OC where
     T: \<open>T = ((M,N, D, NE, UE, Q), OC)\<close>
@@ -2434,60 +2455,11 @@ lemmas init_dt_wl_heur_hnr[sepref_fr_rules] =
   init_dt_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 
-sepref_thm init_dt_wl_heur_full_code
-  is \<open>uncurry (PR_CONST init_dt_wl_heur_full)\<close>
-  :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding init_dt_wl_heur_full_def PR_CONST_def
-  by sepref
-
-concrete_definition (in -) init_dt_wl_heur_full_code
-  uses "isasat_input_bounded.init_dt_wl_heur_full_code.refine_raw"
-  is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) init_dt_wl_heur_full_code_def
-
-lemmas init_dt_wl_heur_full_hnr[sepref_fr_rules] =
-  init_dt_wl_heur_full_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
 end
 
 
 subsection \<open>Conversion to normal state\<close>
 
-context isasat_input_bounded
-begin
-
-
-(* sepref_thm init_dt_wl_fast_code
-  is \<open>uncurry (PR_CONST init_dt_wl_heur_fast)\<close>
-  :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>d *\<^sub>a isasat_init_fast_assn\<^sup>d \<rightarrow>\<^sub>a
-       isasat_init_fast_assn\<close>
-  unfolding init_dt_wl_heur_fast_def PR_CONST_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-concrete_definition (in -) init_dt_wl_fast_code
-  uses "isasat_input_bounded.init_dt_wl_fast_code.refine_raw"
-  is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) init_dt_wl_fast_code_def
-
-thm init_dt_wl_heur_code_def
-sepref_thm init_dt_wl_code
-  is \<open>uncurry (PR_CONST init_dt_wl_heur)\<close>
-  :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a
-       isasat_init_assn\<close>
-  unfolding init_dt_wl_heur_def PR_CONST_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-concrete_definition (in -) init_dt_wl_code
-  uses "isasat_input_bounded.init_dt_wl_code.refine_raw"
-  is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) init_dt_wl_code_def *)
-end
 
 definition (in -)insert_sort_inner_nth2 :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
   \<open>insert_sort_inner_nth2 ns = insert_sort_inner (>) (\<lambda>remove n. ns ! (remove ! n))\<close>
@@ -2672,7 +2644,7 @@ sepref_thm (in isasat_input_ops) finalise_init_code'
   :: \<open>opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
-  unfolding finalise_init_code_def isasat_init_assn_def isasat_unbounded_assn_def
+  unfolding finalise_init_code_def isasat_init_assn_def isasat_bounded_assn_def
     arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric]
   by sepref
 
@@ -2685,24 +2657,25 @@ prepare_code_thms (in -) finalise_init_code'_def
 lemmas (in isasat_input_ops)finalise_init_hnr[sepref_fr_rules] =
    finalise_init_code'.refine[of \<A>\<^sub>i\<^sub>n]
 
-(*
-sepref_thm (in isasat_input_ops) finalise_init_fast_code'
-  is \<open>finalise_init_code\<close>
-  :: \<open>isasat_init_fast_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+
+sepref_thm (in isasat_input_ops) finalise_init_code_unb
+  is \<open>uncurry finalise_init_code\<close>
+  :: \<open>opts_assn\<^sup>d *\<^sub>a isasat_init_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
-  unfolding finalise_init_code_def isasat_init_fast_assn_def isasat_bounded_assn_def
+  unfolding finalise_init_code_def isasat_init_unbounded_assn_def isasat_unbounded_assn_def
     arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric]
   by sepref
 
-concrete_definition (in -) finalise_init_fast_code'
-   uses isasat_input_ops.finalise_init_fast_code'.refine_raw
-   is \<open>(?f, _)\<in>_\<close>
+concrete_definition (in -) finalise_init_code_unb
+   uses isasat_input_ops.finalise_init_code_unb.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
 
-prepare_code_thms (in -) finalise_init_fast_code'_def
+prepare_code_thms (in -) finalise_init_code_unb_def
 
-lemmas (in isasat_input_ops)finalise_init_fast_hnr[sepref_fr_rules] =
-   finalise_init_fast_code'.refine[of \<A>\<^sub>i\<^sub>n] *)
+lemmas (in isasat_input_ops) finalise_init_unbounded_hnr[sepref_fr_rules] =
+   finalise_init_code_unb.refine[of \<A>\<^sub>i\<^sub>n]
+
 
 definition (in -) init_rll :: \<open>nat \<Rightarrow> (nat, 'v clause_l \<times> bool) fmap\<close> where
   \<open>init_rll n = fmempty\<close>
@@ -2742,26 +2715,6 @@ definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> na
   }\<close>
 
 sepref_register initialise_VMTF
-
-
-sepref_definition init_trail_D_code
-  is \<open>uncurry2 init_trail_D\<close>
-  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn\<close>
-  unfolding init_trail_D_def PR_CONST_def
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> arl.fold_custom_empty)
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
-  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> arl.fold_custom_empty)
-  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
-
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
-  apply (rewrite in \<open>let _ = _;_ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
-  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
-  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
-  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare init_trail_D_code.refine[sepref_fr_rules]
 
 
 definition init_trail_D_fast where
@@ -2806,19 +2759,19 @@ definition (in isasat_input_ops) init_state_wl_D' :: \<open>uint32 list \<times>
 
 sepref_thm (in isasat_input_ops) init_state_wl_D'_code
   is \<open>PR_CONST init_state_wl_D'\<close>
-  :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn *a arena_assn *a
+  :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn *a arena_assn *a
     conflict_option_rel_assn *a
     uint32_nat_assn *a
-    (arrayO_assn (arl_assn watcher_assn)) *a
+    (arrayO_assn (arl_assn watcher_fast_assn)) *a
     vmtf_remove_conc_option_fst_As *a
     phase_saver_conc *a uint32_nat_assn *a
     cach_refinement_l_assn *a lbd_assn *a vdom_assn\<close>
-  unfolding init_state_wl_D'_def PR_CONST_def
+  unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric]
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> arl.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arena_assn\<close>])
-  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn watcher_assn))\<close>])
+  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn watcher_fast_assn))\<close>])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -3120,12 +3073,12 @@ proof -
          (out_learned_assn *a
           array_assn tri_bool_assn *a
           array_assn uint32_nat_assn *a
-          array_assn nat_assn *a uint32_nat_assn *a arl_assn uint32_nat_assn)
+          array_assn uint64_nat_assn *a uint32_nat_assn *a arl_assn uint32_nat_assn)
          (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *a
         arl_assn (pure (uint32_nat_rel O arena_el_rel)) *a
         conflict_option_rel_assn *a
         uint32_nat_assn *a
-        hr_comp watchlist_assn (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel) *a
+        hr_comp watchlist_fast_assn (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel) *a
         isasat_input_ops.vmtf_remove_conc_option_fst_As \<A>\<^sub>i\<^sub>n *a
         hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
         uint32_nat_assn *a
