@@ -2841,6 +2841,25 @@ definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> na
 sepref_register initialise_VMTF
 
 
+sepref_definition init_trail_D_code
+  is \<open>uncurry2 init_trail_D\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn\<close>
+  unfolding init_trail_D_def PR_CONST_def
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
+  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
+
+  apply (rewrite in \<open>let _ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
+  apply (rewrite in \<open>let _ = _;_ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
+  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
+  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
+  supply [[goals_limit = 1]]
+  by sepref
+
+declare init_trail_D_code.refine[sepref_fr_rules]
+
 definition init_trail_D_fast where
   \<open>init_trail_D_fast = init_trail_D\<close>
 
@@ -2908,32 +2927,32 @@ prepare_code_thms (in -) init_state_wl_D'_code_def
 lemmas (in isasat_input_ops)init_state_wl_D'_hnr[sepref_fr_rules] =
    init_state_wl_D'_code.refine[of \<A>\<^sub>i\<^sub>n]
 
-sepref_thm (in isasat_input_ops) init_state_wl_D'_fast_code
+sepref_thm (in isasat_input_ops) init_state_wl_D'_code_unb
   is \<open>PR_CONST init_state_wl_D'\<close>
-  :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn *a arena_assn *a
+  :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn *a arena_assn *a
     conflict_option_rel_assn *a
     uint32_nat_assn *a
-    (arrayO_assn (arl_assn (watcher_fast_assn))) *a
+    (arrayO_assn (arl_assn (watcher_assn))) *a
     vmtf_remove_conc_option_fst_As *a
     phase_saver_conc *a uint32_nat_assn *a
     cach_refinement_l_assn *a lbd_assn *a vdom_assn\<close>
-  unfolding init_state_wl_D'_def init_trail_D_fast_def[symmetric] PR_CONST_def
+  unfolding init_state_wl_D'_def PR_CONST_def
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> arl.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arena_assn\<close>])
-  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn watcher_fast_assn))\<close>])
+  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn watcher_assn))\<close>])
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) init_state_wl_D'_fast_code
-   uses isasat_input_ops.init_state_wl_D'_fast_code.refine_raw
+concrete_definition (in -) init_state_wl_D'_code_unb
+   uses isasat_input_ops.init_state_wl_D'_code_unb.refine_raw
    is \<open>(?f, _)\<in>_\<close>
 
-prepare_code_thms (in -) init_state_wl_D'_fast_code_def
+prepare_code_thms (in -) init_state_wl_D'_code_unb_def
 
-lemmas (in isasat_input_ops)init_state_wl_D'_fast_hnr[sepref_fr_rules] =
-   init_state_wl_D'_fast_code.refine[of \<A>\<^sub>i\<^sub>n]
+lemmas (in isasat_input_ops)init_state_wl_D'_unb_hnr[sepref_fr_rules] =
+   init_state_wl_D'_code_unb.refine[of \<A>\<^sub>i\<^sub>n]
 
 
 lemma init_trail_D_ref:
@@ -3187,27 +3206,34 @@ lemma init_state_wl_heur_hnr:
     \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n]\<^sub>a
       lits_with_max_assn\<^sup>d \<rightarrow>
       isasat_input_ops.isasat_init_assn \<A>\<^sub>i\<^sub>n\<close>
-    (is ?slow is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+    (is ?slow is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
+ init_state_wl_heur_hnr_slow:
+  \<open>(init_state_wl_D'_code_unb, isasat_input_ops.init_state_wl_heur)
+    \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n]\<^sub>a
+      lits_with_max_assn\<^sup>d \<rightarrow>
+      isasat_input_ops.isasat_init_unbounded_assn \<A>\<^sub>i\<^sub>n\<close>
+    (is ?slowA is \<open>?cA \<in> [?preA]\<^sub>a ?imA \<rightarrow> ?fA\<close>)
 proof -
   have H: \<open>?c \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and>
         distinct_mset
          \<A>\<^sub>i\<^sub>n]\<^sub>a (hr_comp (arl_assn uint32_assn *a uint32_assn)
                     (lits_with_max_rel O
                      \<langle>uint32_nat_rel\<rangle>mset_rel))\<^sup>d \<rightarrow> hr_comp
-         (out_learned_assn *a
-          array_assn tri_bool_assn *a
-          array_assn uint32_nat_assn *a
-          array_assn uint64_nat_assn *a uint32_nat_assn *a arl_assn uint32_nat_assn)
-         (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *a
-        arl_assn (pure (uint32_nat_rel O arena_el_rel)) *a
-        conflict_option_rel_assn *a
-        uint32_nat_assn *a
-        hr_comp watchlist_fast_assn (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel) *a
-        isasat_input_ops.vmtf_remove_conc_option_fst_As \<A>\<^sub>i\<^sub>n *a
-        hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
-        uint32_nat_assn *a
-        hr_comp cach_refinement_l_assn (isasat_input_ops.cach_refinement \<A>\<^sub>i\<^sub>n) *a
-        lbd_assn *a vdom_assn\<close>
+             (out_learned_assn *a
+              array_assn tri_bool_assn *a
+              array_assn uint32_nat_assn *a isasat_atms_ext_rel_assn)
+             (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *a
+            arl_assn (pure (uint32_nat_rel O arena_el_rel)) *a
+            conflict_option_rel_assn *a
+            uint32_nat_assn *a
+            hr_comp watchlist_fast_assn (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel) *a
+            (IsaSAT_Initialisation.vmtf_conc_option_fst_As *a
+             isasat_input_ops.distinct_atoms_assn \<A>\<^sub>i\<^sub>n) *a
+            hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
+            uint32_nat_assn *a
+            hr_comp cach_refinement_l_assn
+             (isasat_input_ops.cach_refinement \<A>\<^sub>i\<^sub>n) *a
+            lbd_assn *a vdom_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using isasat_input_ops.init_state_wl_D'_hnr[unfolded PR_CONST_def,
       FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n,
@@ -3262,6 +3288,86 @@ proof -
     by (auto simp: hrp_comp_def hr_comp_def list_assn_list_mset_rel_eq_list_mset_assn
        arena_el_assn_alt_def)
   show ?slow
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding f im apply assumption
+    using pre ..
+
+  have H: \<open>?cA \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and>
+        distinct_mset
+         \<A>\<^sub>i\<^sub>n]\<^sub>a  (hr_comp (arl_assn uint32_assn *a uint32_assn)
+                    (lits_with_max_rel O
+                     \<langle>uint32_nat_rel\<rangle>mset_rel))\<^sup>d \<rightarrow> hr_comp
+             (out_learned_assn *a
+              array_assn tri_bool_assn *a
+              array_assn uint32_nat_assn *a
+              array_assn nat_assn *a
+              uint32_nat_assn *a arl_assn uint32_nat_assn)
+             (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *a
+             arl_assn (pure (uint32_nat_rel O arena_el_rel)) *a
+            conflict_option_rel_assn *a
+            uint32_nat_assn *a
+            hr_comp watchlist_assn (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel) *a
+            (IsaSAT_Initialisation.vmtf_conc_option_fst_As *a
+             isasat_input_ops.distinct_atoms_assn \<A>\<^sub>i\<^sub>n) *a
+             hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
+            uint32_nat_assn *a
+            hr_comp cach_refinement_l_assn
+             (isasat_input_ops.cach_refinement \<A>\<^sub>i\<^sub>n) *a
+             lbd_assn *a vdom_assn\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using isasat_input_ops.init_state_wl_D'_unb_hnr[unfolded PR_CONST_def,
+      FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n,
+      unfolded PR_CONST_def]
+    unfolding isasat_input_ops.cach_refinement_assn_def
+    .
+
+have 1: \<open>uint32_nat_assn = hr_comp uint32_assn uint32_nat_rel\<close>
+    by auto
+  have [simp]: \<open>Max (insert 0 (nat_of_uint32 ` aa)) = nat_of_uint32 (Max (insert 0 aa))\<close>
+    if \<open>finite aa\<close> for aa
+    apply (subst (4) mono_Max_commute)
+    subgoal by (auto simp: mono_def nat_of_uint32_le_iff)
+    subgoal using that by auto
+    subgoal by auto
+    by auto
+
+  have 2: \<open>{(l, l'). l' = map nat_of_uint32 l} \<times>\<^sub>f {(c, a). a = nat_of_uint32 c} =
+       {(c, a). a = (\<lambda>(a, b). (map nat_of_uint32 a, nat_of_uint32 b)) c}\<close>
+    by auto
+  have 3: \<open>(\<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>f uint32_nat_rel) O lits_with_max_rel =
+       lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>mset_rel\<close>
+    by (auto simp: lits_with_max_rel_def lits_with_max_rel_def in_mset_rel_eq_f_iff
+        uint32_nat_rel_def br_def in_mset_rel_eq_f_iff_set Collect_eq_comp_right
+        list_rel_def list_all2_op_eq_map_right_iff' 2)
+
+  have \<open>hr_comp (arl_assn uint32_nat_assn *a hr_comp uint32_assn uint32_nat_rel) lits_with_max_rel =
+          hr_comp (hr_comp (arl_assn uint32_assn) (\<langle>uint32_nat_rel\<rangle>list_rel) *a hr_comp uint32_assn uint32_nat_rel) lits_with_max_rel\<close>
+    by (simp add: arl_assn_comp)
+  also have \<open>\<dots> = hr_comp (hr_comp (arl_assn uint32_assn *a uint32_assn)
+       (\<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>f uint32_nat_rel))
+       lits_with_max_rel\<close>
+    by simp
+  also have
+     \<open>\<dots> = hr_comp (arl_assn uint32_assn *a uint32_assn)
+          ((\<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>f uint32_nat_rel) O lits_with_max_rel)\<close>
+    unfolding hr_comp_assoc ..
+  finally have 4: \<open>hr_comp (arl_assn uint32_nat_assn *a hr_comp uint32_assn uint32_nat_rel) lits_with_max_rel =
+  hr_comp (arl_assn uint32_assn *a uint32_assn) (lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>mset_rel)\<close>
+    unfolding 3 .
+
+  have im: \<open>?im' = ?imA\<close>
+    apply (subst (2) 1)
+    apply (subst 4)
+    unfolding prod_hrp_comp hrp_comp_dest[symmetric] hrp_comp_keep[symmetric]
+      prod_assn_id_assn_destroy ..
+  have f: \<open>?f' = ?fA\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep isasat_input_ops.isasat_init_unbounded_assn_def
+      isasat_input_ops.option_lookup_clause_assn_def[symmetric]
+      isasat_input_ops.cach_refinement_assn_def[symmetric]
+    by (auto simp: hrp_comp_def hr_comp_def list_assn_list_mset_rel_eq_list_mset_assn
+       arena_el_assn_alt_def)
+  show ?slowA
     apply (rule hfref_weaken_pre[OF ])
      defer
     using H unfolding f im apply assumption
