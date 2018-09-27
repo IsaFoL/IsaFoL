@@ -15,9 +15,9 @@ datatype 'v twl_clause =
   TWL_Clause (watched: 'v) (unwatched: 'v)
 
 fun clause :: \<open>'a twl_clause \<Rightarrow> 'a :: {plus}\<close> where
-\<open>clause (TWL_Clause W UW) = W + UW\<close>
+  \<open>clause (TWL_Clause W UW) = W + UW\<close>
 
-abbreviation clauses where
+abbreviation clauses :: \<open>'a :: {plus} twl_clause multiset \<Rightarrow> 'a multiset\<close> where
   \<open>clauses C \<equiv> clause `# C\<close>
 
 type_synonym 'v twl_cls = \<open>'v clause twl_clause\<close>
@@ -209,7 +209,7 @@ text \<open>
   The invariant on the clauses is the following:
   \<^item> the structure is correct (the watched part is of length exactly two).
   \<^item> if we do not have to update the clause, then the invariant holds.
-  \<close>
+\<close>
 definition
   twl_is_an_exception:: \<open>'a multiset twl_clause \<Rightarrow> 'a multiset \<Rightarrow>
      ('b \<times> 'a multiset twl_clause) multiset \<Rightarrow> bool\<close>
