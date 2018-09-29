@@ -280,26 +280,19 @@ proof
   show \<open>{\<iota> \<in> I_F. concl_of \<iota> \<in> N} \<subseteq> Red_I_\<G> N\<close> using Red_I_of_I_to_N_F by auto
 qed
 
-end
-
 definition Empty_Order :: \<open>'f formulas \<Rightarrow> 'f formulas \<Rightarrow> bool\<close> where
   "Empty_Order C1 C2 \<equiv> False" 
 
 
+
 interpretation lifted_inference_system_empty_order: inference_system
+
   where
     Bot_F = Bot_F_F and entails = entails_\<G> and I = I_F  and Red_I = Red_I_\<G> and Red_F = Red_F_\<G>
-proof
-  fix B N N' \<iota>
-  show \<open>Red_I_\<G> N \<in> Pow I_F\<close> unfolding Red_I_\<G>_def by blast
-  show \<open>B \<in> Bot_F_F \<Longrightarrow> N \<Turnstile>\<G> {B} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close> using Red_F_Bot_F_F by simp
-  show \<open>N \<subseteq> N' \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> N'\<close> using Red_F_of_subset_F by simp
-  show \<open>N \<subseteq> N' \<Longrightarrow> Red_I_\<G> N \<subseteq> Red_I_\<G> N'\<close> using Red_I_of_subset_F by simp
-  show \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> (N - N')\<close> using Red_F_of_Red_F_subset_F by simp
-  show \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_I_\<G> N \<subseteq> Red_I_\<G> (N - N')\<close> using Red_I_of_Red_F_subset_F by simp
-  show \<open>\<iota> \<in> I_F \<and> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I_\<G> N\<close> using Red_I_of_I_to_N_F by simp
-  show \<open>{\<iota> \<in> I_F. concl_of \<iota> \<in> N} \<subseteq> Red_I_\<G> N\<close> using Red_I_of_I_to_N_F by auto
-qed
+  rewrites "Prec_F x y = False"
+proof -
+  have "inference_system Bot_F_F (\<Turnstile>\<G>) I_F Red_I_\<G> Red_F_qed"
+
 
 end
 
