@@ -1,3 +1,6 @@
 session "Saturation_Framework" = "Ordered_Resolution_Prover" +
+  sessions
+    Well_Quasi_Orders
   theories [document = false, quick_and_dirty=true]
     Saturation_Framework
+    Saturation_Lifting
