@@ -265,7 +265,7 @@ proof -
 qed
 
 text \<open>theorem 15 in Uwe's notes\<close>
-interpretation lifted_inference_system: inference_system 
+sublocale lifted_inference_system: inference_system 
   where
     Bot_F = Bot_F_F and entails = entails_\<G> and I = I_F  and Red_I = Red_I_\<G> and Red_F = Red_F_\<G>
 proof
@@ -280,23 +280,42 @@ proof
   show \<open>{\<iota> \<in> I_F. concl_of \<iota> \<in> N} \<subseteq> Red_I_\<G> N\<close> using Red_I_of_I_to_N_F by auto
 qed
 
-definition Empty_Order :: \<open>'f formulas \<Rightarrow> 'f formulas \<Rightarrow> bool\<close> where
+end
+
+
+definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> where
   "Empty_Order C1 C2 \<equiv> False" 
 
 
 
-interpretation lifted_inference_system_empty_order: inference_system
+locale lifting_equivalence_with_empty_order = g: redundancy_criterion_lifting Bot_F_G entails_G I_G Red_I_G Red_F_G Prec_F Bot_F_F I_F \<G>_F \<G>_I + q: redundancy_criterion_lifting Bot_F_G entails_G I_G Red_I_G Red_F_G Empty_Order Bot_F_F I_F \<G>_F \<G>_I
+  for
+    Bot_F_G :: \<open>'g set\<close> and
+    entails_G :: \<open>'g formulas \<Rightarrow> 'g formulas \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
+    I_G :: \<open>'g inference set\<close> and
+    Red_I_G :: \<open>'g formulas \<Rightarrow> 'g inference set\<close> and
+    Red_F_G :: \<open>'g formulas \<Rightarrow> 'g formulas\<close> and
+    Prec_F :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> (infix "\<sqsubset>" 50) and
+    Bot_F_F :: \<open>'f set\<close> and
+    I_F :: \<open>'f inference set\<close> and
+    \<G>_F :: \<open>'f \<Rightarrow> 'g formulas\<close> and
+    \<G>_I :: \<open>'f inference \<Rightarrow> 'g inference set\<close>
 
-  where
-    Bot_F = Bot_F_F and entails = entails_\<G> and I = I_F  and Red_I = Red_I_\<G> and Red_F = Red_F_\<G>
-  rewrites "Prec_F x y = False"
-proof -
-  have "inference_system Bot_F_F (\<Turnstile>\<G>) I_F Red_I_\<G> Red_F_qed"
+sublocale redundancy_criterion_lifting \<subseteq> lifting_equivalence_with_empty_order
+proof
+  show "po_on Empty_Order UNIV" unfolding Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
+  show "wfp_on Empty_Order UNIV" unfolding wfp_on_def Empty_Order_def by simp
+  show "\<forall>B\<in>Bot_F_F. \<G>_F B \<noteq> {}" by (simp add: Bot_F_map_not_empty)
+  show "\<forall>B\<in>Bot_F_F. \<G>_F B \<subseteq> Bot_F_G" by (simp add: Bot_F_map)
+  fix \<iota>
+  show "\<G>_I \<iota> \<subseteq> Red_I_G (\<G>_F (concl_of \<iota>))" by (simp add: inf_map)
+qed
 
+context lifting_equivalence_with_empty_order
+begin
+
+lemma "g.lifted_inference_system.saturated N = q.lifted_inference_system.saturated N"
 
 end
-
-    
-
 
 end
