@@ -46,6 +46,9 @@ lemma is_decided_ex_Decided:
   \<open>is_decided L \<Longrightarrow> (\<And>K. L = Decided K \<Longrightarrow> P) \<Longrightarrow> P\<close>
   by (cases L) auto
 
+lemma is_propedE: \<open>is_proped L \<Longrightarrow> (\<And>K C. L = Propagated K C \<Longrightarrow> P) \<Longrightarrow> P\<close>
+  by (cases L) auto
+
 lemma is_decided_no_proped_iff: \<open>is_decided L \<longleftrightarrow> \<not>is_proped L\<close>
   by (cases L) auto
 
