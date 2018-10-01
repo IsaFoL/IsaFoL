@@ -54,7 +54,7 @@ lemma get_prev_ref[sepref_fr_rules]:
 definition update_next_search where
   \<open>update_next_search L = (\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). ((ns, m, fst_As, lst_As, L), to_remove))\<close>
 
-lemma (in isasat_input_ops) update_next_search_ref[sepref_fr_rules]:
+lemma update_next_search_ref[sepref_fr_rules]:
   \<open>(uncurry (return oo update_next_search), uncurry (RETURN oo update_next_search)) \<in>
       (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
   unfolding option_assn_pure_conv
@@ -72,9 +72,9 @@ sepref_definition (in -)ns_vmtf_dequeue_code
 declare ns_vmtf_dequeue_code.refine[sepref_fr_rules]
 
 abbreviation vmtf_conc_option_fst_As where
-  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn vmtf_node_assn *a uint64_nat_assn *a option_assn uint32_nat_assn
-    *a option_assn uint32_nat_assn
-    *a option_assn uint32_nat_assn)\<close>
+  \<open>vmtf_conc_option_fst_As \<equiv>
+    (array_assn vmtf_node_assn *a uint64_nat_assn *a option_assn uint32_nat_assn
+      *a option_assn uint32_nat_assn *a option_assn uint32_nat_assn)\<close>
 
 sepref_definition vmtf_dequeue_code
    is \<open>uncurry (RETURN oo vmtf_dequeue)\<close>
@@ -86,11 +86,7 @@ sepref_definition vmtf_dequeue_code
 
 declare vmtf_dequeue_code.refine[sepref_fr_rules]
 
-
-context isasat_input_bounded_nempty
-begin
-
-definition (in isasat_input_ops) vmtf_enqueue_pre where
+definition vmtf_enqueue_pre where
   \<open>vmtf_enqueue_pre =
      (\<lambda>((M, L),(ns,m,fst_As,lst_As, next_search)). L < length ns \<and> Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
        (fst_As \<noteq> None \<longrightarrow> the fst_As < length ns) \<and>

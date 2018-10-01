@@ -1217,10 +1217,7 @@ definition lit_redundant_rec_wl_ref where
 definition lit_redundant_rec_wl_inv where
   \<open>lit_redundant_rec_wl_inv M NU D = (\<lambda>(cach, analyse, b). lit_redundant_rec_wl_ref NU analyse)\<close>
 
-context isasat_input_ops
-begin
-
-definition (in -) lit_redundant_rec_wl :: \<open>('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clause \<Rightarrow>
+definition lit_redundant_rec_wl :: \<open>('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clause \<Rightarrow>
      _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow>
       (_ \<times> _ \<times> bool) nres\<close>
 where
@@ -1681,8 +1678,8 @@ definition mark_failed_lits_stack_inv where
 
 text \<open>We mark all the literals from the current literal stack as failed, since every minimisation
 call will find the same minimisation problem.\<close>
-definition (in isasat_input_ops) mark_failed_lits_stack where
-  \<open>mark_failed_lits_stack NU analyse cach = do {
+definition mark_failed_lits_stack where
+  \<open>mark_failed_lits_stack \<A>\<^sub>i\<^sub>n NU analyse cach = do {
     ( _, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, cach). mark_failed_lits_stack_inv NU analyse cach\<^esup>
       (\<lambda>(i, cach). i < length analyse)
       (\<lambda>(i, cach). do {
@@ -1697,20 +1694,20 @@ definition (in isasat_input_ops) mark_failed_lits_stack where
 
 lemma mark_failed_lits_stack_mark_failed_lits_wl:
   shows
-    \<open>(uncurry2 mark_failed_lits_stack, uncurry2 mark_failed_lits_wl) \<in>
-       [\<lambda>((NU, analyse), cach). literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU) \<and>
+    \<open>(uncurry2 (mark_failed_lits_stack \<A>), uncurry2 mark_failed_lits_wl) \<in>
+       [\<lambda>((NU, analyse), cach). literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf NU) \<and>
           mark_failed_lits_stack_inv NU analyse cach]\<^sub>f
        Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
 proof -
-  have \<open>mark_failed_lits_stack NU analyse cach \<le> (mark_failed_lits_wl NU analyse cach)\<close>
+  have \<open>mark_failed_lits_stack \<A> NU analyse cach \<le> (mark_failed_lits_wl NU analyse cach)\<close>
     if
-      NU_\<L>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf NU)\<close> and
+      NU_\<L>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf NU)\<close> and
       init: \<open>mark_failed_lits_stack_inv NU analyse cach\<close>
     for NU analyse cach
   proof -
     define I where
       \<open>I = (\<lambda>(i :: nat, cach'). (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
-    have valid_atm: \<open>atm_of (NU \<propto> cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
+    have valid_atm: \<open>atm_of (NU \<propto> cls_idx ! (idx - 1)) \<in># \<A>\<close>
       if
         \<open>I s\<close> and
         \<open>case s of (i, cach) \<Rightarrow> i < length analyse\<close> and
@@ -1747,7 +1744,5 @@ proof -
   then show ?thesis
     by (intro frefI nres_relI) auto
 qed
-
-end
 
 end

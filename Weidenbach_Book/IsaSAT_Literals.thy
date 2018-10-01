@@ -486,8 +486,10 @@ proof -
 qed
 
 lemma length_trail_uint_max_div2:
+  fixes M :: \<open>(nat, 'b) ann_lits\<close>
   assumes
-    M_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n\<close> and n_d: \<open>no_dup M\<close>
+    M_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n\<close> and
+    n_d: \<open>no_dup M\<close>
   shows \<open>length M \<le> uint_max div 2 + 1\<close>
 proof -
   have dist_atm_M: \<open>distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
@@ -495,9 +497,8 @@ proof -
   have incl: \<open>atm_of `# lit_of `# mset M \<subseteq># remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
     apply (subst distinct_subseteq_iff[THEN iffD1])
     using assms dist_atm_M
-    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def no_dup_distinct
+    by (auto 5 5 simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def no_dup_distinct
         atm_of_eq_atm_of)
-
   have inj_on: \<open>inj_on nat_of_lit (set_mset (remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)))\<close>
     by (auto simp: inj_on_def)
   have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n \<Longrightarrow> atm_of xa \<le> uint_max div 2\<close> for xa
@@ -519,8 +520,6 @@ proof -
   with 2 show ?thesis
     by (auto simp: uint32_max_def)
 qed
-
-end
 
 end
 
