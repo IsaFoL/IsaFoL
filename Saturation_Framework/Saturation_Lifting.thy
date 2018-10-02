@@ -282,11 +282,8 @@ qed
 
 end
 
-
 definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> where
   "Empty_Order C1 C2 \<equiv> False" 
-
-
 
 locale lifting_equivalence_with_empty_order = g: redundancy_criterion_lifting Bot_F_G entails_G I_G Red_I_G Red_F_G Prec_F Bot_F_F I_F \<G>_F \<G>_I + q: redundancy_criterion_lifting Bot_F_G entails_G I_G Red_I_G Red_F_G Empty_Order Bot_F_F I_F \<G>_F \<G>_I
   for
@@ -314,23 +311,29 @@ qed
 context lifting_equivalence_with_empty_order
 begin
 
+text "lemma 16 in Uwe's notes"
 lemma "g.lifted_inference_system.saturated N = q.lifted_inference_system.saturated N" by standard
 
-
+text "lemma 17 in Uwe's notes"
+lemma static_empty_order_equiv_static: "static_refutational_complete_inference_system Bot_F_F q.entails_\<G> I_F q.Red_I_\<G> q.Red_F_\<G> = static_refutational_complete_inference_system Bot_F_F g.entails_\<G> I_F g.Red_I_\<G> g.Red_F_\<G>"
+  unfolding static_refutational_complete_inference_system_def by (rule iffI) (standard,(standard)[],simp)+
+   
+text "theorem 18 in Uwe's notes"
 theorem "static_refutational_complete_inference_system Bot_F_F q.entails_\<G> I_F q.Red_I_\<G> q.Red_F_\<G> = dynamic_refutational_complete_inference_system Bot_F_F g.entails_\<G> I_F g.Red_I_\<G> g.Red_F_\<G> " (is "?static=?dynamic")
 proof
-  show "?static \<Longrightarrow> ?dynamic" unfolding static_refutational_complete_inference_system_def dynamic_refutational_complete_inference_system_def inference_system_def inference_system_axioms_def
-  proof
-
-
-
-
-
-
-thm g.lifted_inference_system.red_concl_to_red_inf
-thm q.lifted_inference_system.red_concl_to_red_inf
-
+  assume ?static
+  then have static_general: "static_refutational_complete_inference_system Bot_F_F g.entails_\<G> I_F g.Red_I_\<G> g.Red_F_\<G>" (is "?static_gen") using static_empty_order_equiv_static by simp
+  interpret static_refutational_complete_inference_system Bot_F_F g.entails_\<G> I_F g.Red_I_\<G> g.Red_F_\<G>
+    using static_general .
+  show "?dynamic" by standard 
+next
+  assume dynamic_gen: ?dynamic
+  interpret dynamic_refutational_complete_inference_system Bot_F_F g.entails_\<G> I_F g.Red_I_\<G> g.Red_F_\<G>
+    using dynamic_gen .
+  have "static_refutational_complete_inference_system Bot_F_F g.entails_\<G> I_F g.Red_I_\<G> g.Red_F_\<G>"
+    by standard
+  then show "?static" using static_empty_order_equiv_static by simp
+qed
 
 end
-
 end
