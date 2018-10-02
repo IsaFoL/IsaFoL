@@ -314,21 +314,28 @@ qed
 context lifting_equivalence_with_empty_order
 begin
 
+text "lemma 16 in Uwe's notes"
 lemma "g.lifted_inference_system.saturated N = q.lifted_inference_system.saturated N" by standard
 
-
-theorem "static_refutational_complete_inference_system Bot_F_F q.entails_\<G> I_F q.Red_I_\<G> q.Red_F_\<G> = dynamic_refutational_complete_inference_system Bot_F_F g.entails_\<G> I_F g.Red_I_\<G> g.Red_F_\<G> " (is "?static=?dynamic")
-proof
-  show "?static \<Longrightarrow> ?dynamic" unfolding static_refutational_complete_inference_system_def dynamic_refutational_complete_inference_system_def inference_system_def inference_system_axioms_def
-  proof
-
-
-
-
-
+text "lemma 17 in Uwe's notes"
+lemma static_equiv_static_empty_order: "static_refutational_complete_inference_system Bot_F_F q.entails_\<G> I_F q.Red_I_\<G> q.Red_F_\<G> = static_refutational_complete_inference_system Bot_F_F g.entails_\<G> I_F g.Red_I_\<G> g.Red_F_\<G>"
+  unfolding static_refutational_complete_inference_system_def by (rule iffI) (standard,(standard)[],simp)+
+   
 
 thm g.lifted_inference_system.red_concl_to_red_inf
 thm q.lifted_inference_system.red_concl_to_red_inf
+
+text "theorem 18 in Uwe's notes"
+theorem "static_refutational_complete_inference_system Bot_F_F q.entails_\<G> I_F q.Red_I_\<G> q.Red_F_\<G> = dynamic_refutational_complete_inference_system Bot_F_F g.entails_\<G> I_F g.Red_I_\<G> g.Red_F_\<G> " (is "?static=?dynamic")
+proof
+  show "?static \<Longrightarrow> ?dynamic"
+    unfolding static_refutational_complete_inference_system_def dynamic_refutational_complete_inference_system_def
+  apply (standard,(standard)[])
+
+
+
+
+
 
 
 end
