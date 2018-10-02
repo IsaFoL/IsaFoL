@@ -4,5 +4,5 @@ session "Saturation_Framework" = "Ordered_Resolution_Prover" +
   theories [document = pdf, quick_and_dirty=true]
     Saturation_Framework
     Saturation_Lifting
-  decument_files
+  document_files
     root.tex

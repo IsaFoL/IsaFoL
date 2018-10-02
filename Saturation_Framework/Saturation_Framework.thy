@@ -104,7 +104,7 @@ lemma Sup_Red_I_unit: "Sup_Red_I_llist (LCons X LNil) = Red_I X"
 definition fair :: "'f formulas llist \<Rightarrow> bool" where
   "fair D \<equiv> Inf (Liminf_llist D) \<subseteq> Sup_Red_I_llist D"
 
-text \<open>TODO: replace in Lazy_List_Liminf\<close>
+text \<open>TODO: replace in \<^theory>\<open>Ordered_Resolution_Prover.Lazy_List_Liminf\<close>.\<close>
 lemma (in-) elem_Sup_llist_imp_Sup_upto_llist': "x \<in> Sup_llist Xs \<Longrightarrow> \<exists>j < llength Xs. x \<in> Sup_upto_llist Xs j"
   unfolding Sup_llist_def Sup_upto_llist_def by blast 
 
@@ -268,8 +268,8 @@ end
 
 text \<open>lemma 6 in Uwe's notes\<close>
 text \<open>The assumption that the derivation is not the empty derivation had to be added to the 
-  hypotheses of dynamic_refutational_complete for the proof of lemma 6 to work. Otherwise, 
-  (lnth D 0) is undefined and the first 'have' can't be proven.\<close>
+  hypotheses of \<^text>\<open>dynamic_refutational_complete\<close> for the proof of lemma 6 to work. Otherwise,
+  \<^term>\<open>lnth D 0\<close> is undefined and the first 'have' can't be proven.\<close>
 sublocale static_refutational_complete_inference_system \<subseteq> dynamic_refutational_complete_inference_system
 proof
   fix B D
