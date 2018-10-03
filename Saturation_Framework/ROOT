@@ -1,3 +1,5 @@
+chapter Saturation_Framework
+
 session "Saturation_Framework" = "Ordered_Resolution_Prover" +
   sessions
     Well_Quasi_Orders
