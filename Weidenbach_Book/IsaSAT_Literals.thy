@@ -523,6 +523,8 @@ qed
 
 end
 
+end
+
 text \<open>
   First we instantiate our types with sort heap and default, to have compatibility with code
   generation. The idea is simplify to create injections into the components of our datatypes.

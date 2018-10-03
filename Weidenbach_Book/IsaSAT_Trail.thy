@@ -445,6 +445,7 @@ lemma counts_maximum_level_None[simp]: \<open>counts_maximum_level M None = Coll
 
 subparagraph \<open>Level of a literal\<close>
 
+  
 definition get_level_atm_pol_pre where
   \<open>get_level_atm_pol_pre = (\<lambda>((M, xs, lvls, k), L). L < length lvls)\<close>
 
@@ -493,6 +494,15 @@ definition get_level_pol where
 definition get_level_pol_pre where
   \<open>get_level_pol_pre = (\<lambda>((M, xs, lvls, k), L). atm_of L < length lvls)\<close>
 
+lemma get_level_pol_pre:
+  assumes
+    \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
+    \<open>(M', M) \<in> trail_pol \<A>\<close>
+  shows \<open>get_level_pol_pre (M', L)\<close>
+  using assms
+  by (auto 5 5 simp: comp_PRE_def trail_pol_def unat_lit_rel_def nat_lit_rel_def
+    uint32_nat_rel_def br_def get_level_pol_pre_def intro!: ext)
+ 
 sepref_definition get_level_code
   is \<open>uncurry (RETURN oo get_level_pol)\<close>
   :: \<open>[get_level_pol_pre]\<^sub>a
@@ -516,6 +526,13 @@ sepref_definition get_level_fast_code
   by sepref
 
 declare get_level_fast_code.refine[sepref_fr_rules]
+
+lemma get_level_get_level_pol:
+  assumes
+    \<open>(M', M) \<in> trail_pol \<A>\<close> and \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
+  shows \<open>get_level M L = get_level_pol M' L\<close>
+  using assms
+  by (auto simp: get_level_pol_def get_level_atm_pol_def trail_pol_def)
 
 
 subparagraph \<open>Current level\<close>
@@ -1365,9 +1382,6 @@ abbreviation (in -) trail_pol_fast_assn' :: \<open>trail_pol \<Rightarrow> trail
       arl_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
       array_assn uint32_nat_assn *a
       array_assn uint64_nat_assn *a uint32_nat_assn *a arl_assn uint32_nat_assn\<close>
-
-abbreviation (in isasat_input_ops) trail_no_CS_fast_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> trail_pol_fast_assn \<Rightarrow> assn\<close> where
-  \<open>trail_no_CS_fast_assn \<equiv> hr_comp trail_pol_fast_assn' trail_pol_no_CS\<close>
 
 lemma tl_trail_tr_no_CS:
   \<open>((RETURN o tl_trailt_tr_no_CS), (RETURN o tl)) \<in>
