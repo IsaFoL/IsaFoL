@@ -5,8 +5,7 @@ session "Saturation_Framework" = "Ordered_Resolution_Prover" +
     Well_Quasi_Orders
   theories [document = false]
     "../lib/Explorer"
-  theories [document = pdf, quick_and_dirty=true]
-    Saturation_Framework
-    Saturation_Lifting
+  theories [document = pdf, quick_and_dirty = true]
+    Saturation_Framework_Preliminaries
   document_files
     root.tex

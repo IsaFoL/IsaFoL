@@ -60,9 +60,11 @@ locale calculus = consequence_relation +
     Red_Inf_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_Inf N \<subseteq> Red_Inf N'" and
     Red_F_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')" and
     Red_Inf_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_Inf N \<subseteq> Red_Inf (N - N')" and
-    Red_Inf_of_Inf_to_N: "\<iota> \<in> Inf \<and> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf N" and
-    same_with_other_syntax: "{\<iota> \<in> Inf. (concl_of \<iota> \<in> N)} \<subseteq> Red_Inf N"
+    Red_Inf_of_Inf_to_N: "\<iota> \<in> Inf \<and> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf N"
 begin
+
+lemma Red_Inf_of_Inf_to_N_subset: "{\<iota> \<in> Inf. (concl_of \<iota> \<in> N)} \<subseteq> Red_Inf N"
+  using Red_Inf_of_Inf_to_N by blast 
 
 definition Inf_from :: "'f set  \<Rightarrow> 'f inference set" where
   "Inf_from N = {\<iota> \<in> Inf. set (prems_of \<iota>) \<subseteq> N}"
@@ -149,7 +151,7 @@ proof
   then show "C \<in> Red_F (Sup_llist D)" using equiv_Sup_Liminf[of C] C_in_subset by fast
 qed
 
-text \<open>lemma 3 in Uwe's notes part 1/2\<close>
+text \<open>lemma 3 in Uwe's notes part 1/2\<close>
 lemma Red_Inf_subset_Liminf: 
   assumes deriv: \<open>chain (\<turnstile>) D\<close> and
     i: \<open>enat i < llength D\<close>
