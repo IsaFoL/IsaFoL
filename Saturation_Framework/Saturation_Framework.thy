@@ -6,7 +6,7 @@
 section \<open>Saturation Framework\<close>
 
 theory Saturation_Framework
-  imports Ordered_Resolution_Prover.Herbrand_Interpretation
+  imports 
     Ordered_Resolution_Prover.Lazy_List_Liminf
     Ordered_Resolution_Prover.Lazy_List_Chain
     (* abbrevs ">t" = ">\<^sub>t" and "\<ge>t" = "\<ge>\<^sub>t" *)
@@ -22,8 +22,6 @@ text \<open>
 Inferences have one distinguished main premise, any number of side premises, and a conclusion.
 \<close>
 
-no_notation Herbrand_Interpretation.true_cls (infix "\<Turnstile>" 50)
-
 locale consequence_relation =
   fixes
     Bot :: "'f set" and
@@ -32,11 +30,11 @@ locale consequence_relation =
     bot_implies_all: "\<forall>B \<in> Bot. {B} \<Turnstile> N1" and
     subset_entailed: "N2 \<subseteq> N1 \<Longrightarrow> N1 \<Turnstile> N2" and
     all_formulas_entailed: "(\<forall>C \<in> N2. N1 \<Turnstile> {C}) \<Longrightarrow> N1 \<Turnstile> N2" and
-    transitive_entails: "(N1 \<Turnstile> N2 \<and> N2 \<Turnstile> N3) \<Longrightarrow> N1 \<Turnstile> N3"
+    entails_trans: "(N1 \<Turnstile> N2 \<and> N2 \<Turnstile> N3) \<Longrightarrow> N1 \<Turnstile> N3"
 begin
 
 lemma entail_set_all_formulas: "N1 \<Turnstile> N2 \<longleftrightarrow> (\<forall>C \<in> N2. N1 \<Turnstile> {C})"
-  by (meson all_formulas_entailed empty_subsetI insert_subset subset_entailed transitive_entails)
+  by (meson all_formulas_entailed empty_subsetI insert_subset subset_entailed entails_trans)
 
 lemma entail_union: "N \<Turnstile> N1 \<and> N \<Turnstile> N2 \<longleftrightarrow> N \<Turnstile> N1 \<union> N2"
   apply (subst entail_set_all_formulas)
@@ -48,9 +46,6 @@ end
 
 datatype 'f inference =
   Infer (prems_of: "'f list") (concl_of: "'f ")
-
-abbreviation concls_of :: "'f inference set \<Rightarrow> 'f set" where
-  "concls_of \<iota> \<equiv> concl_of ` \<iota>"
 
 locale inference_system = consequence_relation +
   fixes 
@@ -279,13 +274,13 @@ proof
     have subs: \<open>(lnth D 0) \<subseteq> Sup_llist D\<close>
       using lhd_subset_Sup_llist[of D] non_empty by (simp add: lhd_conv_lnth)
     have \<open>Sup_llist D \<Turnstile> {B}\<close> 
-      using unsat subset_entailed[OF subs] transitive_entails[of "Sup_llist D" "lnth D 0"] by auto
+      using unsat subset_entailed[OF subs] entails_trans[of "Sup_llist D" "lnth D 0"] by auto
     then have Sup_no_Red: \<open>Sup_llist D - Red_F (Sup_llist D) \<Turnstile> {B}\<close>
       using bot_elem Red_F_Bot by auto
     have Sup_no_Red_in_Liminf: \<open>Sup_llist D - Red_F (Sup_llist D) \<subseteq> Liminf_llist D\<close>
       using deriv Red_in_Sup by auto
     have Liminf_entails_Bot: \<open>Liminf_llist D \<Turnstile> {B}\<close>
-      using Sup_no_Red subset_entailed[OF Sup_no_Red_in_Liminf] transitive_entails by blast
+      using Sup_no_Red subset_entailed[OF Sup_no_Red_in_Liminf] entails_trans by blast
     have \<open>saturated (Liminf_llist D)\<close> 
       using deriv fair fair_implies_Liminf_saturated unfolding saturated_def by auto
 

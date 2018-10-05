@@ -1,5 +1,7 @@
 theory Saturation_Lifting
-  imports Saturation_Framework "../lib/Explorer" Well_Quasi_Orders.Minimal_Elements
+  imports
+    Saturation_Framework
+    Well_Quasi_Orders.Minimal_Elements
 begin
 
 locale redundancy_criterion_lifting = inference_system Bot_G entails_G I_G Red_I_G Red_F_G
@@ -40,7 +42,7 @@ proof -
   then obtain B where B_in: \<open>B \<in> sB\<close> by auto
   then have r_trans: \<open>{B} \<Turnstile>G N\<close> using bot_implies_all in_bot by auto
   have l_trans: \<open>sB \<Turnstile>G {B}\<close> using B_in subset_entailed by auto
-  then show ?thesis using r_trans transitive_entails[of sB "{B}"] by auto
+  then show ?thesis using r_trans entails_trans[of sB "{B}"] by auto
 qed
 
 text \<open>lemma 7 in Uwe's notes\<close>
@@ -72,7 +74,7 @@ next
   fix N1 N2 N3
   assume
     trans: \<open>N1 \<Turnstile>\<G> N2 \<and> N2 \<Turnstile>\<G> N3\<close>
-  show \<open>N1 \<Turnstile>\<G> N3\<close> using trans entails_\<G>_def transitive_entails by blast
+  show \<open>N1 \<Turnstile>\<G> N3\<close> using trans entails_\<G>_def entails_trans by blast
 qed
 
 definition Red_I_\<G> :: "'f set \<Rightarrow> 'f inference set" where
@@ -180,7 +182,7 @@ proof -
       by (smt cSup_singleton entail_set_all_formulas image_insert image_is_empty subsetCE)
   have from_f: \<open>\<G>_set (N - Red_F_\<G> N) \<Turnstile>G \<G>_set N - Red_F_G (\<G>_set N)\<close>
     using subset_entailed[OF not_red_map_in_map_not_red] by blast
-  then have \<open>\<G>_set (N - Red_F_\<G> N) \<Turnstile>G \<G>_F B\<close> using to_bot transitive_entails by blast
+  then have \<open>\<G>_set (N - Red_F_\<G> N) \<Turnstile>G \<G>_F B\<close> using to_bot entails_trans by blast
   then show \<open>N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close> using Bot_map unfolding entails_\<G>_def by simp
 qed
 
