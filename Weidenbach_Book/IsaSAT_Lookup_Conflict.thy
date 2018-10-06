@@ -1621,6 +1621,8 @@ where
             let C = NU \<propto> fst (last analyse);
             ASSERT(length C > 0); \<comment> \<open> >= 2 would work too \<close>
             let i = snd (last analyse);
+            ASSERT (C ! 0 \<in> lits_of_l M);
+            ASSERT(C!0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
             if i \<ge> length C
             then
                RETURN(cach (atm_of (C ! 0) := SEEN_REMOVABLE), butlast analyse, True)
@@ -1689,7 +1691,8 @@ proof -
     using M_D n_d
     by (auto simp: atm_in_conflict_def true_annots_true_cls_def_iff_negation_in_model
         atms_of_def atm_of_eq_atm_of dest!: multi_member_split no_dup_consistentD)
-  have [simp, intro!]: \<open>- x1e \<in> lits_of_l M \<Longrightarrow> atm_of x1e \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
+  have [simp, intro]: \<open>- x1e \<in> lits_of_l M \<Longrightarrow> atm_of x1e \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
+     \<open>x1e \<in> lits_of_l M \<Longrightarrow> x1e \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
      \<open>- x1e \<in> lits_of_l M \<Longrightarrow> x1e \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close> for x1e
     using lits atm_of_notin_atms_of_iff literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l apply blast
     using M uminus_\<A>\<^sub>i\<^sub>n_iff by auto
@@ -1715,6 +1718,10 @@ proof -
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
           elim!: neq_Nil_revE)
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE)
+    subgoal by auto
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c
+      unfolding lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
+      by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE[of x1a])
     subgoal by auto
     subgoal by auto
     subgoal by (auto intro!:)
@@ -1766,21 +1773,17 @@ proof -
     using M uminus_\<A>\<^sub>i\<^sub>n_iff by auto
   have [refine]: \<open>(x, x') \<in> Id \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle>option_rel\<close> for x x'
     by auto
-  have [refine_vcg]: \<open>get_propagation_reason_pol M' x
+  have [refine_vcg]: \<open>get_propagation_reason M x
     \<le> \<Down> (\<langle>nat_rel\<rangle>option_rel) (get_propagation_reason M y)\<close> if \<open>x = y\<close> and \<open>y \<in> lits_of_l M\<close> for x y
-    by (rule get_propagation_reason_pol[THEN fref_to_Down_curry])
-      (use M'M that in auto)
+    by (use that in auto)
   show ?thesis
-    supply get_level_get_level_pol[OF M'M, simp]
     unfolding literal_redundant_wl_lookup_def literal_redundant_wl_def
     apply (refine_vcg lit_redundant_rec_wl_lookup_lit_redundant_rec_wl)
-    subgoal by (auto intro!: get_level_pol_pre M'M)
-    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal for x x' xa x'a
-      apply (subgoal_tac \<open>lit_redundant_rec_wl_lookup M' NU D cach [(xa, 1)] lbd
+      apply (subgoal_tac \<open>lit_redundant_rec_wl_lookup \<A> M NU D cach [(xa, 1)] lbd
     \<le> \<Down> Id (lit_redundant_rec_wl M NU D cach [(xa, 1)] lbd)\<close>)
       subgoal by simp
       subgoal using assms
@@ -1822,9 +1825,6 @@ where
          (nxs, one_uint32_nat, s, outl);
      RETURN (D, s, outl)
   })\<close>
-
-lemma conc_fun_mono: \<open>A \<le> B \<Longrightarrow> \<Down> R A \<le> \<Down> R B\<close>
-  using ref_two_step by auto
 
 lemma entails_uminus_filter_to_poslev_can_remove:
   assumes NU_uL_E: \<open>NU \<Turnstile>p add_mset (- L) (filter_to_poslev M' L E)\<close> and
@@ -2056,7 +2056,7 @@ proof -
       apply (rule order.trans)
        apply (rule 2)
       apply (rule order.trans)
-       apply (rule conc_fun_mono[OF 3])
+       apply (rule ref_two_step'[OF 3])
       unfolding literal_redundant_spec_def is_literal_redundant_spec_def
           conc_fun_SPEC NU'_NUE[symmetric]
       apply (rule SPEC_rule)
@@ -2359,10 +2359,10 @@ definition isa_mark_failed_lits_stack where
       (\<lambda>(i, cach). do {
         ASSERT(i < length analyse);
         let (cls_idx, idx) = analyse ! i;
-	ASSERT(cls_idx + idx \<ge> 1);
+        ASSERT(cls_idx + idx \<ge> 1);
         ASSERT(cls_idx + idx - 1 < length NU);
-	ASSERT(arena_lit_pre NU (cls_idx + idx - 1));
-	cach \<leftarrow> conflict_min_cach_set_failed_l cach (atm_of (arena_lit NU (cls_idx + idx - 1)));
+	      ASSERT(arena_lit_pre NU (cls_idx + idx - 1));
+	      cach \<leftarrow> conflict_min_cach_set_failed_l cach (atm_of (arena_lit NU (cls_idx + idx - 1)));
         RETURN (i+1, cach)
       })
       (0, cach);
@@ -2592,16 +2592,16 @@ where
             ASSERT(arena_lit_pre NU (fst (last analyse)));
             if i \<ge> nat_of_uint64_conv (arena_length NU (fst (last analyse)))
             then do {
-	      cach \<leftarrow> conflict_min_cach_set_removable_l cach (atm_of (arena_lit NU (fst (last analyse))));
+	            cach \<leftarrow> conflict_min_cach_set_removable_l cach (atm_of (arena_lit NU (fst (last analyse))));
               RETURN(cach, butlast analyse, True)
-	    }
+	          }
             else do {
                ASSERT (isa_get_literal_and_remove_of_analyse_wl_pre NU analyse);
                let (L, analyse) = isa_get_literal_and_remove_of_analyse_wl NU analyse;
                ASSERT(get_level_pol_pre (M, L));
                let b = \<not>level_in_lbd (get_level_pol M L) lbd;
                ASSERT(atm_in_conflict_lookup_pre (atm_of L) D);
-	       ASSERT(atm_of L < length (fst cach));
+	             ASSERT(atm_of L < length (fst cach));
                if (get_level_pol M L = zero_uint32_nat \<or>
                    conflict_min_cach_l cach (atm_of L) = SEEN_REMOVABLE \<or>
                    atm_in_conflict_lookup (atm_of L) D)
@@ -2641,16 +2641,16 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
           ASSERT(arena_lit_pre NU (fst (last analyse)));
           if i \<ge> nat_of_uint64_conv (arena_length NU (fst (last analyse)))
           then do {
-	    cach \<leftarrow> conflict_min_cach_set_removable_l cach (atm_of (arena_lit NU (fst (last analyse))));
+	          cach \<leftarrow> conflict_min_cach_set_removable_l cach (atm_of (arena_lit NU (fst (last analyse))));
             RETURN(cach, butlast analyse, True)
-	  }
+          }
           else do {
               ASSERT (isa_get_literal_and_remove_of_analyse_wl_pre NU analyse);
               let (L, analyse) = isa_get_literal_and_remove_of_analyse_wl NU analyse;
               ASSERT(get_level_pol_pre (M, L));
               let b = \<not>level_in_lbd (get_level_pol M L) lbd;
               ASSERT(atm_in_conflict_lookup_pre (atm_of L) D);
-	      ASSERT(atm_of L < length (fst cach));
+	             ASSERT(atm_of L < length (fst cach));
               if (get_level_pol M L = zero_uint32_nat \<or>
                   conflict_min_cach_l cach (atm_of L) = SEEN_REMOVABLE \<or>
                   atm_in_conflict_lookup (atm_of L) D)
@@ -2675,9 +2675,9 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
   unfolding isa_lit_redundant_rec_wl_lookup_def by (auto simp: Let_def)
 
 lemma isa_lit_redundant_rec_wl_lookup_lit_redundant_rec_wl_lookup:
-  \<open>(uncurry5 isa_lit_redundant_rec_wl_lookup, uncurry5 lit_redundant_rec_wl_lookup) \<in>
+  \<open>(uncurry5 isa_lit_redundant_rec_wl_lookup, uncurry5 (lit_redundant_rec_wl_lookup \<A>)) \<in>
     [\<lambda>(((((_, N), _), _), _), _). True]\<^sub>f
-     Id \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f lookup_clause_rel \<A> \<times>\<^sub>f
+     trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f lookup_clause_rel \<A> \<times>\<^sub>f
      cach_refinement \<A>  \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>
       \<langle>cach_refinement \<A> \<times>\<^sub>r Id \<times>\<^sub>r bool_rel\<rangle>nres_rel\<close>
 proof -
@@ -2697,8 +2697,10 @@ proof -
     using that by auto
   note [simp]=get_literal_and_remove_of_analyse_wl_def isa_get_literal_and_remove_of_analyse_wl_def
     arena_lifting and [split] = prod.splits
+ find_theorems "\<Down> _ (RETURN _) = _"    thm  RETURN_as_SPEC_refine
   show ?thesis
     supply [[goals_limit=3]]
+    supply RETURN_as_SPEC_refine[refine2 add]
     unfolding isa_lit_redundant_rec_wl_lookup_alt_def lit_redundant_rec_wl_lookup_def uncurry_def
     apply (intro frefI nres_relI)
     apply (refine_rcg
@@ -2721,22 +2723,29 @@ proof -
       apply (rule_tac x = \<open>fst (last x1k)\<close> in exI; solves auto)+
       done
     subgoal by (auto simp: arena_lifting arena_is_valid_clause_idx_def nat_of_uint64_conv_def)
-    subgoal by (auto simp: arena_lifting arena_is_valid_clause_idx_def)
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
+       x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m   
+      by (auto simp: arena_lifting arena_is_valid_clause_idx_def bind_rule_complete_RES conc_fun_RETURN
+           in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
+          intro!:  conflict_min_cach_set_removable[of \<A>,THEN fref_to_Down_curry, THEN order_trans])
+
+   subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m
       apply (auto simp: arena_is_valid_clause_idx_def
         isa_get_literal_and_remove_of_analyse_wl_pre_def arena_lit_pre_def
         arena_is_valid_clause_idx_and_access_def)
       apply (rule_tac x = x1n in exI; solves auto)+
       done
+    subgoal by (auto intro!: get_level_pol_pre) 
+    subgoal
+    find_theorems atm_in_conflict_lookup_pre 
+      unfolding atm_in_conflict_lookup_pre_def lookup_clause_rel_def
+      apply auto
+      oops
     subgoal
       by (auto simp: isa_get_literal_and_remove_of_analyse_wl_def arena_lifting
         arena_is_valid_clause_idx_def
         get_literal_and_remove_of_analyse_wl_def split: prod.splits)
-    subgoal
-      unfolding atm_in_conflict_lookup_pre_def lookup_clause_rel_def
-      apply auto
-      oops
     subgoal by (auto simp: atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id]
        split: prod.splits)
     subgoal by (auto simp: split: prod.splits)
