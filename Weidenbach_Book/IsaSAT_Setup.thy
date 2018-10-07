@@ -24,8 +24,8 @@ text \<open>We here define the last step of our refinement: the step with all th
   \<^enum> to keep the indices of all clauses. This mostly simplifies the code if we add inprocessing:
     We can be sure to never have to switch mode in the middle of an operation (which would nearly
     impossible to do).
-
 \<close>
+
 subsubsection \<open>Types and Refinement Relations\<close>
 
 paragraph \<open>Statistics\<close>
@@ -229,10 +229,11 @@ abbreviation vmtf_conc where
   \<open>vmtf_conc \<equiv> (array_assn vmtf_node_assn *a uint64_nat_assn *a uint32_nat_assn *a uint32_nat_assn
     *a option_assn uint32_nat_assn)\<close>
 
-abbreviation (in isasat_input_ops) vmtf_remove_conc
+abbreviation vmtf_remove_conc
   :: \<open>vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
 where
   \<open>vmtf_remove_conc \<equiv> vmtf_conc *a distinct_atoms_assn\<close>
+
 
 paragraph \<open>Options\<close>
 
@@ -287,15 +288,15 @@ type_synonym twl_st_wll_trail_fast =
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 (* TODO rename to isasat *)
 type_synonym twl_st_wl_heur =
-  \<open>(nat,nat)ann_lits \<times> arena \<times>
+  \<open>trail_pol \<times> arena \<times>
     conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times>
-    nat \<times> nat conflict_min_cach \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
+    nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
     vdom \<times> vdom \<times> nat \<times> opts\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
   \<open>get_clauses_wl_heur (M, N, D, _) = N\<close>
 
-fun get_trail_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (nat,nat) ann_lits\<close> where
+fun get_trail_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> trail_pol\<close> where
   \<open>get_trail_wl_heur (M, N, D, _) = M\<close>
 
 fun get_conflict_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> conflict_option_rel\<close> where
@@ -304,7 +305,7 @@ fun get_conflict_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> conflict_option_
 fun watched_by_int :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat watched\<close> where
   \<open>watched_by_int (M, N, D, Q, W, _) L = W ! nat_of_lit L\<close>
 
-fun (in -) get_watched_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (nat watcher) list list\<close> where
+fun get_watched_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (nat watcher) list list\<close> where
   \<open>get_watched_wl_heur (_, _, _, _, W, _) = W\<close>
 
 fun literals_to_update_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
@@ -336,7 +337,7 @@ fun get_phase_saver_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool list\<close
 fun get_count_max_lvls_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>get_count_max_lvls_heur (_, _, _, _, _, _, _, clvls, _) = clvls\<close>
 
-fun get_conflict_cach:: \<open>twl_st_wl_heur \<Rightarrow> nat conflict_min_cach\<close> where
+fun get_conflict_cach:: \<open>twl_st_wl_heur \<Rightarrow> conflict_min_cach_l\<close> where
   \<open>get_conflict_cach (_, _, _, _, _, _, _, _, cach, _) = cach\<close>
 
 fun get_lbd :: \<open>twl_st_wl_heur \<Rightarrow> lbd\<close> where
@@ -531,96 +532,83 @@ lemma convert_wlists_to_nat_conv_hnr[sepref_fr_rules]:
   by simp
 
 
-context isasat_input_ops
-begin
-
 text \<open>The virtual domain is composed of the addressable (and accessible) elements, i.e.,
   the domain and all the deleted clauses that are still present in the watch lists.
 \<close>
-definition vdom_m :: \<open>(nat literal \<Rightarrow> (nat \<times> _) list) \<Rightarrow> (nat, 'b) fmap \<Rightarrow> nat set\<close> where
-  \<open>vdom_m W N = \<Union>(((`) fst) ` set ` W ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l) \<union> set_mset (dom_m N)\<close>
+definition vdom_m :: \<open>nat multiset \<Rightarrow> (nat literal \<Rightarrow> (nat \<times> _) list) \<Rightarrow> (nat, 'b) fmap \<Rightarrow> nat set\<close> where
+  \<open>vdom_m \<A> W N = \<Union>(((`) fst) ` set ` W ` set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)) \<union> set_mset (dom_m N)\<close>
 
 lemma vdom_m_simps[simp]:
-  \<open>bh \<in># dom_m N \<Longrightarrow> vdom_m W (N(bh \<hookrightarrow> C)) = vdom_m W N\<close>
-  \<open>bh \<notin># dom_m N \<Longrightarrow> vdom_m W (N(bh \<hookrightarrow> C)) = insert bh (vdom_m W N)\<close>
+  \<open>bh \<in># dom_m N \<Longrightarrow> vdom_m \<A> W (N(bh \<hookrightarrow> C)) = vdom_m \<A> W N\<close>
+  \<open>bh \<notin># dom_m N \<Longrightarrow> vdom_m \<A> W (N(bh \<hookrightarrow> C)) = insert bh (vdom_m \<A> W N)\<close>
   by (force simp: vdom_m_def split: if_splits)+
 
 lemma vdom_m_simps2[simp]:
-  \<open>i \<in># dom_m N \<Longrightarrow> vdom_m (W(L := W L @ [(i, C)])) N = vdom_m W N\<close>
-  \<open>bi \<in># dom_m ax \<Longrightarrow> vdom_m (bp(L:= bp L @ [(bi, av')])) ax = vdom_m bp ax\<close>
+  \<open>i \<in># dom_m N \<Longrightarrow> vdom_m \<A> (W(L := W L @ [(i, C)])) N = vdom_m \<A> W N\<close>
+  \<open>bi \<in># dom_m ax \<Longrightarrow> vdom_m \<A> (bp(L:= bp L @ [(bi, av')])) ax = vdom_m \<A> bp ax\<close>
   by (force simp: vdom_m_def split: if_splits)+
 
 lemma vdom_m_simps3[simp]:
-  \<open>fst biav' \<in># dom_m ax \<Longrightarrow> vdom_m (bp(L:= bp L @ [biav'])) ax = vdom_m bp ax\<close>
+  \<open>fst biav' \<in># dom_m ax \<Longrightarrow> vdom_m \<A> (bp(L:= bp L @ [biav'])) ax = vdom_m \<A> bp ax\<close>
   by (cases biav'; auto simp: dest: multi_member_split[of L] split: if_splits)
 
 text \<open>What is the difference with the next lemma?\<close>
-lemma (in isasat_input_ops) [simp]:
-  \<open>bf \<in># dom_m ax \<Longrightarrow>
-       vdom_m bj (ax(bf \<hookrightarrow> C')) = vdom_m bj (ax)\<close>
+lemma [simp]:
+  \<open>bf \<in># dom_m ax \<Longrightarrow> vdom_m \<A> bj (ax(bf \<hookrightarrow> C')) = vdom_m \<A> bj (ax)\<close>
   by (force simp: vdom_m_def split: if_splits)+
 
-lemma (in isasat_input_ops) vdom_m_simps4[simp]:
+lemma vdom_m_simps4[simp]:
   \<open>i \<in># dom_m N \<Longrightarrow>
-     vdom_m (W (L1 := W L1 @ [(i, C1)], L2 := W L2 @ [(i, C2)])) N = vdom_m W N\<close>
+     vdom_m \<A> (W (L1 := W L1 @ [(i, C1)], L2 := W L2 @ [(i, C2)])) N = vdom_m \<A> W N\<close>
  by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
 
 text \<open>This is @{thm vdom_m_simps4} if the assumption of distinctness is not present in the context.\<close>
-lemma (in isasat_input_ops) vdom_m_simps4'[simp]:
+lemma vdom_m_simps4'[simp]:
   \<open>i \<in># dom_m N \<Longrightarrow>
-     vdom_m (W (L1 := W L1 @ [(i, C1), (i, C2)])) N = vdom_m W N\<close>
+     vdom_m \<A> (W (L1 := W L1 @ [(i, C1), (i, C2)])) N = vdom_m \<A> W N\<close>
   by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
 
 text \<open>We add a spurious dependency to the parameter of the locale:\<close>
-definition (in isasat_input_ops) empty_watched :: \<open>nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list\<close> where
-  \<open>empty_watched = (let _ = \<A>\<^sub>i\<^sub>n in (\<lambda>_. []))\<close>
+definition empty_watched :: \<open>nat multiset \<Rightarrow> nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list\<close> where
+  \<open>empty_watched  \<A> = (\<lambda>_. [])\<close>
 
-lemma (in isasat_input_ops) empty_watched_alt_def:
-  \<open>empty_watched = (\<lambda>_. [])\<close>
-  unfolding empty_watched_def Let_def ..
-
-lemma (in isasat_input_ops) vdom_m_empty_watched[simp]:
-  \<open>vdom_m empty_watched N = set_mset (dom_m N)\<close>
+lemma vdom_m_empty_watched[simp]:
+  \<open>vdom_m \<A> (empty_watched \<A>') N = set_mset (dom_m N)\<close>
   by (auto simp: vdom_m_def empty_watched_def)
 
 text \<open>The following rule makes the previous not applicable. Therefore, we do not mark this lemma as
 simp.\<close>
-lemma (in isasat_input_ops) vdom_m_simps5:
-  \<open>i \<notin># dom_m N \<Longrightarrow> vdom_m W (fmupd i C N) = insert i (vdom_m W N)\<close>
+lemma vdom_m_simps5:
+  \<open>i \<notin># dom_m N \<Longrightarrow> vdom_m \<A> W (fmupd i C N) = insert i (vdom_m \<A> W N)\<close>
   by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
 
 lemma in_watch_list_in_vdom:
-  assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and \<open>w < length (watched_by S L)\<close>
-  shows \<open>fst (watched_by S L ! w) \<in> vdom_m (get_watched_wl S) (get_clauses_wl S)\<close>
+  assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and \<open>w < length (watched_by S L)\<close>
+  shows \<open>fst (watched_by S L ! w) \<in> vdom_m \<A> (get_watched_wl S) (get_clauses_wl S)\<close>
   using assms
   unfolding vdom_m_def
   by (cases S) (auto dest: multi_member_split)
 
 lemma in_watch_list_in_vdom':
-  assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and \<open>A \<in> set (watched_by S L)\<close>
-  shows \<open>fst A \<in> vdom_m (get_watched_wl S) (get_clauses_wl S)\<close>
+  assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and \<open>A \<in> set (watched_by S L)\<close>
+  shows \<open>fst A \<in> vdom_m \<A> (get_watched_wl S) (get_clauses_wl S)\<close>
   using assms
   unfolding vdom_m_def
   by (cases S) (auto dest: multi_member_split)
 
 lemma in_dom_in_vdom[simp]:
-  \<open>x \<in># dom_m N \<Longrightarrow> x \<in> vdom_m W N\<close>
+  \<open>x \<in># dom_m N \<Longrightarrow> x \<in> vdom_m \<A> W N\<close>
   unfolding vdom_m_def
   by (auto dest: multi_member_split)
 
-lemma (in isasat_input_ops) in_vdom_m_fmdropD:
-  \<open>x \<in> vdom_m ga (fmdrop C baa) \<Longrightarrow> x \<in> (vdom_m ga baa)\<close>
+lemma in_vdom_m_fmdropD:
+  \<open>x \<in> vdom_m \<A> ga (fmdrop C baa) \<Longrightarrow> x \<in> (vdom_m \<A> ga baa)\<close>
   unfolding vdom_m_def
   by (auto dest: in_diffD)
 
-
-text \<open>TODO: check if used (and suspicious). \<close>
-definition vdom_m_heur :: \<open>((nat \<times> _) list list) \<Rightarrow> (nat, 'b) fmap \<Rightarrow> nat set\<close> where
-  \<open>vdom_m_heur W N = \<Union>(((`) fst) ` set ` (!) W ` nat_of_lit ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l) \<union> set_mset (dom_m N)\<close>
-
 definition cach_refinement_empty where
-  \<open>cach_refinement_empty cach \<longleftrightarrow>
-     (\<forall>L\<in>#\<A>\<^sub>i\<^sub>n. cach L = SEEN_UNKNOWN)\<close>
+  \<open>cach_refinement_empty \<A> cach \<longleftrightarrow>
+       (cach, \<lambda>_. SEEN_UNKNOWN) \<in> cach_refinement \<A>\<close>
 
 text \<open>\<^term>\<open>vdom\<close> is an upper bound on all the address of the clauses that are used in the
 state. \<^term>\<open>avdom\<close> includes the active clauses.
@@ -630,33 +618,33 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, avdom, lcount, opts),
      (M, N, D, NE, UE, Q, W)).
-    M = M' \<and>
+    (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
     valid_arena N' N (set vdom) \<and>
-    (D', D) \<in> option_lookup_clause_rel \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE)) \<and>
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-    vm \<in> vmtf M \<and>
-    phase_saving \<phi> \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE))) \<and>
+    vm \<in> vmtf (all_atms N (NE + UE)) M \<and>
+    phase_saving (all_atms N (NE + UE)) \<phi> \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
-    cach_refinement_empty cach \<and>
+    cach_refinement_empty (all_atms N (NE + UE)) cach \<and>
     out_learned M D outl \<and>
     lcount = size (learned_clss_lf N) \<and>
-    vdom_m W N \<subseteq> set vdom \<and>
+    vdom_m (all_atms N (NE + UE))  W N \<subseteq> set vdom \<and>
     set avdom \<subseteq> set vdom
   }\<close>
 
 lemma twl_st_heur_state_simp:
   assumes \<open>(S, S') \<in> twl_st_heur\<close>
   shows
-     \<open>get_trail_wl_heur S = get_trail_wl S'\<close> and
-     twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> watched_by_int S C = watched_by S' C\<close> and
+     \<open>(get_trail_wl_heur S, get_trail_wl S') \<in> trail_pol (all_atms_st S')\<close> and
+     twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow> watched_by_int S C = watched_by S' C\<close> and
      \<open>literals_to_update_wl S' =
          uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close>
-  using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
+  using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def all_atms_def)
 
-abbreviation (in isasat_input_ops) twl_st_heur'''
+abbreviation twl_st_heur'''
    :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur''' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur \<and>
@@ -665,24 +653,25 @@ where
 definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur' N = {(S, S'). (S, S') \<in> twl_st_heur \<and> dom_m (get_clauses_wl S') = N}\<close>
 
-definition (in isasat_input_ops) twl_st_heur_conflict_ana
+definition twl_st_heur_conflict_ana
   :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur_conflict_ana =
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom,
        avdom, lcount, opts),
-     (M, N, D, NE, UE, Q, W)).
-    M = M' \<and> valid_arena N' N (set vdom) \<and>
-    (D', D) \<in> option_lookup_clause_rel \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-    vm \<in> vmtf M \<and>
-    phase_saving \<phi> \<and>
+      (M, N, D, NE, UE, Q, W)).
+    (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
+    valid_arena N' N (set vdom) \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE)) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE))) \<and>
+    vm \<in> vmtf (all_atms N (NE + UE)) M \<and>
+    phase_saving (all_atms N (NE + UE)) \<phi> \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
-    cach_refinement_empty cach \<and>
+    cach_refinement_empty (all_atms N (NE + UE)) cach \<and>
     out_learned M D outl \<and>
     lcount = size (learned_clss_lf N) \<and>
-    vdom_m W N \<subseteq> set vdom \<and>
+    vdom_m (all_atms N (NE + UE)) W N \<subseteq> set vdom \<and>
     set avdom \<subseteq> set vdom
   }\<close>
 
@@ -693,42 +682,42 @@ lemma twl_st_heur_twl_st_heur_conflict_ana:
 lemma twl_st_heur_ana_state_simp:
   assumes \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close>
   shows
-    \<open>get_trail_wl_heur S = get_trail_wl S'\<close> and
-    \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> watched_by_int S C = watched_by S' C\<close>
-  using assms unfolding twl_st_heur_conflict_ana_def by (auto simp: map_fun_rel_def)
+    \<open>(get_trail_wl_heur S, get_trail_wl S') \<in> trail_pol (all_atms_st S')\<close> and
+    \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow> watched_by_int S C = watched_by S' C\<close>
+  using assms unfolding twl_st_heur_conflict_ana_def by (auto simp: map_fun_rel_def all_atms_def)
 
 text \<open>This relations decouples the conflict that has been minimised and appears abstractly
 from the refined state, where the conflict has been removed from the data structure to a
 separate array.\<close>
-definition (in isasat_input_ops) twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
+definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_bt =
   {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, _, _, _, vdom, avdom, lcount, opts),
      (M, N, D, NE, UE, Q, W)).
-    M = M' \<and>
+    (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
     valid_arena N' N (set vdom) \<and>
-    (D', None) \<in> option_lookup_clause_rel \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-    vm \<in> vmtf M \<and>
-    phase_saving \<phi> \<and>
+    (D', None) \<in> option_lookup_clause_rel (all_atms N (NE + UE)) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE))) \<and>
+    vm \<in> vmtf (all_atms N (NE + UE)) M \<and>
+    phase_saving (all_atms N (NE + UE)) \<phi> \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M None \<and>
-    cach_refinement_empty cach \<and>
+    cach_refinement_empty (all_atms N (NE + UE)) cach \<and>
     out_learned M None outl \<and>
     lcount = size (learned_clss_l N) \<and>
-    vdom_m W N \<subseteq> set vdom \<and>
+    vdom_m (all_atms N (NE + UE)) W N \<subseteq> set vdom \<and>
     set avdom \<subseteq> set vdom
   }\<close>
 
 
 definition isasat_unbounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>isasat_unbounded_assn =
-  trail_assn *a arena_assn *a
+  trail_pol_assn *a arena_assn *a
   isasat_conflict_assn *a
   uint32_nat_assn *a
   watchlist_assn *a
   vmtf_remove_conc *a phase_saver_conc *a
   uint32_nat_assn *a
-  cach_refinement_assn *a
+  cach_refinement_l_assn *a
   lbd_assn *a
   out_learned_assn *a
   stats_assn *a
@@ -742,13 +731,13 @@ definition isasat_unbounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_w
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn =
-  trail_fast_assn *a arena_assn *a
+  trail_pol_fast_assn *a arena_assn *a
   isasat_conflict_assn *a
   uint32_nat_assn *a
   watchlist_fast_assn *a
   vmtf_remove_conc *a phase_saver_conc *a
   uint32_nat_assn *a
-  cach_refinement_assn *a
+  cach_refinement_l_assn *a
   lbd_assn *a
   out_learned_assn *a
   stats_assn *a
@@ -764,7 +753,7 @@ text \<open>
   The difference between \<^term>\<open>isasat_unbounded_assn\<close> and \<^term>\<open>isasat_bounded_assn\<close> corresponds to the
   following condition:
 \<close>
-definition (in -) isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+definition isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> uint64_max - (uint32_max + 5))\<close>
 
 lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> uint64_max\<close>
@@ -773,24 +762,17 @@ lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get
 definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>isasat_fast_slow =
     (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, lcount).
-      RETURN (trail_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
+      RETURN (trail_pol_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
         clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, lcount))\<close>
 
-sepref_thm isasat_fast_slow_code
+sepref_definition isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_bounded_assn_def isasat_unbounded_assn_def isasat_fast_slow_def
   by sepref
 
-concrete_definition (in -) isasat_fast_slow_code
-  uses isasat_input_ops.isasat_fast_slow_code.refine_raw
-  is \<open>(?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) isasat_fast_slow_code_def
-
-lemmas isasat_fast_slow_code[sepref_fr_rules] =
-   isasat_fast_slow_code.refine
+declare isasat_fast_slow_code.refine[sepref_fr_rules]
 
 definition (in -)isasat_fast_slow_wl_D where
   \<open>isasat_fast_slow_wl_D = id\<close>
@@ -805,13 +787,8 @@ lemma isasat_fast_slow_isasat_fast_slow_wl_D:
   by (intro nres_relI frefI)
     (auto simp: isasat_fast_slow_alt_def isasat_fast_slow_wl_D_def)
 
-end
-
 
 subsubsection \<open>Lift Operations to State\<close>
-
-context isasat_input_bounded
-begin
 
 definition polarity_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> bool option\<close> where
   \<open>polarity_st S = polarity (get_trail_wl S)\<close>
@@ -833,42 +810,28 @@ lemma get_conflict_wl_is_None_heur_alt_def:
   unfolding get_conflict_wl_is_None_heur_def
   by auto
 
-sepref_thm get_conflict_wl_is_None_code
+sepref_definition get_conflict_wl_is_None_code
   is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding get_conflict_wl_is_None_heur_alt_def isasat_unbounded_assn_def length_ll_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
 
-concrete_definition (in -) get_conflict_wl_is_None_code
-   uses isasat_input_bounded.get_conflict_wl_is_None_code.refine_raw
-   is \<open>(?f, _) \<in> _\<close>
+declare get_conflict_wl_is_None_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) get_conflict_wl_is_None_code_def
-
-lemmas get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
-   get_conflict_wl_is_None_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
-sepref_thm get_conflict_wl_is_None_fast_code
+sepref_definition get_conflict_wl_is_None_fast_code
   is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding get_conflict_wl_is_None_heur_alt_def isasat_bounded_assn_def length_ll_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
 
-concrete_definition (in -) get_conflict_wl_is_None_fast_code
-   uses isasat_input_bounded.get_conflict_wl_is_None_fast_code.refine_raw
-   is \<open>(?f, _) \<in> _\<close>
+declare get_conflict_wl_is_None_fast_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) get_conflict_wl_is_None_fast_code_def
-
-lemmas get_conflict_wl_is_None_fast_code_refine[sepref_fr_rules] =
-   get_conflict_wl_is_None_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
-definition (in isasat_input_ops) count_decided_st where
+definition count_decided_st where
   \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
 
-sepref_thm count_decided_st_code
+sepref_definition count_decided_st_code
   is \<open>RETURN o count_decided_st\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=2]]

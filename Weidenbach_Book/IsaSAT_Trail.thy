@@ -405,6 +405,8 @@ sepref_definition trail_pol_slow_of_fast_code
   unfolding trail_pol_slow_of_fast_def
   by sepref
 
+declare trail_pol_slow_of_fast_code.refine[sepref_fr_rules]
+
 definition trail_slow_of_fast :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>trail_slow_of_fast = id\<close>
 
@@ -419,9 +421,11 @@ sepref_definition trail_pol_fast_of_slow_code
   unfolding trail_pol_fast_of_slow_def
   by sepref
 
+declare trail_pol_fast_of_slow_code.refine[sepref_fr_rules]
+
 lemma trail_pol_fast_of_slow_trail_fast_of_slow:
   \<open>(RETURN o trail_pol_fast_of_slow, RETURN o trail_fast_of_slow)
-    \<in> [\<lambda>M. (\<forall>C L. Propagated L C \<in> set M \<longrightarrow> C < uint32_max)]\<^sub>f
+    \<in> [\<lambda>M. (\<forall>C L. Propagated L C \<in> set M \<longrightarrow> C < uint64_max)]\<^sub>f
         trail_pol \<A> \<rightarrow> \<langle>trail_pol \<A>\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
    (auto simp: trail_pol_def trail_pol_fast_of_slow_def array_nat_of_uint64_conv_def
