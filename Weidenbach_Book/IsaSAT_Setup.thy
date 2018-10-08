@@ -570,7 +570,7 @@ lemma vdom_m_simps4'[simp]:
 
 text \<open>We add a spurious dependency to the parameter of the locale:\<close>
 definition empty_watched :: \<open>nat multiset \<Rightarrow> nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list\<close> where
-  \<open>empty_watched  \<A> = (\<lambda>_. [])\<close>
+  \<open>empty_watched \<A> = (\<lambda>_. [])\<close>
 
 lemma vdom_m_empty_watched[simp]:
   \<open>vdom_m \<A> (empty_watched \<A>') N = set_mset (dom_m N)\<close>
@@ -828,45 +828,35 @@ sepref_definition get_conflict_wl_is_None_fast_code
 
 declare get_conflict_wl_is_None_fast_code.refine[sepref_fr_rules]
 
-definition count_decided_st where
+definition count_decided_st :: \<open>nat twl_st_wl \<Rightarrow> nat\<close> where
   \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
 
-sepref_definition count_decided_st_code
-  is \<open>RETURN o count_decided_st\<close>
+definition isa_count_decided_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+  \<open>isa_count_decided_st = (\<lambda>(M, _). count_decided_pol M)\<close>
+
+sepref_definition isa_count_decided_st_code
+  is \<open>RETURN o isa_count_decided_st\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=2]]
-  unfolding count_decided_st_def isasat_unbounded_assn_def
+  unfolding isa_count_decided_st_def isasat_unbounded_assn_def
   by sepref
 
-concrete_definition (in -) count_decided_st_code
-  uses isasat_input_bounded.count_decided_st_code.refine_raw
-  is \<open>(?f,_)\<in>_\<close>
+declare isa_count_decided_st_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) count_decided_st_code_def
-
-lemmas count_decided_st_code_refine[sepref_fr_rules] =
-   count_decided_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
-sepref_thm count_decided_st_fast_code
-  is \<open>RETURN o count_decided_st\<close>
+sepref_definition isa_count_decided_st_fast_code
+  is \<open>RETURN o isa_count_decided_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=2]]
-  unfolding count_decided_st_def isasat_bounded_assn_def
+  unfolding isa_count_decided_st_def isasat_bounded_assn_def
   by sepref
 
-concrete_definition (in -) count_decided_st_fast_code
-  uses isasat_input_bounded.count_decided_st_fast_code.refine_raw
-  is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) count_decided_st_fast_code_def
-
-lemmas count_decided_st_fast_code_refine[sepref_fr_rules] =
-   count_decided_st_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+declare isa_count_decided_st_fast_code.refine[sepref_fr_rules]
 
 lemma count_decided_st_count_decided_st:
-  \<open>(RETURN o count_decided_st, RETURN o count_decided_st) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  \<open>(RETURN o isa_count_decided_st, RETURN o count_decided_st) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-     (auto simp: count_decided_st_def twl_st_heur_def)
+     (auto simp: count_decided_st_def twl_st_heur_def isa_count_decided_st_def
+       count_decided_trail_ref[THEN fref_to_Down_unRET_Id])
 
 lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_trail_wl S)\<close>
   unfolding count_decided_st_def
@@ -876,71 +866,64 @@ lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_t
 definition (in -) is_in_conflict_st :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>is_in_conflict_st L S \<longleftrightarrow> is_in_conflict L (get_conflict_wl S)\<close>
 
-definition (in isasat_input_ops) atm_is_in_conflict_st_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>atm_is_in_conflict_st_heur L = (\<lambda>(M, N, (_, (_, D)), _). D ! (atm_of L) \<noteq> None)\<close>
+definition atm_is_in_conflict_st_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>atm_is_in_conflict_st_heur L = (\<lambda>(M, N, (_, D), _). atm_in_conflict_lookup (atm_of L) D)\<close>
 
 lemma atm_is_in_conflict_st_heur_alt_def:
   \<open>RETURN oo atm_is_in_conflict_st_heur = (\<lambda>L (M, N, (_, (_, D)), _). RETURN (D ! (atm_of L) \<noteq> None))\<close>
-  unfolding atm_is_in_conflict_st_heur_def by (auto intro!: ext)
+  unfolding atm_is_in_conflict_st_heur_def by (auto intro!: ext simp: atm_in_conflict_lookup_def)
 
+(*TODO proof: The idea is to use the preconditions to link is_in_conflict to atm_in_conflict*)
 lemma atm_is_in_conflict_st_heur_is_in_conflict_st:
   \<open>(uncurry (RETURN oo atm_is_in_conflict_st_heur), uncurry (RETURN oo is_in_conflict_st)) \<in>
    [\<lambda>(L, S). -L \<notin># the (get_conflict_wl S) \<and> get_conflict_wl S \<noteq> None \<and>
-     L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f
+     L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)]\<^sub>f
    Id \<times>\<^sub>r twl_st_heur \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+proof -
+  have 1: \<open>aaa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l A \<Longrightarrow> atm_of aaa  \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l A)\<close> for aaa A
+    by (auto simp: atms_of_def)
+  show ?thesis
+  unfolding atm_is_in_conflict_st_heur_def twl_st_heur_def option_lookup_clause_rel_def
   apply (intro frefI nres_relI)
-  by (case_tac x, case_tac y)
-    (auto simp: atm_is_in_conflict_st_heur_def is_in_conflict_st_def twl_st_heur_def
-      atms_of_def atm_of_eq_atm_of option_lookup_clause_rel_def lookup_clause_rel_def
-      mset_as_position_in_iff_nth is_pos_neg_not_is_pos mset_as_position_empty_iff)
+  apply (case_tac x, case_tac y)
+  apply clarsimp
+  apply (subst atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id])
+  unfolding prod.simps prod_rel_iff
+    apply (rule 1; assumption)
+   apply (auto simp: all_atms_def; fail)
+  by (auto simp: is_in_conflict_st_def atm_in_conflict_def atms_of_def atm_of_eq_atm_of)
+qed
 
-
-definition (in isasat_input_ops) polarity_st_heur
-  :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option\<close>
+definition polarity_st_heur
+ :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close>
 where
-  \<open>polarity_st_heur S = polarity (get_trail_wl_heur S)\<close>
+  \<open>polarity_st_heur S = polarity_pol (get_trail_wl_heur S)\<close>
 
-definition (in isasat_input_ops) polarity_st_pre where
-\<open>polarity_st_pre \<equiv> \<lambda>(M, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+definition polarity_st_pre where
+\<open>polarity_st_pre \<equiv> \<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)\<close>
 
 lemma polarity_st_heur_alt_def:
-  \<open>polarity_st_heur = (\<lambda>(M, _). polarity M)\<close>
+  \<open>polarity_st_heur = (\<lambda>(M, _). polarity_pol M)\<close>
   by (auto simp: polarity_st_heur_def)
 
-sepref_thm polarity_st_heur_pol
-  is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
-  :: \<open>[polarity_st_pre]\<^sub>a isasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
+sepref_definition polarity_st_heur_pol
+  is \<open>uncurry polarity_st_heur\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
   unfolding polarity_st_heur_alt_def isasat_unbounded_assn_def polarity_st_pre_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) polarity_st_heur_pol_code
-   uses isasat_input_bounded.polarity_st_heur_pol.refine_raw
-   is \<open>(uncurry ?f, _)\<in>_\<close>
+declare polarity_st_heur_pol.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) polarity_st_heur_pol_code_def
-
-lemmas polarity_st_heur_pol_polarity_st_refine[sepref_fr_rules] =
-  polarity_st_heur_pol_code.refine[OF isasat_input_bounded_axioms]
-
-
-sepref_thm polarity_st_heur_pol_fast
-  is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
-  :: \<open>[polarity_st_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
+sepref_definition polarity_st_heur_pol_fast
+  is \<open>uncurry polarity_st_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
   unfolding polarity_st_heur_alt_def isasat_bounded_assn_def polarity_st_pre_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) polarity_st_heur_pol_fast_code
-   uses isasat_input_bounded.polarity_st_heur_pol_fast.refine_raw
-   is \<open>(uncurry ?f, _)\<in>_\<close>
+declare polarity_st_heur_pol_fast.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) polarity_st_heur_pol_fast_code_def
-
-lemmas polarity_st_heur_pol_fast_polarity_st_refine[sepref_fr_rules] =
-  polarity_st_heur_pol_fast_code.refine[OF isasat_input_bounded_axioms]
-
-end
 
 abbreviation (in -) nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>

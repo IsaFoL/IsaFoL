@@ -34,6 +34,7 @@ fun get_trail :: \<open>'v twl_st \<Rightarrow> ('v, 'v clause) ann_lit list\<cl
 fun clauses_to_update :: \<open>'v twl_st \<Rightarrow> ('v literal \<times> 'v twl_cls) multiset\<close> where
   \<open>clauses_to_update (_, _, _, _, _, _, WS, _) = WS\<close>
 
+
 fun set_clauses_to_update :: \<open>('v literal \<times> 'v twl_cls) multiset \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
   \<open>set_clauses_to_update WS (M, N, U, D, NE, UE, _, Q) = (M, N, U, D, NE, UE, WS, Q)\<close>
 
