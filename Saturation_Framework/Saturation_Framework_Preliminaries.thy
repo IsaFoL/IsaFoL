@@ -78,6 +78,9 @@ proof -
     calculus.Red_Inf_of_subset calculus_axioms sup_bot.right_neutral)
 qed
 
+definition saturated :: "'f set \<Rightarrow> bool" where
+  "saturated N \<equiv> Inf_from N \<subseteq> Red_Inf N"
+
 end
 
 locale static_refutational_complete_calculus = calculus +
