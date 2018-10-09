@@ -414,6 +414,11 @@ definition trail_pol_fast_of_slow :: \<open>trail_pol \<Rightarrow> trail_pol\<c
   \<open>trail_pol_fast_of_slow =
     (\<lambda>(M, val, lvls, reason, k). (M, val, lvls, array_uint64_of_nat_conv reason, k))\<close>
 
+lemma trail_pol_slow_of_fast_alt_def:
+  \<open>trail_pol_slow_of_fast M = M\<close>
+  by (cases M)
+    (auto simp: trail_pol_slow_of_fast_def array_nat_of_uint64_conv_def)
+
 sepref_definition trail_pol_fast_of_slow_code
   is \<open>RETURN o trail_pol_fast_of_slow\<close>
   :: \<open>[\<lambda>(M, val, lvls, reason, k). \<forall>i\<in>set reason. i < uint64_max]\<^sub>a
@@ -562,35 +567,42 @@ lemma count_decided_trail_fast[sepref_fr_rules]:
 
 subparagraph \<open>Polarity\<close>
 
-definition (in -) polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
+definition (in -) polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option\<close> where
   \<open>polarity_pol = (\<lambda>(M, xs, lvls, k) L. do {
-     ASSERT(nat_of_lit L < length xs);
-     RETURN (xs ! (nat_of_lit L))
+     xs ! (nat_of_lit L)
   })\<close>
 
+definition polarity_pol_pre where
+  \<open>polarity_pol_pre = (\<lambda>(M, xs, lvls, k) L. nat_of_lit L < length xs)\<close>
+
 sepref_definition polarity_pol_code
-  is \<open>uncurry polarity_pol\<close>
-  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
-  unfolding polarity_pol_def option.case_eq_if
+  is \<open>uncurry (RETURN oo polarity_pol)\<close>
+  :: \<open>[uncurry polarity_pol_pre]\<^sub>a trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
+  unfolding polarity_pol_def option.case_eq_if polarity_pol_pre_def
   supply [[goals_limit = 1]]
   by sepref
 
 declare polarity_pol_code.refine[sepref_fr_rules]
 
 sepref_definition polarity_pol_fast_code
-  is \<open>uncurry polarity_pol\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
-  unfolding polarity_pol_def option.case_eq_if
+  is \<open>uncurry (RETURN oo polarity_pol)\<close>
+  :: \<open>[uncurry polarity_pol_pre]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
+  unfolding polarity_pol_def option.case_eq_if polarity_pol_pre_def
   supply [[goals_limit = 1]]
   by sepref
 
 declare polarity_pol_fast_code.refine[sepref_fr_rules]
 
 lemma polarity_pol_polarity:
-  \<open>(uncurry polarity_pol, uncurry (RETURN oo polarity)) \<in>
+  \<open>(uncurry (RETURN oo polarity_pol), uncurry (RETURN oo polarity)) \<in>
      [\<lambda>(M, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f trail_pol \<A> \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
    (auto simp: trail_pol_def polarity_def polarity_pol_def
+      dest!: multi_member_split)
+
+lemma polarity_pol_pre:
+  \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> polarity_pol_pre M' L\<close>
+  by (auto simp: trail_pol_def polarity_def polarity_pol_def polarity_pol_pre_def
       dest!: multi_member_split)
 
 

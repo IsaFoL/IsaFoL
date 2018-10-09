@@ -3,7 +3,6 @@ theory IsaSAT_Setup
     Watched_Literals_VMTF IsaSAT_Lookup_Conflict LBD IsaSAT_Watch_List
 begin
 
-
 text \<open>TODO Move and make sure to merge in the right order!\<close>
 no_notation Ref.update ("_ := _" 62)
 
@@ -780,7 +779,8 @@ definition (in -)isasat_fast_slow_wl_D where
 lemma isasat_fast_slow_alt_def:
   \<open>isasat_fast_slow S = RETURN S\<close>
   by (cases S)
-    (auto simp: isasat_fast_slow_def trail_slow_of_fast_def convert_wlists_to_nat_conv_def)
+    (auto simp: isasat_fast_slow_def trail_slow_of_fast_def convert_wlists_to_nat_conv_def
+      trail_pol_slow_of_fast_alt_def)
 
 lemma isasat_fast_slow_isasat_fast_slow_wl_D:
   \<open>(isasat_fast_slow, RETURN o isasat_fast_slow_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
@@ -895,9 +895,10 @@ proof -
 qed
 
 definition polarity_st_heur
- :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close>
+ :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option\<close>
 where
-  \<open>polarity_st_heur S = polarity_pol (get_trail_wl_heur S)\<close>
+  \<open>polarity_st_heur S =
+    polarity_pol (get_trail_wl_heur S)\<close>
 
 definition polarity_st_pre where
 \<open>polarity_st_pre \<equiv> \<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)\<close>
@@ -906,26 +907,36 @@ lemma polarity_st_heur_alt_def:
   \<open>polarity_st_heur = (\<lambda>(M, _). polarity_pol M)\<close>
   by (auto simp: polarity_st_heur_def)
 
+definition polarity_st_heur_pre where
+\<open>polarity_st_heur_pre \<equiv> \<lambda>(S, L). polarity_pol_pre (get_trail_wl_heur S) L\<close>
+
+lemma polarity_st_heur_pre:
+  \<open>(S', S) \<in> twl_st_heur \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<Longrightarrow> polarity_st_heur_pre (S', L)\<close>
+  by (auto simp: twl_st_heur_def polarity_st_heur_pre_def all_atms_def[symmetric]
+    intro!: polarity_st_heur_pre_def polarity_pol_pre)
+
 sepref_definition polarity_st_heur_pol
-  is \<open>uncurry polarity_st_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
+  is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
+  :: \<open>[polarity_st_heur_pre]\<^sub>a isasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
   unfolding polarity_st_heur_alt_def isasat_unbounded_assn_def polarity_st_pre_def
+    polarity_st_heur_pre_def
   supply [[goals_limit = 1]]
   by sepref
 
 declare polarity_st_heur_pol.refine[sepref_fr_rules]
 
 sepref_definition polarity_st_heur_pol_fast
-  is \<open>uncurry polarity_st_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
+  is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
+  :: \<open>[polarity_st_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
   unfolding polarity_st_heur_alt_def isasat_bounded_assn_def polarity_st_pre_def
+    polarity_st_heur_pre_def
   supply [[goals_limit = 1]]
   by sepref
 
 declare polarity_st_heur_pol_fast.refine[sepref_fr_rules]
 
 
-abbreviation (in -) nat_lit_lit_rel where
+abbreviation nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
 
 end
