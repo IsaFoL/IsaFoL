@@ -374,6 +374,9 @@ proof -
 	simp del: isasat_input_bounded_def)
 qed
 
+lemma trail_pol_same_length[simp]: \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> length (fst M') = length M\<close>
+  by (auto simp: trail_pol_alt_def)
+
 abbreviation trail_pol_assn :: \<open>trail_pol \<Rightarrow> trail_pol_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_assn \<equiv>
     arl_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
