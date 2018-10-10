@@ -495,8 +495,7 @@ proof -
     for x2m
     by auto
   have [refine0]:
-    \<open>(polarity M (arena_lit arena i'), polarity M' (N \<propto> C' ! j))
-    \<in> \<langle>Id\<rangle>option_rel\<close>
+    \<open>(polarity M (arena_lit arena i'), polarity M' (N \<propto> C' ! j)) \<in> \<langle>Id\<rangle>option_rel\<close>
     if \<open>\<exists>vdom. valid_arena arena N vdom\<close> and
       \<open>C' \<in># dom_m N\<close> and
       \<open>i' = C' + j \<and> j < length (N \<propto> C')\<close> and
@@ -656,7 +655,8 @@ where
     ASSERT(curry6 isa_set_lookup_conflict_aa_pre M N C D n lbd outl);
     (D, clvls, lbd, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n lbd outl;
     ASSERT(arena_act_pre N C);
-    RETURN (M, arena_incr_act N C, D, length_u (fst M), W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_conflict stats, fema, sema)})\<close>
+    RETURN (M, arena_incr_act N C, D, length_u (fst M), W, vmtf, \<phi>, clvls, cach, lbd, outl,
+      incr_conflict stats, fema, sema)})\<close>
 
 
 definition update_clause_wl_code_pre where
@@ -930,16 +930,18 @@ definition propagate_lit_wl_pre where
     1 - i < length (get_clauses_wl S \<propto> C) \<and>
     0 < length (get_clauses_wl S \<propto> C))\<close>
 
+
 lemma propagate_lit_wl_heur_propagate_lit_wl:
   \<open>(uncurry3 propagate_lit_wl_heur, uncurry3 (RETURN oooo propagate_lit_wl)) \<in>
   [propagate_lit_wl_pre]\<^sub>f
   Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur'' \<D> r \<rightarrow> \<langle>twl_st_heur'' \<D> r\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  supply [[show_types]]
-  by (auto simp: twl_st_heur_def propagate_lit_wl_heur_def propagate_lit_wl_def
-      vmtf_consD twl_st_heur'_def propagate_lit_wl_pre_def swap_lits_pre_def
-      valid_arena_swap_lits arena_lifting phase_saving_def atms_of_def save_phase_def
-      intro!: ASSERT_refine_left dest: multi_member_split)
+  by (intro frefI nres_relI)
+    (auto 4 4 simp: twl_st_heur_def propagate_lit_wl_heur_def propagate_lit_wl_def
+        vmtf_consD twl_st_heur'_def propagate_lit_wl_pre_def swap_lits_pre_def
+        valid_arena_swap_lits arena_lifting phase_saving_def atms_of_def save_phase_def
+	all_atms_def[symmetric]
+      intro!: ASSERT_refine_left cons_trail_Propagated_tr2
+      dest: multi_member_split valid_arena_DECISION_REASON)
 
 lemma undefined_lit_polarity_st_iff:
    \<open>undefined_lit (get_trail_wl S) L \<longleftrightarrow>

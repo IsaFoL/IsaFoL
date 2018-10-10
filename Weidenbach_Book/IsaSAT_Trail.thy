@@ -778,6 +778,12 @@ lemma cons_trail_Propagated_tr_pre:
   by (auto simp: comp_PRE_def trail_pol_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
        cons_trail_Propagated_tr_pre_def
     intro!: ext)
+  
+lemma cons_trail_Propagated_tr2:
+  \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> undefined_lit M L \<Longrightarrow> C \<noteq> DECISION_REASON \<Longrightarrow>
+  (cons_trail_Propagated_tr L C M', Propagated L C # M) \<in> trail_pol \<A>\<close>
+  using cons_trail_Propagated_tr[THEN fref_to_Down_curry2, of \<A> L C M L C M']
+  by (auto simp: cons_trail_Propagated_def)
 
 definition (in -) last_trail_pol :: \<open>trail_pol \<Rightarrow> (nat literal \<times> nat option) nres\<close> where
   \<open>last_trail_pol = (\<lambda>(M, xs, lvls, reasons, k). do {

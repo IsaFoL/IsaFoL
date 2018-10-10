@@ -939,4 +939,12 @@ declare polarity_st_heur_pol_fast.refine[sepref_fr_rules]
 abbreviation nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
 
+
+subsection \<open>More theorems\<close>
+
+lemma valid_arena_DECISION_REASON:
+  \<open>valid_arena arena NU vdom \<Longrightarrow> DECISION_REASON \<notin># dom_m NU\<close>
+  using arena_lifting[of arena NU vdom DECISION_REASON]
+  by (auto simp: DECISION_REASON_def SHIFTS_def)
+
 end
