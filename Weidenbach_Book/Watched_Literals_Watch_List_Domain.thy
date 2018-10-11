@@ -963,7 +963,8 @@ definition unit_propagation_inner_loop_wl_D
  :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>unit_propagation_inner_loop_wl_D L S\<^sub>0 = do {
      (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop_D L S\<^sub>0;
-     ASSERT (j \<le> w \<and> w \<le> length (watched_by S L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S\<^sub>0));
+     ASSERT (j \<le> w \<and> w \<le> length (watched_by S L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S\<^sub>0) \<and>
+        L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S));
      S \<leftarrow> cut_watch_list j w L S;
      RETURN S
   }\<close>
@@ -1001,6 +1002,7 @@ proof -
     subgoal using K .
     subgoal by auto
     subgoal by auto
+    subgoal using \<A>\<^sub>i\<^sub>n K by auto
     subgoal using \<A>\<^sub>i\<^sub>n K by auto
     subgoal by (rule cut_watch_list)
     done

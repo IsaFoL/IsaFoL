@@ -611,28 +611,32 @@ lemma polarity_pol_pre:
 
 subsection \<open>Length of the trail\<close>
 
+definition (in -) isa_length_trail_pre where
+  \<open>isa_length_trail_pre = (\<lambda> (M', xs, lvls, reasons, k, cs). length M' \<le> uint32_max)\<close>
+
 definition (in -) isa_length_trail where
-  \<open>isa_length_trail = (\<lambda> (M', xs, lvls, reasons, k, cs). do {
-      ASSERT(length M' \<le> uint32_max);
-      RETURN (length_u M')
-  })\<close>
+  \<open>isa_length_trail = (\<lambda> (M', xs, lvls, reasons, k, cs). length_u M')\<close>
+
+lemma isa_length_trail_pre:
+  \<open>(M, M') \<in> trail_pol \<A> \<Longrightarrow> isa_length_trail_pre M\<close>
+  by (auto simp: isa_length_trail_def trail_pol_alt_def isa_length_trail_pre_def)
 
 lemma isa_length_trail_length_u:
-  \<open>(isa_length_trail, RETURN o length_u) \<in> trail_pol \<A> \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  \<open>(RETURN o isa_length_trail, RETURN o length_u) \<in> trail_pol \<A> \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: isa_length_trail_def trail_pol_alt_def
     intro!: ASSERT_leI)
 
 sepref_definition isa_length_trail_code
-  is \<open>isa_length_trail\<close>
-  :: \<open>trail_pol_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding isa_length_trail_def
+  is \<open>RETURN o isa_length_trail\<close>
+  :: \<open>[isa_length_trail_pre]\<^sub>a trail_pol_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  unfolding isa_length_trail_def isa_length_trail_pre_def
   by sepref
 
 sepref_definition isa_length_trail_fast_code
-  is \<open>isa_length_trail\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding isa_length_trail_def
+  is \<open>RETURN o isa_length_trail\<close>
+  :: \<open>[isa_length_trail_pre]\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  unfolding isa_length_trail_def isa_length_trail_pre_def
   by sepref
 
 declare isa_length_trail_code.refine[sepref_fr_rules]
@@ -1542,7 +1546,7 @@ qed
 
 (* TODO: Kill the other definition *)
 lemma isa_length_trail_length_u_no_CS:
-  \<open>(isa_length_trail, RETURN o length_u) \<in> trail_pol_no_CS \<A> \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  \<open>(RETURN o isa_length_trail, RETURN o length_u) \<in> trail_pol_no_CS \<A> \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
   (auto simp: isa_length_trail_def trail_pol_no_CS_alt_def ann_lits_split_reasons_def
     intro!: ASSERT_leI)

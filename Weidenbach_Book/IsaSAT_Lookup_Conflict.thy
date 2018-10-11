@@ -798,7 +798,7 @@ definition isa_set_lookup_conflict_aa_pre where
 
 sepref_register set_lookup_conflict_aa
 sepref_definition set_lookup_conflict_aa_code
-  is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict_aa)\<close>
+  is \<open>uncurry6 isa_set_lookup_conflict_aa\<close>
   :: \<open>trail_pol_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>\<^sub>a
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
@@ -822,7 +822,7 @@ sepref_definition set_lookup_conflict_aa_code
 declare set_lookup_conflict_aa_code.refine[sepref_fr_rules]
 
 sepref_definition set_lookup_conflict_aa_fast_code
-  is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict_aa)\<close>
+  is \<open>uncurry6 isa_set_lookup_conflict_aa\<close>
   :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), _). length N \<le> uint64_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d  *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
@@ -1263,7 +1263,7 @@ definition isa_resolve_merge_conflict where
 
 sepref_register isa_resolve_merge_conflict
 sepref_definition resolve_merge_conflict_code
-  is \<open>uncurry6 (PR_CONST isa_resolve_merge_conflict)\<close>
+  is \<open>uncurry6 isa_resolve_merge_conflict\<close>
   :: \<open>[isa_set_lookup_conflict_aa_pre]\<^sub>a
       trail_pol_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
@@ -1289,7 +1289,7 @@ sepref_definition resolve_merge_conflict_code
 declare resolve_merge_conflict_code.refine[sepref_fr_rules]
 
 sepref_definition resolve_merge_conflict_fast_code
-  is \<open>uncurry6 (PR_CONST isa_resolve_merge_conflict)\<close>
+  is \<open>uncurry6 isa_resolve_merge_conflict\<close>
   :: \<open>[uncurry6 (\<lambda>M N i (b, xs) clvls lbd outl. length N \<le> uint64_max \<and>
          isa_set_lookup_conflict_aa_pre ((((((M, N), i), (b, xs)), clvls), lbd), outl))]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
@@ -3255,7 +3255,7 @@ sepref_definition minimize_and_extract_highest_lookup_conflict_code
 declare minimize_and_extract_highest_lookup_conflict_code.refine[sepref_fr_rules]
 
 sepref_definition minimize_and_extract_highest_lookup_conflict_fast_code
-  is \<open>uncurry5 (PR_CONST isa_minimize_and_extract_highest_lookup_conflict)\<close>
+  is \<open>uncurry5 isa_minimize_and_extract_highest_lookup_conflict\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), lbd), outl). length NU \<le> uint64_max]\<^sub>a
        trail_pol_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a
         cach_refinement_l_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>

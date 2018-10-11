@@ -1040,6 +1040,108 @@ lemma prod_induct12 [case_names fields, induct type]:
   "(\<And>a b c d e f g h i j k l. P (a, b, c, d, e, f, g, h, i, j, k, l)) \<Longrightarrow> P x"
   by (cases x) blast
 
+lemma prod_cases13 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m where "y = (a, b, c, d, e, f, g, h, i, j, k, l, m)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct13 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m. P (a, b, c, d, e, f, g, h, i, j, k, l, m)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases14 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n where "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct14 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n. P (a, b, c, d, e, f, g, h, i, j, k, l, m, n)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases15 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct15 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p. P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases16 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct16 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q. P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases17 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct17 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r. P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases18 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r s where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct18 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r s. P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases19 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r s t where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct19 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r s t.
+     P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases20 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r s t u where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct20 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r s t u. 
+      P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases21 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r s t u v where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct21 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r s t u v. 
+      P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v)) \<Longrightarrow> P x"
+  by (cases x) (blast 43)
+
+lemma prod_cases22 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r s t u v w where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v, w)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct22 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r s t u v w. 
+      P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v, w)) \<Longrightarrow> P x"
+  by (cases x) (blast 43)
+
+lemma prod_cases23 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r s t u v w x where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v, w, x)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct23 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r s t u v w y. 
+      P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v, w, y)) \<Longrightarrow> P x"
+  by (cases x) (blast 43)
+
 
 subsection \<open>More about @{term list_all2} and @{term map}\<close>
 
