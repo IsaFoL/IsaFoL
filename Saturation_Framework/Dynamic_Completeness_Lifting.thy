@@ -56,7 +56,7 @@ proof -
 qed
 
 text \<open>lemma 8 in the technical report\<close>
-interpretation lifted_consequence_relation: consequence_relation  
+sublocale lifted_consequence_relation: consequence_relation  
   where Bot=Bot_F and entails=entails_\<G>
 proof
   fix N
@@ -317,7 +317,6 @@ proof
   show \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> (N - N')\<close> using Red_Inf_of_Red_F_subset_F by simp
   show \<open>\<iota> \<in> Inf_F \<and> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf_\<G> N\<close> using Red_Inf_of_Inf_to_N_F by simp
 qed
-
 
 end
 
