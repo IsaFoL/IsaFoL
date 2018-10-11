@@ -279,7 +279,6 @@ proof
   show \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> (N - N')\<close> using Red_F_of_Red_F_subset_F by simp
   show \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> (N - N')\<close> using Red_Inf_of_Red_F_subset_F by simp
   show \<open>\<iota> \<in> Inf_F \<and> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf_\<G> N\<close> using Red_Inf_of_Inf_to_N_F by simp
-  show \<open>{\<iota> \<in> Inf_F. concl_of \<iota> \<in> N} \<subseteq> Red_Inf_\<G> N\<close> using Red_Inf_of_Inf_to_N_F by auto
 qed
 
 end
