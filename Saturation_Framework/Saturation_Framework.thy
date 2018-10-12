@@ -18,11 +18,6 @@ TODO
 
 subsection \<open>Preliminaries\<close>
 
-
-text \<open>
-Inferences have one distinguished main premise, any number of side premises, and a conclusion.
-\<close>
-
 locale consequence_relation =
   fixes
     Bot :: "'f set" and
