@@ -14,7 +14,7 @@ begin
 
 subsection \<open>Grounding Function\<close>
 
-locale grounding_function = F: sound_inference_system Bot_F entails_sound_F Inf_F + G: calculus Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
+locale grounding_function = Static: sound_inference_system Bot_F entails_sound_F Inf_F + Dynamic: calculus Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
   for
     Bot_F :: \<open>'f set\<close> and
     entails_sound_F ::  \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
@@ -51,9 +51,9 @@ lemma subs_Bot_G_entails:
 proof -
   have \<open>\<exists>B. B \<in> sB\<close> using not_empty by auto
   then obtain B where B_in: \<open>B \<in> sB\<close> by auto
-  then have r_trans: \<open>{B} \<Turnstile>G N\<close> using bot_implies_all in_bot by auto
-  have l_trans: \<open>sB \<Turnstile>G {B}\<close> using B_in subset_entailed by auto
-  then show ?thesis using r_trans entails_trans[of sB "{B}"] by auto
+  then have r_trans: \<open>{B} \<Turnstile>G N\<close> using Dynamic.bot_implies_all in_bot by auto
+  have l_trans: \<open>sB \<Turnstile>G {B}\<close> using B_in Dynamic.subset_entailed by auto
+  then show ?thesis using r_trans Dynamic.entails_trans[of sB "{B}"] by auto
 qed
 
 text \<open>lemma 8 in the technical report\<close>
@@ -66,7 +66,7 @@ proof
     fix B
     assume \<open>B \<in> Bot_F\<close>
     then show \<open>{B} \<Turnstile>\<G> N\<close>
-      using Bot_map bot_implies_all[of "\<G>_set N"] subs_Bot_G_entails Bot_map_not_empty
+      using Bot_map Dynamic.bot_implies_all[of "\<G>_set N"] subs_Bot_G_entails Bot_map_not_empty
       unfolding entails_\<G>_def
       by auto
   qed
@@ -74,18 +74,18 @@ next
   fix N1 N2 :: \<open>'f set\<close>
   assume 
     incl: \<open>N2 \<subseteq> N1\<close>
-  show \<open>N1 \<Turnstile>\<G> N2\<close> using incl entails_\<G>_def \<G>_subset subset_entailed by auto
+  show \<open>N1 \<Turnstile>\<G> N2\<close> using incl entails_\<G>_def \<G>_subset Dynamic.subset_entailed by auto
 next
   fix N1 N2
   assume
     N1_entails_C: \<open>\<forall>C \<in> N2. N1 \<Turnstile>\<G> {C}\<close>
-  show \<open>N1 \<Turnstile>\<G> N2\<close> using all_formulas_entailed N1_entails_C entails_\<G>_def 
-    by (smt UN_E UN_I entail_set_all_formulas singletonI)
+  show \<open>N1 \<Turnstile>\<G> N2\<close> using Dynamic.all_formulas_entailed N1_entails_C entails_\<G>_def 
+    by (smt UN_E UN_I Dynamic.entail_set_all_formulas singletonI)
 next
   fix N1 N2 N3
   assume
     trans: \<open>N1 \<Turnstile>\<G> N2 \<and> N2 \<Turnstile>\<G> N3\<close>
-  show \<open>N1 \<Turnstile>\<G> N3\<close> using trans entails_\<G>_def entails_trans by blast
+  show \<open>N1 \<Turnstile>\<G> N3\<close> using trans entails_\<G>_def Dynamic.entails_trans by blast
 qed
 
 end
@@ -214,21 +214,21 @@ proof -
     B_in: \<open>B \<in> Bot_F\<close> and
     N_entails: \<open>N \<Turnstile>\<G> {B}\<close>
   then have to_bot: \<open>\<G>_set N - Red_F_G (\<G>_set N) \<Turnstile>G \<G>_F B\<close> 
-    using Red_F_Bot Bot_map unfolding entails_\<G>_def 
-      by (smt cSup_singleton entail_set_all_formulas image_insert image_is_empty subsetCE)
+    using Dynamic.Red_F_Bot Bot_map unfolding entails_\<G>_def 
+      by (smt cSup_singleton Dynamic.entail_set_all_formulas image_insert image_is_empty subsetCE)
   have from_f: \<open>\<G>_set (N - Red_F_\<G> N) \<Turnstile>G \<G>_set N - Red_F_G (\<G>_set N)\<close>
-    using subset_entailed[OF not_red_map_in_map_not_red] by blast
-  then have \<open>\<G>_set (N - Red_F_\<G> N) \<Turnstile>G \<G>_F B\<close> using to_bot entails_trans by blast
+    using Dynamic.subset_entailed[OF not_red_map_in_map_not_red] by blast
+  then have \<open>\<G>_set (N - Red_F_\<G> N) \<Turnstile>G \<G>_F B\<close> using to_bot Dynamic.entails_trans by blast
   then show \<open>N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close> using Bot_map unfolding entails_\<G>_def by simp
 qed
 
 text \<open>lemma 12 in the technical report 1/2\<close>
 lemma Red_F_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> N'\<close>
-  using Red_F_of_subset unfolding Red_F_\<G>_def by (smt Collect_mono \<G>_subset subset_iff)
+  using Dynamic.Red_F_of_subset unfolding Red_F_\<G>_def by (smt Collect_mono \<G>_subset subset_iff)
 
 text \<open>lemma 12 in the technical report 2/2\<close>
 lemma Red_Inf_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> N'\<close>
-  using Red_Inf_of_subset unfolding Red_Inf_\<G>_def by (smt Collect_mono \<G>_subset subset_iff)
+  using Dynamic.Red_Inf_of_subset unfolding Red_Inf_\<G>_def by (smt Collect_mono \<G>_subset subset_iff)
 
 text \<open>lemma 13 in the technical report\<close>
 lemma Red_F_of_Red_F_subset_F: \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> (N - N')\<close>
@@ -249,12 +249,12 @@ proof
     proof
       assume \<open>D \<in> Red_F_G (\<G>_set N)\<close>
       then have \<open>D \<in> Red_F_G (\<G>_set N - Red_F_G (\<G>_set N))\<close>
-        using Red_F_of_Red_F_subset[of "Red_F_G (\<G>_set N)" "\<G>_set N"] by auto
+        using Dynamic.Red_F_of_Red_F_subset[of "Red_F_G (\<G>_set N)" "\<G>_set N"] by auto
       then have \<open>D \<in> Red_F_G (\<G>_set (N - Red_F_\<G> N))\<close> 
-        using Red_F_of_subset[OF not_red_map_in_map_not_red[of N]] by auto
+        using Dynamic.Red_F_of_subset[OF not_red_map_in_map_not_red[of N]] by auto
       then have \<open>D \<in> Red_F_G (\<G>_set (N - N'))\<close>
         using N'_in_Red_F_N \<G>_subset[of "N - Red_F_\<G> N" "N - N'"]
-        by (smt DiffE DiffI Red_F_of_subset subsetCE subsetI)
+        by (smt DiffE DiffI Dynamic.Red_F_of_subset subsetCE subsetI)
       then show ?thesis by blast
     next
       assume \<open>\<exists>E\<in>N - Red_F_\<G> N. E \<sqsubset> C \<and> D \<in> \<G>_F E\<close>
@@ -279,9 +279,9 @@ proof
   have i_in: \<open>\<iota> \<in> Inf_F\<close> using i_in_Red_Inf_N unfolding Red_Inf_\<G>_def by blast
   have \<open>\<forall>\<iota>' \<in> \<G>_Inf \<iota>. \<iota>' \<in> Red_Inf_G (\<G>_set N)\<close> using i_in_Red_Inf_N unfolding Red_Inf_\<G>_def by fast
   then have \<open>\<forall>\<iota>' \<in> \<G>_Inf \<iota>. \<iota>' \<in> Red_Inf_G (\<G>_set N - Red_F_G (\<G>_set N))\<close> 
-    using Red_Inf_of_Red_F_subset by blast
+    using Dynamic.Red_Inf_of_Red_F_subset by blast
   then have \<open>\<forall>\<iota>' \<in> \<G>_Inf \<iota>. \<iota>' \<in> Red_Inf_G (\<G>_set (N - Red_F_\<G> N))\<close>
-    using Red_Inf_of_subset[OF not_red_map_in_map_not_red[of N]] by auto
+    using Dynamic.Red_Inf_of_subset[OF not_red_map_in_map_not_red[of N]] by auto
   then have \<open>\<forall>\<iota>' \<in> \<G>_Inf \<iota>. \<iota>' \<in> Red_Inf_G (\<G>_set (N - N'))\<close> using  N'_in_Red_F_N 
       proof - (*proof suggested by sledgehammer, used because the smt alternative timeouts*)
         have "(\<forall>F Fa f. \<not> F \<subseteq> Fa \<or> (f::'f) \<notin> F \<or> f \<in> Fa) = (\<forall>F Fa f. \<not> F \<subseteq> Fa \<or> (f::'f) \<notin> F \<or> f \<in> Fa)"
@@ -302,7 +302,7 @@ lemma Red_Inf_of_Inf_to_N_F:
 proof -
   have \<open>\<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))\<close> using inf_map by simp
   moreover have \<open>Red_Inf_G (\<G>_F (concl_of \<iota>)) \<subseteq> Red_Inf_G (\<G>_set N)\<close>
-    using concl_i_in Red_Inf_of_subset by blast
+    using concl_i_in Dynamic.Red_Inf_of_subset by blast
   ultimately show ?thesis using i_in unfolding Red_Inf_\<G>_def by simp
 qed
 
@@ -370,7 +370,7 @@ sublocale labeled_grounding_function: grounding_function
 proof
   fix NL
   show "\<forall>B\<in>Bot_FL. {B} |\<approx>FL NL"
-    unfolding entails_sound_FL_def Bot_FL_def using F.bot_implies_all by simp
+    unfolding entails_sound_FL_def Bot_FL_def using Static.bot_implies_all by simp
 
 end
 
