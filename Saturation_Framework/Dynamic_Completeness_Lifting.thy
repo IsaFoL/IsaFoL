@@ -14,7 +14,7 @@ begin
 
 subsection \<open>Grounding Function\<close>
 
-locale grounding_function = sound_inference_system Bot_F entails_sound_F Inf_F + calculus Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
+locale grounding_function = F: sound_inference_system Bot_F entails_sound_F Inf_F + G: calculus Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
   for
     Bot_F :: \<open>'f set\<close> and
     entails_sound_F ::  \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
@@ -321,6 +321,56 @@ proof
   show \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> (N - N')\<close> using Red_Inf_of_Red_F_subset_F by simp
   show \<open>\<iota> \<in> Inf_F \<and> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf_\<G> N\<close> using Red_Inf_of_Inf_to_N_F by simp
 qed
+
+end
+
+subsection \<open>Adding labels\<close>
+
+locale labeled_redundancy_criterion_lifting = redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Prec_F
+  for
+    \<G>_F :: "'f \<Rightarrow> 'g set" and
+    \<G>_Inf :: "'f inference \<Rightarrow> 'g inference set" and
+    Bot_F :: "'f set" and
+    entails_sound_F :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool"  (infix "|\<approx>F" 50) and
+    Inf_F :: "'f inference set" and
+    Bot_G :: "'g set" and
+    entails_sound_G :: "'g set \<Rightarrow> 'g set \<Rightarrow> bool"  (infix "|\<approx>G" 50) and
+    entails_comp_G :: "'g set \<Rightarrow> 'g set \<Rightarrow> bool"  (infix "\<Turnstile>G" 50) and
+    Inf_G :: "'g inference set" and
+    Red_Inf_G :: "'g set \<Rightarrow> 'g inference set" and
+    Red_F_G :: "'g set \<Rightarrow> 'g set" and
+    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool"  (infix "\<sqsubset>" 50)
+  + fixes
+    l :: \<open>'l itself\<close> and
+    Inf_FL :: \<open>('f \<times> 'l) inference set\<close>
+  assumes
+    Inf_F_to_Inf_FL: \<open>\<iota>\<^sub>F \<in> Inf_F \<Longrightarrow> length (Ll :: 'l list) = length (prems_of \<iota>\<^sub>F) \<Longrightarrow> \<exists>L0. Infer (zip (prems_of \<iota>\<^sub>F) Ll) (concl_of \<iota>\<^sub>F, L0) \<in> Inf_FL\<close> and
+    Inf_FL_to_Inf_F: \<open>\<iota>\<^sub>F\<^sub>L \<in> Inf_FL \<Longrightarrow> Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L)) \<in> Inf_F\<close>
+begin
+
+definition to_F :: \<open>('f \<times> 'l) inference \<Rightarrow> 'f inference\<close> where \<open>to_F \<iota>\<^sub>F\<^sub>L = Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L))\<close>
+
+text \<open>The set FL is implicitly defined as (UNIV::('f\<times>'l) set) and the function proj_1 is implicitly defined as (fst `)\<close>
+definition Bot_FL :: \<open>('f \<times> 'l) set\<close> where \<open>Bot_FL = Bot_F \<times> UNIV\<close>
+
+definition \<G>_F_L :: \<open>('f \<times> 'l) \<Rightarrow> 'g set\<close> where \<open>\<G>_F_L CL = \<G>_F (fst CL)\<close>
+
+definition \<G>_Inf_L :: \<open>('f \<times> 'l) inference \<Rightarrow> 'g inference set\<close> where \<open>\<G>_Inf_L \<iota>\<^sub>F\<^sub>L = \<G>_Inf (to_F \<iota>\<^sub>F\<^sub>L)\<close>
+
+definition entails_sound_FL :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "|\<approx>FL" 50) where \<open>CL1 |\<approx>FL
+CL2 \<equiv> fst ` CL1 |\<approx>F fst ` CL2\<close>
+
+sublocale labeled_grounding_function: grounding_function
+  where
+    Bot_F = Bot_FL and
+    entails_sound_F = entails_sound_FL and
+    Inf_F = Inf_FL and
+    \<G>_F = \<G>_F_L and
+    \<G>_Inf = \<G>_Inf_L
+proof
+  fix NL
+  show "\<forall>B\<in>Bot_FL. {B} |\<approx>FL NL"
+    unfolding entails_sound_FL_def Bot_FL_def using F.bot_implies_all by simp
 
 end
 
