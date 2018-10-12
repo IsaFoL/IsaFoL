@@ -5,15 +5,6 @@ begin
 
 subsection \<open>Code generation for the VMTF decision heuristic and the trail\<close>
 
-definition atoms_hash_rel :: \<open>nat multiset \<Rightarrow> (bool list \<times> nat set) set\<close> where
-  \<open>atoms_hash_rel \<A> = {(C, D). (\<forall>L \<in> D. L < length C) \<and> (\<forall>L < length C. C ! L \<longleftrightarrow> L \<in> D) \<and>
-    (\<forall>L \<in># \<A>. L < length C)}\<close>
-
-abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> bool array \<Rightarrow> assn\<close> where
-  \<open>atoms_hash_assn \<equiv> array_assn bool_assn\<close>
-
-abbreviation distinct_atoms_assn where
-  \<open>distinct_atoms_assn \<equiv> arl_assn uint32_nat_assn *a atoms_hash_assn\<close>
 
 
 (* TODO used? *)

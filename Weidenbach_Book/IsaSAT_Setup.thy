@@ -228,8 +228,16 @@ abbreviation vmtf_conc where
   \<open>vmtf_conc \<equiv> (array_assn vmtf_node_assn *a uint64_nat_assn *a uint32_nat_assn *a uint32_nat_assn
     *a option_assn uint32_nat_assn)\<close>
 
+abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> bool array \<Rightarrow> assn\<close> where
+  \<open>atoms_hash_assn \<equiv> array_assn bool_assn\<close>
+
+abbreviation distinct_atoms_assn where
+  \<open>distinct_atoms_assn \<equiv> arl_assn uint32_nat_assn *a atoms_hash_assn\<close>
+
+type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
+
 abbreviation vmtf_remove_conc
-  :: \<open>vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
+  :: \<open>isa_vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
 where
   \<open>vmtf_remove_conc \<equiv> vmtf_conc *a distinct_atoms_assn\<close>
 
@@ -288,7 +296,7 @@ text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 (* TODO rename to isasat *)
 type_synonym twl_st_wl_heur =
   \<open>trail_pol \<times> arena \<times>
-    conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> vmtf_remove_int \<times> bool list \<times>
+    conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> isa_vmtf_remove_int \<times> bool list \<times>
     nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
     vdom \<times> vdom \<times> nat \<times> opts\<close>
 
@@ -327,7 +335,7 @@ lemma watched_by_app_heur_alt_def:
 definition watched_by_app :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
   \<open>watched_by_app S L K = watched_by S L ! K\<close>
 
-fun get_vmtf_heur :: \<open>twl_st_wl_heur \<Rightarrow> vmtf_remove_int\<close> where
+fun get_vmtf_heur :: \<open>twl_st_wl_heur \<Rightarrow> isa_vmtf_remove_int\<close> where
   \<open>get_vmtf_heur (_, _, _, _, _, vm, _) = vm\<close>
 
 fun get_phase_saver_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool list\<close> where
