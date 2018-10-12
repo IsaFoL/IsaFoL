@@ -371,6 +371,15 @@ proof
   fix NL
   show "\<forall>B\<in>Bot_FL. {B} |\<approx>FL NL"
     unfolding entails_sound_FL_def Bot_FL_def using Static.bot_implies_all by simp
+next
+  fix NL1 NL2
+  show "NL2 \<subseteq> NL1 \<Longrightarrow> NL1 |\<approx>FL NL2"
+  proof -
+    assume "NL2 \<subseteq> NL1"
+    then have "fst ` NL2 \<subseteq> fst ` NL1" by (simp add: image_mono)
+    then show "NL1 |\<approx>FL NL2" unfolding entails_sound_FL_def using Static.subset_entailed by simp
+  qed
+next
 
 end
 
