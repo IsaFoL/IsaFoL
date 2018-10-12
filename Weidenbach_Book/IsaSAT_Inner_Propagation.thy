@@ -2972,8 +2972,6 @@ where
   }\<close>
 
 
-thm isa_trail_nth_rev_trail_nth
-
 definition unit_propagation_outer_loop_wl_D_heur_inv
  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close>
 where
@@ -2981,7 +2979,8 @@ where
      (\<exists>S\<^sub>0' S. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur \<and> (S', S) \<in> twl_st_heur \<and>
        unit_propagation_outer_loop_wl_D_inv S \<and>
        dom_m (get_clauses_wl S) = dom_m (get_clauses_wl S\<^sub>0') \<and>
-       length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S\<^sub>0))\<close>
+       length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S\<^sub>0) \<and>
+       isa_length_trail_pre (get_trail_wl_heur S'))\<close>
 
 definition unit_propagation_outer_loop_wl_D_heur
    :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
@@ -3077,10 +3076,11 @@ theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D':
       select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl
           [of \<D> r, THEN fref_to_Down])
   subgoal for x y S T
+    using isa_length_trail_pre[of \<open>get_trail_wl_heur S\<close> \<open>get_trail_wl T\<close> \<open>all_atms_st T\<close>] apply -
     unfolding unit_propagation_outer_loop_wl_D_heur_inv_def twl_st_heur'_def 
     apply (rule_tac x=y in exI)
     apply (rule_tac x=T in exI)
-    by auto
+    by (auto 5 2 simp: twl_st_heur_def twl_st_heur'_def)
   subgoal for _ _ x y
     by (subst isa_length_trail_length_u[THEN fref_to_Down_unRET_Id, of _ \<open>get_trail_wl y\<close> \<open>all_atms_st y\<close>])
       (auto simp: twl_st_heur_def twl_st_heur'_def)
@@ -3582,7 +3582,7 @@ sepref_definition unit_propagation_inner_loop_body_wl_heur_code
   by sepref
 
 sepref_definition unit_propagation_inner_loop_body_wl_fast_heur_code
-  is \<open>uncurry3 (PR_CONST unit_propagation_inner_loop_body_wl_heur)\<close>
+  is \<open>uncurry3 unit_propagation_inner_loop_body_wl_heur\<close>
   :: \<open>[\<lambda>((L, w), S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
       nat_assn *a nat_assn *a isasat_bounded_assn\<close>

@@ -2,7 +2,20 @@ theory IsaSAT_VMTF
 imports IsaSAT_Setup
 begin
 
+
 subsection \<open>Code generation for the VMTF decision heuristic and the trail\<close>
+
+definition atoms_hash_rel :: \<open>nat multiset \<Rightarrow> (bool list \<times> nat set) set\<close> where
+  \<open>atoms_hash_rel \<A> = {(C, D). (\<forall>L \<in> D. L < length C) \<and> (\<forall>L < length C. C ! L \<longleftrightarrow> L \<in> D) \<and>
+    (\<forall>L \<in># \<A>. L < length C)}\<close>
+
+abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> bool array \<Rightarrow> assn\<close> where
+  \<open>atoms_hash_assn \<equiv> array_assn bool_assn\<close>
+
+abbreviation distinct_atoms_assn where
+  \<open>distinct_atoms_assn \<equiv> arl_assn uint32_nat_assn *a atoms_hash_assn\<close>
+
+
 (* TODO used? *)
 definition size_conflict_wl :: \<open>nat twl_st_wl \<Rightarrow> nat\<close> where
   \<open>size_conflict_wl S = size (the (get_conflict_wl S))\<close>
@@ -88,50 +101,100 @@ declare vmtf_dequeue_code.refine[sepref_fr_rules]
 
 definition vmtf_enqueue_pre where
   \<open>vmtf_enqueue_pre =
-     (\<lambda>((M, L),(ns,m,fst_As,lst_As, next_search)). L < length ns \<and> Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+     (\<lambda>((M, L),(ns,m,fst_As,lst_As, next_search)). L < length ns \<and>
        (fst_As \<noteq> None \<longrightarrow> the fst_As < length ns) \<and>
        (fst_As \<noteq> None \<longrightarrow> lst_As \<noteq> None) \<and>
        m+1 \<le> uint64_max)\<close>
 
-sepref_thm vmtf_enqueue_code
-   is \<open>uncurry2 (RETURN ooo vmtf_enqueue)\<close>
+definition isa_vmtf_enqueue :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> vmtf_option_fst_As \<Rightarrow> vmtf nres\<close> where
+\<open>isa_vmtf_enqueue = (\<lambda>M L (ns, m, fst_As, lst_As, next_search). do {
+  de \<leftarrow> defined_atm_pol M L;
+  RETURN (case fst_As of
+    None \<Rightarrow>(ns[L := VMTF_Node m fst_As None], m+1, L, L,
+            (if de then None else Some L)) 
+  | Some fst_As \<Rightarrow>
+     let fst_As' = VMTF_Node (stamp (ns!fst_As)) (Some L) (get_next (ns!fst_As)) in
+      (ns[L := VMTF_Node (m+1) None (Some fst_As), fst_As := fst_As'],
+          m+1, L, the lst_As, (if de then next_search else Some L)))})\<close>
+
+lemma vmtf_enqueue_alt_def:
+  \<open>RETURN ooo vmtf_enqueue = (\<lambda>M L (ns, m, fst_As, lst_As, next_search). do {
+    let de = defined_lit M (Pos L);
+    RETURN (case fst_As of
+      None \<Rightarrow> (ns[L := VMTF_Node m fst_As None], m+1, L, L,
+	   (if de then None else Some L))
+    | Some fst_As \<Rightarrow>
+       let fst_As' = VMTF_Node (stamp (ns!fst_As)) (Some L) (get_next (ns!fst_As)) in
+	(ns[L := VMTF_Node (m+1) None (Some fst_As), fst_As := fst_As'],
+	    m+1, L, the lst_As, (if de then next_search else Some L)))})\<close>
+  unfolding vmtf_enqueue_def Let_def
+  by (auto intro!: ext)
+
+lemma isa_vmtf_enqueue:
+  \<open>(uncurry2 isa_vmtf_enqueue, uncurry2 (RETURN ooo vmtf_enqueue)) \<in>
+     [\<lambda>((M, L), _). L \<in># \<A>]\<^sub>f (trail_pol \<A>) \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+proof -
+  have defined_atm_pol: \<open>defined_atm_pol x1g x2f
+	\<le> SPEC
+	   (\<lambda>c. (c, defined_lit x1a (Pos x2))
+		\<in> Id)\<close>
+    if 
+      \<open>case y of (x, xa) \<Rightarrow> (case x of (M, L) \<Rightarrow> \<lambda>_. L \<in># \<A>) xa\<close> and
+      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f nat_rel \<times>\<^sub>f Id\<close> and    \<open>x1 = (x1a, x2)\<close> and
+      \<open>x2d = (x1e, x2e)\<close> and
+      \<open>x2c = (x1d, x2d)\<close> and
+      \<open>x2b = (x1c, x2c)\<close> and
+      \<open>x2a = (x1b, x2b)\<close> and
+      \<open>y = (x1, x2a)\<close> and
+      \<open>x1f = (x1g, x2f)\<close> and
+      \<open>x2j = (x1k, x2k)\<close> and
+      \<open>x2i = (x1j, x2j)\<close> and
+      \<open>x2h = (x1i, x2i)\<close> and
+      \<open>x2g = (x1h, x2h)\<close> and
+      \<open>x = (x1f, x2g)\<close>
+     for x y x1 x1a x2 x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x1g x2f x2g x1h x2h
+       x1i x2i x1j x2j x1k x2k
+  proof -
+    have [simp]: \<open>defined_lit x1a (Pos x2) \<longleftrightarrow> defined_atm x1a x2\<close>
+      using that by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n trail_pol_def defined_atm_def)
+
+    show ?thesis
+      using undefined_atm_code[THEN fref_to_Down, unfolded uncurry_def, of \<A> \<open>(x1a, x2)\<close> \<open>(x1g, x2f)\<close>]
+      that by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n RETURN_def)
+  qed
+
+  show ?thesis
+    unfolding isa_vmtf_enqueue_def vmtf_enqueue_alt_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg)
+    apply (rule defined_atm_pol; assumption)
+    subgoal for x y x1 x1a x2 x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x1g x2f x2g x1h x2h
+	 x1i x2i x1j x2j x1k x2k
+      by auto
+    done
+qed
+
+sepref_definition vmtf_enqueue_code
+   is \<open>uncurry2 isa_vmtf_enqueue\<close>
    :: \<open>[vmtf_enqueue_pre]\<^sub>a
-        trail_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc_option_fst_As\<^sup>d \<rightarrow> vmtf_conc\<close>
+        trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc_option_fst_As\<^sup>d \<rightarrow> vmtf_conc\<close>
   supply [[goals_limit = 1]]
-  unfolding vmtf_enqueue_def vmtf_enqueue_pre_def defined_atm_def[symmetric]
+  unfolding isa_vmtf_enqueue_def vmtf_enqueue_pre_def defined_atm_def[symmetric]
    one_uint64_nat_def[symmetric]
   by sepref
 
-concrete_definition (in -) vmtf_enqueue_code
-   uses isasat_input_bounded_nempty.vmtf_enqueue_code.refine_raw
-   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+declare vmtf_enqueue_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) vmtf_enqueue_code_def
-
-lemmas vmtf_enqueue_code_hnr[sepref_fr_rules] =
-   vmtf_enqueue_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-
-sepref_thm vmtf_enqueue_fast_code
-   is \<open>uncurry2 (RETURN ooo vmtf_enqueue)\<close>
+sepref_definition vmtf_enqueue_fast_code
+   is \<open>uncurry2 isa_vmtf_enqueue\<close>
    :: \<open>[vmtf_enqueue_pre]\<^sub>a
-        trail_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc_option_fst_As\<^sup>d \<rightarrow> vmtf_conc\<close>
+        trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc_option_fst_As\<^sup>d \<rightarrow> vmtf_conc\<close>
   supply [[goals_limit = 1]]
-  unfolding vmtf_enqueue_def vmtf_enqueue_pre_def defined_atm_def[symmetric]
+  unfolding isa_vmtf_enqueue_def vmtf_enqueue_pre_def defined_atm_def[symmetric]
    one_uint64_nat_def[symmetric]
   by sepref
 
-concrete_definition (in -) vmtf_enqueue_fast_code
-   uses isasat_input_bounded_nempty.vmtf_enqueue_fast_code.refine_raw
-   is \<open>(uncurry2 ?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) vmtf_enqueue_fast_code_def
-
-lemmas vmtf_enqueue_fast_code_hnr[sepref_fr_rules] =
-   vmtf_enqueue_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-end
-
+declare vmtf_enqueue_fast_code.refine[sepref_fr_rules]
 
 
 definition (in -) insert_sort_inner_nth :: \<open>nat_vmtf_node list \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
@@ -179,84 +242,87 @@ sepref_definition (in -) insert_sort_nth_code
 
 declare insert_sort_nth_code.refine[sepref_fr_rules]
 
+definition (in -) isa_vmtf_en_dequeue :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> vmtf \<Rightarrow> vmtf nres\<close> where
+\<open>isa_vmtf_en_dequeue = (\<lambda>M L vm. isa_vmtf_enqueue M L (vmtf_dequeue L vm))\<close>
 
-context isasat_input_bounded_nempty
-begin
+lemma isa_vmtf_en_dequeue:
+  \<open>(uncurry2 isa_vmtf_en_dequeue, uncurry2 (RETURN ooo vmtf_en_dequeue)) \<in>
+     [\<lambda>((M, L), _). L \<in># \<A>]\<^sub>f (trail_pol \<A>) \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  unfolding isa_vmtf_en_dequeue_def vmtf_en_dequeue_def uncurry_def
+  apply (intro frefI nres_relI)
+  apply clarify
+  subgoal for a aa ab ac ad b ba ae af ag ah bb ai bc aj ak al am bd
+    by (rule order.trans,
+      rule isa_vmtf_enqueue[of \<A>, THEN fref_to_Down_curry2,
+        of ai bc \<open>vmtf_dequeue bc (aj, ak, al, am, bd)\<close>])
+      auto
+  done
 
-lemma vmtf_en_dequeue_pre_vmtf_enqueue_pre:
-   \<open>vmtf_en_dequeue_pre ((M, L), a, st, fst_As, lst_As, next_search) \<Longrightarrow>
+definition isa_vmtf_en_dequeue_pre :: \<open>(trail_pol \<times> nat) \<times> vmtf \<Rightarrow> bool\<close> where
+  \<open>isa_vmtf_en_dequeue_pre = (\<lambda>((M, L),(ns,m,fst_As, lst_As, next_search)).
+       L < length ns \<and> vmtf_dequeue_pre (L, ns) \<and>
+       fst_As < length ns \<and> (get_next (ns ! fst_As) \<noteq> None \<longrightarrow> get_prev (ns ! lst_As) \<noteq> None) \<and>
+       (get_next (ns ! fst_As) = None \<longrightarrow> fst_As = lst_As) \<and>
+       m+1 \<le> uint64_max)\<close>
+
+lemma isa_vmtf_en_dequeue_preD:
+  assumes \<open>isa_vmtf_en_dequeue_pre ((M, ah), a, aa, ab, ac, b)\<close>
+  shows \<open>ah < length a\<close> and \<open>vmtf_dequeue_pre (ah, a)\<close>
+  using assms by (auto simp: isa_vmtf_en_dequeue_pre_def)
+
+
+lemma isa_vmtf_en_dequeue_pre_vmtf_enqueue_pre:
+   \<open>isa_vmtf_en_dequeue_pre ((M, L), a, st, fst_As, lst_As, next_search) \<Longrightarrow>
        vmtf_enqueue_pre ((M, L), vmtf_dequeue L (a, st, fst_As, lst_As, next_search))\<close>
   unfolding vmtf_enqueue_pre_def
   apply clarify
   apply (intro conjI)
   subgoal
     by (auto simp: vmtf_dequeue_pre_def vmtf_enqueue_pre_def vmtf_dequeue_def
-        ns_vmtf_dequeue_def Let_def vmtf_en_dequeue_pre_def split: option.splits)[]
+        ns_vmtf_dequeue_def Let_def isa_vmtf_en_dequeue_pre_def split: option.splits)[]
   subgoal
     by (auto simp: vmtf_dequeue_pre_def vmtf_enqueue_pre_def vmtf_dequeue_def
-          vmtf_en_dequeue_pre_def split: option.splits if_splits)[]
+          isa_vmtf_en_dequeue_pre_def split: option.splits if_splits)[]
   subgoal
     by (auto simp: vmtf_dequeue_pre_def vmtf_enqueue_pre_def vmtf_dequeue_def
-        Let_def vmtf_en_dequeue_pre_def split: option.splits if_splits)[]
+        Let_def isa_vmtf_en_dequeue_pre_def split: option.splits if_splits)[]
   subgoal
     by (auto simp: vmtf_dequeue_pre_def vmtf_enqueue_pre_def vmtf_dequeue_def
-        Let_def vmtf_en_dequeue_pre_def split: option.splits if_splits)[]
-  subgoal
-    by (auto simp: vmtf_dequeue_pre_def vmtf_enqueue_pre_def vmtf_dequeue_def
-        Let_def vmtf_en_dequeue_pre_def split: option.splits if_splits)[]
+        Let_def isa_vmtf_en_dequeue_pre_def split: option.splits if_splits)[]
   done
 
-lemma vmtf_en_dequeue_preD:
-  assumes \<open>vmtf_en_dequeue_pre ((M, ah), a, aa, ab, ac, b)\<close>
-  shows \<open>ah < length a\<close> and \<open>vmtf_dequeue_pre (ah, a)\<close>
-  using assms by (auto simp: vmtf_en_dequeue_pre_def)
+sepref_register isa_vmtf_enqueue
 
-sepref_thm vmtf_en_dequeue_code
-   is \<open>uncurry2 (RETURN ooo vmtf_en_dequeue)\<close>
-   :: \<open>[vmtf_en_dequeue_pre]\<^sub>a
-        trail_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
+sepref_definition vmtf_en_dequeue_code
+   is \<open>uncurry2 isa_vmtf_en_dequeue\<close>
+   :: \<open>[isa_vmtf_en_dequeue_pre]\<^sub>a
+        trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
   supply [[goals_limit = 1]]
-  supply vmtf_en_dequeue_preD[dest] vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]
-  unfolding vmtf_en_dequeue_def
+  supply isa_vmtf_en_dequeue_preD[dest] isa_vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]
+  unfolding isa_vmtf_en_dequeue_def
   by sepref
 
+declare vmtf_en_dequeue_code.refine[sepref_fr_rules]
 
-concrete_definition (in -) vmtf_en_dequeue_code
-   uses isasat_input_bounded_nempty.vmtf_en_dequeue_code.refine_raw
-   is \<open>(uncurry2 ?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) vmtf_en_dequeue_code_def
-
-lemmas vmtf_en_dequeue_hnr[sepref_fr_rules] =
-   vmtf_en_dequeue_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-
-sepref_thm vmtf_en_dequeue_fast_code
-   is \<open>uncurry2 (RETURN ooo vmtf_en_dequeue)\<close>
-   :: \<open>[vmtf_en_dequeue_pre]\<^sub>a
-        trail_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
+sepref_definition vmtf_en_dequeue_fast_code
+   is \<open>uncurry2 isa_vmtf_en_dequeue\<close>
+   :: \<open>[isa_vmtf_en_dequeue_pre]\<^sub>a
+        trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
   supply [[goals_limit = 1]]
-  supply vmtf_en_dequeue_preD[dest] vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]
-  unfolding vmtf_en_dequeue_def
+  supply isa_vmtf_en_dequeue_preD[dest] isa_vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]
+  unfolding isa_vmtf_en_dequeue_def
   by sepref
 
-concrete_definition (in -) vmtf_en_dequeue_fast_code
-   uses isasat_input_bounded_nempty.vmtf_en_dequeue_fast_code.refine_raw
-   is \<open>(uncurry2 ?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) vmtf_en_dequeue_fast_code_def
-
-lemmas vmtf_en_dequeue_fast_hnr[sepref_fr_rules] =
-   vmtf_en_dequeue_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+declare vmtf_en_dequeue_fast_code.refine[sepref_fr_rules]
 
 
-lemma (in -) insert_sort_nth_reorder:
+lemma insert_sort_nth_reorder:
    \<open>(uncurry insert_sort_nth, uncurry reorder_remove) \<in>
       Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
   using insert_sort_reorder_remove[unfolded fref_def nres_rel_def]
   by (intro frefI nres_relI) (fastforce simp: insert_sort_nth_def)
 
-lemma (in -) insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
+lemma insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
    \<open>(uncurry insert_sort_nth_code, uncurry reorder_remove) \<in>
       [\<lambda>((a, _), b). (\<forall>x\<in>set b. x < length a) \<and> length b \<le> uint32_max]\<^sub>a
       vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d \<rightarrow> arl_assn uint32_nat_assn\<close>
@@ -264,35 +330,35 @@ lemma (in -) insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
   using insert_sort_nth_code.refine[FCOMP insert_sort_nth_reorder]
   by auto
 
-definition (in -) atoms_hash_del where
-\<open>atoms_hash_del i xs =  do {ASSERT(i < length xs); RETURN (xs[i := False])}
-\<close>
+definition atoms_hash_del where
+\<open>atoms_hash_del i xs =  do {ASSERT(i < length xs); RETURN (xs[i := False])}\<close>
 
 lemma atoms_hash_del_op_set_delete:
   \<open>(uncurry atoms_hash_del,
     uncurry (RETURN oo op_set_delete)) \<in>
-     [\<lambda>(i, xs). i \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f
+     [\<lambda>(i, xs). i \<in> xs]\<^sub>f
      nat_rel \<times>\<^sub>r atoms_hash_rel \<rightarrow> \<langle>atoms_hash_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: atoms_hash_del_def atoms_hash_rel_def)
 
-sepref_definition (in -) atoms_hash_del_code
+sepref_definition atoms_hash_del_code
   is \<open>uncurry atoms_hash_del\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a (array_assn bool_assn)\<^sup>d \<rightarrow>\<^sub>a array_assn bool_assn\<close>
   unfolding atoms_hash_del_def
   by sepref
 
 lemmas atoms_hash_del_hnr[sepref_fr_rules] =
-   atoms_hash_del_code.refine[FCOMP atoms_hash_del_op_set_delete, unfolded atoms_hash_assn_def[symmetric]]
+   atoms_hash_del_code.refine[FCOMP atoms_hash_del_op_set_delete,
+     unfolded atoms_hash_assn_def[symmetric]]
 
-definition (in -) current_stamp where
+definition current_stamp where
   \<open>current_stamp vm  = fst (snd vm)\<close>
 
-lemma (in -)current_stamp_alt_def:
+lemma current_stamp_alt_def:
   \<open>current_stamp = (\<lambda>(_, m, _). m)\<close>
   by (auto simp: current_stamp_def intro!: ext)
 
-lemma (in -) current_stamp_hnr[sepref_fr_rules]:
+lemma current_stamp_hnr[sepref_fr_rules]:
   \<open>(return o current_stamp, RETURN o current_stamp) \<in> vmtf_conc\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: vmtf_node_rel_def current_stamp_alt_def)
 
@@ -317,74 +383,274 @@ lemma vmtf_rescale_alt_def:
   unfolding update_stamp.simps Let_def vmtf_rescale_def by auto
 
 sepref_register vmtf_rescale
-sepref_thm vmtf_rescale_code
-   is \<open>(PR_CONST vmtf_rescale)\<close>
-   :: \<open>vmtf_conc\<^sup>d \<rightarrow>\<^sub>a
-        vmtf_conc\<close>
+sepref_definition vmtf_rescale_code
+   is \<open>vmtf_rescale\<close>
+   :: \<open>vmtf_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_conc\<close>
   supply [[goals_limit = 1]]
   supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
   unfolding vmtf_rescale_alt_def zero_uint64_nat_def[symmetric] PR_CONST_def update_stamp.simps
     one_uint64_nat_def[symmetric]
   by sepref
 
-concrete_definition (in -) vmtf_rescale_code
-   uses isasat_input_bounded_nempty.vmtf_rescale_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
+declare vmtf_rescale_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) vmtf_rescale_code_def
+term "do {
+    (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd vm) \<and>
+          (i < length to_remove' \<longrightarrow> isa_vmtf_en_dequeue_pre ((M, to_remove'!i), vm'))\<^esup>
+      (\<lambda>(i, vm, h). i < length to_remove')
+      (\<lambda>(i, vm, h). do {
+         ASSERT(i < length to_remove');
+         vm \<leftarrow> isa_vmtf_en_dequeue M (to_remove'!i) vm;
+         RETURN (i+1, vm, h - {to_remove'!i})})
+      (0, vm, h);
+    RETURN (vm, (emptied_list to_remove', h))
+  }"
+  
+definition isa_vmtf_flush_int :: \<open>trail_pol \<Rightarrow> _ \<Rightarrow> _ nres\<close> where
+\<open>isa_vmtf_flush_int  = (\<lambda>M (vm, (to_remove, h)). do {
+    ASSERT(\<forall>x\<in>set to_remove. x < length (fst vm));
+    ASSERT(length to_remove \<le> uint32_max);
+    to_remove' \<leftarrow> reorder_remove vm to_remove;
+    ASSERT(length to_remove' \<le> uint32_max);
+    vm \<leftarrow> (if length to_remove' + fst (snd vm) \<ge> uint64_max
+      then vmtf_rescale vm else RETURN vm);
+    ASSERT(length to_remove' + fst (snd vm) \<le> uint64_max);
+    (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd vm) \<and>
+          (i < length to_remove' \<longrightarrow> isa_vmtf_en_dequeue_pre ((M, to_remove'!i), vm'))\<^esup>
+      (\<lambda>(i, vm, h). i < length to_remove')
+      (\<lambda>(i, vm, h). do {
+         ASSERT(i < length to_remove');
+	 ASSERT(isa_vmtf_en_dequeue_pre ((M, to_remove'!i), vm));
+         vm \<leftarrow> isa_vmtf_en_dequeue M (to_remove'!i) vm;
+	 ASSERT(to_remove'!i \<in> h);
+         RETURN (i+1, vm, h - {to_remove'!i})})
+      (0, vm, h);
+    RETURN (vm, (emptied_list to_remove', h))
+  })\<close>
 
-lemmas vmtf_rescale_hnr[sepref_fr_rules] =
-   vmtf_rescale_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def]
 
+lemma \<open>(uncurry isa_vmtf_flush_int, uncurry (vmtf_flush_int \<A>)) \<in> trail_pol \<A> \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+proof -
+  have vmtf_flush_int_alt_def:
+    \<open>vmtf_flush_int \<A>\<^sub>i\<^sub>n = (\<lambda>M (vm, (to_remove, h)). do {
+      ASSERT(\<forall>x\<in>set to_remove. x < length (fst vm));
+      ASSERT(length to_remove \<le> uint32_max);
+      to_remove' \<leftarrow> reorder_remove vm to_remove;
+      ASSERT(length to_remove' \<le> uint32_max);
+      vm \<leftarrow> (if length to_remove' + fst (snd vm) \<ge> uint64_max
+	then vmtf_rescale vm else RETURN vm);
+      ASSERT(length to_remove' + fst (snd vm) \<le> uint64_max);
+      (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd vm) \<and>
+	    (i < length to_remove' \<longrightarrow> vmtf_en_dequeue_pre \<A>\<^sub>i\<^sub>n ((M, to_remove'!i), vm'))\<^esup>
+	(\<lambda>(i, vm, h). i < length to_remove')
+	(\<lambda>(i, vm, h). do {
+	   ASSERT(i < length to_remove');
+	   ASSERT(to_remove'!i \<in># \<A>\<^sub>i\<^sub>n);
+	   ASSERT(to_remove'!i \<in> h);
+	   vm \<leftarrow> RETURN(vmtf_en_dequeue M (to_remove'!i) vm);
+	   RETURN (i+1, vm, h - {to_remove'!i})})
+	(0, vm, h);
+      RETURN (vm, (emptied_list to_remove', h))
+    })\<close> for \<A>\<^sub>i\<^sub>n
+    unfolding vmtf_flush_int_def
+    by auto
 
-sepref_thm vmtf_flush_code
-   is \<open>uncurry (PR_CONST vmtf_flush_int)\<close>
-   :: \<open>trail_assn\<^sup>k *\<^sub>a (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
+  have reorder_remove: \<open>reorder_remove x1d x1e
+	\<le> \<Down> Id
+	   (reorder_remove x1a x1b)\<close>
+    if 
+      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and    \<open>x2a = (x1b, x2b)\<close> and
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>y = (x1, x2)\<close> and
+      \<open>x2d = (x1e, x2e)\<close> and
+      \<open>x2c = (x1d, x2d)\<close> and
+      \<open>x = (x1c, x2c)\<close> and
+      \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
+      \<open>length x1b \<le> uint_max\<close> and
+      \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
+      \<open>length x1e \<le> uint_max\<close>
+    for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
+    using that by auto
+
+  have vmtf_rescale: \<open>vmtf_rescale x1d
+	\<le> \<Down> Id
+	   (vmtf_rescale x1a)\<close>
+    if 
+      \<open>True\<close> and
+      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and    \<open>x2a = (x1b, x2b)\<close> and
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>y = (x1, x2)\<close> and
+      \<open>x2d = (x1e, x2e)\<close> and
+      \<open>x2c = (x1d, x2d)\<close> and
+      \<open>x = (x1c, x2c)\<close> and
+      \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
+      \<open>length x1b \<le> uint_max\<close> and
+      \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
+      \<open>length x1e \<le> uint_max\<close> and
+      \<open>(to_remove', to_remove'a) \<in> Id\<close> and
+      \<open>length to_remove'a \<le> uint_max\<close> and
+      \<open>length to_remove' \<le> uint_max\<close> and
+      \<open>uint64_max \<le> length to_remove' + fst (snd x1d)\<close> and
+      \<open>uint64_max \<le> length to_remove'a + fst (snd x1a)\<close>
+    for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e to_remove' to_remove'a
+    using that by auto
+
+  have loop_rel: \<open>((0, vm, x2e), 0, vma, x2b) \<in> Id\<close>
+    if 
+      \<open>True\<close> and
+      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and
+      \<open>x2a = (x1b, x2b)\<close> and
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>y = (x1, x2)\<close> and
+      \<open>x2d = (x1e, x2e)\<close> and
+      \<open>x2c = (x1d, x2d)\<close> and
+      \<open>x = (x1c, x2c)\<close> and
+      \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
+      \<open>length x1b \<le> uint_max\<close> and
+      \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
+      \<open>length x1e \<le> uint_max\<close> and
+      \<open>(to_remove', to_remove'a) \<in> Id\<close> and
+      \<open>length to_remove'a \<le> uint_max\<close> and
+      \<open>length to_remove' \<le> uint_max\<close> and
+      \<open>(vm, vma) \<in> Id\<close> and
+      \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close> and
+      \<open>length to_remove' + fst (snd vm) \<le> uint64_max\<close> and
+      \<open>case (0, vma, x2b) of
+       (i, vm', h) \<Rightarrow>
+	 i \<le> length to_remove'a \<and>
+	 fst (snd vm') = i + fst (snd vma) \<and>
+	 (i < length to_remove'a \<longrightarrow>
+	  vmtf_en_dequeue_pre \<A> ((x1, to_remove'a ! i), vm'))\<close>
+    for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e to_remove' to_remove'a vm
+       vma
+    using that by auto
+  have isa_vmtf_en_dequeue_pre:
+    \<open>vmtf_en_dequeue_pre \<A> ((M, L), x) \<Longrightarrow> isa_vmtf_en_dequeue_pre ((M', L), x)\<close> for x M M' L
+    unfolding vmtf_en_dequeue_pre_def isa_vmtf_en_dequeue_pre_def
+    by auto
+  have isa_vmtf_en_dequeue: \<open>isa_vmtf_en_dequeue x1c (to_remove' ! x1h) x1i
+       \<le> SPEC
+	  (\<lambda>c. (c, vmtf_en_dequeue x1 (to_remove'a ! x1f) x1g)
+	       \<in> Id)\<close>
+   if
+     \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and    \<open>x2a = (x1b, x2b)\<close> and
+     \<open>x2 = (x1a, x2a)\<close> and
+     \<open>y = (x1, x2)\<close> and
+     \<open>x2d = (x1e, x2e)\<close> and
+     \<open>x2c = (x1d, x2d)\<close> and
+     \<open>x = (x1c, x2c)\<close> and
+     \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
+     \<open>length x1b \<le> uint_max\<close> and
+     \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
+     \<open>length x1e \<le> uint_max\<close> and
+     \<open>(to_remove', to_remove'a) \<in> Id\<close> and
+     \<open>length to_remove'a \<le> uint_max\<close> and
+     \<open>length to_remove' \<le> uint_max\<close> and
+     \<open>(vm, vma) \<in> Id\<close> and
+     \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close> and
+     \<open>length to_remove' + fst (snd vm) \<le> uint64_max\<close> and
+     \<open>(xa, x') \<in> Id\<close> and
+     \<open>case xa of (i, vm, h) \<Rightarrow> i < length to_remove'\<close> and
+     \<open>case x' of (i, vm, h) \<Rightarrow> i < length to_remove'a\<close> and
+     \<open>case xa of
+      (i, vm', h) \<Rightarrow>
+	i \<le> length to_remove' \<and>
+	fst (snd vm') = i + fst (snd vm) \<and>
+	(i < length to_remove' \<longrightarrow>
+	 isa_vmtf_en_dequeue_pre ((x1c, to_remove' ! i), vm'))\<close> and
+     \<open>case x' of
+      (i, vm', h) \<Rightarrow>
+	i \<le> length to_remove'a \<and>
+	fst (snd vm') = i + fst (snd vma) \<and>
+	(i < length to_remove'a \<longrightarrow>
+	 vmtf_en_dequeue_pre \<A> ((x1, to_remove'a ! i), vm'))\<close> and    \<open>x2f = (x1g, x2g)\<close> and
+     \<open>x' = (x1f, x2f)\<close> and
+     \<open>x2h = (x1i, x2i)\<close> and
+     \<open>xa = (x1h, x2h)\<close> and
+     \<open>x1f < length to_remove'a\<close> and
+     \<open>to_remove'a ! x1f \<in># \<A>\<close> and    \<open>to_remove'a ! x1f \<in> x2g\<close> and
+     \<open>x1h < length to_remove'\<close> and
+     \<open>isa_vmtf_en_dequeue_pre ((x1c, to_remove' ! x1h), x1i)\<close>
+   for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e to_remove' to_remove'a vm
+       vma xa x' x1f x2f x1g x2g x1h x2h x1i x2i
+  using isa_vmtf_en_dequeue[of \<A>, THEN fref_to_Down_curry2, of x1 \<open>to_remove'a ! x1f\<close> x1g
+     x1c \<open>to_remove' ! x1h\<close> x1i] that
+  by (auto simp: RETURN_def)
+ 
+  show ?thesis
+   unfolding isa_vmtf_flush_int_def uncurry_def vmtf_flush_int_alt_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg)
+    subgoal
+      by auto
+    subgoal
+      by auto
+    apply (rule reorder_remove; assumption)
+    subgoal
+      by auto
+    subgoal
+      by auto
+    apply (rule vmtf_rescale; assumption)
+    subgoal
+      by auto
+    subgoal
+      by auto
+    apply (rule loop_rel; assumption)
+    subgoal
+      by auto
+    subgoal
+      by auto
+    subgoal
+      by (auto intro!: isa_vmtf_en_dequeue_pre)
+    subgoal
+      by auto
+    subgoal
+      by auto
+    subgoal
+      by auto
+    apply (rule isa_vmtf_en_dequeue; assumption)
+    subgoal
+      by auto
+    subgoal
+      by auto
+    subgoal
+      by auto
+    done
+qed
+
+sepref_register isa_vmtf_en_dequeue
+sepref_definition isa_vmtf_flush_code
+   is \<open>uncurry isa_vmtf_flush_int\<close>
+   :: \<open>trail_pol_assn\<^sup>k *\<^sub>a (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
         (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<close>
   supply [[goals_limit = 1]]
   supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
-  unfolding vmtf_flush_def PR_CONST_def vmtf_flush_int_def zero_uint32_nat_def[symmetric]
+  unfolding vmtf_flush_def PR_CONST_def isa_vmtf_flush_int_def zero_uint32_nat_def[symmetric]
     current_stamp_def[symmetric] one_uint32_nat_def[symmetric]
   apply (rewrite at \<open>\<lambda>(i, vm, h). _ < \<hole>\<close> length_u_def[symmetric])
   apply (rewrite at \<open>length _ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
-concrete_definition (in -) vmtf_flush_code
-   uses isasat_input_bounded_nempty.vmtf_flush_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
+declare isa_vmtf_flush_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) vmtf_flush_code_def
-
-lemmas trail_dump_code_refine[sepref_fr_rules] =
-   vmtf_flush_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def,
-     FCOMP vmtf_change_to_remove_order', unfolded distinct_atoms_assn_def[symmetric]]
-
-
-sepref_thm vmtf_flush_fast_code
-   is \<open>uncurry (PR_CONST vmtf_flush_int)\<close>
-   :: \<open>trail_fast_assn\<^sup>k *\<^sub>a (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
+sepref_definition isa_vmtf_flush_fast_code
+   is \<open>uncurry isa_vmtf_flush_int\<close>
+   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
         (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<close>
   supply [[goals_limit = 1]]
   supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
-  unfolding vmtf_flush_def PR_CONST_def vmtf_flush_int_def zero_uint32_nat_def[symmetric]
+  unfolding isa_vmtf_flush_def PR_CONST_def vmtf_flush_int_def zero_uint32_nat_def[symmetric]
     current_stamp_def[symmetric] one_uint32_nat_def[symmetric]
   apply (rewrite at \<open>\<lambda>(i, vm, h). _ < \<hole>\<close> length_u_def[symmetric])
   apply (rewrite at \<open>length _ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
-concrete_definition (in -) vmtf_flush_fast_code
-   uses isasat_input_bounded_nempty.vmtf_flush_fast_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
+declare vmtf_flush_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) vmtf_flush_fast_code_def
 
-lemmas trail_dump_code_fast_refine[sepref_fr_rules] =
-   vmtf_flush_fast_code.refine[OF isasat_input_bounded_nempty_axioms, unfolded PR_CONST_def,
-     FCOMP vmtf_change_to_remove_order', unfolded distinct_atoms_assn_def[symmetric]]
-
-definition (in isasat_input_ops) vmtf_mark_to_rescore_and_unset_pre where
+definition vmtf_mark_to_rescore_and_unset_pre where
   \<open>vmtf_mark_to_rescore_and_unset_pre = (\<lambda>(L, ((ns, m, fst_As, lst_As, next_search), tor)).
-      L < length ns \<and> L \<in># \<A>\<^sub>i\<^sub>n \<and> (next_search \<noteq> None \<longrightarrow> the next_search < length ns))\<close>
+      L < length ns \<and> (next_search \<noteq> None \<longrightarrow> the next_search < length ns))\<close>
 
 definition (in -) atoms_hash_insert where
 \<open>atoms_hash_insert i xs =  do {ASSERT(i < length xs); RETURN (xs[i := True])}
