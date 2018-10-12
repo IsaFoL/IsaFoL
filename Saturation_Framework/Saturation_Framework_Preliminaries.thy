@@ -41,9 +41,19 @@ end
 datatype 'f inference =
   Infer (prems_of: "'f list") (concl_of: "'f ")
 
-locale calculus = consequence_relation +
-  fixes 
-    Inf :: "'f inference set" and
+locale sound_inference_system = consequence_relation +
+  fixes
+    Inf :: \<open>'f inference set\<close>
+  assumes
+    soundness: \<open>\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile> {concl_of \<iota>}\<close>
+
+locale calculus = sound_inference_system Bot entails_sound Inf + consequence_relation Bot entails_comp
+  for
+    Bot :: "'f set" and
+    entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "|\<approx>" 50) and
+    Inf :: \<open>'f inference set\<close> and
+    entails_comp :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50)
+  + fixes 
     Red_Inf :: "'f set \<Rightarrow> 'f inference set" and
     Red_F :: "'f set \<Rightarrow> 'f set"
   assumes
@@ -90,7 +100,7 @@ context calculus
 begin
 
 inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Longrightarrow>\<^sub>P\<^sub>P" 50) where
-  unsat_preserving_derive: "(B \<in> Bot \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> M \<Turnstile> {B}) \<Longrightarrow> M - N \<subseteq> Red_F N \<Longrightarrow> M \<Longrightarrow>\<^sub>P\<^sub>P N"
+  unsat_preserving_derive: "(B \<in> Bot \<Longrightarrow> N |\<approx> {B} \<Longrightarrow> M |\<approx> {B}) \<Longrightarrow> M - N \<subseteq> Red_F N \<Longrightarrow> M \<Longrightarrow>\<^sub>P\<^sub>P N"
 
 definition Sup_Red_Inf_llist :: "'f set llist \<Rightarrow> 'f inference set" where
     "Sup_Red_Inf_llist D = (\<Union>i \<in> {i. enat i < llength D}. (Red_Inf (lnth D i)))"

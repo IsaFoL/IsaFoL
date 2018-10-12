@@ -14,17 +14,18 @@ begin
 
 subsection \<open>Grounding Function\<close>
 
-locale grounding_function = consequence_relation Bot_F entails_F + calculus Bot_G entails_G Inf_G Red_Inf_G Red_F_G
+locale grounding_function = sound_inference_system Bot_F entails_sound_F Inf_F + calculus Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
   for
     Bot_F :: \<open>'f set\<close> and
-    entails_F ::  \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "\<Turnstile>F" 50) and
+    entails_sound_F ::  \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
+    Inf_F :: \<open>'f inference set\<close> and
     Bot_G :: \<open>'g set\<close> and
-    entails_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
+    entails_sound_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "|\<approx>G" 50) and
     Inf_G ::  \<open>'g inference set\<close> and
+    entails_comp_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
     Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
   + fixes
-    Inf_F :: \<open>'f inference set\<close> and
     \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
     \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close>
   assumes
@@ -56,7 +57,7 @@ proof -
 qed
 
 text \<open>lemma 8 in the technical report\<close>
-interpretation lifted_consequence_relation: consequence_relation  
+sublocale lifted_consequence_relation: consequence_relation  
   where Bot=Bot_F and entails=entails_\<G>
 proof
   fix N
@@ -92,18 +93,20 @@ end
 (* not sure if this should stay there *)
 locale inference_preserving_grounding_function = grounding_function +
   assumes
-    \<G>_prems_entails_prems_\<G>: \<open> \<G>_set (set (prems_of \<iota>)) \<Turnstile>G (\<Union> \<kappa> \<in> \<G>_Inf \<iota>. set (prems_of \<kappa>))\<close> and
-    concl_\<G>_entails_\<G>_concl: \<open> (\<Union> \<kappa> \<in> \<G>_Inf \<iota>. {concl_of \<kappa>}) \<Turnstile>G \<G>_F (concl_of \<iota>)\<close>
+    \<G>_prems_entails_prems_\<G>: \<open> \<G>_set (set (prems_of \<iota>)) |\<approx>G (\<Union> \<kappa> \<in> \<G>_Inf \<iota>. set (prems_of \<kappa>))\<close> and
+    concl_\<G>_entails_\<G>_concl: \<open> (\<Union> \<kappa> \<in> \<G>_Inf \<iota>. {concl_of \<kappa>}) |\<approx>G \<G>_F (concl_of \<iota>)\<close>
  
 subsection \<open>Adding a Well-founded Relation\<close>
 
-locale redundancy_criterion_lifting = grounding_function Bot_F entails_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G
+locale redundancy_criterion_lifting = grounding_function Bot_F entails_sound_F Inf_F Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
   + minimal_element Prec_F UNIV
   for
     Bot_F :: \<open>'f set\<close> and
-    entails_F :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "\<Turnstile>F" 50) and
+    entails_sound_F :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
+    Inf_F :: \<open>'f inference set\<close> and
     Bot_G :: \<open>'g set\<close> and
-    entails_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
+    entails_sound_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "|\<approx>G" 50) and
+    entails_comp_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     Inf_G :: \<open>'g inference set\<close> and
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
     Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close> and
@@ -306,7 +309,8 @@ qed
 text \<open>theorem 16 in the technical report\<close>
 sublocale lifted_calculus: calculus 
   where
-    Bot = Bot_F and entails = entails_\<G> and Inf = Inf_F  and Red_Inf = Red_Inf_\<G> and Red_F = Red_F_\<G>
+    Bot = Bot_F and entails_sound = entails_sound_F and Inf = Inf_F and entails_comp = entails_\<G> and
+    Red_Inf = Red_Inf_\<G> and Red_F = Red_F_\<G>
 proof
   fix B N N' \<iota>
   show \<open>Red_Inf_\<G> N \<in> Pow Inf_F\<close> unfolding Red_Inf_\<G>_def by blast
@@ -317,7 +321,6 @@ proof
   show \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> (N - N')\<close> using Red_Inf_of_Red_F_subset_F by simp
   show \<open>\<iota> \<in> Inf_F \<and> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf_\<G> N\<close> using Red_Inf_of_Inf_to_N_F by simp
 qed
-
 
 end
 
