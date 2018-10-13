@@ -12,7 +12,7 @@ TODO.
 
 theory Executable_FO_Ordered_Resolution_Prover
   imports Deterministic_FO_Ordered_Resolution_Prover Executable_Subsumption
-    "HOL-Library.Code_Target_Nat"
+    "HOL-Library.Code_Target_Nat" Show.Show_Instances
 begin
 
 global_interpretation RP: deterministic_FO_resolution_prover where
@@ -166,7 +166,10 @@ theorem prover_complete_refutation: "prover N \<longleftrightarrow> satisfiable 
 
 find_theorems name: deterministic_RP_refutation
 
-export_code prover in SML module_name RP
+definition string_literal_of_nat :: "nat \<Rightarrow> String.literal" where
+  "string_literal_of_nat n = String.implode (show n)"
+
+export_code prover Fun Var Pos Neg string_literal_of_nat "0::nat" "Suc" in SML module_name RPx file "RPx.sml"
 
 abbreviation "\<pp> \<equiv> Fun 42"
 abbreviation "\<aa> \<equiv> Fun 0 []"
@@ -210,9 +213,11 @@ value "prover (mk_MSC015_1 14)"
 value "prover (mk_MSC015_1 15)"
 value "prover (mk_MSC015_1 16)"
 value "prover (mk_MSC015_1 17)"
-value "prover (mk_MSC015_1 18)"
+(*value "prover (mk_MSC015_1 18)"
+
 value "prover (mk_MSC015_1 20)" \<comment>\<open>100 s\<close>
 value "prover (mk_MSC015_1 22)" \<comment>\<open>200 s\<close>
+*)
 (*
 value "prover (mk_MSC015_1 25)"
 *)
