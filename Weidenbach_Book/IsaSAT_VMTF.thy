@@ -56,7 +56,8 @@ lemma get_prev_ref[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: return_cons_rule vmtf_node_rel_def)
 
 definition update_next_search where
-  \<open>update_next_search L = (\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). ((ns, m, fst_As, lst_As, L), to_remove))\<close>
+  \<open>update_next_search L = (\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove).
+    ((ns, m, fst_As, lst_As, L), to_remove))\<close>
 
 lemma update_next_search_ref[sepref_fr_rules]:
   \<open>(uncurry (return oo update_next_search), uncurry (RETURN oo update_next_search)) \<in>
@@ -321,26 +322,18 @@ lemma insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
   using insert_sort_nth_code.refine[FCOMP insert_sort_nth_reorder]
   by auto
 
-definition atoms_hash_del where
-\<open>atoms_hash_del i xs =  do {ASSERT(i < length xs); RETURN (xs[i := False])}\<close>
-
 lemma atoms_hash_del_op_set_delete:
-  \<open>(uncurry atoms_hash_del,
+  \<open>(uncurry (RETURN oo atoms_hash_del),
     uncurry (RETURN oo op_set_delete)) \<in>
-     [\<lambda>(i, xs). i \<in> xs]\<^sub>f
-     nat_rel \<times>\<^sub>r atoms_hash_rel \<rightarrow> \<langle>atoms_hash_rel\<rangle>nres_rel\<close>
+     nat_rel \<times>\<^sub>r atoms_hash_rel \<A> \<rightarrow>\<^sub>f \<langle>atoms_hash_rel \<A>\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: atoms_hash_del_def atoms_hash_rel_def)
 
 sepref_definition atoms_hash_del_code
-  is \<open>uncurry atoms_hash_del\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a (array_assn bool_assn)\<^sup>d \<rightarrow>\<^sub>a array_assn bool_assn\<close>
-  unfolding atoms_hash_del_def
+  is \<open>uncurry (RETURN oo atoms_hash_del)\<close>
+  :: \<open>[uncurry atoms_hash_del_pre]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a (array_assn bool_assn)\<^sup>d \<rightarrow> array_assn bool_assn\<close>
+  unfolding atoms_hash_del_def atoms_hash_del_pre_def
   by sepref
-
-lemmas atoms_hash_del_hnr[sepref_fr_rules] =
-   atoms_hash_del_code.refine[FCOMP atoms_hash_del_op_set_delete,
-     unfolded atoms_hash_assn_def[symmetric]]
 
 definition current_stamp where
   \<open>current_stamp vm  = fst (snd vm)\<close>
@@ -385,18 +378,6 @@ sepref_definition vmtf_rescale_code
 
 declare vmtf_rescale_code.refine[sepref_fr_rules]
 
-term "do {
-    (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd vm) \<and>
-          (i < length to_remove' \<longrightarrow> isa_vmtf_en_dequeue_pre ((M, to_remove'!i), vm'))\<^esup>
-      (\<lambda>(i, vm, h). i < length to_remove')
-      (\<lambda>(i, vm, h). do {
-         ASSERT(i < length to_remove');
-         vm \<leftarrow> isa_vmtf_en_dequeue M (to_remove'!i) vm;
-         RETURN (i+1, vm, h - {to_remove'!i})})
-      (0, vm, h);
-    RETURN (vm, (emptied_list to_remove', h))
-  }"
-  
 definition isa_vmtf_flush_int :: \<open>trail_pol \<Rightarrow> _ \<Rightarrow> _ nres\<close> where
 \<open>isa_vmtf_flush_int  = (\<lambda>M (vm, (to_remove, h)). do {
     ASSERT(\<forall>x\<in>set to_remove. x < length (fst vm));
@@ -413,14 +394,15 @@ definition isa_vmtf_flush_int :: \<open>trail_pol \<Rightarrow> _ \<Rightarrow> 
          ASSERT(i < length to_remove');
 	 ASSERT(isa_vmtf_en_dequeue_pre ((M, to_remove'!i), vm));
          vm \<leftarrow> isa_vmtf_en_dequeue M (to_remove'!i) vm;
-	 ASSERT(to_remove'!i \<in> h);
-         RETURN (i+1, vm, h - {to_remove'!i})})
+	 ASSERT(atoms_hash_del_pre (to_remove'!i) h);
+         RETURN (i+1, vm, atoms_hash_del (to_remove'!i) h)})
       (0, vm, h);
     RETURN (vm, (emptied_list to_remove', h))
   })\<close>
 
 
-lemma \<open>(uncurry isa_vmtf_flush_int, uncurry (vmtf_flush_int \<A>)) \<in> trail_pol \<A> \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+lemma isa_vmtf_flush_int:
+  \<open>(uncurry isa_vmtf_flush_int, uncurry (vmtf_flush_int \<A>)) \<in> trail_pol \<A> \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
 proof -
   have vmtf_flush_int_alt_def:
     \<open>vmtf_flush_int \<A>\<^sub>i\<^sub>n = (\<lambda>M (vm, (to_remove, h)). do {
@@ -437,9 +419,9 @@ proof -
 	(\<lambda>(i, vm, h). do {
 	   ASSERT(i < length to_remove');
 	   ASSERT(to_remove'!i \<in># \<A>\<^sub>i\<^sub>n);
-	   ASSERT(to_remove'!i \<in> h);
+	   ASSERT(atoms_hash_del_pre (to_remove'!i) h);
 	   vm \<leftarrow> RETURN(vmtf_en_dequeue M (to_remove'!i) vm);
-	   RETURN (i+1, vm, h - {to_remove'!i})})
+	   RETURN (i+1, vm, atoms_hash_del (to_remove'!i) h)})
 	(0, vm, h);
       RETURN (vm, (emptied_list to_remove', h))
     })\<close> for \<A>\<^sub>i\<^sub>n
@@ -487,8 +469,7 @@ proof -
     using that by auto
 
   have loop_rel: \<open>((0, vm, x2e), 0, vma, x2b) \<in> Id\<close>
-    if 
-      \<open>True\<close> and
+    if
       \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and
       \<open>x2a = (x1b, x2b)\<close> and
       \<open>x2 = (x1a, x2a)\<close> and
@@ -524,23 +505,15 @@ proof -
 	  (\<lambda>c. (c, vmtf_en_dequeue x1 (to_remove'a ! x1f) x1g)
 	       \<in> Id)\<close>
    if
-     \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and    \<open>x2a = (x1b, x2b)\<close> and
-     \<open>x2 = (x1a, x2a)\<close> and
-     \<open>y = (x1, x2)\<close> and
-     \<open>x2d = (x1e, x2e)\<close> and
-     \<open>x2c = (x1d, x2d)\<close> and
-     \<open>x = (x1c, x2c)\<close> and
+     \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and
      \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
      \<open>length x1b \<le> uint_max\<close> and
      \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
      \<open>length x1e \<le> uint_max\<close> and
-     \<open>(to_remove', to_remove'a) \<in> Id\<close> and
      \<open>length to_remove'a \<le> uint_max\<close> and
      \<open>length to_remove' \<le> uint_max\<close> and
-     \<open>(vm, vma) \<in> Id\<close> and
      \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close> and
      \<open>length to_remove' + fst (snd vm) \<le> uint64_max\<close> and
-     \<open>(xa, x') \<in> Id\<close> and
      \<open>case xa of (i, vm, h) \<Rightarrow> i < length to_remove'\<close> and
      \<open>case x' of (i, vm, h) \<Rightarrow> i < length to_remove'a\<close> and
      \<open>case xa of
@@ -554,16 +527,26 @@ proof -
 	i \<le> length to_remove'a \<and>
 	fst (snd vm') = i + fst (snd vma) \<and>
 	(i < length to_remove'a \<longrightarrow>
-	 vmtf_en_dequeue_pre \<A> ((x1, to_remove'a ! i), vm'))\<close> and    \<open>x2f = (x1g, x2g)\<close> and
+	 vmtf_en_dequeue_pre \<A> ((x1, to_remove'a ! i), vm'))\<close> and
+     \<open>isa_vmtf_en_dequeue_pre ((x1c, to_remove' ! x1h), x1i)\<close> and
+     \<open>x1f < length to_remove'a\<close> and
+     \<open>to_remove'a ! x1f \<in># \<A>\<close> and
+     \<open>x1h < length to_remove'\<close> and
+     \<open>x2a = (x1b, x2b)\<close> and
+     \<open>x2 = (x1a, x2a)\<close> and
+     \<open>y = (x1, x2)\<close> and
+     \<open>x = (x1c, x2c)\<close>  and
+     \<open>x2d = (x1e, x2e)\<close> and
+     \<open>x2c = (x1d, x2d)\<close> and
+     \<open>x2f = (x1g, x2g)\<close> and
      \<open>x' = (x1f, x2f)\<close> and
      \<open>x2h = (x1i, x2i)\<close> and
      \<open>xa = (x1h, x2h)\<close> and
-     \<open>x1f < length to_remove'a\<close> and
-     \<open>to_remove'a ! x1f \<in># \<A>\<close> and    \<open>to_remove'a ! x1f \<in> x2g\<close> and
-     \<open>x1h < length to_remove'\<close> and
-     \<open>isa_vmtf_en_dequeue_pre ((x1c, to_remove' ! x1h), x1i)\<close>
+     \<open>(to_remove', to_remove'a) \<in> Id\<close> and
+     \<open>(xa, x') \<in> Id\<close> and
+     \<open>(vm, vma) \<in> Id\<close> 
    for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e to_remove' to_remove'a vm
-       vma xa x' x1f x2f x1g x2g x1h x2h x1i x2i
+       vma xa x' x1f x2f x1g x2g x1h x2h x1i and x2i :: \<open>bool list\<close>
   using isa_vmtf_en_dequeue[of \<A>, THEN fref_to_Down_curry2, of x1 \<open>to_remove'a ! x1f\<close> x1g
      x1c \<open>to_remove' ! x1h\<close> x1i] that
   by (auto simp: RETURN_def)
@@ -600,7 +583,8 @@ proof -
     subgoal
       by auto
     apply (rule isa_vmtf_en_dequeue; assumption)
-    subgoal
+    subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e to_remove' to_remove'a vm
+       vma xa x' x1f x2f x1g x2g x1h x2h x1i x2i vmb vmc
       by auto
     subgoal
       by auto
@@ -608,6 +592,8 @@ proof -
       by auto
     done
 qed
+
+declare atoms_hash_del_code.refine[sepref_fr_rules]
 
 sepref_register isa_vmtf_en_dequeue
 sepref_definition isa_vmtf_flush_code
@@ -630,143 +616,110 @@ sepref_definition isa_vmtf_flush_fast_code
         (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<close>
   supply [[goals_limit = 1]]
   supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
-  unfolding isa_vmtf_flush_def PR_CONST_def vmtf_flush_int_def zero_uint32_nat_def[symmetric]
+  unfolding isa_vmtf_flush_int_def PR_CONST_def vmtf_flush_int_def zero_uint32_nat_def[symmetric]
     current_stamp_def[symmetric] one_uint32_nat_def[symmetric]
   apply (rewrite at \<open>\<lambda>(i, vm, h). _ < \<hole>\<close> length_u_def[symmetric])
   apply (rewrite at \<open>length _ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
-declare vmtf_flush_code.refine[sepref_fr_rules]
+declare isa_vmtf_flush_code.refine[sepref_fr_rules]
 
 
-definition vmtf_mark_to_rescore_and_unset_pre where
-  \<open>vmtf_mark_to_rescore_and_unset_pre = (\<lambda>(L, ((ns, m, fst_As, lst_As, next_search), tor)).
-      L < length ns \<and> (next_search \<noteq> None \<longrightarrow> the next_search < length ns))\<close>
+definition atms_hash_insert_pre :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> bool\<close> where
+\<open>atms_hash_insert_pre i = (\<lambda>(_, xs). i < length xs)\<close>
 
-definition (in -) atoms_hash_insert where
-\<open>atoms_hash_insert i xs =  do {ASSERT(i < length xs); RETURN (xs[i := True])}
-\<close>
+definition atoms_hash_insert :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> nat list \<times> bool list\<close> where
+\<open>atoms_hash_insert i  = (\<lambda>(n, xs). if xs ! i then (n, xs) else (n @ [i], xs[i := True]))\<close>
 
 lemma atoms_hash_del_op_set_insert:
-  \<open>(uncurry atoms_hash_insert,
+  \<open>(uncurry (RETURN oo atoms_hash_insert),
     uncurry (RETURN oo op_set_insert)) \<in>
      [\<lambda>(i, xs). i \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f
-     nat_rel \<times>\<^sub>r atoms_hash_rel \<rightarrow> \<langle>atoms_hash_rel\<rangle>nres_rel\<close>
+     nat_rel \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n \<rightarrow> \<langle>distinct_atoms_rel \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: atoms_hash_insert_def atoms_hash_rel_def)
+    (auto simp: atoms_hash_insert_def atoms_hash_rel_def distinct_atoms_rel_alt_def)
 
 sepref_definition (in -) atoms_hash_insert_code
-  is \<open>uncurry atoms_hash_insert\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a (array_assn bool_assn)\<^sup>d \<rightarrow>\<^sub>a array_assn bool_assn\<close>
-  unfolding atoms_hash_insert_def
+  is \<open>uncurry (RETURN oo atoms_hash_insert)\<close>
+  :: \<open>[uncurry atms_hash_insert_pre]\<^sub>a
+      uint32_nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn *a array_assn bool_assn)\<^sup>d \<rightarrow>
+      arl_assn uint32_nat_assn *a array_assn bool_assn\<close>
+  unfolding atoms_hash_insert_def atms_hash_insert_pre_def
   by sepref
 
-lemmas atoms_hash_insert_hnr[sepref_fr_rules] =
-   atoms_hash_insert_code.refine[FCOMP atoms_hash_del_op_set_insert,
-      unfolded atoms_hash_assn_def[symmetric]]
-
+declare atoms_hash_insert_code.refine[sepref_fr_rules]
 
 definition (in -) atoms_hash_set_member where
-\<open>atoms_hash_set_member i xs =  do {ASSERT(i < length xs); RETURN (xs ! i)}
-\<close>
-
-lemma atoms_hash_set_member:
-  \<open>(uncurry atoms_hash_set_member,
-    uncurry (RETURN oo op_set_member)) \<in>
-     [\<lambda>(i, xs). i \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f
-     nat_rel \<times>\<^sub>r atoms_hash_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: atoms_hash_set_member_def atoms_hash_rel_def)
-
-sepref_definition (in -) atoms_hash_set_member_code
-  is \<open>uncurry atoms_hash_set_member\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a (array_assn bool_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding atoms_hash_set_member_def
-  by sepref
-
-lemmas atoms_hash_set_member_hnr[sepref_fr_rules] =
-   atoms_hash_set_member_code.refine[FCOMP atoms_hash_set_member,
-      unfolded atoms_hash_assn_def[symmetric]]
+\<open>atoms_hash_set_member i xs =  do {ASSERT(i < length xs); RETURN (xs ! i)}\<close>
 
 
-definition (in -) distinct_atoms_insert where
-\<open>distinct_atoms_insert i = (\<lambda>(D, C). do {
-    if i \<in> C
-    then RETURN (D, C)
-    else RETURN( D @ [i], insert i C)
-  })\<close>
+definition isa_vmtf_mark_to_rescore
+  :: \<open>nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> isa_vmtf_remove_int\<close>
+where
+  \<open>isa_vmtf_mark_to_rescore L = (\<lambda>((ns, m, fst_As, next_search), to_remove).
+     ((ns, m, fst_As, next_search), atoms_hash_insert L to_remove))\<close>
 
+definition (in -) isa_vmtf_unset :: \<open>nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> isa_vmtf_remove_int\<close> where
+\<open>isa_vmtf_unset = (\<lambda>L ((ns, m, fst_As, lst_As, next_search), to_remove).
+  (if next_search = None \<or> stamp (ns ! (the next_search)) < stamp (ns ! L)
+  then ((ns, m, fst_As, lst_As, Some L), to_remove)
+  else ((ns, m, fst_As, lst_As, next_search), to_remove)))\<close>
 
-lemma distinct_atoms_insert:
-  \<open>(uncurry distinct_atoms_insert,
-    uncurry (RETURN oo op_set_insert)) \<in>
-     [\<lambda>(i, xs). i \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f
-     nat_rel \<times>\<^sub>r distinct_atoms_rel \<rightarrow> \<langle>distinct_atoms_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: distinct_atoms_insert_def distinct_atoms_rel_def)
+definition vmtf_unset_pre where
+\<open>vmtf_unset_pre = (\<lambda>L ((ns, m, fst_As, lst_As, next_search), to_remove).
+  L < length ns \<and> (next_search \<noteq> None \<longrightarrow> the next_search < length ns))\<close>
 
-sepref_thm distinct_atoms_insert_code
-  is \<open>uncurry distinct_atoms_insert\<close>
-  :: \<open>[\<lambda>(i, _). i \<in># \<A>\<^sub>i\<^sub>n]\<^sub>a
-      uint32_nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn *a atoms_hash_assn)\<^sup>d \<rightarrow> (arl_assn uint32_nat_assn *a atoms_hash_assn)\<close>
-  unfolding distinct_atoms_insert_def
-  by sepref
+lemma vmtf_unset_pre_vmtf:
+  assumes
+    \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
+    \<open>L \<in># \<A>\<close>
+  shows \<open>vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search), to_remove)\<close>
+  using assms
+  by (auto simp: vmtf_def vmtf_unset_pre_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
-concrete_definition (in -) distinct_atoms_insert_code
-  uses isasat_input_bounded_nempty.distinct_atoms_insert_code.refine_raw
-  is \<open>(uncurry ?f,_)\<in>_\<close>
+lemma vmtf_unset_pre:
+  assumes
+    \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> isa_vmtf \<A> M\<close> and
+    \<open>L \<in># \<A>\<close>
+  shows \<open>vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search), to_remove)\<close>
+  using assms vmtf_unset_pre_vmtf[of ns m fst_As lst_As next_search _ \<A> M L]
+  unfolding isa_vmtf_def vmtf_unset_pre_def
+  by auto
 
-prepare_code_thms (in -) distinct_atoms_insert_code_def
-
-lemmas distinct_atoms_insert_hnr[sepref_fr_rules] =
-   distinct_atoms_insert_code.refine[OF isasat_input_bounded_nempty_axioms,
-     FCOMP distinct_atoms_insert,
-     unfolded distinct_atoms_assn_def[symmetric]]
-
-(* distinct_atoms_assn *)
-sepref_thm vmtf_mark_to_rescore_and_unset_code
-  is \<open>uncurry (RETURN oo vmtf_mark_to_rescore_and_unset)\<close>
-  :: \<open>[vmtf_mark_to_rescore_and_unset_pre]\<^sub>a
-      uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
-  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
-  supply [[goals_limit=1]]
-  unfolding vmtf_mark_to_rescore_and_unset_def vmtf_mark_to_rescore_def
-   vmtf_unset_def save_phase_def vmtf_mark_to_rescore_and_unset_pre_def
-  apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
-  by sepref
-
-concrete_definition (in -) vmtf_mark_to_rescore_and_unset_code
-  uses isasat_input_bounded_nempty.vmtf_mark_to_rescore_and_unset_code.refine_raw
-  is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) vmtf_mark_to_rescore_and_unset_code_def
-
-lemmas vmtf_mark_to_rescore_and_unset_hnr[sepref_fr_rules] =
-   vmtf_mark_to_rescore_and_unset_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-definition (in isasat_input_ops) vmtf_unset_pre where
-  \<open>vmtf_unset_pre = (\<lambda>(L, vm). \<exists>M. L = atm_of(lit_of (hd M)) \<and> vm \<in> vmtf M \<and> M \<noteq> [] \<and>
-          literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M))\<close>
-
-sepref_thm vmtf_unset_code
-  is \<open>uncurry (RETURN oo vmtf_unset)\<close>
-  :: \<open>[vmtf_unset_pre]\<^sub>a
+sepref_register isa_vmtf_unset
+sepref_definition isa_vmtf_unset_code
+  is \<open>uncurry (RETURN oo isa_vmtf_unset)\<close>
+  :: \<open>[uncurry vmtf_unset_pre]\<^sub>a
      uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
   supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
     neq_NilE[elim!] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
-  unfolding vmtf_unset_def vmtf_unset_pre_def
+  unfolding isa_vmtf_unset_def vmtf_unset_pre_def
   apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
   by sepref
 
-concrete_definition (in -) vmtf_unset_code
-   uses isasat_input_bounded_nempty.vmtf_unset_code.refine_raw
-   is \<open>(uncurry ?f, _) \<in> _\<close>
+declare isa_vmtf_unset_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) vmtf_unset_code_def
+definition isa_vmtf_mark_to_rescore_and_unset :: \<open>nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> isa_vmtf_remove_int\<close>
+where
+  \<open>isa_vmtf_mark_to_rescore_and_unset L M = isa_vmtf_mark_to_rescore L (isa_vmtf_unset L M)\<close>
+  
+definition isa_vmtf_mark_to_rescore_and_unset_pre where
+  \<open>isa_vmtf_mark_to_rescore_and_unset_pre = (\<lambda>(L, ((ns, m, fst_As, lst_As, next_search), tor)).
+      vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search), tor) \<and>
+      atms_hash_insert_pre L tor)\<close>
 
-lemmas vmtf_unset_code_code[sepref_fr_rules] =
-   vmtf_unset_code.refine[OF isasat_input_bounded_nempty_axioms]
+sepref_definition vmtf_mark_to_rescore_and_unset_code
+  is \<open>uncurry (RETURN oo isa_vmtf_mark_to_rescore_and_unset)\<close>
+  :: \<open>[isa_vmtf_mark_to_rescore_and_unset_pre]\<^sub>a
+      uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
+  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
+    if_splits[split] isa_vmtf_unset_def[simp]
+  supply [[goals_limit=1]]
+  unfolding isa_vmtf_mark_to_rescore_and_unset_def isa_vmtf_mark_to_rescore_def
+    save_phase_def isa_vmtf_mark_to_rescore_and_unset_pre_def
+  by sepref
 
+declare vmtf_mark_to_rescore_and_unset_code.refine[sepref_fr_rules]
 
 definition get_pos_of_level_in_trail where
   \<open>get_pos_of_level_in_trail M\<^sub>0 lev =
@@ -783,7 +736,6 @@ lemma control_stack_is_decided:
   by (induction arbitrary: c rule: control_stack.induct) (auto simp: nth_append
       dest: control_stack_le_length_M)
 
-
 lemma control_stack_distinct:
   \<open>control_stack cs M \<Longrightarrow> distinct cs\<close>
   by (induction rule: control_stack.induct) (auto simp: nth_append
@@ -794,7 +746,7 @@ lemma control_stack_level_control_stack:
     cs: \<open>control_stack cs M\<close> and
     n_d: \<open>no_dup M\<close> and
     i: \<open>i < length cs\<close>
-  shows  \<open>get_level M (lit_of (rev M ! (cs ! i))) = Suc i\<close>
+  shows \<open>get_level M (lit_of (rev M ! (cs ! i))) = Suc i\<close>
 proof -
   define L where \<open>L = rev M ! (cs ! i)\<close>
   have csi: \<open>cs ! i < length M\<close>
@@ -827,11 +779,15 @@ proof -
   then show ?thesis using lev0 unfolding L_def[symmetric] by auto
 qed
 
+definition get_pos_of_level_in_trail_pre where
+  \<open>get_pos_of_level_in_trail_pre = (\<lambda>(M, lev). lev < count_decided M)\<close>
+
 lemma get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail:
    \<open>(uncurry get_pos_of_level_in_trail_imp, uncurry get_pos_of_level_in_trail) \<in>
-    [\<lambda>(M, lev). lev < count_decided M]\<^sub>f trail_pol_no_CS \<times>\<^sub>f nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+    [get_pos_of_level_in_trail_pre]\<^sub>f trail_pol_no_CS \<A> \<times>\<^sub>f nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
   apply (intro nres_relI frefI)
   unfolding get_pos_of_level_in_trail_imp_def uncurry_def get_pos_of_level_in_trail_def
+    get_pos_of_level_in_trail_pre_def
   apply clarify
   apply (rule ASSERT_leI)
   subgoal
@@ -855,172 +811,52 @@ sepref_definition (in -) get_pos_of_level_in_trail_imp_code
   unfolding get_pos_of_level_in_trail_imp_def
   by sepref
 
-lemma get_pos_of_level_in_trail_fast_hnr[sepref_fr_rules]:
-   \<open>(uncurry get_pos_of_level_in_trail_imp_fast_code, uncurry get_pos_of_level_in_trail)
-     \<in> [\<lambda>(a, b). b < count_decided a]\<^sub>a (hr_comp trail_pol_fast_assn' trail_pol_no_CS)\<^sup>k *\<^sub>a
-                 uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  using get_pos_of_level_in_trail_imp_fast_code.refine[FCOMP
-      get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail] .
-
-lemma get_pos_of_level_in_trail_hnr[sepref_fr_rules]:
-   \<open>(uncurry get_pos_of_level_in_trail_imp_code, uncurry get_pos_of_level_in_trail)
-     \<in> [\<lambda>(a, b). b < count_decided a]\<^sub>a (hr_comp trail_pol_assn' trail_pol_no_CS)\<^sup>k *\<^sub>a
-                 uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  using get_pos_of_level_in_trail_imp_code.refine[FCOMP
-      get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail] .
-
-
-definition (in -) length_trail_imp where
-  \<open>length_trail_imp = (\<lambda>(M', xs, lvls, reasons, k, cs). do {
-      ASSERT(length M' \<le> uint32_max);
-      RETURN (length_u M')
-   })\<close>
-
-lemma length_trail_imp_length:
-   \<open>(length_trail_imp, RETURN o op_list_length) \<in> trail_pol_no_CS \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
-  apply (intro nres_relI frefI)
-  unfolding length_trail_imp_def uncurry_def
-  apply clarify
-  apply (rule ASSERT_leI)
-  subgoal
-    by (auto simp: trail_pol_no_CS_def ann_lits_split_reasons_def dest!: length_trail_uint_max)
-  subgoal
-    by (auto simp: trail_pol_no_CS_def
-        ann_lits_split_reasons_def dest!: length_trail_uint_max)
-  done
-
-
-sepref_definition (in -) length_trail_imp_code
-  is \<open>length_trail_imp\<close>
-  :: \<open>trail_pol_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding length_trail_imp_def
-  by sepref
-
-lemma length_trail_imp_code[sepref_fr_rules]:
-  \<open>(length_trail_imp_code, RETURN \<circ> op_list_length)
-    \<in> (hr_comp trail_pol_assn'
-     trail_pol_no_CS)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  using length_trail_imp_code.refine[FCOMP length_trail_imp_length] .
-
-
-sepref_definition (in -) length_trail_imp_fast_code
-  is \<open>length_trail_imp\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding length_trail_imp_def
-  by sepref
-
-lemma length_trail_imp_fast_code[sepref_fr_rules]:
-  \<open>(length_trail_imp_fast_code, RETURN \<circ> op_list_length)
-\<in> (hr_comp trail_pol_fast_assn'
-     trail_pol_no_CS)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  using length_trail_imp_fast_code.refine[FCOMP length_trail_imp_length] .
-
+declare get_pos_of_level_in_trail_imp_code.refine[sepref_fr_rules]
+   get_pos_of_level_in_trail_imp_fast_code.refine[sepref_fr_rules]
 
 lemma lit_of_last_trail_pol_lit_of_last_trail_no_CS:
    \<open>(RETURN o lit_of_last_trail_pol, RETURN o lit_of_hd_trail) \<in>
-         [\<lambda>S. S \<noteq> []]\<^sub>f trail_pol_no_CS \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+         [\<lambda>S. S \<noteq> []]\<^sub>f trail_pol_no_CS \<A> \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   by (auto simp: lit_of_hd_trail_def trail_pol_no_CS_def lit_of_last_trail_pol_def
      ann_lits_split_reasons_def hd_map rev_map[symmetric]
       intro!: frefI nres_relI)
 
-theorem
-  lit_of_last_trail_code_lit_of_last_trail_no_CS[sepref_fr_rules]:
-  \<open>(lit_of_last_trail_code, RETURN o lit_of_hd_trail)
-    \<in> [\<lambda>S. S \<noteq> []]\<^sub>a trail_no_CS_assn\<^sup>k  \<rightarrow> unat_lit_assn\<close>
-    (is ?slow is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>) and
-  lit_of_last_trail_fast_code_lit_of_last_trail_no_CS[sepref_fr_rules]:
-  \<open>(lit_of_last_trail_fast_code, RETURN o lit_of_hd_trail)
-    \<in> [\<lambda>S. S \<noteq> []]\<^sub>a trail_no_CS_fast_assn\<^sup>k  \<rightarrow> unat_lit_assn\<close>
-    (is ?fast is \<open>?cfast \<in> [?pre]\<^sub>a ?imfast \<rightarrow> ?ffast\<close>)
-proof -
-  have H: \<open>?c
-    \<in> [comp_PRE trail_pol_no_CS (\<lambda>S. S \<noteq> []) (\<lambda>_ (M, _). M \<noteq> [])
-     (\<lambda>_. True)]\<^sub>a hrp_comp (trail_pol_assn\<^sup>k)
-                     trail_pol_no_CS \<rightarrow> hr_comp unat_lit_assn Id\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF lit_of_last_trail_code.refine
-      lit_of_last_trail_pol_lit_of_last_trail_no_CS] .
-  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that by (auto simp: comp_PRE_def trail_pol_no_CS_def
-       ann_lits_split_reasons_def)
-  have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep ..
-  have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    by (auto simp: hrp_comp_def hr_comp_def)
-  show ?slow
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f PR_CONST_def apply assumption
-    using pre ..
-  have H: \<open>?cfast
-    \<in> [comp_PRE trail_pol_no_CS (\<lambda>S. S \<noteq> []) (\<lambda>_ (M, _). M \<noteq> [])
-     (\<lambda>_. True)]\<^sub>a hrp_comp (trail_pol_fast_assn\<^sup>k) trail_pol_no_CS \<rightarrow> hr_comp unat_lit_assn Id\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF lit_of_last_trail_fast_code.refine
-      lit_of_last_trail_pol_lit_of_last_trail_no_CS] .
-  have im: \<open>?im' = ?imfast\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep ..
-  have f: \<open>?f' = ?ffast\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    by (auto simp: hrp_comp_def hr_comp_def)
-  show ?fast
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f PR_CONST_def apply assumption
-    using pre ..
-qed
-
-
 lemma size_conflict_int_size_conflict:
-  \<open>(RETURN o size_conflict_int, RETURN o size_conflict) \<in> [\<lambda>D. D \<noteq> None]\<^sub>f option_lookup_clause_rel \<rightarrow>
-     \<langle>Id\<rangle>nres_rel\<close>
+  \<open>(RETURN o size_conflict_int, RETURN o size_conflict) \<in> [\<lambda>D. D \<noteq> None]\<^sub>f option_lookup_clause_rel \<A> \<rightarrow>
+     \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: size_conflict_int_def size_conflict_def option_lookup_clause_rel_def
       lookup_clause_rel_def)
 
-lemma size_conflict_hnr[sepref_fr_rules]:
-  \<open>(size_conflict_code, RETURN \<circ> size_conflict) \<in> [\<lambda>x. x \<noteq> None]\<^sub>a option_lookup_clause_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  using size_conflict_code_hnr[FCOMP size_conflict_int_size_conflict]
-  unfolding option_lookup_clause_assn_def[symmetric]
-  by simp
-
-definition (in isasat_input_ops) rescore_clause
-  :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
+definition rescore_clause
+  :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
     (vmtf_remove_int \<times> phase_saver) nres\<close>
 where
-  \<open>rescore_clause C M vm \<phi> = SPEC (\<lambda>(vm', \<phi>' :: bool list). vm' \<in> vmtf M \<and> phase_saving \<phi>')\<close>
+  \<open>rescore_clause \<A> C M vm \<phi> = SPEC (\<lambda>(vm', \<phi>' :: bool list). vm' \<in> vmtf \<A> M \<and> phase_saving \<A> \<phi>')\<close>
 
 (* TODO ded-uplicate definitions *)
-definition (in isasat_input_ops) find_decomp_w_ns_pre where
-  \<open>find_decomp_w_ns_pre = (\<lambda>((M, highest), vm).
+definition find_decomp_w_ns_pre where
+  \<open>find_decomp_w_ns_pre \<A> = (\<lambda>((M, highest), vm).
        no_dup M \<and>
        highest < count_decided M \<and>
-       literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-       vm \<in> vmtf M)\<close>
-
-definition  (in isasat_input_ops) find_decomp_wl_pre
-   :: \<open>nat \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
-where
-   \<open>find_decomp_wl_pre =  (\<lambda>(highest, T).
-       find_decomp_w_ns_pre ((get_trail_wl_heur T, highest), get_vmtf_heur T))\<close>
-
+       literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M \<and>
+       vm \<in> vmtf \<A> M)\<close>
 
 definition find_decomp_wl_imp
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat \<Rightarrow> vmtf_remove_int \<Rightarrow>
+  :: \<open>nat multiset \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat \<Rightarrow> vmtf_remove_int \<Rightarrow>
        ((nat, nat) ann_lits \<times> vmtf_remove_int) nres\<close>
 where
-  \<open>find_decomp_wl_imp = (\<lambda>M\<^sub>0 lev vm. do {
+  \<open>find_decomp_wl_imp \<A> = (\<lambda>M\<^sub>0 lev vm. do {
     let k = count_decided M\<^sub>0;
     let M\<^sub>0 = trail_conv_to_no_CS M\<^sub>0;
-    let n = (length M\<^sub>0);
+    let n = length M\<^sub>0;
     pos \<leftarrow> get_pos_of_level_in_trail M\<^sub>0 lev;
     ASSERT((n - pos) \<le> uint32_max);
     let target = n - pos;
     (_, M, vm') \<leftarrow>
        WHILE\<^sub>T\<^bsup>\<lambda>(j, M, vm'). j \<le> target \<and>
            M = drop j M\<^sub>0 \<and> target \<le> length M\<^sub>0 \<and>
-           vm' \<in> vmtf M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M)\<^esup>
+           vm' \<in> vmtf \<A> M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (lit_of `# mset M)\<^esup>
          (\<lambda>(j, M, vm). j < target)
          (\<lambda>(j, M, vm). do {
             ASSERT(M \<noteq> []);
@@ -1033,60 +869,68 @@ where
     RETURN (M, vm')
   })\<close>
 
-definition find_decomp_wl_imp_pre where
-  \<open>find_decomp_wl_imp_pre = (\<lambda>(((M, D), L), vm). M \<noteq> [] \<and> D \<noteq> None \<and>
-      literals_are_in_\<L>\<^sub>i\<^sub>n (the D) \<and> -L \<in># the D \<and>
-      literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M) \<and> vm \<in> vmtf M)\<close>
+definition isa_find_decomp_wl_imp
+  :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> (trail_pol \<times> isa_vmtf_remove_int) nres\<close>
+where
+  \<open>isa_find_decomp_wl_imp = (\<lambda>M\<^sub>0 lev vm. do {
+    let k = count_decided_pol M\<^sub>0;
+    let M\<^sub>0 = M\<^sub>0;
+    ASSERT(isa_length_trail_pre M\<^sub>0);
+    let n = isa_length_trail M\<^sub>0;
+    pos \<leftarrow> get_pos_of_level_in_trail_imp M\<^sub>0 lev;
+    ASSERT((n - pos) \<le> uint32_max);
+    let target = n - pos;
+    (_, M, vm') \<leftarrow>
+       WHILE\<^sub>T\<^bsup>\<lambda>(j, M, vm'). j \<le> target\<^esup>
+         (\<lambda>(j, M, vm). j < target)
+         (\<lambda>(j, M, vm). do {
+            ASSERT(Suc j \<le> uint32_max);
+            ASSERT(case M of (M, _) \<Rightarrow> M \<noteq> []);
+            ASSERT(tl_trailt_tr_pre M);
+            let L = atm_of (lit_of_last_trail_pol M);
+            ASSERT(vmtf_unset_pre L vm);
+            RETURN (j + one_uint32_nat, tl_trailt_tr M, isa_vmtf_unset L vm)
+         })
+         (zero_uint32_nat, M\<^sub>0, vm);
+    M \<leftarrow> trail_conv_back_imp lev M;
+    RETURN (M, vm')
+  })\<close>
+
+declare lit_of_last_trail_code.refine[sepref_fr_rules]
+declare lit_of_last_trail_fast_code.refine[sepref_fr_rules]
 
 sepref_register find_decomp_wl_imp
-sepref_thm find_decomp_wl_imp_code
-  is \<open>uncurry2 (PR_CONST find_decomp_wl_imp)\<close>
-  :: \<open>[\<lambda>((M, lev), vm). lev < count_decided M]\<^sub>a trail_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
-    \<rightarrow> trail_assn *a vmtf_remove_conc\<close>
-  unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
-    find_decomp_wl_imp_pre_def
+sepref_definition find_decomp_wl_imp_code
+  is \<open>uncurry2 (isa_find_decomp_wl_imp)\<close>
+  :: \<open>[\<lambda>((M, lev), vm). True]\<^sub>a trail_pol_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
+    \<rightarrow> trail_pol_assn *a vmtf_remove_conc\<close>
+  unfolding isa_find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
   supply [[goals_limit=1]] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp] trail_conv_to_no_CS_def[simp]
-    lit_of_last_trail_code_lit_of_last_trail[sepref_fr_rules del] lit_of_hd_trail_def[simp]
+    lit_of_hd_trail_def[simp]
   supply uint32_nat_assn_one[sepref_fr_rules] vmtf_unset_pre_def[simp]
   supply uint32_nat_assn_minus[sepref_fr_rules]
   by sepref
 
-concrete_definition (in -) find_decomp_wl_imp_code
-   uses isasat_input_bounded_nempty.find_decomp_wl_imp_code.refine_raw
-   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+declare find_decomp_wl_imp_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) find_decomp_wl_imp_code_def
-
-lemmas find_decomp_wl_imp_code[sepref_fr_rules] =
-   find_decomp_wl_imp_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-sepref_thm find_decomp_wl_imp_fast_code
-  is \<open>uncurry2 (PR_CONST find_decomp_wl_imp)\<close>
-  :: \<open>[\<lambda>((M, lev), vm). lev < count_decided M]\<^sub>a trail_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
-    \<rightarrow> trail_fast_assn *a vmtf_remove_conc\<close>
-  unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
-    find_decomp_wl_imp_pre_def
+sepref_definition find_decomp_wl_imp_fast_code
+  is \<open>uncurry2 (isa_find_decomp_wl_imp)\<close>
+  :: \<open>[\<lambda>((M, lev), vm). True]\<^sub>a trail_pol_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
+    \<rightarrow> trail_pol_fast_assn *a vmtf_remove_conc\<close>
+  unfolding isa_find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
   supply trail_conv_to_no_CS_def[simp] lit_of_hd_trail_def[simp]
   supply [[goals_limit=1]] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
   supply uint32_nat_assn_one[sepref_fr_rules] vmtf_unset_pre_def[simp]
   supply uint32_nat_assn_minus[sepref_fr_rules]
   by sepref
 
-concrete_definition (in -) find_decomp_wl_imp_fast_code
-   uses isasat_input_bounded_nempty.find_decomp_wl_imp_fast_code.refine_raw
-   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+declare find_decomp_wl_imp_fast_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) find_decomp_wl_imp_fast_code_def
-
-lemmas find_decomp_wl_imp_fast_code[sepref_fr_rules] =
-   find_decomp_wl_imp_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-definition (in isasat_input_ops) find_decomp_w_ns where
-  \<open>find_decomp_w_ns =
+definition find_decomp_w_ns where
+  \<open>find_decomp_w_ns \<A> =
      (\<lambda>(M::(nat, nat) ann_lits) highest _.
         SPEC(\<lambda>(M1, vm). \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-          get_level M K = Suc highest \<and> vm \<in> vmtf M1))\<close>
-
+          get_level M K = Suc highest \<and> vm \<in> vmtf \<A> M1))\<close>
 
 definition (in -) find_decomp_wl_st :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>find_decomp_wl_st = (\<lambda>L (M, N, D, oth).  do{
@@ -1095,15 +939,14 @@ definition (in -) find_decomp_wl_st :: \<open>nat literal \<Rightarrow> nat twl_
   })\<close>
 
 
-definition (in isasat_input_ops) find_decomp_wl_st_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow>
-    twl_st_wl_heur nres\<close> where
+definition find_decomp_wl_st_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>find_decomp_wl_st_int = (\<lambda>highest (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, stats). do{
-     (M', vm) \<leftarrow> find_decomp_w_ns M highest vm;
+     (M', vm) \<leftarrow> isa_find_decomp_wl_imp M highest vm;
      RETURN (M', N, D, Q, W, vm, \<phi>, clvls, cach, lbd, stats)
   })\<close>
 
 
-definition (in isasat_input_ops) vmtf_rescore_body
+definition vmtf_rescore_body
  :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
     (nat \<times> vmtf_remove_int \<times> phase_saver) nres\<close>
 where

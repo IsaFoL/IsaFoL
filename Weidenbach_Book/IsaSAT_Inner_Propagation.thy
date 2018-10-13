@@ -947,16 +947,21 @@ definition propagate_lit_wl_pre where
     1 - i < length (get_clauses_wl S \<propto> C) \<and>
     0 < length (get_clauses_wl S \<propto> C))\<close>
 
-
+(*TODO Move*)
+lemma isa_vmtf_consD:
+  assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf \<A> M\<close>
+  shows \<open>((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf \<A> (L # M)\<close>
+  using vmtf_consD[of ns m fst_As lst_As next_search _ \<A> M L] assms
+  by (auto simp: isa_vmtf_def)
+  
 lemma propagate_lit_wl_heur_propagate_lit_wl:
   \<open>(uncurry3 propagate_lit_wl_heur, uncurry3 (RETURN oooo propagate_lit_wl)) \<in>
   [propagate_lit_wl_pre]\<^sub>f
   Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur'' \<D> r \<rightarrow> \<langle>twl_st_heur'' \<D> r\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto 4 4 simp: twl_st_heur_def propagate_lit_wl_heur_def propagate_lit_wl_def
-        vmtf_consD twl_st_heur'_def propagate_lit_wl_pre_def swap_lits_pre_def
+    (auto 4 3 simp: twl_st_heur_def propagate_lit_wl_heur_def propagate_lit_wl_def
+        isa_vmtf_consD twl_st_heur'_def propagate_lit_wl_pre_def swap_lits_pre_def
         valid_arena_swap_lits arena_lifting phase_saving_def atms_of_def save_phase_def
-	all_atms_def[symmetric]
       intro!: ASSERT_refine_left cons_trail_Propagated_tr2 cons_trail_Propagated_tr_pre
       dest: multi_member_split valid_arena_DECISION_REASON)
 
@@ -1330,16 +1335,16 @@ definition update_blit_wl_heur_pre where
       simp: vdom_m_update_subset)
   subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg bh ao ap aq bi as bt bu "by"
        bz ca cb cc cd ce cf ch ci ck x y
-    apply (subgoal_tac \<open>vdom_m (all_atms cf (ch + ci)) (ck(by := ck by[cb := (bz, cd, ca)]))
-            cf \<subseteq> vdom_m (all_atms cf (ch + ci)) ck cf\<close>)
+    apply (subgoal_tac \<open>vdom_m (all_atms ch (ci + ck)) (x(bz := x bz[cc := (ca, ce, cb)])) ch \<subseteq>
+        vdom_m (all_atms ch (ci + ck)) x ch\<close>)
     apply fast
     apply (rule vdom_m_update_subset')
     apply auto
     done
   subgoal for aa ab ac ad ae be af ag ah bf ai aj ak al am an bg bh ao ap aq bi as bt bu
        "by" bz ca cb cc cd ce cf cg ch ci ck x
-    apply (subgoal_tac \<open>vdom_m (all_atms cf (ch + ci)) (ck(by := ck by[cb := (bz, cd, ca)])) cf \<subseteq>
-      vdom_m (all_atms cf (ch + ci)) ck cf\<close>)
+    apply (subgoal_tac \<open> vdom_m (all_atms cg (ci + ck)) (x(bz := x bz[cc := (ca, ce, cb)])) cg \<subseteq>
+        vdom_m (all_atms cg (ci + ck)) x cg\<close>)
     apply fast
     apply (rule vdom_m_update_subset')
     apply auto
@@ -1408,6 +1413,7 @@ lemma unit_propagation_inner_loop_body_wl_D_alt_def:
   unfolding unit_propagation_inner_loop_body_wl_D_def let_to_bind_conv[symmetric] Let_def
   by (intro bind_cong_nres case_prod_cong if_cong[OF refl] refl)
 
+(*TODO Move*)
 lemma in_vdom_m_upd:
   \<open>x1f \<in> vdom_m \<A> (g(x1e := g x1e[x2 := (x1f, x2f)])) b\<close>
   if \<open>x2 < length (g x1e)\<close> and \<open>x1e \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>

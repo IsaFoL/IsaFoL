@@ -617,6 +617,11 @@ definition cach_refinement_empty where
   \<open>cach_refinement_empty \<A> cach \<longleftrightarrow>
        (cach, \<lambda>_. SEEN_UNKNOWN) \<in> cach_refinement \<A>\<close>
 
+definition isa_vmtf where
+  \<open>isa_vmtf \<A> M =
+    ((Id \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel) \<times>\<^sub>f distinct_atoms_rel \<A>)\<inverse>
+      `` vmtf \<A> M\<close>
+
 text \<open>\<^term>\<open>vdom\<close> is an upper bound on all the address of the clauses that are used in the
 state. \<^term>\<open>avdom\<close> includes the active clauses.
 \<close>
@@ -631,7 +636,7 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE))) \<and>
-    vm \<in> vmtf (all_atms N (NE + UE)) M \<and>
+    vm \<in> isa_vmtf (all_atms N (NE + UE)) M \<and>
     phase_saving (all_atms N (NE + UE)) \<phi> \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
@@ -673,7 +678,7 @@ where
     valid_arena N' N (set vdom) \<and>
     (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE))) \<and>
-    vm \<in> vmtf (all_atms N (NE + UE)) M \<and>
+    vm \<in> isa_vmtf (all_atms N (NE + UE)) M \<and>
     phase_saving (all_atms N (NE + UE)) \<phi> \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
@@ -708,7 +713,7 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
     valid_arena N' N (set vdom) \<and>
     (D', None) \<in> option_lookup_clause_rel (all_atms N (NE + UE)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE))) \<and>
-    vm \<in> vmtf (all_atms N (NE + UE)) M \<and>
+    vm \<in> isa_vmtf (all_atms N (NE + UE)) M \<and>
     phase_saving (all_atms N (NE + UE)) \<phi> \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M None \<and>

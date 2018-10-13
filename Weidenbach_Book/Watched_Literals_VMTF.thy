@@ -2436,7 +2436,7 @@ proof -
     dist: \<open>distinct zs\<close>
     using abs_vmtf vmtf_ns_distinct[OF vmtf_ns] unfolding vmtf_def zs_def
       vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def distinct_atoms_rel_def inj_on_def)
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def inj_on_def)
   have dist: \<open>distinct_mset (Pos `# mset zs)\<close>
     by (subst distinct_image_mset_inj)
       (use dist in \<open>auto simp: inj_on_def\<close>)
