@@ -360,6 +360,7 @@ definition \<G>_Inf_L :: \<open>('f \<times> 'l) inference \<Rightarrow> 'g infe
 definition entails_sound_FL :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "|\<approx>FL" 50) where \<open>CL1 |\<approx>FL
 CL2 \<equiv> fst ` CL1 |\<approx>F fst ` CL2\<close>
 
+text \<open>Lemma 20 from the technical report\<close>
 sublocale labeled_grounding_function: grounding_function
   where
     Bot_F = Bot_FL and
@@ -407,6 +408,15 @@ next
   show "\<G>_Inf_L \<iota> \<subseteq> Red_Inf_G (\<G>_F_L (concl_of \<iota>))"
     unfolding \<G>_Inf_L_def \<G>_F_L_def to_F_def using inf_map by fastforce
 qed
+
+definition entails_comp_\<G>_L :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>L" 50) where "entails_comp_\<G>_L NL1 NL2 \<equiv> labeled_grounding_function.\<G>_set NL1 \<Turnstile>G labeled_grounding_function.\<G>_set NL2"
+
+text \<open>Lemma 21 from the technical report\<close>
+lemma "NL1 \<Turnstile>\<G>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<G> fst ` NL2" unfolding entails_comp_\<G>_L_def \<G>_F_L_def entails_\<G>_def by auto
+
+text \<open>Lemma 22 from the technical report\<close>
+
+
 
 end
 
