@@ -166,7 +166,9 @@ theorem prover_complete_refutation: "prover N \<longleftrightarrow> satisfiable 
 
 find_theorems name: deterministic_RP_refutation
 
-export_code prover in SML module_name RP
+
+
+export_code prover Fun Var Pos Neg "0::nat" "Suc" in SML module_name RPx file "RPx.sml"
 
 abbreviation "\<pp> \<equiv> Fun 42"
 abbreviation "\<aa> \<equiv> Fun 0 []"
@@ -210,9 +212,11 @@ value "prover (mk_MSC015_1 14)"
 value "prover (mk_MSC015_1 15)"
 value "prover (mk_MSC015_1 16)"
 value "prover (mk_MSC015_1 17)"
-value "prover (mk_MSC015_1 18)"
+(*value "prover (mk_MSC015_1 18)"
+
 value "prover (mk_MSC015_1 20)" \<comment>\<open>100 s\<close>
 value "prover (mk_MSC015_1 22)" \<comment>\<open>200 s\<close>
+*)
 (*
 value "prover (mk_MSC015_1 25)"
 *)
