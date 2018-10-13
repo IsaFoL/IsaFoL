@@ -324,6 +324,60 @@ qed
 
 end
 
+
+definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> where
+  "Empty_Order C1 C2 \<equiv> False" 
+
+locale lifting_equivalence_with_empty_order = g: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Prec_F + q: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Empty_Order
+  for
+    \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
+    \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close> and
+    Bot_F :: \<open>'f set\<close> and
+    entails_sound_F :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
+    Inf_F :: \<open>'f inference set\<close> and
+    Bot_G :: \<open>'g set\<close> and
+    entails_sound_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "|\<approx>G" 50) and
+    Inf_G :: \<open>'g inference set\<close> and
+    entails_comp_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
+    Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
+    Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close> and
+    Prec_F :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> (infix "\<sqsubset>" 50)
+
+sublocale redundancy_criterion_lifting \<subseteq> lifting_equivalence_with_empty_order
+proof
+  show "po_on Empty_Order UNIV" unfolding Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
+  show "wfp_on Empty_Order UNIV" unfolding wfp_on_def Empty_Order_def by simp
+qed
+
+context lifting_equivalence_with_empty_order
+begin
+
+text "lemma 17 from the technical report"
+lemma "g.lifted_calculus.saturated N = q.lifted_calculus.saturated N" by standard
+
+text "lemma 18 from the technical report"
+lemma static_empty_order_equiv_static: "static_refutational_complete_calculus Bot_F q.entails_\<G> Inf_F q.Red_Inf_\<G> q.Red_F_\<G> = static_refutational_complete_calculus Bot_F g.entails_\<G> Inf_F g.Red_Inf_\<G> g.Red_F_\<G>"
+  unfolding static_refutational_complete_calculus_def by (rule iffI) (standard,(standard)[],simp)+
+   
+text "theorem 19 from the technical report"
+theorem "static_refutational_complete_calculus Bot_F q.entails_\<G> Inf_F q.Red_Inf_\<G> q.Red_F_\<G> = dynamic_refutational_complete_calculus Bot_F g.entails_\<G> Inf_F g.Red_Inf_\<G> g.Red_F_\<G> " (is "?static=?dynamic")
+proof
+  assume ?static
+  then have static_general: "static_refutational_complete_calculus Bot_F g.entails_\<G> Inf_F g.Red_Inf_\<G> g.Red_F_\<G>" (is "?static_gen") using static_empty_order_equiv_static by simp
+  interpret static_refutational_complete_calculus Bot_F g.entails_\<G> Inf_F g.Red_Inf_\<G> g.Red_F_\<G>
+    using static_general .
+  show "?dynamic" by standard 
+next
+  assume dynamic_gen: ?dynamic
+  interpret dynamic_refutational_complete_calculus Bot_F g.entails_\<G> Inf_F g.Red_Inf_\<G> g.Red_F_\<G>
+    using dynamic_gen .
+  have "static_refutational_complete_calculus Bot_F g.entails_\<G> Inf_F g.Red_Inf_\<G> g.Red_F_\<G>"
+    by standard
+  then show "?static" using static_empty_order_equiv_static by simp
+qed
+
+end
+
 subsection \<open>Adding labels\<close>
 
 locale labeled_redundancy_criterion_lifting = redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Prec_F
