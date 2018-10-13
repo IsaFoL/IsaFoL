@@ -328,7 +328,7 @@ end
 definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> where
   "Empty_Order C1 C2 \<equiv> False" 
 
-locale lifting_equivalence_with_empty_order = g: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Prec_F + q: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Empty_Order
+locale lifting_equivalence_with_empty_order = any_order_lifting: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Prec_F + empty_order_lifting: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Empty_Order
   for
     \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
     \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close> and
@@ -353,25 +353,26 @@ context lifting_equivalence_with_empty_order
 begin
 
 text "lemma 17 from the technical report"
-lemma "g.lifted_calculus.saturated N = q.lifted_calculus.saturated N" by standard
+lemma "any_order_lifting.lifted_calculus.saturated N = empty_order_lifting.lifted_calculus.saturated N" by standard
 
-text "lemma 18 from the technical report"
-lemma static_empty_order_equiv_static: "static_refutational_complete_calculus Bot_F q.entails_\<G> Inf_F q.Red_Inf_\<G> q.Red_F_\<G> = static_refutational_complete_calculus Bot_F g.entails_\<G> Inf_F g.Red_Inf_\<G> g.Red_F_\<G>"
+
+text "lemma 18 from the technical report" (*TODO: check with Mathias that the first any_order_lifting.entails_\<G> is OK*)
+lemma static_empty_order_equiv_static: "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
   unfolding static_refutational_complete_calculus_def by (rule iffI) (standard,(standard)[],simp)+
    
 text "theorem 19 from the technical report"
-theorem "static_refutational_complete_calculus Bot_F q.entails_\<G> Inf_F q.Red_Inf_\<G> q.Red_F_\<G> = dynamic_refutational_complete_calculus Bot_F g.entails_\<G> Inf_F g.Red_Inf_\<G> g.Red_F_\<G> " (is "?static=?dynamic")
+theorem "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = dynamic_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G> " (is "?static=?dynamic")
 proof
   assume ?static
-  then have static_general: "static_refutational_complete_calculus Bot_F g.entails_\<G> Inf_F g.Red_Inf_\<G> g.Red_F_\<G>" (is "?static_gen") using static_empty_order_equiv_static by simp
-  interpret static_refutational_complete_calculus Bot_F g.entails_\<G> Inf_F g.Red_Inf_\<G> g.Red_F_\<G>
+  then have static_general: "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>" (is "?static_gen") using static_empty_order_equiv_static by simp
+  interpret static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>
     using static_general .
   show "?dynamic" by standard 
 next
   assume dynamic_gen: ?dynamic
-  interpret dynamic_refutational_complete_calculus Bot_F g.entails_\<G> Inf_F g.Red_Inf_\<G> g.Red_F_\<G>
+  interpret dynamic_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>
     using dynamic_gen .
-  have "static_refutational_complete_calculus Bot_F g.entails_\<G> Inf_F g.Red_Inf_\<G> g.Red_F_\<G>"
+  have "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
     by standard
   then show "?static" using static_empty_order_equiv_static by simp
 qed
@@ -463,13 +464,29 @@ next
     unfolding \<G>_Inf_L_def \<G>_F_L_def to_F_def using inf_map by fastforce
 qed
 
+definition Labeled_Empty_Order :: \<open> ('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool\<close> where
+  "Labeled_Empty_Order C1 C2 \<equiv> False" 
+
+sublocale labeled_lifted_calculus: redundancy_criterion_lifting \<G>_F_L \<G>_Inf_L Bot_FL entails_sound_FL Inf_FL Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Labeled_Empty_Order
+proof
+  show "po_on Labeled_Empty_Order UNIV" unfolding Labeled_Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
+  show "wfp_on Labeled_Empty_Order UNIV" unfolding wfp_on_def Labeled_Empty_Order_def by simp
+qed
+
 definition entails_comp_\<G>_L :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>L" 50) where "entails_comp_\<G>_L NL1 NL2 \<equiv> labeled_grounding_function.\<G>_set NL1 \<Turnstile>G labeled_grounding_function.\<G>_set NL2"
 
-text \<open>Lemma 21 from the technical report\<close>
+definition Red_Inf_\<G>_L :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) inference set" where
+  \<open>Red_Inf_\<G>_L NL = {\<iota> \<in> Inf_FL. \<G>_Inf (to_F \<iota>) \<subseteq> Red_Inf_G (labeled_grounding_function.\<G>_set NL)}\<close>
+
+definition Red_F_\<G>_L :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
+  \<open>Red_F_\<G>_L NL = {CL. \<forall>D \<in> \<G>_F_L CL. D \<in> Red_F_G (labeled_grounding_function.\<G>_set NL)}\<close>
+
+text \<open>Lemma 21 from the technical report\<close> (* TODO: replace with the labeled_lifted_calculus *)
 lemma "NL1 \<Turnstile>\<G>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<G> fst ` NL2" unfolding entails_comp_\<G>_L_def \<G>_F_L_def entails_\<G>_def by auto
 
-text \<open>Lemma 22 from the technical report\<close>
-
+text \<open>lemma 22 from the technical report\<close>
+lemma "labeled_lifted_calculus.lifted_calculus.saturated NL \<longrightarrow> empty_order_lifting.lifted_calculus.saturated (fst ` NL)"
+  unfolding labeled_lifted_calculus.lifted_calculus.saturated_def empty_order_lifting.lifted_calculus.saturated_def
 
 
 end
