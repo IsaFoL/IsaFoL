@@ -380,6 +380,33 @@ next
     then show "NL1 |\<approx>FL NL2" unfolding entails_sound_FL_def using Static.subset_entailed by simp
   qed
 next
+  fix NL1 NL2
+  show "\<forall>C\<in>NL2. NL1 |\<approx>FL {C} \<Longrightarrow> NL1 |\<approx>FL NL2" 
+    unfolding entails_sound_FL_def using Static.all_formulas_entailed
+    by (smt image_empty image_iff image_insert)
+next
+  fix NL1 NL2 NL3
+  show "NL1 |\<approx>FL NL2 \<and> NL2 |\<approx>FL NL3 \<Longrightarrow> NL1 |\<approx>FL NL3"
+    unfolding entails_sound_FL_def using Static.entails_trans by blast
+next
+  fix \<iota>
+  show "\<iota> \<in> Inf_FL \<Longrightarrow> set (prems_of \<iota>) |\<approx>FL {concl_of \<iota>}"
+    unfolding entails_sound_FL_def using Inf_FL_to_Inf_F Static.soundness by force
+next
+  show "\<forall>B\<in>Bot_FL. \<G>_F_L B \<noteq> {}"
+    unfolding \<G>_F_L_def Bot_FL_def using Bot_map_not_empty by simp
+next
+  show "\<forall>B\<in>Bot_FL. \<G>_F_L B \<subseteq> Bot_G"
+    unfolding \<G>_F_L_def Bot_FL_def using Bot_map by simp
+next
+  fix CL
+  show "\<G>_F_L CL \<inter> Bot_G \<noteq> {} \<longrightarrow> CL \<in> Bot_FL"
+    unfolding \<G>_F_L_def Bot_FL_def using Bot_cond by (metis SigmaE UNIV_I UNIV_Times_UNIV mem_Sigma_iff prod.sel(1))
+next
+  fix \<iota>
+  show "\<G>_Inf_L \<iota> \<subseteq> Red_Inf_G (\<G>_F_L (concl_of \<iota>))"
+    unfolding \<G>_Inf_L_def \<G>_F_L_def to_F_def using inf_map by fastforce
+qed
 
 end
 
