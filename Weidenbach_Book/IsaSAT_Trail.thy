@@ -1042,6 +1042,9 @@ sepref_definition (in -) lit_of_last_trail_fast_code
   unfolding lit_of_last_trail_pol_def
   by sepref
 
+declare lit_of_last_trail_code.refine[sepref_fr_rules]
+declare lit_of_last_trail_fast_code.refine[sepref_fr_rules]
+
 
 subparagraph \<open>Setting a new literal\<close>
 
@@ -1455,11 +1458,14 @@ lemma tl_trail_tr_no_CS:
 definition trail_conv_to_no_CS :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>trail_conv_to_no_CS M = M\<close>
 
+definition trail_pol_conv_to_no_CS :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
+  \<open>trail_pol_conv_to_no_CS M = M\<close>
+
 lemma id_trail_conv_to_no_CS:
-  \<open>(RETURN o id, RETURN o trail_conv_to_no_CS) \<in> trail_pol \<A> \<rightarrow>\<^sub>f \<langle>trail_pol_no_CS \<A>\<rangle>nres_rel\<close>
+  \<open>(RETURN o trail_pol_conv_to_no_CS, RETURN o trail_conv_to_no_CS) \<in> trail_pol \<A> \<rightarrow>\<^sub>f \<langle>trail_pol_no_CS \<A>\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: trail_pol_no_CS_def trail_conv_to_no_CS_def hr_comp_def trail_pol_def
-      control_stack_length_count_dec
+      control_stack_length_count_dec trail_pol_conv_to_no_CS_def
       intro: ext)
 
 definition trail_conv_back :: \<open>nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
