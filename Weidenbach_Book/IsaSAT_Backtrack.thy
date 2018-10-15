@@ -1411,7 +1411,7 @@ proof -
       done
   qed
 
-  have find_decomp_wl_nlit: \<open>find_decomp_wl_nlit n T
+  have find_decomp_wl_nlit: \<open>find_decomp_wl_st_int n T
       \<le> \<Down>  {(U, U''). (U, U'') \<in> twl_st_heur_bt \<and> equality_except_trail_wl U'' T' \<and>
        (\<exists>K M2. (Decided K # (get_trail_wl U''), M2) \<in> set (get_all_ann_decomposition (get_trail_wl T')) \<and>
           get_level (get_trail_wl T') K = get_maximum_level (get_trail_wl T') (the (get_conflict_wl T') - {#-lit_of (hd (get_trail_wl T'))#}) + 1 \<and>
@@ -1430,17 +1430,39 @@ proof -
     obtain M N D NE UE Q W where
       T': \<open>T' = (M, N, D, NE, UE, Q, W)\<close>
       by (cases T')
-    obtain W' vm \<phi> clvls cach lbd outl stats arena D' Q' where
-      T: \<open>T = (M, arena, D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats)\<close>
+    obtain M' W' vm \<phi> clvls cach lbd outl stats arena D' Q' where
+      T: \<open>T = (M', arena, D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats)\<close>
       using TT' by (cases T) (auto simp: twl_st_heur_bt_def T' del_conflict_wl_def)
+    have
+      vm: \<open>vm \<in> isa_vmtf (all_atms_st T') M\<close> and
+      M'M: \<open>(M', M) \<in> trail_pol (all_atms_st T')\<close>
+      using TT' by (auto simp: twl_st_heur_bt_def del_conflict_wl_def
+        all_atms_def[symmetric] T T')
+ 
+    obtain vm0 where
+      vm: \<open>(vm, vm0) \<in> Id \<times>\<^sub>r distinct_atoms_rel (all_atms_st T')\<close> and
+      vm0: \<open>vm0 \<in> vmtf (all_atms_st T') M\<close>
+      using vm unfolding isa_vmtf_def by (cases vm) auto
+      
     have n: \<open>n = get_maximum_level M (remove1_mset (- lit_of (hd M)) (mset C))\<close> and
       eq: \<open>equality_except_conflict_wl T' S'\<close> and
       \<open>the D = mset C\<close> \<open>D \<noteq> None\<close> and
-      \<open>no_dup M\<close> and
       clss_eq: \<open>get_clauses_wl_heur S = arena\<close>
       using TT' by (auto simp: T T' twl_st_heur_bt_def)
     have [simp]: \<open>get_trail_wl S' = M\<close>
       using eq \<open>the D = mset C\<close> \<open>D \<noteq> None\<close> by (cases S'; auto simp: T')
+    show ?thesis
+      unfolding T' find_decomp_wl_st_int_def prod.case T
+      apply (rule specify_left)
+      apply (rule order.trans)
+      apply (rule isa_find_decomp_wl_imp_find_decomp_wl_imp[THEN fref_to_Down_curry2, of M n vm0
+          _ _ _ \<open>all_atms_st T'\<close>])
+      subgoal apply auto sorry
+      subgoal using M'M vm by auto
+sorry
+thm isa_find_decomp_wl_imp_find_decomp_wl_imp
+find_theorems "Refine_Basic.bind _ _ \<le> _"
+ (*
     have H: \<open>\<exists>s'\<in>{S. \<exists>K M2 M1.
                   S = (M1, N, D, NE, UE, Q, W) \<and>
                   (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
@@ -1448,15 +1470,21 @@ proof -
                     (remove1_mset (- lit_of (hd (get_trail_wl S'))) (the D)) + 1}.
          (s, s') \<in> ?find_decomp\<close>
          (is \<open>\<exists>s' \<in> ?H. _\<close>)
-      if s: \<open>s \<in> Collect (find_decomp_wl_nlit_prop n (M, arena, D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats))\<close>
+      (*if s: \<open>s \<in> Collect (find_decomp_wl_nlit_prop n (M, arena, D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats))\<close>*)
       for s :: \<open>twl_st_wl_heur\<close>
     proof -
-      obtain K M2 M1 vm' lbd' where
+    thm isa_find_decomp_wl_imp_find_decomp_wl_imp
+        find_decomp_wl_imp_le_find_decomp_wl'
+	find_theorems find_decomp_wl'
+    find_theorems find_decomp_wl_imp
+    find_theorems find_decomp_wl_st_int
+    find_theorems isa_find_decomp_wl_imp
+(*      obtain K M2 M1 vm' lbd' where
         s: \<open>s = (M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd', outl, stats)\<close> and
         decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
         n_M_K: \<open>get_level M K = Suc n\<close> and
-        vm': \<open>vm' \<in> vmtf M1\<close>
-        using s by auto
+        vm': \<open>vm' \<in> vmtf (all_atms_st S) M1\<close>
+        using s by auto*)
       let ?T' = \<open>(M1, N, D, NE, UE, Q, W)\<close>
       have \<open>?T' \<in> ?H\<close>
         using decomp n n_M_K \<open>the D = mset C\<close> by (auto simp: T')
@@ -1485,7 +1513,7 @@ proof -
       unfolding T[symmetric] T'[symmetric]
       apply (rule H)
       by fast
-  qed
+  qed*)
   have fst_find_lit_of_max_level_wl: \<open>RETURN (C ! 1)
       \<le> \<Down> Id
           (find_lit_of_max_level_wl U'
@@ -1497,7 +1525,7 @@ proof -
       \<open>(TnC, T') \<in> ?shorter S' S\<close> and
       [simp]: \<open>nC = (n, C)\<close> and
       [simp]: \<open>TnC = (T, nC)\<close> and
-      find_decomp: \<open>(U, U') \<in> ?find_decomp S T'\<close> and
+      find_decomp: \<open>(U, U') \<in> ?find_decomp\<close> and
       size_C: \<open>1 < length C\<close> and
       size_conflict_U': \<open>1 < size (the (get_conflict_wl U'))\<close>
     for S S' TnC T' T nC n C U U'
@@ -1515,7 +1543,8 @@ proof -
        lev_K: \<open>get_level M K = Suc (get_maximum_level M (remove1_mset (- lit_of (hd M)) (the (Some (mset C)))))\<close>
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> \<open>1 < length C\<close> find_decomp
       apply (cases U'; cases S')
-      by (auto simp: find_lit_of_max_level_wl_def T')
+      apply (auto simp: find_lit_of_max_level_wl_def T')
+      sorry
 
     have [simp]: \<open>get_trail_wl S' = get_trail_wl T'\<close>
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> \<open>1 < length C\<close> find_decomp

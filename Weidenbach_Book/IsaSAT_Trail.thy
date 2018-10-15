@@ -792,28 +792,31 @@ lemma cons_trail_Propagated_tr2:
   using cons_trail_Propagated_tr[THEN fref_to_Down_curry2, of \<A> L C M L C M']
   by (auto simp: cons_trail_Propagated_def)
 
-definition (in -) last_trail_pol :: \<open>trail_pol \<Rightarrow> (nat literal \<times> nat option) nres\<close> where
-  \<open>last_trail_pol = (\<lambda>(M, xs, lvls, reasons, k). do {
-      ASSERT(atm_of (last M) < length reasons);
-      let r = reasons ! (atm_of (last M));
-      RETURN (last M, if r = DECISION_REASON then None else Some r)})\<close>
+definition last_trail_pol_pre where
+  \<open>last_trail_pol_pre = (\<lambda>(M, xs, lvls, reasons, k). atm_of (last M) < length reasons \<and> M \<noteq> [])\<close>
+
+definition (in -) last_trail_pol :: \<open>trail_pol \<Rightarrow> (nat literal \<times> nat option)\<close> where
+  \<open>last_trail_pol = (\<lambda>(M, xs, lvls, reasons, k).
+      let r = reasons ! (atm_of (last M)) in
+      (last M, if r = DECISION_REASON then None else Some r))\<close>
 
 sepref_definition (in -)last_trail_code
-  is \<open>last_trail_pol\<close>
-  :: \<open>[\<lambda>(M, xs, lvls, reasons, k). M \<noteq> []]\<^sub>a
+  is \<open>RETURN o last_trail_pol\<close>
+  :: \<open>[last_trail_pol_pre]\<^sub>a
        trail_pol_assn\<^sup>k \<rightarrow> unat_lit_assn *a option_assn nat_assn\<close>
-  unfolding last_trail_pol_def nth_u_def[symmetric]
+  unfolding last_trail_pol_def nth_u_def[symmetric] last_trail_pol_pre_def
   supply [[goals_limit = 1]]
   by sepref
 
 declare last_trail_code.refine[sepref_fr_rules]
 
 sepref_definition (in -)last_trail_fast_code
-  is \<open>last_trail_pol\<close>
-  :: \<open>[\<lambda>(M, xs, lvls, reasons, k). M \<noteq> []]\<^sub>a
+  is \<open>RETURN o last_trail_pol\<close>
+  :: \<open>[last_trail_pol_pre]\<^sub>a
        trail_pol_fast_assn\<^sup>k \<rightarrow> unat_lit_assn *a option_assn uint64_nat_assn\<close>
   supply DECISION_REASON_uint64[sepref_fr_rules]
   unfolding last_trail_pol_def nth_u_def[symmetric] zero_uint64_nat_def[symmetric]
+    last_trail_pol_pre_def
   supply [[goals_limit = 1]]
   by sepref
 

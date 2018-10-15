@@ -5,9 +5,6 @@ begin
 
 paragraph \<open>Skip and resolve\<close>
 
-context isasat_input_bounded_nempty
-begin
-
 lemma get_maximum_level_remove_count_max_lvls:
   assumes L: \<open>L = -lit_of (hd M)\<close> and LD: \<open>L \<in># D\<close> and M_nempty: \<open>M \<noteq> []\<close>
   shows \<open>get_maximum_level_remove M D L = count_decided M \<longleftrightarrow>
@@ -88,12 +85,12 @@ next
 qed
 
 
-definition  (in isasat_input_ops) maximum_level_removed_eq_count_dec where
+definition maximum_level_removed_eq_count_dec where
   \<open>maximum_level_removed_eq_count_dec L S \<longleftrightarrow>
       get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L =
        count_decided (get_trail_wl S)\<close>
 
-definition  (in isasat_input_ops) maximum_level_removed_eq_count_dec_heur where
+definition maximum_level_removed_eq_count_dec_heur where
   \<open>maximum_level_removed_eq_count_dec_heur L S \<longleftrightarrow>
       get_count_max_lvls_heur S > one_uint32_nat\<close>
 
@@ -117,29 +114,16 @@ lemma maximum_level_removed_eq_count_dec_heur_maximum_level_removed_eq_count_dec
      maximum_level_removed_eq_count_dec_pre_def)
   done
 
-definition (in isasat_input_ops) is_decided_hd_trail_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>is_decided_hd_trail_wl_heur = (\<lambda>S. is_decided (hd (get_trail_wl_heur S)))\<close>
-
-lemma is_decided_hd_trail_wl_heur_alt_def:
-  \<open>is_decided_hd_trail_wl_heur = (\<lambda>(M, _). is_decided (hd M))\<close>
-  unfolding is_decided_hd_trail_wl_heur_def by auto
-
-lemma is_decided_hd_trail_wl_heur_is_decided_hd_trail_wl:
-  \<open>(RETURN o is_decided_hd_trail_wl_heur, RETURN o is_decided_hd_trail_wl) \<in>
-    [\<lambda>S. get_trail_wl S \<noteq> []]\<^sub>f twl_st_heur_conflict_ana \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: is_decided_hd_trail_wl_heur_def is_decided_hd_trail_wl_def twl_st_heur_conflict_ana_def)
-
 lemma get_trail_wl_heur_def: \<open>get_trail_wl_heur = (\<lambda>(M, S). M)\<close>
   by (intro ext, rename_tac S, case_tac S) auto
 
 definition lit_and_ann_of_propagated_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<times> nat\<close> where
   \<open>lit_and_ann_of_propagated_st S = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close>
 
-definition (in isasat_input_ops) lit_and_ann_of_propagated_st_heur
+definition lit_and_ann_of_propagated_st_heur
    :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<times> nat\<close>
 where
-  \<open>lit_and_ann_of_propagated_st_heur = (\<lambda>(M, _). (lit_of (hd M), mark_of (hd M)))\<close>
+  \<open>lit_and_ann_of_propagated_st_heur = (\<lambda>((M, _, _, reasons, _), _). (last M, reasons ! (atm_of (last M))))\<close>
 
 lemma mark_of_refine[sepref_fr_rules]:
   \<open>(return o (\<lambda>C. the (snd C)), RETURN o mark_of) \<in>
@@ -172,32 +156,32 @@ qed
 
 lemma lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st:
    \<open>(RETURN o lit_and_ann_of_propagated_st_heur, RETURN o lit_and_ann_of_propagated_st) \<in>
-   [\<lambda>S. is_proped (hd (get_trail_wl S))]\<^sub>f twl_st_heur_conflict_ana \<rightarrow> \<langle>Id \<times>\<^sub>f Id\<rangle>nres_rel\<close>
+   [\<lambda>S. is_proped (hd (get_trail_wl S)) \<and> get_trail_wl S \<noteq> []]\<^sub>f twl_st_heur_conflict_ana \<rightarrow> \<langle>Id \<times>\<^sub>f Id\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
-  apply (rename_tac x y; case_tac x; case_tac y; case_tac \<open>hd (fst x)\<close>)
-  by (auto simp: twl_st_heur_conflict_ana_def lit_and_ann_of_propagated_st_heur_def
-      lit_and_ann_of_propagated_st_def)
+  by (rename_tac x y; case_tac x; case_tac y; case_tac \<open>hd (fst y)\<close>; case_tac \<open>fst y\<close>;
+     case_tac \<open>fst (fst x)\<close> rule: rev_cases)
+   (auto simp: twl_st_heur_conflict_ana_def lit_and_ann_of_propagated_st_heur_def
+      lit_and_ann_of_propagated_st_def trail_pol_def ann_lits_split_reasons_def)
 
 lemma twl_st_heur_conflict_ana_lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st:
-  \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow> is_proped (hd (get_trail_wl y)) \<Longrightarrow>
+  \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow> is_proped (hd (get_trail_wl y)) \<Longrightarrow> get_trail_wl y \<noteq> [] \<Longrightarrow>
     lit_and_ann_of_propagated_st_heur x = lit_and_ann_of_propagated_st y\<close>
-  by (cases \<open>hd (get_trail_wl y)\<close>)
-    (auto simp: twl_st_heur_conflict_ana_def lit_and_ann_of_propagated_st_heur_def
-      lit_and_ann_of_propagated_st_def)
+  using lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st[THEN fref_to_Down_unRET,
+    of y x]
+  by auto
 
-definition (in isasat_input_ops) tl_state_wl_heur_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+definition tl_state_wl_heur_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>tl_state_wl_heur_pre =
-      (\<lambda>(M, N, D, WS, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, _). M \<noteq> [] \<and>
-         atm_of (lit_of (hd M)) < length \<phi> \<and>
-         atm_of (lit_of (hd M)) < length A \<and>
-         (next_search \<noteq> None \<longrightarrow>  the next_search < length A) \<and>
-         is_proped (hd M))\<close>
+      (\<lambda>(M, N, D, WS, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, _). fst M \<noteq> [] \<and>
+         atm_of (hd (fst M)) < length \<phi> \<and>
+         atm_of (hd (fst M)) < length A \<and>
+         (next_search \<noteq> None \<longrightarrow>  the next_search < length A))\<close>
 
-definition (in isasat_input_ops) tl_state_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+definition tl_state_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>tl_state_wl_heur = (\<lambda>(M, N, D, WS, Q, vmtf, \<phi>, clvls).
        (tl M, N, D, WS, Q, vmtf_unset (atm_of (lit_of (hd M))) vmtf, \<phi>, clvls))\<close>
 
-lemma (in isasat_input_ops) tl_state_wl_heur_alt_def:
+lemma tl_state_wl_heur_alt_def:
     \<open>tl_state_wl_heur = (\<lambda>(M, N, D, WS, Q, vmtf, \<phi>, clvls).
       (let L = lit_of (hd M) in
        (tl M, N, D, WS, Q, vmtf_unset (atm_of L) vmtf, \<phi>, clvls)))\<close>
@@ -231,13 +215,9 @@ lemma card_max_lvl_tl:
       (if (lit_of(hd a) \<in># y \<or> -lit_of(hd a) \<in># y)
         then card_max_lvl a y - 1 else card_max_lvl a y)\<close>
   using assms by (cases a) (auto simp: card_max_lvl_Cons)
-end
 
-context isasat_input_bounded_nempty
-begin
-
-definition (in isasat_input_ops) tl_state_wl_pre where
-  \<open>tl_state_wl_pre S \<longleftrightarrow> get_trail_wl S \<noteq> [] \<and> lit_of(hd (get_trail_wl S)) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+definition tl_state_wl_pre where
+  \<open>tl_state_wl_pre S \<longleftrightarrow> get_trail_wl S \<noteq> [] \<and>
      (lit_of (hd (get_trail_wl S))) \<notin># the (get_conflict_wl S) \<and>
      -(lit_of (hd (get_trail_wl S))) \<notin># the (get_conflict_wl S) \<and>
     \<not>tautology (the (get_conflict_wl S)) \<and>
@@ -265,7 +245,7 @@ lemma tl_state_wl_heur_tl_state_wl:
 definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
-definition (in isasat_input_ops) update_confl_tl_wl_heur
+definition update_confl_tl_wl_heur
   :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where
   \<open>update_confl_tl_wl_heur = (\<lambda>C L (M, N, (b, (n, xs)), Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats). do {

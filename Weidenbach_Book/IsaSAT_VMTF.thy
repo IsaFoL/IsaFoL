@@ -938,7 +938,7 @@ lemma isa_vmtf_unset_vmtf_unset:
   unfolding vmtf_unset_def isa_vmtf_unset_def uncurry_def
   by (intro frefI nres_relI) auto
 
-lemma
+lemma isa_find_decomp_wl_imp_find_decomp_wl_imp:
   \<open>(uncurry2 isa_find_decomp_wl_imp, uncurry2 (find_decomp_wl_imp \<A>)) \<in>
      [\<lambda>((M, lev), vm). lev < count_decided M]\<^sub>f trail_pol \<A> \<times>\<^sub>f nat_rel \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow>
      \<langle>trail_pol \<A> \<times>\<^sub>r (Id \<times>\<^sub>r distinct_atoms_rel \<A>)\<rangle>nres_rel\<close>
