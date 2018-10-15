@@ -39,7 +39,7 @@ Step 3. Download and install the IsaFoR repository version db6a3973b702:
     
 Step 4. Download IsaFoL
 
-    ~/RPx $ git clone https://bitbucket.org/isafol/isafol/src/CPP2019/
+    ~/RPx $ git clone -b CPP2019 https://bitbucket.org/isafol/isafol
 
 Step 4. Open the theories:
 
