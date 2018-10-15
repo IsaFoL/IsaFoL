@@ -473,6 +473,7 @@ proof
   show "wfp_on Labeled_Empty_Order UNIV" unfolding wfp_on_def Labeled_Empty_Order_def by simp
 qed
 
+(*
 definition entails_comp_\<G>_L :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>L" 50) where "entails_comp_\<G>_L NL1 NL2 \<equiv> labeled_grounding_function.\<G>_set NL1 \<Turnstile>G labeled_grounding_function.\<G>_set NL2"
 
 definition Red_Inf_\<G>_L :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) inference set" where
@@ -480,59 +481,48 @@ definition Red_Inf_\<G>_L :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l
 
 definition Red_F_\<G>_L :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
   \<open>Red_F_\<G>_L NL = {CL. \<forall>D \<in> \<G>_F_L CL. D \<in> Red_F_G (labeled_grounding_function.\<G>_set NL)}\<close>
+*)
 
-text \<open>Lemma 21 from the technical report\<close> (* TODO: replace with the labeled_lifted_calculus *)
-lemma "NL1 \<Turnstile>\<G>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<G> fst ` NL2" unfolding entails_comp_\<G>_L_def \<G>_F_L_def entails_\<G>_def by auto
+find_theorems grounding_function_axioms
+find_theorems name: def "grounding_function.entails_\<G> entails_comp_G"
+term "labeled_grounding_function.entails_\<G>"
 
+notation "labeled_grounding_function.entails_\<G>" (infix "\<Turnstile>\<G>L" 50)
 
-lemma i_in_zip: assumes "length A = length B" "i<length A" shows "(zip A B)!i = (A!i,B!i)" using assms by auto
-
-lemma fst_set_in_zip_is_first_set: assumes len: "length A = length B" shows "fst ` (set (zip A B)) = set A" 
-proof
-  show "fst ` set (zip A B) \<subseteq> set A"
-  proof
-    fix x
-    assume "x \<in> fst ` (set (zip A B))"
-    then have "\<exists>y. (x,y) \<in> set (zip A B)" by fastforce
-    then show "x \<in> set A" by (meson set_zip_leftD)
-  qed
-next
-  show "set A \<subseteq> fst ` set (zip A B)"
-  proof
-    fix x
-    assume "x \<in> set A"
-    then obtain i where x_i: "A!i = x" and len_i: "i < length A" using in_set_conv_nth by (meson in_set_conv_nth)
-    then obtain y where y_i: "B!i = y" by auto (*by (metis Ex_list_of_length in_set_impl_in_set_zip1)*)
-    then have "(x,y) = (zip A B)!i" using assms x_i i_in_zip len_i by simp 
-    then show "x \<in> fst ` set (zip A B)" by (metis fst_conv image_eqI len len_i length_zip min_less_iff_conj nth_mem)
-  qed
-qed
-
-find_theorems name: set_zip_leftD
-find_theorems "fst"
-find_theorems name: in_set_zipE
+text \<open>Lemma 21 from the technical report\<close>
+lemma "NL1 \<Turnstile>\<G>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<G> fst ` NL2"
+  unfolding labeled_grounding_function.entails_\<G>_def \<G>_F_L_def entails_\<G>_def by auto
 
 lemma subset_fst: "A \<subseteq> fst ` AB \<Longrightarrow> \<forall>x \<in> A. \<exists>y. (x,y) \<in> AB" by fastforce
 
-lemma to_lists: "\<forall>x \<in> A. \<exists>y. (x,y) \<in> AB \<Longrightarrow> set Xx \<subseteq> A \<Longrightarrow> \<exists>Yy. set (zip Xx Yy) \<subseteq> AB" by (metis empty_iff list.set(1) set_mp set_zip_rightD subrelI subsetI)
-
 text \<open>lemma 22 from the technical report\<close>
-lemma "labeled_lifted_calculus.lifted_calculus.saturated NL \<longrightarrow> empty_order_lifting.lifted_calculus.saturated (fst ` NL)"
+lemma "labeled_lifted_calculus.lifted_calculus.saturated NL \<Longrightarrow> empty_order_lifting.lifted_calculus.saturated (fst ` NL)"
   unfolding labeled_lifted_calculus.lifted_calculus.saturated_def empty_order_lifting.lifted_calculus.saturated_def labeled_lifted_calculus.empty_order_lifting.lifted_calculus.Inf_from_def empty_order_lifting.lifted_calculus.Inf_from_def
   (*unfolding labeled_lifted_calculus.lifted_calculus.saturated_def empty_order_lifting.lifted_calculus.saturated_def labeled_lifted_calculus.empty_order_lifting.lifted_calculus.Inf_from_def empty_order_lifting.lifted_calculus.Inf_from_def labeled_lifted_calculus.Red_Inf_\<G>_def Red_Inf_\<G>_def \<G>_Inf_L_def using Inf_FL_to_Inf_F*)
-proof 
+proof clarify
   fix \<iota>
   assume
+    subs_Red_Inf: "{\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL} \<subseteq> labeled_lifted_calculus.Red_Inf_\<G> NL" and
     i_in: "\<iota> \<in> Inf_F" and
     i_prems: "set (prems_of \<iota>) \<subseteq> fst ` NL"
-  obtain Ll where Ll_length: "length Ll = length (prems_of \<iota>)" and
+  define Lli where "Lli i \<equiv> (SOME x. ((prems_of \<iota>)!i,x) \<in> NL)" for i
+  have [simp]:"((prems_of \<iota>)!i,Lli i) \<in> NL" if "i < length (prems_of \<iota>)" for i
+    using that subset_fst[OF i_prems] unfolding Lli_def by (meson nth_mem someI_ex)
+  define Ll where "Ll \<equiv> map Lli [0..<length (prems_of \<iota>)]"
+  have Ll_length: "length Ll = length (prems_of \<iota>)" unfolding Ll_def by auto
     (* "\<exists>L0. Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0) \<in> Inf_FL" and *)
-    "set (zip (prems_of \<iota>) Ll) \<subseteq> NL"
-    using fst_set_in_zip_is_first_set[of "prems_of \<iota>" Ll] subset_fst[OF i_prems] to_lists[of "set (prems_of \<iota>)" NL "prems_of \<iota>"] apply auto
-  then obtain L0 where "Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0) \<in> Inf_FL" by fast
-  then obtain \<iota>_FL where "\<iota>_FL = Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0)" by blast
-  then have "\<iota>_FL \<in> {\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL}" using i_prems
-  then have "\<exists>\<iota>_FL. to_F \<iota>_FL = \<iota>" using Inf_F_to_Inf_FL
+  have subs_NL: "set (zip (prems_of \<iota>) Ll) \<subseteq> NL" unfolding Ll_def by (auto simp:in_set_zip)
+  obtain L0 where L0: "Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0) \<in> Inf_FL"
+    using Inf_F_to_Inf_FL[OF i_in Ll_length] ..
+  define \<iota>_FL where "\<iota>_FL = Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0)"
+  then have "set (prems_of \<iota>_FL) \<subseteq> NL" using subs_NL by simp
+  then have "\<iota>_FL \<in> {\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL}" unfolding \<iota>_FL_def using L0 by blast
+  then have "\<iota>_FL \<in> labeled_lifted_calculus.Red_Inf_\<G> NL" using subs_Red_Inf by fast
+  show "\<iota> \<in> Red_Inf_\<G> (fst ` NL)" 
+
+
+
+
 
 
 end
