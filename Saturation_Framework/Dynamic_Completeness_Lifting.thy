@@ -495,10 +495,13 @@ lemma "NL1 \<Turnstile>\<G>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<G
 
 lemma subset_fst: "A \<subseteq> fst ` AB \<Longrightarrow> \<forall>x \<in> A. \<exists>y. (x,y) \<in> AB" by fastforce
 
+lemma red_inf_impl: "\<iota> \<in> labeled_lifted_calculus.Red_Inf_\<G> NL \<Longrightarrow> to_F \<iota> \<in> Red_Inf_\<G> (fst ` NL)"
+  unfolding labeled_lifted_calculus.Red_Inf_\<G>_def Red_Inf_\<G>_def \<G>_Inf_L_def \<G>_F_L_def to_F_def
+  using Inf_FL_to_Inf_F by auto
+
 text \<open>lemma 22 from the technical report\<close>
 lemma "labeled_lifted_calculus.lifted_calculus.saturated NL \<Longrightarrow> empty_order_lifting.lifted_calculus.saturated (fst ` NL)"
   unfolding labeled_lifted_calculus.lifted_calculus.saturated_def empty_order_lifting.lifted_calculus.saturated_def labeled_lifted_calculus.empty_order_lifting.lifted_calculus.Inf_from_def empty_order_lifting.lifted_calculus.Inf_from_def
-  (*unfolding labeled_lifted_calculus.lifted_calculus.saturated_def empty_order_lifting.lifted_calculus.saturated_def labeled_lifted_calculus.empty_order_lifting.lifted_calculus.Inf_from_def empty_order_lifting.lifted_calculus.Inf_from_def labeled_lifted_calculus.Red_Inf_\<G>_def Red_Inf_\<G>_def \<G>_Inf_L_def using Inf_FL_to_Inf_F*)
 proof clarify
   fix \<iota>
   assume
@@ -518,7 +521,9 @@ proof clarify
   then have "set (prems_of \<iota>_FL) \<subseteq> NL" using subs_NL by simp
   then have "\<iota>_FL \<in> {\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL}" unfolding \<iota>_FL_def using L0 by blast
   then have "\<iota>_FL \<in> labeled_lifted_calculus.Red_Inf_\<G> NL" using subs_Red_Inf by fast
-  show "\<iota> \<in> Red_Inf_\<G> (fst ` NL)" 
+  moreover have "\<iota> = to_F \<iota>_FL" unfolding to_F_def \<iota>_FL_def using Ll_length by (cases \<iota>) auto
+  ultimately show "\<iota> \<in> Red_Inf_\<G> (fst ` NL)" by (auto intro:red_inf_impl)
+qed
 
 
 
