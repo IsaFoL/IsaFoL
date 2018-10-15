@@ -1295,6 +1295,7 @@ sepref_definition (in -) get_the_propagation_reason_fast_code
   by sepref
 
 declare get_the_propagation_reason_fast_code.refine[sepref_fr_rules]
+  get_the_propagation_reason_code.refine[sepref_fr_rules]
 
 
 paragraph \<open>Direct access to elements in the trail\<close>
