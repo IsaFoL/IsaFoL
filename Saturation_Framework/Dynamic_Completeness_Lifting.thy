@@ -29,8 +29,8 @@ locale grounding_function = Non_ground: sound_inference_system Bot_F entails_sou
     \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
     \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close>
   assumes
-    Bot_map_not_empty: \<open>\<forall>B \<in> Bot_F. \<G>_F B \<noteq> {}\<close> and
-    Bot_map: \<open>\<forall>B \<in> Bot_F. \<G>_F B \<subseteq> Bot_G\<close> and
+    Bot_map_not_empty: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<noteq> {}\<close> and
+    Bot_map: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<subseteq> Bot_G\<close> and
     Bot_cond: \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F\<close> and
     inf_map: \<open>\<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))\<close>
 begin
@@ -60,21 +60,19 @@ text \<open>lemma 8 in the technical report\<close>
 sublocale lifted_consequence_relation: consequence_relation  
   where Bot=Bot_F and entails=entails_\<G>
 proof
-  fix N
-  show \<open>\<forall>B\<in>Bot_F. {B} \<Turnstile>\<G> N\<close> 
-  proof
-    fix B
+  show \<open>B\<in>Bot_F \<Longrightarrow> {B} \<Turnstile>\<G> N\<close> for B N 
+  proof -
     assume \<open>B \<in> Bot_F\<close>
     then show \<open>{B} \<Turnstile>\<G> N\<close>
-      using Bot_map Ground.bot_implies_all[of "\<G>_set N"] subs_Bot_G_entails Bot_map_not_empty
+      using Bot_map Ground.bot_implies_all[of _ "\<G>_set N"] subs_Bot_G_entails Bot_map_not_empty
       unfolding entails_\<G>_def
       by auto
   qed
 next
   fix N1 N2 :: \<open>'f set\<close>
   assume 
-    incl: \<open>N2 \<subseteq> N1\<close>
-  show \<open>N1 \<Turnstile>\<G> N2\<close> using incl entails_\<G>_def \<G>_subset Ground.subset_entailed by auto
+    \<open>N2 \<subseteq> N1\<close>
+  then show \<open>N1 \<Turnstile>\<G> N2\<close> using entails_\<G>_def \<G>_subset Ground.subset_entailed by auto
 next
   fix N1 N2
   assume
@@ -84,8 +82,8 @@ next
 next
   fix N1 N2 N3
   assume
-    trans: \<open>N1 \<Turnstile>\<G> N2 \<and> N2 \<Turnstile>\<G> N3\<close>
-  show \<open>N1 \<Turnstile>\<G> N3\<close> using trans entails_\<G>_def Ground.entails_trans by blast
+    \<open>N1 \<Turnstile>\<G> N2\<close> and \<open>N2 \<Turnstile>\<G> N3\<close>
+  then show \<open>N1 \<Turnstile>\<G> N3\<close> using entails_\<G>_def Ground.entails_trans by blast
 qed
 
 end
@@ -313,13 +311,13 @@ sublocale lifted_calculus: calculus
     Red_Inf = Red_Inf_\<G> and Red_F = Red_F_\<G>
 proof
   fix B N N' \<iota>
-  show \<open>Red_Inf_\<G> N \<in> Pow Inf_F\<close> unfolding Red_Inf_\<G>_def by blast
+  show \<open>Red_Inf_\<G> N \<subseteq> Inf_F\<close> unfolding Red_Inf_\<G>_def by blast
   show \<open>B \<in> Bot_F \<Longrightarrow> N \<Turnstile>\<G> {B} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close> using Red_F_Bot_F by simp
   show \<open>N \<subseteq> N' \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> N'\<close> using Red_F_of_subset_F by simp
   show \<open>N \<subseteq> N' \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> N'\<close> using Red_Inf_of_subset_F by simp
   show \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> (N - N')\<close> using Red_F_of_Red_F_subset_F by simp
   show \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> (N - N')\<close> using Red_Inf_of_Red_F_subset_F by simp
-  show \<open>\<iota> \<in> Inf_F \<and> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf_\<G> N\<close> using Red_Inf_of_Inf_to_N_F by simp
+  show \<open>\<iota> \<in> Inf_F \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf_\<G> N\<close> using Red_Inf_of_Inf_to_N_F by simp
 qed
 
 end
@@ -424,9 +422,9 @@ sublocale labeled_grounding_function: grounding_function
     \<G>_F = \<G>_F_L and
     \<G>_Inf = \<G>_Inf_L
 proof
-  fix NL
-  show "\<forall>B\<in>Bot_FL. {B} |\<approx>FL NL"
-    unfolding entails_sound_FL_def Bot_FL_def using Non_ground.bot_implies_all by simp
+  fix B NL
+  show "B\<in>Bot_FL \<Longrightarrow> {B} |\<approx>FL NL"
+    unfolding entails_sound_FL_def Bot_FL_def using Non_ground.bot_implies_all by force
 next
   fix NL1 NL2
   show "NL2 \<subseteq> NL1 \<Longrightarrow> NL1 |\<approx>FL NL2"
@@ -442,18 +440,18 @@ next
     by (smt image_empty image_iff image_insert)
 next
   fix NL1 NL2 NL3
-  show "NL1 |\<approx>FL NL2 \<and> NL2 |\<approx>FL NL3 \<Longrightarrow> NL1 |\<approx>FL NL3"
+  show "NL1 |\<approx>FL NL2 \<Longrightarrow> NL2 |\<approx>FL NL3 \<Longrightarrow> NL1 |\<approx>FL NL3"
     unfolding entails_sound_FL_def using Non_ground.entails_trans by blast
 next
   fix \<iota>
   show "\<iota> \<in> Inf_FL \<Longrightarrow> set (prems_of \<iota>) |\<approx>FL {concl_of \<iota>}"
     unfolding entails_sound_FL_def using Inf_FL_to_Inf_F Non_ground.soundness by force
 next
-  show "\<forall>B\<in>Bot_FL. \<G>_F_L B \<noteq> {}"
-    unfolding \<G>_F_L_def Bot_FL_def using Bot_map_not_empty by simp
+  show "B\<in>Bot_FL \<Longrightarrow> \<G>_F_L B \<noteq> {}" for B
+    unfolding \<G>_F_L_def Bot_FL_def using Bot_map_not_empty by auto
 next
-  show "\<forall>B\<in>Bot_FL. \<G>_F_L B \<subseteq> Bot_G"
-    unfolding \<G>_F_L_def Bot_FL_def using Bot_map by simp
+  show "B\<in>Bot_FL \<Longrightarrow> \<G>_F_L B \<subseteq> Bot_G" for B
+    unfolding \<G>_F_L_def Bot_FL_def using Bot_map by force
 next
   fix CL
   show "\<G>_F_L CL \<inter> Bot_G \<noteq> {} \<longrightarrow> CL \<in> Bot_FL"
@@ -529,6 +527,7 @@ text "lemma 23 from the technical report"
 lemma "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G> \<longrightarrow> static_refutational_complete_calculus Bot_FL entails_sound_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G>"
   unfolding static_refutational_complete_calculus_def
   apply auto
+  sorry
 
 
 

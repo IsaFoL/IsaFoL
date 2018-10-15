@@ -21,10 +21,10 @@ locale consequence_relation =
     Bot :: "'f set" and
     entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50)
   assumes
-    bot_implies_all: "\<forall>B \<in> Bot. {B} \<Turnstile> N1" and
+    bot_implies_all: "B \<in> Bot \<Longrightarrow> {B} \<Turnstile> N1" and
     subset_entailed: "N2 \<subseteq> N1 \<Longrightarrow> N1 \<Turnstile> N2" and
     all_formulas_entailed: "(\<forall>C \<in> N2. N1 \<Turnstile> {C}) \<Longrightarrow> N1 \<Turnstile> N2" and
-    entails_trans: "(N1 \<Turnstile> N2 \<and> N2 \<Turnstile> N3) \<Longrightarrow> N1 \<Turnstile> N3"
+    entails_trans: "N1 \<Turnstile> N2 \<Longrightarrow> N2 \<Turnstile> N3 \<Longrightarrow> N1 \<Turnstile> N3"
 begin
 
 lemma entail_set_all_formulas: "N1 \<Turnstile> N2 \<longleftrightarrow> (\<forall>C \<in> N2. N1 \<Turnstile> {C})"
@@ -57,13 +57,13 @@ locale calculus = sound_inference_system Bot entails_sound Inf + consequence_rel
     Red_Inf :: "'f set \<Rightarrow> 'f inference set" and
     Red_F :: "'f set \<Rightarrow> 'f set"
   assumes
-    Red_Inf_to_Inf: "Red_Inf N \<in> Pow Inf" and
+    Red_Inf_to_Inf: "Red_Inf N \<subseteq> Inf" and
     Red_F_Bot: "B \<in> Bot \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> N - Red_F N \<Turnstile> {B}" and
     Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'" and
     Red_Inf_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_Inf N \<subseteq> Red_Inf N'" and
     Red_F_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')" and
     Red_Inf_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_Inf N \<subseteq> Red_Inf (N - N')" and
-    Red_Inf_of_Inf_to_N: "\<iota> \<in> Inf \<and> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf N"
+    Red_Inf_of_Inf_to_N: "\<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf N"
 begin
 
 lemma Red_Inf_of_Inf_to_N_subset: "{\<iota> \<in> Inf. (concl_of \<iota> \<in> N)} \<subseteq> Red_Inf N"
@@ -94,7 +94,7 @@ definition saturated :: "'f set \<Rightarrow> bool" where
 end
 
 locale static_refutational_complete_calculus = calculus +
-  assumes static_refutational_complete: "B \<in> Bot \<Longrightarrow> saturated N \<and> N \<Turnstile> {B} \<Longrightarrow> \<exists>B'\<in>Bot. B' \<in> N"
+  assumes static_refutational_complete: "B \<in> Bot \<Longrightarrow> saturated N \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> \<exists>B'\<in>Bot. B' \<in> N"
 
 context calculus
 begin
@@ -247,7 +247,8 @@ proof
   fix B N
   assume 
     bot_elem: \<open>B \<in> Bot\<close> and
-    saturated_N: "saturated N \<and> N \<Turnstile> {B}"
+    saturated_N: "saturated N" and
+    refut_N: "N \<Turnstile> {B}"
   define D where "D = LCons N LNil"
   have[simp]: \<open>\<not> lnull D\<close> by (auto simp: D_def)
   have deriv_D: \<open>chain (\<Longrightarrow>\<^sub>P\<^sub>P) D\<close> by (simp add: chain.chain_singleton D_def)
@@ -256,7 +257,7 @@ proof
   have "Sup_Red_Inf_llist D = Red_Inf N" by (simp add: D_def Sup_Red_Inf_unit)
   then have fair_D: "fair D" using saturated_N by (simp add: fair_def saturated_def liminf_is_N)  
   obtain i B' where B'_is_bot: \<open>B' \<in> Bot\<close> and B'_in: "B' \<in> (lnth D i)" and \<open>i < llength D\<close>
-    using dynamic_refutational_complete[of B D] bot_elem fair_D head_D saturated_N deriv_D
+    using dynamic_refutational_complete[of B D] bot_elem fair_D head_D saturated_N deriv_D refut_N
     by auto
   then have "i = 0"
     by (auto simp: D_def enat_0_iff)
