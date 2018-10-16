@@ -529,12 +529,15 @@ lemma "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F (\<Turn
         Nl_entails_Bl: \<open>Nl \<Turnstile>\<G>L {Bl}\<close>
       have static_axioms: "B \<in> Bot_F \<longrightarrow> empty_order_lifting.lifted_calculus.saturated N \<longrightarrow> N \<Turnstile>\<G> {B} \<longrightarrow> (\<exists>B'\<in>Bot_F. B' \<in> N)" for B N using static[unfolded static_refutational_complete_calculus_axioms_def] by fast
       define B where "B = fst Bl"
-      have "B \<in> Bot_F" using Bl_in Bot_FL_def B_def SigmaE by force
+      have B_in: "B \<in> Bot_F" using Bl_in Bot_FL_def B_def SigmaE by force
       define N where "N = fst ` Nl"
-      have "empty_order_lifting.lifted_calculus.saturated N"
+      have N_sat: "empty_order_lifting.lifted_calculus.saturated N"
         using N_def Nl_sat labeled_saturation_lifting by blast 
-      have "N \<Turnstile>\<G> {B}" using Nl_entails_Bl unfolding labeled_entailment_lifting N_def B_def by force
-      show \<open>\<exists>B'\<in>Bot_FL. B' \<in> Nl\<close> sorry
+      have N_entails_B: "N \<Turnstile>\<G> {B}" using Nl_entails_Bl unfolding labeled_entailment_lifting N_def B_def by force
+      have "\<exists>B' \<in> Bot_F. B' \<in> N" using B_in N_sat N_entails_B static_axioms[of B N] by blast
+      then obtain B' where "B' \<in> Bot_F" "B' \<in> N" by force
+      then obtain Bl' where "Bl' \<in> Nl" "fst Bl' = B" sorry
+      show \<open>\<exists>Bl'\<in>Bot_FL. Bl' \<in> Nl\<close> sorry
 qed
 
 find_theorems "\<forall>x. _" "\<And>x. _"
