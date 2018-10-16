@@ -249,7 +249,7 @@ definition isasat_input_bounded where
   [simp]: \<open>isasat_input_bounded = (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L \<le> uint_max)\<close>
 
 definition isasat_input_nempty where
-  [simp]: \<open>isasat_input_nempty = (\<A>\<^sub>i\<^sub>n \<noteq> {#})\<close>
+  [simp]: \<open>isasat_input_nempty = (set_mset \<A>\<^sub>i\<^sub>n \<noteq> {})\<close>
 
 definition isasat_input_bounded_nempty where
   \<open>isasat_input_bounded_nempty = (isasat_input_bounded \<and> isasat_input_nempty)\<close>
