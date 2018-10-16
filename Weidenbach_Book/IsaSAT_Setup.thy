@@ -627,6 +627,10 @@ lemma isa_vmtfI:
     (vm, to_remove) \<in> isa_vmtf \<A> M\<close>
   by (auto simp: isa_vmtf_def Image_iff intro!: bexI[of _ \<open>(vm, to_remove')\<close>])
 
+lemma isa_vmtf_consD:
+  \<open>((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf \<A> M \<Longrightarrow>
+     ((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf \<A> (L # M)\<close>
+  by (auto simp: isa_vmtf_def dest: vmtf_consD)
 
 
 text \<open>\<^term>\<open>vdom\<close> is an upper bound on all the address of the clauses that are used in the

@@ -1431,7 +1431,7 @@ lemma find_decomp_wl_imp_code_conbine_cond:
   by (auto intro!: ext simp: find_decomp_w_ns_pre_def)
 
 sepref_definition find_decomp_wl_imp'_code
-  is \<open>uncurry (PR_CONST find_decomp_wl_st_int)\<close>
+  is \<open>uncurry find_decomp_wl_st_int\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   unfolding find_decomp_wl_st_int_def PR_CONST_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
