@@ -14,12 +14,12 @@ Isabelle2018 is necessary to process the theory files.
 
 ## Installation ##
 
-Step 1. Download and install Isabelle 2018:
+Step 1. Download and install Isabelle2018:
 
-Download and install Isabelle 2018 as described on http://isabelle.in.tum.de
-Open Isabelle 2018 (or more precisely Isabelle/jEdit).
-If the "Isabelle build" window appears, then let it run until it disappears.
-Close the "Isabelle2018/HOL" window.
+Download and install Isabelle2018 as described on [http://isabelle.in.tum.de](http://isabelle.in.tum.de).  
+Open Isabelle 2018 (or more precisely Isabelle/jEdit).  
+If the "Isabelle build" window appears, then let it run until it disappears.  
+Close the "Isabelle2018/HOL" window.  
 
 
 Step 2. Download and install AFP-2018:
@@ -37,9 +37,11 @@ Step 3. Download and install the IsaFoR repository version db6a3973b702:
     ~/RPx/IsaFoR/thys $ pwd >> ~/.isabelle/Isabelle2018/ROOTS
     ~/RPx/IsaFoR/thys $ cd ../..
     
+    
 Step 4. Download IsaFoL
 
     ~/RPx $ git clone -b CPP2019 https://bitbucket.org/isafol/isafol
+
 
 Step 4. Open the theories:
 
