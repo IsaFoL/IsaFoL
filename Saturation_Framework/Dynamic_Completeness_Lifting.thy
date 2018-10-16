@@ -10,7 +10,6 @@ theory Dynamic_Completeness_Lifting
   imports
     Saturation_Framework_Preliminaries
     Well_Quasi_Orders.Minimal_Elements
-    "../lib/Explorer"
 begin
 
 subsection \<open>Adding a Well-founded Relation\<close>
@@ -431,35 +430,36 @@ qed
 text "lemma 23 from the technical report"
 lemma "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G> \<Longrightarrow> static_refutational_complete_calculus Bot_FL entails_sound_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G>"
   unfolding static_refutational_complete_calculus_def
-  proof (rule conjI impI; clarify)
-    interpret calculus Bot_FL entails_sound_FL Inf_FL labeled_grounding_function.entails_\<G> labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G> by (simp add: labeled_lifted_calculus.lifted_calculus.calculus_axioms)
-    show "calculus Bot_FL (|\<approx>FL) Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G>" by standard
-  next
-    assume
-      calc: "calculus Bot_F (|\<approx>F) Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G>" and
-      static: "static_refutational_complete_calculus_axioms Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G>"
-    show "static_refutational_complete_calculus_axioms Bot_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G>" unfolding static_refutational_complete_calculus_axioms_def
-    proof (intro conjI impI allI)
-      fix Bl :: \<open>'f \<times> 'l\<close> and Nl :: \<open>('f \<times> 'l) set\<close>
-      assume 
-        Bl_in: \<open>Bl \<in> Bot_FL\<close> and
-        Nl_sat: \<open>labeled_lifted_calculus.empty_order_lifting.lifted_calculus.saturated Nl\<close> and
-        Nl_entails_Bl: \<open>Nl \<Turnstile>\<G>L {Bl}\<close>
-      have static_axioms: "B \<in> Bot_F \<longrightarrow> empty_order_lifting.lifted_calculus.saturated N \<longrightarrow> N \<Turnstile>\<G> {B} \<longrightarrow> (\<exists>B'\<in>Bot_F. B' \<in> N)" for B N using static[unfolded static_refutational_complete_calculus_axioms_def] by fast
-      define B where "B = fst Bl"
-      have B_in: "B \<in> Bot_F" using Bl_in Bot_FL_def B_def SigmaE by force
-      define N where "N = fst ` Nl"
-      have N_sat: "empty_order_lifting.lifted_calculus.saturated N"
-        using N_def Nl_sat labeled_saturation_lifting by blast 
-      have N_entails_B: "N \<Turnstile>\<G> {B}" using Nl_entails_Bl unfolding labeled_entailment_lifting N_def B_def by force
-      have "\<exists>B' \<in> Bot_F. B' \<in> N" using B_in N_sat N_entails_B static_axioms[of B N] by blast
-      then obtain B' where "B' \<in> Bot_F" "B' \<in> N" by force
-      then obtain Bl' where "Bl' \<in> Nl" "fst Bl' = B" sorry
-      show \<open>\<exists>Bl'\<in>Bot_FL. Bl' \<in> Nl\<close> sorry
-      oops
-
-
-find_theorems "\<forall>x. _" "\<And>x. _"
+proof (rule conjI impI; clarify)
+  interpret calculus Bot_FL entails_sound_FL Inf_FL labeled_grounding_function.entails_\<G> labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G> by (simp add: labeled_lifted_calculus.lifted_calculus.calculus_axioms)
+  show "calculus Bot_FL (|\<approx>FL) Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G>" by standard
+next
+  assume
+    calc: "calculus Bot_F (|\<approx>F) Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G>" and
+    static: "static_refutational_complete_calculus_axioms Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G>"
+  show "static_refutational_complete_calculus_axioms Bot_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G>" unfolding static_refutational_complete_calculus_axioms_def
+  proof (intro conjI impI allI)
+    fix Bl :: \<open>'f \<times> 'l\<close> and Nl :: \<open>('f \<times> 'l) set\<close>
+    assume 
+      Bl_in: \<open>Bl \<in> Bot_FL\<close> and
+      Nl_sat: \<open>labeled_lifted_calculus.empty_order_lifting.lifted_calculus.saturated Nl\<close> and
+      Nl_entails_Bl: \<open>Nl \<Turnstile>\<G>L {Bl}\<close>
+    have static_axioms: "B \<in> Bot_F \<longrightarrow> empty_order_lifting.lifted_calculus.saturated N \<longrightarrow> N \<Turnstile>\<G> {B} \<longrightarrow> (\<exists>B'\<in>Bot_F. B' \<in> N)" for B N using static[unfolded static_refutational_complete_calculus_axioms_def] by fast
+    define B where "B = fst Bl"
+    have B_in: "B \<in> Bot_F" using Bl_in Bot_FL_def B_def SigmaE by force
+    define N where "N = fst ` Nl"
+    have N_sat: "empty_order_lifting.lifted_calculus.saturated N"
+      using N_def Nl_sat labeled_saturation_lifting by blast 
+    have N_entails_B: "N \<Turnstile>\<G> {B}" using Nl_entails_Bl unfolding labeled_entailment_lifting N_def B_def by force
+    have "\<exists>B' \<in> Bot_F. B' \<in> N" using B_in N_sat N_entails_B static_axioms[of B N] by blast
+    then obtain B' where in_Bot: "B' \<in> Bot_F" and in_N: "B' \<in> N" by force
+    then have "B' \<in> fst ` Bot_FL" unfolding Bot_FL_def by fastforce
+    obtain Bl' where in_Nl: "Bl' \<in> Nl" and fst_Bl': "fst Bl' = B'"
+      using in_N unfolding N_def by blast
+    have "Bl' \<in> Bot_FL" unfolding Bot_FL_def using fst_Bl' in_Bot vimage_fst by fastforce
+    then show \<open>\<exists>Bl'\<in>Bot_FL. Bl' \<in> Nl\<close> using in_Nl by blast
+  qed
+qed
 
 end
 
