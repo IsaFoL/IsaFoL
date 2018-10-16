@@ -35,7 +35,7 @@ Step 2. Download and install AFP-2018:
     ~/RPx/afp-devel $ cd ..
 
 
-Step 3. Download and install the IsaFoR repository version db6a3973b702:
+Step 3. Download and install the IsaFoR repository version `db6a3973b702`:
 
     ~/RPx $ hg clone http://cl2-informatik.uibk.ac.at/rewriting/mercurial.cgi/IsaFoR -r db6a3973b702
     ~/RPx $ cd IsaFoR/thys
