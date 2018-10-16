@@ -13,82 +13,6 @@ theory Dynamic_Completeness_Lifting
     "../lib/Explorer"
 begin
 
-subsection \<open>Grounding Function\<close>
-
-locale grounding_function = Non_ground: sound_inference_system Bot_F entails_sound_F Inf_F + Ground: calculus Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
-  for
-    Bot_F :: \<open>'f set\<close> and
-    entails_sound_F ::  \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
-    Inf_F :: \<open>'f inference set\<close> and
-    Bot_G :: \<open>'g set\<close> and
-    entails_sound_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "|\<approx>G" 50) and
-    Inf_G ::  \<open>'g inference set\<close> and
-    entails_comp_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
-    Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
-    Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
-  + fixes
-    \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
-    \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close>
-  assumes
-    Bot_map_not_empty: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<noteq> {}\<close> and
-    Bot_map: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<subseteq> Bot_G\<close> and
-    Bot_cond: \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F\<close> and
-    inf_map: \<open>\<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))\<close>
-begin
-
-abbreviation \<G>_set :: \<open>'f set \<Rightarrow> 'g set\<close> where
-  \<open>\<G>_set N \<equiv> \<Union>C \<in> N. \<G>_F C\<close>
-
-lemma \<G>_subset: \<open>N1 \<subseteq> N2 \<Longrightarrow> \<G>_set N1 \<subseteq> \<G>_set N2\<close> by auto
-
-definition entails_\<G>  :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
-\<open>N1 \<Turnstile>\<G> N2 \<equiv> (\<G>_set N1) \<Turnstile>G (\<G>_set N2)\<close>
-
-lemma subs_Bot_G_entails: 
-  assumes
-    not_empty: \<open>sB \<noteq> {}\<close> and
-    in_bot: \<open>sB \<subseteq> Bot_G\<close>
-  shows \<open>sB \<Turnstile>G N\<close>
-proof -
-  have \<open>\<exists>B. B \<in> sB\<close> using not_empty by auto
-  then obtain B where B_in: \<open>B \<in> sB\<close> by auto
-  then have r_trans: \<open>{B} \<Turnstile>G N\<close> using Ground.bot_implies_all in_bot by auto
-  have l_trans: \<open>sB \<Turnstile>G {B}\<close> using B_in Ground.subset_entailed by auto
-  then show ?thesis using r_trans Ground.entails_trans[of sB "{B}"] by auto
-qed
-
-text \<open>lemma 8 in the technical report\<close>
-sublocale lifted_consequence_relation: consequence_relation  
-  where Bot=Bot_F and entails=entails_\<G>
-proof
-  show \<open>B\<in>Bot_F \<Longrightarrow> {B} \<Turnstile>\<G> N\<close> for B N 
-  proof -
-    assume \<open>B \<in> Bot_F\<close>
-    then show \<open>{B} \<Turnstile>\<G> N\<close>
-      using Bot_map Ground.bot_implies_all[of _ "\<G>_set N"] subs_Bot_G_entails Bot_map_not_empty
-      unfolding entails_\<G>_def
-      by auto
-  qed
-next
-  fix N1 N2 :: \<open>'f set\<close>
-  assume 
-    \<open>N2 \<subseteq> N1\<close>
-  then show \<open>N1 \<Turnstile>\<G> N2\<close> using entails_\<G>_def \<G>_subset Ground.subset_entailed by auto
-next
-  fix N1 N2
-  assume
-    N1_entails_C: \<open>\<forall>C \<in> N2. N1 \<Turnstile>\<G> {C}\<close>
-  show \<open>N1 \<Turnstile>\<G> N2\<close> using Ground.all_formulas_entailed N1_entails_C entails_\<G>_def 
-    by (smt UN_E UN_I Ground.entail_set_all_formulas singletonI)
-next
-  fix N1 N2 N3
-  assume
-    \<open>N1 \<Turnstile>\<G> N2\<close> and \<open>N2 \<Turnstile>\<G> N3\<close>
-  then show \<open>N1 \<Turnstile>\<G> N3\<close> using entails_\<G>_def Ground.entails_trans by blast
-qed
-
-end
-
 (* not sure if this should stay there *)
 locale inference_preserving_grounding_function = grounding_function +
   assumes
@@ -538,17 +462,10 @@ lemma "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F (\<Turn
       then obtain B' where "B' \<in> Bot_F" "B' \<in> N" by force
       then obtain Bl' where "Bl' \<in> Nl" "fst Bl' = B" sorry
       show \<open>\<exists>Bl'\<in>Bot_FL. Bl' \<in> Nl\<close> sorry
-qed
+      oops
+
 
 find_theorems "\<forall>x. _" "\<And>x. _"
-
-
-
-
-  sorry
-
-
-
 
 end
 
