@@ -905,9 +905,11 @@ proof -
               mset C \<subseteq># the (get_conflict_wl S) \<and>
               distinct_mset (the (get_conflict_wl S)) \<and>
               literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st S) (the (get_conflict_wl S)) \<and>
+              literals_are_in_\<L>\<^sub>i\<^sub>n_trail (all_atms_st T) (get_trail_wl T) \<and>
               get_conflict_wl S \<noteq> None \<and>
               - lit_of (hd (get_trail_wl S)) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and>
-              literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T}
+              literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T \<and>
+              n < count_decided (get_trail_wl T)}
            (extract_shorter_conflict_wl S)\<close>
      (is \<open>_ \<le> \<Down> ?shorter _\<close>)
     if
@@ -1317,8 +1319,10 @@ proof -
         using \<L>\<^sub>i\<^sub>n
         by (auto simp: S x2c literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def simp flip: all_atms_def)
       ultimately show ?thesis
-        using \<L>\<^sub>i\<^sub>n_S x1c_Da Da_None dist_D D_none x1c_D x1c hd_x1c highest uM_\<L>\<^sub>a\<^sub>l\<^sub>l vm'
+        using \<L>\<^sub>i\<^sub>n_S x1c_Da Da_None dist_D D_none x1c_D x1c hd_x1c highest uM_\<L>\<^sub>a\<^sub>l\<^sub>l vm' M_\<L>\<^sub>i\<^sub>n
+	  max_lvl_le
         by (auto simp: S x2c S')
+	
     qed
     have hd_M'_M: \<open>lit_of_last_trail_pol M' = lit_of (hd M)\<close>
       by (subst lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id, of M M'])
@@ -1435,7 +1439,8 @@ proof -
       using TT' by (cases T) (auto simp: twl_st_heur_bt_def T' del_conflict_wl_def)
     have
       vm: \<open>vm \<in> isa_vmtf (all_atms_st T') M\<close> and
-      M'M: \<open>(M', M) \<in> trail_pol (all_atms_st T')\<close>
+      M'M: \<open>(M', M) \<in> trail_pol (all_atms_st T')\<close> and
+      lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (all_atms_st T') (get_trail_wl T')\<close>
       using TT' by (auto simp: twl_st_heur_bt_def del_conflict_wl_def
         all_atms_def[symmetric] T T')
  
@@ -1447,73 +1452,54 @@ proof -
     have n: \<open>n = get_maximum_level M (remove1_mset (- lit_of (hd M)) (mset C))\<close> and
       eq: \<open>equality_except_conflict_wl T' S'\<close> and
       \<open>the D = mset C\<close> \<open>D \<noteq> None\<close> and
-      clss_eq: \<open>get_clauses_wl_heur S = arena\<close>
-      using TT' by (auto simp: T T' twl_st_heur_bt_def)
+      clss_eq: \<open>get_clauses_wl_heur S = arena\<close> and
+      n: \<open>n < count_decided (get_trail_wl T')\<close> and
+      bounded: \<open>isasat_input_bounded (all_atms_st T')\<close> and
+      T_T': \<open>(T, del_conflict_wl T') \<in> twl_st_heur_bt\<close> and
+      n2: \<open>n = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
+      using TT' by (auto simp: T T' twl_st_heur_bt_def del_conflict_wl_def simp flip: all_atms_def
+        simp del: isasat_input_bounded_def)
     have [simp]: \<open>get_trail_wl S' = M\<close>
       using eq \<open>the D = mset C\<close> \<open>D \<noteq> None\<close> by (cases S'; auto simp: T')
+    have [simp]: \<open>get_clauses_wl_heur S = arena\<close>
+      using TT' by (auto simp: T T')
+
+    have n_d: \<open>no_dup M\<close>
+      using M'M unfolding trail_pol_def by auto
+
+    have [simp]: \<open>NO_MATCH [] M \<Longrightarrow> out_learned M None ai \<longleftrightarrow> out_learned [] None ai\<close> for M ai
+      by (auto simp: out_learned_def)
+
     show ?thesis
       unfolding T' find_decomp_wl_st_int_def prod.case T
-      apply (rule specify_left)
+      apply (rule bind_refine_res)
+      prefer 2
       apply (rule order.trans)
       apply (rule isa_find_decomp_wl_imp_find_decomp_wl_imp[THEN fref_to_Down_curry2, of M n vm0
           _ _ _ \<open>all_atms_st T'\<close>])
-      subgoal apply auto sorry
+      subgoal using n by (auto simp: T')
       subgoal using M'M vm by auto
-sorry
-thm isa_find_decomp_wl_imp_find_decomp_wl_imp
-find_theorems "Refine_Basic.bind _ _ \<le> _"
- (*
-    have H: \<open>\<exists>s'\<in>{S. \<exists>K M2 M1.
-                  S = (M1, N, D, NE, UE, Q, W) \<and>
-                  (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-                  get_level M K = get_maximum_level M
-                    (remove1_mset (- lit_of (hd (get_trail_wl S'))) (the D)) + 1}.
-         (s, s') \<in> ?find_decomp\<close>
-         (is \<open>\<exists>s' \<in> ?H. _\<close>)
-      (*if s: \<open>s \<in> Collect (find_decomp_wl_nlit_prop n (M, arena, D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats))\<close>*)
-      for s :: \<open>twl_st_wl_heur\<close>
-    proof -
-    thm isa_find_decomp_wl_imp_find_decomp_wl_imp
-        find_decomp_wl_imp_le_find_decomp_wl'
-	find_theorems find_decomp_wl'
-    find_theorems find_decomp_wl_imp
-    find_theorems find_decomp_wl_st_int
-    find_theorems isa_find_decomp_wl_imp
-(*      obtain K M2 M1 vm' lbd' where
-        s: \<open>s = (M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd', outl, stats)\<close> and
-        decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
-        n_M_K: \<open>get_level M K = Suc n\<close> and
-        vm': \<open>vm' \<in> vmtf (all_atms_st S) M1\<close>
-        using s by auto*)
-      let ?T' = \<open>(M1, N, D, NE, UE, Q, W)\<close>
-      have \<open>?T' \<in> ?H\<close>
-        using decomp n n_M_K \<open>the D = mset C\<close> by (auto simp: T')
-      have [simp]: \<open>NO_MATCH [] M \<Longrightarrow> out_learned M None ai \<longleftrightarrow> out_learned [] None ai\<close> for M ai
-        by (auto simp: out_learned_def)
-      have \<open>no_dup M1\<close>
-        using \<open>no_dup M\<close> decomp by (auto dest!: get_all_ann_decomposition_exists_prepend
-            dest: no_dup_appendD)
-      have twl: \<open>((M1, arena, D', Q', W', vm', \<phi>, clvls, cach, lbd', outl, stats),
-           M1, N, D, NE, UE, Q, W) \<in> twl_st_heur_bt\<close>
-        using TT' vm' \<open>no_dup M1\<close> by (auto simp: T T' twl_st_heur_bt_def twl_st_heur_bt_def
-            del_conflict_wl_def)
-      have \<open>equality_except_trail_wl (M1, N, D, NE, UE, Q, W) T'\<close>
-        using eq by (auto simp: T')
-      then have T': \<open>(s, ?T') \<in> ?find_decomp\<close>
-        using decomp n n_M_K \<open>the D = mset C\<close> twl clss_eq
-        by (auto simp: s T')
-      show ?thesis
-        using \<open>?T' \<in> ?H\<close> \<open>(s, ?T') \<in> ?find_decomp\<close>
-        by blast
-    qed
-    show ?thesis
-      unfolding find_decomp_wl_nlit_def find_decomp_wl_def T T'
-      apply clarify
-      apply (rule RES_refine)
-      unfolding T[symmetric] T'[symmetric]
-      apply (rule H)
-      by fast
-  qed*)
+     apply (rule order.trans)
+     apply (rule ref_two_step')
+     apply (rule find_decomp_wl_imp_le_find_decomp_wl')
+     subgoal using vm0 .
+     subgoal using lits_trail by (auto simp: T')
+     subgoal using n by (auto simp: T')
+     subgoal using n_d .
+     subgoal using bounded .
+     unfolding find_decomp_w_ns_def conc_fun_RES
+     apply (rule order.refl)
+     using T_T' n_d (*TODO Tune proof*)
+     apply (cases \<open>get_vmtf_heur T\<close>)
+     apply (auto simp: find_decomp_wl_def twl_st_heur_bt_def T T' del_conflict_wl_def
+       dest:  no_dup_appendD
+       simp flip: all_atms_def n2
+       intro!: RETURN_RES_refine
+       intro: isa_vmtfI)
+       apply (rule_tac x=an in exI)
+       apply (auto dest: no_dup_appendD intro: isa_vmtfI)
+     done
+  qed
   have fst_find_lit_of_max_level_wl: \<open>RETURN (C ! 1)
       \<le> \<Down> Id
           (find_lit_of_max_level_wl U'
@@ -1525,7 +1511,7 @@ find_theorems "Refine_Basic.bind _ _ \<le> _"
       \<open>(TnC, T') \<in> ?shorter S' S\<close> and
       [simp]: \<open>nC = (n, C)\<close> and
       [simp]: \<open>TnC = (T, nC)\<close> and
-      find_decomp: \<open>(U, U') \<in> ?find_decomp\<close> and
+      find_decomp: \<open>(U, U') \<in> ?find_decomp S S'\<close> and
       size_C: \<open>1 < length C\<close> and
       size_conflict_U': \<open>1 < size (the (get_conflict_wl U'))\<close>
     for S S' TnC T' T nC n C U U'
