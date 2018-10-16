@@ -13,12 +13,6 @@ theory Dynamic_Completeness_Lifting
     "../lib/Explorer"
 begin
 
-(* not sure if this should stay there *)
-locale inference_preserving_grounding_function = grounding_function +
-  assumes
-    \<G>_prems_entails_prems_\<G>: \<open> \<G>_set (set (prems_of \<iota>)) |\<approx>G (\<Union> \<kappa> \<in> \<G>_Inf \<iota>. set (prems_of \<kappa>))\<close> and
-    concl_\<G>_entails_\<G>_concl: \<open> (\<Union> \<kappa> \<in> \<G>_Inf \<iota>. {concl_of \<kappa>}) |\<approx>G \<G>_F (concl_of \<iota>)\<close>
- 
 subsection \<open>Adding a Well-founded Relation\<close>
 
 locale redundancy_criterion_lifting = grounding_function Bot_F entails_sound_F Inf_F Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
