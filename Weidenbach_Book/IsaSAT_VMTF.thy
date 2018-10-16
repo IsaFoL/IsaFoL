@@ -1091,11 +1091,16 @@ sepref_definition find_decomp_wl_imp_fast_code
 
 declare find_decomp_wl_imp_fast_code.refine[sepref_fr_rules]
 
+abbreviation find_decomp_w_ns_prop where
+  \<open>find_decomp_w_ns_prop \<A> \<equiv>
+     (\<lambda>(M::(nat, nat) ann_lits) highest _.
+        (\<lambda>(M1, vm). \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+          get_level M K = Suc highest \<and> vm \<in> vmtf \<A> M1))\<close>
+
 definition find_decomp_w_ns where
   \<open>find_decomp_w_ns \<A> =
-     (\<lambda>(M::(nat, nat) ann_lits) highest _.
-        SPEC(\<lambda>(M1, vm). \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-          get_level M K = Suc highest \<and> vm \<in> vmtf \<A> M1))\<close>
+     (\<lambda>(M::(nat, nat) ann_lits) highest vm.
+        SPEC(find_decomp_w_ns_prop \<A> M highest vm))\<close>
 
 definition (in -) find_decomp_wl_st :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>find_decomp_wl_st = (\<lambda>L (M, N, D, oth).  do{
@@ -1223,6 +1228,42 @@ proof -
     subgoal
       by (meson atm_of_lit_in_atms_of contra_subsetD in_all_lits_of_m_ain_atms_of_iff
           in_multiset_in_set literals_are_in_\<L>\<^sub>i\<^sub>n_def)
+    subgoal by auto
+    done
+qed
+
+lemma isa_vmtf_rescore_body:
+  \<open>(uncurry3 (isa_vmtf_rescore_body), uncurry3 (vmtf_rescore_body \<A>)) \<in>
+     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id) \<rightarrow>\<^sub>f \<langle>Id \<times>\<^sub>r (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>r Id\<rangle> nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding isa_vmtf_rescore_body_def vmtf_rescore_body_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply refine_rcg
+    subgoal by auto
+    subgoal by auto
+    subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xa x' x1f x2f x1g x2g
+      by (cases x1g) auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xa x' x1f x2f x1g x2g
+      unfolding isa_vmtf_mark_to_rescore_pre_def
+      by (cases x1g)
+        (auto intro!: atms_hash_insert_pre)
+    subgoal
+      by (auto intro!:  isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore[THEN fref_to_Down_unRET_uncurry])
+    done
+qed
+    
+lemma isa_vmtf_rescore:
+  \<open>(uncurry3 (isa_vmtf_rescore), uncurry3 (vmtf_rescore \<A>)) \<in>
+     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id) \<rightarrow>\<^sub>f \<langle>(Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id\<rangle> nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding isa_vmtf_rescore_def vmtf_rescore_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg isa_vmtf_rescore_body[THEN fref_to_Down_curry3])
+    subgoal by auto
     subgoal by auto
     done
 qed
