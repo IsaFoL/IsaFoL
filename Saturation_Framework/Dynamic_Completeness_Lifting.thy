@@ -10,6 +10,7 @@ theory Dynamic_Completeness_Lifting
   imports
     Saturation_Framework_Preliminaries
     Well_Quasi_Orders.Minimal_Elements
+    "../lib/Explorer"
 begin
 
 subsection \<open>Grounding Function\<close>
@@ -471,24 +472,10 @@ proof
   show "wfp_on Labeled_Empty_Order UNIV" unfolding wfp_on_def Labeled_Empty_Order_def by simp
 qed
 
-(*
-definition entails_comp_\<G>_L :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>L" 50) where "entails_comp_\<G>_L NL1 NL2 \<equiv> labeled_grounding_function.\<G>_set NL1 \<Turnstile>G labeled_grounding_function.\<G>_set NL2"
-
-definition Red_Inf_\<G>_L :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) inference set" where
-  \<open>Red_Inf_\<G>_L NL = {\<iota> \<in> Inf_FL. \<G>_Inf (to_F \<iota>) \<subseteq> Red_Inf_G (labeled_grounding_function.\<G>_set NL)}\<close>
-
-definition Red_F_\<G>_L :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
-  \<open>Red_F_\<G>_L NL = {CL. \<forall>D \<in> \<G>_F_L CL. D \<in> Red_F_G (labeled_grounding_function.\<G>_set NL)}\<close>
-*)
-
-find_theorems grounding_function_axioms
-find_theorems name: def "grounding_function.entails_\<G> entails_comp_G"
-term "labeled_grounding_function.entails_\<G>"
-
 notation "labeled_grounding_function.entails_\<G>" (infix "\<Turnstile>\<G>L" 50)
 
 text \<open>Lemma 21 from the technical report\<close>
-lemma "NL1 \<Turnstile>\<G>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<G> fst ` NL2"
+lemma labeled_entailment_lifting: "NL1 \<Turnstile>\<G>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<G> fst ` NL2"
   unfolding labeled_grounding_function.entails_\<G>_def \<G>_F_L_def entails_\<G>_def by auto
 
 lemma subset_fst: "A \<subseteq> fst ` AB \<Longrightarrow> \<forall>x \<in> A. \<exists>y. (x,y) \<in> AB" by fastforce
@@ -498,7 +485,7 @@ lemma red_inf_impl: "\<iota> \<in> labeled_lifted_calculus.Red_Inf_\<G> NL \<Lon
   using Inf_FL_to_Inf_F by auto
 
 text \<open>lemma 22 from the technical report\<close>
-lemma "labeled_lifted_calculus.lifted_calculus.saturated NL \<Longrightarrow> empty_order_lifting.lifted_calculus.saturated (fst ` NL)"
+lemma labeled_saturation_lifting: "labeled_lifted_calculus.lifted_calculus.saturated NL \<Longrightarrow> empty_order_lifting.lifted_calculus.saturated (fst ` NL)"
   unfolding labeled_lifted_calculus.lifted_calculus.saturated_def empty_order_lifting.lifted_calculus.saturated_def labeled_lifted_calculus.empty_order_lifting.lifted_calculus.Inf_from_def empty_order_lifting.lifted_calculus.Inf_from_def
 proof clarify
   fix \<iota>
@@ -524,9 +511,40 @@ proof clarify
 qed
 
 text "lemma 23 from the technical report"
-lemma "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G> \<longrightarrow> static_refutational_complete_calculus Bot_FL entails_sound_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G>"
+lemma "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G> \<Longrightarrow> static_refutational_complete_calculus Bot_FL entails_sound_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G>"
   unfolding static_refutational_complete_calculus_def
-  apply auto
+  proof (rule conjI impI; clarify)
+    interpret calculus Bot_FL entails_sound_FL Inf_FL labeled_grounding_function.entails_\<G> labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G> by (simp add: labeled_lifted_calculus.lifted_calculus.calculus_axioms)
+    show "calculus Bot_FL (|\<approx>FL) Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G>" by standard
+  next
+    assume
+      calc: "calculus Bot_F (|\<approx>F) Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G>" and
+      static: "static_refutational_complete_calculus_axioms Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G>"
+    show "static_refutational_complete_calculus_axioms Bot_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G>" unfolding static_refutational_complete_calculus_axioms_def
+    proof (intro conjI impI allI)
+      fix Bl :: \<open>'f \<times> 'l\<close> and Nl :: \<open>('f \<times> 'l) set\<close>
+      assume 
+        Bl_in: \<open>Bl \<in> Bot_FL\<close> and
+        Nl_sat: \<open>labeled_lifted_calculus.empty_order_lifting.lifted_calculus.saturated Nl\<close> and
+        Nl_entails_Bl: \<open>Nl \<Turnstile>\<G>L {Bl}\<close>
+      have static_axioms: "B \<in> Bot_F \<longrightarrow> empty_order_lifting.lifted_calculus.saturated N \<longrightarrow> N \<Turnstile>\<G> {B} \<longrightarrow> (\<exists>B'\<in>Bot_F. B' \<in> N)" for B N using static[unfolded static_refutational_complete_calculus_axioms_def] by fast
+      define B where "B = fst Bl"
+      have B_in: "B \<in> Bot_F" using Bl_in Bot_FL_def B_def SigmaE by force
+      define N where "N = fst ` Nl"
+      have N_sat: "empty_order_lifting.lifted_calculus.saturated N"
+        using N_def Nl_sat labeled_saturation_lifting by blast 
+      have N_entails_B: "N \<Turnstile>\<G> {B}" using Nl_entails_Bl unfolding labeled_entailment_lifting N_def B_def by force
+      have "\<exists>B' \<in> Bot_F. B' \<in> N" using B_in N_sat N_entails_B static_axioms[of B N] by blast
+      then obtain B' where "B' \<in> Bot_F" "B' \<in> N" by force
+      then obtain Bl' where "Bl' \<in> Nl" "fst Bl' = B" sorry
+      show \<open>\<exists>Bl'\<in>Bot_FL. Bl' \<in> Nl\<close> sorry
+qed
+
+find_theorems "\<forall>x. _" "\<And>x. _"
+
+
+
+
   sorry
 
 
