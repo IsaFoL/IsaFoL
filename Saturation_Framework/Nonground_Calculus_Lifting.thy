@@ -1,5 +1,9 @@
+(*  Title:       Nonground_Calculus_Lifting
+    Author:      Simon Robillard <simon.robillard at chalmers.se>, 2018
+*)
+
 theory Nonground_Calculus_Lifting
-  imports Dynamic_Completeness_Lifting
+  imports Saturation_Framework_Preliminaries 
 begin
 
 locale nonground_static_refutational_complete_calculus = grounding_function Bot_F entails_sound_F Inf_F Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G +

@@ -1,4 +1,4 @@
-(*  Title:       Saturation Framework
+(*  Title:       Dynamic_Completeness_Lifting
     Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018
 *)
 

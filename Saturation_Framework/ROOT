@@ -8,5 +8,6 @@ session "Saturation_Framework" = "Ordered_Resolution_Prover" +
   theories [document = pdf, quick_and_dirty = true]
     Saturation_Framework_Preliminaries
     Dynamic_Completeness_Lifting
+    Nonground_Calculus_Lifting
   document_files
     root.tex
