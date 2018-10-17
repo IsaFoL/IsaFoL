@@ -100,10 +100,11 @@ definition vmtf_enqueue_pre where
 
 definition isa_vmtf_enqueue :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> vmtf_option_fst_As \<Rightarrow> vmtf nres\<close> where
 \<open>isa_vmtf_enqueue = (\<lambda>M L (ns, m, fst_As, lst_As, next_search). do {
-  de \<leftarrow> defined_atm_pol M L;
+  ASSERT(defined_atm_pol_pre M L);
+  de \<leftarrow> RETURN (defined_atm_pol M L);
   RETURN (case fst_As of
     None \<Rightarrow>(ns[L := VMTF_Node m fst_As None], m+1, L, L,
-            (if de then None else Some L)) 
+            (if de then None else Some L))
   | Some fst_As \<Rightarrow>
      let fst_As' = VMTF_Node (stamp (ns!fst_As)) (Some L) (get_next (ns!fst_As)) in
       (ns[L := VMTF_Node (m+1) None (Some fst_As), fst_As := fst_As'],
@@ -126,11 +127,8 @@ lemma isa_vmtf_enqueue:
   \<open>(uncurry2 isa_vmtf_enqueue, uncurry2 (RETURN ooo vmtf_enqueue)) \<in>
      [\<lambda>((M, L), _). L \<in># \<A>]\<^sub>f (trail_pol \<A>) \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
 proof -
-  have defined_atm_pol: \<open>defined_atm_pol x1g x2f
-	\<le> SPEC
-	   (\<lambda>c. (c, defined_lit x1a (Pos x2))
-		\<in> Id)\<close>
-    if 
+  have defined_atm_pol: \<open>(defined_atm_pol x1g x2f, defined_lit x1a (Pos x2))	\<in> Id\<close>
+    if
       \<open>case y of (x, xa) \<Rightarrow> (case x of (M, L) \<Rightarrow> \<lambda>_. L \<in># \<A>) xa\<close> and
       \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f nat_rel \<times>\<^sub>f Id\<close> and    \<open>x1 = (x1a, x2)\<close> and
       \<open>x2d = (x1e, x2e)\<close> and
@@ -159,6 +157,7 @@ proof -
     unfolding isa_vmtf_enqueue_def vmtf_enqueue_alt_def uncurry_def
     apply (intro frefI nres_relI)
     apply (refine_rcg)
+    subgoal by (rule defined_atm_pol_pre) auto
     apply (rule defined_atm_pol; assumption)
     subgoal for x y x1 x1a x2 x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x1g x2f x2g x1h x2h
 	 x1i x2i x1j x2j x1k x2k
@@ -189,10 +188,10 @@ sepref_definition vmtf_enqueue_fast_code
 declare vmtf_enqueue_fast_code.refine[sepref_fr_rules]
 
 
-definition (in -) insert_sort_inner_nth :: \<open>nat_vmtf_node list \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
+definition insert_sort_inner_nth :: \<open>nat_vmtf_node list \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
   \<open>insert_sort_inner_nth ns = insert_sort_inner (<) (\<lambda>remove n. stamp (ns ! (remove ! n)))\<close>
 
-definition (in -) insert_sort_nth :: \<open>nat_vmtf_node list \<times> 'c \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
+definition insert_sort_nth :: \<open>nat_vmtf_node list \<times> 'c \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
   \<open>insert_sort_nth = (\<lambda>(ns, _). insert_sort (<) (\<lambda>remove n. stamp (ns ! (remove ! n))))\<close>
 
 
@@ -206,7 +205,7 @@ lemma (in -) insert_sort_inner_nth_code_helper:
   by (auto simp del: nth_mem)
 
 
-sepref_definition (in -) insert_sort_inner_nth_code
+sepref_definition insert_sort_inner_nth_code
    is \<open>uncurry2 insert_sort_inner_nth\<close>
    :: \<open>[\<lambda>((xs, remove), n). (\<forall>x\<in>#mset remove. x < length xs) \<and> n < length remove \<and>
         length remove \<le> uint32_max]\<^sub>a
@@ -431,7 +430,7 @@ proof -
   have reorder_remove: \<open>reorder_remove x1d x1e
 	\<le> \<Down> Id
 	   (reorder_remove x1a x1b)\<close>
-    if 
+    if
       \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and    \<open>x2a = (x1b, x2b)\<close> and
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>y = (x1, x2)\<close> and
@@ -448,7 +447,7 @@ proof -
   have vmtf_rescale: \<open>vmtf_rescale x1d
 	\<le> \<Down> Id
 	   (vmtf_rescale x1a)\<close>
-    if 
+    if
       \<open>True\<close> and
       \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and    \<open>x2a = (x1b, x2b)\<close> and
       \<open>x2 = (x1a, x2a)\<close> and
@@ -544,13 +543,13 @@ proof -
      \<open>xa = (x1h, x2h)\<close> and
      \<open>(to_remove', to_remove'a) \<in> Id\<close> and
      \<open>(xa, x') \<in> Id\<close> and
-     \<open>(vm, vma) \<in> Id\<close> 
+     \<open>(vm, vma) \<in> Id\<close>
    for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e to_remove' to_remove'a vm
        vma xa x' x1f x2f x1g x2g x1h x2h x1i and x2i :: \<open>bool list\<close>
   using isa_vmtf_en_dequeue[of \<A>, THEN fref_to_Down_curry2, of x1 \<open>to_remove'a ! x1f\<close> x1g
      x1c \<open>to_remove' ! x1h\<close> x1i] that
   by (auto simp: RETURN_def)
- 
+
   show ?thesis
    unfolding isa_vmtf_flush_int_def uncurry_def vmtf_flush_int_alt_def
     apply (intro frefI nres_relI)
@@ -637,7 +636,7 @@ lemma atms_hash_insert_pre:
   using assms
   by (auto simp:  atoms_hash_insert_def atoms_hash_rel_def distinct_atoms_rel_alt_def
      atms_hash_insert_pre_def)
-  
+
 lemma atoms_hash_del_op_set_insert:
   \<open>(uncurry (RETURN oo atoms_hash_insert),
     uncurry (RETURN oo insert)) \<in>
@@ -733,7 +732,7 @@ declare isa_vmtf_unset_code.refine[sepref_fr_rules]
 definition isa_vmtf_mark_to_rescore_and_unset :: \<open>nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> isa_vmtf_remove_int\<close>
 where
   \<open>isa_vmtf_mark_to_rescore_and_unset L M = isa_vmtf_mark_to_rescore L (isa_vmtf_unset L M)\<close>
-  
+
 definition isa_vmtf_mark_to_rescore_and_unset_pre where
   \<open>isa_vmtf_mark_to_rescore_and_unset_pre = (\<lambda>(L, ((ns, m, fst_As, lst_As, next_search), tor)).
       vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search), tor) \<and>
@@ -944,12 +943,12 @@ lemma isa_find_decomp_wl_imp_find_decomp_wl_imp:
      \<langle>trail_pol \<A> \<times>\<^sub>r (Id \<times>\<^sub>r distinct_atoms_rel \<A>)\<rangle>nres_rel\<close>
 proof -
   have [intro]: \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow>  (M', M) \<in> trail_pol_no_CS \<A>\<close> for M' M
-    by (auto simp: trail_pol_def trail_pol_no_CS_def control_stack_length_count_dec[symmetric]) 
+    by (auto simp: trail_pol_def trail_pol_no_CS_def control_stack_length_count_dec[symmetric])
 
   have [refine0]: \<open>((zero_uint32_nat, trail_pol_conv_to_no_CS x1c, x2c),
         zero_uint32_nat, trail_conv_to_no_CS x1a, x2a)
         \<in> nat_rel \<times>\<^sub>r trail_pol_no_CS \<A> \<times>\<^sub>r (Id \<times>\<^sub>r distinct_atoms_rel \<A>)\<close>
-    if 
+    if
       \<open>case y of
        (x, xa) \<Rightarrow> (case x of (M, lev) \<Rightarrow> \<lambda>_. lev < count_decided M) xa\<close> and
       \<open>(x, y)
@@ -995,7 +994,7 @@ proof -
         \<le> SPEC
            (\<lambda>c. (c, trail_conv_back x2 x1e)
                 \<in> trail_pol \<A>)\<close>
-    if 
+    if
       \<open>case y of (x, xa) \<Rightarrow> (case x of (M, lev) \<Rightarrow> \<lambda>vm. lev < count_decided M) xa\<close> and
       \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>)\<close> and
       \<open>x1 = (x1a, x2)\<close> and
@@ -1254,7 +1253,7 @@ proof -
       by (auto intro!:  isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore[THEN fref_to_Down_unRET_uncurry])
     done
 qed
-    
+
 lemma isa_vmtf_rescore:
   \<open>(uncurry3 (isa_vmtf_rescore), uncurry3 (vmtf_rescore \<A>)) \<in>
      (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id) \<rightarrow>\<^sub>f \<langle>(Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id\<rangle> nres_rel\<close>
@@ -1398,7 +1397,7 @@ proof -
     subgoal using lits unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_trail_lit_of_mset by auto
     subgoal for target s j b M vm by simp
     subgoal using length_M0 unfolding uint32_max_def by simp
-    subgoal for x s a ab aa bb 
+    subgoal for x s a ab aa bb
       by (cases \<open>drop a M\<^sub>0\<close>)
         (auto simp: lit_of_hd_trail_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
     subgoal by auto
@@ -1685,6 +1684,38 @@ lemma vmtf_mark_to_rescore_also_reasons_spec:
       by (rule vmtf_mark_to_rescore_clause_spec, assumption, assumption)
        fastforce+
     done
+  done
+
+
+
+definition isa_vmtf_find_next_undef :: \<open>isa_vmtf_remove_int \<Rightarrow> trail_pol \<Rightarrow> (nat option) nres\<close> where
+\<open>isa_vmtf_find_next_undef = (\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove) M. do {
+    WHILE\<^sub>T\<^bsup>\<lambda>next_search. next_search \<noteq> None \<longrightarrow> defined_atm_pol_pre M (the next_search)\<^esup>
+      (\<lambda>next_search. next_search \<noteq> None \<and> defined_atm_pol M (the next_search))
+      (\<lambda>next_search. do {
+         ASSERT(next_search \<noteq> None);
+         let n = the next_search;
+         ASSERT (n < length ns);
+         RETURN (get_next (ns!n))
+        }
+      )
+      next_search
+  })\<close>
+
+lemma isa_vmtf_find_next_undef_vmtf_find_next_undef:
+  \<open>(uncurry isa_vmtf_find_next_undef, uncurry (vmtf_find_next_undef \<A>)) \<in>
+      (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<times>\<^sub>r trail_pol \<A>  \<rightarrow>\<^sub>f \<langle>\<langle>nat_rel\<rangle>option_rel\<rangle>nres_rel \<close>
+  unfolding isa_vmtf_find_next_undef_def vmtf_find_next_undef_def uncurry_def
+    defined_atm_def[symmetric]
+  apply (intro frefI nres_relI)
+  apply refine_rcg
+  subgoal by auto
+  subgoal by (rule defined_atm_pol_pre) (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
+  subgoal
+    by (auto simp: undefined_atm_code[THEN fref_to_Down_unRET_uncurry_Id])
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
   done
 
 end

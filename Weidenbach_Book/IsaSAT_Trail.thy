@@ -1112,34 +1112,39 @@ lemma cons_trail_Decided_tr_pre:
 
 subparagraph \<open>Polarity: Defined or Undefined\<close>
 
+definition (in -) defined_atm_pol_pre where
+  \<open>defined_atm_pol_pre = (\<lambda>(M, xs, lvls, k) L. 2*L < length xs \<and>
+      2*L \<le> uint_max)\<close>
+
 definition (in -) defined_atm_pol where
-  \<open>defined_atm_pol = (\<lambda>(M, xs, lvls, k) L. do {
-      ASSERT(2*L < length xs);
-      ASSERT(2*L \<le> uint_max);
-      RETURN (\<not>((xs!(two_uint32_nat*L)) = None))
-    })\<close>
+  \<open>defined_atm_pol = (\<lambda>(M, xs, lvls, k) L. \<not>((xs!(two_uint32_nat*L)) = None))\<close>
 
 sepref_definition defined_atm_code
-  is \<open>uncurry defined_atm_pol\<close>
-  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  is \<open>uncurry (RETURN oo defined_atm_pol)\<close>
+  :: \<open>[uncurry defined_atm_pol_pre]\<^sub>a trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
   unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
+    defined_atm_pol_pre_def
   supply UNSET_def[simp del] uint32_nat_assn_mult[sepref_fr_rules]
   by sepref
 
 declare defined_atm_code.refine[sepref_fr_rules]
 
 sepref_definition defined_atm_fast_code
-  is \<open>uncurry defined_atm_pol\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  is \<open>uncurry (RETURN oo defined_atm_pol)\<close>
+  :: \<open>[uncurry defined_atm_pol_pre]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
   unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
-  supply UNSET_def[simp del] uint32_nat_assn_mult[sepref_fr_rules]
+    defined_atm_pol_pre_def
+  supply UNSET_def[simp del] uint32_nat_assn_mult[sepref_fr_rules] 
   by sepref
 
-declare defined_atm_code.refine[sepref_fr_rules] defined_atm_fast_code.refine[sepref_fr_rules]
+declare defined_atm_code.refine[sepref_fr_rules]
+   defined_atm_fast_code.refine[sepref_fr_rules]
 
 lemma undefined_atm_code:
-  \<open>(uncurry defined_atm_pol, uncurry (RETURN oo defined_atm)) \<in>
-   [\<lambda>(M, L). Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f trail_pol \<A> \<times>\<^sub>r Id \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
+  \<open>(uncurry (RETURN oo defined_atm_pol), uncurry (RETURN oo defined_atm)) \<in>
+   [\<lambda>(M, L). Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f trail_pol \<A> \<times>\<^sub>r Id \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>  (is ?A) and
+  defined_atm_pol_pre:
+    \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> L \<in>#  \<A> \<Longrightarrow> defined_atm_pol_pre M' L\<close>
 proof -
   have H: \<open>2*L < length xs\<close> (is \<open>?length\<close>) and
     none: \<open>defined_atm M L \<longleftrightarrow> xs ! (2*L) \<noteq> None\<close> (is ?undef) and
@@ -1162,9 +1167,11 @@ proof -
     show \<open>2*L \<le> uint_max\<close>
       using tr L_N unfolding trail_pol_def by auto
   qed
-  show ?thesis
+  show ?A
     unfolding defined_atm_pol_def
     by (intro frefI nres_relI) (auto 5 5 simp: none H le intro!: ASSERT_leI)
+  show \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> L \<in># \<A> \<Longrightarrow> defined_atm_pol_pre M' L\<close>
+    using H le by (auto simp: defined_atm_pol_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
 qed
 
 

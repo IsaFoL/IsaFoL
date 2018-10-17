@@ -5,88 +5,74 @@ begin
 
 paragraph \<open>Decide\<close>
 
-context isasat_input_bounded_nempty
-begin
-
 lemma (in -)not_is_None_not_None: \<open>\<not>is_None s \<Longrightarrow> s \<noteq> None\<close>
   by (auto split: option.splits)
 
 sepref_register vmtf_find_next_undef
-sepref_thm vmtf_find_next_undef_code
-  is \<open>uncurry (PR_CONST vmtf_find_next_undef)\<close>
-  :: \<open>vmtf_remove_conc\<^sup>k *\<^sub>a trail_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint32_nat_assn\<close>
+
+sepref_definition vmtf_find_next_undef_code
+  is \<open>uncurry (isa_vmtf_find_next_undef)\<close>
+  :: \<open>vmtf_remove_conc\<^sup>k *\<^sub>a trail_pol_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint32_nat_assn\<close>
   supply [[goals_limit=1]]
   supply not_is_None_not_None[simp]
-  unfolding vmtf_find_next_undef_def PR_CONST_def
+  unfolding isa_vmtf_find_next_undef_def PR_CONST_def
   apply (rewrite at \<open>WHILE\<^sub>T\<^bsup>_\<^esup> (\<lambda> _ . \<hole>) _ _\<close> short_circuit_conv)
-  apply (rewrite in \<open>If _ \<hole> _\<close> defined_atm_def[symmetric])
   by sepref
 
-concrete_definition (in -) vmtf_find_next_undef_code
-  uses isasat_input_bounded_nempty.vmtf_find_next_undef_code.refine_raw
-  is \<open>(uncurry ?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) vmtf_find_next_undef_code_def
-
-lemmas vmtf_find_next_undef_code_ref[sepref_fr_rules] =
-   vmtf_find_next_undef_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-sepref_thm vmtf_find_next_undef_fast_code
-  is \<open>uncurry (PR_CONST vmtf_find_next_undef)\<close>
-  :: \<open>vmtf_remove_conc\<^sup>k *\<^sub>a trail_fast_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint32_nat_assn\<close>
+sepref_definition vmtf_find_next_undef_fast_code
+  is \<open>uncurry (isa_vmtf_find_next_undef)\<close>
+  :: \<open>vmtf_remove_conc\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint32_nat_assn\<close>
   supply [[goals_limit=1]]
   supply not_is_None_not_None[simp]
-  unfolding vmtf_find_next_undef_def PR_CONST_def
+  unfolding isa_vmtf_find_next_undef_def PR_CONST_def
   apply (rewrite at \<open>WHILE\<^sub>T\<^bsup>_\<^esup> (\<lambda> _ . \<hole>) _ _\<close> short_circuit_conv)
-  apply (rewrite in \<open>If _ \<hole> _\<close> defined_atm_def[symmetric])
   by sepref
 
-concrete_definition (in -) vmtf_find_next_undef_fast_code
-  uses isasat_input_bounded_nempty.vmtf_find_next_undef_fast_code.refine_raw
-  is \<open>(uncurry ?f, _) \<in> _\<close>
+declare vmtf_find_next_undef_code.refine[sepref_fr_rules]
+  vmtf_find_next_undef_fast_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) vmtf_find_next_undef_fast_code_def
-
-lemmas vmtf_find_next_undef_fast_code_ref[sepref_fr_rules] =
-   vmtf_find_next_undef_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-definition (in isasat_input_ops) vmtf_find_next_undef_upd
-  :: \<open>(nat, nat)ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
-        (((nat, nat)ann_lits \<times> vmtf_remove_int) \<times> nat option)nres\<close>
+definition vmtf_find_next_undef_upd
+  :: \<open>nat multiset \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
+        (((nat,nat)ann_lits \<times> vmtf_remove_int) \<times> nat option)nres\<close>
 where
-  \<open>vmtf_find_next_undef_upd = (\<lambda>M vm. do{
-      L \<leftarrow> vmtf_find_next_undef vm M;
+  \<open>vmtf_find_next_undef_upd \<A> = (\<lambda>M vm. do{
+      L \<leftarrow> vmtf_find_next_undef \<A> vm M;
       RETURN ((M, update_next_search L vm), L)
   })\<close>
 
-definition trail_ref_except_ann_lits where
- \<open>trail_ref_except_ann_lits = {((M, ((A, m, fst_As, lst_As, next_search), removed)), M').
-        M = M' \<and> ((A, m, fst_As, lst_As, next_search), removed) \<in> vmtf M}\<close>
+definition isa_vmtf_find_next_undef_upd
+  :: \<open>trail_pol \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
+        ((trail_pol \<times> isa_vmtf_remove_int) \<times> nat option)nres\<close>
+where
+  \<open>isa_vmtf_find_next_undef_upd = (\<lambda>M vm. do{
+      L \<leftarrow> isa_vmtf_find_next_undef vm M;
+      RETURN ((M, update_next_search L vm), L)
+  })\<close>
 
-definition phase_saver_ref where
-  \<open>phase_saver_ref = {(M, M'). M = M' \<and> phase_saving M}\<close>
+lemma isa_vmtf_find_next_undef_vmtf_find_next_undef:
+  \<open>(uncurry isa_vmtf_find_next_undef_upd, uncurry (vmtf_find_next_undef_upd \<A>)) \<in>
+       trail_pol \<A>  \<times>\<^sub>r  (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow>\<^sub>f
+          \<langle>trail_pol \<A> \<times>\<^sub>f  (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<times>\<^sub>f  \<langle>nat_rel\<rangle>option_rel\<rangle>nres_rel \<close>
+  unfolding isa_vmtf_find_next_undef_upd_def vmtf_find_next_undef_upd_def uncurry_def
+    defined_atm_def[symmetric]
+  apply (intro frefI nres_relI)
+  apply (refine_rcg isa_vmtf_find_next_undef_vmtf_find_next_undef[THEN fref_to_Down_curry])
+  subgoal by auto
+  subgoal by (auto simp: update_next_search_def split: prod.splits)
+  done
 
 sepref_register vmtf_find_next_undef_upd
-sepref_thm vmtf_find_next_undef_upd_code
-  is \<open>uncurry (PR_CONST vmtf_find_next_undef_upd)\<close>
-  :: \<open>trail_assn\<^sup>d *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a
-     (trail_assn *a vmtf_remove_conc) *a
+sepref_definition vmtf_find_next_undef_upd_code
+  is \<open>uncurry (isa_vmtf_find_next_undef_upd)\<close>
+  :: \<open>trail_pol_assn\<^sup>d *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a
+     (trail_pol_assn *a vmtf_remove_conc) *a
         option_assn uint32_nat_assn\<close>
   supply [[goals_limit=1]]
   supply not_is_None_not_None[simp]
   unfolding vmtf_find_next_undef_upd_def PR_CONST_def
   by sepref
 
-concrete_definition (in -) vmtf_find_next_undef_upd_code
-  uses isasat_input_bounded_nempty.vmtf_find_next_undef_upd_code.refine_raw
-  is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) vmtf_find_next_undef_upd_code_def
-
-lemmas vmtf_find_next_undef_upd_code_ref[sepref_fr_rules] =
-   vmtf_find_next_undef_upd_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-sepref_thm vmtf_find_next_undef_upd_fast_code
+sepref_definition vmtf_find_next_undef_upd_fast_code
   is \<open>uncurry (PR_CONST vmtf_find_next_undef_upd)\<close>
   :: \<open>trail_fast_assn\<^sup>d *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a
      (trail_fast_assn *a vmtf_remove_conc) *a
@@ -96,20 +82,14 @@ sepref_thm vmtf_find_next_undef_upd_fast_code
   unfolding vmtf_find_next_undef_upd_def PR_CONST_def
   by sepref
 
-concrete_definition (in -) vmtf_find_next_undef_upd_fast_code
-  uses isasat_input_bounded_nempty.vmtf_find_next_undef_upd_fast_code.refine_raw
-  is \<open>(uncurry ?f,_)\<in>_\<close>
+declare vmtf_find_next_undef_upd_code.refine[sepref_fr_rules]
+  vmtf_find_next_undef_upd_fast_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) vmtf_find_next_undef_upd_fast_code_def
-
-lemmas vmtf_find_next_undef_upd_fast_code_ref[sepref_fr_rules] =
-   vmtf_find_next_undef_upd_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-definition (in isasat_input_ops)lit_of_found_atm where
+definition lit_of_found_atm where
 \<open>lit_of_found_atm \<phi> L = SPEC (\<lambda>K. (L = None \<longrightarrow> K = None) \<and>
     (L \<noteq> None \<longrightarrow> K \<noteq> None \<and> atm_of (the K) = the L))\<close>
 
-definition (in isasat_input_ops) find_undefined_atm
+definition find_undefined_atm
   :: \<open>(nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
        (((nat,nat) ann_lits \<times> vmtf_remove_int) \<times> nat option) nres\<close>
 where
@@ -117,7 +97,7 @@ where
      (L \<noteq> None \<longrightarrow> Pos (the L) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> undefined_atm M (the L)) \<and>
      (L = None \<longrightarrow> (\<forall>K\<in># \<L>\<^sub>a\<^sub>l\<^sub>l. defined_lit M K)) \<and> M = M' \<and> vm \<in> vmtf M)\<close>
 
-definition (in isasat_input_ops) find_unassigned_lit_wl_D_heur
+definition find_unassigned_lit_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat literal option) nres\<close>
 where
   \<open>find_unassigned_lit_wl_D_heur = (\<lambda>(M, N, D, WS, Q, vm, \<phi>, clvls). do {
@@ -227,7 +207,7 @@ lemma find_undefined_atm_fast_hnr[sepref_fr_rules]:
   unfolding PR_CONST_def
   .
 
-definition (in isasat_input_ops) lit_of_found_atm_D
+definition lit_of_found_atm_D
   :: \<open>bool list \<Rightarrow> nat option \<Rightarrow> (nat literal option)nres\<close> where
   \<open>lit_of_found_atm_D = (\<lambda>(\<phi>::bool list) L. do{
       case L of
@@ -237,10 +217,10 @@ definition (in isasat_input_ops) lit_of_found_atm_D
         }
   })\<close>
 
-definition (in isasat_input_ops) lit_of_found_atm_D_pre where
+definition lit_of_found_atm_D_pre where
 \<open>lit_of_found_atm_D_pre = (\<lambda>(\<phi>, L). L \<noteq> None \<longrightarrow> (Pos (the L) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> the L < length \<phi>))\<close>
 
-sepref_thm lit_of_found_atm_D_code
+sepref_definition lit_of_found_atm_D_code
   is \<open>uncurry (PR_CONST lit_of_found_atm_D)\<close>
   :: \<open>[lit_of_found_atm_D_pre]\<^sub>a
       (array_assn bool_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>d \<rightarrow>
@@ -251,14 +231,7 @@ sepref_thm lit_of_found_atm_D_code
   unfolding lit_of_found_atm_D_def PR_CONST_def lit_of_found_atm_D_pre_def
   by sepref
 
-concrete_definition (in -) lit_of_found_atm_D_code
-   uses isasat_input_bounded_nempty.lit_of_found_atm_D_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) lit_of_found_atm_D_code_def
-
-lemmas lit_of_found_atm_D_hnr[sepref_fr_rules] =
-   lit_of_found_atm_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+declare lit_of_found_atm_D_code.refine[sepref_fr_rules]
 
 lemma lit_of_found_atm_D_lit_of_found_atm:
   \<open>(uncurry (PR_CONST lit_of_found_atm_D), uncurry lit_of_found_atm) \<in>
@@ -286,49 +259,34 @@ lemma find_unassigned_lit_wl_D_code_helper:
 
 
 sepref_register find_undefined_atm
-sepref_thm find_unassigned_lit_wl_D_code
-  is \<open>PR_CONST find_unassigned_lit_wl_D_heur\<close>
+sepref_definition find_unassigned_lit_wl_D_code
+  is \<open>find_unassigned_lit_wl_D_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a (isasat_unbounded_assn *a option_assn unat_lit_assn)\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
   unfolding find_unassigned_lit_wl_D_heur_def isasat_unbounded_assn_def PR_CONST_def
   by sepref
 
-concrete_definition (in -) find_unassigned_lit_wl_D_code
-   uses isasat_input_bounded_nempty.find_unassigned_lit_wl_D_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) find_unassigned_lit_wl_D_code_def
-
-lemmas find_unassigned_lit_wl_D_heur_hnr[sepref_fr_rules] =
-   find_unassigned_lit_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-sepref_thm find_unassigned_lit_wl_D_fast_code
-  is \<open>PR_CONST find_unassigned_lit_wl_D_heur\<close>
+sepref_definition find_unassigned_lit_wl_D_fast_code
+  is \<open>find_unassigned_lit_wl_D_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a (isasat_bounded_assn *a option_assn unat_lit_assn)\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
   unfolding find_unassigned_lit_wl_D_heur_def isasat_bounded_assn_def PR_CONST_def
   by sepref
 
-concrete_definition (in -) find_unassigned_lit_wl_D_fast_code
-   uses isasat_input_bounded_nempty.find_unassigned_lit_wl_D_fast_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) find_unassigned_lit_wl_D_fast_code_def
-
-lemmas find_unassigned_lit_wl_D_fast_heur_hnr[sepref_fr_rules] =
-   find_unassigned_lit_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+declare find_unassigned_lit_wl_D_code.refine[sepref_fr_rules]
 
 (* TODO: the length_u M is not necessary *)
-definition (in isasat_input_ops) decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema).
-      let j = length_u M in
-      (Decided L' # M, N, D, j, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_decision stats,
-         fema, sema))\<close>
+definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema). do {
+      ASSERT(isa_length_trail_pre M);
+      let j = isa_length_trail M in
+      ASSSERT(cons_trail_Decided_tr_pre (L', M));
+      RETURN (cons_trail_Decided_tr L' M, N, D, j, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_decision stats,
+         fema, sema)})\<close>
 
 sepref_thm decide_lit_wl_code
-  is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
-  :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and>
-        L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
+  is \<open>uncurry decide_lit_wl_heur\<close>
+  :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and>  L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
   unfolding decide_lit_wl_heur_def isasat_unbounded_assn_def PR_CONST_def

@@ -1059,7 +1059,7 @@ definition (in -) vmtf_dequeue :: \<open>nat \<Rightarrow> vmtf \<Rightarrow> vm
    (ns_vmtf_dequeue L ns, m, fst_As', lst_As', next_search')))\<close>
 
 text \<open>It would be better to distinguish whether L is set in M or not.\<close>
-definition vmtf_enqueue :: \<open>(nat, nat) ann_lits \<Rightarrow> nat \<Rightarrow> vmtf_option_fst_As \<Rightarrow>  vmtf\<close> where
+definition vmtf_enqueue :: \<open>(nat, nat) ann_lits \<Rightarrow> nat \<Rightarrow> vmtf_option_fst_As \<Rightarrow> vmtf\<close> where
 \<open>vmtf_enqueue = (\<lambda>M L (ns, m, fst_As, lst_As, next_search).
   (case fst_As of
     None \<Rightarrow> (ns[L := VMTF_Node m fst_As None], m+1, L, L,
