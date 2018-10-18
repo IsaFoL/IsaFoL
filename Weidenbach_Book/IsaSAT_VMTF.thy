@@ -715,6 +715,14 @@ lemma vmtf_unset_pre:
   using assms vmtf_unset_pre_vmtf[of ns m fst_As lst_As next_search _ \<A> M L]
   unfolding isa_vmtf_def vmtf_unset_pre_def
   by auto
+  
+lemma vmtf_unset_pre':
+  assumes
+    \<open>vm \<in> isa_vmtf \<A> M\<close> and
+    \<open>L \<in># \<A>\<close>
+  shows \<open>vmtf_unset_pre L vm\<close>
+  using assms by (cases vm) (auto dest: vmtf_unset_pre)
+
 
 sepref_register isa_vmtf_unset
 sepref_definition isa_vmtf_unset_code
@@ -936,6 +944,45 @@ lemma isa_vmtf_unset_vmtf_unset:
      \<langle>(Id \<times>\<^sub>r distinct_atoms_rel \<A>)\<rangle>nres_rel\<close>
   unfolding vmtf_unset_def isa_vmtf_unset_def uncurry_def
   by (intro frefI nres_relI) auto
+
+lemma isa_vmtf_unset_isa_vmtf:
+  assumes \<open>vm \<in> isa_vmtf \<A> M\<close> and \<open>L \<in># \<A>\<close>
+  shows \<open>isa_vmtf_unset L vm \<in> isa_vmtf \<A> M\<close>
+proof -
+  obtain vm0 to_remove to_remove' where
+    vm: \<open>vm = (vm0, to_remove)\<close> and
+    vm0: \<open>(vm0, to_remove') \<in> vmtf \<A> M\<close> and
+    \<open>(to_remove, to_remove') \<in> distinct_atoms_rel \<A>\<close>
+    using assms by (cases vm) (auto simp: isa_vmtf_def)
+    
+  then show ?thesis
+    using assms
+      isa_vmtf_unset_vmtf_unset[of \<A>, THEN fref_to_Down_unRET_uncurry, of L vm L \<open>(vm0, to_remove')\<close>]
+      abs_vmtf_ns_unset_vmtf_unset[of \<open>fst vm0\<close> \<open>fst (snd vm0)\<close>  \<open>fst (snd (snd vm0))\<close>
+         \<open>fst (snd (snd (snd vm0)))\<close> \<open>snd (snd (snd (snd vm0)))\<close> to_remove' \<A> M L to_remove']
+    by (auto simp: vm atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n intro: isa_vmtfI elim!: prod_relE)
+qed
+
+lemma isa_vmtf_tl_isa_vmtf:
+  assumes \<open>vm \<in> isa_vmtf \<A> M\<close> and \<open>M \<noteq> []\<close> and \<open>lit_of (hd M) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
+    \<open>L = (atm_of (lit_of (hd M)))\<close>
+  shows \<open>isa_vmtf_unset L vm \<in> isa_vmtf \<A> (tl M)\<close>
+proof -
+  let ?L = \<open>atm_of (lit_of (hd M))\<close>
+  obtain vm0 to_remove to_remove' where
+    vm: \<open>vm = (vm0, to_remove)\<close> and
+    vm0: \<open>(vm0, to_remove') \<in> vmtf \<A> M\<close> and
+    \<open>(to_remove, to_remove') \<in> distinct_atoms_rel \<A>\<close>
+    using assms by (cases vm) (auto simp: isa_vmtf_def)
+
+  then show ?thesis
+    using assms
+      isa_vmtf_unset_vmtf_unset[of \<A>, THEN fref_to_Down_unRET_uncurry, of ?L vm ?L \<open>(vm0, to_remove')\<close>]
+      vmtf_unset_vmtf_tl[of \<open>fst vm0\<close> \<open>fst (snd vm0)\<close>  \<open>fst (snd (snd vm0))\<close>
+         \<open>fst (snd (snd (snd vm0)))\<close> \<open>snd (snd (snd (snd vm0)))\<close> to_remove' \<A> M]
+    by (cases M)
+     (auto simp: vm atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n intro: isa_vmtfI elim!: prod_relE)
+qed
 
 lemma isa_find_decomp_wl_imp_find_decomp_wl_imp:
   \<open>(uncurry2 isa_find_decomp_wl_imp, uncurry2 (find_decomp_wl_imp \<A>)) \<in>

@@ -583,7 +583,7 @@ sepref_definition decide_wl_or_skip_D_code
     find_unassigned_lit_wl_D_def[simp] image_image[simp]
   by sepref
 
-sepref_thm decide_wl_or_skip_D_fast_code
+sepref_definition decide_wl_or_skip_D_fast_code
   is \<open>decide_wl_or_skip_D_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_bounded_assn\<close>
   unfolding decide_wl_or_skip_D_heur_def PR_CONST_def
