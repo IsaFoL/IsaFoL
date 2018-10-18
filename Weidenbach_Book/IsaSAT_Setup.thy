@@ -903,7 +903,6 @@ lemma atm_is_in_conflict_st_heur_alt_def:
   \<open>RETURN oo atm_is_in_conflict_st_heur = (\<lambda>L (M, N, (_, (_, D)), _). RETURN (D ! (atm_of L) \<noteq> None))\<close>
   unfolding atm_is_in_conflict_st_heur_def by (auto intro!: ext simp: atm_in_conflict_lookup_def)
 
-(*TODO proof: The idea is to use the preconditions to link is_in_conflict to atm_in_conflict*)
 lemma atm_is_in_conflict_st_heur_is_in_conflict_st:
   \<open>(uncurry (RETURN oo atm_is_in_conflict_st_heur), uncurry (RETURN oo is_in_conflict_st)) \<in>
    [\<lambda>(L, S). -L \<notin># the (get_conflict_wl S) \<and> get_conflict_wl S \<noteq> None \<and>
@@ -914,6 +913,25 @@ proof -
     by (auto simp: atms_of_def)
   show ?thesis
   unfolding atm_is_in_conflict_st_heur_def twl_st_heur_def option_lookup_clause_rel_def
+  apply (intro frefI nres_relI)
+  apply (case_tac x, case_tac y)
+  apply clarsimp
+  apply (subst atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id])
+  unfolding prod.simps prod_rel_iff
+    apply (rule 1; assumption)
+   apply (auto simp: all_atms_def; fail)
+  by (auto simp: is_in_conflict_st_def atm_in_conflict_def atms_of_def atm_of_eq_atm_of)
+qed
+lemma atm_is_in_conflict_st_heur_is_in_conflict_st_ana:
+  \<open>(uncurry (RETURN oo atm_is_in_conflict_st_heur), uncurry (RETURN oo is_in_conflict_st)) \<in>
+   [\<lambda>(L, S). -L \<notin># the (get_conflict_wl S) \<and> get_conflict_wl S \<noteq> None \<and>
+     L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)]\<^sub>f
+   Id \<times>\<^sub>r twl_st_heur_conflict_ana  \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+proof -
+  have 1: \<open>aaa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l A \<Longrightarrow> atm_of aaa  \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l A)\<close> for aaa A
+    by (auto simp: atms_of_def)
+  show ?thesis
+  unfolding atm_is_in_conflict_st_heur_def twl_st_heur_conflict_ana_def option_lookup_clause_rel_def
   apply (intro frefI nres_relI)
   apply (case_tac x, case_tac y)
   apply clarsimp
