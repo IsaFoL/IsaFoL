@@ -97,14 +97,23 @@ where
      (L \<noteq> None \<longrightarrow> Pos (the L) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> undefined_atm M (the L)) \<and>
      (L = None \<longrightarrow> (\<forall>K\<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. defined_lit M K)) \<and> M = M' \<and> vm \<in> vmtf \<A> M)\<close>
 
+definition lit_of_found_atm_D_pre where
+\<open>lit_of_found_atm_D_pre = (\<lambda>(\<phi>, L). L \<noteq> None \<longrightarrow> (the L < length \<phi> \<and> the L \<le> uint_max div 2))\<close>
+
 definition find_unassigned_lit_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat literal option) nres\<close>
 where
   \<open>find_unassigned_lit_wl_D_heur = (\<lambda>(M, N, D, WS, Q, vm, \<phi>, clvls). do {
       ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
+      ASSERT(lit_of_found_atm_D_pre (\<phi>, L));
       L \<leftarrow> lit_of_found_atm \<phi> L;
       RETURN ((M, N, D, WS, Q, vm, \<phi>, clvls), L)
     })\<close>
+
+lemma lit_of_found_atm_D_pre:
+  \<open>phase_saving \<A> \<phi> \<Longrightarrow> isasat_input_bounded \<A> \<Longrightarrow> (L \<noteq> None \<Longrightarrow> the L \<in># \<A>) \<Longrightarrow> lit_of_found_atm_D_pre (\<phi>, L)\<close>
+  by (auto simp: lit_of_found_atm_D_pre_def phase_saving_def
+    atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff dest: bspec[of _ _ \<open>Pos (the L)\<close>])
 
 definition find_unassigned_lit_wl_D_heur_pre where
   \<open>find_unassigned_lit_wl_D_heur_pre S \<longleftrightarrow>
@@ -251,8 +260,10 @@ proof -
       \<le> \<Down> {(((M, vm), A), L). A = map_option atm_of L \<and>
               unassigned_atm (bt, bu, bv, bw, bx, by, bz) L \<and>
              vm \<in> isa_vmtf (all_atms_st (bt, bu, bv, bw, bx, by, bz)) bt \<and>
+             (L \<noteq> None \<longrightarrow> the A \<in># all_atms_st (bt, bu, bv, bw, bx, by, bz)) \<and>
              (M, bt) \<in> trail_pol (all_atms_st (bt, bu, bv, bw, bx, by, bz))}
          (SPEC (unassigned_atm (bt, bu, bv, bw, bx, by, bz)))\<close>
+	  (is \<open>_ \<le> \<Down> ?find _\<close>)
     if 
       pre: \<open>find_unassigned_lit_wl_D_heur_pre (bt, bu, bv, bw, bx, by, bz)\<close> and
       T: \<open>(((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
@@ -341,13 +352,7 @@ proof -
 	   ((aj, ak, al, am, bb), an, bc), ao, ap, (aq, bd), ar, as,
 	   (at, au, av, aw, be), (ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
 	   (bm, bn), bo, bp, bq, br, bs))\<close> and
-      \<open>(x, L)
-       \<in> {(((M, vm), A), L).
-	  A = map_option atm_of L \<and>
-	  unassigned_atm (bt, bu, bv, bw, bx, by, bz) L \<and>
-	  vm \<in> isa_vmtf (all_atms_st (bt, bu, bv, bw, bx, by, bz)) bt \<and>
-	  (M, bt) \<in> trail_pol (all_atms_st (bt, bu, bv, bw, bx, by, bz))}\<close> and
-      \<open>L \<in> Collect (unassigned_atm (bt, bu, bv, bw, bx, by, bz))\<close> and
+      \<open>(x, L) \<in> ?find bt bu bv bw bx by bz\<close> and
       \<open>x1 = (x1a, x2)\<close> and
       \<open>x = (x1, x2a)\<close>
      for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar as at
@@ -365,6 +370,11 @@ proof -
     apply clarify
     apply refine_vcg
     apply (rule isa_vmtf_find_next_undef_upd; assumption)
+    subgoal
+      by (rule lit_of_found_atm_D_pre)
+       (auto simp add: twl_st_heur_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def image_image
+        mset_take_mset_drop_mset' atms all_atms_def[symmetric] unassigned_atm_def
+          simp del: twl_st_of_wl.simps dest!: atms intro!: RETURN_RES_refine)
     apply (rule lit_of_found_atm; assumption)
     subgoal
       by (auto simp add: twl_st_heur_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def image_image
@@ -376,22 +386,6 @@ qed
 
 
 
-lemma find_undefined_atm_hnr[sepref_fr_rules]:
-  \<open>(uncurry vmtf_find_next_undef_upd_code, uncurry (PR_CONST find_undefined_atm))
-    \<in> [\<lambda>(b, a). a \<in> vmtf b]\<^sub>a trail_assn\<^sup>d *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
-   (trail_assn *a vmtf_remove_conc) *a option_assn uint32_nat_assn\<close>
-  using vmtf_find_next_undef_upd_code_ref[unfolded PR_CONST_def, FCOMP vmtf_find_next_undef_upd]
-  unfolding PR_CONST_def
-  .
-
-lemma find_undefined_atm_fast_hnr[sepref_fr_rules]:
-  \<open>(uncurry vmtf_find_next_undef_upd_fast_code, uncurry (PR_CONST find_undefined_atm))
-    \<in> [\<lambda>(b, a). a \<in> vmtf b]\<^sub>a trail_fast_assn\<^sup>d *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
-   (trail_fast_assn *a vmtf_remove_conc) *a option_assn uint32_nat_assn\<close>
-  using vmtf_find_next_undef_upd_fast_code_ref[unfolded PR_CONST_def, FCOMP vmtf_find_next_undef_upd]
-  unfolding PR_CONST_def
-  .
-
 definition lit_of_found_atm_D
   :: \<open>bool list \<Rightarrow> nat option \<Rightarrow> (nat literal option)nres\<close> where
   \<open>lit_of_found_atm_D = (\<lambda>(\<phi>::bool list) L. do{
@@ -402,24 +396,21 @@ definition lit_of_found_atm_D
         }
   })\<close>
 
-definition lit_of_found_atm_D_pre where
-\<open>lit_of_found_atm_D_pre = (\<lambda>(\<phi>, L). L \<noteq> None \<longrightarrow> (Pos (the L) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> the L < length \<phi>))\<close>
-
 sepref_definition lit_of_found_atm_D_code
-  is \<open>uncurry (PR_CONST lit_of_found_atm_D)\<close>
+  is \<open>uncurry lit_of_found_atm_D\<close>
   :: \<open>[lit_of_found_atm_D_pre]\<^sub>a
       (array_assn bool_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>d \<rightarrow>
           option_assn unat_lit_assn\<close>
   supply [[goals_limit=1]]
-  supply not_is_None_not_None[simp] Pos_unat_lit_assn[sepref_fr_rules]
-    Neg_unat_lit_assn[sepref_fr_rules]
+  supply not_is_None_not_None[simp] Pos_unat_lit_assn'[sepref_fr_rules]
+    Neg_unat_lit_assn'[sepref_fr_rules]
   unfolding lit_of_found_atm_D_def PR_CONST_def lit_of_found_atm_D_pre_def
   by sepref
 
 declare lit_of_found_atm_D_code.refine[sepref_fr_rules]
 
 lemma lit_of_found_atm_D_lit_of_found_atm:
-  \<open>(uncurry (PR_CONST lit_of_found_atm_D), uncurry lit_of_found_atm) \<in>
+  \<open>(uncurry lit_of_found_atm_D, uncurry lit_of_found_atm) \<in>
    [lit_of_found_atm_D_pre]\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   unfolding lit_of_found_atm_D_def PR_CONST_def lit_of_found_atm_def
@@ -431,160 +422,176 @@ lemma lit_of_found_atm_hnr[sepref_fr_rules]:
    \<in> [lit_of_found_atm_D_pre]\<^sub>a
      phase_saver_conc\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>d \<rightarrow>
      option_assn unat_lit_assn\<close>
-  using lit_of_found_atm_D_hnr[FCOMP lit_of_found_atm_D_lit_of_found_atm] by simp
-
-lemma find_unassigned_lit_wl_D_code_helper:
-  assumes
-    \<open>RETURN ((a1'h, (db, dc, dd, de), df), a2'g) \<le> find_undefined_atm a1' ((cj, ck, cl, cm), cn)\<close>
-      and
-    \<open>phase_saving a2'f\<close>
-  shows \<open>lit_of_found_atm_D_pre (a2'f, a2'g)\<close>
-  using assms by (auto simp: find_undefined_atm_def lit_of_found_atm_D_pre_def phase_saving_def
-      in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-
+  using lit_of_found_atm_D_code.refine[FCOMP lit_of_found_atm_D_lit_of_found_atm] by simp
 
 sepref_register find_undefined_atm
 sepref_definition find_unassigned_lit_wl_D_code
   is \<open>find_unassigned_lit_wl_D_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a (isasat_unbounded_assn *a option_assn unat_lit_assn)\<close>
-  supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
+  supply [[goals_limit=1]]
   unfolding find_unassigned_lit_wl_D_heur_def isasat_unbounded_assn_def PR_CONST_def
   by sepref
 
 sepref_definition find_unassigned_lit_wl_D_fast_code
   is \<open>find_unassigned_lit_wl_D_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a (isasat_bounded_assn *a option_assn unat_lit_assn)\<close>
-  supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
+  supply [[goals_limit=1]]
   unfolding find_unassigned_lit_wl_D_heur_def isasat_bounded_assn_def PR_CONST_def
   by sepref
 
 declare find_unassigned_lit_wl_D_code.refine[sepref_fr_rules]
+  find_unassigned_lit_wl_D_fast_code.refine[sepref_fr_rules]
 
 (* TODO: the length_u M is not necessary *)
+
 definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema). do {
       ASSERT(isa_length_trail_pre M);
-      let j = isa_length_trail M in
-      ASSSERT(cons_trail_Decided_tr_pre (L', M));
+      let j = isa_length_trail M;
+      ASSERT(cons_trail_Decided_tr_pre (L', M));
       RETURN (cons_trail_Decided_tr L' M, N, D, j, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_decision stats,
          fema, sema)})\<close>
 
-sepref_thm decide_lit_wl_code
+sepref_definition decide_lit_wl_code
   is \<open>uncurry decide_lit_wl_heur\<close>
-  :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and>  L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
+  supply [[goals_limit=1]]
   unfolding decide_lit_wl_heur_def isasat_unbounded_assn_def PR_CONST_def
     cons_trail_Decided_def[symmetric]
   by sepref
 
-concrete_definition (in -) decide_lit_wl_code
-  uses isasat_input_bounded_nempty.decide_lit_wl_code.refine_raw
-  is \<open>(uncurry ?f, _) \<in> _\<close>
 
-prepare_code_thms (in -) decide_lit_wl_code_def
-
-lemmas decide_lit_wl_heur_hnr[sepref_fr_rules] =
-  decide_lit_wl_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-
-sepref_thm decide_lit_wl_fast_code
-  is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
-  :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
+sepref_definition decide_lit_wl_fast_code
+  is \<open>uncurry decide_lit_wl_heur\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
   unfolding decide_lit_wl_heur_def isasat_bounded_assn_def PR_CONST_def
     cons_trail_Decided_def[symmetric]
   by sepref
 
-concrete_definition (in -) decide_lit_wl_fast_code
-  uses isasat_input_bounded_nempty.decide_lit_wl_fast_code.refine_raw
-  is \<open>(uncurry ?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) decide_lit_wl_fast_code_def
-
-lemmas decide_lit_wl_fast_heur_hnr[sepref_fr_rules] =
-  decide_lit_wl_fast_code.refine[OF isasat_input_bounded_nempty_axioms]
+declare decide_lit_wl_code.refine[sepref_fr_rules]
+  decide_lit_wl_fast_code.refine[sepref_fr_rules]
 
 
-definition(in isasat_input_ops) decide_wl_or_skip_D_heur
+definition decide_wl_or_skip_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where
   \<open>decide_wl_or_skip_D_heur S = (do {
     (S, L) \<leftarrow> find_unassigned_lit_wl_D_heur S;
     case L of
       None \<Rightarrow> RETURN (True, S)
-    | Some L \<Rightarrow>
-       do {
-         ASSERT(undefined_lit (get_trail_wl_heur S) L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
-         RETURN (False, decide_lit_wl_heur L S) }
+    | Some L \<Rightarrow> do {T \<leftarrow> decide_lit_wl_heur L S; RETURN (False, T)}
   })
 \<close>
+(*TODO Move*)
+lemma isa_vmtf_consD2:
+  \<open>f \<in> isa_vmtf \<A> M \<Longrightarrow>
+     f \<in> isa_vmtf \<A> (L # M)\<close>
+  by (auto simp: isa_vmtf_def dest: vmtf_consD)
 
 lemma same_in_Id_option_rel:
   \<open>x = x' \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle>option_rel\<close>
   by auto
 
+lemma length_cons_trail_Decided[simp]:
+  \<open>length (cons_trail_Decided L M) = Suc (length M)\<close>
+  by (auto simp: cons_trail_Decided_def)
+(*End Move*)
+
 lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:
   \<open>(decide_wl_or_skip_D_heur, decide_wl_or_skip_D) \<in> twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>f twl_st_heur''' r\<rangle> nres_rel\<close>
-  supply [[goals_limit=1]]
-  unfolding decide_wl_or_skip_D_heur_def decide_wl_or_skip_D_def decide_wl_or_skip_D_pre_def
-   decide_l_or_skip_pre_def twl_st_of_wl.simps[symmetric]
-  apply (intro nres_relI frefI same_in_Id_option_rel)
-  apply (refine_vcg find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D[of r, THEN fref_to_Down])
-  subgoal
-    unfolding decide_wl_or_skip_pre_def find_unassigned_lit_wl_D_heur_pre_def
-      decide_wl_or_skip_pre_def decide_l_or_skip_pre_def
-     apply normalize_goal+
-     apply (rule_tac x = xa in exI)
-     apply (rule_tac x = xb in exI)
-     apply auto
+proof -
+  have [simp]:
+    \<open>rev (cons_trail_Decided L M) = rev M @ [Decided L]\<close>
+    \<open>no_dup (cons_trail_Decided L M) = no_dup (Decided L # M)\<close>
+    \<open>isa_vmtf \<A> (cons_trail_Decided L M) = isa_vmtf \<A> (Decided L # M)\<close>
+    for M L \<A>
+    by (auto simp: cons_trail_Decided_def)
+
+  have final: \<open>decide_lit_wl_heur xb x1a
+	\<le> SPEC
+	   (\<lambda>T. RETURN (False, T)
+		\<le> SPEC
+		   (\<lambda>c. (c, False, decide_lit_wl x'a x1)
+			\<in> bool_rel \<times>\<^sub>f twl_st_heur''' r))\<close>
+    if
+      \<open>(x, y) \<in> twl_st_heur''' r\<close> and
+      \<open>decide_wl_or_skip_pre y \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st y) y\<close> and
+      \<open>(xa, x')
+       \<in> {((T, L), T', L').
+	  (T, T') \<in> twl_st_heur''' r \<and>
+	  L = L' \<and>
+	  (L \<noteq> None \<longrightarrow>
+	   undefined_lit (get_trail_wl T') (the L) \<and>
+	   the L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st T')) \<and>
+	  get_conflict_wl T' = None}\<close> and
+      st:
+        \<open>x' = (x1, x2)\<close>
+        \<open>xa = (x1a, x2a)\<close>
+        \<open>x2a = Some xb\<close>
+        \<open>x2 = Some x'a\<close> and
+      \<open>(xb, x'a) \<in> nat_lit_lit_rel\<close>
+    for x y xa x' x1 x2 x1a x2a xb x'a
+  proof -
+    show ?thesis
+      unfolding decide_lit_wl_heur_def
+        decide_lit_wl_def
+      apply (cases x1a)
+      apply refine_vcg
+      subgoal
+        by (rule isa_length_trail_pre[of _ \<open>get_trail_wl x1\<close> \<open>all_atms_st x1\<close>])
+	  (use that(3) in \<open>auto simp: twl_st_heur_def st all_atms_def[symmetric]\<close>)
+      subgoal
+        by (rule cons_trail_Decided_tr_pre[of _ \<open>get_trail_wl x1\<close> \<open>all_atms_st x1\<close>])
+	  (use that(3) in \<open>auto simp: twl_st_heur_def st all_atms_def[symmetric]\<close>)
+      subgoal
+        using that(2,3) unfolding cons_trail_Decided_def[symmetric] st
+        by (auto simp add: twl_st_heur_def all_atms_def[symmetric]
+	   isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] out_learned_def
+	  intro!: cons_trail_Decided_tr[THEN fref_to_Down_unRET_uncurry]
+	    isa_vmtf_consD2)
+      done
+  qed
+
+  show ?thesis
+    supply [[goals_limit=1]]
+    unfolding decide_wl_or_skip_D_heur_def decide_wl_or_skip_D_def decide_wl_or_skip_D_pre_def
+     decide_l_or_skip_pre_def twl_st_of_wl.simps[symmetric]
+    apply (intro nres_relI frefI same_in_Id_option_rel)
+    apply (refine_vcg find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D[of r, THEN fref_to_Down])
+    subgoal
+      unfolding decide_wl_or_skip_pre_def find_unassigned_lit_wl_D_heur_pre_def
+	decide_wl_or_skip_pre_def decide_l_or_skip_pre_def
+       apply normalize_goal+
+       apply (rule_tac x = xa in exI)
+       apply (rule_tac x = xb in exI)
+       apply auto
+      done
+    apply (rule same_in_Id_option_rel)
+    subgoal by (auto simp del: simp: twl_st_heur_def)
+    subgoal by (auto simp del: simp: twl_st_heur_def)
+    apply (rule final; assumption)
     done
-  apply (rule same_in_Id_option_rel)
-  subgoal by (auto simp del: simp: twl_st_heur_def)
-  subgoal by (auto simp del: simp: twl_st_heur_def)
-  subgoal by (auto simp del: simp: twl_st_heur_def)
-  subgoal by (auto simp del: simp: twl_st_heur_def)
-  subgoal for x y xa x' x1 x2 x1a x2a xb x'a
-    by (clarsimp simp add: twl_st_heur_def decide_lit_wl_heur_def
-        decide_lit_wl_def counts_maximum_level_def vmtf_consD)
-  done
+ qed
 
 sepref_register decide_wl_or_skip_D find_unassigned_lit_wl_D_heur decide_lit_wl_heur
-sepref_thm decide_wl_or_skip_D_code
-  is \<open>PR_CONST decide_wl_or_skip_D_heur\<close>
+sepref_definition decide_wl_or_skip_D_code
+  is \<open>decide_wl_or_skip_D_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_unbounded_assn\<close>
   unfolding decide_wl_or_skip_D_heur_def PR_CONST_def
   supply [[goals_limit = 1]]
     find_unassigned_lit_wl_D_def[simp] image_image[simp]
   by sepref
 
-concrete_definition (in -) decide_wl_or_skip_D_code
-   uses isasat_input_bounded_nempty.decide_wl_or_skip_D_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) decide_wl_or_skip_D_code_def
-
-lemmas decide_wl_or_skip_D_hnr[sepref_fr_rules] =
-   decide_wl_or_skip_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
 sepref_thm decide_wl_or_skip_D_fast_code
-  is \<open>PR_CONST decide_wl_or_skip_D_heur\<close>
+  is \<open>decide_wl_or_skip_D_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_bounded_assn\<close>
   unfolding decide_wl_or_skip_D_heur_def PR_CONST_def
   supply [[goals_limit = 1]]
     find_unassigned_lit_wl_D_def[simp] image_image[simp]
   by sepref
 
-concrete_definition (in -) decide_wl_or_skip_D_fast_code
-   uses isasat_input_bounded_nempty.decide_wl_or_skip_D_fast_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) decide_wl_or_skip_D_fast_code_def
-
-lemmas decide_wl_or_skip_D_fast_hnr[sepref_fr_rules] =
-   decide_wl_or_skip_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-end
+declare decide_wl_or_skip_D_code.refine[sepref_fr_rules]
+  decide_wl_or_skip_D_fast_code.refine[sepref_fr_rules]
 
 end

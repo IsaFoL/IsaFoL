@@ -1132,4 +1132,11 @@ lemma Pos_unat_lit_assn':
    (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
       nat_of_uint32_distrib_mult2 uint_max_def)
 
+lemma Neg_unat_lit_assn':
+  \<open>(return o (\<lambda>n. two_uint32 * n + 1), RETURN o Neg) \<in> [\<lambda>L. L \<le> uint_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+     unat_lit_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
+      nat_of_uint32_distrib_mult2 uint_max_def nat_of_uint32_add)
+      
 end

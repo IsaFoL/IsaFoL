@@ -13,7 +13,7 @@ text \<open>We here define the last step of our refinement: the step with all th
   deterministic code.
 
   After the result of benchmarking, we concluded that the us of \<^typ>\<open>nat\<close> leads to worse performance
-  than using  \<^typ>\<open>uint64\<close>. As, however, the later is not complete, we do so with a switch: as long
+  than using \<^typ>\<open>uint64\<close>. As, however, the later is not complete, we do so with a switch: as long
   as it fits, we use the faster (called 'bounded') version. After that we switch to the 'unbounded'
   version (which is still bounded by memory anyhow).
 
