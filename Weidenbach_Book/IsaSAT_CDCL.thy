@@ -3,12 +3,20 @@ theory IsaSAT_CDCL
     IsaSAT_Decide IsaSAT_Show
 begin
 
-context isasat_input_bounded_nempty
-begin
-
 paragraph \<open>Combining Together: the Other Rules\<close>
 
-definition (in isasat_input_ops) cdcl_twl_o_prog_wl_D_heur
+definition count_decided_st_heur :: \<open>_ \<Rightarrow> _\<close> where
+  \<open>count_decided_st_heur = (\<lambda>((_,_,_,_,n, _), _). n)\<close>
+
+lemma count_decided_st_heur[sepref_fr_rules]:
+  \<open>(return o count_decided_st_heur, RETURN o count_decided_st_heur) \<in>
+      isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  \<open>(return o count_decided_st_heur, RETURN o count_decided_st_heur) \<in>
+      isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding count_decided_st_heur_def isasat_bounded_assn_def isasat_unbounded_assn_def
+  by (sepref_to_hoare; sep_auto)+
+  
+definition cdcl_twl_o_prog_wl_D_heur
  :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where
   \<open>cdcl_twl_o_prog_wl_D_heur S =
@@ -16,7 +24,7 @@ where
       if get_conflict_wl_is_None_heur S
       then decide_wl_or_skip_D_heur S
       else do {
-        if count_decided_st S > zero_uint32_nat
+        if count_decided_st_heur S > zero_uint32_nat
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
           ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur T));
@@ -34,7 +42,7 @@ lemma cdcl_twl_o_prog_wl_D_heur_alt_def:
       if get_conflict_wl_is_None_heur S
       then decide_wl_or_skip_D_heur S
       else do {
-        if count_decided_st S > zero_uint32_nat
+        if count_decided_st_heur S > zero_uint32_nat
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
           ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur T));
@@ -49,31 +57,25 @@ lemma cdcl_twl_o_prog_wl_D_heur_alt_def:
   unfolding cdcl_twl_o_prog_wl_D_heur_def isasat_current_status_def
   by auto
 
+(*TODO Move*)
+declare backtrack_wl_D_fast_code.refine[sepref_fr_rules]
+  backtrack_wl_D_code.refine[sepref_fr_rules]
+
 sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolve_loop_wl_D_heur
-  backtrack_wl_D_nlit_heur
+  backtrack_wl_D_nlit_heur isasat_current_status count_decided_st_heur get_conflict_wl_is_None_heur
 
 sepref_register cdcl_twl_o_prog_wl_D
 
-sepref_thm cdcl_twl_o_prog_wl_D_code
-  is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
+sepref_definition cdcl_twl_o_prog_wl_D_code
+  is \<open>cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_unbounded_assn\<close>
   unfolding cdcl_twl_o_prog_wl_D_heur_alt_def PR_CONST_def
   unfolding get_conflict_wl_is_None get_conflict_wl_is_None_heur_alt_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) cdcl_twl_o_prog_wl_D_code
-   uses isasat_input_bounded_nempty.cdcl_twl_o_prog_wl_D_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
-
-lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
-   cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-
-sepref_thm cdcl_twl_o_prog_wl_D_fast_code
-  is \<open>PR_CONST cdcl_twl_o_prog_wl_D_heur\<close>
+sepref_definition cdcl_twl_o_prog_wl_D_fast_code
+  is \<open>cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a
       isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_bounded_assn\<close>
   unfolding cdcl_twl_o_prog_wl_D_heur_def PR_CONST_def
@@ -81,20 +83,14 @@ sepref_thm cdcl_twl_o_prog_wl_D_fast_code
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   by sepref
 
-concrete_definition (in -) cdcl_twl_o_prog_wl_D_fast_code
-   uses isasat_input_bounded_nempty.cdcl_twl_o_prog_wl_D_fast_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
+declare cdcl_twl_o_prog_wl_D_code.refine[sepref_fr_rules]
+  cdcl_twl_o_prog_wl_D_fast_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_fast_code_def
-
-lemmas cdcl_twl_o_prog_wl_D_fast_code[sepref_fr_rules] =
-   cdcl_twl_o_prog_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-lemma (in isasat_input_ops) twl_st_heur_count_decided_st_alt_def:
+lemma twl_st_heur_count_decided_st_alt_def:
   fixes S :: twl_st_wl_heur
-  shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> count_decided_st S = count_decided (get_trail_wl T)\<close>
-  unfolding count_decided_st_def twl_st_heur_def
-  by (cases S) auto
+  shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> count_decided_st_heur S = count_decided (get_trail_wl T)\<close>
+  unfolding count_decided_st_def twl_st_heur_def trail_pol_def
+  by (cases S) (auto simp: count_decided_st_heur_def)
 
 lemma twl_st_heur''D_twl_st_heurD:
   assumes H: \<open>(\<And>\<D> r. f \<in> twl_st_heur'' \<D> r \<rightarrow>\<^sub>f \<langle>twl_st_heur'' \<D> r\<rangle> nres_rel)\<close>
@@ -205,7 +201,7 @@ qed
 
 paragraph \<open>Combining Together: Full Strategy\<close>
 
-definition (in isasat_input_ops) cdcl_twl_stgy_prog_wl_D_heur
+definition  cdcl_twl_stgy_prog_wl_D_heur
    :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
   \<open>cdcl_twl_stgy_prog_wl_D_heur S\<^sub>0 =
@@ -223,7 +219,6 @@ where
     }
   }
   \<close>
-
 
 theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
   \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl_D) \<in>
@@ -248,25 +243,33 @@ lemma cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D:
 sepref_register cdcl_twl_stgy_prog_wl_D unit_propagation_outer_loop_wl_D_heur
   cdcl_twl_o_prog_wl_D_heur
 
-sepref_thm cdcl_twl_stgy_prog_wl_D_code
-  is \<open>PR_CONST cdcl_twl_stgy_prog_wl_D_heur\<close>
+sepref_definition cdcl_twl_stgy_prog_wl_D_code
+  is \<open>cdcl_twl_stgy_prog_wl_D_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   unfolding cdcl_twl_stgy_prog_wl_D_heur_def PR_CONST_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) cdcl_twl_stgy_prog_wl_D_code
-   uses isasat_input_bounded_nempty.cdcl_twl_stgy_prog_wl_D_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_code_def
-
-lemmas cdcl_twl_stgy_prog_wl_D_code[sepref_fr_rules] =
-   cdcl_twl_stgy_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n]
-
-sepref_register cdcl_twl_stgy_prog_wl_D_heur
-
-end
+definition cdcl_twl_stgy_prog_break_wl_D_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+where
+  \<open>cdcl_twl_stgy_prog_break_wl_D_heur S\<^sub>0 =
+  do {
+    b \<leftarrow> RETURN (isasat_fast S\<^sub>0);
+    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). True\<^esup>
+        (\<lambda>(b, brk, _). b \<and> \<not>brk)
+        (\<lambda>(b, brk, S).
+        do {
+          ASSERT(isasat_fast S);
+          T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
+          ASSERT(isasat_fast T);
+          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
+          b \<leftarrow> RETURN (isasat_fast T);
+          RETURN(b, brk, T)
+        })
+        (b, False, S\<^sub>0);
+    if brk then RETURN T
+    else cdcl_twl_stgy_prog_wl_D_heur T
+  }\<close>
 
 
 export_code cdcl_twl_stgy_prog_wl_D_code in SML_imp module_name SAT_Solver

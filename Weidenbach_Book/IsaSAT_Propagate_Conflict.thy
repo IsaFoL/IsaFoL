@@ -226,7 +226,7 @@ lemma unit_propagation_outer_loop_wl_D_invI:
   unfolding unit_propagation_outer_loop_wl_D_heur_inv_def
   by blast
 
-sepref_definition unit_propagation_outer_loop_wl_D
+sepref_definition unit_propagation_outer_loop_wl_D_code
   is \<open>unit_propagation_outer_loop_wl_D_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
@@ -235,7 +235,7 @@ sepref_definition unit_propagation_outer_loop_wl_D
     literals_to_update_wl_literals_to_update_wl_empty_def[symmetric]
   by sepref
 
-declare unit_propagation_outer_loop_wl_D.refine[sepref_fr_rules]
+declare unit_propagation_outer_loop_wl_D_code.refine[sepref_fr_rules]
 
 lemma unit_propagation_outer_loop_wl_D_heur_fast:
   \<open>length (get_clauses_wl_heur x) \<le> uint64_max \<Longrightarrow>
@@ -246,7 +246,7 @@ lemma unit_propagation_outer_loop_wl_D_heur_fast:
        length (get_clauses_wl_heur s') \<le> uint64_max\<close>
   by (auto simp: unit_propagation_outer_loop_wl_D_heur_inv_def)
 
-sepref_definition unit_propagation_outer_loop_wl_D_fast
+sepref_definition unit_propagation_outer_loop_wl_D_fast_code
   is \<open>unit_propagation_outer_loop_wl_D_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] unit_propagation_outer_loop_wl_D_heur_fast[intro]
@@ -255,6 +255,6 @@ sepref_definition unit_propagation_outer_loop_wl_D_fast
     literals_to_update_wl_literals_to_update_wl_empty_def[symmetric]
   by sepref
 
-declare unit_propagation_outer_loop_wl_D_fast.refine[sepref_fr_rules]
+declare unit_propagation_outer_loop_wl_D_fast_code.refine[sepref_fr_rules]
 
 end
