@@ -2,15 +2,12 @@ theory IsaSAT_Restart
   imports IsaSAT_Restart_Heuristics IsaSAT_CDCL
 begin
 
-context isasat_input_bounded_nempty
-begin
-
-definition (in isasat_input_ops) cdcl_twl_stgy_restart_abs_wl_heur_inv where
+definition cdcl_twl_stgy_restart_abs_wl_heur_inv where
   \<open>cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n \<longleftrightarrow>
     (\<exists>S\<^sub>0' T'. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur \<and> (T, T') \<in> twl_st_heur \<and>
       cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0' brk T' n)\<close>
 
-definition (in isasat_input_ops) cdcl_twl_stgy_restart_prog_wl_heur
+definition cdcl_twl_stgy_restart_prog_wl_heur
    :: "twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres"
 where
   \<open>cdcl_twl_stgy_restart_prog_wl_heur S\<^sub>0 = do {
@@ -51,7 +48,7 @@ proof -
     done
 qed
 
-definition (in isasat_input_ops) cdcl_twl_stgy_restart_prog_early_wl_heur
+definition cdcl_twl_stgy_restart_prog_early_wl_heur
    :: "twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres"
 where
   \<open>cdcl_twl_stgy_restart_prog_early_wl_heur S\<^sub>0 = do {
@@ -150,7 +147,7 @@ proof -
     (xb, x'a) \<in> bool_rel \<times>\<^sub>f (twl_st_heur \<times>\<^sub>f nat_rel) \<Longrightarrow>
     case x'a of
     (brk, xa, xb) \<Rightarrow>
-      local.cdcl_twl_stgy_restart_abs_wl_inv y brk xa xb \<Longrightarrow>
+      cdcl_twl_stgy_restart_abs_wl_inv y brk xa xb \<Longrightarrow>
     x2f = (x1g, x2g) \<Longrightarrow>
     xb = (x1f, x2f) \<Longrightarrow>
     cdcl_twl_stgy_restart_abs_wl_heur_inv x x1f x1g x2g\<close>
@@ -200,75 +197,41 @@ qed
 
 sepref_register number_clss_to_keep
 
-sepref_thm number_clss_to_keep_impl
-  is \<open>PR_CONST (RETURN o number_clss_to_keep)\<close>
+sepref_definition number_clss_to_keep_impl
+  is \<open> (RETURN o number_clss_to_keep)\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding number_clss_to_keep_def PR_CONST_def isasat_unbounded_assn_def
+  unfolding number_clss_to_keep_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) number_clss_to_keep_impl
-   uses isasat_input_bounded_nempty.number_clss_to_keep_impl.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) number_clss_to_keep_impl_def
-
-lemmas number_clss_to_keep_impl[sepref_fr_rules] =
-   number_clss_to_keep_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
-sepref_thm number_clss_to_keep_fast_impl
-  is \<open>PR_CONST (RETURN o number_clss_to_keep)\<close>
+sepref_definition number_clss_to_keep_fast_impl
+  is \<open> (RETURN o number_clss_to_keep)\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding number_clss_to_keep_def PR_CONST_def isasat_bounded_assn_def
+  unfolding number_clss_to_keep_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) number_clss_to_keep_fast_impl
-   uses isasat_input_bounded_nempty.number_clss_to_keep_fast_impl.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) number_clss_to_keep_fast_impl_def
-
-lemmas number_clss_to_keep_fast_impl[sepref_fr_rules] =
-   number_clss_to_keep_fast_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
+declare number_clss_to_keep_impl.refine[sepref_fr_rules]
+   number_clss_to_keep_fast_impl.refine[sepref_fr_rules]
 
 sepref_register access_vdom_at
-sepref_thm access_vdom_at_code
-  is \<open>uncurry (PR_CONST (RETURN oo access_vdom_at))\<close>
+sepref_definition access_vdom_at_code
+  is \<open>uncurry ( (RETURN oo access_vdom_at))\<close>
   :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding access_vdom_at_alt_def PR_CONST_def access_vdom_at_pre_def isasat_unbounded_assn_def
+  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) access_vdom_at_code
-   uses isasat_input_bounded_nempty.access_vdom_at_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) access_vdom_at_code_def
-
-lemmas access_vdom_at_code[sepref_fr_rules] =
-   access_vdom_at_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
-sepref_thm access_vdom_at_fast_code
-  is \<open>uncurry (PR_CONST (RETURN oo access_vdom_at))\<close>
+sepref_definition access_vdom_at_fast_code
+  is \<open>uncurry ( (RETURN oo access_vdom_at))\<close>
   :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding access_vdom_at_alt_def PR_CONST_def access_vdom_at_pre_def isasat_bounded_assn_def
+  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) access_vdom_at_fast_code
-   uses isasat_input_bounded_nempty.access_vdom_at_fast_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
 
-prepare_code_thms (in -) access_vdom_at_fast_code_def
-
-lemmas access_vdom_at_fast_code[sepref_fr_rules] =
-   access_vdom_at_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
+declare access_vdom_at_fast_code.refine[sepref_fr_rules]
+   access_vdom_at_code.refine[sepref_fr_rules]
 
 definition length_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>length_avdom S = length (get_avdom S)\<close>
@@ -279,89 +242,53 @@ lemma length_avdom_alt_def:
   by (intro ext) (auto simp: length_avdom_def)
 
 sepref_register length_avdom
-sepref_thm length_avdom_code
-  is \<open>PR_CONST (RETURN o length_avdom)\<close>
+sepref_definition length_avdom_code
+  is \<open> (RETURN o length_avdom)\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding length_avdom_alt_def PR_CONST_def access_vdom_at_pre_def isasat_unbounded_assn_def
+  unfolding length_avdom_alt_def access_vdom_at_pre_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) length_avdom_code
-   uses isasat_input_bounded_nempty.length_avdom_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) length_avdom_code_def
-
-lemmas length_avdom_code[sepref_fr_rules] =
-   length_avdom_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
-
-sepref_thm length_avdom_fast_code
-  is \<open>PR_CONST (RETURN o length_avdom)\<close>
+sepref_definition length_avdom_fast_code
+  is \<open> (RETURN o length_avdom)\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding length_avdom_alt_def PR_CONST_def access_vdom_at_pre_def isasat_bounded_assn_def
+  unfolding length_avdom_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) length_avdom_fast_code
-   uses isasat_input_bounded_nempty.length_avdom_fast_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
+declare  length_avdom_code.refine[sepref_fr_rules]
+    length_avdom_fast_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) length_avdom_fast_code_def
-
-lemmas length_avdom_fast_code[sepref_fr_rules] =
-   length_avdom_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
-definition (in isasat_input_ops) get_the_propagation_reason_heur
+definition get_the_propagation_reason_heur
  :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close>
 where
-  \<open>get_the_propagation_reason_heur S = get_the_propagation_reason (get_trail_wl_heur S)\<close>
+  \<open>get_the_propagation_reason_heur S = get_the_propagation_reason_pol (get_trail_wl_heur S)\<close>
 
 lemma get_the_propagation_reason_heur_alt_def:
   \<open>get_the_propagation_reason_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
-     ccount, vdom, lcount) L . get_the_propagation_reason M' L)\<close>
+     ccount, vdom, lcount) L . get_the_propagation_reason_pol M' L)\<close>
   by (intro ext) (auto simp: get_the_propagation_reason_heur_def)
 
 sepref_register get_the_propagation_reason_heur
-sepref_thm get_the_propagation_reason_heur_code
-  is \<open>uncurry (PR_CONST get_the_propagation_reason_heur)\<close>
-  :: \<open>[\<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>aisasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
-  unfolding get_the_propagation_reason_heur_alt_def PR_CONST_def access_vdom_at_pre_def isasat_unbounded_assn_def
+sepref_definition get_the_propagation_reason_heur_code
+  is \<open>uncurry ( get_the_propagation_reason_heur)\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_assn\<close>
+  unfolding get_the_propagation_reason_heur_alt_def access_vdom_at_pre_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) get_the_propagation_reason_heur_code
-   uses isasat_input_bounded_nempty.get_the_propagation_reason_heur_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) get_the_propagation_reason_heur_code_def
-
-lemmas get_the_propagation_reason_heur[sepref_fr_rules] =
-   get_the_propagation_reason_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
-
-sepref_thm get_the_propagation_reason_heur_fast_code
-  is \<open>uncurry (PR_CONST get_the_propagation_reason_heur)\<close>
-  :: \<open>[\<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>aisasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn uint64_nat_assn\<close>
-  unfolding get_the_propagation_reason_heur_alt_def PR_CONST_def access_vdom_at_pre_def
+sepref_definition get_the_propagation_reason_heur_fast_code
+  is \<open>uncurry ( get_the_propagation_reason_heur)\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint64_nat_assn\<close>
+  unfolding get_the_propagation_reason_heur_alt_def access_vdom_at_pre_def
      isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) get_the_propagation_reason_heur_fast_code
-   uses isasat_input_bounded_nempty.get_the_propagation_reason_heur_fast_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) get_the_propagation_reason_heur_fast_code_def
-
-lemmas get_the_propagation_reason_fast_heur[sepref_fr_rules] =
-   get_the_propagation_reason_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
-definition (in isasat_input_ops) clause_is_learned_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool"
+declare get_the_propagation_reason_heur_fast_code.refine[sepref_fr_rules]
+    get_the_propagation_reason_heur_code.refine[sepref_fr_rules]
+    
+definition clause_is_learned_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool"
 where
   \<open>clause_is_learned_heur S C \<longleftrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED\<close>
 
@@ -371,45 +298,28 @@ lemma clause_is_learned_heur_alt_def:
   by (intro ext) (auto simp: clause_is_learned_heur_def)
 
 sepref_register clause_is_learned_heur
-sepref_thm clause_is_learned_heur_code
-  is \<open>uncurry (RETURN oo (PR_CONST clause_is_learned_heur))\<close>
+sepref_definition clause_is_learned_heur_code
+  is \<open>uncurry (RETURN oo ( clause_is_learned_heur))\<close>
   :: \<open>[\<lambda>(S, C). arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
       isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding clause_is_learned_heur_alt_def PR_CONST_def isasat_unbounded_assn_def
+  unfolding clause_is_learned_heur_alt_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) clause_is_learned_heur_code
-   uses isasat_input_bounded_nempty.clause_is_learned_heur_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) clause_is_learned_heur_code_def
-
-lemmas clause_is_learned_heur_code[sepref_fr_rules] =
-   clause_is_learned_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
-
-sepref_thm clause_is_learned_heur_code2
-  is \<open>uncurry (RETURN oo (PR_CONST clause_is_learned_heur))\<close>
+sepref_definition clause_is_learned_heur_code2
+  is \<open>uncurry (RETURN oo ( clause_is_learned_heur))\<close>
   :: \<open>[\<lambda>(S, C). arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
       isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding clause_is_learned_heur_alt_def PR_CONST_def isasat_bounded_assn_def
+  unfolding clause_is_learned_heur_alt_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) clause_is_learned_heur_code2
-   uses isasat_input_bounded_nempty.clause_is_learned_heur_code2.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
+declare clause_is_learned_heur_code.refine[sepref_fr_rules]
+    clause_is_learned_heur_code2.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) clause_is_learned_heur_code2_def
-
-lemmas clause_is_learned_heur_code2[sepref_fr_rules] =
-   clause_is_learned_heur_code2.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
 
 (* TODO deduplicate arena_lbd = get_clause_LBD *)
-definition (in isasat_input_ops) clause_lbd_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat"
+definition clause_lbd_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat"
 where
   \<open>clause_lbd_heur S C = arena_lbd (get_clauses_wl_heur S) C\<close>
 
@@ -419,121 +329,68 @@ lemma clause_lbd_heur_alt_def:
   by (intro ext) (auto simp: clause_lbd_heur_def get_clause_LBD_def arena_lbd_def)
 
 sepref_register clause_lbd_heur
-sepref_thm clause_lbd_heur_code
-  is \<open>uncurry (RETURN oo (PR_CONST clause_lbd_heur))\<close>
+sepref_definition clause_lbd_heur_code
+  is \<open>uncurry (RETURN oo ( clause_lbd_heur))\<close>
   :: \<open>[\<lambda>(S, C). get_clause_LBD_pre (get_clauses_wl_heur S) C]\<^sub>a
        isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding clause_lbd_heur_alt_def PR_CONST_def isasat_unbounded_assn_def
+  unfolding clause_lbd_heur_alt_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) clause_lbd_heur_code
-   uses isasat_input_bounded_nempty.clause_lbd_heur_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) clause_lbd_heur_code_def
-
-lemmas clause_lbd_heur_code[sepref_fr_rules] =
-   clause_lbd_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
-sepref_thm clause_lbd_heur_code2
-  is \<open>uncurry (RETURN oo (PR_CONST clause_lbd_heur))\<close>
+sepref_definition clause_lbd_heur_code2
+  is \<open>uncurry (RETURN oo ( clause_lbd_heur))\<close>
   :: \<open>[\<lambda>(S, C). get_clause_LBD_pre (get_clauses_wl_heur S) C]\<^sub>a
        isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding clause_lbd_heur_alt_def PR_CONST_def isasat_bounded_assn_def
+  unfolding clause_lbd_heur_alt_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) clause_lbd_heur_code2
-   uses isasat_input_bounded_nempty.clause_lbd_heur_code2.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) clause_lbd_heur_code2_def
-
-lemmas clause_lbd_heur_code2[sepref_fr_rules] =
-   clause_lbd_heur_code2.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
+declare  clause_lbd_heur_code2.refine[sepref_fr_rules]
+    clause_lbd_heur_code.refine[sepref_fr_rules]
 
 sepref_register mark_garbage_heur
-sepref_thm mark_garbage_heur_code
-  is \<open>uncurry2 (RETURN ooo (PR_CONST mark_garbage_heur))\<close>
+sepref_definition mark_garbage_heur_code
+  is \<open>uncurry2 (RETURN ooo ( mark_garbage_heur))\<close>
   :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S]\<^sub>a
        nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
-  unfolding mark_garbage_heur_def PR_CONST_def isasat_unbounded_assn_def delete_index_and_swap_alt_def
+  unfolding mark_garbage_heur_def isasat_unbounded_assn_def delete_index_and_swap_alt_def
     length_avdom_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) mark_garbage_heur_code
-   uses isasat_input_bounded_nempty.mark_garbage_heur_code.refine_raw
-   is \<open>(uncurry2 ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) mark_garbage_heur_code_def
-
-lemmas mark_garbage_heur_code[sepref_fr_rules] =
-   mark_garbage_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
-sepref_thm mark_garbage_heur_code2
-  is \<open>uncurry2 (RETURN ooo (PR_CONST mark_garbage_heur))\<close>
+sepref_definition mark_garbage_heur_code2
+  is \<open>uncurry2 (RETURN ooo ( mark_garbage_heur))\<close>
   :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S]\<^sub>a
        nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  unfolding mark_garbage_heur_def PR_CONST_def isasat_bounded_assn_def delete_index_and_swap_alt_def
+  unfolding mark_garbage_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
     length_avdom_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) mark_garbage_heur_code2
-   uses isasat_input_bounded_nempty.mark_garbage_heur_code2.refine_raw
-   is \<open>(uncurry2 ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) mark_garbage_heur_code2_def
-
-lemmas mark_garbage_heur_code2[sepref_fr_rules] =
-   mark_garbage_heur_code2.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
+declare  mark_garbage_heur_code.refine[sepref_fr_rules]
+    mark_garbage_heur_code2.refine[sepref_fr_rules]
 
 sepref_register delete_index_vdom_heur
-sepref_thm delete_index_vdom_heur_code
-  is \<open>uncurry (RETURN oo (PR_CONST delete_index_vdom_heur))\<close>
+sepref_definition delete_index_vdom_heur_code
+  is \<open>uncurry (RETURN oo ( delete_index_vdom_heur))\<close>
   :: \<open>[\<lambda>(i, S). i < length_avdom S]\<^sub>a
         nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
-  unfolding delete_index_vdom_heur_def PR_CONST_def isasat_unbounded_assn_def delete_index_and_swap_alt_def
+  unfolding delete_index_vdom_heur_def isasat_unbounded_assn_def delete_index_and_swap_alt_def
     length_avdom_def butlast_nonresizing_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) delete_index_vdom_heur_code
-   uses isasat_input_bounded_nempty.delete_index_vdom_heur_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) delete_index_vdom_heur_code_def
-
-lemmas delete_index_vdom_heur_code[sepref_fr_rules] =
-   delete_index_vdom_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
-
-sepref_thm delete_index_vdom_heur_fast_code2
-  is \<open>uncurry (RETURN oo (PR_CONST delete_index_vdom_heur))\<close>
+sepref_definition delete_index_vdom_heur_fast_code2
+  is \<open>uncurry (RETURN oo ( delete_index_vdom_heur))\<close>
   :: \<open>[\<lambda>(i, S). i < length_avdom S]\<^sub>a
         nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  unfolding delete_index_vdom_heur_def PR_CONST_def isasat_bounded_assn_def delete_index_and_swap_alt_def
+  unfolding delete_index_vdom_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
     length_avdom_def butlast_nonresizing_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) delete_index_vdom_heur_fast_code2
-   uses isasat_input_bounded_nempty.delete_index_vdom_heur_fast_code2.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) delete_index_vdom_heur_fast_code2_def
-
-lemmas delete_index_vdom_heur_fast_code2[sepref_fr_rules] =
-   delete_index_vdom_heur_fast_code2.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
+declare delete_index_vdom_heur_code.refine[sepref_fr_rules]
+  delete_index_vdom_heur_fast_code2.refine[sepref_fr_rules]
 
 definition (in -) access_length_heur where
   \<open>access_length_heur S i = arena_length (get_clauses_wl_heur S) i\<close>
@@ -544,48 +401,30 @@ lemma access_length_heur_alt_def:
   by (intro ext) (auto simp: access_length_heur_def arena_lbd_def)
 
 sepref_register access_length_heur
-sepref_thm access_length_heur_code
-  is \<open>uncurry (RETURN oo (PR_CONST access_length_heur))\<close>
+sepref_definition access_length_heur_code
+  is \<open>uncurry (RETURN oo ( access_length_heur))\<close>
   :: \<open>[\<lambda>(S, C). arena_is_valid_clause_idx (get_clauses_wl_heur S) C]\<^sub>a
        isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-  unfolding access_length_heur_alt_def PR_CONST_def isasat_unbounded_assn_def
+  unfolding access_length_heur_alt_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) access_length_heur_code
-   uses isasat_input_bounded_nempty.access_length_heur_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) access_length_heur_code_def
-
-lemmas access_length_heur_code_hnr[sepref_fr_rules] =
-   access_length_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
-
-
-sepref_thm access_length_heur_fast_code2
-  is \<open>uncurry (RETURN oo (PR_CONST access_length_heur))\<close>
+sepref_definition access_length_heur_fast_code2
+  is \<open>uncurry (RETURN oo ( access_length_heur))\<close>
   :: \<open>[\<lambda>(S, C). arena_is_valid_clause_idx (get_clauses_wl_heur S) C]\<^sub>a
        isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-  unfolding access_length_heur_alt_def PR_CONST_def isasat_bounded_assn_def
+  unfolding access_length_heur_alt_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) access_length_heur_fast_code2
-   uses isasat_input_bounded_nempty.access_length_heur_fast_code2.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) access_length_heur_fast_code2_def
-
-lemmas access_length_heur_fast_code2_hnr[sepref_fr_rules] =
-   access_length_heur_fast_code2.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms,
-     unfolded PR_CONST_def]
+declare access_length_heur_code.refine[sepref_fr_rules]
+  access_length_heur_fast_code2.refine[sepref_fr_rules]
 
 sepref_register mark_to_delete_clauses_wl_D_heur
-sepref_thm mark_to_delete_clauses_wl_D_heur_impl
-  is \<open>PR_CONST mark_to_delete_clauses_wl_D_heur\<close>
+sepref_definition mark_to_delete_clauses_wl_D_heur_impl
+  is \<open> mark_to_delete_clauses_wl_D_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  unfolding mark_to_delete_clauses_wl_D_heur_def PR_CONST_def
+  unfolding mark_to_delete_clauses_wl_D_heur_def
     access_vdom_at_def[symmetric] length_avdom_def[symmetric]
     get_the_propagation_reason_heur_def[symmetric]
     clause_is_learned_heur_def[symmetric]
@@ -595,34 +434,17 @@ sepref_thm mark_to_delete_clauses_wl_D_heur_impl
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) mark_to_delete_clauses_wl_D_heur_impl
-   uses isasat_input_bounded_nempty.mark_to_delete_clauses_wl_D_heur_impl.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) mark_to_delete_clauses_wl_D_heur_impl_def
-
-lemmas mark_to_delete_clauses_wl_D_heur_impl[sepref_fr_rules] =
-   mark_to_delete_clauses_wl_D_heur_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
 (* TODO Move *)
-sepref_thm (in isasat_input_ops) sort_vdom_heur_fast_code
+sepref_definition sort_vdom_heur_fast_code
   is \<open>sort_vdom_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply sort_clauses_by_score_invI[intro]
   unfolding sort_vdom_heur_def isasat_bounded_assn_def
   by sepref
 
+declare sort_vdom_heur_fast_code.refine[sepref_fr_rules]
 
-concrete_definition (in -) sort_vdom_heur_fast_code
-   uses isasat_input_ops.sort_vdom_heur_fast_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) sort_vdom_heur_fast_code_def
-
-lemmas sort_vdom_heur_fast_code_hnr[sepref_fr_rules] =
-   sort_vdom_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n]
-
-sepref_thm clause_not_marked_to_delete_heur_fast_code2
+sepref_definition clause_not_marked_to_delete_heur_fast_code2
   is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
   :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
   supply [[goals_limit=1]]
@@ -630,17 +452,11 @@ sepref_thm clause_not_marked_to_delete_heur_fast_code2
      clause_not_marked_to_delete_heur_pre_def
   by sepref
 
-concrete_definition (in -) clause_not_marked_to_delete_heur_fast_code2
-   uses isasat_input_bounded_nempty.clause_not_marked_to_delete_heur_fast_code2.refine_raw
-   is \<open>(uncurry ?f, _) \<in> _\<close>
 
-prepare_code_thms (in -) clause_not_marked_to_delete_heur_fast_code2_def
+declare clause_not_marked_to_delete_heur_fast_code.refine[sepref_fr_rules]
+  clause_not_marked_to_delete_heur_fast_code2.refine[sepref_fr_rules]
 
-lemmas clause_not_marked_to_delete_heur_fast2_refine[sepref_fr_rules] =
-   clause_not_marked_to_delete_heur_fast_code2.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-
-sepref_thm (in isasat_input_bounded) access_lit_in_clauses_heur_fast_code2
+sepref_definition access_lit_in_clauses_heur_fast_code2
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
   :: \<open>[\<lambda>((S, i), j). access_lit_in_clauses_heur_pre ((S, i), j)]\<^sub>a
       isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
@@ -650,14 +466,9 @@ sepref_thm (in isasat_input_bounded) access_lit_in_clauses_heur_fast_code2
     fmap_rll_u64_def[symmetric] arena_is_valid_clause_idx_le_uint64_max2[intro]
   by sepref
 
-concrete_definition (in -) access_lit_in_clauses_heur_fast_code2
-   uses isasat_input_bounded.access_lit_in_clauses_heur_fast_code2.refine_raw
-   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
+  access_lit_in_clauses_heur_fast_code2.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) access_lit_in_clauses_heur_fast_code2_def
-
-lemmas access_lit_in_clauses_heur_fast_code2_refine[sepref_fr_rules] =
-   access_lit_in_clauses_heur_fast_code2.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 (* END Move *)
 
@@ -665,10 +476,10 @@ lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
   \<open>D = Some C \<longleftrightarrow>  D \<noteq> None \<and> (nat_of_uint64_conv (the D) = C)\<close>
   by auto
 
-sepref_thm mark_to_delete_clauses_wl_D_heur_fast_impl
-  is \<open>PR_CONST mark_to_delete_clauses_wl_D_heur\<close>
+sepref_definition mark_to_delete_clauses_wl_D_heur_fast_impl
+  is \<open> mark_to_delete_clauses_wl_D_heur\<close>
   :: \<open>[\<lambda>S. True]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  unfolding mark_to_delete_clauses_wl_D_heur_def PR_CONST_def
+  unfolding mark_to_delete_clauses_wl_D_heur_def
     access_vdom_at_def[symmetric] length_avdom_def[symmetric]
     get_the_propagation_reason_heur_def[symmetric]
     clause_is_learned_heur_def[symmetric]
@@ -678,133 +489,71 @@ sepref_thm mark_to_delete_clauses_wl_D_heur_fast_impl
   supply [[goals_limit = 1]] option.splits[split]
   by sepref
 
-concrete_definition (in -) mark_to_delete_clauses_wl_D_heur_fast_impl
-   uses isasat_input_bounded_nempty.mark_to_delete_clauses_wl_D_heur_fast_impl.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) mark_to_delete_clauses_wl_D_heur_fast_impl_def
-
-lemmas mark_to_delete_clauses_wl_D_heur_fast_impl[sepref_fr_rules] =
-   mark_to_delete_clauses_wl_D_heur_fast_impl.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+declare mark_to_delete_clauses_wl_D_heur_fast_impl.refine[sepref_fr_rules]
+  mark_to_delete_clauses_wl_D_heur_impl.refine[sepref_fr_rules]
 
 sepref_register cdcl_twl_full_restart_wl_prog_heur
-sepref_thm cdcl_twl_full_restart_wl_prog_heur_code
-  is \<open>PR_CONST cdcl_twl_full_restart_wl_prog_heur\<close>
+sepref_definition cdcl_twl_full_restart_wl_prog_heur_code
+  is \<open> cdcl_twl_full_restart_wl_prog_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  unfolding cdcl_twl_full_restart_wl_prog_heur_def PR_CONST_def
+  unfolding cdcl_twl_full_restart_wl_prog_heur_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) cdcl_twl_full_restart_wl_prog_heur_code
-   uses isasat_input_bounded_nempty.cdcl_twl_full_restart_wl_prog_heur_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) cdcl_twl_full_restart_wl_prog_heur_code_def
-
-lemmas cdcl_twl_full_restart_wl_prog_heur_code[sepref_fr_rules] =
-   cdcl_twl_full_restart_wl_prog_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-sepref_thm cdcl_twl_full_restart_wl_prog_heur_fast_code
-  is \<open>PR_CONST cdcl_twl_full_restart_wl_prog_heur\<close>
+sepref_definition cdcl_twl_full_restart_wl_prog_heur_fast_code
+  is \<open> cdcl_twl_full_restart_wl_prog_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding cdcl_twl_full_restart_wl_prog_heur_def PR_CONST_def
+  unfolding cdcl_twl_full_restart_wl_prog_heur_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) cdcl_twl_full_restart_wl_prog_heur_fast_code
-   uses isasat_input_bounded_nempty.cdcl_twl_full_restart_wl_prog_heur_fast_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
+declare cdcl_twl_full_restart_wl_prog_heur_fast_code.refine[sepref_fr_rules]
+   cdcl_twl_full_restart_wl_prog_heur_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) cdcl_twl_full_restart_wl_prog_heur_fast_code_def
-
-lemmas cdcl_twl_full_restart_wl_prog_heur_fast_code[sepref_fr_rules] =
-   cdcl_twl_full_restart_wl_prog_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-sepref_thm cdcl_twl_restart_wl_heur_code
-  is \<open>PR_CONST cdcl_twl_restart_wl_heur\<close>
+sepref_definition cdcl_twl_restart_wl_heur_code
+  is \<open> cdcl_twl_restart_wl_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  unfolding cdcl_twl_restart_wl_heur_def PR_CONST_def
+  unfolding cdcl_twl_restart_wl_heur_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) cdcl_twl_restart_wl_heur_code
-   uses isasat_input_bounded_nempty.cdcl_twl_restart_wl_heur_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) cdcl_twl_restart_wl_heur_code_def
-
-lemmas cdcl_twl_restart_wl_heur_code[sepref_fr_rules] =
-   cdcl_twl_restart_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-sepref_thm cdcl_twl_restart_wl_heur_fast_code
-  is \<open>PR_CONST cdcl_twl_restart_wl_heur\<close>
+sepref_definition cdcl_twl_restart_wl_heur_fast_code
+  is \<open> cdcl_twl_restart_wl_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding cdcl_twl_restart_wl_heur_def PR_CONST_def
+  unfolding cdcl_twl_restart_wl_heur_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) cdcl_twl_restart_wl_heur_fast_code
-   uses isasat_input_bounded_nempty.cdcl_twl_restart_wl_heur_fast_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) cdcl_twl_restart_wl_heur_fast_code_def
-
-lemmas cdcl_twl_restart_wl_heur_fast_code[sepref_fr_rules] =
-   cdcl_twl_restart_wl_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
+declare cdcl_twl_restart_wl_heur_fast_code.refine[sepref_fr_rules]
+   cdcl_twl_restart_wl_heur_code.refine[sepref_fr_rules]
 
 sepref_register restart_required_heur cdcl_twl_restart_wl_heur
-sepref_thm restart_wl_D_heur_slow_code
-  is \<open>uncurry2 (PR_CONST restart_prog_wl_D_heur)\<close>
+sepref_definition restart_wl_D_heur_slow_code
+  is \<open>uncurry2 ( restart_prog_wl_D_heur)\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a isasat_unbounded_assn *a nat_assn\<close>
-  unfolding restart_prog_wl_D_heur_def PR_CONST_def
+  unfolding restart_prog_wl_D_heur_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) restart_wl_D_heur_slow_code
-   uses isasat_input_bounded_nempty.restart_wl_D_heur_slow_code.refine_raw
-   is \<open>(uncurry2 ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) restart_wl_D_heur_slow_code_def
-
-lemmas restart_wl_D_heur_slow_code[sepref_fr_rules] =
-   restart_wl_D_heur_slow_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-sepref_thm restart_prog_wl_D_heur_fast_code
-  is \<open>uncurry2 (PR_CONST restart_prog_wl_D_heur)\<close>
+sepref_definition restart_prog_wl_D_heur_fast_code
+  is \<open>uncurry2 ( restart_prog_wl_D_heur)\<close>
   :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn *a nat_assn\<close>
-  unfolding restart_prog_wl_D_heur_def PR_CONST_def
+  unfolding restart_prog_wl_D_heur_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) restart_prog_wl_D_heur_fast_code
-   uses isasat_input_bounded_nempty.restart_prog_wl_D_heur_fast_code.refine_raw
-   is \<open>(uncurry2 ?f,_)\<in>_\<close>
+declare restart_wl_D_heur_slow_code.refine[sepref_fr_rules]
+   restart_prog_wl_D_heur_fast_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) restart_prog_wl_D_heur_fast_code_def
 
-lemmas restart_prog_wl_D_heur_fast_code[sepref_fr_rules] =
-   restart_prog_wl_D_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-sepref_register unit_propagation_outer_loop_wl_D_heur cdcl_twl_o_prog_wl_D_heur
-  restart_prog_wl_D_heur
-
-sepref_thm cdcl_twl_stgy_restart_prog_wl_heur_code
-  is \<open>PR_CONST cdcl_twl_stgy_restart_prog_wl_heur\<close>
+sepref_definition cdcl_twl_stgy_restart_prog_wl_heur_code
+  is \<open>cdcl_twl_stgy_restart_prog_wl_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  unfolding cdcl_twl_stgy_restart_prog_wl_heur_def PR_CONST_def
+  unfolding cdcl_twl_stgy_restart_prog_wl_heur_def
   supply [[goals_limit = 1]]
   by sepref
 
-
-concrete_definition (in -) cdcl_twl_stgy_restart_prog_wl_heur_code
-   uses isasat_input_bounded_nempty.cdcl_twl_stgy_restart_prog_wl_heur_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) cdcl_twl_stgy_restart_prog_wl_heur_code_def
-
-lemmas cdcl_twl_stgy_restart_prog_wl_heur_hnr[sepref_fr_rules] =
-   cdcl_twl_stgy_restart_prog_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+declare cdcl_twl_stgy_restart_prog_wl_heur_code.refine[sepref_fr_rules]
 
 lemma (in -) isasat_fast_alt_def:
   \<open>RETURN o isasat_fast = (\<lambda>(M, N, _). RETURN (length N \<le> uint64_max - (uint32_max + 5)))\<close>
@@ -817,43 +566,24 @@ lemma (in -) uint32_max_nat_hnr:
   by sepref_to_hoare sep_auto
 
 sepref_register isasat_fast
-sepref_thm (in isasat_input_ops) isasat_fast_code
-  is \<open>RETURN o (PR_CONST isasat_fast)\<close>
+sepref_definition isasat_fast_code
+  is \<open>RETURN o ( isasat_fast)\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding isasat_fast_alt_def PR_CONST_def isasat_bounded_assn_def
+  unfolding isasat_fast_alt_def isasat_bounded_assn_def
   supply [[goals_limit = 1]] uint32_max_nat_hnr[sepref_fr_rules]
   by sepref
 
+declare isasat_fast_code.refine[sepref_fr_rules]
 
-concrete_definition (in -) isasat_fast_code
-   uses isasat_input_ops.isasat_fast_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) isasat_fast_code_def
-
-lemmas isasat_fast_hnr[sepref_fr_rules] =
-   isasat_fast_code.refine[of \<A>\<^sub>i\<^sub>n, unfolded PR_CONST_def]
-
-sepref_thm cdcl_twl_stgy_restart_prog_wl_heur_fast_code
-  is \<open>PR_CONST cdcl_twl_stgy_restart_prog_early_wl_heur\<close>
+sepref_definition cdcl_twl_stgy_restart_prog_wl_heur_fast_code
+  is \<open> cdcl_twl_stgy_restart_prog_early_wl_heur\<close>
   :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
-  unfolding cdcl_twl_stgy_restart_prog_early_wl_heur_def PR_CONST_def
+  unfolding cdcl_twl_stgy_restart_prog_early_wl_heur_def
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   by sepref
 
-
-concrete_definition (in -) cdcl_twl_stgy_restart_prog_wl_heur_fast_code
-   uses isasat_input_bounded_nempty.cdcl_twl_stgy_restart_prog_wl_heur_fast_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) cdcl_twl_stgy_restart_prog_wl_heur_fast_code_def
-
-lemmas cdcl_twl_stgy_restart_prog_wl_heur_fast_code[sepref_fr_rules] =
-   cdcl_twl_stgy_restart_prog_wl_heur_fast_code.refine[of \<A>\<^sub>i\<^sub>n]
-
-end
+declare cdcl_twl_stgy_restart_prog_wl_heur_fast_code.refine[sepref_fr_rules]
 
 export_code cdcl_twl_stgy_restart_prog_wl_heur_code in SML_imp module_name Test
-
 
 end
