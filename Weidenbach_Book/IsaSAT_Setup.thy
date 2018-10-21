@@ -995,4 +995,16 @@ lemma valid_arena_DECISION_REASON:
   using arena_lifting[of arena NU vdom DECISION_REASON]
   by (auto simp: DECISION_REASON_def SHIFTS_def)
 
+definition count_decided_st_heur :: \<open>_ \<Rightarrow> _\<close> where
+  \<open>count_decided_st_heur = (\<lambda>((_,_,_,_,n, _), _). n)\<close>
+
+lemma count_decided_st_heur[sepref_fr_rules]:
+  \<open>(return o count_decided_st_heur, RETURN o count_decided_st_heur) \<in>
+      isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  \<open>(return o count_decided_st_heur, RETURN o count_decided_st_heur) \<in>
+      isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding count_decided_st_heur_def isasat_bounded_assn_def isasat_unbounded_assn_def
+  by (sepref_to_hoare; sep_auto)+
+
+
 end

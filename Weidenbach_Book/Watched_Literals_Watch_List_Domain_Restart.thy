@@ -26,6 +26,8 @@ abbreviation all_init_lits_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal mu
 definition all_init_atms :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v multiset\<close> where
   \<open>all_init_atms N NUE = atm_of `# all_init_lits N NUE\<close>
 
+declare all_init_atms_def[symmetric, simp]
+
 abbreviation all_init_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<close> where
   \<open>all_init_atms_st S \<equiv> atm_of `# all_init_lits_st S\<close>
 
@@ -64,6 +66,7 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff:
   shows
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' \<A> S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> (is ?A)
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> (is ?B)
+    \<open>set_mset (all_init_atms_st S) = set_mset (all_atms_st S)\<close> (is ?C)
 proof -
   have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of xa)\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -117,16 +120,17 @@ proof -
       using Sx x_xa unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def literals_are_\<L>\<^sub>i\<^sub>n'_def
 	literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def
 	all_init_lits_def[symmetric] all_lits_def[symmetric] all_init_lits_alt_def
-      by (auto 5 5 simp: all_init_atms_def dest: multi_member_split)
+      by (auto 5 5 dest: multi_member_split)
   qed
-
-  show ?B
-    apply (subst A)
-    apply (rule literals_are_\<L>\<^sub>i\<^sub>n_cong)
+  show C: ?C
     unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def literals_are_\<L>\<^sub>i\<^sub>n'_def
       literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_atms_def all_init_atms_def
       all_init_lits_def all_lits_def all_init_lits_alt_def
-    by (auto simp: all_init_atms_def H)
+    by (auto simp: H)
+
+  show ?B
+    by (subst A)
+     (rule literals_are_\<L>\<^sub>i\<^sub>n_cong[OF C])
 qed
 
 lemma cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l:
@@ -625,7 +629,7 @@ proof -
           struct] by blast
 
       have \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_init_atms_st T') T'\<close>
-        by (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[THEN iffD1,
+        by (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(1)[THEN iffD1,
           OF Ta_y Ta_y' struct' lits_T'])
       then show ?thesis
         using rel by (auto simp: st)
@@ -934,7 +938,7 @@ proof -
       restart_prog_pre_def T by blast
 
   have \<open>literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S\<close>
-    by (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[THEN iffD2,
+    by (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(2)[THEN iffD2,
        OF S_x x_xa struct lits_T])
   then show ?thesis
     using T by auto
@@ -1006,7 +1010,7 @@ proof -
       unfolding restart_abs_wl_pre_def restart_abs_l_pre_def restart_prog_pre_def by blast
 
     show ?thesis
-      using pre that literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[THEN iffD2,
+      using pre that literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(1,2)[THEN iffD2,
        OF S_x x_xa struct lits_T]
       unfolding restart_abs_wl_D_pre_def
       by auto
