@@ -835,28 +835,6 @@ proof -
     using undef unfolding M3 by (auto simp: get_level_cons_if)
 qed
 
-(*TODO Move*)
-lemma fref_to_Down_unRET_uncurry2:
-  fixes f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'f\<close>
-    and g :: \<open>'a2 \<Rightarrow> 'b2 \<Rightarrow> 'c2 \<Rightarrow> 'g\<close>
-  shows
-    \<open>(uncurry2 (RETURN ooo f), uncurry2 (RETURN ooo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-       (\<And>(x :: 'a) x' y y' (z :: 'c) (z' :: 'c2).
-         P ((x', y'), z') \<Longrightarrow> (((x, y), z), ((x', y'), z')) \<in> A \<Longrightarrow>
-         (f x y z, g x' y' z') \<in> B)\<close>
-    unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma fref_to_Down_unRET_uncurry3:
-  shows
-    \<open>(uncurry3 (RETURN oooo f), uncurry3 (RETURN oooo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-       (\<And>(x :: 'a) x' y y' (z :: 'c) (z' :: 'c2) a a'.
-         P (((x', y'), z'), a') \<Longrightarrow> ((((x, y), z), a), (((x', y'), z'), a')) \<in> A \<Longrightarrow>
-         (f x y z a, g x' y' z' a') \<in> B)\<close>
-    unfolding fref_def uncurry_def nres_rel_def
-  by auto
-  
-(**)
 definition del_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>del_conflict_wl = (\<lambda>(M, N, D, NE, UE, Q, W). (M, N, None, NE, UE, Q, W))\<close>
 

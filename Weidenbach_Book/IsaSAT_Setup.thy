@@ -1007,4 +1007,99 @@ lemma count_decided_st_heur[sepref_fr_rules]:
   by (sepref_to_hoare; sep_auto)+
 
 
+lemma atm_of_all_lits_of_mm:
+  \<open>set_mset (atm_of `# all_lits_of_mm bw) = atms_of_mm bw\<close>
+  \<open>atm_of ` set_mset (all_lits_of_mm bw) = atms_of_mm bw\<close>
+  using in_all_lits_of_mm_ain_atms_of_iff apply (auto simp: image_iff)
+  by (metis (full_types) image_eqI literal.sel(1))+
+
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_union:
+   \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (A + B)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l  A) \<union> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l  B)\<close>
+  by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
+
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_cong:
+  \<open>set_mset A = set_mset B \<Longrightarrow> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l A) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l B)\<close>
+  by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
+
+lemma lit_eq_Neg_Pos_iff:
+  \<open>x \<noteq> Neg (atm_of x) \<longleftrightarrow> is_pos x\<close>
+  \<open>x \<noteq> Pos (atm_of x) \<longleftrightarrow> is_neg x\<close>
+  \<open>-x \<noteq> Neg (atm_of x) \<longleftrightarrow> is_neg x\<close>
+  \<open>-x \<noteq> Pos (atm_of x) \<longleftrightarrow> is_pos x\<close>
+  \<open>Neg (atm_of x) \<noteq> x \<longleftrightarrow> is_pos x\<close>
+  \<open>Pos (atm_of x) \<noteq> x \<longleftrightarrow> is_neg x\<close>
+  \<open>Neg (atm_of x) \<noteq> -x \<longleftrightarrow> is_neg x\<close>
+  \<open>Pos (atm_of x) \<noteq> -x \<longleftrightarrow> is_pos x\<close>
+  by (cases x; auto; fail)+
+
+lemma trail_pol_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> trail_pol \<A> \<Longrightarrow> L \<in> trail_pol \<B>\<close>
+  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  by (auto simp: trail_pol_def ann_lits_split_reasons_def)
+
+lemma atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) = atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<B>)\<close>
+  unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def
+  by auto
+  
+lemma distinct_atoms_rel_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> distinct_atoms_rel \<A> \<Longrightarrow> L \<in> distinct_atoms_rel \<B>\<close>
+  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  unfolding vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
+    atoms_hash_rel_def
+  by (auto simp: )
+
+lemma vmtf_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> vmtf \<A> M \<Longrightarrow> L \<in> vmtf \<B> M\<close>
+  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  unfolding vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+  by (auto simp: )
+
+lemma isa_vmtf_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> isa_vmtf \<A> M \<Longrightarrow> L \<in> isa_vmtf \<B> M\<close>
+  using vmtf_cong[of \<A> \<B>]  distinct_atoms_rel_cong[of \<A> \<B>]
+  apply (subst (asm) isa_vmtf_def)
+  apply (cases L)
+  by (auto intro!: isa_vmtfI)
+
+
+lemma option_lookup_clause_rel_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> option_lookup_clause_rel \<A> \<Longrightarrow> L \<in> option_lookup_clause_rel \<B>\<close>
+  using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  unfolding option_lookup_clause_rel_def lookup_clause_rel_def
+  apply (cases L)
+  by (auto intro!: isa_vmtfI)
+
+
+lemma D\<^sub>0_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> D\<^sub>0 \<A> = D\<^sub>0 \<B>\<close>
+  using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  by auto
+
+lemma phase_saving_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> phase_saving \<A> = phase_saving \<B>\<close>
+  using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  by (auto simp: phase_saving_def)
+
+lemma cach_refinement_empty_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> cach_refinement_empty \<A> = cach_refinement_empty \<B>\<close>
+  using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  by (auto simp: cach_refinement_empty_def cach_refinement_alt_def intro!: ext)
+
+lemma vdom_m_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> vdom_m \<A> x y = vdom_m \<B> x y\<close>
+  using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  by (auto simp: vdom_m_def intro!: ext)
+
+
+lemma isasat_input_bounded_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> isasat_input_bounded \<A> = isasat_input_bounded \<B>\<close>
+  using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  by (auto simp: intro!: ext)
+
+lemma isasat_input_nempty_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> isasat_input_nempty \<A> = isasat_input_nempty \<B>\<close>
+  using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  by (auto simp: intro!: ext)
+
 end

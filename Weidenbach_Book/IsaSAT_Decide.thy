@@ -139,30 +139,6 @@ lemma vmtf_find_next_undef_upd:
   by (auto intro!: RETURN_SPEC_refine simp: image_image defined_atm_def[symmetric])
 
 (*TODO Move*)
-lemma atm_of_all_lits_of_mm:
-  \<open>set_mset (atm_of `# all_lits_of_mm bw) = atms_of_mm bw\<close>
-  \<open>atm_of ` set_mset (all_lits_of_mm bw) = atms_of_mm bw\<close>
-  using in_all_lits_of_mm_ain_atms_of_iff apply (auto simp: image_iff)
-  by (metis (full_types) image_eqI literal.sel(1))+
-
-lemma \<L>\<^sub>a\<^sub>l\<^sub>l_union:
-   \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (A + B)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l  A) \<union> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l  B)\<close>
-  by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
-
-lemma \<L>\<^sub>a\<^sub>l\<^sub>l_cong:
-  \<open>set_mset A = set_mset B \<Longrightarrow> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l A) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l B)\<close>
-  by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
-
-lemma lit_eq_Neg_Pos_iff:
-  \<open>x \<noteq> Neg (atm_of x) \<longleftrightarrow> is_pos x\<close>
-  \<open>x \<noteq> Pos (atm_of x) \<longleftrightarrow> is_neg x\<close>
-  \<open>-x \<noteq> Neg (atm_of x) \<longleftrightarrow> is_neg x\<close>
-  \<open>-x \<noteq> Pos (atm_of x) \<longleftrightarrow> is_pos x\<close>
-  \<open>Neg (atm_of x) \<noteq> x \<longleftrightarrow> is_pos x\<close>
-  \<open>Pos (atm_of x) \<noteq> x \<longleftrightarrow> is_neg x\<close>
-  \<open>Neg (atm_of x) \<noteq> -x \<longleftrightarrow> is_neg x\<close>
-  \<open>Pos (atm_of x) \<noteq> -x \<longleftrightarrow> is_pos x\<close>
-  by (cases x; auto; fail)+
 
 lemma \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_m:
    \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits_of_m C)) = set_mset C \<union> uminus ` set_mset C\<close>
