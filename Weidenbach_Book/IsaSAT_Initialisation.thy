@@ -489,6 +489,9 @@ fun (in -)get_clauses_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> a
 fun (in -) get_trail_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> trail_pol\<close> where
   \<open>get_trail_wl_heur_init (M, _, _, _, _, _, _) = M\<close>
 
+fun (in -) get_vdom_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat list\<close> where
+  \<open>get_vdom_heur_init (_, _, _, _, _, _, _, _, _, _, vdom) = vdom\<close>
+
 definition propagate_unit_cls
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
@@ -2168,6 +2171,9 @@ where
   RETURN (M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom)
   })\<close>
 
+definition rewatch_heur_st_fast where
+  \<open>rewatch_heur_st_fast = rewatch_heur_st\<close>
+
 sepref_definition rewatch_heur_st_code
   is \<open>(rewatch_heur_st)\<close>
   :: \<open>isasat_init_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_unbounded_assn\<close>
@@ -2176,7 +2182,21 @@ sepref_definition rewatch_heur_st_code
     isasat_init_unbounded_assn_def
   by sepref
 
+definition rewatch_heur_st_fast_pre where
+  \<open>rewatch_heur_st_fast_pre S =
+     ((\<forall>x \<in> set (get_vdom_heur_init S). x \<le> uint64_max) \<and> length (get_clauses_wl_heur_init S) \<le> uint64_max)\<close>
+
+sepref_definition rewatch_heur_st_fast_code
+  is \<open>(rewatch_heur_st_fast)\<close>
+  :: \<open>[rewatch_heur_st_fast_pre]\<^sub>a
+       isasat_init_assn\<^sup>d \<rightarrow> isasat_init_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding rewatch_heur_st_def PR_CONST_def rewatch_heur_st_fast_pre_def
+    isasat_init_assn_def rewatch_heur_st_fast_def
+  by sepref
+  
 declare rewatch_heur_st_code.refine[sepref_fr_rules]
+  rewatch_heur_st_fast_code.refine[sepref_fr_rules]
 
 lemma rewatch_heur_st_correct_watching:
   assumes
@@ -2681,14 +2701,8 @@ definition init_state_wl_D' :: \<open>uint32 list \<times> uint32 \<Rightarrow> 
 
 sepref_definition init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
-  :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn *a arena_assn *a
-    conflict_option_rel_assn *a
-    uint32_nat_assn *a
-    (arrayO_assn (arl_assn watcher_fast_assn)) *a
-    vmtf_remove_conc_option_fst_As *a
-    phase_saver_conc *a uint32_nat_assn *a
-    cach_refinement_l_assn *a lbd_assn *a vdom_assn\<close>
-  unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric]
+  :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric] isasat_init_assn_def
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> arl.fold_custom_empty)
@@ -2808,7 +2822,7 @@ qed
 abbreviation (in -)lits_with_max_assn_clss where
   \<open>lits_with_max_assn_clss \<equiv> hr_comp lits_with_max_assn (\<langle>nat_rel\<rangle>mset_rel)\<close>
 
-lemma init_state_wl_D':
+lemma init_state_wl_D0:
   \<open>(init_state_wl_D', init_state_wl_heur) \<in>
     [\<lambda>N. N = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
       lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>mset_rel \<rightarrow>
@@ -2970,6 +2984,17 @@ proof -
 qed
 
 
+lemma init_state_wl_D':
+  \<open>(init_state_wl_D', init_state_wl_heur) \<in>
+    [\<lambda>\<A>\<^sub>i\<^sub>n. distinct_mset \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
+      lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>mset_rel \<rightarrow>
+      \<langle>Id \<times>\<^sub>r Id \<times>\<^sub>r
+         Id \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
+           Id \<times>\<^sub>r \<langle>bool_rel\<rangle>list_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<rangle>nres_rel\<close>
+  apply -
+  apply (intro frefI nres_relI)
+  by (rule init_state_wl_D0[THEN fref_to_Down, THEN order_trans]) auto
+  
 lemma init_state_wl_heur_init_state_wl':
   \<open>(init_state_wl_heur, RETURN o (\<lambda>_. init_state_wl))
   \<in> [\<lambda>N. N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f Id \<rightarrow> \<langle>twl_st_heur_parsing_no_WL_wl \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
