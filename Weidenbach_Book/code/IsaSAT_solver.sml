@@ -1475,7 +1475,7 @@ fun cut_watch_list_heur2_fast_code x =
     end)
     x;
 
-fun unit_propagation_inner_loop_wl_D_fast x =
+fun unit_propagation_inner_loop_wl_D_fast_code x =
   (fn ai => fn bi => fn () =>
     let
       val a = unit_propagation_inner_loop_wl_loop_D_fast ai bi ();
@@ -1499,7 +1499,7 @@ fun unit_propagation_outer_loop_wl_D_fast_code x =
         let
           val (a1, a2) = a;
         in
-          unit_propagation_inner_loop_wl_D_fast a2 a1
+          unit_propagation_inner_loop_wl_D_fast_code a2 a1
         end
           ()
       end)
@@ -2104,7 +2104,7 @@ fun cut_watch_list_heur2_code x =
     end)
     x;
 
-fun unit_propagation_inner_loop_wl_D x =
+fun unit_propagation_inner_loop_wl_D_code x =
   (fn ai => fn bi => fn () =>
     let
       val a = unit_propagation_inner_loop_wl_loop_D ai bi ();
@@ -2128,7 +2128,7 @@ fun unit_propagation_outer_loop_wl_D_code x =
         let
           val (a1, a2) = a;
         in
-          unit_propagation_inner_loop_wl_D a2 a1
+          unit_propagation_inner_loop_wl_D_code a2 a1
         end
           ()
       end)
