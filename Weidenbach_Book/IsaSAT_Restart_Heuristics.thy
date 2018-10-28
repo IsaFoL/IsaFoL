@@ -422,6 +422,9 @@ lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
 global_interpretation twl_restart_ops id
   by unfold_locales
 
+global_interpretation twl_restart id
+  by standard (rule unbounded_id)
+
 text \<open>
   We first fix the function that proves termination. We don't take the ``smallest'' function
   possible (other possibilites that are growing slower include \<^term>\<open>\<lambda>(n::nat). n >> 50\<close>).

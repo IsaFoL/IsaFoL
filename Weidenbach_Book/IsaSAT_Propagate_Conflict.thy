@@ -127,16 +127,16 @@ sepref_definition cut_watch_list_heur2_fast_code
 
 declare cut_watch_list_heur2_fast_code.refine[sepref_fr_rules]
 
-sepref_definition unit_propagation_inner_loop_wl_D
+sepref_definition unit_propagation_inner_loop_wl_D_code
   is \<open>uncurry unit_propagation_inner_loop_wl_D_heur\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
   by sepref
 
-declare unit_propagation_inner_loop_wl_D.refine[sepref_fr_rules]
+declare unit_propagation_inner_loop_wl_D_code.refine[sepref_fr_rules]
 
-sepref_definition unit_propagation_inner_loop_wl_D_fast
+sepref_definition unit_propagation_inner_loop_wl_D_fast_code
   is \<open>uncurry unit_propagation_inner_loop_wl_D_heur\<close>
   :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
         unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
@@ -144,7 +144,7 @@ sepref_definition unit_propagation_inner_loop_wl_D_fast
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
   by sepref
 
-declare unit_propagation_inner_loop_wl_D_fast.refine[sepref_fr_rules]
+declare unit_propagation_inner_loop_wl_D_fast_code.refine[sepref_fr_rules]
 
 
 paragraph \<open>Unit propagation, Outer Loop\<close>

@@ -1894,30 +1894,12 @@ lemma all_lits_of_atms_m_all_lits_of_m:
 
 subsubsection \<open>Creation of an initial state\<close>
 
-text \<open>The difference between this definition and \<^term>\<open>correct_watching\<close> is not really important:
-  \<^enum> the former talks about all literals that can appear in the problem, while the later talks about
-    all literals that appear in the problem. This is only different during the initialisation.
-  \<^enum> The watch list can only contain clauses that are in the problem.
-\<close>
-fun correct_watching_init :: \<open>nat multiset \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>correct_watching_init \<A> (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_of_atms_m \<A>.
-      (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
-      {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
-         clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
-
-
 definition init_dt_wl_heur_spec
   :: \<open>nat multiset \<Rightarrow> nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> bool\<close>
 where
   \<open>init_dt_wl_heur_spec \<A> CS T TOC \<longleftrightarrow>
     (\<exists>T' TOC'. (TOC, TOC') \<in> twl_st_heur_parsing_no_WL \<A> \<and> (T, T') \<in> twl_st_heur_parsing_no_WL \<A> \<and>
         init_dt_wl_spec CS T' TOC')\<close>
-
-definition init_state :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset\<close> where
-  \<open>init_state N = (
-    ([]:: (nat, nat clause) ann_lits), (N :: nat clauses), ({#}::nat clauses),
-      (None :: nat clause option))\<close>
 
 definition init_state_wl :: \<open>nat twl_st_wl_init'\<close> where
   \<open>init_state_wl = ([], fmempty, None, {#}, {#}, {#})\<close>
