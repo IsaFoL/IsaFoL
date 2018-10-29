@@ -13,5 +13,10 @@ theory Given_Clause_Prover_Lifting
     "../lib/Explorer"
 begin
 
+context FO_resolution_prover
+begin
+
+end
+
 end
 
