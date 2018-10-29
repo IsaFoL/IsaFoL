@@ -148,11 +148,25 @@ definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset
   }\<close>
 
 (* TODO Move *)
+fun append_empty_watched where
+  \<open>append_empty_watched ((M, N, D, NE, UE, Q), OC) = ((M, N, D, NE, UE, Q, (\<lambda>_. [])), OC)\<close>
+
+fun remove_watched :: \<open>'v twl_st_wl_init_full \<Rightarrow> 'v twl_st_wl_init\<close> where
+  \<open>remove_watched ((M, N, D, NE, UE, Q, _), OC) = ((M, N, D, NE, UE, Q), OC)\<close>
+
+
 definition init_dt_wl' :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init_full nres\<close> where
   \<open>init_dt_wl' CS S = do{
-     ((M, N, D, NE, UE, Q), OC) \<leftarrow> init_dt_wl CS S;
-     RETURN ((M, N, D, NE, UE, Q, (\<lambda>_. [])), OC)
+     S \<leftarrow> init_dt_wl CS S;
+     RETURN (append_empty_watched S)
   }\<close>
+
+lemma init_dt_wl'_spec: \<open>init_dt_wl_pre CS S \<Longrightarrow> init_dt_wl' CS S \<le> \<Down>
+   ({(S :: 'v twl_st_wl_init_full, S' :: 'v twl_st_wl_init).
+      remove_watched S =  S'}) (SPEC (init_dt_wl_spec CS S))\<close>
+  unfolding init_dt_wl'_def
+  by (refine_vcg  bind_refine_spec[OF _ init_dt_wl_init_dt_wl_spec])
+   (auto intro!: RETURN_RES_refine)
 (* END Move *)
 
 definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
@@ -1449,7 +1463,10 @@ proof -
       apply (rewrite at \<open>let _ = extract_atms_clss _ _ in _\<close> Let_def)
       apply (simp only: if_False init_state_wl_def empty_watched_def)
       apply (refine_vcg  (* bind_refine_spec*) lhs_step_If init_dt_wl_init_dt_wl_spec
-         bind_refine_spec[OF _ init_dt_wl_full_init_dt_wl_spec_full])
+         bind_refine_spec[OF _ init_dt_wl_full_init_dt_wl_spec_full]
+	 bind_refine_res[OF _ init_dt_wl'_spec[unfolded conc_fun_RES]])
+	 thm bind_refine_spec[OF _ init_dt_wl_full_init_dt_wl_spec_full]
+	 find_theorems init_dt_wl'
       \<comment> \<open>First the fast part:\<close>
       subgoal for b by (rule conflict_during_init)
       subgoal for T by (rule empty_clss)
