@@ -28,10 +28,10 @@ subsection \<open>Literals as Natural Numbers\<close>
 subsubsection \<open>Definition\<close>
 
 lemma Pos_div2_iff:
-   \<open>Pos ((bb :: nat) div 2) = b \<longleftrightarrow> is_pos b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close>
+  \<open>Pos ((bb :: nat) div 2) = b \<longleftrightarrow> is_pos b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close>
   by (cases b) auto
 lemma Neg_div2_iff:
-   \<open>Neg ((bb :: nat) div 2) = b \<longleftrightarrow> is_neg b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close>
+  \<open>Neg ((bb :: nat) div 2) = b \<longleftrightarrow> is_neg b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close>
   by (cases b) auto
 
 text \<open>

@@ -35,7 +35,7 @@ lemma cdcl_twl_stgy_restart_prog_l_spec_final:
     apply (rule ref_two_step)
      prefer 2
      apply (rule cdcl_twl_stgy_restart_restart_prog_spec)
-    using assms unfolding cdcl_twl_stgy_prog_l_pre_def by (auto simp: twl_st_l intro: conc_fun_R_mono)
+    using assms unfolding cdcl_twl_stgy_prog_l_pre_def by (auto intro: conc_fun_R_mono)
   done
 
 lemma cdcl_twl_stgy_restart_prog_wl_spec_final:
@@ -146,6 +146,125 @@ definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset
     let T = init_state CS;
     SPEC (conclusive_CDCL_run CS T)
   }\<close>
+
+
+definition init_state_l :: \<open>'v twl_st_l_init\<close> where
+  \<open>init_state_l = (([], fmempty, None, {#}, {#}, {#}, {#}), {#})\<close>
+
+definition (in -)to_init_state_l :: \<open>nat twl_st_l_init \<Rightarrow> nat twl_st_l_init\<close> where
+  \<open>to_init_state_l S = S\<close>
+
+definition init_state0 :: \<open>'v twl_st_init\<close> where
+  \<open>init_state0 = (([], {#}, {#}, None, {#}, {#}, {#}, {#}), {#})\<close>
+
+
+definition (in -)to_init_state0 :: \<open>nat twl_st_init \<Rightarrow> nat twl_st_init\<close> where
+  \<open>to_init_state0 S = S\<close>
+
+
+definition init_dt_spec0 :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_init \<Rightarrow> 'v twl_st_init \<Rightarrow> bool\<close> where
+  \<open>init_dt_spec0 CS SOC T' \<longleftrightarrow>
+     (
+           twl_struct_invs_init T' \<and>
+           clauses_to_update_init T' = {#} \<and>
+           (\<forall>s\<in>set (get_trail_init T'). \<not>is_decided s) \<and>
+           (get_conflict_init T' = None \<longrightarrow>
+              literals_to_update_init T' = uminus `# lit_of `# mset (get_trail_init T')) \<and>
+           (mset `# mset CS + clause_of `# (get_init_clauses_init SOC) + other_clauses_init SOC +
+                 get_unit_init_clauses_init SOC =
+            clause_of `# (get_init_clauses_init T') + other_clauses_init T'  +
+                 get_unit_init_clauses_init T') \<and>
+           get_learned_clauses_init SOC = get_learned_clauses_init T' \<and>
+           get_unit_learned_clauses_init T' = get_unit_learned_clauses_init SOC \<and>
+           twl_stgy_invs (fst T') \<and>
+           (other_clauses_init T' \<noteq> {#} \<longrightarrow> get_conflict_init T' \<noteq> None) \<and>
+           ({#} \<in># mset `# mset CS \<longrightarrow> get_conflict_init T' \<noteq> None) \<and>
+           (get_conflict_init SOC \<noteq> None \<longrightarrow> get_conflict_init SOC = get_conflict_init T'))\<close>
+
+definition (in -) SAT0 :: \<open>nat clause_l list \<Rightarrow> nat twl_st nres\<close> where
+  \<open>SAT0 CS = do{
+    b \<leftarrow> SPEC(\<lambda>_::bool. True);
+    if b then do {
+        let S = init_state0;
+        T \<leftarrow> SPEC (init_dt_spec0 CS (to_init_state0 S));
+        let T = fst T;
+        if get_conflict T \<noteq> None
+        then RETURN T
+        else if CS = [] then RETURN (fst init_state0)
+        else do {
+           ASSERT (extract_atms_clss CS {} \<noteq> {});
+           ASSERT(clause_of `# (get_clauses T) + unit_clss T = mset `# mset CS);
+           ASSERT(get_learned_clss T = {#});
+           cdcl_twl_stgy_restart_prog T
+        }
+    }
+    else do {
+        let S = init_state0;
+        T \<leftarrow>  SPEC (init_dt_spec0 CS (to_init_state0 S));
+        let T = fst T;
+        if get_conflict T \<noteq> None
+        then RETURN T
+        else if CS = [] then RETURN (fst init_state0)
+        else do {
+          b \<leftarrow> SPEC(\<lambda>_::bool. True);
+          if b
+          then do {
+             ASSERT (extract_atms_clss CS {} \<noteq> {});
+             ASSERT(clause_of `# (get_clauses T) + unit_clss T = mset `# mset CS);
+             ASSERT(get_learned_clss T = {#});
+             cdcl_twl_stgy_restart_prog T
+          } else do {
+             ASSERT (extract_atms_clss CS {} \<noteq> {});
+             ASSERT(clause_of `# (get_clauses T) + unit_clss T = mset `# mset CS);
+             ASSERT(get_learned_clss T = {#});
+             cdcl_twl_stgy_restart_prog_early T
+          }
+        }
+     }
+  }\<close>
+  
+definition (in -) SAT_l :: \<open>nat clause_l list \<Rightarrow> nat twl_st_l nres\<close> where
+  \<open>SAT_l CS = do{
+    b \<leftarrow> SPEC(\<lambda>_::bool. True);
+    if b then do {
+        let S = init_state_l;
+        T \<leftarrow> init_dt CS (to_init_state_l S);
+        let T = fst T;
+        if get_conflict_l T \<noteq> None
+        then RETURN T
+        else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, {#}))
+        else do {
+           ASSERT (extract_atms_clss CS {} \<noteq> {});
+           ASSERT(mset `# ran_mf (get_clauses_l T) + get_unit_clauses_l T = mset `# mset CS);
+           ASSERT(learned_clss_l (get_clauses_l T) = {#});
+           cdcl_twl_stgy_restart_prog_l T
+        }
+    }
+    else do {
+        let S = init_state_l;
+        T \<leftarrow> init_dt CS (to_init_state_l S);
+        let T = fst T;
+        if get_conflict_l T \<noteq> None
+        then RETURN T
+        else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, {#}))
+        else do {
+          b \<leftarrow> SPEC(\<lambda>_::bool. True);
+          if b
+          then do {
+             ASSERT (extract_atms_clss CS {} \<noteq> {});
+             ASSERT(mset `# ran_mf (get_clauses_l T) + get_unit_clauses_l T = mset `# mset CS);
+             ASSERT(learned_clss_l (get_clauses_l T) = {#});
+             cdcl_twl_stgy_restart_prog_l T
+          } else do {
+             ASSERT (extract_atms_clss CS {} \<noteq> {});
+             ASSERT(mset `# ran_mf (get_clauses_l T) + get_unit_clauses_l T = mset `# mset CS);
+             ASSERT(learned_clss_l (get_clauses_l T) = {#});
+             cdcl_twl_stgy_restart_prog_early_l T
+          }
+        }
+     }
+  }\<close>
+
 
 (* TODO Move *)
 fun append_empty_watched where
