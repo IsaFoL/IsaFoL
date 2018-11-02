@@ -4,6 +4,10 @@
 
 [GitHub](https://github.com/logic-tools/simpro) contains a preliminary version.
 
+A Verified Simple Prover for First-Order Logic.  
+Jørgen Villadsen, Anders Schlichtkrull and Andreas Halkjær From.  
+Proceedings of the 6th Workshop on Practical Aspects of Automated Reasoning (PAAR 2018).  
+[http://ceur-ws.org/Vol-2162/](http://ceur-ws.org/Vol-2162/)
 
 ## Authors ##
 
