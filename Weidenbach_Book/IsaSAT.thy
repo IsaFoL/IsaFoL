@@ -826,6 +826,19 @@ lemma init_dt_wl'_spec: \<open>init_dt_wl_pre CS S \<Longrightarrow> init_dt_wl'
   unfolding init_dt_wl'_def
   by (refine_vcg  bind_refine_spec[OF _ init_dt_wl_init_dt_wl_spec])
    (auto intro!: RETURN_RES_refine)
+
+lemma init_dt_wl'_init_dt:
+  \<open>init_dt_wl_pre CS S \<Longrightarrow> (S, S') \<in> state_wl_l_init \<Longrightarrow> \<forall>C\<in>set CS. distinct C \<Longrightarrow>
+  init_dt_wl' CS S \<le> \<Down>
+   ({(S :: 'v twl_st_wl_init_full, S' :: 'v twl_st_wl_init).
+      remove_watched S =  S'} O state_wl_l_init) (init_dt CS S')\<close>
+  unfolding init_dt_wl'_def
+  apply (refine_vcg bind_refine[of _ _ _ _ _  \<open>RETURN\<close>, OF init_dt_wl_init_dt, simplified])
+  subgoal for S T
+    by (cases S; cases T)
+      auto
+  done
+
 (* END Move *)
 
 definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
@@ -877,15 +890,115 @@ definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl
   }\<close>
 
 
+lemma SAT_l_alt_def:
+  \<open>SAT_l CS = do{
+    \<A> \<leftarrow> RETURN (); \<^cancel>\<open>atoms\<close>
+    b \<leftarrow> SPEC(\<lambda>_::bool. True);
+    if b then do {
+        let S = init_state_l;
+        T \<leftarrow> init_dt CS (to_init_state_l S);
+        let T = fst T;
+        if get_conflict_l T \<noteq> None
+        then RETURN T
+        else if CS = [] then RETURN (fst init_state_l)
+        else do {
+           ASSERT (extract_atms_clss CS {} \<noteq> {});
+	   ASSERT (clauses_to_update_l T = {#});
+           ASSERT(mset `# ran_mf (get_clauses_l T) + get_unit_clauses_l T = mset `# mset CS);
+           ASSERT(learned_clss_l (get_clauses_l T) = {#});
+           cdcl_twl_stgy_restart_prog_l T
+        }
+    }
+    else do {
+        let S = init_state_l;
+        T \<leftarrow> init_dt CS (to_init_state_l S);
+        let T = fst T;
+        if get_conflict_l T \<noteq> None
+        then RETURN T
+        else if CS = [] then RETURN (fst init_state_l)
+        else do {
+          b \<leftarrow> SPEC(\<lambda>_::bool. True);
+          if b
+          then do {
+             ASSERT (extract_atms_clss CS {} \<noteq> {});
+	     ASSERT (clauses_to_update_l T = {#});
+             ASSERT(mset `# ran_mf (get_clauses_l T) + get_unit_clauses_l T = mset `# mset CS);
+             ASSERT(learned_clss_l (get_clauses_l T) = {#});
+             cdcl_twl_stgy_restart_prog_l T
+          } else do {
+             ASSERT (extract_atms_clss CS {} \<noteq> {});
+	     ASSERT (clauses_to_update_l T = {#});
+             ASSERT(mset `# ran_mf (get_clauses_l T) + get_unit_clauses_l T = mset `# mset CS);
+             ASSERT(learned_clss_l (get_clauses_l T) = {#});
+             cdcl_twl_stgy_restart_prog_early_l T
+          }
+        }
+     }
+  }\<close>
+  unfolding SAT_l_def by auto
 
 lemma
   assumes dist: \<open>Multiset.Ball (mset `# mset CS) distinct_mset\<close>
   shows \<open>SAT_wl CS \<le> \<Down> {(T,T'). (T, T') \<in> state_wl_l None} (SAT_l CS)\<close>
 proof -
+  have extract_atms_clss: \<open>(extract_atms_clss CS {}, ()) \<in> {(x, _). x = extract_atms_clss CS {}}\<close>
+    by auto
+  have init_dt_wl_pre: \<open>init_dt_wl_pre CS (to_init_state init_state_wl)\<close>
+    unfolding init_dt_wl_pre_def to_init_state_def init_state_wl_def
+    apply (rule exI[of _ \<open>(([], fmempty, None, {#}, {#}, {#}, {#}), {#})\<close>])
+    apply (intro conjI)
+     apply (auto simp: init_dt_pre_def state_wl_l_init_def state_wl_l_init'_def)[]
+    unfolding init_dt_pre_def
+    apply (rule exI[of _ \<open>(([], {#}, {#}, None, {#}, {#}, {#}, {#}), {#})\<close>])
+    using dist by (auto simp: init_dt_pre_def state_wl_l_init_def state_wl_l_init'_def
+       twl_st_l_init_def twl_init_invs)[]
+  have init_rel: \<open>(to_init_state init_state_wl, to_init_state_l init_state_l)
+    \<in> state_wl_l_init\<close>
+    by (auto simp: init_dt_pre_def state_wl_l_init_def state_wl_l_init'_def
+       twl_st_l_init_def twl_init_invs to_init_state_def init_state_wl_def
+       init_state_l_def to_init_state_l_def)[]
+  \<comment> \<open>The following stlightly strange theorem allows to reuse the definition
+    and the correctness of @{term init_dt_wl_heur_full}, which was split in the definition
+    for purely refinement-related reasons.\<close>
+  have init_dt_wl':
+    \<open>init_dt_wl' CS S
+	\<le> \<Down> ({(T, T'). RETURN T \<le> init_dt_wl' CS S \<and> remove_watched T = T'} O
+	     state_wl_l_init)
+	   (init_dt CS S')\<close>
+    if 
+      \<open>init_dt_wl_pre CS S\<close> and
+      \<open>(S, S') \<in> state_wl_l_init\<close> and
+      \<open>\<forall>C\<in>set CS. distinct C\<close>
+      for CS S S'
+  proof -
+    have [simp]: \<open>(U, U') \<in> ({(T, T'). RETURN T \<le> init_dt_wl' CS S \<and> remove_watched T = T'} O
+         state_wl_l_init) \<longleftrightarrow> ((U, U') \<in> {(T, T'). remove_watched T = T'} O
+         state_wl_l_init \<and> RETURN U \<le> init_dt_wl' CS S)\<close> for S S' U U'
+      by auto
+    have H: \<open>A \<le> \<Down> ({(S, S'). P S S'}) B \<longleftrightarrow> A \<le> \<Down> ({(S, S'). RETURN S \<le> A \<and> P S S'}) B\<close>
+      for A B P R
+      by (simp add: pw_conc_inres pw_conc_nofail pw_le_iff p2rel_def)
+
+    have H: \<open>A \<le> \<Down> ({(S, S'). P S S'} O R) B \<longleftrightarrow> A \<le> \<Down> ({(S, S'). RETURN S \<le> A \<and> P S S'} O R) B\<close>
+      for A B P R
+      by (smt Collect_cong H case_prod_cong conc_fun_chain)
+    show ?thesis
+      apply (subst H[symmetric])
+      using that
+      apply (rule init_dt_wl'_init_dt[THEN order_trans])
+      apply (use that in \<open>auto intro!: conc_fun_R_mono\<close>)
+      done
+  qed
   show ?thesis
-    unfolding SAT_wl_def SAT_l_def
-    apply refine_vcg
-    oops
+    unfolding SAT_wl_def SAT_l_alt_def
+    apply (refine_vcg extract_atms_clss init_dt_wl')
+    subgoal by auto
+    subgoal by (rule init_dt_wl_pre)
+    subgoal by (rule init_rel)
+    subgoal using dist by auto
+    subgoal for \<A> b ba T Ta
+find_theorems rewatch_st
+oops
     
 
 definition extract_model_of_state where
@@ -945,6 +1058,13 @@ definition IsaSAT :: \<open>nat clause_l list \<Rightarrow> nat literal list opt
     }
   }\<close>
 
+lemma
+  \<open>IsaSAT CS \<le> \<Down>{(M, S). (get_conflict_wl S = None \<longrightarrow> M = Some (map lit_of (get_trail_wl S))) \<and>
+         (get_conflict_wl S \<noteq> None \<longrightarrow> M = None)} (SAT_wl CS)\<close>
+proof -
+  show ?thesis
+    unfolding IsaSAT_def SAT_wl_def
+    apply refine_vcg
 
 definition extract_model_of_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
   \<open>extract_model_of_state_stat U =
