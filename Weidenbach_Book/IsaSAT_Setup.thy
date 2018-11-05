@@ -244,18 +244,21 @@ where
 
 paragraph \<open>Options\<close>
 
-type_synonym opts = \<open>bool \<times> bool\<close>
+type_synonym opts = \<open>bool \<times> bool \<times> bool\<close>
 
 abbreviation opts_assn
   :: \<open>opts \<Rightarrow> opts \<Rightarrow> assn\<close>
 where
-  \<open>opts_assn \<equiv> bool_assn *a bool_assn\<close>
+  \<open>opts_assn \<equiv> bool_assn *a bool_assn *a bool_assn\<close>
 
 definition opts_restart where
   \<open>opts_restart = (\<lambda>(a, b). a)\<close>
 
 definition opts_reduce where
-  \<open>opts_reduce = (\<lambda>(a, b). b)\<close>
+  \<open>opts_reduce = (\<lambda>(a, b, c). b)\<close>
+
+definition opts_unbounded_mode where
+  \<open>opts_unbounded_mode = (\<lambda>(a, b, c). c)\<close>
 
 lemma opts_restart_hnr[sepref_fr_rules]:
   \<open>(return o opts_restart, RETURN o opts_restart) \<in> opts_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -265,6 +268,10 @@ lemma opts_reduce_hnr[sepref_fr_rules]:
   \<open>(return o opts_reduce, RETURN o opts_reduce) \<in> opts_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare sep_auto
 
+lemma opts_unbounded_mode_hnr[sepref_fr_rules]:
+  \<open>(return o opts_unbounded_mode, RETURN o opts_unbounded_mode) \<in> opts_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare sep_auto
+  
 
 paragraph \<open>Base state\<close>
 

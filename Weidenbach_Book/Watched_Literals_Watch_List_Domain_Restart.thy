@@ -1032,12 +1032,17 @@ proof -
     done
 qed
 
+definition cdcl_twl_stgy_restart_abs_wl_D_inv where
+  \<open>cdcl_twl_stgy_restart_abs_wl_D_inv S0 brk T n \<longleftrightarrow>
+    cdcl_twl_stgy_restart_abs_wl_inv S0 brk T n \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T\<close>
+
 definition cdcl_twl_stgy_restart_prog_wl_D
   :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres"
 where
   \<open>cdcl_twl_stgy_restart_prog_wl_D S\<^sub>0 =
   do {
-    (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
+    (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0 brk T n\<^esup>
       (\<lambda>(brk, _). \<not>brk)
       (\<lambda>(brk, S, n).
       do {
@@ -1088,7 +1093,7 @@ lemma cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl:
       unit_propagation_outer_loop_wl_D_spec'[THEN fref_to_Down]
       WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>r nat_rel\<close>])
   subgoal by auto
-  subgoal by auto
+  subgoal unfolding cdcl_twl_stgy_restart_abs_wl_D_inv_def by auto
   subgoal by auto
   subgoal by auto
   subgoal by auto
@@ -1098,10 +1103,6 @@ lemma cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl:
   done
 
 
-definition cdcl_twl_stgy_restart_abs_wl_D_inv where
-  \<open>cdcl_twl_stgy_restart_abs_wl_D_inv S0 brk T n \<longleftrightarrow>
-    cdcl_twl_stgy_restart_abs_wl_inv S0 brk T n \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T\<close>
   
 definition cdcl_twl_stgy_restart_prog_early_wl_D
   :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres"

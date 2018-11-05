@@ -178,7 +178,7 @@ structure SAT_Solver : sig
   val integer_of_int : int -> IntInf.int
   val uint32_of_nat : nat -> Word32.word
   val isaSAT_code :
-    bool * bool ->
+    bool * (bool * bool) ->
       (Word32.word list) list ->
         (unit ->
           ((Word32.word array * nat) option *
@@ -2165,7 +2165,7 @@ fun upper_restart_bound_not_reached_fast_impl x =
 val minimum_number_between_restarts : Uint64.uint64 =
   Uint64.fromInt (50 : IntInf.int);
 
-fun opts_reduce x = (fn (_, b) => b) x;
+fun opts_reduce x = (fn (_, (b, _)) => b) x;
 
 fun opts_reduction_st_fast_code x = (fn xi => (fn () => let
                   val (_, a) = xi;
@@ -6779,6 +6779,14 @@ fun cdcl_twl_stgy_restart_prog_wl_heur_fast_code x =
     end)
     x;
 
+fun get_conflict_wl_is_None_init_code_unb x =
+  (fn xi => (fn () => let
+                        val (_, (_, ((a1c, _), (_, (_, _))))) = xi;
+                      in
+                        a1c
+                      end))
+    x;
+
 fun get_conflict_wl_is_None_init_code x =
   (fn xi => (fn () => let
                         val (_, (_, ((a1c, _), (_, (_, _))))) = xi;
@@ -7540,6 +7548,8 @@ fun isasat_init_fast_slow_code x =
     end)
     x;
 
+fun opts_unbounded_mode x = (fn (_, (_, c)) => c) x;
+
 val empty_conflict_code :
   (unit ->
     ((Word32.word array * nat) option *
@@ -7594,53 +7604,86 @@ fun isaSAT_code x =
       val xa = extract_atms_clss_imp_empty_assn ();
       val xb = extract_atms_clss_imp bi xa ();
       val xc = extract_lits_sorted_code xb ();
-      val x_d = init_state_wl_D_code xc ();
-      val x_e = init_dt_wl_heur_code bi x_d ();
-      val xd = get_conflict_wl_is_None_init_code x_e ();
     in
-      (if not xd then empty_init_code
-        else (if op_list_is_empty bi then empty_conflict_code
-               else (fn f_ => fn () => f_
-                      ((length_get_clauses_wl_heur_init_code x_e) ()) ())
-                      (fn xe =>
-                        (if less_eq_nat xe
-                              (nat_of_integer
-                                (18446744073709551615 : IntInf.int))
-                          then (fn f_ => fn () => f_
-                                 ((isasat_information_banner_code x_e) ()) ())
-                                 (fn _ =>
-                                   (fn f_ => fn () => f_
-                                     ((rewatch_heur_st_fast_code x_e) ()) ())
-                                     (fn x_l =>
-                                       (fn f_ => fn () => f_
- ((finalise_init_code ai x_l) ()) ())
- (fn x_m =>
-   (fn f_ => fn () => f_ ((cdcl_twl_stgy_restart_prog_wl_heur_fast_code x_m) ())
-     ())
-     (fn x_n =>
-       (fn f_ => fn () => f_ ((get_conflict_wl_is_None_code x_n) ()) ())
-         (fn x_o =>
-           (fn () =>
-             (if x_o then get_trail_wl_code x_n else get_stats_code x_n)))))))
-                          else (fn f_ => fn () => f_
-                                 ((isasat_information_banner_code x_e) ()) ())
-                                 (fn _ =>
-                                   (fn f_ => fn () => f_
-                                     ((isasat_init_fast_slow_code x_e) ()) ())
-                                     (fn x_l =>
-                                       (fn f_ => fn () => f_
- ((rewatch_heur_st_code x_l) ()) ())
- (fn x_m =>
-   (fn f_ => fn () => f_ ((finalise_init_code_unb ai x_m) ()) ())
-     (fn x_n =>
-       (fn f_ => fn () => f_ ((cdcl_twl_stgy_restart_prog_wl_heur_code x_n) ())
-         ())
-         (fn x_o =>
-           (fn f_ => fn () => f_ ((get_conflict_wl_is_None_code x_o) ()) ())
-             (fn x_p =>
-               (fn () =>
-                 (if x_p then get_trail_wl_code x_o
-                   else get_stats_code x_o))))))))))))
+      (if opts_unbounded_mode ai
+        then (fn f_ => fn () => f_ ((init_state_wl_D_code xc) ()) ())
+               (fn x_f =>
+                 (fn f_ => fn () => f_ ((init_dt_wl_heur_code bi x_f) ()) ())
+                   (fn x_g =>
+                     (fn f_ => fn () => f_ ((isasat_init_fast_slow_code x_g) ())
+                       ())
+                       (fn x_h =>
+                         (fn f_ => fn () => f_ ((rewatch_heur_st_code x_h) ())
+                           ())
+                           (fn x_i =>
+                             (fn f_ => fn () => f_
+                               ((get_conflict_wl_is_None_init_code_unb x_i) ())
+                               ())
+                               (fn xd =>
+                                 (if not xd then empty_init_code
+                                   else (if op_list_is_empty bi
+  then empty_conflict_code
+  else (fn f_ => fn () => f_ ((isasat_information_banner_code x_i) ()) ())
+         (fn _ =>
+           (fn f_ => fn () => f_ ((finalise_init_code_unb ai x_i) ()) ())
+             (fn x_o =>
+               (fn f_ => fn () => f_
+                 ((cdcl_twl_stgy_restart_prog_wl_heur_code x_o) ()) ())
+                 (fn x_p =>
+                   (fn f_ => fn () => f_ ((get_conflict_wl_is_None_code x_p) ())
+                     ())
+                     (fn x_q =>
+                       (fn () =>
+                         (if x_q then get_trail_wl_code x_p
+                           else get_stats_code x_p)))))))))))))
+        else (fn f_ => fn () => f_ ((init_state_wl_D_code xc) ()) ())
+               (fn x_f =>
+                 (fn f_ => fn () => f_ ((init_dt_wl_heur_code bi x_f) ()) ())
+                   (fn x_g =>
+                     (fn f_ => fn () => f_
+                       ((get_conflict_wl_is_None_init_code x_g) ()) ())
+                       (fn xd =>
+                         (if not xd then empty_init_code
+                           else (if op_list_is_empty bi then empty_conflict_code
+                                  else (fn f_ => fn () => f_
+ ((length_get_clauses_wl_heur_init_code x_g) ()) ())
+ (fn xe =>
+   (if less_eq_nat xe (nat_of_integer (18446744073709551615 : IntInf.int))
+     then (fn f_ => fn () => f_ ((isasat_information_banner_code x_g) ()) ())
+            (fn _ =>
+              (fn f_ => fn () => f_ ((rewatch_heur_st_fast_code x_g) ()) ())
+                (fn x_n =>
+                  (fn f_ => fn () => f_ ((finalise_init_code ai x_n) ()) ())
+                    (fn x_o =>
+                      (fn f_ => fn () => f_
+                        ((cdcl_twl_stgy_restart_prog_wl_heur_fast_code x_o) ())
+                        ())
+                        (fn x_p =>
+                          (fn f_ => fn () => f_
+                            ((get_conflict_wl_is_None_code x_p) ()) ())
+                            (fn x_q =>
+                              (fn () =>
+                                (if x_q then get_trail_wl_code x_p
+                                  else get_stats_code x_p)))))))
+     else (fn f_ => fn () => f_ ((isasat_information_banner_code x_g) ()) ())
+            (fn _ =>
+              (fn f_ => fn () => f_ ((isasat_init_fast_slow_code x_g) ()) ())
+                (fn x_n =>
+                  (fn f_ => fn () => f_ ((rewatch_heur_st_code x_n) ()) ())
+                    (fn x_o =>
+                      (fn f_ => fn () => f_ ((finalise_init_code_unb ai x_o) ())
+                        ())
+                        (fn x_p =>
+                          (fn f_ => fn () => f_
+                            ((cdcl_twl_stgy_restart_prog_wl_heur_code x_p) ())
+                            ())
+                            (fn x_q =>
+                              (fn f_ => fn () => f_
+                                ((get_conflict_wl_is_None_code x_q) ()) ())
+                                (fn x_r =>
+                                  (fn () =>
+                                    (if x_r then get_trail_wl_code x_q
+                                      else get_stats_code x_q))))))))))))))))
         ()
     end)
     x;

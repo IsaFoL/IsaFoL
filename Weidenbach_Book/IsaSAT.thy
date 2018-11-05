@@ -70,45 +70,17 @@ proof -
     done
 qed
 
+thm cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl
 theorem cdcl_twl_stgy_restart_prog_wl_D_spec:
   assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
   shows \<open>cdcl_twl_stgy_restart_prog_wl_D S \<le> \<Down>Id (cdcl_twl_stgy_restart_prog_wl S)\<close>
-proof -
-  have 1: \<open>((False, S, 0), False, S, 0) \<in> bool_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T} \<times>\<^sub>r nat_rel\<close>
-    using assms by auto
-  have 2: \<open>unit_propagation_outer_loop_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T} (unit_propagation_outer_loop_wl T)\<close>
-    if \<open>S = T\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> for S T
-    unfolding that
-    apply (rule unit_propagation_outer_loop_wl_D_spec[of \<open>all_atms_st S\<close>, THEN order_trans])
-    subgoal using that by auto
-    apply (rule conc_fun_R_mono)
-    subgoal by auto
-    done
-  have 3: \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and>
-      literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T}
-    (cdcl_twl_o_prog_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> for S T \<A>
-    unfolding that
-    apply (rule cdcl_twl_o_prog_wl_D_spec[of \<open>all_atms_st S\<close>, THEN order_trans])
-    subgoal using that by auto
-    apply (rule conc_fun_R_mono)
-    subgoal by auto
-    done
-  show ?thesis
-    unfolding cdcl_twl_stgy_restart_prog_wl_D_def cdcl_twl_stgy_restart_prog_wl_def
-    apply (refine_vcg 1 2 3
-      restart_prog_wl_D_restart_prog_wl[THEN fref_to_Down_curry2])
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    done
-qed
+  apply (rule cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl[
+    THEN fref_to_Down, of S S, THEN order_trans])
+    apply fast
+  using assms apply (auto intro: conc_fun_R_mono)[]
+  apply (rule conc_fun_R_mono)
+  apply auto
+  done
 
 theorem cdcl_twl_stgy_restart_prog_early_wl_D_spec:
   assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
@@ -2094,7 +2066,7 @@ sepref_definition length_get_clauses_wl_heur_init_code
 declare length_get_clauses_wl_heur_init_code.refine[sepref_fr_rules]
 
 declare convert_state_hnr[sepref_fr_rules]
-  (* convert_state_fast_hnr[to_hnr, OF _ refl, sepref_fr_rules]*)
+  convert_state_hnr_unb[sepref_fr_rules]
 
 sepref_register (*isasat_input_ops.init_dt_wl_heur_fast*)
    cdcl_twl_stgy_restart_prog_wl_heur
@@ -2118,19 +2090,15 @@ sepref_definition IsaSAT_code
   is \<open>uncurry IsaSAT_heur\<close>
   :: \<open>opts_assn\<^sup>d *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
   supply [[goals_limit=1]]
-  
   unfolding IsaSAT_heur_def empty_conflict_def[symmetric]
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]
     extract_stats_def[symmetric]
-    if_False length_get_clauses_wl_heur_init_def[symmetric]
+    length_get_clauses_wl_heur_init_def[symmetric]
   supply get_conflict_wl_is_None_heur_init_def[simp]
-(*  supply get_conflict_wl_is_None_code_refine[sepref_fr_rules]
-  supply get_conflict_wl_is_None_init_code_hnr[sepref_fr_rules]
-  supply cdcl_twl_stgy_restart_prog_wl_heur_hnr[sepref_fr_rules]
-  supply init_dt_wl_heur_full_code_hnr[sepref_fr_rules]*)
   supply id_mset_list_assn_list_mset_assn[sepref_fr_rules] get_conflict_wl_is_None_def[simp]
    option.splits[split]
    extract_stats_def[simp del]
+  apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
   by sepref
 

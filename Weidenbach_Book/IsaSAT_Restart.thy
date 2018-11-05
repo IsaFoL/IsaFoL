@@ -5,7 +5,7 @@ begin
 definition cdcl_twl_stgy_restart_abs_wl_heur_inv where
   \<open>cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n \<longleftrightarrow>
     (\<exists>S\<^sub>0' T'. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur \<and> (T, T') \<in> twl_st_heur \<and>
-      cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0' brk T' n)\<close>
+      cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0' brk T' n)\<close>
 
 definition cdcl_twl_stgy_restart_prog_wl_heur
    :: "twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres"
@@ -95,7 +95,7 @@ proof -
   have cdcl_twl_stgy_restart_prog_early_wl_D_alt_def:
   \<open>cdcl_twl_stgy_restart_prog_early_wl_D S\<^sub>0 = do {
       ebrk \<leftarrow> RES UNIV;
-      (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
+      (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, brk, T, n). cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0 brk T n\<^esup>
 	        (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
 	        (\<lambda>(_, brk, S, n).
 	        do {
@@ -108,7 +108,7 @@ proof -
 	        (ebrk, False, S\<^sub>0::nat twl_st_wl, 0);
       if \<not>brk then do {
         T \<leftarrow> RETURN T;
-	(brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
+	(brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0 brk T n\<^esup>
 	  (\<lambda>(brk, _). \<not>brk)
 	  (\<lambda>(brk, S, n).
 	  do {
@@ -123,7 +123,7 @@ proof -
       else RETURN T
     }\<close> for S\<^sub>0
     unfolding cdcl_twl_stgy_restart_prog_early_wl_D_def nres_monad1 by auto
-  have [refine0]: \<open> RETURN (\<not>isasat_fast x) \<le> \<Down>
+  have [refine0]: \<open>RETURN (\<not>isasat_fast x) \<le> \<Down>
       {(b, b'). b = b' \<and> (b = (\<not>isasat_fast x))} (RES UNIV)\<close>
     for x
     by (auto intro: RETURN_RES_refine)
@@ -147,7 +147,7 @@ proof -
     (xb, x'a) \<in> bool_rel \<times>\<^sub>f (twl_st_heur \<times>\<^sub>f nat_rel) \<Longrightarrow>
     case x'a of
     (brk, xa, xb) \<Rightarrow>
-      cdcl_twl_stgy_restart_abs_wl_inv y brk xa xb \<Longrightarrow>
+      cdcl_twl_stgy_restart_abs_wl_D_inv y brk xa xb \<Longrightarrow>
     x2f = (x1g, x2g) \<Longrightarrow>
     xb = (x1f, x2f) \<Longrightarrow>
     cdcl_twl_stgy_restart_abs_wl_heur_inv x x1f x1g x2g\<close>
