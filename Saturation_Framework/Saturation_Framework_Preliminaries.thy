@@ -39,7 +39,7 @@ lemma entail_union: "N \<Turnstile> N1 \<and> N \<Turnstile> N2 \<longleftrighta
 end
 
 datatype 'f inference =
-  Infer (prems_of: "'f list") (concl_of: "'f ")
+  Infer (prems_of: "'f list") (concl_of: "'f")
 
 locale sound_inference_system = consequence_relation +
   fixes
