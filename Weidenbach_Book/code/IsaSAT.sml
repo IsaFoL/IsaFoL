@@ -82,7 +82,7 @@ fun print_stat (propa, (confl, (dec, (res, lres)))) =
   end
 fun solver print_modelb print_stats norestart noreduction nounbounded cnf_name = let
   val problem = Dimacs_Parser.parse_dimacs_file_map_to_list cnf_name nat_of_lit;
-  val (SAT, stat) = SAT_Solver.isaSAT_code (nounbounded, (not norestart, not noreduction)) problem ();
+  val (SAT, stat) = SAT_Solver.isaSAT_code (not norestart, (not noreduction, nounbounded)) problem ();
   val _ = (if print_stats then print_stat stat else ());
   val _ =
         (case SAT of
