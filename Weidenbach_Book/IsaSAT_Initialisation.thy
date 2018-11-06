@@ -2550,6 +2550,19 @@ lemma isa_vmtf_init_isa_vmtf: \<open>\<A> \<noteq> {#} \<Longrightarrow> ((ak, a
        \<in> isa_vmtf \<A> au\<close>
   by (auto simp: isa_vmtf_init_def vmtf_init_def Image_iff intro!: isa_vmtfI)
 
+lemma finalise_init_finalise_init_full:
+  \<open>get_conflict_wl S = None \<Longrightarrow>
+  all_atms_st S \<noteq> {#} \<Longrightarrow> size (learned_clss_l (get_clauses_wl S)) = 0 \<Longrightarrow>
+  ((ops', T), ops, S) \<in> Id \<times>\<^sub>f twl_st_heur_post_parsing_wl \<Longrightarrow>
+  finalise_init_code ops' T \<le> \<Down> {(S', T'). (S', T') \<in> twl_st_heur \<and>
+    get_clauses_wl_heur_init T = get_clauses_wl_heur S'} (RETURN (finalise_init S))\<close>
+  by (auto 5 5 simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
+    twl_st_heur_parsing_no_WL_wl_def
+      finalise_init_code_def out_learned_def take1_def all_atms_def
+      twl_st_heur_post_parsing_wl_def
+      intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf
+      dest: isa_vmtf_init_nemptyD)
+
 lemma finalise_init_finalise_init:
   \<open>(uncurry finalise_init_code, uncurry (RETURN oo (\<lambda>_. finalise_init))) \<in>
    [\<lambda>(_, S::nat twl_st_wl). get_conflict_wl S = None \<and> all_atms_st S \<noteq> {#} \<and>
@@ -2561,6 +2574,8 @@ lemma finalise_init_finalise_init:
       twl_st_heur_post_parsing_wl_def
       intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf
       dest: isa_vmtf_init_nemptyD)
+
+thm finalise_init_finalise_init[THEN fref_to_Down_curry, of ops S ops' T, unfolded prod.simps]
 
 sepref_definition finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
