@@ -2,6 +2,26 @@ theory IsaSAT
 imports IsaSAT_Restart IsaSAT_Initialisation
 begin
 
+subsection \<open>Final code generation\<close>
+text \<open>
+  We now combine all the previous definitions to prove correctness of the complete SAT
+  solver:
+  \<^enum> We initialise the arena part of the state;
+  \<^enum> Then depending on the options and the number of clauses, we either use the
+    bounded version or the unbounded version. Once have if decided which one,
+    we initiale the watch lists;
+  \<^enum> After that, we can run the CDCL part of the SAT solver;
+  \<^enum> Finally, we extract the trail from the state.
+
+  Remark that the statistics and the options are unchecked: the number of propagations
+  might overflows (but they do not impact the correctness of the whole solver). Similar
+  restriction applies on the options: setting the options might not do what you expect to
+  happen, but the result will still be correct.
+\<close>
+
+
+subsubsection \<open>Correctness Relation\<close>
+
 text \<open>
   We cannot use \<^term>\<open>cdcl_twl_stgy_restart\<close> since we do not always end in a final state
   for \<^term>\<open>cdcl_twl_stgy\<close>.
@@ -9,6 +29,18 @@ text \<open>
 definition conclusive_TWL_run :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>conclusive_TWL_run S =
     SPEC(\<lambda>T. \<exists>n n'. cdcl_twl_stgy_restart_with_leftovers\<^sup>*\<^sup>* (S, n) (T, n') \<and> final_twl_state T)\<close>
+
+
+text \<open>To get a full CDCL run:
+  \<^item> either we fully apply \<^term>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<close> (up to restarts)
+  \<^item> or we can stop early.
+\<close>
+definition conclusive_CDCL_run where
+  \<open>conclusive_CDCL_run CS T U \<longleftrightarrow>
+      (\<exists>n n'. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (T, n) (U, n') \<and>
+              no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (U)) \<or>
+          (CS \<noteq> {#} \<and> conflicting U \<noteq> None \<and> count_decided (trail U) = 0 \<and>
+          unsatisfiable (set_mset CS))\<close>
 
 (*TODO Move*)
 
@@ -33,44 +65,6 @@ lemma cdcl_twl_stgy_restart_restart_prog_early_spec: \<open>twl_struct_invs S \<
   by auto
 
 
-lemma cdcl_twl_stgy_restart_prog_l_spec_final:
-  assumes
-    \<open>cdcl_twl_stgy_prog_l_pre S S'\<close>
-  shows
-    \<open>cdcl_twl_stgy_restart_prog_l S \<le> \<Down> (twl_st_l None) (conclusive_TWL_run S')\<close>
-  apply (rule order_trans[OF
-     cdcl_twl_stgy_restart_prog_l_cdcl_twl_stgy_restart_prog[THEN fref_to_Down, of S S']])
-  subgoal using assms unfolding cdcl_twl_stgy_prog_l_pre_def by auto
-  subgoal using assms unfolding cdcl_twl_stgy_prog_l_pre_def by auto
-  subgoal
-    apply (rule ref_two_step)
-     prefer 2
-     apply (rule cdcl_twl_stgy_restart_restart_prog_spec)
-    using assms unfolding cdcl_twl_stgy_prog_l_pre_def by (auto intro: conc_fun_R_mono)
-  done
-
-lemma cdcl_twl_stgy_restart_prog_wl_spec_final:
-  assumes
-    \<open>cdcl_twl_stgy_prog_wl_pre S S'\<close>
-  shows
-    \<open>cdcl_twl_stgy_restart_prog_wl S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
-proof -
-  obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close>
-    using assms unfolding cdcl_twl_stgy_prog_wl_pre_def by blast
-  show ?thesis
-    apply (rule order_trans[OF cdcl_twl_stgy_restart_prog_wl_spec["to_\<Down>", of S T]])
-    subgoal using T by auto
-    subgoal
-      apply (rule order_trans)
-      apply (rule ref_two_step')
-       apply (rule cdcl_twl_stgy_restart_prog_l_spec_final[of _ S'])
-      subgoal using T by fast
-      subgoal unfolding conc_fun_chain by auto
-      done
-    done
-qed
-
-thm cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl
 theorem cdcl_twl_stgy_restart_prog_wl_D_spec:
   assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
   shows \<open>cdcl_twl_stgy_restart_prog_wl_D S \<le> \<Down>Id (cdcl_twl_stgy_restart_prog_wl S)\<close>
@@ -85,45 +79,19 @@ theorem cdcl_twl_stgy_restart_prog_wl_D_spec:
 theorem cdcl_twl_stgy_restart_prog_early_wl_D_spec:
   assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
   shows \<open>cdcl_twl_stgy_restart_prog_early_wl_D S \<le> \<Down>Id (cdcl_twl_stgy_restart_prog_early_wl S)\<close>
-  apply (rule cdcl_twl_stgy_restart_prog_early_wl_D_cdcl_twl_stgy_restart_prog_early_wl[THEN fref_to_Down, THEN order_trans])
+  apply (rule cdcl_twl_stgy_restart_prog_early_wl_D_cdcl_twl_stgy_restart_prog_early_wl[
+    THEN fref_to_Down, THEN order_trans])
   apply fast
   using assms apply auto[]
   apply (rule conc_fun_R_mono)
   apply auto
   done
 
-lemma cdcl_twl_stgy_restart_prog_wl_D_spec_final:
-  assumes
-    \<open>cdcl_twl_stgy_prog_wl_D_pre S S'\<close>
-  shows
-    \<open>cdcl_twl_stgy_restart_prog_wl_D S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
-proof -
-  have T: \<open>cdcl_twl_stgy_prog_wl_pre S S' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
-    using assms unfolding cdcl_twl_stgy_prog_wl_D_pre_def by blast
-  show ?thesis
-    apply (rule order_trans[OF cdcl_twl_stgy_restart_prog_wl_D_spec])
-    subgoal using T by auto
-    subgoal
-      apply (rule order_trans)
-      apply (rule ref_two_step')
-       apply (rule cdcl_twl_stgy_restart_prog_wl_spec_final[of _ S'])
-      subgoal using T by fast
-      subgoal unfolding conc_fun_chain by (rule conc_fun_R_mono) blast
-      done
-    done
-qed
-
 lemma distinct_nat_of_uint32[iff]:
   \<open>distinct_mset (nat_of_uint32 `# A) \<longleftrightarrow> distinct_mset A\<close>
   \<open>distinct (map nat_of_uint32 xs) \<longleftrightarrow> distinct xs\<close>
   using distinct_image_mset_inj[of nat_of_uint32]
   by (auto simp: inj_on_def distinct_map)
-
-(*
-declare isasat_input_bounded.append_el_aa_hnr[sepref_fr_rules]
-declare polarity_pol_code_polarity_refine[sepref_fr_rules]
-  cons_trail_Propagated_tr_code_cons_trail_Propagated_tr[sepref_fr_rules]
-*)
 
 lemma cdcl\<^sub>W_ex_cdcl\<^sub>W_stgy:
   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W S T \<Longrightarrow> \<exists>U. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy S U\<close>
@@ -138,35 +106,32 @@ lemma rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_init_state:
       simp del: init_state.simps
        dest: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W cdcl\<^sub>W_ex_cdcl\<^sub>W_stgy)
 
-definition conclusive_CDCL_run where
-  \<open>conclusive_CDCL_run CS T U \<longleftrightarrow>
-      (\<exists>n n'. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (T, n) (U, n') \<and> no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (U)) \<or>
-          (CS \<noteq> {#} \<and> conflicting U \<noteq> None \<and> count_decided (trail U) = 0 \<and>
-          unsatisfiable (set_mset CS))\<close>
-
-text \<open>to get a full SAT:
-  \<^item> either we fully apply \<^term>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<close> (up to restarts)
-  \<^item> or we can stop early.
-\<close>
-definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset nres\<close> where
-  \<open>SAT CS = do{
-    let T = init_state CS;
-    SPEC (conclusive_CDCL_run CS T)
-  }\<close>
-
-
 definition init_state_l :: \<open>'v twl_st_l_init\<close> where
   \<open>init_state_l = (([], fmempty, None, {#}, {#}, {#}, {#}), {#})\<close>
 
-definition (in -)to_init_state_l :: \<open>nat twl_st_l_init \<Rightarrow> nat twl_st_l_init\<close> where
+definition to_init_state_l :: \<open>nat twl_st_l_init \<Rightarrow> nat twl_st_l_init\<close> where
   \<open>to_init_state_l S = S\<close>
 
 definition init_state0 :: \<open>'v twl_st_init\<close> where
   \<open>init_state0 = (([], {#}, {#}, None, {#}, {#}, {#}, {#}), {#})\<close>
 
-
-definition (in -)to_init_state0 :: \<open>nat twl_st_init \<Rightarrow> nat twl_st_init\<close> where
+definition to_init_state0 :: \<open>nat twl_st_init \<Rightarrow> nat twl_st_init\<close> where
   \<open>to_init_state0 S = S\<close>
+
+lemma init_dt_pre_init:
+  assumes dist: \<open>Multiset.Ball (mset `# mset CS) distinct_mset\<close>
+  shows  \<open>init_dt_pre CS (to_init_state_l init_state_l)\<close>
+  using dist apply -
+  unfolding init_dt_pre_def to_init_state_l_def init_state_l_def
+  by (rule exI[of _ \<open>(([], {#}, {#}, None, {#}, {#}, {#}, {#}), {#})\<close>])
+    (auto simp: twl_st_l_init_def twl_init_invs)
+
+
+definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset nres\<close> where
+  \<open>SAT CS = do{
+    let T = init_state CS;
+    SPEC (conclusive_CDCL_run CS T)
+  }\<close>
 
 
 definition init_dt_spec0 :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_init \<Rightarrow> 'v twl_st_init \<Rightarrow> bool\<close> where
@@ -177,9 +142,9 @@ definition init_dt_spec0 :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_init
            (\<forall>s\<in>set (get_trail_init T'). \<not>is_decided s) \<and>
            (get_conflict_init T' = None \<longrightarrow>
               literals_to_update_init T' = uminus `# lit_of `# mset (get_trail_init T')) \<and>
-           (mset `# mset CS + clause_of `# (get_init_clauses_init SOC) + other_clauses_init SOC +
+           (mset `# mset CS + clause `# (get_init_clauses_init SOC) + other_clauses_init SOC +
                  get_unit_init_clauses_init SOC =
-            clause_of `# (get_init_clauses_init T') + other_clauses_init T'  +
+            clause `# (get_init_clauses_init T') + other_clauses_init T'  +
                  get_unit_init_clauses_init T') \<and>
            get_learned_clauses_init SOC = get_learned_clauses_init T' \<and>
            get_unit_learned_clauses_init T' = get_unit_learned_clauses_init SOC \<and>
@@ -188,7 +153,14 @@ definition init_dt_spec0 :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_init
            ({#} \<in># mset `# mset CS \<longrightarrow> get_conflict_init T' \<noteq> None) \<and>
            (get_conflict_init SOC \<noteq> None \<longrightarrow> get_conflict_init SOC = get_conflict_init T'))\<close>
 
-definition (in -) SAT0 :: \<open>nat clause_l list \<Rightarrow> nat twl_st nres\<close> where
+
+subsubsection \<open>Refinements of the Whole SAT Solver\<close>
+
+text \<open>
+  We do no add the refinement steps in separate files, since the form is very relevant
+  to the SAT solver we want to generate.
+\<close>
+definition  SAT0 :: \<open>nat clause_l list \<Rightarrow> nat twl_st nres\<close> where
   \<open>SAT0 CS = do{
     b \<leftarrow> SPEC(\<lambda>_::bool. True);
     if b then do {
@@ -201,7 +173,7 @@ definition (in -) SAT0 :: \<open>nat clause_l list \<Rightarrow> nat twl_st nres
         else do {
           ASSERT (extract_atms_clss CS {} \<noteq> {});
 	  ASSERT (clauses_to_update T = {#});
-          ASSERT(clause_of `# (get_clauses T) + unit_clss T = mset `# mset CS);
+          ASSERT(clause `# (get_clauses T) + unit_clss T = mset `# mset CS);
           ASSERT(get_learned_clss T = {#});
           cdcl_twl_stgy_restart_prog T
         }
@@ -219,23 +191,19 @@ definition (in -) SAT0 :: \<open>nat clause_l list \<Rightarrow> nat twl_st nres
           then do {
             ASSERT (extract_atms_clss CS {} \<noteq> {});
 	    ASSERT (clauses_to_update T = {#});
-            ASSERT(clause_of `# (get_clauses T) + unit_clss T = mset `# mset CS);
+            ASSERT(clause `# (get_clauses T) + unit_clss T = mset `# mset CS);
             ASSERT(get_learned_clss T = {#});
             cdcl_twl_stgy_restart_prog T
           } else do {
             ASSERT (extract_atms_clss CS {} \<noteq> {});
 	    ASSERT (clauses_to_update T = {#});
-            ASSERT(clause_of `# (get_clauses T) + unit_clss T = mset `# mset CS);
+            ASSERT(clause `# (get_clauses T) + unit_clss T = mset `# mset CS);
             ASSERT(get_learned_clss T = {#});
             cdcl_twl_stgy_restart_prog_early T
           }
         }
      }
   }\<close>
-
-(*TODO Kill duplicate*)
-lemma [simp]: \<open>clause = clause_of\<close>
-  by (intro ext, rename_tac x, case_tac x) auto
 
 lemma SAT0_SAT:
   assumes \<open>Multiset.Ball (mset `# mset CS) distinct_mset\<close>
@@ -259,10 +227,10 @@ proof -
        literals_to_update_init T =
        uminus `# lit_of `# mset (get_trail_init T)\<close> and
       clss: \<open>mset `# mset CS +
-       clause_of `# get_init_clauses_init (to_init_state0 init_state0) +
+       clause `# get_init_clauses_init (to_init_state0 init_state0) +
        other_clauses_init (to_init_state0 init_state0) +
        get_unit_init_clauses_init (to_init_state0 init_state0) =
-       clause_of `# get_init_clauses_init T + other_clauses_init T +
+       clause `# get_init_clauses_init T + other_clauses_init T +
        get_unit_init_clauses_init T\<close> and
       learned: \<open>get_learned_clauses_init (to_init_state0 init_state0) =
           get_learned_clauses_init T\<close>
@@ -367,7 +335,7 @@ proof -
       confl: \<open>\<not> get_conflict (fst T) \<noteq> None\<close> and
       CS_nempty[simp]: \<open>CS \<noteq> []\<close> and
       \<open>extract_atms_clss CS {} \<noteq> {}\<close> and
-      \<open>clause_of `# get_clauses (fst T) + unit_clss (fst T) = mset `# mset CS\<close> and
+      \<open>clause `# get_clauses (fst T) + unit_clss (fst T) = mset `# mset CS\<close> and
       \<open>get_learned_clss (fst T) = {#}\<close>
     for T
   proof -
@@ -380,10 +348,10 @@ proof -
        literals_to_update_init T =
        uminus `# lit_of `# mset (get_trail_init T)\<close> and
       clss: \<open>mset `# mset CS +
-       clause_of `# get_init_clauses_init (to_init_state0 init_state0) +
+       clause `# get_init_clauses_init (to_init_state0 init_state0) +
        other_clauses_init (to_init_state0 init_state0) +
        get_unit_init_clauses_init (to_init_state0 init_state0) =
-       clause_of `# get_init_clauses_init T + other_clauses_init T +
+       clause `# get_init_clauses_init T + other_clauses_init T +
        get_unit_init_clauses_init T\<close> and
       learned: \<open>get_learned_clauses_init (to_init_state0 init_state0) =
           get_learned_clauses_init T\<close>
@@ -637,7 +605,7 @@ proof -
     done
 qed
 
-definition (in -) SAT_l :: \<open>nat clause_l list \<Rightarrow> nat twl_st_l nres\<close> where
+definition  SAT_l :: \<open>nat clause_l list \<Rightarrow> nat twl_st_l nres\<close> where
   \<open>SAT_l CS = do{
     b \<leftarrow> SPEC(\<lambda>_::bool. True);
     if b then do {
@@ -682,20 +650,6 @@ definition (in -) SAT_l :: \<open>nat clause_l list \<Rightarrow> nat twl_st_l n
      }
   }\<close>
 
-lemma [twl_st_l_init]:
-  \<open>(S, T) \<in> twl_st_l_init \<Longrightarrow> get_learned_clauses_init T = {#} \<longleftrightarrow> learned_clss_l (get_clauses_l_init S) = {#}\<close>
-  \<open>(S, T) \<in> twl_st_l_init \<Longrightarrow> get_unit_learned_clauses_init T = {#} \<longleftrightarrow> get_learned_unit_clauses_l_init S = {#}
-    \<close>
-  by (cases S; cases T; auto simp: twl_st_l_init_def; fail)+
-
-lemma init_dt_pre_init:
-  assumes dist: \<open>Multiset.Ball (mset `# mset CS) distinct_mset\<close>
-  shows  \<open>init_dt_pre CS (to_init_state_l init_state_l)\<close>
-  using dist apply -
-  unfolding init_dt_pre_def to_init_state_l_def init_state_l_def
-  by (rule exI[of _ \<open>(([], {#}, {#}, None, {#}, {#}, {#}, {#}), {#})\<close>])
-    (auto simp: twl_st_l_init_def twl_init_invs)
-
 lemma SAT_l_SAT0:
   assumes dist: \<open>Multiset.Ball (mset `# mset CS) distinct_mset\<close>
   shows \<open>SAT_l CS \<le> \<Down> {(T,T'). (T, T') \<in> twl_st_l None} (SAT0 CS)\<close>
@@ -713,7 +667,7 @@ proof -
       learned_clss_l (get_clauses_l_init s) = {#} \<Longrightarrow>
     {#mset (fst x). x \<in># ran_m (get_clauses_l_init s)#} +
     get_unit_clauses_l_init s =
-    clause_of `# get_init_clauses_init x + get_unit_init_clauses_init x\<close> for s x
+    clause `# get_init_clauses_init x + get_unit_init_clauses_init x\<close> for s x
     apply (cases s; cases x)
     apply (auto simp: twl_st_l_init_def mset_take_mset_drop_mset')
     by (metis (mono_tags, lifting) add.right_neutral all_clss_l_ran_m)
@@ -829,7 +783,7 @@ lemma init_dt_wl'_init_dt:
 
 (* END Move *)
 
-definition (in -) SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
+definition  SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>SAT_wl CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
     ASSERT(distinct_mset_set (mset ` set CS));
@@ -984,7 +938,7 @@ lemma add_invar_refineI_P: \<open>A \<le> \<Down> {(x,y). R x y} B \<Longrightar
   using add_invar_refineI[of \<open>\<lambda>_. A\<close> _  _ \<open>\<lambda>_. B\<close> P, where R=\<open>{(x,y). R x y}\<close> and I=P]
   by auto
 
-lemma \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l  (atm_of `#  all_lits_of_mm A)) = set_mset (all_lits_of_mm A)\<close>
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `#  all_lits_of_mm A)) = set_mset (all_lits_of_mm A)\<close>
   apply (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def in_all_lits_of_mm_ain_atms_of_iff)
   by (metis (no_types, lifting) image_iff in_all_lits_of_mm_ain_atms_of_iff literal.exhaust_sel)
 (*End Move*)
@@ -1551,16 +1505,16 @@ definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal
 definition empty_conflict :: \<open>nat literal list option\<close> where
   \<open>empty_conflict = Some []\<close>
 
-definition (in -)empty_conflict_code :: \<open>(_ list option \<times> stats) nres\<close> where
+definition empty_conflict_code :: \<open>(_ list option \<times> stats) nres\<close> where
   \<open>empty_conflict_code = do{
      let M0 = op_arl_empty;
      let M1 = Some M0;
      RETURN (M1, (zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64))}\<close>
 
-abbreviation (in -) model_stat_assn where
+abbreviation  model_stat_assn where
   \<open>model_stat_assn \<equiv> option_assn (arl_assn unat_lit_assn) *a stats_assn\<close>
-(* heap_array_empty *)
-sepref_definition (in -) empty_conflict_code'
+
+sepref_definition  empty_conflict_code'
   is \<open>uncurry0 (empty_conflict_code)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
   unfolding empty_conflict_code_def
@@ -1572,7 +1526,7 @@ declare empty_conflict_code'.refine[sepref_fr_rules]
 definition empty_init_code :: \<open>_ list option \<times> stats\<close> where
   \<open>empty_init_code = (None, (zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64))\<close>
 
-sepref_definition (in -) empty_init_code'
+sepref_definition  empty_init_code'
   is \<open>uncurry0 (RETURN empty_init_code)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
   unfolding empty_init_code_def
@@ -1581,16 +1535,16 @@ sepref_definition (in -) empty_init_code'
 declare empty_init_code'.refine[sepref_fr_rules]
 
 
-definition (in -)convert_state where
+definition convert_state where
   \<open>convert_state _ S = S\<close>
 
-lemma (in -) convert_state_hnr:
+lemma  convert_state_hnr:
   \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
    \<in> ghost_assn\<^sup>k *\<^sub>a (isasat_init_assn)\<^sup>d \<rightarrow>\<^sub>a
      isasat_init_assn\<close>
   by sepref_to_hoare (sep_auto simp: convert_state_def)
 
-lemma (in -) convert_state_hnr_unb:
+lemma  convert_state_hnr_unb:
   \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
    \<in> ghost_assn\<^sup>k *\<^sub>a (isasat_init_unbounded_assn)\<^sup>d \<rightarrow>\<^sub>a
      isasat_init_unbounded_assn\<close>
@@ -2341,48 +2295,6 @@ lemma isasat_fast_init_alt_def:
   \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _). RETURN (length N \<le> 18446744069414584315))\<close>
   by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def intro!: ext)
 
-(*
-lemma cdcl_twl_stgy_prog_wl_D_break_fast_code_ref':
-  \<open>(uncurry (\<lambda>_. isasat_input_ops.cdcl_twl_stgy_restart_prog_early_wl_heur),
-      uncurry (isasat_input_ops.cdcl_twl_stgy_restart_prog_early_wl_heur))
-  \<in> [\<lambda>(N, S). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n \<and> isasat_fast S]\<^sub>a
-     (ghost_assn)\<^sup>k *\<^sub>a
-    (isasat_input_ops.isasat_bounded_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> isasat_input_ops.isasat_unbounded_assn \<A>\<^sub>i\<^sub>n\<close>
-  unfolding hfref_def hn_refine_def
-  apply (subst in_pair_collect_simp)
-  apply (intro allI impI)
-  subgoal for a c
-    using cdcl_twl_stgy_prog_wl_D_fast_code.refine[of \<A>\<^sub>i\<^sub>n,
-      unfolded in_pair_collect_simp hfref_def hn_refine_def PR_CONST_def,
-      rule_format, of \<open>snd c\<close> \<open>snd a\<close>]
-    by (cases a)
-      (sep_auto simp:
-      dest!: frame_rule_left[of \<open>isasat_input_ops.isasat_bounded_assn _ _ _\<close> _ _
-       \<open>ghost_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
-  done
-*)
-
-(*
-lemma cdcl_twl_stgy_restart_prog_wl_D_code_ref':
-  \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_restart_prog_wl_heur_code),
-       uncurry isasat_input_ops.cdcl_twl_stgy_restart_prog_wl_heur)
-  \<in> [\<lambda>(N, _). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n]\<^sub>a
-     (ghost_assn)\<^sup>k *\<^sub>a
-    (isasat_input_ops.isasat_unbounded_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> isasat_input_ops.isasat_unbounded_assn \<A>\<^sub>i\<^sub>n\<close>
-  unfolding hfref_def hn_refine_def
-  apply (subst in_pair_collect_simp)
-  apply (intro allI impI)
-  subgoal for a c
-    using cdcl_twl_stgy_restart_prog_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n,
-      unfolded in_pair_collect_simp hfref_def hn_refine_def PR_CONST_def,
-      rule_format, of \<open>snd c\<close> \<open>snd a\<close>]
-    apply (cases a)
-    by (sep_auto simp:
-      dest!: frame_rule_left[of \<open>isasat_input_ops.isasat_unbounded_assn _ _ _\<close> _ _
-        \<open>ghost_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
-  done
-*)
-
 definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_list option \<times> stats\<close> where
   \<open>get_trail_wl_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (Some M, stat))\<close>
 
@@ -2390,10 +2302,10 @@ definition get_stats_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_
   \<open>get_stats_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (None, stat))\<close>
 
 
-definition (in -) model_stat_rel where
+definition  model_stat_rel where
   \<open>model_stat_rel = {((M', s), M). map_option rev M = M'}\<close>
 
-definition (in -) model_assn where
+definition  model_assn where
   \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
 
 lemma extract_model_of_state_stat_hnr[sepref_fr_rules]:
@@ -2492,7 +2404,6 @@ sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extra
 declare
   init_dt_wl_heur_code.refine[sepref_fr_rules]
   get_stats_code[sepref_fr_rules]
-(*  init_state_wl_heur_fast_hnr[to_hnr, OF refl, sepref_fr_rules]*)
 
 lemma init_state_wl_D'_code_isasat: \<open>(hr_comp isasat_init_assn
    (Id \<times>\<^sub>f
@@ -2522,10 +2433,11 @@ declare isasat_fast_init_code.refine[sepref_fr_rules]
 declare convert_state_hnr[sepref_fr_rules]
   convert_state_hnr_unb[sepref_fr_rules]
 
-sepref_register (*isasat_input_ops.init_dt_wl_heur_fast*)
+sepref_register
    cdcl_twl_stgy_restart_prog_wl_heur
-thm init_dt_wl_heur_full_code.refine
-declare init_state_wl_D'_code.refine[FCOMP init_state_wl_D', unfolded lits_with_max_assn_alt_def[symmetric],
+
+declare init_state_wl_D'_code.refine[FCOMP init_state_wl_D',
+  unfolded lits_with_max_assn_alt_def[symmetric],
   unfolded init_state_wl_D'_code_isasat, sepref_fr_rules]
 declare init_state_wl_D'_code.refine[FCOMP init_state_wl_D', sepref_fr_rules]
 
@@ -2555,96 +2467,6 @@ sepref_definition IsaSAT_code
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
   by sepref
-
-definition nth_u_code' where
-  [symmetric, code]: \<open>nth_u_code' = nth_u_code\<close>
-
-code_printing constant nth_u_code' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Word32.toInt (_)))"
-
-definition nth_u64_code' where
-  [symmetric, code]: \<open>nth_u64_code' = nth_u64_code\<close>
-
-code_printing constant nth_u64_code' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Uint64.toFixedInt (_)))"
-
-definition heap_array_set'_u' where
-  [symmetric, code]: \<open>heap_array_set'_u' = heap_array_set'_u\<close>
-
-code_printing constant heap_array_set'_u' \<rightharpoonup>
-   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word32.toInt (_)),/ (_)))"
-
-definition heap_array_set'_u64' where
-  [symmetric, code]: \<open>heap_array_set'_u64' = heap_array_set'_u64\<close>
-
-code_printing constant heap_array_set'_u64' \<rightharpoonup>
-   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word64.toInt (_)),/ (_)))"
-
-code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
-
-definition length_u_code' where
-  [symmetric, code]: \<open>length_u_code' = length_u_code\<close>
-
-code_printing constant length_u_code' \<rightharpoonup> (SML_imp) "(fn/ ()/ =>/ Word32.fromInt (Array.length (_)))"
-
-definition length_aa_u_code' where
-  [symmetric, code]: \<open>length_aa_u_code' = length_aa_u_code\<close>
-
-code_printing constant length_aa_u_code' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
-
-definition nth_raa_i_u64' where
-  [symmetric, code]: \<open>nth_raa_i_u64' = nth_raa_i_u64\<close>
-
-code_printing constant nth_raa_i_u64' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Array.sub (Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ IntInf.toInt (integer'_of'_nat (_))), Uint64.toFixedInt (_)))"
-
-definition length_u64_code' where
-  [symmetric, code]: \<open>length_u64_code' = length_u64_code\<close>
-
-code_printing constant length_u64_code' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Uint64.fromFixedInt (Array.length (_)))"
-
-code_printing constant arl_get_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) ((_)),/ Word32.toInt ((_))))"
-(*
-definition arl_set_u64' where
-  [symmetric, code]: \<open>arl_set_u64' = arl_set_u64\<close>
- *)
-lemma arl_set_u64_code[code]: \<open>arl_set_u64 a i x =
-   Array_upd_u64 i x (fst a) \<bind> (\<lambda>b. return (b, (snd a)))\<close>
-  unfolding arl_set_u64_def arl_set_def heap_array_set'_u64_def arl_set'_u64_def
-     heap_array_set_u64_def Array.upd'_def Array_upd_u64_def
-  by (cases a) (auto simp: nat_of_uint64_code[symmetric])
-
-lemma arl_set_u_code[code]: \<open>arl_set_u a i x =
-   Array_upd_u i x (fst a) \<bind> (\<lambda>b. return (b, (snd a)))\<close>
-  unfolding arl_set_u_def arl_set_def heap_array_set'_u64_def arl_set'_u_def
-     heap_array_set_u_def Array.upd'_def Array_upd_u_def
-  by (cases a) (auto simp: nat_of_uint64_code[symmetric])
-
-(* This equation makes no sense since a resizable array is represent by an array and an infinite
- integer: There is no obvious shortcut.
-code_printing constant length_arl_u_code' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Word32.fromLargeInt (snd (_)))"  *)
-(* code_printing constant nth_u64_code \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Uint64.toFixedInt (_)))" *)
-
-
-definition arl_get_u64' where
-  [symmetric, code]: \<open>arl_get_u64' = arl_get_u64\<close>
-
-code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Uint64.toFixedInt (_)))"
-
-export_code IsaSAT_code checking SML_imp
-
-code_printing constant \<comment> \<open>print with line break\<close>
-  println_string \<rightharpoonup> (SML) "ignore/ (print/ ((_) ^ \"\\n\"))"
-
-export_code IsaSAT_code
-    int_of_integer
-    integer_of_int
-    integer_of_nat
-    nat_of_integer
-    uint32_of_nat
-  in SML_imp module_name SAT_Solver file "code/IsaSAT_solver.sml"
-
 
 definition model_if_satisfiable :: \<open>nat clauses \<Rightarrow> nat literal list option nres\<close> where
   \<open>model_if_satisfiable CS = SPEC (\<lambda>M.
@@ -2877,7 +2699,6 @@ proof -
     done
 qed
 
-
 lemma list_assn_list_mset_rel_clauses_l_assn:
   \<open>(hr_comp (list_assn (list_assn unat_lit_assn)) (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)) xs xs'
      = clauses_l_assn xs xs'\<close>
@@ -2903,15 +2724,104 @@ proof -
         simp del: literal_of_nat.simps)
 qed
 
-
-theorem IsaSAT_full_correctness: \<open>(uncurry IsaSAT_code, uncurry (\<lambda>_. model_if_satisfiable))
-\<in> [\<lambda>(_, a).
-      Multiset.Ball a distinct_mset \<and>
+theorem IsaSAT_full_correctness:
+  \<open>(uncurry IsaSAT_code, uncurry (\<lambda>_. model_if_satisfiable))
+     \<in> [\<lambda>(_, a). Multiset.Ball a distinct_mset \<and>
       (\<forall>C\<in>#a.  \<forall>L\<in>#C. nat_of_lit L  \<le> uint_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a  clauses_l_assn\<^sup>k \<rightarrow> model_assn\<close>
   using IsaSAT_code.refine[FCOMP IsaSAT_heur_model_if_sat',
     unfolded list_assn_list_mset_rel_clauses_l_assn]
   unfolding model_assn_def
   apply auto
   done
+
+
+subsubsection \<open>Code Export\<close>
+
+definition nth_u_code' where
+  [symmetric, code]: \<open>nth_u_code' = nth_u_code\<close>
+
+code_printing constant nth_u_code' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Word32.toInt (_)))"
+
+definition nth_u64_code' where
+  [symmetric, code]: \<open>nth_u64_code' = nth_u64_code\<close>
+
+code_printing constant nth_u64_code' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Uint64.toFixedInt (_)))"
+
+definition heap_array_set'_u' where
+  [symmetric, code]: \<open>heap_array_set'_u' = heap_array_set'_u\<close>
+
+code_printing constant heap_array_set'_u' \<rightharpoonup>
+   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word32.toInt (_)),/ (_)))"
+
+definition heap_array_set'_u64' where
+  [symmetric, code]: \<open>heap_array_set'_u64' = heap_array_set'_u64\<close>
+
+code_printing constant heap_array_set'_u64' \<rightharpoonup>
+   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word64.toInt (_)),/ (_)))"
+
+code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
+
+definition length_u_code' where
+  [symmetric, code]: \<open>length_u_code' = length_u_code\<close>
+
+code_printing constant length_u_code' \<rightharpoonup> (SML_imp) "(fn/ ()/ =>/ Word32.fromInt (Array.length (_)))"
+
+definition length_aa_u_code' where
+  [symmetric, code]: \<open>length_aa_u_code' = length_aa_u_code\<close>
+
+code_printing constant length_aa_u_code' \<rightharpoonup> (SML_imp)
+   "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
+
+definition nth_raa_i_u64' where
+  [symmetric, code]: \<open>nth_raa_i_u64' = nth_raa_i_u64\<close>
+
+code_printing constant nth_raa_i_u64' \<rightharpoonup> (SML_imp)
+   "(fn/ ()/ =>/ Array.sub (Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ IntInf.toInt (integer'_of'_nat (_))), Uint64.toFixedInt (_)))"
+
+definition length_u64_code' where
+  [symmetric, code]: \<open>length_u64_code' = length_u64_code\<close>
+
+code_printing constant length_u64_code' \<rightharpoonup> (SML_imp)
+   "(fn/ ()/ =>/ Uint64.fromFixedInt (Array.length (_)))"
+
+code_printing constant arl_get_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) ((_)),/ Word32.toInt ((_))))"
+
+lemma arl_set_u64_code[code]: \<open>arl_set_u64 a i x =
+   Array_upd_u64 i x (fst a) \<bind> (\<lambda>b. return (b, (snd a)))\<close>
+  unfolding arl_set_u64_def arl_set_def heap_array_set'_u64_def arl_set'_u64_def
+     heap_array_set_u64_def Array.upd'_def Array_upd_u64_def
+  by (cases a) (auto simp: nat_of_uint64_code[symmetric])
+
+lemma arl_set_u_code[code]: \<open>arl_set_u a i x =
+   Array_upd_u i x (fst a) \<bind> (\<lambda>b. return (b, (snd a)))\<close>
+  unfolding arl_set_u_def arl_set_def heap_array_set'_u64_def arl_set'_u_def
+     heap_array_set_u_def Array.upd'_def Array_upd_u_def
+  by (cases a) (auto simp: nat_of_uint64_code[symmetric])
+
+(* This equation makes no sense since a resizable array is represent by an array and an infinite
+ integer: There is no obvious shortcut.
+code_printing constant length_arl_u_code' \<rightharpoonup> (SML_imp)
+   "(fn/ ()/ =>/ Word32.fromLargeInt (snd (_)))"  *)
+(* code_printing constant nth_u64_code \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Uint64.toFixedInt (_)))" *)
+
+
+definition arl_get_u64' where
+  [symmetric, code]: \<open>arl_get_u64' = arl_get_u64\<close>
+
+code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Uint64.toFixedInt (_)))"
+
+export_code IsaSAT_code checking SML_imp
+
+code_printing constant \<comment> \<open>print with line break\<close>
+  println_string \<rightharpoonup> (SML) "ignore/ (print/ ((_) ^ \"\\n\"))"
+
+export_code IsaSAT_code
+    int_of_integer
+    integer_of_int
+    integer_of_nat
+    nat_of_integer
+    uint32_of_nat
+  in SML_imp module_name SAT_Solver file "code/IsaSAT_solver.sml"
+
 
 end
