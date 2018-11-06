@@ -127,6 +127,7 @@ lemma init_dt_pre_init:
     (auto simp: twl_st_l_init_def twl_init_invs)
 
 
+text \<open>This is the specification of the SAT solver:\<close>
 definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset nres\<close> where
   \<open>SAT CS = do{
     let T = init_state CS;
@@ -137,28 +138,28 @@ definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset
 definition init_dt_spec0 :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_init \<Rightarrow> 'v twl_st_init \<Rightarrow> bool\<close> where
   \<open>init_dt_spec0 CS SOC T' \<longleftrightarrow>
      (
-           twl_struct_invs_init T' \<and>
-           clauses_to_update_init T' = {#} \<and>
-           (\<forall>s\<in>set (get_trail_init T'). \<not>is_decided s) \<and>
-           (get_conflict_init T' = None \<longrightarrow>
-              literals_to_update_init T' = uminus `# lit_of `# mset (get_trail_init T')) \<and>
-           (mset `# mset CS + clause `# (get_init_clauses_init SOC) + other_clauses_init SOC +
-                 get_unit_init_clauses_init SOC =
-            clause `# (get_init_clauses_init T') + other_clauses_init T'  +
-                 get_unit_init_clauses_init T') \<and>
-           get_learned_clauses_init SOC = get_learned_clauses_init T' \<and>
-           get_unit_learned_clauses_init T' = get_unit_learned_clauses_init SOC \<and>
-           twl_stgy_invs (fst T') \<and>
-           (other_clauses_init T' \<noteq> {#} \<longrightarrow> get_conflict_init T' \<noteq> None) \<and>
-           ({#} \<in># mset `# mset CS \<longrightarrow> get_conflict_init T' \<noteq> None) \<and>
-           (get_conflict_init SOC \<noteq> None \<longrightarrow> get_conflict_init SOC = get_conflict_init T'))\<close>
+      twl_struct_invs_init T' \<and>
+      clauses_to_update_init T' = {#} \<and>
+      (\<forall>s\<in>set (get_trail_init T'). \<not>is_decided s) \<and>
+      (get_conflict_init T' = None \<longrightarrow>
+	 literals_to_update_init T' = uminus `# lit_of `# mset (get_trail_init T')) \<and>
+      (mset `# mset CS + clause `# (get_init_clauses_init SOC) + other_clauses_init SOC +
+	    get_unit_init_clauses_init SOC =
+       clause `# (get_init_clauses_init T') + other_clauses_init T'  +
+	    get_unit_init_clauses_init T') \<and>
+      get_learned_clauses_init SOC = get_learned_clauses_init T' \<and>
+      get_unit_learned_clauses_init T' = get_unit_learned_clauses_init SOC \<and>
+      twl_stgy_invs (fst T') \<and>
+      (other_clauses_init T' \<noteq> {#} \<longrightarrow> get_conflict_init T' \<noteq> None) \<and>
+      ({#} \<in># mset `# mset CS \<longrightarrow> get_conflict_init T' \<noteq> None) \<and>
+      (get_conflict_init SOC \<noteq> None \<longrightarrow> get_conflict_init SOC = get_conflict_init T'))\<close>
 
 
 subsubsection \<open>Refinements of the Whole SAT Solver\<close>
 
 text \<open>
-  We do no add the refinement steps in separate files, since the form is very relevant
-  to the SAT solver we want to generate.
+  We do no add the refinement steps in separate files, since the form is very specific
+  to the SAT solver we want to generate (and needs to be updated if it changes).
 \<close>
 definition  SAT0 :: \<open>nat clause_l list \<Rightarrow> nat twl_st nres\<close> where
   \<open>SAT0 CS = do{
@@ -248,7 +249,7 @@ proof -
 
     have count_dec: \<open>count_decided (get_trail (fst T)) = 0\<close>
       using count_dec unfolding count_decided_0_iff by (auto simp: twl_st_init
-          twl_st_wl_init)
+        twl_st_wl_init)
 
     have le: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (state\<^sub>W_of_init T)\<close> and
       all_struct_invs:
@@ -372,7 +373,7 @@ proof -
     have clss_to_upd: \<open>clauses_to_update (fst T) = {#}\<close>
       using clss_to_upd by (auto simp: twl_st_init)
 
-    have conclusive_le: \<open>IsaSAT.conclusive_TWL_run (fst T)
+    have conclusive_le: \<open>conclusive_TWL_run (fst T)
     \<le> \<Down> {(S, T). T = state\<^sub>W_of S}
        (SPEC
          (conclusive_CDCL_run (mset `# mset CS) (init_state (mset `# mset CS))))\<close>
@@ -412,7 +413,8 @@ proof -
 	 by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
       define MW where \<open>MW \<equiv> get_trail_init T\<close>
       have CS_clss: \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (fst T)) = mset `# mset CS\<close>
-        using learned clss oth confl unfolding clauses_def to_init_state0_def init_state0_def cdcl\<^sub>W_restart_mset.clauses_def
+        using learned clss oth confl unfolding clauses_def to_init_state0_def init_state0_def
+	  cdcl\<^sub>W_restart_mset.clauses_def
 	by (cases T) auto
       have n_d: \<open>no_dup MW\<close> and
 	propa: \<open>\<And>L mark a b. a @ Propagated L mark # b = MW \<Longrightarrow>
@@ -783,7 +785,7 @@ lemma init_dt_wl'_init_dt:
 
 (* END Move *)
 
-definition  SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
+definition SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>SAT_wl CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
     ASSERT(distinct_mset_set (mset ` set CS));
@@ -797,11 +799,11 @@ definition  SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\
         then RETURN T
         else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, \<lambda>_. undefined))
         else do {
-           ASSERT (extract_atms_clss CS {} \<noteq> {});
-           ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
-           ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
-           ASSERT(learned_clss_l (get_clauses_wl T) = {#});
-           cdcl_twl_stgy_restart_prog_wl_D (finalise_init T)
+	  ASSERT (extract_atms_clss CS {} \<noteq> {});
+	  ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
+	  ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
+	  ASSERT(learned_clss_l (get_clauses_wl T) = {#});
+	  cdcl_twl_stgy_restart_prog_wl_D (finalise_init T)
         }
     }
     else do {
@@ -815,19 +817,19 @@ definition  SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\
           b \<leftarrow> SPEC(\<lambda>_::bool. True);
           if b
           then do {
-             ASSERT (extract_atms_clss CS {} \<noteq> {});
-             ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
-             ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
-             ASSERT(learned_clss_l (get_clauses_wl T) = {#});
-             T \<leftarrow> rewatch_st (finalise_init T);
-             cdcl_twl_stgy_restart_prog_wl_D T
+            ASSERT (extract_atms_clss CS {} \<noteq> {});
+	    ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
+	    ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
+	    ASSERT(learned_clss_l (get_clauses_wl T) = {#});
+	    T \<leftarrow> rewatch_st (finalise_init T);
+	    cdcl_twl_stgy_restart_prog_wl_D T
           } else do {
-             ASSERT (extract_atms_clss CS {} \<noteq> {});
-             ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
-             ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
-             ASSERT(learned_clss_l (get_clauses_wl T) = {#});
-             T \<leftarrow> rewatch_st (finalise_init T);
-             cdcl_twl_stgy_restart_prog_early_wl_D T
+	    ASSERT (extract_atms_clss CS {} \<noteq> {});
+	    ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
+	    ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
+	    ASSERT(learned_clss_l (get_clauses_wl T) = {#});
+	    T \<leftarrow> rewatch_st (finalise_init T);
+	    cdcl_twl_stgy_restart_prog_early_wl_D T
           }
         }
      }
@@ -866,19 +868,19 @@ lemma SAT_l_alt_def:
           b \<leftarrow> SPEC(\<lambda>_::bool. True);
           if b
           then do {
-             ASSERT (extract_atms_clss CS {} \<noteq> {});
-	     ASSERT (clauses_to_update_l (fst T) = {#});
-             ASSERT(mset `# ran_mf (get_clauses_l (fst T)) + get_unit_clauses_l (fst T) = mset `# mset CS);
-             ASSERT(learned_clss_l (get_clauses_l (fst T)) = {#});
-             let T = fst T;
-             cdcl_twl_stgy_restart_prog_l T
+	    ASSERT (extract_atms_clss CS {} \<noteq> {});
+	    ASSERT (clauses_to_update_l (fst T) = {#});
+	    ASSERT(mset `# ran_mf (get_clauses_l (fst T)) + get_unit_clauses_l (fst T) = mset `# mset CS);
+	    ASSERT(learned_clss_l (get_clauses_l (fst T)) = {#});
+	    let T = fst T;
+	    cdcl_twl_stgy_restart_prog_l T
           } else do {
-             ASSERT (extract_atms_clss CS {} \<noteq> {});
-	     ASSERT (clauses_to_update_l (fst T) = {#});
-             ASSERT(mset `# ran_mf (get_clauses_l (fst T)) + get_unit_clauses_l (fst T) = mset `# mset CS);
-             ASSERT(learned_clss_l (get_clauses_l (fst T)) = {#});
-             let T = fst T;
-             cdcl_twl_stgy_restart_prog_early_l T
+            ASSERT (extract_atms_clss CS {} \<noteq> {});
+	    ASSERT (clauses_to_update_l (fst T) = {#});
+	    ASSERT(mset `# ran_mf (get_clauses_l (fst T)) + get_unit_clauses_l (fst T) = mset `# mset CS);
+	    ASSERT(learned_clss_l (get_clauses_l (fst T)) = {#});
+	    let T = fst T;
+	    cdcl_twl_stgy_restart_prog_early_l T
           }
         }
      }
@@ -933,16 +935,6 @@ proof -
     done
 qed
 
-(* TODO Move *)
-lemma add_invar_refineI_P: \<open>A \<le> \<Down> {(x,y). R x y} B \<Longrightarrow> (nofail A \<Longrightarrow>A \<le> SPEC P) \<Longrightarrow> A \<le> \<Down> {(x,y).  R x y \<and> P x} B\<close>
-  using add_invar_refineI[of \<open>\<lambda>_. A\<close> _  _ \<open>\<lambda>_. B\<close> P, where R=\<open>{(x,y). R x y}\<close> and I=P]
-  by auto
-
-lemma \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `#  all_lits_of_mm A)) = set_mset (all_lits_of_mm A)\<close>
-  apply (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def in_all_lits_of_mm_ain_atms_of_iff)
-  by (metis (no_types, lifting) image_iff in_all_lits_of_mm_ain_atms_of_iff literal.exhaust_sel)
-(*End Move*)
-
 lemma init_dt_wl_pre:
   assumes dist: \<open>Multiset.Ball (mset `# mset CS) distinct_mset\<close>
   shows \<open>init_dt_wl_pre CS (to_init_state init_state_wl)\<close>
@@ -955,22 +947,7 @@ lemma init_dt_wl_pre:
   using dist by (auto simp: init_dt_pre_def state_wl_l_init_def state_wl_l_init'_def
      twl_st_l_init_def twl_init_invs)[]
 
-(*TODO kill all_blits_are_in_problem; Move*)
-lemma all_blits_are_in_problem_init_blits_in: \<open>all_blits_are_in_problem_init S \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n S\<close>
-  unfolding blits_in_\<L>\<^sub>i\<^sub>n_def
-  by (cases S)
-   (auto simp: all_blits_are_in_problem_init.simps
-    \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_lits_def)
-
-lemma correct_watching_init_blits_in_\<L>\<^sub>i\<^sub>n:
-  assumes \<open>correct_watching_init S\<close> shows \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close>
-proof -
-  show ?thesis
-    using assms
-    by (cases S)
-      (auto simp: all_blits_are_in_problem_init_blits_in
-      correct_watching_init.simps)
- qed
+(*TODO Move*)
 
 fun remove_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> _\<close> where
   \<open>remove_watched_wl (M, N, D, NE, UE, Q, _) = (M, N, D, NE, UE, Q)\<close>

@@ -1295,6 +1295,10 @@ qed
 lemma RES_SPEC_conv: \<open>RES P = SPEC (\<lambda>v. v \<in> P)\<close>
   by auto
 
+lemma add_invar_refineI_P: \<open>A \<le> \<Down> {(x,y). R x y} B \<Longrightarrow> (nofail A \<Longrightarrow>A \<le> SPEC P) \<Longrightarrow> A \<le> \<Down> {(x,y). R x y \<and> P x} B\<close>
+  using add_invar_refineI[of \<open>\<lambda>_. A\<close> _  _ \<open>\<lambda>_. B\<close> P, where R=\<open>{(x,y). R x y}\<close> and I=P]
+  by auto
+
 
 subsection \<open>Sorting\<close>
 

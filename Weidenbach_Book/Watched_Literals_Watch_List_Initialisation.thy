@@ -263,7 +263,7 @@ lemma correct_watching_init_correct_watching:
   \<open>correct_watching_init T \<Longrightarrow> correct_watching T\<close>
   by (cases T)
     (fastforce simp: correct_watching.simps correct_watching_init.simps filter_mset_eq_conv
-      all_blits_are_in_problem.simps all_blits_are_in_problem_init.simps
+      all_blits_are_in_problem_init.simps
       in_clause_to_update_in_dom_mD)
 
 lemma image_mset_Suc: \<open>Suc `# {#C \<in># M. P C#} = {#C \<in># Suc `# M. P (C-1)#}\<close>

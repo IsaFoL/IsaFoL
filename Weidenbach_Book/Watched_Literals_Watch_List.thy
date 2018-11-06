@@ -78,12 +78,6 @@ fun correctly_marked_as_binary where
 
 declare correctly_marked_as_binary.simps[simp del]
 
-fun all_blits_are_in_problem where
-  \<open>all_blits_are_in_problem (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
-      (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)). (\<forall>(i, K)\<in>#mset (W L). K \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))))\<close>
-
-declare all_blits_are_in_problem.simps[simp del]
-
 fun correct_watching_except :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching_except i j K (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
     (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)).
@@ -300,7 +294,7 @@ lemma remove_one_lit_from_wq_def:
 
 lemma correct_watching_set_literals_to_update[simp]:
   \<open>correct_watching (set_literals_to_update_wl WS T') = correct_watching T'\<close>
-  by (cases T') (auto simp: correct_watching.simps all_blits_are_in_problem.simps)
+  by (cases T') (auto simp: correct_watching.simps)
 
 lemma [twl_st_wl]:
   \<open>get_clauses_wl (set_literals_to_update_wl W S) = get_clauses_wl S\<close>
@@ -625,7 +619,7 @@ proof -
          ((i, K, b'')\<in>#mset ((g(L := g L[j' := (x1, C, b')])) La)\<longrightarrow> b'' \<longrightarrow> i \<in># dom_m b) \<and>
          {#i \<in># fst `# mset ((g(L := g L[j' := (x1, C, b')])) La). i \<in># dom_m b#} =
             clause_to_update La (a, b, c, d, e, {#}, {#})\<close>
-    using corr unfolding correct_watching_except.simps all_blits_are_in_problem.simps
+    using corr unfolding correct_watching_except.simps
     by fast+
   define g' where \<open>g' = g(L := g L[j' := (x1, C, b')])\<close>
   have g_g': \<open>g(L := g L[j' := (x1, C', b')]) =  g'(L := g' L[j' := (x1, C', b')])\<close>
@@ -2187,22 +2181,13 @@ proof -
       inv: \<open>unit_propagation_inner_loop_body_l_inv L (snd X2) (fst X2)\<close>
     for x1 b X2 x2
   proof -
-    have all_blits_are_in_problem:
-      \<open>all_blits_are_in_problem (a, b, c, d, e, f, g) \<Longrightarrow> w < length (g L) \<Longrightarrow>
-        all_blits_are_in_problem (a, b, c, d, e, f, g(L := g L[j := g L ! w]))\<close> for a b c d e f g
-      using j_w w_le nth_mem[of w \<open>g L\<close>]
-      unfolding all_blits_are_in_problem.simps
-      apply (cases \<open>j < length (g L)\<close>)
-       apply (auto dest!: multi_member_split simp: in_set_conv_nth split: if_splits simp del: nth_mem)
-      using nth_mem apply force+
-      done
     have corr_w':
        \<open>correct_watching_except j w L S \<Longrightarrow> correct_watching_except j w L (keep_watch L j w S)\<close>
       using j_w w_le
       apply (cases S)
       apply (simp only: correct_watching_except.simps keep_watch_def prod.case)
       apply (cases \<open>j = w\<close>)
-      by (simp_all add: all_blits_are_in_problem)
+      by simp_all
     have [simp]:
       \<open>(keep_watch L j w S, S') \<in> state_wl_l (Some (L, w)) \<longleftrightarrow> (S, S') \<in> state_wl_l (Some (L, w))\<close>
       using j_w
@@ -2331,7 +2316,7 @@ proof -
     have [simp]: \<open>correct_watching_except j w L (set_conflict_wl C S) \<longleftrightarrow>
       correct_watching_except j w L S\<close> for j w L C S
       apply (cases S)
-      by (simp only: correct_watching_except.simps all_blits_are_in_problem.simps
+      by (simp only: correct_watching_except.simps
         set_conflict_wl_def prod.case clause_to_update_def get_clauses_l.simps)
     have \<open>(set_conflict_wl (get_clauses_wl S \<propto> x1) (keep_watch L j w S),
       set_conflict_l (get_clauses_l (fst X2) \<propto> snd X2) (fst X2))
@@ -3594,8 +3579,7 @@ proof -
     subgoal by auto
     subgoal for S S'
       by (cases S) (auto simp: correct_watching.simps clause_to_update_def
-          decide_lit_l_def decide_lit_wl_def state_wl_l_def
-          all_blits_are_in_problem.simps)
+          decide_lit_l_def decide_lit_wl_def state_wl_l_def)
     done
 qed
 
@@ -3669,18 +3653,15 @@ proof -
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
     using that by (cases S') (auto simp: state_wl_l_def)
   have [simp]: \<open>correct_watching (tl_state_wl S) = correct_watching S\<close> for S
-    by (cases S) (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def
-     all_blits_are_in_problem.simps)
+    by (cases S) (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
   have [simp]: \<open>correct_watching  (tl aa, ca, da, ea, fa, ha, h) \<longleftrightarrow>
     correct_watching (aa, ca, None, ea, fa, ha, h)\<close>
     for aa ba ca L da ea fa ha h
-    by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def
-     all_blits_are_in_problem.simps)
+    by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
   have [simp]: \<open>NO_MATCH None da \<Longrightarrow> correct_watching  (aa, ca, da, ea, fa, ha, h) \<longleftrightarrow>
     correct_watching (aa, ca, None, ea, fa, ha, h)\<close>
     for aa ba ca L da ea fa ha h
-    by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def
-     all_blits_are_in_problem.simps)
+    by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
   have update_confl_tl_wl: \<open>
     (brkT, brkT') \<in> bool_rel \<times>\<^sub>f {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T'} \<Longrightarrow>
     case brkT' of (brk, S) \<Rightarrow> skip_and_resolve_loop_inv_l S' brk S \<Longrightarrow>
@@ -3825,7 +3806,7 @@ proof -
   have [simp]: \<open>L1 \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE))\<close>
     \<open>L2 \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE))\<close>
     using i_dom L1 L2 UW
-    by (fastforce simp: all_blits_are_in_problem.simps ran_m_mapsto_upd_notin
+    by (fastforce simp: ran_m_mapsto_upd_notin
       all_lits_of_mm_add_mset all_lits_of_m_add_mset in_all_lits_of_m_ain_atms_of_iff
       in_all_lits_of_mm_ain_atms_of_iff)+
   have H':
@@ -3841,7 +3822,7 @@ proof -
   have [simp]: \<open>set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m ?N#} + (NE + UE))) =
     set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE)))\<close>
     using i_dom L1 L2 UW
-    by (fastforce simp: all_blits_are_in_problem.simps ran_m_mapsto_upd_notin
+    by (fastforce simp: ran_m_mapsto_upd_notin
         all_lits_of_mm_add_mset all_lits_of_m_add_mset in_all_lits_of_m_ain_atms_of_iff
         in_all_lits_of_mm_ain_atms_of_iff)
 
@@ -4046,7 +4027,7 @@ proof -
       using SS' by fast
     then have corr: \<open>correct_watching (MU, NS, None, NES, UES, {#K'#}, W)\<close>
        unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps
-       by (simp add: all_blits_are_in_problem.simps)
+       by simp
     have K_hd[simp]: \<open>lit_of (hd MS) = K'\<close>
       using SS' unfolding K'_def by (auto simp: S')
     have [simp]: \<open>L = L'\<close>
@@ -4171,7 +4152,7 @@ proof -
     then have corr: \<open>correct_watching (Propagated (- lit_of (hd MS)) 0 # MU, NS, None, NES,
       add_mset (the (Some DT)) UES, unmark (hd MS), W)\<close>
       unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps K
-        all_blits_are_in_problem.simps K' .
+        K' .
 
     show ?thesis
       unfolding propagate_unit_bt_wl_def propagate_unit_bt_l_def S' T' U U'
@@ -4243,8 +4224,7 @@ proof -
     using that
     by (cases S; cases S') (auto simp: state_wl_l_def)
   have [iff]: \<open>correct_watching (decide_lit_wl L S) \<longleftrightarrow> correct_watching S\<close> for L S
-    by (cases S; auto simp: decide_lit_wl_def correct_watching.simps clause_to_update_def
-        all_blits_are_in_problem.simps)
+    by (cases S; auto simp: decide_lit_wl_def correct_watching.simps clause_to_update_def)
   have [iff]: \<open>(decide_lit_wl L S, decide_lit_l L S') \<in> state_wl_l None\<close>
     if \<open>(S, S') \<in> state_wl_l None\<close>
     for L S S'

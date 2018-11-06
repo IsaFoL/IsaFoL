@@ -116,7 +116,13 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms:
   using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[of M a]
   unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
   .
+
 end
+
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `#  all_lits_of_mm A)) = set_mset (all_lits_of_mm A)\<close>
+  apply (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def in_all_lits_of_mm_ain_atms_of_iff)
+  by (metis (no_types, lifting) image_iff in_all_lits_of_mm_ain_atms_of_iff literal.exhaust_sel)
+
 
 
 definition blits_in_\<L>\<^sub>i\<^sub>n :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
