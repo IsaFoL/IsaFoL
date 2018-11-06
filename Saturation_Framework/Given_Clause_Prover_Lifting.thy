@@ -49,6 +49,28 @@ proof auto
     entails: "I \<Turnstile>s N1"
   show "I \<Turnstile>s N2" using true_clss_mono[OF incl entails] by simp
 next
+  fix N1 N2 I
+  assume
+    "\<forall>C\<in>N2. \<forall>I. I \<Turnstile>s N1 \<longrightarrow> I \<Turnstile> C" and
+    "I \<Turnstile>s N1"
+  then show "I \<Turnstile>s N2" by (simp add: true_clss_def)
+next
+  fix \<iota> I
+  assume
+    i_in: "\<iota> \<in> Inf_F" and
+    I_entails_prems: "I \<Turnstile>s set (inference.prems_of \<iota>)"
+  obtain \<iota>_RP where i_RP_in: "\<iota>_RP \<in> (ord_FO_\<Gamma> S)" and i_i_RP: "conv_inf \<iota>_RP = \<iota>"
+    using i_in unfolding Inf_F_def by blast
+  have concl: "concl_of \<iota>_RP = Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
+    using i_i_RP unfolding conv_inf_def by fastforce
+  have prems: "set (inference.prems_of \<iota>) = set_mset (prems_of \<iota>_RP)"
+    using i_i_RP unfolding conv_inf_def by fastforce
+  have I_entails_prems_RP: "I \<Turnstile>s set_mset (prems_of \<iota>_RP)" using prems I_entails_prems by argo
+  have I_entails_concl_RP: "I \<Turnstile> concl_of \<iota>_RP"
+    using I_entails_prems_RP sound_inference_system.\<Gamma>_sound[of "ord_FO_\<Gamma> S" "side_prems_of \<iota>_RC"
+      "main_prem_of \<iota>_RC" "concl_of \<iota>_RC" I] i_RP_in apply auto sorry
+  then show "I \<Turnstile> Saturation_Framework_Preliminaries.inference.concl_of \<iota>" 
+
 oops
 
 
