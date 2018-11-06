@@ -19,7 +19,9 @@ begin
 
 (* This part corresponds to section 5.2 step (1) in the technical report*)
 abbreviation Bot_F :: "'a clause set" where "Bot_F \<equiv> {{#}}"
-abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
+
+definition entails_sound_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>F" 50)  where
+  "S1 |\<approx>F S2 \<equiv> \<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"
 
 definition (in -) list_mset :: "'b multiset \<Rightarrow> 'b list" where
   "list_mset M = (SOME L. mset L = M)"
@@ -36,12 +38,26 @@ definition conv_inf :: "'a inference \<Rightarrow> 'a clause Saturation_Framewor
 definition Inf_F :: "'a clause Saturation_Framework_Preliminaries.inference set" where
   "Inf_F = conv_inf ` (ord_FO_\<Gamma> S)"
 
+interpretation Saturation_Framework_Preliminaries.sound_inference_system Bot_F entails_sound_F Inf_F 
+  unfolding Saturation_Framework_Preliminaries.sound_inference_system_def
+    consequence_relation_def entails_sound_F_def
+    Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
+proof auto
+  fix N1 N2 I
+  assume
+    incl: "N2 \<subseteq> N1" and
+    entails: "I \<Turnstile>s N1"
+  show "I \<Turnstile>s N2" using true_clss_mono[OF incl entails] by simp
+next
+oops
+
+
+abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
+
 definition Inf_G :: "'a clause Saturation_Framework_Preliminaries.inference set" where
   "Inf_G = {\<iota> \<in> Inf_F. filter (\<lambda>C. \<not> (is_ground_cls C)) (Saturation_Framework_Preliminaries.inference.prems_of \<iota>) = []}"
 
 (* This part corresponds to section 5.2 step (2) in the technical report*)
-definition entails_sound_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>F" 50)  where
-  "S1 |\<approx>F S2 \<equiv> \<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"
 
 definition ground_subset :: "'a clause set \<Rightarrow> 'a clause set" where
   "ground_subset S' = {C \<in> S'. is_ground_cls C}"
