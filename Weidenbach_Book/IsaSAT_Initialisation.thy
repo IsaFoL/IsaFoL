@@ -3001,4 +3001,21 @@ lemma init_state_wl_heur_init_state_wl':
   by auto
 
 
+lemma all_blits_are_in_problem_init_blits_in: \<open>all_blits_are_in_problem_init S \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n S\<close>
+  unfolding blits_in_\<L>\<^sub>i\<^sub>n_def
+  by (cases S)
+   (auto simp: all_blits_are_in_problem_init.simps
+    \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_lits_def)
+
+lemma correct_watching_init_blits_in_\<L>\<^sub>i\<^sub>n:
+  assumes \<open>correct_watching_init S\<close> shows \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close>
+proof -
+  show ?thesis
+    using assms
+    by (cases S)
+      (auto simp: all_blits_are_in_problem_init_blits_in
+      correct_watching_init.simps)
+ qed
+
+
 end
