@@ -48,7 +48,11 @@ GRAT: HOL
 FOL_Berghofer: HOL
 	$(RUN_ISABELLE2018) build -v -b -D FOL_Berghofer
 
-all: Weidenbach_Book Ordered_Resolution_Prover GRAT FOL_Berghofer
+Saturation_Framework:
+	$(RUN_ISABELLE2018) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Saturation_Framework
+
+
+all: Weidenbach_Book Ordered_Resolution_Prover GRAT FOL_Berghofer Saturation_Framework
 
 # build the documentation and the files
 current: Ordered_Resolution_Prover Functional_Ordered_Resolution_Prover
@@ -58,6 +62,7 @@ current: Ordered_Resolution_Prover Functional_Ordered_Resolution_Prover
 doc:
 	mkdir -p $(DESTINATION)/current
 	cp -R $(ISABELLE2018_HOME)/Weidenbach_Book $(DESTINATION)/current || :
+	cp -R $(ISABELLE2018_HOME)/Saturation_Framework $(DESTINATION)/current || :
 	cp -R $(ISABELLE2018_HOME)/Functional_Ordered_Resolution_Prover $(DESTINATION)/current || :
 	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2018" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2018_version)"
 
@@ -73,4 +78,4 @@ clean:
 	rm -rf $(DESTINATION)/current
 
 
-.PHONY: Weidenbach_Book Ordered_Resolution_Prover Unordered_Resolution Functional_Ordered_Resolution_Prover
+.PHONY: Weidenbach_Book Ordered_Resolution_Prover Unordered_Resolution Functional_Ordered_Resolution_Prover Saturation_Framework
