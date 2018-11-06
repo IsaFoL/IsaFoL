@@ -1262,7 +1262,7 @@ proof clarify
       have 1: \<open>set_mset \<A> = {L}\<close>
         using abs_l unfolding that vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def by (auto simp: atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
       show ?thesis
-        using vmtf_ns_distinct[OF vmtf_ns] ys_xs_\<L>\<^sub>a\<^sub>l\<^sub>l abs_inv 
+        using vmtf_ns_distinct[OF vmtf_ns] ys_xs_\<L>\<^sub>a\<^sub>l\<^sub>l abs_inv
         unfolding atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n 1 fst_As vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
         by (cases \<open>ys @ xs\<close>)  auto
     qed
@@ -2977,7 +2977,7 @@ proof -
         unfolding s
         by (rule RETURN_RES_refine) auto
     qed
-        
+
     show ?thesis
       unfolding I_def[symmetric]
       apply (refine_rcg

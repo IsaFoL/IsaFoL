@@ -1311,7 +1311,7 @@ proof -
         using \<L>\<^sub>i\<^sub>n_S x1c_Da Da_None dist_D D_none x1c_D x1c hd_x1c highest uM_\<L>\<^sub>a\<^sub>l\<^sub>l vm' M_\<L>\<^sub>i\<^sub>n
 	  max_lvl_le
         by (auto simp: S x2c S')
-	
+
     qed
     have hd_M'_M: \<open>lit_of_last_trail_pol M' = lit_of (hd M)\<close>
       by (subst lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id, of M M'])
@@ -1400,7 +1400,7 @@ proof -
       subgoal using uM_\<L>\<^sub>a\<^sub>l\<^sub>l .
       apply assumption+
       subgoal
-        using trail_nempty uM_\<L>\<^sub>a\<^sub>l\<^sub>l 
+        using trail_nempty uM_\<L>\<^sub>a\<^sub>l\<^sub>l
         unfolding S[symmetric] S'[symmetric]
         by (rule final)
       done
@@ -1436,12 +1436,12 @@ proof -
       lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (all_atms_st T') (get_trail_wl T')\<close>
       using TT' by (auto simp: twl_st_heur_bt_def del_conflict_wl_def
         all_atms_def[symmetric] T T')
- 
+
     obtain vm0 where
       vm: \<open>(vm, vm0) \<in> Id \<times>\<^sub>r distinct_atoms_rel (all_atms_st T')\<close> and
       vm0: \<open>vm0 \<in> vmtf (all_atms_st T') M\<close>
       using vm unfolding isa_vmtf_def by (cases vm) auto
-      
+
     have n: \<open>n = get_maximum_level M (remove1_mset (- lit_of (hd M)) (mset C))\<close> and
       eq: \<open>equality_except_conflict_wl T' S'\<close> and
       \<open>the D = mset C\<close> \<open>D \<noteq> None\<close> and
@@ -1734,7 +1734,7 @@ proof -
     have [refine0]: \<open>SPEC (\<lambda>(vm', \<phi>'). vm' \<in> vmtf \<A> M1 \<and> phase_saving \<A> \<phi>')
        \<le> \<Down>{((vm', \<phi>'), ()). vm' \<in> vmtf \<A> M1 \<and> phase_saving \<A> \<phi>'} (RETURN ())\<close> for \<A>
       by (auto intro!: RES_refine simp: RETURN_def)
-      
+
     obtain vm0 where
       vm: \<open>(vm', vm0) \<in> Id \<times>\<^sub>r distinct_atoms_rel (all_atms_st U')\<close> and
       vm0: \<open>vm0 \<in> vmtf (all_atms_st U') M1\<close>
@@ -1902,7 +1902,7 @@ proof -
       have A3: \<open>set_mset (all_atms (fmupd x' (C, b) N) (NE + UE)) =
         set_mset (all_atms N (NE + UE))\<close>
         using A unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def C by (auto simp: A)
-	
+
       show ?B and ?C and ?D and ?E and ?F and ?G and ?H and ?I and ?J
         unfolding trail_pol_def A A2 ann_lits_split_reasons_def isasat_input_bounded_def
 	  isa_vmtf_def vmtf_def distinct_atoms_rel_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def
@@ -2198,7 +2198,7 @@ proof -
       have A3: \<open>set_mset (all_atms N (?NE)) =
         set_mset (all_atms N (NE + UE))\<close>
         using A unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def C by (auto simp: A)
-	
+
       show ?B and ?C and ?D and ?E and ?F and ?G and ?H and ?I and ?J
         unfolding trail_pol_def A A2 ann_lits_split_reasons_def isasat_input_bounded_def
 	  isa_vmtf_def vmtf_def distinct_atoms_rel_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def
@@ -2233,7 +2233,7 @@ proof -
       unfolding lit_of_hd_trail_def lit_of_hd_trail_st_heur_def
       by (subst lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id, OF _ tr_S])
         (use tr_nempty in \<open>auto simp: lit_of_hd_trail_def T'\<close>)
-	
+
     show ?thesis
       using empty_cach n_d_M1 W'W outl vmtf C \<phi> undef uL_M vdom lcount valid D' avdom
       unfolding U U' propagate_unit_bt_wl_D_int_def prod.simps hd_SM
@@ -2381,7 +2381,7 @@ sepref_definition propagate_bt_wl_D_fast_code
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric]
     cons_trail_Propagated_def[symmetric] PR_CONST_def save_phase_def
-  by sepref \<comment>\<open>No one expects this to be fast, right? Anyhow, one iteration of debugging is 
+  by sepref \<comment>\<open>No one expects this to be fast, right? Anyhow, one iteration of debugging is
     closer to one full video of any song, than to something reasonable.\<close>
 
 declare
@@ -2459,7 +2459,7 @@ qed
 text \<open>TODO we need a \<^term>\<open>imp_for_uint64\<close>\<close>
 sepref_definition extract_shorter_conflict_list_heur_st_fast
   is \<open>extract_shorter_conflict_list_heur_st\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a 
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
         isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn *a uint32_nat_assn *a clause_ll_assn\<close>
   supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
   unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_bounded_assn_def

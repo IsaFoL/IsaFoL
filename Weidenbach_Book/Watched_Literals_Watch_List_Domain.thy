@@ -29,7 +29,7 @@ definition all_lits :: \<open>('a, 'v literal list \<times> 'b) fmap \<Rightarro
 
 abbreviation all_lits_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal multiset\<close> where
   \<open>all_lits_st S \<equiv> all_lits (get_clauses_wl S) (get_unit_clauses_wl S)\<close>
-	
+
 definition all_atms :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v multiset\<close> where
   \<open>all_atms N NUE = atm_of `# all_lits N NUE\<close>
 
@@ -196,7 +196,7 @@ lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_\<L>\<^sub>a\<^sub>l\<^sub>l_rewrite[simp]
     set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits_of_mm \<A>')) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
   using in_all_lits_of_mm_ain_atms_of_iff
   unfolding set_mset_set_mset_eq_iff is_\<L>\<^sub>a\<^sub>l\<^sub>l_def Ball_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-    in_all_lits_of_mm_ain_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n 
+    in_all_lits_of_mm_ain_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
   by (auto simp: in_all_lits_of_mm_ain_atms_of_iff)
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n_set_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]:
@@ -215,7 +215,7 @@ lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_all_lits_st_\<L>\<^sub>a\<^sub>l\<^sub>l[s
     set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits N NUE)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
   using in_all_lits_of_mm_ain_atms_of_iff
   unfolding set_mset_set_mset_eq_iff is_\<L>\<^sub>a\<^sub>l\<^sub>l_def Ball_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-    in_all_lits_of_mm_ain_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n 
+    in_all_lits_of_mm_ain_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
   by (auto simp: in_all_lits_of_mm_ain_atms_of_iff all_lits_def all_atms_def)
 
 
@@ -572,7 +572,7 @@ proof -
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
     by (cases \<open>j < length (g K)\<close>; cases \<open>g K ! w\<close>)
       (auto split: if_splits elim!: in_set_upd_cases)
-      
+
   then show ?thesis
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
     by force
@@ -1012,7 +1012,7 @@ definition unit_propagation_outer_loop_wl_D_inv where
 \<open>unit_propagation_outer_loop_wl_D_inv S \<longleftrightarrow>
     unit_propagation_outer_loop_wl_inv S \<and>
     literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
-      
+
 definition unit_propagation_outer_loop_wl_D
    :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
 where
@@ -1434,7 +1434,7 @@ proof -
       then have [simp]: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits (fmupd i' (D, False) NS) (NES + UES)) =
           is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits NS (NES + UES))\<close>
 	\<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits (fmupd i' (D, False) NS) (NES + UES))) =
- 	  set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits NS (NES + UES)))\<close>	
+ 	  set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits NS (NES + UES)))\<close>
 	using i'_dom unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_def
 	by (auto 5 5 simp add: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset
 	  in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atm_of_eq_atm_of)
@@ -1636,7 +1636,7 @@ proof -
     for S S' L L' LT bL bL' T
   proof -
     have \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> T\<close> and [simp]: \<open>T = S\<close>
-      using LT_L' pre unfolding LT decide_wl_or_skip_D_pre_def 
+      using LT_L' pre unfolding LT decide_wl_or_skip_D_pre_def
    by fast+
     have [simp]: \<open>S' = S\<close> \<open>L = L'\<close>
       using SS' LL' by simp_all

@@ -4,7 +4,7 @@ theory IsaSAT_CDCL
 begin
 
 paragraph \<open>Combining Together: the Other Rules\<close>
-  
+
 definition cdcl_twl_o_prog_wl_D_heur
  :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where

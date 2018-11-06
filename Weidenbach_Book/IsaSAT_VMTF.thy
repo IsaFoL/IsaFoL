@@ -715,7 +715,7 @@ lemma vmtf_unset_pre:
   using assms vmtf_unset_pre_vmtf[of ns m fst_As lst_As next_search _ \<A> M L]
   unfolding isa_vmtf_def vmtf_unset_pre_def
   by auto
-  
+
 lemma vmtf_unset_pre':
   assumes
     \<open>vm \<in> isa_vmtf \<A> M\<close> and
@@ -954,7 +954,7 @@ proof -
     vm0: \<open>(vm0, to_remove') \<in> vmtf \<A> M\<close> and
     \<open>(to_remove, to_remove') \<in> distinct_atoms_rel \<A>\<close>
     using assms by (cases vm) (auto simp: isa_vmtf_def)
-    
+
   then show ?thesis
     using assms
       isa_vmtf_unset_vmtf_unset[of \<A>, THEN fref_to_Down_unRET_uncurry, of L vm L \<open>(vm0, to_remove')\<close>]

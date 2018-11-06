@@ -254,7 +254,7 @@ lemma tl_state_wl_heur_tl_state_wl:
   apply (subst lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id])
   apply (auto simp: lit_of_hd_trail_def)[3]
   done
-  
+
 definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
@@ -662,7 +662,7 @@ lemma isa_vmtf_le:
 lemma isa_vmtf_next_search_le:
   \<open>((a, b, c, c', Some d), M) \<in> isa_vmtf \<A> M' \<Longrightarrow> d < length a\<close>
   by (auto simp: isa_vmtf_def vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
-  
+
 lemma trail_pol_nempty: \<open>\<not>(([], aa, ab, ac, ad, b), L # ys) \<in> trail_pol \<A>\<close>
   by (auto simp: trail_pol_def ann_lits_split_reasons_def)
 
@@ -843,7 +843,7 @@ private lemma sor_heur_inv_heur1:
   using xa_x' trail_nempty unfolding xa x'
   by (auto simp: twl_st_heur_conflict_ana_def trail_pol_nempty last_trail_pol_pre_def
     dest!: neq_Nil_conv[THEN iffD1])
-    
+
 private lemma sor_heur_inv_heur2:
   \<open>last_trail_pol_pre (get_trail_wl_heur x2b)\<close>
   using xa_x' trail_nempty[THEN neq_Nil_conv[THEN iffD1]] sor_heur_inv_heur1 unfolding xa x'
@@ -858,7 +858,7 @@ lemma sor_heur_inv:
   apply (rule exI[of _ \<open>x2\<close>])
   apply (rule exI[of _ y])
   by (auto simp: is_decided_hd_trail_wl_heur_pre_def)
-     
+
 lemma conflict_ana_same_cond:
   \<open>(\<not> x1b \<and> \<not> is_decided_hd_trail_wl_heur x2b) =
     (\<not> x1 \<and> \<not> is_decided (hd (get_trail_wl x2)))\<close>
@@ -1087,14 +1087,14 @@ lemma ca_lit_and_ann_of_propagated_st_heur_pre:
   by (cases x2b; cases x2)
    (auto simp add: twl_st_heur_conflict_ana_def
     trail_pol_def all_atms_def[symmetric] ann_lits_split_reasons_def)
- 
+
 lemma atm_is_in_conflict_st_heur_pre: \<open>atm_is_in_conflict_st_heur_pre (- x1c, x2b)\<close>
   using x1c xa_x' confl_x2
   unfolding atm_is_in_conflict_st_heur_pre_def xa x'
   by (cases x2b)
     (auto simp: twl_st_heur_conflict_ana_def option_lookup_clause_rel_def lookup_clause_rel_def
     atms_of_def all_atms_def)
- 
+
 
 context
   assumes x1a_notin: \<open>- x1a \<notin># the (get_conflict_wl x2)\<close>
@@ -1571,7 +1571,7 @@ lemma skip_and_resolve_loop_wl_D_heur_inv_nempty:
    by (auto simp: twl_st_heur_ana_state_simp)
 *)
 lemma skip_and_resolve_loop_wl_DI:
-  assumes 
+  assumes
     \<open>skip_and_resolve_loop_wl_D_heur_inv S (b, T)\<close>
   shows \<open>is_decided_hd_trail_wl_heur_pre T\<close>
   using assms unfolding skip_and_resolve_loop_wl_D_heur_inv_def prod.simps

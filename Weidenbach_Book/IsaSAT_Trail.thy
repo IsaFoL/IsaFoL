@@ -457,7 +457,7 @@ lemma counts_maximum_level_None[simp]: \<open>counts_maximum_level M None = Coll
 
 subparagraph \<open>Level of a literal\<close>
 
-  
+
 definition get_level_atm_pol_pre where
   \<open>get_level_atm_pol_pre = (\<lambda>((M, xs, lvls, k), L). L < length lvls)\<close>
 
@@ -514,13 +514,13 @@ lemma get_level_pol_pre:
   using assms
   by (auto 5 5 simp: comp_PRE_def trail_pol_def unat_lit_rel_def nat_lit_rel_def
     uint32_nat_rel_def br_def get_level_pol_pre_def intro!: ext)
- 
+
 sepref_definition get_level_code
   is \<open>uncurry (RETURN oo get_level_pol)\<close>
   :: \<open>[get_level_pol_pre]\<^sub>a
       trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   unfolding get_level_get_level_atm nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
-  nth_u_def[symmetric] get_level_pol_pre_def get_level_pol_def 
+  nth_u_def[symmetric] get_level_pol_pre_def get_level_pol_def
   supply [[goals_limit = 1]] image_image[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
     get_level_atm_pol_pre_def[simp]
   by sepref
@@ -785,7 +785,7 @@ lemma cons_trail_Propagated_tr_pre:
   by (auto simp: comp_PRE_def trail_pol_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
        cons_trail_Propagated_tr_pre_def
     intro!: ext)
-  
+
 lemma cons_trail_Propagated_tr2:
   \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> undefined_lit M L \<Longrightarrow> C \<noteq> DECISION_REASON \<Longrightarrow>
   (cons_trail_Propagated_tr L C M', Propagated L C # M) \<in> trail_pol \<A>\<close>
@@ -1134,7 +1134,7 @@ sepref_definition defined_atm_fast_code
   :: \<open>[uncurry defined_atm_pol_pre]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
   unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
     defined_atm_pol_pre_def
-  supply UNSET_def[simp del] uint32_nat_assn_mult[sepref_fr_rules] 
+  supply UNSET_def[simp del] uint32_nat_assn_mult[sepref_fr_rules]
   by sepref
 
 declare defined_atm_code.refine[sepref_fr_rules]

@@ -953,7 +953,7 @@ lemma isa_vmtf_consD:
   shows \<open>((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf \<A> (L # M)\<close>
   using vmtf_consD[of ns m fst_As lst_As next_search _ \<A> M L] assms
   by (auto simp: isa_vmtf_def)
-  
+
 lemma propagate_lit_wl_heur_propagate_lit_wl:
   \<open>(uncurry3 propagate_lit_wl_heur, uncurry3 (RETURN oooo propagate_lit_wl)) \<in>
   [propagate_lit_wl_pre]\<^sub>f
@@ -1258,7 +1258,7 @@ proof -
     apply (refine_vcg)
     subgoal by (rule isa_set_lookup_conflict_aa_pre)
     apply assumption+
-    subgoal for x y	
+    subgoal for x y
       unfolding arena_act_pre_def arena_is_valid_clause_idx_def
       by (rule exI[of _ \<open>get_clauses_wl (snd y)\<close>], rule exI[of _ \<open>set (get_vdom (snd x))\<close>])
         (auto simp: twl_st_heur'_def twl_st_heur_def set_conflict_wl'_pre_def)
@@ -1274,7 +1274,7 @@ proof -
     done
 qed
 
-  
+
 lemma in_Id_in_Id_option_rel[refine]:
   \<open>(f, f') \<in> Id \<Longrightarrow> (f, f') \<in> \<langle>Id\<rangle> option_rel\<close>
   by auto
@@ -1789,7 +1789,7 @@ private lemma bin_arena_lit_eq:
 lemma bin_final_rel:
   \<open>((((x2g, x1g), if arena_lit (get_clauses_wl_heur U) (x1g + 0) = L' then 0 else 1::nat), U),
      ((x2f, x1f), if get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! 0 = L then 0 else 1::nat),
-         (keep_watch L x2 x2a T)) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f 
+         (keep_watch L x2 x2a T)) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
            twl_st_heur'' \<D> r\<close>
   using U bin_arena_lit_eq[of 0] bin_arena_lit_eq[of 1] length_clss_Sr by auto
 
@@ -1853,7 +1853,7 @@ lemma polarity_st_pre1i:
     unit_prop_body_wl_D_invD[OF prop_inv]
   by (auto simp add: image_image x1g watched_by_app_def
       split: if_splits)
- 
+
 
 private lemma
   access_x1g:
@@ -3018,14 +3018,14 @@ lemma select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_l
     by (auto simp: twl_st_heur_def twl_st_heur'_def RETURN_RES_refine_iff)
   subgoal for x y
     apply (subst (asm) trail_pol_same_length[of \<open>get_trail_wl_heur x\<close> \<open>get_trail_wl y\<close> \<open>all_atms_st y\<close>])
-    apply (auto simp: twl_st_heur_def twl_st_heur'_def; fail)[]  
+    apply (auto simp: twl_st_heur_def twl_st_heur'_def; fail)[]
     apply (rule bind_refine_res)
     prefer 2
     apply (rule isa_trail_nth_rev_trail_nth[THEN fref_to_Down_curry, unfolded comp_def RETURN_def,
       unfolded conc_fun_RES, of \<open>get_trail_wl y\<close> _ _ _ \<open>all_atms_st y\<close>])
     apply ((auto simp: twl_st_heur_def twl_st_heur'_def; fail)+)[2]
     subgoal for z
-      apply (cases x; cases y) 
+      apply (cases x; cases y)
       by (simp_all add: Cons_nth_drop_Suc[symmetric] twl_st_heur_def twl_st_heur'_def
         RETURN_RES_refine_iff rev_trail_nth_def)
     done
@@ -3083,7 +3083,7 @@ theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D':
           [of \<D> r, THEN fref_to_Down])
   subgoal for x y S T
     using isa_length_trail_pre[of \<open>get_trail_wl_heur S\<close> \<open>get_trail_wl T\<close> \<open>all_atms_st T\<close>] apply -
-    unfolding unit_propagation_outer_loop_wl_D_heur_inv_def twl_st_heur'_def 
+    unfolding unit_propagation_outer_loop_wl_D_heur_inv_def twl_st_heur'_def
     apply (rule_tac x=y in exI)
     apply (rule_tac x=T in exI)
     by (auto 5 2 simp: twl_st_heur_def twl_st_heur'_def)

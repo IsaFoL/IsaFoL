@@ -750,7 +750,7 @@ sepref_definition cdcl_twl_local_restart_wl_D_heur_fast_code
 
 declare cdcl_twl_local_restart_wl_D_heur_code.refine[sepref_fr_rules]
   cdcl_twl_local_restart_wl_D_heur_fast_code.refine[sepref_fr_rules]
-  
+
 
 named_theorems twl_st_heur_restart
 
@@ -804,10 +804,10 @@ lemma trail_pol_literals_are_in_\<L>\<^sub>i\<^sub>n_trail:
 
 lemma refine_generalise1: "A \<le> B \<Longrightarrow> do {x \<leftarrow> B; C x} \<le> D \<Longrightarrow> do {x \<leftarrow> A; C x} \<le> (D:: 'a nres)"
   using Refine_Basic.bind_mono(1) dual_order.trans by blast
- 
+
 lemma refine_generalise2: "A \<le> B \<Longrightarrow> do {x \<leftarrow> do {x \<leftarrow> B; A' x}; C x} \<le> D \<Longrightarrow> do {x \<leftarrow> do {x \<leftarrow> A; A' x}; C x} \<le> (D:: 'a nres)"
   by (simp add: refine_generalise1)
-  
+
 lemma cdcl_twl_local_restart_wl_D_spec_int:
   \<open>cdcl_twl_local_restart_wl_D_spec (M, N, D, NE, UE, Q, W) \<ge> ( do {
       ASSERT(restart_abs_wl_D_pre (M, N, D, NE, UE, Q, W) False);
@@ -853,12 +853,12 @@ proof -
                             lbd, outl, stats, fema, sema,
                             restart_info_restart_done ccount, vdom, lcount)})))\<close> for S
   by (cases S) auto
-  
+
   have K2: \<open>(case S of
                (a, b) \<Rightarrow> RES (\<Phi> a b)) =
         (RES (case S of (a, b) \<Rightarrow> \<Phi> a b))\<close> for S
   by (cases S) auto
-			
+
   have [dest]: \<open>av = None\<close> \<open>out_learned a av am \<Longrightarrow> out_learned x1 av am\<close>
     if \<open>restart_abs_wl_D_pre (a, au, av, aw, ax, ay, bd) False\<close>
     for a au av aw ax ay bd x1 am
@@ -883,7 +883,7 @@ proof -
     subgoal by (auto simp: find_local_restart_target_level_def conc_fun_RES)
     done
   have P: \<open>P\<close>
-    if 
+    if
       ST: \<open>(((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
 	 ((aj, ak, al, am, bb), an, bc), ao, ap, (aq, bd), ar, as,
 	 (at, au, av, aw, be), (ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
@@ -921,7 +921,7 @@ proof -
        bw bx "by" bz lvl i x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
        x1g x2g x1h x2h x1i x2i P
   proof -
-    have 
+    have
       tr: \<open>((a, aa, ab, ac, ad, b), bt) \<in> trail_pol (all_atms bu (bw + bx))\<close> and
       \<open>valid_arena ae bu (set bo)\<close> and
       \<open>((af, ag, ba), bv)
@@ -942,7 +942,7 @@ proof -
       bounded: \<open>isasat_input_bounded (all_atms bu (bw + bx))\<close>
       using ST unfolding twl_st_heur_def all_atms_def[symmetric]
       by (auto)
-      
+
     obtain vm0 where
       vm: \<open>((aj, ak, al, am, bb), vm0) \<in> vmtf (all_atms_st (bt, bu, bv, bw, bx, by, bz)) bt\<close> and
       vm0: \<open>((an, bc), vm0) \<in> distinct_atoms_rel (all_atms_st (bt, bu, bv, bw, bx, by, bz))\<close>
@@ -1122,7 +1122,7 @@ sepref_definition upper_restart_bound_not_reached_fast_impl
   unfolding upper_restart_bound_not_reached_def PR_CONST_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
-  
+
 declare upper_restart_bound_not_reached_impl.refine[sepref_fr_rules]
   upper_restart_bound_not_reached_fast_impl.refine[sepref_fr_rules]
 
@@ -1150,7 +1150,7 @@ sepref_definition lower_restart_bound_not_reached_fast_impl
 
 declare lower_restart_bound_not_reached_impl.refine[sepref_fr_rules]
   lower_restart_bound_not_reached_fast_impl.refine[sepref_fr_rules]
-  
+
 
 definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat \<times> nat\<close> where
   \<open>clause_score_extract arena xs C = (
@@ -1488,7 +1488,7 @@ proof -
     unfolding mark_to_delete_clauses_wl_post_alt_def
     apply normalize_goal+
     apply (rule iffI)
-    subgoal for U0 U V0 V     
+    subgoal for U0 U V0 V
       using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U V]
         cong[of \<open>all_atms_st T\<close> \<open>all_init_atms_st T\<close>]
 	vdom_m_cong[of \<open>all_atms_st T\<close> \<open>all_init_atms_st T\<close> \<open>get_watched_wl T\<close> \<open>get_clauses_wl T\<close>]
@@ -1505,7 +1505,7 @@ proof -
       apply (cases S; cases T)
       by (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
     done
-  
+
 qed
 
 definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
@@ -1521,7 +1521,7 @@ lemma get_vdom_mark_garbage[simp]:
 
 
 lemma mark_garbage_heur_wl:
-  assumes 
+  assumes
     \<open>(S, T) \<in> twl_st_heur_restart\<close> and
     \<open>C \<in># dom_m (get_clauses_wl T)\<close> and
     \<open>\<not> irred (get_clauses_wl T) C\<close>

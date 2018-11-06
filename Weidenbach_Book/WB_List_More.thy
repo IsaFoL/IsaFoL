@@ -1108,7 +1108,7 @@ lemma prod_cases20 [cases type]:
   by (cases y, cases \<open>snd y\<close>) auto
 
 lemma prod_induct20 [case_names fields, induct type]:
-  "(\<And>a b c d e f g h i j k l m n p q r s t u. 
+  "(\<And>a b c d e f g h i j k l m n p q r s t u.
       P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u)) \<Longrightarrow> P x"
   by (cases x) blast
 
@@ -1118,7 +1118,7 @@ lemma prod_cases21 [cases type]:
   by (cases y, cases \<open>snd y\<close>) auto
 
 lemma prod_induct21 [case_names fields, induct type]:
-  "(\<And>a b c d e f g h i j k l m n p q r s t u v. 
+  "(\<And>a b c d e f g h i j k l m n p q r s t u v.
       P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v)) \<Longrightarrow> P x"
   by (cases x) (blast 43)
 
@@ -1128,7 +1128,7 @@ lemma prod_cases22 [cases type]:
   by (cases y, cases \<open>snd y\<close>) auto
 
 lemma prod_induct22 [case_names fields, induct type]:
-  "(\<And>a b c d e f g h i j k l m n p q r s t u v w. 
+  "(\<And>a b c d e f g h i j k l m n p q r s t u v w.
       P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v, w)) \<Longrightarrow> P x"
   by (cases x) (blast 43)
 
@@ -1138,7 +1138,7 @@ lemma prod_cases23 [cases type]:
   by (cases y, cases \<open>snd y\<close>) auto
 
 lemma prod_induct23 [case_names fields, induct type]:
-  "(\<And>a b c d e f g h i j k l m n p q r s t u v w y. 
+  "(\<And>a b c d e f g h i j k l m n p q r s t u v w y.
       P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v, w, y)) \<Longrightarrow> P x"
   by (cases x) (blast 43)
 

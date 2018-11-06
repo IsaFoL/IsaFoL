@@ -1403,7 +1403,7 @@ proof -
       unfolding merge_conflict_m_pre_def
       apply (rule order_trans)
       apply (rule H2; auto; auto; fail)
-      by (auto intro!: H1 simp: merge_conflict_m_pre_def) 
+      by (auto intro!: H1 simp: merge_conflict_m_pre_def)
     done
 qed
 
@@ -1593,7 +1593,7 @@ lemma atm_in_conflict_lookup_atm_in_conflict:
 
 lemma atm_in_conflict_lookup_pre:
   fixes x1 :: \<open>nat\<close> and x2 :: \<open>nat\<close>
-  assumes 
+  assumes
     \<open>x1n \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
     \<open>(x2f, x2a) \<in> lookup_clause_rel \<A>\<close>
   shows \<open>atm_in_conflict_lookup_pre (atm_of x1n) x2f\<close>
@@ -2301,7 +2301,7 @@ definition conflict_min_cach_l_pre where
 
 lemma conflict_min_cach_l_pre:
   fixes x1 :: \<open>nat\<close> and x2 :: \<open>nat\<close>
-  assumes 
+  assumes
     \<open>x1n \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
     \<open>(x1l, x1j) \<in> cach_refinement \<A>\<close>
   shows \<open>conflict_min_cach_l_pre (x1l, atm_of x1n)\<close>
@@ -2759,7 +2759,7 @@ proof -
       apply (rule_tac x = \<open>fst (last x1k)\<close> in exI; solves auto)+
       done
     subgoal by (auto simp: arena_lifting arena_is_valid_clause_idx_def nat_of_uint64_conv_def)
-    subgoal 
+    subgoal
       by (auto simp: arena_lifting arena_is_valid_clause_idx_def bind_rule_complete_RES conc_fun_RETURN
            in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
           intro!:  conflict_min_cach_set_removable[of \<A>,THEN fref_to_Down_curry, THEN order_trans])
@@ -2770,7 +2770,7 @@ proof -
         arena_is_valid_clause_idx_and_access_def)
       apply (rule_tac x = x1n in exI; solves auto)+
       done
-    subgoal by (auto intro!: get_level_pol_pre) 
+    subgoal by (auto intro!: get_level_pol_pre)
     subgoal
       by (simp add: atm_in_conflict_lookup_pre)
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
@@ -3274,10 +3274,10 @@ declare minimize_and_extract_highest_lookup_conflict_fast_code.refine[sepref_fr_
 
 definition set_empty_conflict_to_none where
   \<open>set_empty_conflict_to_none D = None\<close>
-  
+
 definition set_lookup_empty_conflict_to_none where
   \<open>set_lookup_empty_conflict_to_none = (\<lambda>(n, xs). (True, n, xs))\<close>
-  
+
 lemma set_empty_conflict_to_none_hnr:
   \<open>(RETURN o set_lookup_empty_conflict_to_none, RETURN o set_empty_conflict_to_none) \<in>
      [\<lambda>D. D = {#}]\<^sub>f lookup_clause_rel \<A> \<rightarrow> \<langle>option_lookup_clause_rel \<A>\<rangle>nres_rel\<close>

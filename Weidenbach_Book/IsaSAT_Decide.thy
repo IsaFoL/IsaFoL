@@ -228,7 +228,7 @@ proof -
    }\<close> for S
    unfolding find_unassigned_lit_wl_D_def RES_RES_RETURN_RES unassigned_atm_def
     RES_RES_RETURN_RES
-    by (cases S) (auto simp: mset_take_mset_drop_mset' uminus_\<A>\<^sub>i\<^sub>n_iff) 
+    by (cases S) (auto simp: mset_take_mset_drop_mset' uminus_\<A>\<^sub>i\<^sub>n_iff)
 
   have isa_vmtf_find_next_undef_upd:
     \<open>isa_vmtf_find_next_undef_upd (a, aa, ab, ac, ad, b)
@@ -240,7 +240,7 @@ proof -
              (M, bt) \<in> trail_pol (all_atms_st (bt, bu, bv, bw, bx, by, bz))}
          (SPEC (unassigned_atm (bt, bu, bv, bw, bx, by, bz)))\<close>
 	  (is \<open>_ \<le> \<Down> ?find _\<close>)
-    if 
+    if
       pre: \<open>find_unassigned_lit_wl_D_heur_pre (bt, bu, bv, bw, bx, by, bz)\<close> and
       T: \<open>(((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
 	 ((aj, ak, al, am, bb), an, bc), ao, ap, (aq, bd), ar, as,
@@ -313,7 +313,7 @@ proof -
   have lit_of_found_atm: \<open>lit_of_found_atm ao x2a
 	\<le> \<Down> {(L, L'). L = L' \<and> map_option atm_of  L = x2a}
 	   (RES {L, map_option uminus L})\<close>
-    if 
+    if
       \<open>find_unassigned_lit_wl_D_heur_pre (bt, bu, bv, bw, bx, by, bz)\<close> and
       \<open>(((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
 	 ((aj, ak, al, am, bb), an, bc), ao, ap, (aq, bd), ar, as,

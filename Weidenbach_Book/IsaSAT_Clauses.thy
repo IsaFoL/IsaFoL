@@ -620,7 +620,7 @@ lemma (in -)append_and_length_code_fast:
   by (auto simp: uint64_max_def uint32_max_def header_size_def)
 
 
-  
+
 definition (in -)four_uint64_nat where
   [simp]: \<open>four_uint64_nat = (4 :: nat)\<close>
 definition (in -)five_uint64_nat where

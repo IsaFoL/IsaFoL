@@ -660,7 +660,7 @@ lemma fref_to_Down_unRET_uncurry4:
          (f x y z a b, g x' y' z' a' b') \<in> B)\<close>
   unfolding fref_def uncurry_def nres_rel_def
   by auto
-  
+
 
 subsubsection \<open>More Simplification Theorems\<close>
 

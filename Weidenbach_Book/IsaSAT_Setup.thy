@@ -271,7 +271,7 @@ lemma opts_reduce_hnr[sepref_fr_rules]:
 lemma opts_unbounded_mode_hnr[sepref_fr_rules]:
   \<open>(return o opts_unbounded_mode, RETURN o opts_unbounded_mode) \<in> opts_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare sep_auto
-  
+
 
 paragraph \<open>Base state\<close>
 
@@ -1048,7 +1048,7 @@ lemma atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) = atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<B>)\<close>
   unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def
   by auto
-  
+
 lemma distinct_atoms_rel_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> distinct_atoms_rel \<A> \<Longrightarrow> L \<in> distinct_atoms_rel \<B>\<close>
   using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]

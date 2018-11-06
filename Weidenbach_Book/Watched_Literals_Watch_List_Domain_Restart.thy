@@ -22,7 +22,7 @@ definition all_init_lits :: \<open>(nat, 'v literal list \<times> bool) fmap \<R
 
 abbreviation all_init_lits_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal multiset\<close> where
   \<open>all_init_lits_st S \<equiv> all_init_lits (get_clauses_wl S) (get_unit_init_clss_wl S)\<close>
-	
+
 definition all_init_atms :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v multiset\<close> where
   \<open>all_init_atms N NUE = atm_of `# all_init_lits N NUE\<close>
 
@@ -34,7 +34,7 @@ abbreviation all_init_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<
 definition blits_in_\<L>\<^sub>i\<^sub>n' :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>blits_in_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S). \<forall>(i, K, b) \<in> set (watched_by S L). K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S))\<close>
-  
+
 definition literals_are_\<L>\<^sub>i\<^sub>n' :: \<open>nat multiset \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>literals_are_\<L>\<^sub>i\<^sub>n' \<A> S \<equiv>
      is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm ((\<lambda>C. mset (fst C)) `# init_clss_l (get_clauses_wl S)
@@ -82,7 +82,7 @@ proof -
        ({#mset (fst C). C \<in># init_clss_l (get_clauses_wl S)#} +
         get_unit_init_clss_wl S) = all_init_lits_st S\<close>
     by (auto simp: all_init_lits_def)
-   
+
   have H: \<open>set_mset
      (all_lits_of_mm
        ({#mset (fst C). C \<in># init_clss_l (get_clauses_wl S)#} +
@@ -115,7 +115,7 @@ proof -
     moreover have \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
       if \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_init_lits_st S)\<close> for \<A> \<A>' S
       unfolding that[unfolded is_\<L>\<^sub>a\<^sub>l\<^sub>l_def]
-      by (metis \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) = set_mset (all_init_lits_st S)\<close> all_init_lits_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_\<L>\<^sub>a\<^sub>l\<^sub>l_rewrite that)  
+      by (metis \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) = set_mset (all_init_lits_st S)\<close> all_init_lits_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_\<L>\<^sub>a\<^sub>l\<^sub>l_rewrite that)
     ultimately show ?thesis
       using Sx x_xa unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def literals_are_\<L>\<^sub>i\<^sub>n'_def
 	literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def
@@ -1067,7 +1067,7 @@ theorem cdcl_twl_o_prog_wl_D_spec':
      apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
     done
   done
-  
+
 lemma unit_propagation_outer_loop_wl_D_spec':
   shows \<open>(unit_propagation_outer_loop_wl_D, unit_propagation_outer_loop_wl) \<in>
     {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T} \<rightarrow>\<^sub>f
@@ -1103,7 +1103,7 @@ lemma cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl:
   done
 
 
-  
+
 definition cdcl_twl_stgy_restart_prog_early_wl_D
   :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres"
 where
@@ -1136,7 +1136,7 @@ where
     else RETURN T
   }\<close>
 
- 
+
 lemma cdcl_twl_stgy_restart_prog_early_wl_D_cdcl_twl_stgy_restart_prog_early_wl:
   \<open>(cdcl_twl_stgy_restart_prog_early_wl_D, cdcl_twl_stgy_restart_prog_early_wl) \<in>
      {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<rightarrow>\<^sub>f

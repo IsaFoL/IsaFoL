@@ -287,7 +287,7 @@ sepref_definition get_the_propagation_reason_heur_fast_code
 
 declare get_the_propagation_reason_heur_fast_code.refine[sepref_fr_rules]
     get_the_propagation_reason_heur_code.refine[sepref_fr_rules]
-    
+
 definition clause_is_learned_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool"
 where
   \<open>clause_is_learned_heur S C \<longleftrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED\<close>

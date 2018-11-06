@@ -511,7 +511,7 @@ fun get_unit_clauses_init_wl :: \<open>'v twl_st_wl_init \<Rightarrow> 'v clause
 
 abbreviation all_lits_st_init :: \<open>'v twl_st_wl_init \<Rightarrow> 'v literal multiset\<close> where
   \<open>all_lits_st_init S \<equiv> all_lits (get_clauses_init_wl S) (get_unit_clauses_init_wl S)\<close>
-	
+
 definition all_atms_init :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v multiset\<close> where
   \<open>all_atms_init N NUE = atm_of `# all_lits N NUE\<close>
 
@@ -925,7 +925,7 @@ nat list \<times> bool list) \<times>
                     nat list\<close> and x1p :: \<open>minimize_status list \<times>
   nat list\<close> and x2p :: \<open>bool list \<times>
                         nat list\<close> and x1q :: \<open>bool list\<close> and x2q :: \<open>nat list\<close>
-  assumes 
+  assumes
     pre: \<open>case y of
      (C, S) \<Rightarrow> 2 \<le> length C \<and> literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset C) \<and> distinct C\<close> and
     xy: \<open>(x, y) \<in> Id \<times>\<^sub>f twl_st_heur_parsing_no_WL \<A>\<close> and
@@ -999,7 +999,7 @@ lemma add_init_cls_final_rel:
                                nat\<close> and x1r :: \<open>(nat,
          nat literal list \<times>
          bool) fmap\<close> and x2r :: \<open>nat\<close> and x1s :: \<open>arena_el list\<close> and x2s :: \<open>nat\<close>
-  assumes 
+  assumes
     \<open>(xa, x')
      \<in> {((arena, i), (N', i')). valid_arena arena N' (insert i (set x2q)) \<and> i = i' \<and>
               i \<notin># dom_m x1c \<and> i = length x1i + header_size x1g}\<close> and
@@ -1301,8 +1301,8 @@ lemma init_dt_step_wl_heur_init_dt_step_wl:
     twl_st_heur_parsing_no_WL_def intro!: polarity_pol_pre split: list.splits)
   subgoal for C'S CT C T C' S
     by (subst polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp,
-       THEN fref_to_Down_unRET_uncurry_Id, 
-       of \<open>get_trail_init_wl T\<close> \<open>hd C\<close>]) 
+       THEN fref_to_Down_unRET_uncurry_Id,
+       of \<open>get_trail_init_wl T\<close> \<open>hd C\<close>])
       (auto simp: polarity_def twl_st_heur_parsing_no_WL_def
        polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp, THEN fref_to_Down_unRET_uncurry_Id]
        literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
@@ -1313,8 +1313,8 @@ lemma init_dt_step_wl_heur_init_dt_step_wl:
   subgoal by (auto simp: twl_st_heur_parsing_no_WL_def)
   subgoal for C'S CT C T C' S
     by (subst polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp,
-       THEN fref_to_Down_unRET_uncurry_Id, 
-       of \<open>get_trail_init_wl T\<close> \<open>hd C\<close>]) 
+       THEN fref_to_Down_unRET_uncurry_Id,
+       of \<open>get_trail_init_wl T\<close> \<open>hd C\<close>])
       (auto simp: polarity_def twl_st_heur_parsing_no_WL_def
        polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp, THEN fref_to_Down_unRET_uncurry_Id]
        literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
@@ -2176,7 +2176,7 @@ sepref_definition rewatch_heur_st_fast_code
   unfolding rewatch_heur_st_def PR_CONST_def rewatch_heur_st_fast_pre_def
     isasat_init_assn_def rewatch_heur_st_fast_def
   by sepref
-  
+
 declare rewatch_heur_st_code.refine[sepref_fr_rules]
   rewatch_heur_st_fast_code.refine[sepref_fr_rules]
 
@@ -2991,7 +2991,7 @@ lemma init_state_wl_D':
   apply -
   apply (intro frefI nres_relI)
   by (rule init_state_wl_D0[THEN fref_to_Down, THEN order_trans]) auto
-  
+
 lemma init_state_wl_heur_init_state_wl':
   \<open>(init_state_wl_heur, RETURN o (\<lambda>_. init_state_wl))
   \<in> [\<lambda>N. N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f Id \<rightarrow> \<langle>twl_st_heur_parsing_no_WL_wl \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
