@@ -67,8 +67,8 @@ next
     using i_i_RP unfolding conv_inf_def by fastforce
   have I_entails_prems_RP: "I \<Turnstile>s set_mset (prems_of \<iota>_RP)" using prems I_entails_prems by argo
   have I_entails_concl_RP: "I \<Turnstile> concl_of \<iota>_RP"
-    using I_entails_prems_RP sound_inference_system.\<Gamma>_sound[of "ord_FO_\<Gamma> S" "side_prems_of \<iota>_RC"
-      "main_prem_of \<iota>_RC" "concl_of \<iota>_RC" I] i_RP_in apply auto sorry
+    using I_entails_prems_RP sound_inference_system.\<Gamma>_sound[of "ord_FO_\<Gamma> S" "side_prems_of \<iota>_RP"
+      "main_prem_of \<iota>_RP" "concl_of \<iota>_RP" I] i_RP_in apply auto sorry
   then show "I \<Turnstile> Saturation_Framework_Preliminaries.inference.concl_of \<iota>" 
 
 oops
