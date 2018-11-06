@@ -1873,7 +1873,7 @@ proof -
   have [intro]: \<open>\<And>a y. (a, y) \<in> uint32_nat_rel \<Longrightarrow>
       (a AND 3, y AND 3) \<in> uint32_nat_rel\<close>
     apply (auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
-     by (metis nat_of_uint32_3 nat_of_uint32_ao(1)) 
+     by (metis nat_of_uint32_3 nat_of_uint32_ao(1))
   have [dest]: \<open>(y, AStatus x61 x62) \<in> arena_el_rel \<Longrightarrow> (y AND 3, x61) \<in> status_rel\<close> for y x61 x62
     by (auto simp: status_rel_def arena_el_rel_def)
   have \<open>(a ! (j - STATUS_SHIFT), arena ! (j - STATUS_SHIFT)) \<in> uint32_nat_rel O arena_el_rel\<close>
@@ -2026,6 +2026,25 @@ lemma update_lbd_hnr[sepref_fr_rules]:
   using isa_update_lbd_code.refine[FCOMP isa_update_lbd]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+lemma (in -) LBD_SHIFT_hnr:
+  \<open>(uncurry0 (return 2), uncurry0 (RETURN LBD_SHIFT) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: LBD_SHIFT_def uint64_nat_rel_def br_def)
+
+sepref_definition (in -)isa_update_lbd_fast_code
+  is \<open>uncurry2 isa_update_lbd\<close>
+  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
+  supply LBD_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_update_lbd_def
+  by sepref
+
+lemma update_lbd_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 isa_update_lbd_fast_code, uncurry2 (RETURN ooo update_lbd))
+  \<in> [update_lbd_pre]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
+  using isa_update_lbd_fast_code.refine[FCOMP isa_update_lbd]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
 
 
 paragraph \<open>Get LBD\<close>
@@ -2547,7 +2566,7 @@ proof -
   show \<open>(a[j - ACTIVITY_SHIFT := a ! (j - ACTIVITY_SHIFT) + 1], arena_incr_act arena j) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close>
     unfolding arena_incr_act_def
     by (rule list_rel_update'[OF a])
-      (cases \<open>arena ! (j - ACTIVITY_SHIFT)\<close>; 
+      (cases \<open>arena ! (j - ACTIVITY_SHIFT)\<close>;
       use lbd b in \<open>auto simp add: uint32_nat_rel_def br_def arena_el_rel_def
         Collect_eq_comp sum_mod_uint32_max_def nat_of_uint32_plus\<close>)
 qed
@@ -2616,7 +2635,7 @@ proof -
    [simp]: \<open>length (clause_slice  ?arena N C) = length (clause_slice arena N C)\<close> and
    [simp]: \<open>is_Act (clause_slice ?arena N C ! (header_size (N \<propto> C) - ACTIVITY_SHIFT))\<close> and
    [simp]: \<open>Misc.slice C (C + length (N \<propto> C)) ?arena =
-     Misc.slice C (C + length (N \<propto> C)) arena\<close> 
+     Misc.slice C (C + length (N \<propto> C)) arena\<close>
     using C_le C_ge unfolding SHIFTS_def arena_incr_act_def header_size_def
     by (auto simp: Misc.slice_def drop_update_swap split: if_splits)
 
@@ -2643,7 +2662,7 @@ proof -
     have i_ge: \<open>i \<ge> 4\<close> \<open>i < length arena\<close>
       using that valid unfolding valid_arena_def
       by auto
-    show ?thesis      
+    show ?thesis
       using dead[of i] that C_le C_ge
       minimal_difference_between_invalid_index[OF valid, of C i]
       minimal_difference_between_invalid_index2[OF valid, of C i]
@@ -2667,7 +2686,7 @@ definition isa_mark_used :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> u
   }\<close>
 
 definition mark_used where
-  \<open>mark_used arena i = 
+  \<open>mark_used arena i =
      arena[i - STATUS_SHIFT := AStatus (xarena_status (arena!(i - STATUS_SHIFT))) True]\<close>
 
 lemma isa_mark_used_conv:
@@ -2701,7 +2720,7 @@ proof -
   have [simp]: \<open>(a OR 4) AND 3 = a AND 3\<close> for a :: int
     supply [[show_types]]
     by (smt BIT_special_simps(1) BIT_special_simps(4) One_nat_def bbw_ao_dist expand_BIT(2)
-      int_and_comm int_and_numerals(17) int_and_numerals(3) int_or_extra_simps(1) 
+      int_and_comm int_and_numerals(17) int_and_numerals(3) int_or_extra_simps(1)
       numeral_One numeral_plus_one of_nat_numeral semiring_1_class.of_nat_simps(1)
       semiring_1_class.of_nat_simps(2) semiring_norm(2) semiring_norm(8))
   have Pos: \<open>b \<ge>0 \<Longrightarrow> a \<le> a OR b\<close> for a b :: int
@@ -2714,7 +2733,7 @@ proof -
     supply [[show_types]]
     unfolding bitAND_nat_def bitOR_nat_def
     by auto
-  
+
   have [simp]: \<open>(a OR 4) AND 4 = 4\<close> for a :: nat
     supply [[show_types]]
     unfolding bitAND_nat_def bitOR_nat_def
@@ -2728,7 +2747,7 @@ proof -
       mark_used arena j) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close>
     unfolding mark_used_def
     by (rule list_rel_update'[OF a])
-      (cases \<open>arena ! (j - STATUS_SHIFT)\<close>; 
+      (cases \<open>arena ! (j - STATUS_SHIFT)\<close>;
       use lbd b in \<open>auto simp add: uint32_nat_rel_def br_def arena_el_rel_def
           status_rel_def bitfield_rel_def
           Collect_eq_comp sum_mod_uint32_max_def nat_of_uint32_plus\<close>)
@@ -2795,7 +2814,7 @@ proof -
    [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - ACTIVITY_SHIFT) =
            clause_slice arena N C ! (header_size (N \<propto> C) - ACTIVITY_SHIFT)\<close> and
    [simp]: \<open>Misc.slice C (C + length (N \<propto> C)) ?arena =
-     Misc.slice C (C + length (N \<propto> C)) arena\<close> 
+     Misc.slice C (C + length (N \<propto> C)) arena\<close>
     using C_le C_ge unfolding SHIFTS_def mark_used_def header_size_def
     by (auto simp: Misc.slice_def drop_update_swap split: if_splits)
 
@@ -2822,7 +2841,7 @@ proof -
     have i_ge: \<open>i \<ge> 4\<close> \<open>i < length arena\<close>
       using that valid unfolding valid_arena_def
       by auto
-    show ?thesis      
+    show ?thesis
       using dead[of i] that C_le C_ge
       minimal_difference_between_invalid_index[OF valid, of C i]
       minimal_difference_between_invalid_index2[OF valid, of C i]
@@ -2846,7 +2865,7 @@ definition isa_mark_unused :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow>
   }\<close>
 
 definition mark_unused where
-  \<open>mark_unused arena i = 
+  \<open>mark_unused arena i =
      arena[i - STATUS_SHIFT := AStatus (xarena_status (arena!(i - STATUS_SHIFT))) False]\<close>
 
 lemma isa_mark_unused_conv:
@@ -2880,7 +2899,7 @@ proof -
   have [simp]: \<open>(a OR 4) AND 3 = a AND 3\<close> for a :: int
     supply [[show_types]]
     by (smt BIT_special_simps(1) BIT_special_simps(4) One_nat_def bbw_ao_dist expand_BIT(2)
-      int_and_comm int_and_numerals(17) int_and_numerals(3) int_or_extra_simps(1) 
+      int_and_comm int_and_numerals(17) int_and_numerals(3) int_or_extra_simps(1)
       numeral_One numeral_plus_one of_nat_numeral semiring_1_class.of_nat_simps(1)
       semiring_1_class.of_nat_simps(2) semiring_norm(2) semiring_norm(8))
   have Pos: \<open>b \<ge>0 \<Longrightarrow> a \<le> a OR b\<close> for a b :: int
@@ -2893,7 +2912,7 @@ proof -
     supply [[show_types]]
     unfolding bitAND_nat_def bitOR_nat_def
     by auto
-  
+
   have [simp]: \<open>(a OR 4) AND 4 = 4\<close> for a :: nat
     supply [[show_types]]
     unfolding bitAND_nat_def bitOR_nat_def
@@ -2908,7 +2927,7 @@ proof -
     unfolding mark_unused_def
     supply [[show_types]]
     by (rule list_rel_update'[OF a])
-      (cases \<open>arena ! (j - STATUS_SHIFT)\<close>; 
+      (cases \<open>arena ! (j - STATUS_SHIFT)\<close>;
       use lbd b in \<open>auto simp add: uint32_nat_rel_def br_def arena_el_rel_def
           status_rel_def bitfield_rel_def nat_0_AND
           Collect_eq_comp sum_mod_uint32_max_def nat_of_uint32_plus\<close>)
@@ -2975,7 +2994,7 @@ proof -
    [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - ACTIVITY_SHIFT) =
            clause_slice arena N C ! (header_size (N \<propto> C) - ACTIVITY_SHIFT)\<close> and
    [simp]: \<open>Misc.slice C (C + length (N \<propto> C)) ?arena =
-     Misc.slice C (C + length (N \<propto> C)) arena\<close> 
+     Misc.slice C (C + length (N \<propto> C)) arena\<close>
     using C_le C_ge unfolding SHIFTS_def mark_unused_def header_size_def
     by (auto simp: Misc.slice_def drop_update_swap split: if_splits)
 
@@ -3002,7 +3021,7 @@ proof -
     have i_ge: \<open>i \<ge> 4\<close> \<open>i < length arena\<close>
       using that valid unfolding valid_arena_def
       by auto
-    show ?thesis      
+    show ?thesis
       using dead[of i] that C_le C_ge
       minimal_difference_between_invalid_index[OF valid, of C i]
       minimal_difference_between_invalid_index2[OF valid, of C i]
@@ -3065,7 +3084,7 @@ proof -
     by (rule param_nth[OF _ _ a]) (use j_le in auto)
   then show \<open>a ! (j - STATUS_SHIFT) AND 4 \<noteq> 0 \<longleftrightarrow>
         marked_as_used arena j\<close>
-    using lbd by (cases \<open>arena ! (j - STATUS_SHIFT)\<close>) 
+    using lbd by (cases \<open>arena ! (j - STATUS_SHIFT)\<close>)
       (auto simp: arena_el_rel_def bitfield_rel_def nat_of_uint32_ao[symmetric]
       marked_as_used_def uint32_nat_rel_def br_def)
 qed

@@ -12,7 +12,7 @@ text \<open>We provide a function to print some information about the state.
   Remark that this function is basically an FFI (to follow Andreas Lochbihler words) and is
   not unsafe (since printing has not side effects), but we do not need any correctness theorems.
 
-  However, it seems that the PolyML by \<open>export_code checking\<close> does
+  However, it seems that the PolyML as targeted by \<open>export_code checking\<close> does
   not support that print function. Therefore, we cannot provide the code printing equations
   by default.\<close>
 definition println_string :: \<open>String.literal \<Rightarrow> unit\<close> where
@@ -64,7 +64,7 @@ text \<open>Printing the information slows down the solver by a huge factor.\<cl
 definition isasat_banner_content where
 \<open>isasat_banner_content =
 ''c  conflicts       decisions     restarts
-c        propagations     reductions     Kept Learnt clauses''\<close>
+c        propagations     reductions     Learnt clauses''\<close>
 
 definition isasat_information_banner :: \<open>_ \<Rightarrow> unit nres\<close> where
 \<open>isasat_information_banner _ =
@@ -103,28 +103,25 @@ lemma print_current_information_hnr[sepref_fr_rules]:
 definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> unit nres\<close> where
 \<open>isasat_current_status =
    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
-       fast_ema, slow_ema, ccount, avdom, 
+       fast_ema, slow_ema, ccount, avdom,
        vdom, lcount, opts). RETURN (print_current_information stats lcount))\<close>
 
-context isasat_input_ops
-begin
-
-sepref_thm isasat_current_status_code
+sepref_definition isasat_current_status_code
   is \<open>isasat_current_status\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_unbounded_assn_def isasat_current_status_def
   by sepref
 
-concrete_definition (in -) isasat_current_status_code
-   uses isasat_input_ops.isasat_current_status_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
+declare isasat_current_status_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) isasat_current_status_code_def
+sepref_definition isasat_current_status_fast_code
+  is \<open>isasat_current_status\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_bounded_assn_def isasat_current_status_def
+  by sepref
 
-lemmas isasat_current_status_code[sepref_fr_rules] =
-   isasat_current_status_code.refine[of \<A>\<^sub>i\<^sub>n]
-
-end
+declare isasat_current_status_fast_code.refine[sepref_fr_rules]
 
 end

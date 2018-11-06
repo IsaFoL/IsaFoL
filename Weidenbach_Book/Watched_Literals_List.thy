@@ -103,9 +103,6 @@ abbreviation unwatched_l :: \<open>'a clause_l \<Rightarrow> 'a clause_l\<close>
 fun twl_clause_of :: \<open>'a clause_l \<Rightarrow> 'a clause twl_clause\<close> where
   \<open>twl_clause_of l = TWL_Clause (mset (watched_l l)) (mset (unwatched_l l))\<close>
 
-fun clause_of :: \<open>'a::plus twl_clause \<Rightarrow> 'a\<close> where
-  \<open>clause_of (TWL_Clause W UW) = W + UW\<close>
-
 abbreviation clause_in :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> 'v clause_l\<close> (infix "\<propto>" 101) where
   \<open>N \<propto> i \<equiv> fst (the (fmlookup N i))\<close>
 

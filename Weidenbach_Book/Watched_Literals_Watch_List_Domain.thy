@@ -1,11 +1,11 @@
 theory Watched_Literals_Watch_List_Domain
-  imports Watched_Literals_Watch_List
-    Array_UInt
+  imports Watched_Literals_Watch_List Array_UInt
 begin
 
 text \<open>We refine the implementation by adding a \<^emph>\<open>domain\<close> on the literals\<close>
 
 no_notation Ref.update ("_ := _" 62)
+
 
 subsection \<open>State Conversion\<close>
 
@@ -19,14 +19,28 @@ type_synonym clause_wl = \<open>uint32 array\<close>
 type_synonym unit_lits_wl = \<open>uint32 list list\<close>
 
 
-
 subsection \<open>Refinement\<close>
+
+subsubsection \<open>Set of all literals of the problem\<close>
+
+definition all_lits :: \<open>('a, 'v literal list \<times> 'b) fmap \<Rightarrow> 'v literal multiset multiset \<Rightarrow>
+   'v literal multiset\<close> where
+  \<open>all_lits S NUE = all_lits_of_mm ((\<lambda>C. mset (fst C)) `# ran_m S + NUE)\<close>
+
+abbreviation all_lits_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal multiset\<close> where
+  \<open>all_lits_st S \<equiv> all_lits (get_clauses_wl S) (get_unit_clauses_wl S)\<close>
+
+definition all_atms :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v multiset\<close> where
+  \<open>all_atms N NUE = atm_of `# all_lits N NUE\<close>
+
+abbreviation all_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<close> where
+  \<open>all_atms_st S \<equiv> atm_of `# all_lits_st S\<close>
 
 
 text \<open>We start in a context where we have an initial set of atoms. We later extend the locale to
   include a bound on the largest atom (in order to generate more efficient code).
 \<close>
-locale isasat_input_ops =
+context
   fixes \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close>
 begin
 
@@ -40,15 +54,6 @@ lemma atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n: \<open>atms_of 
 definition is_\<L>\<^sub>a\<^sub>l\<^sub>l :: \<open>nat literal multiset \<Rightarrow> bool\<close> where
   \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l S \<longleftrightarrow> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l = set_mset S\<close>
 
-definition blits_in_\<L>\<^sub>i\<^sub>n :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>blits_in_\<L>\<^sub>i\<^sub>n S \<longleftrightarrow>
-    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. \<forall>(i, K, b) \<in> set (watched_by S L). K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
-
-definition literals_are_\<L>\<^sub>i\<^sub>n :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>literals_are_\<L>\<^sub>i\<^sub>n S \<equiv>
-     is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm ((\<lambda>C. mset (fst C)) `# ran_m (get_clauses_wl S)
-        + get_unit_clauses_wl S)) \<and>
-     blits_in_\<L>\<^sub>i\<^sub>n S\<close>
 
 definition literals_are_in_\<L>\<^sub>i\<^sub>n :: \<open>nat clause \<Rightarrow> bool\<close> where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C \<longleftrightarrow> set_mset (all_lits_of_m C) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
@@ -89,11 +94,45 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_remdups[simp]:
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (remdups_mset N) = literals_are_in_\<L>\<^sub>i\<^sub>n N\<close>
   by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_remdups_mset)
 
+lemma uminus_\<A>\<^sub>i\<^sub>n_iff: \<open>- L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  by (simp add: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+
+definition literals_are_in_\<L>\<^sub>i\<^sub>n_mm :: \<open>nat clauses \<Rightarrow> bool\<close> where
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm C \<longleftrightarrow> set_mset (all_lits_of_mm C) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+
+definition literals_are_in_\<L>\<^sub>i\<^sub>n_trail :: \<open>(nat, 'mark) ann_lits \<Rightarrow> bool\<close> where
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<longleftrightarrow> set_mset (lit_of `# mset M) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<Longrightarrow> a \<in> lits_of_l M \<Longrightarrow> a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def lits_of_def)
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<Longrightarrow> -a \<in> lits_of_l M \<Longrightarrow> a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def lits_of_def uminus_lit_swap uminus_\<A>\<^sub>i\<^sub>n_iff)
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<Longrightarrow> -a \<in> lits_of_l M \<Longrightarrow> atm_of a \<in># \<A>\<^sub>i\<^sub>n\<close>
+  using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[of M a]
+  unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
+  .
+end
+
+
+definition blits_in_\<L>\<^sub>i\<^sub>n :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>blits_in_\<L>\<^sub>i\<^sub>n S \<longleftrightarrow>
+    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S). \<forall>(i, K, b) \<in> set (watched_by S L). K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S))\<close>
+
+
+definition literals_are_\<L>\<^sub>i\<^sub>n :: \<open>nat multiset \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<equiv> (is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_st S) \<and> blits_in_\<L>\<^sub>i\<^sub>n S)\<close>
+
+
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_nth:
   fixes C :: nat
   assumes dom: \<open>C \<in># dom_m (get_clauses_wl S)\<close> and
-   \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
-  shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl S \<propto> C))\<close>
+   \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
+  shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (get_clauses_wl S \<propto> C))\<close>
 proof -
   let ?N = \<open>get_clauses_wl S\<close>
   have \<open>?N \<propto> C \<in># ran_mf ?N\<close>
@@ -102,20 +141,14 @@ proof -
     by blast
   from all_lits_of_m_subset_all_lits_of_mmD[OF this] show ?thesis
     using assms(2) unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_in_\<L>\<^sub>i\<^sub>n_def literals_are_\<L>\<^sub>i\<^sub>n_def
-    by (auto simp add: all_lits_of_mm_union)
+    by (auto simp add: all_lits_of_mm_union all_lits_def)
 qed
-
-lemma uminus_\<A>\<^sub>i\<^sub>n_iff: \<open>- L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-  by (simp add: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-
-definition literals_are_in_\<L>\<^sub>i\<^sub>n_mm :: \<open>nat clauses \<Rightarrow> bool\<close> where
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm C \<longleftrightarrow> set_mset (all_lits_of_mm C) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
   assumes
-    N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# ran_mf xs)\<close> and
+    N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf xs)\<close> and
     i_xs: \<open>i \<in># dom_m xs\<close> and j_xs: \<open>j < length (xs \<propto> i)\<close>
-  shows \<open>xs \<propto> i ! j \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  shows \<open>xs \<propto> i ! j \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
 proof -
   have \<open>xs \<propto> i \<in># ran_mf xs\<close>
     using i_xs by auto
@@ -126,80 +159,93 @@ proof -
     using N1 unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def by blast
 qed
 
-definition literals_are_in_\<L>\<^sub>i\<^sub>n_trail :: \<open>(nat, 'mark) ann_lits \<Rightarrow> bool\<close> where
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<longleftrightarrow> set_mset (lit_of `# mset M) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<Longrightarrow> a \<in> lits_of_l M \<Longrightarrow> a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def lits_of_def)
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<Longrightarrow> a \<in> lits_of_l M \<Longrightarrow> atm_of a \<in># \<A>\<^sub>i\<^sub>n\<close>
-  using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of M a]
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A>\<^sub>i\<^sub>n M \<Longrightarrow> a \<in> lits_of_l M \<Longrightarrow> atm_of a \<in># \<A>\<^sub>i\<^sub>n\<close>
+  using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of \<A>\<^sub>i\<^sub>n M a]
   unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
   .
 
-lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (L # M) \<longleftrightarrow>
-      literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and> lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A>\<^sub>i\<^sub>n (L # M) \<longleftrightarrow>
+      literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A>\<^sub>i\<^sub>n M \<and> lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n\<close>
   by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def)
 
-lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_empty[simp]:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail []\<close>
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_empty[simp]:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> []\<close>
   by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def)
 
-lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_Cons:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (a # M) \<longleftrightarrow> lit_of a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close>
-  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def)
-
-lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_lit_of_mset:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M = literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M)\<close>
-  by (induction M) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset literals_are_in_\<L>\<^sub>i\<^sub>n_Cons)
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_lit_of_mset:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M = literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (lit_of `# mset M)\<close>
+  by (induction M) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons)
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C \<Longrightarrow> L \<in># C \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C \<Longrightarrow> L \<in># C \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
   unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def
   by (auto dest!: multi_member_split simp: all_lits_of_m_add_mset)
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
   assumes
-    N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset xs)\<close> and
+    N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset xs)\<close> and
     i_xs: \<open>i < length xs\<close>
-  shows \<open>xs ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-  using literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>mset xs\<close> \<open>xs!i\<close>] assms by auto
+  shows \<open>xs ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
+  using literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> \<open>mset xs\<close> \<open>xs!i\<close>] assms by auto
 
-lemma in_literals_are_in_\<L>\<^sub>i\<^sub>n_in_D\<^sub>0:
-  assumes \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close> and \<open>L \<in># D\<close>
-  shows \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-  using assms by (cases L) (auto simp: image_image literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_def)
+lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_\<L>\<^sub>a\<^sub>l\<^sub>l_rewrite[simp]:
+  \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm \<A>') \<Longrightarrow>
+    set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits_of_mm \<A>')) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
+  using in_all_lits_of_mm_ain_atms_of_iff
+  unfolding set_mset_set_mset_eq_iff is_\<L>\<^sub>a\<^sub>l\<^sub>l_def Ball_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+    in_all_lits_of_mm_ain_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+  by (auto simp: in_all_lits_of_mm_ain_atms_of_iff)
 
-lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm A) \<longleftrightarrow> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l = atms_of_mm A\<close>
+lemma literals_are_\<L>\<^sub>i\<^sub>n_set_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]:
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<Longrightarrow> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
+  using in_all_lits_of_mm_ain_atms_of_iff
+  unfolding set_mset_set_mset_eq_iff is_\<L>\<^sub>a\<^sub>l\<^sub>l_def Ball_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+    in_all_lits_of_mm_ain_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n literals_are_\<L>\<^sub>i\<^sub>n_def
+  by (auto simp: in_all_lits_of_mm_ain_atms_of_iff)
+
+lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_all_lits_st_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]:
+  \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_st S) \<Longrightarrow>
+    set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
+  \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits N NUE) \<Longrightarrow>
+    set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms N NUE)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
+  \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits N NUE) \<Longrightarrow>
+    set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits N NUE)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
+  using in_all_lits_of_mm_ain_atms_of_iff
+  unfolding set_mset_set_mset_eq_iff is_\<L>\<^sub>a\<^sub>l\<^sub>l_def Ball_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+    in_all_lits_of_mm_ain_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+  by (auto simp: in_all_lits_of_mm_ain_atms_of_iff all_lits_def all_atms_def)
+
+
+lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm A) \<longleftrightarrow> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) = atms_of_mm A\<close>
   unfolding set_mset_set_mset_eq_iff is_\<L>\<^sub>a\<^sub>l\<^sub>l_def Ball_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
     in_all_lits_of_mm_ain_atms_of_iff
   by auto (metis literal.sel(2))+
 
-lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n:\<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> atm_of L \<in># \<A>\<^sub>i\<^sub>n\<close>
+lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n: \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n \<longleftrightarrow> atm_of L \<in># \<A>\<^sub>i\<^sub>n\<close>
   by (cases L) (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n S \<longleftrightarrow> atms_of S \<subseteq> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> S \<longleftrightarrow> atms_of S \<subseteq> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
   apply (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_mm_union lits_of_def
        in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
        atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff subset_iff in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
   apply (auto simp: atms_of_def)
   done
 
-lemma (in isasat_input_ops)
+lemma
   assumes
       x2_T: \<open>(x2, T) \<in> state_wl_l b\<close> and
       struct: \<open>twl_struct_invs U\<close> and
       T_U: \<open>(T, U) \<in> twl_st_l b'\<close>
   shows
     literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail:
-      \<open>literals_are_\<L>\<^sub>i\<^sub>n x2 \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close>
+      \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n x2 \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A>\<^sub>i\<^sub>n (get_trail_wl x2)\<close>
      (is \<open>_\<Longrightarrow> ?trail\<close>) and
     literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_conflict:
-      \<open>literals_are_\<L>\<^sub>i\<^sub>n x2 \<Longrightarrow> get_conflict_wl x2 \<noteq> None \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl x2))\<close> and
+      \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n x2 \<Longrightarrow> get_conflict_wl x2 \<noteq> None \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n (the (get_conflict_wl x2))\<close> and
     conflict_not_tautology:
       \<open>get_conflict_wl x2 \<noteq> None \<Longrightarrow> \<not>tautology (the (get_conflict_wl x2))\<close>
 proof -
@@ -211,11 +257,11 @@ proof -
    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
    by fast+
 
-  show lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2)\<close>
-    if \<open>literals_are_\<L>\<^sub>i\<^sub>n x2\<close>
+  show lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A>\<^sub>i\<^sub>n (get_trail_wl x2)\<close>
+    if \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n x2\<close>
     using alien that x2_T T_U unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
       literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
-      literals_are_\<L>\<^sub>i\<^sub>n_def
+      literals_are_\<L>\<^sub>i\<^sub>n_def all_lits_def all_atms_def
     by (subst (asm) all_clss_l_ran_m[symmetric])
      (auto simp: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
         convert_lits_l_def image_image in_all_lits_of_mm_ain_atms_of_iff
@@ -224,14 +270,14 @@ proof -
 
   {
     assume conf: \<open>get_conflict_wl x2 \<noteq> None\<close>
-    show lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl x2))\<close>
-      if \<open>literals_are_\<L>\<^sub>i\<^sub>n x2\<close>
+    show lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n (the (get_conflict_wl x2))\<close>
+      if \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n x2\<close>
       using x2_T T_U alien that conf unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
        cdcl\<^sub>W_restart_mset.no_strange_atm_def literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def
-       literals_are_\<L>\<^sub>i\<^sub>n_def
+       literals_are_\<L>\<^sub>i\<^sub>n_def all_lits_def all_atms_def
       apply (subst (asm) all_clss_l_ran_m[symmetric])
       unfolding image_mset_union all_lits_of_mm_union
-      by (auto simp add: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
+      by (auto simp add: twl_st all_lits_of_mm_union lits_of_def
          image_image in_all_lits_of_mm_ain_atms_of_iff
         in_all_lits_of_m_ain_atms_of_iff
         get_unit_clauses_wl_alt_def
@@ -239,54 +285,47 @@ proof -
 
     have M_confl: \<open>get_trail_wl x2 \<Turnstile>as CNot (the (get_conflict_wl x2))\<close>
       using confl conf x2_T T_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-      by (auto 5 5 simp: twl_st twl_st_l true_annots_def)
+      by (auto 5 5 simp: twl_st true_annots_def)
     moreover have n_d: \<open>no_dup (get_trail_wl x2)\<close>
       using M_lev x2_T T_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-      by (auto simp: twl_st twl_st_l)
+      by (auto simp: twl_st)
     ultimately show 4: \<open>\<not>tautology (the (get_conflict_wl x2))\<close>
       using n_d M_confl
       by (meson no_dup_consistentD tautology_decomp' true_annots_true_cls_def_iff_negation_in_model)
   }
 qed
 
-lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_atm_of:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<longleftrightarrow> atm_of ` lits_of_l M \<subseteq> set_mset \<A>\<^sub>i\<^sub>n\<close>
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_atm_of:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A>\<^sub>i\<^sub>n M \<longleftrightarrow> atm_of ` lits_of_l M \<subseteq> set_mset \<A>\<^sub>i\<^sub>n\<close>
   apply (rule iffI)
   subgoal by (auto dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms)
   subgoal by (fastforce simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def lits_of_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
   done
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_poss_remdups_mset:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (poss (remdups_mset (atm_of `# C))) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n C\<close>
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n (poss (remdups_mset (atm_of `# C))) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n C\<close>
   by (induction C)
     (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atm_of_eq_atm_of
       dest!: multi_member_split)
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_negs_remdups_mset:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (negs (remdups_mset (atm_of `# C))) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n C\<close>
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n (negs (remdups_mset (atm_of `# C))) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n C\<close>
   by (induction C)
     (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atm_of_eq_atm_of
       dest!: multi_member_split)
 
-end
 
-
-
-
-context isasat_input_ops
-begin
-
-definition (in isasat_input_ops) unit_prop_body_wl_D_inv
+definition unit_prop_body_wl_D_inv
   :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> bool\<close> where
 \<open>unit_prop_body_wl_D_inv T' j w L \<longleftrightarrow>
-    unit_prop_body_wl_inv T' j w L \<and> literals_are_\<L>\<^sub>i\<^sub>n T' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    unit_prop_body_wl_inv T' j w L \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T') T' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st T')\<close>
 
 
 text \<open>
   \<^item> should be the definition of \<^term>\<open>unit_prop_body_wl_find_unwatched_inv\<close>.
   \<^item> the distinctiveness should probably be only a property, not a part of the definition.
 \<close>
-definition (in -) unit_prop_body_wl_D_find_unwatched_inv where
+definition unit_prop_body_wl_D_find_unwatched_inv where
 \<open>unit_prop_body_wl_D_find_unwatched_inv f C S \<longleftrightarrow>
    unit_prop_body_wl_find_unwatched_inv f C S \<and>
    (f \<noteq> None \<longrightarrow> the f \<ge> 2 \<and> the f < length (get_clauses_wl S \<propto> C) \<and>
@@ -294,17 +333,17 @@ definition (in -) unit_prop_body_wl_D_find_unwatched_inv where
    get_clauses_wl S \<propto> C ! (the f) \<noteq> get_clauses_wl S \<propto> C ! 1)\<close>
 
 
-definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_inv where
+definition unit_propagation_inner_loop_wl_loop_D_inv where
   \<open>unit_propagation_inner_loop_wl_loop_D_inv L = (\<lambda>(j, w, S).
-      literals_are_\<L>\<^sub>i\<^sub>n S \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+      literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and>
       unit_propagation_inner_loop_wl_loop_inv L (j, w, S))\<close>
 
-definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_pre where
+definition unit_propagation_inner_loop_wl_loop_D_pre where
   \<open>unit_propagation_inner_loop_wl_loop_D_pre L = (\<lambda>(j, w, S).
      unit_propagation_inner_loop_wl_loop_D_inv L (j, w, S) \<and>
      unit_propagation_inner_loop_wl_loop_pre L (j, w, S))\<close>
 
-definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D
+definition unit_propagation_inner_loop_body_wl_D
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> nat twl_st_wl) nres\<close> where
   \<open>unit_propagation_inner_loop_body_wl_D L j w S = do {
@@ -339,8 +378,8 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D
             case f of
               None \<Rightarrow> do {
                 if val_L' = Some False
-                then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
-                else do {RETURN (j+1, w+1, propagate_lit_wl L' C i S)}
+                then RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)
+                else RETURN (j+1, w+1, propagate_lit_wl L' C i S)
               }
             | Some f \<Rightarrow> do {
                 let K = get_clauses_wl S \<propto> C ! f;
@@ -401,11 +440,10 @@ proof
     by (auto simp: drop_Suc twl_st_wl twl_st_l twl_st)
   then have \<open>distinct (get_clauses_wl S \<propto> C)\<close> if \<open>C > 0\<close> and \<open>C \<in># dom_m (get_clauses_wl S)\<close>
      for C
-     using that ST TU unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+    using that ST TU unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
        distinct_mset_set_def
-     by (auto simp: nth_in_set_tl mset_take_mset_drop_mset cdcl\<^sub>W_restart_mset_state
-      distinct_mset_set_distinct
-       twl_st_wl twl_st_l twl_st)
+    by (auto simp: nth_in_set_tl mset_take_mset_drop_mset cdcl\<^sub>W_restart_mset_state
+      distinct_mset_set_distinct twl_st)
   moreover have \<open>?C > 0\<close> and \<open>?C \<in># dom_m (get_clauses_wl S)\<close>
     using inv w unfolding unit_propagation_inner_loop_body_l_inv_def unit_prop_body_wl_D_inv_def
       unit_prop_body_wl_inv_def x apply -
@@ -427,92 +465,134 @@ next
   then show ?eq by blast
 qed
 
-lemma (in isasat_input_ops) blits_in_\<L>\<^sub>i\<^sub>n_keep_watch:
+lemma in_all_lits_uminus_iff[simp]: \<open>(- xa \<in># all_lits N NUE) = (xa \<in># all_lits N NUE)\<close>
+  unfolding all_lits_def
+  by (auto simp: in_all_lits_of_mm_uminus_iff)
+
+lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_st_all_lits_st[simp]:
+  \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) (all_lits_st S)\<close>
+  unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+  by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n atm_of_eq_atm_of)
+
+lemma literals_are_\<L>\<^sub>i\<^sub>n_all_atms_st:
+  \<open>blits_in_\<L>\<^sub>i\<^sub>n S \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
+  unfolding literals_are_\<L>\<^sub>i\<^sub>n_def
+  by auto
+
+lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch:
   assumes \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g)\<close> and
     w:\<open>w < length (watched_by (a, b, c, d, e, f, g) K)\<close>
-  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n
-          (a, b, c, d, e, f, g (K := g K[j := g K ! w]))\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g (K := g K[j := g K ! w]))\<close>
 proof -
+  let ?S = \<open>(a, b, c, d, e, f, g)\<close>
+  let ?T = \<open>(a, b, c, d, e, f, g (K := g K[j := g K ! w]))\<close>
   let ?g = \<open>g (K := g K[j := g K ! w])\<close>
-  have H: \<open>\<And>L i K b. L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> (i, K, b) \<in>set (g L) \<Longrightarrow>
-        K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  have H: \<open>\<And>L i K b. L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st ?S) \<Longrightarrow> (i, K, b) \<in>set (g L) \<Longrightarrow>
+        K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st ?S)\<close>
     using assms
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
     by blast
-  have \<open> L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> (i, K', b') \<in>set (?g L) \<Longrightarrow>
-        K' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> for L i K' b'
+  have \<open> L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st ?S) \<Longrightarrow> (i, K', b') \<in>set (?g L) \<Longrightarrow>
+        K' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st ?S)\<close> for L i K' b'
     using H[of L i K'] H[of L \<open>fst (g K ! w)\<close> \<open>fst (snd (g K ! w))\<close>]
       nth_mem[OF w]
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
     by (cases \<open>j < length (g K)\<close>; cases \<open>g K ! w\<close>)
       (auto split: if_splits elim!: in_set_upd_cases)
-  then show ?thesis
+  moreover have \<open>all_atms_st ?S = all_atms_st ?T\<close>
+    by (auto simp: all_lits_def all_atms_def)
+  ultimately show ?thesis
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
-    by blast
+    by force
 qed
 
 text \<open>We mark as safe intro rule, since we will always be in a case where the equivalence holds,
   although in general the equivalence does not hold.\<close>
-lemma (in isasat_input_ops) literals_are_\<L>\<^sub>i\<^sub>n_keep_watch[twl_st_wl, simp, intro!]:
-  \<open>literals_are_\<L>\<^sub>i\<^sub>n S \<Longrightarrow> w < length (watched_by S K) \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (keep_watch K j w S)\<close>
+lemma literals_are_\<L>\<^sub>i\<^sub>n_keep_watch[twl_st_wl, simp, intro!]:
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<Longrightarrow> w < length (watched_by S K) \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> (keep_watch K j w S)\<close>
   by (cases S) (auto simp: keep_watch_def literals_are_\<L>\<^sub>i\<^sub>n_def
-      blits_in_\<L>\<^sub>i\<^sub>n_keep_watch)
+      blits_in_\<L>\<^sub>i\<^sub>n_keep_watch all_lits_def all_atms_def)
+
+lemma all_lits_update_swap[simp]:
+  \<open>x1 \<in># dom_m x1aa \<Longrightarrow> n < length (x1aa \<propto> x1) \<Longrightarrow>n' < length (x1aa \<propto> x1) \<Longrightarrow>
+     all_lits (x1aa(x1 \<hookrightarrow> swap (x1aa \<propto> x1) n n')) = all_lits x1aa\<close>
+  using distinct_mset_dom[of x1aa]
+  unfolding all_lits_def
+  by (auto simp: ran_m_def if_distrib image_mset_If filter_mset_eq not_in_iff[THEN iffD1]
+      removeAll_mset_filter_mset[symmetric]
+    dest!: multi_member_split[of x1]
+    intro!: ext)
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n_propagate:
-  \<open>blits_in_\<L>\<^sub>i\<^sub>n (Propagated A x1' # x1b, x1aa
-         (x1 \<hookrightarrow> swap (x1aa \<propto> x1) 0 (Suc 0)), D, x1c, x1d,
+  \<open>x1 \<in># dom_m x1aa \<Longrightarrow> n < length (x1aa \<propto> x1) \<Longrightarrow> n' < length (x1aa \<propto> x1) \<Longrightarrow>
+    blits_in_\<L>\<^sub>i\<^sub>n (Propagated A x1' # x1b, x1aa
+         (x1 \<hookrightarrow> swap (x1aa \<propto> x1) n n'), D, x1c, x1d,
           add_mset A' x1e, x2e) \<longleftrightarrow>
-  blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, x1e, x2e)\<close>
-  \<open>blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa
-         (x1 \<hookrightarrow> swap (x1aa \<propto> x1) 0 (Suc 0)), D, x1c, x1d,x1e, x2e) \<longleftrightarrow>
-  blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, x1e, x2e)\<close>
+    blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, x1e, x2e)\<close>
+  \<open>x1 \<in># dom_m x1aa \<Longrightarrow> n < length (x1aa \<propto> x1) \<Longrightarrow> n' < length (x1aa \<propto> x1) \<Longrightarrow>
+    blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa
+         (x1 \<hookrightarrow> swap (x1aa \<propto> x1) n n'), D, x1c, x1d,x1e, x2e) \<longleftrightarrow>
+    blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, x1e, x2e)\<close>
   \<open>blits_in_\<L>\<^sub>i\<^sub>n
         (Propagated A x1' # x1b, x1aa, D, x1c, x1d,
          add_mset A' x1e, x2e) \<longleftrightarrow>
-  blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, x1e, x2e)\<close>
-  \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n
+    blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, x1e, x2e)\<close>
+  \<open>x1' \<in># dom_m x1aa \<Longrightarrow> n < length (x1aa \<propto> x1') \<Longrightarrow> n' < length (x1aa \<propto> x1') \<Longrightarrow>
+    K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (x1b, x1aa, D, x1c, x1d, x1e, x2e)) \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n
         (x1a, x1aa(x1' \<hookrightarrow> swap (x1aa \<propto> x1') n n'), D, x1c, x1d,
          x1e, x2e
          (x1aa \<propto> x1' ! n' :=
             x2e (x1aa \<propto> x1' ! n') @ [(x1', K, b')])) \<longleftrightarrow>
-  blits_in_\<L>\<^sub>i\<^sub>n (x1a, x1aa, D, x1c, x1d,
-         x1e, x2e)\<close>
+    blits_in_\<L>\<^sub>i\<^sub>n (x1a, x1aa, D, x1c, x1d, x1e, x2e)\<close>
+  \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (x1b, x1aa, D, x1c, x1d, x1e, x2e)) \<Longrightarrow>
+     blits_in_\<L>\<^sub>i\<^sub>n (x1a, x1aa, D, x1c, x1d,
+         x1e, x2e
+         (x1aa \<propto> x1' ! n' := x2e (x1aa \<propto> x1' ! n') @ [(x1', K, b')])) \<longleftrightarrow>
+  blits_in_\<L>\<^sub>i\<^sub>n (x1a, x1aa, D, x1c, x1d, x1e, x2e)\<close>
   unfolding blits_in_\<L>\<^sub>i\<^sub>n_def
-  by (auto split: if_splits)
+  by (auto split: if_splits)[5]
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl:
-  \<open>literals_are_\<L>\<^sub>i\<^sub>n (set_conflict_wl D S) \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> (set_conflict_wl D S) \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
   by (cases S; auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def literals_are_\<L>\<^sub>i\<^sub>n_def set_conflict_wl_def)
 
-lemma (in isasat_input_ops) blits_in_\<L>\<^sub>i\<^sub>n_keep_watch':
-  assumes K': \<open>K' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<close> and
+lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch':
+  assumes K': \<open>K' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (a, b, c, d, e, f, g))\<close> and
     w:\<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g)\<close>
   shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g (K := g K[j := (i, K', b')]))\<close>
 proof -
+  let ?\<A> = \<open>all_atms_st (a, b, c, d, e, f, g)\<close>
   let ?g = \<open>g (K := g K[j := (i, K', b')])\<close>
-  have H: \<open>\<And>L i K b'. L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> (i, K, b') \<in>set (g L) \<Longrightarrow>
-        K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  have H: \<open>\<And>L i K b'. L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l ?\<A> \<Longrightarrow> (i, K, b') \<in>set (g L) \<Longrightarrow> K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>\<close>
     using assms
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
     by blast
-  have \<open> L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> (i, K', b') \<in>set (?g L) \<Longrightarrow>
-        K' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> for L i K' b'
+  have \<open> L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l ?\<A> \<Longrightarrow> (i, K', b') \<in>set (?g L) \<Longrightarrow> K' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>\<close> for L i K' b'
     using H[of L i K'] K'
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
     by (cases \<open>j < length (g K)\<close>; cases \<open>g K ! w\<close>)
       (auto split: if_splits elim!: in_set_upd_cases)
+
   then show ?thesis
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
-    by blast
+    by force
 qed
+
+lemma literals_are_\<L>\<^sub>i\<^sub>n_all_atms_stD[dest]:
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
+  unfolding literals_are_\<L>\<^sub>i\<^sub>n_def
+  by auto
+
+lemma blits_in_\<L>\<^sub>i\<^sub>n_set_conflict[simp]: \<open>blits_in_\<L>\<^sub>i\<^sub>n (set_conflict_wl D S) = blits_in_\<L>\<^sub>i\<^sub>n S\<close>
+  by (cases S) (auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def set_conflict_wl_def)
 
 lemma unit_propagation_inner_loop_body_wl_D_spec:
   fixes S :: \<open>nat twl_st_wl\<close> and K :: \<open>nat literal\<close> and w :: nat
   assumes
-    K: \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
-    \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+    K: \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
+    \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
   shows \<open>unit_propagation_inner_loop_body_wl_D K j w S \<le>
-      \<Down> {((j', n', T'), (j, n, T)). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
+      \<Down> {((j', n', T'), (j, n, T)). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}
         (unit_propagation_inner_loop_body_wl K j w S)\<close>
 proof -
   obtain M N D NE UE Q W where
@@ -550,10 +630,11 @@ proof -
          j' = j \<and>
          n' = n \<and>
          T = T' \<and>
-         literals_are_\<L>\<^sub>i\<^sub>n T'}\<close>
+         literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}\<close>
   if \<open>unit_prop_body_wl_D_inv S j w K\<close> and \<open>\<not>x1 \<notin># dom_m (get_clauses_wl S)\<close> and
     \<open>(watched_by S K) ! w = (x1a, x2a)\<close> and
-    \<open>(watched_by S K) ! w = (x1, x2)\<close>
+    \<open>(watched_by S K) ! w = (x1, x2)\<close> and
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
   for f f' j S x1 x2 x1a x2a
   unfolding propagate_lit_wl_def S
   apply clarify
@@ -563,9 +644,10 @@ proof -
         mset_take_mset_drop_mset' S unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         ran_m_mapsto_upd unit_propagation_inner_loop_body_l_inv_def blits_in_\<L>\<^sub>i\<^sub>n_propagate
         state_wl_l_def image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n_def)
+
   have update_clause_wl: \<open>update_clause_wl K x1' b' j w
      (if get_clauses_wl S \<propto> x1' ! 0 = K then 0 else 1) n S
-    \<le> \<Down> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
+    \<le> \<Down> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}
        (update_clause_wl K x1 b j w
          (if get_clauses_wl S \<propto> x1 ! 0 = K then 0 else 1) n' S)\<close>
     if \<open>(n, n') \<in> Id\<close> and \<open>unit_prop_body_wl_D_inv S j w K\<close>
@@ -575,7 +657,8 @@ proof -
       \<open>\<not>x1 \<notin># dom_m (get_clauses_wl S)\<close> and
       \<open>watched_by S K ! w = (x1, x2)\<close> and
       \<open>watched_by S K ! w = (x1', x2')\<close> and
-      \<open>(b, b') \<in> Id\<close>
+      \<open>(b, b') \<in> Id\<close> and
+      \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
     for n n' f f' S x1 x2 x1' x2' b b'
     unfolding update_clause_wl_def S
     apply refine_vcg
@@ -589,11 +672,10 @@ proof -
     by (cases S; cases \<open>j=w\<close>) (auto simp: keep_watch_def)
   have update_blit_wl: \<open>update_blit_wl K x1a b' j w
         (get_clauses_wl (keep_watch K j w S) \<propto> x1a !
-          (1 -
-          (if get_clauses_wl (keep_watch K j w S) \<propto> x1a ! 0 = K then 0 else 1)))
+          (1 - (if get_clauses_wl (keep_watch K j w S) \<propto> x1a ! 0 = K then 0 else 1)))
         (keep_watch K j w S)
         \<le> \<Down> {((j', n', T'), j, n, T).
-            j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
+            j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}
           (update_blit_wl K x1 b j w
             (get_clauses_wl (keep_watch K j w S) \<propto> x1 !
               (1 -
@@ -613,24 +695,25 @@ proof -
       using x xa x1 unit unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
       by auto
 
-    have \<open>get_clauses_wl S \<propto>x1 ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> get_clauses_wl S \<propto>x1 ! Suc 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    have \<open>get_clauses_wl S \<propto>x1 ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> get_clauses_wl S \<propto> x1 ! Suc 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
       using assms that
         literals_are_in_\<L>\<^sub>i\<^sub>n_nth[of x1 S]
-        literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>get_clauses_wl S \<propto>x1\<close> 0]
-        literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>get_clauses_wl S \<propto>x1\<close> 1]
+        literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> \<open>get_clauses_wl S \<propto> x1\<close> 0]
+        literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> \<open>get_clauses_wl S \<propto> x1\<close> 1]
       unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         unit_propagation_inner_loop_body_l_inv_def x1a apply (simp only: x1a fst_conv simp_thms)
       apply normalize_goal+
       by (auto simp del:  simp: x1a)
     then show ?thesis
       using assms unit bb'
-      by (cases S) (auto simp: keep_watch_def update_blit_wl_def literals_are_\<L>\<^sub>i\<^sub>n_def
+      by (cases S)
+        (auto simp: keep_watch_def update_blit_wl_def literals_are_\<L>\<^sub>i\<^sub>n_def
           blits_in_\<L>\<^sub>i\<^sub>n_propagate blits_in_\<L>\<^sub>i\<^sub>n_keep_watch' unit_prop_body_wl_D_inv_def)
   qed
   have update_blit_wl': \<open>update_blit_wl K x1a b' j w (get_clauses_wl (keep_watch K j w S) \<propto> x1a ! x)
         (keep_watch K j w S)
         \<le> \<Down> {((j', n', T'), j, n, T).
-            j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
+            j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}
           (update_blit_wl K x1 b j w
             (get_clauses_wl (keep_watch K j w S) \<propto> x1 ! x')
             (keep_watch K j w S))\<close>
@@ -651,10 +734,10 @@ proof -
     have x1a: \<open>x1 \<in># dom_m (get_clauses_wl S)\<close>
       \<open>fst (watched_by S K ! w) \<in># dom_m (get_clauses_wl S)\<close>
       using dom x1 by auto
-    have \<open>get_clauses_wl S \<propto>x1 ! x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    have \<open>get_clauses_wl S \<propto>x1 ! x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
       using assms that
         literals_are_in_\<L>\<^sub>i\<^sub>n_nth[of x1 S]
-        literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>get_clauses_wl S \<propto>x1\<close> x]
+        literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> \<open>get_clauses_wl S \<propto> x1\<close> x]
          unw
       unfolding unit_prop_body_wl_D_find_unwatched_inv_def
       by auto
@@ -669,7 +752,7 @@ proof -
         set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1a) (keep_watch K j w S)),
        j + 1, w + 1,
        set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1) (keep_watch K j w S))
-      \<in> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}\<close>
+      \<in> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}\<close>
     if
       pre: \<open>unit_propagation_inner_loop_wl_loop_D_pre K (j, w, S)\<close> and
       x: \<open>watched_by S K ! w = (x1, x2)\<close> and
@@ -682,13 +765,13 @@ proof -
     have [simp]: \<open>blits_in_\<L>\<^sub>i\<^sub>n
         (set_conflict_wl D (a, b, c, d, e, fb, g(K := g K[j := de]))) \<longleftrightarrow>
         blits_in_\<L>\<^sub>i\<^sub>n ((a, b, c, d, e, fb, g(K := g K[j := de])))\<close>
-      for a b c d e f fb g de D
+      for a b c d e f g de D
       by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def set_conflict_wl_def)
 
     have [simp]: \<open>x1a = x1\<close>
       using xa x by auto
 
-    have \<open>x2a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    have \<open>x2a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
       using xa x dom assms pre unit nth_mem[of w \<open>watched_by S K\<close>] xa'
       by (cases S)
         (auto simp: unit_prop_body_wl_D_inv_def literals_are_\<L>\<^sub>i\<^sub>n_def
@@ -696,13 +779,13 @@ proof -
           unit_propagation_inner_loop_wl_loop_D_pre_def
           dest!: multi_member_split split: if_splits)
     then show ?thesis
-      using assms that by (cases S) (auto simp: twl_st_wl keep_watch_def literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl
-          literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_keep_watch')
+      using assms that by (cases S) (auto simp: keep_watch_def literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl
+        literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_keep_watch')
   qed
   have bin_set_conflict:
     \<open>((j + 1, w + 1, set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1b) (keep_watch K j w S)), j + 1, w + 1,
        set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1) (keep_watch K j w S))
-      \<in> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}\<close>
+      \<in> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}\<close>
     if
       \<open>unit_propagation_inner_loop_wl_loop_pre K (j, w, S)\<close> and
       \<open>unit_propagation_inner_loop_wl_loop_D_pre K (j, w, S)\<close> and
@@ -729,7 +812,7 @@ proof -
         propagate_lit_wl x1c x1b (if get_clauses_wl (keep_watch K j w S) \<propto> x1b ! 0 = K then 0 else 1) (keep_watch K j w S)),
        j + 1, w + 1,
        propagate_lit_wl x1a x1 (if get_clauses_wl (keep_watch K j w S) \<propto> x1 ! 0 = K then 0 else 1) (keep_watch K j w S))
-      \<in> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}\<close>
+      \<in> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}\<close>
     if
       \<open>unit_propagation_inner_loop_wl_loop_pre K (j, w, S)\<close> and
       \<open>unit_propagation_inner_loop_wl_loop_D_pre K (j, w, S)\<close> and
@@ -747,15 +830,14 @@ proof -
       \<open>polarity (get_trail_wl (keep_watch K j w S)) x1a \<noteq> Some False\<close> and
       \<open>propagate_proper_bin_case K x1a (keep_watch K j w S) x1\<close>
     for x1 x2 x1a x2a x1b x2b x1c x2c
-  unfolding propagate_lit_wl_def S
+  unfolding propagate_lit_wl_def S propagate_proper_bin_case_def
   apply clarify
   apply refine_vcg
   using that \<A>\<^sub>i\<^sub>n
-  by (auto simp: clauses_def unit_prop_body_wl_find_unwatched_inv_def
-        propagate_proper_bin_case_def
-        mset_take_mset_drop_mset' S unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
-        ran_m_mapsto_upd unit_propagation_inner_loop_body_l_inv_def blits_in_\<L>\<^sub>i\<^sub>n_propagate
-        state_wl_l_def image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n_def)
+  by (simp_all add: unit_prop_body_wl_find_unwatched_inv_def
+        propagate_proper_bin_case_def unit_prop_body_wl_inv_def
+        S unit_prop_body_wl_D_inv_def keep_watch_def state_wl_l_def literals_are_\<L>\<^sub>i\<^sub>n_def
+	Let_def blits_in_\<L>\<^sub>i\<^sub>n_propagate)
   show ?thesis
     unfolding unit_propagation_inner_loop_body_wl_D_def find_unwatched_wl_def[symmetric]
     unfolding unit_propagation_inner_loop_body_wl_def
@@ -767,7 +849,7 @@ proof -
     subgoal using assms unfolding unit_prop_body_wl_D_inv_def
         unit_propagation_inner_loop_wl_loop_pre_def by auto
     subgoal by simp
-    subgoal by (auto simp: unit_prop_body_wl_D_inv_def)
+    subgoal using assms by (auto simp: unit_propagation_inner_loop_wl_loop_pre_def)
     subgoal by simp
     subgoal
       using assms by (auto simp: unit_prop_body_wl_D_inv_clauses_distinct_eq
@@ -793,32 +875,37 @@ proof -
     subgoal by (auto simp: twl_st_wl)
     subgoal for x1 x2 x1a x2a f fa
       by (rule set_conflict_rel)
-    subgoal by (rule propagate_lit_wl[OF _ _ H H])
+    subgoal
+      by (rule propagate_lit_wl[OF _ _ H H]; assumption?)
+       (simp add: assms literals_are_\<L>\<^sub>i\<^sub>n_keep_watch assms
+        unit_propagation_inner_loop_wl_loop_pre_def)
     subgoal by (auto simp: twl_st_wl)
     subgoal by (rule update_blit_wl') auto
-    subgoal by (rule update_clause_wl[OF _ _ _ _ _ _ _ H H]) auto
+    subgoal by (rule update_clause_wl[OF _ _ _ _ _ _ _ H H]; assumption?) (auto simp: assms
+      unit_propagation_inner_loop_wl_loop_pre_def)
     done
 qed
 
 
-lemma
-  shows unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D:
+lemma unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D:
   \<open>(uncurry3 unit_propagation_inner_loop_body_wl_D, uncurry3 unit_propagation_inner_loop_body_wl) \<in>
-    [\<lambda>(((K, j), w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f
-    Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close>
+    [\<lambda>(((K, j), w), S). literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<and> K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f
+    Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r
+       {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<rangle> nres_rel\<close>
      (is \<open>?G1\<close>) and
   unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D_weak:
    \<open>(uncurry3 unit_propagation_inner_loop_body_wl_D, uncurry3 unit_propagation_inner_loop_body_wl) \<in>
-    [\<lambda>(((K, j), w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f
+    [\<lambda>(((K, j), w), S). literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<and> K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f
     Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
    (is \<open>?G2\<close>)
 proof -
-  have 1: \<open>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} =
-     {((j', n', T'), (j, (n, T))). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}\<close>
+  have 1: \<open>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T} =
+     {((j', n', T'), (j, (n, T))). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}\<close>
     by auto
   show ?G1
     by (auto simp add: fref_def nres_rel_def uncurry_def simp del: twl_st_of_wl.simps
-        intro!: unit_propagation_inner_loop_body_wl_D_spec[unfolded 1[symmetric]])
+        intro!: unit_propagation_inner_loop_body_wl_D_spec[of _ \<A>, unfolded 1[symmetric]])
+
   then show ?G2
     apply -
     apply (match_spec)
@@ -826,11 +913,11 @@ proof -
     by fastforce+
 qed
 
-definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D
+definition unit_propagation_inner_loop_wl_loop_D
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat \<times> nat twl_st_wl) nres\<close>
 where
   \<open>unit_propagation_inner_loop_wl_loop_D L S\<^sub>0 = do {
-    ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+    ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S\<^sub>0));
     let n = length (watched_by S\<^sub>0 L);
     WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_D_inv L\<^esup>
       (\<lambda>(j, w, S). w < n \<and> get_conflict_wl S = None)
@@ -842,27 +929,29 @@ where
   \<close>
 
 lemma unit_propagation_inner_loop_wl_spec:
-  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and K: \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> and K: \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
   shows \<open>unit_propagation_inner_loop_wl_loop_D K S \<le>
-     \<Down> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
+     \<Down> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}
        (unit_propagation_inner_loop_wl_loop K S)\<close>
 proof -
   have u: \<open>unit_propagation_inner_loop_body_wl_D K j w S \<le>
-         \<Down> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
+         \<Down> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}
            (unit_propagation_inner_loop_body_wl K' j' w' S')\<close>
-  if \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
+  if \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> and
     \<open>S = S'\<close> \<open>K = K'\<close> \<open>w = w'\<close> \<open>j'=j\<close>
   for S S' and w w' and K K' and j' j
-    using unit_propagation_inner_loop_body_wl_D_spec[of K S j w] that by auto
+    using unit_propagation_inner_loop_body_wl_D_spec[of K \<A> S j w] that by auto
 
   show ?thesis
     unfolding unit_propagation_inner_loop_wl_loop_D_def unit_propagation_inner_loop_wl_loop_def
     apply (refine_vcg u)
     subgoal using assms by auto
     subgoal using assms by auto
-    subgoal using assms unfolding unit_propagation_inner_loop_wl_loop_D_inv_def by auto
+    subgoal using assms unfolding unit_propagation_inner_loop_wl_loop_D_inv_def
+      by (auto dest: literals_are_\<L>\<^sub>i\<^sub>n_set_mset_\<L>\<^sub>a\<^sub>l\<^sub>l)
     subgoal by auto
     subgoal using K by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -870,28 +959,29 @@ proof -
     done
 qed
 
-definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D
+definition unit_propagation_inner_loop_wl_D
  :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>unit_propagation_inner_loop_wl_D L S\<^sub>0 = do {
      (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop_D L S\<^sub>0;
-     ASSERT (j \<le> w \<and> w \<le> length (watched_by S L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+     ASSERT (j \<le> w \<and> w \<le> length (watched_by S L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S\<^sub>0) \<and>
+        L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S));
      S \<leftarrow> cut_watch_list j w L S;
      RETURN S
   }\<close>
 
 lemma unit_propagation_inner_loop_wl_D_spec:
-  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and K: \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> and K: \<open>K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
   shows \<open>unit_propagation_inner_loop_wl_D K S \<le>
-     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
        (unit_propagation_inner_loop_wl K S)\<close>
 proof -
   have cut_watch_list: \<open>cut_watch_list x1b x1c K x2c \<bind> RETURN
-        \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+        \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
           (cut_watch_list x1 x1a K x2a)\<close>
     if
       \<open>(x, x')
       \<in> {((j', n', T'), j, n, T).
-          j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}\<close> and
+          j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}\<close> and
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>x' = (x1, x2)\<close> and
       \<open>x2b = (x1c, x2c)\<close> and
@@ -900,29 +990,30 @@ proof -
     for x x' x1 x2 x1a x2a x1b x2b x1c x2c
   proof -
     show ?thesis
-      using that
-      by (cases x2c) (auto simp: cut_watch_list_def literals_are_\<L>\<^sub>i\<^sub>n_def
+      using that unfolding literals_are_\<L>\<^sub>i\<^sub>n_def
+      by (cases x2c) (auto simp: cut_watch_list_def
           blits_in_\<L>\<^sub>i\<^sub>n_def dest!: in_set_takeD in_set_dropD)
   qed
 
   show ?thesis
     unfolding unit_propagation_inner_loop_wl_D_def unit_propagation_inner_loop_wl_def
-    apply (refine_vcg unit_propagation_inner_loop_wl_spec)
+    apply (refine_vcg unit_propagation_inner_loop_wl_spec[of \<A>])
     subgoal using \<A>\<^sub>i\<^sub>n .
     subgoal using K .
     subgoal by auto
     subgoal by auto
-    subgoal using K by auto
+    subgoal using \<A>\<^sub>i\<^sub>n K by auto
+    subgoal using \<A>\<^sub>i\<^sub>n K by auto
     subgoal by (rule cut_watch_list)
     done
 qed
 
-definition (in isasat_input_ops)  unit_propagation_outer_loop_wl_D_inv where
+definition unit_propagation_outer_loop_wl_D_inv where
 \<open>unit_propagation_outer_loop_wl_D_inv S \<longleftrightarrow>
     unit_propagation_outer_loop_wl_inv S \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+    literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
 
-definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D
+definition unit_propagation_outer_loop_wl_D
    :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
 where
   \<open>unit_propagation_outer_loop_wl_D S\<^sub>0 =
@@ -931,22 +1022,25 @@ where
       (\<lambda>S. do {
         ASSERT(literals_to_update_wl S \<noteq> {#});
         (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl S;
-        ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') +
-                        get_unit_clauses_wl S'));
+        ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S));
         unit_propagation_inner_loop_wl_D L S'
       })
       (S\<^sub>0 :: nat twl_st_wl)\<close>
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n_set_lits_to_upd[twl_st_wl, simp]:
-   \<open>literals_are_\<L>\<^sub>i\<^sub>n (set_literals_to_update_wl C S) \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+   \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> (set_literals_to_update_wl C S) \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
   by (cases S) (auto simp: literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def)
 
 lemma unit_propagation_outer_loop_wl_D_spec:
-  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
   shows \<open>unit_propagation_outer_loop_wl_D S \<le>
-     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
        (unit_propagation_outer_loop_wl S)\<close>
 proof -
+  have H: \<open>set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') + get_unit_clauses_wl S')) =
+    set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S'))\<close> for S'
+    by (auto simp: in_all_lits_of_mm_ain_atms_of_iff all_atms_def all_lits_def
+      in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
   have select: \<open>select_and_remove_from_literals_to_update_wl S \<le>
     \<Down> {((T', L'), (T, L)). T = T' \<and> L = L' \<and>
         T = set_literals_to_update_wl (literals_to_update_wl S - {#L#}) S}
@@ -955,46 +1049,45 @@ proof -
     unfolding select_and_remove_from_literals_to_update_wl_def select_and_remove_from_literals_to_update_def
     apply (rule RES_refine)
     using that unfolding select_and_remove_from_literals_to_update_wl_def by blast
-  have unit_prop: \<open>literals_are_\<L>\<^sub>i\<^sub>n S \<Longrightarrow>
-          K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow>
+  have unit_prop: \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<Longrightarrow>
+          K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow>
           unit_propagation_inner_loop_wl_D K S
-          \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} (unit_propagation_inner_loop_wl K' S')\<close>
+          \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T} (unit_propagation_inner_loop_wl K' S')\<close>
     if \<open>K = K'\<close> and \<open>S = S'\<close> for K K' and S S' :: \<open>nat twl_st_wl\<close>
     unfolding that by (rule unit_propagation_inner_loop_wl_D_spec)
   show ?thesis
-    unfolding unit_propagation_outer_loop_wl_D_def unit_propagation_outer_loop_wl_def
+    unfolding unit_propagation_outer_loop_wl_D_def unit_propagation_outer_loop_wl_def H
     apply (refine_vcg select unit_prop)
     subgoal using \<A>\<^sub>i\<^sub>n by simp
     subgoal unfolding unit_propagation_outer_loop_wl_D_inv_def by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
+    subgoal using \<A>\<^sub>i\<^sub>n apply simp by auto
     subgoal by auto
     subgoal by auto
     subgoal using \<A>\<^sub>i\<^sub>n by (auto simp: twl_st_wl)
     subgoal for S' S T'L' TL T' L' T L
-      by auto
-        (auto simp add: is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_of_mm_union
-          literals_are_\<L>\<^sub>i\<^sub>n_def)
+      using \<A>\<^sub>i\<^sub>n by auto
     done
 qed
 
 lemma unit_propagation_outer_loop_wl_D_spec':
-  shows \<open>(unit_propagation_outer_loop_wl_D, unit_propagation_outer_loop_wl) \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} \<rightarrow>\<^sub>f
-     \<langle>{(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle>nres_rel\<close>
+  shows \<open>(unit_propagation_outer_loop_wl_D, unit_propagation_outer_loop_wl) \<in>
+    {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T} \<rightarrow>\<^sub>f
+     \<langle>{(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   subgoal for x y
     apply (rule order_trans)
-    apply (rule unit_propagation_outer_loop_wl_D_spec[of x])
+    apply (rule unit_propagation_outer_loop_wl_D_spec[of \<A> x])
      apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
     done
   done
 
-definition (in isasat_input_ops) skip_and_resolve_loop_wl_D_inv where
+definition skip_and_resolve_loop_wl_D_inv where
   \<open>skip_and_resolve_loop_wl_D_inv S\<^sub>0 brk S \<equiv>
-      skip_and_resolve_loop_wl_inv S\<^sub>0 brk S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+      skip_and_resolve_loop_wl_inv S\<^sub>0 brk S \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
 
-definition (in isasat_input_ops) skip_and_resolve_loop_wl_D
+definition skip_and_resolve_loop_wl_D
   :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
 where
   \<open>skip_and_resolve_loop_wl_D S\<^sub>0 =
@@ -1024,18 +1117,29 @@ where
     }
   \<close>
 
-lemma (in isasat_input_ops) literals_are_\<L>\<^sub>i\<^sub>n_tl_state_wl[simp]:
-  \<open>literals_are_\<L>\<^sub>i\<^sub>n (tl_state_wl S) = literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+lemma literals_are_\<L>\<^sub>i\<^sub>n_tl_state_wl[simp]:
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> (tl_state_wl S) = literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
   by (cases S)
    (auto simp: is_\<L>\<^sub>a\<^sub>l\<^sub>l_def tl_state_wl_def literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def)
 
 lemma get_clauses_wl_tl_state: \<open>get_clauses_wl (tl_state_wl T) = get_clauses_wl T\<close>
   unfolding tl_state_wl_def by (cases T) auto
 
+lemma blits_in_\<L>\<^sub>i\<^sub>n_skip_and_resolve[simp]:
+  \<open>blits_in_\<L>\<^sub>i\<^sub>n (tl x1aa, N, D, ar, as, at, bd) = blits_in_\<L>\<^sub>i\<^sub>n (x1aa, N, D, ar, as, at, bd)\<close>
+  \<open>blits_in_\<L>\<^sub>i\<^sub>n
+        (x1aa, N,
+         Some (resolve_cls_wl' (x1aa', N', x1ca', ar', as', at', bd') x2b
+            x1b),
+         ar, as, at, bd) =
+  blits_in_\<L>\<^sub>i\<^sub>n (x1aa, N, x1ca', ar, as, at, bd)\<close>
+  by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def)
+
+
 lemma skip_and_resolve_loop_wl_D_spec:
-  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
   shows \<open>skip_and_resolve_loop_wl_D S \<le>
-     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T \<and> get_clauses_wl T = get_clauses_wl S}
+     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T \<and> get_clauses_wl T = get_clauses_wl S}
        (skip_and_resolve_loop_wl S)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
@@ -1043,7 +1147,6 @@ proof -
    \<open>invar = (\<lambda>(brk, T). skip_and_resolve_loop_wl_D_inv S brk T)\<close>
   have 1: \<open>((get_conflict_wl S = Some {#}, S), get_conflict_wl S = Some {#}, S) \<in> Id\<close>
     by auto
-
 
   show ?thesis
     unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_def
@@ -1061,7 +1164,7 @@ proof -
     subgoal by auto
     subgoal
       unfolding skip_and_resolve_loop_wl_D_inv_def update_confl_tl_wl_def
-      by (auto split: prod.splits simp: literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def)
+      by (auto split: prod.splits simp: literals_are_\<L>\<^sub>i\<^sub>n_def)
     subgoal by auto
     subgoal by auto
     done
@@ -1078,13 +1181,13 @@ where
   \<open>list_of_mset2 L L' D =
     SPEC (\<lambda>E. mset E = D \<and> E!0 = L \<and> E!1 = L' \<and> length E \<ge> 2)\<close>
 
-definition (in -) single_of_mset where
+definition single_of_mset where
   \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
 
-definition (in isasat_input_ops) backtrack_wl_D_inv where
-  \<open>backtrack_wl_D_inv S \<longleftrightarrow> backtrack_wl_inv S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+definition backtrack_wl_D_inv where
+  \<open>backtrack_wl_D_inv S \<longleftrightarrow> backtrack_wl_inv S \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
 
-definition (in isasat_input_ops) propagate_bt_wl_D
+definition propagate_bt_wl_D
   :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
 where
   \<open>propagate_bt_wl_D = (\<lambda>L L' (M, N, D, NE, UE, Q, W). do {
@@ -1095,7 +1198,7 @@ where
           None, NE, UE, {#L#}, W(-L:= W (-L) @ [(i, L', b)], L':= W L' @ [(i, -L, b)]))
       })\<close>
 
-definition (in isasat_input_ops) propagate_unit_bt_wl_D
+definition propagate_unit_bt_wl_D
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
   \<open>propagate_unit_bt_wl_D = (\<lambda>L (M, N, D, NE, UE, Q, W). do {
@@ -1103,7 +1206,7 @@ where
         RETURN (Propagated (-L) 0 # M, N, None, NE, add_mset {#D'#} UE, {#L#}, W)
     })\<close>
 
-definition (in isasat_input_ops) backtrack_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+definition backtrack_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>backtrack_wl_D S =
     do {
       ASSERT(backtrack_wl_D_inv S);
@@ -1123,16 +1226,17 @@ definition (in isasat_input_ops) backtrack_wl_D :: \<open>nat twl_st_wl \<Righta
 
 lemma backtrack_wl_D_spec:
   fixes S :: \<open>nat twl_st_wl\<close>
-  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and confl: \<open>get_conflict_wl S ~= None\<close>
+  assumes \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> and confl: \<open>get_conflict_wl S \<noteq> None\<close>
   shows \<open>backtrack_wl_D S \<le>
-     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
        (backtrack_wl S)\<close>
 proof -
   have 1: \<open>((get_conflict_wl S = Some {#}, S), get_conflict_wl S = Some {#}, S) \<in> Id\<close>
     by auto
 
   have 3: \<open>find_lit_of_max_level_wl S M \<le>
-   \<Down> {(L', L). L' \<in># remove1_mset (-M) (the (get_conflict_wl S)) \<and> L' = L} (find_lit_of_max_level_wl S' M')\<close>
+     \<Down>{(L', L). L' \<in># remove1_mset (-M) (the (get_conflict_wl S)) \<and> L' = L}
+      (find_lit_of_max_level_wl S' M')\<close>
     if \<open>S = S'\<close> and \<open>M = M'\<close>
     for S S' :: \<open>nat twl_st_wl\<close> and M M'
     using that by (cases S; cases S') (auto simp: find_lit_of_max_level_wl_def intro!: RES_refine)
@@ -1208,11 +1312,11 @@ proof -
     using that unfolding find_lit_of_max_level_wl'_def find_lit_of_max_level_wl_def
     by (cases U) (auto 5 5 intro!: RES_refine)
 
-  have is_\<L>\<^sub>a\<^sub>l\<^sub>l_add: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close> if \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l B\<close> for A B
+  have is_\<L>\<^sub>a\<^sub>l\<^sub>l_add: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close> if \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> B\<close> for A B
     using that unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by auto
 
   have propagate_bt_wl_D: \<open>propagate_bt_wl_D (lit_of (hd (get_trail_wl S))) L U
-        \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+        \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
            (propagate_bt_wl (lit_of (hd (get_trail_wl S))) L' U')\<close>
     if
       \<open>backtrack_wl_inv S\<close> and
@@ -1294,7 +1398,7 @@ proof -
            ([- lit_of (hd (get_trail_wl S)), L'] @
             remove1 (- lit_of (hd (get_trail_wl S))) (remove1 L' D')) =
           2)]))
-    \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
+    \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<close>
       if
         DD': \<open>(D, D') \<in> list_of_mset (the (Some DT)) (- lit_of (hd (get_trail_wl S))) L\<close> and
         ii': \<open>(i, i') \<in> {(i, i'). i = i' \<and> i \<notin># dom_m NS}\<close>
@@ -1324,14 +1428,28 @@ proof -
         apply (subst 1[symmetric])
         unfolding set_append list.sel
         by (rule list.set_intros)
+      have \<open>set_mset (all_lits_of_m (mset D)) \<subseteq>
+          set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m NS#} + (NES + UES)))\<close>
+	by (auto dest!: H[unfolded DT_D])
+      then have [simp]: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits (fmupd i' (D, False) NS) (NES + UES)) =
+          is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits NS (NES + UES))\<close>
+	\<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits (fmupd i' (D, False) NS) (NES + UES))) =
+ 	  set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits NS (NES + UES)))\<close>
+	using i'_dom unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_def
+	by (auto 5 5 simp add: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset
+	  in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atm_of_eq_atm_of)
+
       have \<open>x \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m NS#} + (NES + UES)) \<Longrightarrow>
-        x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> for x
-        using i'_dom \<A>\<^sub>i\<^sub>n is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by (fastforce simp: S literals_are_\<L>\<^sub>i\<^sub>n_def)
+        x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> for x
+        using i'_dom \<A>\<^sub>i\<^sub>n unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_\<L>\<^sub>i\<^sub>n_def
+	by (auto simp: S all_lits_def)
       then show ?thesis
         using i'_dom \<A>\<^sub>i\<^sub>n K[OF \<open>L \<in> set D\<close>] K[OF \<open>- lit_of (hd MS) \<in> set D\<close>]
-        by (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset literals_are_\<L>\<^sub>i\<^sub>n_def
+	unfolding literals_are_\<L>\<^sub>i\<^sub>n_def
+        by (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset
             blits_in_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_add S dest!: H[unfolded DT_D])
     qed
+
     define get_fresh_index2 where
       \<open>get_fresh_index2 N NUE W = get_fresh_index_wl (N :: nat clauses_l) (NUE :: nat clauses)
           (W::nat literal \<Rightarrow> (nat watcher) list)\<close>
@@ -1359,7 +1477,7 @@ proof -
 
   have propagate_unit_bt_wl_D: \<open>propagate_unit_bt_wl_D (lit_of (hd (get_trail_wl S))) U
     \<le> SPEC (\<lambda>c. (c, propagate_unit_bt_wl (lit_of (hd (get_trail_wl S))) U')
-                 \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T})\<close>
+                 \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T})\<close>
     if
       \<open>backtrack_wl_inv S\<close> and
       bt: \<open>backtrack_wl_D_inv S\<close> and
@@ -1413,18 +1531,28 @@ proof -
         x \<in># all_lits_of_mm ({#mset x. x \<in># ran_mf NS#} + NES)\<close>
       for x
       using DT all_lits_of_m_mono by blast
-    then have \<A>\<^sub>i\<^sub>n_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n DT\<close>
+    then have \<A>\<^sub>i\<^sub>n_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> DT\<close>
       using DT \<A>\<^sub>i\<^sub>n unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def S is_\<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_\<L>\<^sub>i\<^sub>n_def
-      by (auto simp: all_lits_of_mm_union)
+      by (auto simp: all_lits_of_mm_union all_lits_def)
+    have [simp]: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits NS (add_mset {#x#} (NES + UES))) =
+      is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits NS (NES + UES))\<close>
+      \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits NS (add_mset {#x#} (NES + UES)))) =
+       set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits NS (NES + UES)))\<close>
+      if \<open>DT = {#x#}\<close>
+      for x
+      using H[of x] H[of \<open>-x\<close>] that
+      unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_def
+      by (auto simp add: all_lits_of_mm_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atm_of_eq_atm_of
+        all_lits_of_m_add_mset insert_absorb all_lits_of_mm_union)
 
     show ?thesis
       unfolding propagate_unit_bt_wl_D_def propagate_unit_bt_wl_def U U' single_of_mset_def
       apply clarify
       apply refine_vcg
-      using \<A>\<^sub>i\<^sub>n_D \<A>\<^sub>i\<^sub>n
+      using \<A>\<^sub>i\<^sub>n_D \<A>\<^sub>i\<^sub>n unfolding literals_are_\<L>\<^sub>i\<^sub>n_def
       by (auto simp: clauses_def mset_take_mset_drop_mset mset_take_mset_drop_mset'
           all_lits_of_mm_add_mset is_\<L>\<^sub>a\<^sub>l\<^sub>l_add literals_are_in_\<L>\<^sub>i\<^sub>n_def S
-          literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def)
+          blits_in_\<L>\<^sub>i\<^sub>n_def)
   qed
   show ?thesis
     unfolding backtrack_wl_D_def backtrack_wl_def find_lit_of_max_level_wl'_def
@@ -1441,26 +1569,26 @@ qed
 
 
 subsubsection \<open>Decide or Skip\<close>
-thm find_unassigned_lit_wl_def
-definition (in isasat_input_ops) find_unassigned_lit_wl_D
+
+definition find_unassigned_lit_wl_D
   :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal option) nres\<close>
 where
   \<open>find_unassigned_lit_wl_D S = (
      SPEC(\<lambda>((M, N, D, NE, UE, WS, Q), L).
          S = (M, N, D, NE, UE, WS, Q) \<and>
          (L \<noteq> None \<longrightarrow>
-            undefined_lit M (the L) \<and> the L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+            undefined_lit M (the L) \<and> the L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms N NE) \<and>
             atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE)) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
             atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE)))))
 \<close>
 
 
-definition (in isasat_input_ops) decide_wl_or_skip_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+definition decide_wl_or_skip_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
 \<open>decide_wl_or_skip_D_pre S \<longleftrightarrow>
-   decide_wl_or_skip_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+   decide_wl_or_skip_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
 
-definition(in isasat_input_ops)  decide_wl_or_skip_D
+definition decide_wl_or_skip_D
   :: \<open>nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres\<close>
 where
   \<open>decide_wl_or_skip_D S = (do {
@@ -1473,11 +1601,11 @@ where
 \<close>
 
 theorem decide_wl_or_skip_D_spec:
-  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
   shows \<open>decide_wl_or_skip_D S
-    \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} (decide_wl_or_skip S)\<close>
+    \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T} (decide_wl_or_skip S)\<close>
 proof -
-  have H: \<open>find_unassigned_lit_wl_D S \<le> \<Down> {((S', L'), L). S' = S \<and> L = L' \<and>
+  have H: \<open>find_unassigned_lit_wl_D S \<le> \<Down> {((S', L'), L). S' = S \<and> L = L' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<and>
          (L \<noteq> None \<longrightarrow>
             undefined_lit (get_trail_wl S) (the L) \<and>
             atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf (get_clauses_wl S)
@@ -1487,17 +1615,17 @@ proof -
                  + get_unit_init_clss_wl S)))}
      (find_unassigned_lit_wl S')\<close>
     (is \<open>_ \<le> \<Down> ?find _\<close>)
-    if \<open>S = S'\<close>
+    if \<open>S = S'\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
     for S S' :: \<open>nat twl_st_wl\<close>
-    unfolding find_unassigned_lit_wl_def find_unassigned_lit_wl_D_def that
+    using that(2) unfolding find_unassigned_lit_wl_def find_unassigned_lit_wl_D_def that(1)
     by (cases S') (auto intro!: RES_refine simp: mset_take_mset_drop_mset')
   have [refine]: \<open>x = x' \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle> option_rel\<close>
     for x x' by auto
   have decide_lit_wl: \<open>((False, decide_lit_wl L T), False, decide_lit_wl L' S')
         \<in> {((b', T'), b, T).
-            b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
+            b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<close>
     if
-      SS': \<open>(S, S') \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close> and
+      SS': \<open>(S, S') \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<close> and
       \<open>decide_wl_or_skip_pre S'\<close> and
       pre: \<open>decide_wl_or_skip_D_pre S\<close> and
       LT_L': \<open>(LT, bL') \<in> ?find S\<close> and
@@ -1507,11 +1635,12 @@ proof -
       LL': \<open>(L, L') \<in> Id\<close>
     for S S' L L' LT bL bL' T
   proof -
-    have \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n T\<close> and [simp]: \<open>T = S\<close>
-      using LT_L' pre unfolding LT decide_wl_or_skip_D_pre_def by fast+
+    have \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> T\<close> and [simp]: \<open>T = S\<close>
+      using LT_L' pre unfolding LT decide_wl_or_skip_D_pre_def
+   by fast+
     have [simp]: \<open>S' = S\<close> \<open>L = L'\<close>
       using SS' LL' by simp_all
-    have \<open>literals_are_\<L>\<^sub>i\<^sub>n (decide_lit_wl L' S)\<close>
+    have \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> (decide_lit_wl L' S)\<close>
       using \<A>\<^sub>i\<^sub>n
       by (cases S) (auto simp: decide_lit_wl_def clauses_def blits_in_\<L>\<^sub>i\<^sub>n_def
           literals_are_\<L>\<^sub>i\<^sub>n_def)
@@ -1519,13 +1648,14 @@ proof -
       by auto
   qed
 
-  have \<open>(decide_wl_or_skip_D, decide_wl_or_skip) \<in> {((T'), (T)).  T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} \<rightarrow>\<^sub>f
-     \<langle>{((b', T'), (b, T)). b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close>
+  have \<open>(decide_wl_or_skip_D, decide_wl_or_skip) \<in> {(T', T).  T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T} \<rightarrow>\<^sub>f
+     \<langle>{((b', T'), (b, T)). b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<rangle> nres_rel\<close>
     unfolding decide_wl_or_skip_D_def decide_wl_or_skip_def
     apply (intro frefI)
     apply (refine_vcg H)
     subgoal unfolding decide_wl_or_skip_D_pre_def by blast
     subgoal by simp
+    subgoal by auto
     subgoal by simp
     subgoal unfolding decide_wl_or_skip_D_pre_def by fast
     subgoal by (rule decide_lit_wl) assumption+
@@ -1534,12 +1664,13 @@ proof -
     using assms by (cases S) (auto simp: fref_def nres_rel_def)
 qed
 
+
 subsubsection \<open>Backtrack, Skip, Resolve or Decide\<close>
 
-definition (in isasat_input_ops) cdcl_twl_o_prog_wl_D_pre where
-\<open>cdcl_twl_o_prog_wl_D_pre S \<longleftrightarrow> cdcl_twl_o_prog_wl_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+definition cdcl_twl_o_prog_wl_D_pre where
+\<open>cdcl_twl_o_prog_wl_D_pre S \<longleftrightarrow> cdcl_twl_o_prog_wl_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
 
-definition (in isasat_input_ops) cdcl_twl_o_prog_wl_D
+definition cdcl_twl_o_prog_wl_D
  :: \<open>nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres\<close>
 where
   \<open>cdcl_twl_o_prog_wl_D S =
@@ -1561,26 +1692,26 @@ where
   \<close>
 
 theorem cdcl_twl_o_prog_wl_D_spec:
-  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
-  shows \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), (b, T)). b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
+  shows \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), (b, T)). b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
      (cdcl_twl_o_prog_wl S)\<close>
 proof -
   have 1: \<open>backtrack_wl_D S \<le>
-     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
-       (backtrack_wl T)\<close> if \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and \<open>get_conflict_wl S ~= None\<close> and \<open>S = T\<close>
+     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
+       (backtrack_wl T)\<close> if \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> and \<open>get_conflict_wl S \<noteq> None\<close> and \<open>S = T\<close>
     for S T
-    using backtrack_wl_D_spec[of S] that by fast
+    using backtrack_wl_D_spec[of \<A> S] that by fast
   have 2: \<open>skip_and_resolve_loop_wl_D S \<le>
-     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T \<and>  get_clauses_wl T = get_clauses_wl S}
+     \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T \<and>  get_clauses_wl T = get_clauses_wl S}
         (skip_and_resolve_loop_wl T)\<close>
-    if \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> \<open>S = T\<close>
+    if \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> \<open>S = T\<close>
     for S T
-    using skip_and_resolve_loop_wl_D_spec[of S] that by fast
+    using skip_and_resolve_loop_wl_D_spec[of \<A> S] that by fast
   show ?thesis
     using assms
     unfolding cdcl_twl_o_prog_wl_D_def cdcl_twl_o_prog_wl_def
     apply (refine_vcg decide_wl_or_skip_D_spec 1 2)
-    subgoal unfolding cdcl_twl_o_prog_wl_D_pre_def by simp
+    subgoal unfolding cdcl_twl_o_prog_wl_D_pre_def by auto
     subgoal by simp
     subgoal by simp
     subgoal by simp
@@ -1595,14 +1726,13 @@ proof -
 qed
 
 theorem cdcl_twl_o_prog_wl_D_spec':
-  shows
   \<open>(cdcl_twl_o_prog_wl_D, cdcl_twl_o_prog_wl) \<in>
-    {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
-    \<langle>bool_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close>
+    {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n \<A> S} \<rightarrow>\<^sub>f
+    \<langle>bool_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
   subgoal for x y
     apply (rule order_trans)
-    apply (rule cdcl_twl_o_prog_wl_D_spec[of x])
+    apply (rule cdcl_twl_o_prog_wl_D_spec[of \<A> x])
      apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
     done
   done
@@ -1610,14 +1740,14 @@ theorem cdcl_twl_o_prog_wl_D_spec':
 
 subsubsection \<open>Full Strategy\<close>
 
-definition (in isasat_input_ops) cdcl_twl_stgy_prog_wl_D
+definition cdcl_twl_stgy_prog_wl_D
    :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
 where
   \<open>cdcl_twl_stgy_prog_wl_D S\<^sub>0 =
   do {
     do {
-      (brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T). cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (brk, T)\<and>
-          literals_are_\<L>\<^sub>i\<^sub>n T\<^esup>
+      (brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T). cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (brk, T) \<and>
+          literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T\<^esup>
         (\<lambda>(brk, _). \<not>brk)
         (\<lambda>(brk, S).
         do {
@@ -1631,18 +1761,19 @@ where
   \<close>
 
 theorem cdcl_twl_stgy_prog_wl_D_spec:
-  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
-  shows \<open>cdcl_twl_stgy_prog_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
+  shows \<open>cdcl_twl_stgy_prog_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
      (cdcl_twl_stgy_prog_wl S)\<close>
 proof -
-  have 1: \<open>((False, S), False, S) \<in> {((brk', T'), brk, T). brk = brk' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
+  have 1: \<open>((False, S), False, S) \<in> {((brk', T'), brk, T). brk = brk' \<and> T = T' \<and>
+      literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<close>
     using assms by fast
-  have 2: \<open>unit_propagation_outer_loop_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
-       (unit_propagation_outer_loop_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> for S T
-    using unit_propagation_outer_loop_wl_D_spec[of S] that by fast
-  have 3: \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
-    (cdcl_twl_o_prog_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> for S T
-    using cdcl_twl_o_prog_wl_D_spec[of S] that by fast
+  have 2: \<open>unit_propagation_outer_loop_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
+       (unit_propagation_outer_loop_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> for S T
+    using unit_propagation_outer_loop_wl_D_spec[of \<A> S] that by fast
+  have 3: \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
+    (cdcl_twl_o_prog_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> for S T
+    using cdcl_twl_o_prog_wl_D_spec[of \<A> S] that by fast
   show ?thesis
     unfolding cdcl_twl_stgy_prog_wl_D_def cdcl_twl_stgy_prog_wl_def
     apply (refine_vcg 1 2 3)
@@ -1659,14 +1790,14 @@ qed
 
 lemma cdcl_twl_stgy_prog_wl_D_spec':
   \<open>(cdcl_twl_stgy_prog_wl_D, cdcl_twl_stgy_prog_wl) \<in>
-    {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
-    \<langle>{(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close>
+    {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n \<A> S} \<rightarrow>\<^sub>f
+    \<langle>{(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
     (auto intro: cdcl_twl_stgy_prog_wl_D_spec)
 
-definition (in isasat_input_ops) cdcl_twl_stgy_prog_wl_D_pre where
+definition cdcl_twl_stgy_prog_wl_D_pre where
   \<open>cdcl_twl_stgy_prog_wl_D_pre S U \<longleftrightarrow>
-    (cdcl_twl_stgy_prog_wl_pre S U \<and> literals_are_\<L>\<^sub>i\<^sub>n S)\<close>
+    (cdcl_twl_stgy_prog_wl_pre S U \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S)\<close>
 
 lemma cdcl_twl_stgy_prog_wl_D_spec_final:
   assumes
@@ -1674,10 +1805,10 @@ lemma cdcl_twl_stgy_prog_wl_D_spec_final:
   shows
     \<open>cdcl_twl_stgy_prog_wl_D S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
 proof -
-  have T: \<open>cdcl_twl_stgy_prog_wl_pre S S' \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+  have T: \<open>cdcl_twl_stgy_prog_wl_pre S S' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
     using assms unfolding cdcl_twl_stgy_prog_wl_D_pre_def by blast
   show ?thesis
-    apply (rule order_trans[OF cdcl_twl_stgy_prog_wl_D_spec])
+    apply (rule order_trans[OF cdcl_twl_stgy_prog_wl_D_spec[of \<open>all_atms_st S\<close>]])
     subgoal using T by auto
     subgoal
       apply (rule order_trans)
@@ -1690,14 +1821,13 @@ proof -
 qed
 
 
-definition (in isasat_input_ops) cdcl_twl_stgy_prog_break_wl_D
-   :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
+definition cdcl_twl_stgy_prog_break_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
 where
   \<open>cdcl_twl_stgy_prog_break_wl_D S\<^sub>0 =
   do {
     b \<leftarrow> SPEC (\<lambda>_. True);
     (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (brk, T) \<and>
-          literals_are_\<L>\<^sub>i\<^sub>n T\<^esup>
+          literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T\<^esup>
         (\<lambda>(b, brk, _). b \<and> \<not>brk)
         (\<lambda>(b, brk, S).
         do {
@@ -1713,27 +1843,27 @@ where
   }\<close>
 
 theorem cdcl_twl_stgy_prog_break_wl_D_spec:
-  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
-  shows \<open>cdcl_twl_stgy_prog_break_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
+  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
+  shows \<open>cdcl_twl_stgy_prog_break_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
      (cdcl_twl_stgy_prog_break_wl S)\<close>
 proof -
   define f where \<open>f \<equiv> SPEC (\<lambda>_::bool. True)\<close>
   have 1: \<open>((b, False, S), b, False, S) \<in> {((b', brk', T'), b, brk, T). b = b' \<and> brk = brk' \<and>
-        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
+        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<close>
     for b
     using assms by fast
   have 1: \<open>((b, False, S), b', False, S) \<in> {((b', brk', T'), b, brk, T). b = b' \<and> brk = brk' \<and>
-        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
+        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<close>
     if \<open>(b, b') \<in> bool_rel\<close>
     for b b'
     using assms that by fast
 
-  have 2: \<open>unit_propagation_outer_loop_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
-       (unit_propagation_outer_loop_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> for S T
-    using unit_propagation_outer_loop_wl_D_spec[of S] that by fast
-  have 3: \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
-    (cdcl_twl_o_prog_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> for S T
-    using cdcl_twl_o_prog_wl_D_spec[of S] that by fast
+  have 2: \<open>unit_propagation_outer_loop_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
+       (unit_propagation_outer_loop_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> for S T
+    using unit_propagation_outer_loop_wl_D_spec[of \<A> S] that by fast
+  have 3: \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
+    (cdcl_twl_o_prog_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> for S T
+    using cdcl_twl_o_prog_wl_D_spec[of \<A> S] that by fast
   show ?thesis
     unfolding cdcl_twl_stgy_prog_break_wl_D_def cdcl_twl_stgy_prog_break_wl_def f_def[symmetric]
     apply (refine_vcg 1 2 3)
@@ -1758,10 +1888,10 @@ lemma cdcl_twl_stgy_prog_break_wl_D_spec_final:
   shows
     \<open>cdcl_twl_stgy_prog_break_wl_D S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
 proof -
-  have T: \<open>cdcl_twl_stgy_prog_wl_pre S S' \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+  have T: \<open>cdcl_twl_stgy_prog_wl_pre S S' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
     using assms unfolding cdcl_twl_stgy_prog_wl_D_pre_def by blast
   show ?thesis
-    apply (rule order_trans[OF cdcl_twl_stgy_prog_break_wl_D_spec])
+    apply (rule order_trans[OF cdcl_twl_stgy_prog_break_wl_D_spec[of \<open>all_atms_st S\<close>]])
     subgoal using T by auto
     subgoal
       apply (rule order_trans)
@@ -1772,8 +1902,6 @@ proof -
       done
     done
 qed
-
-end \<comment> \<open>end of locale @{locale isasat_input_ops}\<close>
 
 text \<open>The definition is here to be shared later.\<close>
 definition get_propagation_reason :: \<open>('v, 'mark) ann_lits \<Rightarrow> 'v literal \<Rightarrow> 'mark option nres\<close> where

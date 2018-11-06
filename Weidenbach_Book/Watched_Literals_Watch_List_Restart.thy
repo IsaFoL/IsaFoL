@@ -1478,7 +1478,7 @@ theorem cdcl_twl_stgy_restart_prog_wl_spec:
   using cdcl_twl_stgy_restart_prog_wl_cdcl_twl_stgy_restart_prog_l[where 'a='v]
   unfolding fref_param1 apply -
   apply (match_spec; match_fun_rel+; (fast intro: nres_rel_mono)?)
-  by (metis (no_types, lifting) in_pair_collect_simp nres_rel_mono subrelI) 
+  by (metis (no_types, lifting) in_pair_collect_simp nres_rel_mono subrelI)
 
 theorem cdcl_twl_stgy_restart_prog_early_wl_spec:
   \<open>(cdcl_twl_stgy_restart_prog_early_wl, cdcl_twl_stgy_restart_prog_early_l) \<in> {(S::'v twl_st_wl, S').
@@ -1487,7 +1487,7 @@ theorem cdcl_twl_stgy_restart_prog_early_wl_spec:
   using cdcl_twl_stgy_restart_prog_early_wl_cdcl_twl_stgy_restart_prog_early_l[where 'a='v]
   unfolding fref_param1 apply -
   apply (match_spec; match_fun_rel+; (fast intro: nres_rel_mono)?)
-  by (metis (no_types, lifting) in_pair_collect_simp nres_rel_mono subrelI) 
+  by (metis (no_types, lifting) in_pair_collect_simp nres_rel_mono subrelI)
 
 end
 

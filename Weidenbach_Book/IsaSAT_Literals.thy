@@ -28,10 +28,10 @@ subsection \<open>Literals as Natural Numbers\<close>
 subsubsection \<open>Definition\<close>
 
 lemma Pos_div2_iff:
-   \<open>Pos ((bb :: nat) div 2) = b \<longleftrightarrow> is_pos b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close>
+  \<open>Pos ((bb :: nat) div 2) = b \<longleftrightarrow> is_pos b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close>
   by (cases b) auto
 lemma Neg_div2_iff:
-   \<open>Neg ((bb :: nat) div 2) = b \<longleftrightarrow> is_neg b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close>
+  \<open>Neg ((bb :: nat) div 2) = b \<longleftrightarrow> is_neg b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close>
   by (cases b) auto
 
 text \<open>
@@ -120,7 +120,7 @@ definition ann_lit_rel:: \<open>('a \<times> nat) set \<Rightarrow> ('b \<times>
 
 type_synonym ann_lit_wl = \<open>uint32 \<times> nat option\<close>
 type_synonym ann_lits_wl = \<open>ann_lit_wl list\<close>
-type_synonym ann_lit_wl_fast = \<open>uint32 \<times> uint32 option\<close>
+type_synonym ann_lit_wl_fast = \<open>uint32 \<times> uint64 option\<close>
 type_synonym ann_lits_wl_fast = \<open>ann_lit_wl_fast list\<close>
 
 definition nat_ann_lit_rel :: \<open>(ann_lit_wl \<times> (nat, nat) ann_lit) set\<close> where
@@ -151,7 +151,7 @@ abbreviation pair_nat_ann_lits_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> 
   \<open>pair_nat_ann_lits_assn \<equiv> list_assn pair_nat_ann_lit_assn\<close>
 
 abbreviation pair_nat_ann_lit_fast_assn :: \<open>(nat, nat) ann_lit \<Rightarrow> ann_lit_wl_fast \<Rightarrow> assn\<close> where
-  \<open>pair_nat_ann_lit_fast_assn \<equiv> hr_comp (uint32_assn *a option_assn uint32_nat_assn) nat_ann_lit_rel\<close>
+  \<open>pair_nat_ann_lit_fast_assn \<equiv> hr_comp (uint32_assn *a option_assn uint64_nat_assn) nat_ann_lit_rel\<close>
 
 abbreviation pair_nat_ann_lits_fast_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> ann_lits_wl_fast \<Rightarrow> assn\<close> where
   \<open>pair_nat_ann_lits_fast_assn \<equiv> list_assn pair_nat_ann_lit_fast_assn\<close>
@@ -179,34 +179,27 @@ abbreviation uint_max :: nat where
 
 lemmas uint_max_def = uint32_max_def
 
-context isasat_input_ops
+context
+  fixes \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close>
 begin
 
 abbreviation D\<^sub>0 :: \<open>(nat \<times> nat literal) set\<close> where
-  \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
 
 definition length_ll_f where
   \<open>length_ll_f W L = length (W L)\<close>
 
 lemma length_ll_length_ll_f:
   \<open>(uncurry (RETURN oo length_ll), uncurry (RETURN oo length_ll_f)) \<in>
-     [\<lambda>(W, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r nat_lit_rel) \<rightarrow>
+     [\<lambda>(W, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r nat_lit_rel) \<rightarrow>
        \<langle>nat_rel\<rangle> nres_rel\<close>
   unfolding length_ll_def length_ll_f_def
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def br_def
       nat_lit_rel_def)
 
-abbreviation array_watched_assn
-  :: \<open>(nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list) \<Rightarrow> ((nat \<times> uint32 \<times> bool) array_list) array \<Rightarrow>
-     assn\<close>
-where
-  \<open>array_watched_assn \<equiv> hr_comp (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))
-    (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<close>
-
-
 lemma ex_list_watched:
   fixes W :: \<open>nat literal \<Rightarrow> 'a list\<close>
-  shows \<open>\<exists>aa. \<forall>x\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = W x\<close>
+  shows \<open>\<exists>aa. \<forall>x\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = W x\<close>
   (is \<open>\<exists>aa. ?P aa\<close>)
 proof -
   define D' where \<open>D' = D\<^sub>0\<close>
@@ -228,10 +221,10 @@ proof -
     by (induction M) auto
   have length_aa: \<open>length aa = Suc (Max (nat_of_lit ` snd ` D'))\<close>
     unfolding aa_def D''_def[symmetric] by (simp add: length_fold)
-  have H: \<open>x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow>
-      length l \<ge> Suc (Max (nat_of_lit ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l)) \<Longrightarrow>
-      fold_mset (\<lambda>L a. a[nat_of_lit L := W L]) l (remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l) ! nat_of_lit x = W x\<close>
-    for x l
+  have H: \<open>x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l' \<Longrightarrow>
+      length l \<ge> Suc (Max (nat_of_lit ` set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l'))) \<Longrightarrow>
+      fold_mset (\<lambda>L a. a[nat_of_lit L := W L]) l (remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l')) ! nat_of_lit x = W x\<close>
+    for x l \<L>\<^sub>a\<^sub>l\<^sub>l'
     unfolding \<L>\<^sub>a\<^sub>l\<^sub>l'_def[symmetric]
     apply (induction \<L>\<^sub>a\<^sub>l\<^sub>l' arbitrary: l)
     subgoal by simp
@@ -241,7 +234,7 @@ proof -
       apply (auto simp: less_Suc_eq_le length_fold)
       done
     done
-  have H': \<open>aa ! nat_of_lit x = W x\<close> if \<open>x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> for x
+  have H': \<open>aa ! nat_of_lit x = W x\<close> if \<open>x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n\<close> for x
     using that unfolding aa_def D'_def
     by (auto simp: D'_def image_image remdups_mset_def[symmetric]
         less_Suc_eq_le intro!: H)
@@ -252,60 +245,20 @@ proof -
     by blast
 qed
 
-lemma length_aa_length_ll_f[sepref_fr_rules]:
-  \<open>(uncurry length_aa_u, uncurry (RETURN oo length_ll_f)) \<in>
-    [\<lambda>(W, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
-      array_watched_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have P: \<open>is_pure nat_assn\<close>
-    by auto
-  have H: \<open>(uncurry length_aa_u, uncurry (RETURN \<circ>\<circ> length_ll_f))
-     \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel)
-     (\<lambda>(W, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) (\<lambda>_ (xs, i). i < length xs)
-     (\<lambda>_. True)]\<^sub>a hrp_comp
-                     ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))\<^sup>k *\<^sub>a
-                      uint32_nat_assn\<^sup>k)
-                     (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r
-                      nat_lit_rel) \<rightarrow> hr_comp nat_assn nat_rel\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF length_aa_u_hnr length_ll_length_ll_f] .
+definition isasat_input_bounded where
+  [simp]: \<open>isasat_input_bounded = (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L \<le> uint_max)\<close>
 
-  have 1: \<open>?pre' = ?pre\<close>
-    using ex_list_watched
-    by (fastforce simp: comp_PRE_def prod_rel_def_internal relAPP_def map_fun_rel_def[abs_def]
-        p2rel_def literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def nat_lit_rel_def br_def
-        simp del: literal_of_nat.simps)
+definition isasat_input_nempty where
+  [simp]: \<open>isasat_input_nempty = (set_mset \<A>\<^sub>i\<^sub>n \<noteq> {})\<close>
 
-  have 2: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp by (auto simp: hrp_comp_def hr_comp_def)
-  have 3: \<open>?f' = ?f\<close>
-    by (auto simp: hrp_comp_def hr_comp_def)
+definition isasat_input_bounded_nempty where
+  \<open>isasat_input_bounded_nempty = (isasat_input_bounded \<and> isasat_input_nempty)\<close>
 
-  show ?thesis
-    using H unfolding 1 2 3 .
-qed
-
-end
-
-
-locale isasat_input_bounded =
-  isasat_input_ops \<A>\<^sub>i\<^sub>n
-  for \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close> +
-  assumes
-    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L \<le> uint_max\<close>
-
-locale isasat_input_bounded_nempty =
-  isasat_input_bounded \<A>\<^sub>i\<^sub>n
-  for \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close> +
-  assumes
-    \<A>\<^sub>i\<^sub>n_nempty: \<open>\<A>\<^sub>i\<^sub>n \<noteq> {#}\<close>
-
-
-context isasat_input_bounded
+context
+  assumes in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max: \<open>isasat_input_bounded\<close>
 begin
 
-lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max': \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> nat_of_lit L \<le> uint_max\<close>
+lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max': \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n \<Longrightarrow> nat_of_lit L \<le> uint_max\<close>
   using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by auto
 
 lemma in_\<A>\<^sub>i\<^sub>n_less_than_uint_max_div_2:
@@ -316,10 +269,10 @@ lemma in_\<A>\<^sub>i\<^sub>n_less_than_uint_max_div_2:
 
 lemma simple_clss_size_upper_div2':
   assumes
-    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
+    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n  \<A>\<^sub>i\<^sub>n C\<close> and
     dist: \<open>distinct_mset C\<close> and
     tauto: \<open>\<not>tautology C\<close> and
-    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < uint_max - 1\<close>
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L < uint_max - 1\<close>
   shows \<open>size C \<le> uint_max div 2\<close>
 proof -
   let ?C = \<open>atm_of `# C\<close>
@@ -346,10 +299,10 @@ proof -
   proof
     fix L
     assume \<open>L \<in> set_mset ?C\<close>
-    then have \<open>L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    then have \<open>L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
     using lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
-    then have \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    then have \<open>Pos L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
       using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
     then have \<open>nat_of_lit (Pos L) < uint_max - 1\<close>
       using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by (auto simp: atm_of_lit_in_atms_of
@@ -372,7 +325,7 @@ qed
 
 lemma simple_clss_size_upper_div2:
   assumes
-   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
+   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n  \<A>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close> and
    tauto: \<open>\<not>tautology C\<close>
   shows \<open>size C \<le> 1 + uint_max div 2\<close>
@@ -401,10 +354,10 @@ proof -
   proof
     fix L
     assume \<open>L \<in> set_mset ?C\<close>
-    then have \<open>L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    then have \<open>L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l  \<A>\<^sub>i\<^sub>n)\<close>
     using lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
-    then have \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    then have \<open>Pos L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l  \<A>\<^sub>i\<^sub>n)\<close>
       using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
     then have \<open>nat_of_lit (Pos L) \<le> uint_max\<close>
       using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by (auto simp: atm_of_lit_in_atms_of
@@ -426,7 +379,7 @@ qed
 
 lemma clss_size_uint_max:
   assumes
-   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
+   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close>
   shows \<open>size C \<le> uint_max + 2\<close>
 proof -
@@ -435,14 +388,14 @@ proof -
   have C: \<open>C = ?posC + ?negC\<close>
     apply (subst multiset_partition[of _ is_pos])
     by auto
-  have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n ?posC\<close>
+  have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n ?posC\<close>
     by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF lits]) auto
   moreover have \<open>distinct_mset ?posC\<close>
     by (rule distinct_mset_mono[OF _dist]) auto
   ultimately have pos: \<open>size ?posC \<le> 1 + uint_max div 2\<close>
     by (rule simple_clss_size_upper_div2) (auto simp: tautology_decomp)
 
-  have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n ?negC\<close>
+  have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n ?negC\<close>
     by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF lits]) auto
   moreover have \<open>distinct_mset ?negC\<close>
     by (rule distinct_mset_mono[OF _dist]) auto
@@ -457,16 +410,16 @@ qed
 
 lemma clss_size_uint64_max:
   assumes
-   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
+   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close>
  shows \<open>size C < uint64_max\<close>
   using clss_size_uint_max[OF assms] by (auto simp: uint32_max_def uint64_max_def)
 
 lemma clss_size_upper:
   assumes
-   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
+   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close> and
-   in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < uint_max - 1\<close>
+   in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L < uint_max - 1\<close>
  shows \<open>size C \<le> uint_max\<close>
 proof -
   let ?A = \<open>remdups_mset (atm_of `# C)\<close>
@@ -481,7 +434,7 @@ proof -
       apply rule
       using literal.exhaust_sel by (auto simp: image_iff)
     done
-  have [simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (poss ?A)\<close> \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (negs ?A)\<close>
+  have [simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n (poss ?A)\<close> \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n (negs ?A)\<close>
     using lits
     by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_negs_remdups_mset literals_are_in_\<L>\<^sub>i\<^sub>n_poss_remdups_mset)
 
@@ -497,9 +450,9 @@ proof -
   then show ?thesis by (auto simp: uint_max_def)
 qed
 
-lemma (in isasat_input_bounded)
+lemma
   assumes
-    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
+    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A>\<^sub>i\<^sub>n M\<close> and
     n_d: \<open>no_dup M\<close>
   shows
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_length_le_uint32_max:
@@ -533,39 +486,42 @@ proof -
 qed
 
 lemma length_trail_uint_max_div2:
+  fixes M :: \<open>(nat, 'b) ann_lits\<close>
   assumes
-    M_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and n_d: \<open>no_dup M\<close>
+    M_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n\<close> and
+    n_d: \<open>no_dup M\<close>
   shows \<open>length M \<le> uint_max div 2 + 1\<close>
 proof -
   have dist_atm_M: \<open>distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
     using n_d by (metis distinct_mset_mset_distinct mset_map no_dup_def)
-  have incl: \<open>atm_of `# lit_of `# mset M \<subseteq># remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
+  have incl: \<open>atm_of `# lit_of `# mset M \<subseteq># remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
     apply (subst distinct_subseteq_iff[THEN iffD1])
     using assms dist_atm_M
-    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def no_dup_distinct
+    by (auto 5 5 simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def no_dup_distinct
         atm_of_eq_atm_of)
-
-  have inj_on: \<open>inj_on nat_of_lit (set_mset (remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l))\<close>
+  have inj_on: \<open>inj_on nat_of_lit (set_mset (remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)))\<close>
     by (auto simp: inj_on_def)
-  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> atm_of xa \<le> uint_max div 2\<close> for xa
+  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n \<Longrightarrow> atm_of xa \<le> uint_max div 2\<close> for xa
     using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
     by (cases xa) (auto simp: uint_max_def)
-  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l) \<subseteq># mset [0..< 1 + (uint_max div 2)]\<close>
+  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n) \<subseteq># mset [0..< 1 + (uint_max div 2)]\<close>
     apply (subst distinct_subseteq_iff[THEN iffD1])
     using H distinct_image_mset_inj[OF inj_on]
     by (force simp del: literal_of_nat.simps simp: distinct_mset_mset_set
         dest: le_neq_implies_less)+
   note _ = size_mset_mono[OF this]
-  moreover have \<open>size (nat_of_lit `# remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l) = size (remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
+  moreover have \<open>size (nat_of_lit `# remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)) = size (remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n))\<close>
     by simp
-  ultimately have 2: \<open>size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l)) \<le> 1 + uint_max div 2\<close>
+  ultimately have 2: \<open>size (remdups_mset (atm_of `# (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n))) \<le> 1 + uint_max div 2\<close>
     by auto
-  from size_mset_mono[OF incl] have 1: \<open>length M \<le> size (remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l))\<close>
+  from size_mset_mono[OF incl] have 1: \<open>length M \<le> size (remdups_mset (atm_of `# (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)))\<close>
     unfolding uint_max_def count_decided_def
     by (auto simp del: length_filter_le)
   with 2 show ?thesis
     by (auto simp: uint32_max_def)
 qed
+
+end
 
 end
 
@@ -747,7 +703,7 @@ abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rig
   \<open>ann_lit_wl_assn \<equiv> uint32_assn *a (option_assn nat_assn)\<close>
 
 abbreviation ann_lit_wl_fast_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl_fast \<Rightarrow> assn\<close> where
-  \<open>ann_lit_wl_fast_assn \<equiv> uint32_assn *a (option_assn uint32_nat_assn)\<close>
+  \<open>ann_lit_wl_fast_assn \<equiv> uint32_assn *a (option_assn uint64_nat_assn)\<close>
 
 abbreviation ann_lits_wl_assn :: \<open>ann_lits_wl \<Rightarrow> ann_lits_wl \<Rightarrow> assn\<close> where
   \<open>ann_lits_wl_assn \<equiv> list_assn ann_lit_wl_assn\<close>
@@ -983,9 +939,6 @@ lemma watched_by_nth_watched_app':
   by (cases S) (auto simp: watched_app_def)
 
 
-context isasat_input_bounded
-begin
-
 lemma (in -) safe_minus_nat_assn:
   \<open>(uncurry (return oo (-)), uncurry (RETURN oo fast_minus)) \<in>
      [\<lambda>(m, n). m \<ge> n]\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
@@ -1004,7 +957,7 @@ definition (in -) find_decomp_wl_imp' :: \<open>(nat, nat) ann_lits \<Rightarrow
 
 lemma nth_ll_watched_app:
   \<open>(uncurry2 (RETURN ooo nth_rll), uncurry2 (RETURN ooo watched_app)) \<in>
-     [\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel \<rightarrow>
+     [\<lambda>((W, L), i). L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)) \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel \<rightarrow>
        \<langle>nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
   unfolding watched_app_def nth_rll_def
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def br_def
@@ -1014,45 +967,6 @@ lemma ex_literal_of_nat: \<open>\<exists>bb. b = literal_of_nat bb\<close>
   by (cases b)
     (auto simp: nat_of_lit_def split: if_splits; presburger; fail)+
 
-
-lemma nth_aa_watched_app[sepref_fr_rules]:
-  \<open>(uncurry2 nth_aa_u, uncurry2 (RETURN ooo op_watched_app)) \<in>
-   [\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> i < length (W L)]\<^sub>a
-     array_watched_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn *a unat_lit_assn *a bool_assn\<close>
-  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have P: \<open>CONSTRAINT is_pure (nat_assn *a unat_lit_assn *a bool_assn)\<close>
-    by auto
-  have H: \<open>(uncurry2 nth_aa_u, uncurry2 (RETURN \<circ>\<circ>\<circ> watched_app))
-  \<in> [comp_PRE
-       (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f nat_lit_rel \<times>\<^sub>f nat_rel)
-       (\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)
-       (\<lambda>_ ((x, L), L'). L < length x \<and> L' < length (x ! L))
-       (\<lambda>_. True)]\<^sub>a
-    hrp_comp ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
-                        nat_assn\<^sup>k)
-              (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f
-                        nat_lit_rel \<times>\<^sub>f
-                        nat_rel) \<rightarrow> hr_comp (nat_assn *a unat_lit_assn *a bool_assn) (nat_rel \<times>\<^sub>f Id)\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF nth_aa_uint_hnr nth_ll_watched_app, OF P]
-     .
-
-  have 1: \<open>?pre' = ?pre\<close>
-    using ex_list_watched ex_literal_of_nat
-    by (auto simp: comp_PRE_def prod_rel_def_internal relAPP_def map_fun_rel_def[abs_def]
-        p2rel_def literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def nat_lit_rel_def br_def
-        simp del: literal_of_nat.simps intro!: ext) fastforce
-
-  have 2: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp by (auto simp: hrp_comp_def hr_comp_def nat_lit_rel_def p2rel_def
-        unat_lit_rel_def hr_comp_pure)
-  have 3: \<open>?f' = ?f\<close>
-    by (auto simp: hrp_comp_def hr_comp_def)
-
-  show ?thesis
-    using H unfolding 1 2 3 op_watched_app_def .
-qed
 
 definition (in -) is_pos_code :: \<open>uint32 \<Rightarrow> bool\<close> where
   \<open>is_pos_code L \<longleftrightarrow> bitAND L 1 = 0\<close>
@@ -1067,7 +981,7 @@ proof -
     apply sepref_to_hoare
     using nat_of_uint32_ao[of _ 1]
     by (sep_auto simp: p2rel_def unat_lit_rel_def uint32_nat_rel_def
-        nat_lit_rel_def br_def nat_of_uint32_012 is_pos_code_def
+        nat_lit_rel_def br_def is_pos_code_def
         nat_of_uint32_0_iff nat_0_AND uint32_0_AND
         split: if_splits)+
   show ?thesis
@@ -1083,142 +997,31 @@ definition delete_index_and_swap_update :: \<open>('a \<Rightarrow> 'b list) \<R
 text \<open>The precondition is not necessary.\<close>
 lemma delete_index_and_swap_ll_delete_index_and_swap_update:
   \<open>(uncurry2 (RETURN ooo delete_index_and_swap_ll), uncurry2 (RETURN ooo delete_index_and_swap_update))
-  \<in>[\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel \<rightarrow>
-      \<langle>\<langle>Id\<rangle>map_fun_rel D\<^sub>0\<rangle>nres_rel\<close>
+  \<in>[\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f (\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel \<rightarrow>
+      \<langle>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<rangle>nres_rel\<close>
   by (auto simp: delete_index_and_swap_ll_def uncurry_def fref_def nres_rel_def
       delete_index_and_swap_update_def map_fun_rel_def p2rel_def nat_lit_rel_def br_def
       nth_list_update' nat_lit_rel_def
       simp del: literal_of_nat.simps)
 
-lemma delete_index_and_swap_aa_hnr[sepref_fr_rules]:
-  shows \<open>(uncurry2  delete_index_and_swap_aa_u, uncurry2 (RETURN ooo delete_index_and_swap_update))
-     \<in> [\<lambda>((W,L), j). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> j < length (W L)]\<^sub>a
-        array_watched_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> array_watched_assn\<close>
-    (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
-proof -
-  have H: \<open>(uncurry2 delete_index_and_swap_aa_u, uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update))
-  \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f nat_lit_rel \<times>\<^sub>f nat_rel) (\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>j. i < length l \<and> j < length_ll l i) xa)
-       (\<lambda>x. nofail (uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update)
-                      x))]\<^sub>a hrp_comp ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
-                              (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f nat_lit_rel \<times>\<^sub>f nat_rel) \<rightarrow>
-     hr_comp (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn))) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<close>
-    (is \<open>?a \<in> [?pre']\<^sub>a ?init' \<rightarrow> ?post'\<close>)
-    using hfref_compI_PRE[OF delete_index_and_swap_aa_ll_hnr_u
-        delete_index_and_swap_ll_delete_index_and_swap_update, of "nat_assn *a unat_lit_assn *a bool_assn"] by simp
-  have b: \<open>\<exists>bb. (bb, b) \<in> nat_lit_rel\<close> for b
-    using ex_literal_of_nat
-    by (auto simp: p2rel_def Pos_div2_iff Neg_div2_iff nat_lit_rel_def br_def)
-  have ba_length_a_b: \<open>ba < length (a b)\<close>
-    if bN: \<open>b \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
-      H: \<open>\<And>aa bb. (\<forall>x\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x) \<and>
-          (bb, b) \<in> nat_lit_rel \<longrightarrow>
-          bb < length aa \<and>
-          ba < length (aa ! bb)\<close>
-    for a :: \<open>nat literal \<Rightarrow> nat list\<close> and b :: \<open>nat literal\<close> and ba :: nat
-  proof -
-    obtain aa where
-      aa: \<open>\<forall>x\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x\<close>
-      using ex_list_watched[of a] by blast
-    then have \<open>nat_of_lit b < length aa\<close> and aa_b_a_b: \<open>aa ! nat_of_lit b = a b\<close>
-      using bN by blast+
-
-    obtain bb where bb: \<open>(bb, b) \<in> nat_lit_rel\<close>
-      using b[of b] by blast
-    show ?thesis
-      using H[of aa bb] aa bb aa_b_a_b by (auto simp: p2rel_def nat_lit_rel_def br_def)
-  qed
-
-  have pre: \<open>?pre' = ?pre\<close>
-  using ex_list_watched
-    apply (auto simp: comp_PRE_def map_fun_rel_def nat_lit_rel_def br_def
-        image_image ba_length_a_b
-        Pos_div2_iff Neg_div2_iff all_conj_distrib length_ll_def
-        intro!: ext split: if_splits)
-    apply (auto simp: p2rel_def nat_lit_rel_def split: if_splits)
-    by (metis atm_of_lit_of_nat ex_list_watched
-      lit_of_nat_nat_of_lit literal_of_nat.simps)
-
-  have
-    1: \<open>hrp_comp (nat_assn\<^sup>k) nat_rel = nat_assn\<^sup>k\<close> and
-    2: \<open>hrp_comp (uint32_nat_assn\<^sup>k) nat_lit_rel = unat_lit_assn\<^sup>k\<close>
-     by (auto simp: hrp_comp_def)
-  have init: \<open>?init' = ?init\<close>
-    unfolding prod_hrp_comp 1 2 hrp_comp_dest by blast
-
-  have post: \<open>?post' = ?post\<close>
-    by simp
-  show ?thesis
-    using H unfolding pre init .
-qed
-
-definition (in isasat_input_ops) append_update :: \<open>('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'a \<Rightarrow> 'b list\<close> where
+definition append_update :: \<open>('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'a \<Rightarrow> 'b list\<close> where
   \<open>append_update W L a = W(L:= W (L) @ [a])\<close>
 
 lemma append_ll_append_update:
   \<open>(uncurry2 (RETURN ooo (\<lambda>xs i j. append_ll xs (nat_of_uint32 i) j)), uncurry2 (RETURN ooo append_update))
-  \<in>  [\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f
-     \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>Id\<rangle>map_fun_rel D\<^sub>0\<rangle>nres_rel\<close>
+  \<in>  [\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f
+     \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<rangle>nres_rel\<close>
   by (auto simp: append_ll_def uncurry_def fref_def nres_rel_def
       delete_index_and_swap_update_def map_fun_rel_def p2rel_def nat_lit_rel_def
       nth_list_update' append_update_def nat_lit_rel_def unat_lit_rel_def br_def
-      uint32_nat_rel_def
+      uint32_nat_rel_def append_update_def
       simp del: literal_of_nat.simps)
 
-lemma append_el_aa_hnr[sepref_fr_rules]:
-  shows \<open>(uncurry2 append_el_aa_u', uncurry2 (RETURN ooo append_update))
-     \<in> [\<lambda>((W,L), j). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
-        array_watched_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (nat_assn *a unat_lit_assn *a bool_assn)\<^sup>k \<rightarrow> array_watched_assn\<close>
-    (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
-proof -
-  have H: \<open> ?a \<in>
-  [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f Id)
-    (\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)
-    (\<lambda>x y. case y of
-           (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>x. nat_of_uint32 i < length l) xa)
-    (\<lambda>x. nofail
-          (uncurry2 (RETURN \<circ>\<circ>\<circ> append_update)
-            x))]\<^sub>a hrp_comp
-                    ((arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))\<^sup>d *\<^sub>a
-                     uint32_assn\<^sup>k *\<^sub>a
-                     (nat_assn *a unat_lit_assn *a bool_assn)\<^sup>k)
-                    (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f
-                     Id) \<rightarrow> hr_comp
-                            (arrayO_assn (arl_assn (nat_assn *a unat_lit_assn *a bool_assn)))
-                            (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)
-     \<close>
-    (is \<open>?a \<in> [?pre']\<^sub>a ?init' \<rightarrow> ?post'\<close>)
-    using hfref_compI_PRE[OF append_aa_hnr_u
-        append_ll_append_update, of \<open>(nat_assn *a unat_lit_assn *a bool_assn)\<close>]
-    unfolding append_el_aa_append_el_aa_u' by simp
-  have b: \<open>\<exists>bb. (bb, b) \<in> nat_lit_rel\<close> for b
-    using ex_literal_of_nat
-    by (auto simp: p2rel_def Pos_div2_iff Neg_div2_iff nat_lit_rel_def br_def)
 
-  have pre: \<open>?pre' = ?pre\<close>
-    apply (auto simp: comp_PRE_def map_fun_rel_def image_image
-        Pos_div2_iff Neg_div2_iff all_conj_distrib length_ll_def
-        intro!: ext split: if_splits)
-    by (auto simp: p2rel_def unat_lit_rel_def br_def nat_lit_rel_def uint32_nat_rel_def
-        split: if_splits)
-
-  have
-    1: \<open>hrp_comp ((nat_assn *a unat_lit_assn *a bool_assn)\<^sup>k) Id = (nat_assn *a unat_lit_assn *a bool_assn)\<^sup>k\<close> and
-    2: \<open>hrp_comp (uint32_assn\<^sup>k) unat_lit_rel = unat_lit_assn\<^sup>k\<close>
-     by (auto simp: hrp_comp_def)
-  have init: \<open>?init' = ?init\<close>
-    unfolding prod_hrp_comp 1 2 hrp_comp_dest by blast
-
-  have post: \<open>?post' = ?post\<close>
-    by simp
-  show ?thesis
-    using H unfolding pre init by blast
-qed
-
-
-definition (in isasat_input_ops) is_decided_hd_trail_wl where
+definition is_decided_hd_trail_wl where
   \<open>is_decided_hd_trail_wl S = is_decided (hd (get_trail_wl S))\<close>
 
-definition (in isasat_input_ops) is_decided_hd_trail_wll :: \<open>nat twl_st_wl \<Rightarrow> bool nres\<close> where
+definition is_decided_hd_trail_wll :: \<open>nat twl_st_wl \<Rightarrow> bool nres\<close> where
   \<open>is_decided_hd_trail_wll = (\<lambda>(M, N, D, NE, UE, Q, W).
      RETURN (is_decided (hd M))
    )\<close>
@@ -1250,14 +1053,14 @@ lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
       simp del: literal_of_nat.simps)+
 
 lemma set_mset_all_lits_of_mm_atms_of_ms_iff:
-  \<open>set_mset (all_lits_of_mm A) = set_mset \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-  apply (auto simp: atms_of_s_def in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
-      atms_of_def atm_of_eq_atm_of in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-  apply (auto simp: in_all_lits_of_mm_ain_atms_of_iff in_implies_atm_of_on_atms_of_ms)
-  done \<comment> \<open>TODO tune proof\<close>
+  \<open>set_mset (all_lits_of_mm A) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
+  by (force simp: atms_of_s_def in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
+      atms_of_def atm_of_eq_atm_of in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+      all_lits_of_mm_add_mset all_lits_of_m_add_mset
+      eq_commute[of \<open>set_mset (all_lits_of_mm _)\<close> \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l _)\<close>]
+      dest: multi_member_split)
 
-
-definition (in -) card_max_lvl where
+definition card_max_lvl where
   \<open>card_max_lvl M C \<equiv> size (filter_mset (\<lambda>L. get_level M L = count_decided M) C)\<close>
 
 lemma card_max_lvl_add_mset: \<open>card_max_lvl M (add_mset L C) =
@@ -1309,27 +1112,31 @@ qed
 
 
 lemma Pos_unat_lit_assn:
-  \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+  \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> isasat_input_bounded \<A>]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
      unat_lit_assn\<close>
-  apply sepref_to_hoare
-  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
-  by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
+  by sepref_to_hoare
+    (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
       nat_of_uint32_distrib_mult2)
 
 lemma Neg_unat_lit_assn:
-  \<open>(return o (\<lambda>n. two_uint32 * n +1), RETURN o Neg) \<in> [\<lambda>L. Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+  \<open>(return o (\<lambda>n. two_uint32 * n +1), RETURN o Neg) \<in> [\<lambda>L. Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> isasat_input_bounded \<A>]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
       unat_lit_assn\<close>
-  apply sepref_to_hoare
-  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
-  by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
+  by sepref_to_hoare
+   (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
       nat_of_uint32_distrib_mult2_plus1 uint_max_def)
-end
 
 lemma Pos_unat_lit_assn':
   \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. L \<le> uint_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
      unat_lit_assn\<close>
-  apply sepref_to_hoare
-  by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
+  by sepref_to_hoare
+   (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
       nat_of_uint32_distrib_mult2 uint_max_def)
+
+lemma Neg_unat_lit_assn':
+  \<open>(return o (\<lambda>n. two_uint32 * n + 1), RETURN o Neg) \<in> [\<lambda>L. L \<le> uint_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+     unat_lit_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
+      nat_of_uint32_distrib_mult2 uint_max_def nat_of_uint32_add)
 
 end
