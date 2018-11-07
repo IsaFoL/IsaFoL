@@ -67,7 +67,7 @@ sepref_definition cdcl_twl_o_prog_wl_D_fast_code
   is \<open>cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a
       isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_bounded_assn\<close>
-  unfolding cdcl_twl_o_prog_wl_D_heur_def PR_CONST_def
+  unfolding cdcl_twl_o_prog_wl_D_heur_alt_def PR_CONST_def
   unfolding get_conflict_wl_is_None get_conflict_wl_is_None_heur_alt_def[symmetric]
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   by sepref

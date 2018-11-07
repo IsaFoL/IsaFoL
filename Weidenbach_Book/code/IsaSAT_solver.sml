@@ -3884,6 +3884,157 @@ fun skip_and_resolve_loop_wl_D_fast x =
     end)
     x;
 
+fun sgn_integer k =
+  (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
+    else (if IntInf.< (k, (0 : IntInf.int)) then (~1 : IntInf.int)
+           else (1 : IntInf.int)));
+
+fun apsnd f (x, y) = (x, f y);
+
+fun divmod_integer k l =
+  (if ((k : IntInf.int) = (0 : IntInf.int))
+    then ((0 : IntInf.int), (0 : IntInf.int))
+    else (if ((l : IntInf.int) = (0 : IntInf.int)) then ((0 : IntInf.int), k)
+           else (apsnd o (fn a => fn b => IntInf.* (a, b)) o sgn_integer) l
+                  (if (((sgn_integer k) : IntInf.int) = (sgn_integer l))
+                    then IntInf.divMod (IntInf.abs k, IntInf.abs l)
+                    else let
+                           val (r, s) =
+                             IntInf.divMod (IntInf.abs k, IntInf.abs l);
+                         in
+                           (if ((s : IntInf.int) = (0 : IntInf.int))
+                             then (IntInf.~ r, (0 : IntInf.int))
+                             else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
+                                    IntInf.- (IntInf.abs l, s)))
+                         end)));
+
+fun modulo_integer k l = snd (divmod_integer k l);
+
+fun modulo_nat m n = Nat (modulo_integer (integer_of_nat m) (integer_of_nat n));
+
+fun divide_integer k l = fst (divmod_integer k l);
+
+fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
+
+fun string_of_digit n =
+  (if equal_nat n zero_nata
+    then [Chara (false, false, false, false, true, true, false, false)]
+    else (if equal_nat n one_nata
+           then [Chara (true, false, false, false, true, true, false, false)]
+           else (if equal_nat n (nat_of_integer (2 : IntInf.int))
+                  then [Chara (false, true, false, false, true, true, false,
+                                false)]
+                  else (if equal_nat n (nat_of_integer (3 : IntInf.int))
+                         then [Chara (true, true, false, false, true, true,
+                                       false, false)]
+                         else (if equal_nat n (nat_of_integer (4 : IntInf.int))
+                                then [Chara
+(false, false, true, false, true, true, false, false)]
+                                else (if equal_nat n
+   (nat_of_integer (5 : IntInf.int))
+                                       then [Chara
+       (true, false, true, false, true, true, false, false)]
+                                       else (if equal_nat n
+          (nat_of_integer (6 : IntInf.int))
+      then [Chara (false, true, true, false, true, true, false, false)]
+      else (if equal_nat n (nat_of_integer (7 : IntInf.int))
+             then [Chara (true, true, true, false, true, true, false, false)]
+             else (if equal_nat n (nat_of_integer (8 : IntInf.int))
+                    then [Chara (false, false, false, true, true, true, false,
+                                  false)]
+                    else [Chara (true, false, false, true, true, true, false,
+                                  false)])))))))));
+
+fun showsp_nat p n =
+  (if less_nat n (nat_of_integer (10 : IntInf.int))
+    then shows_string (string_of_digit n)
+    else showsp_nat p (divide_nat n (nat_of_integer (10 : IntInf.int))) o
+           shows_string
+             (string_of_digit
+               (modulo_nat n (nat_of_integer (10 : IntInf.int)))));
+
+fun shows_prec_nat x = showsp_nat x;
+
+fun shows_prec_uint64 n m xs = shows_prec_nat n (nat_of_uint64 m) xs;
+
+fun shows_prec_list A_ p xs = shows_list A_ xs;
+
+fun isasat_current_information x =
+  (fn (propa, (confl, (decs, (frestarts, lrestarts)))) => fn lcount =>
+    (if (((Uint64.andb confl
+            (Uint64.fromInt
+              (8191 : IntInf.int))) : Uint64.uint64) = (Uint64.fromInt
+                 (8191 : IntInf.int)))
+      then ignore (print
+             (implode
+                (shows_prec_list show_char zero_nata
+                   [Chara (true, true, false, false, false, true, true, false),
+                     Chara (false, false, false, false, false, true, false,
+                             false),
+                     Chara (false, false, true, true, true, true, true, false),
+                     Chara (false, false, false, false, false, true, false,
+                             false)]
+                   [] @
+                  shows_prec_uint64 zero_nata confl [] @
+                    shows_prec_list show_char zero_nata
+                      [Chara (false, false, false, false, false, true, false,
+                               false),
+                        Chara (false, false, true, true, true, true, true,
+                                false),
+                        Chara (false, false, false, false, false, true, false,
+                                false)]
+                      [] @
+                      shows_prec_uint64 zero_nata propa [] @
+                        shows_prec_list show_char zero_nata
+                          [Chara (false, false, false, false, false, true,
+                                   false, false),
+                            Chara (false, false, true, true, true, true, true,
+                                    false),
+                            Chara (false, false, false, false, false, true,
+                                    false, false)]
+                          [] @
+                          shows_prec_uint64 zero_nata decs [] @
+                            shows_prec_list show_char zero_nata
+                              [Chara (false, false, false, false, false, true,
+                                       false, false),
+                                Chara (false, false, true, true, true, true,
+true, false),
+                                Chara (false, false, false, false, false, true,
+false, false)]
+                              [] @
+                              shows_prec_uint64 zero_nata frestarts [] @
+                                shows_prec_list show_char zero_nata
+                                  [Chara (false, false, false, false, false,
+   true, false, false),
+                                    Chara (false, false, true, true, true, true,
+    true, false),
+                                    Chara (false, false, false, false, false,
+    true, false, false)]
+                                  [] @
+                                  shows_prec_uint64 zero_nata lrestarts [] @
+                                    shows_prec_list show_char zero_nata
+                                      [Chara
+ (false, false, false, false, false, true, false, false),
+Chara (false, false, true, true, true, true, true, false),
+Chara (false, false, false, false, false, true, false, false)]
+                                      [] @
+                                      shows_prec_nat zero_nata lcount
+[]) ^ "\n"))
+      else ()))
+    x;
+
+fun isasat_current_status_fast_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, (a1k, (_, (_, (_, (_, (_, (a1q, _))))))))))))))))))
+          = xi;
+      in
+        isasat_current_information a1k a1q
+      end))
+    x;
+
 fun get_next (VMTF_Node (x1, x2, x3)) = x3;
 
 fun defined_atm_fast_code x =
@@ -5249,7 +5400,10 @@ fun cdcl_twl_o_prog_wl_D_fast_code x =
                       (fn x_b =>
                         (fn f_ => fn () => f_ ((backtrack_wl_D_fast_code x_b)
                           ()) ())
-                          (fn x_c => (fn () => (false, x_c))))
+                          (fn x_c =>
+                            (fn f_ => fn () => f_
+                              ((isasat_current_status_fast_code x_c) ()) ())
+                              (fn _ => (fn () => (false, x_c)))))
                else (fn () => (true, xi))))
         ()
     end)
@@ -5494,145 +5648,6 @@ fun skip_and_resolve_loop_wl_D x =
       end
         ()
     end)
-    x;
-
-fun sgn_integer k =
-  (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
-    else (if IntInf.< (k, (0 : IntInf.int)) then (~1 : IntInf.int)
-           else (1 : IntInf.int)));
-
-fun apsnd f (x, y) = (x, f y);
-
-fun divmod_integer k l =
-  (if ((k : IntInf.int) = (0 : IntInf.int))
-    then ((0 : IntInf.int), (0 : IntInf.int))
-    else (if ((l : IntInf.int) = (0 : IntInf.int)) then ((0 : IntInf.int), k)
-           else (apsnd o (fn a => fn b => IntInf.* (a, b)) o sgn_integer) l
-                  (if (((sgn_integer k) : IntInf.int) = (sgn_integer l))
-                    then IntInf.divMod (IntInf.abs k, IntInf.abs l)
-                    else let
-                           val (r, s) =
-                             IntInf.divMod (IntInf.abs k, IntInf.abs l);
-                         in
-                           (if ((s : IntInf.int) = (0 : IntInf.int))
-                             then (IntInf.~ r, (0 : IntInf.int))
-                             else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
-                                    IntInf.- (IntInf.abs l, s)))
-                         end)));
-
-fun modulo_integer k l = snd (divmod_integer k l);
-
-fun modulo_nat m n = Nat (modulo_integer (integer_of_nat m) (integer_of_nat n));
-
-fun divide_integer k l = fst (divmod_integer k l);
-
-fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
-
-fun string_of_digit n =
-  (if equal_nat n zero_nata
-    then [Chara (false, false, false, false, true, true, false, false)]
-    else (if equal_nat n one_nata
-           then [Chara (true, false, false, false, true, true, false, false)]
-           else (if equal_nat n (nat_of_integer (2 : IntInf.int))
-                  then [Chara (false, true, false, false, true, true, false,
-                                false)]
-                  else (if equal_nat n (nat_of_integer (3 : IntInf.int))
-                         then [Chara (true, true, false, false, true, true,
-                                       false, false)]
-                         else (if equal_nat n (nat_of_integer (4 : IntInf.int))
-                                then [Chara
-(false, false, true, false, true, true, false, false)]
-                                else (if equal_nat n
-   (nat_of_integer (5 : IntInf.int))
-                                       then [Chara
-       (true, false, true, false, true, true, false, false)]
-                                       else (if equal_nat n
-          (nat_of_integer (6 : IntInf.int))
-      then [Chara (false, true, true, false, true, true, false, false)]
-      else (if equal_nat n (nat_of_integer (7 : IntInf.int))
-             then [Chara (true, true, true, false, true, true, false, false)]
-             else (if equal_nat n (nat_of_integer (8 : IntInf.int))
-                    then [Chara (false, false, false, true, true, true, false,
-                                  false)]
-                    else [Chara (true, false, false, true, true, true, false,
-                                  false)])))))))));
-
-fun showsp_nat p n =
-  (if less_nat n (nat_of_integer (10 : IntInf.int))
-    then shows_string (string_of_digit n)
-    else showsp_nat p (divide_nat n (nat_of_integer (10 : IntInf.int))) o
-           shows_string
-             (string_of_digit
-               (modulo_nat n (nat_of_integer (10 : IntInf.int)))));
-
-fun shows_prec_nat x = showsp_nat x;
-
-fun shows_prec_uint64 n m xs = shows_prec_nat n (nat_of_uint64 m) xs;
-
-fun shows_prec_list A_ p xs = shows_list A_ xs;
-
-fun isasat_current_information x =
-  (fn (propa, (confl, (decs, (frestarts, lrestarts)))) => fn lcount =>
-    (if (((Uint64.andb confl
-            (Uint64.fromInt
-              (8191 : IntInf.int))) : Uint64.uint64) = (Uint64.fromInt
-                 (8191 : IntInf.int)))
-      then ignore (print
-             (implode
-                (shows_prec_list show_char zero_nata
-                   [Chara (true, true, false, false, false, true, true, false),
-                     Chara (false, false, false, false, false, true, false,
-                             false),
-                     Chara (false, false, true, true, true, true, true, false),
-                     Chara (false, false, false, false, false, true, false,
-                             false)]
-                   [] @
-                  shows_prec_uint64 zero_nata confl [] @
-                    shows_prec_list show_char zero_nata
-                      [Chara (false, false, false, false, false, true, false,
-                               false),
-                        Chara (false, false, true, true, true, true, true,
-                                false),
-                        Chara (false, false, false, false, false, true, false,
-                                false)]
-                      [] @
-                      shows_prec_uint64 zero_nata propa [] @
-                        shows_prec_list show_char zero_nata
-                          [Chara (false, false, false, false, false, true,
-                                   false, false),
-                            Chara (false, false, true, true, true, true, true,
-                                    false),
-                            Chara (false, false, false, false, false, true,
-                                    false, false)]
-                          [] @
-                          shows_prec_uint64 zero_nata decs [] @
-                            shows_prec_list show_char zero_nata
-                              [Chara (false, false, false, false, false, true,
-                                       false, false),
-                                Chara (false, false, true, true, true, true,
-true, false),
-                                Chara (false, false, false, false, false, true,
-false, false)]
-                              [] @
-                              shows_prec_uint64 zero_nata frestarts [] @
-                                shows_prec_list show_char zero_nata
-                                  [Chara (false, false, false, false, false,
-   true, false, false),
-                                    Chara (false, false, true, true, true, true,
-    true, false),
-                                    Chara (false, false, false, false, false,
-    true, false, false)]
-                                  [] @
-                                  shows_prec_uint64 zero_nata lrestarts [] @
-                                    shows_prec_list show_char zero_nata
-                                      [Chara
- (false, false, false, false, false, true, false, false),
-Chara (false, false, true, true, true, true, true, false),
-Chara (false, false, false, false, false, true, false, false)]
-                                      [] @
-                                      shows_prec_nat zero_nata lcount
-[]) ^ "\n"))
-      else ()))
     x;
 
 fun isasat_current_status_code x =
