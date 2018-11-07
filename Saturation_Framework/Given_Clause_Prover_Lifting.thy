@@ -13,15 +13,29 @@ theory Given_Clause_Prover_Lifting
     "../lib/Explorer"
 begin
 
-
 context FO_resolution_prover
 begin
+
+thm ord_resolve_rename_sound
+
+lemma "sound_inference_system (ord_FO_\<Gamma> S)"
+  unfolding Inference_System.sound_inference_system_def ord_FO_\<Gamma>_def
+proof clarify
+  fix CC D E I CAs DA AAs As \<sigma> Ea
+  assume
+    res_inf: "ord_resolve_rename S CAs DA AAs As \<sigma> Ea" and
+    entail_side_prec: "I \<Turnstile>m mset CAs" and
+    entails_main_prec: "I \<Turnstile> DA"
+  then show "I \<Turnstile> Ea" using ord_resolve_rename_sound[of S CAs DA AAs As \<sigma> Ea] apply auto
+
+oops
+
 
 (* This part corresponds to section 5.2 step (1) in the technical report*)
 abbreviation Bot_F :: "'a clause set" where "Bot_F \<equiv> {{#}}"
 
 definition entails_sound_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>F" 50)  where
-  "S1 |\<approx>F S2 \<equiv> \<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"
+  "S1 |\<approx>F S2 \<equiv> (\<forall>I \<eta>. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s S1 \<cdot>cs \<sigma>)  \<longrightarrow> is_ground_subst \<eta>  \<longrightarrow> I \<Turnstile>s S2 \<cdot>cs \<eta>)" (*\<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"*)
 
 definition (in -) list_mset :: "'b multiset \<Rightarrow> 'b list" where
   "list_mset M = (SOME L. mset L = M)"
@@ -39,22 +53,24 @@ definition Inf_F :: "'a clause Saturation_Framework_Preliminaries.inference set"
   "Inf_F = conv_inf ` (ord_FO_\<Gamma> S)"
 
 interpretation Saturation_Framework_Preliminaries.sound_inference_system Bot_F entails_sound_F Inf_F 
-  unfolding Saturation_Framework_Preliminaries.sound_inference_system_def
-    consequence_relation_def entails_sound_F_def
-    Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
-proof auto
+proof - 
+(*  {
   fix N1 N2 I
   assume
     incl: "N2 \<subseteq> N1" and
     entails: "I \<Turnstile>s N1"
-  show "I \<Turnstile>s N2" using true_clss_mono[OF incl entails] by simp
-next
+  have "I \<Turnstile>s N2" using true_clss_mono[OF incl entails] by simp
+  }
+  moreover
+  {
   fix N1 N2 I
   assume
     "\<forall>C\<in>N2. \<forall>I. I \<Turnstile>s N1 \<longrightarrow> I \<Turnstile> C" and
     "I \<Turnstile>s N1"
-  then show "I \<Turnstile>s N2" by (simp add: true_clss_def)
-next
+  then have "I \<Turnstile>s N2" by (simp add: true_clss_def)
+  }
+  moreover
+  {
   fix \<iota> I
   assume
     i_in: "\<iota> \<in> Inf_F" and
@@ -69,15 +85,21 @@ next
   have I_entails_concl_RP: "I \<Turnstile> concl_of \<iota>_RP"
     using I_entails_prems_RP sound_inference_system.\<Gamma>_sound[of "ord_FO_\<Gamma> S" "side_prems_of \<iota>_RP"
       "main_prem_of \<iota>_RP" "concl_of \<iota>_RP" I] i_RP_in apply auto sorry
-  then show "I \<Turnstile> Saturation_Framework_Preliminaries.inference.concl_of \<iota>" 
-
+  then have "I \<Turnstile> Saturation_Framework_Preliminaries.inference.concl_of \<iota>" sorry
+  }
+ultimately*) show "Saturation_Framework_Preliminaries.sound_inference_system Bot_F (|\<approx>F) Inf_F"
+  unfolding Saturation_Framework_Preliminaries.sound_inference_system_def
+    consequence_relation_def entails_sound_F_def
+    Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
+  by auto
 oops
 
 
 abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
 
 definition Inf_G :: "'a clause Saturation_Framework_Preliminaries.inference set" where
-  "Inf_G = {\<iota> \<in> Inf_F. filter (\<lambda>C. \<not> (is_ground_cls C)) (Saturation_Framework_Preliminaries.inference.prems_of \<iota>) = []}"
+  "Inf_G = {\<iota> \<in> Inf_F. filter (\<lambda>C. \<not> (is_ground_cls C))
+  (Saturation_Framework_Preliminaries.inference.prems_of \<iota>) = []}"
 
 (* This part corresponds to section 5.2 step (2) in the technical report*)
 
