@@ -9,6 +9,7 @@ text \<open>To ease the proof, we introduce the following ``alternative'' defini
 fun correct_watching' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching' (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
     (\<forall>L \<in># all_lits_of_mm (mset `# init_clss_lf N + NE).
+       distinct_watched (W L) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L).
              i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L).
@@ -78,6 +79,8 @@ lemma correct_watching_fmdrop:
   shows \<open>correct_watching' (M, fmdrop C N, D, NE, UE, Q, W)\<close>
 proof -
   have
+    Hdist: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+       distinct_watched (W L)\<close> and
     H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
        (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and>
          correctly_marked_as_binary N (i, K, b)\<close> and
@@ -109,6 +112,13 @@ proof -
   show ?thesis
     unfolding correct_watching'.simps clause_to_update_def
     apply (intro conjI impI ballI)
+    subgoal for L using Hdist[of L] distinct_mset_dom[of N]
+        H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
+        H1'[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>]
+      apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
+      distinct_mset_remove1_All filter_mset_neq_cond correctly_marked_as_binary.simps dest: all_lits_of_mm_diffD
+        dest: multi_member_split)
+      done
     subgoal for L iK
       using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
         H1'[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>]
@@ -143,6 +153,8 @@ lemma correct_watching_fmdrop':
   shows \<open>correct_watching' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close>
 proof -
   have
+    Hdist: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+       distinct_watched (W L)\<close> and
     H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
        (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow>
           K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)\<close> and
@@ -174,6 +186,13 @@ proof -
   show ?thesis
     unfolding correct_watching'.simps clause_to_update_def
     apply (intro conjI impI ballI)
+    subgoal for L
+      using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
+        Hdist[of L]
+      apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
+      distinct_mset_remove1_All filter_mset_neq_cond correctly_marked_as_binary.simps dest: all_lits_of_mm_diffD
+        dest: multi_member_split)
+      done
     subgoal for L iK
       using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
       apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
@@ -207,6 +226,8 @@ lemma correct_watching_fmdrop'':
   shows \<open>correct_watching' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close>
 proof -
   have
+    Hdist: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+       distinct_watched (W L)\<close> and
     H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
        (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and>
           K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)\<close> and
@@ -238,6 +259,13 @@ proof -
   show ?thesis
     unfolding correct_watching'.simps clause_to_update_def
     apply (intro conjI impI ballI)
+    subgoal for L
+      using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
+        Hdist[of L]
+      apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
+      distinct_mset_remove1_All filter_mset_neq_cond correctly_marked_as_binary.simps dest: all_lits_of_mm_diffD
+        dest: multi_member_split)
+      done
     subgoal for L iK
       using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
       apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset

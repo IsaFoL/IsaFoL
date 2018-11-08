@@ -1055,6 +1055,7 @@ definition unit_propagation_inner_loop_body_wl_heur
       ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S0));
       ASSERT(unit_prop_body_wl_heur_inv S j w L);
       ASSERT(polarity_st_heur_pre (S, K));
+(*      ASSERT(isasat_fast S0 \<longrightarrow> j < uint64_max \<and> w < uint64_max);*)
       let val_K = polarity_st_heur S K;
       if val_K = Some True
       then RETURN (j+1, w+1, S)
@@ -1073,52 +1074,52 @@ definition unit_propagation_inner_loop_body_wl_heur
              RETURN (j+1, w+1, S)}
         }
         else do {
-        \<comment>\<open>Now the costly operations:\<close>
-        ASSERT(clause_not_marked_to_delete_heur_pre (S, C));
-        if \<not>clause_not_marked_to_delete_heur S C
-        then RETURN (j, w+1, S)
-        else do {
-          ASSERT(access_lit_in_clauses_heur_pre ((S, C), 0));
-          let i = (if access_lit_in_clauses_heur S C 0 = L then 0 else 1);
-          ASSERT(access_lit_in_clauses_heur_pre ((S, C), 1 - i));
-          let L' = access_lit_in_clauses_heur S C (1 - i);
-          ASSERT(polarity_st_heur_pre (S, L'));
-          let val_L' = polarity_st_heur S L';
-          if val_L' = Some True
-          then update_blit_wl_heur L C b j w L' S
-          else do {
-            ASSERT(find_unwatched_wl_st_heur_pre (S, C));
-            f \<leftarrow> isa_find_unwatched_wl_st_heur S C;
-            ASSERT (unit_prop_body_wl_D_find_unwatched_heur_inv f C S);
-            case f of
-              None \<Rightarrow> do {
-                if val_L' = Some False
-                then do {
-                  ASSERT(set_conflict_wl_heur_pre (C, S));
-                  S \<leftarrow> set_conflict_wl_heur C S;
-                  RETURN (j+1, w+1, S)}
-                else do {
-                  ASSERT(propagate_lit_wl_heur_pre (((L', C), i), S));
-                  S \<leftarrow> propagate_lit_wl_heur L' C i S;
-                  RETURN (j+1, w+1, S)}
-              }
-            | Some f \<Rightarrow> do {
-                S \<leftarrow> isa_save_pos C f S;
-                ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S0));
-                ASSERT(access_lit_in_clauses_heur_pre ((S, C), f));
-                let K = access_lit_in_clauses_heur S C f;
-                ASSERT(polarity_st_heur_pre (S, K));
-                let val_L' = polarity_st_heur S K;
-                if val_L' = Some True
-                then update_blit_wl_heur L C b j w K S
-                else do {
-                  ASSERT(update_clause_wl_code_pre (((((((L, C), b), j), w), i), f), S));
-                  update_clause_wl_heur L C b j w i f S
-                }
-              }
+	  \<comment>\<open>Now the costly operations:\<close>
+	  ASSERT(clause_not_marked_to_delete_heur_pre (S, C));
+	  if \<not>clause_not_marked_to_delete_heur S C
+	  then RETURN (j, w+1, S)
+	  else do {
+	    ASSERT(access_lit_in_clauses_heur_pre ((S, C), 0));
+	    let i = (if access_lit_in_clauses_heur S C 0 = L then 0 else 1);
+	    ASSERT(access_lit_in_clauses_heur_pre ((S, C), 1 - i));
+	    let L' = access_lit_in_clauses_heur S C (1 - i);
+	    ASSERT(polarity_st_heur_pre (S, L'));
+	    let val_L' = polarity_st_heur S L';
+	    if val_L' = Some True
+	    then update_blit_wl_heur L C b j w L' S
+	    else do {
+	      ASSERT(find_unwatched_wl_st_heur_pre (S, C));
+	      f \<leftarrow> isa_find_unwatched_wl_st_heur S C;
+	      ASSERT (unit_prop_body_wl_D_find_unwatched_heur_inv f C S);
+	      case f of
+		None \<Rightarrow> do {
+		  if val_L' = Some False
+		  then do {
+		    ASSERT(set_conflict_wl_heur_pre (C, S));
+		    S \<leftarrow> set_conflict_wl_heur C S;
+		    RETURN (j+1, w+1, S)}
+		  else do {
+		    ASSERT(propagate_lit_wl_heur_pre (((L', C), i), S));
+		    S \<leftarrow> propagate_lit_wl_heur L' C i S;
+		    RETURN (j+1, w+1, S)}
+		}
+	      | Some f \<Rightarrow> do {
+		  S \<leftarrow> isa_save_pos C f S;
+		  ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S0));
+		  ASSERT(access_lit_in_clauses_heur_pre ((S, C), f));
+		  let K = access_lit_in_clauses_heur S C f;
+		  ASSERT(polarity_st_heur_pre (S, K));
+		  let val_L' = polarity_st_heur S K;
+		  if val_L' = Some True
+		  then update_blit_wl_heur L C b j w K S
+		  else do {
+		    ASSERT(update_clause_wl_code_pre (((((((L, C), b), j), w), i), f), S));
+		    update_clause_wl_heur L C b j w i f S
+		  }
+	       }
+	    }
           }
         }
-      }
      }
    }\<close>
 

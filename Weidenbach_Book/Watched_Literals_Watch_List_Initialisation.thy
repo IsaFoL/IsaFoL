@@ -255,6 +255,7 @@ fun correct_watching_init :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> wher
   [simp del]: \<open>correct_watching_init (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
     all_blits_are_in_problem_init (M, N, D, NE, UE, Q, W) \<and>
     (\<forall>L.
+        distinct_watched (W L) \<and>
         (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and>
            correctly_marked_as_binary N (i, K, b)) \<and>
         fst `# mset (W L) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
@@ -347,7 +348,7 @@ lemma correct_watching_init_add_clause:
   assumes
     corr: \<open>correct_watching_init ((a, aa, None, ac, ad, Q, b))\<close> and
     leC: \<open>2 \<le> length C\<close> and
-    [simp]: \<open>i \<notin># dom_m aa\<close> and
+    i_notin[simp]: \<open>i \<notin># dom_m aa\<close> and
     dist[iff]: \<open>C ! 0 \<noteq> C ! Suc 0\<close>
   shows \<open>correct_watching_init
           ((a, fmupd i (C, red) aa, None, ac, ad, Q, b
@@ -357,12 +358,17 @@ proof -
   have [iff]: \<open>C ! Suc 0 \<noteq> C ! 0\<close>
     using  \<open>C ! 0 \<noteq> C ! Suc 0\<close> by argo
   have [iff]: \<open>C ! Suc 0 \<in># all_lits_of_m (mset C)\<close> \<open>C ! 0 \<in># all_lits_of_m (mset C)\<close>
-    \<open> C ! Suc 0 \<in> set C\<close> \<open> C ! 0 \<in> set C\<close> \<open>C ! 0 \<in> set (watched_l C)\<close> \<open>C ! Suc 0 \<in> set (watched_l C)\<close>
+    \<open>C ! Suc 0 \<in> set C\<close> \<open> C ! 0 \<in> set C\<close> \<open>C ! 0 \<in> set (watched_l C)\<close> \<open>C ! Suc 0 \<in> set (watched_l C)\<close>
     using leC by (force intro!: in_clause_in_all_lits_of_m nth_mem simp: in_set_conv_iff
         intro: exI[of _ 0] exI[of _ \<open>Suc 0\<close>])+
   have [dest!]: \<open>\<And>L. L \<noteq> C ! 0 \<Longrightarrow> L \<noteq> C ! Suc 0 \<Longrightarrow> L \<in> set (watched_l C) \<Longrightarrow> False\<close>
      by (cases C; cases \<open>tl C\<close>; auto)+
-  show ?thesis
+  have i: \<open>i \<notin> fst ` set (b L)\<close> for L
+    using corr i_notin  unfolding correct_watching_init.simps
+    by force
+  have [iff]: \<open>(i,c, d) \<notin> set (b L)\<close> for L c d
+    using i[of L] by (auto simp: image_iff)
+  then show ?thesis
     using corr
     by (force simp: correct_watching_init.simps all_blits_are_in_problem_init.simps ran_m_mapsto_upd_notin
         all_lits_of_mm_add_mset all_lits_of_mm_union clause_to_update_mapsto_upd_notin correctly_marked_as_binary.simps
@@ -425,7 +431,7 @@ proof -
       apply simp
       apply simp
        apply auto[]
-      by fast
+      by linarith
     subgoal
       unfolding I_def
       by auto

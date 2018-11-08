@@ -78,15 +78,20 @@ fun correctly_marked_as_binary where
 
 declare correctly_marked_as_binary.simps[simp del]
 
+abbreviation distinct_watched :: \<open>'v watched \<Rightarrow> bool\<close> where
+  \<open>distinct_watched xs \<equiv> distinct (map (\<lambda>(i, j, k). i) xs)\<close>
+
 fun correct_watching_except :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching_except i j K (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
     (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)).
        (L = K \<longrightarrow>
+         distinct_watched (take i (W L) @ drop j (W L)) \<and>
          ((\<forall>(i, K, b)\<in>#mset (take i (W L) @ drop j (W L)). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and>
              K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (take i (W L) @ drop j (W L)). b \<longrightarrow> i \<in># dom_m N) \<and>
          filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (take i (W L) @ drop j (W L))) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))) \<and>
        (L \<noteq> K \<longrightarrow>
+         distinct_watched (W L) \<and>
          ((\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (W L). b \<longrightarrow> i \<in># dom_m N) \<and>
          filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))))\<close>
@@ -94,6 +99,7 @@ fun correct_watching_except :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v lit
 fun correct_watching :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
     (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)).
+       distinct_watched (W L) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L).  b \<longrightarrow> i \<in># dom_m N) \<and>
        filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
@@ -109,12 +115,14 @@ proof -
   have
     H1: \<open>\<And>L i' K' b. L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<Longrightarrow>
        (L = K \<Longrightarrow>
+         distinct_watched (take i (W L) @ drop j (W L)) \<and>
          (((i', K', b)\<in>#mset (take i (W L) @ drop j (W L)) \<longrightarrow> i' \<in># dom_m N \<longrightarrow>
                 K' \<in> set (N \<propto> i') \<and> K' \<noteq> L \<and> correctly_marked_as_binary N (i', K', b)) \<and>
          ((i', K', b)\<in>#mset (take i (W L) @ drop j (W L)) \<longrightarrow> b \<longrightarrow> i' \<in># dom_m N) \<and>
          filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (take i (W L) @ drop j (W L))) =
             clause_to_update L (M, N, D, NE, UE, {#}, {#})))\<close> and
     H2: \<open>\<And>L i K' b. L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<Longrightarrow> (L \<noteq> K \<Longrightarrow>
+         distinct_watched (W L) \<and>
          (((i, K', b)\<in>#mset (W L) \<longrightarrow> i \<in># dom_m N \<longrightarrow> K' \<in> set (N \<propto> i) \<and> K' \<noteq> L \<and>
              (correctly_marked_as_binary N (i, K', b))) \<and>
           ((i, K', b)\<in>#mset (W L) \<longrightarrow> b \<longrightarrow> i \<in># dom_m N) \<and>
@@ -125,6 +133,15 @@ proof -
   show ?thesis
     unfolding correct_watching.simps
     apply (intro conjI allI impI ballI)
+    subgoal for L
+      apply (cases \<open>L = K\<close>)
+      subgoal
+        using H1[of L] j
+        by (auto split: if_splits)
+      subgoal
+        using H2[of L] j
+        by (auto split: if_splits)
+      done
     subgoal for L x
       apply (cases \<open>L = K\<close>)
       subgoal
@@ -511,12 +528,14 @@ proof -
   have
     Hneq: \<open>\<And>La. La\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<longrightarrow>
         (La \<noteq> L \<longrightarrow>
+	  distinct_watched (W La) \<and>
          (\<forall>(i, K, b)\<in>#mset (W La). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> La \<and>
              correctly_marked_as_binary N (i, K, b)) \<and>
          (\<forall>(i, K, b)\<in>#mset (W La). b \<longrightarrow> i \<in># dom_m N) \<and>
          {#i \<in># fst `# mset (W La). i \<in># dom_m N#} = clause_to_update La (M, N, D, NE, UE, {#}, {#}))\<close> and
     Heq: \<open>\<And>La. La\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<longrightarrow>
         (La = L \<longrightarrow>
+	 distinct_watched (take j (W La) @ drop w (W La)) \<and>
          (\<forall>(i, K, b)\<in>#mset (take j (W La) @ drop w (W La)). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and>
             K \<noteq> La \<and> correctly_marked_as_binary N (i, K, b)) \<and>
          (\<forall>(i, K, b)\<in>#mset (take j (W La) @ drop w (W La)). b \<longrightarrow> i \<in># dom_m N) \<and>
@@ -588,6 +607,28 @@ proof -
     for La :: \<open>'a literal\<close>
     using that Hneq[of La]
     by simp
+  moreover have \<open>distinct_watched ((W(L := W L[j := W L ! w])) La)\<close>
+    if
+      \<open>La \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))\<close> and
+      \<open>La \<noteq> L\<close>
+    for La :: \<open>'a literal\<close>
+    using that Hneq[of La]
+    by simp
+  moreover have \<open>distinct_watched (take (Suc j) ((W(L := W L[j := W L ! w])) La) @
+                drop (Suc w) ((W(L := W L[j := W L ! w])) La))\<close>
+    if
+      \<open>La \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))\<close> and
+      \<open>La = L\<close>
+    for La :: \<open>'a literal\<close>
+    using that Heq[of La]
+    apply (subst distinct_mset_mset_distinct[symmetric])
+    apply (subst mset_map)
+    apply (subst eq)
+    apply (simp add: that)
+    apply (subst mset_map[symmetric])
+    apply (subst distinct_mset_mset_distinct)
+    apply simp
+    done
   ultimately show ?thesis
     unfolding S keep_watch_def prod.simps correct_watching_except.simps
     by meson
@@ -599,11 +640,14 @@ lemma correct_watching_except_update_blit:
     corr: \<open>correct_watching_except i j L (a, b, c, d, e, f, g(L := g L[j' := (x1, C, b')]))\<close> and
     C': \<open>C' \<in># all_lits_of_mm (mset `# ran_mf b + (d + e))\<close>
       \<open>C' \<in> set (b \<propto> x1)\<close>
-      \<open>C' \<noteq> L\<close>
-      \<open>correctly_marked_as_binary b (x1, C', b')\<close>
+      \<open>C' \<noteq> L\<close> and
+    corr_watched: \<open>correctly_marked_as_binary b (x1, C', b')\<close>
   shows \<open>correct_watching_except i j L (a, b, c, d, e, f, g(L := g L[j' := (x1, C', b')]))\<close>
 proof -
   have
+    Hdisteq: \<open>\<And>La i' K' b''. La\<in>#all_lits_of_mm (mset `# ran_mf b + (d + e)) \<Longrightarrow>
+        (La = L \<longrightarrow>
+	 distinct_watched (take i ((g(L := g L[j' := (x1, C, b')])) La) @ drop j ((g(L := g L[j' := (x1, C, b')])) La)))\<close> and
     Heq: \<open>\<And>La i' K' b''. La\<in>#all_lits_of_mm (mset `# ran_mf b + (d + e)) \<Longrightarrow>
         (La = L \<longrightarrow>
          (((i', K', b'')\<in>#mset (take i ((g(L := g L[j' := (x1, C, b')])) La) @ drop j ((g(L := g L[j' := (x1, C, b')])) La)) \<longrightarrow>
@@ -613,7 +657,10 @@ proof -
          {#i \<in># fst `# mset (take i ((g(L := g L[j' := (x1, C, b')])) La) @ drop j ((g(L := g L[j' := (x1, C, b')])) La)).
           i \<in># dom_m b#} =
          clause_to_update La (a, b, c, d, e, {#}, {#}))\<close> and
+    Hdistneq: \<open>\<And>La i' K' b''. La\<in>#all_lits_of_mm (mset `# ran_mf b + (d + e)) \<Longrightarrow>
+        (La \<noteq> L \<longrightarrow> distinct_watched (((g(L := g L[j' := (x1, C, b')])) La)))\<close> and
     Hneq: \<open>\<And>La i K b''. La\<in>#all_lits_of_mm (mset `# ran_mf b + (d + e)) \<Longrightarrow> La \<noteq> L \<Longrightarrow>
+         distinct_watched (((g(L := g L[j' := (x1, C, b')])) La)) \<and>
          ((i, K, b'')\<in>#mset ((g(L := g L[j' := (x1, C, b')])) La)\<longrightarrow> i \<in># dom_m b \<longrightarrow>
             K \<in> set (b \<propto> i) \<and> K \<noteq> La \<and> correctly_marked_as_binary b (i, K, b'')) \<and>
          ((i, K, b'')\<in>#mset ((g(L := g L[j' := (x1, C, b')])) La)\<longrightarrow> b'' \<longrightarrow> i \<in># dom_m b) \<and>
@@ -622,7 +669,7 @@ proof -
     using corr unfolding correct_watching_except.simps
     by fast+
   define g' where \<open>g' = g(L := g L[j' := (x1, C, b')])\<close>
-  have g_g': \<open>g(L := g L[j' := (x1, C', b')]) =  g'(L := g' L[j' := (x1, C', b')])\<close>
+  have g_g': \<open>g(L := g L[j' := (x1, C', b')]) = g'(L := g' L[j' := (x1, C', b')])\<close>
     unfolding g'_def by auto
 
   have H2: \<open>fst `# mset ((g'(L := g' L[j' := (x1, C', b')])) La) = fst `# mset (g' La)\<close> for La
@@ -663,8 +710,17 @@ proof -
     using C' Heq[of L x1 C b'] unfolding g'_def
     by (cases \<open>j' < j\<close>)  auto
 
+  have dist: \<open>La\<in>#all_lits_of_mm (mset `# ran_mf b + (d + e)) \<Longrightarrow>
+        La = L \<Longrightarrow>
+	 distinct_watched (take i ((g'(L := g' L[j' := (x1, C', b')])) La) @ drop j ((g'(L := g' L[j' := (x1, C', b')])) La))\<close>
+    for La
+    using Hdisteq[of L] unfolding g_g'[symmetric]
+    by (cases \<open>j' < j\<close>)
+       (auto simp: map_update drop_update_swap)
+
   have \<open>La\<in>#all_lits_of_mm (mset `# ran_mf b + (d + e)) \<Longrightarrow>
         La = L \<Longrightarrow>
+	 distinct_watched (take i ((g'(L := g' L[j' := (x1, C', b')])) La) @ drop j ((g'(L := g' L[j' := (x1, C', b')])) La)) \<and>
          ((i', K, b'')\<in>#mset (take i ((g'(L := g' L[j' := (x1, C', b')])) La) @ drop j ((g'(L := g' L[j' := (x1, C', b')])) La)) \<longrightarrow>
              i' \<in># dom_m b \<longrightarrow> K \<in> set (b \<propto> i') \<and> K \<noteq> La \<and> correctly_marked_as_binary b (i', K, b'')) \<and>
           ((i', K, b'')\<in>#mset (take i ((g'(L := g' L[j' := (x1, C', b')])) La) @ drop j ((g'(L := g' L[j' := (x1, C', b')])) La)) \<longrightarrow>
@@ -672,14 +728,30 @@ proof -
          {#i \<in># fst `# mset (take i ((g'(L := g' L[j' := (x1, C', b')])) La) @ drop j ((g'(L := g' L[j' := (x1, C', b')])) La)).
           i \<in># dom_m b#} =
          clause_to_update La (a, b, c, d, e, {#}, {#})\<close> for La i' K b''
-    using C' Heq[of La i' K] Heq[of La i' K b'] H H' unfolding g_g' g'_def[symmetric]
+    using C' Heq[of La i' K] Heq[of La i' K b'] H H' dist[of La] corr_watched unfolding g_g' g'_def[symmetric]
     by (cases \<open>j' < j\<close>)
-      (auto elim!: in_set_upd_cases simp: drop_update_swap)
-  then show ?thesis
-    using Hneq
+      (auto elim!: in_set_upd_cases simp: drop_update_swap simp del: distinct_append)
+  moreover have \<open>La\<in>#all_lits_of_mm (mset `# ran_mf b + (d + e)) \<Longrightarrow>
+       (La \<noteq> L \<longrightarrow>
+        distinct_watched ((g'(L := g' L[j' := (x1, C', b')])) La) \<and>
+        (\<forall>(i, K, ba)\<in>#mset ((g'(L := g' L[j' := (x1, C', b')])) La).
+            i \<in># dom_m b \<longrightarrow>
+            K \<in> set (b \<propto> i) \<and>
+            K \<noteq> La \<and> correctly_marked_as_binary b (i, K, ba)) \<and>
+        (\<forall>(i, K, ba)\<in>#mset ((g'(L := g' L[j' := (x1, C', b')])) La).
+            ba \<longrightarrow> i \<in># dom_m b) \<and>
+        {#i \<in># fst `# mset ((g'(L := g' L[j' := (x1, C', b')])) La).
+         i \<in># dom_m b#} =
+        clause_to_update La (a, b, c, d, e, {#}, {#}))\<close>
+     for La
+    using Hneq Hdistneq
+    unfolding correct_watching_except.simps g_g'  g'_def[symmetric]
+    by auto
+
+  ultimately show ?thesis
     unfolding correct_watching_except.simps g_g'  g'_def[symmetric]
     unfolding H2 H3
-    by fastforce
+    by blast
 qed
 
 
@@ -697,12 +769,14 @@ proof -
   have
     Hneq: \<open>\<And>La. La\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<longrightarrow>
         (La \<noteq> L \<longrightarrow>
+	 distinct_watched (W La) \<and>
          ((\<forall>(i, K, b)\<in>#mset (W La). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> La \<and>
              correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (W La). b \<longrightarrow> i \<in># dom_m N)) \<and>
           {#i \<in># fst `# mset (W La). i \<in># dom_m N#} = clause_to_update La (M, N, D, NE, UE, {#}, {#}))\<close> and
     Heq: \<open>\<And>La. La\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<longrightarrow>
         (La = L \<longrightarrow>
+	 distinct_watched (take j (W La) @ drop w (W La)) \<and>
          ((\<forall>(i, K, b)\<in>#mset (take j (W La) @ drop w (W La)). i \<in># dom_m N \<longrightarrow>
               K \<in> set (N \<propto> i) \<and> K \<noteq> La \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (take j (W La) @ drop w (W La)). b \<longrightarrow> i \<in># dom_m N) \<and>
@@ -773,6 +847,28 @@ proof -
     for La :: \<open>'a literal\<close>
     using that Hneq[of La]
     by simp
+  moreover have \<open>distinct_watched ((W(L := W L[j := W L ! w])) La)\<close>
+    if
+      \<open>La \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))\<close> and
+      \<open>La \<noteq> L\<close>
+    for La :: \<open>'a literal\<close>
+    using that Hneq[of La]
+    by simp
+  moreover have \<open>distinct_watched (take j ((W(L := W L[j := W L ! w])) La) @
+                drop (Suc w) ((W(L := W L[j := W L ! w])) La))\<close>
+    if
+      \<open>La \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))\<close> and
+      \<open>La = L\<close>
+    for La :: \<open>'a literal\<close>
+    using that Heq[of L] w_le j_w apply -
+    apply (subst distinct_mset_mset_distinct[symmetric])
+    apply (subst mset_map)
+    apply (subst eq)
+    apply (solves simp)
+    apply (subst (asm) distinct_mset_mset_distinct[symmetric])
+    apply (subst (asm) mset_map)
+    apply (rule distinct_mset_mono[of _ \<open>{#i. (i, j, k) \<in># mset (take j (W L) @ drop w (W L))#}\<close>])
+    by (auto simp: image_mset_remove1_mset_if split: if_splits)
   ultimately show ?thesis
     unfolding S keep_watch_def prod.simps correct_watching_except.simps
     by fast
@@ -808,6 +904,7 @@ proof -
   have
     Heq: \<open>\<And>La i K b. La\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<Longrightarrow>
           La = L \<Longrightarrow>
+	   distinct_watched (take (Suc j) (W' La) @ drop (Suc w) (W' La)) \<and>
            ((i, K, b)\<in>#mset (take (Suc j) (W' La) @ drop (Suc w) (W' La)) \<longrightarrow>
                i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> La \<and> correctly_marked_as_binary N (i, K, b)) \<and>
            ((i, K, b)\<in>#mset (take (Suc j) (W' La) @ drop (Suc w) (W' La)) \<longrightarrow>
@@ -819,6 +916,7 @@ proof -
            clause_to_update La (M, N, D, NE, UE, {#}, {#})\<close> and
     Hneq: \<open>\<And>La i K b. La\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<Longrightarrow>
           La \<noteq> L \<Longrightarrow>
+	   distinct_watched (W' La) \<and>
            ((i, K, b)\<in>#mset (W' La) \<longrightarrow> i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> La \<and>
                correctly_marked_as_binary N (i, K, b)) \<and>
            ((i, K, b)\<in>#mset (W' La) \<longrightarrow> b \<longrightarrow> i \<in># dom_m N) \<and>
@@ -826,6 +924,7 @@ proof -
            clause_to_update La (M, N, D, NE, UE, {#}, {#})\<close> and
     Hneq2: \<open>\<And>La. La\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<Longrightarrow>
           (La \<noteq> L \<longrightarrow>
+	   distinct_watched (W' La) \<and>
            {#i \<in># fst `# mset (W' La). i \<in># dom_m N#} =
            clause_to_update La (M, N, D, NE, UE, {#}, {#}))\<close>
     using corr unfolding correct_watching_except.simps W'_def[symmetric]
@@ -881,13 +980,35 @@ proof -
     \<open>correctly_marked_as_binary N (x1, x2, b)\<close>
     using Heq[of L \<open>fst (W L ! w)\<close> \<open>fst (snd (W L ! w ))\<close> \<open>snd (snd (W L ! w))\<close>] j_w w_le dom L'
     by (auto simp: take_Suc_conv_app_nth W'_def list_update_append L_L)
+  have x1_new: \<open>x1 \<notin> fst ` set (W (N \<propto> x1 ! xa))\<close>
+  proof (rule ccontr)
+    assume H: "\<not> ?thesis"
+    have \<open>N \<propto> x1 ! xa
+        \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE))\<close>
+      using dom in_clause_in_all_lits_of_m[of \<open>N \<propto> x1 ! xa\<close> \<open>mset (N \<propto> x1)\<close>] i_xa
+      by (auto simp: all_lits_of_mm_union ran_m_def all_lits_of_mm_add_mset
+	  dest!: multi_member_split)
+    then have \<open>{#i \<in># fst `# mset (W (N \<propto> x1 ! xa)). i \<in># dom_m N#} =
+        clause_to_update (N \<propto> x1 ! xa) (M, N, D, NE, UE, {#}, {#})\<close>
+      using Hneq[of \<open>N \<propto> x1 ! xa\<close>] L unfolding W'_def
+      by simp
+    then have \<open>x1 \<in># clause_to_update (N \<propto> x1 ! xa) (M, N, D, NE, UE, {#}, {#})\<close>
+      using H dom by (metis (no_types, lifting) mem_Collect_eq set_image_mset
+        set_mset_filter set_mset_mset)
+    then show False
+      using N_xa i_2 i_xa
+      by (cases i; cases \<open>N \<propto> x1 ! xa\<close>)
+        (auto simp: clause_to_update_def take_2_if split: if_splits)
+  qed
+
   let ?N =  \<open>N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa)\<close>
   have \<open>L \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE)) \<Longrightarrow> La = L \<Longrightarrow>
        x \<in> set (take j (W L)) \<or> x \<in> set (drop (Suc w) (W L)) \<Longrightarrow>
        case x of (i, K, b) \<Rightarrow> i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and>
            correctly_marked_as_binary ?N (i, K, b)\<close> for La x
     using Heq[of L \<open>fst x\<close> \<open>fst (snd x)\<close> \<open>snd (snd x)\<close>] j_w w_le
-    by (auto simp: take_Suc_conv_app_nth W'_def list_update_append correctly_marked_as_binary.simps split: if_splits)
+    by (auto simp: take_Suc_conv_app_nth W'_def list_update_append correctly_marked_as_binary.simps
+      split: if_splits)
   moreover have \<open>L \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE)) \<Longrightarrow> La = L \<Longrightarrow>
        x \<in> set (take j (W L)) \<or> x \<in> set (drop (Suc w) (W L)) \<Longrightarrow>
        case x of (i, K, b) \<Rightarrow>b \<longrightarrow> i \<in># dom_m N\<close> for La x
@@ -895,6 +1016,7 @@ proof -
     by (auto simp: take_Suc_conv_app_nth W'_def list_update_append correctly_marked_as_binary.simps split: if_splits)
   moreover  have \<open>L \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE)) \<Longrightarrow>
           La = L \<Longrightarrow>
+	  distinct_watched (take j (W L) @ drop (Suc w) (W L)) \<and>
           {#i \<in># fst `# mset (take j (W L)). i \<in># dom_m N#} + {#i \<in># fst `# mset (drop (Suc w) (W L)). i \<in># dom_m N#} =
           clause_to_update L (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, {#}, {#})\<close> for La
     using Heq[of L x1 x2 b] j_w w_le dom L_notin_swap N_xa_in_swap distinct_mset_dom[of N]
@@ -920,10 +1042,17 @@ proof -
        x \<in> set (if La = N \<propto> x1 ! xa
                  then W' (N \<propto> x1 ! xa) @ [(x1, L', b)]
                  else (W(L := W L[j := (x1, x2, b)])) La) \<Longrightarrow>
-       case x of
-       (i, K, b) \<Rightarrow> b \<longrightarrow> i \<in># dom_m N\<close> for La x
+       case x of (i, K, b) \<Rightarrow> b \<longrightarrow> i \<in># dom_m N\<close> for La x
     using Hneq[of La \<open>fst x\<close> \<open>fst (snd x)\<close> \<open>snd (snd x)\<close>] j_w w_le L' L_neq \<open>length (N \<propto> x1) > 2\<close>
       dom
+    by (auto simp: take_Suc_conv_app_nth W'_def list_update_append correctly_marked_as_binary.simps split: if_splits)
+  moreover have \<open>La \<in># all_lits_of_mm
+               ({#mset (fst x). x \<in># ran_m N#} + (NE + UE)) \<Longrightarrow>
+       La \<noteq> L \<Longrightarrow> distinct_watched  ((W
+           (L := W L[j := (x1, x2, b)],
+            N \<propto> x1 ! xa := W (N \<propto> x1 ! xa) @ [(x1, L', b)])) La)\<close> for La x
+    using Hneq[of La] j_w w_le L' L_neq \<open>length (N \<propto> x1) > 2\<close>
+      dom x1_new
     by (auto simp: take_Suc_conv_app_nth W'_def list_update_append correctly_marked_as_binary.simps split: if_splits)
   moreover {
     have \<open>N \<propto> x1 ! xa \<notin> set (watched_l (N \<propto> x1))\<close>
@@ -940,6 +1069,7 @@ proof -
       by (auto simp: clause_to_update_def split: if_splits)
     then have \<open>La \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE)) \<Longrightarrow>
           La \<noteq> L \<Longrightarrow>
+	  distinct_watched (W' La) \<and>
           (x1 \<in># dom_m N \<longrightarrow>
            (La = N \<propto> x1 ! xa \<longrightarrow>
             add_mset x1 {#i \<in># fst `# mset (W' (N \<propto> x1 ! xa)). i \<in># dom_m N#} =
@@ -1017,8 +1147,8 @@ definition unit_propagation_inner_loop_body_wl_int :: \<open>'v literal \<Righta
 
 definition propagate_proper_bin_case where
   \<open>propagate_proper_bin_case L L' S C \<longleftrightarrow>
-       C \<in># dom_m (get_clauses_wl S) \<and> length ((get_clauses_wl S)\<propto>C) = 2 \<and>
-       set (get_clauses_wl S\<propto>C) = {L, L'} \<and> L \<noteq> L'\<close>
+    C \<in># dom_m (get_clauses_wl S) \<and> length ((get_clauses_wl S)\<propto>C) = 2 \<and>
+    set (get_clauses_wl S\<propto>C) = {L, L'} \<and> L \<noteq> L'\<close>
 
 definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
@@ -3133,6 +3263,7 @@ proof -
     Heq:
       \<open>\<And>La i K b'. La \<in>#all_lits_of_mm (mset `# ran_mf b + (d + e)) \<Longrightarrow>
       (La = L \<longrightarrow>
+       distinct_watched (take j (g La) @ drop w (g La)) \<and>
        ((i, K, b')\<in>#mset (take j (g La) @ drop w (g La)) \<longrightarrow>
            i \<in># dom_m b \<longrightarrow> K \<in> set (b \<propto> i) \<and> K \<noteq> La \<and> correctly_marked_as_binary b (i, K, b')) \<and>
        ((i, K, b')\<in>#mset (take j (g La) @ drop w (g La)) \<longrightarrow>
@@ -3142,6 +3273,7 @@ proof -
     Hneq:
       \<open>\<And>La i K b'. La\<in>#all_lits_of_mm (mset `# ran_mf b + (d + e)) \<Longrightarrow>
       (La \<noteq> L \<longrightarrow>
+       distinct_watched (g La) \<and>
        ((i, K, b')\<in>#mset (g La) \<longrightarrow> i \<in># dom_m b \<longrightarrow> K \<in> set (b \<propto> i) \<and> K \<noteq> La
           \<and> correctly_marked_as_binary b (i, K, b')) \<and>
         ((i, K, b')\<in>#mset (g La) \<longrightarrow> b' \<longrightarrow> i \<in># dom_m b) \<and>
@@ -3157,9 +3289,15 @@ proof -
             b' \<longrightarrow> i \<in># dom_m b\<close> and
     \<open>{#i \<in># fst `# mset ((g(L := take j (g L) @ drop w (g L))) La).
          i \<in># dom_m b#} =
-        clause_to_update La (a, b, c, d, e, {#}, {#})\<close>
+        clause_to_update La (a, b, c, d, e, {#}, {#})\<close>and
+    \<open>distinct_watched ((g(L := take j (g L) @ drop w (g L))) La)\<close>
   if \<open>La\<in>#all_lits_of_mm (mset `# ran_mf b + (d + e))\<close>
   for La i K b'
+    apply (cases \<open>La = L\<close>)
+    subgoal
+      using Heq[of La i K] that by auto
+    subgoal
+      using Hneq[of La i K] that by auto
     apply (cases \<open>La = L\<close>)
     subgoal
       using Heq[of La i K] that by auto
@@ -3832,6 +3970,7 @@ proof -
     have
       H: \<open>\<And>L ia K' b''. (L\<in>#all_lits_of_mm
         (mset `# ran_mf (fmupd i (L1 # L2 # UW, b') N) + (NE + UE)) \<Longrightarrow>
+      distinct_watched ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) L) \<and>
       ((ia, K', b'')\<in>#mset ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) L) \<longrightarrow>
           ia \<in># dom_m (fmupd i (L1 # L2 # UW, b') N) \<longrightarrow>
           K' \<in> set (fmupd i (L1 # L2 # UW, b') N \<propto> ia) \<and> K' \<noteq> L \<and>
@@ -3847,6 +3986,7 @@ proof -
       by fast+
 
     have \<open>x \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<Longrightarrow>
+          distinct_watched (W x) \<and>
          (xa \<in># mset (W x) \<longrightarrow> (((case xa of (i, K, b'') \<Rightarrow> i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> x \<and>
            correctly_marked_as_binary N (i, K, b'')) \<and>
            (case xa of (i, K, b'') \<Rightarrow> b'' \<longrightarrow> i \<in># dom_m N)))) \<and>
@@ -3876,6 +4016,7 @@ proof -
     have
       H: \<open>\<And>L ia K' b''. (L\<in>#all_lits_of_mm
         (mset `# ran_mf N + (NE + UE)) \<Longrightarrow>
+      distinct_watched (W L) \<and>	
       ((ia, K', b'')\<in>#mset (W L) \<longrightarrow>
           ia \<in># dom_m N \<longrightarrow>
           K' \<in> set (N \<propto> ia) \<and> K' \<noteq> L \<and> correctly_marked_as_binary N (ia, K', b'')) \<and>
@@ -3884,6 +4025,7 @@ proof -
       using corr unfolding correct_watching.simps
       by blast+
     have \<open>x \<in># all_lits_of_mm (mset `# ran_mf (fmupd i (L1 # L2 # UW, b') N) + (NE + UE)) \<longrightarrow>
+         distinct_watched ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) x) \<and>
          (xa \<in># mset ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) x) \<longrightarrow>
                (case xa of (ia, K, b'') \<Rightarrow> ia \<in># dom_m (fmupd i (L1 # L2 # UW, b') N) \<longrightarrow>
                  K \<in> set (fmupd i (L1 # L2 # UW, b') N \<propto> ia) \<and> K \<noteq> x \<and>
