@@ -7,7 +7,7 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
   \<open>partition_between R h i j xs = do {
      ASSERT(i \<le> length xs \<and> j \<le> length xs);
      pivot \<leftarrow> RETURN (h (xs ! i));
-     (i, j, xs) \<leftarrow> WHILE\<^sub>T
+     (i, j, xs) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i, j, xs'). mset xs' = mset xs\<^esup> 
        (\<lambda>(i, j, xs). i < j)
        (\<lambda>(i, j, xs). do {
           i \<leftarrow> WHILE\<^sub>T(\<lambda>i. R (h (xs ! i)) pivot \<and> i < j)
@@ -25,8 +25,9 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
 
 
 definition quicksort :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a::ord list \<Rightarrow> 'a list nres\<close> where
-\<open>quicksort R h i j xs = do {
+\<open>quicksort R h i j xs0 = do {
   RECT (\<lambda>f (i,j,xs). do {
+      ASSERT(mset xs = mset xs0);
       if i \<ge> j then RETURN xs
       else do{
 	(xs, k) \<leftarrow> partition_between R h i j xs;
@@ -34,24 +35,27 @@ definition quicksort :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow>
 	f (k+1, j, xs)
       }
     })
-    (i, j, xs)
+    (i, j, xs0)
   }\<close>
 
-lemma "quicksort (<) id 0 3 [(0::nat), (5::nat), (1::nat), 2] = A"
+lemma "quicksort (<) id 0 5 [12, (0::nat), (5::nat), (1::nat), 2, 6] = A"
 proof -
 				      
   show ?thesis
+    supply WHILET_unfold[simp] WHILEIT_unfold[simp] 
     unfolding quicksort_def partition_between_def
     apply (simp add: quicksort_def partition_between_def RECT_unfold)
     apply (subst RECT_unfold, refine_mono, simp add: WHILEIT_unfold)
-  apply (subst WHILET_unfold, simp)
-  apply (subst WHILET_unfold, simp)
-  apply (subst WHILET_unfold, simp)
-  apply (subst WHILET_unfold, simp)
-  apply (subst WHILET_unfold, simp)
-  apply (subst WHILET_unfold, simp)
     apply (subst RECT_unfold, refine_mono)
     apply (simp add: )
+    apply (subst RECT_unfold, refine_mono)
+    apply (simp add: WHILEIT_unfold)
+    apply (subst RECT_unfold, refine_mono)
+    apply (simp add: WHILEIT_unfold)
+    apply (subst RECT_unfold, refine_mono)
+    apply (simp add: WHILEIT_unfold)
+    apply (subst RECT_unfold, refine_mono)
+    apply (simp add: WHILEIT_unfold)
     apply (subst RECT_unfold, refine_mono)
     apply (simp add: WHILET_unfold)
     apply (subst RECT_unfold, refine_mono)
