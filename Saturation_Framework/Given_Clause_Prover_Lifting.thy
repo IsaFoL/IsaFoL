@@ -91,60 +91,99 @@ qed
 
 abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
 
+interpretation gr: ground_resolution_with_selection S
+  by unfold_locales
+
+(* Not yet too sure about which version to select. Is this one even correct? *)
 definition Inf_G :: "'a clause Saturation_Framework_Preliminaries.inference set" where
+  "Inf_G \<equiv> conv_inf ` gr.ord_\<Gamma>"
+
+(*definition Inf_G :: "'a clause Saturation_Framework_Preliminaries.inference set" where
   "Inf_G = {\<iota> \<in> Inf_F. filter (\<lambda>C. \<not> (is_ground_cls C))
-  (Saturation_Framework_Preliminaries.inference.prems_of \<iota>) = []}"
+  (Saturation_Framework_Preliminaries.inference.prems_of \<iota>) = []}"*)
 
 definition ground_subset :: "'a clause set \<Rightarrow> 'a clause set" where
   "ground_subset S' = {C \<in> S'. is_ground_cls C}"
 
-lemma Bot_G_ground [simp]: "ground_subset Bot_G = Bot_G" unfolding ground_subset_def by fastforce
+(* lemma Bot_G_ground [simp]: "ground_subset Bot_G = Bot_G" unfolding ground_subset_def by fastforce
 
 definition entails_sound_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>G" 50)  where
-  "S1 |\<approx>G S2 \<equiv> \<forall>I. I \<Turnstile>s ground_subset S1 \<longrightarrow> I \<Turnstile>s ground_subset S2"
-  
-thm true_clss_mono
+  "S1 |\<approx>G S2 \<equiv> \<forall>I. I \<Turnstile>s ground_subset S1 \<longrightarrow> I \<Turnstile>s ground_subset S2"*)
 
+definition entails_sound_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>G" 50)  where
+  "S1 |\<approx>G S2 \<equiv> \<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"
+  
 lemma ground_subst_on_ground_subset: "is_ground_subst \<sigma> \<Longrightarrow> (ground_subset N) \<cdot>cs \<sigma> = (ground_subset N)"
   by (simp add: ground_subset_def is_ground_cls_def is_ground_clss_def is_ground_lit_def) 
 
-lemma Inf_G_ground_concl: "\<iota> \<in> Inf_G \<Longrightarrow>
+(*lemma Inf_G_ground_concl: "\<iota> \<in> Inf_G \<Longrightarrow>
   is_ground_cls (Saturation_Framework_Preliminaries.inference.concl_of \<iota>)" 
 proof -
   fix \<iota>
   assume
     i_in: "\<iota> \<in> Inf_G"
-  have "C \<in> set (Saturation_Framework_Preliminaries.inference.prems_of \<iota>) \<Longrightarrow> is_ground_cls C"
-    using i_in unfolding Inf_G_def Inf_F_def conv_inf_def apply auto 
-    oops
+  have "filter (\<lambda>C. \<not> is_ground_cls C) (inference.prems_of \<iota>) = []"
+    using i_in unfolding Inf_G_def Inf_F_def conv_inf_def by auto 
+  then have "C \<in> set (Saturation_Framework_Preliminaries.inference.prems_of \<iota>) \<Longrightarrow> is_ground_cls C"
+  explore
+    oops*)
 
 interpretation Saturation_Framework_Preliminaries.sound_inference_system Bot_G entails_sound_G Inf_G
-  unfolding Saturation_Framework_Preliminaries.sound_inference_system_def
-      consequence_relation_def entails_sound_G_def
-      Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
-proof auto
+proof -
   {
-    fix N1 N2 I
+    (*fix N1 N2 I
     assume
       incl: "N2 \<subseteq> N1" and
       entails: "I \<Turnstile>s ground_subset N1"
     have ground_incl: "ground_subset N2 \<subseteq> ground_subset N1" using incl unfolding ground_subset_def by fast
-    have "I \<Turnstile>s ground_subset N2" using true_clss_mono[OF ground_incl entails] . 
+    have "I \<Turnstile>s ground_subset N2" using true_clss_mono[OF ground_incl entails] . *)
+    fix N1 N2 I
+    assume
+      incl: "N2 \<subseteq> N1" and
+      entails: "I \<Turnstile>s N1"
+    have "I \<Turnstile>s N2" using true_clss_mono[OF incl entails] . 
   }
   moreover
   {
-    fix N1 N2 I
+    (*fix N1 N2 I
     assume
       all_clss_entailed: "\<forall>C\<in>N2. \<forall>I. I \<Turnstile>s ground_subset N1 \<longrightarrow> I \<Turnstile>s ground_subset {C}" and
       entails: "I \<Turnstile>s ground_subset N1"
-    then have "I \<Turnstile>s ground_subset N2" by (simp add: all_clss_entailed entails true_clss_def ground_subset_def)
+    then have "I \<Turnstile>s ground_subset N2" by (simp add: all_clss_entailed entails true_clss_def ground_subset_def)*)
+    fix N1 N2 I
+    assume
+      all_clss_entailed: "\<forall>C\<in>N2. \<forall>I. I \<Turnstile>s N1 \<longrightarrow> I \<Turnstile> C" and
+      entails: "I \<Turnstile>s N1"
+    then have "I \<Turnstile>s N2" by (simp add: all_clss_entailed entails true_clss_def)
   }
   moreover
   {
     fix \<iota> I
     assume
       i_in: "\<iota> \<in> Inf_G" and
-      I_entails_prems: "I \<Turnstile>s ground_subset (set (inference.prems_of \<iota>))"
+      I_entails_prems: "I \<Turnstile>s (set (inference.prems_of \<iota>))"
+    obtain \<iota>_RP where i_equal: "\<iota> = conv_inf \<iota>_RP" and i_RP_in: "\<iota>_RP \<in> gr.ord_\<Gamma>" (*"\<iota>_RP \<in> (ord_FO_\<Gamma> S)" *)
+      using i_in unfolding Inf_G_def by blast
+    obtain CAs AAs As
+      where the_inf: "ground_resolution_with_selection.ord_resolve S CAs (main_prem_of \<iota>_RP) AAs As (concl_of \<iota>_RP)"
+      and mset_CAs: "side_prems_of \<iota>_RP = mset CAs" using i_RP_in unfolding gr.ord_\<Gamma>_def by force
+    have concl: "concl_of \<iota>_RP = Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
+      using i_equal unfolding conv_inf_def by fastforce
+    have prems: "set (inference.prems_of \<iota>) = set_mset (prems_of \<iota>_RP)"
+      using i_equal unfolding conv_inf_def by simp
+    have I_entails_prems_RP: "I \<Turnstile>s set_mset (prems_of \<iota>_RP)" using prems I_entails_prems by argo
+    then have I_entails_concl_RP: "I \<Turnstile> concl_of \<iota>_RP"
+      using ground_resolution_with_selection.ord_resolve_sound[of S CAs "main_prem_of \<iota>_RP" AAs As "concl_of \<iota>_RP" I]
+        the_inf mset_CAs gr.ground_resolution_with_selection_axioms by fastforce
+    then have "I \<Turnstile> Saturation_Framework_Preliminaries.inference.concl_of \<iota>" using concl by auto
+  }
+  ultimately show "Saturation_Framework_Preliminaries.sound_inference_system Bot_G (|\<approx>G) Inf_G"
+    unfolding Saturation_Framework_Preliminaries.sound_inference_system_def
+      consequence_relation_def entails_sound_G_def
+      Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
+    by auto
+qed
+(*
     have i_in': "\<iota> \<in> Inf_F" using i_in unfolding Inf_G_def by fast
     have ground_prems: "set (inference.prems_of \<iota>) = ground_subset (set (inference.prems_of \<iota>))"
       using i_in unfolding Inf_G_def
@@ -156,23 +195,7 @@ proof auto
     have "I \<Turnstile> Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
       using subst_atm_id_subst sorry 
     note sound = soundness[OF i_in'] 
-
-
-    obtain \<iota>_RP where i_equal: "\<iota> = conv_inf \<iota>_RP" and i_RP_in: "\<iota>_RP \<in> (ord_FO_\<Gamma> S)"
-      using i_in unfolding Inf_G_def Inf_F_def by auto
-    have concl: "concl_of \<iota>_RP = Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
-      using i_equal unfolding conv_inf_def by fastforce
-    have prems: "set (inference.prems_of \<iota>) = set_mset (prems_of \<iota>_RP)"
-      using i_equal unfolding conv_inf_def by simp
-    have "I \<Turnstile>s ground_subset {Saturation_Framework_Preliminaries.inference.concl_of \<iota>}"
-      unfolding ground_subset_def
-  }
-
-thm soundness
-
-term id_subst
-
-find_theorems "ord_FO_\<Gamma>"
+*)
 
 end
 
