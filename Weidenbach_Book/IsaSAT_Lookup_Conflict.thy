@@ -2572,6 +2572,8 @@ sepref_definition isa_mark_failed_lits_stack_fast_code
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
+  unfolding 
+    fast_minus_def[symmetric]
   by sepref
 
 sepref_register isa_mark_failed_lits_stack
@@ -2596,7 +2598,7 @@ sepref_definition isa_get_literal_and_remove_of_analyse_wl_code
       arena_assn\<^sup>k *\<^sub>a analyse_refinement_assn\<^sup>d \<rightarrow>
       unat_lit_assn *a analyse_refinement_assn\<close>
   unfolding isa_get_literal_and_remove_of_analyse_wl_pre_def
-  isa_get_literal_and_remove_of_analyse_wl_def
+  isa_get_literal_and_remove_of_analyse_wl_def fast_minus_def[symmetric]
   by sepref
 
 sepref_definition isa_get_literal_and_remove_of_analyse_wl_fast_code
@@ -2606,7 +2608,7 @@ sepref_definition isa_get_literal_and_remove_of_analyse_wl_fast_code
       arena_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d \<rightarrow>
       unat_lit_assn *a analyse_refinement_fast_assn\<close>
   unfolding isa_get_literal_and_remove_of_analyse_wl_pre_def
-  isa_get_literal_and_remove_of_analyse_wl_def
+  isa_get_literal_and_remove_of_analyse_wl_def fast_minus_def[symmetric]
   apply (rewrite at \<open>_ + \<hole>\<close> one_uint64_nat_def[symmetric])
   by sepref
 

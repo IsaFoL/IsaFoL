@@ -2111,7 +2111,7 @@ lemma isa_get_clause_LBD_get_clause_LBD:
 sepref_definition isa_get_clause_LBD_code
   is \<open>uncurry isa_get_clause_LBD\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  unfolding isa_get_clause_LBD_def
+  unfolding isa_get_clause_LBD_def fast_minus_def[symmetric]
   by sepref
 
 lemma isa_get_clause_LBD_code[sepref_fr_rules]:
@@ -2426,7 +2426,7 @@ qed
 sepref_definition mark_garbage_code
   is \<open>uncurry mark_garbage\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
-  unfolding mark_garbage_def
+  unfolding mark_garbage_def fast_minus_def[symmetric]
   by sepref
 
 lemma isa_mark_garbage:
@@ -2512,7 +2512,7 @@ lemma isa_arena_act_arena_act:
 sepref_definition isa_arena_act_code
   is \<open>uncurry isa_arena_act\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  unfolding isa_arena_act_def ACTIVITY_SHIFT_def
+  unfolding isa_arena_act_def ACTIVITY_SHIFT_def fast_minus_def[symmetric]
   by sepref
 
 lemma isa_arena_act_code[sepref_fr_rules]:
@@ -2586,7 +2586,7 @@ lemma isa_arena_incr_act_arena_incr_act:
 sepref_definition isa_arena_incr_act_code
   is \<open>uncurry isa_arena_incr_act\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn uint32_assn)\<close>
-  unfolding isa_arena_incr_act_def ACTIVITY_SHIFT_def
+  unfolding isa_arena_incr_act_def ACTIVITY_SHIFT_def fast_minus_def
   by sepref
 
 lemma isa_arena_incr_act_code[sepref_fr_rules]:
@@ -2768,7 +2768,7 @@ lemma isa_mark_used_mark_used:
 sepref_definition isa_mark_used_code
   is \<open>uncurry isa_mark_used\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn uint32_assn)\<close>
-  unfolding isa_mark_used_def ACTIVITY_SHIFT_def
+  unfolding isa_mark_used_def ACTIVITY_SHIFT_def fast_minus_def[symmetric]
   by sepref
 
 lemma isa_mark_used_code[sepref_fr_rules]:
@@ -2948,7 +2948,7 @@ lemma isa_mark_unused_mark_unused:
 sepref_definition isa_mark_unused_code
   is \<open>uncurry isa_mark_unused\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn uint32_assn)\<close>
-  unfolding isa_mark_unused_def ACTIVITY_SHIFT_def
+  unfolding isa_mark_unused_def ACTIVITY_SHIFT_def fast_minus_def[symmetric]
   by sepref
 
 lemma isa_mark_unused_code[sepref_fr_rules]:
@@ -3106,7 +3106,7 @@ sepref_definition isa_marked_as_used_code
   is \<open>uncurry isa_marked_as_used\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   supply op_eq_uint32[sepref_fr_rules]
-  unfolding isa_marked_as_used_def
+  unfolding isa_marked_as_used_def fast_minus_def[symmetric]
   by sepref
 
 
