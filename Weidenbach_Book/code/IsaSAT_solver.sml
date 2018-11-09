@@ -1435,57 +1435,41 @@ fun shorten_take_aa_u32 A_ B_ l j w =
                 ()
             end);
 
-fun arl_set A_ =
-  (fn (a, n) => fn i => fn x => fn () => let
-   val aa = upd A_ i x a ();
- in
-   (aa, n)
- end);
+fun arl_length_o64 A_ x = (fn () => let
+                                      val n = arl_length A_ x ();
+                                    in
+                                      uint64_of_nat n
+                                    end);
 
-fun update_aa_u A_ a i j y =
+fun length_aa_u32_o64 A_ xs i =
   (fn () =>
     let
       val x =
-        nth_u_code (heap_prod (heap_array (typerep_heap A_)) heap_nat) a i ();
-      val aa = arl_set A_ x j y ();
+        nth_u_code (heap_prod (heap_array (typerep_heap A_)) heap_nat) xs i ();
     in
-      array_upd_u (heap_prod (heap_array (typerep_heap A_)) heap_nat) i aa a ()
-    end);
-
-fun arl_get A_ = (fn (a, _) => nth A_ a);
-
-fun nth_aa_u A_ x la l =
-  (fn () =>
-    let
-      val xa =
-        nth_u_code (heap_prod (heap_array (typerep_heap A_)) heap_nat) x la ();
-      val xb = arl_get A_ xa l ();
-    in
-      xb
+      arl_length_o64 A_ x ()
     end);
 
 fun cut_watch_list_heur2_fast_code x =
   (fn ai => fn bib => fn bia => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) =>
     fn () =>
     let
+      val xa = length_aa_u32_o64 (heap_prod heap_uint64 heap_uint64) a1d bia ();
       val a =
-        heap_WHILET
-          (fn (_, (a1f, a2f)) =>
-            (fn f_ => fn () => f_
-              ((length_aa_u (heap_prod heap_uint64 heap_uint64) a2f bia) ()) ())
-              (fn x_a => (fn () => (less_nat a1f x_a))))
+        heap_WHILET (fn (_, (a1f, _)) => (fn () => (Uint64.less a1f xa)))
           (fn (a1e, (a1f, a2f)) =>
             (fn f_ => fn () => f_
-              ((nth_aa_u (heap_prod heap_uint64 heap_uint64) a2f bia a1f) ())
-              ())
-              (fn xa =>
+              ((nth_aa_i32_u64 (heap_prod heap_uint64 heap_uint64) a2f bia a1f)
+              ()) ())
+              (fn xb =>
                 (fn f_ => fn () => f_
-                  ((update_aa_u (heap_prod heap_uint64 heap_uint64) a2f bia a1e
-                     xa)
+                  ((update_aa_u32_i64 (heap_prod heap_uint64 heap_uint64) a2f
+                     bia a1e xb)
                   ()) ())
-                  (fn xb =>
+                  (fn xc =>
                     (fn () =>
-                      (plus_nat a1e one_nata, (plus_nat a1f one_nata, xb))))))
+                      (Uint64.plus a1e Uint64.one,
+                        (Uint64.plus a1f Uint64.one, xc))))))
           (ai, (bib, a1d)) ();
     in
       let
@@ -1493,10 +1477,10 @@ fun cut_watch_list_heur2_fast_code x =
       in
         (fn f_ => fn () => f_
           ((shorten_take_aa_u32 heap_nat
-             (heap_array (typerep_prod typerep_uint64 typerep_uint64)) bia a1e
-             a2f)
+             (heap_array (typerep_prod typerep_uint64 typerep_uint64)) bia
+             (nat_of_uint64 a1e) a2f)
           ()) ())
-          (fn x_a => (fn () => (a1, (a1a, (a1b, (a1c, (x_a, a2d)))))))
+          (fn x_c => (fn () => (a1, (a1a, (a1b, (a1c, (x_c, a2d)))))))
       end
         ()
     end)
@@ -1511,8 +1495,7 @@ fun unit_propagation_inner_loop_wl_D_fast_code x =
         val (a1, aa) = a;
         val (a1a, ab) = aa;
       in
-        cut_watch_list_heur2_fast_code (nat_of_uint64 a1) (nat_of_uint64 a1a) ai
-          ab
+        cut_watch_list_heur2_fast_code a1 a1a ai ab
       end
         ()
     end)
@@ -1572,6 +1555,8 @@ fun select_and_remove_from_literals_to_update_wl_code x =
     x;
 
 fun fast_minus_nat x = (fn a => (Nat(integer_of_nat x - integer_of_nat a)));
+
+fun arl_get A_ = (fn (a, _) => nth A_ a);
 
 fun arena_status_code x =
   (fn ai => fn bi => fn () =>
@@ -1805,6 +1790,13 @@ fun set_lookup_conflict_aa_code x =
     end)
     x;
 
+fun arl_set A_ =
+  (fn (a, n) => fn i => fn x => fn () => let
+   val aa = upd A_ i x a ();
+ in
+   (aa, n)
+ end);
+
 fun isa_arena_incr_act_code x =
   (fn ai => fn bi => fn () =>
     let
@@ -1843,6 +1835,16 @@ fun set_conflict_wl_heur_code x =
     end)
     x;
 
+fun nth_aa_u A_ x la l =
+  (fn () =>
+    let
+      val xa =
+        nth_u_code (heap_prod (heap_array (typerep_heap A_)) heap_nat) x la ();
+      val xb = arl_get A_ xa l ();
+    in
+      xb
+    end);
+
 fun watched_by_app_heur_code x =
   (fn ai => fn bia => fn bi =>
     let
@@ -1855,6 +1857,16 @@ fun watched_by_app_heur_code x =
 fun to_watcher_code a l b =
   (a, Uint64.orb (uint64_of_uint32 l)
         (if b then Uint64.fromInt (4294967296 : IntInf.int) else Uint64.zero));
+
+fun update_aa_u A_ a i j y =
+  (fn () =>
+    let
+      val x =
+        nth_u_code (heap_prod (heap_array (typerep_heap A_)) heap_nat) a i ();
+      val aa = arl_set A_ x j y ();
+    in
+      array_upd_u (heap_prod (heap_array (typerep_heap A_)) heap_nat) i aa a ()
+    end);
 
 fun update_blit_wl_heur_code x =
   (fn ai => fn bie => fn bid => fn bic => fn bib => fn bia =>
@@ -2101,22 +2113,19 @@ fun cut_watch_list_heur2_code x =
   (fn ai => fn bib => fn bia => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) =>
     fn () =>
     let
+      val xa = length_aa_u (heap_prod heap_nat heap_uint64) a1d bia ();
       val a =
-        heap_WHILET
-          (fn (_, (a1f, a2f)) =>
-            (fn f_ => fn () => f_
-              ((length_aa_u (heap_prod heap_nat heap_uint64) a2f bia) ()) ())
-              (fn x_a => (fn () => (less_nat a1f x_a))))
+        heap_WHILET (fn (_, (a1f, _)) => (fn () => (less_nat a1f xa)))
           (fn (a1e, (a1f, a2f)) =>
             (fn f_ => fn () => f_
               ((nth_aa_u (heap_prod heap_nat heap_uint64) a2f bia a1f) ()) ())
-              (fn xa =>
+              (fn xb =>
                 (fn f_ => fn () => f_
-                  ((update_aa_u (heap_prod heap_nat heap_uint64) a2f bia a1e xa)
+                  ((update_aa_u (heap_prod heap_nat heap_uint64) a2f bia a1e xb)
                   ()) ())
-                  (fn xb =>
+                  (fn xc =>
                     (fn () =>
-                      (plus_nat a1e one_nata, (plus_nat a1f one_nata, xb))))))
+                      (plus_nat a1e one_nata, (plus_nat a1f one_nata, xc))))))
           (ai, (bib, a1d)) ();
     in
       let
@@ -2126,7 +2135,7 @@ fun cut_watch_list_heur2_code x =
           ((shorten_take_aa_u32 heap_nat
              (heap_array (typerep_prod typerep_nat typerep_uint64)) bia a1e a2f)
           ()) ())
-          (fn x_a => (fn () => (a1, (a1a, (a1b, (a1c, (x_a, a2d)))))))
+          (fn x_c => (fn () => (a1, (a1a, (a1b, (a1c, (x_c, a2d)))))))
       end
         ()
     end)
