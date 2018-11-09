@@ -73,7 +73,7 @@ lemma unit_propagation_inner_loop_wl_loop_D_heur_fast:
 sepref_definition unit_propagation_inner_loop_wl_loop_D_fast
   is \<open>uncurry unit_propagation_inner_loop_wl_loop_D_heur\<close>
   :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> nat_assn *a nat_assn *a isasat_bounded_assn\<close>
+      unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> uint64_nat_assn *a uint64_nat_assn *a isasat_bounded_assn\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_def PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
     length_ll_fs_heur_def[symmetric]
@@ -81,7 +81,8 @@ sepref_definition unit_propagation_inner_loop_wl_loop_D_fast
   unfolding swap_ll_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     is_None_def[symmetric] get_conflict_wl_is_None_heur_alt_def[symmetric]
-    length_ll_fs_def[symmetric]
+    length_ll_fs_def[symmetric] zero_uint64_nat_def[symmetric]
+  apply (rewrite at \<open>let _ = \<hole> in _\<close> uint64_of_nat_conv_def[symmetric])
   supply [[goals_limit=1]] unit_propagation_inner_loop_wl_loop_D_heur_fast[intro]
   by sepref
 
@@ -90,6 +91,7 @@ declare unit_propagation_inner_loop_wl_loop_D_fast.refine[sepref_fr_rules]
 lemma unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
   \<open>unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0 = do {
     ASSERT (nat_of_lit L < length (get_watched_wl_heur S\<^sub>0));
+     ASSERT (length (watched_by_int S\<^sub>0 L) \<le> length (get_clauses_wl_heur S\<^sub>0));
     let n = length (watched_by_int S\<^sub>0 L);
     let b = (zero_uint64_nat, zero_uint64_nat, S\<^sub>0);
     WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_D_heur_inv S\<^sub>0 L\<^esup>
@@ -104,7 +106,7 @@ lemma unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
 
 sepref_register length_ll_fs_heur
 
-sepref_register unit_propagation_inner_loop_wl_loop_D_heur
+sepref_register unit_propagation_inner_loop_wl_loop_D_heur cut_watch_list_heur2
 sepref_definition cut_watch_list_heur2_code
   is \<open>uncurry3 cut_watch_list_heur2\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
@@ -140,8 +142,10 @@ sepref_definition unit_propagation_inner_loop_wl_D_fast_code
   is \<open>uncurry unit_propagation_inner_loop_wl_D_heur\<close>
   :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
         unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
+  supply [[goals_limit=1]] nat_of_uint64_conv_hnr[sepref_fr_rules]
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
+  apply (rewrite at \<open>cut_watch_list_heur2 \<hole>\<close> nat_of_uint64_conv_def[symmetric])
+  apply (rewrite at \<open>cut_watch_list_heur2 _ \<hole>\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
 declare unit_propagation_inner_loop_wl_D_fast_code.refine[sepref_fr_rules]

@@ -150,7 +150,8 @@ where
      (all_lits_of_mm
        ({#mset (fst x). x \<in># ran_m N#} + NE + UE)) \<subseteq> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
     (W', empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and>
-    isasat_input_bounded \<A>
+    isasat_input_bounded \<A> \<and>
+    distinct vdom
   }\<close>
 
 definition twl_st_heur_parsing
@@ -173,7 +174,8 @@ where
      (all_lits_of_mm
        ({#mset (fst x). x \<in># ran_m N#} + NE + UE)) \<subseteq> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0  \<A>) \<and>
-    isasat_input_bounded \<A>
+    isasat_input_bounded \<A> \<and>
+    distinct vdom
   }\<close>
 
 
@@ -193,7 +195,8 @@ definition twl_st_heur_parsing_no_WL_wl :: \<open>nat multiset \<Rightarrow> (_ 
     set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + NE + UE))
       \<subseteq> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
     (W', empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and>
-    isasat_input_bounded \<A>
+    isasat_input_bounded \<A> \<and>
+    distinct vdom
   }\<close>
 
 definition twl_st_heur_parsing_no_WL_wl_no_watched :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur_init_full \<times> nat twl_st_wl_init) set\<close> where
@@ -212,7 +215,8 @@ definition twl_st_heur_parsing_no_WL_wl_no_watched :: \<open>nat multiset \<Righ
     set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + NE + UE))
        \<subseteq> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
     (W', empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and>
-    isasat_input_bounded \<A>
+    isasat_input_bounded \<A> \<and>
+    distinct vdom
   }\<close>
 
 definition twl_st_heur_post_parsing_wl :: \<open>(twl_st_wl_heur_init_full \<times> nat twl_st_wl) set\<close> where
@@ -232,7 +236,8 @@ definition twl_st_heur_post_parsing_wl :: \<open>(twl_st_wl_heur_init_full \<tim
     set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + NE + UE))
       \<subseteq> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms N (NE + UE))) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE))) \<and>
-    isasat_input_bounded (all_atms N (NE + UE))
+    isasat_input_bounded (all_atms N (NE + UE)) \<and>
+    distinct vdom
   }\<close>
 
 type_synonym (in -)twl_st_wll_trail_init =
@@ -554,6 +559,7 @@ lemma propagate_unit_cls_heur_propagate_unit_cls:
   subgoal by fast
   subgoal by fast
   subgoal by (auto simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff)
+  subgoal by auto
   subgoal by auto
   done
 
@@ -979,7 +985,8 @@ private lemma
 lemma init_fm_add_new:
   \<open>fm_add_new True (op_array_of_list x1g) x1i
        \<le> \<Down>  {((arena, i), (N', i')). valid_arena arena N' (insert i (set x2q)) \<and> i = i' \<and>
-              i \<notin># dom_m x1c \<and> i = length x1i + header_size x1g}
+              i \<notin># dom_m x1c \<and> i = length x1i + header_size x1g \<and>
+	      i \<notin> set x2q}
           (SPEC
             (\<lambda>(N', ia).
                 0 < ia \<and> ia \<notin># dom_m x1c \<and> N' = fmupd ia (x1, True) x1c))\<close>
@@ -1002,7 +1009,8 @@ lemma add_init_cls_final_rel:
   assumes
     \<open>(xa, x')
      \<in> {((arena, i), (N', i')). valid_arena arena N' (insert i (set x2q)) \<and> i = i' \<and>
-              i \<notin># dom_m x1c \<and> i = length x1i + header_size x1g}\<close> and
+              i \<notin># dom_m x1c \<and> i = length x1i + header_size x1g \<and>
+              i \<notin> set x2q}\<close> and
     \<open>x' \<in> {(N', ia).
            0 < ia \<and> ia \<notin># dom_m x1c \<and> N' = fmupd ia (x1, True) x1c}\<close> and
     \<open>x' = (x1r, x2r)\<close> and
@@ -2244,7 +2252,7 @@ proof -
       intro!: exI[of _ N] exI[of _ D]  exI[of _ M]
       intro!: RETURN_RES_refine)
     apply (rule_tac x=W' in exI)
-    apply (auto simp: eq correct_watching_init_correct_watching)
+    apply (auto simp: eq correct_watching_init_correct_watching dist)
     done
 qed
 

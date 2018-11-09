@@ -402,7 +402,8 @@ definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl)
     vdom_m (all_init_atms N NE)  W N \<subseteq> set vdom \<and>
     set avdom \<subseteq> set vdom \<and>
     isasat_input_bounded (all_init_atms N NE) \<and>
-    isasat_input_nempty (all_init_atms N NE)
+    isasat_input_nempty (all_init_atms N NE) \<and>
+    distinct vdom
   }\<close>
 
 
