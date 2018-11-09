@@ -1646,7 +1646,8 @@ proof -
       valid: \<open>valid_arena arena N (set vdom)\<close> and
       avdom: \<open>set avdom \<subseteq> set vdom\<close> and
       bounded: \<open>isasat_input_bounded (all_atms_st U')\<close> and
-      nempty: \<open>isasat_input_nempty (all_atms_st U')\<close>
+      nempty: \<open>isasat_input_nempty (all_atms_st U')\<close> and
+      dist_vdom: \<open>distinct vdom\<close>
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U' all_atms_def[symmetric])
     have [simp]: \<open>C ! 1 = L'\<close> \<open>C ! 0 = - lit_of (hd M)\<close> and
       n_d: \<open>no_dup M\<close>
@@ -1822,7 +1823,7 @@ proof -
       by (auto simp: T' vdom_m_def literals_are_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def U' all_atms_def all_lits_def)
     have [refine0]: \<open>fm_add_new False C arena
        \<le> \<Down> {((arena, i), (N', i')). valid_arena arena N' (insert i (set vdom)) \<and> i = i' \<and>
-             i \<notin># dom_m N}
+             i \<notin># dom_m N \<and> i \<notin> set vdom}
           (SPEC
             (\<lambda>(N', i).
                 N' = fmupd i (D'', False) N \<and>
@@ -1940,7 +1941,7 @@ proof -
     then show ?thesis
       supply [[goals_limit=1]]
       using empty_cach n_d_M1 C_L' W'W outl vmtf undef \<open>1 < length C\<close> lits
-        uM_\<L>\<^sub>a\<^sub>l\<^sub>l vdom lcount vdom_m
+        uM_\<L>\<^sub>a\<^sub>l\<^sub>l vdom lcount vdom_m dist_vdom
       apply (subst propagate_bt_wl_D_alt_def)
       unfolding U U' H get_fresh_index_wl_def prod.case
         propagate_bt_wl_D_heur_alt_def rescore_clause_def hd_tr_S_M
@@ -2004,7 +2005,7 @@ proof -
           intro!: ASSERT_refine_left ASSERT_leI RES_refine exI[of _ C] valid_arena_update_lbd
           dest: valid_arena_one_notin_vdomD
 	  simp del: isasat_input_bounded_def isasat_input_nempty_def)
-	apply (auto simp:  vdom_m_simps5)
+	apply (auto simp: vdom_m_simps5)
         done \<comment> \<open>@{thm vdom_m_simps5} must apply after the other simp rules.\<close>
       done
   qed
@@ -2090,7 +2091,8 @@ proof -
       valid: \<open>valid_arena arena N (set vdom)\<close> and
       D': \<open>(D', None) \<in> option_lookup_clause_rel (all_atms_st U')\<close> and
       bounded: \<open>isasat_input_bounded (all_atms_st U')\<close> and
-      nempty: \<open>isasat_input_nempty (all_atms_st U')\<close>
+      nempty: \<open>isasat_input_nempty (all_atms_st U')\<close> and
+      dist_vdom: \<open>distinct vdom\<close>
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U' all_atms_def[symmetric])
     have [simp]: \<open>C ! 0 = - lit_of (hd M)\<close> and
       n_d: \<open>no_dup M\<close>
@@ -2271,7 +2273,7 @@ proof -
           intro!: vmtf_consD
 	  simp del: isasat_input_bounded_def isasat_input_nempty_def)
      subgoal
-      using bounded nempty
+      using bounded nempty dist_vdom
       by (auto simp: U U' lit_of_hd_trail_st_heur_def RETURN_def
           single_of_mset_def vmtf_flush_def twl_st_heur_def lbd_empty_def get_LBD_def
           RES_RES2_RETURN_RES RES_RETURN_RES S' uminus_\<A>\<^sub>i\<^sub>n_iff RES_RES_RETURN_RES

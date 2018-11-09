@@ -3496,6 +3496,7 @@ definition select_and_remove_from_literals_to_update_wl :: \<open>'v twl_st_wl \
 definition unit_propagation_outer_loop_wl_inv where
   \<open>unit_propagation_outer_loop_wl_inv S \<longleftrightarrow>
     (\<exists>S'. (S, S') \<in> state_wl_l None \<and>
+      correct_watching S \<and>
       unit_propagation_outer_loop_l_inv S')\<close>
 
 definition unit_propagation_outer_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
@@ -4434,7 +4435,7 @@ proof -
        \<open>correct_watching S'\<close>
     for S' :: \<open>'v twl_st_wl\<close> and S :: \<open>'v twl_st_l\<close>
     using that by auto
-    thm unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
+
   show ?thesis
     unfolding cdcl_twl_stgy_prog_wl_def cdcl_twl_stgy_prog_l_def
     apply (refine_rcg H unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
