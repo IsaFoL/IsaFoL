@@ -2867,8 +2867,9 @@ where
 \<open>cut_watch_list_heur2 = (\<lambda>j w L (M, N, D, Q, W, oth). do {
   ASSERT(j \<le> length (W ! nat_of_lit L) \<and> j \<le> w \<and> nat_of_lit L < length W \<and>
      w \<le> length (W ! (nat_of_lit L)));
-  (j, w, W) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(j, w, W). j \<le> w \<and> nat_of_lit L < length W\<^esup>
-    (\<lambda>(j, w, W). w < length (W!(nat_of_lit L)))
+  let n = length (W!(nat_of_lit L));
+  (j, w, W) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(j, w, W). j \<le> w \<and> w \<le> n \<and> nat_of_lit L < length W\<^esup>
+    (\<lambda>(j, w, W). w < n)
     (\<lambda>(j, w, W). do {
       ASSERT(w < length (W!(nat_of_lit L)));
       RETURN (j+1, w+1, W[nat_of_lit L := (W!(nat_of_lit L))[j := W!(nat_of_lit L)!w]])
@@ -2885,6 +2886,7 @@ lemma cut_watch_list_heur2_cut_watch_list_heur:
 proof -
   obtain M N D Q W oth where S: \<open>S = (M, N, D, Q, W, oth)\<close>
     by (cases S)
+  define n where n: \<open>n = length (W ! nat_of_lit L)\<close>
   let ?R = \<open>measure (\<lambda>(j'::nat, w' :: nat, _ :: (nat \<times> nat literal \<times> bool) list list). length (W!nat_of_lit L) - w')\<close>
   define I' where
     \<open>I' \<equiv> \<lambda>(j', w', W'). length (W' ! (nat_of_lit L)) = length (W ! (nat_of_lit L)) \<and> j' \<le> w' \<and> w' \<ge> w \<and>
@@ -2896,7 +2898,7 @@ proof -
 
   have cut_watch_list_heur_alt_def:
   \<open>cut_watch_list_heur j w L =(\<lambda>(M, N, D, Q, W, oth). do {
-      ASSERT(j \<le> length (W!nat_of_lit L) \<and> j \<le> w  \<and> nat_of_lit L < length W \<and>
+      ASSERT(j \<le> length (W!nat_of_lit L) \<and> j \<le> w \<and> nat_of_lit L < length W \<and>
          w \<le> length (W ! (nat_of_lit L)));
       let W = W[nat_of_lit L := take j (W!(nat_of_lit L)) @ drop w (W!(nat_of_lit L))];
       RETURN (M, N, D, Q, W, oth)
@@ -2996,7 +2998,8 @@ proof -
 
     have step: \<open>(s, W[nat_of_lit L := take j (W ! nat_of_lit L) @ drop w (W ! nat_of_lit L)])
       \<in>  {((i, j, W'), W). (W'[nat_of_lit L := take i (W' ! nat_of_lit L)], W) \<in> Id \<and>
-         i \<le> length (W' ! nat_of_lit L) \<and> nat_of_lit L < length W'}\<close>
+         i \<le> length (W' ! nat_of_lit L) \<and> nat_of_lit L < length W' \<and>
+	 n = length (W' ! nat_of_lit L)}\<close>
       if
         pre: \<open>j \<le> length (W ! nat_of_lit L) \<and> j \<le> w \<and> nat_of_lit L < length W \<and>
      w \<le> length (W ! nat_of_lit L)\<close> and
@@ -3038,32 +3041,36 @@ proof -
       show ?thesis
         using eq \<open>j \<le> w\<close> \<open>w \<le> length (W ! nat_of_lit L)\<close> \<open>j \<le> j'\<close> \<open>w' - w = j' - j\<close>
           \<open>w \<le> w'\<close> w' L_le_W
-        unfolding j_j' j_le s
+        unfolding j_j' j_le s S n
         by (auto simp: min_def split: if_splits)
   qed
 
-  have HHH[refine0]: \<open>X \<le> RES (R\<inverse> `` {S}) \<Longrightarrow> X \<le> \<Down> R (RETURN S)\<close> for X S R
+  have HHH: \<open>X \<le> RES (R\<inverse> `` {S}) \<Longrightarrow> X \<le> \<Down> R (RETURN S)\<close> for X S R
     by (auto simp: RETURN_def conc_fun_RES)
 
   show ?thesis
-    unfolding cut_watch_list_heur2_def cut_watch_list_heur_alt_def prod.case S
+    unfolding cut_watch_list_heur2_def cut_watch_list_heur_alt_def prod.case S n[symmetric]
+    apply (rewrite at \<open>let _ = n in _\<close> Let_def)
     apply (refine_vcg WHILEIT_rule_stronger_inv_RES[where R = ?R and
       I' = I' and \<Phi> = \<open>{((i, j, W'), W). (W'[nat_of_lit L := take i (W' ! nat_of_lit L)], W) \<in> Id \<and>
-         i \<le> length (W' ! nat_of_lit L) \<and> nat_of_lit L < length W'}\<inverse> `` _\<close>] HHH)
+         i \<le> length (W' ! nat_of_lit L) \<and> nat_of_lit L < length W' \<and>
+	 n = length (W' ! nat_of_lit L)}\<inverse> `` _\<close>] HHH)
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by (auto simp: S)
     subgoal by auto
     subgoal by auto
+    subgoal unfolding I'_def by (auto simp: n)
+    subgoal unfolding I'_def by (auto simp: n)
+    subgoal unfolding I'_def by (auto simp: n)
     subgoal unfolding I'_def by auto
     subgoal unfolding I'_def by auto
-    subgoal unfolding I'_def by auto
-    subgoal unfolding I'_def by auto
-    subgoal unfolding I'_def by auto
-    subgoal using REC by auto
-    subgoal unfolding I'_def by auto
-    subgoal using step unfolding I'_def by auto
+    subgoal unfolding I'_def by (auto simp: n)
+    subgoal using REC by (auto simp: n)
+    subgoal unfolding I'_def by (auto simp: n)
+    subgoal for s using step[of \<open>s\<close>] unfolding I'_def by (auto simp: n)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -3084,7 +3091,7 @@ lemma vdom_m_cut_watch_listD:
 lemma cut_watch_list_heur_cut_watch_list_heur:
   \<open>(uncurry3 cut_watch_list_heur, uncurry3 cut_watch_list) \<in>
   [\<lambda>(((j, w), L), S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and> j \<le> length (watched_by S L)]\<^sub>f
-  nat_rel  \<times>\<^sub>f nat_rel  \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur'' \<D> r \<rightarrow> \<langle>twl_st_heur'' \<D> r\<rangle>nres_rel\<close>
+    nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur'' \<D> r \<rightarrow> \<langle>twl_st_heur'' \<D> r\<rangle>nres_rel\<close>
     unfolding cut_watch_list_heur_def cut_watch_list_def uncurry_def
   apply (intro frefI nres_relI)
   apply refine_vcg
@@ -3111,6 +3118,7 @@ definition unit_propagation_inner_loop_wl_D_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>unit_propagation_inner_loop_wl_D_heur L S\<^sub>0 = do {
      (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0;
+     ASSERT(length (watched_by_int S L) \<le> length (get_clauses_wl_heur S\<^sub>0) - 4);
      S \<leftarrow> cut_watch_list_heur2 j w L S;
      RETURN S
   }\<close>
@@ -3144,6 +3152,7 @@ proof -
     apply (rule length_eq; assumption)
     subgoal by auto
     subgoal by auto
+    subgoal by (auto simp: twl_st_heur'_def twl_st_heur_state_simp_watched)
     apply (rule order.trans)
     apply (rule cut_watch_list_heur2_cut_watch_list_heur)
     apply (subst Down_id_eq)

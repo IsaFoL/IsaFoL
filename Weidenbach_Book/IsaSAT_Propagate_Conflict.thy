@@ -118,13 +118,19 @@ sepref_definition cut_watch_list_heur2_code
 
 declare cut_watch_list_heur2_code.refine[sepref_fr_rules]
 
+  
+find_theorems shorten_take_ll
+thm shorten_take_aa_u32_hnr
 sepref_definition cut_watch_list_heur2_fast_code
   is \<open>uncurry3 cut_watch_list_heur2\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
-     isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] length_ll_def[simp]
+  :: \<open>[\<lambda>(((j, w), L), S). length (watched_by_int S L) \<le> uint64_max-4]\<^sub>a
+     uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
+     isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]] length_ll_def[simp] uint64_max_def[simp] length_rll_def[simp]
   unfolding cut_watch_list_heur2_def isasat_bounded_assn_def length_ll_def[symmetric]
   update_ll_def[symmetric] nth_rll_def[symmetric] shorten_take_ll_def[symmetric]
+  one_uint64_nat_def[symmetric] length_rll_def[symmetric]
+  apply (rewrite in \<open>shorten_take_ll _ \<hole> _\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
 declare cut_watch_list_heur2_fast_code.refine[sepref_fr_rules]
@@ -144,8 +150,6 @@ sepref_definition unit_propagation_inner_loop_wl_D_fast_code
         unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] nat_of_uint64_conv_hnr[sepref_fr_rules]
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
-  apply (rewrite at \<open>cut_watch_list_heur2 \<hole>\<close> nat_of_uint64_conv_def[symmetric])
-  apply (rewrite at \<open>cut_watch_list_heur2 _ \<hole>\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
 declare unit_propagation_inner_loop_wl_D_fast_code.refine[sepref_fr_rules]
