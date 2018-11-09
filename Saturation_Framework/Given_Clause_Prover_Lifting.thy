@@ -102,8 +102,8 @@ definition Inf_G :: "'a clause Saturation_Framework_Preliminaries.inference set"
   "Inf_G = {\<iota> \<in> Inf_F. filter (\<lambda>C. \<not> (is_ground_cls C))
   (Saturation_Framework_Preliminaries.inference.prems_of \<iota>) = []}"*)
 
-definition ground_subset :: "'a clause set \<Rightarrow> 'a clause set" where
-  "ground_subset S' = {C \<in> S'. is_ground_cls C}"
+(*definition ground_subset :: "'a clause set \<Rightarrow> 'a clause set" where
+  "ground_subset S' = {C \<in> S'. is_ground_cls C}"*)
 
 (* lemma Bot_G_ground [simp]: "ground_subset Bot_G = Bot_G" unfolding ground_subset_def by fastforce
 
@@ -113,8 +113,8 @@ definition entails_sound_G :: "'a clause set \<Rightarrow> 'a clause set \<Right
 definition entails_sound_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>G" 50)  where
   "S1 |\<approx>G S2 \<equiv> \<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"
   
-lemma ground_subst_on_ground_subset: "is_ground_subst \<sigma> \<Longrightarrow> (ground_subset N) \<cdot>cs \<sigma> = (ground_subset N)"
-  by (simp add: ground_subset_def is_ground_cls_def is_ground_clss_def is_ground_lit_def) 
+(*lemma ground_subst_on_ground_subset: "is_ground_subst \<sigma> \<Longrightarrow> (ground_subset N) \<cdot>cs \<sigma> = (ground_subset N)"
+  by (simp add: ground_subset_def is_ground_cls_def is_ground_clss_def is_ground_lit_def) *)
 
 (*lemma Inf_G_ground_concl: "\<iota> \<in> Inf_G \<Longrightarrow>
   is_ground_cls (Saturation_Framework_Preliminaries.inference.concl_of \<iota>)" 
