@@ -2738,12 +2738,14 @@ fun clause_is_learned_heur_code2 x =
 
 fun isa_get_clause_LBD_code x =
   (fn ai => fn bi =>
-    arl_get heap_uint32 ai (minus_nata bi (nat_of_integer (2 : IntInf.int))))
+    arl_get heap_uint32 ai
+      (fast_minus_nat bi (nat_of_integer (2 : IntInf.int))))
     x;
 
 fun isa_arena_act_code x =
   (fn ai => fn bi =>
-    arl_get heap_uint32 ai (minus_nata bi (nat_of_integer (3 : IntInf.int))))
+    arl_get heap_uint32 ai
+      (fast_minus_nat bi (nat_of_integer (3 : IntInf.int))))
     x;
 
 fun clause_score_extract_code x =
@@ -2850,7 +2852,7 @@ fun access_vdom_at_fast_code x =
 
 fun mark_garbage_code x =
   (fn ai => fn bi =>
-    arl_set heap_uint32 ai (minus_nata bi (nat_of_integer (4 : IntInf.int)))
+    arl_set heap_uint32 ai (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
       (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
     x;
 
@@ -4239,7 +4241,8 @@ fun isa_get_literal_and_remove_of_analyse_wl_fast_code x =
               (fn xa =>
                 (fn f_ => fn () => f_
                   ((arl_set (heap_prod heap_uint64 heap_uint64) bi
-                     (minus_nata xa one_nata) (a1, Uint64.plus a2 Uint64.one))
+                     (fast_minus_nat xa one_nata)
+                     (a1, Uint64.plus a2 Uint64.one))
                   ()) ())
                   (fn x_b => (fn () => (x_a, x_b)))))
       end
@@ -4279,7 +4282,8 @@ fun isa_mark_failed_lits_stack_fast_code x =
                    in
                      (fn f_ => fn () => f_
                        ((isa_arena_lit_fast_code ai
-                          (Uint64.minus (Uint64.plus a1a a2a) Uint64.one))
+                          (fast_minus minus_uint64 (Uint64.plus a1a a2a)
+                            Uint64.one))
                        ()) ())
                        (fn xb =>
                          (fn f_ => fn () => f_
@@ -4289,7 +4293,7 @@ fun isa_mark_failed_lits_stack_fast_code x =
                            (fn x_e =>
                              (fn f_ => fn () => f_
                                ((isa_arena_lit_fast_code ai
-                                  (Uint64.minus (Uint64.plus a1a a2a)
+                                  (fast_minus minus_uint64 (Uint64.plus a1a a2a)
                                     Uint64.one))
                                ()) ())
                                (fn xc =>
@@ -5822,7 +5826,7 @@ fun isa_get_literal_and_remove_of_analyse_wl_code x =
               (fn xa =>
                 (fn f_ => fn () => f_
                   ((arl_set (heap_prod heap_nat heap_nat) bi
-                     (minus_nata xa one_nata) (a1, plus_nat a2 one_nata))
+                     (fast_minus_nat xa one_nata) (a1, plus_nat a2 one_nata))
                   ()) ())
                   (fn x_b => (fn () => (x_a, x_b)))))
       end
