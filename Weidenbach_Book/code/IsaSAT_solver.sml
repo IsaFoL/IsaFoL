@@ -183,7 +183,8 @@ structure SAT_Solver : sig
           ((Word32.word array * nat) option *
             (Uint64.uint64 *
               (Uint64.uint64 *
-                (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))))
+                (Uint64.uint64 *
+                  (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64)))))))
 end = struct
 
 datatype typerepa = Typerep of string * typerepa list;
@@ -1200,6 +1201,11 @@ fun incr_propagation x =
 fun is_pos_code l =
   (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
 
+fun incr_uset x =
+  (fn (propa, (confl, (dec, (res, (lres, uset))))) =>
+    (propa, (confl, (dec, (res, (lres, Uint64.plus uset Uint64.one))))))
+    x;
+
 fun propagate_lit_wl_fast_code x =
   (fn ai => fn bib => fn bia =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
@@ -1210,12 +1216,16 @@ fun propagate_lit_wl_fast_code x =
       val xa =
         swap_lits_fast_code bib Uint64.zero
           (fast_minus minus_uint64 Uint64.one bia) a1a ();
-      val x_b = cons_trail_Propagated_tr_fast_code ai bib a1 ();
+      val x_d = cons_trail_Propagated_tr_fast_code ai bib a1 ();
       val xaa =
         heap_array_set_u heap_bool a1f (atm_of_code ai) (is_pos_code ai) ();
     in
-      (x_b, (xa, (a1b, (a1c, (a1d, (a1e, (xaa,
-   (a1g, (a1h, (a1i, (a1j, (incr_propagation a1k, (a1l, a2l)))))))))))))
+      (x_d, (xa, (a1b, (a1c, (a1d, (a1e, (xaa,
+   (a1g, (a1h, (a1i, (a1j, (incr_propagation
+                              (if (((count_decided_pol
+                                      a1) : Word32.word) = (Word32.fromInt 0))
+                                then incr_uset a1k else a1k),
+                             (a1l, a2l)))))))))))))
     end)
     x;
 
@@ -1934,12 +1944,16 @@ fun propagate_lit_wl_code x =
     let
       val xa =
         swap_lits_code bib zero_nata (fast_minus_nat one_nata bia) a1a ();
-      val x_b = cons_trail_Propagated_tr_code ai bib a1 ();
+      val x_d = cons_trail_Propagated_tr_code ai bib a1 ();
       val xaa =
         heap_array_set_u heap_bool a1f (atm_of_code ai) (is_pos_code ai) ();
     in
-      (x_b, (xa, (a1b, (a1c, (a1d, (a1e, (xaa,
-   (a1g, (a1h, (a1i, (a1j, (incr_propagation a1k, (a1l, a2l)))))))))))))
+      (x_d, (xa, (a1b, (a1c, (a1d, (a1e, (xaa,
+   (a1g, (a1h, (a1i, (a1j, (incr_propagation
+                              (if (((count_decided_pol
+                                      a1) : Word32.word) = (Word32.fromInt 0))
+                                then incr_uset a1k else a1k),
+                             (a1l, a2l)))))))))))))
     end)
     x;
 
@@ -2406,8 +2420,8 @@ fun find_local_restart_target_level_st_fast_code x =
 fun restart_info_restart_done x = (fn (_, a) => (Uint64.zero, a)) x;
 
 fun incr_lrestart x =
-  (fn (propa, (confl, (dec, (res, lres)))) =>
-    (propa, (confl, (dec, (res, Uint64.plus lres Uint64.one)))))
+  (fn (propa, (confl, (dec, (res, (lres, uset))))) =>
+    (propa, (confl, (dec, (res, (Uint64.plus lres Uint64.one, uset))))))
     x;
 
 fun ema_reinit (F1_, F2_) G_ H_ (value, (alpha, (beta, (wait, period)))) =
@@ -4000,7 +4014,7 @@ fun shows_prec_uint64 n m xs = shows_prec_nat n (nat_of_uint64 m) xs;
 fun shows_prec_list A_ p xs = shows_list A_ xs;
 
 fun isasat_current_information x =
-  (fn (propa, (confl, (decs, (frestarts, lrestarts)))) => fn lcount =>
+  (fn (propa, (confl, (decs, (frestarts, (lrestarts, uset))))) => fn lcount =>
     (if (((Uint64.andb confl
             (Uint64.fromInt
               (8191 : IntInf.int))) : Uint64.uint64) = (Uint64.fromInt
@@ -4058,8 +4072,13 @@ false, false)]
 Chara (false, false, true, true, true, true, true, false),
 Chara (false, false, false, false, false, true, false, false)]
                                       [] @
-                                      shows_prec_nat zero_nata lcount
-[]) ^ "\n"))
+                                      shows_prec_nat zero_nata lcount [] @
+shows_prec_list show_char zero_nata
+  [Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, true, true, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false)]
+  [] @
+  shows_prec_uint64 zero_nata uset []) ^ "\n"))
       else ()))
     x;
 
@@ -5169,11 +5188,11 @@ fun propagate_unit_bt_wl_D_fast_code x =
         cons_trail_Propagated_tr_fast_code (uminus_code ai) Uint64.zero a1 ();
     in
       (x_e, (a1a, (a1b, (x_c, (a1d, (xa, (a1f,
-   (a1g, (a1h, (x_b, (a1j, (a1k, (ema_update_ref x_a a1l,
-                                   (ema_update_ref x_a a1m,
-                                     (incr_conflict_count_since_last_restart
-a1n,
-                                       a2n)))))))))))))))
+   (a1g, (a1h, (x_b, (a1j, (incr_uset a1k,
+                             (ema_update_ref x_a a1l,
+                               (ema_update_ref x_a a1m,
+                                 (incr_conflict_count_since_last_restart a1n,
+                                   a2n)))))))))))))))
     end)
     x;
 
@@ -6342,11 +6361,11 @@ fun propagate_unit_bt_wl_D_code x =
       val x_e = cons_trail_Propagated_tr_code (uminus_code ai) zero_nata a1 ();
     in
       (x_e, (a1a, (a1b, (x_c, (a1d, (xa, (a1f,
-   (a1g, (a1h, (x_b, (a1j, (a1k, (ema_update_ref x_a a1l,
-                                   (ema_update_ref x_a a1m,
-                                     (incr_conflict_count_since_last_restart
-a1n,
-                                       a2n)))))))))))))))
+   (a1g, (a1h, (x_b, (a1j, (incr_uset a1k,
+                             (ema_update_ref x_a a1l,
+                               (ema_update_ref x_a a1m,
+                                 (incr_conflict_count_since_last_restart a1n,
+                                   a2n)))))))))))))))
     end)
     x;
 
@@ -7023,7 +7042,9 @@ fun finalise_init_code_unb x =
                     (a, one_nata)
                   end,
                    ((Uint64.zero,
-                      (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))),
+                      (Uint64.zero,
+                        (Uint64.zero,
+                          (Uint64.zero, (Uint64.zero, Uint64.zero))))),
                      (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
                        (ema_init (Uint64.fromInt (429450 : IntInf.int)),
                          (restart_info_init,
@@ -7291,6 +7312,19 @@ val isasat_banner_content : char list =
     Chara (false, true, false, false, true, true, true, false),
     Chara (false, false, true, false, true, true, true, false),
     Chara (true, true, false, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (true, false, true, false, true, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
     Chara (false, true, false, true, false, false, false, false),
     Chara (true, true, false, false, false, true, true, false),
     Chara (false, false, false, false, false, true, false, false),
@@ -7577,7 +7611,9 @@ fun finalise_init_code x =
                     (a, one_nata)
                   end,
                    ((Uint64.zero,
-                      (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))),
+                      (Uint64.zero,
+                        (Uint64.zero,
+                          (Uint64.zero, (Uint64.zero, Uint64.zero))))),
                      (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
                        (ema_init (Uint64.fromInt (429450 : IntInf.int)),
                          (restart_info_init,
@@ -7612,14 +7648,17 @@ val empty_conflict_code :
   (unit ->
     ((Word32.word array * nat) option *
       (Uint64.uint64 *
-        (Uint64.uint64 * (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))))
+        (Uint64.uint64 *
+          (Uint64.uint64 *
+            (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64)))))))
   = (fn () =>
       let
         val x = arl_empty (default_uint32, heap_uint32) zero_nat ();
       in
         (SOME x,
           (Uint64.zero,
-            (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))))
+            (Uint64.zero,
+              (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))))))
       end);
 
 fun op_list_is_empty x = null x;
@@ -7639,11 +7678,14 @@ val empty_init_code :
   (unit ->
     ((Word32.word array * nat) option *
       (Uint64.uint64 *
-        (Uint64.uint64 * (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))))
+        (Uint64.uint64 *
+          (Uint64.uint64 *
+            (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64)))))))
   = (fn () =>
       (NONE,
         (Uint64.zero,
-          (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))))));
+          (Uint64.zero,
+            (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))))));
 
 fun get_stats_code x =
   (fn (a, b) =>
