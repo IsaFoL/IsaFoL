@@ -783,6 +783,7 @@ where
       ASSERT(0 \<noteq> DECISION_REASON);
       ASSERT(cons_trail_Propagated_tr_pre ((- L, 0::nat), M));
       let M = cons_trail_Propagated_tr (- L) 0 M;
+      let stats = incr_uset stats;
       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
         ema_update glue fema, ema_update glue sema,
         incr_conflict_count_since_last_restart res_info, vdom)})\<close>
@@ -2240,6 +2241,7 @@ proof -
       using empty_cach n_d_M1 W'W outl vmtf C \<phi> undef uL_M vdom lcount valid D' avdom
       unfolding U U' propagate_unit_bt_wl_D_int_def prod.simps hd_SM
           propagate_unit_bt_wl_D_alt_def
+     apply (rewrite at \<open>let _ = incr_uset _ in _\<close> Let_def)
      apply (refine_rcg)
      subgoal using M'M by (rule isa_length_trail_pre)
      subgoal by (auto simp: DECISION_REASON_def)

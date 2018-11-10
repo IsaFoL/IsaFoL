@@ -954,8 +954,9 @@ where
       let N' = swap_lits C 0 (fast_minus 1 i) N;
       ASSERT(atm_of L' < length \<phi>);
       ASSERT(cons_trail_Propagated_tr_pre ((L', C), M));
+      let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset stats else stats);
       RETURN (cons_trail_Propagated_tr L' C M, N', D, Q, W, vm, save_phase L' \<phi>, clvls, cach, lbd, outl,
-         incr_propagation stats, fema, sema)
+         stats, fema, sema)
   })\<close>
 
 definition propagate_lit_wl_pre where
@@ -3600,6 +3601,7 @@ sepref_definition propagate_lit_wl_code
   unfolding update_clause_wl_heur_def isasat_unbounded_assn_def
     propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
     save_phase_def
+  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> zero_uint32_nat_def[symmetric])
   by sepref
 
 declare propagate_lit_wl_code.refine[sepref_fr_rules]
@@ -3618,6 +3620,8 @@ sepref_definition propagate_lit_wl_fast_code
     zero_uint64_nat_def[symmetric]
     one_uint64_nat_def[symmetric]
     save_phase_def
+  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> zero_uint64_nat_def)
+  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> zero_uint32_nat_def[symmetric])
   by sepref
 
 declare propagate_lit_wl_fast_code.refine[sepref_fr_rules]

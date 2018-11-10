@@ -1486,7 +1486,7 @@ definition empty_conflict_code :: \<open>(_ list option \<times> stats) nres\<cl
   \<open>empty_conflict_code = do{
      let M0 = op_arl_empty;
      let M1 = Some M0;
-     RETURN (M1, (zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64))}\<close>
+     RETURN (M1, (zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64))}\<close>
 
 abbreviation  model_stat_assn where
   \<open>model_stat_assn \<equiv> option_assn (arl_assn unat_lit_assn) *a stats_assn\<close>
@@ -1501,7 +1501,8 @@ sepref_definition  empty_conflict_code'
 declare empty_conflict_code'.refine[sepref_fr_rules]
 
 definition empty_init_code :: \<open>_ list option \<times> stats\<close> where
-  \<open>empty_init_code = (None, (zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64))\<close>
+  \<open>empty_init_code = (None, (zero_uint64, zero_uint64, zero_uint64, zero_uint64,
+    zero_uint64, zero_uint64))\<close>
 
 sepref_definition  empty_init_code'
   is \<open>uncurry0 (RETURN empty_init_code)\<close>

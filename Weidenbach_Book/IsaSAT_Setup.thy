@@ -36,10 +36,11 @@ NB: the statistics are not proven correct (especially they might
 overflow), there are just there to look for regressions, do some comparisons (e.g., to conclude that
 we are propagating slower than the other solvers), or to test different option combination.
 \<close>
-type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
+type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 
 abbreviation stats_assn where
-  \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn\<close>
+  \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn
+     *a uint64_assn\<close>
 
 definition incr_propagation :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_propagation = (\<lambda>(propa, confl, dec). (propa + 1, confl, dec))\<close>
@@ -54,7 +55,10 @@ definition incr_restart :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_restart = (\<lambda>(propa, confl, dec, res, lres). (propa, confl, dec, res + 1, lres))\<close>
 
 definition incr_lrestart :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_lrestart = (\<lambda>(propa, confl, dec, res, lres). (propa, confl, dec, res, lres + 1))\<close>
+  \<open>incr_lrestart = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl, dec, res, lres + 1, uset))\<close>
+
+definition incr_uset :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_uset = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl, dec, res, lres, uset + 1))\<close>
 
 lemma incr_propagation_hnr[sepref_fr_rules]:
     \<open>(return o incr_propagation, RETURN o incr_propagation) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
@@ -76,13 +80,17 @@ lemma incr_lrestart_hnr[sepref_fr_rules]:
     \<open>(return o incr_lrestart, RETURN o incr_lrestart) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
   by sepref_to_hoare (sep_auto simp: incr_lrestart_def)
 
+lemma incr_uset_hnr[sepref_fr_rules]:
+    \<open>(return o incr_uset, RETURN o incr_uset) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_uset_def)
+
 
 paragraph \<open>Moving averages\<close>
 
 text \<open>We use (at least hopefully) the variant of EMA-14 implemented in Cadical, but with fixed-point
 calculation (\<^term>\<open>1 :: nat\<close> is \<^term>\<open>(1 :: nat) >> 32\<close>).
 
-Remark that the coefficient \<^term>\<open>\<beta>\<close> already takes care of the bixed-point conversion of the glue.
+Remark that the coefficient \<^term>\<open>\<beta>\<close> already takes care of the fixed-point conversion of the glue.
 \<close>
 type_synonym ema = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 
