@@ -77,7 +77,7 @@ fun print_stat (propa, (confl, (dec, (res, (lres, ures))))) =
      val _ = print ("c decisions: " ^ IntInf.toString (Uint64.toInt dec) ^ "\n")
      val _ = print ("c reductions: " ^ IntInf.toString (Uint64.toInt res) ^ "\n")
      val _ = print ("c local restarts: " ^ IntInf.toString (Uint64.toInt lres) ^ "\n")
-     val _ = print ("c literals set at level 0: " ^ IntInf.toString (Uint64.toInt lres) ^ "\n")
+     val _ = print ("c literals set at level 0: " ^ IntInf.toString (Uint64.toInt ures) ^ "\n")
   in
    ()
   end
