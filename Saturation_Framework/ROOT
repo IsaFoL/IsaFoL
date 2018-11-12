@@ -13,9 +13,10 @@ session "Saturation_Framework" = "HOL-Library" +
     Well_Quasi_Orders
   theories [document = false]
     "../lib/Explorer"
-  (*theories [document = pdf, quick_and_dirty = true]
+  theories [document = pdf, quick_and_dirty = true]
     Saturation_Framework_Preliminaries
     Dynamic_Completeness_Lifting
-    Nonground_Calculus_Lifting*)
+    Nonground_Calculus_Lifting
+    Given_Clause_Prover_Lifting
   document_files
     root.tex
