@@ -14,18 +14,19 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
     k \<leftarrow> choose_pivot R h xs0 i0 j0; \<comment> \<open>choice of pivot\<close>	
     ASSERT(k < length xs0);
     xs \<leftarrow> RETURN (swap xs0 k j0);
-    pivot \<leftarrow> RETURN (h (xs0 ! j0));
+    ASSERT(length xs = length xs0);
+    pivot \<leftarrow> RETURN (h (xs ! j0));
     (i, xs) \<leftarrow> FOREACHi
       (\<lambda>js (i, xs). i < length xs \<and> mset xs = mset xs0 \<and> i \<ge> i0 \<and>
 	 i \<le> (j0 - 1) - card js)
       (set [i0..<j0 - 1])
       (\<lambda>j (i, xs). do {
-	ASSERT(j < length xs);
+	ASSERT(j < length xs \<and> i < length xs);
 	if R (h (xs!j)) pivot
 	then RETURN (i+1, swap xs i j)
 	else RETURN (i, xs)
       })
-      (i0, xs0);
+      (i0, xs);
     RETURN (xs, i+1)
   }\<close>
 
@@ -86,7 +87,9 @@ proof -
     subgoal using assms by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
     subgoal using assms by (auto dest: mset_eq_length)
+    subgoal by (force dest: mset_eq_length)
     subgoal by (force dest: mset_eq_length)
     subgoal by (force dest: mset_eq_length)
     subgoal by auto
@@ -167,6 +170,7 @@ proof -
     done
 qed
 
+text \<open>We use the median of the first, the middle, and the last element.\<close>
 definition choose_pivot3 where
   \<open>choose_pivot3 R h xs i (j::nat) = do {
     ASSERT(i < length xs);
@@ -182,20 +186,218 @@ definition choose_pivot3 where
 
 lemma choose_pivot3_choose_pivot:
   assumes \<open>i < length xs\<close> \<open>j < length xs\<close> \<open>j \<ge> i\<close>
-  shows \<open>choose_pivot3 R h xs i j \<le> choose_pivot R h xs i j\<close>
+  shows \<open>choose_pivot3 R h xs i j \<le> \<Down> Id (choose_pivot R h xs i j)\<close>
   unfolding choose_pivot3_def choose_pivot_def
   using assms by (auto intro!: ASSERT_leI simp: Let_def)
 
+definition partition_between_ref
+  :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close>
+where
+  \<open>partition_between_ref R h i0 j0 xs0 = do {
+    ASSERT(i0 < length xs0 \<and> j0 < length xs0 \<and> j0 > i0);
+    k \<leftarrow> choose_pivot3 R h xs0 i0 j0; \<comment> \<open>choice of pivot\<close>	
+    ASSERT(k < length xs0);
+    xs \<leftarrow> RETURN (swap xs0 k j0);
+    ASSERT(length xs = length xs0);
+    pivot \<leftarrow> RETURN (h (xs ! j0));
+    (i, xs) \<leftarrow> nfoldli
+      ([i0..<j0 - 1])
+      (\<lambda>_. True)
+      (\<lambda>j (i, xs). do {
+	ASSERT(j < length xs \<and> i < length xs);
+	if R (h (xs!j)) pivot
+	then RETURN (i+1, swap xs i j)
+	else RETURN (i, xs)
+      })
+      (i0, xs);
+    RETURN (xs, i+1)
+  }\<close>
 
-sepref_definition p1
-  is \<open>uncurry2 (partition_between (<) id)\<close>
+lemma partition_between_ref_partition_between:
+  \<open>partition_between_ref R h i j xs \<le> (partition_between R h i j xs)\<close>
+proof -
+  have swap: \<open>(swap xs k j, swap xs ka j) \<in> Id\<close> if \<open>k = ka\<close>
+    for k ka
+    using that by auto
+  have [refine0]: \<open>(h (xsa ! j), h (xsaa ! j)) \<in> Id\<close>
+    if \<open>(xsa, xsaa) \<in> Id\<close>
+    for xsa xsaa
+    using that by auto
+  have [refine0]: \<open>(RETURN [i..<j - 1], it_to_sorted_list (\<lambda>_ _. True) (set [i..<j - 1]))
+       \<in> {(c, a).
+          c \<le> \<Down> {(x, y).
+                 list_all2 (\<lambda>x x'. (x, x') \<in> Id) x
+                  y}
+               a}\<close>
+    by (auto simp: it_to_sorted_list_def list.rel_eq
+      intro!: RETURN_RES_refine exI[of _ \<open>[i..<j - Suc 0]\<close>])
+  have [refine0]: \<open>(\<lambda>j (i, xs). do {
+             _ \<leftarrow> ASSERT (j < length xs \<and> i < length xs);
+             if R (h (xs ! j)) pivot then RETURN (i + 1, swap xs i j)
+             else RETURN (i, xs)
+           },
+        \<lambda>j (i, xs). do {
+             _ \<leftarrow> ASSERT (j < length xs \<and> i < length xs);
+             if R (h (xs ! j)) pivota then RETURN (i + 1, swap xs i j)
+             else RETURN (i, xs)
+           })
+       \<in> {(f, f').
+          \<forall>x y. (x, y) \<in> nat_rel \<longrightarrow>
+                (\<forall>xa ya.
+                    (xa, ya) \<in> Id \<longrightarrow>
+                    f x xa \<le> \<Down> Id (f' y ya))}\<close>
+    if \<open>(pivot, pivota) \<in> Id\<close>
+    for pivot pivota
+    using that
+    by (auto intro!: ext ASSERT_leI)
+    
+  show ?thesis
+    apply (subst (2) Down_id_eq[symmetric])
+    unfolding partition_between_ref_def
+      partition_between_def FOREACH_patterns
+      LIST_FOREACH'_def[of \<open>RETURN _\<close>, unfolded nres_monad1, symmetric]
+      OP_def
+    apply (refine_vcg choose_pivot3_choose_pivot swap
+      LIST_FOREACH_autoref["to_\<Down>"] \<comment> \<open>@Peter: what is the proper way to do that?\<close>
+      ) 
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+lemma partition_between_ref_partition_between':
+  \<open>(uncurry2 (partition_between_ref R h), uncurry2 (partition_between R h)) \<in>
+    nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto intro: partition_between_ref_partition_between)
+    
+definition choose_pivot3_impl where
+  \<open>choose_pivot3_impl = choose_pivot3 (<) id\<close>
+
+sepref_definition choose_pivot3_impl_code
+  is \<open>uncurry2 (choose_pivot3_impl)\<close>
+  :: \<open>(arl_assn nat_assn)\<^sup>k  *\<^sub>a  nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k\<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding choose_pivot3_impl_def choose_pivot3_def id_def
+  by sepref
+
+declare choose_pivot3_impl_code.refine[sepref_fr_rules]
+
+definition partition_between_impl where
+  \<open>partition_between_impl = partition_between_ref (<) id\<close>
+
+sepref_register choose_pivot3 partition_between_ref
+
+sepref_definition partition_between_ref_code
+  is \<open>uncurry2 (partition_between_impl)\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
       arl_assn nat_assn *a nat_assn\<close>
-  unfolding partition_between_def id_def
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold
+  unfolding partition_between_ref_def partition_between_impl_def
+    choose_pivot3_impl_def[symmetric]
+  unfolding id_def
+  by sepref
 
-  apply sepref
+declare partition_between_ref_code.refine[sepref_fr_rules]
+
+definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a::ord list \<Rightarrow> 'a list nres\<close> where
+\<open>quicksort_ref R h i j xs0 = do {
+  RECT (\<lambda>f (i,j,xs). do {
+      ASSERT(mset xs = mset xs0);
+      if i+1 \<ge> j then RETURN xs
+      else do{
+	(xs, k) \<leftarrow> partition_between_ref R h i j xs;
+	xs \<leftarrow> f (i, k-1, xs);
+	f (k, j, xs)
+      }
+    })
+    (i, j, xs0)
+  }\<close>
+
+lemma apply_the_fucking_assumption:
+  \<open>(P \<Longrightarrow> Q) \<Longrightarrow> P \<Longrightarrow> Q\<close>
+  by blast
+
+lemma
+  \<open>quicksort_ref R f i j xs \<le> \<Down> Id (quicksort R f i j xs)\<close>
+proof -
+  have wf: \<open>wf (measure (\<lambda>(i, j, xs). Suc j - i))\<close>
+    by auto
+  have pre: \<open> ((i, j, xs), i, j, xs) \<in> Id \<times>\<^sub>r Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel\<close>
+    by auto
+  have f: \<open>f (x1b, x2e - 1, x1e)
+	\<le> \<Down> Id
+	   (fa (x1, x2d - 1, x1d))\<close>
+    if 
+      H: \<open>\<And>x x'.
+	  (x, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel) \<Longrightarrow>
+	  f x \<le> \<Down> Id (fa x')\<close> and
+      \<open>(x, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel)\<close> and
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>x' = (x1, x2)\<close> and
+      \<open>x2b = (x1c, x2c)\<close> and
+      \<open>x = (x1b, x2b)\<close> and
+      \<open>(xa, x'a) \<in> \<langle>Id\<rangle>list_rel \<times>\<^sub>f nat_rel\<close> and
+      \<open>x'a = (x1d, x2d)\<close> and
+      \<open>xa = (x1e, x2e)\<close>
+    for f fa x x' x1 x2 x1a x2a x1b x2b x1c x2c xa x'a x1d x2d x1e x2e
+  proof -
+    show ?thesis
+      by (rule H) (use that in auto)
+  qed
+  have f': \<open>f (x2e, x1c, xsa) \<le> \<Down> Id (fa (x2d, x1a, xsaa))\<close>
+    if 
+      H: \<open>\<And>x x'.
+	  (x, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel) \<Longrightarrow>
+	  f x \<le> \<Down> Id (fa x')\<close> and
+      \<open>(x, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel)\<close> and
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>x' = (x1, x2)\<close> and
+      \<open>x2b = (x1c, x2c)\<close> and
+      \<open>x = (x1b, x2b)\<close> and
+      \<open>(xa, x'a) \<in> \<langle>Id\<rangle>list_rel \<times>\<^sub>f nat_rel\<close> and
+      \<open>x'a = (x1d, x2d)\<close> and
+      \<open>xa = (x1e, x2e)\<close> and
+      \<open>(xsa, xsaa) \<in> Id\<close>
+    for f fa x x' x1 x2 x1a x2a x1b x2b x1c x2c xa x'a x1d x2d x1e x2e xsa xsaa
+  proof -
+    show ?thesis
+      by (rule H) (use that in auto)
+  qed
+  show ?thesis
+    unfolding quicksort_def quicksort_ref_def
+    apply (refine_vcg pre
+      partition_between_ref_partition_between'[THEN fref_to_Down_curry2])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule f; assumption)
+    apply (rule f'; assumption)
+    done
+ qed
+
+definition quicksort_impl where
+  \<open>quicksort_impl = quicksort_ref (<) id\<close>
+  
+sepref_definition quicksort_code
+  is \<open>uncurry2 (quicksort_impl)\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
+      arl_assn nat_assn\<close>
+  unfolding partition_between_impl_def[symmetric]
+    quicksort_impl_def quicksort_ref_def
+  by sepref
+
+export_code quicksort_code nat_of_integer integer_of_nat in SML_imp  module_name Sort
+  file "sort/quicksort.sml"
 end
