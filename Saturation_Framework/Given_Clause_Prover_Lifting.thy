@@ -13,7 +13,7 @@ theory Given_Clause_Prover_Lifting
     "../lib/Explorer"
 begin
 
-(* This part corresponds to section 5.2 in the technical report*)
+text \<open>This part corresponds to section 5.2 in the technical report\<close> 
 context FO_resolution_prover
 begin
 
@@ -39,7 +39,7 @@ definition Inf_F :: "'a clause Saturation_Framework_Preliminaries.inference set"
 
 interpretation Saturation_Framework_Preliminaries.sound_inference_system Bot_F entails_sound_F Inf_F 
 proof - 
-  { (*Saturation_Framework_Preliminaries.consequence_relation, subset_entailed assumption*)
+  { text \<open>proof of @{locale Saturation_Framework_Preliminaries.consequence_relation}, \<open>subset_entailed\<close> assumption\<close>
     fix N1 N2 I \<eta>
     assume
       incl: "N2 \<subseteq> N1" and
@@ -50,7 +50,8 @@ proof -
       using entails ground_subst true_clss_mono[OF incl_subst, of I] by blast 
   }
   moreover
-  { (* Saturation_Framework_Preliminaries.consequence_relation, all_formulas_entailed assumption *)
+  { text \<open>proof of @{locale Saturation_Framework_Preliminaries.consequence_relation},
+      \<open>all_formulas_entailed\<close> assumption\<close>
     fix N1 N2 I \<eta>
     assume
       all_clss_entailed: "\<forall>C\<in>N2.
@@ -60,7 +61,7 @@ proof -
     then have "I \<Turnstile>s N2 \<cdot>cs \<eta>" by (simp add: subst_clss_def true_clss_def)
   }
   moreover
-  { (* Saturation_Framework_Preliminaries.sound_inference_system, soundness assumption *)
+  { text \<open>proof of @{locale Saturation_Framework_Preliminaries.sound_inference_system}, soundness assumption\<close>
     fix \<iota> I \<eta>
     assume
       i_in: "\<iota> \<in> Inf_F" and
@@ -86,7 +87,7 @@ proof -
     unfolding Saturation_Framework_Preliminaries.sound_inference_system_def
       consequence_relation_def entails_sound_F_def
       Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
-    by auto (* the other assumptions to prove are handled by auto *)
+    by auto \<comment> \<open>the other assumptions to prove are handled by auto\<close>
 qed
 
 abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
@@ -183,19 +184,6 @@ proof -
       Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
     by auto
 qed
-(*
-    have i_in': "\<iota> \<in> Inf_F" using i_in unfolding Inf_G_def by fast
-    have ground_prems: "set (inference.prems_of \<iota>) = ground_subset (set (inference.prems_of \<iota>))"
-      using i_in unfolding Inf_G_def
-      by (smt Collect_cong Collect_mem_eq filter_empty_conv ground_subset_def mem_Collect_eq)
-    then have ground_concl: "{Saturation_Framework_Preliminaries.inference.concl_of \<iota>} = ground_subset {Saturation_Framework_Preliminaries.inference.concl_of \<iota>}" sorry
-    have non_ground_sound: "\<And>I \<eta>. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s set (inference.prems_of \<iota>) \<cdot>cs \<sigma>) \<longrightarrow>
-      is_ground_subst \<eta> \<longrightarrow> I \<Turnstile>s {Saturation_Framework_Preliminaries.inference.concl_of \<iota>} \<cdot>cs \<eta>"
-      using soundness[OF i_in'] unfolding entails_sound_F_def sorry
-    have "I \<Turnstile> Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
-      using subst_atm_id_subst sorry 
-    note sound = soundness[OF i_in'] 
-*)
 
 end
 
