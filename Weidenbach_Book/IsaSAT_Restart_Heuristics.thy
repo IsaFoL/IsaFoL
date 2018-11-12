@@ -2,6 +2,7 @@ theory IsaSAT_Restart_Heuristics
   imports Watched_Literals_Watch_List_Domain_Restart IsaSAT_Setup IsaSAT_VMTF
     IsaSAT_Inner_Propagation (* TODO remove dependency *)
     "../lib/Explorer"
+    WB_Sort
 begin
 
 text \<open>
@@ -1153,10 +1154,10 @@ declare lower_restart_bound_not_reached_impl.refine[sepref_fr_rules]
   lower_restart_bound_not_reached_fast_impl.refine[sepref_fr_rules]
 
 
-definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat \<times> nat\<close> where
-  \<open>clause_score_extract arena xs C = (
-     let C = (xs ! C) in
-     if arena_status arena C = DELETED then (uint32_max, zero_uint32_nat) \<comment> \<open>deleted elements are the
+definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<times> nat\<close> where
+  \<open>clause_score_extract arena C = (
+     if arena_status arena C = DELETED
+     then (uint32_max, zero_uint32_nat) \<comment> \<open>deleted elements are the
         largest possible\<close>
      else
        let lbd = get_clause_LBD arena C in
@@ -1173,16 +1174,16 @@ lemma uint32_max_uint32_nat_assn:
 (* End Move *)
 
 definition (in -)valid_sort_clause_score_pre_at where
-  \<open>valid_sort_clause_score_pre_at arena vdom i \<longleftrightarrow>
-    arena_is_valid_clause_vdom arena (vdom!i) \<and>
+  \<open>valid_sort_clause_score_pre_at arena C \<longleftrightarrow>
+    (\<exists>i vdom. C = vdom ! i \<and> arena_is_valid_clause_vdom arena (vdom!i) \<and>
           (arena_status arena (vdom!i) \<noteq> DELETED \<longrightarrow>
              (get_clause_LBD_pre arena (vdom!i) \<and> arena_act_pre arena (vdom!i)))
-          \<and> i < length vdom\<close>
+          \<and> i < length vdom)\<close>
 
 sepref_definition (in -) clause_score_extract_code
-  is \<open>uncurry2 (RETURN ooo clause_score_extract)\<close>
-  :: \<open>[uncurry2 valid_sort_clause_score_pre_at]\<^sub>a
-      arena_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn *a uint32_nat_assn\<close>
+  is \<open>uncurry (RETURN oo clause_score_extract)\<close>
+  :: \<open>[uncurry valid_sort_clause_score_pre_at]\<^sub>a
+      arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn *a uint32_nat_assn\<close>
   supply uint32_max_uint32_nat_assn[sepref_fr_rules]
   unfolding clause_score_extract_def insert_sort_inner_def valid_sort_clause_score_pre_at_def
   by sepref
@@ -1195,30 +1196,28 @@ definition (in -)valid_sort_clause_score_pre where
         (arena_status arena C \<noteq> DELETED \<longrightarrow>
              (get_clause_LBD_pre arena C \<and> arena_act_pre arena C)))\<close>
 
-definition (in -)insort_inner_clauses_by_score :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
-  \<open>insort_inner_clauses_by_score arena =
-     insert_sort_inner clause_score_ordering (clause_score_extract arena)\<close>
-
-definition (in -) sort_clauses_by_score :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
-  \<open>sort_clauses_by_score arena = insert_sort clause_score_ordering (clause_score_extract arena)\<close>
-
 definition reorder_vdom_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>reorder_vdom_wl S = RETURN S\<close>
+
+definition (in -) quicksort_clauses_by_score :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
+  \<open>quicksort_clauses_by_score arena =
+    full_quicksort_ref clause_score_ordering (clause_score_extract arena)\<close>
 
 definition (in -) sort_vdom_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>sort_vdom_heur = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, avdom, lcount). do {
     ASSERT(valid_sort_clause_score_pre arena avdom);
-    avdom \<leftarrow> sort_clauses_by_score arena avdom;
+    avdom \<leftarrow> quicksort_clauses_by_score arena avdom;
     RETURN (M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, avdom, lcount)
     })\<close>
 
 lemma sort_clauses_by_score_reorder:
-  \<open>sort_clauses_by_score arena vdom \<le> SPEC(\<lambda>vdom'. mset vdom = mset vdom')\<close>
-  unfolding sort_clauses_by_score_def
-  by (rule order.trans, rule insert_sort_reorder_remove[THEN fref_to_Down, of _ vdom])
-     (auto simp add: reorder_remove_def)
+  \<open>quicksort_clauses_by_score arena vdom \<le> SPEC(\<lambda>vdom'. mset vdom = mset vdom')\<close>
+  unfolding quicksort_clauses_by_score_def
+  by (rule full_quicksort_ref_full_quicksort[THEN fref_to_Down, THEN order_trans])
+    (auto simp add: reorder_remove_def
+     intro: full_quicksort[THEN order_trans])
 
 lemma sort_vdom_heur_reorder_vdom_wl:
   \<open>(sort_vdom_heur, reorder_vdom_wl) \<in> twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
@@ -1247,33 +1246,44 @@ lemma (in -) insort_inner_clauses_by_score_invI:
    \<open>valid_sort_clause_score_pre a ba \<Longrightarrow>
        mset ba = mset a2' \<Longrightarrow>
        a1' < length a2' \<Longrightarrow>
-       valid_sort_clause_score_pre_at a a2' a1'\<close>
+       valid_sort_clause_score_pre_at a (a2' ! a1')\<close>
   unfolding valid_sort_clause_score_pre_def all_set_conv_nth valid_sort_clause_score_pre_at_def
   by (metis in_mset_conv_nth)+
 
-sepref_definition (in -) insort_inner_clauses_by_score_code
-  is \<open>uncurry2 insort_inner_clauses_by_score\<close>
-  :: \<open>[\<lambda>((arena, vdom), _). valid_sort_clause_score_pre arena vdom]\<^sub>a
-      arena_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> vdom_assn\<close>
-  supply insort_inner_clauses_by_score_invI[intro]
-  unfolding insort_inner_clauses_by_score_def insert_sort_inner_def
-  by sepref
-
-declare insort_inner_clauses_by_score_code.refine[sepref_fr_rules]
 
 lemma sort_clauses_by_score_invI:
   \<open>valid_sort_clause_score_pre a b \<Longrightarrow>
        mset b = mset a2' \<Longrightarrow> valid_sort_clause_score_pre a a2'\<close>
   using mset_eq_setD unfolding valid_sort_clause_score_pre_def by blast
 
+definition partition_clause where
+  \<open>partition_clause arena = partition_between_ref clause_score_ordering  (clause_score_extract arena)\<close>
+
+
+sepref_definition (in -) partition_clause_code
+  is \<open>uncurry3 partition_clause\<close>
+  :: \<open>[\<lambda>(((arena, i), j), vdom). valid_sort_clause_score_pre arena vdom]\<^sub>a
+      arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a nat_assn\<close>
+  supply insort_inner_clauses_by_score_invI[intro]
+  unfolding partition_clause_def partition_between_ref_def
+    choose_pivot3_def
+  by sepref
+
+declare partition_clause_code.refine[sepref_fr_rules]
+
 sepref_definition (in -) sort_clauses_by_score_code
-  is \<open>uncurry sort_clauses_by_score\<close>
+  is \<open>uncurry quicksort_clauses_by_score\<close>
   :: \<open>[uncurry valid_sort_clause_score_pre]\<^sub>a
       arena_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn\<close>
   supply sort_clauses_by_score_invI[intro]
-  unfolding insert_sort_def insort_inner_clauses_by_score_def[symmetric]
-    sort_clauses_by_score_def
+  unfolding insert_sort_def
+    quicksort_clauses_by_score_def
+    full_quicksort_ref_def
+    quicksort_ref_def
+    partition_clause_def[symmetric]
+    List.null_def
   by sepref
+
 
 declare sort_clauses_by_score_code.refine[sepref_fr_rules]
 

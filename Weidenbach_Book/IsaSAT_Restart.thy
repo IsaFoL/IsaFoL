@@ -372,7 +372,7 @@ declare  mark_garbage_heur_code.refine[sepref_fr_rules]
 
 sepref_register delete_index_vdom_heur
 sepref_definition delete_index_vdom_heur_code
-  is \<open>uncurry (RETURN oo ( delete_index_vdom_heur))\<close>
+  is \<open>uncurry (RETURN oo delete_index_vdom_heur)\<close>
   :: \<open>[\<lambda>(i, S). i < length_avdom S]\<^sub>a
         nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
   unfolding delete_index_vdom_heur_def isasat_unbounded_assn_def delete_index_and_swap_alt_def
@@ -381,7 +381,7 @@ sepref_definition delete_index_vdom_heur_code
   by sepref
 
 sepref_definition delete_index_vdom_heur_fast_code2
-  is \<open>uncurry (RETURN oo ( delete_index_vdom_heur))\<close>
+  is \<open>uncurry (RETURN oo delete_index_vdom_heur)\<close>
   :: \<open>[\<lambda>(i, S). i < length_avdom S]\<^sub>a
         nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding delete_index_vdom_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
@@ -402,7 +402,7 @@ lemma access_length_heur_alt_def:
 
 sepref_register access_length_heur
 sepref_definition access_length_heur_code
-  is \<open>uncurry (RETURN oo ( access_length_heur))\<close>
+  is \<open>uncurry (RETURN oo access_length_heur)\<close>
   :: \<open>[\<lambda>(S, C). arena_is_valid_clause_idx (get_clauses_wl_heur S) C]\<^sub>a
        isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
   unfolding access_length_heur_alt_def isasat_unbounded_assn_def
@@ -410,7 +410,7 @@ sepref_definition access_length_heur_code
   by sepref
 
 sepref_definition access_length_heur_fast_code2
-  is \<open>uncurry (RETURN oo ( access_length_heur))\<close>
+  is \<open>uncurry (RETURN oo access_length_heur)\<close>
   :: \<open>[\<lambda>(S, C). arena_is_valid_clause_idx (get_clauses_wl_heur S) C]\<^sub>a
        isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
   unfolding access_length_heur_alt_def isasat_bounded_assn_def
@@ -473,7 +473,7 @@ declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
 (* END Move *)
 
 lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
-  \<open>D = Some C \<longleftrightarrow>  D \<noteq> None \<and> (nat_of_uint64_conv (the D) = C)\<close>
+  \<open>D = Some C \<longleftrightarrow> D \<noteq> None \<and> (nat_of_uint64_conv (the D) = C)\<close>
   by auto
 
 sepref_definition mark_to_delete_clauses_wl_D_heur_fast_impl

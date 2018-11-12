@@ -1,7 +1,6 @@
 theory WB_Sort
   imports
-    WB_More_Refinement
-    "../lib/Explorer"
+    Watched_Literals.WB_More_Refinement
 begin
 
 definition choose_pivot :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
@@ -21,7 +20,7 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
 	 i \<le> (j0 - 1) - card js)
       (set [i0..<j0 - 1])
       (\<lambda>j (i, xs). do {
-	ASSERT(j < length xs \<and> i < length xs);
+	ASSERT(j < length xs \<and> i < length xs \<and> mset xs = mset xs0);
 	if R (h (xs!j)) pivot
 	then RETURN (i+1, swap xs i j)
 	else RETURN (i, xs)
@@ -88,9 +87,10 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
+    subgoal by (force dest: mset_eq_length)
+    subgoal by (force dest: mset_eq_length)
     subgoal using assms by (auto dest: mset_eq_length)
-    subgoal by (force dest: mset_eq_length)
-    subgoal by (force dest: mset_eq_length)
     subgoal by (force dest: mset_eq_length)
     subgoal by auto
     subgoal by auto
@@ -204,7 +204,7 @@ where
       ([i0..<j0 - 1])
       (\<lambda>_. True)
       (\<lambda>j (i, xs). do {
-	ASSERT(j < length xs \<and> i < length xs);
+	ASSERT(j < length xs \<and> i < length xs \<and> mset xs = mset xs0);
 	if R (h (xs!j)) pivot
 	then RETURN (i+1, swap xs i j)
 	else RETURN (i, xs)
@@ -232,12 +232,12 @@ proof -
     by (auto simp: it_to_sorted_list_def list.rel_eq
       intro!: RETURN_RES_refine exI[of _ \<open>[i..<j - Suc 0]\<close>])
   have [refine0]: \<open>(\<lambda>j (i, xs). do {
-             _ \<leftarrow> ASSERT (j < length xs \<and> i < length xs);
+             _ \<leftarrow> ASSERT (j < length xs \<and> i < length xs \<and> mset xs = mset xsa);
              if R (h (xs ! j)) pivot then RETURN (i + 1, swap xs i j)
              else RETURN (i, xs)
            },
         \<lambda>j (i, xs). do {
-             _ \<leftarrow> ASSERT (j < length xs \<and> i < length xs);
+             _ \<leftarrow> ASSERT (j < length xs \<and> i < length xs \<and> mset xs = mset xsa);
              if R (h (xs ! j)) pivota then RETURN (i + 1, swap xs i j)
              else RETURN (i, xs)
            })
@@ -247,7 +247,7 @@ proof -
                     (xa, ya) \<in> Id \<longrightarrow>
                     f x xa \<le> \<Down> Id (f' y ya))}\<close>
     if \<open>(pivot, pivota) \<in> Id\<close>
-    for pivot pivota
+    for pivot pivota xsa
     using that
     by (auto intro!: ext ASSERT_leI)
     
@@ -323,11 +323,7 @@ definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightar
     (i, j, xs0)
   }\<close>
 
-lemma apply_the_fucking_assumption:
-  \<open>(P \<Longrightarrow> Q) \<Longrightarrow> P \<Longrightarrow> Q\<close>
-  by blast
-
-lemma
+lemma quicksort_ref_quicksort:
   \<open>quicksort_ref R f i j xs \<le> \<Down> Id (quicksort R f i j xs)\<close>
 proof -
   have wf: \<open>wf (measure (\<lambda>(i, j, xs). Suc j - i))\<close>
@@ -389,7 +385,8 @@ proof -
 
 definition quicksort_impl where
   \<open>quicksort_impl = quicksort_ref (<) id\<close>
-  
+
+    
 sepref_definition quicksort_code
   is \<open>uncurry2 (quicksort_impl)\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
@@ -400,4 +397,26 @@ sepref_definition quicksort_code
 
 export_code quicksort_code nat_of_integer integer_of_nat in SML_imp  module_name Sort
   file "sort/quicksort.sml"
+
+definition full_quicksort where
+  \<open>full_quicksort R h xs = (if xs = [] then RETURN [] else quicksort R h 0 (length xs - 1) xs)\<close>
+
+definition full_quicksort_ref where
+  \<open>full_quicksort_ref R h xs =
+    (if List.null xs then RETURN xs else quicksort_ref R h 0 (length xs - 1) xs)\<close>
+
+lemma full_quicksort_ref_full_quicksort:
+  \<open>(full_quicksort_ref R h, full_quicksort R h) \<in>
+    \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle> \<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
+  unfolding full_quicksort_ref_def full_quicksort_def
+  by (intro frefI nres_relI)
+     (auto intro!: quicksort_ref_quicksort[unfolded Down_id_eq]
+       simp: List.null_def)
+
+lemma full_quicksort:
+  shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs'))\<close>
+  unfolding full_quicksort_def
+  by (auto intro: quicksort_between_mset_eq[THEN order_trans])
+
+  
 end
