@@ -4,13 +4,14 @@ theory WB_Sort
     "../lib/Explorer"
 begin
 
-definition choose_pivot where
-  \<open>choose_pivot i j = SPEC(\<lambda>k. k \<ge> i \<and> k \<le> j)\<close>
+definition choose_pivot :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
+  \<open>choose_pivot _ _ _ i j = SPEC(\<lambda>k. k \<ge> i \<and> k \<le> j)\<close>
+
 
 definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
   \<open>partition_between R h i0 j0 xs0 = do {
-    ASSERT(i0 < length xs0 \<and> j0 < length xs0);
-    k \<leftarrow> choose_pivot i0 j0; \<comment> \<open>choice of pivot\<close>	
+    ASSERT(i0 < length xs0 \<and> j0 < length xs0 \<and> j0 > i0);
+    k \<leftarrow> choose_pivot R h xs0 i0 j0; \<comment> \<open>choice of pivot\<close>	
     ASSERT(k < length xs0);
     xs \<leftarrow> RETURN (swap xs0 k j0);
     pivot \<leftarrow> RETURN (h (xs0 ! j0));
@@ -77,6 +78,7 @@ proof -
   show ?thesis
     unfolding partition_between_def choose_pivot_def
     apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, j, _). j - i)\<close>])
+    subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal by auto
@@ -164,6 +166,25 @@ proof -
       done
     done
 qed
+
+definition choose_pivot3 where
+  \<open>choose_pivot3 R h xs i (j::nat) = do {
+    ASSERT(i < length xs);
+    ASSERT(j < length xs);
+    let k = (i + j) div 2;
+    let start = h (xs ! i);
+    let mid = h (xs ! k);
+    let end = h (xs ! j);
+    if (R start mid \<and> R mid end) \<or> (R end mid \<and> R mid start) then RETURN k
+    else if (R start end \<and> R end mid) \<or> (R mid end \<and> R end start) then RETURN j
+    else RETURN i
+}\<close>
+
+lemma choose_pivot3_choose_pivot:
+  assumes \<open>i < length xs\<close> \<open>j < length xs\<close> \<open>j \<ge> i\<close>
+  shows \<open>choose_pivot3 R h xs i j \<le> choose_pivot R h xs i j\<close>
+  unfolding choose_pivot3_def choose_pivot_def
+  using assms by (auto intro!: ASSERT_leI simp: Let_def)
 
 
 sepref_definition p1
