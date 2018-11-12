@@ -111,9 +111,12 @@ definition Inf_G :: "'a clause Saturation_Framework_Preliminaries.inference set"
 definition entails_sound_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>G" 50)  where
   "S1 |\<approx>G S2 \<equiv> \<forall>I. I \<Turnstile>s ground_subset S1 \<longrightarrow> I \<Turnstile>s ground_subset S2"*)
 
-definition entails_sound_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>G" 50)  where
-  "S1 |\<approx>G S2 \<equiv> \<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"
-  
+definition entails_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool"  where
+  "entails_G S1 S2 \<equiv> \<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"
+
+abbreviation entails_sound_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>G" 50)  where
+  "S1 |\<approx>G S2 \<equiv> entails_G S1 S2"
+
 (*lemma ground_subst_on_ground_subset: "is_ground_subst \<sigma> \<Longrightarrow> (ground_subset N) \<cdot>cs \<sigma> = (ground_subset N)"
   by (simp add: ground_subset_def is_ground_cls_def is_ground_clss_def is_ground_lit_def) *)
 
@@ -180,10 +183,34 @@ proof -
   }
   ultimately show "Saturation_Framework_Preliminaries.sound_inference_system Bot_G (|\<approx>G) Inf_G"
     unfolding Saturation_Framework_Preliminaries.sound_inference_system_def
-      consequence_relation_def entails_sound_G_def
+      consequence_relation_def entails_G_def
       Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
     by auto
 qed
+
+abbreviation entails_comp_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>G" 50) where
+  "S1 \<Turnstile>G S2 \<equiv> entails_G S1 S2"
+
+interpretation Saturation_Framework_Preliminaries.consequence_relation Bot_G entails_comp_G
+  by (rule consequence_relation_axioms)
+
+interpretation Saturation_Framework_Preliminaries.sound_inference_system Bot_G entails_comp_G Inf_G
+  by (rule sound_inference_system_axioms)
+
+interpretation sr: standard_redundancy_criterion_reductive gr.ord_\<Gamma>
+  by unfold_locales
+
+definition Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set" where
+  "Red_Inf_G S1 \<equiv> (\<lambda>x. (conv_inf ` (sr.Ri x))) S1"
+
+definition Red_F_G :: "'a clause set \<Rightarrow> 'a clause set" where
+  "Red_F_G S1 \<equiv> sr.Rf S1"
+
+interpretation Saturation_Framework_Preliminaries.calculus Bot_G entails_sound_G Inf_G
+  entails_comp_G Red_Inf_G Red_F_G
+  unfolding calculus_def
+  proof (intro conjI)
+  oops
 
 end
 
