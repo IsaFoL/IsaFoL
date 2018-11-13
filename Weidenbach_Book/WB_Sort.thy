@@ -395,9 +395,6 @@ sepref_definition quicksort_code
     quicksort_impl_def quicksort_ref_def
   by sepref
 
-export_code quicksort_code nat_of_integer integer_of_nat in SML_imp  module_name Sort
-  file "sort/quicksort.sml"
-
 definition full_quicksort where
   \<open>full_quicksort R h xs = (if xs = [] then RETURN [] else quicksort R h 0 (length xs - 1) xs)\<close>
 
