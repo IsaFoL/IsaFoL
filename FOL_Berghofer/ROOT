@@ -2,5 +2,7 @@ chapter FOL_Berghofer
 
 session "FOL_Berghofer" = "HOL" +
   options [document = false]
+  sessions
+    "HOL-Library"
   theories
     FOL_Berghofer
