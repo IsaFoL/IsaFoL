@@ -271,7 +271,6 @@ begin
 text "lemma 17 from the technical report"
 lemma "any_order_lifting.lifted_calculus.saturated N = empty_order_lifting.lifted_calculus.saturated N" by standard
 
-
 text "lemma 18 from the technical report" (*TODO: check with Mathias that the first any_order_lifting.entails_\<G> is OK*)
 lemma static_empty_order_equiv_static: "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
   unfolding static_refutational_complete_calculus_def by (rule iffI) (standard,(standard)[],simp)+

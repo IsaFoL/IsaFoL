@@ -209,8 +209,51 @@ definition Red_F_G :: "'a clause set \<Rightarrow> 'a clause set" where
 interpretation Saturation_Framework_Preliminaries.calculus Bot_G entails_sound_G Inf_G
   entails_comp_G Red_Inf_G Red_F_G
   unfolding calculus_def
-  proof (intro conjI)
-  oops
+proof (intro conjI)
+  show \<open>Saturation_Framework_Preliminaries.sound_inference_system Bot_G (\<Turnstile>G) Inf_G\<close>
+    by (rule sound_inference_system_axioms)
+next
+  show \<open>consequence_relation Bot_G (\<Turnstile>G)\<close> by (rule consequence_relation_axioms)
+next
+  show \<open>calculus_axioms Bot_G Inf_G (\<Turnstile>G) Red_Inf_G Red_F_G\<close> unfolding calculus_axioms_def
+  proof (intro conjI allI impI)
+    fix N
+    show \<open>Red_Inf_G N \<subseteq> Inf_G\<close> unfolding Inf_G_def Red_Inf_G_def using sr.Ri_subset_\<Gamma> by fastforce
+  next
+    fix B N
+    assume
+      B_in: \<open>B \<in> Bot_G\<close> and
+      N_unsat: \<open>N \<Turnstile>G {B}\<close>
+    then show \<open>N - Red_F_G N \<Turnstile>G {B}\<close>
+      unfolding Red_F_G_def entails_G_def using standard_redundancy_criterion.Rf_model by force
+  next
+    fix N N' :: "'a clause set"
+    assume \<open>N \<subseteq> N'\<close>
+    then show \<open>Red_F_G N \<subseteq> Red_F_G N'\<close> by (simp add: Red_F_G_def sr.Rf_mono)
+  next
+    fix N N' :: "'a clause set"
+    assume \<open>N \<subseteq> N'\<close>
+    then show \<open>Red_Inf_G N \<subseteq> Red_Inf_G N'\<close> by (simp add: Red_Inf_G_def image_mono sr.Ri_mono)
+  next
+    fix N N' :: "'a clause set"
+    assume \<open>N' \<subseteq> Red_F_G N\<close>
+    then show \<open>Red_F_G N \<subseteq> Red_F_G (N - N')\<close> by (simp add: Red_F_G_def sr.Rf_indep)
+  next
+    fix N N' :: "'a clause set"
+    assume \<open>N' \<subseteq> Red_F_G N\<close>
+    then show \<open>Red_Inf_G N \<subseteq> Red_Inf_G (N - N')\<close> by (simp add: Red_F_G_def Red_Inf_G_def image_mono sr.Ri_indep)
+  next
+    fix \<iota> N
+    assume
+      i_in: \<open>\<iota> \<in> Inf_G\<close> and
+      concl_in: \<open>Saturation_Framework_Preliminaries.inference.concl_of \<iota> \<in> N\<close>
+    obtain \<iota>_RP where i_equal: "\<iota> = conv_inf \<iota>_RP" and i_RP_in: "\<iota>_RP \<in> gr.ord_\<Gamma>"
+      using i_in unfolding Inf_G_def by blast
+    then have \<open>concl_of \<iota>_RP \<in> N\<close> using concl_in by (simp add: conv_inf_def)
+    then have \<open>\<iota>_RP \<in> sr.Ri N\<close> using i_RP_in by (simp add: sr.Ri_effective)
+    then show \<open>\<iota> \<in> Red_Inf_G N\<close> unfolding Red_Inf_G_def Inf_G_def using i_equal by simp 
+  qed
+qed
 
 end
 
