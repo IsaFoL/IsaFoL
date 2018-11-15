@@ -206,7 +206,7 @@ definition Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause Saturation_Framew
 definition Red_F_G :: "'a clause set \<Rightarrow> 'a clause set" where
   "Red_F_G S1 \<equiv> sr.Rf S1"
 
-interpretation Saturation_Framework_Preliminaries.calculus Bot_G entails_sound_G Inf_G
+interpretation gr_calc: Saturation_Framework_Preliminaries.calculus Bot_G entails_sound_G Inf_G
   entails_comp_G Red_Inf_G Red_F_G
   unfolding calculus_def
 proof (intro conjI)
@@ -254,6 +254,70 @@ next
     then show \<open>\<iota> \<in> Red_Inf_G N\<close> unfolding Red_Inf_G_def Inf_G_def using i_equal by simp 
   qed
 qed
+
+lemma conv_inf_inf_from_commute: \<open>conv_inf ` gr.inferences_from (N - sr.Rf N) \<subseteq> gr_calc.Inf_from N\<close> 
+proof
+  fix \<iota>
+  assume
+    i_in: \<open>\<iota> \<in> conv_inf ` gr.inferences_from (N - sr.Rf N)\<close>
+  have \<open>\<iota> \<in> conv_inf ` gr.inferences_from N\<close>
+  proof - (* rebuild by sledgehammer *)
+    have "gr.inferences_from (N - sr.Rf N) \<subseteq> gr.inferences_from N"
+      by (simp add: Diff_subset gr.inferences_from_mono)
+    then show ?thesis
+      using i_in by blast
+  qed
+  then obtain \<iota>_RP where i_RP_from: \<open>\<iota>_RP \<in> gr.inferences_from N\<close> and i_to_i_RP: \<open>\<iota> = conv_inf \<iota>_RP\<close> by fast
+  have \<open>set_mset (prems_of \<iota>_RP) \<subseteq> N\<close> using i_RP_from unfolding gr.inferences_from_def infer_from_def by fast
+  then have i_from: \<open>set (Saturation_Framework_Preliminaries.prems_of \<iota>) \<subseteq> N\<close> using i_to_i_RP unfolding conv_inf_def by auto
+  have \<open>\<iota> \<in> Inf_G\<close> using i_RP_from i_to_i_RP unfolding gr.inferences_from_def Inf_G_def by blast
+  then show \<open>\<iota> \<in> gr_calc.Inf_from N\<close> using i_from unfolding gr_calc.Inf_from_def by fast
+qed
+
+lemma
+  assumes \<open>gr_calc.saturated N\<close>
+  shows \<open>sr.saturated_upto N\<close>
+    using assms unfolding sr.saturated_upto_def gr_calc.saturated_def
+proof clarify
+  fix \<iota>_RP
+  assume
+    sat: \<open>gr_calc.Inf_from N \<subseteq> Red_Inf_G N\<close> and
+    i_RP_from: \<open>\<iota>_RP \<in> gr.inferences_from (N - sr.Rf N)\<close>
+  have \<open>conv_inf \<iota>_RP \<in> gr_calc.Inf_from N\<close> using conv_inf_inf_from_commute[of N] i_RP_from by blast
+  then have \<open>conv_inf \<iota>_RP \<in> Red_Inf_G N\<close> using sat by blast
+  then obtain \<iota>_RP2 where i_RP2_in: \<open>\<iota>_RP2 \<in> sr.Ri N\<close> and prems: \<open>prems_of \<iota>_RP2 = prems_of \<iota>_RP\<close> and
+    concl: \<open>concl_of \<iota>_RP2 = concl_of \<iota>_RP\<close> unfolding Red_Inf_G_def conv_inf_def
+    by (metis (mono_tags, lifting) Saturation_Framework_Preliminaries.inference.sel(1)
+      Saturation_Framework_Preliminaries.inference.sel(2) image_iff mset_list_mset)
+  have \<open>\<iota>_RP2 \<in> gr.inferences_from (N - sr.Rf N)\<close> using prems concl i_RP_from
+    by (metis (no_types, lifting) i_RP2_in gr.inferences_from_def infer_from_def mem_Collect_eq
+      standard_redundancy_criterion.Ri_subset_\<Gamma> subsetCE)
+  then show \<open>\<iota>_RP \<in> sr.Ri N\<close> unfolding sr.Ri_def 
+oops
+
+
+
+interpretation Saturation_Framework_Preliminaries.static_refutational_complete_calculus Bot_G
+  entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
+  proof
+    fix B N
+    assume
+      B_in: \<open>B \<in> Bot_G\<close> and
+      N_sat: \<open>gr_calc.saturated N\<close> and
+      \<open>N \<Turnstile>G {B}\<close>
+    have \<open>B = {#}\<close> using B_in by simp
+    have \<open>sr.saturated_upto N\<close> unfolding sr.saturated_upto_def
+    proof
+      fix \<iota>_RP
+      assume
+        i_RP_from: \<open>\<iota>_RP \<in> gr.inferences_from (N - sr.Rf N)\<close>
+      define \<iota> where \<open>\<iota> = conv_inf \<iota>_RP\<close>
+      then have \<open>\<iota> \<in> gr_calc.Inf_from N\<close> using i_RP_from sorry
+      then show \<open>\<iota>_RP \<in> sr.Ri N\<close> unfolding gr.inferences_from_def sorry
+    qed
+    show \<open>\<exists>B'\<in>Bot_G. B' \<in> N\<close>
+      unfolding gr_calc.saturated_def sorry
+oops
 
 end
 
