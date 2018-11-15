@@ -1198,10 +1198,10 @@ lemma
   done
 
 definition get_literal_and_remove_of_analyse_wl
-   :: \<open>'v clause_l \<Rightarrow> (nat \<times> nat) list \<Rightarrow> 'v literal \<times> (nat \<times> nat) list\<close> where
+   :: \<open>'v clause_l \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat) list \<Rightarrow> 'v literal \<times> (nat \<times> nat \<times> nat \<times> nat) list\<close> where
   \<open>get_literal_and_remove_of_analyse_wl C analyse =
-    (let (i, j) = last analyse in
-     (C ! j, analyse[length analyse - 1 := (i, j + 1)]))\<close>
+    (let (i, k, j, ln) = last analyse in
+     (C ! j, analyse[length analyse - 1 := (i, k, j + 1, ln)]))\<close>
 
 
 definition mark_failed_lits_wl
@@ -1212,10 +1212,18 @@ where
 
 definition lit_redundant_rec_wl_ref where
   \<open>lit_redundant_rec_wl_ref NU analyse \<longleftrightarrow>
-       (\<forall>(i, j) \<in> set analyse. j \<le> length (NU \<propto> i) \<and> i \<in># dom_m NU \<and> j \<ge> 1 \<and> i > 0)\<close>
+    (\<forall>(i, k, j, ln) \<in> set analyse. j \<le> ln \<and> i \<in># dom_m NU \<and> i > 0 \<and>
+      ln \<le> length (NU \<propto> i) \<and> k < length (NU \<propto> i))\<close>
 
 definition lit_redundant_rec_wl_inv where
   \<open>lit_redundant_rec_wl_inv M NU D = (\<lambda>(cach, analyse, b). lit_redundant_rec_wl_ref NU analyse)\<close>
+
+definition lit_redundant_reason_stack
+  :: \<open>'v literal \<Rightarrow> 'v clauses_l \<Rightarrow> nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)\<close> where
+\<open>lit_redundant_reason_stack L NU C' =
+  (if length (NU \<propto> C') > 2 then (C', 0, 1, length (NU \<propto> C'))
+  else if NU \<propto> C' ! 0 = L then (C', 0, 1, length (NU \<propto> C'))
+  else (C', 1, 0, 1))\<close>
 
 definition lit_redundant_rec_wl :: \<open>('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clause \<Rightarrow>
      _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow>
@@ -1226,40 +1234,44 @@ where
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
-            ASSERT(fst (last analyse) \<in># dom_m NU);
-            let C = NU \<propto> fst (last analyse);
-            ASSERT(length C \<ge> 1);
-            let i = snd (last analyse);
-            ASSERT(C!0 \<in> lits_of_l M);
-            if i \<ge> length C
+	    let (C, k, i, ln) = last analyse;
+            ASSERT(C \<in># dom_m NU);
+            let C = NU \<propto> C;
+            ASSERT(length C > k);
+            ASSERT(C!k \<in> lits_of_l M);
+            if i \<ge> ln
             then
-               RETURN(cach (atm_of (C ! 0) := SEEN_REMOVABLE), butlast analyse, True)
+              RETURN(cach (atm_of (C ! k) := SEEN_REMOVABLE), butlast analyse, True)
             else do {
-               let (L, analyse) = get_literal_and_remove_of_analyse_wl C analyse;
-               ASSERT(-L \<in> lits_of_l M);
-               b \<leftarrow> RES (UNIV);
-               if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
-               then RETURN (cach, analyse, False)
-               else if b \<or> cach (atm_of L) = SEEN_FAILED
-               then do {
-                  cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
-                  RETURN (cach, [], False)
-               }
-               else do {
-                  C \<leftarrow> get_propagation_reason M (-L);
-                  case C of
-                    Some C \<Rightarrow> RETURN (cach, analyse @ [(C, 1)], False)
-                  | None \<Rightarrow> do {
-                      cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
-                      RETURN (cach, [], False)
-                  }
-              }
-          }
+	      let (L, analyse) = get_literal_and_remove_of_analyse_wl C analyse;
+	      ASSERT(-L \<in> lits_of_l M);
+	      b \<leftarrow> RES (UNIV);
+	      if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
+	      	     then RETURN (cach, analyse, False)
+	      else if b \<or> cach (atm_of L) = SEEN_FAILED
+	      then do {
+		cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
+		RETURN (cach, [], False)
+	      }
+	      else do {
+		C' \<leftarrow> get_propagation_reason M (-L);
+		case C' of
+		  Some C' \<Rightarrow> do {
+		    ASSERT(C' \<in># dom_m NU);
+		    ASSERT(length (NU \<propto> C') \<ge> 2);
+		    RETURN (cach, analyse @ [lit_redundant_reason_stack (-L) NU C'], False)
+		  }
+		| None \<Rightarrow> do {
+		    cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
+		    RETURN (cach, [], False)
+		}
+	     }
+           }
         })
        (cach, analysis, False)\<close>
 
 fun convert_analysis_l where
-  \<open>convert_analysis_l NU (i, j) = (-NU \<propto> i ! 0, mset (drop j (NU \<propto> i)))\<close>
+  \<open>convert_analysis_l NU (i, k, j, le) = (-NU \<propto> i ! k, mset (Misc.slice j le (NU \<propto> i)))\<close>
 
 definition convert_analysis_list where
   \<open>convert_analysis_list NU analyse = map (convert_analysis_l NU) (rev analyse)\<close>
@@ -1299,9 +1311,10 @@ proof -
     using NU S_S' S'_S'' unfolding M' by (auto simp: S state_wl_l_def twl_st_l_def)
   then have [simp]: \<open>lits_of_l M' = lits_of_l M\<close>
     by auto
-  have [simp]: \<open>fst (convert_analysis_l NU x) = -NU \<propto> (fst x) ! 0\<close> for x
+  have [simp]: \<open>fst (convert_analysis_l NU x) = -NU \<propto> (fst x) ! (fst (snd x))\<close> for x
     by (cases x) auto
-  have [simp]: \<open>snd (convert_analysis_l NU x) = mset (drop (snd x) (NU \<propto> fst x))\<close> for x
+  have [simp]: \<open>snd (convert_analysis_l NU x) =
+    mset (Misc.slice (fst (snd (snd x))) (snd (snd (snd x))) (NU \<propto> fst x))\<close> for x
     by (cases x) auto
 
   have
@@ -1335,19 +1348,21 @@ proof -
         \<open>x = (x1b, x2b)\<close> and
         \<open>x1a \<noteq> []\<close> and
       x1c: \<open>x1c \<noteq> []\<close> and
-      length: \<open>\<not> length (NU \<propto> fst (last x1c)) \<le> snd (last x1c)\<close>
+      length: \<open>\<not> fst (snd (snd (last x1c))) \<le> snd (snd (snd (last x1c)))\<close>
     for x x' x1 x2 x1a x2a x1b x2b x1c x2c
   proof -
-    have \<open>last x1c = (a, b) \<Longrightarrow> b \<le> length (NU \<propto> a)\<close> for aa ba list a b
+    have \<open>last x1c = (a, b, c, d) \<Longrightarrow> d \<le> length (NU \<propto> a)\<close>
+      \<open>last x1c = (a, b, c, d) \<Longrightarrow> c \<le> d\<close> for aa ba list a b c d
       using xx' x1c length unfolding s convert_analysis_list_def
-      by (cases x1c rule: rev_cases) auto
+        lit_redundant_rec_wl_ref_def
+      by (cases x1c rule: rev_cases; auto; fail)+
     then show ?thesis
       supply convert_analysis_list_def[simp] hd_rev[simp] last_map[simp] rev_map[symmetric, simp]
       using x1c xx' length
-      using Cons_nth_drop_Suc[of \<open>snd (last x1c)\<close> \<open>NU \<propto> fst (last x1c)\<close>, symmetric]
+      using Cons_nth_drop_Suc[of \<open>snd (snd (snd (last x1c)))\<close> \<open>NU \<propto> fst (last x1c)\<close>, symmetric]
       unfolding s lit_redundant_rec_wl_ref_def
       by (cases x1c; cases \<open>last x1c\<close>)
-         (auto simp: get_literal_and_remove_of_analyse_wl_def
+       (auto simp: get_literal_and_remove_of_analyse_wl_def
           get_literal_and_remove_of_analyse_def convert_analysis_list_def
           intro!: RETURN_SPEC_refine elim!: neq_Nil_revE split: if_splits)
   qed
@@ -1367,7 +1382,7 @@ proof -
       \<open>- fst (hd x1a) \<in> lits_of_l M'\<close> and
       \<open>x1c \<noteq> []\<close> and
       \<open>NU \<propto> fst (last x1c) ! 0 \<in> lits_of_l M\<close> and
-      \<open>\<not> length (NU \<propto> fst (last x1c)) \<le> snd (last x1c)\<close> and
+      \<open>\<not> length (NU \<propto> fst (last x1c)) \<le> snd (snd (snd (last x1c)))\<close> and
       \<open>snd (hd x1a) \<noteq> {#}\<close> and
       H: \<open>(get_literal_and_remove_of_analyse_wl (NU \<propto> fst (last x1c)) x1c, x'a) \<in> Id \<times>\<^sub>f ?A\<close>
          \<open>get_literal_and_remove_of_analyse_wl (NU \<propto> fst (last x1c)) x1c = (x1e, x2e)\<close> and
@@ -1419,7 +1434,8 @@ proof -
       apply (case_tac s)
       by auto
   qed
-  have resolve: \<open>((x1b, x2e @ [(xb, 1)], False), x1, (x1d, remove1_mset (- x1d) x'c) # x2d, False)
+  have resolve: \<open>((x1b, x2e @ [lit_redundant_reason_stack (-x1d) NU xb], False), x1,
+    (x1d, remove1_mset (- x1d) x'c) # x2d, False)
       \<in> Id \<times>\<^sub>r ?A \<times>\<^sub>r bool_rel\<close>
     if
       xx': \<open>(x, x') \<in> Id \<times>\<^sub>r ?A \<times>\<^sub>r bool_rel\<close> and
@@ -1438,13 +1454,34 @@ proof -
       using s get_literal_and_remove_of_analyse_wl
       unfolding get_lit convert_analysis_list_def
       by auto
-    then have [simp]: \<open>x1d = -NU \<propto> xb ! 0\<close> \<open>NU \<propto> xb \<noteq> []\<close>
+    then have x1d0: \<open>length (NU \<propto> xb) > 2 \<Longrightarrow> x1d = -NU \<propto> xb ! 0\<close> \<open>NU \<propto> xb \<noteq> []\<close> and
+      x1d: \<open>-x1d \<in> set (watched_l (NU \<propto> xb))\<close>
       using add_inv xb_x'c S_S' S'_S'' S unfolding twl_list_invs_def
       by (auto 5 5 simp: state_wl_l_def twl_st_l_def)
-    show ?thesis
-      using s xx' get_literal_and_remove_of_analyse_wl xb_x'c
+      
+    have le2: \<open>length (NU \<propto> xb) \<ge> 2\<close>
+      sorry
+    have 0: \<open>(i, k, j, ln) = lit_redundant_reason_stack (-x1d) NU xb \<Longrightarrow> 
+            j \<le> ln \<and> i \<in># dom_m NU \<and> 0 \<le> j \<and> 0 < i \<and> ln \<le> length (NU \<propto> i) \<and>
+	      k < length (NU \<propto> i)\<close>
+      for i j ln k
+      using s xx' get_literal_and_remove_of_analyse_wl xb_x'c x1d le2
       unfolding get_lit convert_analysis_list_def lit_redundant_rec_wl_ref_def
-      by (auto simp: drop_Suc)
+      lit_redundant_reason_stack_def
+      by (auto split: if_splits)
+
+    have \<open>(x1d, remove1_mset (- x1d) (mset (NU \<propto> xb))) =
+      convert_analysis_l NU (lit_redundant_reason_stack (- x1d) NU xb)\<close>
+      using s xx' get_literal_and_remove_of_analyse_wl xb_x'c x1d le2
+      unfolding get_lit convert_analysis_list_def lit_redundant_rec_wl_ref_def
+        lit_redundant_reason_stack_def
+      by (auto split: simp: Misc.slice_def drop_Suc simp: x1d0(1)
+        dest!: list_decomp_2)
+    then show ?thesis
+      using s xx' get_literal_and_remove_of_analyse_wl xb_x'c x1d 0
+      unfolding get_lit convert_analysis_list_def lit_redundant_rec_wl_ref_def
+      by (auto simp: drop_Suc Misc.slice_def uminus_lit_swap
+        dest!: list_decomp_2)
   qed
   have mark_failed_lits_wl: \<open>mark_failed_lits_wl NU x2e x1b \<le> \<Down> Id (mark_failed_lits NU' x2d x1)\<close>
     if
@@ -1453,6 +1490,9 @@ proof -
       \<open>x = (x1b, x2b)\<close>
     for x x' x2e x1b x1 x2 x2b x2d
     using that unfolding mark_failed_lits_wl_def mark_failed_lits_def by auto
+  have ana: \<open>last analyse = (fst (last analyse), fst (snd (last analyse)),
+    fst (snd (snd (last analyse))), snd (snd (snd (last analyse))))\<close> for analyse
+      by (cases \<open>last analyse\<close>) auto
   have wl_inv: \<open>lit_redundant_rec_wl_inv M NU D x'\<close> if \<open>(x', x) \<in> ?R\<close> for x x'
     using that unfolding lit_redundant_rec_wl_inv_def
     by (cases x, cases x') auto
@@ -1460,7 +1500,8 @@ proof -
     supply convert_analysis_list_def[simp] hd_rev[simp] last_map[simp] rev_map[symmetric, simp]
     unfolding lit_redundant_rec_wl_def lit_redundant_rec_def WHILET_def
     apply (rewrite at \<open>let _ = _ \<propto> _ in _\<close> Let_def)
-    apply (rewrite at \<open>let _ = snd _ in _\<close> Let_def)
+    apply (rewrite in \<open>let _ = _ in _\<close> ana)
+    apply (rewrite at \<open>let _ = (_, _, _) in _\<close> Let_def)
     apply refine_rcg
     subgoal using bounds_init unfolding analyse'_def by auto
     subgoal for x x'
@@ -1472,11 +1513,17 @@ proof -
        elim!: neq_Nil_revE)
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
        elim!: neq_Nil_revE)
-    subgoal by auto
-    subgoal by auto
     subgoal by (auto simp: map_butlast rev_butlast_is_tl_rev lit_redundant_rec_wl_ref_def
           dest: in_set_butlastD)
-            apply (rule get_literal_and_remove_of_analyse_wl; assumption)
+    subgoal by (auto simp: map_butlast rev_butlast_is_tl_rev lit_redundant_rec_wl_ref_def
+            Misc.slice_def
+          dest: in_set_butlastD
+          elim!: neq_Nil_revE)
+    subgoal by (auto simp: map_butlast rev_butlast_is_tl_rev lit_redundant_rec_wl_ref_def
+            Misc.slice_def
+          dest: in_set_butlastD
+          elim!: neq_Nil_revE)
+            apply (rule get_literal_and_remove_of_analyse_wl; assumption?)
     subgoal by auto
     subgoal using M'_def by auto
     subgoal by auto
