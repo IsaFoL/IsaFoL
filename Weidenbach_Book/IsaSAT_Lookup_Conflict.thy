@@ -862,8 +862,10 @@ lemma lookup_conflict_merge'_spec:
     \<open>Suc init \<le> uint_max\<close> and
     \<open>out_learned M (Some C) outl\<close> and
     bounded: \<open>isasat_input_bounded \<A>\<close>
-  shows \<open>lookup_conflict_merge init M D (b, n, xs) clvls lbd outl \<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>r Id \<times>\<^sub>r Id)
-             (merge_conflict_m_g init M D (Some C))\<close>
+  shows
+    \<open>lookup_conflict_merge init M D (b, n, xs) clvls lbd outl \<le>
+      \<Down>(option_lookup_clause_rel \<A> \<times>\<^sub>r Id \<times>\<^sub>r Id)
+          (merge_conflict_m_g init M D (Some C))\<close>
      (is \<open>_ \<le>  \<Down> ?Ref ?Spec\<close>)
 proof -
   define lbd_upd where
@@ -1628,17 +1630,17 @@ where
   \<open>lit_redundant_rec_wl_lookup \<A> M NU D cach analysis lbd =
       WHILE\<^sub>T\<^bsup>lit_redundant_rec_wl_inv M NU D\<^esup>
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
-        (\<lambda>(cach, analyse, b). do {
-            ASSERT(analyse \<noteq> []);
-            ASSERT(fst (last analyse) \<in># dom_m NU);
-            let C = NU \<propto> fst (last analyse);
-            ASSERT(length C > 0); \<comment> \<open> >= 2 would work too \<close>
-            let i = snd (last analyse);
-            ASSERT (C ! 0 \<in> lits_of_l M);
-            ASSERT(C!0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
-            if i \<ge> length C
+        (\<lambda>(cach, (analyse :: (nat \<times> nat \<times> nat \<times> nat) list), b). do {
+            ASSERT((analyse :: (nat \<times> nat \<times> nat \<times> nat) list) \<noteq> []);
+	    let (C,k, i, len) = last analyse;
+            ASSERT(C \<in># dom_m NU);
+            ASSERT(length (NU \<propto> C) > 0); \<comment> \<open> >= 2 would work too \<close>
+            ASSERT (NU \<propto> C ! k \<in> lits_of_l M);
+            ASSERT(NU \<propto> C ! k \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
+            let C = NU \<propto> C;
+            if i \<ge> len
             then
-               RETURN(cach (atm_of (C ! 0) := SEEN_REMOVABLE), butlast analyse, True)
+               RETURN(cach (atm_of (C ! k) := SEEN_REMOVABLE), butlast analyse, True)
             else do {
                let (L, analyse) = get_literal_and_remove_of_analyse_wl C analyse;
                ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
@@ -1646,7 +1648,7 @@ where
                if (get_level M L = zero_uint32_nat \<or>
                    conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE \<or>
                    atm_in_conflict (atm_of L) D)
-               then RETURN (cach, analyse, False)
+               then RETURN (cach, (analyse :: (nat \<times> nat \<times> nat \<times> nat) list), False)
                else if b \<or> conflict_min_cach cach (atm_of L) = SEEN_FAILED
                then do {
                   ASSERT(mark_failed_lits_stack_inv NU analyse cach);
@@ -1657,7 +1659,7 @@ where
 	          ASSERT(- L \<in> lits_of_l M);
                   C \<leftarrow> get_propagation_reason M (-L);
                   case C of
-                    Some C \<Rightarrow> RETURN (cach, analyse @ [(C, 1)], False)
+                    Some C \<Rightarrow> RETURN (cach, analyse @ [lit_redundant_reason_stack (-L) NU C], False)
                   | None \<Rightarrow> do {
                       ASSERT(mark_failed_lits_stack_inv NU analyse cach);
                       cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
@@ -1673,8 +1675,7 @@ lemma lit_redundant_rec_wl_lookup_mark_failed_lits_stack_inv:
     \<open>(x, x') \<in> Id\<close> and
     \<open>case x of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
     \<open>lit_redundant_rec_wl_inv M NU D x'\<close> and
-    \<open>NU \<propto> fst (last x1a) ! 0 \<in> lits_of_l M\<close> and
-    \<open>\<not> length (NU \<propto> fst (last x1a)) \<le> snd (last x1a)\<close> and
+    \<open>\<not> snd (snd (snd (last x1a))) \<le> fst (snd (snd (last x1a)))\<close> and
     \<open>get_literal_and_remove_of_analyse_wl (NU \<propto> fst (last x1c)) x1c = (x1e, x2e)\<close> and
     \<open>x2 = (x1a, x2a)\<close> and
     \<open>x' = (x1, x2)\<close> and
@@ -1742,14 +1743,15 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by (rule lit_redundant_rec_wl_lookup_mark_failed_lits_stack_inv)
+    subgoal by (rule lit_redundant_rec_wl_lookup_mark_failed_lits_stack_inv; assumption?)
+        (auto)
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by (rule lit_redundant_rec_wl_lookup_mark_failed_lits_stack_inv)
+    subgoal by (rule lit_redundant_rec_wl_lookup_mark_failed_lits_stack_inv) auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1769,7 +1771,7 @@ definition literal_redundant_wl_lookup where
        ASSERT(-L \<in> lits_of_l M);
        C \<leftarrow> get_propagation_reason M (-L);
        case C of
-         Some C \<Rightarrow> lit_redundant_rec_wl_lookup \<A> M NU D cach [(C, 1)] lbd
+         Some C \<Rightarrow> lit_redundant_rec_wl_lookup \<A> M NU D cach [lit_redundant_reason_stack (-L) NU C] lbd
        | None \<Rightarrow> do {
            RETURN (cach, [], False)
        }
@@ -1799,8 +1801,8 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal for x x' xa x'a
-      apply (subgoal_tac \<open>lit_redundant_rec_wl_lookup \<A> M NU D cach [(xa, 1)] lbd
-    \<le> \<Down> Id (lit_redundant_rec_wl M NU D cach [(xa, 1)] lbd)\<close>)
+      apply (subgoal_tac \<open>lit_redundant_rec_wl_lookup \<A> M NU D cach [lit_redundant_reason_stack (-L) NU xa] lbd
+    \<le> \<Down> Id (lit_redundant_rec_wl M NU D cach [lit_redundant_reason_stack (-L) NU xa] lbd)\<close>)
       subgoal by simp
       subgoal using assms
         by (rule lit_redundant_rec_wl_lookup_lit_redundant_rec_wl)
@@ -2043,12 +2045,13 @@ proof -
     have 2:
       \<open>literal_redundant_wl M NU nxs cach ?L lbd \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
-          (\<forall>(i, j)\<in> set analyse. j \<le> length (NU\<propto>i) \<and> i \<in># dom_m NU \<and> j \<ge> 1 \<and> i > 0)} \<times>\<^sub>r bool_rel)
+          lit_redundant_rec_wl_ref NU analyse} \<times>\<^sub>r bool_rel)
        (literal_redundant M' NU' nxs cach ?L)\<close>
       by (rule literal_redundant_wl_literal_redundant[of S S' S'',
             unfolded M_def[symmetric] NU[symmetric] M'[symmetric] S'''_def[symmetric]
-            NU'_def[symmetric]])
-        (use bounded S_S' S'_S'' M_x1 struct_invs add_inv \<open>outl' ! x1d \<in># E\<close> \<open>E = nxs\<close> in auto)
+            NU'_def[symmetric], THEN order_trans])
+        (use bounded S_S' S'_S'' M_x1 struct_invs add_inv \<open>outl' ! x1d \<in># E\<close> \<open>E = nxs\<close> in
+          \<open>auto simp: NU\<close>)
 
     have 3:
        \<open>literal_redundant M' (N + U) nxs cach ?L \<le>
@@ -2376,10 +2379,11 @@ lemma conflict_min_cach_set_removable:
       conflict_min_cach_set_removable_l_def)
 
 abbreviation (in -)analyse_refinement_assn where
-  \<open>analyse_refinement_assn \<equiv> arl_assn (nat_assn *a nat_assn)\<close>
+  \<open>analyse_refinement_assn \<equiv> arl_assn (nat_assn *a nat_assn *a nat_assn *a nat_assn)\<close>
 
 abbreviation (in -)analyse_refinement_fast_assn where
-  \<open>analyse_refinement_fast_assn \<equiv> arl_assn (uint64_nat_assn *a uint64_nat_assn)\<close>
+  \<open>analyse_refinement_fast_assn \<equiv>
+    arl_assn (uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn)\<close>
 
 lemma minimize_status_eq_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in>
@@ -2394,11 +2398,11 @@ definition isa_mark_failed_lits_stack where
       (\<lambda>(i, cach). i < l)
       (\<lambda>(i, cach). do {
         ASSERT(i < length analyse);
-        let (cls_idx, idx) = analyse ! i;
+        let (cls_idx, _, idx, _) = analyse ! i;
         ASSERT(cls_idx + idx \<ge> 1);
         ASSERT(cls_idx + idx - 1 < length NU);
-	      ASSERT(arena_lit_pre NU (cls_idx + idx - 1));
-	      cach \<leftarrow> conflict_min_cach_set_failed_l cach (atm_of (arena_lit NU (cls_idx + idx - 1)));
+	ASSERT(arena_lit_pre NU (cls_idx + idx - 1));
+	cach \<leftarrow> conflict_min_cach_set_failed_l cach (atm_of (arena_lit NU (cls_idx + idx - 1)));
         RETURN (i+1, cach)
       })
       (0, cach);
@@ -2417,7 +2421,7 @@ private lemma mark_failed_lits_stack_inv_helper1: \<open>mark_failed_lits_stack_
 
 private lemma mark_failed_lits_stack_inv_helper2: \<open>mark_failed_lits_stack_inv a ba a2' \<Longrightarrow>
        a1' < length ba \<Longrightarrow>
-       (a1'a, a2'a) = ba ! a1' \<Longrightarrow>
+       (a1'a, xx, a2'a, yy) = ba ! a1' \<Longrightarrow>
        a2'a - Suc 0 < length (a \<propto> a1'a)\<close>
   using nth_mem[of a1' ba] unfolding mark_failed_lits_stack_inv_def
   by (auto simp del: nth_mem)
@@ -2454,8 +2458,12 @@ proof -
         \<open>x = (x1b, x2c)\<close>
         \<open>x' = (x1d, x2d)\<close>
         \<open>xa = (x1e, x2e)\<close>
-        \<open>x2 ! x1d = (x1f, x2f)\<close>
-        \<open>x2b ! x1e = (x1g, x2g)\<close> and
+	\<open>x2f2 = (x2f, x2f3)\<close>
+	\<open>x2f0 = (x2f1, x2f2)\<close>
+        \<open>x2 ! x1d = (x1f, x2f0)\<close>
+	\<open>x2g2 = (x2g, x2g3)\<close>
+	\<open>x2g0 = (x2g1, x2g2)\<close>
+        \<open>x2b ! x1e = (x1g, x2g0)\<close> and
       xax': \<open>(xa, x') \<in> nat_rel \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n\<close> and
       cond: \<open>case xa of (i, cach) \<Rightarrow> i < length x2b\<close> and
       cond': \<open>case x' of (i, cach) \<Rightarrow> i < length x2\<close> and
@@ -2464,6 +2472,7 @@ proof -
       le: \<open>x1e < length x2b\<close> and
       atm: \<open>atm_of (x1a \<propto> x1f ! (x2f - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
     for x y x1 x1a x2 x2a x1b x1c x2b x2c xa x' x1d x2d x1e x2e x1f x2f x1g x2g
+      x2f0 x2f1 x2f2 x2f3 x2g0 x2g1 x2g2 x2g3
   proof -
     obtain i cach where x': \<open>x' = (i, cach)\<close> by (cases x')
     have [simp]:
@@ -2475,9 +2484,14 @@ proof -
       \<open>xa = (x1d, x2e)\<close>
       \<open>x1f = x1g\<close>
       \<open>x2f = x2g\<close>
+      \<open>x2f1 = x2g1\<close>
+      \<open>x2f0 = x2g0\<close>
       \<open>x1e = x1d\<close>
+      \<open>x2g0 = (x2g1, x2g, x2g3)\<close>
+      \<open>x2f3 = x2g3\<close>
+      \<open>x2f2 = x2g2\<close>
       \<open>x2b = x2\<close> and
-      st': \<open>x2 ! x1d = (x1g, x2g)\<close> and
+      st': \<open>x2 ! x1d = (x1g, x2g0)\<close> and
       cach:\<open>(x2e, x2d) \<in> cach_refinement \<A>\<^sub>i\<^sub>n\<close> and
       \<open>(x2c, x2a) \<in> cach_refinement \<A>\<^sub>i\<^sub>n\<close>
       using xy st xax'
@@ -2490,8 +2504,7 @@ proof -
     then have \<open>x2 ! x1d \<in> set x2\<close> and
       x2f: \<open>x2f \<le> length (x1a \<propto> x1f)\<close> and
       x1f: \<open>x1g \<in># dom_m x1a\<close> and
-      x2g: \<open>1 \<le> x2g\<close> and
-      \<open>0 < x1g\<close>
+      x2g: \<open>x2g > 0\<close>
       using inv le unfolding mark_failed_lits_stack_inv_def x' prod.case st st'
       by (auto simp del: nth_mem simp: st')
     have \<open>is_Lit (x1c ! (x1g + (x2g - 1)))\<close>
@@ -2581,15 +2594,15 @@ declare isa_mark_failed_lits_stack_code.refine[sepref_fr_rules]
 declare isa_mark_failed_lits_stack_fast_code.refine[sepref_fr_rules]
 
 definition isa_get_literal_and_remove_of_analyse_wl
-   :: \<open>arena \<Rightarrow> (nat \<times> nat) list \<Rightarrow> nat literal \<times> (nat \<times> nat) list\<close> where
+   :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat) list \<Rightarrow> nat literal \<times> (nat \<times> nat \<times> nat \<times> nat) list\<close> where
   \<open>isa_get_literal_and_remove_of_analyse_wl C analyse =
-    (let (i, j) = last analyse in
-     (arena_lit C (i + j), analyse[length analyse - 1 := (i, j + 1)]))\<close>
+    (let (i, k, j, len) = last analyse in
+     (arena_lit C (i + j), analyse[length analyse - 1 := (i, k, j + 1, len)]))\<close>
 
 definition isa_get_literal_and_remove_of_analyse_wl_pre
-   :: \<open>arena \<Rightarrow> (nat \<times> nat) list \<Rightarrow> bool\<close> where
+   :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat) list \<Rightarrow> bool\<close> where
 \<open>isa_get_literal_and_remove_of_analyse_wl_pre arena analyse \<longleftrightarrow>
-  (let (i, j) = last analyse in
+  (let (i, k, j, len) = last analyse in
     (i + j) < length arena \<and> analyse \<noteq> [] \<and> arena_lit_pre arena (i+j))\<close>
 
 sepref_definition isa_get_literal_and_remove_of_analyse_wl_code
@@ -2615,6 +2628,15 @@ sepref_definition isa_get_literal_and_remove_of_analyse_wl_fast_code
 declare isa_get_literal_and_remove_of_analyse_wl_code.refine[sepref_fr_rules]
 declare isa_get_literal_and_remove_of_analyse_wl_fast_code.refine[sepref_fr_rules]
 
+definition lit_redundant_reason_stack_wl_lookup
+  :: \<open>nat literal \<Rightarrow> arena_el list \<Rightarrow> nat \<Rightarrow> nat \<times> nat \<times> nat \<times> nat\<close>
+where
+\<open>lit_redundant_reason_stack_wl_lookup L NU C =
+  (if arena_length NU C > 2 then (C, 0, 1, arena_length NU C)
+  else if arena_lit NU C = L
+  then (C, 0, 1, arena_length NU C)
+  else (C, 1, 0, arena_length NU C))\<close>
+
 definition isa_lit_redundant_rec_wl_lookup
   :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> lookup_clause_rel \<Rightarrow>
      _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> (_ \<times> _ \<times> bool) nres\<close>
@@ -2624,15 +2646,15 @@ where
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
-            ASSERT(fst (last analyse) < length NU);
-            ASSERT(arena_is_valid_clause_idx NU (fst (last analyse)));
-            let i = snd (last analyse);
-            ASSERT(arena_lit_pre NU (fst (last analyse)));
-            if i \<ge> nat_of_uint64_conv (arena_length NU (fst (last analyse)))
+	    let (C, k, i, len) = last analyse;
+            ASSERT(C < length NU);
+            ASSERT(arena_is_valid_clause_idx NU C);
+            ASSERT(arena_lit_pre NU (C + k));
+            if i \<ge> nat_of_uint64_conv len
             then do {
-	            cach \<leftarrow> conflict_min_cach_set_removable_l cach (atm_of (arena_lit NU (fst (last analyse))));
+	      cach \<leftarrow> conflict_min_cach_set_removable_l cach (atm_of (arena_lit NU (C + k)));
               RETURN(cach, butlast analyse, True)
-	          }
+	    }
             else do {
                ASSERT (isa_get_literal_and_remove_of_analyse_wl_pre NU analyse);
                let (L, analyse) = isa_get_literal_and_remove_of_analyse_wl NU analyse;
@@ -2652,7 +2674,7 @@ where
                else do {
                   C \<leftarrow> get_propagation_reason_pol M (-L);
                   case C of
-                    Some C \<Rightarrow> RETURN (cach, analyse @ [(C, 1)], False)
+                    Some C \<Rightarrow> RETURN (cach, analyse @ [lit_redundant_reason_stack_wl_lookup (-L) NU C], False)
                   | None \<Rightarrow> do {
                       cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
                       RETURN (cach, [], False)
@@ -2668,18 +2690,18 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
       (\<lambda>(cach, analyse, b). analyse \<noteq> [])
       (\<lambda>(cach, analyse, b). do {
           ASSERT(analyse \<noteq> []);
-          ASSERT(fst (last analyse) < length NU);
+	  let (C, k, i, len) = last analyse;
+          ASSERT(C < length NU);
           let _ = map xarena_lit
               ((Misc.slice
-                (snd (last analyse))
-                (snd (last analyse) + arena_length NU (snd (last analyse)) ))
+                C
+                (C + arena_length NU C))
                 NU);
-          ASSERT(arena_is_valid_clause_idx NU (fst (last analyse)));
-          let i = snd (last analyse);
-          ASSERT(arena_lit_pre NU (fst (last analyse)));
-          if i \<ge> nat_of_uint64_conv (arena_length NU (fst (last analyse)))
+          ASSERT(arena_is_valid_clause_idx NU C);
+          ASSERT(arena_lit_pre NU (C + k));
+          if i \<ge> nat_of_uint64_conv len
           then do {
-	          cach \<leftarrow> conflict_min_cach_set_removable_l cach (atm_of (arena_lit NU (fst (last analyse))));
+	    cach \<leftarrow> conflict_min_cach_set_removable_l cach (atm_of (arena_lit NU (C + k)));
             RETURN(cach, butlast analyse, True)
           }
           else do {
@@ -2701,7 +2723,7 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
               else do {
                 C \<leftarrow> get_propagation_reason_pol M (-L);
                 case C of
-                  Some C \<Rightarrow> RETURN (cach, analyse @ [(C, 1)], False)
+                  Some C \<Rightarrow> RETURN (cach, analyse @ [lit_redundant_reason_stack_wl_lookup (-L) NU C], False)
                 | None \<Rightarrow> do {
                     cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
                     RETURN (cach, [], False)
@@ -2754,17 +2776,20 @@ proof -
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m
       by (auto simp: arena_lifting arena_is_valid_clause_idx_def)
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
-       x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m
-      apply (auto simp: arena_is_valid_clause_idx_def
+       x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
+       x2q x1r x2r x1s x2s
+      apply (auto simp: arena_is_valid_clause_idx_def lit_redundant_rec_wl_inv_def
         isa_get_literal_and_remove_of_analyse_wl_pre_def arena_lit_pre_def
-        arena_is_valid_clause_idx_and_access_def)
-      apply (rule_tac x = \<open>fst (last x1k)\<close> in exI; solves auto)+
+        arena_is_valid_clause_idx_and_access_def lit_redundant_rec_wl_ref_def)
+      apply (rule_tac x = \<open>x1q\<close> in exI; auto; rule_tac x = \<open>N\<close> in exI; force simp: arena_lifting)+
       done
-    subgoal by (auto simp: arena_lifting arena_is_valid_clause_idx_def nat_of_uint64_conv_def)
+    subgoal by (auto simp: arena_lifting arena_is_valid_clause_idx_def nat_of_uint64_conv_def
+      lit_redundant_rec_wl_inv_def)
     subgoal
       by (auto simp: arena_lifting arena_is_valid_clause_idx_def bind_rule_complete_RES conc_fun_RETURN
-           in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
-          intro!:  conflict_min_cach_set_removable[of \<A>,THEN fref_to_Down_curry, THEN order_trans])
+           in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
+          intro!:  conflict_min_cach_set_removable[of \<A>,THEN fref_to_Down_curry, THEN order_trans]
+	  dest: List.last_in_set)
 
    subgoal
       apply (auto simp: arena_is_valid_clause_idx_def
