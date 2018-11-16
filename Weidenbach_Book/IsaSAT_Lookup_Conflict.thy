@@ -416,7 +416,8 @@ sepref_definition (in -) delete_from_lookup_conflict_code
 
 lemma delete_from_lookup_conflict_op_mset_delete:
   \<open>(uncurry delete_from_lookup_conflict, uncurry (RETURN oo op_mset_delete)) \<in>
-       [\<lambda>(L, D). -L \<notin># D \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> L \<in># D]\<^sub>f Id \<times>\<^sub>f lookup_clause_rel \<A> \<rightarrow> \<langle>lookup_clause_rel \<A>\<rangle>nres_rel\<close>
+      [\<lambda>(L, D). -L \<notin># D \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> L \<in># D]\<^sub>f Id \<times>\<^sub>f lookup_clause_rel \<A> \<rightarrow>
+      \<langle>lookup_clause_rel \<A>\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   subgoal for x y
     using mset_as_position_remove[of \<open>snd (snd x)\<close> \<open>snd y\<close> \<open>atm_of (fst y)\<close>]
@@ -452,7 +453,7 @@ definition merge_conflict_m_g
 where
 \<open>merge_conflict_m_g init M Ni D =
     SPEC (\<lambda>(C, n, lbd, outl). C = Some (mset (drop init (Ni)) \<union># the D) \<and>
-       n = card_max_lvl M (mset (drop init (Ni))  \<union># the D) \<and>
+       n = card_max_lvl M (mset (drop init (Ni)) \<union># the D) \<and>
        out_learned M C outl)\<close>
 
 definition add_to_lookup_conflict :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel\<close> where
@@ -728,7 +729,7 @@ lemma (in -) SEEN_UNKNOWN[sepref_fr_rules]:
 
 
 sepref_definition resolve_lookup_conflict_merge_code
-  is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict)\<close>
+  is \<open>uncurry6 isa_set_lookup_conflict\<close>
   :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N]\<^sub>a
       trail_pol_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
@@ -761,7 +762,7 @@ lemma (in -) arena_is_valid_clause_idx_le_uint64_max:
   by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def)+
 
 sepref_definition resolve_lookup_conflict_merge_fast_code
-  is \<open>uncurry6 (PR_CONST isa_set_lookup_conflict)\<close>
+  is \<open>uncurry6 isa_set_lookup_conflict\<close>
   :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and>
          length N \<le> uint64_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
