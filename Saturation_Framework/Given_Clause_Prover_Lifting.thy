@@ -281,7 +281,19 @@ find_theorems "main_prem_of _ = main_prem_of _"
 lemma \<open>\<iota> \<in> gr.ord_\<Gamma> \<Longrightarrow> \<iota>' \<in> gr.ord_\<Gamma> \<Longrightarrow> prems_of \<iota> = prems_of \<iota>' \<Longrightarrow> concl_of \<iota> = concl_of \<iota>' \<Longrightarrow> main_prem_of \<iota> = main_prem_of \<iota>'\<close>
 proof (rule ccontr)
   fix \<iota> \<iota>'
-  assume \<open>\<iota> \<in> gr.ord_\<Gamma>\<close> and \<open>\<iota>' \<in> gr.ord_\<Gamma>\<close>
+  assume
+    i_in: \<open>\<iota> \<in> gr.ord_\<Gamma>\<close> and
+    i'_in: \<open>\<iota>' \<in> gr.ord_\<Gamma>\<close> and
+    prems_eq: \<open>prems_of \<iota> = prems_of \<iota>'\<close> and
+    concl_eq: \<open>concl_of \<iota> = concl_of \<iota>'\<close> and
+    contra: \<open>main_prem_of \<iota> \<noteq> main_prem_of \<iota>'\<close>
+  obtain CC AAs As where i_inf: \<open>gr.ord_resolve CC (main_prem_of \<iota>) AAs As (concl_of \<iota>)\<close> and
+    \<open>mset CC = side_prems_of \<iota>\<close>
+    using i_in unfolding gr.ord_\<Gamma>_def by force
+  obtain CC' AAs' As' where i'_inf: \<open>gr.ord_resolve CC' (main_prem_of \<iota>') AAs' As' (concl_of \<iota>')\<close> and
+    \<open>mset CC' = side_prems_of \<iota>'\<close>
+    using i'_in unfolding gr.ord_\<Gamma>_def by force
+  have "AAs = AAs'" using i_inf i'_inf prems_eq concl_eq sorry 
 oops
 
 lemma
