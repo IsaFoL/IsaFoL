@@ -277,6 +277,11 @@ qed
 term gr.ord_\<Gamma>
 
 lemma
+  \<open>\<iota> \<in> gr.ord_\<Gamma> \<Longrightarrow> \<iota>' \<in> gr.ord_\<Gamma> \<Longrightarrow> prems_of \<iota> = prems_of \<iota>' \<Longrightarrow> concl_of \<iota> = concl_of \<iota>' \<Longrightarrow> main_prem_of \<iota> = main_prem_of \<iota>'\<close>
+  unfolding gr.ord_\<Gamma>_def concl_of_def prems_of_def main_prem_of_def 
+oops
+
+lemma
   assumes \<open>gr_calc.saturated N\<close>
   shows \<open>sr.saturated_upto N\<close>
     using assms unfolding sr.saturated_upto_def gr_calc.saturated_def apply -
