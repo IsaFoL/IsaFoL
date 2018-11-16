@@ -276,9 +276,12 @@ qed
 
 term gr.ord_\<Gamma>
 
-lemma
-  \<open>\<iota> \<in> gr.ord_\<Gamma> \<Longrightarrow> \<iota>' \<in> gr.ord_\<Gamma> \<Longrightarrow> prems_of \<iota> = prems_of \<iota>' \<Longrightarrow> concl_of \<iota> = concl_of \<iota>' \<Longrightarrow> main_prem_of \<iota> = main_prem_of \<iota>'\<close>
-  unfolding gr.ord_\<Gamma>_def concl_of_def prems_of_def main_prem_of_def 
+find_theorems "main_prem_of _ = main_prem_of _"
+
+lemma \<open>\<iota> \<in> gr.ord_\<Gamma> \<Longrightarrow> \<iota>' \<in> gr.ord_\<Gamma> \<Longrightarrow> prems_of \<iota> = prems_of \<iota>' \<Longrightarrow> concl_of \<iota> = concl_of \<iota>' \<Longrightarrow> main_prem_of \<iota> = main_prem_of \<iota>'\<close>
+proof (rule ccontr)
+  fix \<iota> \<iota>'
+  assume \<open>\<iota> \<in> gr.ord_\<Gamma>\<close> and \<open>\<iota>' \<in> gr.ord_\<Gamma>\<close>
 oops
 
 lemma
