@@ -274,17 +274,30 @@ proof
   then show \<open>\<iota> \<in> gr_calc.Inf_from N\<close> using i_from unfolding gr_calc.Inf_from_def by fast
 qed
 
+term gr.ord_\<Gamma>
+
 lemma
   assumes \<open>gr_calc.saturated N\<close>
   shows \<open>sr.saturated_upto N\<close>
-    using assms unfolding sr.saturated_upto_def gr_calc.saturated_def
-proof clarify
+    using assms unfolding sr.saturated_upto_def gr_calc.saturated_def apply -
+proof (rule ccontr) (* contradiction proof attempt *)
+  assume \<open>\<not> gr.inferences_from (N - sr.Rf N) \<subseteq> sr.Ri N\<close>
+  then obtain \<iota>_RP where i_not_in: \<open>\<iota>_RP \<notin> sr.Ri N\<close> and i_in: \<open>\<iota>_RP \<in> gr.inferences_from (N - sr.Rf N)\<close> by blast
+  have \<open>conv_inf \<iota>_RP \<in> gr_calc.Inf_from N\<close> using i_in conv_inf_inf_from_commute by fast
+  have \<open>conv_inf \<iota>_RP \<notin> Red_Inf_G N\<close> using i_not_in unfolding Red_Inf_G_def sorry
+
+  show \<open>False\<close>
+  (* direct proof attempt
   fix \<iota>_RP
   assume
     sat: \<open>gr_calc.Inf_from N \<subseteq> Red_Inf_G N\<close> and
     i_RP_from: \<open>\<iota>_RP \<in> gr.inferences_from (N - sr.Rf N)\<close>
   have \<open>conv_inf \<iota>_RP \<in> gr_calc.Inf_from N\<close> using conv_inf_inf_from_commute[of N] i_RP_from by blast
   then have \<open>conv_inf \<iota>_RP \<in> Red_Inf_G N\<close> using sat by blast
+  have \<open>\<And>\<iota>_RP2. prems_of \<iota>_RP2 = prems_of \<iota>_RP \<Longrightarrow> conv_inf \<iota>_RP2 \<in> Red_Inf_G N \<Longrightarrow> \<iota>_RP2 \<in> sr.Ri N\<close>
+    using i_RP_from unfolding Red_Inf_G_def gr.inferences_from_def unfolding infer_from_def sr.Ri_def
+*)
+(* another direct proof attempt
   then obtain \<iota>_RP2 where i_RP2_in: \<open>\<iota>_RP2 \<in> sr.Ri N\<close> and prems: \<open>prems_of \<iota>_RP2 = prems_of \<iota>_RP\<close> and
     concl: \<open>concl_of \<iota>_RP2 = concl_of \<iota>_RP\<close> unfolding Red_Inf_G_def conv_inf_def
     by (metis (mono_tags, lifting) Saturation_Framework_Preliminaries.inference.sel(1)
@@ -292,7 +305,8 @@ proof clarify
   have \<open>\<iota>_RP2 \<in> gr.inferences_from (N - sr.Rf N)\<close> using prems concl i_RP_from
     by (metis (no_types, lifting) i_RP2_in gr.inferences_from_def infer_from_def mem_Collect_eq
       standard_redundancy_criterion.Ri_subset_\<Gamma> subsetCE)
-  then show \<open>\<iota>_RP \<in> sr.Ri N\<close> unfolding sr.Ri_def 
+      *)
+  (* then show \<open>\<iota>_RP \<in> sr.Ri N\<close> unfolding sr.Ri_def *)
 oops
 
 
