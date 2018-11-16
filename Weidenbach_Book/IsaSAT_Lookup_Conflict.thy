@@ -1634,9 +1634,10 @@ where
             ASSERT((analyse :: (nat \<times> nat \<times> nat \<times> nat) list) \<noteq> []);
 	    let (C,k, i, len) = last analyse;
             ASSERT(C \<in># dom_m NU);
-            ASSERT(length (NU \<propto> C) > 0); \<comment> \<open> >= 2 would work too \<close>
+            ASSERT(length (NU \<propto> C) > k); \<comment> \<open> >= 2 would work too \<close>
             ASSERT (NU \<propto> C ! k \<in> lits_of_l M);
             ASSERT(NU \<propto> C ! k \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
+	    ASSERT(len \<le> length (NU \<propto> C)); \<comment> \<open>makes the refinement easier\<close>
             let C = NU \<propto> C;
             if i \<ge> len
             then
@@ -1659,7 +1660,11 @@ where
 	          ASSERT(- L \<in> lits_of_l M);
                   C \<leftarrow> get_propagation_reason M (-L);
                   case C of
-                    Some C \<Rightarrow> RETURN (cach, analyse @ [lit_redundant_reason_stack (-L) NU C], False)
+                    Some C \<Rightarrow> do {
+		      ASSERT(C \<in># dom_m NU);
+		      ASSERT(length (NU \<propto> C) \<ge> 2);
+		      RETURN (cach, analyse @ [lit_redundant_reason_stack (-L) NU C], False)
+		    }
                   | None \<Rightarrow> do {
                       ASSERT(mark_failed_lits_stack_inv NU analyse cach);
                       cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
@@ -1737,10 +1742,13 @@ proof -
     subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c
       unfolding lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
       by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE[of x1a])
+    subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
+          elim!: neq_Nil_revE)
+    subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
+          elim!: neq_Nil_revE)
     subgoal by auto
     subgoal by auto
     subgoal by (auto intro!:)
-    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by (rule lit_redundant_rec_wl_lookup_mark_failed_lits_stack_inv; assumption?)
@@ -1752,6 +1760,8 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by (rule lit_redundant_rec_wl_lookup_mark_failed_lits_stack_inv) auto
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1771,7 +1781,11 @@ definition literal_redundant_wl_lookup where
        ASSERT(-L \<in> lits_of_l M);
        C \<leftarrow> get_propagation_reason M (-L);
        case C of
-         Some C \<Rightarrow> lit_redundant_rec_wl_lookup \<A> M NU D cach [lit_redundant_reason_stack (-L) NU C] lbd
+         Some C \<Rightarrow> do {
+	   ASSERT(C \<in># dom_m NU);
+	   ASSERT(length (NU \<propto> C) \<ge> 2);
+	   lit_redundant_rec_wl_lookup \<A> M NU D cach [lit_redundant_reason_stack (-L) NU C] lbd
+	 }
        | None \<Rightarrow> do {
            RETURN (cach, [], False)
        }
@@ -1792,11 +1806,14 @@ proof -
   have [refine]: \<open>(x, x') \<in> Id \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle>option_rel\<close> for x x'
     by auto
   have [refine_vcg]: \<open>get_propagation_reason M x
-    \<le> \<Down> (\<langle>nat_rel\<rangle>option_rel) (get_propagation_reason M y)\<close> if \<open>x = y\<close> and \<open>y \<in> lits_of_l M\<close> for x y
-    by (use that in auto)
+    \<le> \<Down> ({(C, C'). (C, C') \<in> \<langle>nat_rel\<rangle>option_rel})
+      (get_propagation_reason M y)\<close> if \<open>x = y\<close> and \<open>y \<in> lits_of_l M\<close> for x y
+    by (use that in \<open>auto simp: get_propagation_reason_def intro: RES_refine\<close>)
   show ?thesis
     unfolding literal_redundant_wl_lookup_def literal_redundant_wl_def
     apply (refine_vcg lit_redundant_rec_wl_lookup_lit_redundant_rec_wl)
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -2603,7 +2620,7 @@ definition isa_get_literal_and_remove_of_analyse_wl_pre
    :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat) list \<Rightarrow> bool\<close> where
 \<open>isa_get_literal_and_remove_of_analyse_wl_pre arena analyse \<longleftrightarrow>
   (let (i, k, j, len) = last analyse in
-    (i + j) < length arena \<and> analyse \<noteq> [] \<and> arena_lit_pre arena (i+j))\<close>
+    analyse \<noteq> [] \<and> arena_lit_pre arena (i+j))\<close>
 
 sepref_definition isa_get_literal_and_remove_of_analyse_wl_code
   is \<open>uncurry (RETURN oo isa_get_literal_and_remove_of_analyse_wl)\<close>
@@ -2614,12 +2631,23 @@ sepref_definition isa_get_literal_and_remove_of_analyse_wl_code
   isa_get_literal_and_remove_of_analyse_wl_def fast_minus_def[symmetric]
   by sepref
 
+lemma arena_lit_pre_le: \<open>length a \<le> uint64_max \<Longrightarrow>
+       arena_lit_pre a i \<Longrightarrow> i \<le> uint64_max\<close>
+   using arena_lifting(7)[of a _ _] unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
+  by fastforce
+
+lemma arena_lit_pre_le2: \<open>length a \<le> uint64_max \<Longrightarrow>
+       arena_lit_pre a i \<Longrightarrow> i < uint64_max\<close>
+   using arena_lifting(7)[of a _ _] unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
+  by fastforce
+
 sepref_definition isa_get_literal_and_remove_of_analyse_wl_fast_code
   is \<open>uncurry (RETURN oo isa_get_literal_and_remove_of_analyse_wl)\<close>
   :: \<open>[\<lambda>(arena, analyse). isa_get_literal_and_remove_of_analyse_wl_pre arena analyse \<and>
          length arena \<le> uint64_max]\<^sub>a
       arena_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d \<rightarrow>
       unat_lit_assn *a analyse_refinement_fast_assn\<close>
+  supply [[goals_limit=1]] arena_lit_pre_le2[dest]
   unfolding isa_get_literal_and_remove_of_analyse_wl_pre_def
   isa_get_literal_and_remove_of_analyse_wl_def fast_minus_def[symmetric]
   apply (rewrite at \<open>_ + \<hole>\<close> one_uint64_nat_def[symmetric])
@@ -2628,6 +2656,11 @@ sepref_definition isa_get_literal_and_remove_of_analyse_wl_fast_code
 declare isa_get_literal_and_remove_of_analyse_wl_code.refine[sepref_fr_rules]
 declare isa_get_literal_and_remove_of_analyse_wl_fast_code.refine[sepref_fr_rules]
 
+definition lit_redundant_reason_stack_wl_lookup_pre :: \<open>nat literal \<Rightarrow> arena_el list \<Rightarrow> nat \<Rightarrow> bool\<close> where
+\<open>lit_redundant_reason_stack_wl_lookup_pre L NU C \<longleftrightarrow>
+  arena_lit_pre NU C \<and>
+  arena_is_valid_clause_idx NU C\<close>
+
 definition lit_redundant_reason_stack_wl_lookup
   :: \<open>nat literal \<Rightarrow> arena_el list \<Rightarrow> nat \<Rightarrow> nat \<times> nat \<times> nat \<times> nat\<close>
 where
@@ -2635,7 +2668,7 @@ where
   (if arena_length NU C > 2 then (C, 0, 1, arena_length NU C)
   else if arena_lit NU C = L
   then (C, 0, 1, arena_length NU C)
-  else (C, 1, 0, arena_length NU C))\<close>
+  else (C, 1, 0, 1))\<close>
 
 definition isa_lit_redundant_rec_wl_lookup
   :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> lookup_clause_rel \<Rightarrow>
@@ -2674,7 +2707,10 @@ where
                else do {
                   C \<leftarrow> get_propagation_reason_pol M (-L);
                   case C of
-                    Some C \<Rightarrow> RETURN (cach, analyse @ [lit_redundant_reason_stack_wl_lookup (-L) NU C], False)
+                    Some C \<Rightarrow> do {
+		      ASSERT(lit_redundant_reason_stack_wl_lookup_pre (-L) NU C);
+		      RETURN (cach, analyse @ [lit_redundant_reason_stack_wl_lookup (-L) NU C], False)
+		    }
                   | None \<Rightarrow> do {
                       cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
                       RETURN (cach, [], False)
@@ -2723,7 +2759,10 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
               else do {
                 C \<leftarrow> get_propagation_reason_pol M (-L);
                 case C of
-                  Some C \<Rightarrow> RETURN (cach, analyse @ [lit_redundant_reason_stack_wl_lookup (-L) NU C], False)
+                  Some C \<Rightarrow> do {
+		    ASSERT(lit_redundant_reason_stack_wl_lookup_pre (-L) NU C);
+		    RETURN (cach, analyse @ [lit_redundant_reason_stack_wl_lookup (-L) NU C], False)
+		  }
                 | None \<Rightarrow> do {
                     cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
                     RETURN (cach, [], False)
@@ -2733,6 +2772,13 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
       })
       (cach, analysis, False)\<close>
   unfolding isa_lit_redundant_rec_wl_lookup_def by (auto simp: Let_def)
+
+(*TODO Move*)
+lemma valid_arena_nempty:
+  \<open>valid_arena arena N vdom \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> N \<propto> i \<noteq> []\<close>
+  using arena_lifting(19)[of arena N vdom i]
+  arena_lifting(4)[of arena N vdom i]
+  by auto
 
 lemma isa_lit_redundant_rec_wl_lookup_lit_redundant_rec_wl_lookup:
   \<open>(uncurry5 isa_lit_redundant_rec_wl_lookup, uncurry5 (lit_redundant_rec_wl_lookup \<A>)) \<in>
@@ -2781,7 +2827,7 @@ proof -
       apply (auto simp: arena_is_valid_clause_idx_def lit_redundant_rec_wl_inv_def
         isa_get_literal_and_remove_of_analyse_wl_pre_def arena_lit_pre_def
         arena_is_valid_clause_idx_and_access_def lit_redundant_rec_wl_ref_def)
-      apply (rule_tac x = \<open>x1q\<close> in exI; auto; rule_tac x = \<open>N\<close> in exI; force simp: arena_lifting)+
+      apply (rule_tac x = \<open>x1q\<close> in exI; auto)+
       done
     subgoal by (auto simp: arena_lifting arena_is_valid_clause_idx_def nat_of_uint64_conv_def
       lit_redundant_rec_wl_inv_def)
@@ -2791,18 +2837,18 @@ proof -
           intro!:  conflict_min_cach_set_removable[of \<A>,THEN fref_to_Down_curry, THEN order_trans]
 	  dest: List.last_in_set)
 
-   subgoal
-      apply (auto simp: arena_is_valid_clause_idx_def
+   subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
+       x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
+       x2q x1r x2r x1s x2s
+      apply (auto simp: arena_is_valid_clause_idx_def lit_redundant_rec_wl_inv_def
         isa_get_literal_and_remove_of_analyse_wl_pre_def arena_lit_pre_def
-        arena_is_valid_clause_idx_and_access_def)
-      apply (rule_tac x = x1n in exI; solves auto)+
-      done
+        arena_is_valid_clause_idx_and_access_def lit_redundant_rec_wl_ref_def)
+      by (rule_tac x = x1q in exI; auto; fail)+
     subgoal by (auto intro!: get_level_pol_pre)
-    subgoal
-      by (simp add: atm_in_conflict_lookup_pre)
+    subgoal by (auto intro!: atm_in_conflict_lookup_pre)
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o
-      by (simp add: conflict_min_cach_l_pre)
+      by (auto intro!: conflict_min_cach_l_pre)
     subgoal
       by (auto simp: atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id]
           nth_conflict_min_cach[THEN fref_to_Down_unRET_uncurry_Id] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
@@ -2826,13 +2872,51 @@ proof -
     subgoal by (auto simp: split: prod.splits)
     subgoal by auto
     subgoal by auto
-    subgoal by auto
+    subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
+       x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
+       x2q x1r x2r x1s x2s x1t x2t x1u x2u xb x'a xc x'b
+       unfolding lit_redundant_reason_stack_wl_lookup_pre_def
+      by (auto simp: lit_redundant_reason_stack_wl_lookup_pre_def arena_lit_pre_def
+	arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def
+	simp: valid_arena_nempty
+	intro!: exI[of _ x'b])
+    subgoal premises p for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
+       x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
+       x2q x1r x2r x1s x2s x1t x2t x1u x2u xb x'a xc x'b
+      using p
+      by (simp add: lit_redundant_reason_stack_wl_lookup_def
+        lit_redundant_reason_stack_def lit_redundant_reason_stack_wl_lookup_pre_def
+	 arena_lifting[of x2e x2 vdom]) \<comment> \<open>I have no idea why @{thm arena_lifting} requires
+	   to be instantiated.\<close>
     done
 qed
 
+sepref_definition lit_redundant_reason_stack_wl_lookup_code
+  is \<open>uncurry2 (RETURN ooo lit_redundant_reason_stack_wl_lookup)\<close>
+  :: \<open>[uncurry2 lit_redundant_reason_stack_wl_lookup_pre]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>
+      nat_assn *a nat_assn *a nat_assn *a nat_assn\<close>
+  unfolding lit_redundant_reason_stack_wl_lookup_def lit_redundant_reason_stack_wl_lookup_pre_def
+  apply (rewrite at \<open>2 < \<hole>\<close> nat_of_uint64_conv_def[symmetric])
+  apply (rewrite at \<open>(_, _, _, \<hole>)\<close>  nat_of_uint64_conv_def[symmetric])
+  apply (rewrite at \<open>If _ _ (If _ (_, _, _, \<hole>) _)\<close>  nat_of_uint64_conv_def[symmetric])
+  by sepref
+
+sepref_definition lit_redundant_reason_stack_wl_lookup_fast_code
+  is \<open>uncurry2 (RETURN ooo lit_redundant_reason_stack_wl_lookup)\<close>
+  :: \<open>[uncurry2 lit_redundant_reason_stack_wl_lookup_pre]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>
+      uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn\<close>
+  unfolding lit_redundant_reason_stack_wl_lookup_def lit_redundant_reason_stack_wl_lookup_pre_def
+    two_uint64_nat_def[symmetric] zero_uint64_nat_def[symmetric]
+    one_uint64_nat_def[symmetric]
+  by sepref
+
+declare lit_redundant_reason_stack_wl_lookup_fast_code.refine[sepref_fr_rules]
+  lit_redundant_reason_stack_wl_lookup_code.refine[sepref_fr_rules]
 
 sepref_register lit_redundant_rec_wl_lookup conflict_min_cach_set_removable_l
-  get_propagation_reason_pol
+  get_propagation_reason_pol lit_redundant_reason_stack_wl_lookup
 
 declare get_propagation_reason_code.refine[sepref_fr_rules]
 
@@ -2857,12 +2941,13 @@ sepref_definition lit_redundant_rec_wl_lookup_code
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
     butlast_nonresizing_def[symmetric]
+    nat_of_uint64_conv_def
   apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_assn])
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
     fmap_rll_def[symmetric]
     fmap_length_rll_def[symmetric]
-  by sepref (* slow *)
+  by sepref
 
 declare lit_redundant_rec_wl_lookup_code.refine[sepref_fr_rules]
 
@@ -2878,6 +2963,7 @@ sepref_definition lit_redundant_rec_wl_lookup_fast_code
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro] nth_rll_def[simp]
     fmap_length_rll_u_def[simp]
     fmap_length_rll_def[simp]
+    arena_lit_pre_le[intro]
   unfolding isa_lit_redundant_rec_wl_lookup_def
     conflict_min_cach_set_removable_def[symmetric]
     conflict_min_cach_def[symmetric]
@@ -2886,9 +2972,9 @@ sepref_definition lit_redundant_rec_wl_lookup_fast_code
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
     butlast_nonresizing_def[symmetric]
+    nat_of_uint64_conv_def
   apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_fast_assn])
-  apply (rewrite at \<open>_ @ [(_, \<hole>)]\<close> one_uint64_nat_def[symmetric])+
 
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
     fmap_rll_def[symmetric]
@@ -2898,7 +2984,6 @@ sepref_definition lit_redundant_rec_wl_lookup_fast_code
     fmap_length_rll_def[symmetric]
     zero_uint32_nat_def[symmetric]
     fmap_rll_u_def[symmetric]
-    nat_of_uint64_conv_def
   by sepref (* slow *)
 
 declare lit_redundant_rec_wl_lookup_fast_code.refine[sepref_fr_rules]
@@ -3036,7 +3121,7 @@ declare lookup_conflict_upd_None_code.refine[sepref_fr_rules]
 
 definition isa_literal_redundant_wl_lookup ::
     "trail_pol \<Rightarrow> arena \<Rightarrow> lookup_clause_rel \<Rightarrow> conflict_min_cach_l
-           \<Rightarrow> nat literal \<Rightarrow> lbd \<Rightarrow> (conflict_min_cach_l \<times> (nat \<times> nat) list \<times> bool) nres"
+           \<Rightarrow> nat literal \<Rightarrow> lbd \<Rightarrow> (conflict_min_cach_l \<times> (nat \<times> nat \<times> nat \<times> nat) list \<times> bool) nres"
 where
   \<open>isa_literal_redundant_wl_lookup M NU D cach L lbd = do {
      ASSERT(get_level_pol_pre (M, L));
@@ -3048,7 +3133,10 @@ where
      else do {
        C \<leftarrow> get_propagation_reason_pol M (-L);
        case C of
-         Some C \<Rightarrow> isa_lit_redundant_rec_wl_lookup M NU D cach [(C, 1)] lbd
+         Some C \<Rightarrow> do {
+           ASSERT(lit_redundant_reason_stack_wl_lookup_pre (-L) NU C);
+           isa_lit_redundant_rec_wl_lookup M NU D cach
+	     [lit_redundant_reason_stack_wl_lookup (-L) NU C] lbd}
        | None \<Rightarrow> do {
            RETURN (cach, [], False)
        }
@@ -3099,8 +3187,20 @@ proof -
     subgoal by auto
     apply assumption
     subgoal by auto
+    subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
+       x2h x2i xa x' xb x'a
+       unfolding lit_redundant_reason_stack_wl_lookup_pre_def
+      by (auto simp: lit_redundant_reason_stack_wl_lookup_pre_def arena_lit_pre_def
+	arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def
+	simp: valid_arena_nempty
+	intro!: exI[of _ xb])
     subgoal by auto
-    subgoal by auto
+    subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
+       x2h x2i xa x' xb x'a
+      by (simp add: lit_redundant_reason_stack_wl_lookup_def
+        lit_redundant_reason_stack_def lit_redundant_reason_stack_wl_lookup_pre_def
+	 arena_lifting[of x2e x2 vdom]) \<comment> \<open>I have no idea why @{thm arena_lifting} requires
+	   to be instantiated.\<close>
     done
 qed
 

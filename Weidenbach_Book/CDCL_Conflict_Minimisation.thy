@@ -1237,9 +1237,9 @@ where
             ASSERT(analyse \<noteq> []);
 	    let (C, k, i, ln) = last analyse;
             ASSERT(C \<in># dom_m NU);
+            ASSERT(length (NU \<propto> C) > k);
+            ASSERT(NU \<propto> C!k \<in> lits_of_l M);
             let C = NU \<propto> C;
-            ASSERT(length C > k);
-            ASSERT(C!k \<in> lits_of_l M);
             if i \<ge> ln
             then
               RETURN(cach (atm_of (C ! k) := SEEN_REMOVABLE), butlast analyse, True)
@@ -1678,7 +1678,11 @@ definition literal_redundant_wl where
      else do {
        C \<leftarrow> get_propagation_reason M (-L);
        case C of
-         Some C \<Rightarrow> lit_redundant_rec_wl M NU D cach [lit_redundant_reason_stack (-L) NU C] lbd
+         Some C \<Rightarrow> do{
+	   ASSERT(C \<in># dom_m NU);
+	   ASSERT(length (NU \<propto> C) \<ge> 2);
+	   lit_redundant_rec_wl M NU D cach [lit_redundant_reason_stack (-L) NU C] lbd
+	 }
        | None \<Rightarrow> do {
            RETURN (cach, [], False)
        }
@@ -1753,7 +1757,7 @@ proof -
     that by (auto simp: )
   have get_propagation_reason: \<open>get_propagation_reason M (-L)
       \<le> \<Down> (\<langle>{(C', C).  C = mset (NU \<propto> C') \<and> C' \<noteq> 0 \<and> Propagated (-L) (mset (NU\<propto>C')) \<in> set M'
-                \<and> Propagated (-L) C' \<in> set M}\<rangle>
+                \<and> Propagated (-L) C' \<in> set M \<and> length (NU\<propto>C') \<ge> 2}\<rangle>
               option_rel)
           (get_propagation_reason M' (-L))\<close>
       (is \<open>_ \<le> \<Down> (\<langle>?get_propagation_reason\<rangle>option_rel) _\<close> is ?G1) and
@@ -1766,7 +1770,8 @@ proof -
     for a
     proof -
       have \<open>Propagated (- L) (mset (NU \<propto> a)) \<in> set M'\<close> (is ?propa) and
-        \<open>a \<noteq> 0\<close> (is ?a)
+        \<open>a \<noteq> 0\<close> (is ?a) and
+	\<open>length (NU \<propto> a) \<ge> 2\<close> (is ?len)
         if L_M: \<open>Propagated (-L) a \<in> set M\<close>
         for a
       proof -
@@ -1791,9 +1796,13 @@ proof -
               S_S' S'_S''  M'_def
             by (auto simp: S)
         qed
+	
         show ?propa and ?a
           using that M'_def by (auto simp: convert_lits_l_def p2rel_def convert_lit.simps
               elim!: list_rel_in_find_correspondanceE split: if_splits)
+	show ?len
+	  using trail_length_ge2[OF S'_S'' add_inv struct_invs, of \<open>- L\<close> a] that S_S'
+	  by (force simp: S)
       qed note H = this
      show \<open>?H2 \<Longrightarrow> ?G2\<close>
        using H by auto
@@ -1848,6 +1857,8 @@ proof -
     subgoal by (auto simp: lit_redundant_rec_wl_ref_def)
     apply (assumption)
     subgoal by (auto simp: lit_redundant_rec_wl_ref_def)
+    subgoal by simp
+    subgoal by simp
     subgoal for x x' C x'a
       using le2[of C] L_watched[of C]
       by (auto simp: convert_analysis_list_def drop_Suc slice_0
