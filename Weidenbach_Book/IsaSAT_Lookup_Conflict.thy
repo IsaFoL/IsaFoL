@@ -3455,7 +3455,6 @@ lemma lookup_merge_eq2_spec:
     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C\<close> and
     no_tauto: \<open>\<And>K. K \<in> set (remove1 L D) \<Longrightarrow> - K \<notin># C\<close>
     \<open>clvls = card_max_lvl M C\<close> and
-    \<open>Suc init \<le> uint_max\<close> and
     out: \<open>out_learned M (Some C) outl\<close> and
     bounded: \<open>isasat_input_bounded \<A>\<close>  and
     le2: \<open>length D = 2\<close> and
@@ -3637,11 +3636,11 @@ sepref_definition isasat_lookup_merge_eq2_code
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>k  *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>\<^sub>a
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
-  supply [[goals_limit = 1]] uint_max_def[simp]
+  supply [[goals_limit = 1]]
   unfolding isasat_lookup_merge_eq2_def add_to_lookup_conflict_def
     isa_outlearned_add_def isa_clvls_add_def
     is_NOTIN_def[symmetric]
-  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+  supply length_rll_def[simp] nth_rll_def[simp]
     image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
     fmap_length_rll_u_def[simp]
@@ -3656,11 +3655,11 @@ sepref_definition isasat_lookup_merge_eq2_fast_code
      unat_lit_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k  *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
        conflict_option_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
-  supply [[goals_limit = 1]] uint_max_def[simp]
+  supply [[goals_limit = 1]]
   unfolding isasat_lookup_merge_eq2_def add_to_lookup_conflict_def
     isa_outlearned_add_def isa_clvls_add_def
     is_NOTIN_def[symmetric]
-  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+  supply length_rll_def[simp] nth_rll_def[simp]
     image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
     fmap_length_rll_u_def[simp]
@@ -3674,4 +3673,146 @@ sepref_definition isasat_lookup_merge_eq2_fast_code
 declare
   isasat_lookup_merge_eq2_fast_code.refine[sepref_fr_rules]
   isasat_lookup_merge_eq2_code.refine[sepref_fr_rules]
+
+
+definition merge_conflict_m_eq2_pre where
+  \<open>merge_conflict_m_eq2_pre \<A> =
+  (\<lambda>(((((((L, M), N), i), xs), clvls), lbd), out). i \<in># dom_m N \<and> xs \<noteq> None \<and> distinct (N \<propto> i) \<and>
+       \<not>tautology (mset (N \<propto> i)) \<and>
+       (\<forall>K \<in> set (remove1 L (N \<propto> i)). - K \<notin># the xs) \<and>
+       literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (the xs) \<and> clvls = card_max_lvl M (the xs) \<and>
+       out_learned M xs out \<and> no_dup M \<and>
+       literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N) \<and>
+       isasat_input_bounded \<A> \<and>
+       length (N \<propto> i) = 2 \<and>
+       L \<in> set (N \<propto> i))\<close>
+
+definition merge_conflict_m_g_eq2 :: \<open>_\<close> where
+\<open>merge_conflict_m_g_eq2 L M N i D _ _ _ = merge_conflict_m_eq2 L M (N \<propto> i) D\<close>
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_mset:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (add_mset C N) \<longleftrightarrow>
+    literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C\<close>
+  unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def
+    literals_are_in_\<L>\<^sub>i\<^sub>n_def
+  by (auto simp: all_lits_of_mm_add_mset)
+
+lemma isasat_lookup_merge_eq2:
+  \<open>(uncurry7 isasat_lookup_merge_eq2, uncurry7 merge_conflict_m_g_eq2) \<in>
+    [merge_conflict_m_eq2_pre \<A>]\<^sub>f
+    Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<A>
+        \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id  \<rightarrow>
+      \<langle>option_lookup_clause_rel \<A> \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<rangle>nres_rel\<close>
+proof -
+  have H1: \<open>isasat_lookup_merge_eq2 a (aa, ab, ac, ad, ae, b) ba bb (af, ag, bc) bd be
+	 bf
+	\<le> \<Down> Id (lookup_merge_eq2 a bg (bh \<propto> bb) (af, ag, bc) bd be bf)\<close>
+    if 
+      \<open>merge_conflict_m_eq2_pre \<A> (((((((ah, bg), bh), bi), bj), bk), bl), bm)\<close> and
+      \<open>((((((((a, aa, ab, ac, ad, ae, b), ba), bb), af, ag, bc), bd), be), bf),
+	((((((ah, bg), bh), bi), bj), bk), bl), bm)
+       \<in> Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f       nat_rel \<times>\<^sub>f
+	 option_lookup_clause_rel \<A> \<times>\<^sub>f       nat_rel \<times>\<^sub>f
+	 Id \<times>\<^sub>f
+	 Id\<close>
+     for a aa ab ac ad ae b ba bb af ag bc bd be bf ah bg bh bi bj bk bl bm
+  proof -
+    have
+      bi: \<open>bi \<in># dom_m bh\<close> and
+      \<open>(bf, bm) \<in> Id\<close> and
+      \<open>bj \<noteq> None\<close> and
+      \<open>(be, bl) \<in> Id\<close> and
+      \<open>distinct (bh \<propto> bi)\<close> and
+      \<open>(bd, bk) \<in> nat_rel\<close> and
+      \<open>\<not> tautology (mset (bh \<propto> bi))\<close> and
+      o: \<open>((af, ag, bc), bj) \<in> option_lookup_clause_rel \<A>\<close> and
+      \<open>\<forall>K\<in>set (remove1 ah (bh \<propto> bi)). - K \<notin># the bj\<close> and
+      st: \<open>bb = bi\<close> and
+      \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (the bj)\<close> and
+      valid: \<open>valid_arena ba bh vdom\<close> and
+      \<open>bk = card_max_lvl bg (the bj)\<close> and
+      \<open>(a, ah) \<in> Id\<close> and
+      tr: \<open>((aa, ab, ac, ad, ae, b), bg) \<in> trail_pol \<A>\<close> and
+      \<open>out_learned bg bj bm\<close> and
+      \<open>no_dup bg\<close> and
+      lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf bh)\<close> and
+      bounded: \<open>isasat_input_bounded \<A>\<close> and
+      ah: \<open>ah \<in> set (bh \<propto> bi)\<close>
+      using that unfolding merge_conflict_m_eq2_pre_def prod.simps prod_rel_iff
+      by blast+
+
+  show ?thesis
+      by (rule isasat_lookup_merge_eq2_lookup_merge_eq2[OF valid bi[unfolded st[symmetric]]
+        lits o tr bounded])
+  qed
+  have H2: \<open>lookup_merge_eq2 a bg (bh \<propto> bb) (af, ag, bc) bd be bf
+	\<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f Id)))
+	(merge_conflict_m_g_eq2 ah bg bh bi bj bk bl bm)\<close>
+    if 
+      \<open>merge_conflict_m_eq2_pre \<A>      (((((((ah, bg), bh), bi), bj), bk), bl), bm)\<close> and
+      \<open>((((((((a, aa, ab, ac, ad, ae, b), ba), bb), af, ag, bc), bd), be), bf),
+	((((((ah, bg), bh), bi), bj), bk), bl), bm)
+       \<in> Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f       nat_rel \<times>\<^sub>f
+	 option_lookup_clause_rel \<A> \<times>\<^sub>f       nat_rel \<times>\<^sub>f
+	 Id \<times>\<^sub>f
+	 Id\<close>
+    for a aa ab ac ad ae b ba bb af ag bc bd be bf ah bg bh bi bj bk bl bm
+  proof -
+    have
+      bi: \<open>bi \<in># dom_m bh\<close> and
+      bj: \<open>bj \<noteq> None\<close> and
+      dist: \<open>distinct (bh \<propto> bi)\<close> and
+      tauto: \<open>\<not> tautology (mset (bh \<propto> bi))\<close> and
+      o: \<open>((af, ag, bc), bj) \<in> option_lookup_clause_rel \<A>\<close> and
+      K: \<open>\<forall>K\<in>set (remove1 ah (bh \<propto> bi)). - K \<notin># the bj\<close> and
+      st: \<open>bb = bi\<close>
+        \<open>bd = bk\<close>
+	\<open>bf = bm\<close>
+	\<open>be = bl\<close>
+        \<open>a = ah\<close> and
+      lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (the bj)\<close> and
+      valid: \<open>valid_arena ba bh vdom\<close> and
+      bk: \<open>bk = card_max_lvl bg (the bj)\<close> and
+      tr: \<open>((aa, ab, ac, ad, ae, b), bg) \<in> trail_pol \<A>\<close> and
+      out: \<open>out_learned bg bj bm\<close> and
+      \<open>no_dup bg\<close> and
+      lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf bh)\<close> and
+      bounded: \<open>isasat_input_bounded \<A>\<close> and
+      le2: \<open>length (bh \<propto> bi) = 2\<close> and
+      ah: \<open>ah \<in> set (bh \<propto> bi)\<close>
+      using that unfolding merge_conflict_m_eq2_pre_def prod.simps prod_rel_iff
+      by blast+
+    obtain bj' where bj': \<open>bj = Some bj'\<close>
+      using bj by (cases bj) auto
+    have n_d: \<open>no_dup bg\<close> and lits_tr: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> bg\<close>
+      using tr unfolding trail_pol_alt_def
+      by auto
+    have lits_bi: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (bh \<propto> bi))\<close>
+      using bi lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_mset ran_m_def
+        dest!: multi_member_split)
+      
+    show ?thesis
+      unfolding st merge_conflict_m_g_eq2_def
+      apply (rule lookup_merge_eq2_spec[THEN order_trans, OF o[unfolded bj']
+        dist lits_bi lits_tr n_d tauto lits_confl[unfolded bj' option.sel]
+	_ bk[unfolded bj' option.sel] _ bounded le2 ah])
+      subgoal using K unfolding bj' by auto
+      subgoal using out unfolding bj' .
+      subgoal unfolding bj' by auto
+      done
+  qed
+
+  show ?thesis
+    unfolding lookup_conflict_merge_def uncurry_def
+    apply (intro nres_relI frefI)
+    apply clarify
+    subgoal for a aa ab ac ad ae b ba bb af ag bc bd be bf ah bg bh bi bj bk bl bm
+      apply (rule H1[THEN order_trans]; assumption?)
+      apply (subst Down_id_eq)
+      apply (rule H2)
+      apply assumption+
+      done
+    done
+qed
+
 end
