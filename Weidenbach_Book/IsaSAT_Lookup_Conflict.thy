@@ -3428,6 +3428,8 @@ definition lookup_merge_eq2
     let lbd = lbd_write lbd (get_level M L') True;
     ASSERT(atm_of L' < length (snd zs));
     let outl = outlearned_add M L' zs outl;
+    ASSERT(clvls < uint32_max);
+    ASSERT(fst zs < uint32_max);
     let clvls = clvls_add M L' zs clvls;
     let zs = add_to_lookup_conflict L' zs;
     RETURN((False, zs), clvls, lbd, outl)
@@ -3534,6 +3536,8 @@ proof -
     subgoal by (rule le2)
     subgoal using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[OF bounded lits_tr n_d] by blast
     subgoal using atms_le_xs L' by simp
+    subgoal using clvls_uint_max by (auto simp: uint_max_def)
+    subgoal using Suc_N_uint_max by auto
     subgoal
       using o' clvls_add out'
       by (auto simp: merge_conflict_m_eq2_def DLL
@@ -3553,11 +3557,14 @@ definition isasat_lookup_merge_eq2
     let lbd = lbd_write lbd (get_level_pol M L') True;
     ASSERT(atm_of L' < length (snd zs));
     let outl = isa_outlearned_add M L' zs outl;
+    ASSERT(clvls < uint32_max);
+    ASSERT(fst zs < uint32_max);
     let clvls = isa_clvls_add M L' zs clvls;
     let zs = add_to_lookup_conflict L' zs;
     RETURN((False, zs), clvls, lbd, outl)
   })\<close>
 
+(*TODO Move*)
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_msetD:
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (add_mset C N) \<Longrightarrow>
   L \<in># C \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
@@ -3625,4 +3632,46 @@ proof -
     done
 qed
 
+sepref_definition isasat_lookup_merge_eq2_code
+  is \<open>uncurry7 isasat_lookup_merge_eq2\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>k  *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+         uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>\<^sub>a
+      conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
+  supply [[goals_limit = 1]] uint_max_def[simp]
+  unfolding isasat_lookup_merge_eq2_def add_to_lookup_conflict_def
+    isa_outlearned_add_def isa_clvls_add_def
+    is_NOTIN_def[symmetric]
+  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+    image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    fmap_length_rll_u_def[simp]
+    arena_is_valid_clause_idx_le_uint64_max[intro]
+  apply (rewrite in \<open>if _ then _ + \<hole> else _\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite in \<open>if _ then _ + \<hole> else _\<close> one_uint32_nat_def[symmetric])
+  by sepref
+
+sepref_definition isasat_lookup_merge_eq2_fast_code
+  is \<open>uncurry7 isasat_lookup_merge_eq2\<close>
+  :: \<open>[\<lambda>(((((((L, M), NU), _), _), _), _), _). length NU \<le> uint64_max]\<^sub>a
+     unat_lit_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k  *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
+       conflict_option_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+      conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
+  supply [[goals_limit = 1]] uint_max_def[simp]
+  unfolding isasat_lookup_merge_eq2_def add_to_lookup_conflict_def
+    isa_outlearned_add_def isa_clvls_add_def
+    is_NOTIN_def[symmetric]
+  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+    image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    fmap_length_rll_u_def[simp]
+    arena_is_valid_clause_idx_le_uint64_max[dest]
+    arena_lit_pre_le2[dest] 
+  apply (rewrite in \<open>if _ then _ + \<hole> else _\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite in \<open>if _ then _ + \<hole> else _\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite in \<open>if _ then arena_lit _ (_ + \<hole>) else _\<close> one_uint64_nat_def[symmetric])
+  by sepref
+
+declare
+  isasat_lookup_merge_eq2_fast_code.refine[sepref_fr_rules]
+  isasat_lookup_merge_eq2_code.refine[sepref_fr_rules]
 end
