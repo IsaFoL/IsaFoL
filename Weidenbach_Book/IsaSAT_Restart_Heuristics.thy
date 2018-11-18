@@ -1,7 +1,6 @@
 theory IsaSAT_Restart_Heuristics
   imports Watched_Literals_Watch_List_Domain_Restart IsaSAT_Setup IsaSAT_VMTF
     IsaSAT_Inner_Propagation (* TODO remove dependency *)
-    "../lib/Explorer"
     WB_Sort
 begin
 
@@ -1655,7 +1654,8 @@ where
           ASSERT(arena_is_valid_clause_vdom (get_clauses_wl_heur T) C);
           ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow>
             arena_is_valid_clause_idx (get_clauses_wl_heur T) C);
-          let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > MINIMUM_DELETION_LBD \<and>
+          let can_del = (D \<noteq> Some C) \<and>
+	     arena_lbd (get_clauses_wl_heur T) C > MINIMUM_DELETION_LBD \<and>
              arena_status (get_clauses_wl_heur T) C = LEARNED \<and>
              arena_length (get_clauses_wl_heur T) C \<noteq> two_uint64_nat;
           if can_del

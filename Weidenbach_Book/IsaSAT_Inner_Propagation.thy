@@ -945,7 +945,7 @@ definition propagate_lit_wl_heur_pre where
   \<open>propagate_lit_wl_heur_pre =
      (\<lambda>(((L, C), i), S). i \<le> 1 \<and> C \<noteq> DECISION_REASON)\<close>
 
-definition  propagate_lit_wl_heur
+definition propagate_lit_wl_heur
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
   \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
@@ -983,6 +983,35 @@ lemma propagate_lit_wl_heur_propagate_lit_wl:
         valid_arena_swap_lits arena_lifting phase_saving_def atms_of_def save_phase_def
       intro!: ASSERT_refine_left cons_trail_Propagated_tr2 cons_trail_Propagated_tr_pre
       dest: multi_member_split valid_arena_DECISION_REASON)
+
+definition propagate_lit_wl_bin_pre where
+  \<open>propagate_lit_wl_bin_pre = (\<lambda>(((L, C), i), S).
+     undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None \<and>
+     C \<in># dom_m (get_clauses_wl S) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S))\<close>
+
+definition propagate_lit_wl_bin_heur
+  :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+where
+  \<open>propagate_lit_wl_bin_heur = (\<lambda>L' C _ (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+    fema, sema). do {
+      ASSERT(atm_of L' < length \<phi>);
+      let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset stats else stats);
+      ASSERT(cons_trail_Propagated_tr_pre ((L', C), M));
+      RETURN (cons_trail_Propagated_tr L' C M, N, D, Q, W, vm, save_phase L' \<phi>, clvls, cach, lbd, outl,
+         stats, fema, sema)
+  })\<close>
+
+lemma propagate_lit_wl_bin_heur_propagate_lit_wl_bin:
+  \<open>(uncurry3 propagate_lit_wl_bin_heur, uncurry3 (RETURN oooo propagate_lit_wl_bin)) \<in>
+  [propagate_lit_wl_bin_pre]\<^sub>f
+  Id \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K \<rightarrow> \<langle>twl_st_heur_up'' \<D> r s K\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+     (auto 4 3 simp: twl_st_heur_def propagate_lit_wl_bin_heur_def propagate_lit_wl_bin_def
+        isa_vmtf_consD twl_st_heur'_def propagate_lit_wl_bin_pre_def swap_lits_pre_def
+        arena_lifting phase_saving_def atms_of_def save_phase_def
+      intro!: ASSERT_refine_left cons_trail_Propagated_tr2 cons_trail_Propagated_tr_pre
+      dest: multi_member_split valid_arena_DECISION_REASON)
+
 
 lemma undefined_lit_polarity_st_iff:
    \<open>undefined_lit (get_trail_wl S) L \<longleftrightarrow>
@@ -1094,7 +1123,7 @@ definition unit_propagation_inner_loop_body_wl_heur
              ASSERT(access_lit_in_clauses_heur_pre ((S, C), 0));
              let i = (if access_lit_in_clauses_heur S C 0 = L then 0 else 1);
              ASSERT(propagate_lit_wl_heur_pre (((K, C), i), S));
-             S \<leftarrow> propagate_lit_wl_heur K C i S;
+             S \<leftarrow> propagate_lit_wl_bin_heur K C i S;
              RETURN (j+1, w+1, S)}
         }
         else do {
@@ -1414,7 +1443,7 @@ lemma unit_propagation_inner_loop_body_wl_D_alt_def:
                    (j + 1, w + 1, S)
              else
                let i = ((if get_clauses_wl S \<propto> C ! 0 = L then 0 else 1)) in
-               let S = propagate_lit_wl K C i S in
+               let S = propagate_lit_wl_bin K C i S in
                RETURN
                    (j + 1, w + 1, S)
            }
@@ -1492,7 +1521,7 @@ proof -
   have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1) (get_unit_clauses_wl x1))\<close>
     using x2 xb_x'a
     by auto
-    
+
   have
       valid: \<open>valid_arena (get_clauses_wl_heur x1a) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
     using xb_x'a unfolding all_atms_def all_lits_def
@@ -1901,7 +1930,7 @@ proof -
 qed
 
 lemma bin_propagate_lit_wl_pre:
-  \<open>propagate_lit_wl_pre
+  \<open>propagate_lit_wl_bin_pre
      (((x2f, x1f), if get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! 0 = L then 0 else 1::nat),
          (keep_watch L x2 x2a T))\<close>
   if pol: \<open>polarity_pol (get_trail_wl_heur U) x2g \<noteq> Some False\<close> and
@@ -1922,7 +1951,7 @@ proof -
     using U' twl_st_heur_state_simp(1) by auto
   then show ?thesis
     using length_clss_2 in_dom U bin_confl_T x2g
-    unfolding propagate_lit_wl_pre_def
+    unfolding propagate_lit_wl_bin_pre_def
     by auto
 qed
 
@@ -1935,7 +1964,7 @@ private lemma bin_arena_lit_eq:
 lemma bin_final_rel:
   \<open>((((x2g, x1g), if arena_lit (get_clauses_wl_heur U) (x1g + 0) = L' then 0 else 1::nat), U),
      ((x2f, x1f), if get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! 0 = L then 0 else 1::nat),
-         (keep_watch L x2 x2a T)) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
+         (keep_watch L x2 x2a T)) \<in> Id \<times>\<^sub>f nat_rel \<times>\<^sub>f
            twl_st_heur_up'' \<D> r s K\<close>
   using U bin_arena_lit_eq[of 0] bin_arena_lit_eq[of 1] length_clss_Sr by auto
 
@@ -2604,6 +2633,8 @@ proof -
   note find_unw = find_unwatched_wl_st_heur_find_unwatched_wl_s[THEN fref_to_Down_curry]
       set_conflict_wl_heur_set_conflict_wl'[of \<D> r K s, THEN fref_to_Down_curry, unfolded comp_def]
       propagate_lit_wl_heur_propagate_lit_wl[of \<D> r K s, THEN fref_to_Down_curry3, unfolded comp_def]
+      propagate_lit_wl_bin_heur_propagate_lit_wl_bin
+        [of \<D> r K s, THEN fref_to_Down_curry3, unfolded comp_def]
       update_clause_wl_heur_update_clause_wl[of K r \<D> s, THEN fref_to_Down_curry7]
       keep_watch_heur_keep_watch'[of _ _ _ _ _ _ _ _ \<D> r K s]
       update_blit_wl_heur_update_blit_wl[of r \<D> K s, THEN fref_to_Down_curry6]
@@ -2646,7 +2677,7 @@ proof -
       by simp
     subgoal
       by simp
-    subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e x1f x2f x1g x2g x1h x2h x1i x2i S
+    subgoal
       by (rule bin_last_eq)
     subgoal by (rule bin_polarity_eq)
     subgoal
@@ -3626,6 +3657,42 @@ sepref_definition propagate_lit_wl_fast_code
 
 declare propagate_lit_wl_fast_code.refine[sepref_fr_rules]
 
+
+sepref_definition propagate_lit_wl_bin_code
+  is \<open>uncurry3 propagate_lit_wl_bin_heur\<close>
+  :: \<open>[propagate_lit_wl_heur_pre]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
+  unfolding PR_CONST_def propagate_lit_wl_heur_def isasat_unbounded_assn_def
+    cons_trail_Propagated_def[symmetric]
+  supply [[goals_limit=1]]length_rll_def[simp] length_ll_def[simp]
+  unfolding update_clause_wl_heur_def isasat_unbounded_assn_def
+    propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
+    save_phase_def propagate_lit_wl_bin_heur_def
+  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> zero_uint32_nat_def[symmetric])
+  by sepref
+
+declare propagate_lit_wl_bin_code.refine[sepref_fr_rules]
+
+sepref_definition propagate_lit_wl_bin_fast_code
+  is \<open>uncurry3 propagate_lit_wl_bin_heur\<close>
+  :: \<open>[\<lambda>(((L, C), i), S). propagate_lit_wl_heur_pre(((L, C), i), S) \<and>
+      length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
+      isasat_bounded_assn\<close>
+  unfolding PR_CONST_def propagate_lit_wl_heur_def isasat_unbounded_assn_def
+    cons_trail_Propagated_def[symmetric]
+  supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
+  unfolding update_clause_wl_heur_def isasat_bounded_assn_def
+    propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
+    fmap_swap_ll_u64_def[symmetric]
+    zero_uint64_nat_def[symmetric]
+    one_uint64_nat_def[symmetric]
+    save_phase_def propagate_lit_wl_bin_heur_def
+  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> zero_uint64_nat_def)
+  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> zero_uint32_nat_def[symmetric])
+  by sepref
+
+declare propagate_lit_wl_bin_fast_code.refine[sepref_fr_rules]
 
 lemma clause_not_marked_to_delete_heur_alt_def:
   \<open>RETURN \<circ>\<circ> clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C.

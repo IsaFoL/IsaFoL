@@ -5,7 +5,6 @@ theory IsaSAT_Lookup_Conflict
     Watched_Literals.CDCL_Conflict_Minimisation
     LBD
     IsaSAT_Clauses
-    "../lib/Explorer"
 begin
 
 no_notation Ref.update ("_ := _" 62)

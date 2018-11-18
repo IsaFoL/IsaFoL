@@ -271,14 +271,14 @@ lemma get_the_propagation_reason_heur_alt_def:
 
 sepref_register get_the_propagation_reason_heur
 sepref_definition get_the_propagation_reason_heur_code
-  is \<open>uncurry ( get_the_propagation_reason_heur)\<close>
+  is \<open>uncurry get_the_propagation_reason_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_assn\<close>
   unfolding get_the_propagation_reason_heur_alt_def access_vdom_at_pre_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
 sepref_definition get_the_propagation_reason_heur_fast_code
-  is \<open>uncurry ( get_the_propagation_reason_heur)\<close>
+  is \<open>uncurry get_the_propagation_reason_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint64_nat_assn\<close>
   unfolding get_the_propagation_reason_heur_alt_def access_vdom_at_pre_def
      isasat_bounded_assn_def
@@ -338,7 +338,7 @@ sepref_definition clause_lbd_heur_code
   by sepref
 
 sepref_definition clause_lbd_heur_code2
-  is \<open>uncurry (RETURN oo ( clause_lbd_heur))\<close>
+  is \<open>uncurry (RETURN oo clause_lbd_heur)\<close>
   :: \<open>[\<lambda>(S, C). get_clause_LBD_pre (get_clauses_wl_heur S) C]\<^sub>a
        isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   unfolding clause_lbd_heur_alt_def isasat_bounded_assn_def
@@ -350,7 +350,7 @@ declare  clause_lbd_heur_code2.refine[sepref_fr_rules]
 
 sepref_register mark_garbage_heur
 sepref_definition mark_garbage_heur_code
-  is \<open>uncurry2 (RETURN ooo ( mark_garbage_heur))\<close>
+  is \<open>uncurry2 (RETURN ooo mark_garbage_heur)\<close>
   :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S]\<^sub>a
        nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
   unfolding mark_garbage_heur_def isasat_unbounded_assn_def delete_index_and_swap_alt_def
@@ -359,7 +359,7 @@ sepref_definition mark_garbage_heur_code
   by sepref
 
 sepref_definition mark_garbage_heur_code2
-  is \<open>uncurry2 (RETURN ooo ( mark_garbage_heur))\<close>
+  is \<open>uncurry2 (RETURN ooo mark_garbage_heur)\<close>
   :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S]\<^sub>a
        nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding mark_garbage_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
