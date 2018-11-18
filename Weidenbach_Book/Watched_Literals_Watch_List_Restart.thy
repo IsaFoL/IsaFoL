@@ -1046,16 +1046,15 @@ proof -
     subgoal by (force simp: state_wl_l_def)
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)
-    subgoal by (force simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def can_delete_def)
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)
-    subgoal by auto
     subgoal
       by (auto simp: state_wl_l_def correct_watching_fmdrop mark_garbage_wl_def
           mark_garbage_l_def
         split: prod.splits)
+    subgoal by (auto simp: state_wl_l_def)
     subgoal by auto
-    subgoal by (force simp: state_wl_l_def)
     done
 qed
 

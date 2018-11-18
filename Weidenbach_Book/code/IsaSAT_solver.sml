@@ -1068,6 +1068,54 @@ fun set_conflict_wl_heur_fast_code x =
     end)
     x;
 
+val sET_TRUE_code : Word32.word =
+  Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int));
+
+fun cons_trail_Propagated_tr_fast_code x =
+  (fn ai => fn bia => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
+    let
+      val xa = arl_append (default_uint32, heap_uint32) a1 ai ();
+      val xaa = heap_array_set_u heap_uint32 a1a ai sET_TRUE_code ();
+      val xab =
+        heap_array_set_u heap_uint32 xaa (uminus_code ai) sET_FALSE_code ();
+      val xb = heap_array_set_u heap_uint32 a1b (atm_of_code ai) a1d ();
+      val xc = heap_array_set_u heap_uint64 a1c (atm_of_code ai) bia ();
+    in
+      (xa, (xab, (xb, (xc, (a1d, a2d)))))
+    end)
+    x;
+
+fun incr_propagation x =
+  (fn (propa, (confl, dec)) => (Uint64.plus propa Uint64.one, (confl, dec))) x;
+
+fun is_pos_code l =
+  (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
+
+fun incr_uset x =
+  (fn (propa, (confl, (dec, (res, (lres, uset))))) =>
+    (propa, (confl, (dec, (res, (lres, Uint64.plus uset Uint64.one))))))
+    x;
+
+fun propagate_lit_wl_bin_fast_code x =
+  (fn ai => fn bib => fn _ =>
+    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, a2l)))))))))))))
+      =>
+    fn () =>
+    let
+      val x_b = cons_trail_Propagated_tr_fast_code ai bib a1 ();
+      val xa =
+        heap_array_set_u heap_bool a1f (atm_of_code ai) (is_pos_code ai) ();
+    in
+      (x_b, (a1a, (a1b, (a1c, (a1d, (a1e, (xa,
+    (a1g, (a1h, (a1i, (a1j, (incr_propagation
+                               (if (((count_decided_pol
+                                       a1) : Word32.word) = (Word32.fromInt 0))
+                                 then incr_uset a1k else a1k),
+                              (a1l, a2l)))))))))))))
+    end)
+    x;
+
 fun nth_aa_i32_u64 A_ x la l =
   (fn () =>
     let
@@ -1176,34 +1224,6 @@ fun update_clause_wl_fast_code x =
     in
       (bid, (Uint64.plus bic Uint64.one, (a1, (x_b, (a1b, (a1c, (x_d, a2d)))))))
     end)
-    x;
-
-val sET_TRUE_code : Word32.word =
-  Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int));
-
-fun cons_trail_Propagated_tr_fast_code x =
-  (fn ai => fn bia => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
-    let
-      val xa = arl_append (default_uint32, heap_uint32) a1 ai ();
-      val xaa = heap_array_set_u heap_uint32 a1a ai sET_TRUE_code ();
-      val xab =
-        heap_array_set_u heap_uint32 xaa (uminus_code ai) sET_FALSE_code ();
-      val xb = heap_array_set_u heap_uint32 a1b (atm_of_code ai) a1d ();
-      val xc = heap_array_set_u heap_uint64 a1c (atm_of_code ai) bia ();
-    in
-      (xa, (xab, (xb, (xc, (a1d, a2d)))))
-    end)
-    x;
-
-fun incr_propagation x =
-  (fn (propa, (confl, dec)) => (Uint64.plus propa Uint64.one, (confl, dec))) x;
-
-fun is_pos_code l =
-  (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
-
-fun incr_uset x =
-  (fn (propa, (confl, (dec, (res, (lres, uset))))) =>
-    (propa, (confl, (dec, (res, (lres, Uint64.plus uset Uint64.one))))))
     x;
 
 fun propagate_lit_wl_fast_code x =
@@ -1316,7 +1336,7 @@ fun unit_propagation_inner_loop_body_wl_fast_heur_code x =
                                        ()) ())
                                        (fn xb =>
  (fn f_ => fn () => f_
-   ((propagate_lit_wl_fast_code a1a a1
+   ((propagate_lit_wl_bin_fast_code a1a a1
       (if ((xb : Word32.word) = ai) then Uint64.zero else Uint64.one) x_b)
    ()) ())
    (fn x_i =>
@@ -1845,6 +1865,40 @@ fun set_conflict_wl_heur_code x =
     end)
     x;
 
+fun cons_trail_Propagated_tr_code x =
+  (fn ai => fn bia => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
+    let
+      val xa = arl_append (default_uint32, heap_uint32) a1 ai ();
+      val xaa = heap_array_set_u heap_uint32 a1a ai sET_TRUE_code ();
+      val xab =
+        heap_array_set_u heap_uint32 xaa (uminus_code ai) sET_FALSE_code ();
+      val xb = heap_array_set_u heap_uint32 a1b (atm_of_code ai) a1d ();
+      val xc = heap_array_set_u heap_nat a1c (atm_of_code ai) bia ();
+    in
+      (xa, (xab, (xb, (xc, (a1d, a2d)))))
+    end)
+    x;
+
+fun propagate_lit_wl_bin_code x =
+  (fn ai => fn bib => fn _ =>
+    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, a2l)))))))))))))
+      =>
+    fn () =>
+    let
+      val x_b = cons_trail_Propagated_tr_code ai bib a1 ();
+      val xa =
+        heap_array_set_u heap_bool a1f (atm_of_code ai) (is_pos_code ai) ();
+    in
+      (x_b, (a1a, (a1b, (a1c, (a1d, (a1e, (xa,
+    (a1g, (a1h, (a1i, (a1j, (incr_propagation
+                               (if (((count_decided_pol
+                                       a1) : Word32.word) = (Word32.fromInt 0))
+                                 then incr_uset a1k else a1k),
+                              (a1l, a2l)))))))))))))
+    end)
+    x;
+
 fun nth_aa_u A_ x la l =
   (fn () =>
     let
@@ -1918,20 +1972,6 @@ fun update_clause_wl_code x =
           a1d xa (to_watcher_code bif ai bie) ();
     in
       (bid, (plus_nat bic one_nata, (a1, (x_b, (a1b, (a1c, (x_d, a2d)))))))
-    end)
-    x;
-
-fun cons_trail_Propagated_tr_code x =
-  (fn ai => fn bia => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
-    let
-      val xa = arl_append (default_uint32, heap_uint32) a1 ai ();
-      val xaa = heap_array_set_u heap_uint32 a1a ai sET_TRUE_code ();
-      val xab =
-        heap_array_set_u heap_uint32 xaa (uminus_code ai) sET_FALSE_code ();
-      val xb = heap_array_set_u heap_uint32 a1b (atm_of_code ai) a1d ();
-      val xc = heap_array_set_u heap_nat a1c (atm_of_code ai) bia ();
-    in
-      (xa, (xab, (xb, (xc, (a1d, a2d)))))
     end)
     x;
 
@@ -2025,7 +2065,7 @@ fun unit_propagation_inner_loop_body_wl_heur_code x =
                                        ()) ())
                                        (fn xb =>
  (fn f_ => fn () => f_
-   ((propagate_lit_wl_code a1a a1
+   ((propagate_lit_wl_bin_code a1a a1
       (if ((xb : Word32.word) = ai) then zero_nata else one_nata) x_b)
    ()) ())
    (fn x_i =>
@@ -3809,6 +3849,56 @@ fun atm_is_in_conflict_st_heur_code x =
     end)
     x;
 
+fun isasat_lookup_merge_eq2_fast_code x =
+  (fn ai => fn bif => fn bie => fn bid => fn bic => fn bib => fn bia => fn bi =>
+    let
+      val (_, a2) = bic;
+    in
+      (fn () =>
+        let
+          val xa = isa_arena_lit_fast_code bie bid ();
+          val xb =
+            (if ((xa : Word32.word) = ai)
+              then isa_arena_lit_fast_code bie (Uint64.plus bid Uint64.one)
+              else isa_arena_lit_fast_code bie bid)
+              ();
+          val xaa = get_level_fast_code bif xb ();
+          val x_b = lbd_write_code bia xaa true ();
+          val xab = get_level_fast_code bif xb ();
+          val xba = is_in_conflict_code a2 xb ();
+          val x_d =
+            (if Word32.< (xab, count_decided_pol bif) andalso not xba
+              then arl_append (default_uint32, heap_uint32) bi xb
+              else (fn () => bi))
+              ();
+          val xac = get_level_fast_code bif xb ();
+          val xbb = is_in_conflict_code a2 xb ();
+          val x_h =
+            let
+              val (a1a, a2a) = a2;
+            in
+              (fn f_ => fn () => f_ ((nth_u_code heap_bool a2a (atm_of_code xb))
+                ()) ())
+                (fn xad =>
+                  (fn f_ => fn () => f_
+                    ((heap_array_set_u heap_bool a2a (atm_of_code xb) true) ())
+                    ())
+                    (fn x_i =>
+                      (fn () =>
+                        ((if not xad then Word32.+ (a1a, (Word32.fromInt 1))
+                           else a1a),
+                          x_i))))
+            end
+              ();
+        in
+          ((false, x_h),
+            ((if ((xac : Word32.word) = (count_decided_pol bif)) andalso not xbb
+               then Word32.+ (bib, (Word32.fromInt 1)) else bib),
+              (x_b, x_d)))
+        end)
+    end)
+    x;
+
 fun resolve_merge_conflict_fast_code x =
   (fn ai => fn bie => fn bid => fn bic => fn bib => fn bia => fn bi =>
     let
@@ -3941,8 +4031,13 @@ fun update_confl_tl_wl_fast_code x =
       =>
     fn () =>
     let
+      val xa = isa_arena_length_fast_code a1a ai ();
       val a =
-        resolve_merge_conflict_fast_code a1 a1a ai (a1c, (a1d, a2d)) a1i a1k a1l
+        (if ((xa : Uint64.uint64) = (Uint64.fromInt (2 : IntInf.int)))
+          then isasat_lookup_merge_eq2_fast_code bia a1 a1a ai (a1c, (a1d, a2d))
+                 a1i a1k a1l
+          else resolve_merge_conflict_fast_code a1 a1a ai (a1c, (a1d, a2d)) a1i
+                 a1k a1l)
           ();
     in
       let
@@ -3951,13 +4046,13 @@ fun update_confl_tl_wl_fast_code x =
         (fn f_ => fn () => f_ ((conflict_remove1_code bia (a1o, a2o)) ()) ())
           (fn (a1r, a2r) =>
             (fn f_ => fn () => f_ ((tl_trail_tr_fast_code a1) ()) ())
-              (fn xa =>
+              (fn xb =>
                 (fn f_ => fn () => f_
                   ((isa_vmtf_unset_code (atm_of_code bia) a1g) ()) ())
                   (fn xaa =>
                     (fn () =>
                       (false,
-                        (xa, (a1a, ((a1n, (a1r, a2r)),
+                        (xb, (a1a, ((a1n, (a1r, a2r)),
                                      (a1e, (a1f,
      (xaa, (a1h, (fast_minus_uint32 a1p (Word32.fromInt 1),
                    (a1j, (a1q, (a2q, a2l))))))))))))))))
@@ -4302,24 +4397,56 @@ fun equal_minimize_status SEEN_REMOVABLE SEEN_UNKNOWN = false
   | equal_minimize_status SEEN_REMOVABLE SEEN_REMOVABLE = true
   | equal_minimize_status SEEN_FAILED SEEN_FAILED = true;
 
+fun lit_redundant_reason_stack_wl_lookup_fast_code x =
+  (fn ai => fn bia => fn bi => fn () =>
+    let
+      val xa = isa_arena_length_fast_code bia bi ();
+    in
+      (if Uint64.less (Uint64.fromInt (2 : IntInf.int)) xa
+        then (fn f_ => fn () => f_ ((isa_arena_length_fast_code bia bi) ()) ())
+               (fn xb => (fn () => (bi, (Uint64.zero, (Uint64.one, xb)))))
+        else (fn f_ => fn () => f_ ((isa_arena_lit_fast_code bia bi) ()) ())
+               (fn xb =>
+                 (if ((xb : Word32.word) = ai)
+                   then (fn f_ => fn () => f_
+                          ((isa_arena_length_fast_code bia bi) ()) ())
+                          (fn xc =>
+                            (fn () => (bi, (Uint64.zero, (Uint64.one, xc)))))
+                   else (fn () =>
+                          (bi, (Uint64.one, (Uint64.zero, Uint64.one)))))))
+        ()
+    end)
+    x;
+
 fun isa_get_literal_and_remove_of_analyse_wl_fast_code x =
   (fn ai => fn bi => fn () =>
     let
-      val a = arl_last (heap_prod heap_uint64 heap_uint64) bi ();
+      val a =
+        arl_last
+          (heap_prod heap_uint64
+            (heap_prod heap_uint64 (heap_prod heap_uint64 heap_uint64)))
+          bi ();
     in
       let
-        val (a1, a2) = a;
+        val (a1, (a1a, (a1b, a2b))) = a;
       in
-        (fn f_ => fn () => f_ ((isa_arena_lit_fast_code ai (Uint64.plus a1 a2))
+        (fn f_ => fn () => f_ ((isa_arena_lit_fast_code ai (Uint64.plus a1 a1b))
           ()) ())
           (fn x_a =>
             (fn f_ => fn () => f_
-              ((arl_length (heap_prod heap_uint64 heap_uint64) bi) ()) ())
+              ((arl_length
+                 (heap_prod heap_uint64
+                   (heap_prod heap_uint64 (heap_prod heap_uint64 heap_uint64)))
+                 bi)
+              ()) ())
               (fn xa =>
                 (fn f_ => fn () => f_
-                  ((arl_set (heap_prod heap_uint64 heap_uint64) bi
-                     (fast_minus_nat xa one_nata)
-                     (a1, Uint64.plus a2 Uint64.one))
+                  ((arl_set
+                     (heap_prod heap_uint64
+                       (heap_prod heap_uint64
+                         (heap_prod heap_uint64 heap_uint64)))
+                     bi (fast_minus_nat xa one_nata)
+                     (a1, (a1a, (Uint64.plus a1b Uint64.one, a2b))))
                   ()) ())
                   (fn x_b => (fn () => (x_a, x_b)))))
       end
@@ -4346,37 +4473,45 @@ fun conflict_min_cach_set_removable_l_code x =
 fun isa_mark_failed_lits_stack_fast_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
-      val xa = arl_length (heap_prod heap_uint64 heap_uint64) bia ();
+      val xa =
+        arl_length
+          (heap_prod heap_uint64
+            (heap_prod heap_uint64 (heap_prod heap_uint64 heap_uint64)))
+          bia ();
       val a =
         heap_WHILET (fn (a1, _) => (fn () => (less_nat a1 xa)))
           (fn (a1, a2) =>
             (fn f_ => fn () => f_
-              ((arl_get (heap_prod heap_uint64 heap_uint64) bia a1) ()) ())
-              (fn (a1a, a2a) =>
+              ((arl_get
+                 (heap_prod heap_uint64
+                   (heap_prod heap_uint64 (heap_prod heap_uint64 heap_uint64)))
+                 bia a1)
+              ()) ())
+              (fn (a1a, (_, (a1c, _))) =>
                 (fn f_ => fn () => f_
                   (let
-                     val (a1b, a2b) = a2;
+                     val (a1d, a2d) = a2;
                    in
                      (fn f_ => fn () => f_
                        ((isa_arena_lit_fast_code ai
-                          (fast_minus minus_uint64 (Uint64.plus a1a a2a)
+                          (fast_minus minus_uint64 (Uint64.plus a1a a1c)
                             Uint64.one))
                        ()) ())
                        (fn xb =>
                          (fn f_ => fn () => f_
-                           ((heap_array_set_u heap_minimize_status a1b
+                           ((heap_array_set_u heap_minimize_status a1d
                               (atm_of_code xb) SEEN_FAILED)
                            ()) ())
                            (fn x_e =>
                              (fn f_ => fn () => f_
                                ((isa_arena_lit_fast_code ai
-                                  (fast_minus minus_uint64 (Uint64.plus a1a a2a)
+                                  (fast_minus minus_uint64 (Uint64.plus a1a a1c)
                                     Uint64.one))
                                ()) ())
                                (fn xc =>
                                  (fn f_ => fn () => f_
                                    ((arl_append (default_uint32, heap_uint32)
-                                      a2b (atm_of_code xc))
+                                      a2d (atm_of_code xc))
                                    ()) ())
                                    (fn x_f => (fn () => (x_e, x_f))))))
                    end
@@ -4448,94 +4583,119 @@ fun lit_redundant_rec_wl_lookup_fast_code x =
     heap_WHILET
       (fn (_, (a1a, _)) => fn () =>
         let
-          val x_a = arl_is_empty (heap_prod heap_uint64 heap_uint64) a1a ();
+          val x_a =
+            arl_is_empty
+              (heap_prod heap_uint64
+                (heap_prod heap_uint64 (heap_prod heap_uint64 heap_uint64)))
+              a1a ();
         in
           not x_a
         end)
       (fn (a1, (a1a, _)) => fn () =>
         let
-          val xa = arl_last (heap_prod heap_uint64 heap_uint64) a1a ();
-          val xaa = arl_last (heap_prod heap_uint64 heap_uint64) a1a ();
-          val xab = isa_arena_length_fast_code bid (fst xaa) ();
+          val a =
+            arl_last
+              (heap_prod heap_uint64
+                (heap_prod heap_uint64 (heap_prod heap_uint64 heap_uint64)))
+              a1a ();
         in
-          (if Uint64.less_eq xab (snd xa)
-            then (fn f_ => fn () => f_
-                   ((arl_last (heap_prod heap_uint64 heap_uint64) a1a) ()) ())
-                   (fn xb =>
-                     (fn f_ => fn () => f_
-                       ((isa_arena_lit_fast_code bid (fst xb)) ()) ())
-                       (fn xc =>
-                         (fn f_ => fn () => f_
-                           ((conflict_min_cach_set_removable_l_code a1
-                              (atm_of_code xc))
-                           ()) ())
-                           (fn x_d =>
-                             (fn () =>
-                               (x_d, (arl_butlast_nonresizing a1a, true))))))
-            else (fn f_ => fn () => f_
-                   ((isa_get_literal_and_remove_of_analyse_wl_fast_code bid a1a)
-                   ()) ())
-                   (fn (a1b, a2b) =>
-                     (fn f_ => fn () => f_ ((get_level_fast_code ai a1b) ()) ())
-                       (fn xb =>
-                         (fn f_ => fn () => f_ ((level_in_lbd_code xb bi) ())
-                           ())
-                           (fn xc =>
-                             (fn f_ => fn () => f_ ((get_level_fast_code ai a1b)
-                               ()) ())
-                               (fn xac =>
-                                 (fn f_ => fn () => f_
-                                   ((conflict_min_cach_l_code a1
-                                      (atm_of_code a1b))
-                                   ()) ())
-                                   (fn xba =>
-                                     (fn f_ => fn () => f_
-                                       ((atm_in_conflict_code (atm_of_code a1b)
-  bic)
-                                       ()) ())
-                                       (fn xca =>
- (if ((xac : Word32.word) = (Word32.fromInt 0)) orelse
-       (equal_minimize_status xba SEEN_REMOVABLE orelse xca)
-   then (fn () => (a1, (a2b, false)))
-   else (fn f_ => fn () => f_ ((conflict_min_cach_l_code a1 (atm_of_code a1b))
-          ()) ())
-          (fn xad =>
-            (if not xc orelse equal_minimize_status xad SEEN_FAILED
+          let
+            val (a1b, (a1c, (a1d, a2d))) = a;
+          in
+            (if Uint64.less_eq a2d a1d
               then (fn f_ => fn () => f_
-                     ((isa_mark_failed_lits_stack_fast_code bid a2b a1) ()) ())
-                     (fn x_j =>
+                     ((isa_arena_lit_fast_code bid (Uint64.plus a1b a1c)) ())
+                     ())
+                     (fn xa =>
                        (fn f_ => fn () => f_
-                         ((arl_empty
-                            (default_prod default_uint64 default_uint64,
-                              heap_prod heap_uint64 heap_uint64)
-                            zero_nat)
+                         ((conflict_min_cach_set_removable_l_code a1
+                            (atm_of_code xa))
                          ()) ())
-                         (fn xd => (fn () => (x_j, (xd, false)))))
+                         (fn x_d =>
+                           (fn () =>
+                             (x_d, (arl_butlast_nonresizing a1a, true)))))
               else (fn f_ => fn () => f_
-                     ((get_propagation_reason_fast_code ai (uminus_code a1b))
+                     ((isa_get_literal_and_remove_of_analyse_wl_fast_code bid
+                        a1a)
                      ()) ())
-                     (fn a =>
-                       (case a
-                         of NONE =>
-                           (fn f_ => fn () => f_
-                             ((isa_mark_failed_lits_stack_fast_code bid a2b a1)
-                             ()) ())
-                             (fn x_k =>
+                     (fn (a1e, a2e) =>
+                       (fn f_ => fn () => f_ ((get_level_fast_code ai a1e) ())
+                         ())
+                         (fn xa =>
+                           (fn f_ => fn () => f_ ((level_in_lbd_code xa bi) ())
+                             ())
+                             (fn xb =>
                                (fn f_ => fn () => f_
-                                 ((arl_empty
-                                    (default_prod default_uint64 default_uint64,
-                                      heap_prod heap_uint64 heap_uint64)
-                                    zero_nat)
-                                 ()) ())
-                                 (fn xd => (fn () => (x_k, (xd, false)))))
-                         | SOME x_k =>
-                           (fn f_ => fn () => f_
-                             ((arl_append
-                                (default_prod default_uint64 default_uint64,
-                                  heap_prod heap_uint64 heap_uint64)
-                                a2b (x_k, Uint64.one))
-                             ()) ())
-                             (fn xd => (fn () => (a1, (xd, false))))))))))))))))
+                                 ((get_level_fast_code ai a1e) ()) ())
+                                 (fn xaa =>
+                                   (fn f_ => fn () => f_
+                                     ((conflict_min_cach_l_code a1
+(atm_of_code a1e))
+                                     ()) ())
+                                     (fn xba =>
+                                       (fn f_ => fn () => f_
+ ((atm_in_conflict_code (atm_of_code a1e) bic) ()) ())
+ (fn xc =>
+   (if ((xaa : Word32.word) = (Word32.fromInt 0)) orelse
+         (equal_minimize_status xba SEEN_REMOVABLE orelse xc)
+     then (fn () => (a1, (a2e, false)))
+     else (fn f_ => fn () => f_ ((conflict_min_cach_l_code a1 (atm_of_code a1e))
+            ()) ())
+            (fn xab =>
+              (if not xb orelse equal_minimize_status xab SEEN_FAILED
+                then (fn f_ => fn () => f_
+                       ((isa_mark_failed_lits_stack_fast_code bid a2e a1) ())
+                       ())
+                       (fn x_j =>
+                         (fn f_ => fn () => f_
+                           ((arl_empty
+                              (default_prod default_uint64
+                                 (default_prod default_uint64
+                                   (default_prod default_uint64
+                                     default_uint64)),
+                                heap_prod heap_uint64
+                                  (heap_prod heap_uint64
+                                    (heap_prod heap_uint64 heap_uint64)))
+                              zero_nat)
+                           ()) ())
+                           (fn xd => (fn () => (x_j, (xd, false)))))
+                else (fn f_ => fn () => f_
+                       ((get_propagation_reason_fast_code ai (uminus_code a1e))
+                       ()) ())
+                       (fn aa =>
+                         (case aa
+                           of NONE =>
+                             (fn f_ => fn () => f_
+                               ((isa_mark_failed_lits_stack_fast_code bid a2e
+                                  a1)
+                               ()) ())
+                               (fn x_k =>
+                                 (fn f_ => fn () => f_
+                                   ((arl_empty
+                                      (default_prod default_uint64
+ (default_prod default_uint64 (default_prod default_uint64 default_uint64)),
+heap_prod heap_uint64
+  (heap_prod heap_uint64 (heap_prod heap_uint64 heap_uint64)))
+                                      zero_nat)
+                                   ()) ())
+                                   (fn xd => (fn () => (x_k, (xd, false)))))
+                           | SOME x_k =>
+                             (fn f_ => fn () => f_
+                               ((lit_redundant_reason_stack_wl_lookup_fast_code
+                                  (uminus_code a1e) bid x_k)
+                               ()) ())
+                               (fn xd =>
+                                 (fn f_ => fn () => f_
+                                   ((arl_append
+                                      (default_prod default_uint64
+ (default_prod default_uint64 (default_prod default_uint64 default_uint64)),
+heap_prod heap_uint64
+  (heap_prod heap_uint64 (heap_prod heap_uint64 heap_uint64)))
+                                      a2e xd)
+                                   ()) ())
+                                   (fn xe =>
+                                     (fn () => (a1, (xe, false)))))))))))))))))
+          end
             ()
         end)
       (bib, (bia, false)))
@@ -4551,8 +4711,12 @@ fun literal_redundant_wl_lookup_fast_code x =
             equal_minimize_status xaa SEEN_REMOVABLE
         then (fn f_ => fn () => f_
                ((arl_empty
-                  (default_prod default_uint64 default_uint64,
-                    heap_prod heap_uint64 heap_uint64)
+                  (default_prod default_uint64
+                     (default_prod default_uint64
+                       (default_prod default_uint64 default_uint64)),
+                    heap_prod heap_uint64
+                      (heap_prod heap_uint64
+                        (heap_prod heap_uint64 heap_uint64)))
                   zero_nat)
                ()) ())
                (fn xb => (fn () => (bib, (xb, true))))
@@ -4562,8 +4726,12 @@ fun literal_redundant_wl_lookup_fast_code x =
                  (if equal_minimize_status xb SEEN_FAILED
                    then (fn f_ => fn () => f_
                           ((arl_empty
-                             (default_prod default_uint64 default_uint64,
-                               heap_prod heap_uint64 heap_uint64)
+                             (default_prod default_uint64
+                                (default_prod default_uint64
+                                  (default_prod default_uint64 default_uint64)),
+                               heap_prod heap_uint64
+                                 (heap_prod heap_uint64
+                                   (heap_prod heap_uint64 heap_uint64)))
                              zero_nat)
                           ()) ())
                           (fn xc => (fn () => (bib, (xc, false))))
@@ -4577,8 +4745,9 @@ fun literal_redundant_wl_lookup_fast_code x =
                                 (fn f_ => fn () => f_
                                   ((arl_empty
                                      (default_prod default_uint64
-default_uint64,
-                                       heap_prod heap_uint64 heap_uint64)
+(default_prod default_uint64 (default_prod default_uint64 default_uint64)),
+                                       heap_prod heap_uint64
+ (heap_prod heap_uint64 (heap_prod heap_uint64 heap_uint64)))
                                      zero_nat)
                                   ()) ())
                                   (fn xc => (fn () => (bib, (xc, false))))
@@ -4586,18 +4755,27 @@ default_uint64,
                                 (fn f_ => fn () => f_
                                   ((arl_empty
                                      (default_prod default_uint64
-default_uint64,
-                                       heap_prod heap_uint64 heap_uint64)
+(default_prod default_uint64 (default_prod default_uint64 default_uint64)),
+                                       heap_prod heap_uint64
+ (heap_prod heap_uint64 (heap_prod heap_uint64 heap_uint64)))
                                      zero_nat)
                                   ()) ())
                                   (fn xc =>
                                     (fn f_ => fn () => f_
-                                      ((arl_append
- (default_prod default_uint64 default_uint64, heap_prod heap_uint64 heap_uint64)
- xc (x_c, Uint64.one))
+                                      ((lit_redundant_reason_stack_wl_lookup_fast_code
+ (uminus_code bia) bid x_c)
                                       ()) ())
-                                      (fn x_d =>
-lit_redundant_rec_wl_lookup_fast_code ai bid bic bib x_d bi)))))))
+                                      (fn xab =>
+(fn f_ => fn () => f_
+  ((arl_append
+     (default_prod default_uint64
+        (default_prod default_uint64
+          (default_prod default_uint64 default_uint64)),
+       heap_prod heap_uint64
+         (heap_prod heap_uint64 (heap_prod heap_uint64 heap_uint64)))
+     xc xab)
+  ()) ())
+  (fn x_d => lit_redundant_rec_wl_lookup_fast_code ai bid bic bib x_d bi))))))))
         ()
     end)
     x;
@@ -5558,6 +5736,56 @@ fun is_decided_hd_trail_wl_code x =
                           end)
     x;
 
+fun isasat_lookup_merge_eq2_code x =
+  (fn ai => fn bif => fn bie => fn bid => fn bic => fn bib => fn bia => fn bi =>
+    let
+      val (_, a2) = bic;
+    in
+      (fn () =>
+        let
+          val xa = isa_arena_lit_code bie bid ();
+          val xb =
+            (if ((xa : Word32.word) = ai)
+              then isa_arena_lit_code bie (plus_nat bid one_nata)
+              else isa_arena_lit_code bie bid)
+              ();
+          val xaa = get_level_code bif xb ();
+          val x_b = lbd_write_code bia xaa true ();
+          val xab = get_level_code bif xb ();
+          val xba = is_in_conflict_code a2 xb ();
+          val x_d =
+            (if Word32.< (xab, count_decided_pol bif) andalso not xba
+              then arl_append (default_uint32, heap_uint32) bi xb
+              else (fn () => bi))
+              ();
+          val xac = get_level_code bif xb ();
+          val xbb = is_in_conflict_code a2 xb ();
+          val x_h =
+            let
+              val (a1a, a2a) = a2;
+            in
+              (fn f_ => fn () => f_ ((nth_u_code heap_bool a2a (atm_of_code xb))
+                ()) ())
+                (fn xad =>
+                  (fn f_ => fn () => f_
+                    ((heap_array_set_u heap_bool a2a (atm_of_code xb) true) ())
+                    ())
+                    (fn x_i =>
+                      (fn () =>
+                        ((if not xad then Word32.+ (a1a, (Word32.fromInt 1))
+                           else a1a),
+                          x_i))))
+            end
+              ();
+        in
+          ((false, x_h),
+            ((if ((xac : Word32.word) = (count_decided_pol bif)) andalso not xbb
+               then Word32.+ (bib, (Word32.fromInt 1)) else bib),
+              (x_b, x_d)))
+        end)
+    end)
+    x;
+
 fun resolve_merge_conflict_code x =
   (fn ai => fn bie => fn bid => fn bic => fn bib => fn bia => fn bi =>
     let
@@ -5679,8 +5907,14 @@ fun update_confl_tl_wl_code x =
       =>
     fn () =>
     let
+      val xa = isa_arena_length_code a1a ai ();
       val a =
-        resolve_merge_conflict_code a1 a1a ai (a1c, (a1d, a2d)) a1i a1k a1l ();
+        (if ((xa : Uint64.uint64) = (Uint64.fromInt (2 : IntInf.int)))
+          then isasat_lookup_merge_eq2_code bia a1 a1a ai (a1c, (a1d, a2d)) a1i
+                 a1k a1l
+          else resolve_merge_conflict_code a1 a1a ai (a1c, (a1d, a2d)) a1i a1k
+                 a1l)
+          ();
     in
       let
         val ((a1n, (a1o, a2o)), (a1p, (a1q, a2q))) = a;
@@ -5688,13 +5922,13 @@ fun update_confl_tl_wl_code x =
         (fn f_ => fn () => f_ ((conflict_remove1_code bia (a1o, a2o)) ()) ())
           (fn (a1r, a2r) =>
             (fn f_ => fn () => f_ ((tl_trail_tr_code a1) ()) ())
-              (fn xa =>
+              (fn xb =>
                 (fn f_ => fn () => f_
                   ((isa_vmtf_unset_code (atm_of_code bia) a1g) ()) ())
                   (fn xaa =>
                     (fn () =>
                       (false,
-                        (xa, (a1a, ((a1n, (a1r, a2r)),
+                        (xb, (a1a, ((a1n, (a1r, a2r)),
                                      (a1e, (a1f,
      (xaa, (a1h, (fast_minus_uint32 a1p (Word32.fromInt 1),
                    (a1j, (a1q, (a2q, a2l))))))))))))))))
@@ -5878,22 +6112,55 @@ fun decide_wl_or_skip_D_code x =
     end)
     x;
 
+fun lit_redundant_reason_stack_wl_lookup_code x =
+  (fn ai => fn bia => fn bi => fn () =>
+    let
+      val xa = isa_arena_length_code bia bi ();
+    in
+      (if less_nat (nat_of_integer (2 : IntInf.int)) (nat_of_uint64 xa)
+        then (fn f_ => fn () => f_ ((isa_arena_length_code bia bi) ()) ())
+               (fn xb =>
+                 (fn () => (bi, (zero_nata, (one_nata, nat_of_uint64 xb)))))
+        else (fn f_ => fn () => f_ ((isa_arena_lit_code bia bi) ()) ())
+               (fn xb =>
+                 (if ((xb : Word32.word) = ai)
+                   then (fn f_ => fn () => f_ ((isa_arena_length_code bia bi)
+                          ()) ())
+                          (fn xc =>
+                            (fn () =>
+                              (bi, (zero_nata, (one_nata, nat_of_uint64 xc)))))
+                   else (fn () => (bi, (one_nata, (zero_nata, one_nata)))))))
+        ()
+    end)
+    x;
+
 fun isa_get_literal_and_remove_of_analyse_wl_code x =
   (fn ai => fn bi => fn () =>
     let
-      val a = arl_last (heap_prod heap_nat heap_nat) bi ();
+      val a =
+        arl_last
+          (heap_prod heap_nat
+            (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
+          bi ();
     in
       let
-        val (a1, a2) = a;
+        val (a1, (a1a, (a1b, a2b))) = a;
       in
-        (fn f_ => fn () => f_ ((isa_arena_lit_code ai (plus_nat a1 a2)) ()) ())
+        (fn f_ => fn () => f_ ((isa_arena_lit_code ai (plus_nat a1 a1b)) ()) ())
           (fn x_a =>
-            (fn f_ => fn () => f_ ((arl_length (heap_prod heap_nat heap_nat) bi)
+            (fn f_ => fn () => f_
+              ((arl_length
+                 (heap_prod heap_nat
+                   (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
+                 bi)
               ()) ())
               (fn xa =>
                 (fn f_ => fn () => f_
-                  ((arl_set (heap_prod heap_nat heap_nat) bi
-                     (fast_minus_nat xa one_nata) (a1, plus_nat a2 one_nata))
+                  ((arl_set
+                     (heap_prod heap_nat
+                       (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
+                     bi (fast_minus_nat xa one_nata)
+                     (a1, (a1a, (plus_nat a1b one_nata, a2b))))
                   ()) ())
                   (fn x_b => (fn () => (x_a, x_b)))))
       end
@@ -5904,35 +6171,43 @@ fun isa_get_literal_and_remove_of_analyse_wl_code x =
 fun isa_mark_failed_lits_stack_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
-      val xa = arl_length (heap_prod heap_nat heap_nat) bia ();
+      val xa =
+        arl_length
+          (heap_prod heap_nat
+            (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
+          bia ();
       val a =
         heap_WHILET (fn (a1, _) => (fn () => (less_nat a1 xa)))
           (fn (a1, a2) =>
             (fn f_ => fn () => f_
-              ((arl_get (heap_prod heap_nat heap_nat) bia a1) ()) ())
-              (fn (a1a, a2a) =>
+              ((arl_get
+                 (heap_prod heap_nat
+                   (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
+                 bia a1)
+              ()) ())
+              (fn (a1a, (_, (a1c, _))) =>
                 (fn f_ => fn () => f_
                   (let
-                     val (a1b, a2b) = a2;
+                     val (a1d, a2d) = a2;
                    in
                      (fn f_ => fn () => f_
                        ((isa_arena_lit_code ai
-                          (minus_nata (plus_nat a1a a2a) one_nata))
+                          (minus_nata (plus_nat a1a a1c) one_nata))
                        ()) ())
                        (fn xb =>
                          (fn f_ => fn () => f_
-                           ((heap_array_set_u heap_minimize_status a1b
+                           ((heap_array_set_u heap_minimize_status a1d
                               (atm_of_code xb) SEEN_FAILED)
                            ()) ())
                            (fn x_e =>
                              (fn f_ => fn () => f_
                                ((isa_arena_lit_code ai
-                                  (minus_nata (plus_nat a1a a2a) one_nata))
+                                  (minus_nata (plus_nat a1a a1c) one_nata))
                                ()) ())
                                (fn xc =>
                                  (fn f_ => fn () => f_
                                    ((arl_append (default_uint32, heap_uint32)
-                                      a2b (atm_of_code xc))
+                                      a2d (atm_of_code xc))
                                    ()) ())
                                    (fn x_f => (fn () => (x_e, x_f))))))
                    end
@@ -5967,93 +6242,111 @@ fun lit_redundant_rec_wl_lookup_code x =
     heap_WHILET
       (fn (_, (a1a, _)) => fn () =>
         let
-          val x_a = arl_is_empty (heap_prod heap_nat heap_nat) a1a ();
+          val x_a =
+            arl_is_empty
+              (heap_prod heap_nat
+                (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
+              a1a ();
         in
           not x_a
         end)
       (fn (a1, (a1a, _)) => fn () =>
         let
-          val xa = arl_last (heap_prod heap_nat heap_nat) a1a ();
-          val xaa = arl_last (heap_prod heap_nat heap_nat) a1a ();
-          val xab = isa_arena_length_code bid (fst xaa) ();
+          val a =
+            arl_last
+              (heap_prod heap_nat
+                (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
+              a1a ();
         in
-          (if less_eq_nat (nat_of_uint64 xab) (snd xa)
-            then (fn f_ => fn () => f_
-                   ((arl_last (heap_prod heap_nat heap_nat) a1a) ()) ())
-                   (fn xb =>
-                     (fn f_ => fn () => f_ ((isa_arena_lit_code bid (fst xb))
-                       ()) ())
-                       (fn xc =>
-                         (fn f_ => fn () => f_
-                           ((conflict_min_cach_set_removable_l_code a1
-                              (atm_of_code xc))
-                           ()) ())
-                           (fn x_d =>
-                             (fn () =>
-                               (x_d, (arl_butlast_nonresizing a1a, true))))))
-            else (fn f_ => fn () => f_
-                   ((isa_get_literal_and_remove_of_analyse_wl_code bid a1a) ())
-                   ())
-                   (fn (a1b, a2b) =>
-                     (fn f_ => fn () => f_ ((get_level_code ai a1b) ()) ())
-                       (fn xb =>
-                         (fn f_ => fn () => f_ ((level_in_lbd_code xb bi) ())
-                           ())
-                           (fn xc =>
-                             (fn f_ => fn () => f_ ((get_level_code ai a1b) ())
-                               ())
-                               (fn xac =>
-                                 (fn f_ => fn () => f_
-                                   ((conflict_min_cach_l_code a1
-                                      (atm_of_code a1b))
-                                   ()) ())
-                                   (fn xba =>
-                                     (fn f_ => fn () => f_
-                                       ((atm_in_conflict_code (atm_of_code a1b)
-  bic)
-                                       ()) ())
-                                       (fn xca =>
- (if ((xac : Word32.word) = (Word32.fromInt 0)) orelse
-       (equal_minimize_status xba SEEN_REMOVABLE orelse xca)
-   then (fn () => (a1, (a2b, false)))
-   else (fn f_ => fn () => f_ ((conflict_min_cach_l_code a1 (atm_of_code a1b))
-          ()) ())
-          (fn xad =>
-            (if not xc orelse equal_minimize_status xad SEEN_FAILED
+          let
+            val (a1b, (a1c, (a1d, a2d))) = a;
+          in
+            (if less_eq_nat a2d a1d
               then (fn f_ => fn () => f_
-                     ((isa_mark_failed_lits_stack_code bid a2b a1) ()) ())
-                     (fn x_j =>
+                     ((isa_arena_lit_code bid (plus_nat a1b a1c)) ()) ())
+                     (fn xa =>
                        (fn f_ => fn () => f_
-                         ((arl_empty
-                            (default_prod default_nat default_nat,
-                              heap_prod heap_nat heap_nat)
-                            zero_nat)
+                         ((conflict_min_cach_set_removable_l_code a1
+                            (atm_of_code xa))
                          ()) ())
-                         (fn xd => (fn () => (x_j, (xd, false)))))
+                         (fn x_d =>
+                           (fn () =>
+                             (x_d, (arl_butlast_nonresizing a1a, true)))))
               else (fn f_ => fn () => f_
-                     ((get_propagation_reason_code ai (uminus_code a1b)) ()) ())
-                     (fn a =>
-                       (case a
-                         of NONE =>
-                           (fn f_ => fn () => f_
-                             ((isa_mark_failed_lits_stack_code bid a2b a1) ())
+                     ((isa_get_literal_and_remove_of_analyse_wl_code bid a1a)
+                     ()) ())
+                     (fn (a1e, a2e) =>
+                       (fn f_ => fn () => f_ ((get_level_code ai a1e) ()) ())
+                         (fn xa =>
+                           (fn f_ => fn () => f_ ((level_in_lbd_code xa bi) ())
                              ())
-                             (fn x_k =>
-                               (fn f_ => fn () => f_
-                                 ((arl_empty
-                                    (default_prod default_nat default_nat,
-                                      heap_prod heap_nat heap_nat)
-                                    zero_nat)
+                             (fn xb =>
+                               (fn f_ => fn () => f_ ((get_level_code ai a1e)
                                  ()) ())
-                                 (fn xd => (fn () => (x_k, (xd, false)))))
-                         | SOME x_k =>
-                           (fn f_ => fn () => f_
-                             ((arl_append
-                                (default_prod default_nat default_nat,
-                                  heap_prod heap_nat heap_nat)
-                                a2b (x_k, one_nata))
-                             ()) ())
-                             (fn xd => (fn () => (a1, (xd, false))))))))))))))))
+                                 (fn xaa =>
+                                   (fn f_ => fn () => f_
+                                     ((conflict_min_cach_l_code a1
+(atm_of_code a1e))
+                                     ()) ())
+                                     (fn xba =>
+                                       (fn f_ => fn () => f_
+ ((atm_in_conflict_code (atm_of_code a1e) bic) ()) ())
+ (fn xc =>
+   (if ((xaa : Word32.word) = (Word32.fromInt 0)) orelse
+         (equal_minimize_status xba SEEN_REMOVABLE orelse xc)
+     then (fn () => (a1, (a2e, false)))
+     else (fn f_ => fn () => f_ ((conflict_min_cach_l_code a1 (atm_of_code a1e))
+            ()) ())
+            (fn xab =>
+              (if not xb orelse equal_minimize_status xab SEEN_FAILED
+                then (fn f_ => fn () => f_
+                       ((isa_mark_failed_lits_stack_code bid a2e a1) ()) ())
+                       (fn x_j =>
+                         (fn f_ => fn () => f_
+                           ((arl_empty
+                              (default_prod default_nat
+                                 (default_prod default_nat
+                                   (default_prod default_nat default_nat)),
+                                heap_prod heap_nat
+                                  (heap_prod heap_nat
+                                    (heap_prod heap_nat heap_nat)))
+                              zero_nat)
+                           ()) ())
+                           (fn xd => (fn () => (x_j, (xd, false)))))
+                else (fn f_ => fn () => f_
+                       ((get_propagation_reason_code ai (uminus_code a1e)) ())
+                       ())
+                       (fn aa =>
+                         (case aa
+                           of NONE =>
+                             (fn f_ => fn () => f_
+                               ((isa_mark_failed_lits_stack_code bid a2e a1) ())
+                               ())
+                               (fn x_k =>
+                                 (fn f_ => fn () => f_
+                                   ((arl_empty
+                                      (default_prod default_nat
+ (default_prod default_nat (default_prod default_nat default_nat)),
+heap_prod heap_nat (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
+                                      zero_nat)
+                                   ()) ())
+                                   (fn xd => (fn () => (x_k, (xd, false)))))
+                           | SOME x_k =>
+                             (fn f_ => fn () => f_
+                               ((lit_redundant_reason_stack_wl_lookup_code
+                                  (uminus_code a1e) bid x_k)
+                               ()) ())
+                               (fn xd =>
+                                 (fn f_ => fn () => f_
+                                   ((arl_append
+                                      (default_prod default_nat
+ (default_prod default_nat (default_prod default_nat default_nat)),
+heap_prod heap_nat (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
+                                      a2e xd)
+                                   ()) ())
+                                   (fn xe =>
+                                     (fn () => (a1, (xe, false)))))))))))))))))
+          end
             ()
         end)
       (bib, (bia, false)))
@@ -6069,8 +6362,11 @@ fun literal_redundant_wl_lookup_code x =
             equal_minimize_status xaa SEEN_REMOVABLE
         then (fn f_ => fn () => f_
                ((arl_empty
-                  (default_prod default_nat default_nat,
-                    heap_prod heap_nat heap_nat)
+                  (default_prod default_nat
+                     (default_prod default_nat
+                       (default_prod default_nat default_nat)),
+                    heap_prod heap_nat
+                      (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
                   zero_nat)
                ()) ())
                (fn xb => (fn () => (bib, (xb, true))))
@@ -6080,8 +6376,12 @@ fun literal_redundant_wl_lookup_code x =
                  (if equal_minimize_status xb SEEN_FAILED
                    then (fn f_ => fn () => f_
                           ((arl_empty
-                             (default_prod default_nat default_nat,
-                               heap_prod heap_nat heap_nat)
+                             (default_prod default_nat
+                                (default_prod default_nat
+                                  (default_prod default_nat default_nat)),
+                               heap_prod heap_nat
+                                 (heap_prod heap_nat
+                                   (heap_prod heap_nat heap_nat)))
                              zero_nat)
                           ()) ())
                           (fn xc => (fn () => (bib, (xc, false))))
@@ -6093,26 +6393,36 @@ fun literal_redundant_wl_lookup_code x =
                               of NONE =>
                                 (fn f_ => fn () => f_
                                   ((arl_empty
-                                     (default_prod default_nat default_nat,
-                                       heap_prod heap_nat heap_nat)
+                                     (default_prod default_nat
+(default_prod default_nat (default_prod default_nat default_nat)),
+                                       heap_prod heap_nat
+ (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
                                      zero_nat)
                                   ()) ())
                                   (fn xc => (fn () => (bib, (xc, false))))
                               | SOME x_c =>
                                 (fn f_ => fn () => f_
                                   ((arl_empty
-                                     (default_prod default_nat default_nat,
-                                       heap_prod heap_nat heap_nat)
+                                     (default_prod default_nat
+(default_prod default_nat (default_prod default_nat default_nat)),
+                                       heap_prod heap_nat
+ (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
                                      zero_nat)
                                   ()) ())
                                   (fn xc =>
                                     (fn f_ => fn () => f_
-                                      ((arl_append
- (default_prod default_nat default_nat, heap_prod heap_nat heap_nat) xc
- (x_c, one_nata))
+                                      ((lit_redundant_reason_stack_wl_lookup_code
+ (uminus_code bia) bid x_c)
                                       ()) ())
-                                      (fn x_d =>
-lit_redundant_rec_wl_lookup_code ai bid bic bib x_d bi)))))))
+                                      (fn xab =>
+(fn f_ => fn () => f_
+  ((arl_append
+     (default_prod default_nat
+        (default_prod default_nat (default_prod default_nat default_nat)),
+       heap_prod heap_nat (heap_prod heap_nat (heap_prod heap_nat heap_nat)))
+     xc xab)
+  ()) ())
+  (fn x_d => lit_redundant_rec_wl_lookup_code ai bid bic bib x_d bi))))))))
         ()
     end)
     x;

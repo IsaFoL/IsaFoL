@@ -264,8 +264,12 @@ where
   \<open>update_confl_tl_wl_heur = (\<lambda>C L (M, N, (b, (n, xs)), Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats). do {
       ASSERT (clvls \<ge> 1);
       let L' = atm_of L;
-      ASSERT(curry6 isa_set_lookup_conflict_aa_pre M N C (b, (n, xs)) clvls lbd outl);
-      ((b, (n, xs)), clvls, lbd, outl) \<leftarrow> isa_resolve_merge_conflict M N C (b, (n, xs)) clvls lbd outl;
+      ASSERT(arena_length N C \<noteq> 2 \<longrightarrow>
+        curry6 isa_set_lookup_conflict_aa_pre M N C (b, (n, xs)) clvls lbd outl);
+      ASSERT(arena_is_valid_clause_idx N C);
+      ((b, (n, xs)), clvls, lbd, outl) \<leftarrow>
+        if arena_length N C = 2 then isasat_lookup_merge_eq2 L M N C (b, (n, xs)) clvls lbd outl
+        else isa_resolve_merge_conflict_gt2 M N C (b, (n, xs)) clvls lbd outl;
       ASSERT(curry lookup_conflict_remove1_pre L (n, xs) \<and> clvls \<ge> 1);
       let (n, xs) = lookup_conflict_remove1 L (n, xs);
       ASSERT(vmtf_unset_pre L' vm);
@@ -277,7 +281,7 @@ where
 lemma card_max_lvl_remove1_mset_hd:
   \<open>-lit_of (hd M) \<in># y \<Longrightarrow> is_proped (hd M) \<Longrightarrow>
      card_max_lvl M (remove1_mset (-lit_of (hd M)) y) = card_max_lvl M y - 1\<close>
-  by (cases M)  (auto dest!: multi_member_split simp: card_max_lvl_add_mset)
+  by (cases M) (auto dest!: multi_member_split simp: card_max_lvl_add_mset)
 
 lemma update_confl_tl_wl_heur_state_helper:
    \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S)) \<Longrightarrow> get_trail_wl S \<noteq> [] \<Longrightarrow>
@@ -298,12 +302,16 @@ definition update_confl_tl_wl_pre where
       C > 0 \<and>
       card_max_lvl (get_trail_wl S) (the (get_conflict_wl S)) \<ge> 1 \<and>
       distinct_mset (the (get_conflict_wl S)) \<and>
-      - L \<notin> set (tl (get_clauses_wl S \<propto> C)) \<and>
-      L \<notin> set (tl (get_clauses_wl S \<propto> C)) \<and>
+      - L \<notin> set (get_clauses_wl S \<propto> C) \<and>
+      (length (get_clauses_wl S \<propto> C) > 2 \<longrightarrow> 
+        L \<notin> set (tl (get_clauses_wl S \<propto> C)) \<and> 
+        get_clauses_wl S \<propto> C ! 0 = L) \<and>
+      L \<in> set (watched_l (get_clauses_wl S \<propto> C)) \<and>
       distinct (get_clauses_wl S \<propto> C) \<and>
       \<not>tautology (the (get_conflict_wl S)) \<and>
       \<not>tautology (mset (get_clauses_wl S \<propto> C)) \<and>
-      \<not>tautology (remove1_mset (- L) (the (get_conflict_wl S) \<union># mset (tl (get_clauses_wl S \<propto> C)))) \<and>
+      \<not>tautology (remove1_mset L (remove1_mset (- L)
+        ((the (get_conflict_wl S) \<union># mset (get_clauses_wl S \<propto> C))))) \<and>
       count_decided (get_trail_wl S) > 0 \<and>
       literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st S) (the (get_conflict_wl S)) \<and>
       literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S \<and>
@@ -328,12 +336,19 @@ abbreviation twl_st_heur_conflict_ana' where
   \<open>twl_st_heur_conflict_ana' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and>
      length (get_clauses_wl_heur S) = r}\<close>
 
+(*TODO*)
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_all_atms_self[simp]:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_atms ca NUE) {#mset (fst x). x \<in># ran_m ca#}\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
+    all_atms_def all_lits_def in_all_lits_of_mm_ain_atms_of_iff)
+  
 lemma update_confl_tl_wl_heur_update_confl_tl_wl:
   \<open>(uncurry2 (update_confl_tl_wl_heur), uncurry2 (RETURN ooo update_confl_tl_wl)) \<in>
   [update_confl_tl_wl_pre]\<^sub>f
    nat_rel \<times>\<^sub>f Id \<times>\<^sub>f twl_st_heur_conflict_ana' r \<rightarrow> \<langle>bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<rangle>nres_rel\<close>
 proof -
-  have H: \<open>isa_resolve_merge_conflict ba c a (aa, ab, bb) i k ag
+
+  have H: \<open>isa_resolve_merge_conflict_gt2 ba c a (aa, ab, bb) i k ag
         \<le> SPEC
           (\<lambda>x. (case x of
                 (x, xa) \<Rightarrow>
@@ -363,12 +378,20 @@ proof -
       \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<close> and
       CLS[simp]: \<open>CLS = ((ao, bg), baa, ca, da, ea, fa, ga, ha)\<close> and
       \<open>CLS' = ((a, b), ba, c, (aa, ab, bb), e, f, ivmtf, h, i, j, k,
-        ag, (ah, ai, aj, be), ak, al, am, an, bf)\<close>
+        ag, (ah, ai, aj, be), ak, al, am, an, bf)\<close> and
+      le2: \<open>arena_length c a \<noteq> 2\<close>
     for a b ba c aa ab bb e f ac ad ae af bc bd h i j k ag ah ai aj be ak al am an
        bf ao bg baa ca da ea fa ga ha CLS CLS' ivmtf
   proof -
     let ?\<A> = \<open>all_atms_st (baa, ca, da, ea, fa, ga, ha)\<close>
-   have
+    have le2: \<open>length (ca \<propto> ao) > 2\<close>
+      using arena_lifting(19)[of c ca \<open>set an\<close> ao]
+      using rel inv le2 unfolding CLS update_confl_tl_wl_pre_def prod.case
+        get_clauses_wl.simps
+      by (auto simp: twl_st_heur_conflict_ana_def arena_lifting
+        simp del: arena_lifting(19))
+
+    have
       ao: \<open>ao \<in># dom_m (get_clauses_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
       conf: \<open>get_conflict_wl (baa, ca, da, ea, fa, ga, ha) \<noteq> None\<close> and
       nempty: \<open>get_trail_wl (baa, ca, da, ea, fa, ga, ha) \<noteq> []\<close> and
@@ -381,20 +404,22 @@ proof -
       card_max_lvl: \<open>1 \<le> card_max_lvl (get_trail_wl (baa, ca, da, ea, fa, ga, ha))
             (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
       dist_D: \<open>distinct_mset (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
-      uL_NC: \<open>- bg \<notin> set (tl (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao))\<close> and
+      uL_NC: \<open>- bg \<notin> set (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao)\<close> and
       L_NC: \<open>bg \<notin> set (tl (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao))\<close> and
+      bg_hd: \<open>ca \<propto> ao ! 0 = bg\<close> and
       dist_NC: \<open>distinct (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao)\<close> and
       tauto_D:  \<open>\<not> tautology (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
       tauto_NC: \<open>\<not> tautology (mset (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao))\<close> and
       tauto_NC_D: \<open>\<not> tautology
-          (remove1_mset (- bg)
+          (remove1_mset bg (remove1_mset (- bg)
             (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)) \<union>#
-            mset (tl (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao))))\<close> and
+            mset (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao))))\<close> and
       count_dec_ge: \<open>0 < count_decided (get_trail_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
       lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n ?\<A> (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
       lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n ?\<A> (baa, ca, da, ea, fa, ga, ha)\<close> and
       lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail ?\<A> (get_trail_wl (baa, ca, da, ea, fa, ga, ha))\<close>
-      using inv unfolding CLS update_confl_tl_wl_pre_def prod.case
+      using inv le2 unfolding CLS update_confl_tl_wl_pre_def prod.case
+        get_clauses_wl.simps
       by blast+
     have
       n_d: \<open>no_dup baa\<close> and
@@ -430,14 +455,15 @@ proof -
     have mset_ge0_iff:  "0 < size M \<longleftrightarrow> M \<noteq> {#}" for M
      by (cases M) auto
     have no_dup: \<open>L \<in> set (tl (ca \<propto> ao)) \<Longrightarrow> - L \<in># the da \<Longrightarrow> False\<close> for L
-      using tauto_NC_D tauto_NC \<open>bg \<notin> set (tl (ca \<propto> ao))\<close>
-      apply (cases \<open>- L \<in># mset (tl (ca \<propto> ao))\<close>; cases \<open>bg = L\<close>)
-      apply (auto dest!: multi_member_split
-      simp: sup_union_left2 add_mset_remove_trivial_If tautology_add_mset split: if_splits)
-      apply (metis in_set_tlD set_mset_mset tautology_minus)
-      by (metis \<open>bg \<notin># the da\<close> in_remove1_mset_neq insert_DiffM set_mset_mset
-        subset_mset.sup.right_idem subset_mset.sup_commute sup_union_left1 uminus_of_uminus_id
-        union_single_eq_member)
+      using tauto_NC_D tauto_NC \<open>bg \<notin> set (tl (ca \<propto> ao))\<close> bg_hd le2
+      by (cases \<open>- L \<in># mset (tl (ca \<propto> ao))\<close>; cases \<open>bg = L\<close>; cases \<open>ca \<propto> ao\<close>)
+        (auto dest!: multi_member_split
+        simp: sup_union_left2 add_mset_remove_trivial_If
+          tautology_add_mset add_mset_eq_add_mset
+          add_mset_remove_trivial_eq  remove1_mset_union_distrib
+	dest: in_set_tlD tautology_minus[of L]
+        split: if_splits)
+
     have size_union_ge1: \<open>Suc 0 \<le> size A \<Longrightarrow> Suc 0 \<le> size (A \<union># B)\<close> for A B
       apply (cases A)
       apply (simp; fail)
@@ -480,7 +506,39 @@ proof -
     ultimately have [simp]: \<open>- bg \<notin># remove1_mset (- bg) (the da \<union># mset (tl (ca \<propto> ao)))\<close>
       by (metis \<open>a = ao\<close> diff_single_trivial in_multiset_in_set multi_drop_mem_not_eq
             remove1_mset_union_distrib)
+    have [simp]: \<open>bg \<notin># the da \<union># mset (ca \<propto> ao) - {#bg, - bg#}\<close>
+       \<open>-bg \<notin># the da \<union># mset (ca \<propto> ao) - {#bg, - bg#}\<close>
+      unfolding resolve_cls_wl'_def lookup_clause_rel_def
+        lookup_conflict_remove1_def
+      using dist_NC bg_hd le2
+	dist_NC[unfolded distinct_mset_mset_distinct[symmetric]]
+	multi_member_split[of \<open>bg\<close> \<open>mset (ca \<propto> ao)\<close>] tauto_NC_D
+	tauto_NC tauto_D uL_D dist_D
+     apply (cases \<open>bg \<in># the da\<close>)
+      apply (auto simp del: distinct_mset_mset_distinct
+        simp: tautology_add_mset sup_union_left2 sup_union_left1
+	  add_mset_eq_add_mset
+        dest!: in_set_takeD multi_member_split)
+       apply (metis distinct_mset_add_mset distinct_mset_union_mset
+         sup_union_right1 union_single_eq_member)
+       by (smt \<open>distinct_mset (mset (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao))\<close>
+	 add_mset_commute add_mset_diff_bothsides add_mset_remove_trivial_eq dist_D
+	 distinct_mset_add_mset distinct_mset_union_mset get_clauses_wl.simps
+	 get_conflict_wl.simps minus_notin_trivial2 remove_1_mset_id_iff_notin) 
 
+    have eq: \<open>(the da \<union># mset (ca \<propto> ao) - {#- bg, bg#}) =
+      remove1_mset (-bg) (the da \<union># mset (tl (ca \<propto> ao)))\<close>
+      unfolding resolve_cls_wl'_def lookup_clause_rel_def
+        lookup_conflict_remove1_def
+      using dist_NC bg_hd le2
+	dist_NC[unfolded distinct_mset_mset_distinct[symmetric]]
+	multi_member_split[of \<open>bg\<close> \<open>mset (ca \<propto> ao)\<close>] tauto_NC_D
+	tauto_NC tauto_D uL_D dist_D
+     by (cases \<open>ca \<propto> ao\<close>)
+      (auto simp del: distinct_mset_mset_distinct
+        simp: tautology_add_mset sup_union_left2 sup_union_left1
+	  add_mset_eq_add_mset
+        dest!: in_set_takeD multi_member_split)
     have \<open>vmtf_unset_pre (atm_of b) ivmtf\<close>
       if \<open>ivmtf \<in> isa_vmtf ?\<A> baa\<close>
       apply (rule vmtf_unset_pre'[OF that])
@@ -501,8 +559,9 @@ proof -
         by (cases baa; cases \<open>hd baa\<close>) auto
       then have out:
         \<open>out_learned baa (Some (resolve_cls_wl' (baa, ca, Some (the da), ea, fa, ga, ha) ao bg)) b\<close>
-        using uL_D H
-        by (auto simp: resolve_cls_wl'_def out_learned_def ac_simps)
+        using uL_D H bg_hd
+	by (cases \<open>ca \<propto> ao\<close>)
+          (auto simp: resolve_cls_wl'_def out_learned_def ac_simps)
       have \<open>out_learned (tl baa)
         (Some (resolve_cls_wl' (baa, ca, Some (the da), ea, fa, ga, ha) ao bg)) b\<close>
         apply (rule out_learned_tl_Some_notin[THEN iffD1])
@@ -511,7 +570,7 @@ proof -
     then show ?thesis
       using rel
       by (auto simp: twl_st_heur_conflict_ana_def merge_conflict_m_def update_confl_tl_wl_pre_def
-          resolve_cls_wl'_def ac_simps)
+          resolve_cls_wl'_def ac_simps eq)
     qed
     moreover have \<open>card_max_lvl baa (mset (tl (ca \<propto> ao)) \<union># (the da)) - Suc 0
       \<in> counts_maximum_level (tl baa)
@@ -520,7 +579,7 @@ proof -
       have \<open>distinct_mset (remove1_mset (- bg) (the da \<union># mset (tl (ca \<propto> ao))))\<close>
         using dist_NC dist_D by (auto intro!: distinct_mset_minus)
       moreover have \<open>\<not>tautology (remove1_mset (- bg) (the da \<union># mset (tl (ca \<propto> ao))))\<close>
-        using tauto_NC_D by simp
+        using tauto_NC_D by (simp add: eq[symmetric] ac_simps)
       moreover have \<open>card_max_lvl baa (mset (tl (ca \<propto> ao)) \<union># the da) - 1 =
         card_max_lvl baa (remove1_mset (- bg) (the da \<union># mset (tl (ca \<propto> ao))))\<close>
         unfolding \<open>lit_of (hd baa) = bg\<close> [symmetric]
@@ -530,7 +589,9 @@ proof -
       ultimately show ?thesis
         unfolding counts_maximum_level_def
         using uL_D L_M proped nempty \<open>ao > 0\<close> n_d count_dec_ge
-        by (auto simp del: simp: card_max_lvl_tl resolve_cls_wl'_def card_max_lvl_remove1_mset_hd)
+	unfolding eq
+        by (auto simp del: simp:ac_simps eq
+	  card_max_lvl_tl resolve_cls_wl'_def card_max_lvl_remove1_mset_hd)
     qed
     moreover have \<open>da = Some y \<Longrightarrow> ((a, aaa, b), Some (y \<union># mset (tl (ca \<propto> ao))))
        \<in> option_lookup_clause_rel ?\<A> \<Longrightarrow>
@@ -560,76 +621,363 @@ proof -
        using rel inv
        apply -
        apply (rule order_trans)
-       apply (rule isa_resolve_merge_conflict[of ?\<A> \<open>set an\<close>,
+       apply (rule isa_resolve_merge_conflict_gt2[of ?\<A> \<open>set an\<close>,
          THEN fref_to_Down_curry6, OF merge_conflict_m_pre])
        subgoal using arena ocr trail by (auto simp: all_atms_def[symmetric])
        subgoal unfolding merge_conflict_m_def conc_fun_SPEC
         by (auto simp: twl_st_heur_conflict_ana_def merge_conflict_m_def update_confl_tl_wl_pre_def
            resolve_cls_wl'_def ac_simps no_dup_tlD lookup_remove1_uminus arena_in_L
-	   all_atms_def[symmetric]
+	   all_atms_def[symmetric] eq
            intro!: ASSERT_refine_left
 	     tl_trail_tr[THEN fref_to_Down_unRET])
        done
   qed
-  have isa_set_lookup_conflict_aa_pre:
-    \<open>curry2 (curry2 (curry2 isa_set_lookup_conflict_aa_pre)) ba c a
-        (aa, ab, bb) i k ag\<close>
-    if
-      inv: \<open>update_confl_tl_wl_pre ((ao, bg), baa, ca, da, ea, fa, ga, ha)\<close> and
-      rel: \<open>(((a, b), ba, c, (aa, ab, bb), e, f, ((ac, ad, ae, af, bc), bd), h, i, j,
-        k, ag, (ah, ai, aj, be), ak, al, am, an, bf),
-        (ao, bg), baa, ca, da, ea, fa, ga, ha)
-      \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<close> and
-      CLS: \<open>CLS = ((ao, bg), baa, ca, da, ea, fa, ga, ha)\<close> and
+
+  have isasat_lookup_merge_eq2:
+    \<open>isasat_lookup_merge_eq2 b (aa, ab, ac, ad, ae, ba) c a (af, ag, bb) i k l
+	\<le> SPEC
+	   (\<lambda>x. (case x of
+		 (x, xa) \<Rightarrow>
+		   (case x of
+		    (bb, n, xs) \<Rightarrow>
+		      \<lambda>(clvls, lbd, outl). do {
+			   _ \<leftarrow> ASSERT
+				(curry lookup_conflict_remove1_pre b (n, xs) \<and>
+				 1 \<le> clvls);
+			   let (n, xs) = lookup_conflict_remove1 b (n, xs);
+			   _ \<leftarrow> ASSERT
+				(vmtf_unset_pre (atm_of b)
+				  ((ah, ai, aj, ak, bc), al, bd));
+			   _ \<leftarrow> ASSERT (tl_trailt_tr_pre (aa, ab, ac, ad, ae, ba));
+			   RETURN
+			    (False, tl_trailt_tr (aa, ab, ac, ad, ae, ba), c,
+			     (bb, n, xs), e, f,
+			     isa_vmtf_unset (atm_of b)
+			      ((ah, ai, aj, ak, bc), al, bd),
+			     h, fast_minus clvls one_uint32_nat, (am, be), lbd,
+			     outl, (an, ao, ap, aq, ar, bf), (as, at, au, av, bg),
+			     (aw, ax, ay, az, bh), (bi, bj), ra, s, t, u, v, w)
+			 })
+		    xa)
+		\<le> \<Down> (bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r)
+		   (RETURN
+		     (let D = resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl
+		      in (False, tl baa, ca, Some D, ea, fa, ga, ha))))\<close>
+    if 
+      inv: \<open>update_confl_tl_wl_pre ((bk, bl), baa, ca, da, ea, fa, ga, ha)\<close> and
+      rel: \<open>(((a, b), (aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
+	 ((ah, ai, aj, ak, bc), al, bd), h, i, (am, be), k, l,
+	 (an, ao, ap, aq, ar, bf), (as, at, au, av, bg), (aw, ax, ay, az, bh),
+	 (bi, bj), ra, s, t, u, v, w),
+	(bk, bl), baa, ca, da, ea, fa, ga, ha)
+       \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<close> and
+      \<open>CLS = ((bk, bl), baa, ca, da, ea, fa, ga, ha)\<close> and
       \<open>CLS' =
-      ((a, b), ba, c, (aa, ab, bb), e, f, ((ac, ad, ae, af, bc), bd), h, i, j, k,
-        ag, (ah, ai, aj, be), ak, al, am, an, bf)\<close> and
-      \<open>1 \<le> i\<close>
-    for a b ba c aa ab bb e f ac ad ae af bc bd h i j k ag ah ai aj be ak al am an
-       bf ao bg baa ca da ea fa ga ha CLS CLS'
+       ((a, b), (aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
+	((ah, ai, aj, ak, bc), al, bd), h, i, (am, be), k, l,
+	(an, ao, ap, aq, ar, bf), (as, at, au, av, bg), (aw, ax, ay, az, bh),
+	(bi, bj), ra, s, t, u, v, w)\<close> and
+      \<open>1 \<le> i\<close> and
+      \<open>2 \<noteq> 2 \<longrightarrow>
+       curry2 (curry2 (curry2 isa_set_lookup_conflict_aa_pre))
+	(aa, ab, ac, ad, ae, ba) c a (af, ag, bb) i k l\<close> and
+      le2: \<open>arena_length c a = 2\<close>
+    for a b aa ab ac ad ae ba c af ag bb e f ah ai aj ak bc al bd h i am be k l an
+	 ao ap aq ar bf as at au av bg aw ax ay az bh bi bj ra s t u v w bk bl baa
+	 ca da ea fa ga ha CLS CLS'
   proof -
     let ?\<A> = \<open>all_atms_st (baa, ca, da, ea, fa, ga, ha)\<close>
     have
-      ao: \<open>ao \<in># dom_m (get_clauses_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
-      conf: \<open>get_conflict_wl (baa, ca, da, ea, fa, ga, ha) \<noteq> None\<close> and
-      nempty: \<open>get_trail_wl (baa, ca, da, ea, fa, ga, ha) \<noteq> []\<close> and
-      uL_D: \<open>- bg \<in># the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
-      L_M: \<open>(bg, ao) = lit_and_ann_of_propagated
-        (hd (get_trail_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
-      bg_D0: \<open>bg \<in># \<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>\<close> and
+      bk: \<open>bk \<in># dom_m (get_clauses_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
+      confl: \<open>get_conflict_wl (baa, ca, da, ea, fa, ga, ha) \<noteq> None\<close> and
+      tr_nempty: \<open>get_trail_wl (baa, ca, da, ea, fa, ga, ha) \<noteq> []\<close> and
+      ubl: \<open>- bl \<in># the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
+      L_M: \<open>(bl, bk) =
+       lit_and_ann_of_propagated
+	(hd (get_trail_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
+      bl_all: \<open>bl \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (baa, ca, da, ea, fa, ga, ha))\<close> and
       proped: \<open>is_proped (hd (get_trail_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
-      \<open>0 < ao\<close> and
-      \<open>1 \<le> card_max_lvl (get_trail_wl (baa, ca, da, ea, fa, ga, ha))
-            (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
-      dist_D: \<open>distinct_mset (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
-      uL_NC: \<open>- bg \<notin> set (tl (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao))\<close> and
-      L_NC: \<open>bg \<notin> set (tl (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao))\<close> and
-      dist_NC: \<open>distinct (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao)\<close> and
+      \<open>0 < bk\<close> and
+      card_ge1: \<open>1 \<le> card_max_lvl (get_trail_wl (baa, ca, da, ea, fa, ga, ha))
+	    (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
+      dist: \<open>distinct_mset (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
+      \<open>- bl \<notin> set (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> bk)\<close> and
+      \<open>2 < length (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> bk) \<longrightarrow>
+       bl \<notin> set (tl (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> bk))\<close> and
+      bl: \<open>bl \<in> set (watched_l
+		  (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> bk))\<close> and
+      dist_NC: \<open>distinct (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> bk)\<close> and
       tauto_D:  \<open>\<not> tautology (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
-      tauto_NC: \<open>\<not> tautology (mset (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao))\<close> and
-      tauto_NC_D: \<open>\<not> tautology
-          (remove1_mset (- bg)
-            (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)) \<union>#
-            mset (tl (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao))))\<close> and
-      count_dec_ge: \<open>0 < count_decided (get_trail_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
-      lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n ?\<A> (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
-      lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n ?\<A> (baa, ca, da, ea, fa, ga, ha)\<close> and
-      lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail ?\<A> (get_trail_wl (baa, ca, da, ea, fa, ga, ha))\<close>
-      using inv unfolding CLS update_confl_tl_wl_pre_def prod.case
+      tauto_NC: \<open>\<not> tautology (mset (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> bk))\<close> and
+      new_tauto: \<open>\<not> tautology
+	  (remove1_mset bl
+	    (remove1_mset (- bl)
+	      (the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)) \<union>#
+	       mset (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> bk))))\<close> and
+      count_dec: \<open>0 < count_decided (get_trail_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
+      lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st (baa, ca, da, ea, fa, ga, ha))
+	(the (get_conflict_wl (baa, ca, da, ea, fa, ga, ha)))\<close> and
+      lits:  \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st (baa, ca, da, ea, fa, ga, ha))
+	(baa, ca, da, ea, fa, ga, ha)\<close> and
+      lits_tr: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (all_atms_st (baa, ca, da, ea, fa, ga, ha))
+	(get_trail_wl (baa, ca, da, ea, fa, ga, ha))\<close>
+      using inv unfolding update_confl_tl_wl_pre_def prod.simps
       by blast+
     have
-      [simp]: \<open>a = ao\<close> and
-      [simp]: \<open>b = bg\<close> and
-      arena: \<open>valid_arena c ca (set an)\<close> and
-      ocr: \<open>((aa, ab, bb), da) \<in> option_lookup_clause_rel ?\<A>\<close> and
-      trail: \<open>(ba, baa) \<in> trail_pol ?\<A>\<close>
-      using rel by (auto simp: CLS twl_st_heur_conflict_ana_def all_atms_def[symmetric])
+      [simp]: \<open>a = bk\<close> \<open>b = bl\<close> and
+      tr: \<open>((aa, ab, ac, ad, ae, ba), baa) \<in> trail_pol (all_atms ca (ea + fa))\<close> and
+      valid: \<open>valid_arena c ca (set ra)\<close> and
+      o: \<open>((af, ag, bb), da) \<in> option_lookup_clause_rel (all_atms ca (ea + fa))\<close> and
+      \<open>(f, ha) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms ca (ea + fa)))\<close> and
+      vmtf: \<open>((ah, ai, aj, ak, bc), al, bd) \<in> isa_vmtf (all_atms ca (ea + fa)) baa\<close> and
+      \<open>phase_saving (all_atms ca (ea + fa)) h\<close> and
+      \<open>no_dup baa\<close> and
+      i: \<open>i = card_max_lvl baa (the da)\<close> and
+      \<open>cach_refinement_empty (all_atms ca (ea + fa)) (am, be)\<close> and
+      out: \<open>out_learned baa da l\<close> and
+      \<open>t = size (learned_clss_l ca)\<close> and
+      \<open>vdom_m (all_atms ca (ea + fa)) ha ca \<subseteq> set ra\<close> and
+      \<open>set s \<subseteq> set ra\<close> and
+      \<open>distinct ra\<close> and
+      bounded: \<open>isasat_input_bounded (all_atms ca (ea + fa))\<close> and
+      \<open>all_atms ca (ea + fa) \<noteq> {#}\<close> and
+      r: \<open>r = length c\<close>
+      using rel confl unfolding twl_st_heur_conflict_ana_def counts_maximum_level_def
+      by auto
+    have n_d: \<open>no_dup baa\<close>
+      using tr unfolding trail_pol_alt_def
+      by auto
+      
+    have [simp]: \<open>lit_of (hd baa) = bl\<close> and hd_M_L_C: \<open>hd baa = Propagated bl bk\<close>
+      using L_M tr_nempty proped by (cases baa; cases \<open>hd baa\<close>; auto; fail)+
+    have H: \<open>False\<close>
+      if 
+       \<open>K \<in> set (ca \<propto> bk)\<close> and
+       \<open>K \<noteq> bl\<close> and
+       \<open>- K \<in># the da\<close>
+      for K
+    proof -
+      have \<open>K \<noteq> -bl\<close>
+        using new_tauto tauto_D tauto_NC that multi_member_split[of K \<open>mset (ca \<propto> bk)\<close>] dist
+	dist_NC[unfolded distinct_mset_mset_distinct[symmetric]]
+	multi_member_split[of \<open>-K\<close> \<open>mset (ca \<propto> bk)\<close>] bl
+	by (cases \<open>K \<in># the da\<close>)
+	  (auto dest!: multi_member_split
+	  simp: sup_union_left2 sup_union_left1 add_mset_eq_add_mset
+	    tautology_add_mset diff_add_mset_swap
+	  dest: in_set_takeD
+	  simp del: distinct_mset_mset_distinct)
+      then show ?thesis
+	using new_tauto tauto_D tauto_NC that multi_member_split[of K \<open>mset (ca \<propto> bk)\<close>] dist
+	dist_NC[unfolded distinct_mset_mset_distinct[symmetric]]
+	multi_member_split[of \<open>-K\<close> \<open>mset (ca \<propto> bk)\<close>]
+	apply (cases \<open>K \<in># the da\<close>)
+	apply (auto dest!: multi_member_split
+	  simp: sup_union_left2 sup_union_left1 add_mset_eq_add_mset
+	    tautology_add_mset diff_add_mset_swap
+	  simp del: distinct_mset_mset_distinct)
+	apply (subst (asm) diff_add_mset_swap)
+	apply (auto dest!: multi_member_split
+	  simp: sup_union_left2 sup_union_left1 add_mset_eq_add_mset
+	    tautology_add_mset diff_add_mset_swap
+	  simp del: distinct_mset_mset_distinct)
+	apply (subst (asm) diff_add_mset_swap)
+	apply auto
+        done
+    qed
+    have merge: \<open>merge_conflict_m_eq2_pre ?\<A>
+      (((((((bl, baa), ca), bk), da), i), k), l)\<close>
+      using bk confl dist dist_NC tauto_D tauto_NC lits_D lits lits_tr
+        i out n_d bounded le2 valid bl H
+      unfolding merge_conflict_m_eq2_pre_def
+      by (auto simp flip: all_atms_def simp: arena_lifting dest: in_set_takeD)
+    have rel': \<open>((((((((b, aa, ab, ac, ad, ae, ba), c), a), af, ag, bb), i), k), l),
+     ((((((bl, baa), ca), bk), da), i), k), l)
+    \<in> nat_lit_lit_rel \<times>\<^sub>f
+      trail_pol (all_atms_st (baa, ca, da, ea, fa, ga, ha)) \<times>\<^sub>f
+      {(arena, N). valid_arena arena N (set ra)} \<times>\<^sub>f
+      nat_rel \<times>\<^sub>f
+      option_lookup_clause_rel (all_atms_st (baa, ca, da, ea, fa, ga, ha)) \<times>\<^sub>f
+      nat_rel \<times>\<^sub>f
+      Id \<times>\<^sub>f
+      Id\<close>
+      using that unfolding twl_st_heur_conflict_ana_def by (auto simp: all_atms_def[symmetric])
+    have 1: \<open>lookup_conflict_remove1_pre (bl, aa, b)\<close>
+      if \<open>((a, aa, b), Some (remove1_mset bl (mset (ca \<propto> bk)) \<union># the da))
+         \<in> option_lookup_clause_rel (all_atms ca (ea + fa))\<close>
+      for a aa b ba
+      using o that ubl confl bl_all unfolding lookup_conflict_remove1_pre_def
+      by (auto simp: option_lookup_clause_rel_def atms_of_def
+	lookup_clause_rel_def nonempty_has_size[symmetric]
+	dest: multi_member_split
+	simp flip: all_atms_def)
+    have 2: \<open>tl_trailt_tr_pre (aa, ab, ac, ad, ae, ba)\<close>
+      by (rule tl_trailt_tr_pre[OF _ tr])
+        (use tr_nempty in auto)
+    have 3: \<open>vmtf_unset_pre (atm_of bl) ((ah, ai, aj, ak, bc), al, bd)\<close>
+      by (rule vmtf_unset_pre[OF vmtf])
+        (use bl_all in \<open>auto simp flip: all_atms_def\<close>)
+    have 4: \<open>Suc 0 \<le> card_max_lvl baa (remove1_mset bl (mset (ca \<propto> bk)) \<union># the da)\<close>
+      using card_ge1 ubl
+      by (auto simp: card_max_lvl_def Suc_le_eq nonempty_has_size[symmetric]
+        dest!: multi_member_split)
+    have 5: \<open>isa_vmtf_unset (atm_of bl) ((ah, ai, aj, ak, bc), al, bd)
+       \<in> isa_vmtf (all_atms ca (ea + fa)) (tl baa)\<close>
+      by (rule isa_vmtf_tl_isa_vmtf[OF vmtf])
+        (use tr_nempty bl_all in \<open>auto simp flip: all_atms_def\<close>)
+    have res_eq: \<open>resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl =
+          remove1_mset (-bl) (remove1_mset bl (mset (ca \<propto> bk)) \<union># the da)\<close>
+      using dist dist_NC bl
+	dist_NC[unfolded distinct_mset_mset_distinct[symmetric]]
+	multi_member_split[of \<open>bl\<close> \<open>mset (ca \<propto> bk)\<close>] ubl new_tauto
+	tauto_NC tauto_D
+      unfolding resolve_cls_wl'_def
+      by (cases \<open>bl \<in># the da\<close>)
+        (auto simp del: distinct_mset_mset_distinct
+        simp: tautology_add_mset sup_union_left2 sup_union_left1
+	  add_mset_eq_add_mset ac_simps
+        dest!: in_set_takeD multi_member_split)
+    then have res_eq': \<open>remove1_mset bl (mset (ca \<propto> bk)) \<union># the da =
+      add_mset (-bl) (resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl)\<close>
+      using ubl by auto
+    have eq6: \<open>(remove1_mset bl (mset (ca \<propto> bk)) \<union># the da -
+      {#Pos (atm_of bl), Neg (atm_of bl)#}) =
+     (remove1_mset (- bl) (remove1_mset bl (mset (ca \<propto> bk)) \<union># the da))\<close>
+      using dist dist_NC bl
+	dist_NC[unfolded distinct_mset_mset_distinct[symmetric]]
+	multi_member_split[of \<open>bl\<close> \<open>mset (ca \<propto> bk)\<close>] ubl new_tauto
+	tauto_NC tauto_D
+     by (cases bl; cases \<open>bl \<in># the da\<close>)
+       (auto simp del: distinct_mset_mset_distinct
+        simp: tautology_add_mset sup_union_left2 sup_union_left1
+	  add_mset_eq_add_mset ac_simps
+        dest!: in_set_takeD multi_member_split)
+    have 7: \<open>((a, aaa, b), Some (remove1_mset bl (mset (ca \<propto> bk)) \<union># the da))
+       \<in> option_lookup_clause_rel (all_atms ca (ea + fa)) \<Longrightarrow>
+       ((a, lookup_conflict_remove1 bl (aaa, b)),
+        Some (resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl))
+       \<in> option_lookup_clause_rel (all_atms ca (ea + fa))\<close>
+      for a aa b ba aaa
+      using ubl bl_all eq6
+      mset_as_position_remove[of b \<open>remove1_mset bl (mset (ca \<propto> bk)) \<union># the da\<close> \<open>atm_of bl\<close>]
+      by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
+        lookup_conflict_remove1_def res_eq
+	size_remove1_mset_If[of _ \<open>-bl\<close>] atms_of_def
+	simp flip: all_atms_def)
+    have [iff]: \<open>bl \<notin># resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl\<close>
+      unfolding resolve_cls_wl'_def lookup_clause_rel_def
+        lookup_conflict_remove1_def
+      using dist dist_NC bl
+	dist_NC[unfolded distinct_mset_mset_distinct[symmetric]]
+	multi_member_split[of \<open>bl\<close> \<open>mset (ca \<propto> bk)\<close>] ubl new_tauto
+	tauto_NC tauto_D
+     apply (cases \<open>bl \<in># the da\<close>)
+      apply (auto simp del: distinct_mset_mset_distinct
+        simp: tautology_add_mset sup_union_left2 sup_union_left1
+	  add_mset_eq_add_mset
+        dest!: in_set_takeD multi_member_split)
+       by (metis distinct_mset_add_mset distinct_mset_union_mset
+         sup_union_right1 union_single_eq_member)
+    have [iff]: \<open>-bl \<notin># resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl\<close>
+      unfolding resolve_cls_wl'_def lookup_clause_rel_def
+        lookup_conflict_remove1_def
+      using dist dist_NC bl
+	dist_NC[unfolded distinct_mset_mset_distinct[symmetric]]
+	multi_member_split[of \<open>bl\<close> \<open>mset (ca \<propto> bk)\<close>] ubl new_tauto
+	tauto_NC tauto_D
+      apply (cases \<open>bl \<in># the da\<close>)
+      apply (auto simp del: distinct_mset_mset_distinct
+        simp: tautology_add_mset sup_union_left2 sup_union_left1
+	  add_mset_eq_add_mset
+        dest!: in_set_takeD multi_member_split)
+       by (metis distinct_mset_add_mset distinct_mset_union_mset
+         sup_union_right1 union_single_eq_member)
+
+    have 6: \<open>out_learned (tl baa)
+        (Some (resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl)) bab\<close>
+      if \<open>out_learned baa (Some (remove1_mset bl (mset (ca \<propto> bk)) \<union># the da)) bab\<close>
+      for bab
+      apply (rule out_learned_tl_Some_notin[THEN iffD1])
+      apply (use that proped in \<open>auto simp: \<close>)
+      apply (auto simp: res_eq intro!: out_learned_add_mset_highest_level)
+      by (metis \<open>lit_of (hd baa) = bl\<close> diff_single_trivial insert_DiffM
+      out_learned_add_mset_highest_level)
+    have new_dist: \<open>distinct_mset (resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl)\<close>
+      using dist_NC dist
+      by (auto simp: resolve_cls_wl'_def)
+    have eq8: \<open>resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl =
+         the da \<union># mset (ca \<propto> bk) - {#bl, - bl#}\<close>
+      by (simp add: resolve_cls_wl'_def)
+    have highest_lev: \<open>get_level baa bl = count_decided baa\<close>
+      using tr_nempty hd_M_L_C
+      by (cases baa) (auto)
+    have 8: \<open>card_max_lvl baa (remove1_mset bl (mset (ca \<propto> bk)) \<union># the da) - Suc 0
+       \<in> counts_maximum_level (tl baa)
+          (Some (resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl))\<close>
+      for a aa b ba aaa
+      using count_dec tr_nempty new_tauto n_d proped new_dist highest_lev
+      unfolding res_eq'
+      by (auto simp: counts_maximum_level_def res_eq'
+        card_max_lvl_tl eq8[symmetric] card_max_lvl_add_mset)
     show ?thesis
-      using ao arena lits_trail
-      unfolding isa_set_lookup_conflict_aa_pre_def
-      by (auto simp: arena_lifting)
+      apply (rule isasat_lookup_merge_eq2[THEN fref_to_Down_curry7, THEN order_trans])
+      apply (rule merge)
+      apply (rule rel')
+      using 1 2 3 4 5 6 7 8 tr valid rel tr_nempty n_d no_dup_tlD[OF n_d]
+      unfolding merge_conflict_m_g_eq2_def merge_conflict_m_eq2_def
+      by (auto intro!: RES_refine ASSERT_refine_left
+	     tl_trail_tr[THEN fref_to_Down_unRET]
+      	  simp: conc_fun_RES r twl_st_heur_conflict_ana_def
+	  simp flip: all_atms_def)
   qed
 
+  have isa_set_lookup_conflict_aa_pre:
+    \<open>curry6 isa_set_lookup_conflict_aa_pre
+	 (aa, ab, ac, ad, ae, ba) c a (af, ag, bb) i k l\<close> (is ?A) and
+    valid: \<open>arena_is_valid_clause_idx c a\<close> (is ?B)
+    if 
+      inv: \<open>update_confl_tl_wl_pre ((bk, bl), baa, ca, da, ea, fa, ga, ha)\<close> and
+      \<open>1 \<le> i\<close> and
+      rel: \<open>(((a, b), (aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
+	 ((ah, ai, aj, ak, bc), al, bd), h, i, (am, be), k, l,
+	 (an, ao, ap, aq, ar, bf), (as, at, au, av, bg), (aw, ax, ay, az, bh),
+	 (bi, bj), ra, s, t, u, v, w),
+	(bk, bl), baa, ca, da, ea, fa, ga, ha)
+       \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<close> and
+      CLS: \<open>CLS = ((bk, bl), baa, ca, da, ea, fa, ga, ha)\<close> and
+      \<open>CLS' =
+       ((a, b), (aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
+	((ah, ai, aj, ak, bc), al, bd), h, i, (am, be), k, l,
+	(an, ao, ap, aq, ar, bf), (as, at, au, av, bg), (aw, ax, ay, az, bh),
+	(bi, bj), ra, s, t, u, v, w)\<close>
+    for a b aa ab ac ad ae ba c af ag bb e f ah ai aj ak bc al bd h i am be k l an
+	 ao ap aq ar bf as at au av bg aw ax ay az bh bi bj ra s t u v w bk bl baa
+	 ca da ea fa ga ha CLS CLS'
+  proof -
+    let ?\<A> = \<open>all_atms_st (baa, ca, da, ea, fa, ga, ha)\<close>
+
+    have 
+      ao: \<open>bk \<in># dom_m (get_clauses_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
+      lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail ?\<A>
+	(get_trail_wl (baa, ca, da, ea, fa, ga, ha))\<close>
+      using inv unfolding CLS update_confl_tl_wl_pre_def prod.case apply -
+      by blast+
+      
+    have
+      arena: \<open>valid_arena c ca (set ra)\<close> and
+      ocr: \<open>((af, ag, bb), da) \<in> option_lookup_clause_rel ?\<A>\<close> and
+      trail: \<open>((aa, ab, ac, ad, ae, ba), baa) \<in> trail_pol ?\<A>\<close> and
+      [simp]: \<open>bk = a\<close>
+      using rel by (auto simp: CLS twl_st_heur_conflict_ana_def all_atms_def[symmetric])
+    show ?A
+      using arena lits_trail ao
+      unfolding isa_set_lookup_conflict_aa_pre_def
+      by (auto simp: arena_lifting lookup_conflict_remove1_def)
+    show ?B
+      using arena ao
+      unfolding arena_is_valid_clause_idx_def
+      by auto
+  qed
   show ?thesis
     supply [[goals_limit = 2]]
     supply RETURN_as_SPEC_refine[refine2 del]
@@ -645,6 +993,8 @@ proof -
             RES_RETURN_RES RETURN_def counts_maximum_level_def)
       subgoal
         by (rule isa_set_lookup_conflict_aa_pre)
+      subgoal by (rule valid)
+      subgoal by (rule isasat_lookup_merge_eq2)
       subgoal by (rule H)
       done
     done
@@ -892,15 +1242,17 @@ private lemma
   not_dec_ge0: \<open>0 < mark_of (hd (get_trail_wl x2))\<close> and
   x2c_dom: \<open>x2c \<in># dom_m (get_clauses_wl x2)\<close> and
   hd_x2: \<open>hd (get_trail_wl x2) = Propagated x1c x2c\<close> and
-  \<open>hd (get_clauses_wl x2 \<propto> x2c) = x1c\<close> and
+  \<open>length (get_clauses_wl x2 \<propto> x2c) > 2 \<longrightarrow> hd (get_clauses_wl x2 \<propto> x2c) = x1c\<close> and
   \<open>get_clauses_wl x2 \<propto> x2c \<noteq> []\<close> and
-  ux1c_notin_tl: \<open>- x1c \<notin> set (tl (get_clauses_wl x2 \<propto> x2c))\<close> and
-  x1c_notin_tl: \<open>x1c \<notin> set (tl (get_clauses_wl x2 \<propto> x2c))\<close> and
+  ux1c_notin_tl: \<open>- x1c \<notin> set (get_clauses_wl x2 \<propto> x2c)\<close> and
+  x1c_notin_tl: \<open>length (get_clauses_wl x2 \<propto> x2c) > 2 \<longrightarrow> x1c \<notin> set (tl (get_clauses_wl x2 \<propto> x2c))\<close> and
   not_tauto_x2c: \<open>\<not>tautology (mset (get_clauses_wl x2 \<propto> x2c))\<close> and
   dist_x2c: \<open>distinct (get_clauses_wl x2 \<propto> x2c)\<close> and
-  not_tauto_resolved: \<open>\<not>tautology (remove1_mset (- x1c) (the (get_conflict_wl x2)
-     \<union># mset (tl (get_clauses_wl x2 \<propto> x2c))))\<close> and
-  st2[simp]: \<open>x1a = x1c\<close>\<open>x2a = x2c\<close>
+  not_tauto_resolved: \<open>\<not>tautology (remove1_mset x1c (remove1_mset (- x1c) (the (get_conflict_wl x2)
+     \<union># mset (get_clauses_wl x2 \<propto> x2c))))\<close> and
+  st2[simp]: \<open>x1a = x1c\<close>\<open>x2a = x2c\<close> and
+  x1c_NC_0: \<open>2 < length (get_clauses_wl x2 \<propto> x2c) \<longrightarrow> get_clauses_wl x2 \<propto> x2c ! 0 = x1c\<close> and
+  x1c_watched: \<open>x1c \<in> set (watched_l (get_clauses_wl x2 \<propto> x2c))\<close>
 proof -
   obtain x xa xb xc where
     lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st x2) x2\<close> and
@@ -986,13 +1338,12 @@ proof -
     using \<open>\<not> is_decided (hd (get_trail_l x)) \<longrightarrow> 0 < mark_of (hd (get_trail_l x))\<close>
     x2_x assert by auto
   then show \<open>x2c \<in># dom_m (get_clauses_wl x2)\<close> and
-    hd_x1c: \<open>hd (get_clauses_wl x2 \<propto> x2c) = x1c\<close> and
+    hd_x1c: \<open>length (get_clauses_wl x2 \<propto> x2c) > 2 \<longrightarrow> hd (get_clauses_wl x2 \<propto> x2c) = x1c\<close> and
     x2c_nempty: \<open>get_clauses_wl x2 \<propto> x2c \<noteq> []\<close>
     using list_invs x2_x assert \<open>get_trail_wl x2 \<noteq> []\<close> hd_xa trail_nempty_x2
     by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>;
       cases \<open>get_clauses_wl x2 \<propto> x2c\<close>;
-      auto simp: twl_list_invs_def all_conj_distrib hd_conv_nth)+
-
+      auto simp: twl_list_invs_def all_conj_distrib hd_conv_nth; fail)+
   have lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st x2) (the (get_conflict_wl x2))\<close>
     by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_conflict[OF x2_x struct x_xb lits])
       (use x2_x x_xb confl in auto)
@@ -1001,6 +1352,11 @@ proof -
     by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>) auto
   then have \<open>0 < x2c\<close>
     using mark_ge0 by auto
+  then show
+    x1c_watched: \<open>x1c \<in> set (watched_l (get_clauses_wl x2 \<propto> x2c))\<close>
+    using list_invs x2_x assert \<open>get_trail_wl x2 \<noteq> []\<close> hd_xa trail_nempty_x2
+    by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>;
+      auto simp: twl_list_invs_def all_conj_distrib hd_conv_nth)
   have \<open>\<not>is_decided (hd (get_trail xb))\<close>
     using trail_nempty trail_nempty_x2 assert hd_xa x_xb x2b_x2 x2_x x_xb
     by (auto simp: twl_st_l_mark_of_is_decided state_wl_l_mark_of_is_decided)
@@ -1013,16 +1369,25 @@ proof -
     by (cases \<open>get_trail xb\<close>; cases \<open>hd (get_trail xb)\<close>; cases \<open>get_trail_wl x2\<close>)
       (auto simp: twl_st true_annots_true_cls simp del: hd_get_trail_twl_st_of_get_trail_l)
 
-  show \<open>- x1c \<notin> set (tl (get_clauses_wl x2 \<propto> x2c))\<close>
+  show \<open>- x1c \<notin> set (get_clauses_wl x2 \<propto> x2c)\<close>
+    using Neg hd_x1c x2c_nempty \<open>no_dup (get_trail_wl x2)\<close> hd_x2
+    apply (cases \<open>get_clauses_wl x2 \<propto> x2c\<close>; cases \<open>get_trail_wl x2\<close>)
+    by (auto 5 5 simp: true_annots_true_cls_def_iff_negation_in_model
+      dest: in_lits_of_l_defined_litD)
+  show \<open>length (get_clauses_wl x2 \<propto> x2c) > 2 \<longrightarrow> x1c \<notin> set (tl (get_clauses_wl x2 \<propto> x2c))\<close>
     using Neg hd_x1c x2c_nempty \<open>no_dup (get_trail_wl x2)\<close> hd_x2
     by (cases \<open>get_clauses_wl x2 \<propto> x2c\<close>; cases \<open>get_trail_wl x2\<close>)
       (auto simp: true_annots_true_cls_def_iff_negation_in_model
       dest: in_lits_of_l_defined_litD)
-  show \<open>x1c \<notin> set (tl (get_clauses_wl x2 \<propto> x2c))\<close>
-    using Neg hd_x1c x2c_nempty \<open>no_dup (get_trail_wl x2)\<close> hd_x2
-    by (cases \<open>get_clauses_wl x2 \<propto> x2c\<close>; cases \<open>get_trail_wl x2\<close>)
-      (auto simp: true_annots_true_cls_def_iff_negation_in_model
-      dest: in_lits_of_l_defined_litD)
+  
+  show dist_NC: \<open>distinct (get_clauses_wl x2 \<propto> x2c)\<close>
+    using dist x_xb x2_x \<open>x2c \<in># dom_m (get_clauses_wl x2)\<close>
+    unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_alt_def
+    by (auto simp: twl_st ran_m_def dest!: multi_member_split)
+  have [iff]: \<open>x1c \<notin> lits_of_l (tl (get_trail_wl x2))\<close>
+       \<open>-x1c \<notin> lits_of_l (tl (get_trail_wl x2))\<close>
+    using \<open>no_dup (get_trail_wl x2)\<close> trail_nempty_x2 hd_x2
+    by (cases \<open>get_trail_wl x2\<close>; auto dest: in_lits_of_l_defined_litD; fail)+
   have \<open>\<not>tautology (remove1_mset x1c (mset (get_clauses_wl x2 \<propto> x2c)))\<close>
     apply (rule consistent_CNot_not_tautology[of  \<open>lits_of_l (tl (get_trail_wl x2))\<close>])
     using Neg \<open>no_dup (get_trail_wl x2)\<close>
@@ -1030,26 +1395,40 @@ proof -
       dest: no_dup_tlD)
   then show \<open>\<not>tautology (mset (get_clauses_wl x2 \<propto> x2c))\<close>
     using Neg multi_member_split[of x1c \<open>mset (get_clauses_wl x2 \<propto> x2c)\<close>] hd_x1c
-      \<open>x1c \<notin> set (tl (get_clauses_wl x2 \<propto> x2c))\<close> \<open>- x1c \<notin> set (tl (get_clauses_wl x2 \<propto> x2c))\<close>
-    by (cases \<open>get_clauses_wl x2 \<propto> x2c\<close>)
-      (auto simp: tautology_add_mset)
-  show \<open>distinct (get_clauses_wl x2 \<propto> x2c)\<close>
-    using dist x_xb x2_x \<open>x2c \<in># dom_m (get_clauses_wl x2)\<close>
-    unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_alt_def
-    by (auto simp: twl_st ran_m_def dest!: multi_member_split)
-  then have \<open>distinct_mset (the (get_conflict_wl x2) \<union># mset (tl (get_clauses_wl x2 \<propto> x2c)))\<close>
-    using dist dist_mset
+      \<open>- x1c \<notin> set (get_clauses_wl x2 \<propto> x2c)\<close> dist_NC
+      \<open>no_dup (get_trail_wl x2)\<close> x1c_watched
+    by (cases \<open>get_clauses_wl x2 \<propto> x2c\<close>;
+         cases \<open>tl (get_clauses_wl x2 \<propto> x2c)\<close>)
+      (auto simp: tautology_add_mset add_mset_eq_add_mset
+      uminus_lit_swap
+       true_annots_true_cls dest!: in_set_takeD)
+  have \<open>distinct_mset (the (get_conflict_wl x2) \<union># mset (tl (get_clauses_wl x2 \<propto> x2c)))\<close>
+    using dist dist_mset dist_NC
     by (auto)
   then have H: \<open>get_trail_wl x2 \<Turnstile>as
-      CNot ((remove1_mset (- x1c) (the (get_conflict_wl x2) \<union># mset (tl (get_clauses_wl x2 \<propto> x2c)))))\<close>
-    using Neg hd_x1c trail_nempty_x2 hd_x2 conflicting
-    apply (cases \<open>get_clauses_wl x2 \<propto> x2c\<close>; cases \<open>get_trail_wl x2\<close>)
-    by (auto simp: true_annots_true_cls_def_iff_negation_in_model distinct_mset_remove1_All)
-  show \<open>\<not>tautology (remove1_mset (- x1c) (the (get_conflict_wl x2) \<union># mset (tl (get_clauses_wl x2 \<propto> x2c))))\<close>
+      CNot (remove1_mset x1c (remove1_mset (- x1c)
+        (the (get_conflict_wl x2) \<union># mset ((get_clauses_wl x2 \<propto> x2c)))))\<close>
+    using Neg hd_x1c trail_nempty_x2 hd_x2 conflicting  \<open>- x1c \<notin> lits_of_l (tl (get_trail_wl x2))\<close>
+    apply (cases \<open>get_clauses_wl x2 \<propto> x2c\<close>;
+      cases \<open>get_trail_wl x2\<close>)
+    apply (auto simp: true_annots_true_cls_def_iff_negation_in_model distinct_mset_remove1_All
+      uminus_lit_swap)
+      using \<open>x1c \<notin># the (get_conflict_wl x2)\<close> remove_1_mset_id_iff_notin apply fastforce
+      using \<open>x1c \<notin># the (get_conflict_wl x2)\<close> remove_1_mset_id_iff_notin apply fastforce
+      apply (smt dist_NC distinct_mem_diff_mset distinct_mset_mset_distinct
+      distinct_mset_set_mset_remove1_mset distinct_mset_union_mset in_diffD
+      in_remove1_mset_neq member_add_mset mset.simps(2) remove1_mset_union_distrib
+      remove_1_mset_id_iff_notin set_mset_mset)
+      done
+  show \<open>\<not>tautology (remove1_mset x1c
+      (remove1_mset (- x1c) (the (get_conflict_wl x2) \<union># mset (get_clauses_wl x2 \<propto> x2c))))\<close>
     apply (rule consistent_CNot_not_tautology[OF _ H[unfolded true_annots_true_cls]])
     using \<open>no_dup (get_trail_wl x2)\<close>
     by (auto simp: true_annots_true_cls intro!: distinct_consistent_interp
       dest: no_dup_tlD)
+  show
+    x1c_NC_0: \<open>2 < length (get_clauses_wl x2 \<propto> x2c) \<longrightarrow> get_clauses_wl x2 \<propto> x2c ! 0 = x1c\<close>
+    by (metis hd_conv_nth hd_x1c x2c_nempty)
 qed
 
 
@@ -1062,7 +1441,7 @@ lemma atm_is_in_conflict_st_heur_ana_is_in_conflict_st:
   subgoal for x y
     using atm_is_in_conflict_st_heur_is_in_conflict_st_ana[THEN fref_to_Down, of y x]
     by (case_tac x, case_tac y)
-      (auto simp: )
+      auto
   done
 
 
@@ -1191,7 +1570,7 @@ lemma update_confl_tl_wl_pre:
   using trail_nempty x2b_x2 xc x1c assert hd_x2 x1c_notin x1a_notin not_tauto
     dist_confl count_dec_not0 confl_x2 no_dup_x2 x1c not_dec_ge0 lits_trail
     x2c_dom lits lits_confl card_max_lvl_ge0 x1c_notin_tl ux1c_notin_tl not_tauto_x2c
-    dist_x2c not_tauto_resolved
+    dist_x2c not_tauto_resolved x1c_NC_0 x1c_watched
   unfolding update_confl_tl_wl_pre_def prod.simps
   by (simp add: all_atms_def[symmetric])
 
@@ -1366,50 +1745,26 @@ sepref_definition tl_state_wl_heur_fast_code
 declare
   tl_state_wl_heur_code.refine[sepref_fr_rules]
   tl_state_wl_heur_fast_code.refine[sepref_fr_rules]
-
-(*
-lemma option_lookup_clause_assn_the[sepref_fr_rules]:
-  \<open>(return o snd, RETURN o the) \<in> [\<lambda>C. C \<noteq> None]\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow> lookup_clause_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: lookup_clause_assn_def option_lookup_clause_assn_def lookup_clause_rel_def
-       hr_comp_def option_lookup_clause_rel_def)
-
-lemma option_lookup_clause_assn_Some[sepref_fr_rules]:
-  \<open>(return o (\<lambda>C. (False, C)), RETURN o Some) \<in> lookup_clause_assn\<^sup>d \<rightarrow>\<^sub>a option_lookup_clause_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: lookup_clause_assn_def option_lookup_clause_assn_def lookup_clause_rel_def
-       hr_comp_def option_lookup_clause_rel_def bool_assn_alt_def)
-
-lemma lookup_clause_assn_op_nset_is_emty[sepref_fr_rules]:
-  \<open>(return o (\<lambda>(n, _). n = 0), RETURN o op_mset_is_empty) \<in> lookup_clause_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  apply sepref_to_hoare
-  apply (rename_tac x xi, case_tac xi)
-  by (sep_auto simp: lookup_clause_assn_def lookup_clause_rel_def hr_comp_def
-    uint32_nat_assn_0_eq uint32_nat_rel_def br_def pure_def nat_of_uint32_0_iff)+
-
-*)
-
-sepref_register update_confl_tl_wl_heur
+sepref_register isasat_lookup_merge_eq2 update_confl_tl_wl_heur
 sepref_definition update_confl_tl_wl_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
   :: \<open>[update_confl_tl_wl_heur_pre]\<^sub>a
   nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_unbounded_assn\<close>
-  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]]
   unfolding update_confl_tl_wl_heur_def isasat_unbounded_assn_def
     update_confl_tl_wl_heur_pre_def PR_CONST_def
+    two_uint64_nat_def[symmetric]
   by sepref
 
 sepref_definition update_confl_tl_wl_fast_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
   :: \<open>[\<lambda>((i, L), S). update_confl_tl_wl_heur_pre ((i, L), S) \<and> isasat_fast S]\<^sub>a
   uint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_bounded_assn\<close>
-  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]] isasat_fast_length_leD[dest]
   unfolding update_confl_tl_wl_heur_def isasat_bounded_assn_def
     update_confl_tl_wl_heur_pre_def PR_CONST_def
-  supply merge_conflict_m_def[simp]
-  by sepref (* slow *)
+    two_uint64_nat_def[symmetric]
+  by sepref (* slow 200s*)
 
 declare update_confl_tl_wl_code.refine[sepref_fr_rules]
   update_confl_tl_wl_fast_code.refine[sepref_fr_rules]
@@ -1475,101 +1830,6 @@ sepref_definition is_in_option_lookup_conflict_code
   by sepref
 
 
-(*
-context isasat_input_bounded
-begin
-
-sepref_register is_in_option_lookup_conflict
-
-lemma conflict_remove1_code_op_nset_delete[sepref_fr_rules]:
-  \<open>(uncurry is_in_option_lookup_conflict_code, uncurry (RETURN \<circ>\<circ> atm_is_in_conflict))
-    \<in> [\<lambda>(L, D). D \<noteq> None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> -L \<notin># the D]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have H:
-    \<open>?c \<in> [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f option_lookup_clause_rel)
-            (\<lambda>(L, D). D \<noteq> None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> - L \<notin># the D)
-            (\<lambda>_ (L, c, n, xs). atm_of L < length xs) (\<lambda>_. True)]\<^sub>a
-           hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k)
-               (nat_lit_lit_rel \<times>\<^sub>f option_lookup_clause_rel) \<rightarrow>
-           hr_comp bool_assn bool_rel\<close>
-     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF is_in_option_lookup_conflict_code.refine
-        is_in_option_lookup_conflict_atm_is_in_conflict]
-    unfolding op_mset_delete_def
-    .
-  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that neq0_conv
-    unfolding comp_PRE_def option_lookup_clause_rel_def lookup_clause_rel_def
-    by (fastforce simp: image_image twl_st_heur_conflict_ana_def phase_saving_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-      vmtf_def)
-  have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep lookup_clause_assn_def
-    by (auto simp: hrp_comp_def hr_comp_def option_lookup_clause_assn_def)
-  have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep hr_comp_prod_conv
-      lookup_clause_assn_def
-    by (auto simp: hrp_comp_def hr_comp_def)
-  show ?thesis
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f PR_CONST_def apply assumption
-    using pre ..
-qed
-
-sepref_register atm_is_in_conflict_st_heur
-sepref_thm atm_is_in_option_lookup_conflict_code
-  is \<open>uncurry (RETURN oo atm_is_in_conflict_st_heur)\<close>
-  :: \<open>[atm_is_in_conflict_st_heur_pre]\<^sub>a
-        unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding atm_is_in_conflict_st_heur_alt_def atm_is_in_conflict_def[symmetric]
-    atm_is_in_conflict_st_heur_pre_def isasat_unbounded_assn_def PR_CONST_def
-  by sepref
-
-concrete_definition (in -) atm_is_in_option_lookup_conflict_code
-  uses isasat_input_bounded.atm_is_in_option_lookup_conflict_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) atm_is_in_option_lookup_conflict_code_def
-
-lemmas atm_is_in_option_lookup_conflict_code_def[sepref_fr_rules] =
-   atm_is_in_option_lookup_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
-sepref_thm atm_is_in_option_lookup_conflict_fast_code
-  is \<open>uncurry (RETURN oo atm_is_in_conflict_st_heur)\<close>
-  :: \<open>[atm_is_in_conflict_st_heur_pre]\<^sub>a
-        unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding atm_is_in_conflict_st_heur_alt_def atm_is_in_conflict_def[symmetric]
-    atm_is_in_conflict_st_heur_pre_def isasat_bounded_assn_def PR_CONST_def
-  by sepref
-
-concrete_definition (in -) atm_is_in_option_lookup_conflict_fast_code
-  uses isasat_input_bounded.atm_is_in_option_lookup_conflict_fast_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) atm_is_in_option_lookup_conflict_fast_code_def
-
-lemmas atm_is_in_option_lookup_conflict_fast_code_def[sepref_fr_rules] =
-   atm_is_in_option_lookup_conflict_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
-end
-
-setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
-
-context isasat_input_bounded_nempty
-begin
-
-lemma skip_and_resolve_loop_wl_D_heur_inv_nempty:
-  \<open>skip_and_resolve_loop_wl_D_heur_inv S\<^sub>0 (brk, S) \<Longrightarrow> get_trail_wl_heur S \<noteq> []\<close>
-  unfolding skip_and_resolve_loop_wl_D_heur_inv_def skip_and_resolve_loop_inv_l_def
-    skip_and_resolve_loop_inv_def skip_and_resolve_loop_wl_inv_def
-    skip_and_resolve_loop_wl_D_inv_def prod.case
-  apply -
-  apply normalize_goal+
-   by (auto simp: twl_st_heur_ana_state_simp)
-*)
 lemma skip_and_resolve_loop_wl_DI:
   assumes
     \<open>skip_and_resolve_loop_wl_D_heur_inv S (b, T)\<close>

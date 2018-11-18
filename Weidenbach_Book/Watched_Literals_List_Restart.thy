@@ -344,13 +344,13 @@ proof (induction rule: cdcl_twl_restart_l.induct)
 
     have
       L_watched: \<open>L \<in> set (watched_l (get_clauses_l ?S \<propto> C'))\<close> and
-      L_C'0: \<open>L = get_clauses_l ?S \<propto> C' ! 0\<close>
+      L_C'0: \<open>length (get_clauses_l ?S \<propto> C') > 2 \<Longrightarrow> L = get_clauses_l ?S \<propto> C' ! 0\<close>
       using list_invs C'0 LC' unfolding twl_list_invs_def
       by auto
     show \<open>L \<in> set (watched_l (get_clauses_l ?T \<propto> C))\<close>
       using L_watched NCC' by simp
 
-    show \<open>L = get_clauses_l ?T \<propto> C ! 0\<close>
+    show \<open>length (get_clauses_l ?T \<propto> C) > 2 \<Longrightarrow> L = get_clauses_l ?T \<propto> C ! 0\<close>
       using L_C'0 NCC' by simp
   next
     show \<open>distinct_mset (clauses_to_update_l ?T)\<close>
@@ -1030,10 +1030,53 @@ lemma Ex_ex_eq_Ex: \<open>(\<exists>NE'. (\<exists>b. NE' = {#b#} \<and> P b NE'
    (\<exists>b. P b {#b#} \<and> Q {#b#})\<close>
    by auto
 
+lemma in_set_definedD:
+  \<open>Propagated L' C \<in> set M' \<Longrightarrow> defined_lit M' L'\<close>
+  \<open>Decided L' \<in> set M' \<Longrightarrow> defined_lit M' L'\<close>
+  by (auto simp: defined_lit_def)
+
+lemma (in conflict_driven_clause_learning\<^sub>W) trail_no_annotation_reuse:
+  assumes
+    struct_invs: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
+    LC: \<open>Propagated L C \<in> set (trail S)\<close> and
+    LC': \<open>Propagated L' C \<in> set (trail S)\<close>
+  shows "L = L'"
+proof -
+  have
+    confl: \<open>cdcl\<^sub>W_conflicting S\<close> and
+    n_d: \<open>no_dup (trail S)\<close>
+    using struct_invs unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
+    by fast+
+    find_theorems "_ @ _#_ = _ @ _ # _"
+  have H: \<open>L = L'\<close> if \<open>trail S = ysa @ Propagated L' C # c21 @ Propagated L C # zs\<close>
+    for ysa xsa c21 zs L L'
+  proof -
+    have 1: \<open>c21 @ Propagated L C # zs \<Turnstile>as CNot (remove1_mset L' C) \<and> L' \<in># C\<close>
+      using confl unfolding cdcl\<^sub>W_conflicting_def that
+      by (auto)
+    have that': \<open>trail S = (ysa @ Propagated L' C # c21) @ Propagated L C # zs\<close>
+      unfolding that by auto
+    have 2: \<open>zs \<Turnstile>as CNot (remove1_mset L C) \<and> L \<in># C\<close>
+      using confl unfolding cdcl\<^sub>W_conflicting_def that'
+      by blast
+    show \<open>L = L'\<close>
+      using 1 2 n_d unfolding that
+      by (auto dest!: multi_member_split
+        simp: true_annots_true_cls_def_iff_negation_in_model add_mset_eq_add_mset
+        Decided_Propagated_in_iff_in_lits_of_l)
+  qed
+  show ?thesis
+    using H[of _ L _ L']  H[of _  L' _ L] 
+    using split_list[OF LC] split_list[OF LC']
+    by (force elim!: list_match_lel_lel)
+qed
+    
 lemma remove_one_annot_true_clause_cdcl_twl_restart_l:
   assumes
     rem: \<open>remove_one_annot_true_clause S T\<close> and
     lst_invs: \<open>twl_list_invs S\<close> and
+    SS': \<open>(S, S') \<in> twl_st_l None\<close> and
+    struct_invs: \<open>twl_struct_invs S'\<close> and
     confl: \<open>get_conflict_l S = None\<close> and
     upd: \<open>clauses_to_update_l S = {#}\<close> and
     n_d: \<open>no_dup (get_trail_l S)\<close>
@@ -1051,15 +1094,17 @@ proof -
            0 < C \<Longrightarrow>
              (C \<in># dom_m (get_clauses_l S) \<and>
             L \<in> set (watched_l (get_clauses_l S \<propto> C)) \<and>
-            L = get_clauses_l S \<propto> C ! 0)\<close> and
+            (length (get_clauses_l S \<propto> C) > 2 \<longrightarrow> L = get_clauses_l S \<propto> C ! 0))\<close> and
     \<open>distinct_mset (clauses_to_update_l S)\<close>
     using lst_invs unfolding twl_list_invs_def apply -
     by fast+
-
+    
+  have struct_S': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S')\<close>
+    using struct_invs unfolding twl_struct_invs_def by fast 
   show ?thesis
     using rem
   proof (cases rule: remove_one_annot_true_clause.cases)
-    case (remove_irred_trail M L C M' N D NE UE W Q) note S =this(1) and T = this(2) and
+    case (remove_irred_trail M L C M' N D NE UE W Q) note S = this(1) and T = this(2) and
       lev_L = this(3) and C0 = this(4) and C_dom = this(5) and irred = this(6)
     have D: \<open>D = None\<close> and W: \<open>W = {#}\<close>
       using confl upd unfolding S by auto
@@ -1079,11 +1124,21 @@ proof -
       by (auto simp: S twl_list_invs_def
         dest!: split_list[of \<open>Propagated L E'\<close> M]
            split_list[of \<open>Propagated L E'\<close> M'])
-    have [simp]: \<open>Propagated L' C \<notin> set M'\<close> \<open>Propagated L' C \<notin> set M\<close> for L'
-      using n_d lst_invs C0
-      by (auto simp: S twl_list_invs_def all_conj_distrib
-        dest!: split_list[of \<open>Propagated L' C\<close> M]
-           split_list[of \<open>Propagated L' C\<close> M'])
+    have [simp]:  \<open>Propagated L' C \<notin> set M'\<close> \<open>Propagated L' C \<notin> set M\<close> for L'
+      using SS' n_d C0 struct_S'
+      cdcl\<^sub>W_restart_mset.trail_no_annotation_reuse[of \<open>state\<^sub>W_of S'\<close> L \<open>(mset (N \<propto> C))\<close> L']
+      apply (auto simp: S twl_st_l_def convert_lits_l_imp_same_length trail.simps
+        )
+      apply (auto simp: list_rel_append1 list_rel_split_right_iff convert_lits_l_def
+        p2rel_def)
+      apply (case_tac y)
+      apply (auto simp: list_rel_append1 list_rel_split_right_iff defined_lit_convert_lits_l
+        simp flip: p2rel_def convert_lits_l_def dest: in_set_definedD(1)[of _ _ M'])
+      apply (auto simp: list_rel_append1 list_rel_split_right_iff convert_lits_l_def
+        p2rel_def convert_lit.simps
+        dest!: split_list[of \<open>Propagated L' C\<close> M']
+           split_list[of \<open>Propagated L' C\<close> M])
+      done
     have propa_MM: \<open>Propagated L E \<in> set M \<Longrightarrow> Propagated L E' \<in> set M \<Longrightarrow> E=E'\<close> for L E E'
       using n_d
       by (auto simp: S twl_list_invs_def
@@ -1102,7 +1157,7 @@ proof -
         dest!: split_list[of \<open>Propagated L E\<close> M]
            split_list[of \<open>Propagated L E'\<close> M']
            elim!: list_match_lel_lel)
-    have propa_M'_nC_dom:  \<open>Propagated La E \<in> set M' \<Longrightarrow> E \<noteq> C \<and> (E > 0 \<longrightarrow> E \<in># dom_m N)\<close> for La E
+    have propa_M'_nC_dom: \<open>Propagated La E \<in> set M' \<Longrightarrow> E \<noteq> C \<and> (E > 0 \<longrightarrow> E \<in># dom_m N)\<close> for La E
       using annot[of La E] unfolding S by auto
     have propa_M_nC_dom:  \<open>Propagated La E \<in> set M \<Longrightarrow> E \<noteq> C \<and> (E > 0 \<longrightarrow> E \<in># dom_m N)\<close> for La E
       using annot[of La E] unfolding S by auto
@@ -1163,11 +1218,21 @@ proof -
       by (auto simp: S twl_list_invs_def
         dest!: split_list[of \<open>Propagated L E'\<close> M]
            split_list[of \<open>Propagated L E'\<close> M'])
-    have [simp]: \<open>Propagated L' C \<notin> set M'\<close> \<open>Propagated L' C \<notin> set M\<close> for L'
-      using n_d lst_invs C0
-      by (auto simp: S twl_list_invs_def all_conj_distrib
-        dest!: split_list[of \<open>Propagated L' C\<close> M]
-           split_list[of \<open>Propagated L' C\<close> M'])
+    have [simp]:  \<open>Propagated L' C \<notin> set M'\<close> \<open>Propagated L' C \<notin> set M\<close> for L'
+      using SS' n_d C0 struct_S'
+      cdcl\<^sub>W_restart_mset.trail_no_annotation_reuse[of \<open>state\<^sub>W_of S'\<close> L \<open>(mset (N \<propto> C))\<close> L']
+      apply (auto simp: S twl_st_l_def convert_lits_l_imp_same_length trail.simps
+        )
+      apply (auto simp: list_rel_append1 list_rel_split_right_iff convert_lits_l_def
+        p2rel_def)
+      apply (case_tac y)
+      apply (auto simp: list_rel_append1 list_rel_split_right_iff defined_lit_convert_lits_l
+        simp flip: p2rel_def convert_lits_l_def dest: in_set_definedD(1)[of _ _ M'])
+      apply (auto simp: list_rel_append1 list_rel_split_right_iff convert_lits_l_def
+        p2rel_def convert_lit.simps
+        dest!: split_list[of \<open>Propagated L' C\<close> M']
+           split_list[of \<open>Propagated L' C\<close> M])
+      done
     have propa_MM: \<open>Propagated L E \<in> set M \<Longrightarrow> Propagated L E' \<in> set M \<Longrightarrow> E=E'\<close> for L E E'
       using n_d
       by (auto simp: S twl_list_invs_def
@@ -1323,23 +1388,79 @@ lemma is_annot_iff_annotates_first:
     C0: \<open>C > 0\<close>
   shows
     \<open>(\<exists>L. Propagated L C \<in> set (get_trail_l S)) \<longleftrightarrow>
-       (Propagated (get_clauses_l S \<propto> C ! 0) C \<in> set (get_trail_l S))\<close>
+       ((length (get_clauses_l S \<propto> C) > 2 \<longrightarrow>
+          Propagated (get_clauses_l S \<propto> C ! 0) C \<in> set (get_trail_l S)) \<and>
+        ((length (get_clauses_l S \<propto> C) \<le> 2 \<longrightarrow>
+	   Propagated (get_clauses_l S \<propto> C ! 0) C \<in> set (get_trail_l S) \<or>
+	   Propagated (get_clauses_l S \<propto> C ! 1) C \<in> set (get_trail_l S))))\<close>
     (is \<open>?A \<longleftrightarrow> ?B\<close>)
 proof (rule iffI)
   assume ?B
-  then show ?A by fast
+  then show ?A by auto
 next
   assume ?A
   then obtain L where
     LC: \<open>Propagated L C \<in> set (get_trail_l S)\<close>
     by blast
   then have
-    \<open>C \<in># dom_m (get_clauses_l S)\<close> and
-    \<open>L \<in> set (watched_l (get_clauses_l S \<propto> C))\<close> and
-    L: \<open>L = get_clauses_l S \<propto> C ! 0\<close>
+    C: \<open>C \<in># dom_m (get_clauses_l S)\<close> and
+    L_w: \<open>L \<in> set (watched_l (get_clauses_l S \<propto> C))\<close> and
+    L: \<open>length (get_clauses_l S \<propto> C) > 2 \<Longrightarrow> L = get_clauses_l S \<propto> C ! 0\<close>
     using list_invs C0 unfolding twl_list_invs_def by blast+
+  have \<open>twl_st_inv T\<close>
+    using struct_invs unfolding twl_struct_invs_def by fast
+  then have le2: \<open>length (get_clauses_l S \<propto> C) \<ge> 2\<close>
+    using C ST multi_member_split[OF C] unfolding twl_struct_invs_def
+    by (cases S; cases T)
+      (auto simp: twl_st_inv.simps twl_st_l_def
+        image_Un[symmetric])
   show ?B
-    using LC unfolding L .
+  proof (cases \<open>length (get_clauses_l S \<propto> C) > 2\<close>)
+    case True
+    show ?thesis
+      using L True LC by auto
+  next
+    case False
+    then show ?thesis
+      using LC le2 L_w
+      by (cases \<open>get_clauses_l S \<propto> C\<close>;
+           cases \<open>tl (get_clauses_l S \<propto> C)\<close>)
+        auto
+  qed
+qed
+
+lemma trail_length_ge2:
+  assumes
+    ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    struct_invs: \<open>twl_struct_invs T\<close> and
+    LaC: \<open>Propagated L C \<in> set (get_trail_l S)\<close> and
+    C0: \<open>C > 0\<close>
+  shows
+    \<open>length (get_clauses_l S \<propto> C) \<ge> 2\<close>
+proof -
+  have conv:
+   \<open>(get_trail_l S, get_trail T) \<in> convert_lits_l (get_clauses_l S) (get_unit_clauses_l S)\<close>
+   using ST unfolding twl_st_l_def by auto
+
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of T)\<close> and
+    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T)\<close>
+    using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+ 
+  have n_d: \<open>no_dup (get_trail_l S)\<close>
+    using ST lev_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto simp: twl_st_l twl_st)
+  have
+    C: \<open>C \<in># dom_m (get_clauses_l S)\<close>
+    using list_invs C0 LaC by (auto simp: twl_list_invs_def all_conj_distrib)
+  have \<open>twl_st_inv T\<close>
+    using struct_invs unfolding twl_struct_invs_def by fast
+  then show le2: \<open>length (get_clauses_l S \<propto> C) \<ge> 2\<close>
+    using C ST multi_member_split[OF C] unfolding twl_struct_invs_def
+    by (cases S; cases T)
+      (auto simp: twl_st_inv.simps twl_st_l_def
+        image_Un[symmetric])
 qed
 
 lemma is_annot_no_other_true_lit:
@@ -1353,7 +1474,7 @@ lemma is_annot_no_other_true_lit:
     L: \<open>L \<in> lits_of_l (get_trail_l S)\<close>
   shows
     \<open>La = L\<close> and
-    \<open>L = get_clauses_l S \<propto> C ! 0\<close>
+    \<open>length (get_clauses_l S \<propto> C) > 2 \<Longrightarrow> L = get_clauses_l S \<propto> C ! 0\<close>
 proof -
   have conv:
    \<open>(get_trail_l S, get_trail T) \<in> convert_lits_l (get_clauses_l S) (get_unit_clauses_l S)\<close>
@@ -1385,7 +1506,8 @@ proof -
     for K
     using that tr_S unfolding true_annots_true_cls_def_iff_negation_in_model
     by (auto dest!: multi_member_split)
-  have La0: \<open>La = get_clauses_l S \<propto> C ! 0\<close> and \<open>C \<in># dom_m (get_clauses_l S)\<close> and
+  have La0: \<open>length (get_clauses_l S \<propto> C) > 2 \<Longrightarrow> La = get_clauses_l S \<propto> C ! 0\<close> and
+    C: \<open>C \<in># dom_m (get_clauses_l S)\<close> and
     \<open>La \<in> set (watched_l (get_clauses_l S \<propto> C))\<close>
     using list_invs tr_S C0 by (auto simp: twl_list_invs_def all_conj_distrib)
   have n_d: \<open>no_dup (get_trail_l S)\<close>
@@ -1399,7 +1521,7 @@ proof -
     from all_false[OF this] show False
       using L n_d by (auto dest: no_dup_consistentD)
   qed
-  then show \<open>L = get_clauses_l S \<propto> C ! 0\<close>
+  then show \<open>length (get_clauses_l S \<propto> C) > 2 \<Longrightarrow> L = get_clauses_l S \<propto> C ! 0\<close>
     using La0 by simp
 qed
 
@@ -1418,9 +1540,10 @@ proof -
     by (auto simp: twl_st twl_st_l)
 
   show ?thesis
-    apply (rule remove_one_annot_true_clause_cdcl_twl_restart_l)
+    apply (rule remove_one_annot_true_clause_cdcl_twl_restart_l[OF _ _ \<open>(S, T') \<in> twl_st_l None\<close>])
     subgoal using rem .
     subgoal using lst_invs .
+    subgoal using \<open>twl_struct_invs T'\<close> .
     subgoal using confl .
     subgoal using upd .
     subgoal using n_d .
@@ -2208,7 +2331,6 @@ lemma remove_one_annot_true_clause_imp_spec:
 definition collect_valid_indices :: \<open>_ \<Rightarrow> nat list nres\<close> where
   \<open>collect_valid_indices S = SPEC (\<lambda>N. True)\<close>
 
-
 definition mark_to_delete_clauses_l_inv
   :: \<open>'v twl_st_l \<Rightarrow> nat list \<Rightarrow> nat \<times> 'v twl_st_l \<times> nat list \<Rightarrow> bool\<close>
 where
@@ -2228,6 +2350,15 @@ where
 definition mark_garbage_l:: \<open>nat \<Rightarrow>  'v twl_st_l \<Rightarrow> 'v twl_st_l\<close>  where
   \<open>mark_garbage_l = (\<lambda>C (M, N0, D, NE, UE, WS, Q). (M, fmdrop C N0, D, NE, UE, WS, Q))\<close>
 
+definition can_delete where
+  \<open>can_delete S C b = (b \<longrightarrow>
+    (length (get_clauses_l S \<propto> C) = 2 \<longrightarrow>
+             (Propagated (get_clauses_l S \<propto> C ! 0) C \<notin> set (get_trail_l S)) \<and>
+             (Propagated (get_clauses_l S \<propto> C ! 1) C \<notin> set (get_trail_l S))) \<and>
+    (length (get_clauses_l S \<propto> C) > 2 \<longrightarrow>
+             (Propagated (get_clauses_l S \<propto> C ! 0) C \<notin> set (get_trail_l S))) \<and>
+               \<not>irred (get_clauses_l S) C)\<close>
+
 definition mark_to_delete_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
 \<open>mark_to_delete_clauses_l  = (\<lambda>S. do {
     ASSERT(mark_to_delete_clauses_l_pre S);
@@ -2239,9 +2370,7 @@ definition mark_to_delete_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_s
         if(xs!i \<notin># dom_m (get_clauses_l S)) then RETURN (i, S, delete_index_and_swap xs i)
         else do {
           ASSERT(0 < length (get_clauses_l S\<propto>(xs!i)));
-          can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow>
-             (Propagated (get_clauses_l S\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_l S)) \<and>
-               \<not>irred (get_clauses_l S) (xs!i));
+          can_del \<leftarrow> SPEC (can_delete S (xs!i));
           ASSERT(i < length xs);
           if can_del
           then
@@ -2284,7 +2413,8 @@ proof -
       unfolding I_def
       by auto
   qed
-  have mark_to_delete_clauses_l_inv_notin: \<open>mark_to_delete_clauses_l_inv S xs0 (a, aa, delete_index_and_swap xs' a)\<close>
+  have mark_to_delete_clauses_l_inv_notin:
+    \<open>mark_to_delete_clauses_l_inv S xs0 (a, aa, delete_index_and_swap xs' a)\<close>
     if
       \<open>mark_to_delete_clauses_l_pre S\<close> and
       \<open>xs0 \<in> {N. True}\<close> and
@@ -2360,9 +2490,7 @@ proof -
          \<open>s = (i, sT)\<close> and
       in_dom: \<open>\<not> xs ! i \<notin># dom_m (get_clauses_l T)\<close> and
       \<open>0 < length (get_clauses_l T \<propto> (xs ! i))\<close> and
-      can_del: \<open>b \<longrightarrow> Propagated (get_clauses_l T \<propto> (xs ! i) ! 0) (xs ! i)
-        \<notin> set (get_trail_l T) \<and>
-        \<not> irred (get_clauses_l T) (xs ! i)\<close> and
+      can_del: \<open>can_delete T (xs ! i) b\<close> and
       \<open>i < length xs\<close> and
       [simp]: \<open>b\<close>
      for x s i T b xs0 sT xs
@@ -2396,14 +2524,15 @@ proof -
       using is_annot_iff_annotates_first[OF UV list_invs_U' struct_invs_V \<open>xs ! i > 0\<close>]
       is_annot_no_other_true_lit[OF UV list_invs_U' struct_invs_V \<open>xs ! i > 0\<close>, of Laa \<open>
          N' \<propto> (xs !i) ! 0\<close>] can_del
-      unfolding S T
+      trail_length_ge2[OF UV list_invs_U' struct_invs_V _ \<open>xs ! i > 0\<close>, of Laa]
+      unfolding S T can_delete_def
       by (auto dest: no_dup_same_annotD)
 
     have star: \<open>remove_one_annot_true_clause T (mark_garbage_l (xs ! i) T)\<close>
       unfolding st T mark_garbage_l_def prod.simps
       apply (rule remove_one_annot_true_clause.delete)
       subgoal using in_dom i_le unfolding st prod.case T by auto
-      subgoal using can_del unfolding T by auto
+      subgoal using can_del unfolding T can_delete_def by auto
       subgoal using not_annot unfolding T by auto
       done
 
@@ -2428,10 +2557,7 @@ proof -
          \<open>s = (i, sT)\<close> and
       dom: \<open>\<not> xs ! i \<notin># dom_m (get_clauses_l T)\<close> and
       \<open>0 < length (get_clauses_l T \<propto> (xs ! i))\<close> and
-      \<open>b \<longrightarrow>
-      Propagated (get_clauses_l T \<propto> (xs ! i) ! 0) (xs ! i)
-      \<notin> set (get_trail_l T) \<and>
-      \<not> irred (get_clauses_l T) (xs ! i)\<close> and
+      \<open>can_delete T (xs ! i) b\<close> and
       \<open>i < length xs\<close> and
       \<open>\<not> b\<close>
     for x s i T b xs0 sT xs
@@ -2704,7 +2830,7 @@ proof -
            0 < C \<Longrightarrow>
              (C \<in># dom_m (get_clauses_l S) \<and>
             L \<in> set (watched_l (get_clauses_l S \<propto> C)) \<and>
-            L = get_clauses_l S \<propto> C ! 0)\<close> and
+            (length (get_clauses_l S \<propto> C) > 2 \<longrightarrow> L = get_clauses_l S \<propto> C ! 0))\<close> and
         \<open>distinct_mset (clauses_to_update_l S)\<close>
         using list_invs unfolding twl_list_invs_def S[symmetric] by auto
       have n_d: \<open>no_dup M\<close>
@@ -2742,7 +2868,7 @@ proof -
            0 < C \<Longrightarrow>
              (C \<in># dom_m (get_clauses_l S) \<and>
             L \<in> set (watched_l (get_clauses_l S \<propto> C)) \<and>
-            L = get_clauses_l S \<propto> C ! 0)\<close> and
+            (length (get_clauses_l S \<propto> C) > 2 \<longrightarrow> L = get_clauses_l S \<propto> C ! 0))\<close> and
         \<open>distinct_mset (clauses_to_update_l S)\<close>
         using list_invs unfolding twl_list_invs_def S[symmetric] by auto
       obtain M3 where M: \<open>M = M3 @ Decided K # M'\<close>

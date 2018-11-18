@@ -367,7 +367,7 @@ definition unit_propagation_inner_loop_body_wl_D
             then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
             else do {
               let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
-              RETURN (j+1, w+1, propagate_lit_wl K C i S)
+              RETURN (j+1, w+1, propagate_lit_wl_bin K C i S)
             }
         }  \<comment>\<open>Now the costly operations:\<close>
         else if C \<notin># dom_m (get_clauses_wl S)
@@ -815,9 +815,9 @@ proof -
   qed
   have bin_prop:
     \<open>((j + 1, w + 1,
-        propagate_lit_wl x1c x1b (if get_clauses_wl (keep_watch K j w S) \<propto> x1b ! 0 = K then 0 else 1) (keep_watch K j w S)),
+        propagate_lit_wl_bin x1c x1b (if get_clauses_wl (keep_watch K j w S) \<propto> x1b ! 0 = K then 0 else 1) (keep_watch K j w S)),
        j + 1, w + 1,
-       propagate_lit_wl x1a x1 (if get_clauses_wl (keep_watch K j w S) \<propto> x1 ! 0 = K then 0 else 1) (keep_watch K j w S))
+       propagate_lit_wl_bin x1a x1 (if get_clauses_wl (keep_watch K j w S) \<propto> x1 ! 0 = K then 0 else 1) (keep_watch K j w S))
       \<in> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}\<close>
     if
       \<open>unit_propagation_inner_loop_wl_loop_pre K (j, w, S)\<close> and
@@ -836,7 +836,7 @@ proof -
       \<open>polarity (get_trail_wl (keep_watch K j w S)) x1a \<noteq> Some False\<close> and
       \<open>propagate_proper_bin_case K x1a (keep_watch K j w S) x1\<close>
     for x1 x2 x1a x2a x1b x2b x1c x2c
-  unfolding propagate_lit_wl_def S propagate_proper_bin_case_def
+  unfolding propagate_lit_wl_bin_def S propagate_proper_bin_case_def
   apply clarify
   apply refine_vcg
   using that \<A>\<^sub>i\<^sub>n

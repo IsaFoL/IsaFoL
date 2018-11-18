@@ -817,7 +817,8 @@ definition twl_list_invs where
     (\<forall>C \<in># clauses_to_update_l S. C \<in># dom_m (get_clauses_l S)) \<and>
     0 \<notin># dom_m (get_clauses_l S) \<and>
     (\<forall>L C. Propagated L C \<in> set (get_trail_l S) \<longrightarrow> (C > 0 \<longrightarrow> C \<in># dom_m (get_clauses_l S) \<and>
-      (C > 0 \<longrightarrow> L \<in> set (watched_l (get_clauses_l S \<propto> C)) \<and> L = get_clauses_l S \<propto> C ! 0))) \<and>
+      (C > 0 \<longrightarrow> L \<in> set (watched_l (get_clauses_l S \<propto> C)) \<and>
+          (length (get_clauses_l S \<propto> C) > 2 \<longrightarrow> L = get_clauses_l S \<propto> C ! 0)))) \<and>
     distinct_mset (clauses_to_update_l S)\<close>
 
 definition polarity where
@@ -860,7 +861,7 @@ definition set_conflict_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Righ
 
 definition propagate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
   \<open>propagate_lit_l = (\<lambda>L' C i (M, N, D, NE, UE, WS, Q).
-      let N = N(C \<hookrightarrow> (swap (N \<propto> C) 0 (Suc 0 - i))) in
+      let N = (if length (N \<propto> C) > 2 then N(C \<hookrightarrow> (swap (N \<propto> C) 0 (Suc 0 - i))) else N) in
       (Propagated L' C # M, N, D, NE, UE, WS, add_mset (-L') Q))\<close>
 
 definition update_clause_l :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
@@ -1211,14 +1212,17 @@ proof -
     have [simp]: \<open>Propagated La C \<notin> set M\<close> for La
     proof (rule ccontr)
       assume H:\<open>\<not> ?thesis\<close>
-      then have \<open>La = N \<propto> C ! 0\<close>
+      then have \<open>La \<in> set (watched_l (N \<propto> C))\<close> and
+        \<open>2 < length (N \<propto> C) \<longrightarrow> La = N \<propto> C ! 0\<close>
         using add_inv C_N_U two_le_length_C mset_un_watched_swap C'_0i
         unfolding twl_list_invs_def S by auto
       moreover have \<open>La \<in> lits_of_l M\<close>
         using H by (force simp: lits_of_def)
       ultimately show False
-        using L'_undef that SS' uL_M n_d
-        by (auto simp: S i_def dest: no_dup_consistentD split: if_splits)
+        using L'_undef that SS' uL_M n_d C'_i S watched_C' that(1)
+        apply (auto simp: S i_def dest: no_dup_consistentD split: if_splits)
+	apply (metis in_multiset_nempty member_add_mset no_dup_consistentD  set_mset_mset)
+	by (metis (full_types) in_multiset_nempty member_add_mset no_dup_consistentD set_mset_mset)
     qed
     have \<open>twl_list_invs
      (Propagated (N \<propto> C ! (Suc 0 - i)) C # M, N(C \<hookrightarrow> swap (N \<propto> C) 0 (Suc 0 - i)),
@@ -1239,6 +1243,20 @@ proof -
        apply assumption
        apply auto
        done
+    moreover have
+      \<open>convert_lit N (NE + UE)
+         (Propagated (N \<propto> C ! (Suc 0 - i)) C)
+         (Propagated (N \<propto> C ! (Suc 0 - i)) (mset (N \<propto> C)))\<close>
+      by (auto simp: convert_lit.simps C_0)
+    moreover have \<open>twl_list_invs
+         (Propagated (N \<propto> C ! (Suc 0 - i)) C # M, N, D, NE, UE,
+          remove1_mset C WS, add_mset (- N \<propto> C ! (Suc 0 - i)) Q)\<close>
+      if \<open>\<not> 2 < length (N \<propto> C)\<close>
+      using add_inv C_N_U two_le_length_C mset_un_watched_swap C'_0i that
+      unfolding twl_list_invs_def
+      by (auto dest: in_diffD simp: set_conflicting_def
+      set_conflict_l_def mset_take_mset_drop_mset' S nth_swap_isabelle
+      dest!: mset_eq_setD)
     ultimately show ?thesis
       using SS' WS that by (auto simp: twl_st_l_def image_mset_remove1_mset_if propagate_lit_def
       propagate_lit_l_def mset_take_mset_drop_mset' S learned_unchanged
@@ -1290,9 +1308,7 @@ proof -
     have [simp]: \<open>- N \<propto> C ! K' \<notin> lits_of_l M \<close>
       using n_d K'_M by (auto simp: S Decided_Propagated_in_iff_in_lits_of_l
         dest: no_dup_consistentD)
-    (* have [simp]: \<open>convert_lits_l (N(C \<hookrightarrow> swap (N \<propto> C) i K')) M = convert_lits_l N M\<close>
-      apply (rule convert_lits_l_cong)
-      using K'_le K'_2 by (auto simp: i_def) *)
+
     have irred_init: \<open>irred N C \<Longrightarrow> (N \<propto> C, True) \<in># init_clss_l N\<close>
       using C_N_U by (auto simp: S)
     have init_unchanged: \<open>update_clauses
@@ -1462,13 +1478,14 @@ proof -
     have [simp]: \<open>Propagated La C \<notin> set M\<close> for La
     proof (rule ccontr)
       assume H:\<open>\<not> ?thesis\<close>
-      then have \<open>La = N \<propto> C ! 0\<close>
+      then have \<open>length (N \<propto> C) > 2 \<Longrightarrow> La = N \<propto> C ! 0\<close> and
+        \<open>La \<in> set (watched_l (N \<propto> C))\<close>
         using add_inv C_N_U two_le_length_C
         unfolding twl_list_invs_def S by auto
       moreover have \<open>La \<in> lits_of_l M\<close>
         using H by (force simp: lits_of_def)
       ultimately show False
-        using L' L'_M SS' uL_M n_d
+        using L' L'_M SS' uL_M n_d K'_2 K'_le
         by (auto simp: S i_def dest: no_dup_consistentD split: if_splits)
     qed
     have A: \<open>?update_clss = do {let x = N \<propto> C ! K';
@@ -1508,7 +1525,8 @@ proof -
       subgoal unfolding C' S by auto
       subgoal using L'_M SS' K'_M unfolding C' S by (auto simp: twl_st_l_def)
       subgoal using L'_M SS' K'_M unfolding C' S by (auto simp: twl_st_l_def)
-      subgoal using L'_M SS' K'_M add_inv list_invs_blit unfolding C' S by (auto simp: twl_st_l_def WS'_def')
+      subgoal using L'_M SS' K'_M add_inv list_invs_blit unfolding C' S
+        by (auto simp: twl_st_l_def WS'_def')
       subgoal
         using SS' init_unchanged unfolding i_def[symmetric] get_clauses_l_set_clauses_to_update_l
         by (auto simp: S update_clause_l_def update_clauseS_def twl_st_l_def WS'_def'
@@ -1990,7 +2008,7 @@ definition tl_state_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> wh
 
 definition resolve_cls_l' :: \<open>'v twl_st_l \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v clause\<close> where
 \<open>resolve_cls_l' S C L  =
-   remove1_mset (-L) (the (get_conflict_l S) \<union># mset (tl (get_clauses_l S \<propto> C)))\<close>
+  remove1_mset L (remove1_mset (-L) (the (get_conflict_l S) \<union># mset (get_clauses_l S \<propto> C)))\<close>
 
 definition update_confl_tl_l :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> bool \<times> 'v twl_st_l\<close> where
   \<open>update_confl_tl_l = (\<lambda>C L (M, N, D, NE, UE, WS, Q).
@@ -2054,7 +2072,8 @@ private lemma skip_and_resolve_skip_refine:
     tr: \<open>get_trail_l S \<noteq> []\<close> and
     struct_invs: \<open>twl_struct_invs S'\<close> and
     stgy_invs: \<open>twl_stgy_invs S'\<close> and
-    lev: \<open>count_decided (get_trail_l S) > 0\<close>
+    lev: \<open>count_decided (get_trail_l S) > 0\<close> and
+    inv: \<open>case (brk, S) of (x, xa) \<Rightarrow> skip_and_resolve_loop_inv_l S0 x xa\<close>
   shows
    \<open>(update_confl_tl_l C L S, False,
      update_confl_tl (Some (remove1_mset (- L') (the (get_conflict S')) \<union># remove1_mset L' C')) S')
@@ -2073,6 +2092,18 @@ proof -
     [simp]: \<open>C > 0\<close> \<open>C \<noteq> 0\<close>and
     invs_S: \<open>twl_list_invs S\<close>
     using rel rel' unfolding S by auto
+  have H: \<open>L' \<notin># the D \<Longrightarrow> the D \<union># {#L', aa#} - {#L', - L'#} =
+     the D \<union># {#aa#} - {#- L'#}\<close>
+     \<open>L' \<notin># the D \<Longrightarrow> the D \<union># {#aa, L'#} - {#L', - L'#} =
+     the D \<union># {#aa#} - {#- L'#}\<close> for aa
+     by (auto simp: add_mset_commute)
+  have H': \<open>a \<noteq> -L' \<Longrightarrow> remove1_mset (- L') (the D) \<union># {#a#} =
+          remove1_mset (- L') (the D \<union># {#a#})\<close> for a
+    by (auto simp: sup_union_right_if
+	    dest: in_diffD multi_member_split)
+  have \<open>D \<noteq> None\<close>
+    using inv by (auto simp: skip_and_resolve_loop_inv_l_def S
+      skip_and_resolve_loop_inv_def twl_st_l_def)
   have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of S')\<close> and
     struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S')\<close>
     using struct_invs unfolding twl_struct_invs_def by fast+
@@ -2088,7 +2119,9 @@ proof -
   ultimately have False: \<open>C = 0 \<Longrightarrow> False\<close>
     using C' cdcl\<^sub>W_restart_mset.hd_trail_level_ge_1_length_gt_1[of \<open>state\<^sub>W_of S'\<close>]
     by (auto simp: is_decided_no_proped_iff)
-  then have L: \<open>L = N \<propto> C ! 0\<close> and C_dom: \<open>C \<in># dom_m N\<close>
+  then have L: \<open>length (N \<propto> C) > 2 \<longrightarrow> L = N \<propto> C ! 0\<close> and
+    C_dom: \<open>C \<in># dom_m N\<close> and
+    L: \<open>L \<in> set(watched_l (N \<propto> C))\<close>
     using invs_S
     unfolding S C' by (auto simp: twl_list_invs_def)
   moreover {
@@ -2106,7 +2139,7 @@ proof -
   }
   moreover {
     have
-      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of S')\<close> and
+      lev_confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of S')\<close> and
       M_lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of S')\<close>
       using struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
     then have \<open>M \<Turnstile>as CNot (remove1_mset L (mset (N \<propto> C)))\<close>
@@ -2114,21 +2147,32 @@ proof -
       by (force simp: S twl_st_l_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
           cdcl\<^sub>W_restart_mset_state convert_lit.simps
           elim!: convert_lits_l_consE)
-    then have \<open>-L' \<in># mset (N \<propto> C) \<Longrightarrow> False\<close>
-      apply - apply (drule multi_member_split)
+    then have 1: \<open>-L' \<notin># mset (N \<propto> C)\<close>
+      apply - apply (rule, drule multi_member_split)
       using S' M_lev False unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       by (auto simp: S twl_st_l_def cdcl\<^sub>W_restart_mset_state split: if_splits
           dest: in_lits_of_l_defined_litD)
-    then have \<open>remove1_mset (- L') (the D) \<union># mset (tl (N \<propto> C)) =
+    then have 2:\<open>remove1_mset (- L') (the D) \<union># mset (tl (N \<propto> C)) =
        remove1_mset (- L') (the D \<union># mset (tl (N \<propto> C)))\<close>
       using L by(cases \<open>N \<propto> C\<close>; cases \<open>-L' \<in># mset (N \<propto> C)\<close>)
          (auto simp: remove1_mset_union_distrib)
+    have \<open>Propagated L C # M \<Turnstile>as CNot (the D)\<close>
+      using S' False lev_confl \<open>D \<noteq> None\<close>
+      by (force simp: S twl_st_l_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          cdcl\<^sub>W_restart_mset_state convert_lit.simps)
+    then have 3: \<open>L' \<notin># (the D)\<close>
+      apply - apply (rule, drule multi_member_split)
+      using S' M_lev False unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      by (auto simp: S twl_st_l_def cdcl\<^sub>W_restart_mset_state split: if_splits
+          dest: in_lits_of_l_defined_litD)
+      
+    note 1 and 2 and 3
   }
   ultimately show ?thesis
     using invs_S S'
-    by (cases \<open>N \<propto> C\<close>)
+    by (cases \<open>N \<propto> C\<close>; cases \<open>tl (N \<propto> C)\<close>)
       (auto simp: skip_and_resolve_loop_inv_def twl_list_invs_def resolve_cls_l'_def
-        resolve_cls_l_nil_iff update_confl_tl_l_def update_confl_tl_def twl_st_l_def
+        resolve_cls_l_nil_iff update_confl_tl_l_def update_confl_tl_def twl_st_l_def H H'
         S S' C' dest!: False dest: convert_lits_l_tlD)
 qed
 
