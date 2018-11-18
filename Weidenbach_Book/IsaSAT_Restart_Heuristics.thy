@@ -59,7 +59,7 @@ lemma GC_remap_ran_m_old_new:
 
 lemma GC_remap_ran_m_remap:
   \<open>GC_remap (old, m, new) (old', m', new')  \<Longrightarrow> C \<in># dom_m old \<Longrightarrow> C \<notin># dom_m old' \<Longrightarrow>
-         m' C \<noteq>	 None \<and>
+         m' C \<noteq> None \<and>
          fmlookup new' (the (m' C)) = fmlookup old C\<close>
   by (induction "(old, m, new)" "(old', m', new')" rule: GC_remap.induct)
     (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin)
@@ -71,13 +71,15 @@ lemma GC_remap_ran_m_no_rewrite_map:
 
 
 lemma GC_remap_ran_m_no_rewrite_fmap:
-  \<open>GC_remap (old, m, new) (old', m', new')  \<Longrightarrow> C \<in># dom_m new \<Longrightarrow> C \<in># dom_m new' \<and> fmlookup new C = fmlookup new' C\<close>
+  \<open>GC_remap (old, m, new) (old', m', new') \<Longrightarrow> C \<in># dom_m new \<Longrightarrow>
+    C \<in># dom_m new' \<and> fmlookup new C = fmlookup new' C\<close>
   by (induction "(old, m, new)" "(old', m', new')" rule: GC_remap.induct)
     (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin)
 
 
 lemma rtranclp_GC_remap_ran_m_no_rewrite_fmap:
-  \<open>GC_remap\<^sup>*\<^sup>* S S'  \<Longrightarrow> C \<in># dom_m (snd (snd S)) \<Longrightarrow> C \<in># dom_m (snd (snd S')) \<and> fmlookup (snd (snd S)) C = fmlookup (snd (snd S')) C\<close>
+  \<open>GC_remap\<^sup>*\<^sup>* S S'  \<Longrightarrow> C \<in># dom_m (snd (snd S)) \<Longrightarrow>
+    C \<in># dom_m (snd (snd S')) \<and> fmlookup (snd (snd S)) C = fmlookup (snd (snd S')) C\<close>
   by (induction rule: rtranclp_induct)
     (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin dest: GC_remap_ran_m_no_rewrite_fmap)
 
@@ -85,7 +87,8 @@ lemma GC_remap_ran_m_no_rewrite:
   \<open>GC_remap S S'  \<Longrightarrow> C \<in># dom_m (fst S) \<Longrightarrow> C \<in># dom_m (fst S') \<Longrightarrow>
          fmlookup (fst S) C = fmlookup (fst S') C\<close>
   by (induction rule: GC_remap.induct)
-    (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin distinct_mset_dom distinct_mset_set_mset_remove1_mset
+    (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin distinct_mset_dom
+        distinct_mset_set_mset_remove1_mset
       dest: GC_remap_ran_m_remap)
 
 lemma GC_remap_ran_m_lookup_kept:
@@ -100,7 +103,7 @@ lemma GC_remap_ran_m_lookup_kept:
 
 lemma rtranclp_GC_remap_ran_m_no_rewrite:
   \<open>GC_remap\<^sup>*\<^sup>*  S S'  \<Longrightarrow> C \<in># dom_m (fst S) \<Longrightarrow> C \<in># dom_m (fst S') \<Longrightarrow>
-         fmlookup (fst S) C = fmlookup (fst S') C\<close>
+    fmlookup (fst S) C = fmlookup (fst S') C\<close>
   apply (induction rule: rtranclp_induct)
   subgoal by auto
   subgoal for y z
@@ -121,28 +124,33 @@ lemma rtranclp_GC_remap_ran_m_no_lost:
   subgoal by auto
   subgoal for y z
     by (cases \<open>C \<in># dom_m (fst y)\<close>)
-      (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin dest: GC_remap_ran_m_remap GC_remap_ran_m_no_rewrite
+      (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin
+        dest: GC_remap_ran_m_remap GC_remap_ran_m_no_rewrite
         intro: GC_remap_ran_m_lookup_kept GC_remap_ran_m_no_lost)
   done
 
 
 lemma GC_remap_ran_m_no_new_lost:
-  \<open>GC_remap S S'  \<Longrightarrow> dom (fst (snd S)) \<subseteq> set_mset (dom_m (fst S)) \<Longrightarrow> dom (fst (snd S')) \<subseteq> set_mset (dom_m (fst S))\<close>
+  \<open>GC_remap S S'  \<Longrightarrow> dom (fst (snd S)) \<subseteq> set_mset (dom_m (fst S)) \<Longrightarrow>
+    dom (fst (snd S')) \<subseteq> set_mset (dom_m (fst S))\<close>
   by (induction rule: GC_remap.induct)
-    (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin distinct_mset_dom distinct_mset_set_mset_remove1_mset
+    (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin distinct_mset_dom
+        distinct_mset_set_mset_remove1_mset
       dest: GC_remap_ran_m_remap)
 
 lemma rtranclp_GC_remap_ran_m_no_new_lost:
-  \<open>GC_remap\<^sup>*\<^sup>* S S'  \<Longrightarrow> dom (fst (snd S)) \<subseteq> set_mset (dom_m (fst S)) \<Longrightarrow> dom (fst (snd S')) \<subseteq> set_mset (dom_m (fst S))\<close>
+  \<open>GC_remap\<^sup>*\<^sup>* S S'  \<Longrightarrow> dom (fst (snd S)) \<subseteq> set_mset (dom_m (fst S)) \<Longrightarrow>
+    dom (fst (snd S')) \<subseteq> set_mset (dom_m (fst S))\<close>
   apply (induction rule: rtranclp_induct)
   subgoal by auto
   subgoal for y z
     apply (cases \<open>C \<in># dom_m (fst y)\<close>)
-    apply (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin dest: GC_remap_ran_m_remap GC_remap_ran_m_no_rewrite
+    apply (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin
+        dest: GC_remap_ran_m_remap GC_remap_ran_m_no_rewrite
         intro: GC_remap_ran_m_lookup_kept GC_remap_ran_m_no_lost)
-	apply (smt GC_remap_ran_m_no_rewrite_map contra_subsetD domI prod.collapse rtranclp_GC_remap_ran_m_no_lost)
-	apply (smt GC_remap_ran_m_no_rewrite_map contra_subsetD domI prod.collapse rtranclp_GC_remap_ran_m_no_lost)
-	done
+    apply (smt GC_remap_ran_m_no_rewrite_map contra_subsetD domI prod.collapse rtranclp_GC_remap_ran_m_no_lost)
+    apply (smt GC_remap_ran_m_no_rewrite_map contra_subsetD domI prod.collapse rtranclp_GC_remap_ran_m_no_lost)
+    done
   done
 
 
@@ -312,7 +320,6 @@ proof -
       by (metis Diff_empty Diff_insert0 add_mset_remove_trivial finite_set_mset finite_set_mset_mset_set insert_subset_eq_iff mset_set.remove set_mset_mset subseteq_remove1)
   qed
 
-
   have I_notin: \<open>I (l1 @ [xa]) l2 (a, aa, ba)\<close>
     if
       \<open>set_mset (dom_m N) \<subseteq> set x\<close> and
@@ -328,7 +335,6 @@ proof -
       using that unfolding I_def
       by (auto dest!: multi_member_split)
   qed
-
   have early_break: \<open>GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, x2, x1)\<close>
      if
        \<open>set_mset (dom_m N) \<subseteq> set x\<close> and

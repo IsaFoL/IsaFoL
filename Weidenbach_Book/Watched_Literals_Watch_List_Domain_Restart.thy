@@ -190,14 +190,13 @@ proof -
     by argo
 qed
 
-(*
 definition remove_all_annot_true_clause_imp_wl_D_inv
   :: \<open>nat twl_st_wl \<Rightarrow> _ \<Rightarrow> nat \<times> nat twl_st_wl \<Rightarrow> bool\<close>
 where
   \<open>remove_all_annot_true_clause_imp_wl_D_inv S xs = (\<lambda>(i, T).
      remove_all_annot_true_clause_imp_wl_inv S xs (i, T) \<and>
-     literals_are_\<L>\<^sub>i\<^sub>n' (all_atms_st T) T)\<close>
-
+     literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T) T \<and>
+     all_init_atms_st S = all_init_atms_st T)\<close>
 
 definition remove_all_annot_true_clause_imp_wl_D_pre
   :: \<open>nat multiset \<Rightarrow> nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close>
@@ -208,7 +207,7 @@ definition remove_all_annot_true_clause_imp_wl_D
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
 \<open>remove_all_annot_true_clause_imp_wl_D = (\<lambda>L (M, N0, D, NE0, UE, Q, W). do {
-    ASSERT(remove_all_annot_true_clause_imp_wl_D_pre (all_atms_st (M, N0, D, NE0, UE, Q, W)) L (M, N0, D, NE0, UE, Q, W));
+    ASSERT(remove_all_annot_true_clause_imp_wl_D_pre (all_init_atms_st (M, N0, D, NE0, UE, Q, W)) L (M, N0, D, NE0, UE, Q, W));
     let xs = W L;
     (_, N, NE) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, N, NE).
         remove_all_annot_true_clause_imp_wl_D_inv (M, N0, D, NE0, UE, Q, W) xs
@@ -229,21 +228,37 @@ where
     RETURN (M, N, D, NE, UE, Q, W)
   })\<close>
 
+lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_init_itself[iff]:
+  \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms x1h x2h) (all_init_lits x1h x2h)\<close>
+  unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+  by (auto simp: all_init_lits_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
+    in_all_lits_of_mm_ain_atms_of_iff all_init_atms_def)
+  
+lemma literals_are_\<L>\<^sub>i\<^sub>n'_alt_def: \<open>literals_are_\<L>\<^sub>i\<^sub>n' \<A> S \<longleftrightarrow>
+     is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_init_lits (get_clauses_wl S) (get_unit_init_clss_wl S)) \<and>
+     blits_in_\<L>\<^sub>i\<^sub>n' S\<close>
+  unfolding literals_are_\<L>\<^sub>i\<^sub>n'_def all_init_lits_def
+  by auto
 
 lemma remove_all_annot_true_clause_imp_wl_remove_all_annot_true_clause_imp:
   \<open>(uncurry remove_all_annot_true_clause_imp_wl_D, uncurry remove_all_annot_true_clause_imp_wl) \<in>
-   {(L, L'). L = L' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>} \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' \<A> S} \<rightarrow>\<^sub>f
+   {(L, L'). L = L' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>} \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' \<A> S \<and>
+      \<A> = all_init_atms_st S} \<rightarrow>\<^sub>f
      \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' \<A> S}\<rangle>nres_rel\<close>
 proof -
   have [refine0]:
     \<open>remove_all_annot_true_clause_one_imp S \<le>
        \<Down> {((N, NE), (N', NE')). N = N' \<and> NE = NE'
-        \<and> mset `# init_clss_lf (fst (snd S)) + snd (snd S) = mset `# init_clss_lf N + NE'}
+        \<and> mset `# init_clss_lf (fst (snd S)) + snd (snd S) = mset `# init_clss_lf N + NE' \<and>
+	all_init_atms (fst (snd S)) (snd (snd S)) = all_init_atms N NE}
         (remove_all_annot_true_clause_one_imp S')\<close>
     if \<open>(S, S') \<in> Id\<close>
     for S S'
     using that unfolding remove_all_annot_true_clause_one_imp_def
-    by (cases S) (auto simp: init_clss_l_fmdrop_irrelev init_clss_l_fmdrop image_mset_remove1_mset_if)
+    by (cases S)
+      (auto simp: init_clss_l_fmdrop_irrelev init_clss_l_fmdrop
+         image_mset_remove1_mset_if all_init_lits_def
+        simp: all_init_atms_def)
 
   show ?thesis
     supply [[goals_limit=1]]
@@ -254,18 +269,21 @@ proof -
     subgoal for L M N0 D NE0 UE Q W L' M' N0' D' NE0' UE' Q' W'
       apply (refine_vcg
           WHILEIT_refine[where R = \<open>{((i, N, NE), (i', N', NE')). i = i' \<and> N=N' \<and>NE=NE' \<and>
-            literals_are_\<L>\<^sub>i\<^sub>n' \<A> (M, N, D, NE, UE, Q, W)}\<close>])
-      subgoal unfolding remove_all_annot_true_clause_imp_wl_D_pre_def by force
+            literals_are_\<L>\<^sub>i\<^sub>n' \<A> (M, N, D, NE, UE, Q, W) \<and>
+	    all_init_atms N (NE) = all_init_atms N0 (NE0)}\<close>])
+      subgoal unfolding remove_all_annot_true_clause_imp_wl_D_pre_def
+        by (auto simp flip: all_init_atms_def)
       subgoal by auto
       subgoal
-        unfolding remove_all_annot_true_clause_imp_wl_D_inv_def by auto
+        unfolding remove_all_annot_true_clause_imp_wl_D_inv_def all_init_atms_def
+	by (auto simp flip: all_atms_def simp: literals_are_\<L>\<^sub>i\<^sub>n'_alt_def)
       subgoal by auto
       subgoal by auto
       subgoal by auto
       subgoal by auto
-      subgoal unfolding remove_all_annot_true_clause_imp_wl_D_inv_def literals_are_\<L>\<^sub>i\<^sub>n'_def
+      subgoal unfolding remove_all_annot_true_clause_imp_wl_D_inv_def literals_are_\<L>\<^sub>i\<^sub>n'_alt_def
         blits_in_\<L>\<^sub>i\<^sub>n_def
-        by auto
+	by (auto simp flip: all_atms_def simp: blits_in_\<L>\<^sub>i\<^sub>n'_def)
       subgoal by auto
       subgoal unfolding remove_all_annot_true_clause_imp_wl_D_pre_def by auto
       done
@@ -275,7 +293,7 @@ qed
 definition remove_one_annot_true_clause_one_imp_wl_D_pre where
   \<open>remove_one_annot_true_clause_one_imp_wl_D_pre i T \<longleftrightarrow>
      remove_one_annot_true_clause_one_imp_wl_pre i T \<and>
-     literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
+     literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T) T\<close>
 
 definition remove_one_annot_true_clause_one_imp_wl_D
   :: \<open>nat \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres\<close>
@@ -299,8 +317,8 @@ where
 lemma remove_one_annot_true_clause_one_imp_wl_D_remove_one_annot_true_clause_one_imp_wl:
   \<open>(uncurry remove_one_annot_true_clause_one_imp_wl_D,
     uncurry remove_one_annot_true_clause_one_imp_wl) \<in>
-   nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
-     \<langle>nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
+   nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S} \<rightarrow>\<^sub>f
+     \<langle>nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<rangle>nres_rel\<close>
 proof -
 
   have [refine0]: \<open>replace_annot_in_trail_spec L M \<le> \<Down> Id (replace_annot_in_trail_spec L' M')\<close>
@@ -315,12 +333,13 @@ proof -
     using that
     by (auto simp: extract_and_remove_def intro_spec_refine_iff
         intro!: ASSERT_refine_left RES_refine)
-  have x1_Lall: \<open>x1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  have x1_Lall: \<open>x1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st (M', N0', D', NE0', UE', Q', W'))\<close>
     if
       pre: \<open>remove_one_annot_true_clause_one_imp_wl_pre L'
       (M', N0', D', NE0', UE', Q', W')\<close> and
       x1: \<open>rev M' ! L' = Propagated x1 x2\<close> and
-      L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M', N0', D', NE0', UE', Q', W')\<close>
+      L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st (M', N0', D', NE0', UE', Q', W'))
+        (M', N0', D', NE0', UE', Q', W')\<close>
     for x1 L' N0' D' NE0' UE' Q' W' M' x2
   proof -
     obtain x xa where
@@ -338,19 +357,20 @@ proof -
        remove_one_annot_true_clause_one_imp_pre_def by blast
     have le': \<open>L' < length M'\<close>
       using le x by auto
-    have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl (M', N0', D', NE0', UE', Q', W'))\<close>
+    have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (all_init_atms_st (M', N0', D', NE0', UE', Q', W'))
+       (get_trail_wl (M', N0', D', NE0', UE', Q', W'))\<close>
       apply (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail)
          apply (rule x)
         apply (rule struct_invs_xa)
        apply (rule x_xa)
-       apply (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[THEN iffD1])
+       apply (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(1)[THEN iffD1])
          apply (rule x)
         apply (rule x_xa)
        apply (rule struct_invs_xa)
       apply (rule L)
       done
     from literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms[OF this, of \<open>lit_of (rev M' ! L')\<close>]
-    have \<open>atm_of (lit_of (rev M' ! L')) \<in># \<A>\<^sub>i\<^sub>n\<close>
+    have \<open>atm_of (lit_of (rev M' ! L')) \<in># (all_init_atms_st (M', N0', D', NE0', UE', Q', W'))\<close>
       using le' by (auto simp: rev_nth lits_of_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
     then show ?thesis
       using x1 by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
@@ -367,12 +387,13 @@ proof -
              add_mset (mset x1c) NE0', UE', Q', W')
        else (Maa, x1b, D', NE0',
              add_mset (mset x1c) UE', Q', W'))
-      \<in> {(L, L'). L = L' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l} \<times>\<^sub>f
+      \<in> {(L, L'). L = L' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st (M', N0', D', NE0', UE', Q', W'))} \<times>\<^sub>f
          {(S, T).
-          (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
+          (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st (M', N0', D', NE0', UE', Q', W')) S \<and>
+          all_init_atms_st (M', N0', D', NE0', UE', Q', W') = all_init_atms_st S}\<close>
     if
       eq': \<open>((L, M, N0, D, NE0, UE, Q, W), L', M', N0', D', NE0', UE', Q', W') \<in> nat_rel \<times>\<^sub>f
-        {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
+        {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<close>
       \<open>(Ma, Maa) \<in> Id\<close>
       \<open>(x, x') \<in> Id\<close> and
       \<open>remove_one_annot_true_clause_one_imp_wl_pre L' (M', N0', D', NE0', UE', Q', W')\<close> and
@@ -424,11 +445,12 @@ proof -
       \<open>x2c = x2e\<close>
       using st eq eq'
       by (cases \<open>the (fmlookup N0' x2a)\<close>; auto)+
+    let ?A = \<open>all_init_atms_st (M, N0, D, NE0, UE, Q, W)\<close>
     have [simp]: \<open>x1a = x1\<close>
       using \<open>x = (x1a, x2a)\<close> unfolding \<open>x = (x1, x2)\<close>
       by auto
     obtain x xa where
-      L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, N0, D, NE0, UE, Q, W)\<close> and
+      L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' ?A (M, N0, D, NE0, UE, Q, W)\<close> and
       x: \<open>((M, N0, D, NE0, UE, Q, W), x) \<in> state_wl_l None\<close> and
       \<open>correct_watching' (M, N0, D, NE0, UE, Q, W)\<close> and
       \<open>twl_list_invs x\<close> and
@@ -443,26 +465,39 @@ proof -
       by blast
     have le': \<open>L < length M\<close>
       using le x by auto
-    have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl (M, N0, D, NE0, UE, Q, W))\<close>
+    have [simp]:
+      \<open>irred N0' x2a \<Longrightarrow> all_init_atms (fmdrop x2a N0') (add_mset (mset (N0' \<propto> x2a)) NE0') =
+      all_init_atms N0' NE0'\<close>
+      using x L st' that(11) unfolding st
+      by (auto simp: all_init_atms_def image_mset_remove1_mset_if
+        all_init_lits_def init_clss_l_fmdrop)
+    have [simp]:
+      \<open>\<not>irred N0' x2a \<Longrightarrow> all_init_atms (fmdrop x2a N0') NE0' =  all_init_atms N0' NE0'\<close>
+      using x L st' that(11) unfolding st
+      by (auto simp: all_init_atms_def image_mset_remove1_mset_if
+        all_init_lits_def)
+      find_theorems image_mset If remove1_mset
+    have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail ?A (get_trail_wl (M, N0, D, NE0, UE, Q, W))\<close>
       apply (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail)
          apply (rule x)
         apply (rule struct_invs_xa)
        apply (rule x_xa)
-       apply (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[THEN iffD1])
+       apply (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(1)[THEN iffD1])
          apply (rule x)
         apply (rule x_xa)
        apply (rule struct_invs_xa)
       apply (rule L)
       done
     from literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms[OF this, of \<open>lit_of (rev M ! L)\<close>]
-    have \<open>atm_of (lit_of (rev M ! L)) \<in># \<A>\<^sub>i\<^sub>n\<close>
+    have \<open>atm_of (lit_of (rev M ! L)) \<in># ?A\<close>
       using le' by (auto simp: rev_nth lits_of_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
-    then have \<open>x1a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    then have \<open>x1a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l ?A\<close>
       using lit x unfolding st' by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n st state_wl_l_def st
           split: if_splits)
     then show ?thesis
-      using x \<open>x2a \<in># dom_m N0\<close> L unfolding st by (auto simp: st' ran_m_fmdrop
-          image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n_def)
+      using x \<open>x2a \<in># dom_m N0\<close> L unfolding st
+      by (auto simp: st' ran_m_fmdrop
+          image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def)
   qed
   show ?thesis
     supply [[goals_limit=1]]
@@ -472,7 +507,9 @@ proof -
     apply clarify
     subgoal for L M N0 D NE0 UE Q W L' M' N0' D' NE0' UE' Q' W'
       apply (refine_vcg
-        remove_all_annot_true_clause_imp_wl_remove_all_annot_true_clause_imp[THEN fref_to_Down_curry])
+        remove_all_annot_true_clause_imp_wl_remove_all_annot_true_clause_imp[
+	  of \<open>all_init_atms_st (M', N0', D', NE0', UE', Q', W')\<close>,
+	  THEN fref_to_Down_curry])
       subgoal unfolding remove_one_annot_true_clause_one_imp_wl_D_pre_def by auto
       subgoal by auto
       subgoal by auto
@@ -485,14 +522,15 @@ proof -
       subgoal for x x' x1 x2 x1a x2a Ma Maa xa x'a x1b x2b x1c
        x2c x1d x2d x1e x2e
         by (rule res)
-      subgoal by auto
+      subgoal by (auto simp: literals_are_\<L>\<^sub>i\<^sub>n'_alt_def)
       done
     done
 qed
 
 definition remove_one_annot_true_clause_imp_wl_D_inv where
   \<open>remove_one_annot_true_clause_imp_wl_D_inv S = (\<lambda>(i, T).
-     remove_one_annot_true_clause_imp_wl_inv S (i, T) \<and> literals_are_\<L>\<^sub>i\<^sub>n' T)\<close>
+     remove_one_annot_true_clause_imp_wl_inv S (i, T) \<and>
+     literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T) T)\<close>
 
 definition remove_one_annot_true_clause_imp_wl_D :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
@@ -507,15 +545,16 @@ where
 
 lemma remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl:
   \<open>(remove_one_annot_true_clause_imp_wl_D, remove_one_annot_true_clause_imp_wl) \<in>
-   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
-     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
+   {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<rangle>nres_rel\<close>
 proof -
   show ?thesis
     unfolding uncurry_def remove_one_annot_true_clause_imp_wl_D_def
       remove_one_annot_true_clause_imp_wl_def
     apply (intro frefI nres_relI)
     apply (refine_vcg
-      WHILEIT_refine[where R=\<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>]
+      WHILEIT_refine[where R=\<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and>
+        literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<close>]
       remove_one_annot_true_clause_one_imp_wl_D_remove_one_annot_true_clause_one_imp_wl[THEN fref_to_Down_curry])
     subgoal by auto
     subgoal for S S' T T'
@@ -525,7 +564,6 @@ proof -
     subgoal by auto
     done
 qed
-*)
 
 definition mark_to_delete_clauses_wl_D_pre where
   \<open>mark_to_delete_clauses_wl_D_pre S \<longleftrightarrow>
