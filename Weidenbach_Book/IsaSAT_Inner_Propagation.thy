@@ -766,18 +766,6 @@ lemma update_clause_wl_heur_update_clause_wl:
 definition (in -) access_lit_in_clauses where
   \<open>access_lit_in_clauses S i j = (get_clauses_wl S) \<propto> i ! j\<close>
 
-definition (in -) access_lit_in_clauses_heur_pre where
-  \<open>access_lit_in_clauses_heur_pre =
-      (\<lambda>((S, i), j).
-           arena_lit_pre (get_clauses_wl_heur S) (i+j))\<close>
-
-definition (in -) access_lit_in_clauses_heur where
-  \<open>access_lit_in_clauses_heur S i j = arena_lit (get_clauses_wl_heur S) (i + j)\<close>
-
-lemma access_lit_in_clauses_heur_alt_def:
-  \<open>access_lit_in_clauses_heur = (\<lambda>(M, N, _) i j.  arena_lit N (i + j))\<close>
-  by (auto simp: access_lit_in_clauses_heur_def intro!: ext)
-
 lemma twl_st_heur_get_clauses_access_lit[simp]:
   \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
     i < length (get_clauses_wl T \<propto> C) \<Longrightarrow>
@@ -785,33 +773,6 @@ lemma twl_st_heur_get_clauses_access_lit[simp]:
     for S T C i
     by (cases S; cases T)
       (auto simp: arena_lifting twl_st_heur_def access_lit_in_clauses_heur_def)
-
-definition clause_not_marked_to_delete where
-  \<open>clause_not_marked_to_delete S C \<longleftrightarrow> C \<in># dom_m (get_clauses_wl S)\<close>
-
-definition clause_not_marked_to_delete_pre where
-  \<open>clause_not_marked_to_delete_pre =
-    (\<lambda>(S, C). C \<in> vdom_m (all_atms_st S) (get_watched_wl S) (get_clauses_wl S))\<close>
-
-definition clause_not_marked_to_delete_heur_pre where
-  \<open>clause_not_marked_to_delete_heur_pre =
-     (\<lambda>(S, C). arena_is_valid_clause_vdom (get_clauses_wl_heur S) C)\<close>
-
-definition clause_not_marked_to_delete_heur :: "_ \<Rightarrow> nat \<Rightarrow> bool"
-where
-  \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow> arena_status (get_clauses_wl_heur S) C \<noteq> DELETED\<close>
-
-lemma clause_not_marked_to_delete_rel:
-  \<open>(uncurry (RETURN oo clause_not_marked_to_delete_heur),
-    uncurry (RETURN oo clause_not_marked_to_delete)) \<in>
-    [clause_not_marked_to_delete_pre]\<^sub>f
-     twl_st_heur \<times>\<^sub>f nat_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (use arena_dom_status_iff in_dom_in_vdom in
-      \<open>auto 5 5 simp: clause_not_marked_to_delete_def twl_st_heur_def
-        clause_not_marked_to_delete_heur_def arena_dom_status_iff all_atms_def[symmetric]
-        clause_not_marked_to_delete_pre_def\<close>)
-
 
 lemma
   find_unwatched_not_tauto:
@@ -3435,48 +3396,6 @@ sepref_definition watched_by_app_heur_fast_code
   by sepref
 
 declare watched_by_app_heur_fast_code.refine[sepref_fr_rules]
-
-sepref_definition access_lit_in_clauses_heur_code
-  is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
-  :: \<open>[access_lit_in_clauses_heur_pre]\<^sub>a
-      isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  supply length_rll_def[simp] [[goals_limit=1]]
-  unfolding isasat_unbounded_assn_def access_lit_in_clauses_heur_alt_def
-    fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
-    fmap_rll_u64_def[symmetric]
-  by sepref
-
-declare access_lit_in_clauses_heur_code.refine[sepref_fr_rules]
-
-(* TODO Move *)
-lemma (in -) arena_is_valid_clause_idx_le_uint64_max2:
-  \<open>arena_lit_pre be bd \<Longrightarrow>  length be \<le> uint64_max \<Longrightarrow>
-   bd \<le> uint64_max\<close>
-  using arena_lifting(10)[of be _ _]
-  by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def arena_lit_pre_def
-      arena_is_valid_clause_idx_and_access_def)
-(* End MOve *)
-
-lemma access_lit_in_clauses_heur_fast_pre:
-  \<open>arena_lit_pre (get_clauses_wl_heur a) (ba + b) \<Longrightarrow>
-       isasat_fast a \<Longrightarrow>
-       ba + b \<le> uint64_max\<close>
-  by (auto simp: arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
-      dest!: arena_lifting(10)
-      dest!: isasat_fast_length_leD)[]
-
-sepref_definition access_lit_in_clauses_heur_fast_code
-  is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
-  :: \<open>[\<lambda>((S, i), j). access_lit_in_clauses_heur_pre ((S, i), j) \<and>
-           length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
-      isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  supply length_rll_def[simp] [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
-  unfolding isasat_bounded_assn_def access_lit_in_clauses_heur_alt_def
-    fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
-    fmap_rll_u64_def[symmetric] arena_is_valid_clause_idx_le_uint64_max2[intro]
-  by sepref
-
-declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
 
 
 lemma case_tri_bool_If:

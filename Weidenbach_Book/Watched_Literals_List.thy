@@ -601,6 +601,12 @@ lemma init_clss_l_fmdrop:
   using distinct_mset_dom[of N]
   by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
 
+lemma ran_m_lf_fmdrop:
+  \<open>C \<in># dom_m N \<Longrightarrow> ran_m (fmdrop C N) = remove1_mset (the (fmlookup N C)) (ran_m N)\<close>
+  using distinct_mset_dom[of N]
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>] dest!: multi_member_split
+    intro!: image_mset_cong)
+
 definition twl_st_l   :: \<open>_ \<Rightarrow> ('v twl_st_l \<times> 'v twl_st) set\<close> where
 \<open>twl_st_l L =
   {((M, N, C, NE, UE, WS, Q),  (M', N', U', C', NE', UE', WS', Q')).

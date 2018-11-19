@@ -1509,6 +1509,11 @@ lemma filter_mset_eq_add_msetD: \<open>filter_mset P xs = add_mset a A \<Longrig
 lemma filter_mset_eq_add_msetD': \<open>add_mset a A  = filter_mset P xs \<Longrightarrow> a \<in># xs \<and> P a\<close>
   using filter_mset_eq_add_msetD[of P xs a A] by auto
 
+lemma image_filter_replicate_mset:
+  \<open>{#Ca \<in># replicate_mset m C. P Ca#} = (if P C then replicate_mset m C else {#})\<close>
+  by (induction m) auto
+
+
 
 section \<open>Finite maps and multisets\<close>
 

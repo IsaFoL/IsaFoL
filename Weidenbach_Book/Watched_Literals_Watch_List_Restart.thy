@@ -57,17 +57,6 @@ lemma reduce_dom_clauses_fmdrop:
   using distinct_mset_dom[of N]
   by (auto simp: reduce_dom_clauses_def distinct_mset_remove1_All)
 
-lemma image_filter_replicate_mset:
-  \<open>{#Ca \<in># replicate_mset m C. P Ca#} = (if P C then replicate_mset m C else {#})\<close>
-  by (induction m) auto
-
-
-lemma ran_m_lf_fmdrop:
-  \<open>C \<in># dom_m N \<Longrightarrow> ran_m (fmdrop C N) = remove1_mset (the (fmlookup N C)) (ran_m N)\<close>
-  using distinct_mset_dom[of N]
-  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>] dest!: multi_member_split
-    intro!: image_mset_cong)
-
 
 text \<open>change definition to all blits in \<^term>\<open>\<L>\<^sub>a\<^sub>l\<^sub>l\<close>?\<close>
 lemma correct_watching_fmdrop:

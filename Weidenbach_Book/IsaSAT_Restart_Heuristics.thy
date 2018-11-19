@@ -22,6 +22,7 @@ text \<open>
      \<^item> (lbdQueue.getavg() * K) > (sumLBD / conflictsRestarts),
        \<^text>\<open>conflictsRestarts > LOWER_BOUND_FOR_BLOCKING_RESTART && lbdQueue.isvalid() && trail.size() > R * trailQueue.getavg()\<close>
 \<close>
+declare all_atms_def[symmetric,simp]
 
 definition GC_clauses :: \<open>nat clauses_l \<Rightarrow> nat clauses_l \<Rightarrow> (nat clauses_l \<times> (nat \<Rightarrow> nat option)) nres\<close> where
 \<open>GC_clauses N N' = do {
@@ -766,53 +767,16 @@ lemma [twl_st_heur_restart]:
   shows \<open>(get_trail_wl_heur S, get_trail_wl T) \<in> trail_pol (all_init_atms_st T)\<close>
   using assms by (cases S; cases T; auto simp: twl_st_heur_restart_def)
 
-
-(*
-lemma restart_abs_wl_D_pre_find_decomp_w_ns_pre:
-  assumes
-    pre: \<open>restart_abs_wl_D_pre T False\<close> and
-    ST: \<open>(S, T) \<in> twl_st_heur_restart\<close> and
-    \<open>lvl < count_decided_st_heur S\<close>
-  shows \<open>find_decomp_w_ns_pre (all_atms_st T) ((get_trail_wl T, lvl), get_vmtf_heur S)\<close>
-proof -
-  obtain x xa where
-    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T) T\<close> and
-    Tx: \<open>(T, x) \<in> state_wl_l None\<close> and
-    \<open>correct_watching T\<close> and
-    xxa: \<open>(x, xa) \<in> twl_st_l None\<close> and
-    struct: \<open>twl_struct_invs xa\<close> and
-    \<open>twl_list_invs x\<close> and
-    \<open>clauses_to_update_l x = {#}\<close> and
-    \<open>twl_stgy_invs xa\<close> and
-    \<open>get_conflict xa = None\<close>
-    using pre unfolding restart_abs_wl_D_pre_def restart_abs_wl_pre_def restart_abs_l_pre_def
-      restart_prog_pre_def
-    by blast
-  have lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T\<close>
-    using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[OF Tx xxa struct] lits by blast
-  have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (all_atms_st T) (get_trail_wl_heur S)\<close>
-    using literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail[OF Tx struct xxa lits] ST
-    by (auto simp add: twl_st_heur_restart)
-  moreover have \<open> get_vmtf_heur S \<in> isa_vmtf (all_atms_st S) (get_trail_wl_heur S)\<close>
-    using ST by (auto simp add: twl_st_heur_restart_def)
-  moreover have \<open>no_dup (get_trail_wl_heur S)\<close>
-    using struct ST Tx xxa unfolding twl_struct_invs_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: twl_st twl_st_l twl_st_heur_restart)
-  ultimately show ?thesis
-    using assms unfolding find_decomp_w_ns_pre_def prod.case
-    by blast
-qed
-*)
 lemma trail_pol_literals_are_in_\<L>\<^sub>i\<^sub>n_trail:
-  \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow>  literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close>
+  \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close>
   unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def trail_pol_def
   by auto
 
 lemma refine_generalise1: "A \<le> B \<Longrightarrow> do {x \<leftarrow> B; C x} \<le> D \<Longrightarrow> do {x \<leftarrow> A; C x} \<le> (D:: 'a nres)"
   using Refine_Basic.bind_mono(1) dual_order.trans by blast
 
-lemma refine_generalise2: "A \<le> B \<Longrightarrow> do {x \<leftarrow> do {x \<leftarrow> B; A' x}; C x} \<le> D \<Longrightarrow> do {x \<leftarrow> do {x \<leftarrow> A; A' x}; C x} \<le> (D:: 'a nres)"
+lemma refine_generalise2: "A \<le> B \<Longrightarrow> do {x \<leftarrow> do {x \<leftarrow> B; A' x}; C x} \<le> D \<Longrightarrow>
+  do {x \<leftarrow> do {x \<leftarrow> A; A' x}; C x} \<le> (D:: 'a nres)"
   by (simp add: refine_generalise1)
 
 lemma cdcl_twl_local_restart_wl_D_spec_int:
