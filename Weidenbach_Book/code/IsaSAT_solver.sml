@@ -703,15 +703,6 @@ fun clause_not_marked_to_delete_heur_fast_code x =
 
 fun isa_arena_lit_fast_code x = arl_get_u64 heap_uint32 x;
 
-fun access_lit_in_clauses_heur_fast_code x =
-  (fn ai => fn bia => fn bi =>
-    let
-      val (_, (a1a, _)) = ai;
-    in
-      isa_arena_lit_fast_code a1a (Uint64.plus bia bi)
-    end)
-    x;
-
 fun polarity_pol_fast_code x =
   (fn ai => fn bi => let
                        val (_, (a1a, (_, _))) = ai;
@@ -1261,6 +1252,15 @@ fun keep_watch_heur_fast_code x =
     end)
     x;
 
+fun access_lit_in_clauses_heur_fast_code x =
+  (fn ai => fn bia => fn bi =>
+    let
+      val (_, (a1a, _)) = ai;
+    in
+      isa_arena_lit_fast_code a1a (Uint64.plus bia bi)
+    end)
+    x;
+
 fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
 
 fun uint32_of_uint64 n = uint32_of_nat (nat_of_uint64 n);
@@ -1614,14 +1614,6 @@ fun clause_not_marked_to_delete_heur_code x =
     x;
 
 fun isa_arena_lit_code x = arl_get heap_uint32 x;
-
-fun access_lit_in_clauses_heur_code x =
-  (fn ai => fn bia => fn bi => let
-                                 val (_, (a1a, _)) = ai;
-                               in
-                                 isa_arena_lit_code a1a (plus_nat bia bi)
-                               end)
-    x;
 
 fun polarity_pol_code x = (fn ai => fn bi => let
        val (_, (a1a, (_, _))) = ai;
@@ -2006,6 +1998,14 @@ fun keep_watch_heur_code x =
     in
       (a1, (a1a, (a1b, (a1c, (xb, a2d)))))
     end)
+    x;
+
+fun access_lit_in_clauses_heur_code x =
+  (fn ai => fn bia => fn bi => let
+                                 val (_, (a1a, _)) = ai;
+                               in
+                                 isa_arena_lit_code a1a (plus_nat bia bi)
+                               end)
     x;
 
 fun isa_update_pos_code x =
