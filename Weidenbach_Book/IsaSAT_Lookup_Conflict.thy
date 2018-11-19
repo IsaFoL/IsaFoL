@@ -2689,32 +2689,32 @@ where
               RETURN(cach, butlast analyse, True)
 	    }
             else do {
-               ASSERT (isa_get_literal_and_remove_of_analyse_wl_pre NU analyse);
-               let (L, analyse) = isa_get_literal_and_remove_of_analyse_wl NU analyse;
-               ASSERT(get_level_pol_pre (M, L));
-               let b = \<not>level_in_lbd (get_level_pol M L) lbd;
-               ASSERT(atm_in_conflict_lookup_pre (atm_of L) D);
-	       ASSERT(conflict_min_cach_l_pre (cach, atm_of L));
-               if (get_level_pol M L = zero_uint32_nat \<or>
-                   conflict_min_cach_l cach (atm_of L) = SEEN_REMOVABLE \<or>
-                   atm_in_conflict_lookup (atm_of L) D)
-               then RETURN (cach, analyse, False)
-               else if b \<or> conflict_min_cach_l cach (atm_of L) = SEEN_FAILED
-               then do {
-                  cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
-                  RETURN (cach, [], False)
-               }
-               else do {
-                  C \<leftarrow> get_propagation_reason_pol M (-L);
-                  case C of
-                    Some C \<Rightarrow> do {
-		      ASSERT(lit_redundant_reason_stack_wl_lookup_pre (-L) NU C);
-		      RETURN (cach, analyse @ [lit_redundant_reason_stack_wl_lookup (-L) NU C], False)
-		    }
-                  | None \<Rightarrow> do {
-                      cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
-                      RETURN (cach, [], False)
-                }
+	      ASSERT (isa_get_literal_and_remove_of_analyse_wl_pre NU analyse);
+	      let (L, analyse) = isa_get_literal_and_remove_of_analyse_wl NU analyse;
+	      ASSERT(get_level_pol_pre (M, L));
+	      let b = \<not>level_in_lbd (get_level_pol M L) lbd;
+	      ASSERT(atm_in_conflict_lookup_pre (atm_of L) D);
+	      ASSERT(conflict_min_cach_l_pre (cach, atm_of L));
+	      if (get_level_pol M L = zero_uint32_nat \<or>
+		  conflict_min_cach_l cach (atm_of L) = SEEN_REMOVABLE \<or>
+		  atm_in_conflict_lookup (atm_of L) D)
+	      then RETURN (cach, analyse, False)
+	      else if b \<or> conflict_min_cach_l cach (atm_of L) = SEEN_FAILED
+	      then do {
+		 cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
+		 RETURN (cach, [], False)
+	      }
+	      else do {
+		 C \<leftarrow> get_propagation_reason_pol M (-L);
+		 case C of
+		   Some C \<Rightarrow> do {
+		     ASSERT(lit_redundant_reason_stack_wl_lookup_pre (-L) NU C);
+		     RETURN (cach, analyse @ [lit_redundant_reason_stack_wl_lookup (-L) NU C], False)
+		   }
+		 | None \<Rightarrow> do {
+		     cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
+		     RETURN (cach, [], False)
+	       }
             }
           }
         })
