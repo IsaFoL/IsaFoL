@@ -39,7 +39,10 @@ lemma entail_union: "N \<Turnstile> N1 \<and> N \<Turnstile> N2 \<longleftrighta
 end
 
 datatype 'f inference =
-  Infer (prems_of: "'f list") (concl_of: "'f")
+  Infer (side_prems_of: "'f list") (main_prem_of: "'f") (concl_of: "'f")
+
+definition prems_of :: "'f inference \<Rightarrow> 'f list" where
+  "prems_of \<iota> = (main_prem_of \<iota>)#(side_prems_of \<iota>)"
 
 locale sound_inference_system = consequence_relation +
   fixes

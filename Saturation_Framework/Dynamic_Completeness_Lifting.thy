@@ -314,11 +314,11 @@ locale labeled_redundancy_criterion_lifting = redundancy_criterion_lifting \<G>_
     l :: \<open>'l itself\<close> and
     Inf_FL :: \<open>('f \<times> 'l) inference set\<close>
   assumes
-    Inf_F_to_Inf_FL: \<open>\<iota>\<^sub>F \<in> Inf_F \<Longrightarrow> length (Ll :: 'l list) = length (prems_of \<iota>\<^sub>F) \<Longrightarrow> \<exists>L0. Infer (zip (prems_of \<iota>\<^sub>F) Ll) (concl_of \<iota>\<^sub>F, L0) \<in> Inf_FL\<close> and
-    Inf_FL_to_Inf_F: \<open>\<iota>\<^sub>F\<^sub>L \<in> Inf_FL \<Longrightarrow> Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L)) \<in> Inf_F\<close>
+    Inf_F_to_Inf_FL: \<open>\<iota>\<^sub>F \<in> Inf_F \<Longrightarrow> length (Ll :: 'l list) = length (prems_of \<iota>\<^sub>F) \<Longrightarrow> \<exists>L0. Infer (zip (side_prems_of \<iota>\<^sub>F) (tl Ll)) (main_prem_of \<iota>\<^sub>F, (hd Ll)) (concl_of \<iota>\<^sub>F, L0) \<in> Inf_FL\<close> and
+    Inf_FL_to_Inf_F: \<open>\<iota>\<^sub>F\<^sub>L \<in> Inf_FL \<Longrightarrow> Infer (map fst (side_prems_of \<iota>\<^sub>F\<^sub>L)) (fst (main_prem_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L)) \<in> Inf_F\<close>
 begin
 
-definition to_F :: \<open>('f \<times> 'l) inference \<Rightarrow> 'f inference\<close> where \<open>to_F \<iota>\<^sub>F\<^sub>L = Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L))\<close>
+definition to_F :: \<open>('f \<times> 'l) inference \<Rightarrow> 'f inference\<close> where \<open>to_F \<iota>\<^sub>F\<^sub>L = Infer (map fst (side_prems_of \<iota>\<^sub>F\<^sub>L)) (fst (main_prem_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L))\<close>
 
 text \<open>The set FL is implicitly defined as \<^term>\<open>UNIV::('f\<times>'l) set\<close> and the function \<^term>\<open>proj_1\<close> is implicitly defined as \<^term>\<open>(`) fst\<close>.\<close>
 definition Bot_FL :: \<open>('f \<times> 'l) set\<close> where \<open>Bot_FL = Bot_F \<times> UNIV\<close>
@@ -362,7 +362,7 @@ next
 next
   fix \<iota>
   show "\<iota> \<in> Inf_FL \<Longrightarrow> set (prems_of \<iota>) |\<approx>FL {concl_of \<iota>}"
-    unfolding entails_sound_FL_def using Inf_FL_to_Inf_F Non_ground.soundness by force
+    using Inf_FL_to_Inf_F Non_ground.soundness unfolding entails_sound_FL_def prems_of_def by force
 next
   show "B\<in>Bot_FL \<Longrightarrow> \<G>_F_L B \<noteq> {}" for B
     unfolding \<G>_F_L_def Bot_FL_def using Bot_map_not_empty by auto
@@ -400,6 +400,10 @@ lemma red_inf_impl: "\<iota> \<in> labeled_lifted_calculus.Red_Inf_\<G> NL \<Lon
   unfolding labeled_lifted_calculus.Red_Inf_\<G>_def Red_Inf_\<G>_def \<G>_Inf_L_def \<G>_F_L_def to_F_def
   using Inf_FL_to_Inf_F by auto
 
+find_theorems hd tl
+
+
+
 text \<open>lemma 22 from the technical report\<close>
 lemma labeled_saturation_lifting: "labeled_lifted_calculus.lifted_calculus.saturated NL \<Longrightarrow> empty_order_lifting.lifted_calculus.saturated (fst ` NL)"
   unfolding labeled_lifted_calculus.lifted_calculus.saturated_def empty_order_lifting.lifted_calculus.saturated_def labeled_lifted_calculus.empty_order_lifting.lifted_calculus.Inf_from_def empty_order_lifting.lifted_calculus.Inf_from_def
@@ -414,15 +418,18 @@ proof clarify
     using that subset_fst[OF i_prems] unfolding Lli_def by (meson nth_mem someI_ex)
   define Ll where "Ll \<equiv> map Lli [0..<length (prems_of \<iota>)]"
   have Ll_length: "length Ll = length (prems_of \<iota>)" unfolding Ll_def by auto
+  then have Ll_tl_length: \<open>length (tl Ll) = length (side_prems_of \<iota>)\<close> unfolding prems_of_def by force
     (* "\<exists>L0. Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0) \<in> Inf_FL" and *)
   have subs_NL: "set (zip (prems_of \<iota>) Ll) \<subseteq> NL" unfolding Ll_def by (auto simp:in_set_zip)
-  obtain L0 where L0: "Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0) \<in> Inf_FL"
+  obtain L0 where L0: "Infer (zip (side_prems_of \<iota>) (tl Ll)) (main_prem_of \<iota>, hd Ll) (concl_of \<iota>, L0) \<in> Inf_FL"
     using Inf_F_to_Inf_FL[OF i_in Ll_length] ..
-  define \<iota>_FL where "\<iota>_FL = Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0)"
-  then have "set (prems_of \<iota>_FL) \<subseteq> NL" using subs_NL by simp
-  then have "\<iota>_FL \<in> {\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL}" unfolding \<iota>_FL_def using L0 by blast
+  define \<iota>_FL where iFL_is: "\<iota>_FL = Infer (zip (side_prems_of \<iota>) (tl Ll)) (main_prem_of \<iota>, hd Ll) (concl_of \<iota>, L0)"
+  have main_prem: \<open>main_prem_of \<iota>_FL = (main_prem_of \<iota>, hd Ll)\<close> using iFL_is by simp
+  have side_prems: \<open>side_prems_of \<iota>_FL = zip (side_prems_of \<iota>) (tl Ll)\<close> using iFL_is by simp
+  have "set (prems_of \<iota>_FL) \<subseteq> NL" using subs_NL List.list.collapse[of Ll] Ll_length unfolding prems_of_def by (metis length_greater_0_conv list.discI main_prem side_prems zip_Cons_Cons)
+  then have "\<iota>_FL \<in> {\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL}" unfolding iFL_is using L0 by blast
   then have "\<iota>_FL \<in> labeled_lifted_calculus.Red_Inf_\<G> NL" using subs_Red_Inf by fast
-  moreover have "\<iota> = to_F \<iota>_FL" unfolding to_F_def \<iota>_FL_def using Ll_length by (cases \<iota>) auto
+  moreover have "\<iota> = to_F \<iota>_FL" unfolding to_F_def iFL_is using Ll_tl_length by (cases \<iota>) auto
   ultimately show "\<iota> \<in> Red_Inf_\<G> (fst ` NL)" by (auto intro:red_inf_impl)
 qed
 

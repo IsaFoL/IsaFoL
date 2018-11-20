@@ -32,12 +32,15 @@ lemma (in -) set_list_mset_set_mset [simp]: "set (list_mset M) = set_mset M"
   by (metis mset_list_mset set_mset_mset)
 
 definition conv_inf :: "'a inference \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference" where
-  "conv_inf \<iota> = Saturation_Framework_Preliminaries.inference.Infer (list_mset (prems_of \<iota>)) (concl_of \<iota>)"
+  "conv_inf \<iota> = Saturation_Framework_Preliminaries.inference.Infer (list_mset (side_prems_of \<iota>)) (main_prem_of \<iota>) (concl_of \<iota>)"
 
 definition Inf_F :: "'a clause Saturation_Framework_Preliminaries.inference set" where
   "Inf_F = conv_inf ` (ord_FO_\<Gamma> S)"
 
 interpretation Saturation_Framework_Preliminaries.sound_inference_system Bot_F entails_sound_F Inf_F 
+    unfolding Saturation_Framework_Preliminaries.sound_inference_system_def
+      consequence_relation_def entails_sound_F_def
+      Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
 proof - 
   { text \<open>proof of @{locale Saturation_Framework_Preliminaries.consequence_relation}, \<open>subset_entailed\<close> assumption\<close>
     fix N1 N2 I \<eta>
@@ -79,7 +82,7 @@ proof -
       using prems I_entails_prems by presburger
     have I_entails_concl_RP: "I \<Turnstile> (concl_of \<iota>_RP) \<cdot> \<eta>"
       using ground_subst I_entails_prems_RP ord_resolve_rename_sound[OF the_inf, of I \<eta>]
-      by (metis mset_CAs set_mset_subst_cls_mset_subst_clss true_clss_set_mset)
+      sorry (*by (metis mset_CAs set_mset_subst_cls_mset_subst_clss true_clss_set_mset)*)
     then have "I \<Turnstile> (Saturation_Framework_Preliminaries.inference.concl_of \<iota>) \<cdot> \<eta>" 
       using concl by simp
   }
