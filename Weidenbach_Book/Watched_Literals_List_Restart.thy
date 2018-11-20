@@ -3057,8 +3057,16 @@ proof -
     by (auto simp: S cdcl_twl_restart_l.simps valid_trail_reduction_refl)
 qed
 
+definition cdcl_GC_clauses_pre :: \<open>'v twl_st_l \<Rightarrow> bool\<close> where
+\<open>cdcl_GC_clauses_pre S \<longleftrightarrow> (
+  \<exists>T. (S, T) \<in> twl_st_l None \<and>
+    twl_list_invs S \<and> twl_struct_invs T \<and>
+    get_conflict_l S = None \<and> clauses_to_update_l S = {#}
+  ) \<close>
+
 definition cdcl_GC_clauses :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
 \<open>cdcl_GC_clauses = (\<lambda>(M, N, D, NE, UE, WS, Q). do {
+  ASSERT(cdcl_GC_clauses_pre (M, N, D, NE, UE, WS, Q));
   b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> count_decided M = 0 \<and> (\<forall>L\<in>set M. mark_of L = 0));
   if b then do {
     (N', _) \<leftarrow> SPEC (\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N'') \<and>
@@ -3074,11 +3082,12 @@ lemma cdcl_GC_clauses_cdcl_twl_restart_l:
     struct_invs: \<open>twl_struct_invs T\<close> and
     confl: \<open>get_conflict_l S = None\<close> and
     upd: \<open>clauses_to_update_l S = {#}\<close>
-  shows \<open>cdcl_GC_clauses S \<le> SPEC (cdcl_twl_restart_l S)\<close>
+  shows \<open>cdcl_GC_clauses S \<le> SPEC (\<lambda>T. cdcl_twl_restart_l S T)\<close>
 proof -
   show ?thesis
     unfolding cdcl_GC_clauses_def
     apply refine_vcg
+    subgoal using assms unfolding cdcl_GC_clauses_pre_def by blast
     subgoal using confl upd by (auto simp: cdcl_twl_restart_l.simps
         valid_trail_reduction_refl
       dest: rtranclp_GC_remap_init_clss_l_old_new rtranclp_GC_remap_learned_clss_l_old_new)
@@ -3086,6 +3095,16 @@ proof -
       using cdcl_twl_restart_l_refl[OF assms] by blast
     done
 qed
+
+definition cdcl_twl_full_restart_l_GC_prog where
+\<open>cdcl_twl_full_restart_l_GC_prog S = do {
+    T \<leftarrow> remove_one_annot_true_clause_imp S;
+    ASSERT(mark_to_delete_clauses_l_pre T);
+    U \<leftarrow> mark_to_delete_clauses_l T;
+    V \<leftarrow> cdcl_GC_clauses U;
+    ASSERT(cdcl_twl_restart_l S V);
+    RETURN V
+  }\<close>
 
 lemma cdcl_twl_full_restart_l_prog_spec:
   assumes
@@ -3197,6 +3216,132 @@ proof -
     by auto
 qed
 
+lemma cdcl_twl_full_restart_l_GC_prog_cdcl_twl_restart_l:
+  assumes
+    ST: \<open>(S, S') \<in> twl_st_l None\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    struct_invs: \<open>twl_struct_invs S'\<close> and
+    confl: \<open>get_conflict_l S = None\<close> and
+    upd: \<open>clauses_to_update_l S = {#}\<close>
+  shows \<open>cdcl_twl_full_restart_l_GC_prog S \<le> \<Down> Id (SPEC (\<lambda>T. cdcl_twl_restart_l S T))\<close>
+proof -
+  let ?f = \<open>(\<lambda>S T. cdcl_twl_restart_l S T)\<close>
+  have n_d: \<open>no_dup (get_trail_l S)\<close>
+    using struct_invs ST unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (simp add: twl_st)
+  then have alt_def: \<open>SPEC (?f S) = do {
+    T \<leftarrow> SPEC (?f S);
+    U \<leftarrow> SPEC (?f S);
+    V \<leftarrow> SPEC (?f S);
+    RETURN V
+    }\<close>
+    using cdcl_twl_restart_l_refl[OF assms]
+    by (auto intro: cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l
+      simp: RES_RES_RETURN_RES)
+  have 1: \<open>remove_one_annot_true_clause_imp S \<le> SPEC (?f S)\<close>
+    by (rule remove_one_annot_true_clause_imp_spec[OF assms, THEN order_trans])
+       (use remove_one_annot_true_clause_cdcl_twl_restart_l_spec[OF assms] in auto)
+  have mark_to_delete_clauses_l_pre: \<open>mark_to_delete_clauses_l_pre T\<close>
+    if
+      \<open>(T, U) \<in> Id\<close> and
+      \<open>U \<in> Collect (?f S)\<close>
+    for T U
+  proof -
+    have f1: "\<forall>p pa pb. ((p, pa) \<notin> twl_st_l (None::'a literal option) \<or>
+      \<not> twl_list_invs p \<or> \<not> twl_struct_invs pa \<or> \<not> cdcl_twl_restart_l p pb) \<or>
+      (\<exists>p. (pb, p) \<in> twl_st_l None \<and> twl_list_invs pb \<and> clauses_to_update_l pb = {#} \<and>
+      cdcl_twl_restart pa p \<and> twl_struct_invs p)"
+      using cdcl_twl_restart_l_invs by blast
+    have "cdcl_twl_restart_l S U"
+      using \<open>U \<in> Collect (?f S)\<close> by blast
+    then show ?thesis
+      unfolding mark_to_delete_clauses_l_pre_def less_eq_nres.simps
+      using f1 by (metis ST \<open>(T, U) \<in> Id\<close> list_invs pair_in_Id_conv struct_invs)
+  qed
+  have 2: \<open>mark_to_delete_clauses_l T \<le> SPEC (?f S)\<close>
+    if TU: \<open>(T, U) \<in> Id\<close> and
+      U: \<open>U \<in> Collect (?f S)\<close> and
+      pre: \<open>mark_to_delete_clauses_l_pre T\<close>
+    for T U
+  proof -
+    obtain V where
+      TV: \<open>(T, V) \<in> twl_st_l None\<close> and
+      struct: \<open>twl_struct_invs V\<close> and
+      list_invs: \<open>twl_list_invs T\<close>
+      using pre unfolding mark_to_delete_clauses_l_pre_def
+      by auto
+    have confl: \<open>get_conflict_l T = None\<close> and upd: \<open>clauses_to_update_l T = {#}\<close> and UT: \<open>U = T\<close> and
+      ST: \<open>cdcl_twl_restart_l S T\<close>
+      using U TU
+      by (auto simp: cdcl_twl_restart_l.simps)
+    show ?thesis
+      by (rule mark_to_delete_clauses_l_spec[OF TV list_invs struct confl upd, THEN order_trans],
+         subst Down_id_eq)
+        (use remove_one_annot_true_clause_cdcl_twl_restart_l_spec[OF TV list_invs struct confl upd]
+          cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l[OF _ _ n_d, of T]
+          ST in auto)
+  qed
+  have 3: \<open>cdcl_GC_clauses U \<le> SPEC (?f S)\<close>
+    if 
+      \<open>(T, T') \<in> Id\<close> and
+      \<open>T' \<in> Collect (?f S)\<close> and
+      \<open>mark_to_delete_clauses_l_pre T\<close> and
+      \<open>(U, U') \<in> Id\<close> and
+      \<open>U' \<in> Collect (?f S)\<close>
+    for T T' U U'
+  proof -
+    have eq: \<open>U' = U\<close> \<open>T' = T\<close>
+      using that by auto
+    have SU': \<open>cdcl_twl_restart_l S U'\<close>
+      using that n_d by (auto intro: cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l)
+    obtain V where
+      UV: \<open>(U, V) \<in> twl_st_l None\<close> and
+      list_invs: \<open>twl_list_invs U\<close> and
+      clss: \<open>clauses_to_update_l U = {#}\<close> and
+      \<open>cdcl_twl_restart S' V\<close> and
+      struct: \<open>twl_struct_invs V\<close>
+      using cdcl_twl_restart_l_invs[OF assms(1,2,3) SU'] unfolding eq by blast
+    have confl: \<open>get_conflict_l U = None\<close>
+      using SU' unfolding eq
+      by (auto simp: cdcl_twl_restart_l.simps)
+    show ?thesis
+      unfolding eq
+      by (rule cdcl_GC_clauses_cdcl_twl_restart_l[OF UV list_invs struct confl clss, THEN order_trans])
+        (use cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l[OF _ _ n_d, of U'] SU' eq
+	  in auto)
+  qed
+  have cdcl_twl_restart_l: \<open>cdcl_twl_restart_l S W\<close>
+    if 
+      \<open>(T, T') \<in> Id\<close> and
+      \<open>T' \<in> Collect (cdcl_twl_restart_l S)\<close> and
+      \<open>mark_to_delete_clauses_l_pre T\<close> and
+      \<open>(U, U') \<in> Id\<close> and
+      \<open>U' \<in> Collect (cdcl_twl_restart_l S)\<close> and
+      W: \<open>(W, W') \<in> Id\<close>
+        \<open>W' \<in> Collect (cdcl_twl_restart_l S)\<close>
+    for T T' U U' W W'
+  proof -
+    show ?thesis
+      using W by (auto)
+  qed
+  show ?thesis
+    unfolding cdcl_twl_full_restart_l_GC_prog_def
+    apply (subst alt_def)
+    apply refine_rcg
+    subgoal
+      by (rule 1)
+    subgoal for T T'
+      by (rule mark_to_delete_clauses_l_pre)
+    subgoal for T U
+    supply [[unify_trace_failure]]
+      by (rule 2)
+    subgoal for T T' U U'
+      by (rule 3)
+    subgoal for T T' U U' W W'
+      by (rule cdcl_twl_restart_l)
+    done
+qed
 
 definition (in -) cdcl_twl_local_restart_l_spec :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>cdcl_twl_local_restart_l_spec = (\<lambda>(M, N, D, NE, UE, W, Q). do {
@@ -3488,7 +3633,7 @@ definition cdcl_twl_stgy_restart_prog_early_l :: "'v twl_st_l \<Rightarrow> 'v t
 
 lemma cdcl_twl_stgy_restart_prog_early_l_cdcl_twl_stgy_restart_abs_early_l:
   \<open>(cdcl_twl_stgy_restart_prog_early_l, cdcl_twl_stgy_restart_abs_early_l) \<in> {(S, S').
-   (S, S') \<in> Id \<and>  twl_list_invs S \<and>  clauses_to_update_l S =  {#}} \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+   (S, S') \<in> Id \<and>  twl_list_invs S \<and>  clauses_to_update_l S = {#}} \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
    (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f _\<close>)
 proof -
   have [refine0]: \<open>((False, S, 0), (False, T , 0)) \<in> bool_rel \<times>\<^sub>r ?R \<times>\<^sub>r nat_rel\<close>
