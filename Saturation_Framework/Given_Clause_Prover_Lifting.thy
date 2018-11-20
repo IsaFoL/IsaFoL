@@ -38,10 +38,7 @@ definition Inf_F :: "'a clause Saturation_Framework_Preliminaries.inference set"
   "Inf_F = conv_inf ` (ord_FO_\<Gamma> S)"
 
 interpretation Saturation_Framework_Preliminaries.sound_inference_system Bot_F entails_sound_F Inf_F 
-    unfolding Saturation_Framework_Preliminaries.sound_inference_system_def
-      consequence_relation_def entails_sound_F_def
-      Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
-proof - 
+proof -
   { text \<open>proof of @{locale Saturation_Framework_Preliminaries.consequence_relation}, \<open>subset_entailed\<close> assumption\<close>
     fix N1 N2 I \<eta>
     assume
@@ -68,7 +65,7 @@ proof -
     fix \<iota> I \<eta>
     assume
       i_in: "\<iota> \<in> Inf_F" and
-      I_entails_prems: "\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s set (inference.prems_of \<iota>) \<cdot>cs \<sigma>" and
+      I_entails_prems: "\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s set (Saturation_Framework_Preliminaries.prems_of \<iota>) \<cdot>cs \<sigma>" and
       ground_subst: "is_ground_subst \<eta>"
     obtain \<iota>_RP where i_RP_in: "\<iota>_RP \<in> (ord_FO_\<Gamma> S)" and i_i_RP: "conv_inf \<iota>_RP = \<iota>"
       using i_in unfolding Inf_F_def by blast
@@ -76,13 +73,13 @@ proof -
       and mset_CAs: "mset CAs = side_prems_of \<iota>_RP" using i_RP_in unfolding ord_FO_\<Gamma>_def by auto
     have concl: "concl_of \<iota>_RP = Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
       using i_i_RP unfolding conv_inf_def by fastforce
-    have prems: "set (inference.prems_of \<iota>) = set_mset (prems_of \<iota>_RP)"
-      using i_i_RP unfolding conv_inf_def by fastforce
+    have prems: "set (Saturation_Framework_Preliminaries.prems_of \<iota>) = set_mset (prems_of \<iota>_RP)"
+      using i_i_RP unfolding conv_inf_def prems_of_def by fastforce
     have I_entails_prems_RP: "\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s set_mset (prems_of \<iota>_RP) \<cdot>cs \<sigma>"
       using prems I_entails_prems by presburger
     have I_entails_concl_RP: "I \<Turnstile> (concl_of \<iota>_RP) \<cdot> \<eta>"
       using ground_subst I_entails_prems_RP ord_resolve_rename_sound[OF the_inf, of I \<eta>]
-      sorry (*by (metis mset_CAs set_mset_subst_cls_mset_subst_clss true_clss_set_mset)*)
+      by (metis mset_CAs set_mset_subst_cls_mset_subst_clss true_clss_set_mset)
     then have "I \<Turnstile> (Saturation_Framework_Preliminaries.inference.concl_of \<iota>) \<cdot> \<eta>" 
       using concl by simp
   }
@@ -168,7 +165,7 @@ proof -
     fix \<iota> I
     assume
       i_in: "\<iota> \<in> Inf_G" and
-      I_entails_prems: "I \<Turnstile>s (set (inference.prems_of \<iota>))"
+      I_entails_prems: "I \<Turnstile>s (set (Saturation_Framework_Preliminaries.prems_of \<iota>))"
     obtain \<iota>_RP where i_equal: "\<iota> = conv_inf \<iota>_RP" and i_RP_in: "\<iota>_RP \<in> gr.ord_\<Gamma>" (*"\<iota>_RP \<in> (ord_FO_\<Gamma> S)" *)
       using i_in unfolding Inf_G_def by blast
     obtain CAs AAs As
@@ -176,8 +173,8 @@ proof -
       and mset_CAs: "side_prems_of \<iota>_RP = mset CAs" using i_RP_in unfolding gr.ord_\<Gamma>_def by force
     have concl: "concl_of \<iota>_RP = Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
       using i_equal unfolding conv_inf_def by fastforce
-    have prems: "set (inference.prems_of \<iota>) = set_mset (prems_of \<iota>_RP)"
-      using i_equal unfolding conv_inf_def by simp
+    have prems: "set (Saturation_Framework_Preliminaries.prems_of \<iota>) = set_mset (prems_of \<iota>_RP)"
+      using i_equal unfolding conv_inf_def prems_of_def by simp
     have I_entails_prems_RP: "I \<Turnstile>s set_mset (prems_of \<iota>_RP)" using prems I_entails_prems by argo
     then have I_entails_concl_RP: "I \<Turnstile> concl_of \<iota>_RP"
       using ground_resolution_with_selection.ord_resolve_sound[of S CAs "main_prem_of \<iota>_RP" AAs As "concl_of \<iota>_RP" I]
@@ -272,7 +269,7 @@ proof
   qed
   then obtain \<iota>_RP where i_RP_from: \<open>\<iota>_RP \<in> gr.inferences_from N\<close> and i_to_i_RP: \<open>\<iota> = conv_inf \<iota>_RP\<close> by fast
   have \<open>set_mset (prems_of \<iota>_RP) \<subseteq> N\<close> using i_RP_from unfolding gr.inferences_from_def infer_from_def by fast
-  then have i_from: \<open>set (Saturation_Framework_Preliminaries.prems_of \<iota>) \<subseteq> N\<close> using i_to_i_RP unfolding conv_inf_def by auto
+  then have i_from: \<open>set (Saturation_Framework_Preliminaries.prems_of \<iota>) \<subseteq> N\<close> using i_to_i_RP unfolding conv_inf_def prems_of_def by auto
   have \<open>\<iota> \<in> Inf_G\<close> using i_RP_from i_to_i_RP unfolding gr.inferences_from_def Inf_G_def by blast
   then show \<open>\<iota> \<in> gr_calc.Inf_from N\<close> using i_from unfolding gr_calc.Inf_from_def by fast
 qed
