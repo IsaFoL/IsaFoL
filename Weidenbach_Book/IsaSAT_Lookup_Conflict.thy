@@ -2395,13 +2395,231 @@ lemma conflict_min_cach_set_removable:
      (auto simp: cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
       conflict_min_cach_set_removable_l_def)
 
-abbreviation (in -)analyse_refinement_assn where
-  \<open>analyse_refinement_assn \<equiv> arl_assn (nat_assn *a nat_assn *a nat_assn *a nat_assn)\<close>
+text \<open>This is the result of trying and discovering that MLton is able to optimise the code better.\<close>
+datatype 'n ana_ref = Ana_Ref 'n 'n 'n 'n
 
+instantiation ana_ref :: (default) default
+begin
+
+definition default_ana_ref :: \<open>'a ana_ref\<close> where
+  \<open>default_ana_ref = Ana_Ref default default default default\<close>
+
+instance
+  by standard
+end
+instance ana_ref :: (heap) heap
+
+proof
+  obtain to_nata where
+    b: \<open>inj (to_nata :: 'a \<Rightarrow> nat)\<close>
+    by blast
+  
+  obtain to_natb where
+    a: \<open>inj (to_natb :: nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat)\<close>
+    by blast
+  let ?f = \<open>\<lambda>x :: 'a ana_ref. case x of Ana_Ref a b c d \<Rightarrow>
+    to_natb (to_nata a, to_nata b, to_nata c, to_nata d)\<close>
+  have \<open>inj ?f\<close>
+    unfolding inj_on_def
+    apply (intro ballI)
+    apply (case_tac x, case_tac y)
+    apply (auto dest!: injD[OF a] injD[OF b])
+    done
+  then show \<open>\<exists>to_nat. inj (to_nat :: 'a ana_ref \<Rightarrow> nat)\<close>
+    by blast
+qed
+
+fun ana_ref_assn :: \<open>('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a ana_ref \<Rightarrow> 'b ana_ref \<Rightarrow> assn\<close> where [simp del]:
+  \<open>ana_ref_assn r (Ana_Ref a b c d) (Ana_Ref a' b' c' d')=
+    r a a' * r b b' * r c c' * r d d'\<close>
+
+lemma ana_ref_assn_def:
+  \<open>ana_ref_assn r = (\<lambda>x y. case (x, y) of
+    (Ana_Ref a b c d, Ana_Ref a' b' c' d') \<Rightarrow>
+    r a a' * r b b' * r c c' * r d d')\<close>
+  apply (intro ext)
+  apply (case_tac  x, case_tac y)
+  by (auto simp: ana_ref_assn.simps intro!: ext)
+
+definition analyse_refinement_rel where
+  \<open>analyse_refinement_rel = {(x, y).
+     y = (case x of Ana_Ref a b c d \<Rightarrow> (a, b, c, d))}\<close>
+
+definition (in -)ana_refinement_assn where
+  \<open>ana_refinement_assn \<equiv> hr_comp (ana_ref_assn nat_assn) analyse_refinement_rel\<close>
+
+abbreviation (in -)analyse_refinement_assn where
+  \<open>analyse_refinement_assn \<equiv> arl_assn ana_refinement_assn\<close>
+
+definition (in -)ana_refinement_fast_assn where
+  \<open>ana_refinement_fast_assn \<equiv>
+    hr_comp (ana_ref_assn uint64_nat_assn) analyse_refinement_rel\<close>
+
+lemma ex_ana_ref_split: \<open>(\<exists>\<^sub>Aba. P ba) = (\<exists>\<^sub>A a b c d. P (Ana_Ref a b c d))\<close>
+proof -
+  let ?f = \<open>\<lambda>x. case x of (a, b, c, d) \<Rightarrow> P (Ana_Ref a b c d)\<close>
+  have 1: \<open>(\<exists>x. h \<Turnstile> P x) = (\<exists>a b c d. h \<Turnstile> P (Ana_Ref a b c d))\<close> for h
+    apply auto
+    apply (case_tac x)
+    by auto
+  have 2: \<open>(\<exists>\<^sub>Aa b c d. P (Ana_Ref a b c d)) = (\<exists>\<^sub>Ax. ?f x)\<close>
+    unfolding ex_assn_pair_split
+    by auto
+  show ?thesis
+    apply (subst ex_assn_def)
+    apply (subst 1)
+    apply (subst 2)
+    apply (subst ex_assn_def)
+    by auto
+qed
+
+(*TODO move*)
+lemma ex_assn_def_pure_eq_start2:
+  \<open>(\<exists>\<^sub>Aba b. \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab .  P b (h b))\<close>
+  by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
+
+lemma ex_assn_def_pure_eq_start3:
+  \<open>(\<exists>\<^sub>Aba b c. \<up> (ba = h b) * P b ba c) = (\<exists>\<^sub>Ab c.  P b (h b) c)\<close>
+  by (subst ex_assn_def, subst (3) ex_assn_def, auto)+
+
+lemma ex_assn_def_pure_eq_start3':
+  \<open>(\<exists>\<^sub>Aba b c. \<up> (bb = ba) * P b ba c) = (\<exists>\<^sub>Ab c.  P b bb c)\<close>
+  by (subst ex_assn_def, subst (3) ex_assn_def, auto)+
+
+lemma ex_assn_def_pure_eq_start4':
+  \<open>(\<exists>\<^sub>Aba b c d. \<up> (bb = ba) * P b ba c d) = (\<exists>\<^sub>Ab c d.  P b bb c d)\<close>
+  by (subst ex_assn_def, subst (4) ex_assn_def, auto)+
+  
+lemma ex_assn_def_pure_eq_start1:
+  \<open>(\<exists>\<^sub>Aba. \<up> (ba = h b) * P ba) = (P (h b))\<close>
+  by (subst ex_assn_def, auto)+
+  
+lemma ana_refinement_fast_assn_alt_def:
+  \<open>ana_refinement_fast_assn (a', b', c' , d') (Ana_Ref a b c d)  =
+  uint64_nat_assn a' a * uint64_nat_assn b' b * uint64_nat_assn c' c * uint64_nat_assn d' d\<close>
+  unfolding ana_refinement_fast_assn_def
+  apply (auto simp: hr_comp_def ana_ref_assn_def analyse_refinement_rel_def
+    uint64_nat_rel_def br_def pure_def ex_ana_ref_split
+    ex_assn_def_pure_eq_middle3 ex_assn_def_pure_eq_middle2
+    ex_assn_def_pure_eq_start2 ex_assn_def_pure_eq_start1
+    simp flip: merge_pure_star
+    cong: )
+  apply (subst star_assoc)+
+  apply (subst ex_assn_def_pure_eq_start1)
+  by auto
+lemma ana_refinement_fast_assn_alt_def2:
+  \<open>ana_refinement_fast_assn = (\<lambda>(a', b', c' , d') x. case x of (Ana_Ref a b c d) \<Rightarrow>
+  uint64_nat_assn a' a * uint64_nat_assn b' b * uint64_nat_assn c' c * uint64_nat_assn d' d)\<close>
+  apply (auto simp: ana_refinement_fast_assn_alt_def intro!: ext)
+  apply (case_tac x)
+  by (auto simp: ana_refinement_fast_assn_alt_def intro!: ext)
+lemma ex_assn_cong:
+  \<open>(\<And>x. P x = P' x) \<Longrightarrow> (\<exists>\<^sub>Ax. P x) = (\<exists>\<^sub>Ax. P' x)\<close>
+  by auto
+
+lemma ana_refinement_assn_alt_def:
+  \<open>ana_refinement_assn (a', b', c' , d') (Ana_Ref a b c d)  =
+  nat_assn a' a * nat_assn b' b * nat_assn c' c * nat_assn d' d\<close>
+  unfolding ana_refinement_assn_def
+  apply (auto simp: hr_comp_def ana_ref_assn_def analyse_refinement_rel_def
+    uint64_nat_rel_def br_def pure_def ex_ana_ref_split
+    ex_assn_def_pure_eq_middle3 ex_assn_def_pure_eq_middle2
+    ex_assn_def_pure_eq_start2 ex_assn_def_pure_eq_start1
+      ex_assn_def_pure_eq_start3
+      ex_assn_def_pure_eq_start3'
+      ex_assn_def_pure_eq_start4'
+      eq_commute[of a] eq_commute[of b] eq_commute[of c] eq_commute[of d]
+    simp flip: merge_pure_star
+    cong: ex_assn_cong)
+  apply (subst star_assoc)+
+  apply (subst ex_assn_def_pure_eq_start1)
+  by auto
+lemma ana_refinement_assn_alt_def2:
+  \<open>ana_refinement_assn = (\<lambda>(a', b', c' , d') x. case x of (Ana_Ref a b c d) \<Rightarrow>
+  nat_assn a' a * nat_assn b' b * nat_assn c' c * nat_assn d' d)\<close>
+  apply (auto simp: ana_refinement_assn_alt_def intro!: ext)
+  apply (case_tac x)
+  by (auto simp: ana_refinement_assn_alt_def intro!: ext)
+  
+lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure ana_refinement_assn\<close>
+  unfolding CONSTRAINT_def is_pure_def
+  supply[[show_sorts]]
+  apply (rule exI[of _ \<open>\<lambda>x x'. (x :: nat \<times> nat \<times> nat \<times> nat) = (case x' of
+    Ana_Ref a b c d \<Rightarrow> (a, b, c , d))\<close>])
+  apply (auto simp: is_pure_def ana_refinement_assn_alt_def2)
+  apply (case_tac x')
+  by (auto simp: pure_def)
+
+lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure ana_refinement_fast_assn\<close>
+  unfolding CONSTRAINT_def is_pure_def
+  supply[[show_sorts]]
+  apply (rule exI[of _ \<open>\<lambda>(a, b, c , d) x'.  (case x' of
+    Ana_Ref a' b' c' d' \<Rightarrow> (a', a) \<in> uint64_nat_rel \<and> (b', b) \<in> uint64_nat_rel \<and>
+      (c', c) \<in> uint64_nat_rel \<and> (d', d) \<in> uint64_nat_rel)\<close>])
+  apply (auto simp: is_pure_def ana_refinement_fast_assn_alt_def2)
+  apply (case_tac x')
+  by (auto simp: pure_def)
+ 
 abbreviation (in -)analyse_refinement_fast_assn where
   \<open>analyse_refinement_fast_assn \<equiv>
-    arl_assn (uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn)\<close>
+    arl_assn ana_refinement_fast_assn\<close>
 
+definition to_ana_ref_id where
+  [simp]: \<open>to_ana_ref_id = (\<lambda>a b c d. (a, b, c, d))\<close>
+
+definition to_ana_ref where
+  \<open>to_ana_ref = (\<lambda>a b c d. Ana_Ref a b c d)\<close>
+
+definition from_ana_ref_id where
+  [simp]: \<open>from_ana_ref_id x = x\<close>
+  
+definition from_ana_ref where
+  \<open>from_ana_ref = (\<lambda>x. case x of Ana_Ref a b c d \<Rightarrow> (a, b, c, d))\<close>
+
+lemma to_ana_ref_id_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry3 (return oooo to_ana_ref), uncurry3 (RETURN oooo to_ana_ref_id)) \<in>
+   uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a
+   ana_refinement_fast_assn\<close>
+ by sepref_to_hoare
+   (sep_auto simp: to_ana_ref_def to_ana_ref_id_def ana_ref_assn_def
+   analyse_refinement_rel_def uint64_nat_rel_def br_def
+   case_prod_beta ana_refinement_fast_assn_alt_def pure_def)
+
+lemma to_ana_ref_id_hnr[sepref_fr_rules]:
+  \<open>(uncurry3 (return oooo to_ana_ref), uncurry3 (RETURN oooo to_ana_ref_id)) \<in>
+   nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a
+   ana_refinement_assn\<close>
+  unfolding ana_refinement_assn_alt_def[abs_def]
+ by sepref_to_hoare
+   (sep_auto simp: to_ana_ref_def to_ana_ref_id_def
+    uint64_nat_rel_def br_def ana_refinement_assn_alt_def
+   case_prod_beta  pure_def)
+
+lemma [sepref_fr_rules]:
+  \<open>((return o from_ana_ref), (RETURN o from_ana_ref_id)) \<in>
+   ana_refinement_fast_assn\<^sup>k \<rightarrow>\<^sub>a
+   uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn\<close>
+  apply sepref_to_hoare
+  apply (case_tac xi)
+  apply
+    (sep_auto simp: from_ana_ref_def from_ana_ref_id_def ana_ref_assn_def
+    analyse_refinement_rel_def uint64_nat_rel_def br_def
+    case_prod_beta ana_refinement_fast_assn_alt_def pure_def)
+  done
+
+lemma [sepref_fr_rules]:
+  \<open>((return o from_ana_ref), (RETURN o from_ana_ref_id)) \<in>
+   ana_refinement_assn\<^sup>k \<rightarrow>\<^sub>a
+  nat_assn *a nat_assn *a nat_assn *a nat_assn\<close>
+  unfolding ana_refinement_assn_alt_def[abs_def]
+  apply sepref_to_hoare
+  apply (case_tac xi)
+  apply
+    (sep_auto simp: from_ana_ref_def from_ana_ref_id_def
+     uint64_nat_rel_def br_def ana_refinement_assn_alt_def
+    case_prod_beta pure_def)
+  done
+  
 lemma minimize_status_eq_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in>
     minimize_status_assn\<^sup>k *\<^sub>a minimize_status_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -2415,7 +2633,7 @@ definition isa_mark_failed_lits_stack where
       (\<lambda>(i, cach). i < l)
       (\<lambda>(i, cach). do {
         ASSERT(i < length analyse);
-        let (cls_idx, _, idx, _) = analyse ! i;
+        let (cls_idx, _, idx, _) = from_ana_ref_id (analyse ! i);
         ASSERT(cls_idx + idx \<ge> 1);
         ASSERT(cls_idx + idx - 1 < length NU);
 	ASSERT(arena_lit_pre NU (cls_idx + idx - 1));
@@ -2548,6 +2766,7 @@ proof -
 
   show ?thesis
     unfolding isa_mark_failed_lits_stack_def mark_failed_lits_stack_def uncurry_def
+      from_ana_ref_id_def
     apply (rewrite at \<open>let _ = length _ in _\<close> Let_def)
     apply (intro frefI nres_relI)
     apply refine_vcg
@@ -2565,6 +2784,7 @@ proof -
     done
 qed
 
+sepref_register from_ana_ref_id
 sepref_definition isa_mark_failed_lits_stack_code
   is \<open>uncurry2 (isa_mark_failed_lits_stack)\<close>
   :: \<open>arena_assn\<^sup>k *\<^sub>a analyse_refinement_assn\<^sup>d *\<^sub>a cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a
@@ -2613,8 +2833,8 @@ declare isa_mark_failed_lits_stack_fast_code.refine[sepref_fr_rules]
 definition isa_get_literal_and_remove_of_analyse_wl
    :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat) list \<Rightarrow> nat literal \<times> (nat \<times> nat \<times> nat \<times> nat) list\<close> where
   \<open>isa_get_literal_and_remove_of_analyse_wl C analyse =
-    (let (i, k, j, len) = last analyse in
-     (arena_lit C (i + j), analyse[length analyse - 1 := (i, k, j + 1, len)]))\<close>
+    (let (i, k, j, len) = from_ana_ref_id (last analyse) in
+     (arena_lit C (i + j), analyse[length analyse - 1 := to_ana_ref_id i k (j + 1) len]))\<close>
 
 definition isa_get_literal_and_remove_of_analyse_wl_pre
    :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat) list \<Rightarrow> bool\<close> where
@@ -2622,6 +2842,7 @@ definition isa_get_literal_and_remove_of_analyse_wl_pre
   (let (i, k, j, len) = last analyse in
     analyse \<noteq> [] \<and> arena_lit_pre arena (i+j))\<close>
 
+sepref_register to_ana_ref_id
 sepref_definition isa_get_literal_and_remove_of_analyse_wl_code
   is \<open>uncurry (RETURN oo isa_get_literal_and_remove_of_analyse_wl)\<close>
   :: \<open>[uncurry isa_get_literal_and_remove_of_analyse_wl_pre]\<^sub>a
@@ -2665,10 +2886,10 @@ definition lit_redundant_reason_stack_wl_lookup
   :: \<open>nat literal \<Rightarrow> arena_el list \<Rightarrow> nat \<Rightarrow> nat \<times> nat \<times> nat \<times> nat\<close>
 where
 \<open>lit_redundant_reason_stack_wl_lookup L NU C =
-  (if arena_length NU C > 2 then (C, 0, 1, arena_length NU C)
+  (if arena_length NU C > 2 then to_ana_ref_id C 0 1 (arena_length NU C)
   else if arena_lit NU C = L
-  then (C, 0, 1, arena_length NU C)
-  else (C, 1, 0, 1))\<close>
+  then to_ana_ref_id C 0 1 (arena_length NU C)
+  else to_ana_ref_id C 1 0 1)\<close>
 
 definition isa_lit_redundant_rec_wl_lookup
   :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> lookup_clause_rel \<Rightarrow>
@@ -2679,7 +2900,7 @@ where
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
-	    let (C, k, i, len) = last analyse;
+	    let (C, k, i, len) = from_ana_ref_id (last analyse);
             ASSERT(C < length NU);
             ASSERT(arena_is_valid_clause_idx NU C);
             ASSERT(arena_lit_pre NU (C + k));
@@ -2771,7 +2992,7 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
         }
       })
       (cach, analysis, False)\<close>
-  unfolding isa_lit_redundant_rec_wl_lookup_def by (auto simp: Let_def)
+  unfolding isa_lit_redundant_rec_wl_lookup_def from_ana_ref_id_def by (auto simp: Let_def)
 
 (*TODO Move*)
 lemma valid_arena_nempty:
@@ -2808,6 +3029,7 @@ proof -
     supply [[goals_limit=3]]
     supply RETURN_as_SPEC_refine[refine2 add]
     unfolding isa_lit_redundant_rec_wl_lookup_alt_def lit_redundant_rec_wl_lookup_def uncurry_def
+      from_ana_ref_id_def
     apply (intro frefI nres_relI)
     apply (refine_rcg
       isa_mark_failed_lits_stack[THEN fref_to_Down_curry2])
@@ -2895,18 +3117,18 @@ sepref_definition lit_redundant_reason_stack_wl_lookup_code
   is \<open>uncurry2 (RETURN ooo lit_redundant_reason_stack_wl_lookup)\<close>
   :: \<open>[uncurry2 lit_redundant_reason_stack_wl_lookup_pre]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-      nat_assn *a nat_assn *a nat_assn *a nat_assn\<close>
+      ana_refinement_assn\<close>
   unfolding lit_redundant_reason_stack_wl_lookup_def lit_redundant_reason_stack_wl_lookup_pre_def
   apply (rewrite at \<open>2 < \<hole>\<close> nat_of_uint64_conv_def[symmetric])
-  apply (rewrite at \<open>(_, _, _, \<hole>)\<close>  nat_of_uint64_conv_def[symmetric])
-  apply (rewrite at \<open>If _ _ (If _ (_, _, _, \<hole>) _)\<close>  nat_of_uint64_conv_def[symmetric])
+  apply (rewrite at \<open>to_ana_ref_id _ _ _ \<hole>\<close>  nat_of_uint64_conv_def[symmetric])
+  apply (rewrite at \<open>If _ _ (If _ (to_ana_ref_id _ _ _ \<hole>) _)\<close>  nat_of_uint64_conv_def[symmetric])
   by sepref
 
 sepref_definition lit_redundant_reason_stack_wl_lookup_fast_code
   is \<open>uncurry2 (RETURN ooo lit_redundant_reason_stack_wl_lookup)\<close>
   :: \<open>[uncurry2 lit_redundant_reason_stack_wl_lookup_pre]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>
-      uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn\<close>
+      ana_refinement_fast_assn\<close>
   unfolding lit_redundant_reason_stack_wl_lookup_def lit_redundant_reason_stack_wl_lookup_pre_def
     two_uint64_nat_def[symmetric] zero_uint64_nat_def[symmetric]
     one_uint64_nat_def[symmetric]
