@@ -303,8 +303,8 @@ definition update_confl_tl_wl_pre where
       card_max_lvl (get_trail_wl S) (the (get_conflict_wl S)) \<ge> 1 \<and>
       distinct_mset (the (get_conflict_wl S)) \<and>
       - L \<notin> set (get_clauses_wl S \<propto> C) \<and>
-      (length (get_clauses_wl S \<propto> C) > 2 \<longrightarrow> 
-        L \<notin> set (tl (get_clauses_wl S \<propto> C)) \<and> 
+      (length (get_clauses_wl S \<propto> C) > 2 \<longrightarrow>
+        L \<notin> set (tl (get_clauses_wl S \<propto> C)) \<and>
         get_clauses_wl S \<propto> C ! 0 = L) \<and>
       L \<in> set (watched_l (get_clauses_wl S \<propto> C)) \<and>
       distinct (get_clauses_wl S \<propto> C) \<and>
@@ -341,7 +341,7 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_all_atms_self[simp]:
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_atms ca NUE) {#mset (fst x). x \<in># ran_m ca#}\<close>
   by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
     all_atms_def all_lits_def in_all_lits_of_mm_ain_atms_of_iff)
-  
+
 lemma update_confl_tl_wl_heur_update_confl_tl_wl:
   \<open>(uncurry2 (update_confl_tl_wl_heur), uncurry2 (RETURN ooo update_confl_tl_wl)) \<in>
   [update_confl_tl_wl_pre]\<^sub>f
@@ -524,7 +524,7 @@ proof -
        by (smt \<open>distinct_mset (mset (get_clauses_wl (baa, ca, da, ea, fa, ga, ha) \<propto> ao))\<close>
 	 add_mset_commute add_mset_diff_bothsides add_mset_remove_trivial_eq dist_D
 	 distinct_mset_add_mset distinct_mset_union_mset get_clauses_wl.simps
-	 get_conflict_wl.simps minus_notin_trivial2 remove_1_mset_id_iff_notin) 
+	 get_conflict_wl.simps minus_notin_trivial2 remove_1_mset_id_iff_notin)
 
     have eq: \<open>(the da \<union># mset (ca \<propto> ao) - {#- bg, bg#}) =
       remove1_mset (-bg) (the da \<union># mset (tl (ca \<propto> ao)))\<close>
@@ -663,7 +663,7 @@ proof -
 		   (RETURN
 		     (let D = resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl
 		      in (False, tl baa, ca, Some D, ea, fa, ga, ha))))\<close>
-    if 
+    if
       inv: \<open>update_confl_tl_wl_pre ((bk, bl), baa, ca, da, ea, fa, ga, ha)\<close> and
       rel: \<open>(((a, b), (aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
 	 ((ah, ai, aj, ak, bc), al, bd), h, i, (am, be), k, l,
@@ -747,11 +747,11 @@ proof -
     have n_d: \<open>no_dup baa\<close>
       using tr unfolding trail_pol_alt_def
       by auto
-      
+
     have [simp]: \<open>lit_of (hd baa) = bl\<close> and hd_M_L_C: \<open>hd baa = Propagated bl bk\<close>
       using L_M tr_nempty proped by (cases baa; cases \<open>hd baa\<close>; auto; fail)+
     have H: \<open>False\<close>
-      if 
+      if
        \<open>K \<in> set (ca \<propto> bk)\<close> and
        \<open>K \<noteq> bl\<close> and
        \<open>- K \<in># the da\<close>
@@ -935,7 +935,7 @@ proof -
     \<open>curry6 isa_set_lookup_conflict_aa_pre
 	 (aa, ab, ac, ad, ae, ba) c a (af, ag, bb) i k l\<close> (is ?A) and
     valid: \<open>arena_is_valid_clause_idx c a\<close> (is ?B)
-    if 
+    if
       inv: \<open>update_confl_tl_wl_pre ((bk, bl), baa, ca, da, ea, fa, ga, ha)\<close> and
       \<open>1 \<le> i\<close> and
       rel: \<open>(((a, b), (aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
@@ -956,13 +956,13 @@ proof -
   proof -
     let ?\<A> = \<open>all_atms_st (baa, ca, da, ea, fa, ga, ha)\<close>
 
-    have 
+    have
       ao: \<open>bk \<in># dom_m (get_clauses_wl (baa, ca, da, ea, fa, ga, ha))\<close> and
       lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail ?\<A>
 	(get_trail_wl (baa, ca, da, ea, fa, ga, ha))\<close>
       using inv unfolding CLS update_confl_tl_wl_pre_def prod.case apply -
       by blast+
-      
+
     have
       arena: \<open>valid_arena c ca (set ra)\<close> and
       ocr: \<open>((af, ag, bb), da) \<in> option_lookup_clause_rel ?\<A>\<close> and
@@ -1379,7 +1379,7 @@ proof -
     by (cases \<open>get_clauses_wl x2 \<propto> x2c\<close>; cases \<open>get_trail_wl x2\<close>)
       (auto simp: true_annots_true_cls_def_iff_negation_in_model
       dest: in_lits_of_l_defined_litD)
-  
+
   show dist_NC: \<open>distinct (get_clauses_wl x2 \<propto> x2c)\<close>
     using dist x_xb x2_x \<open>x2c \<in># dom_m (get_clauses_wl x2)\<close>
     unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_alt_def

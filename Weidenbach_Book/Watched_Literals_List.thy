@@ -2171,7 +2171,7 @@ proof -
       using S' M_lev False unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       by (auto simp: S twl_st_l_def cdcl\<^sub>W_restart_mset_state split: if_splits
           dest: in_lits_of_l_defined_litD)
-      
+
     note 1 and 2 and 3
   }
   ultimately show ?thesis

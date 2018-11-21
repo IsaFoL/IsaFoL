@@ -233,7 +233,7 @@ lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_init_itself[iff]:
   unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
   by (auto simp: all_init_lits_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
     in_all_lits_of_mm_ain_atms_of_iff all_init_atms_def)
-  
+
 lemma literals_are_\<L>\<^sub>i\<^sub>n'_alt_def: \<open>literals_are_\<L>\<^sub>i\<^sub>n' \<A> S \<longleftrightarrow>
      is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_init_lits (get_clauses_wl S) (get_unit_init_clss_wl S)) \<and>
      blits_in_\<L>\<^sub>i\<^sub>n' S\<close>

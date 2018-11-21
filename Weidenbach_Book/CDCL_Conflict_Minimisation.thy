@@ -1176,7 +1176,7 @@ proof -
       subgoal unfolding literal_redundant_spec_def[symmetric] by (rule H)
       done
   qed
-   
+
   have
     L_dist: \<open>distinct_mset (C)\<close> and
     L_tauto: \<open>\<not>tautology C\<close>
@@ -1344,7 +1344,7 @@ proof -
     lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T)\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast+
- 
+
   have n_d: \<open>no_dup (get_trail_l S)\<close>
     using ST lev_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (auto simp: twl_st_l twl_st)
@@ -1459,7 +1459,7 @@ proof -
     \<open>RETURN (get_literal_and_remove_of_analyse_wl (NU \<propto> x1d) x1c)
 	\<le> \<Down> (Id \<times>\<^sub>r ?B)
 	   (get_literal_and_remove_of_analyse x1a)\<close>
-    if 
+    if
       xx': \<open>(x, x')  \<in> ?R\<close> and
       \<open>case x of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
       \<open>case x' of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
@@ -1510,7 +1510,7 @@ proof -
 		option_rel)
 	   (get_propagation_reason M' (- x1g))\<close>
       (is \<open>_ \<le> \<Down> (\<langle>?get_propagation_reason\<rangle>option_rel) _\<close>)
-    if 
+    if
       \<open>(x, x')  \<in> ?R\<close> and
       \<open>case x of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
       \<open>case x' of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
@@ -1605,7 +1605,7 @@ proof -
 	    analyse' = convert_analysis_list NU analyse \<and>
 	    lit_redundant_rec_wl_ref NU analyse} \<times>\<^sub>f
 	   bool_rel)\<close>
-    if 
+    if
       xx': \<open>(x, x') \<in> Id \<times>\<^sub>r ?A \<times>\<^sub>r bool_rel\<close> and
       \<open>case x of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
       \<open>case x' of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
@@ -1680,7 +1680,7 @@ proof -
     have le2: \<open>length (NU \<propto> xb) \<ge> 2\<close>
       using clauses_length_ge2[OF S'_S'' add_inv assms(10)] xb_x'c S_S'
       by (auto simp: S)
-    have 0: \<open>case lit_redundant_reason_stack (-x1g) NU xb of (i, k, j, ln) \<Rightarrow> 
+    have 0: \<open>case lit_redundant_reason_stack (-x1g) NU xb of (i, k, j, ln) \<Rightarrow>
             j \<le> ln \<and> i \<in># dom_m NU \<and> 0 \<le> j \<and> 0 < i \<and> ln \<le> length (NU \<propto> i) \<and>
 	      k < length (NU \<propto> i) \<and> distinct (NU \<propto> i) \<and> \<not> tautology (mset (NU \<propto> i))\<close>
       for i j ln k
@@ -1892,7 +1892,7 @@ proof -
               S_S' S'_S''  M'_def
             by (auto simp: S)
         qed
-	
+
         show ?propa and ?a
           using that M'_def by (auto simp: convert_lits_l_def p2rel_def convert_lit.simps
               elim!: list_rel_in_find_correspondanceE split: if_splits)
@@ -1916,7 +1916,7 @@ proof -
     by (cases C) auto
   have S''_M': \<open>(get_trail S'') = M'\<close>
     using M' S''' by auto
-    
+
   have [simp]: \<open>length (NU \<propto> C) > 2 \<Longrightarrow> NU \<propto> C ! 0 = -L\<close> and
     L_watched: \<open>-L \<in> set (watched_l (NU \<propto> C))\<close> and
     L_dist: \<open>distinct (NU \<propto> C)\<close> and

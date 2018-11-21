@@ -1462,7 +1462,7 @@ lemma length_watched_le:
   assumes
     prop_inv: \<open>correct_watching x1\<close> and
     xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur'' \<D>1 r\<close> and
-    x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close> 
+    x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close>
   shows \<open>length (watched_by x1 x2) \<le> r - 4\<close>
 proof -
   have \<open>correct_watching x1\<close>
@@ -1547,7 +1547,7 @@ begin
 private lemma L_K: \<open>L = K\<close>
   using L_K0 unfolding st
   by auto
-  
+
 private lemma state_simp_ST:
   \<open>x1a = (L, x2)\<close>
   \<open>x1 = ((L, x2), x2a)\<close>
@@ -1731,12 +1731,12 @@ proof -
     using corr .
 qed
 
-  
+
 lemma prop_fast_le:
   assumes fast: \<open>length (get_clauses_wl_heur S) \<le> uint64_max\<close>
   shows \<open>x2c < uint64_max\<close> \<open>x2d < uint64_max\<close>
 proof -
-  obtain x xa where 
+  obtain x xa where
     Sx: \<open>(S, x) \<in> twl_st_heur\<close> and
     \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st x) x\<close> and
     L': \<open>L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x)\<close> and
@@ -2629,7 +2629,7 @@ proof -
     subgoal
       by (rule in_D0)
     subgoal by (rule prop_fast_le(1))
-    subgoal by (rule prop_fast_le(2)) 
+    subgoal by (rule prop_fast_le(2))
     subgoal
       by (rule polarity_eq)
     subgoal
@@ -3124,7 +3124,7 @@ proof -
   have length_le: \<open>length (watched_by x2b x1b) \<le> r - 4\<close> and
     length_eq: \<open>length (watched_by x2b x1b) = length (watched_by (snd y) (fst y))\<close> and
     eq: \<open>x1b = fst y\<close>
-    if 
+    if
       \<open>case y of (L, S) \<Rightarrow> length (watched_by S L) \<le> r-4\<close> and
       \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur'' \<D> r\<close> and
       \<open>y = (x1, x2)\<close> and
@@ -3139,7 +3139,7 @@ proof -
     apply (refine_vcg cut_watch_list_heur_cut_watch_list_heur[of \<D> r, THEN fref_to_Down_curry3]
 	unit_propagation_inner_loop_wl_loop_D_heur_unit_propagation_inner_loop_wl_loop_D[of r _ _ \<D>,
 	   THEN fref_to_Down_curry])
-	   
+
     apply (rule length_le; assumption)
     apply (rule eq; assumption)
     apply (rule length_eq; assumption)
@@ -3261,7 +3261,7 @@ proof -
 qed
 
 lemma outer_loop_length_watched_le_length_arena:
-  assumes 
+  assumes
     xa_x': \<open>(xa, x') \<in> twl_st_heur'' \<D> r\<close> and
     prop_heur_inv: \<open>unit_propagation_outer_loop_wl_D_heur_inv x xa\<close> and
     prop_inv: \<open>unit_propagation_outer_loop_wl_D_inv x'\<close> and
@@ -3291,7 +3291,7 @@ proof -
   have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1) (get_unit_clauses_wl x1))\<close>
     using x2 xb_x'a unfolding st
     by auto
-    
+
   have
       valid: \<open>valid_arena (get_clauses_wl_heur xa) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
     using xb_x'a unfolding all_atms_def all_lits_def st

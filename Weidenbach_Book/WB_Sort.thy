@@ -10,7 +10,7 @@ definition choose_pivot :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rig
 definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
   \<open>partition_between R h i0 j0 xs0 = do {
     ASSERT(i0 < length xs0 \<and> j0 < length xs0 \<and> j0 > i0);
-    k \<leftarrow> choose_pivot R h xs0 i0 j0; \<comment> \<open>choice of pivot\<close>	
+    k \<leftarrow> choose_pivot R h xs0 i0 j0; \<comment> \<open>choice of pivot\<close>
     ASSERT(k < length xs0);
     xs \<leftarrow> RETURN (swap xs0 k j0);
     ASSERT(length xs = length xs0);
@@ -195,7 +195,7 @@ definition partition_between_ref
 where
   \<open>partition_between_ref R h i0 j0 xs0 = do {
     ASSERT(i0 < length xs0 \<and> j0 < length xs0 \<and> j0 > i0);
-    k \<leftarrow> choose_pivot3 R h xs0 i0 j0; \<comment> \<open>choice of pivot\<close>	
+    k \<leftarrow> choose_pivot3 R h xs0 i0 j0; \<comment> \<open>choice of pivot\<close>
     ASSERT(k < length xs0);
     xs \<leftarrow> RETURN (swap xs0 k j0);
     ASSERT(length xs = length xs0);
@@ -250,7 +250,7 @@ proof -
     for pivot pivota xsa
     using that
     by (auto intro!: ext ASSERT_leI)
-    
+
   show ?thesis
     apply (subst (2) Down_id_eq[symmetric])
     unfolding partition_between_ref_def
@@ -259,7 +259,7 @@ proof -
       OP_def
     apply (refine_vcg choose_pivot3_choose_pivot swap
       LIST_FOREACH_autoref["to_\<Down>"] \<comment> \<open>@Peter: what is the proper way to do that?\<close>
-      ) 
+      )
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -281,7 +281,7 @@ lemma partition_between_ref_partition_between':
     nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto intro: partition_between_ref_partition_between)
-    
+
 definition choose_pivot3_impl where
   \<open>choose_pivot3_impl = choose_pivot3 (<) id\<close>
 
@@ -333,7 +333,7 @@ proof -
   have f: \<open>f (x1b, x2e - 1, x1e)
 	\<le> \<Down> Id
 	   (fa (x1, x2d - 1, x1d))\<close>
-    if 
+    if
       H: \<open>\<And>x x'.
 	  (x, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel) \<Longrightarrow>
 	  f x \<le> \<Down> Id (fa x')\<close> and
@@ -351,7 +351,7 @@ proof -
       by (rule H) (use that in auto)
   qed
   have f': \<open>f (x2e, x1c, xsa) \<le> \<Down> Id (fa (x2d, x1a, xsaa))\<close>
-    if 
+    if
       H: \<open>\<And>x x'.
 	  (x, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel) \<Longrightarrow>
 	  f x \<le> \<Down> Id (fa x')\<close> and
@@ -386,7 +386,7 @@ proof -
 definition quicksort_impl where
   \<open>quicksort_impl = quicksort_ref (<) id\<close>
 
-    
+
 sepref_definition quicksort_code
   is \<open>uncurry2 (quicksort_impl)\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
@@ -415,5 +415,5 @@ lemma full_quicksort:
   unfolding full_quicksort_def
   by (auto intro: quicksort_between_mset_eq[THEN order_trans])
 
-  
+
 end

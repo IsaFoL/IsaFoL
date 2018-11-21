@@ -2413,7 +2413,7 @@ proof
   obtain to_nata where
     b: \<open>inj (to_nata :: 'a \<Rightarrow> nat)\<close>
     by blast
-  
+
   obtain to_natb where
     a: \<open>inj (to_natb :: nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat)\<close>
     by blast
@@ -2489,11 +2489,11 @@ lemma ex_assn_def_pure_eq_start3':
 lemma ex_assn_def_pure_eq_start4':
   \<open>(\<exists>\<^sub>Aba b c d. \<up> (bb = ba) * P b ba c d) = (\<exists>\<^sub>Ab c d.  P b bb c d)\<close>
   by (subst ex_assn_def, subst (4) ex_assn_def, auto)+
-  
+
 lemma ex_assn_def_pure_eq_start1:
   \<open>(\<exists>\<^sub>Aba. \<up> (ba = h b) * P ba) = (P (h b))\<close>
   by (subst ex_assn_def, auto)+
-  
+
 lemma ana_refinement_fast_assn_alt_def:
   \<open>ana_refinement_fast_assn (a', b', c' , d') (Ana_Ref a b c d)  =
   uint64_nat_assn a' a * uint64_nat_assn b' b * uint64_nat_assn c' c * uint64_nat_assn d' d\<close>
@@ -2540,7 +2540,7 @@ lemma ana_refinement_assn_alt_def2:
   apply (auto simp: ana_refinement_assn_alt_def intro!: ext)
   apply (case_tac x)
   by (auto simp: ana_refinement_assn_alt_def intro!: ext)
-  
+
 lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure ana_refinement_assn\<close>
   unfolding CONSTRAINT_def is_pure_def
   supply[[show_sorts]]
@@ -2559,7 +2559,7 @@ lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure ana_refinement_fast_ass
   apply (auto simp: is_pure_def ana_refinement_fast_assn_alt_def2)
   apply (case_tac x')
   by (auto simp: pure_def)
- 
+
 abbreviation (in -)analyse_refinement_fast_assn where
   \<open>analyse_refinement_fast_assn \<equiv>
     arl_assn ana_refinement_fast_assn\<close>
@@ -2572,7 +2572,7 @@ definition to_ana_ref where
 
 definition from_ana_ref_id where
   [simp]: \<open>from_ana_ref_id x = x\<close>
-  
+
 definition from_ana_ref where
   \<open>from_ana_ref = (\<lambda>x. case x of Ana_Ref a b c d \<Rightarrow> (a, b, c, d))\<close>
 
@@ -2619,7 +2619,7 @@ lemma [sepref_fr_rules]:
      uint64_nat_rel_def br_def ana_refinement_assn_alt_def
     case_prod_beta pure_def)
   done
-  
+
 lemma minimize_status_eq_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in>
     minimize_status_assn\<^sup>k *\<^sub>a minimize_status_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -2822,7 +2822,7 @@ sepref_definition isa_mark_failed_lits_stack_fast_code
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
-  unfolding 
+  unfolding
     fast_minus_def[symmetric]
   by sepref
 
@@ -3764,7 +3764,7 @@ proof -
         intro!: RETURN_RES_refine)
     done
 qed
-    
+
 definition isasat_lookup_merge_eq2
   :: \<open>nat literal \<Rightarrow> trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
         out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close> where
@@ -3805,7 +3805,7 @@ proof -
   define L' where \<open>L' \<equiv> (if arena_lit arena i = L then arena_lit arena (i + 1)
          else arena_lit arena i)\<close>
   define L'' where \<open>L'' \<equiv> (if N \<propto> i ! 0 = L then N \<propto> i ! 1 else N \<propto> i ! 0)\<close>
-  
+
   have [simp]: \<open>L'' = L'\<close>
     if \<open>length (N \<propto> i) = 2\<close>
     using that i valid by (auto simp: L''_def L'_def arena_lifting)
@@ -3885,7 +3885,7 @@ sepref_definition isasat_lookup_merge_eq2_fast_code
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
     fmap_length_rll_u_def[simp]
     arena_is_valid_clause_idx_le_uint64_max[dest]
-    arena_lit_pre_le2[dest] 
+    arena_lit_pre_le2[dest]
   apply (rewrite in \<open>if _ then _ + \<hole> else _\<close> one_uint32_nat_def[symmetric])
   apply (rewrite in \<open>if _ then _ + \<hole> else _\<close> one_uint32_nat_def[symmetric])
   apply (rewrite in \<open>if _ then arena_lit _ (_ + \<hole>) else _\<close> one_uint64_nat_def[symmetric])
@@ -3928,7 +3928,7 @@ proof -
   have H1: \<open>isasat_lookup_merge_eq2 a (aa, ab, ac, ad, ae, b) ba bb (af, ag, bc) bd be
 	 bf
 	\<le> \<Down> Id (lookup_merge_eq2 a bg (bh \<propto> bb) (af, ag, bc) bd be bf)\<close>
-    if 
+    if
       \<open>merge_conflict_m_eq2_pre \<A> (((((((ah, bg), bh), bi), bj), bk), bl), bm)\<close> and
       \<open>((((((((a, aa, ab, ac, ad, ae, b), ba), bb), af, ag, bc), bd), be), bf),
 	((((((ah, bg), bh), bi), bj), bk), bl), bm)
@@ -3969,7 +3969,7 @@ proof -
   have H2: \<open>lookup_merge_eq2 a bg (bh \<propto> bb) (af, ag, bc) bd be bf
 	\<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f Id)))
 	(merge_conflict_m_g_eq2 ah bg bh bi bj bk bl bm)\<close>
-    if 
+    if
       \<open>merge_conflict_m_eq2_pre \<A>      (((((((ah, bg), bh), bi), bj), bk), bl), bm)\<close> and
       \<open>((((((((a, aa, ab, ac, ad, ae, b), ba), bb), af, ag, bc), bd), be), bf),
 	((((((ah, bg), bh), bi), bj), bk), bl), bm)
@@ -4011,7 +4011,7 @@ proof -
     have lits_bi: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (bh \<propto> bi))\<close>
       using bi lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_mset ran_m_def
         dest!: multi_member_split)
-      
+
     show ?thesis
       unfolding st merge_conflict_m_g_eq2_def
       apply (rule lookup_merge_eq2_spec[THEN order_trans, OF o[unfolded bj']

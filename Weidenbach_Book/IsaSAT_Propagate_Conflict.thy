@@ -118,7 +118,7 @@ sepref_definition cut_watch_list_heur2_code
 
 declare cut_watch_list_heur2_code.refine[sepref_fr_rules]
 
-  
+
 find_theorems shorten_take_ll
 thm shorten_take_aa_u32_hnr
 sepref_definition cut_watch_list_heur2_fast_code

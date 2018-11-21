@@ -1066,11 +1066,11 @@ proof -
         Decided_Propagated_in_iff_in_lits_of_l)
   qed
   show ?thesis
-    using H[of _ L _ L']  H[of _  L' _ L] 
+    using H[of _ L _ L']  H[of _  L' _ L]
     using split_list[OF LC] split_list[OF LC']
     by (force elim!: list_match_lel_lel)
 qed
-    
+
 lemma remove_one_annot_true_clause_cdcl_twl_restart_l:
   assumes
     rem: \<open>remove_one_annot_true_clause S T\<close> and
@@ -1098,9 +1098,9 @@ proof -
     \<open>distinct_mset (clauses_to_update_l S)\<close>
     using lst_invs unfolding twl_list_invs_def apply -
     by fast+
-    
+
   have struct_S': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S')\<close>
-    using struct_invs unfolding twl_struct_invs_def by fast 
+    using struct_invs unfolding twl_struct_invs_def by fast
   show ?thesis
     using rem
   proof (cases rule: remove_one_annot_true_clause.cases)
@@ -1447,7 +1447,7 @@ proof -
     lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T)\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast+
- 
+
   have n_d: \<open>no_dup (get_trail_l S)\<close>
     using ST lev_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (auto simp: twl_st_l twl_st)
@@ -2657,7 +2657,7 @@ lemma GC_remap_learned_clss_l_old_new:
     learned_clss_l old + learned_clss_l new = learned_clss_l old' + learned_clss_l new'\<close>
   by (induction "(old, m, new)" "(old', m', new')" rule: GC_remap.induct)
     (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin split: if_splits)
- 
+
 lemma GC_remap_ran_m_remap:
   \<open>GC_remap (old, m, new) (old', m', new')  \<Longrightarrow> C \<in># dom_m old \<Longrightarrow> C \<notin># dom_m old' \<Longrightarrow>
          m' C \<noteq> None \<and>
@@ -3283,7 +3283,7 @@ proof -
           ST in auto)
   qed
   have 3: \<open>cdcl_GC_clauses U \<le> SPEC (?f S)\<close>
-    if 
+    if
       \<open>(T, T') \<in> Id\<close> and
       \<open>T' \<in> Collect (?f S)\<close> and
       \<open>mark_to_delete_clauses_l_pre T\<close> and
@@ -3312,7 +3312,7 @@ proof -
 	  in auto)
   qed
   have cdcl_twl_restart_l: \<open>cdcl_twl_restart_l S W\<close>
-    if 
+    if
       \<open>(T, T') \<in> Id\<close> and
       \<open>T' \<in> Collect (cdcl_twl_restart_l S)\<close> and
       \<open>mark_to_delete_clauses_l_pre T\<close> and

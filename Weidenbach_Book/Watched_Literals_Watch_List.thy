@@ -2037,7 +2037,7 @@ proof -
 	  x1 (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1)
 	  (keep_watch L j w S))
 	\<in> Id\<close>
-    if 
+    if
       pre: \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
       st: \<open>x2 = (x1a, x2a)\<close>\<open>x2b = (x1c, x2c)\<close> and
       SLw: \<open>watched_by S L ! w = (x1, x2)\<close> and
@@ -4169,7 +4169,7 @@ proof -
     have
       H: \<open>\<And>L ia K' b''. (L\<in>#all_lits_of_mm
         (mset `# ran_mf N + (NE + UE)) \<Longrightarrow>
-      distinct_watched (W L) \<and>	
+      distinct_watched (W L) \<and>
       ((ia, K', b'')\<in>#mset (W L) \<longrightarrow>
           ia \<in># dom_m N \<longrightarrow>
           K' \<in> set (N \<propto> ia) \<and> K' \<noteq> L \<and> correctly_marked_as_binary N (ia, K', b'')) \<and>
