@@ -18,7 +18,7 @@ theory Deterministic_FO_Ordered_Resolution_Prover
 begin
 
 
-section \<open>Library\<close>
+subsection \<open>Library\<close>
 
 lemma apfst_fst_snd: "apfst f x = (f (fst x), snd x)"
   by (rule apfst_conv[of _ "fst x" "snd x" for x, unfolded prod.collapse])
@@ -97,7 +97,7 @@ lemma tranclp_imp_eq_image: "(\<forall>x y. R x y \<longrightarrow> f x = f y) \
   by (erule tranclp.induct) auto
 
 
-section \<open>Prover\<close>
+subsection \<open>Prover\<close>
 
 type_synonym 'a lclause = "'a literal list"
 type_synonym 'a dclause = "'a lclause \<times> nat"
