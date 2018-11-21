@@ -36,8 +36,24 @@ lemma subset_mset_imp_subset_add_mset: "A \<subseteq># B \<Longrightarrow> A \<s
 
 (* TODO: Move to "Multiset_More.thy"? *)
 lemma add_mset_eq_add_mset_iff:
-  "add_mset x A = add_mset y B \<longleftrightarrow> x = y \<and> A = B \<or> x \<in># B \<and> y \<in># A \<and> A - {#y#} = B - {#x#}" 
-  by (smt add_eq_conv_diff remove_1_mset_id_iff_notin add_mset_remove_trivial_eq) 
+  "add_mset x A = add_mset y B \<longleftrightarrow> x = y \<and> A = B \<or> x \<in># B \<and> y \<in># A \<and> A - {#y#} = B - {#x#}"
+  by (smt add_eq_conv_diff remove_1_mset_id_iff_notin add_mset_remove_trivial_eq)
+
+(* TODO: Move to "Multiset_More.thy"? *)
+lemma subseq_mset_subseteq_mset: "subseq Ls CA \<Longrightarrow> mset Ls \<subseteq># mset CA"
+proof (induct Ls arbitrary: CA)
+  case (Cons L Ls)
+  note Outer_Cons = this
+  then show ?case
+  proof (induct CA)
+    case (Cons C CA)
+    have "subseq Ls CA"
+      by (metis Cons.prems(2) subseq_Cons' subseq_Cons2_iff)
+    then show ?case
+      using Cons by (metis mset.simps(2) mset_subset_eq_add_mset_cancel subseq_Cons2_iff
+          subset_mset_imp_subset_add_mset)
+  qed simp
+qed simp
 
 lemma map_filter_neq_eq_filter_map:
   "map f (filter (\<lambda>y. f x \<noteq> f y) xs) = filter (\<lambda>z. f x \<noteq> z) (map f xs)"
@@ -182,11 +198,11 @@ proof (induction ys arbitrary: xs)
     case y_in: True
     then have subs: "mset ys \<subseteq># mset (remove1 y xs)"
       using Cons(2) by (simp add: insert_subset_eq_iff)
-    show ?thesis 
+    show ?thesis
       using y_in Cons subs by auto
   next
     case False
-    then show ?thesis 
+    then show ?thesis
       using Cons by auto
   qed
 qed auto
@@ -197,9 +213,9 @@ definition resolvent :: "'a lclause \<Rightarrow> 'a \<Rightarrow>'a lclause \<R
 
 definition resolvable :: "'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> bool" where
   "resolvable A D CA Ls \<longleftrightarrow>
-   (let \<sigma> = (mgu {insert A (atms_of (mset Ls))}) in 
-        \<sigma> \<noteq> None 
-      \<and> Ls \<noteq> [] 
+   (let \<sigma> = (mgu {insert A (atms_of (mset Ls))}) in
+        \<sigma> \<noteq> None
+      \<and> Ls \<noteq> []
       \<and> maximal_wrt (A \<cdot>a the \<sigma>) ((add_mset (Neg A) (mset D)) \<cdot> the \<sigma>)
       \<and> strictly_maximal_wrt (A \<cdot>a the \<sigma>) ((mset CA - mset Ls) \<cdot> the \<sigma>)
       \<and> (\<forall>L \<in> set Ls. is_pos L))"
@@ -345,7 +361,8 @@ lemma mset_reduce_subset: "mset (reduce Ds C E) \<subseteq># mset E"
 lemma reduce_idem: "reduce Ds C (reduce Ds C E) = reduce Ds C E"
   by (induct E arbitrary: C)
     (auto intro!: mset_reduce_subset
-      dest!: is_reducible_lit_mono_cls[of "C @ reduce Ds (L # C) E" "C @ E" Ds L for L E C, rotated])
+      dest!: is_reducible_lit_mono_cls[of "C @ reduce Ds (L # C) E" "C @ E" Ds L for L E C,
+        rotated])
 
 lemma is_reducible_lit_imp_is_reducible:
   "L \<in> set C' \<Longrightarrow> is_reducible_lit Ds (C @ remove1 L C') L \<Longrightarrow> reduce Ds C C' \<noteq> C'"
@@ -361,7 +378,6 @@ proof (induct C' arbitrary: C)
           subset_mset.eq_iff subset_mset_imp_subset_add_mset)
   next
     case m_irred: False
-
     have
       "L \<in> set C'" and
       "is_reducible_lit Ds (M # C @ remove1 L C') L"
@@ -402,6 +418,7 @@ lemma select_min_weight_clause_min_weight:
 proof (induct P arbitrary: P0 Ci)
   case (Cons P1 P)
   note ih = this(1) and ci = this(2)
+
   show ?case
   proof (cases "weight (apfst mset P1) < weight (apfst mset P0)")
     case True
@@ -630,10 +647,10 @@ proof (induct "length P'" arbitrary: P P')
   have p'_nnil: "P' \<noteq> []"
     using suc_l by auto
 
-  define j where
+  define j :: nat where
     "j = Max (snd ` set P')"
 
-  obtain Dj where
+  obtain Dj :: "'a dclause" where
     dj_in: "Dj \<in> set P'" and
     snd_dj: "snd Dj = j"
     using Max_in[of "snd ` set P'", unfolded image_def, simplified]
@@ -697,8 +714,7 @@ lemma eligible_iff:
 
 lemma ord_resolve_one_side_prem:
   "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
-  apply (erule ord_resolve.cases)
-  unfolding eligible_iff by force
+  by (force elim!: ord_resolve.cases simp: eligible_iff)
 
 lemma ord_resolve_rename_one_side_prem:
   "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
@@ -709,36 +725,6 @@ abbreviation Bin_ord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow>
 
 abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
   "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AA A \<sigma>. ord_resolve_rename S [C] D [AA] [A] \<sigma> E}"
-
-lemma subseq_mset_subseteq_mset: "subseq Ls CA \<Longrightarrow> mset Ls \<subseteq># mset CA"
-proof (induction Ls arbitrary: CA)
-  case Nil
-  then show ?case by auto
-next
-  case (Cons L Ls)
-  note Outer_Cons = this
-  then show ?case
-  proof (induction CA)
-    case Nil
-    then show ?case
-      by auto
-  next
-    case (Cons C CA)
-    have "subseq Ls CA"
-    proof (cases "L=C")
-      case True
-      then show ?thesis using Cons by auto
-    next
-      case False
-      then show ?thesis using Cons by (metis subseq_Cons2_neq subseq_Cons') 
-    qed
-    then have "mset Ls \<subseteq># mset CA"
-      using Cons by auto
-    then show ?case
-      using Cons
-      by (metis mset.simps(2) mset_subset_eq_add_mset_cancel subseq_Cons2_iff subset_mset_imp_subset_add_mset)
-  qed
-qed
 
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
   "mset ` set (resolve_on A D CA) =
@@ -754,7 +740,7 @@ proof
     define \<sigma> where "\<sigma> = the (mgu {insert A (atms_of (mset Ls))})"
     then have \<sigma>_p:
       "mgu {insert A (atms_of (mset Ls))} = Some \<sigma>"
-      "Ls \<noteq> []" 
+      "Ls \<noteq> []"
       "eligible S \<sigma> [A] (add_mset (Neg A) (mset D))"
       "strictly_maximal_wrt (A \<cdot>a \<sigma>) ((mset CA - mset Ls) \<cdot> \<sigma>)"
       "\<forall>L \<in> set Ls. is_pos L"
@@ -770,7 +756,7 @@ proof
       by auto
     moreover
     have "\<forall>L \<in> set Ls. is_pos L"
-      using \<sigma>_p(5) list_all_iff[of is_pos] by auto 
+      using \<sigma>_p(5) list_all_iff[of is_pos] by auto
     then have "{#Pos (atm_of x). x \<in># mset Ls#} = mset Ls"
       by (induction Ls) auto
     then have "mset CA = [mset CA - mset Ls] ! 0 + {#Pos (atm_of x). x \<in># mset Ls#}"
@@ -786,20 +772,23 @@ proof
       using \<sigma>_p by -
     moreover
     have "strictly_maximal_wrt (A \<cdot>a \<sigma>) ([mset CA - mset Ls] ! 0 \<cdot> \<sigma>)"
-      using \<sigma>_p(4) by auto 
-    moreover
-    have "S (mset CA) = {#}"
+      using \<sigma>_p(4) by auto
+    moreover have "S (mset CA) = {#}"
       by (simp add: S_empty)
-    ultimately
-    have "\<exists>Cs. mset (resolvent D A CA Ls) = sum_list Cs \<cdot> \<sigma> + mset D \<cdot> \<sigma> \<and>
-         length Cs = Suc 0 \<and> mset CA = Cs ! 0 + {#Pos (atm_of x). x \<in># mset Ls#} \<and> Ls \<noteq> [] \<and> Some \<sigma> = mgu {insert A (atm_of ` set Ls)} \<and> eligible S \<sigma> [A] (add_mset (Neg A) (mset D)) \<and> strictly_maximal_wrt (A \<cdot>a \<sigma>) (Cs ! 0 \<cdot> \<sigma>) \<and> S (mset CA) = {#}"
-      by metis
-    then have "ord_resolve S [mset CA] (add_mset (Neg A) (mset D)) [image_mset atm_of (mset Ls)] [A] \<sigma> (mset (resolvent D A CA Ls))"
+    ultimately have "\<exists>Cs. mset (resolvent D A CA Ls) = sum_list Cs \<cdot> \<sigma> + mset D \<cdot> \<sigma>
+        \<and> length Cs = Suc 0 \<and> mset CA = Cs ! 0 + {#Pos (atm_of x). x \<in># mset Ls#}
+        \<and> Ls \<noteq> [] \<and> Some \<sigma> = mgu {insert A (atm_of ` set Ls)}
+        \<and> eligible S \<sigma> [A] (add_mset (Neg A) (mset D)) \<and> strictly_maximal_wrt (A \<cdot>a \<sigma>) (Cs ! 0 \<cdot> \<sigma>)
+        \<and> S (mset CA) = {#}"
+      by blast
+    then have "ord_resolve S [mset CA] (add_mset (Neg A) (mset D)) [image_mset atm_of (mset Ls)] [A]
+      \<sigma> (mset (resolvent D A CA Ls))"
       unfolding ord_resolve.simps by auto
     then have "\<exists>AA \<sigma>. ord_resolve S [mset CA] (add_mset (Neg A) (mset D)) [AA] [A] \<sigma> (mset E)"
       using Ls_p by auto
   }
-  then show "mset ` set (resolve_on A D CA) \<subseteq> {E. \<exists>AA \<sigma>. ord_resolve S [mset CA] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}" 
+  then show "mset ` set (resolve_on A D CA)
+    \<subseteq> {E. \<exists>AA \<sigma>. ord_resolve S [mset CA] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}"
     by auto
 next
   {
@@ -905,8 +894,8 @@ next
     then have "{#M \<cdot>l \<sigma>. M \<in># mset (remove_all CA Ls)#} + {#M \<cdot>l \<sigma> . M \<in># mset D#} = E"
       using remove_all_mset_minus[of Ls CA] ls_sub_ca by auto
     then have "mset (resolvent D A CA Ls) = E"
-      unfolding resolvable_def Let_def resolvent_def 
-      using Al_p(1) Ls_def atms_of_poss res'(4) by (metis image_mset_union mset_append mset_map option.sel) 
+      unfolding resolvable_def Let_def resolvent_def using Al_p(1) Ls_def atms_of_poss res'(4)
+      by (metis image_mset_union mset_append mset_map option.sel)
     ultimately have "E \<in> mset ` set (resolve_on A D CA)"
       unfolding resolve_on_def by auto
   }
@@ -1138,8 +1127,8 @@ proof -
        apply (simp add: add_mset_remove_trivial_eq[THEN iffD2, OF ms_ci_in, symmetric])
     using ms_ci_in
       apply (simp add: ci_in image_mset_remove1_mset_if)
-      apply auto[1]
-      apply (smt apfst_conv case_prodD case_prodE case_prodI case_prodI2 filter_cong image_mset_filter_swap mset_filter)
+      apply (smt apfst_conv case_prodE case_prodI2 case_prod_conv filter_mset_cong
+        image_mset_filter_swap mset_filter)
      apply (metis ci_min in_diffD)
     apply (simp only: list.map_comp apfst_comp_rpair_const)
     apply (simp only: list.map_comp[symmetric])
@@ -1542,7 +1531,7 @@ lemmas deriv_wSts_trancl_weighted_RP = full_chain_imp_chain[OF full_deriv_wSts_t
 
 definition sswSts :: "'a wstate llist" where
   "sswSts = (SOME wSts'.
-    full_chain (\<leadsto>\<^sub>w) wSts' \<and> emb wSts wSts' \<and> lhd wSts' = lhd wSts \<and> llast wSts' = llast wSts)"
+     full_chain (\<leadsto>\<^sub>w) wSts' \<and> emb wSts wSts' \<and> lhd wSts' = lhd wSts \<and> llast wSts' = llast wSts)"
 
 lemma sswSts:
   "full_chain (\<leadsto>\<^sub>w) sswSts \<and> emb wSts sswSts \<and> lhd sswSts = lhd wSts \<and> llast sswSts = llast wSts"
