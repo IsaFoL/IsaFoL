@@ -274,11 +274,7 @@ proof
   then show \<open>\<iota> \<in> gr_calc.Inf_from N\<close> using i_from unfolding gr_calc.Inf_from_def by fast
 qed
 
-term gr.ord_\<Gamma>
-
-find_theorems "main_prem_of _ = main_prem_of _"
-
-lemma \<open>\<iota> \<in> gr.ord_\<Gamma> \<Longrightarrow> \<iota>' \<in> gr.ord_\<Gamma> \<Longrightarrow> prems_of \<iota> = prems_of \<iota>' \<Longrightarrow> concl_of \<iota> = concl_of \<iota>' \<Longrightarrow> main_prem_of \<iota> = main_prem_of \<iota>'\<close>
+(*lemma \<open>\<iota> \<in> gr.ord_\<Gamma> \<Longrightarrow> \<iota>' \<in> gr.ord_\<Gamma> \<Longrightarrow> prems_of \<iota> = prems_of \<iota>' \<Longrightarrow> concl_of \<iota> = concl_of \<iota>' \<Longrightarrow> main_prem_of \<iota> = main_prem_of \<iota>'\<close>
 proof (rule ccontr)
   fix \<iota> \<iota>'
   assume
@@ -295,41 +291,37 @@ proof (rule ccontr)
     using i'_in unfolding gr.ord_\<Gamma>_def by force
   have "AAs = AAs'" using i_inf i'_inf prems_eq concl_eq sorry 
 oops
+*)
 
-lemma
+lemma conv_saturation:
   assumes \<open>gr_calc.saturated N\<close>
   shows \<open>sr.saturated_upto N\<close>
     using assms unfolding sr.saturated_upto_def gr_calc.saturated_def apply -
-proof (rule ccontr) (* contradiction proof attempt *)
-  assume \<open>\<not> gr.inferences_from (N - sr.Rf N) \<subseteq> sr.Ri N\<close>
-  then obtain \<iota>_RP where i_not_in: \<open>\<iota>_RP \<notin> sr.Ri N\<close> and i_in: \<open>\<iota>_RP \<in> gr.inferences_from (N - sr.Rf N)\<close> by blast
-  have \<open>conv_inf \<iota>_RP \<in> gr_calc.Inf_from N\<close> using i_in conv_inf_inf_from_commute by fast
-  have \<open>conv_inf \<iota>_RP \<notin> Red_Inf_G N\<close> using i_not_in unfolding Red_Inf_G_def sorry
-
-  show \<open>False\<close>
-  (* direct proof attempt
-  fix \<iota>_RP
+proof (rule ccontr)
   assume
     sat: \<open>gr_calc.Inf_from N \<subseteq> Red_Inf_G N\<close> and
-    i_RP_from: \<open>\<iota>_RP \<in> gr.inferences_from (N - sr.Rf N)\<close>
-  have \<open>conv_inf \<iota>_RP \<in> gr_calc.Inf_from N\<close> using conv_inf_inf_from_commute[of N] i_RP_from by blast
+    contra: \<open>\<not> gr.inferences_from (N - sr.Rf N) \<subseteq> sr.Ri N\<close>
+  then obtain \<iota>_RP where i_not_in: \<open>\<iota>_RP \<notin> sr.Ri N\<close> and i_in: \<open>\<iota>_RP \<in> gr.inferences_from (N - sr.Rf N)\<close> by blast
+  have \<open>conv_inf \<iota>_RP \<in> gr_calc.Inf_from N\<close> using i_in conv_inf_inf_from_commute by fast
   then have \<open>conv_inf \<iota>_RP \<in> Red_Inf_G N\<close> using sat by blast
-  have \<open>\<And>\<iota>_RP2. prems_of \<iota>_RP2 = prems_of \<iota>_RP \<Longrightarrow> conv_inf \<iota>_RP2 \<in> Red_Inf_G N \<Longrightarrow> \<iota>_RP2 \<in> sr.Ri N\<close>
-    using i_RP_from unfolding Red_Inf_G_def gr.inferences_from_def unfolding infer_from_def sr.Ri_def
-*)
-(* another direct proof attempt
-  then obtain \<iota>_RP2 where i_RP2_in: \<open>\<iota>_RP2 \<in> sr.Ri N\<close> and prems: \<open>prems_of \<iota>_RP2 = prems_of \<iota>_RP\<close> and
-    concl: \<open>concl_of \<iota>_RP2 = concl_of \<iota>_RP\<close> unfolding Red_Inf_G_def conv_inf_def
-    by (metis (mono_tags, lifting) Saturation_Framework_Preliminaries.inference.sel(1)
-      Saturation_Framework_Preliminaries.inference.sel(2) image_iff mset_list_mset)
-  have \<open>\<iota>_RP2 \<in> gr.inferences_from (N - sr.Rf N)\<close> using prems concl i_RP_from
-    by (metis (no_types, lifting) i_RP2_in gr.inferences_from_def infer_from_def mem_Collect_eq
-      standard_redundancy_criterion.Ri_subset_\<Gamma> subsetCE)
-      *)
-  (* then show \<open>\<iota>_RP \<in> sr.Ri N\<close> unfolding sr.Ri_def *)
-oops
-
-
+  moreover have \<open>conv_inf \<iota>_RP \<notin> Red_Inf_G N\<close> using i_not_in unfolding Red_Inf_G_def
+  proof auto
+    fix \<iota>_RP2
+    assume
+      conv_i_RP: \<open>conv_inf \<iota>_RP = conv_inf \<iota>_RP2\<close> and
+      i_RP2_in: \<open>\<iota>_RP2 \<in> sr.Ri N\<close>
+    have side_prems_eq: \<open>side_prems_of \<iota>_RP = side_prems_of \<iota>_RP2\<close>
+      using conv_i_RP unfolding conv_inf_def by (metis Saturation_Framework_Preliminaries.inference.sel(1) mset_list_mset)
+    have main_prem_eq: \<open>main_prem_of \<iota>_RP = main_prem_of \<iota>_RP2\<close>
+      using conv_i_RP unfolding conv_inf_def by (metis Saturation_Framework_Preliminaries.inference.sel(2))
+    have concl_eq: \<open>concl_of \<iota>_RP = concl_of \<iota>_RP2\<close>
+      using conv_i_RP unfolding conv_inf_def by (metis Saturation_Framework_Preliminaries.inference.sel(3))
+    have \<open>\<iota>_RP \<in> sr.Ri N\<close>
+      using side_prems_eq main_prem_eq concl_eq i_RP2_in by (metis Inference_System.inference.collapse)
+    then show \<open>False\<close> using i_not_in by simp
+  qed
+  ultimately show \<open>False\<close> by simp
+qed
 
 interpretation Saturation_Framework_Preliminaries.static_refutational_complete_calculus Bot_G
   entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
@@ -338,20 +330,15 @@ interpretation Saturation_Framework_Preliminaries.static_refutational_complete_c
     assume
       B_in: \<open>B \<in> Bot_G\<close> and
       N_sat: \<open>gr_calc.saturated N\<close> and
-      \<open>N \<Turnstile>G {B}\<close>
-    have \<open>B = {#}\<close> using B_in by simp
-    have \<open>sr.saturated_upto N\<close> unfolding sr.saturated_upto_def
-    proof
-      fix \<iota>_RP
-      assume
-        i_RP_from: \<open>\<iota>_RP \<in> gr.inferences_from (N - sr.Rf N)\<close>
-      define \<iota> where \<open>\<iota> = conv_inf \<iota>_RP\<close>
-      then have \<open>\<iota> \<in> gr_calc.Inf_from N\<close> using i_RP_from sorry
-      then show \<open>\<iota>_RP \<in> sr.Ri N\<close> unfolding gr.inferences_from_def sorry
-    qed
+      N_unsat: \<open>N \<Turnstile>G {B}\<close>
+    have B_is: \<open>B = {#}\<close> using B_in by simp
+    moreover have \<open>sr.saturated_upto N\<close> using N_sat by (simp add: conv_saturation)
+    ultimately have \<open>{#} \<in> N\<close> using standard_redundancy_criterion_counterex_reducing.saturated_upto_complete_if N_unsat sorry
     show \<open>\<exists>B'\<in>Bot_G. B' \<in> N\<close>
       unfolding gr_calc.saturated_def sorry
 oops
+
+find_theorems "{#}"
 
 end
 
