@@ -304,21 +304,25 @@ proof (rule ccontr)
   then obtain \<iota>_RP where i_not_in: \<open>\<iota>_RP \<notin> sr.Ri N\<close> and i_in: \<open>\<iota>_RP \<in> gr.inferences_from (N - sr.Rf N)\<close> by blast
   have \<open>conv_inf \<iota>_RP \<in> gr_calc.Inf_from N\<close> using i_in conv_inf_inf_from_commute by fast
   then have \<open>conv_inf \<iota>_RP \<in> Red_Inf_G N\<close> using sat by blast
-  moreover have \<open>conv_inf \<iota>_RP \<notin> Red_Inf_G N\<close> using i_not_in unfolding Red_Inf_G_def
-  proof auto
-    fix \<iota>_RP2
-    assume
-      conv_i_RP: \<open>conv_inf \<iota>_RP = conv_inf \<iota>_RP2\<close> and
-      i_RP2_in: \<open>\<iota>_RP2 \<in> sr.Ri N\<close>
-    have side_prems_eq: \<open>side_prems_of \<iota>_RP = side_prems_of \<iota>_RP2\<close>
-      using conv_i_RP unfolding conv_inf_def by (metis Saturation_Framework_Preliminaries.inference.sel(1) mset_list_mset)
-    have main_prem_eq: \<open>main_prem_of \<iota>_RP = main_prem_of \<iota>_RP2\<close>
-      using conv_i_RP unfolding conv_inf_def by (metis Saturation_Framework_Preliminaries.inference.sel(2))
-    have concl_eq: \<open>concl_of \<iota>_RP = concl_of \<iota>_RP2\<close>
-      using conv_i_RP unfolding conv_inf_def by (metis Saturation_Framework_Preliminaries.inference.sel(3))
-    have \<open>\<iota>_RP \<in> sr.Ri N\<close>
-      using side_prems_eq main_prem_eq concl_eq i_RP2_in by (metis Inference_System.inference.collapse)
-    then show \<open>False\<close> using i_not_in by simp
+  moreover have \<open>conv_inf \<iota>_RP \<notin> Red_Inf_G N\<close>
+  proof -
+    {
+      fix \<iota>_RP2
+      assume
+        conv_i_RP: \<open>conv_inf \<iota>_RP = conv_inf \<iota>_RP2\<close> and
+        i_RP2_in: \<open>\<iota>_RP2 \<in> sr.Ri N\<close>
+      have side_prems_eq: \<open>side_prems_of \<iota>_RP = side_prems_of \<iota>_RP2\<close>
+        using conv_i_RP unfolding conv_inf_def
+        by (metis Saturation_Framework_Preliminaries.inference.sel(1) mset_list_mset)
+      have main_prem_eq: \<open>main_prem_of \<iota>_RP = main_prem_of \<iota>_RP2\<close>
+        using conv_i_RP unfolding conv_inf_def by (metis Saturation_Framework_Preliminaries.inference.sel(2))
+      have concl_eq: \<open>concl_of \<iota>_RP = concl_of \<iota>_RP2\<close>
+        using conv_i_RP unfolding conv_inf_def by (metis Saturation_Framework_Preliminaries.inference.sel(3))
+      have \<open>\<iota>_RP \<in> sr.Ri N\<close>
+        using side_prems_eq main_prem_eq concl_eq i_RP2_in by (metis Inference_System.inference.collapse)
+      then have \<open>False\<close> using i_not_in by simp
+    }
+    then show \<open>conv_inf \<iota>_RP \<notin> Red_Inf_G N\<close> using i_not_in unfolding Red_Inf_G_def by auto
   qed
   ultimately show \<open>False\<close> by simp
 qed
