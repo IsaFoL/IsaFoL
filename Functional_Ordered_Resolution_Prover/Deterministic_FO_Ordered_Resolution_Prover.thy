@@ -35,11 +35,6 @@ lemma subset_mset_imp_subset_add_mset: "A \<subseteq># B \<Longrightarrow> A \<s
   by (metis add_mset_diff_bothsides diff_subset_eq_self multiset_inter_def subset_mset.inf.absorb2)
 
 (* TODO: Move to "Multiset_More.thy"? *)
-lemma add_mset_eq_add_mset_iff:
-  "add_mset x A = add_mset y B \<longleftrightarrow> x = y \<and> A = B \<or> x \<in># B \<and> y \<in># A \<and> A - {#y#} = B - {#x#}"
-  by (smt add_eq_conv_diff remove_1_mset_id_iff_notin add_mset_remove_trivial_eq)
-
-(* TODO: Move to "Multiset_More.thy"? *)
 lemma subseq_mset_subseteq_mset: "subseq xs ys \<Longrightarrow> mset xs \<subseteq># mset ys"
 proof (induct xs arbitrary: ys)
   case (Cons x xs)
@@ -1091,7 +1086,7 @@ proof (intro order_antisym subsetI)
   then show "E \<in> Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D
     \<union> Bin_ord_resolve_rename D C"
     unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_infer_from_Collect_eq
-      bin_ord_FO_\<Gamma>_def infer_from_def by (fastforce simp: add_mset_eq_add_mset_iff)
+      bin_ord_FO_\<Gamma>_def infer_from_def by (fastforce simp: add_mset_eq_add_mset)
 qed (force simp: inference_system.inferences_between_def infer_from_def ord_FO_\<Gamma>_def)
 
 lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
