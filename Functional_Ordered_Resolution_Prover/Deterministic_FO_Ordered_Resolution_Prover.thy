@@ -40,14 +40,14 @@ lemma add_mset_eq_add_mset_iff:
   by (smt add_eq_conv_diff remove_1_mset_id_iff_notin add_mset_remove_trivial_eq)
 
 (* TODO: Move to "Multiset_More.thy"? *)
-lemma subseq_mset_subseteq_mset: "subseq Ls CA \<Longrightarrow> mset Ls \<subseteq># mset CA"
-proof (induct Ls arbitrary: CA)
-  case (Cons L Ls)
+lemma subseq_mset_subseteq_mset: "subseq xs ys \<Longrightarrow> mset xs \<subseteq># mset ys"
+proof (induct xs arbitrary: ys)
+  case (Cons x xs)
   note Outer_Cons = this
   then show ?case
-  proof (induct CA)
-    case (Cons C CA)
-    have "subseq Ls CA"
+  proof (induct ys)
+    case (Cons y ys)
+    have "subseq xs ys"
       by (metis Cons.prems(2) subseq_Cons' subseq_Cons2_iff)
     then show ?case
       using Cons by (metis mset.simps(2) mset_subset_eq_add_mset_cancel subseq_Cons2_iff
