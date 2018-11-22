@@ -11,8 +11,12 @@ TODO.
 \<close>
 
 theory Executable_FO_Ordered_Resolution_Prover
-  imports Deterministic_FO_Ordered_Resolution_Prover Executable_Subsumption
-    "HOL-Library.Code_Target_Nat" Show.Show_Instances
+  imports
+    Deterministic_FO_Ordered_Resolution_Prover
+    Executable_Subsumption
+    "HOL-Library.Code_Target_Nat"
+    Show.Show_Instances
+    IsaFoR_Term_KBO
 begin
 
 global_interpretation RP: deterministic_FO_resolution_prover where
@@ -163,8 +167,6 @@ theorem prover_complete_refutation: "prover N \<longleftrightarrow> satisfiable 
   using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
   by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
     split: option.splits if_splits)
-
-find_theorems name: deterministic_RP_refutation
 
 definition string_literal_of_nat :: "nat \<Rightarrow> String.literal" where
   "string_literal_of_nat n = String.implode (show n)"
