@@ -6,9 +6,8 @@
 section \<open>An Executable Algorithm for Clause Subsumption\<close>
 
 text \<open>
-This theory provides a functional implementation of clause subsumption,
-building on the \textsf{IsaFoR} library (part of the AFP entry
-@{text First_Order_Terms}).
+This theory provides a functional implementation of clause subsumption, building
+on the \textsf{IsaFoR} library (part of the AFP entry @{text First_Order_Terms}).
 \<close>
 
 theory Executable_Subsumption
@@ -137,17 +136,17 @@ lemma match_term_list_complete: "match_term_list tus \<sigma> = None \<Longright
    apply (drule decompose_Some; auto simp: dom_def Ball_def UN_subset_iff in_set_zip)
    apply (drule spec)
    apply (drule mp)
-    prefer 2
-    apply auto [2]
-   apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
-  apply (drule decompose_Some; auto)
-  apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
-  done
+    apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
+   apply blast
+  apply (drule decompose_Some)
+  apply (clarsimp simp: list_eq_iff_nth_eq Ball_def)
+  by (smt Pair_inject case_prodI in_set_conv_nth length_map nth_map nth_zip zip_map2
+      zip_same_conv_map)
 
 lemma unique_extends_subst:
-  assumes extends: "extends_subst \<sigma> \<tau>" "extends_subst \<sigma> \<rho>"
-      and dom: "dom \<tau> = vars_term t \<union> dom \<sigma>" "dom \<rho> = vars_term t \<union> dom \<sigma>"
-      and eq: "t \<cdot> subst_of_map Var \<rho> = t \<cdot> subst_of_map Var \<tau>"
+  assumes extends: "extends_subst \<sigma> \<tau>" "extends_subst \<sigma> \<rho>" and
+    dom: "dom \<tau> = vars_term t \<union> dom \<sigma>" "dom \<rho> = vars_term t \<union> dom \<sigma>" and
+    eq: "t \<cdot> subst_of_map Var \<rho> = t \<cdot> subst_of_map Var \<tau>"
   shows "\<rho> = \<tau>"
 proof
   fix x
@@ -245,8 +244,7 @@ shows "subsumes_list (L # Ls) (filter (leq L) Ks) \<sigma> \<longleftrightarrow>
     apply (drule bspec, assumption)
     apply (erule transpD[OF trans])
     apply (erule match)
-    apply auto
-    done
+    by auto
   done
 
 definition leq_head  :: "('f::linorder, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" where
