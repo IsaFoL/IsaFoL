@@ -73,20 +73,20 @@ lemma subsumes_list_modulo_Cons: "subsumes_list_modulo (L # Ls) Ks \<sigma> \<lo
   (\<exists>K \<in> set Ks. \<exists>\<tau>. extends_subst \<sigma> \<tau> \<and> dom \<tau> = vars_lit L \<union> dom \<sigma> \<and> L \<cdot>lit (subst_of_map Var \<tau>) = K
      \<and> subsumes_list_modulo Ls (remove1 K Ks) \<tau>)"
   unfolding subsumes_modulo_def
-  apply safe
-   apply (auto simp: insert_subset_eq_iff subst_lit_def subst_cls_def literal.map_ident
-     intro: extends_subst_refl extends_subst_trans)
-   apply (erule bexI[rotated])
-  subgoal for \<tau>
-    apply (rule exI[of _ "\<lambda>x. if x \<in> vars_lit L \<union> dom \<sigma> then \<tau> x else None"], intro conjI)
-         apply (auto 0 3 simp: extends_subst_def dom_def split: if_splits
-        intro!: extends_subst_cong_lit exI[of _ \<tau>])
-    done
-  subgoal for \<tau> \<tau>'
-    apply (rule exI[of _ \<tau>'])
-    apply (auto simp: extends_subst_cong_lit elim!: extends_subst_trans)
-    done
-  done
+proof (safe, goal_cases left_right right_left)
+  case (left_right \<tau>)
+  then show ?case
+    by (intro bexI[of _ "L \<cdot>lit subst_of_map Var \<tau>"]
+      exI[of _ "\<lambda>x. if x \<in> vars_lit L \<union> dom \<sigma> then \<tau> x else None"], intro conjI exI[of _ \<tau>])
+      (auto 0 3 simp: extends_subst_def dom_def split: if_splits
+      simp: insert_subset_eq_iff subst_lit_def  intro!: extends_subst_cong_lit)
+next
+  case (right_left K \<tau> \<tau>')
+  then show ?case 
+    by (intro bexI[of _ "L \<cdot>lit subst_of_map Var \<tau>"] exI[of _ \<tau>'], intro conjI exI[of _ \<tau>])
+     (auto simp: insert_subset_eq_iff subst_lit_def extends_subst_cong_lit
+       intro: extends_subst_trans)
+qed
 
 lemma match_term_list_sound: "match_term_list tus \<sigma> = Some \<tau> \<Longrightarrow>
   extends_subst \<sigma> \<tau> \<and> dom \<tau> = (\<Union>(t, u)\<in>set tus. vars_term t) \<union> dom \<sigma> \<and>
