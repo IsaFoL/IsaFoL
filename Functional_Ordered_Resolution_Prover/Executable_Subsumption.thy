@@ -39,12 +39,15 @@ lemma extends_subst_trans: "extends_subst \<sigma> \<tau> \<Longrightarrow> exte
 lemma extends_subst_dom: "extends_subst \<sigma> \<tau> \<Longrightarrow> dom \<sigma> \<subseteq> dom \<tau>"
   unfolding extends_subst_def dom_def by auto
 
-lemma exteinds_subst_fun_upd_new:
+lemma extends_subst_extends: "extends_subst \<sigma> \<tau> \<Longrightarrow> x \<in> dom \<sigma> \<Longrightarrow> \<tau> x = \<sigma> x"
+  unfolding extends_subst_def dom_def by auto
+
+lemma extends_subst_fun_upd_new:
   "\<sigma> x = None \<Longrightarrow> extends_subst (\<sigma>(x \<mapsto> t)) \<tau> \<longleftrightarrow> extends_subst \<sigma> \<tau> \<and> \<tau> x = Some t"
   unfolding extends_subst_def dom_fun_upd subst_of_map_def
   by (force simp add: dom_def split: option.splits)
 
-lemma exteinds_subst_fun_upd_matching:
+lemma extends_subst_fun_upd_matching:
   "\<sigma> x = Some t \<Longrightarrow> extends_subst (\<sigma>(x \<mapsto> t)) \<tau> \<longleftrightarrow> extends_subst \<sigma> \<tau>"
   unfolding extends_subst_def dom_fun_upd subst_of_map_def
   by (auto simp add: dom_def split: option.splits)
@@ -88,60 +91,58 @@ next
        intro: extends_subst_trans)
 qed
 
+lemma decompose_Some_var_terms: "decompose (Fun f ss) (Fun g ts) = Some eqs \<Longrightarrow>
+   f = g \<and> length ss = length ts \<and> eqs = zip ss ts \<and>
+   (\<Union>(t, u)\<in>set ((Fun f ss, Fun g ts) # P). vars_term t) =
+   (\<Union>(t, u)\<in>set (eqs @ P). vars_term t)"
+  by (drule decompose_Some)
+    (fastforce simp: in_set_zip in_set_conv_nth Bex_def image_iff)
+
 lemma match_term_list_sound: "match_term_list tus \<sigma> = Some \<tau> \<Longrightarrow>
   extends_subst \<sigma> \<tau> \<and> dom \<tau> = (\<Union>(t, u)\<in>set tus. vars_term t) \<union> dom \<sigma> \<and>
   (\<forall>(t,u)\<in>set tus. t \<cdot> subst_of_map Var \<tau> = u)"
-  apply (induct tus \<sigma> arbitrary: \<tau> rule: match_term_list.induct)
-     apply (auto simp: exteinds_subst_fun_upd_new exteinds_subst_fun_upd_matching
-      subst_of_map_def split: if_splits option.splits
-      cong: list.map_cong)
-      apply fastforce
-     apply (metis domI extends_subst_def option.inject)
-    apply (drule meta_spec2)
-    apply (drule meta_mp)
-     apply (rule refl)
-    apply (drule meta_mp)
-     apply assumption
-    apply (fastforce simp: list_eq_iff_nth_eq Ball_def UN_subset_iff in_set_zip in_set_conv_nth)
-   apply (drule meta_spec2)
-   apply (drule meta_mp)
-    apply (rule refl)
-   apply (drule meta_mp)
-    apply assumption
-   apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
-  apply (drule meta_spec2)
-  apply (drule meta_mp)
-  apply (rule refl)
-  apply (drule meta_mp)
-  apply assumption
-  apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
-  done
+proof (induct tus \<sigma> rule: match_term_list.induct)
+  case (2 x t P \<sigma>)
+  then show ?case
+    by (auto 0 3 simp: extends_subst_fun_upd_new extends_subst_fun_upd_matching 
+      subst_of_map_def dest: extends_subst_extends simp del: fun_upd_apply
+      split: if_splits option.splits)
+next
+  case (3 f ss g ts P \<sigma>)
+  from 3(2) obtain eqs where "decompose (Fun f ss) (Fun g ts) = Some eqs"
+    "match_term_list (eqs @ P) \<sigma> = Some \<tau>" by (auto split: option.splits)
+  with 3(1)[OF this] show ?case
+  proof (elim decompose_Some_var_terms[where P = P, elim_format] conjE, intro conjI, goal_cases extend dom subst)
+    case subst
+    from subst(3,5,6,7) show ?case
+      by (auto 0 6 simp: in_set_conv_nth list_eq_iff_nth_eq Ball_def)
+  qed auto
+qed auto
 
 lemma match_term_list_complete: "match_term_list tus \<sigma> = None \<Longrightarrow>
    extends_subst \<sigma> \<tau> \<Longrightarrow> dom \<tau> = (\<Union>(t, u)\<in>set tus. vars_term t) \<union> dom \<sigma> \<Longrightarrow>
     (\<exists>(t,u)\<in>set tus. t \<cdot> subst_of_map Var \<tau> \<noteq> u)"
-  apply (induct tus \<sigma> arbitrary: \<tau> rule: match_term_list.induct)
-     apply (auto simp: exteinds_subst_fun_upd_new exteinds_subst_fun_upd_matching
-      subst_of_map_def split: if_splits option.splits
-      cong: list.map_cong)
-   apply (auto simp: extends_subst_def dom_def) []
-  apply (drule meta_spec2)
-  apply (drule meta_mp)
-   apply (rule refl)
-  apply (drule meta_mp)
-   apply assumption
-  apply (drule meta_mp)
-    apply assumption
-  apply (drule meta_mp)
-   apply (drule decompose_Some; auto simp: dom_def Ball_def UN_subset_iff in_set_zip)
-   apply (drule spec)
-   apply (drule mp)
-    apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
-   apply blast
-  apply (drule decompose_Some)
-  apply (clarsimp simp: list_eq_iff_nth_eq Ball_def)
-  by (smt Pair_inject case_prodI in_set_conv_nth length_map nth_map nth_zip zip_map2
-      zip_same_conv_map)
+proof (induct tus \<sigma> arbitrary: \<tau> rule: match_term_list.induct)
+  case (2 x t P \<sigma>)
+  then show ?case
+    by (auto simp: extends_subst_fun_upd_new extends_subst_fun_upd_matching 
+      subst_of_map_def dest: extends_subst_extends simp del: fun_upd_apply
+      split: if_splits option.splits)
+next
+  case (3 f ss g ts P \<sigma>)
+  show ?case
+  proof (cases "decompose (Fun f ss) (Fun g ts) = None")
+    case False
+    with 3(2) obtain eqs where "decompose (Fun f ss) (Fun g ts) = Some eqs"
+      "match_term_list (eqs @ P) \<sigma> = None" by (auto split: option.splits)
+    with 3(1)[OF this 3(3) trans[OF 3(4) arg_cong[of _ _ "\<lambda>x. x \<union> dom \<sigma>"]]] show ?thesis
+    proof (elim decompose_Some_var_terms[where P = P, elim_format] conjE, goal_cases subst)
+      case subst
+      from subst(1)[OF subst(6)] subst(4,5) show ?case
+        by (auto 0 3 simp: in_set_conv_nth list_eq_iff_nth_eq Ball_def)
+    qed
+  qed auto
+qed auto
 
 lemma unique_extends_subst:
   assumes extends: "extends_subst \<sigma> \<tau>" "extends_subst \<sigma> \<rho>" and
