@@ -200,6 +200,10 @@ interpretation Saturation_Framework_Preliminaries.sound_inference_system Bot_G e
 interpretation sr: standard_redundancy_criterion_reductive gr.ord_\<Gamma>
   by unfold_locales
 
+interpretation sr: standard_redundancy_criterion_counterex_reducing gr.ord_\<Gamma>
+  "ground_resolution_with_selection.INTERP S"
+  by unfold_locales
+
 definition Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set" where
   "Red_Inf_G S1 \<equiv> (\<lambda>x. (conv_inf ` (sr.Ri x))) S1"
 
@@ -329,20 +333,17 @@ qed
 
 interpretation Saturation_Framework_Preliminaries.static_refutational_complete_calculus Bot_G
   entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
-  proof
-    fix B N
-    assume
-      B_in: \<open>B \<in> Bot_G\<close> and
-      N_sat: \<open>gr_calc.saturated N\<close> and
-      N_unsat: \<open>N \<Turnstile>G {B}\<close>
-    have B_is: \<open>B = {#}\<close> using B_in by simp
-    moreover have \<open>sr.saturated_upto N\<close> using N_sat by (simp add: conv_saturation)
-    ultimately have \<open>{#} \<in> N\<close> using standard_redundancy_criterion_counterex_reducing.saturated_upto_complete_if N_unsat sorry
-    show \<open>\<exists>B'\<in>Bot_G. B' \<in> N\<close>
-      unfolding gr_calc.saturated_def sorry
-oops
-
-find_theorems "{#}"
+proof
+  fix B N
+  assume
+    B_in: \<open>B \<in> Bot_G\<close> and
+    N_sat: \<open>gr_calc.saturated N\<close> and
+    N_unsat: \<open>N \<Turnstile>G {B}\<close>
+  have B_is: \<open>B = {#}\<close> using B_in by simp
+  moreover have \<open>sr.saturated_upto N\<close> using N_sat by (simp add: conv_saturation)
+  ultimately have \<open>{#} \<in> N\<close> using sr.saturated_upto_complete_if[of N] N_unsat by (simp add: entails_G_def)
+  then show \<open>\<exists>B'\<in>Bot_G. B' \<in> N\<close> by simp
+qed
 
 end
 
