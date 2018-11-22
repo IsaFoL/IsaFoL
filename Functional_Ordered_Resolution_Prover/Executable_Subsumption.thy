@@ -177,19 +177,24 @@ proof (induction Ls Ks \<sigma> rule: subsumes_list.induct[case_names Nil Cons])
   case (Cons L Ls Ks \<sigma>)
   show ?case
     unfolding subsumes_list_modulo_Cons subsumes_list.simps
-    apply (auto simp: Cons.IH split: option.splits elim!: bexI[rotated] dest!: match_term_list_sound)
-    subgoal for K \<tau>
-      apply (cases "match_term_list [(atm_of L, atm_of K)] \<sigma>")
-      subgoal by (auto dest!: match_term_list_complete)
-      subgoal for \<tau>' by (cases K; cases L; auto dest!: match_term_list_sound)
-      done
-    subgoal for \<tau>
-      using match_term_list_complete[of "[(atm_of L, atm_of L \<cdot> subst_of_map Var \<tau>)]" \<sigma> \<tau>]
-      by auto
-    subgoal for \<tau> \<rho>
-      using unique_extends_subst[of \<sigma> \<tau> \<rho> "atm_of L"]
-      by auto
-    done
+  proof ((intro bex_cong[OF refl] ext iffI; elim exE conjE), goal_cases LR RL)
+    case (LR K)
+    show ?case
+      by (insert LR; cases K; cases L; auto simp: Cons.IH split: option.splits dest!: match_term_list_sound)
+  next
+    case (RL K \<tau>)
+    then show ?case
+    proof (cases "match_term_list [(atm_of L, atm_of K)] \<sigma>")
+      case None
+      with RL show ?thesis
+        by (auto simp: Cons.IH dest!: match_term_list_complete)
+    next
+      case (Some \<tau>')
+      with RL show ?thesis
+        using unique_extends_subst[of \<sigma> \<tau> \<tau>' "atm_of L"]
+        by (auto simp: Cons.IH dest!: match_term_list_sound)
+    qed
+  qed
 qed (auto simp: subsumes_modulo_def subst_cls_def vars_clause_def intro: extends_subst_refl)
 
 lemma subsumes_subsumes_list[code_unfold]:
