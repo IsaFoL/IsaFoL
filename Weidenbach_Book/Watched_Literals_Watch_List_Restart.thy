@@ -1505,6 +1505,71 @@ theorem cdcl_twl_stgy_restart_prog_early_wl_spec:
   apply (match_spec; match_fun_rel+; (fast intro: nres_rel_mono)?)
   by (metis (no_types, lifting) in_pair_collect_simp nres_rel_mono subrelI)
 
+definition cdcl_GC_clauses_pre_wl :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
+\<open>cdcl_GC_clauses_pre_wl S \<longleftrightarrow> (
+  \<exists>T. (S, T) \<in> state_wl_l None \<and>
+    correct_watching' S \<and>
+    cdcl_GC_clauses_pre T
+  )\<close>
+
+definition cdcl_GC_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+\<open>cdcl_GC_clauses_wl = (\<lambda>(M, N, D, NE, UE, WS, Q). do {
+  ASSERT(cdcl_GC_clauses_pre_wl (M, N, D, NE, UE, WS, Q));
+  b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> count_decided M = 0 \<and> (\<forall>L\<in>set M. mark_of L = 0));
+  if b then do {
+    (N', _) \<leftarrow> SPEC (\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N'') \<and>
+      0 \<notin># dom_m N'');
+    Q \<leftarrow> SPEC(\<lambda>Q. correct_watching' (M, N', D, NE, UE, WS, Q));
+    RETURN (M, N', D, NE, UE, WS, Q)
+  }
+  else RETURN (M, N, D, NE, UE, WS, Q)})\<close>
+
+lemma cdcl_GC_clauses_wl_cdcl_GC_clauses:
+  \<open>(cdcl_GC_clauses_wl, cdcl_GC_clauses) \<in> {(S::'v twl_st_wl, S').
+       (S, S') \<in> state_wl_l None \<and> correct_watching' S} \<rightarrow>\<^sub>f \<langle>{(S::'v twl_st_wl, S').
+       (S, S') \<in> state_wl_l None \<and> correct_watching' S}\<rangle>nres_rel\<close>
+  unfolding cdcl_GC_clauses_wl_def cdcl_GC_clauses_def
+  apply (intro frefI nres_relI)
+  apply refine_vcg
+  subgoal unfolding cdcl_GC_clauses_pre_wl_def by blast
+  subgoal by (auto simp: state_wl_l_def)
+  subgoal by (auto simp: state_wl_l_def)
+  subgoal by auto
+  subgoal by (auto simp: state_wl_l_def)
+  subgoal by auto
+  subgoal by (auto simp: state_wl_l_def)
+  subgoal by (auto simp: state_wl_l_def)
+  done
+
+definition cdcl_twl_full_restart_wl_GC_prog_post :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+\<open>cdcl_twl_full_restart_wl_GC_prog_post S T \<longleftrightarrow>
+  (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
+    cdcl_twl_restart_l S' T' \<and> correct_watching' T)\<close>
+
+definition cdcl_twl_full_restart_wl_GC_prog where
+\<open>cdcl_twl_full_restart_wl_GC_prog S = do {
+    T \<leftarrow> remove_one_annot_true_clause_imp_wl S;
+    ASSERT(mark_to_delete_clauses_wl_pre T);
+    U \<leftarrow> mark_to_delete_clauses_wl T;
+    V \<leftarrow> cdcl_GC_clauses_wl U;
+    ASSERT(cdcl_twl_full_restart_wl_GC_prog_post S V);
+    RETURN V
+  }\<close>
+
+lemma cdcl_twl_full_restart_wl_GC_prog:
+  \<open>(cdcl_twl_full_restart_wl_GC_prog, cdcl_twl_full_restart_l_GC_prog) \<in> {(S::'v twl_st_wl, S').
+       (S, S') \<in> state_wl_l None \<and> correct_watching' S} \<rightarrow>\<^sub>f \<langle>state_wl_l None\<rangle>nres_rel\<close>
+  unfolding cdcl_twl_full_restart_wl_GC_prog_def cdcl_twl_full_restart_l_GC_prog_def
+  apply (intro frefI nres_relI)
+  apply (refine_vcg
+    remove_one_annot_true_clause_imp_wl_remove_one_annot_true_clause_imp[THEN fref_to_Down]
+    mark_to_delete_clauses_wl_mark_to_delete_clauses_l[THEN fref_to_Down]
+    cdcl_GC_clauses_wl_cdcl_GC_clauses[THEN fref_to_Down])
+  subgoal unfolding mark_to_delete_clauses_wl_pre_def by fast
+  subgoal unfolding cdcl_twl_full_restart_wl_GC_prog_post_def by fast
+  subgoal by auto
+  done
+
 end
 
 end
