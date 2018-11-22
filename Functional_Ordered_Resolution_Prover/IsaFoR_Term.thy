@@ -4,7 +4,13 @@
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-section \<open>Integration of IsaFoR Terms\<close>
+section \<open>Integration of \textsf{IsaFoR} Terms\<close>
+
+text \<open>
+This theory implements the abstract interface for atoms and substitutions
+using the \textsf{IsaFoR} library (part of the AFP entry @{text
+First_Order_Terms}).
+\<close>
 
 theory IsaFoR_Term
   imports
@@ -16,12 +22,6 @@ theory IsaFoR_Term
     "HOL-Cardinals.Wellorder_Extension"
     Open_Induction.Restricted_Predicates
 begin
-
-text \<open>
-This theory implements the abstract interface for atoms and substitutions using the IsaFoR library
-(now part of the AFP entry First_Order_Terms).
-\<close>
-
 
 hide_const (open) mgu
 

@@ -5,9 +5,18 @@
 
 section \<open>An Executable Algorithm for Clause Subsumption\<close>
 
+text \<open>
+This theory provides a functional implementation of clause subsumption,
+building on the \textsf{IsaFoR} library (part of the AFP entry
+@{text First_Order_Terms}).
+\<close>
+
 theory Executable_Subsumption
   imports IsaFoR_Term First_Order_Terms.Matching
 begin
+
+
+subsection \<open>Naive Implementation of Clause Subsumption\<close>
 
 fun subsumes_list where
   "subsumes_list [] Ks \<sigma> = True"
@@ -268,6 +277,9 @@ lemma leq_lit_match:
   by (cases L; cases K)
     (auto simp: leq_lit_def dest!: match_term_list_sound split: option.splits)
 
+
+subsection \<open>Optimized Implementation of Clause Subsumption\<close>
+
 fun subsumes_list_filter where
   "subsumes_list_filter [] Ks \<sigma> = True"
 | "subsumes_list_filter (L # Ls) Ks \<sigma> =
@@ -288,17 +300,20 @@ proof (induction Ls arbitrary: Ks \<sigma>)
   finally show ?case .
 qed simp
 
-subsection \<open>Definition of deterministic QuickSort\<close>
 
-(*stolen from Manuel Eberl's Quick_Sort_Cost AFP entry,
-   but without invoking probability theory and using a predicate instead of a set*)
+subsection \<open>Definition of Deterministic QuickSort\<close>
 
 text \<open>
-  This is the functional description of the standard variant of deterministic QuickSort that
-  always chooses the first list element as the pivot as given by Hoare in 1962~\cite{hoare}.
-  For a list that is already sorted, this leads to $n(n-1)$
-  comparisons, but as is well known, the average case is not that bad.
+  This is the functional description of the standard variant of deterministic
+  QuickSort that always chooses the first list element as the pivot as given
+  by Hoare in 1962. For a list that is already sorted, this leads to $n(n-1)$
+  comparisons, but as is well known, the average case is much better.
+
+  The code below is adapted from Manuel Eberl's @{text Quick_Sort_Cost} AFP
+  entry, but without invoking probability theory and using a predicate instead
+  of a set.
 \<close>
+
 fun quicksort :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list" where
   "quicksort _ [] = []"
 | "quicksort R (x # xs) =
@@ -307,6 +322,7 @@ fun quicksort :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list
 text \<open>
   We can easily show that this QuickSort is correct:
 \<close>
+
 theorem mset_quicksort [simp]: "mset (quicksort R xs) = mset xs"
   by (induction R xs rule: quicksort.induct) simp_all
 
@@ -330,7 +346,9 @@ proof (induction R xs rule: quicksort.induct)
      intro: transpD[OF \<open>transp R\<close>] dest!: total)
 qed auto
 
-(* end of stealing *)
+text \<open>
+End of the material adapted from Eberl's @{text Quick_Sort_Cost}.
+\<close>
 
 lemma subsumes_list_subsumes_list_filter[abs_def, code_unfold]:
   "subsumes_list Ls Ks \<sigma> = subsumes_list_filter (quicksort leq_lit Ls) Ks \<sigma>"
