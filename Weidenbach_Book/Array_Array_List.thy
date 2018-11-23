@@ -389,10 +389,9 @@ definition set_butlast_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<
       Array.upd i a' a
     }\<close> \<comment> \<open>Replace the \<^term>\<open>i\<close>-th element by the itself except the last element.\<close>
 
-
 lemma list_rel_butlast:
-  assumes rel: \<open>(xs, ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
-  shows \<open>(butlast xs, butlast ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
+  assumes rel: \<open>(xs, ys) \<in> \<langle>R\<rangle>list_rel\<close>
+  shows \<open>(butlast xs, butlast ys) \<in> \<langle>R\<rangle>list_rel\<close>
 proof -
   have \<open>length xs = length ys\<close>
     using assms list_rel_imp_same_length by blast
@@ -400,7 +399,7 @@ proof -
     using rel
     by (induction xs ys rule: list_induct2) (auto split: nat.splits)
 qed
-
+  
 lemma arrayO_except_assn_arl_butlast:
   assumes \<open>b < length a\<close> and
     \<open>a ! b \<noteq> []\<close>

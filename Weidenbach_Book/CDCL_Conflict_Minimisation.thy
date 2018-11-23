@@ -1303,6 +1303,8 @@ where
 		  Some C' \<Rightarrow> do {
 		    ASSERT(C' \<in># dom_m NU);
 		    ASSERT(length (NU \<propto> C') \<ge> 2);
+		    ASSERT (distinct (NU \<propto> C') \<and> \<not>tautology (mset (NU \<propto> C')));
+		    ASSERT(C' > 0);
 		    RETURN (cach, analyse @ [lit_redundant_reason_stack (-L) NU C'], False)
 		  }
 		| None \<Rightarrow> do {
@@ -1756,6 +1758,9 @@ proof -
     apply (rule mark_failed_lits_wl; assumption)
     subgoal by (auto simp: lit_redundant_rec_wl_ref_def)
     subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal by (auto simp: lit_redundant_rec_wl_ref_def)
     subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x1d x2c x1e x2d x1f x2e x2f x'a x1g x2g x1h
        x2h b ba xa x'b xb x'c
@@ -1777,6 +1782,7 @@ definition literal_redundant_wl where
          Some C \<Rightarrow> do{
 	   ASSERT(C \<in># dom_m NU);
 	   ASSERT(length (NU \<propto> C) \<ge> 2);
+	   ASSERT(distinct (NU \<propto> C) \<and>  \<not>tautology (mset (NU \<propto> C)));
 	   lit_redundant_rec_wl M NU D cach [lit_redundant_reason_stack (-L) NU C] lbd
 	 }
        | None \<Rightarrow> do {
@@ -1965,6 +1971,16 @@ proof -
     subgoal by (auto simp: lit_redundant_rec_wl_ref_def)
     subgoal by simp
     subgoal by simp
+    subgoal for x x' C x'a
+      using le2[of C] L_watched[of C] L_dist[of C] L_tauto[of C]
+      by (auto simp: convert_analysis_list_def drop_Suc slice_0
+          lit_redundant_reason_stack_def slice_Suc slice_head slice_end
+        dest!: list_decomp_2)
+    subgoal for x x' C x'a
+      using le2[of C] L_watched[of C] L_dist[of C] L_tauto[of C]
+      by (auto simp: convert_analysis_list_def drop_Suc slice_0
+          lit_redundant_reason_stack_def slice_Suc slice_head slice_end
+        dest!: list_decomp_2)
     subgoal for x x' C x'a
       using le2[of C] L_watched[of C] L_dist[of C] L_tauto[of C]
       by (auto simp: convert_analysis_list_def drop_Suc slice_0

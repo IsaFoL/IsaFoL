@@ -119,4 +119,11 @@ lemma in_mset_rel_eq_f_iff_set:
   \<open>\<langle>{(c, a). a = f c}\<rangle>mset_rel = {(b, a). a = f `# b}\<close>
   using in_mset_rel_eq_f_iff[of _ _ f] by blast
 
+lemma list_rel_append_single_iff:
+  \<open>(xs @ [x], ys @ [y]) \<in> \<langle>R\<rangle>list_rel \<longleftrightarrow>
+    (xs, ys) \<in> \<langle>R\<rangle>list_rel \<and> (x, y) \<in> R\<close>
+  using list_all2_lengthD[of \<open>(\<lambda>x x'. (x, x') \<in> R)\<close> \<open>xs @ [x]\<close> \<open>ys @ [y]\<close>]
+  using list_all2_lengthD[of \<open>(\<lambda>x x'. (x, x') \<in> R)\<close> \<open>xs\<close> \<open>ys\<close>]
+  by (auto simp: list_rel_def list_all2_append)
+
 end
