@@ -1,5 +1,5 @@
 theory IsaSAT
-imports IsaSAT_Restart IsaSAT_Initialisation
+  imports IsaSAT_Restart IsaSAT_Initialisation
 begin
 
 subsection \<open>Final code generation\<close>

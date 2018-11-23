@@ -484,24 +484,28 @@ val zero_neq_one_integer =
   {one_zero_neq_one = one_integer, zero_zero_neq_one = zero_integer} :
   IntInf.int zero_neq_one;
 
-datatype 'a ana_ref = Ana_Ref of 'a * 'a * 'a * 'a;
+datatype ('a, 'b) ana_ref = Ana_Ref of 'a * 'b * bool;
 
-fun typerep_ana_refa A_ t =
-  Typerep ("IsaSAT_Lookup_Conflict.ana_ref", [typerep A_ Type]);
+fun typerep_ana_refa A_ B_ t =
+  Typerep
+    ("IsaSAT_Lookup_Conflict.ana_ref", [typerep A_ Type, typerep B_ Type]);
 
-fun countable_ana_ref A_ = {} : 'a ana_ref countable;
+fun countable_ana_ref A_ B_ = {} : ('a, 'b) ana_ref countable;
 
-fun typerep_ana_ref A_ = {typerep = typerep_ana_refa A_} : 'a ana_ref typerep;
+fun typerep_ana_ref A_ B_ = {typerep = typerep_ana_refa A_ B_} :
+  ('a, 'b) ana_ref typerep;
 
-fun heap_ana_ref A_ =
-  {countable_heap = countable_ana_ref A_,
-    typerep_heap = typerep_ana_ref (typerep_heap A_)}
-  : 'a ana_ref heap;
+fun heap_ana_ref A_ B_ =
+  {countable_heap = countable_ana_ref A_ B_,
+    typerep_heap = typerep_ana_ref (typerep_heap A_) (typerep_heap B_)}
+  : ('a, 'b) ana_ref heap;
 
-fun default_ana_refa A_ =
-  Ana_Ref (default A_, default A_, default A_, default A_);
+val default_bool : bool = false;
 
-fun default_ana_ref A_ = {default = default_ana_refa A_} : 'a ana_ref default;
+fun default_ana_refa A_ B_ = Ana_Ref (default A_, default B_, default_bool);
+
+fun default_ana_ref A_ B_ = {default = default_ana_refa A_ B_} :
+  ('a, 'b) ana_ref default;
 
 datatype ('a, 'b) vmtf_node = VMTF_Node of 'b * 'a option * 'a option;
 
@@ -4416,7 +4420,7 @@ fun equal_minimize_status SEEN_REMOVABLE SEEN_UNKNOWN = false
   | equal_minimize_status SEEN_REMOVABLE SEEN_REMOVABLE = true
   | equal_minimize_status SEEN_FAILED SEEN_FAILED = true;
 
-fun to_ana_ref x = (fn a => fn b => fn c => Ana_Ref (x, a, b, c));
+fun to_ana_ref x = (fn a => fn b => Ana_Ref (x, a, b));
 
 fun lit_redundant_reason_stack_wl_lookup_fast_code x =
   (fn ai => fn bia => fn bi => fn () =>
@@ -4424,42 +4428,38 @@ fun lit_redundant_reason_stack_wl_lookup_fast_code x =
       val xa = isa_arena_length_fast_code bia bi ();
     in
       (if Uint64.less (Uint64.fromInt (2 : IntInf.int)) xa
-        then (fn f_ => fn () => f_ ((isa_arena_length_fast_code bia bi) ()) ())
-               (fn x_c => (fn () => (to_ana_ref bi Uint64.zero Uint64.one x_c)))
+        then (fn () => (to_ana_ref bi (Word32.fromInt 1) false))
         else (fn f_ => fn () => f_ ((isa_arena_lit_fast_code bia bi) ()) ())
                (fn xb =>
-                 (if ((xb : Word32.word) = ai)
-                   then (fn f_ => fn () => f_
-                          ((isa_arena_length_fast_code bia bi) ()) ())
-                          (fn x_d =>
-                            (fn () =>
-                              (to_ana_ref bi Uint64.zero Uint64.one x_d)))
-                   else (fn () =>
-                          (to_ana_ref bi Uint64.one Uint64.zero Uint64.one)))))
+                 (fn () =>
+                   (if ((xb : Word32.word) = ai)
+                     then to_ana_ref bi (Word32.fromInt 1) false
+                     else to_ana_ref bi (Word32.fromInt 0) true))))
         ()
     end)
     x;
 
-fun from_ana_ref x = (fn Ana_Ref (a, b, c, d) => (a, (b, (c, d)))) x;
+fun from_ana_ref x = (fn Ana_Ref (a, b, c) => (a, (b, c))) x;
 
 fun isa_get_literal_and_remove_of_analyse_wl_fast_code x =
   (fn ai => fn bi => fn () =>
     let
-      val xa = arl_last (heap_ana_ref heap_uint64) bi ();
+      val xa = arl_last (heap_ana_ref heap_uint64 heap_uint32) bi ();
     in
       let
-        val (a1, (a1a, (a1b, a2b))) = from_ana_ref xa;
+        val (a1, (a1a, a2a)) = from_ana_ref xa;
       in
-        (fn f_ => fn () => f_ ((isa_arena_lit_fast_code ai (Uint64.plus a1 a1b))
+        (fn f_ => fn () => f_
+          ((isa_arena_lit_fast_code ai (Uint64.plus a1 (uint64_of_uint32 a1a)))
           ()) ())
           (fn x_a =>
-            (fn f_ => fn () => f_ ((arl_length (heap_ana_ref heap_uint64) bi)
-              ()) ())
+            (fn f_ => fn () => f_
+              ((arl_length (heap_ana_ref heap_uint64 heap_uint32) bi) ()) ())
               (fn xb =>
                 (fn f_ => fn () => f_
-                  ((arl_set (heap_ana_ref heap_uint64) bi
+                  ((arl_set (heap_ana_ref heap_uint64 heap_uint32) bi
                      (fast_minus_nat xb one_nata)
-                     (to_ana_ref a1 a1a (Uint64.plus a1b Uint64.one) a2b))
+                     (to_ana_ref a1 (Word32.+ (a1a, (Word32.fromInt 1))) a2a))
                   ()) ())
                   (fn x_b => (fn () => (x_a, x_b)))))
       end
@@ -4486,40 +4486,42 @@ fun conflict_min_cach_set_removable_l_code x =
 fun isa_mark_failed_lits_stack_fast_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
-      val xa = arl_length (heap_ana_ref heap_uint64) bia ();
+      val xa = arl_length (heap_ana_ref heap_uint64 heap_uint32) bia ();
       val a =
         heap_WHILET (fn (a1, _) => (fn () => (less_nat a1 xa)))
           (fn (a1, a2) =>
-            (fn f_ => fn () => f_ ((arl_get (heap_ana_ref heap_uint64) bia a1)
-              ()) ())
+            (fn f_ => fn () => f_
+              ((arl_get (heap_ana_ref heap_uint64 heap_uint32) bia a1) ()) ())
               (fn xb =>
                 let
-                  val (a1a, (_, (a1c, _))) = from_ana_ref xb;
+                  val (a1a, (a1b, _)) = from_ana_ref xb;
                 in
                   (fn f_ => fn () => f_
                     (let
-                       val (a1d, a2d) = a2;
+                       val (a1c, a2c) = a2;
                      in
                        (fn f_ => fn () => f_
                          ((isa_arena_lit_fast_code ai
-                            (fast_minus minus_uint64 (Uint64.plus a1a a1c)
+                            (fast_minus minus_uint64
+                              (Uint64.plus a1a (uint64_of_uint32 a1b))
                               Uint64.one))
                          ()) ())
                          (fn xc =>
                            (fn f_ => fn () => f_
-                             ((heap_array_set_u heap_minimize_status a1d
+                             ((heap_array_set_u heap_minimize_status a1c
                                 (atm_of_code xc) SEEN_FAILED)
                              ()) ())
                              (fn x_e =>
                                (fn f_ => fn () => f_
                                  ((isa_arena_lit_fast_code ai
                                     (fast_minus minus_uint64
-                                      (Uint64.plus a1a a1c) Uint64.one))
+                                      (Uint64.plus a1a (uint64_of_uint32 a1b))
+                                      Uint64.one))
                                  ()) ())
                                  (fn xd =>
                                    (fn f_ => fn () => f_
                                      ((arl_append (default_uint32, heap_uint32)
-a2d (atm_of_code xd))
+a2c (atm_of_code xd))
                                      ()) ())
                                      (fn x_f => (fn () => (x_e, x_f))))))
                      end
@@ -4534,6 +4536,19 @@ a2d (atm_of_code xd))
         (fn () => aa)
       end
         ()
+    end)
+    x;
+
+fun ana_lookup_conv_lookup_fast_code x =
+  (fn ai => fn (a1, (a1a, a2a)) => fn () =>
+    let
+      val xa =
+        (if a2a then (fn () => Uint64.one)
+          else isa_arena_length_fast_code ai a1)
+          ();
+    in
+      (a1, ((if a2a then Uint64.one else Uint64.zero),
+             (uint64_of_uint32 a1a, xa)))
     end)
     x;
 
@@ -4592,16 +4607,17 @@ fun lit_redundant_rec_wl_lookup_fast_code x =
     heap_WHILET
       (fn (_, (a1a, _)) => fn () =>
         let
-          val x_a = arl_is_empty (heap_ana_ref heap_uint64) a1a ();
+          val x_a = arl_is_empty (heap_ana_ref heap_uint64 heap_uint32) a1a ();
         in
           not x_a
         end)
       (fn (a1, (a1a, _)) => fn () =>
         let
-          val xa = arl_last (heap_ana_ref heap_uint64) a1a ();
+          val xa = arl_last (heap_ana_ref heap_uint64 heap_uint32) a1a ();
+          val a = ana_lookup_conv_lookup_fast_code bid (from_ana_ref xa) ();
         in
           let
-            val (a1b, (a1c, (a1d, a2d))) = from_ana_ref xa;
+            val (a1b, (a1c, (a1d, a2d))) = a;
           in
             (if Uint64.less_eq a2d a1d
               then (fn f_ => fn () => f_
@@ -4650,16 +4666,16 @@ fun lit_redundant_rec_wl_lookup_fast_code x =
                        (fn x_j =>
                          (fn f_ => fn () => f_
                            ((arl_empty
-                              (default_ana_ref default_uint64,
-                                heap_ana_ref heap_uint64)
+                              (default_ana_ref default_uint64 default_uint32,
+                                heap_ana_ref heap_uint64 heap_uint32)
                               zero_nat)
                            ()) ())
                            (fn xd => (fn () => (x_j, (xd, false)))))
                 else (fn f_ => fn () => f_
                        ((get_propagation_reason_fast_code ai (uminus_code a1e))
                        ()) ())
-                       (fn a =>
-                         (case a
+                       (fn aa =>
+                         (case aa
                            of NONE =>
                              (fn f_ => fn () => f_
                                ((isa_mark_failed_lits_stack_fast_code bid a2e
@@ -4668,8 +4684,9 @@ fun lit_redundant_rec_wl_lookup_fast_code x =
                                (fn x_k =>
                                  (fn f_ => fn () => f_
                                    ((arl_empty
-                                      (default_ana_ref default_uint64,
-heap_ana_ref heap_uint64)
+                                      (default_ana_ref default_uint64
+ default_uint32,
+heap_ana_ref heap_uint64 heap_uint32)
                                       zero_nat)
                                    ()) ())
                                    (fn xd => (fn () => (x_k, (xd, false)))))
@@ -4681,8 +4698,9 @@ heap_ana_ref heap_uint64)
                                (fn xd =>
                                  (fn f_ => fn () => f_
                                    ((arl_append
-                                      (default_ana_ref default_uint64,
-heap_ana_ref heap_uint64)
+                                      (default_ana_ref default_uint64
+ default_uint32,
+heap_ana_ref heap_uint64 heap_uint32)
                                       a2e xd)
                                    ()) ())
                                    (fn xe =>
@@ -4703,7 +4721,8 @@ fun literal_redundant_wl_lookup_fast_code x =
             equal_minimize_status xaa SEEN_REMOVABLE
         then (fn f_ => fn () => f_
                ((arl_empty
-                  (default_ana_ref default_uint64, heap_ana_ref heap_uint64)
+                  (default_ana_ref default_uint64 default_uint32,
+                    heap_ana_ref heap_uint64 heap_uint32)
                   zero_nat)
                ()) ())
                (fn xb => (fn () => (bib, (xb, true))))
@@ -4713,8 +4732,8 @@ fun literal_redundant_wl_lookup_fast_code x =
                  (if equal_minimize_status xb SEEN_FAILED
                    then (fn f_ => fn () => f_
                           ((arl_empty
-                             (default_ana_ref default_uint64,
-                               heap_ana_ref heap_uint64)
+                             (default_ana_ref default_uint64 default_uint32,
+                               heap_ana_ref heap_uint64 heap_uint32)
                              zero_nat)
                           ()) ())
                           (fn xc => (fn () => (bib, (xc, false))))
@@ -4727,16 +4746,18 @@ fun literal_redundant_wl_lookup_fast_code x =
                               of NONE =>
                                 (fn f_ => fn () => f_
                                   ((arl_empty
-                                     (default_ana_ref default_uint64,
-                                       heap_ana_ref heap_uint64)
+                                     (default_ana_ref default_uint64
+default_uint32,
+                                       heap_ana_ref heap_uint64 heap_uint32)
                                      zero_nat)
                                   ()) ())
                                   (fn xc => (fn () => (bib, (xc, false))))
                               | SOME x_c =>
                                 (fn f_ => fn () => f_
                                   ((arl_empty
-                                     (default_ana_ref default_uint64,
-                                       heap_ana_ref heap_uint64)
+                                     (default_ana_ref default_uint64
+default_uint32,
+                                       heap_ana_ref heap_uint64 heap_uint32)
                                      zero_nat)
                                   ()) ())
                                   (fn xc =>
@@ -4746,8 +4767,10 @@ fun literal_redundant_wl_lookup_fast_code x =
                                       ()) ())
                                       (fn xab =>
 (fn f_ => fn () => f_
-  ((arl_append (default_ana_ref default_uint64, heap_ana_ref heap_uint64) xc
-     xab)
+  ((arl_append
+     (default_ana_ref default_uint64 default_uint32,
+       heap_ana_ref heap_uint64 heap_uint32)
+     xc xab)
   ()) ())
   (fn x_d => lit_redundant_rec_wl_lookup_fast_code ai bid bic bib x_d bi))))))))
         ()
@@ -6092,21 +6115,13 @@ fun lit_redundant_reason_stack_wl_lookup_code x =
       val xa = isa_arena_length_code bia bi ();
     in
       (if less_nat (nat_of_integer (2 : IntInf.int)) (nat_of_uint64 xa)
-        then (fn f_ => fn () => f_ ((isa_arena_length_code bia bi) ()) ())
-               (fn xb =>
-                 (fn () =>
-                   (to_ana_ref bi zero_nata one_nata (nat_of_uint64 xb))))
+        then (fn () => (to_ana_ref bi (Word32.fromInt 1) false))
         else (fn f_ => fn () => f_ ((isa_arena_lit_code bia bi) ()) ())
                (fn xb =>
-                 (if ((xb : Word32.word) = ai)
-                   then (fn f_ => fn () => f_ ((isa_arena_length_code bia bi)
-                          ()) ())
-                          (fn xc =>
-                            (fn () =>
-                              (to_ana_ref bi zero_nata one_nata
-                                (nat_of_uint64 xc))))
-                   else (fn () =>
-                          (to_ana_ref bi one_nata zero_nata one_nata)))))
+                 (fn () =>
+                   (if ((xb : Word32.word) = ai)
+                     then to_ana_ref bi (Word32.fromInt 1) false
+                     else to_ana_ref bi (Word32.fromInt 0) true))))
         ()
     end)
     x;
@@ -6114,20 +6129,21 @@ fun lit_redundant_reason_stack_wl_lookup_code x =
 fun isa_get_literal_and_remove_of_analyse_wl_code x =
   (fn ai => fn bi => fn () =>
     let
-      val xa = arl_last (heap_ana_ref heap_nat) bi ();
+      val xa = arl_last (heap_ana_ref heap_nat heap_uint32) bi ();
     in
       let
-        val (a1, (a1a, (a1b, a2b))) = from_ana_ref xa;
+        val (a1, (a1a, a2a)) = from_ana_ref xa;
       in
-        (fn f_ => fn () => f_ ((isa_arena_lit_code ai (plus_nat a1 a1b)) ()) ())
+        (fn f_ => fn () => f_
+          ((isa_arena_lit_code ai (plus_nat a1 (nat_of_uint32 a1a))) ()) ())
           (fn x_a =>
-            (fn f_ => fn () => f_ ((arl_length (heap_ana_ref heap_nat) bi) ())
-              ())
+            (fn f_ => fn () => f_
+              ((arl_length (heap_ana_ref heap_nat heap_uint32) bi) ()) ())
               (fn xb =>
                 (fn f_ => fn () => f_
-                  ((arl_set (heap_ana_ref heap_nat) bi
+                  ((arl_set (heap_ana_ref heap_nat heap_uint32) bi
                      (fast_minus_nat xb one_nata)
-                     (to_ana_ref a1 a1a (plus_nat a1b one_nata) a2b))
+                     (to_ana_ref a1 (Word32.+ (a1a, (Word32.fromInt 1))) a2a))
                   ()) ())
                   (fn x_b => (fn () => (x_a, x_b)))))
       end
@@ -6138,38 +6154,41 @@ fun isa_get_literal_and_remove_of_analyse_wl_code x =
 fun isa_mark_failed_lits_stack_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
-      val xa = arl_length (heap_ana_ref heap_nat) bia ();
+      val xa = arl_length (heap_ana_ref heap_nat heap_uint32) bia ();
       val a =
         heap_WHILET (fn (a1, _) => (fn () => (less_nat a1 xa)))
           (fn (a1, a2) =>
-            (fn f_ => fn () => f_ ((arl_get (heap_ana_ref heap_nat) bia a1) ())
-              ())
+            (fn f_ => fn () => f_
+              ((arl_get (heap_ana_ref heap_nat heap_uint32) bia a1) ()) ())
               (fn xb =>
                 let
-                  val (a1a, (_, (a1c, _))) = from_ana_ref xb;
+                  val (a1a, (a1b, _)) = from_ana_ref xb;
                 in
                   (fn f_ => fn () => f_
                     (let
-                       val (a1d, a2d) = a2;
+                       val (a1c, a2c) = a2;
                      in
                        (fn f_ => fn () => f_
                          ((isa_arena_lit_code ai
-                            (minus_nata (plus_nat a1a a1c) one_nata))
+                            (minus_nata (plus_nat a1a (nat_of_uint32 a1b))
+                              one_nata))
                          ()) ())
                          (fn xc =>
                            (fn f_ => fn () => f_
-                             ((heap_array_set_u heap_minimize_status a1d
+                             ((heap_array_set_u heap_minimize_status a1c
                                 (atm_of_code xc) SEEN_FAILED)
                              ()) ())
                              (fn x_e =>
                                (fn f_ => fn () => f_
                                  ((isa_arena_lit_code ai
-                                    (minus_nata (plus_nat a1a a1c) one_nata))
+                                    (minus_nata
+                                      (plus_nat a1a (nat_of_uint32 a1b))
+                                      one_nata))
                                  ()) ())
                                  (fn xd =>
                                    (fn f_ => fn () => f_
                                      ((arl_append (default_uint32, heap_uint32)
-a2d (atm_of_code xd))
+a2c (atm_of_code xd))
                                      ()) ())
                                      (fn x_f => (fn () => (x_e, x_f))))))
                      end
@@ -6184,6 +6203,17 @@ a2d (atm_of_code xd))
         (fn () => aa)
       end
         ()
+    end)
+    x;
+
+fun ana_lookup_conv_lookup_code x =
+  (fn ai => fn (a1, (a1a, a2a)) => fn () =>
+    let
+      val xa =
+        (if a2a then (fn () => Uint64.one) else isa_arena_length_code ai a1) ();
+    in
+      (a1, ((if a2a then Uint64.one else Uint64.zero),
+             (uint64_of_uint32 a1a, xa)))
     end)
     x;
 
@@ -6205,20 +6235,23 @@ fun lit_redundant_rec_wl_lookup_code x =
     heap_WHILET
       (fn (_, (a1a, _)) => fn () =>
         let
-          val x_a = arl_is_empty (heap_ana_ref heap_nat) a1a ();
+          val x_a = arl_is_empty (heap_ana_ref heap_nat heap_uint32) a1a ();
         in
           not x_a
         end)
       (fn (a1, (a1a, _)) => fn () =>
         let
-          val xa = arl_last (heap_ana_ref heap_nat) a1a ();
+          val xa = arl_last (heap_ana_ref heap_nat heap_uint32) a1a ();
+          val a = ana_lookup_conv_lookup_code bid (from_ana_ref xa) ();
         in
           let
-            val (a1b, (a1c, (a1d, a2d))) = from_ana_ref xa;
+            val (a1b, (a1c, (a1d, a2d))) = a;
           in
-            (if less_eq_nat a2d a1d
+            (if Uint64.less_eq a2d a1d
               then (fn f_ => fn () => f_
-                     ((isa_arena_lit_code bid (plus_nat a1b a1c)) ()) ())
+                     ((isa_arena_lit_code bid
+                        (plus_nat a1b (nat_of_uint64 a1c)))
+                     ()) ())
                      (fn xb =>
                        (fn f_ => fn () => f_
                          ((conflict_min_cach_set_removable_l_code a1
@@ -6259,16 +6292,16 @@ fun lit_redundant_rec_wl_lookup_code x =
                        (fn x_j =>
                          (fn f_ => fn () => f_
                            ((arl_empty
-                              (default_ana_ref default_nat,
-                                heap_ana_ref heap_nat)
+                              (default_ana_ref default_nat default_uint32,
+                                heap_ana_ref heap_nat heap_uint32)
                               zero_nat)
                            ()) ())
                            (fn xd => (fn () => (x_j, (xd, false)))))
                 else (fn f_ => fn () => f_
                        ((get_propagation_reason_code ai (uminus_code a1e)) ())
                        ())
-                       (fn a =>
-                         (case a
+                       (fn aa =>
+                         (case aa
                            of NONE =>
                              (fn f_ => fn () => f_
                                ((isa_mark_failed_lits_stack_code bid a2e a1) ())
@@ -6276,8 +6309,9 @@ fun lit_redundant_rec_wl_lookup_code x =
                                (fn x_k =>
                                  (fn f_ => fn () => f_
                                    ((arl_empty
-                                      (default_ana_ref default_nat,
-heap_ana_ref heap_nat)
+                                      (default_ana_ref default_nat
+ default_uint32,
+heap_ana_ref heap_nat heap_uint32)
                                       zero_nat)
                                    ()) ())
                                    (fn xd => (fn () => (x_k, (xd, false)))))
@@ -6289,8 +6323,9 @@ heap_ana_ref heap_nat)
                                (fn xd =>
                                  (fn f_ => fn () => f_
                                    ((arl_append
-                                      (default_ana_ref default_nat,
-heap_ana_ref heap_nat)
+                                      (default_ana_ref default_nat
+ default_uint32,
+heap_ana_ref heap_nat heap_uint32)
                                       a2e xd)
                                    ()) ())
                                    (fn xe =>
@@ -6310,7 +6345,9 @@ fun literal_redundant_wl_lookup_code x =
       (if ((xa : Word32.word) = (Word32.fromInt 0)) orelse
             equal_minimize_status xaa SEEN_REMOVABLE
         then (fn f_ => fn () => f_
-               ((arl_empty (default_ana_ref default_nat, heap_ana_ref heap_nat)
+               ((arl_empty
+                  (default_ana_ref default_nat default_uint32,
+                    heap_ana_ref heap_nat heap_uint32)
                   zero_nat)
                ()) ())
                (fn xb => (fn () => (bib, (xb, true))))
@@ -6320,8 +6357,8 @@ fun literal_redundant_wl_lookup_code x =
                  (if equal_minimize_status xb SEEN_FAILED
                    then (fn f_ => fn () => f_
                           ((arl_empty
-                             (default_ana_ref default_nat,
-                               heap_ana_ref heap_nat)
+                             (default_ana_ref default_nat default_uint32,
+                               heap_ana_ref heap_nat heap_uint32)
                              zero_nat)
                           ()) ())
                           (fn xc => (fn () => (bib, (xc, false))))
@@ -6333,16 +6370,18 @@ fun literal_redundant_wl_lookup_code x =
                               of NONE =>
                                 (fn f_ => fn () => f_
                                   ((arl_empty
-                                     (default_ana_ref default_nat,
-                                       heap_ana_ref heap_nat)
+                                     (default_ana_ref default_nat
+default_uint32,
+                                       heap_ana_ref heap_nat heap_uint32)
                                      zero_nat)
                                   ()) ())
                                   (fn xc => (fn () => (bib, (xc, false))))
                               | SOME x_c =>
                                 (fn f_ => fn () => f_
                                   ((arl_empty
-                                     (default_ana_ref default_nat,
-                                       heap_ana_ref heap_nat)
+                                     (default_ana_ref default_nat
+default_uint32,
+                                       heap_ana_ref heap_nat heap_uint32)
                                      zero_nat)
                                   ()) ())
                                   (fn xc =>
@@ -6352,8 +6391,11 @@ fun literal_redundant_wl_lookup_code x =
                                       ()) ())
                                       (fn xab =>
 (fn f_ => fn () => f_
-  ((arl_append (default_ana_ref default_nat, heap_ana_ref heap_nat) xc xab) ())
-  ())
+  ((arl_append
+     (default_ana_ref default_nat default_uint32,
+       heap_ana_ref heap_nat heap_uint32)
+     xc xab)
+  ()) ())
   (fn x_d => lit_redundant_rec_wl_lookup_code ai bid bic bib x_d bi))))))))
         ()
     end)

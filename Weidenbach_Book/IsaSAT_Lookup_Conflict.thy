@@ -994,7 +994,7 @@ proof -
       by (auto simp: in_set_distinct_take_drop_iff)
     have [simp]: \<open>- D ! a \<notin> set (take (a - init) ?D)\<close>
     proof
-      assume "- D ! a \<in> set (take (a - init) (drop init D))"
+      assume \<open>- D ! a \<in> set (take (a - init) (drop init D))\<close>
       then have "(if is_pos (D ! a) then Neg else Pos) (atm_of (D ! a)) \<in> set D"
         by (metis (no_types) in_set_dropD in_set_takeD uminus_literal_def)
       then show False
@@ -1623,36 +1623,82 @@ where
 definition (in -) conflict_min_cach :: \<open>nat conflict_min_cach \<Rightarrow> nat \<Rightarrow> minimize_status\<close> where
   [simp]: \<open>conflict_min_cach cach L = cach L\<close>
 
+
+definition lit_redundant_reason_stack2
+  :: \<open>'v literal \<Rightarrow> 'v clauses_l \<Rightarrow> nat \<Rightarrow> (nat \<times> nat \<times> bool)\<close> where
+\<open>lit_redundant_reason_stack2 L NU C' =
+  (if length (NU \<propto> C') > 2 then (C', 1, False)
+  else if NU \<propto> C' ! 0 = L then (C', 1, False)
+  else (C', 0, True))\<close>
+
+definition ana_lookup_rel
+  :: \<open>nat clauses_l \<Rightarrow> ((nat \<times> nat \<times> bool) \<times> (nat \<times> nat \<times> nat \<times> nat)) set\<close>
+where
+\<open>ana_lookup_rel NU = {((C, i, b), (C', k', i', len')).
+  C = C' \<and> k' = (if b then 1 else 0) \<and> i = i' \<and>
+  len' = (if b then 1 else length (NU \<propto> C))}\<close>
+
+lemma ana_lookup_rel_alt_def:
+  \<open>((C, i, b), (C', k', i', len')) \<in> ana_lookup_rel NU \<longleftrightarrow>
+  C = C' \<and> k' = (if b then 1 else 0) \<and> i = i' \<and>
+  len' = (if b then 1 else length (NU \<propto> C))\<close>
+  unfolding ana_lookup_rel_def
+  by auto
+
+abbreviation ana_lookups_rel where
+  \<open>ana_lookups_rel NU \<equiv> \<langle>ana_lookup_rel NU\<rangle>list_rel\<close>
+
+definition ana_lookup_conv :: \<open>nat clauses_l \<Rightarrow> (nat \<times> nat \<times> bool) \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)\<close> where
+\<open>ana_lookup_conv NU = (\<lambda>(C, i, b). (C, (if b then 1 else 0), i, (if b then 1 else length (NU \<propto> C))))\<close>
+
+definition get_literal_and_remove_of_analyse_wl2
+   :: \<open>'v clause_l \<Rightarrow> (nat \<times> nat \<times> bool) list \<Rightarrow> 'v literal \<times> (nat \<times> nat \<times> bool) list\<close> where
+  \<open>get_literal_and_remove_of_analyse_wl2 C analyse =
+    (let (i, j, b) = last analyse in
+     (C ! j, analyse[length analyse - 1 := (i, j + 1, b)]))\<close>
+
+definition lit_redundant_rec_wl_inv2 where
+  \<open>lit_redundant_rec_wl_inv2 M NU D =
+    (\<lambda>(cach, analyse, b). \<exists>analyse'. (analyse, analyse') \<in> ana_lookups_rel NU \<and>
+      lit_redundant_rec_wl_inv M NU D (cach, analyse', b))\<close>
+
+definition mark_failed_lits_stack_inv2 where
+  \<open>mark_failed_lits_stack_inv2 NU analyse = (\<lambda>cach.
+       \<exists>analyse'. (analyse, analyse') \<in> ana_lookups_rel NU \<and>
+      mark_failed_lits_stack_inv NU analyse' cach)\<close>
+
 definition lit_redundant_rec_wl_lookup
   :: \<open>nat multiset \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat clause \<Rightarrow>
      _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> (_ \<times> _ \<times> bool) nres\<close>
 where
   \<open>lit_redundant_rec_wl_lookup \<A> M NU D cach analysis lbd =
-      WHILE\<^sub>T\<^bsup>lit_redundant_rec_wl_inv M NU D\<^esup>
+      WHILE\<^sub>T\<^bsup>lit_redundant_rec_wl_inv2 M NU D\<^esup>
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
-        (\<lambda>(cach, (analyse :: (nat \<times> nat \<times> nat \<times> nat) list), b). do {
-            ASSERT((analyse :: (nat \<times> nat \<times> nat \<times> nat) list) \<noteq> []);
-	    let (C,k, i, len) = last analyse;
+        (\<lambda>(cach, analyse, b). do {
+            ASSERT(analyse \<noteq> []);
+	    let (C,k, i, len) = ana_lookup_conv NU (last analyse);
             ASSERT(C \<in># dom_m NU);
             ASSERT(length (NU \<propto> C) > k); \<comment> \<open> >= 2 would work too \<close>
             ASSERT (NU \<propto> C ! k \<in> lits_of_l M);
             ASSERT(NU \<propto> C ! k \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
+	    ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (NU \<propto> C)));
+	    ASSERT(length (NU \<propto> C) \<le> Suc (uint32_max div 2));
 	    ASSERT(len \<le> length (NU \<propto> C)); \<comment> \<open>makes the refinement easier\<close>
             let C = NU \<propto> C;
             if i \<ge> len
             then
                RETURN(cach (atm_of (C ! k) := SEEN_REMOVABLE), butlast analyse, True)
             else do {
-               let (L, analyse) = get_literal_and_remove_of_analyse_wl C analyse;
+               let (L, analyse) = get_literal_and_remove_of_analyse_wl2 C analyse;
                ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
                let b = \<not>level_in_lbd (get_level M L) lbd;
                if (get_level M L = zero_uint32_nat \<or>
                    conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE \<or>
                    atm_in_conflict (atm_of L) D)
-               then RETURN (cach, (analyse :: (nat \<times> nat \<times> nat \<times> nat) list), False)
+               then RETURN (cach, analyse, False)
                else if b \<or> conflict_min_cach cach (atm_of L) = SEEN_FAILED
                then do {
-                  ASSERT(mark_failed_lits_stack_inv NU analyse cach);
+                  ASSERT(mark_failed_lits_stack_inv2 NU analyse cach);
                   cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
                   RETURN (cach, [], False)
                }
@@ -1663,10 +1709,12 @@ where
                     Some C \<Rightarrow> do {
 		      ASSERT(C \<in># dom_m NU);
 		      ASSERT(length (NU \<propto> C) \<ge> 2);
-		      RETURN (cach, analyse @ [lit_redundant_reason_stack (-L) NU C], False)
+		      ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (NU \<propto> C)));
+                      ASSERT(length (NU \<propto> C) \<le> Suc (uint32_max div 2));
+		      RETURN (cach, analyse @ [lit_redundant_reason_stack2 (-L) NU C], False)
 		    }
                   | None \<Rightarrow> do {
-                      ASSERT(mark_failed_lits_stack_inv NU analyse cach);
+                      ASSERT(mark_failed_lits_stack_inv2 NU analyse cach);
                       cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
                       RETURN (cach, [], False)
                   }
@@ -1674,6 +1722,11 @@ where
           }
         })
        (cach, analysis, False)\<close>
+
+lemma lit_redundant_rec_wl_ref_butlast:
+  \<open>lit_redundant_rec_wl_ref NU x \<Longrightarrow> lit_redundant_rec_wl_ref NU (butlast x)\<close>
+  by (cases x rule: rev_cases)
+    (auto simp: lit_redundant_rec_wl_ref_def dest: in_set_butlastD)
 
 lemma lit_redundant_rec_wl_lookup_mark_failed_lits_stack_inv:
   assumes
@@ -1696,14 +1749,584 @@ proof -
        (auto simp: elim!: in_set_upd_cases)
 qed
 
+context
+  fixes M D \<A> NU analysis analysis'
+  assumes 
+    M_D: \<open>M \<Turnstile>as CNot D\<close> and
+    n_d: \<open>no_dup M\<close> and
+    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close> and
+    ana: \<open>(analysis, analysis') \<in> ana_lookups_rel NU\<close> and
+    lits_NU: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> ((mset \<circ> fst) `# ran_m NU)\<close> and
+    bounded: \<open>isasat_input_bounded \<A>\<close>
+begin
+lemma ccmin_rel:
+  assumes \<open>lit_redundant_rec_wl_inv M NU D (cach, analysis', False)\<close>
+  shows \<open>((cach, analysis, False), cach, analysis', False)
+         \<in>  {((cach, ana, b), cach', ana', b').
+          (ana, ana') \<in> ana_lookups_rel NU \<and>
+          b = b' \<and> cach = cach' \<and> lit_redundant_rec_wl_inv M NU D (cach, ana', b)}\<close>
+proof -
+  show ?thesis using ana assms by auto
+qed
+
+
+context
+  fixes x :: \<open>(nat \<Rightarrow> minimize_status) \<times> (nat \<times> nat \<times> bool) list \<times> bool\<close> and
+  x' :: \<open>(nat \<Rightarrow> minimize_status) \<times> (nat \<times> nat \<times> nat \<times> nat) list \<times> bool\<close>
+  assumes x_x': \<open>(x, x') \<in> {((cach, ana, b), (cach', ana', b')).
+     (ana, ana') \<in> ana_lookups_rel NU \<and> b = b' \<and> cach = cach' \<and>
+     lit_redundant_rec_wl_inv M NU D (cach, ana', b)}\<close>
+begin
+
+lemma ccmin_lit_redundant_rec_wl_inv2:
+  assumes \<open>lit_redundant_rec_wl_inv M NU D x'\<close>
+  shows \<open>lit_redundant_rec_wl_inv2 M NU D x\<close>
+  using x_x' unfolding lit_redundant_rec_wl_inv2_def
+  by auto
+
+context
+  assumes 
+    \<open>lit_redundant_rec_wl_inv2 M NU D x\<close> and
+    \<open>lit_redundant_rec_wl_inv M NU D x'\<close>
+begin
+
+lemma ccmin_cond:
+  fixes x1 :: \<open>nat \<Rightarrow> minimize_status\<close> and
+    x2 :: \<open>(nat \<times> nat \<times> bool) list \<times> bool\<close> and
+    x1a :: \<open>(nat \<times>  nat \<times> bool) list\<close> and
+    x2a :: \<open>bool\<close> and x1b :: \<open>nat \<Rightarrow> minimize_status\<close> and
+    x2b :: \<open>(nat \<times> nat \<times> nat \<times> nat) list \<times> bool\<close> and
+    x1c :: \<open>(nat \<times> nat \<times> nat \<times> nat) list\<close> and x2c :: \<open>bool\<close>
+  assumes
+    \<open>x2 = (x1a, x2a)\<close>
+    \<open>x = (x1, x2)\<close>
+    \<open>x2b = (x1c, x2c)\<close>
+    \<open>x' = (x1b, x2b)\<close>
+  shows \<open>(x1a \<noteq> []) = (x1c \<noteq> [])\<close>
+  using assms x_x'
+  by auto
+
+end
+
+
+context
+  assumes 
+    \<open>case x of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+    \<open>case x' of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+    inv2: \<open>lit_redundant_rec_wl_inv2 M NU D x\<close> and
+    \<open>lit_redundant_rec_wl_inv M NU D x'\<close>
+begin
+
+context
+  fixes x1 :: \<open>nat \<Rightarrow> minimize_status\<close> and
+  x2 :: \<open>(nat \<times> nat \<times> nat \<times> nat) list \<times> bool\<close> and
+  x1a :: \<open>(nat \<times> nat \<times> nat \<times> nat) list\<close> and x2a :: \<open>bool\<close> and
+  x1b :: \<open>nat \<Rightarrow> minimize_status\<close> and
+  x2b :: \<open>(nat \<times> nat \<times> bool) list \<times> bool\<close> and
+  x1c :: \<open>(nat \<times> nat \<times> bool) list\<close> and
+  x2c :: \<open>bool\<close>
+  assumes st:
+    \<open>x2 = (x1a, x2a)\<close>
+    \<open>x' = (x1, x2)\<close>
+    \<open>x2b = (x1c, x2c)\<close>
+    \<open>x = (x1b, x2b)\<close> and
+    x1a: \<open>x1a \<noteq> []\<close>
+begin
+
+private lemma st:
+    \<open>x2 = (x1a, x2a)\<close>
+    \<open>x' = (x1, x1a, x2a)\<close>
+    \<open>x2b = (x1c, x2a)\<close>
+    \<open>x = (x1, x1c, x2a)\<close>
+    \<open>x1b = x1\<close>
+    \<open>x2c = x2a\<close> and
+  x1c: \<open>x1c \<noteq> []\<close>
+  using st x_x' x1a by auto
+
+lemma ccmin_nempty:
+  shows \<open>x1c \<noteq> []\<close>
+  using x_x' x1a
+  by (auto simp: st)
+
+context
+  notes _[simp] = st
+  fixes x1d :: \<open>nat\<close> and x2d :: \<open>nat \<times> nat \<times> nat\<close> and
+    x1e :: \<open>nat\<close> and x2e :: \<open>nat \<times> nat\<close> and
+    x1f :: \<open>nat\<close> and
+    x2f :: \<open>nat\<close> and x1g :: \<open>nat\<close> and
+    x2g :: \<open>nat \<times> nat \<times> nat\<close> and
+    x1h :: \<open>nat\<close> and
+    x2h :: \<open>nat \<times> nat\<close> and
+    x1i :: \<open>nat\<close> and
+    x2i :: \<open>nat\<close>
+  assumes
+    ana_lookup_conv: \<open>ana_lookup_conv NU (last x1c) = (x1g, x2g)\<close> and
+    last: \<open>last x1a = (x1d, x2d)\<close> and
+    dom: \<open>x1d \<in># dom_m NU\<close> and
+    le: \<open>x1e < length (NU \<propto> x1d)\<close> and
+    in_lits: \<open>NU \<propto> x1d ! x1e \<in> lits_of_l M\<close> and
+    st2:
+      \<open>x2g = (x1h, x2h)\<close>
+      \<open>x2e = (x1f, x2f)\<close>
+      \<open>x2d = (x1e, x2e)\<close>
+      \<open>x2h = (x1i, x2i)\<close>
+begin
+
+private lemma x1g_x1d:
+    \<open>x1g = x1d\<close>
+    \<open>x1h = x1e\<close>
+    \<open>x1i = x1f\<close>
+  using st2 last ana_lookup_conv x_x' x1a last
+  by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+    auto simp: ana_lookup_conv_def ana_lookup_rel_def
+      list_rel_append_single_iff; fail)+
+
+private definition j where
+  \<open>j = fst (snd (last x1c))\<close>
+
+private definition b where
+  \<open>b = snd (snd (last x1c))\<close>
+
+private lemma last_x1c[simp]:
+  \<open>last x1c = (x1d, x1f, b)\<close>
+  using inv2 x1a last x_x' unfolding x1g_x1d st j_def b_def st2
+  by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+   auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+    lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+    lit_redundant_rec_wl_ref_def)
+
+private lemma
+  ana: \<open>(x1d, (if b then 1 else 0), x1f, (if b then 1 else length (NU \<propto> x1d))) = (x1d, x1e, x1f, x2i)\<close> and
+  st3:
+    \<open>x1e = (if b then 1 else 0)\<close>
+    \<open>x1f = j\<close>
+    \<open>x2f = (if b then 1 else length (NU \<propto> x1d))\<close>
+    \<open>x2d = (if b then 1 else 0, j, if b then 1 else length (NU \<propto> x1d))\<close> and
+    \<open>j \<le> (if b then 1 else length (NU \<propto> x1d))\<close> and
+    \<open>x1d \<in># dom_m NU\<close> and
+    \<open>0 < x1d\<close> and
+    \<open>(if b then 1 else length (NU \<propto> x1d)) \<le> length (NU \<propto> x1d)\<close> and
+    \<open>(if b then 1 else 0) < length (NU \<propto> x1d)\<close> and
+    dist: \<open>distinct (NU \<propto> x1d)\<close> and
+    tauto: \<open>\<not> tautology (mset (NU \<propto> x1d))\<close>
+  subgoal
+    using inv2 x1a last x_x' x1c ana_lookup_conv
+    unfolding x1g_x1d st j_def b_def st2
+    by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+     auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+         lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+         lit_redundant_rec_wl_ref_def ana_lookup_conv_def
+       simp del: x1c)
+  subgoal
+    using inv2 x1a last x_x' x1c unfolding x1g_x1d st j_def b_def st2
+    by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+     auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+         lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+         lit_redundant_rec_wl_ref_def
+       simp del: x1c)
+  subgoal
+    using inv2 x1a last x_x' x1c unfolding x1g_x1d st j_def b_def st2
+    by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+     auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+         lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+         lit_redundant_rec_wl_ref_def
+       simp del: x1c)
+  subgoal
+    using inv2 x1a last x_x' x1c unfolding x1g_x1d st j_def b_def st2
+    by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+     auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+         lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+         lit_redundant_rec_wl_ref_def
+       simp del: x1c)
+  subgoal
+    using inv2 x1a last x_x' x1c unfolding x1g_x1d st j_def b_def st2
+    by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+     auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+         lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+         lit_redundant_rec_wl_ref_def
+       simp del: x1c)
+  subgoal
+    using inv2 x1a last x_x' x1c unfolding x1g_x1d st j_def b_def st2
+    by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+     auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+         lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+         lit_redundant_rec_wl_ref_def
+       simp del: x1c)
+  subgoal
+    using inv2 x1a last x_x' x1c unfolding x1g_x1d st j_def b_def
+    by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+     auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+         lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+         lit_redundant_rec_wl_ref_def
+       simp del: x1c)
+  subgoal
+    using inv2 x1a last x_x' x1c unfolding x1g_x1d st j_def b_def
+    by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+     auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+         lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+         lit_redundant_rec_wl_ref_def
+       simp del: x1c)
+  subgoal
+    using inv2 x1a last x_x' x1c unfolding x1g_x1d st j_def b_def
+    by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+     auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+         lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+         lit_redundant_rec_wl_ref_def
+       simp del: x1c)
+  subgoal
+    using inv2 x1a last x_x' x1c unfolding x1g_x1d st j_def b_def
+    by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+     auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+         lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+         lit_redundant_rec_wl_ref_def
+       simp del: x1c)
+  subgoal
+    using inv2 x1a last x_x' x1c unfolding x1g_x1d st j_def b_def
+    by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+     auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+         lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+         lit_redundant_rec_wl_ref_def
+       simp del: x1c)
+  subgoal
+    using inv2 x1a last x_x' x1c unfolding x1g_x1d st j_def b_def
+    by (cases x1a rule: rev_cases; cases x1c rule: rev_cases;
+     auto simp: lit_redundant_rec_wl_inv2_def list_rel_append_single_iff
+         lit_redundant_rec_wl_inv_def ana_lookup_rel_def
+         lit_redundant_rec_wl_ref_def
+       simp del: x1c)
+  done
+
+lemma ccmin_in_dom:
+  shows x1g_dom: \<open>x1g \<in># dom_m NU\<close>
+  using dom unfolding x1g_x1d .
+
+lemma ccmin_in_dom_le_length:
+  shows \<open>x1h < length (NU \<propto> x1g)\<close>
+  using le unfolding x1g_x1d .
+
+lemma ccmin_in_trail:
+  shows \<open>NU \<propto> x1g ! x1h \<in> lits_of_l M\<close>
+  using in_lits unfolding x1g_x1d .
+
+lemma ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_x1g:
+  shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (NU \<propto> x1g))\<close>
+  using lits_NU multi_member_split[OF x1g_dom]
+  by (auto simp: ran_m_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_mset)
+
+lemma ccmin_le_uint32_max:
+  \<open>length (NU \<propto> x1g) \<le> Suc (uint32_max div 2)\<close>
+  using simple_clss_size_upper_div2[OF bounded ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_x1g]
+    dist tauto unfolding x1g_x1d
+  by auto
+
+lemma ccmin_in_all_lits:
+  shows \<open>NU \<propto> x1g ! x1h \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
+  using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_x1g, of x1h]
+  le unfolding x1g_x1d by auto
+
+lemma ccmin_less_length:
+  shows \<open>x2i \<le> length (NU \<propto> x1g)\<close>
+  using le ana unfolding x1g_x1d st3 by (simp split: if_splits)
+
+lemma ccmin_same_cond:
+  shows \<open>(x2i \<le> x1i) = (x2f \<le> x1f)\<close>
+  using le ana unfolding x1g_x1d st3 by (simp split: if_splits)
+
+lemma ccmin_set_removable:
+  assumes 
+    \<open>x2i \<le> x1i\<close> and
+    \<open>x2f \<le> x1f\<close>
+  shows \<open>((x1b(atm_of (NU \<propto> x1g ! x1h) := SEEN_REMOVABLE), butlast x1c, True),
+          x1(atm_of (NU \<propto> x1d ! x1e) := SEEN_REMOVABLE), butlast x1a, True)
+         \<in> {((cach, ana, b), cach', ana', b').
+       (ana, ana') \<in> ana_lookups_rel NU \<and>
+       b = b' \<and> cach = cach' \<and> lit_redundant_rec_wl_inv M NU D (cach, ana', b)}\<close>
+  using x_x' by (auto simp: x1g_x1d lit_redundant_rec_wl_ref_butlast lit_redundant_rec_wl_inv_def
+    dest: list_rel_butlast)
+
+context
+  assumes 
+    le: \<open>\<not> x2i \<le> x1i\<close> \<open>\<not> x2f \<le> x1f\<close>
+begin
+
+context
+  notes _[simp]= x1g_x1d st2 last
+  fixes x1j :: \<open>nat literal\<close> and x2j :: \<open>(nat \<times> nat \<times> nat \<times> nat) list\<close> and
+  x1k :: \<open>nat literal\<close> and x2k :: \<open>(nat \<times> nat \<times> bool) list\<close>
+  assumes 
+    rem: \<open>get_literal_and_remove_of_analyse_wl (NU \<propto> x1d) x1a = (x1j, x2j)\<close> and
+    rem2:\<open>get_literal_and_remove_of_analyse_wl2 (NU \<propto> x1g) x1c = (x1k, x2k)\<close> and
+    \<open>fst (snd (snd (last x2j))) \<noteq> 0\<close> and
+    ux1j_M: \<open>- x1j \<in> lits_of_l M\<close>
+begin
+
+private lemma confl_min_last: \<open>(last x1c, last x1a) \<in> ana_lookup_rel NU\<close>
+  using x1a x1c x_x' rem rem2 last ana_lookup_conv unfolding x1g_x1d st2 b_def st
+  by (cases x1c rule: rev_cases; cases x1a rule: rev_cases)
+    (auto simp: list_rel_append_single_iff
+     get_literal_and_remove_of_analyse_wl_def
+    get_literal_and_remove_of_analyse_wl2_def)
+
+private lemma rel: \<open>(x1c[length x1c - Suc 0 := (x1d, Suc x1f, b)], x1a
+     [length x1a - Suc 0 := (x1d, x1e, Suc x1f, x2f)])
+    \<in> ana_lookups_rel NU\<close>
+  using x1a x1c x_x' rem rem2 confl_min_last unfolding x1g_x1d st2 last b_def st
+  by (cases x1c rule: rev_cases; cases x1a rule: rev_cases)
+    (auto simp: list_rel_append_single_iff
+      ana_lookup_rel_alt_def get_literal_and_remove_of_analyse_wl_def
+      get_literal_and_remove_of_analyse_wl2_def)
+
+private lemma x1k_x1j: \<open>x1k = x1j\<close> \<open>x1j = NU \<propto> x1d ! x1f\<close> and
+  x2k_x2j: \<open>(x2k, x2j) \<in> ana_lookups_rel NU\<close>
+  subgoal
+    using x1a x1c x_x' rem rem2 confl_min_last unfolding x1g_x1d st2 last b_def st
+    by (cases x1c rule: rev_cases; cases x1a rule: rev_cases)
+      (auto simp: list_rel_append_single_iff
+	ana_lookup_rel_alt_def get_literal_and_remove_of_analyse_wl_def
+	get_literal_and_remove_of_analyse_wl2_def)
+  subgoal
+    using x1a x1c x_x' rem rem2 confl_min_last unfolding x1g_x1d st2 last b_def st
+    by (cases x1c rule: rev_cases; cases x1a rule: rev_cases)
+      (auto simp: list_rel_append_single_iff
+	ana_lookup_rel_alt_def get_literal_and_remove_of_analyse_wl_def
+	get_literal_and_remove_of_analyse_wl2_def)
+  subgoal
+    using x1a x1c x_x' rem rem2 confl_min_last unfolding x1g_x1d st2 last b_def st
+    by (cases x1c rule: rev_cases; cases x1a rule: rev_cases)
+      (auto simp: list_rel_append_single_iff
+	ana_lookup_rel_alt_def get_literal_and_remove_of_analyse_wl_def
+	get_literal_and_remove_of_analyse_wl2_def)
+  done
+
+lemma ccmin_x1k_all:
+  shows \<open>x1k \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
+  unfolding x1k_x1j
+  using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_x1g, of x1f]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[OF lits \<open>- x1j \<in> lits_of_l M\<close>]
+  le st3 unfolding x1g_x1d by (auto split: if_splits simp: x1k_x1j uminus_\<A>\<^sub>i\<^sub>n_iff)
+
+
+context
+  notes _[simp]= x1k_x1j
+  fixes b :: \<open>bool\<close> and lbd
+  assumes b: \<open>(\<not> level_in_lbd (get_level M x1k) lbd, b) \<in> bool_rel\<close>
+begin
+
+private lemma in_conflict_atm_in:
+  \<open>- x1e' \<in> lits_of_l M \<Longrightarrow> atm_in_conflict (atm_of x1e') D \<longleftrightarrow> x1e' \<in># D\<close> for x1e'
+  using M_D n_d
+  by (auto simp: atm_in_conflict_def true_annots_true_cls_def_iff_negation_in_model
+      atms_of_def atm_of_eq_atm_of dest!: multi_member_split no_dup_consistentD)
+
+lemma ccmin_already_seen:
+  shows \<open>(get_level M x1k = zero_uint32_nat \<or>
+          conflict_min_cach x1b (atm_of x1k) = SEEN_REMOVABLE \<or>
+          atm_in_conflict (atm_of x1k) D) =
+         (get_level M x1j = 0 \<or> x1 (atm_of x1j) = SEEN_REMOVABLE \<or> x1j \<in># D)\<close>
+  using in_lits ana ux1j_M
+  by (auto simp add: in_conflict_atm_in)
+
+
+private lemma ccmin_lit_redundant_rec_wl_inv: \<open>lit_redundant_rec_wl_inv M NU D
+     (x1, x2j, False)\<close>
+  using x_x' last ana_lookup_conv rem rem2 x1a x1c le
+  by (cases x1a rule: rev_cases; cases x1c rule: rev_cases)
+    (auto simp add: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
+    lit_redundant_reason_stack_def get_literal_and_remove_of_analyse_wl_def
+    list_rel_append_single_iff get_literal_and_remove_of_analyse_wl2_def)
+ 
+lemma ccmin_already_seen_rel:
+  assumes 
+    \<open>get_level M x1k = zero_uint32_nat \<or>
+     conflict_min_cach x1b (atm_of x1k) = SEEN_REMOVABLE \<or>
+     atm_in_conflict (atm_of x1k) D\<close> and
+    \<open>get_level M x1j = 0 \<or> x1 (atm_of x1j) = SEEN_REMOVABLE \<or> x1j \<in># D\<close>
+  shows \<open>((x1b, x2k, False), x1, x2j, False)
+         \<in> {((cach, ana, b), cach', ana', b').
+          (ana, ana') \<in> ana_lookups_rel NU \<and>
+          b = b' \<and> cach = cach' \<and> lit_redundant_rec_wl_inv M NU D (cach, ana', b)}\<close>
+  using x2k_x2j ccmin_lit_redundant_rec_wl_inv by auto
+
+context
+  assumes 
+    \<open>\<not> (get_level M x1k = zero_uint32_nat \<or>
+        conflict_min_cach x1b (atm_of x1k) = SEEN_REMOVABLE \<or>
+        atm_in_conflict (atm_of x1k) D)\<close> and
+    \<open>\<not> (get_level M x1j = 0 \<or> x1 (atm_of x1j) = SEEN_REMOVABLE \<or> x1j \<in># D)\<close>
+begin
+lemma ccmin_already_failed:
+  shows \<open>(\<not> level_in_lbd (get_level M x1k) lbd \<or>
+          conflict_min_cach x1b (atm_of x1k) = SEEN_FAILED) =
+         (b \<or> x1 (atm_of x1j) = SEEN_FAILED)\<close>
+  using b by auto
+
+
+context
+  assumes 
+    \<open>\<not> level_in_lbd (get_level M x1k) lbd \<or>
+     conflict_min_cach x1b (atm_of x1k) = SEEN_FAILED\<close> and
+    \<open>b \<or> x1 (atm_of x1j) = SEEN_FAILED\<close>
+begin
+
+lemma ccmin_mark_failed_lits_stack_inv2_lbd:
+  shows \<open>mark_failed_lits_stack_inv2 NU x2k x1b\<close>
+  using x1a x1c x2k_x2j rem rem2 x_x' le last
+  unfolding mark_failed_lits_stack_inv_def lit_redundant_rec_wl_inv_def
+    lit_redundant_rec_wl_ref_def get_literal_and_remove_of_analyse_wl_def
+  unfolding mark_failed_lits_stack_inv2_def
+  apply -
+  apply (rule exI[of _ x2j])
+  apply (cases \<open>x1a\<close> rule: rev_cases; cases \<open>x1c\<close> rule: rev_cases)
+  by (auto simp: mark_failed_lits_stack_inv_def elim!: in_set_upd_cases)
+
+lemma ccmin_mark_failed_lits_wl_lbd:
+  shows \<open>mark_failed_lits_wl NU x2k x1b
+         \<le> \<Down> Id
+            (mark_failed_lits_wl NU x2j x1)\<close>	  
+  by (auto simp: mark_failed_lits_wl_def)
+
+
+lemma ccmin_rel_lbd:
+  fixes cach :: \<open>nat \<Rightarrow> minimize_status\<close> and cacha :: \<open>nat \<Rightarrow> minimize_status\<close>
+  assumes \<open>(cach, cacha)  \<in> Id\<close>
+  shows \<open>((cach, [], False), cacha, [], False) \<in> {((cach, ana, b), cach', ana', b').
+       (ana, ana') \<in> ana_lookups_rel NU \<and>
+       b = b' \<and> cach = cach' \<and> lit_redundant_rec_wl_inv M NU D (cach, ana', b)}\<close>
+  using x_x' assms by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def)
+
+end
+
+
+context
+  assumes 
+    \<open>\<not> (\<not> level_in_lbd (get_level M x1k) lbd \<or>
+        conflict_min_cach x1b (atm_of x1k) = SEEN_FAILED)\<close> and
+    \<open>\<not> (b \<or> x1 (atm_of x1j) = SEEN_FAILED)\<close>
+begin
+
+lemma ccmin_lit_in_trail:
+  \<open>- x1k \<in> lits_of_l M\<close>
+  using \<open>- x1j \<in> lits_of_l M\<close> x1k_x1j(1) by blast 
+
+lemma ccmin_lit_eq:
+  \<open>- x1k = - x1j\<close>
+  by auto
+
+
+context
+  fixes xa :: \<open>nat option\<close> and x'a :: \<open>nat option\<close>
+  assumes xa_x'a: \<open>(xa, x'a) \<in> \<langle>nat_rel\<rangle>option_rel\<close>
+begin
+
+lemma ccmin_lit_eq2:
+  \<open>(xa, x'a) \<in> Id\<close>
+  using xa_x'a by auto
+
+context
+  assumes 
+    [simp]: \<open>xa = None\<close> \<open>x'a = None\<close>
+begin
+
+lemma ccmin_mark_failed_lits_stack_inv2_dec:
+  \<open>mark_failed_lits_stack_inv2 NU x2k x1b\<close>
+  using x1a x1c x2k_x2j rem rem2 x_x' le last
+  unfolding mark_failed_lits_stack_inv_def lit_redundant_rec_wl_inv_def
+    lit_redundant_rec_wl_ref_def get_literal_and_remove_of_analyse_wl_def
+  unfolding mark_failed_lits_stack_inv2_def
+  apply -
+  apply (rule exI[of _ x2j])
+  apply (cases \<open>x1a\<close> rule: rev_cases; cases \<open>x1c\<close> rule: rev_cases)
+  by (auto simp: mark_failed_lits_stack_inv_def elim!: in_set_upd_cases)
+
+lemma ccmin_mark_failed_lits_stack_wl_dec:
+  shows \<open>mark_failed_lits_wl NU x2k x1b
+         \<le> \<Down> Id
+            (mark_failed_lits_wl NU x2j x1)\<close>
+  by (auto simp: mark_failed_lits_wl_def)
+
+
+lemma ccmin_rel_dec:
+  fixes cach :: \<open>nat \<Rightarrow> minimize_status\<close> and cacha :: \<open>nat \<Rightarrow> minimize_status\<close>
+  assumes \<open>(cach, cacha)  \<in> Id\<close>
+  shows \<open>((cach, [], False), cacha, [], False)
+         \<in>  {((cach, ana, b), cach', ana', b').
+       (ana, ana') \<in> ana_lookups_rel NU \<and>
+       b = b' \<and> cach = cach' \<and> lit_redundant_rec_wl_inv M NU D (cach, ana', b)}\<close>
+  using assms by (auto simp: lit_redundant_rec_wl_ref_def lit_redundant_rec_wl_inv_def)
+
+end
+
+
+context
+  fixes xb :: \<open>nat\<close> and x'b :: \<open>nat\<close>
+  assumes H:
+    \<open>xa = Some xb\<close>
+    \<open>x'a = Some x'b\<close>
+    \<open>(xb, x'b) \<in> nat_rel\<close>
+    \<open>x'b \<in># dom_m NU\<close>
+    \<open>2 \<le> length (NU \<propto> x'b)\<close>
+    \<open>x'b > 0\<close>
+    \<open>distinct (NU \<propto> x'b) \<and> \<not> tautology (mset (NU \<propto> x'b))\<close>
+begin
+
+lemma ccmin_stack_pre:
+  shows \<open>xb \<in># dom_m NU\<close> \<open>2 \<le> length (NU \<propto> xb)\<close>
+  using H by auto
+
+
+lemma ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_xb:
+  shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (NU \<propto> xb))\<close>
+  using lits_NU multi_member_split[of xb \<open>dom_m NU\<close>] H
+  by (auto simp: ran_m_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_mset)
+
+lemma ccmin_le_uint32_max_xb:
+  \<open>length (NU \<propto> xb) \<le> Suc (uint32_max div 2)\<close>
+  using simple_clss_size_upper_div2[OF bounded ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_xb]
+    H unfolding x1g_x1d
+  by auto
+
+private lemma ccmin_lit_redundant_rec_wl_inv3: \<open>lit_redundant_rec_wl_inv M NU D
+     (x1, x2j @ [lit_redundant_reason_stack (- NU \<propto> x1d ! x1f) NU x'b], False)\<close>
+  using ccmin_stack_pre H x_x' last ana_lookup_conv rem rem2 x1a x1c le
+  by (cases x1a rule: rev_cases; cases x1c rule: rev_cases)
+    (auto simp add: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
+    lit_redundant_reason_stack_def get_literal_and_remove_of_analyse_wl_def
+    list_rel_append_single_iff get_literal_and_remove_of_analyse_wl2_def)
+
+lemma ccmin_stack_rel:
+  shows \<open>((x1b, x2k @ [lit_redundant_reason_stack2 (- x1k) NU xb], False), x1,
+          x2j @ [lit_redundant_reason_stack (- x1j) NU x'b], False)
+         \<in>  {((cach, ana, b), cach', ana', b').
+       (ana, ana') \<in> ana_lookups_rel NU \<and>
+       b = b' \<and> cach = cach' \<and> lit_redundant_rec_wl_inv M NU D (cach, ana', b)}\<close>
+  using x2k_x2j H ccmin_lit_redundant_rec_wl_inv3
+  by (auto simp: list_rel_append_single_iff ana_lookup_rel_alt_def
+      lit_redundant_reason_stack2_def lit_redundant_reason_stack_def)
+
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+
 lemma lit_redundant_rec_wl_lookup_lit_redundant_rec_wl:
   assumes
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
     n_d: \<open>no_dup M\<close> and
-    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close>
+    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close> and
+    \<open>(analysis, analysis') \<in> ana_lookups_rel NU\<close> and
+    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> ((mset \<circ> fst) `# ran_m NU)\<close> and
+    \<open>isasat_input_bounded \<A>\<close>
   shows
    \<open>lit_redundant_rec_wl_lookup \<A> M NU D cach analysis lbd \<le>
-      \<Down> Id (lit_redundant_rec_wl M NU D cach analysis lbd)\<close>
+      \<Down> (Id \<times>\<^sub>r (ana_lookups_rel NU) \<times>\<^sub>r bool_rel) (lit_redundant_rec_wl M NU D cach analysis' lbd)\<close>
 proof -
   have M: \<open>\<forall>a \<in> lits_of_l M. a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
     using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l lits by blast
@@ -1727,46 +2350,49 @@ proof -
         (mark_failed_lits_wl NU a' b')\<close> if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' b b'
     unfolding that by auto
 
-  show ?thesis
+  have H: \<open>lit_redundant_rec_wl_lookup \<A> M NU D cach analysis lbd \<le>
+      \<Down> {((cach, ana, b), cach', ana', b').
+          (ana, ana') \<in> ana_lookups_rel NU \<and>
+          b = b' \<and> cach = cach' \<and> lit_redundant_rec_wl_inv M NU D (cach, ana', b)}
+       (lit_redundant_rec_wl M NU D cach analysis' lbd)\<close>
+    using assms apply -
     unfolding lit_redundant_rec_wl_lookup_def lit_redundant_rec_wl_def WHILET_def
     apply (refine_vcg)
-    subgoal by auto
-    subgoal by (auto simp: lit_redundant_rec_wl_inv_def
-          lit_redundant_rec_wl_ref_def)
-    subgoal by auto
-    subgoal by auto
-    subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
-          elim!: neq_Nil_revE)
-    subgoal by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE)
-    subgoal by auto
-    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c
-      unfolding lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
-      by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE[of x1a])
-    subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
-          elim!: neq_Nil_revE)
-    subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
-          elim!: neq_Nil_revE)
-    subgoal by auto
-    subgoal by auto
-    subgoal by (auto intro!:)
-    subgoal by auto
-    subgoal by auto
-    subgoal by (rule lit_redundant_rec_wl_lookup_mark_failed_lits_stack_inv; assumption?)
-        (auto)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by (rule lit_redundant_rec_wl_lookup_mark_failed_lits_stack_inv) auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
+    subgoal by (rule ccmin_rel)
+    subgoal by (rule ccmin_lit_redundant_rec_wl_inv2)
+    subgoal by (rule ccmin_cond)
+    subgoal by (rule ccmin_nempty)
+    subgoal by (rule ccmin_in_dom)
+    subgoal by (rule ccmin_in_dom_le_length)
+    subgoal by (rule ccmin_in_trail)
+    subgoal by (rule ccmin_in_all_lits)
+    subgoal by (rule ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_x1g)
+    subgoal by (rule ccmin_le_uint32_max)
+    subgoal by (rule ccmin_less_length)
+    subgoal by (rule ccmin_same_cond)
+    subgoal by (rule ccmin_set_removable)
+    subgoal by (rule ccmin_x1k_all)
+    subgoal by (rule ccmin_already_seen)
+    subgoal by (rule ccmin_already_seen_rel)
+    subgoal by (rule ccmin_already_failed)
+    subgoal by (rule ccmin_mark_failed_lits_stack_inv2_lbd)
+    apply (rule ccmin_mark_failed_lits_wl_lbd; assumption)
+    subgoal by (rule ccmin_rel_lbd)
+    subgoal by (rule ccmin_lit_in_trail)
+    subgoal by (rule ccmin_lit_eq)
+    subgoal by (rule ccmin_lit_eq2)
+    subgoal by (rule ccmin_mark_failed_lits_stack_inv2_dec)
+    apply (rule ccmin_mark_failed_lits_stack_wl_dec; assumption)
+    subgoal by (rule ccmin_rel_dec)
+    subgoal by (rule ccmin_stack_pre)
+    subgoal by (rule ccmin_stack_pre)
+    subgoal by (rule ccmin_literals_are_in_\<L>\<^sub>i\<^sub>n_NU_xb)
+    subgoal by (rule ccmin_le_uint32_max_xb)
+    subgoal by (rule ccmin_stack_rel)
     done
+  show ?thesis
+    by (rule H[THEN order_trans], rule conc_fun_R_mono)
+     auto
 qed
 
 
@@ -1784,7 +2410,10 @@ definition literal_redundant_wl_lookup where
          Some C \<Rightarrow> do {
 	   ASSERT(C \<in># dom_m NU);
 	   ASSERT(length (NU \<propto> C) \<ge> 2);
-	   lit_redundant_rec_wl_lookup \<A> M NU D cach [lit_redundant_reason_stack (-L) NU C] lbd
+	   ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (NU \<propto> C)));
+	   ASSERT(distinct (NU \<propto> C) \<and> \<not>tautology (mset (NU \<propto> C)));
+	   ASSERT(length (NU \<propto> C) \<le> Suc (uint32_max div 2));
+	   lit_redundant_rec_wl_lookup \<A> M NU D cach [lit_redundant_reason_stack2 (-L) NU C] lbd
 	 }
        | None \<Rightarrow> do {
            RETURN (cach, [], False)
@@ -1794,8 +2423,11 @@ definition literal_redundant_wl_lookup where
 
 lemma literal_redundant_wl_lookup_literal_redundant_wl:
   assumes \<open>M \<Turnstile>as CNot D\<close> \<open>no_dup M\<close> \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close>
+    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> ((mset \<circ> fst) `# ran_m NU)\<close> and
+    \<open>isasat_input_bounded \<A>\<close>
   shows
-    \<open>literal_redundant_wl_lookup \<A> M NU D cach L lbd \<le> \<Down> Id (literal_redundant_wl M NU D cach L lbd)\<close>
+    \<open>literal_redundant_wl_lookup \<A> M NU D cach L lbd \<le>
+      \<Down> (Id \<times>\<^sub>f (ana_lookups_rel NU \<times>\<^sub>f bool_rel)) (literal_redundant_wl M NU D cach L lbd)\<close>
 proof -
   have M: \<open>\<forall>a \<in> lits_of_l M. a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
     using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l assms by blast
@@ -1817,13 +2449,21 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal for x x' xa x'a
-      apply (subgoal_tac \<open>lit_redundant_rec_wl_lookup \<A> M NU D cach [lit_redundant_reason_stack (-L) NU xa] lbd
-    \<le> \<Down> Id (lit_redundant_rec_wl M NU D cach [lit_redundant_reason_stack (-L) NU xa] lbd)\<close>)
-      subgoal by simp
-      subgoal using assms
-        by (rule lit_redundant_rec_wl_lookup_lit_redundant_rec_wl)
-      done
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal
+      using assms by (auto dest!: multi_member_split simp: ran_m_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_mset)
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms simple_clss_size_upper_div2[of \<A> \<open>mset (NU \<propto> _)\<close>] by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by (auto simp: lit_redundant_reason_stack2_def lit_redundant_reason_stack_def
+      ana_lookup_rel_def)
+    subgoal using assms by auto
+    subgoal using assms by auto
     done
 qed
 
@@ -1905,6 +2545,7 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUE) D\<close> and
     NU_P_D: \<open>NU' + NUE \<Turnstile>pm add_mset K D\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> D\<close> and
+    lits_NU: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf NU)\<close> and
     K: \<open>K = outl ! 0\<close> and
     outl_nempty: \<open>outl \<noteq> []\<close> and
     bounded: \<open>isasat_input_bounded \<A>\<close>
@@ -2051,13 +2692,10 @@ proof -
       using \<open>E = mset (tl outl')\<close> \<open>x1d < length outl'\<close> \<open>0 < x1d\<close>
       by (auto simp: nth_in_set_tl)
 
-  have 1:
-    \<open>literal_redundant_wl_lookup \<A> M NU nxs cach ?L lbd \<le> \<Down> Id (literal_redundant_wl M NU nxs cach ?L lbd)\<close>
+    have 1:
+      \<open>literal_redundant_wl_lookup \<A> M NU nxs cach ?L lbd \<le> \<Down> (Id \<times>\<^sub>f (ana_lookups_rel NU \<times>\<^sub>f bool_rel)) (literal_redundant_wl M NU nxs cach ?L lbd)\<close>
       by (rule literal_redundant_wl_lookup_literal_redundant_wl)
-       (use n_d lits M_x1 struct_invs add_inv \<open>outl' ! x1d \<in># E\<close> \<open>E = nxs\<close> in auto)
-    then have 1:
-    \<open>literal_redundant_wl_lookup \<A> M NU nxs cach ?L lbd \<le> (literal_redundant_wl M NU nxs cach ?L lbd)\<close>
-      by simp
+       (use lits_NU n_d lits M_x1 struct_invs bounded add_inv \<open>outl' ! x1d \<in># E\<close> \<open>E = nxs\<close> in auto)
 
     have 2:
       \<open>literal_redundant_wl M NU nxs cach ?L lbd \<le> \<Down>
@@ -2092,7 +2730,9 @@ proof -
       apply (rule order.trans)
        apply (rule 1)
       apply (rule order.trans)
+      apply (rule ref_two_step')
        apply (rule 2)
+       apply (subst conc_fun_chain)
       apply (rule order.trans)
        apply (rule ref_two_step'[OF 3])
       unfolding literal_redundant_spec_def is_literal_redundant_spec_def
@@ -2396,54 +3036,57 @@ lemma conflict_min_cach_set_removable:
       conflict_min_cach_set_removable_l_def)
 
 text \<open>This is the result of trying and discovering that MLton is able to optimise the code better.\<close>
-datatype 'n ana_ref = Ana_Ref 'n 'n 'n 'n
+datatype ('n, 'b) ana_ref = Ana_Ref 'n 'b bool
 
-instantiation ana_ref :: (default) default
+instantiation ana_ref :: (default, default) default
 begin
 
-definition default_ana_ref :: \<open>'a ana_ref\<close> where
-  \<open>default_ana_ref = Ana_Ref default default default default\<close>
+definition default_ana_ref :: \<open>('a, 'b) ana_ref\<close> where
+  \<open>default_ana_ref = Ana_Ref default default default\<close>
 
 instance
   by standard
 end
-instance ana_ref :: (heap) heap
+instance ana_ref :: (heap, heap) heap
 
 proof
   obtain to_nata where
     b: \<open>inj (to_nata :: 'a \<Rightarrow> nat)\<close>
     by blast
 
-  obtain to_natb where
-    a: \<open>inj (to_natb :: nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat)\<close>
+  obtain to_natc where
+    c: \<open>inj (to_natc :: 'b \<Rightarrow> nat)\<close>
     by blast
-  let ?f = \<open>\<lambda>x :: 'a ana_ref. case x of Ana_Ref a b c d \<Rightarrow>
-    to_natb (to_nata a, to_nata b, to_nata c, to_nata d)\<close>
+  obtain to_natb where
+    a: \<open>inj (to_natb :: nat \<times> nat \<times> bool \<Rightarrow> nat)\<close>
+    by blast
+  let ?f = \<open>\<lambda>x :: ('a, 'b) ana_ref. case x of Ana_Ref a b c \<Rightarrow>
+    to_natb (to_nata a, to_natc b, c)\<close>
   have \<open>inj ?f\<close>
     unfolding inj_on_def
     apply (intro ballI)
     apply (case_tac x, case_tac y)
-    apply (auto dest!: injD[OF a] injD[OF b])
+    apply (auto dest!: injD[OF a] injD[OF c] injD[OF b])
     done
-  then show \<open>\<exists>to_nat. inj (to_nat :: 'a ana_ref \<Rightarrow> nat)\<close>
+  then show \<open>\<exists>to_nat. inj (to_nat :: ('a, 'b) ana_ref \<Rightarrow> nat)\<close>
     by blast
 qed
 
-fun ana_ref_assn :: \<open>('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a ana_ref \<Rightarrow> 'b ana_ref \<Rightarrow> assn\<close> where [simp del]:
-  \<open>ana_ref_assn r (Ana_Ref a b c d) (Ana_Ref a' b' c' d')=
-    r a a' * r b b' * r c c' * r d d'\<close>
+fun ana_ref_assn :: \<open>('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> ('a, nat) ana_ref \<Rightarrow> ('b, uint32) ana_ref \<Rightarrow> assn\<close> where [simp del]:
+  \<open>ana_ref_assn r (Ana_Ref a b c) (Ana_Ref a' b' c')=
+    r a a' * uint32_nat_assn b b' * bool_assn c c'\<close>
 
 lemma ana_ref_assn_def:
   \<open>ana_ref_assn r = (\<lambda>x y. case (x, y) of
-    (Ana_Ref a b c d, Ana_Ref a' b' c' d') \<Rightarrow>
-    r a a' * r b b' * r c c' * r d d')\<close>
+    (Ana_Ref a b c, Ana_Ref a' b' c') \<Rightarrow>
+    r a a' * uint32_nat_assn b b' * bool_assn c c')\<close>
   apply (intro ext)
   apply (case_tac  x, case_tac y)
   by (auto simp: ana_ref_assn.simps intro!: ext)
 
 definition analyse_refinement_rel where
   \<open>analyse_refinement_rel = {(x, y).
-     y = (case x of Ana_Ref a b c d \<Rightarrow> (a, b, c, d))}\<close>
+     y = (case x of Ana_Ref a b c \<Rightarrow> (a, b, c))}\<close>
 
 definition (in -)ana_refinement_assn where
   \<open>ana_refinement_assn \<equiv> hr_comp (ana_ref_assn nat_assn) analyse_refinement_rel\<close>
@@ -2455,14 +3098,14 @@ definition (in -)ana_refinement_fast_assn where
   \<open>ana_refinement_fast_assn \<equiv>
     hr_comp (ana_ref_assn uint64_nat_assn) analyse_refinement_rel\<close>
 
-lemma ex_ana_ref_split: \<open>(\<exists>\<^sub>Aba. P ba) = (\<exists>\<^sub>A a b c d. P (Ana_Ref a b c d))\<close>
+lemma ex_ana_ref_split: \<open>(\<exists>\<^sub>Aba. P ba) = (\<exists>\<^sub>A a b c. P (Ana_Ref a b c))\<close>
 proof -
-  let ?f = \<open>\<lambda>x. case x of (a, b, c, d) \<Rightarrow> P (Ana_Ref a b c d)\<close>
-  have 1: \<open>(\<exists>x. h \<Turnstile> P x) = (\<exists>a b c d. h \<Turnstile> P (Ana_Ref a b c d))\<close> for h
+  let ?f = \<open>\<lambda>x. case x of (a, b, c) \<Rightarrow> P (Ana_Ref a b c)\<close>
+  have 1: \<open>(\<exists>x. h \<Turnstile> P x) = (\<exists>a b c. h \<Turnstile> P (Ana_Ref a b c))\<close> for h
     apply auto
     apply (case_tac x)
     by auto
-  have 2: \<open>(\<exists>\<^sub>Aa b c d. P (Ana_Ref a b c d)) = (\<exists>\<^sub>Ax. ?f x)\<close>
+  have 2: \<open>(\<exists>\<^sub>Aa b c. P (Ana_Ref a b c)) = (\<exists>\<^sub>Ax. ?f x)\<close>
     unfolding ex_assn_pair_split
     by auto
   show ?thesis
@@ -2474,6 +3117,14 @@ proof -
 qed
 
 (*TODO move*)
+lemma ex_assn_def_pure_eq_start:
+  \<open>(\<exists>\<^sub>Aba. \<up> (ba = h) * P ba) = P h\<close>
+  by (subst ex_assn_def, auto)+
+
+lemma ex_assn_def_pure_eq_start':
+  \<open>(\<exists>\<^sub>Aba. \<up> (h = ba) * P ba) = P h\<close>
+  by (subst ex_assn_def, auto)+
+
 lemma ex_assn_def_pure_eq_start2:
   \<open>(\<exists>\<^sub>Aba b. \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab .  P b (h b))\<close>
   by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
@@ -2493,23 +3144,28 @@ lemma ex_assn_def_pure_eq_start4':
 lemma ex_assn_def_pure_eq_start1:
   \<open>(\<exists>\<^sub>Aba. \<up> (ba = h b) * P ba) = (P (h b))\<close>
   by (subst ex_assn_def, auto)+
+(*End Move*)
 
 lemma ana_refinement_fast_assn_alt_def:
-  \<open>ana_refinement_fast_assn (a', b', c' , d') (Ana_Ref a b c d)  =
-  uint64_nat_assn a' a * uint64_nat_assn b' b * uint64_nat_assn c' c * uint64_nat_assn d' d\<close>
+  \<open>ana_refinement_fast_assn (a', b', c') (Ana_Ref a b c)  =
+  uint64_nat_assn a' a * uint32_nat_assn b' b * bool_assn c' c\<close>
   unfolding ana_refinement_fast_assn_def
   apply (auto simp: hr_comp_def ana_ref_assn_def analyse_refinement_rel_def
     uint64_nat_rel_def br_def pure_def ex_ana_ref_split
-    ex_assn_def_pure_eq_middle3 ex_assn_def_pure_eq_middle2
+    ex_assn_def_pure_eq_middle2 ex_assn_def_pure_eq_middle2
     ex_assn_def_pure_eq_start2 ex_assn_def_pure_eq_start1
+    ex_assn_def_pure_eq_middle3 uint32_nat_rel_def br_def
     simp flip: merge_pure_star
     cong: )
   apply (subst star_assoc)+
-  apply (subst ex_assn_def_pure_eq_start1)
+  apply (subst ex_assn_def_pure_eq_start3)
+  apply (subst ex_assn_def_pure_eq_start2)
+  apply (subst ex_assn_def_pure_eq_start')
   by auto
+
 lemma ana_refinement_fast_assn_alt_def2:
-  \<open>ana_refinement_fast_assn = (\<lambda>(a', b', c' , d') x. case x of (Ana_Ref a b c d) \<Rightarrow>
-  uint64_nat_assn a' a * uint64_nat_assn b' b * uint64_nat_assn c' c * uint64_nat_assn d' d)\<close>
+  \<open>ana_refinement_fast_assn = (\<lambda>(a', b', c') x. case x of (Ana_Ref a b c) \<Rightarrow>
+  uint64_nat_assn a' a * uint32_nat_assn b' b * bool_assn c' c)\<close>
   apply (auto simp: ana_refinement_fast_assn_alt_def intro!: ext)
   apply (case_tac x)
   by (auto simp: ana_refinement_fast_assn_alt_def intro!: ext)
@@ -2518,8 +3174,8 @@ lemma ex_assn_cong:
   by auto
 
 lemma ana_refinement_assn_alt_def:
-  \<open>ana_refinement_assn (a', b', c' , d') (Ana_Ref a b c d)  =
-  nat_assn a' a * nat_assn b' b * nat_assn c' c * nat_assn d' d\<close>
+  \<open>ana_refinement_assn (a', b', c') (Ana_Ref a b c)  =
+  nat_assn a' a * uint32_nat_assn b' b * bool_assn c' c\<close>
   unfolding ana_refinement_assn_def
   apply (auto simp: hr_comp_def ana_ref_assn_def analyse_refinement_rel_def
     uint64_nat_rel_def br_def pure_def ex_ana_ref_split
@@ -2527,16 +3183,17 @@ lemma ana_refinement_assn_alt_def:
     ex_assn_def_pure_eq_start2 ex_assn_def_pure_eq_start1
       ex_assn_def_pure_eq_start3
       ex_assn_def_pure_eq_start3'
-      ex_assn_def_pure_eq_start4'
+      ex_assn_def_pure_eq_start4' uint32_nat_rel_def br_def
       eq_commute[of a] eq_commute[of b] eq_commute[of c] eq_commute[of d]
     simp flip: merge_pure_star
     cong: ex_assn_cong)
   apply (subst star_assoc)+
-  apply (subst ex_assn_def_pure_eq_start1)
+  apply (subst ex_assn_def_pure_eq_start)
   by auto
+
 lemma ana_refinement_assn_alt_def2:
-  \<open>ana_refinement_assn = (\<lambda>(a', b', c' , d') x. case x of (Ana_Ref a b c d) \<Rightarrow>
-  nat_assn a' a * nat_assn b' b * nat_assn c' c * nat_assn d' d)\<close>
+  \<open>ana_refinement_assn = (\<lambda>(a', b', c') x. case x of (Ana_Ref a b c) \<Rightarrow>
+  nat_assn a' a * uint32_nat_assn b' b * bool_assn c' c)\<close>
   apply (auto simp: ana_refinement_assn_alt_def intro!: ext)
   apply (case_tac x)
   by (auto simp: ana_refinement_assn_alt_def intro!: ext)
@@ -2544,8 +3201,9 @@ lemma ana_refinement_assn_alt_def2:
 lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure ana_refinement_assn\<close>
   unfolding CONSTRAINT_def is_pure_def
   supply[[show_sorts]]
-  apply (rule exI[of _ \<open>\<lambda>x x'. (x :: nat \<times> nat \<times> nat \<times> nat) = (case x' of
-    Ana_Ref a b c d \<Rightarrow> (a, b, c , d))\<close>])
+  apply (rule exI[of _ \<open>\<lambda>(a, b, c) x'. (case x' of
+    Ana_Ref a' b' c' \<Rightarrow> (a', a) \<in> nat_rel \<and> (b', b) \<in> uint32_nat_rel \<and>
+      (c', c) \<in> bool_rel)\<close>])
   apply (auto simp: is_pure_def ana_refinement_assn_alt_def2)
   apply (case_tac x')
   by (auto simp: pure_def)
@@ -2553,9 +3211,9 @@ lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure ana_refinement_assn\<cl
 lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure ana_refinement_fast_assn\<close>
   unfolding CONSTRAINT_def is_pure_def
   supply[[show_sorts]]
-  apply (rule exI[of _ \<open>\<lambda>(a, b, c , d) x'.  (case x' of
-    Ana_Ref a' b' c' d' \<Rightarrow> (a', a) \<in> uint64_nat_rel \<and> (b', b) \<in> uint64_nat_rel \<and>
-      (c', c) \<in> uint64_nat_rel \<and> (d', d) \<in> uint64_nat_rel)\<close>])
+  apply (rule exI[of _ \<open>\<lambda>(a, b, c) x'.  (case x' of
+    Ana_Ref a' b' c' \<Rightarrow> (a', a) \<in> uint64_nat_rel \<and> (b', b) \<in> uint32_nat_rel \<and>
+      (c', c) \<in> bool_rel)\<close>])
   apply (auto simp: is_pure_def ana_refinement_fast_assn_alt_def2)
   apply (case_tac x')
   by (auto simp: pure_def)
@@ -2565,20 +3223,20 @@ abbreviation (in -)analyse_refinement_fast_assn where
     arl_assn ana_refinement_fast_assn\<close>
 
 definition to_ana_ref_id where
-  [simp]: \<open>to_ana_ref_id = (\<lambda>a b c d. (a, b, c, d))\<close>
+  [simp]: \<open>to_ana_ref_id = (\<lambda>a b c. (a, b, c))\<close>
 
 definition to_ana_ref where
-  \<open>to_ana_ref = (\<lambda>a b c d. Ana_Ref a b c d)\<close>
+  \<open>to_ana_ref = (\<lambda>a b c. Ana_Ref a b c)\<close>
 
 definition from_ana_ref_id where
   [simp]: \<open>from_ana_ref_id x = x\<close>
 
 definition from_ana_ref where
-  \<open>from_ana_ref = (\<lambda>x. case x of Ana_Ref a b c d \<Rightarrow> (a, b, c, d))\<close>
+  \<open>from_ana_ref = (\<lambda>x. case x of Ana_Ref a b c \<Rightarrow> (a, b, c))\<close>
 
 lemma to_ana_ref_id_fast_hnr[sepref_fr_rules]:
-  \<open>(uncurry3 (return oooo to_ana_ref), uncurry3 (RETURN oooo to_ana_ref_id)) \<in>
-   uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a
+  \<open>(uncurry2 (return ooo to_ana_ref), uncurry2 (RETURN ooo to_ana_ref_id)) \<in>
+   uint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a
    ana_refinement_fast_assn\<close>
  by sepref_to_hoare
    (sep_auto simp: to_ana_ref_def to_ana_ref_id_def ana_ref_assn_def
@@ -2586,19 +3244,19 @@ lemma to_ana_ref_id_fast_hnr[sepref_fr_rules]:
    case_prod_beta ana_refinement_fast_assn_alt_def pure_def)
 
 lemma to_ana_ref_id_hnr[sepref_fr_rules]:
-  \<open>(uncurry3 (return oooo to_ana_ref), uncurry3 (RETURN oooo to_ana_ref_id)) \<in>
-   nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a
+  \<open>(uncurry2 (return ooo to_ana_ref), uncurry2 (RETURN ooo to_ana_ref_id)) \<in>
+   nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a
    ana_refinement_assn\<close>
   unfolding ana_refinement_assn_alt_def[abs_def]
  by sepref_to_hoare
    (sep_auto simp: to_ana_ref_def to_ana_ref_id_def
     uint64_nat_rel_def br_def ana_refinement_assn_alt_def
-   case_prod_beta  pure_def)
+   case_prod_beta pure_def)
 
 lemma [sepref_fr_rules]:
   \<open>((return o from_ana_ref), (RETURN o from_ana_ref_id)) \<in>
    ana_refinement_fast_assn\<^sup>k \<rightarrow>\<^sub>a
-   uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn\<close>
+   uint64_nat_assn *a uint32_nat_assn *a bool_assn\<close>
   apply sepref_to_hoare
   apply (case_tac xi)
   apply
@@ -2610,7 +3268,7 @@ lemma [sepref_fr_rules]:
 lemma [sepref_fr_rules]:
   \<open>((return o from_ana_ref), (RETURN o from_ana_ref_id)) \<in>
    ana_refinement_assn\<^sup>k \<rightarrow>\<^sub>a
-  nat_assn *a nat_assn *a nat_assn *a nat_assn\<close>
+  nat_assn *a uint32_nat_assn *a bool_assn\<close>
   unfolding ana_refinement_assn_alt_def[abs_def]
   apply sepref_to_hoare
   apply (case_tac xi)
@@ -2633,7 +3291,7 @@ definition isa_mark_failed_lits_stack where
       (\<lambda>(i, cach). i < l)
       (\<lambda>(i, cach). do {
         ASSERT(i < length analyse);
-        let (cls_idx, _, idx, _) = from_ana_ref_id (analyse ! i);
+        let (cls_idx, idx, _) = from_ana_ref_id (analyse ! i);
         ASSERT(cls_idx + idx \<ge> 1);
         ASSERT(cls_idx + idx - 1 < length NU);
 	ASSERT(arena_lit_pre NU (cls_idx + idx - 1));
@@ -2664,7 +3322,7 @@ private lemma mark_failed_lits_stack_inv_helper2: \<open>mark_failed_lits_stack_
 lemma isa_mark_failed_lits_stack_isa_mark_failed_lits_stack:
   \<open>(uncurry2 isa_mark_failed_lits_stack, uncurry2 (mark_failed_lits_stack \<A>\<^sub>i\<^sub>n)) \<in>
      [\<lambda>((N, ana), cach). True]\<^sub>f
-     {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f Id \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<rightarrow>
+     {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f ana_lookups_rel NU \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<rightarrow>
      \<langle>cach_refinement \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>((0, x2c), 0, x2a) \<in> nat_rel \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n\<close>
@@ -2685,7 +3343,8 @@ proof -
       ge1: \<open>x1g + x2g \<ge> 1\<close>
     if
       \<open>case y of (x, xa) \<Rightarrow> (case x of (N, ana) \<Rightarrow> \<lambda>cach. True) xa\<close> and
-      xy: \<open>(x, y) \<in> {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f Id \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n\<close> and
+      xy: \<open>(x, y) \<in> {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f ana_lookups_rel NU
+         \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n\<close> and
       st:
         \<open>x1 = (x1a, x2)\<close>
         \<open>y = (x1, x2a)\<close>
@@ -2696,15 +3355,13 @@ proof -
 	\<open>x2f2 = (x2f, x2f3)\<close>
 	\<open>x2f0 = (x2f1, x2f2)\<close>
         \<open>x2 ! x1d = (x1f, x2f0)\<close>
-	\<open>x2g2 = (x2g, x2g3)\<close>
-	\<open>x2g0 = (x2g1, x2g2)\<close>
+	\<open>x2g0 = (x2g, x2g2)\<close>
         \<open>x2b ! x1e = (x1g, x2g0)\<close> and
       xax': \<open>(xa, x') \<in> nat_rel \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n\<close> and
       cond: \<open>case xa of (i, cach) \<Rightarrow> i < length x2b\<close> and
       cond': \<open>case x' of (i, cach) \<Rightarrow> i < length x2\<close> and
       inv: \<open>case x' of (_, x) \<Rightarrow> mark_failed_lits_stack_inv x1a x2 x\<close> and
-      \<open>x1d < length x2\<close> and
-      le: \<open>x1e < length x2b\<close> and
+      le: \<open>x1d < length x2\<close> \<open>x1e < length x2b\<close> and
       atm: \<open>atm_of (x1a \<propto> x1f ! (x2f - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
     for x y x1 x1a x2 x2a x1b x1c x2b x2c xa x' x1d x2d x1e x2e x1f x2f x1g x2g
       x2f0 x2f1 x2f2 x2f3 x2g0 x2g1 x2g2 x2g3
@@ -2713,24 +3370,22 @@ proof -
     have [simp]:
       \<open>x1 = (x1a, x2)\<close>
       \<open>y = ((x1a, x2), x2a)\<close>
-      \<open>x1b = (x1c, x2)\<close>
-      \<open>x = ((x1c, x2), x2c)\<close>
+      \<open>x1b = (x1c, x2b)\<close>
+      \<open>x = ((x1c, x2b), x2c)\<close>
       \<open>x' = (x1d, x2d)\<close>
       \<open>xa = (x1d, x2e)\<close>
       \<open>x1f = x1g\<close>
-      \<open>x2f = x2g\<close>
-      \<open>x2f1 = x2g1\<close>
-      \<open>x2f0 = x2g0\<close>
       \<open>x1e = x1d\<close>
-      \<open>x2g0 = (x2g1, x2g, x2g3)\<close>
-      \<open>x2f3 = x2g3\<close>
-      \<open>x2f2 = x2g2\<close>
-      \<open>x2b = x2\<close> and
-      st': \<open>x2 ! x1d = (x1g, x2g0)\<close> and
+      \<open>x2f0 = (x2f1, x2f, x2f3)\<close>
+      \<open>x2g = x2f\<close>
+      \<open>x2g0 = (x2g, x2g2)\<close> and
+      st': \<open>x2 ! x1d = (x1g, x2f0)\<close> and
       cach:\<open>(x2e, x2d) \<in> cach_refinement \<A>\<^sub>i\<^sub>n\<close> and
-      \<open>(x2c, x2a) \<in> cach_refinement \<A>\<^sub>i\<^sub>n\<close>
-      using xy st xax'
-      by auto
+      \<open>(x2c, x2a) \<in> cach_refinement \<A>\<^sub>i\<^sub>n\<close> and
+      x2f0_x2g0: \<open>((x1g, x2g, x2g2), (x1f, x2f1, x2f, x2f3)) \<in> ana_lookup_rel NU\<close>
+      using xy st xax' param_nth[of x1e x2 x1d x2b \<open>ana_lookup_rel NU\<close>] le
+      by (auto intro: simp: ana_lookup_rel_alt_def)
+
     have arena: \<open>valid_arena x1c x1a vdom\<close>
       using xy unfolding st by auto
     have \<open>x2 ! x1e \<in> set x2\<close>
@@ -2739,26 +3394,31 @@ proof -
     then have \<open>x2 ! x1d \<in> set x2\<close> and
       x2f: \<open>x2f \<le> length (x1a \<propto> x1f)\<close> and
       x1f: \<open>x1g \<in># dom_m x1a\<close> and
-      x2g: \<open>x2g > 0\<close>
-      using inv le unfolding mark_failed_lits_stack_inv_def x' prod.case st st'
-      by (auto simp del: nth_mem simp: st')
+      x2g: \<open>x2g > 0\<close> and
+      x2g_u1_le: \<open>x2g - 1 < length (x1a \<propto> x1f)\<close>
+      using inv le x2f0_x2g0 nth_mem[of x1d x2]
+      unfolding mark_failed_lits_stack_inv_def x' prod.case st st'
+      by (auto simp del: nth_mem simp: st' ana_lookup_rel_alt_def split: if_splits
+        dest!: bspec[of \<open>set x2\<close> _ \<open>(_, _, _, _)\<close>])
+
     have \<open>is_Lit (x1c ! (x1g + (x2g - 1)))\<close>
-      by (rule arena_lifting[OF arena x1f]) (use x2f x2g in auto)
+      by (rule arena_lifting[OF arena x1f]) (use x2f x2g x2g_u1_le in auto)
     then show ?le and ?A
-      using arena_lifting[OF arena x1f] le x2f x1f x2g atm by (auto simp: arena_lit_def)
+      using arena_lifting[OF arena x1f] le x2f x1f x2g atm x2g_u1_le
+      by (auto simp: arena_lit_def)
     show ?lit
       unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
       by (rule bex_leI[of _ x1f])
-        (use arena x1f x2f x2g in \<open>auto intro!: exI[of _ x1a] exI[of _ vdom]\<close>)
+        (use arena x1f x2f x2g x2g_u1_le in \<open>auto intro!: exI[of _ x1a] exI[of _ vdom]\<close>)
     show \<open>x1g + x2g \<ge> 1\<close>
       using x2g by auto
     have [simp]: \<open>arena_lit x1c (x1g + x2g - Suc 0) = x1a \<propto> x1g ! (x2g - Suc 0)\<close>
-       using that x1f x2f x2g by (auto simp: arena_lifting[OF arena])
+       using that x1f x2f x2g x2g_u1_le by (auto simp: arena_lifting[OF arena])
     have \<open>atm_of (arena_lit x1c (x1g + x2g - Suc 0)) < length (fst x2e)\<close>
       using \<open>?A\<close> cach by (auto simp: cach_refinement_alt_def dest: multi_member_split)
 
     then show ?final
-      using \<open>?le\<close> \<open>?A\<close> cach
+      using \<open>?le\<close> \<open>?A\<close> cach x1f x2g_u1_le x2g
       by (cases x2e)
         (auto simp: conflict_min_cach_set_failed_l_def cach_refinement_alt_def
         arena_lifting[OF arena])
@@ -2772,7 +3432,8 @@ proof -
     apply refine_vcg
     subgoal by auto
     subgoal by auto
-    subgoal by auto
+    subgoal for x y x1 x1a x2 x2a x1b x1c x2b x2c xa x' x1d x2d x1e x2e
+      by (auto simp: list_rel_imp_same_length)
     subgoal by auto
     subgoal by (rule ge1)
     subgoal by (rule le_length_arena)
@@ -2799,6 +3460,7 @@ sepref_definition isa_mark_failed_lits_stack_code
     nth_rll_def[symmetric]
     fmap_rll_def[symmetric]
     conflict_min_cach_set_failed_l_def
+  apply (rewrite at \<open>arena_lit _ (_ + \<hole> - _)\<close> nat_of_uint32_conv_def[symmetric])
   by sepref
 
 
@@ -2819,6 +3481,7 @@ sepref_definition isa_mark_failed_lits_stack_fast_code
     fmap_rll_def[symmetric]
     arena_lit_def[symmetric]
     conflict_min_cach_set_failed_l_def
+  apply (rewrite at \<open>arena_lit _ (_ + \<hole> - _)\<close> uint64_of_uint32_conv_def[symmetric])
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
@@ -2831,16 +3494,16 @@ declare isa_mark_failed_lits_stack_code.refine[sepref_fr_rules]
 declare isa_mark_failed_lits_stack_fast_code.refine[sepref_fr_rules]
 
 definition isa_get_literal_and_remove_of_analyse_wl
-   :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat) list \<Rightarrow> nat literal \<times> (nat \<times> nat \<times> nat \<times> nat) list\<close> where
+   :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> bool) list \<Rightarrow> nat literal \<times> (nat \<times> nat \<times> bool) list\<close> where
   \<open>isa_get_literal_and_remove_of_analyse_wl C analyse =
-    (let (i, k, j, len) = from_ana_ref_id (last analyse) in
-     (arena_lit C (i + j), analyse[length analyse - 1 := to_ana_ref_id i k (j + 1) len]))\<close>
+    (let (i, j, b) = from_ana_ref_id (last analyse) in
+     (arena_lit C (i + j), analyse[length analyse - 1 := to_ana_ref_id i (j + 1) b]))\<close>
 
 definition isa_get_literal_and_remove_of_analyse_wl_pre
-   :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat) list \<Rightarrow> bool\<close> where
+   :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> bool) list \<Rightarrow> bool\<close> where
 \<open>isa_get_literal_and_remove_of_analyse_wl_pre arena analyse \<longleftrightarrow>
-  (let (i, k, j, len) = last analyse in
-    analyse \<noteq> [] \<and> arena_lit_pre arena (i+j))\<close>
+  (let (i, j, b) = last analyse in
+    analyse \<noteq> [] \<and> arena_lit_pre arena (i+j) \<and> j < uint32_max)\<close>
 
 sepref_register to_ana_ref_id
 sepref_definition isa_get_literal_and_remove_of_analyse_wl_code
@@ -2849,7 +3512,9 @@ sepref_definition isa_get_literal_and_remove_of_analyse_wl_code
       arena_assn\<^sup>k *\<^sub>a analyse_refinement_assn\<^sup>d \<rightarrow>
       unat_lit_assn *a analyse_refinement_assn\<close>
   unfolding isa_get_literal_and_remove_of_analyse_wl_pre_def
-  isa_get_literal_and_remove_of_analyse_wl_def fast_minus_def[symmetric]
+    isa_get_literal_and_remove_of_analyse_wl_def fast_minus_def[symmetric]
+  apply (rewrite at \<open>arena_lit _ (_ + \<hole>)\<close> nat_of_uint32_conv_def[symmetric])
+  apply (rewrite at \<open>(_ + \<hole>)\<close> one_uint32_nat_def[symmetric])
   by sepref
 
 lemma arena_lit_pre_le: \<open>length a \<le> uint64_max \<Longrightarrow>
@@ -2871,7 +3536,8 @@ sepref_definition isa_get_literal_and_remove_of_analyse_wl_fast_code
   supply [[goals_limit=1]] arena_lit_pre_le2[dest]
   unfolding isa_get_literal_and_remove_of_analyse_wl_pre_def
   isa_get_literal_and_remove_of_analyse_wl_def fast_minus_def[symmetric]
-  apply (rewrite at \<open>_ + \<hole>\<close> one_uint64_nat_def[symmetric])
+  apply (rewrite at \<open>_ + \<hole>\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite at \<open>arena_lit _ (_ + \<hole>)\<close> uint64_of_uint32_conv_def[symmetric])
   by sepref
 
 declare isa_get_literal_and_remove_of_analyse_wl_code.refine[sepref_fr_rules]
@@ -2883,13 +3549,43 @@ definition lit_redundant_reason_stack_wl_lookup_pre :: \<open>nat literal \<Righ
   arena_is_valid_clause_idx NU C\<close>
 
 definition lit_redundant_reason_stack_wl_lookup
-  :: \<open>nat literal \<Rightarrow> arena_el list \<Rightarrow> nat \<Rightarrow> nat \<times> nat \<times> nat \<times> nat\<close>
+  :: \<open>nat literal \<Rightarrow> arena_el list \<Rightarrow> nat \<Rightarrow> nat \<times> nat \<times> bool\<close>
 where
 \<open>lit_redundant_reason_stack_wl_lookup L NU C =
-  (if arena_length NU C > 2 then to_ana_ref_id C 0 1 (arena_length NU C)
+  (if arena_length NU C > 2 then to_ana_ref_id C 1 False
   else if arena_lit NU C = L
-  then to_ana_ref_id C 0 1 (arena_length NU C)
-  else to_ana_ref_id C 1 0 1)\<close>
+  then to_ana_ref_id C 1 False
+  else to_ana_ref_id C 0 True)\<close>
+
+definition ana_lookup_conv_lookup :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> bool) \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)\<close> where
+\<open>ana_lookup_conv_lookup NU = (\<lambda>(C, i, b).
+  (C, (if b then 1 else 0), i, (if b then 1 else arena_length NU C)))\<close>
+
+definition ana_lookup_conv_lookup_pre :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> bool) \<Rightarrow> bool\<close> where
+\<open>ana_lookup_conv_lookup_pre NU = (\<lambda>(C, i, b). arena_is_valid_clause_idx NU C)\<close>
+
+sepref_definition ana_lookup_conv_lookup_fast_code
+  is \<open>uncurry (RETURN oo ana_lookup_conv_lookup)\<close>
+  :: \<open>[uncurry ana_lookup_conv_lookup_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a
+    (uint64_nat_assn *a uint32_nat_assn *a bool_assn)\<^sup>k
+     \<rightarrow> uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn\<close>
+  unfolding ana_lookup_conv_lookup_pre_def ana_lookup_conv_lookup_def
+    zero_uint64_nat_def[symmetric] one_uint64_nat_def[symmetric]
+  apply (rewrite at \<open>(_, _, \<hole>, _)\<close> uint64_of_uint32_conv_def[symmetric])
+  by sepref
+
+sepref_definition ana_lookup_conv_lookup_code
+  is \<open>uncurry (RETURN oo ana_lookup_conv_lookup)\<close>
+  :: \<open>[uncurry ana_lookup_conv_lookup_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a
+    (nat_assn *a uint32_nat_assn *a bool_assn)\<^sup>k
+     \<rightarrow> nat_assn *a uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn\<close>
+  unfolding ana_lookup_conv_lookup_pre_def ana_lookup_conv_lookup_def
+    zero_uint64_nat_def[symmetric] one_uint64_nat_def[symmetric]
+  apply (rewrite at \<open>(_, _, \<hole>, _)\<close> uint64_of_uint32_conv_def[symmetric])
+  by sepref
+
+declare ana_lookup_conv_lookup_fast_code.refine[sepref_fr_rules]
+   ana_lookup_conv_lookup_code.refine[sepref_fr_rules]
 
 definition isa_lit_redundant_rec_wl_lookup
   :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> lookup_clause_rel \<Rightarrow>
@@ -2900,7 +3596,9 @@ where
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
-	    let (C, k, i, len) = from_ana_ref_id (last analyse);
+            ASSERT(arena_is_valid_clause_idx NU (fst (last analyse)));
+	    ASSERT(ana_lookup_conv_lookup_pre NU (from_ana_ref_id (last analyse)));
+	    let (C, k, i, len) = ana_lookup_conv_lookup NU (from_ana_ref_id (last analyse));
             ASSERT(C < length NU);
             ASSERT(arena_is_valid_clause_idx NU C);
             ASSERT(arena_lit_pre NU (C + k));
@@ -2947,7 +3645,10 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
       (\<lambda>(cach, analyse, b). analyse \<noteq> [])
       (\<lambda>(cach, analyse, b). do {
           ASSERT(analyse \<noteq> []);
-	  let (C, k, i, len) = last analyse;
+	  let (C, i, b) = last analyse;
+          ASSERT(arena_is_valid_clause_idx NU (fst (last analyse)));
+	  ASSERT(ana_lookup_conv_lookup_pre NU (from_ana_ref_id (last analyse)));
+	  let (C, k, i, len) = ana_lookup_conv_lookup NU (from_ana_ref_id (C, i, b));
           ASSERT(C < length NU);
           let _ = map xarena_lit
               ((Misc.slice
@@ -2992,7 +3693,8 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
         }
       })
       (cach, analysis, False)\<close>
-  unfolding isa_lit_redundant_rec_wl_lookup_def from_ana_ref_id_def by (auto simp: Let_def)
+  unfolding isa_lit_redundant_rec_wl_lookup_def from_ana_ref_id_def Let_def
+  by (auto simp: Let_def)
 
 (*TODO Move*)
 lemma valid_arena_nempty:
@@ -3001,6 +3703,61 @@ lemma valid_arena_nempty:
   arena_lifting(4)[of arena N vdom i]
   by auto
 
+lemma lit_redundant_rec_wl_lookup_alt_def:
+  \<open>lit_redundant_rec_wl_lookup \<A> M NU D cach analysis lbd =
+      WHILE\<^sub>T\<^bsup>lit_redundant_rec_wl_inv2 M NU D\<^esup>
+        (\<lambda>(cach, analyse, b). analyse \<noteq> [])
+        (\<lambda>(cach, analyse, b). do {
+            ASSERT(analyse \<noteq> []);
+	    let (C, k, i, len) = ana_lookup_conv NU (last analyse);
+            ASSERT(C \<in># dom_m NU);
+            ASSERT(length (NU \<propto> C) > k); \<comment> \<open> >= 2 would work too \<close>
+            ASSERT (NU \<propto> C ! k \<in> lits_of_l M);
+            ASSERT(NU \<propto> C ! k \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
+	    ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (NU \<propto> C)));
+	    ASSERT(length (NU \<propto> C) \<le> Suc (uint32_max div 2));
+	    ASSERT(len \<le> length (NU \<propto> C)); \<comment> \<open>makes the refinement easier\<close>
+	    let (C,k, i, len) = (C,k,i,len);
+            let C = NU \<propto> C;
+            if i \<ge> len
+            then
+               RETURN(cach (atm_of (C ! k) := SEEN_REMOVABLE), butlast analyse, True)
+            else do {
+               let (L, analyse) = get_literal_and_remove_of_analyse_wl2 C analyse;
+               ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
+               let b = \<not>level_in_lbd (get_level M L) lbd;
+               if (get_level M L = zero_uint32_nat \<or>
+                   conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE \<or>
+                   atm_in_conflict (atm_of L) D)
+               then RETURN (cach, analyse, False)
+               else if b \<or> conflict_min_cach cach (atm_of L) = SEEN_FAILED
+               then do {
+                  ASSERT(mark_failed_lits_stack_inv2 NU analyse cach);
+                  cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
+                  RETURN (cach, [], False)
+               }
+               else do {
+	          ASSERT(- L \<in> lits_of_l M);
+                  C \<leftarrow> get_propagation_reason M (-L);
+                  case C of
+                    Some C \<Rightarrow> do {
+		      ASSERT(C \<in># dom_m NU);
+		      ASSERT(length (NU \<propto> C) \<ge> 2);
+		      ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (NU \<propto> C)));
+                      ASSERT(length (NU \<propto> C) \<le> Suc (uint32_max div 2));
+		      RETURN (cach, analyse @ [lit_redundant_reason_stack2 (-L) NU C], False)
+		    }
+                  | None \<Rightarrow> do {
+                      ASSERT(mark_failed_lits_stack_inv2 NU analyse cach);
+                      cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
+                      RETURN (cach, [], False)
+                  }
+              }
+          }
+        })
+       (cach, analysis, False)\<close>
+  unfolding lit_redundant_rec_wl_lookup_def Let_def by auto
+
 lemma isa_lit_redundant_rec_wl_lookup_lit_redundant_rec_wl_lookup:
   \<open>(uncurry5 isa_lit_redundant_rec_wl_lookup, uncurry5 (lit_redundant_rec_wl_lookup \<A>)) \<in>
     [\<lambda>(((((_, N), _), _), _), _).  literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> ((mset \<circ> fst) `# ran_m N)]\<^sub>f
@@ -3008,14 +3765,237 @@ lemma isa_lit_redundant_rec_wl_lookup_lit_redundant_rec_wl_lookup:
      cach_refinement \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>
       \<langle>cach_refinement \<A> \<times>\<^sub>r Id \<times>\<^sub>r bool_rel\<rangle>nres_rel\<close>
 proof -
-  have isa_mark_failed_lits_stack: \<open>(uncurry2 isa_mark_failed_lits_stack, uncurry2 mark_failed_lits_wl)
-    \<in> [\<lambda>((a, b), ba).
-          literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> ((mset \<circ> fst) `# ran_m a) \<and>
-          mark_failed_lits_stack_inv a b
-           ba]\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f Id \<times>\<^sub>f
-                 cach_refinement \<A> \<rightarrow> \<langle>cach_refinement \<A>\<rangle>nres_rel\<close>
-    using isa_mark_failed_lits_stack_isa_mark_failed_lits_stack[FCOMP
-       mark_failed_lits_stack_mark_failed_lits_wl] .
+  have isa_mark_failed_lits_stack: \<open>isa_mark_failed_lits_stack x2e x2z x1l
+	\<le> \<Down> (cach_refinement \<A>)
+	   (mark_failed_lits_wl x2 x2y x1j)\<close>
+    if 
+      \<open>case y of
+       (x, xa) \<Rightarrow>
+	 (case x of
+	  (x, xa) \<Rightarrow>
+	    (case x of
+	     (x, xa) \<Rightarrow>
+	       (case x of
+		(x, xa) \<Rightarrow>
+		  (case x of
+		   (uu_, N) \<Rightarrow>
+		     \<lambda>_ _ _ _.
+			literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> ((mset \<circ> fst) `# ran_m N))                 xa)
+		xa)
+	     xa)
+	  xa\<close> and
+      \<open>(x, y)
+       \<in> trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f
+	 lookup_clause_rel \<A> \<times>\<^sub>f  cach_refinement \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id\<close> and
+      \<open>x1c = (x1d, x2)\<close> and
+      \<open>x1b = (x1c, x2a)\<close> and
+      \<open>x1a = (x1b, x2b)\<close> and
+      \<open>x1 = (x1a, x2c)\<close> and
+      \<open>y = (x1, x2d)\<close> and
+      \<open>x1h = (x1i, x2e)\<close> and
+      \<open>x1g = (x1h, x2f)\<close> and
+      \<open>x1f = (x1g, x2g)\<close> and
+      \<open>x1e = (x1f, x2h)\<close> and
+      \<open>x = (x1e, x2i)\<close> and
+      \<open>(xa, x') \<in> cach_refinement \<A> \<times>\<^sub>f (Id \<times>\<^sub>f bool_rel)\<close> and
+      \<open>case xa of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+      \<open>case x' of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+      \<open>lit_redundant_rec_wl_inv2 x1d x2 x2a x'\<close> and
+      \<open>x2j = (x1k, x2k)\<close> and
+      \<open>x' = (x1j, x2j)\<close> and
+      \<open>x2l = (x1m, x2m)\<close> and
+      \<open>xa = (x1l, x2l)\<close> and
+      \<open>x1k \<noteq> []\<close> and
+      \<open>x1m \<noteq> []\<close> and
+      \<open>x2o = (x1p, x2p)\<close> and
+      \<open>x2n = (x1o, x2o)\<close> and
+      \<open>ana_lookup_conv x2 (last x1k) = (x1n, x2n)\<close> and
+      \<open>x2q = (x1r, x2r)\<close> and
+      \<open>last x1m = (x1q, x2q)\<close> and
+      \<open>x1n \<in># dom_m x2\<close> and
+      \<open>x1o < length (x2 \<propto> x1n)\<close> and
+      \<open>x2 \<propto> x1n ! x1o \<in> lits_of_l x1d\<close> and
+      \<open>x2 \<propto> x1n ! x1o \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
+      \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (x2 \<propto> x1n))\<close> and
+      \<open>length (x2 \<propto> x1n) \<le> Suc (uint_max div 2)\<close> and
+      \<open>x2p \<le> length (x2 \<propto> x1n)\<close> and
+      \<open>arena_is_valid_clause_idx x2e (fst (last x1m))\<close> and
+      \<open>x2t = (x1u, x2u)\<close> and
+      \<open>x2s = (x1t, x2t)\<close> and
+      \<open>(x1n, x1o, x1p, x2p) = (x1s, x2s)\<close> and
+      \<open>x2w = (x1x, x2x)\<close> and
+      \<open>x2v = (x1w, x2w)\<close> and
+      \<open>ana_lookup_conv_lookup x2e (x1q, x1r, x2r) = (x1v, x2v)\<close> and
+      \<open>x1v < length x2e\<close> and
+      \<open>arena_is_valid_clause_idx x2e x1v\<close> and
+      \<open>arena_lit_pre x2e (x1v + x1w)\<close> and
+      \<open>\<not> nat_of_uint64_conv x2x \<le> x1x\<close> and
+      \<open>\<not> x2u \<le> x1u\<close> and
+      \<open>isa_get_literal_and_remove_of_analyse_wl_pre x2e x1m\<close> and
+      \<open>get_literal_and_remove_of_analyse_wl2 (x2 \<propto> x1s) x1k = (x1y, x2y)\<close> and
+      \<open>isa_get_literal_and_remove_of_analyse_wl x2e x1m = (x1z, x2z)\<close> and
+      \<open>x1y \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and    \<open>get_level_pol_pre (x1i, x1z)\<close> and
+      \<open>atm_in_conflict_lookup_pre (atm_of x1z) x2f\<close> and
+      \<open>conflict_min_cach_l_pre (x1l, atm_of x1z)\<close> and
+      \<open>\<not> (get_level_pol x1i x1z = zero_uint32_nat \<or>
+	  conflict_min_cach_l x1l (atm_of x1z) = SEEN_REMOVABLE \<or>
+	  atm_in_conflict_lookup (atm_of x1z) x2f)\<close> and
+      \<open>\<not> (get_level x1d x1y = zero_uint32_nat \<or>
+	  conflict_min_cach x1j (atm_of x1y) = SEEN_REMOVABLE \<or>
+	  atm_in_conflict (atm_of x1y) x2a)\<close> and
+      \<open>\<not> level_in_lbd (get_level_pol x1i x1z) x2i \<or>
+       conflict_min_cach_l x1l (atm_of x1z) = SEEN_FAILED\<close> and
+      \<open>\<not> level_in_lbd (get_level x1d x1y) x2d \<or>
+       conflict_min_cach x1j (atm_of x1y) = SEEN_FAILED\<close> and
+      inv2: \<open>mark_failed_lits_stack_inv2 x2 x2y x1j\<close>
+     for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
+	 x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
+	 x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y x1z
+	 x2z
+  proof -
+    have [simp]: \<open>x2z = x2y\<close>
+      using that
+      by (auto simp: isa_get_literal_and_remove_of_analyse_wl_def
+	get_literal_and_remove_of_analyse_wl2_def)
+
+    obtain x2y0 where
+      x2z: \<open>(x2y, x2y0) \<in> ana_lookups_rel x2\<close> and
+      inv: \<open>mark_failed_lits_stack_inv x2 x2y0 x1j\<close>
+      using inv2 unfolding mark_failed_lits_stack_inv2_def
+      by blast
+    have 1: \<open>mark_failed_lits_wl x2 x2y x1j  = mark_failed_lits_wl x2 x2y0 x1j\<close>
+      unfolding mark_failed_lits_wl_def by auto
+    show ?thesis
+      unfolding 1
+      apply (rule isa_mark_failed_lits_stack_isa_mark_failed_lits_stack[THEN
+	   fref_to_Down_curry2, of x2 x2y0 x1j x2e x2z x1l vdom x2 \<A>, THEN order_trans])
+      subgoal using that by auto
+      subgoal using that x2z inv by auto
+      apply (rule order_trans)
+      apply (rule ref_two_step')
+      apply (rule mark_failed_lits_stack_mark_failed_lits_wl[THEN
+	   fref_to_Down_curry2, of \<A> x2 x2y0 x1j])
+      subgoal using inv x2z that by auto
+      subgoal using that by auto
+      subgoal by auto
+      done
+  qed
+  have isa_mark_failed_lits_stack2: \<open>isa_mark_failed_lits_stack x2e x2z x1l
+	\<le> \<Down> (cach_refinement \<A>) (mark_failed_lits_wl x2 x2y x1j)\<close>
+    if 
+      \<open>case y of
+       (x, xa) \<Rightarrow>
+	 (case x of
+	  (x, xa) \<Rightarrow>
+	    (case x of
+	     (x, xa) \<Rightarrow>
+	       (case x of
+		(x, xa) \<Rightarrow>
+		  (case x of
+		   (uu_, N) \<Rightarrow>
+		     \<lambda>_ _ _ _.
+			literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> ((mset \<circ> fst) `# ran_m N))                 xa)
+		xa)
+	     xa)
+	  xa\<close> and
+      \<open>(x, y)
+       \<in> trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f       lookup_clause_rel \<A> \<times>\<^sub>f       cach_refinement \<A> \<times>\<^sub>f       Id \<times>\<^sub>f
+	 Id\<close> and
+      \<open>x1c = (x1d, x2)\<close> and
+      \<open>x1b = (x1c, x2a)\<close> and
+      \<open>x1a = (x1b, x2b)\<close> and
+      \<open>x1 = (x1a, x2c)\<close> and
+      \<open>y = (x1, x2d)\<close> and
+      \<open>x1h = (x1i, x2e)\<close> and
+      \<open>x1g = (x1h, x2f)\<close> and
+      \<open>x1f = (x1g, x2g)\<close> and
+      \<open>x1e = (x1f, x2h)\<close> and
+      \<open>x = (x1e, x2i)\<close> and
+      \<open>(xa, x') \<in> cach_refinement \<A> \<times>\<^sub>f (Id \<times>\<^sub>f bool_rel)\<close> and    \<open>case xa of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+      \<open>case x' of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+      \<open>True\<close> and
+      \<open>lit_redundant_rec_wl_inv2 x1d x2 x2a x'\<close> and
+      \<open>x2j = (x1k, x2k)\<close> and
+      \<open>x' = (x1j, x2j)\<close> and
+      \<open>x2l = (x1m, x2m)\<close> and
+      \<open>xa = (x1l, x2l)\<close> and
+      \<open>x1k \<noteq> []\<close> and
+      \<open>x1m \<noteq> []\<close> and
+      \<open>x2o = (x1p, x2p)\<close> and
+      \<open>x2n = (x1o, x2o)\<close> and
+      \<open>ana_lookup_conv x2 (last x1k) = (x1n, x2n)\<close> and
+      \<open>x2q = (x1r, x2r)\<close> and
+      \<open>last x1m = (x1q, x2q)\<close> and
+      \<open>x1n \<in># dom_m x2\<close> and
+      \<open>x1o < length (x2 \<propto> x1n)\<close> and
+      \<open>x2 \<propto> x1n ! x1o \<in> lits_of_l x1d\<close> and
+      \<open>x2 \<propto> x1n ! x1o \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (x2 \<propto> x1n))\<close> and    \<open>length (x2 \<propto> x1n) \<le> Suc (uint_max div 2)\<close> and
+      \<open>x2p \<le> length (x2 \<propto> x1n)\<close> and
+      \<open>arena_is_valid_clause_idx x2e (fst (last x1m))\<close> and
+      \<open>x2t = (x1u, x2u)\<close> and
+      \<open>x2s = (x1t, x2t)\<close> and
+      \<open>(x1n, x1o, x1p, x2p) = (x1s, x2s)\<close> and
+      \<open>x2w = (x1x, x2x)\<close> and
+      \<open>x2v = (x1w, x2w)\<close> and
+      \<open>ana_lookup_conv_lookup x2e (x1q, x1r, x2r) = (x1v, x2v)\<close> and
+      \<open>x1v < length x2e\<close> and
+      \<open>arena_is_valid_clause_idx x2e x1v\<close> and
+      \<open>arena_lit_pre x2e (x1v + x1w)\<close> and
+      \<open>\<not> nat_of_uint64_conv x2x \<le> x1x\<close> and
+      \<open>\<not> x2u \<le> x1u\<close> and
+      \<open>isa_get_literal_and_remove_of_analyse_wl_pre x2e x1m\<close> and
+      \<open>get_literal_and_remove_of_analyse_wl2 (x2 \<propto> x1s) x1k = (x1y, x2y)\<close> and
+      \<open>isa_get_literal_and_remove_of_analyse_wl x2e x1m = (x1z, x2z)\<close> and
+      \<open>x1y \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and    \<open>get_level_pol_pre (x1i, x1z)\<close> and
+      \<open>atm_in_conflict_lookup_pre (atm_of x1z) x2f\<close> and
+      \<open>conflict_min_cach_l_pre (x1l, atm_of x1z)\<close> and
+      \<open>\<not> (get_level_pol x1i x1z = zero_uint32_nat \<or>
+	  conflict_min_cach_l x1l (atm_of x1z) = SEEN_REMOVABLE \<or>
+	  atm_in_conflict_lookup (atm_of x1z) x2f)\<close> and
+      \<open>\<not> (get_level x1d x1y = zero_uint32_nat \<or>
+	  conflict_min_cach x1j (atm_of x1y) = SEEN_REMOVABLE \<or>
+	  atm_in_conflict (atm_of x1y) x2a)\<close> and
+      \<open>\<not> (\<not> level_in_lbd (get_level_pol x1i x1z) x2i \<or>
+	  conflict_min_cach_l x1l (atm_of x1z) = SEEN_FAILED)\<close> and
+      \<open>\<not> (\<not> level_in_lbd (get_level x1d x1y) x2d \<or>
+	  conflict_min_cach x1j (atm_of x1y) = SEEN_FAILED)\<close> and
+      \<open>- x1y \<in> lits_of_l x1d\<close> and
+      \<open>(xb, x'a) \<in> \<langle>nat_rel\<rangle>option_rel\<close> and
+      \<open>xb = None\<close> and
+      \<open>x'a = None\<close> and
+      inv2: \<open>mark_failed_lits_stack_inv2 x2 x2y x1j\<close>
+    for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
+       x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
+       x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y x1z
+       x2z xb x'a
+  proof -
+    have [simp]: \<open>x2z = x2y\<close>
+      using that
+      by (auto simp: isa_get_literal_and_remove_of_analyse_wl_def
+	get_literal_and_remove_of_analyse_wl2_def)
+
+    obtain x2y0 where
+      x2z: \<open>(x2y, x2y0) \<in> ana_lookups_rel x2\<close> and
+      inv: \<open>mark_failed_lits_stack_inv x2 x2y0 x1j\<close>
+      using inv2 unfolding mark_failed_lits_stack_inv2_def
+      by blast
+    have 1: \<open>mark_failed_lits_wl x2 x2y x1j  = mark_failed_lits_wl x2 x2y0 x1j\<close>
+      unfolding mark_failed_lits_wl_def by auto
+    show ?thesis
+      unfolding 1
+      apply (rule isa_mark_failed_lits_stack_isa_mark_failed_lits_stack[THEN
+	   fref_to_Down_curry2, of x2 x2y0 x1j x2e x2z x1l vdom x2 \<A>, THEN order_trans])
+      subgoal using that by auto
+      subgoal using that x2z inv by auto
+      apply (rule order_trans)
+      apply (rule ref_two_step')
+      apply (rule mark_failed_lits_stack_mark_failed_lits_wl[THEN
+	   fref_to_Down_curry2, of \<A> x2 x2y0 x1j])
+      subgoal using inv x2z that by auto
+      subgoal using that by auto
+      subgoal by auto
+      done
+  qed
   have [refine0]: \<open>get_propagation_reason_pol M' L'
     \<le> \<Down> (\<langle>Id\<rangle>option_rel)
        (get_propagation_reason M L)\<close>
@@ -3026,33 +4006,34 @@ proof -
     arena_lifting and [split] = prod.splits
 
   show ?thesis
-    supply [[goals_limit=3]]
+    supply [[goals_limit=1]] ana_lookup_conv_def[simp] ana_lookup_conv_lookup_def[simp]
     supply RETURN_as_SPEC_refine[refine2 add]
-    unfolding isa_lit_redundant_rec_wl_lookup_alt_def lit_redundant_rec_wl_lookup_def uncurry_def
+    unfolding isa_lit_redundant_rec_wl_lookup_alt_def lit_redundant_rec_wl_lookup_alt_def uncurry_def
       from_ana_ref_id_def
     apply (intro frefI nres_relI)
-    apply (refine_rcg
-      isa_mark_failed_lits_stack[THEN fref_to_Down_curry2])
+    apply (refine_rcg)
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m
         by (auto simp: arena_lifting)
+    subgoal by (auto simp: arena_is_valid_clause_idx_def
+      lit_redundant_rec_wl_inv2_def)
+    subgoal by (auto simp: ana_lookup_conv_lookup_pre_def)
     subgoal by (auto simp: arena_is_valid_clause_idx_def)
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m
       by (auto simp: arena_lifting arena_is_valid_clause_idx_def)
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
-       x2q x1r x2r x1s x2s
+       x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x
       apply (auto simp: arena_is_valid_clause_idx_def lit_redundant_rec_wl_inv_def
         isa_get_literal_and_remove_of_analyse_wl_pre_def arena_lit_pre_def
         arena_is_valid_clause_idx_and_access_def lit_redundant_rec_wl_ref_def)
-      apply (rule_tac x = \<open>x1q\<close> in exI; auto)+
-      done
+      by (rule_tac x = \<open>x1s\<close> in exI; auto simp: valid_arena_nempty)+
     subgoal by (auto simp: arena_lifting arena_is_valid_clause_idx_def nat_of_uint64_conv_def
-      lit_redundant_rec_wl_inv_def)
+      lit_redundant_rec_wl_inv_def split: if_splits)
     subgoal
       by (auto simp: arena_lifting arena_is_valid_clause_idx_def bind_rule_complete_RES conc_fun_RETURN
            in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
@@ -3061,53 +4042,61 @@ proof -
 
    subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
-       x2q x1r x2r x1s x2s
-      apply (auto simp: arena_is_valid_clause_idx_def lit_redundant_rec_wl_inv_def
+       x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x
+      by (auto simp: arena_is_valid_clause_idx_def lit_redundant_rec_wl_inv_def
         isa_get_literal_and_remove_of_analyse_wl_pre_def arena_lit_pre_def
+	uint_max_def
         arena_is_valid_clause_idx_and_access_def lit_redundant_rec_wl_ref_def)
-      by (rule_tac x = x1q in exI; auto; fail)+
-    subgoal by (auto intro!: get_level_pol_pre)
-    subgoal by (auto intro!: atm_in_conflict_lookup_pre)
+        (rule_tac x = x1s in exI; auto simp: uint_max_def; fail)+
+    subgoal by (auto intro!: get_level_pol_pre
+      simp: get_literal_and_remove_of_analyse_wl2_def)
+    subgoal by (auto intro!: atm_in_conflict_lookup_pre
+      simp: get_literal_and_remove_of_analyse_wl2_def)
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o
-      by (auto intro!: conflict_min_cach_l_pre)
+      by (auto intro!: conflict_min_cach_l_pre
+      simp: get_literal_and_remove_of_analyse_wl2_def)
     subgoal
       by (auto simp: atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id]
           nth_conflict_min_cach[THEN fref_to_Down_unRET_uncurry_Id] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
 	  get_level_get_level_pol atms_of_def
+          get_literal_and_remove_of_analyse_wl2_def
   	split: prod.splits)
-       (subst (asm)  atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id];
-	  auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atms_of_def)+
-    subgoal by (auto simp: split: prod.splits)
+        (subst (asm)  atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id];
+	  auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atms_of_def; fail)+
+    subgoal by (auto simp: get_literal_and_remove_of_analyse_wl2_def
+	  split: prod.splits)
     subgoal by (auto simp: atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id]
           nth_conflict_min_cach[THEN fref_to_Down_unRET_uncurry_Id] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
 	  get_level_get_level_pol atms_of_def
+      simp: get_literal_and_remove_of_analyse_wl2_def
   	split: prod.splits)
+    apply (rule isa_mark_failed_lits_stack; assumption)
     subgoal by (auto simp: split: prod.splits)
     subgoal by (auto simp: split: prod.splits)
-    subgoal by (auto simp: split: prod.splits)
-    subgoal by (auto simp: split: prod.splits)
-    subgoal by auto
-    subgoal by auto
+    subgoal by (auto simp: get_literal_and_remove_of_analyse_wl2_def
+      split: prod.splits)
     apply assumption
-    subgoal by auto
-    subgoal by (auto simp: split: prod.splits)
-    subgoal by auto
+    apply (rule isa_mark_failed_lits_stack2; assumption)
     subgoal by auto
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
-       x2q x1r x2r x1s x2s x1t x2t x1u x2u xb x'a xc x'b
+       x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y x1z
+       x2z xb x'a xc x'b
        unfolding lit_redundant_reason_stack_wl_lookup_pre_def
       by (auto simp: lit_redundant_reason_stack_wl_lookup_pre_def arena_lit_pre_def
 	arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def
-	simp: valid_arena_nempty
-	intro!: exI[of _ x'b])
+	simp: valid_arena_nempty  get_literal_and_remove_of_analyse_wl2_def
+	  lit_redundant_reason_stack_wl_lookup_def
+	  lit_redundant_reason_stack2_def
+	intro!: exI[of _ x'b] bex_leI[of _ x'b])
     subgoal premises p for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
        x2q x1r x2r x1s x2s x1t x2t x1u x2u xb x'a xc x'b
       using p
-      by (simp add: lit_redundant_reason_stack_wl_lookup_def
+      by (auto simp add: lit_redundant_reason_stack_wl_lookup_def
         lit_redundant_reason_stack_def lit_redundant_reason_stack_wl_lookup_pre_def
+	lit_redundant_reason_stack2_def get_literal_and_remove_of_analyse_wl2_def
 	 arena_lifting[of x2e x2 vdom]) \<comment> \<open>I have no idea why @{thm arena_lifting} requires
 	   to be instantiated.\<close>
     done
@@ -3119,9 +4108,8 @@ sepref_definition lit_redundant_reason_stack_wl_lookup_code
       unat_lit_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>
       ana_refinement_assn\<close>
   unfolding lit_redundant_reason_stack_wl_lookup_def lit_redundant_reason_stack_wl_lookup_pre_def
+    one_uint32_nat_def[symmetric] zero_uint32_nat_def[symmetric]
   apply (rewrite at \<open>2 < \<hole>\<close> nat_of_uint64_conv_def[symmetric])
-  apply (rewrite at \<open>to_ana_ref_id _ _ _ \<hole>\<close>  nat_of_uint64_conv_def[symmetric])
-  apply (rewrite at \<open>If _ _ (If _ (to_ana_ref_id _ _ _ \<hole>) _)\<close>  nat_of_uint64_conv_def[symmetric])
   by sepref
 
 sepref_definition lit_redundant_reason_stack_wl_lookup_fast_code
@@ -3130,8 +4118,8 @@ sepref_definition lit_redundant_reason_stack_wl_lookup_fast_code
       unat_lit_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>
       ana_refinement_fast_assn\<close>
   unfolding lit_redundant_reason_stack_wl_lookup_def lit_redundant_reason_stack_wl_lookup_pre_def
-    two_uint64_nat_def[symmetric] zero_uint64_nat_def[symmetric]
-    one_uint64_nat_def[symmetric]
+    two_uint64_nat_def[symmetric] zero_uint32_nat_def[symmetric]
+    one_uint32_nat_def[symmetric]
   by sepref
 
 declare lit_redundant_reason_stack_wl_lookup_fast_code.refine[sepref_fr_rules]
@@ -3169,7 +4157,9 @@ sepref_definition lit_redundant_rec_wl_lookup_code
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
     fmap_rll_def[symmetric]
     fmap_length_rll_def[symmetric]
+  apply (rewrite at \<open>arena_lit _ (_ + \<hole>)\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
+
 
 declare lit_redundant_rec_wl_lookup_code.refine[sepref_fr_rules]
 
@@ -3292,6 +4282,7 @@ lemma
     cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUE) D\<close> and
     NU_P_D: \<open>NU' + NUE \<Turnstile>pm add_mset K D\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> D\<close> and
+    lits_NU: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf NU)\<close> and
     K: \<open>K = outl ! 0\<close> and
     outl_nempty: \<open>outl \<noteq> []\<close> and
     \<open>isasat_input_bounded \<A>\<close>
@@ -3304,7 +4295,7 @@ proof -
   show ?thesis
     apply (rule order.trans)
      apply (rule minimize_and_extract_highest_lookup_conflict_iterate_over_conflict[OF
-          assms(7-21)[unfolded assms(1-8)],
+          assms(7-22)[unfolded assms(1-8)],
           unfolded assms(1-8)[symmetric]])
     apply (rule order.trans)
      apply (rule ref_two_step'[OF iterate_over_conflict_spec[OF NU_P_D dist_D]])
@@ -3343,7 +4334,7 @@ declare lookup_conflict_upd_None_code.refine[sepref_fr_rules]
 
 definition isa_literal_redundant_wl_lookup ::
     "trail_pol \<Rightarrow> arena \<Rightarrow> lookup_clause_rel \<Rightarrow> conflict_min_cach_l
-           \<Rightarrow> nat literal \<Rightarrow> lbd \<Rightarrow> (conflict_min_cach_l \<times> (nat \<times> nat \<times> nat \<times> nat) list \<times> bool) nres"
+           \<Rightarrow> nat literal \<Rightarrow> lbd \<Rightarrow> (conflict_min_cach_l \<times> (nat \<times> nat \<times> bool) list \<times> bool) nres"
 where
   \<open>isa_literal_redundant_wl_lookup M NU D cach L lbd = do {
      ASSERT(get_level_pol_pre (M, L));
@@ -3421,6 +4412,7 @@ proof -
        x2h x2i xa x' xb x'a
       by (simp add: lit_redundant_reason_stack_wl_lookup_def
         lit_redundant_reason_stack_def lit_redundant_reason_stack_wl_lookup_pre_def
+	lit_redundant_reason_stack2_def
 	 arena_lifting[of x2e x2 vdom]) \<comment> \<open>I have no idea why @{thm arena_lifting} requires
 	   to be instantiated.\<close>
     done
@@ -3784,14 +4776,6 @@ definition isasat_lookup_merge_eq2
     RETURN((False, zs), clvls, lbd, outl)
   })\<close>
 
-(*TODO Move*)
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_msetD:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (add_mset C N) \<Longrightarrow>
-  L \<in># C \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
-  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def all_lits_of_mm_add_mset
-      all_lits_of_m_add_mset
-    dest!: multi_member_split)
-
 lemma isasat_lookup_merge_eq2_lookup_merge_eq2:
   assumes valid: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close> and
@@ -3910,13 +4894,6 @@ definition merge_conflict_m_eq2_pre where
 
 definition merge_conflict_m_g_eq2 :: \<open>_\<close> where
 \<open>merge_conflict_m_g_eq2 L M N i D _ _ _ = merge_conflict_m_eq2 L M (N \<propto> i) D\<close>
-
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_mset:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (add_mset C N) \<longleftrightarrow>
-    literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C\<close>
-  unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def
-    literals_are_in_\<L>\<^sub>i\<^sub>n_def
-  by (auto simp: all_lits_of_mm_add_mset)
 
 lemma isasat_lookup_merge_eq2:
   \<open>(uncurry7 isasat_lookup_merge_eq2, uncurry7 merge_conflict_m_g_eq2) \<in>

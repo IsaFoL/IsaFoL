@@ -1186,7 +1186,7 @@ definition cdcl_twl_full_restart_wl_D_GC_prog where
     RETURN V
   }\<close>
 
-lemma cdcl_twl_full_restart_wl_GC_prog:
+lemma cdcl_twl_full_restart_wl_D_GC_prog:
   \<open>(cdcl_twl_full_restart_wl_D_GC_prog, cdcl_twl_full_restart_wl_GC_prog) \<in>
     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S} \<rightarrow>\<^sub>f
     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<rangle>nres_rel\<close>

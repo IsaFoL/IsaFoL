@@ -59,7 +59,6 @@ lemma clause_score_ordering_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: clause_score_ordering_def uint32_nat_rel_def br_def
       nat_of_uint32_less_iff)
 
-
 lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
   by (auto simp: bounded_def) presburger
 

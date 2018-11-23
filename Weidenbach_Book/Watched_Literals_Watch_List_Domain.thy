@@ -54,7 +54,6 @@ lemma atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n: \<open>atms_of 
 definition is_\<L>\<^sub>a\<^sub>l\<^sub>l :: \<open>nat literal multiset \<Rightarrow> bool\<close> where
   \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l S \<longleftrightarrow> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l = set_mset S\<close>
 
-
 definition literals_are_in_\<L>\<^sub>i\<^sub>n :: \<open>nat clause \<Rightarrow> bool\<close> where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C \<longleftrightarrow> set_mset (all_lits_of_m C) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
 
@@ -99,6 +98,18 @@ lemma uminus_\<A>\<^sub>i\<^sub>n_iff: \<open>- L \<in># \<L>\<^sub>a\<^sub>l\<^
 
 definition literals_are_in_\<L>\<^sub>i\<^sub>n_mm :: \<open>nat clauses \<Rightarrow> bool\<close> where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm C \<longleftrightarrow> set_mset (all_lits_of_mm C) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_msetD:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (add_mset C N) \<Longrightarrow> L \<in># C \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def all_lits_of_mm_add_mset
+      all_lits_of_m_add_mset
+    dest!: multi_member_split)
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_mset:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (add_mset C N) \<longleftrightarrow>
+    literals_are_in_\<L>\<^sub>i\<^sub>n_mm N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n C\<close>
+  unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def  literals_are_in_\<L>\<^sub>i\<^sub>n_def
+  by (auto simp: all_lits_of_mm_add_mset)
 
 definition literals_are_in_\<L>\<^sub>i\<^sub>n_trail :: \<open>(nat, 'mark) ann_lits \<Rightarrow> bool\<close> where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<longleftrightarrow> set_mset (lit_of `# mset M) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>

@@ -1004,6 +1004,11 @@ proof -
       using \<L>\<^sub>i\<^sub>n not_none struct_invs not_none S_T T_U by (auto simp: S)
     then have \<L>\<^sub>i\<^sub>n_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st S) ?D\<close>
       unfolding S by (auto intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
+    have \<L>\<^sub>i\<^sub>n_NU: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_atms_st S) (mset `# ran_mf (get_clauses_wl S))\<close>
+      (*TODO proof*)
+      by (auto simp: all_atms_def all_lits_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def
+          \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm)
+       (simp add: all_lits_of_mm_union)
     have tauto_confl: \<open>\<not> tautology (the (get_conflict_wl S))\<close>
       apply (rule conflict_not_tautology[OF S_T _ T_U])
       using struct_invs not_none S_T T_U by (auto simp: twl_st)
@@ -1045,6 +1050,7 @@ proof -
         by (auto dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms simp: cach'_def twl_st S)
       subgoal using entailed unfolding S by simp
       subgoal using \<L>\<^sub>i\<^sub>n_D .
+      subgoal using \<L>\<^sub>i\<^sub>n_NU .
       subgoal using \<open>out_learned M D outl\<close> tl_outl_D
         by (auto simp: out_learned_def)
       subgoal using \<open>out_learned M D outl\<close> tl_outl_D
