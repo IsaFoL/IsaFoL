@@ -276,11 +276,46 @@ qed
 
 term gr.ord_\<Gamma>
 
-find_theorems "main_prem_of _ = main_prem_of _"
+find_theorems "image_mset" "_ - _"
 
-lemma \<open>\<iota> \<in> gr.ord_\<Gamma> \<Longrightarrow> \<iota>' \<in> gr.ord_\<Gamma> \<Longrightarrow> prems_of \<iota> = prems_of \<iota>' \<Longrightarrow> concl_of \<iota> = concl_of \<iota>' \<Longrightarrow> main_prem_of \<iota> = main_prem_of \<iota>'\<close>
-proof (rule ccontr)
-  fix \<iota> \<iota>'
+lemma \<open>gr.eligible As D \<Longrightarrow> mset As = mset As' \<Longrightarrow> gr.eligible As' D\<close>
+  unfolding gr.eligible.simps
+  by (cases As; cases As')
+    (auto simp: add_mset_eq_add_mset eq_commute[of "add_mset _ _" "mset _"] image_mset_remove1_mset_if)
+
+lemma
+  assumes
+    i_in: \<open>\<iota> \<in> gr.ord_\<Gamma>\<close> and
+    i'_in: \<open>\<iota>' \<in> gr.ord_\<Gamma>\<close> and
+    prems_eq: \<open>prems_of \<iota> = prems_of \<iota>'\<close> and
+    \<open>concl_of \<iota> = concl_of \<iota>'\<close>
+  shows
+    \<open>main_prem_of \<iota> = main_prem_of \<iota>' \<or> (\<exists>A. Pos A \<in># concl_of \<iota> \<and> Neg A \<in># concl_of \<iota>)\<close> (is \<open>?A \<or> ?B\<close>)
+proof (intro disj_imp[THEN iffD2] impI)
+  assume
+    contra: \<open>\<not> ?A\<close>
+  then have \<open>\<iota> \<noteq> \<iota>'\<close> by blast
+  obtain CAs1 AAs1 As1 where i_inf: \<open>gr.ord_resolve CAs1 (main_prem_of \<iota>) AAs1 As1 (concl_of \<iota>)\<close> and
+    CAs1_i: \<open>mset CAs1 = side_prems_of \<iota>\<close> using i_in unfolding gr.ord_\<Gamma>_def by force
+  obtain CAs2 AAs2 As2 where i'_inf: \<open>gr.ord_resolve CAs2 (main_prem_of \<iota>') AAs2 As2 (concl_of \<iota>')\<close> and
+    CAs2_i': \<open>mset CAs2 = side_prems_of \<iota>'\<close> using i'_in unfolding gr.ord_\<Gamma>_def by force
+  obtain CAm where CAm_i: \<open>CAm + {#main_prem_of \<iota>#} = mset CAs2\<close> and CAm_i': \<open>CAm + {#main_prem_of \<iota>'#} = mset CAs1\<close>
+    using CAs1_i CAs2_i' prems_eq unfolding prems_of_def side_prems_of_def
+    by (smt add.commute add_right_imp_eq contra insert_DiffM2 multi_member_this remove1_mset_add_mset_If
+      union_mset_add_mset_right)
+  obtain CAs where CAs_is: \<open>mset CAs = CAm\<close> by (metis list_of_mset_exi)
+  obtain AAs3 As3 where \<open>gr.ord_resolve (main_prem_of \<iota>' # CAs) (main_prem_of \<iota>) AAs3 As3 (concl_of \<iota>)\<close>
+    using i_inf CAm_i' CAs_is sorry
+   
+
+
+  obtain CAs D1 D2  Cs1 Cs2 AAs1 As1 AAs2 As2 where \<open>gr.ord_resolve ((D2 + negs (mset As2)) # CAs) (D1 + negs (mset As1)) AAs1 As1 ((\<Union># mset Cs1) + D1)\<close> \<open>gr.ord_resolve ((D1 + negs (mset As1)) # CAs) (D2 + negs (mset As2)) AAs2 As2 ((\<Union># mset Cs2) + D2)\<close> \<open>prems_of \<iota> = mset CAs + {#(D2 + negs (mset As2)),(D1 + negs (mset As1))#}\<close> \<open>concl_of \<iota> = ((\<Union># mset Cs1) + D1)\<close> \<open>concl_of \<iota>' = ((\<Union># mset Cs2) + D2)\<close> using assms unfolding gr.ord_\<Gamma>_def sorry
+  show ?B
+  sorry
+qed
+term list_mset
+term gr.ord_resolve
+ (* fix \<iota> \<iota>'
   assume
     i_in: \<open>\<iota> \<in> gr.ord_\<Gamma>\<close> and
     i'_in: \<open>\<iota>' \<in> gr.ord_\<Gamma>\<close> and
@@ -295,6 +330,7 @@ proof (rule ccontr)
     using i'_in unfolding gr.ord_\<Gamma>_def by force
   have "AAs = AAs'" using i_inf i'_inf prems_eq concl_eq sorry 
 oops
+*)
 
 lemma
   assumes \<open>gr_calc.saturated N\<close>
