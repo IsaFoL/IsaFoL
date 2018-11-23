@@ -994,7 +994,7 @@ proof -
       by (auto simp: in_set_distinct_take_drop_iff)
     have [simp]: \<open>- D ! a \<notin> set (take (a - init) ?D)\<close>
     proof
-      assume "- D ! a \<in> set (take (a - init) (drop init D))"
+      assume \<open>- D ! a \<in> set (take (a - init) (drop init D))\<close>
       then have "(if is_pos (D ! a) then Neg else Pos) (atm_of (D ! a)) \<in> set D"
         by (metis (no_types) in_set_dropD in_set_takeD uminus_literal_def)
       then show False
@@ -3558,7 +3558,34 @@ where
   else to_ana_ref_id C 0 True)\<close>
 
 definition ana_lookup_conv_lookup :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> bool) \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)\<close> where
-\<open>ana_lookup_conv_lookup NU = (\<lambda>(C, i, b). (C, (if b then 1 else 0), i, (if b then 1 else arena_length NU C)))\<close>
+\<open>ana_lookup_conv_lookup NU = (\<lambda>(C, i, b).
+  (C, (if b then 1 else 0), i, (if b then 1 else arena_length NU C)))\<close>
+
+definition ana_lookup_conv_lookup_pre :: \<open>arena \<Rightarrow> (nat \<times> nat \<times> bool) \<Rightarrow> bool\<close> where
+\<open>ana_lookup_conv_lookup_pre NU = (\<lambda>(C, i, b). arena_is_valid_clause_idx NU C)\<close>
+
+sepref_definition ana_lookup_conv_lookup_fast_code
+  is \<open>uncurry (RETURN oo ana_lookup_conv_lookup)\<close>
+  :: \<open>[uncurry ana_lookup_conv_lookup_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a
+    (uint64_nat_assn *a uint32_nat_assn *a bool_assn)\<^sup>k
+     \<rightarrow> uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn\<close>
+  unfolding ana_lookup_conv_lookup_pre_def ana_lookup_conv_lookup_def
+    zero_uint64_nat_def[symmetric] one_uint64_nat_def[symmetric]
+  apply (rewrite at \<open>(_, _, \<hole>, _)\<close> uint64_of_uint32_conv_def[symmetric])
+  by sepref
+
+sepref_definition ana_lookup_conv_lookup_code
+  is \<open>uncurry (RETURN oo ana_lookup_conv_lookup)\<close>
+  :: \<open>[uncurry ana_lookup_conv_lookup_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a
+    (nat_assn *a uint32_nat_assn *a bool_assn)\<^sup>k
+     \<rightarrow> nat_assn *a uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn\<close>
+  unfolding ana_lookup_conv_lookup_pre_def ana_lookup_conv_lookup_def
+    zero_uint64_nat_def[symmetric] one_uint64_nat_def[symmetric]
+  apply (rewrite at \<open>(_, _, \<hole>, _)\<close> uint64_of_uint32_conv_def[symmetric])
+  by sepref
+
+declare ana_lookup_conv_lookup_fast_code.refine[sepref_fr_rules]
+   ana_lookup_conv_lookup_code.refine[sepref_fr_rules]
 
 definition isa_lit_redundant_rec_wl_lookup
   :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> lookup_clause_rel \<Rightarrow>
@@ -3570,6 +3597,7 @@ where
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
             ASSERT(arena_is_valid_clause_idx NU (fst (last analyse)));
+	    ASSERT(ana_lookup_conv_lookup_pre NU (from_ana_ref_id (last analyse)));
 	    let (C, k, i, len) = ana_lookup_conv_lookup NU (from_ana_ref_id (last analyse));
             ASSERT(C < length NU);
             ASSERT(arena_is_valid_clause_idx NU C);
@@ -3619,6 +3647,7 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
           ASSERT(analyse \<noteq> []);
 	  let (C, i, b) = last analyse;
           ASSERT(arena_is_valid_clause_idx NU (fst (last analyse)));
+	  ASSERT(ana_lookup_conv_lookup_pre NU (from_ana_ref_id (last analyse)));
 	  let (C, k, i, len) = ana_lookup_conv_lookup NU (from_ana_ref_id (C, i, b));
           ASSERT(C < length NU);
           let _ = map xarena_lit
@@ -3736,27 +3765,237 @@ lemma isa_lit_redundant_rec_wl_lookup_lit_redundant_rec_wl_lookup:
      cach_refinement \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>
       \<langle>cach_refinement \<A> \<times>\<^sub>r Id \<times>\<^sub>r bool_rel\<rangle>nres_rel\<close>
 proof -
-  have isa_mark_failed_lits_stack: \<open>isa_mark_failed_lits_stack x y z
-  \<le> \<Down> (cach_refinement \<A>) (mark_failed_lits_wl x' y' z')\<close>
-    if \<open>(x, x') \<in> {(arena, N). valid_arena arena N vdom}\<close> and
-      \<open>(y, y') \<in> ana_lookups_rel NU\<close> and
-      \<open>(z, z') \<in> cach_refinement \<A>\<close> and
-      \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> {#mset (fst x). x \<in># ran_m x'#}\<close>
-      \<open>mark_failed_lits_stack_inv x' y' z'\<close>
-    for x x' y y' z z' NU
-    apply (rule isa_mark_failed_lits_stack_isa_mark_failed_lits_stack[THEN
-	 fref_to_Down_curry2, of x' y' z' x y z vdom NU \<A>, THEN order_trans])
-    subgoal using that by auto
-    subgoal using that by auto
-    apply (rule order_trans)
-    apply (rule ref_two_step')
-    apply (rule mark_failed_lits_stack_mark_failed_lits_wl[THEN
-	 fref_to_Down_curry2, of \<A> x' y' z'])
-    subgoal using that by auto
-    subgoal using that by auto
-    subgoal
-    by auto
-    done
+  have isa_mark_failed_lits_stack: \<open>isa_mark_failed_lits_stack x2e x2z x1l
+	\<le> \<Down> (cach_refinement \<A>)
+	   (mark_failed_lits_wl x2 x2y x1j)\<close>
+    if 
+      \<open>case y of
+       (x, xa) \<Rightarrow>
+	 (case x of
+	  (x, xa) \<Rightarrow>
+	    (case x of
+	     (x, xa) \<Rightarrow>
+	       (case x of
+		(x, xa) \<Rightarrow>
+		  (case x of
+		   (uu_, N) \<Rightarrow>
+		     \<lambda>_ _ _ _.
+			literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> ((mset \<circ> fst) `# ran_m N))                 xa)
+		xa)
+	     xa)
+	  xa\<close> and
+      \<open>(x, y)
+       \<in> trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f
+	 lookup_clause_rel \<A> \<times>\<^sub>f  cach_refinement \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id\<close> and
+      \<open>x1c = (x1d, x2)\<close> and
+      \<open>x1b = (x1c, x2a)\<close> and
+      \<open>x1a = (x1b, x2b)\<close> and
+      \<open>x1 = (x1a, x2c)\<close> and
+      \<open>y = (x1, x2d)\<close> and
+      \<open>x1h = (x1i, x2e)\<close> and
+      \<open>x1g = (x1h, x2f)\<close> and
+      \<open>x1f = (x1g, x2g)\<close> and
+      \<open>x1e = (x1f, x2h)\<close> and
+      \<open>x = (x1e, x2i)\<close> and
+      \<open>(xa, x') \<in> cach_refinement \<A> \<times>\<^sub>f (Id \<times>\<^sub>f bool_rel)\<close> and
+      \<open>case xa of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+      \<open>case x' of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+      \<open>lit_redundant_rec_wl_inv2 x1d x2 x2a x'\<close> and
+      \<open>x2j = (x1k, x2k)\<close> and
+      \<open>x' = (x1j, x2j)\<close> and
+      \<open>x2l = (x1m, x2m)\<close> and
+      \<open>xa = (x1l, x2l)\<close> and
+      \<open>x1k \<noteq> []\<close> and
+      \<open>x1m \<noteq> []\<close> and
+      \<open>x2o = (x1p, x2p)\<close> and
+      \<open>x2n = (x1o, x2o)\<close> and
+      \<open>ana_lookup_conv x2 (last x1k) = (x1n, x2n)\<close> and
+      \<open>x2q = (x1r, x2r)\<close> and
+      \<open>last x1m = (x1q, x2q)\<close> and
+      \<open>x1n \<in># dom_m x2\<close> and
+      \<open>x1o < length (x2 \<propto> x1n)\<close> and
+      \<open>x2 \<propto> x1n ! x1o \<in> lits_of_l x1d\<close> and
+      \<open>x2 \<propto> x1n ! x1o \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
+      \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (x2 \<propto> x1n))\<close> and
+      \<open>length (x2 \<propto> x1n) \<le> Suc (uint_max div 2)\<close> and
+      \<open>x2p \<le> length (x2 \<propto> x1n)\<close> and
+      \<open>arena_is_valid_clause_idx x2e (fst (last x1m))\<close> and
+      \<open>x2t = (x1u, x2u)\<close> and
+      \<open>x2s = (x1t, x2t)\<close> and
+      \<open>(x1n, x1o, x1p, x2p) = (x1s, x2s)\<close> and
+      \<open>x2w = (x1x, x2x)\<close> and
+      \<open>x2v = (x1w, x2w)\<close> and
+      \<open>ana_lookup_conv_lookup x2e (x1q, x1r, x2r) = (x1v, x2v)\<close> and
+      \<open>x1v < length x2e\<close> and
+      \<open>arena_is_valid_clause_idx x2e x1v\<close> and
+      \<open>arena_lit_pre x2e (x1v + x1w)\<close> and
+      \<open>\<not> nat_of_uint64_conv x2x \<le> x1x\<close> and
+      \<open>\<not> x2u \<le> x1u\<close> and
+      \<open>isa_get_literal_and_remove_of_analyse_wl_pre x2e x1m\<close> and
+      \<open>get_literal_and_remove_of_analyse_wl2 (x2 \<propto> x1s) x1k = (x1y, x2y)\<close> and
+      \<open>isa_get_literal_and_remove_of_analyse_wl x2e x1m = (x1z, x2z)\<close> and
+      \<open>x1y \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and    \<open>get_level_pol_pre (x1i, x1z)\<close> and
+      \<open>atm_in_conflict_lookup_pre (atm_of x1z) x2f\<close> and
+      \<open>conflict_min_cach_l_pre (x1l, atm_of x1z)\<close> and
+      \<open>\<not> (get_level_pol x1i x1z = zero_uint32_nat \<or>
+	  conflict_min_cach_l x1l (atm_of x1z) = SEEN_REMOVABLE \<or>
+	  atm_in_conflict_lookup (atm_of x1z) x2f)\<close> and
+      \<open>\<not> (get_level x1d x1y = zero_uint32_nat \<or>
+	  conflict_min_cach x1j (atm_of x1y) = SEEN_REMOVABLE \<or>
+	  atm_in_conflict (atm_of x1y) x2a)\<close> and
+      \<open>\<not> level_in_lbd (get_level_pol x1i x1z) x2i \<or>
+       conflict_min_cach_l x1l (atm_of x1z) = SEEN_FAILED\<close> and
+      \<open>\<not> level_in_lbd (get_level x1d x1y) x2d \<or>
+       conflict_min_cach x1j (atm_of x1y) = SEEN_FAILED\<close> and
+      inv2: \<open>mark_failed_lits_stack_inv2 x2 x2y x1j\<close>
+     for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
+	 x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
+	 x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y x1z
+	 x2z
+  proof -
+    have [simp]: \<open>x2z = x2y\<close>
+      using that
+      by (auto simp: isa_get_literal_and_remove_of_analyse_wl_def
+	get_literal_and_remove_of_analyse_wl2_def)
+
+    obtain x2y0 where
+      x2z: \<open>(x2y, x2y0) \<in> ana_lookups_rel x2\<close> and
+      inv: \<open>mark_failed_lits_stack_inv x2 x2y0 x1j\<close>
+      using inv2 unfolding mark_failed_lits_stack_inv2_def
+      by blast
+    have 1: \<open>mark_failed_lits_wl x2 x2y x1j  = mark_failed_lits_wl x2 x2y0 x1j\<close>
+      unfolding mark_failed_lits_wl_def by auto
+    show ?thesis
+      unfolding 1
+      apply (rule isa_mark_failed_lits_stack_isa_mark_failed_lits_stack[THEN
+	   fref_to_Down_curry2, of x2 x2y0 x1j x2e x2z x1l vdom x2 \<A>, THEN order_trans])
+      subgoal using that by auto
+      subgoal using that x2z inv by auto
+      apply (rule order_trans)
+      apply (rule ref_two_step')
+      apply (rule mark_failed_lits_stack_mark_failed_lits_wl[THEN
+	   fref_to_Down_curry2, of \<A> x2 x2y0 x1j])
+      subgoal using inv x2z that by auto
+      subgoal using that by auto
+      subgoal by auto
+      done
+  qed
+  have isa_mark_failed_lits_stack2: \<open>isa_mark_failed_lits_stack x2e x2z x1l
+	\<le> \<Down> (cach_refinement \<A>) (mark_failed_lits_wl x2 x2y x1j)\<close>
+    if 
+      \<open>case y of
+       (x, xa) \<Rightarrow>
+	 (case x of
+	  (x, xa) \<Rightarrow>
+	    (case x of
+	     (x, xa) \<Rightarrow>
+	       (case x of
+		(x, xa) \<Rightarrow>
+		  (case x of
+		   (uu_, N) \<Rightarrow>
+		     \<lambda>_ _ _ _.
+			literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> ((mset \<circ> fst) `# ran_m N))                 xa)
+		xa)
+	     xa)
+	  xa\<close> and
+      \<open>(x, y)
+       \<in> trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f       lookup_clause_rel \<A> \<times>\<^sub>f       cach_refinement \<A> \<times>\<^sub>f       Id \<times>\<^sub>f
+	 Id\<close> and
+      \<open>x1c = (x1d, x2)\<close> and
+      \<open>x1b = (x1c, x2a)\<close> and
+      \<open>x1a = (x1b, x2b)\<close> and
+      \<open>x1 = (x1a, x2c)\<close> and
+      \<open>y = (x1, x2d)\<close> and
+      \<open>x1h = (x1i, x2e)\<close> and
+      \<open>x1g = (x1h, x2f)\<close> and
+      \<open>x1f = (x1g, x2g)\<close> and
+      \<open>x1e = (x1f, x2h)\<close> and
+      \<open>x = (x1e, x2i)\<close> and
+      \<open>(xa, x') \<in> cach_refinement \<A> \<times>\<^sub>f (Id \<times>\<^sub>f bool_rel)\<close> and    \<open>case xa of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+      \<open>case x' of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+      \<open>True\<close> and
+      \<open>lit_redundant_rec_wl_inv2 x1d x2 x2a x'\<close> and
+      \<open>x2j = (x1k, x2k)\<close> and
+      \<open>x' = (x1j, x2j)\<close> and
+      \<open>x2l = (x1m, x2m)\<close> and
+      \<open>xa = (x1l, x2l)\<close> and
+      \<open>x1k \<noteq> []\<close> and
+      \<open>x1m \<noteq> []\<close> and
+      \<open>x2o = (x1p, x2p)\<close> and
+      \<open>x2n = (x1o, x2o)\<close> and
+      \<open>ana_lookup_conv x2 (last x1k) = (x1n, x2n)\<close> and
+      \<open>x2q = (x1r, x2r)\<close> and
+      \<open>last x1m = (x1q, x2q)\<close> and
+      \<open>x1n \<in># dom_m x2\<close> and
+      \<open>x1o < length (x2 \<propto> x1n)\<close> and
+      \<open>x2 \<propto> x1n ! x1o \<in> lits_of_l x1d\<close> and
+      \<open>x2 \<propto> x1n ! x1o \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (x2 \<propto> x1n))\<close> and    \<open>length (x2 \<propto> x1n) \<le> Suc (uint_max div 2)\<close> and
+      \<open>x2p \<le> length (x2 \<propto> x1n)\<close> and
+      \<open>arena_is_valid_clause_idx x2e (fst (last x1m))\<close> and
+      \<open>x2t = (x1u, x2u)\<close> and
+      \<open>x2s = (x1t, x2t)\<close> and
+      \<open>(x1n, x1o, x1p, x2p) = (x1s, x2s)\<close> and
+      \<open>x2w = (x1x, x2x)\<close> and
+      \<open>x2v = (x1w, x2w)\<close> and
+      \<open>ana_lookup_conv_lookup x2e (x1q, x1r, x2r) = (x1v, x2v)\<close> and
+      \<open>x1v < length x2e\<close> and
+      \<open>arena_is_valid_clause_idx x2e x1v\<close> and
+      \<open>arena_lit_pre x2e (x1v + x1w)\<close> and
+      \<open>\<not> nat_of_uint64_conv x2x \<le> x1x\<close> and
+      \<open>\<not> x2u \<le> x1u\<close> and
+      \<open>isa_get_literal_and_remove_of_analyse_wl_pre x2e x1m\<close> and
+      \<open>get_literal_and_remove_of_analyse_wl2 (x2 \<propto> x1s) x1k = (x1y, x2y)\<close> and
+      \<open>isa_get_literal_and_remove_of_analyse_wl x2e x1m = (x1z, x2z)\<close> and
+      \<open>x1y \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and    \<open>get_level_pol_pre (x1i, x1z)\<close> and
+      \<open>atm_in_conflict_lookup_pre (atm_of x1z) x2f\<close> and
+      \<open>conflict_min_cach_l_pre (x1l, atm_of x1z)\<close> and
+      \<open>\<not> (get_level_pol x1i x1z = zero_uint32_nat \<or>
+	  conflict_min_cach_l x1l (atm_of x1z) = SEEN_REMOVABLE \<or>
+	  atm_in_conflict_lookup (atm_of x1z) x2f)\<close> and
+      \<open>\<not> (get_level x1d x1y = zero_uint32_nat \<or>
+	  conflict_min_cach x1j (atm_of x1y) = SEEN_REMOVABLE \<or>
+	  atm_in_conflict (atm_of x1y) x2a)\<close> and
+      \<open>\<not> (\<not> level_in_lbd (get_level_pol x1i x1z) x2i \<or>
+	  conflict_min_cach_l x1l (atm_of x1z) = SEEN_FAILED)\<close> and
+      \<open>\<not> (\<not> level_in_lbd (get_level x1d x1y) x2d \<or>
+	  conflict_min_cach x1j (atm_of x1y) = SEEN_FAILED)\<close> and
+      \<open>- x1y \<in> lits_of_l x1d\<close> and
+      \<open>(xb, x'a) \<in> \<langle>nat_rel\<rangle>option_rel\<close> and
+      \<open>xb = None\<close> and
+      \<open>x'a = None\<close> and
+      inv2: \<open>mark_failed_lits_stack_inv2 x2 x2y x1j\<close>
+    for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
+       x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
+       x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y x1z
+       x2z xb x'a
+  proof -
+    have [simp]: \<open>x2z = x2y\<close>
+      using that
+      by (auto simp: isa_get_literal_and_remove_of_analyse_wl_def
+	get_literal_and_remove_of_analyse_wl2_def)
+
+    obtain x2y0 where
+      x2z: \<open>(x2y, x2y0) \<in> ana_lookups_rel x2\<close> and
+      inv: \<open>mark_failed_lits_stack_inv x2 x2y0 x1j\<close>
+      using inv2 unfolding mark_failed_lits_stack_inv2_def
+      by blast
+    have 1: \<open>mark_failed_lits_wl x2 x2y x1j  = mark_failed_lits_wl x2 x2y0 x1j\<close>
+      unfolding mark_failed_lits_wl_def by auto
+    show ?thesis
+      unfolding 1
+      apply (rule isa_mark_failed_lits_stack_isa_mark_failed_lits_stack[THEN
+	   fref_to_Down_curry2, of x2 x2y0 x1j x2e x2z x1l vdom x2 \<A>, THEN order_trans])
+      subgoal using that by auto
+      subgoal using that x2z inv by auto
+      apply (rule order_trans)
+      apply (rule ref_two_step')
+      apply (rule mark_failed_lits_stack_mark_failed_lits_wl[THEN
+	   fref_to_Down_curry2, of \<A> x2 x2y0 x1j])
+      subgoal using inv x2z that by auto
+      subgoal using that by auto
+      subgoal by auto
+      done
+  qed
   have [refine0]: \<open>get_propagation_reason_pol M' L'
     \<le> \<Down> (\<langle>Id\<rangle>option_rel)
        (get_propagation_reason M L)\<close>
@@ -3767,12 +4006,12 @@ proof -
     arena_lifting and [split] = prod.splits
 
   show ?thesis
-    supply [[goals_limit=3]] ana_lookup_conv_def[simp] ana_lookup_conv_lookup_def[simp]
+    supply [[goals_limit=1]] ana_lookup_conv_def[simp] ana_lookup_conv_lookup_def[simp]
     supply RETURN_as_SPEC_refine[refine2 add]
     unfolding isa_lit_redundant_rec_wl_lookup_alt_def lit_redundant_rec_wl_lookup_alt_def uncurry_def
       from_ana_ref_id_def
     apply (intro frefI nres_relI)
-    apply (refine_rcg isa_mark_failed_lits_stack)
+    apply (refine_rcg)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -3781,6 +4020,7 @@ proof -
         by (auto simp: arena_lifting)
     subgoal by (auto simp: arena_is_valid_clause_idx_def
       lit_redundant_rec_wl_inv2_def)
+    subgoal by (auto simp: ana_lookup_conv_lookup_pre_def)
     subgoal by (auto simp: arena_is_valid_clause_idx_def)
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m
@@ -3822,9 +4062,8 @@ proof -
 	  get_level_get_level_pol atms_of_def
           get_literal_and_remove_of_analyse_wl2_def
   	split: prod.splits)
-       (subst (asm)  atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id];
-	  auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atms_of_def; fail)
-
+        (subst (asm)  atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id];
+	  auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atms_of_def; fail)+
     subgoal by (auto simp: get_literal_and_remove_of_analyse_wl2_def
 	  split: prod.splits)
     subgoal by (auto simp: atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id]
@@ -3832,34 +4071,32 @@ proof -
 	  get_level_get_level_pol atms_of_def
       simp: get_literal_and_remove_of_analyse_wl2_def
   	split: prod.splits)
-supply [[unify_trace_failure]]
-apply (rule isa_mark_failed_lits_stack)
-oops
+    apply (rule isa_mark_failed_lits_stack; assumption)
     subgoal by (auto simp: split: prod.splits)
     subgoal by (auto simp: split: prod.splits)
-    subgoal by (auto simp: split: prod.splits)
-    subgoal by (auto simp: split: prod.splits)
-    subgoal by auto
-    subgoal by auto
+    subgoal by (auto simp: get_literal_and_remove_of_analyse_wl2_def
+      split: prod.splits)
     apply assumption
-    subgoal by auto
-    subgoal by (auto simp: split: prod.splits)
-    subgoal by auto
+    apply (rule isa_mark_failed_lits_stack2; assumption)
     subgoal by auto
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
-       x2q x1r x2r x1s x2s x1t x2t x1u x2u xb x'a xc x'b
+       x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y x1z
+       x2z xb x'a xc x'b
        unfolding lit_redundant_reason_stack_wl_lookup_pre_def
       by (auto simp: lit_redundant_reason_stack_wl_lookup_pre_def arena_lit_pre_def
 	arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def
-	simp: valid_arena_nempty
-	intro!: exI[of _ x'b])
+	simp: valid_arena_nempty  get_literal_and_remove_of_analyse_wl2_def
+	  lit_redundant_reason_stack_wl_lookup_def
+	  lit_redundant_reason_stack2_def
+	intro!: exI[of _ x'b] bex_leI[of _ x'b])
     subgoal premises p for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
        x2q x1r x2r x1s x2s x1t x2t x1u x2u xb x'a xc x'b
       using p
-      by (simp add: lit_redundant_reason_stack_wl_lookup_def
+      by (auto simp add: lit_redundant_reason_stack_wl_lookup_def
         lit_redundant_reason_stack_def lit_redundant_reason_stack_wl_lookup_pre_def
+	lit_redundant_reason_stack2_def get_literal_and_remove_of_analyse_wl2_def
 	 arena_lifting[of x2e x2 vdom]) \<comment> \<open>I have no idea why @{thm arena_lifting} requires
 	   to be instantiated.\<close>
     done
@@ -3871,9 +4108,8 @@ sepref_definition lit_redundant_reason_stack_wl_lookup_code
       unat_lit_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>
       ana_refinement_assn\<close>
   unfolding lit_redundant_reason_stack_wl_lookup_def lit_redundant_reason_stack_wl_lookup_pre_def
+    one_uint32_nat_def[symmetric] zero_uint32_nat_def[symmetric]
   apply (rewrite at \<open>2 < \<hole>\<close> nat_of_uint64_conv_def[symmetric])
-  apply (rewrite at \<open>to_ana_ref_id _ _ _ \<hole>\<close>  nat_of_uint64_conv_def[symmetric])
-  apply (rewrite at \<open>If _ _ (If _ (to_ana_ref_id _ _ _ \<hole>) _)\<close>  nat_of_uint64_conv_def[symmetric])
   by sepref
 
 sepref_definition lit_redundant_reason_stack_wl_lookup_fast_code
@@ -3882,8 +4118,8 @@ sepref_definition lit_redundant_reason_stack_wl_lookup_fast_code
       unat_lit_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>
       ana_refinement_fast_assn\<close>
   unfolding lit_redundant_reason_stack_wl_lookup_def lit_redundant_reason_stack_wl_lookup_pre_def
-    two_uint64_nat_def[symmetric] zero_uint64_nat_def[symmetric]
-    one_uint64_nat_def[symmetric]
+    two_uint64_nat_def[symmetric] zero_uint32_nat_def[symmetric]
+    one_uint32_nat_def[symmetric]
   by sepref
 
 declare lit_redundant_reason_stack_wl_lookup_fast_code.refine[sepref_fr_rules]
@@ -3921,7 +4157,9 @@ sepref_definition lit_redundant_rec_wl_lookup_code
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
     fmap_rll_def[symmetric]
     fmap_length_rll_def[symmetric]
+  apply (rewrite at \<open>arena_lit _ (_ + \<hole>)\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
+
 
 declare lit_redundant_rec_wl_lookup_code.refine[sepref_fr_rules]
 
@@ -4044,6 +4282,7 @@ lemma
     cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUE) D\<close> and
     NU_P_D: \<open>NU' + NUE \<Turnstile>pm add_mset K D\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> D\<close> and
+    lits_NU: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf NU)\<close> and
     K: \<open>K = outl ! 0\<close> and
     outl_nempty: \<open>outl \<noteq> []\<close> and
     \<open>isasat_input_bounded \<A>\<close>
@@ -4056,7 +4295,7 @@ proof -
   show ?thesis
     apply (rule order.trans)
      apply (rule minimize_and_extract_highest_lookup_conflict_iterate_over_conflict[OF
-          assms(7-21)[unfolded assms(1-8)],
+          assms(7-22)[unfolded assms(1-8)],
           unfolded assms(1-8)[symmetric]])
     apply (rule order.trans)
      apply (rule ref_two_step'[OF iterate_over_conflict_spec[OF NU_P_D dist_D]])
@@ -4095,7 +4334,7 @@ declare lookup_conflict_upd_None_code.refine[sepref_fr_rules]
 
 definition isa_literal_redundant_wl_lookup ::
     "trail_pol \<Rightarrow> arena \<Rightarrow> lookup_clause_rel \<Rightarrow> conflict_min_cach_l
-           \<Rightarrow> nat literal \<Rightarrow> lbd \<Rightarrow> (conflict_min_cach_l \<times> (nat \<times> nat \<times> nat \<times> nat) list \<times> bool) nres"
+           \<Rightarrow> nat literal \<Rightarrow> lbd \<Rightarrow> (conflict_min_cach_l \<times> (nat \<times> nat \<times> bool) list \<times> bool) nres"
 where
   \<open>isa_literal_redundant_wl_lookup M NU D cach L lbd = do {
      ASSERT(get_level_pol_pre (M, L));
@@ -4173,6 +4412,7 @@ proof -
        x2h x2i xa x' xb x'a
       by (simp add: lit_redundant_reason_stack_wl_lookup_def
         lit_redundant_reason_stack_def lit_redundant_reason_stack_wl_lookup_pre_def
+	lit_redundant_reason_stack2_def
 	 arena_lifting[of x2e x2 vdom]) \<comment> \<open>I have no idea why @{thm arena_lifting} requires
 	   to be instantiated.\<close>
     done
