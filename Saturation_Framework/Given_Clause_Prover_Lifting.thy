@@ -274,14 +274,46 @@ proof
   then show \<open>\<iota> \<in> gr_calc.Inf_from N\<close> using i_from unfolding gr_calc.Inf_from_def by fast
 qed
 
-term gr.ord_\<Gamma>
-
-find_theorems "image_mset" "_ - _"
-
 lemma \<open>gr.eligible As D \<Longrightarrow> mset As = mset As' \<Longrightarrow> gr.eligible As' D\<close>
   unfolding gr.eligible.simps
   by (cases As; cases As')
     (auto simp: add_mset_eq_add_mset eq_commute[of "add_mset _ _" "mset _"] image_mset_remove1_mset_if)
+
+lemma
+  assumes
+    res: \<open>gr.ord_resolve CAs D AAs As E\<close> and
+    mset_CAs: \<open>mset CAs = mset CAs'\<close>
+  shows
+    \<open>(\<exists>AAs' As'. mset AAs = mset AAs' \<and> mset As = mset As' \<and>
+     gr.ord_resolve CAs' D AAs' As' E)\<close>
+  using assms
+proof -
+  obtain Cs Da n where
+    \<open>D = Da + negs (mset As)\<close> and
+    \<open>E = \<Union>#mset Cs + Da\<close> and
+    len_CAs: \<open>length CAs = n\<close> and
+    \<open>length Cs = n\<close> and
+    len_AAs: \<open>length AAs = n\<close> and
+    \<open>length As = n\<close> and
+    \<open>n \<noteq> 0\<close> and
+    \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> and
+    \<open>\<forall>i<n. AAs ! i \<noteq> {#}\<close> and
+    \<open>\<forall>i<n. \<forall>A\<in>#AAs ! i. A = As ! i\<close> and
+    \<open>gr.eligible As (Da + negs (mset As))\<close> and
+    \<open>\<forall>i<n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)\<close> and
+    \<open>\<forall>i<n. S (CAs ! i) = {#}\<close>
+ using res unfolding gr.ord_resolve.simps by auto
+  have x_in_equiv: \<open>x \<in># mset CAs' \<Longrightarrow> x \<in># mset CAs\<close> using mset_CAs by simp
+  have length_CAs': \<open>length CAs' = n\<close> using len_CAs mset_CAs using mset_eq_length by fastforce
+  then have \<open>0 \<le> i \<Longrightarrow> i < n \<Longrightarrow> \<exists>j. 0 \<le> j \<and> j < n \<and> CAs'!i = CAs!j\<close>
+    using len_CAs x_in_equiv by (metis in_mset_conv_nth le0 mset_CAs)
+  then obtain map_i where \<open>\<forall>i. 0 \<le> i \<Longrightarrow> i < n \<Longrightarrow> CAs'!i = CAs!(map_i i)\<close> by fast
+  then obtain AAs' where \<open>length AAs' = n\<close> \<open>\<forall>i. 0 \<le> i \<Longrightarrow> i < n \<Longrightarrow> AAs'!i = AAs!(map_i i)\<close>
+    using len_AAs sorry
+    
+  show ?thesis sorry
+oops
+  
 
 lemma
   assumes
