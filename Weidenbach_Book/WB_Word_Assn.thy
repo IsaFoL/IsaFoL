@@ -115,6 +115,12 @@ proof (rule ccontr)
     using less by auto
 qed
 
+definition uint32_max' where
+  [simp, symmetric, code]: \<open>uint32_max' = uint32_max\<close>
+
+lemma [code]: \<open>uint32_max' = 4294967295\<close>
+  by (auto simp: uint32_max_def)
+
 
 text \<open>This lemma is very trivial but maps an \<^typ>\<open>64 word\<close> to its list counterpart. This
   especially allows to combine two numbers together via ther bit representation (which should be
@@ -937,6 +943,12 @@ lemma uint64_nat_assn_zero_uint64_nat[sepref_fr_rules]:
 
 definition uint64_max :: nat where
   \<open>uint64_max = 2 ^64 - 1\<close>
+
+definition uint64_max' where
+  [simp, symmetric, code]: \<open>uint64_max' = uint64_max\<close>
+
+lemma [code]: \<open>uint64_max' = 18446744073709551615\<close>
+  by (auto simp: uint64_max_def)
 
 lemma nat_of_uint64_uint64_of_nat_id: \<open>n \<le> uint64_max \<Longrightarrow> nat_of_uint64 (uint64_of_nat n) = n\<close>
   unfolding uint64_of_nat_def uint64_max_def
