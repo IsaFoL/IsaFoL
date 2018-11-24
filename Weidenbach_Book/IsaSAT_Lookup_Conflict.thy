@@ -1751,7 +1751,7 @@ qed
 
 context
   fixes M D \<A> NU analysis analysis'
-  assumes 
+  assumes
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
     n_d: \<open>no_dup M\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close> and
@@ -1785,7 +1785,7 @@ lemma ccmin_lit_redundant_rec_wl_inv2:
   by auto
 
 context
-  assumes 
+  assumes
     \<open>lit_redundant_rec_wl_inv2 M NU D x\<close> and
     \<open>lit_redundant_rec_wl_inv M NU D x'\<close>
 begin
@@ -1810,7 +1810,7 @@ end
 
 
 context
-  assumes 
+  assumes
     \<open>case x of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
     \<open>case x' of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
     inv2: \<open>lit_redundant_rec_wl_inv2 M NU D x\<close> and
@@ -2033,7 +2033,7 @@ lemma ccmin_same_cond:
   using le ana unfolding x1g_x1d st3 by (simp split: if_splits)
 
 lemma ccmin_set_removable:
-  assumes 
+  assumes
     \<open>x2i \<le> x1i\<close> and
     \<open>x2f \<le> x1f\<close>
   shows \<open>((x1b(atm_of (NU \<propto> x1g ! x1h) := SEEN_REMOVABLE), butlast x1c, True),
@@ -2045,7 +2045,7 @@ lemma ccmin_set_removable:
     dest: list_rel_butlast)
 
 context
-  assumes 
+  assumes
     le: \<open>\<not> x2i \<le> x1i\<close> \<open>\<not> x2f \<le> x1f\<close>
 begin
 
@@ -2053,7 +2053,7 @@ context
   notes _[simp]= x1g_x1d st2 last
   fixes x1j :: \<open>nat literal\<close> and x2j :: \<open>(nat \<times> nat \<times> nat \<times> nat) list\<close> and
   x1k :: \<open>nat literal\<close> and x2k :: \<open>(nat \<times> nat \<times> bool) list\<close>
-  assumes 
+  assumes
     rem: \<open>get_literal_and_remove_of_analyse_wl (NU \<propto> x1d) x1a = (x1j, x2j)\<close> and
     rem2:\<open>get_literal_and_remove_of_analyse_wl2 (NU \<propto> x1g) x1c = (x1k, x2k)\<close> and
     \<open>fst (snd (snd (last x2j))) \<noteq> 0\<close> and
@@ -2134,9 +2134,9 @@ private lemma ccmin_lit_redundant_rec_wl_inv: \<open>lit_redundant_rec_wl_inv M 
     (auto simp add: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
     lit_redundant_reason_stack_def get_literal_and_remove_of_analyse_wl_def
     list_rel_append_single_iff get_literal_and_remove_of_analyse_wl2_def)
- 
+
 lemma ccmin_already_seen_rel:
-  assumes 
+  assumes
     \<open>get_level M x1k = zero_uint32_nat \<or>
      conflict_min_cach x1b (atm_of x1k) = SEEN_REMOVABLE \<or>
      atm_in_conflict (atm_of x1k) D\<close> and
@@ -2148,7 +2148,7 @@ lemma ccmin_already_seen_rel:
   using x2k_x2j ccmin_lit_redundant_rec_wl_inv by auto
 
 context
-  assumes 
+  assumes
     \<open>\<not> (get_level M x1k = zero_uint32_nat \<or>
         conflict_min_cach x1b (atm_of x1k) = SEEN_REMOVABLE \<or>
         atm_in_conflict (atm_of x1k) D)\<close> and
@@ -2162,7 +2162,7 @@ lemma ccmin_already_failed:
 
 
 context
-  assumes 
+  assumes
     \<open>\<not> level_in_lbd (get_level M x1k) lbd \<or>
      conflict_min_cach x1b (atm_of x1k) = SEEN_FAILED\<close> and
     \<open>b \<or> x1 (atm_of x1j) = SEEN_FAILED\<close>
@@ -2182,7 +2182,7 @@ lemma ccmin_mark_failed_lits_stack_inv2_lbd:
 lemma ccmin_mark_failed_lits_wl_lbd:
   shows \<open>mark_failed_lits_wl NU x2k x1b
          \<le> \<Down> Id
-            (mark_failed_lits_wl NU x2j x1)\<close>	  
+            (mark_failed_lits_wl NU x2j x1)\<close>
   by (auto simp: mark_failed_lits_wl_def)
 
 
@@ -2198,7 +2198,7 @@ end
 
 
 context
-  assumes 
+  assumes
     \<open>\<not> (\<not> level_in_lbd (get_level M x1k) lbd \<or>
         conflict_min_cach x1b (atm_of x1k) = SEEN_FAILED)\<close> and
     \<open>\<not> (b \<or> x1 (atm_of x1j) = SEEN_FAILED)\<close>
@@ -2206,7 +2206,7 @@ begin
 
 lemma ccmin_lit_in_trail:
   \<open>- x1k \<in> lits_of_l M\<close>
-  using \<open>- x1j \<in> lits_of_l M\<close> x1k_x1j(1) by blast 
+  using \<open>- x1j \<in> lits_of_l M\<close> x1k_x1j(1) by blast
 
 lemma ccmin_lit_eq:
   \<open>- x1k = - x1j\<close>
@@ -2223,7 +2223,7 @@ lemma ccmin_lit_eq2:
   using xa_x'a by auto
 
 context
-  assumes 
+  assumes
     [simp]: \<open>xa = None\<close> \<open>x'a = None\<close>
 begin
 
@@ -3768,7 +3768,7 @@ proof -
   have isa_mark_failed_lits_stack: \<open>isa_mark_failed_lits_stack x2e x2z x1l
 	\<le> \<Down> (cach_refinement \<A>)
 	   (mark_failed_lits_wl x2 x2y x1j)\<close>
-    if 
+    if
       \<open>case y of
        (x, xa) \<Rightarrow>
 	 (case x of
@@ -3882,7 +3882,7 @@ proof -
   qed
   have isa_mark_failed_lits_stack2: \<open>isa_mark_failed_lits_stack x2e x2z x1l
 	\<le> \<Down> (cach_refinement \<A>) (mark_failed_lits_wl x2 x2y x1j)\<close>
-    if 
+    if
       \<open>case y of
        (x, xa) \<Rightarrow>
 	 (case x of

@@ -399,7 +399,7 @@ proof -
     using rel
     by (induction xs ys rule: list_induct2) (auto split: nat.splits)
 qed
-  
+
 lemma arrayO_except_assn_arl_butlast:
   assumes \<open>b < length a\<close> and
     \<open>a ! b \<noteq> []\<close>
