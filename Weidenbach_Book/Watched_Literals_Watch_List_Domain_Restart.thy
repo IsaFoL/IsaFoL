@@ -303,7 +303,7 @@ where
 \<open>remove_one_annot_true_clause_one_imp_wl_D = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
       ASSERT(remove_one_annot_true_clause_one_imp_wl_D_pre i (M, N, D, NE, UE, Q, W));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
-      if C = 0 \<or> length (N \<propto> C) = 2  then RETURN (i+1, M, N, D, NE, UE, Q, W)
+      if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
       else do {
         ASSERT(C \<in># dom_m N);
         M \<leftarrow> replace_annot_in_trail_spec M L;
@@ -346,7 +346,7 @@ proof -
   proof -
     obtain x xa where
       x: \<open>((M', N0', D', NE0', UE', Q', W'), x) \<in> state_wl_l None\<close> and
-      \<open>correct_watching'
+      \<open>correct_watching''
       (M', N0', D', NE0', UE', Q', W')\<close> and
       \<open>twl_list_invs x\<close> and
       le: \<open>L' < length (get_trail_l x)\<close> and
@@ -404,10 +404,6 @@ proof -
       lit:
         \<open>x \<in> {(La, C). rev M ! L = Propagated La C}\<close>
         \<open>x' \<in> {(L, C). rev M' ! L' = Propagated L C}\<close> and
-      \<open>\<not> (x2a = 0 \<or> length (N0 \<propto> x2a) = 2)\<close> and
-      \<open>\<not> (x2 = 0 \<or> length (N0' \<propto> x2) = 2)\<close> and
-      \<open>x2 \<in># dom_m N0'\<close> and
-      \<open>x2a \<in># dom_m N0\<close> and
       eq: \<open>(xa, x'a) \<in> {((N1, C1, b1), N1', C1', b1').
          N1' = fmdrop x2a N0 \<and>
          C1' = N0 \<propto> x2a \<and>
@@ -419,7 +415,11 @@ proof -
         \<open>x2d = (x1e, x2e)\<close>
         \<open>xa = (x1d, x2d)\<close>
         \<open>x' = (x1, x2)\<close> and
-        \<open>x = (x1a, x2a)\<close>
+        \<open>x = (x1a, x2a)\<close> and
+      \<open>\<not> (x2a = 0)\<close> and
+      \<open>\<not> (x2 = 0)\<close> and
+      \<open>x2 \<in># dom_m N0'\<close> and
+      \<open>x2a \<in># dom_m N0\<close>
     for x x' x1 x2 x1a x2a Ma Maa xa x'a x1b x2b x1c
       x2c x1d x2d x1e x2e L M N0 D NE0 UE Q W L' M' N0' D' NE0' UE' Q' W'
   proof -
@@ -454,7 +454,7 @@ proof -
     obtain x xa where
       L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' ?A (M, N0, D, NE0, UE, Q, W)\<close> and
       x: \<open>((M, N0, D, NE0, UE, Q, W), x) \<in> state_wl_l None\<close> and
-      \<open>correct_watching' (M, N0, D, NE0, UE, Q, W)\<close> and
+      \<open>correct_watching'' (M, N0, D, NE0, UE, Q, W)\<close> and
       \<open>twl_list_invs x\<close> and
       le: \<open>L < length (get_trail_l x)\<close> and
       \<open>twl_list_invs x\<close> and
@@ -470,7 +470,7 @@ proof -
     have [simp]:
       \<open>irred N0' x2a \<Longrightarrow> all_init_atms (fmdrop x2a N0') (add_mset (mset (N0' \<propto> x2a)) NE0') =
       all_init_atms N0' NE0'\<close>
-      using x L st' that(11) unfolding st
+      using x L st' that unfolding st
       by (auto simp: all_init_atms_def image_mset_remove1_mset_if
         all_init_lits_def init_clss_l_fmdrop)
     have [simp]:
@@ -478,7 +478,7 @@ proof -
       using x L st' that(11) unfolding st
       by (auto simp: all_init_atms_def image_mset_remove1_mset_if
         all_init_lits_def)
-      find_theorems image_mset If remove1_mset
+
     have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail ?A (get_trail_wl (M, N0, D, NE0, UE, Q, W))\<close>
       apply (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail)
          apply (rule x)
@@ -1143,7 +1143,7 @@ definition cdcl_GC_clauses_pre_wl_D :: \<open>nat twl_st_wl \<Rightarrow> bool\<
 definition cdcl_GC_clauses_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
 \<open>cdcl_GC_clauses_wl_D = (\<lambda>(M, N, D, NE, UE, WS, Q). do {
   ASSERT(cdcl_GC_clauses_pre_wl_D (M, N, D, NE, UE, WS, Q));
-  b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> count_decided M = 0 \<and> (\<forall>L\<in>set M. mark_of L = 0));
+  let b = True;
   if b then do {
     (N', _) \<leftarrow> SPEC (\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N'') \<and>
       0 \<notin># dom_m N'');
@@ -1162,8 +1162,6 @@ lemma cdcl_GC_clauses_wl_D_cdcl_GC_clauses_wl:
   apply refine_vcg
   subgoal unfolding cdcl_GC_clauses_pre_wl_D_def by blast
   subgoal by (auto simp: state_wl_l_def)
-  subgoal by (auto simp: state_wl_l_def)
-  subgoal by auto
   subgoal by (auto simp: state_wl_l_def)
   subgoal by auto
   subgoal by (auto simp: state_wl_l_def)
@@ -1189,6 +1187,7 @@ definition cdcl_twl_full_restart_wl_D_GC_prog where
     RETURN V
   }\<close>
 
+(*
 lemma cdcl_twl_full_restart_wl_D_GC_prog:
   \<open>(cdcl_twl_full_restart_wl_D_GC_prog, cdcl_twl_full_restart_wl_GC_prog) \<in>
     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S} \<rightarrow>\<^sub>f
@@ -1202,7 +1201,7 @@ lemma cdcl_twl_full_restart_wl_D_GC_prog:
   subgoal unfolding mark_to_delete_clauses_wl_D_pre_def by fast
   subgoal unfolding cdcl_twl_full_restart_wl_D_GC_prog_post_def by fast
   done
-
+*)
 end
 
 end
