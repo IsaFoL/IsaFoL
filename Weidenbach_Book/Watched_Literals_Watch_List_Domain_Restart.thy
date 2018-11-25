@@ -109,11 +109,12 @@ proof -
     moreover have \<open>set_mset \<A>' = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close> if \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<A>'\<close> for \<A>'
       unfolding that[unfolded is_\<L>\<^sub>a\<^sub>l\<^sub>l_def]
       by auto
-    moreover have \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close> if \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_st S)\<close> for \<A> \<A>' S
+    moreover have \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close> if \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_st S)\<close>
+      for \<A> S
       unfolding that[unfolded is_\<L>\<^sub>a\<^sub>l\<^sub>l_def]
       using \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) = set_mset (all_lits_st S)\<close> is_\<L>\<^sub>a\<^sub>l\<^sub>l_all_lits_st_\<L>\<^sub>a\<^sub>l\<^sub>l(1) that by blast
     moreover have \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
-      if \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_init_lits_st S)\<close> for \<A> \<A>' S
+      if \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_init_lits_st S)\<close> for \<A> S
       unfolding that[unfolded is_\<L>\<^sub>a\<^sub>l\<^sub>l_def]
       by (metis \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) = set_mset (all_init_lits_st S)\<close> all_init_lits_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_\<L>\<^sub>a\<^sub>l\<^sub>l_rewrite that)
     ultimately show ?thesis
@@ -207,7 +208,8 @@ definition remove_all_annot_true_clause_imp_wl_D
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
 \<open>remove_all_annot_true_clause_imp_wl_D = (\<lambda>L (M, N0, D, NE0, UE, Q, W). do {
-    ASSERT(remove_all_annot_true_clause_imp_wl_D_pre (all_init_atms_st (M, N0, D, NE0, UE, Q, W)) L (M, N0, D, NE0, UE, Q, W));
+    ASSERT(remove_all_annot_true_clause_imp_wl_D_pre (all_init_atms_st (M, N0, D, NE0, UE, Q, W))
+      L (M, N0, D, NE0, UE, Q, W));
     let xs = W L;
     (_, N, NE) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, N, NE).
         remove_all_annot_true_clause_imp_wl_D_inv (M, N0, D, NE0, UE, Q, W) xs
@@ -1178,6 +1180,7 @@ definition cdcl_twl_full_restart_wl_D_GC_prog_post :: \<open>'v twl_st_wl \<Righ
 
 definition cdcl_twl_full_restart_wl_D_GC_prog where
 \<open>cdcl_twl_full_restart_wl_D_GC_prog S = do {
+    S \<leftarrow> cdcl_twl_local_restart_wl_D_spec S;
     T \<leftarrow> remove_one_annot_true_clause_imp_wl_D S;
     ASSERT(mark_to_delete_clauses_wl_D_pre T);
     U \<leftarrow> mark_to_delete_clauses_wl_D T;
