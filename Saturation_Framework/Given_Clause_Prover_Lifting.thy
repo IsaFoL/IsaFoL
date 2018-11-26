@@ -294,8 +294,8 @@ proof -
     len_CAs: \<open>length CAs = n\<close> and
     \<open>length Cs = n\<close> and
     len_AAs: \<open>length AAs = n\<close> and
-    \<open>length As = n\<close> and
-    \<open>n \<noteq> 0\<close> and
+    len_As: \<open>length As = n\<close> and
+    not_null: \<open>n \<noteq> 0\<close> and
     \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> and
     \<open>\<forall>i<n. AAs ! i \<noteq> {#}\<close> and
     \<open>\<forall>i<n. \<forall>A\<in>#AAs ! i. A = As ! i\<close> and
@@ -304,16 +304,24 @@ proof -
     \<open>\<forall>i<n. S (CAs ! i) = {#}\<close>
  using res unfolding gr.ord_resolve.simps by auto
   have x_in_equiv: \<open>x \<in># mset CAs' \<Longrightarrow> x \<in># mset CAs\<close> using mset_CAs by simp
-  have length_CAs': \<open>length CAs' = n\<close> using len_CAs mset_CAs using mset_eq_length by fastforce
-  then have \<open>0 \<le> i \<Longrightarrow> i < n \<Longrightarrow> \<exists>j. 0 \<le> j \<and> j < n \<and> CAs'!i = CAs!j\<close>
-    using len_CAs x_in_equiv by (metis in_mset_conv_nth le0 mset_CAs)
-  then obtain map_i where \<open>\<forall>i. 0 \<le> i \<Longrightarrow> i < n \<Longrightarrow> CAs'!i = CAs!(map_i i)\<close> by fast
-  then obtain AAs' where \<open>length AAs' = n\<close> \<open>\<forall>i. 0 \<le> i \<Longrightarrow> i < n \<Longrightarrow> AAs'!i = AAs!(map_i i)\<close>
-    using len_AAs sorry
+  have len_CAs': \<open>length CAs' = n\<close> using len_CAs mset_CAs using mset_eq_length by fastforce
+  then have exist_map: \<open>i < n \<Longrightarrow> \<exists>j. j < n \<and> CAs'!i = CAs!j\<close> for i
+    using len_CAs x_in_equiv by (metis in_mset_conv_nth mset_CAs)
+  obtain map_i where map_i_def: \<open>i < n \<Longrightarrow> CAs'!i = CAs!(map_i i)\<close> and len_map_i: \<open>i < n \<Longrightarrow> (map_i i) < n\<close> for i
+    apply (rule that[of \<open>\<lambda>i. SOME j. j < n \<and> CAs'!i = CAs!j\<close>])
+    using exist_map someI[of \<open>\<lambda>j. j < n \<and> CAs'!i = CAs!j\<close> for i] by blast+
+  obtain AAs' where len_AAs': \<open>length AAs' = n\<close> and AAs'_def: \<open>i < n \<Longrightarrow> AAs'!i = AAs!(map_i i)\<close> for i
+    apply (rule that[of \<open>map (\<lambda>i. AAs!(map_i i)) [0..<n]\<close>])
+    by (auto simp: len_AAs)
+  then have \<open>mset AAs' = mset AAs\<close> using map_i_def mset_CAs len_CAs sorry
+  obtain As' where \<open>length As' = n\<close> \<open>i < n \<Longrightarrow> As'!i = As!(map_i i)\<close> for i  
+    apply (rule that[of \<open>map (\<lambda>i. As!(map_i i)) [0..<n]\<close>])
+    by (auto simp: len_As)
+  show ?thesis 
     
-  show ?thesis sorry
 oops
   
+term bij_on
 
 lemma
   assumes
