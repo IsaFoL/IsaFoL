@@ -279,6 +279,42 @@ lemma \<open>gr.eligible As D \<Longrightarrow> mset As = mset As' \<Longrightar
   by (cases As; cases As')
     (auto simp: add_mset_eq_add_mset eq_commute[of "add_mset _ _" "mset _"] image_mset_remove1_mset_if)
 
+find_theorems "_ \<in> set (drop _ _)"
+
+(* taken from AFP: Automatic_Refinement/Lib/Misc.thy *)
+lemma in_set_drop_conv_nth: "x\<in>set (drop n l) \<longleftrightarrow> (\<exists>i. n\<le>i \<and> i<length l \<and> x = l!i)"
+  apply (clarsimp simp: in_set_conv_nth)
+  apply safe
+  apply simp
+  apply (metis le_add2 less_diff_conv add.commute)
+  apply (rule_tac x="i-n" in exI)
+  apply auto []
+  done
+
+(* taken from Mathias Fleury's isafol/Weidenbach_Book/WB_List_More.thy *)
+lemma take_map_nth_alt_def: \<open>take n xs = map ((!) xs) [0..<min n (length xs)]\<close>
+proof (induction xs rule: rev_induct)
+  case Nil
+  then show ?case by auto
+next
+  case (snoc x xs) note IH = this
+  show ?case
+  proof (cases \<open>n < length (xs @ [x])\<close>)
+    case True
+    then show ?thesis
+      using IH by (auto simp: min_def nth_append)
+  next
+    case False
+    have [simp]:
+      \<open>map (\<lambda>a. if a < length xs then xs ! a else [x] ! (a - length xs)) [0..<length xs] =
+       map (\<lambda>a. xs ! a) [0..<length xs]\<close> for xs and x :: 'b
+      by (rule map_cong) auto
+    show ?thesis
+      using IH False by (auto simp: nth_append min_def)
+  qed
+qed
+
+
 lemma
   assumes
     res: \<open>gr.ord_resolve CAs D AAs As E\<close> and
@@ -305,6 +341,36 @@ proof -
  using res unfolding gr.ord_resolve.simps by auto
   have x_in_equiv: \<open>x \<in># mset CAs' \<Longrightarrow> x \<in># mset CAs\<close> using mset_CAs by simp
   have len_CAs': \<open>length CAs' = n\<close> using len_CAs mset_CAs using mset_eq_length by fastforce
+  have exist_map: \<open>\<exists>map_i. (\<forall>i. i < n \<longrightarrow> CAs'!i = CAs!(map_i i)) \<and> inj_on map_i {0..<n}\<close> if \<open>n \<le> length CAs'\<close>
+    using that
+  proof (induct n)
+    case 0
+    then show ?case by auto
+  next
+    case (Suc m) note _ = this(1) and small_enough = this(2)
+    then obtain map_i where [simp]:\<open>(\<And>i. i < m \<Longrightarrow> CAs'!i = CAs!(map_i i))\<close> and inj: \<open>inj_on map_i {0..<m}\<close> by force
+    define j where \<open>j \<equiv> SOME i. CAs'!m = CAs!i \<and> i \<notin> map_i ` {0..<m}\<close>
+    have cut_n_m: \<open>mset_set {0..<n} = mset_set (map_i ` {0..<m}) + (mset_set {0..<n} - mset_set (map_i ` {0..<m}))\<close> sorry
+    have dist: \<open>distinct_mset (mset_set {0..<n})\<close> (* using distinct_mset_mset_set recup chez Mathias *) sorry
+    have \<open>CAs'!m \<in># mset CAs' - mset (take m CAs')\<close>
+      apply (subst(2) append_take_drop_id[symmetric,of _ m])
+      apply (subst mset_append)
+      by (use small_enough in \<open>auto simp: in_set_drop_conv_nth\<close>)
+    also have \<open>mset CAs' - mset (take m CAs') = mset CAs - mset (map (\<lambda>i. CAs!(map_i i)) [0..<m])\<close>
+      apply (subst map_cong[OF refl, of _ _ "\<lambda>i. CAs'!i"])
+      using small_enough by (auto simp: min_def mset_CAs take_map_nth_alt_def)
+    finally have \<open>\<exists>i. CAs'!m = CAs!i \<and> i \<notin> map_i ` {0..<m}\<close>
+      apply (subst (asm)(2) map_nth[symmetric])
+      unfolding mset_map mset_upt len_CAs apply (subst (asm) cut_n_m)
+      using dist by (auto simp: image_mset_mset_set[symmetric] inj dest!: distinct_mem_diff_mset) 
+    then have \<open>CAs'!m = CAs!j \<and> j \<notin> map_i ` {0..<m}\<close> sorry
+      (*prove props on j *)
+    then show ?case
+      apply -
+      apply (rule exI[of _ \<open>map_i (m:=j)\<close>])
+      using inj apply (auto simp flip: fun_upd_def)
+qed
+ oops
   then have exist_map: \<open>i < n \<Longrightarrow> \<exists>j. j < n \<and> CAs'!i = CAs!j\<close> for i
     using len_CAs x_in_equiv by (metis in_mset_conv_nth mset_CAs)
   obtain map_i where map_i_def: \<open>i < n \<Longrightarrow> CAs'!i = CAs!(map_i i)\<close> and len_map_i: \<open>i < n \<Longrightarrow> (map_i i) < n\<close> for i
