@@ -314,6 +314,42 @@ next
   qed
 qed
 
+(* taken from Mathias Fleury's isafol/Weidenbach_Book/WB_List_More.thy *)
+lemma inj_on_image_mset_eq_iff:
+  assumes inj: \<open>inj_on f (set_mset (M + M'))\<close>
+  shows \<open>image_mset f M' = image_mset f M \<longleftrightarrow> M' = M\<close> (is \<open>?A = ?B\<close>)
+proof
+  assume ?B
+  then show ?A by auto
+next
+  assume ?A
+  then show ?B
+    using inj
+  proof(induction M arbitrary: M')
+    case empty
+    then show ?case by auto
+  next
+    case (add x M) note IH = this(1) and H = this(2) and inj = this(3)
+
+    obtain M1 x' where
+      M': \<open>M' = add_mset x' M1\<close> and
+      f_xx': \<open>f x' = f x\<close> and
+      M1_M: \<open>image_mset f M1 = image_mset f M\<close>
+      using H by (auto dest!: msed_map_invR)
+    moreover have \<open>M1 = M\<close>
+      apply (rule IH[OF M1_M])
+      using inj by (auto simp: M')
+    moreover have \<open>x = x'\<close>
+      using inj f_xx' by (auto simp: M')
+    ultimately show ?case by fast
+  qed
+qed
+
+(* Move to Multiset_More.thy *)
+lemma in_distinct_mset_diff_iff:
+  \<open>distinct_mset M \<Longrightarrow>  x \<in># M - N \<longleftrightarrow> x \<notin># N \<and> x \<in># M\<close>
+  using distinct_mem_diff_mset[of M x N]
+  by (auto dest: in_diffD multi_member_split)
 
 lemma
   assumes
@@ -339,19 +375,30 @@ proof -
     \<open>\<forall>i<n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)\<close> and
     \<open>\<forall>i<n. S (CAs ! i) = {#}\<close>
  using res unfolding gr.ord_resolve.simps by auto
-  have x_in_equiv: \<open>x \<in># mset CAs' \<Longrightarrow> x \<in># mset CAs\<close> using mset_CAs by simp
+  have x_in_equiv: \<open>x \<in># mset CAs' \<Longrightarrow> x \<in># mset CAs\<close> for x using mset_CAs by simp
   have len_CAs': \<open>length CAs' = n\<close> using len_CAs mset_CAs using mset_eq_length by fastforce
-  have exist_map: \<open>\<exists>map_i. (\<forall>i. i < n \<longrightarrow> CAs'!i = CAs!(map_i i)) \<and> inj_on map_i {0..<n}\<close> if \<open>n \<le> length CAs'\<close>
+  have dist: \<open>distinct_mset (mset_set {0..<n})\<close> for n :: nat
+    apply (subst atLeastLessThan_upt, subst mset_set_set)
+     apply auto[]
+    apply (subst distinct_mset_mset_distinct)
+    apply auto
+    done
+  have exist_map: \<open>\<exists>map_i. (\<forall>i. i < n \<longrightarrow> CAs'!i = CAs!(map_i i)) \<and> inj_on map_i {0..<n} \<and>
+          map_i ` {0..<n} \<subseteq> {0..<length CAs'}\<close> if \<open>n \<le> length CAs'\<close>
     using that
   proof (induct n)
     case 0
     then show ?case by auto
   next
     case (Suc m) note _ = this(1) and small_enough = this(2)
-    then obtain map_i where [simp]:\<open>(\<And>i. i < m \<Longrightarrow> CAs'!i = CAs!(map_i i))\<close> and inj: \<open>inj_on map_i {0..<m}\<close> by force
-    define j where \<open>j \<equiv> SOME i. CAs'!m = CAs!i \<and> i \<notin> map_i ` {0..<m}\<close>
-    have cut_n_m: \<open>mset_set {0..<n} = mset_set (map_i ` {0..<m}) + (mset_set {0..<n} - mset_set (map_i ` {0..<m}))\<close> sorry
-    have dist: \<open>distinct_mset (mset_set {0..<n})\<close> (* using distinct_mset_mset_set recup chez Mathias *) sorry
+    then obtain map_i where [simp]:\<open>(\<And>i. i < m \<Longrightarrow> CAs'!i = CAs!(map_i i))\<close> and
+        inj: \<open>inj_on map_i {0..<m}\<close> and
+        im_incl: \<open>map_i ` {0..<m} \<subseteq> {0..<n}\<close> 
+       by (force simp: len_CAs')
+    define j where \<open>j \<equiv> SOME i. i < length CAs' \<and> CAs'!m = CAs!i \<and> i \<notin> map_i ` {0..<m}\<close>
+    have cut_n_m: \<open>mset_set {0..<n} = mset_set (map_i ` {0..<m}) + (mset_set {0..<n} - mset_set (map_i ` {0..<m}))\<close>
+      by (subst subset_mset.add_diff_inverse)
+       (use im_incl in \<open>auto simp: image_iff\<close>)
     have \<open>CAs'!m \<in># mset CAs' - mset (take m CAs')\<close>
       apply (subst(2) append_take_drop_id[symmetric,of _ m])
       apply (subst mset_append)
@@ -359,27 +406,44 @@ proof -
     also have \<open>mset CAs' - mset (take m CAs') = mset CAs - mset (map (\<lambda>i. CAs!(map_i i)) [0..<m])\<close>
       apply (subst map_cong[OF refl, of _ _ "\<lambda>i. CAs'!i"])
       using small_enough by (auto simp: min_def mset_CAs take_map_nth_alt_def)
-    finally have \<open>\<exists>i. CAs'!m = CAs!i \<and> i \<notin> map_i ` {0..<m}\<close>
+    finally have \<open>\<exists>i. i < length CAs' \<and> CAs'!m = CAs!i \<and> i \<notin> map_i ` {0..<m}\<close>
       apply (subst (asm)(2) map_nth[symmetric])
       unfolding mset_map mset_upt len_CAs apply (subst (asm) cut_n_m)
-      using dist by (auto simp: image_mset_mset_set[symmetric] inj dest!: distinct_mem_diff_mset) 
-    then have \<open>CAs'!m = CAs!j \<and> j \<notin> map_i ` {0..<m}\<close> sorry
-      (*prove props on j *)
-    then show ?case
+      using dist by (auto simp: image_mset_mset_set[symmetric] inj in_distinct_mset_diff_iff dist
+          len_CAs'
+        dest!: distinct_mem_diff_mset) 
+    then have \<open>CAs'!m = CAs!j\<close> and j_notin: \<open>j \<notin> map_i ` {0..<m}\<close> and \<open>j < length CAs'\<close>
+      using someI[of \<open>\<lambda>i. i < length CAs' \<and> CAs'!m = CAs!i \<and> i \<notin> map_i ` {0..<m}\<close>]
+      unfolding j_def[symmetric]
+      by blast+
+    moreover have \<open>inj_on (map_i(m := j)) {0..<Suc m}\<close>
+      unfolding inj_on_def
+      apply (intro ballI)
+      subgoal for x y
+        using inj_onD[OF inj, of x y] j_notin by auto
+      done
+    ultimately show ?case
       apply -
       apply (rule exI[of _ \<open>map_i (m:=j)\<close>])
-      using inj apply (auto simp flip: fun_upd_def)
-qed
- oops
-  then have exist_map: \<open>i < n \<Longrightarrow> \<exists>j. j < n \<and> CAs'!i = CAs!j\<close> for i
-    using len_CAs x_in_equiv by (metis in_mset_conv_nth mset_CAs)
-  obtain map_i where map_i_def: \<open>i < n \<Longrightarrow> CAs'!i = CAs!(map_i i)\<close> and len_map_i: \<open>i < n \<Longrightarrow> (map_i i) < n\<close> for i
-    apply (rule that[of \<open>\<lambda>i. SOME j. j < n \<and> CAs'!i = CAs!j\<close>])
-    using exist_map someI[of \<open>\<lambda>j. j < n \<and> CAs'!i = CAs!j\<close> for i] by blast+
+      using inj im_incl by (auto simp flip: fun_upd_def simp: len_CAs' less_Suc_eq image_subset_iff)
+  qed
+  then obtain map_i where map_i_def: \<open>i < n \<Longrightarrow> CAs'!i = CAs!(map_i i)\<close> and len_map_i: \<open>i < n \<Longrightarrow> (map_i i) < n\<close> and
+     inj: \<open>inj_on map_i {0..<n}\<close> for i
+    unfolding len_CAs' by fastforce
+  have eq: \<open>mset_set {0..<length AAs} = image_mset map_i (mset_set {0..<length AAs})\<close>
+    apply (rule distinct_set_mset_eq)
+      apply (use inj len_map_i in \<open>auto simp: len_AAs len_CAs len_CAs' dist distinct_image_mset_inj\<close>)
+    sorry
+  
   obtain AAs' where len_AAs': \<open>length AAs' = n\<close> and AAs'_def: \<open>i < n \<Longrightarrow> AAs'!i = AAs!(map_i i)\<close> for i
     apply (rule that[of \<open>map (\<lambda>i. AAs!(map_i i)) [0..<n]\<close>])
     by (auto simp: len_AAs)
-  then have \<open>mset AAs' = mset AAs\<close> using map_i_def mset_CAs len_CAs sorry
+  then have \<open>mset AAs' = mset AAs\<close> using map_i_def mset_CAs len_CAs
+    apply (subst map_nth[symmetric], subst (5) map_nth[symmetric])
+    unfolding mset_map mset_upt
+    apply (subst eq)
+    apply (auto intro!: image_mset_cong simp: len_AAs len_AAs' len_CAs len_CAs')
+    done
   obtain As' where \<open>length As' = n\<close> \<open>i < n \<Longrightarrow> As'!i = As!(map_i i)\<close> for i  
     apply (rule that[of \<open>map (\<lambda>i. As!(map_i i)) [0..<n]\<close>])
     by (auto simp: len_As)
