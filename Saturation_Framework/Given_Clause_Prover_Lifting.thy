@@ -576,6 +576,7 @@ proof (intro disj_imp[THEN iffD2] impI)
       len_AAs_eq len_As3 len_As_eq length_greater_0_conv linorder_not_le nth_Cons_0 set_mset_empty)
     then have Cs_eq: \<open>\<forall>i \<in> {1..<n}. Cs3!i = Cs4!i\<close>
       using CAs_i3 CAs_i4 by fastforce
+    then have \<open>\<Union># mset Cs3 - Cs3!0 = \<Union># mset Cs4 - Cs4!0\<close> using Cs_eq len_Cs3 len_Cs4 sorry
     then have \<open>Cs3!0 + D3 = Cs4!0 + D4\<close> using concl_i_is concl_i'_is concl_eq len_Cs3 len_Cs4
     (* trouver un lemme qui supprime des éléments/sous-ensemble égaux de multisets egaux*) sorry
   show ?B
