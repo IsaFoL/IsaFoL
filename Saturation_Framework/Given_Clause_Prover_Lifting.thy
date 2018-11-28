@@ -509,79 +509,50 @@ proof (intro disj_imp[THEN iffD2] impI)
   then have len_As4: \<open>n = length As4\<close> using A4_is unfolding gr.ord_resolve.simps by force
   then have len_As3: \<open>n = length As3\<close> using len_As_eq by simp
   obtain D3 Cs3 where
-    \<open>main_prem_of \<iota> = D3 + negs (mset As3)\<close> and
+    main3: \<open>main_prem_of \<iota> = D3 + negs (mset As3)\<close> and
     concl_i_is: \<open>concl_of \<iota> = \<Union># mset Cs3 + D3\<close> and
     len_Cs3: \<open>length Cs3 = n\<close> and
     CAs_i3: \<open>\<forall>i<n. (main_prem_of \<iota>' # CAs) ! i = Cs3 ! i + poss (AAs3 ! i)\<close> and
-    \<open>\<forall>i<n. AAs3 ! i \<noteq> {#}\<close> and
+    AAs3_nempty: \<open>\<forall>i<n. AAs3 ! i \<noteq> {#}\<close> and
     AAs3_i: \<open>\<forall>i<n. \<forall>A\<in>#AAs3 ! i. A = As3 ! i\<close> and
-    \<open>gr.eligible As3 (D3 + negs (mset As3))\<close> and
+    eligible3: \<open>gr.eligible As3 (D3 + negs (mset As3))\<close> and
     max3: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As3 ! i) (Cs3 ! i)\<close> and
-    \<open>\<forall>i<n. S (Cs3 ! i + poss (AAs3 ! i)) = {#}\<close>
+    sel_empty3: \<open>\<forall>i<n. S (Cs3 ! i + poss (AAs3 ! i)) = {#}\<close>
     using A3_is n_is unfolding gr.ord_resolve.simps by auto
   obtain D4 Cs4 where
-    \<open>main_prem_of \<iota>' = D4 + negs (mset As4)\<close> and
+    main4: \<open>main_prem_of \<iota>' = D4 + negs (mset As4)\<close> and
     concl_i'_is: \<open>concl_of \<iota>' = \<Union># mset Cs4 + D4\<close> and
     len_Cs4: \<open>length Cs4 = n\<close> and
     CAs_i4: \<open>\<forall>i<n. (main_prem_of \<iota> # CAs) ! i = Cs4 ! i + poss (AAs4 ! i)\<close> and
-    \<open>\<forall>i<n. AAs4 ! i \<noteq> {#}\<close> and
+    AAs4_nempty: \<open>\<forall>i<n. AAs4 ! i \<noteq> {#}\<close> and
     AAs4_i: \<open>\<forall>i<n. \<forall>A\<in>#AAs4 ! i. A = As4 ! i\<close> and
-    \<open>gr.eligible As4 (D4 + negs (mset As4))\<close> and
+    eligible4: \<open>gr.eligible As4 (D4 + negs (mset As4))\<close> and
     max4: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As4 ! i) (Cs4 ! i)\<close> and
-    \<open>\<forall>i<n. S (Cs4 ! i + poss (AAs4 ! i)) = {#}\<close>
+    sel_empty4: \<open>\<forall>i<n. S (Cs4 ! i + poss (AAs4 ! i)) = {#}\<close>
     using A4_is len_AAs4 unfolding gr.ord_resolve.simps by auto
   have As_eq: \<open>\<forall>i \<in> {1..<n}. As3!i = As4!i\<close>
-    using CAs_i3 CAs_i4 AAs3_i AAs4_i max3 max4 unfolding gr.strictly_maximal_wrt_def
-    by (metis
-      \<open>\<And>thesis. (\<And>D3 Cs3. \<lbrakk>main_prem_of \<iota> = D3 + negs (mset As3);
-        Inference_System.inference.concl_of \<iota> = \<Union>#mset Cs3 + D3;
-        length Cs3 = n;
-        \<forall>i<n. (main_prem_of \<iota>' # CAs) ! i = Cs3 ! i + poss (AAs3 ! i);
-        \<forall>i<n. AAs3 ! i \<noteq> {#};
-        \<forall>i<n. \<forall>A\<in>#AAs3 ! i. A = As3 ! i;
-        gr.eligible As3 (D3 + negs (mset As3));
-        \<forall>i<n. gr.strictly_maximal_wrt (As3 ! i) (Cs3 ! i);
-        \<forall>i<n. S (Cs3 ! i + poss (AAs3 ! i)) = {#}\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
-      \<open>\<And>thesis. (\<And>D4 Cs4. \<lbrakk>main_prem_of \<iota>' = D4 + negs (mset As4);
-        Inference_System.inference.concl_of \<iota>' = \<Union>#mset Cs4 + D4;
-        length Cs4 = n;
-        \<forall>i<n. (main_prem_of \<iota> # CAs) ! i = Cs4 ! i + poss (AAs4 ! i);
-        \<forall>i<n. AAs4 ! i \<noteq> {#}; \<forall>i<n. \<forall>A\<in>#AAs4 ! i. A = As4 ! i;
-        gr.eligible As4 (D4 + negs (mset As4));
-        \<forall>i<n. gr.strictly_maximal_wrt (As4 ! i) (Cs4 ! i);
-        \<forall>i<n. S (Cs4 ! i + poss (AAs4 ! i)) = {#}\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
-      atLeastLessThan_iff empty_iff gr.eligible.cases image_mset_is_empty_iff len_As3 len_As_eq
+    using main3 eligible3 sel_empty4 CAs_i3 CAs_i4 AAs3_i AAs4_i max3 max4 unfolding gr.strictly_maximal_wrt_def
+    by (metis atLeastLessThan_iff empty_iff gr.eligible.cases image_mset_is_empty_iff len_As3 len_As_eq
       length_greater_0_conv linorder_not_le nth_Cons_0 nth_mem_mset set_mset_empty)
   then have AAs_eq: \<open>\<forall>i \<in> {1..<n}. AAs3!i = AAs4!i\<close>
-    using CAs_i3 CAs_i4 AAs3_i AAs4_i max3 max4 unfolding gr.strictly_maximal_wrt_def
-    by (metis
-      \<open>\<And>thesis. (\<And>D3 Cs3. \<lbrakk>main_prem_of \<iota> = D3 + negs (mset As3);
-        Inference_System.inference.concl_of \<iota> = \<Union>#mset Cs3 + D3;
-        length Cs3 = n;
-        \<forall>i<n. (main_prem_of \<iota>' # CAs) ! i = Cs3 ! i + poss (AAs3 ! i);
-        \<forall>i<n. AAs3 ! i \<noteq> {#};
-        \<forall>i<n. \<forall>A\<in>#AAs3 ! i. A = As3 ! i;
-        gr.eligible As3 (D3 + negs (mset As3));
-        \<forall>i<n. gr.strictly_maximal_wrt (As3 ! i) (Cs3 ! i);
-        \<forall>i<n. S (Cs3 ! i + poss (AAs3 ! i)) = {#}\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
-      \<open>\<And>thesis. (\<And>D4 Cs4. \<lbrakk>main_prem_of \<iota>' = D4 + negs (mset As4);
-        Inference_System.inference.concl_of \<iota>' = \<Union>#mset Cs4 + D4;
-        length Cs4 = n;
-        \<forall>i<n. (main_prem_of \<iota> # CAs) ! i = Cs4 ! i + poss (AAs4 ! i);
-        \<forall>i<n. AAs4 ! i \<noteq> {#}; \<forall>i<n. \<forall>A\<in>#AAs4 ! i. A = As4 ! i;
-        gr.eligible As4 (D4 + negs (mset As4));
-        \<forall>i<n. gr.strictly_maximal_wrt (As4 ! i) (Cs4 ! i);
-        \<forall>i<n. S (Cs4 ! i + poss (AAs4 ! i)) = {#}\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
-      atLeastLessThan_iff empty_iff gr.eligible.cases image_mset_is_empty_iff in_mset_conv_nth len_AAs4
+    using main3 eligible3 sel_empty4 CAs_i3 CAs_i4 AAs3_i AAs4_i max3 max4 unfolding gr.strictly_maximal_wrt_def
+    by (metis atLeastLessThan_iff empty_iff gr.eligible.cases image_mset_is_empty_iff in_mset_conv_nth len_AAs4
       len_AAs_eq len_As3 len_As_eq length_greater_0_conv linorder_not_le nth_Cons_0 set_mset_empty)
     then have Cs_eq: \<open>\<forall>i \<in> {1..<n}. Cs3!i = Cs4!i\<close>
       using CAs_i3 CAs_i4 by fastforce
-    then have \<open>\<Union># mset Cs3 - Cs3!0 = \<Union># mset Cs4 - Cs4!0\<close> using Cs_eq len_Cs3 len_Cs4 sorry
+    then have \<open>\<Union># mset Cs3 - Cs3!0 = \<Union># mset Cs4 - Cs4!0\<close> using Cs_eq len_Cs3 len_Cs4
+      apply (cases Cs3; cases Cs4)
+      by (force intro!: arg_cong[of _ _ sum_list] list_eq_iff_nth_eq[THEN iffD2])+
     then have \<open>Cs3!0 + D3 = Cs4!0 + D4\<close> using concl_i_is concl_i'_is concl_eq len_Cs3 len_Cs4
-    (* trouver un lemme qui supprime des éléments/sous-ensemble égaux de multisets egaux*) sorry
+      apply (cases Cs3; cases Cs4)
+      by force+
   show ?B
   sorry
 qed
+
+
+  find_theorems nth "_ = _" "_!_ = _!_"
+
 term list_mset
 term gr.ord_resolve
  (* fix \<iota> \<iota>'
