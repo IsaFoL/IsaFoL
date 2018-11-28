@@ -351,7 +351,7 @@ lemma in_distinct_mset_diff_iff:
   using distinct_mem_diff_mset[of M x N]
   by (auto dest: in_diffD multi_member_split)
 
-lemma
+lemma shuffle_ord_resolve_side_prems:
   assumes
     res: \<open>gr.ord_resolve CAs D AAs As E\<close> and
     mset_CAs: \<open>mset CAs = mset CAs'\<close>
@@ -361,19 +361,19 @@ lemma
   using assms
 proof -
   obtain Cs Da n where
-    \<open>D = Da + negs (mset As)\<close> and
-    \<open>E = \<Union>#mset Cs + Da\<close> and
+    D_eq: \<open>D = Da + negs (mset As)\<close> and
+    E_eq: \<open>E = \<Union>#mset Cs + Da\<close> and
     len_CAs: \<open>length CAs = n\<close> and
-    \<open>length Cs = n\<close> and
+    len_Cs: \<open>length Cs = n\<close> and
     len_AAs: \<open>length AAs = n\<close> and
     len_As: \<open>length As = n\<close> and
     not_null: \<open>n \<noteq> 0\<close> and
-    \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> and
-    \<open>\<forall>i<n. AAs ! i \<noteq> {#}\<close> and
-    \<open>\<forall>i<n. \<forall>A\<in>#AAs ! i. A = As ! i\<close> and
-    \<open>gr.eligible As (Da + negs (mset As))\<close> and
-    \<open>\<forall>i<n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)\<close> and
-    \<open>\<forall>i<n. S (CAs ! i) = {#}\<close>
+    CAs_eq: \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> and
+    AAs_nempty: \<open>\<forall>i<n. AAs ! i \<noteq> {#}\<close> and
+    in_AAs: \<open>\<forall>i<n. \<forall>A\<in>#AAs ! i. A = As ! i\<close> and
+    eligible: \<open>gr.eligible As (Da + negs (mset As))\<close> and
+    max: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)\<close> and
+    S_empty: \<open>\<forall>i<n. S (CAs ! i) = {#}\<close>
  using res unfolding gr.ord_resolve.simps by auto
   have x_in_equiv: \<open>x \<in># mset CAs' \<Longrightarrow> x \<in># mset CAs\<close> for x using mset_CAs by simp
   have len_CAs': \<open>length CAs' = n\<close> using len_CAs mset_CAs using mset_eq_length by fastforce
@@ -430,26 +430,50 @@ proof -
   then obtain map_i where map_i_def: \<open>i < n \<Longrightarrow> CAs'!i = CAs!(map_i i)\<close> and len_map_i: \<open>i < n \<Longrightarrow> (map_i i) < n\<close> and
      inj: \<open>inj_on map_i {0..<n}\<close> for i
     unfolding len_CAs' by fastforce
+  have [simp]: \<open>map_i ` {0..<n} = {0..<n}\<close>
+    apply (rule endo_inj_surj) using len_map_i inj by auto
   have eq: \<open>mset_set {0..<length AAs} = image_mset map_i (mset_set {0..<length AAs})\<close>
     apply (rule distinct_set_mset_eq)
-      apply (use inj len_map_i in \<open>auto simp: len_AAs len_CAs len_CAs' dist distinct_image_mset_inj\<close>)
-    sorry
-  
+    by (use inj len_map_i in \<open>auto simp: len_AAs len_CAs len_CAs' dist distinct_image_mset_inj\<close>)
   obtain AAs' where len_AAs': \<open>length AAs' = n\<close> and AAs'_def: \<open>i < n \<Longrightarrow> AAs'!i = AAs!(map_i i)\<close> for i
     apply (rule that[of \<open>map (\<lambda>i. AAs!(map_i i)) [0..<n]\<close>])
     by (auto simp: len_AAs)
-  then have \<open>mset AAs' = mset AAs\<close> using map_i_def mset_CAs len_CAs
+  then have [simp]: \<open>mset AAs' = mset AAs\<close> using map_i_def mset_CAs len_CAs
     apply (subst map_nth[symmetric], subst (5) map_nth[symmetric])
     unfolding mset_map mset_upt
     apply (subst eq)
     apply (auto intro!: image_mset_cong simp: len_AAs len_AAs' len_CAs len_CAs')
     done
-  obtain As' where \<open>length As' = n\<close> \<open>i < n \<Longrightarrow> As'!i = As!(map_i i)\<close> for i  
+  obtain As' where len_As': \<open>length As' = n\<close> and As'_def: \<open>i < n \<Longrightarrow> As'!i = As!(map_i i)\<close> for i  
     apply (rule that[of \<open>map (\<lambda>i. As!(map_i i)) [0..<n]\<close>])
     by (auto simp: len_As)
-  show ?thesis 
-    
-oops
+  then have [simp]: \<open>mset As' = mset As\<close> using map_i_def mset_CAs len_CAs
+    apply (subst map_nth[symmetric], subst (5) map_nth[symmetric])
+    unfolding mset_map mset_upt len_AAs len_As
+    apply (subst eq[unfolded len_AAs])
+    apply (auto intro!: image_mset_cong simp: len_AAs len_AAs' len_CAs len_CAs')
+    done
+  obtain Cs' where len_Cs': \<open>length Cs' = n\<close> and Cs'_def: \<open>i < n \<Longrightarrow> Cs'!i = Cs!(map_i i)\<close> for i  
+    apply (rule that[of \<open>map (\<lambda>i. Cs!(map_i i)) [0..<n]\<close>])
+    by (auto simp: len_Cs)
+  then have [simp]: \<open>mset Cs' = mset Cs\<close> using map_i_def mset_CAs len_CAs
+    apply (subst map_nth[symmetric], subst (5) map_nth[symmetric])
+    unfolding mset_map mset_upt len_AAs len_Cs
+    apply (subst eq[unfolded len_AAs])
+    apply (auto intro!: image_mset_cong simp: len_AAs len_Cs' len_CAs len_Cs)
+    done
+  have eligible': \<open>gr.eligible As' (Da + negs (mset As))\<close>
+    using len_map_i As'_def eligible unfolding gr.eligible.simps by (auto simp: len_As len_As')
+  have \<open>gr.ord_resolve CAs' D AAs' As' E\<close>
+    apply (unfold gr.ord_resolve.simps, rule exI[of _ CAs'], rule exI[of _ n], rule exI[of _ Cs'],
+      rule exI[of _ AAs'], rule exI[of _ As'], rule exI[of _ Da])
+    using CAs_eq AAs_nempty in_AAs eligible' max S_empty As'_def AAs'_def map_i_def len_map_i Cs'_def
+    by (auto simp: len_CAs' len_AAs' len_As' len_Cs not_null D_eq E_eq len_Cs')
+  then show ?thesis 
+    apply -
+    apply (rule exI[of _ AAs'], rule exI[of _ As'])
+    by (auto)
+qed
   
 term bij_on
 
