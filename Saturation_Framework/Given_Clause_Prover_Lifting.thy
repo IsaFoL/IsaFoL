@@ -279,8 +279,6 @@ lemma \<open>gr.eligible As D \<Longrightarrow> mset As = mset As' \<Longrightar
   by (cases As; cases As')
     (auto simp: add_mset_eq_add_mset eq_commute[of "add_mset _ _" "mset _"] image_mset_remove1_mset_if)
 
-find_theorems "_ \<in> set (drop _ _)"
-
 (* taken from AFP: Automatic_Refinement/Lib/Misc.thy *)
 lemma in_set_drop_conv_nth: "x\<in>set (drop n l) \<longleftrightarrow> (\<exists>i. n\<le>i \<and> i<length l \<and> x = l!i)"
   apply (clarsimp simp: in_set_conv_nth)
@@ -474,7 +472,11 @@ proof -
     apply (rule exI[of _ AAs'], rule exI[of _ As'])
     by (auto)
 qed
-  
+
+lemma negs_eq: \<open>negs A = negs B \<Longrightarrow> A = B\<close> by (metis literal.inject(2) multiset.inj_map_strong)
+
+lemma shift_indices: \<open>(\<forall>i\<in>{Suc 0..<Suc (length list)}. list ! (i - Suc 0) = lista ! (i - Suc 0)) \<Longrightarrow> \<forall>i\<in>{0..<length list}. list!i  = lista!i\<close> by force
+
 lemma main_prem_eq_or_tauto:
   assumes
     i_in: \<open>\<iota> \<in> gr.ord_\<Gamma>\<close> and
@@ -508,6 +510,7 @@ proof (intro disj_imp[THEN iffD2] impI)
   then have len_AAs4: \<open>n = length AAs4\<close> using len_AAs_eq by simp
   then have len_As4: \<open>n = length As4\<close> using A4_is unfolding gr.ord_resolve.simps by force
   then have len_As3: \<open>n = length As3\<close> using len_As_eq by simp
+  then have n_not_null: \<open>n \<noteq> 0\<close> using A3_is unfolding gr.ord_resolve.simps by force
   obtain D3 Cs3 where
     main3: \<open>main_prem_of \<iota> = D3 + negs (mset As3)\<close> and
     concl_i_is: \<open>concl_of \<iota> = \<Union># mset Cs3 + D3\<close> and
@@ -538,14 +541,21 @@ proof (intro disj_imp[THEN iffD2] impI)
     using main3 eligible3 sel_empty4 CAs_i3 CAs_i4 AAs3_i AAs4_i max3 max4 unfolding gr.strictly_maximal_wrt_def
     by (metis atLeastLessThan_iff empty_iff gr.eligible.cases image_mset_is_empty_iff in_mset_conv_nth len_AAs4
       len_AAs_eq len_As3 len_As_eq length_greater_0_conv linorder_not_le nth_Cons_0 set_mset_empty)
-    then have Cs_eq: \<open>\<forall>i \<in> {1..<n}. Cs3!i = Cs4!i\<close>
-      using CAs_i3 CAs_i4 by fastforce
-    then have \<open>\<Union># mset Cs3 - Cs3!0 = \<Union># mset Cs4 - Cs4!0\<close> using Cs_eq len_Cs3 len_Cs4
-      apply (cases Cs3; cases Cs4)
-      by (force intro!: arg_cong[of _ _ sum_list] list_eq_iff_nth_eq[THEN iffD2])+
-    then have \<open>Cs3!0 + D3 = Cs4!0 + D4\<close> using concl_i_is concl_i'_is concl_eq len_Cs3 len_Cs4
-      apply (cases Cs3; cases Cs4)
-      by force+
+  then have Cs_eq: \<open>\<forall>i \<in> {1..<n}. Cs3!i = Cs4!i\<close>
+    using CAs_i3 CAs_i4 by fastforce
+  then have \<open>\<Union># mset Cs3 - Cs3!0 = \<Union># mset Cs4 - Cs4!0\<close> using Cs_eq len_Cs3 len_Cs4
+    apply (cases Cs3; cases Cs4)
+    by (force intro!: arg_cong[of _ _ sum_list] list_eq_iff_nth_eq[THEN iffD2])+
+  then have \<open>Cs3!0 + D3 = Cs4!0 + D4\<close> using concl_i_is concl_i'_is concl_eq len_Cs3 len_Cs4
+    apply (cases Cs3; cases Cs4)
+    by force+
+  have \<open>negs (mset As3) - negs {# As3!0 #} = negs (mset As4) - negs {# As4!0 #}\<close>
+    apply (cases As3; cases As4)
+    using len_As3 len_As4 n_not_null As_eq negs_eq shift_indices apply auto
+    (* apply (force intro!: list_eq_iff_nth_eq[THEN iffD2])+ *)
+    find_theorems name: iffD2
+  find_theorems name: list_eq_iff_nth_eq
+  find_theorems Suc "_ - _" " _ ! _ "
   show ?B
   sorry
 qed
