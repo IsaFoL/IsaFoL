@@ -570,10 +570,13 @@ proof (intro disj_imp[THEN iffD2] impI)
       apply (cases AAs4)
       using n_not_null len_AAs4 apply blast
       using AAs4_i AAs4_nempty len_AAs4 by fastforce
-    then have pos4: \<open>Pos (As4!0) \<in># D3\<close> using main_i pos_not_in_negs by (metis union_iff)
+    then have \<open>Pos (As4!0) \<in># D3\<close> using main_i pos_not_in_negs by (metis union_iff)
+    then have pos4: \<open>Pos (As4!0) \<in># concl_of \<iota>\<close> using concl_i_is by simp
     have \<open>Neg (As4!0) \<in># negs (mset As4)\<close> using len_As4 n_not_null by auto
-    then have neg4: \<open>Neg (As4!0) \<in># Cs3!0\<close> using neg_not_in_poss main_i' Cs_hd_eq by (metis union_iff)
-    (* have \<open>tl Cs3 = tl Cs4\<close> *)
+    then have \<open>Neg (As4!0) \<in># Cs3!0\<close> using neg_not_in_poss main_i' Cs_hd_eq by (metis union_iff)
+    then have neg4: \<open>Neg (As4!0) \<in># concl_of \<iota>\<close>
+      unfolding concl_i_is apply (cases Cs3)
+      using n_not_null len_Cs3 by auto
     (*   apply (cases Cs3; cases Cs4) *)
     (*   using Cs_eq len_Cs3 len_Cs4 apply (auto intro!:list_eq_iff_nth_eq[THEN iffD2]) *)
     (*   by (meson atLeastLessThan_iff shift_indices zero_order(1)) *)
@@ -582,10 +585,21 @@ proof (intro disj_imp[THEN iffD2] impI)
     (*   using Cs_eq len_Cs3 len_Cs4 apply auto *)
     (*   using Cs_hd_eq by auto *)
     show \<open>?B\<close> using pos4 neg4 concl_i_is (* TODO: find the rule to introduce existential witness *)
-    sorry
-  have neq_imply_B: \<open>\<not> D3 = D4 \<Longrightarrow> ?B\<close> sorry
+      apply (rule_tac x="As4!0" in exI) by auto
+    qed
+  have neq_imply_B: \<open>\<not> D3 = D4 \<Longrightarrow> ?B\<close>
+  proof -
+    assume \<open>\<not> D3 = D4\<close>
+    define D where \<open>D = D3 \<inter># D4\<close>
+    define D3' where \<open>D3' = D3 - D4\<close>
+    define D4' where \<open>D4' = D4 - D3\<close>
+    define C where \<open>C = Cs3!0 \<inter># Cs4!0\<close>
+    have \<open>Cs3!0 = C + D3'\<close>
+      using concl_i_is
+sorry
+    have \<open>Cs4!0 = C + D4'\<close> sorry
    (* apply (force intro!: list_eq_iff_nth_eq[THEN iffD2])+ *)
-    find_theorems name: iffD2
+    find_theorems "_ \<noteq> _" " _ + _ " name: Multiset
   find_theorems name: list_eq_iff_nth_eq
   find_theorems Suc "_ - _" " _ ! _ "
   show ?B using eq_imply_B neq_imply_B 
