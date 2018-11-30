@@ -477,6 +477,9 @@ lemma negs_eq: \<open>negs A = negs B \<Longrightarrow> A = B\<close> by (metis 
 
 lemma shift_indices: \<open>(\<forall>i\<in>{Suc 0..<Suc (length list)}. list ! (i - Suc 0) = lista ! (i - Suc 0)) \<Longrightarrow> \<forall>i\<in>{0..<length list}. list!i  = lista!i\<close> by force
 
+lemma pos_not_in_negs: \<open>Pos x \<in># X \<Longrightarrow> X = Y + negs Z \<Longrightarrow> Pos x \<in># Y\<close> by fastforce
+lemma neg_not_in_poss: \<open>Neg x \<in># X \<Longrightarrow> X = Y + poss Z \<Longrightarrow> Neg x \<in># Y\<close> by fastforce
+
 lemma main_prem_eq_or_tauto:
   assumes
     i_in: \<open>\<iota> \<in> gr.ord_\<Gamma>\<close> and
@@ -546,17 +549,46 @@ proof (intro disj_imp[THEN iffD2] impI)
   then have \<open>\<Union># mset Cs3 - Cs3!0 = \<Union># mset Cs4 - Cs4!0\<close> using Cs_eq len_Cs3 len_Cs4
     apply (cases Cs3; cases Cs4)
     by (force intro!: arg_cong[of _ _ sum_list] list_eq_iff_nth_eq[THEN iffD2])+
-  then have \<open>Cs3!0 + D3 = Cs4!0 + D4\<close> using concl_i_is concl_i'_is concl_eq len_Cs3 len_Cs4
+  then have CsD_eq: \<open>Cs3!0 + D3 = Cs4!0 + D4\<close> using concl_i_is concl_i'_is concl_eq len_Cs3 len_Cs4
     apply (cases Cs3; cases Cs4)
     by force+
-  have \<open>negs (mset As3) - negs {# As3!0 #} = negs (mset As4) - negs {# As4!0 #}\<close>
+  have \<open>tl As3 = tl As4\<close> using len_As3 len_As4 As_eq by (auto simp: nth_tl intro!:list_eq_iff_nth_eq[THEN iffD2])
+  then have \<open>negs (mset As3) - negs {# As3!0 #} = negs (mset As4) - negs {# As4!0 #}\<close>
     apply (cases As3; cases As4)
-    using len_As3 len_As4 n_not_null As_eq negs_eq shift_indices apply auto
-    (* apply (force intro!: list_eq_iff_nth_eq[THEN iffD2])+ *)
+    using len_As3 len_As4 n_not_null As_eq negs_eq by auto
+  then have \<open>negs {#As3!0#} + D3 \<noteq> negs {# As4!0 #} + D4\<close>
+    using contra len_As3 len_As4 unfolding main3 main4 
+    apply (cases As3; cases As4)
+    by auto
+  have eq_imply_B: \<open>D3 = D4 \<Longrightarrow> ?B\<close>
+  proof -
+    assume \<open>D3 = D4\<close>
+    then have Cs_hd_eq: \<open>Cs3!0 = Cs4!0\<close> using CsD_eq by simp
+    have main_i: \<open>D3 + negs (mset As3) = Cs4!0 + poss (AAs4!0)\<close> using main3 CAs_i4 n_not_null by force
+    have main_i': \<open>D4 + negs (mset As4) = Cs3!0 + poss (AAs3!0)\<close> using main4 CAs_i3 n_not_null by force
+    have \<open>Pos (As4!0) \<in># poss (AAs4!0)\<close>
+      apply (cases AAs4)
+      using n_not_null len_AAs4 apply blast
+      using AAs4_i AAs4_nempty len_AAs4 by fastforce
+    then have pos4: \<open>Pos (As4!0) \<in># D3\<close> using main_i pos_not_in_negs by (metis union_iff)
+    have \<open>Neg (As4!0) \<in># negs (mset As4)\<close> using len_As4 n_not_null by auto
+    then have neg4: \<open>Neg (As4!0) \<in># Cs3!0\<close> using neg_not_in_poss main_i' Cs_hd_eq by (metis union_iff)
+    (* have \<open>tl Cs3 = tl Cs4\<close> *)
+    (*   apply (cases Cs3; cases Cs4) *)
+    (*   using Cs_eq len_Cs3 len_Cs4 apply (auto intro!:list_eq_iff_nth_eq[THEN iffD2]) *)
+    (*   by (meson atLeastLessThan_iff shift_indices zero_order(1)) *)
+    (* then have \<open>Cs3 = Cs4\<close>  *)
+    (*   apply (cases Cs3; cases Cs4) *)
+    (*   using Cs_eq len_Cs3 len_Cs4 apply auto *)
+    (*   using Cs_hd_eq by auto *)
+    show \<open>?B\<close> using pos4 neg4 concl_i_is (* TODO: find the rule to introduce existential witness *)
+    sorry
+  have neq_imply_B: \<open>\<not> D3 = D4 \<Longrightarrow> ?B\<close> sorry
+   (* apply (force intro!: list_eq_iff_nth_eq[THEN iffD2])+ *)
     find_theorems name: iffD2
   find_theorems name: list_eq_iff_nth_eq
   find_theorems Suc "_ - _" " _ ! _ "
-  show ?B
+  show ?B using eq_imply_B neq_imply_B 
   sorry
 qed
 
