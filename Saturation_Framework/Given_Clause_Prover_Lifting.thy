@@ -595,10 +595,10 @@ proof (intro disj_imp[THEN iffD2] impI)
       by (metis D3'_is D_is \<open>D + D3' = D3\<close> add_diff_cancel_left' subset_mset.add_diff_assoc2 subset_mset.inf_le1 sup_subset_mset_def union_diff_inter_eq_sup)
     have CsD_eq2: \<open>Cs3!0 + D3' = Cs4!0 + D4'\<close>
       using CsD_eq by (auto simp: D3_div[THEN sym] D4_div[THEN sym])
-    then have \<open>D3' \<subseteq># Cs4!0\<close>
+    then have D3'_subs: \<open>D3' \<subseteq># Cs4!0\<close>
       using inter_D
       by (metis CsD_eq D3'_is mset_subset_eq_add_right subset_eq_diff_conv)
-    have \<open>D4' \<subseteq># Cs3!0\<close>
+    have D4'_subs: \<open>D4' \<subseteq># Cs3!0\<close>
       using inter_D
       by (metis CsD_eq D4'_is mset_subset_eq_add_right subset_eq_diff_conv)
     define C3 where C3_is: \<open>C3 = Cs3!0 - D4'\<close>
@@ -606,11 +606,17 @@ proof (intro disj_imp[THEN iffD2] impI)
     have C_eq: \<open>C3 = C4\<close>
       apply (simp add: C3_is C4_is)
       using CsD_eq2 by (metis add_diff_cancel_right' cancel_ab_semigroup_add_class.diff_right_commute)
-      
-   (* apply (force intro!: list_eq_iff_nth_eq[THEN iffD2])+ *)
-    find_theorems "_ \<noteq> _" " _ + _ " name: Multiset
-  find_theorems name: list_eq_iff_nth_eq
-  find_theorems Suc "_ - _" " _ ! _ "
+    have Cs30_div: \<open>Cs3!0 = C3 + D4'\<close> using C3_is D4'_subs by simp 
+    have Cs40_div: \<open>Cs4!0 = C3 + D3'\<close> using C4_is D3'_subs by (simp add: C_eq)
+    have \<open>D3 + negs (mset As3) +  D4 + negs (mset As4) = Cs4 ! 0 + poss (AAs4 ! 0) + Cs3 ! 0 + poss (AAs3 ! 0)\<close>
+      using main_i main_i' by simp
+    then have \<open>D + D + negs (mset As3) + negs (mset As4) = C3 + C3 + poss (AAs3!0) + poss (AAs4!0)\<close>
+      unfolding D3_div[THEN sym] D4_div[THEN sym] Cs30_div Cs40_div
+      by (smt C_eq ab_semigroup_add_class.add_ac(1) add.commute add.left_commute add_right_imp_eq
+        multi_union_self_other_eq union_assoc union_commute union_lcomm)
+    have \<open>poss (AAs3!0) + poss (AAs4!0) \<subseteq># D + D\<close> sorry
+    have \<open>negs (mset As3) + negs (mset As4) \<subseteq># C3 + C3\<close> sorry
+
   show ?B using eq_imply_B neq_imply_B 
   sorry
 qed
