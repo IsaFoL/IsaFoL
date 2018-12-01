@@ -560,12 +560,12 @@ proof (intro disj_imp[THEN iffD2] impI)
     using contra len_As3 len_As4 unfolding main3 main4 
     apply (cases As3; cases As4)
     by auto
+  have main_i: \<open>D3 + negs (mset As3) = Cs4!0 + poss (AAs4!0)\<close> using main3 CAs_i4 n_not_null by force
+  have main_i': \<open>D4 + negs (mset As4) = Cs3!0 + poss (AAs3!0)\<close> using main4 CAs_i3 n_not_null by force
   have eq_imply_B: \<open>D3 = D4 \<Longrightarrow> ?B\<close>
   proof -
     assume \<open>D3 = D4\<close>
     then have Cs_hd_eq: \<open>Cs3!0 = Cs4!0\<close> using CsD_eq by simp
-    have main_i: \<open>D3 + negs (mset As3) = Cs4!0 + poss (AAs4!0)\<close> using main3 CAs_i4 n_not_null by force
-    have main_i': \<open>D4 + negs (mset As4) = Cs3!0 + poss (AAs3!0)\<close> using main4 CAs_i3 n_not_null by force
     have \<open>Pos (As4!0) \<in># poss (AAs4!0)\<close>
       apply (cases AAs4)
       using n_not_null len_AAs4 apply blast
@@ -577,27 +577,36 @@ proof (intro disj_imp[THEN iffD2] impI)
     then have neg4: \<open>Neg (As4!0) \<in># concl_of \<iota>\<close>
       unfolding concl_i_is apply (cases Cs3)
       using n_not_null len_Cs3 by auto
-    (*   apply (cases Cs3; cases Cs4) *)
-    (*   using Cs_eq len_Cs3 len_Cs4 apply (auto intro!:list_eq_iff_nth_eq[THEN iffD2]) *)
-    (*   by (meson atLeastLessThan_iff shift_indices zero_order(1)) *)
-    (* then have \<open>Cs3 = Cs4\<close>  *)
-    (*   apply (cases Cs3; cases Cs4) *)
-    (*   using Cs_eq len_Cs3 len_Cs4 apply auto *)
-    (*   using Cs_hd_eq by auto *)
-    show \<open>?B\<close> using pos4 neg4 concl_i_is (* TODO: find the rule to introduce existential witness *)
+    show \<open>?B\<close> using pos4 neg4 concl_i_is
       apply (rule_tac x="As4!0" in exI) by auto
     qed
   have neq_imply_B: \<open>\<not> D3 = D4 \<Longrightarrow> ?B\<close>
   proof -
     assume \<open>\<not> D3 = D4\<close>
-    define D where \<open>D = D3 \<inter># D4\<close>
-    define D3' where \<open>D3' = D3 - D4\<close>
-    define D4' where \<open>D4' = D4 - D3\<close>
-    define C where \<open>C = Cs3!0 \<inter># Cs4!0\<close>
-    have \<open>Cs3!0 = C + D3'\<close>
-      using concl_i_is
-sorry
-    have \<open>Cs4!0 = C + D4'\<close> sorry
+    define D where D_is: \<open>D = D3 \<inter># D4\<close>
+    define D3' where D3'_is: \<open>D3' = D3 - D4\<close>
+    define D4' where D4'_is: \<open>D4' = D4 - D3\<close>
+    have inter_D: \<open>D3' \<inter># D4' = {#}\<close>
+      using diff_intersect_sym_diff[of D3 D4] D3'_is D4'_is by force
+    have D3_div: \<open>D + D3' = D3\<close>
+      by (auto simp: D_is D3'_is multiset_inter_def)
+    have D4_div: \<open>D + D4' = D4\<close>
+      apply (auto simp: D_is D4'_is multiset_inter_def)
+      by (metis D3'_is D_is \<open>D + D3' = D3\<close> add_diff_cancel_left' subset_mset.add_diff_assoc2 subset_mset.inf_le1 sup_subset_mset_def union_diff_inter_eq_sup)
+    have CsD_eq2: \<open>Cs3!0 + D3' = Cs4!0 + D4'\<close>
+      using CsD_eq by (auto simp: D3_div[THEN sym] D4_div[THEN sym])
+    then have \<open>D3' \<subseteq># Cs4!0\<close>
+      using inter_D
+      by (metis CsD_eq D3'_is mset_subset_eq_add_right subset_eq_diff_conv)
+    have \<open>D4' \<subseteq># Cs3!0\<close>
+      using inter_D
+      by (metis CsD_eq D4'_is mset_subset_eq_add_right subset_eq_diff_conv)
+    define C3 where C3_is: \<open>C3 = Cs3!0 - D4'\<close>
+    define C4 where C4_is: \<open>C4 = Cs4!0 - D3'\<close>
+    have C_eq: \<open>C3 = C4\<close>
+      apply (simp add: C3_is C4_is)
+      using CsD_eq2 by (metis add_diff_cancel_right' cancel_ab_semigroup_add_class.diff_right_commute)
+      
    (* apply (force intro!: list_eq_iff_nth_eq[THEN iffD2])+ *)
     find_theorems "_ \<noteq> _" " _ + _ " name: Multiset
   find_theorems name: list_eq_iff_nth_eq
