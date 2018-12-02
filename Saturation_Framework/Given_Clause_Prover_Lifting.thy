@@ -562,24 +562,24 @@ proof (intro disj_imp[THEN iffD2] impI)
     by auto
   have main_i: \<open>D3 + negs (mset As3) = Cs4!0 + poss (AAs4!0)\<close> using main3 CAs_i4 n_not_null by force
   have main_i': \<open>D4 + negs (mset As4) = Cs3!0 + poss (AAs3!0)\<close> using main4 CAs_i3 n_not_null by force
+  have pos4_in_poss: \<open>Pos (As4!0) \<in># poss (AAs4!0)\<close>
+    apply (cases AAs4)
+    using n_not_null len_AAs4 apply blast
+    using AAs4_i AAs4_nempty len_AAs4 by fastforce
+  have neg4_in_negs: \<open>Neg (As4!0) \<in># negs (mset As4)\<close> using len_As4 n_not_null by auto
   have eq_imply_B: \<open>D3 = D4 \<Longrightarrow> ?B\<close>
   proof -
     assume \<open>D3 = D4\<close>
     then have Cs_hd_eq: \<open>Cs3!0 = Cs4!0\<close> using CsD_eq by simp
-    have \<open>Pos (As4!0) \<in># poss (AAs4!0)\<close>
-      apply (cases AAs4)
-      using n_not_null len_AAs4 apply blast
-      using AAs4_i AAs4_nempty len_AAs4 by fastforce
-    then have \<open>Pos (As4!0) \<in># D3\<close> using main_i pos_not_in_negs by (metis union_iff)
+    have \<open>Pos (As4!0) \<in># D3\<close> using pos4_in_poss main_i pos_not_in_negs by (metis union_iff)
     then have pos4: \<open>Pos (As4!0) \<in># concl_of \<iota>\<close> using concl_i_is by simp
-    have \<open>Neg (As4!0) \<in># negs (mset As4)\<close> using len_As4 n_not_null by auto
-    then have \<open>Neg (As4!0) \<in># Cs3!0\<close> using neg_not_in_poss main_i' Cs_hd_eq by (metis union_iff)
+    have \<open>Neg (As4!0) \<in># Cs3!0\<close> using neg4_in_negs neg_not_in_poss main_i' Cs_hd_eq by (metis union_iff)
     then have neg4: \<open>Neg (As4!0) \<in># concl_of \<iota>\<close>
       unfolding concl_i_is apply (cases Cs3)
       using n_not_null len_Cs3 by auto
     show \<open>?B\<close> using pos4 neg4 concl_i_is
       apply (rule_tac x="As4!0" in exI) by auto
-    qed
+  qed
   have neq_imply_B: \<open>\<not> D3 = D4 \<Longrightarrow> ?B\<close>
   proof -
     assume \<open>\<not> D3 = D4\<close>
@@ -592,7 +592,8 @@ proof (intro disj_imp[THEN iffD2] impI)
       by (auto simp: D_is D3'_is multiset_inter_def)
     have D4_div: \<open>D + D4' = D4\<close>
       apply (auto simp: D_is D4'_is multiset_inter_def)
-      by (metis D3'_is D_is \<open>D + D3' = D3\<close> add_diff_cancel_left' subset_mset.add_diff_assoc2 subset_mset.inf_le1 sup_subset_mset_def union_diff_inter_eq_sup)
+      by (metis D3'_is D_is D3_div add_diff_cancel_left' subset_mset.add_diff_assoc2 subset_mset.inf_le1
+        sup_subset_mset_def union_diff_inter_eq_sup)
     have CsD_eq2: \<open>Cs3!0 + D3' = Cs4!0 + D4'\<close>
       using CsD_eq by (auto simp: D3_div[THEN sym] D4_div[THEN sym])
     then have D3'_subs: \<open>D3' \<subseteq># Cs4!0\<close>
@@ -610,15 +611,24 @@ proof (intro disj_imp[THEN iffD2] impI)
     have Cs40_div: \<open>Cs4!0 = C3 + D3'\<close> using C4_is D3'_subs by (simp add: C_eq)
     have \<open>D3 + negs (mset As3) +  D4 + negs (mset As4) = Cs4 ! 0 + poss (AAs4 ! 0) + Cs3 ! 0 + poss (AAs3 ! 0)\<close>
       using main_i main_i' by simp
-    then have \<open>D + D + negs (mset As3) + negs (mset As4) = C3 + C3 + poss (AAs3!0) + poss (AAs4!0)\<close>
+    then have sum_concl_eq: \<open>D + D + negs (mset As3) + negs (mset As4) = C3 + C3 + poss (AAs3!0) + poss (AAs4!0)\<close>
       unfolding D3_div[THEN sym] D4_div[THEN sym] Cs30_div Cs40_div
       by (smt C_eq ab_semigroup_add_class.add_ac(1) add.commute add.left_commute add_right_imp_eq
         multi_union_self_other_eq union_assoc union_commute union_lcomm)
-    have \<open>poss (AAs3!0) + poss (AAs4!0) \<subseteq># D + D\<close> sorry
-    have \<open>negs (mset As3) + negs (mset As4) \<subseteq># C3 + C3\<close> sorry
-
-  show ?B using eq_imply_B neq_imply_B 
-  sorry
+    then have \<open>Pos (As4!0) \<in># D\<close> using pos4_in_poss pos_not_in_negs by (metis union_iff)
+    then have pos4': \<open>Pos (As4!0) \<in># concl_of \<iota>\<close> using concl_i_is by (simp add: D3_div[THEN sym])
+    have \<open>Neg (As4!0) \<in># C3\<close> using sum_concl_eq neg4_in_negs neg_not_in_poss by (metis union_iff)
+    then have \<open>Neg (As4!0) \<in># Cs3!0\<close> using C3_is by (simp add: C_eq Cs30_div)
+    then have neg4': \<open>Neg (As4!0) \<in># concl_of \<iota>\<close>
+      unfolding concl_i_is apply (cases Cs3)
+      using n_not_null len_Cs3 by auto
+    show \<open>?B\<close> using pos4' neg4' concl_i_is
+      apply (rule_tac x="As4!0" in exI)
+      by auto
+  qed
+  show ?B
+    apply (rule_tac P="D3 = D4" in case_split)
+    using eq_imply_B neq_imply_B by auto
 qed
 
 
