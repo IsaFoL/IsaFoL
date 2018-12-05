@@ -37,7 +37,7 @@ definition conv_inf :: "'a inference \<Rightarrow> 'a clause Saturation_Framewor
 definition Inf_F :: "'a clause Saturation_Framework_Preliminaries.inference set" where
   "Inf_F = conv_inf ` (ord_FO_\<Gamma> S)"
 
-interpretation Saturation_Framework_Preliminaries.sound_inference_system Bot_F entails_sound_F Inf_F 
+interpretation sound_F: Saturation_Framework_Preliminaries.sound_inference_system Bot_F entails_sound_F Inf_F 
 proof -
   { text \<open>proof of @{locale Saturation_Framework_Preliminaries.consequence_relation}, \<open>subset_entailed\<close> assumption\<close>
     fix N1 N2 I \<eta>
@@ -692,7 +692,7 @@ lemma conv_saturation:
   ultimately show \<open>False\<close> by simp
 qed
 
-interpretation Saturation_Framework_Preliminaries.static_refutational_complete_calculus Bot_G
+interpretation calc_G: Saturation_Framework_Preliminaries.static_refutational_complete_calculus Bot_G
   entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
   proof
   fix B N
@@ -707,7 +707,51 @@ interpretation Saturation_Framework_Preliminaries.static_refutational_complete_c
   then show \<open>\<exists>B'\<in>Bot_G. B' \<in> N\<close> by simp
 qed
 
-end
+definition \<G>_F :: \<open>'a clause \<Rightarrow> 'a clause set\<close> where
+  \<open>\<G>_F C = {D . \<exists>\<sigma>. D = C \<cdot> \<sigma> \<and> is_ground_subst \<sigma>}\<close>
+
+definition subst_inf :: \<open>'a clause Saturation_Framework_Preliminaries.inference \<Rightarrow> 's
+                          \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference\<close> (infixl "\<cdot>inf" 67) where
+  \<open>\<iota> \<cdot>inf \<sigma> = Saturation_Framework_Preliminaries.Infer
+    (map (\<lambda> A. A \<cdot> \<sigma>) (Saturation_Framework_Preliminaries.prems_of \<iota>))
+    ((Saturation_Framework_Preliminaries.concl_of \<iota>) \<cdot> \<sigma>)\<close>
+
+definition \<G>_Inf :: \<open>'a clause Saturation_Framework_Preliminaries.inference
+                      \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set\<close> where
+  \<open>\<G>_Inf \<iota> = {\<iota>'. \<exists>\<sigma>. \<iota>' = \<iota> \<cdot>inf \<sigma> \<and> is_ground_subst \<sigma>}\<close>
+
+interpretation \<G>: grounding_function Bot_F entails_sound_F Inf_F Bot_G entails_sound_G Inf_G
+  entails_comp_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf
+proof
+  fix B
+  assume \<open>B \<in> Bot_G\<close>
+  then have \<open>B = {#}\<close> by simp
+  then have \<open>\<G>_F B = {{#}}\<close> unfolding \<G>_F_def by (simp add: ex_ground_subst)
+  then show \<open>\<G>_F B \<noteq> {}\<close> by simp
+next
+  fix B
+  assume \<open>B \<in> Bot_G\<close>
+  then have \<open>B = {#}\<close> by simp
+  then have \<open>\<G>_F B = {{#}}\<close> unfolding \<G>_F_def by (simp add: ex_ground_subst)
+  then show \<open>\<G>_F B \<subseteq> Bot_G\<close> by simp
+next
+  fix C
+  show \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_G\<close>
+  proof (intro impI)
+    assume \<open>\<G>_F C \<inter> Bot_G \<noteq> {}\<close>
+    then have \<open>{#} \<in> \<G>_F C\<close> by blast
+    then have \<open>C = {#}\<close> unfolding \<G>_F_def by simp
+    then show \<open>C \<in> Bot_G\<close> by simp
+  qed
+next
+  fix \<iota>
+  show \<open>\<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (Saturation_Framework_Preliminaries.inference.concl_of \<iota>))\<close>
+  proof (* should somehow rely on ord_resolve_rename_lifting , i.e. the lifting lemma in B&G *)
+    fix \<iota>'
+    assume \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
+    then show \<open>\<iota>' \<in> Red_Inf_G (\<G>_F (Saturation_Framework_Preliminaries.inference.concl_of \<iota>))\<close>
+      unfolding Red_Inf_G_def \<G>_Inf_def \<G>_F_def sr.Ri_def sorry
+oops
 
 end
 
