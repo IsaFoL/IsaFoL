@@ -708,7 +708,7 @@ interpretation calc_G: Saturation_Framework_Preliminaries.static_refutational_co
 qed
 
 definition \<G>_F :: \<open>'a clause \<Rightarrow> 'a clause set\<close> where
-  \<open>\<G>_F C = {D . \<exists>\<sigma>. D = C \<cdot> \<sigma> \<and> is_ground_subst \<sigma>}\<close>
+  \<open>\<G>_F C = grounding_of_cls C\<close>
 
 definition subst_inf :: \<open>'a clause Saturation_Framework_Preliminaries.inference \<Rightarrow> 's
                           \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference\<close> (infixl "\<cdot>inf" 67) where
@@ -718,7 +718,43 @@ definition subst_inf :: \<open>'a clause Saturation_Framework_Preliminaries.infe
 
 definition \<G>_Inf :: \<open>'a clause Saturation_Framework_Preliminaries.inference
                       \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set\<close> where
-  \<open>\<G>_Inf \<iota> = {\<iota>'. \<exists>\<sigma>. \<iota>' = \<iota> \<cdot>inf \<sigma> \<and> is_ground_subst \<sigma>}\<close>
+  \<open>\<G>_Inf \<iota> = {\<iota> \<cdot>inf \<sigma> | \<sigma>. is_ground_subst \<sigma>}\<close>
+
+lemma inf_F_to_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<iota>' \<in> \<G>_Inf \<iota> \<Longrightarrow> \<iota>' \<in> Inf_G\<close>
+proof -
+  assume
+    i_in: \<open>\<iota> \<in> Inf_F\<close> and
+    i'_in: \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
+  obtain \<gamma> where \<open>\<iota> \<cdot>inf \<gamma> = \<iota>'\<close> and g_ground: \<open>is_ground_subst \<gamma>\<close> using i'_in unfolding \<G>_Inf_def by blast
+  obtain \<iota>_RP where \<open>\<iota> = conv_inf \<iota>_RP\<close> and i_RP_in: \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using i_in unfolding Inf_F_def by blast
+  obtain CAs DA AAs As \<eta> E where \<open>\<iota>_RP = Inference_System.inference.Infer (mset CAs) DA E\<close> and
+    res_r: \<open>ord_resolve_rename S CAs DA AAs As \<eta> E\<close> using i_RP_in ord_FO_\<Gamma>_def by auto
+  define \<rho> where r_is: \<open>\<rho> = hd (renamings_apart (DA # CAs))\<close>
+  define \<rho>s where rs_is: \<open>\<rho>s = tl (renamings_apart (DA # CAs))\<close>
+  define CAs_r where CAs_r_is: \<open>CAs_r = CAs \<cdot>\<cdot>cl \<rho>s\<close>
+  define DA_r where DA_r_is: \<open>DA_r = DA \<cdot> \<rho>\<close>
+  define AAs_r where AAs_r_is: \<open>AAs_r = AAs \<cdot>\<cdot>aml \<rho>s\<close>
+  define As_r where As_r_is: \<open>As_r = As \<cdot>al \<rho>\<close>
+  define n where n_is: \<open>n = length CAs_r\<close>
+  then have n_not_null: \<open>n \<noteq> 0\<close>
+    using res_r unfolding ord_resolve_rename.simps using CAs_r_is ord_resolve.simps rs_is by fastforce
+  have ord_res: \<open>ord_resolve S CAs_r DA_r AAs_r As_r \<eta> E\<close>
+    using res_r r_is rs_is CAs_r_is DA_r_is AAs_r_is As_r_is
+    unfolding ord_resolve.simps ord_resolve_rename.simps by force
+  then obtain Cs D where
+    \<open>DA_r = D + negs (mset As_r)\<close> and
+    \<open>E = ((\<Union># mset Cs) + D) \<cdot> \<eta>\<close> and
+    \<open>length Cs = n\<close> and
+    \<open>(\<forall>i < n. CAs_r ! i = Cs ! i + poss (AAs_r ! i))\<close> and
+    \<open>eligible S \<eta> As_r (D + negs (mset As_r))\<close> and
+    \<open>(\<forall>i < n. strictly_maximal_wrt (As_r ! i \<cdot>a \<eta>) (Cs ! i \<cdot> \<eta>))\<close>
+    unfolding ord_resolve.simps using n_is n_not_null by auto
+  define \<sigma> where \<open>\<sigma> = \<eta> \<odot> \<gamma>\<close>
+  have \<open>gr.ord_resolve (CAs_r \<cdot>cl \<sigma>) (DA_r \<cdot> \<sigma>) (AAs_r \<cdot>aml \<sigma>) (As_r \<cdot>al \<sigma>) (E \<cdot> \<sigma>)\<close>
+    using ord_res g_ground unfolding \<sigma>_def gr.ord_resolve.simps ord_resolve.simps apply auto sorry
+
+  show \<open>\<iota>' \<in> Inf_G\<close> sorry
+qed
 
 interpretation \<G>: grounding_function Bot_F entails_sound_F Inf_F Bot_G entails_sound_G Inf_G
   entails_comp_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf
@@ -740,7 +776,7 @@ next
   proof (intro impI)
     assume \<open>\<G>_F C \<inter> Bot_G \<noteq> {}\<close>
     then have \<open>{#} \<in> \<G>_F C\<close> by blast
-    then have \<open>C = {#}\<close> unfolding \<G>_F_def by simp
+    then have \<open>C = {#}\<close> unfolding \<G>_F_def by (simp add: substitution_ops.grounding_of_cls_def)
     then show \<open>C \<in> Bot_G\<close> by simp
   qed
 next
@@ -749,14 +785,16 @@ next
   show \<open>\<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (Saturation_Framework_Preliminaries.inference.concl_of \<iota>))\<close>
   proof (* should somehow rely on ord_resolve_rename_lifting , i.e. the lifting lemma in B&G *)
     fix \<iota>'
-    assume \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
-    then obtain \<sigma> where \<open>\<iota> \<cdot>inf \<sigma> = \<iota>'\<close> \<open>is_ground_subst \<sigma>\<close> unfolding \<G>_Inf_def by blast
-    then have \<open>\<iota>' \<in> Inf_G\<close> unfolding \<G>_Inf_def using i_in sorry
-    then show \<open>\<iota>' \<in> Red_Inf_G (\<G>_F (Saturation_Framework_Preliminaries.inference.concl_of \<iota>))\<close>
-      unfolding Red_Inf_G_def \<G>_Inf_def \<G>_F_def sr.Ri_def
-      using Saturation_Framework_Preliminaries.calculus.Red_Inf_of_Inf_to_N[of Bot_G entails_sound_G Inf_G
-        entails_comp_G Red_Inf_G Red_F_G \<iota>' \<open>\<G>_F (Saturation_Framework_Preliminaries.inference.concl_of \<iota>)\<close>] sorry
-oops
+    assume i'_in: \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
+    have i'_in2: \<open>\<iota>' \<in> Inf_G\<close> using inf_F_to_G[OF i_in i'_in] .
+    have concl_in: \<open>Saturation_Framework_Preliminaries.inference.concl_of \<iota>' \<in>
+      \<G>_F (Saturation_Framework_Preliminaries.inference.concl_of \<iota>)\<close>
+      using i'_in subst_inf_def unfolding \<G>_Inf_def \<G>_F_def grounding_of_cls_def by auto
+    show \<open>\<iota>' \<in> Red_Inf_G (\<G>_F (Saturation_Framework_Preliminaries.inference.concl_of \<iota>))\<close>
+      using Saturation_Framework_Preliminaries.grounding_function.inf_map i'_in2 concl_in
+      by (simp add: gr_calc.Red_Inf_of_Inf_to_N)
+  qed
+qed
 
 end
 
