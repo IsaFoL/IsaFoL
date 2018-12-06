@@ -118,7 +118,7 @@ next
     assume \<iota>_Inf_F: \<open>\<iota> \<in> Inf_F\<close> and \<open>concl_of \<iota> \<in> N\<close>
     then have \<open>\<G>_F (concl_of \<iota>) \<subseteq> \<G>_set N\<close> by auto
     then have \<open>Red_Inf_G (\<G>_F (concl_of \<iota>)) \<subseteq> Red_Inf_G (\<G>_set N)\<close> using Ground.Red_Inf_of_subset by auto
-    moreover have \<open>\<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))\<close> by (simp add: inf_map)
+    moreover have \<open>\<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))\<close> by (simp add: \<iota>_Inf_F inf_map)
     ultimately have \<open>\<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_set N)\<close> by auto
     with \<iota>_Inf_F show \<open>\<iota> \<in> Red_Inf_F N\<close> by auto
   qed

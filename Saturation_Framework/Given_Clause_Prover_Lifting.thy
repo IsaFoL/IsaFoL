@@ -745,12 +745,17 @@ next
   qed
 next
   fix \<iota>
+  assume i_in: \<open>\<iota> \<in> Inf_F\<close>
   show \<open>\<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (Saturation_Framework_Preliminaries.inference.concl_of \<iota>))\<close>
   proof (* should somehow rely on ord_resolve_rename_lifting , i.e. the lifting lemma in B&G *)
     fix \<iota>'
     assume \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
+    then obtain \<sigma> where \<open>\<iota> \<cdot>inf \<sigma> = \<iota>'\<close> \<open>is_ground_subst \<sigma>\<close> unfolding \<G>_Inf_def by blast
+    then have \<open>\<iota>' \<in> Inf_G\<close> unfolding \<G>_Inf_def using i_in sorry
     then show \<open>\<iota>' \<in> Red_Inf_G (\<G>_F (Saturation_Framework_Preliminaries.inference.concl_of \<iota>))\<close>
-      unfolding Red_Inf_G_def \<G>_Inf_def \<G>_F_def sr.Ri_def sorry
+      unfolding Red_Inf_G_def \<G>_Inf_def \<G>_F_def sr.Ri_def
+      using Saturation_Framework_Preliminaries.calculus.Red_Inf_of_Inf_to_N[of Bot_G entails_sound_G Inf_G
+        entails_comp_G Red_Inf_G Red_F_G \<iota>' \<open>\<G>_F (Saturation_Framework_Preliminaries.inference.concl_of \<iota>)\<close>] sorry
 oops
 
 end

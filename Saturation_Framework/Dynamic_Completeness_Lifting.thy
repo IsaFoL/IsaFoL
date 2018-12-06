@@ -216,7 +216,7 @@ lemma Red_Inf_of_Inf_to_N_F:
   shows
     \<open>\<iota> \<in> Red_Inf_\<G> N \<close>
 proof -
-  have \<open>\<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))\<close> using inf_map by simp
+  have \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))\<close> using inf_map by simp
   moreover have \<open>Red_Inf_G (\<G>_F (concl_of \<iota>)) \<subseteq> Red_Inf_G (\<G>_set N)\<close>
     using concl_i_in Ground.Red_Inf_of_subset by blast
   ultimately show ?thesis using i_in unfolding Red_Inf_\<G>_def by simp
@@ -375,8 +375,9 @@ next
     unfolding \<G>_F_L_def Bot_FL_def using Bot_cond by (metis SigmaE UNIV_I UNIV_Times_UNIV mem_Sigma_iff prod.sel(1))
 next
   fix \<iota>
-  show "\<G>_Inf_L \<iota> \<subseteq> Red_Inf_G (\<G>_F_L (concl_of \<iota>))"
-    unfolding \<G>_Inf_L_def \<G>_F_L_def to_F_def using inf_map by fastforce
+  assume \<open>\<iota> \<in> Inf_FL\<close>
+  then show "\<G>_Inf_L \<iota> \<subseteq> Red_Inf_G (\<G>_F_L (concl_of \<iota>))"
+    unfolding \<G>_Inf_L_def \<G>_F_L_def to_F_def using inf_map Inf_FL_to_Inf_F by fastforce
 qed
 
 definition Labeled_Empty_Order :: \<open> ('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool\<close> where
