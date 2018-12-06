@@ -5,6 +5,7 @@ theory IsaSAT_Lookup_Conflict
     Watched_Literals.CDCL_Conflict_Minimisation
     LBD
     IsaSAT_Clauses
+    IsaSAT_Watch_List
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -3035,86 +3036,19 @@ lemma conflict_min_cach_set_removable:
      (auto simp: cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
       conflict_min_cach_set_removable_l_def)
 
-text \<open>This is the result of trying and discovering that MLton is able to optimise the code better.\<close>
-datatype ('n, 'b) ana_ref = Ana_Ref 'n 'b bool
-
-instantiation ana_ref :: (default, default) default
-begin
-
-definition default_ana_ref :: \<open>('a, 'b) ana_ref\<close> where
-  \<open>default_ana_ref = Ana_Ref default default default\<close>
-
-instance
-  by standard
-end
-instance ana_ref :: (heap, heap) heap
-
-proof
-  obtain to_nata where
-    b: \<open>inj (to_nata :: 'a \<Rightarrow> nat)\<close>
-    by blast
-
-  obtain to_natc where
-    c: \<open>inj (to_natc :: 'b \<Rightarrow> nat)\<close>
-    by blast
-  obtain to_natb where
-    a: \<open>inj (to_natb :: nat \<times> nat \<times> bool \<Rightarrow> nat)\<close>
-    by blast
-  let ?f = \<open>\<lambda>x :: ('a, 'b) ana_ref. case x of Ana_Ref a b c \<Rightarrow>
-    to_natb (to_nata a, to_natc b, c)\<close>
-  have \<open>inj ?f\<close>
-    unfolding inj_on_def
-    apply (intro ballI)
-    apply (case_tac x, case_tac y)
-    apply (auto dest!: injD[OF a] injD[OF c] injD[OF b])
-    done
-  then show \<open>\<exists>to_nat. inj (to_nat :: ('a, 'b) ana_ref \<Rightarrow> nat)\<close>
-    by blast
-qed
-
-fun ana_ref_assn :: \<open>('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> ('a, nat) ana_ref \<Rightarrow> ('b, uint32) ana_ref \<Rightarrow> assn\<close> where [simp del]:
-  \<open>ana_ref_assn r (Ana_Ref a b c) (Ana_Ref a' b' c')=
-    r a a' * uint32_nat_assn b b' * bool_assn c c'\<close>
-
-lemma ana_ref_assn_def:
-  \<open>ana_ref_assn r = (\<lambda>x y. case (x, y) of
-    (Ana_Ref a b c, Ana_Ref a' b' c') \<Rightarrow>
-    r a a' * uint32_nat_assn b b' * bool_assn c c')\<close>
-  apply (intro ext)
-  apply (case_tac  x, case_tac y)
-  by (auto simp: ana_ref_assn.simps intro!: ext)
 
 definition analyse_refinement_rel where
-  \<open>analyse_refinement_rel = {(x, y).
-     y = (case x of Ana_Ref a b c \<Rightarrow> (a, b, c))}\<close>
+  \<open>analyse_refinement_rel = nat_rel \<times>\<^sub>f {(n, (L, b)). \<exists>L'. (L', L) \<in> uint32_nat_rel \<and>
+      n = uint64_of_uint32 L' + (if b then 1 << 32 else 0)}\<close> 
 
 definition (in -)ana_refinement_assn where
-  \<open>ana_refinement_assn \<equiv> hr_comp (ana_ref_assn nat_assn) analyse_refinement_rel\<close>
+  \<open>ana_refinement_assn \<equiv> hr_comp (nat_assn *a uint64_assn) analyse_refinement_rel\<close>
+
+definition (in -)ana_refinement_fast_assn where
+  \<open>ana_refinement_fast_assn \<equiv> hr_comp (uint64_nat_assn *a uint64_assn) analyse_refinement_rel\<close>
 
 abbreviation (in -)analyse_refinement_assn where
   \<open>analyse_refinement_assn \<equiv> arl_assn ana_refinement_assn\<close>
-
-definition (in -)ana_refinement_fast_assn where
-  \<open>ana_refinement_fast_assn \<equiv>
-    hr_comp (ana_ref_assn uint64_nat_assn) analyse_refinement_rel\<close>
-
-lemma ex_ana_ref_split: \<open>(\<exists>\<^sub>Aba. P ba) = (\<exists>\<^sub>A a b c. P (Ana_Ref a b c))\<close>
-proof -
-  let ?f = \<open>\<lambda>x. case x of (a, b, c) \<Rightarrow> P (Ana_Ref a b c)\<close>
-  have 1: \<open>(\<exists>x. h \<Turnstile> P x) = (\<exists>a b c. h \<Turnstile> P (Ana_Ref a b c))\<close> for h
-    apply auto
-    apply (case_tac x)
-    by auto
-  have 2: \<open>(\<exists>\<^sub>Aa b c. P (Ana_Ref a b c)) = (\<exists>\<^sub>Ax. ?f x)\<close>
-    unfolding ex_assn_pair_split
-    by auto
-  show ?thesis
-    apply (subst ex_assn_def)
-    apply (subst 1)
-    apply (subst 2)
-    apply (subst ex_assn_def)
-    by auto
-qed
 
 (*TODO move*)
 lemma ex_assn_def_pure_eq_start:
@@ -3146,77 +3080,10 @@ lemma ex_assn_def_pure_eq_start1:
   by (subst ex_assn_def, auto)+
 (*End Move*)
 
-lemma ana_refinement_fast_assn_alt_def:
-  \<open>ana_refinement_fast_assn (a', b', c') (Ana_Ref a b c)  =
-  uint64_nat_assn a' a * uint32_nat_assn b' b * bool_assn c' c\<close>
-  unfolding ana_refinement_fast_assn_def
-  apply (auto simp: hr_comp_def ana_ref_assn_def analyse_refinement_rel_def
-    uint64_nat_rel_def br_def pure_def ex_ana_ref_split
-    ex_assn_def_pure_eq_middle2 ex_assn_def_pure_eq_middle2
-    ex_assn_def_pure_eq_start2 ex_assn_def_pure_eq_start1
-    ex_assn_def_pure_eq_middle3 uint32_nat_rel_def br_def
-    simp flip: merge_pure_star
-    cong: )
-  apply (subst star_assoc)+
-  apply (subst ex_assn_def_pure_eq_start3)
-  apply (subst ex_assn_def_pure_eq_start2)
-  apply (subst ex_assn_def_pure_eq_start')
-  by auto
-
-lemma ana_refinement_fast_assn_alt_def2:
-  \<open>ana_refinement_fast_assn = (\<lambda>(a', b', c') x. case x of (Ana_Ref a b c) \<Rightarrow>
-  uint64_nat_assn a' a * uint32_nat_assn b' b * bool_assn c' c)\<close>
-  apply (auto simp: ana_refinement_fast_assn_alt_def intro!: ext)
-  apply (case_tac x)
-  by (auto simp: ana_refinement_fast_assn_alt_def intro!: ext)
 lemma ex_assn_cong:
   \<open>(\<And>x. P x = P' x) \<Longrightarrow> (\<exists>\<^sub>Ax. P x) = (\<exists>\<^sub>Ax. P' x)\<close>
   by auto
 
-lemma ana_refinement_assn_alt_def:
-  \<open>ana_refinement_assn (a', b', c') (Ana_Ref a b c)  =
-  nat_assn a' a * uint32_nat_assn b' b * bool_assn c' c\<close>
-  unfolding ana_refinement_assn_def
-  apply (auto simp: hr_comp_def ana_ref_assn_def analyse_refinement_rel_def
-    uint64_nat_rel_def br_def pure_def ex_ana_ref_split
-    ex_assn_def_pure_eq_middle3 ex_assn_def_pure_eq_middle2
-    ex_assn_def_pure_eq_start2 ex_assn_def_pure_eq_start1
-      ex_assn_def_pure_eq_start3
-      ex_assn_def_pure_eq_start3'
-      ex_assn_def_pure_eq_start4' uint32_nat_rel_def br_def
-      eq_commute[of a] eq_commute[of b] eq_commute[of c] eq_commute[of d]
-    simp flip: merge_pure_star
-    cong: ex_assn_cong)
-  apply (subst star_assoc)+
-  apply (subst ex_assn_def_pure_eq_start)
-  by auto
-
-lemma ana_refinement_assn_alt_def2:
-  \<open>ana_refinement_assn = (\<lambda>(a', b', c') x. case x of (Ana_Ref a b c) \<Rightarrow>
-  nat_assn a' a * uint32_nat_assn b' b * bool_assn c' c)\<close>
-  apply (auto simp: ana_refinement_assn_alt_def intro!: ext)
-  apply (case_tac x)
-  by (auto simp: ana_refinement_assn_alt_def intro!: ext)
-
-lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure ana_refinement_assn\<close>
-  unfolding CONSTRAINT_def is_pure_def
-  supply[[show_sorts]]
-  apply (rule exI[of _ \<open>\<lambda>(a, b, c) x'. (case x' of
-    Ana_Ref a' b' c' \<Rightarrow> (a', a) \<in> nat_rel \<and> (b', b) \<in> uint32_nat_rel \<and>
-      (c', c) \<in> bool_rel)\<close>])
-  apply (auto simp: is_pure_def ana_refinement_assn_alt_def2)
-  apply (case_tac x')
-  by (auto simp: pure_def)
-
-lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure ana_refinement_fast_assn\<close>
-  unfolding CONSTRAINT_def is_pure_def
-  supply[[show_sorts]]
-  apply (rule exI[of _ \<open>\<lambda>(a, b, c) x'.  (case x' of
-    Ana_Ref a' b' c' \<Rightarrow> (a', a) \<in> uint64_nat_rel \<and> (b', b) \<in> uint32_nat_rel \<and>
-      (c', c) \<in> bool_rel)\<close>])
-  apply (auto simp: is_pure_def ana_refinement_fast_assn_alt_def2)
-  apply (case_tac x')
-  by (auto simp: pure_def)
 
 abbreviation (in -)analyse_refinement_fast_assn where
   \<open>analyse_refinement_fast_assn \<equiv>
@@ -3225,58 +3092,102 @@ abbreviation (in -)analyse_refinement_fast_assn where
 definition to_ana_ref_id where
   [simp]: \<open>to_ana_ref_id = (\<lambda>a b c. (a, b, c))\<close>
 
-definition to_ana_ref where
-  \<open>to_ana_ref = (\<lambda>a b c. Ana_Ref a b c)\<close>
+definition to_ana_ref :: \<open>_ \<Rightarrow> uint32 \<Rightarrow> bool \<Rightarrow> _\<close> where
+  \<open>to_ana_ref = (\<lambda>a c b. (a, uint64_of_uint32 c OR (if b then 1 << 32 else (0 :: uint64))))\<close>
 
 definition from_ana_ref_id where
   [simp]: \<open>from_ana_ref_id x = x\<close>
 
 definition from_ana_ref where
-  \<open>from_ana_ref = (\<lambda>x. case x of Ana_Ref a b c \<Rightarrow> (a, b, c))\<close>
+  \<open>from_ana_ref = (\<lambda>(a, b). (a, uint32_of_uint64 (take_only_lower32 b), is_marked_binary_code (a, b)))\<close>
 
 lemma to_ana_ref_id_fast_hnr[sepref_fr_rules]:
   \<open>(uncurry2 (return ooo to_ana_ref), uncurry2 (RETURN ooo to_ana_ref_id)) \<in>
    uint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a
    ana_refinement_fast_assn\<close>
  by sepref_to_hoare
-   (sep_auto simp: to_ana_ref_def to_ana_ref_id_def ana_ref_assn_def
-   analyse_refinement_rel_def uint64_nat_rel_def br_def
-   case_prod_beta ana_refinement_fast_assn_alt_def pure_def)
-
+   (sep_auto simp: to_ana_ref_def to_ana_ref_id_def uint32_nat_rel_def
+   analyse_refinement_rel_def uint64_nat_rel_def br_def OR_132_is_sum
+   pure_def ana_refinement_fast_assn_def hr_comp_def
+   nat_of_uint64_uint64_of_uint32
+   nat_of_uint32_le_uint32_max)
+   
 lemma to_ana_ref_id_hnr[sepref_fr_rules]:
   \<open>(uncurry2 (return ooo to_ana_ref), uncurry2 (RETURN ooo to_ana_ref_id)) \<in>
    nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a
    ana_refinement_assn\<close>
-  unfolding ana_refinement_assn_alt_def[abs_def]
- by sepref_to_hoare
-   (sep_auto simp: to_ana_ref_def to_ana_ref_id_def
-    uint64_nat_rel_def br_def ana_refinement_assn_alt_def
-   case_prod_beta pure_def)
+  by sepref_to_hoare
+  (sep_auto simp: to_ana_ref_def to_ana_ref_id_def uint32_nat_rel_def
+   analyse_refinement_rel_def uint64_nat_rel_def br_def OR_132_is_sum
+   pure_def ana_refinement_assn_def hr_comp_def
+   nat_of_uint64_uint64_of_uint32
+   nat_of_uint32_le_uint32_max)
 
 lemma [sepref_fr_rules]:
   \<open>((return o from_ana_ref), (RETURN o from_ana_ref_id)) \<in>
    ana_refinement_fast_assn\<^sup>k \<rightarrow>\<^sub>a
    uint64_nat_assn *a uint32_nat_assn *a bool_assn\<close>
-  apply sepref_to_hoare
-  apply (case_tac xi)
-  apply
-    (sep_auto simp: from_ana_ref_def from_ana_ref_id_def ana_ref_assn_def
-    analyse_refinement_rel_def uint64_nat_rel_def br_def
-    case_prod_beta ana_refinement_fast_assn_alt_def pure_def)
-  done
+proof -
+  have \<open>(4294967296::uint64) = (0::uint64) \<longleftrightarrow> (0 :: uint64) = 4294967296\<close>
+    by argo
+  also have \<open>\<dots> \<longleftrightarrow> False\<close>
+    by auto
+  finally have [iff]: \<open>(4294967296::uint64) \<noteq> (0::uint64)\<close>
+    by blast
+  have eq: \<open>(1::uint64) << (32::nat) = 4294967296\<close>
+    by (auto simp: numeral_eq_Suc shiftl_t2n_uint64)
+
+  show ?thesis
+    apply sepref_to_hoare
+    apply (case_tac xi)
+    apply
+      (sep_auto simp: from_ana_ref_def from_ana_ref_id_def
+      analyse_refinement_rel_def uint64_nat_rel_def br_def
+      case_prod_beta ana_refinement_fast_assn_def pure_def)
+    apply (auto simp: hr_comp_def uint32_nat_rel_def br_def
+      take_only_lower32_le_uint32_max nat_of_uint64_uint64_of_uint32
+      nat_of_uint32_le_uint32_max nat_of_uint64_1_32 take_only_lower32_1_32
+	take_only_lower32_le_uint32_max_ge_uint32_max AND_2_32_bool
+	le_uint32_max_AND2_32_eq0)
+    apply (auto simp: eq  simp del: star_aci(2))[]
+    apply (subst norm_assertion_simps(17)[symmetric])
+    apply (subst star_aci(2))
+    apply (rule ent_refl_true)
+    done
+qed
 
 lemma [sepref_fr_rules]:
   \<open>((return o from_ana_ref), (RETURN o from_ana_ref_id)) \<in>
    ana_refinement_assn\<^sup>k \<rightarrow>\<^sub>a
   nat_assn *a uint32_nat_assn *a bool_assn\<close>
-  unfolding ana_refinement_assn_alt_def[abs_def]
-  apply sepref_to_hoare
-  apply (case_tac xi)
-  apply
-    (sep_auto simp: from_ana_ref_def from_ana_ref_id_def
-     uint64_nat_rel_def br_def ana_refinement_assn_alt_def
-    case_prod_beta pure_def)
-  done
+proof -
+  have \<open>(4294967296::uint64) = (0::uint64) \<longleftrightarrow> (0 :: uint64) = 4294967296\<close>
+    by argo
+  also have \<open>\<dots> \<longleftrightarrow> False\<close>
+    by auto
+  finally have [iff]: \<open>(4294967296::uint64) \<noteq> (0::uint64)\<close>
+    by blast
+  have eq: \<open>(1::uint64) << (32::nat) = 4294967296\<close>
+    by (auto simp: numeral_eq_Suc shiftl_t2n_uint64)
+
+  show ?thesis
+    apply sepref_to_hoare
+    apply (case_tac xi)
+    apply
+      (sep_auto simp: from_ana_ref_def from_ana_ref_id_def
+      analyse_refinement_rel_def uint64_nat_rel_def br_def
+      case_prod_beta ana_refinement_assn_def pure_def)
+    apply (auto simp: hr_comp_def uint32_nat_rel_def br_def
+      take_only_lower32_le_uint32_max nat_of_uint64_uint64_of_uint32
+      nat_of_uint32_le_uint32_max nat_of_uint64_1_32 take_only_lower32_1_32
+	take_only_lower32_le_uint32_max_ge_uint32_max AND_2_32_bool
+	le_uint32_max_AND2_32_eq0)
+    apply (auto simp: eq  simp del: star_aci(2))[]
+    apply (subst norm_assertion_simps(17)[symmetric])
+    apply (subst star_aci(2))
+    apply (rule ent_refl_true)
+    done
+qed
 
 lemma minimize_status_eq_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in>
@@ -3444,6 +3355,14 @@ proof -
     subgoal by auto
     done
 qed
+
+lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure ana_refinement_fast_assn\<close>
+  unfolding CONSTRAINT_def ana_refinement_fast_assn_def
+  by (auto intro: hr_comp_is_pure)
+
+lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure ana_refinement_assn\<close>
+  unfolding CONSTRAINT_def ana_refinement_assn_def
+  by (auto intro: hr_comp_is_pure)
 
 sepref_register from_ana_ref_id
 sepref_definition isa_mark_failed_lits_stack_code
@@ -4547,7 +4466,7 @@ proof -
     show ?thesis
       using that by auto
   qed
-  thm isa_literal_redundant_wl_lookup_literal_redundant_wl_lookup[of \<A> vdom, THEN fref_to_Down_curry5]
+
   show ?thesis
     unfolding isa_minimize_and_extract_highest_lookup_conflict_def uncurry_def
       minimize_and_extract_highest_lookup_conflict_def
