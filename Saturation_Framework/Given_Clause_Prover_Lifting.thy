@@ -720,6 +720,10 @@ definition \<G>_Inf :: \<open>'a clause Saturation_Framework_Preliminaries.infer
                       \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set\<close> where
   \<open>\<G>_Inf \<iota> = {\<iota> \<cdot>inf \<sigma> | \<sigma>. is_ground_subst \<sigma>}\<close>
 
+context
+  assumes sel_func_liftable: \<open>is_ground_subst \<sigma> \<Longrightarrow> (S C) \<cdot> \<sigma> = S (C \<cdot> \<sigma>)\<close>
+begin
+
 lemma inf_F_to_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<iota>' \<in> \<G>_Inf \<iota> \<Longrightarrow> \<iota>' \<in> Inf_G\<close>
 proof -
   assume
@@ -742,19 +746,40 @@ proof -
     using res_r r_is rs_is CAs_r_is DA_r_is AAs_r_is As_r_is
     unfolding ord_resolve.simps ord_resolve_rename.simps by force
   then obtain Cs D where
-    \<open>DA_r = D + negs (mset As_r)\<close> and
-    \<open>E = ((\<Union># mset Cs) + D) \<cdot> \<eta>\<close> and
-    \<open>length Cs = n\<close> and
-    \<open>(\<forall>i < n. CAs_r ! i = Cs ! i + poss (AAs_r ! i))\<close> and
-    \<open>eligible S \<eta> As_r (D + negs (mset As_r))\<close> and
-    \<open>(\<forall>i < n. strictly_maximal_wrt (As_r ! i \<cdot>a \<eta>) (Cs ! i \<cdot> \<eta>))\<close>
+    DA_r_is: \<open>DA_r = D + negs (mset As_r)\<close> and
+    E_is: \<open>E = (\<Union>#mset Cs + D) \<cdot> \<eta>\<close> and
+    len_CAs_r: \<open>length CAs_r = n\<close> and
+    len_Cs: \<open>length Cs = n\<close> and
+    len_AAs_r: \<open>length AAs_r = n\<close> and
+    len_As_r: \<open>length As_r = n\<close> and
+    AAs_r_nempty: \<open>\<forall>i<n. AAs_r ! i \<noteq> {#}\<close> and
+    eta_mgu: \<open>Some \<eta> = mgu (set_mset ` set (Map2.map2 add_mset As_r AAs_r))\<close> and
+    sel_i: \<open>\<forall>i<n. S (CAs_r ! i) = {#}\<close> and
+    CAs_r_i_is: \<open>(\<forall>i < n. CAs_r ! i = Cs ! i + poss (AAs_r ! i))\<close> and
+    elig: \<open>eligible S \<eta> As_r (D + negs (mset As_r))\<close> and
+    smax: \<open>(\<forall>i < n. strictly_maximal_wrt (As_r ! i \<cdot>a \<eta>) (Cs ! i \<cdot> \<eta>))\<close>
     unfolding ord_resolve.simps using n_is n_not_null by auto
   define \<sigma> where \<open>\<sigma> = \<eta> \<odot> \<gamma>\<close>
-  have \<open>gr.ord_resolve (CAs_r \<cdot>cl \<sigma>) (DA_r \<cdot> \<sigma>) (AAs_r \<cdot>aml \<sigma>) (As_r \<cdot>al \<sigma>) (E \<cdot> \<sigma>)\<close>
-    using ord_res g_ground unfolding \<sigma>_def gr.ord_resolve.simps ord_resolve.simps apply auto sorry
-
+  have s_ground: \<open>is_ground_subst \<sigma>\<close> unfolding is_ground_subst_def \<sigma>_def using g_ground by auto
+  have \<open>gr.eligible (As_r \<cdot>al \<sigma>) (D \<cdot> \<sigma> + negs (mset As_r \<cdot>am \<sigma>))\<close>
+  using elig DA_r_is unfolding eligible.simps gr.eligible.simps gr.maximal_wrt_def maximal_wrt_def
+  apply (intro conjI exI)
+  sorry
+  have \<open>gr.ord_resolve (CAs_r \<cdot>cl \<sigma>) (DA_r \<cdot> \<sigma>) (AAs_r \<cdot>aml \<sigma>) (As_r \<cdot>al \<sigma>) (E \<cdot> \<gamma>)\<close>
+    using mgu_unifier DA_r_is E_is len_CAs_r n_not_null len_Cs len_AAs_r len_As_r AAs_r_nempty eta_mgu sel_i CAs_r_i_is elig smax g_ground (*subst_cls_list_nth*) unfolding gr.ord_resolve.simps ord_resolve.simps
+    apply -
+    apply (rule_tac x=\<open>CAs_r \<cdot>cl \<sigma>\<close> in exI)
+    apply (rule_tac x=\<open>n\<close> in exI)
+    apply (rule_tac x=\<open>Cs \<cdot>cl \<sigma>\<close> in exI)
+    apply (rule_tac x=\<open>AAs_r \<cdot>aml \<sigma>\<close> in exI)
+    apply (rule_tac x=\<open>As_r \<cdot>al \<sigma>\<close> in exI)
+    apply (rule_tac x=\<open>D \<cdot> \<sigma>\<close> in exI)
+    apply (auto simp: \<sigma>_def)
+   sorry 
   show \<open>\<iota>' \<in> Inf_G\<close> sorry
 qed
+
+find_theorems "mgu" "_ = _" name: Abstract_Substitution
 
 interpretation \<G>: grounding_function Bot_F entails_sound_F Inf_F Bot_G entails_sound_G Inf_G
   entails_comp_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf
@@ -795,6 +820,8 @@ next
       by (simp add: gr_calc.Red_Inf_of_Inf_to_N)
   qed
 qed
+
+end
 
 end
 
