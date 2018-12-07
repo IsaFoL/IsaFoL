@@ -27,7 +27,7 @@ session Functional_Ordered_Resolution_Prover_Base = "HOL-Library" +
     First_Order_Terms.Matching
     TRS.Term_More
 
-session Functional_Ordered_Resolution_Prover = Functional_Ordered_Resolution_Prover_Base +
+session Executable_Functional_Ordered_Resolution_Prover = Functional_Ordered_Resolution_Prover_Base +
   options [document = pdf, document_output = "output",
     document_variants = "document:outline=/proof,/ML" (*,
     timeout=200 *)]
