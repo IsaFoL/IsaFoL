@@ -232,7 +232,7 @@ notation
 
 notation prod_assn (infixr "*a" 90)
 
-lemma norm_RETURN_o[to_hnr_post]: 
+lemma norm_RETURN_o[to_hnr_post]:
   "\<And>f. (RETURN oooo f)$x$y$z$a = (RETURN$(f$x$y$z$a))"
   "\<And>f. (RETURN ooooo f)$x$y$z$a$b = (RETURN$(f$x$y$z$a$b))"
   "\<And>f. (RETURN oooooo f)$x$y$z$a$b$c = (RETURN$(f$x$y$z$a$b$c))"
@@ -242,7 +242,7 @@ lemma norm_RETURN_o[to_hnr_post]:
   "\<And>f. (RETURN oooooooooo f)$x$y$z$a$b$c$d$e$g$h= (RETURN$(f$x$y$z$a$b$c$d$e$g$h))"
   by auto
 
-lemma norm_return_o[to_hnr_post]: 
+lemma norm_return_o[to_hnr_post]:
   "\<And>f. (return oooo f)$x$y$z$a = (return$(f$x$y$z$a))"
   "\<And>f. (return ooooo f)$x$y$z$a$b = (return$(f$x$y$z$a$b))"
   "\<And>f. (return oooooo f)$x$y$z$a$b$c = (return$(f$x$y$z$a$b$c))"

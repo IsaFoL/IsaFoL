@@ -3508,7 +3508,7 @@ lemma cdcl_twl_restart_l_lit_of_nth:
     valid_trail_reduction_lit_of_nth[of M M' i]
     by auto
   done
-  
+
 lemma valid_trail_reduction_is_decided_nth:
   \<open>valid_trail_reduction M M' \<Longrightarrow> length M = length M' \<Longrightarrow> i < length M \<Longrightarrow>
     is_decided (M ! i) = is_decided (M' ! i)\<close>
@@ -3522,13 +3522,13 @@ lemma valid_trail_reduction_is_decided_nth:
     by (auto simp: nth_map nth_append nth_Cons split: if_splits
       dest!: get_all_ann_decomposition_exists_prepend)
   done
- 
+
 lemma cdcl_twl_restart_l_mark_of_same_or_0:
   \<open>cdcl_twl_restart_l S U \<Longrightarrow> i < length (get_trail_l U) \<Longrightarrow> is_proped (get_trail_l U ! i) \<Longrightarrow>
     length (get_trail_l S) = length (get_trail_l U) \<Longrightarrow>
      (mark_of (get_trail_l U ! i) > 0 \<Longrightarrow> mark_of (get_trail_l S ! i) > 0 \<Longrightarrow>
         mset (get_clauses_l S \<propto> mark_of (get_trail_l S ! i))
-	 = mset (get_clauses_l U \<propto> mark_of (get_trail_l U ! i)) \<Longrightarrow> P) \<Longrightarrow> 
+	 = mset (get_clauses_l U \<propto> mark_of (get_trail_l U ! i)) \<Longrightarrow> P) \<Longrightarrow>
     (mark_of (get_trail_l U ! i) = 0 \<Longrightarrow> P) \<Longrightarrow> P\<close>
   apply (induction rule: cdcl_twl_restart_l.induct)
   subgoal for M M' N N' NE' UE' NE UE Q Q'
@@ -3599,7 +3599,7 @@ proof -
   qed
 
   have mark_to_delete_clauses_l_pre: \<open>mark_to_delete_clauses_l_pre U\<close>
-    if 
+    if
       \<open>(T, T') \<in> Id\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close> and
       \<open>(U, U') \<in> Id\<close> and
@@ -3626,7 +3626,7 @@ proof -
       by blast
   qed
   have 2: \<open>mark_to_delete_clauses_l U \<le> SPEC (?f2 U')\<close>
-    if 
+    if
       \<open>(T, T') \<in> Id\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close> and
       UU': \<open>(U, U') \<in> Id\<close> and
@@ -3639,7 +3639,7 @@ proof -
     then have SU: \<open>?f S U\<close>
       using n_d cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l
       by blast
- 
+
     obtain V where
       TV: \<open>(U, V) \<in> twl_st_l None\<close> and
       struct: \<open>twl_struct_invs V\<close> and
@@ -3657,7 +3657,7 @@ proof -
           ST in auto)
   qed
   have 3: \<open>cdcl_GC_clauses V \<le> SPEC (?f2 V')\<close>
-    if 
+    if
       \<open>(T, T') \<in> Id\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close> and
       \<open>(U, U') \<in> Id\<close> and
@@ -3703,7 +3703,7 @@ proof -
          \<open>?f S V\<close> eq mark in \<open>auto simp: \<open>V = V'\<close>\<close>)
   qed
   have cdcl_twl_restart_l: \<open>cdcl_twl_restart_l S W\<close>
-    if 
+    if
       \<open>(T, T') \<in> Id\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close> and
       \<open>(U, U') \<in> Id\<close> and

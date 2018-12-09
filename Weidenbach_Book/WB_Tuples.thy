@@ -121,7 +121,7 @@ lemma of_tuple4_id_hnr[sepref_fr_rules]:
   \<open>(return o of_tuple4, RETURN o of_tuple4_id) \<in>
      (tuple4_assn R1 R2 R3 R4)\<^sup>d \<rightarrow>\<^sub>a R1 *a R2 *a R3 *a R4\<close>
   by sepref_to_hoare (sep_auto simp: of_tuple4_def split: tuple4.splits)
-  
+
 
 
 datatype ('a, 'b, 'c, 'd, 'e) tuple5 = Tuple5 'a 'b 'c 'd 'e
@@ -173,7 +173,7 @@ lemma of_tuple5_id_hnr[sepref_fr_rules]:
   \<open>(return o of_tuple5, RETURN o of_tuple5_id) \<in>
      (tuple5_assn R1 R2 R3 R4 R5)\<^sup>d \<rightarrow>\<^sub>a R1 *a R2 *a R3 *a R4 *a R5\<close>
   by sepref_to_hoare (sep_auto simp: of_tuple5_def split: tuple5.splits)
-  
+
 
 
 datatype ('a, 'b, 'c, 'd, 'e, 'f) tuple6 = Tuple6 'a 'b 'c 'd 'e 'f
@@ -190,7 +190,7 @@ fun to_tuple6_id :: "'a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd \<Rig
 
 definition of_tuple6_id :: \<open>'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<times> 'f \<Rightarrow> 'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<times> 'f \<close> where
  [simp]: \<open>of_tuple6_id x = x\<close>
- 
+
 instance tuple6 :: (heap, heap, heap, heap, heap, heap) heap
 proof
   obtain to_nat :: \<open>'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<times> 'f \<Rightarrow> nat\<close> where
@@ -229,7 +229,7 @@ lemma of_tuple6_id_hnr[sepref_fr_rules]:
   \<open>(return o of_tuple6, RETURN o of_tuple6_id) \<in>
      (tuple6_assn R1 R2 R3 R4 R5 R6)\<^sup>d \<rightarrow>\<^sub>a R1 *a R2 *a R3 *a R4 *a R5 *a R6\<close>
   by sepref_to_hoare (sep_auto simp: of_tuple6_def split: tuple6.splits)
-  
+
 
 
 datatype ('a, 'b, 'c, 'd, 'e, 'f, 'g) tuple7 = Tuple7 'a 'b 'c 'd 'e 'f 'g
@@ -246,7 +246,7 @@ fun to_tuple7_id :: "'a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd \<Rig
 
 definition of_tuple7_id :: \<open>'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<times> 'f  \<times> 'g \<Rightarrow> 'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<times> 'f \<times> 'g \<close> where
  [simp]: \<open>of_tuple7_id x = x\<close>
- 
+
 instance tuple7 :: (heap, heap, heap, heap, heap, heap, heap) heap
 proof
   obtain to_nat :: \<open>'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<times> 'f \<times> 'g \<Rightarrow> nat\<close> where
@@ -291,7 +291,7 @@ lemma of_tuple7_id_hnr[sepref_fr_rules]:
 datatype ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h) tuple8 = Tuple8 'a 'b 'c 'd 'e 'f 'g 'h
 
 fun to_tuple8 where
-  \<open>to_tuple8 a b c d e f g h = Tuple8 a b c d e f g h\<close> 
+  \<open>to_tuple8 a b c d e f g h = Tuple8 a b c d e f g h\<close>
 
 definition of_tuple8 where
   \<open>of_tuple8 x = (case x of Tuple8 a b c d e f g h \<Rightarrow> (a, b, c, d, e, f, g, h))\<close>
@@ -302,7 +302,7 @@ fun to_tuple8_id :: "'a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd \<Rig
 
 definition of_tuple8_id :: \<open>'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<times> 'f  \<times> 'g \<times> 'i \<Rightarrow> 'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<times> 'f \<times> 'g \<times> 'i\<close> where
  [simp]: \<open>of_tuple8_id x = x\<close>
- 
+
 instance tuple8 :: (heap, heap, heap, heap, heap, heap, heap, heap) heap
 proof
   obtain to_nat :: \<open>'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<times> 'f \<times> 'g \<times> 'h \<Rightarrow> nat\<close> where
@@ -346,7 +346,7 @@ lemma of_tuple8_id_hnr[sepref_fr_rules]:
 datatype ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i) tuple9 = Tuple9 'a 'b 'c 'd 'e 'f 'g 'h 'i
 
 fun to_tuple9 where
-  \<open>to_tuple9 a b c d e f g h i = Tuple9 a b c d e f g h i\<close> 
+  \<open>to_tuple9 a b c d e f g h i = Tuple9 a b c d e f g h i\<close>
 
 definition of_tuple9 where
   \<open>of_tuple9 x = (case x of Tuple9 a b c d e f g h i \<Rightarrow> (a, b, c, d, e, f, g, h, i))\<close>

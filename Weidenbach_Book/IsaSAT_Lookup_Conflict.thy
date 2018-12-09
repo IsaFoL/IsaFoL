@@ -3039,7 +3039,7 @@ lemma conflict_min_cach_set_removable:
 
 definition analyse_refinement_rel where
   \<open>analyse_refinement_rel = nat_rel \<times>\<^sub>f {(n, (L, b)). \<exists>L'. (L', L) \<in> uint32_nat_rel \<and>
-      n = uint64_of_uint32 L' + (if b then 1 << 32 else 0)}\<close> 
+      n = uint64_of_uint32 L' + (if b then 1 << 32 else 0)}\<close>
 
 definition (in -)ana_refinement_assn where
   \<open>ana_refinement_assn \<equiv> hr_comp (nat_assn *a uint64_assn) analyse_refinement_rel\<close>
@@ -3111,7 +3111,7 @@ lemma to_ana_ref_id_fast_hnr[sepref_fr_rules]:
    pure_def ana_refinement_fast_assn_def hr_comp_def
    nat_of_uint64_uint64_of_uint32
    nat_of_uint32_le_uint32_max)
-   
+
 lemma to_ana_ref_id_hnr[sepref_fr_rules]:
   \<open>(uncurry2 (return ooo to_ana_ref), uncurry2 (RETURN ooo to_ana_ref_id)) \<in>
    nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a
