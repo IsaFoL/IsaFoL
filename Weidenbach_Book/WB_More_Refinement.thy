@@ -213,20 +213,44 @@ method match_spec_trans =
 
 subsection \<open>More Notations\<close>
 
-abbreviation comp4 (infixl "oooo" 55) where "f oooo g \<equiv> \<lambda>x. f ooo (g x)"
-abbreviation comp5 (infixl "ooooo" 55) where "f ooooo g \<equiv> \<lambda>x. f oooo (g x)"
-abbreviation comp6 (infixl "oooooo" 55) where "f oooooo g \<equiv> \<lambda>x. f oooo (g x)"
-abbreviation comp7 (infixl "ooooooo" 55) where "f ooooooo g \<equiv> \<lambda>x. f oooo (g x)"
-abbreviation comp8 (infixl "oooooooo" 55) where "f oooooooo g \<equiv> \<lambda>x. f oooo (g x)"
+abbreviation comp4  (infixl "oooo" 55)       where "f oooo g \<equiv>       \<lambda>x. f ooo (g x)"
+abbreviation comp5  (infixl "ooooo" 55)      where "f ooooo g \<equiv>      \<lambda>x. f oooo (g x)"
+abbreviation comp6  (infixl "oooooo" 55)     where "f oooooo g \<equiv>     \<lambda>x. f ooooo (g x)"
+abbreviation comp7  (infixl "ooooooo" 55)    where "f ooooooo g \<equiv>    \<lambda>x. f oooooo (g x)"
+abbreviation comp8  (infixl "oooooooo" 55)   where "f oooooooo g \<equiv>   \<lambda>x. f ooooooo (g x)"
+abbreviation comp9  (infixl "ooooooooo" 55)  where "f ooooooooo g \<equiv>  \<lambda>x. f oooooooo (g x)"
+abbreviation comp10 (infixl "oooooooooo" 55) where "f oooooooooo g \<equiv> \<lambda>x. f ooooooooo (g x)"
 
 notation
   comp4 (infixl "\<circ>\<circ>\<circ>" 55) and
   comp5 (infixl "\<circ>\<circ>\<circ>\<circ>" 55) and
   comp6 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
   comp7 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
-  comp8 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55)
+  comp8 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
+  comp9 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
+  comp9 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55)
 
 notation prod_assn (infixr "*a" 90)
+
+lemma norm_RETURN_o[to_hnr_post]: 
+  "\<And>f. (RETURN oooo f)$x$y$z$a = (RETURN$(f$x$y$z$a))"
+  "\<And>f. (RETURN ooooo f)$x$y$z$a$b = (RETURN$(f$x$y$z$a$b))"
+  "\<And>f. (RETURN oooooo f)$x$y$z$a$b$c = (RETURN$(f$x$y$z$a$b$c))"
+  "\<And>f. (RETURN ooooooo f)$x$y$z$a$b$c$d = (RETURN$(f$x$y$z$a$b$c$d))"
+  "\<And>f. (RETURN oooooooo f)$x$y$z$a$b$c$d$e = (RETURN$(f$x$y$z$a$b$c$d$e))"
+  "\<And>f. (RETURN ooooooooo f)$x$y$z$a$b$c$d$e$g = (RETURN$(f$x$y$z$a$b$c$d$e$g))"
+  "\<And>f. (RETURN oooooooooo f)$x$y$z$a$b$c$d$e$g$h= (RETURN$(f$x$y$z$a$b$c$d$e$g$h))"
+  by auto
+
+lemma norm_return_o[to_hnr_post]: 
+  "\<And>f. (return oooo f)$x$y$z$a = (return$(f$x$y$z$a))"
+  "\<And>f. (return ooooo f)$x$y$z$a$b = (return$(f$x$y$z$a$b))"
+  "\<And>f. (return oooooo f)$x$y$z$a$b$c = (return$(f$x$y$z$a$b$c))"
+  "\<And>f. (return ooooooo f)$x$y$z$a$b$c$d = (return$(f$x$y$z$a$b$c$d))"
+  "\<And>f. (return oooooooo f)$x$y$z$a$b$c$d$e = (return$(f$x$y$z$a$b$c$d$e))"
+  "\<And>f. (return ooooooooo f)$x$y$z$a$b$c$d$e$g = (return$(f$x$y$z$a$b$c$d$e$g))"
+  "\<And>f. (return oooooooooo f)$x$y$z$a$b$c$d$e$g$h= (return$(f$x$y$z$a$b$c$d$e$g$h))"
+    by auto
 
 
 subsection \<open>More Theorems for Refinement\<close>
