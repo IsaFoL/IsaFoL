@@ -211,7 +211,32 @@ method match_spec_trans =
     \<open>print_term f; match premises in I: \<open>_ \<Longrightarrow> _ \<Longrightarrow> f' \<le> SPEC R'\<close> for f' :: \<open>'a nres\<close> and R' :: \<open>'a \<Rightarrow> bool\<close>
        \<Rightarrow> \<open>print_term f'; rule weaken_SPEC2[of f' R' f R]\<close>\<close>)
 
+
 subsection \<open>More Notations\<close>
+
+abbreviation "uncurry10 f \<equiv> uncurry (uncurry9 f)"
+abbreviation "curry10 f \<equiv> curry (curry9 f)"
+abbreviation "uncurry11 f \<equiv> uncurry (uncurry10 f)"
+abbreviation "curry11 f \<equiv> curry (curry10 f)"
+abbreviation "uncurry12 f \<equiv> uncurry (uncurry11 f)"
+abbreviation "curry12 f \<equiv> curry (curry11 f)"
+abbreviation "uncurry13 f \<equiv> uncurry (uncurry12 f)"
+abbreviation "curry13 f \<equiv> curry (curry12 f)"
+abbreviation "uncurry14 f \<equiv> uncurry (uncurry13 f)"
+abbreviation "curry14 f \<equiv> curry (curry13 f)"
+abbreviation "uncurry15 f \<equiv> uncurry (uncurry14 f)"
+abbreviation "curry15 f \<equiv> curry (curry14 f)"
+abbreviation "uncurry16 f \<equiv> uncurry (uncurry15 f)"
+abbreviation "curry16 f \<equiv> curry (curry15 f)"
+abbreviation "uncurry17 f \<equiv> uncurry (uncurry16 f)"
+abbreviation "curry17 f \<equiv> curry (curry16 f)"
+abbreviation "uncurry18 f \<equiv> uncurry (uncurry17 f)"
+abbreviation "curry18 f \<equiv> curry (curry17 f)"
+abbreviation "uncurry19 f \<equiv> uncurry (uncurry18 f)"
+abbreviation "curry19 f \<equiv> curry (curry18 f)"
+abbreviation "uncurry20 f \<equiv> uncurry (uncurry19 f)"
+abbreviation "curry20 f \<equiv> curry (curry19 f)"
+
 
 abbreviation comp4  (infixl "oooo" 55)       where "f oooo g \<equiv>       \<lambda>x. f ooo (g x)"
 abbreviation comp5  (infixl "ooooo" 55)      where "f ooooo g \<equiv>      \<lambda>x. f oooo (g x)"
@@ -220,6 +245,16 @@ abbreviation comp7  (infixl "ooooooo" 55)    where "f ooooooo g \<equiv>    \<la
 abbreviation comp8  (infixl "oooooooo" 55)   where "f oooooooo g \<equiv>   \<lambda>x. f ooooooo (g x)"
 abbreviation comp9  (infixl "ooooooooo" 55)  where "f ooooooooo g \<equiv>  \<lambda>x. f oooooooo (g x)"
 abbreviation comp10 (infixl "oooooooooo" 55) where "f oooooooooo g \<equiv> \<lambda>x. f ooooooooo (g x)"
+abbreviation comp11 (infixl "o\<^sub>1\<^sub>1" 55) where "f o\<^sub>1\<^sub>1 g \<equiv> \<lambda>x. f oooooooooo (g x)"
+abbreviation comp12 (infixl "o\<^sub>1\<^sub>2" 55) where "f o\<^sub>1\<^sub>2 g \<equiv> \<lambda>x. f o\<^sub>1\<^sub>1 (g x)"
+abbreviation comp13 (infixl "o\<^sub>1\<^sub>3" 55) where "f o\<^sub>1\<^sub>3 g \<equiv> \<lambda>x. f o\<^sub>1\<^sub>2 (g x)"
+abbreviation comp14 (infixl "o\<^sub>1\<^sub>4" 55) where "f o\<^sub>1\<^sub>4 g \<equiv> \<lambda>x. f o\<^sub>1\<^sub>3 (g x)"
+abbreviation comp15 (infixl "o\<^sub>1\<^sub>5" 55) where "f o\<^sub>1\<^sub>5 g \<equiv> \<lambda>x. f o\<^sub>1\<^sub>4 (g x)"
+abbreviation comp16 (infixl "o\<^sub>1\<^sub>6" 55) where "f o\<^sub>1\<^sub>6 g \<equiv> \<lambda>x. f o\<^sub>1\<^sub>5 (g x)"
+abbreviation comp17 (infixl "o\<^sub>1\<^sub>7" 55) where "f o\<^sub>1\<^sub>7 g \<equiv> \<lambda>x. f o\<^sub>1\<^sub>6 (g x)"
+abbreviation comp18 (infixl "o\<^sub>1\<^sub>8" 55) where "f o\<^sub>1\<^sub>8 g \<equiv> \<lambda>x. f o\<^sub>1\<^sub>7 (g x)"
+abbreviation comp19 (infixl "o\<^sub>1\<^sub>9" 55) where "f o\<^sub>1\<^sub>9 g \<equiv> \<lambda>x. f o\<^sub>1\<^sub>8 (g x)"
+abbreviation comp20 (infixl "o\<^sub>2\<^sub>0" 55) where "f o\<^sub>2\<^sub>0 g \<equiv> \<lambda>x. f o\<^sub>1\<^sub>9 (g x)"
 
 notation
   comp4 (infixl "\<circ>\<circ>\<circ>" 55) and
@@ -228,7 +263,17 @@ notation
   comp7 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
   comp8 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
   comp9 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
-  comp9 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55)
+  comp10 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
+  comp11 (infixl "\<circ>\<^sub>1\<^sub>1" 55) and
+  comp12 (infixl "\<circ>\<^sub>1\<^sub>2" 55) and
+  comp13 (infixl "\<circ>\<^sub>1\<^sub>3" 55) and
+  comp14 (infixl "\<circ>\<^sub>1\<^sub>4" 55) and
+  comp15 (infixl "\<circ>\<^sub>1\<^sub>5" 55) and
+  comp16 (infixl "\<circ>\<^sub>1\<^sub>6" 55) and
+  comp17 (infixl "\<circ>\<^sub>1\<^sub>7" 55) and
+  comp18 (infixl "\<circ>\<^sub>1\<^sub>8" 55) and
+  comp19 (infixl "\<circ>\<^sub>1\<^sub>9" 55) and
+  comp20 (infixl "\<circ>\<^sub>2\<^sub>0" 55)
 
 notation prod_assn (infixr "*a" 90)
 
@@ -240,6 +285,20 @@ lemma norm_RETURN_o[to_hnr_post]:
   "\<And>f. (RETURN oooooooo f)$x$y$z$a$b$c$d$e = (RETURN$(f$x$y$z$a$b$c$d$e))"
   "\<And>f. (RETURN ooooooooo f)$x$y$z$a$b$c$d$e$g = (RETURN$(f$x$y$z$a$b$c$d$e$g))"
   "\<And>f. (RETURN oooooooooo f)$x$y$z$a$b$c$d$e$g$h= (RETURN$(f$x$y$z$a$b$c$d$e$g$h))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>1 f)$x$y$z$a$b$c$d$e$g$h$i= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>2 f)$x$y$z$a$b$c$d$e$g$h$i$j= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>3 f)$x$y$z$a$b$c$d$e$g$h$i$j$l= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>4 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>5 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>6 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>7 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r=
+    (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>8 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s=
+    (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>9 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t=
+    (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t))"
+  "\<And>f. (RETURN \<circ>\<^sub>2\<^sub>0 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u=
+    (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u))"
   by auto
 
 lemma norm_return_o[to_hnr_post]:
@@ -250,6 +309,20 @@ lemma norm_return_o[to_hnr_post]:
   "\<And>f. (return oooooooo f)$x$y$z$a$b$c$d$e = (return$(f$x$y$z$a$b$c$d$e))"
   "\<And>f. (return ooooooooo f)$x$y$z$a$b$c$d$e$g = (return$(f$x$y$z$a$b$c$d$e$g))"
   "\<And>f. (return oooooooooo f)$x$y$z$a$b$c$d$e$g$h= (return$(f$x$y$z$a$b$c$d$e$g$h))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>1 f)$x$y$z$a$b$c$d$e$g$h$i= (return$(f$x$y$z$a$b$c$d$e$g$h$i))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>2 f)$x$y$z$a$b$c$d$e$g$h$i$j= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>3 f)$x$y$z$a$b$c$d$e$g$h$i$j$l= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>4 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>5 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>6 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>7 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r=
+    (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>8 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s=
+    (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>9 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t=
+    (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t))"
+  "\<And>f. (return \<circ>\<^sub>2\<^sub>0 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u=
+    (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u))"
     by auto
 
 
