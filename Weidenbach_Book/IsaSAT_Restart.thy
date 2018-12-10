@@ -556,7 +556,7 @@ sepref_definition cdcl_twl_stgy_restart_prog_wl_heur_code
 declare cdcl_twl_stgy_restart_prog_wl_heur_code.refine[sepref_fr_rules]
 
 lemma (in -) isasat_fast_alt_def:
-  \<open>RETURN o isasat_fast = (\<lambda>(M, N, _). RETURN (length N \<le> uint64_max - (uint32_max + 5)))\<close>
+  \<open>RETURN o isasat_fast = (\<lambda>(M, N, _). RETURN (length N \<le> uint64_max - (uint32_max div 2 + 6)))\<close>
   unfolding isasat_fast_def
   by (auto intro!:ext)
 
@@ -576,7 +576,7 @@ sepref_definition isasat_fast_code
 declare isasat_fast_code.refine[sepref_fr_rules]
 
 sepref_definition cdcl_twl_stgy_restart_prog_wl_heur_fast_code
-  is \<open> cdcl_twl_stgy_restart_prog_early_wl_heur\<close>
+  is \<open>cdcl_twl_stgy_restart_prog_early_wl_heur\<close>
   :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
   unfolding cdcl_twl_stgy_restart_prog_early_wl_heur_def
   supply [[goals_limit = 1]] isasat_fast_def[simp]

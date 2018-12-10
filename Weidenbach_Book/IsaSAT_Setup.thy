@@ -801,7 +801,7 @@ text \<open>
   following condition:
 \<close>
 definition isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> uint64_max - (uint32_max + 5))\<close>
+  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> uint64_max - (uint32_max div 2 + 6))\<close>
 
 lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> uint64_max\<close>
   by (cases S) (auto simp: isasat_fast_def)

@@ -1550,7 +1550,7 @@ lemma isasat_init_fast_slow_alt_def:
   by auto
 
 definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
-  \<open>isasat_fast_init S \<longleftrightarrow> (length (get_clauses_wl_heur_init S) \<le> uint64_max - (uint32_max + 5))\<close>
+  \<open>isasat_fast_init S \<longleftrightarrow> (length (get_clauses_wl_heur_init S) \<le> uint64_max - (uint32_max div 2 + 6))\<close>
 
 definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (nat literal list option \<times> stats) nres\<close> where
   \<open>IsaSAT_heur opts CS = do{
@@ -1565,8 +1565,8 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
     then do {
         S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init) \<leftarrow>  init_dt_wl_heur CS S;
-	T \<leftarrow> isasat_init_fast_slow T;
-	T \<leftarrow> rewatch_heur_st T;
+	      T \<leftarrow> isasat_init_fast_slow T;
+	      T \<leftarrow> rewatch_heur_st T;
         let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
         if \<not>get_conflict_wl_is_None_heur_init T
         then RETURN (empty_init_code)
@@ -1592,29 +1592,29 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
         else if CS = [] then empty_conflict_code
         else
           if \<not>(isasat_fast_init T)
-         then do {
+        then do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
            _ \<leftarrow> isasat_information_banner T;
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
-	   T \<leftarrow> isasat_init_fast_slow T;
-	   T \<leftarrow> rewatch_heur_st T;
+	         T \<leftarrow> isasat_init_fast_slow T;
+	         T \<leftarrow> rewatch_heur_st T;
            T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
            U \<leftarrow> cdcl_twl_stgy_restart_prog_wl_heur T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
              else extract_state_stat U)
-         }
-         else do {
+        }
+        else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
            _ \<leftarrow> isasat_information_banner T;
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
-	   ASSERT(rewatch_heur_st_fast_pre T);
-	   T \<leftarrow> rewatch_heur_st_fast T;
+	         ASSERT(rewatch_heur_st_fast_pre T);
+	         T \<leftarrow> rewatch_heur_st_fast T;
            T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
-	   ASSERT(isasat_fast T);
+	         ASSERT(isasat_fast T);
            U \<leftarrow> cdcl_twl_stgy_restart_prog_early_wl_heur T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
              else extract_state_stat U)
@@ -2270,7 +2270,7 @@ proof -
 qed
 
 lemma isasat_fast_init_alt_def:
-  \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _). RETURN (length N \<le> 18446744069414584315))\<close>
+  \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _). RETURN (length N \<le> 18446744071562067962))\<close>
   by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def intro!: ext)
 
 definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_list option \<times> stats\<close> where
@@ -2737,8 +2737,8 @@ definition heap_array_set'_u64' where
 code_printing constant heap_array_set'_u64' \<rightharpoonup>
    (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word64.toInt (_)),/ (_)))"
 
-code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
-
+(* code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
+ *)
 definition length_u_code' where
   [symmetric, code]: \<open>length_u_code' = length_u_code\<close>
 
@@ -2775,13 +2775,6 @@ lemma arl_set_u_code[code]: \<open>arl_set_u a i x =
   unfolding arl_set_u_def arl_set_def heap_array_set'_u64_def arl_set'_u_def
      heap_array_set_u_def Array.upd'_def Array_upd_u_def
   by (cases a) (auto simp: nat_of_uint64_code[symmetric])
-
-(* This equation makes no sense since a resizable array is represent by an array and an infinite
- integer: There is no obvious shortcut.
-code_printing constant length_arl_u_code' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Word32.fromLargeInt (snd (_)))"  *)
-(* code_printing constant nth_u64_code \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Uint64.toFixedInt (_)))" *)
-
 
 definition arl_get_u64' where
   [symmetric, code]: \<open>arl_get_u64' = arl_get_u64\<close>

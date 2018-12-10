@@ -659,14 +659,18 @@ sepref_definition (in -) header_size_fast_code
 declare (in -)header_size_fast_code.refine[sepref_fr_rules]
 (* End Move *)
 
+definition append_and_length_fast_code_pre where
+  \<open>append_and_length_fast_code_pre \<equiv> \<lambda>((b, C), N). length C \<le> uint32_max+2 \<and> length C \<ge> 2 \<and>
+          length N + length C + 5 \<le> uint64_max\<close>
+
 sepref_definition (in -)append_and_length_fast_code
   is \<open>uncurry2 fm_add_new_fast\<close>
-  :: \<open>[\<lambda>((b, C), N). length C \<le> uint32_max+2 \<and> length C \<ge> 2 \<and>
-          length N \<le> uint64_max - (uint32_max + 5)]\<^sub>a
+  :: \<open>[append_and_length_fast_code_pre]\<^sub>a
      bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a (arena_assn)\<^sup>d \<rightarrow>
        arena_assn *a uint64_nat_assn\<close>
   supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro] append_and_length_code_fast[intro]
-  unfolding fm_add_new_def AStatus_IRRED_def[symmetric]
+    header_size_def[simp]
+  unfolding fm_add_new_def AStatus_IRRED_def[symmetric] append_and_length_fast_code_pre_def
    AStatus_LEARNED_def[symmetric]
    two_uint64_nat_def[symmetric] fm_add_new_fast_def
    apply (rewrite in \<open>let _ = _ - _ in _\<close> length_uint64_nat_def[symmetric])
