@@ -2779,7 +2779,8 @@ lemma arl_set_u_code[code]: \<open>arl_set_u a i x =
 definition arl_get_u64' where
   [symmetric, code]: \<open>arl_get_u64' = arl_get_u64\<close>
 
-code_printing constant arl_get_u64' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Uint64.toFixedInt (_)))"
+code_printing constant arl_get_u64' \<rightharpoonup> (SML)
+  "(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Uint64.toFixedInt (_)))"
 
 export_code IsaSAT_code checking SML_imp
 
