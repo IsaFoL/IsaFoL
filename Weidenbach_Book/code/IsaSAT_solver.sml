@@ -2342,6 +2342,9 @@ fun count_decided_st_heur x =
 
 fun ema_get_value (v, uu) = v;
 
+val two_uint32 : Word32.word =
+  Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int));
+
 fun restart_required_heur_fast_code x =
   (fn ai => fn bi => fn () =>
     let
@@ -2376,7 +2379,7 @@ fun restart_required_heur_fast_code x =
                             (Uint64.less minimum_number_between_restarts
                                x_j andalso
                               (less_nat bi x_l andalso
-                                (Word32.< ((Word32.fromInt 2), x_r) andalso
+                                (Word32.< (two_uint32, x_r) andalso
                                   less_nat
                                     (nat_of_uint64
                                       (shiftr_uint64 x_h
@@ -3302,7 +3305,7 @@ fun restart_required_heur_slow_code x =
                             (Uint64.less minimum_number_between_restarts
                                x_j andalso
                               (less_nat bi x_l andalso
-                                (Word32.< ((Word32.fromInt 2), x_r) andalso
+                                (Word32.< (two_uint32, x_r) andalso
                                   less_nat
                                     (nat_of_uint64
                                       (shiftr_uint64 x_h
@@ -4242,8 +4245,7 @@ fun defined_atm_fast_code x =
     in
       (fn () =>
         let
-          val xa =
-            nth_u_code heap_uint32 a1a (Word32.* ((Word32.fromInt 2), bi)) ();
+          val xa = nth_u_code heap_uint32 a1a (Word32.* (two_uint32, bi)) ();
         in
           not ((xa : Word32.word) = uNSET_code)
         end)
@@ -4299,8 +4301,8 @@ fun lit_of_found_atm_D_code x =
           let
             val x_a = nth_u_code heap_bool ai xa ();
           in
-            (if x_a then SOME (Word32.* ((Word32.fromInt 2), xa))
-              else SOME (Word32.+ (Word32.* ((Word32.fromInt 2), xa), (Word32.fromInt 1))))
+            (if x_a then SOME (Word32.* (two_uint32, xa))
+              else SOME (Word32.+ (Word32.* (two_uint32, xa), (Word32.fromInt 1))))
           end)))
     x;
 
@@ -5976,8 +5978,7 @@ fun defined_atm_code x =
     in
       (fn () =>
         let
-          val xa =
-            nth_u_code heap_uint32 a1a (Word32.* ((Word32.fromInt 2), bi)) ();
+          val xa = nth_u_code heap_uint32 a1a (Word32.* (two_uint32, bi)) ();
         in
           not ((xa : Word32.word) = uNSET_code)
         end)
@@ -7089,7 +7090,8 @@ fun isasat_fast_code x =
     in
       less_eq_nat xa
         (minus_nata (nat_of_integer (18446744073709551615 : IntInf.int))
-          (plus_nat uint32_max (nat_of_integer (5 : IntInf.int))))
+          (plus_nat (divide_nat uint32_max (nat_of_integer (2 : IntInf.int)))
+            (nat_of_integer (6 : IntInf.int))))
     end)
     x;
 
@@ -7322,7 +7324,7 @@ fun finalise_init_code_unb x =
     let
       val xa =
         arl_replicate heap_uint32 (nat_of_integer (160 : IntInf.int))
-          (Word32.* ((Word32.fromInt 2), (Word32.fromInt 0))) ();
+          (Word32.* (two_uint32, (Word32.fromInt 0))) ();
       val xaa = arl_empty (default_nat, heap_nat) zero_nat ();
     in
       (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (the a1i, (the a1j, a2j)))),
@@ -7891,7 +7893,7 @@ fun finalise_init_code x =
     let
       val xa =
         arl_replicate heap_uint32 (nat_of_integer (160 : IntInf.int))
-          (Word32.* ((Word32.fromInt 2), (Word32.fromInt 0))) ();
+          (Word32.* (two_uint32, (Word32.fromInt 0))) ();
       val xaa = arl_empty (default_nat, heap_nat) zero_nat ();
     in
       (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (the a1i, (the a1j, a2j)))),
@@ -7932,7 +7934,7 @@ fun isasat_fast_init_code x =
     let
       val xa = arl_length heap_uint32 a1a ();
     in
-      less_eq_nat xa (nat_of_integer (18446744069414584315 : IntInf.int))
+      less_eq_nat xa (nat_of_integer (18446744071562067962 : IntInf.int))
     end)
     x;
 
