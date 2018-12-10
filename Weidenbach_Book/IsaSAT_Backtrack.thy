@@ -2337,16 +2337,20 @@ qed
 
 
 subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
-  (* TODO length C should be replaced by length_u64 *)
+
+lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
+  by (auto simp: uint_max_def uint64_max_def)
+
 sepref_definition propagate_bt_wl_D_code
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit = 1]] uminus_\<A>\<^sub>i\<^sub>n_iff[simp] image_image[simp] append_ll_def[simp]
-    rescore_clause_def[simp] vmtf_flush_def[simp]
+    rescore_clause_def[simp] vmtf_flush_def[simp] le_uint32_max_div_2_le_uint32_max[simp]
   unfolding propagate_bt_wl_D_heur_def isasat_unbounded_assn_def cons_trail_Propagated_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric] nat_of_uint32_conv_def
     cons_trail_Propagated_def[symmetric] PR_CONST_def save_phase_def
+  unfolding length_uint32_nat_def[symmetric] two_uint32_nat_def[symmetric]
   by sepref \<comment> \<open>slow\<close>
 
 
