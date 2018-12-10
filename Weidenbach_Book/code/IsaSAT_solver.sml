@@ -6811,10 +6811,10 @@ fun propagate_bt_wl_D_code x =
       in
         (fn f_ => fn () => f_ ((get_LBD_code a1i) ()) ())
           (fn x_c =>
-            (fn f_ => fn () => f_ ((len heap_uint32 bia) ()) ())
+            (fn f_ => fn () => f_ ((length_u_code heap_uint32 bia) ()) ())
               (fn xaa =>
                 let
-                  val x_f = equal_nat xaa (nat_of_integer (2 : IntInf.int));
+                  val x_f = ((xaa : Word32.word) = two_uint32);
                 in
                   (fn f_ => fn () => f_ ((append_and_length_code false bia a1a)
                     ()) ())
