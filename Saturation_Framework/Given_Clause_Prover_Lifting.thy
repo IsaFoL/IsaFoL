@@ -764,6 +764,13 @@ proof -
   have \<open>gr.eligible (As_r \<cdot>al \<sigma>) (D \<cdot> \<sigma> + negs (mset As_r \<cdot>am \<sigma>))\<close>
   using elig DA_r_is unfolding eligible.simps gr.eligible.simps gr.maximal_wrt_def maximal_wrt_def
   apply (intro conjI exI)
+  apply (rule refl)
+  apply (rule refl)
+  apply (auto simp flip: subst_cls_negs subst_cls_union sel_func_liftable simp: s_ground ) 
+  apply (cases As_r)
+  apply (auto simp: atms_of_def \<sigma>_def linorder_class.Max_eq_iff eq_commute[of _ "Max _"] dest!: multi_member_split[of _ D])
+  using s_ground less_atm_ground[of "_ \<cdot>a \<sigma>" "_ \<cdot>a \<sigma>", OF ground_subst_ground_atm ground_subst_ground_atm]
+  apply (auto simp: \<sigma>_def)
   sorry
   have \<open>gr.ord_resolve (CAs_r \<cdot>cl \<sigma>) (DA_r \<cdot> \<sigma>) (AAs_r \<cdot>aml \<sigma>) (As_r \<cdot>al \<sigma>) (E \<cdot> \<gamma>)\<close>
     using mgu_unifier DA_r_is E_is len_CAs_r n_not_null len_Cs len_AAs_r len_As_r AAs_r_nempty eta_mgu sel_i CAs_r_i_is elig smax g_ground (*subst_cls_list_nth*) unfolding gr.ord_resolve.simps ord_resolve.simps
@@ -779,7 +786,8 @@ proof -
   show \<open>\<iota>' \<in> Inf_G\<close> sorry
 qed
 
-find_theorems "mgu" "_ = _" name: Abstract_Substitution
+find_theorems "is_ground_subst" is_ground_atm
+thm less_atm_stable
 
 interpretation \<G>: grounding_function Bot_F entails_sound_F Inf_F Bot_G entails_sound_G Inf_G
   entails_comp_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf
