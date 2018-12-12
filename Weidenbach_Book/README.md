@@ -6,7 +6,7 @@ The relevant part of the book can be found [online](http://people.mpi-inf.mpg.de
 
 ## Organisation of the Development ##
 
-* The branch [master](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/) contains the latest development and is based on Isabelle version 2017.
+* The branch [master](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/) contains the latest development and is based on Isabelle version 2018.
 * The branch [IJCAR2016](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/) contains the version of the development related to the paper. Please refer to [this page](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/Readme.md).
 
 
@@ -49,7 +49,7 @@ A recent version of the documentation the theory files is also available [online
 
 ## Execution of the Formalisation ##
 
-* Please install [Isabelle2017](http://isabelle.in.tum.de).
+* Please install [Isabelle2018](http://isabelle.in.tum.de).
 * Install the [Archive of Formal proofs](https://www.isa-afp.org/using.html) as mentioned.
 * To process all the theory files, clone the repository and load ``IsaSAT.thy``, using
    ``/path/to/isabelle jedit -d . -l CDCL IsaSAT.thy``
