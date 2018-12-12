@@ -727,7 +727,7 @@ context
     less_atm_ground_total: \<open>is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> A \<noteq> B \<Longrightarrow> \<not> less_atm A B \<Longrightarrow> less_atm B A\<close>
 begin
 
-lemma
+lemma elig_grounded_elig:
   assumes
     g_ground: \<open>is_ground_subst \<gamma>\<close> and
     elig: \<open>eligible S \<eta> As (D + negs (mset As))\<close>
@@ -755,33 +755,43 @@ lemma
       then show False using S_empty by simp
 qed
 
-lemma
+lemma grounded_elig_ground_elig:
   assumes
     s_ground: \<open>is_ground_subst \<sigma>\<close> and
     elig: \<open>eligible S \<sigma> As (D + negs (mset As))\<close>
   shows
     \<open>gr.eligible (As \<cdot>al \<sigma>) ((D + negs (mset As)) \<cdot> \<sigma>)\<close>
-    using elig s_ground sel_func_liftable unfolding eligible.simps gr.eligible.simps
-    apply (intro conjI exI)
-    apply (rule refl)
-    apply (rule refl)
-    apply (auto simp flip: subst_cls_negs subst_cls_union sel_func_liftable simp: s_ground ) 
-    apply (cases As)
-    apply simp
-    unfolding maximal_wrt_def gr.maximal_wrt_def
-    proof (auto, rule ccontr)
-      fix a
-      assume
-        \<open>As = [a]\<close> and
-        \<open>\<forall>B\<in>atms_of (D \<cdot> \<sigma>). \<not> less_atm (a \<cdot>a \<sigma>) B\<close> and
-        n_max: \<open>a \<cdot>a \<sigma> \<noteq> Max (insert (a \<cdot>a \<sigma>) (atms_of (D \<cdot> \<sigma>)))\<close>  
-      define A where \<open>A = a \<cdot>a \<sigma>\<close>
-      define B where \<open>B = Max (insert (a \<cdot>a \<sigma>) (atms_of (D \<cdot> \<sigma>)))\<close>
-      have \<open>A < B\<close>
-        using A_def B_def unfolding Max_def max_def by (metis B_def Max_ge finite_atms_of finite_insert insert_iff linorder_cases n_max not_le)
-      show False
-      sorry
-    qed
+  using elig s_ground sel_func_liftable unfolding eligible.simps gr.eligible.simps
+  apply (intro conjI exI)
+  apply (rule refl)
+  apply (rule refl)
+  apply (auto simp flip: subst_cls_negs subst_cls_union sel_func_liftable simp: s_ground ) 
+  apply (cases As)
+  apply simp
+  unfolding maximal_wrt_def gr.maximal_wrt_def
+proof (auto, rule ccontr)
+  fix a
+  assume
+    \<open>As = [a]\<close> and
+    nless_D: \<open>\<forall>B\<in>atms_of (D \<cdot> \<sigma>). \<not> less_atm (a \<cdot>a \<sigma>) B\<close> and
+    n_max: \<open>a \<cdot>a \<sigma> \<noteq> Max (insert (a \<cdot>a \<sigma>) (atms_of (D \<cdot> \<sigma>)))\<close>  
+  define A where \<open>A = a \<cdot>a \<sigma>\<close>
+  have ground_A: "is_ground_atm A" using s_ground ground_subst_ground_atm A_def by blast
+  define B where \<open>B = Max (insert (a \<cdot>a \<sigma>) (atms_of (D \<cdot> \<sigma>)))\<close>
+  have ground_B: "is_ground_atm B"
+    using s_ground ground_subst_ground_atm B_def
+    by (metis Max_in finite_atms_of finite_insert ground_subst_ground_cls insert_iff insert_not_empty
+      is_ground_cls_imp_is_ground_atm)
+  have A_l_B: \<open>A < B\<close>
+    using A_def B_def unfolding Max_def max_def
+    by (metis B_def Max_ge finite_atms_of finite_insert insert_iff linorder_cases n_max not_le)
+  have "B \<in> atms_of (D \<cdot> \<sigma>)"
+    using n_max B_def by (metis Max_in finite_atms_of finite_insert insert_iff insert_not_empty)
+  then have "less_atm B A"
+    using nless_D ground_A ground_B A_def B_def less_atm_ground_total n_max by blast
+  then have B_l_A: "B < A" using ground_A ground_B less_atm_ground by blast
+  show False using A_l_B B_l_A by simp
+qed
 
 find_theorems "S" selection
 thm selection_axioms
@@ -823,17 +833,10 @@ proof -
     unfolding ord_resolve.simps using n_is n_not_null by auto
   define \<sigma> where \<open>\<sigma> = \<eta> \<odot> \<gamma>\<close>
   have s_ground: \<open>is_ground_subst \<sigma>\<close> unfolding is_ground_subst_def \<sigma>_def using g_ground by auto
-  have \<open>gr.eligible (As_r \<cdot>al \<sigma>) (D \<cdot> \<sigma> + negs (mset As_r \<cdot>am \<sigma>))\<close>
-  using elig DA_r_is unfolding eligible.simps gr.eligible.simps gr.maximal_wrt_def maximal_wrt_def
-  apply (intro conjI exI)
-  apply (rule refl)
-  apply (rule refl)
-  apply (auto simp flip: subst_cls_negs subst_cls_union sel_func_liftable simp: s_ground ) 
-  apply (cases As_r)
-  apply (auto simp: atms_of_def \<sigma>_def linorder_class.Max_eq_iff eq_commute[of _ "Max _"] dest!: multi_member_split[of _ D])
-  using s_ground less_atm_ground[of "_ \<cdot>a \<sigma>" "_ \<cdot>a \<sigma>", OF ground_subst_ground_atm ground_subst_ground_atm]
-  apply (auto simp: \<sigma>_def)
-  sorry
+  have gr_elig: \<open>gr.eligible (As_r \<cdot>al \<sigma>) (D \<cdot> \<sigma> + negs (mset As_r \<cdot>am \<sigma>))\<close>
+    using elig_grounded_elig[OF g_ground elig] \<sigma>_def grounded_elig_ground_elig[OF s_ground] by force
+  have "i < n \<Longrightarrow> gr.strictly_maximal_wrt (As_r ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
+    using smax unfolding strictly_maximal_wrt_def gr.strictly_maximal_wrt_def sorry
   have \<open>gr.ord_resolve (CAs_r \<cdot>cl \<sigma>) (DA_r \<cdot> \<sigma>) (AAs_r \<cdot>aml \<sigma>) (As_r \<cdot>al \<sigma>) (E \<cdot> \<gamma>)\<close>
     using mgu_unifier DA_r_is E_is len_CAs_r n_not_null len_Cs len_AAs_r len_As_r AAs_r_nempty eta_mgu sel_i CAs_r_i_is elig smax g_ground (*subst_cls_list_nth*) unfolding gr.ord_resolve.simps ord_resolve.simps
     apply -
