@@ -721,8 +721,70 @@ definition \<G>_Inf :: \<open>'a clause Saturation_Framework_Preliminaries.infer
   \<open>\<G>_Inf \<iota> = {\<iota> \<cdot>inf \<sigma> | \<sigma>. is_ground_subst \<sigma>}\<close>
 
 context
-  assumes sel_func_liftable: \<open>is_ground_subst \<sigma> \<Longrightarrow> (S C) \<cdot> \<sigma> = S (C \<cdot> \<sigma>)\<close>
+  assumes
+    sel_func_liftable: \<open>is_ground_subst \<sigma> \<Longrightarrow> (S C) \<cdot> \<sigma> = S (C \<cdot> \<sigma>)\<close> and
+    neg_lit_in_sel_func: \<open>Neg A \<in># C \<Longrightarrow> \<forall>B \<in> (atms_of C). \<not> less_atm A B \<Longrightarrow> Neg A \<in># S C\<close> and
+    less_atm_ground_total: \<open>is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> A \<noteq> B \<Longrightarrow> \<not> less_atm A B \<Longrightarrow> less_atm B A\<close>
 begin
+
+lemma
+  assumes
+    g_ground: \<open>is_ground_subst \<gamma>\<close> and
+    elig: \<open>eligible S \<eta> As (D + negs (mset As))\<close>
+  shows
+    \<open>eligible S (\<eta> \<odot> \<gamma>) As (D + negs (mset As))\<close>
+    using elig unfolding eligible.simps
+    apply auto
+    apply (cases As)
+    unfolding maximal_wrt_def
+    using less_atm_ground[of "_ \<cdot>a \<eta> \<cdot>a \<gamma>" "_ \<cdot>a \<eta> \<cdot>a \<gamma>", OF ground_subst_ground_atm
+      ground_subst_ground_atm] g_ground apply auto
+    proof -
+      fix a B
+      assume
+        S_empty: \<open>S (add_mset (Neg a) D) = {#}\<close> and
+        \<open>As = [a]\<close> and
+        not_less_a: \<open>\<not> less_atm (a \<cdot>a \<eta>) (a \<cdot>a \<eta>)\<close> and
+        not_less_others: \<open>\<forall>B\<in>atms_of (D \<cdot> \<eta>). \<not> less_atm (a \<cdot>a \<eta>) B\<close> and
+        \<open>B \<in> atms_of (D \<cdot> \<eta> \<cdot> \<gamma>)\<close> and \<open>less_atm (a \<cdot>a \<eta> \<cdot>a \<gamma>) B\<close>
+      have neg_a_in: \<open>Neg a \<in># (add_mset (Neg a) D)\<close> by auto
+      have not_less_all: \<open>\<forall> B \<in> atms_of ((add_mset (Neg a) D) \<cdot> \<eta>). \<not> less_atm (a \<cdot>a \<eta>) B\<close>
+        using not_less_a not_less_others by simp
+      have S_not_empty: \<open>Neg a \<in># S (add_mset (Neg a) D)\<close>
+        using neg_lit_in_sel_func neg_a_in not_less_all using in_atms_of_subst less_atm_stable by blast
+      then show False using S_empty by simp
+qed
+
+lemma
+  assumes
+    s_ground: \<open>is_ground_subst \<sigma>\<close> and
+    elig: \<open>eligible S \<sigma> As (D + negs (mset As))\<close>
+  shows
+    \<open>gr.eligible (As \<cdot>al \<sigma>) ((D + negs (mset As)) \<cdot> \<sigma>)\<close>
+    using elig s_ground sel_func_liftable unfolding eligible.simps gr.eligible.simps
+    apply (intro conjI exI)
+    apply (rule refl)
+    apply (rule refl)
+    apply (auto simp flip: subst_cls_negs subst_cls_union sel_func_liftable simp: s_ground ) 
+    apply (cases As)
+    apply simp
+    unfolding maximal_wrt_def gr.maximal_wrt_def
+    proof (auto, rule ccontr)
+      fix a
+      assume
+        \<open>As = [a]\<close> and
+        \<open>\<forall>B\<in>atms_of (D \<cdot> \<sigma>). \<not> less_atm (a \<cdot>a \<sigma>) B\<close> and
+        n_max: \<open>a \<cdot>a \<sigma> \<noteq> Max (insert (a \<cdot>a \<sigma>) (atms_of (D \<cdot> \<sigma>)))\<close>  
+      define A where \<open>A = a \<cdot>a \<sigma>\<close>
+      define B where \<open>B = Max (insert (a \<cdot>a \<sigma>) (atms_of (D \<cdot> \<sigma>)))\<close>
+      have \<open>A < B\<close>
+        using A_def B_def unfolding Max_def max_def by (metis B_def Max_ge finite_atms_of finite_insert insert_iff linorder_cases n_max not_le)
+      show False
+      sorry
+    qed
+
+find_theorems "S" selection
+thm selection_axioms
 
 lemma inf_F_to_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<iota>' \<in> \<G>_Inf \<iota> \<Longrightarrow> \<iota>' \<in> Inf_G\<close>
 proof -
@@ -785,6 +847,10 @@ proof -
    sorry 
   show \<open>\<iota>' \<in> Inf_G\<close> sorry
 qed
+
+find_theorems maximal_wrt
+find_theorems gr.maximal_wrt
+thm maximal_wrt_subst
 
 find_theorems "is_ground_subst" is_ground_atm
 thm less_atm_stable
