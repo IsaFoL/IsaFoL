@@ -1,5 +1,5 @@
 theory IsaSAT
-  imports IsaSAT_Restart IsaSAT_Initialisation
+  imports IsaSAT_Restart IsaSAT_Initialisation Version
 begin
 
 subsection \<open>Final code generation\<close>
@@ -2793,7 +2793,7 @@ export_code IsaSAT_code
     integer_of_nat
     nat_of_integer
     uint32_of_nat
+    Version.version
   in SML_imp module_name SAT_Solver file "code/IsaSAT_solver.sml"
-
 
 end
