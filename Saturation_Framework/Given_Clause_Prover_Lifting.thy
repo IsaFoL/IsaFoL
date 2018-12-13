@@ -92,24 +92,20 @@ qed
 
 abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
 
-interpretation gr: ground_resolution_with_selection S
+context
+  fixes M :: "'a clause set"
+begin
+
+interpretation sq: selection "S_M S M"
+  using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
+  by unfold_locales auto
+
+interpretation gr: ground_resolution_with_selection "S_M S M"
   by unfold_locales
 
 (* Not yet too sure about which version to select. Is this one even correct? *)
 definition Inf_G :: "'a clause Saturation_Framework_Preliminaries.inference set" where
   "Inf_G \<equiv> conv_inf ` gr.ord_\<Gamma>"
-
-(*definition Inf_G :: "'a clause Saturation_Framework_Preliminaries.inference set" where
-  "Inf_G = {\<iota> \<in> Inf_F. filter (\<lambda>C. \<not> (is_ground_cls C))
-  (Saturation_Framework_Preliminaries.inference.prems_of \<iota>) = []}"*)
-
-(*definition ground_subset :: "'a clause set \<Rightarrow> 'a clause set" where
-  "ground_subset S' = {C \<in> S'. is_ground_cls C}"*)
-
-(* lemma Bot_G_ground [simp]: "ground_subset Bot_G = Bot_G" unfolding ground_subset_def by fastforce
-
-definition entails_sound_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>G" 50)  where
-  "S1 |\<approx>G S2 \<equiv> \<forall>I. I \<Turnstile>s ground_subset S1 \<longrightarrow> I \<Turnstile>s ground_subset S2"*)
 
 definition entails_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool"  where
   "entails_G S1 S2 \<equiv> \<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"
@@ -117,30 +113,9 @@ definition entails_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow>
 abbreviation entails_sound_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>G" 50)  where
   "S1 |\<approx>G S2 \<equiv> entails_G S1 S2"
 
-(*lemma ground_subst_on_ground_subset: "is_ground_subst \<sigma> \<Longrightarrow> (ground_subset N) \<cdot>cs \<sigma> = (ground_subset N)"
-  by (simp add: ground_subset_def is_ground_cls_def is_ground_clss_def is_ground_lit_def) *)
-
-(*lemma Inf_G_ground_concl: "\<iota> \<in> Inf_G \<Longrightarrow>
-  is_ground_cls (Saturation_Framework_Preliminaries.inference.concl_of \<iota>)" 
-proof -
-  fix \<iota>
-  assume
-    i_in: "\<iota> \<in> Inf_G"
-  have "filter (\<lambda>C. \<not> is_ground_cls C) (inference.prems_of \<iota>) = []"
-    using i_in unfolding Inf_G_def Inf_F_def conv_inf_def by auto 
-  then have "C \<in> set (Saturation_Framework_Preliminaries.inference.prems_of \<iota>) \<Longrightarrow> is_ground_cls C"
-  explore
-    oops*)
-
 interpretation Saturation_Framework_Preliminaries.sound_inference_system Bot_G entails_sound_G Inf_G
 proof -
   {
-    (*fix N1 N2 I
-    assume
-      incl: "N2 \<subseteq> N1" and
-      entails: "I \<Turnstile>s ground_subset N1"
-    have ground_incl: "ground_subset N2 \<subseteq> ground_subset N1" using incl unfolding ground_subset_def by fast
-    have "I \<Turnstile>s ground_subset N2" using true_clss_mono[OF ground_incl entails] . *)
     fix N1 N2 I
     assume
       incl: "N2 \<subseteq> N1" and
@@ -149,11 +124,6 @@ proof -
   }
   moreover
   {
-    (*fix N1 N2 I
-    assume
-      all_clss_entailed: "\<forall>C\<in>N2. \<forall>I. I \<Turnstile>s ground_subset N1 \<longrightarrow> I \<Turnstile>s ground_subset {C}" and
-      entails: "I \<Turnstile>s ground_subset N1"
-    then have "I \<Turnstile>s ground_subset N2" by (simp add: all_clss_entailed entails true_clss_def ground_subset_def)*)
     fix N1 N2 I
     assume
       all_clss_entailed: "\<forall>C\<in>N2. \<forall>I. I \<Turnstile>s N1 \<longrightarrow> I \<Turnstile> C" and
@@ -169,15 +139,16 @@ proof -
     obtain \<iota>_RP where i_equal: "\<iota> = conv_inf \<iota>_RP" and i_RP_in: "\<iota>_RP \<in> gr.ord_\<Gamma>" (*"\<iota>_RP \<in> (ord_FO_\<Gamma> S)" *)
       using i_in unfolding Inf_G_def by blast
     obtain CAs AAs As
-      where the_inf: "ground_resolution_with_selection.ord_resolve S CAs (main_prem_of \<iota>_RP) AAs As (concl_of \<iota>_RP)"
-      and mset_CAs: "side_prems_of \<iota>_RP = mset CAs" using i_RP_in unfolding gr.ord_\<Gamma>_def by force
+      where the_inf: "ground_resolution_with_selection.ord_resolve (S_M S M) CAs (main_prem_of \<iota>_RP) AAs As (concl_of \<iota>_RP)"
+      and mset_CAs: "side_prems_of \<iota>_RP = mset CAs"
+        using i_RP_in unfolding gr.ord_\<Gamma>_def by force
     have concl: "concl_of \<iota>_RP = Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
       using i_equal unfolding conv_inf_def by fastforce
     have prems: "set (inference.prems_of \<iota>) = set_mset (prems_of \<iota>_RP)"
       using i_equal unfolding conv_inf_def by simp
     have I_entails_prems_RP: "I \<Turnstile>s set_mset (prems_of \<iota>_RP)" using prems I_entails_prems by argo
     then have I_entails_concl_RP: "I \<Turnstile> concl_of \<iota>_RP"
-      using ground_resolution_with_selection.ord_resolve_sound[of S CAs "main_prem_of \<iota>_RP" AAs As "concl_of \<iota>_RP" I]
+      using ground_resolution_with_selection.ord_resolve_sound[of "S_M S M" CAs "main_prem_of \<iota>_RP" AAs As "concl_of \<iota>_RP" I]
         the_inf mset_CAs gr.ground_resolution_with_selection_axioms by fastforce
     then have "I \<Turnstile> Saturation_Framework_Preliminaries.inference.concl_of \<iota>" using concl by auto
   }
@@ -201,7 +172,7 @@ interpretation sr: standard_redundancy_criterion_reductive gr.ord_\<Gamma>
   by unfold_locales
 
 interpretation sr: standard_redundancy_criterion_counterex_reducing gr.ord_\<Gamma>
-  "ground_resolution_with_selection.INTERP S"
+  "ground_resolution_with_selection.INTERP (S_M S M)"
   by unfold_locales
 
 definition Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set" where
@@ -259,7 +230,9 @@ next
   qed
 qed
 
-lemma conv_inf_inf_from_commute: \<open>conv_inf ` gr.inferences_from (N - sr.Rf N) \<subseteq> gr_calc.Inf_from N\<close> 
+find_theorems name: Inf_from
+
+lemma conv_inf_inf_from_commute: \<open>conv_inf ` gr.inferences_from (N - sr.Rf N) \<subseteq> Inf_from N\<close> 
 proof
   fix \<iota>
   assume
@@ -275,7 +248,7 @@ proof
   have \<open>set_mset (prems_of \<iota>_RP) \<subseteq> N\<close> using i_RP_from unfolding gr.inferences_from_def infer_from_def by fast
   then have i_from: \<open>set (Saturation_Framework_Preliminaries.prems_of \<iota>) \<subseteq> N\<close> using i_to_i_RP unfolding conv_inf_def by auto
   have \<open>\<iota> \<in> Inf_G\<close> using i_RP_from i_to_i_RP unfolding gr.inferences_from_def Inf_G_def by blast
-  then show \<open>\<iota> \<in> gr_calc.Inf_from N\<close> using i_from unfolding gr_calc.Inf_from_def by fast
+  then show \<open>\<iota> \<in> Inf_from N\<close> using i_from unfolding Inf_from_def by fast
 qed
 
 lemma \<open>gr.eligible As D \<Longrightarrow> mset As = mset As' \<Longrightarrow> gr.eligible As' D\<close>
@@ -318,8 +291,8 @@ qed
 
 (* taken from Mathias Fleury's isafol/Weidenbach_Book/WB_List_More.thy *)
 lemma inj_on_image_mset_eq_iff:
-  assumes inj: \<open>inj_on f (set_mset (M + M'))\<close>
-  shows \<open>image_mset f M' = image_mset f M \<longleftrightarrow> M' = M\<close> (is \<open>?A = ?B\<close>)
+  assumes inj: \<open>inj_on f (set_mset (K + K'))\<close>
+  shows \<open>image_mset f K' = image_mset f K \<longleftrightarrow> K' = K\<close> (is \<open>?A = ?B\<close>)
 proof
   assume ?B
   then show ?A by auto
@@ -327,30 +300,30 @@ next
   assume ?A
   then show ?B
     using inj
-  proof(induction M arbitrary: M')
+  proof(induction K arbitrary: K')
     case empty
     then show ?case by auto
   next
-    case (add x M) note IH = this(1) and H = this(2) and inj = this(3)
+    case (add x K) note IH = this(1) and H = this(2) and inj = this(3)
 
-    obtain M1 x' where
-      M': \<open>M' = add_mset x' M1\<close> and
+    obtain K1 x' where
+      K': \<open>K' = add_mset x' K1\<close> and
       f_xx': \<open>f x' = f x\<close> and
-      M1_M: \<open>image_mset f M1 = image_mset f M\<close>
+      K1_K: \<open>image_mset f K1 = image_mset f K\<close>
       using H by (auto dest!: msed_map_invR)
-    moreover have \<open>M1 = M\<close>
-      apply (rule IH[OF M1_M])
-      using inj by (auto simp: M')
+    moreover have \<open>K1 = K\<close>
+      apply (rule IH[OF K1_K])
+      using inj by (auto simp: K')
     moreover have \<open>x = x'\<close>
-      using inj f_xx' by (auto simp: M')
+      using inj f_xx' by (auto simp: K')
     ultimately show ?case by fast
   qed
 qed
 
 (* Move to Multiset_More.thy *)
 lemma in_distinct_mset_diff_iff:
-  \<open>distinct_mset M \<Longrightarrow>  x \<in># M - N \<longleftrightarrow> x \<notin># N \<and> x \<in># M\<close>
-  using distinct_mem_diff_mset[of M x N]
+  \<open>distinct_mset K \<Longrightarrow>  x \<in># K - N \<longleftrightarrow> x \<notin># N \<and> x \<in># K\<close>
+  using distinct_mem_diff_mset[of K x N]
   by (auto dest: in_diffD multi_member_split)
 
 lemma shuffle_ord_resolve_side_prems:
@@ -375,7 +348,7 @@ proof -
     in_AAs: \<open>\<forall>i<n. \<forall>A\<in>#AAs ! i. A = As ! i\<close> and
     eligible: \<open>gr.eligible As (Da + negs (mset As))\<close> and
     max: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)\<close> and
-    S_empty: \<open>\<forall>i<n. S (CAs ! i) = {#}\<close>
+    S_empty: \<open>\<forall>i<n. (S_M S M) (CAs ! i) = {#}\<close>
  using res unfolding gr.ord_resolve.simps by auto
   have x_in_equiv: \<open>x \<in># mset CAs' \<Longrightarrow> x \<in># mset CAs\<close> for x using mset_CAs by simp
   have len_CAs': \<open>length CAs' = n\<close> using len_CAs mset_CAs using mset_eq_length by fastforce
@@ -527,7 +500,7 @@ proof (intro disj_imp[THEN iffD2] impI)
     AAs3_i: \<open>\<forall>i<n. \<forall>A\<in>#AAs3 ! i. A = As3 ! i\<close> and
     eligible3: \<open>gr.eligible As3 (D3 + negs (mset As3))\<close> and
     max3: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As3 ! i) (Cs3 ! i)\<close> and
-    sel_empty3: \<open>\<forall>i<n. S (Cs3 ! i + poss (AAs3 ! i)) = {#}\<close>
+    sel_empty3: \<open>\<forall>i<n. (S_M S M) (Cs3 ! i + poss (AAs3 ! i)) = {#}\<close>
     using A3_is n_is unfolding gr.ord_resolve.simps by auto
   obtain D4 Cs4 where
     main4: \<open>main_prem_of \<iota>' = D4 + negs (mset As4)\<close> and
@@ -538,7 +511,7 @@ proof (intro disj_imp[THEN iffD2] impI)
     AAs4_i: \<open>\<forall>i<n. \<forall>A\<in>#AAs4 ! i. A = As4 ! i\<close> and
     eligible4: \<open>gr.eligible As4 (D4 + negs (mset As4))\<close> and
     max4: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As4 ! i) (Cs4 ! i)\<close> and
-    sel_empty4: \<open>\<forall>i<n. S (Cs4 ! i + poss (AAs4 ! i)) = {#}\<close>
+    sel_empty4: \<open>\<forall>i<n. (S_M S M) (Cs4 ! i + poss (AAs4 ! i)) = {#}\<close>
     using A4_is len_AAs4 unfolding gr.ord_resolve.simps by auto
   have As_eq: \<open>\<forall>i \<in> {1..<n}. As3!i = As4!i\<close>
     using main3 eligible3 sel_empty4 CAs_i3 CAs_i4 AAs3_i AAs4_i max3 max4 unfolding gr.strictly_maximal_wrt_def
@@ -655,10 +628,10 @@ lemma conv_saturation:
     using assms unfolding sr.saturated_upto_def gr_calc.saturated_def apply -
   proof (rule ccontr)
   assume
-    sat: \<open>gr_calc.Inf_from N \<subseteq> Red_Inf_G N\<close> and
+    sat: \<open>Inf_from N \<subseteq> Red_Inf_G N\<close> and
     contra: \<open>\<not> gr.inferences_from (N - sr.Rf N) \<subseteq> sr.Ri N\<close>
  then obtain \<iota>_RP where i_not_in: \<open>\<iota>_RP \<notin> sr.Ri N\<close> and i_in: \<open>\<iota>_RP \<in> gr.inferences_from (N - sr.Rf N)\<close> by blast
-   have \<open>conv_inf \<iota>_RP \<in> gr_calc.Inf_from N\<close> using i_in conv_inf_inf_from_commute by fast
+   have \<open>conv_inf \<iota>_RP \<in> Inf_from N\<close> using i_in conv_inf_inf_from_commute by fast
    then have \<open>conv_inf \<iota>_RP \<in> Red_Inf_G N\<close> using sat by blast
   moreover have \<open>conv_inf \<iota>_RP \<notin> Red_Inf_G N\<close>
   proof -
@@ -718,145 +691,7 @@ definition subst_inf :: \<open>'a clause Saturation_Framework_Preliminaries.infe
 
 definition \<G>_Inf :: \<open>'a clause Saturation_Framework_Preliminaries.inference
                       \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set\<close> where
-  \<open>\<G>_Inf \<iota> = {\<iota> \<cdot>inf \<sigma> | \<sigma>. is_ground_subst \<sigma>}\<close> (* TODO add restriction that i.sigma is in gr.ord_res Gamma and selection function must agree between i and i.sigma (NOT automatic)*)
-
-context
-  assumes
-    sel_func_liftable: \<open>is_ground_subst \<sigma> \<Longrightarrow> (S C) \<cdot> \<sigma> = S (C \<cdot> \<sigma>)\<close> and (* WRONG! there must exist one but not for all*)
-    neg_lit_in_sel_func: \<open>Neg A \<in># C \<Longrightarrow> \<forall>B \<in> (atms_of C). \<not> less_atm A B \<Longrightarrow> Neg A \<in># S C\<close> and (* WRONG! *)
-    less_atm_ground_total: \<open>is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> A \<noteq> B \<Longrightarrow> \<not> less_atm A B \<Longrightarrow> less_atm B A\<close>
-begin
-
-lemma elig_grounded_elig:
-  assumes
-    g_ground: \<open>is_ground_subst \<gamma>\<close> and
-    elig: \<open>eligible S \<eta> As (D + negs (mset As))\<close>
-  shows
-    \<open>eligible S (\<eta> \<odot> \<gamma>) As (D + negs (mset As))\<close>
-    using elig unfolding eligible.simps
-    apply auto
-    apply (cases As)
-    unfolding maximal_wrt_def
-    using less_atm_ground[of "_ \<cdot>a \<eta> \<cdot>a \<gamma>" "_ \<cdot>a \<eta> \<cdot>a \<gamma>", OF ground_subst_ground_atm
-      ground_subst_ground_atm] g_ground apply auto
-    proof -
-      fix a B
-      assume
-        S_empty: \<open>S (add_mset (Neg a) D) = {#}\<close> and
-        \<open>As = [a]\<close> and
-        not_less_a: \<open>\<not> less_atm (a \<cdot>a \<eta>) (a \<cdot>a \<eta>)\<close> and
-        not_less_others: \<open>\<forall>B\<in>atms_of (D \<cdot> \<eta>). \<not> less_atm (a \<cdot>a \<eta>) B\<close> and
-        \<open>B \<in> atms_of (D \<cdot> \<eta> \<cdot> \<gamma>)\<close> and \<open>less_atm (a \<cdot>a \<eta> \<cdot>a \<gamma>) B\<close>
-      have neg_a_in: \<open>Neg a \<in># (add_mset (Neg a) D)\<close> by auto
-      have not_less_all: \<open>\<forall> B \<in> atms_of ((add_mset (Neg a) D) \<cdot> \<eta>). \<not> less_atm (a \<cdot>a \<eta>) B\<close>
-        using not_less_a not_less_others by simp
-      have S_not_empty: \<open>Neg a \<in># S (add_mset (Neg a) D)\<close>
-        using neg_lit_in_sel_func neg_a_in not_less_all using in_atms_of_subst less_atm_stable by blast
-      then show False using S_empty by simp
-qed
-
-lemma grounded_elig_ground_elig:
-  assumes
-    s_ground: \<open>is_ground_subst \<sigma>\<close> and
-    elig: \<open>eligible S \<sigma> As (D + negs (mset As))\<close>
-  shows
-    \<open>gr.eligible (As \<cdot>al \<sigma>) ((D + negs (mset As)) \<cdot> \<sigma>)\<close>
-  using elig s_ground sel_func_liftable unfolding eligible.simps gr.eligible.simps
-  apply (intro conjI exI)
-  apply (rule refl)
-  apply (rule refl)
-  apply (auto simp flip: subst_cls_negs subst_cls_union sel_func_liftable simp: s_ground ) 
-  apply (cases As)
-  apply simp
-  unfolding maximal_wrt_def gr.maximal_wrt_def
-proof (auto, rule ccontr)
-  fix a
-  assume
-    \<open>As = [a]\<close> and
-    nless_D: \<open>\<forall>B\<in>atms_of (D \<cdot> \<sigma>). \<not> less_atm (a \<cdot>a \<sigma>) B\<close> and
-    n_max: \<open>a \<cdot>a \<sigma> \<noteq> Max (insert (a \<cdot>a \<sigma>) (atms_of (D \<cdot> \<sigma>)))\<close>  
-  define A where \<open>A = a \<cdot>a \<sigma>\<close>
-  have ground_A: "is_ground_atm A" using s_ground ground_subst_ground_atm A_def by blast
-  define B where \<open>B = Max (insert (a \<cdot>a \<sigma>) (atms_of (D \<cdot> \<sigma>)))\<close>
-  have ground_B: "is_ground_atm B"
-    using s_ground ground_subst_ground_atm B_def
-    by (metis Max_in finite_atms_of finite_insert ground_subst_ground_cls insert_iff insert_not_empty
-      is_ground_cls_imp_is_ground_atm)
-  have A_l_B: \<open>A < B\<close>
-    using A_def B_def unfolding Max_def max_def
-    by (metis B_def Max_ge finite_atms_of finite_insert insert_iff linorder_cases n_max not_le)
-  have "B \<in> atms_of (D \<cdot> \<sigma>)"
-    using n_max B_def by (metis Max_in finite_atms_of finite_insert insert_iff insert_not_empty)
-  then have "less_atm B A"
-    using nless_D ground_A ground_B A_def B_def less_atm_ground_total n_max by blast
-  then have B_l_A: "B < A" using ground_A ground_B less_atm_ground by blast
-  show False using A_l_B B_l_A by simp
-qed
-
-find_theorems "S" selection
-thm selection_axioms
-
-lemma inf_F_to_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<iota>' \<in> \<G>_Inf \<iota> \<Longrightarrow> \<iota>' \<in> Inf_G\<close>
-proof -
-  assume
-    i_in: \<open>\<iota> \<in> Inf_F\<close> and
-    i'_in: \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
-  obtain \<gamma> where \<open>\<iota> \<cdot>inf \<gamma> = \<iota>'\<close> and g_ground: \<open>is_ground_subst \<gamma>\<close> using i'_in unfolding \<G>_Inf_def by blast
-  obtain \<iota>_RP where \<open>\<iota> = conv_inf \<iota>_RP\<close> and i_RP_in: \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using i_in unfolding Inf_F_def by blast
-  obtain CAs DA AAs As \<eta> E where \<open>\<iota>_RP = Inference_System.inference.Infer (mset CAs) DA E\<close> and
-    res_r: \<open>ord_resolve_rename S CAs DA AAs As \<eta> E\<close> using i_RP_in ord_FO_\<Gamma>_def by auto
-  define \<rho> where r_is: \<open>\<rho> = hd (renamings_apart (DA # CAs))\<close>
-  define \<rho>s where rs_is: \<open>\<rho>s = tl (renamings_apart (DA # CAs))\<close>
-  define CAs_r where CAs_r_is: \<open>CAs_r = CAs \<cdot>\<cdot>cl \<rho>s\<close>
-  define DA_r where DA_r_is: \<open>DA_r = DA \<cdot> \<rho>\<close>
-  define AAs_r where AAs_r_is: \<open>AAs_r = AAs \<cdot>\<cdot>aml \<rho>s\<close>
-  define As_r where As_r_is: \<open>As_r = As \<cdot>al \<rho>\<close>
-  define n where n_is: \<open>n = length CAs_r\<close>
-  then have n_not_null: \<open>n \<noteq> 0\<close>
-    using res_r unfolding ord_resolve_rename.simps using CAs_r_is ord_resolve.simps rs_is by fastforce
-  have ord_res: \<open>ord_resolve S CAs_r DA_r AAs_r As_r \<eta> E\<close>
-    using res_r r_is rs_is CAs_r_is DA_r_is AAs_r_is As_r_is
-    unfolding ord_resolve.simps ord_resolve_rename.simps by force
-  then obtain Cs D where
-    DA_r_is: \<open>DA_r = D + negs (mset As_r)\<close> and
-    E_is: \<open>E = (\<Union>#mset Cs + D) \<cdot> \<eta>\<close> and
-    len_CAs_r: \<open>length CAs_r = n\<close> and
-    len_Cs: \<open>length Cs = n\<close> and
-    len_AAs_r: \<open>length AAs_r = n\<close> and
-    len_As_r: \<open>length As_r = n\<close> and
-    AAs_r_nempty: \<open>\<forall>i<n. AAs_r ! i \<noteq> {#}\<close> and
-    eta_mgu: \<open>Some \<eta> = mgu (set_mset ` set (Map2.map2 add_mset As_r AAs_r))\<close> and
-    sel_i: \<open>\<forall>i<n. S (CAs_r ! i) = {#}\<close> and
-    CAs_r_i_is: \<open>(\<forall>i < n. CAs_r ! i = Cs ! i + poss (AAs_r ! i))\<close> and
-    elig: \<open>eligible S \<eta> As_r (D + negs (mset As_r))\<close> and
-    smax: \<open>(\<forall>i < n. strictly_maximal_wrt (As_r ! i \<cdot>a \<eta>) (Cs ! i \<cdot> \<eta>))\<close>
-    unfolding ord_resolve.simps using n_is n_not_null by auto
-  define \<sigma> where \<open>\<sigma> = \<eta> \<odot> \<gamma>\<close>
-  have s_ground: \<open>is_ground_subst \<sigma>\<close> unfolding is_ground_subst_def \<sigma>_def using g_ground by auto
-  have gr_elig: \<open>gr.eligible (As_r \<cdot>al \<sigma>) (D \<cdot> \<sigma> + negs (mset As_r \<cdot>am \<sigma>))\<close>
-    using elig_grounded_elig[OF g_ground elig] \<sigma>_def grounded_elig_ground_elig[OF s_ground] by force
-  have "i < n \<Longrightarrow> gr.strictly_maximal_wrt (As_r ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
-    using smax unfolding strictly_maximal_wrt_def gr.strictly_maximal_wrt_def sorry
-  have \<open>gr.ord_resolve (CAs_r \<cdot>cl \<sigma>) (DA_r \<cdot> \<sigma>) (AAs_r \<cdot>aml \<sigma>) (As_r \<cdot>al \<sigma>) (E \<cdot> \<gamma>)\<close>
-    using mgu_unifier DA_r_is E_is len_CAs_r n_not_null len_Cs len_AAs_r len_As_r AAs_r_nempty eta_mgu sel_i CAs_r_i_is elig smax g_ground (*subst_cls_list_nth*) unfolding gr.ord_resolve.simps ord_resolve.simps
-    apply -
-    apply (rule_tac x=\<open>CAs_r \<cdot>cl \<sigma>\<close> in exI)
-    apply (rule_tac x=\<open>n\<close> in exI)
-    apply (rule_tac x=\<open>Cs \<cdot>cl \<sigma>\<close> in exI)
-    apply (rule_tac x=\<open>AAs_r \<cdot>aml \<sigma>\<close> in exI)
-    apply (rule_tac x=\<open>As_r \<cdot>al \<sigma>\<close> in exI)
-    apply (rule_tac x=\<open>D \<cdot> \<sigma>\<close> in exI)
-    apply (auto simp: \<sigma>_def)
-   sorry 
-  show \<open>\<iota>' \<in> Inf_G\<close> sorry
-qed
-
-find_theorems maximal_wrt
-find_theorems gr.maximal_wrt
-thm maximal_wrt_subst
-
-find_theorems "is_ground_subst" is_ground_atm
-thm less_atm_stable
+  \<open>\<G>_Inf \<iota> = {\<iota> \<cdot>inf \<sigma> | \<sigma>. is_ground_subst \<sigma> \<and> (\<iota> \<cdot>inf \<sigma> \<in> Inf_G)}\<close> (* TODO add restriction that i.sigma is in gr.ord_res Gamma and selection function must agree between i and i.sigma (hopefully automatic)*)
 
 interpretation \<G>: grounding_function Bot_F entails_sound_F Inf_F Bot_G entails_sound_G Inf_G
   entails_comp_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf
@@ -885,10 +720,10 @@ next
   fix \<iota>
   assume i_in: \<open>\<iota> \<in> Inf_F\<close>
   show \<open>\<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (Saturation_Framework_Preliminaries.inference.concl_of \<iota>))\<close>
-  proof (* should somehow rely on ord_resolve_rename_lifting , i.e. the lifting lemma in B&G *)
+  proof
     fix \<iota>'
     assume i'_in: \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
-    have i'_in2: \<open>\<iota>' \<in> Inf_G\<close> using inf_F_to_G[OF i_in i'_in] .
+    then have i'_in2: \<open>\<iota>' \<in> Inf_G\<close>unfolding \<G>_Inf_def by blast
     have concl_in: \<open>Saturation_Framework_Preliminaries.inference.concl_of \<iota>' \<in>
       \<G>_F (Saturation_Framework_Preliminaries.inference.concl_of \<iota>)\<close>
       using i'_in subst_inf_def unfolding \<G>_Inf_def \<G>_F_def grounding_of_cls_def by auto
@@ -898,8 +733,11 @@ next
   qed
 qed
 
-end
+find_theorems name: Inf_from
+
+lemma \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close> sorry
 
 end
 
 end
+

@@ -46,6 +46,12 @@ locale sound_inference_system = consequence_relation +
     Inf :: \<open>'f inference set\<close>
   assumes
     soundness: \<open>\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile> {concl_of \<iota>}\<close>
+begin
+
+definition Inf_from :: "'f set  \<Rightarrow> 'f inference set" where
+  "Inf_from N = {\<iota> \<in> Inf. set (prems_of \<iota>) \<subseteq> N}"
+
+end
 
 locale calculus = sound_inference_system Bot entails_sound Inf + consequence_relation Bot entails_comp
   for
@@ -68,9 +74,6 @@ begin
 
 lemma Red_Inf_of_Inf_to_N_subset: "{\<iota> \<in> Inf. (concl_of \<iota> \<in> N)} \<subseteq> Red_Inf N"
   using Red_Inf_of_Inf_to_N by blast 
-
-definition Inf_from :: "'f set  \<Rightarrow> 'f inference set" where
-  "Inf_from N = {\<iota> \<in> Inf. set (prems_of \<iota>) \<subseteq> N}"
 
 paragraph \<open>Lemma 1 from the technical report\<close>
 lemma red_concl_to_red_inf: 
@@ -323,7 +326,7 @@ locale grounding_function = Non_ground: sound_inference_system Bot_F entails_sou
 begin
 
 abbreviation \<G>_set :: \<open>'f set \<Rightarrow> 'g set\<close> where
-  \<open>\<G>_set N \<equiv> \<Union>C \<in> N. \<G>_F C\<close>
+  \<open>\<G>_set N \<equiv> UNION N \<G>_F\<close> (*  \<Union>C \<in> N. \<G>_F C *)
 
 lemma \<G>_subset: \<open>N1 \<subseteq> N2 \<Longrightarrow> \<G>_set N1 \<subseteq> \<G>_set N2\<close> by auto
 
