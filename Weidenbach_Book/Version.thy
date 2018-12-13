@@ -2,6 +2,7 @@ theory Version
   imports Main
 begin
 
+(*code taken from IsaFoR and adapted*)
 local_setup \<open>
   let
     val version =
