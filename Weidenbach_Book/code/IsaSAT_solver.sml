@@ -174,6 +174,7 @@ structure SAT_Solver : sig
   type ('a, 'b) vmtf_node
   type minimize_status
   datatype int = Int_of_integer of IntInf.int
+  val version : string
   val integer_of_int : int -> IntInf.int
   val uint32_of_nat : nat -> Word32.word
   val isaSAT_code :
@@ -565,6 +566,8 @@ fun blit A_ src si dst di len =
   (fn () => 
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
+
+val version : string = "7ac0dd6e";
 
 fun heap_WHILET b f s =
   (fn () =>

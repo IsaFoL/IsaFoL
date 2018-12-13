@@ -100,7 +100,7 @@ fun print_help () = (
   println("  Use option --stat to print the number of propagations,");
   println("   conflicts, and decisions. ");
   println("  Use option --model to print a model if one exists.");
-  println("  Use option --norestart to deactivate restarts.");
+  println("  Use option --norestart to d%eactivate restarts.");
   println("  Use option --noreduction to deactivate DB reduction.");
   println("  Use option --nobounded to force the usage of IntInf.")
 )
@@ -112,12 +112,15 @@ fun contains x xs =
 
 fun process_args [] = print_help() 
   | process_args args =
-    solver (contains "--model" args)
-           (contains "--stat" args)
-           (contains "--norestart" args)
-           (contains "--noreduction" args)
-           (contains "--nobounded" args)
-           (List.last args)
+    if (contains "--version" args) then println("c version: " ^ SAT_Solver.version ^"\n")
+    else
+      solver (contains "--model" args)
+             (contains "--stat" args)
+             (contains "--norestart" args)
+             (contains "--noreduction" args)
+             (contains "--nobounded" args)
+             (List.last args)
+
 
 fun main () = let
   val args = CommandLine.arguments ();
