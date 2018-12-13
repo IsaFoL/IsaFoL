@@ -103,6 +103,7 @@ fun print_help () = (
   println("  Use option --norestart to d%eactivate restarts.");
   println("  Use option --noreduction to deactivate DB reduction.");
   println("  Use option --nobounded to force the usage of IntInf.")
+  println("  Use option --version to print the git id of IsaFoL when generating code.")
 )
 
 fun contains x xs =
