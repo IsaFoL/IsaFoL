@@ -718,12 +718,12 @@ definition subst_inf :: \<open>'a clause Saturation_Framework_Preliminaries.infe
 
 definition \<G>_Inf :: \<open>'a clause Saturation_Framework_Preliminaries.inference
                       \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set\<close> where
-  \<open>\<G>_Inf \<iota> = {\<iota> \<cdot>inf \<sigma> | \<sigma>. is_ground_subst \<sigma>}\<close>
+  \<open>\<G>_Inf \<iota> = {\<iota> \<cdot>inf \<sigma> | \<sigma>. is_ground_subst \<sigma>}\<close> (* TODO add restriction that i.sigma is in gr.ord_res Gamma and selection function must agree between i and i.sigma (NOT automatic)*)
 
 context
   assumes
-    sel_func_liftable: \<open>is_ground_subst \<sigma> \<Longrightarrow> (S C) \<cdot> \<sigma> = S (C \<cdot> \<sigma>)\<close> and
-    neg_lit_in_sel_func: \<open>Neg A \<in># C \<Longrightarrow> \<forall>B \<in> (atms_of C). \<not> less_atm A B \<Longrightarrow> Neg A \<in># S C\<close> and
+    sel_func_liftable: \<open>is_ground_subst \<sigma> \<Longrightarrow> (S C) \<cdot> \<sigma> = S (C \<cdot> \<sigma>)\<close> and (* WRONG! there must exist one but not for all*)
+    neg_lit_in_sel_func: \<open>Neg A \<in># C \<Longrightarrow> \<forall>B \<in> (atms_of C). \<not> less_atm A B \<Longrightarrow> Neg A \<in># S C\<close> and (* WRONG! *)
     less_atm_ground_total: \<open>is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> A \<noteq> B \<Longrightarrow> \<not> less_atm A B \<Longrightarrow> less_atm B A\<close>
 begin
 
