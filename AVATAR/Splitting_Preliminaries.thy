@@ -1,3 +1,9 @@
+(*  Title:       Preliminaries for Abstract Splitting Architecture
+    Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2018
+*)
+
+section \<open>Preliminaries for Abstract Splitting Architecture\<close>
+
 theory Splitting_Preliminaries
   imports
     Ordered_Resolution_Prover.Clausal_Logic
