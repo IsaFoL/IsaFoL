@@ -9,11 +9,11 @@ theory Splitting_Calculus
     Splitting_Preliminaries
 begin
 
-datatype ('f, 'x) sym =
-  Base_Sym 'f
-| Extra_Sym 'x
+datatype ('f, 'x) atom =
+  Formula 'f
+| Extra_Atom 'x
 
-type_synonym ('f, 'x) component = "('f, 'x) sym literal"
+type_synonym ('f, 'x) component = "('f, 'x) atom literal"
 
 type_synonym ('f, 'x) assertion = "('f, 'x) component set"
 
@@ -29,6 +29,7 @@ end
 
 locale splitting_calculus = base_calculus _ _ _ _ _ Bot for Bot :: "'f set"
 begin
+
 
 end
 
