@@ -150,7 +150,7 @@ proof
             case b
             then obtain \<kappa> where \<open>\<kappa> \<in> Inf_F\<close> and \<open>set (prems_of \<kappa>) \<subseteq> N\<close> and \<open>\<iota> \<in> \<G>_Inf \<kappa>\<close> by auto
             then show \<open>\<iota> \<in> Red_Inf_G (\<G>_set N)\<close>
-              using saturated_nonground unfolding saturated_def Inf_from_def by auto
+              using saturated_nonground unfolding saturated_def Non_ground.Inf_from_def by auto
           qed
         qed
       qed
