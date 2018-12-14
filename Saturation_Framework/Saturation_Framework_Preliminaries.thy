@@ -6,7 +6,7 @@ section \<open>Preliminaries\<close>
 
 
 theory Saturation_Framework_Preliminaries
-  imports 
+  imports
     Ordered_Resolution_Prover.Lazy_List_Liminf
     Ordered_Resolution_Prover.Lazy_List_Chain
     (* abbrevs ">t" = ">\<^sub>t" and "\<ge>t" = "\<ge>\<^sub>t" *)
