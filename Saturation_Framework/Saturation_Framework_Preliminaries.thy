@@ -106,7 +106,7 @@ inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\
   unsat_preserving_derive: "(B \<in> Bot \<Longrightarrow> N |\<approx> {B} \<Longrightarrow> M |\<approx> {B}) \<Longrightarrow> M - N \<subseteq> Red_F N \<Longrightarrow> M \<Longrightarrow>\<^sub>P\<^sub>P N"
 
 definition Sup_Red_Inf_llist :: "'f set llist \<Rightarrow> 'f inference set" where
-    "Sup_Red_Inf_llist D = (\<Union>i \<in> {i. enat i < llength D}. (Red_Inf (lnth D i)))"
+    "Sup_Red_Inf_llist D = (\<Union>i \<in> {i. enat i < llength D}. Red_Inf (lnth D i))"
 
 lemma Sup_Red_Inf_unit: "Sup_Red_Inf_llist (LCons X LNil) = Red_Inf X" 
   using Sup_Red_Inf_llist_def enat_0_iff(1) by simp
@@ -126,20 +126,20 @@ lemma equiv_Sup_Liminf:
     in_Sup: "C \<in> Sup_llist D" and
     not_in_Liminf: "C \<notin> Liminf_llist D"
   shows
-    "\<exists> i \<in> {i. enat (Suc i) < llength D}. C \<in> (lnth D i) - (lnth D (Suc i))"
+    "\<exists> i \<in> {i. enat (Suc i) < llength D}. C \<in> lnth D i - lnth D (Suc i)"
 proof -
   obtain i where C_D_i: "C \<in> Sup_upto_llist D i" and "i < llength D" 
     using elem_Sup_llist_imp_Sup_upto_llist' in_Sup by fast
   then obtain j where j: "j \<ge> i \<and> enat j < llength D \<and> C \<notin> lnth D j" using not_in_Liminf   
     unfolding Sup_llist_def chain_def Liminf_llist_def by auto
-  obtain k where k: "C \<in> (lnth D k)" "enat k < llength D" "k \<le> i" using C_D_i 
+  obtain k where k: "C \<in> lnth D k" "enat k < llength D" "k \<le> i" using C_D_i 
     unfolding Sup_upto_llist_def by auto
-  let ?S = "{i. i < j \<and> i \<ge> k \<and> C \<in> (lnth D i)}"
+  let ?S = "{i. i < j \<and> i \<ge> k \<and> C \<in> lnth D i}"
   define l where "l \<equiv> Max ?S"
   have \<open>k \<in> {i. i < j \<and> k \<le> i \<and> C \<in> lnth D i}\<close> using k j by (auto simp: order.order_iff_strict)
   then have nempty: "{i. i < j \<and> k \<le> i \<and> C \<in> lnth D i} \<noteq> {}" by auto 
   then have l_prop: "l < j \<and> l \<ge> k \<and> C \<in> (lnth D l)" using Max_in[of ?S, OF _ nempty] unfolding l_def by auto 
-  then have "C \<in> (lnth D l) - (lnth D (Suc l))" using j gt_Max_notin[OF _ nempty, of "Suc l"] 
+  then have "C \<in> lnth D l - lnth D (Suc l)" using j gt_Max_notin[OF _ nempty, of "Suc l"] 
     unfolding l_def[symmetric] by (auto intro: Suc_lessI)
   then show ?thesis apply (rule bexI[of _ l]) using l_prop j 
     apply auto 
@@ -156,9 +156,9 @@ proof
   {
     fix C i
     assume 
-      in_ith_elem: "C \<in> (lnth D i) - (lnth D (Suc i))" and
+      in_ith_elem: "C \<in> lnth D i - lnth D (Suc i)" and
       i: "enat (Suc i) < llength D"
-    have "(lnth D i) \<Longrightarrow>\<^sub>P\<^sub>P (lnth D (Suc i))" using i deriv in_ith_elem chain_lnth_rel by auto
+    have "lnth D i \<Longrightarrow>\<^sub>P\<^sub>P lnth D (Suc i)" using i deriv in_ith_elem chain_lnth_rel by auto
     then have "C \<in> Red_F (lnth D (Suc i))" using in_ith_elem derive.cases by blast
     then have "C \<in> Red_F (Sup_llist D)" using Red_F_of_subset 
       by (meson contra_subsetD i lnth_subset_Sup_llist)
@@ -172,12 +172,12 @@ lemma Red_Inf_subset_Liminf:
     i: \<open>enat i < llength D\<close>
   shows \<open>Red_Inf (lnth D i) \<subseteq> Red_Inf (Liminf_llist D)\<close>
 proof -
-  have Sup_in_diff: \<open>Red_Inf (Sup_llist D) \<subseteq> Red_Inf ((Sup_llist D) - ((Sup_llist D) - (Liminf_llist D)))\<close> 
+  have Sup_in_diff: \<open>Red_Inf (Sup_llist D) \<subseteq> Red_Inf (Sup_llist D - (Sup_llist D - Liminf_llist D))\<close> 
     using Red_Inf_of_Red_F_subset[OF Red_in_Sup] deriv by auto
-  also have \<open>(Sup_llist D) - ((Sup_llist D) - (Liminf_llist D)) = Liminf_llist D\<close> 
+  also have \<open>Sup_llist D - (Sup_llist D - Liminf_llist D) = Liminf_llist D\<close> 
     by (simp add: Liminf_llist_subset_Sup_llist double_diff)
   then have Red_Inf_Sup_in_Liminf: \<open>Red_Inf (Sup_llist D) \<subseteq> Red_Inf (Liminf_llist D)\<close> using Sup_in_diff by auto
-  have \<open>(lnth D i) \<subseteq> (Sup_llist D)\<close> unfolding Sup_llist_def using i by blast
+  have \<open>lnth D i \<subseteq> Sup_llist D\<close> unfolding Sup_llist_def using i by blast
   then have "Red_Inf (lnth D i) \<subseteq> Red_Inf (Sup_llist D)" using Red_Inf_of_subset 
     unfolding Sup_llist_def by auto 
   then show ?thesis using Red_Inf_Sup_in_Liminf by auto
@@ -189,13 +189,13 @@ lemma Red_F_subset_Liminf:
     i: \<open>enat i < llength D\<close>
   shows \<open>Red_F (lnth D i) \<subseteq> Red_F (Liminf_llist D)\<close>
 proof -
-  have Sup_in_diff: \<open>Red_F (Sup_llist D) \<subseteq> Red_F ((Sup_llist D) - ((Sup_llist D) - (Liminf_llist D)))\<close> 
+  have Sup_in_diff: \<open>Red_F (Sup_llist D) \<subseteq> Red_F (Sup_llist D - (Sup_llist D - Liminf_llist D))\<close> 
     using Red_F_of_Red_F_subset[OF Red_in_Sup] deriv by auto
-  also have \<open>(Sup_llist D) - ((Sup_llist D) - (Liminf_llist D)) = Liminf_llist D\<close> 
+  also have \<open>Sup_llist D - (Sup_llist D - Liminf_llist D) = Liminf_llist D\<close> 
     by (simp add: Liminf_llist_subset_Sup_llist double_diff)
   then have Red_F_Sup_in_Liminf: \<open>Red_F (Sup_llist D) \<subseteq> Red_F (Liminf_llist D)\<close>
     using Sup_in_diff by auto
-  have \<open>(lnth D i) \<subseteq> (Sup_llist D)\<close> unfolding Sup_llist_def using i by blast
+  have \<open>lnth D i \<subseteq> Sup_llist D\<close> unfolding Sup_llist_def using i by blast
   then have "Red_F (lnth D i) \<subseteq> Red_F (Sup_llist D)" using Red_F_of_subset 
     unfolding Sup_llist_def by auto 
   then show ?thesis using Red_F_Sup_in_Liminf by auto
@@ -206,13 +206,13 @@ lemma i_in_Liminf_or_Red_F:
   assumes 
     deriv: \<open>chain (\<Longrightarrow>\<^sub>P\<^sub>P) D\<close> and
     i: \<open>enat i < llength D\<close>
-  shows \<open>(lnth D i) \<subseteq> (Red_F (Liminf_llist D)) \<union> (Liminf_llist D)\<close>
+  shows \<open>lnth D i \<subseteq> Red_F (Liminf_llist D) \<union> Liminf_llist D\<close>
 proof (rule,rule)
   fix C
-  assume C: \<open>C \<in> (lnth D i)\<close>
-  and C_not_Liminf: \<open>C \<notin> (Liminf_llist D)\<close>
+  assume C: \<open>C \<in> lnth D i\<close>
+  and C_not_Liminf: \<open>C \<notin> Liminf_llist D\<close>
   have \<open>C \<in> Sup_llist D\<close> unfolding Sup_llist_def using C i by auto
-  then obtain j where j: \<open>C \<in> (lnth D j) - (lnth D (Suc j))\<close> \<open>enat (Suc j) < llength D\<close> 
+  then obtain j where j: \<open>C \<in> lnth D j - lnth D (Suc j)\<close> \<open>enat (Suc j) < llength D\<close> 
     using equiv_Sup_Liminf[of C D] C_not_Liminf by auto
   then have \<open>C \<in> Red_F (lnth D (Suc j))\<close> 
     using deriv by (meson chain_lnth_rel contra_subsetD derive.cases)
@@ -240,7 +240,7 @@ end
 locale dynamic_refutational_complete_calculus = calculus +
   assumes
     dynamic_refutational_complete: "B \<in> Bot \<Longrightarrow> \<not> lnull D \<Longrightarrow> chain (\<Longrightarrow>\<^sub>P\<^sub>P) D \<Longrightarrow> fair D 
-      \<Longrightarrow> (lnth D 0) \<Turnstile> {B} \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> (lnth D i)"
+      \<Longrightarrow> lnth D 0 \<Turnstile> {B} \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> lnth D i"
 begin
 
 text \<open>not in the technical report but obvious. Added to get the full equivalence between the static
@@ -331,7 +331,7 @@ abbreviation \<G>_set :: \<open>'f set \<Rightarrow> 'g set\<close> where
 lemma \<G>_subset: \<open>N1 \<subseteq> N2 \<Longrightarrow> \<G>_set N1 \<subseteq> \<G>_set N2\<close> by auto
 
 definition entails_\<G>  :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
-\<open>N1 \<Turnstile>\<G> N2 \<equiv> (\<G>_set N1) \<Turnstile>G (\<G>_set N2)\<close>
+  \<open>N1 \<Turnstile>\<G> N2 \<equiv> \<G>_set N1 \<Turnstile>G \<G>_set N2\<close>
 
 lemma subs_Bot_G_entails: 
   assumes
