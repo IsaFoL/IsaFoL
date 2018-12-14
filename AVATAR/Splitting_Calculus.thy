@@ -9,6 +9,22 @@ theory Splitting_Calculus
     Splitting_Preliminaries
 begin
 
+
+subsection \<open>The Base Calculus\<close>
+
+locale base_calculus = calculus Bot for Bot :: "'f set" +
+  fixes
+    lt_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>" 50)
+  assumes
+    wf_lt_F: "wfP (\<prec>)" and
+    Red_F_compact: "C \<in> Red_F N \<Longrightarrow> \<exists>N' \<subseteq> N. finite N' \<and> C \<in> Red_F N'"
+begin
+
+end
+
+
+subsection \<open>The Splitting Calculus\<close>
+
 datatype ('f, 'x) atom =
   Formula 'f
 | Extra_Atom 'x
@@ -22,14 +38,10 @@ datatype ('f, 'x) aclause =
 
 type_synonym ('f, 'x) ainference = "('f, 'x) aclause inference"
 
-locale base_calculus = compact_calculus _ _ _ _ _ Bot for Bot :: "'f set"
+locale splitting_calculus = base_calculus _ _ _ _ _ Bot for Bot :: "'f set" +
+  fixes
+    thy_U :: "'f set"
 begin
-
-end
-
-locale splitting_calculus = base_calculus _ _ _ _ _ Bot for Bot :: "'f set"
-begin
-
 
 end
 
