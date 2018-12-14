@@ -102,7 +102,7 @@ fun print_help () = (
   println("  Use option --model to print a model if one exists.");
   println("  Use option --norestart to d%eactivate restarts.");
   println("  Use option --noreduction to deactivate DB reduction.");
-  println("  Use option --nobounded to force the usage of IntInf.")
+  println("  Use option --nobounded to force the usage of IntInf.");
   println("  Use option --version to print the git id of IsaFoL when generating code.")
 )
 
