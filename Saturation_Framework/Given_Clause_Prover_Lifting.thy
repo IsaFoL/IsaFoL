@@ -94,6 +94,7 @@ abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
 
 context
   fixes M :: "'a clause set"
+  assumes sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
 begin
 
 interpretation sq: selection "S_M S M"
@@ -733,9 +734,174 @@ next
   qed
 qed
 
-find_theorems name: Inf_from
+lemma ground_subclauses_no_ctxt:
+  assumes
+    "\<forall>i < length CAs. CAs ! i = Cs ! i + poss (AAs ! i)" and
+    "length Cs = length CAs" and
+    "is_ground_cls_list CAs"
+  shows "is_ground_cls_list Cs"
+  unfolding is_ground_cls_list_def
+  by (metis assms in_set_conv_nth is_ground_cls_list_def is_ground_cls_union)
 
-lemma \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close> sorry
+lemma ground_ord_resolve_ground_no_ctxt: 
+  assumes 
+    CAs_p: "gr.ord_resolve CAs DA AAs As E" and
+    ground_cas: "is_ground_cls_list CAs" and
+    ground_da: "is_ground_cls DA"
+  shows "is_ground_cls E"
+proof -
+  have a1: "atms_of E \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA) \<union> atms_of DA"
+    using gr.ord_resolve_atms_of_concl_subset[of CAs DA _ _ E] CAs_p by auto
+  {
+    fix L :: "'a literal"
+    assume "L \<in># E"
+    then have "atm_of L \<in> atms_of E"
+      by (meson atm_of_lit_in_atms_of)
+    then have "is_ground_atm (atm_of L)"
+      using a1 ground_cas ground_da is_ground_cls_imp_is_ground_atm is_ground_cls_list_def
+      by auto
+  }
+  then show ?thesis
+    unfolding is_ground_cls_def is_ground_lit_def by simp
+qed
+
+lemma gr_res_is_res:
+  \<open>is_ground_cls DA \<Longrightarrow> is_ground_cls_list CAs \<Longrightarrow> gr.ord_resolve CAs DA AAs As E \<Longrightarrow>
+    \<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
+proof -
+  assume
+    ground_DA: \<open>is_ground_cls DA\<close> and
+    ground_CAs: \<open>is_ground_cls_list CAs\<close> and
+    gr_res: \<open>gr.ord_resolve CAs DA AAs As E\<close>
+  have ground_E: "is_ground_cls E"
+      using ground_ord_resolve_ground_no_ctxt gr_res ground_DA ground_CAs
+      by auto
+  show "\<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E" using gr_res
+  proof (cases rule: gr.ord_resolve.cases)
+    case (ord_resolve n Cs D)
+      note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
+        aas_len = this(5) and as_len = this(6) and nz = this(7) and cas = this(8) and
+        aas_not_empt = this(9) and as_aas = this(10) and eligibility = this(11) and
+        str_max = this(12) and sel_empt = this(13)
+ 
+      have len_aas_len_as: "length AAs = length As"
+        using aas_len as_len by auto
+ 
+      from as_aas have "\<forall>i<n. \<forall>A \<in># add_mset (As ! i) (AAs ! i). A = As ! i"
+        using ord_resolve by simp
+      then have "\<forall>i < n. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
+        using all_the_same by metis
+      then have "\<forall>i < length AAs. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
+        using aas_len by auto
+      then have "\<forall>AA \<in> set (map2 add_mset As AAs). card (set_mset AA) \<le> Suc 0"
+        using set_map2_ex[of AAs As add_mset, OF len_aas_len_as] by auto
+      then have "is_unifiers id_subst (set_mset ` set (map2 add_mset As AAs))"
+        unfolding is_unifiers_def is_unifier_def by auto
+      moreover have "finite (set_mset ` set (map2 add_mset As AAs))"
+        by auto
+      moreover have "\<forall>AA \<in> set_mset ` set (map2 add_mset As AAs). finite AA"
+        by auto
+      ultimately obtain \<sigma> where
+        \<sigma>_p: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
+        using mgu_complete by metis
+ 
+      have ground_elig: "gr.eligible As (D + negs (mset As))"
+        using ord_resolve by simp
+      have ground_cs: "\<forall>i < n. is_ground_cls (Cs ! i)"
+        using ord_resolve(8) ord_resolve(3,4) ground_CAs
+        using ground_subclauses_no_ctxt[of CAs Cs AAs] unfolding is_ground_cls_list_def by auto
+      have ground_set_as: "is_ground_atms (set As)"
+        using ord_resolve(1) ground_DA
+        by (metis atms_of_negs is_ground_cls_union set_mset_mset is_ground_cls_is_ground_atms_atms_of)
+      then have ground_mset_as: "is_ground_atm_mset (mset As)"
+        unfolding is_ground_atm_mset_def is_ground_atms_def by auto
+      have ground_as: "is_ground_atm_list As"
+        using ground_set_as is_ground_atm_list_def is_ground_atms_def by auto
+      have ground_d: "is_ground_cls D"
+        using ground_DA ord_resolve by simp
+ 
+      from as_len nz have "atms_of D \<union> set As \<noteq> {}" "finite (atms_of D \<union> set As)"
+        by auto
+      then have "Max (atms_of D \<union> set As) \<in> atms_of D \<union> set As"
+        using Max_in by metis
+      then have is_ground_Max: "is_ground_atm (Max (atms_of D \<union> set As))"
+        using ground_d ground_mset_as is_ground_cls_imp_is_ground_atm
+        unfolding is_ground_atm_mset_def by auto
+      then have Max\<sigma>_is_Max: "\<forall>\<sigma>. Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
+        by auto
+ 
+      have ann1: "maximal_wrt (Max (atms_of D \<union> set As)) (D + negs (mset As))"
+        unfolding maximal_wrt_def
+        by clarsimp (metis Max_less_iff UnCI \<open>atms_of D \<union> set As \<noteq> {}\<close>
+            \<open>finite (atms_of D \<union> set As)\<close> ground_d ground_set_as infinite_growing is_ground_Max
+            is_ground_atms_def is_ground_cls_imp_is_ground_atm less_atm_ground)
+ 
+      from ground_elig have ann2:
+        "Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
+        "D \<cdot> \<sigma> + negs (mset As \<cdot>am \<sigma>) = D + negs (mset As)"
+        using is_ground_Max ground_mset_as ground_d by auto
+ 
+      from ground_elig have fo_elig:
+        "eligible (S_M S M) \<sigma> As (D + negs (mset As))"
+        unfolding gr.eligible.simps eligible.simps gr.maximal_wrt_def using ann1 ann2
+        by auto 
+ 
+      have l: "\<forall>i < n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)"
+        using ord_resolve by simp
+      then have "\<forall>i < n. strictly_maximal_wrt (As ! i) (Cs ! i)"
+        unfolding gr.strictly_maximal_wrt_def strictly_maximal_wrt_def
+        using ground_as[unfolded is_ground_atm_list_def] ground_cs as_len less_atm_ground
+        by clarsimp (fastforce simp: is_ground_cls_as_atms)+
+ 
+      then have ll: "\<forall>i < n. strictly_maximal_wrt (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
+        by (simp add: ground_as ground_cs as_len)
+ 
+      have m: "\<forall>i < n. S_M S M (CAs ! i) = {#}"
+        using ord_resolve by simp
+ 
+      have ground_e: "is_ground_cls (\<Union>#mset Cs + D)"
+        using ground_d ground_cs ground_E e by simp
+      show ?thesis
+        using m DA e ground_e
+          ord_resolve.intros[OF cas_len cs_len aas_len as_len nz cas aas_not_empt \<sigma>_p fo_elig ll]
+        by auto
+    qed
+qed
+
+lemma union_G_F_ground: \<open>is_ground_clss (UNION M \<G>_F)\<close>
+  unfolding \<G>_F_def by (simp add: grounding_ground grounding_of_clss_def is_ground_clss_def)
+
+lemma \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close>
+proof
+  assume i'_in: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F)\<close>
+  have prems_i'_in: \<open>set (inference.prems_of \<iota>') \<subseteq> UNION M \<G>_F\<close> using i'_in unfolding Inf_from_def by blast
+  have \<open>\<iota>' \<in> Inf_G\<close> using i'_in unfolding Inf_from_def by blast
+  then obtain \<iota>'_RP where i'_RP_is: \<open>\<iota>' = conv_inf \<iota>'_RP\<close> and i'_RP_in: \<open>\<iota>'_RP \<in> gr.ord_\<Gamma>\<close> unfolding Inf_G_def by blast
+  then obtain CAs DA AAs As E where
+    gr_res: \<open>gr.ord_resolve CAs DA AAs As E\<close> and
+    is_inf: \<open>\<iota>'_RP = Inference_System.inference.Infer (mset CAs) DA E\<close>
+    unfolding gr.ord_\<Gamma>_def by blast
+  have \<open>side_prems_of \<iota>'_RP = mset CAs\<close> using is_inf unfolding side_prems_of_def by simp
+  then have CAs_in: \<open>set CAs \<subseteq> set (inference.prems_of \<iota>')\<close> using i'_RP_is unfolding conv_inf_def by auto
+  then have ground_CAs: \<open>is_ground_cls_list CAs\<close>
+    using prems_i'_in union_G_F_ground is_ground_cls_list_def is_ground_clss_def by auto
+  have \<open>main_prem_of \<iota>'_RP = DA\<close> using is_inf unfolding main_prem_of_def by simp
+  then have DA_in: \<open>DA \<in> set (inference.prems_of \<iota>')\<close> using i'_RP_is unfolding conv_inf_def by auto
+  then have ground_DA: \<open>is_ground_cls DA\<close>
+    using prems_i'_in union_G_F_ground is_ground_clss_def by auto
+  obtain \<sigma> where grounded_res: \<open>ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
+    using gr_res_is_res[OF ground_DA ground_CAs gr_res] by auto
+  have prems_ground: \<open>{DA} \<union> set CAs \<subseteq> grounding_of_clss M\<close>
+    using prems_i'_in CAs_in DA_in unfolding grounding_of_clss_def \<G>_F_def by fast
+  obtain \<eta>s \<eta> \<eta>2 CAs0 DA0 AAs0 As0 E0 \<tau> where
+    "is_ground_subst \<eta>"
+    "is_ground_subst_list \<eta>s"
+    "is_ground_subst \<eta>2"
+    "ord_resolve_rename S CAs0 DA0 AAs0 As0 \<tau> E0"
+    "CAs0 \<cdot>\<cdot>cl \<eta>s = CAs" "DA0 \<cdot> \<eta> = DA" "E0 \<cdot> \<eta>2 = E" 
+    "{DA0} \<union> set CAs0 \<subseteq> M"
+  using ord_resolve_rename_lifting[OF sel_stable grounded_res selection_axioms prems_ground] by metis
+oops
 
 end
 
