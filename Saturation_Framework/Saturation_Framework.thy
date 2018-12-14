@@ -281,7 +281,7 @@ proof
     have \<open>saturated (Liminf_llist D)\<close> 
       using deriv fair fair_implies_Liminf_saturated unfolding saturated_def by auto
 
-   then have \<open>\<exists>B'\<in>Bot. B' \<in> (Liminf_llist D)\<close> 
+    then have \<open>\<exists>B'\<in>Bot. B' \<in> (Liminf_llist D)\<close>
       using bot_elem static_refutational_complete Liminf_entails_Bot by auto
     then show \<open>\<exists>i\<in>{i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> lnth D i\<close>
       unfolding Liminf_llist_def by auto
