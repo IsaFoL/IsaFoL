@@ -106,7 +106,7 @@ inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\
   unsat_preserving_derive: "(B \<in> Bot \<Longrightarrow> N |\<approx> {B} \<Longrightarrow> M |\<approx> {B}) \<Longrightarrow> M - N \<subseteq> Red_F N \<Longrightarrow> M \<Longrightarrow>\<^sub>P\<^sub>P N"
 
 definition Sup_Red_Inf_llist :: "'f set llist \<Rightarrow> 'f inference set" where
-    "Sup_Red_Inf_llist D = (\<Union>i \<in> {i. enat i < llength D}. Red_Inf (lnth D i))"
+  "Sup_Red_Inf_llist D = (\<Union>i \<in> {i. enat i < llength D}. Red_Inf (lnth D i))"
 
 lemma Sup_Red_Inf_unit: "Sup_Red_Inf_llist (LCons X LNil) = Red_Inf X" 
   using Sup_Red_Inf_llist_def enat_0_iff(1) by simp
