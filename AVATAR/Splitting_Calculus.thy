@@ -36,12 +36,17 @@ type_synonym ('f, 'x) assertion = "('f, 'x) component set"
 datatype ('f, 'x) aclause =
   AClause (fmla_of: 'f) (assert_of: "('f, 'x) assertion")
 
+fun cls_of_acls :: "('f, 'x) aclause \<Rightarrow> ('f, 'x) atom clause" where
+  "cls_of_acls (AClause C) A
+
 type_synonym ('f, 'x) ainference = "('f, 'x) aclause inference"
 
 locale splitting_calculus = base_calculus _ _ _ _ _ Bot for Bot :: "'f set" +
   fixes
     thy_U :: "'f set"
 begin
+
+
 
 end
 
