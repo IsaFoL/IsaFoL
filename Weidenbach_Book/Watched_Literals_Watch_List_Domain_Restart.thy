@@ -1178,7 +1178,7 @@ definition cdcl_twl_full_restart_wl_D_GC_prog_post :: \<open>'v twl_st_wl \<Righ
 
 definition cdcl_twl_full_restart_wl_D_GC_prog where
 \<open>cdcl_twl_full_restart_wl_D_GC_prog S = do {
-    S \<leftarrow> cdcl_twl_local_restart_wl_D_spec S;
+    S \<leftarrow> cdcl_twl_local_restart_wl_spec0 S;
     T \<leftarrow> remove_one_annot_true_clause_imp_wl_D S;
     ASSERT(mark_to_delete_clauses_wl_D_pre T);
     U \<leftarrow> mark_to_delete_clauses_wl_D T;
@@ -1187,21 +1187,33 @@ definition cdcl_twl_full_restart_wl_D_GC_prog where
     RETURN V
   }\<close>
 
-(*
+
 lemma cdcl_twl_full_restart_wl_D_GC_prog:
   \<open>(cdcl_twl_full_restart_wl_D_GC_prog, cdcl_twl_full_restart_wl_GC_prog) \<in>
     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S} \<rightarrow>\<^sub>f
     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<rangle>nres_rel\<close>
-  unfolding cdcl_twl_full_restart_wl_D_GC_prog_def cdcl_twl_full_restart_wl_GC_prog_def
-  apply (intro frefI nres_relI)
-  apply (refine_vcg
-    remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
-    mark_to_delete_clauses_wl_D_mark_to_delete_clauses_wl[THEN fref_to_Down]
-    cdcl_GC_clauses_wl_D_cdcl_GC_clauses_wl[THEN fref_to_Down])
-  subgoal unfolding mark_to_delete_clauses_wl_D_pre_def by fast
-  subgoal unfolding cdcl_twl_full_restart_wl_D_GC_prog_post_def by fast
-  done
-*)
+  (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f _\<close>)
+proof -
+  have [refine0]: \<open>cdcl_twl_local_restart_wl_spec0 x
+          \<le> \<Down> ?R (cdcl_twl_local_restart_wl_spec0 y)\<close>
+    if \<open>(x, y) \<in> ?R\<close>
+    for x y
+    using that apply (case_tac x; case_tac y)
+    by (auto 5 1 simp: cdcl_twl_local_restart_wl_spec0_def image_iff
+         RES_RES_RETURN_RES2 intro!: RES_refine)
+      (auto simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def)
+  show ?thesis
+    unfolding cdcl_twl_full_restart_wl_D_GC_prog_def cdcl_twl_full_restart_wl_GC_prog_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg
+      remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
+      mark_to_delete_clauses_wl_D_mark_to_delete_clauses_wl[THEN fref_to_Down]
+      cdcl_GC_clauses_wl_D_cdcl_GC_clauses_wl[THEN fref_to_Down])
+    subgoal unfolding mark_to_delete_clauses_wl_D_pre_def by fast
+    subgoal unfolding cdcl_twl_full_restart_wl_D_GC_prog_post_def by fast
+    done
+qed
+
 end
 
 end
