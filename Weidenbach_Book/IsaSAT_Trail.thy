@@ -6,14 +6,15 @@ begin
 subsubsection \<open>Trail\<close>
 
 text \<open>Our trail contains several additional information compared to the simple trail:
-  \<^item> the (reversed) trail in an array (i.e., the trail in the same order as presented in ``Automated Reasoning'');
+  \<^item> the (reversed) trail in an array (i.e., the trail in the same order as presented in
+  ``Automated Reasoning'');
   \<^item> the mapping from any \<^emph>\<open>literal\<close> (and not an atom) to its polarity;
   \<^item> the mapping from a \<^emph>\<open>atom\<close> to its level or reason (in two different arrays);
   \<^item> the current level of the state;
   \<^item> the control stack.
 
 We copied the idea from the mapping from a literals to it polarity instead of an atom to its
-polarity from a comment by Armin Biere in CaDiCal. We did not really observe a (at best) slight
+polarity from a comment by Armin Biere in CaDiCal. We only observed a (at best) faint
 performance increase, but as it seemed slightly faster and does not increase the length of the
 formalisation, we kept it.
 
@@ -249,7 +250,7 @@ lemma control_stack_alt_def: \<open>no_dup M \<Longrightarrow> control_stack' cs
   apply (rule iffI)
   subgoal by blast
   subgoal
-    using count_decided_ge_get_level[of M ]
+    using count_decided_ge_get_level[of M]
     by (metis One_nat_def Suc_count_decided_gt_get_level Suc_less_eq Suc_pred count_decided_0_iff
         less_imp_diff_less neq0_conv nth_mem)
   done
@@ -311,7 +312,7 @@ qed
 
 paragraph \<open>Encoding of the reasons\<close>
 
-definition DECISION_REASON :: \<open>nat\<close> where
+definition DECISION_REASON :: nat where
   \<open>DECISION_REASON = 1\<close>
 
 lemma DECISION_REASON_uint64:
