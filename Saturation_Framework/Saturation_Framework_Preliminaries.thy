@@ -103,7 +103,7 @@ context calculus
 begin
 
 inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Longrightarrow>\<^sub>P\<^sub>P" 50) where
-  unsat_preserving_derive: "(B \<in> Bot \<Longrightarrow> N |\<approx> {B} \<Longrightarrow> M |\<approx> {B}) \<Longrightarrow> M - N \<subseteq> Red_F N \<Longrightarrow> M \<Longrightarrow>\<^sub>P\<^sub>P N"
+  unsat_preserving_derive: "(\<And>B. B \<in> Bot \<Longrightarrow> N |\<approx> {B} \<Longrightarrow> M |\<approx> {B}) \<Longrightarrow> M - N \<subseteq> Red_F N \<Longrightarrow> M \<Longrightarrow>\<^sub>P\<^sub>P N"
 
 definition Sup_Red_Inf_llist :: "'f set llist \<Rightarrow> 'f inference set" where
   "Sup_Red_Inf_llist D = (\<Union>i \<in> {i. enat i < llength D}. Red_Inf (lnth D i))"

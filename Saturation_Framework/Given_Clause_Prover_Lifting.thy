@@ -894,14 +894,43 @@ proof
   have prems_ground: \<open>{DA} \<union> set CAs \<subseteq> grounding_of_clss M\<close>
     using prems_i'_in CAs_in DA_in unfolding grounding_of_clss_def \<G>_F_def by fast
   obtain \<eta>s \<eta> \<eta>2 CAs0 DA0 AAs0 As0 E0 \<tau> where
-    "is_ground_subst \<eta>"
-    "is_ground_subst_list \<eta>s"
-    "is_ground_subst \<eta>2"
-    "ord_resolve_rename S CAs0 DA0 AAs0 As0 \<tau> E0"
-    "CAs0 \<cdot>\<cdot>cl \<eta>s = CAs" "DA0 \<cdot> \<eta> = DA" "E0 \<cdot> \<eta>2 = E" 
-    "{DA0} \<union> set CAs0 \<subseteq> M"
+    "is_ground_subst \<eta>" and
+    "is_ground_subst_list \<eta>s" and
+    "is_ground_subst \<eta>2" and
+    ngr_res: "ord_resolve_rename S CAs0 DA0 AAs0 As0 \<tau> E0" and
+    "CAs0 \<cdot>\<cdot>cl \<eta>s = CAs" "DA0 \<cdot> \<eta> = DA" "E0 \<cdot> \<eta>2 = E"  and
+    prems_in: "{DA0} \<union> set CAs0 \<subseteq> M"
   using ord_resolve_rename_lifting[OF sel_stable grounded_res selection_axioms prems_ground] by metis
+  define \<rho> where
+    "\<rho> = hd (renamings_apart (DA0 # CAs0))"
+  define \<rho>s where
+    "\<rho>s = tl (renamings_apart (DA0 # CAs0))"
+  define DA0' where
+    "DA0' = DA0 \<cdot> \<rho>"
+  define As0' where
+    "As0' = As0 \<cdot>al \<rho>"
+  define CAs0' where
+    "CAs0' = CAs0 \<cdot>\<cdot>cl \<rho>s"
+  define AAs0' where
+    "AAs0' = AAs0 \<cdot>\<cdot>aml \<rho>s"
+   have renames_DA0: "is_renaming \<rho>"
+    using renamings_apart_length renamings_apart_renaming unfolding \<rho>_def
+    by (metis length_greater_0_conv list.exhaust_sel list.set_intros(1) list.simps(3))
+  have renames_CAs0: "is_renaming_list \<rho>s"
+    using renamings_apart_length renamings_apart_renaming unfolding \<rho>s_def
+    by (metis is_renaming_list_def length_greater_0_conv list.set_sel(2) list.simps(3))
+  define \<iota>_RP where \<open>\<iota>_RP = Infer (mset CAs0') DA0' E0\<close>
+  then have i_RP_in: \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using ngr_res renames_DA0 renames_CAs0 CAs0'_def DA0'_def \<rho>_def \<rho>s_def unfolding ord_FO_\<Gamma>_def sorry
+  define \<iota> where \<open>\<iota> = conv_inf \<iota>_RP\<close>
+  then have \<open>\<iota> \<in> Inf_F\<close> using i_RP_in unfolding Inf_F_def by simp
+  have \<open>{DA0} \<union> set CAs0 = set (inference.prems_of \<iota>)\<close> using \<iota>_def \<iota>_RP_def unfolding conv_inf_def by simp
+  then have \<open>set (inference.prems_of \<iota>) \<subseteq> M\<close> using prems_in by simp
+  have \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close> unfolding \<G>_Inf_def
+    unfolding \<G>_Inf_def 
 oops
+
+find_theorems ord_resolve_rename
+find_theorems is_renaming
 
 end
 
