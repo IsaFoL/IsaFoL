@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "7ac0dd6e";
+val version : string = "b5f9e06f";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -2246,6 +2246,9 @@ fun upper_restart_bound_not_reached_fast_impl x =
 val minimum_number_between_restarts : Uint64.uint64 =
   Uint64.fromInt (50 : IntInf.int);
 
+val max_restart_decision_lvl_code : Word32.word =
+  Word32.fromLargeInt (IntInf.toLarge (300 : IntInf.int));
+
 fun opts_reduce x = (fn (_, (b, _)) => b) x;
 
 fun opts_reduction_st_fast_code x = (fn xi => (fn () => let
@@ -2383,11 +2386,11 @@ fun restart_required_heur_fast_code x =
                                x_j andalso
                               (less_nat bi x_l andalso
                                 (Word32.< (two_uint32, x_r) andalso
-                                  less_nat
-                                    (nat_of_uint64
-                                      (shiftr_uint64 x_h
-(nat_of_integer (48 : IntInf.int))))
-                                    (nat_of_uint32 x_r))))))))
+                                  (Word32.< (x_r, max_restart_decision_lvl_code) andalso
+                                    less_nat
+                                      (nat_of_uint64
+(shiftr_uint64 x_h (nat_of_integer (48 : IntInf.int))))
+                                      (nat_of_uint32 x_r)))))))))
                 end))
       end
         ()
@@ -3309,11 +3312,11 @@ fun restart_required_heur_slow_code x =
                                x_j andalso
                               (less_nat bi x_l andalso
                                 (Word32.< (two_uint32, x_r) andalso
-                                  less_nat
-                                    (nat_of_uint64
-                                      (shiftr_uint64 x_h
-(nat_of_integer (48 : IntInf.int))))
-                                    (nat_of_uint32 x_r))))))))
+                                  (Word32.< (x_r, max_restart_decision_lvl_code) andalso
+                                    less_nat
+                                      (nat_of_uint64
+(shiftr_uint64 x_h (nat_of_integer (48 : IntInf.int))))
+                                      (nat_of_uint32 x_r)))))))))
                 end))
       end
         ()
