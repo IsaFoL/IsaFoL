@@ -13,7 +13,9 @@ text \<open>
 
 notation image_mset (infixr "`#" 90)
 
-text \<open>
+text \<open> The initial version was supposed to work on partial models directly. I found a counter
+example while writing the proof:
+
 \nitpicking{
 
 \shortrules{Propagate}{$(M;N;U;k;\top;O)$}{$(ML^{C\lor L};N;U;k;\top;O)$}
@@ -1232,9 +1234,9 @@ abbreviation \<rho>' where
   \<open>\<rho>' w \<equiv> (case w of None \<Rightarrow> \<infinity> | Some w \<Rightarrow> \<rho> w)\<close>
 
 definition is_improving_int :: "('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clause option \<Rightarrow> bool" where
-  \<open>is_improving_int M N w \<longleftrightarrow> \<rho> (lit_of `# mset M) < \<rho>' w \<and> M \<Turnstile>asm N \<and> no_dup M
-    \<and> lit_of `# mset M \<in> simple_clss (atms_of_mm N)
-    \<and> total_over_m (lits_of_l M) (set_mset N)\<close>
+  \<open>is_improving_int M N w \<longleftrightarrow> enat (\<rho> (lit_of `# mset M)) < \<rho>' w \<and> M \<Turnstile>asm N \<and> no_dup M
+    \<and> lit_of `# mset M \<in> simple_clss (atms_of_mm N) \<and>
+    total_over_m (lits_of_l M) (set_mset N)\<close>
 
 text \<open>Pointwise negation of a clause:\<close>
 definition pNeg :: "'a clause \<Rightarrow> 'a clause" where
