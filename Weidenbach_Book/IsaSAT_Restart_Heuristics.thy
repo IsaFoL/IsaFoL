@@ -554,20 +554,6 @@ proof -
       vm0: \<open>((an, bc), vm0) \<in> distinct_atoms_rel (all_atms_st (bt, bu, bv, bw, bx, by, bz))\<close>
       using vm
       by (auto simp: isa_vmtf_def)
- (*   have \<A>: \<open>set_mset (all_atms_st (bt, bu, bv, bw, bx, by, bz)) =
-       set_mset (all_atms_st (bt, bu, bv, bw, bx, by, bz))\<close>
-      using that(2) unfolding restart_abs_wl_D_pre_def restart_abs_wl_pre_def restart_abs_l_pre_def
-        restart_prog_pre_def
-      apply - apply normalize_goal+
-      subgoal for x xa
-      apply (rule literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of \<open>(bt, bu, bv, bw, bx, by, bz)\<close> x xa])
-        by auto
-      done
-    have [simp]: \<open>vmtf (all_atms bu (bw + bx)) bt =
-        vmtf (all_atms bu bw) bt\<close> for bt
-      using vmtf_cong[OF \<A>] vmtf_cong[OF \<A>[symmetric]]
-      by auto
-*)
     have n_d: \<open>no_dup bt\<close>
       using tr by (auto simp: trail_pol_def)
     show ?thesis
@@ -1711,4 +1697,98 @@ lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   subgoal by auto
   done
 
+definition remove_all_annot_true_clause_imp_wl_D_heur_inv
+  :: \<open>twl_st_wl_heur \<Rightarrow> _ \<Rightarrow> nat \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
+where
+  \<open>remove_all_annot_true_clause_imp_wl_D_heur_inv S xs = (\<lambda>(i, T).
+     \<exists>S' T'. (S, S') \<in> twl_st_heur_restart \<and> (T, T') \<in> twl_st_heur_restart \<and>
+    remove_all_annot_true_clause_imp_wl_D_inv S' xs (i, T'))\<close>
+
+(*
+definition remove_all_annot_true_clause_imp_wl_D_heur
+  :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+where
+\<open>remove_all_annot_true_clause_imp_wl_D_heur = (\<lambda>L (M, N0, D, NE0, UE, Q, W). do {
+    let xs = W L;
+    (_, N, NE) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, N, NE).
+        remove_all_annot_true_clause_imp_wl_D_heur_inv (M, N0, D, NE0, UE, Q, W) xs
+          (i, M, N, D, NE, UE, Q, W)\<^esup>
+      (\<lambda>(i, N, NE). i < length xs)
+      (\<lambda>(i, N, NE). do {
+        ASSERT(i < length xs);
+        let (C, _ , _) = xs ! i;
+        if C \<in># dom_m N \<and> length (N \<propto> C) \<noteq> 2
+        then do {
+          (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (C, N, NE);
+          RETURN (i+1, N, NE)
+        }
+        else
+          RETURN (i+1, N, NE)
+      })
+      (0, N0, NE0);
+    RETURN (M, N, D, NE, UE, Q, W)
+  })\<close>
+
+definition isasat_replace_annot_in_trail :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> trail_pol nres\<close>
+where
+  \<open>isasat_replace_annot_in_trail = (\<lambda>(M, val, lvls, reason, k) L. do {
+      ASSERT(atm_of L < length reason);
+      RETURN (M, val, lvls, reason[atm_of L := 0], k)
+    })\<close>
+
+definition remove_one_annot_true_clause_one_imp_wl_D_heur
+  :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (nat \<times> twl_st_wl_heur) nres\<close>
+where
+\<open>remove_one_annot_true_clause_one_imp_wl_D_heur = (\<lambda>i (M, N, D, Q, W). do {
+      (L, C) \<leftarrow> do {
+        L \<leftarrow> rev_trail_nth M i;
+	C \<leftarrow> get_the_propagation_reason_pol M L;
+	RETURN (L, C)};
+      if C = 0 then RETURN (i+1, M, N, D, Q, W)
+      else do {
+        ASSERT(C \<in># dom_m N);
+        M \<leftarrow> isasat_replace_annot_in_trail M L;
+        N' \<leftarrow> mark_clause_to_delete N C;
+        let S = (M, N', D, Q, W);
+        S \<leftarrow> remove_all_annot_true_clause_imp_wl_D L S;
+        RETURN (i+1, S)
+      }
+  })\<close>
+
+definition cdcl_twl_full_restart_wl_D_GC_prog_heur_post :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
+\<open>cdcl_twl_full_restart_wl_D_GC_prog_heur_post S T \<longleftrightarrow>
+  (\<exists>S' T'. (S, S') \<in> twl_st_heur_restart \<and> (T, T') \<in> twl_st_heur_restart \<and>
+    cdcl_twl_full_restart_wl_D_GC_prog_post S' T')\<close>
+
+definition remove_one_annot_true_clause_imp_wl_D_inv where
+  \<open>remove_one_annot_true_clause_imp_wl_D_inv S = (\<lambda>(i, T).
+     remove_one_annot_true_clause_imp_wl_inv S (i, T) \<and>
+     literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T) T)\<close>
+
+definition remove_one_annot_true_clause_imp_wl_D_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+where
+\<open>remove_one_annot_true_clause_imp_wl_D_heur = (\<lambda>S. do {
+    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_D_inv S\<^esup>
+      (\<lambda>(i, S). i < length (get_trail_wl_heur S) \<and> \<not>is_decided (get_trail_wl S!i))
+      (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl_D i S)
+      (0, S);
+    RETURN S
+  })\<close>
+
+
+term remove_one_annot_true_clause_imp_wl_D
+definition cdcl_twl_full_restart_wl_D_GC_prog where
+\<open>cdcl_twl_full_restart_wl_D_GC_prog S = do {
+    S \<leftarrow> do {
+        S \<leftarrow> find_decomp_wl_st_int lvl S;
+        empty_Q S
+    }
+    T \<leftarrow> remove_one_annot_true_clause_imp_wl_D S;
+    ASSERT(mark_to_delete_clauses_wl_D_pre T);
+    U \<leftarrow> mark_to_delete_clauses_wl_D T;
+    V \<leftarrow> cdcl_GC_clauses_wl_D U;
+    ASSERT(cdcl_twl_full_restart_wl_D_GC_prog_post S V);
+    RETURN V
+  }\<close>
+*)
 end
