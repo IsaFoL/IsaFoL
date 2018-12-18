@@ -1,5 +1,6 @@
 theory IsaSAT_Trail
 imports IsaSAT_Literals
+
 begin
 
 
@@ -1348,7 +1349,7 @@ text \<open>We here define a variant of the trail representation, where the the 
   little faster.
 \<close>
 
-definition  trail_pol_no_CS :: \<open>nat multiset \<Rightarrow> (trail_pol \<times> (nat, nat) ann_lits) set\<close>
+definition trail_pol_no_CS :: \<open>nat multiset \<Rightarrow> (trail_pol \<times> (nat, nat) ann_lits) set\<close>
 where
   \<open>trail_pol_no_CS \<A> =
    {((M', xs, lvls, reasons, k, cs), M). ((M', reasons), M) \<in> ann_lits_split_reasons \<A> \<and>
@@ -1566,7 +1567,7 @@ qed
 lemma isa_length_trail_length_u_no_CS:
   \<open>(RETURN o isa_length_trail, RETURN o length_u) \<in> trail_pol_no_CS \<A> \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-  (auto simp: isa_length_trail_def trail_pol_no_CS_alt_def ann_lits_split_reasons_def
-    intro!: ASSERT_leI)
+    (auto simp: isa_length_trail_def trail_pol_no_CS_alt_def ann_lits_split_reasons_def
+      intro!: ASSERT_leI)
 
 end

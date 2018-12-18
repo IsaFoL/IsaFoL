@@ -941,6 +941,20 @@ declare opts_reduction_st_code.refine[sepref_fr_rules]
 
 sepref_register opts_reduction_st opts_restart_st
 
+definition max_restart_decision_lvl :: nat where
+  \<open>max_restart_decision_lvl = 300\<close>
+
+definition max_restart_decision_lvl_code :: uint32 where
+  \<open>max_restart_decision_lvl_code = 300\<close>
+
+sepref_register max_restart_decision_lvl
+
+lemma max_restart_decision_lvl_code_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return max_restart_decision_lvl_code), uncurry0 (RETURN max_restart_decision_lvl)) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def max_restart_decision_lvl_def
+    max_restart_decision_lvl_code_def)
+
 definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_heur S n = do {
     let opt_red = opts_reduction_st S;
@@ -958,7 +972,8 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
     let should_not_reduce = (\<not>opt_red \<or> upper_restart_bound_not_reached S);
     RETURN ((opt_res \<or> opt_red) \<and>
        (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
-      level > two_uint32_nat \<and> nat_of_uint32_conv level > nat_of_uint64 (fema >> 48))}
+      level > two_uint32_nat \<and> level < max_restart_decision_lvl \<and>
+      nat_of_uint32_conv level > nat_of_uint64 (fema >> 48))}
   \<close>
 
 lemma uint64_max_ge_48: \<open>48 \<le> uint64_max\<close>
