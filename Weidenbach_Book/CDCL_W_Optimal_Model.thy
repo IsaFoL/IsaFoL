@@ -8,8 +8,8 @@ subsection \<open>Optimisations\<close>
 
 text \<open>
   A counter-example for the original version from the book has been found (see below). There is no
-  simple fix, except taking complete models. In this case, it is better to build on top of the
-  incremental version of CDCL, and not to create a new variant of the calculus.\<close>
+  simple fix, except taking complete models.
+\<close>
 
 notation image_mset (infixr "`#" 90)
 
@@ -91,6 +91,15 @@ $(\epsilon, N, \varnothing, \top, \infty)$
 
 However, the optimal model (obviously) is $Q$.
 }
+\<close>
+
+text \<open>The idea of the proof is the following:
+  \<^enum> We start with a calculus CDCLopt on \<^term>\<open>(M, N, U, D, Op)\<close>.
+  \<^enum> This extended to a state  \<^term>\<open>(M, N +  all_models_of_higher_cost, U, D, Op)\<close>.
+  \<^enum> Each transition step of CDCLopt is mapped to a step in CDCL over the abstract state. The
+    abstract set of clauses is likely unsatisfiable, but we only use it to prove the invariants on
+    the state.
+  \<^enum> The last proofs are done over CDCLopt.
 \<close>
 locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state =
   state\<^sub>W_no_state
