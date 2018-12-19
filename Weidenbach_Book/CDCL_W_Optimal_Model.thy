@@ -100,6 +100,11 @@ text \<open>The idea of the proof is the following:
     abstract set of clauses is likely unsatisfiable, but we only use it to prove the invariants on
     the state.
   \<^enum> The last proofs are done over CDCLopt.
+
+We abstract about how the optimisation is done in the locale below. It is parametrised by what is
+the optimisation criterion and which clauses are generated.
+
+We later instantiate it with the optimisation calculus from Weidenbach's book.
 \<close>
 locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state =
   state\<^sub>W_no_state
