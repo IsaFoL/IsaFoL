@@ -87,7 +87,13 @@ proof -
     unfolding Saturation_Framework_Preliminaries.sound_inference_system_def
       consequence_relation_def entails_sound_F_def
       Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
-    by auto \<comment> \<open>the other assumptions to prove are handled by auto\<close>
+    apply (intro conjI)
+    subgoal by simp
+    subgoal by blast
+    subgoal by auto
+    subgoal by blast
+    subgoal by auto
+    done
 qed
 
 abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
@@ -923,7 +929,7 @@ proof
   then have i_RP_in: \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using ngr_res renames_DA0 renames_CAs0 CAs0'_def DA0'_def \<rho>_def \<rho>s_def unfolding ord_FO_\<Gamma>_def sorry
   define \<iota> where \<open>\<iota> = conv_inf \<iota>_RP\<close>
   then have \<open>\<iota> \<in> Inf_F\<close> using i_RP_in unfolding Inf_F_def by simp
-  have \<open>{DA0} \<union> set CAs0 = set (inference.prems_of \<iota>)\<close> using \<iota>_def \<iota>_RP_def unfolding conv_inf_def by simp
+  have \<open>{DA0} \<union> set CAs0 = set (inference.prems_of \<iota>)\<close> using \<iota>_def \<iota>_RP_def unfolding conv_inf_def apply simp sorry
   then have \<open>set (inference.prems_of \<iota>) \<subseteq> M\<close> using prems_in by simp
   have \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close> unfolding \<G>_Inf_def
     unfolding \<G>_Inf_def 
