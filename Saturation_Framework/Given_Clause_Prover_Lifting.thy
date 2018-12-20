@@ -698,7 +698,7 @@ definition subst_inf :: \<open>'a clause Saturation_Framework_Preliminaries.infe
 
 definition \<G>_Inf :: \<open>'a clause Saturation_Framework_Preliminaries.inference
                       \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set\<close> where
-  \<open>\<G>_Inf \<iota> = {\<iota> \<cdot>inf \<sigma> | \<sigma>. is_ground_subst \<sigma> \<and> (\<iota> \<cdot>inf \<sigma> \<in> Inf_G)}\<close> (* TODO add restriction that i.sigma is in gr.ord_res Gamma and selection function must agree between i and i.sigma (hopefully automatic)*)
+  \<open>\<G>_Inf \<iota> = {Saturation_Framework_Preliminaries.inference.Infer ((Saturation_Framework_Preliminaries.prems_of \<iota>) \<cdot>\<cdot>cl \<rho>s) ((Saturation_Framework_Preliminaries.concl_of \<iota>) \<cdot> \<rho>) |\<rho> \<rho>s. is_ground_subst_list \<rho>s \<and> is_ground_subst \<rho> \<and> Saturation_Framework_Preliminaries.inference.Infer ((Saturation_Framework_Preliminaries.prems_of \<iota>) \<cdot>\<cdot>cl \<rho>s) ((Saturation_Framework_Preliminaries.concl_of \<iota>) \<cdot> \<rho>)  \<in> Inf_G }\<close>
 
 interpretation \<G>: grounding_function Bot_F entails_sound_F Inf_F Bot_G entails_sound_G Inf_G
   entails_comp_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf
@@ -937,6 +937,9 @@ oops
 
 find_theorems ord_resolve_rename
 find_theorems is_renaming
+find_theorems name: exI
+thm exE
+find_theorems mgu
 
 end
 
