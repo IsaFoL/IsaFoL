@@ -327,6 +327,14 @@ next
   qed
 qed
 
+
+lemma dist: \<open>distinct_mset (mset_set {0..<n})\<close> for n :: nat
+  apply (subst atLeastLessThan_upt, subst mset_set_set)
+  apply auto[]
+  apply (subst distinct_mset_mset_distinct)
+  apply auto
+done
+
 (* Move to Multiset_More.thy *)
 lemma in_distinct_mset_diff_iff:
   \<open>distinct_mset K \<Longrightarrow>  x \<in># K - N \<longleftrightarrow> x \<notin># N \<and> x \<in># K\<close>
@@ -359,12 +367,6 @@ proof -
  using res unfolding gr.ord_resolve.simps by auto
   have x_in_equiv: \<open>x \<in># mset CAs' \<Longrightarrow> x \<in># mset CAs\<close> for x using mset_CAs by simp
   have len_CAs': \<open>length CAs' = n\<close> using len_CAs mset_CAs using mset_eq_length by fastforce
-  have dist: \<open>distinct_mset (mset_set {0..<n})\<close> for n :: nat
-    apply (subst atLeastLessThan_upt, subst mset_set_set)
-     apply auto[]
-    apply (subst distinct_mset_mset_distinct)
-    apply auto
-    done
   have exist_map: \<open>\<exists>map_i. (\<forall>i. i < n \<longrightarrow> CAs'!i = CAs!(map_i i)) \<and> inj_on map_i {0..<n} \<and>
           map_i ` {0..<n} \<subseteq> {0..<length CAs'}\<close> if \<open>n \<le> length CAs'\<close>
     using that
@@ -391,8 +393,7 @@ proof -
     finally have \<open>\<exists>i. i < length CAs' \<and> CAs'!m = CAs!i \<and> i \<notin> map_i ` {0..<m}\<close>
       apply (subst (asm)(2) map_nth[symmetric])
       unfolding mset_map mset_upt len_CAs apply (subst (asm) cut_n_m)
-      using dist by (auto simp: image_mset_mset_set[symmetric] inj in_distinct_mset_diff_iff dist
-          len_CAs'
+      by (auto simp: image_mset_mset_set[symmetric] inj in_distinct_mset_diff_iff dist len_CAs'
         dest!: distinct_mem_diff_mset) 
     then have \<open>CAs'!m = CAs!j\<close> and j_notin: \<open>j \<notin> map_i ` {0..<m}\<close> and \<open>j < length CAs'\<close>
       using someI[of \<open>\<lambda>i. i < length CAs' \<and> CAs'!m = CAs!i \<and> i \<notin> map_i ` {0..<m}\<close>]
@@ -919,19 +920,14 @@ proof
   then have \<open>\<iota> \<in> Inf_F\<close> using i_RP_in unfolding Inf_F_def by simp
   have \<open>{DA0} \<union> set CAs0 = set (inference.prems_of \<iota>)\<close> using \<iota>_def \<iota>_RP_def unfolding conv_inf_def by simp
   then have \<open>set (inference.prems_of \<iota>) \<subseteq> M\<close> using prems_in by simp
-  have dist: \<open>distinct_mset (mset_set {0..<n})\<close> for n :: nat
-    apply (subst atLeastLessThan_upt, subst mset_set_set)
-    apply auto[]
-    apply (subst distinct_mset_mset_distinct)
-    apply auto
-    done
   define PAs where \<open>PAs = inference.prems_of \<iota>'\<close>
   then have mset_PAs_is: \<open>mset PAs = mset CAs + {# DA #}\<close> using i'_RP_is is_inf unfolding conv_inf_def by simp
   define PAs' where \<open>PAs' = DA # CAs\<close>
   then have mset_PAs': \<open>mset PAs' = mset PAs\<close> using mset_PAs_is by simp
   then have len_PAs: \<open>length PAs = length PAs'\<close> by (metis size_mset)
   define n where \<open>n = length PAs\<close>
-  then have len_PAs': \<open>n = length PAs'\<close> using len_PAs by simp
+  then have \<open>length \<eta>s >= n - 1\<close> using CAs0_is PAs'_def mset_PAs_is sorry
+  have len_PAs': \<open>length PAs' = n\<close> using n_def len_PAs by simp
   have exist_map: \<open>\<exists>map_i. (\<forall>i. i < n \<longrightarrow> PAs!i = PAs'!(map_i i)) \<and> inj_on map_i {0..<n} \<and>
           map_i ` {0..<n} \<subseteq> {0..<length PAs}\<close> if \<open>n \<le> length PAs\<close>
     using that
@@ -958,10 +954,8 @@ proof
       by (auto simp: min_def mset_PAs' take_map_nth_alt_def)
     finally have \<open>\<exists>i. i < length PAs \<and> PAs!m = PAs'!i \<and> i \<notin> map_i ` {0..<m}\<close>
       apply (subst (asm)(2) map_nth[symmetric])
-      unfolding mset_map mset_upt len_PAs
-      apply (subst (asm) cut_n_m)
-      using dist by (auto simp: image_mset_mset_set[symmetric] inj in_distinct_mset_diff_iff dist
-          len_PAs
+      unfolding mset_map mset_upt len_PAs' apply (subst (asm) cut_n_m)
+      by (auto simp: image_mset_mset_set[symmetric] inj in_distinct_mset_diff_iff dist len_PAs n_def
         dest!: distinct_mem_diff_mset) 
     then have \<open>PAs!m = PAs'!j\<close> and j_notin: \<open>j \<notin> map_i ` {0..<m}\<close> and \<open>j < length PAs\<close>
       using someI[of \<open>\<lambda>i. i < length PAs \<and> PAs!m = PAs'!i \<and> i \<notin> map_i ` {0..<m}\<close>]
@@ -976,11 +970,44 @@ proof
     ultimately show ?case
       apply -
       apply (rule exI[of _ \<open>map_i (m:=j)\<close>])
-      using inj im_incl by (auto simp flip: fun_upd_def simp: len_PAs less_Suc_eq image_subset_iff)
+      using inj im_incl by (auto simp flip: fun_upd_def simp: len_PAs n_def less_Suc_eq image_subset_iff)
   qed
   then obtain map_i where map_i_def: \<open>i < n \<Longrightarrow> PAs!i = PAs'!(map_i i)\<close> and len_map_i: \<open>i < n \<Longrightarrow> (map_i i) < n\<close> and
      inj: \<open>inj_on map_i {0..<n}\<close> for i
-    unfolding len_PAs by fastforce
+    unfolding len_PAs n_def by fastforce
+  have [simp]: \<open>map_i ` {0..<n} = {0..<n}\<close>
+    apply (rule endo_inj_surj) using len_map_i inj by auto
+  have ground_n_ns: \<open>is_ground_subst_list (\<eta> # \<eta>s)\<close>
+    using ground_n ground_ns unfolding is_ground_subst_list_def by simp
+  obtain \<rho>s where len_rs: \<open>length \<rho>s = n\<close> and rs_def: \<open>i < n \<Longrightarrow> \<rho>s!i = (\<eta> # \<eta>s)!(map_i i)\<close> for i  
+    apply (rule that[of \<open>map (\<lambda>i. (\<eta> # \<eta>s)!(map_i i)) [0..<n]\<close>])
+    by (auto simp: n_def) 
+  have \<open>i < n \<Longrightarrow> is_ground_subst (\<rho>s!i)\<close> using rs_def ground_n_ns unfolding is_ground_subst_list_def
+  proof (cases "map_i i = 0")
+    assume 
+      i_smaller_n: \<open>i < n\<close> and
+      rs_def2: \<open>\<And>i. i < n \<Longrightarrow> \<rho>s ! i = (\<eta> # \<eta>s) ! map_i i\<close> and
+      gr_subst_list_def: \<open>Ball (set (\<eta> # \<eta>s)) is_ground_subst\<close> and
+      i_maps_to: \<open>map_i i = 0\<close>
+    have \<open>\<rho>s ! i = \<eta>\<close> by (simp add: i_smaller_n i_maps_to rs_def2)
+    then show \<open>is_ground_subst (\<rho>s ! i)\<close> using ground_n by simp
+  next
+    assume 
+      i_smaller_n: \<open>i < n\<close> and
+      rs_def2: \<open>\<And>i. i < n \<Longrightarrow> \<rho>s ! i = (\<eta> # \<eta>s) ! map_i i\<close> and
+      gr_subst_list_def: \<open>Ball (set (\<eta> # \<eta>s)) is_ground_subst\<close> and
+      i_nmaps_to: \<open>map_i i \<noteq> 0\<close>
+    have \<open>\<rho>s ! i = \<eta>s ! (map_i i - 1)\<close> 
+      using i_smaller_n i_nmaps_to rs_def2 by simp
+    define j where \<open>j = map_i i - 1\<close>
+    have \<open>j \<in> {0..<(n-1)}\<close> using j_def i_nmaps_to i_smaller_n len_map_i by force
+    then have \<open>is_ground_subst (\<eta>s ! j)\<close> using ground_ns unfolding is_ground_subst_list_def sorry
+    then show \<open>is_ground_subst (\<rho>s ! i)\<close> using ground_ns unfolding is_ground_subst_list_def
+  qed
+    
+
+sorry
+  then have \<open>is_ground_subst_list \<rho>s\<close> using ground_n_ns unfolding is_ground_subst_list_def apply auto sorry
 
 
 
@@ -995,19 +1022,12 @@ proof
 
 
 
-
-  have \<open>\<forall>i < length PAs. \<exists>j < length (DA # CAs). PAs!i = (DA # CAs)!j\<close>
-    using PAs_def i'_RP_is is_inf unfolding conv_inf_def
-    by (metis CAs_is DA_is Saturation_Framework_Preliminaries.inference.sel(1) add_mset_add_single
-      in_set_conv_nth mset.simps(2) mset_eq_setD mset_list_mset)
-  then obtain map_i
-  define PAs0 where \<open>PAs0 \<equiv> \<close>
   obtain \<rho>s where \<open>inference.prems_of \<iota>' = inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s\<close> and \<open>is_ground_subst_list \<rho>s\<close>
     using ground_n ground_ns CAs0_is DA0_is is_inf i'_RP_is \<iota>_def unfolding conv_inf_def sorry 
   have \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close> unfolding \<G>_Inf_def using i'_Inf_G is_inf \<iota>_def ground_n ground_ns ground_ns2 CAs0_is DA0_is E0_is i'_RP_is \<iota>_RP_def 
 oops
 
-find_theorems ord_resolve_rename
+find_theorems map2 "_ \<Longrightarrow> length _ = _"
 find_theorems is_renaming
 find_theorems name: exI
 thm exE
