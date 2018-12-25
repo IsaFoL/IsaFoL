@@ -1,15 +1,16 @@
 section \<open>Basic Notions for the GRAT Format\<close>
 theory Grat_Basic
 imports 
-  Unit_Propagation 
-  "$AFP/Refine_Imperative_HOL/Sepref_ICF_Bindings" 
+  Unit_Propagation
+  "Refine_Imperative_HOL.Sepref_ICF_Bindings" 
   Exc_Nres_Monad
-  Synth_Definition 
+  DRAT_Misc
+  Synth_Definition
   Dynamic_Array 
   Array_Map_Default 
   Parser_Iterator
-  DRAT_Misc 
-  Misc
+  DRAT_Misc
+  "Automatic_Refinement.Misc"
 begin
 
 hide_const (open) Word.slice
@@ -144,26 +145,25 @@ begin
     by (metis input_pre.it_invar_def input_pre_axioms it_next_wf itran_def 
         itran_next rtrancl_into_trancl2 seg_invar2 seg_no_cyc seg_wf)
       
-    
   text \<open>Some abbreviations to conveniently construct error messages. \<close>    
-  abbreviation mk_err :: "_ \<Rightarrow> 'it error" 
-    where "mk_err msg \<equiv> (STR msg, None, None)"
-  abbreviation mk_errN :: "_ \<Rightarrow>_ \<Rightarrow> 'it error" 
-    where "mk_errN msg n \<equiv> (STR msg, Some (int n), None)"
+  abbreviation mk_err :: "String.literal \<Rightarrow> 'it error" 
+    where "mk_err msg \<equiv> (msg, None, None)"
+  abbreviation mk_errN :: "String.literal \<Rightarrow> _ \<Rightarrow> 'it error" 
+    where "mk_errN msg n \<equiv> (msg, Some (int n), None)"
   abbreviation mk_errI :: "_ \<Rightarrow>_ \<Rightarrow> 'it error" 
-    where "mk_errI msg i \<equiv> (STR msg, Some i, None)"
+    where "mk_errI msg i \<equiv> (msg, Some i, None)"
   abbreviation mk_errit :: "_ \<Rightarrow> _ \<Rightarrow> 'it error" 
-    where "mk_errit msg it \<equiv> (STR msg, None, Some it)"
+    where "mk_errit msg it \<equiv> (msg, None, Some it)"
   abbreviation mk_errNit :: "_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> 'it error" 
-    where "mk_errNit msg n it \<equiv> (STR msg, Some (int n), Some it)"
+    where "mk_errNit msg n it \<equiv> (msg, Some (int n), Some it)"
   abbreviation mk_errIit :: "_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> 'it error" 
-    where "mk_errIit msg i it \<equiv> (STR msg, Some i, Some it)"
+    where "mk_errIit msg i it \<equiv> (msg, Some i, Some it)"
   
   
       
   text \<open>Check that iterator has not reached the end.\<close>    
   definition "check_not_end it 
-    \<equiv> CHECK (it \<noteq> it_end) (mk_err ''Parsed beyond end'')"
+    \<equiv> CHECK (it \<noteq> it_end) (mk_err STR ''Parsed beyond end'')"
     
   lemma check_not_end_correct[THEN ESPEC_trans, refine_vcg]: 
     "it_invar it \<Longrightarrow> check_not_end it \<le> ESPEC (\<lambda>_. True) (\<lambda>_. it \<noteq> it_end)"
@@ -192,7 +192,7 @@ begin
   text \<open>Read a natural number\<close>    
   definition "parse_nat it\<^sub>0 \<equiv> doE {
     (x,it) \<leftarrow> parse_int it\<^sub>0;
-    CHECK (x\<ge>0) (mk_errIit ''Invalid nat'' x it\<^sub>0);
+    CHECK (x\<ge>0) (mk_errIit STR ''Invalid nat'' x it\<^sub>0);
     ERETURN (nat x,it)
   }"  
     
@@ -237,7 +237,7 @@ abbreviation "lit_assn \<equiv> pure lit_rel"
     
     
 
-interpretation lit_dflt_option: dflt_option "pure lit_rel" 0 "return oo op ="
+interpretation lit_dflt_option: dflt_option "pure lit_rel" 0 "return oo (=)"
   apply standard
   subgoal by (auto simp: lit_rel_def in_br_conv lit_invar_def)
   subgoal
@@ -285,12 +285,12 @@ sepref_decl_op
       \<rightarrow> \<langle>nat_rel,bool_rel\<rangle>map_rel" .
 
 lemma [def_pat_rules]:
-  "op=$(sem_lit'$l$A)$(Some$True) \<equiv> op_lit_is_true$l$A"
-  "op=$(sem_lit'$l$A)$(Some$False) \<equiv> op_lit_is_false$l$A"
+  "(=)$(sem_lit'$l$A)$(Some$True) \<equiv> op_lit_is_true$l$A"
+  "(=)$(sem_lit'$l$A)$(Some$False) \<equiv> op_lit_is_false$l$A"
   by auto
 
 lemma lit_eq_impl[sepref_import_param]: 
-  "(op=,op=) \<in> lit_rel \<rightarrow> lit_rel \<rightarrow> bool_rel"
+  "((=),(=)) \<in> lit_rel \<rightarrow> lit_rel \<rightarrow> bool_rel"
   by (auto 
         simp: lit_rel_def in_br_conv lit_\<alpha>_def lit_invar_def 
         split: if_split_asm)
@@ -334,7 +334,7 @@ lemma [sepref_opt_simps]:
   by simp_all
 
 lemma vv_bool_eq_refine[sepref_import_param]: 
-  "(vv_eq_bool, op =) \<in> vv_rel \<rightarrow> bool_rel \<rightarrow> bool_rel"
+  "(vv_eq_bool, (=)) \<in> vv_rel \<rightarrow> bool_rel \<rightarrow> bool_rel"
   by (auto simp: vv_rel_def)
 
 sepref_definition op_lit_is_true_impl is "uncurry (RETURN oo op_lit_is_true)" 

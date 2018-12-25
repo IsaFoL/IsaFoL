@@ -18,7 +18,7 @@ begin
       (A,_) \<leftarrow> EWHILEIT (\<lambda>(_,it). it_invar it \<and> it\<noteq>it_end) (\<lambda>(_,it). it_peek it \<noteq> litZ) (\<lambda>(A,it). doE {
         (l,it) \<leftarrow> parse_literal it;
         check_not_end it;
-        CHECK (sem_lit' l A \<noteq> Some False) (mk_errit ''Contradictory assignment'' it);
+        CHECK (sem_lit' l A \<noteq> Some False) (mk_errit STR ''Contradictory assignment'' it);
         let A = assign_lit A l;
         ERETURN (A,it)
       }) (A,it);
@@ -36,7 +36,7 @@ begin
     definition "read_clause_check_sat itE it A \<equiv> doE {
       EASSERT (it_invar it \<and> it_invar itE \<and> itran itE it_end);
       parse_lz
-        (mk_errit ''Parsed beyond end'' it)   
+        (mk_errit STR ''Parsed beyond end'' it)   
         litZ itE it (\<lambda>_. True) (\<lambda>x r. doE {
           let l = lit_\<alpha> x;
           ERETURN (r \<or> (sem_lit' l A = Some True))
@@ -63,7 +63,7 @@ begin
     definition "check_sat it itE A \<equiv> doE {
       tok_fold itE it (\<lambda>it _. doE {
         (it',r) \<leftarrow> read_clause_check_sat itE it A;
-        CHECK (r) (mk_errit ''Clause not satisfied by given assignment'' it);
+        CHECK (r) (mk_errit STR ''Clause not satisfied by given assignment'' it);
         ERETURN (it',())
       }) ()
     }"

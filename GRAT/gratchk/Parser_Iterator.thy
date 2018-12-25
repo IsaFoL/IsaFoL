@@ -1,6 +1,6 @@
 section \<open>Iterators and Simple Parsers\<close>
 theory Parser_Iterator
-imports IICF Array_Map_Default Exc_Nres_Monad Dimacs_Format
+imports "Array_Map_Default" Exc_Nres_Monad Dimacs_Format
 begin
   text \<open>
     This theory provides a notion of iterator, and 
@@ -28,11 +28,11 @@ hide_const Word.slice
   \<close>
   locale iterator = 
     fixes 
-        I :: "'it::order \<Rightarrow> bool" -- \<open>Iterator invariant\<close>
-    and "next" :: "'it \<Rightarrow> 'it"   -- \<open>Advance iterator\<close>  
-    and peek :: "'it \<Rightarrow> 'a"      -- \<open>Get element at current position\<close>
+        I :: "'it::order \<Rightarrow> bool" \<comment> \<open>Iterator invariant\<close>
+    and "next" :: "'it \<Rightarrow> 'it"   \<comment> \<open>Advance iterator\<close>  
+    and peek :: "'it \<Rightarrow> 'a"      \<comment> \<open>Get element at current position\<close>
     assumes ordered: "I it \<Longrightarrow> it < next it"
-      -- \<open>Advancing an iterator must result in a bigger iterator.\<close>
+      \<comment> \<open>Advancing an iterator must result in a bigger iterator.\<close>
   begin  
     subsubsection \<open>Segments\<close>
     primrec seg :: "'it \<Rightarrow> 'a list \<Rightarrow> 'it \<Rightarrow> bool" where
@@ -550,7 +550,7 @@ hide_const Word.slice
     fixes a :: "'a::heap list"
     (*assumes a_not_empty[simp]: "a\<noteq>[]"*)
   begin  
-    definition "I it \<equiv> it>0 \<and> it\<le>length a" -- \<open>Unused zero-position\<close>
+    definition "I it \<equiv> it>0 \<and> it\<le>length a" \<comment> \<open>Unused zero-position\<close>
     abbreviation "peek \<equiv> ait_peek a"
     abbreviation "next" where "next \<equiv> ait_next a"  
     abbreviation "begin" where "begin \<equiv> ait_begin a"
@@ -578,7 +578,7 @@ hide_const Word.slice
       by (auto simp: rdomp_def)
         
     lemma next_refine[sepref_fr_rules]: 
-      "(uncurry (return oo (\<lambda>_. op + 1)), uncurry (RETURN oo ait_next)) 
+      "(uncurry (return oo (\<lambda>_. (+) 1)), uncurry (RETURN oo ait_next)) 
         \<in> [\<lambda>(_,it). it\<noteq>end]\<^sub>a a_assn\<^sup>k *\<^sub>a it_assn\<^sup>k \<rightarrow> it_assn"
       unfolding it_assn_def
       apply sepref_to_hoare
@@ -608,7 +608,7 @@ hide_const Word.slice
       done  
       
     lemma it_assn_eq_impl[sepref_fr_rules]: 
-      "(uncurry (return oo op=),uncurry (RETURN oo op=)) 
+      "(uncurry (return oo (=)),uncurry (RETURN oo (=))) 
       \<in> it_assn\<^sup>k *\<^sub>a it_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn"
       unfolding it_assn_def
       apply sepref_to_hoare

@@ -283,8 +283,6 @@ fun test_bit x n =
 end; (*struct Bits_Integer*)
 
 structure Grat_Check : sig
-  type num
-  type char
   datatype int = Int_of_integer of IntInf.int
   type nat
   val integer_of_nat : nat -> IntInf.int
@@ -310,10 +308,6 @@ structure Grat_Check : sig
 end = struct
 
 datatype typerepa = Typerep of string * typerepa list;
-
-datatype num = One | Bit0 of num | Bit1 of num;
-
-datatype char = Zero_char | Char of num;
 
 datatype int = Int_of_integer of IntInf.int;
 
@@ -393,6 +387,8 @@ val ord_integer =
   {less_eq = (fn a => fn b => IntInf.<= (a, b)),
     less = (fn a => fn b => IntInf.< (a, b))}
   : IntInf.int ord;
+
+datatype num = One | Bit0 of num | Bit1 of num;
 
 datatype ('a, 'b) sum = Inl of 'a | Inr of 'b;
 

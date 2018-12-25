@@ -45,7 +45,7 @@ context unsat_input begin
     
   definition "parse_id it\<^sub>0 \<equiv> doE {
     (x,it) \<leftarrow> parse_int it\<^sub>0;
-    CHECK (x>0) (mk_errIit ''Invalid id'' x it\<^sub>0);
+    CHECK (x>0) (mk_errIit STR ''Invalid id'' x it\<^sub>0);
     ERETURN (nat x,it)
   }"  
 
@@ -57,7 +57,7 @@ context unsat_input begin
     else if v=4 then ERETURN (RAT_LEMMA, it)
     else if v=5 then ERETURN (CONFLICT, it)
     else if v=6 then ERETURN (RAT_COUNTS, it)
-    else THROW (mk_errNit ''Invalid item type'' v it\<^sub>0)
+    else THROW (mk_errNit STR ''Invalid item type'' v it\<^sub>0)
   }"  
 
   abbreviation "at_end it \<equiv> it = it_end"
@@ -94,7 +94,7 @@ context unsat_input begin
 (* Map Interface *)
 definition resolve_id :: "clausemap \<Rightarrow> id \<Rightarrow> ('it error,var clause) enres" 
   where "resolve_id \<equiv> \<lambda>(CM,RL) i. doE { 
-    CHECK (i\<in>dom CM) (mk_errN ''Invalid clause id'' i);
+    CHECK (i\<in>dom CM) (mk_errN STR ''Invalid clause id'' i);
     ERETURN (the (CM i)) 
   }"
   
@@ -138,7 +138,7 @@ definition get_rat_candidates
   where
   "get_rat_candidates \<equiv> \<lambda>(CM,RL) A l. doE {
     let l = neg_lit l;
-    CHECK (RL l \<noteq> None) (mk_err ''Resolution literal not declared'');
+    CHECK (RL l \<noteq> None) (mk_err STR ''Resolution literal not declared'');
     (* Get collected candidates *)
     let cands_raw = the (RL l); 
     (* Filter out deleted, not containing l, and being blocked *)
@@ -329,7 +329,7 @@ definition "check_candidates candidates it check \<equiv> doE {
     }) (candidates,it);
   
   it \<leftarrow> skip it;
-  CHECK (candidates = {}) (mk_err ''Too few RAT-candidates in proof'');
+  CHECK (candidates = {}) (mk_err STR ''Too few RAT-candidates in proof'');
   ERETURN it
 }"
 
@@ -362,7 +362,7 @@ definition check_rup_proof :: "state \<Rightarrow> 'it \<Rightarrow> (_, state) 
   "check_rup_proof \<equiv> \<lambda>(last_id,CM,A\<^sub>0) it. doE {
     let it\<^sub>0 = it;
     (i,it) \<leftarrow> parse_id it;
-    CHECK (i>last_id) (mk_errNit ''Ids must be strictly increasing'' i it\<^sub>0);
+    CHECK (i>last_id) (mk_errNit STR ''Ids must be strictly increasing'' i it\<^sub>0);
     (*(C,it) \<leftarrow> lift_parser parse_clause it;*)
     (blocked,C,A',it) \<leftarrow> parse_check_blocked A\<^sub>0 it;
     if blocked then doE {
@@ -372,7 +372,7 @@ definition check_rup_proof :: "state \<Rightarrow> 'it \<Rightarrow> (_, state) 
       (confl_id,it) \<leftarrow> parse_id it;
       confl \<leftarrow> resolve_id CM confl_id;
       CHECK (is_conflict_clause A' confl) 
-            (mk_errNit ''Expected conflict clause'' confl_id it\<^sub>0);
+            (mk_errNit STR ''Expected conflict clause'' confl_id it\<^sub>0);
       EASSERT (redundant_clause (cm_F CM) A\<^sub>0 C);
       EASSERT (i \<notin> cm_ids CM);
       CM \<leftarrow> add_clause i C CM;
@@ -405,18 +405,18 @@ definition check_rat_proof :: "state \<Rightarrow> 'it \<Rightarrow> (_, state) 
   "check_rat_proof \<equiv> \<lambda>(last_id,CM,A\<^sub>0) it. doE {
     let it\<^sub>0 = it;
     CHECK (\<not>at_end it \<and> \<not>at_Z it) 
-          (mk_errit ''Expected resolution literal'' it\<^sub>0);
+          (mk_errit STR ''Expected resolution literal'' it\<^sub>0);
     (reslit,it) \<leftarrow> parse_literal it;
     CHECK (sem_lit' reslit A\<^sub>0 \<noteq> Some False) 
-          (mk_errit ''Resolution literal is false'' it\<^sub>0);
+          (mk_errit STR ''Resolution literal is false'' it\<^sub>0);
     (i,it) \<leftarrow> parse_id it;
-    CHECK (i>last_id) (mk_errNit ''Ids must be strictly increasing'' i it\<^sub>0);
+    CHECK (i>last_id) (mk_errNit STR ''Ids must be strictly increasing'' i it\<^sub>0);
     (*(C,it) \<leftarrow> lift_parser parse_clause it;*)
     (blocked,C,A',it) \<leftarrow> parse_check_blocked A\<^sub>0 it;
     if blocked then doE {
       ERETURN (i,CM,A\<^sub>0)
     } else doE {
-      CHECK (reslit \<in> C) (mk_errit ''Resolution literal not in clause'' it\<^sub>0);
+      CHECK (reslit \<in> C) (mk_errit STR ''Resolution literal not in clause'' it\<^sub>0);
       (A',it) \<leftarrow> apply_units CM A' it;
       candidates \<leftarrow> get_rat_candidates CM A' reslit;
       check_candidates candidates it (\<lambda>cand_id it. doE {
@@ -429,7 +429,7 @@ definition check_rat_proof :: "state \<Rightarrow> 'it \<Rightarrow> (_, state) 
         (confl_id,it) \<leftarrow> parse_id it;
         confl \<leftarrow> resolve_id CM confl_id;
         CHECK (is_conflict_clause A'' confl) 
-              (mk_errit ''Expected conflict clause'' it\<^sub>1);
+              (mk_errit STR ''Expected conflict clause'' it\<^sub>1);
         EASSERT (implied_clause (cm_F CM) A\<^sub>0 (C \<union> (cand-{neg_lit reslit})));
         ERETURN it
       });
@@ -537,7 +537,7 @@ definition check_item :: "state \<Rightarrow> 'it \<Rightarrow> (_, state option
     let it\<^sub>0 = it;
     (ty,it) \<leftarrow> parse_type it;
     case ty of
-      INVALID \<Rightarrow> THROW (mk_err ''Invalid item'')
+      INVALID \<Rightarrow> THROW (mk_err STR ''Invalid item'')
     | UNIT_PROP \<Rightarrow> doE {
         (A,it) \<leftarrow> apply_units CM A it;
         ERETURN (Some (last_id,CM,A))
@@ -558,11 +558,11 @@ definition check_item :: "state \<Rightarrow> 'it \<Rightarrow> (_, state option
         (i,it) \<leftarrow> parse_id it;
         C \<leftarrow> resolve_id CM i;
         CHECK (is_conflict_clause A C) 
-              (mk_errNit ''Conflict clause has no conflict'' i it\<^sub>0);
+              (mk_errNit STR ''Conflict clause has no conflict'' i it\<^sub>0);
         ERETURN None
       }
     | RAT_COUNTS \<Rightarrow> 
-        THROW (mk_errit ''Not expecting rat-counts in the middle of proof'' it\<^sub>0)
+        THROW (mk_errit STR ''Not expecting rat-counts in the middle of proof'' it\<^sub>0)
   }"
   
 lemma check_item_correct_pre: 
@@ -654,7 +654,7 @@ definition "read_clause_check_taut itE it A \<equiv> doE {
   EASSERT (A = Map.empty);
   EASSERT (it_invar it \<and> it_invar itE \<and> itran itE it_end);
   (it',(t,A)) \<leftarrow> parse_lz 
-    (mk_errit ''Parsed beyond end'' it)   
+    (mk_errit STR ''Parsed beyond end'' it)   
     litZ itE it (\<lambda>_. True) (\<lambda>x (t,A). doE {
       let l = lit_\<alpha> x;
       if (sem_lit' l A = Some False) then ERETURN (True,A)
@@ -752,7 +752,7 @@ lemma read_cnf_new_correct[THEN ESPEC_trans, refine_vcg]:
 definition "goto_next_item it\<^sub>0 \<equiv> doE {
   EASSERT (\<not>item_is_last it\<^sub>0);
   let it = item_next it\<^sub>0;
-  CHECK (\<not>is_None it) (mk_errit ''Invalid item structure'' it\<^sub>0);
+  CHECK (\<not>is_None it) (mk_errit STR ''Invalid item structure'' it\<^sub>0);
   ERETURN (the it)
 }"    
     
@@ -779,7 +779,7 @@ lemma cm_init_lit_correct[THEN ESPEC_trans, refine_vcg]:
     
 definition "init_rat_counts it\<^sub>0 \<equiv> doE {
   (ty,it) \<leftarrow> parse_type it\<^sub>0;
-  CHECK (ty = RAT_COUNTS) (mk_errit ''Expected RAT counts item'' it\<^sub>0);
+  CHECK (ty = RAT_COUNTS) (mk_errit STR ''Expected RAT counts item'' it\<^sub>0);
   check_not_end it;
   (CM,it) \<leftarrow> EWHILEIT 
     (\<lambda>(CM,it). it_invar it \<and> \<not>at_end it) 
@@ -815,7 +815,7 @@ definition "verify_unsat F_begin F_end it \<equiv> doE {
   let A=Map.empty;
 
   EASSERT (it_invar it);
-  CHECK (\<not>item_is_last it) (mk_err ''Invalid item structure'');
+  CHECK (\<not>item_is_last it) (mk_err STR ''Invalid item structure'');
   it \<leftarrow> goto_next_item it;
 
   CM \<leftarrow> init_rat_counts it;
@@ -839,7 +839,7 @@ definition "verify_unsat F_begin F_end it \<equiv> doE {
   
       ERETURN (s,it)
     }) (Some s,it);
-  CHECK (is_None s) (mk_err ''Proof did not contain conflict declaration'')
+  CHECK (is_None s) (mk_err STR ''Proof did not contain conflict declaration'')
 }"
 
 lemma verify_unsat_correct: 
@@ -868,7 +868,7 @@ lemma verify_unsat_correct:
   done    
     
     
-end -- \<open>proof parser\<close>  
+end \<comment> \<open>proof parser\<close>  
 
 subsection \<open>Refinement --- Backtracking\<close>
 
@@ -957,7 +957,7 @@ definition "check_candidates' candidates A it check \<equiv> doE {
       }
     }) (candidates,A,it);
   it \<leftarrow> skip it;
-  CHECK (candidates = {}) (mk_err ''Too few RAT-candidates in proof'');
+  CHECK (candidates = {}) (mk_err STR ''Too few RAT-candidates in proof'');
   ERETURN (A,it)
 }"
 
@@ -1001,7 +1001,7 @@ definition check_rup_proof_bt :: "state \<Rightarrow> 'it \<Rightarrow> (_, stat
   "check_rup_proof_bt \<equiv> \<lambda>(last_id,CM,A) it. doE {
     let it\<^sub>0 = it;
     (i,it) \<leftarrow> parse_id it;
-    CHECK (i>last_id) (mk_errNit ''Ids must be strictly increasing'' i it\<^sub>0);
+    CHECK (i>last_id) (mk_errNit STR ''Ids must be strictly increasing'' i it\<^sub>0);
     (*(C,it) \<leftarrow> lift_parser parse_clause it;*)
     (blocked,C,(A,T),it) \<leftarrow> parse_check_blocked_bt A it;
     if blocked then doE {
@@ -1011,7 +1011,7 @@ definition check_rup_proof_bt :: "state \<Rightarrow> 'it \<Rightarrow> (_, stat
       (confl_id,it) \<leftarrow> parse_id it;
       confl \<leftarrow> resolve_id CM confl_id;
       CHECK (is_conflict_clause A confl) 
-            (mk_errNit ''Expected conflict clause'' confl_id it\<^sub>0);
+            (mk_errNit STR ''Expected conflict clause'' confl_id it\<^sub>0);
       EASSERT (i \<notin> cm_ids CM);
       CM \<leftarrow> add_clause i C CM;
       ERETURN ((i,CM,backtrack A T))
@@ -1022,18 +1022,18 @@ definition check_rat_proof_bt :: "state \<Rightarrow> 'it \<Rightarrow> (_,state
   "check_rat_proof_bt \<equiv> \<lambda>(last_id,CM,A) it. doE {
     let it\<^sub>0 = it;
     CHECK (\<not>at_end it \<and> \<not>at_Z it) 
-          (mk_errit ''Expected resolution literal'' it\<^sub>0);
+          (mk_errit STR ''Expected resolution literal'' it\<^sub>0);
     (reslit,it) \<leftarrow> parse_literal it;
     CHECK (sem_lit' reslit A \<noteq> Some False) 
-          (mk_errit ''Resolution literal is false'' it\<^sub>0);
+          (mk_errit STR ''Resolution literal is false'' it\<^sub>0);
     (i,it) \<leftarrow> parse_id it;
-    CHECK (i>last_id) (mk_errNit ''Ids must be strictly increasing'' i it\<^sub>0);
+    CHECK (i>last_id) (mk_errNit STR ''Ids must be strictly increasing'' i it\<^sub>0);
     (*(C,it) \<leftarrow> lift_parser parse_clause it;*)
     (blocked,C,(A,T),it) \<leftarrow> parse_check_blocked_bt A it;
     if blocked then doE {
       ERETURN (i,CM,backtrack A T)
     } else doE {
-      CHECK (reslit \<in> C) (mk_errit ''Resolution literal not in clause'' it\<^sub>0);
+      CHECK (reslit \<in> C) (mk_errit STR ''Resolution literal not in clause'' it\<^sub>0);
       ((A,T),it) \<leftarrow> apply_units_bt CM A T it;
       candidates \<leftarrow> get_rat_candidates CM A reslit;
       (A,it) \<leftarrow> check_candidates' candidates A it (\<lambda>cand_id A it. doE {
@@ -1046,7 +1046,7 @@ definition check_rat_proof_bt :: "state \<Rightarrow> 'it \<Rightarrow> (_,state
         (confl_id,it) \<leftarrow> parse_id it;
         confl \<leftarrow> resolve_id CM confl_id;
         CHECK (is_conflict_clause A confl) 
-              (mk_errit ''Expected conflict clause'' it\<^sub>1);
+              (mk_errit STR ''Expected conflict clause'' it\<^sub>1);
         ERETURN (backtrack A T2,it)
       });
 
@@ -1176,7 +1176,7 @@ definition check_item_bt :: "state \<Rightarrow> 'it \<Rightarrow> (_, state opt
     let it\<^sub>0 = it;
     (ty,it) \<leftarrow> parse_type it;
     case ty of
-      INVALID \<Rightarrow> THROW (mk_err ''Invalid item'')
+      INVALID \<Rightarrow> THROW (mk_err STR ''Invalid item'')
     | UNIT_PROP \<Rightarrow> doE {
         (A,it) \<leftarrow> apply_units CM A it;
         ERETURN (Some (last_id,CM,A))
@@ -1197,11 +1197,11 @@ definition check_item_bt :: "state \<Rightarrow> 'it \<Rightarrow> (_, state opt
         (i,it) \<leftarrow> parse_id it;
         C \<leftarrow> resolve_id CM i;
         CHECK (is_conflict_clause A C) 
-              (mk_errNit ''Conflict clause has no conflict'' i it\<^sub>0);
+              (mk_errNit STR ''Conflict clause has no conflict'' i it\<^sub>0);
         ERETURN None
       }
     | RAT_COUNTS \<Rightarrow> 
-        THROW (mk_errit ''Not expecting rat-counts in the middle of proof'' it\<^sub>0)
+        THROW (mk_errit STR ''Not expecting rat-counts in the middle of proof'' it\<^sub>0)
   }"
 
 lemma check_item_bt_refine[refine]: "\<lbrakk>(si,s)\<in>Id; (iti,it)\<in>Id\<rbrakk> 
@@ -1222,7 +1222,7 @@ definition "verify_unsat_bt F_begin F_end it \<equiv> doE {
   let A=Map.empty;
 
   EASSERT (it_invar it);
-  CHECK (\<not>item_is_last it) (mk_err ''Invalid item structure'');
+  CHECK (\<not>item_is_last it) (mk_err STR ''Invalid item structure'');
   it \<leftarrow> goto_next_item it;
 
   CM \<leftarrow> init_rat_counts it;
@@ -1247,7 +1247,7 @@ definition "verify_unsat_bt F_begin F_end it \<equiv> doE {
 
     ERETURN (s,it)
   }) (Some s,it);
-  CHECK (is_None s) (mk_err ''Proof did not contain conflict declaration'')
+  CHECK (is_None s) (mk_err STR ''Proof did not contain conflict declaration'')
 }"
 
 lemma verify_unsat_bt_refine[refine]: 
@@ -1260,7 +1260,7 @@ lemma verify_unsat_bt_refine[refine]:
   apply vc_solve
   done
 
-end -- \<open>proof parser\<close>
+end \<comment> \<open>proof parser\<close>
 
 subsection \<open>Refinement 1\<close>
 text \<open>Model clauses by iterators to their starting position\<close>
@@ -1361,15 +1361,15 @@ context unsat_input begin
   definition "check_unit_clause1 A cref \<equiv> doE {
     ul \<leftarrow> iterate_clause cref (\<lambda>ul. True) (\<lambda>l ul. doE {
       CHECK (sem_lit' l A \<noteq> Some True) 
-            (mk_err ''True literal in clause assumed to be unit'');
+            (mk_err STR ''True literal in clause assumed to be unit'');
       if (sem_lit' l A = Some False) then ERETURN ul
       else doE {
         CHECK (ul = None \<or> ul = Some l) 
-              (mk_err ''2-undec in clause assumed to be unit'');
+              (mk_err STR ''2-undec in clause assumed to be unit'');
         ERETURN (Some l)
       }
     }) None;
-    CHECK (ul \<noteq> None) (mk_err ''Conflict in clause assumed to be unit'');
+    CHECK (ul \<noteq> None) (mk_err STR ''Conflict in clause assumed to be unit'');
     EASSERT (ul \<noteq> None);
     ERETURN (the ul)
   }"
@@ -1400,7 +1400,7 @@ context unsat_input begin
 
   
   definition "resolve_id1 \<equiv> \<lambda>(CM,_) i. doE {
-    CHECK (i\<in>dom CM) (mk_errN ''Invalid clause id'' i);
+    CHECK (i\<in>dom CM) (mk_errN STR ''Invalid clause id'' i);
     ERETURN (the (CM i))
   }"
     
@@ -1574,7 +1574,7 @@ context unsat_input begin
   definition "check_conflict_clause1 it\<^sub>0 A cref 
     \<equiv> iterate_clause cref (\<lambda>_. True) (\<lambda>l _. doE {
         CHECK (sem_lit' l A = Some False) 
-              (mk_errit ''Expected conflict clause'' it\<^sub>0) 
+              (mk_errit STR ''Expected conflict clause'' it\<^sub>0) 
       }) ()"
   
   lemma check_conflict_clause1_refine[refine]:
@@ -1681,7 +1681,7 @@ context unsat_input begin
     "get_rat_candidates1 \<equiv> \<lambda>(CM,RL) A l. doE {
       let l = neg_lit l;
       let cands_raw = RL l;
-      CHECK (\<not>is_None cands_raw) (mk_err ''Resolution literal not declared'');
+      CHECK (\<not>is_None cands_raw) (mk_err STR ''Resolution literal not declared'');
       (* Get collected candidates *)
       let cands_raw = the cands_raw; 
       EASSERT (distinct cands_raw);
@@ -1884,7 +1884,7 @@ context unsat_input begin
     "check_rup_proof1 \<equiv> \<lambda>(last_id,CM,A) it. doE {
       let it\<^sub>0 = it;
       (i,it) \<leftarrow> parse_id it;
-      CHECK (i>last_id) (mk_errNit ''Ids must be strictly increasing'' i it\<^sub>0);
+      CHECK (i>last_id) (mk_errNit STR ''Ids must be strictly increasing'' i it\<^sub>0);
       (blocked,cref,(A,T),it) \<leftarrow> parse_check_blocked1 A it;
       if blocked then doE {
         A \<leftarrow> enres_lift (backtrack1 A T);
@@ -1944,12 +1944,12 @@ context unsat_input begin
     "check_rat_proof1 \<equiv> \<lambda>(last_id,CM,A) it. doE {
       let it\<^sub>0 = it;
       CHECK (\<not>at_end it \<and> \<not>at_Z it) 
-            (mk_errit ''Expected resolution literal'' it\<^sub>0);
+            (mk_errit STR ''Expected resolution literal'' it\<^sub>0);
       (reslit,it) \<leftarrow> parse_literal it;
       CHECK (sem_lit' reslit A \<noteq> Some False) 
-            (mk_errit ''Resolution literal is false'' it\<^sub>0);
+            (mk_errit STR ''Resolution literal is false'' it\<^sub>0);
       (i,it) \<leftarrow> parse_id it;
-      CHECK (i>last_id) (mk_errNit ''Ids must be strictly increasing'' i it\<^sub>0);
+      CHECK (i>last_id) (mk_errNit STR ''Ids must be strictly increasing'' i it\<^sub>0);
       (*(C,it) \<leftarrow> lift_parser parse_clause it;*)
       (blocked,cref,(A,T),it) \<leftarrow> parse_check_blocked1 A it;
       if blocked then doE {
@@ -1957,7 +1957,7 @@ context unsat_input begin
         ERETURN (i,CM,A)
       } else doE {
         CHECK_monadic (lit_in_clause1 cref reslit) 
-                      (mk_errit ''Resolution literal not in clause'' it\<^sub>0);
+                      (mk_errit STR ''Resolution literal not in clause'' it\<^sub>0);
         ((A,T),it) \<leftarrow> apply_units1_bt CM A T it;
         candidates \<leftarrow> get_rat_candidates1 CM A reslit;
         (A,it) \<leftarrow> check_rat_candidates_part1 CM reslit candidates A it;
@@ -2047,7 +2047,7 @@ context unsat_input begin
       let it\<^sub>0 = it;
       (ty,it) \<leftarrow> parse_type it;
       case ty of
-        INVALID \<Rightarrow> THROW (mk_err ''Invalid item'')
+        INVALID \<Rightarrow> THROW (mk_err STR ''Invalid item'')
       | UNIT_PROP \<Rightarrow> doE {
           (A,it) \<leftarrow> apply_units1 CM A it;
           ERETURN (Some (last_id,CM,A))
@@ -2071,7 +2071,7 @@ context unsat_input begin
           ERETURN None
         }
       | RAT_COUNTS \<Rightarrow> THROW (mk_errit 
-            ''Not expecting rat-counts in the middle of proof'' it\<^sub>0)
+            STR ''Not expecting rat-counts in the middle of proof'' it\<^sub>0)
     }"
     
     
@@ -2115,9 +2115,9 @@ context unsat_input begin
           ERETURN None
         }
       else if ty=6 then 
-        THROW (mk_errit ''Not expecting rat-counts in the middle of proof'' it\<^sub>0)
+        THROW (mk_errit STR ''Not expecting rat-counts in the middle of proof'' it\<^sub>0)
       else 
-        THROW (mk_errNit ''Invalid item type'' ty it\<^sub>0)
+        THROW (mk_errNit STR ''Invalid item type'' ty it\<^sub>0)
     })"
     unfolding check_item1_def parse_type_def
     (* Hand-tuned proof to avoid explosion *)  
@@ -2276,7 +2276,7 @@ context unsat_input begin
     
   definition "init_rat_counts1 it\<^sub>0 \<equiv> doE { 
     (ty,it) \<leftarrow> parse_type it\<^sub>0;
-    CHECK (ty = RAT_COUNTS) (mk_errit ''Expected RAT counts item'' it\<^sub>0);
+    CHECK (ty = RAT_COUNTS) (mk_errit STR ''Expected RAT counts item'' it\<^sub>0);
     check_not_end it;
     (CM,it) \<leftarrow> EWHILEIT 
       (\<lambda>(CM,it). it_invar it \<and> \<not>at_end it) 
@@ -2307,8 +2307,8 @@ context unsat_input begin
   lemma init_rat_counts1_deforest: "init_rat_counts1 it\<^sub>0 = doE { 
     (ty,it) \<leftarrow> parse_nat it\<^sub>0;
     CHECK (ty = 1 \<or> ty = 2 \<or> ty = 3 \<or> ty = 4 \<or> ty = 5 \<or> ty = 6) 
-          (mk_errNit ''Invalid item type'' ty it\<^sub>0);
-    CHECK (ty = 6) (mk_errit ''Expected RAT counts item'' it\<^sub>0);
+          (mk_errNit STR ''Invalid item type'' ty it\<^sub>0);
+    CHECK (ty = 6) (mk_errit STR ''Expected RAT counts item'' it\<^sub>0);
     check_not_end it;
     (CM,it) \<leftarrow> EWHILEIT 
       (\<lambda>(CM,it). it_invar it \<and> \<not>at_end it) 
@@ -2335,7 +2335,7 @@ context unsat_input begin
     let A=Map.empty;
 
     EASSERT (it_invar it);
-    CHECK (\<not>item_is_last it) (mk_err ''Invalid item structure'');
+    CHECK (\<not>item_is_last it) (mk_err STR ''Invalid item structure'');
     it \<leftarrow> goto_next_item it;
 
     CM \<leftarrow> init_rat_counts1 it;
@@ -2359,7 +2359,7 @@ context unsat_input begin
   
         ERETURN (s,it)
       }) (Some s,it);
-    CHECK (is_None s) (mk_err ''Proof did not contain conflict declaration'')
+    CHECK (is_None s) (mk_err STR ''Proof did not contain conflict declaration'')
   }"
   
   lemma verify_unsat1_refine[refine]: 
@@ -2415,10 +2415,10 @@ begin
     apply (rule CNV_I)
     done
 
-  -- \<open>Optimization to reduce map lookups\<close>
+  \<comment> \<open>Optimization to reduce map lookups\<close>
   lemma resolve_id1_alt: "resolve_id1 = (\<lambda>(CM,_) i. doE {
       let x = CM i;
-      if (x=None) then THROW (mk_errN ''Invalid clause id'' i)
+      if (x=None) then THROW (mk_errN STR ''Invalid clause id'' i)
       else ERETURN (the x)
     })"
     unfolding resolve_id1_def

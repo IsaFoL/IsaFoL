@@ -1,6 +1,6 @@
 section \<open>Exception Monad for Refine-Monadic\<close>
 theory Exc_Nres_Monad
-imports Refine_Monadic DRAT_Misc
+imports "Refine_Monadic.Refine_Monadic" DRAT_Misc
 begin
 
 (*

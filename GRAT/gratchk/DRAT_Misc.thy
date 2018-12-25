@@ -1,5 +1,5 @@
 theory DRAT_Misc
-imports IICF
+imports "Refine_Imperative_HOL.IICF"
 begin
   
   hide_const (open) Word.slice

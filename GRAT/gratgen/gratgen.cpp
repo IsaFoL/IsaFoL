@@ -2426,6 +2426,8 @@ pos_t Verifier::fwd_pass_aux() {
   lit_t *conflict = propagate_units();
   if (conflict) {
     // Conflict after unit-propagation on initial clauses
+    mark_clause(conflict);
+    glb.truncate_items(glb.get_fst_prf_item());  // Remaining items not required for proof.
     return db->c2p(conflict);
   }
 

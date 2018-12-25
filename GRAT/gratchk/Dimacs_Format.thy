@@ -107,7 +107,7 @@ section \<open>Direct Representation of Satisfiable Formulas\<close>
   
   lemma ex_assn_consistent[intro,simp]: "\<not>(\<forall>x. \<not>assn_consistent x)"  
     apply (clarsimp)
-    apply (rule exI[where x="op < 0"])
+    apply (rule exI[where x="(<) 0"])
     by (auto simp: assn_consistent_def)
     
   theorem direct_sat_iff_sat:
@@ -119,7 +119,7 @@ section \<open>Direct Representation of Satisfiable Formulas\<close>
       by auto
   
     have X1: "\<exists>\<sigma>. \<forall>l. l \<noteq> (0::int) \<longrightarrow> \<sigma> l = (\<not> \<sigma> (- l))"
-      by (rule exI[where x="op < 0"]) auto
+      by (rule exI[where x="(<) 0"]) auto
     
     show ?thesis
     proof

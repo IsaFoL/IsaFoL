@@ -1,6 +1,6 @@
 section \<open>Arrays with Dynamic Resizing\<close>
 theory Dynamic_Array
-imports "IICF_List" "Array_Blit" "IICF_Array" "IICF_Map"
+imports "Refine_Imperative_HOL.IICF_List" "Separation_Logic_Imperative_HOL.Array_Blit" "Refine_Imperative_HOL.IICF_Array" "Refine_Imperative_HOL.IICF_Map"
 begin
 
 (* TODO: Move to Array_Blit *)

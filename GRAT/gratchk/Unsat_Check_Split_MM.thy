@@ -72,36 +72,36 @@ locale unsat_input = input it_invar' for it_invar'::"'it::linorder \<Rightarrow>
   fixes prf_next :: "'prf \<Rightarrow> int \<times> 'prf"
 begin
   abbreviation mkp_err :: "_ \<Rightarrow> (nat\<times>'prf) error" 
-    where "mkp_err msg \<equiv> mkp_raw_err (STR msg) None None"
+    where "mkp_err msg \<equiv> mkp_raw_err (msg) None None"
   abbreviation mkp_errN :: "_ \<Rightarrow>_ \<Rightarrow> (nat\<times>'prf) error" 
-    where "mkp_errN msg n \<equiv> mkp_raw_err (STR msg) (Some (int n)) None"
+    where "mkp_errN msg n \<equiv> mkp_raw_err (msg) (Some (int n)) None"
   abbreviation mkp_errI :: "_ \<Rightarrow>_ \<Rightarrow> (nat\<times>'prf) error" 
-    where "mkp_errI msg i \<equiv> mkp_raw_err (STR msg) (Some i) None"
+    where "mkp_errI msg i \<equiv> mkp_raw_err (msg) (Some i) None"
   
   abbreviation mkp_errprf :: "_ \<Rightarrow> _ \<Rightarrow> (nat\<times>'prf) error" 
-    where "mkp_errprf msg prf \<equiv> mkp_raw_err (STR msg) None (Some prf)"
+    where "mkp_errprf msg prf \<equiv> mkp_raw_err (msg) None (Some prf)"
   abbreviation mkp_errNprf :: "_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> (nat\<times>'prf) error" 
-    where "mkp_errNprf msg n prf \<equiv> mkp_raw_err (STR msg) (Some (int n)) (Some prf)"
+    where "mkp_errNprf msg n prf \<equiv> mkp_raw_err (msg) (Some (int n)) (Some prf)"
   abbreviation mkp_errIprf :: "_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> (nat\<times>'prf) error" 
-    where "mkp_errIprf msg i prf \<equiv> mkp_raw_err (STR msg) (Some i) (Some prf)"
+    where "mkp_errIprf msg i prf \<equiv> mkp_raw_err (msg) (Some i) (Some prf)"
   
   
   definition parse_prf :: "nat \<times> 'prf \<Rightarrow> (_,int \<times> (nat \<times> 'prf)) enres"
     where "parse_prf \<equiv> \<lambda>(fuel,prf). doE {
-      CHECK (fuel > 0) (mkp_errprf ''Out of fuel'' (fuel,prf));
+      CHECK (fuel > 0) (mkp_errprf STR ''Out of fuel'' (fuel,prf));
       let (x,prf) = prf_next prf;
       ERETURN (x,(fuel - 1,prf))
     }"
   
   definition "parse_id prf \<equiv> doE {
     (x,prf) \<leftarrow> parse_prf prf;
-    CHECK (x>0) (mkp_errIprf ''Invalid id'' x prf);
+    CHECK (x>0) (mkp_errIprf STR ''Invalid id'' x prf);
     ERETURN (nat x,prf)
   }"
 
   definition "parse_idZ prf \<equiv> doE {
     (x,prf) \<leftarrow> parse_prf prf;
-    CHECK (x\<ge>0) (mkp_errIprf ''Invalid idZ'' x prf);
+    CHECK (x\<ge>0) (mkp_errIprf STR ''Invalid idZ'' x prf);
     ERETURN (nat x,prf)
   }"
     
@@ -114,12 +114,12 @@ begin
     else if v=4 then ERETURN (RAT_LEMMA, prf)
     else if v=5 then ERETURN (CONFLICT, prf)
     else if v=6 then ERETURN (RAT_COUNTS, prf)
-    else THROW (mkp_errIprf ''Invalid item type'' v prf)
+    else THROW (mkp_errIprf STR ''Invalid item type'' v prf)
   }"  
 
   definition "parse_prf_literal prf \<equiv> doE {
     (i,prf) \<leftarrow> parse_prf prf;
-    CHECK (i \<noteq> 0) (mkp_errprf ''Expected literal but found 0'' prf);
+    CHECK (i \<noteq> 0) (mkp_errprf STR ''Expected literal but found 0'' prf);
     ERETURN (lit_\<alpha> i, prf)
   }"
     
@@ -192,7 +192,7 @@ context unsat_input begin
 (* Map Interface *)
 definition resolve_id :: "clausemap \<Rightarrow> id \<Rightarrow> (_,var clause) enres" 
   where "resolve_id \<equiv> \<lambda>(CM,RL) i. doE { 
-    CHECK (i\<in>dom CM) (mkp_errN ''Invalid clause id'' i);
+    CHECK (i\<in>dom CM) (mkp_errN STR ''Invalid clause id'' i);
     ERETURN (the (CM i)) 
   }"
   
@@ -233,7 +233,7 @@ definition get_rat_candidates
   where
   "get_rat_candidates \<equiv> \<lambda>(CM,RL) A l. doE {
     let l = neg_lit l;
-    CHECK (RL l \<noteq> None) (mkp_err ''Resolution literal not declared'');
+    CHECK (RL l \<noteq> None) (mkp_err STR ''Resolution literal not declared'');
     (* Get collected candidates *)
     let cands_raw = the (RL l); 
     (* Filter out deleted, not containing l, and being blocked *)
@@ -430,7 +430,7 @@ definition "check_candidates candidates prf check \<equiv> doE {
       }
     }) (candidates,cand,prf);
 
-  CHECK (candidates = {}) (mkp_errprf ''Too few RAT-candidates in proof'' prf);
+  CHECK (candidates = {}) (mkp_errprf STR ''Too few RAT-candidates in proof'' prf);
   ERETURN prf
 }"
 
@@ -458,13 +458,13 @@ lemma check_candidates_rule[THEN ESPEC_trans, zero_var_indexes]:
 definition check_rup_proof :: "state \<Rightarrow> 'it \<Rightarrow> (nat\<times>'prf) \<Rightarrow> (_, state \<times> 'it \<times> (nat\<times>'prf)) enres" where
   "check_rup_proof \<equiv> \<lambda>(CM,A\<^sub>0) it prf. doE {
     (i,prf) \<leftarrow> parse_id prf;
-    CHECK (i\<notin>cm_ids CM) (mkp_errNprf ''Duplicate ID'' i prf);
+    CHECK (i\<notin>cm_ids CM) (mkp_errNprf STR ''Duplicate ID'' i prf);
     (C,A',it) \<leftarrow> parse_check_blocked A\<^sub>0 it;
     (A',prf) \<leftarrow> apply_units CM A' prf;
     (confl_id,prf) \<leftarrow> parse_id prf;
     confl \<leftarrow> resolve_id CM confl_id;
     CHECK (is_conflict_clause A' confl)
-          (mkp_errNprf ''Expected conflict clause'' confl_id prf);
+          (mkp_errNprf STR ''Expected conflict clause'' confl_id prf);
     EASSERT (redundant_clause (cm_F CM) A\<^sub>0 C);
     EASSERT (i \<notin> cm_ids CM);
     CM \<leftarrow> add_clause i C CM;
@@ -497,12 +497,12 @@ definition check_rat_proof :: "state \<Rightarrow> 'it \<Rightarrow> (nat \<time
     (reslit,prf) \<leftarrow> parse_prf_literal prf;
 
     CHECK (sem_lit' reslit A\<^sub>0 \<noteq> Some False) 
-          (mkp_errprf ''Resolution literal is false'' prf);
+          (mkp_errprf STR ''Resolution literal is false'' prf);
     (i,prf) \<leftarrow> parse_id prf;
-    CHECK (i\<notin>cm_ids CM) (mkp_errNprf ''Duplicate ID'' i prf);
+    CHECK (i\<notin>cm_ids CM) (mkp_errNprf STR ''Duplicate ID'' i prf);
     (*(C,it) \<leftarrow> lift_parser parse_clause it;*)
     (C,A',it) \<leftarrow> parse_check_blocked A\<^sub>0 it;
-    CHECK (reslit \<in> C) (mkp_errprf ''Resolution literal not in clause'' prf);
+    CHECK (reslit \<in> C) (mkp_errprf STR ''Resolution literal not in clause'' prf);
     (A',prf) \<leftarrow> apply_units CM A' prf;
     candidates \<leftarrow> get_rat_candidates CM A' reslit;
     prf \<leftarrow> check_candidates candidates prf (\<lambda>cand_id prf. doE {
@@ -514,7 +514,7 @@ definition check_rat_proof :: "state \<Rightarrow> 'it \<Rightarrow> (nat \<time
       (confl_id,prf) \<leftarrow> parse_id prf;
       confl \<leftarrow> resolve_id CM confl_id;
       CHECK (is_conflict_clause A'' confl) 
-            (mkp_errprf ''Expected conflict clause'' prf);
+            (mkp_errprf STR ''Expected conflict clause'' prf);
       EASSERT (implied_clause (cm_F CM) A\<^sub>0 (C \<union> (cand-{neg_lit reslit})));
       ERETURN prf
     });
@@ -623,7 +623,7 @@ definition check_item :: "state \<Rightarrow> 'it \<Rightarrow> (nat \<times> 'p
   where "check_item \<equiv> \<lambda>(CM,A) it prf. doE {
     (ty,prf) \<leftarrow> parse_type prf;
     case ty of
-      INVALID \<Rightarrow> THROW (mkp_err ''Invalid item'')
+      INVALID \<Rightarrow> THROW (mkp_err STR ''Invalid item'')
     | UNIT_PROP \<Rightarrow> doE {
         (A,prf) \<leftarrow> apply_units CM A prf;
         ERETURN (Some ((CM,A),it,prf))
@@ -644,11 +644,11 @@ definition check_item :: "state \<Rightarrow> 'it \<Rightarrow> (nat \<times> 'p
         (i,prf) \<leftarrow> parse_id prf;
         C \<leftarrow> resolve_id CM i;
         CHECK (is_conflict_clause A C) 
-              (mkp_errNprf ''Conflict clause has no conflict'' i prf);
+              (mkp_errNprf STR ''Conflict clause has no conflict'' i prf);
         ERETURN None
       }
     | RAT_COUNTS \<Rightarrow> 
-        THROW (mkp_errprf ''Not expecting rat-counts in the middle of proof'' prf)
+        THROW (mkp_errprf STR ''Not expecting rat-counts in the middle of proof'' prf)
   }"
   
 lemma check_item_correct_pre: 
@@ -740,7 +740,7 @@ definition "read_clause_check_taut itE it A \<equiv> doE {
   EASSERT (A = Map.empty);
   EASSERT (it_invar it \<and> it_invar itE \<and> itran itE it_end);
   (it',(t,A)) \<leftarrow> parse_lz 
-    (mkp_err ''Parsed beyond end'')   
+    (mkp_err STR ''Parsed beyond end'')   
     litZ itE it (\<lambda>_. True) (\<lambda>x (t,A). doE {
       let l = lit_\<alpha> x;
       if (sem_lit' l A = Some False) then ERETURN (True,A)
@@ -849,7 +849,7 @@ lemma cm_init_lit_correct[THEN ESPEC_trans, refine_vcg]:
     
 definition "init_rat_counts prf \<equiv> doE {
   (ty,prf) \<leftarrow> parse_type prf;
-  CHECK (ty = RAT_COUNTS) (mkp_errprf ''Expected RAT counts item'' prf);
+  CHECK (ty = RAT_COUNTS) (mkp_errprf STR ''Expected RAT counts item'' prf);
 
   (l,prf) \<leftarrow> parse_prf_literalZ prf;
   (CM,_,prf) \<leftarrow> EWHILET (\<lambda>(CM,l,prf). l\<noteq>None) (\<lambda>(CM,l,prf). doE {
@@ -934,7 +934,7 @@ lemma verify_unsat_correct:
   done    
     
     
-end -- \<open>proof parser\<close>  
+end \<comment> \<open>proof parser\<close>  
 
 subsection \<open>Refinement --- Backtracking\<close>
 
@@ -1017,7 +1017,7 @@ definition "check_candidates' candidates A prf check \<equiv> doE {
       }
     }) (candidates,A,cand,prf);
 
-  CHECK (candidates = {}) (mkp_errprf ''Too few RAT-candidates in proof'' prf);
+  CHECK (candidates = {}) (mkp_errprf STR ''Too few RAT-candidates in proof'' prf);
   ERETURN (A,prf)
 }"
 
@@ -1060,13 +1060,13 @@ lemma check_candidates'_refine[refine]:
 definition check_rup_proof_bt :: "state \<Rightarrow> 'it \<Rightarrow> (nat\<times>'prf) \<Rightarrow> (_, state \<times> 'it \<times> (nat\<times>'prf)) enres" where
   "check_rup_proof_bt \<equiv> \<lambda>(CM,A) it prf. doE {
     (i,prf) \<leftarrow> parse_id prf;
-    CHECK (i\<notin>cm_ids CM) (mkp_errNprf ''Duplicate ID'' i prf);
+    CHECK (i\<notin>cm_ids CM) (mkp_errNprf STR ''Duplicate ID'' i prf);
     (C,(A,T),it) \<leftarrow> parse_check_blocked_bt A it;
     ((A,T),prf) \<leftarrow> apply_units_bt CM A T prf;
     (confl_id,prf) \<leftarrow> parse_id prf;
     confl \<leftarrow> resolve_id CM confl_id;
     CHECK (is_conflict_clause A confl)
-          (mkp_errNprf ''Expected conflict clause'' confl_id prf);
+          (mkp_errNprf STR ''Expected conflict clause'' confl_id prf);
     EASSERT (i \<notin> cm_ids CM);
     CM \<leftarrow> add_clause i C CM;
     ERETURN ((CM,backtrack A T),it,prf)
@@ -1077,11 +1077,11 @@ definition check_rat_proof_bt :: "state \<Rightarrow> 'it \<Rightarrow> (nat \<t
     (reslit,prf) \<leftarrow> parse_prf_literal prf;
 
     CHECK (sem_lit' reslit A \<noteq> Some False) 
-          (mkp_errprf ''Resolution literal is false'' prf);
+          (mkp_errprf STR ''Resolution literal is false'' prf);
     (i,prf) \<leftarrow> parse_id prf;
-    CHECK (i\<notin>cm_ids CM) (mkp_errNprf ''Duplicate ID'' i prf);
+    CHECK (i\<notin>cm_ids CM) (mkp_errNprf STR ''Duplicate ID'' i prf);
     (C,(A,T),it) \<leftarrow> parse_check_blocked_bt A it;
-    CHECK (reslit \<in> C) (mkp_errprf ''Resolution literal not in clause'' prf);
+    CHECK (reslit \<in> C) (mkp_errprf STR ''Resolution literal not in clause'' prf);
     ((A,T),prf) \<leftarrow> apply_units_bt CM A T prf;
     candidates \<leftarrow> get_rat_candidates CM A reslit;
     (A,prf) \<leftarrow> check_candidates' candidates A prf (\<lambda>cand_id A prf. doE {
@@ -1092,7 +1092,7 @@ definition check_rat_proof_bt :: "state \<Rightarrow> 'it \<Rightarrow> (nat \<t
       (confl_id,prf) \<leftarrow> parse_id prf;
       confl \<leftarrow> resolve_id CM confl_id;
       CHECK (is_conflict_clause A confl) 
-            (mkp_errprf ''Expected conflict clause'' prf);
+            (mkp_errprf STR ''Expected conflict clause'' prf);
       ERETURN (backtrack A T2,prf)
     });
 
@@ -1215,7 +1215,7 @@ definition check_item_bt :: "state \<Rightarrow> 'it \<Rightarrow> (nat \<times>
   where "check_item_bt \<equiv> \<lambda>(CM,A) it prf. doE {
     (ty,prf) \<leftarrow> parse_type prf;
     case ty of
-      INVALID \<Rightarrow> THROW (mkp_err ''Invalid item'')
+      INVALID \<Rightarrow> THROW (mkp_err STR ''Invalid item'')
     | UNIT_PROP \<Rightarrow> doE {
         (A,prf) \<leftarrow> apply_units CM A prf;
         ERETURN (Some ((CM,A),it,prf))
@@ -1236,11 +1236,11 @@ definition check_item_bt :: "state \<Rightarrow> 'it \<Rightarrow> (nat \<times>
         (i,prf) \<leftarrow> parse_id prf;
         C \<leftarrow> resolve_id CM i;
         CHECK (is_conflict_clause A C) 
-              (mkp_errNprf ''Conflict clause has no conflict'' i prf);
+              (mkp_errNprf STR ''Conflict clause has no conflict'' i prf);
         ERETURN None
       }
     | RAT_COUNTS \<Rightarrow> 
-        THROW (mkp_errprf ''Not expecting rat-counts in the middle of proof'' prf)
+        THROW (mkp_errprf STR ''Not expecting rat-counts in the middle of proof'' prf)
   }"
 
 lemma check_item_bt_refine[refine]: "\<lbrakk>(si,s)\<in>Id; (iti,it)\<in>Id; (prfi,prf)\<in>Id\<rbrakk> 
@@ -1292,7 +1292,7 @@ lemma verify_unsat_bt_refine[refine]:
   apply vc_solve
   done
 
-end -- \<open>proof parser\<close>
+end \<comment> \<open>proof parser\<close>
 
 subsection \<open>Refinement 1\<close>
 text \<open>Model clauses by iterators to their starting position\<close>
@@ -1314,7 +1314,7 @@ context unsat_input begin
   abbreviation "state1_rel \<equiv> clausemap1_rel \<times>\<^sub>r Id"
   
   definition "parse_check_clause cref c f s \<equiv> doE { 
-    (it,s) \<leftarrow> parse_lz (mkp_err ''Parsed beyond end'') litZ it_end cref c (\<lambda>x s. doE {
+    (it,s) \<leftarrow> parse_lz (mkp_err STR ''Parsed beyond end'') litZ it_end cref c (\<lambda>x s. doE {
       EASSERT (x \<noteq> litZ);
       let l = lit_\<alpha> x;
       f l s
@@ -1393,15 +1393,15 @@ context unsat_input begin
   definition "check_unit_clause1 A cref \<equiv> doE {
     ul \<leftarrow> iterate_clause cref (\<lambda>ul. True) (\<lambda>l ul. doE {
       CHECK (sem_lit' l A \<noteq> Some True) 
-            (mkp_err ''True literal in clause assumed to be unit'');
+            (mkp_err STR ''True literal in clause assumed to be unit'');
       if (sem_lit' l A = Some False) then ERETURN ul
       else doE {
         CHECK (ul = None \<or> ul = Some l) 
-              (mkp_err ''2-undec in clause assumed to be unit'');
+              (mkp_err STR ''2-undec in clause assumed to be unit'');
         ERETURN (Some l)
       }
     }) None;
-    CHECK (ul \<noteq> None) (mkp_err ''Conflict in clause assumed to be unit'');
+    CHECK (ul \<noteq> None) (mkp_err STR ''Conflict in clause assumed to be unit'');
     EASSERT (ul \<noteq> None);
     ERETURN (the ul)
   }"
@@ -1432,7 +1432,7 @@ context unsat_input begin
 
   
   definition "resolve_id1 \<equiv> \<lambda>(CM,_) i. doE {
-    CHECK (i\<in>dom CM) (mkp_errN ''Invalid clause id'' i);
+    CHECK (i\<in>dom CM) (mkp_errN STR ''Invalid clause id'' i);
     ERETURN (the (CM i))
   }"
     
@@ -1552,7 +1552,7 @@ context unsat_input begin
 
   definition "parse_check_blocked1 A\<^sub>0 cref \<equiv> doE {
     ((A,T),it') \<leftarrow> parse_check_clause cref (\<lambda>_. True) (\<lambda>l (A,T). doE {
-      CHECK (sem_lit' l A \<noteq> Some True) (mkp_err ''Blocked lemma clause'');
+      CHECK (sem_lit' l A \<noteq> Some True) (mkp_err STR ''Blocked lemma clause'');
       if (sem_lit' l A = Some False) then ERETURN (A,T)
       else doE {
         EASSERT (sem_lit' l A = None);
@@ -1601,7 +1601,7 @@ context unsat_input begin
   definition "check_conflict_clause1 prf\<^sub>0 A cref 
     \<equiv> iterate_clause cref (\<lambda>_. True) (\<lambda>l _. doE {
         CHECK (sem_lit' l A = Some False) 
-              (mkp_errprf ''Expected conflict clause'' prf\<^sub>0) 
+              (mkp_errprf STR ''Expected conflict clause'' prf\<^sub>0) 
       }) ()"
   
   lemma check_conflict_clause1_refine[refine]:
@@ -1708,7 +1708,7 @@ context unsat_input begin
     "get_rat_candidates1 \<equiv> \<lambda>(CM,RL) A l. doE {
       let l = neg_lit l;
       let cands_raw = RL l;
-      CHECK (\<not>is_None cands_raw) (mkp_err ''Resolution literal not declared'');
+      CHECK (\<not>is_None cands_raw) (mkp_err STR ''Resolution literal not declared'');
       (* Get collected candidates *)
       let cands_raw = the cands_raw; 
       (*EASSERT (distinct cands_raw);*)
@@ -1933,7 +1933,7 @@ context unsat_input begin
     where
     "check_rup_proof1 \<equiv> \<lambda>(CM,A) it prf. doE {
       (i,prf) \<leftarrow> parse_id prf;
-      CHECK (i\<notin>cm_ids CM) (mkp_errNprf ''Duplicate ID'' i prf);
+      CHECK (i\<notin>cm_ids CM) (mkp_errNprf STR ''Duplicate ID'' i prf);
       (cref,(A,T),it) \<leftarrow> parse_check_blocked1 A it;
 
       ((A,T),prf) \<leftarrow> apply_units1_bt CM A T prf;
@@ -2003,13 +2003,13 @@ context unsat_input begin
     "check_rat_proof1 \<equiv> \<lambda>(CM,A) it prf. doE {
       (reslit,prf) \<leftarrow> parse_prf_literal prf;
       CHECK (sem_lit' reslit A \<noteq> Some False) 
-            (mkp_errprf ''Resolution literal is false'' prf);
+            (mkp_errprf STR ''Resolution literal is false'' prf);
       (i,prf) \<leftarrow> parse_id prf;
-      CHECK (i\<notin>cm_ids CM) (mkp_errNprf ''Ids must be strictly increasing'' i prf);
+      CHECK (i\<notin>cm_ids CM) (mkp_errNprf STR ''Ids must be strictly increasing'' i prf);
       (cref,(A,T),it) \<leftarrow> parse_check_blocked1 A it;
 
       CHECK_monadic (lit_in_clause1 cref reslit) 
-                    (mkp_errprf ''Resolution literal not in clause'' prf);
+                    (mkp_errprf STR ''Resolution literal not in clause'' prf);
       ((A,T),prf) \<leftarrow> apply_units1_bt CM A T prf;
       candidates \<leftarrow> get_rat_candidates1 CM A reslit;
       (A,prf) \<leftarrow> check_rat_candidates_part1 CM reslit candidates A prf;
@@ -2094,7 +2094,7 @@ context unsat_input begin
     where "check_item1 \<equiv> \<lambda>(CM,A) it prf. doE {
       (ty,prf) \<leftarrow> parse_type prf;
       case ty of
-        INVALID \<Rightarrow> THROW (mkp_err ''Invalid item'')
+        INVALID \<Rightarrow> THROW (mkp_err STR ''Invalid item'')
       | UNIT_PROP \<Rightarrow> doE {
           (A,prf) \<leftarrow> apply_units1 CM A prf;
           ERETURN (Some ((CM,A),it,prf))
@@ -2118,7 +2118,7 @@ context unsat_input begin
           ERETURN None
         }
       | RAT_COUNTS \<Rightarrow> THROW (mkp_errprf
-            ''Not expecting rat-counts in the middle of proof'' prf)
+            STR ''Not expecting rat-counts in the middle of proof'' prf)
     }"
     
     
@@ -2161,9 +2161,9 @@ context unsat_input begin
           ERETURN None
         }
       else if ty=6 then 
-        THROW (mkp_errprf ''Not expecting rat-counts in the middle of proof'' prf)
+        THROW (mkp_errprf STR ''Not expecting rat-counts in the middle of proof'' prf)
       else 
-        THROW (mkp_errIprf ''Invalid item type'' ty prf)
+        THROW (mkp_errIprf STR ''Invalid item type'' ty prf)
     })"
     unfolding check_item1_def parse_type_def
     (* Hand-tuned proof to avoid explosion *)  
@@ -2324,7 +2324,7 @@ context unsat_input begin
     
   definition "init_rat_counts1 prf \<equiv> doE { 
     (ty,prf) \<leftarrow> parse_type prf;
-    CHECK (ty = RAT_COUNTS) (mkp_errprf ''Expected RAT counts item'' prf);
+    CHECK (ty = RAT_COUNTS) (mkp_errprf STR ''Expected RAT counts item'' prf);
 
     (l,prf) \<leftarrow> parse_prf_literalZ prf;
     (CM,_,prf) \<leftarrow> EWHILET (\<lambda>(CM,l,prf). l\<noteq>None) (\<lambda>(CM,l,prf). doE {
@@ -2357,8 +2357,8 @@ context unsat_input begin
   lemma init_rat_counts1_deforest: "init_rat_counts1 prf = doE { 
     (ty,prf) \<leftarrow> parse_prf prf;
     CHECK (ty = 1 \<or> ty = 2 \<or> ty = 3 \<or> ty = 4 \<or> ty = 5 \<or> ty = 6) 
-          (mkp_errIprf ''Invalid item type'' ty prf);
-    CHECK (ty = 6) (mkp_errprf ''Expected RAT counts item'' prf);
+          (mkp_errIprf STR ''Invalid item type'' ty prf);
+    CHECK (ty = 6) (mkp_errprf STR ''Expected RAT counts item'' prf);
     (l,prf) \<leftarrow> parse_prf_literalZ prf;
     (CM,l,prf) \<leftarrow> EWHILET 
       (\<lambda>(CM,l,prf). l\<noteq>None) 
@@ -2467,10 +2467,10 @@ begin
     apply (rule CNV_I)
     done
 
-  -- \<open>Optimization to reduce map lookups\<close>
+  \<comment> \<open>Optimization to reduce map lookups\<close>
   lemma resolve_id1_alt: "resolve_id1 = (\<lambda>(CM,_) i. doE {
       let x = CM i;
-      if (x=None) then THROW (mkp_errN ''Invalid clause id'' i)
+      if (x=None) then THROW (mkp_errN STR ''Invalid clause id'' i)
       else ERETURN (the x)
     })"
     unfolding resolve_id1_def

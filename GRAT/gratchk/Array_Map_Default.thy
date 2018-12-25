@@ -191,7 +191,7 @@ lemma doa_Some_hnr: "\<lbrakk>CONSTRAINT (is_unused_elem dflt) A; CONSTRAINT is_
   done  
 
 lemma doa_is_None_hnr[sepref_fr_rules]: 
-  "(return o (op = dflt), RETURN o is_None) 
+  "(return o ((=) dflt), RETURN o is_None) 
   \<in> (dflt_option_assn dflt A)\<^sup>k \<rightarrow>\<^sub>a bool_assn"
   apply (sepref_to_hoare)
   by (sep_auto 
@@ -220,7 +220,7 @@ lemma cnv_option_case_2_if: "(case x of None \<Rightarrow> fn | Some v \<Rightar
   Thus, we do a type-based rewriting of option-equalities for dflt-option 
   types in operator-id phase.
 *)
-definition [simp]: "dflt_option_eq \<equiv> op ="
+definition [simp]: "dflt_option_eq \<equiv> (=)"
 
 locale dflt_option =
   fixes A :: "'a \<Rightarrow> 'c \<Rightarrow> assn"
@@ -228,7 +228,7 @@ locale dflt_option =
   fixes eq :: "'c \<Rightarrow> 'c \<Rightarrow> bool Heap"
   assumes unused_dflt[safe_constraint_rules]: "(is_unused_elem dflt) A"
 
-  assumes eq_op: "(uncurry eq, uncurry (RETURN oo op=)) \<in> A\<^sup>k*\<^sub>aA\<^sup>k\<rightarrow>\<^sub>abool_assn"
+  assumes eq_op: "(uncurry eq, uncurry (RETURN oo (=))) \<in> A\<^sup>k*\<^sub>aA\<^sup>k\<rightarrow>\<^sub>abool_assn"
   assumes eq_dflt: "\<And>a b. \<lbrakk> a=dflt \<or> b=dflt \<rbrakk> \<Longrightarrow> <emp> eq a b <\<lambda>r. \<up>(r \<longleftrightarrow> a=b)>\<^sub>t"
 begin
   (* Type-based rewrites. 
@@ -236,7 +236,7 @@ begin
   lemma fold_dflt_option[def_pat_rules]: 
     "(None::'a option) \<equiv> dflt_None"
     "(Some::'a\<Rightarrow>_) \<equiv> dflt_Some"
-    "(op=::'a option \<Rightarrow> _) \<equiv> dflt_option_eq"
+    "((=)::'a option \<Rightarrow> _) \<equiv> dflt_option_eq"
      by auto
 
   (* Constructors *)

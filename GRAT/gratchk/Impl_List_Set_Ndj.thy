@@ -1,8 +1,8 @@
 theory Impl_List_Set_Ndj
 imports
-  "$AFP/Collections/Refine_Dflt_ICF"
-  "$AFP/Refine_Imperative_HOL/IICF/IICF"
-  "$AFP/Refine_Imperative_HOL/Sepref_ICF_Bindings"
+  "Collections.Refine_Dflt_ICF"
+  "Refine_Imperative_HOL.IICF"
+  "Refine_Imperative_HOL.Sepref_ICF_Bindings"
 begin
 
   definition [simp]: "ndls_rel \<equiv> br set (\<lambda>_. True)" 
@@ -16,11 +16,11 @@ begin
     lemma ndls_empty_hnr_aux: "([],op_set_empty) \<in> ndls_rel" by (auto simp: in_br_conv)
     sepref_decl_impl (no_register) ndls_empty: ndls_empty_hnr_aux[sepref_param] .
 
-    lemma ndls_is_empty_hnr_aux: "(op= [], op_set_is_empty) \<in> ndls_rel \<rightarrow> bool_rel" 
+    lemma ndls_is_empty_hnr_aux: "((=) [], op_set_is_empty) \<in> ndls_rel \<rightarrow> bool_rel" 
       by (auto simp: in_br_conv)   
     sepref_decl_impl ndls_is_empty: ndls_is_empty_hnr_aux[sepref_param] .   
 
-    lemma ndls_insert_hnr_aux: "(op #, op_set_insert) \<in> Id \<rightarrow> ndls_rel \<rightarrow> ndls_rel"
+    lemma ndls_insert_hnr_aux: "((#), op_set_insert) \<in> Id \<rightarrow> ndls_rel \<rightarrow> ndls_rel"
       by (auto simp: in_br_conv)   
       
     sepref_decl_impl ndls_insert: ndls_insert_hnr_aux[sepref_param] .    

@@ -31,6 +31,8 @@ See index.md.
   * Separate watchlists (sepWL): More efficient implementation of core-first unit propagation.
   * RAT-run heuristics: Reduction of expensive RAT candidate queries.
 
+### Version 1.3 ###
+  * Binary drat format
 
 ## Author ##
 

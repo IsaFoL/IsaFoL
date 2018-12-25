@@ -1,6 +1,8 @@
 theory Synth_Definition
-imports Refine_Lib "~~/src/HOL/Library/Rewrite"
-  Sepref_Misc (* FIXME: Some stuff we depend on has not yet been moved out from there! *)
+imports 
+  "Automatic_Refinement.Refine_Lib" 
+  "HOL-Library.Rewrite"
+  "Refine_Imperative_HOL.Sepref_Misc" (* FIXME: Some stuff we depend on has not yet been moved out from there! *)
 keywords "synth_definition" :: thy_goal
 begin
 
