@@ -7,7 +7,7 @@ locale state\<^sub>W_adding_init_clause_no_state =
   state\<^sub>W_no_state
     state_eq
     state
-    \<comment> \<open>functions about the state: \<close>
+    \<comment> \<open>functions about the state:\<close>
       \<comment> \<open>getter:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>setter:\<close>
@@ -43,7 +43,7 @@ locale state\<^sub>W_adding_init_clause_ops =
   state\<^sub>W_adding_init_clause_no_state
     state_eq
     state
-    \<comment> \<open>functions about the state: \<close>
+    \<comment> \<open>functions about the state:\<close>
       \<comment> \<open>getter:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>setter:\<close>
@@ -77,7 +77,7 @@ locale state\<^sub>W_adding_init_clause =
   state\<^sub>W_adding_init_clause_ops
     state_eq
     state
-    \<comment> \<open>functions about the state: \<close>
+    \<comment> \<open>functions about the state:\<close>
       \<comment> \<open>getter:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>setter:\<close>
@@ -136,7 +136,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
   state\<^sub>W_adding_init_clause
     state_eq
     state
-    \<comment> \<open>functions for the state: \<close>
+    \<comment> \<open>functions for the state:\<close>
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>changing state:\<close>

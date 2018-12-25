@@ -5,9 +5,17 @@
 
 section \<open>An Executable Algorithm for Clause Subsumption\<close>
 
+text \<open>
+This theory provides a functional implementation of clause subsumption, building
+on the \textsf{IsaFoR} library (part of the AFP entry @{text First_Order_Terms}).
+\<close>
+
 theory Executable_Subsumption
-  imports IsaFoR_Term QTRS.Matching QTRS.Term_More
+  imports IsaFoR_Term First_Order_Terms.Matching
 begin
+
+
+subsection \<open>Naive Implementation of Clause Subsumption\<close>
 
 fun subsumes_list where
   "subsumes_list [] Ks \<sigma> = True"
@@ -31,12 +39,15 @@ lemma extends_subst_trans: "extends_subst \<sigma> \<tau> \<Longrightarrow> exte
 lemma extends_subst_dom: "extends_subst \<sigma> \<tau> \<Longrightarrow> dom \<sigma> \<subseteq> dom \<tau>"
   unfolding extends_subst_def dom_def by auto
 
-lemma exteinds_subst_fun_upd_new:
+lemma extends_subst_extends: "extends_subst \<sigma> \<tau> \<Longrightarrow> x \<in> dom \<sigma> \<Longrightarrow> \<tau> x = \<sigma> x"
+  unfolding extends_subst_def dom_def by auto
+
+lemma extends_subst_fun_upd_new:
   "\<sigma> x = None \<Longrightarrow> extends_subst (\<sigma>(x \<mapsto> t)) \<tau> \<longleftrightarrow> extends_subst \<sigma> \<tau> \<and> \<tau> x = Some t"
   unfolding extends_subst_def dom_fun_upd subst_of_map_def
   by (force simp add: dom_def split: option.splits)
 
-lemma exteinds_subst_fun_upd_matching:
+lemma extends_subst_fun_upd_matching:
   "\<sigma> x = Some t \<Longrightarrow> extends_subst (\<sigma>(x \<mapsto> t)) \<tau> \<longleftrightarrow> extends_subst \<sigma> \<tau>"
   unfolding extends_subst_def dom_fun_upd subst_of_map_def
   by (auto simp add: dom_def split: option.splits)
@@ -65,80 +76,78 @@ lemma subsumes_list_modulo_Cons: "subsumes_list_modulo (L # Ls) Ks \<sigma> \<lo
   (\<exists>K \<in> set Ks. \<exists>\<tau>. extends_subst \<sigma> \<tau> \<and> dom \<tau> = vars_lit L \<union> dom \<sigma> \<and> L \<cdot>lit (subst_of_map Var \<tau>) = K
      \<and> subsumes_list_modulo Ls (remove1 K Ks) \<tau>)"
   unfolding subsumes_modulo_def
-  apply safe
-   apply (auto simp: insert_subset_eq_iff subst_lit_def subst_cls_def literal.map_ident
-     intro: extends_subst_refl extends_subst_trans)
-   apply (erule bexI[rotated])
-  subgoal for \<tau>
-    apply (rule exI[of _ "\<lambda>x. if x \<in> vars_lit L \<union> dom \<sigma> then \<tau> x else None"], intro conjI)
-         apply (auto 0 3 simp: extends_subst_def dom_def split: if_splits
-        intro!: extends_subst_cong_lit exI[of _ \<tau>])
-    done
-  subgoal for \<tau> \<tau>'
-    apply (rule exI[of _ \<tau>'])
-    apply (auto simp: extends_subst_cong_lit elim!: extends_subst_trans)
-    done
-  done
+proof (safe, goal_cases left_right right_left)
+  case (left_right \<tau>)
+  then show ?case
+    by (intro bexI[of _ "L \<cdot>lit subst_of_map Var \<tau>"]
+      exI[of _ "\<lambda>x. if x \<in> vars_lit L \<union> dom \<sigma> then \<tau> x else None"], intro conjI exI[of _ \<tau>])
+      (auto 0 3 simp: extends_subst_def dom_def split: if_splits
+      simp: insert_subset_eq_iff subst_lit_def  intro!: extends_subst_cong_lit)
+next
+  case (right_left K \<tau> \<tau>')
+  then show ?case 
+    by (intro bexI[of _ "L \<cdot>lit subst_of_map Var \<tau>"] exI[of _ \<tau>'], intro conjI exI[of _ \<tau>])
+     (auto simp: insert_subset_eq_iff subst_lit_def extends_subst_cong_lit
+       intro: extends_subst_trans)
+qed
+
+lemma decompose_Some_var_terms: "decompose (Fun f ss) (Fun g ts) = Some eqs \<Longrightarrow>
+   f = g \<and> length ss = length ts \<and> eqs = zip ss ts \<and>
+   (\<Union>(t, u)\<in>set ((Fun f ss, Fun g ts) # P). vars_term t) =
+   (\<Union>(t, u)\<in>set (eqs @ P). vars_term t)"
+  by (drule decompose_Some)
+    (fastforce simp: in_set_zip in_set_conv_nth Bex_def image_iff)
 
 lemma match_term_list_sound: "match_term_list tus \<sigma> = Some \<tau> \<Longrightarrow>
   extends_subst \<sigma> \<tau> \<and> dom \<tau> = (\<Union>(t, u)\<in>set tus. vars_term t) \<union> dom \<sigma> \<and>
   (\<forall>(t,u)\<in>set tus. t \<cdot> subst_of_map Var \<tau> = u)"
-  apply (induct tus \<sigma> arbitrary: \<tau> rule: match_term_list.induct)
-     apply (auto simp: exteinds_subst_fun_upd_new exteinds_subst_fun_upd_matching
-      subst_of_map_def split: if_splits option.splits
-      cong: list.map_cong)
-      apply fastforce
-     apply (metis domI extends_subst_def option.inject)
-    apply (drule meta_spec2)
-    apply (drule meta_mp)
-     apply (rule refl)
-    apply (drule meta_mp)
-     apply assumption
-    apply (fastforce simp: list_eq_iff_nth_eq Ball_def UN_subset_iff in_set_zip in_set_conv_nth)
-   apply (drule meta_spec2)
-   apply (drule meta_mp)
-    apply (rule refl)
-   apply (drule meta_mp)
-    apply assumption
-   apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
-  apply (drule meta_spec2)
-  apply (drule meta_mp)
-  apply (rule refl)
-  apply (drule meta_mp)
-  apply assumption
-  apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
-  done
+proof (induct tus \<sigma> rule: match_term_list.induct)
+  case (2 x t P \<sigma>)
+  then show ?case
+    by (auto 0 3 simp: extends_subst_fun_upd_new extends_subst_fun_upd_matching 
+      subst_of_map_def dest: extends_subst_extends simp del: fun_upd_apply
+      split: if_splits option.splits)
+next
+  case (3 f ss g ts P \<sigma>)
+  from 3(2) obtain eqs where "decompose (Fun f ss) (Fun g ts) = Some eqs"
+    "match_term_list (eqs @ P) \<sigma> = Some \<tau>" by (auto split: option.splits)
+  with 3(1)[OF this] show ?case
+  proof (elim decompose_Some_var_terms[where P = P, elim_format] conjE, intro conjI, goal_cases extend dom subst)
+    case subst
+    from subst(3,5,6,7) show ?case
+      by (auto 0 6 simp: in_set_conv_nth list_eq_iff_nth_eq Ball_def)
+  qed auto
+qed auto
 
 lemma match_term_list_complete: "match_term_list tus \<sigma> = None \<Longrightarrow>
    extends_subst \<sigma> \<tau> \<Longrightarrow> dom \<tau> = (\<Union>(t, u)\<in>set tus. vars_term t) \<union> dom \<sigma> \<Longrightarrow>
     (\<exists>(t,u)\<in>set tus. t \<cdot> subst_of_map Var \<tau> \<noteq> u)"
-  apply (induct tus \<sigma> arbitrary: \<tau> rule: match_term_list.induct)
-     apply (auto simp: exteinds_subst_fun_upd_new exteinds_subst_fun_upd_matching
-      subst_of_map_def split: if_splits option.splits
-      cong: list.map_cong)
-   apply (auto simp: extends_subst_def dom_def) []
-  apply (drule meta_spec2)
-  apply (drule meta_mp)
-   apply (rule refl)
-  apply (drule meta_mp)
-   apply assumption
-  apply (drule meta_mp)
-    apply assumption
-  apply (drule meta_mp)
-   apply (drule decompose_Some; auto simp: dom_def Ball_def UN_subset_iff in_set_zip)
-   apply (drule spec)
-   apply (drule mp)
-    prefer 2
-    apply auto [2]
-   apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
-  apply (drule decompose_Some; auto)
-  apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
-  done
+proof (induct tus \<sigma> arbitrary: \<tau> rule: match_term_list.induct)
+  case (2 x t P \<sigma>)
+  then show ?case
+    by (auto simp: extends_subst_fun_upd_new extends_subst_fun_upd_matching 
+      subst_of_map_def dest: extends_subst_extends simp del: fun_upd_apply
+      split: if_splits option.splits)
+next
+  case (3 f ss g ts P \<sigma>)
+  show ?case
+  proof (cases "decompose (Fun f ss) (Fun g ts) = None")
+    case False
+    with 3(2) obtain eqs where "decompose (Fun f ss) (Fun g ts) = Some eqs"
+      "match_term_list (eqs @ P) \<sigma> = None" by (auto split: option.splits)
+    with 3(1)[OF this 3(3) trans[OF 3(4) arg_cong[of _ _ "\<lambda>x. x \<union> dom \<sigma>"]]] show ?thesis
+    proof (elim decompose_Some_var_terms[where P = P, elim_format] conjE, goal_cases subst)
+      case subst
+      from subst(1)[OF subst(6)] subst(4,5) show ?case
+        by (auto 0 3 simp: in_set_conv_nth list_eq_iff_nth_eq Ball_def)
+    qed
+  qed auto
+qed auto
 
 lemma unique_extends_subst:
-  assumes extends: "extends_subst \<sigma> \<tau>" "extends_subst \<sigma> \<rho>"
-      and dom: "dom \<tau> = vars_term t \<union> dom \<sigma>" "dom \<rho> = vars_term t \<union> dom \<sigma>"
-      and eq: "t \<cdot> subst_of_map Var \<rho> = t \<cdot> subst_of_map Var \<tau>"
+  assumes extends: "extends_subst \<sigma> \<tau>" "extends_subst \<sigma> \<rho>" and
+    dom: "dom \<tau> = vars_term t \<union> dom \<sigma>" "dom \<rho> = vars_term t \<union> dom \<sigma>" and
+    eq: "t \<cdot> subst_of_map Var \<rho> = t \<cdot> subst_of_map Var \<tau>"
   shows "\<rho> = \<tau>"
 proof
   fix x
@@ -168,19 +177,24 @@ proof (induction Ls Ks \<sigma> rule: subsumes_list.induct[case_names Nil Cons])
   case (Cons L Ls Ks \<sigma>)
   show ?case
     unfolding subsumes_list_modulo_Cons subsumes_list.simps
-    apply (auto simp: Cons.IH split: option.splits elim!: bexI[rotated] dest!: match_term_list_sound)
-    subgoal for K \<tau>
-      apply (cases "match_term_list [(atm_of L, atm_of K)] \<sigma>")
-      subgoal by (auto dest!: match_term_list_complete)
-      subgoal for \<tau>' by (cases K; cases L; auto dest!: match_term_list_sound)
-      done
-    subgoal for \<tau>
-      using match_term_list_complete[of "[(atm_of L, atm_of L \<cdot> subst_of_map Var \<tau>)]" \<sigma> \<tau>]
-      by auto
-    subgoal for \<tau> \<rho>
-      using unique_extends_subst[of \<sigma> \<tau> \<rho> "atm_of L"]
-      by auto
-    done
+  proof ((intro bex_cong[OF refl] ext iffI; elim exE conjE), goal_cases LR RL)
+    case (LR K)
+    show ?case
+      by (insert LR; cases K; cases L; auto simp: Cons.IH split: option.splits dest!: match_term_list_sound)
+  next
+    case (RL K \<tau>)
+    then show ?case
+    proof (cases "match_term_list [(atm_of L, atm_of K)] \<sigma>")
+      case None
+      with RL show ?thesis
+        by (auto simp: Cons.IH dest!: match_term_list_complete)
+    next
+      case (Some \<tau>')
+      with RL show ?thesis
+        using unique_extends_subst[of \<sigma> \<tau> \<tau>' "atm_of L"]
+        by (auto simp: Cons.IH dest!: match_term_list_sound)
+    qed
+  qed
 qed (auto simp: subsumes_modulo_def subst_cls_def vars_clause_def intro: extends_subst_refl)
 
 lemma subsumes_subsumes_list[code_unfold]:
@@ -231,13 +245,12 @@ shows "subsumes_list (L # Ls) (filter (leq L) Ks) \<sigma> \<longleftrightarrow>
   apply (elim disjE)
   subgoal by (auto split: option.splits elim!: match)
   subgoal for L K \<sigma> \<tau>
-    using sorted_wrt unfolding sorted_wrt_Cons[OF trans]
+    using sorted_wrt unfolding List.sorted_wrt.simps(2)
     apply (elim conjE)
     apply (drule bspec, assumption)
     apply (erule transpD[OF trans])
     apply (erule match)
-    apply auto
-    done
+    by auto
   done
 
 definition leq_head  :: "('f::linorder, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" where
@@ -268,6 +281,9 @@ lemma leq_lit_match:
   by (cases L; cases K)
     (auto simp: leq_lit_def dest!: match_term_list_sound split: option.splits)
 
+
+subsection \<open>Optimized Implementation of Clause Subsumption\<close>
+
 fun subsumes_list_filter where
   "subsumes_list_filter [] Ks \<sigma> = True"
 | "subsumes_list_filter (L # Ls) Ks \<sigma> =
@@ -284,21 +300,24 @@ proof (induction Ls arbitrary: Ks \<sigma>)
   from Cons.prems have "subsumes_list (L # Ls) Ks \<sigma> = subsumes_list (L # Ls) (filter (leq_lit L) Ks) \<sigma>"
     by (intro subsumes_list_Cons_filter_iff[symmetric]) (auto dest: leq_lit_match)
   also have "subsumes_list (L # Ls) (filter (leq_lit L) Ks) \<sigma> = subsumes_list_filter (L # Ls) Ks \<sigma>"
-    using Cons.prems by (auto simp: sorted_wrt_Cons Cons.IH split: option.splits)
+    using Cons.prems by (auto simp: Cons.IH split: option.splits)
   finally show ?case .
 qed simp
 
-subsection \<open>Definition of deterministic QuickSort\<close>
 
-(*stolen from Manuel Eberls Quick_Sort_Cost AFP entry,
-   but without invoking probability theory and using a predicate instead of a set*)
+subsection \<open>Definition of Deterministic QuickSort\<close>
 
 text \<open>
-  This is the functional description of the standard variant of deterministic QuickSort that
-  always chooses the first list element as the pivot as given by Hoare in 1962~\cite{hoare}.
-  For a list that is already sorted, this leads to $n(n-1)$
-  comparisons, but as is well known, the average case is not that bad.
+  This is the functional description of the standard variant of deterministic
+  QuickSort that always chooses the first list element as the pivot as given
+  by Hoare in 1962. For a list that is already sorted, this leads to $n(n-1)$
+  comparisons, but as is well known, the average case is much better.
+
+  The code below is adapted from Manuel Eberl's @{text Quick_Sort_Cost} AFP
+  entry, but without invoking probability theory and using a predicate instead
+  of a set.
 \<close>
+
 fun quicksort :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list" where
   "quicksort _ [] = []"
 | "quicksort R (x # xs) =
@@ -307,6 +326,7 @@ fun quicksort :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list
 text \<open>
   We can easily show that this QuickSort is correct:
 \<close>
+
 theorem mset_quicksort [simp]: "mset (quicksort R xs) = mset xs"
   by (induction R xs rule: quicksort.induct) simp_all
 
@@ -326,11 +346,13 @@ proof (induction R xs rule: quicksort.induct)
           "sorted_wrt R (quicksort R (filter (\<lambda>y. \<not> R y x) xs))"
     using "2.prems" by (intro "2.IH"; auto simp: total_on_def reflp_on_def)+
   then show ?case
-    by (auto simp: sorted_wrt_append sorted_wrt_Cons \<open>transp R\<close>
+    by (auto simp: sorted_wrt_append \<open>transp R\<close>
      intro: transpD[OF \<open>transp R\<close>] dest!: total)
 qed auto
 
-(* end of stealing *)
+text \<open>
+End of the material adapted from Eberl's @{text Quick_Sort_Cost}.
+\<close>
 
 lemma subsumes_list_subsumes_list_filter[abs_def, code_unfold]:
   "subsumes_list Ls Ks \<sigma> = subsumes_list_filter (quicksort leq_lit Ls) Ks \<sigma>"

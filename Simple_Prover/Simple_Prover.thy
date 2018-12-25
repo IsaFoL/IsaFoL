@@ -928,7 +928,7 @@ lemma ts1: \<open>(\<And>e e'. \<forall>x. x \<in> set (free p) \<longrightarrow
 proof -
   assume a1: \<open>\<And>e e'. \<forall>x. x \<in> set (free p) \<longrightarrow> e x = e' x \<Longrightarrow> semantics m e p = semantics m e' p\<close>
   assume a2: \<open>\<forall>x. x \<in> set (dump (free p)) \<longrightarrow> e x = e' x\<close>
-  have f3: \<open>\<forall>us f n. if n = 0 then (case n of 0 \<Rightarrow> us::unit list | Suc x \<Rightarrow> f x) =
+  have f3: \<open>\<forall>us f n. if n = 0 then (case n of 0 \<Rightarrow> us | Suc x \<Rightarrow> f x) =
     us else (case n of 0 \<Rightarrow> us | Suc x \<Rightarrow> f x) = f (n - 1)\<close>
     by (simp add: Nitpick.case_nat_unfold)
   obtain uus and uusa where
@@ -946,7 +946,7 @@ proof -
     obtain nn :: \<open>(nat \<Rightarrow> proxy) \<Rightarrow> (nat \<Rightarrow> proxy) \<Rightarrow> nat\<close> where
       f1: \<open>\<forall>f fa. nn fa f \<in> set (free p) \<and> f (nn fa f) \<noteq> fa (nn fa f) \<or>
           semantics m f p = semantics m fa p\<close>
-      using a1 by moura
+      using a1 by metis
     have \<open>\<forall>p f n. if n = 0 then (case n of 0 \<Rightarrow> p::proxy | Suc x \<Rightarrow> f x) = p else
         (case n of 0 \<Rightarrow> p | Suc x \<Rightarrow> f x) = f (n - 1)\<close>
       by (simp add: Nitpick.case_nat_unfold)
@@ -959,7 +959,28 @@ qed
 
 lemma eval_cong: \<open>\<forall>x. x \<in> set (free p) \<longrightarrow> e x = e' x \<Longrightarrow> semantics m e p = semantics m e' p\<close>
 proof (induct p arbitrary: e e')
-  case Pre then show ?case using map_cong free.simps(1) semantics.simps(1) by metis
+  case (Pre x1 x2 x3)
+  then show ?case
+  proof -
+    have f1: \<open>map e x3 = map e' x3\<close>
+      using Pre by fastforce
+    moreover
+    { assume \<open>\<not> snd m x2 (map e x3)\<close>
+      then have \<open>\<not> semantics m e' (Pre x1 x2 x3) \<or> \<not> x1\<close>
+        using f1 by auto }
+    moreover
+    { assume \<open>\<not> semantics m e' (Pre x1 x2 x3)\<close>
+      moreover
+      { assume \<open>\<not> semantics m e' (Pre x1 x2 x3) \<and> snd m x2 (map e x3)\<close>
+        then have \<open>\<not> x1\<close>
+          using f1 by simp }
+      ultimately have \<open>\<not> x1 \<or> (\<not> semantics m e (Pre x1 x2 x3)) \<noteq> semantics m e' (Pre x1 x2 x3)\<close>
+        using semantics.simps(1) by blast }
+    ultimately have \<open>(\<not> semantics m e (Pre x1 x2 x3)) \<noteq> semantics m e' (Pre x1 x2 x3)\<close>
+      using semantics.simps(1) by metis
+    then show ?thesis
+      by blast
+  qed
 next
   case Con then show ?case using Un_iff free.simps(2) semantics.simps(2) set_append by metis
 next
@@ -982,7 +1003,7 @@ lemma fv_list_cons: \<open>fv_list (a # list) = (free a) @ (fv_list list)\<close
 
 lemma semantics_alternative_cong: \<open>(\<forall>x. x \<in> set (fv_list s) \<longrightarrow> e x = e' x) \<longrightarrow>
   semantics_alternative m e s = semantics_alternative m e' s\<close>
-  by (induct s) (simp_all,metis eval_cong Un_iff set_append fv_list_cons)
+  by (induct s) (simp,metis eval_cong Un_iff set_append fv_list_cons semantics_alternative.simps(2))
 
 subsection \<open>Soundness\<close>
 
@@ -1055,7 +1076,7 @@ proof -
   then have \<open>(\<exists>pa. pa \<in> fst m \<and> \<not> semantics m (case_nat pa e \<circ> increase f) p) \<and> (\<exists>pa. pa \<in> fst m
     \<and> \<not> semantics m (case_nat pa (e \<circ> f)) p) \<or> (a \<notin> fst m \<or>
     semantics m (case_nat a e \<circ> increase f) p) \<and> (q \<notin> fst m \<or> semantics m (case_nat q (e \<circ> f)) p)\<close>
-    using f8 f4 by blast
+    using f8 f4 by (metis (no_types, lifting))
   then show ?thesis
     using f2 by blast
 qed
@@ -1074,40 +1095,59 @@ lemma eval_bind: \<open>semantics m e (sv (bind n) p) = semantics m (case_nat (e
   using eval_cong eval_subst
   by (simp add: Nitpick.case_nat_unfold bind'_def bind')
 
+lemma sound_Uni':
+  assumes \<open>u \<notin> set (fv_list (Uni p # s))\<close>
+    and \<open>valid (s@[sv (bind u) p])\<close>
+  shows \<open>is_model_environment (M,I) e \<Longrightarrow> \<not> semantics_alternative (M,I) e s \<Longrightarrow> z \<in> M \<Longrightarrow>
+    semantics (M,I) (case_nat z e) p\<close>
+proof -
+  assume zM: \<open>z \<in> M\<close> and sa: \<open>\<not> semantics_alternative (M,I) e s\<close>
+    and ime: \<open>is_model_environment (M,I) e\<close>
+  have 1: \<open>semantics (M,I) (case_nat z (e(u:=z))) p = semantics (M,I) (case_nat z e) p\<close>
+    using assms
+    by (clarsimp simp: Nitpick.case_nat_unfold fv_list_cons intro!: eval_cong[rule_format])
+      (metis One_nat_def Suc_pred' dump)
+  have \<open>is_model_environment (M,I) (e(u := z)) \<longrightarrow> semantics_alternative (M,I) (e(u := z))
+      (s @ [sv (bind u) p])\<close>
+    using assms valid_def by blast
+  then have 2: \<open>(\<forall>n. (if n = u then z else e n) \<in> M) \<longrightarrow>
+      semantics_alternative (M,I) (e(u := z)) s \<or> semantics (M,I) (case_nat z e) p\<close>
+    using 1 eval_bind is_model_environment_def semantics_alternative_append by simp
+  have 3: \<open>u \<notin> set (dump (free p)) \<and> u \<notin> set (fv_list s)\<close>
+    using assms fv_list_cons by simp
+  have \<open>\<forall>n. e n \<in> M\<close>
+    using ime is_model_environment_def by simp
+  then show ?thesis
+    using 2 3 zM sa
+    by (metis (no_types,lifting) fun_upd_apply semantics_alternative_cong)
+qed
+
 lemma sound_Uni:
   assumes \<open>u \<notin> set (fv_list (Uni p # s))\<close>
     and \<open>valid (s@[sv (bind u) p])\<close>
   shows \<open>valid (Uni p # s)\<close>
-proof (clarsimp simp: valid_def)
-  fix M I e z
-  show \<open>is_model_environment (M,I) e \<Longrightarrow> \<not> semantics_alternative (M,I) e s \<Longrightarrow> z \<in> M \<Longrightarrow>
-    semantics (M,I) (case_nat z e) p\<close>
-  proof -
-    assume zM: \<open>z \<in> M\<close> and sa: \<open>\<not> semantics_alternative (M,I) e s\<close>
-      and ime: \<open>is_model_environment (M,I) e\<close>
-    have 1: \<open>semantics (M,I) (case_nat z (e(u:=z))) p = semantics (M,I) (case_nat z e) p\<close>
-      using assms
-      by (clarsimp simp: Nitpick.case_nat_unfold fv_list_cons intro!: eval_cong[rule_format])
-        (metis One_nat_def Suc_pred' dump)
-    have \<open>is_model_environment (M,I) (e(u := z)) \<longrightarrow> semantics_alternative (M,I) (e(u := z))
-      (s @ [sv (bind u) p])\<close>
-      using assms valid_def by blast
-    then have 2: \<open>(\<forall>n. (if n = u then z else e n) \<in> M) \<longrightarrow>
-      semantics_alternative (M,I) (e(u := z)) s \<or> semantics (M,I) (case_nat z e) p\<close>
-      using 1 eval_bind is_model_environment_def semantics_alternative_append by simp
-    have 3: \<open>u \<notin> set (dump (free p)) \<and> u \<notin> set (fv_list s)\<close>
-      using assms fv_list_cons by simp
-    have \<open>\<forall>n. e n \<in> M\<close>
-      using ime is_model_environment_def by simp
-    then show ?thesis
-      using 2 3 zM sa
-      by (metis (no_types,lifting) fun_upd_apply semantics_alternative_cong)
-  qed
-qed
+  by (clarsimp simp: valid_def) (meson sound_Uni' assms eval_cong unit.exhaust)
 
 lemma sound_Exi: \<open>valid (s@[sv (bind u) p,Exi p]) \<Longrightarrow> valid (Exi p # s)\<close>
   using valid_def eval_bind
-  by (simp add: semantics_alternative_append,metis is_model_environment_def prod.sel(1))
+proof -
+  assume a1: \<open>valid (s @ [sv (bind u) p, Exi p])\<close>
+  obtain pp :: \<open>nnf list \<Rightarrow> proxy set \<times> (nat \<Rightarrow> proxy list \<Rightarrow> bool)\<close>
+    and uu :: \<open>nnf list \<Rightarrow> nat \<Rightarrow> proxy\<close> where
+    f2: \<open>\<forall>ns. (\<not> valid ns \<or> (\<forall>p f. \<not> is_model_environment p f \<or> semantics_alternative p f ns))
+ \<and> (valid ns \<or> is_model_environment (pp ns) (uu ns) \<and> \<not> semantics_alternative (pp ns) (uu ns) ns)\<close>
+    using valid_def by moura
+  then have \<open>\<forall>pa f. \<not> is_model_environment pa f \<or>
+ semantics_alternative pa f (s @ [sv (bind u) p, Exi p])\<close>
+    using a1 by auto
+  then have \<open>\<not> is_model_environment (pp (Exi p # s)) (uu (Exi p # s)) \<or>
+ semantics_alternative (pp (Exi p # s)) (uu (Exi p # s)) (Exi p # s)\<close>
+    using eval_bind append_Nil2 is_model_environment_def
+      semantics.simps(5) semantics_alternative.simps(2) semantics_alternative_append
+    by metis
+  then show ?thesis
+    using f2 by blast
+qed
 
 lemma max_exists: \<open>finite (X::nat set) \<Longrightarrow> X \<noteq> {} \<longrightarrow> (\<exists>x. x \<in> X \<and> (\<forall>y. y \<in> X \<longrightarrow> y \<le> x))\<close>
   using Max.coboundedI Max_in
@@ -1216,11 +1256,42 @@ next
         proof (cases \<open>\<exists>a f list. t = (a,Uni f) # list\<close>)
           case True
           then obtain a and f and list where 1: \<open>t = (a,Uni f) # list\<close> by blast
-          then show ?thesis using IH assms * ** fv_list_def fresh list_sequent_def inst_def
-            using instt_def
-            by simp (frule calculation.intros(2),auto simp add: maps instt base frees,
-                metis (no_types,lifting) Suc_leD diff_Suc_Suc diff_diff_cancel diff_le_self
-                le_SucI list.map map_append snd_conv sound_Uni)
+          then show ?thesis
+          proof -
+            have f1: \<open>(n, (a, Uni f) # list) \<in> calculation s\<close>
+              using ** 1 by simp
+            have f2: \<open>\<not> is_axiom (list_sequent ((a, Uni f) # list))\<close>
+              using 1 notAxiom by simp
+            have f3: \<open>fresh ((concat \<circ> map free) (list_sequent ((a, Uni f) # list))) \<notin>
+                       set (fv_list (Uni f # map snd list))\<close>
+              using base base.simps(2) fresh fv_list_def list_sequent_def maps snd_conv by metis
+            obtain nn :: \<open>nat \<Rightarrow> nat\<close> where
+              f4: \<open>\<forall>x0. (\<exists>v2. x0 = Suc v2) = (x0 = Suc (nn x0))\<close>
+              by moura
+            have f5: \<open>\<forall>n na. \<not> (n::nat) \<le> na \<or> na - (na - n) = n\<close>
+              using diff_diff_cancel by blast
+            have f6: \<open>\<forall>n na. \<not> n \<le> na \<or> Suc na - n = Suc (na - n)\<close>
+              using Suc_diff_le by blast
+            have \<open>Suc n \<le> m\<close>
+              using f2 f1 assms(3) uni by blast
+            then have f7: \<open>(Suc x = Suc (m - Suc n)) = (m - n = Suc m - Suc (m - (m - n)))\<close>
+              using f6 f5 f4 * ** assms(3) by metis
+            moreover
+            { assume \<open>m - n \<noteq> Suc m - Suc (m - (m - n))\<close>
+              have \<open>m - n \<le> Suc m\<close>
+                by simp
+              then have \<open>x = m - Suc n\<close>
+                using f7 f6 f5 diff_le_self library(28) by metis }
+            ultimately have \<open>valid (list_sequent (list @ [(0, sv (bind (fresh ((concat \<circ> map free)
+                              (list_sequent ((a, Uni f) # list))))) f)]))\<close>
+              using f2 f1 IH.hyps library(28) uni by metis
+            then have \<open>valid (Uni f # map snd list)\<close>
+              using f3 list_sequent_def sound_Uni by simp
+            then have \<open>valid (list_sequent ((a, Uni f) # list))\<close>
+              using list_sequent_def by simp
+            then show ?thesis
+              using 1 by simp
+          qed
         next
           case notUni: False then show ?thesis
           proof (cases \<open>\<exists>a f list. t = (a,Exi f) # list\<close>)
@@ -1578,22 +1649,17 @@ proof -
   then show ?thesis using assms contains_propagates_Exi Exi0 Exi_upward' by metis
 qed
 
-definition ntou :: \<open>nat \<Rightarrow> proxy\<close> where
-  \<open>ntou n \<equiv> replicate n ()\<close>
+definition ntou :: \<open>nat \<Rightarrow> proxy\<close> where \<open>ntou n \<equiv> replicate n ()\<close>
 
-definition uton :: \<open>proxy \<Rightarrow> nat\<close> where
-  \<open>uton u \<equiv> length u\<close>
+lemma inj_ntou: \<open>inj ntou\<close>
+  unfolding inj_def ntou_def using length_replicate by simp
 
-lemma ntou_uton: \<open>ntou (uton u) = u\<close>
-  using ntou_def uton_def
-  by (induct u) auto
+hide_fact ntou_def
 
-lemma uton_ntou: \<open>uton (ntou n) = n\<close>
-  using ntou_def uton_def
-  by (induct n) auto
+definition uton :: \<open>proxy \<Rightarrow> nat\<close> where \<open>uton \<equiv> inv ntou\<close>
 
-lemma uton_ntou_id: \<open>uton \<circ> ntou = id\<close>
-  using uton_ntou by auto
+lemma uton_ntou_id[simp]: \<open>uton \<circ> ntou = id\<close>
+  unfolding uton_def using inj_ntou by simp
 
 subsection \<open>Falsifying Model From Failing Path\<close>
 
@@ -1617,9 +1683,23 @@ lemma not_is_Exi:
 lemma size_subst: \<open>size (sv f p) = size p\<close>
   by (induct p arbitrary: f) simp_all
 
-lemma size_bind: \<open>size (sv (bind m) p) = size p\<close>
-  using bind_def size_subst
-  by simp
+lemma model'':
+  assumes \<open>f = failing_path (calculation s)\<close>
+    and \<open>infinite (calculation s)\<close>
+    and \<open>init s\<close>
+    and *: \<open>\<forall>m<n. \<forall>p. size p = m \<longrightarrow> (\<forall>m n. contains f n (m,p) \<longrightarrow> \<not> semantics (model s) ntou p)\<close>
+  shows \<open>p = Exi q \<Longrightarrow> n = Suc (size q) \<Longrightarrow> z \<in> fst (model s) \<Longrightarrow> contains f na (m,Exi q)
+            \<Longrightarrow> semantics (model s) (case_nat z ntou) q \<Longrightarrow> False\<close>
+proof -
+  assume 1: \<open>n = Suc (size q)\<close>
+  assume 2: \<open>z \<in> fst (model s)\<close>
+  assume 3: \<open>contains f na (m,Exi q)\<close>
+  assume 4: \<open>semantics (model s) (case_nat z ntou) q\<close>
+  have \<open>semantics (model s) ntou (sv (bind (inv ntou z)) q)\<close>
+    using 2 4 model_def eval_bind by (simp add: f_inv_into_f)
+  then show ?thesis
+    using 1 3 * assms(1) assms(2) assms(3) Exi_upward lessI size_subst by metis
+qed
 
 lemma model':
   assumes \<open>f = failing_path (calculation s)\<close>
@@ -1637,10 +1717,10 @@ proof (rule nat_less_induct,rule allI)
     proof (cases p)
       case (Pre b i v) then show ?thesis
       proof (cases b)
-        case True then show ?thesis using Pre assms model_def uton_ntou_id by auto
+        case True then show ?thesis using Pre assms model_def by auto
       next
         case False then show ?thesis using Pre
-        proof (clarsimp simp: model_def uton_ntou_id)
+        proof (clarsimp simp: model_def)
           fix na m nb ma
           show \<open>n = 0 \<Longrightarrow> contains f na (m,Pre False i v) \<Longrightarrow>
             contains (failing_path (calculation s)) nb (ma,Pre True i v) \<Longrightarrow> False\<close>
@@ -1662,7 +1742,7 @@ proof (rule nat_less_induct,rule allI)
               case Nil then show ?thesis using 5 contains_def by simp
             next
               case Cons then show ?thesis
-                using 4 5 6 by (force simp: contains_def list_sequent_def considers_def)
+                using 4 5 6 unfolding contains_def list_sequent_def considers_def by force
             qed
             then show ?thesis using assms is_path_f' by blast
           qed
@@ -1690,36 +1770,19 @@ proof (rule nat_less_induct,rule allI)
           then obtain y where 3: \<open>contains f (Suc (na + y)) (0,sv (bind (fresh (fv_list
               (map snd (snd (f (na + y))))))) q)\<close>
             by blast
-          have 4: \<open>Suc (size q) = n\<close> using Uni 1 by simp
-          then show ?thesis using Uni
-          proof (simp)
-            show \<open>\<exists>z\<in>fst (model s). \<not> semantics (model s) (case_nat z ntou) q\<close>
-            proof (rule_tac x=\<open>ntou (fresh (fv_list (map snd (snd (f (na + y))))))\<close> in bexI)
-              show \<open>\<not> semantics (model s) (case_nat (ntou (fresh (fv_list
-                  (map snd (snd (f (na + y))))))) ntou) q\<close>
-                using * 3 4 eval_bind size_bind lessI by metis
-            next
-              show \<open>ntou (fresh (fv_list (map snd (snd (f (na + y)))))) \<in> fst (model s)\<close>
-                using is_env_model_ntou is_model_environment_def by blast
-            qed
-          qed
+          have \<open>Suc (size q) = n\<close> using Uni 1 by simp
+          then show ?thesis
+            using Uni * 3 eval_bind is_env_model_ntou
+              is_model_environment_def semantics.simps(4) size_subst by blast
         qed
       qed
     next
-      case (Exi q) then show ?thesis
-      proof (clarsimp)
-        fix m na ma z
-        show \<open>p = Exi q \<Longrightarrow> n = Suc (size q) \<Longrightarrow> z \<in> fst (model s) \<Longrightarrow> contains f na (m,Exi q)
-            \<Longrightarrow> semantics (model s) (case_nat z ntou) q \<Longrightarrow> False\<close>
-        proof -
-          assume \<open>n = Suc (size q)\<close> and \<open>contains f na (m,Exi q)\<close>
-            and 1: \<open>semantics (model s) (case_nat z ntou) q\<close>
-          then have \<open>\<forall>m'. \<not> semantics (model s) ntou (sv (bind m') q)\<close>
-            using assms * by (meson Exi_upward eval_cong id_apply lessI size_bind)
-          also have \<open>\<forall>u. ntou (uton u) = u\<close> using ntou_uton by simp
-          ultimately show ?thesis using 1 eval_bind by metis
-        qed
-      qed
+      case (Exi q)
+      have \<open>p = Exi q \<Longrightarrow> n = Suc (size q) \<Longrightarrow> z \<in> fst (model s) \<Longrightarrow> contains f na (m,Exi q)
+          \<Longrightarrow> semantics (model s) (case_nat z ntou) q \<Longrightarrow> False\<close> for z na m
+        using model'' * assms by blast
+      then show ?thesis
+        using Exi add.right_neutral add_Suc_right nnf.size(10) semantics.simps(5) by metis
     qed
   qed
 qed
@@ -1814,7 +1877,8 @@ lemma finite_calculation'':
 proof -
   obtain m where \<open>loop [s] m = []\<close> using assms by blast
   then have \<open>\<forall>y. loop [s] (m+y) = []\<close> using loop_upwards by simp
-  then have 1: \<open>(UN x:Collect (op \<le> m). Pair x ` set (loop [s] x)) = (UN x:Collect (op \<le> m). {})\<close>
+  then have 1: \<open>(UN x:Collect (less_eq m). Pair x ` set (loop [s] x)) =
+                (UN x:Collect (less_eq m). {})\<close>
     using SUP_cong image_is_empty le_Suc_ex mem_Collect_eq set_empty
     by (metis (no_types,lifting))
   then have \<open>(UNIV::nat set) = {y. y < m} Un {y. m \<le> y}\<close> by fastforce
@@ -1853,7 +1917,7 @@ proof -
   have \<open>\<not> valid [Pre True 0 []]\<close> \<open>valid [Dis (Pre True 0 []) (Pre False 0 [])]\<close>
     using valid_def is_model_environment_def by auto
   then show \<open>\<exists>p. check p\<close> \<open>\<exists>p. \<not> check p\<close>
-    using magic correctness semantics_alternative.simps valid_def by (metis,metis)
+    using correctness semantics_alternative.simps valid_def by (metis,metis)
 qed
 
 section \<open>Code Generation\<close>

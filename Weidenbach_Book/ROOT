@@ -20,7 +20,6 @@ session "Weidenbach_Book_Base" (Weidenbach_Book) = "Sepref_IICF" +
     Doc_Libraries
     Wellfounded_More
     WB_List_More
-    RBT_More
     "../lib/Explorer"
   document_files
     "root.tex"
@@ -35,8 +34,9 @@ session "Entailment_Definition" (Weidenbach_Book) = "Weidenbach_Book_Base" +
     Ordered_Resolution_Prover
   theories [document = true]
     Doc_Entailment
-    Partial_Clausal_Logic
-    Partial_Annotated_Clausal_Logic
+    Partial_Herbrand_Interpretation
+    Partial_Annotated_Herbrand_Interpretation
+    Partial_And_Total_Herbrand_Interpretation
     Prop_Logic
   document_files
     "root.tex"
@@ -147,40 +147,101 @@ session "CDCL" (Weidenbach_Book) = "Sepref_IICF"  +
     "biblio.bib"
 
 session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
-  description \<open>This session contains all theories related to the two-watched literals.\<close>
+  description \<open>This session contains all theories related to the two-watched literals. It links
+    the abstract CDCL calculus to a more concrete version with watched literals.\<close>
   options [document = pdf, document_output = "output"]
   sessions
     CDCL
     "HOL-Eisbach"
   theories [quick_and_dirty = false, document = true]
     Bits_Natural
+    Array_UInt
     WB_Word_Assn
+    WB_More_Refinement_List
     WB_More_Refinement
+    WB_Tuples
+    Watched_Literals_Algorithm
+    Watched_Literals_List
+    Watched_Literals_Watch_List
+    Watched_Literals_Watch_List_Domain
+    Watched_Literals_Watch_List_Initialisation
+    CDCL_Conflict_Minimisation
 
-    Watched_Literals_VMTF
-    IsaSAT_CDCL
-    IsaSAT
+    
   document_files
     "root.tex"
     "biblio.bib"
 
-session "CDCL_B" (Weidenbach_Book) = "CDCL_no_Sepref"  +
-  description \<open>This session contains Sophie Tourret's variants of Weidenbach's
-  CDCL calculus, where multiple decisions are done at the same time.
-  \<close>
-  options [document = false, document_output = "output_CDCL_B"]
+session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
+  description \<open>We here refine the previous session to generate code.\<close>
   sessions
     CDCL
-  theories[document = false, quick_and_dirty]
-    CDCL_B
+    "HOL-Eisbach"
+    Watched_Literals
+    Show
+  theories
+    (*Watched_Literals_Transition_System_Restart*)
+    IsaSAT_Literals
+    IsaSAT_Trail
+    IsaSAT_Setup
+    Watched_Literals_VMTF
+    LBD
+    Version
+    IsaSAT_Watch_List
+    IsaSAT_Setup
+    IsaSAT_Inner_Propagation
+    IsaSAT_VMTF
+    IsaSAT_Backtrack
+    IsaSAT_Initialisation
+    IsaSAT_Conflict_Analysis
+    IsaSAT_Propagate_Conflict
+    IsaSAT_Decide
+    IsaSAT_CDCL
 
-session Weidenbach_Book (Weidenbach_Book) = Watched_Literals +
+    (* Restarts not clear if different session of not *)
+    Watched_Literals_Transition_System_Restart
+    Watched_Literals_Algorithm_Restart
+    Watched_Literals_List_Restart
+    Watched_Literals_Watch_List_Restart
+    Watched_Literals_Watch_List_Domain_Restart
+
+    IsaSAT_Restart_Heuristics
+    IsaSAT_Restart
+
+    IsaSAT
+
+ 
+  document_files
+    "root.tex"
+    "biblio.bib"
+
+
+session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
+  description \<open>This extends the previous version to a very simple 'SMT' solver: we enumerate all models and let an unspecified theoty solver checks if a model is valid or another must be found.\<close>
+  sessions
+    Normalisation
+    Resolution_Superposition
+    CDCL
+    Watched_Literals
+  theories[document = true]
+    Model_Enumeration
+    Watched_Literals_Transition_System_Enumeration
+    Watched_Literals_Algorithm_Enumeration
+    Watched_Literals_List_Enumeration
+    Watched_Literals_Watch_List_Enumeration
+  document_files
+    "root.tex"
+    "biblio.bib"
+
+session Weidenbach_Book (Weidenbach_Book) = IsaSAT +
   description \<open>We import everything\<close>
   sessions
     Normalisation
     Resolution_Superposition
     CDCL
     Watched_Literals
+    Model_Enumeration
+    IsaSAT
   theories[document = true, quick_and_dirty]
     Weidenbach_Book
   document_files

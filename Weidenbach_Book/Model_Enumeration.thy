@@ -1,6 +1,6 @@
 theory Model_Enumeration
-  imports Entailment_Definition.Partial_Annotated_Clausal_Logic "../lib/Explorer"
-    Wellfounded_More
+  imports Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
+    Weidenbach_Book_Base.Wellfounded_More
 begin
 
 lemma Ex_sat_model:
@@ -159,12 +159,11 @@ next
   qed
 qed
 
-
 lemma next_model_decreasing:
   assumes
     \<open>next_model M N\<close>
-  shows \<open>((P, add_mset (image_mset uminus (mset M)) N), P, N)
-         \<in> measure (\<lambda>(P, N). card (all_models N))\<close>
+  shows \<open>(add_mset (image_mset uminus (mset M)) N, N)
+         \<in> measure (\<lambda>N. card (all_models N))\<close>
 proof -
   have \<open>M \<in> all_models N\<close>
     using assms unfolding all_models_def
@@ -190,11 +189,18 @@ proof -
     by (auto simp: finite_all_models psubset_card_mono)
 qed
 
+lemma next_model_decreasing':
+  assumes
+    \<open>next_model M N\<close>
+  shows \<open>((P, add_mset (image_mset uminus (mset M)) N), P, N)
+         \<in> measure (\<lambda>(P, N). card (all_models N))\<close>
+  using next_model_decreasing[OF assms] by auto
+
 lemma wf_next_model_filtered:
   \<open>wf {(y, x). next_model_filtered x y}\<close>
 proof -
-  have \<open>wf {(y, x). True \<and> local.next_model_filtered x y}\<close>
-    by (rule  wfP_if_measure[of \<open>\<lambda>_. True\<close> next_model_filtered
+  have \<open>wf {(y, x). True \<and> next_model_filtered x y}\<close>
+    by (rule wfP_if_measure[of \<open>\<lambda>_. True\<close> next_model_filtered
           \<open>\<lambda>N. (if fst N = None then 1 else 0) + card (all_models (snd N))\<close>])
       (auto dest: next_model_decreasing simp: next_model_filtered.simps)
   then show ?thesis
@@ -290,5 +296,25 @@ proof -
 qed
 
 end
+
+lemma no_step_next_model_filtered_next_model_iff:
+  \<open>fst S = None \<Longrightarrow> no_step (next_model_filtered P) S \<longleftrightarrow> (\<nexists>M. next_model M (snd S))\<close>
+  apply (cases S; auto simp: next_model_filtered.simps)
+  by metis
+
+lemma Ex_next_model_iff_statisfiable:
+  \<open>(\<exists>M. next_model M N) \<longleftrightarrow> satisfiable (set_mset N)\<close>
+  by (metis no_step_next_model_filtered_next_model_iff
+      next_model.cases no_step_next_model_filtered_unsat prod.sel(1) prod.sel(2) satisfiable_carac')
+
+lemma unsat_no_step_next_model_filtered':
+  assumes \<open>unsatisfiable (set_mset (snd S)) \<or> fst S \<noteq> None\<close>
+  shows \<open>no_step (next_model_filtered P) S\<close>
+  using assms
+  apply cases
+  apply (auto dest: unsat_no_step_next_model_filtered)
+   apply (metis Ex_next_model_iff_statisfiable fst_conv next_model_filtered.simps
+      no_step_next_model_filtered_next_model_iff)
+  by (metis Pair_inject next_model_filtered.cases option.simps(3) prod.collapse)
 
 end

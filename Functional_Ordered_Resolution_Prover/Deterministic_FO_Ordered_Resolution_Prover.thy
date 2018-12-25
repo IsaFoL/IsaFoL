@@ -7,16 +7,18 @@
 section \<open>A Deterministic Ordered Resolution Prover for First-Order Clauses\<close>
 
 text \<open>
-TODO.
+The @{text deterministic_RP} prover introduced below is a deterministic program that works on finite
+lists, committing to a strategy for assigning priorities to clauses. However, it is not fully
+executable: It abstracts over operations on atoms and employs logical specifications instead of
+executable functions for auxiliary notions.
 \<close>
 
 theory Deterministic_FO_Ordered_Resolution_Prover
-  imports Polynomial_Factorization.Missing_List Weighted_FO_Ordered_Resolution_Prover "../lib/Explorer"
+  imports Polynomial_Factorization.Missing_List Weighted_FO_Ordered_Resolution_Prover
 begin
 
-setup Explorer_Lib.switch_to_quotes
 
-section \<open>Library\<close>
+subsection \<open>Library\<close>
 
 lemma apfst_fst_snd: "apfst f x = (f (fst x), snd x)"
   by (rule apfst_conv[of _ "fst x" "snd x" for x, unfolded prod.collapse])
@@ -24,9 +26,29 @@ lemma apfst_fst_snd: "apfst f x = (f (fst x), snd x)"
 lemma apfst_comp_rpair_const: "apfst f \<circ> (\<lambda>x. (x, y)) = (\<lambda>x. (x, y)) \<circ> f"
   by (simp add: comp_def)
 
-(* TODO: Move to Isabelle's List.thy *)
+(* TODO: Move to Isabelle's "List.thy"? *)
 lemma length_remove1_less[termination_simp]: "x \<in> set xs \<Longrightarrow> length (remove1 x xs) < length xs"
   by (induct xs) auto
+
+(* TODO: Move to "Multiset_More.thy". *)
+lemma subset_mset_imp_subset_add_mset: "A \<subseteq># B \<Longrightarrow> A \<subseteq># add_mset x B"
+  by (metis add_mset_diff_bothsides diff_subset_eq_self multiset_inter_def subset_mset.inf.absorb2)
+
+(* TODO: Move to "Multiset_More.thy"? *)
+lemma subseq_mset_subseteq_mset: "subseq xs ys \<Longrightarrow> mset xs \<subseteq># mset ys"
+proof (induct xs arbitrary: ys)
+  case (Cons x xs)
+  note Outer_Cons = this
+  then show ?case
+  proof (induct ys)
+    case (Cons y ys)
+    have "subseq xs ys"
+      by (metis Cons.prems(2) subseq_Cons' subseq_Cons2_iff)
+    then show ?case
+      using Cons by (metis mset.simps(2) mset_subset_eq_add_mset_cancel subseq_Cons2_iff
+          subset_mset_imp_subset_add_mset)
+  qed simp
+qed simp
 
 lemma map_filter_neq_eq_filter_map:
   "map f (filter (\<lambda>y. f x \<noteq> f y) xs) = filter (\<lambda>z. f x \<noteq> z) (map f xs)"
@@ -51,15 +73,15 @@ proof -
     by simp
 qed
 
-(* FIXME: clone of Lambda_Free_RPOs *)
+(* FIXME: This is a clone of "Lambda_Free_RPOs". *)
 lemma wf_app: "wf r \<Longrightarrow> wf {(x, y). (f x, f y) \<in> r}"
   unfolding wf_eq_minimal by (intro allI, drule spec[of _ "f ` Q" for Q]) auto
 
-(* FIXME: clone of Lambda_Free_RPOs *)
+(* FIXME: This is a clone of "Lambda_Free_RPOs". *)
 lemma wfP_app: "wfP p \<Longrightarrow> wfP (\<lambda>x y. p (f x) (f y))"
   unfolding wfP_def by (rule wf_app[of "{(x, y). p x y}" f, simplified])
 
-(* TODO: Move to Isabelle. *)
+(* TODO: Move to Isabelle? *)
 lemma funpow_fixpoint: "f x = x \<Longrightarrow> (f ^^ n) x = x"
   by (induct n) auto
 
@@ -70,15 +92,15 @@ lemma tranclp_imp_eq_image: "(\<forall>x y. R x y \<longrightarrow> f x = f y) \
   by (erule tranclp.induct) auto
 
 
-section \<open>Prover\<close>
+subsection \<open>Prover\<close>
 
 type_synonym 'a lclause = "'a literal list"
 type_synonym 'a dclause = "'a lclause \<times> nat"
 type_synonym 'a dstate = "'a dclause list \<times> 'a dclause list \<times> 'a dclause list \<times> nat"
 
 locale deterministic_FO_resolution_prover =
-  weighted_FO_resolution_prover_with_size_generation_factors S subst_atm id_subst comp_subst
-    renamings_apart atm_of_atms mgu less_atm size_atm generation_factor size_factor
+  weighted_FO_resolution_prover_with_size_timestamp_factors S subst_atm id_subst comp_subst
+    renamings_apart atm_of_atms mgu less_atm size_atm timestamp_factor size_factor
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -89,7 +111,7 @@ locale deterministic_FO_resolution_prover =
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
     size_atm :: "'a \<Rightarrow> nat" and
-    generation_factor :: nat and
+    timestamp_factor :: nat and
     size_factor :: nat +
   assumes
     S_empty: "S C = {#}"
@@ -115,10 +137,10 @@ fun is_final_dstate :: "'a dstate \<Rightarrow> bool" where
 declare is_final_dstate.simps [simp del]
 
 abbreviation rtrancl_weighted_RP (infix "\<leadsto>\<^sub>w\<^sup>*" 50) where
-  "op \<leadsto>\<^sub>w\<^sup>* \<equiv> (op \<leadsto>\<^sub>w)\<^sup>*\<^sup>*"
+  "(\<leadsto>\<^sub>w\<^sup>*) \<equiv> (\<leadsto>\<^sub>w)\<^sup>*\<^sup>*"
 
 abbreviation trancl_weighted_RP (infix "\<leadsto>\<^sub>w\<^sup>+" 50) where
-  "op \<leadsto>\<^sub>w\<^sup>+ \<equiv> (op \<leadsto>\<^sub>w)\<^sup>+\<^sup>+"
+  "(\<leadsto>\<^sub>w\<^sup>+) \<equiv> (\<leadsto>\<^sub>w)\<^sup>+\<^sup>+"
 
 definition is_tautology :: "'a lclause \<Rightarrow> bool" where
   "is_tautology C \<longleftrightarrow> (\<exists>A \<in> set (map atm_of C). Pos A \<in> set C \<and> Neg A \<in> set C)"
@@ -159,69 +181,42 @@ fun reduce_all2 :: "'a lclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dc
     in
       (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 D Cs))"
 
-fun resolve_on_old :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
-  "resolve_on_old _ [] _ _ = []"
-| "resolve_on_old C (L # Ls) As D =
-   (case L of
-      Neg _ \<Rightarrow> []
-    | Pos A \<Rightarrow>
-      (case mgu {insert A (set As)} of
-         None \<Rightarrow> []
-       | Some \<sigma> \<Rightarrow>
-         let
-           D' = map (\<lambda>M. M \<cdot>l \<sigma>) D;
-           A' = A \<cdot>a \<sigma>
-         in
-           if maximal_wrt A' (mset D') then
-             let
-               CLs' = map (\<lambda>L. L \<cdot>l \<sigma>) (C @ Ls)
-             in
-               (if strictly_maximal_wrt A' (mset CLs') then [CLs' @ D'] else [])
-               @ resolve_on_old (L # C) Ls (A # As) D
-           else
-             []))
-   @ resolve_on_old (L # C) Ls As D"
-
 fun remove_all :: "'b list \<Rightarrow> 'b list \<Rightarrow> 'b list" where
   "remove_all xs [] = xs"
-| "remove_all xs (y#ys) = (if y \<in> set xs then remove_all (remove1 y xs) ys else remove_all xs ys)"
+| "remove_all xs (y # ys) = (if y \<in> set xs then remove_all (remove1 y xs) ys else remove_all xs ys)"
 
 lemma remove_all_mset_minus: "mset ys \<subseteq># mset xs \<Longrightarrow> mset (remove_all xs ys) = mset xs - mset ys"
 proof (induction ys arbitrary: xs)
-  case Nil
-  then show ?case by auto
-next
   case (Cons y ys)
   show ?case
   proof (cases "y \<in> set xs")
-    case True
+    case y_in: True
     then have subs: "mset ys \<subseteq># mset (remove1 y xs)"
       using Cons(2) by (simp add: insert_subset_eq_iff)
-    from True show ?thesis 
-      using Cons(1) Cons(2) subs by auto
+    show ?thesis
+      using y_in Cons subs by auto
   next
     case False
-    then show ?thesis 
+    then show ?thesis
       using Cons by auto
   qed
-qed
+qed auto
 
 definition resolvent :: "'a lclause \<Rightarrow> 'a \<Rightarrow>'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
-  "resolvent D A CA Ls = map (\<lambda>M. M \<cdot>l (the (mgu {insert A (atms_of (mset Ls))}))) ((remove_all CA Ls) @ D)"
+  "resolvent D A CA Ls =
+   map (\<lambda>M. M \<cdot>l (the (mgu {insert A (atms_of (mset Ls))}))) (remove_all CA Ls @ D)"
 
 definition resolvable :: "'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> bool" where
   "resolvable A D CA Ls \<longleftrightarrow>
-     (let \<sigma> = (mgu {insert A (atms_of (mset Ls))}) in 
-        \<sigma> \<noteq> None 
-      \<and> Ls \<noteq> [] 
+   (let \<sigma> = (mgu {insert A (atms_of (mset Ls))}) in
+        \<sigma> \<noteq> None
+      \<and> Ls \<noteq> []
       \<and> maximal_wrt (A \<cdot>a the \<sigma>) ((add_mset (Neg A) (mset D)) \<cdot> the \<sigma>)
       \<and> strictly_maximal_wrt (A \<cdot>a the \<sigma>) ((mset CA - mset Ls) \<cdot> the \<sigma>)
       \<and> (\<forall>L \<in> set Ls. is_pos L))"
 
 definition resolve_on :: "'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_on A D CA = map (resolvent D A CA) (filter (resolvable A D CA) (subseqs CA))"
-
-declare resolve_on_old.simps [simp del]
 
 definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve C D =
@@ -245,8 +240,8 @@ definition resolve_rename_either_way :: "'a lclause \<Rightarrow> 'a lclause \<R
 fun select_min_weight_clause :: "'a dclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause" where
   "select_min_weight_clause Ci [] = Ci"
 | "select_min_weight_clause Ci (Dj # Djs) =
-   select_min_weight_clause (if weight (apfst mset Dj) < weight (apfst mset Ci) then Dj else Ci)
-     Djs"
+   select_min_weight_clause
+     (if weight (apfst mset Dj) < weight (apfst mset Ci) then Dj else Ci) Djs"
 
 lemma select_min_weight_clause_in: "select_min_weight_clause P0 P \<in> set (P0 # P)"
   by (induct P arbitrary: P0) auto
@@ -262,15 +257,7 @@ function remdups_clss :: "'a dclause list \<Rightarrow> 'a dclause list" where
   termination
     apply (relation "measure length")
      apply (rule wf_measure)
-    apply auto
-    subgoal for a b Cis aa ba
-      apply (rule length_filter_less)
-       apply (simp_all add: case_prod_beta)
-      using select_min_weight_clause_in[of "(a, b)" Cis]
-      apply auto
-      done
-    using le_imp_less_Suc length_filter_le apply blast
-    done
+    by (metis (mono_tags) in_measure length_filter_less prod.case_eq_if select_min_weight_clause_in)
 
 declare remdups_clss.simps(2) [simp del]
 
@@ -363,19 +350,14 @@ qed simp
 lemma reduce_rotate[simp]: "reduce Ds (C @ [L]) E = reduce Ds (L # C) E"
   by (rule reduce_mset_eq) simp
 
-(* FIXME: move to Multiset_More *)
-lemma subset_mset_imp_subset_add_mset: "A \<subseteq># B \<Longrightarrow> A \<subseteq># add_mset x B"
-  by (metis add_mset_diff_bothsides diff_subset_eq_self multiset_inter_def subset_mset.inf.absorb2)
-
 lemma mset_reduce_subset: "mset (reduce Ds C E) \<subseteq># mset E"
   by (induct E arbitrary: C) (auto intro: subset_mset_imp_subset_add_mset)
 
 lemma reduce_idem: "reduce Ds C (reduce Ds C E) = reduce Ds C E"
-  apply (induct E arbitrary: C)
-   apply auto
-  apply (drule is_reducible_lit_mono_cls[of "C @ reduce Ds (L # C) E" "C @ E" Ds L for L E C, rotated])
-  apply (auto intro: mset_reduce_subset)
-  done
+  by (induct E arbitrary: C)
+    (auto intro!: mset_reduce_subset
+      dest!: is_reducible_lit_mono_cls[of "C @ reduce Ds (L # C) E" "C @ E" Ds L for L E C,
+        rotated])
 
 lemma is_reducible_lit_imp_is_reducible:
   "L \<in> set C' \<Longrightarrow> is_reducible_lit Ds (C @ remove1 L C') L \<Longrightarrow> reduce Ds C C' \<noteq> C'"
@@ -391,18 +373,12 @@ proof (induct C' arbitrary: C)
           subset_mset.eq_iff subset_mset_imp_subset_add_mset)
   next
     case m_irred: False
-
     have
-      l_in': "L \<in> set C'" and
-      l_red': "is_reducible_lit Ds (M # C @ remove1 L C') L"
+      "L \<in> set C'" and
+      "is_reducible_lit Ds (M # C @ remove1 L C') L"
       using l_in l_red m_irred is_reducible_lit_remove1_Cons_iff by auto
-
-    show ?thesis
-      apply (simp add: m_irred)
-      apply (rule ih[of "M # C"])
-      using l_in' l_red'
-      apply auto
-      done
+    then show ?thesis
+      by (simp add: ih[of "M # C"] m_irred)
   qed
 qed simp
 
@@ -428,15 +404,7 @@ lemma is_irreducible_iff_nexists_is_reducible_lit:
 
 lemma is_irreducible_mset_iff: "mset E = mset E' \<Longrightarrow> reduce Ds C E = E \<longleftrightarrow> reduce Ds C E' = E'"
   unfolding is_irreducible_iff_nexists_is_reducible_lit
-  apply auto
-  using is_reducible_lit_mset_iff[of "C @ remove1 L E" "C @ remove1 L E'" for L]
-   apply auto
-   apply (cases E)
-    apply auto
-   apply (metis (mono_tags, lifting) mset.simps(2) set_ConsD set_mset_mset)
-   apply (cases E)
-   apply auto[1]
-  by (metis set_mset_mset)
+  by (metis (full_types) is_reducible_lit_mset_iff mset_remove1 set_mset_mset union_code)
 
 lemma select_min_weight_clause_min_weight:
   assumes "Ci = select_min_weight_clause P0 P"
@@ -445,6 +413,7 @@ lemma select_min_weight_clause_min_weight:
 proof (induct P arbitrary: P0 Ci)
   case (Cons P1 P)
   note ih = this(1) and ci = this(2)
+
   show ?case
   proof (cases "weight (apfst mset P1) < weight (apfst mset P0)")
     case True
@@ -475,7 +444,7 @@ lemma empty_N_if_Nil_in_P_or_Q:
 proof (induct N)
   case ih: (Cons N0 N)
   have "wstate_of_dstate (N0 # N, P, Q, n) \<leadsto>\<^sub>w wstate_of_dstate (N, P, Q, n)"
-    by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+    by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
           wrp.forward_subsumption[of "{#}" "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)"
             "mset (fst N0)" "mset (map (apfst mset) N)" "snd N0" n]])
       (use nil_in in \<open>force simp: image_def apfst_fst_snd\<close>)+
@@ -524,14 +493,14 @@ proof (induct "length P'" arbitrary: P P' rule: less_induct)
 
       have "wstate_of_dstate (N, P @ P', Q, n)
         \<leadsto>\<^sub>w wstate_of_dstate (N, P @ filter (\<lambda>(E, l). mset E \<noteq> mset (fst ?Dj)) ?P'', Q, n)"
-        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
               wrp.backward_subsumption_P[of "mset C" "mset (map (apfst mset) N)" "mset (fst ?Dj)"
                 "mset (map (apfst mset) (P @ P'))" "mset (map (apfst mset) Q)" n]],
           use c_in subs in \<open>auto simp add: p_filtered p'_filtered arg_cong[OF p', of set]
             strictly_subsume_def\<close>)
       also have "\<dots>
         \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) P', Q, n)"
-        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w\<^sup>*)", OF _ _
               ih[of "filter (\<lambda>(E, l). mset E \<noteq> mset (fst ?Dj)) ?P''" P]])
            apply simp_all
           apply (subst (3) p')
@@ -540,24 +509,23 @@ proof (induct "length P'" arbitrary: P P' rule: less_induct)
           apply (rule arg_cong[of _ _ "\<lambda>f. image_mset (apfst mset) (mset (filter f (tl P')))"])
           apply (rule ext)
           apply (simp add: comp_def strictly_subsume_def)
-          apply auto[1]
+          apply force
          apply (subst (3) p')
          apply (subst list.size)
-        apply (metis (no_types, lifting) less_Suc0 less_add_same_cancel1 linorder_neqE_nat not_add_less1 sum_length_filter_compl trans_less_add1)
-        using p_nsubs
-        by fast
+         apply (metis (no_types, lifting) less_Suc0 less_add_same_cancel1 linorder_neqE_nat
+            not_add_less1 sum_length_filter_compl trans_less_add1)
+        using p_nsubs by fast
       ultimately show ?thesis
         by (rule converse_rtranclp_into_rtranclp)
     next
       case nsubs: False
       show ?thesis
-        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w\<^sup>*)", OF _ _
               ih[of ?P'' "P @ [?Dj]"]])
         using nsubs p_nsubs
            apply (simp_all add: arg_cong[OF p', of mset] arg_cong[OF p', of "filter f" for f])
         apply (subst (1 2) p')
-        apply simp
-        done
+        by simp
     qed
   qed simp
 qed
@@ -573,7 +541,7 @@ proof (induct Q' arbitrary: Q)
   proof (cases "strictly_subsume [C] (fst Dj)")
     case subs: True
     have "wstate_of_dstate (N, P, Q @ Dj # Q', n) \<leadsto>\<^sub>w wstate_of_dstate (N, P, Q @ Q', n)"
-      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
             wrp.backward_subsumption_Q[of "mset C" "mset (map (apfst mset) N)" "mset (fst Dj)"
               "mset (map (apfst mset) P)" "mset (map (apfst mset) (Q @ Q'))" "snd Dj" n]])
         (use c_in subs in \<open>auto simp: apfst_fst_snd strictly_subsume_def\<close>)
@@ -605,19 +573,15 @@ proof (induct D' arbitrary: D)
       apply (rule is_reducible_lit_imp_is_reducible)
       using l_red by auto
 
-    have foo: "\<forall>(E, k) \<in> set (P @ P'). j < k \<longrightarrow> mset E \<noteq> mset (L # D @ D')"
+    have lt_imp_neq: "\<forall>(E, k) \<in> set (P @ P'). j < k \<longrightarrow> mset E \<noteq> mset (L # D @ D')"
       using p_irred ldd'_red is_irreducible_mset_iff by fast
 
     have "wstate_of_dstate (N, P @ (D @ L # D', j) # P', Q, n)
       \<leadsto>\<^sub>w wstate_of_dstate (N, P @ (D @ D', j) # P', Q, n)"
-      apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+      apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
             wrp.backward_reduction_P[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)" L \<sigma>
               "mset (D @ D')" "mset (map (apfst mset) (P @ P'))" j "mset (map (apfst mset) Q)" n]])
-      using l'_in not_l subs c_in apply auto[5]
-      using foo
-      apply (auto simp: case_prod_beta)
-      apply force+
-      done
+      using l'_in not_l subs c_in lt_imp_neq by (simp_all add: case_prod_beta) force+
     then show ?thesis
       using ih[of D] l_red by simp
   next
@@ -649,7 +613,7 @@ proof (induct D' arbitrary: D)
 
     have "wstate_of_dstate (N, P, Q @ (D @ L # D', j) # Q', n)
       \<leadsto>\<^sub>w wstate_of_dstate (N, (D @ D', j) # P, Q @ Q', n)"
-      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
             wrp.backward_reduction_Q[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)" L \<sigma>
               "mset (D @ D')" "mset (map (apfst mset) P)" "mset (map (apfst mset) (Q @ Q'))" j n]],
           use l'_in not_l subs c_in in auto)
@@ -678,10 +642,10 @@ proof (induct "length P'" arbitrary: P P')
   have p'_nnil: "P' \<noteq> []"
     using suc_l by auto
 
-  define j where
+  define j :: nat where
     "j = Max (snd ` set P')"
 
-  obtain Dj where
+  obtain Dj :: "'a dclause" where
     dj_in: "Dj \<in> set P'" and
     snd_dj: "snd Dj = j"
     using Max_in[of "snd ` set P'", unfolded image_def, simplified]
@@ -702,18 +666,12 @@ proof (induct "length P'" arbitrary: P P')
     apply (subst (1 2) surjective_pairing[of Dj, unfolded snd_dj])
     apply (simp only: apfst_conv)
     apply (rule reduce_clause_in_P[of _ _ _ _ _ "[]", unfolded append_Nil, OF c_in])
-    using p_irred j_max[unfolded p']
-    apply (force simp: case_prod_beta)
-    done
+    using p_irred j_max[unfolded p'] by (force simp: case_prod_beta)
   moreover have "wstate_of_dstate (N, P @ P1' @ apfst (reduce [C] []) Dj # P2', Q, n)
      \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ map (apfst (reduce [C] [])) (P1' @ Dj # P2'), Q, n)"
-    apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+    apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w\<^sup>*)", OF _ _
           ih[of "P1' @ P2'" "apfst (reduce [C] []) Dj # P"]])
-       apply auto
-    using suc_l unfolding p'
-      apply simp
-    using reduce_idem apply (metis Pair_inject apfst_conv old.prod.exhaust)
-    using p_irred by auto
+    using suc_l reduce_idem p_irred unfolding p' by (auto simp: case_prod_beta)
   ultimately show ?case
     unfolding p' by simp
 qed simp
@@ -751,8 +709,7 @@ lemma eligible_iff:
 
 lemma ord_resolve_one_side_prem:
   "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
-  apply (erule ord_resolve.cases)
-  unfolding eligible_iff by force
+  by (force elim!: ord_resolve.cases simp: eligible_iff)
 
 lemma ord_resolve_rename_one_side_prem:
   "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
@@ -763,46 +720,6 @@ abbreviation Bin_ord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow>
 
 abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
   "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AA A \<sigma>. ord_resolve_rename S [C] D [AA] [A] \<sigma> E}"
-
-lemma length_one_sum_list_hd:
-  assumes "length Cs = 1"
-  shows "sum_list Cs = hd Cs"
-  using assms by (cases Cs) auto
-
-lemma length_one_sum_list_nth_zero:
-  assumes "length Cs = 1"
-  shows "sum_list Cs = Cs ! 0"
-  using assms by (cases Cs) auto
-
-lemma subseq_mset_subseteq_mset: "subseq Ls CA \<Longrightarrow> mset Ls \<subseteq># mset CA"
-proof (induction Ls arbitrary: CA)
-  case Nil
-  then show ?case by auto
-next
-  case (Cons L Ls)
-  note Outer_Cons = this
-  then show ?case
-  proof (induction CA)
-    case Nil
-    then show ?case
-      by auto
-  next
-    case (Cons C CA)
-    have "subseq Ls CA"
-    proof (cases "L=C")
-      case True
-      then show ?thesis using Cons by auto
-    next
-      case False
-      then show ?thesis using Cons by (metis subseq_Cons2_neq subseq_Cons') 
-    qed
-    then have "mset Ls \<subseteq># mset CA"
-      using Cons by auto
-    then show ?case
-      using Cons
-      by (metis mset.simps(2) mset_subset_eq_add_mset_cancel subseq_Cons2_iff subset_mset_imp_subset_add_mset)
-  qed
-qed
 
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
   "mset ` set (resolve_on A D CA) =
@@ -818,7 +735,7 @@ proof
     define \<sigma> where "\<sigma> = the (mgu {insert A (atms_of (mset Ls))})"
     then have \<sigma>_p:
       "mgu {insert A (atms_of (mset Ls))} = Some \<sigma>"
-      "Ls \<noteq> []" 
+      "Ls \<noteq> []"
       "eligible S \<sigma> [A] (add_mset (Neg A) (mset D))"
       "strictly_maximal_wrt (A \<cdot>a \<sigma>) ((mset CA - mset Ls) \<cdot> \<sigma>)"
       "\<forall>L \<in> set Ls. is_pos L"
@@ -834,7 +751,7 @@ proof
       by auto
     moreover
     have "\<forall>L \<in> set Ls. is_pos L"
-      using \<sigma>_p(5) list_all_iff[of is_pos] by auto 
+      using \<sigma>_p(5) list_all_iff[of is_pos] by auto
     then have "{#Pos (atm_of x). x \<in># mset Ls#} = mset Ls"
       by (induction Ls) auto
     then have "mset CA = [mset CA - mset Ls] ! 0 + {#Pos (atm_of x). x \<in># mset Ls#}"
@@ -850,20 +767,23 @@ proof
       using \<sigma>_p by -
     moreover
     have "strictly_maximal_wrt (A \<cdot>a \<sigma>) ([mset CA - mset Ls] ! 0 \<cdot> \<sigma>)"
-      using \<sigma>_p(4) by auto 
-    moreover
-    have "S (mset CA) = {#}"
+      using \<sigma>_p(4) by auto
+    moreover have "S (mset CA) = {#}"
       by (simp add: S_empty)
-    ultimately
-    have "\<exists>Cs. mset (resolvent D A CA Ls) = sum_list Cs \<cdot> \<sigma> + mset D \<cdot> \<sigma> \<and>
-         length Cs = Suc 0 \<and> mset CA = Cs ! 0 + {#Pos (atm_of x). x \<in># mset Ls#} \<and> Ls \<noteq> [] \<and> Some \<sigma> = mgu {insert A (atm_of ` set Ls)} \<and> eligible S \<sigma> [A] (add_mset (Neg A) (mset D)) \<and> strictly_maximal_wrt (A \<cdot>a \<sigma>) (Cs ! 0 \<cdot> \<sigma>) \<and> S (mset CA) = {#}"
-      by metis
-    then have "ord_resolve S [mset CA] (add_mset (Neg A) (mset D)) [image_mset atm_of (mset Ls)] [A] \<sigma> (mset (resolvent D A CA Ls))"
+    ultimately have "\<exists>Cs. mset (resolvent D A CA Ls) = sum_list Cs \<cdot> \<sigma> + mset D \<cdot> \<sigma>
+        \<and> length Cs = Suc 0 \<and> mset CA = Cs ! 0 + {#Pos (atm_of x). x \<in># mset Ls#}
+        \<and> Ls \<noteq> [] \<and> Some \<sigma> = mgu {insert A (atm_of ` set Ls)}
+        \<and> eligible S \<sigma> [A] (add_mset (Neg A) (mset D)) \<and> strictly_maximal_wrt (A \<cdot>a \<sigma>) (Cs ! 0 \<cdot> \<sigma>)
+        \<and> S (mset CA) = {#}"
+      by blast
+    then have "ord_resolve S [mset CA] (add_mset (Neg A) (mset D)) [image_mset atm_of (mset Ls)] [A]
+      \<sigma> (mset (resolvent D A CA Ls))"
       unfolding ord_resolve.simps by auto
     then have "\<exists>AA \<sigma>. ord_resolve S [mset CA] (add_mset (Neg A) (mset D)) [AA] [A] \<sigma> (mset E)"
       using Ls_p by auto
   }
-  then show "mset ` set (resolve_on A D CA) \<subseteq> {E. \<exists>AA \<sigma>. ord_resolve S [mset CA] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}" 
+  then show "mset ` set (resolve_on A D CA)
+    \<subseteq> {E. \<exists>AA \<sigma>. ord_resolve S [mset CA] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}"
     by auto
 next
   {
@@ -890,10 +810,8 @@ next
       unfolding ord_resolve.simps by auto
     from this(1) have
       "E = C \<cdot> \<sigma> + mset D \<cdot> \<sigma>"
-      unfolding ord_resolve.simps 
-      unfolding C_def using res'(2) length_one_sum_list_nth_zero[of Cs]
-      by auto
-    note res_foobar = this res(2-7)
+      unfolding C_def using res'(2) by (cases Cs) auto
+    note res' = this res(2-7)
     have "\<exists>Al. mset Al = AA \<and> subseq (map Pos Al) CA"
       using res(2)
     proof (induction CA arbitrary: AA C)
@@ -906,16 +824,20 @@ next
         case True
         then have pos_L: "is_pos L"
           by auto
-        have foo: "\<And>A'. Pos A' \<in># poss AA \<Longrightarrow> remove1_mset (Pos A') (C + poss AA) = C + poss (remove1_mset A' AA)"
-          by (induction AA) auto
+        have rem: "\<And>A'. Pos A' \<in># poss AA \<Longrightarrow>
+          remove1_mset (Pos A') (C + poss AA) = C + poss (remove1_mset A' AA)"
+          by (induct AA) auto
         have "mset CA = C + (poss (AA - {#atm_of L#}))"
           using True Cons(2)
-          by (metis add_mset_remove_trivial foo literal.collapse(1) mset.simps(2) pos_L)
+          by (metis add_mset_remove_trivial rem literal.collapse(1) mset.simps(2) pos_L)
         then have "\<exists>Al. mset Al = remove1_mset (atm_of L) AA \<and> subseq (map Pos Al) CA"
           using Cons(1)[of _ "((AA - {#atm_of L#}))"] by metis
-        then obtain Al where "mset Al = remove1_mset (atm_of L) AA \<and> subseq (map Pos Al) CA"
+        then obtain Al where
+          "mset Al = remove1_mset (atm_of L) AA \<and> subseq (map Pos Al) CA"
           by auto
-        then have "mset (atm_of L # Al) = AA \<and> subseq (map Pos (atm_of L # Al)) (L # CA)"
+        then have
+          "mset (atm_of L # Al) = AA" and
+          "subseq (map Pos (atm_of L # Al)) (L # CA)"
           using True by (auto simp add: pos_L)
         then show ?thesis
           by blast
@@ -923,165 +845,59 @@ next
         case False
         then have "mset CA = remove1_mset L C + poss AA"
           using Cons(2)
-          by (metis Un_iff add_mset_remove_trivial mset.simps(2) set_mset_union single_subset_iff subset_mset.add_diff_assoc2 union_single_eq_member)
+          by (metis Un_iff add_mset_remove_trivial mset.simps(2) set_mset_union single_subset_iff
+              subset_mset.add_diff_assoc2 union_single_eq_member)
         then have "\<exists>Al. mset Al = AA \<and> subseq (map Pos Al) CA"
           using Cons(1)[of "C - {#L#}" AA] Cons(2) by auto
-        then obtain Al where "mset Al = AA \<and> subseq (map Pos Al) CA"
-          by auto
         then show ?thesis
           by auto
       qed
     qed
     then obtain Al where Al_p: "mset Al = AA" "subseq (map Pos Al) CA"
       by auto
-    from C_def have res_foo: "E = C \<cdot> \<sigma> + mset D \<cdot> \<sigma>"
-      using res'(1,2) 
-      by (cases Cs) auto (* Lemma needed! *)
+
     define Ls :: "'a lclause" where "Ls = map Pos Al"
     have diff: "mset CA - mset Ls = C"
-      using res(2)
-      unfolding Ls_def
-      using Al_p(1)[symmetric]
-      by auto
-    have "subseq Ls CA"
+      unfolding Ls_def using res(2) Al_p(1) by auto
+    have ls_subq_ca: "subseq Ls CA"
       unfolding Ls_def using Al_p by -
     moreover
     {
       have "\<exists>y. mgu {insert A (atms_of (mset Ls))} = Some y"
-        using res(4)
-        unfolding Ls_def
-        using Al_p
-        by (metis atms_of_poss mset_map)
-      moreover
-      have "Ls \<noteq> []"
-        using Al_p(1) Ls_def res_foobar(3) by auto
-      moreover
-      have \<sigma>_p: "the (mgu {insert A (set Al)}) = \<sigma>"
-        using res_foobar(4)  Al_p(1) by (metis option.sel  set_mset_mset)
-      then have "eligible S (the (mgu {insert A (atms_of (mset Ls))})) [A] (add_mset (Neg A) (mset D))"
-        unfolding Ls_def
-        using res
-        using Al_p
-        by auto
-      moreover
-      have "strictly_maximal_wrt (A \<cdot>a the (mgu {insert A (atms_of (mset Ls))})) ((mset CA - mset Ls) \<cdot> the (mgu {insert A (atms_of (mset Ls))}))"
-        using res \<sigma>_p
-        unfolding Ls_def
-        using Al_p
-        by auto
-      moreover
-      have "\<forall>L \<in> set Ls. is_pos L"
+        unfolding Ls_def using res(4) Al_p by (metis atms_of_poss mset_map)
+      moreover have "Ls \<noteq> []"
+        using Al_p(1) Ls_def res'(3) by auto
+      moreover have \<sigma>_p: "the (mgu {insert A (set Al)}) = \<sigma>"
+        using res'(4) Al_p(1) by (metis option.sel  set_mset_mset)
+      then have "eligible S (the (mgu {insert A (atms_of (mset Ls))})) [A]
+        (add_mset (Neg A) (mset D))"
+        unfolding Ls_def using res  by auto
+      moreover have "strictly_maximal_wrt (A \<cdot>a the (mgu {insert A (atms_of (mset Ls))}))
+        ((mset CA - mset Ls) \<cdot> the (mgu {insert A (atms_of (mset Ls))}))"
+        unfolding Ls_def using res \<sigma>_p Al_p by auto
+      moreover have "\<forall>L \<in> set Ls. is_pos L"
         by (simp add: Ls_def)
       ultimately have "resolvable A D CA Ls"
-        unfolding resolvable_def Let_def unfolding eligible.simps using S_empty by simp
+        unfolding resolvable_def unfolding eligible.simps using S_empty by simp
     }
-    moreover
-    have foo: "mset Ls \<subseteq># mset CA"
-      using \<open>subseq Ls CA\<close> subseq_mset_subseteq_mset[of Ls CA] res(2) by auto
+    moreover have ls_sub_ca: "mset Ls \<subseteq># mset CA"
+      using ls_subq_ca subseq_mset_subseteq_mset[of Ls CA] by simp
     have "{#x \<cdot>l \<sigma>. x \<in># mset CA - mset Ls#} + {#M \<cdot>l \<sigma>. M \<in># mset D#} = C \<cdot> \<sigma> + mset D \<cdot> \<sigma>"
-      using diff unfolding subst_cls_def by auto
+      using diff unfolding subst_cls_def by simp
     then have "{#x \<cdot>l \<sigma>. x \<in># mset CA - mset Ls#} + {#M \<cdot>l \<sigma>. M \<in># mset D#} = E"
-      using res_foobar(1) by auto
+      using res'(1) by auto
     then have "{#M \<cdot>l \<sigma>. M \<in># mset (remove_all CA Ls)#} + {#M \<cdot>l \<sigma> . M \<in># mset D#} = E"
-      using remove_all_mset_minus[of Ls CA]
-      using foo
-      by auto
+      using remove_all_mset_minus[of Ls CA] ls_sub_ca by auto
     then have "mset (resolvent D A CA Ls) = E"
-      unfolding resolvable_def Let_def resolvent_def 
-      using Al_p(1) Ls_def atms_of_poss res_foobar(4) by (metis image_mset_union mset_append mset_map option.sel) 
-    ultimately
-    have "E \<in> mset ` set (resolve_on A D CA)"
+      unfolding resolvable_def Let_def resolvent_def using Al_p(1) Ls_def atms_of_poss res'(4)
+      by (metis image_mset_union mset_append mset_map option.sel)
+    ultimately have "E \<in> mset ` set (resolve_on A D CA)"
       unfolding resolve_on_def by auto
   }
-  then show "{E. \<exists>AA \<sigma>. ord_resolve S [mset CA] ({#Neg A#} + mset D) [AA] [A] \<sigma> E} \<subseteq> mset ` set (resolve_on A D CA)" 
+  then show "{E. \<exists>AA \<sigma>. ord_resolve S [mset CA] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}
+    \<subseteq> mset ` set (resolve_on A D CA)"
     by auto
 qed
-
-(*
-lemma resolve_on_eq_UNION_Bin_ord_resolve:
-  "mset ` set (resolve_on_old [] C [A] D) =
-   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}" (is "?lhs = ?rhs")
-proof
-  show "?lhs \<subseteq> ?rhs"
-  proof clarify
-    fix E
-    assume "E \<in> set (resolve_on_old [] C [A] D)"
-    then show "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> (mset E)"
-    proof (induct "length C" arbitrary: C A D)
-      case (Suc l)
-      note ih = this(1) and suc_l = this(2) and e_in = this(3)
-
-      obtain B \<sigma> where
-        b_in: "Pos B \<in> set C" and
-        \<sigma>_mgu: "Some \<sigma> = mgu {{A, B}}" and
-        max: "maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}" and
-        e_disj: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># mset C - {#Pos B#}#}
-           \<and> E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D
-         \<or> E \<in> set (resolve_on_old [] (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) [A \<cdot>a \<sigma>] (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
-        (* using e_in[unfolded resolve_on.simps[of "[]" C "[A]" D] Let_def, simplified] by metis *)
-        sorry
-
-      show ?case
-        using e_disj
-      proof (elim disjE conjE)
-        assume
-          smax: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># mset C - {#Pos B#}#}" and
-          e: "E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D"
-
-        have c_eq_bbc: "mset C = add_mset (Pos B) (mset C - {#Pos B#})"
-          using b_in by simp
-
-        have elig: "eligible S \<sigma> [A] (add_mset (Neg A) (mset D))"
-          unfolding eligible_iff
-          using max
-          apply (auto simp: maximal_wrt_def subst_cls_def less_atm_irrefl)
-          done
-
-        have smax': "strictly_maximal_wrt (A \<cdot>a \<sigma>) ((mset C - {#Pos B#}) \<cdot> \<sigma>)"
-          using smax by (auto simp: subst_cls_def)
-
-        have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#}] [A] \<sigma> (mset E)"
-          unfolding e
-          using ord_resolve[of "[mset C]" 1 "[mset (remove1 (Pos B) C)]" "[{#B#}]" "[A]" \<sigma> S "mset D", simplified, OF c_eq_bbc \<sigma>_mgu elig smax' S_empty]
-          apply (auto simp: subst_cls_def)
-          done
-        then show ?thesis
-          by blast
-      next
-        assume e_in:
-          "E \<in> set (resolve_on_old [] (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) [A \<cdot>a \<sigma>] (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
-
-        have l: "l = length (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C))"
-          using suc_l b_in by (auto simp: length_remove1)
-
-        obtain AA \<sigma>' where
-          "ord_resolve S [mset (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C))]
-             ({#Neg (A \<cdot>a \<sigma>)#} + mset (map (\<lambda>M. M \<cdot>l \<sigma>) D)) [AA] [A \<cdot>a \<sigma>] \<sigma>' (mset E)"
-          using ih[OF l e_in] by blast
-
-        define \<sigma>'' :: 's where
-          "\<sigma>'' = undefined" (* FIXME *)
-           (* same as \<sigma> \<odot> \<sigma>' up to renaming *)
-
-        have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#} + AA] [A] \<sigma>'' (mset E)"
-          using ord_resolve[of "[mset C]" 1 "[mset (remove1 (Pos B) C)]" "[{#B#} + AA]" "[A]" \<sigma>'' S "mset D"]
-
-          sorry
-        then show ?thesis
-          by blast
-      qed
-    qed (simp add: resolve_on_old.simps)
-  qed
-next
-  show "?rhs \<subseteq> ?lhs"
-  proof clarify
-    fix E AA \<sigma>
-    assume "ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
-    show "E \<in> mset ` set (resolve_on_old [] C [A] D)"
-      sorry
-  qed
-oops
-*)
 
 lemma set_resolve_eq_UNION_set_resolve_on:
   "set (resolve C D) =
@@ -1095,26 +911,28 @@ lemma resolve_eq_Bin_ord_resolve: "mset ` set (resolve C D) = Bin_ord_resolve (m
   unfolding set_resolve_eq_UNION_set_resolve_on
   apply (unfold image_UN literal.case_distrib if_distrib)
   apply (subst resolve_on_eq_UNION_Bin_ord_resolve)
-  apply (auto split: literal.splits if_splits)
-   apply force
+  apply (rule order_antisym)
+   apply (force split: literal.splits if_splits)
+  apply (clarsimp split: literal.splits if_splits)
   apply (rule_tac x = "Neg A" in bexI)
-   apply auto
+   apply (rule conjI)
+    apply blast
+   apply clarify
+   apply (rule conjI)
+    apply clarify
     apply (rule_tac x = AA in exI)
     apply (rule_tac x = \<sigma> in exI)
     apply (frule ord_resolve.simps[THEN iffD1])
-    apply auto[1]
+    apply force
    apply (drule ord_resolve.simps[THEN iffD1])
-   apply (unfold eligible_iff)
-   apply (clarsimp simp del: subst_cls_add_mset subst_cls_union)
+   apply (clarsimp simp: eligible_iff simp del: subst_cls_add_mset subst_cls_union)
    apply (drule maximal_wrt_subst)
-   apply satx
-   apply (drule ord_resolve.simps[THEN iffD1])
-   apply auto[1]
-  using set_mset_mset apply fastforce
-  done
+   apply sat
+  apply (drule ord_resolve.simps[THEN iffD1])
+  using set_mset_mset by fastforce
 
-(* FIXME: rename *)
-lemma foo_poss: "poss AA \<subseteq># map_clause f C \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># C \<and> AA = {#f A. A \<in># AA0#}"
+lemma poss_in_map_clauseD:
+  "poss AA \<subseteq># map_clause f C \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># C \<and> AA = {#f A. A \<in># AA0#}"
 proof (induct AA arbitrary: C)
   case (add A AA)
   note ih = this(1) and aaa_sub = this(2)
@@ -1124,11 +942,7 @@ proof (induct AA arbitrary: C)
   then obtain A0 where
     pa0_in: "Pos A0 \<in># C" and
     a: "A = f A0"
-    apply atomize_elim
-    apply clarify
-    apply (case_tac x)
-    apply auto
-    done
+    by clarify (metis literal.distinct(1) literal.exhaust literal.inject(1) literal.simps(9,10))
 
   have "poss AA \<subseteq># map_clause f (C - {#Pos A0#})"
     using pa0_in aaa_sub[unfolded a] by (simp add: image_mset_remove1_mset_if insert_subset_eq_iff)
@@ -1145,17 +959,15 @@ proof (induct AA arbitrary: C)
     by blast
 qed simp
 
-(* FIXME: rename *)
-lemma bar_poss: "poss AA \<subseteq># {#L \<cdot>l \<rho>. L \<in># mset C#} \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># mset C \<and> AA = AA0 \<cdot>am \<rho>"
-  unfolding subst_atm_mset_def subst_lit_def by (rule foo_poss)
+lemma poss_subset_filterD:
+  "poss AA \<subseteq># {#L \<cdot>l \<rho>. L \<in># mset C#} \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># mset C \<and> AA = AA0 \<cdot>am \<rho>"
+  unfolding subst_atm_mset_def subst_lit_def by (rule poss_in_map_clauseD)
 
-(* FIXME: rename *)
-lemma foo_Neg: "Neg A \<in> map_literal f ` D \<Longrightarrow> \<exists>A0. Neg A0 \<in> D \<and> A = f A0"
+lemma neg_in_map_literalD: "Neg A \<in> map_literal f ` D \<Longrightarrow> \<exists>A0. Neg A0 \<in> D \<and> A = f A0"
   unfolding image_def by (clarify, case_tac x, auto)
 
-(* FIXME: rename *)
-lemma bar_Neg: "Neg A \<in># {#L \<cdot>l \<rho>'. L \<in># mset D#} \<Longrightarrow> \<exists>A0. Neg A0 \<in># mset D \<and> A = A0 \<cdot>a \<rho>'"
-  unfolding subst_lit_def apply (rule foo_Neg) by simp
+lemma neg_in_filterD: "Neg A \<in># {#L \<cdot>l \<rho>'. L \<in># mset D#} \<Longrightarrow> \<exists>A0. Neg A0 \<in># mset D \<and> A = A0 \<cdot>a \<rho>'"
+  unfolding subst_lit_def image_def by (rule neg_in_map_literalD) simp
 
 lemma resolve_rename_eq_Bin_ord_resolve_rename:
   "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
@@ -1168,9 +980,8 @@ proof (intro order_antisym subsetI)
 
   have tl_\<rho>s: "tl ?\<rho>s = [\<rho>]"
     unfolding \<rho>_def
-    using renames_apart[THEN conjunct1, of "[mset D, mset C]"]
-    apply auto
-    by (smt Nitpick.size_list_simp(2) Suc_length_conv last.simps last_tl nat.distinct(1) old.nat.inject)
+    using renamings_apart_length Nitpick.size_list_simp(2) Suc_length_conv last.simps
+    by (smt length_greater_0_conv list.sel(3))
 
   {
     fix E
@@ -1183,15 +994,13 @@ proof (intro order_antisym subsetI)
       unfolding \<rho>'_def \<rho>_def
       apply atomize_elim
       using e_in unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
-      apply auto
+      apply clarsimp
       apply (frule ord_resolve_one_side_prem)
       apply (frule ord_resolve.simps[THEN iffD1])
       apply (rule_tac x = AA in exI)
-      apply (auto simp: subst_cls_def)
+      apply (clarsimp simp: subst_cls_def)
       apply (rule_tac x = A in exI)
-       apply auto
-      apply (metis Melem_subst_cls set_mset_mset subst_cls_def union_single_eq_member)
-      done
+      by (metis (full_types) Melem_subst_cls set_mset_mset subst_cls_def union_single_eq_member)
 
     obtain AA0 :: "'a multiset" where
       aa0_sub: "poss AA0 \<subseteq># mset C" and
@@ -1199,54 +1008,51 @@ proof (intro order_antisym subsetI)
       using aa_sub
       apply atomize_elim
       apply (rule ord_resolve.cases[OF res_e])
-      by (rule bar_poss[OF aa_sub[unfolded subst_cls_def]])
+      by (rule poss_subset_filterD[OF aa_sub[unfolded subst_cls_def]])
 
     obtain A0 :: 'a where
       a0_in: "Neg A0 \<in> set D" and
       a: "A = A0 \<cdot>a \<rho>'"
       apply atomize_elim
       apply (rule ord_resolve.cases[OF res_e])
-      using bar_Neg[OF a_in[unfolded subst_cls_def]] by simp
+      using neg_in_filterD[OF a_in[unfolded subst_cls_def]] by simp
 
     show "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
       unfolding ord_resolve_rename.simps
       using res_e
-      apply auto
+      apply clarsimp
       apply (rule_tac x = AA0 in exI)
       apply (intro conjI)
        apply (rule aa0_sub)
       apply (rule_tac x = A0 in exI)
       apply (intro conjI)
-      apply (rule a0_in)
+       apply (rule a0_in)
       apply (rule_tac x = \<sigma> in exI)
-      unfolding aa a \<rho>'_def[symmetric] \<rho>_def[symmetric] tl_\<rho>s
-      apply (simp add: subst_cls_def)
-      done
+      unfolding aa a \<rho>'_def[symmetric] \<rho>_def[symmetric] tl_\<rho>s by (simp add: subst_cls_def)
   }
   {
     fix E
     assume e_in: "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
     show "E \<in> mset ` set (resolve_rename C D)"
-      unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
       using e_in
-      unfolding ord_resolve_rename.simps
-      apply auto
+      unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve ord_resolve_rename.simps
+      apply clarsimp
       apply (rule_tac x = "AA \<cdot>am \<rho>" in exI)
       apply (rule_tac x = "A \<cdot>a \<rho>'" in exI)
       apply (rule_tac x = \<sigma> in exI)
-      unfolding tl_\<rho>s \<rho>'_def \<rho>_def
-      apply (simp add: subst_cls_def subst_cls_lists_def)
-      done
+      unfolding tl_\<rho>s \<rho>'_def \<rho>_def by (simp add: subst_cls_def subst_cls_lists_def)
   }
 qed
 
 lemma bin_ord_FO_\<Gamma>_def:
   "ord_FO_\<Gamma> S = {Infer {#CA#} DA E | CA DA AA A \<sigma> E. ord_resolve_rename S [CA] DA [AA] [A] \<sigma> E}"
   unfolding ord_FO_\<Gamma>_def
-  apply auto
+  apply (rule order.antisym)
+   apply clarify
    apply (frule ord_resolve_rename_one_side_prem)
-   apply auto
-  by (metis Suc_length_conv length_0_conv)
+   apply simp
+   apply (metis Suc_length_conv length_0_conv)
+  by blast
 
 lemma ord_FO_\<Gamma>_side_prem: "\<gamma> \<in> ord_FO_\<Gamma> S \<Longrightarrow> side_prems_of \<gamma> = {#THE D. D \<in># side_prems_of \<gamma>#}"
   unfolding bin_ord_FO_\<Gamma>_def by clarsimp
@@ -1260,32 +1066,27 @@ lemma ord_FO_\<Gamma>_infer_from_Collect_eq:
    apply clarify
    apply (subst (asm) (1 2) ord_FO_\<Gamma>_side_prem, assumption, assumption)
    apply (subst (1) ord_FO_\<Gamma>_side_prem, assumption)
-   apply auto[1]
+   apply force
   apply clarify
   apply (subst (asm) (1) ord_FO_\<Gamma>_side_prem, assumption)
   apply (subst (1 2) ord_FO_\<Gamma>_side_prem, assumption)
-  apply auto
-  done
+  by force
 
 lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_\<Gamma> S) Q C =
   inference_system.inferences_between (ord_FO_\<Gamma> S) {C} C
   \<union> (\<Union>D \<in> Q. inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
   unfolding ord_FO_\<Gamma>_infer_from_Collect_eq inference_system.inferences_between_def by auto
 
-(* FIXME: rename *)
-lemma fooo: "add_mset x A = add_mset y B \<longleftrightarrow> x = y \<and> A = B \<or> x \<in># B \<and> y \<in># A \<and> A - {#y#} = B - {#x#}"
-  by (smt add_eq_conv_diff remove_1_mset_id_iff_notin single_remove1_mset_eq)
-
 lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
   "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C) =
    Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C"
-(* FIXME: compress proof *)
 proof (intro order_antisym subsetI)
   fix E
   assume e_in: "E \<in> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
-  then show "E \<in> Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C"
+  then show "E \<in> Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D
+    \<union> Bin_ord_resolve_rename D C"
     unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_infer_from_Collect_eq
-      bin_ord_FO_\<Gamma>_def infer_from_def  by (fastforce simp: fooo)
+      bin_ord_FO_\<Gamma>_def infer_from_def by (fastforce simp: add_mset_eq_add_mset)
 qed (force simp: inference_system.inferences_between_def infer_from_def ord_FO_\<Gamma>_def)
 
 lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
@@ -1297,12 +1098,8 @@ lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
 lemma resolve_rename_either_way_eq_congls_of_inferences_between:
   "mset ` set (resolve_rename C C) \<union> (\<Union>D \<in> Q. mset ` set (resolve_rename_either_way C D)) =
    concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (mset ` Q) (mset C))"
-  unfolding resolve_rename_either_way_def
-  apply (simp add: image_Un UN_Un_distrib)
-  unfolding resolve_rename_eq_Bin_ord_resolve_rename
-    concls_of_inferences_between_eq_Bin_ord_resolve_rename
-  apply (simp add: UN_Un_distrib)
-  done
+  by (simp add: resolve_rename_either_way_def image_Un resolve_rename_eq_Bin_ord_resolve_rename
+      concls_of_inferences_between_eq_Bin_ord_resolve_rename UN_Un_distrib)
 
 lemma compute_inferences:
   assumes
@@ -1319,14 +1116,15 @@ proof -
     using ci_in by force
 
   show ?thesis
-    apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+    apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
           wrp.inference_computation[of "mset (map (apfst mset) P) - {#(mset C, i)#}" "mset C" i
             "mset (map (apfst mset) ?N)" n "mset (map (apfst mset) Q)"]])
        apply (simp add: add_mset_remove_trivial_eq[THEN iffD2, OF ms_ci_in, symmetric])
-      apply auto[1]
     using ms_ci_in
       apply (simp add: ci_in image_mset_remove1_mset_if)
-    prefer 3
+      apply (smt apfst_conv case_prodE case_prodI2 case_prod_conv filter_mset_cong
+        image_mset_filter_swap mset_filter)
+     apply (metis ci_min in_diffD)
     apply (simp only: list.map_comp apfst_comp_rpair_const)
     apply (simp only: list.map_comp[symmetric])
     apply (subst mset_map)
@@ -1335,16 +1133,11 @@ proof -
      apply (simp add: inj_on_def)
     apply (subst mset_set_eq_iff)
       apply simp
-    apply (simp add: finite_ord_FO_resolution_inferences_between)
+     apply (simp add: finite_ord_FO_resolution_inferences_between)
     apply (rule arg_cong[of _ _ "\<lambda>N. (\<lambda>D. (D, n)) ` N"])
     apply (simp only: map_concat list.map_comp image_comp)
     using resolve_rename_either_way_eq_congls_of_inferences_between[of C "fst ` set Q", symmetric]
-    apply (simp only: image_comp comp_def)
-      apply (simp add: image_UN)
-     apply auto[1]
-     apply (smt apfst_conv case_prodD case_prodE case_prodI case_prodI2 filter_cong image_mset_filter_swap mset_filter)
-    using ci_min
-    by (meson in_diffD)
+    by (simp add: image_comp comp_def image_UN)
 qed
 
 lemma nonfinal_deterministic_RP_step:
@@ -1366,7 +1159,6 @@ proof -
     have nil_in': "[] \<in> fst ` set (P @ Q)"
       using nil_in by (force simp: image_def)
 
-    (* FIXME: factor out as lemma *)
     have star: "[] \<in> fst ` set (P @ Q) \<Longrightarrow>
       wstate_of_dstate (N, P, Q, n)
       \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remdups_clss P @ Q, n + length (remdups_clss P))"
@@ -1403,11 +1195,7 @@ proof -
       have ms_p'_ci_q_eq: "mset (remdups_clss ?P' @ (C, i) # Q) = mset (remdups_clss P @ Q)"
         apply (subst (2) p_cons)
         apply (subst remdups_clss.simps(2))
-        apply (fold p_cons)
-        apply (auto simp: Let_def case_prod_beta)
-        apply (fold ci)
-        apply simp
-        done
+        by (auto simp: Let_def case_prod_beta p_cons[symmetric] ci[symmetric])
       then have len_p: "length (remdups_clss P) = length (remdups_clss ?P') + 1"
         by (smt Suc_eq_plus1_left add.assoc add_right_cancel length_Cons length_append
             mset_eq_length)
@@ -1418,25 +1206,18 @@ proof -
         "\<dots> \<leadsto>\<^sub>w wstate_of_dstate (N', ?P', (C, i) # Q, Suc n)"
         by (atomize_elim, rule exI, rule compute_inferences[OF ci_in], use ci_min in fastforce)
       also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remdups_clss P @ Q, n + length (remdups_clss P))"
-        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w\<^sup>*)", OF _ _
             ih[of ?P' "(C, i) # Q" N' "Suc n"], OF refl])
-        using ms_p'_ci_q_eq
-          apply (auto simp: len_p)[1]
-        apply (metis (no_types, lifting) apfst_conv image_mset_add_mset)
-        using suc_k
-         apply (auto simp: len_p)[1]
-        using nil_in' ci_in
-        apply auto
-        done
+        using ms_p'_ci_q_eq suc_k nil_in' ci_in
+          apply (simp_all add: len_p)
+         apply (metis (no_types) apfst_conv image_mset_add_mset)
+        by force
       finally show ?case
         .
     qed
     show ?thesis
-      unfolding st step
-      using star[OF nil_in']
-      apply cases
-      using nonfinal[unfolded st is_final_dstate.simps] apply simp
-      by simp
+      unfolding st step using star[OF nil_in'] nonfinal[unfolded st is_final_dstate.simps]
+      by cases simp_all
   next
     case nil_ni: False
     note step = step[simplified nil_ni, simplified]
@@ -1481,7 +1262,6 @@ proof -
         "C' = reduce (map fst P @ map fst Q) [] C"
       note step = step[unfolded ci C'_def[symmetric], simplified]
 
-      (* FIXME: factor out as lemma *)
       have "wstate_of_dstate ((E @ C, i) # N', P, Q, n)
            \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((E @ reduce (map fst P @ map fst Q) E C, i) # N', P, Q, n)" for E
         unfolding C'_def
@@ -1507,9 +1287,10 @@ proof -
             unfolding is_reducible_lit_def by (auto simp: comp_def)
           have "wstate_of_dstate ((E @ L # C, i) # N', P, Q, n)
               \<leadsto>\<^sub>w wstate_of_dstate ((E @ C, i) # N', P, Q, n)"
-            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
                   wrp.forward_reduction[of "mset D'" L' "mset (map (apfst mset) P)"
-                    "mset (map (apfst mset) Q)" L \<sigma> "mset (E @ C)" "mset (map (apfst mset) N')" i n]])
+                    "mset (map (apfst mset) Q)" L \<sigma> "mset (E @ C)" "mset (map (apfst mset) N')"
+                    i n]])
               (use \<sigma> in \<open>auto simp: comp_def\<close>)
           then show ?thesis
             unfolding red_lc using ih[of E] by (rule converse_rtranclp_into_rtranclp)
@@ -1525,7 +1306,7 @@ proof -
 
       have proc_C: "wstate_of_dstate ((C', i) # N', P', Q', n')
           \<leadsto>\<^sub>w wstate_of_dstate (N', (C', i) # P', Q', n')" for P' Q' n'
-        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
               wrp.clause_processing[of "mset (map (apfst mset) N')" "mset C'" i
                 "mset (map (apfst mset) P')" "mset (map (apfst mset) Q')" n']],
             simp+)
@@ -1544,21 +1325,21 @@ proof -
         note red_C[unfolded c'_nil]
         also have "wstate_of_dstate (([], i) # N', P, Q, n)
             \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], Q, n)"
-          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w\<^sup>*)", OF _ _
                 remove_strictly_subsumed_clauses_in_P[of "[]" _ "[]", unfolded append_Nil],
                 OF refl])
             (auto simp: filter_p)
         also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], [], n)"
-          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w\<^sup>*)", OF _ _
                 remove_strictly_subsumed_clauses_in_Q[of "[]" _ _ "[]", unfolded append_Nil],
                 OF refl])
             (auto simp: filter_q)
-        also note proc_C[unfolded c'_nil, THEN tranclp.r_into_trancl[of "op \<leadsto>\<^sub>w"]]
+        also note proc_C[unfolded c'_nil, THEN tranclp.r_into_trancl[of "(\<leadsto>\<^sub>w)"]]
         also have "wstate_of_dstate (N', [([], i)], [], n)
             \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [([], i)], [], n)"
           by (rule empty_N_if_Nil_in_P_or_Q) simp
         also have "\<dots> \<leadsto>\<^sub>w wstate_of_dstate ([], [], [([], i)], Suc n)"
-          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
                 wrp.inference_computation[of "{#}" "{#}" i "{#}" n "{#}"]])
             (auto simp: ord_FO_resolution_inferences_between_empty_empty)
         finally show ?thesis
@@ -1578,7 +1359,7 @@ proof -
               neg_a: "Neg A \<in> set C'" and pos_a: "Pos A \<in> set C'"
               unfolding is_tautology_def by blast
             show ?thesis
-              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
                     wrp.tautology_deletion[of A "mset C'" "mset (map (apfst mset) N')" i
                       "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" n]])
                 (use neg_a pos_a in simp_all)
@@ -1591,7 +1372,7 @@ proof -
               subs: "subsumes (mset D) (mset C')"
               unfolding subsume_def by blast
             show ?thesis
-              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "(\<leadsto>\<^sub>w)", OF _ _
                     wrp.forward_subsumption[of "mset D" "mset (map (apfst mset) P)"
                       "mset (map (apfst mset) Q)" "mset C'" "mset (map (apfst mset) N')" i n]],
                   use d_in subs in \<open>auto simp: subsume_def\<close>)
@@ -1623,12 +1404,9 @@ proof -
             unfolding P'_def by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp+
           also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P', Q', n)"
             unfolding P'_def
-            apply (rule reduce_clauses_in_Q[of C' _ _ "[]" Q, folded red_Q,
+            by (rule reduce_clauses_in_Q[of C' _ _ "[]" Q, folded red_Q,
                   unfolded append_Nil prod.sel])
-             apply simp
-            unfolding reduce_all_def
-            apply (auto intro: reduce_idem)
-            done
+              (auto intro: reduce_idem simp: reduce_all_def)
           also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P', Q'', n)"
             unfolding Q''_def
             by (rule remove_strictly_subsumed_clauses_in_Q[of _ _ _ "[]", unfolded append_Nil])
@@ -1636,7 +1414,7 @@ proof -
           also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P'', Q'', n)"
             unfolding P''_def
             by (rule remove_strictly_subsumed_clauses_in_P[of _ _ "[]", unfolded append_Nil]) auto
-          also note proc_C[THEN tranclp.r_into_trancl[of "op \<leadsto>\<^sub>w"]]
+          also note proc_C[THEN tranclp.r_into_trancl[of "(\<leadsto>\<^sub>w)"]]
           finally show ?thesis
             unfolding step st n_cons ci P''_def by simp
         qed
@@ -1646,8 +1424,7 @@ proof -
 qed
 
 lemma final_deterministic_RP_step: "is_final_dstate St \<Longrightarrow> deterministic_RP_step St = St"
-  by (cases St) (auto simp: deterministic_RP_step.simps is_final_dstate.simps find_None_iff
-      split: option.splits)
+  by (cases St) (auto simp: deterministic_RP_step.simps is_final_dstate.simps)
 
 lemma deterministic_RP_SomeD:
   assumes "deterministic_RP (N, P, Q, n) = Some R"
@@ -1684,19 +1461,6 @@ proof (induct rule: deterministic_RP.raw_induct[OF _ assms])
   qed
 qed
 
-lemma deterministic_RP_step_weighted_RP:
-  "wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (deterministic_RP_step St)"
-  by (cases "is_final_dstate St")
-    (simp add: final_deterministic_RP_step nonfinal_deterministic_RP_step tranclp_into_rtranclp)+
-
-lemma funpow_deterministic_RP_step_weighted_RP:
-  "wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((deterministic_RP_step ^^ k) St)"
-  by (induct k; simp) (meson deterministic_RP_step_weighted_RP rtranclp_trans)
-
-lemma funpow_deterministic_RP_step_imp_weighted_RP:
-  "(\<exists>k. (deterministic_RP_step ^^ k) St = St') \<Longrightarrow> wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate St'"
-  using funpow_deterministic_RP_step_weighted_RP by blast
-
 context
   fixes
     N0 :: "'a dclause list" and
@@ -1713,7 +1477,6 @@ abbreviation grounded_N0 where
 abbreviation grounded_R :: "'a clause set" where
   "grounded_R \<equiv> grounding_of_clss (set (map mset R))"
 
-(* FIXME: generalize *)
 primcorec derivation_from :: "'a dstate \<Rightarrow> 'a dstate llist" where
   "derivation_from St =
    LCons St (if is_final_dstate St then LNil else derivation_from (deterministic_RP_step St))"
@@ -1721,12 +1484,12 @@ primcorec derivation_from :: "'a dstate \<Rightarrow> 'a dstate llist" where
 abbreviation Sts :: "'a dstate llist" where
   "Sts \<equiv> derivation_from St0"
 
-abbreviation gSts :: "'a wstate llist" where
-  "gSts \<equiv> lmap wstate_of_dstate Sts"
+abbreviation wSts :: "'a wstate llist" where
+  "wSts \<equiv> lmap wstate_of_dstate Sts"
 
-lemma full_deriv_gSts_trancl_weighted_RP: "full_chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
+lemma full_deriv_wSts_trancl_weighted_RP: "full_chain (\<leadsto>\<^sub>w\<^sup>+) wSts"
 proof -
-  have "Sts' = derivation_from St0' \<Longrightarrow> full_chain (op \<leadsto>\<^sub>w\<^sup>+) (lmap wstate_of_dstate Sts')"
+  have "Sts' = derivation_from St0' \<Longrightarrow> full_chain (\<leadsto>\<^sub>w\<^sup>+) (lmap wstate_of_dstate Sts')"
     for St0' Sts'
   proof (coinduction arbitrary: St0' Sts' rule: full_chain.coinduct)
     case sts': full_chain
@@ -1752,61 +1515,46 @@ proof -
         unfolding sts' using nonfinal_deterministic_RP_step[OF nfinal refl] nfinal
         by (subst derivation_from.code) simp
       ultimately show ?thesis
-        by (metis (no_types) derivation_from.disc_iff derivation_from.simps(2) llist.map_sel(1))
+        by fastforce
     qed
   qed
   then show ?thesis
     by blast
 qed
 
-lemmas deriv_gSts_trancl_weighted_RP = full_chain_imp_chain[OF full_deriv_gSts_trancl_weighted_RP]
+lemmas deriv_wSts_trancl_weighted_RP = full_chain_imp_chain[OF full_deriv_wSts_trancl_weighted_RP]
 
-definition ssgSts :: "'a wstate llist" where
-  "ssgSts = (SOME gSts'. full_chain (op \<leadsto>\<^sub>w) gSts' \<and> emb gSts gSts'
-     \<and> (lfinite gSts' \<longleftrightarrow> lfinite gSts) \<and> lhd gSts' = lhd gSts \<and> llast gSts' = llast gSts)"
+definition sswSts :: "'a wstate llist" where
+  "sswSts = (SOME wSts'.
+     full_chain (\<leadsto>\<^sub>w) wSts' \<and> emb wSts wSts' \<and> lhd wSts' = lhd wSts \<and> llast wSts' = llast wSts)"
 
-lemma ssgSts:
-  "full_chain (op \<leadsto>\<^sub>w) ssgSts \<and> emb gSts ssgSts \<and> (lfinite ssgSts \<longleftrightarrow> lfinite gSts)
-   \<and> lhd ssgSts = lhd gSts
-   \<and> llast ssgSts = llast gSts"
-  unfolding ssgSts_def
-  by (rule someI_ex[OF full_chain_tranclp_imp_exists_full_chain[OF full_deriv_gSts_trancl_weighted_RP]])
+lemma sswSts:
+  "full_chain (\<leadsto>\<^sub>w) sswSts \<and> emb wSts sswSts \<and> lhd sswSts = lhd wSts \<and> llast sswSts = llast wSts"
+  unfolding sswSts_def
+  by (rule someI_ex[OF full_chain_tranclp_imp_exists_full_chain[OF
+          full_deriv_wSts_trancl_weighted_RP]])
 
-lemmas full_deriv_ssgSts_weighted_RP = ssgSts[THEN conjunct1]
-lemmas emb_ssgSts = ssgSts[THEN conjunct2, THEN conjunct1]
-lemmas lfinite_ssgSts_iff = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
-lemmas lhd_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct1]
-lemmas llast_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct2]
+lemmas full_deriv_sswSts_weighted_RP = sswSts[THEN conjunct1]
+lemmas emb_sswSts = sswSts[THEN conjunct2, THEN conjunct1]
+lemmas lfinite_sswSts_iff = emb_lfinite[OF emb_sswSts]
+lemmas lhd_sswSts = sswSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
+lemmas llast_sswSts = sswSts[THEN conjunct2, THEN conjunct2, THEN conjunct2]
 
-lemmas deriv_ssgSts_weighted_RP = full_chain_imp_chain[OF full_deriv_ssgSts_weighted_RP]
+lemmas deriv_sswSts_weighted_RP = full_chain_imp_chain[OF full_deriv_sswSts_weighted_RP]
 
-lemma not_lnull_ssgSts: "\<not> lnull ssgSts"
-  using deriv_ssgSts_weighted_RP by (cases rule: chain.cases) auto
+lemma not_lnull_sswSts: "\<not> lnull sswSts"
+  using deriv_sswSts_weighted_RP by (cases rule: chain.cases) auto
 
-lemma empty_ssgP0: "wrp.P_of_wstate (lhd ssgSts) = {}"
-  unfolding lhd_ssgSts by (subst derivation_from.code) simp
+lemma empty_ssgP0: "wrp.P_of_wstate (lhd sswSts) = {}"
+  unfolding lhd_sswSts by (subst derivation_from.code) simp
 
-lemma empty_ssgQ0: "wrp.Q_of_wstate (lhd ssgSts) = {}"
-  unfolding lhd_ssgSts by (subst derivation_from.code) simp
+lemma empty_ssgQ0: "wrp.Q_of_wstate (lhd sswSts) = {}"
+  unfolding lhd_sswSts by (subst derivation_from.code) simp
 
-lemmas ssgSts_thms = full_deriv_ssgSts_weighted_RP empty_ssgP0 empty_ssgQ0
-
-lemma "clss_of_state (wrp.Liminf_wstate ssgSts) \<subseteq> clss_of_state (wrp.Liminf_wstate gSts)"
-proof (cases "lfinite Sts")
-  case fin: True
-  show ?thesis
-    by (rule equalityD1)
-      (smt fin Liminf_state_fin chain_not_lnull[OF deriv_gSts_trancl_weighted_RP]
-        lfinite_lmap[THEN iffD2] lfinite_ssgSts_iff[THEN iffD2] llast_lmap llast_ssgSts
-        llist.map_disc_iff not_lnull_ssgSts)
-next
-  case False
-  then show ?thesis
-    using clss_of_Liminf_state_inf[OF _ emb_lmap[OF emb_ssgSts], of state_of_wstate] by simp
-qed
+lemmas sswSts_thms = full_deriv_sswSts_weighted_RP empty_ssgP0 empty_ssgQ0
 
 abbreviation S_ssgQ :: "'a clause \<Rightarrow> 'a clause" where
-  "S_ssgQ \<equiv> wrp.S_gQ ssgSts"
+  "S_ssgQ \<equiv> wrp.S_gQ sswSts"
 
 abbreviation ord_\<Gamma> :: "'a inference set" where
   "ord_\<Gamma> \<equiv> ground_resolution_with_selection.ord_\<Gamma> S_ssgQ"
@@ -1829,13 +1577,13 @@ proof (induct rule: deterministic_RP.raw_induct[OF _ drp_some])
   case (1 self_call St St')
   note ih = this(1) and step = this(2)
   show ?case
-    using step by (subst derivation_from.code, cases "is_final_dstate St", auto intro!: ih)
+    using step by (subst derivation_from.code, auto intro: ih)
 qed
 
-lemma lfinite_gSts: "lfinite gSts"
+lemma lfinite_wSts: "lfinite wSts"
   by (rule lfinite_lmap[THEN iffD2, OF lfinite_Sts])
 
-lemmas lfinite_ssgSts = lfinite_ssgSts_iff[THEN iffD2, OF lfinite_gSts]
+lemmas lfinite_sswSts = lfinite_sswSts_iff[THEN iffD2, OF lfinite_wSts]
 
 theorem
   deterministic_RP_saturated: "saturated_upto grounded_R" (is ?saturated) and
@@ -1849,9 +1597,8 @@ proof -
 
   have wrp: "wstate_of_dstate St0 \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (llast Sts)"
     using lfinite_chain_imp_rtranclp_lhd_llast
-    by (metis (no_types) deriv_ssgSts_weighted_RP derivation_from.disc_iff
-        derivation_from.simps(2) lfinite_Sts lfinite_ssgSts lhd_ssgSts llast_lmap llast_ssgSts
-        llist.map_sel(1))
+    by (metis (no_types) deriv_sswSts_weighted_RP derivation_from.disc_iff derivation_from.simps(2)
+        lfinite_Sts lfinite_sswSts llast_lmap llist.map_sel(1) sswSts)
 
   have last_sts: "llast Sts = ?Stk"
   proof -
@@ -1882,14 +1629,13 @@ proof -
       using k_steps by blast
   qed
 
-  have fin_gr_fgsts: "lfinite (lmap wrp.grounding_of_wstate ssgSts)"
-    by (rule lfinite_lmap[THEN iffD2, OF lfinite_ssgSts])
+  have fin_gr_fgsts: "lfinite (lmap wrp.grounding_of_wstate sswSts)"
+    by (rule lfinite_lmap[THEN iffD2, OF lfinite_sswSts])
 
-  have lim_last: "Liminf_llist (lmap wrp.grounding_of_wstate ssgSts) =
-    wrp.grounding_of_wstate (llast ssgSts)"
-    unfolding lfinite_Liminf_llist[OF fin_gr_fgsts]
-      llast_lmap[OF lfinite_ssgSts not_lnull_ssgSts]
-    using not_lnull_ssgSts by simp
+  have lim_last: "Liminf_llist (lmap wrp.grounding_of_wstate sswSts) =
+    wrp.grounding_of_wstate (llast sswSts)"
+    unfolding lfinite_Liminf_llist[OF fin_gr_fgsts] llast_lmap[OF lfinite_sswSts not_lnull_sswSts]
+    using not_lnull_sswSts by simp
 
   have gr_st0: "wrp.grounding_of_wstate (wstate_of_dstate St0) = grounded_N0"
     by (simp add: clss_of_state_def comp_def)
@@ -1900,11 +1646,11 @@ proof -
     then have emp_in: "{#} \<in> grounded_R"
       unfolding grounding_of_clss_def grounding_of_cls_def by (auto intro: ex_ground_subst)
 
-    have "grounded_R \<subseteq> wrp.grounding_of_wstate (llast ssgSts)"
-      unfolding r llast_ssgSts
+    have "grounded_R \<subseteq> wrp.grounding_of_wstate (llast sswSts)"
+      unfolding r llast_sswSts
       by (simp add: last_sts llast_lmap[OF lfinite_Sts] clss_of_state_def grounding_of_clss_def)
     then have gr_last_st: "grounded_R \<subseteq> wrp.grounding_of_wstate (wstate_of_dstate (llast Sts))"
-      by (simp add: lfinite_Sts llast_lmap llast_ssgSts)
+      by (simp add: lfinite_Sts llast_lmap llast_sswSts)
 
     have gr_r_fls: "\<not> I \<Turnstile>s grounded_R"
       using emp_in unfolding true_clss_def by force
@@ -1912,31 +1658,31 @@ proof -
       using gr_last_st unfolding true_clss_def by auto
 
     have ?saturated
-      unfolding wrp.ord_\<Gamma>_saturated_upto_def[OF ssgSts_thms]
-        wrp.ord_\<Gamma>_contradiction_Rf[OF ssgSts_thms emp_in] inference_system.inferences_from_def
+      unfolding wrp.ord_\<Gamma>_saturated_upto_def[OF sswSts_thms]
+        wrp.ord_\<Gamma>_contradiction_Rf[OF sswSts_thms emp_in] inference_system.inferences_from_def
       by auto
     moreover have ?model
       unfolding gr_r_fls[THEN eq_False[THEN iffD2]]
-      by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s wrp.grounding_of_wstate St", OF _ wrp,
+      by (rule rtranclp_imp_eq_image[of "(\<leadsto>\<^sub>w)" "\<lambda>St. I \<Turnstile>s wrp.grounding_of_wstate St", OF _ wrp,
             unfolded gr_st0 gr_last_fls[THEN eq_False[THEN iffD2]]])
-        (use wrp.weighted_RP_model[OF ssgSts_thms] in blast)
+        (use wrp.weighted_RP_model[OF sswSts_thms] in blast)
     ultimately show ?thesis
       by blast
   next
     case False
-    then have gr_last: "wrp.grounding_of_wstate (llast ssgSts) = grounded_R"
-      using final unfolding r llast_ssgSts
+    then have gr_last: "wrp.grounding_of_wstate (llast sswSts) = grounded_R"
+      using final unfolding r llast_sswSts
       by (simp add: last_sts llast_lmap[OF lfinite_Sts] clss_of_state_def comp_def
           is_final_dstate.simps)
     then have gr_last_st: "wrp.grounding_of_wstate (wstate_of_dstate (llast Sts)) = grounded_R"
-      by (simp add: lfinite_Sts llast_lmap llast_ssgSts)
+      by (simp add: lfinite_Sts llast_lmap llast_sswSts)
 
     have ?saturated
-      using wrp.weighted_RP_saturated[OF ssgSts_thms, unfolded gr_last lim_last] by auto
+      using wrp.weighted_RP_saturated[OF sswSts_thms, unfolded gr_last lim_last] by auto
     moreover have ?model
-      by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s wrp.grounding_of_wstate St", OF _ wrp,
+      by (rule rtranclp_imp_eq_image[of "(\<leadsto>\<^sub>w)" "\<lambda>St. I \<Turnstile>s wrp.grounding_of_wstate St", OF _ wrp,
             unfolded gr_st0 gr_last_st])
-        (use wrp.weighted_RP_model[OF ssgSts_thms] in blast)
+        (use wrp.weighted_RP_model[OF sswSts_thms] in blast)
     ultimately show ?thesis
       by blast
   qed
@@ -1957,7 +1703,7 @@ next
   then have "\<not> satisfiable grounded_R"
     using deterministic_RP_model[THEN iffD2] by blast
   then show ?rhs
-    unfolding wrp.ord_\<Gamma>_saturated_upto_complete[OF ssgSts_thms deterministic_RP_saturated] .
+    unfolding wrp.ord_\<Gamma>_saturated_upto_complete[OF sswSts_thms deterministic_RP_saturated] .
 qed
 
 end
@@ -1970,28 +1716,28 @@ theorem deterministic_RP_complete: "satisfiable grounded_N0"
 proof (rule ccontr)
   assume unsat: "\<not> satisfiable grounded_N0"
 
-  have unsat_gSts0: "\<not> satisfiable (wrp.grounding_of_wstate (lhd gSts))"
+  have unsat_wSts0: "\<not> satisfiable (wrp.grounding_of_wstate (lhd wSts))"
     using unsat by (subst derivation_from.code) (simp add: clss_of_state_def comp_def)
 
-  have bot_in_ss: "{#} \<in> Q_of_state (wrp.Liminf_wstate ssgSts)"
-    by (rule wrp.weighted_RP_complete[OF ssgSts_thms unsat_gSts0[folded lhd_ssgSts]])
-  have bot_in_lim: "{#} \<in> Q_of_state (wrp.Liminf_wstate gSts)"
+  have bot_in_ss: "{#} \<in> Q_of_state (wrp.Liminf_wstate sswSts)"
+    by (rule wrp.weighted_RP_complete[OF sswSts_thms unsat_wSts0[folded lhd_sswSts]])
+  have bot_in_lim: "{#} \<in> Q_of_state (wrp.Liminf_wstate wSts)"
   proof (cases "lfinite Sts")
     case fin: True
-    have "wrp.Liminf_wstate ssgSts = wrp.Liminf_wstate gSts"
-      by (rule Liminf_state_fin, simp_all add: fin lfinite_ssgSts_iff not_lnull_ssgSts,
+    have "wrp.Liminf_wstate sswSts = wrp.Liminf_wstate wSts"
+      by (rule Liminf_state_fin, simp_all add: fin lfinite_sswSts_iff not_lnull_sswSts,
           subst (1 2) llast_lmap,
-          simp_all add: lfinite_ssgSts_iff fin not_lnull_ssgSts llast_ssgSts)
+          simp_all add: lfinite_sswSts_iff fin not_lnull_sswSts llast_sswSts)
     then show ?thesis
       using bot_in_ss by simp
   next
     case False
     then show ?thesis
-      using bot_in_ss Q_of_Liminf_state_inf[OF _ emb_lmap[OF emb_ssgSts]] by auto
+      using bot_in_ss Q_of_Liminf_state_inf[OF _ emb_lmap[OF emb_sswSts]] by auto
   qed
   then obtain k :: nat where
     k_lt: "enat k < llength Sts" and
-    emp_in: "{#} \<in> wrp.Q_of_wstate (lnth gSts k)"
+    emp_in: "{#} \<in> wrp.Q_of_wstate (lnth wSts k)"
     unfolding Liminf_state_def Liminf_llist_def by auto
   have emp_in: "{#} \<in> Q_of_state (state_of_dstate ((deterministic_RP_step ^^ k) St0))"
   proof -

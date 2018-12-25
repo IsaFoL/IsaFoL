@@ -1,6 +1,6 @@
 theory Prop_Logic_Multiset
 imports Nested_Multisets_Ordinals.Multiset_More Prop_Normalisation
-  Entailment_Definition.Partial_Clausal_Logic
+  Entailment_Definition.Partial_Herbrand_Interpretation
 begin
 
 section \<open>Link with Multiset Version\<close>
@@ -107,13 +107,13 @@ lemma grouped_by_COr_mset_of_formula:
 text \<open>When a formula is in CNF form, then there is equisatisfiability between the multiset version
   and the CNF form. Remark that the definition for the entailment are slightly different:
   @{term eval} uses a function assigning @{term True} or @{term False}, while
-  @{term Partial_Clausal_Logic.true_clss} uses a set where being in the list means entailment of a
+  @{term Partial_Herbrand_Interpretation.true_clss} uses a set where being in the list means entailment of a
   literal.
   \<close>
 theorem cnf_eval_true_clss:
   fixes \<phi> :: "'v propo"
   assumes "is_cnf \<phi>"
-  shows "eval A \<phi> \<longleftrightarrow> Partial_Clausal_Logic.true_clss ({Pos v|v. A v} \<union> {Neg v|v. \<not>A v})
+  shows "eval A \<phi> \<longleftrightarrow> Partial_Herbrand_Interpretation.true_clss ({Pos v|v. A v} \<union> {Neg v|v. \<not>A v})
     (mset_of_formula \<phi>)"
   using assms
 proof (induction \<phi>)
@@ -266,7 +266,7 @@ lemma formula_of_mset_is_cnf: \<open>is_cnf (formula_of_mset \<phi>)\<close>
 
 lemma eval_clss_iff:
   assumes \<open>consistent_interp A\<close> and \<open>total_over_set A UNIV\<close>
-  shows \<open>eval (fun_of_set A) (formula_of_mset \<phi>) \<longleftrightarrow> Partial_Clausal_Logic.true_clss A {\<phi>}\<close>
+  shows \<open>eval (fun_of_set A) (formula_of_mset \<phi>) \<longleftrightarrow> Partial_Herbrand_Interpretation.true_clss A {\<phi>}\<close>
   apply (subst cnf_eval_true_clss[OF formula_of_mset_is_cnf])
   using assms
   apply (auto simp add: true_cls_def fun_of_set_def consistent_interp_def total_over_set_def)
@@ -337,7 +337,7 @@ lemma mset_of_formula_formula_of_msets:
 
 lemma
   assumes \<open>consistent_interp A\<close> and \<open>total_over_set A UNIV\<close> and \<open>finite \<phi>\<close> and \<open>{#} \<notin> \<phi>\<close>
-  shows \<open>eval (fun_of_set A) (formula_of_msets \<phi>) \<longleftrightarrow> Partial_Clausal_Logic.true_clss A \<phi>\<close>
+  shows \<open>eval (fun_of_set A) (formula_of_msets \<phi>) \<longleftrightarrow> Partial_Herbrand_Interpretation.true_clss A \<phi>\<close>
   apply (subst cnf_eval_true_clss[OF is_cnf_formula_of_msets[OF assms(3-4)]])
   using assms(3) unfolding mset_of_formula_formula_of_msets[OF assms(3)]
   by (induction \<phi>)

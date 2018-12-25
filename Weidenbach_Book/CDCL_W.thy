@@ -91,7 +91,7 @@ text \<open>
 locale state\<^sub>W_no_state =
   state\<^sub>W_ops
     state
-    \<comment> \<open>functions about the state: \<close>
+    \<comment> \<open>functions about the state:\<close>
       \<comment> \<open>getter:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>setter:\<close>
@@ -168,7 +168,7 @@ locale state\<^sub>W_no_state =
 locale state\<^sub>W =
   state\<^sub>W_no_state
     state_eq state
-    \<comment> \<open>functions about the state: \<close>
+    \<comment> \<open>functions about the state:\<close>
       \<comment> \<open>getter:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>setter:\<close>
@@ -518,7 +518,7 @@ locale conflict_driven_clause_learning\<^sub>W =
   state\<^sub>W
     state_eq
     state
-    \<comment> \<open>functions for the state: \<close>
+    \<comment> \<open>functions for the state:\<close>
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss conflicting
       \<comment> \<open>changing state:\<close>
@@ -704,6 +704,12 @@ W_other: "cdcl\<^sub>W_o S S' \<Longrightarrow> cdcl\<^sub>W S S'"
 lemma cdcl\<^sub>W_cdcl\<^sub>W_restart:
   "cdcl\<^sub>W S T \<Longrightarrow> cdcl\<^sub>W_restart S T"
   by (induction rule: cdcl\<^sub>W.induct) (auto intro: cdcl\<^sub>W_restart.intros simp del: state_prop)
+
+lemma rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_restart:
+  \<open>cdcl\<^sub>W\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T\<close>
+  apply (induction rule: rtranclp_induct)
+   apply (auto; fail)[]
+  by (meson cdcl\<^sub>W_cdcl\<^sub>W_restart rtranclp.rtrancl_into_rtrancl)
 
 lemma cdcl\<^sub>W_restart_all_rules_induct[consumes 1, case_names propagate conflict forget restart decide
     skip resolve backtrack]:
@@ -4667,9 +4673,9 @@ proof -
     M_def[symmetric] M that by (auto 5 5 simp: clauses_def dest!: lD0D')
   then have I_D0: \<open>total_over_m I (set_mset (clauses S)) \<longrightarrow>
             consistent_interp I \<longrightarrow>
-            Multiset.Ball (clauses S) (op \<Turnstile> I) \<longrightarrow> ~I \<Turnstile> D0\<close> for I
+            Multiset.Ball (clauses S) ((\<Turnstile>) I) \<longrightarrow> ~I \<Turnstile> D0\<close> for I
     using clss_D0 unfolding true_clss_cls_def true_cls_def consistent_interp_def
-    true_cls_def true_cls_mset_def -- \<open>TODO tune proof\<close>
+    true_cls_def true_cls_mset_def \<comment> \<open>TODO tune proof\<close>
     apply auto
     by (metis atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set literal.sel(1)
     true_cls_def true_cls_mset_def true_lit_def uminus_Pos)

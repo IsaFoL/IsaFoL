@@ -1,0 +1,22 @@
+chapter Saturation_Framework
+
+session "Saturation_Framework_bare" = "HOL-Library" +
+  sessions
+    Ordered_Resolution_Prover
+    Well_Quasi_Orders
+  theories [document = false]
+    "../lib/Explorer"
+ 
+session "Saturation_Framework" = "HOL-Library" +
+  sessions
+    Ordered_Resolution_Prover
+    Well_Quasi_Orders
+  theories [document = false]
+    "../lib/Explorer"
+  theories [document = pdf, quick_and_dirty = true]
+    Saturation_Framework_Preliminaries
+    Dynamic_Completeness_Lifting
+    Nonground_Calculus_Lifting
+    Given_Clause_Prover_Lifting
+  document_files
+    root.tex

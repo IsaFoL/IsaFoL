@@ -9,8 +9,8 @@ session Functional_Ordered_Resolution_Prover_Base = "HOL-Library" +
     First_Order_Terms
     Nested_Multisets_Ordinals
     Ordered_Resolution_Prover
-    Processors
-    QTRS
+    Ord
+    TRS
   theories [document = false]
     "HOL-Library.Multiset"
     "Coinductive.Coinductive_List"
@@ -20,23 +20,22 @@ session Functional_Ordered_Resolution_Prover_Base = "HOL-Library" +
     Nested_Multisets_Ordinals.Multiset_More
     Ordered_Resolution_Prover.Lazy_List_Chain
     Ordered_Resolution_Prover.Map2
-    Processors.KBO
+    Ord.KBO
     First_Order_Terms.Unification
     First_Order_Terms.Fun_More
     First_Order_Terms.Subsumption
-    QTRS.Matching
-    QTRS.Term_More
+    First_Order_Terms.Matching
+    TRS.Term_More
 
-session Functional_Ordered_Resolution_Prover = Functional_Ordered_Resolution_Prover_Base +
+session Executable_Functional_Ordered_Resolution_Prover = Functional_Ordered_Resolution_Prover_Base +
   options [document = pdf, document_output = "output",
-    document_variants = "document:outline=/proof,/ML",
-    timeout=200]
+    document_variants = "document:outline=/proof,/ML" (*,
+    timeout=200 *)]
   sessions
     "Abstract-Rewriting"
     "Decreasing-Diagrams-II"
     "Polynomial_Factorization"
     Show
-  theories [document = false]
   theories
     Executable_FO_Ordered_Resolution_Prover
   document_files

@@ -16,7 +16,7 @@ fun heap_list_all :: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a 
 
 text \<open>It is often useful to speak about arrays except at one index (e.g., because it is updated).\<close>
 definition heap_list_all_nth:: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> nat list \<Rightarrow>  'a list \<Rightarrow> 'b list \<Rightarrow> assn" where
-  \<open>heap_list_all_nth R is xs ys = foldr (op *) (map (\<lambda>i. R (xs ! i) (ys ! i)) is) emp\<close>
+  \<open>heap_list_all_nth R is xs ys = foldr (( * )) (map (\<lambda>i. R (xs ! i) (ys ! i)) is) emp\<close>
 
 lemma heap_list_all_nth_emty[simp]: \<open>heap_list_all_nth R [] xs ys = emp\<close>
   unfolding heap_list_all_nth_def by auto
@@ -179,7 +179,8 @@ lemma length_a_rule[sep_heap_rules]:
   by (sep_auto simp: arrayO_assn_def length_a_def array_assn_def is_array_def mod_star_conv
       dest: heap_list_add_same_length)
 
-lemma length_a_hnr[sepref_fr_rules]: \<open>(length_a, RETURN o length) \<in> (arrayO_assn R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+lemma length_a_hnr[sepref_fr_rules]:
+  \<open>(length_a, RETURN o op_list_length) \<in> (arrayO_assn R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare sep_auto
 
 definition length_ll :: \<open>'a list list \<Rightarrow> nat \<Rightarrow> nat\<close> where
@@ -302,7 +303,7 @@ proof -
   have [simp]: \<open>(\<exists>\<^sub>Ax. arrayO_assn (arl_assn R) a ai * R x r * true * \<up> (x = a ! ba ! b)) =
      (arrayO_assn (arl_assn R) a ai * R (a ! ba ! b) r * true)\<close> for a ai ba b r
     by (auto simp: ex_assn_def)
-  show ?thesis -- \<open>TODO tune proof\<close>
+  show ?thesis \<comment> \<open>TODO tune proof\<close>
     apply sepref_to_hoare
     apply (sep_auto simp: append_el_aa_def)
      apply (simp add: arrayO_except_assn_def)
@@ -324,7 +325,7 @@ definition update_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<Right
       x \<leftarrow> Array.nth a i;
       a' \<leftarrow> arl_set x j y;
       Array.upd i a' a
-    }\<close> -- \<open>is the Array.upd really needed?\<close>
+    }\<close> \<comment> \<open>is the Array.upd really needed?\<close>
 
 definition update_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
   \<open>update_ll xs i j y = xs[i:= (xs ! i)[j := y]]\<close>
@@ -386,12 +387,11 @@ definition set_butlast_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<
       x \<leftarrow> Array.nth a i;
       a' \<leftarrow> arl_butlast x;
       Array.upd i a' a
-    }\<close> -- \<open>Replace the \<^term>\<open>i\<close>-th element by the itself except the last element.\<close>
-
+    }\<close> \<comment> \<open>Replace the \<^term>\<open>i\<close>-th element by the itself except the last element.\<close>
 
 lemma list_rel_butlast:
-  assumes rel: \<open>(xs, ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
-  shows \<open>(butlast xs, butlast ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
+  assumes rel: \<open>(xs, ys) \<in> \<langle>R\<rangle>list_rel\<close>
+  shows \<open>(butlast xs, butlast ys) \<in> \<langle>R\<rangle>list_rel\<close>
 proof -
   have \<open>length xs = length ys\<close>
     using assms list_rel_imp_same_length by blast
@@ -543,7 +543,7 @@ lemma nth_a_hnr[sepref_fr_rules]:
      [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> arl_assn R\<close>
   unfolding nth_a_def
   apply sepref_to_hoare
-  subgoal for b b' xs a -- \<open>TODO proof\<close>
+  subgoal for b b' xs a \<comment> \<open>TODO proof\<close>
     apply sep_auto
     apply (subst arrayO_except_assn_array0_index[symmetric, of b])
      apply simp
@@ -669,9 +669,107 @@ sepref_definition
   is "RETURN o arrayO_ara_empty_sz"
   :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl_assn (R::'a \<Rightarrow> 'b::{heap, default} \<Rightarrow> assn))\<close>
   unfolding arrayO_ara_empty_sz_def op_list_empty_def[symmetric]
-  apply (rewrite at \<open>op # \<hole>\<close> op_arl_empty_def[symmetric])
+  apply (rewrite at \<open>(#) \<hole>\<close> op_arl_empty_def[symmetric])
   apply (rewrite at \<open>fold _ _ \<hole>\<close> op_HOL_list_empty_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
+
+
+definition init_lrl :: \<open>nat \<Rightarrow> 'a list list\<close> where
+  \<open>init_lrl n = replicate n []\<close>
+
+lemma arrayO_ara_empty_sz_init_lrl: \<open>arrayO_ara_empty_sz n = init_lrl n\<close>
+  by (induction n) (auto simp: arrayO_ara_empty_sz_def init_lrl_def)
+
+lemma arrayO_raa_empty_sz_init_lrl[sepref_fr_rules]:
+  \<open>(arrayO_ara_empty_sz_code, RETURN o init_lrl) \<in>
+    nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl_assn R)\<close>
+  using arrayO_ara_empty_sz_code.refine unfolding arrayO_ara_empty_sz_init_lrl .
+
+
+definition (in -) shorten_take_ll where
+  \<open>shorten_take_ll L j W = W[L := take j (W ! L)]\<close>
+
+definition (in -) shorten_take_aa where
+  \<open>shorten_take_aa L j W =  do {
+      (a, n) \<leftarrow> Array.nth W L;
+      Array.upd L (a, j) W
+    }\<close>
+
+
+lemma Array_upd_arrayO_except_assn[sep_heap_rules]:
+  assumes
+    \<open>ba \<le> length (b ! a)\<close> and
+    \<open>a < length b\<close>
+  shows \<open><arrayO_except_assn (arl_assn R) [a] b bi
+           (\<lambda>r'. arl_assn R (b ! a) (aaa, n) * \<up> ((aaa, n) = r' ! a))>
+         Array.upd a (aaa, ba) bi
+         <\<lambda>r. \<exists>\<^sub>Ax. arrayO_assn (arl_assn R) x r * true *
+                    \<up> (x = b[a := take ba (b ! a)])>\<close>
+proof -
+  have [simp]: \<open>ba \<le> length l'\<close>
+    if
+      \<open>ba \<le> length (b ! a)\<close> and
+      aa: \<open>(take n l', b ! a) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
+    for l' :: \<open>'b list\<close>
+  proof -
+    show ?thesis
+      using list_rel_imp_same_length[OF aa] that
+      by auto
+  qed
+  have [simp]: \<open>(take ba l', take ba (b ! a)) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
+    if
+      \<open>ba \<le> length (b ! a)\<close> and
+      \<open>n \<le> length l'\<close> and
+      take: \<open>(take n l', b ! a) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
+    for l' :: \<open>'b list\<close>
+  proof -
+    have [simp]: \<open>n = length (b ! a)\<close>
+      using list_rel_imp_same_length[OF take] that by auto
+    have 1: \<open>take ba l' = take ba (take n l')\<close>
+      using that by (auto simp: min_def)
+    show ?thesis
+      using take
+      unfolding 1
+      by (rule list_rel_take)
+  qed
+
+  have [simp]: \<open>heap_list_all_nth (arl_assn R) (remove1 a [0..<length p])
+           (b[a := take ba (b ! a)]) (p[a := (aaa, ba)]) =
+        heap_list_all_nth (arl_assn R) (remove1 a [0..<length p]) b p\<close>
+    for p :: \<open>('b array \<times> nat) list\<close> and l' :: \<open>'b list\<close>
+  proof -
+    show ?thesis
+      by (rule heap_list_all_nth_cong) auto
+  qed
+
+  show ?thesis
+    using assms
+    unfolding arrayO_except_assn_def
+    apply (subst (2) arl_assn_def)
+    apply (subst is_array_list_def[abs_def])
+    apply (subst hr_comp_def[abs_def])
+    apply (subst array_assn_def)
+    apply (subst is_array_def[abs_def])
+    apply (subst hr_comp_def[abs_def])
+    apply sep_auto
+    apply (subst arrayO_except_assn_array0_index[symmetric, of a])
+    apply (solves simp)
+    unfolding arrayO_except_assn_def array_assn_def is_array_def
+    apply (subst (3) arl_assn_def)
+    apply (subst is_array_list_def[abs_def])
+    apply (subst (2) hr_comp_def[abs_def])
+    apply (subst ex_assn_move_out)+
+    apply (rule_tac x=\<open>p[a := (aaa, ba)]\<close> in ent_ex_postI)
+    apply (rule_tac x=\<open>take ba l'\<close> in ent_ex_postI)
+    by (sep_auto simp: )
+qed
+
+lemma shorten_take_aa_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 shorten_take_aa, uncurry2 (RETURN ooo shorten_take_ll)) \<in>
+     [\<lambda>((L, j), W). j \<le> length (W ! L) \<and> L < length W]\<^sub>a
+    nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d \<rightarrow> arrayO_assn (arl_assn R)\<close>
+  unfolding shorten_take_aa_def shorten_take_ll_def
+  by sepref_to_hoare sep_auto
 
 end

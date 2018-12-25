@@ -11,20 +11,25 @@ TODO.
 \<close>
 
 theory Executable_FO_Ordered_Resolution_Prover
-  imports Deterministic_FO_Ordered_Resolution_Prover Executable_Subsumption
+  imports
+    Deterministic_FO_Ordered_Resolution_Prover
+    Executable_Subsumption
+    "HOL-Library.Code_Target_Nat"
+    Show.Show_Instances
+    IsaFoR_Term_KBO
 begin
 
 global_interpretation RP: deterministic_FO_resolution_prover where
   S = "\<lambda>_. {#}" and
-  subst_atm = "op \<cdot>" and
+  subst_atm = "(\<cdot>)" and
   id_subst = "Var :: _ \<Rightarrow> ('f :: {weighted, compare_order}, nat) term" and
-  comp_subst = "op \<circ>\<^sub>s" and
+  comp_subst = "(\<circ>\<^sub>s)" and
   renamings_apart = renamings_apart and
   atm_of_atms = "Fun undefined" and
   mgu = mgu_sets and
   less_atm = less_kbo and
   size_atm = size and
-  generation_factor = 1 and
+  timestamp_factor = 1 and
   size_factor = 1
   defines deterministic_RP = RP.deterministic_RP
   and deterministic_RP_step = RP.deterministic_RP_step
@@ -33,8 +38,6 @@ global_interpretation RP: deterministic_FO_resolution_prover where
   and is_tautology = RP.is_tautology
   and maximal_wrt = RP.maximal_wrt
   and reduce = RP.reduce
-(*  and reduce_from = RP.reduce_from*)
-(*  and reduce_on = RP.reduce_on*)
   and reduce_all = RP.reduce_all
   and reduce_all2 = RP.reduce_all2
   and remdups_clss = RP.remdups_clss
@@ -143,20 +146,6 @@ declare
 export_code St0 in SML
 export_code deterministic_RP in SML module_name RP
 
-definition prover where
-  "prover N = (case deterministic_RP (St0 N 0) of
-      None \<Rightarrow> True
-    | Some R \<Rightarrow> if [] \<in> set R then False else True)"
-
-lemma "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
-  unfolding prover_def St0_def
-  using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
-  by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
-    split: option.splits if_splits)
-
-export_code prover in SML module_name RP
-
-
 (*arbitrary*)
 instantiation nat :: weighted begin
 definition weights_nat :: "nat weights" where "weights_nat =
@@ -167,6 +156,22 @@ instance
     (auto simp: weights_nat_def SN_iff_wf asymp.simps irreflp_def prod_encode_def
       intro!: wf_subset[OF wf_lex_prod])
 end
+
+definition prover :: "((nat, nat) Term.term literal list \<times> nat) list \<Rightarrow> bool" where
+  "prover N = (case deterministic_RP (St0 N 0) of
+      None \<Rightarrow> True
+    | Some R \<Rightarrow> if [] \<in> set R then False else True)"
+
+theorem prover_complete_refutation: "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
+  unfolding prover_def St0_def
+  using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
+  by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
+    split: option.splits if_splits)
+
+definition string_literal_of_nat :: "nat \<Rightarrow> String.literal" where
+  "string_literal_of_nat n = String.implode (show n)"
+
+export_code prover Fun Var Pos Neg string_literal_of_nat "0::nat" "Suc" in SML module_name RPx file "RPx.sml"
 
 abbreviation "\<pp> \<equiv> Fun 42"
 abbreviation "\<aa> \<equiv> Fun 0 []"
@@ -205,13 +210,19 @@ value "prover (mk_MSC015_1 4)"
 value "prover (mk_MSC015_1 5)"
 value "prover (mk_MSC015_1 10)"
 value "prover (mk_MSC015_1 12)"
+value "prover (mk_MSC015_1 13)"
+value "prover (mk_MSC015_1 14)"
+value "prover (mk_MSC015_1 15)"
+value "prover (mk_MSC015_1 16)"
+value "prover (mk_MSC015_1 17)"
+(*value "prover (mk_MSC015_1 18)"
+
+value "prover (mk_MSC015_1 20)" \<comment>\<open>100 s\<close>
+value "prover (mk_MSC015_1 22)" \<comment>\<open>200 s\<close>
+*)
 (*
-value "prover (mk_MSC015_1 14)" -- 400s
-value "prover (mk_MSC015_1 15)" -- mem out
-value "prover (mk_MSC015_1 20)"
 value "prover (mk_MSC015_1 25)"
 *)
-
 lemma
   assumes
      "p a a a a a a a a a a a a a a"

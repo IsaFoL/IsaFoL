@@ -67,7 +67,7 @@ definition state where
 \<open>state S = (raw_trail S, raw_init_clss S, raw_learned_clss S, raw_conflicting S, ())\<close>
 
 interpretation state\<^sub>W
-  "op ="
+  "(=)"
   state
   raw_trail raw_init_clss raw_learned_clss raw_conflicting
   "\<lambda>L (M, S). (L # M, S)"
@@ -81,7 +81,7 @@ interpretation state\<^sub>W
 declare state_simp[simp del]
 
 interpretation conflict_driven_clause_learning\<^sub>W
-  "op =" state
+  "(=)" state
   raw_trail raw_init_clss raw_learned_clss
   raw_conflicting
   "\<lambda>L (M, S). (L # M, S)"
@@ -953,7 +953,7 @@ lemma raw_conflicting_do_backtrack_step_imp[simp]:
   "do_backtrack_step S \<noteq> S \<Longrightarrow> raw_conflicting (do_backtrack_step S) = None"
   apply (cases S rule: do_backtrack_step.cases)
    apply (auto simp add: Let_def split: option.splits list.splits
-      (*   annotated_lit.split *)) -- \<open>TODO splitting should solve the goal\<close>
+      (*   annotated_lit.split *)) \<comment> \<open>TODO splitting should solve the goal\<close>
   apply (rename_tac dec tr)
   by (case_tac dec) auto
 
@@ -971,7 +971,7 @@ lemma do_backtrack_step_eq_iff_raw_trail_eq:
   using assms apply (cases S rule: do_backtrack_step.cases)
   apply (auto split: option.split list.splits (* annotated_lit.splits *)
      simp: comp_def
-     dest!: bt_cut_in_get_all_ann_decomposition) -- \<open>TODO splitting should solve the goal\<close>
+     dest!: bt_cut_in_get_all_ann_decomposition) \<comment> \<open>TODO splitting should solve the goal\<close>
   apply (rename_tac dec tr tra)
   by (case_tac dec) auto
 
@@ -1201,7 +1201,7 @@ text \<open>The SML code is skipped in the documentation, but stays to ensure th
 (*<*)
 fun gene where
 "gene 0 = [[Pos 0], [Neg 0]]" |
-"gene (Suc n) = map (op # (Pos (Suc n))) (gene n) @ map (op # (Neg (Suc n))) (gene n)"
+"gene (Suc n) = map ((#) (Pos (Suc n))) (gene n) @ map ((#) (Neg (Suc n))) (gene n)"
 
 value "gene 1"
 

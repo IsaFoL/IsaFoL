@@ -1,6 +1,34 @@
 theory Watched_Literals_Transition_System_Enumeration
-  imports Watched_Literals_Transition_System Model_Enumeration
+  imports Watched_Literals.Watched_Literals_Transition_System Model_Enumeration
 begin
+
+text \<open>
+  Design decision: we favour shorter clauses to (potentially) better models.
+
+  More precisely, we take the clause composed of decisions, instead of taking the full trail. This
+  creates shorter clauses. However, this makes satisfying the initial clauses \<^emph>\<open>harder\<close> since fewer
+  literals can be left undefined or be defined with the wrong sign.
+
+  For now there is no difference, since TWL produces only full models anyway. Remark that this is
+  the clause that is produced by the minimization of the conflict of the full trail (except that
+  this clauses would be learned and not added to the initial set of clauses, meaning that that the
+  set of initial clauses is not harder to satisfy).
+
+  It is not clear if that would really make a huge performance difference.
+
+  The name DECO (e.g., \<^term>\<open>DECO_clause\<close>) comes from Armin Biere's "decision only clauses"
+  (DECO) optimisation (see Armin Biere's "Lingeling, Plingeling and Treengeling Entering the SAT
+  Competition 2013"). If the learned clause becomes much larger that the clause normally learned by
+  backjump, then the clause composed of the negation of the decision is learned instead
+  (effectively doing a backtrack instead of a backjump).
+  Unless we get more information from the filtering function, we are in the special case where the
+  1st-UIP is exactly the last decision.
+
+  An important property of the transition rules is that they violate the invariant that propagations
+  are fully done before each decision. This means that we handle the transitions as a fast restart
+  and not as a backjump as one would expect, since we cannot reuse any theorem about backjump.
+\<close>
+
 
 definition DECO_clause :: \<open>('v, 'a) ann_lits \<Rightarrow>  'v clause\<close>where
   \<open>DECO_clause M = (uminus o lit_of) `# (filter_mset is_decided (mset M))\<close>
@@ -19,6 +47,16 @@ proof -
   finally show ?thesis
     .
 qed
+
+lemma [twl_st]:
+  \<open>init_clss (state\<^sub>W_of T) = get_all_init_clss T\<close>
+  \<open>learned_clss (state\<^sub>W_of T) = get_all_learned_clss T\<close>
+  by (cases T; auto simp: cdcl\<^sub>W_restart_mset_state; fail)+
+
+lemma atms_of_DECO_clauseD:
+  \<open>x \<in> atms_of (DECO_clause U) \<Longrightarrow> x \<in> atms_of_s (lits_of_l U)\<close>
+  \<open>x \<in> atms_of (DECO_clause U) \<Longrightarrow> x \<in> atms_of (lit_of `# mset U)\<close>
+  by (auto simp: DECO_clause_def atms_of_s_def atms_of_def lits_of_def)
 
 definition TWL_DECO_clause where
   \<open>TWL_DECO_clause M =
@@ -41,20 +79,28 @@ if
   \<open>count_decided M = 1\<close> |
 bj_nonunit:
   \<open>negate_model_and_add_twl (M, N, U, None, NP, UP, WS, Q)
-     (Propagated (-K) (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#K#})\<close>
+     (Propagated (-K) (DECO_clause M) # M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#},
+      {#K#})\<close>
 if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
   \<open>get_level M K = count_decided M\<close> and
   \<open>count_decided M \<ge> 2\<close> |
 restart_nonunit:
-  \<open>negate_model_and_add_twl (M, N, U, None, NP, UP, {#}, Q)
+  \<open>negate_model_and_add_twl (M, N, U, None, NP, UP, WS, Q)
        (M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
 if
   \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
   \<open>get_level M K < count_decided M\<close> and
   \<open>count_decided M > 1\<close>
 
-(* TODO Merge with the proof from  thm after_fast_restart_replay*)
+text \<open>Some remarks:
+  \<^item> Because of the invariants (unit clauses have to be propagated), a rule restart\_unit would be
+the same as the bj\_unit.
+  \<^item> The rules cleans the components about updates and do not assume that they are empty.
+\<close>
+
+
+(* TODO Merge with the proof from thm after_fast_restart_replay*)
 lemma after_fast_restart_replay:
   assumes
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N, U, None)\<close> and
@@ -379,7 +425,7 @@ proof -
           apply (rule cdcl\<^sub>W_restart_mset.decide_rule[of _ \<open>lit_of (?L m)\<close>])
           subgoal by simp
           subgoal using undef_nth_Suc[of m] le by simp
-          subgoal using le  atm_in by auto
+          subgoal using le atm_in by auto
           subgoal using le k_le_M' K unfolding k_def[symmetric] Sk
             by (auto simp: state_eq_def state_def Cons_nth_drop_Suc[symmetric])
           done
@@ -439,13 +485,6 @@ lemma after_fast_restart_replay_no_stgy':
   shows
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ([], N', U', None) (drop (length M' - n) M', N', U', None)\<close>
   using after_fast_restart_replay_no_stgy[OF inv, of n \<open>N'-N\<close> U'] assms by auto
-
-(* TODO Move *)
-lemma (in conflict_driven_clause_learning\<^sub>W) rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_restart:
-  \<open>cdcl\<^sub>W\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T\<close>
-  by (induction rule: rtranclp_induct) (auto dest: cdcl\<^sub>W_cdcl\<^sub>W_restart)
-(* End Move *)
-
 
 lemma cdcl\<^sub>W_all_struct_inv_move_to_init:
   assumes inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U + U', D)\<close>
@@ -586,7 +625,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
   then have M': \<open>M = M2' @ Decided K # M1\<close>
     using M by auto
   then have
-    st_invs_M1': \<open>\<forall>C\<in>#N + U. twl_lazy_update M1 C \<and> twl_inv M1 C \<and>
+    st_invs_M1': \<open>\<forall>C\<in>#N + U. twl_lazy_update M1 C \<and>
          watched_literals_false_of_max_level M1 C \<and>
          twl_exception_inv (M1, N, U, None, NP, UP, {#}, {#}) C\<close> and
     confl_enqueued_M1: \<open>confl_cands_enqueued (M1, N, U, None, NP, UP, {#}, {#})\<close> and
@@ -600,7 +639,8 @@ proof (induction rule: negate_model_and_add_twl.induct)
     using struct_invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (simp add: trail.simps)
-
+  hence undef_K: \<open>undefined_lit M1 K\<close> and n_d1:  \<open>no_dup M1\<close>
+    unfolding M' by (auto dest: no_dup_appendD)
   have dist: \<open>distinct (map atm_of (map lit_of M))\<close>
     using no_dup by (auto simp: no_dup_def comp_def)
 
@@ -788,7 +828,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
       let ?SM1a = \<open>(M1a, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
       have
         struct:
-        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and>
           watched_literals_false_of_max_level M1a C \<and>
           twl_exception_inv (M1a, N, U, None, NP, UP, {#}, {#}) C\<close>
         for C
@@ -810,18 +850,16 @@ proof (induction rule: negate_model_and_add_twl.induct)
         using no_dup M1 unfolding deco_M unfolding M' M1a
         by (auto simp: deco_M add_mset_eq_add_mset
             dest: in_lits_of_l_defined_litD)
-      moreover have \<open>twl_inv M1a (TWL_DECO_clause M)\<close>
-        unfolding deco_M by (auto simp: add_mset_eq_add_mset)
       moreover have \<open>watched_literals_false_of_max_level M1a (TWL_DECO_clause M)\<close>
         unfolding deco_M by (auto simp: add_mset_eq_add_mset)
       moreover have \<open>twl_exception_inv ?SM1a (TWL_DECO_clause M)\<close>
         unfolding deco_M by (auto simp: add_mset_eq_add_mset twl_exception_inv.simps)
-      ultimately have \<open>C\<in>#add_mset (TWL_DECO_clause M) N + U \<Longrightarrow> twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+      ultimately have \<open>C\<in>#add_mset (TWL_DECO_clause M) N + U \<Longrightarrow> twl_lazy_update M1a C \<and>
          watched_literals_false_of_max_level M1a C \<and>
          twl_exception_inv ?SM1a C\<close> for C
         using struct[of C]
         by (auto simp: twl_exception_inv.simps)
-      then show \<open>\<forall>C\<in>#add_mset (TWL_DECO_clause M) N + U. twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+      then show \<open>\<forall>C\<in>#add_mset (TWL_DECO_clause M) N + U. twl_lazy_update M1a C \<and>
          watched_literals_false_of_max_level M1a C \<and>
          twl_exception_inv ?SM1a C\<close>
         by blast
@@ -869,11 +907,17 @@ proof (induction rule: negate_model_and_add_twl.induct)
       subgoal using no_dup by (simp add: cdcl\<^sub>W_restart_mset_state M')
       subgoal by (simp add: cdcl\<^sub>W_restart_mset_state)
       done
+    have lazy: \<open>twl_lazy_update M1 C\<close> if \<open>C\<in>#N + U\<close> for C
+      using that st_invs_M1' by blast
+    have excep: \<open>twl_exception_inv (M1, N, U, None, NP, UP, {#}, {#}) C\<close>  if \<open>C\<in>#N + U\<close> for C
+      using that st_invs_M1' by blast
 
-    have \<open>twl_lazy_update (Propagated (- K) {#- K#} # M1) C\<close> for C
-      by (cases C) (auto simp: get_level_cons_if)
-    moreover have \<open>twl_inv (Propagated (- K) {#- K#} # M1) C\<close> for C
-      by (cases C) (auto simp: get_level_cons_if)
+    have \<open>\<not>twl_is_an_exception C {#K#} {#} \<Longrightarrow> twl_lazy_update (Propagated (- K) {#- K#} # M1) C\<close> if \<open>C\<in>#N + U\<close> for C
+      using lazy[OF that] no_dup undef_K n_d1 excep[OF that]
+      by (cases C)
+        (auto simp: get_level_cons_if all_conj_distrib twl_exception_inv.simps
+          twl_is_an_exception_def
+          dest!: no_has_blit_propagate multi_member_split)
     moreover have \<open>watched_literals_false_of_max_level (Propagated (- K) {#- K#} # M1) C\<close> for C
       by (cases C) (auto simp: get_level_cons_if)
     ultimately have \<open>twl_st_inv ?S\<close>
@@ -890,7 +934,9 @@ proof (induction rule: negate_model_and_add_twl.induct)
       by (auto 5 5 simp: dest!: cdcl\<^sub>W_restart_mset.propagate cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.propagate'
           intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_no_smaller_propa)
     moreover have \<open>twl_st_exception_inv ?S\<close>
-      using st_invs_M1' by (simp add: twl_exception_inv.simps)
+      using st_invs_M1'  no_dup undef_K n_d1
+      by (auto simp add: twl_exception_inv.simps
+          dest!: no_has_blit_propagate')
     moreover have \<open>no_duplicate_queued ?S\<close>
       by auto
     moreover have \<open>distinct_queued ?S\<close>
@@ -959,15 +1005,30 @@ proof (induction rule: negate_model_and_add_twl.induct)
         (* TODO Proof *)
         using H no_dup undef dist_C
         unfolding true_annots_true_cls_def_iff_negation_in_model M' C' Ball_def
-        apply (cases \<open>L = L1\<close>; cases \<open>L = L2\<close>)
-        by (auto dest: in_lits_of_l_defined_litD no_dup_appendD no_dup_consistentD
-            simp: all_conj_distrib)
+        by (cases \<open>L = L1\<close>; cases \<open>L = L2\<close>;
+            auto dest: in_lits_of_l_defined_litD no_dup_appendD no_dup_consistentD
+            simp: all_conj_distrib)+
       moreover have \<open>L1 \<notin> lits_of_l M1\<close>
         using H no_dup undef dist_C
         unfolding true_annots_true_cls_def_iff_negation_in_model M' C' Ball_def
         apply (cases \<open>L = L1\<close>; cases \<open>L = L2\<close>)
         by (auto dest: in_lits_of_l_defined_litD no_dup_appendD no_dup_consistentD
             simp: all_conj_distrib)
+      moreover {
+        have \<open>L' \<in> lits_of_l M1 \<Longrightarrow> L' \<in># UW \<Longrightarrow> False\<close> for L'
+          using H no_dup undef dist_C \<open>L1 \<notin> lits_of_l M1\<close> \<open>L2 \<notin> lits_of_l M1\<close> n_d1
+          unfolding true_annots_true_cls_def_iff_negation_in_model M' C' Ball_def
+          apply (cases \<open>L = L1\<close>; cases \<open>L = L2\<close>)
+          apply (auto dest: in_lits_of_l_defined_litD no_dup_appendD no_dup_consistentD
+              simp: all_conj_distrib)
+          by (metis diff_single_trivial in_lits_of_l_defined_litD insert_DiffM
+              insert_noteq_member n_d1 no_dup_consistentD)+
+        then have \<open>\<not> has_blit M1 (clause (TWL_Clause {#L1, L2#} UW)) L1\<close> and
+          \<open>\<not> has_blit M1 (clause (TWL_Clause {#L1, L2#} UW)) L2\<close>
+          using \<open>L1 \<notin> lits_of_l M1\<close> \<open>L2 \<notin> lits_of_l M1\<close>
+          unfolding has_blit_def
+          by auto
+      }
       ultimately have
          \<open>- L1 \<in> lits_of_l M1 \<Longrightarrow> (\<forall>K\<in>#UW. - K \<in> lits_of_l M1)\<close>
          \<open>- L2 \<in> lits_of_l M1 \<Longrightarrow> (\<forall>K\<in>#UW. - K \<in> lits_of_l M1)\<close>
@@ -975,13 +1036,12 @@ proof (induction rule: negate_model_and_add_twl.induct)
         by fastforce+
       moreover have \<open>L1 \<noteq> L2\<close>
         using dist_C by (auto simp: C')
-      ultimately have \<open>L \<noteq> L1 \<Longrightarrow> L \<noteq> L2 \<Longrightarrow> False\<close>
-        \<open>K \<noteq> L1 \<Longrightarrow> K \<noteq> L2 \<Longrightarrow> False\<close>
+      ultimately have \<open>K \<noteq> L1 \<Longrightarrow> K \<noteq> L2 \<Longrightarrow> False\<close>
         using M1_C' L undef K_C'_C no_dup[unfolded M']
         by (cases \<open>- L1 \<in> lits_of_l M1\<close>; cases \<open>- L2 \<in> lits_of_l M1\<close>;
             auto simp add: C' true_annots_true_cls_def_iff_negation_in_model
             add_mset_eq_add_mset
-            dest!: multi_member_split[of _ UW] dest: in_lits_of_l_defined_litD; fail)+
+            dest!: multi_member_split[of _ UW] dest: in_lits_of_l_defined_litD)
       then show \<open>(\<exists>L'. L' \<in># watched C \<and> L' \<in># {#K#}) \<or> (\<exists>L. (L, C) \<in># {#})\<close>
         by (auto simp: C')
     qed
@@ -999,12 +1059,12 @@ proof (induction rule: negate_model_and_add_twl.induct)
     moreover {
       have \<open>\<not>clauses_to_update_prop {#} (M1) (L, La) \<Longrightarrow>
          clauses_to_update_prop {#K#} (Propagated (- K) {#- K#} # M1) (L, La) \<Longrightarrow> False\<close> for L La
-        using no_dup
+        using no_dup n_d1 undef_K
         by (auto simp: clauses_to_update_prop.simps M'
             dest: in_lits_of_l_defined_litD)
       then have \<open>clauses_to_update_inv ?S\<close>
-        using clss_upd no_dup by (force simp: filter_mset_empty_conv
-          dest: in_lits_of_l_defined_litD)
+        using clss_upd no_dup n_d1 undef_K by (force simp: filter_mset_empty_conv
+          dest: in_lits_of_l_defined_litD dest!: no_has_blit_propagate')
     }
     moreover have \<open>past_invs ?S\<close>
       unfolding past_invs.simps
@@ -1016,7 +1076,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
       let ?SM1a = \<open>(M1a, N, U, None, add_mset (DECO_clause M) NP, UP, {#}, {#})\<close>
       have
         struct:
-        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and>
           watched_literals_false_of_max_level M1a C \<and>
           twl_exception_inv (M1a, N, U, None, NP, UP, {#}, {#}) C\<close>
         for C
@@ -1028,7 +1088,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
         clss_to_upd: \<open>clauses_to_update_inv (M1a, N, U, None, NP, UP, {#}, {#})\<close>
         using past_M1 unfolding past_invs.simps unfolding M1a
         by fast+
-      show \<open>\<forall>C\<in>#N + U. twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+      show \<open>\<forall>C\<in>#N + U. twl_lazy_update M1a C \<and>
          watched_literals_false_of_max_level M1a C \<and>
          twl_exception_inv ?SM1a C\<close>
         using struct by (simp add: twl_exception_inv.simps)
@@ -1097,8 +1157,6 @@ proof (induction rule: negate_model_and_add_twl.induct)
       by (auto simp: simp del: clause_TWL_Deco_clause)
     moreover have \<open>twl_lazy_update M1 (TWL_DECO_clause M)\<close>
       by (auto simp: deco_M add_mset_eq_add_mset)
-    moreover have \<open>twl_inv M1 (TWL_DECO_clause M)\<close>
-      by (auto simp: deco_M add_mset_eq_add_mset)
     moreover have \<open>watched_literals_false_of_max_level M1 (TWL_DECO_clause M)\<close>
       by (auto simp: deco_M add_mset_eq_add_mset)
     ultimately have \<open>twl_st_inv ?S\<close>
@@ -1145,7 +1203,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
        - L \<in> lits_of_l M1 \<Longrightarrow> False\<close> for L L'
         by (auto simp: deco_M add_mset_eq_add_mset)
       ultimately have \<open>clauses_to_update_inv ?S\<close>
-        using clss_upd no_dup by (auto simp: filter_mset_empty_conv
+        using clss_upd no_dup by (auto simp: filter_mset_empty_conv clauses_to_update_prop.simps
           dest: in_lits_of_l_defined_litD)
     }
     moreover have \<open>past_invs ?S\<close>
@@ -1156,7 +1214,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
       let ?SM1a = \<open>(M1a, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
       have
         struct:
-        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+        \<open>C\<in>#N + U \<Longrightarrow> twl_lazy_update M1a C \<and>
           watched_literals_false_of_max_level M1a C \<and>
           twl_exception_inv (M1a, N, U, None, NP, UP, {#}, {#}) C\<close>
         for C
@@ -1171,7 +1229,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
         clss_to_upd: \<open>clauses_to_update_inv (M1a, N, U, None, NP, UP, {#}, {#})\<close>
         using past_M1 unfolding past_invs.simps unfolding M1a
         by fast+
-      show \<open>\<forall>C\<in>#add_mset (TWL_DECO_clause M) N + U. twl_lazy_update M1a C \<and> twl_inv M1a C \<and>
+      show \<open>\<forall>C\<in>#add_mset (TWL_DECO_clause M) N + U. twl_lazy_update M1a C \<and>
          watched_literals_false_of_max_level M1a C \<and>
          twl_exception_inv ?SM1a C\<close>
         using struct by (auto simp add: twl_exception_inv.simps deco_M add_mset_eq_add_mset)
@@ -1320,9 +1378,9 @@ next
   ultimately show ?case
     unfolding twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def by fast
 next
-  case (restart_nonunit K M1 M2 M N U NP UP Q) note decomp = this(1) and lev_K = this(2) and
+  case (restart_nonunit K M1 M2 M N U NP UP WS Q) note decomp = this(1) and lev_K = this(2) and
     count_dec = this(3) and struct = this(4) and stgy = this(5)
-  let ?S = \<open>(M, N, U, None, NP, UP, {#}, Q)\<close>
+  let ?S = \<open>(M, N, U, None, NP, UP, WS, Q)\<close>
   let ?T = \<open>(M1, add_mset (TWL_DECO_clause M) N, U, None, NP, UP, {#}, {#})\<close>
   have
     false_with_lev: \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (state\<^sub>W_of ?S)\<close> and
@@ -1356,5 +1414,42 @@ next
   ultimately show ?case
     unfolding twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def by fast
 qed
+
+
+lemma cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init:
+  assumes
+    \<open>cdcl_twl_stgy S s\<close> and
+    \<open>twl_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+  shows
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of s)\<close>
+  by (meson assms cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_learned_clauses_entailed
+      cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart
+      cdcl_twl_stgy_cdcl\<^sub>W_stgy twl_struct_invs_def)
+
+lemma rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init:
+  assumes
+    \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S s\<close> and
+    \<open>twl_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+  shows
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of s)\<close>
+  using assms
+  by (induction rule: rtranclp_induct)
+    (auto intro: cdcl_twl_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init
+      rtranclp_cdcl_twl_stgy_twl_struct_invs)
+
+lemma negate_model_and_add_twl_cdcl\<^sub>W_learned_clauses_entailed_by_init:
+  assumes
+    \<open>negate_model_and_add_twl S s\<close> and
+    \<open>twl_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+  shows
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of s)\<close>
+  using assms
+  by (induction rule: negate_model_and_add_twl.induct)
+     (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+      cdcl\<^sub>W_restart_mset_state)
 
 end

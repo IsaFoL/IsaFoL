@@ -1,15 +1,32 @@
 theory WB_List_More
-  imports Nested_Multisets_Ordinals.Multiset_More
+  imports Nested_Multisets_Ordinals.Multiset_More "HOL-Library.Finite_Map"
+    "HOL-Eisbach.Eisbach"
+    "HOL-Eisbach.Eisbach_Tools"
 begin
-
-text \<open>Sledgehammer parameters\<close>
-sledgehammer_params[debug]
+text \<open>This theory contains various lemmas that have been used in the formalisation. Some of them
+could probably be moved to the Isabelle distribution or
+\<^theory>\<open>Nested_Multisets_Ordinals.Multiset_More\<close>.
+\<close>
+text \<open>More Sledgehammer parameters\<close>
+(* sledgehammer_params[debug] *)
 
 section \<open>Various Lemmas\<close>
 
+subsection \<open>Not-Related to Refinement or lists\<close>
+
+text \<open>
+  Unlike clarify/auto/simp, this does not split tuple of the form \<^term>\<open>\<exists>T. P T\<close> in the assumption.
+  After calling it, as the variable are not quantified anymore, the simproc does not trigger,
+  allowing to safely call auto/simp/...
+\<close>
+method normalize_goal =
+  (match premises in
+    J[thin]: \<open>\<exists>x. _\<close> \<Rightarrow> \<open>rule exE[OF J]\<close>
+  \<bar> J[thin]: \<open>_ \<and> _\<close> \<Rightarrow> \<open>rule conjE[OF J]\<close>
+  )
+
 text \<open>Close to the theorem @{thm [source] nat_less_induct} (@{thm nat_less_induct}), but with a
   separation between the zero and non-zero case.\<close>
-thm nat_less_induct
 lemma nat_less_induct_case[case_names 0 Suc]:
   assumes
     \<open>P 0\<close> and
@@ -23,6 +40,18 @@ text \<open>This is only proved in simple cases by auto. In assumptions, nothing
   in the context or as simplification rules).\<close>
 lemma if_0_1_ge_0[simp]:
   \<open>0 < (if P then a else (0::nat)) \<longleftrightarrow> P \<and> 0 < a\<close>
+  by auto
+
+lemma bex_lessI: "P j \<Longrightarrow> j < n \<Longrightarrow> \<exists>j<n. P j"
+  by auto
+
+lemma bex_gtI: "P j \<Longrightarrow> j > n \<Longrightarrow> \<exists>j>n. P j"
+  by auto
+
+lemma bex_geI: "P j \<Longrightarrow> j \<ge> n \<Longrightarrow> \<exists>j\<ge>n. P j"
+  by auto
+
+lemma bex_leI: "P j \<Longrightarrow> j \<le> n \<Longrightarrow> \<exists>j\<le>n. P j"
   by auto
 
 text \<open>Bounded function have not yet been defined in Isabelle.\<close>
@@ -58,8 +87,17 @@ lemma bounded_const_product:
   assumes \<open>k > 0\<close>
   shows \<open>bounded f \<longleftrightarrow> bounded (\<lambda>i. k * f i)\<close>
   unfolding bounded_def apply (rule iffI)
-   using mult_le_mono2 apply blast
-  by (meson assms le_less_trans less_or_eq_imp_le nat_mult_less_cancel_disj split_div_lemma)
+  using mult_le_mono2 apply blast
+  by (metis Suc_leI add.right_neutral assms mult.commute mult_0_right mult_Suc_right mult_le_mono
+      nat_mult_le_cancel1)
+
+lemma bounded_const_add:
+  fixes k :: nat and f :: \<open>nat \<Rightarrow> nat\<close>
+  assumes \<open>k > 0\<close>
+  shows \<open>bounded f \<longleftrightarrow> bounded (\<lambda>i. k + f i)\<close>
+  unfolding bounded_def apply (rule iffI)
+   using nat_add_left_cancel_le apply blast
+  using add_leE by blast
 
 text \<open>This lemma is not used, but here to show that property that can be expected from
   @{term bounded} holds.\<close>
@@ -79,6 +117,9 @@ qed
 section \<open>More Lists\<close>
 
 subsection \<open>set, nth, tl\<close>
+
+lemma ex_geI: \<open>P n \<Longrightarrow> n \<ge> m \<Longrightarrow> \<exists>n\<ge>m. P n\<close>
+  by auto
 
 lemma Ball_atLeastLessThan_iff: \<open>(\<forall>L\<in>{a..<b}. P L) \<longleftrightarrow> (\<forall>L. L \<ge> a \<and> L < b \<longrightarrow> P L) \<close>
   unfolding set_nths by auto
@@ -106,6 +147,15 @@ lemma Collect_minus_single_Collect: \<open>{x. P x} - {a} = {x . P x \<and> x \<
 lemma in_set_image_subsetD: \<open> f ` A \<subseteq> B \<Longrightarrow> x \<in> A \<Longrightarrow>f x \<in> B\<close>
   by blast
 
+lemma mset_tl:
+  \<open>mset (tl xs) = remove1_mset (hd xs) (mset xs)\<close>
+  by (cases xs) auto
+
+lemma hd_list_update_If:
+  \<open>outl' \<noteq> [] \<Longrightarrow> hd (outl'[i := w]) = (if i = 0 then w else hd outl')\<close>
+  by (cases outl') (auto split: nat.splits)
+
+
 text \<open>
   This lemma is not general enough to move to Isabelle, but might be interesting in other
   cases.\<close>
@@ -113,9 +163,11 @@ lemma set_Collect_Pair_to_fst_snd:
   \<open>{((a, b), (a', b')). P a b a' b'} = {(e, f). P (fst e) (snd e) (fst f) (snd f)}\<close>
   by auto
 
+lemma butlast_Nil_iff: \<open>butlast xs = [] \<longleftrightarrow> length xs = 1 \<or> length xs = 0\<close>
+  by (cases xs) auto
 
-subsection \<open>Update\<close>
 
+subsection \<open>List Updates\<close>
 
 lemma tl_update_swap:
   \<open>i \<ge> 1 \<Longrightarrow> tl (N[i := C]) = tl N[i-1 := C]\<close>
@@ -152,23 +204,26 @@ lemma atd_lem: \<open>take n xs = t \<Longrightarrow> drop n xs = d \<Longrighta
 lemma drop_take_drop_drop:
   \<open>j \<ge> i \<Longrightarrow> drop i xs = take (j - i) (drop i xs) @ drop j xs\<close>
   apply (induction \<open>j - i\<close> arbitrary: j i)
-   apply auto
-  apply (case_tac j)
-  by (auto simp add: atd_lem)
+  subgoal by auto
+  subgoal by (auto simp add: atd_lem)
+  done
 
 lemma in_set_conv_iff:
   \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>i < n. i < length xs \<and> xs ! i = x)\<close>
-   apply (induction n)
+  apply (induction n)
   subgoal by auto
   subgoal for n
     apply (cases \<open>Suc n < length xs\<close>)
     subgoal by (auto simp: take_Suc_conv_app_nth less_Suc_eq dest: in_set_takeD)
     subgoal
-    apply (cases \<open>n < length xs\<close>)
-      apply (auto simp: take_Suc_conv_app_nth dest: in_set_takeD)
-      using less_Suc_eq apply auto[1]
-      apply (meson in_set_conv_nth less_trans_Suc not_less_eq)
-      by (meson Suc_lessD less_trans_Suc not_less_eq)
+      apply (cases \<open>n < length xs\<close>)
+      subgoal
+        apply (auto simp: in_set_conv_nth)
+        by (rule_tac x=i in exI; auto; fail)+
+      subgoal
+        apply (auto simp: take_Suc_conv_app_nth dest: in_set_takeD)
+        by (rule_tac x=i in exI; auto; fail)+
+      done
     done
   done
 
@@ -188,7 +243,7 @@ lemma in_set_distinct_take_drop_iff:
   shows \<open>D ! b \<in> set (take (a - init) (drop init D)) \<longleftrightarrow> (init \<le> b \<and> b < a)\<close>
   using assms apply (auto 5 5 simp: distinct_in_set_take_iff in_set_conv_iff
       nth_eq_iff_index_eq dest: in_set_takeD)
-  by (metis add_diff_cancel_left' diff_less_mono le_iff_add less_imp_le_nat nth_drop)
+  by (metis add_diff_cancel_left' diff_less_mono le_iff_add)
 
 
 subsection \<open>Replicate\<close>
@@ -202,7 +257,7 @@ lemma list_eq_replicate_iff:
   by (cases n) (auto simp: list_eq_replicate_iff_nempty simp del: replicate.simps)
 
 
-subsection \<open>@{term upt}\<close>
+subsection \<open>List intervals (@{term upt})\<close>
 
 text \<open>
   The simplification rules are not very handy, because theorem @{thm [source] upt.simps(2)}
@@ -320,14 +375,14 @@ text \<open>The following two lemmas are useful as simp rules for case-distincti
 lemma length_list_Suc_0:
   \<open>length W = Suc 0 \<longleftrightarrow> (\<exists>L. W = [L])\<close>
   apply (cases W)
-    apply simp
+    apply (simp; fail)
   apply (rename_tac a W', case_tac W')
   apply auto
   done
 
 lemma length_list_2: \<open>length S = 2 \<longleftrightarrow> (\<exists>a b. S = [a, b])\<close>
   apply (cases S)
-   apply simp
+   apply (simp; fail)
   apply (rename_tac a S')
   apply (case_tac S')
   by simp_all
@@ -376,7 +431,7 @@ lemma last_list_update_to_last:
   \<open>last (xs[x := last xs]) = last xs\<close>
   by (metis last_list_update list_update.simps(1))
 
-lemma take_map_nth_alt_def: \<open>take n xs = map (op! xs) [0..<min n (length xs)]\<close>
+lemma take_map_nth_alt_def: \<open>take n xs = map ((!) xs) [0..<min n (length xs)]\<close>
 proof (induction xs rule: rev_induct)
   case Nil
   then show ?case by auto
@@ -391,8 +446,8 @@ next
     case False
     have [simp]:
       \<open>map (\<lambda>a. if a < length xs then xs ! a else [x] ! (a - length xs)) [0..<length xs] =
-       map (\<lambda>a. xs ! a) [0..<length xs]\<close> for xs x
-     by (rule map_cong) auto
+       map (\<lambda>a. xs ! a) [0..<length xs]\<close> for xs and x :: 'b
+      by (rule map_cong) auto
     show ?thesis
       using IH False by (auto simp: nth_append min_def)
   qed
@@ -414,11 +469,11 @@ lemma lexn_n:
   by (auto simp: map_prod_def image_iff lex_prod_def)
 
 text \<open>
-  There is some subtle point in the previous theorem explaining \<^emph>\<open>why\<close> it is useful. @{term \<open>1::nat\<close>}
-  is converted to @{term \<open>Suc 0::nat\<close>}, but @{term \<open>2::nat\<close>} is not: meaning that @{term \<open>1::nat\<close>}
-  is automatically simplified by default allowing the use of the default simplification rule
-  @{thm [source] lexn.simps}. However, the latter needs additional simplification rule (see the
-  proof of the theorem above).
+  There is some subtle point in the previous theorem explaining \<^emph>\<open>why\<close> it is useful. The term
+  @{term \<open>1::nat\<close>} is converted to @{term \<open>Suc 0::nat\<close>}, but @{term \<open>2::nat\<close>} is not, meaning
+  that @{term \<open>1::nat\<close>} is automatically simplified by default allowing the use of the default
+  simplification rule @{thm [source] lexn.simps}. However, for 2 one additional simplification rule
+  is required (see the proof of the theorem above).
 \<close>
 
 lemma lexn2_conv:
@@ -546,7 +601,6 @@ subsection \<open>Remove\<close>
 
 subsubsection \<open>More lemmas about remove\<close>
 
-
 lemma distinct_remove1_last_butlast:
   \<open>distinct xs \<Longrightarrow> xs \<noteq> [] \<Longrightarrow> remove1 (last xs) xs = butlast xs\<close>
   by (metis append_Nil2 append_butlast_last_id distinct_butlast not_distinct_conv_prefix
@@ -580,7 +634,7 @@ fun remove1_cond where
 \<open>remove1_cond f [] = []\<close> |
 \<open>remove1_cond f (C' # L) = (if f C' then L else C' # remove1_cond f L)\<close>
 
-lemma \<open>remove1 x xs = remove1_cond ((op =) x) xs\<close>
+lemma \<open>remove1 x xs = remove1_cond ((=) x) xs\<close>
   by (induction xs) auto
 
 lemma mset_map_mset_remove1_cond:
@@ -593,10 +647,10 @@ fun removeAll_cond :: \<open>('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rig
 \<open>removeAll_cond f [] = []\<close> |
 \<open>removeAll_cond f (C' # L) = (if f C' then removeAll_cond f L else C' # removeAll_cond f L)\<close>
 
-lemma \<open>removeAll x xs = removeAll_cond ((op =) x) xs\<close>
+lemma removeAll_removeAll_cond: \<open>removeAll x xs = removeAll_cond ((=) x) xs\<close>
   by (induction xs) auto
 
-lemma \<open>removeAll_cond P xs = filter (\<lambda>x. \<not>P x) xs\<close>
+lemma removeAll_cond_filter: \<open>removeAll_cond P xs = filter (\<lambda>x. \<not>P x) xs\<close>
   by (induction xs) auto
 
 lemma mset_map_mset_removeAll_cond:
@@ -624,20 +678,22 @@ qed
 subsubsection \<open>Filter\<close>
 
 lemma distinct_filter_eq_if:
-  \<open>distinct C \<Longrightarrow> length (filter (op = L) C) = (if L \<in> set C then 1 else 0)\<close>
+  \<open>distinct C \<Longrightarrow> length (filter ((=) L) C) = (if L \<in> set C then 1 else 0)\<close>
   by (induction C) auto
 
-lemma (in -) length_filter_update_true:
-  \<open>i < length xs \<Longrightarrow> P (xs ! i) \<Longrightarrow> length (filter P (xs[i := x])) = length (filter P xs) - (if P x then 0 else 1)\<close>
+lemma length_filter_update_true:
+  assumes \<open>i < length xs\<close> and \<open>P (xs ! i)\<close>
+  shows \<open>length (filter P (xs[i := x])) = length (filter P xs) - (if P x then 0 else 1)\<close>
   apply (subst (5) append_take_drop_id[of i, symmetric])
-  using upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
+  using assms upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
   unfolding filter_append length_append
   by simp
 
-lemma (in -) length_filter_update_falte:
-  \<open>i < length xs \<Longrightarrow> \<not>P (xs ! i) \<Longrightarrow> length (filter P (xs[i := x])) = length (filter P xs) + (if P x then 1 else 0)\<close>
+lemma length_filter_update_false:
+  assumes \<open>i < length xs\<close> and \<open>\<not>P (xs ! i)\<close>
+  shows \<open>length (filter P (xs[i := x])) = length (filter P xs) + (if P x then 1 else 0)\<close>
   apply (subst (5) append_take_drop_id[of i, symmetric])
-  using upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
+  using assms upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
   unfolding filter_append length_append
   by simp
 
@@ -663,14 +719,482 @@ proof -
   finally show ?thesis .
 qed
 
-lemma count_list_filter: \<open>count_list xs x = length (filter (op = x) xs)\<close>
+lemma count_list_filter: \<open>count_list xs x = length (filter ((=) x) xs)\<close>
   by (induction xs) auto
 
 lemma sum_length_filter_compl': \<open>length [x\<leftarrow>xs . \<not> P x] + length (filter P xs) = length xs\<close>
   using sum_length_filter_compl[of P xs] by auto
 
 
+subsection \<open>Sorting\<close>
+
+text \<open>See @{thm sorted_distinct_set_unique}.\<close>
+lemma sorted_mset_unique:
+  fixes xs :: \<open>'a :: linorder list\<close>
+  shows \<open>sorted xs \<Longrightarrow> sorted ys \<Longrightarrow> mset xs = mset ys \<Longrightarrow> xs = ys\<close>
+  using properties_for_sort by auto
+
+lemma insort_upt: \<open>insort k [a..<b] =
+  (if k < a then k # [a..<b]
+  else if k < b then [a..<k] @ k # [k ..<b]
+  else [a..<b] @ [k])\<close>
+proof -
+  have H: \<open>k < Suc b \<Longrightarrow> \<not> k < a \<Longrightarrow> {a..<b} = {a..<k} \<union> {k..<b}\<close> for a b :: nat
+    by (simp add: ivl_disj_un_two(3))
+  show ?thesis
+  apply (induction b)
+   apply (simp; fail)
+  apply (case_tac \<open>\<not>k < a \<and> k < Suc b\<close>)
+   apply (rule sorted_mset_unique)
+      apply ((auto simp add: sorted_append sorted_insort ac_simps mset_set_Union
+        dest!: H; fail)+)[2]
+    apply (auto simp: insort_is_Cons sorted_insort_is_snoc sorted_append mset_set_Union
+      ac_simps dest: H; fail)+
+  done
+qed
+
+lemma removeAll_insert_removeAll: \<open>removeAll k (insort k xs) = removeAll k xs\<close>
+  by (simp add: filter_insort_triv removeAll_filter_not_eq)
+
+lemma filter_sorted: \<open>sorted xs \<Longrightarrow> sorted (filter P xs)\<close>
+  by (metis list.map_ident sorted_filter)
+
+lemma removeAll_insort:
+  \<open>sorted xs \<Longrightarrow> k \<noteq> k' \<Longrightarrow> removeAll k' (insort k xs) = insort k (removeAll k' xs)\<close>
+  by (simp add: filter_insort removeAll_filter_not_eq)
+
+
+subsection \<open>Distinct Multisets\<close>
+
+lemma distinct_mset_remdups_mset_id: \<open>distinct_mset C \<Longrightarrow> remdups_mset C = C\<close>
+  by (induction C)  auto
+
+lemma notin_add_mset_remdups_mset:
+  \<open>a \<notin># A \<Longrightarrow> add_mset a (remdups_mset A) = remdups_mset (add_mset a A)\<close>
+  by auto
+
+
+subsection \<open>Set of Distinct Multisets\<close>
+
+definition distinct_mset_set :: \<open>'a multiset set \<Rightarrow> bool\<close> where
+  \<open>distinct_mset_set \<Sigma> \<longleftrightarrow> (\<forall>S \<in> \<Sigma>. distinct_mset S)\<close>
+
+lemma distinct_mset_set_empty[simp]: \<open>distinct_mset_set {}\<close>
+  unfolding distinct_mset_set_def by auto
+
+lemma distinct_mset_set_singleton[iff]: \<open>distinct_mset_set {A} \<longleftrightarrow> distinct_mset A\<close>
+  unfolding distinct_mset_set_def by auto
+
+lemma distinct_mset_set_insert[iff]:
+  \<open>distinct_mset_set (insert S \<Sigma>) \<longleftrightarrow> (distinct_mset S \<and> distinct_mset_set \<Sigma>)\<close>
+  unfolding distinct_mset_set_def by auto
+
+lemma distinct_mset_set_union[iff]:
+  \<open>distinct_mset_set (\<Sigma> \<union> \<Sigma>') \<longleftrightarrow> (distinct_mset_set \<Sigma> \<and> distinct_mset_set \<Sigma>')\<close>
+  unfolding distinct_mset_set_def by auto
+
+lemma in_distinct_mset_set_distinct_mset:
+  \<open>a \<in> \<Sigma> \<Longrightarrow> distinct_mset_set \<Sigma> \<Longrightarrow> distinct_mset a\<close>
+  unfolding distinct_mset_set_def by auto
+
+lemma distinct_mset_remdups_mset[simp]: \<open>distinct_mset (remdups_mset S)\<close>
+  using count_remdups_mset_eq_1 unfolding distinct_mset_def by metis
+
+lemma distinct_mset_mset_set: \<open>distinct_mset (mset_set A)\<close>
+  unfolding distinct_mset_def count_mset_set_if by (auto simp: not_in_iff)
+
+lemma distinct_mset_set_distinct: \<open>distinct_mset_set (mset ` set Cs) \<longleftrightarrow> (\<forall>c\<in> set Cs. distinct c)\<close>
+  unfolding distinct_mset_set_def by auto
+
+
+subsection \<open>Sublists\<close>
+
+lemma nths_single_if: \<open>nths l {n} = (if n < length l then [l!n] else [])\<close>
+proof -
+  have [simp]: \<open>0 < n \<Longrightarrow> {j. Suc j = n} = {n-1}\<close> for n
+    by auto
+  show ?thesis
+    apply (induction l arbitrary: n)
+    subgoal by (auto simp: nths_def)
+    subgoal by (auto simp: nths_Cons)
+    done
+qed
+
+lemma atLeastLessThan_Collect: \<open>{a..<b} = {j. j \<ge> a \<and> j < b}\<close>
+  by auto
+
+lemma mset_nths_subset_mset: \<open>mset (nths xs A) \<subseteq># mset xs\<close>
+  apply (induction xs arbitrary: A)
+  subgoal by auto
+  subgoal for a xs A
+    using subset_mset.add_increasing2[of \<open>add_mset _ {#}\<close> \<open>mset (nths xs {j. Suc j \<in> A})\<close>
+      \<open>mset xs\<close>]
+    by (auto simp: nths_Cons)
+  done
+
+lemma nths_id_iff:
+  \<open>nths xs A = xs \<longleftrightarrow> {0..<length xs} \<subseteq> A \<close>
+proof -
+  have \<open>{j. Suc j \<in> A} =  (\<lambda>j. j-1) ` (A - {0})\<close> for A
+    using DiffI by (fastforce simp: image_iff)
+  have 1: \<open>{0..<b} \<subseteq> {j. Suc j \<in> A} \<longleftrightarrow> (\<forall>x. x-1 < b \<longrightarrow> x \<noteq> 0 \<longrightarrow> x \<in> A)\<close>
+    for A :: \<open>nat set\<close> and b :: nat
+    by auto
+  have [simp]: \<open>{0..<b} \<subseteq> {j. Suc j \<in> A} \<longleftrightarrow> (\<forall>x. x-1 < b \<longrightarrow> x \<in> A)\<close>
+    if \<open>0 \<in> A\<close> for A :: \<open>nat set\<close> and b :: nat
+    using that unfolding 1 by auto
+  have [simp]: \<open>nths xs {j. Suc j \<in> A} = a # xs \<longleftrightarrow> False\<close>
+    for a :: 'a and xs :: \<open>'a list\<close> and A :: \<open>nat set\<close>
+    using mset_nths_subset_mset[of xs \<open>{j. Suc j \<in> A}\<close>] by auto
+  show ?thesis
+    apply (induction xs arbitrary: A)
+    subgoal by auto
+    subgoal
+      by (auto 5 5 simp: nths_Cons) fastforce
+    done
+qed
+
+lemma nts_upt_length[simp]: \<open>nths xs {0..<length xs} = xs\<close>
+  by (auto simp: nths_id_iff)
+
+lemma nths_shift_lemma':
+  \<open>map fst [p\<leftarrow>zip xs [i..<i + n]. snd p + b \<in> A] = map fst [p\<leftarrow>zip xs [0..<n]. snd p + b + i \<in> A]\<close>
+proof (induct xs arbitrary: i n b)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a xs)
+  have 1: \<open>map fst [p\<leftarrow>zip (a # xs) (i # [Suc i..<i + n]). snd p + b \<in> A] =
+     (if i + b \<in> A then a#map fst [p\<leftarrow>zip xs [Suc i..<i + n]. snd p + b \<in> A]
+     else map fst [p\<leftarrow>zip xs [Suc i..<i + n]. snd p + b \<in>A])\<close>
+    by simp
+  have 2: \<open>map fst [p\<leftarrow>zip (a # xs) [0..<n] . snd p + b + i \<in> A] =
+     (if i + b \<in> A then a # map fst [p\<leftarrow>zip xs [1..<n]. snd p + b + i \<in> A]
+      else map fst [p\<leftarrow>zip (xs) [1..<n] . snd p + b + i \<in> A])\<close>
+    if \<open>n > 0\<close>
+    by (subst upt_conv_Cons) (use that in \<open>auto simp: ac_simps\<close>)
+  show ?case
+  proof (cases n)
+    case 0
+    then show ?thesis by simp
+  next
+    case n: (Suc m)
+    then have i_n_m: \<open>i + n = Suc i + m\<close>
+      by auto
+    have 3: \<open>map fst [p\<leftarrow>zip xs [Suc i..<i+n] . snd p + b \<in> A] =
+             map fst [p\<leftarrow>zip xs [0..<m] . snd p + b + Suc i \<in> A]\<close>
+      using Cons[of b \<open>Suc i\<close> m] unfolding i_n_m .
+    have 4: \<open>map fst [p\<leftarrow>zip xs [1..<n] . snd p + b + i \<in> A] =
+                 map fst [p\<leftarrow>zip xs [0..<m] . Suc (snd p + b + i) \<in> A]\<close>
+      using Cons[of \<open>b+i\<close> 1 m] unfolding n Suc_eq_plus1_left add.commute[of 1]
+      by (simp_all add: ac_simps)
+    show ?thesis
+      apply (subst upt_conv_Cons)
+      using n apply (simp; fail)
+      apply (subst 1)
+      apply (subst 2)
+      using n apply (simp; fail)
+      apply (subst 3)
+      apply (subst 3)
+
+      apply (subst 4)
+      apply (subst 4)
+      by force
+  qed
+qed
+
+lemma nths_Cons_upt_Suc: \<open>nths (a # xs) {0..<Suc n} = a # nths xs {0..<n}\<close>
+  unfolding nths_def
+  apply (subst upt_conv_Cons)
+   apply simp
+  using nths_shift_lemma'[of 0 \<open>{0..<Suc n}\<close> \<open>xs\<close> 1 \<open>length xs\<close>]
+  by (simp_all add: ac_simps)
+
+
+lemma nths_empty_iff: \<open>nths xs A = [] \<longleftrightarrow> {..<length xs} \<inter> A = {}\<close>
+proof (induction xs arbitrary: A)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a xs) note IH = this(1)
+  have \<open>(\<forall>x<length xs. x \<noteq> 0 \<longrightarrow> x \<notin> A)\<close>
+    if a1: \<open>{..<length xs} \<inter> {j. Suc j \<in> A} = {}\<close>
+  proof (intro allI impI)
+    fix nn
+    assume nn: \<open>nn < length xs\<close> \<open>nn \<noteq> 0\<close>
+    moreover have "\<forall>n. Suc n \<notin> A \<or> \<not> n < length xs"
+      using a1 by blast
+    then show "nn \<notin> A"
+      using nn
+      by (metis (no_types) lessI less_trans list_decode.cases)
+  qed
+  show ?case
+  proof (cases \<open>0 \<in> A\<close>)
+    case True
+    then show ?thesis by (subst nths_Cons) auto
+  next
+    case False
+    then show ?thesis
+      by (subst nths_Cons) (use less_Suc_eq_0_disj IH in auto)
+  qed
+qed
+
+lemma nths_upt_Suc:
+  assumes \<open>i < length xs\<close>
+  shows \<open>nths xs {i..<length xs} = xs!i # nths xs {Suc i..<length xs}\<close>
+proof -
+  have upt: \<open>{i..<k} = {j. i \<le> j \<and> j < k}\<close> for i k :: nat
+    by auto
+  show ?thesis
+    using assms
+  proof (induction xs arbitrary: i)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a xs i) note IH = this(1) and i_le = this(2)
+    have [simp]: \<open>i - Suc 0 \<le> j \<longleftrightarrow> i \<le> Suc j\<close> if \<open>i > 0\<close> for j
+      using that by auto
+    show ?case
+      using IH[of \<open>i-1\<close>] i_le
+      by (auto simp add: nths_Cons upt)
+  qed
+qed
+
+lemma nths_upt_Suc':
+  assumes \<open>i < b\<close> and \<open>b <= length xs\<close>
+  shows \<open>nths xs {i..<b} = xs!i # nths xs {Suc i..<b}\<close>
+proof -
+  have S1: \<open>{j. i \<le> Suc j \<and> j < b - Suc 0}  = {j. i \<le> Suc j \<and> Suc j < b}\<close> for i b
+    by auto
+  have S2: \<open>{j. i \<le> j \<and> j < b - Suc 0}  = {j. i \<le> j \<and> Suc j < b}\<close> for i b
+    by auto
+  have upt: \<open>{i..<k} = {j. i \<le> j \<and> j < k}\<close> for i k :: nat
+    by auto
+  show ?thesis
+    using assms
+  proof (induction xs arbitrary: i b)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a xs i) note IH = this(1) and i_le = this(2,3)
+    have [simp]: \<open>i - Suc 0 \<le> j \<longleftrightarrow> i \<le> Suc j\<close> if \<open>i > 0\<close> for j
+      using that by auto
+    have \<open>i - Suc 0 < b - Suc 0 \<or> (i = 0)\<close>
+      using i_le by linarith
+    moreover have \<open>b - Suc 0 \<le> length xs \<or> xs = []\<close>
+      using i_le by auto
+    ultimately show ?case
+      using IH[of \<open>i-1\<close> \<open>b-1\<close>] i_le
+      apply (subst nths_Cons)
+      apply (subst nths_Cons)
+      by (auto simp: upt S1 S2)
+  qed
+qed
+
+lemma Ball_set_nths: \<open>(\<forall>L\<in>set (nths xs A). P L) \<longleftrightarrow> (\<forall>i \<in> A \<inter> {0..<length xs}. P (xs ! i)) \<close>
+  unfolding set_nths by fastforce
+
+
+subsection \<open>Product Case\<close>
+
+text \<open>The splitting of tuples is done for sizes strictly less than 8. As we want to manipulate
+  tuples of size 8, here is some more setup for larger sizes.\<close>
+
+lemma prod_cases8 [cases type]:
+  obtains (fields) a b c d e f g h where "y = (a, b, c, d, e, f, g, h)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct8 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h. P (a, b, c, d, e, f, g, h)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases9 [cases type]:
+  obtains (fields) a b c d e f g h i where "y = (a, b, c, d, e, f, g, h, i)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct9 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i. P (a, b, c, d, e, f, g, h, i)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases10 [cases type]:
+  obtains (fields) a b c d e f g h i j where "y = (a, b, c, d, e, f, g, h, i, j)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct10 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j. P (a, b, c, d, e, f, g, h, i, j)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases11 [cases type]:
+  obtains (fields) a b c d e f g h i j k where "y = (a, b, c, d, e, f, g, h, i, j, k)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct11 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k. P (a, b, c, d, e, f, g, h, i, j, k)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases12 [cases type]:
+  obtains (fields) a b c d e f g h i j k l where "y = (a, b, c, d, e, f, g, h, i, j, k, l)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct12 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l. P (a, b, c, d, e, f, g, h, i, j, k, l)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases13 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m where "y = (a, b, c, d, e, f, g, h, i, j, k, l, m)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct13 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m. P (a, b, c, d, e, f, g, h, i, j, k, l, m)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases14 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n where "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct14 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n. P (a, b, c, d, e, f, g, h, i, j, k, l, m, n)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases15 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct15 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p. P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases16 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct16 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q. P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases17 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct17 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r. P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases18 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r s where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct18 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r s. P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases19 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r s t where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct19 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r s t.
+     P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases20 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r s t u where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct20 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r s t u.
+      P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases21 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r s t u v where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct21 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r s t u v.
+      P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v)) \<Longrightarrow> P x"
+  by (cases x) (blast 43)
+
+lemma prod_cases22 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r s t u v w where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v, w)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct22 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r s t u v w.
+      P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v, w)) \<Longrightarrow> P x"
+  by (cases x) (blast 43)
+
+lemma prod_cases23 [cases type]:
+  obtains (fields) a b c d e f g h i j k l m n p q r s t u v w x where
+    "y = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v, w, x)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct23 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l m n p q r s t u v w y.
+      P (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, u, v, w, y)) \<Longrightarrow> P x"
+  by (cases x) (blast 43)
+
+
+subsection \<open>More about @{term list_all2} and @{term map}\<close>
+
+text \<open>
+  More properties on the relator \<^term>\<open>list_all2\<close> and \<^term>\<open>map\<close>. These theorems are
+  mostly used during the refinement and especially the lifting from a deterministic relator to
+  its list version.
+\<close>
+lemma list_all2_op_eq_map_right_iff: \<open>list_all2 (\<lambda>L. (=) (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
+  apply (induction a arbitrary: aa)
+   apply (auto; fail)
+  by (rename_tac aa, case_tac aa) (auto)
+
+lemma list_all2_op_eq_map_right_iff': \<open>list_all2 (\<lambda>L L'. L' = f L) a aa \<longleftrightarrow> aa = map f a\<close>
+  apply (induction a arbitrary: aa)
+   apply (auto; fail)
+  by (rename_tac aa, case_tac aa) auto
+
+lemma list_all2_op_eq_map_left_iff: \<open>list_all2 (\<lambda>L' L. L'  = (f L)) a aa \<longleftrightarrow> a = map f aa\<close>
+  apply (induction a arbitrary: aa)
+   apply (auto; fail)
+  by (rename_tac aa, case_tac aa) (auto)
+
+lemma list_all2_op_eq_map_map_right_iff:
+  \<open>list_all2 (list_all2 (\<lambda>L. (=) (f L))) xs' x \<longleftrightarrow> x = map (map f) xs'\<close> for x
+    apply (induction xs' arbitrary: x)
+     apply (auto; fail)
+    apply (case_tac x)
+  by (auto simp: list_all2_op_eq_map_right_iff)
+
+lemma list_all2_op_eq_map_map_left_iff:
+  \<open>list_all2 (list_all2 (\<lambda>L' L. L' = f L)) xs' x \<longleftrightarrow> xs' = map (map f) x\<close>
+    apply (induction xs' arbitrary: x)
+     apply (auto; fail)
+    apply (rename_tac x, case_tac x)
+  by (auto simp: list_all2_op_eq_map_left_iff)
+
+lemma list_all2_conj:
+  \<open>list_all2 (\<lambda>x y. P x y \<and> Q x y) xs ys \<longleftrightarrow> list_all2 P xs ys \<and> list_all2 Q xs ys\<close>
+  by (auto simp: list_all2_conv_all_nth)
+
+lemma list_all2_replicate:
+  \<open>(bi, b) \<in> R' \<Longrightarrow> list_all2 (\<lambda>x x'. (x, x') \<in> R') (replicate n bi) (replicate n b)\<close>
+  by (induction n) auto
+
+
 subsection \<open>Multisets\<close>
+
+text \<open>We have a lit of lemmas about multisets. Some of them have already moved to
+ \<^theory>\<open>Nested_Multisets_Ordinals.Multiset_More\<close>, but others are too specific (especially the
+ \<^term>\<open>distinct_mset\<close> property, which roughly corresponds to finite sets).
+\<close>
+notation image_mset (infixr "`#" 90)
 
 lemma in_multiset_nempty: \<open>L \<in># D \<Longrightarrow> D \<noteq> {#}\<close>
   by auto
@@ -750,7 +1274,7 @@ lemma count_multi_member_split:
   subgoal premises IH for n M
     using IH(1)[of \<open>remove1_mset a M\<close>] IH(2)
     apply (cases \<open>n \<le> count M a - Suc 0\<close>)
-     apply (auto dest!: Suc_le_D simp: count_greater_zero_iff)
+     apply (auto dest!: Suc_le_D)
     by (metis count_greater_zero_iff insert_DiffM zero_less_Suc)
   done
 
@@ -918,348 +1442,347 @@ lemma inj_image_mset_eq_iff:
   using inj_on_image_mset_eq_iff[of f M' M] assms
   by (simp add: inj_eq multiset.inj_map)
 
+lemma singleton_eq_image_mset_iff:  \<open>{#a#} = f `# NE' \<longleftrightarrow> (\<exists>b. NE' = {#b#} \<and> f b = a)\<close>
+  by (cases NE') auto
 
-subsection \<open>Sorting\<close>
+lemma image_mset_If_eq_notin:
+   \<open>C \<notin># A \<Longrightarrow> {#f (if x = C then a x else b x). x \<in># A#} = {# f(b x). x \<in># A #}\<close>
+  by (induction A) auto
 
-text \<open>@{thm insort_is_Cons} is more general.\<close>
-lemma insort_is_append: \<open>\<forall>x\<in>set xs. a \<ge> x \<Longrightarrow> sorted xs \<Longrightarrow> insort a xs = xs @ [a]\<close>
-by (induction xs) (auto simp add: insort_is_Cons sorted_Cons)
-
-text \<open>See @{thm sorted_distinct_set_unique}.\<close>
-lemma sorted_mset_unique:
-  fixes xs :: \<open>'a :: linorder list\<close>
-  shows \<open>sorted xs \<Longrightarrow> sorted ys \<Longrightarrow> mset xs = mset ys \<Longrightarrow> xs = ys\<close>
-  using properties_for_sort by auto
-
-lemma insort_upt: \<open>insort k [a..<b] =
-  (if k < a then k # [a..<b]
-  else if k < b then [a..<k] @ k # [k ..<b]
-  else [a..<b] @ [k])\<close>
-proof -
-  have H: \<open>k < Suc b \<Longrightarrow> \<not> k < a \<Longrightarrow> {a..<b} = {a..<k} \<union> {k..<b}\<close> for a b :: nat
-    by (simp add: ivl_disj_un_two(3))
-  show ?thesis
-  apply (induction b)
-   apply (simp; fail)
-  apply (case_tac \<open>\<not>k < a \<and> k < Suc b\<close>)
-   apply (rule sorted_mset_unique)
-      apply ((auto simp add: sorted_append sorted_insort sorted_Cons ac_simps mset_set_Union
-        dest!: H; fail)+)[2]
-    apply (auto simp: insort_is_Cons insort_is_append sorted_append mset_set_Union
-      ac_simps dest: H; fail)+
-  done
-qed
-
-lemma removeAll_insert_removeAll: \<open>removeAll k (insort k xs) = removeAll k xs\<close>
-  by (simp add: filter_insort_triv removeAll_filter_not_eq)
-
-lemma filter_sorted: \<open>sorted xs \<Longrightarrow> sorted (filter P xs)\<close>
-  by (metis list.map_ident sorted_filter)
-
-lemma removeAll_insort:
-  \<open>sorted xs \<Longrightarrow> k \<noteq> k' \<Longrightarrow> removeAll k' (insort k xs) = insort k (removeAll k' xs)\<close>
-  by (simp add: filter_insort removeAll_filter_not_eq)
-
-
-subsection \<open>Distinct Set of Multisets\<close>
-
-definition distinct_mset_set :: \<open>'a multiset set \<Rightarrow> bool\<close> where
-  \<open>distinct_mset_set \<Sigma> \<longleftrightarrow> (\<forall>S \<in> \<Sigma>. distinct_mset S)\<close>
-
-lemma distinct_mset_set_empty[simp]: \<open>distinct_mset_set {}\<close>
-  unfolding distinct_mset_set_def by auto
-
-lemma distinct_mset_set_singleton[iff]: \<open>distinct_mset_set {A} \<longleftrightarrow> distinct_mset A\<close>
-  unfolding distinct_mset_set_def by auto
-
-lemma distinct_mset_set_insert[iff]:
-  \<open>distinct_mset_set (insert S \<Sigma>) \<longleftrightarrow> (distinct_mset S \<and> distinct_mset_set \<Sigma>)\<close>
-  unfolding distinct_mset_set_def by auto
-
-lemma distinct_mset_set_union[iff]:
-  \<open>distinct_mset_set (\<Sigma> \<union> \<Sigma>') \<longleftrightarrow> (distinct_mset_set \<Sigma> \<and> distinct_mset_set \<Sigma>')\<close>
-  unfolding distinct_mset_set_def by auto
-
-lemma in_distinct_mset_set_distinct_mset:
-  \<open>a \<in> \<Sigma> \<Longrightarrow> distinct_mset_set \<Sigma> \<Longrightarrow> distinct_mset a\<close>
-  unfolding distinct_mset_set_def by auto
-
-lemma distinct_mset_remdups_mset[simp]: \<open>distinct_mset (remdups_mset S)\<close>
-  using count_remdups_mset_eq_1 unfolding distinct_mset_def by metis
-
-lemma distinct_mset_mset_set: \<open>distinct_mset (mset_set A)\<close>
-  unfolding distinct_mset_def count_mset_set_if by (auto simp: not_in_iff)
-
-lemma distinct_mset_set_distinct: \<open>distinct_mset_set (mset ` set Cs) \<longleftrightarrow> (\<forall>c\<in> set Cs. distinct c)\<close>
-  unfolding distinct_mset_set_def by auto
-
-lemma distinct_mset_remdups_mset_id: \<open>distinct_mset C \<Longrightarrow> remdups_mset C = C\<close>
-  by (induction C)  auto
-
-lemma notin_add_mset_remdups_mset:
-  \<open>a \<notin># A \<Longrightarrow> add_mset a (remdups_mset A) = remdups_mset (add_mset a A)\<close>
-  by auto
-
-
-subsection \<open>Sublists\<close>
-
-lemma nths_single_if: \<open>nths l {n} = (if n < length l then [l!n] else [])\<close>
-proof -
-  have [simp]: \<open>0 < n \<Longrightarrow> {j. Suc j = n} = {n-1}\<close> for n
-    by auto
-  show ?thesis
-  apply (induction l arbitrary: n)
-  subgoal by (auto simp: nths_def)
-  subgoal by (auto simp: nths_Cons)
-  done
-qed
-
-lemma atLeastLessThan_Collect: \<open>{a..<b} = {j. j \<ge> a \<and> j < b}\<close>
-  by auto
-
-lemma mset_nths_subset_mset: \<open>mset (nths xs A) \<subseteq># mset xs\<close>
-  apply (induction xs arbitrary: A)
+lemma finite_mset_set_inter:
+  \<open>finite A \<Longrightarrow> finite B \<Longrightarrow> mset_set (A \<inter> B) = mset_set A \<inter># mset_set B\<close>
+  apply (induction A rule: finite_induct)
   subgoal by auto
-  subgoal for a xs A
-    using subset_mset.add_increasing2[of \<open>add_mset _ {#}\<close> \<open>mset (nths xs {j. Suc j \<in> A})\<close>  \<open>mset xs\<close>]
-    by (auto simp: nths_Cons)
+  subgoal for a A
+    apply (cases \<open>a \<in> B\<close>; cases \<open>a \<in># mset_set B\<close>)
+    using multi_member_split[of a \<open>mset_set B\<close>]
+    by (auto simp: mset_set.insert_remove)
   done
 
-lemma nths_id_iff:
-  \<open>nths xs A = xs \<longleftrightarrow> {0..<length xs} \<subseteq> A \<close>
+lemma distinct_mset_inter_remdups_mset:
+  assumes dist: \<open>distinct_mset A\<close>
+  shows \<open>A \<inter># remdups_mset B = A \<inter># B\<close>
 proof -
-  have \<open>{j. Suc j \<in> A} =  (\<lambda>j. j-1) ` (A - {0})\<close> for A
-    using DiffI by (fastforce simp: image_iff)
-  have 1: \<open>{0..<b} \<subseteq> {j. Suc j \<in> A} \<longleftrightarrow> (\<forall>x. x-1 < b \<longrightarrow> x \<noteq> 0 \<longrightarrow> x \<in> A)\<close>
-    for A :: \<open>nat set\<close> and b :: nat
-    by auto
-  have [simp]: \<open>{0..<b} \<subseteq> {j. Suc j \<in> A} \<longleftrightarrow> (\<forall>x. x-1 < b \<longrightarrow> x \<in> A)\<close>
-    if \<open>0 \<in> A\<close> for A :: \<open>nat set\<close> and b :: nat
-    using that unfolding 1 by auto
-  have [simp]: \<open>nths xs {j. Suc j \<in> A} = a # xs \<longleftrightarrow> False\<close>
-    for a :: 'a and xs :: \<open>'a list\<close> and A :: \<open>nat set\<close>
-    using mset_nths_subset_mset[of xs \<open>{j. Suc j \<in> A}\<close>] by auto
+  have [simp]: \<open>A' \<inter># remove1_mset a (remdups_mset Aa) = A' \<inter># Aa\<close>
+    if
+      \<open>A' \<inter># remdups_mset Aa = A' \<inter># Aa\<close> and
+      \<open>a \<notin># A'\<close> and
+      \<open>a \<in># Aa\<close>
+    for A' Aa :: \<open>'a multiset\<close> and a
+  by (metis insert_DiffM inter_add_right1 set_mset_remdups_mset that)
+
   show ?thesis
-    apply (induction xs arbitrary: A)
+    using dist
+    apply (induction A)
     subgoal by auto
-    subgoal
-      by (auto 5 5 simp: nths_Cons) fastforce
+     subgoal for a A'
+      apply (cases \<open>a \<in># B\<close>)
+      using multi_member_split[of a \<open>B\<close>]  multi_member_split[of a \<open>A\<close>]
+      by (auto simp: mset_set.insert_remove)
     done
 qed
 
-lemma nts_upt_length[simp]: \<open>nths xs {0..<length xs} = xs\<close>
-  by (auto simp: nths_id_iff)
+lemma mset_butlast_update_last[simp]:
+  \<open>w < length xs \<Longrightarrow> mset (butlast (xs[w := last (xs)])) = remove1_mset (xs ! w) (mset xs)\<close>
+  by (cases \<open>xs = []\<close>)
+    (auto simp add: last_list_update_to_last mset_butlast_remove1_mset mset_update)
 
-lemma nths_shift_lemma':
-  \<open>map fst [p<-zip xs [i..<i + n]. snd p + b : A] = map fst [p<-zip xs [0..<n]. snd p + b + i : A]\<close>
-proof (induct xs arbitrary: i n b)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons a xs)
-  have 1: \<open>map fst [p\<leftarrow>zip (a # xs) (i # [Suc i..<i + n]). snd p + b \<in> A] =
-     (if i + b \<in> A then a#map fst [p\<leftarrow>zip xs [Suc i..<i + n]. snd p + b \<in> A]
-     else map fst [p\<leftarrow>zip xs [Suc i..<i + n]. snd p + b \<in>A])\<close>
+lemma in_multiset_ge_Max: \<open>a \<in># N \<Longrightarrow> a > Max (insert 0 (set_mset N)) \<Longrightarrow> False\<close>
+  by (simp add: leD)
+
+lemma distinct_mset_set_mset_remove1_mset:
+  \<open>distinct_mset M \<Longrightarrow> set_mset (remove1_mset c M) = set_mset M - {c}\<close>
+  by (cases \<open>c \<in># M\<close>) (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+
+lemma distinct_count_msetD:
+  \<open>distinct xs \<Longrightarrow> count (mset xs) a = (if a \<in> set xs then 1 else 0)\<close>
+  unfolding distinct_count_atmost_1 by auto
+
+lemma filter_mset_and_implied:
+  \<open>(\<And>ia. ia \<in># xs \<Longrightarrow> Q ia \<Longrightarrow> P ia) \<Longrightarrow> {#ia \<in># xs. P ia \<and> Q ia#} = {#ia \<in># xs. Q ia#}\<close>
+  by (rule filter_mset_cong2) auto
+
+lemma filter_mset_eq_add_msetD: \<open>filter_mset P xs = add_mset a A \<Longrightarrow> a \<in># xs \<and> P a\<close>
+  by (induction xs arbitrary: A)
+    (auto split: if_splits simp: add_mset_eq_add_mset)
+
+lemma filter_mset_eq_add_msetD': \<open>add_mset a A  = filter_mset P xs \<Longrightarrow> a \<in># xs \<and> P a\<close>
+  using filter_mset_eq_add_msetD[of P xs a A] by auto
+
+lemma image_filter_replicate_mset:
+  \<open>{#Ca \<in># replicate_mset m C. P Ca#} = (if P C then replicate_mset m C else {#})\<close>
+  by (induction m) auto
+
+
+
+section \<open>Finite maps and multisets\<close>
+
+subsubsection \<open>Finite sets and multisets\<close>
+
+abbreviation mset_fset :: \<open>'a fset \<Rightarrow> 'a multiset\<close> where
+  \<open>mset_fset N \<equiv> mset_set (fset N)\<close>
+
+definition fset_mset :: \<open>'a multiset \<Rightarrow> 'a fset\<close> where
+  \<open>fset_mset N \<equiv> Abs_fset (set_mset N)\<close>
+
+lemma fset_mset_mset_fset: \<open>fset_mset (mset_fset N) = N\<close>
+  by (auto simp: fset.fset_inverse fset_mset_def)
+
+lemma mset_fset_fset_mset[simp]:
+  \<open>mset_fset (fset_mset N) = remdups_mset N\<close>
+  by (auto simp: fset.fset_inverse fset_mset_def Abs_fset_inverse remdups_mset_def)
+
+lemma in_mset_fset_fmember[simp]: \<open>x \<in># mset_fset N \<longleftrightarrow> x |\<in>| N\<close>
+  by (auto simp: fmember.rep_eq)
+
+lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow> x \<in># N\<close>
+  by (auto simp: fmember.rep_eq fset_mset_def Abs_fset_inverse)
+
+
+subsubsection \<open>Finite map and multisets\<close>
+
+text \<open>Roughly the same as \<^term>\<open>ran\<close> and \<^term>\<open>dom\<close>, but with duplication in the content (unlike their
+  finite sets counterpart) while still working on finite domains (unlike a function mapping).
+  Remark that \<^term>\<open>dom_m\<close> (the keys) does not contain duplicates, but we keep for symmetry (and for
+  easier use of multiset operators as in the definition of \<^term>\<open>ran_m\<close>).
+\<close>
+definition dom_m where
+  \<open>dom_m N = mset_fset (fmdom N)\<close>
+
+definition ran_m where
+  \<open>ran_m N = the `# fmlookup N `# dom_m N\<close>
+
+lemma dom_m_fmdrop[simp]: \<open>dom_m (fmdrop C N) = remove1_mset C (dom_m N)\<close>
+  unfolding dom_m_def
+  by (cases \<open>C |\<in>| fmdom N\<close>)
+    (auto simp: mset_set.remove fmember.rep_eq)
+
+lemma dom_m_fmdrop_All: \<open>dom_m (fmdrop C N) = removeAll_mset C (dom_m N)\<close>
+  unfolding dom_m_def
+  by (cases \<open>C |\<in>| fmdom N\<close>)
+    (auto simp: mset_set.remove fmember.rep_eq)
+
+lemma dom_m_fmupd[simp]: \<open>dom_m (fmupd k C N) = add_mset k (remove1_mset k (dom_m N))\<close>
+  unfolding dom_m_def
+  by (cases \<open>k |\<in>| fmdom N\<close>)
+    (auto simp: mset_set.remove fmember.rep_eq mset_set.insert_remove)
+
+lemma distinct_mset_dom: \<open>distinct_mset (dom_m N)\<close>
+  by (simp add: distinct_mset_mset_set dom_m_def)
+
+lemma in_dom_m_lookup_iff: \<open>C \<in># dom_m N' \<longleftrightarrow> fmlookup N' C \<noteq> None\<close>
+  by (auto simp: dom_m_def fmdom.rep_eq)
+
+lemma in_dom_in_ran_m[simp]: \<open>i \<in># dom_m N \<Longrightarrow> the (fmlookup N i) \<in># ran_m N\<close>
+  by (auto simp: ran_m_def)
+
+lemma fmupd_same[simp]:
+  \<open>x1 \<in># dom_m x1aa \<Longrightarrow> fmupd x1 (the (fmlookup x1aa x1)) x1aa = x1aa\<close>
+  by (metis fmap_ext fmupd_lookup in_dom_m_lookup_iff option.collapse)
+
+lemma ran_m_fmempty[simp]: \<open>ran_m fmempty = {#}\<close> and
+    dom_m_fmempty[simp]: \<open>dom_m fmempty = {#}\<close>
+  by (auto simp: ran_m_def dom_m_def)
+
+lemma fmrestrict_set_fmupd:
+  \<open>a \<in> xs \<Longrightarrow> fmrestrict_set xs (fmupd a C N) = fmupd a C (fmrestrict_set xs N)\<close>
+  \<open>a \<notin> xs \<Longrightarrow> fmrestrict_set xs (fmupd a C N) = fmrestrict_set xs N\<close>
+  by (auto simp: fmfilter_alt_defs)
+
+lemma fset_fmdom_fmrestrict_set:
+  \<open>fset (fmdom (fmrestrict_set xs N)) = fset (fmdom N) \<inter> xs\<close>
+  by (auto simp: fmfilter_alt_defs)
+
+lemma dom_m_fmrestrict_set: \<open>dom_m (fmrestrict_set (set xs) N) = mset xs \<inter># dom_m N\<close>
+  using fset_fmdom_fmrestrict_set[of \<open>set xs\<close> N] distinct_mset_dom[of N]
+  distinct_mset_inter_remdups_mset[of \<open>mset_fset (fmdom N)\<close> \<open>mset xs\<close>]
+  by (auto simp: dom_m_def fset_mset_mset_fset finite_mset_set_inter multiset_inter_commute
+    remdups_mset_def)
+
+lemma dom_m_fmrestrict_set': \<open>dom_m (fmrestrict_set xs N) = mset_set (xs \<inter> set_mset (dom_m N))\<close>
+  using fset_fmdom_fmrestrict_set[of \<open>xs\<close> N] distinct_mset_dom[of N]
+  by (auto simp: dom_m_def fset_mset_mset_fset finite_mset_set_inter multiset_inter_commute
+    remdups_mset_def)
+
+lemma indom_mI: \<open>fmlookup m x = Some y \<Longrightarrow> x \<in># dom_m m\<close>
+  by (drule fmdomI)  (auto simp: dom_m_def fmember.rep_eq)
+
+lemma fmupd_fmdrop_id:
+  assumes \<open>k |\<in>| fmdom N'\<close>
+  shows \<open>fmupd k (the (fmlookup N' k)) (fmdrop k N') = N'\<close>
+proof -
+  have [simp]: \<open>map_upd k (the (fmlookup N' k))
+       (\<lambda>x. if x \<noteq> k then fmlookup N' x else None) =
+     map_upd k (the (fmlookup N' k))
+       (fmlookup N')\<close>
+    by (auto intro!: ext simp: map_upd_def)
+  have [simp]: \<open>map_upd k (the (fmlookup N' k)) (fmlookup N') = fmlookup N'\<close>
+    using assms
+    by (auto intro!: ext simp: map_upd_def)
+  have [simp]: \<open>finite (dom (\<lambda>x. if x = k then None else fmlookup N' x))\<close>
+    by (subst dom_if) auto
+  show ?thesis
+    apply (auto simp: fmupd_def fmupd.abs_eq[symmetric])
+    unfolding fmlookup_drop
+    apply (simp add: fmlookup_inverse)
+    done
+qed
+
+lemma fm_member_split: \<open>k |\<in>| fmdom N' \<Longrightarrow> \<exists>N'' v. N' = fmupd k v N'' \<and> the (fmlookup N' k) = v \<and>
+    k |\<notin>| fmdom N''\<close>
+  by (rule exI[of _ \<open>fmdrop k N'\<close>])
+    (auto simp: fmupd_fmdrop_id)
+
+lemma \<open>fmdrop k (fmupd k va N'') = fmdrop k N''\<close>
+  by (simp add: fmap_ext)
+
+lemma fmap_ext_fmdom:
+  \<open>(fmdom N = fmdom N') \<Longrightarrow> (\<And> x. x |\<in>| fmdom N \<Longrightarrow> fmlookup N x = fmlookup N' x) \<Longrightarrow>
+       N = N'\<close>
+  by (rule fmap_ext)
+    (case_tac \<open>x |\<in>| fmdom N\<close>, auto simp: fmdom_notD)
+
+lemma fmrestrict_set_insert_in:
+  \<open>xa  \<in> fset (fmdom N) \<Longrightarrow>
+    fmrestrict_set (insert xa l1) N = fmupd xa (the (fmlookup N xa)) (fmrestrict_set l1 N)\<close>
+  apply (rule fmap_ext_fmdom)
+   apply (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset dest: fmdom_notD; fail)[]
+  apply (auto simp: fmlookup_dom_iff; fail)
+  done
+
+lemma fmrestrict_set_insert_notin:
+  \<open>xa  \<notin> fset (fmdom N) \<Longrightarrow>
+    fmrestrict_set (insert xa l1) N = fmrestrict_set l1 N\<close>
+  by (rule fmap_ext_fmdom)
+     (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset dest: fmdom_notD)
+
+lemma fmrestrict_set_insert_in_dom_m[simp]:
+  \<open>xa  \<in># dom_m N \<Longrightarrow>
+    fmrestrict_set (insert xa l1) N = fmupd xa (the (fmlookup N xa)) (fmrestrict_set l1 N)\<close>
+  by (simp add: fmrestrict_set_insert_in dom_m_def)
+
+lemma fmrestrict_set_insert_notin_dom_m[simp]:
+  \<open>xa  \<notin># dom_m N \<Longrightarrow>
+    fmrestrict_set (insert xa l1) N = fmrestrict_set l1 N\<close>
+  by (simp add: fmrestrict_set_insert_notin dom_m_def)
+
+lemma fmlookup_restrict_set_id: \<open>fset (fmdom N) \<subseteq> A \<Longrightarrow> fmrestrict_set A N = N\<close>
+  by (metis fmap_ext fmdom'_alt_def fmdom'_notD fmlookup_restrict_set subset_iff)
+
+lemma fmlookup_restrict_set_id': \<open>set_mset (dom_m N) \<subseteq> A \<Longrightarrow> fmrestrict_set A N = N\<close>
+  by (rule fmlookup_restrict_set_id)
+    (auto simp: dom_m_def)
+
+
+subsubsection \<open>Compact domain for finite maps\<close>
+
+text \<open>\<^term>\<open>packed\<close> is a predicate to indicate that the domain of finite mapping starts at
+   \<^term>\<open>1::nat\<close> and does not contain holes. We used it in the SAT solver for the mapping from
+   indexes to clauses, to ensure that there not holes and therefore giving an upper bound on the
+   highest key.
+
+TODO KILL!
+\<close>
+definition Max_dom where
+  \<open>Max_dom N = Max (set_mset (add_mset 0 (dom_m N)))\<close>
+
+definition packed where
+  \<open>packed N \<longleftrightarrow> dom_m N = mset [1..<Suc (Max_dom N)]\<close>
+
+text \<open>Marking this rule as simp is not compatible with unfolding the definition of packed when
+marked as:\<close>
+lemma Max_dom_empty: \<open>dom_m b = {#} \<Longrightarrow> Max_dom b = 0\<close>
+  by (auto simp: Max_dom_def)
+
+lemma Max_dom_fmempty: \<open>Max_dom fmempty = 0\<close>
+  by (auto simp: Max_dom_empty)
+
+lemma packed_empty[simp]: \<open>packed fmempty\<close>
+  by (auto simp: packed_def Max_dom_empty)
+
+lemma packed_Max_dom_size:
+  assumes p: \<open>packed N\<close>
+  shows \<open>Max_dom N = size (dom_m N)\<close>
+proof -
+  have 1: \<open>dom_m N = mset [1..<Suc (Max_dom N)]\<close>
+    using p unfolding packed_def Max_dom_def[symmetric] .
+  have \<open>size (dom_m N) = size (mset [1..<Suc (Max_dom N)])\<close>
+    unfolding 1 ..
+  also have \<open>\<dots> = length [1..<Suc (Max_dom N)]\<close>
+    unfolding size_mset ..
+  also have \<open>\<dots> = Max_dom N\<close>
+    unfolding length_upt by simp
+  finally show ?thesis
     by simp
-  have 2: \<open>map fst [p\<leftarrow>zip (a # xs) [0..<n] . snd p + b + i \<in> A] =
-     (if i + b \<in> A then a # map fst [p\<leftarrow>zip xs [1..<n]. snd p + b + i \<in> A]
-      else map fst [p\<leftarrow>zip (xs) [1..<n] . snd p + b + i \<in> A])\<close>
-    if \<open>n > 0\<close>
-    by (subst upt_conv_Cons) (use that in \<open>auto simp: ac_simps\<close>)
-  show ?case
-  proof (cases n)
-    case 0
-    then show ?thesis by simp
-  next
-    case n: (Suc m)
-    then have i_n_m: \<open>i + n = Suc i + m\<close>
-      by auto
-    have 3: \<open>map fst [p\<leftarrow>zip xs [Suc i..<i+n] . snd p + b \<in> A] =
-             map fst [p\<leftarrow>zip xs [0..<m] . snd p + b + Suc i \<in> A]\<close>
-      using Cons[of b \<open>Suc i\<close> m] unfolding i_n_m .
-    have 4: \<open>map fst [p\<leftarrow>zip xs [1..<n] . snd p + b + i \<in> A] =
-                 map fst [p\<leftarrow>zip xs [0..<m] . Suc (snd p + b + i) \<in> A]\<close>
-      using Cons[of \<open>b+i\<close> 1 m] unfolding n Suc_eq_plus1_left add.commute[of 1]
-      by (simp_all add: ac_simps)
-    show ?thesis
-      apply (subst upt_conv_Cons)
-      using n apply (simp; fail)
-      apply (subst 1)
-      apply (subst 2)
-      using n apply (simp; fail)
-      apply (subst 3)
-      apply (subst 3)
-
-      apply (subst 4)
-      apply (subst 4)
-      by force
-  qed
 qed
 
-lemma nths_Cons_upt_Suc: \<open>nths (a # xs) {0..<Suc n} = a # nths xs {0..<n}\<close>
-  unfolding nths_def
-  apply (subst upt_conv_Cons)
-   apply simp
-  using nths_shift_lemma'[of 0 \<open>{0..<Suc n}\<close> \<open>xs\<close> 1 \<open>length xs\<close>]
-  by (simp_all add: ac_simps)
+lemma Max_dom_le:
+  \<open>L \<in># dom_m N \<Longrightarrow> L \<le> Max_dom N\<close>
+  by (auto simp: Max_dom_def)
 
+lemma remove1_mset_ge_Max_some: \<open>a > Max_dom b \<Longrightarrow> remove1_mset a (dom_m b) = dom_m b\<close>
+  by (auto simp: Max_dom_def remove_1_mset_id_iff_notin
+      dest!: multi_member_split)
 
-lemma nths_empty_iff: \<open>nths xs A = [] \<longleftrightarrow> {..<length xs} \<inter> A = {}\<close>
-proof (induction xs arbitrary: A)
-  case Nil
-  then show ?case by auto
-next
-  case (Cons a xs) note IH = this(1)
-  have \<open>{..<length xs} \<inter> {j. Suc j \<in> A} = {} \<Longrightarrow> (\<forall>x<length xs. x \<noteq> 0 \<longrightarrow> x \<notin> A)\<close>
-    apply auto
-     apply (metis IntI empty_iff gr0_implies_Suc lessI lessThan_iff less_trans mem_Collect_eq)
+lemma Max_dom_fmupd_irrel:
+   \<open>(a :: 'a :: {zero,linorder}) > Max_dom M \<Longrightarrow> Max_dom (fmupd a C M) = max a (Max_dom M)\<close>
+  by (cases \<open>dom_m M\<close>)
+     (auto simp: Max_dom_def remove1_mset_ge_Max_some ac_simps)
+
+lemma Max_dom_alt_def: \<open>Max_dom b = Max (insert 0 (set_mset (dom_m b)))\<close>
+  unfolding Max_dom_def by auto
+
+lemma Max_insert_Suc_Max_dim_dom[simp]:
+  \<open>Max (insert (Suc (Max_dom b)) (set_mset (dom_m b))) = Suc (Max_dom b)\<close>
+  unfolding Max_dom_alt_def
+  by (cases \<open>set_mset (dom_m b) = {}\<close>) auto
+
+lemma size_dom_m_Max_dom:
+  \<open>size (dom_m N) \<le> Suc (Max_dom N)\<close>
+proof -
+  have \<open>dom_m N \<subseteq># mset_set {0..< Suc (Max_dom N)}\<close>
+    apply (rule distinct_finite_set_mset_subseteq_iff[THEN iffD1])
+    subgoal by (auto simp: distinct_mset_dom)
+    subgoal by auto
+    subgoal by (auto dest: Max_dom_le)
     done
-  show ?case
-  proof (cases \<open>0 \<in> A\<close>)
-    case True
-    then show ?thesis by (subst nths_Cons) auto
-  next
-    case False
-    then show ?thesis
-      by (subst nths_Cons) (use less_Suc_eq_0_disj IH in auto)
-  qed
+  from size_mset_mono[OF this] show ?thesis by auto
 qed
 
-lemma nths_upt_Suc:
-  assumes \<open>i < length xs\<close>
-  shows \<open>nths xs {i..<length xs} = xs!i # nths xs {Suc i..<length xs}\<close>
-proof -
-  have upt: \<open>{i..<k} = {j. i \<le> j \<and> j < k}\<close> for i k :: nat
-    by auto
-  show ?thesis
-    using assms
-  proof (induction xs arbitrary: i)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons a xs i) note IH = this(1) and i_le = this(2)
-    have [simp]: \<open>i - Suc 0 \<le> j \<longleftrightarrow> i \<le> Suc j\<close> if \<open>i > 0\<close> for j
-      using that by auto
-    show ?case
-      using IH[of \<open>i-1\<close>] i_le
-      by (auto simp add: nths_Cons upt)
-  qed
-qed
+lemma Max_atLeastLessThan_plus: \<open>Max {(a::nat) ..< a+n} = (if n = 0 then Max {} else a+n - 1)\<close>
+  apply (induction n arbitrary: a)
+  subgoal by auto
+  subgoal for n a
+    by (cases n)
+      (auto simp: image_Suc_atLeastLessThan[symmetric] mono_Max_commute[symmetric] mono_def
+          atLeastLessThanSuc
+        simp del: image_Suc_atLeastLessThan)
+  done
 
-lemma nths_upt_Suc':
-  assumes \<open>i < b\<close> and \<open>b <= length xs\<close>
-  shows \<open>nths xs {i..<b} = xs!i # nths xs {Suc i..<b}\<close>
-proof -
-  have S1: \<open>{j. i \<le> Suc j \<and> j < b - Suc 0}  = {j. i \<le> Suc j \<and> Suc j < b}\<close> for i b
-    by auto
-  have S2: \<open>{j. i \<le> j \<and> j < b - Suc 0}  = {j. i \<le> j \<and> Suc j < b}\<close> for i b
-    by auto
-  have upt: \<open>{i..<k} = {j. i \<le> j \<and> j < k}\<close> for i k :: nat
-    by auto
-  show ?thesis
-    using assms
-  proof (induction xs arbitrary: i b)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons a xs i) note IH = this(1) and i_le = this(2,3)
-    have [simp]: \<open>i - Suc 0 \<le> j \<longleftrightarrow> i \<le> Suc j\<close> if \<open>i > 0\<close> for j
-      using that by auto
-    have \<open>i - Suc 0 < b - Suc 0 \<or> (i = 0)\<close>
-      using i_le by linarith
-    moreover have \<open>b - Suc 0 \<le> length xs \<or> xs = []\<close>
-      using i_le by auto
-    ultimately show ?case
-      using IH[of \<open>i-1\<close> \<open>b-1\<close>] i_le
-      apply (subst nths_Cons)
-      apply (subst nths_Cons)
-      by (auto simp: upt S1 S2)
-  qed
-qed
+lemma Max_atLeastLessThan: \<open>Max {(a::nat) ..< b} = (if b \<le> a then Max {} else b - 1)\<close>
+  using Max_atLeastLessThan_plus[of a \<open>b-a\<close>]
+  by auto
 
-lemma Ball_set_nths: \<open>(\<forall>L\<in>set (nths xs A). P L) \<longleftrightarrow> (\<forall>i \<in> A \<inter> {0..<length xs}. P (xs ! i)) \<close>
-  unfolding set_nths by fastforce
+lemma Max_insert_Max_dom_into_packed:
+   \<open>Max (insert (Max_dom bc) {Suc 0..<Max_dom bc}) = Max_dom bc\<close>
+  by (cases \<open>Max_dom bc\<close>; cases \<open>Max_dom bc - 1\<close>)
+    (auto simp: Max_dom_empty Max_atLeastLessThan)
+
+lemma packed0_fmud_Suc_Max_dom: \<open>packed b \<Longrightarrow> packed (fmupd (Suc (Max_dom b)) C b)\<close>
+  by (auto simp: packed_def remove1_mset_ge_Max_some Max_dom_fmupd_irrel max_def)
+
+lemma ge_Max_dom_notin_dom_m: \<open>a > Max_dom ao \<Longrightarrow> a \<notin># dom_m ao\<close>
+  by (auto simp: Max_dom_def)
+
+lemma packed_in_dom_mI: \<open>packed bc \<Longrightarrow> j \<le> Max_dom bc \<Longrightarrow> 0 < j \<Longrightarrow> j \<in># dom_m bc\<close>
+  by (auto simp: packed_def)
 
 
-subsection \<open>Product Case\<close>
+lemma mset_fset_empty_iff: \<open>mset_fset a = {#} \<longleftrightarrow> a = fempty\<close>
+  by (cases a) (auto simp: mset_set_empty_iff)
 
-text \<open>The splitting of tuples is done for sizes strictly less than 8. As we want to manipulate
-  tuples for size 8, here is some more setup for sizes up to 12.\<close>
-
-lemma prod_cases8 [cases type]:
-  obtains (fields) a b c d e f g h where "y = (a, b, c, d, e, f, g, h)"
-  by (cases y, cases \<open>snd y\<close>) auto
-
-lemma prod_induct8 [case_names fields, induct type]:
-  "(\<And>a b c d e f g h. P (a, b, c, d, e, f, g, h)) \<Longrightarrow> P x"
-  by (cases x) blast
-
-lemma prod_cases9 [cases type]:
-  obtains (fields) a b c d e f g h i where "y = (a, b, c, d, e, f, g, h, i)"
-  by (cases y, cases \<open>snd y\<close>) auto
-
-lemma prod_induct9 [case_names fields, induct type]:
-  "(\<And>a b c d e f g h i. P (a, b, c, d, e, f, g, h, i)) \<Longrightarrow> P x"
-  by (cases x) blast
-
-lemma prod_cases10 [cases type]:
-  obtains (fields) a b c d e f g h i j where "y = (a, b, c, d, e, f, g, h, i, j)"
-  by (cases y, cases \<open>snd y\<close>) auto
-
-lemma prod_induct10 [case_names fields, induct type]:
-  "(\<And>a b c d e f g h i j. P (a, b, c, d, e, f, g, h, i, j)) \<Longrightarrow> P x"
-  by (cases x) blast
-
-lemma prod_cases11 [cases type]:
-  obtains (fields) a b c d e f g h i j k where "y = (a, b, c, d, e, f, g, h, i, j, k)"
-  by (cases y, cases \<open>snd y\<close>) auto
-
-lemma prod_induct11 [case_names fields, induct type]:
-  "(\<And>a b c d e f g h i j k. P (a, b, c, d, e, f, g, h, i, j, k)) \<Longrightarrow> P x"
-  by (cases x) blast
-
-lemma prod_cases12 [cases type]:
-  obtains (fields) a b c d e f g h i j k l where "y = (a, b, c, d, e, f, g, h, i, j, k, l)"
-  by (cases y, cases \<open>snd y\<close>) auto
-
-lemma prod_induct12 [case_names fields, induct type]:
-  "(\<And>a b c d e f g h i j k l. P (a, b, c, d, e, f, g, h, i, j, k, l)) \<Longrightarrow> P x"
-  by (cases x) blast
-
-
-subsection \<open>More about @{term list_all2} and @{term map}\<close>
-
-lemma list_all2_op_eq_map_right_iff: \<open>list_all2 (\<lambda>L. op = (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
-  apply (induction a arbitrary: aa)
-   apply (auto; fail)
-  by (rename_tac aa, case_tac aa) (auto)
-
-lemma list_all2_op_eq_map_right_iff': \<open>list_all2 (\<lambda>L L'. L' = f L) a aa \<longleftrightarrow> aa = map f a\<close>
-  apply (induction a arbitrary: aa)
-   apply (auto; fail)
-  by (rename_tac aa, case_tac aa) auto
-
-lemma list_all2_op_eq_map_left_iff: \<open>list_all2 (\<lambda>L' L. L'  = (f L)) a aa \<longleftrightarrow> a = map f aa\<close>
-  apply (induction a arbitrary: aa)
-   apply (auto; fail)
-  by (rename_tac aa, case_tac aa) (auto)
-
-lemma list_all2_op_eq_map_map_right_iff:
-  \<open>list_all2 (list_all2 (\<lambda>L. op = (f L))) xs' x \<longleftrightarrow> x = map (map f) xs'\<close> for x
-    apply (induction xs' arbitrary: x)
-     apply (auto; fail)
-    apply (case_tac x)
-  by (auto simp: list_all2_op_eq_map_right_iff)
-
-lemma list_all2_op_eq_map_map_left_iff:
-  \<open>list_all2 (list_all2 (\<lambda>L' L. L' = f L)) xs' x \<longleftrightarrow> xs' = map (map f) x\<close>
-    apply (induction xs' arbitrary: x)
-     apply (auto; fail)
-    apply (rename_tac x, case_tac x)
-  by (auto simp: list_all2_op_eq_map_left_iff)
-
-lemma list_all2_conj:
-  \<open>list_all2 (\<lambda>x y. P x y \<and> Q x y) xs ys \<longleftrightarrow> list_all2 P xs ys \<and> list_all2 Q xs ys\<close>
-  by (auto simp: list_all2_conv_all_nth)
+lemma dom_m_empty_iff[iff]:
+  \<open>dom_m NU = {#} \<longleftrightarrow> NU = fmempty\<close>
+  by (cases NU) (auto simp: dom_m_def mset_fset_empty_iff mset_set.insert_remove)
 
 end

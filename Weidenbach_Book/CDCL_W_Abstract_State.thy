@@ -109,7 +109,7 @@ interpretation cdcl\<^sub>W_restart_mset: conflict_driven_clause_learning\<^sub>
   init_state = init_state
   by unfold_locales
 
-lemma cdcl\<^sub>W_restart_mset_state_eq_eq: "state_eq = (op =)"
+lemma cdcl\<^sub>W_restart_mset_state_eq_eq: "state_eq = (=)"
    apply (intro ext)
    unfolding state_eq_def
    by (auto simp: cdcl\<^sub>W_restart_mset_state state_def)
@@ -157,15 +157,37 @@ lemma full_cdcl\<^sub>W_init_state:
       cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps
       cdcl\<^sub>W_restart_mset_state clauses_def)
 
-locale twl_restart =
+locale twl_restart_ops =
   fixes
     f :: \<open>nat \<Rightarrow> nat\<close>
+begin
+
+interpretation cdcl\<^sub>W_restart_mset: cdcl\<^sub>W_restart_restart_ops where
+  state = state and
+  trail = trail and
+  init_clss = init_clss and
+  learned_clss = learned_clss and
+  conflicting = conflicting and
+
+  state_eq = state_eq and
+  cons_trail = cons_trail and
+  tl_trail = tl_trail and
+  add_learned_cls = add_learned_cls and
+  remove_cls = remove_cls and
+  update_conflicting = update_conflicting and
+  init_state = init_state and
+  f = f
+  by unfold_locales
+
+end
+
+locale twl_restart =
+  twl_restart_ops f for f :: \<open>nat \<Rightarrow> nat\<close> +
   assumes
     f: \<open>unbounded f\<close>
 begin
 
-text \<open>This should be moved to @{file CDCL_W_Abstract_State.thy}\<close>
-sublocale cdcl\<^sub>W_restart_mset: cdcl\<^sub>W_restart_restart where
+interpretation cdcl\<^sub>W_restart_mset: cdcl\<^sub>W_restart_restart where
   state = state and
   trail = trail and
   init_clss = init_clss and
@@ -181,7 +203,21 @@ sublocale cdcl\<^sub>W_restart_mset: cdcl\<^sub>W_restart_restart where
   init_state = init_state and
   f = f
   by unfold_locales (rule f)
+
 end
+
+context conflict_driven_clause_learning\<^sub>W
+begin
+
+lemma distinct_cdcl\<^sub>W_state_alt_def:
+  \<open>distinct_cdcl\<^sub>W_state S =
+    ((\<forall>T. conflicting S = Some T \<longrightarrow> distinct_mset T) \<and>
+     distinct_mset_mset (clauses S) \<and>
+     (\<forall>L mark. Propagated L mark \<in> set (trail S) \<longrightarrow> distinct_mset mark))\<close>
+  unfolding distinct_cdcl\<^sub>W_state_def clauses_def
+  by auto
+end
+
 
 lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step:
   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state {#}) S \<longleftrightarrow> False\<close>
@@ -266,7 +302,7 @@ lemma
      stgy: \<open>cdcl\<^sub>W_stgy_invariant S\<close> and
      confl: \<open>conflicting S \<noteq> None\<close> and
      confl': \<open>conflicting S \<noteq> Some {#}\<close>
-   shows no_skip_no_resolve_single_highest_level:
+  shows no_skip_no_resolve_single_highest_level:
     \<open>the (conflicting S) =
        add_mset (-(lit_of (hd (trail S)))) {#L \<in># the (conflicting S).
          get_level (trail S) L < local.backtrack_lvl S#}\<close> (is ?A) and

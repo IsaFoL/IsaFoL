@@ -1,5 +1,5 @@
 theory Prop_Resolution
-imports Entailment_Definition.Partial_Clausal_Logic
+imports Entailment_Definition.Partial_Herbrand_Interpretation
   Weidenbach_Book_Base.WB_List_More
   Weidenbach_Book_Base.Wellfounded_More
 
@@ -8,10 +8,12 @@ chapter \<open>Resolution-based techniques\<close>
 
 text \<open>This chapter contains the formalisation of resolution and superposition.\<close>
 
+
 section \<open>Resolution\<close>
+
 subsection \<open>Simplification Rules\<close>
 
-inductive simplify :: "'v clauses \<Rightarrow> 'v clauses \<Rightarrow> bool" for N :: "'v clause set" where
+inductive simplify :: "'v clause_set \<Rightarrow> 'v clause_set \<Rightarrow> bool" for N :: "'v clause set" where
 tautology_deletion:
   "add_mset (Pos P) (add_mset (Neg P) A) \<in> N \<Longrightarrow> simplify N (N - {add_mset (Pos P) (add_mset (Neg P) A)})"|
 condensation:
@@ -20,7 +22,7 @@ subsumption:
   "A \<in> N \<Longrightarrow> A \<subset># B \<Longrightarrow> B \<in> N \<Longrightarrow> simplify N (N - {B})"
 
 lemma simplify_preserve_models':
-  fixes N N' :: "'v clauses"
+  fixes N N' :: "'v clause_set"
   assumes "simplify N N'"
   and "total_over_m I N"
   shows "I \<Turnstile>s N' \<longrightarrow> I \<Turnstile>s N"
@@ -43,7 +45,7 @@ next
 qed
 
 lemma simplify_preserve_models:
-  fixes N N' :: "'v clauses"
+  fixes N N' :: "'v clause_set"
   assumes "simplify N N'"
   and "total_over_m I N"
   shows "I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N'"
@@ -51,7 +53,7 @@ lemma simplify_preserve_models:
   using true_clss_def by fastforce+
 
 lemma simplify_preserve_models'':
-  fixes N N' :: "'v clauses"
+  fixes N N' :: "'v clause_set"
   assumes "simplify N N'"
   and "total_over_m I N'"
   shows "I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N'"
@@ -59,7 +61,7 @@ lemma simplify_preserve_models'':
   using true_clss_def by fastforce+
 
 lemma simplify_preserve_models_eq:
-  fixes N N' :: "'v clauses"
+  fixes N N' :: "'v clause_set"
   assumes "simplify N N'"
   and "total_over_m I N"
   shows "I \<Turnstile>s N \<longleftrightarrow> I \<Turnstile>s N'"
@@ -110,7 +112,7 @@ qed
 
 subsection \<open>Unconstrained Resolution\<close>
 
-type_synonym 'v uncon_state = "'v clauses"
+type_synonym 'v uncon_state = "'v clause_set"
 
 inductive uncon_res :: "'v uncon_state \<Rightarrow> 'v uncon_state \<Rightarrow> bool" where
 resolution:
@@ -156,7 +158,7 @@ lemma subsumes_tautology:
 
 subsection \<open>Inference Rule\<close>
 
-type_synonym 'v state = "'v clauses \<times> ('v clause \<times> 'v clause) set"
+type_synonym 'v state = "'v clause_set \<times> ('v clause \<times> 'v clause) set"
 
 inductive inference_clause :: "'v state \<Rightarrow> 'v clause \<times> ('v clause \<times> 'v clause) set \<Rightarrow> bool"
   (infix "\<Rightarrow>\<^sub>\<Res>" 100) where
@@ -222,7 +224,7 @@ next
      have "(\<exists>x \<in> Set.remove a A. P x) \<longleftrightarrow> (\<exists>x \<in> A. x \<noteq> a \<and> P x)" by auto
   } note ex_member_remove = this
   {
-    fix a a0 :: "'v clause" and A :: "'v clauses" and y
+    fix a a0 :: "'v clause" and A :: "'v clause_set" and y
     assume "a \<in> A" and "a0 \<subset># a"
     then have "(\<exists>x \<in> A. subsumes x y) \<longleftrightarrow> (subsumes a y \<or> (\<exists>x \<in> A. x \<noteq> a \<and> subsumes x y))"
       by auto
@@ -308,7 +310,7 @@ lemma inference_already_used_increasing:
   using inference_clause_already_used_increasing by fastforce
 
 lemma inference_clause_preserve_models:
-  fixes N N' :: "'v clauses"
+  fixes N N' :: "'v clause_set"
   assumes "inference_clause T T'"
   and "total_over_m I (fst T)"
   and consistent: "consistent_interp I"
@@ -318,7 +320,7 @@ lemma inference_clause_preserve_models:
 
 
 lemma inference_preserve_models:
-  fixes N N' :: "'v clauses"
+  fixes N N' :: "'v clause_set"
   assumes "inference T T'"
   and "total_over_m I (fst T)"
   and consistent: "consistent_interp I"
@@ -332,14 +334,14 @@ lemma inference_clause_preserves_atms_of_ms:
   using assms by (induct rule: inference_clause.induct) (auto dest!: atms_of_atms_of_ms_mono)
 
 lemma inference_preserves_atms_of_ms:
-  fixes N N' :: "'v clauses"
+  fixes N N' :: "'v clause_set"
   assumes "inference T T'"
   shows "atms_of_ms (fst T') \<subseteq> atms_of_ms (fst T)"
   using assms apply (induct rule: inference.induct)
   using inference_clause_preserves_atms_of_ms by fastforce
 
 lemma inference_preserves_total:
-  fixes N N' :: "'v clauses"
+  fixes N N' :: "'v clause_set"
   assumes "inference (N, already_used) (N', already_used')"
   shows "total_over_m I N \<Longrightarrow> total_over_m I N'"
     using assms inference_preserves_atms_of_ms unfolding total_over_m_def total_over_set_def
@@ -480,7 +482,7 @@ lemma sem_tree_size[case_names bigger]:
   by (fact Nat.measure_induct_rule)
 
 
-fun partial_interps :: "'v sem_tree \<Rightarrow> 'v interp \<Rightarrow> 'v clauses \<Rightarrow> bool" where
+fun partial_interps :: "'v sem_tree \<Rightarrow> 'v partial_interp \<Rightarrow> 'v clause_set \<Rightarrow> bool" where
 "partial_interps Leaf I \<psi> = (\<exists>\<chi>. \<not> I \<Turnstile> \<chi> \<and> \<chi> \<in> \<psi> \<and> total_over_m I {\<chi>})" |
 "partial_interps (Node v ag ad) I \<psi> \<longleftrightarrow>
   (partial_interps ag (I \<union> {Pos v}) \<psi> \<and> partial_interps ad (I\<union> {Neg v}) \<psi>)"
@@ -520,7 +522,7 @@ lemma rtranclp_inference_preserve_partial_tree:
   using inference_preserve_partial_tree by force
 
 
-function build_sem_tree :: "'v :: linorder set \<Rightarrow> 'v clauses \<Rightarrow> 'v sem_tree" where
+function build_sem_tree :: "'v :: linorder set \<Rightarrow> 'v clause_set \<Rightarrow> 'v sem_tree" where
 "build_sem_tree atms \<psi> =
   (if atms = {} \<or> \<not> finite atms
   then Leaf
@@ -539,7 +541,7 @@ lemma unsatisfiable_empty[simp]:
   using consistent_interp_def unfolding total_over_m_def total_over_set_def atms_of_ms_def by blast
 
 lemma partial_interps_build_sem_tree_atms_general:
-  fixes \<psi> :: "'v :: linorder clauses" and p :: "'v literal list"
+  fixes \<psi> :: "'v :: linorder clause_set" and p :: "'v literal list"
   assumes unsat: "unsatisfiable \<psi>" and "finite \<psi>" and "consistent_interp I"
   and "finite atms"
   and "atms_of_ms \<psi> = atms \<union> atms_of_s I" and "atms \<inter> atms_of_s I = {}"
@@ -605,7 +607,7 @@ qed
 
 
 lemma partial_interps_build_sem_tree_atms:
-  fixes \<psi> :: "'v :: linorder clauses" and p :: "'v literal list"
+  fixes \<psi> :: "'v :: linorder clause_set" and p :: "'v literal list"
   assumes unsat: "unsatisfiable \<psi>" and finite: "finite \<psi>"
   shows "partial_interps (build_sem_tree (atms_of_ms \<psi>) \<psi>) {} \<psi>"
 proof -
@@ -618,7 +620,7 @@ proof -
 qed
 
 lemma can_decrease_count:
-  fixes \<psi>'' :: "'v clauses \<times> ('v clause \<times> 'v clause \<times> 'v) set"
+  fixes \<psi>'' :: "'v clause_set \<times> ('v clause \<times> 'v clause \<times> 'v) set"
   assumes "count \<chi> L = n"
   and "L \<in># \<chi>" and "\<chi> \<in> fst \<psi>"
   shows "\<exists>\<psi>' \<chi>'. inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> \<chi>' \<in> fst \<psi>' \<and> (\<forall>L. L \<in># \<chi> \<longleftrightarrow> L \<in># \<chi>')
@@ -1050,7 +1052,7 @@ proof (rule ccontr)
       proof (induction rule: simplify.induct)
         case (tautology_deletion P A)
         then have "{#Neg P#} + ({#Pos P#} + (A + {#l#})) \<in> {\<psi>}"
-          using A by (auto simp: single_remove1_mset_eq)
+          using A by auto
         then show ?thesis
           using simplified_no_both by fastforce
       next
@@ -1653,19 +1655,19 @@ qed
 
 
 definition sum_count_ge_2 :: "'a multiset set \<Rightarrow> nat" ("\<Xi>") where
-"sum_count_ge_2 \<equiv> folding.F (\<lambda>\<phi>. op +(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
+"sum_count_ge_2 \<equiv> folding.F (\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
 
 
 interpretation sum_count_ge_2:
-  folding "\<lambda>\<phi>. op +(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0
+  folding "\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0
 rewrites
-  "folding.F (\<lambda>\<phi>. op +(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
+  "folding.F (\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
 proof -
-  show "folding (\<lambda>\<phi>. op + (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#})))"
+  show "folding (\<lambda>\<phi>. (+) (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#})))"
     by standard auto
   then interpret sum_count_ge_2:
-    folding "\<lambda>\<phi>. op +(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0 .
-  show "folding.F (\<lambda>\<phi>. op + (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#}))) 0
+    folding "\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0 .
+  show "folding.F (\<lambda>\<phi>. (+) (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#}))) 0
     = sum_count_ge_2" by (auto simp add: sum_count_ge_2_def)
 qed
 

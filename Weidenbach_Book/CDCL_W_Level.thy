@@ -1,6 +1,6 @@
 theory CDCL_W_Level
 imports
-  Entailment_Definition.Partial_Annotated_Clausal_Logic
+  Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
 begin
 
 subsubsection \<open>Level of literals and clauses\<close>
@@ -116,6 +116,11 @@ lemma get_maximum_level_empty_list[simp]:
 lemma get_maximum_level_add_mset:
   "get_maximum_level M (add_mset L D) = max (get_level M L) (get_maximum_level M D)"
   unfolding get_maximum_level_def by simp
+
+lemma get_level_append_if:
+  \<open>get_level (M @ M') L = (if defined_lit M L then get_level M L + count_decided M'
+            else get_level M' L)\<close>
+  by (auto)
 
 text \<open>Do mot activate as [simp] rules. It breaks everything.\<close>
 lemma get_maximum_level_single:
@@ -270,5 +275,11 @@ lemma get_level_neq_Suc_count_decided[simp]:
 
 lemma length_get_all_ann_decomposition: \<open>length (get_all_ann_decomposition M) = 1+count_decided M\<close>
   by (induction M rule: ann_lit_list_induct) auto
+
+lemma get_maximum_level_remove_non_max_lvl:
+   \<open>get_level M a < get_maximum_level M D \<Longrightarrow>
+  get_maximum_level M (remove1_mset a D) = get_maximum_level M D\<close>
+  by (cases \<open>a \<in># D\<close>)
+    (auto dest!: multi_member_split simp: get_maximum_level_add_mset)
 
 end

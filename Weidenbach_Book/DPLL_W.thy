@@ -1,7 +1,7 @@
 theory DPLL_W
 imports
-  Entailment_Definition.Partial_Clausal_Logic
-  Entailment_Definition.Partial_Annotated_Clausal_Logic
+  Entailment_Definition.Partial_Herbrand_Interpretation
+  Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
   Weidenbach_Book_Base.Wellfounded_More
 begin
 

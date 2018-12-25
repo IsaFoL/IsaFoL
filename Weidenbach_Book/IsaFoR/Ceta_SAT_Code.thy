@@ -17,7 +17,7 @@ term flatten
 thm flatten.simps
 thm simplex
 term simplex
-thm  pre_logic_checker.check_valid_formula_def
+thm pre_logic_checker.check_valid_formula_def
 term pre_logic_checker.remove_Atom
 thm pre_logic_checker.remove_Atom.simps
 term check_allm
@@ -431,11 +431,11 @@ datatype (dead 'f, dead 'v) input =
 lemma 1:
   \<open>RETURN o (\<lambda>x. f x) = (\<lambda>x. RETURN (f x))\<close>
   by auto
-(* sepref_definition  certify_prob_code
+(* sepref_definition certify_prob_code
   is \<open>uncurry3 (RETURN oooo check_cert_args)\<close>
   :: \<open>bool_assn\<^sup>k *\<^sub>a input_assn\<^sup>k  *\<^sub>a claim_assn\<^sup>k  *\<^sub>a proof_assn\<^sup>k \<rightarrow>\<^sub>a pure_fun_assn +\<^sub>a unit_assn\<close>
   supply [[goals_limit=1]]
-  unfolding check_cert_args_def check_cert_def  pull_out_let_conv check_cert_args_mismatch_def[symmetric]
+  unfolding check_cert_args_def check_cert_def pull_out_let_conv check_cert_args_mismatch_def[symmetric]
     case_input_swap 1 case_proof_swap Let_def
   unfolding isafor_string_names
   apply sepref_dbg_keep
@@ -456,7 +456,7 @@ lemma Certified_hnr[sepref_fr_rules]:
    unit_assn\<^sup>k \<rightarrow>\<^sub>a cert_result_assn\<close>
   by sepref_to_hoare (sep_auto)
 
-sepref_definition  certify_prob_code
+sepref_definition certify_prob_code
   is \<open>uncurry3 (RETURN oooo certify_prob)\<close>
   :: \<open>bool_assn\<^sup>k *\<^sub>a input_assn\<^sup>k  *\<^sub>a id_assn\<^sup>k  *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a cert_result_assn\<close>
   supply fun_comp_list_hnr[sepref_fr_rules]

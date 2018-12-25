@@ -1,7 +1,11 @@
-(* Authors: Stefan Berghofer, TU Muenchen, 2003 / Andreas Halkjær From, DTU Compute, 2017
+(*  Author:     Stefan Berghofer, TU Muenchen, 2003
+    Author: Andreas Halkjær From, DTU Compute, 2017
+    Thanks to John Bruntse Larsen, Anders Schlichtkrull & Jørgen Villadsen
 *)
 
-theory FOL_Berghofer imports Main begin
+theory FOL_Berghofer
+  imports "HOL-Library.Countable"
+begin
 
 section \<open>Miscellaneous Utilities\<close>
 
@@ -91,7 +95,8 @@ theorem closedt_mono: assumes le: \<open>i \<le> j\<close>
 
 theorem closed_mono: assumes le: \<open>i \<le> j\<close>
   shows \<open>closed i p \<Longrightarrow> closed j p\<close>
-  using le proof (induct p arbitrary: i j)
+  using le
+proof (induct p arbitrary: i j)
   case (Pred i l)
   then show ?case
     using closedt_mono by simp
@@ -427,26 +432,26 @@ for existential and universal quantifiers, the drinker principle, as well
 as Peirce's law are derivable in the calculus given above.
 \<close>
 
-theorem tnd: \<open>[] \<turnstile> Or (Pred p []) (Neg (Pred p []))\<close> (is "_ \<turnstile> ?or")
+theorem tnd: \<open>[] \<turnstile> Or (Pred p []) (Neg (Pred p []))\<close> (is \<open>_ \<turnstile> ?or\<close>)
 proof -
-  have \<open>[Pred p [], Neg ?or] \<turnstile> Pred p []\<close>
+  have \<open>[Neg ?or] \<turnstile> Neg ?or\<close>
     by (simp add: Assum)
-  then have \<open>[Pred p [], Neg ?or] \<turnstile> ?or\<close>
-    using OrI1 by blast
-  moreover have \<open>[Pred p [], Neg ?or] \<turnstile> Neg ?or\<close>
-    by (simp add: Assum)
-  ultimately have \<open>[Pred p [], Neg ?or] \<turnstile> FF\<close>
-    using NegE by blast
-  then have \<open>[Neg ?or] \<turnstile> Neg (Pred p [])\<close>
-    using NegI by blast
-  then have \<open>[Neg ?or] \<turnstile> ?or\<close>
-    using OrI2 by blast
-  moreover have \<open>[Neg ?or] \<turnstile> Neg ?or\<close>
-    by (simp add: Assum)
+  moreover { have \<open>[Pred p [], Neg ?or] \<turnstile> Neg ?or\<close>
+      by (simp add: Assum)
+    moreover have \<open>[Pred p [], Neg ?or] \<turnstile> Pred p []\<close>
+      by (simp add: Assum)
+    then have \<open>[Pred p [], Neg ?or] \<turnstile> ?or\<close>
+      by (rule OrI1)
+    ultimately have \<open>[Pred p [], Neg ?or] \<turnstile> FF\<close>
+      by (rule NegE)
+    then have \<open>[Neg ?or] \<turnstile> Neg (Pred p [])\<close>
+      by (rule NegI)
+    then have \<open>[Neg ?or] \<turnstile> ?or\<close>
+      by (rule OrI2) }
   ultimately have \<open>[Neg ?or] \<turnstile> FF\<close>
-    using NegE by blast
+    by (rule NegE)
   then show ?thesis
-    using Class by blast
+    by (rule Class)
 qed
 
 theorem ex_all_commute:
@@ -455,35 +460,35 @@ theorem ex_all_commute:
 proof -
   let ?forall = \<open>Forall (Pred p [Var 1, Var 0]) :: (nat, 'b) form\<close>
 
-  have \<open>[Pred p [App 1 [], Var 0][App 0 []/0], ?forall[App 1 []/0],
-     Exists ?forall] \<turnstile> Pred p [Var 0, App 0 []][App 1 []/0]\<close>
+  have \<open>[Exists ?forall] \<turnstile> Exists ?forall\<close>
     by (simp add: Assum)
-  moreover have \<open>[?forall[App 1 []/0], Exists ?forall] \<turnstile> Forall (Pred p [App 1 [], Var 0])\<close>
-    by (simp add: Assum)
-  ultimately have \<open>[?forall[App 1 []/0], Exists ?forall] \<turnstile> (Pred p [Var 0, App 0 []])[App 1 []/0]\<close>
-    using ForallE' by blast
+  moreover { have \<open>[?forall[App 1 []/0], Exists ?forall] \<turnstile> Forall (Pred p [App 1 [], Var 0])\<close>
+      by (simp add: Assum)
+    moreover have \<open>[Pred p [App 1 [], Var 0][App 0 []/0], ?forall[App 1 []/0],
+      Exists ?forall] \<turnstile> Pred p [Var 0, App 0 []][App 1 []/0]\<close>
+      by (simp add: Assum)
+    ultimately have \<open>[?forall[App 1 []/0], Exists ?forall] \<turnstile> (Pred p [Var 0, App 0 []])[App 1 []/0]\<close>
+      by (rule ForallE') }
   then have \<open>[?forall[App 1 []/0], Exists ?forall] \<turnstile> Exists (Pred p [Var 0, App 0 []])\<close>
-    using ExistsI by blast
+    by (rule ExistsI)
   moreover have \<open>list_all (\<lambda>p. 1 \<notin> params p) [Exists ?forall]\<close>
     by simp
   moreover have \<open>1 \<notin> params ?forall\<close>
     by simp
   moreover have \<open>1 \<notin> params (Exists (Pred p [Var 0, App (0 :: nat) []]))\<close>
     by simp
-  moreover have \<open>[Exists ?forall] \<turnstile> Exists ?forall\<close>
-    by (simp add: Assum)
   ultimately have \<open>[Exists ?forall] \<turnstile> Exists (Pred p [Var 0, App 0 []])\<close>
-    using ExistsE by fast
+    by (rule ExistsE)
   then have \<open>[Exists ?forall] \<turnstile> (Exists (Pred p [Var 0, Var 1]))[App 0 []/0]\<close>
-    by simp
-  moreover have \<open>0 \<notin> params (Exists (Pred p [Var 0, Var 1]))\<close>
     by simp
   moreover have \<open>list_all (\<lambda>p. 0 \<notin> params p) [Exists ?forall]\<close>
     by simp
+  moreover have \<open>0 \<notin> params (Exists (Pred p [Var 0, Var 1]))\<close>
+    by simp
   ultimately have \<open>[Exists ?forall] \<turnstile> Forall (Exists (Pred p [Var 0, Var 1]))\<close>
-    using ForallI by fast
+    by (rule ForallI)
   then show ?thesis
-    using ImplI by blast
+    by (rule ImplI)
 qed
 
 theorem drinker: \<open>([]::(nat, 'b) form list) \<turnstile>
@@ -493,35 +498,35 @@ proof -
   let ?G' = \<open>[Pred P [Var 0], Neg (Exists ?impl)]\<close>
   let ?G = \<open>Neg (Pred P [App 0 []]) # ?G'\<close>
 
-  have \<open>Pred P [App 0 []] # ?G \<turnstile> Neg (Pred P [App 0 []])\<close>
+  have \<open>?G \<turnstile> Neg (Exists ?impl)\<close>
+    by (simp add: Assum)
+  moreover have \<open>Pred P [App 0 []] # ?G \<turnstile> Neg (Pred P [App 0 []])\<close>
     and \<open>Pred P [App 0 []] # ?G \<turnstile> Pred P [App 0 []]\<close>
     by (simp_all add: Assum)
   then have \<open>Pred P [App 0 []] # ?G \<turnstile> FF\<close>
-    using NegE by blast
+    by (rule NegE)
   then have \<open>Pred P [App 0 []] # ?G \<turnstile> Forall (Pred P [Var 0])\<close>
-    using FFE by blast
+    by (rule FFE)
   then have \<open>?G \<turnstile> ?impl[App 0 []/0]\<close>
     using ImplI by simp
   then have \<open>?G \<turnstile> Exists ?impl\<close>
-    using ExistsI by blast
-  moreover have \<open>?G \<turnstile> Neg (Exists ?impl)\<close>
-    by (simp add: Assum)
+    by (rule ExistsI)
   ultimately have \<open>?G \<turnstile> FF\<close>
-    using NegE by blast
+    by (rule NegE)
   then have \<open>?G' \<turnstile> Pred P [Var 0][App 0 []/0]\<close>
     using Class by simp
-  moreover have \<open>(0 :: nat) \<notin> params (Pred P [Var 0])\<close>
-    by simp
   moreover have \<open>list_all (\<lambda>p. (0 :: nat) \<notin> params p) ?G'\<close>
     by simp
+  moreover have \<open>(0 :: nat) \<notin> params (Pred P [Var 0])\<close>
+    by simp
   ultimately have \<open>?G' \<turnstile> Forall (Pred P [Var 0])\<close>
-    using ForallI by fast
+    by (rule ForallI)
   then have \<open>[Neg (Exists ?impl)] \<turnstile> ?impl[Var 0/0]\<close>
     using ImplI by simp
   then have \<open>[Neg (Exists ?impl)] \<turnstile> Exists ?impl\<close>
-    using ExistsI by blast
+    by (rule ExistsI)
   then show ?thesis
-    using Class' by blast
+    by (rule Class')
 qed
 
 theorem peirce:
@@ -530,26 +535,26 @@ theorem peirce:
 proof -
   let ?PQPP = \<open>Impl ?PQP (Pred P [])\<close>
 
-  have \<open>[?PQP, Pred P [], ?PQP, Neg ?PQPP] \<turnstile> Pred P []\<close>
+  have \<open>[?PQP, Neg ?PQPP] \<turnstile> ?PQP\<close>
     by (simp add: Assum)
-  then have \<open>[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> ?PQPP\<close>
-    using ImplI by blast
-  moreover have \<open>[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> Neg ?PQPP\<close>
-    by (simp add: Assum)
-  ultimately have \<open>[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> FF\<close>
-    using NegE by blast
+  moreover { have \<open>[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> Neg ?PQPP\<close>
+      by (simp add: Assum)
+    moreover have \<open>[?PQP, Pred P [], ?PQP, Neg ?PQPP] \<turnstile> Pred P []\<close>
+      by (simp add: Assum)
+    then have \<open>[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> ?PQPP\<close>
+      by (rule ImplI)
+    ultimately have \<open>[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> FF\<close>
+      by (rule NegE) }
   then have \<open>[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> Pred Q []\<close>
-    using FFE by blast
+    by (rule FFE)
   then have \<open>[?PQP, Neg ?PQPP] \<turnstile> Impl (Pred P []) (Pred Q [])\<close>
-    using ImplI by blast
-  moreover have \<open>[?PQP, Neg ?PQPP] \<turnstile> ?PQP\<close>
-    by (simp add: Assum)
+    by (rule ImplI)
   ultimately have \<open>[?PQP, Neg ?PQPP] \<turnstile> Pred P []\<close>
-    using ImplE by blast
+    by (rule ImplE)
   then have \<open>[Neg ?PQPP] \<turnstile> ?PQPP\<close>
-    using ImplI by blast
+    by (rule ImplI)
   then show \<open>[] \<turnstile> ?PQPP\<close>
-    using Class' by blast
+    by (rule Class')
 qed
 
 section \<open>Correctness\<close>
@@ -566,7 +571,8 @@ proof (induct p rule: deriv.induct)
   then show ?case by (simp add: model_def list_all_iff)
 next
   case (ForallI G a n)
-  show ?case proof (intro allI)
+  show ?case
+  proof (intro allI)
     fix f g and e :: \<open>nat \<Rightarrow> 'c\<close>
     have \<open>\<forall>z. e, (f(n := \<lambda>x. z)), g, G \<Turnstile> (a[App n []/0])\<close>
       using ForallI by blast
@@ -576,7 +582,8 @@ next
   qed
 next
   case (ExistsE G a n b)
-  show ?case proof (intro allI)
+  show ?case
+  proof (intro allI)
     fix f g and e :: \<open>nat \<Rightarrow> 'c\<close>
     obtain z where \<open>list_all (eval e f g) G \<longrightarrow> eval (e\<langle>0:z\<rangle>) f g a\<close>
       using ExistsE unfolding model_def by simp blast
@@ -1375,248 +1382,17 @@ subsection \<open>Enumerating datatypes\<close>
 
 text \<open>
 \label{sec:enumeration}
-In the following section, we will show that elements of datatypes
-can be enumerated. This will be done by specifying functions that
-map natural numbers to elements of datatypes and vice versa.
+As has already been mentioned earlier, the proof of the model existence theorem
+relies on the fact that the set of formulae is enumerable. Using the infrastructure
+for datatypes, the types @{type term} and @{type form} can automatically be shown to
+be a member of the @{class countable} type class:
 \<close>
 
-subsubsection \<open>Enumerating pairs of natural numbers\<close>
+instance \<open>term\<close> :: (countable) countable
+  by countable_datatype
 
-text \<open>
-\begin{figure}
-\begin{center}
-\includegraphics[scale=0.6]{diag}
-\end{center}
-\caption{Cantor's method for enumerating sets of pairs}\label{fig:diag}
-\end{figure}
-As a starting point, we show that pairs of natural numbers are enumerable.
-For this purpose, we use a method due to Cantor, which is illustrated in
-\figref{fig:diag}. The function for mapping natural numbers to pairs of
-natural numbers can be characterized recursively as follows:
-\<close>
-
-primrec diag :: \<open>nat \<Rightarrow> (nat \<times> nat)\<close> where
-  \<open>diag 0 = (0, 0)\<close>
-| \<open>diag (Suc n) =
-     (let (x, y) = diag n
-      in case y of
-          0 \<Rightarrow> (0, Suc x)
-        | Suc y \<Rightarrow> (Suc x, y))\<close>
-
-theorem diag_le1: \<open>fst (diag (Suc n)) < Suc n\<close>
-  by (induct n) (simp_all add: Let_def split_def split: nat.split)
-
-theorem diag_le2: \<open>snd (diag (Suc (Suc n))) < Suc (Suc n)\<close>
-proof (induct n)
-  case 0
-  then show ?case by simp
-next
-  case (Suc n')
-  then show ?case proof (induct n')
-    case 0
-    then show ?case by simp
-  next
-    case (Suc _)
-    then show ?case
-      using diag_le1 by (simp add: Let_def split_def split: nat.split)
-  qed
-qed
-
-theorem diag_le3: \<open>fst (diag n) = Suc x \<Longrightarrow> snd (diag n) < n\<close>
-proof (induct n)
-  case 0
-  then show ?case by simp
-next
-  case (Suc n')
-  then show ?case proof (induct n')
-    case 0
-    then show ?case by simp
-  next
-    case (Suc n'')
-    then show ?case using diag_le2 by simp
-  qed
-qed
-
-theorem diag_le4: \<open>fst (diag n) = Suc x \<Longrightarrow> x < n\<close>
-proof (induct n)
-  case 0
-  then show ?case by simp
-next
-  case (Suc n')
-  then have \<open>fst (diag (Suc n')) < Suc n'\<close>
-    using diag_le1 by blast
-  then show ?case using Suc by simp
-qed
-
-function undiag :: \<open>nat \<times> nat \<Rightarrow> nat\<close> where
-  \<open>undiag (0, 0) = 0\<close>
-| \<open>undiag (0, Suc y) = Suc (undiag (y, 0))\<close>
-| \<open>undiag (Suc x, y) = Suc (undiag (x, Suc y))\<close>
-  by pat_completeness auto
-termination
-  by (relation \<open>measure (\<lambda>(x, y). ((x + y) * (x + y + 1)) div 2 + x)\<close>) auto
-
-theorem diag_undiag [simp]: \<open>diag (undiag (x, y)) = (x, y)\<close>
-  by (induct rule: undiag.induct) simp_all
-
-subsubsection \<open>Enumerating trees\<close>
-
-text \<open>
-When writing enumeration functions for datatypes, it is useful to
-note that all datatypes are some kind of trees. In order to
-avoid re-inventing the wheel, we therefore write enumeration functions
-for trees once and for all. In applications, we then only have to write
-functions for converting between trees and concrete datatypes.
-\<close>
-
-datatype btree = Leaf nat | Branch btree btree
-
-function diag_btree :: \<open>nat \<Rightarrow> btree\<close> where
-  \<open>diag_btree n = (case fst (diag n) of
-       0 \<Rightarrow> Leaf (snd (diag n))
-     | Suc x \<Rightarrow> Branch (diag_btree x) (diag_btree (snd (diag n))))\<close>
-  by auto
-termination
-  by (relation \<open>measure id\<close>) (auto intro: diag_le3 diag_le4)
-
-primrec undiag_btree :: \<open>btree \<Rightarrow> nat\<close> where
-  \<open>undiag_btree (Leaf n) = undiag (0, n)\<close>
-| \<open>undiag_btree (Branch t1 t2) =
-     undiag (Suc (undiag_btree t1), undiag_btree t2)\<close>
-
-theorem diag_undiag_btree [simp]: \<open>diag_btree (undiag_btree t) = t\<close>
-  by (induct t) simp_all
-
-declare diag_btree.simps [simp del] undiag_btree.simps [simp del]
-
-subsubsection \<open>Enumerating lists\<close>
-
-fun list_of_btree :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a list\<close> where
-  \<open>list_of_btree f (Leaf x) = []\<close>
-| \<open>list_of_btree f (Branch (Leaf n) t) = f n # list_of_btree f t\<close>
-
-primrec btree_of_list :: \<open>('a \<Rightarrow> nat) \<Rightarrow> 'a list \<Rightarrow> btree\<close> where
-  \<open>btree_of_list f [] = Leaf 0\<close>
-| \<open>btree_of_list f (x # xs) = Branch (Leaf (f x)) (btree_of_list f xs)\<close>
-
-definition diag_list :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a list\<close> where
-  \<open>diag_list f n = list_of_btree f (diag_btree n)\<close>
-
-definition undiag_list :: \<open>('a \<Rightarrow> nat) \<Rightarrow> 'a list \<Rightarrow> nat\<close> where
-  \<open>undiag_list f xs = undiag_btree (btree_of_list f xs)\<close>
-
-theorem diag_undiag_list [simp]:
-  \<open>(\<And>x. d (u x) = x) \<Longrightarrow> diag_list d (undiag_list u xs) = xs\<close>
-  by (induct xs) (simp_all add: diag_list_def undiag_list_def)
-
-subsubsection \<open>Enumerating terms\<close>
-
-fun
-  term_of_btree :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a term\<close> and
-  term_list_of_btree :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a term list\<close> where
-  \<open>term_of_btree f (Leaf m) = Var m\<close>
-| \<open>term_of_btree f (Branch (Leaf m) t) =
-     App (f m) (term_list_of_btree f t)\<close>
-| \<open>term_list_of_btree f (Leaf m) = []\<close>
-| \<open>term_list_of_btree f (Branch t1 t2) =
-     term_of_btree f t1 # term_list_of_btree f t2\<close>
-
-primrec
-  btree_of_term :: \<open>('a \<Rightarrow> nat) \<Rightarrow> 'a term \<Rightarrow> btree\<close> and
-  btree_of_term_list :: \<open>('a \<Rightarrow> nat) \<Rightarrow> 'a term list \<Rightarrow> btree\<close> where
-  \<open>btree_of_term f (Var m) = Leaf m\<close>
-| \<open>btree_of_term f (App m ts) = Branch (Leaf (f m)) (btree_of_term_list f ts)\<close>
-| \<open>btree_of_term_list f [] = Leaf 0\<close>
-| \<open>btree_of_term_list f (t # ts) = Branch (btree_of_term f t) (btree_of_term_list f ts)\<close>
-
-theorem term_btree: assumes \<open>\<And>x. d (u x) = x\<close>
-  shows \<open>term_of_btree d (btree_of_term u t) = t\<close>
-    and \<open>term_list_of_btree d (btree_of_term_list u ts) = ts\<close>
-  by (induct t and ts rule: btree_of_term.induct btree_of_term_list.induct) (simp_all add: assms)
-
-definition diag_term :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a term\<close> where
-  \<open>diag_term f n = term_of_btree f (diag_btree n)\<close>
-
-definition undiag_term :: \<open>('a \<Rightarrow> nat) \<Rightarrow> 'a term \<Rightarrow> nat\<close> where
-  \<open>undiag_term f t = undiag_btree (btree_of_term f t)\<close>
-
-theorem diag_undiag_term [simp]:
-  \<open>(\<And>x. d (u x) = x) \<Longrightarrow> diag_term d (undiag_term u t) = t\<close>
-  by (simp add: diag_term_def undiag_term_def term_btree)
-
-fun form_of_btree :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarrow> 'b) \<Rightarrow> btree \<Rightarrow> ('a, 'b) form\<close> where
-  \<open>form_of_btree f g (Leaf 0) = FF\<close>
-| \<open>form_of_btree f g (Leaf (Suc 0)) = TT\<close>
-| \<open>form_of_btree f g (Branch (Leaf 0) (Branch (Leaf m) (Leaf n))) =
-     Pred (g m) (diag_list (diag_term f) n)\<close>
-| \<open>form_of_btree f g (Branch (Leaf (Suc 0)) (Branch t1 t2)) =
-     And (form_of_btree f g t1) (form_of_btree f g t2)\<close>
-| \<open>form_of_btree f g (Branch (Leaf (Suc (Suc 0))) (Branch t1 t2)) =
-     Or (form_of_btree f g t1) (form_of_btree f g t2)\<close>
-| \<open>form_of_btree f g (Branch (Leaf (Suc (Suc (Suc 0)))) (Branch t1 t2)) =
-     Impl (form_of_btree f g t1) (form_of_btree f g t2)\<close>
-| \<open>form_of_btree f g (Branch (Leaf (Suc (Suc (Suc (Suc 0))))) t) =
-     Neg (form_of_btree f g t)\<close>
-| \<open>form_of_btree f g (Branch (Leaf (Suc (Suc (Suc (Suc (Suc 0)))))) t) =
-     Forall (form_of_btree f g t)\<close>
-| \<open>form_of_btree f g (Branch (Leaf (Suc (Suc (Suc (Suc (Suc (Suc 0))))))) t) =
-     Exists (form_of_btree f g t)\<close>
-
-primrec btree_of_form :: \<open>('a \<Rightarrow> nat) \<Rightarrow> ('b \<Rightarrow> nat) \<Rightarrow> ('a, 'b) form \<Rightarrow> btree\<close> where
-  \<open>btree_of_form f g FF = Leaf 0\<close>
-| \<open>btree_of_form f g TT = Leaf (Suc 0)\<close>
-| \<open>btree_of_form f g (Pred b ts) = Branch (Leaf 0)
-     (Branch (Leaf (g b)) (Leaf (undiag_list (undiag_term f) ts)))\<close>
-| \<open>btree_of_form f g (And a b) = Branch (Leaf (Suc 0))
-     (Branch (btree_of_form f g a) (btree_of_form f g b))\<close>
-| \<open>btree_of_form f g (Or a b) = Branch (Leaf (Suc (Suc 0)))
-     (Branch (btree_of_form f g a) (btree_of_form f g b))\<close>
-| \<open>btree_of_form f g (Impl a b) = Branch (Leaf (Suc (Suc (Suc 0))))
-     (Branch (btree_of_form f g a) (btree_of_form f g b))\<close>
-| \<open>btree_of_form f g (Neg a) = Branch (Leaf (Suc (Suc (Suc (Suc 0)))))
-     (btree_of_form f g a)\<close>
-| \<open>btree_of_form f g (Forall a) = Branch (Leaf (Suc (Suc (Suc (Suc (Suc 0))))))
-     (btree_of_form f g a)\<close>
-| \<open>btree_of_form f g (Exists a) = Branch
-     (Leaf (Suc (Suc (Suc (Suc (Suc (Suc 0)))))))
-     (btree_of_form f g a)\<close>
-
-definition diag_form :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> ('a, 'b) form\<close> where
-  \<open>diag_form f g n = form_of_btree f g (diag_btree n)\<close>
-
-definition undiag_form :: \<open>('a \<Rightarrow> nat) \<Rightarrow> ('b \<Rightarrow> nat) \<Rightarrow> ('a, 'b) form \<Rightarrow> nat\<close> where
-  \<open>undiag_form f g x = undiag_btree (btree_of_form f g x)\<close>
-
-theorem diag_undiag_form [simp]:
-  \<open>(\<And>x. d (u x) = x) \<Longrightarrow> (\<And>x. d' (u' x) = x) \<Longrightarrow>
-  diag_form d d' (undiag_form u u' f) = f\<close>
-  by (induct f) (simp_all add: diag_form_def undiag_form_def)
-
-definition diag_form' :: \<open>nat \<Rightarrow> (nat, nat) form\<close> where
-  \<open>diag_form' = diag_form (\<lambda>n. n) (\<lambda>n. n)\<close>
-
-definition undiag_form' :: \<open>(nat, nat) form \<Rightarrow> nat\<close> where
-  \<open>undiag_form' = undiag_form (\<lambda>n. n) (\<lambda>n. n)\<close>
-
-theorem diag_undiag_form' [simp]: \<open>diag_form' (undiag_form' f) = f\<close>
-  by (simp add: diag_form'_def undiag_form'_def)
-
-abbreviation \<open>from_nat \<equiv> diag_form'\<close>
-abbreviation \<open>to_nat \<equiv> undiag_form'\<close>
-
-text \<open>
-As an alternative to the enumerations in this section, one can delete the above abbreviations and
-use the countable type class by importing \<open>~~/src/HOL/Library/Countable\<close> and adding the following
-two instantiation commands:
-
-instantiation \<open>term\<close> :: (countable) countable begin
-instance by countable_datatype
-end
-
-instantiation form :: (countable, countable) countable begin
-instance by countable_datatype
-end
-\<close>
+instance form :: (countable, countable) countable
+  by countable_datatype
 
 subsection \<open>Extension to maximal consistent sets\<close>
 
@@ -1649,7 +1425,8 @@ qed
 theorem chain_index:
   assumes ch: \<open>is_chain f\<close> and fin: \<open>finite F\<close>
   shows \<open>F \<subseteq> (\<Union>n. f n) \<Longrightarrow> \<exists>n. F \<subseteq> f n\<close>
-  using fin proof (induct rule: finite_induct)
+  using fin
+proof (induct rule: finite_induct)
   case empty
   then show ?case by blast
 next
@@ -1974,7 +1751,7 @@ theorem hintikka_model:
     eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) p) \<and>
   (Neg p \<in> H \<longrightarrow> closed 0 p \<longrightarrow>
     eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg p))\<close>
-proof (rule_tac r=\<open>measure size_form\<close> and a=p in wf_induct)
+proof (induct p rule: wf_induct [where r=\<open>measure size_form\<close>])
   show \<open>wf (measure size_form)\<close>
     by blast
 next
@@ -1988,7 +1765,8 @@ next
   show \<open>(x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?eval x) \<and> (Neg x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?eval (Neg x))\<close>
   proof (cases x)
     case FF
-    show ?thesis proof (intro conjI impI)
+    show ?thesis
+    proof (intro conjI impI)
       assume \<open>x \<in> H\<close>
       then show \<open>?eval x\<close>
         using FF hin by (simp add: hintikka_def)
@@ -1998,7 +1776,8 @@ next
     qed
   next
     case TT
-    show ?thesis proof (intro conjI impI)
+    show ?thesis
+    proof (intro conjI impI)
       assume \<open>x \<in> H\<close>
       then show \<open>?eval x\<close>
         using TT by simp
@@ -2009,7 +1788,8 @@ next
     qed
   next
     case (Pred p ts)
-    show ?thesis proof (intro conjI impI)
+    show ?thesis
+    proof (intro conjI impI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
       then show \<open>?eval x\<close> using Pred by simp
     next
@@ -2023,7 +1803,8 @@ next
     qed
   next
     case (Neg Z)
-    then show ?thesis proof (intro conjI impI)
+    then show ?thesis
+    proof (intro conjI impI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
       then show \<open>?eval x\<close>
         using Neg wf by simp
@@ -2041,7 +1822,8 @@ next
     qed
   next
     case (And A B)
-    then show ?thesis proof (intro conjI impI)
+    then show ?thesis
+    proof (intro conjI impI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
       then have \<open>And A B \<in> H\<close> and \<open>closed 0 (And A B)\<close>
         using And by simp_all
@@ -2060,7 +1842,8 @@ next
     qed
   next
     case (Or A B)
-    then show ?thesis proof (intro conjI impI)
+    then show ?thesis
+    proof (intro conjI impI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
       then have \<open>Or A B \<in> H\<close> and \<open>closed 0 (Or A B)\<close>
         using Or by simp_all
@@ -2079,7 +1862,8 @@ next
     qed
   next
     case (Impl A B)
-    then show ?thesis proof (intro conjI impI)
+    then show ?thesis
+    proof (intro conjI impI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
       then have \<open>Impl A B \<in> H\<close> and \<open>closed 0 (Impl A B)\<close>
         using Impl by simp_all
@@ -2098,7 +1882,8 @@ next
     qed
   next
     case (Forall P)
-    then show ?thesis proof (intro conjI impI)
+    then show ?thesis
+    proof (intro conjI impI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
       have \<open>\<forall>z. eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P\<close>
       proof (rule allI)
@@ -2144,7 +1929,8 @@ next
     qed
   next
     case (Exists P)
-    then show ?thesis proof (intro conjI impI allI)
+    then show ?thesis
+    proof (intro conjI impI allI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
       then have \<open>\<exists>t. closedt 0 t \<and> (P[t/0]) \<in> H\<close>
         using Exists hin unfolding hintikka_def by blast
@@ -2874,11 +2660,11 @@ proof (rule Class, rule ccontr)
   ultimately show False by simp
 qed
 
-section \<open>L\\<open>owenheim-Skolem theorem\<close>
+section \<open>L\"owenheim-Skolem theorem\<close>
 
 text \<open>
 Another application of the model existence theorem presented in \secref{sec:model-existence}
-is the L\\<close>owenheim-Skolem theorem. It says that a set of formulae that is satisfiable in an
+is the L\"owenheim-Skolem theorem. It says that a set of formulae that is satisfiable in an
 {\em arbitrary model} is also satisfiable in a {\em Herbrand model}. The main idea behind the
 proof is to show that satisfiable sets are consistent, hence they must be satisfiable in a
 Herbrand model.
@@ -3075,7 +2861,7 @@ proof (rule infinite_super)
 next
   have \<open>\<And>m n. Suc (2 * m) \<noteq> 2 * n\<close> by arith
   then show \<open>range (\<lambda>n::nat. (2::nat) * n + (1::nat))
-    \<subseteq> - (\<Union>p::(nat, 'a) form \<in> psubst (op * (2::nat)) ` S. params p)\<close>
+    \<subseteq> - (\<Union>p::(nat, 'a) form \<in> psubst (( * ) (2::nat)) ` S. params p)\<close>
     by auto
 qed
 
@@ -3106,17 +2892,17 @@ proof (intro ballI impI)
     using evalS by blast
   then have \<open>\<forall>x \<in> S. eval e f g x\<close>
     using evalS by blast
-  then have \<open>\<forall>p \<in> psubst (op * 2) ` S. eval e (\<lambda>n. f (n div 2)) g p\<close>
+  then have \<open>\<forall>p \<in> psubst (( * ) 2) ` S. eval e (\<lambda>n. f (n div 2)) g p\<close>
     by (simp add: psubst_eval)
-  then have \<open>psubst (op * 2) ` S \<in> ?C\<close>
+  then have \<open>psubst (( * ) 2) ` S \<in> ?C\<close>
     using doublep_infinite_params by blast
-  moreover have \<open>psubst (op * 2) p \<in> psubst (op * 2) ` S\<close>
+  moreover have \<open>psubst (( * ) 2) p \<in> psubst (( * ) 2) ` S\<close>
     using \<open>p \<in> S\<close> by blast
-  moreover have \<open>closed 0 (psubst (op * 2) p)\<close>
+  moreover have \<open>closed 0 (psubst (( * ) 2) p)\<close>
     using \<open>closed 0 p\<close> by simp
   moreover have \<open>consistency ?C\<close>
     using sat_consistency by blast
-  ultimately have \<open>eval e' HApp ?g (psubst (op * 2) p)\<close>
+  ultimately have \<open>eval e' HApp ?g (psubst (( * ) 2) p)\<close>
     using model_existence by blast
   then show \<open>eval e' (\<lambda>n. HApp (2 * n)) ?g p\<close>
     using psubst_eval by blast
@@ -3323,11 +3109,11 @@ lemma subst_0_lift:
   \<open>substts (liftts l) s 0 = l\<close>
   by (induct t and l rule: substt.induct substts.induct) simp_all
 
-lemma params_lift:
+lemma params_lift [simp]:
   fixes t :: \<open>'a term\<close> and ts :: \<open>'a term list\<close>
   shows
-    \<open>paramst t = paramst (liftt t)\<close>
-    \<open>paramsts ts = paramsts (liftts ts)\<close>
+    \<open>paramst (liftt t) = paramst t\<close>
+    \<open>paramsts (liftts ts) = paramsts ts\<close>
   by (induct t and ts rule: paramst.induct paramsts.induct) simp_all
 
 lemma subst_new' [simp]:
@@ -3335,21 +3121,13 @@ lemma subst_new' [simp]:
   \<open>new_term c s \<Longrightarrow> new_list c l \<Longrightarrow> new_list c (substts l s m)\<close>
   by (induct t and l rule: substt.induct substts.induct) simp_all
 
-lemma subst_new: \<open>new_term c s \<Longrightarrow> new c p \<Longrightarrow> new c (subst p s m)\<close>
-proof (induct p arbitrary: m s)
-  case (Forall p)
-  then show ?case
-    by (metis params_lift(1) params.simps(8) subst.simps(8))
-next
-  case (Exists p)
-  then show ?case
-    by (metis params_lift(1) params.simps(9) subst.simps(9))
-qed auto
+lemma subst_new [simp]: \<open>new_term c s \<Longrightarrow> new c p \<Longrightarrow> new c (subst p s m)\<close>
+  by (induct p arbitrary: m s) simp_all
 
 lemma subst_new_all:
   assumes \<open>a \<notin> set cs\<close> \<open>list_all (\<lambda>c. new c p) cs\<close>
   shows \<open>list_all (\<lambda>c. new c (subst p (App a []) m)) cs\<close>
-  using assms subst_new by (induct cs) force+
+  using assms by (induct cs) auto
 
 lemma subc_new' [simp]:
   \<open>new_term c t \<Longrightarrow> subc_term c s t = t\<close>
@@ -3357,27 +3135,27 @@ lemma subc_new' [simp]:
   by (induct t and l rule: subc_term.induct subc_list.induct) auto
 
 lemma subc_new [simp]: \<open>new c p \<Longrightarrow> subc c s p = p\<close>
-  using subc_new' by (induct p arbitrary: s) auto
+  by (induct p arbitrary: s) simp_all
 
 lemma subcs_news: \<open>news c z \<Longrightarrow> subcs c s z = z\<close>
-  using subc_new by (induct z) auto
+  by (induct z) simp_all
 
 lemma subc_psubst' [simp]:
   \<open>(\<forall>x \<in> paramst t. x \<noteq> c \<longrightarrow> f x \<noteq> f c) \<Longrightarrow>
     psubstt f (subc_term c s t) = subc_term (f c) (psubstt f s) (psubstt f t)\<close>
   \<open>(\<forall>x \<in> paramsts l. x \<noteq> c \<longrightarrow> f x \<noteq> f c) \<Longrightarrow>
     psubstts f (subc_list c s l) = subc_list (f c) (psubstt f s) (psubstts f l)\<close>
-  by (induct t and l rule: psubstt.induct psubstts.induct) auto
+  by (induct t and l rule: psubstt.induct psubstts.induct) simp_all
 
 lemma subc_psubst: \<open>(\<forall>x \<in> params p. x \<noteq> c \<longrightarrow> f x \<noteq> f c) \<Longrightarrow>
     psubst f (subc c s p) = subc (f c) (psubstt f s) (psubst f p)\<close>
-  using params_lift by (induct p arbitrary: s) fastforce+
+  by (induct p arbitrary: s) simp_all
 
 lemma subcs_psubst: \<open>(\<forall>x \<in> (\<Union>p \<in> set z. params p). x \<noteq> c \<longrightarrow> f x \<noteq> f c) \<Longrightarrow>
     map (psubst f) (subcs c s z) = subcs (f c) (psubstt f s) (map (psubst f) z)\<close>
   by (induct z) (simp_all add: subc_psubst)
 
-lemma new_lift [simp]:
+lemma new_lift:
   \<open>new_term c t \<Longrightarrow> new_term c (liftt t)\<close>
   \<open>new_list c l \<Longrightarrow> new_list c (liftts l)\<close>
   by (induct t and l rule: liftt.induct liftts.induct) simp_all
@@ -3393,16 +3171,13 @@ lemma new_subc [simp]: \<open>new_term d s \<Longrightarrow> new d p \<Longright
 lemma news_subcs: \<open>new_term d s \<Longrightarrow> news d z \<Longrightarrow> news d (subcs c s z)\<close>
   by (induct z) simp_all
 
-lemma psubst_new_free' [simp]:
+lemma psubst_new_free':
   \<open>c \<noteq> n \<Longrightarrow> new_term n (psubstt (id(n := c)) t)\<close>
   \<open>c \<noteq> n \<Longrightarrow> new_list n (psubstts (id(n := c)) l)\<close>
   by (induct t and l rule: paramst.induct paramsts.induct) simp_all
 
 lemma psubst_new_free: \<open>c \<noteq> n \<Longrightarrow> new n (psubst (id(n := c)) p)\<close>
-proof (induct p)
-  case (Pred i l)
-  then show ?case by fastforce
-qed simp_all
+  using psubst_new_free' by (induct p) fastforce+
 
 lemma map_psubst_new_free: \<open>c \<noteq> n \<Longrightarrow> news n (map (psubst (id(n := c))) z)\<close>
   using psubst_new_free by (induct z) fastforce+
@@ -3412,16 +3187,12 @@ lemma psubst_new_away' [simp]:
   \<open>new_list fresh l \<Longrightarrow> psubstts (id(fresh := c)) (psubstts (id(c := fresh)) l) = l\<close>
   by (induct t and l rule: psubstt.induct psubstts.induct) auto
 
-lemma psubst_new_away: \<open>new fresh p \<Longrightarrow> psubst (id(fresh := c)) (psubst (id(c := fresh)) p) = p\<close>
-proof (induct p)
-  case (Pred i l)
-  then show ?case
-    by (metis params.simps(3) psubst.simps(3) psubst_new_away'(2))
-qed simp_all
+lemma psubst_new_away [simp]: \<open>new fresh p \<Longrightarrow> psubst (id(fresh := c)) (psubst (id(c := fresh)) p) = p\<close>
+  by (induct p) simp_all
 
 lemma map_psubst_new_away:
   \<open>news fresh z \<Longrightarrow> map (psubst (id(fresh := c))) (map (psubst (id(c := fresh))) z) = z\<close>
-  using psubst_new_away by (induct z) auto
+  by (induct z) simp_all
 
 lemma psubst_new':
   \<open>new_term c t \<Longrightarrow> psubstt (id(c := x)) t = t\<close>
@@ -3455,8 +3226,7 @@ lemma lift_subc:
 lemma new_subc_put':
   \<open>new_term c s \<Longrightarrow> subc_term c s (substt t u m) = subc_term c s (substt t (subc_term c s u) m)\<close>
   \<open>new_term c s \<Longrightarrow> subc_list c s (substts l u m) = subc_list c s (substts l (subc_term c s u) m)\<close>
-  using new_subc_same' subc_new'
-  by (induct t and l rule: subc_term.induct subc_list.induct) auto
+  by (induct t and l rule: subc_term.induct subc_list.induct) simp_all
 
 lemma new_subc_put:
   \<open>new_term c s \<Longrightarrow> subc c s (subst p t m) = subc c s (subst p (subc_term c s t) m)\<close>
@@ -3511,15 +3281,11 @@ qed
 lemma subc_subst_new':
   \<open>new_term c u \<Longrightarrow> subc_term c (substt s u m) (substt t u m) = substt (subc_term c s t) u m\<close>
   \<open>new_term c u \<Longrightarrow> subc_list c (substt s u m) (substts l u m) = substts (subc_list c s l) u m\<close>
-  using subc_new' by (induct t and l rule: subc_term.induct subc_list.induct) auto
+  by (induct t and l rule: subc_term.induct subc_list.induct) simp_all
 
 lemma subc_subst_new:
   \<open>new_term c t \<Longrightarrow> subc c (substt s t m) (subst p t m) = subst (subc c s p) t m\<close>
-proof (induct p arbitrary: m t s)
-  case (Pred i l)
-  then show ?case
-    using subc_subst_new' by simp
-qed simp_all
+  using subc_subst_new' by (induct p arbitrary: m t s) fastforce+
 
 lemma subc_sub_0_new [simp]:
   \<open>new_term c t \<Longrightarrow> subc c s (subst p t 0) = subst (subc c (liftt s) p) t 0\<close>
@@ -3589,7 +3355,8 @@ next
     using deriv.AndI by fastforce
 next
   case (ExistsE z p d q)
-  then show ?case proof (cases \<open>c = d\<close>)
+  then show ?case
+  proof (cases \<open>c = d\<close>)
     case True
     then have \<open>z \<turnstile> q\<close>
       using ExistsE deriv.ExistsE by fast
@@ -3617,7 +3384,7 @@ next
     then have \<open>psubstt ?f ?s = psubstt (id(fresh := d)) ?s\<close>
       by (metis fun_upd_twist psubstt_upd(1))
     then have psubst_s: \<open>psubstt ?f ?s = s\<close>
-      using fresh psubst_new_away' by simp
+      using fresh by simp
 
     have \<open>?f c = c\<close> and \<open>new_term (?f c) (App fresh [])\<close>
       using False fresh by auto
@@ -3690,9 +3457,9 @@ next
   have c: \<open>?g c = c\<close>
     using fresh by simp
   have s: \<open>psubstt ?g ?s = s\<close>
-    using fresh psubst_new_away' by simp
+    using fresh by simp
   have p: \<open>psubst ?g (Exists p) = Exists p\<close>
-    using fresh psubst_new_away by simp
+    using fresh by simp
 
   have \<open>\<forall>x \<in> (\<Union>p \<in> set z. params p). x \<noteq> c \<longrightarrow> ?g x \<noteq> ?g c\<close>
     using fresh by auto
@@ -3734,7 +3501,7 @@ next
   have c: \<open>?g c = c\<close>
     using fresh by simp
   have s: \<open>psubstt ?g ?s = s\<close>
-    using fresh psubst_new_away' by simp
+    using fresh by simp
   have p: \<open>psubst ?g (subst p t 0) = subst p t 0\<close>
     using fresh psubst_new psubst_subst subst_new psubst_new'(1) by fastforce
 
@@ -3766,7 +3533,8 @@ next
     using c s p z by (simp add: subc_psubst)
 next
   case (ForallI z p d)
-  then show ?case proof (cases \<open>c = d\<close>)
+  then show ?case
+  proof (cases \<open>c = d\<close>)
     case True
     then have \<open>z \<turnstile> Forall p\<close>
       using ForallI deriv.ForallI by fast
@@ -3794,7 +3562,7 @@ next
     then have \<open>psubstt ?f ?s = psubstt (id(fresh := d)) ?s\<close>
       by (metis fun_upd_twist psubstt_upd(1))
     then have psubst_s: \<open>psubstt ?f ?s = s\<close>
-      using fresh psubst_new_away' by simp
+      using fresh by simp
 
     have \<open>?f c = c\<close> and \<open>new_term c (App fresh [])\<close>
       using False fresh by auto
@@ -3824,7 +3592,7 @@ next
     have \<open>subcs c ?s z \<turnstile> subc c ?s (subst p (App d []) 0)\<close>
       using ForallI by blast
     then have \<open>map (psubst ?f) (subcs c ?s z) \<turnstile> psubst ?f (subc c ?s (subst p (App d []) 0))\<close>
-      using deriv_psubst inf_params by fastforce
+      using deriv_psubst inf_params by blast
     then have \<open>subcs c s z \<turnstile> psubst ?f (subc c ?s (subst p (App d []) 0))\<close>
       using psubst_z by simp
     then have sub_p: \<open>subcs c s z \<turnstile> subst (subc c (liftt s) p) (App fresh []) 0\<close>
@@ -3837,7 +3605,7 @@ next
     then have \<open>new fresh (subc c (liftt s) p)\<close>
       using fresh new_subc by simp
     moreover have \<open>news fresh (subcs c s z)\<close>
-      using \<open>news fresh z\<close> \<open>new_term fresh s\<close> news_subcs by metis
+      using \<open>news fresh z\<close> \<open>new_term fresh s\<close> news_subcs by fast
     ultimately show \<open>subcs c s z \<turnstile> subc c s (Forall p)\<close>
       using deriv.ForallI sub_p by simp
   qed
@@ -4036,7 +3804,7 @@ lemma subc_sub_closed_var' [simp]:
   \<open>new_list c l \<Longrightarrow> closedts (Suc m) l \<Longrightarrow> subc_list c (Var m) (substts l (App c []) m) = l\<close>
   by (induct t and l rule: substt.induct substts.induct) auto
 
-lemma subc_sub_closed_var: \<open>new c p \<Longrightarrow> closed (Suc m) p \<Longrightarrow>
+lemma subc_sub_closed_var [simp]: \<open>new c p \<Longrightarrow> closed (Suc m) p \<Longrightarrow>
     subc c (Var m) (subst p (App c []) m) = p\<close>
   by (induct p arbitrary: m) simp_all
 
@@ -4048,7 +3816,7 @@ lemma sub_put_unis [simp]:
   \<open>subst (put_unis k p) (App c []) i = put_unis k (subst p (App c []) (i + k))\<close>
   by (induct k arbitrary: i) simp_all
 
-lemma closed_put_unis: \<open>closed m (put_unis k p) = closed (m + k) p\<close>
+lemma closed_put_unis [simp]: \<open>closed m (put_unis k p) = closed (m + k) p\<close>
   by (induct k arbitrary: m) simp_all
 
 lemma valid_put_unis: \<open>\<forall>(e :: nat \<Rightarrow> 'a) f g. eval e f g p \<Longrightarrow>
@@ -4086,7 +3854,7 @@ lemma vars_for_consts:
 lemma vars_for_consts_for_unis:
   \<open>closed (length cs) p \<Longrightarrow> list_all (\<lambda>c. new c p) cs \<Longrightarrow> distinct cs \<Longrightarrow>
    vars_for_consts (consts_for_unis (put_unis (length cs) p) cs) cs = p\<close>
-  by (induct cs arbitrary: p) (simp_all add: subst_new_all subc_sub_closed_var)
+  by (induct cs arbitrary: p) (simp_all add: subst_new_all)
 
 lemma fresh_constant:
   fixes p :: \<open>('a, 'b) form\<close>
@@ -4096,7 +3864,7 @@ proof -
   have \<open>finite (set cs \<union> params p)\<close>
     by simp
   then show ?thesis
-    using assms ex_new_if_finite by (metis UnI1 UnI2)
+    using assms ex_new_if_finite UnI1 UnI2 by metis
 qed
 
 lemma fresh_constants:
@@ -4140,7 +3908,7 @@ proof (induct t and l rule: closedt.induct closedts.induct)
     by auto
 qed auto
 
-lemma ex_closed: \<open>\<exists>m. closed m p\<close>
+lemma ex_closed [simp]: \<open>\<exists>m. closed m p\<close>
 proof (induct p)
   case FF
   then show ?case
@@ -4184,7 +3952,7 @@ next
 qed simp_all
 
 lemma ex_closure: \<open>\<exists>m. closed 0 (put_unis m p)\<close>
-  using ex_closed closed_put_unis by fastforce
+  by simp
 
 lemma remove_unis_sentence:
   assumes inf_params: \<open>infinite (- params p)\<close>
@@ -4199,7 +3967,7 @@ proof -
   then have \<open>[] \<turnstile> vars_for_consts (consts_for_unis (put_unis (length cs) p) cs) cs\<close>
     using vars_for_consts inf_params by fastforce
   moreover have \<open>closed (length cs) p\<close>
-    using assms \<open>length cs = m\<close> closed_put_unis by force
+    using assms \<open>length cs = m\<close> by simp
   ultimately show \<open>[] \<turnstile> p\<close>
     using vars_for_consts_for_unis * ** by metis
 qed
@@ -4242,5 +4010,9 @@ proposition
   shows \<open>([] \<turnstile> p) = valid p\<close>
   using completeness correctness
   unfolding model_def by fastforce
+
+corollary \<open>\<forall>e (f::nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm) (g::nat \<Rightarrow> nat hterm list \<Rightarrow> bool).
+    e,f,g,ps \<Turnstile> p \<Longrightarrow> ps \<turnstile> p\<close>
+  by (rule completeness)
 
 end

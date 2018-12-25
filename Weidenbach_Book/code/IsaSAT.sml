@@ -11,10 +11,18 @@ val gn_of_int = SAT_Solver.uint32_of_nat o SAT_Solver.nat_of_integer o IntInf.fr
 exception LitTooLarge of Int.int
 
 fun lit_of_nat n =
-  if Word.toLargeInt n mod 2 = 0 then Word.toLargeInt n div 2
-  else ~(Word.toLargeInt n div 2)
+  if Word.toLargeInt n mod 2 = 0 then 1+(Word.toLargeInt n div 2)
+  else ~(1+((Word.toLargeInt n) div 2))
 
-val print_model = map (print o (fn n => IntInf.toString n ^ " ") o lit_of_nat)
+fun print_model (xs, i) =
+    let
+      fun map_from j =
+          if j >= int_of_gn i then ()
+          else
+            ((print o (fn n => IntInf.toString n ^ " ") o lit_of_nat)
+                (Array.sub (xs, j));
+                 map_from (j+1))
+    in (print "v "; map_from 0; print "\n") end
 
 fun nat_of_lit n =
   let val m = if n < 0 then (2*(~n-1)+1) else (2*(n-1))
@@ -62,22 +70,25 @@ fun print_clauses id a [] = ()
       print_clauses (id+1) a xs
     )
 
-fun print_stat (propa, (confl, dec)) =
+fun print_stat (propa, (confl, (dec, (res, (lres, ures))))) =
   let
-     val _ = print ("s propagations: " ^ IntInf.toString (Uint64.toInt propa) ^ "\n")
-     val _ = print ("s conflicts: " ^ IntInf.toString (Uint64.toInt confl) ^ "\n")
-     val _ = print ("s decisions: " ^ IntInf.toString (Uint64.toInt dec) ^ "\n")
+     val _ = print ("c propagations: " ^ IntInf.toString (Uint64.toInt propa) ^ "\n")
+     val _ = print ("c conflicts: " ^ IntInf.toString (Uint64.toInt confl) ^ "\n")
+     val _ = print ("c decisions: " ^ IntInf.toString (Uint64.toInt dec) ^ "\n")
+     val _ = print ("c reductions: " ^ IntInf.toString (Uint64.toInt res) ^ "\n")
+     val _ = print ("c local restarts: " ^ IntInf.toString (Uint64.toInt lres) ^ "\n")
+     val _ = print ("c literals set at level 0: " ^ IntInf.toString (Uint64.toInt ures) ^ "\n")
   in
    ()
   end
-fun checker print_modelb print_stats cnf_name = let
+fun solver print_modelb print_stats norestart noreduction nounbounded cnf_name = let
   val problem = Dimacs_Parser.parse_dimacs_file_map_to_list cnf_name nat_of_lit;
-  val (SAT, stat) = SAT_Solver.isaSAT_code problem ();
+  val (SAT, stat) = SAT_Solver.isaSAT_code (not norestart, (not noreduction, nounbounded)) problem ();
   val _ = (if print_stats then print_stat stat else ());
   val _ =
         (case SAT of
-             NONE => print "UNSAT"
-           | SOME SAT => if print_modelb then ignore (print_model SAT) else print "SAT")
+             NONE => print "s UNSATISFIABLE\n"
+           | SOME SAT => (if print_modelb then ignore (print_model SAT) else (); print "s SATISFIABLE\n"))
   in
     ()
   end
@@ -88,7 +99,11 @@ fun print_help () = (
   println("  The result (SAT or UNSAT) is printed");
   println("  Use option --stat to print the number of propagations,");
   println("   conflicts, and decisions. ");
-  println("  Use option --model to print a model if one exists.")
+  println("  Use option --model to print a model if one exists.");
+  println("  Use option --norestart to d%eactivate restarts.");
+  println("  Use option --noreduction to deactivate DB reduction.");
+  println("  Use option --nobounded to force the usage of IntInf.");
+  println("  Use option --version to print the git id of IsaFoL when generating code.")
 )
 
 fun contains x xs =
@@ -98,9 +113,15 @@ fun contains x xs =
 
 fun process_args [] = print_help() 
   | process_args args =
-    checker (contains "--model" args)
-            (contains "--stat" args)
-            (List.last args)
+    if (contains "--version" args) then println("c version: " ^ SAT_Solver.version ^"\n")
+    else
+      solver (contains "--model" args)
+             (contains "--stat" args)
+             (contains "--norestart" args)
+             (contains "--noreduction" args)
+             (contains "--nobounded" args)
+             (List.last args)
+
 
 fun main () = let
   val args = CommandLine.arguments ();

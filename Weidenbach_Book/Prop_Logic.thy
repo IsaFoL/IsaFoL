@@ -452,7 +452,7 @@ next
 qed
 
 lemma cons_inject:
-  "inj (op # s)"
+  "inj ((#) s)"
   by (meson injI list.inject)
 
 lemma finite_insert_nil_cons:
