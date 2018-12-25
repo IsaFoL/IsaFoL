@@ -1,5 +1,5 @@
 theory CDCL_W_Optimal_Model
-imports CDCL_W_Abstract_State "HOL-Library.Extended_Nat"
+imports CDCL_W_Abstract_State "HOL-Library.Extended_Nat" "../lib/Explorer"
 begin
 
 section \<open>CDCL Extensions\<close>
@@ -974,24 +974,9 @@ lemma distinct_cdcl\<^sub>W_state_distinct_cdcl\<^sub>W_state:
   unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def distinct_cdcl\<^sub>W_state_def
   by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
 
-lemma no_step_cdcl_opt_stgy:
-  assumes
-    n_s: \<open>no_step cdcl_opt S\<close> and
-    all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
-    stgy_inv: \<open>cdcl_opt_stgy_inv S\<close> and
-    le: \<open>cdcl\<^sub>W_learned_clause S\<close>
-  shows \<open>conflicting S = None \<or> conflicting S = Some {#}\<close>
-proof (rule ccontr)
-  assume \<open>\<not> ?thesis\<close>
-  then obtain D where \<open>conflicting S = Some D\<close> and \<open>D \<noteq> {#}\<close>
-    by auto
-  moreover have \<open>no_step cdcl\<^sub>W_stgy S\<close>
-    using n_s by (auto simp: cdcl\<^sub>W_stgy.simps cdcl_opt.simps)
-  ultimately show False
-    using conflicting_no_false_can_do_step[of S] all_struct stgy_inv le
-    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl_opt_stgy_inv_def
-    by (auto dest!: distinct_cdcl\<^sub>W_state_distinct_cdcl\<^sub>W_state)
-qed
+
+lemma no_step_cdcl_opt_cdcl\<^sub>W: \<open>no_step cdcl_opt S \<Longrightarrow> no_step cdcl\<^sub>W S\<close>
+  by (meson cdcl\<^sub>W.cases cdcl_opt.simps)
 
 lemma sim_abs_state_simp: \<open>S \<sim> T \<Longrightarrow> abs_state S = abs_state T\<close>
   by (auto simp: abs_state_def)
@@ -1026,7 +1011,7 @@ lemma cdcl\<^sub>W_all_struct_inv_restart_cdcl\<^sub>W_all_struct_inv:
 lemma wf_cdcl_opt:
   assumes improve: \<open>\<And>S T. improve S T \<Longrightarrow> (\<nu> (weight T), \<nu> (weight S)) \<in> R\<close> and
     wf_R: \<open>wf R\<close>
-  shows \<open>wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl_opt S T}\<close>
+  shows \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_opt S T}\<close>
     (is \<open>wf ?A\<close>)
 proof -
   let ?R = \<open>{(T, S). (\<nu> (weight T), \<nu> (weight S)) \<in> R }\<close>
@@ -1034,7 +1019,7 @@ proof -
   have \<open>wf {(T, S).  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W S T}\<close>
     by (rule cdcl\<^sub>W_restart_mset.wf_cdcl\<^sub>W)
   from wf_if_measure_f[OF this, of abs_state]
-  have wf: \<open>wf {(T, S).  cdcl\<^sub>W_all_struct_inv S \<and>
+  have wf: \<open>wf {(T, S).  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and>
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T) \<and> weight S = weight T}\<close>
     (is \<open>wf ?CDCL\<close>)
     by (rule wf_subset) (auto simp: cdcl\<^sub>W_all_struct_inv_restart_cdcl\<^sub>W_all_struct_inv)
@@ -1080,8 +1065,11 @@ proof (rule ccontr)
     using assms by (auto simp: cdcl\<^sub>W.simps)
 qed
 
-lemma no_step_cdcl_opt_cdcl\<^sub>W: \<open>no_step cdcl_opt S \<Longrightarrow> no_step cdcl\<^sub>W S\<close>
-  by (meson cdcl\<^sub>W.cases cdcl_opt.simps)
+lemma [simp]:
+  \<open>CDCL_W_Abstract_State.conflicting (abs_state S) = conflicting S\<close>
+  \<open>cdcl\<^sub>W_restart_mset.clauses (abs_state S) = clauses S + conflicting_clss S\<close>
+  by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state clauses_def
+    cdcl\<^sub>W_restart_mset.clauses_def)
 
 context
   assumes can_always_improve:
@@ -1091,19 +1079,66 @@ context
        total_over_m (lits_of_l (trail S)) (set_mset (clauses S)) \<Longrightarrow> Ex (improve S)\<close>
 begin
 
+lemma
+  assumes 
+    \<open>no_step cdcl_opt S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S)\<close>
+proof -
+  have \<open>Ex(cdcl_opt S)\<close> if  \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) T\<close> for T
+    using that
+  proof cases
+    case W_propagate
+    then have \<open>\<exists>T. propagate S T \<or> conflict_opt S T \<close>
+      apply (auto simp: propagate.simps cdcl\<^sub>W_restart_mset.propagate.simps
+        conflict_opt.simps)
+      sorry
+      find_theorems conflicting_clss is_improving
+    then show ?thesis sorry
+  next
+    case W_conflict
+    then show ?thesis sorry
+  next
+    case W_other
+    then show ?thesis sorry
+  qed
+  then show ?thesis using assms by blast
+qed
+
+
+lemma no_step_cdcl_opt_stgy:
+  assumes
+    n_s: \<open>no_step cdcl_opt S\<close> and
+    all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+    stgy_inv: \<open>cdcl_opt_stgy_inv S\<close>
+  shows \<open>conflicting S = None \<or> conflicting S = Some {#}\<close>
+proof (rule ccontr)
+  assume \<open>\<not> ?thesis\<close>
+  then obtain D where \<open>conflicting S = Some D\<close> and \<open>D \<noteq> {#}\<close>
+    by auto
+  moreover have \<open>no_step cdcl\<^sub>W_stgy S\<close>
+    using n_s by (auto simp: cdcl\<^sub>W_stgy.simps cdcl_opt.simps)
+  moreover have le: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (abs_state S)\<close>
+    using all_struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
+  ultimately show False
+    using cdcl\<^sub>W_restart_mset.conflicting_no_false_can_do_step[of \<open>abs_state S\<close>] all_struct stgy_inv le
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl_opt_stgy_inv_def
+    by (auto dest!: distinct_cdcl\<^sub>W_state_distinct_cdcl\<^sub>W_state)
+qed
+
 lemma no_step_cdcl_opt_stgy_empty_conflict:
   assumes
     n_s: \<open>no_step cdcl_opt S\<close> and
-    all_struct: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
+    all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
     stgy_inv: \<open>cdcl_opt_stgy_inv S\<close>
   shows \<open>conflicting S = Some {#}\<close>
 proof (rule ccontr)
   assume H: \<open>\<not> ?thesis\<close>
   have all_struct': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
     by (simp add: all_struct cdcl\<^sub>W_all_struct_inv_restart_cdcl\<^sub>W_all_struct_inv)
-  have le: \<open>cdcl\<^sub>W_learned_clause S\<close>
+  have le: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (abs_state S)\<close>
     using all_struct
-    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl_opt_stgy_inv_def
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl_opt_stgy_inv_def
     by auto
   have \<open>conflicting S = None \<or> conflicting S = Some {#}\<close>
     using no_step_cdcl_opt_stgy[OF n_s all_struct' stgy_inv le] .
