@@ -1204,7 +1204,7 @@ void Parser::parse_dimacs(istream &in) {
   in.exceptions(in.failbit|in.badbit);
 
   parse_ignore_comments(in);
-  if (in.peek()=='p') in.ignore(numeric_limits<streamsize>::max(), '\n');
+  if (!in.eof() && in.peek()=='p') in.ignore(numeric_limits<streamsize>::max(), '\n');
 
   while (!in.eof()) {
     parse_ignore_comments(in);
@@ -1224,7 +1224,7 @@ void Parser::parse_proof(istream &in) {
   in.exceptions(in.failbit|in.badbit);
 
   parse_ignore_comments(in);
-  if (in.peek()=='o') in.ignore(numeric_limits<streamsize>::max(), '\n');
+  if (!in.eof() && in.peek()=='o') in.ignore(numeric_limits<streamsize>::max(), '\n');
   parse_ignore_comments(in);
 
   while (!in.eof()) {
@@ -2416,7 +2416,12 @@ pos_t Verifier::fwd_pass_aux() {
       switch (add_clause(cl)) {
         case acres_t::TAUT: item.erase(); break;
         case acres_t::UNIT: item.set_trpos(trpos); break;
-        case acres_t::CONFLICT: return pos_t::null; // Trivial conflict in clauses
+        case acres_t::CONFLICT: {
+          // Trivial conflict in clauses
+          glb.truncate_items(glb.get_fst_prf_item());  // Strip proof, not required
+          return db->c2p(cl);
+          // return pos_t::null;
+        }
         case acres_t::NORMAL: break;
         default:;
       }
@@ -2427,7 +2432,7 @@ pos_t Verifier::fwd_pass_aux() {
   if (conflict) {
     // Conflict after unit-propagation on initial clauses
     mark_clause(conflict);
-    glb.truncate_items(glb.get_fst_prf_item());  // Remaining items not required for proof.
+    glb.truncate_items(glb.get_fst_prf_item());  // Strip proof, not required
     return db->c2p(conflict);
   }
 
