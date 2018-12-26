@@ -11,14 +11,16 @@ subsubsection \<open>No Relearning of a clause\<close>
 
 text \<open>
   Because of the conflict minimisation, this version is less clear than the version without:
-  instead of extracting of the conflicting clause, we mast take it from the conflict.
+  instead of extracting the clause from the conflicting clause, we must take it from the clause
+  used to backjump; i.e., the annotation of the first literal of the trail.
+
+  We also prove below that no learned clause is subsumed by a (smaller) clause in the clause set. 
 \<close>
 lemma cdcl\<^sub>W_stgy_no_relearned_clause:
   assumes
     cdcl: \<open>backtrack S T\<close> and
     inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
-    smaller: \<open>no_smaller_propa S\<close> and
-    confl: \<open>conflicting S = Some E\<close>
+    smaller: \<open>no_smaller_propa S\<close>
   shows
     \<open>mark_of (hd_trail T) \<notin># clauses S\<close>
 proof (rule ccontr)
@@ -37,7 +39,7 @@ proof (rule ccontr)
             (update_conflicting None S)))" and
     D_D': \<open>D' \<subseteq># D\<close> and
     \<open>clauses S \<Turnstile>pm add_mset L D'\<close>
-    using cdcl confl by (auto elim!: rulesE)
+    using cdcl by (auto elim!: rulesE)
 
   obtain M2' where M2': \<open>trail S = (M2' @ M2) @ Decided K # M1\<close>
     using decomp by auto
@@ -47,7 +49,7 @@ proof (rule ccontr)
 
   have M1_D': \<open>M1 \<Turnstile>as CNot D'\<close>
     using backtrack_M1_CNot_D'[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T
-        \<open>Propagated L (add_mset L D')\<close>] confl inv confl_S decomp i T D_D' lev_K lev_L max_D_L
+        \<open>Propagated L (add_mset L D')\<close>] inv confl_S decomp i T D_D' lev_K lev_L max_D_L
     unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
     by (auto simp: subset_mset_trans_add_mset)
   have \<open>undefined_lit M1 L\<close>
@@ -57,6 +59,94 @@ proof (rule ccontr)
     using n_dist T by (auto simp: clauses_def)
   ultimately show False
     using smaller M1_D' unfolding no_smaller_propa_def M2' by blast
+qed
+
+(*TODO Move*)
+lemma distinct_mset_mono_strict: \<open>D' \<subset># D \<Longrightarrow> distinct_mset D \<Longrightarrow> distinct_mset D'\<close>
+  using distinct_mset_mono by auto
+
+lemma subset_add_mset_notin_subset: \<open>L \<notin># E \<Longrightarrow> E \<subseteq># add_mset L D \<longleftrightarrow> E \<subseteq># D\<close>
+  by (meson subset_add_mset_notin_subset_mset subset_mset_trans_add_mset)
+(*End Move*)
+
+lemma cdcl\<^sub>W_stgy_no_relearned_larger_clause:
+  assumes
+    cdcl: \<open>backtrack S T\<close> and
+    inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
+    smaller: \<open>no_smaller_propa S\<close> and
+    smaller_conf: \<open>no_smaller_confl S\<close> and
+    E_subset: \<open>E \<subset># mark_of (hd_trail T)\<close>
+  shows
+    \<open>E \<notin># clauses S\<close>
+proof (rule ccontr)
+  assume n_dist: \<open>\<not> ?thesis\<close>
+  obtain K L :: "'v literal" and
+    M1 M2 :: "('v, 'v clause) ann_lit list" and i :: nat and D D' where
+    confl_S: "conflicting S = Some (add_mset L D)" and
+    decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
+    lev_L: "get_level (trail S) L = backtrack_lvl S" and
+    max_D_L: "get_level (trail S) L = get_maximum_level (trail S) (add_mset L D')" and
+    i: "get_maximum_level (trail S) D' \<equiv> i" and
+    lev_K: "get_level (trail S) K = i + 1" and
+    T: "T \<sim> cons_trail (Propagated L (add_mset L D'))
+        (reduce_trail_to M1
+          (add_learned_cls (add_mset L D')
+            (update_conflicting None S)))" and
+    D_D': \<open>D' \<subseteq># D\<close> and
+    \<open>clauses S \<Turnstile>pm add_mset L D'\<close>
+    using cdcl by (auto elim!: rulesE)
+
+  obtain M2' where M2': \<open>trail S = (M2' @ M2) @ Decided K # M1\<close>
+    using decomp by auto
+  have inv_T: \<open>cdcl\<^sub>W_all_struct_inv T\<close>
+    using cdcl cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv inv W_other backtrack bj
+      cdcl\<^sub>W_all_struct_inv_inv cdcl\<^sub>W_cdcl\<^sub>W_restart by blast
+  have \<open>distinct_mset (add_mset L D')\<close>
+    using inv_T T unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def
+    by auto
+  then have dist_E: \<open>distinct_mset E\<close>
+    using distinct_mset_mono_strict[OF E_subset] T by auto
+
+  have M1_D': \<open>M1 \<Turnstile>as CNot D'\<close>
+    using backtrack_M1_CNot_D'[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T
+        \<open>Propagated L (add_mset L D')\<close>] inv confl_S decomp i T D_D' lev_K lev_L max_D_L
+    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
+    by (auto simp: subset_mset_trans_add_mset)
+  have undef_L: \<open>undefined_lit M1 L\<close>
+    using inv_T T decomp unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
+    by (auto simp: defined_lit_map)
+
+  show False
+  proof (cases \<open>L \<in># E\<close>)
+    case True
+    then obtain E' where
+      E: \<open>E = add_mset L E'\<close>
+      by (auto dest: multi_member_split)
+    then have \<open>distinct_mset E'\<close> and \<open>L \<notin># E'\<close> and E'_E': \<open>E' \<subseteq># D'\<close>
+      using dist_E T E_subset by auto
+    then have M1_E': \<open>M1 \<Turnstile>as CNot E'\<close>
+      using M1_D' T unfolding true_annots_true_cls_def_iff_negation_in_model
+      by (auto dest: multi_member_split[of _ E] mset_subset_eq_insertD)
+    have propa:  \<open>\<And>M' K M L D. trail S = M' @ Decided K # M \<Longrightarrow>
+      D + {#L#} \<in># clauses S \<Longrightarrow> undefined_lit M L \<Longrightarrow> \<not> M \<Turnstile>as CNot D\<close>
+      using smaller unfolding no_smaller_propa_def by blast
+    show False
+      using M1_E' propa[of \<open>M2' @ M2\<close> K M1 E', OF M2' _ undef_L] n_dist unfolding E
+      by auto
+  next
+    case False
+    then have \<open>E \<subseteq># D'\<close>
+      using E_subset T by (auto simp: subset_add_mset_notin_subset)
+    then have M1_E: \<open>M1 \<Turnstile>as CNot E\<close>
+      using M1_D' T dist_E E_subset unfolding  true_annots_true_cls_def_iff_negation_in_model
+      by (auto dest: multi_member_split[of _ E] mset_subset_eq_insertD)
+    have confl:  \<open>\<And>M' K M L D. trail S = M' @ Decided K # M \<Longrightarrow>
+      D \<in># clauses S \<Longrightarrow> \<not> M \<Turnstile>as CNot D\<close>
+      using smaller_conf unfolding no_smaller_confl_def by blast
+    show False
+      using confl[of \<open>M2' @ M2\<close> K M1 E, OF M2'] n_dist M1_E
+      by auto
+  qed
 qed
 
 lemma cdcl\<^sub>W_stgy_distinct_mset:
@@ -74,7 +164,7 @@ proof (rule ccontr)
         elim: propagateE conflictE decideE skipE resolveE)
   then show False
     using n_dist cdcl\<^sub>W_stgy_no_relearned_clause[of S T] dist
-    by (auto simp: inv smaller elim!: rulesE) fast
+    by (auto simp: inv smaller elim!: rulesE)
 qed
 
 text \<open>
@@ -163,10 +253,9 @@ proof (rule ccontr)
     using cdcl dist by (auto simp: cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps
         elim: propagateE conflictE decideE skipE resolveE)
   then show False
-    using n_dist cdcl\<^sub>W_stgy_no_relearned_clause[of S T \<open>add_mset _ _\<close>]
-    apply (auto simp: inv smaller clauses_def elim!: rulesE
+    using n_dist cdcl\<^sub>W_stgy_no_relearned_clause[of S T]
+    by (auto simp: inv smaller clauses_def elim!: rulesE
         dest!: in_diffD)
-    by blast
 qed
 
 lemma rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new_abs:
