@@ -61,14 +61,6 @@ proof (rule ccontr)
     using smaller M1_D' unfolding no_smaller_propa_def M2' by blast
 qed
 
-(*TODO Move*)
-lemma distinct_mset_mono_strict: \<open>D' \<subset># D \<Longrightarrow> distinct_mset D \<Longrightarrow> distinct_mset D'\<close>
-  using distinct_mset_mono by auto
-
-lemma subset_add_mset_notin_subset: \<open>L \<notin># E \<Longrightarrow> E \<subseteq># add_mset L D \<longleftrightarrow> E \<subseteq># D\<close>
-  by (meson subset_add_mset_notin_subset_mset subset_mset_trans_add_mset)
-(*End Move*)
-
 lemma cdcl\<^sub>W_stgy_no_relearned_larger_clause:
   assumes
     cdcl: \<open>backtrack S T\<close> and

@@ -1244,9 +1244,15 @@ lemma mset_butlast_remove1_mset: \<open>xs \<noteq> [] \<Longrightarrow> mset (b
 lemma distinct_mset_mono: \<open>D' \<subseteq># D \<Longrightarrow> distinct_mset D \<Longrightarrow> distinct_mset D'\<close>
   by (metis distinct_mset_union subset_mset.le_iff_add)
 
+lemma distinct_mset_mono_strict: \<open>D' \<subset># D \<Longrightarrow> distinct_mset D \<Longrightarrow> distinct_mset D'\<close>
+  using distinct_mset_mono by auto
+
 lemma subset_mset_trans_add_mset:
   \<open>D \<subseteq># D' \<Longrightarrow> D \<subseteq># add_mset L D'\<close>
   by (metis add_mset_remove_trivial diff_subset_eq_self subset_mset.dual_order.trans)
+
+lemma subset_add_mset_notin_subset: \<open>L \<notin># E \<Longrightarrow> E \<subseteq># add_mset L D \<longleftrightarrow> E \<subseteq># D\<close>
+  by (meson subset_add_mset_notin_subset_mset subset_mset_trans_add_mset)
 
 lemma remove1_mset_empty_iff: \<open>remove1_mset L N = {#} \<longleftrightarrow> N = {#L#} \<or> N = {#}\<close>
   by (cases \<open>L \<in># N\<close>; cases N) auto
