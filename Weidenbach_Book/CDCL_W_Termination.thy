@@ -555,6 +555,68 @@ lemma wf_tranclp_cdcl\<^sub>W_stgy:
    apply (simp add: wf wf_lexn)
   using tranclp_cdcl\<^sub>W_stgy_S0_decreasing by blast
 
+text \<open>The following theorems is deeply linked with the strategy: It shows that a decision alone
+cannot lead to a conflict. This is obvious but I expect this to be a major part of the proof that
+the number of learnt clause cannot be larger that \<^term>\<open>2^n\<close>.\<close>
+lemma no_conflict_after_decide:
+  assumes
+    dec: \<open>decide S T\<close> and
+    inv: \<open>cdcl\<^sub>W_all_struct_inv T\<close> and
+    smaller: \<open>no_smaller_propa T\<close> and
+    smaller_confl: \<open>no_smaller_confl T\<close>
+  shows \<open>\<not>conflict T U\<close>
+proof (rule ccontr)
+  assume \<open>\<not> ?thesis\<close>
+  then obtain D where
+    D: \<open>D \<in># clauses T\<close> and
+    confl: \<open>trail T \<Turnstile>as CNot D\<close>
+    by (auto simp: conflict.simps)
+  obtain L where
+    \<open>conflicting S = None\<close> and
+    undef: \<open>undefined_lit (trail S) L\<close> and
+    \<open>atm_of L \<in> atms_of_mm (init_clss S)\<close> and
+    T: \<open>T \<sim> cons_trail (Decided L) S\<close>
+    using dec by (auto simp: decide.simps)
+  have dist: \<open>distinct_mset D\<close>
+    using inv D unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def
+    by (auto dest!: multi_member_split simp: clauses_def)
+  have L_D: \<open>L \<notin># D\<close>
+    using confl undef T
+    by (auto dest!: multi_member_split simp: Decided_Propagated_in_iff_in_lits_of_l)
+    
+  show False
+  proof (cases \<open>-L \<in># D\<close>)
+    case True
+    have H: \<open>trail T = M' @ Decided K # M \<Longrightarrow>
+      D + {#L#} \<in># clauses T \<Longrightarrow> undefined_lit M L \<Longrightarrow> \<not> M \<Turnstile>as CNot D\<close>
+      for M K M' D L
+      using smaller unfolding no_smaller_propa_def
+      by auto
+    have \<open>trail S \<Turnstile>as CNot (remove1_mset (-L) D)\<close>
+      using true_annots_CNot_lit_of_notin_skip[of \<open>Decided L\<close> \<open>trail S\<close> \<open>remove1_mset (-L) D\<close>] T True
+        dist confl L_D
+      by (auto dest: multi_member_split)
+    then show False
+      using True H[of \<open>Nil\<close> L \<open>trail S\<close> \<open>remove1_mset (-L) D\<close> \<open>-L\<close>] T D confl undef
+      by auto
+  next
+    case False
+    have H: \<open>trail T = M' @ Decided K # M \<Longrightarrow>
+      D \<in># clauses T \<Longrightarrow> \<not> M \<Turnstile>as CNot D\<close>
+      for M K M' D
+      using smaller_confl unfolding no_smaller_confl_def
+      by auto
+    have \<open>trail S \<Turnstile>as CNot D\<close>
+      using true_annots_CNot_lit_of_notin_skip[of \<open>Decided L\<close> \<open>trail S\<close> D] T False
+        dist confl L_D
+      by (auto dest: multi_member_split)
+    then show False
+      using False H[of \<open>Nil\<close> L \<open>trail S\<close> D] T D confl undef
+      by auto
+  qed
+qed
+
+
 end
 
 end
