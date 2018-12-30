@@ -616,6 +616,316 @@ proof (rule ccontr)
   qed
 qed
 
+abbreviation list_weight_propa_trail :: \<open>('a, 'b) ann_lits \<Rightarrow> bool list\<close> where
+\<open>list_weight_propa_trail M \<equiv> map is_proped M\<close>
+
+definition comp_list_weight_propa_trail :: \<open>nat \<Rightarrow> ('a, 'b) ann_lits \<Rightarrow> bool list\<close> where
+\<open>comp_list_weight_propa_trail b M \<equiv> list_weight_propa_trail M @ replicate (b - length M) False\<close>
+
+lemma comp_list_weight_propa_trail_append[simp]:
+  \<open>comp_list_weight_propa_trail b (M @ M') = list_weight_propa_trail M @ comp_list_weight_propa_trail (b - length M) M'\<close>
+  by (auto simp: comp_list_weight_propa_trail_def)
+
+lemma comp_list_weight_propa_trail_append_single[simp]:
+  \<open>comp_list_weight_propa_trail b (M @ [K]) =
+    list_weight_propa_trail M @ is_proped K # replicate (b - length M - 1) False\<close>
+  by (auto simp: comp_list_weight_propa_trail_def)
+
+lemma comp_list_weight_propa_trail_cons[simp]:
+  \<open>comp_list_weight_propa_trail b (K # M') = is_proped K # comp_list_weight_propa_trail (b - 1) M'\<close>
+  by (auto simp: comp_list_weight_propa_trail_def)
+
+fun of_list_weight :: \<open>bool list \<Rightarrow> nat\<close> where
+  \<open>of_list_weight [] = 0\<close>
+| \<open>of_list_weight (b # xs) = (if b then 1 else 0) + 2 * of_list_weight xs\<close>
+
+lemma of_list_weight_append[simp]:
+  \<open>of_list_weight (a @ b) = of_list_weight a + 2^(length a) * of_list_weight b\<close>
+  by (induction a) auto
+
+lemma of_list_weight_append_single[simp]:
+  \<open>of_list_weight (a @ [b]) = of_list_weight a + 2^(length a) * (if b then 1 else 0)\<close>
+  using of_list_weight_append[of \<open>a\<close> \<open>[b]\<close>]
+  by (auto simp del: of_list_weight_append)
+
+lemma of_list_weight_replicate_False[simp]: \<open>of_list_weight (replicate n False) = 0\<close>
+  by (induction n) auto
+
+lemma of_list_weight_replicate_True[simp]: \<open>of_list_weight (replicate n True) = 2^n - 1\<close>
+  apply (induction n)
+  subgoal by auto
+  subgoal for m
+    using power_gt1_lemma[of \<open>2 :: nat\<close>]
+    by (auto simp add: algebra_simps Suc_diff_Suc)
+  done
+
+lemma of_list_weight_le: \<open>of_list_weight xs \<le> 2^(length xs) - 1\<close>
+proof -
+  have \<open>of_list_weight xs \<le> of_list_weight (replicate (length xs) True)\<close>
+    by (induction xs) auto
+  then show \<open>?thesis\<close>
+    by auto
+qed
+
+abbreviation propa_weight :: \<open>nat \<Rightarrow> ('a, 'b) ann_lits \<Rightarrow> nat\<close> where
+  \<open>propa_weight n M \<equiv> of_list_weight (comp_list_weight_propa_trail n (rev M))\<close>
+
+
+lemma (in -) power_ex_decomp:
+  assumes \<open>(R^^n) S T\<close>
+  shows
+    \<open>\<exists>f. f 0 = S \<and> f n = T \<and> (\<forall>i. i < n \<longrightarrow> R (f i) (f (Suc i)))\<close>
+  using assms
+proof (induction n arbitrary: T)
+  case 0
+  then show \<open>?case\<close> by auto
+next
+  case (Suc n) note IH = this(1) and R = this(2)
+  from R obtain T' where
+    ST: \<open>(R^^n) S T'\<close> and
+    T'T: \<open>R T' T\<close>
+    by auto
+  obtain f where
+    [simp]: \<open>f 0 = S\<close> and
+    [simp]: \<open>f n = T'\<close> and
+    H: \<open>\<And>i. i < n \<Longrightarrow> R (f i) (f (Suc i))\<close>
+    using IH[OF ST] by fast
+  let ?f = \<open>f(Suc n := T)\<close>
+  show ?case
+    by (rule exI[of _ ?f])
+      (use H ST T'T in auto)
+qed
+
+text \<open>The following proof contains an immense amount of stupid bookkeeping. The proof itself
+  is rather easy and Isabelle makes it extra-complicated.
+
+  Let's consider the sequence \<^text>\<open>S \<rightarrow> ... \<rightarrow> T\<close>.
+  The bookkeping part:
+    \<^enum> We decompose it into its components \<^text>\<open>f 0 \<rightarrow> f 1 \<rightarrow> ... \<rightarrow> f n\<close>.
+    \<^enum> Then we extract the backjumps out of it, which are at position \<^text>\<open>nth_nj 0\<close>,
+      \<^text>\<open>nth_nj 1\<close>, ...
+    \<^enum> Then we extract the conflicts out of it, which are at position \<^text>\<open>nth_confl 0\<close>,
+      \<^text>\<open>nth_confl 1\<close>, ...
+
+TODO finish proof
+\<close>
+lemma no_conflict_after_decide:
+  assumes
+    cdcl: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T\<close> and
+    confl: \<open>conflicting S = None\<close> and
+    inv: \<open>cdcl\<^sub>W_all_struct_inv T\<close> and
+    smaller: \<open>no_smaller_propa T\<close> and
+    smaller_confl: \<open>no_smaller_confl T\<close>
+  shows \<open>size (learned_clss T) \<le> size (learned_clss S) + 2 ^ (card (atms_of_mm (init_clss S)))\<close>
+proof (rule ccontr)
+  assume ge: \<open>\<not> ?thesis\<close>
+  let ?m = \<open>card (atms_of_mm (init_clss S))\<close>
+  obtain n :: nat where
+    n: \<open>(cdcl\<^sub>W_stgy^^n) S T\<close>
+    using cdcl unfolding rtranclp_power by fast
+  then obtain f :: \<open>nat \<Rightarrow> 'st\<close> where
+    f: \<open>\<And>i. i < n \<Longrightarrow> cdcl\<^sub>W_stgy (f i) (f (Suc i))\<close> and
+    [simp]: \<open>f 0 = S\<close> and
+    [simp]: \<open>f n = T\<close>
+    using power_ex_decomp[OF n]
+    by auto
+  let ?g = \<open>\<lambda>i. size (learned_clss (f i))\<close>
+  have \<open>?g 0 = size (learned_clss S)\<close>
+    by auto
+  have g_n: \<open>?g n > ?g 0 + 2 ^ (card (atms_of_mm (init_clss S)))\<close>
+    using ge by auto
+  have g: \<open>?g (Suc i) = ?g i \<or> (?g (Suc i) = Suc (?g i) \<and> backtrack (f i) (f (Suc i)))\<close> if \<open>i < n\<close> for i
+    using f[OF that]
+    by (cases rule: cdcl\<^sub>W_stgy.cases)
+      (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
+        simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps)
+  have g_le: \<open>?g i \<le> i + ?g 0\<close> if \<open>i \<le> n\<close> for i
+    using that
+    apply (induction i)
+    subgoal by auto
+    subgoal for i
+      using g[of i]
+      by auto
+    done
+  from this[of n] have n_ge_m: \<open>n \<ge> 2^?m\<close>
+    using g_n ge by auto
+  then have n0: \<open>n > 0\<close>
+    using not_add_less1 by fastforce
+  define nth_bj where
+    \<open>nth_bj = rec_nat 0 (\<lambda>_ j. (LEAST i. i > j \<and> i < n \<and> backtrack (f i) (f (Suc i))))\<close>
+  have [simp]: \<open>nth_bj 0 = 0\<close>
+    by (auto simp: nth_bj_def)
+  have nth_bj_Suc: \<open>nth_bj (Suc i) = (LEAST x. nth_bj i < x \<and> x < n \<and> backtrack (f x) (f (Suc x)))\<close> for i
+    by (auto simp: nth_bj_def)
+
+  have between_nth_bj_not_bt:
+    \<open>\<not>backtrack (f k) (f (Suc k))\<close>
+    if \<open>k < n\<close> \<open>k > nth_bj i\<close> \<open>k < nth_bj (Suc i) \<close> for k i
+    using not_less_Least[of k \<open>\<lambda>x. nth_bj i < x \<and> x < n \<and> backtrack (f x) (f (Suc x))\<close>] that
+    unfolding nth_bj_Suc[symmetric]
+    by auto
+  
+  have g_nth_bj_eq:
+    \<open>?g (Suc k) = ?g k\<close>
+    if \<open>k < n\<close> \<open>k > nth_bj i\<close> \<open>k < nth_bj (Suc i)\<close> for k i
+    using between_nth_bj_not_bt[OF that(1-3)] f[of k, OF that(1)]
+    by (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
+        simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)
+  have g_nth_bj_eq2:
+    \<open>?g (Suc k) = ?g (Suc (nth_bj i))\<close>
+    if \<open>k < n\<close> \<open>k > nth_bj i\<close> \<open>k < nth_bj (Suc i)\<close> for k i
+    using that
+    apply (induction k)
+    subgoal by blast
+    subgoal for k
+      using g_nth_bj_eq less_antisym by fastforce
+    done
+  have [simp]: \<open>?g (Suc 0) = ?g 0\<close>
+    using confl f[of 0] n0
+    by (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
+        simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)
+  have \<open>(?g (nth_bj i) = size (learned_clss S) + (i - 1)) \<and>
+    nth_bj i < n \<and>
+    nth_bj i \<ge> i \<and>
+    (i > 0 \<longrightarrow> backtrack (f (nth_bj i)) (f (Suc (nth_bj i)))) \<and>
+    (i > 0 \<longrightarrow> ?g (Suc (nth_bj i)) = size (learned_clss S) + i) \<and>
+    (i > 0 \<longrightarrow> nth_bj i > nth_bj (i-1))\<close>
+    if \<open>i \<le> 2^?m\<close>
+    for i
+    using that
+  proof (induction i)
+    case 0
+    then show ?case using n0 by auto
+  next
+    case (Suc i)
+    then have IH: \<open>?g (nth_bj i) = size (learned_clss S) + (i - 1)\<close>
+        \<open>0 < i \<longrightarrow> backtrack (f (nth_bj i)) (f (Suc (nth_bj i)))\<close>
+	\<open>0 < i \<longrightarrow> ?g (Suc (nth_bj i))  = size (learned_clss S) + i\<close> and
+      i_le_m: \<open>Suc i \<le> 2 ^ ?m\<close> and
+      le_n: \<open>nth_bj i < n\<close> and
+      gei: \<open>nth_bj i \<ge> i\<close>
+      by auto
+    have ex_larger: \<open>\<exists>x>nth_bj i. x < n \<and> backtrack (f x) (f (Suc x))\<close>
+    proof (rule ccontr)
+      assume \<open>\<not> ?thesis\<close>
+      then have [simp]: \<open>n>x \<Longrightarrow> x>nth_bj i \<Longrightarrow> ?g (Suc x) = ?g x\<close> for x
+        using g[of x] n_ge_m
+	by auto
+      have eq1: \<open>nth_bj i < Suc x \<Longrightarrow> \<not> nth_bj i < x \<Longrightarrow> x = nth_bj i\<close> and
+         eq2: \<open>nth_bj i < x \<Longrightarrow> \<not> nth_bj i < x - Suc 0 \<Longrightarrow> nth_bj i = x - Suc 0\<close>
+	 for x
+        by simp_all
+      have ex_larger: \<open>n>x \<Longrightarrow> x>nth_bj i \<Longrightarrow> ?g (Suc x) = ?g (Suc (nth_bj i))\<close> for x
+        apply (induction x)
+	subgoal by auto
+	subgoal for x
+	  by (cases \<open>nth_bj i < x\<close>) (auto dest: eq1)
+	done
+      from this[of \<open>n-1\<close>] have g_n_nth_bj: \<open>?g n = ?g (Suc (nth_bj i))\<close>
+        using n_ge_m i_le_m le_n
+	by (cases \<open>nth_bj i < n - Suc 0\<close>)
+          (auto dest: eq2)
+      then have \<open>size (learned_clss (f (Suc (nth_bj i)))) < size (learned_clss T)\<close>
+        using g_n i_le_m n_ge_m g_le[of \<open>Suc (nth_bj i)\<close>] le_n
+	   \<open>?g (nth_bj i) = size (learned_clss S) + (i - 1)\<close>
+	using Suc.IH by auto
+      then show False
+        using g_n i_le_m n_ge_m g_le[of \<open>Suc (nth_bj i)\<close>] g_n_nth_bj by auto
+    qed
+
+    from LeastI_ex[OF ex_larger]
+    have bt: \<open>backtrack (f (nth_bj (Suc i))) (f (Suc (nth_bj (Suc i))))\<close> and
+      le: \<open>nth_bj (Suc i) < n\<close> and
+      nth_mono: \<open>nth_bj i < nth_bj (Suc i)\<close>
+      unfolding nth_bj_Suc[symmetric]
+      by auto
+    
+    have g_nth_Suc_g_Suc_nth: \<open>?g (nth_bj (Suc i)) = ?g (Suc (nth_bj i))\<close>
+      using g_nth_bj_eq2[of \<open>nth_bj (Suc i) - 1\<close> i] le nth_mono
+      apply auto (*TODO proof*)
+      by (metis Suc_pred gr0I less_Suc0 less_Suc_eq less_imp_diff_less)
+    have H1: \<open>size (learned_clss (f (Suc (nth_bj (Suc i))))) =
+       1 + size (learned_clss (f (nth_bj (Suc i))))\<close> if \<open>i = 0\<close>
+      using bt unfolding that
+      by (auto simp: that elim: backtrackE) 
+    have ?case if \<open>i > 0\<close>
+      using IH that nth_mono le bt gei
+      by (auto elim: backtrackE simp: g_nth_Suc_g_Suc_nth)
+    moreover have ?case if \<open>i = 0\<close>
+      using le bt gei nth_mono IH g_nth_bj_eq2[of \<open>nth_bj (Suc i) - 1\<close> i]
+        g_nth_Suc_g_Suc_nth
+      apply (intro conjI)
+      subgoal by (simp add: that)
+      subgoal by (auto simp: that elim: backtrackE)
+      subgoal by (auto simp: that elim: backtrackE)
+      subgoal Hk by (auto simp: that elim: backtrackE)
+      subgoal using H1 by (auto simp: that elim: backtrackE)
+      subgoal using nth_mono by auto
+      done
+    ultimately show ?case by blast
+  qed
+  then have
+    \<open>(?g (nth_bj i) = size (learned_clss S) + (i - 1))\<close> and
+    nth_bj_le: \<open>nth_bj i < n\<close> and
+    nth_bj_ge: \<open>nth_bj i \<ge> i\<close> and
+    bt_nth_bj: \<open>i > 0 \<Longrightarrow> backtrack (f (nth_bj i)) (f (Suc (nth_bj i)))\<close> and
+    \<open>i > 0 \<Longrightarrow> ?g (Suc (nth_bj i)) = size (learned_clss S) + i\<close> and
+    nth_bj_mono: \<open>i > 0 \<Longrightarrow> nth_bj (i - 1) < nth_bj i\<close>
+    if \<open>i \<le> 2^?m\<close>
+    for i
+    using that by blast+
+  have
+    confl_None: \<open>conflicting (f (Suc (nth_bj i))) = None\<close> and
+    confl_nth_bj: \<open>conflicting (f (nth_bj i)) \<noteq> None\<close>
+    if \<open>i \<le> 2^?m\<close> \<open>i > 0\<close>
+    for i
+    using bt_nth_bj[OF that] by (auto simp: backtrack.simps)
+
+  have \<open>conflicting (f k) \<noteq> None \<longrightarrow> conflicting (f (Suc k)) \<noteq> None\<close>
+    if \<open>k < n\<close> \<open>k > nth_bj i\<close> \<open>k < nth_bj (Suc i)\<close> for k i
+    using between_nth_bj_not_bt[OF that] f[OF that(1)]
+    by (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
+        simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)
+
+  define nth_confl where
+    \<open>nth_confl n \<equiv> LEAST i. i > nth_bj n \<and> conflict (f i) (f (Suc i))\<close> for n
+  have \<open>\<exists>i>nth_bj a. conflict (f i) (f (Suc i))\<close>
+    if a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close>
+    for a
+  proof (rule ccontr)
+    assume H: \<open>\<not> ?thesis\<close>
+    have \<open>conflicting (f (nth_bj a + Suc i)) = None\<close> if \<open>nth_bj a + Suc i \<le> n\<close> for i :: nat
+      using that
+      apply (induction i)
+      subgoal
+        using confl_None[of a] a_n n_ge_m by auto
+      subgoal for i
+        apply (cases \<open>Suc (nth_bj a + i) < n\<close>)
+        using f[of \<open>nth_bj a + Suc i\<close>] H
+        apply (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
+          simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)[]
+	by linarith
+      done
+    from this[of \<open>nth_bj (Suc a) - 1 - nth_bj a\<close>] a_n
+    show False
+      using nth_bj_mono[of \<open>Suc a\<close>] a_n nth_bj_le[of \<open>Suc a\<close>] confl_nth_bj[of \<open>Suc a\<close>]
+      by auto
+  qed
+  from LeastI_ex[OF this] have \<open>nth_bj a < nth_confl a\<close> and
+    \<open>conflict (f (nth_confl a)) (f (Suc (nth_confl a)))\<close>
+    if a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close>
+    for a
+    using that unfolding nth_confl_def[symmetric] by blast+
+
+  have \<open>\<not>conflict (f k) (f (Suc k))\<close>
+    if \<open>k > nth_bj a\<close> and
+      \<open>k < nth_confl a\<close> and
+      a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close>
+    for k a
+    using not_less_Least[of k \<open>\<lambda>i. i > nth_bj a \<and> conflict (f i) (f (Suc i))\<close>] that
+    unfolding nth_confl_def[symmetric]
+    by auto
+oops
 
 end
 
