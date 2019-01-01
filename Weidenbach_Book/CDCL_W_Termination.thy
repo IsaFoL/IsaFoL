@@ -616,23 +616,25 @@ proof (rule ccontr)
   qed
 qed
 
-abbreviation list_weight_propa_trail :: \<open>('a, 'b) ann_lits \<Rightarrow> bool list\<close> where
+abbreviation list_weight_propa_trail :: \<open> ('v literal, 'v literal, 'v literal multiset) annotated_lit list \<Rightarrow> bool list\<close> where
 \<open>list_weight_propa_trail M \<equiv> map is_proped M\<close>
 
-definition comp_list_weight_propa_trail :: \<open>nat \<Rightarrow> ('a, 'b) ann_lits \<Rightarrow> bool list\<close> where
-\<open>comp_list_weight_propa_trail b M \<equiv> list_weight_propa_trail M @ replicate (b - length M) False\<close>
+definition comp_list_weight_propa_trail :: \<open>nat \<Rightarrow>  ('v literal, 'v literal, 'v literal multiset) annotated_lit list \<Rightarrow> bool list\<close> where
+\<open>comp_list_weight_propa_trail b M \<equiv> replicate (b - length M) False @ list_weight_propa_trail M\<close>
 
 lemma comp_list_weight_propa_trail_append[simp]:
-  \<open>comp_list_weight_propa_trail b (M @ M') = list_weight_propa_trail M @ comp_list_weight_propa_trail (b - length M) M'\<close>
+  \<open>comp_list_weight_propa_trail b (M @ M') =
+     comp_list_weight_propa_trail (b - length M') M @ list_weight_propa_trail M'\<close>
   by (auto simp: comp_list_weight_propa_trail_def)
 
 lemma comp_list_weight_propa_trail_append_single[simp]:
   \<open>comp_list_weight_propa_trail b (M @ [K]) =
-    list_weight_propa_trail M @ is_proped K # replicate (b - length M - 1) False\<close>
+    comp_list_weight_propa_trail (b - 1) M @ [is_proped K]\<close>
   by (auto simp: comp_list_weight_propa_trail_def)
 
 lemma comp_list_weight_propa_trail_cons[simp]:
-  \<open>comp_list_weight_propa_trail b (K # M') = is_proped K # comp_list_weight_propa_trail (b - 1) M'\<close>
+  \<open>comp_list_weight_propa_trail b (K # M') =
+    comp_list_weight_propa_trail (b - Suc (length M')) [] @ is_proped K # list_weight_propa_trail M'\<close>
   by (auto simp: comp_list_weight_propa_trail_def)
 
 fun of_list_weight :: \<open>bool list \<Rightarrow> nat\<close> where
@@ -667,10 +669,40 @@ proof -
     by auto
 qed
 
-abbreviation propa_weight :: \<open>nat \<Rightarrow> ('a, 'b) ann_lits \<Rightarrow> nat\<close> where
-  \<open>propa_weight n M \<equiv> of_list_weight (comp_list_weight_propa_trail n (rev M))\<close>
+lemma of_list_weight_lt: \<open>of_list_weight xs < 2^(length xs)\<close>
+  using of_list_weight_le[of xs]  by (metis One_nat_def Suc_le_lessD
+    Suc_le_mono Suc_pred of_list_weight_le zero_less_numeral zero_less_power)
 
+lemma [simp]: \<open>of_list_weight (comp_list_weight_propa_trail n []) = 0\<close>
+  by (auto simp: comp_list_weight_propa_trail_def)
 
+abbreviation propa_weight :: \<open>nat \<Rightarrow> ('v literal, 'v literal, 'v literal multiset) annotated_lit list \<Rightarrow> nat\<close> where
+  \<open>propa_weight n M \<equiv> of_list_weight (comp_list_weight_propa_trail n M)\<close>
+lemma length_comp_list_weight_propa_trail[simp]: \<open>length (comp_list_weight_propa_trail a M) = max (length M) a\<close>
+  by (auto simp: comp_list_weight_propa_trail_def)
+  
+lemma (in -)pow2_times_n:
+  \<open>Suc a \<le> n \<Longrightarrow> 2 * 2^(n - Suc a) = (2::nat)^ (n - a)\<close>
+  \<open>Suc a \<le> n \<Longrightarrow> 2^(n - Suc a) * 2 = (2::nat)^ (n - a)\<close>
+  \<open>Suc a \<le> n \<Longrightarrow> 2^(n - Suc a) * b * 2 = (2::nat)^ (n - a) * b\<close>
+  \<open>Suc a \<le> n \<Longrightarrow> 2^(n - Suc a) * (b * 2) = (2::nat)^ (n - a) * b\<close>
+  \<open>Suc a \<le> n \<Longrightarrow> 2^(n - Suc a) * (2 * b) = (2::nat)^ (n - a) * b\<close>
+  \<open>Suc a \<le> n \<Longrightarrow> 2 * b * 2^(n - Suc a) = (2::nat)^ (n - a) * b\<close>
+  \<open>Suc a \<le> n \<Longrightarrow> 2 * (b * 2^(n - Suc a)) = (2::nat)^ (n - a) * b\<close>
+  apply (simp_all add: Suc_diff_Suc semiring_normalization_rules(27))
+  using Suc_diff_le by fastforce+
+  
+lemma decide_propa_weight:
+  \<open>decide S T \<Longrightarrow> n > length (trail S) \<Longrightarrow> propa_weight n (trail S) \<le> propa_weight n (trail T)\<close>
+  by (auto elim!: decideE simp: comp_list_weight_propa_trail_def
+    algebra_simps pow2_times_n)
+
+lemma propagate_propa_weight:
+  \<open>propagate S T \<Longrightarrow> n > length (trail S) \<Longrightarrow> propa_weight n (trail S) < propa_weight n (trail T)\<close>
+  by (auto elim!: propagateE simp: comp_list_weight_propa_trail_def
+    algebra_simps pow2_times_n)
+
+(*TODO Move*)
 lemma (in -) power_ex_decomp:
   assumes \<open>(R^^n) S T\<close>
   shows
@@ -707,15 +739,18 @@ text \<open>The following proof contains an immense amount of stupid bookkeeping
     \<^enum> Then we extract the conflicts out of it, which are at position \<^text>\<open>nth_confl 0\<close>,
       \<^text>\<open>nth_confl 1\<close>, ...
 
+  The main problem of the proof is the number of inductions in the bookkeeping part.
+
+
 TODO finish proof
 \<close>
 lemma no_conflict_after_decide:
   assumes
     cdcl: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T\<close> and
     confl: \<open>conflicting S = None\<close> and
-    inv: \<open>cdcl\<^sub>W_all_struct_inv T\<close> and
-    smaller: \<open>no_smaller_propa T\<close> and
-    smaller_confl: \<open>no_smaller_confl T\<close>
+    inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
+    smaller: \<open>no_smaller_propa S\<close> and
+    smaller_confl: \<open>no_smaller_confl S\<close>
   shows \<open>size (learned_clss T) \<le> size (learned_clss S) + 2 ^ (card (atms_of_mm (init_clss S)))\<close>
 proof (rule ccontr)
   assume ge: \<open>\<not> ?thesis\<close>
@@ -729,6 +764,13 @@ proof (rule ccontr)
     [simp]: \<open>f n = T\<close>
     using power_ex_decomp[OF n]
     by auto
+  
+  have cdcl_st_k: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S (f k)\<close> if \<open>k < n\<close> for k
+    using that
+    apply (induction k)
+    subgoal by auto
+    subgoal for k using f[of k] by (auto)
+    done
   let ?g = \<open>\<lambda>i. size (learned_clss (f i))\<close>
   have \<open>?g 0 = size (learned_clss S)\<close>
     by auto
@@ -747,7 +789,7 @@ proof (rule ccontr)
       using g[of i]
       by auto
     done
-  from this[of n] have n_ge_m: \<open>n \<ge> 2^?m\<close>
+  from this[of n] have n_ge_m: \<open>n > 2^?m\<close>
     using g_n ge by auto
   then have n0: \<open>n > 0\<close>
     using not_add_less1 by fastforce
@@ -881,20 +923,21 @@ proof (rule ccontr)
     for i
     using bt_nth_bj[OF that] by (auto simp: backtrack.simps)
 
-  have \<open>conflicting (f k) \<noteq> None \<longrightarrow> conflicting (f (Suc k)) \<noteq> None\<close>
+  have conflicting_still_conflicting:
+    \<open>conflicting (f k) \<noteq> None \<longrightarrow> conflicting (f (Suc k)) \<noteq> None\<close>
     if \<open>k < n\<close> \<open>k > nth_bj i\<close> \<open>k < nth_bj (Suc i)\<close> for k i
     using between_nth_bj_not_bt[OF that] f[OF that(1)]
     by (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
         simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)
 
   define nth_confl where
-    \<open>nth_confl n \<equiv> LEAST i. i > nth_bj n \<and> conflict (f i) (f (Suc i))\<close> for n
-  have \<open>\<exists>i>nth_bj a. conflict (f i) (f (Suc i))\<close>
+    \<open>nth_confl n \<equiv> LEAST i. i > nth_bj n \<and> i < nth_bj (Suc n) \<and> conflict (f i) (f (Suc i))\<close> for n
+  have \<open>\<exists>i>nth_bj a. i < nth_bj (Suc a) \<and> conflict (f i) (f (Suc i))\<close>
     if a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close>
     for a
   proof (rule ccontr)
     assume H: \<open>\<not> ?thesis\<close>
-    have \<open>conflicting (f (nth_bj a + Suc i)) = None\<close> if \<open>nth_bj a + Suc i \<le> n\<close> for i :: nat
+    have \<open>conflicting (f (nth_bj a + Suc i)) = None\<close> if \<open>nth_bj a + Suc i \<le> nth_bj (Suc a)\<close> for i :: nat
       using that
       apply (induction i)
       subgoal
@@ -904,26 +947,297 @@ proof (rule ccontr)
         using f[of \<open>nth_bj a + Suc i\<close>] H
         apply (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
           simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)[]
-	by linarith
+	by (metis Suc_leD Suc_le_eq a_n(1) add.left_commute less_trans_Suc nth_bj_le plus_1_eq_Suc)
       done
     from this[of \<open>nth_bj (Suc a) - 1 - nth_bj a\<close>] a_n
     show False
       using nth_bj_mono[of \<open>Suc a\<close>] a_n nth_bj_le[of \<open>Suc a\<close>] confl_nth_bj[of \<open>Suc a\<close>]
       by auto
   qed
-  from LeastI_ex[OF this] have \<open>nth_bj a < nth_confl a\<close> and
-    \<open>conflict (f (nth_confl a)) (f (Suc (nth_confl a)))\<close>
+  from LeastI_ex[OF this] have nth_bj_le_nth_confl: \<open>nth_bj a < nth_confl a\<close> and
+    nth_confl: \<open>conflict (f (nth_confl a)) (f (Suc (nth_confl a)))\<close> and
+    nth_confl_le_nth_bj_Suc: \<open>nth_confl a < nth_bj (Suc a)\<close>
     if a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close>
     for a
-    using that unfolding nth_confl_def[symmetric] by blast+
-
-  have \<open>\<not>conflict (f k) (f (Suc k))\<close>
+    using that unfolding nth_confl_def[symmetric]
+    by blast+
+  have nth_confl_conflicting: \<open>conflicting (f (Suc (nth_confl a))) \<noteq> None\<close>
+    if a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close>
+    for a
+    using nth_confl[OF a_n]
+    by (auto simp: conflict.simps)
+  have no_conflict_before_nth_confl: \<open>\<not>conflict (f k) (f (Suc k))\<close>
     if \<open>k > nth_bj a\<close> and
       \<open>k < nth_confl a\<close> and
       a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close>
     for k a
-    using not_less_Least[of k \<open>\<lambda>i. i > nth_bj a \<and> conflict (f i) (f (Suc i))\<close>] that
+    using not_less_Least[of k \<open>\<lambda>i. i > nth_bj a \<and> i < nth_bj (Suc a) \<and> conflict (f i) (f (Suc i))\<close>] that
+    nth_confl_le_nth_bj_Suc[of a]
     unfolding nth_confl_def[symmetric]
+    by auto
+  have conflicting_after_nth_confl: \<open>conflicting (f (Suc (nth_confl a) + k)) \<noteq> None\<close>
+    if a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close> and
+      k: \<open>Suc (nth_confl a) + k < nth_bj (Suc a)\<close>
+    for a k
+    using k
+    apply (induction k)
+    subgoal using nth_confl_conflicting[OF a_n] by simp
+    subgoal for k
+      using conflicting_still_conflicting[of \<open>Suc (nth_confl a + k)\<close> a] a_n
+        nth_bj_le[of a] nth_bj_le_nth_confl[of a]
+      apply (cases \<open>Suc (nth_confl a + k) < n\<close>)
+      apply auto
+      by (meson Suc_leI Suc_lessD less_trans_Suc nth_bj_le)
+    done
+  have conflicting_before_nth_confl: \<open>conflicting (f (Suc (nth_bj a) + k)) = None\<close>
+    if a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close> and
+      k: \<open>Suc (nth_bj a) + k < nth_confl a\<close>
+    for a k
+    using k
+    apply (induction k)
+    subgoal using confl_None[of a] a_n by simp
+    subgoal for k
+      using f[of \<open>Suc (nth_bj a) + k\<close>] no_conflict_before_nth_confl[of a \<open>Suc (nth_bj a) + k\<close>] a_n
+        nth_confl_le_nth_bj_Suc[of a] nth_bj_le[of \<open>Suc a\<close>]
+      apply (cases \<open>Suc (nth_bj a + k) < n\<close>)
+      apply (auto elim!: propagateE conflictE decideE backtrackE skipE resolveE
+          simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)[]
+      by linarith
+    done
+  have
+    ex_trail_decomp: \<open>\<exists>M. trail (f (Suc (nth_confl a))) = M @ trail (f (Suc (nth_confl a + k)))\<close>
+    if a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close> and
+      k: \<open>Suc (nth_confl a) + k \<le> nth_bj (Suc a)\<close>
+    for a k
+    using k
+  proof (induction k)
+    case 0
+    then show \<open>?case\<close> by auto
+  next
+    case (Suc k)
+    moreover have \<open>nth_confl a + k < n\<close>
+      by (smt Suc.prems Suc_leI Suc_lessD a_n(1) add_Suc add_Suc_right le_eq_less_or_eq
+        less_trans_Suc nth_bj_le)
+    moreover have \<open>\<exists>Ma. M @ trail (f (Suc (nth_confl a + k))) =
+            Ma @ tl (trail (f (Suc (nth_confl a + k))))\<close> for M
+      by (cases \<open>trail (f (Suc (nth_confl a + k)))\<close>) auto
+    ultimately show ?case
+      using f[of \<open>Suc (nth_confl a + k)\<close>] conflicting_after_nth_confl[of a \<open>k\<close>, OF a_n] Suc
+        between_nth_bj_not_bt[of \<open>Suc (nth_confl a + k)\<close> \<open>a\<close>]
+	nth_bj_le_nth_confl[of a, OF a_n]
+      apply (cases \<open>Suc (nth_confl a + k) < n\<close>)
+      subgoal
+        by (auto elim!: propagateE conflictE decideE skipE resolveE
+          simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)[]
+      subgoal
+        by (metis a_n(1) add_Suc add_Suc_right less_eq_Suc_le less_imp_le less_trans_Suc nth_bj_le)
+      done
+  qed
+  have propa_weight_decreasing_confl:
+    \<open>propa_weight n (trail (f (Suc (nth_bj (Suc a))))) > propa_weight n (trail (f (nth_confl a)))\<close>
+    if a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close> and
+      n: \<open>n \<ge> length (trail (f (nth_confl a)))\<close>
+    for a n
+  proof -
+    have pw0: \<open>propa_weight n (trail (f (Suc (nth_confl a)))) =
+      propa_weight n (trail (f (nth_confl a)))\<close> and
+      [simp]: \<open>trail (f (Suc (nth_confl a))) = trail (f (nth_confl a))\<close>
+      using nth_confl[OF a_n] by (auto elim!: conflictE)
+    have H: \<open>nth_bj (Suc a) = Suc (nth_confl a) \<or> nth_bj (Suc a) \<ge> Suc (Suc (nth_confl a))\<close>
+      using nth_bj_le_nth_confl[of a, OF a_n]
+      using a_n(1) nth_confl_le_nth_bj_Suc that(2) by force
+
+    from ex_trail_decomp[of a \<open>nth_bj (Suc a) - (1+nth_confl a)\<close>, OF a_n]
+    obtain M where
+      M: \<open>trail (f (Suc (nth_confl a))) = M @ trail (f (nth_bj (Suc a)))\<close>
+      apply -
+      apply (rule disjE[OF H])
+      subgoal
+        by auto
+      subgoal
+        using nth_bj_le_nth_confl[of a, OF a_n] nth_bj_ge[of \<open>Suc a\<close>] a_n
+	by (auto simp add: numeral_2_eq_2)
+      done
+    obtain K M1 M2 D D' L where
+      decomp: \<open>(Decided K # M1, M2)
+         \<in> set (get_all_ann_decomposition (trail (f (nth_bj (Suc a)))))\<close> and
+      \<open>get_maximum_level (trail (f (nth_bj (Suc a)))) (add_mset L D') =
+       backtrack_lvl (f (nth_bj (Suc a)))\<close> and
+      \<open>get_level (trail (f (nth_bj (Suc a)))) L = backtrack_lvl (f (nth_bj (Suc a)))\<close> and
+      \<open>get_level (trail (f (nth_bj (Suc a)))) K =
+       Suc (get_maximum_level (trail (f (nth_bj (Suc a)))) D')\<close> and
+      \<open>D' \<subseteq># D\<close> and
+      \<open>clauses (f (nth_bj (Suc a))) \<Turnstile>pm add_mset L D'\<close> and
+      st_Suc: \<open>f (Suc (nth_bj (Suc a))) \<sim>
+       cons_trail (Propagated L (add_mset L D'))
+        (reduce_trail_to M1
+          (add_learned_cls (add_mset L D')
+            (update_conflicting None (f (nth_bj (Suc a))))))\<close>
+      using bt_nth_bj[of \<open>Suc a\<close>] a_n
+      by (auto elim!: backtrackE)
+    obtain M3 where
+      tr: \<open>trail (f (nth_bj (Suc a))) = M3 @ M2 @ Decided K # M1\<close>
+      using decomp by auto
+    define M2' where
+      \<open>M2' = M3 @ M2\<close>
+    then have
+      tr: \<open>trail (f (nth_bj (Suc a))) = M2' @ Decided K # M1\<close>
+      using tr by auto
+    define M' where
+      \<open>M' = M @ M2'\<close>
+    then have tr2: \<open>trail (f (nth_confl a)) = M' @ Decided K # M1\<close>
+      using tr M n
+      by auto
+    have [simp]: \<open>max (length M) (n - Suc (length M1 + (length M2')))
+      = (n - Suc (length M1 + (length M2')))\<close>
+      using tr M st_Suc n by auto
+    have [simp]: \<open>2 *
+      (of_list_weight (list_weight_propa_trail M1) *
+       (2 ^ length M2' *
+        (2 ^ (n - Suc (length M1 + length M2'))))) =
+	 of_list_weight (list_weight_propa_trail M1) * 2 ^ (n - length M1)\<close>
+	 using tr M n by (auto simp: algebra_simps field_simps pow2_times_n 
+	   comm_semiring_1_class.semiring_normalization_rules(26))
+    have n_ge: \<open>Suc (length M + (length M2' + length M1)) \<le> n\<close>
+      using n st_Suc tr M by auto
+    have WTF: \<open>a < b \<Longrightarrow> b \<le> c \<Longrightarrow> a < c\<close> and
+      WTF': \<open>a \<le> b \<Longrightarrow> b < c \<Longrightarrow> a < c\<close> for a b c :: nat
+      by auto
+
+    have 3: \<open>propa_weight (n - Suc (length M1 + (length M2'))) M
+      \<le> 2^(n - Suc (length M1 + length M2')) - 1\<close>
+      using of_list_weight_le
+      apply auto
+      by (metis \<open>max (length M) (n - Suc (length M1 + (length M2'))) = n - Suc (length M1 + (length M2'))\<close>
+        length_comp_list_weight_propa_trail)
+    have 1: \<open>of_list_weight (list_weight_propa_trail M2') *
+      2 ^ (n - Suc (length M1 + length M2')) < Suc (if M2' = [] then 0
+        else 2 ^ (n - Suc (length M1)) - 2 ^ (n - Suc (length M1 + length M2')))\<close>
+      apply (cases \<open>M2' = []\<close>)
+      subgoal by auto
+      subgoal
+	apply (rule WTF')
+	  apply (rule Nat.mult_le_mono1[of \<open>of_list_weight (list_weight_propa_trail M2')\<close>,
+	  OF of_list_weight_le[of \<open>(list_weight_propa_trail M2')\<close>]])
+	using of_list_weight_le[of \<open>(list_weight_propa_trail M2')\<close>] n M tr
+	by (auto simp add: comm_semiring_1_class.semiring_normalization_rules(26)
+	  algebra_simps)
+      done
+    have WTF2:
+      \<open>a \<le> a' \<Longrightarrow> b < b' \<Longrightarrow> a + b < a' + b'\<close> for a b c a' b' c' :: nat
+      by auto
+
+    have \<open>propa_weight (n - Suc (length M1 + length M2')) M +
+    of_list_weight (list_weight_propa_trail M2') *
+    2 ^ (n - Suc (length M1 + length M2'))
+    < 2 ^ (n - Suc (length M1))\<close>
+      apply (rule WTF)
+      apply (rule WTF2[OF 3 1])
+      using n_ge[unfolded nat_le_iff_add] by (auto simp: ac_simps algebra_simps)
+    then have \<open>propa_weight n (trail (f (nth_confl a))) < propa_weight n (trail (f (Suc (nth_bj (Suc a)))))\<close>
+      using tr2 M st_Suc n tr
+      by (auto simp: pow2_times_n algebra_simps
+        comm_semiring_1_class.semiring_normalization_rules(26))
+    then show \<open>?thesis\<close>
+      using pw0 by auto
+  qed
+  have length_trail_le_m: \<open>length (trail (f k)) < ?m + 1\<close>
+    if \<open>k < n\<close>
+    for k
+  proof -
+    have \<open>cdcl\<^sub>W_all_struct_inv (f k)\<close>
+      using cdcl_st_k[OF that] inv rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv by blast
+    then have \<open>cdcl\<^sub>W_M_level_inv (f k)\<close> and \<open>no_strange_atm (f k)\<close>
+      unfolding cdcl\<^sub>W_all_struct_inv_def by blast+
+    then have \<open>no_dup (trail (f k))\<close> and
+      incl: \<open>atm_of ` lits_of_l (trail (f k)) \<subseteq> atms_of_mm (init_clss (f k))\<close>
+      unfolding cdcl\<^sub>W_M_level_inv_def no_strange_atm_def
+      by auto
+    have eq: \<open>(atms_of_mm (init_clss (f k))) = (atms_of_mm (init_clss S))\<close>
+      using rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss[OF cdcl_st_k[OF that]]
+      by auto
+    have \<open>length (trail (f k)) = card (atm_of ` lits_of_l (trail (f k)))\<close>
+      using \<open>no_dup (trail (f k))\<close> no_dup_length_eq_card_atm_of_lits_of_l by blast
+    also have \<open>card (atm_of ` lits_of_l (trail (f k))) \<le> ?m\<close>
+      using card_mono[OF _ incl] eq by auto
+    finally show ?thesis
+      by linarith
+  qed
+  let ?m' = \<open>?m + 1\<close>
+  have propa_weight_decreasing_propa:
+    \<open>propa_weight ?m' (trail (f (nth_confl a))) \<ge> propa_weight ?m' (trail (f (Suc (nth_bj a))))\<close>
+    if a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close>
+    for a
+  proof -
+    have ppa: \<open>propa_weight ?m' (trail (f (Suc (nth_bj a) + Suc k)))
+      \<ge> propa_weight ?m' (trail (f (Suc (nth_bj a) + k)))\<close>
+      if \<open>k < nth_confl a - Suc (nth_bj a)\<close>
+      for k
+    proof -
+      have \<open>Suc (nth_bj a + k) < n\<close> and \<open>Suc (nth_bj a + k) < nth_confl a\<close>
+        using that nth_bj_le_nth_confl[OF a_n] nth_confl_le_nth_bj_Suc[OF a_n]
+	  nth_bj_le[of \<open>Suc a\<close>] a_n
+	by auto
+      then show ?thesis
+        using f[of \<open>(Suc (nth_bj a) + k)\<close>] conflicting_before_nth_confl[OF a_n, of \<open>k\<close>]
+	no_conflict_before_nth_confl[OF _ _ a_n, of \<open>Suc (nth_bj a) + k\<close>] that
+	length_trail_le_m[of \<open>(Suc (nth_bj a) + k)\<close>]
+        by (auto elim!: skipE resolveE backtrackE
+            simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps
+	    dest!: propagate_propa_weight[of _ _ ?m']
+	      decide_propa_weight[of _ _ ?m'])
+    qed
+    have WTF3: \<open>(Suc (nth_bj a + (nth_confl a - Suc (nth_bj a)))) = nth_confl a\<close>
+      using a_n(1) nth_bj_le_nth_confl that(2) by fastforce
+    have \<open>propa_weight ?m' (trail (f (Suc (nth_bj a) + k)))
+      \<ge> propa_weight ?m' (trail (f (Suc (nth_bj a))))\<close>
+      if \<open>k \<le> nth_confl a - Suc (nth_bj a)\<close>
+      for k
+      using that
+      apply (induction k)
+      subgoal by auto
+      subgoal for k using ppa[of k]
+        apply (cases \<open>k < nth_confl a - Suc (nth_bj a)\<close>)
+	subgoal by auto
+	subgoal by linarith
+      done
+      done
+    from this[of \<open>nth_confl a - (Suc (nth_bj a))\<close>]
+    show ?thesis
+      by (auto simp: WTF3)
+  qed 
+  have propa_weight_decreasing_confl:
+    \<open>propa_weight ?m' (trail (f (Suc (nth_bj a))))
+      < propa_weight ?m' (trail (f (Suc (nth_bj (Suc a)))))\<close>
+    if a_n: \<open>a < 2^?m\<close> \<open>a > 0\<close>
+    for a
+  proof -
+    have WTF: \<open>b < c \<Longrightarrow> a \<le> b \<Longrightarrow> a < c\<close> for a b c  :: nat by linarith
+    have \<open>nth_confl a < n\<close>
+      by (meson Suc_leI Suc_lessD a_n(1) less_trans_Suc nth_bj_le nth_confl_le_nth_bj_Suc that(2))
+ 
+    show ?thesis
+      apply (rule WTF)
+        apply (rule propa_weight_decreasing_confl[OF a_n, of ?m'])
+	subgoal using length_trail_le_m[of \<open>nth_confl a\<close>] \<open>nth_confl a < n\<close> by auto
+       apply (rule propa_weight_decreasing_propa[OF a_n])
+      done
+  qed
+  have weight1: \<open>propa_weight ?m' (trail (f (Suc (nth_bj 1)))) \<ge> 1\<close>
+    sorry
+  have \<open>propa_weight ?m' (trail (f (Suc (nth_bj (Suc a))))) \<ge>
+       propa_weight ?m' (trail (f (Suc (nth_bj 1)))) + a\<close>
+    if a_n: \<open>a < 2^?m\<close>
+    for a :: nat
+    using that
+    apply (induction a)
+    subgoal by auto
+    subgoal for a
+      using propa_weight_decreasing_confl[of \<open>Suc a\<close>]
+      by auto
+    done
+  from this[of \<open>2^?m -1\<close>] have \<open>propa_weight ?m' (trail (f (Suc (nth_bj (2^?m))))) \<ge> 2^?m\<close>
+    using weight1
     by auto
 oops
 
