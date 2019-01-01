@@ -1002,11 +1002,9 @@ proof
     define j where \<open>j = map_i i - 1\<close>
     have \<open>j \<in> {0..<(n-1)}\<close> using j_def i_nmaps_to i_smaller_n len_map_i by force
     then have \<open>is_ground_subst (\<eta>s ! j)\<close> using ground_ns unfolding is_ground_subst_list_def sorry
-    then show \<open>is_ground_subst (\<rho>s ! i)\<close> using ground_ns unfolding is_ground_subst_list_def
+    then show \<open>is_ground_subst (\<rho>s ! i)\<close> using ground_ns unfolding is_ground_subst_list_def sorry
   qed
     
-
-sorry
   then have \<open>is_ground_subst_list \<rho>s\<close> using ground_n_ns unfolding is_ground_subst_list_def apply auto sorry
 
 
