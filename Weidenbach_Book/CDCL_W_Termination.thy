@@ -1258,11 +1258,11 @@ TODO proving this allows to remove the 1+ in the bound*)
 qed
 
 text \<open>Application of the previous theorem to an initial state:\<close>
-lemma cdcl_pow2_n_learned_clauses2:
+corollary cdcl_pow2_n_learned_clauses2:
   assumes
     cdcl: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) T\<close> and
     inv: \<open>cdcl\<^sub>W_all_struct_inv (init_state N)\<close>
-  shows \<open>size (learned_clss T) \<le> 1+ 2 ^ (Suc (card (atms_of_mm N)))\<close>
+  shows \<open>size (learned_clss T) \<le> 1 + 2 ^ (Suc (card (atms_of_mm N)))\<close>
     (is \<open>_ \<le> _ + ?b\<close>)
   using assms cdcl_pow2_n_learned_clauses[of \<open>init_state N\<close> T]
   by auto
