@@ -445,7 +445,7 @@ qed
 lemma reduce_trail_to_state_eq:
   \<open>S \<sim> S' \<Longrightarrow> length M = length M' \<Longrightarrow> reduce_trail_to M S \<sim> reduce_trail_to M' S'\<close>
   apply (induction M S arbitrary: M' S' rule: reduce_trail_to_induct)
-   apply auto[2]
+   apply ((auto;fail)+)[2]
   by (simp add: reduce_trail_to_length_ne tl_trail_state_eq)
 
 lemma conflicting_cons_trail_conflicting[iff]:
@@ -4756,4 +4756,6 @@ proof -
 qed
 
 end
+
+
 end

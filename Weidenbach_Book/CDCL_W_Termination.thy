@@ -748,9 +748,7 @@ lemma cdcl_pow2_n_learned_clauses:
   assumes
     cdcl: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T\<close> and
     confl: \<open>conflicting S = None\<close> and
-    inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
-    smaller: \<open>no_smaller_propa S\<close> and
-    smaller_confl: \<open>no_smaller_confl S\<close>
+    inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close>
   shows \<open>size (learned_clss T) \<le> size (learned_clss S) + (1+ 2 ^ (Suc (card (atms_of_mm (init_clss S)))))\<close>
     (is \<open>_ \<le> _ + ?b\<close>)
 proof (rule ccontr)
@@ -1248,16 +1246,26 @@ TODO proving this allows to remove the 1+ in the bound*)
     done
   from this[of \<open>?b\<close>] have \<open>propa_weight ?m' (trail (f (Suc (nth_bj (Suc (?b)))))) \<ge> ?b\<close>
     by auto
-  moreover have[simp]: \<open>max (length
-            (trail
-              (f (Suc (nth_bj (Suc ?b))))))
-       (Suc (card (atms_of_mm (init_clss S)))) = ?m'\<close>
+  moreover have[simp]:
+    \<open>max (length (trail (f (Suc (nth_bj (Suc ?b))))))
+        (Suc (card (atms_of_mm (init_clss S))))
+      = ?m'\<close>
     using length_trail_le_m[of \<open>(Suc (nth_bj (Suc ?b)))\<close>] Suc_leI nth_bj_le
     nth_bj_le[of \<open>Suc (?b)\<close>] by (auto simp: max_def)
   ultimately show \<open>False\<close>
     using of_list_weight_le[of \<open>comp_list_weight_propa_trail ?m' (trail (f (Suc (nth_bj (Suc (?b))))))\<close>]
     by (simp del: state_eq_init_clss state_eq_trail)
 qed
+
+text \<open>Application of the previous theorem to an initial state:\<close>
+lemma cdcl_pow2_n_learned_clauses2:
+  assumes
+    cdcl: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) T\<close> and
+    inv: \<open>cdcl\<^sub>W_all_struct_inv (init_state N)\<close>
+  shows \<open>size (learned_clss T) \<le> 1+ 2 ^ (Suc (card (atms_of_mm N)))\<close>
+    (is \<open>_ \<le> _ + ?b\<close>)
+  using assms cdcl_pow2_n_learned_clauses[of \<open>init_state N\<close> T]
+  by auto
 
 end
 
