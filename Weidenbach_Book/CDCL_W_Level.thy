@@ -5,7 +5,7 @@ begin
 
 subsubsection \<open>Level of literals and clauses\<close>
 text \<open>Getting the level of a variable, implies that the list has to be reversed. Here is the
-  function after reversing.\<close>
+  function \<^emph>\<open>after\<close> reversing.\<close>
 
 definition count_decided :: "('v, 'b, 'm) annotated_lit list \<Rightarrow> nat" where
 "count_decided l = length (filter is_decided l)"

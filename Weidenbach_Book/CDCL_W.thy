@@ -876,7 +876,6 @@ lemma cdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack
       get_maximum_level (trail S) D' \<equiv> i \<Longrightarrow>
       get_level (trail S) K = i+1 \<Longrightarrow>
       D' \<subseteq># D \<Longrightarrow>
-(*       M1 \<Turnstile>as CNot D' \<Longrightarrow> *)
       clauses S \<Turnstile>pm add_mset L D' \<Longrightarrow>
       T \<sim> cons_trail (Propagated L (add_mset L D'))
             (reduce_trail_to M1

@@ -34,7 +34,6 @@ fun get_trail :: \<open>'v twl_st \<Rightarrow> ('v, 'v clause) ann_lit list\<cl
 fun clauses_to_update :: \<open>'v twl_st \<Rightarrow> ('v literal \<times> 'v twl_cls) multiset\<close> where
   \<open>clauses_to_update (_, _, _, _, _, _, WS, _) = WS\<close>
 
-
 fun set_clauses_to_update :: \<open>('v literal \<times> 'v twl_cls) multiset \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
   \<open>set_clauses_to_update WS (M, N, U, D, NE, UE, _, Q) = (M, N, U, D, NE, UE, WS, Q)\<close>
 
@@ -81,6 +80,7 @@ fun update_clause where
 text \<open>
   When updating clause, we do it non-deterministically: in case of duplicate clause in the two
   sets, one of the two can be updated (and it does not matter), contrary to an if-condition.
+  In later refinement, we know where the clause comes from and update it.
 \<close>
 inductive update_clauses ::
   \<open>'a multiset twl_clause multiset \<times> 'a multiset twl_clause multiset \<Rightarrow>
@@ -179,7 +179,7 @@ other': \<open>cdcl_twl_o S S' \<Longrightarrow> cdcl_twl_stgy S S'\<close>
 inductive_cases cdcl_twl_stgyE: \<open>cdcl_twl_stgy S T\<close>
 
 
-subsection \<open>Definition of the Two-watched literals Invariants\<close>
+subsection \<open>Definition of the Two-watched Literals Invariants\<close>
 
 subsubsection \<open>Definitions\<close>
 
@@ -211,8 +211,7 @@ text \<open>
   \<^item> the structure is correct (the watched part is of length exactly two).
   \<^item> if we do not have to update the clause, then the invariant holds.
 \<close>
-definition
-  twl_is_an_exception:: \<open>'a multiset twl_clause \<Rightarrow> 'a multiset \<Rightarrow>
+definition twl_is_an_exception :: \<open>'a multiset twl_clause \<Rightarrow> 'a multiset \<Rightarrow>
      ('b \<times> 'a multiset twl_clause) multiset \<Rightarrow> bool\<close>
 where
 \<open>twl_is_an_exception C Q WS \<longleftrightarrow>
@@ -221,7 +220,7 @@ where
 definition is_blit :: \<open>('a, 'b) ann_lits \<Rightarrow> 'a clause \<Rightarrow> 'a literal \<Rightarrow> bool\<close>where
   [simp]: \<open>is_blit M D L \<longleftrightarrow> (L \<in># D \<and> L \<in> lits_of_l M)\<close>
 
-definition has_blit:: \<open>('a, 'b) ann_lits \<Rightarrow> 'a clause \<Rightarrow> 'a literal \<Rightarrow> bool\<close>where
+definition has_blit :: \<open>('a, 'b) ann_lits \<Rightarrow> 'a clause \<Rightarrow> 'a literal \<Rightarrow> bool\<close>where
   \<open>has_blit M D L' \<longleftrightarrow> (\<exists>L. is_blit M D L \<and> get_level M L \<le> get_level M L')\<close>
 
 text \<open>This invariant state that watched literals are set at the end and are not swapped with an
@@ -257,7 +256,8 @@ fun no_duplicate_queued :: \<open>'v twl_st \<Rightarrow> bool\<close> where
 lemma no_duplicate_queued_alt_def:
    \<open>no_duplicate_queued S =
     ((\<forall>C C'. C \<in># clauses_to_update S \<longrightarrow> C' \<in># clauses_to_update S \<longrightarrow> fst C = fst C') \<and>
-     (\<forall>C. C \<in># clauses_to_update S \<longrightarrow> add_mset (fst C) (literals_to_update S) \<subseteq># uminus `# lit_of `# mset (get_trail S)) \<and>
+     (\<forall>C. C \<in># clauses_to_update S \<longrightarrow>
+       add_mset (fst C) (literals_to_update S) \<subseteq># uminus `# lit_of `# mset (get_trail S)) \<and>
      literals_to_update S \<subseteq># uminus `# lit_of `# mset (get_trail S))\<close>
   by (cases S) auto
 
