@@ -521,7 +521,7 @@ lemma empty_trail_no_smaller_propa: \<open>trail R = [] \<Longrightarrow> no_sma
   by (simp add: no_smaller_propa_def)
 
 text \<open>Roughly corresponds to \cwref{theo:prop:cdcltermlc}{theorem 2.9.15 page 86}
-  but using a different bound: Christoph does not count propagations in his bound.\<close>
+  but using a different bound (the bound is below)\<close>
 lemma tranclp_cdcl\<^sub>W_stgy_decreasing:
   fixes R S T :: 'st
   assumes "cdcl\<^sub>W_stgy\<^sup>+\<^sup>+ R S" and
@@ -676,8 +676,11 @@ lemma of_list_weight_lt: \<open>of_list_weight xs < 2^(length xs)\<close>
 lemma [simp]: \<open>of_list_weight (comp_list_weight_propa_trail n []) = 0\<close>
   by (auto simp: comp_list_weight_propa_trail_def)
 
-abbreviation propa_weight :: \<open>nat \<Rightarrow> ('v literal, 'v literal, 'v literal multiset) annotated_lit list \<Rightarrow> nat\<close> where
+abbreviation propa_weight
+  :: \<open>nat \<Rightarrow> ('v literal, 'v literal, 'v literal multiset) annotated_lit list \<Rightarrow> nat\<close>
+where
   \<open>propa_weight n M \<equiv> of_list_weight (comp_list_weight_propa_trail n M)\<close>
+
 lemma length_comp_list_weight_propa_trail[simp]: \<open>length (comp_list_weight_propa_trail a M) = max (length M) a\<close>
   by (auto simp: comp_list_weight_propa_trail_def)
   
@@ -693,12 +696,12 @@ lemma (in -)pow2_times_n:
   using Suc_diff_le by fastforce+
   
 lemma decide_propa_weight:
-  \<open>decide S T \<Longrightarrow> n > length (trail S) \<Longrightarrow> propa_weight n (trail S) \<le> propa_weight n (trail T)\<close>
+  \<open>decide S T \<Longrightarrow> n \<ge> length (trail T) \<Longrightarrow> propa_weight n (trail S) \<le> propa_weight n (trail T)\<close>
   by (auto elim!: decideE simp: comp_list_weight_propa_trail_def
     algebra_simps pow2_times_n)
 
 lemma propagate_propa_weight:
-  \<open>propagate S T \<Longrightarrow> n > length (trail S) \<Longrightarrow> propa_weight n (trail S) < propa_weight n (trail T)\<close>
+  \<open>propagate S T \<Longrightarrow> n \<ge> length (trail T) \<Longrightarrow> propa_weight n (trail S) < propa_weight n (trail T)\<close>
   by (auto elim!: propagateE simp: comp_list_weight_propa_trail_def
     algebra_simps pow2_times_n)
 
@@ -728,7 +731,11 @@ next
       (use H ST T'T in auto)
 qed
 
-text \<open>The following proof contains an immense amount of stupid bookkeeping. The proof itself
+text \<open>
+  The theorem below corresponds the bound of \cwref{theo:prop:cdcltermlc}{theorem 2.9.15 page 86}.
+  In the current version there is no proof of the bound.
+
+  The following proof contains an immense amount of stupid bookkeeping. The proof itself
   is rather easy and Isabelle makes it extra-complicated.
 
   Let's consider the sequence \<^text>\<open>S \<rightarrow> ... \<rightarrow> T\<close>.
@@ -739,17 +746,30 @@ text \<open>The following proof contains an immense amount of stupid bookkeeping
     \<^enum> Then we extract the conflicts out of it, which are at position \<^text>\<open>nth_confl 0\<close>,
       \<^text>\<open>nth_confl 1\<close>, ...
 
-  The main problem of the proof is the number of inductions in the bookkeeping part.
+  Then the simple part:
+    \<^enum> each backtrack increases \<^term>\<open>propa_weight\<close>
+    \<^enum> but \<^term>\<open>propa_weight\<close> is bounded by \<^term>\<open>2 ^ (card (atms_of_mm (init_clss S)))\<close>
+  Therefore, we get the bound.
 
+  Comments on the proof:
+  \<^item> The main problem of the proof is the number of inductions in the bookkeeping part.
+  \<^item> The proof is actually by contradiction to make sure that enough backtrack step exists. This could
+    probably be avoided, but without change in the proof.
 
-TODO remove the 1+ of the bound (see todo below)
+  Comments on the bound:
+  \<^item> The proof is very very crude: Any propagation also decreases the bound. The lemma
+    @{thm no_conflict_after_decide} above shows that a decision cannot lead immediately to a
+    conflict.
+  \<^item> TODO: can a backtrack could be immediately followed by another conflict
+    (if there are several conflicts for the initial backtrack)? If not the bound can be divided by
+    two.
 \<close>
 lemma cdcl_pow2_n_learned_clauses:
   assumes
     cdcl: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T\<close> and
     confl: \<open>conflicting S = None\<close> and
     inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close>
-  shows \<open>size (learned_clss T) \<le> size (learned_clss S) + (1+ 2 ^ (Suc (card (atms_of_mm (init_clss S)))))\<close>
+  shows \<open>size (learned_clss T) \<le> size (learned_clss S) + 2 ^ (card (atms_of_mm (init_clss S)))\<close>
     (is \<open>_ \<le> _ + ?b\<close>)
 proof (rule ccontr)
   assume ge: \<open>\<not> ?thesis\<close>
@@ -1169,14 +1189,13 @@ proof (rule ccontr)
     finally show ?thesis
       by linarith
   qed
-  let ?m' = \<open>?m + 1\<close>
   have propa_weight_decreasing_propa:
-    \<open>propa_weight ?m' (trail (f (nth_confl a))) \<ge> propa_weight ?m' (trail (f (Suc (nth_bj a))))\<close>
+    \<open>propa_weight ?m (trail (f (nth_confl a))) \<ge> propa_weight ?m (trail (f (Suc (nth_bj a))))\<close>
     if a_n: \<open>a \<le> ?b\<close> \<open>a > 0\<close>
     for a
   proof -
-    have ppa: \<open>propa_weight ?m' (trail (f (Suc (nth_bj a) + Suc k)))
-      \<ge> propa_weight ?m' (trail (f (Suc (nth_bj a) + k)))\<close>
+    have ppa: \<open>propa_weight ?m (trail (f (Suc (nth_bj a) + Suc k)))
+      \<ge> propa_weight ?m (trail (f (Suc (nth_bj a) + k)))\<close>
       if \<open>k < nth_confl a - Suc (nth_bj a)\<close>
       for k
     proof -
@@ -1187,16 +1206,16 @@ proof (rule ccontr)
       then show ?thesis
         using f[of \<open>(Suc (nth_bj a) + k)\<close>] conflicting_before_nth_confl[OF a_n, of \<open>k\<close>]
 	no_conflict_before_nth_confl[OF _ _ a_n, of \<open>Suc (nth_bj a) + k\<close>] that
-	length_trail_le_m[of \<open>(Suc (nth_bj a) + k)\<close>]
+	length_trail_le_m[of \<open>Suc (Suc (nth_bj a) + k)\<close>]
         by (auto elim!: skipE resolveE backtrackE
             simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps
-	    dest!: propagate_propa_weight[of _ _ ?m']
-	      decide_propa_weight[of _ _ ?m'])
+	    dest!: propagate_propa_weight[of _ _ ?m]
+	      decide_propa_weight[of _ _ ?m])
     qed
     have WTF3: \<open>(Suc (nth_bj a + (nth_confl a - Suc (nth_bj a)))) = nth_confl a\<close>
       using a_n(1) nth_bj_le_nth_confl that(2) by fastforce
-    have \<open>propa_weight ?m' (trail (f (Suc (nth_bj a) + k)))
-      \<ge> propa_weight ?m' (trail (f (Suc (nth_bj a))))\<close>
+    have \<open>propa_weight ?m (trail (f (Suc (nth_bj a) + k)))
+      \<ge> propa_weight ?m (trail (f (Suc (nth_bj a))))\<close>
       if \<open>k \<le> nth_confl a - Suc (nth_bj a)\<close>
       for k
       using that
@@ -1213,8 +1232,8 @@ proof (rule ccontr)
       by (auto simp: WTF3)
   qed 
   have propa_weight_decreasing_confl:
-    \<open>propa_weight ?m' (trail (f (Suc (nth_bj a))))
-      < propa_weight ?m' (trail (f (Suc (nth_bj (Suc a)))))\<close>
+    \<open>propa_weight ?m (trail (f (Suc (nth_bj a))))
+      < propa_weight ?m (trail (f (Suc (nth_bj (Suc a)))))\<close>
     if a_n: \<open>a \<le> ?b\<close> \<open>a > 0\<close>
     for a
   proof -
@@ -1225,16 +1244,16 @@ proof (rule ccontr)
  
     show ?thesis
       apply (rule WTF)
-        apply (rule propa_weight_decreasing_confl[OF a_n, of ?m'])
+        apply (rule propa_weight_decreasing_confl[OF a_n, of ?m])
 	subgoal using length_trail_le_m[of \<open>nth_confl a\<close>] \<open>nth_confl a < n\<close> by auto
        apply (rule propa_weight_decreasing_propa[OF a_n])
       done
   qed
-(*  have weight1: \<open>propa_weight ?m' (trail (f (Suc (nth_bj 1)))) \<ge> 1\<close>
-    sorry
-TODO proving this allows to remove the 1+ in the bound*)
-  have \<open>propa_weight ?m' (trail (f (Suc (nth_bj (Suc a))))) \<ge>
-       propa_weight ?m' (trail (f (Suc (nth_bj 1)))) + a\<close>
+  have weight1: \<open>propa_weight ?m (trail (f (Suc (nth_bj 1)))) \<ge> 1\<close>
+    using bt_nth_bj[of 1]
+    by (auto simp: elim!: backtrackE intro!: trans_le_add1)
+  have \<open>propa_weight ?m (trail (f (Suc (nth_bj (Suc a))))) \<ge>
+       propa_weight ?m (trail (f (Suc (nth_bj 1)))) + a\<close>
     if a_n: \<open>a \<le> ?b\<close>
     for a :: nat
     using that
@@ -1244,16 +1263,14 @@ TODO proving this allows to remove the 1+ in the bound*)
       using propa_weight_decreasing_confl[of \<open>Suc a\<close>]
       by auto
     done
-  from this[of \<open>?b\<close>] have \<open>propa_weight ?m' (trail (f (Suc (nth_bj (Suc (?b)))))) \<ge> ?b\<close>
-    by auto
-  moreover have[simp]:
-    \<open>max (length (trail (f (Suc (nth_bj (Suc ?b))))))
-        (Suc (card (atms_of_mm (init_clss S))))
-      = ?m'\<close>
+  from this[of \<open>?b\<close>] have \<open>propa_weight ?m (trail (f (Suc (nth_bj (Suc (?b)))))) \<ge> 1 + ?b\<close>
+    using weight1 by auto
+  moreover have
+    \<open>max (length (trail (f (Suc (nth_bj (Suc ?b)))))) ?m = ?m\<close>
     using length_trail_le_m[of \<open>(Suc (nth_bj (Suc ?b)))\<close>] Suc_leI nth_bj_le
     nth_bj_le[of \<open>Suc (?b)\<close>] by (auto simp: max_def)
   ultimately show \<open>False\<close>
-    using of_list_weight_le[of \<open>comp_list_weight_propa_trail ?m' (trail (f (Suc (nth_bj (Suc (?b))))))\<close>]
+    using of_list_weight_le[of \<open>comp_list_weight_propa_trail ?m (trail (f (Suc (nth_bj (Suc ?b)))))\<close>]
     by (simp del: state_eq_init_clss state_eq_trail)
 qed
 
@@ -1262,8 +1279,7 @@ corollary cdcl_pow2_n_learned_clauses2:
   assumes
     cdcl: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) T\<close> and
     inv: \<open>cdcl\<^sub>W_all_struct_inv (init_state N)\<close>
-  shows \<open>size (learned_clss T) \<le> 1 + 2 ^ (Suc (card (atms_of_mm N)))\<close>
-    (is \<open>_ \<le> _ + ?b\<close>)
+  shows \<open>size (learned_clss T) \<le> 2 ^ (card (atms_of_mm N))\<close>
   using assms cdcl_pow2_n_learned_clauses[of \<open>init_state N\<close> T]
   by auto
 
