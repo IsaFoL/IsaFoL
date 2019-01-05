@@ -14,7 +14,7 @@ text \<open>
   instead of extracting the clause from the conflicting clause, we must take it from the clause
   used to backjump; i.e., the annotation of the first literal of the trail.
 
-  We also prove below that no learned clause is subsumed by a (smaller) clause in the clause set. 
+  We also prove below that no learned clause is subsumed by a (smaller) clause in the clause set.
 \<close>
 lemma cdcl\<^sub>W_stgy_no_relearned_clause:
   assumes
@@ -583,7 +583,7 @@ proof (rule ccontr)
   have L_D: \<open>L \<notin># D\<close>
     using confl undef T
     by (auto dest!: multi_member_split simp: Decided_Propagated_in_iff_in_lits_of_l)
-    
+
   show False
   proof (cases \<open>-L \<in># D\<close>)
     case True
@@ -683,7 +683,7 @@ where
 
 lemma length_comp_list_weight_propa_trail[simp]: \<open>length (comp_list_weight_propa_trail a M) = max (length M) a\<close>
   by (auto simp: comp_list_weight_propa_trail_def)
-  
+
 lemma (in -)pow2_times_n:
   \<open>Suc a \<le> n \<Longrightarrow> 2 * 2^(n - Suc a) = (2::nat)^ (n - a)\<close>
   \<open>Suc a \<le> n \<Longrightarrow> 2^(n - Suc a) * 2 = (2::nat)^ (n - a)\<close>
@@ -694,7 +694,7 @@ lemma (in -)pow2_times_n:
   \<open>Suc a \<le> n \<Longrightarrow> 2 * (b * 2^(n - Suc a)) = (2::nat)^ (n - a) * b\<close>
   apply (simp_all add: Suc_diff_Suc semiring_normalization_rules(27))
   using Suc_diff_le by fastforce+
-  
+
 lemma decide_propa_weight:
   \<open>decide S T \<Longrightarrow> n \<ge> length (trail T) \<Longrightarrow> propa_weight n (trail S) \<le> propa_weight n (trail T)\<close>
   by (auto elim!: decideE simp: comp_list_weight_propa_trail_def
@@ -783,7 +783,7 @@ proof (rule ccontr)
     [simp]: \<open>f n = T\<close>
     using power_ex_decomp[OF n]
     by auto
-  
+
   have cdcl_st_k: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S (f k)\<close> if \<open>k \<le> n\<close> for k
     using that
     apply (induction k)
@@ -795,7 +795,8 @@ proof (rule ccontr)
     by auto
   have g_n: \<open>?g n > ?g 0 + 2 ^ (card (atms_of_mm (init_clss S)))\<close>
     using ge by auto
-  have g: \<open>?g (Suc i) = ?g i \<or> (?g (Suc i) = Suc (?g i) \<and> backtrack (f i) (f (Suc i)))\<close> if \<open>i < n\<close> for i
+  have g: \<open>?g (Suc i) = ?g i \<or> (?g (Suc i) = Suc (?g i) \<and> backtrack (f i) (f (Suc i)))\<close> if \<open>i < n\<close>
+    for i
     using f[OF that]
     by (cases rule: cdcl\<^sub>W_stgy.cases)
       (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
@@ -816,7 +817,8 @@ proof (rule ccontr)
     \<open>nth_bj = rec_nat 0 (\<lambda>_ j. (LEAST i. i > j \<and> i < n \<and> backtrack (f i) (f (Suc i))))\<close>
   have [simp]: \<open>nth_bj 0 = 0\<close>
     by (auto simp: nth_bj_def)
-  have nth_bj_Suc: \<open>nth_bj (Suc i) = (LEAST x. nth_bj i < x \<and> x < n \<and> backtrack (f x) (f (Suc x)))\<close> for i
+  have nth_bj_Suc: \<open>nth_bj (Suc i) = (LEAST x. nth_bj i < x \<and> x < n \<and> backtrack (f x) (f (Suc x)))\<close>
+    for i
     by (auto simp: nth_bj_def)
 
   have between_nth_bj_not_bt:
@@ -825,7 +827,7 @@ proof (rule ccontr)
     using not_less_Least[of k \<open>\<lambda>x. nth_bj i < x \<and> x < n \<and> backtrack (f x) (f (Suc x))\<close>] that
     unfolding nth_bj_Suc[symmetric]
     by auto
-  
+
   have g_nth_bj_eq:
     \<open>?g (Suc k) = ?g k\<close>
     if \<open>k < n\<close> \<open>k > nth_bj i\<close> \<open>k < nth_bj (Suc i)\<close> for k i
@@ -860,8 +862,8 @@ proof (rule ccontr)
   next
     case (Suc i)
     then have IH: \<open>?g (nth_bj i) = size (learned_clss S) + (i - 1)\<close>
-        \<open>0 < i \<longrightarrow> backtrack (f (nth_bj i)) (f (Suc (nth_bj i)))\<close>
-	\<open>0 < i \<longrightarrow> ?g (Suc (nth_bj i))  = size (learned_clss S) + i\<close> and
+        \<open>0 < i \<Longrightarrow> backtrack (f (nth_bj i)) (f (Suc (nth_bj i)))\<close>
+	\<open>0 < i \<Longrightarrow> ?g (Suc (nth_bj i))  = size (learned_clss S) + i\<close> and
       i_le_m: \<open>Suc i \<le> ?b+1\<close> and
       le_n: \<open>nth_bj i < n\<close> and
       gei: \<open>nth_bj i \<ge> i\<close>
@@ -900,7 +902,7 @@ proof (rule ccontr)
       nth_mono: \<open>nth_bj i < nth_bj (Suc i)\<close>
       unfolding nth_bj_Suc[symmetric]
       by auto
-    
+
     have g_nth_Suc_g_Suc_nth: \<open>?g (nth_bj (Suc i)) = ?g (Suc (nth_bj i))\<close>
       using g_nth_bj_eq2[of \<open>nth_bj (Suc i) - 1\<close> i] le nth_mono
       apply auto (*TODO proof*)
@@ -908,7 +910,7 @@ proof (rule ccontr)
     have H1: \<open>size (learned_clss (f (Suc (nth_bj (Suc i))))) =
        1 + size (learned_clss (f (nth_bj (Suc i))))\<close> if \<open>i = 0\<close>
       using bt unfolding that
-      by (auto simp: that elim: backtrackE) 
+      by (auto simp: that elim: backtrackE)
     have ?case if \<open>i > 0\<close>
       using IH that nth_mono le bt gei
       by (auto elim: backtrackE simp: g_nth_Suc_g_Suc_nth)
@@ -1008,7 +1010,7 @@ proof (rule ccontr)
       apply (cases \<open>Suc (nth_confl a + k) < n\<close>)
       apply auto
        by (metis (no_types, lifting) Suc_le_lessD add.commute le_less less_trans_Suc nth_bj_le
-         plus_1_eq_Suc power_Suc)
+         plus_1_eq_Suc)
     done
   have conflicting_before_nth_confl: \<open>conflicting (f (Suc (nth_bj a) + k)) = None\<close>
     if a_n: \<open>a \<le> ?b\<close> \<open>a > 0\<close> and
@@ -1122,7 +1124,7 @@ proof (rule ccontr)
        (2 ^ length M2' *
         (2 ^ (n - Suc (length M1 + length M2'))))) =
 	 of_list_weight (list_weight_propa_trail M1) * 2 ^ (n - length M1)\<close>
-	 using tr M n by (auto simp: algebra_simps field_simps pow2_times_n 
+	 using tr M n by (auto simp: algebra_simps field_simps pow2_times_n
 	   comm_semiring_1_class.semiring_normalization_rules(26))
     have n_ge: \<open>Suc (length M + (length M2' + length M1)) \<le> n\<close>
       using n st_Suc tr M by auto
@@ -1230,7 +1232,7 @@ proof (rule ccontr)
     from this[of \<open>nth_confl a - (Suc (nth_bj a))\<close>]
     show ?thesis
       by (auto simp: WTF3)
-  qed 
+  qed
   have propa_weight_decreasing_confl:
     \<open>propa_weight ?m (trail (f (Suc (nth_bj a))))
       < propa_weight ?m (trail (f (Suc (nth_bj (Suc a)))))\<close>
@@ -1241,7 +1243,7 @@ proof (rule ccontr)
     have \<open>nth_confl a < n\<close>
       by (metis Suc_le_mono a_n(1) add.commute add_lessD1 less_imp_le nat_le_iff_add
         nth_bj_le nth_confl_le_nth_bj_Suc plus_1_eq_Suc that(2))
- 
+
     show ?thesis
       apply (rule WTF)
         apply (rule propa_weight_decreasing_confl[OF a_n, of ?m])

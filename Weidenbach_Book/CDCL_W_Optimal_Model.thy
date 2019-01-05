@@ -1080,7 +1080,7 @@ context
 begin
 
 lemma
-  assumes 
+  assumes
     \<open>no_step cdcl_opt S\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
   shows \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S)\<close>
