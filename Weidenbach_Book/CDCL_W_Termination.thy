@@ -766,7 +766,7 @@ text \<open>
 \<close>
 lemma cdcl_pow2_n_learned_clauses:
   assumes
-    cdcl: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T\<close> and
+    cdcl: \<open>cdcl\<^sub>W\<^sup>*\<^sup>* S T\<close> and
     confl: \<open>conflicting S = None\<close> and
     inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close>
   shows \<open>size (learned_clss T) \<le> size (learned_clss S) + 2 ^ (card (atms_of_mm (init_clss S)))\<close>
@@ -775,16 +775,16 @@ proof (rule ccontr)
   assume ge: \<open>\<not> ?thesis\<close>
   let ?m = \<open>card (atms_of_mm (init_clss S))\<close>
   obtain n :: nat where
-    n: \<open>(cdcl\<^sub>W_stgy^^n) S T\<close>
+    n: \<open>(cdcl\<^sub>W^^n) S T\<close>
     using cdcl unfolding rtranclp_power by fast
   then obtain f :: \<open>nat \<Rightarrow> 'st\<close> where
-    f: \<open>\<And>i. i < n \<Longrightarrow> cdcl\<^sub>W_stgy (f i) (f (Suc i))\<close> and
+    f: \<open>\<And>i. i < n \<Longrightarrow> cdcl\<^sub>W (f i) (f (Suc i))\<close> and
     [simp]: \<open>f 0 = S\<close> and
     [simp]: \<open>f n = T\<close>
     using power_ex_decomp[OF n]
     by auto
 
-  have cdcl_st_k: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S (f k)\<close> if \<open>k \<le> n\<close> for k
+  have cdcl_st_k: \<open>cdcl\<^sub>W\<^sup>*\<^sup>* S (f k)\<close> if \<open>k \<le> n\<close> for k
     using that
     apply (induction k)
     subgoal by auto
@@ -798,7 +798,7 @@ proof (rule ccontr)
   have g: \<open>?g (Suc i) = ?g i \<or> (?g (Suc i) = Suc (?g i) \<and> backtrack (f i) (f (Suc i)))\<close> if \<open>i < n\<close>
     for i
     using f[OF that]
-    by (cases rule: cdcl\<^sub>W_stgy.cases)
+    by (cases rule: cdcl\<^sub>W.cases)
       (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
         simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps)
   have g_le: \<open>?g i \<le> i + ?g 0\<close> if \<open>i \<le> n\<close> for i
@@ -833,7 +833,7 @@ proof (rule ccontr)
     if \<open>k < n\<close> \<open>k > nth_bj i\<close> \<open>k < nth_bj (Suc i)\<close> for k i
     using between_nth_bj_not_bt[OF that(1-3)] f[of k, OF that(1)]
     by (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
-        simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)
+        simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W.simps)
   have g_nth_bj_eq2:
     \<open>?g (Suc k) = ?g (Suc (nth_bj i))\<close>
     if \<open>k < n\<close> \<open>k > nth_bj i\<close> \<open>k < nth_bj (Suc i)\<close> for k i
@@ -846,7 +846,7 @@ proof (rule ccontr)
   have [simp]: \<open>?g (Suc 0) = ?g 0\<close>
     using confl f[of 0] n0
     by (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
-        simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)
+        simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W.simps)
   have \<open>(?g (nth_bj i) = size (learned_clss S) + (i - 1)) \<and>
     nth_bj i < n \<and>
     nth_bj i \<ge> i \<and>
@@ -949,7 +949,7 @@ proof (rule ccontr)
     if \<open>k < n\<close> \<open>k > nth_bj i\<close> \<open>k < nth_bj (Suc i)\<close> for k i
     using between_nth_bj_not_bt[OF that] f[OF that(1)]
     by (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
-        simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)
+        simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W.simps)
 
   define nth_confl where
     \<open>nth_confl n \<equiv> LEAST i. i > nth_bj n \<and> i < nth_bj (Suc n) \<and> conflict (f i) (f (Suc i))\<close> for n
@@ -968,7 +968,7 @@ proof (rule ccontr)
         apply (cases \<open>Suc (nth_bj a + i) < n\<close>)
         using f[of \<open>nth_bj a + Suc i\<close>] H
         apply (auto elim: propagateE conflictE decideE backtrackE skipE resolveE
-          simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)[]
+          simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W.simps)[]
 	using nth_bj_le[of \<open>Suc a\<close>] a_n(1) by auto
       done
     from this[of \<open>nth_bj (Suc a) - 1 - nth_bj a\<close>] a_n
@@ -1024,7 +1024,7 @@ proof (rule ccontr)
         nth_confl_le_nth_bj_Suc[of a] nth_bj_le[of \<open>Suc a\<close>]
       apply (cases \<open>Suc (nth_bj a + k) < n\<close>)
       apply (auto elim!: propagateE conflictE decideE backtrackE skipE resolveE
-          simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)[]
+          simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W.simps)[]
       by linarith
     done
   have
@@ -1055,7 +1055,7 @@ proof (rule ccontr)
       apply (cases \<open>Suc (nth_confl a + k) < n\<close>)
       subgoal
         by (auto elim!: propagateE conflictE decideE skipE resolveE
-          simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps)[]
+          simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W.simps)[]
       subgoal
         by (metis (no_types, lifting) Suc_leD Suc_lessI a_n(1) add.commute add_Suc
 	  add_mono_thms_linordered_semiring(1) le_numeral_extra(4) not_le nth_bj_le plus_1_eq_Suc)
@@ -1174,7 +1174,8 @@ proof (rule ccontr)
     for k
   proof -
     have \<open>cdcl\<^sub>W_all_struct_inv (f k)\<close>
-      using cdcl_st_k[OF that] inv rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv by blast
+      using rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_restart[OF cdcl_st_k[OF that]] inv
+      rtranclp_cdcl\<^sub>W_all_struct_inv_inv by blast
     then have \<open>cdcl\<^sub>W_M_level_inv (f k)\<close> and \<open>no_strange_atm (f k)\<close>
       unfolding cdcl\<^sub>W_all_struct_inv_def by blast+
     then have \<open>no_dup (trail (f k))\<close> and
@@ -1182,7 +1183,7 @@ proof (rule ccontr)
       unfolding cdcl\<^sub>W_M_level_inv_def no_strange_atm_def
       by auto
     have eq: \<open>(atms_of_mm (init_clss (f k))) = (atms_of_mm (init_clss S))\<close>
-      using rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss[OF cdcl_st_k[OF that]]
+      using rtranclp_cdcl\<^sub>W_restart_init_clss[OF rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_restart[OF cdcl_st_k[OF that]]]
       by auto
     have \<open>length (trail (f k)) = card (atm_of ` lits_of_l (trail (f k)))\<close>
       using \<open>no_dup (trail (f k))\<close> no_dup_length_eq_card_atm_of_lits_of_l by blast
@@ -1210,7 +1211,7 @@ proof (rule ccontr)
 	no_conflict_before_nth_confl[OF _ _ a_n, of \<open>Suc (nth_bj a) + k\<close>] that
 	length_trail_le_m[of \<open>Suc (Suc (nth_bj a) + k)\<close>]
         by (auto elim!: skipE resolveE backtrackE
-            simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_stgy.simps
+            simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W.simps
 	    dest!: propagate_propa_weight[of _ _ ?m]
 	      decide_propa_weight[of _ _ ?m])
     qed
@@ -1279,7 +1280,7 @@ qed
 text \<open>Application of the previous theorem to an initial state:\<close>
 corollary cdcl_pow2_n_learned_clauses2:
   assumes
-    cdcl: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) T\<close> and
+    cdcl: \<open>cdcl\<^sub>W\<^sup>*\<^sup>* (init_state N) T\<close> and
     inv: \<open>cdcl\<^sub>W_all_struct_inv (init_state N)\<close>
   shows \<open>size (learned_clss T) \<le> 2 ^ (card (atms_of_mm N))\<close>
   using assms cdcl_pow2_n_learned_clauses[of \<open>init_state N\<close> T]
