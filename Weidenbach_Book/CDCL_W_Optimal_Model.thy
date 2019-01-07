@@ -1730,7 +1730,8 @@ lemma distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftright
   by (rule distinct_image_mset_inj) (auto simp: inj_on_def)
 
 definition conflicting_clauses :: "'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses" where
-  \<open>conflicting_clauses M w = {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C \<ge> \<rho>' w#}\<close>
+  \<open>conflicting_clauses M w = {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)).
+      atms_of C = atms_of_mm M \<and> \<rho> C \<ge> \<rho>' w#}\<close>
 
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state
   where
@@ -1764,10 +1765,11 @@ lemma state_update_weight_information:
     \<exists>w'. state (update_weight_information T S) = (M, N, U, C, w', other)\<close>
   unfolding update_weight_information_def by (cases \<open>state S\<close>; auto simp: state_prop weight_def)
 
-lemma conflicting_clss_incl_init_clss: \<open>atms_of_mm (conflicting_clss S) \<subseteq> atms_of_mm (init_clss S)\<close>
+lemma conflicting_clss_incl_init_clss:
+  \<open>atms_of_mm (conflicting_clss S) \<subseteq> atms_of_mm (init_clss S)\<close>
   unfolding conflicting_clss_def conflicting_clauses_def
   apply (auto simp: simple_clss_finite)
-  by (auto simp: simple_clss_def atms_of_ms_def)
+  by (auto simp: simple_clss_def atms_of_ms_def split: if_splits)
 
 lemma distinct_mset_mset_conflicting_clss: \<open>distinct_mset_mset (conflicting_clss S)\<close>
   unfolding conflicting_clss_def conflicting_clauses_def distinct_mset_set_def
@@ -1780,14 +1782,21 @@ lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improvi
       simp: multiset_filter_mono2 le_less intro!: image_mset_subseteq_mono
       split: enat.splits)
 
- lemma conflicting_clss_update_weight_information_in:
+lemma total_over_m_atms_incl:
+  assumes \<open>total_over_m (lit_of ` set M) (set_mset N)\<close>
+  shows
+    \<open>x \<in> atms_of_mm N \<Longrightarrow> x \<in> atms_of (lit_of `# mset M)\<close>
+  by (metis neg_lit_in_atms_of pos_lit_in_atms_of set_image_mset set_mset_mset
+    total_over_m_def total_over_set_def assms)
+
+lemma conflicting_clss_update_weight_information_in:
   assumes \<open>is_improving M S\<close>
   shows \<open>negate_ann_lits M \<in># conflicting_clss (update_weight_information M S)\<close>
-   using assms apply (auto simp: simple_clss_finite
+  using assms apply (auto simp: simple_clss_finite
     conflicting_clauses_def conflicting_clss_def is_improving_int_def)
   by (auto simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
-      simp: multiset_filter_mono2 simple_clss_def
-      negate_ann_lits_pNeg_lit_of)
+      simp: multiset_filter_mono2 simple_clss_def lits_of_def
+      negate_ann_lits_pNeg_lit_of image_iff dest: total_over_m_atms_incl)
 
 lemma atms_of_ms_pNeg[simp]: \<open>atms_of_ms (pNeg ` N) = atms_of_ms N\<close>
   unfolding atms_of_ms_def pNeg_def by (auto simp: image_image atms_of_def)
@@ -1821,7 +1830,6 @@ lemma conflict_clss_update_weight_no_alien:
     \<subseteq> atms_of_mm (init_clss S)\<close>
   apply (auto simp: conflicting_clss_def conflicting_clauses_def atms_of_ms_def
     cdcl\<^sub>W_restart_mset_state simple_clss_finite)
-  apply (auto simp: simple_clss_def)
   done
 
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops
@@ -1885,10 +1893,11 @@ proof (rule no_step_cdcl_opt_stgy_empty_conflict[OF _ assms])
         cdcl\<^sub>W_M_level_inv_def clauses_def
       dest: no_dup_not_tautology no_dup_distinct)
   then have \<open>enat (\<rho> (lit_of `# mset (trail S))) < \<rho>' (weight S)\<close>
-    using n_s confl
-    by (auto simp: conflict_opt.simps conflicting_clss_def
-       conflicting_clauses_def clauses_def negate_ann_lits_pNeg_lit_of image_iff
-       dest: spec[of _ \<open>(lit_of `# mset (trail S))\<close>])
+    using n_s confl total
+    by (auto simp: conflict_opt.simps conflicting_clss_def lits_of_def
+         conflicting_clauses_def clauses_def negate_ann_lits_pNeg_lit_of image_iff
+         simple_clss_def subset_iff
+       dest!: spec[of _ \<open>(lit_of `# mset (trail S))\<close>] dest: total_over_m_atms_incl)
   moreover have \<open>trail S \<Turnstile>asm init_clss S\<close>
     using ent by (auto simp: clauses_def)
   moreover have \<open>total_over_m (lits_of_l (trail S))  (set_mset (init_clss S))\<close>
@@ -1901,12 +1910,140 @@ proof (rule no_step_cdcl_opt_stgy_empty_conflict[OF _ assms])
     apply (auto simp: optimal_improve_def is_improving_int_def image_image
         total_over_m_def total_over_set_def neq_Nil_conv cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def lits_of_def
         no_strange_atm_def defined_lit_map clauses_def
-      intro!: bexI[of _ \<open> atm_of (lit_of (hd (trail S)))\<close>])
+      intro!: bexI[of _ \<open>atm_of (lit_of (hd (trail S)))\<close>])
     apply (metis UnCI image_eqI literal.sel(2))
     by (metis UnCI image_eqI literal.sel(1))
   ultimately show \<open>Ex (improve S)\<close>
     using improve.intros[of S \<open>[]\<close> \<open>trail S\<close> \<open>update_weight_information (trail S) S\<close>] total H confl
     by (auto simp: is_improving_int_def)
+qed
+
+(*TODO Move*)
+lemma (in -)distinct_set_mset_eq_iff:
+  assumes "distinct_mset M" "distinct_mset N"
+  shows "set_mset M = set_mset N \<longleftrightarrow> M = N"
+  using assms distinct_mset_set_mset_ident by fastforce
+
+lemma obacktrack_model_still_model:
+  assumes
+    \<open>obacktrack S T\<close> and
+    all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+    ent: \<open>set_mset I \<Turnstile>sm clauses S\<close> and
+    dist: \<open>distinct_mset I\<close> and
+    cons: \<open>consistent_interp (set_mset I)\<close> and
+    tot: \<open>atms_of I = atms_of_mm (init_clss S)\<close> and
+    opt_struct: \<open>cdcl_opt_struct_invs S\<close> and
+    le: \<open>\<rho> I < \<rho>' (weight S)\<close>
+  shows
+    \<open>set_mset I \<Turnstile>sm clauses T\<close>
+  using assms(1)
+proof (induction)
+  case (obacktrack_rule L D K M1 M2 D' i T) note confl = this(1) and DD' = this(7) and
+    clss_L_D' = this(8) and T = this(9)
+  have H: \<open>total_over_m I (set_mset (clauses S + conflicting_clss S) \<union> {add_mset L D'}) \<Longrightarrow>
+      consistent_interp I \<Longrightarrow>
+      I \<Turnstile>sm clauses S + conflicting_clss S \<Longrightarrow> I \<Turnstile> add_mset L D'\<close> for I
+    using clss_L_D'
+    unfolding true_clss_cls_def
+    by blast
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state S)\<close>
+    using all_struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  have \<open>total_over_m (set_mset I) (set_mset (init_clss S))\<close>
+    using tot[symmetric]
+    by (auto simp: total_over_m_def total_over_set_def atm_iff_pos_or_neg_lit)
+ 
+  then have 1: \<open>total_over_m (set_mset I) (set_mset (clauses S + conflicting_clss S) \<union> {add_mset L D'})\<close>
+    using alien T confl tot DD' opt_struct
+    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def total_over_m_def total_over_set_def
+    apply (auto simp: cdcl\<^sub>W_restart_mset_state abs_state_def atms_of_def clauses_def
+      cdcl_opt_struct_invs_def dest: multi_member_split)
+    by blast
+  have 2: \<open>set_mset I \<Turnstile>sm conflicting_clss S\<close>
+    unfolding true_clss_def
+  proof
+    fix C
+    assume \<open>C \<in># conflicting_clss S\<close>
+    then obtain x where
+      [simp]: \<open>C = pNeg x\<close> and
+      x: \<open>x \<in> simple_clss (atms_of_mm (init_clss S))\<close> and
+      atm: \<open>atms_of x = atms_of_mm (init_clss S)\<close> and
+      \<open>\<rho>' (weight S) \<le> enat (\<rho> x)\<close>
+      unfolding conflicting_clss_def conflicting_clauses_def
+      by (auto simp: simple_clss_finite)
+    then have \<open>x \<noteq> I\<close>
+      using le by auto
+    then have \<open>set_mset x \<noteq> set_mset I\<close>
+      using distinct_set_mset_eq_iff[of x I] x dist
+      by (auto simp: simple_clss_def)
+    then have \<open>\<exists>a. ((a \<in># x \<and> a \<notin># I) \<or> (a \<in># I \<and> a \<notin># x))\<close>
+      by auto
+    then obtain L where
+      \<open>L \<in># x\<close> and
+      \<open>-L \<in># I\<close>
+      apply clarify
+      apply (case_tac a)
+      using atm[symmetric] tot[symmetric] that[of _] that[of \<open>- _\<close>]
+      atm_iff_pos_or_neg_lit[of a I] atm_iff_pos_or_neg_lit[of a x]
+      by (metis (full_types) assms(6) atm atm_iff_pos_or_neg_lit uminus_Pos uminus_of_uminus_id)+
+    then show \<open>set_mset I \<Turnstile> C\<close>
+      by (auto simp: simple_clss_finite pNeg_def dest!: multi_member_split)
+  qed
+  have \<open>set_mset I \<Turnstile> add_mset L D'\<close>
+    using H[OF 1 cons] 2 ent by auto
+  then show ?case
+    using ent obacktrack_rule by auto
+qed
+
+lemma cdcl_opt_still_model:
+  assumes
+    \<open>cdcl_opt S T\<close> and
+    all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+    ent: \<open>set_mset I \<Turnstile>sm clauses S\<close> and
+    dist: \<open>distinct_mset I\<close> and
+    cons: \<open>consistent_interp (set_mset I)\<close> and
+    tot: \<open>atms_of I = atms_of_mm (init_clss S)\<close> and
+    opt_struct: \<open>cdcl_opt_struct_invs S\<close>
+  shows
+    \<open>set_mset I \<Turnstile>sm clauses T \<or> \<rho> I \<ge> \<rho>' (weight S)\<close>
+  using assms
+proof (cases rule: cdcl_opt.cases)
+  case cdcl_conflict
+  then show ?thesis
+    using ent by (auto simp: conflict.simps)
+next
+  case cdcl_propagate
+  then show ?thesis
+    using ent by (auto simp: propagate.simps)
+next
+  case cdcl_conflict_opt
+  then show ?thesis
+    using ent by (auto simp: conflict_opt.simps)
+next
+  case cdcl_improve
+  then show ?thesis
+    using ent by (auto simp: improve.simps)
+next
+  case cdcl_other'
+  then show ?thesis
+  proof (induction rule: ocdcl\<^sub>W_o_all_rules_induct)
+    case (decide T)
+    then show ?case
+      using ent by (auto simp: decide.simps)
+  next
+    case (skip T)
+    then show ?case
+      using ent by (auto simp: skip.simps)
+  next
+    case (resolve T)
+    then show ?case
+      using ent by (auto simp: resolve.simps)
+  next
+    case (backtrack T)
+    from obacktrack_model_still_model[OF this all_struct ent dist cons tot opt_struct]
+    show ?case
+      by auto
+  qed
 qed
 
 end
