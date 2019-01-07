@@ -182,3 +182,6 @@ GRAT/gratgen/release
 html
 Weidenbach_Book/output*
 
+.projectile
+*.sml
+
