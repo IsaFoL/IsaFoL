@@ -1320,7 +1320,7 @@ lemma conflicting_abs_state_conflicting[simp]:
   \<open>CDCL_W_Abstract_State.conflicting (abs_state S) = conflicting S\<close> and
   clauses_abs_state[simp]:
     \<open>cdcl\<^sub>W_restart_mset.clauses (abs_state S) = clauses S + conflicting_clss S\<close> and
-  abs_state_tl_trail[simp]: 
+  abs_state_tl_trail[simp]:
     \<open>abs_state (tl_trail S) = CDCL_W_Abstract_State.tl_trail (abs_state S)\<close> and
   abs_state_add_learned_cls[simp]:
     \<open>abs_state (add_learned_cls C S) = CDCL_W_Abstract_State.add_learned_cls C (abs_state S)\<close> and
@@ -1431,7 +1431,7 @@ proof -
     by (auto dest: cdcl\<^sub>W.intros cdcl\<^sub>W_restart_mset.W_propagate cdcl\<^sub>W_restart_mset.W_other
           conflict_conflict propagate_propagate decide_decide improve conflict_opt_conflict
           cdcl\<^sub>W_o_cdcl\<^sub>W_o cdcl\<^sub>W_restart_mset.W_conflict W_conflict cdcl\<^sub>W_o.intros cdcl\<^sub>W.intros
-	  cdcl\<^sub>W_o_cdcl\<^sub>W_o 
+	  cdcl\<^sub>W_o_cdcl\<^sub>W_o
 	simp: cdcl\<^sub>W_same_weight cdcl_opt.simps ocdcl\<^sub>W_o_same_weight
 	elim: conflict_optE)
   ultimately show ?thesis
@@ -1486,6 +1486,9 @@ context
        total_over_m (lits_of_l (trail S)) (set_mset (clauses S)) \<Longrightarrow> Ex (improve S)\<close>
 begin
 
+text \<open>The following theorems states a non-obvious (and slightly subtle) property: The fact that there
+  is no conflicting cannot be shown without additional assumption. However, the assumption that every
+  model leads to an improvements implies that we end up with a conflict.\<close>
 lemma no_step_cdcl_opt_cdcl\<^sub>W:
   assumes
     ns: \<open>no_step cdcl_opt S\<close> and
@@ -1499,7 +1502,7 @@ proof -
     by (auto simp: cdcl_opt.simps ocdcl\<^sub>W_o.simps ocdcl\<^sub>W_bj.simps)
   have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state S)\<close>
     using struct_invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
-    
+
   have False if st: \<open>\<exists>T. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) T\<close>
   proof (cases \<open>conflicting S = None\<close>)
     case True
@@ -1722,7 +1725,7 @@ lemma finite_CNot[simp]: \<open>finite (CNot C)\<close>
 lemma atms_of_pNeg[simp]: \<open>atms_of (pNeg C) = atms_of C\<close>
   by (auto simp: pNeg_def atms_of_def image_image)
 
-lemma distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftrightarrow>  distinct_mset x\<close>
+lemma distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftrightarrow> distinct_mset x\<close>
   unfolding pNeg_def
   by (rule distinct_image_mset_inj) (auto simp: inj_on_def)
 
