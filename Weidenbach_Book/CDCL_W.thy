@@ -2654,16 +2654,6 @@ proof (rule backtrack_rule)
     using T by blast
 qed
 
-lemma simple_backtrack_backtrack:
-  assumes
-    \<open>simple_backtrack S T\<close> and
-    lev_inv: "cdcl\<^sub>W_M_level_inv S" and
-    conf: \<open>cdcl\<^sub>W_conflicting S\<close> and
-    learned: \<open>cdcl\<^sub>W_learned_clause S\<close>
-  shows \<open>backtrack S T\<close>
-  using assms apply -
-  by (elim simple_backtrackE; rule backtrack\<^sub>W_rule) auto
-
 lemma backtrack_no_decomp:
   assumes
     S: "conflicting S = Some (add_mset L E)" and
