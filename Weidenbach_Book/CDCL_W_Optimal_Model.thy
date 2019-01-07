@@ -1486,9 +1486,9 @@ context
        total_over_m (lits_of_l (trail S)) (set_mset (clauses S)) \<Longrightarrow> Ex (improve S)\<close>
 begin
 
-lemma
+lemma no_step_cdcl_opt_cdcl\<^sub>W:
   assumes
-    ns: \<open>no_step cdcl_opt S\<close> and opt_struct: \<open>cdcl_opt_struct_invs S\<close> and
+    ns: \<open>no_step cdcl_opt S\<close> and
     struct_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
   shows \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S)\<close>
 proof -
@@ -1497,51 +1497,32 @@ proof -
       \<open>no_step decide S\<close>
     using ns
     by (auto simp: cdcl_opt.simps ocdcl\<^sub>W_o.simps ocdcl\<^sub>W_bj.simps)
-
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state S)\<close>
+    using struct_invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
+    
   have False if st: \<open>\<exists>T. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) T\<close>
   proof (cases \<open>conflicting S = None\<close>)
     case True
-    have 1: \<open>no_step cdcl\<^sub>W_restart_mset.decide (abs_state S)\<close>
-      using ns_nc opt_struct
-      by (auto simp: dest!: decide_abs_state_decide)
-    have 2: \<open>no_step cdcl\<^sub>W_restart_mset.propagate (abs_state S)\<close>
-    proof (rule ccontr)
-      assume \<open>\<not> ?thesis\<close>
-      then obtain T where H: \<open>cdcl\<^sub>W_restart_mset.propagate (abs_state S) T\<close>
-        by fast
-      have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state S)\<close>
-        using struct_invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        by fast+
-      then have [dest!]: \<open>E \<in># clauses S \<Longrightarrow> atms_of E \<subseteq> atms_of_mm (init_clss S)\<close> for E
-        using opt_struct
-        unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl_opt_struct_invs_def
-        by (auto simp: clauses_def cdcl\<^sub>W_restart_mset_state abs_state_def
-          dest!: multi_member_split)
-      have \<open>\<exists>T. decide S T\<close>
-        using H
-	apply (cases)
-	subgoal for E L
-	  unfolding decide.simps
-	  apply (rule_tac x = \<open>cons_trail (Decided L) S\<close> in exI)
-	  apply (rule_tac x=L in exI)
-	  apply (rule_tac x = \<open>cons_trail (Decided L) S\<close> in exI)
-	  using opt_struct
-	  by (auto simp: propagate.simps cdcl\<^sub>W_restart_mset.propagate.simps
-	      conflict_opt.simps decide.simps cdcl_opt_struct_invs_def
-	    dest!: multi_member_split[of L E]
-	      multi_member_split[of _ \<open>conflicting_clss S\<close>])
-	done
-      then show False
-        using ns_nc  by fast
-    qed
-    have 3: \<open>no_step cdcl\<^sub>W_restart_mset.conflict (abs_state S)\<close>
-      sorry
-    
-    show False
-      using 1 2 3 that True
-      by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.simps
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps cdcl\<^sub>W_restart_mset.backtrack.simps
-	  cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps)
+    have \<open>total_over_m (lits_of_l (trail S)) (set_mset (init_clss S))\<close>
+      using ns_nc True apply - apply (rule ccontr)
+      by (force simp: decide.simps total_over_m_def total_over_set_def
+        Decided_Propagated_in_iff_in_lits_of_l)
+    then have tot: \<open>total_over_m (lits_of_l (trail S)) (set_mset (clauses S))\<close>
+      using alien unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      by (auto simp: total_over_set_atm_of total_over_m_def clauses_def
+        abs_state_def init_clss.simps learned_clss.simps trail.simps)
+    then have \<open>trail S \<Turnstile>asm clauses S\<close>
+      using ns_nc True unfolding true_annots_def apply -
+      apply clarify
+      subgoal for C
+        using all_variables_defined_not_imply_cnot[of C \<open>trail S\<close>]
+        by (fastforce simp: conflict.simps total_over_set_atm_of
+        dest: multi_member_split)
+      done
+    from can_always_improve[OF this] have \<open>False\<close>
+      using ns_nc True struct_invs tot by blast
+    then show \<open>?thesis\<close>
+      by blast
   next
     case False
     have nss: \<open>no_step cdcl\<^sub>W_restart_mset.skip (abs_state S)\<close>
@@ -1571,7 +1552,8 @@ proof (rule ccontr)
   then obtain D where \<open>conflicting S = Some D\<close> and \<open>D \<noteq> {#}\<close>
     by auto
   moreover have \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (abs_state S)\<close>
-    using n_s by (auto simp: cdcl\<^sub>W_stgy.simps cdcl_opt.simps)
+    using no_step_cdcl_opt_cdcl\<^sub>W[OF n_s all_struct]
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W by blast
   moreover have le: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (abs_state S)\<close>
     using all_struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
   ultimately show False
@@ -1600,15 +1582,16 @@ proof (rule ccontr)
   then have confl: \<open>conflicting S = None\<close>
     using H by blast
   have \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (abs_state S)\<close>
-    using n_s cdcl\<^sub>W_stgy.simps cdcl_conflict cdcl_other' cdcl_propagate by auto
+    using no_step_cdcl_opt_cdcl\<^sub>W[OF n_s all_struct]
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W by blast
   then have entail: \<open>trail S \<Turnstile>asm clauses S\<close>
     using confl cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_final_state_conclusive2[of \<open>abs_state S\<close>]
       all_struct stgy_inv le
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl_opt_stgy_inv_def
-    by auto
+    by (auto simp: conflict_is_false_with_level_abs_iff)
   have \<open>total_over_m (lits_of_l (trail S)) (set_mset (clauses S))\<close>
-    using no_step_cdcl\<^sub>W_total[OF no_step_cdcl_opt_cdcl\<^sub>W confl] all_struct n_s
-    unfolding cdcl\<^sub>W_all_struct_inv_def
+    using cdcl\<^sub>W_restart_mset.no_step_cdcl\<^sub>W_total[OF no_step_cdcl_opt_cdcl\<^sub>W, of S] all_struct n_s confl
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by auto
   with can_always_improve entail confl all_struct
   show \<open>False\<close>
