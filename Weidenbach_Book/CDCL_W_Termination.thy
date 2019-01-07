@@ -520,7 +520,7 @@ qed
 lemma empty_trail_no_smaller_propa: \<open>trail R = [] \<Longrightarrow> no_smaller_propa R\<close>
   by (simp add: no_smaller_propa_def)
 
-text \<open>Roughly corresponds to \cwref{theo:prop:cdcltermlc}{theorem 2.9.15 page 86}
+text \<open>Roughly corresponds to \cwref{theo:prop:cdcltermlc}{theorem 2.9.15 page 100}
   but using a different bound (the bound is below)\<close>
 lemma tranclp_cdcl\<^sub>W_stgy_decreasing:
   fixes R S T :: 'st
@@ -732,7 +732,7 @@ next
 qed
 
 text \<open>
-  The theorem below corresponds the bound of \cwref{theo:prop:cdcltermlc}{theorem 2.9.15 page 86}.
+  The theorem below corresponds the bound of \cwref{theo:prop:cdcltermlc}{theorem 2.9.15 page 100}.
   In the current version there is no proof of the bound.
 
   The following proof contains an immense amount of stupid bookkeeping. The proof itself

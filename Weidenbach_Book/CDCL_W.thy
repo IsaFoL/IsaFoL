@@ -926,8 +926,8 @@ text \<open>We here establish that:
 text \<open>
 \begin{nit}
   As one can see in the following proof, the properties of the levels are \<^emph>\<open>required\<close> to prove
-  \cwref{prop:prop:cdclconsis}{Item 1 page 81}. However, this point is only mentioned \<^emph>\<open>later\<close>,
-  and only in the proof of \cwref{prop:prop:cdclbacktrack}{Item 5 page 81}.
+  \cwref{prop:prop:cdclconsis}{Item 1 page 94}. However, this point is only mentioned \<^emph>\<open>later\<close>,
+  and only in the proof of \cwref{prop:prop:cdclbacktrack}{Item 7 page 95}.
 \end{nit}\<close>
 lemma backtrack_lit_skiped:
   assumes
@@ -972,7 +972,7 @@ proof (induct rule: cdcl\<^sub>W_restart_all_induct)
   ultimately show ?case using decomp T n_d by (auto dest: no_dup_appendD)
 qed (use n_d in auto)
 
-text \<open>\cwref{prop:prop:cdclconsis}{Item 1 page 81}\<close>
+text \<open>\cwref{prop:prop:cdclconsis}{Item 1 page 94}\<close>
 lemma cdcl\<^sub>W_restart_consistent_inv_2:
   assumes
     "cdcl\<^sub>W_restart S S'" and
@@ -1377,13 +1377,13 @@ definition "cdcl\<^sub>W_learned_clause (S :: 'st) \<longleftrightarrow>
   ((\<forall>T. conflicting S = Some T \<longrightarrow> clauses S \<Turnstile>pm T)
   \<and> set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S))"
 
-text \<open>\cwref{prop:prop:cdclConflClause}{} for the inital state and some additional structural
+text \<open>\cwref{prop:prop:cdclConflClause}{Item 3 page 95} for the inital state and some additional structural
   properties about the trail.\<close>
 lemma cdcl\<^sub>W_learned_clause_S0_cdcl\<^sub>W_restart[simp]:
    "cdcl\<^sub>W_learned_clause (init_state N)"
   unfolding cdcl\<^sub>W_learned_clause_def by auto
 
-text \<open>\cwref{prop:prop:cdclvaluation}{Item 4 page 81}\<close>
+text \<open>\cwref{prop:prop:cdclvaluation}{Item 4 page 95}\<close>
 lemma cdcl\<^sub>W_restart_learned_clss:
   assumes
     "cdcl\<^sub>W_restart S S'" and
@@ -1824,7 +1824,7 @@ proof -
       vars_in_M1 S_confl confl unfolding M lits_of_def by simp
 qed
 
-text \<open>\cwref{prop:prop:cdclPropLitsUnsat}{Item 5 page 81}\<close>
+text \<open>\cwref{prop:prop:cdclPropLitsUnsat}{Item 5 page 95}\<close>
 lemma cdcl\<^sub>W_restart_propagate_is_conclusion:
   assumes
     "cdcl\<^sub>W_restart S S'" and
@@ -2272,7 +2272,7 @@ lemma all_invariant_S0_cdcl\<^sub>W_restart:
      "distinct_cdcl\<^sub>W_state (init_state N)"
   using assms by auto
 
-text \<open>\cwref{prop:prop:cdclUnsat}{Item 6 page 81}\<close>
+text \<open>\cwref{prop:prop:cdclUnsat}{Item 6 page 95}\<close>
 lemma cdcl\<^sub>W_only_propagated_vars_unsat:
   assumes
     decided: "\<forall>x \<in> set M. \<not> is_decided x" and
@@ -2319,7 +2319,7 @@ proof (rule ccontr)
   then show False using I_D by blast
 qed
 
-text \<open>\cwref{prop:prop:cdclPropLitsUnsat}{Item 5 page 81}\<close>
+text \<open>\cwref{prop:prop:cdclPropLitsUnsat}{Item 5 page 95}\<close>
 text \<open>We have actually a much stronger theorem, namely
   @{thm [source] all_decomposition_implies_propagated_lits_are_implied}, that show that the only
   choices we made are decided in the formula\<close>
@@ -2333,7 +2333,7 @@ proof -
     using all_decomposition_implies_propagated_lits_are_implied[OF assms(1)] unfolding T by simp
 qed
 
-text \<open>\cwref{prop:prop:cdclbacktrack}{Item 7 page 81} (part 1)\<close>
+text \<open>\cwref{prop:prop:cdclbacktrack}{Item 7 page 95} (part 1)\<close>
 lemma conflict_with_false_implies_unsat:
   assumes
     cdcl\<^sub>W_restart: "cdcl\<^sub>W_restart S S'" and
@@ -2356,7 +2356,7 @@ proof -
   then show ?thesis unfolding satisfiable_def true_clss_cls_def by auto
 qed
 
-text \<open>\cwref{prop:prop:cdclbacktrack}{Item 7 page 81} (part 2)\<close>
+text \<open>\cwref{prop:prop:cdclbacktrack}{Item 7 page 95} (part 2)\<close>
 lemma conflict_with_false_implies_terminated:
   assumes "cdcl\<^sub>W_restart S S'" and "conflicting S = Some {#}"
   shows False
@@ -2446,7 +2446,7 @@ next
     using S undef by (auto intro!: exI[of _ ?S\<^sub>0] simp del: state_prop)
 qed
 
-text \<open>\cwref{cdcl:completeness}{theorem 2.9.11 page 84}\<close>
+text \<open>\cwref{cdcl:completeness}{theorem 2.9.11 page 98}\<close>
 lemma cdcl\<^sub>W_restart_strong_completeness:
   assumes
     MN: "set M \<Turnstile>sm N" and
@@ -3636,7 +3636,7 @@ proof -
     by (auto intro!: exI[of _ S])
 qed
 
-text \<open>\cwref{cdcl:completeness}{theorem 2.9.11 page 84} (with strategy)\<close>
+text \<open>\cwref{cdcl:completeness}{theorem 2.9.11 page 98} (with strategy)\<close>
 lemma cdcl\<^sub>W_stgy_strong_completeness:
   assumes
     MN: "set M \<Turnstile>s set_mset N" and
@@ -3952,7 +3952,7 @@ qed
 
 subsubsection \<open>Final States are Conclusive\<close>
 
-text \<open>\cwref{lem:prop:cdclsoundtermStates}{theorem 2.9.9 page 83}\<close>
+text \<open>\cwref{lem:prop:cdclsoundtermStates}{theorem 2.9.9 page 97}\<close>
 lemma full_cdcl\<^sub>W_stgy_final_state_conclusive:
   fixes S' :: 'st
   assumes full: "full cdcl\<^sub>W_stgy (init_state N) S'"
@@ -4031,7 +4031,7 @@ lemma conflict_or_propagate_intros:
   "propagate S T \<Longrightarrow> conflict_or_propagate S T"
   by auto
 
-text \<open>\cwref{lem:prop:cdclsoundtermStates}{theorem 2.9.9 page 83}\<close>
+text \<open>\cwref{lem:prop:cdclsoundtermStates}{theorem 2.9.9 page 97}\<close>
 lemma full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state:
   fixes S' :: "'st"
   assumes full: "full cdcl\<^sub>W_stgy (init_state N) S'"
