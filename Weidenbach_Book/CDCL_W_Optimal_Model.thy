@@ -1958,7 +1958,7 @@ lemma cdcl_opt_larger_still_larger:
   using assms apply (cases rule: cdcl_opt.cases)
   by (auto simp: conflict.simps decide.simps propagate.simps improve.simps is_improving_int_def
     conflict_opt.simps ocdcl\<^sub>W_o.simps ocdcl\<^sub>W_bj.simps skip.simps resolve.simps obacktrack.simps)
- 
+
 lemma obacktrack_model_still_model:
   assumes
     \<open>obacktrack S T\<close> and
@@ -1987,7 +1987,7 @@ proof (cases rule: obacktrack.cases)
   have \<open>total_over_m (set_mset I) (set_mset (init_clss S))\<close>
     using tot[symmetric]
     by (auto simp: total_over_m_def total_over_set_def atm_iff_pos_or_neg_lit)
- 
+
   then have 1: \<open>total_over_m (set_mset I) (set_mset (clauses S + conflicting_clss S) \<union> {add_mset L D'})\<close>
     using alien T confl tot DD' opt_struct
     unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def total_over_m_def total_over_set_def
@@ -2164,7 +2164,7 @@ next
   case (step T U) note star = this(1) and st = this(2) and IH = this(3)
   have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
     using rtranclp_cdcl_opt_stgy_all_struct_inv[OF star all_struct] .
-  
+
   have 2: \<open>cdcl_opt_struct_invs T\<close>
     using rtranclp_cdcl_opt_cdcl_opt_struct_invs[OF star opt_struct] .
   have 3: \<open>atms_of I = atms_of_mm (init_clss T)\<close>
@@ -2212,7 +2212,7 @@ proof -
     unfolding rtranclp_cdcl_opt_no_more_init_clss[OF st'] cdcl\<^sub>W_restart_mset.no_strange_atm_def
     by (auto simp: clauses_def total_over_m_def total_over_set_def atm_iff_pos_or_neg_lit
       abs_state_def cdcl\<^sub>W_restart_mset_state)
-    
+
   have \<open>\<not> (set_mset I \<Turnstile>sm clauses T + conflicting_clss T)\<close>
   proof
     assume ent'': \<open>set_mset I \<Turnstile>sm clauses T + conflicting_clss T\<close>
