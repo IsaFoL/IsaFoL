@@ -808,6 +808,9 @@ text \<open>
 definition CNot :: \<open>'v clause \<Rightarrow> 'v clause_set\<close> where
 \<open>CNot \<psi> = { {#-L#} | L. L \<in># \<psi> }\<close>
 
+lemma finite_CNot[simp]: \<open>finite (CNot C)\<close>
+  by (auto simp: CNot_def)
+
 lemma in_CNot_uminus[iff]:
   shows \<open>{#L#} \<in> CNot \<psi> \<longleftrightarrow> -L \<in># \<psi>\<close>
   unfolding CNot_def by force

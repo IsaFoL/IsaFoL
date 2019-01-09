@@ -1270,6 +1270,11 @@ next
     by (metis set_mset_mono)
 qed
 
+lemma distinct_set_mset_eq_iff:
+  assumes \<open>distinct_mset M\<close> \<open>distinct_mset N\<close>
+  shows \<open>set_mset M = set_mset N \<longleftrightarrow> M = N\<close>
+  using assms distinct_mset_set_mset_ident by fastforce
+
 lemma in_remove1_msetI: \<open>x \<noteq> a \<Longrightarrow> x \<in># M \<Longrightarrow> x \<in># remove1_mset a M\<close>
   by (simp add: in_remove1_mset_neq)
 

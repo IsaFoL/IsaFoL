@@ -1,5 +1,5 @@
 theory CDCL_W_Optimal_Model
-imports CDCL_W_Abstract_State "HOL-Library.Extended_Nat" "../lib/Explorer"
+imports CDCL_W_Abstract_State "HOL-Library.Extended_Nat"
 begin
 
 section \<open>CDCL Extensions\<close>
@@ -91,7 +91,7 @@ $(\epsilon, N, \varnothing, \top, \infty)$
 \shortrules{resolve}{}{$(\epsilon, N, \{\neg P\}, \bot, (\neg P\, Q, 3))$}
 
 
-However, the optimal model (obviously) is $Q$.
+However, the optimal model is $Q$.
 }
 \<close>
 
@@ -108,6 +108,82 @@ the optimisation criterion and which clauses are generated.
 
 We later instantiate it with the optimisation calculus from Weidenbach's book.
 \<close>
+
+definition negate_ann_lits :: "('v, 'v clause) ann_lits \<Rightarrow> 'v literal multiset" where
+  \<open>negate_ann_lits M = (\<lambda>L. - lit_of L) `# (mset M)\<close>
+
+text \<open>Pointwise negation of a clause:\<close>
+definition pNeg :: \<open>'v clause \<Rightarrow> 'v clause\<close> where
+  \<open>pNeg C = {#-D. D \<in># C#}\<close>
+
+lemma atms_of_pNeg[simp]: \<open>atms_of (pNeg C) = atms_of C\<close>
+  by (auto simp: pNeg_def atms_of_def image_image)
+
+lemma negate_ann_lits_pNeg_lit_of: \<open>negate_ann_lits = pNeg o image_mset lit_of o mset\<close>
+  by (intro ext) (auto simp: negate_ann_lits_def pNeg_def)
+
+lemma negate_ann_lits_empty_iff: \<open>negate_ann_lits M \<noteq> {#} \<longleftrightarrow> M \<noteq> []\<close>
+  by (auto simp: negate_ann_lits_def)
+
+lemma atms_of_negate_ann_lits[simp]: \<open>atms_of (negate_ann_lits M) = atm_of ` (lits_of_l M)\<close>
+  unfolding negate_ann_lits_def lits_of_def atms_of_def by (auto simp: image_image)
+
+
+lemma distinct_image_mset_not_equal:
+  assumes
+    LL': \<open>L \<noteq> L'\<close> and
+    dist: \<open>distinct_mset (f `# M)\<close> and
+    L: \<open>L \<in># M\<close> and
+    L': \<open>L' \<in># M\<close> and
+    fLL'[simp]: \<open>f L = f L'\<close>
+  shows \<open>False\<close>
+proof -
+  obtain M1 where M1: \<open>M = add_mset L M1\<close>
+    using multi_member_split[OF L] by blast
+  obtain M2 where M2: \<open>M1 = add_mset L' M2\<close>
+    using multi_member_split[of L' M1] LL' L' unfolding M1 by (auto simp: add_mset_eq_add_mset)
+  show False
+    using dist unfolding M1 M2 by auto
+qed
+
+lemma no_dup_distinct_mset[intro!]:
+  assumes n_d: \<open>no_dup M\<close>
+  shows \<open>distinct_mset (negate_ann_lits M)\<close>
+  unfolding negate_ann_lits_def no_dup_def
+proof (subst distinct_image_mset_inj)
+  show \<open>inj_on (\<lambda>L. - lit_of L) (set_mset (mset M))\<close>
+    unfolding inj_on_def Ball_def
+  proof (intro allI impI, rule ccontr)
+    fix L L'
+    assume
+      L: \<open>L \<in># mset M\<close> and
+      L': \<open>L' \<in># mset M\<close> and
+      lit: \<open>- lit_of L = - lit_of L'\<close> and
+      LL': \<open>L \<noteq> L'\<close>
+    have \<open>atm_of (lit_of L) = atm_of (lit_of L')\<close>
+      using lit by auto
+    moreover have \<open>atm_of (lit_of L) \<in># (\<lambda>l. atm_of (lit_of l)) `# mset M\<close>
+      using L by auto
+    moreover have \<open>atm_of (lit_of L') \<in># (\<lambda>l. atm_of (lit_of l)) `# mset M\<close>
+      using L' by auto
+    ultimately show False
+      using assms LL' L L' unfolding distinct_mset_mset_distinct[symmetric] mset_map no_dup_def
+      apply - apply (rule distinct_image_mset_not_equal[of L L' \<open>(\<lambda>l. atm_of (lit_of l))\<close>])
+      by auto
+  qed
+next
+  show \<open>distinct_mset (mset M)\<close>
+    using no_dup_imp_distinct[OF n_d] by simp
+qed
+
+lemma in_negate_trial_iff: \<open>L \<in># negate_ann_lits M \<longleftrightarrow> - L \<in> lits_of_l M\<close>
+  unfolding negate_ann_lits_def lits_of_def by (auto simp: uminus_lit_swap)
+
+lemma exists_lit_max_level_in_negate_ann_lits:
+  \<open>negate_ann_lits M \<noteq> {#} \<Longrightarrow> \<exists>L\<in>#negate_ann_lits M. get_level M L = count_decided M\<close>
+  by (cases \<open>M\<close>) (auto simp: negate_ann_lits_def)
+
+
 locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state =
   state\<^sub>W_no_state
     state_eq state
@@ -151,9 +227,6 @@ definition additional_info' :: "'st \<Rightarrow> 'b" where
 
 definition conflicting_clss :: \<open>'st \<Rightarrow> 'v literal multiset multiset\<close> where
 \<open>conflicting_clss S = conflicting_clauses (init_clss S) (weight S)\<close>
-
-definition negate_ann_lits :: "('v, 'v clause) ann_lits \<Rightarrow> 'v literal multiset" where
-  \<open>negate_ann_lits M = (\<lambda>L. - lit_of L) `# (mset M)\<close>
 
 definition abs_state :: "'st \<Rightarrow> ('v, 'v clause) ann_lit list \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option" where
   \<open>abs_state S = (trail S, init_clss S + {#C. C \<in># conflicting_clss S#}, learned_clss S,
@@ -266,60 +339,6 @@ lemma
   conflicting_clss_update_conflicting[simp]: \<open>conflicting_clss (update_conflicting E S) = conflicting_clss S\<close>
   unfolding conflicting_clss_def by auto
 
-
-lemma atms_of_negate_ann_lits[simp]: \<open>atms_of (negate_ann_lits M) = atm_of ` (lits_of_l M)\<close>
-  unfolding negate_ann_lits_def lits_of_def atms_of_def by (auto simp: image_image)
-
-lemma distinct_image_mset_not_equal:
-  assumes
-    LL': \<open>L \<noteq> L'\<close> and
-    dist: \<open>distinct_mset (f `# M)\<close> and
-    L: \<open>L \<in># M\<close> and
-    L': \<open>L' \<in># M\<close> and
-    fLL'[simp]: \<open>f L = f L'\<close>
-  shows \<open>False\<close>
-proof -
-  obtain M1 where M1: \<open>M = add_mset L M1\<close>
-    using multi_member_split[OF L] by blast
-  obtain M2 where M2: \<open>M1 = add_mset L' M2\<close>
-    using multi_member_split[of L' M1] LL' L' unfolding M1 by (auto simp: add_mset_eq_add_mset)
-  show False
-    using dist unfolding M1 M2 by auto
-qed
-
-lemma no_dup_distinct_mset[intro!]:
-  assumes n_d: \<open>no_dup M\<close>
-  shows \<open>distinct_mset (negate_ann_lits M)\<close>
-  unfolding negate_ann_lits_def no_dup_def
-proof (subst distinct_image_mset_inj)
-  show \<open>inj_on (\<lambda>L. - lit_of L) (set_mset (mset M))\<close>
-    unfolding inj_on_def Ball_def
-  proof (intro allI impI, rule ccontr)
-    fix L L'
-    assume
-      L: \<open>L \<in># mset M\<close> and
-      L': \<open>L' \<in># mset M\<close> and
-      lit: \<open>- lit_of L = - lit_of L'\<close> and
-      LL': \<open>L \<noteq> L'\<close>
-    have \<open>atm_of (lit_of L) = atm_of (lit_of L')\<close>
-      using lit by auto
-    moreover have \<open>atm_of (lit_of L) \<in># (\<lambda>l. atm_of (lit_of l)) `# mset M\<close>
-      using L by auto
-    moreover have \<open>atm_of (lit_of L') \<in># (\<lambda>l. atm_of (lit_of l)) `# mset M\<close>
-      using L' by auto
-    ultimately show False
-      using assms LL' L L' unfolding distinct_mset_mset_distinct[symmetric] mset_map no_dup_def
-      apply - apply (rule distinct_image_mset_not_equal[of L L' \<open>(\<lambda>l. atm_of (lit_of l))\<close>])
-      by auto
-  qed
-next
-  show \<open>distinct_mset (mset M)\<close>
-    using no_dup_imp_distinct[OF n_d] by simp
-qed
-
-lemma in_negate_trial_iff: \<open>L \<in># negate_ann_lits M \<longleftrightarrow> - L \<in> lits_of_l M\<close>
-  unfolding negate_ann_lits_def lits_of_def by (auto simp: uminus_lit_swap)
-
 inductive conflict_opt :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T :: 'st where
 conflict_opt_rule:
   \<open>conflict_opt S T\<close>
@@ -370,12 +389,12 @@ lemma conflict_opt_cdcl\<^sub>W_all_struct_inv:
   using assms atms_of_conflicting_clss[of T] atms_of_conflicting_clss[of S]
   apply (induction rule: conflict_opt.cases)
   by (auto simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      true_annots_true_cls_def_iff_negation_in_model
-      in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
-      distinct_mset_mset_conflicting_clss abs_state_def
+	cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+	cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+	cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+	true_annots_true_cls_def_iff_negation_in_model
+	in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
+	distinct_mset_mset_conflicting_clss abs_state_def
       intro!: true_clss_cls_in)
 
 lemma reduce_trail_to_update_weight_information[simp]:
@@ -416,20 +435,16 @@ proof (induction rule: improve.cases)
     ultimately show ?case
       using conflicting_clss_update_weight_information_mono[of S M]
       by (auto 6 2 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-          cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-          true_annots_true_cls_def_iff_negation_in_model
-          in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
-          image_Un distinct_mset_mset_conflicting_clss abs_state_def
-          conflicting_clss_update_weight_information_in
+	    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+	    cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+	    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+	    true_annots_true_cls_def_iff_negation_in_model
+	    in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
+	    image_Un distinct_mset_mset_conflicting_clss abs_state_def
+	    conflicting_clss_update_weight_information_in
           simp del: append_assoc
           dest: no_dup_appendD consistent_interp_unionD)
 qed
-
-lemma exists_lit_max_level_in_negate_ann_lits:
-  \<open>negate_ann_lits M \<noteq> {#} \<Longrightarrow> \<exists>L\<in>#negate_ann_lits M. get_level M L = count_decided M\<close>
-  by (cases \<open>M\<close>) (auto simp: negate_ann_lits_def)
 
 text \<open>\<^term>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant\<close> is too restrictive:
   \<^term>\<open>cdcl\<^sub>W_restart_mset.no_smaller_confl\<close> is needed but does not hold(at least, if cannot
@@ -448,7 +463,7 @@ lemma conflict_opt_no_smaller_conflict:
     \<open>no_smaller_confl S\<close>
   shows \<open>no_smaller_confl T\<close> and \<open>conflict_is_false_with_level T\<close>
   using assms by (induction rule: conflict_opt.induct)
-  (auto simp: cdcl\<^sub>W_restart_mset_state no_smaller_confl_def cdcl\<^sub>W_restart_mset.clauses_def
+    (auto simp: cdcl\<^sub>W_restart_mset_state no_smaller_confl_def cdcl\<^sub>W_restart_mset.clauses_def
       exists_lit_max_level_in_negate_ann_lits cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def)
 
 fun no_confl_prop_impr where
@@ -504,10 +519,10 @@ inductive_cases ocdcl\<^sub>W_bjE: \<open>ocdcl\<^sub>W_bj S T\<close>
 lemma ocdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack]:
   fixes S :: "'st"
   assumes cdcl\<^sub>W_restart: "ocdcl\<^sub>W_o S T" and
-    decideH: "\<And>L T. conflicting S = None \<Longrightarrow> undefined_lit (trail S) L
-      \<Longrightarrow> atm_of L \<in> atms_of_mm (init_clss S)
-      \<Longrightarrow> T \<sim> cons_trail (Decided L) S
-      \<Longrightarrow> P S T" and
+    decideH: "\<And>L T. conflicting S = None \<Longrightarrow> undefined_lit (trail S) L  \<Longrightarrow>
+      atm_of L \<in> atms_of_mm (init_clss S) \<Longrightarrow>
+      T \<sim> cons_trail (Decided L) S \<Longrightarrow>
+      P S T" and
     skipH: "\<And>L C' M E T.
       trail S = Propagated L C' # M \<Longrightarrow>
       conflicting S = Some E \<Longrightarrow>
@@ -582,32 +597,32 @@ lemma propagate_propagate:
   by (induction rule: propagate.cases)
     (auto intro!: cdcl\<^sub>W_restart_mset.propagate_rule
       simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
-      true_annots_true_cls_def_iff_negation_in_model abs_state_def
-      in_negate_trial_iff)
+        true_annots_true_cls_def_iff_negation_in_model abs_state_def
+        in_negate_trial_iff)
 
 lemma decide_decide:
   \<open>decide S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.decide (abs_state S) (abs_state T)\<close>
   by (induction rule: decide.cases)
     (auto intro!: cdcl\<^sub>W_restart_mset.decide_rule
       simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
-      true_annots_true_cls_def_iff_negation_in_model abs_state_def
-      in_negate_trial_iff)
+        true_annots_true_cls_def_iff_negation_in_model abs_state_def
+        in_negate_trial_iff)
 
 lemma skip_skip:
   \<open>skip S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.skip (abs_state S) (abs_state T)\<close>
   by (induction rule: skip.cases)
     (auto intro!: cdcl\<^sub>W_restart_mset.skip_rule
       simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
-      true_annots_true_cls_def_iff_negation_in_model abs_state_def
-      in_negate_trial_iff)
+        true_annots_true_cls_def_iff_negation_in_model abs_state_def
+        in_negate_trial_iff)
 
 lemma resolve_resolve:
   \<open>resolve S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.resolve (abs_state S) (abs_state T)\<close>
   by (induction rule: resolve.cases)
     (auto intro!: cdcl\<^sub>W_restart_mset.resolve_rule
       simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
-      true_annots_true_cls_def_iff_negation_in_model abs_state_def
-      in_negate_trial_iff)
+        true_annots_true_cls_def_iff_negation_in_model abs_state_def
+        in_negate_trial_iff)
 
 lemma backtrack_backtrack:
   \<open>obacktrack S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.backtrack (abs_state S) (abs_state T)\<close>
@@ -809,18 +824,16 @@ lemma (in conflict_driven_clause_learning\<^sub>W) cdcl\<^sub>W_stgy_ex_lit_of_m
   shows "conflict_is_false_with_level S'"
   by (rule cdcl\<^sub>W_stgy_ex_lit_of_max_level) (use assms in \<open>auto simp: cdcl\<^sub>W_all_struct_inv_def\<close>)
 
-lemma (in conflict_driven_clause_learning\<^sub>W)  cdcl\<^sub>W_o_conflict_is_false_with_level_inv_all_inv:
+lemma (in conflict_driven_clause_learning\<^sub>W) cdcl\<^sub>W_o_conflict_is_false_with_level_inv_all_inv:
   assumes
     \<open>cdcl\<^sub>W_o S T\<close>
     \<open>cdcl\<^sub>W_all_struct_inv S\<close>
     \<open>conflict_is_false_with_level S\<close>
   shows \<open>conflict_is_false_with_level T\<close>
-  by (rule cdcl\<^sub>W_o_conflict_is_false_with_level_inv) (use assms in \<open>auto simp: cdcl\<^sub>W_all_struct_inv_def\<close>)
+  by (rule cdcl\<^sub>W_o_conflict_is_false_with_level_inv)
+    (use assms in \<open>auto simp: cdcl\<^sub>W_all_struct_inv_def\<close>)
 
 declare cdcl\<^sub>W_restart_mset.conflict_is_false_with_level_def [simp del]
-
-lemma negate_ann_lits_empty_iff: \<open>negate_ann_lits M \<noteq> {#} \<longleftrightarrow> M \<noteq> []\<close>
-  by (auto simp: negate_ann_lits_def)
 
 lemma improve_conflict_is_false_with_level:
   assumes \<open>improve S T\<close> and \<open>conflict_is_false_with_level S\<close>
@@ -1879,16 +1892,6 @@ definition is_improving_int :: "('v, 'v clause) ann_lits \<Rightarrow> 'v clause
     \<and> lit_of `# mset M \<in> simple_clss (atms_of_mm N) \<and>
     total_over_m (lits_of_l M) (set_mset N)\<close>
 
-text \<open>Pointwise negation of a clause:\<close>
-definition pNeg :: "'a clause \<Rightarrow> 'a clause" where
-  \<open>pNeg C = {#-D. D \<in># C#}\<close>
-
-lemma finite_CNot[simp]: \<open>finite (CNot C)\<close>
-  by (auto simp: CNot_def)
-
-lemma atms_of_pNeg[simp]: \<open>atms_of (pNeg C) = atms_of C\<close>
-  by (auto simp: pNeg_def atms_of_def image_image)
-
 lemma distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftrightarrow> distinct_mset x\<close>
   unfolding pNeg_def
   by (rule distinct_image_mset_inj) (auto simp: inj_on_def)
@@ -1915,10 +1918,6 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_n
     is_improving_int = is_improving_int and
     conflicting_clauses = conflicting_clauses
   by unfold_locales
-
-(* TODO change as definition of \<open>negate_ann_lits\<close> *)
-lemma negate_ann_lits_pNeg_lit_of: \<open>negate_ann_lits = pNeg o image_mset lit_of o mset\<close>
-  by (intro ext) (auto simp: negate_ann_lits_def pNeg_def)
 
 lemma state_additional_info':
   \<open>state S = (trail S, init_clss S, learned_clss S, conflicting S, weight S, additional_info' S)\<close>
@@ -2084,12 +2083,6 @@ lemma no_step_cdcl_opt_stgy_empty_conflict:
   shows \<open>conflicting S = Some {#}\<close>
   by (rule no_step_cdcl_opt_stgy_empty_conflict[OF can_always_improve assms])
 
-
-(*TODO Move*)
-lemma (in -)distinct_set_mset_eq_iff:
-  assumes "distinct_mset M" "distinct_mset N"
-  shows "set_mset M = set_mset N \<longleftrightarrow> M = N"
-  using assms distinct_mset_set_mset_ident by fastforce
 
 lemma cdcl_opt_larger_still_larger:
   assumes
