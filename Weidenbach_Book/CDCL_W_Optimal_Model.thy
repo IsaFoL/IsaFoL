@@ -2521,6 +2521,164 @@ proof -
     by auto
 qed
 
+
+
+end
+
+
+locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_weight
+    state_eq
+    state
+    \<comment> \<open>functions for the state:\<close>
+      \<comment> \<open>access functions:\<close>
+    trail init_clss learned_clss conflicting
+      \<comment> \<open>changing state:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls
+    update_conflicting
+
+      \<comment> \<open>get state:\<close>
+    init_state
+    \<rho>
+    update_additional_info
+  for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
+      'v clause option \<times> 'b" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    conflicting :: "'st \<Rightarrow> 'v clause option" and
+
+    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    init_state :: "'v clauses \<Rightarrow> 'st" and
+    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
+    update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> +
+  fixes \<Sigma> \<Sigma>' :: \<open>'v set\<close> and
+    new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close>
+begin
+
+abbreviation replacement_pos :: \<open>'v \<Rightarrow> 'v literal\<close> ("(_)\<^sup>\<mapsto>\<^sup>+" 100) where
+  \<open>replacement_pos A \<equiv> Pos (fst(new_vars A))\<close>
+
+abbreviation replacement_neg :: \<open>'v \<Rightarrow> 'v literal\<close> ("(_)\<^sup>\<mapsto>\<^sup>-" 100) where
+  \<open>replacement_neg A \<equiv> Pos (fst(snd(new_vars A)))\<close>
+
+abbreviation additional_var :: \<open>'v \<Rightarrow> 'v literal\<close> where
+  \<open>additional_var A \<equiv> Pos (snd(snd(new_vars A)))\<close>
+
+
+fun encode_lit where
+  \<open>encode_lit (Pos A) = (if A \<in> \<Sigma>' then replacement_pos A else Pos A)\<close> |
+  \<open>encode_lit (Neg A) = (if A \<in> \<Sigma>' then replacement_neg A else Pos A)\<close>
+
+definition encode_clause :: \<open>'v clause \<Rightarrow> 'v clause\<close> where
+  \<open>encode_clause C = encode_lit `# C\<close>
+
+
+definition encode_clauses :: \<open>'v clauses \<Rightarrow> 'v clauses\<close> where
+  \<open>encode_clauses C = encode_clause `# C\<close>
+
+definition additional_constraint :: \<open>'v \<Rightarrow> 'v clauses\<close> where
+  \<open>additional_constraint A =
+     {#{#- (A\<^sup>\<mapsto>\<^sup>+), Pos A#},
+       {#- (A\<^sup>\<mapsto>\<^sup>+), additional_var A#},
+       {#-additional_var A, -Pos A, A\<^sup>\<mapsto>\<^sup>+#},
+       {#- (A\<^sup>\<mapsto>\<^sup>+), Neg A#},
+       {#- (A\<^sup>\<mapsto>\<^sup>+), additional_var A#},
+       {#-additional_var A, -Neg A, A\<^sup>\<mapsto>\<^sup>+#}#}\<close>
+
+definition additional_constraints :: \<open>'v clauses\<close> where
+  \<open>additional_constraints = \<Union>#(additional_constraint `# (mset_set \<Sigma>'))\<close>
+
+definition preprocessed_clss :: \<open>'v clauses \<Rightarrow> 'v clauses\<close> where
+  \<open>preprocessed_clss N = N + additional_constraints\<close>
+
+definition postp :: \<open>'v partial_interp \<Rightarrow> 'v partial_interp\<close> where
+  \<open>postp I =
+     {A \<in> I. atm_of A \<notin> \<Sigma>'} \<union> {A \<in> I. atm_of A \<in> \<Sigma>' \<and> additional_var (atm_of A) \<in> I}\<close>
+
+end
+
+
+locale optimal_encoding = optimal_encoding_opt
+    state_eq
+    state
+    \<comment> \<open>functions for the state:\<close>
+      \<comment> \<open>access functions:\<close>
+    trail init_clss learned_clss conflicting
+      \<comment> \<open>changing state:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls
+    update_conflicting
+
+      \<comment> \<open>get state:\<close>
+    init_state
+    \<rho>
+    update_additional_info
+    \<Sigma> \<Sigma>'
+    new_vars
+  for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
+      'v clause option \<times> 'b" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    conflicting :: "'st \<Rightarrow> 'v clause option" and
+
+    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    init_state :: "'v clauses \<Rightarrow> 'st" and
+    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
+    update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    \<Sigma> \<Sigma>' :: \<open>'v set\<close> and
+    new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close> +
+  assumes
+    finite_\<Sigma>:
+      \<open>finite \<Sigma>'\<close> and
+    \<Sigma>'_\<Sigma>:
+      \<open>\<Sigma>' \<subseteq> \<Sigma>\<close> and
+    new_vars_pos:
+      \<open>A \<in> \<Sigma>' \<Longrightarrow> atm_of (replacement_pos A) \<notin> \<Sigma>\<close> and
+    new_vars_neg:
+      \<open>A \<in> \<Sigma>' \<Longrightarrow> atm_of (replacement_neg A) \<notin> \<Sigma>\<close> and
+    new_vars_addition_var:
+      \<open>A \<in> \<Sigma>' \<Longrightarrow> atm_of (additional_var A) \<notin> \<Sigma>\<close> and
+    new_vars_dist:
+      \<open>A \<in> \<Sigma>' \<Longrightarrow> B \<in> \<Sigma>' \<Longrightarrow> A \<noteq> B \<Longrightarrow> replacement_pos A \<noteq> replacement_pos B\<close>
+      \<open>A \<in> \<Sigma>' \<Longrightarrow> B \<in> \<Sigma>' \<Longrightarrow> replacement_pos A \<noteq> replacement_neg B\<close>
+      \<open>A \<in> \<Sigma>' \<Longrightarrow> B \<in> \<Sigma>' \<Longrightarrow> A \<noteq> B \<Longrightarrow> replacement_neg A \<noteq> replacement_neg B\<close>
+begin
+
+lemma consistent_interp_postp:
+  \<open>consistent_interp I \<Longrightarrow> consistent_interp (postp I)\<close>
+  by (auto simp: consistent_interp_def postp_def)
+
+text \<open>The reverse of the previous theorem does not hold due to the filtering on the variables of
+  \<^term>\<open>\<Sigma>'\<close>. One example of version that holds:\<close>
+lemma
+  assumes \<open>A \<in> \<Sigma>'\<close>
+  shows \<open>consistent_interp (postp {Pos A , Neg A})\<close> and
+    \<open>\<not>consistent_interp {Pos A, Neg A}\<close>
+  using assms \<Sigma>'_\<Sigma>
+  using new_vars_addition_var
+  by (auto simp: consistent_interp_def postp_def uminus_lit_swap)
+
+text \<open>Some more restricted version of the reverse hold, like:\<close>
+lemma consistent_interp_postp_iff:
+  \<open>atm_of ` I \<subseteq> \<Sigma> - \<Sigma>' \<Longrightarrow> consistent_interp I \<longleftrightarrow> consistent_interp (postp I)\<close>
+  by (auto simp: consistent_interp_def postp_def)
+
+  
+
 end
 
 end
