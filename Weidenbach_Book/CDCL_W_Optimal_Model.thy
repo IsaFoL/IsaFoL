@@ -2597,6 +2597,12 @@ lemma encode_clause_simp[simp]:
 definition encode_clauses :: \<open>'v clauses \<Rightarrow> 'v clauses\<close> where
   \<open>encode_clauses C = encode_clause `# C\<close>
 
+lemma encode_clauses_simp[simp]:
+  \<open>encode_clauses {#} = {#}\<close>
+  \<open>encode_clauses (add_mset A C) = add_mset (encode_clause A) (encode_clauses C)\<close>
+  \<open>encode_clauses (C + D) = encode_clauses C + encode_clauses D\<close>
+  by (auto simp: encode_clauses_def)
+
 definition additional_constraint :: \<open>'v \<Rightarrow> 'v clauses\<close> where
   \<open>additional_constraint A =
      {#{#Neg (A\<^sup>\<mapsto>\<^sup>+), Pos A#},
@@ -2631,7 +2637,6 @@ proof -
     using assms H[of \<open>Pos A\<close>] H[of \<open>Neg A\<close>] H[of \<open>Pos (A\<^sup>\<mapsto>\<^sup>+)\<close>]  H[of \<open>Neg (A\<^sup>\<mapsto>\<^sup>+)\<close>]
       H[of \<open>Neg (additional_atm A)\<close>] H[of \<open>Pos (additional_atm A)\<close>]
        H[of \<open>Pos (A\<^sup>\<mapsto>\<^sup>-)\<close>]  H[of \<open>Neg (A\<^sup>\<mapsto>\<^sup>-)\<close>]
-    multi_member_split[of A \<open>mset_set \<Sigma>'\<close>]
     by (auto simp: preprocessed_clss_def additional_constraints_def true_clss_def
       additional_constraint_def ball_Un)
 qed
@@ -2800,6 +2805,48 @@ proof -
   ultimately show ?thesis
     by auto
 qed
+
+lemma preprocessed_clss_ent_postp:
+  assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
+    sat: \<open>I \<Turnstile>sm preprocessed_clss N\<close> and
+    cons: \<open>consistent_interp I\<close>
+  shows \<open>postp I \<Turnstile>m N\<close>
+proof -
+  have enc: \<open>I \<Turnstile>m encode_clauses N\<close> and \<open>I \<Turnstile>m additional_constraints\<close>
+    using sat unfolding preprocessed_clss_def
+    by auto
+
+  show \<open>postp I \<Turnstile>m N\<close>
+    unfolding true_cls_mset_def
+  proof
+    fix C
+    assume \<open>C \<in># N\<close>
+    then have \<open>I \<Turnstile> encode_clause C\<close>
+      using enc by (auto dest!: multi_member_split)
+    then show \<open>postp I \<Turnstile> C\<close>
+      unfolding true_cls_def
+      using cons finite_\<Sigma> preprocess_clss_model_additional_variables sat
+      by (auto simp:  encode_clause_def postp_def encode_lit_alt_def
+	split: if_splits
+	dest!: multi_member_split[of _ C])
+  qed
+qed
+
+lemma satisfiable_preprocessed_clss_satisfiable:
+  assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
+    sat: \<open>satisfiable (set_mset (preprocessed_clss N))\<close>
+  shows \<open>satisfiable (set_mset N)\<close>
+  using assms apply (subst (asm) satisfiable_def)
+  apply clarify
+  subgoal for I
+    using preprocessed_clss_ent_postp[OF \<Sigma>, of I] consistent_interp_postp[of I]
+    by auto
+  done
+
+lemma satisfiable_preprocessed_clss_iff:
+  assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close>
+  shows \<open>satisfiable (set_mset (preprocessed_clss N)) \<longleftrightarrow> satisfiable (set_mset N)\<close>
+  using assms satisfiable_preprocessed_clss satisfiable_preprocessed_clss_satisfiable by blast
 
 end
 
