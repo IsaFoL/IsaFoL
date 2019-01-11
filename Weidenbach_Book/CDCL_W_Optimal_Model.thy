@@ -2562,19 +2562,22 @@ locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_we
     new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close>
 begin
 
-abbreviation replacement_pos :: \<open>'v \<Rightarrow> 'v literal\<close> ("(_)\<^sup>\<mapsto>\<^sup>+" 100) where
-  \<open>replacement_pos A \<equiv> Pos (fst(new_vars A))\<close>
+abbreviation replacement_pos :: \<open>'v \<Rightarrow> 'v\<close> ("(_)\<^sup>\<mapsto>\<^sup>+" 100) where
+  \<open>replacement_pos A \<equiv> (fst(new_vars A))\<close>
 
-abbreviation replacement_neg :: \<open>'v \<Rightarrow> 'v literal\<close> ("(_)\<^sup>\<mapsto>\<^sup>-" 100) where
-  \<open>replacement_neg A \<equiv> Pos (fst(snd(new_vars A)))\<close>
+abbreviation replacement_neg :: \<open>'v \<Rightarrow> 'v\<close> ("(_)\<^sup>\<mapsto>\<^sup>-" 100) where
+  \<open>replacement_neg A \<equiv> (fst(snd(new_vars A)))\<close>
 
+
+abbreviation additional_atm :: \<open>'v \<Rightarrow> 'v\<close> where
+  \<open>additional_atm A \<equiv>  (snd(snd(new_vars A)))\<close>
 abbreviation additional_var :: \<open>'v \<Rightarrow> 'v literal\<close> where
-  \<open>additional_var A \<equiv> Pos (snd(snd(new_vars A)))\<close>
+  \<open>additional_var A \<equiv> Pos (additional_atm A)\<close>
 
 
 fun encode_lit where
-  \<open>encode_lit (Pos A) = (if A \<in> \<Sigma>' then replacement_pos A else Pos A)\<close> |
-  \<open>encode_lit (Neg A) = (if A \<in> \<Sigma>' then replacement_neg A else Pos A)\<close>
+  \<open>encode_lit (Pos A) = (if A \<in> \<Sigma>' then Pos (replacement_pos A) else Pos A)\<close> |
+  \<open>encode_lit (Neg A) = (if A \<in> \<Sigma>' then Pos (replacement_neg A) else Pos A)\<close>
 
 definition encode_clause :: \<open>'v clause \<Rightarrow> 'v clause\<close> where
   \<open>encode_clause C = encode_lit `# C\<close>
@@ -2585,12 +2588,12 @@ definition encode_clauses :: \<open>'v clauses \<Rightarrow> 'v clauses\<close> 
 
 definition additional_constraint :: \<open>'v \<Rightarrow> 'v clauses\<close> where
   \<open>additional_constraint A =
-     {#{#- (A\<^sup>\<mapsto>\<^sup>+), Pos A#},
-       {#- (A\<^sup>\<mapsto>\<^sup>+), additional_var A#},
-       {#-additional_var A, -Pos A, A\<^sup>\<mapsto>\<^sup>+#},
-       {#- (A\<^sup>\<mapsto>\<^sup>+), Neg A#},
-       {#- (A\<^sup>\<mapsto>\<^sup>+), additional_var A#},
-       {#-additional_var A, -Neg A, A\<^sup>\<mapsto>\<^sup>+#}#}\<close>
+     {#{#Neg (A\<^sup>\<mapsto>\<^sup>+), Pos A#},
+       {#Neg (A\<^sup>\<mapsto>\<^sup>+), additional_var A#},
+       {#-additional_var A, -Pos A, Pos (A\<^sup>\<mapsto>\<^sup>+)#},
+       {#Neg (A\<^sup>\<mapsto>\<^sup>-), Neg A#},
+       {#Neg (A\<^sup>\<mapsto>\<^sup>-), additional_var A#},
+       {#-additional_var A, -Neg A, Pos (A\<^sup>\<mapsto>\<^sup>-)#}#}\<close>
 
 definition additional_constraints :: \<open>'v clauses\<close> where
   \<open>additional_constraints = \<Union>#(additional_constraint `# (mset_set \<Sigma>'))\<close>
@@ -2601,6 +2604,26 @@ definition preprocessed_clss :: \<open>'v clauses \<Rightarrow> 'v clauses\<clos
 definition postp :: \<open>'v partial_interp \<Rightarrow> 'v partial_interp\<close> where
   \<open>postp I =
      {A \<in> I. atm_of A \<notin> \<Sigma>'} \<union> {A \<in> I. atm_of A \<in> \<Sigma>' \<and> additional_var (atm_of A) \<in> I}\<close>
+
+lemma preprocess_clss_model_additional_variables:
+  assumes \<open>I \<Turnstile>sm preprocessed_clss N\<close> and
+    \<open>A \<in> \<Sigma>'\<close> and
+    \<open>finite \<Sigma>'\<close> and
+    cons: \<open>consistent_interp I\<close>
+  shows
+    \<open>Pos (A\<^sup>\<mapsto>\<^sup>+) \<in>I \<longleftrightarrow> (additional_var A \<in> I \<and> Pos A \<in> I)\<close> (is ?A) and
+    \<open>Pos (A\<^sup>\<mapsto>\<^sup>-) \<in>I \<longleftrightarrow> (additional_var A \<in> I \<and> Neg A \<in> I)\<close> (is ?B)
+proof -
+  have H: \<open>A \<in> I \<Longrightarrow> -A \<notin> I\<close> for A
+    using assms cons by (auto simp: consistent_interp_def)
+  show ?A ?B
+    using assms H[of \<open>Pos A\<close>] H[of \<open>Neg A\<close>] H[of \<open>Pos (A\<^sup>\<mapsto>\<^sup>+)\<close>]  H[of \<open>Neg (A\<^sup>\<mapsto>\<^sup>+)\<close>]
+      H[of \<open>Neg (additional_atm A)\<close>] H[of \<open>Pos (additional_atm A)\<close>]
+       H[of \<open>Pos (A\<^sup>\<mapsto>\<^sup>-)\<close>]  H[of \<open>Neg (A\<^sup>\<mapsto>\<^sup>-)\<close>]
+    multi_member_split[of A \<open>mset_set \<Sigma>'\<close>]
+    by (auto simp: preprocessed_clss_def additional_constraints_def true_clss_def
+      additional_constraint_def ball_Un)
+qed
 
 end
 
@@ -2647,11 +2670,11 @@ locale optimal_encoding = optimal_encoding_opt
     \<Sigma>'_\<Sigma>:
       \<open>\<Sigma>' \<subseteq> \<Sigma>\<close> and
     new_vars_pos:
-      \<open>A \<in> \<Sigma>' \<Longrightarrow> atm_of (replacement_pos A) \<notin> \<Sigma>\<close> and
+      \<open>A \<in> \<Sigma>' \<Longrightarrow> (replacement_pos A) \<notin> \<Sigma>\<close> and
     new_vars_neg:
-      \<open>A \<in> \<Sigma>' \<Longrightarrow> atm_of (replacement_neg A) \<notin> \<Sigma>\<close> and
+      \<open>A \<in> \<Sigma>' \<Longrightarrow> (replacement_neg A) \<notin> \<Sigma>\<close> and
     new_vars_addition_var:
-      \<open>A \<in> \<Sigma>' \<Longrightarrow> atm_of (additional_var A) \<notin> \<Sigma>\<close> and
+      \<open>A \<in> \<Sigma>' \<Longrightarrow> additional_atm A \<notin> \<Sigma>\<close> and
     new_vars_dist:
       \<open>A \<in> \<Sigma>' \<Longrightarrow> B \<in> \<Sigma>' \<Longrightarrow> A \<noteq> B \<Longrightarrow> replacement_pos A \<noteq> replacement_pos B\<close>
       \<open>A \<in> \<Sigma>' \<Longrightarrow> B \<in> \<Sigma>' \<Longrightarrow> replacement_pos A \<noteq> replacement_neg B\<close>
@@ -2677,8 +2700,66 @@ lemma consistent_interp_postp_iff:
   \<open>atm_of ` I \<subseteq> \<Sigma> - \<Sigma>' \<Longrightarrow> consistent_interp I \<longleftrightarrow> consistent_interp (postp I)\<close>
   by (auto simp: consistent_interp_def postp_def)
 
-  
+lemma Ball_insert: \<open>Ball (insert a C) P \<longleftrightarrow> P a \<and> Ball C P\<close> for x P C
+    by auto
+lemma
+  assumes \<open>atms_of_mm N = \<Sigma>\<close> and
+    sat: \<open>satisfiable (set_mset N)\<close>
+  shows \<open>satisfiable (set_mset (preprocessed_clss N))\<close>
+proof -
+  obtain I where
+    I_N: \<open>I \<Turnstile>sm N\<close> and
+    cons: \<open>consistent_interp I\<close> and
+    \<open>total_over_m I (set_mset N)\<close>
+    using sat unfolding satisfiable_def by auto
 
+  let ?I = \<open>I
+     \<union> (Pos o replacement_pos) ` {A \<in> \<Sigma>'. Pos A \<in> I}
+       \<union> (Neg o replacement_pos) ` {A \<in> \<Sigma>'. Neg A \<in> I}
+    \<union> (Pos o replacement_neg) ` {A \<in> \<Sigma>'. Neg A \<in> I}
+       \<union> (Neg o replacement_neg) ` {A \<in> \<Sigma>'. Pos A \<in> I}
+    \<union> additional_var ` \<Sigma>'\<close>
+ 
+  have tot: \<open>Neg A \<in> I \<or> Pos A \<in> I\<close> if \<open>A \<in> \<Sigma>'\<close> for A
+    sorry
+    find_theorems "Ball (insert _ _)"
+  have \<open>?I \<Turnstile>m additional_constraint A\<close> if \<open>A \<in> \<Sigma>'\<close> for A
+    using that tot[OF that] unfolding true_cls_mset_def additional_constraint_def
+      set_mset_add_mset_insert Ball_insert
+    apply (intro conjI)
+    subgoal
+      by (auto simp: additional_constraints_def 
+        additional_constraint_def finite_\<Sigma> comp_def)
+    subgoal
+      by (auto simp: additional_constraints_def 
+        additional_constraint_def finite_\<Sigma> comp_def)
+    subgoal
+      by (auto simp: additional_constraints_def 
+        additional_constraint_def finite_\<Sigma> comp_def)
+    subgoal
+      by (auto simp: additional_constraints_def 
+        additional_constraint_def finite_\<Sigma> comp_def)
+    subgoal
+      by (auto simp: additional_constraints_def 
+        additional_constraint_def finite_\<Sigma> comp_def)
+    subgoal
+      by (auto simp: additional_constraints_def 
+        additional_constraint_def finite_\<Sigma> comp_def)
+    subgoal
+      by (auto simp: additional_constraints_def 
+        additional_constraint_def finite_\<Sigma> comp_def)
+    done
+  then have \<open>?I \<Turnstile>m additional_constraints\<close>
+    by (auto simp: additional_constraints_def true_cls_mset_def finite_\<Sigma>)
+  moreover have \<open>?I \<Turnstile>m N\<close>
+    using I_N by auto
+  ultimately have \<open>?I \<Turnstile>m preprocessed_clss N\<close>
+    by (auto simp: preprocessed_clss_def)
+
+  moreover have \<open>consistent_interp ?I\<close>
+    using cons
+    apply (auto simp: consistent_interp_def)
+  oops
 end
 
 end
