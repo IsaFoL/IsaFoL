@@ -2628,11 +2628,6 @@ definition preprocessed_clss :: \<open>'v clauses \<Rightarrow> 'v clauses\<clos
 lemma size_encode_clauses[simp]: \<open>size (encode_clauses N) = size N\<close>
   by (auto simp: encode_clauses_def)
 
-(*TODO Move*)
-lemma (in -) size_Union_mset_image_mset:
-  \<open>size (\<Union># A) = (\<Sum>i \<in># A. size i)\<close>
-  by (induction A) auto
-
 lemma size_preprocessed_clss:
   \<open>size (preprocessed_clss N) = size N + 6 * card \<Sigma>'\<close>
   by (auto simp: preprocessed_clss_def additional_constraints_def

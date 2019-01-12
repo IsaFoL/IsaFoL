@@ -1697,4 +1697,18 @@ lemma (in -) [sepref_fr_rules]:
    \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   using nat_of_uint64_loc.nat_of_uint64_numeral_hnr[of n]
   by (auto simp: nat_of_uint64_loc_def)
+
+lemma uint32_max_uint32_nat_assn:
+  \<open>(uncurry0 (return 4294967295), uncurry0 (RETURN uint32_max)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_max_def uint32_nat_rel_def br_def)
+
+lemma (in -) uint64_neq0_gt: \<open>j \<noteq> (0::uint64) \<longleftrightarrow> j > 0\<close>
+  by transfer (auto simp: word_neq_0_conv)
+
+lemma (in -) uint64_gt0_ge1: \<open>j > 0 \<longleftrightarrow> j \<ge> (1::uint64)\<close>
+  apply (subst nat_of_uint64_less_iff[symmetric])
+  apply (subst nat_of_uint64_le_iff[symmetric])
+  by auto
+
 end

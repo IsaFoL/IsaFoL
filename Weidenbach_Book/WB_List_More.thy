@@ -1524,6 +1524,9 @@ lemma image_filter_replicate_mset:
   \<open>{#Ca \<in># replicate_mset m C. P Ca#} = (if P C then replicate_mset m C else {#})\<close>
   by (induction m) auto
 
+lemma (in -) size_Union_mset_image_mset:
+  \<open>size (\<Union># A) = (\<Sum>i \<in># A. size i)\<close>
+  by (induction A) auto
 
 
 section \<open>Finite maps and multisets\<close>

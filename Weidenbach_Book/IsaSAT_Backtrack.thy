@@ -2448,14 +2448,6 @@ sepref_definition extract_shorter_conflict_list_heur_st_code
 
 declare extract_shorter_conflict_list_heur_st_code.refine[sepref_fr_rules]
 
-(* TODO Move *)
-lemma (in -) uint64_neq0_gt: \<open>j \<noteq> (0::uint64) \<longleftrightarrow> j > 0\<close>
-  by transfer (auto simp: word_neq_0_conv)
-
-lemma (in -) uint64_gt0_ge1: \<open>j > 0 \<longleftrightarrow> j \<ge> (1::uint64)\<close>
-  apply (subst nat_of_uint64_less_iff[symmetric])
-  apply (subst nat_of_uint64_le_iff[symmetric])
-  by auto
 
 definition upt_uint64 where
   \<open>upt_uint64 a b = map uint64_of_nat [nat_of_uint64 a..<nat_of_uint64 b]\<close>
@@ -2543,5 +2535,8 @@ sepref_definition backtrack_wl_D_code
     cons_trail_Propagated_def[symmetric]
     size_conflict_wl_def[symmetric]
   by sepref
+
+declare backtrack_wl_D_fast_code.refine[sepref_fr_rules]
+  backtrack_wl_D_code.refine[sepref_fr_rules]
 
 end

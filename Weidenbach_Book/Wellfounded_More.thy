@@ -327,4 +327,29 @@ proof -
   ultimately show ?thesis using wf_subset by simp
 qed
 
+lemma power_ex_decomp:
+  assumes \<open>(R^^n) S T\<close>
+  shows
+    \<open>\<exists>f. f 0 = S \<and> f n = T \<and> (\<forall>i. i < n \<longrightarrow> R (f i) (f (Suc i)))\<close>
+  using assms
+proof (induction n arbitrary: T)
+  case 0
+  then show \<open>?case\<close> by auto
+next
+  case (Suc n) note IH = this(1) and R = this(2)
+  from R obtain T' where
+    ST: \<open>(R^^n) S T'\<close> and
+    T'T: \<open>R T' T\<close>
+    by auto
+  obtain f where
+    [simp]: \<open>f 0 = S\<close> and
+    [simp]: \<open>f n = T'\<close> and
+    H: \<open>\<And>i. i < n \<Longrightarrow> R (f i) (f (Suc i))\<close>
+    using IH[OF ST] by fast
+  let ?f = \<open>f(Suc n := T)\<close>
+  show ?case
+    by (rule exI[of _ ?f])
+      (use H ST T'T in auto)
+qed
+
 end

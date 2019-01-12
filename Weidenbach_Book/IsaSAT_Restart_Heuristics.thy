@@ -756,13 +756,6 @@ definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat \<Right
   )\<close>
 sepref_register clause_score_extract
 
-(* TODO Move *)
-lemma uint32_max_uint32_nat_assn:
-  \<open>(uncurry0 (return 4294967295), uncurry0 (RETURN uint32_max)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: uint32_max_def uint32_nat_rel_def br_def)
-(* End Move *)
-
 definition (in -)valid_sort_clause_score_pre_at where
   \<open>valid_sort_clause_score_pre_at arena C \<longleftrightarrow>
     (\<exists>i vdom. C = vdom ! i \<and> arena_is_valid_clause_vdom arena (vdom!i) \<and>

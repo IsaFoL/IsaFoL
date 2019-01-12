@@ -46,10 +46,6 @@ lemma cdcl_twl_o_prog_wl_D_heur_alt_def:
   unfolding cdcl_twl_o_prog_wl_D_heur_def isasat_current_status_def
   by auto
 
-(*TODO Move*)
-declare backtrack_wl_D_fast_code.refine[sepref_fr_rules]
-  backtrack_wl_D_code.refine[sepref_fr_rules]
-
 sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolve_loop_wl_D_heur
   backtrack_wl_D_nlit_heur isasat_current_status count_decided_st_heur get_conflict_wl_is_None_heur
 
