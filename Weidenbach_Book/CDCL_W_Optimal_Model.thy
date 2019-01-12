@@ -2526,6 +2526,13 @@ qed
 end
 
 
+text \<open>
+  We here formalise the encoding from a formula to another formula from which we will run derive the
+  optimal partial model.
+
+  There are a few difference compared to Dominik Zimmer's current draft:
+  \<^item> We work on formula in CNF. So we need more variables and more formulas.
+\<close>
 locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_weight
     state_eq
     state
@@ -2617,6 +2624,76 @@ definition additional_constraints :: \<open>'v clauses\<close> where
 
 definition preprocessed_clss :: \<open>'v clauses \<Rightarrow> 'v clauses\<close> where
   \<open>preprocessed_clss N = encode_clauses N + additional_constraints\<close>
+
+lemma size_encode_clauses[simp]: \<open>size (encode_clauses N) = size N\<close>
+  by (auto simp: encode_clauses_def)
+
+(*TODO Move*)
+lemma (in -) size_Union_mset_image_mset:
+  \<open>size (\<Union># A) = (\<Sum>i \<in># A. size i)\<close>
+  by (induction A) auto
+
+lemma size_preprocessed_clss:
+  \<open>size (preprocessed_clss N) = size N + 6 * card \<Sigma>'\<close>
+  by (auto simp: preprocessed_clss_def additional_constraints_def
+    additional_constraint_def size_Union_mset_image_mset)
+
+lemma atms_of_mm_additional_constraints: \<open>finite \<Sigma>' \<Longrightarrow>
+   atms_of_mm additional_constraints = \<Sigma>' \<union> additional_atm ` \<Sigma>' \<union> replacement_pos ` \<Sigma>'
+      \<union> replacement_neg ` \<Sigma>'\<close>
+  by (auto simp: additional_constraints_def additional_constraint_def atms_of_ms_def)
+
+lemma atms_of_mm_encode_clause_subset:
+  \<open>atms_of_mm (encode_clauses N) \<subseteq> (atms_of_mm N - \<Sigma>') \<union> replacement_pos ` {A \<in> \<Sigma>'. A \<in> atms_of_mm N}
+    \<union> replacement_neg ` {A \<in> \<Sigma>'. A \<in> atms_of_mm N}\<close>
+  by (auto simp: encode_clauses_def encode_lit_alt_def atms_of_ms_def atms_of_def
+      encode_clause_def split: if_splits
+    dest!: multi_member_split[of _ N])
+
+text \<open>In every meaningful application of the theorem below, we have \<open>\<Sigma>' \<subseteq> atms_of_mm N\<close>.\<close>
+lemma atms_of_mm_preprocessed_clss_subset: \<open>finite \<Sigma>' \<Longrightarrow>
+  atms_of_mm (preprocessed_clss N) \<subseteq> atms_of_mm N \<union> additional_atm ` \<Sigma>' \<union> replacement_pos ` \<Sigma>'
+      \<union> replacement_neg ` \<Sigma>' \<union> \<Sigma>'\<close>
+  using atms_of_mm_encode_clause_subset[of N]
+  by (auto simp: preprocessed_clss_def atms_of_mm_additional_constraints)
+
+lemma atms_of_mm_encode_clause_subset2: \<open>finite \<Sigma>' \<Longrightarrow> \<Sigma>' \<subseteq> atms_of_mm N \<Longrightarrow>
+  atms_of_mm N \<subseteq> atms_of_mm (encode_clauses N) \<union> \<Sigma>'\<close>
+  by (auto simp: encode_clauses_def encode_lit_alt_def atms_of_ms_def atms_of_def
+      encode_clause_def split: if_splits
+    dest!: multi_member_split[of _ N])
+    
+lemma atms_of_mm_preprocessed_clss_subset2: \<open>finite \<Sigma>' \<Longrightarrow> \<Sigma>' \<subseteq> atms_of_mm N \<Longrightarrow>
+  atms_of_mm (preprocessed_clss N) = atms_of_mm N \<union> additional_atm ` \<Sigma>' \<union> replacement_pos ` \<Sigma>'
+      \<union> replacement_neg ` \<Sigma>'\<close>
+  using atms_of_mm_encode_clause_subset[of N] atms_of_mm_encode_clause_subset2[of N]
+  by (auto simp: preprocessed_clss_def atms_of_mm_additional_constraints)
+
+theorem card_atms_of_mm_preprocessed_clss:
+  assumes \<open>finite \<Sigma>'\<close> and
+    \<open>\<Sigma>' \<subseteq> atms_of_mm N\<close>
+  shows \<open>card (atms_of_mm (preprocessed_clss N)) \<le> 4 * card (atms_of_mm N)\<close> (is \<open>?A \<le> ?B\<close>)
+proof -
+  have \<open>?A = card
+     (atms_of_mm N \<union> additional_atm ` \<Sigma>' \<union> replacement_pos ` \<Sigma>' \<union>
+      replacement_neg ` \<Sigma>')\<close> (is \<open>_ = card (?W \<union> ?X \<union> ?Y \<union> ?Z)\<close>)
+    using arg_cong[OF atms_of_mm_preprocessed_clss_subset2[of N], of card] assms
+    using card_Un_le
+    by auto
+  also have \<open>... \<le> card (?W \<union> ?X \<union> ?Y) + card ?Z\<close>
+    using card_Un_le[of \<open>?W \<union> ?X \<union> ?Y\<close> ?Z] by auto
+  also have \<open>... \<le> card (?W \<union> ?X) + card ?Y + card ?Z\<close>
+    using card_Un_le[of \<open>?W \<union> ?X\<close> ?Y] by auto
+  also have \<open>... \<le> card ?W + card ?X + card ?Y + card ?Z\<close>
+    using card_Un_le[of \<open>?W\<close> ?X] by auto
+  also have \<open>... \<le>  4 * card (atms_of_mm N)\<close>
+    using card_mono[of \<open>atms_of_mm N\<close> \<open>\<Sigma>'\<close>] assms
+      card_image_le[of \<Sigma>' additional_atm]
+      card_image_le[of \<Sigma>' replacement_pos]
+      card_image_le[of \<Sigma>' replacement_neg]
+    by auto
+  finally show ?thesis .
+qed
 
 definition postp :: \<open>'v partial_interp \<Rightarrow> 'v partial_interp\<close> where
   \<open>postp I =
