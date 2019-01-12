@@ -1706,9 +1706,29 @@ lemma uint32_max_uint32_nat_assn:
 lemma (in -) uint64_neq0_gt: \<open>j \<noteq> (0::uint64) \<longleftrightarrow> j > 0\<close>
   by transfer (auto simp: word_neq_0_conv)
 
-lemma (in -) uint64_gt0_ge1: \<open>j > 0 \<longleftrightarrow> j \<ge> (1::uint64)\<close>
+lemma uint64_gt0_ge1: \<open>j > 0 \<longleftrightarrow> j \<ge> (1::uint64)\<close>
   apply (subst nat_of_uint64_less_iff[symmetric])
   apply (subst nat_of_uint64_le_iff[symmetric])
   by auto
+
+lemma minus_uint64_assn:
+ \<open>(uncurry (return oo (-)), uncurry (RETURN oo (-))) \<in> uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+ by sepref_to_hoare sep_auto
+
+lemma uint32_of_nat_uint32_nat_assn[sepref_fr_rules]:
+  \<open>(return o id, RETURN o uint32_of_nat) \<in>  uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
+
+lemma uint32_of_nat2[sepref_fr_rules]:
+  \<open>(return o uint32_of_uint64, RETURN o uint32_of_nat) \<in>
+    [\<lambda>n. n \<le> uint32_max]\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def uint64_nat_rel_def uint32_of_uint64_def)
+
+definition three_uint32 where \<open>three_uint32 = (3 :: uint32)\<close>
+
+lemma three_uint32_hnr:
+  \<open>(uncurry0 (return 3), uncurry0 (RETURN (three_uint32 :: uint32)) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def three_uint32_def)
 
 end

@@ -288,9 +288,9 @@ definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow>
    to_remove \<leftarrow> distinct_atms_int_empty n;
    ASSERT(length N \<le> uint32_max);
    (n, A, cnext) \<leftarrow> WHILE\<^sub>T
-      (\<lambda>(i, A, cnext). i < length_u N)
+      (\<lambda>(i, A, cnext). i < length_uint32_nat N)
       (\<lambda>(i, A, cnext). do {
-        ASSERT(i < length_u N);
+        ASSERT(i < length_uint32_nat N);
         let L = nat_of_uint32 (N ! i);
         ASSERT(L < length A);
         ASSERT(cnext \<noteq> None \<longrightarrow> the cnext < length A);
@@ -333,9 +333,9 @@ proof -
     for fst_As x N
     by (metis (no_types, lifting) in_set_conv_nth length_take less_not_refl min_less_iff_conj
       nth_eq_iff_index_eq nth_take)
-  have W_ref: \<open>WHILE\<^sub>T (\<lambda>(i, A, cnext). i < length_u N')
+  have W_ref: \<open>WHILE\<^sub>T (\<lambda>(i, A, cnext). i < length_uint32_nat N')
         (\<lambda>(i, A, cnext). do {
-              _ \<leftarrow> ASSERT (i < length_u N');
+              _ \<leftarrow> ASSERT (i < length_uint32_nat N');
               let L = nat_of_uint32 (N' ! i);
               _ \<leftarrow> ASSERT (L < length A);
               _ \<leftarrow> ASSERT (cnext \<noteq> None \<longrightarrow> the cnext < length A);
@@ -1514,14 +1514,14 @@ definition add_to_atms_ext where
     ASSERT(i \<le> uint_max div 2);
     ASSERT(length xs \<le> uint_max);
     let n = max i n;
-    (if i < length_u xs then do {
+    (if i < length_uint32_nat xs then do {
        ASSERT(xs!i \<le> uint64_max);
        let atms = (if xs!i AND one_uint64_nat = one_uint64_nat then atms else atms @ [i]);
        RETURN (xs[i := (sum_mod_uint64_max (xs ! i) 2) OR one_uint64_nat], n, atms)
      }
      else do {
         ASSERT(i + 1 \<le> uint_max);
-        ASSERT(length_u xs \<noteq> 0);
+        ASSERT(length_uint32_nat xs \<noteq> 0);
         ASSERT(i < init_next_size i);
         RETURN ((list_grow xs (init_next_size i) zero_uint64_nat)[i := one_uint64_nat], n,
             atms @ [i])
@@ -3016,7 +3016,8 @@ lemma all_blits_are_in_problem_init_blits_in: \<open>all_blits_are_in_problem_in
     \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_lits_def)
 
 lemma correct_watching_init_blits_in_\<L>\<^sub>i\<^sub>n:
-  assumes \<open>correct_watching_init S\<close> shows \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close>
+  assumes \<open>correct_watching_init S\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close>
 proof -
   show ?thesis
     using assms
@@ -3024,6 +3025,38 @@ proof -
       (auto simp: all_blits_are_in_problem_init_blits_in
       correct_watching_init.simps)
  qed
+
+fun append_empty_watched where
+  \<open>append_empty_watched ((M, N, D, NE, UE, Q), OC) = ((M, N, D, NE, UE, Q, (\<lambda>_. [])), OC)\<close>
+
+fun remove_watched :: \<open>'v twl_st_wl_init_full \<Rightarrow> 'v twl_st_wl_init\<close> where
+  \<open>remove_watched ((M, N, D, NE, UE, Q, _), OC) = ((M, N, D, NE, UE, Q), OC)\<close>
+
+
+definition init_dt_wl' :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init_full nres\<close> where
+  \<open>init_dt_wl' CS S = do{
+     S \<leftarrow> init_dt_wl CS S;
+     RETURN (append_empty_watched S)
+  }\<close>
+
+lemma init_dt_wl'_spec: \<open>init_dt_wl_pre CS S \<Longrightarrow> init_dt_wl' CS S \<le> \<Down>
+   ({(S :: 'v twl_st_wl_init_full, S' :: 'v twl_st_wl_init).
+      remove_watched S =  S'}) (SPEC (init_dt_wl_spec CS S))\<close>
+  unfolding init_dt_wl'_def
+  by (refine_vcg  bind_refine_spec[OF _ init_dt_wl_init_dt_wl_spec])
+   (auto intro!: RETURN_RES_refine)
+
+lemma init_dt_wl'_init_dt:
+  \<open>init_dt_wl_pre CS S \<Longrightarrow> (S, S') \<in> state_wl_l_init \<Longrightarrow> \<forall>C\<in>set CS. distinct C \<Longrightarrow>
+  init_dt_wl' CS S \<le> \<Down>
+   ({(S :: 'v twl_st_wl_init_full, S' :: 'v twl_st_wl_init).
+      remove_watched S =  S'} O state_wl_l_init) (init_dt CS S')\<close>
+  unfolding init_dt_wl'_def
+  apply (refine_vcg bind_refine[of _ _ _ _ _  \<open>RETURN\<close>, OF init_dt_wl_init_dt, simplified])
+  subgoal for S T
+    by (cases S; cases T)
+      auto
+  done
 
 
 end

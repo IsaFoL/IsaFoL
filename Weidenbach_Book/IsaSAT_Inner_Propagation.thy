@@ -636,6 +636,18 @@ sepref_definition isa_save_pos_code
 
 declare isa_save_pos_code.refine[sepref_fr_rules]
 
+sepref_definition isa_save_pos_fast_code
+  is \<open>uncurry2 isa_save_pos\<close>
+  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply
+    [[goals_limit=1]]
+    if_splits[split]
+    length_rll_def[simp]
+  unfolding isa_save_pos_def PR_CONST_def isasat_bounded_assn_def
+  by sepref
+
+declare isa_save_pos_fast_code.refine[sepref_fr_rules]
+
 lemma isa_save_pos_is_Id:
   assumes
      \<open>(S, T) \<in> twl_st_heur\<close>
@@ -1455,7 +1467,7 @@ lemma in_vdom_m_upd:
   unfolding vdom_m_def
   by (auto dest!: multi_member_split intro!: set_update_memI img_fst)
 
-lemma distinct_watched_alt_def:  \<open>distinct_watched xs = distinct (map fst xs)\<close>
+lemma distinct_watched_alt_def: \<open>distinct_watched xs = distinct (map fst xs)\<close>
   by (induction xs; auto)
 
 lemma length_watched_le:
@@ -3384,8 +3396,6 @@ sepref_definition watched_by_app_heur_code
 
 declare watched_by_app_heur_code.refine[sepref_fr_rules]
 
-(* TODO We probably need a stonger propery on our WL for uint64 as
-assupmtion*)
 sepref_definition watched_by_app_heur_fast_code
   is \<open>uncurry2 (RETURN ooo watched_by_app_heur)\<close>
   :: \<open>[watched_by_app_heur_pre]\<^sub>a
@@ -3438,7 +3448,7 @@ sepref_definition find_unwatched_wl_st_heur_code
     get_saved_pos_code[sepref_fr_rules]
   unfolding isa_find_unwatched_wl_st_heur_def isasat_unbounded_assn_def PR_CONST_def
   find_unwatched_def fmap_rll_def[symmetric]
-  length_u_def[symmetric] isa_find_unwatched_def
+  length_uint32_nat_def[symmetric] isa_find_unwatched_def
   case_tri_bool_If find_unwatched_wl_st_heur_pre_def
   fmap_rll_u64_def[symmetric]
   MAX_LENGTH_SHORT_CLAUSE_def[symmetric]
@@ -3474,7 +3484,7 @@ sepref_definition find_unwatched_wl_st_heur_fast_code
     uint64_of_uint32_conv_hnr[sepref_fr_rules] isasat_fast_def[simp]
   unfolding isa_find_unwatched_wl_st_heur_def PR_CONST_def
     find_unwatched_def fmap_rll_def[symmetric] isasat_bounded_assn_def
-    length_u_def[symmetric] isa_find_unwatched_def
+    length_uint32_nat_def[symmetric] isa_find_unwatched_def
     case_tri_bool_If find_unwatched_wl_st_heur_pre_def
     fmap_rll_u64_def[symmetric]
     MAX_LENGTH_SHORT_CLAUSE_def[symmetric]
@@ -3628,36 +3638,6 @@ sepref_definition clause_not_marked_to_delete_heur_code
 
 declare clause_not_marked_to_delete_heur_code.refine[sepref_fr_rules]
 
-(* TODO Move *)
-lemma (in -) ACTIVITY_SHIFT_hnr:
-  \<open>(uncurry0 (return 3), uncurry0 (RETURN ACTIVITY_SHIFT) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: ACTIVITY_SHIFT_def uint64_nat_rel_def br_def)
-lemma (in -) STATUS_SHIFT_hnr:
-  \<open>(uncurry0 (return 4), uncurry0 (RETURN STATUS_SHIFT) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: STATUS_SHIFT_def uint64_nat_rel_def br_def)
-
-definition (in -) three_uint32 where \<open>three_uint32 = (3 :: uint32)\<close>
-
-lemma (in -) three_uint32_hnr:
-  \<open>(uncurry0 (return 3), uncurry0 (RETURN (three_uint32 :: uint32)) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def three_uint32_def)
-
-sepref_definition (in -)arena_status_fast_code
-  is \<open>uncurry isa_arena_status\<close>
-  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  supply arena_el_assn_alt_def[symmetric, simp] sum_uint64_assn[sepref_fr_rules]
-    three_uint32_hnr[sepref_fr_rules] STATUS_SHIFT_hnr[sepref_fr_rules]
-  unfolding isa_arena_status_def three_uint32_def[symmetric]
-  by sepref
-
-lemma (in -)isa_arena_status_refine[sepref_fr_rules]:
-  \<open>(uncurry arena_status_fast_code, uncurry (RETURN \<circ>\<circ> arena_status))
-  \<in> [uncurry arena_is_valid_clause_vdom]\<^sub>a
-    arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> status_assn\<close>
-  using arena_status_fast_code.refine[FCOMP isa_arena_status_arena_status]
-  unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp status_assn_alt_def
-  by (simp add: arl_assn_comp)
-(* End Move *)
 sepref_definition clause_not_marked_to_delete_heur_fast_code
   is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
   :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
@@ -3678,27 +3658,7 @@ sepref_definition update_blit_wl_heur_code
   by sepref
 
 declare update_blit_wl_heur_code.refine[sepref_fr_rules]
-thm update_aa_hnr
 
-(*TODO Move*)
-
-lemma update_aa_u64_rule[sep_heap_rules]:
-  assumes p: \<open>is_pure R\<close> and \<open>bb < length a\<close> and \<open>ba < length_ll a bb\<close> and \<open>(bb', bb) \<in> uint32_nat_rel\<close> and
-    \<open>(ba', ba) \<in> uint64_nat_rel\<close>
-  shows \<open><R b bi * arrayO_assn (arl_assn R) a ai> update_aa_u32_i64 ai bb' ba' bi
-      <\<lambda>r. R b bi * (\<exists>\<^sub>Ax. arrayO_assn (arl_assn R) x r * \<up> (x = update_ll a bb ba b))>\<^sub>t\<close>
-  using assms
-  by (sep_auto simp add: update_aa_u32_i64_def update_ll_def p uint64_nat_rel_def uint32_nat_rel_def br_def)
-
-lemma update_aa_hnr[sepref_fr_rules]:
-  assumes \<open>is_pure R\<close>
-  shows \<open>(uncurry3 update_aa_u32_i64, uncurry3 (RETURN oooo update_ll)) \<in>
-     [\<lambda>(((l,i), j), x). i < length l \<and> j < length_ll l i]\<^sub>a
-      (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl_assn R))\<close>
-  by sepref_to_hoare (sep_auto simp: assms)
-(*End Move*)
-
-find_theorems update_ll
 sepref_definition update_blit_wl_heur_fast_code
   is \<open>uncurry6 update_blit_wl_heur\<close>
   :: \<open>[\<lambda>((((((_, _), _), _), C), i), S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
@@ -3765,23 +3725,7 @@ sepref_definition set_conflict_wl_heur_code
 
 declare set_conflict_wl_heur_code.refine[sepref_fr_rules]
 
-(* TODO Move *)
-
-sepref_definition (in -) isa_arena_incr_act_fast_code
-  is \<open>uncurry isa_arena_incr_act\<close>
-  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn uint32_assn)\<close>
-  supply ACTIVITY_SHIFT_hnr[sepref_fr_rules]
-  unfolding isa_arena_incr_act_def
-  by sepref
-
-lemma isa_arena_incr_act_code[sepref_fr_rules]:
-  \<open>(uncurry isa_arena_incr_act_fast_code, uncurry (RETURN \<circ>\<circ> arena_incr_act))
-     \<in> [uncurry arena_act_pre]\<^sub>a arena_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
-  using isa_arena_incr_act_fast_code.refine[FCOMP isa_arena_incr_act_arena_incr_act]
-  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
-  by (auto simp add: arl_assn_comp update_lbd_pre_def)
-
-(* End Move *)
+sepref_register arena_incr_act
 
 sepref_definition set_conflict_wl_heur_fast_code
   is \<open>uncurry set_conflict_wl_heur\<close>
@@ -3795,48 +3739,6 @@ sepref_definition set_conflict_wl_heur_fast_code
 
 declare set_conflict_wl_heur_fast_code.refine[sepref_fr_rules]
 
-
-(* TODO Move *)
-
-lemma (in -)minus_uint64_assn:
- \<open>(uncurry (return oo (-)), uncurry (RETURN oo (-))) \<in> uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
- by sepref_to_hoare sep_auto
-
-lemma (in -) uint32_of_nat[sepref_fr_rules]:
-  \<open>(return o id, RETURN o uint32_of_nat) \<in>  uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
-
-lemma (in -) uint32_of_nat2[sepref_fr_rules]:
-  \<open>(return o uint32_of_uint64, RETURN o uint32_of_nat) \<in> [\<lambda>n. n \<le> uint32_max]\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def uint64_nat_rel_def uint32_of_uint64_def)
-
-sepref_definition (in -) isa_update_pos_fast_code
-  is \<open>uncurry2 isa_update_pos\<close>
-  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
-  supply minus_uint32_assn[sepref_fr_rules] POS_SHIFT_uint64_hnr[sepref_fr_rules] minus_uint64_assn[sepref_fr_rules]
-  unfolding isa_update_pos_def  uint32_nat_assn_minus[sepref_fr_rules] two_uint64_nat_def[symmetric]
-  by sepref
-
-lemma (in -)isa_update_pos_code_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 isa_update_pos_fast_code, uncurry2 (RETURN ooo arena_update_pos))
-  \<in> [isa_update_pos_pre]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
-  using isa_update_pos_fast_code.refine[FCOMP isa_update_pos]
-  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
-  by (auto simp add: arl_assn_comp isa_update_pos_pre_def)
-
-sepref_definition isa_save_pos_fast_code
-  is \<open>uncurry2 isa_save_pos\<close>
-  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply
-    [[goals_limit=1]]
-    if_splits[split]
-    length_rll_def[simp]
-  unfolding isa_save_pos_def PR_CONST_def isasat_bounded_assn_def
-  by sepref
-
-declare isa_save_pos_fast_code.refine[sepref_fr_rules]
-
-(* End Move *)
 
 
 text \<open>Find a less hack-like solution\<close>

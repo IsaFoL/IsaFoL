@@ -2,6 +2,7 @@ theory CDCL_Conflict_Minimisation
   imports
     Watched_Literals_Watch_List_Domain
     WB_More_Refinement
+    WB_More_Refinement_List
 begin
 
 text \<open>We implement the conflict minimisation as presented by Sörensson and Biere
@@ -1379,26 +1380,6 @@ proof -
       (auto simp: twl_st_inv.simps twl_st_l_def
         image_Un[symmetric])
 qed
-
-(*TODO Move*)
-lemma nth_in_sliceI:
-  \<open>i \<ge> j \<Longrightarrow> i < k \<Longrightarrow> k \<le> length xs \<Longrightarrow> xs ! i \<in> set (Misc.slice j k xs)\<close>
-  by (auto simp: Misc.slice_def in_set_take_conv_nth
-    intro!: bex_lessI[of _ \<open>i - j\<close>])
-
-lemma slice_Suc:
-  \<open>Misc.slice (Suc j) k xs = tl (Misc.slice j k xs)\<close>
-  apply (auto simp: Misc.slice_def in_set_take_conv_nth drop_Suc take_tl tl_drop
-    drop_take)
-  by (metis drop_Suc drop_take tl_drop)
-
-lemma slice_0:
-  \<open>Misc.slice 0 b xs = take b xs\<close>
-  by (auto simp: Misc.slice_def)
-
-lemma slice_end:
-  \<open>c = length xs \<Longrightarrow> Misc.slice b c xs = drop b xs\<close>
-  by (auto simp: Misc.slice_def)
 
 lemma lit_redundant_rec_wl:
   fixes S :: \<open>nat twl_st_wl\<close> and S' :: \<open>nat twl_st_l\<close> and S'' :: \<open>nat twl_st\<close> and NU M analyse

@@ -172,7 +172,7 @@ where
      (\<lambda>(M, xs, lvls, reasons, k, cs) ((ns :: nat_vmtf_node list, m :: nat, fst_As::nat, lst_As::nat,
         next_search::nat option), _). do {
      (brk, i) \<leftarrow> WHILE\<^sub>T\<^bsup>find_local_restart_target_level_int_inv ns cs\<^esup>
-        (\<lambda>(brk, i). \<not>brk \<and> i < length_u cs)
+        (\<lambda>(brk, i). \<not>brk \<and> i < length_uint32_nat cs)
         (\<lambda>(brk, i). do {
            ASSERT(i < length cs);
            let t = (cs  ! i);

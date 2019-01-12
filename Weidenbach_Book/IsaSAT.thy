@@ -42,8 +42,6 @@ definition conclusive_CDCL_run where
           (CS \<noteq> {#} \<and> conflicting U \<noteq> None \<and> count_decided (trail U) = 0 \<and>
           unsatisfiable (set_mset CS))\<close>
 
-(*TODO Move*)
-
 lemma cdcl_twl_stgy_restart_restart_prog_spec: \<open>twl_struct_invs S \<Longrightarrow>
   twl_stgy_invs S \<Longrightarrow>
   clauses_to_update S = {#} \<Longrightarrow>
@@ -749,41 +747,6 @@ proof -
         (auto simp: twl_st_l_init_alt_def intro!: conc_fun_R_mono)
     done
 qed
-
-(* TODO Move *)
-fun append_empty_watched where
-  \<open>append_empty_watched ((M, N, D, NE, UE, Q), OC) = ((M, N, D, NE, UE, Q, (\<lambda>_. [])), OC)\<close>
-
-fun remove_watched :: \<open>'v twl_st_wl_init_full \<Rightarrow> 'v twl_st_wl_init\<close> where
-  \<open>remove_watched ((M, N, D, NE, UE, Q, _), OC) = ((M, N, D, NE, UE, Q), OC)\<close>
-
-
-definition init_dt_wl' :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init_full nres\<close> where
-  \<open>init_dt_wl' CS S = do{
-     S \<leftarrow> init_dt_wl CS S;
-     RETURN (append_empty_watched S)
-  }\<close>
-
-lemma init_dt_wl'_spec: \<open>init_dt_wl_pre CS S \<Longrightarrow> init_dt_wl' CS S \<le> \<Down>
-   ({(S :: 'v twl_st_wl_init_full, S' :: 'v twl_st_wl_init).
-      remove_watched S =  S'}) (SPEC (init_dt_wl_spec CS S))\<close>
-  unfolding init_dt_wl'_def
-  by (refine_vcg  bind_refine_spec[OF _ init_dt_wl_init_dt_wl_spec])
-   (auto intro!: RETURN_RES_refine)
-
-lemma init_dt_wl'_init_dt:
-  \<open>init_dt_wl_pre CS S \<Longrightarrow> (S, S') \<in> state_wl_l_init \<Longrightarrow> \<forall>C\<in>set CS. distinct C \<Longrightarrow>
-  init_dt_wl' CS S \<le> \<Down>
-   ({(S :: 'v twl_st_wl_init_full, S' :: 'v twl_st_wl_init).
-      remove_watched S =  S'} O state_wl_l_init) (init_dt CS S')\<close>
-  unfolding init_dt_wl'_def
-  apply (refine_vcg bind_refine[of _ _ _ _ _  \<open>RETURN\<close>, OF init_dt_wl_init_dt, simplified])
-  subgoal for S T
-    by (cases S; cases T)
-      auto
-  done
-
-(* END Move *)
 
 definition SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>SAT_wl CS = do{

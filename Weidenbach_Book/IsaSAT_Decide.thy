@@ -418,8 +418,6 @@ sepref_definition find_unassigned_lit_wl_D_fast_code
 declare find_unassigned_lit_wl_D_code.refine[sepref_fr_rules]
   find_unassigned_lit_wl_D_fast_code.refine[sepref_fr_rules]
 
-(* TODO: the length_u M is not necessary *)
-
 definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema). do {
       ASSERT(isa_length_trail_pre M);

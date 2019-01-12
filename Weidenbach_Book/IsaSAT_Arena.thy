@@ -154,6 +154,14 @@ definition header_size :: \<open>nat clause_l \<Rightarrow> nat\<close> where
 
 lemmas SHIFTS_def = POS_SHIFT_def STATUS_SHIFT_def ACTIVITY_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
 
+lemma (in -) ACTIVITY_SHIFT_hnr:
+  \<open>(uncurry0 (return 3), uncurry0 (RETURN ACTIVITY_SHIFT) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: ACTIVITY_SHIFT_def uint64_nat_rel_def br_def)
+lemma (in -) STATUS_SHIFT_hnr:
+  \<open>(uncurry0 (return 4), uncurry0 (RETURN STATUS_SHIFT) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: STATUS_SHIFT_def uint64_nat_rel_def br_def)
+
+
 (*TODO is that still used?*)
 lemma arena_shift_distinct:
   \<open>i >  3 \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - LBD_SHIFT\<close>
@@ -3117,6 +3125,54 @@ lemma isa_marked_as_used_code[sepref_fr_rules]:
   using isa_marked_as_used_code.refine[FCOMP isa_marked_as_used_marked_as_used]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+
+sepref_definition (in -) isa_arena_incr_act_fast_code
+  is \<open>uncurry isa_arena_incr_act\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn uint32_assn)\<close>
+  supply ACTIVITY_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_arena_incr_act_def
+  by sepref
+
+lemma isa_arena_incr_act_fast_code[sepref_fr_rules]:
+  \<open>(uncurry isa_arena_incr_act_fast_code, uncurry (RETURN \<circ>\<circ> arena_incr_act))
+     \<in> [uncurry arena_act_pre]\<^sub>a arena_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
+  using isa_arena_incr_act_fast_code.refine[FCOMP isa_arena_incr_act_arena_incr_act]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+sepref_definition arena_status_fast_code
+  is \<open>uncurry isa_arena_status\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  supply arena_el_assn_alt_def[symmetric, simp] sum_uint64_assn[sepref_fr_rules]
+    three_uint32_hnr[sepref_fr_rules] STATUS_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_arena_status_def three_uint32_def[symmetric]
+  by sepref
+
+lemma isa_arena_status_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry arena_status_fast_code, uncurry (RETURN \<circ>\<circ> arena_status))
+  \<in> [uncurry arena_is_valid_clause_vdom]\<^sub>a
+    arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> status_assn\<close>
+  using arena_status_fast_code.refine[FCOMP isa_arena_status_arena_status]
+  unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp status_assn_alt_def
+  by (simp add: arl_assn_comp)
+
+sepref_definition isa_update_pos_fast_code
+  is \<open>uncurry2 isa_update_pos\<close>
+  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
+  supply minus_uint32_assn[sepref_fr_rules] POS_SHIFT_uint64_hnr[sepref_fr_rules] minus_uint64_assn[sepref_fr_rules]
+  unfolding isa_update_pos_def  uint32_nat_assn_minus[sepref_fr_rules] two_uint64_nat_def[symmetric]
+  by sepref
+
+lemma isa_update_pos_code_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 isa_update_pos_fast_code, uncurry2 (RETURN ooo arena_update_pos))
+  \<in> [isa_update_pos_pre]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
+  using isa_update_pos_fast_code.refine[FCOMP isa_update_pos]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp isa_update_pos_pre_def)
+
+declare isa_update_pos_fast_code.refine[sepref_fr_rules]
+  arena_status_fast_code.refine[sepref_fr_rules]
 
 
 end
