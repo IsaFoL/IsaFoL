@@ -1783,10 +1783,35 @@ end
 end
 
 
+text \<open>This locales includes only the assumption we make on the weight function.\<close>
+locale ocdcl_weight =
+  fixes 
+    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close>
+  assumes
+    \<rho>_mono: \<open>A \<subseteq># B \<Longrightarrow> \<rho> A \<le> \<rho> B\<close>
+begin
+
+lemma \<rho>_empty_simp[simp]: \<open>\<rho> A \<ge> \<rho> {#}\<close> \<open>\<not>\<rho> A < \<rho> {#}\<close>  \<open>\<rho> A \<le> \<rho> {#} \<longleftrightarrow> \<rho> A = \<rho> {#}\<close>
+  using \<rho>_mono[of \<open>{#}\<close> A]
+  by auto
+
+end
 
 
+text \<open>This is the weight function as used by Christoph Weidenbach.\<close>
+locale ocdcl_weight_WB =
+  fixes 
+    \<nu> :: \<open>'v literal \<Rightarrow> nat\<close>
+begin
 
+definition \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> where
+  \<open>\<rho> M = (\<Sum>A \<in># M. \<nu> A)\<close>
 
+sublocale ocdcl_weight \<rho>
+  by (unfold_locales)
+    (auto simp: \<rho>_def sum_image_mset_mono)
+
+end
 
 
 locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
@@ -1801,7 +1826,8 @@ locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
     update_conflicting
 
       \<comment> \<open>get state:\<close>
-    init_state
+    init_state +
+  ocdcl_weight \<rho>
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
@@ -1816,18 +1842,21 @@ locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
     add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
-
-    init_state :: "'v clauses \<Rightarrow> 'st" +
+    init_state :: "'v clauses \<Rightarrow> 'st" and
+    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close>  +
   fixes
-    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
   assumes
-    \<rho>_mono: \<open>\<rho> (add_mset L' M') > \<rho> M'\<close> and
     update_additional_info:
       \<open>state S = (M, N, U, C, K) \<Longrightarrow> state (update_additional_info K' S) = (M, N, U, C, K')\<close> and
     weight_init_state:
       \<open>\<And>N :: 'v clauses. fst (additional_info (init_state N)) = None\<close>
 begin
+
+lemma \<rho>_empty_iff[iff]:
+  \<open>\<rho> A < \<rho> {#} \<longleftrightarrow> False\<close>
+  using \<rho>_mono[of \<open>{#}\<close> A]
+  by auto
 
 definition update_weight_information :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st\<close> where
   \<open>update_weight_information M S = update_additional_info (Some (lit_of `# mset M), snd (additional_info S)) S\<close>
@@ -1899,8 +1928,7 @@ lemma distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftright
   by (rule distinct_image_mset_inj) (auto simp: inj_on_def)
 
 definition conflicting_clauses :: "'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses" where
-  \<open>conflicting_clauses M w = {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)).
-      atms_of C = atms_of_mm M \<and> \<rho> C \<ge> \<rho>' w#}\<close>
+  \<open>conflicting_clauses M w = {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C \<ge> \<rho>' w#}\<close>
 
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state
   where
@@ -1993,9 +2021,9 @@ lemma is_improving_mono:
 lemma conflict_clss_update_weight_no_alien:
   \<open>atms_of_mm (conflicting_clss (update_weight_information M S))
     \<subseteq> atms_of_mm (init_clss S)\<close>
-  apply (auto simp: conflicting_clss_def conflicting_clauses_def atms_of_ms_def
-    cdcl\<^sub>W_restart_mset_state simple_clss_finite)
-  done
+  by (auto simp: conflicting_clss_def conflicting_clauses_def atms_of_ms_def
+      cdcl\<^sub>W_restart_mset_state simple_clss_finite
+    dest: simple_clssE)
 
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops
   where
@@ -2137,28 +2165,36 @@ proof (cases rule: obacktrack.cases)
     then obtain x where
       [simp]: \<open>C = pNeg x\<close> and
       x: \<open>x \<in> simple_clss (atms_of_mm (init_clss S))\<close> and
-      atm: \<open>atms_of x = atms_of_mm (init_clss S)\<close> and
-      \<open>\<rho>' (weight S) \<le> enat (\<rho> x)\<close>
+      we: \<open>\<rho>' (weight S) \<le> enat (\<rho> x)\<close>
       unfolding conflicting_clss_def conflicting_clauses_def
       by (auto simp: simple_clss_finite)
     then have \<open>x \<noteq> I\<close>
       using le T
-      by (auto simp: )
+      by auto
     then have \<open>set_mset x \<noteq> set_mset I\<close>
       using distinct_set_mset_eq_iff[of x I] x dist
       by (auto simp: simple_clss_def)
     then have \<open>\<exists>a. ((a \<in># x \<and> a \<notin># I) \<or> (a \<in># I \<and> a \<notin># x))\<close>
       by auto
-    then obtain L where
-      \<open>L \<in># x\<close> and
-      \<open>-L \<in># I\<close>
-      apply clarify
-      apply (case_tac a)
-      using atm[symmetric] tot[symmetric] that[of _] that[of \<open>- _\<close>]
+    moreover have \<open>\<not>set_mset x \<subseteq> set_mset I\<close>
+      using \<rho>_mono[of \<open>x\<close> I] we le T distinct_set_mset_eq_iff[of x I] simple_clssE[OF x] dist
+      by (cases \<open>weight S\<close>) auto
+    moreover have \<open>x \<noteq> {#}\<close>
+      using we le T
+      by (cases \<open>weight S\<close>) auto
+    ultimately obtain L where
+      L_x: \<open>L \<in># x\<close> and
+      \<open>L \<notin># I\<close>
+      by auto
+    moreover have \<open>atms_of x \<subseteq> atms_of I\<close>
+      using simple_clssE[OF x] tot[symmetric]
       atm_iff_pos_or_neg_lit[of a I] atm_iff_pos_or_neg_lit[of a x]
-      by (metis (full_types) assms(6) atm atm_iff_pos_or_neg_lit uminus_Pos uminus_of_uminus_id)+
+      by (auto dest!: multi_member_split)
+    ultimately have \<open>-L \<in># I\<close>
+      using tot simple_clssE[OF x] atm_of_notin_atms_of_iff
+      by auto
     then show \<open>set_mset I \<Turnstile> C\<close>
-      by (auto simp: simple_clss_finite pNeg_def dest!: multi_member_split)
+      using L_x by (auto simp: simple_clss_finite pNeg_def dest!: multi_member_split)
   qed
   have \<open>set_mset I \<Turnstile> add_mset L D'\<close>
     using H[OF 1 cons] 2 ent by auto
@@ -2197,8 +2233,7 @@ proof (cases rule: improve.cases)
     then obtain x where
       [simp]: \<open>C = pNeg x\<close> and
       x: \<open>x \<in> simple_clss (atms_of_mm (init_clss T))\<close> and
-      atm: \<open>atms_of x = atms_of_mm (init_clss T)\<close> and
-      \<open>\<rho>' (weight T) \<le> enat (\<rho> x)\<close>
+      we: \<open>\<rho>' (weight T) \<le> enat (\<rho> x)\<close>
       unfolding conflicting_clss_def conflicting_clauses_def
       by (auto simp: simple_clss_finite)
     then have \<open>x \<noteq> I\<close>
@@ -2211,17 +2246,25 @@ proof (cases rule: improve.cases)
       by (auto simp: simple_clss_def)
     then have \<open>\<exists>a. ((a \<in># x \<and> a \<notin># I) \<or> (a \<in># I \<and> a \<notin># x))\<close>
       by auto
-    then obtain L where
-      \<open>L \<in># x\<close> and
-      \<open>-L \<in># I\<close>
-      apply clarify
-      apply (case_tac a)
-      using atm[symmetric] tot[symmetric] that[of _] that[of \<open>- _\<close>]
+    moreover have \<open>\<not>set_mset x \<subseteq> set_mset I\<close>
+      using \<rho>_mono[of \<open>x\<close> I] we le T distinct_set_mset_eq_iff[of x I] simple_clssE[OF x] dist
+      by (cases \<open>weight S\<close>) auto
+    moreover have \<open>x \<noteq> {#}\<close>
+      using we le T
+      by (cases \<open>weight S\<close>) auto
+    ultimately obtain L where
+      L_x: \<open>L \<in># x\<close> and
+      \<open>L \<notin># I\<close>
+      by auto
+    moreover have \<open>atms_of x \<subseteq> atms_of I\<close>
+      using simple_clssE[OF x] tot T
       atm_iff_pos_or_neg_lit[of a I] atm_iff_pos_or_neg_lit[of a x]
-      cdcl_bab_no_more_init_clss[OF cdcl_bab.intros(3)[OF assms(1)]]
-      by (metis (full_types) assms(6) atm atm_iff_pos_or_neg_lit uminus_Pos uminus_of_uminus_id)+
+      by (auto dest!: multi_member_split)
+    ultimately have \<open>-L \<in># I\<close>
+      using tot simple_clssE[OF x] atm_of_notin_atms_of_iff
+      by auto
     then show \<open>set_mset I \<Turnstile> C\<close>
-      by (auto simp: simple_clss_finite pNeg_def dest!: multi_member_split)
+      using L_x by (auto simp: simple_clss_finite pNeg_def dest!: multi_member_split)
   qed
   then show ?thesis
     using ent improve_rule 2 T by auto
