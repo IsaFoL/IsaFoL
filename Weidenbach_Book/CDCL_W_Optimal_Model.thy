@@ -1700,19 +1700,19 @@ proof -
 	propagate_abs_ex_propagate_no_conflicting
       elim: improveE)
       apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
-      apply (auto dest: 
+      apply (auto dest:
 	conflict_abs_ex_conflict_no_conflicting
 	propagate_abs_ex_propagate_no_conflicting)
       apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
-      apply (auto dest: 
+      apply (auto dest:
 	conflict_abs_ex_conflict_no_conflicting
 	propagate_abs_ex_propagate_no_conflicting)
       apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
-      apply (auto dest: 
+      apply (auto dest:
 	conflict_abs_ex_conflict_no_conflicting
 	propagate_abs_ex_propagate_no_conflicting)
       apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
-      apply (auto dest: 
+      apply (auto dest:
 	conflict_abs_ex_conflict_no_conflicting
 	propagate_abs_ex_propagate_no_conflicting)
       done
@@ -1785,7 +1785,7 @@ end
 
 text \<open>This locales includes only the assumption we make on the weight function.\<close>
 locale ocdcl_weight =
-  fixes 
+  fixes
     \<rho> :: \<open>'v clause \<Rightarrow> nat\<close>
   assumes
     \<rho>_mono: \<open>A \<subseteq># B \<Longrightarrow> \<rho> A \<le> \<rho> B\<close>
@@ -1800,7 +1800,7 @@ end
 
 text \<open>This is the weight function as used by Christoph Weidenbach.\<close>
 locale ocdcl_weight_WB =
-  fixes 
+  fixes
     \<nu> :: \<open>'v literal \<Rightarrow> nat\<close>
 begin
 
@@ -2463,12 +2463,12 @@ proof -
       unfolding satisfiable_def
       by blast
     then show \<open>False\<close>
-      using ent' 
+      using ent'
       unfolding true_clss_cls_def by auto
   qed
 qed
 
-lemma (in -) distinct_mset_union2: 
+lemma (in -) distinct_mset_union2:
   \<open>distinct_mset (A + B) \<Longrightarrow> distinct_mset B\<close>
   using distinct_mset_union[of B A]
   by (auto simp: ac_simps)
@@ -2497,13 +2497,13 @@ qed
 
 definition annotation_is_model where
   \<open>annotation_is_model S \<longleftrightarrow>
-     (weight S \<noteq> None \<longrightarrow> (set_mset (the (weight S)) \<Turnstile>sm init_clss S \<and> 
+     (weight S \<noteq> None \<longrightarrow> (set_mset (the (weight S)) \<Turnstile>sm init_clss S \<and>
        consistent_interp (set_mset (the (weight S))) \<and>
        atms_of (the (weight S)) \<subseteq> atms_of_mm (init_clss S) \<and>
        distinct_mset (the (weight S))))\<close>
 
 lemma cdcl_bab_annotation_is_model:
-  assumes 
+  assumes
     \<open>cdcl_bab S T\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
     \<open>annotation_is_model S\<close>
@@ -2681,7 +2681,7 @@ lemma encode_lit_alt_def:
     then Pos (if is_pos A then replacement_pos (atm_of A) else replacement_neg (atm_of A))
     else A)\<close>
   by (cases A) auto
-  
+
 definition encode_clause :: \<open>'v clause \<Rightarrow> 'v clause\<close> where
   \<open>encode_clause C = encode_lit `# C\<close>
 
@@ -2747,7 +2747,7 @@ lemma atms_of_mm_encode_clause_subset2: \<open>finite \<Sigma>\<^sub>w \<Longrig
   by (auto simp: encode_clauses_def encode_lit_alt_def atms_of_ms_def atms_of_def
       encode_clause_def split: if_splits
     dest!: multi_member_split[of _ N])
-    
+
 lemma atms_of_mm_preprocessed_clss_subset2: \<open>finite \<Sigma>\<^sub>w \<Longrightarrow> \<Sigma>\<^sub>w \<subseteq> atms_of_mm N \<Longrightarrow>
   atms_of_mm (preprocessed_clss N) = atms_of_mm N \<union> additional_atm ` \<Sigma>\<^sub>w \<union> replacement_pos ` \<Sigma>\<^sub>w
       \<union> replacement_neg ` \<Sigma>\<^sub>w\<close>
@@ -2859,9 +2859,9 @@ lemma atm_of_upostp_subset:
 
 lemma atm_of_upostp_subset2:
   \<open>atm_of ` I \<subseteq> \<Sigma> \<Longrightarrow> atm_of ` I \<union> additional_atm ` \<Sigma>\<^sub>w \<union> replacement_pos ` \<Sigma>\<^sub>w \<union>
-    replacement_neg ` \<Sigma>\<^sub>w \<union> \<Sigma> \<subseteq> atm_of ` (upostp I) 
+    replacement_neg ` \<Sigma>\<^sub>w \<union> \<Sigma> \<subseteq> atm_of ` (upostp I)
     \<close>
-  apply (auto simp: upostp_def image_Un image_image) 
+  apply (auto simp: upostp_def image_Un image_image)
   apply (metis (mono_tags, lifting) imageI literal.sel(1) mem_Collect_eq)
   apply (metis (mono_tags, lifting) imageI literal.sel mem_Collect_eq)
   done
@@ -3073,7 +3073,7 @@ proof -
     by (auto simp: consistent_interp_def)
 
   have add: \<open>upostp I \<Turnstile>m additional_constraints\<close>
-    using finite_\<Sigma> 
+    using finite_\<Sigma>
     apply (auto simp: additional_constraints_def true_cls_mset_def additional_constraint_def)
     subgoal for y
       using cons upostp_additional_constraints_logic[of y I]
@@ -3094,7 +3094,7 @@ proof -
       using cons upostp_additional_constraints_logic[of y I] H[of y]
       by (auto simp: image_image consistent_interp_def)
     done
- 
+
   show \<open>upostp I \<Turnstile>m preprocessed_clss N\<close>
     using enc add unfolding preprocessed_clss_def by auto
 qed
@@ -3166,7 +3166,7 @@ lemma \<rho>\<^sub>e_mono: \<open>A \<subseteq># B \<Longrightarrow> \<rho>\<^su
     \<open>filter_mset (\<lambda>x. atm_of x \<notin> \<Sigma>\<^sub>a\<^sub>d\<^sub>d) B\<close>]
   by (auto simp: \<rho>\<^sub>e_def dest: multiset_filter_mono)
 
-interpretation enc_weight_opt: conflict_driven_clause_learning\<^sub>W_optimal_weight where 
+interpretation enc_weight_opt: conflict_driven_clause_learning\<^sub>W_optimal_weight where
     state_eq = state_eq and
     state = state and
     trail = trail and
@@ -3194,41 +3194,7 @@ lemma  \<Sigma>_no_weight_\<rho>\<^sub>e: \<open>atm_of C \<in> \<Sigma> - \<Sig
 lemma \<Sigma>\<^sub>w_neg_no_weight_\<rho>\<^sub>e: \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> \<rho>\<^sub>e (add_mset (Neg A) M) = \<rho>\<^sub>e M\<close>
   using \<Sigma>\<^sub>w_neg_no_weight[of A \<open>{#x \<in># M. atm_of x \<notin> \<Sigma>\<^sub>a\<^sub>d\<^sub>d#}\<close>]
   by (auto simp: \<rho>\<^sub>e_def)
-(*
-interpretation enc_weight_opt: optimal_encoding where 
-    state_eq = state_eq and
-    state = state and
-    trail = trail and
-    init_clss = init_clss and
-    learned_clss = learned_clss and
-    conflicting = conflicting and
-    cons_trail = cons_trail and
-    tl_trail = tl_trail and
-    add_learned_cls = add_learned_cls and
-    remove_cls = remove_cls and
-    update_conflicting = update_conflicting and
-    init_state = init_state and
-    \<rho> = \<rho>\<^sub>e and
-    update_additional_info = update_additional_info and
-    \<Sigma> = \<Sigma> and
-    \<Sigma>\<^sub>w = \<Sigma>\<^sub>w and
-    new_vars = new_vars
-  apply unfold_locales
-  subgoal by (rule finite_\<Sigma>)
-  subgoal by (rule \<Sigma>\<^sub>w_\<Sigma>)
-  subgoal by (rule new_vars_pos)
-  subgoal by (rule new_vars_neg)
-  subgoal by (rule new_vars_addition_var)
-  subgoal by (rule new_vars_dist)
-  subgoal by (rule new_vars_dist)
-  subgoal by (rule new_vars_dist)
-  subgoal by (rule new_vars_dist)
-  subgoal by (rule new_vars_dist)
-  subgoal by (rule new_vars_dist)  
-  subgoal by (rule \<Sigma>_no_weight_\<rho>\<^sub>e)
-  subgoal by (rule \<Sigma>\<^sub>w_neg_no_weight_\<rho>\<^sub>e)
-  done
-*)
+
 lemma weight_Neg:
   \<open>A \<in> \<Sigma> \<Longrightarrow> \<rho> (add_mset (Neg A) M) = \<rho> M\<close>
   using \<Sigma>_no_weight[of \<open>Neg A\<close>] \<Sigma>\<^sub>w_neg_no_weight[of A]
@@ -3246,7 +3212,7 @@ lemma \<rho>_cancel_negs:
 lemma \<rho>_cancel_notin_\<Sigma>\<^sub>w:
   \<open>(\<And>x. x \<in># M \<Longrightarrow> atm_of x \<in> \<Sigma> - \<Sigma>\<^sub>w) \<Longrightarrow> \<rho> (M + M') = \<rho> M'\<close>
   by (induction M) (auto simp: weight_Neg weight_is_neg \<Sigma>_no_weight)
-  
+
 lemma \<rho>\<^sub>e_upostp_\<rho>:
   assumes \<open>finite \<Sigma>\<close> and
     \<open>finite I\<close> and
@@ -3350,7 +3316,11 @@ qed
 context
 begin
 
-interpretation enc_weight_opt: optimal_encoding where 
+text \<open>Keeping the interpretation outside of the context leads to duplicate definition of every single
+  abbreviation like \<^term>\<open>replacement_pos A\<close>. Therefore, we keep the interpretation in the context, but
+  the symbols are not exported to the surrounding locales.
+\<close>
+interpretation enc_weight_opt: optimal_encoding where
     state_eq = state_eq and
     state = state and
     trail = trail and
@@ -3379,7 +3349,7 @@ interpretation enc_weight_opt: optimal_encoding where
   subgoal by (rule new_vars_dist)
   subgoal by (rule new_vars_dist)
   subgoal by (rule new_vars_dist)
-  subgoal by (rule new_vars_dist)  
+  subgoal by (rule new_vars_dist)
   subgoal by (rule \<Sigma>_no_weight_\<rho>\<^sub>e)
   subgoal by (rule \<Sigma>\<^sub>w_neg_no_weight_\<rho>\<^sub>e)
   done
@@ -3388,7 +3358,7 @@ lemma enc_weight_opt_\<rho>\<^sub>e_\<rho>\<^sub>e:
   \<open>enc_weight_opt.\<rho>\<^sub>e = \<rho>\<^sub>e\<close>
   by (intro ext)
     (auto simp:  enc_weight_opt.\<rho>\<^sub>e_def \<rho>\<^sub>e_def filter_filter_mset)
-  
+
 lemma enc_weight_opt_\<rho>_postp_\<rho>\<^sub>e:
   assumes \<open>finite \<Sigma>\<close> and
     \<open>finite I\<close> and
@@ -3410,7 +3380,7 @@ lemma
   by (induction N)
     (auto simp: encode_clause_def encode_lit_eq_iff
     dest!: multi_member_split)
-  
+
 lemma distinct_mset_encodes_clause_iff:
   \<open>atms_of_mm N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset_mset (encode_clauses N) \<longleftrightarrow> distinct_mset_mset N\<close>
   by (induction N)
