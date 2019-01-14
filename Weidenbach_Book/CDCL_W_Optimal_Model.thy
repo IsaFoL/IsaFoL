@@ -2468,6 +2468,11 @@ proof -
   qed
 qed
 
+lemma (in -) distinct_mset_union2: 
+  \<open>distinct_mset (A + B) \<Longrightarrow> distinct_mset B\<close>
+  using distinct_mset_union[of B A]
+  by (auto simp: ac_simps)
+
 text \<open>First part of \cwref{theo:prop:cdclmmcorrect}{Theorem 2.15.6}\<close>
 lemma full_cdcl_bab_stgy_no_conflicting_clause_unsat:
   assumes
@@ -2494,7 +2499,8 @@ definition annotation_is_model where
   \<open>annotation_is_model S \<longleftrightarrow>
      (weight S \<noteq> None \<longrightarrow> (set_mset (the (weight S)) \<Turnstile>sm init_clss S \<and> 
        consistent_interp (set_mset (the (weight S))) \<and>
-       atms_of (the (weight S)) \<subseteq> atms_of_mm (init_clss S)))\<close>
+       atms_of (the (weight S)) \<subseteq> atms_of_mm (init_clss S) \<and>
+       distinct_mset (the (weight S))))\<close>
 
 lemma cdcl_bab_annotation_is_model:
   assumes 
@@ -2506,10 +2512,12 @@ proof -
   have [simp]: \<open>atms_of (lit_of `# mset M) = atm_of ` lit_of ` set M\<close> for M
     by (auto simp: atms_of_def)
   have \<open>consistent_interp (lits_of_l (trail S)) \<and>
-       atm_of ` (lits_of_l (trail S)) \<subseteq> atms_of_mm (init_clss S)\<close>
+       atm_of ` (lits_of_l (trail S)) \<subseteq> atms_of_mm (init_clss S) \<and>
+       distinct_mset (lit_of `# mset (trail S))\<close>
     using assms(2) by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       abs_state_def cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_strange_atm_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      dest: no_dup_distinct)
   with assms(1,3)
   show ?thesis
     apply (cases rule: cdcl_bab.cases)
@@ -2520,7 +2528,7 @@ proof -
     subgoal
       by (force simp: annotation_is_model_def true_annots_true_cls lits_of_def
 	improve.simps is_improving_int_def image_Un image_image
-      dest!: consistent_interp_unionD)
+      dest!: consistent_interp_unionD intro: distinct_mset_union2)
     subgoal
       by (auto simp:  annotation_is_model_def
 	conflict_opt.simps)
@@ -2553,7 +2561,8 @@ theorem full_cdcl_bab_stgy_no_conflicting_clause_from_init_state:
   shows
     \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset N)\<close> and
     \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
-       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N\<close> and
+       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
+       distinct_mset (the (weight T))\<close> and
     \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
       set_mset I \<Turnstile>sm N \<Longrightarrow> \<rho> I \<ge> \<rho>' (weight T)\<close>
 proof -
@@ -2587,7 +2596,8 @@ proof -
     using rtranclp_cdcl_bab_no_more_init_clss[of ?S T] st
     unfolding full_def by (auto dest: rtranclp_cdcl_bab_stgy_cdcl_bab)
   ultimately show \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
-       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N\<close>
+       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
+       distinct_mset (the (weight T))\<close>
     by (auto simp: annotation_is_model_def)
 
   show \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
@@ -2840,6 +2850,21 @@ definition upostp :: \<open>'v partial_interp \<Rightarrow> 'v partial_interp\<c
      \<union> Neg ` replacement_pos ` {A \<in> \<Sigma>\<^sub>w. Pos A \<notin> I}
      \<union> Pos ` replacement_neg ` {A \<in> \<Sigma>\<^sub>w. Neg A \<in> I}
      \<union> Neg ` replacement_neg ` {A \<in> \<Sigma>\<^sub>w. Neg A \<notin> I}\<close>
+
+lemma atm_of_upostp_subset:
+  \<open>atm_of ` (upostp I) \<subseteq>
+    atm_of ` I \<union> additional_atm ` \<Sigma>\<^sub>w \<union> replacement_pos ` \<Sigma>\<^sub>w \<union>
+    replacement_neg ` \<Sigma>\<^sub>w \<union> \<Sigma>\<close>
+  by (auto simp: upostp_def image_Un)
+
+lemma atm_of_upostp_subset2:
+  \<open>atm_of ` I \<subseteq> \<Sigma> \<Longrightarrow> atm_of ` I \<union> additional_atm ` \<Sigma>\<^sub>w \<union> replacement_pos ` \<Sigma>\<^sub>w \<union>
+    replacement_neg ` \<Sigma>\<^sub>w \<union> \<Sigma> \<subseteq> atm_of ` (upostp I) 
+    \<close>
+  apply (auto simp: upostp_def image_Un image_image) 
+  apply (metis (mono_tags, lifting) imageI literal.sel(1) mem_Collect_eq)
+  apply (metis (mono_tags, lifting) imageI literal.sel mem_Collect_eq)
+  done
 
 end
 
@@ -3162,6 +3187,48 @@ interpretation enc_weight_opt: conflict_driven_clause_learning\<^sub>W_optimal_w
   subgoal using weight_init_state by fast
   done
 
+lemma  \<Sigma>_no_weight_\<rho>\<^sub>e: \<open>atm_of C \<in> \<Sigma> - \<Sigma>\<^sub>w \<Longrightarrow> \<rho>\<^sub>e (add_mset C M) = \<rho>\<^sub>e M\<close>
+  using \<Sigma>_no_weight[of C \<open>{#x \<in># M. atm_of x \<notin> \<Sigma>\<^sub>a\<^sub>d\<^sub>d#}\<close>]
+  by (auto simp: \<rho>\<^sub>e_def)
+
+lemma \<Sigma>\<^sub>w_neg_no_weight_\<rho>\<^sub>e: \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> \<rho>\<^sub>e (add_mset (Neg A) M) = \<rho>\<^sub>e M\<close>
+  using \<Sigma>\<^sub>w_neg_no_weight[of A \<open>{#x \<in># M. atm_of x \<notin> \<Sigma>\<^sub>a\<^sub>d\<^sub>d#}\<close>]
+  by (auto simp: \<rho>\<^sub>e_def)
+(*
+interpretation enc_weight_opt: optimal_encoding where 
+    state_eq = state_eq and
+    state = state and
+    trail = trail and
+    init_clss = init_clss and
+    learned_clss = learned_clss and
+    conflicting = conflicting and
+    cons_trail = cons_trail and
+    tl_trail = tl_trail and
+    add_learned_cls = add_learned_cls and
+    remove_cls = remove_cls and
+    update_conflicting = update_conflicting and
+    init_state = init_state and
+    \<rho> = \<rho>\<^sub>e and
+    update_additional_info = update_additional_info and
+    \<Sigma> = \<Sigma> and
+    \<Sigma>\<^sub>w = \<Sigma>\<^sub>w and
+    new_vars = new_vars
+  apply unfold_locales
+  subgoal by (rule finite_\<Sigma>)
+  subgoal by (rule \<Sigma>\<^sub>w_\<Sigma>)
+  subgoal by (rule new_vars_pos)
+  subgoal by (rule new_vars_neg)
+  subgoal by (rule new_vars_addition_var)
+  subgoal by (rule new_vars_dist)
+  subgoal by (rule new_vars_dist)
+  subgoal by (rule new_vars_dist)
+  subgoal by (rule new_vars_dist)
+  subgoal by (rule new_vars_dist)
+  subgoal by (rule new_vars_dist)  
+  subgoal by (rule \<Sigma>_no_weight_\<rho>\<^sub>e)
+  subgoal by (rule \<Sigma>\<^sub>w_neg_no_weight_\<rho>\<^sub>e)
+  done
+*)
 lemma weight_Neg:
   \<open>A \<in> \<Sigma> \<Longrightarrow> \<rho> (add_mset (Neg A) M) = \<rho> M\<close>
   using \<Sigma>_no_weight[of \<open>Neg A\<close>] \<Sigma>\<^sub>w_neg_no_weight[of A]
@@ -3280,6 +3347,60 @@ proof -
     done
 qed
 
+context
+begin
+
+interpretation enc_weight_opt: optimal_encoding where 
+    state_eq = state_eq and
+    state = state and
+    trail = trail and
+    init_clss = init_clss and
+    learned_clss = learned_clss and
+    conflicting = conflicting and
+    cons_trail = cons_trail and
+    tl_trail = tl_trail and
+    add_learned_cls = add_learned_cls and
+    remove_cls = remove_cls and
+    update_conflicting = update_conflicting and
+    init_state = init_state and
+    \<rho> = \<rho>\<^sub>e and
+    update_additional_info = update_additional_info and
+    \<Sigma> = \<Sigma> and
+    \<Sigma>\<^sub>w = \<Sigma>\<^sub>w and
+    new_vars = new_vars
+  apply unfold_locales
+  subgoal by (rule finite_\<Sigma>)
+  subgoal by (rule \<Sigma>\<^sub>w_\<Sigma>)
+  subgoal by (rule new_vars_pos)
+  subgoal by (rule new_vars_neg)
+  subgoal by (rule new_vars_addition_var)
+  subgoal by (rule new_vars_dist)
+  subgoal by (rule new_vars_dist)
+  subgoal by (rule new_vars_dist)
+  subgoal by (rule new_vars_dist)
+  subgoal by (rule new_vars_dist)
+  subgoal by (rule new_vars_dist)  
+  subgoal by (rule \<Sigma>_no_weight_\<rho>\<^sub>e)
+  subgoal by (rule \<Sigma>\<^sub>w_neg_no_weight_\<rho>\<^sub>e)
+  done
+
+lemma enc_weight_opt_\<rho>\<^sub>e_\<rho>\<^sub>e:
+  \<open>enc_weight_opt.\<rho>\<^sub>e = \<rho>\<^sub>e\<close>
+  by (intro ext)
+    (auto simp:  enc_weight_opt.\<rho>\<^sub>e_def \<rho>\<^sub>e_def filter_filter_mset)
+  
+lemma enc_weight_opt_\<rho>_postp_\<rho>\<^sub>e:
+  assumes \<open>finite \<Sigma>\<close> and
+    \<open>finite I\<close> and
+    I_\<Sigma>: \<open>atm_of ` I \<subseteq> \<Sigma> \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d\<close>
+  shows \<open>\<rho>\<^sub>e (mset_set I) \<ge> \<rho>\<^sub>e (mset_set (postp I))\<close>
+  using enc_weight_opt.\<rho>_postp_\<rho>\<^sub>e[OF assms]
+  unfolding enc_weight_opt_\<rho>\<^sub>e_\<rho>\<^sub>e
+  by auto
+
+end
+
+
 lemma encode_lit_eq_iff:
   \<open>atm_of x \<in> \<Sigma> \<Longrightarrow> atm_of y \<in> \<Sigma> \<Longrightarrow> encode_lit x = encode_lit y \<longleftrightarrow> x = y\<close>
   by (cases x; cases y) (auto simp: encode_lit_alt_def atm_of_eq_atm_of)
@@ -3305,16 +3426,30 @@ lemma distinct_mset_preprocessed_clss:
   by (auto simp: preprocessed_clss_def
     distinct_mset_encodes_clause_iff)
 
-theorem
+lemma finite_upostp:
+  assumes \<open>finite \<Sigma>\<close>
+  shows \<open>finite (upostp I)\<close>
+proof -
+  have \<open>upostp I \<subseteq> Pos ` (\<Sigma> \<union> \<Sigma>\<^sub>w \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d) \<union> Neg ` (\<Sigma> \<union> \<Sigma>\<^sub>w \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d)\<close>
+    apply (auto simp: upostp_def image_Un \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def)
+    by (metis image_iff literal.exhaust_sel)
+  moreover have \<open>finite (Pos ` (\<Sigma> \<union> \<Sigma>\<^sub>w \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d) \<union> Neg ` (\<Sigma> \<union> \<Sigma>\<^sub>w \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d))\<close>
+    using assms finite_\<Sigma> by (auto simp: \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def)
+  ultimately show ?thesis
+    by (auto intro: finite_subset)
+qed
+
+theorem full_encoding_OCDCL_correctness:
   assumes
-    st: \<open>full cdcl_bab_stgy (init_state (preprocessed_clss N)) T\<close> and
+    st: \<open>full enc_weight_opt.cdcl_bab_stgy (init_state (preprocessed_clss N)) T\<close> and
     dist: \<open>distinct_mset_mset N\<close> and
     atms: \<open>atms_of_mm N = \<Sigma>\<close>
   shows
     \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset N)\<close> and
     \<open>weight T \<noteq> None \<Longrightarrow> postp (set_mset (the (weight T))) \<Turnstile>sm N\<close>
-(*    \<open>weight T \<noteq> None \<Longrightarrow> distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I \<subseteq> atms_of_mm N \<Longrightarrow>
-      set_mset I \<Turnstile>sm N \<Longrightarrow> \<rho> I \<ge> \<rho> (mset_set (postp (set_mset (the (weight T)))))\<close> *)
+    \<open>weight T \<noteq> None \<Longrightarrow> distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow>
+      atms_of I \<subseteq> atms_of_mm N \<Longrightarrow> set_mset I \<Turnstile>sm N \<Longrightarrow>
+      \<rho> I \<ge> \<rho> (mset_set (postp (set_mset (the (weight T)))))\<close>
 proof -
   let ?N = \<open>preprocessed_clss N\<close>
   have \<open>distinct_mset_mset (preprocessed_clss N)\<close>
@@ -3323,23 +3458,92 @@ proof -
   then have
     unsat: \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset ?N)\<close> and
     model: \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
-       atms_of (the (weight T)) \<subseteq> atms_of_mm ?N \<and> set_mset (the (weight T)) \<Turnstile>sm ?N\<close> and
-    \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm ?N \<Longrightarrow>
-      set_mset I \<Turnstile>sm ?N \<Longrightarrow> \<rho> I \<ge> \<rho>' (weight T)\<close>
+       atms_of (the (weight T)) \<subseteq> atms_of_mm ?N \<and> set_mset (the (weight T)) \<Turnstile>sm ?N \<and>
+       distinct_mset (the (weight T))\<close> and
+    opt: \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm ?N \<Longrightarrow>
+      set_mset I \<Turnstile>sm ?N \<Longrightarrow> \<rho>\<^sub>e I \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
     for I
-    using full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of \<open>preprocessed_clss N\<close> T, OF st]
+    using enc_weight_opt.full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of \<open>preprocessed_clss N\<close> T, OF st]
     by fast+
 
   show \<open>unsatisfiable (set_mset N)\<close> if \<open>weight T = None\<close>
     using unsat[OF that] satisfiable_preprocessed_clss[OF atms] by blast
-
-  show \<open>postp (set_mset (the (weight T))) \<Turnstile>sm N\<close> if \<open>weight T \<noteq> None\<close>
+  let ?K = \<open>postp (set_mset (the (weight T)))\<close>
+  show \<open>?K \<Turnstile>sm N\<close> if \<open>weight T \<noteq> None\<close>
     using preprocessed_clss_ent_postp[OF atms, of \<open>set_mset (the (weight T))\<close>] model[OF that]
     by auto
-(*  show \<open>\<rho> I \<ge> \<rho> (mset_set (postp (set_mset (the (weight T)))))\<close>
-     if \<open>weight T \<noteq> None\<close> and \<open>distinct_mset I\<close> and \<open>consistent_interp (set_mset I)\<close> and
-       \<open>atms_of I \<subseteq> atms_of_mm N\<close> and \<open>set_mset I \<Turnstile>sm N\<close>
-    sorry*)
+  show \<open>\<rho> I \<ge> \<rho> (mset_set ?K)\<close>
+     if Some: \<open>weight T \<noteq> None\<close> and
+       dist: \<open>distinct_mset I\<close> and
+       cons: \<open>consistent_interp (set_mset I)\<close> and
+       atm: \<open>atms_of I \<subseteq> atms_of_mm N\<close> and
+       I_N: \<open>set_mset I \<Turnstile>sm N\<close>
+  proof -
+    let ?I = \<open>mset_set (upostp (set_mset I))\<close>
+    have Some': \<open>enc_weight_opt.weight T \<noteq> None\<close>
+      using Some by auto
+    have [simp]: \<open>finite (upostp (set_mset I))\<close>
+      by (rule finite_upostp)
+        (use atms in auto)
+    then have I: \<open>set_mset ?I = upostp (set_mset I)\<close>
+      by auto
+    have \<open>set_mset ?I \<Turnstile>m ?N\<close>
+      unfolding I
+      by (rule preprocessed_clss_ent_upostp[OF atms I_N cons])
+        (use atm in \<open>auto dest: multi_member_split\<close>)
+    moreover have \<open>distinct_mset ?I\<close>
+      by (rule distinct_mset_mset_set)
+    moreover {
+      have A: \<open>atms_of (mset_set (upostp (set_mset I))) = atm_of ` (upostp (set_mset I))\<close>
+        \<open>atm_of ` set_mset I = atms_of I\<close>
+        by (auto simp: atms_of_def)
+      have \<open>atms_of ?I = atms_of_mm ?N\<close>
+	apply (subst atms_of_mm_preprocessed_clss_subset2[OF finite_\<Sigma>])
+	subgoal using \<Sigma>\<^sub>w_\<Sigma> atms by auto
+	subgoal
+	  using atm_of_upostp_subset[of \<open>set_mset I\<close>] atm_of_upostp_subset2[of \<open>set_mset I\<close>] atm
+	  unfolding atms A
+	  by auto
+	done
+    }
+    moreover have \<open>consistent_interp (set_mset ?I)\<close>
+      using cons unfolding I by (rule consistent_interp_upostp)
+    ultimately have \<open>\<rho>\<^sub>e ?I \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
+      using opt[of ?I] by auto
+    moreover {
+      have \<open>\<rho>\<^sub>e ?I = \<rho> (mset_set (set_mset I))\<close>
+        by (rule \<rho>\<^sub>e_upostp_\<rho>)
+          (use \<Sigma>\<^sub>w_\<Sigma> atms atm in \<open>auto dest: multi_member_split\<close>)
+      then have \<open>\<rho>\<^sub>e ?I = \<rho> I\<close>
+        by (subst (asm) distinct_mset_set_mset_ident)
+	  (use atms dist in auto)
+    }
+    ultimately have \<open>\<rho> I \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
+      by auto
+    moreover {
+      have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> \<rho>\<^sub>e (mset_set (set_mset (the (weight T))))\<close>
+	by (rule enc_weight_opt_\<rho>_postp_\<rho>\<^sub>e)
+	 (use \<Sigma>\<^sub>w_\<Sigma> finite_\<Sigma> atms model[OF Some] in
+	    \<open>auto simp: atms_of_mm_preprocessed_clss_subset2 \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def
+	    dest: multi_member_split\<close>)
+      then have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
+        apply (subst (asm) distinct_mset_set_mset_ident)
+	 apply (use atms dist model[OF Some] in auto; fail)[]
+	 using Some' by auto
+    }
+    moreover have \<open>\<rho>\<^sub>e (mset_set ?K) = \<rho> (mset_set ?K)\<close>
+      unfolding \<rho>\<^sub>e_def
+      apply (rule arg_cong[of _ _ \<rho>])
+      apply (subst filter_mset_cong[of _ _ _ \<open>\<lambda>_. True\<close>])
+      apply (rule refl)
+      subgoal
+        using \<Sigma>\<^sub>w_\<Sigma>
+        by (auto simp: postp_def \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def)
+      subgoal by auto
+      done
+    ultimately show ?thesis
+      using Some' by auto
+  qed
 qed
 
 
