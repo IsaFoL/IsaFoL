@@ -613,7 +613,7 @@ proof -
     done
 qed
 
-(*
+
 definition remove_all_annot_true_clause_imp_wl_D_heur_inv
   :: \<open>twl_st_wl_heur \<Rightarrow> nat watcher list \<Rightarrow> nat \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
 where
@@ -622,7 +622,7 @@ where
          remove_all_annot_true_clause_imp_wl_D_inv S' (map fst xs) (i, T'))
      \<close>
 
-definition (in isasat_input_ops) remove_all_annot_true_clause_one_imp_heur
+definition remove_all_annot_true_clause_one_imp_heur
   :: \<open>nat \<times> arena \<Rightarrow> arena nres\<close>
 where
 \<open>remove_all_annot_true_clause_one_imp_heur = (\<lambda>(C, N). do {
@@ -633,13 +633,14 @@ where
       }
   })\<close>
 
-definition(in isasat_input_ops) remove_all_annot_true_clause_imp_wl_D_heur_pre where
+definition remove_all_annot_true_clause_imp_wl_D_heur_pre where
   \<open>remove_all_annot_true_clause_imp_wl_D_heur_pre L S \<longleftrightarrow>
-    (\<exists>S'. (S, S') \<in> twl_st_heur_restart \<and> remove_all_annot_true_clause_imp_wl_D_pre L S')\<close>
+    (\<exists>S'. (S, S') \<in> twl_st_heur_restart
+      \<and> remove_all_annot_true_clause_imp_wl_D_pre (all_atms_st S') L S')\<close>
 
 
 (* TODO: unfold Let when generating code! *)
-definition(in isasat_input_ops) remove_all_annot_true_clause_imp_wl_D_heur
+definition remove_all_annot_true_clause_imp_wl_D_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>remove_all_annot_true_clause_imp_wl_D_heur = (\<lambda>L (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
@@ -668,7 +669,7 @@ where
       (0, N0);
     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats)
   })\<close>
-*)
+
 
 definition minimum_number_between_restarts :: \<open>uint64\<close> where
   \<open>minimum_number_between_restarts = 50\<close>
@@ -1690,38 +1691,6 @@ lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   subgoal by auto
   done
 
-definition remove_all_annot_true_clause_imp_wl_D_heur_inv
-  :: \<open>twl_st_wl_heur \<Rightarrow> _ \<Rightarrow> nat \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
-where
-  \<open>remove_all_annot_true_clause_imp_wl_D_heur_inv S xs = (\<lambda>(i, T).
-     \<exists>S' T'. (S, S') \<in> twl_st_heur_restart \<and> (T, T') \<in> twl_st_heur_restart \<and>
-    remove_all_annot_true_clause_imp_wl_D_inv S' xs (i, T'))\<close>
-
-(*
-definition remove_all_annot_true_clause_imp_wl_D_heur
-  :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
-where
-\<open>remove_all_annot_true_clause_imp_wl_D_heur = (\<lambda>L (M, N0, D, NE0, UE, Q, W). do {
-    let xs = W L;
-    (_, N, NE) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, N, NE).
-        remove_all_annot_true_clause_imp_wl_D_heur_inv (M, N0, D, NE0, UE, Q, W) xs
-          (i, M, N, D, NE, UE, Q, W)\<^esup>
-      (\<lambda>(i, N, NE). i < length xs)
-      (\<lambda>(i, N, NE). do {
-        ASSERT(i < length xs);
-        let (C, _ , _) = xs ! i;
-        if C \<in># dom_m N \<and> length (N \<propto> C) \<noteq> 2
-        then do {
-          (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (C, N, NE);
-          RETURN (i+1, N, NE)
-        }
-        else
-          RETURN (i+1, N, NE)
-      })
-      (0, N0, NE0);
-    RETURN (M, N, D, NE, UE, Q, W)
-  })\<close>
-
 definition isasat_replace_annot_in_trail :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> trail_pol nres\<close>
 where
   \<open>isasat_replace_annot_in_trail = (\<lambda>(M, val, lvls, reason, k) L. do {
@@ -1734,16 +1703,17 @@ definition remove_one_annot_true_clause_one_imp_wl_D_heur
 where
 \<open>remove_one_annot_true_clause_one_imp_wl_D_heur = (\<lambda>i (M, N, D, Q, W). do {
       (L, C) \<leftarrow> do {
-        L \<leftarrow> rev_trail_nth M i;
+        L \<leftarrow> isa_trail_nth M i;
 	C \<leftarrow> get_the_propagation_reason_pol M L;
 	RETURN (L, C)};
-      if C = 0 then RETURN (i+1, M, N, D, Q, W)
+      if C = None then RETURN (i+1, M, N, D, Q, W)
       else do {
-        ASSERT(C \<in># dom_m N);
+        ASSERT(C \<noteq> None);
         M \<leftarrow> isasat_replace_annot_in_trail M L;
-        N' \<leftarrow> mark_clause_to_delete N C;
+	ASSERT(mark_garbage_pre (N, the C));
+        let N' = extra_information_mark_to_delete N (the C);
         let S = (M, N', D, Q, W);
-        S \<leftarrow> remove_all_annot_true_clause_imp_wl_D L S;
+        S \<leftarrow> remove_all_annot_true_clause_imp_wl_D_heur L S;
         RETURN (i+1, S)
       }
   })\<close>
@@ -1753,35 +1723,36 @@ definition cdcl_twl_full_restart_wl_D_GC_prog_heur_post :: \<open>twl_st_wl_heur
   (\<exists>S' T'. (S, S') \<in> twl_st_heur_restart \<and> (T, T') \<in> twl_st_heur_restart \<and>
     cdcl_twl_full_restart_wl_D_GC_prog_post S' T')\<close>
 
-definition remove_one_annot_true_clause_imp_wl_D_inv where
+definition remove_one_annot_true_clause_imp_wl_D_inv
+  :: \<open>twl_st_wl_heur \<Rightarrow> (nat \<times> twl_st_wl_heur) \<Rightarrow> bool\<close> where
   \<open>remove_one_annot_true_clause_imp_wl_D_inv S = (\<lambda>(i, T).
-     remove_one_annot_true_clause_imp_wl_inv S (i, T) \<and>
-     literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T) T)\<close>
+    (\<exists>S' T'. (S, S') \<in> twl_st_heur_restart \<and> (T, T') \<in> twl_st_heur_restart \<and>
+     remove_one_annot_true_clause_imp_wl_inv S' (i, T') \<and>
+     literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T') T'))\<close>
 
 definition remove_one_annot_true_clause_imp_wl_D_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp_wl_D_heur = (\<lambda>S. do {
+    k \<leftarrow> (if count_decided_st_heur S = 0
+      then RETURN (isa_length_trail (get_trail_wl_heur S))
+      else get_pos_of_level_in_trail_imp (get_trail_wl_heur S) 1);
     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_D_inv S\<^esup>
-      (\<lambda>(i, S). i < length (get_trail_wl_heur S) \<and> \<not>is_decided (get_trail_wl S!i))
-      (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl_D i S)
+      (\<lambda>(i, S). i < k)
+      (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl_D_heur i S)
       (0, S);
     RETURN S
   })\<close>
 
-
-term remove_one_annot_true_clause_imp_wl_D
-definition cdcl_twl_full_restart_wl_D_GC_prog where
-\<open>cdcl_twl_full_restart_wl_D_GC_prog S = do {
+definition cdcl_twl_full_restart_wl_D_GC_heur_prog where
+\<open>cdcl_twl_full_restart_wl_D_GC_heur_prog S = do {
     S \<leftarrow> do {
-        S \<leftarrow> find_decomp_wl_st_int lvl S;
+        S \<leftarrow> find_decomp_wl_st_int 0 S;
         empty_Q S
-    }
-    T \<leftarrow> remove_one_annot_true_clause_imp_wl_D S;
-    ASSERT(mark_to_delete_clauses_wl_D_pre T);
-    U \<leftarrow> mark_to_delete_clauses_wl_D T;
-    V \<leftarrow> cdcl_GC_clauses_wl_D U;
-    ASSERT(cdcl_twl_full_restart_wl_D_GC_prog_post S V);
+    };
+    T \<leftarrow> remove_one_annot_true_clause_imp_wl_D_heur S;
+    U \<leftarrow> mark_to_delete_clauses_wl_D_heur T;
+    V \<leftarrow> RETURN U;
     RETURN V
   }\<close>
-*)
+
 end
