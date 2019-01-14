@@ -2740,7 +2740,7 @@ qed
 
 definition postp :: \<open>'v partial_interp \<Rightarrow> 'v partial_interp\<close> where
   \<open>postp I =
-     {A \<in> I. atm_of A \<notin> \<Sigma>\<^sub>w} \<union> {A \<in> I. atm_of A \<in> \<Sigma>\<^sub>w \<and> additional_var (atm_of A) \<in> I}\<close>
+     {A \<in> I. atm_of A \<notin> \<Sigma>\<^sub>w \<and> atm_of A \<in> \<Sigma>} \<union> {A \<in> I. atm_of A \<in> \<Sigma>\<^sub>w \<and> additional_var (atm_of A) \<in> I}\<close>
 
 lemma preprocess_clss_model_additional_variables:
   assumes \<open>I \<Turnstile>sm preprocessed_clss N\<close> and
@@ -2759,6 +2759,17 @@ proof -
        H[of \<open>Pos (A\<^sup>\<mapsto>\<^sup>-)\<close>]  H[of \<open>Neg (A\<^sup>\<mapsto>\<^sup>-)\<close>]
     by (auto simp: preprocessed_clss_def additional_constraints_def true_clss_def
       additional_constraint_def ball_Un)
+qed
+
+lemma preprocess_clss_model_additional_variables2:
+  assumes
+    \<open>atm_of A \<in> \<Sigma> - \<Sigma>\<^sub>w\<close>
+  shows
+    \<open>A \<in> postp I \<longleftrightarrow> A \<in> I\<close> (is ?A)
+proof -
+  show ?A
+    using assms
+    by (auto simp: postp_def)
 qed
 
 lemma encode_clause_iff:
@@ -3057,10 +3068,13 @@ proof -
       using enc by (auto dest!: multi_member_split)
     then show \<open>postp I \<Turnstile> C\<close>
       unfolding true_cls_def
-      using cons finite_\<Sigma> preprocess_clss_model_additional_variables sat
-      by (auto simp:  encode_clause_def postp_def encode_lit_alt_def
+      using cons finite_\<Sigma> preprocess_clss_model_additional_variables[of I N] sat
+        preprocess_clss_model_additional_variables2[of _ I]
+	\<Sigma> \<open>C \<in># N\<close> in_m_in_literals
+      apply (auto simp:  encode_clause_def postp_def encode_lit_alt_def
 	split: if_splits
 	dest!: multi_member_split[of _ C])
+      by blast (*TODO proof*)
   qed
 qed
 
@@ -3116,6 +3130,118 @@ lemma weight_Neg:
   using \<Sigma>_no_weight[of \<open>Neg A\<close>] \<Sigma>\<^sub>w_neg_no_weight[of A]
   by auto
 
+lemma weight_is_neg:
+  \<open>atm_of A \<in> \<Sigma> \<Longrightarrow> is_neg A \<Longrightarrow> \<rho> (add_mset A M) = \<rho> M\<close>
+  using weight_Neg[of \<open>atm_of A\<close>]
+  by (cases A) auto
+
+lemma \<rho>_cancel_negs:
+  \<open>atms_of M \<subseteq> \<Sigma> \<Longrightarrow> (\<And>x. x \<in># M \<Longrightarrow> is_neg x) \<Longrightarrow> \<rho> (M + M') = \<rho> M'\<close>
+  by (induction M) (auto simp: weight_Neg weight_is_neg)
+
+lemma \<rho>_cancel_notin_\<Sigma>\<^sub>w:
+  \<open>(\<And>x. x \<in># M \<Longrightarrow> atm_of x \<in> \<Sigma> - \<Sigma>\<^sub>w) \<Longrightarrow> \<rho> (M + M') = \<rho> M'\<close>
+  by (induction M) (auto simp: weight_Neg weight_is_neg \<Sigma>_no_weight)
+  
+lemma \<rho>\<^sub>e_upostp_\<rho>:
+  assumes \<open>finite \<Sigma>\<close> and
+    \<open>finite I\<close> and
+    I_\<Sigma>: \<open>atm_of ` I \<subseteq> \<Sigma>\<close>
+  shows \<open>\<rho>\<^sub>e (mset_set (upostp I)) = \<rho> (mset_set I)\<close>
+proof -
+  have [simp]: \<open>finite I\<close>
+    using assms by auto
+  have [simp]: \<open>mset_set
+        {x \<in> I.
+         atm_of x \<in> \<Sigma> \<and>
+         atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
+         atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = mset_set I\<close>
+    using I_\<Sigma> by auto
+  have [simp]: \<open>finite {A \<in> \<Sigma>\<^sub>w. P A}\<close> for P
+    by (rule finite_subset[of _ \<Sigma>\<^sub>w])
+      (use \<Sigma>\<^sub>w_\<Sigma> finite_\<Sigma> in auto)
+  have mset_set_Union2: \<open>mset_set {x. P x \<or> Q x} = mset_set (Collect P) + mset_set (Collect Q)\<close>
+    if \<open>Collect P \<inter> Collect Q = {}\<close>
+    \<open>finite (Collect P)\<close>
+    \<open>finite (Collect Q)\<close>
+    for P Q
+    using that by (auto simp: mset_set_Union[symmetric])
+  have [simp]:
+    \<open>{x \<in> (\<lambda>x. Neg (additional_atm x)) ` {A \<in> \<Sigma>\<^sub>w. P A}.
+          atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
+          atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = {}\<close>
+    \<open>{x \<in> additional_var ` {A \<in> \<Sigma>\<^sub>w. P A}.
+          atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
+          atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = {}\<close>
+    \<open>{x \<in> (\<lambda>x. Pos (x\<^sup>\<mapsto>\<^sup>+)) ` {A \<in> \<Sigma>\<^sub>w. P A}.
+          atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
+          atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = {}\<close>
+    \<open>{x \<in> (\<lambda>x. Neg (x\<^sup>\<mapsto>\<^sup>+)) ` {A \<in> \<Sigma>\<^sub>w. P A}.
+          atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
+          atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = {}\<close>
+    \<open>{x \<in> (\<lambda>x. Pos (x\<^sup>\<mapsto>\<^sup>-)) ` {A \<in> \<Sigma>\<^sub>w. P A}.
+          atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
+          atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = {}\<close>
+    \<open>{x \<in> (\<lambda>x. Neg (x\<^sup>\<mapsto>\<^sup>-)) ` {A \<in> \<Sigma>\<^sub>w. P A}.
+          atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
+          atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = {}\<close>
+	for P
+    by auto
+  show ?thesis
+    using assms \<Sigma>\<^sub>w_\<Sigma>
+    apply (auto simp: upostp_def \<rho>\<^sub>e_def weight_Neg conj_disj_distribR
+      mset_set_Union2)
+    apply (subst mset_set_Union2)
+    apply (auto simp: image_image mset_set_Union2 finite_imageI)
+    apply (subst mset_set_Union2)
+    apply (auto simp: image_image intro!: finite_imageI)
+    apply (subst mset_set_Union2)
+    apply (auto simp: image_image intro!: finite_imageI)
+    apply (subst mset_set_Union2)
+    apply (auto simp: image_image intro!: finite_imageI)
+    apply (subst mset_set_Union2)
+    apply (auto simp: image_image intro!: finite_imageI)
+    apply (subst mset_set_Union2)
+    apply (auto simp: image_image intro!: finite_imageI)
+    apply (subst mset_set_Union2)
+    apply (auto simp: image_image \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def intro!: finite_imageI)
+    apply (subst \<rho>_cancel_negs)
+    apply (auto simp: atms_of_def)
+    done
+qed
+
+lemma \<rho>_mono2:
+  \<open>(\<And>A. A \<in># M \<Longrightarrow> atm_of A \<in> \<Sigma>) \<Longrightarrow> (\<And>A. A \<in># M' \<Longrightarrow> atm_of A \<in> \<Sigma>) \<Longrightarrow>
+     {#A \<in># M. atm_of A \<in> \<Sigma>\<^sub>w#} \<subseteq># {#A \<in># M'. atm_of A \<in> \<Sigma>\<^sub>w#} \<Longrightarrow> \<rho> M \<le> \<rho> M'\<close>
+  apply (subst (2) multiset_partition[of _ \<open>\<lambda>A. atm_of A \<notin> \<Sigma>\<^sub>w\<close>])
+  apply (subst multiset_partition[of _ \<open>\<lambda>A. atm_of A \<notin> \<Sigma>\<^sub>w\<close>])
+  apply (subst \<rho>_cancel_notin_\<Sigma>\<^sub>w)
+  subgoal by auto
+  apply (subst \<rho>_cancel_notin_\<Sigma>\<^sub>w)
+  subgoal by auto
+  by (auto intro: \<rho>_mono)
+
+lemma \<rho>_postp_\<rho>\<^sub>e:
+  assumes \<open>finite \<Sigma>\<close> and
+    \<open>finite I\<close> and
+    I_\<Sigma>: \<open>atm_of ` I \<subseteq> \<Sigma> \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d\<close>
+  shows \<open>\<rho>\<^sub>e (mset_set I) \<ge> \<rho> (mset_set (postp I))\<close>
+proof -
+  have [simp]: \<open>finite I\<close>
+    using assms by auto
+  have [simp]: \<open>finite {A \<in> I. P A}\<close> for P
+    apply  (rule finite_subset[of _ \<open>Pos ` atm_of ` I \<union> Neg ` atm_of ` I\<close>])
+    apply auto
+    by (metis image_iff literal.exhaust_sel)
+
+  show ?thesis
+    using assms \<Sigma>\<^sub>w_\<Sigma>
+    apply (auto simp: postp_def \<rho>\<^sub>e_def \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def weight_Neg conj_disj_distribR
+      mset_set_Union)
+    apply (rule \<rho>_mono2)
+    apply auto
+    done
+qed
 
 end
 
