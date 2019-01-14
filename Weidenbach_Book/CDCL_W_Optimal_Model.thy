@@ -1,5 +1,5 @@
 theory CDCL_W_Optimal_Model
-imports CDCL_W_Abstract_State "HOL-Library.Extended_Nat"
+imports CDCL_W_Abstract_State "HOL-Library.Extended_Nat" "../lib/Explorer"
 begin
 
 section \<open>CDCL Extensions\<close>
@@ -2492,20 +2492,51 @@ qed
 
 definition annotation_is_model where
   \<open>annotation_is_model S \<longleftrightarrow>
-     (weight S \<noteq> None \<longrightarrow> set_mset (the (weight S)) \<Turnstile>sm init_clss S)\<close>
+     (weight S \<noteq> None \<longrightarrow> (set_mset (the (weight S)) \<Turnstile>sm init_clss S \<and> 
+       consistent_interp (set_mset (the (weight S))) \<and>
+       atms_of (the (weight S)) \<subseteq> atms_of_mm (init_clss S)))\<close>
 
 lemma cdcl_bab_annotation_is_model:
-  \<open>cdcl_bab S T \<Longrightarrow> annotation_is_model S \<Longrightarrow> annotation_is_model T\<close>
-  by (cases rule: cdcl_bab.cases, assumption)
-    (auto simp: conflict.simps annotation_is_model_def
-      conflict_opt.simps ocdcl\<^sub>W_o.simps ocdcl\<^sub>W_bj.simps obacktrack.simps
-      skip.simps resolve.simps decide.simps true_annots_true_cls lits_of_def
-      propagate.simps improve.simps is_improving_int_def)
+  assumes 
+    \<open>cdcl_bab S T\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+    \<open>annotation_is_model S\<close>
+  shows \<open>annotation_is_model T\<close>
+proof -
+  have [simp]: \<open>atms_of (lit_of `# mset M) = atm_of ` lit_of ` set M\<close> for M
+    by (auto simp: atms_of_def)
+  have \<open>consistent_interp (lits_of_l (trail S)) \<and>
+       atm_of ` (lits_of_l (trail S)) \<subseteq> atms_of_mm (init_clss S)\<close>
+    using assms(2) by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      abs_state_def cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
+  with assms(1,3)
+  show ?thesis
+    apply (cases rule: cdcl_bab.cases)
+    subgoal
+      by (auto simp: conflict.simps annotation_is_model_def)
+    subgoal
+      by (auto simp: propagate.simps annotation_is_model_def)
+    subgoal
+      by (force simp: annotation_is_model_def true_annots_true_cls lits_of_def
+	improve.simps is_improving_int_def image_Un image_image
+      dest!: consistent_interp_unionD)
+    subgoal
+      by (auto simp:  annotation_is_model_def
+	conflict_opt.simps)
+    subgoal
+      by (auto simp: annotation_is_model_def
+	ocdcl\<^sub>W_o.simps ocdcl\<^sub>W_bj.simps obacktrack.simps
+	skip.simps resolve.simps decide.simps)
+    done
+qed
 
 lemma rtranclp_cdcl_bab_annotation_is_model:
-  \<open>cdcl_bab\<^sup>*\<^sup>* S T \<Longrightarrow> annotation_is_model S \<Longrightarrow> annotation_is_model T\<close>
+  \<open>cdcl_bab\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
+     annotation_is_model S \<Longrightarrow> annotation_is_model T\<close>
   by (induction rule: rtranclp_induct)
-    (auto simp: cdcl_bab_annotation_is_model)
+    (auto simp: cdcl_bab_annotation_is_model rtranclp_cdcl_bab_stgy_all_struct_inv)
+
 
 lemma weight_init_state2[simp]: \<open>weight (init_state S) = None\<close> and
   conflicting_clss_init_state[simp]:
@@ -2518,11 +2549,11 @@ text \<open>\cwref{theo:prop:cdclmmcorrect}{Theorem 2.15.6}\<close>
 theorem full_cdcl_bab_stgy_no_conflicting_clause_from_init_state:
   assumes
     st: \<open>full cdcl_bab_stgy (init_state N) T\<close> and
-    dist: \<open>distinct_mset_mset N\<close> and
-    annot: \<open>annotation_is_model S\<close>
+    dist: \<open>distinct_mset_mset N\<close>
   shows
     \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset N)\<close> and
-    \<open>weight T \<noteq> None \<Longrightarrow> set_mset (the (weight T)) \<Turnstile>sm N\<close> and
+    \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
+       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N\<close> and
     \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
       set_mset I \<Turnstile>sm N \<Longrightarrow> \<rho> I \<ge> \<rho>' (weight T)\<close>
 proof -
@@ -2534,7 +2565,7 @@ proof -
   then have [simp]: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ([], N, {#}, None)\<close>
     unfolding init_state.simps[symmetric]
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
-  moreover have [simp]: \<open>cdcl_bab_struct_invs ?S\<close>
+  moreover have [iff]: \<open>cdcl_bab_struct_invs ?S\<close>
     by (auto simp: cdcl_bab_struct_invs_def conflicting_clss_def conflicting_clauses_def)
   moreover have [simp]: \<open>cdcl_bab_stgy_inv ?S\<close>
     by (auto simp: cdcl_bab_stgy_inv_def conflict_is_false_with_level_def
@@ -2551,11 +2582,12 @@ proof -
     by (auto simp: annotation_is_model_def)
   then have \<open>annotation_is_model T\<close>
     using rtranclp_cdcl_bab_annotation_is_model[of ?S T] st
-    unfolding full_def by (blast dest: rtranclp_cdcl_bab_stgy_cdcl_bab)
+    unfolding full_def by (auto dest: rtranclp_cdcl_bab_stgy_cdcl_bab)
   moreover have \<open>init_clss T = N\<close>
     using rtranclp_cdcl_bab_no_more_init_clss[of ?S T] st
     unfolding full_def by (auto dest: rtranclp_cdcl_bab_stgy_cdcl_bab)
-  ultimately show \<open>weight T \<noteq> None \<Longrightarrow> set_mset (the (weight T)) \<Turnstile>sm N\<close>
+  ultimately show \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
+       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N\<close>
     by (auto simp: annotation_is_model_def)
 
   show \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
@@ -2892,10 +2924,16 @@ lemma consistent_interp_postp_iff:
   by (auto simp: consistent_interp_def postp_def)
 
 lemma new_vars_different_iff[iff]:
+      \<open>A \<noteq> x\<^sup>\<mapsto>\<^sup>+\<close>
+      \<open>A \<noteq> x\<^sup>\<mapsto>\<^sup>-\<close>
+      \<open>x\<^sup>\<mapsto>\<^sup>+ \<noteq> A\<close>
+      \<open>x\<^sup>\<mapsto>\<^sup>- \<noteq> A\<close>
       \<open>A\<^sup>\<mapsto>\<^sup>- \<noteq> x\<^sup>\<mapsto>\<^sup>+\<close>
       \<open>A\<^sup>\<mapsto>\<^sup>+ \<noteq> x\<^sup>\<mapsto>\<^sup>-\<close>
+      \<open>x \<noteq> additional_atm x\<close>
       \<open>A\<^sup>\<mapsto>\<^sup>- \<noteq> additional_atm x\<close>
       \<open>A\<^sup>\<mapsto>\<^sup>+ \<noteq> additional_atm x\<close>
+      \<open>additional_atm x \<noteq> x\<close>
       \<open>additional_atm x \<noteq> A\<^sup>\<mapsto>\<^sup>-\<close>
       \<open>additional_atm x \<noteq> A\<^sup>\<mapsto>\<^sup>+\<close>
       \<open>A\<^sup>\<mapsto>\<^sup>- = x\<^sup>\<mapsto>\<^sup>- \<longleftrightarrow> A = x\<close>
@@ -2908,11 +2946,10 @@ lemma new_vars_different_iff[iff]:
       \<open>(A\<^sup>\<mapsto>\<^sup>-) \<notin> \<Sigma>\<^sub>w\<close>
       \<open>additional_atm A \<notin> \<Sigma>\<^sub>w\<close>
       if \<open>A \<in> \<Sigma>\<^sub>w\<close>  \<open>x \<in> \<Sigma>\<^sub>w\<close> for A x
-    using \<Sigma>\<^sub>w_\<Sigma> new_vars_pos new_vars_neg new_vars_dist[of A x] new_vars_dist[of x A]
-      new_vars_addition_var that
-    by (cases \<open>A = x\<close>; auto simp: comp_def)+
-
-
+    using \<Sigma>\<^sub>w_\<Sigma> new_vars_pos[of x] new_vars_pos[of A]  new_vars_neg[of x] new_vars_neg[of A]
+      new_vars_neg new_vars_dist[of A x] new_vars_dist[of x A]
+      new_vars_addition_var[of x] new_vars_addition_var[of A] that new_vars_addition_var[of x]
+    by (cases \<open>A = x\<close>; fastforce simp: comp_def; fail)+
 
 lemma consistent_interp_upostp:
   \<open>consistent_interp I \<Longrightarrow> consistent_interp (upostp I)\<close>
@@ -3242,6 +3279,69 @@ proof -
     apply auto
     done
 qed
+
+lemma encode_lit_eq_iff:
+  \<open>atm_of x \<in> \<Sigma> \<Longrightarrow> atm_of y \<in> \<Sigma> \<Longrightarrow> encode_lit x = encode_lit y \<longleftrightarrow> x = y\<close>
+  by (cases x; cases y) (auto simp: encode_lit_alt_def atm_of_eq_atm_of)
+
+lemma
+  distinct_mset_encode_clause_iff: \<open>atms_of N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset (encode_clause N) \<longleftrightarrow> distinct_mset N\<close>
+  by (induction N)
+    (auto simp: encode_clause_def encode_lit_eq_iff
+    dest!: multi_member_split)
+  
+lemma distinct_mset_encodes_clause_iff:
+  \<open>atms_of_mm N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset_mset (encode_clauses N) \<longleftrightarrow> distinct_mset_mset N\<close>
+  by (induction N)
+    (auto simp: encode_clauses_def distinct_mset_encode_clause_iff)
+
+lemma distinct_additional_constraints[simp]:
+  \<open>distinct_mset_mset additional_constraints\<close>
+  by (auto simp: additional_constraints_def additional_constraint_def
+    distinct_mset_set_def finite_\<Sigma>)
+
+lemma distinct_mset_preprocessed_clss:
+  \<open>atms_of_mm N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset_mset (preprocessed_clss N) \<longleftrightarrow> distinct_mset_mset N\<close>
+  by (auto simp: preprocessed_clss_def
+    distinct_mset_encodes_clause_iff)
+
+theorem
+  assumes
+    st: \<open>full cdcl_bab_stgy (init_state (preprocessed_clss N)) T\<close> and
+    dist: \<open>distinct_mset_mset N\<close> and
+    atms: \<open>atms_of_mm N = \<Sigma>\<close>
+  shows
+    \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset N)\<close> and
+    \<open>weight T \<noteq> None \<Longrightarrow> postp (set_mset (the (weight T))) \<Turnstile>sm N\<close>
+(*    \<open>weight T \<noteq> None \<Longrightarrow> distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I \<subseteq> atms_of_mm N \<Longrightarrow>
+      set_mset I \<Turnstile>sm N \<Longrightarrow> \<rho> I \<ge> \<rho> (mset_set (postp (set_mset (the (weight T)))))\<close> *)
+proof -
+  let ?N = \<open>preprocessed_clss N\<close>
+  have \<open>distinct_mset_mset (preprocessed_clss N)\<close>
+    by (subst distinct_mset_preprocessed_clss)
+      (use dist atms in auto)
+  then have
+    unsat: \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset ?N)\<close> and
+    model: \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
+       atms_of (the (weight T)) \<subseteq> atms_of_mm ?N \<and> set_mset (the (weight T)) \<Turnstile>sm ?N\<close> and
+    \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm ?N \<Longrightarrow>
+      set_mset I \<Turnstile>sm ?N \<Longrightarrow> \<rho> I \<ge> \<rho>' (weight T)\<close>
+    for I
+    using full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of \<open>preprocessed_clss N\<close> T, OF st]
+    by fast+
+
+  show \<open>unsatisfiable (set_mset N)\<close> if \<open>weight T = None\<close>
+    using unsat[OF that] satisfiable_preprocessed_clss[OF atms] by blast
+
+  show \<open>postp (set_mset (the (weight T))) \<Turnstile>sm N\<close> if \<open>weight T \<noteq> None\<close>
+    using preprocessed_clss_ent_postp[OF atms, of \<open>set_mset (the (weight T))\<close>] model[OF that]
+    by auto
+(*  show \<open>\<rho> I \<ge> \<rho> (mset_set (postp (set_mset (the (weight T)))))\<close>
+     if \<open>weight T \<noteq> None\<close> and \<open>distinct_mset I\<close> and \<open>consistent_interp (set_mset I)\<close> and
+       \<open>atms_of I \<subseteq> atms_of_mm N\<close> and \<open>set_mset I \<Turnstile>sm N\<close>
+    sorry*)
+qed
+
 
 end
 
