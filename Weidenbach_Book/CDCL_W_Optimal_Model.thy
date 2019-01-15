@@ -2865,9 +2865,7 @@ locale optimal_encoding = optimal_encoding_opt
       \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> B \<in> \<Sigma>\<^sub>w \<Longrightarrow> replacement_neg A \<noteq> additional_atm B\<close>
       \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> B \<in> \<Sigma>\<^sub>w \<Longrightarrow> A \<noteq> B \<Longrightarrow> additional_atm A \<noteq> additional_atm B\<close> and
     \<Sigma>_no_weight:
-      \<open>atm_of C \<in> \<Sigma> - \<Sigma>\<^sub>w \<Longrightarrow> \<rho> (add_mset C M) = \<rho> M\<close>and
-    \<Sigma>\<^sub>w_neg_no_weight:
-      \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> \<rho> (add_mset (Neg A) M) = \<rho> M\<close>
+      \<open>atm_of C \<in> \<Sigma> - \<Sigma>\<^sub>w \<Longrightarrow> \<rho> (add_mset C M) = \<rho> M\<close>
 begin
 
 lemma consistent_interp_postp:
@@ -2889,33 +2887,33 @@ lemma consistent_interp_postp_iff:
   \<open>atm_of ` I \<subseteq> \<Sigma> - \<Sigma>\<^sub>w \<Longrightarrow> consistent_interp I \<longleftrightarrow> consistent_interp (postp I)\<close>
   by (auto simp: consistent_interp_def postp_def)
 
-lemma new_vars_different_iff[iff]:
-      \<open>A \<noteq> x\<^sup>\<mapsto>\<^sup>+\<close>
-      \<open>A \<noteq> x\<^sup>\<mapsto>\<^sup>-\<close>
-      \<open>x\<^sup>\<mapsto>\<^sup>+ \<noteq> A\<close>
-      \<open>x\<^sup>\<mapsto>\<^sup>- \<noteq> A\<close>
-      \<open>A\<^sup>\<mapsto>\<^sup>- \<noteq> x\<^sup>\<mapsto>\<^sup>+\<close>
-      \<open>A\<^sup>\<mapsto>\<^sup>+ \<noteq> x\<^sup>\<mapsto>\<^sup>-\<close>
-      \<open>x \<noteq> additional_atm x\<close>
-      \<open>A\<^sup>\<mapsto>\<^sup>- \<noteq> additional_atm x\<close>
-      \<open>A\<^sup>\<mapsto>\<^sup>+ \<noteq> additional_atm x\<close>
-      \<open>additional_atm x \<noteq> x\<close>
-      \<open>additional_atm x \<noteq> A\<^sup>\<mapsto>\<^sup>-\<close>
-      \<open>additional_atm x \<noteq> A\<^sup>\<mapsto>\<^sup>+\<close>
-      \<open>A\<^sup>\<mapsto>\<^sup>- = x\<^sup>\<mapsto>\<^sup>- \<longleftrightarrow> A = x\<close>
-      \<open>A\<^sup>\<mapsto>\<^sup>+ = x\<^sup>\<mapsto>\<^sup>+ \<longleftrightarrow> A = x\<close>
-      \<open>additional_atm A = additional_atm x \<longleftrightarrow> A = x\<close>
-      \<open>(A\<^sup>\<mapsto>\<^sup>+) \<notin> \<Sigma>\<close>
-      \<open>(A\<^sup>\<mapsto>\<^sup>-) \<notin> \<Sigma>\<close>
-      \<open>additional_atm A \<notin> \<Sigma>\<close>
-      \<open>(A\<^sup>\<mapsto>\<^sup>+) \<notin> \<Sigma>\<^sub>w\<close>
-      \<open>(A\<^sup>\<mapsto>\<^sup>-) \<notin> \<Sigma>\<^sub>w\<close>
-      \<open>additional_atm A \<notin> \<Sigma>\<^sub>w\<close>
-      if \<open>A \<in> \<Sigma>\<^sub>w\<close>  \<open>x \<in> \<Sigma>\<^sub>w\<close> for A x
-    using \<Sigma>\<^sub>w_\<Sigma> new_vars_pos[of x] new_vars_pos[of A]  new_vars_neg[of x] new_vars_neg[of A]
-      new_vars_neg new_vars_dist[of A x] new_vars_dist[of x A]
-      new_vars_addition_var[of x] new_vars_addition_var[of A] that new_vars_addition_var[of x]
-    by (cases \<open>A = x\<close>; fastforce simp: comp_def; fail)+
+lemma new_vars_different_iff[simp]:
+  \<open>A \<noteq> x\<^sup>\<mapsto>\<^sup>+\<close>
+  \<open>A \<noteq> x\<^sup>\<mapsto>\<^sup>-\<close>
+  \<open>x\<^sup>\<mapsto>\<^sup>+ \<noteq> A\<close>
+  \<open>x\<^sup>\<mapsto>\<^sup>- \<noteq> A\<close>
+  \<open>A\<^sup>\<mapsto>\<^sup>- \<noteq> x\<^sup>\<mapsto>\<^sup>+\<close>
+  \<open>A\<^sup>\<mapsto>\<^sup>+ \<noteq> x\<^sup>\<mapsto>\<^sup>-\<close>
+  \<open>x \<noteq> additional_atm x\<close>
+  \<open>A\<^sup>\<mapsto>\<^sup>- \<noteq> additional_atm x\<close>
+  \<open>A\<^sup>\<mapsto>\<^sup>+ \<noteq> additional_atm x\<close>
+  \<open>additional_atm x \<noteq> x\<close>
+  \<open>additional_atm x \<noteq> A\<^sup>\<mapsto>\<^sup>-\<close>
+  \<open>additional_atm x \<noteq> A\<^sup>\<mapsto>\<^sup>+\<close>
+  \<open>A\<^sup>\<mapsto>\<^sup>- = x\<^sup>\<mapsto>\<^sup>- \<longleftrightarrow> A = x\<close>
+  \<open>A\<^sup>\<mapsto>\<^sup>+ = x\<^sup>\<mapsto>\<^sup>+ \<longleftrightarrow> A = x\<close>
+  \<open>additional_atm A = additional_atm x \<longleftrightarrow> A = x\<close>
+  \<open>(A\<^sup>\<mapsto>\<^sup>+) \<notin> \<Sigma>\<close>
+  \<open>(A\<^sup>\<mapsto>\<^sup>-) \<notin> \<Sigma>\<close>
+  \<open>additional_atm A \<notin> \<Sigma>\<close>
+  \<open>(A\<^sup>\<mapsto>\<^sup>+) \<notin> \<Sigma>\<^sub>w\<close>
+  \<open>(A\<^sup>\<mapsto>\<^sup>-) \<notin> \<Sigma>\<^sub>w\<close>
+  \<open>additional_atm A \<notin> \<Sigma>\<^sub>w\<close>
+  if \<open>A \<in> \<Sigma>\<^sub>w\<close>  \<open>x \<in> \<Sigma>\<^sub>w\<close> for A x
+  using \<Sigma>\<^sub>w_\<Sigma> new_vars_pos[of x] new_vars_pos[of A]  new_vars_neg[of x] new_vars_neg[of A]
+    new_vars_neg new_vars_dist[of A x] new_vars_dist[of x A]
+    new_vars_addition_var[of x] new_vars_addition_var[of A] that new_vars_addition_var[of x]
+  by (cases \<open>A = x\<close>; fastforce simp: comp_def; fail)+
 
 lemma consistent_interp_upostp:
   \<open>consistent_interp I \<Longrightarrow> consistent_interp (upostp I)\<close>
@@ -3098,14 +3096,22 @@ lemma satisfiable_preprocessed_clss_iff:
   using assms satisfiable_preprocessed_clss satisfiable_preprocessed_clss_satisfiable by blast
 
 
+abbreviation \<rho>\<^sub>e_filter :: \<open>'v literal multiset \<Rightarrow> 'v literal multiset\<close> where
+  \<open>\<rho>\<^sub>e_filter M \<equiv> filter_mset (\<lambda>x. atm_of x \<in> \<Sigma>\<^sub>w \<and> additional_var (atm_of x) \<in># M) M\<close>
 
-definition \<rho>\<^sub>e where
-  \<open>\<rho>\<^sub>e M = \<rho> (filter_mset (\<lambda>x. atm_of x \<notin> \<Sigma>\<^sub>a\<^sub>d\<^sub>d) M)\<close>
+definition \<rho>\<^sub>e :: \<open>'v literal multiset \<Rightarrow> nat\<close> where
+  \<open>\<rho>\<^sub>e M = \<rho> (\<rho>\<^sub>e_filter M)\<close>
+
+lemma (in -)filter_mset_mono_subset:
+  \<open>A \<subseteq># B \<Longrightarrow> (\<And>x. x \<in># A \<Longrightarrow> P x \<Longrightarrow> Q x) \<Longrightarrow>filter_mset P A \<subseteq># filter_mset Q B\<close>
+  by (metis multiset_filter_mono multiset_filter_mono2 subset_mset.order_trans)
 
 lemma \<rho>\<^sub>e_mono: \<open>A \<subseteq># B \<Longrightarrow> \<rho>\<^sub>e A \<le> \<rho>\<^sub>e B\<close>
-  using \<rho>_mono[of \<open>filter_mset (\<lambda>x. atm_of x \<notin> \<Sigma>\<^sub>a\<^sub>d\<^sub>d) A\<close>
-    \<open>filter_mset (\<lambda>x. atm_of x \<notin> \<Sigma>\<^sub>a\<^sub>d\<^sub>d) B\<close>]
-  by (auto simp: \<rho>\<^sub>e_def dest: multiset_filter_mono)
+  unfolding \<rho>\<^sub>e_def
+  apply (rule \<rho>_mono)
+  apply (rule filter_mset_mono_subset)
+  apply auto
+  done
 
 interpretation enc_weight_opt: conflict_driven_clause_learning\<^sub>W_optimal_weight where
     state_eq = state_eq and
@@ -3129,36 +3135,31 @@ interpretation enc_weight_opt: conflict_driven_clause_learning\<^sub>W_optimal_w
   done
 
 lemma  \<Sigma>_no_weight_\<rho>\<^sub>e: \<open>atm_of C \<in> \<Sigma> - \<Sigma>\<^sub>w \<Longrightarrow> \<rho>\<^sub>e (add_mset C M) = \<rho>\<^sub>e M\<close>
-  using \<Sigma>_no_weight[of C \<open>{#x \<in># M. atm_of x \<notin> \<Sigma>\<^sub>a\<^sub>d\<^sub>d#}\<close>]
-  by (auto simp: \<rho>\<^sub>e_def)
+  using \<Sigma>_no_weight[of C \<open>\<rho>\<^sub>e_filter M\<close>]
+  apply (auto simp: \<rho>\<^sub>e_def)
+  by (metis (no_types, lifting) filter_mset_cong2 literal.sel(1) new_vars_addition_var)
 
-lemma \<Sigma>\<^sub>w_neg_no_weight_\<rho>\<^sub>e: \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> \<rho>\<^sub>e (add_mset (Neg A) M) = \<rho>\<^sub>e M\<close>
-  using \<Sigma>\<^sub>w_neg_no_weight[of A \<open>{#x \<in># M. atm_of x \<notin> \<Sigma>\<^sub>a\<^sub>d\<^sub>d#}\<close>]
-  by (auto simp: \<rho>\<^sub>e_def)
-
-lemma weight_Neg:
-  \<open>A \<in> \<Sigma> \<Longrightarrow> \<rho> (add_mset (Neg A) M) = \<rho> M\<close>
-  using \<Sigma>_no_weight[of \<open>Neg A\<close>] \<Sigma>\<^sub>w_neg_no_weight[of A]
-  by auto
-
-lemma weight_is_neg:
-  \<open>atm_of A \<in> \<Sigma> \<Longrightarrow> is_neg A \<Longrightarrow> \<rho> (add_mset A M) = \<rho> M\<close>
-  using weight_Neg[of \<open>atm_of A\<close>]
-  by (cases A) auto
-
-lemma \<rho>_cancel_negs:
-  \<open>atms_of M \<subseteq> \<Sigma> \<Longrightarrow> (\<And>x. x \<in># M \<Longrightarrow> is_neg x) \<Longrightarrow> \<rho> (M + M') = \<rho> M'\<close>
-  by (induction M) (auto simp: weight_Neg weight_is_neg)
 
 lemma \<rho>_cancel_notin_\<Sigma>\<^sub>w:
   \<open>(\<And>x. x \<in># M \<Longrightarrow> atm_of x \<in> \<Sigma> - \<Sigma>\<^sub>w) \<Longrightarrow> \<rho> (M + M') = \<rho> M'\<close>
-  by (induction M) (auto simp: weight_Neg weight_is_neg \<Sigma>_no_weight)
+  by (induction M) (auto simp: \<Sigma>_no_weight)
+
+lemma \<rho>_mono2:
+  \<open>(\<And>A. A \<in># M \<Longrightarrow> atm_of A \<in> \<Sigma>) \<Longrightarrow> (\<And>A. A \<in># M' \<Longrightarrow> atm_of A \<in> \<Sigma>) \<Longrightarrow>
+     {#A \<in># M. atm_of A \<in> \<Sigma>\<^sub>w#} \<subseteq># {#A \<in># M'. atm_of A \<in> \<Sigma>\<^sub>w#} \<Longrightarrow> \<rho> M \<le> \<rho> M'\<close>
+  apply (subst (2) multiset_partition[of _ \<open>\<lambda>A. atm_of A \<notin> \<Sigma>\<^sub>w\<close>])
+  apply (subst multiset_partition[of _ \<open>\<lambda>A. atm_of A \<notin> \<Sigma>\<^sub>w\<close>])
+  apply (subst \<rho>_cancel_notin_\<Sigma>\<^sub>w)
+  subgoal by auto
+  apply (subst \<rho>_cancel_notin_\<Sigma>\<^sub>w)
+  subgoal by auto
+  by (auto intro: \<rho>_mono)
 
 lemma \<rho>\<^sub>e_upostp_\<rho>:
   assumes \<open>finite \<Sigma>\<close> and
     \<open>finite I\<close> and
     I_\<Sigma>: \<open>atm_of ` I \<subseteq> \<Sigma>\<close>
-  shows \<open>\<rho>\<^sub>e (mset_set (upostp I)) = \<rho> (mset_set I)\<close>
+  shows \<open>\<rho>\<^sub>e (mset_set (upostp I)) = \<rho> (mset_set I)\<close> (is \<open>?A = ?B\<close>)
 proof -
   have [simp]: \<open>finite I\<close>
     using assms by auto
@@ -3171,66 +3172,35 @@ proof -
   have [simp]: \<open>finite {A \<in> \<Sigma>\<^sub>w. P A}\<close> for P
     by (rule finite_subset[of _ \<Sigma>\<^sub>w])
       (use \<Sigma>\<^sub>w_\<Sigma> finite_\<Sigma> in auto)
-  have mset_set_Union2: \<open>mset_set {x. P x \<or> Q x} = mset_set (Collect P) + mset_set (Collect Q)\<close>
-    if \<open>Collect P \<inter> Collect Q = {}\<close>
-    \<open>finite (Collect P)\<close>
-    \<open>finite (Collect Q)\<close>
-    for P Q
-    using that by (auto simp: mset_set_Union[symmetric])
-  have [simp]:
-    \<open>{x \<in> (\<lambda>x. Neg (additional_atm x)) ` {A \<in> \<Sigma>\<^sub>w. P A}.
-          atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
-          atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = {}\<close>
-    \<open>{x \<in> additional_var ` {A \<in> \<Sigma>\<^sub>w. P A}.
-          atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
-          atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = {}\<close>
-    \<open>{x \<in> (\<lambda>x. Pos (x\<^sup>\<mapsto>\<^sup>+)) ` {A \<in> \<Sigma>\<^sub>w. P A}.
-          atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
-          atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = {}\<close>
-    \<open>{x \<in> (\<lambda>x. Neg (x\<^sup>\<mapsto>\<^sup>+)) ` {A \<in> \<Sigma>\<^sub>w. P A}.
-          atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
-          atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = {}\<close>
-    \<open>{x \<in> (\<lambda>x. Pos (x\<^sup>\<mapsto>\<^sup>-)) ` {A \<in> \<Sigma>\<^sub>w. P A}.
-          atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
-          atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = {}\<close>
-    \<open>{x \<in> (\<lambda>x. Neg (x\<^sup>\<mapsto>\<^sup>-)) ` {A \<in> \<Sigma>\<^sub>w. P A}.
-          atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
-          atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = {}\<close>
-	for P
+  have H: \<open>finite A \<Longrightarrow> finite {y \<in> A. P y}\<close>
     by auto
-  show ?thesis
-    using assms \<Sigma>\<^sub>w_\<Sigma>
-    apply (auto simp: upostp_def \<rho>\<^sub>e_def weight_Neg conj_disj_distribR
-      mset_set_Union2)
-    apply (subst mset_set_Union2)
-    apply (auto simp: image_image mset_set_Union2 finite_imageI)
-    apply (subst mset_set_Union2)
-    apply (auto simp: image_image intro!: finite_imageI)
-    apply (subst mset_set_Union2)
-    apply (auto simp: image_image intro!: finite_imageI)
-    apply (subst mset_set_Union2)
-    apply (auto simp: image_image intro!: finite_imageI)
-    apply (subst mset_set_Union2)
-    apply (auto simp: image_image intro!: finite_imageI)
-    apply (subst mset_set_Union2)
-    apply (auto simp: image_image intro!: finite_imageI)
-    apply (subst mset_set_Union2)
-    apply (auto simp: image_image \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def intro!: finite_imageI)
-    apply (subst \<rho>_cancel_negs)
-    apply (auto simp: atms_of_def)
+  have \<open>?A \<le> ?B\<close>
+    using assms \<Sigma>\<^sub>w_\<Sigma> apply -
+    unfolding \<rho>\<^sub>e_def filter_filter_mset
+    apply (rule \<rho>_mono2)
+    subgoal by auto
+    subgoal by auto
+    apply (rule filter_mset_mono_subset)
+    subgoal by  (auto simp: upostp_def)
+    subgoal for x
+      by (cases \<open>x \<in> I\<close>; cases x) (auto simp: upostp_def)
     done
+  moreover have \<open>?B \<le> ?A\<close>
+    using assms \<Sigma>\<^sub>w_\<Sigma> apply -
+    unfolding \<rho>\<^sub>e_def filter_filter_mset
+    apply (rule \<rho>_mono2)
+    subgoal by auto
+    subgoal by auto
+    unfolding filter_filter_mset
+    apply (rule filter_mset_mono_subset)
+    subgoal by  (auto simp: upostp_def)
+    subgoal for x
+      by (cases \<open>x \<in> I\<close>; cases x) (auto simp: upostp_def)
+    done
+  ultimately show ?thesis
+    by simp
 qed
 
-lemma \<rho>_mono2:
-  \<open>(\<And>A. A \<in># M \<Longrightarrow> atm_of A \<in> \<Sigma>) \<Longrightarrow> (\<And>A. A \<in># M' \<Longrightarrow> atm_of A \<in> \<Sigma>) \<Longrightarrow>
-     {#A \<in># M. atm_of A \<in> \<Sigma>\<^sub>w#} \<subseteq># {#A \<in># M'. atm_of A \<in> \<Sigma>\<^sub>w#} \<Longrightarrow> \<rho> M \<le> \<rho> M'\<close>
-  apply (subst (2) multiset_partition[of _ \<open>\<lambda>A. atm_of A \<notin> \<Sigma>\<^sub>w\<close>])
-  apply (subst multiset_partition[of _ \<open>\<lambda>A. atm_of A \<notin> \<Sigma>\<^sub>w\<close>])
-  apply (subst \<rho>_cancel_notin_\<Sigma>\<^sub>w)
-  subgoal by auto
-  apply (subst \<rho>_cancel_notin_\<Sigma>\<^sub>w)
-  subgoal by auto
-  by (auto intro: \<rho>_mono)
 
 lemma \<rho>_postp_\<rho>\<^sub>e:
   assumes \<open>finite \<Sigma>\<close> and
@@ -3247,7 +3217,7 @@ proof -
 
   show ?thesis
     using assms \<Sigma>\<^sub>w_\<Sigma>
-    apply (auto simp: postp_def \<rho>\<^sub>e_def \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def weight_Neg conj_disj_distribR
+    apply (auto simp: postp_def \<rho>\<^sub>e_def \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def conj_disj_distribR
       mset_set_Union)
     apply (rule \<rho>_mono2)
     apply auto
@@ -3292,22 +3262,15 @@ interpretation enc_weight_opt: optimal_encoding where
   subgoal by (rule new_vars_dist)
   subgoal by (rule new_vars_dist)
   subgoal by (rule \<Sigma>_no_weight_\<rho>\<^sub>e)
-  subgoal by (rule \<Sigma>\<^sub>w_neg_no_weight_\<rho>\<^sub>e)
   done
 
 lemma enc_weight_opt_\<rho>\<^sub>e_\<rho>\<^sub>e:
-  \<open>enc_weight_opt.\<rho>\<^sub>e = \<rho>\<^sub>e\<close>
-  by (intro ext)
-    (auto simp:  enc_weight_opt.\<rho>\<^sub>e_def \<rho>\<^sub>e_def filter_filter_mset)
-
-lemma enc_weight_opt_\<rho>_postp_\<rho>\<^sub>e:
-  assumes \<open>finite \<Sigma>\<close> and
-    \<open>finite I\<close> and
-    I_\<Sigma>: \<open>atm_of ` I \<subseteq> \<Sigma> \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d\<close>
-  shows \<open>\<rho>\<^sub>e (mset_set I) \<ge> \<rho>\<^sub>e (mset_set (postp I))\<close>
-  using enc_weight_opt.\<rho>_postp_\<rho>\<^sub>e[OF assms]
-  unfolding enc_weight_opt_\<rho>\<^sub>e_\<rho>\<^sub>e
-  by auto
+  \<open>enc_weight_opt.\<rho>\<^sub>e = (\<lambda>_. \<rho> {#})\<close>
+  unfolding enc_weight_opt.\<rho>\<^sub>e_def unfolding \<rho>\<^sub>e_def filter_filter_mset
+  apply (rule ext)
+  apply (rule arg_cong[of _ _ \<rho>])
+  by (auto simp:  enc_weight_opt.\<rho>\<^sub>e_def \<rho>\<^sub>e_def filter_filter_mset
+    filter_mset_empty_conv)
 
 end
 
@@ -3430,27 +3393,52 @@ proof -
 	  (use atms dist in auto)
     }
     ultimately have \<open>\<rho> I \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
+      using Some'
       by auto
     moreover {
+      have \<open>\<rho> (mset_set ?K) \<le> \<rho>\<^sub>e (the (weight T))\<close>
+	unfolding \<rho>\<^sub>e_def
+	apply (rule \<rho>_mono2)
+	subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
+	subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
+	subgoal
+	  unfolding filter_filter_mset
+	  apply (rule filter_mset_mono_subset)
+	  subgoal
+	    apply (subst distinct_subseteq_iff[symmetric])
+	    using dist model[OF Some]
+	    by (auto simp: postp_def distinct_mset_mset_set)
+	  subgoal by (auto simp: postp_def)
+	  done
+	done
+       then have \<open>\<rho> (mset_set ?K) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
+         using Some by auto
+    }
+    moreover {
       have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> \<rho>\<^sub>e (mset_set (set_mset (the (weight T))))\<close>
-	by (rule enc_weight_opt_\<rho>_postp_\<rho>\<^sub>e)
-	 (use \<Sigma>\<^sub>w_\<Sigma> finite_\<Sigma> atms model[OF Some] in
-	    \<open>auto simp: atms_of_mm_preprocessed_clss_subset2 \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def
-	    dest: multi_member_split\<close>)
+	unfolding \<rho>\<^sub>e_def
+	apply (rule \<rho>_mono2)
+	subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
+	subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
+	subgoal
+	  unfolding filter_filter_mset
+	  apply (rule filter_mset_mono_subset)
+	  by (auto simp: postp_def)
+	done
       then have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
         apply (subst (asm) distinct_mset_set_mset_ident)
 	 apply (use atms dist model[OF Some] in auto; fail)[]
 	 using Some' by auto
     }
-    moreover have \<open>\<rho>\<^sub>e (mset_set ?K) = \<rho> (mset_set ?K)\<close>
+    moreover have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> \<rho> (mset_set ?K)\<close>
       unfolding \<rho>\<^sub>e_def
-      apply (rule arg_cong[of _ _ \<rho>])
-      apply (subst filter_mset_cong[of _ _ _ \<open>\<lambda>_. True\<close>])
-      apply (rule refl)
+      apply (rule \<rho>_mono2)
+      subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
+      subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
       subgoal
-        using \<Sigma>\<^sub>w_\<Sigma>
-        by (auto simp: postp_def \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def)
-      subgoal by auto
+        unfolding filter_filter_mset
+	apply (rule filter_mset_mono_subset)
+        by (auto simp: postp_def)
       done
     ultimately show ?thesis
       using Some' by auto
