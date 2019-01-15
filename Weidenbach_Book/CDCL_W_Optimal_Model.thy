@@ -3224,57 +3224,6 @@ proof -
     done
 qed
 
-context
-begin
-
-text \<open>Keeping the interpretation outside of the context leads to duplicate definition of every single
-  abbreviation like \<^term>\<open>replacement_pos A\<close>. Therefore, we keep the interpretation in the context, but
-  the symbols are not exported to the surrounding locales.
-\<close>
-interpretation enc_weight_opt: optimal_encoding where
-    state_eq = state_eq and
-    state = state and
-    trail = trail and
-    init_clss = init_clss and
-    learned_clss = learned_clss and
-    conflicting = conflicting and
-    cons_trail = cons_trail and
-    tl_trail = tl_trail and
-    add_learned_cls = add_learned_cls and
-    remove_cls = remove_cls and
-    update_conflicting = update_conflicting and
-    init_state = init_state and
-    \<rho> = \<rho>\<^sub>e and
-    update_additional_info = update_additional_info and
-    \<Sigma> = \<Sigma> and
-    \<Sigma>\<^sub>w = \<Sigma>\<^sub>w and
-    new_vars = new_vars
-  apply unfold_locales
-  subgoal by (rule finite_\<Sigma>)
-  subgoal by (rule \<Sigma>\<^sub>w_\<Sigma>)
-  subgoal by (rule new_vars_pos)
-  subgoal by (rule new_vars_neg)
-  subgoal by (rule new_vars_addition_var)
-  subgoal by (rule new_vars_dist)
-  subgoal by (rule new_vars_dist)
-  subgoal by (rule new_vars_dist)
-  subgoal by (rule new_vars_dist)
-  subgoal by (rule new_vars_dist)
-  subgoal by (rule new_vars_dist)
-  subgoal by (rule \<Sigma>_no_weight_\<rho>\<^sub>e)
-  done
-
-lemma enc_weight_opt_\<rho>\<^sub>e_\<rho>\<^sub>e:
-  \<open>enc_weight_opt.\<rho>\<^sub>e = (\<lambda>_. \<rho> {#})\<close>
-  unfolding enc_weight_opt.\<rho>\<^sub>e_def unfolding \<rho>\<^sub>e_def filter_filter_mset
-  apply (rule ext)
-  apply (rule arg_cong[of _ _ \<rho>])
-  by (auto simp:  enc_weight_opt.\<rho>\<^sub>e_def \<rho>\<^sub>e_def filter_filter_mset
-    filter_mset_empty_conv)
-
-end
-
-
 lemma encode_lit_eq_iff:
   \<open>atm_of x \<in> \<Sigma> \<Longrightarrow> atm_of y \<in> \<Sigma> \<Longrightarrow> encode_lit x = encode_lit y \<longleftrightarrow> x = y\<close>
   by (cases x; cases y) (auto simp: encode_lit_alt_def atm_of_eq_atm_of)
