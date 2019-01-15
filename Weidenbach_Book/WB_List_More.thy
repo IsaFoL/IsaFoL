@@ -1275,6 +1275,11 @@ lemma distinct_set_mset_eq_iff:
   shows \<open>set_mset M = set_mset N \<longleftrightarrow> M = N\<close>
   using assms distinct_mset_set_mset_ident by fastforce
 
+lemma (in -) distinct_mset_union2:
+  \<open>distinct_mset (A + B) \<Longrightarrow> distinct_mset B\<close>
+  using distinct_mset_union[of B A]
+  by (auto simp: ac_simps)
+
 lemma in_remove1_msetI: \<open>x \<noteq> a \<Longrightarrow> x \<in># M \<Longrightarrow> x \<in># remove1_mset a M\<close>
   by (simp add: in_remove1_mset_neq)
 
@@ -1527,6 +1532,10 @@ lemma image_filter_replicate_mset:
 lemma (in -) size_Union_mset_image_mset:
   \<open>size (\<Union># A) = (\<Sum>i \<in># A. size i)\<close>
   by (induction A) auto
+
+lemma filter_mset_mono_subset:
+  \<open>A \<subseteq># B \<Longrightarrow> (\<And>x. x \<in># A \<Longrightarrow> P x \<Longrightarrow> Q x) \<Longrightarrow> filter_mset P A \<subseteq># filter_mset Q B\<close>
+  by (metis multiset_filter_mono multiset_filter_mono2 subset_mset.order_trans)
 
 
 section \<open>Finite maps and multisets\<close>

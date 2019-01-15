@@ -4745,7 +4745,61 @@ proof -
   qed
 qed
 
-end
 
+subsection \<open>Some higher level version of the invariants\<close>
+
+lemma conflict_conflict_is_false_with_level_all_inv:
+  \<open>conflict S T \<Longrightarrow>
+  no_smaller_confl S \<Longrightarrow>
+  cdcl\<^sub>W_all_struct_inv S \<Longrightarrow>
+  conflict_is_false_with_level T\<close>
+  by (rule conflict_conflict_is_false_with_level) (auto simp: cdcl\<^sub>W_all_struct_inv_def)
+
+
+lemma cdcl\<^sub>W_stgy_ex_lit_of_max_level_all_inv:
+  assumes
+    "cdcl\<^sub>W_stgy S S'" and
+    n_l: "no_smaller_confl S" and
+    "conflict_is_false_with_level S" and
+    "cdcl\<^sub>W_all_struct_inv S"
+  shows "conflict_is_false_with_level S'"
+  by (rule cdcl\<^sub>W_stgy_ex_lit_of_max_level) (use assms in \<open>auto simp: cdcl\<^sub>W_all_struct_inv_def\<close>)
+
+lemma cdcl\<^sub>W_o_conflict_is_false_with_level_inv_all_inv:
+  assumes
+    \<open>cdcl\<^sub>W_o S T\<close>
+    \<open>cdcl\<^sub>W_all_struct_inv S\<close>
+    \<open>conflict_is_false_with_level S\<close>
+  shows \<open>conflict_is_false_with_level T\<close>
+  by (rule cdcl\<^sub>W_o_conflict_is_false_with_level_inv)
+    (use assms in \<open>auto simp: cdcl\<^sub>W_all_struct_inv_def\<close>)
+
+
+lemma no_step_cdcl\<^sub>W_total:
+  assumes
+    \<open>no_step cdcl\<^sub>W S\<close>
+    \<open>conflicting S = None\<close>
+    \<open>no_strange_atm S\<close>
+  shows \<open>total_over_m (lits_of_l (trail S)) (set_mset (clauses S))\<close>
+proof (rule ccontr)
+  assume \<open>\<not> ?thesis\<close>
+  then obtain L where \<open>L \<in> atms_of_mm (clauses S)\<close> and \<open>undefined_lit  (trail S) (Pos L)\<close>
+    by (auto simp: total_over_m_def total_over_set_def
+      Decided_Propagated_in_iff_in_lits_of_l)
+  then have \<open>Ex (decide S)\<close>
+    using decide_rule[of S \<open>Pos L\<close> \<open>cons_trail (Decided (Pos L)) S\<close>] assms
+    unfolding no_strange_atm_def clauses_def
+    by force
+  then show False
+    using assms by (auto simp: cdcl\<^sub>W.simps cdcl\<^sub>W_o.simps)
+qed
+
+lemma cdcl\<^sub>W_Ex_cdcl\<^sub>W_stgy:
+  assumes
+    \<open>cdcl\<^sub>W S T\<close>
+  shows \<open>Ex(cdcl\<^sub>W_stgy S)\<close>
+  using assms by (meson assms cdcl\<^sub>W.simps cdcl\<^sub>W_stgy.simps)
+
+end
 
 end

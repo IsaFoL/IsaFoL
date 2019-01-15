@@ -795,31 +795,6 @@ lemma cdcl\<^sub>W_o_no_smaller_confl:
     by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state clauses_def)
   done
 
-lemma (in conflict_driven_clause_learning\<^sub>W) conflict_conflict_is_false_with_level_all_inv:
-  \<open>conflict S T \<Longrightarrow>
-  no_smaller_confl S \<Longrightarrow>
-  cdcl\<^sub>W_all_struct_inv S \<Longrightarrow>
-  conflict_is_false_with_level T\<close>
-  by (rule conflict_conflict_is_false_with_level) (auto simp: cdcl\<^sub>W_all_struct_inv_def)
-
-lemma (in conflict_driven_clause_learning\<^sub>W) cdcl\<^sub>W_stgy_ex_lit_of_max_level_all_inv:
-  assumes
-    "cdcl\<^sub>W_stgy S S'" and
-    n_l: "no_smaller_confl S" and
-    "conflict_is_false_with_level S" and
-    "cdcl\<^sub>W_all_struct_inv S"
-  shows "conflict_is_false_with_level S'"
-  by (rule cdcl\<^sub>W_stgy_ex_lit_of_max_level) (use assms in \<open>auto simp: cdcl\<^sub>W_all_struct_inv_def\<close>)
-
-lemma (in conflict_driven_clause_learning\<^sub>W) cdcl\<^sub>W_o_conflict_is_false_with_level_inv_all_inv:
-  assumes
-    \<open>cdcl\<^sub>W_o S T\<close>
-    \<open>cdcl\<^sub>W_all_struct_inv S\<close>
-    \<open>conflict_is_false_with_level S\<close>
-  shows \<open>conflict_is_false_with_level T\<close>
-  by (rule cdcl\<^sub>W_o_conflict_is_false_with_level_inv)
-    (use assms in \<open>auto simp: cdcl\<^sub>W_all_struct_inv_def\<close>)
-
 declare cdcl\<^sub>W_restart_mset.conflict_is_false_with_level_def [simp del]
 
 lemma improve_conflict_is_false_with_level:
@@ -1404,31 +1379,6 @@ lemma cdcl_bab_stgy_invD:
   using assms unfolding cdcl\<^sub>W_stgy_invariant_def cdcl_bab_stgy_inv_def
   by auto
 
-lemma (in conflict_driven_clause_learning\<^sub>W) no_step_cdcl\<^sub>W_total:
-  assumes
-    \<open>no_step cdcl\<^sub>W S\<close>
-    \<open>conflicting S = None\<close>
-    \<open>no_strange_atm S\<close>
-  shows \<open>total_over_m (lits_of_l (trail S)) (set_mset (clauses S))\<close>
-proof (rule ccontr)
-  assume \<open>\<not> ?thesis\<close>
-  then obtain L where \<open>L \<in> atms_of_mm (clauses S)\<close> and \<open>undefined_lit  (trail S) (Pos L)\<close>
-    by (auto simp: total_over_m_def total_over_set_def
-      Decided_Propagated_in_iff_in_lits_of_l)
-  then have \<open>Ex (decide S)\<close>
-    using decide_rule[of S \<open>Pos L\<close> \<open>cons_trail (Decided (Pos L)) S\<close>] assms
-    unfolding no_strange_atm_def clauses_def
-    by force
-  then show False
-    using assms by (auto simp: cdcl\<^sub>W.simps)
-qed
-
-lemma (in conflict_driven_clause_learning\<^sub>W) cdcl\<^sub>W_Ex_cdcl\<^sub>W_stgy:
-  assumes
-    \<open>cdcl\<^sub>W S T\<close>
-  shows \<open>Ex(cdcl\<^sub>W_stgy S)\<close>
-  using assms by (meson assms cdcl\<^sub>W.simps cdcl\<^sub>W_stgy.simps)
-
 lemma conflict_is_false_with_level_abs_iff:
   \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (abs_state S) \<longleftrightarrow>
     conflict_is_false_with_level S\<close>
@@ -1742,7 +1692,6 @@ locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
       \<comment> \<open>changing state:\<close>
     cons_trail tl_trail add_learned_cls remove_cls
     update_conflicting
-
       \<comment> \<open>get state:\<close>
     init_state +
   ocdcl_weight \<rho>
@@ -2376,11 +2325,6 @@ proof -
       unfolding true_clss_cls_def by auto
   qed
 qed
-
-lemma (in -) distinct_mset_union2:
-  \<open>distinct_mset (A + B) \<Longrightarrow> distinct_mset B\<close>
-  using distinct_mset_union[of B A]
-  by (auto simp: ac_simps)
 
 text \<open>First part of \cwref{theo:prop:cdclmmcorrect}{Theorem 2.15.6}\<close>
 lemma full_cdcl_bab_stgy_no_conflicting_clause_unsat:
@@ -3072,7 +3016,7 @@ proof -
       using cons finite_\<Sigma> preprocess_clss_model_additional_variables[of I N] sat
         preprocess_clss_model_additional_variables2[of _ I]
 	\<Sigma> \<open>C \<in># N\<close> in_m_in_literals
-      apply (auto simp:  encode_clause_def postp_def encode_lit_alt_def
+      apply (auto simp: encode_clause_def postp_def encode_lit_alt_def
 	split: if_splits
 	dest!: multi_member_split[of _ C])
       by blast (*TODO proof*)
@@ -3101,10 +3045,6 @@ abbreviation \<rho>\<^sub>e_filter :: \<open>'v literal multiset \<Rightarrow> '
 
 definition \<rho>\<^sub>e :: \<open>'v literal multiset \<Rightarrow> nat\<close> where
   \<open>\<rho>\<^sub>e M = \<rho> (\<rho>\<^sub>e_filter M)\<close>
-
-lemma (in -)filter_mset_mono_subset:
-  \<open>A \<subseteq># B \<Longrightarrow> (\<And>x. x \<in># A \<Longrightarrow> P x \<Longrightarrow> Q x) \<Longrightarrow>filter_mset P A \<subseteq># filter_mset Q B\<close>
-  by (metis multiset_filter_mono multiset_filter_mono2 subset_mset.order_trans)
 
 lemma \<rho>\<^sub>e_mono: \<open>A \<subseteq># B \<Longrightarrow> \<rho>\<^sub>e A \<le> \<rho>\<^sub>e B\<close>
   unfolding \<rho>\<^sub>e_def
@@ -3228,8 +3168,8 @@ lemma encode_lit_eq_iff:
   \<open>atm_of x \<in> \<Sigma> \<Longrightarrow> atm_of y \<in> \<Sigma> \<Longrightarrow> encode_lit x = encode_lit y \<longleftrightarrow> x = y\<close>
   by (cases x; cases y) (auto simp: encode_lit_alt_def atm_of_eq_atm_of)
 
-lemma
-  distinct_mset_encode_clause_iff: \<open>atms_of N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset (encode_clause N) \<longleftrightarrow> distinct_mset N\<close>
+lemma distinct_mset_encode_clause_iff:
+  \<open>atms_of N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset (encode_clause N) \<longleftrightarrow> distinct_mset N\<close>
   by (induction N)
     (auto simp: encode_clause_def encode_lit_eq_iff
     dest!: multi_member_split)
@@ -3393,7 +3333,6 @@ proof -
       using Some' by auto
   qed
 qed
-
 
 end
 
