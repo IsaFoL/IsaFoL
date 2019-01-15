@@ -351,27 +351,13 @@ conflict_opt_rule:
 
 inductive_cases conflict_optE: \<open>conflict_opt S T\<close>
 
-text \<open>There are two properties related about the trail and the improvements:
-  \<^item> \<^term>\<open>optimal_improve\<close> states that there is no smaller improvement at all.
-  \<^item> \<^term>\<open>no_smaller_improve\<close> is the corresponding invariant, that holds between two decisions.
-\<close>
-definition optimal_improve :: "('v, 'v literal multiset) ann_lit list \<Rightarrow> 'st \<Rightarrow> bool" where
-  \<open>optimal_improve tr S \<longleftrightarrow> (\<forall>M M'. tr = M' @ M \<longrightarrow> M' \<noteq> [] \<longrightarrow> \<not>is_improving M S)\<close>
-
-definition no_smaller_improve :: "'st \<Rightarrow> bool" where
-  \<open>no_smaller_improve S \<longleftrightarrow> (\<forall>M M' K. trail S = M' @ Decided K # M \<longrightarrow> \<not>is_improving M S)\<close>
-
-text \<open>We are \<^emph>\<open>not\<close> requiring that improve is done as early as possible, only that we reduce the
-  trail to the minimum model.\<close>
 inductive improve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 improve_rule:
   \<open>improve S T\<close>
   if
-    \<open>trail S = M' @ M\<close> and
-    \<open>is_improving M S\<close> and
-    \<open>optimal_improve M S\<close> and
+    \<open>is_improving (trail S) S\<close> and
     \<open>conflicting S = None\<close> and
-    \<open>T \<sim> update_weight_information M S\<close>
+    \<open>T \<sim> update_weight_information (trail S) S\<close>
 
 inductive_cases improveE: \<open>improve S T\<close>
 
@@ -421,21 +407,20 @@ lemma improve_cdcl\<^sub>W_all_struct_inv:
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
   using assms atms_of_conflicting_clss[of T] atms_of_conflicting_clss[of S]
 proof (induction rule: improve.cases)
-  case (improve_rule M' M T)
-  moreover have [simp]: \<open>M' @ a @ Propagated L mark # b = (M' @ a) @ Propagated L mark # b\<close>
-    for a L mark b by auto
+  case (improve_rule T)
   moreover
   have \<open>all_decomposition_implies
      (set_mset (init_clss S) \<union> set_mset (conflicting_clss S) \<union> set_mset (learned_clss S))
-     (get_all_ann_decomposition (M' @ M)) \<Longrightarrow>
+     (get_all_ann_decomposition (trail S)) \<Longrightarrow>
     all_decomposition_implies
-     (set_mset (init_clss S) \<union> set_mset (conflicting_clss (update_weight_information M S)) \<union>
+     (set_mset (init_clss S) \<union> set_mset (conflicting_clss (update_weight_information (trail S) S)) \<union>
       set_mset (learned_clss S))
-     (get_all_ann_decomposition (M' @ M))\<close>
+     (get_all_ann_decomposition (trail S))\<close>
       apply (rule all_decomposition_implies_mono)
-      using improve_rule(3) conflicting_clss_update_weight_information_mono[of S] inv by auto
+      using improve_rule conflicting_clss_update_weight_information_mono[of S \<open>trail S\<close>] inv
+      by (auto dest: multi_member_split)
     ultimately show ?case
-      using conflicting_clss_update_weight_information_mono[of S M]
+      using conflicting_clss_update_weight_information_mono[of S \<open>trail S\<close>]
       by (auto 6 2 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
 	    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
 	    cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
@@ -568,7 +553,7 @@ lemma ocdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrac
 lemma cdcl_bab_no_more_init_clss:
   \<open>cdcl_bab S S' \<Longrightarrow> init_clss S = init_clss S'\<close>
   by (induction rule: cdcl_bab.cases)
-    (auto simp: improve.simps optimal_improve_def conflict.simps propagate.simps
+    (auto simp: improve.simps conflict.simps propagate.simps
       conflict_opt.simps ocdcl\<^sub>W_o.simps obacktrack.simps skip.simps resolve.simps ocdcl\<^sub>W_bj.simps
       decide.simps)
 
@@ -705,7 +690,7 @@ lemma cdcl_bab_cdcl_bab_struct_invs:
   \<open>cdcl_bab S T \<Longrightarrow> cdcl_bab_struct_invs S \<Longrightarrow> cdcl_bab_struct_invs T\<close>
   using conflicting_clss_update_weight_information_no_alien[of _ S] apply -
   by (induction rule: cdcl_bab.induct)
-    (force simp: improve.simps optimal_improve_def conflict.simps propagate.simps
+    (force simp: improve.simps conflict.simps propagate.simps
            conflict_opt.simps ocdcl\<^sub>W_o.simps obacktrack.simps skip.simps resolve.simps ocdcl\<^sub>W_bj.simps
            decide.simps cdcl_bab_struct_invs_def)+
 
@@ -842,9 +827,9 @@ lemma improve_conflict_is_false_with_level:
   shows \<open>conflict_is_false_with_level T\<close>
   using assms
 proof induction
-  case (improve_rule M' M T)
+  case (improve_rule T)
   then show ?case
-    by (cases M) (auto simp: cdcl\<^sub>W_restart_mset.conflict_is_false_with_level_def
+    by (auto simp: cdcl\<^sub>W_restart_mset.conflict_is_false_with_level_def
         abs_state_def cdcl\<^sub>W_restart_mset_state in_negate_trial_iff Bex_def negate_ann_lits_empty_iff
         intro!: exI[of _ \<open>-lit_of (hd M)\<close>])
 qed
@@ -1022,7 +1007,7 @@ next
 next
   case (cdcl_bab_improve S')
   then show ?case
-    by (auto simp: no_smaller_confl_def no_smaller_improve_def improve.simps)
+    by (auto simp: no_smaller_confl_def improve.simps)
 next
   case (cdcl_bab_conflict_opt S')
   then show ?case
@@ -1178,91 +1163,24 @@ lemma trail_is_improving_Ex_improve:
   shows \<open>Ex (improve S)\<close>
 proof -
   let ?M = \<open>trail S\<close>
-  obtain M M' where \<open>?M = M' @ M\<close> and \<open>optimal_improve M S\<close> and \<open>is_improving M S\<close>
+  have \<open>is_improving (trail S) S\<close>
     using either_all_false_or_earliest_decomposition[where P = \<open>\<lambda>M. is_improving M S\<close> and
         L = \<open>trail S\<close>]
-    using imp by (auto simp: optimal_improve_def)
+    using imp by auto
   then show ?thesis
     unfolding Ex_def
     using confl by (auto simp: improve.simps)
 qed
 
-lemma cdcl_bab_stgy_no_smaller_improve:
-  assumes \<open>cdcl_bab_stgy S T\<close> and
-    \<open>no_smaller_improve S\<close> and
-    struct_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
-  shows \<open>no_smaller_improve T\<close>
-  using assms
-proof induction
-  case (cdcl_bab_conflict S')
-  then show ?case
-    by (auto simp: no_smaller_improve_def elim!: conflictE)
-next
-  case (cdcl_bab_propagate S')
-  then show ?case
-    by (auto simp: no_smaller_improve_def propagated_cons_eq_append_decide_cons
-        elim!: propagateE)
-next
-  case (cdcl_bab_improve S')
-  then show ?case
-    using is_improving_mono[of _ S]
-    by (auto simp: no_smaller_improve_def improve.simps)
-next
-  case (cdcl_bab_conflict_opt S')
-  then show ?case
-    unfolding conflict_opt.simps no_smaller_improve_def by auto
-next
-  case (cdcl_bab_other' S') note o = this(1) and no_confl = this(2) and no_impr = this(3)
-  then have \<open>no_step improve S\<close>
-    by auto
-  then have H: \<open>\<not>is_improving (trail S) S\<close> if \<open>conflicting S = None\<close>
-    using that by (auto dest!: trail_is_improving_Ex_improve)
-
-  show ?case
-    using o
-  proof induction
-    case (decide S')
-    then show ?case
-      using no_impr
-      by (auto simp: improve.simps decided_cons_eq_append_decide_cons optimal_improve_def
-          H no_smaller_improve_def decide.simps)[]
-  next
-    case (bj S')
-    then show ?case
-      apply (induction rule: ocdcl\<^sub>W_bj.cases)
-      subgoal
-        apply (cases \<open>trail S\<close>)
-        using no_impr
-        unfolding ocdcl\<^sub>W_o.simps no_smaller_improve_def decide.simps
-         apply (auto simp: improve.simps decided_cons_eq_append_decide_cons optimal_improve_def
-            elim!: skipE resolveE backtrackE cdcl\<^sub>W_bjE)
-        done
-      subgoal
-        apply (cases \<open>trail S\<close>)
-        using no_impr
-        unfolding cdcl\<^sub>W_o.simps no_smaller_improve_def decide.simps
-         apply (auto simp: improve.simps decided_cons_eq_append_decide_cons optimal_improve_def
-            elim!: skipE resolveE backtrackE cdcl\<^sub>W_bjE)
-        done
-      subgoal
-        using no_impr
-        unfolding cdcl\<^sub>W_o.simps no_smaller_improve_def decide.simps
-        apply (auto simp: improve.simps decided_cons_eq_append_decide_cons optimal_improve_def
-            propagated_cons_eq_append_decide_cons elim!: skipE resolveE obacktrackE cdcl\<^sub>W_bjE)
-        done
-      done
-  qed
-qed
-
 definition cdcl_bab_stgy_inv :: "'st \<Rightarrow> bool" where
-  \<open>cdcl_bab_stgy_inv S \<longleftrightarrow> conflict_is_false_with_level S \<and> no_smaller_confl S \<and> no_smaller_improve S\<close>
+  \<open>cdcl_bab_stgy_inv S \<longleftrightarrow> conflict_is_false_with_level S \<and> no_smaller_confl S\<close>
 
 lemma cdcl_bab_stgy_stgy_inv:
   \<open>cdcl_bab_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
     cdcl_bab_stgy_inv S \<Longrightarrow> cdcl_bab_stgy_inv T\<close>
   unfolding cdcl_bab_stgy_inv_def
   using cdcl_bab_stgy_conflict_is_false_with_level cdcl_bab_stgy_no_smaller_confl
-    cdcl_bab_stgy_no_smaller_improve by blast
+  by blast
 
 lemma rtranclp_cdcl_bab_stgy_stgy_inv:
   \<open>cdcl_bab_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
@@ -2091,17 +2009,8 @@ proof -
     using total all_struct by (auto simp: total_over_m_def total_over_set_def
        cdcl\<^sub>W_all_struct_inv_def clauses_def
         no_strange_atm_def)
-  moreover have \<open>optimal_improve (trail S) S\<close>
-    using total all_struct \<open>no_dup (trail S)\<close>
-    apply (cases \<open>lit_of (hd (trail S))\<close>)
-    apply (auto simp: optimal_improve_def is_improving_int_def image_image
-        total_over_m_def total_over_set_def neq_Nil_conv cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def lits_of_def
-        no_strange_atm_def defined_lit_map clauses_def
-      intro!: bexI[of _ \<open>atm_of (lit_of (hd (trail S)))\<close>])
-    apply (metis UnCI image_eqI literal.sel(2))
-    by (metis UnCI image_eqI literal.sel(1))
   ultimately show \<open>Ex (improve S)\<close>
-    using improve.intros[of S \<open>[]\<close> \<open>trail S\<close> \<open>update_weight_information (trail S) S\<close>] total H confl
+    using improve.intros[of S \<open>update_weight_information (trail S) S\<close>] total H confl
     by (auto simp: is_improving_int_def)
 qed
 
@@ -2217,7 +2126,7 @@ lemma improve_model_still_model:
     \<open>set_mset I \<Turnstile>sm clauses T \<and> set_mset I \<Turnstile>sm conflicting_clss T\<close>
   using assms(1)
 proof (cases rule: improve.cases)
-  case (improve_rule M M') note confl = this(4) and T = this(5)
+  case (improve_rule) note confl = this(2) and T = this(3)
   have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state S)\<close>
     using all_struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast+
@@ -2577,8 +2486,7 @@ proof -
   moreover have [iff]: \<open>cdcl_bab_struct_invs ?S\<close>
     by (auto simp: cdcl_bab_struct_invs_def conflicting_clss_def conflicting_clauses_def)
   moreover have [simp]: \<open>cdcl_bab_stgy_inv ?S\<close>
-    by (auto simp: cdcl_bab_stgy_inv_def conflict_is_false_with_level_def
-      no_smaller_improve_def)
+    by (auto simp: cdcl_bab_stgy_inv_def conflict_is_false_with_level_def)
   moreover have ent: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init ?S\<close>
     by (auto simp: cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
   moreover have [simp]: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state (init_state N))\<close>
@@ -2606,7 +2514,40 @@ proof -
     by auto
 qed
 
+lemma
+  fixes P P' Q Q' :: 'v
+  defines \<open>N' \<equiv>  {#{#Pos P, Pos Q#}, {#Pos P, Pos Q'#}, {#Pos P', Pos Q#}, {#Pos P', Pos Q'#}#}\<close>
+  assumes [simp]: \<open>\<And>M. \<rho> M = (\<Sum> A \<in># M. \<nu> A)\<close> and
+    [simp]: \<open>\<nu> (Neg A) = 0\<close> and
+    [simp]: \<open>\<nu> (Pos P) = 3\<close> and
+    [simp]: \<open>\<nu> (Pos Q) = 3\<close> and
+    dist[simp]: \<open>P \<noteq> Q\<close> \<open>P \<noteq> P'\<close> \<open>P \<noteq> Q'\<close> \<open>Q \<noteq> Q'\<close>
+  shows \<open>cdcl_bab_stgy\<^sup>*\<^sup>* (init_state N') G\<close>
+proof -
+  note [simp] = dist[symmetric]
+  show ?thesis
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule cdcl_bab_other')
+    apply (rule decide)
+    apply (rule decide.intros[of _ \<open>Pos P\<close>, OF _ _ _ state_eq_ref])
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: N'_def)
+    subgoal by (auto simp: N'_def propagate.simps conflict.simps improve.simps
+      is_improving_int_def conflict_opt.simps)
 
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule cdcl_bab_other')
+    apply (rule decide)
+    apply (rule decide.intros[of _ \<open>Pos Q\<close>, OF _ _ _ state_eq_ref])
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: N'_def)
+    subgoal
+      by (auto simp: N'_def propagate.simps conflict.simps improve.simps
+      is_improving_int_def conflict_opt.simps)
+   oops
+    
 
 end
 
