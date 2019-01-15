@@ -1563,6 +1563,7 @@ proof -
 	simp del: isasat_input_bounded_def)
 qed
 
+
 (* TODO: Kill the other definition *)
 lemma isa_length_trail_length_u_no_CS:
   \<open>(RETURN o isa_length_trail, RETURN o length_uint32_nat) \<in> trail_pol_no_CS \<A> \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>

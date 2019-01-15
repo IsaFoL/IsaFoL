@@ -44,6 +44,7 @@ locale state\<^sub>W_ops =
 
     cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
+
     add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and

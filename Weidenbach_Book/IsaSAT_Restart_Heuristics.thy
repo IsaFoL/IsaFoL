@@ -429,7 +429,6 @@ lemma cdcl_twl_local_restart_wl_D_spec_int:
 proof -
   have If_Res: \<open>(if i then (RETURN f) else (RES g)) = (RES (if i then {f} else g))\<close> for i f g
     by auto
-  have H: \<open>g = g' \<Longrightarrow> (f \<bind> g) = (f \<bind> g')\<close> for f :: \<open>_ nres\<close> and g g' by auto
   show ?thesis
     unfolding cdcl_twl_local_restart_wl_D_spec_def prod.case RES_RETURN_RES2 If_Res
     by refine_vcg
