@@ -2553,7 +2553,7 @@ definition annotation_is_model where
 lemma (in -) distinct_consistent_distinct_atm:
   \<open>distinct M \<Longrightarrow> consistent_interp (set M) \<Longrightarrow> distinct_mset (atm_of `# mset M)\<close>
   by (induction M) (auto simp: atm_of_eq_atm_of)
-  
+
 lemma cdcl_bab_annotation_is_model:
   assumes
     \<open>cdcl_bab S T\<close> and
@@ -2683,7 +2683,7 @@ proof -
     subgoal
       by (auto simp: N'_def propagate.simps conflict.simps improve.simps
       is_improving_int_def conflict_opt.simps)
-      
+
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_bab_other')
     apply (rule decide)
@@ -2694,7 +2694,7 @@ proof -
     subgoal
       by (auto simp: N'_def propagate.simps conflict.simps improve.simps
       is_improving_int_def conflict_opt.simps)
-      
+
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_bab_other')
     apply (rule decide)
@@ -2712,7 +2712,7 @@ lemma (in -) lit_in_set_iff_atm:
   \<open>NO_MATCH (Pos x) l \<Longrightarrow> NO_MATCH (Neg x) l \<Longrightarrow>
     l \<in> M \<longleftrightarrow> (\<exists>l'. (l = Pos l' \<and> Pos l' \<in> M) \<or> (l = Neg l' \<and> Neg l' \<in> M)) \<close>
   by (cases l) auto
-  
+
 lemma (in -)consistent_interp_tautology:
   \<open>consistent_interp (set M') \<longleftrightarrow> \<not>tautology (mset M')\<close>
   by (auto simp: consistent_interp_def tautology_decomp lit_in_set_iff_atm)
@@ -2764,7 +2764,7 @@ proof -
     proof clarify
       fix x :: \<open>'v literal multiset\<close> and xa :: \<open>'v literal multiset\<close> and
         xb :: \<open>'v literal list\<close> and xc :: \<open>'v literal list\<close>
-      assume 
+      assume
 	dist: \<open>distinct_mset (atm_of `# mset (M @ xc))\<close> and
 	cons: \<open>consistent_interp (set_mset (mset (M @ xc)))\<close> and
 	atm': \<open>atms_of_s (set (M @ xc)) \<subseteq> atms_of_mm (init_clss S)\<close> and
@@ -2818,7 +2818,7 @@ proof -
     proof clarify
       fix x :: \<open>'v literal multiset\<close> and xa :: \<open>'v literal multiset\<close> and
         xb :: \<open>'v literal list\<close> and xc :: \<open>'v literal list\<close>
-      assume 
+      assume
 	dist: \<open>distinct_mset (atm_of `# mset (M @ xc))\<close> and
 	cons: \<open>consistent_interp (set_mset (mset (M @ xc)))\<close> and
 	atm': \<open>atms_of_s (set (M @ xc)) \<subseteq> atms_of_mm (init_clss S)\<close> and
