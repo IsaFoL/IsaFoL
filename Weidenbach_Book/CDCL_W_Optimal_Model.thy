@@ -464,7 +464,7 @@ lemma conflict_opt_no_smaller_conflict:
 
 fun no_confl_prop_impr where
   \<open>no_confl_prop_impr S \<longleftrightarrow>
-    no_step propagate S \<and> no_step conflict S \<and> no_step improve S \<and> no_step conflict_opt S\<close>
+    no_step propagate S \<and> no_step conflict S \<and> no_step improve S\<close>
 
 text \<open>We use a slighlty generalised form of backtrack to make conflict clause minimisation possible.\<close>
 inductive obacktrack :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
