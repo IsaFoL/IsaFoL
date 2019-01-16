@@ -926,7 +926,7 @@ proof
   then have mset_PAs': \<open>mset PAs' = mset PAs\<close> using mset_PAs_is by simp
   then have len_PAs: \<open>length PAs = length PAs'\<close> by (metis size_mset)
   define n where \<open>n = length PAs\<close>
-  then have \<open>length \<eta>s >= n - 1\<close> using CAs0_is PAs'_def mset_PAs_is sorry
+  then have len_ns: \<open>length \<eta>s >= n - 1\<close> using CAs0_is PAs'_def len_PAs by fastforce
   have len_PAs': \<open>length PAs' = n\<close> using n_def len_PAs by simp
   have exist_map: \<open>\<exists>map_i. (\<forall>i. i < n \<longrightarrow> PAs!i = PAs'!(map_i i)) \<and> inj_on map_i {0..<n} \<and>
           map_i ` {0..<n} \<subseteq> {0..<length PAs}\<close> if \<open>n \<le> length PAs\<close>
@@ -981,10 +981,14 @@ proof
     using ground_n ground_ns unfolding is_ground_subst_list_def by simp
   obtain \<rho>s where len_rs: \<open>length \<rho>s = n\<close> and rs_def: \<open>i < n \<Longrightarrow> \<rho>s!i = (\<eta> # \<eta>s)!(map_i i)\<close> for i  
     apply (rule that[of \<open>map (\<lambda>i. (\<eta> # \<eta>s)!(map_i i)) [0..<n]\<close>])
-    by (auto simp: n_def) 
-  have \<open>i < n \<Longrightarrow> is_ground_subst (\<rho>s!i)\<close> using rs_def ground_n_ns unfolding is_ground_subst_list_def
+    by (auto simp: n_def)
+  have \<open>\<iota>' = Saturation_Framework_Preliminaries.inference.Infer
+    (Saturation_Framework_Preliminaries.inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)
+    (Saturation_Framework_Preliminaries.inference.concl_of \<iota> \<cdot> \<eta>2) \<close>
+  sorry
+  have \<open>i < n \<Longrightarrow> is_ground_subst (\<rho>s!i)\<close> for i using rs_def ground_n_ns unfolding is_ground_subst_list_def
   proof (cases "map_i i = 0")
-    assume 
+    assume
       i_smaller_n: \<open>i < n\<close> and
       rs_def2: \<open>\<And>i. i < n \<Longrightarrow> \<rho>s ! i = (\<eta> # \<eta>s) ! map_i i\<close> and
       gr_subst_list_def: \<open>Ball (set (\<eta> # \<eta>s)) is_ground_subst\<close> and
@@ -992,44 +996,22 @@ proof
     have \<open>\<rho>s ! i = \<eta>\<close> by (simp add: i_smaller_n i_maps_to rs_def2)
     then show \<open>is_ground_subst (\<rho>s ! i)\<close> using ground_n by simp
   next
-    assume 
+    assume
       i_smaller_n: \<open>i < n\<close> and
       rs_def2: \<open>\<And>i. i < n \<Longrightarrow> \<rho>s ! i = (\<eta> # \<eta>s) ! map_i i\<close> and
       gr_subst_list_def: \<open>Ball (set (\<eta> # \<eta>s)) is_ground_subst\<close> and
       i_nmaps_to: \<open>map_i i \<noteq> 0\<close>
-    have \<open>\<rho>s ! i = \<eta>s ! (map_i i - 1)\<close> 
+    have rs_nth: \<open>\<rho>s ! i = \<eta>s ! (map_i i - 1)\<close>
       using i_smaller_n i_nmaps_to rs_def2 by simp
     define j where \<open>j = map_i i - 1\<close>
     have \<open>j \<in> {0..<(n-1)}\<close> using j_def i_nmaps_to i_smaller_n len_map_i by force
-    then have \<open>is_ground_subst (\<eta>s ! j)\<close> using ground_ns unfolding is_ground_subst_list_def sorry
-    then show \<open>is_ground_subst (\<rho>s ! i)\<close> using ground_ns unfolding is_ground_subst_list_def sorry
+    then have \<open>is_ground_subst (\<eta>s ! j)\<close> using ground_ns len_ns unfolding is_ground_subst_list_def by fastforce
+    then show \<open>is_ground_subst (\<rho>s ! i)\<close> using rs_nth j_def unfolding is_ground_subst_list_def by simp
   qed
-    
-  then have \<open>is_ground_subst_list \<rho>s\<close> using ground_n_ns unfolding is_ground_subst_list_def apply auto sorry
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  obtain \<rho>s where \<open>inference.prems_of \<iota>' = inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s\<close> and \<open>is_ground_subst_list \<rho>s\<close>
-    using ground_n ground_ns CAs0_is DA0_is is_inf i'_RP_is \<iota>_def unfolding conv_inf_def sorry 
-  have \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close> unfolding \<G>_Inf_def using i'_Inf_G is_inf \<iota>_def ground_n ground_ns ground_ns2 CAs0_is DA0_is E0_is i'_RP_is \<iota>_RP_def 
+  then have \<open>is_ground_subst_list \<rho>s\<close> using len_rs unfolding is_ground_subst_list_def set_conv_nth by auto
+  then have \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close> unfolding \<G>_Inf_def using i'_Inf_G is_inf \<iota>_def ground_ns2 CAs0_is DA0_is E0_is i'_RP_is \<iota>_RP_def 
 oops
 
-find_theorems map2 "_ \<Longrightarrow> length _ = _"
-find_theorems is_renaming
-find_theorems name: exI
-thm exE
-find_theorems mgu
 
 end
 
