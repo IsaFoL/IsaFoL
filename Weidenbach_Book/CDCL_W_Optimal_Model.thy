@@ -1675,7 +1675,7 @@ lemma \<rho>_empty_simp[simp]: \<open>\<rho> A \<ge> \<rho> {#}\<close> \<open>\
 end
 
 
-text \<open>This is the weight function as used by Christoph Weidenbach.\<close>
+text \<open>This is one of the version of the weight functions used by Christoph Weidenbach.\<close>
 locale ocdcl_weight_WB =
   fixes
     \<nu> :: \<open>'v literal \<Rightarrow> nat\<close>
@@ -1948,7 +1948,7 @@ lemma can_always_improve:
    shows \<open>Ex (improve S)\<close>
 proof -
   have H: \<open>(lit_of `# mset (trail S)) \<in># mset_set (simple_clss (atms_of_mm (init_clss S)))\<close>
-    \<open>(lit_of `# mset (trail S)) \<in> (simple_clss (atms_of_mm (init_clss S)))\<close>
+    \<open>(lit_of `# mset (trail S)) \<in> simple_clss (atms_of_mm (init_clss S))\<close>
     \<open>no_dup (trail S)\<close>
     apply (subst finite_set_mset_mset_set[OF simple_clss_finite])
     using all_struct by (auto simp: simple_clss_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
