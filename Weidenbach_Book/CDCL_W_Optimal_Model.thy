@@ -1812,7 +1812,7 @@ definition conflicting_clauses :: "'v clauses \<Rightarrow> 'v clause option \<R
 
 lemma (in -) tautology_pNeg[simp]:
   \<open>tautology (pNeg C) \<longleftrightarrow> tautology C\<close>
-  by (auto 5 5 simp: tautology_decomp pNeg_def 
+  by (auto 5 5 simp: tautology_decomp pNeg_def
       uminus_lit_swap add_mset_eq_add_mset  eq_commute[of \<open>Neg _\<close> \<open>- _\<close>]  eq_commute[of \<open>Pos _\<close> \<open>- _\<close>]
     dest!: multi_member_split)
 
@@ -1930,12 +1930,12 @@ lemma too_heavy_clause_None[simp]: \<open>too_heavy_clauses M None = {#}\<close>
   by (auto simp: too_heavy_clauses_def)
 
 lemma entails_too_heavy_clauses_too_heavy_clauses:
-  assumes 
+  assumes
     \<open>consistent_interp I\<close> and
     tot: \<open>total_over_m I (set_mset (too_heavy_clauses M w))\<close> and
     \<open>I \<Turnstile>m too_heavy_clauses M w\<close> and
     w: \<open>w \<noteq> None \<Longrightarrow> atms_of (the w) \<subseteq> atms_of_mm M\<close>
-      \<open>w \<noteq> None \<Longrightarrow> \<not>tautology (the w)\<close> 
+      \<open>w \<noteq> None \<Longrightarrow> \<not>tautology (the w)\<close>
       \<open>w \<noteq> None \<Longrightarrow> distinct_mset (the w)\<close>
   shows \<open>I \<Turnstile>m conflicting_clauses M w\<close>
 proof (cases w)
@@ -2669,7 +2669,7 @@ proof -
       by (auto simp: N'_def propagate.simps conflict.simps improve.simps
       is_improving_int_def conflict_opt.simps)
    oops
-    
+
 
 end
 
