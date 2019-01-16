@@ -49,7 +49,8 @@ provided $D\not\in\{\top,\bot\}$ and $\neg L$ does not occur in $D$.
 provided $D$ is of level $k$.
 
 \bigskip
-\shortrules{Backtrack}{$(M_1K^{i+1}M_2;N;U;k;D\lor L;O)$}{$(M_1L^{D\vee L};N;U\cup\{D\lor L\};i;\top;O)$}
+\shortrules{Backtrack}{$(M_1K^{i+1}M_2;N;U;k;D\lor L;O)$}{$(M_1L^{D\vee L};N;U\cup\{D\lor L\};i;
+  \top;O)$}
 
 provided $L$ is of level $k$ and $D$ is of level $i$.
 
@@ -58,7 +59,8 @@ provided $L$ is of level $k$ and $D$ is of level $i$.
 
 provided $M\models N$ and $O=\epsilon$ or $\operatorname{cost}(M)<\operatorname{cost}(O)$.
 }
-{This calculus does not always find the model with minimum cost. Take for example the following cost function:
+{This calculus does not always find the model with minimum cost. Take for example the following
+  cost function:
 \[\operatorname{cost}: \left\{
 \begin{array}{c@ {\rightarrow}c}
 P & 3\\
@@ -84,7 +86,8 @@ $(\epsilon, N, \varnothing, \top, \infty)$
 
 \shortrules{improve}{}{$({\neg P}^{\neg P}Q^{P\lor Q}, N, \{\neg P\}, \top, (\neg P\, Q, 2))$}
 
-\shortrules{conflictOpt}{}{$({\neg P}^{\neg P}Q^{P\lor Q}, N, \{\neg P\}, P \lor \neg Q, (\neg P\, Q, 2))$}
+\shortrules{conflictOpt}{}{$({\neg P}^{\neg P}Q^{P\lor Q}, N, \{\neg P\}, P \lor \neg Q, (\neg P\,
+  Q, 2))$}
 
 \shortrules{resolve}{}{$({\neg P}^{\neg P}, N, \{\neg P\}, P, (\neg P\, Q, 2))$}
 
@@ -95,18 +98,24 @@ However, the optimal model is $Q$.
 }
 \<close>
 
-text \<open>The idea of the proof (explained of the example of the optimising CDCL) is the following:
+text \<open>
+  The idea of the proof (explained of the example of the optimising CDCL) is the following:
+
   \<^enum> We start with a calculus OCDCL on \<^term>\<open>(M, N, U, D, Op)\<close>.
-  \<^enum> This extended to a state  \<^term>\<open>(M, N +  all_models_of_higher_cost, U, D, Op)\<close>.
-  \<^enum> Each transition step of OCDCL is mapped to a step in CDCL over the abstract state. The
-    abstract set of clauses might be unsatisfiable, but we only use it to prove the invariants on
-    the state. Only adding clause cannot be mapped to a transition over the abstract state, but adding clauses
-    does not break the invariants (as long as the additional clauses do not contain duplicate literals).
+
+  \<^enum> This extended to a state \<^term>\<open>(M, N + all_models_of_higher_cost, U, D, Op)\<close>.
+
+  \<^enum> Each transition step of OCDCL is mapped to a step in CDCL over the abstract state. The abstract
+    set of clauses might be unsatisfiable, but we only use it to prove the invariants on the
+    state. Only adding clause cannot be mapped to a transition over the abstract state, but adding
+    clauses does not break the invariants (as long as the additional clauses do not contain
+    duplicate literals).
+
   \<^enum> The last proofs are done over CDCLopt.
 
-We abstract about how the optimisation is done in the locale below: We define a calculus \<^term>\<open>cdcl_bab\<close>
-(for branch-and-bounds). It is parametrised by how the conflicting clauses are generated and the improvement
-criterion.
+We abstract about how the optimisation is done in the locale below: We define a calculus
+\<^term>\<open>cdcl_bab\<close> (for branch-and-bounds). It is parametrised by how the conflicting clauses are
+generated and the improvement criterion.
 
 We later instantiate it with the optimisation calculus from Weidenbach's book.
 \<close>
@@ -377,12 +386,12 @@ lemma conflict_opt_cdcl\<^sub>W_all_struct_inv:
   using assms atms_of_conflicting_clss[of T] atms_of_conflicting_clss[of S]
   apply (induction rule: conflict_opt.cases)
   by (auto simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
-	cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-	cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-	cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-	true_annots_true_cls_def_iff_negation_in_model
-	in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
-	distinct_mset_mset_conflicting_clss abs_state_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        true_annots_true_cls_def_iff_negation_in_model
+        in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
+        distinct_mset_mset_conflicting_clss abs_state_def
       intro!: true_clss_cls_in)
 
 lemma reduce_trail_to_update_weight_information[simp]:
@@ -422,13 +431,13 @@ proof (induction rule: improve.cases)
     ultimately show ?case
       using conflicting_clss_update_weight_information_mono[of S \<open>trail S\<close>]
       by (auto 6 2 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
-	    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-	    cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-	    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-	    true_annots_true_cls_def_iff_negation_in_model
-	    in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
-	    image_Un distinct_mset_mset_conflicting_clss abs_state_def
-	    conflicting_clss_update_weight_information_in
+            cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+            cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+            cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+            true_annots_true_cls_def_iff_negation_in_model
+            in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
+            image_Un distinct_mset_mset_conflicting_clss abs_state_def
+            conflicting_clss_update_weight_information_in
           simp del: append_assoc
           dest: no_dup_appendD consistent_interp_unionD)
 qed
@@ -459,7 +468,7 @@ fun no_confl_prop_impr where
 
 text \<open>We use a slighlty generalised form of backtrack to make conflict clause minimisation possible.\<close>
 inductive obacktrack :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
-obacktrack_rule: "
+obacktrack_rule: \<open>
   conflicting S = Some (add_mset L D) \<Longrightarrow>
   (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S)) \<Longrightarrow>
   get_level (trail S) L = backtrack_lvl S \<Longrightarrow>
@@ -472,7 +481,7 @@ obacktrack_rule: "
         (reduce_trail_to M1
           (add_learned_cls (add_mset L D')
             (update_conflicting None S))) \<Longrightarrow>
-  obacktrack S T"
+  obacktrack S T\<close>
 
 inductive_cases obacktrackE: \<open>obacktrack S T\<close>
 
@@ -627,7 +636,7 @@ proof (induction rule: obacktrack.cases)
     using obacktrack_rule
     by (auto intro!: cdcl\<^sub>W_restart_mset.backtrack.intros
         simp: cdcl\<^sub>W_restart_mset_state abs_state_def clauses_def cdcl\<^sub>W_restart_mset.clauses_def
-	  ac_simps)
+          ac_simps)
 qed
 
 lemma ocdcl\<^sub>W_o_all_rules_induct[consumes 1, case_names decide backtrack skip resolve]:
@@ -941,18 +950,18 @@ next
           using UnI2 \<open>M1 = tl M' @ Decided K' # M\<close>
           by auto
         moreover {
-	  have "obacktrack S ?S'"
+          have "obacktrack S ?S'"
             using obacktrack_rule[OF backtrack.hyps(1-8) T] obacktrack_state_eq_compatible[of S T S] T
             by force
-	  then have \<open>cdcl_bab S ?S'\<close>
-	    by (auto dest!: ocdcl\<^sub>W_bj.intros ocdcl\<^sub>W_o.intros intro: cdcl_bab.intros)
-	  then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state ?S')\<close>
-	    using cdcl_bab_stgy_all_struct_inv[of S, OF _ lev] by fast
+          then have \<open>cdcl_bab S ?S'\<close>
+            by (auto dest!: ocdcl\<^sub>W_bj.intros ocdcl\<^sub>W_o.intros intro: cdcl_bab.intros)
+          then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state ?S')\<close>
+            using cdcl_bab_stgy_all_struct_inv[of S, OF _ lev] by fast
           then have "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (abs_state ?S')"
             by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
           then have "no_dup (Propagated L D # M1)"
             using decomp lev unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by auto
-	}
+        }
         ultimately show False
           using Decided_Propagated_in_iff_in_lits_of_l defined_lit_map
           by (auto simp: no_dup_def)
@@ -1020,12 +1029,12 @@ proof (induct rule: ocdcl\<^sub>W_o_induct)
         by (auto simp: in_remove1_mset_neq)
       moreover have "Propagated L C # M \<Turnstile>as CNot D"
         using conflicting confl tr_S unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-	by (auto simp: abs_state_def conflicting.simps trail.simps)
+        by (auto simp: abs_state_def conflicting.simps trail.simps)
       ultimately have "-L \<in> lits_of_l (Propagated L C # M)"
         using in_CNot_implies_uminus(2) by blast
       moreover have "no_dup (Propagated L C # M)"
         using lev tr_S unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-	  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by auto
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by auto
       ultimately show False unfolding lits_of_def
         by (metis imageI insertCI list.simps(15) lit_of.simps(2) lits_of_def no_dup_consistentD)
     qed
@@ -1067,7 +1076,7 @@ next
         by auto
       have "Propagated L C' # M \<Turnstile>as CNot D"
         using conflicting tr_S D unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-	by (auto simp: abs_state_def conflicting.simps trail.simps)
+        by (auto simp: abs_state_def conflicting.simps trail.simps)
       then have "-L \<in> lits_of_l M"
         using \<open>La \<in># D\<close> in_CNot_implies_uminus(2)[of L D "Propagated L C' # M"] unfolding La
         by auto
@@ -1311,14 +1320,14 @@ lemma cdcl\<^sub>W_same_weight: \<open>cdcl\<^sub>W S U \<Longrightarrow> weight
     (auto simp: improve.simps cdcl\<^sub>W.simps
         propagate.simps sim_abs_state_simp abs_state_def cdcl\<^sub>W_restart_mset_state
         clauses_def conflict.simps cdcl\<^sub>W_o.simps decide.simps cdcl\<^sub>W_bj.simps
-	skip.simps resolve.simps backtrack.simps)
+        skip.simps resolve.simps backtrack.simps)
 
 lemma ocdcl\<^sub>W_o_same_weight: \<open>ocdcl\<^sub>W_o S U \<Longrightarrow> weight S = weight U\<close>
   by (induction rule: ocdcl\<^sub>W_o.induct)
     (auto simp: improve.simps cdcl\<^sub>W.simps ocdcl\<^sub>W_bj.simps
         propagate.simps sim_abs_state_simp abs_state_def cdcl\<^sub>W_restart_mset_state
         clauses_def conflict.simps cdcl\<^sub>W_o.simps decide.simps cdcl\<^sub>W_bj.simps
-	skip.simps resolve.simps obacktrack.simps)
+        skip.simps resolve.simps obacktrack.simps)
 
 lemma cdcl\<^sub>W_all_struct_inv_restart_cdcl\<^sub>W_all_struct_inv:
   \<open>cdcl\<^sub>W_all_struct_inv b \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state b)\<close>
@@ -1366,9 +1375,9 @@ proof -
     by (auto dest: cdcl\<^sub>W.intros cdcl\<^sub>W_restart_mset.W_propagate cdcl\<^sub>W_restart_mset.W_other
           conflict_conflict propagate_propagate decide_decide improve conflict_opt_conflict
           cdcl\<^sub>W_o_cdcl\<^sub>W_o cdcl\<^sub>W_restart_mset.W_conflict W_conflict cdcl\<^sub>W_o.intros cdcl\<^sub>W.intros
-	  cdcl\<^sub>W_o_cdcl\<^sub>W_o
-	simp: cdcl\<^sub>W_same_weight cdcl_bab.simps ocdcl\<^sub>W_o_same_weight
-	elim: conflict_optE)
+          cdcl\<^sub>W_o_cdcl\<^sub>W_o
+        simp: cdcl\<^sub>W_same_weight cdcl_bab.simps ocdcl\<^sub>W_o_same_weight
+        elim: conflict_optE)
   ultimately show ?thesis
     by (rule wf_subset)
 qed
@@ -1449,12 +1458,12 @@ proof -
        \<open>no_step cdcl\<^sub>W_restart_mset.backtrack (abs_state S)\<close>
       using ns_confl by (force simp: cdcl\<^sub>W_restart_mset.skip.simps skip.simps
         cdcl\<^sub>W_restart_mset.resolve.simps resolve.simps
-	dest: backtrack_imp_obacktrack)+
+        dest: backtrack_imp_obacktrack)+
     then show \<open>?thesis\<close>
       using that False by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W.simps
         cdcl\<^sub>W_restart_mset.propagate.simps cdcl\<^sub>W_restart_mset.conflict.simps
-	cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.simps cdcl\<^sub>W_restart_mset.decide.simps
-	cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps)
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.simps cdcl\<^sub>W_restart_mset.decide.simps
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps)
   qed
   then show \<open>?thesis\<close> by blast
 qed
@@ -1559,30 +1568,30 @@ proof -
   then show ?thesis
     using assms
     apply (auto 7 5 simp: cdcl_bab_stgy.simps conflict_opt.simps ocdcl\<^sub>W_o.simps
-	ocdcl\<^sub>W_bj.simps
+        ocdcl\<^sub>W_bj.simps
       dest!: conflict_conflict propagate_propagate decide_decide skip_skip resolve_resolve
-	backtrack_backtrack
+        backtrack_backtrack
       dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.intros
       dest: conflicting_clss_update_weight_information_in
-	conflict_abs_ex_conflict_no_conflicting
-	propagate_abs_ex_propagate_no_conflicting
+        conflict_abs_ex_conflict_no_conflicting
+        propagate_abs_ex_propagate_no_conflicting
       elim: improveE)
       apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
       apply (auto dest:
-	conflict_abs_ex_conflict_no_conflicting
-	propagate_abs_ex_propagate_no_conflicting)
+        conflict_abs_ex_conflict_no_conflicting
+        propagate_abs_ex_propagate_no_conflicting)
       apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
       apply (auto dest:
-	conflict_abs_ex_conflict_no_conflicting
-	propagate_abs_ex_propagate_no_conflicting)
+        conflict_abs_ex_conflict_no_conflicting
+        propagate_abs_ex_propagate_no_conflicting)
       apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
       apply (auto dest:
-	conflict_abs_ex_conflict_no_conflicting
-	propagate_abs_ex_propagate_no_conflicting)
+        conflict_abs_ex_conflict_no_conflicting
+        propagate_abs_ex_propagate_no_conflicting)
       apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
       apply (auto dest:
-	conflict_abs_ex_conflict_no_conflicting
-	propagate_abs_ex_propagate_no_conflicting)
+        conflict_abs_ex_conflict_no_conflicting
+        propagate_abs_ex_propagate_no_conflicting)
       done
 qed
 
@@ -2380,15 +2389,15 @@ proof -
       by (auto simp: propagate.simps annotation_is_model_def)
     subgoal
       by (force simp: annotation_is_model_def true_annots_true_cls lits_of_def
-	improve.simps is_improving_int_def image_Un image_image
+        improve.simps is_improving_int_def image_Un image_image
       dest!: consistent_interp_unionD intro: distinct_mset_union2)
     subgoal
       by (auto simp:  annotation_is_model_def
-	conflict_opt.simps)
+        conflict_opt.simps)
     subgoal
       by (auto simp: annotation_is_model_def
-	ocdcl\<^sub>W_o.simps ocdcl\<^sub>W_bj.simps obacktrack.simps
-	skip.simps resolve.simps decide.simps)
+        ocdcl\<^sub>W_o.simps ocdcl\<^sub>W_bj.simps obacktrack.simps
+        skip.simps resolve.simps decide.simps)
     done
 qed
 
@@ -2929,7 +2938,7 @@ proof -
       \<open>A \<in> I\<close>
       using sat
       by (auto simp: true_cls_def
-	dest!: multi_member_split[of _ N])
+        dest!: multi_member_split[of _ N])
     moreover have \<open>atm_of A \<in> \<Sigma> - \<Sigma>\<^sub>w \<or> atm_of A \<in> \<Sigma>\<^sub>w\<close>
       using atm \<open>A \<in> I\<close> unfolding \<Sigma> by blast
     ultimately have \<open>encode_lit A \<in> upostp I\<close>
@@ -3015,10 +3024,10 @@ proof -
       unfolding true_cls_def
       using cons finite_\<Sigma> preprocess_clss_model_additional_variables[of I N] sat
         preprocess_clss_model_additional_variables2[of _ I]
-	\<Sigma> \<open>C \<in># N\<close> in_m_in_literals
+        \<Sigma> \<open>C \<in># N\<close> in_m_in_literals
       apply (auto simp: encode_clause_def postp_def encode_lit_alt_def
-	split: if_splits
-	dest!: multi_member_split[of _ C])
+        split: if_splits
+        dest!: multi_member_split[of _ C])
       by blast (*TODO proof*)
   qed
 qed
@@ -3261,13 +3270,13 @@ proof -
         \<open>atm_of ` set_mset I = atms_of I\<close>
         by (auto simp: atms_of_def)
       have \<open>atms_of ?I = atms_of_mm ?N\<close>
-	apply (subst atms_of_mm_preprocessed_clss_subset2[OF finite_\<Sigma>])
-	subgoal using \<Sigma>\<^sub>w_\<Sigma> atms by auto
-	subgoal
-	  using atm_of_upostp_subset[of \<open>set_mset I\<close>] atm_of_upostp_subset2[of \<open>set_mset I\<close>] atm
-	  unfolding atms A
-	  by auto
-	done
+        apply (subst atms_of_mm_preprocessed_clss_subset2[OF finite_\<Sigma>])
+        subgoal using \<Sigma>\<^sub>w_\<Sigma> atms by auto
+        subgoal
+          using atm_of_upostp_subset[of \<open>set_mset I\<close>] atm_of_upostp_subset2[of \<open>set_mset I\<close>] atm
+          unfolding atms A
+          by auto
+        done
     }
     moreover have \<open>consistent_interp (set_mset ?I)\<close>
       using cons unfolding I by (rule consistent_interp_upostp)
@@ -3279,45 +3288,45 @@ proof -
           (use \<Sigma>\<^sub>w_\<Sigma> atms atm in \<open>auto dest: multi_member_split\<close>)
       then have \<open>\<rho>\<^sub>e ?I = \<rho> I\<close>
         by (subst (asm) distinct_mset_set_mset_ident)
-	  (use atms dist in auto)
+          (use atms dist in auto)
     }
     ultimately have \<open>\<rho> I \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
       using Some'
       by auto
     moreover {
       have \<open>\<rho> (mset_set ?K) \<le> \<rho>\<^sub>e (the (weight T))\<close>
-	unfolding \<rho>\<^sub>e_def
-	apply (rule \<rho>_mono2)
-	subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
-	subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
-	subgoal
-	  unfolding filter_filter_mset
-	  apply (rule filter_mset_mono_subset)
-	  subgoal
-	    apply (subst distinct_subseteq_iff[symmetric])
-	    using dist model[OF Some]
-	    by (auto simp: postp_def distinct_mset_mset_set)
-	  subgoal by (auto simp: postp_def)
-	  done
-	done
+        unfolding \<rho>\<^sub>e_def
+        apply (rule \<rho>_mono2)
+        subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
+        subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
+        subgoal
+          unfolding filter_filter_mset
+          apply (rule filter_mset_mono_subset)
+          subgoal
+            apply (subst distinct_subseteq_iff[symmetric])
+            using dist model[OF Some]
+            by (auto simp: postp_def distinct_mset_mset_set)
+          subgoal by (auto simp: postp_def)
+          done
+        done
        then have \<open>\<rho> (mset_set ?K) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
          using Some by auto
     }
     moreover {
       have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> \<rho>\<^sub>e (mset_set (set_mset (the (weight T))))\<close>
-	unfolding \<rho>\<^sub>e_def
-	apply (rule \<rho>_mono2)
-	subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
-	subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
-	subgoal
-	  unfolding filter_filter_mset
-	  apply (rule filter_mset_mono_subset)
-	  by (auto simp: postp_def)
-	done
+        unfolding \<rho>\<^sub>e_def
+        apply (rule \<rho>_mono2)
+        subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
+        subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
+        subgoal
+          unfolding filter_filter_mset
+          apply (rule filter_mset_mono_subset)
+          by (auto simp: postp_def)
+        done
       then have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
         apply (subst (asm) distinct_mset_set_mset_ident)
-	 apply (use atms dist model[OF Some] in auto; fail)[]
-	 using Some' by auto
+         apply (use atms dist model[OF Some] in auto; fail)[]
+         using Some' by auto
     }
     moreover have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> \<rho> (mset_set ?K)\<close>
       unfolding \<rho>\<^sub>e_def
@@ -3326,7 +3335,7 @@ proof -
       subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
       subgoal
         unfolding filter_filter_mset
-	apply (rule filter_mset_mono_subset)
+        apply (rule filter_mset_mono_subset)
         by (auto simp: postp_def)
       done
     ultimately show ?thesis
