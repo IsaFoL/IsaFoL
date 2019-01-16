@@ -1803,8 +1803,160 @@ lemma distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftright
   unfolding pNeg_def
   by (rule distinct_image_mset_inj) (auto simp: inj_on_def)
 
+definition too_heavy_clauses :: \<open>'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses\<close> where
+  \<open>too_heavy_clauses M w = {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C \<ge> \<rho>' w#}\<close>
+
 definition conflicting_clauses :: "'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses" where
-  \<open>conflicting_clauses M w = {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C \<ge> \<rho>' w#}\<close>
+  \<open>conflicting_clauses M w =
+    {#C \<in># mset_set (simple_clss (atms_of_mm M)). too_heavy_clauses M w \<Turnstile>pm C#}\<close>
+
+lemma (in -) tautology_pNeg[simp]:
+  \<open>tautology (pNeg C) \<longleftrightarrow> tautology C\<close>
+  by (auto 5 5 simp: tautology_decomp pNeg_def 
+      uminus_lit_swap add_mset_eq_add_mset  eq_commute[of \<open>Neg _\<close> \<open>- _\<close>]  eq_commute[of \<open>Pos _\<close> \<open>- _\<close>]
+    dest!: multi_member_split)
+
+lemma too_heavy_clauses_conflicting_clauses:
+  \<open>C \<in># too_heavy_clauses M w \<Longrightarrow> C \<in># conflicting_clauses M w\<close>
+  by (auto simp: conflicting_clauses_def too_heavy_clauses_def simple_clss_finite)
+    (auto simp: simple_clss_def)
+
+lemma too_heavy_clauses_contains_itself:
+  \<open>M \<in> simple_clss (atms_of_mm N) \<Longrightarrow> pNeg M \<in># too_heavy_clauses N (Some M)\<close>
+  by (auto simp: too_heavy_clauses_def simple_clss_finite)
+
+lemma (in -) tautology_union:
+  \<open>tautology (A + B) \<longleftrightarrow> tautology A \<or> tautology B \<or> (\<exists>a. a \<in># A \<and> -a \<in># B)\<close>
+  by (metis tautology_decomp tautology_minus uminus_Neg uminus_Pos union_iff)
+lemma (in -)
+  tautology_poss[simp]: \<open>\<not>tautology (poss A)\<close> and
+  tautology_negs[simp]: \<open>\<not>tautology (negs A)\<close>
+  by (auto simp: tautology_decomp)
+
+lemma (in -) tautology_uminus[simp]:
+  \<open>tautology (uminus `# w) \<longleftrightarrow> tautology w\<close>
+  by (auto 5 5 simp: tautology_decomp add_mset_eq_add_mset eq_commute[of \<open>Pos _\<close> \<open>-_\<close>]
+    simp flip: uminus_lit_swap
+    dest!: multi_member_split)
+
+lemma (in -) atms_of_uminus[simp]: \<open>atms_of (uminus `# C) = atms_of C\<close>
+  by (auto simp: atms_of_def image_image)
+
+lemma (in -) pNeg_convolutionp[simp]:
+  \<open>pNeg (pNeg C) = C\<close>
+  by (auto simp: pNeg_def)
+
+lemma
+  atms_too_heavy_clauses_None:
+    \<open>atms_of_mm (too_heavy_clauses M None) = {}\<close> and
+  atms_too_heavy_clauses_Some:
+    \<open>atms_of w \<subseteq> atms_of_mm M  \<Longrightarrow> distinct_mset w \<Longrightarrow> \<not>tautology w \<Longrightarrow> atms_of_mm (too_heavy_clauses M (Some w)) = atms_of_mm M\<close>
+proof -
+  show \<open>atms_of_mm (too_heavy_clauses M None) = {}\<close>
+    by (auto simp: too_heavy_clauses_def)
+  assume atms: \<open>atms_of w \<subseteq> atms_of_mm M\<close> and
+    dist: \<open>distinct_mset w\<close> and
+    taut: \<open>\<not>tautology w\<close>
+  have \<open>atms_of_mm (too_heavy_clauses M (Some w)) \<subseteq> atms_of_mm M\<close>
+    by (auto simp: too_heavy_clauses_def atms_of_ms_def simple_clss_finite)
+      (auto simp: simple_clss_def)
+  let ?w = \<open>w + Neg `# {#x \<in># mset_set (atms_of_mm M). x \<notin> atms_of w#}\<close>
+  have [simp]: \<open>inj_on Neg A\<close> for A
+    by (auto simp: inj_on_def)
+  have [simp]: \<open>distinct_mset (uminus `# w)\<close>
+    by (subst distinct_image_mset_inj)
+      (auto simp: dist inj_on_def)
+  have \<open>distinct_mset ?w\<close>
+    using dist
+    by (auto simp: distinct_mset_add distinct_image_mset_inj distinct_mset_mset_set uminus_lit_swap
+      disjunct_not_in dest: multi_member_split)
+  moreover have \<open>\<not>tautology (w + negs (mset_set {x \<in> atms_of_mm M. x \<notin> atms_of w}))\<close>
+    by (auto simp: tautology_union taut uminus_lit_swap dest: multi_member_split)
+  ultimately have \<open>?w \<in> (simple_clss (atms_of_mm M))\<close>
+    using atms by (auto simp: simple_clss_def)
+  moreover have \<open>\<rho> ?w \<ge> \<rho> w\<close>
+    by (rule \<rho>_mono) auto
+  ultimately have \<open>pNeg ?w \<in># too_heavy_clauses M (Some w)\<close>
+    by (auto simp: too_heavy_clauses_def simple_clss_finite)
+  then have \<open>atms_of_mm M \<subseteq> atms_of_mm (too_heavy_clauses M (Some w))\<close>
+    by (auto dest!: multi_member_split)
+  then show \<open>atms_of_mm (too_heavy_clauses M (Some w)) = atms_of_mm M\<close>
+    using \<open>atms_of_mm (too_heavy_clauses M (Some w)) \<subseteq> atms_of_mm M\<close> by blast
+qed
+
+lemma (in -)true_clss_cls_tautology_iff:
+  \<open>{} \<Turnstile>p a \<longleftrightarrow> tautology a\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof
+  assume ?A
+  then have H: \<open>total_over_set I (atms_of a) \<Longrightarrow> consistent_interp I \<Longrightarrow> I \<Turnstile> a\<close> for I
+    by (auto simp: true_clss_cls_def tautology_decomp add_mset_eq_add_mset
+      dest!: multi_member_split)
+  show ?B
+    unfolding tautology_def
+  proof (intro allI impI)
+    fix I
+    assume tot: \<open>total_over_set I (atms_of a)\<close>
+    let ?Iinter = \<open>I \<inter> uminus ` I\<close>
+    let ?I = \<open>I - ?Iinter \<union> Pos ` atm_of ` ?Iinter\<close>
+    have \<open>total_over_set ?I (atms_of a)\<close>
+      using tot by (force simp: total_over_set_def image_image simp flip: uminus_lit_swap
+        simp: image_iff)
+    moreover have \<open>consistent_interp ?I\<close>
+      unfolding consistent_interp_def image_iff
+      apply clarify
+      subgoal for L
+        apply (cases L)
+        apply (auto simp: consistent_interp_def uminus_lit_swap image_iff)
+	apply (case_tac xa; auto; fail)+
+	done
+      done
+    ultimately have \<open>?I \<Turnstile> a\<close>
+      using H[of ?I] by fast
+    moreover have \<open>?I \<subseteq> I\<close>
+      apply (rule)
+      subgoal for x by (cases x; auto; rename_tac xb; case_tac xb; auto)
+      done
+    ultimately show \<open>I \<Turnstile> a\<close>
+      by (blast intro: true_cls_mono_set_mset_l)
+  qed
+next
+  assume ?B
+  then show \<open>?A\<close>
+    by (auto simp: true_clss_cls_def tautology_decomp add_mset_eq_add_mset
+      dest!: multi_member_split)
+qed
+
+lemma too_heavy_clause_None[simp]: \<open>too_heavy_clauses M None = {#}\<close>
+  by (auto simp: too_heavy_clauses_def)
+
+lemma entails_too_heavy_clauses_too_heavy_clauses:
+  assumes 
+    \<open>consistent_interp I\<close> and
+    tot: \<open>total_over_m I (set_mset (too_heavy_clauses M w))\<close> and
+    \<open>I \<Turnstile>m too_heavy_clauses M w\<close> and
+    w: \<open>w \<noteq> None \<Longrightarrow> atms_of (the w) \<subseteq> atms_of_mm M\<close>
+      \<open>w \<noteq> None \<Longrightarrow> \<not>tautology (the w)\<close> 
+      \<open>w \<noteq> None \<Longrightarrow> distinct_mset (the w)\<close>
+  shows \<open>I \<Turnstile>m conflicting_clauses M w\<close>
+proof (cases w)
+  case None
+  have [simp]: \<open>{x \<in> simple_clss (atms_of_mm M). tautology x} = {}\<close>
+    by (auto dest: simple_clssE)
+  show ?thesis
+    using None by (auto simp: conflicting_clauses_def true_clss_cls_tautology_iff
+      simple_clss_finite)
+next
+  case w': (Some w')
+  have \<open>x \<in># mset_set (simple_clss (atms_of_mm M)) \<Longrightarrow> total_over_set I (atms_of x)\<close> for x
+    using tot w atms_too_heavy_clauses_Some[of w' M] unfolding w'
+    by (auto simp: total_over_m_def simple_clss_finite total_over_set_alt_def
+      dest!: simple_clssE)
+  then show ?thesis
+    using assms
+    by (subst true_cls_mset_def)
+      (auto simp: conflicting_clauses_def true_clss_cls_def
+        dest!: spec[of _ I])
+qed
 
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state
   where
@@ -1845,10 +1997,21 @@ lemma distinct_mset_mset_conflicting_clss: \<open>distinct_mset_mset (conflictin
   apply (auto simp: simple_clss_finite)
   by (auto simp: simple_clss_def)
 
+lemma too_heavy_clauses_mono:
+  \<open>\<rho> a > \<rho> (lit_of `# mset M) \<Longrightarrow> too_heavy_clauses N (Some a) \<subseteq>#
+       too_heavy_clauses N (Some (lit_of `# mset M))\<close>
+  by (auto simp: too_heavy_clauses_def multiset_filter_mono2
+    intro!: multiset_filter_mono image_mset_subseteq_mono)
+
 lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improving M S \<Longrightarrow>
        conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M S)\<close>
-  by (cases \<open>weight S\<close>) (auto simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
-      simp: multiset_filter_mono2 le_less intro!: image_mset_subseteq_mono
+  using too_heavy_clauses_mono[of M \<open>the (weight S)\<close> \<open>(init_clss S)\<close>]
+    true_clss_cls_subset
+  by (cases \<open>weight S\<close>)
+    (auto 7 5 simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
+      simp: multiset_filter_mono2 le_less true_clss_cls_tautology_iff simple_clss_finite
+      intro!: image_mset_subseteq_mono
+      dest: simple_clssE
       split: enat.splits)
 
 lemma total_over_m_atms_incl:
@@ -1865,7 +2028,8 @@ lemma conflicting_clss_update_weight_information_in:
     conflicting_clauses_def conflicting_clss_def is_improving_int_def)
   by (auto simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
       simp: multiset_filter_mono2 simple_clss_def lits_of_def
-      negate_ann_lits_pNeg_lit_of image_iff dest: total_over_m_atms_incl)
+      negate_ann_lits_pNeg_lit_of image_iff dest: total_over_m_atms_incl
+      intro!: true_clss_cls_in too_heavy_clauses_contains_itself)
 
 lemma atms_of_ms_pNeg[simp]: \<open>atms_of_ms (pNeg ` N) = atms_of_ms N\<close>
   unfolding atms_of_ms_def pNeg_def by (auto simp: image_image atms_of_def)
@@ -1938,6 +2102,19 @@ lemma wf_cdcl_bab: \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all
   subgoal by (simp add: wf)
   done
 
+lemma not_entailed_too_heavy_clauses_ge:
+  \<open>C \<in> simple_clss (atms_of_mm N) \<Longrightarrow>
+    \<not> too_heavy_clauses N w \<Turnstile>pm
+      pNeg C \<Longrightarrow> \<not>\<rho> C \<ge> \<rho>' w\<close>
+      using true_clss_cls_in[of \<open>pNeg C\<close> \<open>set_mset (too_heavy_clauses N w)\<close>]
+      too_heavy_clauses_contains_itself
+  by (auto simp: too_heavy_clauses_def simple_clss_finite
+        image_iff)
+
+lemma pNeg_simple_clss_iff[simp]:
+  \<open>pNeg C \<in> simple_clss N \<longleftrightarrow> C \<in> simple_clss N\<close>
+  by (auto simp: simple_clss_def)
+
 lemma can_always_improve:
   assumes
     ent: \<open>trail S \<Turnstile>asm clauses S\<close> and
@@ -1959,8 +2136,10 @@ proof -
     using n_s confl total
     by (auto simp: conflict_opt.simps conflicting_clss_def lits_of_def
          conflicting_clauses_def clauses_def negate_ann_lits_pNeg_lit_of image_iff
-         simple_clss_def subset_iff
-       dest!: spec[of _ \<open>(lit_of `# mset (trail S))\<close>] dest: total_over_m_atms_incl)
+         simple_clss_finite subset_iff
+       dest!: spec[of _ \<open>(lit_of `# mset (trail S))\<close>] dest: total_over_m_atms_incl
+          true_clss_cls_in too_heavy_clauses_contains_itself
+	  dest: not_entailed_too_heavy_clauses_ge)
   moreover have \<open>trail S \<Turnstile>asm init_clss S\<close>
     using ent by (auto simp: clauses_def)
   moreover have \<open>total_over_m (lits_of_l (trail S))  (set_mset (init_clss S))\<close>
@@ -2025,44 +2204,7 @@ proof (cases rule: obacktrack.cases)
       cdcl_bab_struct_invs_def dest: multi_member_split)
     by blast
   have 2: \<open>set_mset I \<Turnstile>sm conflicting_clss S\<close>
-    unfolding true_clss_def
-  proof
-    fix C
-    assume \<open>C \<in># conflicting_clss S\<close>
-    then obtain x where
-      [simp]: \<open>C = pNeg x\<close> and
-      x: \<open>x \<in> simple_clss (atms_of_mm (init_clss S))\<close> and
-      we: \<open>\<rho>' (weight S) \<le> enat (\<rho> x)\<close>
-      unfolding conflicting_clss_def conflicting_clauses_def
-      by (auto simp: simple_clss_finite)
-    then have \<open>x \<noteq> I\<close>
-      using le T
-      by auto
-    then have \<open>set_mset x \<noteq> set_mset I\<close>
-      using distinct_set_mset_eq_iff[of x I] x dist
-      by (auto simp: simple_clss_def)
-    then have \<open>\<exists>a. ((a \<in># x \<and> a \<notin># I) \<or> (a \<in># I \<and> a \<notin># x))\<close>
-      by auto
-    moreover have \<open>\<not>set_mset x \<subseteq> set_mset I\<close>
-      using \<rho>_mono[of \<open>x\<close> I] we le T distinct_set_mset_eq_iff[of x I] simple_clssE[OF x] dist
-      by (cases \<open>weight S\<close>) auto
-    moreover have \<open>x \<noteq> {#}\<close>
-      using we le T
-      by (cases \<open>weight S\<close>) auto
-    ultimately obtain L where
-      L_x: \<open>L \<in># x\<close> and
-      \<open>L \<notin># I\<close>
-      by auto
-    moreover have \<open>atms_of x \<subseteq> atms_of I\<close>
-      using simple_clssE[OF x] tot[symmetric]
-      atm_iff_pos_or_neg_lit[of a I] atm_iff_pos_or_neg_lit[of a x]
-      by (auto dest!: multi_member_split)
-    ultimately have \<open>-L \<in># I\<close>
-      using tot simple_clssE[OF x] atm_of_notin_atms_of_iff
-      by auto
-    then show \<open>set_mset I \<Turnstile> C\<close>
-      using L_x by (auto simp: simple_clss_finite pNeg_def dest!: multi_member_split)
-  qed
+    using tot cons ent(2) by auto
   have \<open>set_mset I \<Turnstile> add_mset L D'\<close>
     using H[OF 1 cons] 2 ent by auto
   then show ?thesis
@@ -2085,23 +2227,30 @@ lemma improve_model_still_model:
   using assms(1)
 proof (cases rule: improve.cases)
   case (improve_rule) note confl = this(2) and T = this(3)
-  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state S)\<close>
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state S)\<close> and
+    lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (abs_state S)\<close>
     using all_struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast+
-  have \<open>total_over_m (set_mset I) (set_mset (init_clss S))\<close>
+  then have atm_trail: \<open>atms_of (lit_of `# mset (trail S)) \<subseteq> atms_of_mm (init_clss S)\<close>
+    using alien by (auto simp: no_strange_atm_def lits_of_def atms_of_def)
+  have dist2: \<open>distinct_mset (lit_of `# mset (trail S))\<close> and
+    taut2: \<open>\<not> tautology (lit_of `# mset (trail S))\<close>
+    using lev unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto dest: no_dup_distinct no_dup_not_tautology)
+  have tot2: \<open>total_over_m (set_mset I) (set_mset (init_clss S))\<close>
     using tot[symmetric]
     by (auto simp: total_over_m_def total_over_set_def atm_iff_pos_or_neg_lit)
 
-  have 2: \<open>set_mset I \<Turnstile>sm conflicting_clss T\<close>
-    unfolding true_clss_def
+  have 2: \<open>set_mset I \<Turnstile>m too_heavy_clauses (init_clss T) (weight T)\<close>
+    unfolding true_cls_mset_def
   proof
     fix C
-    assume \<open>C \<in># conflicting_clss T\<close>
+    assume \<open>C \<in># too_heavy_clauses (init_clss T) (weight T)\<close>
     then obtain x where
       [simp]: \<open>C = pNeg x\<close> and
       x: \<open>x \<in> simple_clss (atms_of_mm (init_clss T))\<close> and
       we: \<open>\<rho>' (weight T) \<le> enat (\<rho> x)\<close>
-      unfolding conflicting_clss_def conflicting_clauses_def
+      unfolding too_heavy_clauses_def
       by (auto simp: simple_clss_finite)
     then have \<open>x \<noteq> I\<close>
       using cdcl_bab_larger_still_larger[of S T]  cdcl_bab.intros(3)[OF assms(1)]
@@ -2133,6 +2282,24 @@ proof (cases rule: improve.cases)
     then show \<open>set_mset I \<Turnstile> C\<close>
       using L_x by (auto simp: simple_clss_finite pNeg_def dest!: multi_member_split)
   qed
+  then have \<open>set_mset I \<Turnstile>m conflicting_clauses (init_clss S) (weight (update_weight_information (trail S) S))\<close>
+    apply -
+    apply (rule entails_too_heavy_clauses_too_heavy_clauses)
+    subgoal using cons by auto
+    subgoal using tot tot2 dist2 atm_trail taut2
+      by (auto simp: total_over_m_def atms_too_heavy_clauses_Some)
+    subgoal
+      using T by auto
+    subgoal
+      using atm_trail by auto
+    subgoal
+      using taut2 by auto
+    subgoal
+      using dist2 by auto
+    done
+
+  then have \<open>set_mset I \<Turnstile>m conflicting_clss (update_weight_information (trail S) S)\<close>
+    by (auto simp: update_weight_information_def conflicting_clss_def)
   then show ?thesis
     using ent improve_rule 2 T by auto
 qed
@@ -2335,6 +2502,14 @@ proof -
   qed
 qed
 
+lemma weight_init_state2[simp]: \<open>weight (init_state S) = None\<close> and
+  conflicting_clss_init_state[simp]:
+    \<open>conflicting_clss (init_state N) = {#}\<close>
+  unfolding weight_def
+  conflicting_clss_def conflicting_clauses_def
+  by (auto simp: weight_init_state true_clss_cls_tautology_iff simple_clss_finite
+    filter_mset_empty_conv mset_set_empty_iff dest: simple_clssE)
+
 text \<open>First part of \cwref{theo:prop:cdclmmcorrect}{Theorem 2.15.6}\<close>
 lemma full_cdcl_bab_stgy_no_conflicting_clause_unsat:
   assumes
@@ -2351,7 +2526,8 @@ proof -
     using ent
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
       cdcl\<^sub>W_learned_clauses_entailed_by_init_def abs_state_def cdcl\<^sub>W_restart_mset_state
-      conflicting_clss_def conflicting_clauses_def)
+      conflicting_clss_def conflicting_clauses_def true_clss_cls_tautology_iff simple_clss_finite
+    filter_mset_empty_conv mset_set_empty_iff dest: simple_clssE)
   then show ?thesis
     using full_cdcl_bab_stgy_no_conflicting_clss_unsat[OF _ st all_struct
      stgy_inv] by (auto simp: can_always_improve)
@@ -2408,13 +2584,6 @@ lemma rtranclp_cdcl_bab_annotation_is_model:
     (auto simp: cdcl_bab_annotation_is_model rtranclp_cdcl_bab_stgy_all_struct_inv)
 
 
-lemma weight_init_state2[simp]: \<open>weight (init_state S) = None\<close> and
-  conflicting_clss_init_state[simp]:
-    \<open>conflicting_clss (init_state N) = {#}\<close>
-  unfolding weight_def
-  conflicting_clss_def conflicting_clauses_def
-  by (auto simp: weight_init_state)
-
 text \<open>\cwref{theo:prop:cdclmmcorrect}{Theorem 2.15.6}\<close>
 theorem full_cdcl_bab_stgy_no_conflicting_clause_from_init_state:
   assumes
@@ -2437,7 +2606,7 @@ proof -
     unfolding init_state.simps[symmetric]
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
   moreover have [iff]: \<open>cdcl_bab_struct_invs ?S\<close>
-    by (auto simp: cdcl_bab_struct_invs_def conflicting_clss_def conflicting_clauses_def)
+    by (auto simp: cdcl_bab_struct_invs_def)
   moreover have [simp]: \<open>cdcl_bab_stgy_inv ?S\<close>
     by (auto simp: cdcl_bab_stgy_inv_def conflict_is_false_with_level_def)
   moreover have ent: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init ?S\<close>
