@@ -954,10 +954,6 @@ proof
     using ord_resolve_rename_lifting[OF sel_stable grounded_res selection_axioms prems_ground] by metis
   define \<iota>_RP where \<open>\<iota>_RP = Infer (mset CAs0) DA0 E0\<close>
   then have i_RP_in: \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using ngr_res unfolding ord_FO_\<Gamma>_def by blast
-  define \<iota> where \<open>\<iota> = conv_inf \<iota>_RP\<close>
-  then have \<open>\<iota> \<in> Inf_F\<close> using i_RP_in conv_inf_in_Inf_F unfolding Inf_F_def by blast
-  have \<open>{DA0} \<union> set CAs0 = set (inference.prems_of \<iota>)\<close> using \<iota>_def \<iota>_RP_def unfolding conv_inf_def by simp
-  then have \<open>set (inference.prems_of \<iota>) \<subseteq> M\<close> using prems_in by simp
   define PAs where \<open>PAs = inference.prems_of \<iota>'\<close>
   then have mset_PAs_is: \<open>mset PAs = mset CAs + {# DA #}\<close>
     using i'_RP_is is_inf unfolding same_inf_def by simp
@@ -1021,10 +1017,6 @@ proof
   obtain \<rho>s where len_rs: \<open>length \<rho>s = n\<close> and rs_def: \<open>i < n \<Longrightarrow> \<rho>s!i = (\<eta> # \<eta>s)!(map_i i)\<close> for i  
     apply (rule that[of \<open>map (\<lambda>i. (\<eta> # \<eta>s)!(map_i i)) [0..<n]\<close>])
     by (auto simp: n_def)
-  have \<open>\<iota>' = Saturation_Framework_Preliminaries.inference.Infer
-    (Saturation_Framework_Preliminaries.inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)
-    (Saturation_Framework_Preliminaries.inference.concl_of \<iota> \<cdot> \<eta>2) \<close>
-  sorry
   have \<open>i < n \<Longrightarrow> is_ground_subst (\<rho>s!i)\<close> for i using rs_def ground_n_ns unfolding is_ground_subst_list_def
   proof (cases "map_i i = 0")
     assume
@@ -1048,6 +1040,20 @@ proof
     then show \<open>is_ground_subst (\<rho>s ! i)\<close> using rs_nth j_def unfolding is_ground_subst_list_def by simp
   qed
   then have \<open>is_ground_subst_list \<rho>s\<close> using len_rs unfolding is_ground_subst_list_def set_conv_nth by auto
+  obtain \<iota> where len_prems_i: \<open>length (inference.prems_of \<iota>) = n\<close> and
+    i_is: \<open>same_inf \<iota>_RP \<iota>\<close> and
+    i_prems_order: \<open>\<And>i. i < n \<Longrightarrow> (inference.prems_of \<iota>)!i = (DA0 # CAs0)!(map_i i)\<close>
+    apply (rule that[of \<open>Saturation_Framework_Preliminaries.Infer (map (\<lambda>i. (DA0 # CAs0)!(map_i i)) [0..<n]) E0\<close>])
+    using \<iota>_RP_def unfolding n_def same_inf_def apply auto
+    sorry
+  (*define \<iota> where \<open>\<iota> = conv_inf \<iota>_RP\<close>*)
+  then have \<open>\<iota> \<in> Inf_F\<close> using i_RP_in conv_inf_in_Inf_F unfolding Inf_F_def by blast
+  have \<open>{DA0} \<union> set CAs0 = set (inference.prems_of \<iota>)\<close> using \<iota>_def \<iota>_RP_def unfolding conv_inf_def by simp
+  then have \<open>set (inference.prems_of \<iota>) \<subseteq> M\<close> using prems_in by simp
+  have \<open>\<iota>' = Saturation_Framework_Preliminaries.inference.Infer
+    (Saturation_Framework_Preliminaries.inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)
+    (Saturation_Framework_Preliminaries.inference.concl_of \<iota> \<cdot> \<eta>2) \<close>
+  sorry
   then have \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close> unfolding \<G>_Inf_def using i'_Inf_G is_inf \<iota>_def ground_ns2 CAs0_is DA0_is E0_is i'_RP_is \<iota>_RP_def 
 oops
 
