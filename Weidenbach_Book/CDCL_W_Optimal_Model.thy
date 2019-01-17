@@ -2743,8 +2743,8 @@ lemma (in -) true_clss_cls_cong_set_mset:
   \<open>N \<Turnstile>pm D \<Longrightarrow> set_mset D = set_mset D' \<Longrightarrow> N \<Turnstile>pm D'\<close>
   by (auto simp add: true_clss_cls_def true_cls_def atms_of_cong_set_mset[of D D'])
 
-lemma
-  assumes \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+lemma pruned_clause_in_conflicting_clss:
+  assumes
     ge: \<open>\<And>M'. total_over_m (set_mset (mset (M @ M'))) (set_mset (init_clss S)) \<Longrightarrow>
       distinct_mset (atm_of `# mset (M @ M')) \<Longrightarrow>
       consistent_interp (set_mset (mset (M @ M'))) \<Longrightarrow> \<rho> (mset (M @ M')) \<ge> \<rho>' (weight S)\<close> and
@@ -2877,13 +2877,265 @@ proof -
      card (atms_of_mm (init_clss S)) =
      card (atms_of_mm (init_clss S)) - card (atms_of (mset M)) +
      card (atms_of (mset (M @ M')))}\<close>
-    using card_mono[OF _ assms(3)] assms by (auto dest: card_mono distinct_consistent_distinct_atm)
+    using card_mono[OF _ assms(2)] assms by (auto dest: card_mono distinct_consistent_distinct_atm)
 
   from set_mp[OF 0 imageI[OF this]]
   show \<open>pNeg (mset M) \<in># conflicting_clss S\<close>
     by auto
 qed
 
+text \<open>To make sure that the paper version of the correct, we restrict the previous calculus to exactly
+  the rules that are on paper.\<close>
+inductive pruning :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+pruning_rule:
+  \<open>pruning S T\<close>
+  if
+    \<open>\<And>M'. total_over_m (set_mset (mset (map lit_of (trail S) @ M'))) (set_mset (init_clss S)) \<Longrightarrow>
+       distinct_mset (atm_of `# mset (map lit_of (trail S) @ M')) \<Longrightarrow>
+       consistent_interp (set_mset (mset (map lit_of (trail S) @ M'))) \<Longrightarrow>
+       \<rho>' (weight S) \<le> enat (\<rho> (mset (map lit_of (trail S) @ M')))\<close>
+    \<open>conflicting S = None\<close>
+    \<open>T \<sim> update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
+
+inductive oconflict_opt :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T :: 'st where
+oconflict_opt_rule:
+  \<open>oconflict_opt S T\<close>
+  if
+    \<open>\<rho> (lit_of `# mset (trail S)) \<ge> \<rho>' (weight S)\<close>
+    \<open>conflicting S = None\<close>
+    \<open>T \<sim> update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
+
+
+inductive ocdcl\<^sub>w :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+ocdcl_conflict: "conflict S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
+ocdcl_propagate: "propagate S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
+ocdcl_improve: "improve S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
+ocdcl_conflict_opt: "oconflict_opt S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
+ocdcl_other': "ocdcl\<^sub>W_o S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
+ocdcl_pruning: "pruning S S' \<Longrightarrow> ocdcl\<^sub>w S S'"
+
+inductive ocdcl\<^sub>w_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+ocdcl\<^sub>w_conflict: "conflict S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'" |
+ocdcl\<^sub>w_propagate: "propagate S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'" |
+ocdcl\<^sub>w_improve: "improve S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'" |
+ocdcl\<^sub>w_conflict_opt: "conflict_opt S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'"|
+ocdcl\<^sub>W_pruning: "pruning S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'" |
+ocdcl\<^sub>w_other': "ocdcl\<^sub>W_o S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> ocdcl\<^sub>w_stgy S S'"
+
+lemma pruning_conflict_opt:
+  assumes ocdcl_pruning: \<open>pruning S T\<close> and
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>conflict_opt S T\<close>
+proof -
+  have le:
+    \<open>\<And>M'. total_over_m (set_mset (mset (map lit_of (trail S) @ M')))
+          (set_mset (init_clss S)) \<Longrightarrow>
+         distinct_mset (atm_of `# mset (map lit_of (trail S) @ M')) \<Longrightarrow>
+         consistent_interp (set_mset (mset (map lit_of (trail S) @ M'))) \<Longrightarrow>
+         \<rho>' (weight S) \<le> enat (\<rho> (mset (map lit_of (trail S) @ M')))\<close>
+    using ocdcl_pruning by (auto simp: pruning.simps)
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state S)\<close> and
+    lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (abs_state S)\<close>
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  have incl: \<open>atms_of (mset (map lit_of (trail S))) \<subseteq> atms_of_mm (init_clss S)\<close>
+    using alien unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state lits_of_def image_image atms_of_def)
+  have dist: \<open>distinct (map lit_of (trail S))\<close> and
+    cons: \<open>consistent_interp (set (map lit_of (trail S)))\<close>
+    using lev unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state lits_of_def image_image atms_of_def
+      dest: no_dup_map_lit_of)
+  have \<open>negate_ann_lits (trail S) \<in># conflicting_clss S\<close>
+    unfolding negate_ann_lits_pNeg_lit_of comp_def mset_map[symmetric]
+    apply (rule pruned_clause_in_conflicting_clss)
+    subgoal using le by fast
+    subgoal using incl by fast
+    subgoal using dist by fast
+    subgoal using cons by fast
+    done
+  then show \<open>conflict_opt S T\<close>
+    apply (rule conflict_opt.intros)
+    subgoal using ocdcl_pruning by (auto simp: pruning.simps)
+    subgoal using ocdcl_pruning by (auto simp: pruning.simps)
+    done
+qed
+
+lemma ocdcl_conflict_opt_conflict_opt:
+  assumes ocdcl_pruning: \<open>oconflict_opt S T\<close> and
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>conflict_opt S T\<close>
+proof -
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state S)\<close> and
+    lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (abs_state S)\<close>
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  have incl: \<open>atms_of (lit_of `# mset (trail S)) \<subseteq> atms_of_mm (init_clss S)\<close>
+    using alien unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state lits_of_def image_image atms_of_def)
+  have dist: \<open>distinct_mset (lit_of `# mset (trail S))\<close> and
+    cons: \<open>consistent_interp (set (map lit_of (trail S)))\<close> and
+    tauto: \<open>\<not>tautology (lit_of `# mset (trail S))\<close>
+    using lev unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state lits_of_def image_image atms_of_def
+      dest: no_dup_map_lit_of no_dup_distinct no_dup_not_tautology)
+  have \<open>lit_of `# mset (trail S) \<in> simple_clss (atms_of_mm (init_clss S))\<close>
+    using dist incl tauto by (auto simp: simple_clss_def)
+  then have simple: \<open>(lit_of `# mset (trail S))
+    \<in> {a. a \<in># mset_set (simple_clss (atms_of_mm (init_clss S))) \<and>
+          \<rho>' (weight S) \<le> enat (\<rho> a)}\<close>
+    using ocdcl_pruning by (auto simp: simple_clss_finite oconflict_opt.simps)
+  have \<open>negate_ann_lits (trail S) \<in># conflicting_clss S\<close>
+    unfolding negate_ann_lits_pNeg_lit_of comp_def conflicting_clss_def
+    by (rule too_heavy_clauses_conflicting_clauses)
+      (use simple in \<open>auto simp: too_heavy_clauses_def oconflict_opt.simps\<close>)
+  then show \<open>conflict_opt S T\<close>
+    apply (rule conflict_opt.intros)
+    subgoal using ocdcl_pruning by (auto simp: oconflict_opt.simps)
+    subgoal using ocdcl_pruning by (auto simp: oconflict_opt.simps)
+    done
+qed
+
+lemma ocdcl\<^sub>w_cdcl_bab:
+  assumes \<open>ocdcl\<^sub>w S T\<close> and
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>cdcl_bab S T\<close>
+  using assms by (cases) (auto intro: cdcl_bab.intros dest: pruning_conflict_opt
+    ocdcl_conflict_opt_conflict_opt)
+
+
+lemma ocdcl\<^sub>w_stgy_cdcl_bab_stgy:
+  assumes \<open>ocdcl\<^sub>w_stgy S T\<close> and
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>cdcl_bab_stgy S T\<close>
+  using assms by (cases) (auto intro: cdcl_bab_stgy.intros dest: pruning_conflict_opt)
+
+lemma rtranclp_ocdcl\<^sub>w_stgy_rtranclp_cdcl_bab_stgy:
+  assumes \<open>ocdcl\<^sub>w_stgy\<^sup>*\<^sup>* S T\<close> and
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>cdcl_bab_stgy\<^sup>*\<^sup>* S T\<close>
+  using assms
+  by (induction rule: rtranclp_induct)
+    (auto dest: rtranclp_cdcl_bab_stgy_all_struct_inv[OF rtranclp_cdcl_bab_stgy_cdcl_bab]
+      ocdcl\<^sub>w_stgy_cdcl_bab_stgy)
+
+lemma no_step_ocdcl\<^sub>w_no_step_cdcl_bab:
+  assumes \<open>no_step ocdcl\<^sub>w S\<close> and
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>no_step cdcl_bab S\<close>
+proof -
+  have
+    nsc: \<open>no_step conflict S\<close> and
+    nsp: \<open>no_step propagate S\<close> and
+    nsi: \<open>no_step improve S\<close> and
+    nsco: \<open>no_step oconflict_opt S\<close> and
+    nso: \<open>no_step ocdcl\<^sub>W_o S\<close>and
+    nspr: \<open>no_step pruning S\<close>
+    using assms(1) by (auto simp: cdcl_bab.simps ocdcl\<^sub>w.simps)
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state S)\<close> and
+    lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (abs_state S)\<close>
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  have incl: \<open>atms_of (lit_of `# mset (trail S)) \<subseteq> atms_of_mm (init_clss S)\<close>
+    using alien unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state lits_of_def image_image atms_of_def)
+  have dist: \<open>distinct_mset (lit_of `# mset (trail S))\<close> and
+    cons: \<open>consistent_interp (set (map lit_of (trail S)))\<close> and
+    tauto: \<open>\<not>tautology (lit_of `# mset (trail S))\<close> and
+    n_d: \<open>no_dup (trail S)\<close>
+    using lev unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state lits_of_def image_image atms_of_def
+      dest: no_dup_map_lit_of no_dup_distinct no_dup_not_tautology)
+
+  have False if \<open>conflict_opt S S'\<close> for S'
+  proof -
+    have [simp]: \<open>conflicting S = None\<close>
+      using that by (auto simp: conflict_opt.simps)
+    have 1: \<open>\<not> \<rho>' (weight S) \<le> enat (\<rho> (lit_of `# mset (trail S)))\<close>
+      using nsco
+      by (auto simp: is_improving_int_def oconflict_opt.simps)
+    have 2: \<open>total_over_m (lits_of_l (trail S)) (set_mset (init_clss S))\<close>
+    proof (rule ccontr)
+      assume \<open>\<not> ?thesis\<close>
+      then obtain A where
+        \<open>A \<in> atms_of_mm (init_clss S)\<close> and
+	\<open>A \<notin> atms_of_s (lits_of_l (trail S))\<close>
+	by (auto simp: total_over_m_def total_over_set_def)
+      then show \<open>False\<close>
+        using decide_rule[of S \<open>Pos A\<close>, OF _ _ _ state_eq_ref] nso
+	by (auto simp: Decided_Propagated_in_iff_in_lits_of_l ocdcl\<^sub>W_o.simps)
+      qed
+    have 3: \<open>trail S \<Turnstile>asm init_clss S\<close>
+      unfolding true_annots_def
+    proof clarify
+      fix C
+      assume C: \<open>C \<in># init_clss S\<close>
+      have \<open>total_over_m (lits_of_l (trail S)) {C}\<close>
+        using 2 C by (auto dest!: multi_member_split)
+      moreover have \<open>\<not> trail S \<Turnstile>as CNot C\<close>
+        using C nsc conflict_rule[of S C, OF _ _ _ state_eq_ref]
+	by (auto simp: clauses_def dest!: multi_member_split)
+      ultimately show \<open>trail S \<Turnstile>a C\<close>
+        using total_not_CNot[of \<open>lits_of_l (trail S)\<close> C] unfolding true_annots_true_cls true_annot_def
+	by auto
+    qed
+    have 4: \<open>lit_of `# mset (trail S) \<in> simple_clss (atms_of_mm (init_clss S))\<close>
+      using tauto cons incl dist by (auto simp: simple_clss_def)
+    have imp: \<open>is_improving (trail S) S\<close>
+      using 1 2 3 4 incl n_d
+      by (auto simp: is_improving_int_def oconflict_opt.simps)
+
+    show \<open>False\<close>
+      using trail_is_improving_Ex_improve[of S, OF _ imp] nsi by auto
+  qed
+  then show ?thesis
+    using nsc nsp nsi nsco nso nsp nspr
+    by (auto simp: cdcl_bab.simps)
+qed
+
+lemma all_struct_init_state_distinct_iff:
+  \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state (init_state N)) \<longleftrightarrow>
+  distinct_mset_mset N\<close>
+      unfolding init_state.simps[symmetric]
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+      cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+      abs_state_def cdcl\<^sub>W_restart_mset_state)
+
+lemma no_step_ocdcl\<^sub>w_stgy_no_step_cdcl_bab_stgy:
+  assumes \<open>no_step ocdcl\<^sub>w_stgy S\<close> and
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>no_step cdcl_bab_stgy S\<close>
+  using assms no_step_ocdcl\<^sub>w_no_step_cdcl_bab[of S]
+  by (auto simp: ocdcl\<^sub>w_stgy.simps ocdcl\<^sub>w.simps
+    cdcl_bab.simps cdcl_bab_stgy.simps)
+
+lemma full_ocdcl\<^sub>w_stgy_full_cdcl_bab_stgy:
+  assumes \<open>full ocdcl\<^sub>w_stgy S T\<close> and
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>full cdcl_bab_stgy S T\<close>
+  using assms rtranclp_ocdcl\<^sub>w_stgy_rtranclp_cdcl_bab_stgy[of S T]
+    no_step_ocdcl\<^sub>w_stgy_no_step_cdcl_bab_stgy[of T]
+  unfolding full_def
+  by (auto dest: rtranclp_cdcl_bab_stgy_all_struct_inv[OF rtranclp_cdcl_bab_stgy_cdcl_bab])
+
+corollary full_ocdcl\<^sub>w_stgy_no_conflicting_clause_from_init_state:
+  assumes
+    st: \<open>full ocdcl\<^sub>w_stgy (init_state N) T\<close> and
+    dist: \<open>distinct_mset_mset N\<close>
+  shows
+    \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset N)\<close> and
+    \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
+       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
+       distinct_mset (the (weight T))\<close> and
+    \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
+      set_mset I \<Turnstile>sm N \<Longrightarrow> \<rho> I \<ge> \<rho>' (weight T)\<close>
+  using full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of N T,
+    OF full_ocdcl\<^sub>w_stgy_full_cdcl_bab_stgy[OF st] dist] dist
+    by (auto simp: all_struct_init_state_distinct_iff)
 
 end
 
