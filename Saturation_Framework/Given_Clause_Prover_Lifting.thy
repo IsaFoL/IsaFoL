@@ -34,8 +34,17 @@ lemma (in -) set_list_mset_set_mset [simp]: "set (list_mset M) = set_mset M"
 definition conv_inf :: "'a inference \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference" where
   "conv_inf \<iota> = Saturation_Framework_Preliminaries.inference.Infer (list_mset (prems_of \<iota>)) (concl_of \<iota>)"
 
+definition same_inf ::
+  "'a inference \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference \<Rightarrow> bool" where
+  "same_inf \<iota>_RP \<iota> \<equiv>
+    prems_of \<iota>_RP = mset (Saturation_Framework_Preliminaries.prems_of \<iota>) \<and>
+    concl_of \<iota>_RP = Saturation_Framework_Preliminaries.concl_of \<iota>"
+
 definition Inf_F :: "'a clause Saturation_Framework_Preliminaries.inference set" where
-  "Inf_F = conv_inf ` (ord_FO_\<Gamma> S)"
+  "Inf_F = {\<iota>. \<exists>\<iota>_RP \<in> (ord_FO_\<Gamma> S). same_inf \<iota>_RP \<iota>}"
+
+lemma conv_inf_in_Inf_F: \<open>conv_inf ` (ord_FO_\<Gamma> S) \<subseteq> Inf_F\<close>
+  unfolding conv_inf_def Inf_F_def same_inf_def by auto
 
 interpretation sound_F: Saturation_Framework_Preliminaries.sound_inference_system Bot_F entails_sound_F Inf_F 
 proof -
@@ -67,14 +76,14 @@ proof -
       i_in: "\<iota> \<in> Inf_F" and
       I_entails_prems: "\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s set (inference.prems_of \<iota>) \<cdot>cs \<sigma>" and
       ground_subst: "is_ground_subst \<eta>"
-    obtain \<iota>_RP where i_RP_in: "\<iota>_RP \<in> (ord_FO_\<Gamma> S)" and i_i_RP: "conv_inf \<iota>_RP = \<iota>"
-      using i_in unfolding Inf_F_def by blast
+    obtain \<iota>_RP where i_RP_in: "\<iota>_RP \<in> (ord_FO_\<Gamma> S)" and i_i_RP: "same_inf \<iota>_RP \<iota>"
+      using i_in unfolding Inf_F_def same_inf_def by force 
     obtain CAs AAs As \<sigma> where the_inf: "ord_resolve_rename S CAs (main_prem_of \<iota>_RP) AAs As \<sigma> (concl_of \<iota>_RP)"
       and mset_CAs: "mset CAs = side_prems_of \<iota>_RP" using i_RP_in unfolding ord_FO_\<Gamma>_def by auto
     have concl: "concl_of \<iota>_RP = Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
-      using i_i_RP unfolding conv_inf_def by fastforce
+      using i_i_RP unfolding same_inf_def by fastforce
     have prems: "set (inference.prems_of \<iota>) = set_mset (prems_of \<iota>_RP)"
-      using i_i_RP unfolding conv_inf_def by fastforce
+      using i_i_RP unfolding same_inf_def by fastforce
     have I_entails_prems_RP: "\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s set_mset (prems_of \<iota>_RP) \<cdot>cs \<sigma>"
       using prems I_entails_prems by presburger
     have I_entails_concl_RP: "I \<Turnstile> (concl_of \<iota>_RP) \<cdot> \<eta>"
@@ -112,7 +121,7 @@ interpretation gr: ground_resolution_with_selection "S_M S M"
 
 (* Not yet too sure about which version to select. Is this one even correct? *)
 definition Inf_G :: "'a clause Saturation_Framework_Preliminaries.inference set" where
-  "Inf_G \<equiv> conv_inf ` gr.ord_\<Gamma>"
+  "Inf_G = {\<iota>. \<exists>\<iota>_RP \<in> (gr.ord_\<Gamma>). same_inf \<iota>_RP \<iota>}"
 
 definition entails_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool"  where
   "entails_G S1 S2 \<equiv> \<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"
@@ -143,16 +152,16 @@ proof -
     assume
       i_in: "\<iota> \<in> Inf_G" and
       I_entails_prems: "I \<Turnstile>s (set (inference.prems_of \<iota>))"
-    obtain \<iota>_RP where i_equal: "\<iota> = conv_inf \<iota>_RP" and i_RP_in: "\<iota>_RP \<in> gr.ord_\<Gamma>" (*"\<iota>_RP \<in> (ord_FO_\<Gamma> S)" *)
-      using i_in unfolding Inf_G_def by blast
+    obtain \<iota>_RP where i_equal: "same_inf \<iota>_RP \<iota>" and i_RP_in: "\<iota>_RP \<in> gr.ord_\<Gamma>" (*"\<iota>_RP \<in> (ord_FO_\<Gamma> S)" *)
+      using i_in unfolding Inf_G_def same_inf_def by auto
     obtain CAs AAs As
       where the_inf: "ground_resolution_with_selection.ord_resolve (S_M S M) CAs (main_prem_of \<iota>_RP) AAs As (concl_of \<iota>_RP)"
       and mset_CAs: "side_prems_of \<iota>_RP = mset CAs"
         using i_RP_in unfolding gr.ord_\<Gamma>_def by force
     have concl: "concl_of \<iota>_RP = Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
-      using i_equal unfolding conv_inf_def by fastforce
+      using i_equal unfolding same_inf_def by fastforce
     have prems: "set (inference.prems_of \<iota>) = set_mset (prems_of \<iota>_RP)"
-      using i_equal unfolding conv_inf_def by simp
+      using i_equal unfolding same_inf_def by simp
     have I_entails_prems_RP: "I \<Turnstile>s set_mset (prems_of \<iota>_RP)" using prems I_entails_prems by argo
     then have I_entails_concl_RP: "I \<Turnstile> concl_of \<iota>_RP"
       using ground_resolution_with_selection.ord_resolve_sound[of "S_M S M" CAs "main_prem_of \<iota>_RP" AAs As "concl_of \<iota>_RP" I]
@@ -183,7 +192,7 @@ interpretation sr: standard_redundancy_criterion_counterex_reducing gr.ord_\<Gam
   by unfold_locales
 
 definition Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set" where
-  "Red_Inf_G S1 \<equiv> (\<lambda>x. (conv_inf ` (sr.Ri x))) S1"
+  "Red_Inf_G S1 \<equiv> {\<iota>. \<exists>\<iota>_RP \<in> sr.Ri S1. same_inf \<iota>_RP \<iota>}"
 
 definition Red_F_G :: "'a clause set \<Rightarrow> 'a clause set" where
   "Red_F_G S1 \<equiv> sr.Rf S1"
@@ -200,7 +209,7 @@ next
   show \<open>calculus_axioms Bot_G Inf_G (\<Turnstile>G) Red_Inf_G Red_F_G\<close> unfolding calculus_axioms_def
   proof (intro conjI allI impI)
     fix N
-    show \<open>Red_Inf_G N \<subseteq> Inf_G\<close> unfolding Inf_G_def Red_Inf_G_def using sr.Ri_subset_\<Gamma> by fastforce
+    show \<open>Red_Inf_G N \<subseteq> Inf_G\<close> unfolding Inf_G_def Red_Inf_G_def same_inf_def using sr.Ri_subset_\<Gamma> by force
   next
     fix B N
     assume
@@ -215,7 +224,8 @@ next
   next
     fix N N' :: "'a clause set"
     assume \<open>N \<subseteq> N'\<close>
-    then show \<open>Red_Inf_G N \<subseteq> Red_Inf_G N'\<close> by (simp add: Red_Inf_G_def image_mono sr.Ri_mono)
+    then show \<open>Red_Inf_G N \<subseteq> Red_Inf_G N'\<close>
+      unfolding Red_Inf_G_def same_inf_def by (smt mem_Collect_eq sr.Ri_mono subset_iff)
   next
     fix N N' :: "'a clause set"
     assume \<open>N' \<subseteq> Red_F_G N\<close>
@@ -223,23 +233,41 @@ next
   next
     fix N N' :: "'a clause set"
     assume \<open>N' \<subseteq> Red_F_G N\<close>
-    then show \<open>Red_Inf_G N \<subseteq> Red_Inf_G (N - N')\<close> by (simp add: Red_F_G_def Red_Inf_G_def image_mono sr.Ri_indep)
+    then show \<open>Red_Inf_G N \<subseteq> Red_Inf_G (N - N')\<close>
+      unfolding Red_Inf_G_def same_inf_def by (smt Red_F_G_def mem_Collect_eq sr.Ri_indep subset_eq)
   next
     fix \<iota> N
     assume
       i_in: \<open>\<iota> \<in> Inf_G\<close> and
       concl_in: \<open>Saturation_Framework_Preliminaries.inference.concl_of \<iota> \<in> N\<close>
-    obtain \<iota>_RP where i_equal: "\<iota> = conv_inf \<iota>_RP" and i_RP_in: "\<iota>_RP \<in> gr.ord_\<Gamma>"
-      using i_in unfolding Inf_G_def by blast
-    then have \<open>concl_of \<iota>_RP \<in> N\<close> using concl_in by (simp add: conv_inf_def)
+    obtain \<iota>_RP where i_equal: "same_inf \<iota>_RP \<iota>" and i_RP_in: "\<iota>_RP \<in> gr.ord_\<Gamma>"
+      using i_in unfolding Inf_G_def same_inf_def by auto
+    then have \<open>concl_of \<iota>_RP \<in> N\<close> using concl_in by (simp add: same_inf_def)
     then have \<open>\<iota>_RP \<in> sr.Ri N\<close> using i_RP_in by (simp add: sr.Ri_effective)
-    then show \<open>\<iota> \<in> Red_Inf_G N\<close> unfolding Red_Inf_G_def Inf_G_def using i_equal by simp 
+    then show \<open>\<iota> \<in> Red_Inf_G N\<close> using i_equal unfolding Red_Inf_G_def Inf_G_def same_inf_def by blast
   qed
 qed
 
-find_theorems name: Inf_from
+lemma inf_from_subs: "gr.inferences_from (N - sr.Rf N) \<subseteq> gr.inferences_from N"
+  by (simp add: Diff_subset gr.inferences_from_mono)
 
-lemma conv_inf_inf_from_commute: \<open>conv_inf ` gr.inferences_from (N - sr.Rf N) \<subseteq> Inf_from N\<close> 
+lemma same_inf_inf_from_subs:
+  \<open>{\<iota>. \<exists> \<iota>_RP \<in> gr.inferences_from (N - sr Rf N). same_inf \<iota>_RP \<iota>} \<subseteq> Inf_from N\<close> (is "?sI \<subseteq> _")
+proof
+  fix \<iota>
+  assume
+    i_in: \<open>\<iota> \<in> ?sI\<close>
+  obtain \<iota>_RP where i_RP_from: \<open>\<iota>_RP \<in> gr.inferences_from N\<close> and i_to_i_RP: \<open>same_inf \<iota>_RP \<iota>\<close>
+    using inf_from_subs i_in by (smt Diff_subset gr.inferences_from_mono mem_Collect_eq subsetCE)
+  have \<open>set_mset (prems_of \<iota>_RP) \<subseteq> N\<close> using i_RP_from unfolding gr.inferences_from_def infer_from_def by fast
+  then have i_from: \<open>set (Saturation_Framework_Preliminaries.prems_of \<iota>) \<subseteq> N\<close>
+    using i_to_i_RP unfolding same_inf_def by fastforce
+  have \<open>\<iota> \<in> Inf_G\<close>
+    using i_RP_from i_to_i_RP unfolding gr.inferences_from_def Inf_G_def same_inf_def by force
+  then show \<open>\<iota> \<in> Inf_from N\<close> using i_from unfolding Inf_from_def by fast
+qed
+
+(*lemma conv_inf_inf_from_commute: \<open>conv_inf ` gr.inferences_from (N - sr.Rf N) \<subseteq> Inf_from N\<close> 
 proof
   fix \<iota>
   assume
@@ -257,6 +285,7 @@ proof
   have \<open>\<iota> \<in> Inf_G\<close> using i_RP_from i_to_i_RP unfolding gr.inferences_from_def Inf_G_def by blast
   then show \<open>\<iota> \<in> Inf_from N\<close> using i_from unfolding Inf_from_def by fast
 qed
+*)
 
 lemma \<open>gr.eligible As D \<Longrightarrow> mset As = mset As' \<Longrightarrow> gr.eligible As' D\<close>
   unfolding gr.eligible.simps
@@ -635,32 +664,36 @@ lemma conv_saturation:
   shows \<open>sr.saturated_upto N\<close>
     using assms unfolding sr.saturated_upto_def gr_calc.saturated_def apply -
   proof (rule ccontr)
-  assume
-    sat: \<open>Inf_from N \<subseteq> Red_Inf_G N\<close> and
-    contra: \<open>\<not> gr.inferences_from (N - sr.Rf N) \<subseteq> sr.Ri N\<close>
- then obtain \<iota>_RP where i_not_in: \<open>\<iota>_RP \<notin> sr.Ri N\<close> and i_in: \<open>\<iota>_RP \<in> gr.inferences_from (N - sr.Rf N)\<close> by blast
-   have \<open>conv_inf \<iota>_RP \<in> Inf_from N\<close> using i_in conv_inf_inf_from_commute by fast
-   then have \<open>conv_inf \<iota>_RP \<in> Red_Inf_G N\<close> using sat by blast
-  moreover have \<open>conv_inf \<iota>_RP \<notin> Red_Inf_G N\<close>
-  proof -
-    {
-      fix \<iota>_RP2
-      assume
-        conv_i_RP: \<open>conv_inf \<iota>_RP = conv_inf \<iota>_RP2\<close> and
-        i_RP2_in: \<open>\<iota>_RP2 \<in> sr.Ri N\<close>
-      have concl_eq: \<open>concl_of \<iota>_RP = concl_of \<iota>_RP2\<close>
-        using conv_i_RP unfolding conv_inf_def by blast
-      have prems_eq: \<open>prems_of \<iota>_RP = prems_of \<iota>_RP2\<close>
-        using conv_i_RP unfolding conv_inf_def
-        by (metis Saturation_Framework_Preliminaries.inference.sel(1) mset_list_mset)
-      consider (main_prem_eq) \<open>main_prem_of \<iota>_RP = main_prem_of \<iota>_RP2\<close> | (tauto) \<open>(\<exists>A. Pos A \<in># concl_of \<iota>_RP \<and> Neg A \<in># concl_of \<iota>_RP)\<close> 
+    assume
+      sat: \<open>Inf_from N \<subseteq> Red_Inf_G N\<close> and
+      contra: \<open>\<not> gr.inferences_from (N - sr.Rf N) \<subseteq> sr.Ri N\<close>
+    then obtain \<iota>_RP where i_not_in: \<open>\<iota>_RP \<notin> sr.Ri N\<close> and i_in: \<open>\<iota>_RP \<in> gr.inferences_from (N - sr.Rf N)\<close> by blast
+    obtain \<iota> where i_is: \<open>same_inf \<iota>_RP \<iota>\<close>
+      unfolding same_inf_def by (metis Saturation_Framework_Preliminaries.inference.sel(1)
+        Saturation_Framework_Preliminaries.inference.sel(2) list_of_mset_exi)
+    have \<open>\<iota> \<in> Inf_from N\<close> using i_in i_is same_inf_inf_from_subs by fast
+    then have \<open>\<iota> \<in>  Red_Inf_G N\<close> using sat by fast
+    moreover have \<open>\<iota> \<notin> Red_Inf_G N\<close>
+    proof -
+      {
+        fix \<iota>_RP2
+        assume
+          same_i_RP: \<open>same_inf \<iota>_RP2 \<iota>\<close> and
+          i_RP2_in: \<open>\<iota>_RP2 \<in> sr.Ri N\<close>
+        have concl_eq: \<open>concl_of \<iota>_RP = concl_of \<iota>_RP2\<close>
+          using same_i_RP i_is unfolding same_inf_def by simp
+        have prems_eq: \<open>prems_of \<iota>_RP = prems_of \<iota>_RP2\<close>
+          using i_is same_i_RP unfolding same_inf_def by simp
+        consider
+          (main_prem_eq) \<open>main_prem_of \<iota>_RP = main_prem_of \<iota>_RP2\<close> |
+          (tauto) \<open>(\<exists>A. Pos A \<in># concl_of \<iota>_RP \<and> Neg A \<in># concl_of \<iota>_RP)\<close> 
         using main_prem_eq_or_tauto[OF _ _ prems_eq concl_eq] i_RP2_in i_in
         unfolding sr.Ri_def gr.inferences_from_def by blast
       then have \<open>\<iota>_RP \<in> sr.Ri N\<close>
       proof cases
         case main_prem_eq
-        then show ?thesis using conv_i_RP concl_eq i_RP2_in unfolding conv_inf_def
-          using Inference_System.inference.expand prems_eq by auto
+        then show ?thesis
+          using same_i_RP concl_eq i_RP2_in Inference_System.inference.expand prems_eq by auto
       next
         case tauto
         then show ?thesis
@@ -668,7 +701,8 @@ lemma conv_saturation:
       qed
       then have \<open>False\<close> using i_not_in by simp
     }
-    then show \<open>conv_inf \<iota>_RP \<notin> Red_Inf_G N\<close> using i_not_in unfolding Red_Inf_G_def by auto
+    then show \<open>\<iota> \<notin> Red_Inf_G N\<close>
+      using i_not_in unfolding same_inf_def Red_Inf_G_def by fastforce  
   qed
   ultimately show \<open>False\<close> by simp
 qed
@@ -887,17 +921,21 @@ proof
   assume i'_in: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F)\<close>
   have prems_i'_in: \<open>set (inference.prems_of \<iota>') \<subseteq> UNION M \<G>_F\<close> using i'_in unfolding Inf_from_def by blast
   have i'_Inf_G: \<open>\<iota>' \<in> Inf_G\<close> using i'_in unfolding Inf_from_def by blast
-  then obtain \<iota>'_RP where i'_RP_is: \<open>\<iota>' = conv_inf \<iota>'_RP\<close> and i'_RP_in: \<open>\<iota>'_RP \<in> gr.ord_\<Gamma>\<close> unfolding Inf_G_def by blast
+  then obtain \<iota>'_RP where i'_RP_is: \<open>same_inf \<iota>'_RP \<iota>'\<close> and i'_RP_in: \<open>\<iota>'_RP \<in> gr.ord_\<Gamma>\<close>
+    unfolding Inf_G_def same_inf_def by force
   then obtain CAs DA AAs As E where
     gr_res: \<open>gr.ord_resolve CAs DA AAs As E\<close> and
     is_inf: \<open>\<iota>'_RP = Inference_System.inference.Infer (mset CAs) DA E\<close>
     unfolding gr.ord_\<Gamma>_def by blast
   have CAs_is: \<open>side_prems_of \<iota>'_RP = mset CAs\<close> using is_inf unfolding side_prems_of_def by simp
-  then have CAs_in: \<open>set CAs \<subseteq> set (inference.prems_of \<iota>')\<close> using i'_RP_is unfolding conv_inf_def by auto
+  then have CAs_in: \<open>set CAs \<subseteq> set (inference.prems_of \<iota>')\<close>
+    using i'_RP_is unfolding same_inf_def side_prems_of_def prems_of_def
+    by (metis add_mset_add_single insertCI set_mset_add_mset_insert set_mset_mset subsetI)
   then have ground_CAs: \<open>is_ground_cls_list CAs\<close>
     using prems_i'_in union_G_F_ground is_ground_cls_list_def is_ground_clss_def by auto
   have DA_is: \<open>main_prem_of \<iota>'_RP = DA\<close> using is_inf unfolding main_prem_of_def by simp
-  then have DA_in: \<open>DA \<in> set (inference.prems_of \<iota>')\<close> using i'_RP_is unfolding conv_inf_def by auto
+  then have DA_in: \<open>DA \<in> set (inference.prems_of \<iota>')\<close>
+    using i'_RP_is unfolding same_inf_def by (metis add.commute multi_member_this set_mset_mset)
   then have ground_DA: \<open>is_ground_cls DA\<close>
     using prems_i'_in union_G_F_ground is_ground_clss_def by auto
   obtain \<sigma> where grounded_res: \<open>ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
@@ -917,11 +955,12 @@ proof
   define \<iota>_RP where \<open>\<iota>_RP = Infer (mset CAs0) DA0 E0\<close>
   then have i_RP_in: \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using ngr_res unfolding ord_FO_\<Gamma>_def by blast
   define \<iota> where \<open>\<iota> = conv_inf \<iota>_RP\<close>
-  then have \<open>\<iota> \<in> Inf_F\<close> using i_RP_in unfolding Inf_F_def by simp
+  then have \<open>\<iota> \<in> Inf_F\<close> using i_RP_in conv_inf_in_Inf_F unfolding Inf_F_def by blast
   have \<open>{DA0} \<union> set CAs0 = set (inference.prems_of \<iota>)\<close> using \<iota>_def \<iota>_RP_def unfolding conv_inf_def by simp
   then have \<open>set (inference.prems_of \<iota>) \<subseteq> M\<close> using prems_in by simp
   define PAs where \<open>PAs = inference.prems_of \<iota>'\<close>
-  then have mset_PAs_is: \<open>mset PAs = mset CAs + {# DA #}\<close> using i'_RP_is is_inf unfolding conv_inf_def by simp
+  then have mset_PAs_is: \<open>mset PAs = mset CAs + {# DA #}\<close>
+    using i'_RP_is is_inf unfolding same_inf_def by simp
   define PAs' where \<open>PAs' = DA # CAs\<close>
   then have mset_PAs': \<open>mset PAs' = mset PAs\<close> using mset_PAs_is by simp
   then have len_PAs: \<open>length PAs = length PAs'\<close> by (metis size_mset)
@@ -1011,6 +1050,8 @@ proof
   then have \<open>is_ground_subst_list \<rho>s\<close> using len_rs unfolding is_ground_subst_list_def set_conv_nth by auto
   then have \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close> unfolding \<G>_Inf_def using i'_Inf_G is_inf \<iota>_def ground_ns2 CAs0_is DA0_is E0_is i'_RP_is \<iota>_RP_def 
 oops
+
+thm conv_inf_def
 
 
 end
