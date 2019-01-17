@@ -3869,7 +3869,7 @@ qed
 
 lemma fresh_constants:
   fixes p :: \<open>('a, 'b) form\<close>
-  assumes \<open>infinite (UNIV :: 'a set)\<close> \<open>closed 0 (put_unis m p)\<close>
+  assumes \<open>infinite (UNIV :: 'a set)\<close>
   shows \<open>\<exists>cs. length cs = m \<and> list_all (\<lambda>c. new c p) cs \<and> distinct cs\<close>
 proof (induct m)
   case (Suc m)
@@ -3961,7 +3961,7 @@ lemma remove_unis_sentence:
 proof -
   obtain cs :: \<open>'a list\<close> where \<open>length cs = m\<close>
     and *: \<open>distinct cs\<close> and **: \<open>list_all (\<lambda>c. new c p) cs\<close>
-    using assms fresh_constants inf_params by fastforce
+    using assms finite_compl finite_params fresh_constants inf_params by metis
   then have \<open>[] \<turnstile> consts_for_unis (put_unis (length cs) p) cs\<close>
     using assms consts_for_unis by blast
   then have \<open>[] \<turnstile> vars_for_consts (consts_for_unis (put_unis (length cs) p) cs) cs\<close>

@@ -3721,7 +3721,7 @@ interpretation enc_weight_opt: conflict_driven_clause_learning\<^sub>W_optimal_w
 lemma  \<Sigma>_no_weight_\<rho>\<^sub>e: \<open>atm_of C \<in> \<Sigma> - \<Sigma>\<^sub>w \<Longrightarrow> \<rho>\<^sub>e (add_mset C M) = \<rho>\<^sub>e M\<close>
   using \<Sigma>_no_weight[of C \<open>\<rho>\<^sub>e_filter M\<close>]
   apply (auto simp: \<rho>\<^sub>e_def)
-  by (metis (no_types, lifting) filter_mset_cong2 literal.sel(1) new_vars_addition_var)
+  by (metis (no_types, lifting) literal.sel(1) new_vars_addition_var)
 
 
 lemma \<rho>_cancel_notin_\<Sigma>\<^sub>w:
@@ -3756,8 +3756,6 @@ proof -
   have [simp]: \<open>finite {A \<in> \<Sigma>\<^sub>w. P A}\<close> for P
     by (rule finite_subset[of _ \<Sigma>\<^sub>w])
       (use \<Sigma>\<^sub>w_\<Sigma> finite_\<Sigma> in auto)
-  have H: \<open>finite A \<Longrightarrow> finite {y \<in> A. P y}\<close>
-    by auto
   have \<open>?A \<le> ?B\<close>
     using assms \<Sigma>\<^sub>w_\<Sigma> apply -
     unfolding \<rho>\<^sub>e_def filter_filter_mset
@@ -3795,17 +3793,14 @@ proof -
   have [simp]: \<open>finite I\<close>
     using assms by auto
   have [simp]: \<open>finite {A \<in> I. P A}\<close> for P
-    apply  (rule finite_subset[of _ \<open>Pos ` atm_of ` I \<union> Neg ` atm_of ` I\<close>])
+    apply (rule finite_subset[of _ \<open>Pos ` atm_of ` I \<union> Neg ` atm_of ` I\<close>])
     apply auto
     by (metis image_iff literal.exhaust_sel)
 
   show ?thesis
     using assms \<Sigma>\<^sub>w_\<Sigma>
-    apply (auto simp: postp_def \<rho>\<^sub>e_def \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def conj_disj_distribR
-      mset_set_Union)
-    apply (rule \<rho>_mono2)
-    apply auto
-    done
+    by (auto simp: postp_def \<rho>\<^sub>e_def \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def conj_disj_distribR
+      mset_set_Union intro!: \<rho>_mono2)
 qed
 
 lemma encode_lit_eq_iff:
