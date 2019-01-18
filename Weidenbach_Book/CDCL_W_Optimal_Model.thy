@@ -2,6 +2,7 @@ theory CDCL_W_Optimal_Model
 imports CDCL_W_Abstract_State "HOL-Library.Extended_Nat" "../lib/Explorer"
 begin
 
+
 section \<open>CDCL Extensions\<close>
 
 subsection \<open>Optimisations\<close>
@@ -150,7 +151,7 @@ lemma tautology_pNeg[simp]:
       uminus_lit_swap add_mset_eq_add_mset eq_commute[of \<open>Neg _\<close> \<open>- _\<close>]  eq_commute[of \<open>Pos _\<close> \<open>- _\<close>]
     dest!: multi_member_split)
 
-lemma (in -) pNeg_convolutionp[simp]:
+lemma (in -) pNeg_convolution[simp]:
   \<open>pNeg (pNeg C) = C\<close>
   by (auto simp: pNeg_def)
 
