@@ -4563,7 +4563,7 @@ lemma conflict_minimisation_level_0:
     ns_r: \<open>no_step resolve S\<close> and
     inv_s: "cdcl\<^sub>W_stgy_invariant S" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
-    conf: \<open>conflicting S ~= None\<close> \<open>conflicting S ~= Some {#}\<close> and
+    conf: \<open>conflicting S \<noteq> None\<close> \<open>conflicting S \<noteq> Some {#}\<close> and
     M_nempty: \<open>M ~= []\<close>
   shows
       "clauses S \<Turnstile>pm D'" and
@@ -4746,8 +4746,11 @@ proof -
 qed
 
 
-subsection \<open>Some higher level version of the invariants\<close>
+subsection \<open>Some higher level use on the invariants\<close>
 
+text \<open>In later refinement we mostly us the group invariants and don't try to be as specific
+  as above. The corresponding theorems are collected here.
+\<close>
 lemma conflict_conflict_is_false_with_level_all_inv:
   \<open>conflict S T \<Longrightarrow>
   no_smaller_confl S \<Longrightarrow>
