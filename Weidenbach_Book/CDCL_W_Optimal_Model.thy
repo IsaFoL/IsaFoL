@@ -3905,6 +3905,8 @@ definition bitotal_over_m :: \<open>'v partial_interp \<Rightarrow> 'v clauses \
   total_over_m I (set_mset N) \<and>
   atms_of_s I \<subseteq> atms_of_mm N\<close>
 
+text \<open>Partial in the name refers to the fact that not all clauses are soft clauses, not to the fact
+  that we consider partial models.\<close>
 inductive partial_max_sat :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> ('v clause \<Rightarrow> nat) \<Rightarrow>
   'v partial_interp option \<Rightarrow> bool\<close> where
 partial_max_sat:
@@ -3914,7 +3916,7 @@ partial_max_sat:
     \<open>bitotal_over_m I ((N\<^sub>H + N\<^sub>S))\<close> and
     \<open>consistent_interp I\<close> and
     \<open>\<not> tautology (mset_set I)\<close> and
-    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> total_over_m I' (set_mset (N\<^sub>H + N\<^sub>S)) \<Longrightarrow> \<not>tautology (mset_set I) \<Longrightarrow>
+    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
       weight_on_clauses N\<^sub>S \<rho> I' \<le> weight_on_clauses N\<^sub>S \<rho> I\<close> |
 partial_max_unsat:
   \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> None\<close>
@@ -3929,7 +3931,7 @@ partial_min_sat:
     \<open>I \<Turnstile>sm N\<^sub>H\<close> and
     \<open>bitotal_over_m I (N\<^sub>H + N\<^sub>S)\<close> and
     \<open>consistent_interp I\<close> and
-    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> total_over_m I' (set_mset (N\<^sub>H + N\<^sub>S)) \<Longrightarrow>
+    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
       weight_on_clauses N\<^sub>S \<rho> I' \<ge> weight_on_clauses N\<^sub>S \<rho> I\<close> |
 partial_min_unsat:
   \<open>partial_min_sat N\<^sub>H N\<^sub>S \<rho> None\<close>
@@ -3959,11 +3961,14 @@ lemma consistent_interp_tuatology_mset_set:
   using ex_mset[of \<open>mset_set x\<close>]
   by (auto simp: consistent_interp_tautology eq_commute[of \<open>mset _\<close>] mset_set_eq_mset_iff
       mset_set_set)
+
 lemma
-  assumes \<open>satisfiable (set_mset (N\<^sub>H))\<close>
-  obtains I where \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+  fixes N\<^sub>H :: \<open>'v clauses\<close>
+  assumes \<open>satisfiable (set_mset N\<^sub>H)\<close>
+  shows sat_partial_max_sat: \<open>\<exists>I. partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close> and
+    sat_partial_min_sat: \<open>\<exists>I. partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
 proof -
-  let ?Is= \<open>{I. bitotal_over_m I ((N\<^sub>H + N\<^sub>S)) \<and>  consistent_interp I \<and>
+  let ?Is = \<open>{I. bitotal_over_m I ((N\<^sub>H + N\<^sub>S)) \<and>  consistent_interp I \<and>
      I \<Turnstile>sm N\<^sub>H}\<close>
   let ?Is'= \<open>{I. bitotal_over_m I ((N\<^sub>H + N\<^sub>S)) \<and> consistent_interp I \<and>
     I \<Turnstile>sm N\<^sub>H \<and> finite I}\<close>
@@ -3975,13 +3980,83 @@ proof -
     by (rule_tac x= \<open>mset_set x\<close> in bexI)
       (auto simp: simple_clss_def bitotal_over_m_def image_iff
       atms_of_s_def atms_of_def distinct_mset_mset_set consistent_interp_tuatology_mset_set)
-  from finite_subset[OF this] have \<open>finite ?Is\<close> unfolding Is
+  from finite_subset[OF this] have fin: \<open>finite ?Is\<close> unfolding Is
     by (auto simp: simple_clss_finite)
+  then have fin': \<open>finite (weight_on_clauses N\<^sub>S \<rho> ` ?Is)\<close>
+    by auto
   define \<rho>I where
     \<open>\<rho>I = Min (weight_on_clauses N\<^sub>S \<rho> ` ?Is)\<close>
-  have \<open>?Is \<noteq> {}\<close>
-    using assms unfolding satisfiable_def_min bitotal_over_m_def
-    apply (auto simp: atms_of_s_def atm_of_def total_over_m_def)
-oops
+  have nempty: \<open>?Is \<noteq> {}\<close>
+  proof -
+    obtain I where I:
+      \<open>total_over_m I (set_mset N\<^sub>H)\<close>
+      \<open>I \<Turnstile>sm N\<^sub>H\<close>
+      \<open>consistent_interp I\<close>
+      \<open>atms_of_s I \<subseteq> atms_of_mm N\<^sub>H\<close>
+      using assms unfolding satisfiable_def_min bitotal_over_m_def
+      by (auto simp: atms_of_s_def atm_of_def total_over_m_def)
+    let ?I = \<open>I \<union> Pos ` {x \<in> atms_of_mm N\<^sub>S. x \<notin> atm_of ` I}\<close>
+    have \<open>?I \<in> ?Is\<close>
+      using I
+      by (auto simp: bitotal_over_m_def total_over_m_alt_def image_iff
+        lit_in_set_iff_atm)
+        (auto simp: consistent_interp_def uminus_lit_swap)
+    then show ?thesis
+      by blast
+  qed
+  have \<open>\<rho>I \<in> weight_on_clauses N\<^sub>S \<rho> ` ?Is\<close>
+    unfolding \<rho>I_def
+    by (rule Min_in[OF fin']) (use nempty in auto)
+  then obtain I :: \<open>'v partial_interp\<close> where
+    \<open>weight_on_clauses N\<^sub>S \<rho> I = \<rho>I\<close> and
+    \<open>I \<in> ?Is\<close>
+    by blast
+  then have H: \<open>consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
+      weight_on_clauses N\<^sub>S \<rho> I' \<ge> weight_on_clauses N\<^sub>S \<rho> I\<close> for I'
+    using Min_le[OF fin', of \<open>weight_on_clauses N\<^sub>S \<rho> I'\<close>]
+    unfolding \<rho>I_def[symmetric]
+    by auto
+  then have \<open>partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+    apply -
+    by (rule partial_min_sat)
+      (use fin \<open>I \<in> ?Is\<close> in \<open>auto simp: bitotal_over_m_finite\<close>)
+  then show \<open>\<exists>I. partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+    by fast
+
+  define \<rho>I where
+    \<open>\<rho>I = Max (weight_on_clauses N\<^sub>S \<rho> ` ?Is)\<close>
+  have \<open>\<rho>I \<in> weight_on_clauses N\<^sub>S \<rho> ` ?Is\<close>
+    unfolding \<rho>I_def
+    by (rule Max_in[OF fin']) (use nempty in auto)
+  then obtain I :: \<open>'v partial_interp\<close> where
+    \<open>weight_on_clauses N\<^sub>S \<rho> I = \<rho>I\<close> and
+    \<open>I \<in> ?Is\<close>
+    by blast
+  then have H: \<open>consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>m N\<^sub>H \<Longrightarrow>
+      weight_on_clauses N\<^sub>S \<rho> I' \<le> weight_on_clauses N\<^sub>S \<rho> I\<close> for I'
+    using Max_ge[OF fin', of \<open>weight_on_clauses N\<^sub>S \<rho> I'\<close>]
+    unfolding \<rho>I_def[symmetric]
+    by auto
+  then have \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+    apply -
+    by (rule partial_max_sat)
+      (use fin \<open>I \<in> ?Is\<close> in \<open>auto simp: bitotal_over_m_finite
+        consistent_interp_tuatology_mset_set\<close>)
+  then show \<open>\<exists>I. partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+    by fast
+qed
+
+lemma sumset_diff_constant_left:
+  assumes \<open>\<And>x. x \<in># A \<Longrightarrow> f x \<le> n\<close>
+  shows \<open>(\<Sum>x\<in># A . n - f x) = size A * n - (\<Sum>x\<in># A . f x)\<close>
+proof -
+  have \<open>size A * n \<ge> (\<Sum>x\<in># A . f x)\<close>
+    if \<open>\<And>x. x \<in># A \<Longrightarrow> f x \<le> n\<close> for A
+    using that
+    by (induction A) (force simp: ac_simps)+
+  then show ?thesis
+    using assms
+    by (induction A) (auto simp: ac_simps)
+qed
 
 end
