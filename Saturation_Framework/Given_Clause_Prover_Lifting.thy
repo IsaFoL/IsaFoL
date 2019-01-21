@@ -1380,13 +1380,11 @@ proof auto
     using len_cs len_ss unfolding subst_cls_lists_def by auto
 qed
 
-find_theorems length subst_cls_lists
-
 lemma subst_Cons_nth: \<open>i < length ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) \<Longrightarrow> ((C # Cs) ! i) \<cdot> ((\<sigma> # \<sigma>s) ! i) = ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) ! i\<close>
 by (auto simp: nth_Cons' simp del: subst_cls_lists_length)
 
 lemma \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close>
-proof
+proof -
   assume i'_in: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F)\<close>
   have prems_i'_in: \<open>set (inference.prems_of \<iota>') \<subseteq> UNION M \<G>_F\<close> using i'_in unfolding Inf_from_def by blast
   have i'_Inf_G: \<open>\<iota>' \<in> Inf_G\<close> using i'_in unfolding Inf_from_def by blast
@@ -1527,7 +1525,7 @@ proof
     apply (rule that[of \<open>Saturation_Framework_Preliminaries.Infer (map (\<lambda>i. (DA0 # CAs0)!(map_i i)) [0..<n]) E0\<close>])
     using \<iota>_RP_def mset_list_map_i unfolding same_inf_def by auto
   then have i_Inf_F: \<open>\<iota> \<in> Inf_F\<close> using i_RP_in conv_inf_in_Inf_F unfolding Inf_F_def by blast
-  have \<open>set (inference.prems_of \<iota>) \<subseteq> {DA0} \<union> set CAs0\<close>
+  have inf_from_cond: \<open>set (inference.prems_of \<iota>) \<subseteq> {DA0} \<union> set CAs0\<close>
     using i_is \<iota>_RP_def unfolding same_inf_def prems_of_def
     by (metis Inference_System.inference.sel(1) Inference_System.inference.sel(2) Un_insert_left
       add_mset_add_single equalityE set_mset_add_mset_insert set_mset_mset sup_bot.left_neutral)
@@ -1560,9 +1558,12 @@ proof
   then have \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
     unfolding \<G>_Inf_def using prems_of_i_in_M i'_Inf_G is_inf i_is ground_ns2 CAs0_is DA0_is E0_is
     i'_RP_is \<iota>_RP_def ground_rs by blast
-oops
+  then have \<open>\<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close> unfolding sound_F.Inf_from_def
+    using inf_from_cond prems_in i_Inf_F by auto
+  then show \<open> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close> by blast
+qed
 
-find_theorems name: allI
+find_theorems name: exI
 thm conv_inf_def
 
 
