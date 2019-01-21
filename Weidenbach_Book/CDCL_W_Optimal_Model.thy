@@ -3896,4 +3896,92 @@ qed
 
 end
 
+
+definition weight_on_clauses where
+  \<open>weight_on_clauses N\<^sub>S \<rho> I = (\<Sum>C \<in># (filter_mset (\<lambda>C. I \<Turnstile> C) N\<^sub>S). \<rho> C)\<close>
+
+definition bitotal_over_m :: \<open>'v partial_interp \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
+\<open>bitotal_over_m I N \<longleftrightarrow>
+  total_over_m I (set_mset N) \<and>
+  atms_of_s I \<subseteq> atms_of_mm N\<close>
+
+inductive partial_max_sat :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> ('v clause \<Rightarrow> nat) \<Rightarrow>
+  'v partial_interp option \<Rightarrow> bool\<close> where
+partial_max_sat:
+  \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+  if
+    \<open>I \<Turnstile>sm N\<^sub>H\<close> and
+    \<open>bitotal_over_m I ((N\<^sub>H + N\<^sub>S))\<close> and
+    \<open>consistent_interp I\<close> and
+    \<open>\<not> tautology (mset_set I)\<close> and
+    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> total_over_m I' (set_mset (N\<^sub>H + N\<^sub>S)) \<Longrightarrow> \<not>tautology (mset_set I) \<Longrightarrow>
+      weight_on_clauses N\<^sub>S \<rho> I' \<le> weight_on_clauses N\<^sub>S \<rho> I\<close> |
+partial_max_unsat:
+  \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> None\<close>
+  if
+  \<open>unsatisfiable (set_mset N\<^sub>H)\<close>
+
+inductive partial_min_sat :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> ('v clause \<Rightarrow> nat) \<Rightarrow>
+  'v partial_interp option \<Rightarrow> bool\<close> where
+partial_min_sat:
+  \<open>partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+  if
+    \<open>I \<Turnstile>sm N\<^sub>H\<close> and
+    \<open>bitotal_over_m I (N\<^sub>H + N\<^sub>S)\<close> and
+    \<open>consistent_interp I\<close> and
+    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> total_over_m I' (set_mset (N\<^sub>H + N\<^sub>S)) \<Longrightarrow>
+      weight_on_clauses N\<^sub>S \<rho> I' \<ge> weight_on_clauses N\<^sub>S \<rho> I\<close> |
+partial_min_unsat:
+  \<open>partial_min_sat N\<^sub>H N\<^sub>S \<rho> None\<close>
+  if
+  \<open>unsatisfiable (set_mset N\<^sub>H)\<close>
+
+lemma bitotal_over_m_finite:
+  assumes \<open>bitotal_over_m I N\<close>
+  shows \<open>finite I\<close>
+proof -
+  have \<open>I \<subseteq> Pos ` (atms_of_mm N) \<union> Neg ` atms_of_mm N\<close>
+    using assms by (force simp: total_over_m_def  bitotal_over_m_def lit_in_set_iff_atm
+      atms_of_s_def)
+  from finite_subset[OF this] show ?thesis by auto
+qed
+
+
+lemma mset_set_eq_mset_iff: \<open>finite x \<Longrightarrow>  mset_set x = mset xs \<longleftrightarrow> distinct xs \<and> x = set xs\<close>
+  apply (auto simp flip: distinct_mset_mset_distinct eq_commute[of _ \<open>mset_set _\<close>]
+    simp: distinct_mset_mset_set mset_set_set)
+  apply (metis finite_set_mset_mset_set set_mset_mset)
+  apply (metis finite_set_mset_mset_set set_mset_mset)
+  done
+
+lemma consistent_interp_tuatology_mset_set:
+  \<open>finite x \<Longrightarrow> consistent_interp x  \<longleftrightarrow> \<not>tautology (mset_set x)\<close>
+  using ex_mset[of \<open>mset_set x\<close>]
+  by (auto simp: consistent_interp_tautology eq_commute[of \<open>mset _\<close>] mset_set_eq_mset_iff
+      mset_set_set)
+lemma
+  assumes \<open>satisfiable (set_mset (N\<^sub>H))\<close>
+  obtains I where \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+proof -
+  let ?Is= \<open>{I. bitotal_over_m I ((N\<^sub>H + N\<^sub>S)) \<and>  consistent_interp I \<and>
+     I \<Turnstile>sm N\<^sub>H}\<close>
+  let ?Is'= \<open>{I. bitotal_over_m I ((N\<^sub>H + N\<^sub>S)) \<and> consistent_interp I \<and>
+    I \<Turnstile>sm N\<^sub>H \<and> finite I}\<close>
+  have Is: \<open>?Is = ?Is'\<close>
+    by (auto simp: atms_of_s_def bitotal_over_m_finite)
+  have \<open>?Is' \<subseteq> set_mset ` simple_clss (atms_of_mm (N\<^sub>H + N\<^sub>S))\<close>
+    apply rule
+    unfolding image_iff
+    by (rule_tac x= \<open>mset_set x\<close> in bexI)
+      (auto simp: simple_clss_def bitotal_over_m_def image_iff
+      atms_of_s_def atms_of_def distinct_mset_mset_set consistent_interp_tuatology_mset_set)
+  from finite_subset[OF this] have \<open>finite ?Is\<close> unfolding Is
+    by (auto simp: simple_clss_finite)
+  define \<rho>I where
+    \<open>\<rho>I = Min (weight_on_clauses N\<^sub>S \<rho> ` ?Is)\<close>
+  have \<open>?Is \<noteq> {}\<close>
+    using assms unfolding satisfiable_def_min bitotal_over_m_def
+    apply (auto simp: atms_of_s_def atm_of_def total_over_m_def)
+oops
+
 end
