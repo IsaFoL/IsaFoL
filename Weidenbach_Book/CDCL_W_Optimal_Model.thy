@@ -1776,24 +1776,6 @@ lemma too_heavy_clauses_contains_itself:
   \<open>M \<in> simple_clss (atms_of_mm N) \<Longrightarrow> pNeg M \<in># too_heavy_clauses N (Some M)\<close>
   by (auto simp: too_heavy_clauses_def simple_clss_finite)
 
-lemma (in -) tautology_union:
-  \<open>tautology (A + B) \<longleftrightarrow> tautology A \<or> tautology B \<or> (\<exists>a. a \<in># A \<and> -a \<in># B)\<close>
-  by (metis tautology_decomp tautology_minus uminus_Neg uminus_Pos union_iff)
-
-lemma (in -)
-  tautology_poss[simp]: \<open>\<not>tautology (poss A)\<close> and
-  tautology_negs[simp]: \<open>\<not>tautology (negs A)\<close>
-  by (auto simp: tautology_decomp)
-
-lemma (in -) tautology_uminus[simp]:
-  \<open>tautology (uminus `# w) \<longleftrightarrow> tautology w\<close>
-  by (auto 5 5 simp: tautology_decomp add_mset_eq_add_mset eq_commute[of \<open>Pos _\<close> \<open>-_\<close>]
-    simp flip: uminus_lit_swap
-    dest!: multi_member_split)
-
-lemma (in -) atms_of_uminus[simp]: \<open>atms_of (uminus `# C) = atms_of C\<close>
-  by (auto simp: atms_of_def image_image)
-
 lemma too_heavy_clause_None[simp]: \<open>too_heavy_clauses M None = {#}\<close>
   by (auto simp: too_heavy_clauses_def)
 
@@ -2663,19 +2645,6 @@ proof -
     subgoal by auto
    oops
 
-lemma (in -) lit_in_set_iff_atm:
-  \<open>NO_MATCH (Pos x) l \<Longrightarrow> NO_MATCH (Neg x) l \<Longrightarrow>
-    l \<in> M \<longleftrightarrow> (\<exists>l'. (l = Pos l' \<and> Pos l' \<in> M) \<or> (l = Neg l' \<and> Neg l' \<in> M)) \<close>
-  by (cases l) auto
-
-lemma (in -)consistent_interp_tautology:
-  \<open>consistent_interp (set M') \<longleftrightarrow> \<not>tautology (mset M')\<close>
-  by (auto simp: consistent_interp_def tautology_decomp lit_in_set_iff_atm)
-
-lemma (in -) finite_atms_of_s[simp]:
-  \<open>finite M \<Longrightarrow> finite (atms_of_s M)\<close>
-  by (auto simp: atms_of_s_def)
-
 lemma (in -) distinct_mset_image_mset:
   \<open>distinct_mset (f `# mset xs) \<longleftrightarrow> distinct (map f xs)\<close>
   apply (subst mset_map[symmetric])
@@ -2685,10 +2654,6 @@ lemma (in -) distinct_mset_image_mset:
 lemma (in -) distinct_mset_atm_ofD:
   \<open>distinct_mset (atm_of `# mset xc) \<Longrightarrow> distinct xc\<close>
   by (induction xc) auto
-
-lemma (in -) mset_inter_empty_set_mset: \<open>M \<inter># xc = {#} \<longleftrightarrow> set_mset M \<inter> set_mset xc = {}\<close>
-  by (induction xc) auto
-
 
 lemma (in -) atms_of_cong_set_mset:
   \<open>set_mset D = set_mset D' \<Longrightarrow> atms_of D = atms_of D'\<close>

@@ -18,6 +18,15 @@ lemma atm_of_notin_atms_of_iff_Pos_Neg:
    \<open>L \<notin> atms_of C' \<longleftrightarrow> Pos L \<notin># C' \<and> Neg L \<notin># C'\<close> for L C'
   by (auto simp: atm_iff_pos_or_neg_lit)
 
+lemma atms_of_uminus[simp]: \<open>atms_of (uminus `# C) = atms_of C\<close>
+  by (auto simp: atms_of_def image_image)
+
+
+lemma (in -) lit_in_set_iff_atm:
+  \<open>NO_MATCH (Pos x) l \<Longrightarrow> NO_MATCH (Neg x) l \<Longrightarrow>
+    l \<in> M \<longleftrightarrow> (\<exists>l'. (l = Pos l' \<and> Pos l' \<in> M) \<or> (l = Neg l' \<and> Neg l' \<in> M)) \<close>
+  by (cases l) auto
+
 
 text \<open>We define here entailment by a set of literals. This is an Herbrand interpretation, but not
   the same as used for the resolution prover. Both has different properties.
@@ -200,6 +209,11 @@ qed
 lemma atm_of_in_atm_of_set_in_uminus:
   "atm_of L' \<in> atm_of ` B \<Longrightarrow> L' \<in> B \<or> - L' \<in> B"
   using atms_of_s_def by (cases L') fastforce+
+
+
+lemma (in -) finite_atms_of_s[simp]:
+  \<open>finite M \<Longrightarrow> finite (atms_of_s M)\<close>
+  by (auto simp: atms_of_s_def)
 
 
 subsubsection \<open>Totality\<close>
@@ -682,6 +696,22 @@ lemma tautology_add_mset:
 lemma tautology_single[simp]: \<open>\<not>tautology {#L#}\<close>
   by (simp add: tautology_add_mset)
 
+lemma (in -) tautology_union:
+  \<open>tautology (A + B) \<longleftrightarrow> tautology A \<or> tautology B \<or> (\<exists>a. a \<in># A \<and> -a \<in># B)\<close>
+  by (metis tautology_decomp tautology_minus uminus_Neg uminus_Pos union_iff)
+
+lemma (in -)
+  tautology_poss[simp]: \<open>\<not>tautology (poss A)\<close> and
+  tautology_negs[simp]: \<open>\<not>tautology (negs A)\<close>
+  by (auto simp: tautology_decomp)
+
+lemma tautology_uminus[simp]:
+  \<open>tautology (uminus `# w) \<longleftrightarrow> tautology w\<close>
+  by (auto 5 5 simp: tautology_decomp add_mset_eq_add_mset eq_commute[of \<open>Pos _\<close> \<open>-_\<close>]
+     eq_commute[of \<open>Neg _\<close> \<open>-_\<close>]
+    simp flip: uminus_lit_swap
+    dest!: multi_member_split)
+
 lemma minus_interp_tautology:
   assumes "{-L | L. L\<in># \<chi>} \<Turnstile> \<chi>"
   shows "tautology \<chi>"
@@ -723,6 +753,10 @@ lemma tautology_decomp':
   apply (case_tac L)
    apply auto
   done
+
+lemma consistent_interp_tautology:
+  \<open>consistent_interp (set M') \<longleftrightarrow> \<not>tautology (mset M')\<close>
+  by (auto simp: consistent_interp_def tautology_decomp lit_in_set_iff_atm)
 
 
 subsubsection \<open>Entailment for clauses and propositions\<close>
