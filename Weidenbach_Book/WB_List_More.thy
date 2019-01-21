@@ -1538,6 +1538,10 @@ lemma filter_mset_mono_subset:
   by (metis multiset_filter_mono multiset_filter_mono2 subset_mset.order_trans)
 
 
+lemma mset_inter_empty_set_mset: \<open>M \<inter># xc = {#} \<longleftrightarrow> set_mset M \<inter> set_mset xc = {}\<close>
+  by (induction xc) auto
+
+
 section \<open>Finite maps and multisets\<close>
 
 subsubsection \<open>Finite sets and multisets\<close>

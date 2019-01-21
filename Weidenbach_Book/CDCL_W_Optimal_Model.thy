@@ -1776,24 +1776,6 @@ lemma too_heavy_clauses_contains_itself:
   \<open>M \<in> simple_clss (atms_of_mm N) \<Longrightarrow> pNeg M \<in># too_heavy_clauses N (Some M)\<close>
   by (auto simp: too_heavy_clauses_def simple_clss_finite)
 
-lemma (in -) tautology_union:
-  \<open>tautology (A + B) \<longleftrightarrow> tautology A \<or> tautology B \<or> (\<exists>a. a \<in># A \<and> -a \<in># B)\<close>
-  by (metis tautology_decomp tautology_minus uminus_Neg uminus_Pos union_iff)
-
-lemma (in -)
-  tautology_poss[simp]: \<open>\<not>tautology (poss A)\<close> and
-  tautology_negs[simp]: \<open>\<not>tautology (negs A)\<close>
-  by (auto simp: tautology_decomp)
-
-lemma (in -) tautology_uminus[simp]:
-  \<open>tautology (uminus `# w) \<longleftrightarrow> tautology w\<close>
-  by (auto 5 5 simp: tautology_decomp add_mset_eq_add_mset eq_commute[of \<open>Pos _\<close> \<open>-_\<close>]
-    simp flip: uminus_lit_swap
-    dest!: multi_member_split)
-
-lemma (in -) atms_of_uminus[simp]: \<open>atms_of (uminus `# C) = atms_of C\<close>
-  by (auto simp: atms_of_def image_image)
-
 lemma too_heavy_clause_None[simp]: \<open>too_heavy_clauses M None = {#}\<close>
   by (auto simp: too_heavy_clauses_def)
 
@@ -2663,19 +2645,6 @@ proof -
     subgoal by auto
    oops
 
-lemma (in -) lit_in_set_iff_atm:
-  \<open>NO_MATCH (Pos x) l \<Longrightarrow> NO_MATCH (Neg x) l \<Longrightarrow>
-    l \<in> M \<longleftrightarrow> (\<exists>l'. (l = Pos l' \<and> Pos l' \<in> M) \<or> (l = Neg l' \<and> Neg l' \<in> M)) \<close>
-  by (cases l) auto
-
-lemma (in -)consistent_interp_tautology:
-  \<open>consistent_interp (set M') \<longleftrightarrow> \<not>tautology (mset M')\<close>
-  by (auto simp: consistent_interp_def tautology_decomp lit_in_set_iff_atm)
-
-lemma (in -) finite_atms_of_s[simp]:
-  \<open>finite M \<Longrightarrow> finite (atms_of_s M)\<close>
-  by (auto simp: atms_of_s_def)
-
 lemma (in -) distinct_mset_image_mset:
   \<open>distinct_mset (f `# mset xs) \<longleftrightarrow> distinct (map f xs)\<close>
   apply (subst mset_map[symmetric])
@@ -2685,10 +2654,6 @@ lemma (in -) distinct_mset_image_mset:
 lemma (in -) distinct_mset_atm_ofD:
   \<open>distinct_mset (atm_of `# mset xc) \<Longrightarrow> distinct xc\<close>
   by (induction xc) auto
-
-lemma (in -) mset_inter_empty_set_mset: \<open>M \<inter># xc = {#} \<longleftrightarrow> set_mset M \<inter> set_mset xc = {}\<close>
-  by (induction xc) auto
-
 
 lemma (in -) atms_of_cong_set_mset:
   \<open>set_mset D = set_mset D' \<Longrightarrow> atms_of D = atms_of D'\<close>
@@ -3930,5 +3895,93 @@ proof -
 qed
 
 end
+
+
+definition weight_on_clauses where
+  \<open>weight_on_clauses N\<^sub>S \<rho> I = (\<Sum>C \<in># (filter_mset (\<lambda>C. I \<Turnstile> C) N\<^sub>S). \<rho> C)\<close>
+
+definition bitotal_over_m :: \<open>'v partial_interp \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
+\<open>bitotal_over_m I N \<longleftrightarrow>
+  total_over_m I (set_mset N) \<and>
+  atms_of_s I \<subseteq> atms_of_mm N\<close>
+
+inductive partial_max_sat :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> ('v clause \<Rightarrow> nat) \<Rightarrow>
+  'v partial_interp option \<Rightarrow> bool\<close> where
+partial_max_sat:
+  \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+  if
+    \<open>I \<Turnstile>sm N\<^sub>H\<close> and
+    \<open>bitotal_over_m I ((N\<^sub>H + N\<^sub>S))\<close> and
+    \<open>consistent_interp I\<close> and
+    \<open>\<not> tautology (mset_set I)\<close> and
+    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> total_over_m I' (set_mset (N\<^sub>H + N\<^sub>S)) \<Longrightarrow> \<not>tautology (mset_set I) \<Longrightarrow>
+      weight_on_clauses N\<^sub>S \<rho> I' \<le> weight_on_clauses N\<^sub>S \<rho> I\<close> |
+partial_max_unsat:
+  \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> None\<close>
+  if
+  \<open>unsatisfiable (set_mset N\<^sub>H)\<close>
+
+inductive partial_min_sat :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> ('v clause \<Rightarrow> nat) \<Rightarrow>
+  'v partial_interp option \<Rightarrow> bool\<close> where
+partial_min_sat:
+  \<open>partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+  if
+    \<open>I \<Turnstile>sm N\<^sub>H\<close> and
+    \<open>bitotal_over_m I (N\<^sub>H + N\<^sub>S)\<close> and
+    \<open>consistent_interp I\<close> and
+    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> total_over_m I' (set_mset (N\<^sub>H + N\<^sub>S)) \<Longrightarrow>
+      weight_on_clauses N\<^sub>S \<rho> I' \<ge> weight_on_clauses N\<^sub>S \<rho> I\<close> |
+partial_min_unsat:
+  \<open>partial_min_sat N\<^sub>H N\<^sub>S \<rho> None\<close>
+  if
+  \<open>unsatisfiable (set_mset N\<^sub>H)\<close>
+
+lemma bitotal_over_m_finite:
+  assumes \<open>bitotal_over_m I N\<close>
+  shows \<open>finite I\<close>
+proof -
+  have \<open>I \<subseteq> Pos ` (atms_of_mm N) \<union> Neg ` atms_of_mm N\<close>
+    using assms by (force simp: total_over_m_def  bitotal_over_m_def lit_in_set_iff_atm
+      atms_of_s_def)
+  from finite_subset[OF this] show ?thesis by auto
+qed
+
+
+lemma mset_set_eq_mset_iff: \<open>finite x \<Longrightarrow>  mset_set x = mset xs \<longleftrightarrow> distinct xs \<and> x = set xs\<close>
+  apply (auto simp flip: distinct_mset_mset_distinct eq_commute[of _ \<open>mset_set _\<close>]
+    simp: distinct_mset_mset_set mset_set_set)
+  apply (metis finite_set_mset_mset_set set_mset_mset)
+  apply (metis finite_set_mset_mset_set set_mset_mset)
+  done
+
+lemma consistent_interp_tuatology_mset_set:
+  \<open>finite x \<Longrightarrow> consistent_interp x  \<longleftrightarrow> \<not>tautology (mset_set x)\<close>
+  using ex_mset[of \<open>mset_set x\<close>]
+  by (auto simp: consistent_interp_tautology eq_commute[of \<open>mset _\<close>] mset_set_eq_mset_iff
+      mset_set_set)
+lemma
+  assumes \<open>satisfiable (set_mset (N\<^sub>H))\<close>
+  obtains I where \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+proof -
+  let ?Is= \<open>{I. bitotal_over_m I ((N\<^sub>H + N\<^sub>S)) \<and>  consistent_interp I \<and>
+     I \<Turnstile>sm N\<^sub>H}\<close>
+  let ?Is'= \<open>{I. bitotal_over_m I ((N\<^sub>H + N\<^sub>S)) \<and> consistent_interp I \<and>
+    I \<Turnstile>sm N\<^sub>H \<and> finite I}\<close>
+  have Is: \<open>?Is = ?Is'\<close>
+    by (auto simp: atms_of_s_def bitotal_over_m_finite)
+  have \<open>?Is' \<subseteq> set_mset ` simple_clss (atms_of_mm (N\<^sub>H + N\<^sub>S))\<close>
+    apply rule
+    unfolding image_iff
+    by (rule_tac x= \<open>mset_set x\<close> in bexI)
+      (auto simp: simple_clss_def bitotal_over_m_def image_iff
+      atms_of_s_def atms_of_def distinct_mset_mset_set consistent_interp_tuatology_mset_set)
+  from finite_subset[OF this] have \<open>finite ?Is\<close> unfolding Is
+    by (auto simp: simple_clss_finite)
+  define \<rho>I where
+    \<open>\<rho>I = Min (weight_on_clauses N\<^sub>S \<rho> ` ?Is)\<close>
+  have \<open>?Is \<noteq> {}\<close>
+    using assms unfolding satisfiable_def_min bitotal_over_m_def
+    apply (auto simp: atms_of_s_def atm_of_def total_over_m_def)
+oops
 
 end
