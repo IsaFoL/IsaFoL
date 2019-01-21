@@ -3915,7 +3915,6 @@ partial_max_sat:
     \<open>I \<Turnstile>sm N\<^sub>H\<close> and
     \<open>bitotal_over_m I ((N\<^sub>H + N\<^sub>S))\<close> and
     \<open>consistent_interp I\<close> and
-    \<open>\<not> tautology (mset_set I)\<close> and
     \<open>\<And>I'. consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
       weight_on_clauses N\<^sub>S \<rho> I' \<le> weight_on_clauses N\<^sub>S \<rho> I\<close> |
 partial_max_unsat:
@@ -4059,4 +4058,124 @@ proof -
     by (induction A) (auto simp: ac_simps)
 qed
 
+inductive weight_sat :: \<open>'v clauses \<Rightarrow> ('v literal multiset \<Rightarrow> nat) \<Rightarrow> 'v literal multiset option \<Rightarrow>
+  bool\<close> where
+weight_sat:
+  \<open>weight_sat N \<rho> (Some I)\<close>
+  if
+    \<open>set_mset I \<Turnstile>sm N\<close> and
+    \<open>bitotal_over_m (set_mset I) N\<close> and
+    \<open>consistent_interp (set_mset I)\<close> and
+    \<open>\<And>I'. consistent_interp (set_mset I') \<Longrightarrow> bitotal_over_m (set_mset I') N \<Longrightarrow> set_mset I' \<Turnstile>sm N \<Longrightarrow>
+      \<rho> I' \<ge> \<rho> I\<close> |
+partial_max_unsat:
+  \<open>weight_sat N \<rho> None\<close>
+  if
+  \<open>unsatisfiable (set_mset N)\<close>
+
+lemma true_cls_mset_empty_iff[simp]: \<open>{} \<Turnstile>m C \<longleftrightarrow> C = {#}\<close>
+  by (cases C)  auto
+
+lemma true_cls_mset_restrict:
+  \<open>{L \<in> I. atm_of L \<in> atms_of_mm N} \<Turnstile>m N \<longleftrightarrow> I \<Turnstile>m N\<close>
+  by (auto simp: true_cls_mset_def true_cls_def
+    dest!: multi_member_split)
+
+lemma true_clss_restrict:
+  \<open>{L \<in> I. atm_of L \<in> atms_of_mm N} \<Turnstile>sm N \<longleftrightarrow> I \<Turnstile>sm N\<close>
+  by (auto simp: true_clss_def true_cls_def
+    dest!: multi_member_split)
+
+lemma true_clss_mono_left:
+  \<open>I \<Turnstile>s A \<Longrightarrow> I \<subseteq> J \<Longrightarrow> J \<Turnstile>s A\<close>
+  by (metis sup.orderE true_clss_union_increase')
+
+lemma
+  fixes additional_atm :: \<open>'v clause \<Rightarrow> 'v\<close> and
+    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
+    N\<^sub>S :: \<open>'v clauses\<close>
+  defines
+    \<open>\<rho>' \<equiv> (\<lambda>C. sum_mset
+       ((\<lambda>L. if atm_of L \<in> additional_atm ` set_mset N\<^sub>S
+         then \<rho> (SOME C. L = Pos (additional_atm C)) else 0) `# C))\<close>
+  assumes
+    add: \<open>\<And>C. C \<in># N\<^sub>S \<Longrightarrow> additional_atm C \<notin> atms_of_mm (N\<^sub>H + N\<^sub>S)\<close>
+      \<open>\<And>C D. C \<in># N\<^sub>S \<Longrightarrow> D \<in># N\<^sub>S \<Longrightarrow> additional_atm C = additional_atm D \<longleftrightarrow> C = D\<close> and
+    w: \<open>weight_sat (N\<^sub>H + (\<lambda>C. add_mset (Pos (additional_atm C)) C) `# N\<^sub>S) \<rho>' (Some I)\<close>
+  shows
+    \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some {L \<in> set_mset I. atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)})\<close>
+proof -
+  define N where \<open>N \<equiv> N\<^sub>H + (\<lambda>C. add_mset (Pos (additional_atm C)) C) `# N\<^sub>S\<close>
+
+  from w
+  have
+    ent: \<open>set_mset I \<Turnstile>sm N\<close> and
+    bi: \<open>bitotal_over_m (set_mset I) N\<close> and
+    cons: \<open>consistent_interp (set_mset I)\<close> and
+    weight: \<open>\<And>I'. consistent_interp (set_mset I') \<Longrightarrow> bitotal_over_m (set_mset I') N \<Longrightarrow>
+      set_mset I' \<Turnstile>sm N \<Longrightarrow> \<rho>' I' \<ge> \<rho>' I\<close>
+    unfolding N_def[symmetric]
+    by (auto simp: weight_sat.simps)
+  let ?I = \<open>{L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)}\<close>
+  have ent': \<open>set_mset I \<Turnstile>sm N\<^sub>H\<close>
+    using ent unfolding true_clss_restrict
+    by (auto simp: N_def)
+  then have ent': \<open>?I \<Turnstile>sm N\<^sub>H\<close>
+    apply (subst (asm) true_clss_restrict[symmetric])
+    apply (rule true_clss_mono_left, assumption)
+    apply auto
+    done
+  have [simp]: \<open>atms_of_ms ((\<lambda>C. add_mset (Pos (additional_atm C)) C) ` set_mset N\<^sub>S) =
+    additional_atm ` set_mset N\<^sub>S \<union> atms_of_ms (set_mset N\<^sub>S)\<close>
+    by (auto simp: atms_of_ms_def)
+  have bi': \<open>bitotal_over_m ?I (N\<^sub>H + N\<^sub>S)\<close>
+    using bi
+    by (auto simp: bitotal_over_m_def total_over_m_def total_over_set_def
+      atms_of_s_def N_def)
+  have cons': \<open>consistent_interp ?I\<close>
+    using cons by (auto simp: consistent_interp_def)
+  have \<open>weight_on_clauses N\<^sub>S \<rho> I'
+      \<le> weight_on_clauses N\<^sub>S \<rho> {L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)}\<close>
+    if 
+      cons: \<open>consistent_interp I'\<close> and
+      bit: \<open>bitotal_over_m I' (N\<^sub>H + N\<^sub>S)\<close> and
+      I': \<open>I' \<Turnstile>sm N\<^sub>H\<close>
+  proof -
+    let ?I' = \<open>I' \<union> Pos ` additional_atm ` {C \<in> set_mset N\<^sub>S. \<not>I' \<Turnstile> C}
+      \<union> Neg ` additional_atm ` {C \<in> set_mset N\<^sub>S. I' \<Turnstile> C}\<close>
+    have \<open>consistent_interp ?I'\<close>
+      using cons bit add by (auto simp: consistent_interp_def
+        bitotal_over_m_def uminus_lit_swap
+	dest: add)
+    moreover have \<open>bitotal_over_m ?I' N\<close>
+      using bit
+      by (auto simp: N_def bitotal_over_m_def total_over_m_def
+        total_over_set_def image_image)
+    moreover have \<open>?I' \<Turnstile>sm N\<close>
+      using I' by (auto simp: N_def true_clss_def image_image
+        dest!: multi_member_split)
+    moreover have \<open>set_mset (mset_set ?I') = ?I'\<close>
+      using bit by (auto simp: bitotal_over_m_finite)
+    ultimately have \<open>\<rho>' (mset_set ?I') \<ge> \<rho>' I\<close>
+      using weight[of \<open>mset_set ?I'\<close>]
+      by argo
+    (* TODO weight_on_clauses I + \<rho>' I = \<Sum> \<rho> `# N\<^sub>H*)
+    (*  weight_on_clauses ?I' + \<rho>' ?I' \<ge> \<Sum> \<rho> `# N\<^sub>H *)
+    (* hence the conclusion *)
+    then show ?thesis
+      apply (auto simp: )
+      oops
+(*
+      sorry
+  qed
+  show ?thesis
+    apply (rule partial_max_sat.intros)
+    subgoal using ent' by auto
+    subgoal using bi' by fast
+    subgoal using cons' by fast
+    subgoal for I'
+    explore_have
+      apply (auto simp: weight_on_clauses_def)
+oops
+*)
 end
