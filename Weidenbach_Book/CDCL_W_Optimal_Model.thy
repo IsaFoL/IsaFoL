@@ -4095,6 +4095,39 @@ lemma sum_mset_mset_set_sum_set:
   apply (cases \<open>finite As\<close>)
   by (induction As rule: finite_induct) auto
 
+lemma sum_mset_sum_count:
+  \<open>(\<Sum>A \<in># As. f A) = (\<Sum>A \<in> set_mset As. count As A * f A)\<close>
+proof (induction As)
+  case empty
+  then show ?case by auto
+next
+  case (add x As)
+  define n where \<open>n = count As x\<close>
+  define As' where \<open>As' \<equiv> removeAll_mset x As\<close>
+  have As: \<open>As = As' + replicate_mset n x\<close>
+    by (auto simp: As'_def n_def intro!: multiset_eqI)
+  have [simp]: \<open>set_mset As' - {x} = set_mset As'\<close> \<open>count As' x = 0\<close> \<open>x \<notin># As'\<close>
+    unfolding As'_def
+    by auto
+  have \<open> (\<Sum>A\<in>set_mset As'.
+       (if x = A then Suc (count (As' + replicate_mset n x) A)
+        else count (As' + replicate_mset n x) A) *
+       f A) =
+       (\<Sum>A\<in>set_mset As'.
+       (count (As' + replicate_mset n x) A) *
+       f A)\<close>
+    by (rule sum.cong) auto
+  then show ?case using add by (auto simp: As sum.insert_remove)
+qed
+
+lemma sum_mset_inter_restrict:
+  \<open>(\<Sum> x \<in># filter_mset P M. f x) = (\<Sum> x \<in># M. if P x then f x else 0)\<close>
+  by (induction M) auto
+lemma mset_set_subset_iff:
+  \<open>mset_set A \<subseteq># I \<longleftrightarrow> infinite A \<or> A \<subseteq> set_mset I\<close>
+  by (metis finite_set_mset finite_set_mset_mset_set mset_set.infinite mset_set_set_mset_subseteq
+    set_mset_mono subset_imp_msubset_mset_set subset_mset.bot.extremum subset_mset.dual_order.trans)
+
 lemma
   fixes additional_atm :: \<open>'v clause \<Rightarrow> 'v\<close> and
     \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
@@ -4102,7 +4135,8 @@ lemma
   defines
     \<open>\<rho>' \<equiv> (\<lambda>C. sum_mset
        ((\<lambda>L. if L \<in> Pos ` additional_atm ` set_mset N\<^sub>S
-         then count N\<^sub>S (SOME C. L = Pos (additional_atm C)) * \<rho> (SOME C. L = Pos (additional_atm C))
+         then count N\<^sub>S (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)
+	   * \<rho> (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)
 	 else 0) `# C))\<close>
   assumes
     add: \<open>\<And>C. C \<in># N\<^sub>S \<Longrightarrow> additional_atm C \<notin> atms_of_mm (N\<^sub>H + N\<^sub>S)\<close>
@@ -4112,7 +4146,7 @@ lemma
     \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some {L \<in> set_mset I. atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)})\<close>
 proof -
   define N where \<open>N \<equiv> N\<^sub>H + (\<lambda>C. add_mset (Pos (additional_atm C)) C) `# N\<^sub>S\<close>
-
+  define cl_of where \<open>cl_of L = (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)\<close> for L
   from w
   have
     ent: \<open>set_mset I \<Turnstile>sm N\<close> and
@@ -4140,12 +4174,50 @@ proof -
       atms_of_s_def N_def)
   have cons': \<open>consistent_interp ?I\<close>
     using cons by (auto simp: consistent_interp_def)
-  have \<open>weight_on_clauses N\<^sub>S \<rho> I'
+  have [simp]: \<open>cl_of (Pos (additional_atm xb)) = xb\<close>
+    if \<open>xb \<in># N\<^sub>S\<close> for xb
+    using someI[of \<open>\<lambda>C. additional_atm xb = additional_atm C\<close> xb] add that
+    unfolding cl_of_def
+    by auto
+
+  let ?I = \<open>{L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)} \<union> Pos ` additional_atm ` {C \<in> set_mset N\<^sub>S. \<not>set_mset I \<Turnstile> C}
+    \<union> Neg ` additional_atm ` {C \<in> set_mset N\<^sub>S. set_mset I \<Turnstile> C}\<close>
+  have \<open>consistent_interp ?I\<close>
+    using cons add by (auto simp: consistent_interp_def
+      bitotal_over_m_def uminus_lit_swap
+      dest: add)
+  moreover have \<open>bitotal_over_m ?I N\<close>
+    using bi
+    by (auto simp: N_def bitotal_over_m_def total_over_m_def
+      total_over_set_def image_image)
+  moreover have \<open>?I \<Turnstile>sm N\<close>
+    using ent apply (auto simp: N_def true_clss_def image_image
+      dest!: multi_member_split)
+      apply (smt atm_of_lit_in_atms_of mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
+      apply (smt atm_of_lit_in_atms_of mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
+      apply (smt atm_of_lit_in_atms_of image_iff insert_iff mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
+      apply (smt atm_of_lit_in_atms_of image_iff insert_iff mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def) 
+      done
+  moreover have \<open>set_mset (mset_set ?I) = ?I\<close> and fin: \<open>finite ?I\<close>
+    by (auto simp: bitotal_over_m_finite)
+  ultimately have \<open>\<rho>' (mset_set ?I) \<ge> \<rho>' I\<close>
+    using weight[of \<open>mset_set ?I\<close>]
+    by argo
+  moreover have \<open>\<rho>' (mset_set ?I) \<le> \<rho>' I\<close>
+    using ent
+    by (auto simp: \<rho>'_def sum_mset_inter_restrict[symmetric] mset_set_subset_iff N_def
+      intro!: sum_image_mset_mono
+      dest!: multi_member_split)
+  ultimately have I_I: \<open>\<rho>' (mset_set ?I) = \<rho>' I\<close>
+    by linarith
+
+  have min: \<open>weight_on_clauses N\<^sub>S \<rho> I'
       \<le> weight_on_clauses N\<^sub>S \<rho> {L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)}\<close>
     if 
       cons: \<open>consistent_interp I'\<close> and
       bit: \<open>bitotal_over_m I' (N\<^sub>H + N\<^sub>S)\<close> and
       I': \<open>I' \<Turnstile>sm N\<^sub>H\<close>
+    for I'
   proof -
     let ?I' = \<open>I' \<union> Pos ` additional_atm ` {C \<in> set_mset N\<^sub>S. \<not>I' \<Turnstile> C}
       \<union> Neg ` additional_atm ` {C \<in> set_mset N\<^sub>S. I' \<Turnstile> C}\<close>
@@ -4162,57 +4234,64 @@ proof -
         dest!: multi_member_split)
     moreover have \<open>set_mset (mset_set ?I') = ?I'\<close> and fin: \<open>finite ?I'\<close>
       using bit by (auto simp: bitotal_over_m_finite)
-    ultimately have \<open>\<rho>' (mset_set ?I') \<ge> \<rho>' I\<close>
+    ultimately have I'_I: \<open>\<rho>' (mset_set ?I') \<ge> \<rho>' I\<close>
       using weight[of \<open>mset_set ?I'\<close>]
       by argo
- (*
-    have \<open>finite I' \<Longrightarrow> \<rho>' (mset_set I') \<ge>
-      sum_mset
-       (\<rho> `# filter_mset  (Not o (\<Turnstile>) I') N\<^sub>S)
-      \<close> for I'
-      unfolding \<rho>'_def N_def
-      proof (induction N\<^sub>S arbitrary: I')
-      subgoal by auto
-      subgoal for C N I'
-        apply (auto simp: image_image sum_mset_mset_set_sum_set
-	  sum.If_cases simp flip: insert_compr)
-	  apply (case_tac \<open>Pos (additional_atm C) \<in> I'\<close>)
-	  apply (auto simp: sum.insert_remove)
-	  apply (subgoal_tac \<open> (\<Sum>x\<in>I' \<inter> (\<lambda>x. Pos (additional_atm x)) ` set_mset N -
-          {Pos (additional_atm C)}.
-         (if C = (SOME C. x = Pos (additional_atm C))
-          then Suc (count N (SOME C. x = Pos (additional_atm C)))
-          else count N (SOME C. x = Pos (additional_atm C))) *
-         \<rho> (SOME C. x = Pos (additional_atm C))) =
-	  (\<Sum>x\<in>I' \<inter> (\<lambda>x. Pos (additional_atm x)) ` set_mset N.
-         (count N (SOME C. x = Pos (additional_atm C))) *
-         \<rho> (SOME C. x = Pos (additional_atm C)))\<close>)
-	 apply auto[]
-	 
-      sorry
-      sorry
-      find_theorems "\<Sum> _ \<in>  insert _ _ . _"
-    have \<open>weight_on_clauses N\<^sub>S \<rho> ?I' + \<rho>' (mset_set ?I') \<ge> sum_mset (\<rho> `# N\<^sub>S)\<close>
-      unfolding weight_on_clauses_def \<rho>'_def
-      apply (auto simp: fin sum_mset_mset_set_sum_set)
-      sorry*)
-    (* TODO weight_on_clauses I + \<rho>' I = \<Sum> \<rho> `# N\<^sub>H*)
-    (*  weight_on_clauses ?I' + \<rho>' ?I' \<ge> \<Sum> \<rho> `# N\<^sub>H *)
-    (* hence the conclusion *)
+    have inj: \<open>inj_on cl_of (I' \<inter> (\<lambda>x. Pos (additional_atm x)) ` set_mset N\<^sub>S)\<close> for I'
+      using add by (auto simp: inj_on_def)
+
+    have we: \<open>weight_on_clauses N\<^sub>S \<rho> I' = sum_mset (\<rho> `# N\<^sub>S) -
+      sum_mset (\<rho> `# filter_mset (Not \<circ> (\<Turnstile>) I') N\<^sub>S)\<close> for I'
+      unfolding weight_on_clauses_def
+      apply (subst (3) multiset_partition[of _ \<open>(\<Turnstile>) I'\<close>])
+      unfolding image_mset_union sum_mset.union
+      by (auto simp: comp_def)
+    have H: \<open>sum_mset
+       (\<rho> `#
+        filter_mset (Not \<circ> (\<Turnstile>) {L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)})
+         N\<^sub>S) = \<rho>' I\<close>
+	unfolding I_I[symmetric] unfolding \<rho>'_def cl_of_def[symmetric]
+	  sum_mset_sum_count if_distrib
+	apply (auto simp: sum_mset_sum_count image_image simp flip: sum.inter_restrict
+	  cong: if_cong)
+	apply (subst comm_monoid_add_class.sum.reindex_cong[symmetric, of cl_of, OF _ refl])
+	apply ((use inj in auto; fail)+)[2]
+	apply (rule sum.cong)
+	apply auto[]
+	using inj[of \<open>set_mset I\<close>] \<open>set_mset I \<Turnstile>sm N\<close> assms(2)
+	apply (auto dest!: multi_member_split simp: N_def image_Int
+	  atm_of_lit_in_atms_of true_cls_def)[]
+	  using add apply (auto simp: true_cls_def)
+	  done
+    have \<open>(\<Sum>x\<in>(I' \<union> (\<lambda>x. Pos (additional_atm x)) ` {C. C \<in># N\<^sub>S \<and> \<not> I' \<Turnstile> C} \<union>
+         (\<lambda>x. Neg (additional_atm x)) ` {C. C \<in># N\<^sub>S \<and> I' \<Turnstile> C}) \<inter>
+        (\<lambda>x. Pos (additional_atm x)) ` set_mset N\<^sub>S.
+       count N\<^sub>S (cl_of x) * \<rho> (cl_of x))
+    \<le> (\<Sum>A\<in>{a. a \<in># N\<^sub>S \<and> \<not> I' \<Turnstile> a}. count N\<^sub>S A * \<rho> A)\<close>
+	apply (subst comm_monoid_add_class.sum.reindex_cong[symmetric, of cl_of, OF _ refl])
+	apply ((use inj in auto; fail)+)[2]
+	apply (rule ordered_comm_monoid_add_class.sum_mono2)
+	using that add by (auto dest:  simp: N_def
+	  bitotal_over_m_def)
+    then have \<open>sum_mset (\<rho> `# filter_mset (Not \<circ> (\<Turnstile>) I') N\<^sub>S) \<ge> \<rho>' (mset_set ?I')\<close>
+      using fin unfolding cl_of_def[symmetric] \<rho>'_def
+      by (auto simp: \<rho>'_def
+        simp add: sum_mset_sum_count image_image simp flip: sum.inter_restrict)
+    then have \<open>\<rho>' I \<le> sum_mset (\<rho> `# filter_mset (Not \<circ> (\<Turnstile>) I') N\<^sub>S)\<close>
+      using I'_I by auto
     then show ?thesis
-      apply (auto simp: )
-      oops
-(*
-      sorry
+      unfolding we H I_I apply -
+      by auto
   qed
+
   show ?thesis
     apply (rule partial_max_sat.intros)
     subgoal using ent' by auto
     subgoal using bi' by fast
     subgoal using cons' by fast
     subgoal for I'
-    explore_have
-      apply (auto simp: weight_on_clauses_def)
-oops
-*)
+      by (rule min)
+    done
+qed
+
 end
