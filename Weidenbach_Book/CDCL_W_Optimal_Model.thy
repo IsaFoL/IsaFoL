@@ -2469,6 +2469,7 @@ definition annotation_is_model where
      (weight S \<noteq> None \<longrightarrow> (set_mset (the (weight S)) \<Turnstile>sm init_clss S \<and>
        consistent_interp (set_mset (the (weight S))) \<and>
        atms_of (the (weight S)) \<subseteq> atms_of_mm (init_clss S) \<and>
+       total_over_m (set_mset (the (weight S))) (set_mset (init_clss S)) \<and>
        distinct_mset (the (weight S))))\<close>
 
 lemma (in -) distinct_consistent_distinct_atm:
@@ -2527,8 +2528,9 @@ theorem full_cdcl_bab_stgy_no_conflicting_clause_from_init_state:
   shows
     \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset N)\<close> and
     \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
-       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
-       distinct_mset (the (weight T))\<close> and
+       atms_of (the (weight T)) \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
+       total_over_m (set_mset (the (weight T))) (set_mset N) \<and>
+       distinct_mset (the (weight T))\<close>  and
     \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
       set_mset I \<Turnstile>sm N \<Longrightarrow> \<rho> I \<ge> \<rho>' (weight T)\<close>
 proof -
@@ -2560,8 +2562,9 @@ proof -
   moreover have \<open>init_clss T = N\<close>
     using rtranclp_cdcl_bab_no_more_init_clss[of ?S T] st
     unfolding full_def by (auto dest: rtranclp_cdcl_bab_stgy_cdcl_bab)
-  ultimately show \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
-       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
+  ultimately show \<open>weight T \<noteq> None \<Longrightarrow>  consistent_interp (set_mset (the (weight T))) \<and>
+       atms_of (the (weight T)) \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
+       total_over_m (set_mset (the (weight T))) (set_mset N) \<and>
        distinct_mset (the (weight T))\<close>
     by (auto simp: annotation_is_model_def)
 
@@ -4066,8 +4069,9 @@ weight_sat:
     \<open>set_mset I \<Turnstile>sm N\<close> and
     \<open>bitotal_over_m (set_mset I) N\<close> and
     \<open>consistent_interp (set_mset I)\<close> and
-    \<open>\<And>I'. consistent_interp (set_mset I') \<Longrightarrow> bitotal_over_m (set_mset I') N \<Longrightarrow> set_mset I' \<Turnstile>sm N \<Longrightarrow>
-      \<rho> I' \<ge> \<rho> I\<close> |
+    \<open>distinct_mset I\<close>
+    \<open>\<And>I'. consistent_interp (set_mset I') \<Longrightarrow> bitotal_over_m (set_mset I') N \<Longrightarrow> distinct_mset I' \<Longrightarrow>
+      set_mset I' \<Turnstile>sm N \<Longrightarrow> \<rho> I' \<ge> \<rho> I\<close> |
 partial_max_unsat:
   \<open>weight_sat N \<rho> None\<close>
   if
@@ -4128,7 +4132,7 @@ lemma mset_set_subset_iff:
   by (metis finite_set_mset finite_set_mset_mset_set mset_set.infinite mset_set_set_mset_subseteq
     set_mset_mono subset_imp_msubset_mset_set subset_mset.bot.extremum subset_mset.dual_order.trans)
 
-lemma
+lemma partial_max_sat_is_weight_sat:
   fixes additional_atm :: \<open>'v clause \<Rightarrow> 'v\<close> and
     \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
     N\<^sub>S :: \<open>'v clauses\<close>
@@ -4152,8 +4156,9 @@ proof -
     ent: \<open>set_mset I \<Turnstile>sm N\<close> and
     bi: \<open>bitotal_over_m (set_mset I) N\<close> and
     cons: \<open>consistent_interp (set_mset I)\<close> and
+    dist: \<open>distinct_mset I\<close> and
     weight: \<open>\<And>I'. consistent_interp (set_mset I') \<Longrightarrow> bitotal_over_m (set_mset I') N \<Longrightarrow>
-      set_mset I' \<Turnstile>sm N \<Longrightarrow> \<rho>' I' \<ge> \<rho>' I\<close>
+      distinct_mset I' \<Longrightarrow> set_mset I' \<Turnstile>sm N \<Longrightarrow> \<rho>' I' \<ge> \<rho>' I\<close>
     unfolding N_def[symmetric]
     by (auto simp: weight_sat.simps)
   let ?I = \<open>{L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)}\<close>
@@ -4200,6 +4205,8 @@ proof -
       done
   moreover have \<open>set_mset (mset_set ?I) = ?I\<close> and fin: \<open>finite ?I\<close>
     by (auto simp: bitotal_over_m_finite)
+  moreover have \<open>distinct_mset (mset_set ?I)\<close>
+    by (auto simp: distinct_mset_mset_set)
   ultimately have \<open>\<rho>' (mset_set ?I) \<ge> \<rho>' I\<close>
     using weight[of \<open>mset_set ?I\<close>]
     by argo
@@ -4234,6 +4241,8 @@ proof -
         dest!: multi_member_split)
     moreover have \<open>set_mset (mset_set ?I') = ?I'\<close> and fin: \<open>finite ?I'\<close>
       using bit by (auto simp: bitotal_over_m_finite)
+    moreover have \<open>distinct_mset (mset_set ?I')\<close>
+      by (auto simp: distinct_mset_mset_set)
     ultimately have I'_I: \<open>\<rho>' (mset_set ?I') \<ge> \<rho>' I\<close>
       using weight[of \<open>mset_set ?I'\<close>]
       by argo
@@ -4293,5 +4302,37 @@ proof -
       by (rule min)
     done
 qed
+
+lemma bitotal_over_m_alt_def:
+  \<open>bitotal_over_m (set_mset y) N \<longleftrightarrow> atms_of y \<subseteq> atms_of_mm N \<and>
+        total_over_m (set_mset y) (set_mset N)\<close>
+  by (auto simp: bitotal_over_m_def atms_of_s_def atms_of_def
+    atms_of_ms_def dest!: multi_member_split)
+
+lemma bitotal_over_m_alt_def2:
+  \<open>bitotal_over_m (set_mset y) N \<longleftrightarrow> 
+	atms_of y = atms_of_mm N\<close>
+  by (metis atms_of_def atms_of_s_def bitotal_over_m_alt_def equalityI order_refl total_over_m_def
+    total_over_set_alt_def)
+
+lemma (in optimal_encoding) full_cdcl_bab_stgy_weight_sat:
+  \<open>full cdcl_bab_stgy (init_state N) T \<Longrightarrow> distinct_mset_mset N \<Longrightarrow> weight_sat N \<rho> (weight T)\<close>
+  using full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of N T]
+  apply (cases \<open>weight T = None\<close>)
+  subgoal
+    by (auto intro!: weight_sat.intros(2))
+  subgoal premises p
+    using p(1-4,6)
+    apply (clarsimp simp only:)
+    apply (rule weight_sat.intros(1))
+    subgoal by auto
+    subgoal by (auto simp: bitotal_over_m_alt_def)[]
+    subgoal by auto
+    subgoal by auto
+    subgoal for J I'
+      using p(5)[of I']
+      by (auto simp: bitotal_over_m_alt_def2)
+    done
+  done
 
 end
