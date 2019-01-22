@@ -4090,14 +4090,20 @@ lemma true_clss_mono_left:
   \<open>I \<Turnstile>s A \<Longrightarrow> I \<subseteq> J \<Longrightarrow> J \<Turnstile>s A\<close>
   by (metis sup.orderE true_clss_union_increase')
 
+lemma sum_mset_mset_set_sum_set:
+  \<open>(\<Sum>A \<in># mset_set As. f A) = (\<Sum>A \<in> As. f A)\<close>
+  apply (cases \<open>finite As\<close>)
+  by (induction As rule: finite_induct) auto
+
 lemma
   fixes additional_atm :: \<open>'v clause \<Rightarrow> 'v\<close> and
     \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
     N\<^sub>S :: \<open>'v clauses\<close>
   defines
     \<open>\<rho>' \<equiv> (\<lambda>C. sum_mset
-       ((\<lambda>L. if atm_of L \<in> additional_atm ` set_mset N\<^sub>S
-         then \<rho> (SOME C. L = Pos (additional_atm C)) else 0) `# C))\<close>
+       ((\<lambda>L. if L \<in> Pos ` additional_atm ` set_mset N\<^sub>S
+         then count N\<^sub>S (SOME C. L = Pos (additional_atm C)) * \<rho> (SOME C. L = Pos (additional_atm C))
+	 else 0) `# C))\<close>
   assumes
     add: \<open>\<And>C. C \<in># N\<^sub>S \<Longrightarrow> additional_atm C \<notin> atms_of_mm (N\<^sub>H + N\<^sub>S)\<close>
       \<open>\<And>C D. C \<in># N\<^sub>S \<Longrightarrow> D \<in># N\<^sub>S \<Longrightarrow> additional_atm C = additional_atm D \<longleftrightarrow> C = D\<close> and
@@ -4154,11 +4160,42 @@ proof -
     moreover have \<open>?I' \<Turnstile>sm N\<close>
       using I' by (auto simp: N_def true_clss_def image_image
         dest!: multi_member_split)
-    moreover have \<open>set_mset (mset_set ?I') = ?I'\<close>
+    moreover have \<open>set_mset (mset_set ?I') = ?I'\<close> and fin: \<open>finite ?I'\<close>
       using bit by (auto simp: bitotal_over_m_finite)
     ultimately have \<open>\<rho>' (mset_set ?I') \<ge> \<rho>' I\<close>
       using weight[of \<open>mset_set ?I'\<close>]
       by argo
+ (*
+    have \<open>finite I' \<Longrightarrow> \<rho>' (mset_set I') \<ge>
+      sum_mset
+       (\<rho> `# filter_mset  (Not o (\<Turnstile>) I') N\<^sub>S)
+      \<close> for I'
+      unfolding \<rho>'_def N_def
+      proof (induction N\<^sub>S arbitrary: I')
+      subgoal by auto
+      subgoal for C N I'
+        apply (auto simp: image_image sum_mset_mset_set_sum_set
+	  sum.If_cases simp flip: insert_compr)
+	  apply (case_tac \<open>Pos (additional_atm C) \<in> I'\<close>)
+	  apply (auto simp: sum.insert_remove)
+	  apply (subgoal_tac \<open> (\<Sum>x\<in>I' \<inter> (\<lambda>x. Pos (additional_atm x)) ` set_mset N -
+          {Pos (additional_atm C)}.
+         (if C = (SOME C. x = Pos (additional_atm C))
+          then Suc (count N (SOME C. x = Pos (additional_atm C)))
+          else count N (SOME C. x = Pos (additional_atm C))) *
+         \<rho> (SOME C. x = Pos (additional_atm C))) =
+	  (\<Sum>x\<in>I' \<inter> (\<lambda>x. Pos (additional_atm x)) ` set_mset N.
+         (count N (SOME C. x = Pos (additional_atm C))) *
+         \<rho> (SOME C. x = Pos (additional_atm C)))\<close>)
+	 apply auto[]
+	 
+      sorry
+      sorry
+      find_theorems "\<Sum> _ \<in>  insert _ _ . _"
+    have \<open>weight_on_clauses N\<^sub>S \<rho> ?I' + \<rho>' (mset_set ?I') \<ge> sum_mset (\<rho> `# N\<^sub>S)\<close>
+      unfolding weight_on_clauses_def \<rho>'_def
+      apply (auto simp: fin sum_mset_mset_set_sum_set)
+      sorry*)
     (* TODO weight_on_clauses I + \<rho>' I = \<Sum> \<rho> `# N\<^sub>H*)
     (*  weight_on_clauses ?I' + \<rho>' ?I' \<ge> \<Sum> \<rho> `# N\<^sub>H *)
     (* hence the conclusion *)
