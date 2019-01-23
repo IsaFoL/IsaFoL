@@ -1383,7 +1383,7 @@ qed
 lemma subst_Cons_nth: \<open>i < length ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) \<Longrightarrow> ((C # Cs) ! i) \<cdot> ((\<sigma> # \<sigma>s) ! i) = ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) ! i\<close>
 by (auto simp: nth_Cons' simp del: subst_cls_lists_length)
 
-lemma \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close>
+lemma lifting_in_framework: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close>
 proof -
   assume i'_in: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F)\<close>
   have prems_i'_in: \<open>set (inference.prems_of \<iota>') \<subseteq> UNION M \<G>_F\<close> using i'_in unfolding Inf_from_def by blast
@@ -1569,25 +1569,46 @@ proof
   show "wfp_on Empty_Order UNIV" unfolding wfp_on_def Empty_Order_def by simp
 qed
 
+
+
 lemma inf_F_to_inf_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<subseteq> Inf_G\<close> for \<iota>
 proof
   fix \<iota>'
   assume
     i_in: \<open>\<iota> \<in> Inf_F\<close> and
     i'_in: \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
-  show \<open>\<iota>' \<in> Inf_G\<close> using i_in i'_in unfolding \<G>_Inf_def by blast
+  show \<open>\<iota>' \<in> Inf_G\<close>
+    using i_in i'_in unfolding \<G>_Inf_def by blast
 qed
+
+
+lemma inf_G_in_inf_F: \<open>Inf_G \<subseteq> Inf_F\<close> 
+proof
+  fix \<iota>
+  assume i_in: \<open>\<iota> \<in> Inf_G\<close>
+  obtain \<iota>_RP where i_RP_in: \<open>\<iota>_RP \<in> gr.ord_\<Gamma>\<close> and i_i_RP: \<open>same_inf \<iota>_RP \<iota>\<close> using i_in unfolding Inf_G_def by blast
+  have \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using i_RP_in unfolding gr.ord_\<Gamma>_def ord_FO_\<Gamma>_def
+  show \<open>\<iota> \<in> Inf_F\<close> unfolding Inf_F_def gr.ord_resolve.simps ord_resolve_rename.simps apply auto sorry
+  oops
+
+find_theorems  gr.ord_\<Gamma>
 
 interpretation static_refutational_complete_calculus Bot_F entails_sound_F Inf_F \<G>.entails_\<G> src.Red_Inf_\<G> src.Red_F_\<G>
 proof
   fix B N
   assume
     b_in: \<open>B \<in> Bot_F\<close> and
-    sat: \<open>src.lifted_calculus.saturated N\<close> and
+    n_sat: \<open>src.lifted_calculus.saturated N\<close> and
     ent_b: \<open>\<G>.entails_\<G> N {B}\<close>
   have \<open>B = {#}\<close> using b_in by simp
-  have \<open>gr_calc.saturated (\<G>.\<G>_set N)\<close>
-    using sat unfolding gr_calc.saturated_def src.lifted_calculus.saturated_def sound_F.Inf_from_def Inf_from_def src.Red_Inf_\<G>_def 
+  have gn_sat: \<open>gr_calc.saturated (\<G>.\<G>_set N)\<close>
+    unfolding gr_calc.saturated_def
+  proof
+    fix \<iota>'
+    assume i_in: \<open>\<iota>' \<in> Inf_from (\<G>.\<G>_set N)\<close>
+    obtain \<iota> where \<open>\<iota> \<in> sound_F.Inf_from N\<close> \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close> using i_in lifting_in_framework sorry
+    show \<open>\<iota>' \<in> Red_Inf_G (\<G>.\<G>_set N)\<close> using i_in n_sat unfolding src.lifted_calculus.saturated_def sorry
+    oops
 
 find_theorems name: calc_G
 
