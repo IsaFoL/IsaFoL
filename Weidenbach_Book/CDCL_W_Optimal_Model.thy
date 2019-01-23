@@ -10,6 +10,9 @@ subsection \<open>Optimisations\<close>
 text \<open>
   A counter-example for the original version from the book has been found (see below). There is no
   simple fix, except taking complete models.
+
+  Based on Dominik Zimmer's thesis, we later reduced the problem of finding partial models to
+  finding total models
 \<close>
 
 notation image_mset (infixr "`#" 90)
@@ -1811,48 +1814,6 @@ proof -
     using \<open>atms_of_mm (too_heavy_clauses M (Some w)) \<subseteq> atms_of_mm M\<close> by blast
 qed
 
-lemma (in -)true_clss_cls_tautology_iff:
-  \<open>{} \<Turnstile>p a \<longleftrightarrow> tautology a\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
-proof
-  assume ?A
-  then have H: \<open>total_over_set I (atms_of a) \<Longrightarrow> consistent_interp I \<Longrightarrow> I \<Turnstile> a\<close> for I
-    by (auto simp: true_clss_cls_def tautology_decomp add_mset_eq_add_mset
-      dest!: multi_member_split)
-  show ?B
-    unfolding tautology_def
-  proof (intro allI impI)
-    fix I
-    assume tot: \<open>total_over_set I (atms_of a)\<close>
-    let ?Iinter = \<open>I \<inter> uminus ` I\<close>
-    let ?I = \<open>I - ?Iinter \<union> Pos ` atm_of ` ?Iinter\<close>
-    have \<open>total_over_set ?I (atms_of a)\<close>
-      using tot by (force simp: total_over_set_def image_image simp flip: uminus_lit_swap
-        simp: image_iff)
-    moreover have \<open>consistent_interp ?I\<close>
-      unfolding consistent_interp_def image_iff
-      apply clarify
-      subgoal for L
-        apply (cases L)
-        apply (auto simp: consistent_interp_def uminus_lit_swap image_iff)
-	apply (case_tac xa; auto; fail)+
-	done
-      done
-    ultimately have \<open>?I \<Turnstile> a\<close>
-      using H[of ?I] by fast
-    moreover have \<open>?I \<subseteq> I\<close>
-      apply (rule)
-      subgoal for x by (cases x; auto; rename_tac xb; case_tac xb; auto)
-      done
-    ultimately show \<open>I \<Turnstile> a\<close>
-      by (blast intro: true_cls_mono_set_mset_l)
-  qed
-next
-  assume ?B
-  then show \<open>?A\<close>
-    by (auto simp: true_clss_cls_def tautology_decomp add_mset_eq_add_mset
-      dest!: multi_member_split)
-qed
-
 lemma entails_too_heavy_clauses_too_heavy_clauses:
   assumes
     \<open>consistent_interp I\<close> and
@@ -2462,10 +2423,6 @@ definition annotation_is_model where
        atms_of (the (weight S)) \<subseteq> atms_of_mm (init_clss S) \<and>
        total_over_m (set_mset (the (weight S))) (set_mset (init_clss S)) \<and>
        distinct_mset (the (weight S))))\<close>
-
-lemma (in -) distinct_consistent_distinct_atm:
-  \<open>distinct M \<Longrightarrow> consistent_interp (set M) \<Longrightarrow> distinct_mset (atm_of `# mset M)\<close>
-  by (induction M) (auto simp: atm_of_eq_atm_of)
 
 lemma cdcl_bab_annotation_is_model:
   assumes
@@ -3942,19 +3899,6 @@ proof -
 qed
 
 
-lemma mset_set_eq_mset_iff: \<open>finite x \<Longrightarrow>  mset_set x = mset xs \<longleftrightarrow> distinct xs \<and> x = set xs\<close>
-  apply (auto simp flip: distinct_mset_mset_distinct eq_commute[of _ \<open>mset_set _\<close>]
-    simp: distinct_mset_mset_set mset_set_set)
-  apply (metis finite_set_mset_mset_set set_mset_mset)
-  apply (metis finite_set_mset_mset_set set_mset_mset)
-  done
-
-lemma consistent_interp_tuatology_mset_set:
-  \<open>finite x \<Longrightarrow> consistent_interp x  \<longleftrightarrow> \<not>tautology (mset_set x)\<close>
-  using ex_mset[of \<open>mset_set x\<close>]
-  by (auto simp: consistent_interp_tautology eq_commute[of \<open>mset _\<close>] mset_set_eq_mset_iff
-      mset_set_set)
-
 lemma
   fixes N\<^sub>H :: \<open>'v clauses\<close>
   assumes \<open>satisfiable (set_mset N\<^sub>H)\<close>
@@ -4039,19 +3983,6 @@ proof -
     by fast
 qed
 
-lemma sumset_diff_constant_left:
-  assumes \<open>\<And>x. x \<in># A \<Longrightarrow> f x \<le> n\<close>
-  shows \<open>(\<Sum>x\<in># A . n - f x) = size A * n - (\<Sum>x\<in># A . f x)\<close>
-proof -
-  have \<open>size A * n \<ge> (\<Sum>x\<in># A . f x)\<close>
-    if \<open>\<And>x. x \<in># A \<Longrightarrow> f x \<le> n\<close> for A
-    using that
-    by (induction A) (force simp: ac_simps)+
-  then show ?thesis
-    using assms
-    by (induction A) (auto simp: ac_simps)
-qed
-
 inductive weight_sat :: \<open>'v clauses \<Rightarrow> ('v literal multiset \<Rightarrow> nat) \<Rightarrow> 'v literal multiset option \<Rightarrow>
   bool\<close> where
 weight_sat:
@@ -4067,61 +3998,6 @@ partial_max_unsat:
   \<open>weight_sat N \<rho> None\<close>
   if
   \<open>unsatisfiable (set_mset N)\<close>
-
-lemma true_cls_mset_empty_iff[simp]: \<open>{} \<Turnstile>m C \<longleftrightarrow> C = {#}\<close>
-  by (cases C)  auto
-
-lemma true_cls_mset_restrict:
-  \<open>{L \<in> I. atm_of L \<in> atms_of_mm N} \<Turnstile>m N \<longleftrightarrow> I \<Turnstile>m N\<close>
-  by (auto simp: true_cls_mset_def true_cls_def
-    dest!: multi_member_split)
-
-lemma true_clss_restrict:
-  \<open>{L \<in> I. atm_of L \<in> atms_of_mm N} \<Turnstile>sm N \<longleftrightarrow> I \<Turnstile>sm N\<close>
-  by (auto simp: true_clss_def true_cls_def
-    dest!: multi_member_split)
-
-lemma true_clss_mono_left:
-  \<open>I \<Turnstile>s A \<Longrightarrow> I \<subseteq> J \<Longrightarrow> J \<Turnstile>s A\<close>
-  by (metis sup.orderE true_clss_union_increase')
-
-lemma sum_mset_mset_set_sum_set:
-  \<open>(\<Sum>A \<in># mset_set As. f A) = (\<Sum>A \<in> As. f A)\<close>
-  apply (cases \<open>finite As\<close>)
-  by (induction As rule: finite_induct) auto
-
-lemma sum_mset_sum_count:
-  \<open>(\<Sum>A \<in># As. f A) = (\<Sum>A \<in> set_mset As. count As A * f A)\<close>
-proof (induction As)
-  case empty
-  then show ?case by auto
-next
-  case (add x As)
-  define n where \<open>n = count As x\<close>
-  define As' where \<open>As' \<equiv> removeAll_mset x As\<close>
-  have As: \<open>As = As' + replicate_mset n x\<close>
-    by (auto simp: As'_def n_def intro!: multiset_eqI)
-  have [simp]: \<open>set_mset As' - {x} = set_mset As'\<close> \<open>count As' x = 0\<close> \<open>x \<notin># As'\<close>
-    unfolding As'_def
-    by auto
-  have \<open> (\<Sum>A\<in>set_mset As'.
-       (if x = A then Suc (count (As' + replicate_mset n x) A)
-        else count (As' + replicate_mset n x) A) *
-       f A) =
-       (\<Sum>A\<in>set_mset As'.
-       (count (As' + replicate_mset n x) A) *
-       f A)\<close>
-    by (rule sum.cong) auto
-  then show ?case using add by (auto simp: As sum.insert_remove)
-qed
-
-lemma sum_mset_inter_restrict:
-  \<open>(\<Sum> x \<in># filter_mset P M. f x) = (\<Sum> x \<in># M. if P x then f x else 0)\<close>
-  by (induction M) auto
-lemma mset_set_subset_iff:
-  \<open>mset_set A \<subseteq># I \<longleftrightarrow> infinite A \<or> A \<subseteq> set_mset I\<close>
-  by (metis finite_set_mset finite_set_mset_mset_set mset_set.infinite mset_set_set_mset_subseteq
-    set_mset_mono subset_imp_msubset_mset_set subset_mset.bot.extremum subset_mset.dual_order.trans)
 
 lemma partial_max_sat_is_weight_sat:
   fixes additional_atm :: \<open>'v clause \<Rightarrow> 'v\<close> and
@@ -4192,7 +4068,7 @@ proof -
       apply (smt atm_of_lit_in_atms_of mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
       apply (smt atm_of_lit_in_atms_of mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
       apply (smt atm_of_lit_in_atms_of image_iff insert_iff mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
-      apply (smt atm_of_lit_in_atms_of image_iff insert_iff mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def) 
+      apply (smt atm_of_lit_in_atms_of image_iff insert_iff mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
       done
   moreover have \<open>set_mset (mset_set ?I) = ?I\<close> and fin: \<open>finite ?I\<close>
     by (auto simp: bitotal_over_m_finite)
@@ -4211,7 +4087,7 @@ proof -
 
   have min: \<open>weight_on_clauses N\<^sub>S \<rho> I'
       \<le> weight_on_clauses N\<^sub>S \<rho> {L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)}\<close>
-    if 
+    if
       cons: \<open>consistent_interp I'\<close> and
       bit: \<open>bitotal_over_m I' (N\<^sub>H + N\<^sub>S)\<close> and
       I': \<open>I' \<Turnstile>sm N\<^sub>H\<close>
@@ -4301,8 +4177,7 @@ lemma bitotal_over_m_alt_def:
     atms_of_ms_def dest!: multi_member_split)
 
 lemma bitotal_over_m_alt_def2:
-  \<open>bitotal_over_m (set_mset y) N \<longleftrightarrow> 
-	atms_of y = atms_of_mm N\<close>
+  \<open>bitotal_over_m (set_mset y) N \<longleftrightarrow> atms_of y = atms_of_mm N\<close>
   by (metis atms_of_def atms_of_s_def bitotal_over_m_alt_def equalityI order_refl total_over_m_def
     total_over_set_alt_def)
 
@@ -4317,12 +4192,11 @@ lemma (in optimal_encoding) full_cdcl_bab_stgy_weight_sat:
     apply (clarsimp simp only:)
     apply (rule weight_sat.intros(1))
     subgoal by auto
-    subgoal by (auto simp: bitotal_over_m_alt_def)[]
+    subgoal by (auto simp: bitotal_over_m_alt_def)
     subgoal by auto
     subgoal by auto
     subgoal for J I'
-      using p(5)[of I']
-      by (auto simp: bitotal_over_m_alt_def2)
+      using p(5)[of I'] by (auto simp: bitotal_over_m_alt_def2)
     done
   done
 

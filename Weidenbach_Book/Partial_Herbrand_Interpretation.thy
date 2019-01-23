@@ -100,6 +100,11 @@ lemma consistent_interp_insert_iff:
   by (metis consistent_interp_def consistent_interp_insert_pos insert_absorb)
 
 
+lemma (in -) distinct_consistent_distinct_atm:
+  \<open>distinct M \<Longrightarrow> consistent_interp (set M) \<Longrightarrow> distinct_mset (atm_of `# mset M)\<close>
+  by (induction M) (auto simp: atm_of_eq_atm_of)
+
+
 subsubsection \<open>Atoms\<close>
 
 text \<open>We define here various lifting of @{term atm_of} (applied to a single literal) to set and
@@ -758,6 +763,12 @@ lemma consistent_interp_tautology:
   \<open>consistent_interp (set M') \<longleftrightarrow> \<not>tautology (mset M')\<close>
   by (auto simp: consistent_interp_def tautology_decomp lit_in_set_iff_atm)
 
+lemma consistent_interp_tuatology_mset_set:
+  \<open>finite x \<Longrightarrow> consistent_interp x  \<longleftrightarrow> \<not>tautology (mset_set x)\<close>
+  using ex_mset[of \<open>mset_set x\<close>]
+  by (auto simp: consistent_interp_tautology eq_commute[of \<open>mset _\<close>] mset_set_eq_mset_iff
+      mset_set_set)
+
 
 subsubsection \<open>Entailment for clauses and propositions\<close>
 
@@ -994,6 +1005,49 @@ lemma true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or:
   shows "N \<Turnstile>p D \<union># C"
   using true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[OF assms]
   by (subst true_clss_cls_sup_iff_add)
+
+
+lemma true_clss_cls_tautology_iff:
+  \<open>{} \<Turnstile>p a \<longleftrightarrow> tautology a\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof
+  assume ?A
+  then have H: \<open>total_over_set I (atms_of a) \<Longrightarrow> consistent_interp I \<Longrightarrow> I \<Turnstile> a\<close> for I
+    by (auto simp: true_clss_cls_def tautology_decomp add_mset_eq_add_mset
+      dest!: multi_member_split)
+  show ?B
+    unfolding tautology_def
+  proof (intro allI impI)
+    fix I
+    assume tot: \<open>total_over_set I (atms_of a)\<close>
+    let ?Iinter = \<open>I \<inter> uminus ` I\<close>
+    let ?I = \<open>I - ?Iinter \<union> Pos ` atm_of ` ?Iinter\<close>
+    have \<open>total_over_set ?I (atms_of a)\<close>
+      using tot by (force simp: total_over_set_def image_image uminus_lit_swap
+        simp: image_iff)
+    moreover have \<open>consistent_interp ?I\<close>
+      unfolding consistent_interp_def image_iff
+      apply clarify
+      subgoal for L
+        apply (cases L)
+        apply (auto simp: consistent_interp_def uminus_lit_swap image_iff)
+	apply (case_tac xa; auto; fail)+
+	done
+      done
+    ultimately have \<open>?I \<Turnstile> a\<close>
+      using H[of ?I] by fast
+    moreover have \<open>?I \<subseteq> I\<close>
+      apply (rule)
+      subgoal for x by (cases x; auto; rename_tac xb; case_tac xb; auto)
+      done
+    ultimately show \<open>I \<Turnstile> a\<close>
+      by (blast intro: true_cls_mono_set_mset_l)
+  qed
+next
+  assume ?B
+  then show \<open>?A\<close>
+    by (auto simp: true_clss_cls_def tautology_decomp add_mset_eq_add_mset
+      dest!: multi_member_split)
+qed
 
 
 subsection \<open>Subsumptions\<close>
@@ -1407,5 +1461,16 @@ lemma not_consistent_true_clss_ext:
   assumes "\<not>consistent_interp I"
   shows "I \<Turnstile>sext A"
   by (meson assms consistent_interp_subset true_clss_ext_def)
+
+
+(*Move in the theories*)
+
+lemma true_cls_mset_empty_iff[simp]: \<open>{} \<Turnstile>m C \<longleftrightarrow> C = {#}\<close>
+  by (cases C)  auto
+
+
+lemma true_clss_mono_left:
+  \<open>I \<Turnstile>s A \<Longrightarrow> I \<subseteq> J \<Longrightarrow> J \<Turnstile>s A\<close>
+  by (metis sup.orderE true_clss_union_increase')
 
 end
