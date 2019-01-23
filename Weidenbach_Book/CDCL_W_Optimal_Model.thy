@@ -310,13 +310,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops 
     and
     conflicting_clss_update_weight_information_in:
       \<open>is_improving M S \<Longrightarrow>
-        negate_ann_lits M \<in># conflicting_clss (update_weight_information M S)\<close> and
-    is_improving_mono:
-      \<open>\<not>is_improving M' S \<Longrightarrow> is_improving M S \<Longrightarrow>
-         \<not>is_improving M' (update_weight_information M S)\<close> and
-    conflicting_clss_update_weight_information_no_alien:
-      \<open>atms_of_mm (conflicting_clss (update_weight_information M S)) \<subseteq> atms_of_mm (init_clss S)\<close>
-
+        negate_ann_lits M \<in># conflicting_clss (update_weight_information M S)\<close>
 begin
 
 sublocale conflict_driven_clause_learning\<^sub>W
@@ -455,7 +449,6 @@ proof (induction rule: improve.cases)
             true_annots_true_cls_def_iff_negation_in_model
             in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
             image_Un distinct_mset_mset_conflicting_clss abs_state_def
-            conflicting_clss_update_weight_information_in
           simp del: append_assoc
           dest: no_dup_appendD consistent_interp_unionD)
 qed
@@ -715,7 +708,7 @@ definition cdcl_bab_struct_invs :: \<open>'st \<Rightarrow> bool\<close> where
 
 lemma cdcl_bab_cdcl_bab_struct_invs:
   \<open>cdcl_bab S T \<Longrightarrow> cdcl_bab_struct_invs S \<Longrightarrow> cdcl_bab_struct_invs T\<close>
-  using conflicting_clss_update_weight_information_no_alien[of _ S] apply -
+  using atms_of_conflicting_clss[of \<open>update_weight_information _ S\<close>] apply -
   by (induction rule: cdcl_bab.induct)
     (force simp: improve.simps conflict.simps propagate.simps
       conflict_opt.simps ocdcl\<^sub>W_o.simps obacktrack.simps skip.simps resolve.simps
@@ -1148,8 +1141,8 @@ lemma cdcl_bab_stgy_stgy_inv:
   \<open>cdcl_bab_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
     cdcl_bab_stgy_inv S \<Longrightarrow> cdcl_bab_stgy_inv T\<close>
   using cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant[of S T]
+     cdcl_bab_stgy_conflict_is_false_with_level cdcl_bab_stgy_no_smaller_confl
   unfolding cdcl_bab_stgy_inv_def
-  using cdcl_bab_stgy_conflict_is_false_with_level cdcl_bab_stgy_no_smaller_confl
   by blast
 
 lemma rtranclp_cdcl_bab_stgy_stgy_inv:
@@ -2020,8 +2013,6 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
   subgoal by (rule distinct_mset_mset_conflicting_clss; assumption)
   subgoal by (rule is_improving_conflicting_clss_update_weight_information; assumption)
   subgoal by (rule conflicting_clss_update_weight_information_in; assumption)
-  subgoal by (rule is_improving_mono; assumption)
-  subgoal by (rule conflict_clss_update_weight_no_alien)
   done
 
 lemma wf_cdcl_bab: \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bab S T}\<close>
