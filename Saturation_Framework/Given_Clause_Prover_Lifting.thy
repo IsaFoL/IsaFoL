@@ -1563,9 +1563,33 @@ proof -
   then show \<open> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close> by blast
 qed
 
-find_theorems name: exI
-thm conv_inf_def
+interpretation src: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Empty_Order
+proof
+  show "po_on Empty_Order UNIV" unfolding Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
+  show "wfp_on Empty_Order UNIV" unfolding wfp_on_def Empty_Order_def by simp
+qed
 
+lemma inf_F_to_inf_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<subseteq> Inf_G\<close> for \<iota>
+proof
+  fix \<iota>'
+  assume
+    i_in: \<open>\<iota> \<in> Inf_F\<close> and
+    i'_in: \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
+  show \<open>\<iota>' \<in> Inf_G\<close> using i_in i'_in unfolding \<G>_Inf_def by blast
+qed
+
+interpretation static_refutational_complete_calculus Bot_F entails_sound_F Inf_F \<G>.entails_\<G> src.Red_Inf_\<G> src.Red_F_\<G>
+proof
+  fix B N
+  assume
+    b_in: \<open>B \<in> Bot_F\<close> and
+    sat: \<open>src.lifted_calculus.saturated N\<close> and
+    ent_b: \<open>\<G>.entails_\<G> N {B}\<close>
+  have \<open>B = {#}\<close> using b_in by simp
+  have \<open>gr_calc.saturated (\<G>.\<G>_set N)\<close>
+    using sat unfolding gr_calc.saturated_def src.lifted_calculus.saturated_def sound_F.Inf_from_def Inf_from_def src.Red_Inf_\<G>_def 
+
+find_theorems name: calc_G
 
 end
 
