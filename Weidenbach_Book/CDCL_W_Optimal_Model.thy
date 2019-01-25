@@ -10,6 +10,9 @@ subsection \<open>Optimisations\<close>
 text \<open>
   A counter-example for the original version from the book has been found (see below). There is no
   simple fix, except taking complete models.
+
+  Based on Dominik Zimmer's thesis, we later reduced the problem of finding partial models to
+  finding total models
 \<close>
 
 notation image_mset (infixr "`#" 90)
@@ -310,13 +313,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops 
     and
     conflicting_clss_update_weight_information_in:
       \<open>is_improving M S \<Longrightarrow>
-        negate_ann_lits M \<in># conflicting_clss (update_weight_information M S)\<close> and
-    is_improving_mono:
-      \<open>\<not>is_improving M' S \<Longrightarrow> is_improving M S \<Longrightarrow>
-         \<not>is_improving M' (update_weight_information M S)\<close> and
-    conflicting_clss_update_weight_information_no_alien:
-      \<open>atms_of_mm (conflicting_clss (update_weight_information M S)) \<subseteq> atms_of_mm (init_clss S)\<close>
-
+        negate_ann_lits M \<in># conflicting_clss (update_weight_information M S)\<close>
 begin
 
 sublocale conflict_driven_clause_learning\<^sub>W
@@ -455,7 +452,6 @@ proof (induction rule: improve.cases)
             true_annots_true_cls_def_iff_negation_in_model
             in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
             image_Un distinct_mset_mset_conflicting_clss abs_state_def
-            conflicting_clss_update_weight_information_in
           simp del: append_assoc
           dest: no_dup_appendD consistent_interp_unionD)
 qed
@@ -482,7 +478,7 @@ lemma conflict_opt_no_smaller_conflict:
 
 fun no_confl_prop_impr where
   \<open>no_confl_prop_impr S \<longleftrightarrow>
-    no_step propagate S \<and> no_step conflict S \<and> no_step improve S\<close>
+    no_step propagate S \<and> no_step conflict S\<close>
 
 text \<open>We use a slighlty generalised form of backtrack to make conflict clause minimisation possible.\<close>
 inductive obacktrack :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
@@ -715,7 +711,7 @@ definition cdcl_bab_struct_invs :: \<open>'st \<Rightarrow> bool\<close> where
 
 lemma cdcl_bab_cdcl_bab_struct_invs:
   \<open>cdcl_bab S T \<Longrightarrow> cdcl_bab_struct_invs S \<Longrightarrow> cdcl_bab_struct_invs T\<close>
-  using conflicting_clss_update_weight_information_no_alien[of _ S] apply -
+  using atms_of_conflicting_clss[of \<open>update_weight_information _ S\<close>] apply -
   by (induction rule: cdcl_bab.induct)
     (force simp: improve.simps conflict.simps propagate.simps
       conflict_opt.simps ocdcl\<^sub>W_o.simps obacktrack.simps skip.simps resolve.simps
@@ -1148,8 +1144,8 @@ lemma cdcl_bab_stgy_stgy_inv:
   \<open>cdcl_bab_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
     cdcl_bab_stgy_inv S \<Longrightarrow> cdcl_bab_stgy_inv T\<close>
   using cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant[of S T]
+     cdcl_bab_stgy_conflict_is_false_with_level cdcl_bab_stgy_no_smaller_confl
   unfolding cdcl_bab_stgy_inv_def
-  using cdcl_bab_stgy_conflict_is_false_with_level cdcl_bab_stgy_no_smaller_confl
   by blast
 
 lemma rtranclp_cdcl_bab_stgy_stgy_inv:
@@ -1776,24 +1772,6 @@ lemma too_heavy_clauses_contains_itself:
   \<open>M \<in> simple_clss (atms_of_mm N) \<Longrightarrow> pNeg M \<in># too_heavy_clauses N (Some M)\<close>
   by (auto simp: too_heavy_clauses_def simple_clss_finite)
 
-lemma (in -) tautology_union:
-  \<open>tautology (A + B) \<longleftrightarrow> tautology A \<or> tautology B \<or> (\<exists>a. a \<in># A \<and> -a \<in># B)\<close>
-  by (metis tautology_decomp tautology_minus uminus_Neg uminus_Pos union_iff)
-
-lemma (in -)
-  tautology_poss[simp]: \<open>\<not>tautology (poss A)\<close> and
-  tautology_negs[simp]: \<open>\<not>tautology (negs A)\<close>
-  by (auto simp: tautology_decomp)
-
-lemma (in -) tautology_uminus[simp]:
-  \<open>tautology (uminus `# w) \<longleftrightarrow> tautology w\<close>
-  by (auto 5 5 simp: tautology_decomp add_mset_eq_add_mset eq_commute[of \<open>Pos _\<close> \<open>-_\<close>]
-    simp flip: uminus_lit_swap
-    dest!: multi_member_split)
-
-lemma (in -) atms_of_uminus[simp]: \<open>atms_of (uminus `# C) = atms_of C\<close>
-  by (auto simp: atms_of_def image_image)
-
 lemma too_heavy_clause_None[simp]: \<open>too_heavy_clauses M None = {#}\<close>
   by (auto simp: too_heavy_clauses_def)
 
@@ -1834,48 +1812,6 @@ proof -
     by (auto dest!: multi_member_split)
   then show \<open>atms_of_mm (too_heavy_clauses M (Some w)) = atms_of_mm M\<close>
     using \<open>atms_of_mm (too_heavy_clauses M (Some w)) \<subseteq> atms_of_mm M\<close> by blast
-qed
-
-lemma (in -)true_clss_cls_tautology_iff:
-  \<open>{} \<Turnstile>p a \<longleftrightarrow> tautology a\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
-proof
-  assume ?A
-  then have H: \<open>total_over_set I (atms_of a) \<Longrightarrow> consistent_interp I \<Longrightarrow> I \<Turnstile> a\<close> for I
-    by (auto simp: true_clss_cls_def tautology_decomp add_mset_eq_add_mset
-      dest!: multi_member_split)
-  show ?B
-    unfolding tautology_def
-  proof (intro allI impI)
-    fix I
-    assume tot: \<open>total_over_set I (atms_of a)\<close>
-    let ?Iinter = \<open>I \<inter> uminus ` I\<close>
-    let ?I = \<open>I - ?Iinter \<union> Pos ` atm_of ` ?Iinter\<close>
-    have \<open>total_over_set ?I (atms_of a)\<close>
-      using tot by (force simp: total_over_set_def image_image simp flip: uminus_lit_swap
-        simp: image_iff)
-    moreover have \<open>consistent_interp ?I\<close>
-      unfolding consistent_interp_def image_iff
-      apply clarify
-      subgoal for L
-        apply (cases L)
-        apply (auto simp: consistent_interp_def uminus_lit_swap image_iff)
-	apply (case_tac xa; auto; fail)+
-	done
-      done
-    ultimately have \<open>?I \<Turnstile> a\<close>
-      using H[of ?I] by fast
-    moreover have \<open>?I \<subseteq> I\<close>
-      apply (rule)
-      subgoal for x by (cases x; auto; rename_tac xb; case_tac xb; auto)
-      done
-    ultimately show \<open>I \<Turnstile> a\<close>
-      by (blast intro: true_cls_mono_set_mset_l)
-  qed
-next
-  assume ?B
-  then show \<open>?A\<close>
-    by (auto simp: true_clss_cls_def tautology_decomp add_mset_eq_add_mset
-      dest!: multi_member_split)
 qed
 
 lemma entails_too_heavy_clauses_too_heavy_clauses:
@@ -2038,8 +1974,6 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
   subgoal by (rule distinct_mset_mset_conflicting_clss; assumption)
   subgoal by (rule is_improving_conflicting_clss_update_weight_information; assumption)
   subgoal by (rule conflicting_clss_update_weight_information_in; assumption)
-  subgoal by (rule is_improving_mono; assumption)
-  subgoal by (rule conflict_clss_update_weight_no_alien)
   done
 
 lemma wf_cdcl_bab: \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bab S T}\<close>
@@ -2487,11 +2421,8 @@ definition annotation_is_model where
      (weight S \<noteq> None \<longrightarrow> (set_mset (the (weight S)) \<Turnstile>sm init_clss S \<and>
        consistent_interp (set_mset (the (weight S))) \<and>
        atms_of (the (weight S)) \<subseteq> atms_of_mm (init_clss S) \<and>
+       total_over_m (set_mset (the (weight S))) (set_mset (init_clss S)) \<and>
        distinct_mset (the (weight S))))\<close>
-
-lemma (in -) distinct_consistent_distinct_atm:
-  \<open>distinct M \<Longrightarrow> consistent_interp (set M) \<Longrightarrow> distinct_mset (atm_of `# mset M)\<close>
-  by (induction M) (auto simp: atm_of_eq_atm_of)
 
 lemma cdcl_bab_annotation_is_model:
   assumes
@@ -2545,8 +2476,9 @@ theorem full_cdcl_bab_stgy_no_conflicting_clause_from_init_state:
   shows
     \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset N)\<close> and
     \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
-       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
-       distinct_mset (the (weight T))\<close> and
+       atms_of (the (weight T)) \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
+       total_over_m (set_mset (the (weight T))) (set_mset N) \<and>
+       distinct_mset (the (weight T))\<close>  and
     \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
       set_mset I \<Turnstile>sm N \<Longrightarrow> \<rho> I \<ge> \<rho>' (weight T)\<close>
 proof -
@@ -2578,8 +2510,9 @@ proof -
   moreover have \<open>init_clss T = N\<close>
     using rtranclp_cdcl_bab_no_more_init_clss[of ?S T] st
     unfolding full_def by (auto dest: rtranclp_cdcl_bab_stgy_cdcl_bab)
-  ultimately show \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
-       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
+  ultimately show \<open>weight T \<noteq> None \<Longrightarrow>  consistent_interp (set_mset (the (weight T))) \<and>
+       atms_of (the (weight T)) \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
+       total_over_m (set_mset (the (weight T))) (set_mset N) \<and>
        distinct_mset (the (weight T))\<close>
     by (auto simp: annotation_is_model_def)
 
@@ -2663,19 +2596,6 @@ proof -
     subgoal by auto
    oops
 
-lemma (in -) lit_in_set_iff_atm:
-  \<open>NO_MATCH (Pos x) l \<Longrightarrow> NO_MATCH (Neg x) l \<Longrightarrow>
-    l \<in> M \<longleftrightarrow> (\<exists>l'. (l = Pos l' \<and> Pos l' \<in> M) \<or> (l = Neg l' \<and> Neg l' \<in> M)) \<close>
-  by (cases l) auto
-
-lemma (in -)consistent_interp_tautology:
-  \<open>consistent_interp (set M') \<longleftrightarrow> \<not>tautology (mset M')\<close>
-  by (auto simp: consistent_interp_def tautology_decomp lit_in_set_iff_atm)
-
-lemma (in -) finite_atms_of_s[simp]:
-  \<open>finite M \<Longrightarrow> finite (atms_of_s M)\<close>
-  by (auto simp: atms_of_s_def)
-
 lemma (in -) distinct_mset_image_mset:
   \<open>distinct_mset (f `# mset xs) \<longleftrightarrow> distinct (map f xs)\<close>
   apply (subst mset_map[symmetric])
@@ -2685,10 +2605,6 @@ lemma (in -) distinct_mset_image_mset:
 lemma (in -) distinct_mset_atm_ofD:
   \<open>distinct_mset (atm_of `# mset xc) \<Longrightarrow> distinct xc\<close>
   by (induction xc) auto
-
-lemma (in -) mset_inter_empty_set_mset: \<open>M \<inter># xc = {#} \<longleftrightarrow> set_mset M \<inter> set_mset xc = {}\<close>
-  by (induction xc) auto
-
 
 lemma (in -) atms_of_cong_set_mset:
   \<open>set_mset D = set_mset D' \<Longrightarrow> atms_of D = atms_of D'\<close>
@@ -3930,5 +3846,358 @@ proof -
 qed
 
 end
+
+
+definition weight_on_clauses where
+  \<open>weight_on_clauses N\<^sub>S \<rho> I = (\<Sum>C \<in># (filter_mset (\<lambda>C. I \<Turnstile> C) N\<^sub>S). \<rho> C)\<close>
+
+definition bitotal_over_m :: \<open>'v partial_interp \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
+\<open>bitotal_over_m I N \<longleftrightarrow>
+  total_over_m I (set_mset N) \<and>
+  atms_of_s I \<subseteq> atms_of_mm N\<close>
+
+text \<open>Partial in the name refers to the fact that not all clauses are soft clauses, not to the fact
+  that we consider partial models.\<close>
+inductive partial_max_sat :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> ('v clause \<Rightarrow> nat) \<Rightarrow>
+  'v partial_interp option \<Rightarrow> bool\<close> where
+partial_max_sat:
+  \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+  if
+    \<open>I \<Turnstile>sm N\<^sub>H\<close> and
+    \<open>bitotal_over_m I ((N\<^sub>H + N\<^sub>S))\<close> and
+    \<open>consistent_interp I\<close> and
+    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
+      weight_on_clauses N\<^sub>S \<rho> I' \<le> weight_on_clauses N\<^sub>S \<rho> I\<close> |
+partial_max_unsat:
+  \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> None\<close>
+  if
+  \<open>unsatisfiable (set_mset N\<^sub>H)\<close>
+
+inductive partial_min_sat :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> ('v clause \<Rightarrow> nat) \<Rightarrow>
+  'v partial_interp option \<Rightarrow> bool\<close> where
+partial_min_sat:
+  \<open>partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+  if
+    \<open>I \<Turnstile>sm N\<^sub>H\<close> and
+    \<open>bitotal_over_m I (N\<^sub>H + N\<^sub>S)\<close> and
+    \<open>consistent_interp I\<close> and
+    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
+      weight_on_clauses N\<^sub>S \<rho> I' \<ge> weight_on_clauses N\<^sub>S \<rho> I\<close> |
+partial_min_unsat:
+  \<open>partial_min_sat N\<^sub>H N\<^sub>S \<rho> None\<close>
+  if
+  \<open>unsatisfiable (set_mset N\<^sub>H)\<close>
+
+lemma bitotal_over_m_finite:
+  assumes \<open>bitotal_over_m I N\<close>
+  shows \<open>finite I\<close>
+proof -
+  have \<open>I \<subseteq> Pos ` (atms_of_mm N) \<union> Neg ` atms_of_mm N\<close>
+    using assms by (force simp: total_over_m_def  bitotal_over_m_def lit_in_set_iff_atm
+      atms_of_s_def)
+  from finite_subset[OF this] show ?thesis by auto
+qed
+
+
+lemma
+  fixes N\<^sub>H :: \<open>'v clauses\<close>
+  assumes \<open>satisfiable (set_mset N\<^sub>H)\<close>
+  shows sat_partial_max_sat: \<open>\<exists>I. partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close> and
+    sat_partial_min_sat: \<open>\<exists>I. partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+proof -
+  let ?Is = \<open>{I. bitotal_over_m I ((N\<^sub>H + N\<^sub>S)) \<and>  consistent_interp I \<and>
+     I \<Turnstile>sm N\<^sub>H}\<close>
+  let ?Is'= \<open>{I. bitotal_over_m I ((N\<^sub>H + N\<^sub>S)) \<and> consistent_interp I \<and>
+    I \<Turnstile>sm N\<^sub>H \<and> finite I}\<close>
+  have Is: \<open>?Is = ?Is'\<close>
+    by (auto simp: atms_of_s_def bitotal_over_m_finite)
+  have \<open>?Is' \<subseteq> set_mset ` simple_clss (atms_of_mm (N\<^sub>H + N\<^sub>S))\<close>
+    apply rule
+    unfolding image_iff
+    by (rule_tac x= \<open>mset_set x\<close> in bexI)
+      (auto simp: simple_clss_def bitotal_over_m_def image_iff
+      atms_of_s_def atms_of_def distinct_mset_mset_set consistent_interp_tuatology_mset_set)
+  from finite_subset[OF this] have fin: \<open>finite ?Is\<close> unfolding Is
+    by (auto simp: simple_clss_finite)
+  then have fin': \<open>finite (weight_on_clauses N\<^sub>S \<rho> ` ?Is)\<close>
+    by auto
+  define \<rho>I where
+    \<open>\<rho>I = Min (weight_on_clauses N\<^sub>S \<rho> ` ?Is)\<close>
+  have nempty: \<open>?Is \<noteq> {}\<close>
+  proof -
+    obtain I where I:
+      \<open>total_over_m I (set_mset N\<^sub>H)\<close>
+      \<open>I \<Turnstile>sm N\<^sub>H\<close>
+      \<open>consistent_interp I\<close>
+      \<open>atms_of_s I \<subseteq> atms_of_mm N\<^sub>H\<close>
+      using assms unfolding satisfiable_def_min bitotal_over_m_def
+      by (auto simp: atms_of_s_def atm_of_def total_over_m_def)
+    let ?I = \<open>I \<union> Pos ` {x \<in> atms_of_mm N\<^sub>S. x \<notin> atm_of ` I}\<close>
+    have \<open>?I \<in> ?Is\<close>
+      using I
+      by (auto simp: bitotal_over_m_def total_over_m_alt_def image_iff
+        lit_in_set_iff_atm)
+        (auto simp: consistent_interp_def uminus_lit_swap)
+    then show ?thesis
+      by blast
+  qed
+  have \<open>\<rho>I \<in> weight_on_clauses N\<^sub>S \<rho> ` ?Is\<close>
+    unfolding \<rho>I_def
+    by (rule Min_in[OF fin']) (use nempty in auto)
+  then obtain I :: \<open>'v partial_interp\<close> where
+    \<open>weight_on_clauses N\<^sub>S \<rho> I = \<rho>I\<close> and
+    \<open>I \<in> ?Is\<close>
+    by blast
+  then have H: \<open>consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
+      weight_on_clauses N\<^sub>S \<rho> I' \<ge> weight_on_clauses N\<^sub>S \<rho> I\<close> for I'
+    using Min_le[OF fin', of \<open>weight_on_clauses N\<^sub>S \<rho> I'\<close>]
+    unfolding \<rho>I_def[symmetric]
+    by auto
+  then have \<open>partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+    apply -
+    by (rule partial_min_sat)
+      (use fin \<open>I \<in> ?Is\<close> in \<open>auto simp: bitotal_over_m_finite\<close>)
+  then show \<open>\<exists>I. partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+    by fast
+
+  define \<rho>I where
+    \<open>\<rho>I = Max (weight_on_clauses N\<^sub>S \<rho> ` ?Is)\<close>
+  have \<open>\<rho>I \<in> weight_on_clauses N\<^sub>S \<rho> ` ?Is\<close>
+    unfolding \<rho>I_def
+    by (rule Max_in[OF fin']) (use nempty in auto)
+  then obtain I :: \<open>'v partial_interp\<close> where
+    \<open>weight_on_clauses N\<^sub>S \<rho> I = \<rho>I\<close> and
+    \<open>I \<in> ?Is\<close>
+    by blast
+  then have H: \<open>consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>m N\<^sub>H \<Longrightarrow>
+      weight_on_clauses N\<^sub>S \<rho> I' \<le> weight_on_clauses N\<^sub>S \<rho> I\<close> for I'
+    using Max_ge[OF fin', of \<open>weight_on_clauses N\<^sub>S \<rho> I'\<close>]
+    unfolding \<rho>I_def[symmetric]
+    by auto
+  then have \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+    apply -
+    by (rule partial_max_sat)
+      (use fin \<open>I \<in> ?Is\<close> in \<open>auto simp: bitotal_over_m_finite
+        consistent_interp_tuatology_mset_set\<close>)
+  then show \<open>\<exists>I. partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
+    by fast
+qed
+
+inductive weight_sat :: \<open>'v clauses \<Rightarrow> ('v literal multiset \<Rightarrow> nat) \<Rightarrow> 'v literal multiset option \<Rightarrow>
+  bool\<close> where
+weight_sat:
+  \<open>weight_sat N \<rho> (Some I)\<close>
+  if
+    \<open>set_mset I \<Turnstile>sm N\<close> and
+    \<open>bitotal_over_m (set_mset I) N\<close> and
+    \<open>consistent_interp (set_mset I)\<close> and
+    \<open>distinct_mset I\<close>
+    \<open>\<And>I'. consistent_interp (set_mset I') \<Longrightarrow> bitotal_over_m (set_mset I') N \<Longrightarrow> distinct_mset I' \<Longrightarrow>
+      set_mset I' \<Turnstile>sm N \<Longrightarrow> \<rho> I' \<ge> \<rho> I\<close> |
+partial_max_unsat:
+  \<open>weight_sat N \<rho> None\<close>
+  if
+  \<open>unsatisfiable (set_mset N)\<close>
+
+lemma partial_max_sat_is_weight_sat:
+  fixes additional_atm :: \<open>'v clause \<Rightarrow> 'v\<close> and
+    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
+    N\<^sub>S :: \<open>'v clauses\<close>
+  defines
+    \<open>\<rho>' \<equiv> (\<lambda>C. sum_mset
+       ((\<lambda>L. if L \<in> Pos ` additional_atm ` set_mset N\<^sub>S
+         then count N\<^sub>S (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)
+	   * \<rho> (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)
+	 else 0) `# C))\<close>
+  assumes
+    add: \<open>\<And>C. C \<in># N\<^sub>S \<Longrightarrow> additional_atm C \<notin> atms_of_mm (N\<^sub>H + N\<^sub>S)\<close>
+      \<open>\<And>C D. C \<in># N\<^sub>S \<Longrightarrow> D \<in># N\<^sub>S \<Longrightarrow> additional_atm C = additional_atm D \<longleftrightarrow> C = D\<close> and
+    w: \<open>weight_sat (N\<^sub>H + (\<lambda>C. add_mset (Pos (additional_atm C)) C) `# N\<^sub>S) \<rho>' (Some I)\<close>
+  shows
+    \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some {L \<in> set_mset I. atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)})\<close>
+proof -
+  define N where \<open>N \<equiv> N\<^sub>H + (\<lambda>C. add_mset (Pos (additional_atm C)) C) `# N\<^sub>S\<close>
+  define cl_of where \<open>cl_of L = (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)\<close> for L
+  from w
+  have
+    ent: \<open>set_mset I \<Turnstile>sm N\<close> and
+    bi: \<open>bitotal_over_m (set_mset I) N\<close> and
+    cons: \<open>consistent_interp (set_mset I)\<close> and
+    dist: \<open>distinct_mset I\<close> and
+    weight: \<open>\<And>I'. consistent_interp (set_mset I') \<Longrightarrow> bitotal_over_m (set_mset I') N \<Longrightarrow>
+      distinct_mset I' \<Longrightarrow> set_mset I' \<Turnstile>sm N \<Longrightarrow> \<rho>' I' \<ge> \<rho>' I\<close>
+    unfolding N_def[symmetric]
+    by (auto simp: weight_sat.simps)
+  let ?I = \<open>{L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)}\<close>
+  have ent': \<open>set_mset I \<Turnstile>sm N\<^sub>H\<close>
+    using ent unfolding true_clss_restrict
+    by (auto simp: N_def)
+  then have ent': \<open>?I \<Turnstile>sm N\<^sub>H\<close>
+    apply (subst (asm) true_clss_restrict[symmetric])
+    apply (rule true_clss_mono_left, assumption)
+    apply auto
+    done
+  have [simp]: \<open>atms_of_ms ((\<lambda>C. add_mset (Pos (additional_atm C)) C) ` set_mset N\<^sub>S) =
+    additional_atm ` set_mset N\<^sub>S \<union> atms_of_ms (set_mset N\<^sub>S)\<close>
+    by (auto simp: atms_of_ms_def)
+  have bi': \<open>bitotal_over_m ?I (N\<^sub>H + N\<^sub>S)\<close>
+    using bi
+    by (auto simp: bitotal_over_m_def total_over_m_def total_over_set_def
+      atms_of_s_def N_def)
+  have cons': \<open>consistent_interp ?I\<close>
+    using cons by (auto simp: consistent_interp_def)
+  have [simp]: \<open>cl_of (Pos (additional_atm xb)) = xb\<close>
+    if \<open>xb \<in># N\<^sub>S\<close> for xb
+    using someI[of \<open>\<lambda>C. additional_atm xb = additional_atm C\<close> xb] add that
+    unfolding cl_of_def
+    by auto
+
+  let ?I = \<open>{L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)} \<union> Pos ` additional_atm ` {C \<in> set_mset N\<^sub>S. \<not>set_mset I \<Turnstile> C}
+    \<union> Neg ` additional_atm ` {C \<in> set_mset N\<^sub>S. set_mset I \<Turnstile> C}\<close>
+  have \<open>consistent_interp ?I\<close>
+    using cons add by (auto simp: consistent_interp_def
+      bitotal_over_m_def uminus_lit_swap
+      dest: add)
+  moreover have \<open>bitotal_over_m ?I N\<close>
+    using bi
+    by (auto simp: N_def bitotal_over_m_def total_over_m_def
+      total_over_set_def image_image)
+  moreover have \<open>?I \<Turnstile>sm N\<close>
+    using ent apply (auto simp: N_def true_clss_def image_image
+      dest!: multi_member_split)
+      apply (smt atm_of_lit_in_atms_of mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
+      apply (smt atm_of_lit_in_atms_of mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
+      apply (smt atm_of_lit_in_atms_of image_iff insert_iff mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
+      apply (smt atm_of_lit_in_atms_of image_iff insert_iff mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
+      done
+  moreover have \<open>set_mset (mset_set ?I) = ?I\<close> and fin: \<open>finite ?I\<close>
+    by (auto simp: bitotal_over_m_finite)
+  moreover have \<open>distinct_mset (mset_set ?I)\<close>
+    by (auto simp: distinct_mset_mset_set)
+  ultimately have \<open>\<rho>' (mset_set ?I) \<ge> \<rho>' I\<close>
+    using weight[of \<open>mset_set ?I\<close>]
+    by argo
+  moreover have \<open>\<rho>' (mset_set ?I) \<le> \<rho>' I\<close>
+    using ent
+    by (auto simp: \<rho>'_def sum_mset_inter_restrict[symmetric] mset_set_subset_iff N_def
+      intro!: sum_image_mset_mono
+      dest!: multi_member_split)
+  ultimately have I_I: \<open>\<rho>' (mset_set ?I) = \<rho>' I\<close>
+    by linarith
+
+  have min: \<open>weight_on_clauses N\<^sub>S \<rho> I'
+      \<le> weight_on_clauses N\<^sub>S \<rho> {L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)}\<close>
+    if
+      cons: \<open>consistent_interp I'\<close> and
+      bit: \<open>bitotal_over_m I' (N\<^sub>H + N\<^sub>S)\<close> and
+      I': \<open>I' \<Turnstile>sm N\<^sub>H\<close>
+    for I'
+  proof -
+    let ?I' = \<open>I' \<union> Pos ` additional_atm ` {C \<in> set_mset N\<^sub>S. \<not>I' \<Turnstile> C}
+      \<union> Neg ` additional_atm ` {C \<in> set_mset N\<^sub>S. I' \<Turnstile> C}\<close>
+    have \<open>consistent_interp ?I'\<close>
+      using cons bit add by (auto simp: consistent_interp_def
+        bitotal_over_m_def uminus_lit_swap
+	dest: add)
+    moreover have \<open>bitotal_over_m ?I' N\<close>
+      using bit
+      by (auto simp: N_def bitotal_over_m_def total_over_m_def
+        total_over_set_def image_image)
+    moreover have \<open>?I' \<Turnstile>sm N\<close>
+      using I' by (auto simp: N_def true_clss_def image_image
+        dest!: multi_member_split)
+    moreover have \<open>set_mset (mset_set ?I') = ?I'\<close> and fin: \<open>finite ?I'\<close>
+      using bit by (auto simp: bitotal_over_m_finite)
+    moreover have \<open>distinct_mset (mset_set ?I')\<close>
+      by (auto simp: distinct_mset_mset_set)
+    ultimately have I'_I: \<open>\<rho>' (mset_set ?I') \<ge> \<rho>' I\<close>
+      using weight[of \<open>mset_set ?I'\<close>]
+      by argo
+    have inj: \<open>inj_on cl_of (I' \<inter> (\<lambda>x. Pos (additional_atm x)) ` set_mset N\<^sub>S)\<close> for I'
+      using add by (auto simp: inj_on_def)
+
+    have we: \<open>weight_on_clauses N\<^sub>S \<rho> I' = sum_mset (\<rho> `# N\<^sub>S) -
+      sum_mset (\<rho> `# filter_mset (Not \<circ> (\<Turnstile>) I') N\<^sub>S)\<close> for I'
+      unfolding weight_on_clauses_def
+      apply (subst (3) multiset_partition[of _ \<open>(\<Turnstile>) I'\<close>])
+      unfolding image_mset_union sum_mset.union
+      by (auto simp: comp_def)
+    have H: \<open>sum_mset
+       (\<rho> `#
+        filter_mset (Not \<circ> (\<Turnstile>) {L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)})
+         N\<^sub>S) = \<rho>' I\<close>
+	unfolding I_I[symmetric] unfolding \<rho>'_def cl_of_def[symmetric]
+	  sum_mset_sum_count if_distrib
+	apply (auto simp: sum_mset_sum_count image_image simp flip: sum.inter_restrict
+	  cong: if_cong)
+	apply (subst comm_monoid_add_class.sum.reindex_cong[symmetric, of cl_of, OF _ refl])
+	apply ((use inj in auto; fail)+)[2]
+	apply (rule sum.cong)
+	apply auto[]
+	using inj[of \<open>set_mset I\<close>] \<open>set_mset I \<Turnstile>sm N\<close> assms(2)
+	apply (auto dest!: multi_member_split simp: N_def image_Int
+	  atm_of_lit_in_atms_of true_cls_def)[]
+	  using add apply (auto simp: true_cls_def)
+	  done
+    have \<open>(\<Sum>x\<in>(I' \<union> (\<lambda>x. Pos (additional_atm x)) ` {C. C \<in># N\<^sub>S \<and> \<not> I' \<Turnstile> C} \<union>
+         (\<lambda>x. Neg (additional_atm x)) ` {C. C \<in># N\<^sub>S \<and> I' \<Turnstile> C}) \<inter>
+        (\<lambda>x. Pos (additional_atm x)) ` set_mset N\<^sub>S.
+       count N\<^sub>S (cl_of x) * \<rho> (cl_of x))
+    \<le> (\<Sum>A\<in>{a. a \<in># N\<^sub>S \<and> \<not> I' \<Turnstile> a}. count N\<^sub>S A * \<rho> A)\<close>
+	apply (subst comm_monoid_add_class.sum.reindex_cong[symmetric, of cl_of, OF _ refl])
+	apply ((use inj in auto; fail)+)[2]
+	apply (rule ordered_comm_monoid_add_class.sum_mono2)
+	using that add by (auto dest:  simp: N_def
+	  bitotal_over_m_def)
+    then have \<open>sum_mset (\<rho> `# filter_mset (Not \<circ> (\<Turnstile>) I') N\<^sub>S) \<ge> \<rho>' (mset_set ?I')\<close>
+      using fin unfolding cl_of_def[symmetric] \<rho>'_def
+      by (auto simp: \<rho>'_def
+        simp add: sum_mset_sum_count image_image simp flip: sum.inter_restrict)
+    then have \<open>\<rho>' I \<le> sum_mset (\<rho> `# filter_mset (Not \<circ> (\<Turnstile>) I') N\<^sub>S)\<close>
+      using I'_I by auto
+    then show ?thesis
+      unfolding we H I_I apply -
+      by auto
+  qed
+
+  show ?thesis
+    apply (rule partial_max_sat.intros)
+    subgoal using ent' by auto
+    subgoal using bi' by fast
+    subgoal using cons' by fast
+    subgoal for I'
+      by (rule min)
+    done
+qed
+
+lemma bitotal_over_m_alt_def:
+  \<open>bitotal_over_m (set_mset y) N \<longleftrightarrow> atms_of y \<subseteq> atms_of_mm N \<and>
+        total_over_m (set_mset y) (set_mset N)\<close>
+  by (auto simp: bitotal_over_m_def atms_of_s_def atms_of_def
+    atms_of_ms_def dest!: multi_member_split)
+
+lemma bitotal_over_m_alt_def2:
+  \<open>bitotal_over_m (set_mset y) N \<longleftrightarrow> atms_of y = atms_of_mm N\<close>
+  by (metis atms_of_def atms_of_s_def bitotal_over_m_alt_def equalityI order_refl total_over_m_def
+    total_over_set_alt_def)
+
+lemma (in optimal_encoding) full_cdcl_bab_stgy_weight_sat:
+  \<open>full cdcl_bab_stgy (init_state N) T \<Longrightarrow> distinct_mset_mset N \<Longrightarrow> weight_sat N \<rho> (weight T)\<close>
+  using full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of N T]
+  apply (cases \<open>weight T = None\<close>)
+  subgoal
+    by (auto intro!: weight_sat.intros(2))
+  subgoal premises p
+    using p(1-4,6)
+    apply (clarsimp simp only:)
+    apply (rule weight_sat.intros(1))
+    subgoal by auto
+    subgoal by (auto simp: bitotal_over_m_alt_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal for J I'
+      using p(5)[of I'] by (auto simp: bitotal_over_m_alt_def2)
+    done
+  done
 
 end

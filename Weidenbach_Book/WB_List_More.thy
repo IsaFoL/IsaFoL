@@ -1538,6 +1538,71 @@ lemma filter_mset_mono_subset:
   by (metis multiset_filter_mono multiset_filter_mono2 subset_mset.order_trans)
 
 
+lemma mset_inter_empty_set_mset: \<open>M \<inter># xc = {#} \<longleftrightarrow> set_mset M \<inter> set_mset xc = {}\<close>
+  by (induction xc) auto
+
+lemma sum_mset_mset_set_sum_set:
+  \<open>(\<Sum>A \<in># mset_set As. f A) = (\<Sum>A \<in> As. f A)\<close>
+  apply (cases \<open>finite As\<close>)
+  by (induction As rule: finite_induct) auto
+
+lemma sum_mset_sum_count:
+  \<open>(\<Sum>A \<in># As. f A) = (\<Sum>A \<in> set_mset As. count As A * f A)\<close>
+proof (induction As)
+  case empty
+  then show ?case by auto
+next
+  case (add x As)
+  define n where \<open>n = count As x\<close>
+  define As' where \<open>As' \<equiv> removeAll_mset x As\<close>
+  have As: \<open>As = As' + replicate_mset n x\<close>
+    by (auto simp: As'_def n_def intro!: multiset_eqI)
+  have [simp]: \<open>set_mset As' - {x} = set_mset As'\<close> \<open>count As' x = 0\<close> \<open>x \<notin># As'\<close>
+    unfolding As'_def
+    by auto
+  have \<open> (\<Sum>A\<in>set_mset As'.
+       (if x = A then Suc (count (As' + replicate_mset n x) A)
+        else count (As' + replicate_mset n x) A) *
+       f A) =
+       (\<Sum>A\<in>set_mset As'.
+       (count (As' + replicate_mset n x) A) *
+       f A)\<close>
+    by (rule sum.cong) auto
+  then show ?case using add by (auto simp: As sum.insert_remove)
+qed
+
+lemma sum_mset_inter_restrict:
+  \<open>(\<Sum> x \<in># filter_mset P M. f x) = (\<Sum> x \<in># M. if P x then f x else 0)\<close>
+  by (induction M) auto
+
+lemma mset_set_subset_iff:
+  \<open>mset_set A \<subseteq># I \<longleftrightarrow> infinite A \<or> A \<subseteq> set_mset I\<close>
+  by (metis finite_set_mset finite_set_mset_mset_set mset_set.infinite mset_set_set_mset_subseteq
+    set_mset_mono subset_imp_msubset_mset_set subset_mset.bot.extremum subset_mset.dual_order.trans)
+
+
+lemma sumset_diff_constant_left:
+  assumes \<open>\<And>x. x \<in># A \<Longrightarrow> f x \<le> n\<close>
+  shows \<open>(\<Sum>x\<in># A . n - f x) = size A * n - (\<Sum>x\<in># A . f x)\<close>
+proof -
+  have \<open>size A * n \<ge> (\<Sum>x\<in># A . f x)\<close>
+    if \<open>\<And>x. x \<in># A \<Longrightarrow> f x \<le> n\<close> for A
+    using that
+    by (induction A) (force simp: ac_simps)+
+  then show ?thesis
+    using assms
+    by (induction A) (auto simp: ac_simps)
+qed
+
+
+lemma mset_set_eq_mset_iff: \<open>finite x \<Longrightarrow>  mset_set x = mset xs \<longleftrightarrow> distinct xs \<and> x = set xs\<close>
+  apply (auto simp flip: distinct_mset_mset_distinct eq_commute[of _ \<open>mset_set _\<close>]
+    simp: distinct_mset_mset_set mset_set_set)
+  apply (metis finite_set_mset_mset_set set_mset_mset)
+  apply (metis finite_set_mset_mset_set set_mset_mset)
+  done
+
+
 section \<open>Finite maps and multisets\<close>
 
 subsubsection \<open>Finite sets and multisets\<close>

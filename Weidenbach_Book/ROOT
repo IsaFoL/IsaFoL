@@ -20,7 +20,6 @@ session "Weidenbach_Book_Base" (Weidenbach_Book) = "Sepref_IICF" +
     Doc_Libraries
     Wellfounded_More
     WB_List_More
-    "../lib/Explorer"
   document_files
     "root.tex"
     "biblio.bib"

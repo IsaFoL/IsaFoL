@@ -1202,4 +1202,13 @@ lemma atms_of_ms_single_atm_of[simp]:
   \<open>atms_of_ms {unmark L |L. P L} = atm_of ` {lit_of L |L. P L}\<close>
   unfolding atms_of_ms_def by force
 
+lemma true_cls_mset_restrict:
+  \<open>{L \<in> I. atm_of L \<in> atms_of_mm N} \<Turnstile>m N \<longleftrightarrow> I \<Turnstile>m N\<close>
+  by (auto simp: true_cls_mset_def true_cls_def
+    dest!: multi_member_split)
+
+lemma true_clss_restrict:
+  \<open>{L \<in> I. atm_of L \<in> atms_of_mm N} \<Turnstile>sm N \<longleftrightarrow> I \<Turnstile>sm N\<close>
+  by (auto simp: true_clss_def true_cls_def
+    dest!: multi_member_split)
 end

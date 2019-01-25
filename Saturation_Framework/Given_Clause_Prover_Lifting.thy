@@ -1353,8 +1353,38 @@ proof (cases rule: ord_resolve.cases)
   by blast
 qed
 
-lemma \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close>
-proof
+lemma inf_eq: \<open>Saturation_Framework_Preliminaries.prems_of \<iota> = Saturation_Framework_Preliminaries.prems_of \<iota>' \<Longrightarrow>
+  Saturation_Framework_Preliminaries.concl_of \<iota> = Saturation_Framework_Preliminaries.concl_of \<iota>' \<Longrightarrow>
+  \<iota> = \<iota>'\<close> for \<iota> \<iota>'
+proof -
+  fix \<iota> \<iota>'
+  assume
+    prems: \<open>Saturation_Framework_Preliminaries.prems_of \<iota> = Saturation_Framework_Preliminaries.prems_of \<iota>'\<close> and
+    concl: \<open>Saturation_Framework_Preliminaries.concl_of \<iota> = Saturation_Framework_Preliminaries.concl_of \<iota>'\<close>
+  obtain Pi Ci where i_is: \<open>\<iota> = Saturation_Framework_Preliminaries.Infer Pi Ci\<close>
+    using Saturation_Framework_Preliminaries.inference.exhaust by auto
+  obtain Pi' Ci' where i'_is: \<open>\<iota>' = Saturation_Framework_Preliminaries.Infer Pi' Ci'\<close>
+    using Saturation_Framework_Preliminaries.inference.exhaust by auto
+  have prems_eq: \<open>Pi = Pi'\<close> using prems unfolding prems_of_def i_is i'_is by simp
+  have concl_eq: \<open>Ci = Ci'\<close> using concl unfolding Saturation_Framework_Preliminaries.concl_of_def i_is i'_is by simp  
+  show \<open>\<iota> = \<iota>'\<close> using i_is i'_is prems_eq concl_eq by simp
+qed
+
+lemma subst_of_nth [simp]: \<open>i < length (Cs \<cdot>\<cdot>cl \<sigma>s) \<Longrightarrow> (Cs \<cdot>\<cdot>cl \<sigma>s) ! i = (Cs ! i) \<cdot> (\<sigma>s ! i)\<close>
+proof auto
+  fix i
+  assume
+    len_cs: \<open>i < length Cs\<close> and
+    len_ss: \<open>i < length \<sigma>s\<close>
+  show \<open>(Cs \<cdot>\<cdot>cl \<sigma>s) ! i = Cs ! i \<cdot> \<sigma>s! i\<close>
+    using len_cs len_ss unfolding subst_cls_lists_def by auto
+qed
+
+lemma subst_Cons_nth: \<open>i < length ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) \<Longrightarrow> ((C # Cs) ! i) \<cdot> ((\<sigma> # \<sigma>s) ! i) = ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) ! i\<close>
+by (auto simp: nth_Cons' simp del: subst_cls_lists_length)
+
+lemma lifting_in_framework: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close>
+proof -
   assume i'_in: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F)\<close>
   have prems_i'_in: \<open>set (inference.prems_of \<iota>') \<subseteq> UNION M \<G>_F\<close> using i'_in unfolding Inf_from_def by blast
   have i'_Inf_G: \<open>\<iota>' \<in> Inf_G\<close> using i'_in unfolding Inf_from_def by blast
@@ -1478,43 +1508,109 @@ proof
     then have \<open>is_ground_subst (\<eta>s ! j)\<close> using ground_ns len_ns unfolding is_ground_subst_list_def by fastforce
     then show \<open>is_ground_subst (\<rho>s ! i)\<close> using rs_nth j_def unfolding is_ground_subst_list_def by simp
   qed
-  then have \<open>is_ground_subst_list \<rho>s\<close> using len_rs unfolding is_ground_subst_list_def set_conv_nth by auto
-  have \<open>add_mset DA0 (mset CAs0) = {#(DA0 # CAs0) ! map_i x. x \<in># mset_set {0..<n}#}\<close> (is "?A = ?B")
+  then have ground_rs: \<open>is_ground_subst_list \<rho>s\<close> using len_rs unfolding is_ground_subst_list_def set_conv_nth by auto
+  have mset_list_map_i: \<open>add_mset DA0 (mset CAs0) = {#(DA0 # CAs0) ! map_i x. x \<in># mset_set {0..<n}#}\<close> (is "?A = ?B")
   proof -
     have len_DA0_CAs0: \<open>length (DA0 # CAs0) = n\<close> using len_CAs0 len_PAs' unfolding PAs'_def by simp 
     have map_i_surj: \<open>mset_set {0..<n} = image_mset map_i (mset_set {0..<n})\<close>
       using image_mset_mset_set[OF inj] by simp
     have \<open>?B = {#(DA0 # CAs0) ! x. x \<in># image_mset map_i (mset_set {0..<n})#}\<close> by simp
     then have \<open>?B = {#(DA0 # CAs0) ! x. x \<in># mset_set {0..<n}#}\<close> by (simp add: map_i_surj[symmetric])
-    then have \<open>?B = {# x. x \<in># mset (DA0 # CAs0) #}\<close> apply auto sorry
-    have \<open>{#x. x \<in># mset (DA0 # CAs0) #} = mset (DA0 # CAs0)\<close> by simp
-    have \<open>?A = mset (DA0 # CAs0)\<close> by simp
-    have \<open>?A = {#(DA0 # CAs0) ! x. x \<in># mset_set {0..<n}#}\<close>
-    proof -
-      
-  sorry
-  thm mset_def
-  find_theorems image_mset "_ = _"
-  find_theorems "_ \<in># _" "_ = _" size
+    then have \<open>?B = mset (DA0 # CAs0)\<close> using mset_upto_length_list[of "DA0 # CAs0"] len_DA0_CAs0 by auto
+    then show ?thesis by simp
+  qed
   obtain \<iota> where len_prems_i: \<open>length (inference.prems_of \<iota>) = n\<close> and
     i_is: \<open>same_inf \<iota>_RP \<iota>\<close> and
     i_prems_order: \<open>\<And>i. i < n \<Longrightarrow> (inference.prems_of \<iota>)!i = (DA0 # CAs0)!(map_i i)\<close>
     apply (rule that[of \<open>Saturation_Framework_Preliminaries.Infer (map (\<lambda>i. (DA0 # CAs0)!(map_i i)) [0..<n]) E0\<close>])
-    using \<iota>_RP_def unfolding same_inf_def apply auto
-    sorry
-  (*define \<iota> where \<open>\<iota> = conv_inf \<iota>_RP\<close>*)
-  then have \<open>\<iota> \<in> Inf_F\<close> using i_RP_in conv_inf_in_Inf_F unfolding Inf_F_def by blast
-  have \<open>{DA0} \<union> set CAs0 = set (inference.prems_of \<iota>)\<close> using \<iota>_def \<iota>_RP_def unfolding conv_inf_def by simp
-  then have \<open>set (inference.prems_of \<iota>) \<subseteq> M\<close> using prems_in by simp
-  have \<open>\<iota>' = Saturation_Framework_Preliminaries.inference.Infer
+    using \<iota>_RP_def mset_list_map_i unfolding same_inf_def by auto
+  then have i_Inf_F: \<open>\<iota> \<in> Inf_F\<close> using i_RP_in conv_inf_in_Inf_F unfolding Inf_F_def by blast
+  have inf_from_cond: \<open>set (inference.prems_of \<iota>) \<subseteq> {DA0} \<union> set CAs0\<close>
+    using i_is \<iota>_RP_def unfolding same_inf_def prems_of_def
+    by (metis Inference_System.inference.sel(1) Inference_System.inference.sel(2) Un_insert_left
+      add_mset_add_single equalityE set_mset_add_mset_insert set_mset_mset sup_bot.left_neutral)
+  then have prems_of_i_in_M: \<open>set (inference.prems_of \<iota>) \<subseteq> M\<close> using prems_in by blast
+  have \<open>Saturation_Framework_Preliminaries.inference.prems_of \<iota>' =
+    Saturation_Framework_Preliminaries.inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s\<close>
+  proof (rule nth_equalityI)
+    show \<open>length (inference.prems_of \<iota>') = length (inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)\<close>
+      using len_prems_i len_rs unfolding n_def PAs_def subst_cls_lists_def by simp
+  next
+    have len_eq: \<open>length (inference.prems_of \<iota>') = length (inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)\<close>
+      using len_prems_i len_rs unfolding n_def PAs_def subst_cls_lists_def by simp
+    then have \<open>\<forall>i<length (inference.prems_of \<iota>'). (inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) ! i =
+      ((inference.prems_of \<iota>) ! i) \<cdot> (\<rho>s ! i)\<close>
+      using subst_of_nth by auto   
+    then have \<open>\<forall>i<length (inference.prems_of \<iota>'). (inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) ! i =
+       ((DA0 # CAs0) ! (map_i i)) \<cdot> ((\<eta> # \<eta>s) ! (map_i i))\<close>
+       using i_prems_order rs_def unfolding n_def PAs_def by presburger 
+    show \<open>\<forall>i<length (inference.prems_of \<iota>'). inference.prems_of \<iota>' ! i = (inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) ! i\<close>
+      using len_map_i len_prems_i i_prems_order map_i_def DA0_is CAs0_is rs_def len_rs
+        arg_cong[OF mset_PAs_is, of size]  unfolding PAs'_def n_def PAs_def by (auto simp: subst_Cons_nth)
+  qed
+  then have \<open>\<iota>' = Saturation_Framework_Preliminaries.inference.Infer
     (Saturation_Framework_Preliminaries.inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)
     (Saturation_Framework_Preliminaries.inference.concl_of \<iota> \<cdot> \<eta>2) \<close>
-  sorry
-  then have \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close> unfolding \<G>_Inf_def using i'_Inf_G is_inf \<iota>_def ground_ns2 CAs0_is DA0_is E0_is i'_RP_is \<iota>_RP_def 
-oops
+    using inf_eq[of \<iota>' "Saturation_Framework_Preliminaries.inference.Infer
+      (Saturation_Framework_Preliminaries.inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)
+      (Saturation_Framework_Preliminaries.inference.concl_of \<iota> \<cdot> \<eta>2)"] i_is E0_is \<iota>_RP_def is_inf i'_RP_is
+    unfolding same_inf_def concl_of_def Saturation_Framework_Preliminaries.inference.concl_of_def by auto
+  then have \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
+    unfolding \<G>_Inf_def using prems_of_i_in_M i'_Inf_G is_inf i_is ground_ns2 CAs0_is DA0_is E0_is
+    i'_RP_is \<iota>_RP_def ground_rs by blast
+  then have \<open>\<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close> unfolding sound_F.Inf_from_def
+    using inf_from_cond prems_in i_Inf_F by auto
+  then show \<open> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close> by blast
+qed
 
-thm conv_inf_def
+interpretation src: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Empty_Order
+proof
+  show "po_on Empty_Order UNIV" unfolding Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
+  show "wfp_on Empty_Order UNIV" unfolding wfp_on_def Empty_Order_def by simp
+qed
 
+
+
+lemma inf_F_to_inf_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<subseteq> Inf_G\<close> for \<iota>
+proof
+  fix \<iota>'
+  assume
+    i_in: \<open>\<iota> \<in> Inf_F\<close> and
+    i'_in: \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
+  show \<open>\<iota>' \<in> Inf_G\<close>
+    using i_in i'_in unfolding \<G>_Inf_def by blast
+qed
+
+
+lemma inf_G_in_inf_F: \<open>Inf_G \<subseteq> Inf_F\<close> 
+proof
+  fix \<iota>
+  assume i_in: \<open>\<iota> \<in> Inf_G\<close>
+  obtain \<iota>_RP where i_RP_in: \<open>\<iota>_RP \<in> gr.ord_\<Gamma>\<close> and i_i_RP: \<open>same_inf \<iota>_RP \<iota>\<close> using i_in unfolding Inf_G_def by blast
+  have \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using i_RP_in unfolding gr.ord_\<Gamma>_def ord_FO_\<Gamma>_def
+  show \<open>\<iota> \<in> Inf_F\<close> unfolding Inf_F_def gr.ord_resolve.simps ord_resolve_rename.simps apply auto sorry
+  oops
+
+find_theorems  gr.ord_\<Gamma>
+
+interpretation static_refutational_complete_calculus Bot_F entails_sound_F Inf_F \<G>.entails_\<G> src.Red_Inf_\<G> src.Red_F_\<G>
+proof
+  fix B N
+  assume
+    b_in: \<open>B \<in> Bot_F\<close> and
+    n_sat: \<open>src.lifted_calculus.saturated N\<close> and
+    ent_b: \<open>\<G>.entails_\<G> N {B}\<close>
+  have \<open>B = {#}\<close> using b_in by simp
+  have gn_sat: \<open>gr_calc.saturated (\<G>.\<G>_set N)\<close>
+    unfolding gr_calc.saturated_def
+  proof
+    fix \<iota>'
+    assume i_in: \<open>\<iota>' \<in> Inf_from (\<G>.\<G>_set N)\<close>
+    obtain \<iota> where \<open>\<iota> \<in> sound_F.Inf_from N\<close> \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close> using i_in lifting_in_framework sorry
+    show \<open>\<iota>' \<in> Red_Inf_G (\<G>.\<G>_set N)\<close> using i_in n_sat unfolding src.lifted_calculus.saturated_def sorry
+    oops
+
+find_theorems name: calc_G
 
 end
 
