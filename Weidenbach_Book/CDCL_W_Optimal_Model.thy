@@ -3021,7 +3021,7 @@ text \<open>
 
   The intended meaning is the following:
   \<^item> \<^term>\<open>\<Sigma>\<close> is the set of all variables
-  \<^item> \<^term>\<open>\<Sigma>\<^sub>w\<close> is the set of all variables with a non-zero weight: These are the variable that are
+  \<^item> \<^term>\<open>\<Delta>\<Sigma>\<close> is the set of all variables with a non-zero weight: These are the variable that are
     replaced during preprocessing, but it does not matter if the weight 0.
 \<close>
 locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_weight
@@ -3056,14 +3056,14 @@ locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_we
     init_state :: "'v clauses \<Rightarrow> 'st" and
     \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> +
-  fixes \<Sigma> \<Sigma>\<^sub>w :: \<open>'v set\<close> and
+  fixes \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
     new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close>
 begin
 
-abbreviation replacement_pos :: \<open>'v \<Rightarrow> 'v\<close> ("(_)\<^sup>\<mapsto>\<^sup>+" 100) where
+abbreviation replacement_pos :: \<open>'v \<Rightarrow> 'v\<close> ("(_)\<^sup>\<mapsto>\<^sup>1" 100) where
   \<open>replacement_pos A \<equiv> (fst(new_vars A))\<close>
 
-abbreviation replacement_neg :: \<open>'v \<Rightarrow> 'v\<close> ("(_)\<^sup>\<mapsto>\<^sup>-" 100) where
+abbreviation replacement_neg :: \<open>'v \<Rightarrow> 'v\<close> ("(_)\<^sup>\<mapsto>\<^sup>0" 100) where
   \<open>replacement_neg A \<equiv> (fst(snd(new_vars A)))\<close>
 
 
@@ -3074,11 +3074,11 @@ abbreviation additional_var :: \<open>'v \<Rightarrow> 'v literal\<close> where
 
 
 fun encode_lit where
-  \<open>encode_lit (Pos A) = (if A \<in> \<Sigma>\<^sub>w then Pos (replacement_pos A) else Pos A)\<close> |
-  \<open>encode_lit (Neg A) = (if A \<in> \<Sigma>\<^sub>w then Pos (replacement_neg A) else Neg A)\<close>
+  \<open>encode_lit (Pos A) = (if A \<in> \<Delta>\<Sigma> then Pos (replacement_pos A) else Pos A)\<close> |
+  \<open>encode_lit (Neg A) = (if A \<in> \<Delta>\<Sigma> then Pos (replacement_neg A) else Neg A)\<close>
 
 lemma encode_lit_alt_def:
-  \<open>encode_lit A = (if atm_of A \<in> \<Sigma>\<^sub>w
+  \<open>encode_lit A = (if atm_of A \<in> \<Delta>\<Sigma>
     then Pos (if is_pos A then replacement_pos (atm_of A) else replacement_neg (atm_of A))
     else A)\<close>
   by (cases A) auto
@@ -3103,15 +3103,15 @@ lemma encode_clauses_simp[simp]:
 
 definition additional_constraint :: \<open>'v \<Rightarrow> 'v clauses\<close> where
   \<open>additional_constraint A =
-     {#{#Neg (A\<^sup>\<mapsto>\<^sup>+), Pos A#},
-       {#Neg (A\<^sup>\<mapsto>\<^sup>+), additional_var A#},
-       {#-additional_var A, -Pos A, Pos (A\<^sup>\<mapsto>\<^sup>+)#},
-       {#Neg (A\<^sup>\<mapsto>\<^sup>-), Neg A#},
-       {#Neg (A\<^sup>\<mapsto>\<^sup>-), additional_var A#},
-       {#-additional_var A, -Neg A, Pos (A\<^sup>\<mapsto>\<^sup>-)#}#}\<close>
+     {#{#Neg (A\<^sup>\<mapsto>\<^sup>1), Pos A#},
+       {#Neg (A\<^sup>\<mapsto>\<^sup>1), additional_var A#},
+       {#-additional_var A, -Pos A, Pos (A\<^sup>\<mapsto>\<^sup>1)#},
+       {#Neg (A\<^sup>\<mapsto>\<^sup>0), Neg A#},
+       {#Neg (A\<^sup>\<mapsto>\<^sup>0), additional_var A#},
+       {#-additional_var A, -Neg A, Pos (A\<^sup>\<mapsto>\<^sup>0)#}#}\<close>
 
 definition additional_constraints :: \<open>'v clauses\<close> where
-  \<open>additional_constraints = \<Union>#(additional_constraint `# (mset_set \<Sigma>\<^sub>w))\<close>
+  \<open>additional_constraints = \<Union>#(additional_constraint `# (mset_set \<Delta>\<Sigma>))\<close>
 
 definition preprocessed_clss :: \<open>'v clauses \<Rightarrow> 'v clauses\<close> where
   \<open>preprocessed_clss N = encode_clauses N + additional_constraints\<close>
@@ -3120,49 +3120,49 @@ lemma size_encode_clauses[simp]: \<open>size (encode_clauses N) = size N\<close>
   by (auto simp: encode_clauses_def)
 
 lemma size_preprocessed_clss:
-  \<open>size (preprocessed_clss N) = size N + 6 * card \<Sigma>\<^sub>w\<close>
+  \<open>size (preprocessed_clss N) = size N + 6 * card \<Delta>\<Sigma>\<close>
   by (auto simp: preprocessed_clss_def additional_constraints_def
     additional_constraint_def size_Union_mset_image_mset)
 
-lemma atms_of_mm_additional_constraints: \<open>finite \<Sigma>\<^sub>w \<Longrightarrow>
-   atms_of_mm additional_constraints = \<Sigma>\<^sub>w \<union> additional_atm ` \<Sigma>\<^sub>w \<union> replacement_pos ` \<Sigma>\<^sub>w
-      \<union> replacement_neg ` \<Sigma>\<^sub>w\<close>
+lemma atms_of_mm_additional_constraints: \<open>finite \<Delta>\<Sigma> \<Longrightarrow>
+   atms_of_mm additional_constraints = \<Delta>\<Sigma> \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
+      \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
   by (auto simp: additional_constraints_def additional_constraint_def atms_of_ms_def)
 
 lemma atms_of_mm_encode_clause_subset:
-  \<open>atms_of_mm (encode_clauses N) \<subseteq> (atms_of_mm N - \<Sigma>\<^sub>w) \<union> replacement_pos ` {A \<in> \<Sigma>\<^sub>w. A \<in> atms_of_mm N}
-    \<union> replacement_neg ` {A \<in> \<Sigma>\<^sub>w. A \<in> atms_of_mm N}\<close>
+  \<open>atms_of_mm (encode_clauses N) \<subseteq> (atms_of_mm N - \<Delta>\<Sigma>) \<union> replacement_pos ` {A \<in> \<Delta>\<Sigma>. A \<in> atms_of_mm N}
+    \<union> replacement_neg ` {A \<in> \<Delta>\<Sigma>. A \<in> atms_of_mm N}\<close>
   by (auto simp: encode_clauses_def encode_lit_alt_def atms_of_ms_def atms_of_def
       encode_clause_def split: if_splits
     dest!: multi_member_split[of _ N])
 
-text \<open>In every meaningful application of the theorem below, we have \<open>\<Sigma>\<^sub>w \<subseteq> atms_of_mm N\<close>.\<close>
-lemma atms_of_mm_preprocessed_clss_subset: \<open>finite \<Sigma>\<^sub>w \<Longrightarrow>
-  atms_of_mm (preprocessed_clss N) \<subseteq> atms_of_mm N \<union> additional_atm ` \<Sigma>\<^sub>w \<union> replacement_pos ` \<Sigma>\<^sub>w
-      \<union> replacement_neg ` \<Sigma>\<^sub>w \<union> \<Sigma>\<^sub>w\<close>
+text \<open>In every meaningful application of the theorem below, we have \<open>\<Delta>\<Sigma> \<subseteq> atms_of_mm N\<close>.\<close>
+lemma atms_of_mm_preprocessed_clss_subset: \<open>finite \<Delta>\<Sigma> \<Longrightarrow>
+  atms_of_mm (preprocessed_clss N) \<subseteq> atms_of_mm N \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
+      \<union> replacement_neg ` \<Delta>\<Sigma> \<union> \<Delta>\<Sigma>\<close>
   using atms_of_mm_encode_clause_subset[of N]
   by (auto simp: preprocessed_clss_def atms_of_mm_additional_constraints)
 
-lemma atms_of_mm_encode_clause_subset2: \<open>finite \<Sigma>\<^sub>w \<Longrightarrow> \<Sigma>\<^sub>w \<subseteq> atms_of_mm N \<Longrightarrow>
-  atms_of_mm N \<subseteq> atms_of_mm (encode_clauses N) \<union> \<Sigma>\<^sub>w\<close>
+lemma atms_of_mm_encode_clause_subset2: \<open>finite \<Delta>\<Sigma> \<Longrightarrow> \<Delta>\<Sigma> \<subseteq> atms_of_mm N \<Longrightarrow>
+  atms_of_mm N \<subseteq> atms_of_mm (encode_clauses N) \<union> \<Delta>\<Sigma>\<close>
   by (auto simp: encode_clauses_def encode_lit_alt_def atms_of_ms_def atms_of_def
       encode_clause_def split: if_splits
     dest!: multi_member_split[of _ N])
 
-lemma atms_of_mm_preprocessed_clss_subset2: \<open>finite \<Sigma>\<^sub>w \<Longrightarrow> \<Sigma>\<^sub>w \<subseteq> atms_of_mm N \<Longrightarrow>
-  atms_of_mm (preprocessed_clss N) = atms_of_mm N \<union> additional_atm ` \<Sigma>\<^sub>w \<union> replacement_pos ` \<Sigma>\<^sub>w
-      \<union> replacement_neg ` \<Sigma>\<^sub>w\<close>
+lemma atms_of_mm_preprocessed_clss_subset2: \<open>finite \<Delta>\<Sigma> \<Longrightarrow> \<Delta>\<Sigma> \<subseteq> atms_of_mm N \<Longrightarrow>
+  atms_of_mm (preprocessed_clss N) = atms_of_mm N \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
+      \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
   using atms_of_mm_encode_clause_subset[of N] atms_of_mm_encode_clause_subset2[of N]
   by (auto simp: preprocessed_clss_def atms_of_mm_additional_constraints)
 
 theorem card_atms_of_mm_preprocessed_clss:
-  assumes \<open>finite \<Sigma>\<^sub>w\<close> and
-    \<open>\<Sigma>\<^sub>w \<subseteq> atms_of_mm N\<close>
+  assumes \<open>finite \<Delta>\<Sigma>\<close> and
+    \<open>\<Delta>\<Sigma> \<subseteq> atms_of_mm N\<close>
   shows \<open>card (atms_of_mm (preprocessed_clss N)) \<le> 4 * card (atms_of_mm N)\<close> (is \<open>?A \<le> ?B\<close>)
 proof -
   have \<open>?A = card
-     (atms_of_mm N \<union> additional_atm ` \<Sigma>\<^sub>w \<union> replacement_pos ` \<Sigma>\<^sub>w \<union>
-      replacement_neg ` \<Sigma>\<^sub>w)\<close> (is \<open>_ = card (?W \<union> ?X \<union> ?Y \<union> ?Z)\<close>)
+     (atms_of_mm N \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union>
+      replacement_neg ` \<Delta>\<Sigma>)\<close> (is \<open>_ = card (?W \<union> ?X \<union> ?Y \<union> ?Z)\<close>)
     using arg_cong[OF atms_of_mm_preprocessed_clss_subset2[of N], of card] assms
     using card_Un_le
     by auto
@@ -3173,40 +3173,40 @@ proof -
   also have \<open>... \<le> card ?W + card ?X + card ?Y + card ?Z\<close>
     using card_Un_le[of \<open>?W\<close> ?X] by auto
   also have \<open>... \<le>  4 * card (atms_of_mm N)\<close>
-    using card_mono[of \<open>atms_of_mm N\<close> \<open>\<Sigma>\<^sub>w\<close>] assms
-      card_image_le[of \<Sigma>\<^sub>w additional_atm]
-      card_image_le[of \<Sigma>\<^sub>w replacement_pos]
-      card_image_le[of \<Sigma>\<^sub>w replacement_neg]
+    using card_mono[of \<open>atms_of_mm N\<close> \<open>\<Delta>\<Sigma>\<close>] assms
+      card_image_le[of \<Delta>\<Sigma> additional_atm]
+      card_image_le[of \<Delta>\<Sigma> replacement_pos]
+      card_image_le[of \<Delta>\<Sigma> replacement_neg]
     by auto
   finally show ?thesis .
 qed
 
 definition postp :: \<open>'v partial_interp \<Rightarrow> 'v partial_interp\<close> where
   \<open>postp I =
-     {A \<in> I. atm_of A \<notin> \<Sigma>\<^sub>w \<and> atm_of A \<in> \<Sigma>} \<union> {A \<in> I. atm_of A \<in> \<Sigma>\<^sub>w \<and> additional_var (atm_of A) \<in> I}\<close>
+     {A \<in> I. atm_of A \<notin> \<Delta>\<Sigma> \<and> atm_of A \<in> \<Sigma>} \<union> {A \<in> I. atm_of A \<in> \<Delta>\<Sigma> \<and> additional_var (atm_of A) \<in> I}\<close>
 
 lemma preprocess_clss_model_additional_variables:
   assumes \<open>I \<Turnstile>sm preprocessed_clss N\<close> and
-    \<open>A \<in> \<Sigma>\<^sub>w\<close> and
-    \<open>finite \<Sigma>\<^sub>w\<close> and
+    \<open>A \<in> \<Delta>\<Sigma>\<close> and
+    \<open>finite \<Delta>\<Sigma>\<close> and
     cons: \<open>consistent_interp I\<close>
   shows
-    \<open>Pos (A\<^sup>\<mapsto>\<^sup>+) \<in>I \<longleftrightarrow> (additional_var A \<in> I \<and> Pos A \<in> I)\<close> (is ?A) and
-    \<open>Pos (A\<^sup>\<mapsto>\<^sup>-) \<in>I \<longleftrightarrow> (additional_var A \<in> I \<and> Neg A \<in> I)\<close> (is ?B)
+    \<open>Pos (A\<^sup>\<mapsto>\<^sup>1) \<in>I \<longleftrightarrow> (additional_var A \<in> I \<and> Pos A \<in> I)\<close> (is ?A) and
+    \<open>Pos (A\<^sup>\<mapsto>\<^sup>0) \<in>I \<longleftrightarrow> (additional_var A \<in> I \<and> Neg A \<in> I)\<close> (is ?B)
 proof -
   have H: \<open>A \<in> I \<Longrightarrow> -A \<notin> I\<close> for A
     using assms cons by (auto simp: consistent_interp_def)
   show ?A ?B
-    using assms H[of \<open>Pos A\<close>] H[of \<open>Neg A\<close>] H[of \<open>Pos (A\<^sup>\<mapsto>\<^sup>+)\<close>]  H[of \<open>Neg (A\<^sup>\<mapsto>\<^sup>+)\<close>]
+    using assms H[of \<open>Pos A\<close>] H[of \<open>Neg A\<close>] H[of \<open>Pos (A\<^sup>\<mapsto>\<^sup>1)\<close>]  H[of \<open>Neg (A\<^sup>\<mapsto>\<^sup>1)\<close>]
       H[of \<open>Neg (additional_atm A)\<close>] H[of \<open>Pos (additional_atm A)\<close>]
-       H[of \<open>Pos (A\<^sup>\<mapsto>\<^sup>-)\<close>]  H[of \<open>Neg (A\<^sup>\<mapsto>\<^sup>-)\<close>]
+       H[of \<open>Pos (A\<^sup>\<mapsto>\<^sup>0)\<close>]  H[of \<open>Neg (A\<^sup>\<mapsto>\<^sup>0)\<close>]
     by (auto simp: preprocessed_clss_def additional_constraints_def true_clss_def
       additional_constraint_def ball_Un)
 qed
 
 lemma preprocess_clss_model_additional_variables2:
   assumes
-    \<open>atm_of A \<in> \<Sigma> - \<Sigma>\<^sub>w\<close>
+    \<open>atm_of A \<in> \<Sigma> - \<Delta>\<Sigma>\<close>
   shows
     \<open>A \<in> postp I \<longleftrightarrow> A \<in> I\<close> (is ?A)
 proof -
@@ -3217,8 +3217,8 @@ qed
 
 lemma encode_clause_iff:
   assumes
-    \<open>\<And>A. A \<in> \<Sigma>\<^sub>w \<Longrightarrow> Pos A \<in> I \<longleftrightarrow> Pos (replacement_pos A) \<in> I\<close>
-    \<open>\<And>A. A \<in> \<Sigma>\<^sub>w \<Longrightarrow> Neg A \<in> I \<longleftrightarrow> Pos (replacement_neg A) \<in> I\<close>
+    \<open>\<And>A. A \<in> \<Delta>\<Sigma> \<Longrightarrow> Pos A \<in> I \<longleftrightarrow> Pos (replacement_pos A) \<in> I\<close>
+    \<open>\<And>A. A \<in> \<Delta>\<Sigma> \<Longrightarrow> Neg A \<in> I \<longleftrightarrow> Pos (replacement_neg A) \<in> I\<close>
   shows \<open>I \<Turnstile> encode_clause C \<longleftrightarrow> I \<Turnstile> C\<close>
   using assms
   apply (induction C)
@@ -3230,37 +3230,37 @@ lemma encode_clause_iff:
 
 lemma encode_clauses_iff:
   assumes
-    \<open>\<And>A. A \<in> \<Sigma>\<^sub>w \<Longrightarrow> Pos A \<in> I \<longleftrightarrow> Pos (replacement_pos A) \<in> I\<close>
-    \<open>\<And>A. A \<in> \<Sigma>\<^sub>w \<Longrightarrow> Neg A \<in> I \<longleftrightarrow> Pos (replacement_neg A) \<in> I\<close>
+    \<open>\<And>A. A \<in> \<Delta>\<Sigma> \<Longrightarrow> Pos A \<in> I \<longleftrightarrow> Pos (replacement_pos A) \<in> I\<close>
+    \<open>\<And>A. A \<in> \<Delta>\<Sigma> \<Longrightarrow> Neg A \<in> I \<longleftrightarrow> Pos (replacement_neg A) \<in> I\<close>
   shows \<open>I \<Turnstile>m encode_clauses C \<longleftrightarrow> I \<Turnstile>m C\<close>
   using encode_clause_iff[OF assms]
   by (auto simp: encode_clauses_def true_cls_mset_def)
 
 
 definition \<Sigma>\<^sub>a\<^sub>d\<^sub>d where
-  \<open>\<Sigma>\<^sub>a\<^sub>d\<^sub>d = replacement_pos ` \<Sigma>\<^sub>w \<union> replacement_neg ` \<Sigma>\<^sub>w \<union> additional_atm ` \<Sigma>\<^sub>w\<close>
+  \<open>\<Sigma>\<^sub>a\<^sub>d\<^sub>d = replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<union> additional_atm ` \<Delta>\<Sigma>\<close>
 
 
 definition upostp :: \<open>'v partial_interp \<Rightarrow> 'v partial_interp\<close> where
   \<open>upostp I =
      Neg ` {A \<in> \<Sigma>. Pos A \<notin> I \<and> Neg A \<notin> I}
      \<union> {A \<in> I. atm_of A \<in> \<Sigma>}
-     \<union> Neg ` additional_atm ` {A \<in> \<Sigma>\<^sub>w. Pos A \<notin> I \<and> Neg A \<notin> I}
-     \<union> Pos ` additional_atm ` {A \<in> \<Sigma>\<^sub>w. Pos A \<in> I \<or> Neg A \<in> I}
-     \<union> Pos ` replacement_pos ` {A \<in> \<Sigma>\<^sub>w. Pos A \<in> I}
-     \<union> Neg ` replacement_pos ` {A \<in> \<Sigma>\<^sub>w. Pos A \<notin> I}
-     \<union> Pos ` replacement_neg ` {A \<in> \<Sigma>\<^sub>w. Neg A \<in> I}
-     \<union> Neg ` replacement_neg ` {A \<in> \<Sigma>\<^sub>w. Neg A \<notin> I}\<close>
+     \<union> Neg ` additional_atm ` {A \<in> \<Delta>\<Sigma>. Pos A \<notin> I \<and> Neg A \<notin> I}
+     \<union> Pos ` additional_atm ` {A \<in> \<Delta>\<Sigma>. Pos A \<in> I \<or> Neg A \<in> I}
+     \<union> Pos ` replacement_pos ` {A \<in> \<Delta>\<Sigma>. Pos A \<in> I}
+     \<union> Neg ` replacement_pos ` {A \<in> \<Delta>\<Sigma>. Pos A \<notin> I}
+     \<union> Pos ` replacement_neg ` {A \<in> \<Delta>\<Sigma>. Neg A \<in> I}
+     \<union> Neg ` replacement_neg ` {A \<in> \<Delta>\<Sigma>. Neg A \<notin> I}\<close>
 
 lemma atm_of_upostp_subset:
   \<open>atm_of ` (upostp I) \<subseteq>
-    atm_of ` I \<union> additional_atm ` \<Sigma>\<^sub>w \<union> replacement_pos ` \<Sigma>\<^sub>w \<union>
-    replacement_neg ` \<Sigma>\<^sub>w \<union> \<Sigma>\<close>
+    atm_of ` I \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union>
+    replacement_neg ` \<Delta>\<Sigma> \<union> \<Sigma>\<close>
   by (auto simp: upostp_def image_Un)
 
 lemma atm_of_upostp_subset2:
-  \<open>atm_of ` I \<subseteq> \<Sigma> \<Longrightarrow> atm_of ` I \<union> additional_atm ` \<Sigma>\<^sub>w \<union> replacement_pos ` \<Sigma>\<^sub>w \<union>
-    replacement_neg ` \<Sigma>\<^sub>w \<union> \<Sigma> \<subseteq> atm_of ` (upostp I)
+  \<open>atm_of ` I \<subseteq> \<Sigma> \<Longrightarrow> atm_of ` I \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union>
+    replacement_neg ` \<Delta>\<Sigma> \<union> \<Sigma> \<subseteq> atm_of ` (upostp I)
     \<close>
   apply (auto simp: upostp_def image_Un image_image)
   apply (metis (mono_tags, lifting) imageI literal.sel(1) mem_Collect_eq)
@@ -3284,7 +3284,7 @@ locale optimal_encoding = optimal_encoding_opt
     init_state
     \<rho>
     update_additional_info
-    \<Sigma> \<Sigma>\<^sub>w
+    \<Sigma> \<Delta>\<Sigma>
     new_vars
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
@@ -3304,28 +3304,28 @@ locale optimal_encoding = optimal_encoding_opt
     init_state :: "'v clauses \<Rightarrow> 'st" and
     \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
-    \<Sigma> \<Sigma>\<^sub>w :: \<open>'v set\<close> and
+    \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
     new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close> +
   assumes
     finite_\<Sigma>:
-      \<open>finite \<Sigma>\<^sub>w\<close> and
-    \<Sigma>\<^sub>w_\<Sigma>:
-      \<open>\<Sigma>\<^sub>w \<subseteq> \<Sigma>\<close> and
+      \<open>finite \<Delta>\<Sigma>\<close> and
+    \<Delta>\<Sigma>_\<Sigma>:
+      \<open>\<Delta>\<Sigma> \<subseteq> \<Sigma>\<close> and
     new_vars_pos:
-      \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> replacement_pos A \<notin> \<Sigma>\<close> and
+      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_pos A \<notin> \<Sigma>\<close> and
     new_vars_neg:
-      \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> replacement_neg A \<notin> \<Sigma>\<close> and
+      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_neg A \<notin> \<Sigma>\<close> and
     new_vars_addition_var:
-      \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> additional_atm A \<notin> \<Sigma>\<close> and
+      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> additional_atm A \<notin> \<Sigma>\<close> and
     new_vars_dist:
-      \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> B \<in> \<Sigma>\<^sub>w \<Longrightarrow> A \<noteq> B \<Longrightarrow> replacement_pos A \<noteq> replacement_pos B\<close>
-      \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> B \<in> \<Sigma>\<^sub>w \<Longrightarrow> replacement_pos A \<noteq> replacement_neg B\<close>
-      \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> B \<in> \<Sigma>\<^sub>w \<Longrightarrow> A \<noteq> B \<Longrightarrow> replacement_neg A \<noteq> replacement_neg B\<close>
-      \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> B \<in> \<Sigma>\<^sub>w \<Longrightarrow> replacement_pos A \<noteq> additional_atm B\<close>
-      \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> B \<in> \<Sigma>\<^sub>w \<Longrightarrow> replacement_neg A \<noteq> additional_atm B\<close>
-      \<open>A \<in> \<Sigma>\<^sub>w \<Longrightarrow> B \<in> \<Sigma>\<^sub>w \<Longrightarrow> A \<noteq> B \<Longrightarrow> additional_atm A \<noteq> additional_atm B\<close> and
+      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> A \<noteq> B \<Longrightarrow> replacement_pos A \<noteq> replacement_pos B\<close>
+      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_pos A \<noteq> replacement_neg B\<close>
+      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> A \<noteq> B \<Longrightarrow> replacement_neg A \<noteq> replacement_neg B\<close>
+      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_pos A \<noteq> additional_atm B\<close>
+      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_neg A \<noteq> additional_atm B\<close>
+      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> A \<noteq> B \<Longrightarrow> additional_atm A \<noteq> additional_atm B\<close> and
     \<Sigma>_no_weight:
-      \<open>atm_of C \<in> \<Sigma> - \<Sigma>\<^sub>w \<Longrightarrow> \<rho> (add_mset C M) = \<rho> M\<close>
+      \<open>atm_of C \<in> \<Sigma> - \<Delta>\<Sigma> \<Longrightarrow> \<rho> (add_mset C M) = \<rho> M\<close>
 begin
 
 lemma consistent_interp_postp:
@@ -3333,65 +3333,65 @@ lemma consistent_interp_postp:
   by (auto simp: consistent_interp_def postp_def)
 
 text \<open>The reverse of the previous theorem does not hold due to the filtering on the variables of
-  \<^term>\<open>\<Sigma>\<^sub>w\<close>. One example of version that holds:\<close>
+  \<^term>\<open>\<Delta>\<Sigma>\<close>. One example of version that holds:\<close>
 lemma
-  assumes \<open>A \<in> \<Sigma>\<^sub>w\<close>
+  assumes \<open>A \<in> \<Delta>\<Sigma>\<close>
   shows \<open>consistent_interp (postp {Pos A , Neg A})\<close> and
     \<open>\<not>consistent_interp {Pos A, Neg A}\<close>
-  using assms \<Sigma>\<^sub>w_\<Sigma>
+  using assms \<Delta>\<Sigma>_\<Sigma>
   using new_vars_addition_var
   by (auto simp: consistent_interp_def postp_def uminus_lit_swap)
 
 text \<open>Some more restricted version of the reverse hold, like:\<close>
 lemma consistent_interp_postp_iff:
-  \<open>atm_of ` I \<subseteq> \<Sigma> - \<Sigma>\<^sub>w \<Longrightarrow> consistent_interp I \<longleftrightarrow> consistent_interp (postp I)\<close>
+  \<open>atm_of ` I \<subseteq> \<Sigma> - \<Delta>\<Sigma> \<Longrightarrow> consistent_interp I \<longleftrightarrow> consistent_interp (postp I)\<close>
   by (auto simp: consistent_interp_def postp_def)
 
 lemma new_vars_different_iff[simp]:
-  \<open>A \<noteq> x\<^sup>\<mapsto>\<^sup>+\<close>
-  \<open>A \<noteq> x\<^sup>\<mapsto>\<^sup>-\<close>
-  \<open>x\<^sup>\<mapsto>\<^sup>+ \<noteq> A\<close>
-  \<open>x\<^sup>\<mapsto>\<^sup>- \<noteq> A\<close>
-  \<open>A\<^sup>\<mapsto>\<^sup>- \<noteq> x\<^sup>\<mapsto>\<^sup>+\<close>
-  \<open>A\<^sup>\<mapsto>\<^sup>+ \<noteq> x\<^sup>\<mapsto>\<^sup>-\<close>
+  \<open>A \<noteq> x\<^sup>\<mapsto>\<^sup>1\<close>
+  \<open>A \<noteq> x\<^sup>\<mapsto>\<^sup>0\<close>
+  \<open>x\<^sup>\<mapsto>\<^sup>1 \<noteq> A\<close>
+  \<open>x\<^sup>\<mapsto>\<^sup>0 \<noteq> A\<close>
+  \<open>A\<^sup>\<mapsto>\<^sup>0 \<noteq> x\<^sup>\<mapsto>\<^sup>1\<close>
+  \<open>A\<^sup>\<mapsto>\<^sup>1 \<noteq> x\<^sup>\<mapsto>\<^sup>0\<close>
   \<open>x \<noteq> additional_atm x\<close>
-  \<open>A\<^sup>\<mapsto>\<^sup>- \<noteq> additional_atm x\<close>
-  \<open>A\<^sup>\<mapsto>\<^sup>+ \<noteq> additional_atm x\<close>
+  \<open>A\<^sup>\<mapsto>\<^sup>0 \<noteq> additional_atm x\<close>
+  \<open>A\<^sup>\<mapsto>\<^sup>1 \<noteq> additional_atm x\<close>
   \<open>additional_atm x \<noteq> x\<close>
-  \<open>additional_atm x \<noteq> A\<^sup>\<mapsto>\<^sup>-\<close>
-  \<open>additional_atm x \<noteq> A\<^sup>\<mapsto>\<^sup>+\<close>
-  \<open>A\<^sup>\<mapsto>\<^sup>- = x\<^sup>\<mapsto>\<^sup>- \<longleftrightarrow> A = x\<close>
-  \<open>A\<^sup>\<mapsto>\<^sup>+ = x\<^sup>\<mapsto>\<^sup>+ \<longleftrightarrow> A = x\<close>
+  \<open>additional_atm x \<noteq> A\<^sup>\<mapsto>\<^sup>0\<close>
+  \<open>additional_atm x \<noteq> A\<^sup>\<mapsto>\<^sup>1\<close>
+  \<open>A\<^sup>\<mapsto>\<^sup>0 = x\<^sup>\<mapsto>\<^sup>0 \<longleftrightarrow> A = x\<close>
+  \<open>A\<^sup>\<mapsto>\<^sup>1 = x\<^sup>\<mapsto>\<^sup>1 \<longleftrightarrow> A = x\<close>
   \<open>additional_atm A = additional_atm x \<longleftrightarrow> A = x\<close>
-  \<open>(A\<^sup>\<mapsto>\<^sup>+) \<notin> \<Sigma>\<close>
-  \<open>(A\<^sup>\<mapsto>\<^sup>-) \<notin> \<Sigma>\<close>
+  \<open>(A\<^sup>\<mapsto>\<^sup>1) \<notin> \<Sigma>\<close>
+  \<open>(A\<^sup>\<mapsto>\<^sup>0) \<notin> \<Sigma>\<close>
   \<open>additional_atm A \<notin> \<Sigma>\<close>
-  \<open>(A\<^sup>\<mapsto>\<^sup>+) \<notin> \<Sigma>\<^sub>w\<close>
-  \<open>(A\<^sup>\<mapsto>\<^sup>-) \<notin> \<Sigma>\<^sub>w\<close>
-  \<open>additional_atm A \<notin> \<Sigma>\<^sub>w\<close>
-  if \<open>A \<in> \<Sigma>\<^sub>w\<close>  \<open>x \<in> \<Sigma>\<^sub>w\<close> for A x
-  using \<Sigma>\<^sub>w_\<Sigma> new_vars_pos[of x] new_vars_pos[of A]  new_vars_neg[of x] new_vars_neg[of A]
+  \<open>(A\<^sup>\<mapsto>\<^sup>1) \<notin> \<Delta>\<Sigma>\<close>
+  \<open>(A\<^sup>\<mapsto>\<^sup>0) \<notin> \<Delta>\<Sigma>\<close>
+  \<open>additional_atm A \<notin> \<Delta>\<Sigma>\<close>
+  if \<open>A \<in> \<Delta>\<Sigma>\<close>  \<open>x \<in> \<Delta>\<Sigma>\<close> for A x
+  using \<Delta>\<Sigma>_\<Sigma> new_vars_pos[of x] new_vars_pos[of A]  new_vars_neg[of x] new_vars_neg[of A]
     new_vars_neg new_vars_dist[of A x] new_vars_dist[of x A]
     new_vars_addition_var[of x] new_vars_addition_var[of A] that new_vars_addition_var[of x]
   by (cases \<open>A = x\<close>; fastforce simp: comp_def; fail)+
 
 lemma consistent_interp_upostp:
   \<open>consistent_interp I \<Longrightarrow> consistent_interp (upostp I)\<close>
-  using \<Sigma>\<^sub>w_\<Sigma>
+  using \<Delta>\<Sigma>_\<Sigma>
   using new_vars_addition_var
   by (auto simp: consistent_interp_def upostp_def uminus_lit_swap)
 
 lemma upostp_additional_constraints_logic:
   assumes
-    \<open>A \<in> \<Sigma>\<^sub>w\<close>
+    \<open>A \<in> \<Delta>\<Sigma>\<close>
   shows
-    \<open>Pos (A\<^sup>\<mapsto>\<^sup>+) \<in> upostp I \<longleftrightarrow> (additional_var A \<in> upostp I \<and> Pos A \<in> upostp I)\<close> (is ?A) and
-    \<open>Pos (A\<^sup>\<mapsto>\<^sup>-) \<in> upostp I \<longleftrightarrow> (additional_var A \<in> upostp I \<and> Neg A \<in> upostp I)\<close> (is ?B)
+    \<open>Pos (A\<^sup>\<mapsto>\<^sup>1) \<in> upostp I \<longleftrightarrow> (additional_var A \<in> upostp I \<and> Pos A \<in> upostp I)\<close> (is ?A) and
+    \<open>Pos (A\<^sup>\<mapsto>\<^sup>0) \<in> upostp I \<longleftrightarrow> (additional_var A \<in> upostp I \<and> Neg A \<in> upostp I)\<close> (is ?B)
 proof -
   show ?A
   proof
-    assume \<open>Pos (A\<^sup>\<mapsto>\<^sup>+) \<in> upostp I\<close>
-    then have \<open>Pos (A\<^sup>\<mapsto>\<^sup>+) \<in> (\<lambda>x. Pos (x\<^sup>\<mapsto>\<^sup>+)) ` {A \<in> \<Sigma>\<^sub>w. Pos A \<in> I}\<close>
+    assume \<open>Pos (A\<^sup>\<mapsto>\<^sup>1) \<in> upostp I\<close>
+    then have \<open>Pos (A\<^sup>\<mapsto>\<^sup>1) \<in> (\<lambda>x. Pos (x\<^sup>\<mapsto>\<^sup>1)) ` {A \<in> \<Delta>\<Sigma>. Pos A \<in> I}\<close>
       using assms
       by (auto simp add: upostp_def image_image)
     then have \<open>Pos A \<in> I\<close>
@@ -3401,7 +3401,7 @@ proof -
       using assms \<open>Pos A \<in> I\<close>
       by (auto simp add: upostp_def image_image)
     moreover have \<open>Pos A \<in> upostp I\<close>
-      using \<Sigma>\<^sub>w_\<Sigma> assms \<open>Pos A \<in> I\<close>
+      using \<Delta>\<Sigma>_\<Sigma> assms \<open>Pos A \<in> I\<close>
       by (auto simp add: upostp_def image_image)
     ultimately show \<open>additional_var A \<in> upostp I \<and> Pos A \<in> upostp I\<close>
       by auto
@@ -3410,13 +3410,13 @@ proof -
     then have \<open>Pos A \<in> I\<close>
       using assms
       by (auto simp add: upostp_def image_image)
-    then show \<open>Pos (A\<^sup>\<mapsto>\<^sup>+) \<in> upostp I\<close>
+    then show \<open>Pos (A\<^sup>\<mapsto>\<^sup>1) \<in> upostp I\<close>
       using assms
       by (auto simp add: upostp_def image_image)
   qed
 
   show ?B
-    using assms \<Sigma>\<^sub>w_\<Sigma>
+    using assms \<Delta>\<Sigma>_\<Sigma>
     by (auto simp add: upostp_def image_image)
 qed
 
@@ -3427,8 +3427,8 @@ lemma preprocessed_clss_ent_upostp:
     atm: \<open>atm_of ` I \<subseteq> atms_of_mm N\<close>
   shows \<open>upostp I \<Turnstile>m preprocessed_clss N\<close>
 proof -
-  have [iff]: \<open>Pos (A\<^sup>\<mapsto>\<^sup>-) \<notin> I\<close> \<open>Pos (A\<^sup>\<mapsto>\<^sup>+) \<notin> I\<close> \<open>additional_var A \<notin> I\<close> \<open>Neg (additional_atm A) \<notin> I\<close>
-     \<open>Neg (A\<^sup>\<mapsto>\<^sup>-) \<notin> I\<close> \<open>Neg (A\<^sup>\<mapsto>\<^sup>+) \<notin> I\<close>  if \<open>A \<in> \<Sigma>\<^sub>w\<close> for A
+  have [iff]: \<open>Pos (A\<^sup>\<mapsto>\<^sup>0) \<notin> I\<close> \<open>Pos (A\<^sup>\<mapsto>\<^sup>1) \<notin> I\<close> \<open>additional_var A \<notin> I\<close> \<open>Neg (additional_atm A) \<notin> I\<close>
+     \<open>Neg (A\<^sup>\<mapsto>\<^sup>0) \<notin> I\<close> \<open>Neg (A\<^sup>\<mapsto>\<^sup>1) \<notin> I\<close>  if \<open>A \<in> \<Delta>\<Sigma>\<close> for A
     using atm new_vars_neg[of A] new_vars_pos[of A] that new_vars_addition_var[of A]
     unfolding \<Sigma> by force+
   have enc: \<open>upostp I \<Turnstile>m encode_clauses N\<close>
@@ -3446,7 +3446,7 @@ proof -
       using sat
       by (auto simp: true_cls_def
         dest!: multi_member_split[of _ N])
-    moreover have \<open>atm_of A \<in> \<Sigma> - \<Sigma>\<^sub>w \<or> atm_of A \<in> \<Sigma>\<^sub>w\<close>
+    moreover have \<open>atm_of A \<in> \<Sigma> - \<Delta>\<Sigma> \<or> atm_of A \<in> \<Delta>\<Sigma>\<close>
       using atm \<open>A \<in> I\<close> unfolding \<Sigma> by blast
     ultimately have \<open>encode_lit A \<in> upostp I\<close>
       by (auto simp: encode_lit_alt_def upostp_def)
@@ -3455,16 +3455,16 @@ proof -
       unfolding \<open>C = encode_clause C'\<close>
       by (auto simp: encode_clause_def dest: multi_member_split)
   qed
-  have [iff]: \<open>Pos (y\<^sup>\<mapsto>\<^sup>+) \<notin> upostp I \<longleftrightarrow> Neg (y\<^sup>\<mapsto>\<^sup>+) \<in> upostp I\<close>
-     \<open>Pos (y\<^sup>\<mapsto>\<^sup>-) \<notin> upostp I \<longleftrightarrow> Neg (y\<^sup>\<mapsto>\<^sup>-) \<in> upostp I\<close>
+  have [iff]: \<open>Pos (y\<^sup>\<mapsto>\<^sup>1) \<notin> upostp I \<longleftrightarrow> Neg (y\<^sup>\<mapsto>\<^sup>1) \<in> upostp I\<close>
+     \<open>Pos (y\<^sup>\<mapsto>\<^sup>0) \<notin> upostp I \<longleftrightarrow> Neg (y\<^sup>\<mapsto>\<^sup>0) \<in> upostp I\<close>
     \<open>Neg (additional_atm y) \<notin> upostp I \<longleftrightarrow> additional_var y \<in> upostp I\<close>
-    if \<open>y \<in> \<Sigma>\<^sub>w\<close> for y
+    if \<open>y \<in> \<Delta>\<Sigma>\<close> for y
     using that
     by (cases \<open>Pos y \<in> I\<close>; auto simp: upostp_def image_image; fail)+
   have H:
     \<open>Pos y \<notin> upostp I \<longleftrightarrow> Neg y \<in> upostp I\<close>
-    if \<open>y \<in> \<Sigma>\<^sub>w\<close> for y
-    using that cons \<Sigma>\<^sub>w_\<Sigma> unfolding consistent_interp_def
+    if \<open>y \<in> \<Delta>\<Sigma>\<close> for y
+    using that cons \<Delta>\<Sigma>_\<Sigma> unfolding consistent_interp_def
     using that by (cases \<open>Pos y \<in> I\<close>; auto simp: upostp_def image_image)
   have [dest]: \<open>Neg A \<in> upostp I \<Longrightarrow> Pos A \<notin> upostp I\<close>
      \<open>Pos A \<in> upostp I \<Longrightarrow> Neg A \<notin> upostp I\<close> for A
@@ -3557,7 +3557,7 @@ lemma satisfiable_preprocessed_clss_iff:
 
 
 abbreviation \<rho>\<^sub>e_filter :: \<open>'v literal multiset \<Rightarrow> 'v literal multiset\<close> where
-  \<open>\<rho>\<^sub>e_filter M \<equiv> filter_mset (\<lambda>x. atm_of x \<in> \<Sigma>\<^sub>w \<and> additional_var (atm_of x) \<in># M) M\<close>
+  \<open>\<rho>\<^sub>e_filter M \<equiv> filter_mset (\<lambda>x. atm_of x \<in> \<Delta>\<Sigma> \<and> additional_var (atm_of x) \<in># M) M\<close>
 
 definition \<rho>\<^sub>e :: \<open>'v literal multiset \<Rightarrow> nat\<close> where
   \<open>\<rho>\<^sub>e M = \<rho> (\<rho>\<^sub>e_filter M)\<close>
@@ -3590,24 +3590,24 @@ interpretation enc_weight_opt: conflict_driven_clause_learning\<^sub>W_optimal_w
   subgoal using weight_init_state by fast
   done
 
-lemma  \<Sigma>_no_weight_\<rho>\<^sub>e: \<open>atm_of C \<in> \<Sigma> - \<Sigma>\<^sub>w \<Longrightarrow> \<rho>\<^sub>e (add_mset C M) = \<rho>\<^sub>e M\<close>
+lemma  \<Sigma>_no_weight_\<rho>\<^sub>e: \<open>atm_of C \<in> \<Sigma> - \<Delta>\<Sigma> \<Longrightarrow> \<rho>\<^sub>e (add_mset C M) = \<rho>\<^sub>e M\<close>
   using \<Sigma>_no_weight[of C \<open>\<rho>\<^sub>e_filter M\<close>]
   apply (auto simp: \<rho>\<^sub>e_def)
   by (metis (no_types, lifting) literal.sel(1) new_vars_addition_var)
 
 
-lemma \<rho>_cancel_notin_\<Sigma>\<^sub>w:
-  \<open>(\<And>x. x \<in># M \<Longrightarrow> atm_of x \<in> \<Sigma> - \<Sigma>\<^sub>w) \<Longrightarrow> \<rho> (M + M') = \<rho> M'\<close>
+lemma \<rho>_cancel_notin_\<Delta>\<Sigma>:
+  \<open>(\<And>x. x \<in># M \<Longrightarrow> atm_of x \<in> \<Sigma> - \<Delta>\<Sigma>) \<Longrightarrow> \<rho> (M + M') = \<rho> M'\<close>
   by (induction M) (auto simp: \<Sigma>_no_weight)
 
 lemma \<rho>_mono2:
   \<open>(\<And>A. A \<in># M \<Longrightarrow> atm_of A \<in> \<Sigma>) \<Longrightarrow> (\<And>A. A \<in># M' \<Longrightarrow> atm_of A \<in> \<Sigma>) \<Longrightarrow>
-     {#A \<in># M. atm_of A \<in> \<Sigma>\<^sub>w#} \<subseteq># {#A \<in># M'. atm_of A \<in> \<Sigma>\<^sub>w#} \<Longrightarrow> \<rho> M \<le> \<rho> M'\<close>
-  apply (subst (2) multiset_partition[of _ \<open>\<lambda>A. atm_of A \<notin> \<Sigma>\<^sub>w\<close>])
-  apply (subst multiset_partition[of _ \<open>\<lambda>A. atm_of A \<notin> \<Sigma>\<^sub>w\<close>])
-  apply (subst \<rho>_cancel_notin_\<Sigma>\<^sub>w)
+     {#A \<in># M. atm_of A \<in> \<Delta>\<Sigma>#} \<subseteq># {#A \<in># M'. atm_of A \<in> \<Delta>\<Sigma>#} \<Longrightarrow> \<rho> M \<le> \<rho> M'\<close>
+  apply (subst (2) multiset_partition[of _ \<open>\<lambda>A. atm_of A \<notin> \<Delta>\<Sigma>\<close>])
+  apply (subst multiset_partition[of _ \<open>\<lambda>A. atm_of A \<notin> \<Delta>\<Sigma>\<close>])
+  apply (subst \<rho>_cancel_notin_\<Delta>\<Sigma>)
   subgoal by auto
-  apply (subst \<rho>_cancel_notin_\<Sigma>\<^sub>w)
+  apply (subst \<rho>_cancel_notin_\<Delta>\<Sigma>)
   subgoal by auto
   by (auto intro: \<rho>_mono)
 
@@ -3622,14 +3622,14 @@ proof -
   have [simp]: \<open>mset_set
         {x \<in> I.
          atm_of x \<in> \<Sigma> \<and>
-         atm_of x \<notin> replacement_pos ` \<Sigma>\<^sub>w \<and>
-         atm_of x \<notin> replacement_neg ` \<Sigma>\<^sub>w \<and> atm_of x \<notin> additional_atm ` \<Sigma>\<^sub>w} = mset_set I\<close>
+         atm_of x \<notin> replacement_pos ` \<Delta>\<Sigma> \<and>
+         atm_of x \<notin> replacement_neg ` \<Delta>\<Sigma> \<and> atm_of x \<notin> additional_atm ` \<Delta>\<Sigma>} = mset_set I\<close>
     using I_\<Sigma> by auto
-  have [simp]: \<open>finite {A \<in> \<Sigma>\<^sub>w. P A}\<close> for P
-    by (rule finite_subset[of _ \<Sigma>\<^sub>w])
-      (use \<Sigma>\<^sub>w_\<Sigma> finite_\<Sigma> in auto)
+  have [simp]: \<open>finite {A \<in> \<Delta>\<Sigma>. P A}\<close> for P
+    by (rule finite_subset[of _ \<Delta>\<Sigma>])
+      (use \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> in auto)
   have \<open>?A \<le> ?B\<close>
-    using assms \<Sigma>\<^sub>w_\<Sigma> apply -
+    using assms \<Delta>\<Sigma>_\<Sigma> apply -
     unfolding \<rho>\<^sub>e_def filter_filter_mset
     apply (rule \<rho>_mono2)
     subgoal by auto
@@ -3640,7 +3640,7 @@ proof -
       by (cases \<open>x \<in> I\<close>; cases x) (auto simp: upostp_def)
     done
   moreover have \<open>?B \<le> ?A\<close>
-    using assms \<Sigma>\<^sub>w_\<Sigma> apply -
+    using assms \<Delta>\<Sigma>_\<Sigma> apply -
     unfolding \<rho>\<^sub>e_def filter_filter_mset
     apply (rule \<rho>_mono2)
     subgoal by auto
@@ -3670,7 +3670,7 @@ proof -
     by (metis image_iff literal.exhaust_sel)
 
   show ?thesis
-    using assms \<Sigma>\<^sub>w_\<Sigma>
+    using assms \<Delta>\<Sigma>_\<Sigma>
     by (auto simp: postp_def \<rho>\<^sub>e_def \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def conj_disj_distribR
       mset_set_Union intro!: \<rho>_mono2)
 qed
@@ -3704,10 +3704,10 @@ lemma finite_upostp:
   assumes \<open>finite \<Sigma>\<close>
   shows \<open>finite (upostp I)\<close>
 proof -
-  have \<open>upostp I \<subseteq> Pos ` (\<Sigma> \<union> \<Sigma>\<^sub>w \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d) \<union> Neg ` (\<Sigma> \<union> \<Sigma>\<^sub>w \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d)\<close>
+  have \<open>upostp I \<subseteq> Pos ` (\<Sigma> \<union> \<Delta>\<Sigma> \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d) \<union> Neg ` (\<Sigma> \<union> \<Delta>\<Sigma> \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d)\<close>
     apply (auto simp: upostp_def image_Un \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def)
     by (metis image_iff literal.exhaust_sel)
-  moreover have \<open>finite (Pos ` (\<Sigma> \<union> \<Sigma>\<^sub>w \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d) \<union> Neg ` (\<Sigma> \<union> \<Sigma>\<^sub>w \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d))\<close>
+  moreover have \<open>finite (Pos ` (\<Sigma> \<union> \<Delta>\<Sigma> \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d) \<union> Neg ` (\<Sigma> \<union> \<Delta>\<Sigma> \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d))\<close>
     using assms finite_\<Sigma> by (auto simp: \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def)
   ultimately show ?thesis
     by (auto intro: finite_subset)
@@ -3773,7 +3773,7 @@ proof -
         by (auto simp: atms_of_def)
       have \<open>atms_of ?I = atms_of_mm ?N\<close>
         apply (subst atms_of_mm_preprocessed_clss_subset2[OF finite_\<Sigma>])
-        subgoal using \<Sigma>\<^sub>w_\<Sigma> atms by auto
+        subgoal using \<Delta>\<Sigma>_\<Sigma> atms by auto
         subgoal
           using atm_of_upostp_subset[of \<open>set_mset I\<close>] atm_of_upostp_subset2[of \<open>set_mset I\<close>] atm
           unfolding atms A
@@ -3787,7 +3787,7 @@ proof -
     moreover {
       have \<open>\<rho>\<^sub>e ?I = \<rho> (mset_set (set_mset I))\<close>
         by (rule \<rho>\<^sub>e_upostp_\<rho>)
-          (use \<Sigma>\<^sub>w_\<Sigma> atms atm in \<open>auto dest: multi_member_split\<close>)
+          (use \<Delta>\<Sigma>_\<Sigma> atms atm in \<open>auto dest: multi_member_split\<close>)
       then have \<open>\<rho>\<^sub>e ?I = \<rho> I\<close>
         by (subst (asm) distinct_mset_set_mset_ident)
           (use atms dist in auto)
@@ -3799,8 +3799,8 @@ proof -
       have \<open>\<rho> (mset_set ?K) \<le> \<rho>\<^sub>e (the (weight T))\<close>
         unfolding \<rho>\<^sub>e_def
         apply (rule \<rho>_mono2)
-        subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
-        subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
+        subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
+        subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
         subgoal
           unfolding filter_filter_mset
           apply (rule filter_mset_mono_subset)
@@ -3818,8 +3818,8 @@ proof -
       have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> \<rho>\<^sub>e (mset_set (set_mset (the (weight T))))\<close>
         unfolding \<rho>\<^sub>e_def
         apply (rule \<rho>_mono2)
-        subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
-        subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
+        subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
+        subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
         subgoal
           unfolding filter_filter_mset
           apply (rule filter_mset_mono_subset)
@@ -3833,8 +3833,8 @@ proof -
     moreover have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> \<rho> (mset_set ?K)\<close>
       unfolding \<rho>\<^sub>e_def
       apply (rule \<rho>_mono2)
-      subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
-      subgoal using atms dist model[OF Some] atms \<Sigma>\<^sub>w_\<Sigma> by (auto simp: postp_def)
+      subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
+      subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
       subgoal
         unfolding filter_filter_mset
         apply (rule filter_mset_mono_subset)
