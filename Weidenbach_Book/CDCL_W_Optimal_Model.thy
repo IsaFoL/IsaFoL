@@ -151,7 +151,7 @@ lemma atms_of_negate_ann_lits[simp]: \<open>atms_of (negate_ann_lits M) = atm_of
 lemma tautology_pNeg[simp]:
   \<open>tautology (pNeg C) \<longleftrightarrow> tautology C\<close>
   by (auto 5 5 simp: tautology_decomp pNeg_def
-      uminus_lit_swap add_mset_eq_add_mset eq_commute[of \<open>Neg _\<close> \<open>- _\<close>]  eq_commute[of \<open>Pos _\<close> \<open>- _\<close>]
+      uminus_lit_swap add_mset_eq_add_mset eq_commute[of \<open>Neg _\<close> \<open>- _\<close>] eq_commute[of \<open>Pos _\<close> \<open>- _\<close>]
     dest!: multi_member_split)
 
 lemma (in -) pNeg_convolution[simp]:
