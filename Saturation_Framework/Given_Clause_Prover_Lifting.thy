@@ -1614,6 +1614,12 @@ find_theorems name: calc_G
 
 end
 
+definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
+  \<open>N1 \<Turnstile>\<G> N2 \<equiv> UNION N1 grounding_of_cls \<Turnstile>G UNION N2 grounding_of_cls\<close>
+
+(* definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
+  \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_set N)}\<close> *)
+  
 end
 
 end
