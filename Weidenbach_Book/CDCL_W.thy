@@ -51,6 +51,7 @@ locale state\<^sub>W_ops =
 
     init_state :: "'v clauses \<Rightarrow> 'st"
 begin
+
 abbreviation hd_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lit" where
 "hd_trail S \<equiv> hd (trail S)"
 
@@ -584,7 +585,6 @@ backtrack_rule: "
   backtrack S T"
 
 inductive_cases backtrackE: "backtrack S T"
-thm backtrackE
 
 text \<open>Here is the normal backtrack rule from Weidenbach's book:\<close>
 inductive simple_backtrack :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
