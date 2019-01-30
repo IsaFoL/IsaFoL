@@ -5,8 +5,6 @@ begin
 
 section \<open>CDCL Extensions\<close>
 
-subsection \<open>Optimisations\<close>
-
 text \<open>
   A counter-example for the original version from the book has been found (see below). There is no
   simple fix, except taking complete models.
@@ -15,10 +13,12 @@ text \<open>
   finding total models
 \<close>
 
+subsection \<open>Optimisations\<close>
+
 notation image_mset (infixr "`#" 90)
 
-text \<open> The initial version was supposed to work on partial models directly. I found a counter
-example while writing the proof:
+text \<open>The initial version was supposed to work on partial models directly. I found a counterexample
+while writing the proof:
 
 \nitpicking{
 
@@ -124,6 +124,9 @@ generated and the improvement criterion.
 We later instantiate it with the optimisation calculus from Weidenbach's book.
 \<close>
 
+
+subsubsection \<open>Helper libraries\<close>
+
 definition negate_ann_lits :: "('v, 'v clause) ann_lits \<Rightarrow> 'v literal multiset" where
   \<open>negate_ann_lits M = (\<lambda>L. - lit_of L) `# (mset M)\<close>
 
@@ -213,6 +216,8 @@ lemma exists_lit_max_level_in_negate_ann_lits:
   by (cases \<open>M\<close>) (auto simp: negate_ann_lits_def)
 
 
+subsubsection \<open>CDCL BAB\<close>
+
 locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state =
   state\<^sub>W_no_state
     state_eq state
@@ -260,6 +265,7 @@ definition conflicting_clss :: \<open>'st \<Rightarrow> 'v literal multiset mult
 definition abs_state :: "'st \<Rightarrow> ('v, 'v clause) ann_lit list \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option" where
   \<open>abs_state S = (trail S, init_clss S + conflicting_clss S, learned_clss S,
   conflicting S)\<close>
+
 end
 
 locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops =
@@ -573,6 +579,9 @@ lemma ocdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrac
     apply (frule backtrackH; simp; fail)
     done
   done
+
+
+subsubsection \<open>Pluging into normal CDCL\<close>
 
 lemma cdcl_bab_no_more_init_clss:
   \<open>cdcl_bab S S' \<Longrightarrow> init_clss S = init_clss S'\<close>
@@ -1608,6 +1617,8 @@ end
 
 end
 
+
+subsubsection \<open>OCDCL\<close>
 
 text \<open>This locales includes only the assumption we make on the weight function.\<close>
 locale ocdcl_weight =
@@ -2709,6 +2720,9 @@ proof -
     by auto
 qed
 
+
+subsubsection \<open>Calculus with simple Improve rule\<close>
+
 text \<open>To make sure that the paper version of the correct, we restrict the previous calculus to exactly
   the rules that are on paper.\<close>
 inductive pruning :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
@@ -3111,6 +3125,8 @@ corollary full_ocdcl\<^sub>w_stgy_no_conflicting_clause_from_init_state:
     OF full_ocdcl\<^sub>w_stgy_full_cdcl_bab_stgy[OF st] dist] dist
   by (auto simp: all_struct_init_state_distinct_iff)
 
+
+subsubsection \<open>Calculus with generalised Improve rule\<close>
 
 text \<open>Now a version with the more general improve rule:\<close>
 inductive ocdcl\<^sub>w_p :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
@@ -3849,6 +3865,7 @@ lemma \<rho>\<^sub>e_mono: \<open>A \<subseteq># B \<Longrightarrow> \<rho>\<^su
   apply auto
   done
 
+
 interpretation enc_weight_opt: conflict_driven_clause_learning\<^sub>W_optimal_weight where
     state_eq = state_eq and
     state = state and
@@ -4127,6 +4144,8 @@ qed
 
 end
 
+
+subsection \<open>Partial MAX-SAT\<close>
 
 definition weight_on_clauses where
   \<open>weight_on_clauses N\<^sub>S \<rho> I = (\<Sum>C \<in># (filter_mset (\<lambda>C. I \<Turnstile> C) N\<^sub>S). \<rho> C)\<close>
