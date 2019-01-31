@@ -4150,8 +4150,8 @@ subsection \<open>Partial MAX-SAT\<close>
 definition weight_on_clauses where
   \<open>weight_on_clauses N\<^sub>S \<rho> I = (\<Sum>C \<in># (filter_mset (\<lambda>C. I \<Turnstile> C) N\<^sub>S). \<rho> C)\<close>
 
-definition bitotal_over_m :: \<open>'v partial_interp \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
-\<open>bitotal_over_m I N \<longleftrightarrow>
+definition atms_exactly_m :: \<open>'v partial_interp \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
+\<open>atms_exactly_m I N \<longleftrightarrow>
   total_over_m I (set_mset N) \<and>
   atms_of_s I \<subseteq> atms_of_mm N\<close>
 
@@ -4163,9 +4163,9 @@ partial_max_sat:
   \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
   if
     \<open>I \<Turnstile>sm N\<^sub>H\<close> and
-    \<open>bitotal_over_m I ((N\<^sub>H + N\<^sub>S))\<close> and
+    \<open>atms_exactly_m I ((N\<^sub>H + N\<^sub>S))\<close> and
     \<open>consistent_interp I\<close> and
-    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
+    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> atms_exactly_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
       weight_on_clauses N\<^sub>S \<rho> I' \<le> weight_on_clauses N\<^sub>S \<rho> I\<close> |
 partial_max_unsat:
   \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> None\<close>
@@ -4178,21 +4178,21 @@ partial_min_sat:
   \<open>partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
   if
     \<open>I \<Turnstile>sm N\<^sub>H\<close> and
-    \<open>bitotal_over_m I (N\<^sub>H + N\<^sub>S)\<close> and
+    \<open>atms_exactly_m I (N\<^sub>H + N\<^sub>S)\<close> and
     \<open>consistent_interp I\<close> and
-    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
+    \<open>\<And>I'. consistent_interp I' \<Longrightarrow> atms_exactly_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
       weight_on_clauses N\<^sub>S \<rho> I' \<ge> weight_on_clauses N\<^sub>S \<rho> I\<close> |
 partial_min_unsat:
   \<open>partial_min_sat N\<^sub>H N\<^sub>S \<rho> None\<close>
   if
   \<open>unsatisfiable (set_mset N\<^sub>H)\<close>
 
-lemma bitotal_over_m_finite:
-  assumes \<open>bitotal_over_m I N\<close>
+lemma atms_exactly_m_finite:
+  assumes \<open>atms_exactly_m I N\<close>
   shows \<open>finite I\<close>
 proof -
   have \<open>I \<subseteq> Pos ` (atms_of_mm N) \<union> Neg ` atms_of_mm N\<close>
-    using assms by (force simp: total_over_m_def  bitotal_over_m_def lit_in_set_iff_atm
+    using assms by (force simp: total_over_m_def  atms_exactly_m_def lit_in_set_iff_atm
       atms_of_s_def)
   from finite_subset[OF this] show ?thesis by auto
 qed
@@ -4204,17 +4204,17 @@ lemma
   shows sat_partial_max_sat: \<open>\<exists>I. partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close> and
     sat_partial_min_sat: \<open>\<exists>I. partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
 proof -
-  let ?Is = \<open>{I. bitotal_over_m I ((N\<^sub>H + N\<^sub>S)) \<and>  consistent_interp I \<and>
+  let ?Is = \<open>{I. atms_exactly_m I ((N\<^sub>H + N\<^sub>S)) \<and>  consistent_interp I \<and>
      I \<Turnstile>sm N\<^sub>H}\<close>
-  let ?Is'= \<open>{I. bitotal_over_m I ((N\<^sub>H + N\<^sub>S)) \<and> consistent_interp I \<and>
+  let ?Is'= \<open>{I. atms_exactly_m I ((N\<^sub>H + N\<^sub>S)) \<and> consistent_interp I \<and>
     I \<Turnstile>sm N\<^sub>H \<and> finite I}\<close>
   have Is: \<open>?Is = ?Is'\<close>
-    by (auto simp: atms_of_s_def bitotal_over_m_finite)
+    by (auto simp: atms_of_s_def atms_exactly_m_finite)
   have \<open>?Is' \<subseteq> set_mset ` simple_clss (atms_of_mm (N\<^sub>H + N\<^sub>S))\<close>
     apply rule
     unfolding image_iff
     by (rule_tac x= \<open>mset_set x\<close> in bexI)
-      (auto simp: simple_clss_def bitotal_over_m_def image_iff
+      (auto simp: simple_clss_def atms_exactly_m_def image_iff
       atms_of_s_def atms_of_def distinct_mset_mset_set consistent_interp_tuatology_mset_set)
   from finite_subset[OF this] have fin: \<open>finite ?Is\<close> unfolding Is
     by (auto simp: simple_clss_finite)
@@ -4229,12 +4229,12 @@ proof -
       \<open>I \<Turnstile>sm N\<^sub>H\<close>
       \<open>consistent_interp I\<close>
       \<open>atms_of_s I \<subseteq> atms_of_mm N\<^sub>H\<close>
-      using assms unfolding satisfiable_def_min bitotal_over_m_def
+      using assms unfolding satisfiable_def_min atms_exactly_m_def
       by (auto simp: atms_of_s_def atm_of_def total_over_m_def)
     let ?I = \<open>I \<union> Pos ` {x \<in> atms_of_mm N\<^sub>S. x \<notin> atm_of ` I}\<close>
     have \<open>?I \<in> ?Is\<close>
       using I
-      by (auto simp: bitotal_over_m_def total_over_m_alt_def image_iff
+      by (auto simp: atms_exactly_m_def total_over_m_alt_def image_iff
         lit_in_set_iff_atm)
         (auto simp: consistent_interp_def uminus_lit_swap)
     then show ?thesis
@@ -4247,7 +4247,7 @@ proof -
     \<open>weight_on_clauses N\<^sub>S \<rho> I = \<rho>I\<close> and
     \<open>I \<in> ?Is\<close>
     by blast
-  then have H: \<open>consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
+  then have H: \<open>consistent_interp I' \<Longrightarrow> atms_exactly_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>sm N\<^sub>H \<Longrightarrow>
       weight_on_clauses N\<^sub>S \<rho> I' \<ge> weight_on_clauses N\<^sub>S \<rho> I\<close> for I'
     using Min_le[OF fin', of \<open>weight_on_clauses N\<^sub>S \<rho> I'\<close>]
     unfolding \<rho>I_def[symmetric]
@@ -4255,7 +4255,7 @@ proof -
   then have \<open>partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
     apply -
     by (rule partial_min_sat)
-      (use fin \<open>I \<in> ?Is\<close> in \<open>auto simp: bitotal_over_m_finite\<close>)
+      (use fin \<open>I \<in> ?Is\<close> in \<open>auto simp: atms_exactly_m_finite\<close>)
   then show \<open>\<exists>I. partial_min_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
     by fast
 
@@ -4268,7 +4268,7 @@ proof -
     \<open>weight_on_clauses N\<^sub>S \<rho> I = \<rho>I\<close> and
     \<open>I \<in> ?Is\<close>
     by blast
-  then have H: \<open>consistent_interp I' \<Longrightarrow> bitotal_over_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>m N\<^sub>H \<Longrightarrow>
+  then have H: \<open>consistent_interp I' \<Longrightarrow> atms_exactly_m I' (N\<^sub>H + N\<^sub>S) \<Longrightarrow> I' \<Turnstile>m N\<^sub>H \<Longrightarrow>
       weight_on_clauses N\<^sub>S \<rho> I' \<le> weight_on_clauses N\<^sub>S \<rho> I\<close> for I'
     using Max_ge[OF fin', of \<open>weight_on_clauses N\<^sub>S \<rho> I'\<close>]
     unfolding \<rho>I_def[symmetric]
@@ -4276,7 +4276,7 @@ proof -
   then have \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
     apply -
     by (rule partial_max_sat)
-      (use fin \<open>I \<in> ?Is\<close> in \<open>auto simp: bitotal_over_m_finite
+      (use fin \<open>I \<in> ?Is\<close> in \<open>auto simp: atms_exactly_m_finite
         consistent_interp_tuatology_mset_set\<close>)
   then show \<open>\<exists>I. partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
     by fast
@@ -4288,10 +4288,10 @@ weight_sat:
   \<open>weight_sat N \<rho> (Some I)\<close>
   if
     \<open>set_mset I \<Turnstile>sm N\<close> and
-    \<open>bitotal_over_m (set_mset I) N\<close> and
+    \<open>atms_exactly_m (set_mset I) N\<close> and
     \<open>consistent_interp (set_mset I)\<close> and
     \<open>distinct_mset I\<close>
-    \<open>\<And>I'. consistent_interp (set_mset I') \<Longrightarrow> bitotal_over_m (set_mset I') N \<Longrightarrow> distinct_mset I' \<Longrightarrow>
+    \<open>\<And>I'. consistent_interp (set_mset I') \<Longrightarrow> atms_exactly_m (set_mset I') N \<Longrightarrow> distinct_mset I' \<Longrightarrow>
       set_mset I' \<Turnstile>sm N \<Longrightarrow> \<rho> I' \<ge> \<rho> I\<close> |
 partial_max_unsat:
   \<open>weight_sat N \<rho> None\<close>
@@ -4320,10 +4320,10 @@ proof -
   from w
   have
     ent: \<open>set_mset I \<Turnstile>sm N\<close> and
-    bi: \<open>bitotal_over_m (set_mset I) N\<close> and
+    bi: \<open>atms_exactly_m (set_mset I) N\<close> and
     cons: \<open>consistent_interp (set_mset I)\<close> and
     dist: \<open>distinct_mset I\<close> and
-    weight: \<open>\<And>I'. consistent_interp (set_mset I') \<Longrightarrow> bitotal_over_m (set_mset I') N \<Longrightarrow>
+    weight: \<open>\<And>I'. consistent_interp (set_mset I') \<Longrightarrow> atms_exactly_m (set_mset I') N \<Longrightarrow>
       distinct_mset I' \<Longrightarrow> set_mset I' \<Turnstile>sm N \<Longrightarrow> \<rho>' I' \<ge> \<rho>' I\<close>
     unfolding N_def[symmetric]
     by (auto simp: weight_sat.simps)
@@ -4339,9 +4339,9 @@ proof -
   have [simp]: \<open>atms_of_ms ((\<lambda>C. add_mset (Pos (additional_atm C)) C) ` set_mset N\<^sub>S) =
     additional_atm ` set_mset N\<^sub>S \<union> atms_of_ms (set_mset N\<^sub>S)\<close>
     by (auto simp: atms_of_ms_def)
-  have bi': \<open>bitotal_over_m ?I (N\<^sub>H + N\<^sub>S)\<close>
+  have bi': \<open>atms_exactly_m ?I (N\<^sub>H + N\<^sub>S)\<close>
     using bi
-    by (auto simp: bitotal_over_m_def total_over_m_def total_over_set_def
+    by (auto simp: atms_exactly_m_def total_over_m_def total_over_set_def
       atms_of_s_def N_def)
   have cons': \<open>consistent_interp ?I\<close>
     using cons by (auto simp: consistent_interp_def)
@@ -4355,11 +4355,11 @@ proof -
     \<union> Neg ` additional_atm ` {C \<in> set_mset N\<^sub>S. set_mset I \<Turnstile> C}\<close>
   have \<open>consistent_interp ?I\<close>
     using cons add by (auto simp: consistent_interp_def
-      bitotal_over_m_def uminus_lit_swap
+      atms_exactly_m_def uminus_lit_swap
       dest: add)
-  moreover have \<open>bitotal_over_m ?I N\<close>
+  moreover have \<open>atms_exactly_m ?I N\<close>
     using bi
-    by (auto simp: N_def bitotal_over_m_def total_over_m_def
+    by (auto simp: N_def atms_exactly_m_def total_over_m_def
       total_over_set_def image_image)
   moreover have \<open>?I \<Turnstile>sm N\<close>
     using ent apply (auto simp: N_def true_clss_def image_image
@@ -4370,7 +4370,7 @@ proof -
       apply (smt atm_of_lit_in_atms_of image_iff insert_iff mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
       done
   moreover have \<open>set_mset (mset_set ?I) = ?I\<close> and fin: \<open>finite ?I\<close>
-    by (auto simp: bitotal_over_m_finite)
+    by (auto simp: atms_exactly_m_finite)
   moreover have \<open>distinct_mset (mset_set ?I)\<close>
     by (auto simp: distinct_mset_mset_set)
   ultimately have \<open>\<rho>' (mset_set ?I) \<ge> \<rho>' I\<close>
@@ -4388,7 +4388,7 @@ proof -
       \<le> weight_on_clauses N\<^sub>S \<rho> {L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)}\<close>
     if
       cons: \<open>consistent_interp I'\<close> and
-      bit: \<open>bitotal_over_m I' (N\<^sub>H + N\<^sub>S)\<close> and
+      bit: \<open>atms_exactly_m I' (N\<^sub>H + N\<^sub>S)\<close> and
       I': \<open>I' \<Turnstile>sm N\<^sub>H\<close>
     for I'
   proof -
@@ -4396,17 +4396,17 @@ proof -
       \<union> Neg ` additional_atm ` {C \<in> set_mset N\<^sub>S. I' \<Turnstile> C}\<close>
     have \<open>consistent_interp ?I'\<close>
       using cons bit add by (auto simp: consistent_interp_def
-        bitotal_over_m_def uminus_lit_swap
+        atms_exactly_m_def uminus_lit_swap
 	dest: add)
-    moreover have \<open>bitotal_over_m ?I' N\<close>
+    moreover have \<open>atms_exactly_m ?I' N\<close>
       using bit
-      by (auto simp: N_def bitotal_over_m_def total_over_m_def
+      by (auto simp: N_def atms_exactly_m_def total_over_m_def
         total_over_set_def image_image)
     moreover have \<open>?I' \<Turnstile>sm N\<close>
       using I' by (auto simp: N_def true_clss_def image_image
         dest!: multi_member_split)
     moreover have \<open>set_mset (mset_set ?I') = ?I'\<close> and fin: \<open>finite ?I'\<close>
-      using bit by (auto simp: bitotal_over_m_finite)
+      using bit by (auto simp: atms_exactly_m_finite)
     moreover have \<open>distinct_mset (mset_set ?I')\<close>
       by (auto simp: distinct_mset_mset_set)
     ultimately have I'_I: \<open>\<rho>' (mset_set ?I') \<ge> \<rho>' I\<close>
@@ -4447,7 +4447,7 @@ proof -
 	apply ((use inj in auto; fail)+)[2]
 	apply (rule ordered_comm_monoid_add_class.sum_mono2)
 	using that add by (auto dest:  simp: N_def
-	  bitotal_over_m_def)
+	  atms_exactly_m_def)
     then have \<open>sum_mset (\<rho> `# filter_mset (Not \<circ> (\<Turnstile>) I') N\<^sub>S) \<ge> \<rho>' (mset_set ?I')\<close>
       using fin unfolding cl_of_def[symmetric] \<rho>'_def
       by (auto simp: \<rho>'_def
@@ -4469,15 +4469,15 @@ proof -
     done
 qed
 
-lemma bitotal_over_m_alt_def:
-  \<open>bitotal_over_m (set_mset y) N \<longleftrightarrow> atms_of y \<subseteq> atms_of_mm N \<and>
+lemma atms_exactly_m_alt_def:
+  \<open>atms_exactly_m (set_mset y) N \<longleftrightarrow> atms_of y \<subseteq> atms_of_mm N \<and>
         total_over_m (set_mset y) (set_mset N)\<close>
-  by (auto simp: bitotal_over_m_def atms_of_s_def atms_of_def
+  by (auto simp: atms_exactly_m_def atms_of_s_def atms_of_def
     atms_of_ms_def dest!: multi_member_split)
 
-lemma bitotal_over_m_alt_def2:
-  \<open>bitotal_over_m (set_mset y) N \<longleftrightarrow> atms_of y = atms_of_mm N\<close>
-  by (metis atms_of_def atms_of_s_def bitotal_over_m_alt_def equalityI order_refl total_over_m_def
+lemma atms_exactly_m_alt_def2:
+  \<open>atms_exactly_m (set_mset y) N \<longleftrightarrow> atms_of y = atms_of_mm N\<close>
+  by (metis atms_of_def atms_of_s_def atms_exactly_m_alt_def equalityI order_refl total_over_m_def
     total_over_set_alt_def)
 
 lemma (in optimal_encoding) full_cdcl_bab_stgy_weight_sat:
@@ -4491,11 +4491,11 @@ lemma (in optimal_encoding) full_cdcl_bab_stgy_weight_sat:
     apply (clarsimp simp only:)
     apply (rule weight_sat.intros(1))
     subgoal by auto
-    subgoal by (auto simp: bitotal_over_m_alt_def)
+    subgoal by (auto simp: atms_exactly_m_alt_def)
     subgoal by auto
     subgoal by auto
     subgoal for J I'
-      using p(5)[of I'] by (auto simp: bitotal_over_m_alt_def2)
+      using p(5)[of I'] by (auto simp: atms_exactly_m_alt_def2)
     done
   done
 
