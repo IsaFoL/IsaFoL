@@ -2,7 +2,6 @@ theory CDCL_W_Optimal_Model
 imports CDCL_W_Abstract_State "HOL-Library.Extended_Nat" "../lib/Explorer"
 begin
 
-
 section \<open>CDCL Extensions\<close>
 
 text \<open>
@@ -328,6 +327,7 @@ sublocale conflict_driven_clause_learning\<^sub>W
   unfolding additional_info'_def additional_info_def by (auto simp: state_prop')
 
 declare reduce_trail_to_skip_beginning[simp]
+
 
 
 lemma state_eq_weight[state_simp, simp]: \<open>S \<sim> T \<Longrightarrow> weight S = weight T\<close>
@@ -4034,7 +4034,8 @@ proof -
     opt: \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm ?N \<Longrightarrow>
       set_mset I \<Turnstile>sm ?N \<Longrightarrow> \<rho>\<^sub>e I \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
     for I
-    using enc_weight_opt.full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of \<open>preprocessed_clss N\<close> T, OF st]
+    using enc_weight_opt.full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of
+      \<open>preprocessed_clss N\<close> T, OF st]
     by fast+
 
   show \<open>unsatisfiable (set_mset N)\<close> if \<open>weight T = None\<close>
@@ -4108,7 +4109,7 @@ proof -
           subgoal by (auto simp: postp_def)
           done
         done
-       then have \<open>\<rho> (mset_set ?K) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
+      then have \<open>\<rho> (mset_set ?K) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
          using Some by auto
     }
     moreover {
