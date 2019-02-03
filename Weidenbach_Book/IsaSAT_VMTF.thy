@@ -836,6 +836,22 @@ lemma get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail:
         dest: control_stack_level_control_stack)
   done
 
+lemma get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail_CS:
+   \<open>(uncurry get_pos_of_level_in_trail_imp, uncurry get_pos_of_level_in_trail) \<in>
+    [get_pos_of_level_in_trail_pre]\<^sub>f trail_pol \<A> \<times>\<^sub>f nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+  apply (intro nres_relI frefI)
+  unfolding get_pos_of_level_in_trail_imp_def uncurry_def get_pos_of_level_in_trail_def
+    get_pos_of_level_in_trail_pre_def
+  apply clarify
+  apply (rule ASSERT_leI)
+  subgoal
+    by (auto simp: trail_pol_def dest!: control_stack_length_count_dec)
+  subgoal for a aa ab ac ad b ba ae bb
+    by (auto simp: trail_pol_def control_stack_length_count_dec in_set_take_conv_nth
+        intro!: control_stack_le_length_M control_stack_is_decided
+        dest: control_stack_level_control_stack)
+  done
+
 sepref_definition (in -) get_pos_of_level_in_trail_imp_fast_code
   is \<open>uncurry get_pos_of_level_in_trail_imp\<close>
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>

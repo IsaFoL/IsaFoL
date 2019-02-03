@@ -302,6 +302,7 @@ definition remove_one_annot_true_clause_one_imp_wl_D
 where
 \<open>remove_one_annot_true_clause_one_imp_wl_D = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
       ASSERT(remove_one_annot_true_clause_one_imp_wl_D_pre i (M, N, D, NE, UE, Q, W));
+      ASSERT(is_proped ((rev M)!i));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
       if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
       else do {
@@ -521,6 +522,7 @@ proof -
       subgoal by auto
       subgoal by auto
       subgoal by auto
+      subgoal by auto
       subgoal for x x' x1 x2 x1a x2a Ma Maa xa x'a x1b x2b x1c
        x2c x1d x2d x1e x2e
         by (rule res)
@@ -537,8 +539,11 @@ definition remove_one_annot_true_clause_imp_wl_D_inv where
 definition remove_one_annot_true_clause_imp_wl_D :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp_wl_D = (\<lambda>S. do {
+    k \<leftarrow> SPEC(\<lambda>k. (\<exists>M1 M2 K. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_wl S)) \<and>
+        count_decided M1 = 0 \<and> k = length M1)
+      \<or> (count_decided (get_trail_wl S) = 0 \<and> k = length (get_trail_wl S)));
     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_D_inv S\<^esup>
-      (\<lambda>(i, S). i < length (get_trail_wl S) \<and> \<not>is_decided (get_trail_wl S!i))
+      (\<lambda>(i, S). i < k)
       (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl_D i S)
       (0, S);
     RETURN S
@@ -559,7 +564,8 @@ proof -
         literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<close>]
       remove_one_annot_true_clause_one_imp_wl_D_remove_one_annot_true_clause_one_imp_wl[THEN fref_to_Down_curry])
     subgoal by auto
-    subgoal for S S' T T'
+    subgoal by auto
+    subgoal for S S' k k' T T'
       by (cases T') (auto simp: remove_one_annot_true_clause_imp_wl_D_inv_def)
     subgoal by auto
     subgoal by auto

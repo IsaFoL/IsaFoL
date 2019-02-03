@@ -917,6 +917,7 @@ definition remove_one_annot_true_clause_one_imp_wl
 where
 \<open>remove_one_annot_true_clause_one_imp_wl = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
       ASSERT(remove_one_annot_true_clause_one_imp_wl_pre i (M, N, D, NE, UE, Q, W));
+      ASSERT(is_proped (rev M ! i));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
       if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
       else do {
@@ -954,6 +955,7 @@ proof -
     subgoal unfolding remove_one_annot_true_clause_one_imp_wl_pre_def by force
     subgoal by (simp add: state_wl_l_def)
     subgoal by (simp add: state_wl_l_def)
+    subgoal by (simp add: state_wl_l_def)
     subgoal by simp
     subgoal by (simp add: state_wl_l_def)
     subgoal by (simp add: state_wl_l_def)
@@ -976,8 +978,11 @@ definition remove_one_annot_true_clause_imp_wl_inv where
 definition remove_one_annot_true_clause_imp_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_st_wl) nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp_wl = (\<lambda>S. do {
+    k \<leftarrow> SPEC(\<lambda>k. (\<exists>M1 M2 K. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_wl S)) \<and>
+        count_decided M1 = 0 \<and> k = length M1)
+      \<or> (count_decided (get_trail_wl S) = 0 \<and> k = length (get_trail_wl S)));
     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_inv S\<^esup>
-      (\<lambda>(i, S). i < length (get_trail_wl S) \<and> \<not>is_decided (get_trail_wl S!i))
+      (\<lambda>(i, S). i < k)
       (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl i S)
       (0, S);
     RETURN S
@@ -996,14 +1001,15 @@ proof -
       WHILEIT_refine[where
          R = \<open>nat_rel \<times>\<^sub>f {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching'' S}\<close>]
       remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
+    subgoal by force
     subgoal by auto
-    subgoal for x y xa x'
+    subgoal for x y k ka xa x'
       unfolding remove_one_annot_true_clause_imp_wl_inv_def
       apply (subst case_prod_beta)
       apply (rule_tac x=\<open>y\<close> in exI)
       apply (rule_tac x=\<open>snd x'\<close> in exI)
-      apply (subst (asm)(8) surjective_pairing)
-      apply (subst (asm)(13) surjective_pairing)
+      apply (subst (asm)(17) surjective_pairing)
+      apply (subst (asm)(22) surjective_pairing)
       unfolding prod_rel_iff by auto
     subgoal by auto
     subgoal by auto

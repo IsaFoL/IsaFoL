@@ -1741,6 +1741,7 @@ definition remove_one_annot_true_clause_one_imp
 where
 \<open>remove_one_annot_true_clause_one_imp = (\<lambda>i (M, N, D, NE, UE, Q, W). do {
       ASSERT(remove_one_annot_true_clause_one_imp_pre i (M, N, D, NE, UE, Q, W));
+      ASSERT(is_proped ((rev M)!i));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
       if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
       else do {
@@ -1758,8 +1759,11 @@ where
 definition remove_one_annot_true_clause_imp :: \<open>'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp = (\<lambda>S. do {
+    k \<leftarrow> SPEC(\<lambda>k. (\<exists>M1 M2 K. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_l S)) \<and>
+        count_decided M1 = 0 \<and> k = length M1)
+      \<or> (count_decided (get_trail_l S) = 0 \<and> k = length (get_trail_l S)));
     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_inv S\<^esup>
-      (\<lambda>(i, S). i < length (get_trail_l S) \<and> \<not>is_decided (get_trail_l S!i))
+      (\<lambda>(i, S). i < k)
       (\<lambda>(i, S). remove_one_annot_true_clause_one_imp i S)
       (0, S);
     RETURN S
@@ -2117,8 +2121,9 @@ qed
 lemma remove_one_annot_true_clause_one_imp_spec:
   assumes
     I: \<open>remove_one_annot_true_clause_imp_inv S iT\<close> and
-    cond: \<open>case iT of (i, S) \<Rightarrow> i < length (get_trail_l S) \<and> \<not> is_decided (get_trail_l S ! i)\<close> and
-    iT: \<open>iT = (i, T)\<close>
+    cond: \<open>case iT of (i, S) \<Rightarrow> i < length (get_trail_l S)\<close> and
+    iT: \<open>iT = (i, T)\<close> and
+    proped: \<open>is_proped (rev (get_trail_l S) ! i)\<close>
   shows \<open>remove_one_annot_true_clause_one_imp i T
          \<le> SPEC  (\<lambda>s'. remove_one_annot_true_clause_imp_inv S s' \<and>
                 (s', iT) \<in> measure (\<lambda>(i, _). length (get_trail_l S) - i))\<close>
@@ -2327,6 +2332,12 @@ proof -
       extract_and_remove_def
     apply (refine_vcg )
     subgoal using rem_one_annot_i_T unfolding iT T by simp
+    subgoal using proped I length_ST
+      rtranclp_remove_one_annot_true_clause_map_is_decided_trail[of S T, 
+        THEN arg_cong, of \<open>\<lambda>xs. (rev xs) ! i\<close>]
+      unfolding iT T remove_one_annot_true_clause_imp_inv_def
+        remove_one_annot_true_clause_one_imp_pre_def
+      by (auto simp add: All_less_Suc rev_map is_decided_no_proped_iff)
     subgoal using I length_ST unfolding iT T remove_one_annot_true_clause_imp_inv_def
       remove_one_annot_true_clause_one_imp_pre_def
       by (auto simp add: All_less_Suc)
@@ -2338,6 +2349,17 @@ proof -
       done
     done
 qed
+
+lemma remove_one_annot_true_clause_count_dec: \<open>remove_one_annot_true_clause S b \<Longrightarrow>
+   count_decided (get_trail_l S) = count_decided (get_trail_l b)\<close>
+  by (auto simp: remove_one_annot_true_clause.simps)
+
+lemma rtranclp_remove_one_annot_true_clause_count_dec:
+  \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S b \<Longrightarrow>
+    count_decided (get_trail_l S) = count_decided (get_trail_l b)\<close>
+  by (induction rule: rtranclp_induct)
+    (auto simp: remove_one_annot_true_clause_count_dec)
+
 
 lemma remove_one_annot_true_clause_imp_spec:
   assumes
@@ -2354,17 +2376,11 @@ lemma remove_one_annot_true_clause_imp_spec:
   subgoal by auto
   subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by blast
   subgoal unfolding remove_one_annot_true_clause_imp_inv_def by auto
+  subgoal
+    by (auto dest!: get_all_ann_decomposition_exists_prepend
+      simp: count_decided_0_iff rev_nth is_decided_no_proped_iff)
+  subgoal unfolding remove_one_annot_true_clause_imp_inv_def by auto
   done
-
-lemma remove_one_annot_true_clause_count_dec: \<open>remove_one_annot_true_clause S b \<Longrightarrow>
-   count_decided (get_trail_l S) = count_decided (get_trail_l b)\<close>
-  by (auto simp: remove_one_annot_true_clause.simps)
-
-lemma rtranclp_remove_one_annot_true_clause_count_dec:
-  \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S b \<Longrightarrow>
-    count_decided (get_trail_l S) = count_decided (get_trail_l b)\<close>
-  by (induction rule: rtranclp_induct)
-    (auto simp: remove_one_annot_true_clause_count_dec)
 
 lemma remove_one_annot_true_clause_imp_spec_lev0:
   assumes
@@ -2397,14 +2413,19 @@ proof -
     subgoal by auto
     subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by blast
     subgoal unfolding remove_one_annot_true_clause_imp_inv_def by auto
+    subgoal using assms by (auto simp: count_decided_0_iff is_decided_no_proped_iff
+      rev_nth)
+    subgoal
+      using assms(6) unfolding remove_one_annot_true_clause_imp_inv_def
+      by (auto dest: H K)
     subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def
       by (auto simp: rtranclp_remove_one_annot_true_clause_count_dec)
-    subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def
-      by (auto simp: rtranclp_remove_one_annot_true_clause_count_dec
-      dest!: H K)
-    subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def
-      by (auto simp: rtranclp_remove_one_annot_true_clause_count_dec
-      dest!: H K)
+    subgoal
+      using assms(6) unfolding remove_one_annot_true_clause_imp_inv_def
+      by (auto dest: H K)
+    subgoal
+      using assms(6) unfolding remove_one_annot_true_clause_imp_inv_def
+      by (auto dest: H K)
   done
 qed
 

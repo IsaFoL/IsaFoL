@@ -471,14 +471,9 @@ proof -
     unfolding restart_abs_wl_D_pre_def restart_abs_wl_pre_def restart_abs_l_pre_def
       restart_prog_pre_def
     by (auto simp: twl_st_l_def state_wl_l_def out_learned_def)
-(*  have [dest]: \<open>find_decomp_w_ns_pre ((a, lvl), (ae, af, ag, ah, b), ba) \<Longrightarrow>
-       (Decided K # x1, M2) \<in> set (get_all_ann_decomposition a) \<Longrightarrow>
-        no_dup x1\<close>
-    for a lvl ae ab ag ah b ba x1 M2 af K
-    unfolding find_decomp_w_ns_pre_def prod.case
-    by (auto dest!: distinct_get_all_ann_decomposition_no_dup no_dup_appendD1)*)
   have [refine0]:
-    \<open>find_local_restart_target_level_int (get_trail_wl_heur S) (get_vmtf_heur S) \<le> \<Down> {(i, b). b = (i = count_decided (get_trail_wl T)) \<and>
+    \<open>find_local_restart_target_level_int (get_trail_wl_heur S) (get_vmtf_heur S) \<le>
+      \<Down> {(i, b). b = (i = count_decided (get_trail_wl T)) \<and>
           i \<le> count_decided (get_trail_wl T)} (SPEC (\<lambda>_. True))\<close>
     if \<open>(S, T) \<in> twl_st_heur\<close> for S T
     apply (rule find_local_restart_target_level_int_find_local_restart_target_level[THEN fref_to_Down_curry,
@@ -1722,11 +1717,11 @@ definition cdcl_twl_full_restart_wl_D_GC_prog_heur_post :: \<open>twl_st_wl_heur
   (\<exists>S' T'. (S, S') \<in> twl_st_heur_restart \<and> (T, T') \<in> twl_st_heur_restart \<and>
     cdcl_twl_full_restart_wl_D_GC_prog_post S' T')\<close>
 
-definition remove_one_annot_true_clause_imp_wl_D_inv
+definition remove_one_annot_true_clause_imp_wl_D_heur_inv
   :: \<open>twl_st_wl_heur \<Rightarrow> (nat \<times> twl_st_wl_heur) \<Rightarrow> bool\<close> where
-  \<open>remove_one_annot_true_clause_imp_wl_D_inv S = (\<lambda>(i, T).
+  \<open>remove_one_annot_true_clause_imp_wl_D_heur_inv S = (\<lambda>(i, T).
     (\<exists>S' T'. (S, S') \<in> twl_st_heur_restart \<and> (T, T') \<in> twl_st_heur_restart \<and>
-     remove_one_annot_true_clause_imp_wl_inv S' (i, T') \<and>
+     remove_one_annot_true_clause_imp_wl_D_inv S' (i, T') \<and>
      literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T') T'))\<close>
 
 definition remove_one_annot_true_clause_imp_wl_D_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -1734,13 +1729,205 @@ where
 \<open>remove_one_annot_true_clause_imp_wl_D_heur = (\<lambda>S. do {
     k \<leftarrow> (if count_decided_st_heur S = 0
       then RETURN (isa_length_trail (get_trail_wl_heur S))
-      else get_pos_of_level_in_trail_imp (get_trail_wl_heur S) 1);
-    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_D_inv S\<^esup>
+      else get_pos_of_level_in_trail_imp (get_trail_wl_heur S) 0);
+    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_D_heur_inv S\<^esup>
       (\<lambda>(i, S). i < k)
       (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl_D_heur i S)
       (0, S);
     RETURN S
   })\<close>
+
+
+lemma get_pos_of_level_in_trail_le_decomp:
+  assumes 
+    \<open>(S, T) \<in> twl_st_heur_restart\<close>
+  shows \<open>get_pos_of_level_in_trail (get_trail_wl T) 0
+         \<le> SPEC
+            (\<lambda>k. \<exists>M1. (\<exists>M2 K.
+                          (Decided K # M1, M2)
+                          \<in> set (get_all_ann_decomposition (get_trail_wl T))) \<and>
+                      count_decided M1 = 0 \<and> k = length M1)\<close>
+  unfolding get_pos_of_level_in_trail_def
+proof (rule SPEC_rule)
+  fix x
+  assume H: \<open>x < length (get_trail_wl T) \<and>
+        is_decided (rev (get_trail_wl T) ! x) \<and>
+        get_level (get_trail_wl T) (lit_of (rev (get_trail_wl T) ! x)) = 0 + 1\<close>
+  let ?M1 = \<open>rev (take x (rev (get_trail_wl T)))\<close>
+  let ?K =  \<open>Decided ((lit_of(rev (get_trail_wl T) ! x)))\<close>
+  let ?M2 = \<open>rev (drop  (Suc x) (rev (get_trail_wl T)))\<close>
+  have T: \<open>(get_trail_wl T) = ?M2 @ ?K # ?M1\<close> and
+     K: \<open>Decided (lit_of ?K) = ?K\<close>
+    apply (subst append_take_drop_id[symmetric, of _ \<open>length (get_trail_wl T) - Suc x\<close>])
+    apply (subst Cons_nth_drop_Suc[symmetric])
+    using H
+    apply (auto simp: rev_take rev_drop rev_nth)
+    apply (cases \<open>rev (get_trail_wl T) ! x\<close>)
+    apply (auto simp: rev_take rev_drop rev_nth)
+    done
+  have n_d: \<open>no_dup (get_trail_wl T)\<close>
+    using assms(1)
+    by (auto simp: twl_st_heur_restart_def)
+  obtain M2 where
+    \<open>(?K # ?M1, M2) \<in> set (get_all_ann_decomposition (get_trail_wl T))\<close>
+    using get_all_ann_decomposition_ex[of \<open>lit_of ?K\<close> ?M1 ?M2]
+    apply (subst (asm) K)
+    apply (subst (asm) K)
+    apply (subst (asm) T[symmetric])
+    by blast
+  moreover have \<open>count_decided ?M1 = 0\<close>
+    using n_d H
+    by (subst (asm)(1) T, subst (asm)(11)T, subst T) auto
+  moreover have \<open>x = length ?M1\<close>
+    using n_d H by auto
+  ultimately show \<open>\<exists>M1. (\<exists>M2 K. (Decided K # M1, M2)
+                 \<in> set (get_all_ann_decomposition (get_trail_wl T))) \<and>
+             count_decided M1 = 0 \<and> x = length M1 \<close>
+    by blast
+qed
+
+lemma twl_st_heur_restart_isa_length_trail_get_trail_wl:
+  \<open>(S, T) \<in> twl_st_heur_restart \<Longrightarrow> isa_length_trail (get_trail_wl_heur S) = length (get_trail_wl T)\<close>
+  unfolding isa_length_trail_def twl_st_heur_restart_def trail_pol_def
+  by (cases S) (auto dest: ann_lits_split_reasons_map_lit_of)
+
+lemma twl_st_heur_restart_count_decided_st_alt_def:
+  fixes S :: twl_st_wl_heur
+  shows \<open>(S, T) \<in> twl_st_heur_restart \<Longrightarrow> count_decided_st_heur S = count_decided (get_trail_wl T)\<close>
+  unfolding count_decided_st_def twl_st_heur_restart_def trail_pol_def
+  by (cases S) (auto simp: count_decided_st_heur_def)
+
+lemma twl_st_heur_restart_trailD:
+  \<open>(S, T) \<in> twl_st_heur_restart \<Longrightarrow>
+    (get_trail_wl_heur S, get_trail_wl T)
+    \<in> trail_pol (all_init_atms (get_clauses_wl T) (get_unit_init_clss_wl T))\<close>
+  by (auto simp: twl_st_heur_restart_def)
+
+lemma no_dup_nth_proped_dec_notin:
+  \<open>no_dup M \<Longrightarrow> k < length M \<Longrightarrow> M ! k = Propagated L C \<Longrightarrow> Decided L \<notin> set M\<close>
+  apply (auto dest!: split_list simp: nth_append nth_Cons defined_lit_def in_set_conv_nth
+    split: if_splits nat.splits)
+  by (metis no_dup_no_propa_and_dec nth_mem)
+
+lemma get_literal_and_reason:
+  assumes 
+    \<open>((k, S), k', T) \<in> nat_rel \<times>\<^sub>f twl_st_heur_restart\<close> and
+    \<open>remove_one_annot_true_clause_one_imp_wl_D_pre k' T\<close> and
+    proped: \<open>is_proped (rev (fst T) ! k')\<close>
+  shows \<open>do {
+           L \<leftarrow> isa_trail_nth (fst S) k;
+           C \<leftarrow> get_the_propagation_reason_pol (fst S) L;
+           RETURN (L, C)
+         } \<le> \<Down> {((L, C), L', C'). L = L' \<and> C' = the C \<and> C \<noteq> None}
+              (SPEC (\<lambda>p. rev (fst T) ! k' = Propagated (fst p) (snd p)))\<close>
+proof -
+  have n_d: \<open>no_dup (get_trail_wl T)\<close>
+    using assms by (auto simp: twl_st_heur_restart_def)
+  from no_dup_nth_proped_dec_notin[OF this, of \<open>length (get_trail_wl T) - Suc k'\<close>]
+  have dec_notin: \<open>Decided (lit_of (rev (fst T) ! k')) \<notin> set (fst T)\<close>
+    using proped assms(2) by (cases T; cases \<open>rev (get_trail_wl T) ! k'\<close>)
+     (auto simp: twl_st_heur_restart_def
+      remove_one_annot_true_clause_one_imp_wl_D_pre_def state_wl_l_def
+      remove_one_annot_true_clause_one_imp_wl_pre_def twl_st_l_def
+      remove_one_annot_true_clause_one_imp_pre_def rev_nth
+      dest: no_dup_nth_proped_dec_notin)
+  have k': \<open>k' < length (get_trail_wl T)\<close> and [simp]: \<open>fst T = get_trail_wl T\<close>
+    using proped assms(2)
+    by (cases T; auto simp: twl_st_heur_restart_def
+      remove_one_annot_true_clause_one_imp_wl_D_pre_def state_wl_l_def
+      remove_one_annot_true_clause_one_imp_wl_pre_def twl_st_l_def
+      remove_one_annot_true_clause_one_imp_pre_def; fail)+
+  define k'' where \<open>k'' \<equiv> length (get_trail_wl T) - Suc k'\<close>
+  have k'': \<open>k'' < length (get_trail_wl T)\<close>
+    using k' by (auto simp: k''_def)
+  have 1: \<open>(SPEC (\<lambda>p. rev (fst T) ! k' = Propagated (fst p) (snd p))) =
+    do {
+      L \<leftarrow> RETURN (rev_trail_nth (fst T) k');
+      C \<leftarrow> (get_the_propagation_reason (fst T) L);
+      RETURN (L, the C)
+    }\<close>
+    using proped dec_notin k' nth_mem[OF k''] no_dup_same_annotD[OF n_d]
+    by (cases \<open>rev (get_trail_wl T) ! k'\<close>)
+      (fastforce simp: RETURN_def RES_RES_RETURN_RES rev_trail_nth_def
+          get_the_propagation_reason_def lits_of_def rev_nth
+        simp flip: k''_def
+        dest: split_list
+        intro!: exI[of _ \<open>Some (mark_of (rev (fst T) ! k'))\<close>])+
+
+  show ?thesis
+    supply RETURN_as_SPEC_refine[refine2 del]
+    apply (subst 1)
+    apply (refine_rcg
+      isa_trail_nth_rev_trail_nth[THEN fref_to_Down_curry, unfolded comp_def,
+        of _ _ _ _ \<open>(all_init_atms (get_clauses_wl T) (get_unit_init_clss_wl T))\<close>]
+      get_the_propagation_reason_pol[THEN fref_to_Down_curry, unfolded comp_def,
+        of \<open>(all_init_atms (get_clauses_wl T) (get_unit_init_clss_wl T))\<close>])
+    subgoal using k' by auto
+    subgoal using assms by (cases S; auto dest: twl_st_heur_restart_trailD)
+    subgoal apply auto
+    oops
+    (*
+      sorry
+    subgoal using assms by (cases S; auto dest: twl_st_heur_restart_trailD)
+    subgoal apply auto
+      sorry
+    done
+qed
+
+
+lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D:
+  \<open>(uncurry remove_one_annot_true_clause_one_imp_wl_D_heur, 
+    uncurry remove_one_annot_true_clause_one_imp_wl_D) \<in>
+    nat_rel \<times>\<^sub>f twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>nat_rel \<times>\<^sub>f twl_st_heur_restart\<rangle>nres_rel\<close>
+  unfolding remove_one_annot_true_clause_one_imp_wl_D_heur_def
+    remove_one_annot_true_clause_one_imp_wl_D_def case_prod_beta uncurry_def
+  apply (intro frefI nres_relI)
+  apply (refine_rcg get_literal_and_reason)
+  subgoal for x y by auto
+  subgoal for x y by auto
+    oops
+  
+lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D:
+  \<open>(remove_one_annot_true_clause_imp_wl_D_heur, remove_one_annot_true_clause_imp_wl_D) \<in>
+    twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
+  unfolding remove_one_annot_true_clause_imp_wl_D_heur_def
+    remove_one_annot_true_clause_imp_wl_D_def
+  apply (intro frefI nres_relI)
+  apply (refine_vcg WHILEIT_refine[where R = \<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> twl_st_heur_restart \<and> 
+     literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T) T}\<close>])
+  subgoal by (auto simp: twl_st_heur_restart_count_decided_st_alt_def
+    twl_st_heur_restart_isa_length_trail_get_trail_wl)
+  subgoal for S T
+    apply (rule order_trans)
+      apply (rule get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail_CS[THEN fref_to_Down_curry,
+        of \<open>get_trail_wl T\<close> \<open>0::nat\<close> \<open>get_trail_wl_heur S\<close> _ \<open>all_init_atms_st T\<close>])
+    apply (auto simp: get_pos_of_level_in_trail_pre_def twl_st_heur_restart_count_decided_st_alt_def
+      dest: twl_st_heur_restart_trailD
+      intro!: get_pos_of_level_in_trail_le_decomp)
+    done
+  subgoal
+    by (auto simp: remove_one_annot_true_clause_imp_wl_D_inv_def)
+  subgoal for x y k ka xa x'
+    unfolding remove_one_annot_true_clause_imp_wl_D_heur_inv_def
+    apply (subst case_prod_beta)
+    apply (subst (asm)(11) surjective_pairing)
+    apply (subst (asm)(9) surjective_pairing)
+    unfolding prod_rel_iff
+    apply (rule_tac x=y in exI)
+    apply (rule_tac x= \<open>snd x'\<close> in exI)
+    apply auto
+    done
+  subgoal by auto
+  subgoal sorry
+  subgoal by auto
+  done
+
+
+    *)
+
+
+
+
 
 definition cdcl_twl_full_restart_wl_D_GC_heur_prog where
 \<open>cdcl_twl_full_restart_wl_D_GC_heur_prog S = do {
@@ -1754,4 +1941,23 @@ definition cdcl_twl_full_restart_wl_D_GC_heur_prog where
     RETURN V
   }\<close>
 
+lemma \<open>(x, y) \<in> twl_st_heur \<Longrightarrow>
+          find_decomp_wl_st_int 0 x \<bind> empty_Q
+          \<le> \<Down> twl_st_heur (cdcl_twl_local_restart_wl_spec0 y)\<close>
+  apply (cases x; cases y)
+  unfolding find_decomp_wl_st_int_def empty_Q_def
+  apply simp
+  apply (auto simp: )
+oops
+thm isa_find_decomp_wl_imp_find_decomp_wl_imp
+  find_theorems isa_find_decomp_wl_imp
+  
+lemma restart_prog_wl_D_heur_restart_prog_wl_D:
+  \<open>(cdcl_twl_full_restart_wl_D_GC_heur_prog, cdcl_twl_full_restart_wl_D_GC_prog) \<in>
+    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def
+    cdcl_twl_full_restart_wl_D_GC_prog_def
+  apply (intro frefI nres_relI)
+  apply refine_rcg
+  oops
 end

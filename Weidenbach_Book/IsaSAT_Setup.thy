@@ -1024,6 +1024,18 @@ lemma count_decided_st_heur[sepref_fr_rules]:
   unfolding count_decided_st_heur_def isasat_bounded_assn_def isasat_unbounded_assn_def
   by (sepref_to_hoare; sep_auto)+
 
+lemma twl_st_heur_count_decided_st_alt_def:
+  fixes S :: twl_st_wl_heur
+  shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> count_decided_st_heur S = count_decided (get_trail_wl T)\<close>
+  unfolding count_decided_st_def twl_st_heur_def trail_pol_def
+  by (cases S) (auto simp: count_decided_st_heur_def)
+
+lemma twl_st_heur_isa_length_trail_get_trail_wl:
+  fixes S :: twl_st_wl_heur
+  shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> isa_length_trail (get_trail_wl_heur S) = length (get_trail_wl T)\<close>
+  unfolding isa_length_trail_def twl_st_heur_def trail_pol_def
+  by (cases S) (auto dest: ann_lits_split_reasons_map_lit_of)
+
 
 lemma atm_of_all_lits_of_mm:
   \<open>set_mset (atm_of `# all_lits_of_mm bw) = atms_of_mm bw\<close>
