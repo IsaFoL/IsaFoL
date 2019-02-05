@@ -94,12 +94,17 @@ qed
 definition saturated :: "'f set \<Rightarrow> bool" where
   "saturated N \<equiv> Inf_from N \<subseteq> Red_Inf N"
 
+lemma Red_Inf_without_redundant_clauses:
+  "Red_Inf (N - Red_F N) = Red_Inf N"
+  using Red_Inf_of_subset [of "N - Red_F N" N]
+    and Red_Inf_of_Red_F_subset [of "Red_F N" N] by blast
+
 lemma saturated_without_redundant_clauses:
   assumes saturated: "saturated N"
   shows "saturated (N - Red_F N)"
 proof -
-  have \<open>Inf_from (N - Red_F N) \<subseteq> Inf_from N\<close> unfolding Inf_from_def by auto
-  also have \<open>Inf_from N \<subseteq> Red_Inf N\<close> using saturated unfolding saturated_def by auto
+  have "Inf_from (N - Red_F N) \<subseteq> Inf_from N" unfolding Inf_from_def by auto
+  also have "Inf_from N \<subseteq> Red_Inf N" using saturated unfolding saturated_def by auto
   also have "Red_Inf N \<subseteq> Red_Inf (N - Red_F N)" using Red_Inf_of_Red_F_subset by auto
   finally have "Inf_from (N - Red_F N) \<subseteq> Red_Inf (N - Red_F N)" by auto
   then show ?thesis unfolding saturated_def by auto
