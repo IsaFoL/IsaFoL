@@ -3870,15 +3870,30 @@ locale optimal_encoding = optimal_encoding_opt
     new_vars_addition_var:
       \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> additional_atm A \<notin> \<Sigma>\<close> and
     new_vars_dist:
-      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> A \<noteq> B \<Longrightarrow> replacement_pos A \<noteq> replacement_pos B\<close>
-      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_pos A \<noteq> replacement_neg B\<close>
-      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> A \<noteq> B \<Longrightarrow> replacement_neg A \<noteq> replacement_neg B\<close>
-      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_pos A \<noteq> additional_atm B\<close>
-      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_neg A \<noteq> additional_atm B\<close>
-      \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> A \<noteq> B \<Longrightarrow> additional_atm A \<noteq> additional_atm B\<close> and
+      \<open>inj_on replacement_pos \<Delta>\<Sigma>\<close>
+      \<open>inj_on replacement_neg \<Delta>\<Sigma>\<close>
+      \<open>inj_on additional_atm \<Delta>\<Sigma>\<close>
+      \<open>replacement_pos ` \<Delta>\<Sigma> \<inter> replacement_neg ` \<Delta>\<Sigma> = {}\<close>
+      \<open>replacement_pos ` \<Delta>\<Sigma> \<inter> additional_atm ` \<Delta>\<Sigma> = {}\<close>
+      \<open>replacement_neg ` \<Delta>\<Sigma> \<inter> additional_atm ` \<Delta>\<Sigma> = {}\<close> and
     \<Sigma>_no_weight:
       \<open>atm_of C \<in> \<Sigma> - \<Delta>\<Sigma> \<Longrightarrow> \<rho> (add_mset C M) = \<rho> M\<close>
 begin
+
+lemma new_vars_dist2:
+  \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> A \<noteq> B \<Longrightarrow> replacement_pos A \<noteq> replacement_pos B\<close>
+  \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> A \<noteq> B \<Longrightarrow> replacement_neg A \<noteq> replacement_neg B\<close>
+  \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> A \<noteq> B \<Longrightarrow> additional_atm A \<noteq> additional_atm B\<close>
+  \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_neg A \<noteq> replacement_pos B\<close>
+  \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_pos A \<noteq> additional_atm B\<close>
+  \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_neg A \<noteq> additional_atm B\<close>
+  using new_vars_dist unfolding inj_on_def apply blast
+  using new_vars_dist unfolding inj_on_def apply blast
+  using new_vars_dist unfolding inj_on_def apply blast
+  using new_vars_dist unfolding inj_on_def apply blast
+  using new_vars_dist unfolding inj_on_def apply fast
+  using new_vars_dist unfolding inj_on_def apply fast
+  done
 
 lemma consistent_interp_postp:
   \<open>consistent_interp I \<Longrightarrow> consistent_interp (postp I)\<close>
@@ -3923,7 +3938,7 @@ lemma new_vars_different_iff[simp]:
   \<open>additional_atm A \<notin> \<Delta>\<Sigma>\<close>
   if \<open>A \<in> \<Delta>\<Sigma>\<close>  \<open>x \<in> \<Delta>\<Sigma>\<close> for A x
   using \<Delta>\<Sigma>_\<Sigma> new_vars_pos[of x] new_vars_pos[of A]  new_vars_neg[of x] new_vars_neg[of A]
-    new_vars_neg new_vars_dist[of A x] new_vars_dist[of x A]
+    new_vars_neg new_vars_dist2[of A x] new_vars_dist2[of x A]
     new_vars_addition_var[of x] new_vars_addition_var[of A] that new_vars_addition_var[of x]
   by (cases \<open>A = x\<close>; fastforce simp: comp_def; fail)+
 
