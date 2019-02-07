@@ -3819,6 +3819,39 @@ lemma atm_of_upostp_subset2:
   apply (metis (mono_tags, lifting) imageI literal.sel mem_Collect_eq)
   done
 
+thm decide.intros
+inductive odecide :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+odecide_noweight: \<open>odecide S T\<close>
+if
+  \<open>conflicting S = None\<close> and
+  \<open>undefined_lit (trail S) L\<close> and
+  \<open>atm_of L \<in> atms_of_mm (init_clss S)\<close> and
+  \<open>T \<sim> cons_trail (Decided L) S\<close> and
+  \<open>atm_of L \<in> \<Sigma> - \<Delta>\<Sigma>\<close> |
+odecide_additional_var: \<open>odecide S T\<close>
+if
+  \<open>conflicting S = None\<close> and
+  \<open>undefined_lit (trail S) (Neg (additional_atm L))\<close> and
+  \<open>L \<in> atms_of_mm (init_clss S)\<close> and
+  \<open>T \<sim> cons_trail (Decided (Neg (additional_atm L))) S\<close> and
+  \<open>L \<in> \<Delta>\<Sigma>\<close> |
+odecide_replacement_pos: \<open>odecide S T\<close>
+if
+  \<open>conflicting S = None\<close> and
+  \<open>undefined_lit (trail S) (Pos (replacement_pos L))\<close> and
+  \<open>L \<in> atms_of_mm (init_clss S)\<close> and
+  \<open>T \<sim> cons_trail (Decided (Pos (replacement_pos L))) S\<close> and
+  \<open>L \<in> \<Delta>\<Sigma>\<close> |
+odecide_replacement_neg: \<open>odecide S T\<close>
+if
+  \<open>conflicting S = None\<close> and
+  \<open>undefined_lit (trail S) (Pos (replacement_neg L))\<close> and
+  \<open>L \<in> atms_of_mm (init_clss S)\<close> and
+  \<open>T \<sim> cons_trail (Decided (Pos (replacement_neg L))) S\<close> and
+  \<open>L \<in> \<Delta>\<Sigma>\<close>
+
+inductive_cases odecideE: \<open>odecide S T\<close>
+
 end
 
 
@@ -4413,6 +4446,93 @@ proof -
       using Some' by auto
   qed
 qed
+
+
+inductive ocdcl\<^sub>W_o_r :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
+decide: "odecide S S' \<Longrightarrow> ocdcl\<^sub>W_o_r S S'" |
+bj: "enc_weight_opt.cdcl_bab_bj S S' \<Longrightarrow> ocdcl\<^sub>W_o_r S S'"
+
+inductive cdcl_bab_r :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+cdcl_conflict: "conflict S S' \<Longrightarrow> cdcl_bab_r S S'" |
+cdcl_propagate: "propagate S S' \<Longrightarrow> cdcl_bab_r S S'" |
+cdcl_improve: "enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_bab_r S S'" |
+cdcl_conflict_opt: "enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bab_r S S'" |
+cdcl_o': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> cdcl_bab_r S S'"
+
+inductive cdcl_bab_r_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+cdcl_bab_r_conflict: "conflict S S' \<Longrightarrow> cdcl_bab_r_stgy S S'" |
+cdcl_bab_r_propagate: "propagate S S' \<Longrightarrow> cdcl_bab_r_stgy S S'" |
+cdcl_bab_r_improve: "enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_bab_r_stgy S S'" |
+cdcl_bab_r_conflict_opt: "enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bab_r_stgy S S'" |
+cdcl_bab_r_other': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_bab_r_stgy S S'"
+
+context
+  fixes S :: 'st
+  assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = \<Sigma> \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
+     \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
+begin
+
+
+lemma odecide_decide:
+  \<open>odecide S T \<Longrightarrow> decide S T\<close>
+  apply (elim odecideE)
+  subgoal for L
+    by (rule decide.intros[of S \<open>L\<close>]) auto
+  subgoal for L
+    by (rule decide.intros[of S \<open>Neg (additional_atm L)\<close>]) (use S_\<Sigma> \<Delta>\<Sigma>_\<Sigma> in auto)
+  subgoal for L
+    by (rule decide.intros[of S \<open>Pos (L\<^sup>\<mapsto>\<^sup>1)\<close>]) (use S_\<Sigma> \<Delta>\<Sigma>_\<Sigma> in auto)
+  subgoal for L
+    by (rule decide.intros[of S \<open>Pos (L\<^sup>\<mapsto>\<^sup>0)\<close>]) (use S_\<Sigma> \<Delta>\<Sigma>_\<Sigma> in auto)
+  done
+
+lemma ocdcl\<^sub>W_o_r_ocdcl\<^sub>W_o:
+  \<open>ocdcl\<^sub>W_o_r S T \<Longrightarrow> enc_weight_opt.ocdcl\<^sub>W_o S T\<close>
+  using S_\<Sigma> by (auto simp: ocdcl\<^sub>W_o_r.simps enc_weight_opt.ocdcl\<^sub>W_o.simps
+    dest: odecide_decide)
+
+lemma cdcl_bab_r_cdcl_bab:
+  \<open>cdcl_bab_r S T \<Longrightarrow> enc_weight_opt.cdcl_bab S T\<close>
+  using S_\<Sigma> by (auto simp: cdcl_bab_r.simps enc_weight_opt.cdcl_bab.simps
+    dest: ocdcl\<^sub>W_o_r_ocdcl\<^sub>W_o)
+
+lemma cdcl_bab_r_stgy_cdcl_bab_stgy:
+  \<open>cdcl_bab_r_stgy S T \<Longrightarrow> enc_weight_opt.cdcl_bab_stgy S T\<close>
+  using S_\<Sigma> by (auto simp: cdcl_bab_r_stgy.simps enc_weight_opt.cdcl_bab_stgy.simps
+    dest: ocdcl\<^sub>W_o_r_ocdcl\<^sub>W_o)
+
+end
+
+
+context
+  fixes S :: 'st
+  assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = \<Sigma> \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
+     \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
+begin
+
+lemma rtranclp_cdcl_bab_r_cdcl_bab:
+  \<open>cdcl_bab_r\<^sup>*\<^sup>* S T \<Longrightarrow> enc_weight_opt.cdcl_bab\<^sup>*\<^sup>* S T\<close>
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for T U
+    using S_\<Sigma> enc_weight_opt.rtranclp_cdcl_bab_no_more_init_clss[of S T]
+    by(auto dest: cdcl_bab_r_cdcl_bab)
+  done
+
+
+lemma rtranclp_cdcl_bab_r_stgy_cdcl_bab_stgy:
+  \<open>cdcl_bab_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> enc_weight_opt.cdcl_bab_stgy\<^sup>*\<^sup>* S T\<close>
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for T U
+    using S_\<Sigma>
+      enc_weight_opt.rtranclp_cdcl_bab_no_more_init_clss[of S T,
+        OF enc_weight_opt.rtranclp_cdcl_bab_stgy_cdcl_bab]
+    by(auto dest: cdcl_bab_r_stgy_cdcl_bab_stgy)
+  done
+
+end
+
 
 end
 
