@@ -95,6 +95,7 @@ session "CDCL_no_Sepref" (Weidenbach_Book) = "HOL"  +
     CDCL_W_Restart
     CDCL_W_Incremental
     CDCL_W_Optimal_Model
+    CDCL_W_Partial_Optimal_Model
 
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
