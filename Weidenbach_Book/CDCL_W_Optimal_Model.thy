@@ -1361,6 +1361,85 @@ lemma decide_abs_state_decide:
     by (auto simp: cdcl_bab_struct_invs_def abs_state_def cdcl\<^sub>W_restart_mset_state)
   done
 
+lemma cdcl_bab_no_conflicting_clss_cdcl\<^sub>W:
+  assumes \<open>cdcl_bab S T\<close> and \<open>conflicting_clss T = {#}\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T) \<and> conflicting_clss S = {#}\<close>
+  using assms
+  by (auto simp: cdcl_bab.simps conflict_opt.simps improvep.simps ocdcl\<^sub>W_o.simps
+      cdcl_bab_bj.simps
+    dest: conflict_conflict propagate_propagate decide_decide skip_skip resolve_resolve
+      backtrack_backtrack
+    intro: cdcl\<^sub>W_restart_mset.W_conflict cdcl\<^sub>W_restart_mset.W_propagate cdcl\<^sub>W_restart_mset.W_other
+    dest: conflicting_clss_update_weight_information_in
+    elim: conflictE propagateE decideE skipE resolveE improveE obacktrackE)
+
+lemma rtranclp_cdcl_bab_no_conflicting_clss_cdcl\<^sub>W:
+  assumes \<open>cdcl_bab\<^sup>*\<^sup>* S T\<close> and \<open>conflicting_clss T = {#}\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (abs_state S) (abs_state T) \<and> conflicting_clss S = {#}\<close>
+  using assms
+  by (induction rule: rtranclp_induct)
+     (fastforce dest: cdcl_bab_no_conflicting_clss_cdcl\<^sub>W)+
+
+lemma conflict_abs_ex_conflict_no_conflicting:
+  assumes \<open>cdcl\<^sub>W_restart_mset.conflict (abs_state S) T\<close> and \<open>conflicting_clss S = {#}\<close>
+  shows \<open>\<exists>T. conflict S T\<close>
+  using assms by (auto simp: conflict.simps cdcl\<^sub>W_restart_mset.conflict.simps abs_state_def
+    cdcl\<^sub>W_restart_mset_state clauses_def cdcl\<^sub>W_restart_mset.clauses_def)
+
+lemma propagate_abs_ex_propagate_no_conflicting:
+  assumes \<open>cdcl\<^sub>W_restart_mset.propagate (abs_state S) T\<close> and \<open>conflicting_clss S = {#}\<close>
+  shows \<open>\<exists>T. propagate S T\<close>
+  using assms by (auto simp: propagate.simps cdcl\<^sub>W_restart_mset.propagate.simps abs_state_def
+    cdcl\<^sub>W_restart_mset_state clauses_def cdcl\<^sub>W_restart_mset.clauses_def)
+
+lemma cdcl_bab_stgy_no_conflicting_clss_cdcl\<^sub>W_stgy:
+  assumes \<open>cdcl_bab_stgy S T\<close> and \<open>conflicting_clss T = {#}\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (abs_state S) (abs_state T)\<close>
+proof -
+  have \<open>conflicting_clss S = {#}\<close>
+    using cdcl_bab_no_conflicting_clss_cdcl\<^sub>W[of S T] assms
+    by (auto dest: cdcl_bab_stgy_cdcl_bab)
+  then show ?thesis
+    using assms
+    apply (auto 7 5 simp: cdcl_bab_stgy.simps conflict_opt.simps ocdcl\<^sub>W_o.simps
+	cdcl_bab_bj.simps
+      dest!: conflict_conflict propagate_propagate decide_decide skip_skip resolve_resolve
+	backtrack_backtrack
+      dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.intros
+      dest: conflicting_clss_update_weight_information_in
+	conflict_abs_ex_conflict_no_conflicting
+	propagate_abs_ex_propagate_no_conflicting
+      elim: improveE)
+      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
+      apply (auto dest:
+	conflict_abs_ex_conflict_no_conflicting
+	propagate_abs_ex_propagate_no_conflicting)
+      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
+      apply (auto dest:
+	conflict_abs_ex_conflict_no_conflicting
+	propagate_abs_ex_propagate_no_conflicting)
+      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
+      apply (auto dest:
+	conflict_abs_ex_conflict_no_conflicting
+	propagate_abs_ex_propagate_no_conflicting)
+      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
+      apply (auto dest:
+	conflict_abs_ex_conflict_no_conflicting
+	propagate_abs_ex_propagate_no_conflicting)
+      done
+qed
+
+lemma rtranclp_cdcl_bab_stgy_no_conflicting_clss_cdcl\<^sub>W_stgy:
+  assumes \<open>cdcl_bab_stgy\<^sup>*\<^sup>* S T\<close> and \<open>conflicting_clss T = {#}\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (abs_state S) (abs_state T)\<close>
+  using assms apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for T U
+    using cdcl_bab_no_conflicting_clss_cdcl\<^sub>W[of T U, OF cdcl_bab_stgy_cdcl_bab]
+    by (auto dest: cdcl_bab_stgy_no_conflicting_clss_cdcl\<^sub>W_stgy)
+  done
+
+
 context
   assumes can_always_improve:
      \<open>\<And>S. trail S \<Turnstile>asm clauses S \<Longrightarrow> no_step conflict_opt S \<Longrightarrow>
@@ -1483,85 +1562,6 @@ proof (rule ccontr)
   show \<open>False\<close>
     using n_s by (auto simp: cdcl_bab.simps)
 qed
-
-lemma cdcl_bab_no_conflicting_clss_cdcl\<^sub>W:
-  assumes \<open>cdcl_bab S T\<close> and \<open>conflicting_clss T = {#}\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T) \<and> conflicting_clss S = {#}\<close>
-  using assms
-  by (auto simp: cdcl_bab.simps conflict_opt.simps improvep.simps ocdcl\<^sub>W_o.simps
-      cdcl_bab_bj.simps
-    dest: conflict_conflict propagate_propagate decide_decide skip_skip resolve_resolve
-      backtrack_backtrack
-    intro: cdcl\<^sub>W_restart_mset.W_conflict cdcl\<^sub>W_restart_mset.W_propagate cdcl\<^sub>W_restart_mset.W_other
-    dest: conflicting_clss_update_weight_information_in
-    elim: conflictE propagateE decideE skipE resolveE improveE obacktrackE)
-
-lemma rtranclp_cdcl_bab_no_conflicting_clss_cdcl\<^sub>W:
-  assumes \<open>cdcl_bab\<^sup>*\<^sup>* S T\<close> and \<open>conflicting_clss T = {#}\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (abs_state S) (abs_state T) \<and> conflicting_clss S = {#}\<close>
-  using assms
-  by (induction rule: rtranclp_induct)
-     (fastforce dest: cdcl_bab_no_conflicting_clss_cdcl\<^sub>W)+
-
-lemma conflict_abs_ex_conflict_no_conflicting:
-  assumes \<open>cdcl\<^sub>W_restart_mset.conflict (abs_state S) T\<close> and \<open>conflicting_clss S = {#}\<close>
-  shows \<open>\<exists>T. conflict S T\<close>
-  using assms by (auto simp: conflict.simps cdcl\<^sub>W_restart_mset.conflict.simps abs_state_def
-    cdcl\<^sub>W_restart_mset_state clauses_def cdcl\<^sub>W_restart_mset.clauses_def)
-
-lemma propagate_abs_ex_propagate_no_conflicting:
-  assumes \<open>cdcl\<^sub>W_restart_mset.propagate (abs_state S) T\<close> and \<open>conflicting_clss S = {#}\<close>
-  shows \<open>\<exists>T. propagate S T\<close>
-  using assms by (auto simp: propagate.simps cdcl\<^sub>W_restart_mset.propagate.simps abs_state_def
-    cdcl\<^sub>W_restart_mset_state clauses_def cdcl\<^sub>W_restart_mset.clauses_def)
-
-lemma cdcl_bab_stgy_no_conflicting_clss_cdcl\<^sub>W_stgy:
-  assumes \<open>cdcl_bab_stgy S T\<close> and \<open>conflicting_clss T = {#}\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (abs_state S) (abs_state T)\<close>
-proof -
-  have \<open>conflicting_clss S = {#}\<close>
-    using cdcl_bab_no_conflicting_clss_cdcl\<^sub>W[of S T] assms
-    by (auto dest: cdcl_bab_stgy_cdcl_bab)
-  then show ?thesis
-    using assms
-    apply (auto 7 5 simp: cdcl_bab_stgy.simps conflict_opt.simps ocdcl\<^sub>W_o.simps
-	cdcl_bab_bj.simps
-      dest!: conflict_conflict propagate_propagate decide_decide skip_skip resolve_resolve
-	backtrack_backtrack
-      dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.intros
-      dest: conflicting_clss_update_weight_information_in
-	conflict_abs_ex_conflict_no_conflicting
-	propagate_abs_ex_propagate_no_conflicting
-      elim: improveE)
-      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
-      apply (auto dest:
-	conflict_abs_ex_conflict_no_conflicting
-	propagate_abs_ex_propagate_no_conflicting)
-      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
-      apply (auto dest:
-	conflict_abs_ex_conflict_no_conflicting
-	propagate_abs_ex_propagate_no_conflicting)
-      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
-      apply (auto dest:
-	conflict_abs_ex_conflict_no_conflicting
-	propagate_abs_ex_propagate_no_conflicting)
-      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
-      apply (auto dest:
-	conflict_abs_ex_conflict_no_conflicting
-	propagate_abs_ex_propagate_no_conflicting)
-      done
-qed
-
-lemma rtranclp_cdcl_bab_stgy_no_conflicting_clss_cdcl\<^sub>W_stgy:
-  assumes \<open>cdcl_bab_stgy\<^sup>*\<^sup>* S T\<close> and \<open>conflicting_clss T = {#}\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (abs_state S) (abs_state T)\<close>
-  using assms apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal for T U
-    using cdcl_bab_no_conflicting_clss_cdcl\<^sub>W[of T U, OF cdcl_bab_stgy_cdcl_bab]
-    by (auto dest: cdcl_bab_stgy_no_conflicting_clss_cdcl\<^sub>W_stgy)
-  done
-
 
 lemma full_cdcl_bab_stgy_no_conflicting_clss_unsat:
   assumes

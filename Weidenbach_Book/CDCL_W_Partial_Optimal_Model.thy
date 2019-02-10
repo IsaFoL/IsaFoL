@@ -1015,7 +1015,7 @@ lemma tautology_distinct_atm_iff:
     dest!: multi_member_split)
   by (metis literal.exhaust_sel)
 
-lemma
+lemma no_step_cdcl_bab_r_stgy_no_step_cdcl_bab_stgy:
   assumes
     N: \<open>init_clss S = preprocessed_clss N\<close> and
     \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
@@ -1383,6 +1383,68 @@ next
     using \<open>?A\<close>
     by (auto simp: cdcl_bab_r_stgy.simps enc_weight_opt.cdcl_bab_stgy.simps
       ocdcl\<^sub>W_o_r.simps enc_weight_opt.ocdcl\<^sub>W_o.simps)
+qed
+
+lemma cdcl_bab_r_stgy_init_clss:
+  \<open>cdcl_bab_r_stgy S T \<Longrightarrow> init_clss S = init_clss T\<close>
+  by (auto simp: cdcl_bab_r_stgy.simps ocdcl\<^sub>W_o_r.simps  enc_weight_opt.cdcl_bab_bj.simps
+    elim: conflictE propagateE enc_weight_opt.improveE enc_weight_opt.conflict_optE
+      odecideE skipE resolveE enc_weight_opt.obacktrackE)
+
+lemma rtranclp_cdcl_bab_r_stgy_init_clss:
+  \<open>cdcl_bab_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> init_clss S = init_clss T\<close>
+  by  (induction rule: rtranclp_induct)(auto simp:  dest: cdcl_bab_r_stgy_init_clss)
+
+lemma [simp]:
+  \<open>enc_weight_opt.abs_state (init_state N) = abs_state (init_state N)\<close>
+  by (auto simp: enc_weight_opt.abs_state_def abs_state_def)
+
+corollary
+  assumes
+    \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and dist: \<open>distinct_mset_mset N\<close> and
+    \<open>full cdcl_bab_r_stgy (init_state (preprocessed_clss N)) T \<close>
+  shows
+    \<open>full enc_weight_opt.cdcl_bab_stgy (init_state (preprocessed_clss N)) T\<close>
+proof -
+  have [simp]: \<open>atms_of_mm (CDCL_W_Abstract_State.init_clss (enc_weight_opt.abs_state T)) =
+    atms_of_mm (init_clss T)\<close>
+    by (auto simp: enc_weight_opt.abs_state_def init_clss.simps)
+  let ?S = \<open>init_state (preprocessed_clss N)\<close>
+  have
+    st: \<open>cdcl_bab_r_stgy\<^sup>*\<^sup>* ?S T\<close> and
+    ns: \<open>no_step cdcl_bab_r_stgy T\<close>
+    using assms unfolding full_def by metis+
+  have st': \<open>enc_weight_opt.cdcl_bab_stgy\<^sup>*\<^sup>* ?S T\<close>
+    by (rule rtranclp_cdcl_bab_r_stgy_cdcl_bab_stgy[OF _ st])
+      (use atms_of_mm_preprocessed_clss_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma> \<Sigma> in auto)
+  have [simp]:
+    \<open>CDCL_W_Abstract_State.init_clss (abs_state (init_state (preprocessed_clss N))) =
+      (preprocessed_clss N)\<close>
+    by (auto simp: abs_state_def init_clss.simps)
+  have [iff]: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state ?S)\<close>
+    using dist distinct_mset_preprocessed_clss[of N]
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def \<Sigma>
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state T)\<close>
+    using enc_weight_opt.rtranclp_cdcl_bab_stgy_all_struct_inv[of ?S T]
+      enc_weight_opt.rtranclp_cdcl_bab_stgy_cdcl_bab[OF st']
+      by auto
+  then have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (enc_weight_opt.abs_state T)\<close> and
+    lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (enc_weight_opt.abs_state T)\<close>
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  have [simp]: \<open>init_clss T = preprocessed_clss N\<close>
+    using rtranclp_cdcl_bab_r_stgy_init_clss[OF st] by auto
+ 
+  have \<open>no_step enc_weight_opt.cdcl_bab_stgy T\<close>
+    by (rule no_step_cdcl_bab_r_stgy_no_step_cdcl_bab_stgy[THEN iffD1, of _ N, OF _ _ _ _ ns])
+       (use  alien atms_of_mm_preprocessed_clss_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma> lev
+         in \<open>auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def \<Sigma>
+            cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def\<close>)
+  then show \<open>full enc_weight_opt.cdcl_bab_stgy (init_state (preprocessed_clss N)) T\<close>
+    using st' unfolding full_def
+    by auto
 qed
 
 end
