@@ -1052,7 +1052,7 @@ next
     atms_of_mm_encode_clause_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma>
     atms_of_mm_preprocessed_clss_subset2[of N]
     by auto
-  have False if dec: \<open>decide S T\<close>
+  have False if dec: \<open>decide S T\<close> for T
   proof -
     obtain L where
       [simp]: \<open>conflicting S = None\<close> and
@@ -1092,16 +1092,16 @@ next
       using nsd that \<Delta>\<Sigma>_\<Sigma> odecide.intros(2-)[of S \<open>L\<close>] by (force simp: N \<Sigma> N_\<Sigma>)
     have \<open>atm_of L \<in># mset_set \<Delta>\<Sigma>\<close> and 3: \<open>atm_of L \<in> \<Delta>\<Sigma>\<close>
       using 1 2 L \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> by (auto simp: N \<Sigma> N_\<Sigma>)
-    have nsp': \<open>\<forall>E. E \<in># additional_constraint (atm_of L) \<longrightarrow>
+    have nsp': \<open>\<forall>E. E \<in># additional_constraint L \<longrightarrow>
               (\<forall>L\<in># E. trail S \<Turnstile>as CNot (remove1_mset L E) \<longrightarrow>
                    defined_lit (trail S) L)\<close> and
-	nsc': \<open>\<forall>E. E \<in># additional_constraint (atm_of L) \<longrightarrow>
+	nsc': \<open>\<forall>E. E \<in># additional_constraint L \<longrightarrow>
               (\<forall>L\<in># E. \<not>trail S \<Turnstile>as CNot E)\<close>
-	if \<open>atm_of L \<in># mset_set \<Delta>\<Sigma>\<close> for L
-      using nsp nsc assms that unfolding preprocessed_clss_def
+	if \<open>L \<in> \<Delta>\<Sigma>\<close> for L
+      using nsp nsc assms that finite_\<Sigma> unfolding preprocessed_clss_def
       by (fastforce simp: propagate.simps conflict.simps additional_constraints_def
           clauses_def
-        dest!: multi_member_split[of \<open>atm_of L\<close>])+
+        dest!: multi_member_split[of \<open>L\<close>])+
     have [simp]: \<open>{A \<in> \<Delta>\<Sigma>. A \<in> \<Sigma>} = \<Delta>\<Sigma>\<close>
       using \<Delta>\<Sigma>_\<Sigma> by auto
     have atms_tr': \<open>\<Sigma> - \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<subseteq>
@@ -1121,202 +1121,269 @@ next
       unfolding N \<Sigma> N_\<Sigma>
       by force
     let ?L = \<open>atm_of L\<close>
-    have \<open>False\<close> if add_false: \<open>\<And>L. -additional_var L \<in> lits_of_l (trail S)\<close>
+    have defined_if_additional_var:
+        \<open>additional_var x \<in> lits_of_l (trail S) \<Longrightarrow>
+          defined_lit (trail S) (Pos x)\<close> (is \<open>_ \<Longrightarrow> ?A\<close>) and
+      ent_add:
+        \<open>trail S \<Turnstile>asm additional_constraint x\<close>
+      if \<open>x \<in> \<Delta>\<Sigma>\<close> for x
     proof -
-      have 1: \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow> Neg (replacement_neg L) \<in> lits_of_l (trail S)\<close>
-         \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow> Neg (replacement_pos L) \<in> lits_of_l (trail S)\<close> for L
-        using that[of \<open>L\<close>] nsc'[of \<open>Pos L\<close>] nsp'[of \<open>Pos L\<close>] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma>
-	by (simp_all add: conflict.simps clauses_def N additional_constraint_def
-	      preprocessed_clss_def true_annots_true_cls
-	      Decided_Propagated_in_iff_in_lits_of_l
-	      all_conj_distrib ex_disj_distrib)
-
-      have eq_add_M': \<open>\<rho>\<^sub>e (mset (map lit_of (trail S) @ M')) =
-	    \<rho>\<^sub>e (mset (map lit_of (trail S)))\<close>
-	if
-	  \<open>total_over_m (set_mset (mset (map lit_of (trail S) @ M')))
-	    (set_mset (init_clss S))\<close> and
-	  \<open>distinct_mset (atm_of `# mset (map lit_of (trail S) @ M'))\<close> and
-	  \<open>consistent_interp (set_mset (mset (map lit_of (trail S) @ M')))\<close>
-	for M'
-      proof -
-        have [simp]: \<open>{#a \<in># mset M'. atm_of a \<in> \<Delta>\<Sigma> \<and>
-	   (additional_var (atm_of a) \<in> lit_of ` set (trail S) \<or>
-              additional_var (atm_of a) \<in> set M')#} = {#}\<close>
-	  using that add_false distinct_consistent_interp[OF n_d]
-	  apply (auto simp: filter_mset_empty_conv lits_of_def
-	    consistent_interp_def)
-	  apply (metis add_false
-	    image_iff lits_of_def)
+      note [[simp_depth_limit = 2]]
+      have eq:
+	  \<open>(Pos (x\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (x) \<notin> lits_of_l (trail S)) \<and>
+	   (Pos (x\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (additional_atm (x)) \<notin> lits_of_l (trail S)) \<and>
+	   (Pos (x) \<in> lits_of_l (trail S) \<longrightarrow>
+	    additional_var (x) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (x\<^sup>\<mapsto>\<^sup>1) \<notin> lits_of_l (trail S)) \<and>
+	   (Pos (x\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Pos (x) \<notin> lits_of_l (trail S)) \<and>
+	   (Pos (x\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (additional_atm (x)) \<notin> lits_of_l (trail S)) \<and>
+	   (Neg (x) \<in> lits_of_l (trail S) \<longrightarrow>
+	    additional_var (x) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (x\<^sup>\<mapsto>\<^sup>0) \<notin> lits_of_l (trail S))\<close>
+	  \<open>(Neg (x) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (x\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S) \<or>
+	    Pos (x\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S)) \<and>
+	   (Pos (x\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Pos (x) \<in> lits_of_l (trail S)) \<and>
+	   (Neg (additional_atm (x)) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (x\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S) \<or>
+	    Pos (x\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S)) \<and>
+	   (Pos (x\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S) \<longrightarrow>
+	    additional_var (x) \<in> lits_of_l (trail S)) \<and>
+	   (Pos (x) \<in> lits_of_l (trail S) \<and>
+	    Neg (x\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (additional_atm (x)) \<in> lits_of_l (trail S) \<or>
+	    additional_var (x) \<in> lits_of_l (trail S)) \<and>
+	   (additional_var (x) \<in> lits_of_l (trail S) \<and>
+	    Neg (x\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (x) \<in> lits_of_l (trail S) \<or>
+	    Pos (x) \<in> lits_of_l (trail S)) \<and>
+	   (additional_var (x) \<in> lits_of_l (trail S) \<and>
+	    Pos (x) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Pos (x\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S)) \<and>
+	   (Pos (x) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (x\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S) \<or>
+	    Pos (x\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S)) \<and>
+	   (Pos (x\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (x) \<in> lits_of_l (trail S)) \<and>
+	   (Neg (additional_atm (x)) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (x\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S) \<or>
+	    Pos (x\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S)) \<and>
+	   (Pos (x\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S) \<longrightarrow>
+	    additional_var (x) \<in> lits_of_l (trail S)) \<and>
+	   (Neg (x) \<in> lits_of_l (trail S) \<and>
+	    Neg (x\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Neg (additional_atm (x)) \<in> lits_of_l (trail S) \<or>
+	    additional_var (x) \<in> lits_of_l (trail S)) \<and>
+	   (additional_var (x) \<in> lits_of_l (trail S) \<and>
+	    Neg (x\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S) \<longrightarrow>
+	    Pos (x) \<in> lits_of_l (trail S) \<or>
+	    Neg (x) \<in> lits_of_l (trail S))\<close>
+         using that(1) nsc'[of \<open>x\<close>] nsp'[of \<open>x\<close>] finite_\<Sigma>
+          defined_replacement_neg[of \<open>x\<close>]
+         apply (simp_all only: conflict.simps clauses_def N additional_constraint_def
+	    preprocessed_clss_def true_annots_true_cls simp_thms 3
+	    true_clss_insert
+	    set_mset_empty empty_iff finite_set_mset_mset_set
+	    Decided_Propagated_in_iff_in_lits_of_l imp_disjL Ball_def
+	    all_conj_distrib ex_disj_distrib member_add_mset)
+	  apply simp_all
+	  by force
+      have \<open>additional_var (x) \<in> lits_of_l (trail S) \<Longrightarrow>
+         Neg (additional_atm x) \<notin> lits_of_l (trail S)\<close>
+        using n_d that by (auto dest: no_dup_consistentD)
+      then show ?A if \<open>additional_var (x) \<in> lits_of_l (trail S)\<close>
+	using \<open>x \<in> \<Delta>\<Sigma>\<close> eq \<open>additional_var (x) \<in> lits_of_l (trail S)\<close>
+	  using defined_replacement_pos[of \<open>x\<close>]
+	  apply (case_tac \<open>Pos x \<in> lits_of_l (trail S)\<close>)
+	  using Decided_Propagated_in_iff_in_lits_of_l apply metis
+	   apply (simp only: Decided_Propagated_in_iff_in_lits_of_l)
+	  apply (case_tac \<open>Neg x \<in> lits_of_l (trail S)\<close>)
+	  apply (simp add: Decided_Propagated_in_iff_in_lits_of_l)
+	   apply (simp add: Decided_Propagated_in_iff_in_lits_of_l)
 	  done
-	have [simp]: \<open>{#x \<in># lit_of `# mset (trail S).
-	   atm_of x \<in> \<Delta>\<Sigma> \<and>
-	   (additional_var (atm_of x) \<in> lit_of ` set (trail S) \<or>
-	    additional_var (atm_of x) \<in> set M')#} =
-	  {#x \<in># lit_of `# mset (trail S).
-	   atm_of x \<in> \<Delta>\<Sigma> \<and> additional_var (atm_of x) \<in> lit_of ` set (trail S)#}\<close>
-	   apply (rule filter_mset_cong2)
-	   using n_d that
-	   apply (auto simp: lits_of_def uminus_lit_swap dest: add_false)
-	   by (metis Un_iff add_false consistent_interp_def lits_of_def)
-	show ?thesis
-	 using add_false unfolding \<rho>\<^sub>e_def apply -
-	  by (rule arg_cong[of _ _ \<rho>]) (auto simp: lits_of_def)
-      qed
+      show \<open>trail S \<Turnstile>asm additional_constraint x\<close>
+       using eq that defined_additional_atm defined_replacement_neg
+         defined_replacement_pos
+       apply (simp_all add: additional_constraint_def true_annot_def
+         Decided_Propagated_in_iff_in_lits_of_l)
+       apply (intro conjI)
+       apply metis+
+       done
+    qed
+    have eq_add_M': \<open>\<rho>\<^sub>e (mset (map lit_of (trail S) @ M')) =
+	  \<rho>\<^sub>e (mset (map lit_of (trail S)))\<close>
+      if
+	\<open>total_over_m (set_mset (mset (map lit_of (trail S) @ M')))
+	  (set_mset (init_clss S))\<close> and
+	dist: \<open>distinct_mset (atm_of `# mset (map lit_of (trail S) @ M'))\<close> and
+	\<open>consistent_interp (set_mset (mset (map lit_of (trail S) @ M')))\<close>
+      for M'
+    proof -
+      have [simp]: \<open>additional_var a \<notin> set M'\<close> \<open>-additional_var a \<notin> set M'\<close>
+      if \<open>a \<in> \<Delta>\<Sigma>\<close> for a
+      using defined_additional_atm[of a, OF that] dist
+      using that by (force simp: Decided_Propagated_in_iff_in_lits_of_l
+	distinct_mset_add mset_inter_empty_set_mset lits_of_def
+	eq_commute[of _ \<open>lit_of _\<close>])+
+      then have [simp]: \<open>{#a \<in># mset M'. atm_of a \<in> \<Delta>\<Sigma> \<and>
+	 (additional_var (atm_of a) \<in> lit_of ` set (trail S) \<or>
+	    additional_var (atm_of a) \<in> set M')#} = {#}\<close>
+	using that defined_if_additional_var
+	apply (auto simp: filter_mset_empty_conv lits_of_def
+	    consistent_interp_def distinct_mset_add mset_inter_empty_set_mset
+	    eq_commute[of _ \<open>lit_of _\<close>]
+	  intro: filter_mset_cong)
+	  by (metis IntI defined_lit_map empty_iff imageI literal.sel(1))
 
-      have lit_of_mset_trail: \<open>lit_of `# mset (trail S) = mset (map lit_of (trail S))\<close>
-        by auto
-      have \<open>trail S \<Turnstile>asm encode_clauses N\<close>
-        unfolding true_annots_true_cls
-        apply (subst total_entails_iff_no_conflict[OF atms_tr])
-	subgoal using n_d by (blast dest: distinct_consistent_interp)
-	subgoal
-          using nsc by (auto simp: conflict.simps clauses_def N
-	    preprocessed_clss_def true_annots_true_cls)
-        done
-      moreover have \<open>trail S \<Turnstile>asm additional_constraints\<close>
-        using \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> that 1
-	unfolding additional_constraints_def additional_constraint_def
-	  true_annots_def true_annot_def by auto
-      ultimately have tr_S_clss: \<open>trail S \<Turnstile>asm init_clss S\<close>
-        unfolding assms preprocessed_clss_def by auto
+      have [simp]: \<open>{#x \<in># lit_of `# mset (trail S).
+	 atm_of x \<in> \<Delta>\<Sigma> \<and>
+	 (additional_var (atm_of x) \<in> lit_of ` set (trail S) \<or>
+	  additional_var (atm_of x) \<in> set M')#} =
+	{#x \<in># lit_of `# mset (trail S).
+	 atm_of x \<in> \<Delta>\<Sigma> \<and> additional_var (atm_of x) \<in> lit_of ` set (trail S)#}\<close>
+	 apply (rule filter_mset_cong2)
+	 using n_d that
+	 by (auto simp: lits_of_def uminus_lit_swap)
+      show ?thesis
+	unfolding \<rho>\<^sub>e_def apply -
+	by (rule arg_cong[of _ _ \<rho>]) (auto simp: lits_of_def)
+    qed
 
-       have \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close>
-	if \<open>\<not> enat (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
-	unfolding negate_ann_lits_pNeg_lit_of comp_def lit_of_mset_trail
-	apply (rule enc_weight_opt.pruned_clause_in_conflicting_clss)
-	apply (use eq_add_M' that in auto)[]
-        using \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> that tr_alien n_d
-        apply (fastforce simp: simple_clss_def N \<Sigma> N_\<Sigma> lits_of_def
-	    image_image atms_of_def tautology_union uminus_lit_swap image_iff
-	  dest: )
-	using no_dup_distinct[OF n_d] distinct_consistent_interp[OF n_d]
-	by (auto simp: lits_of_def simp flip: distinct_mset_mset_distinct)
-      then have ge:
-        \<open>enat (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
-        using nsco' by auto
+    have lit_of_mset_trail: \<open>lit_of `# mset (trail S) = mset (map lit_of (trail S))\<close>
+      by auto
+    have \<open>trail S \<Turnstile>asm encode_clauses N\<close>
+      unfolding true_annots_true_cls
+      apply (subst total_entails_iff_no_conflict[OF atms_tr])
+      subgoal using n_d by (blast dest: distinct_consistent_interp)
+      subgoal
+	using nsc by (auto simp: conflict.simps clauses_def N
+	  preprocessed_clss_def true_annots_true_cls)
+      done
+    moreover have \<open>trail S \<Turnstile>asm additional_constraints\<close>
+      using \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> that 1 ent_add
+      unfolding additional_constraints_def
+	true_annots_def true_annot_def by (auto
+	  dest: multi_member_split)
+    ultimately have tr_S_clss: \<open>trail S \<Turnstile>asm init_clss S\<close>
+      unfolding assms preprocessed_clss_def by auto
 
-      let ?M'' = \<open>Decided `# Pos `# {#L \<in># mset_set \<Delta>\<Sigma>. undefined_lit (trail S) (Pos L)#}\<close>
-      let ?M' = \<open>mset (trail S) + ?M''\<close>
-      obtain M' M'' :: \<open>('v, 'v clause) ann_lits\<close> where
-        M': \<open>?M' = mset M'\<close> and
-	M'': \<open>?M'' = mset M''\<close>
+     have \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close>
+      if \<open>\<not> enat (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
+      unfolding negate_ann_lits_pNeg_lit_of comp_def lit_of_mset_trail
+      apply (rule enc_weight_opt.pruned_clause_in_conflicting_clss)
+      apply (use eq_add_M' that in auto)[]
+      using \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> that tr_alien n_d
+      apply (fastforce simp: simple_clss_def N \<Sigma> N_\<Sigma> lits_of_def
+	  image_image atms_of_def tautology_union uminus_lit_swap image_iff
+	dest: )
+      using no_dup_distinct[OF n_d] distinct_consistent_interp[OF n_d]
+      by (auto simp: lits_of_def simp flip: distinct_mset_mset_distinct)
+    then have ge:
+      \<open>enat (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
+      using nsco' by auto
+
+    let ?M'' = \<open>Decided `# Pos `# {#L \<in># mset_set \<Delta>\<Sigma>. undefined_lit (trail S) (Pos L)#}\<close>
+    let ?M' = \<open>mset (trail S) + ?M''\<close>
+    obtain M' M'' :: \<open>('v, 'v clause) ann_lits\<close> where
+      M': \<open>?M' = mset M'\<close> and
+      M'': \<open>?M'' = mset M''\<close>
+      using ex_mset by metis
+    from arg_cong[OF this(1), of set_mset, symmetric]
+    have lits_of_M': \<open>lits_of_l M' = lits_of_l (trail S) \<union>
+	Pos ` {L \<in> \<Delta>\<Sigma>. undefined_lit (trail S) (Pos L)}\<close>
+      using finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma> by (auto simp: lits_of_def image_Un image_image)
+    have \<open>\<not>tautology (lit_of `# mset M')\<close>
+      using \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> that tr_alien n_d
+      by (force simp: simple_clss_def M'[symmetric] N \<Sigma> N_\<Sigma> lits_of_def
+	  image_image atms_of_def tautology_union uminus_lit_swap image_iff
+	  Decided_Propagated_in_iff_in_lits_of_l undefined_lit_Neg_Pos_iff
+	dest: no_dup_not_tautology)
+    moreover have dist_M': \<open>distinct_mset
+       (lit_of `# mset (trail S) +
+	poss (mset_set {x \<in> \<Delta>\<Sigma>. undefined_lit (trail S) (Pos x)}))\<close>
+      using n_d \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma>
+      by (auto simp: distinct_mset_add mset_inter_empty_set_mset
+	   Decided_Propagated_in_iff_in_lits_of_l undefined_lit_Neg_Pos_iff
+	   lits_of_def image_image inj_on_Pos image_iff
+	   distinct_image_mset_inj distinct_mset_mset_set
+	dest: no_dup_distinct)
+    ultimately have simple_M': \<open>lit_of `# mset M' \<in> simple_clss (atms_of_mm (init_clss S))\<close>
+      using \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> that tr_alien
+      by (auto simp: simple_clss_def M'[symmetric] N \<Sigma> N_\<Sigma> lits_of_def
+	image_image atms_of_def )
+    have n_d_M': \<open>no_dup M'\<close>
+      using n_d finite_\<Sigma>
+      by (force simp: no_dup_def distinct_mset_add mset_inter_empty_set_mset
+	  distinct_mset_mset_set Decided_Propagated_in_iff_in_lits_of_l
+	  lits_of_def
+	simp flip: distinct_mset_mset_distinct M')
+    moreover have \<open>total_over_m (lits_of_l M') (set_mset (init_clss S))\<close>
+      using atms_tr' defined_replacement_pos defined_all defined_replacement_neg
+	defined_additional_atm
+      apply (auto simp: N \<Sigma> N_\<Sigma> total_over_m_def total_over_set_def
+	lits_of_M' Decided_Propagated_in_iff_in_lits_of_l)
+	apply (metis (mono_tags, lifting) Decided_Propagated_in_iff_in_lits_of_l image_eqI
+	  literal.sel(1) mem_Collect_eq uminus_Pos)
+      done
+    moreover have \<open>M' \<Turnstile>asm init_clss S\<close>
+      using \<open>trail S \<Turnstile>asm init_clss S\<close> arg_cong[OF M', of set_mset, symmetric]
+      by (auto simp: true_annots_true_cls)
+    moreover have \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close>
+      if \<open>\<not> enat (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
+      unfolding negate_ann_lits_pNeg_lit_of comp_def lit_of_mset_trail
+      apply (rule enc_weight_opt.pruned_clause_in_conflicting_clss)
+      apply (use eq_add_M' that in auto)[]
+      using \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> that tr_alien n_d
+      apply (fastforce simp: simple_clss_def M'[symmetric] N \<Sigma> N_\<Sigma> lits_of_def
+	  image_image atms_of_def tautology_union uminus_lit_swap image_iff
+	dest: )
+      using no_dup_distinct[OF n_d] distinct_consistent_interp[OF n_d]
+      by (auto simp: lits_of_def simp flip: distinct_mset_mset_distinct)
+    moreover have \<open>\<rho>\<^sub>e (lit_of `# mset M') = \<rho>\<^sub>e (lit_of `# mset (trail S))\<close>
+      unfolding M'[symmetric] mset_append[symmetric] M'' mset_map[symmetric]
+	map_append
+      apply (rule eq_add_M')
+      unfolding M' mset_append M''[symmetric] mset_map image_mset_union[symmetric]
+	map_append
+      by (use calculation n_d_M' in \<open>auto simp: lits_of_def
+	simp flip: no_dup_alt_def
+	dest: no_dup_distinct distinct_consistent_interp\<close>)
+    moreover have eq: \<open>\<rho>\<^sub>e (lit_of `# mset (trail S) + lit_of `# c) =
+	 \<rho>\<^sub>e (lit_of `# mset (trail S))\<close>
+      if
+	\<open>total_over_m (lits_of_l M'a) (set_mset (init_clss S))\<close> and
+	M'a: \<open>mset M'a = mset (trail S) + c\<close> and
+	simple: \<open>lit_of `# mset (trail S) + lit_of `# c \<in> simple_clss (atms_of_mm (init_clss S))\<close>
+	for c :: \<open>('v, 'v clause) ann_lit multiset\<close> and M'a
+    proof -
+      obtain c' where c: \<open>c = mset c'\<close>
 	using ex_mset by metis
-      from arg_cong[OF this(1), of set_mset, symmetric]
-      have lits_of_M': \<open>lits_of_l M' = lits_of_l (trail S) \<union>
-          Pos ` {L \<in> \<Delta>\<Sigma>. undefined_lit (trail S) (Pos L)}\<close>
-        using finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma> by (auto simp: lits_of_def image_Un image_image)
-      have \<open>\<not>tautology (lit_of `# mset M')\<close>
-        using \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> that tr_alien n_d
-        by (fastforce simp: simple_clss_def M'[symmetric] N \<Sigma> N_\<Sigma> lits_of_def
-	    image_image atms_of_def tautology_union uminus_lit_swap image_iff
-	    Decided_Propagated_in_iff_in_lits_of_l undefined_lit_Neg_Pos_iff
-	  dest: no_dup_not_tautology)
-      moreover have dist_M': \<open>distinct_mset
-         (lit_of `# mset (trail S) +
-          poss (mset_set {x \<in> \<Delta>\<Sigma>. undefined_lit (trail S) (Pos x)}))\<close>
-	using n_d \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma>
-	by (auto simp: distinct_mset_add mset_inter_empty_set_mset
-	     Decided_Propagated_in_iff_in_lits_of_l undefined_lit_Neg_Pos_iff
-	     lits_of_def image_image inj_on_Pos image_iff
-	     distinct_image_mset_inj distinct_mset_mset_set
-	  dest: no_dup_distinct)
-      ultimately have simple_M': \<open>lit_of `# mset M' \<in> simple_clss (atms_of_mm (init_clss S))\<close>
-        using \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> that tr_alien
-        by (auto simp: simple_clss_def M'[symmetric] N \<Sigma> N_\<Sigma> lits_of_def
-	  image_image atms_of_def )
-      have n_d_M': \<open>no_dup M'\<close>
-        using n_d finite_\<Sigma>
-        by (force simp: no_dup_def distinct_mset_add mset_inter_empty_set_mset
-	    distinct_mset_mset_set Decided_Propagated_in_iff_in_lits_of_l
-	    lits_of_def
-	  simp flip: distinct_mset_mset_distinct M')
-      moreover have \<open>total_over_m (lits_of_l M') (set_mset (init_clss S))\<close>
-        using atms_tr' defined_replacement_pos defined_all defined_replacement_neg
-	  defined_additional_atm
-        apply (auto simp: N \<Sigma> N_\<Sigma> total_over_m_def total_over_set_def
-	  lits_of_M' Decided_Propagated_in_iff_in_lits_of_l)
-	  apply (metis (mono_tags, lifting) Decided_Propagated_in_iff_in_lits_of_l image_eqI
-	    literal.sel(1) mem_Collect_eq uminus_Pos)
-	done
-      moreover have \<open>M' \<Turnstile>asm init_clss S\<close>
-        using \<open>trail S \<Turnstile>asm init_clss S\<close> arg_cong[OF M', of set_mset, symmetric]
-	by (auto simp: true_annots_true_cls)
-      moreover have \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close>
-	if \<open>\<not> enat (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
-	unfolding negate_ann_lits_pNeg_lit_of comp_def lit_of_mset_trail
-	apply (rule enc_weight_opt.pruned_clause_in_conflicting_clss)
-	apply (use eq_add_M' that in auto)[]
-        using \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> that tr_alien n_d
-        apply (fastforce simp: simple_clss_def M'[symmetric] N \<Sigma> N_\<Sigma> lits_of_def
-	    image_image atms_of_def tautology_union uminus_lit_swap image_iff
-	  dest: )
-	using no_dup_distinct[OF n_d] distinct_consistent_interp[OF n_d]
-	by (auto simp: lits_of_def simp flip: distinct_mset_mset_distinct)
-      moreover have \<open>\<rho>\<^sub>e (lit_of `# mset M') = \<rho>\<^sub>e (lit_of `# mset (trail S))\<close>
-        unfolding M'[symmetric] mset_append[symmetric] M'' mset_map[symmetric]
+      show ?thesis
+	unfolding c mset_append[symmetric] mset_map[symmetric]
 	  map_append
-	apply (rule eq_add_M')
-        unfolding M' mset_append M''[symmetric] mset_map image_mset_union[symmetric]
-	  map_append
-	by (use calculation n_d_M' in \<open>auto simp: lits_of_def
-	  simp flip: no_dup_alt_def
-	  dest: no_dup_distinct distinct_consistent_interp\<close>)
-      moreover have eq: \<open>\<rho>\<^sub>e (lit_of `# mset (trail S) + lit_of `# c) =
-	   \<rho>\<^sub>e (lit_of `# mset (trail S))\<close>
-        if
-	  \<open>total_over_m (lits_of_l M'a) (set_mset (init_clss S))\<close> and
-	  M'a: \<open>mset M'a = mset (trail S) + c\<close> and
-	  simple: \<open>lit_of `# mset (trail S) + lit_of `# c \<in> simple_clss (atms_of_mm (init_clss S))\<close>
-	  for c :: \<open>('v, 'v clause) ann_lit multiset\<close> and M'a
-      proof -
-        obtain c' where c: \<open>c = mset c'\<close>
-          using ex_mset by metis
-        show ?thesis
-	  unfolding c mset_append[symmetric] mset_map[symmetric]
-	    map_append
-	apply (rule eq_add_M')
-	using that(1) simple  arg_cong[OF M'a, of set_mset]
-	  distinct_consistent_interp[of M'a, unfolded no_dup_alt_def M'a]
-	by (auto simp: simple_clss_def c total_over_m_alt_def 
-	  atms_of_def image_image image_Un lits_of_def tautology_distinct_atm_iff)
-      qed
-      ultimately show False
-        using nsi'[of M'] simple_M' n_d_M' ge
-	unfolding enc_weight_opt.conflicting_clss_def
-	by (auto simp: enc_weight_opt.improvep.simps enc_weight_opt.is_improving_int_def
-	  enc_weight_opt.conflict_opt.simps enc_weight_opt.conflicting_clss_def
-	  subset_mset.le_iff_add)
+      apply (rule eq_add_M')
+      using that(1) simple  arg_cong[OF M'a, of set_mset]
+	distinct_consistent_interp[of M'a, unfolded no_dup_alt_def M'a]
+      by (auto simp: simple_clss_def c total_over_m_alt_def 
+	atms_of_def image_image image_Un lits_of_def tautology_distinct_atm_iff)
     qed
-oops
-(*
-        sorry
-    qed
-    have
-       \<open>trail S \<Turnstile>a {#Pos(replacement_pos (atm_of L))#} \<longrightarrow> defined_lit (trail S) L\<close>
-      using nsp'
-      apply (cases L)
-      apply (clarsimp simp add: additional_constraint_def all_conj_distrib undefined_lit_Neg_Pos_iff)
-      apply (clarsimp simp add: additional_constraint_def all_conj_distrib undefined_lit_Neg_Pos_iff)
-       apply (metis undefined_lit_Neg_Pos_iff)
-      done
-    moreover have
-       \<open>trail S \<Turnstile>a {#Pos(replacement_neg (atm_of L))#} \<longrightarrow> defined_lit (trail S) L\<close>
-      using nsp'
-      apply (cases L)
-      apply (clarsimp simp add: additional_constraint_def all_conj_distrib undefined_lit_Neg_Pos_iff)
-       apply (metis undefined_lit_Neg_Pos_iff)
-      apply (clarsimp simp add: additional_constraint_def all_conj_distrib undefined_lit_Neg_Pos_iff)
-      done
     ultimately show False
-      sorry
+      using nsi'[of M'] simple_M' n_d_M' ge
+      unfolding enc_weight_opt.conflicting_clss_def
+      by (auto simp: enc_weight_opt.improvep.simps enc_weight_opt.is_improving_int_def
+	enc_weight_opt.conflict_opt.simps enc_weight_opt.conflicting_clss_def
+	subset_mset.le_iff_add)
   qed
-  show ?B
-    sorry
+  then show ?B
+    using \<open>?A\<close>
+    by (auto simp: cdcl_bab_r_stgy.simps enc_weight_opt.cdcl_bab_stgy.simps
+      ocdcl\<^sub>W_o_r.simps enc_weight_opt.ocdcl\<^sub>W_o.simps)
 qed
-*)
-end
-
 
 end
 
