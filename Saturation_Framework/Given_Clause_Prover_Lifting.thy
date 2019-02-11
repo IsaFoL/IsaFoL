@@ -107,17 +107,27 @@ qed
 
 abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
 
-context
+definition S0 :: \<open>'a clause \<Rightarrow> 'a clause\<close> where \<open>S0 C = {#}\<close>
+
+lemma empty_sel_stable: \<open>\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S0 (C \<cdot> \<rho>) = S0 C \<cdot> \<rho>\<close>
+  unfolding S0_def by simp
+
+(*S0 context
   fixes M :: "'a clause set"
   assumes sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
-begin
+begin*)
 
-interpretation sq: selection "S_M S M"
+interpretation sq: selection S0
+  unfolding S0_def by unfold_locales auto
+
+(*S0 interpretation sq: selection "S_M S M"
   using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
-  by unfold_locales auto
+  by unfold_locales auto*)
 
-interpretation gr: ground_resolution_with_selection "S_M S M"
-  by unfold_locales
+interpretation gr: ground_resolution_with_selection S0 by unfold_locales
+
+(*S0 interpretation gr: ground_resolution_with_selection "S_M S M"
+  by unfold_locales *)
 
 (* Not yet too sure about which version to select. Is this one even correct? *)
 definition Inf_G :: "'a clause Saturation_Framework_Preliminaries.inference set" where
@@ -155,7 +165,8 @@ proof -
     obtain \<iota>_RP where i_equal: "same_inf \<iota>_RP \<iota>" and i_RP_in: "\<iota>_RP \<in> gr.ord_\<Gamma>" (*"\<iota>_RP \<in> (ord_FO_\<Gamma> S)" *)
       using i_in unfolding Inf_G_def same_inf_def by auto
     obtain CAs AAs As
-      where the_inf: "ground_resolution_with_selection.ord_resolve (S_M S M) CAs (main_prem_of \<iota>_RP) AAs As (concl_of \<iota>_RP)"
+      (*S0 where the_inf: "ground_resolution_with_selection.ord_resolve (S_M S M) CAs (main_prem_of \<iota>_RP) AAs As (concl_of \<iota>_RP)"*)
+      where the_inf: "ground_resolution_with_selection.ord_resolve S0 CAs (main_prem_of \<iota>_RP) AAs As (concl_of \<iota>_RP)"
       and mset_CAs: "side_prems_of \<iota>_RP = mset CAs"
         using i_RP_in unfolding gr.ord_\<Gamma>_def by force
     have concl: "concl_of \<iota>_RP = Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
@@ -164,7 +175,8 @@ proof -
       using i_equal unfolding same_inf_def by simp
     have I_entails_prems_RP: "I \<Turnstile>s set_mset (prems_of \<iota>_RP)" using prems I_entails_prems by argo
     then have I_entails_concl_RP: "I \<Turnstile> concl_of \<iota>_RP"
-      using ground_resolution_with_selection.ord_resolve_sound[of "S_M S M" CAs "main_prem_of \<iota>_RP" AAs As "concl_of \<iota>_RP" I]
+      (*S0 using ground_resolution_with_selection.ord_resolve_sound[of "S_M S M" CAs "main_prem_of \<iota>_RP" AAs As "concl_of \<iota>_RP" I]*)
+      using ground_resolution_with_selection.ord_resolve_sound[of S0 CAs "main_prem_of \<iota>_RP" AAs As "concl_of \<iota>_RP" I]
         the_inf mset_CAs gr.ground_resolution_with_selection_axioms by fastforce
     then have "I \<Turnstile> Saturation_Framework_Preliminaries.inference.concl_of \<iota>" using concl by auto
   }
@@ -188,7 +200,8 @@ interpretation sr: standard_redundancy_criterion_reductive gr.ord_\<Gamma>
   by unfold_locales
 
 interpretation sr: standard_redundancy_criterion_counterex_reducing gr.ord_\<Gamma>
-  "ground_resolution_with_selection.INTERP (S_M S M)"
+  (*S0 "ground_resolution_with_selection.INTERP (S_M S M)"*)
+  "ground_resolution_with_selection.INTERP S0"
   by unfold_locales
 
 definition Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set" where
@@ -392,7 +405,8 @@ proof -
     in_AAs: \<open>\<forall>i<n. \<forall>A\<in>#AAs ! i. A = As ! i\<close> and
     eligible: \<open>gr.eligible As (Da + negs (mset As))\<close> and
     max: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)\<close> and
-    S_empty: \<open>\<forall>i<n. (S_M S M) (CAs ! i) = {#}\<close>
+    (*S0 S_empty: \<open>\<forall>i<n. (S_M S M) (CAs ! i) = {#}\<close>*)
+    S_empty: \<open>\<forall>i<n. S0 (CAs ! i) = {#}\<close>
  using res unfolding gr.ord_resolve.simps by auto
   have x_in_equiv: \<open>x \<in># mset CAs' \<Longrightarrow> x \<in># mset CAs\<close> for x using mset_CAs by simp
   have len_CAs': \<open>length CAs' = n\<close> using len_CAs mset_CAs using mset_eq_length by fastforce
@@ -537,7 +551,8 @@ proof (intro disj_imp[THEN iffD2] impI)
     AAs3_i: \<open>\<forall>i<n. \<forall>A\<in>#AAs3 ! i. A = As3 ! i\<close> and
     eligible3: \<open>gr.eligible As3 (D3 + negs (mset As3))\<close> and
     max3: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As3 ! i) (Cs3 ! i)\<close> and
-    sel_empty3: \<open>\<forall>i<n. (S_M S M) (Cs3 ! i + poss (AAs3 ! i)) = {#}\<close>
+    (*S0 sel_empty3: \<open>\<forall>i<n. (S_M S M) (Cs3 ! i + poss (AAs3 ! i)) = {#}\<close>*)
+    sel_empty3: \<open>\<forall>i<n. S0 (Cs3 ! i + poss (AAs3 ! i)) = {#}\<close>
     using A3_is n_is unfolding gr.ord_resolve.simps by auto
   obtain D4 Cs4 where
     main4: \<open>main_prem_of \<iota>' = D4 + negs (mset As4)\<close> and
@@ -548,7 +563,8 @@ proof (intro disj_imp[THEN iffD2] impI)
     AAs4_i: \<open>\<forall>i<n. \<forall>A\<in>#AAs4 ! i. A = As4 ! i\<close> and
     eligible4: \<open>gr.eligible As4 (D4 + negs (mset As4))\<close> and
     max4: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As4 ! i) (Cs4 ! i)\<close> and
-    sel_empty4: \<open>\<forall>i<n. (S_M S M) (Cs4 ! i + poss (AAs4 ! i)) = {#}\<close>
+    (*S0 sel_empty4: \<open>\<forall>i<n. (S_M S M) (Cs4 ! i + poss (AAs4 ! i)) = {#}\<close>*)
+    sel_empty4: \<open>\<forall>i<n. S0 (Cs4 ! i + poss (AAs4 ! i)) = {#}\<close>
     using A4_is len_AAs4 unfolding gr.ord_resolve.simps by auto
   have As_eq: \<open>\<forall>i \<in> {1..<n}. As3!i = As4!i\<close>
     using main3 eligible3 sel_empty4 CAs_i3 CAs_i4 AAs3_i AAs4_i max3 max4 unfolding gr.strictly_maximal_wrt_def
@@ -812,7 +828,8 @@ qed
 
 lemma gr_res_is_res:
   \<open>is_ground_cls DA \<Longrightarrow> is_ground_cls_list CAs \<Longrightarrow> gr.ord_resolve CAs DA AAs As E \<Longrightarrow>
-    \<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
+    \<exists>\<sigma>. ord_resolve S0 CAs DA AAs As \<sigma> E\<close>
+    (*S0 \<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>*)
 proof -
   assume
     ground_DA: \<open>is_ground_cls DA\<close> and
@@ -821,7 +838,8 @@ proof -
   have ground_E: "is_ground_cls E"
       using ground_ord_resolve_ground_no_ctxt gr_res ground_DA ground_CAs
       by auto
-  show "\<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E" using gr_res
+  (*S0 show "\<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E" using gr_res*)
+  show "\<exists>\<sigma>. ord_resolve S0 CAs DA AAs As \<sigma> E" using gr_res
   proof (cases rule: gr.ord_resolve.cases)
     case (ord_resolve n Cs D)
       note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
@@ -887,7 +905,8 @@ proof -
         using is_ground_Max ground_mset_as ground_d by auto
  
       from ground_elig have fo_elig:
-        "eligible (S_M S M) \<sigma> As (D + negs (mset As))"
+        (*S0 "eligible (S_M S M) \<sigma> As (D + negs (mset As))"*)
+        "eligible S0 \<sigma> As (D + negs (mset As))"
         unfolding gr.eligible.simps eligible.simps gr.maximal_wrt_def using ann1 ann2
         by auto 
  
@@ -901,7 +920,8 @@ proof -
       then have ll: "\<forall>i < n. strictly_maximal_wrt (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
         by (simp add: ground_as ground_cs as_len)
  
-      have m: "\<forall>i < n. S_M S M (CAs ! i) = {#}"
+      (*S0 have m: "\<forall>i < n. S_M S M (CAs ! i) = {#}"*)
+      have m: "\<forall>i < n. S0 (CAs ! i) = {#}"
         using ord_resolve by simp
  
       have ground_e: "is_ground_cls (\<Union>#mset Cs + D)"
@@ -922,12 +942,250 @@ apply (induction L rule: rev_induct)
 apply (auto simp: atLeast0_lessThan_Suc nth_append intro!: image_mset_cong)
 done
 
+(* Added for empty selection case only *)
+lemma empty_sel_ord_resolve_obtain_clauses:
+  assumes
+    res_e: "ord_resolve S0 CAs DA AAs As \<sigma> E" and
+    select: "selection S0" and
+    grounding: "{DA} \<union> set CAs \<subseteq> grounding_of_clss M" and
+    n: "length CAs = n" and
+    d: "DA = D + negs (mset As)" and
+    c: "(\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i))" "length Cs = n" "length AAs = n"
+  obtains DA0 \<eta>0 CAs0 \<eta>s0 As0 AAs0 D0 Cs0 where
+    "length CAs0 = n"
+    "length \<eta>s0 = n"
+    "DA0 \<in> M"
+    "DA0 \<cdot> \<eta>0 = DA"
+    "\<forall>CA0 \<in> set CAs0. CA0 \<in> M"
+    "CAs0 \<cdot>\<cdot>cl \<eta>s0 = CAs"
+    "is_ground_subst \<eta>0"
+    "is_ground_subst_list \<eta>s0"
+    "As0  \<cdot>al \<eta>0 = As"
+    "AAs0 \<cdot>\<cdot>aml \<eta>s0 = AAs"
+    "length As0 = n"
+    "D0 \<cdot> \<eta>0 = D"
+    "DA0 = D0 + (negs (mset As0))"
+    "length Cs0 = n"
+    "Cs0 \<cdot>\<cdot>cl \<eta>s0 = Cs"
+    "\<forall>i < n. CAs0 ! i = Cs0 ! i + poss (AAs0 ! i)"
+    "length AAs0 = n"
+  using res_e
+proof (cases rule: ord_resolve.cases)
+  case (ord_resolve n_twin Cs_twins D_twin)
+  note da = this(1) and e = this(2) and cas = this(8) and mgu = this(10) and eligible = this(11)
+  from ord_resolve have "n_twin = n" "D_twin = D"
+    using n d by auto
+  moreover have "Cs_twins = Cs"
+    using c cas n calculation(1) \<open>length Cs_twins = n_twin\<close> by (auto simp add: nth_equalityI)
+  ultimately
+  have nz: "n \<noteq> 0" and cs_len: "length Cs = n" and aas_len: "length AAs = n" and as_len: "length As = n"
+    and da: "DA = D + negs (mset As)" and eligible: "eligible S0 \<sigma> As (D + negs (mset As))"
+    and cas: "\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)"
+    using ord_resolve by force+
+
+  note n = \<open>n \<noteq> 0\<close> \<open>length CAs = n\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close> \<open>length As = n\<close>
+
+  \<comment> \<open>Obtain FO side premises\<close>
+  have "\<forall>CA \<in> set CAs. \<exists>CA0 \<eta>c0. CA0 \<in> M \<and> CA0 \<cdot> \<eta>c0 = CA  \<and> is_ground_subst \<eta>c0"
+    using grounding S_M_grounding_of_clss select by (metis (no_types) le_supE subset_iff)
+  then have "\<forall>i < n. \<exists>CA0 \<eta>c0. CA0 \<in> M \<and> CA0 \<cdot> \<eta>c0 = (CAs ! i) \<and> is_ground_subst \<eta>c0"
+    using n by force
+  then obtain \<eta>s0f CAs0f where f_p:
+    "\<forall>i < n. CAs0f i \<in> M"
+    "\<forall>i < n. (CAs0f i) \<cdot> (\<eta>s0f i) = (CAs ! i)"
+    "\<forall>i < n. is_ground_subst (\<eta>s0f i)"
+    using n by (metis (no_types))
+
+  define \<eta>s0 where
+    "\<eta>s0 = map \<eta>s0f [0 ..<n]"
+  define CAs0 where
+    "CAs0 = map CAs0f [0 ..<n]"
+
+  have "length \<eta>s0 = n" "length CAs0 = n"
+    unfolding \<eta>s0_def CAs0_def by auto
+  note n = \<open>length \<eta>s0 = n\<close> \<open>length CAs0 = n\<close> n
+
+  \<comment> \<open>The properties we need of the FO side premises\<close>
+  have CAs0_in_M: "\<forall>CA0 \<in> set CAs0. CA0 \<in> M"
+    unfolding CAs0_def using f_p(1) by auto
+  have CAs0_to_CAs: "CAs0 \<cdot>\<cdot>cl \<eta>s0 = CAs"
+    unfolding CAs0_def \<eta>s0_def using f_p(2)  by (auto simp: n intro: nth_equalityI)
+  have sub_ground: "\<forall>\<eta>c0 \<in> set \<eta>s0. is_ground_subst \<eta>c0"
+    unfolding \<eta>s0_def using f_p n by force
+  then have "is_ground_subst_list \<eta>s0"
+    using n unfolding is_ground_subst_list_def by auto
+
+  \<comment> \<open>Split side premises CAs0 into Cs0 and AAs0\<close>
+  obtain AAs0 Cs0 where AAs0_Cs0_p:
+   "AAs0 \<cdot>\<cdot>aml \<eta>s0 = AAs" "length Cs0 = n" "Cs0 \<cdot>\<cdot>cl \<eta>s0 = Cs"
+   "\<forall>i < n. CAs0 ! i = Cs0 ! i + poss (AAs0 ! i)" "length AAs0 = n"
+  proof -
+    have "\<forall>i < n. \<exists>AA0. AA0 \<cdot>am \<eta>s0 ! i = AAs ! i \<and> poss AA0 \<subseteq># CAs0 ! i"
+    proof (rule, rule)
+      fix i
+      assume "i < n"
+      have "CAs0 ! i \<cdot> \<eta>s0 ! i = CAs ! i"
+        using \<open>i < n\<close> \<open>CAs0 \<cdot>\<cdot>cl \<eta>s0 = CAs\<close> n by force
+      moreover have "poss (AAs ! i) \<subseteq># CAs !i"
+        using \<open>i < n\<close> cas by auto
+      ultimately obtain poss_AA0 where
+        nn: "poss_AA0 \<cdot> \<eta>s0 ! i = poss (AAs ! i) \<and> poss_AA0 \<subseteq># CAs0 ! i"
+        using cas image_mset_of_subset unfolding subst_cls_def by metis
+      then have l: "\<forall>L \<in># poss_AA0. is_pos L"
+        unfolding subst_cls_def by (metis Melem_subst_cls imageE literal.disc(1)
+            literal.map_disc_iff set_image_mset subst_cls_def subst_lit_def)
+
+      define AA0 where
+        "AA0 = image_mset atm_of poss_AA0"
+
+      have na: "poss AA0 = poss_AA0"
+        using l unfolding AA0_def by auto
+      then have "AA0 \<cdot>am \<eta>s0 ! i = AAs ! i"
+        using nn by (metis (mono_tags) literal.inject(1) multiset.inj_map_strong subst_cls_poss)
+      moreover have "poss AA0 \<subseteq># CAs0 ! i"
+        using na nn by auto
+      ultimately show "\<exists>AA0. AA0 \<cdot>am \<eta>s0 ! i = AAs ! i \<and> poss AA0 \<subseteq># CAs0 ! i"
+        by blast
+    qed
+    then obtain AAs0f where 
+      AAs0f_p: "\<forall>i < n. AAs0f i \<cdot>am \<eta>s0 ! i = AAs ! i \<and> (poss (AAs0f i)) \<subseteq># CAs0 ! i"
+      by metis
+
+    define AAs0 where "AAs0 = map AAs0f [0 ..<n]"
+
+    then have "length AAs0 = n"
+      by auto
+    note n = n \<open>length AAs0 = n\<close>
+
+    from AAs0_def have "\<forall>i < n. AAs0 ! i \<cdot>am \<eta>s0 ! i = AAs ! i"
+      using AAs0f_p by auto
+    then have AAs0_AAs: "AAs0 \<cdot>\<cdot>aml \<eta>s0 = AAs"
+      using n by (auto intro: nth_equalityI)
+
+    from AAs0_def have AAs0_in_CAs0: "\<forall>i < n. poss (AAs0 ! i) \<subseteq># CAs0 ! i"
+      using AAs0f_p by auto
+
+    define Cs0 where
+      "Cs0 = map2 (-) CAs0 (map poss AAs0)"
+
+    have "length Cs0 = n"
+      using Cs0_def n by auto
+    note n = n \<open>length Cs0 = n\<close>
+
+    have "\<forall>i < n. CAs0 ! i = Cs0 ! i + poss (AAs0 ! i)"
+      using AAs0_in_CAs0 Cs0_def n by auto
+    then have "Cs0 \<cdot>\<cdot>cl \<eta>s0 = Cs"
+      using \<open>CAs0 \<cdot>\<cdot>cl \<eta>s0 = CAs\<close> AAs0_AAs cas n by (auto intro: nth_equalityI)
+
+    show ?thesis
+      using that 
+        \<open>AAs0 \<cdot>\<cdot>aml \<eta>s0 = AAs\<close> \<open>Cs0 \<cdot>\<cdot>cl \<eta>s0 = Cs\<close> \<open>\<forall>i < n. CAs0 ! i = Cs0 ! i + poss (AAs0 ! i)\<close>
+        \<open>length AAs0 = n\<close> \<open>length Cs0 = n\<close>
+      by blast
+  qed
+
+  \<comment> \<open>Obtain FO main premise\<close>
+  have "\<exists>DA0 \<eta>0. DA0 \<in> M \<and> DA = DA0 \<cdot> \<eta>0 \<and> is_ground_subst \<eta>0"
+    using grounding S_M_grounding_of_clss select by (metis le_supE singletonI subsetCE)
+  then obtain DA0 \<eta>0 where 
+    DA0_\<eta>0_p: "DA0 \<in> M \<and> DA = DA0 \<cdot> \<eta>0 \<and> is_ground_subst \<eta>0"
+    by auto
+  \<comment> \<open>The properties we need of the FO main premise\<close>
+  have DA0_in_M: "DA0 \<in> M"
+    using DA0_\<eta>0_p by auto
+  have DA0_to_DA: "DA0 \<cdot> \<eta>0 = DA"
+    using DA0_\<eta>0_p by auto
+  have "is_ground_subst \<eta>0"
+    using DA0_\<eta>0_p by auto
+
+  \<comment> \<open>Split main premise DA0 into D0 and As0\<close>
+  obtain D0 As0 where D0As0_p:
+     "As0  \<cdot>al \<eta>0 = As" "length As0 = n" "D0 \<cdot> \<eta>0 = D" "DA0 = D0 + (negs (mset As0))"
+    "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As0) = S DA0"
+  proof -
+    {
+      assume a: "S_M S M (D + negs (mset As)) = {#} \<and> length As = (Suc 0)
+        \<and> maximal_wrt (As ! 0 \<cdot>a \<sigma>) ((D + negs (mset As)) \<cdot> \<sigma>)"
+      then have as: "mset As = {#As ! 0#}"
+        by (auto intro: nth_equalityI)
+      then have "negs (mset As) = {#Neg (As ! 0)#}"
+        by (simp add: \<open>mset As = {#As ! 0#}\<close>)
+      then have "DA = D + {#Neg (As ! 0)#}"
+        using da by auto
+      then obtain L where "L \<in># DA0 \<and> L \<cdot>l \<eta>0 = Neg (As ! 0)"
+        using DA0_to_DA by (metis Melem_subst_cls mset_subset_eq_add_right single_subset_iff)
+      then have "Neg (atm_of L) \<in># DA0 \<and> Neg (atm_of L) \<cdot>l \<eta>0 = Neg (As ! 0)"
+        by (metis Neg_atm_of_iff literal.sel(2) subst_lit_is_pos)
+      then have "[atm_of L] \<cdot>al \<eta>0 = As \<and> negs (mset [atm_of L]) \<subseteq># DA0"
+        using as subst_lit_def by auto
+      then have "\<exists>As0. As0 \<cdot>al \<eta>0 = As \<and> negs (mset As0) \<subseteq># DA0
+        \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As0) = S DA0)"
+        using a by blast
+    }
+    moreover
+    {
+      assume "S_M S M (D + negs (mset As)) = negs (mset As)"
+      then have "negs (mset As) = S DA0 \<cdot> \<eta>0"
+        using da \<open>S DA0 \<cdot> \<eta>0 = S_M S M DA\<close> by auto
+      then have "\<exists>As0. negs (mset As0) = S DA0 \<and> As0 \<cdot>al \<eta>0 = As"
+        using instance_list[of As "S DA0" \<eta>0] S.S_selects_neg_lits by auto
+      then have "\<exists>As0. As0 \<cdot>al \<eta>0 = As \<and> negs (mset As0) \<subseteq># DA0
+        \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As0) = S DA0)"
+        using S.S_selects_subseteq by auto
+    }
+    ultimately have "\<exists>As0. As0 \<cdot>al \<eta>0 = As \<and> (negs (mset As0)) \<subseteq># DA0
+      \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As0) = S DA0)"
+      using eligible unfolding eligible.simps by auto
+    then obtain As0 where
+      As0_p: "As0 \<cdot>al \<eta>0 = As \<and> negs (mset As0) \<subseteq># DA0
+      \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As0) = S DA0)"
+      by blast
+    then have "length As0 = n"
+      using as_len by auto
+    note n = n this
+
+    have "As0 \<cdot>al \<eta>0 = As"
+      using As0_p by auto
+
+    define D0 where
+      "D0 = DA0 - negs (mset As0)"
+    then have "DA0 = D0 + negs (mset As0)"
+      using As0_p by auto
+    then have "D0 \<cdot> \<eta>0 = D"
+      using DA0_to_DA da As0_p by auto
+
+    have "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As0) = S DA0"
+      using As0_p by blast
+    then show ?thesis
+      using that \<open>As0 \<cdot>al \<eta>0 = As\<close> \<open>D0 \<cdot> \<eta>0= D\<close> \<open>DA0 = D0 +  (negs (mset As0))\<close> \<open>length As0 = n\<close>
+      by metis
+  qed
+
+  show ?thesis
+    using that[OF n(2,1) DA0_in_M  DA0_to_DA SDA0_to_SMDA CAs0_in_M CAs0_to_CAs SCAs0_to_SMCAs
+        \<open>is_ground_subst \<eta>0\<close> \<open>is_ground_subst_list \<eta>s0\<close> \<open>As0  \<cdot>al \<eta>0 = As\<close>
+        \<open>AAs0 \<cdot>\<cdot>aml \<eta>s0 = AAs\<close>
+        \<open>length As0 = n\<close>
+        \<open>D0 \<cdot> \<eta>0 = D\<close>
+        \<open>DA0 = D0 + (negs (mset As0))\<close>
+        \<open>S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As0) = S DA0\<close>
+        \<open>length Cs0 = n\<close>
+        \<open>Cs0 \<cdot>\<cdot>cl \<eta>s0 = Cs\<close>
+        \<open>\<forall>i < n. CAs0 ! i = Cs0 ! i + poss (AAs0 ! i)\<close>
+        \<open>length AAs0 = n\<close>]
+    by auto
+qed
+
+
+
+
 (* TODO: on the long term, should replace ord_resolve_rename_lifting in the
    ordered resolution prover in the AFP *)
 lemma ord_resolve_rename_lifting_with_length:
   assumes
     sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
-    res_e: "ord_resolve (S_M S M) CAs DA AAs As \<sigma> E" and
+    (*S0 res_e: "ord_resolve (S_M S M) CAs DA AAs As \<sigma> E" and *)
+    res_e: "ord_resolve S0 CAs DA AAs As \<sigma> E" and
     select: "selection S" and
     grounding: "{DA} \<union> set CAs \<subseteq> grounding_of_clss M"
   obtains \<eta>s \<eta> \<eta>2 CAs0 DA0 AAs0 As0 E0 \<tau> where
@@ -963,7 +1221,8 @@ proof (cases rule: ord_resolve.cases)
     "S DA0 \<cdot> \<eta>0 = S_M S M DA"
     "\<forall>CA0 \<in> set CAs0. CA0 \<in> M"
     "CAs0 \<cdot>\<cdot>cl \<eta>s0 = CAs"
-    "map S CAs0 \<cdot>\<cdot>cl \<eta>s0 = map (S_M S M) CAs"
+    (*S0 "map S CAs0 \<cdot>\<cdot>cl \<eta>s0 = map (S_M S M) CAs"*)
+    "map S CAs0 \<cdot>\<cdot>cl \<eta>s0 = map S0 CAs"
     "is_ground_subst \<eta>0"
     "is_ground_subst_list \<eta>s0"
     "As0 \<cdot>al \<eta>0 = As"
@@ -971,11 +1230,13 @@ proof (cases rule: ord_resolve.cases)
     "length As0 = n"
     "D0 \<cdot> \<eta>0 = D"
     "DA0 = D0 + (negs (mset As0))"
-    "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As0) = S DA0"
+    (*S0 "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As0) = S DA0"*)
+    "S0 (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As0) = S DA0"
     "length Cs0 = n"
     "Cs0 \<cdot>\<cdot>cl \<eta>s0 = Cs"
     "\<forall>i < n. CAs0 ! i = Cs0 ! i + poss (AAs0 ! i)"
     "length AAs0 = n"
+    (*S0 using ord_resolve_obtain_clauses[of S M CAs DA, OF res_e select grounding n(2) \<open>DA = D + negs (mset As)\<close>*)
     using ord_resolve_obtain_clauses[of S M CAs DA, OF res_e select grounding n(2) \<open>DA = D + negs (mset As)\<close>
       \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close>, of thesis] by blast
 
