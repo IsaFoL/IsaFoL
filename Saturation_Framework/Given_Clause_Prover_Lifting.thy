@@ -16,6 +16,8 @@ begin
 definition empty_sel :: \<open>'a clause \<Rightarrow> 'a clause\<close> where
 \<open>empty_sel C = {#}\<close>
 
+interpretation selection empty_sel
+  unfolding selection_def empty_sel_def by simp
 
 text \<open>This part corresponds to section 5.2 in the technical report\<close> 
 locale FO_resolution_prover_with_empty_selection = FO_resolution_prover empty_sel
@@ -111,10 +113,21 @@ qed
 
 abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
 
+lemma sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> empty_sel (C \<cdot> \<rho>) = empty_sel C \<cdot> \<rho>"
+  unfolding empty_sel_def by simp
+
 context
   fixes M :: "'a clause set"
-  assumes sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> empty_sel (C \<cdot> \<rho>) = empty_sel C \<cdot> \<rho>"
+  (* assumes sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> empty_sel (C \<cdot> \<rho>) = empty_sel C \<cdot> \<rho>" *)
 begin
+
+thm S_M_def
+find_theorems name: S_M
+
+lemma S_M_is_empty_sel: \<open>\<And>C. S_M empty_sel M C = empty_sel C\<close>
+  using S_M_not_grounding_of_clss[OF selection_axioms] S_M_def[of empty_sel M, OF selection_axioms]
+  unfolding empty_sel_def
+  by (smt S_M_grounding_of_clss selection_axioms someI_ex subst_cls_empty)
 
 interpretation sq: selection "S_M empty_sel M"
   using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
@@ -271,26 +284,6 @@ proof
   then show \<open>\<iota> \<in> Inf_from N\<close> using i_from unfolding Inf_from_def by fast
 qed
 
-(*lemma conv_inf_inf_from_commute: \<open>conv_inf ` gr.inferences_from (N - sr.Rf N) \<subseteq> Inf_from N\<close> 
-proof
-  fix \<iota>
-  assume
-    i_in: \<open>\<iota> \<in> conv_inf ` gr.inferences_from (N - sr.Rf N)\<close>
-  have \<open>\<iota> \<in> conv_inf ` gr.inferences_from N\<close>
-  proof - (* rebuild by sledgehammer *)
-    have "gr.inferences_from (N - sr.Rf N) \<subseteq> gr.inferences_from N"
-      by (simp add: Diff_subset gr.inferences_from_mono)
-    then show ?thesis
-      using i_in by blast
-  qed
-  then obtain \<iota>_RP where i_RP_from: \<open>\<iota>_RP \<in> gr.inferences_from N\<close> and i_to_i_RP: \<open>\<iota> = conv_inf \<iota>_RP\<close> by fast
-  have \<open>set_mset (prems_of \<iota>_RP) \<subseteq> N\<close> using i_RP_from unfolding gr.inferences_from_def infer_from_def by fast
-  then have i_from: \<open>set (Saturation_Framework_Preliminaries.prems_of \<iota>) \<subseteq> N\<close> using i_to_i_RP unfolding conv_inf_def by auto
-  have \<open>\<iota> \<in> Inf_G\<close> using i_RP_from i_to_i_RP unfolding gr.inferences_from_def Inf_G_def by blast
-  then show \<open>\<iota> \<in> Inf_from N\<close> using i_from unfolding Inf_from_def by fast
-qed
-*)
-
 lemma \<open>gr.eligible As D \<Longrightarrow> mset As = mset As' \<Longrightarrow> gr.eligible As' D\<close>
   unfolding gr.eligible.simps
   by (cases As; cases As')
@@ -307,7 +300,7 @@ lemma in_set_drop_conv_nth: "x\<in>set (drop n l) \<longleftrightarrow> (\<exist
   done
 
 (* taken from Mathias Fleury's isafol/Weidenbach_Book/WB_List_More.thy *)
-lemma take_map_nth_alt_def: \<open>take n xs = map ((!) xs) [0..<min n (length xs)]\<close>
+lemma take_map_nth_alt_def: \<open>take n (xs:: 'c list) = map ((!) xs) [0..<min n (length xs)]\<close>
 proof (induction xs rule: rev_induct)
   case Nil
   then show ?case by auto
@@ -322,10 +315,10 @@ next
     case False
     have [simp]:
       \<open>map (\<lambda>a. if a < length xs then xs ! a else [x] ! (a - length xs)) [0..<length xs] =
-       map (\<lambda>a. xs ! a) [0..<length xs]\<close> for xs and x :: 'b
+       map (\<lambda>a. xs ! a) [0..<length xs]\<close> for xs and x :: 'c
       by (rule map_cong) auto
     show ?thesis
-      using IH False (*by (smt append_Nil2 append_eq_append_conv append_take_drop_id length_take lessI map_nth min_Suc_Suc min_def min_less_iff_conj not_less_less_Suc_eq)*)
+      using IH False
       by (auto simp: nth_append min_def)
   qed
 qed
@@ -730,7 +723,7 @@ qed
 definition \<G>_F :: \<open>'a clause \<Rightarrow> 'a clause set\<close> where
   \<open>\<G>_F C = grounding_of_cls C\<close>
 
-definition subst_inf :: \<open>'a clause Saturation_Framework_Preliminaries.inference \<Rightarrow> 's
+definition subst_inf :: \<open>'a clause Saturation_Framework_Preliminaries.inference \<Rightarrow> 'b
                           \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference\<close> (infixl "\<cdot>inf" 67) where
   \<open>\<iota> \<cdot>inf \<sigma> = Saturation_Framework_Preliminaries.Infer
     (map (\<lambda> A. A \<cdot> \<sigma>) (Saturation_Framework_Preliminaries.prems_of \<iota>))
@@ -958,7 +951,8 @@ proof (cases rule: ord_resolve.cases)
 
   note n = \<open>n \<noteq> 0\<close> \<open>length CAs = n\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close> \<open>length As = n\<close>
 
-  interpret empty_sel: selection empty_sel by (rule select)
+  interpret empty_sel: selection empty_sel
+    using Given_Clause_Prover_Lifting.selection_axioms by auto
 
   obtain DA0 \<eta>0 CAs0 \<eta>s0 As0 AAs0 D0 Cs0 where as0:
     "length CAs0 = n"
@@ -981,8 +975,10 @@ proof (cases rule: ord_resolve.cases)
     "Cs0 \<cdot>\<cdot>cl \<eta>s0 = Cs"
     "\<forall>i < n. CAs0 ! i = Cs0 ! i + poss (AAs0 ! i)"
     "length AAs0 = n"
+    (* using ord_resolve_obtain_clauses[of empty_sel M CAs DA] res_e select grounding*)
     using ord_resolve_obtain_clauses[of empty_sel M CAs DA, OF res_e select grounding n(2) \<open>DA = D + negs (mset As)\<close>
-      \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close>, of thesis] by blast
+      \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close>, of thesis]
+    by blast
 
   note n = \<open>length CAs0 = n\<close> \<open>length \<eta>s0 = n\<close> \<open>length As0 = n\<close> \<open>length AAs0 = n\<close> \<open>length Cs0 = n\<close> n
 
