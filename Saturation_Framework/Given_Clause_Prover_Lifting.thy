@@ -13,8 +13,12 @@ imports
   "../lib/Explorer"
 begin
 
+definition empty_sel :: \<open>'a clause \<Rightarrow> 'a clause\<close> where
+\<open>empty_sel C = {#}\<close>
+
+
 text \<open>This part corresponds to section 5.2 in the technical report\<close> 
-context FO_resolution_prover
+locale FO_resolution_prover_with_empty_selection = FO_resolution_prover empty_sel
 begin
 
 abbreviation Bot_F :: "'a clause set" where "Bot_F \<equiv> {{#}}"
@@ -41,9 +45,9 @@ definition same_inf ::
     concl_of \<iota>_RP = Saturation_Framework_Preliminaries.concl_of \<iota>"
 
 definition Inf_F :: "'a clause Saturation_Framework_Preliminaries.inference set" where
-  "Inf_F = {\<iota>. \<exists>\<iota>_RP \<in> (ord_FO_\<Gamma> S). same_inf \<iota>_RP \<iota>}"
+  "Inf_F = {\<iota>. \<exists>\<iota>_RP \<in> (ord_FO_\<Gamma> empty_sel). same_inf \<iota>_RP \<iota>}"
 
-lemma conv_inf_in_Inf_F: \<open>conv_inf ` (ord_FO_\<Gamma> S) \<subseteq> Inf_F\<close>
+lemma conv_inf_in_Inf_F: \<open>conv_inf ` (ord_FO_\<Gamma> empty_sel) \<subseteq> Inf_F\<close>
   unfolding conv_inf_def Inf_F_def same_inf_def by auto
 
 interpretation sound_F: Saturation_Framework_Preliminaries.sound_inference_system Bot_F entails_sound_F Inf_F 
@@ -76,9 +80,9 @@ proof -
       i_in: "\<iota> \<in> Inf_F" and
       I_entails_prems: "\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s set (inference.prems_of \<iota>) \<cdot>cs \<sigma>" and
       ground_subst: "is_ground_subst \<eta>"
-    obtain \<iota>_RP where i_RP_in: "\<iota>_RP \<in> (ord_FO_\<Gamma> S)" and i_i_RP: "same_inf \<iota>_RP \<iota>"
+    obtain \<iota>_RP where i_RP_in: "\<iota>_RP \<in> (ord_FO_\<Gamma> empty_sel)" and i_i_RP: "same_inf \<iota>_RP \<iota>"
       using i_in unfolding Inf_F_def same_inf_def by force 
-    obtain CAs AAs As \<sigma> where the_inf: "ord_resolve_rename S CAs (main_prem_of \<iota>_RP) AAs As \<sigma> (concl_of \<iota>_RP)"
+    obtain CAs AAs As \<sigma> where the_inf: "ord_resolve_rename empty_sel CAs (main_prem_of \<iota>_RP) AAs As \<sigma> (concl_of \<iota>_RP)"
       and mset_CAs: "mset CAs = side_prems_of \<iota>_RP" using i_RP_in unfolding ord_FO_\<Gamma>_def by auto
     have concl: "concl_of \<iota>_RP = Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
       using i_i_RP unfolding same_inf_def by fastforce
@@ -109,14 +113,14 @@ abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
 
 context
   fixes M :: "'a clause set"
-  assumes sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
+  assumes sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> empty_sel (C \<cdot> \<rho>) = empty_sel C \<cdot> \<rho>"
 begin
 
-interpretation sq: selection "S_M S M"
+interpretation sq: selection "S_M empty_sel M"
   using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
   by unfold_locales auto
 
-interpretation gr: ground_resolution_with_selection "S_M S M"
+interpretation gr: ground_resolution_with_selection "S_M empty_sel M"
   by unfold_locales
 
 (* Not yet too sure about which version to select. Is this one even correct? *)
@@ -152,10 +156,10 @@ proof -
     assume
       i_in: "\<iota> \<in> Inf_G" and
       I_entails_prems: "I \<Turnstile>s (set (inference.prems_of \<iota>))"
-    obtain \<iota>_RP where i_equal: "same_inf \<iota>_RP \<iota>" and i_RP_in: "\<iota>_RP \<in> gr.ord_\<Gamma>" (*"\<iota>_RP \<in> (ord_FO_\<Gamma> S)" *)
+    obtain \<iota>_RP where i_equal: "same_inf \<iota>_RP \<iota>" and i_RP_in: "\<iota>_RP \<in> gr.ord_\<Gamma>" (*"\<iota>_RP \<in> (ord_FO_\<Gamma> empty_sel)" *)
       using i_in unfolding Inf_G_def same_inf_def by auto
     obtain CAs AAs As
-      where the_inf: "ground_resolution_with_selection.ord_resolve (S_M S M) CAs (main_prem_of \<iota>_RP) AAs As (concl_of \<iota>_RP)"
+      where the_inf: "ground_resolution_with_selection.ord_resolve (S_M empty_sel M) CAs (main_prem_of \<iota>_RP) AAs As (concl_of \<iota>_RP)"
       and mset_CAs: "side_prems_of \<iota>_RP = mset CAs"
         using i_RP_in unfolding gr.ord_\<Gamma>_def by force
     have concl: "concl_of \<iota>_RP = Saturation_Framework_Preliminaries.inference.concl_of \<iota>"
@@ -164,7 +168,7 @@ proof -
       using i_equal unfolding same_inf_def by simp
     have I_entails_prems_RP: "I \<Turnstile>s set_mset (prems_of \<iota>_RP)" using prems I_entails_prems by argo
     then have I_entails_concl_RP: "I \<Turnstile> concl_of \<iota>_RP"
-      using ground_resolution_with_selection.ord_resolve_sound[of "S_M S M" CAs "main_prem_of \<iota>_RP" AAs As "concl_of \<iota>_RP" I]
+      using ground_resolution_with_selection.ord_resolve_sound[of "S_M empty_sel M" CAs "main_prem_of \<iota>_RP" AAs As "concl_of \<iota>_RP" I]
         the_inf mset_CAs gr.ground_resolution_with_selection_axioms by fastforce
     then have "I \<Turnstile> Saturation_Framework_Preliminaries.inference.concl_of \<iota>" using concl by auto
   }
@@ -188,7 +192,7 @@ interpretation sr: standard_redundancy_criterion_reductive gr.ord_\<Gamma>
   by unfold_locales
 
 interpretation sr: standard_redundancy_criterion_counterex_reducing gr.ord_\<Gamma>
-  "ground_resolution_with_selection.INTERP (S_M S M)"
+  "ground_resolution_with_selection.INTERP (S_M empty_sel M)"
   by unfold_locales
 
 definition Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set" where
@@ -321,7 +325,8 @@ next
        map (\<lambda>a. xs ! a) [0..<length xs]\<close> for xs and x :: 'b
       by (rule map_cong) auto
     show ?thesis
-      using IH False by (auto simp: nth_append min_def)
+      using IH False (*by (smt append_Nil2 append_eq_append_conv append_take_drop_id length_take lessI map_nth min_Suc_Suc min_def min_less_iff_conj not_less_less_Suc_eq)*)
+      by (auto simp: nth_append min_def)
   qed
 qed
 
@@ -392,7 +397,7 @@ proof -
     in_AAs: \<open>\<forall>i<n. \<forall>A\<in>#AAs ! i. A = As ! i\<close> and
     eligible: \<open>gr.eligible As (Da + negs (mset As))\<close> and
     max: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)\<close> and
-    S_empty: \<open>\<forall>i<n. (S_M S M) (CAs ! i) = {#}\<close>
+    S_empty: \<open>\<forall>i<n. (S_M empty_sel M) (CAs ! i) = {#}\<close>
  using res unfolding gr.ord_resolve.simps by auto
   have x_in_equiv: \<open>x \<in># mset CAs' \<Longrightarrow> x \<in># mset CAs\<close> for x using mset_CAs by simp
   have len_CAs': \<open>length CAs' = n\<close> using len_CAs mset_CAs using mset_eq_length by fastforce
@@ -537,7 +542,7 @@ proof (intro disj_imp[THEN iffD2] impI)
     AAs3_i: \<open>\<forall>i<n. \<forall>A\<in>#AAs3 ! i. A = As3 ! i\<close> and
     eligible3: \<open>gr.eligible As3 (D3 + negs (mset As3))\<close> and
     max3: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As3 ! i) (Cs3 ! i)\<close> and
-    sel_empty3: \<open>\<forall>i<n. (S_M S M) (Cs3 ! i + poss (AAs3 ! i)) = {#}\<close>
+    sel_empty3: \<open>\<forall>i<n. (S_M empty_sel M) (Cs3 ! i + poss (AAs3 ! i)) = {#}\<close>
     using A3_is n_is unfolding gr.ord_resolve.simps by auto
   obtain D4 Cs4 where
     main4: \<open>main_prem_of \<iota>' = D4 + negs (mset As4)\<close> and
@@ -548,7 +553,7 @@ proof (intro disj_imp[THEN iffD2] impI)
     AAs4_i: \<open>\<forall>i<n. \<forall>A\<in>#AAs4 ! i. A = As4 ! i\<close> and
     eligible4: \<open>gr.eligible As4 (D4 + negs (mset As4))\<close> and
     max4: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As4 ! i) (Cs4 ! i)\<close> and
-    sel_empty4: \<open>\<forall>i<n. (S_M S M) (Cs4 ! i + poss (AAs4 ! i)) = {#}\<close>
+    sel_empty4: \<open>\<forall>i<n. (S_M empty_sel M) (Cs4 ! i + poss (AAs4 ! i)) = {#}\<close>
     using A4_is len_AAs4 unfolding gr.ord_resolve.simps by auto
   have As_eq: \<open>\<forall>i \<in> {1..<n}. As3!i = As4!i\<close>
     using main3 eligible3 sel_empty4 CAs_i3 CAs_i4 AAs3_i AAs4_i max3 max4 unfolding gr.strictly_maximal_wrt_def
@@ -812,7 +817,7 @@ qed
 
 lemma gr_res_is_res:
   \<open>is_ground_cls DA \<Longrightarrow> is_ground_cls_list CAs \<Longrightarrow> gr.ord_resolve CAs DA AAs As E \<Longrightarrow>
-    \<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
+    \<exists>\<sigma>. ord_resolve (S_M empty_sel M) CAs DA AAs As \<sigma> E\<close>
 proof -
   assume
     ground_DA: \<open>is_ground_cls DA\<close> and
@@ -821,7 +826,7 @@ proof -
   have ground_E: "is_ground_cls E"
       using ground_ord_resolve_ground_no_ctxt gr_res ground_DA ground_CAs
       by auto
-  show "\<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E" using gr_res
+  show "\<exists>\<sigma>. ord_resolve (S_M empty_sel M) CAs DA AAs As \<sigma> E" using gr_res
   proof (cases rule: gr.ord_resolve.cases)
     case (ord_resolve n Cs D)
       note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
@@ -887,7 +892,7 @@ proof -
         using is_ground_Max ground_mset_as ground_d by auto
  
       from ground_elig have fo_elig:
-        "eligible (S_M S M) \<sigma> As (D + negs (mset As))"
+        "eligible (S_M empty_sel M) \<sigma> As (D + negs (mset As))"
         unfolding gr.eligible.simps eligible.simps gr.maximal_wrt_def using ann1 ann2
         by auto 
  
@@ -901,7 +906,7 @@ proof -
       then have ll: "\<forall>i < n. strictly_maximal_wrt (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
         by (simp add: ground_as ground_cs as_len)
  
-      have m: "\<forall>i < n. S_M S M (CAs ! i) = {#}"
+      have m: "\<forall>i < n. S_M empty_sel M (CAs ! i) = {#}"
         using ord_resolve by simp
  
       have ground_e: "is_ground_cls (\<Union>#mset Cs + D)"
@@ -926,15 +931,15 @@ done
    ordered resolution prover in the AFP *)
 lemma ord_resolve_rename_lifting_with_length:
   assumes
-    sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
-    res_e: "ord_resolve (S_M S M) CAs DA AAs As \<sigma> E" and
-    select: "selection S" and
+    sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> empty_sel (C \<cdot> \<rho>) = empty_sel C \<cdot> \<rho>" and
+    res_e: "ord_resolve (S_M empty_sel M) CAs DA AAs As \<sigma> E" and
+    select: "selection empty_sel" and
     grounding: "{DA} \<union> set CAs \<subseteq> grounding_of_clss M"
   obtains \<eta>s \<eta> \<eta>2 CAs0 DA0 AAs0 As0 E0 \<tau> where
     "is_ground_subst \<eta>"
     "is_ground_subst_list \<eta>s"
     "is_ground_subst \<eta>2"
-    "ord_resolve_rename S CAs0 DA0 AAs0 As0 \<tau> E0"
+    "ord_resolve_rename empty_sel CAs0 DA0 AAs0 As0 \<tau> E0"
     (* In the previous proofs we have CAs and DA on lhs of equality... which is better? *)
     "CAs0 \<cdot>\<cdot>cl \<eta>s = CAs" "DA0 \<cdot> \<eta> = DA" "E0 \<cdot> \<eta>2 = E" 
     "{DA0} \<union> set CAs0 \<subseteq> M"
@@ -948,22 +953,22 @@ proof (cases rule: ord_resolve.cases)
     sel_empt = this(13)
 
   have sel_ren_list_inv:
-    "\<And>\<rho>s Cs. length \<rho>s = length Cs \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> map S (Cs \<cdot>\<cdot>cl \<rho>s) = map S Cs \<cdot>\<cdot>cl \<rho>s"
+    "\<And>\<rho>s Cs. length \<rho>s = length Cs \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> map empty_sel (Cs \<cdot>\<cdot>cl \<rho>s) = map empty_sel Cs \<cdot>\<cdot>cl \<rho>s"
     using sel_stable unfolding is_renaming_list_def by (auto intro: nth_equalityI)
 
   note n = \<open>n \<noteq> 0\<close> \<open>length CAs = n\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close> \<open>length As = n\<close>
 
-  interpret S: selection S by (rule select)
+  interpret empty_sel: selection empty_sel by (rule select)
 
   obtain DA0 \<eta>0 CAs0 \<eta>s0 As0 AAs0 D0 Cs0 where as0:
     "length CAs0 = n"
     "length \<eta>s0 = n"
     "DA0 \<in> M"
     "DA0 \<cdot> \<eta>0 = DA"
-    "S DA0 \<cdot> \<eta>0 = S_M S M DA"
+    "empty_sel DA0 \<cdot> \<eta>0 = S_M empty_sel M DA"
     "\<forall>CA0 \<in> set CAs0. CA0 \<in> M"
     "CAs0 \<cdot>\<cdot>cl \<eta>s0 = CAs"
-    "map S CAs0 \<cdot>\<cdot>cl \<eta>s0 = map (S_M S M) CAs"
+    "map empty_sel CAs0 \<cdot>\<cdot>cl \<eta>s0 = map (S_M empty_sel M) CAs"
     "is_ground_subst \<eta>0"
     "is_ground_subst_list \<eta>s0"
     "As0 \<cdot>al \<eta>0 = As"
@@ -971,12 +976,12 @@ proof (cases rule: ord_resolve.cases)
     "length As0 = n"
     "D0 \<cdot> \<eta>0 = D"
     "DA0 = D0 + (negs (mset As0))"
-    "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As0) = S DA0"
+    "S_M empty_sel M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As0) = empty_sel DA0"
     "length Cs0 = n"
     "Cs0 \<cdot>\<cdot>cl \<eta>s0 = Cs"
     "\<forall>i < n. CAs0 ! i = Cs0 ! i + poss (AAs0 ! i)"
     "length AAs0 = n"
-    using ord_resolve_obtain_clauses[of S M CAs DA, OF res_e select grounding n(2) \<open>DA = D + negs (mset As)\<close>
+    using ord_resolve_obtain_clauses[of empty_sel M CAs DA, OF res_e select grounding n(2) \<open>DA = D + negs (mset As)\<close>
       \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close>, of thesis] by blast
 
   note n = \<open>length CAs0 = n\<close> \<open>length \<eta>s0 = n\<close> \<open>length As0 = n\<close> \<open>length AAs0 = n\<close> \<open>length Cs0 = n\<close> n
@@ -1036,7 +1041,7 @@ proof (cases rule: ord_resolve.cases)
     using as0(14) unfolding \<eta>0'_def D0'_def using renames_DA0 by simp
   have As0'_As: "As0' \<cdot>al \<eta>0' = As"
     using as0(11) unfolding \<eta>0'_def As0'_def using renames_DA0 by auto
-  have "S DA0' \<cdot> \<eta>0' = S_M S M DA"
+  have "empty_sel DA0' \<cdot> \<eta>0' = S_M empty_sel M DA"
     using as0(5) unfolding \<eta>0'_def DA0'_def using renames_DA0 sel_stable by auto
   have CAs0'_CAs: "CAs0' \<cdot>\<cdot>cl \<eta>s0' = CAs"
     using as0(7) unfolding CAs0'_def \<eta>s0'_def using renames_CAs0 n by auto
@@ -1044,7 +1049,7 @@ proof (cases rule: ord_resolve.cases)
     using as0(18) unfolding Cs0'_def \<eta>s0'_def using renames_CAs0 n by auto
   have AAs0'_AAs: "AAs0' \<cdot>\<cdot>aml \<eta>s0' = AAs"
     using as0(12) unfolding \<eta>s0'_def AAs0'_def using renames_CAs0 using n by auto
-  have "map S CAs0' \<cdot>\<cdot>cl \<eta>s0' = map (S_M S M) CAs"
+  have "map empty_sel CAs0' \<cdot>\<cdot>cl \<eta>s0' = map (S_M empty_sel M) CAs"
     unfolding CAs0'_def \<eta>s0'_def using as0(8) n renames_CAs0 sel_ren_list_inv by auto
 
   have DA0'_split: "DA0' = D0' + negs (mset As0')"
@@ -1064,12 +1069,12 @@ proof (cases rule: ord_resolve.cases)
     by (auto simp add: atm_iff_pos_or_neg_lit)
 
   have as0':
-    "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As0') = S DA0'"
+    "S_M empty_sel M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As0') = empty_sel DA0'"
   proof -
-    assume a: "S_M S M (D + negs (mset As)) \<noteq> {#}"
-    then have "negs (mset As0) \<cdot> \<rho> = S DA0 \<cdot> \<rho>"
+    assume a: "S_M empty_sel M (D + negs (mset As)) \<noteq> {#}"
+    then have "negs (mset As0) \<cdot> \<rho> = empty_sel DA0 \<cdot> \<rho>"
       using as0(16) unfolding \<rho>_def by metis
-    then show "negs (mset As0') = S DA0'"
+    then show "negs (mset As0') = empty_sel DA0'"
       using  As0'_def DA0'_def using sel_stable[of \<rho> DA0] renames_DA0 by auto
   qed
 
@@ -1137,8 +1142,8 @@ proof (cases rule: ord_resolve.cases)
   interpret selection
     by (rule select)
 
-  have "S DA0' \<cdot> \<eta> = S_M S M DA"
-    using \<open>S DA0' \<cdot> \<eta>0' = S_M S M DA\<close> \<eta>_p S_selects_subseteq by auto
+  have "empty_sel DA0' \<cdot> \<eta> = S_M empty_sel M DA"
+    using \<open>empty_sel DA0' \<cdot> \<eta>0' = S_M empty_sel M DA\<close> \<eta>_p S_selects_subseteq by auto
 
   from \<eta>_p have \<eta>_p_CAs0': "\<forall>i < n. (CAs0' ! i) \<cdot> (\<eta>s0' ! i) = (CAs0'! i) \<cdot> \<eta>"
     using n by auto
@@ -1147,12 +1152,12 @@ proof (cases rule: ord_resolve.cases)
   then have CAs0'_\<eta>_fo_CAs: "CAs0' \<cdot>cl \<eta> = CAs"
     using CAs0'_CAs \<eta>_p n by auto
 
-  from \<eta>_p have "\<forall>i < n. S (CAs0' ! i) \<cdot> \<eta>s0' ! i = S (CAs0' ! i) \<cdot> \<eta>"
+  from \<eta>_p have "\<forall>i < n. empty_sel (CAs0' ! i) \<cdot> \<eta>s0' ! i = empty_sel (CAs0' ! i) \<cdot> \<eta>"
     using S_selects_subseteq n by auto
-  then have "map S CAs0' \<cdot>\<cdot>cl \<eta>s0' = map S CAs0' \<cdot>cl \<eta>"
+  then have "map empty_sel CAs0' \<cdot>\<cdot>cl \<eta>s0' = map empty_sel CAs0' \<cdot>cl \<eta>"
     using n by (auto intro: nth_equalityI)
-  then have SCAs0'_\<eta>_fo_SMCAs: "map S CAs0' \<cdot>cl \<eta> = map (S_M S M) CAs"
-    using \<open>map S CAs0' \<cdot>\<cdot>cl \<eta>s0' = map (S_M S M) CAs\<close> by auto
+  then have SCAs0'_\<eta>_fo_SMCAs: "map empty_sel CAs0' \<cdot>cl \<eta> = map (S_M empty_sel M) CAs"
+    using \<open>map empty_sel CAs0' \<cdot>\<cdot>cl \<eta>s0' = map (S_M empty_sel M) CAs\<close> by auto
 
   have "Cs0' \<cdot>cl \<eta> = Cs"
   proof (rule nth_equalityI)
@@ -1234,25 +1239,25 @@ proof (cases rule: ord_resolve.cases)
   qed
 
   \<comment> \<open>Lifting eligibility\<close>
-  have eligible0': "eligible S \<tau> As0' (D0' + negs (mset As0'))"
+  have eligible0': "eligible empty_sel \<tau> As0' (D0' + negs (mset As0'))"
   proof -
-    have "S_M S M (D + negs (mset As)) = negs (mset As) \<or> S_M S M (D + negs (mset As)) = {#} \<and>
+    have "S_M empty_sel M (D + negs (mset As)) = negs (mset As) \<or> S_M empty_sel M (D + negs (mset As)) = {#} \<and>
       length As = 1 \<and> maximal_wrt (As ! 0 \<cdot>a \<sigma>) ((D + negs (mset As)) \<cdot> \<sigma>)"
       using eligible unfolding eligible.simps by auto
     then show ?thesis
     proof
-      assume "S_M S M (D + negs (mset As)) = negs (mset As)"
-      then have "S_M S M (D + negs (mset As)) \<noteq> {#}"
+      assume "S_M empty_sel M (D + negs (mset As)) = negs (mset As)"
+      then have "S_M empty_sel M (D + negs (mset As)) \<noteq> {#}"
         using n by force
-      then have "S (D0' + negs (mset As0')) = negs (mset As0')"
+      then have "empty_sel (D0' + negs (mset As0')) = negs (mset As0')"
         using as0' DA0'_split by auto
       then show ?thesis
         unfolding eligible.simps[simplified]  by auto
     next
-      assume asm: "S_M S M (D + negs (mset As)) = {#} \<and> length As = 1 \<and>
+      assume asm: "S_M empty_sel M (D + negs (mset As)) = {#} \<and> length As = 1 \<and>
         maximal_wrt (As ! 0 \<cdot>a \<sigma>) ((D + negs (mset As)) \<cdot> \<sigma>)"
-      then have "S (D0' + negs (mset As0')) = {#}"
-        using \<open>D0' \<cdot> \<eta> = D\<close>[symmetric] \<open>As0' \<cdot>al \<eta> = As\<close>[symmetric] \<open>S (DA0') \<cdot> \<eta> = S_M S M (DA)\<close>
+      then have "empty_sel (D0' + negs (mset As0')) = {#}"
+        using \<open>D0' \<cdot> \<eta> = D\<close>[symmetric] \<open>As0' \<cdot>al \<eta> = As\<close>[symmetric] \<open>empty_sel (DA0') \<cdot> \<eta> = S_M empty_sel M (DA)\<close>
           da DA0'_split subst_cls_empty_iff by metis
       moreover from asm have l: "length As0' = 1"
         using \<open>As0' \<cdot>al \<eta> = As\<close> by auto
@@ -1282,15 +1287,15 @@ proof (cases rule: ord_resolve.cases)
   qed
 
   \<comment> \<open>Lifting nothing being selected\<close>
-  have nothing_selected: "\<forall>i < n. S (CAs0' ! i) = {#}"
+  have nothing_selected: "\<forall>i < n. empty_sel (CAs0' ! i) = {#}"
   proof -
-    have "\<forall>i < n. (map S CAs0' \<cdot>cl \<eta>) ! i = map (S_M S M) CAs ! i"
-      by (simp add: \<open>map S CAs0' \<cdot>cl \<eta> = map (S_M S M) CAs\<close>)
-    then have "\<forall>i < n. S (CAs0' ! i) \<cdot> \<eta> = S_M S M (CAs ! i)"
+    have "\<forall>i < n. (map empty_sel CAs0' \<cdot>cl \<eta>) ! i = map (S_M empty_sel M) CAs ! i"
+      by (simp add: \<open>map empty_sel CAs0' \<cdot>cl \<eta> = map (S_M empty_sel M) CAs\<close>)
+    then have "\<forall>i < n. empty_sel (CAs0' ! i) \<cdot> \<eta> = S_M empty_sel M (CAs ! i)"
       using n by auto
-    then have "\<forall>i < n. S (CAs0' ! i)  \<cdot> \<eta> = {#}"
-      using sel_empt \<open>\<forall>i < n.  S (CAs0' ! i) \<cdot> \<eta> = S_M S M (CAs ! i)\<close> by auto
-    then show "\<forall>i < n. S (CAs0' ! i) = {#}"
+    then have "\<forall>i < n. empty_sel (CAs0' ! i)  \<cdot> \<eta> = {#}"
+      using sel_empt \<open>\<forall>i < n.  empty_sel (CAs0' ! i) \<cdot> \<eta> = S_M empty_sel M (CAs ! i)\<close> by auto
+    then show "\<forall>i < n. empty_sel (CAs0' ! i) = {#}"
       using subst_cls_empty_iff by blast
   qed
 
@@ -1302,10 +1307,10 @@ proof (cases rule: ord_resolve.cases)
   define E0' where
     "E0' = ((\<Union># mset Cs0') + D0') \<cdot> \<tau>"
 
-  have res_e0': "ord_resolve S CAs0' DA0' AAs0' As0' \<tau> E0'"
-    using ord_resolve.intros[of CAs0' n Cs0' AAs0' As0' \<tau> S D0',
+  have res_e0': "ord_resolve empty_sel CAs0' DA0' AAs0' As0' \<tau> E0'"
+    using ord_resolve.intros[of CAs0' n Cs0' AAs0' As0' \<tau> empty_sel D0',
       OF _ _ _ _ _ _ \<open>\<forall>i < n. AAs0' ! i \<noteq> {#}\<close> \<tau>\<phi>(1) eligible0'
-        \<open>\<forall>i < n. strictly_maximal_wrt (As0' ! i \<cdot>a \<tau>) (Cs0' ! i \<cdot> \<tau>)\<close> \<open>\<forall>i < n. S (CAs0' ! i) = {#}\<close>]
+        \<open>\<forall>i < n. strictly_maximal_wrt (As0' ! i \<cdot>a \<tau>) (Cs0' ! i \<cdot> \<tau>)\<close> \<open>\<forall>i < n. empty_sel (CAs0' ! i) = {#}\<close>]
     unfolding E0'_def using DA0'_split n \<open>\<forall>i<n. CAs0' ! i = Cs0' ! i + poss (AAs0' ! i)\<close> by blast
 
   \<comment> \<open>Prove resolvent instantiates to ground resolvent\<close>
@@ -1338,14 +1343,14 @@ proof (cases rule: ord_resolve.cases)
   have \<open>length CAs0 = length CAs\<close> using n by simp
 
   \<comment> \<open>Wrap up the proof\<close>
-  have "ord_resolve S (CAs0 \<cdot>\<cdot>cl \<rho>s) (DA0 \<cdot> \<rho>) (AAs0 \<cdot>\<cdot>aml \<rho>s) (As0 \<cdot>al \<rho>) \<tau> E0'"
+  have "ord_resolve empty_sel (CAs0 \<cdot>\<cdot>cl \<rho>s) (DA0 \<cdot> \<rho>) (AAs0 \<cdot>\<cdot>aml \<rho>s) (As0 \<cdot>al \<rho>) \<tau> E0'"
     using res_e0' As0'_def \<rho>_def AAs0'_def \<rho>s_def DA0'_def \<rho>_def CAs0'_def \<rho>s_def by simp
   moreover have "\<forall>i<n. poss (AAs0 ! i) \<subseteq># CAs0 ! i"
     using as0(19) by auto
   moreover have "negs (mset As0) \<subseteq># DA0"
     using local.as0(15) by auto
-  ultimately have "ord_resolve_rename S CAs0 DA0 AAs0 As0 \<tau> E0'"
-    using ord_resolve_rename[of CAs0 n AAs0 As0 DA0 \<rho> \<rho>s S \<tau> E0'] \<rho>_def \<rho>s_def n by auto
+  ultimately have "ord_resolve_rename empty_sel CAs0 DA0 AAs0 As0 \<tau> E0'"
+    using ord_resolve_rename[of CAs0 n AAs0 As0 DA0 \<rho> \<rho>s empty_sel \<tau> E0'] \<rho>_def \<rho>s_def n by auto
   then show thesis
     using that[of \<eta>0 \<eta>s0 \<eta>2 CAs0 DA0] \<open>is_ground_subst \<eta>0\<close> \<open>is_ground_subst_list \<eta>s0\<close>
       \<open>is_ground_subst \<eta>2\<close> \<open>CAs0 \<cdot>\<cdot>cl \<eta>s0 = CAs\<close> \<open>DA0 \<cdot> \<eta>0 = DA\<close> \<open>E0' \<cdot> \<eta>2 = E\<close> \<open>DA0 \<in> M\<close>
@@ -1405,7 +1410,7 @@ proof -
     using i'_RP_is unfolding same_inf_def by (metis add.commute multi_member_this set_mset_mset)
   then have ground_DA: \<open>is_ground_cls DA\<close>
     using prems_i'_in union_G_F_ground is_ground_clss_def by auto
-  obtain \<sigma> where grounded_res: \<open>ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
+  obtain \<sigma> where grounded_res: \<open>ord_resolve (S_M empty_sel M) CAs DA AAs As \<sigma> E\<close>
     using gr_res_is_res[OF ground_DA ground_CAs gr_res] by auto
   have prems_ground: \<open>{DA} \<union> set CAs \<subseteq> grounding_of_clss M\<close>
     using prems_i'_in CAs_in DA_in unfolding grounding_of_clss_def \<G>_F_def by fast
@@ -1413,7 +1418,7 @@ proof -
     ground_n: "is_ground_subst \<eta>" and
     ground_ns: "is_ground_subst_list \<eta>s" and
     ground_ns2: "is_ground_subst \<eta>2" and
-    ngr_res: "ord_resolve_rename S CAs0 DA0 AAs0 As0 \<tau> E0" and
+    ngr_res: "ord_resolve_rename empty_sel CAs0 DA0 AAs0 As0 \<tau> E0" and
     CAs0_is: "CAs0 \<cdot>\<cdot>cl \<eta>s = CAs" and
     DA0_is: "DA0 \<cdot> \<eta> = DA" and
     E0_is: "E0 \<cdot> \<eta>2 = E"  and
@@ -1421,7 +1426,7 @@ proof -
     len_CAs0: "length CAs0 = length CAs"
     using ord_resolve_rename_lifting_with_length[OF sel_stable grounded_res selection_axioms prems_ground] by metis
   define \<iota>_RP where \<open>\<iota>_RP = Infer (mset CAs0) DA0 E0\<close>
-  then have i_RP_in: \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using ngr_res unfolding ord_FO_\<Gamma>_def by blast
+  then have i_RP_in: \<open>\<iota>_RP \<in> ord_FO_\<Gamma> empty_sel\<close> using ngr_res unfolding ord_FO_\<Gamma>_def by blast
   define PAs where \<open>PAs = inference.prems_of \<iota>'\<close>
   then have mset_PAs_is: \<open>mset PAs = mset CAs + {# DA #}\<close>
     using i'_RP_is is_inf unfolding same_inf_def by simp
@@ -1587,7 +1592,7 @@ proof
   fix \<iota>
   assume i_in: \<open>\<iota> \<in> Inf_G\<close>
   obtain \<iota>_RP where i_RP_in: \<open>\<iota>_RP \<in> gr.ord_\<Gamma>\<close> and i_i_RP: \<open>same_inf \<iota>_RP \<iota>\<close> using i_in unfolding Inf_G_def by blast
-  have \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using i_RP_in unfolding gr.ord_\<Gamma>_def ord_FO_\<Gamma>_def
+  have \<open>\<iota>_RP \<in> ord_FO_\<Gamma> empty_sel\<close> using i_RP_in unfolding gr.ord_\<Gamma>_def ord_FO_\<Gamma>_def
   show \<open>\<iota> \<in> Inf_F\<close> unfolding Inf_F_def gr.ord_resolve.simps ord_resolve_rename.simps apply auto sorry
   oops
 
