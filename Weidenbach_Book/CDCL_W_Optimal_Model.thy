@@ -3558,7 +3558,7 @@ corollary full_ocdcl\<^sub>w_p_stgy_no_conflicting_clause_from_init_state:
       set_mset I \<Turnstile>sm N \<Longrightarrow> \<rho> I \<ge> \<rho>' (weight T)\<close>
   using full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of N T,
     OF full_ocdcl\<^sub>w_p_stgy_full_cdcl_bab_stgy[OF st] dist] dist
-    by (auto simp: all_struct_init_state_distinct_iff)
+  by (auto simp: all_struct_init_state_distinct_iff)
 
 end
 

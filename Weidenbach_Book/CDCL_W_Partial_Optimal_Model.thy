@@ -257,7 +257,7 @@ lemma atm_of_upostp_subset2:
     \<close>
   apply (auto simp: upostp_def image_Un image_image)
   apply (metis (mono_tags, lifting) imageI literal.sel(1) mem_Collect_eq)
-  apply (metis (mono_tags, lifting) imageI literal.sel mem_Collect_eq)
+  apply (metis (mono_tags, lifting) imageI literal.sel(2) mem_Collect_eq)
   done
 
 inductive odecide :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
@@ -1436,7 +1436,7 @@ proof -
     by fast+
   have [simp]: \<open>init_clss T = preprocessed_clss N\<close>
     using rtranclp_cdcl_bab_r_stgy_init_clss[OF st] by auto
- 
+
   have \<open>no_step enc_weight_opt.cdcl_bab_stgy T\<close>
     by (rule no_step_cdcl_bab_r_stgy_no_step_cdcl_bab_stgy[THEN iffD1, of _ N, OF _ _ _ _ ns])
        (use  alien atms_of_mm_preprocessed_clss_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma> lev
