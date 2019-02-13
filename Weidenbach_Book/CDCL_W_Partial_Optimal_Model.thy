@@ -2,6 +2,29 @@ theory CDCL_W_Partial_Optimal_Model
   imports CDCL_W_Optimal_Model
 begin
 
+inductive list3_single_decrease where
+  \<open>list3_single_decrease [Suc a, b, c] [a, Suc b, c]\<close> |
+  \<open>list3_single_decrease [a, Suc b, c] [a, b, Suc c]\<close>
+
+inductive_cases list3_single_decreaseE: \<open>list3_single_decrease xs ys\<close>
+
+lemma list3_single_decrease_sum_le:
+  assumes
+    \<open>list3_single_decrease xs ys\<close>
+  shows
+    \<open>sum_list xs \<le> sum_list ys\<close>
+  using assms
+  by (auto elim!: list3_single_decreaseE)
+
+lemma rtranclp_list3_single_decrease_sum_le:
+  assumes
+    \<open>list3_single_decrease\<^sup>*\<^sup>* xs ys\<close>
+  shows
+    \<open>sum_list xs \<le> sum_list ys\<close>
+  using assms
+  by (induction) (auto dest: list3_single_decrease_sum_le)
+
+
 subsection \<open>Encoding of partial SAT into total SAT\<close>
 
 text \<open>
@@ -1446,6 +1469,23 @@ proof -
     using st' unfolding full_def
     by auto
 qed
+
+definition no_lonely_weighted_lit :: \<open>_ \<Rightarrow> bool\<close> where
+\<open>no_lonely_weighted_lit S \<longleftrightarrow>
+   (conflicting S \<noteq> None \<longrightarrow>
+     (\<forall>L\<in>\<Delta>\<Sigma>. L \<in># atm_of `# the (conflicting S) \<longrightarrow>
+        (replacement_pos L \<in># atm_of `# the (conflicting S) \<or>
+	 replacement_neg L \<in># atm_of `# the (conflicting S)))) \<and>
+   (\<forall>C. C \<in># clauses S \<longrightarrow>
+     (\<forall>L\<in>\<Delta>\<Sigma>. L \<in># atm_of `# C \<longrightarrow>
+        (replacement_pos L \<in># atm_of `# C \<or>
+	 replacement_neg L \<in># atm_of `# C))) \<and>
+    (\<forall>L \<in> \<Delta>\<Sigma>. defined_lit (trail S) (Pos L) \<longrightarrow>
+        ((defined_lit (trail S) (Pos (replacement_pos L))
+	   \<and> get_level (trail S) (Pos L) = get_level (trail S) (Pos (replacement_pos L))) \<or>
+ 	 (defined_lit (trail S) (Pos (replacement_neg L))
+	   \<and> get_level (trail S) (Pos L) = get_level (trail S) (Pos (replacement_neg L)))))
+\<close>
 
 end
 
