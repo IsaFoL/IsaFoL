@@ -20,7 +20,7 @@ interpretation selection empty_sel
   unfolding selection_def empty_sel_def by simp
 
 text \<open>This part corresponds to section 5.2 in the technical report\<close> 
-locale FO_resolution_prover_with_empty_selection = FO_resolution_prover empty_sel
+locale FO_resolution_prover_with_empty_selection = FO_resolution_prover "empty_sel::'a::wellorder clause \<Rightarrow> 'a clause"
 begin
 
 abbreviation Bot_F :: "'a clause set" where "Bot_F \<equiv> {{#}}"
@@ -926,7 +926,7 @@ lemma ord_resolve_rename_lifting_with_length:
   assumes
     sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> empty_sel (C \<cdot> \<rho>) = empty_sel C \<cdot> \<rho>" and
     res_e: "ord_resolve (S_M empty_sel M) CAs DA AAs As \<sigma> E" and
-    select: "selection empty_sel" and
+    (*select: "selection empty_sel" and*)
     grounding: "{DA} \<union> set CAs \<subseteq> grounding_of_clss M"
   obtains \<eta>s \<eta> \<eta>2 CAs0 DA0 AAs0 As0 E0 \<tau> where
     "is_ground_subst \<eta>"
@@ -951,9 +951,6 @@ proof (cases rule: ord_resolve.cases)
 
   note n = \<open>n \<noteq> 0\<close> \<open>length CAs = n\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close> \<open>length As = n\<close>
 
-  interpret empty_sel: selection empty_sel
-    using Given_Clause_Prover_Lifting.selection_axioms by auto
-
   obtain DA0 \<eta>0 CAs0 \<eta>s0 As0 AAs0 D0 Cs0 where as0:
     "length CAs0 = n"
     "length \<eta>s0 = n"
@@ -976,9 +973,9 @@ proof (cases rule: ord_resolve.cases)
     "\<forall>i < n. CAs0 ! i = Cs0 ! i + poss (AAs0 ! i)"
     "length AAs0 = n"
     (* using ord_resolve_obtain_clauses[of empty_sel M CAs DA] res_e select grounding*)
-    using ord_resolve_obtain_clauses[of empty_sel M CAs DA, OF res_e select grounding n(2) \<open>DA = D + negs (mset As)\<close>
-      \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close>, of thesis]
-    by blast
+    using ord_resolve_obtain_clauses[of empty_sel M CAs DA, OF res_e _ grounding n(2)
+      \<open>DA = D + negs (mset As)\<close> \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close>,
+      of thesis] using selection_axioms by blast
 
   note n = \<open>length CAs0 = n\<close> \<open>length \<eta>s0 = n\<close> \<open>length As0 = n\<close> \<open>length AAs0 = n\<close> \<open>length Cs0 = n\<close> n
 
@@ -1135,8 +1132,8 @@ proof (cases rule: ord_resolve.cases)
     qed
   qed
 
-  interpret selection
-    by (rule select)
+  (*interpret selection
+    by (rule select)*)
 
   have "empty_sel DA0' \<cdot> \<eta> = S_M empty_sel M DA"
     using \<open>empty_sel DA0' \<cdot> \<eta>0' = S_M empty_sel M DA\<close> \<eta>_p S_selects_subseteq by auto
@@ -1387,7 +1384,8 @@ by (auto simp: nth_Cons' simp del: subst_cls_lists_length)
 lemma lifting_in_framework: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close>
 proof -
   assume i'_in: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F)\<close>
-  have prems_i'_in: \<open>set (inference.prems_of \<iota>') \<subseteq> UNION M \<G>_F\<close> using i'_in unfolding Inf_from_def by blast
+  have prems_i'_in: \<open>set (inference.prems_of \<iota>') \<subseteq> UNION M \<G>_F\<close> using i'_in unfolding Inf_from_def
+    by blast
   have i'_Inf_G: \<open>\<iota>' \<in> Inf_G\<close> using i'_in unfolding Inf_from_def by blast
   then obtain \<iota>'_RP where i'_RP_is: \<open>same_inf \<iota>'_RP \<iota>'\<close> and i'_RP_in: \<open>\<iota>'_RP \<in> gr.ord_\<Gamma>\<close>
     unfolding Inf_G_def same_inf_def by force
@@ -1420,7 +1418,8 @@ proof -
     E0_is: "E0 \<cdot> \<eta>2 = E"  and
     prems_in: "{DA0} \<union> set CAs0 \<subseteq> M" and
     len_CAs0: "length CAs0 = length CAs"
-    using ord_resolve_rename_lifting_with_length[OF sel_stable grounded_res selection_axioms prems_ground] by metis
+    using ord_resolve_rename_lifting_with_length[OF sel_stable] grounded_res selection_axioms
+      prems_ground by metis
   define \<iota>_RP where \<open>\<iota>_RP = Infer (mset CAs0) DA0 E0\<close>
   then have i_RP_in: \<open>\<iota>_RP \<in> ord_FO_\<Gamma> empty_sel\<close> using ngr_res unfolding ord_FO_\<Gamma>_def by blast
   define PAs where \<open>PAs = inference.prems_of \<iota>'\<close>
@@ -1570,8 +1569,6 @@ proof
   show "wfp_on Empty_Order UNIV" unfolding wfp_on_def Empty_Order_def by simp
 qed
 
-
-
 lemma inf_F_to_inf_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<subseteq> Inf_G\<close> for \<iota>
 proof
   fix \<iota>'
@@ -1582,15 +1579,17 @@ proof
     using i_in i'_in unfolding \<G>_Inf_def by blast
 qed
 
-
 lemma inf_G_in_inf_F: \<open>Inf_G \<subseteq> Inf_F\<close> 
 proof
   fix \<iota>
   assume i_in: \<open>\<iota> \<in> Inf_G\<close>
   obtain \<iota>_RP where i_RP_in: \<open>\<iota>_RP \<in> gr.ord_\<Gamma>\<close> and i_i_RP: \<open>same_inf \<iota>_RP \<iota>\<close> using i_in unfolding Inf_G_def by blast
   have \<open>\<iota>_RP \<in> ord_FO_\<Gamma> empty_sel\<close> using i_RP_in unfolding gr.ord_\<Gamma>_def ord_FO_\<Gamma>_def
-  show \<open>\<iota> \<in> Inf_F\<close> unfolding Inf_F_def gr.ord_resolve.simps ord_resolve_rename.simps apply auto sorry
-  oops
+  show \<open>\<iota> \<in> Inf_F\<close>
+    unfolding Inf_F_def gr.ord_resolve.simps ord_resolve_rename.simps
+    apply auto
+    sorry
+oops
 
 find_theorems  gr.ord_\<Gamma>
 
