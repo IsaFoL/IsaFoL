@@ -116,18 +116,15 @@ abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
 lemma sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> empty_sel (C \<cdot> \<rho>) = empty_sel C \<cdot> \<rho>"
   unfolding empty_sel_def by simp
 
-context
-  fixes M :: "'a clause set"
-  (* assumes sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> empty_sel (C \<cdot> \<rho>) = empty_sel C \<cdot> \<rho>" *)
-begin
-
-thm S_M_def
-find_theorems name: S_M
-
 lemma S_M_is_empty_sel: \<open>\<And>C. S_M empty_sel M C = empty_sel C\<close>
   using S_M_not_grounding_of_clss[OF selection_axioms] S_M_def[of empty_sel M, OF selection_axioms]
   unfolding empty_sel_def
   by (smt S_M_grounding_of_clss selection_axioms someI_ex subst_cls_empty)
+
+context
+  fixes M :: "'a clause set"
+  (* assumes sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> empty_sel (C \<cdot> \<rho>) = empty_sel C \<cdot> \<rho>" *)
+begin
 
 interpretation sq: selection "S_M empty_sel M"
   using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
@@ -1579,19 +1576,26 @@ proof
     using i_in i'_in unfolding \<G>_Inf_def by blast
 qed
 
+(* unneeded?
 lemma inf_G_in_inf_F: \<open>Inf_G \<subseteq> Inf_F\<close> 
 proof
   fix \<iota>
   assume i_in: \<open>\<iota> \<in> Inf_G\<close>
   obtain \<iota>_RP where i_RP_in: \<open>\<iota>_RP \<in> gr.ord_\<Gamma>\<close> and i_i_RP: \<open>same_inf \<iota>_RP \<iota>\<close> using i_in unfolding Inf_G_def by blast
-  have \<open>\<iota>_RP \<in> ord_FO_\<Gamma> empty_sel\<close> using i_RP_in unfolding gr.ord_\<Gamma>_def ord_FO_\<Gamma>_def
+  have \<open>\<iota>_RP \<in> ord_FO_\<Gamma> empty_sel\<close>
+    using i_RP_in unfolding gr.ord_\<Gamma>_def ord_FO_\<Gamma>_def ord_resolve_rename.simps gr.ord_resolve.simps apply auto sorry
   show \<open>\<iota> \<in> Inf_F\<close>
     unfolding Inf_F_def gr.ord_resolve.simps ord_resolve_rename.simps
     apply auto
     sorry
 oops
+*)
 
-find_theorems  gr.ord_\<Gamma>
+definition Red_Inf_\<G>_M :: "'a clause set \<Rightarrow> 'a clause Saturation_Framework_Preliminaries.inference set" where
+  \<open>Red_Inf_\<G>_M N = src.Red_Inf_\<G> N\<close>
+
+definition Red_F_\<G>_M :: "'a clause set \<Rightarrow> 'a clause set" where
+  \<open>Red_F_\<G>_M N = src.Red_F_\<G> N\<close>
 
 interpretation static_refutational_complete_calculus Bot_F entails_sound_F Inf_F \<G>.entails_\<G> src.Red_Inf_\<G> src.Red_F_\<G>
 proof
@@ -1617,8 +1621,22 @@ end
 definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
   \<open>N1 \<Turnstile>\<G> N2 \<equiv> UNION N1 grounding_of_cls \<Turnstile>G UNION N2 grounding_of_cls\<close>
 
-(* definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
-  \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_set N)}\<close> *)
+lemma gr_all: \<open>ground_resolution_with_selection.ord_\<Gamma> (S_M empty_sel M) = ground_resolution_with_selection.ord_\<Gamma> empty_sel\<close> using S_M_is_empty_sel by presburger
+
+lemma Inf_G_eq: \<open>Inf_G M = Inf_G M'\<close> unfolding Inf_G_def using gr_all by simp
+
+lemma \<G>_Inf_eq: \<open>\<G>_Inf M = \<G>_Inf M'\<close> using Inf_G_eq unfolding \<G>_Inf_def by blast
+
+lemma Red_Inf_G_eq: \<open>Red_Inf_G M = Red_Inf_G M'\<close> unfolding Red_Inf_G_def using S_M_is_empty_sel by presburger
+
+lemma Red_Inf_\<G>_eq: \<open>Red_Inf_\<G>_M M = Red_Inf_\<G>_M M'\<close> unfolding Red_Inf_\<G>_M_def using \<G>_Inf_eq Red_Inf_G_eq by metis
+
+thm redundancy_criterion_lifting.Red_F_\<G>_def
+
+lemma Red_F_\<G>_eq: \<open>Red_F_\<G>_M M = Red_F_\<G>_M M'\<close> unfolding Red_F_\<G>_M_def using redundancy_criterion_lifting.Red_F_\<G>_def sorry
+
+definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
+  \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_set N)}\<close>
   
 end
 
