@@ -1695,7 +1695,7 @@ lemma backtrack_atms_of_D_in_M1:
   fixes S T :: 'st and D D' :: \<open>'v clause\<close> and K L :: \<open>'v literal\<close> and i :: nat and
     M1 M2:: \<open>('v, 'v clause) ann_lits\<close>
   assumes
-    inv: "cdcl\<^sub>W_M_level_inv S" and
+    inv: "no_dup (trail S)" and
     i: "get_maximum_level (trail S) D' \<equiv> i" and
     decomp: "(Decided K # M1, M2)
        \<in> set (get_all_ann_decomposition (trail S))" and
@@ -1787,12 +1787,11 @@ lemma distinct_atms_of_incl_not_in_other:
   shows "x \<notin> atm_of ` lits_of_l M"
   using assms by (auto simp: atms_of_def no_dup_def atm_of_eq_atm_of lits_of_def)
 
-
 lemma backtrack_M1_CNot_D':
   fixes S T :: 'st and D D' :: \<open>'v clause\<close> and K L :: \<open>'v literal\<close> and i :: nat and
     M1 M2:: \<open>('v, 'v clause) ann_lits\<close>
   assumes
-    inv: "cdcl\<^sub>W_M_level_inv S" and
+    inv: "no_dup (trail S)" and
     i: "get_maximum_level (trail S) D' \<equiv> i" and
     decomp: "(Decided K # M1, M2)
        \<in> set (get_all_ann_decomposition (trail S))" and
@@ -1805,7 +1804,8 @@ lemma backtrack_M1_CNot_D':
                     (update_conflicting None S)))" and
     confl: "\<forall>T. conflicting S = Some T \<longrightarrow> trail S \<Turnstile>as CNot T" and
     D_D': \<open>D' \<subseteq># D\<close>
-  shows "M1 \<Turnstile>as CNot D'"
+  shows "M1 \<Turnstile>as CNot D'" and
+    \<open>atm_of (lit_of K'') = atm_of L \<Longrightarrow> no_dup (trail T)\<close>
 proof -
   obtain M0 where M: "trail S = M0 @ M2 @ Decided K # M1"
     using decomp by auto
@@ -1823,6 +1823,23 @@ proof -
   then show M1_D': "M1 \<Turnstile>as CNot D'"
     using true_annots_remove_if_notin_vars[of "M0 @ M2 @ Decided K # []" M1 "CNot D'"]
       vars_in_M1 S_confl confl unfolding M lits_of_def by simp
+  have M1: \<open>count_decided M1 = i\<close>
+    using lev_K inv i vars_in_M1 unfolding M
+    by simp
+  have lev_L: \<open>get_level (trail S) L = backtrack_lvl S\<close> and \<open>i < backtrack_lvl S\<close>
+    using S_lvl i lev_K
+    by (auto simp: max_def get_maximum_level_add_mset)
+  have \<open>no_dup M1\<close>
+    using T decomp inv by (auto simp: M dest: no_dup_appendD)
+  moreover have \<open>undefined_lit M1 L\<close>
+    using backtrack_lit_skiped[of S L, OF _ decomp]
+    using lev_L inv i M1 \<open>i < backtrack_lvl S\<close> unfolding M
+    by (auto simp:  split: if_splits)
+  moreover have \<open>atm_of (lit_of K'') = atm_of L \<Longrightarrow>
+    undefined_lit M1 L \<longleftrightarrow> undefined_lit M1 (lit_of K'')\<close>
+    by (simp add: defined_lit_map)
+  ultimately show \<open>atm_of (lit_of K'') = atm_of L \<Longrightarrow> no_dup (trail T)\<close>
+    using T decomp inv by auto
 qed
 
 text \<open>\cwref{prop:prop:cdclPropLitsUnsat}{Item 5 page 95}\<close>
@@ -1965,7 +1982,10 @@ next
       then have 1: "unmark_l M1' \<union> set_mset (clauses S) \<Turnstile>ps unmark_l M1''"
         using decomp unfolding all_decomposition_implies_def by auto
 
-      have M1_D': "M1 \<Turnstile>as CNot D'"
+      have \<open>no_dup (trail S)\<close>
+        using inv unfolding cdcl\<^sub>W_M_level_inv_def
+	by blast
+      then have M1_D': "M1 \<Turnstile>as CNot D'" and \<open>no_dup (trail T)\<close>
         using backtrack_M1_CNot_D'[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T \<open>Propagated L (add_mset L D')\<close>]
           confl inv backtrack by (auto simp: subset_mset_trans_add_mset)
       have "M1 = M1'' @ M1'" by (simp add: M1 get_all_ann_decomposition_decomp)
@@ -2058,7 +2078,7 @@ next
   let ?D' = "add_mset L D'"
   have M1_D': "M1 \<Turnstile>as CNot D'"
     using backtrack_M1_CNot_D'[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T \<open>Propagated L (add_mset L D')\<close>]
-      confl lev backtrack by (auto simp: subset_mset_trans_add_mset)
+      confl lev backtrack by (auto simp: subset_mset_trans_add_mset cdcl\<^sub>W_M_level_inv_def)
 
   show ?case
   proof (intro allI impI)
@@ -2615,10 +2635,10 @@ proof (rule backtrack_rule)
   have trail_S_D: \<open>trail S \<Turnstile>as CNot ?D\<close>
     using conf confl unfolding cdcl\<^sub>W_conflicting_def by auto
   then have atms_E_M1: \<open>atms_of D \<subseteq> atm_of ` lits_of_l M1\<close>
-    using backtrack_atms_of_D_in_M1[OF lev_inv _ decomp, of D ?i L ?D
+    using backtrack_atms_of_D_in_M1[OF _ _ decomp, of D ?i L ?D
       \<open>cons_trail (Propagated L ?D) (reduce_trail_to M1 (add_learned_cls ?D (update_conflicting None S)))\<close>
       \<open>Propagated L (add_mset L D)\<close>]
-    conf lev_K decomp max_lev lev_L confl T max_D
+    conf lev_K decomp max_lev lev_L confl T max_D lev_inv unfolding cdcl\<^sub>W_M_level_inv_def
     by auto
   have n_d: \<open>no_dup (M3 @ M2 @ Decided K # M1)\<close>
     using lev_inv no_dup_rev[of \<open>rev M1 @ rev M2 @ rev M3\<close>, unfolded rev_append]
@@ -4254,59 +4274,40 @@ lemma no_dup_uminus_append_in_atm_notin:
 lemmas rulesE =
   skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE
 
-lemma cdcl\<^sub>W_stgy_no_smaller_propa:
-  assumes
-    cdcl: \<open>cdcl\<^sub>W_stgy S T\<close> and
-    smaller_propa: \<open>no_smaller_propa S\<close> and
-    inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close>
+lemma decide_no_smaller_step:
+  assumes dec: \<open>decide S T\<close> and smaller_propa: \<open>no_smaller_propa S\<close> and
+    n_s: \<open>no_step propagate S\<close>
   shows \<open>no_smaller_propa T\<close>
-  using cdcl
-proof (cases rule: cdcl\<^sub>W_stgy_cases)
-  case conflict
-  then show ?thesis
-    using smaller_propa by (auto simp: no_smaller_propa_def elim!: rulesE)
-next
-  case propagate
-  then show ?thesis
-    using smaller_propa by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
-      elim!: rulesE)
-next
-  case skip
-  then show ?thesis
-    using smaller_propa by (auto intro: no_smaller_propa_tl elim!: rulesE)
-next
-  case resolve
-  then show ?thesis
-    using smaller_propa by (auto intro: no_smaller_propa_tl elim!: rulesE)
-next
-  case decide note n_s = this(1,2) and dec = this(3)
-  show ?thesis
     unfolding no_smaller_propa_def
-  proof clarify
-    fix M K M' D L
-    assume
-      tr: \<open>trail T = M' @ Decided K # M\<close> and
-      D: \<open>D+{#L#} \<in># clauses T\<close> and
-      undef: \<open>undefined_lit M L\<close> and
-      M: \<open>M \<Turnstile>as CNot D\<close>
-    then have "Ex (propagate S)"
-      apply (cases M')
-      using propagate_rule[of S "D+{#L#}" L "cons_trail (Propagated L (D + {#L#})) S"] dec
-        smaller_propa
-      by (auto simp: no_smaller_propa_def elim!: rulesE)
-    then show False
-      using n_s by blast
-  qed
-next
-  case backtrack note n_s = this(1,2) and o = this(3)
-  have inv_T: "cdcl\<^sub>W_all_struct_inv T"
-    using cdcl cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv inv by blast
+proof clarify
+  fix M K M' D L
+  assume
+    tr: \<open>trail T = M' @ Decided K # M\<close> and
+    D: \<open>D+{#L#} \<in># clauses T\<close> and
+    undef: \<open>undefined_lit M L\<close> and
+    M: \<open>M \<Turnstile>as CNot D\<close>
+  then have "Ex (propagate S)"
+    apply (cases M')
+    using propagate_rule[of S "D+{#L#}" L "cons_trail (Propagated L (D + {#L#})) S"] dec
+      smaller_propa
+    by (auto simp: no_smaller_propa_def elim!: rulesE)
+  then show False
+    using n_s by blast
+qed
+
+lemma backtrack_no_smaller_step:
+  assumes o: \<open>backtrack S T\<close> and smaller_propa: \<open>no_smaller_propa S\<close> and
+    n_d: \<open>no_dup (trail S)\<close> and
+    n_s: \<open>no_step propagate S\<close> and
+    tr_CNot: \<open>trail S \<Turnstile>as CNot (the (conflicting S))\<close>
+  shows \<open>no_smaller_propa T\<close>
+proof -
   obtain D D' :: "'v clause" and K L :: "'v literal" and
     M1 M2 :: "('v, 'v clause) ann_lit list" and i :: nat where
-    "conflicting S = Some (add_mset L D)" and
+    confl: "conflicting S = Some (add_mset L D)" and
     decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
-    "get_level (trail S) L = backtrack_lvl S" and
-    "get_level (trail S) L = get_maximum_level (trail S) (add_mset L D')" and
+    bt: "get_level (trail S) L = backtrack_lvl S" and
+    lev_L: "get_level (trail S) L = get_maximum_level (trail S) (add_mset L D')" and
     i: "get_maximum_level (trail S) D' \<equiv> i" and
     lev_K: "get_level (trail S) K = i + 1" and
     D_D': \<open>D' \<subseteq># D\<close> and
@@ -4322,14 +4323,6 @@ next
     using decomp T by auto
   have M1: "M1 = tl (trail T)" and tr_T: "trail T = Propagated L ?D' # M1"
     using decomp T by auto
-  have lev_inv: "cdcl\<^sub>W_M_level_inv S"
-    using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
-  then have lev_inv_T: "cdcl\<^sub>W_M_level_inv T"
-    using cdcl cdcl\<^sub>W_stgy_consistent_inv by blast
-  have n_d: "no_dup (trail S)"
-    using lev_inv unfolding cdcl\<^sub>W_M_level_inv_def by auto
-  have n_d_T: "no_dup (trail T)"
-    using lev_inv_T unfolding cdcl\<^sub>W_M_level_inv_def by auto
 
   have i_lvl: \<open>i = backtrack_lvl T\<close>
     using no_dup_append_in_atm_notin[of \<open>c @ M2\<close> \<open>Decided K # tl (trail T)\<close> K]
@@ -4344,18 +4337,19 @@ next
       E: \<open>E'+{#L'#} \<in># clauses T\<close> and
       undef: \<open>undefined_lit M L'\<close> and
       M: \<open>M \<Turnstile>as CNot E'\<close>
+    have n_d_T: \<open>no_dup (trail T)\<close> and M1_D': "M1 \<Turnstile>as CNot D'"
+      using backtrack_M1_CNot_D'[OF n_d i decomp _ confl _ T] lev_K bt lev_L tr_CNot
+	confl D_D'
+      by (auto dest: subset_mset_trans_add_mset)
     have False if D: \<open>add_mset L D' = add_mset L' E'\<close> and M_D: \<open>M \<Turnstile>as CNot E'\<close>
     proof -
       have \<open>i \<noteq> 0\<close>
         using i_lvl tr T by auto
-      moreover {
-        have "M1 \<Turnstile>as CNot D'"
-          using inv_T tr_T unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
-          by force
-        then have "get_maximum_level M1 D' = i"
-          using T i n_d D_D' unfolding M'' tr_T
+      moreover
+        have "get_maximum_level M1 D' = i"
+          using T i n_d D_D' M1_D' unfolding M'' tr_T
           by (subst (asm) get_maximum_level_skip_beginning)
-            (auto dest: defined_lit_no_dupD dest!: true_annots_CNot_definedD) }
+            (auto dest: defined_lit_no_dupD dest!: true_annots_CNot_definedD)
       ultimately obtain L_max where
         L_max_in: "L_max \<in># D'" and
         lev_L_max: "get_level M1 L_max = i"
@@ -4399,6 +4393,48 @@ next
       using M'' smaller_propa tr undef M T E
       by (cases M') (auto simp: no_smaller_propa_def trivial_add_mset_remove_iff elim!: rulesE)
   qed
+qed
+
+lemma cdcl\<^sub>W_stgy_no_smaller_propa:
+  assumes
+    cdcl: \<open>cdcl\<^sub>W_stgy S T\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close>
+  shows \<open>no_smaller_propa T\<close>
+  using cdcl
+proof (cases rule: cdcl\<^sub>W_stgy_cases)
+  case conflict
+  then show ?thesis
+    using smaller_propa by (auto simp: no_smaller_propa_def elim!: rulesE)
+next
+  case propagate
+  then show ?thesis
+    using smaller_propa by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+      elim!: rulesE)
+next
+  case skip
+  then show ?thesis
+    using smaller_propa by (auto intro: no_smaller_propa_tl elim!: rulesE)
+next
+  case resolve
+  then show ?thesis
+    using smaller_propa by (auto intro: no_smaller_propa_tl elim!: rulesE)
+next
+  case decide note n_s = this(1,2) and dec = this(3)
+  show ?thesis
+    using n_s dec decide_no_smaller_step[of S T] smaller_propa
+    by auto
+next
+  case backtrack note n_s = this(1,2) and o = this(3)
+  have inv_T: "cdcl\<^sub>W_all_struct_inv T"
+    using cdcl cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv inv by blast
+  have \<open>trail S \<Turnstile>as CNot (the (conflicting S))\<close> and \<open>no_dup (trail S)\<close>
+    using inv o unfolding cdcl\<^sub>W_all_struct_inv_def
+    by (auto simp: cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_conflicting_def
+      elim: rulesE)
+  then show ?thesis
+    using backtrack_no_smaller_step[of S T] n_s o smaller_propa
+    by auto
 qed
 
 lemma rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa:

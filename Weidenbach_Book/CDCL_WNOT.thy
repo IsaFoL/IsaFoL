@@ -1223,7 +1223,7 @@ proof -
   have M1_D': "M1 \<Turnstile>as CNot D'"
     using backtrack_M1_CNot_D'[of U D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> V \<open>Propagated L (add_mset L D')\<close>]
       inv_U confl_D decomp lev_L_U max_D_L_U i lev_K_U V U_L_D' D_D'
-    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
+    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_M_level_inv_def
     by (auto simp: subset_mset_trans_add_mset)
   show ?thesis
     apply (rule cdcl\<^sub>W_with_strategy.backjump_l.intros[of S _ K

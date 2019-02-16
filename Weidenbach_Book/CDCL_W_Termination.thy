@@ -50,7 +50,7 @@ proof (rule ccontr)
   have M1_D': \<open>M1 \<Turnstile>as CNot D'\<close>
     using backtrack_M1_CNot_D'[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T
         \<open>Propagated L (add_mset L D')\<close>] inv confl_S decomp i T D_D' lev_K lev_L max_D_L
-    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
+    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_M_level_inv_def
     by (auto simp: subset_mset_trans_add_mset)
   have \<open>undefined_lit M1 L\<close>
     using inv_T T decomp unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
@@ -101,7 +101,7 @@ proof (rule ccontr)
   have M1_D': \<open>M1 \<Turnstile>as CNot D'\<close>
     using backtrack_M1_CNot_D'[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T
         \<open>Propagated L (add_mset L D')\<close>] inv confl_S decomp i T D_D' lev_K lev_L max_D_L
-    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
+    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_M_level_inv_def
     by (auto simp: subset_mset_trans_add_mset)
   have undef_L: \<open>undefined_lit M1 L\<close>
     using inv_T T decomp unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
@@ -178,7 +178,7 @@ proof (rule ccontr)
   have M1_D': \<open>M1 \<Turnstile>as CNot D'\<close>
     using backtrack_M1_CNot_D'[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T
         \<open>Propagated L (add_mset L D')\<close>] inv confl_S decomp i T D_D' lev_K lev_L max_D_L
-    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
+    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_M_level_inv_def
     by (auto simp: subset_mset_trans_add_mset)
   have undef_L: \<open>undefined_lit M1 L\<close>
     using inv_T T decomp unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
