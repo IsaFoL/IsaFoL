@@ -968,8 +968,8 @@ lemma cdcl_bab_r_stgy_cdcl_bab_stgy:
 end
 
 
-lemma undefined_lit_Neg_Pos_iff:
-  \<open>undefined_lit M (Neg A) \<longleftrightarrow> undefined_lit M (Pos A)\<close>
+lemma defined_lit_Neg_Pos_iff:
+  \<open>defined_lit M (Neg A) \<longleftrightarrow> defined_lit M (Pos A)\<close>
   by (simp add: defined_lit_map)
 
 lemma no_dup_alt_def:
@@ -1099,7 +1099,7 @@ next
         using nsd L undef T N_\<Sigma>
         using odecide.intros(2-)[of S \<open>A\<close>]
 	unfolding N
-	by (cases L) (auto 6 5 simp: undefined_lit_Neg_Pos_iff \<Sigma>)
+	by (cases L) (auto 6 5 simp: defined_lit_Neg_Pos_iff \<Sigma>)
     qed
     have defined_replacement_pos: \<open>defined_lit (trail S) (Pos (replacement_pos L))\<close>
       if \<open>L \<in> \<Delta>\<Sigma>\<close> for L
@@ -1324,14 +1324,14 @@ next
       using \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> that tr_alien n_d
       by (force simp: simple_clss_def M'[symmetric] N \<Sigma> N_\<Sigma> lits_of_def
 	  image_image atms_of_def tautology_union uminus_lit_swap image_iff
-	  Decided_Propagated_in_iff_in_lits_of_l undefined_lit_Neg_Pos_iff
+	  Decided_Propagated_in_iff_in_lits_of_l defined_lit_Neg_Pos_iff
 	dest: no_dup_not_tautology)
     moreover have dist_M': \<open>distinct_mset
        (lit_of `# mset (trail S) +
 	poss (mset_set {x \<in> \<Delta>\<Sigma>. undefined_lit (trail S) (Pos x)}))\<close>
       using n_d \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma>
       by (auto simp: distinct_mset_add mset_inter_empty_set_mset
-	   Decided_Propagated_in_iff_in_lits_of_l undefined_lit_Neg_Pos_iff
+	   Decided_Propagated_in_iff_in_lits_of_l defined_lit_Neg_Pos_iff
 	   lits_of_def image_image inj_on_Pos image_iff
 	   distinct_image_mset_inj distinct_mset_mset_set
 	dest: no_dup_distinct)
@@ -1470,23 +1470,213 @@ proof -
     by auto
 qed
 
+definition no_lonely_weighted_lit_cls :: \<open>_ \<Rightarrow> bool\<close> where
+\<open>no_lonely_weighted_lit_cls C =
+  (\<forall>L\<in>\<Delta>\<Sigma>. L \<in># atm_of `# C \<longrightarrow>
+        (replacement_pos L \<in> atms_of C \<or>
+	 replacement_neg L \<in> atms_of C))\<close>
+
+definition no_lonely_defined_weighted_lit :: \<open>_ \<Rightarrow> bool\<close> where
+\<open>no_lonely_defined_weighted_lit M =
+   (\<forall>L \<in> \<Delta>\<Sigma>. defined_lit M (Pos L) \<longrightarrow>
+        ((defined_lit M (Pos (replacement_pos L))
+	   \<and> get_level M (Pos L) = get_level M (Pos (replacement_pos L))) \<or>
+ 	 (defined_lit M (Pos (replacement_neg L))
+	   \<and> get_level M (Pos L) = get_level M (Pos (replacement_neg L)))))\<close>
+
+lemma no_lonely_defined_weighted_lit_alt_def:
+  \<open>no_lonely_defined_weighted_lit M =
+   (\<forall>L. atm_of L \<in> \<Delta>\<Sigma> \<longrightarrow> defined_lit M L \<longrightarrow>
+        ((defined_lit M (Pos (replacement_pos (atm_of L)))
+	   \<and> get_level M (Pos (atm_of L)) = get_level M (Pos (replacement_pos (atm_of L)))) \<or>
+ 	 (defined_lit M (Pos (replacement_neg (atm_of L)))
+	   \<and> get_level M (Pos (atm_of L)) = get_level M (Pos (replacement_neg (atm_of L))))))\<close>
+  unfolding no_lonely_defined_weighted_lit_def
+  apply (rule iffI)
+  subgoal
+    apply (intro allI)
+    apply (rename_tac L, case_tac L)
+    by (auto simp: defined_lit_Neg_Pos_iff)
+  subgoal
+    apply (intro ballI)
+    apply (drule_tac x= \<open>Pos L\<close> in spec)
+    by (auto simp: defined_lit_Neg_Pos_iff)
+  done
+
 definition no_lonely_weighted_lit :: \<open>_ \<Rightarrow> bool\<close> where
 \<open>no_lonely_weighted_lit S \<longleftrightarrow>
-   (conflicting S \<noteq> None \<longrightarrow>
-     (\<forall>L\<in>\<Delta>\<Sigma>. L \<in># atm_of `# the (conflicting S) \<longrightarrow>
-        (replacement_pos L \<in># atm_of `# the (conflicting S) \<or>
-	 replacement_neg L \<in># atm_of `# the (conflicting S)))) \<and>
-   (\<forall>C. C \<in># clauses S \<longrightarrow>
-     (\<forall>L\<in>\<Delta>\<Sigma>. L \<in># atm_of `# C \<longrightarrow>
-        (replacement_pos L \<in># atm_of `# C \<or>
-	 replacement_neg L \<in># atm_of `# C))) \<and>
-    (\<forall>L \<in> \<Delta>\<Sigma>. defined_lit (trail S) (Pos L) \<longrightarrow>
-        ((defined_lit (trail S) (Pos (replacement_pos L))
-	   \<and> get_level (trail S) (Pos L) = get_level (trail S) (Pos (replacement_pos L))) \<or>
- 	 (defined_lit (trail S) (Pos (replacement_neg L))
-	   \<and> get_level (trail S) (Pos L) = get_level (trail S) (Pos (replacement_neg L)))))
-\<close>
+   (conflicting S \<noteq> None \<longrightarrow> no_lonely_weighted_lit_cls (the (conflicting S))) \<and>
+   (\<forall>C \<in># clauses S. no_lonely_weighted_lit_cls C) \<and>
+   no_lonely_defined_weighted_lit (trail S)\<close>
 
+
+lemma no_lonely_defined_weighted_lit_cls_negate_ann_lits:
+  \<open>no_lonely_defined_weighted_lit (trail S) \<Longrightarrow>
+        no_lonely_weighted_lit_cls (negate_ann_lits (trail S))\<close>
+  unfolding no_lonely_weighted_lit_cls_def
+    no_lonely_defined_weighted_lit_alt_def
+  apply (intro ballI)
+  apply (rename_tac L, drule_tac x= \<open>Pos L\<close> in spec)
+  apply (auto 5 5 simp: defined_lit_Neg_Pos_iff
+        no_lonely_defined_weighted_lit_def in_negate_trial_iff
+        atm_lit_of_set_lits_of_l defined_lit_map
+      dest: in_lits_of_l_defined_litD)
+  done
+
+(*TODO add strategy_inv*)
+lemma \<open>cdcl_bab_stgy S T \<Longrightarrow> no_smaller_propa S \<Longrightarrow> no_smaller_propa T\<close>
+  apply (induction rule: cdcl_bab_stgy.induct)
+  subgoal
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+      conflict.simps propagate.simps improvep.simps conflict_opt.simps
+      ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
+      elim!: rulesE)
+  subgoal
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+      conflict.simps propagate.simps improvep.simps conflict_opt.simps
+      ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
+      elim!: rulesE)
+  subgoal
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+      conflict.simps propagate.simps improvep.simps conflict_opt.simps
+      ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
+      elim!: rulesE)
+  subgoal
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+      conflict.simps propagate.simps improvep.simps conflict_opt.simps
+      ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
+      elim!: rulesE)
+  subgoal for T
+    apply (cases rule: ocdcl\<^sub>W_o.cases, assumption; thin_tac \<open>ocdcl\<^sub>W_o S T\<close>)
+    subgoal
+      using decide_no_smaller_step[of S T]
+      unfolding enc_weight_opt.no_confl_prop_impr.simps
+      by auto
+    subgoal
+    apply (cases rule: cdcl_bab_bj.cases, assumption; thin_tac \<open>cdcl_bab_bj S T\<close>)
+    subgoal
+      using no_smaller_propa_tl[of S T]
+      by (auto elim: rulesE)
+    subgoal
+      using no_smaller_propa_tl[of S T]
+      by (auto elim: rulesE)
+    subgoal
+    oops
+
+(*
+lemma
+  assumes
+    \<open>cdcl_bab_r_stgy S T\<close> and
+    lonely: \<open>no_lonely_weighted_lit S\<close> and
+    struct_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+    stgy_inv: \<open>cdcl_bab_stgy_inv S\<close> and
+    \<open>set_mset (preprocessed_clss N) \<subseteq> set_mset (clauses S)\<close>
+  shows \<open>no_lonely_weighted_lit T\<close>
+  using assms(1)
+proof (induction)
+  case (cdcl_bab_r_conflict S')
+  then show ?case
+    using lonely
+    unfolding conflict.simps
+    by (force simp: no_lonely_weighted_lit_def
+      dest!: multi_member_split)
+next
+  case (cdcl_bab_r_improve S')
+  then show ?case
+    using lonely
+    unfolding enc_weight_opt.improvep.simps
+    by (force simp: no_lonely_weighted_lit_def
+      dest!: multi_member_split)
+next
+  case (cdcl_bab_r_conflict_opt S')
+  then show ?case
+    using lonely
+    unfolding enc_weight_opt.conflict_opt.simps
+    by (auto simp: no_lonely_weighted_lit_def
+        no_lonely_defined_weighted_lit_cls_negate_ann_lits
+      dest!: multi_member_split)
+next
+  case (cdcl_bab_r_propagate S')
+  then obtain E :: \<open>'v literal multiset\<close> and L :: \<open>'v literal\<close> where
+    [simp]: \<open>conflicting S = None\<close> and
+    H: \<open>\<And>C. C \<in># clauses S \<Longrightarrow> no_lonely_weighted_lit_cls C\<close> and
+    no: \<open>no_lonely_defined_weighted_lit (trail S)\<close> and
+    lone: \<open>no_lonely_defined_weighted_lit (trail S)\<close> and
+    E: \<open>E \<in># clauses S\<close> and
+    L: \<open>L \<in># E\<close> and
+    Not: \<open>trail S \<Turnstile>as CNot (remove1_mset L E)\<close> and
+    \<open>undefined_lit (trail S) L\<close> and
+    S': \<open>S' \<sim> cons_trail (Propagated L E) S\<close>
+    using lonely unfolding no_lonely_weighted_lit_def propagate.simps
+    by auto
+  have \<open>no_lonely_defined_weighted_lit (Propagated L E # trail S)\<close>
+    unfolding no_lonely_defined_weighted_lit_def
+    apply (intro ballI impI)
+    using H[OF E] no Not L lone
+    apply (auto simp: no_lonely_defined_weighted_lit_def no_lonely_weighted_lit_cls_def
+      defined_lit_cons atm_iff_pos_or_neg_lit dest!: multi_member_split)
+      apply (drule bspec, assumption)
+      apply (clarsimp)
+      apply auto[]
+      apply (metis literal.sel(1) new_vars_different_iff(1))
+      using true_annots_CNot_definedD apply blast
+      apply (metis literal.sel new_vars_different_iff)
+      apply (meson defined_lit_Neg_Pos_iff true_annots_CNot_definedD)
+      apply (metis literal.sel(1) new_vars_different_iff(2))
+      using true_annots_CNot_definedD apply blast
+      apply (metis literal.sel(2) new_vars_different_iff(2))
+      apply (meson defined_lit_Neg_Pos_iff true_annots_CNot_definedD)
+      apply (drule bspec, assumption)
+      apply (clarsimp)
+      apply (auto dest!: multi_member_split)[]
+      apply (metis literal.sel(1) new_vars_different_iff(1))
+    sorry
+  show ?case
+    using S' H 
+    apply (auto simp: no_lonely_weighted_lit_def propagated_cons_eq_append_decide_cons
+        defined_lit_cons all_conj_distrib ball_conj_distrib
+	add_mset_eq_add_mset
+      dest: multi_member_split)
+      apply (drule bspec, assumption)
+      apply blast
+      apply (auto dest!: multi_member_split
+        simp: 
+        defined_lit_cons all_conj_distrib ball_conj_distrib)[]
+      try0
+      apply (drule bspec, assumption)
+
+oops
+find_theorems defined_lit Cons
+next
+  case (cdcl_bab_r_conflict_opt S')
+  then show ?case
+    unfolding enc_weight_opt.conflict_opt.simps
+    apply (auto simp: no_lonely_weighted_lit_def
+      dest!: multi_member_split)
+      try0
+      sledgehammer
+      sorry
+next
+  case (cdcl_bab_r_other' S')
+  then show ?case sorry
+qed
+  case (cdcl_propagate S')
+  then show ?case
+    unfolding propagate.simps
+    apply (auto simp: no_lonely_weighted_lit_def)
+next
+  case (cdcl_improve S')
+  then show ?case sorry
+next
+  case (cdcl_conflict_opt S')
+  then show ?case sorry
+next
+  case (cdcl_other' S')
+  then show ?case sorry
+qed
+
+oops
+*)
 end
 
 
