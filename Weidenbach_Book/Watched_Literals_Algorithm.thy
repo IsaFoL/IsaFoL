@@ -940,7 +940,7 @@ proof -
     then have \<open>\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
       get_level M K = get_maximum_level M (remove1_mset (-lit_of (hd M)) D') + 1\<close>
       using cdcl\<^sub>W_restart_mset.backtrack_ex_decomp[OF lev_inv]
-      by (auto simp: cdcl\<^sub>W_restart_mset_state S)
+      by (auto simp: cdcl\<^sub>W_restart_mset_state S cdcl\<^sub>W_M_level_inv_def)
 
     define i where \<open>i = get_maximum_level M (remove1_mset (- lit_of (hd M)) D')\<close>
 

@@ -603,6 +603,25 @@ simple_backtrack_rule: "
 
 inductive_cases simple_backtrackE: "simple_backtrack S T"
 
+text \<open>This is a generalised version of backtrack: It is general enough te also include
+  OCDCL's version.\<close>
+inductive backtrackg :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
+backtrackg_rule: "
+  conflicting S = Some (add_mset L D) \<Longrightarrow>
+  (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S)) \<Longrightarrow>
+  get_level (trail S) L = backtrack_lvl S \<Longrightarrow>
+  get_level (trail S) L = get_maximum_level (trail S) (add_mset L D') \<Longrightarrow>
+  get_maximum_level (trail S) D' \<equiv> i \<Longrightarrow>
+  get_level (trail S) K = i + 1 \<Longrightarrow>
+  D' \<subseteq># D \<Longrightarrow>
+  T \<sim> cons_trail (Propagated L (add_mset L D'))
+        (reduce_trail_to M1
+          (add_learned_cls (add_mset L D')
+            (update_conflicting None S))) \<Longrightarrow>
+  backtrackg S T"
+
+inductive_cases backtrackgE: "backtrackg S T"
+
 inductive decide :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 decide_rule:
   "conflicting S = None \<Longrightarrow>
@@ -915,6 +934,16 @@ lemma cdcl\<^sub>W_o_rule_cases[consumes 1, case_names decide backtrack skip res
   shows P
   using assms by (auto simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps)
 
+lemma backtrack_backtrackg:
+  \<open>backtrack S T \<Longrightarrow> backtrackg S T\<close>
+  unfolding backtrack.simps backtrackg.simps
+  by blast
+
+lemma simple_backtrack_backtrackg:
+  \<open>simple_backtrack S T \<Longrightarrow> backtrackg S T\<close>
+  unfolding simple_backtrack.simps backtrackg.simps
+  by blast
+
 
 subsection \<open>Structural Invariants\<close>
 
@@ -1022,17 +1051,17 @@ lemma cdcl\<^sub>W_M_level_inv_S0_cdcl\<^sub>W_restart[simp]:
 
 lemma backtrack_ex_decomp:
   assumes
-    M_l: "cdcl\<^sub>W_M_level_inv S" and
+    M_l: "no_dup (trail S)" and
     i_S: "i < backtrack_lvl S"
   shows "\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S)) \<and>
     get_level (trail S) K = Suc i"
 proof -
   let ?M = "trail S"
   have "i < count_decided (trail S)"
-    using i_S M_l by (auto simp: cdcl\<^sub>W_M_level_inv_def)
+    using i_S by auto
   then obtain c K c' where tr_S: "trail S = c @ Decided K # c'" and
     lev_K: "get_level (trail S) K = Suc i"
-    using le_count_decided_decomp[of "trail S" i] M_l by (auto simp: cdcl\<^sub>W_M_level_inv_def)
+    using le_count_decided_decomp[of "trail S" i] M_l by auto
   obtain M1 M2 where "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))"
     using Decided_cons_in_get_all_ann_decomposition_append_Decided_cons unfolding tr_S by fast
   then show ?thesis using lev_K by blast
@@ -2693,7 +2722,8 @@ proof -
   obtain K M1 M2 where
     K: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
     lev_K: "get_level (trail S) K = ?i + 1"
-    using backtrack_ex_decomp[OF lev_inv, of ?i] D S by auto
+    using backtrack_ex_decomp[of S ?i] D S lev_inv
+    unfolding cdcl\<^sub>W_M_level_inv_def by auto
   show \<open>Ex (backtrack S)\<close>
     using backtrack\<^sub>W_rule[OF S K L L_D _ lev_K] lev_inv conf learned by auto
   then show \<open>Ex (cdcl\<^sub>W_o S)\<close>
@@ -2802,7 +2832,8 @@ proof -
   obtain K' M1' M2' where
     decomp': \<open>(Decided K' # M1', M2') \<in> set (get_all_ann_decomposition (trail S))\<close> and
     lev_K': \<open>get_level (trail S) K' = Suc ?i\<close>
-    using backtrack_ex_decomp[of S ?i] lev_inv max_D_L_hd unfolding lev by blast
+    using backtrack_ex_decomp[of S ?i] lev_inv max_D_L_hd
+    unfolding lev cdcl\<^sub>W_M_level_inv_def by blast
 
   show ?thesis
     apply standard
@@ -4272,7 +4303,7 @@ lemma no_dup_uminus_append_in_atm_notin:
   using Decided_Propagated_in_iff_in_lits_of_l assms defined_lit_no_dupD(1) by blast
 
 lemmas rulesE =
-  skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE
+  skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE backtrackgE
 
 lemma decide_no_smaller_step:
   assumes dec: \<open>decide S T\<close> and smaller_propa: \<open>no_smaller_propa S\<close> and
@@ -4295,8 +4326,8 @@ proof clarify
     using n_s by blast
 qed
 
-lemma backtrack_no_smaller_step:
-  assumes o: \<open>backtrack S T\<close> and smaller_propa: \<open>no_smaller_propa S\<close> and
+lemma backtrackg_no_smaller_propa:
+  assumes o: \<open>backtrackg S T\<close> and smaller_propa: \<open>no_smaller_propa S\<close> and
     n_d: \<open>no_dup (trail S)\<close> and
     n_s: \<open>no_step propagate S\<close> and
     tr_CNot: \<open>trail S \<Turnstile>as CNot (the (conflicting S))\<close>
@@ -4395,6 +4426,8 @@ proof -
   qed
 qed
 
+lemmas backtrack_no_smaller_propa = backtrackg_no_smaller_propa[OF backtrack_backtrackg]
+
 lemma cdcl\<^sub>W_stgy_no_smaller_propa:
   assumes
     cdcl: \<open>cdcl\<^sub>W_stgy S T\<close> and
@@ -4433,7 +4466,7 @@ next
     by (auto simp: cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_conflicting_def
       elim: rulesE)
   then show ?thesis
-    using backtrack_no_smaller_step[of S T] n_s o smaller_propa
+    using backtrack_no_smaller_propa[of S T] n_s o smaller_propa
     by auto
 qed
 
@@ -4642,15 +4675,16 @@ proof -
   then obtain M0 K M1 where
     M: \<open>M = M1 @ Decided K # M0\<close> and
     lev_K: \<open>get_level (trail S) K = Suc 0\<close>
-    using backtrack_ex_decomp[of S 0, OF M_lev]
-    apply (auto dest!: get_all_ann_decomposition_exists_prepend)
-    by (metis append.assoc)
+    using backtrack_ex_decomp[of S 0, OF ] M_lev
+    by (auto dest!: get_all_ann_decomposition_exists_prepend
+      simp: cdcl\<^sub>W_M_level_inv_def simp flip: append.assoc
+      simp del: append_assoc)
 
   have count_M0: \<open>count_decided M0 = 0\<close>
     using n_d lev_K unfolding M_def[symmetric] M by auto
   have [simp]: \<open>get_all_ann_decomposition M0 = [([], M0)]\<close>
     using count_M0 by (induction M0 rule: ann_lit_list_induct) auto
-  have [simp]: \<open>get_all_ann_decomposition (M1 @ Decided K # M0) ~= [([], M0)]\<close> for M1 K M0
+  have [simp]: \<open>get_all_ann_decomposition (M1 @ Decided K # M0) \<noteq> [([], M0)]\<close> for M1 K M0
     using length_get_all_ann_decomposition[of \<open>M1 @ Decided K # M0\<close>]
     unfolding M by auto
   have \<open>last (get_all_ann_decomposition (M1 @ Decided K # M0)) = ([], M0)\<close>
@@ -4754,7 +4788,7 @@ proof -
       decomp': \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
       lev_K: \<open>get_level (trail S) K = Suc 0\<close> and
       M3: \<open>trail S = M3 @ M2 @ Decided K # M1\<close>
-      using struct_invs backtrack_ex_decomp[of S 0] unfolding cdcl\<^sub>W_all_struct_inv_def by blast
+      using struct_invs backtrack_ex_decomp[of S 0] n_d unfolding cdcl\<^sub>W_all_struct_inv_def by blast
     then have dec_M1: \<open>count_decided M1 = 0\<close>
       using n_d by auto
     define M2' where \<open>M2' = M3 @ M2\<close>

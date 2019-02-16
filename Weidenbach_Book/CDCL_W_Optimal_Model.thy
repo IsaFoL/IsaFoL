@@ -580,6 +580,10 @@ lemma ocdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrac
     done
   done
 
+lemma obacktrack_backtrackg: \<open>obacktrack S T \<Longrightarrow> backtrackg S T\<close>
+  unfolding obacktrack.simps backtrackg.simps
+  by blast
+
 
 subsubsection \<open>Pluging into normal CDCL\<close>
 

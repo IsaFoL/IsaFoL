@@ -129,15 +129,15 @@ definition additional_constraint :: \<open>'v \<Rightarrow> 'v clauses\<close> w
 definition additional_constraints :: \<open>'v clauses\<close> where
   \<open>additional_constraints = \<Union>#(additional_constraint `# (mset_set \<Delta>\<Sigma>))\<close>
 
-definition preprocessed_clss :: \<open>'v clauses \<Rightarrow> 'v clauses\<close> where
-  \<open>preprocessed_clss N = encode_clauses N + additional_constraints\<close>
+definition penc :: \<open>'v clauses \<Rightarrow> 'v clauses\<close> where
+  \<open>penc N = encode_clauses N + additional_constraints\<close>
 
 lemma size_encode_clauses[simp]: \<open>size (encode_clauses N) = size N\<close>
   by (auto simp: encode_clauses_def)
 
-lemma size_preprocessed_clss:
-  \<open>size (preprocessed_clss N) = size N + 6 * card \<Delta>\<Sigma>\<close>
-  by (auto simp: preprocessed_clss_def additional_constraints_def
+lemma size_penc:
+  \<open>size (penc N) = size N + 6 * card \<Delta>\<Sigma>\<close>
+  by (auto simp: penc_def additional_constraints_def
     additional_constraint_def size_Union_mset_image_mset)
 
 lemma atms_of_mm_additional_constraints: \<open>finite \<Delta>\<Sigma> \<Longrightarrow>
@@ -153,11 +153,11 @@ lemma atms_of_mm_encode_clause_subset:
     dest!: multi_member_split[of _ N])
 
 text \<open>In every meaningful application of the theorem below, we have \<open>\<Delta>\<Sigma> \<subseteq> atms_of_mm N\<close>.\<close>
-lemma atms_of_mm_preprocessed_clss_subset: \<open>finite \<Delta>\<Sigma> \<Longrightarrow>
-  atms_of_mm (preprocessed_clss N) \<subseteq> atms_of_mm N \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
+lemma atms_of_mm_penc_subset: \<open>finite \<Delta>\<Sigma> \<Longrightarrow>
+  atms_of_mm (penc N) \<subseteq> atms_of_mm N \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
       \<union> replacement_neg ` \<Delta>\<Sigma> \<union> \<Delta>\<Sigma>\<close>
   using atms_of_mm_encode_clause_subset[of N]
-  by (auto simp: preprocessed_clss_def atms_of_mm_additional_constraints)
+  by (auto simp: penc_def atms_of_mm_additional_constraints)
 
 lemma atms_of_mm_encode_clause_subset2: \<open>finite \<Delta>\<Sigma> \<Longrightarrow> \<Delta>\<Sigma> \<subseteq> atms_of_mm N \<Longrightarrow>
   atms_of_mm N \<subseteq> atms_of_mm (encode_clauses N) \<union> \<Delta>\<Sigma>\<close>
@@ -165,21 +165,21 @@ lemma atms_of_mm_encode_clause_subset2: \<open>finite \<Delta>\<Sigma> \<Longrig
       encode_clause_def split: if_splits
     dest!: multi_member_split[of _ N])
 
-lemma atms_of_mm_preprocessed_clss_subset2: \<open>finite \<Delta>\<Sigma> \<Longrightarrow> \<Delta>\<Sigma> \<subseteq> atms_of_mm N \<Longrightarrow>
-  atms_of_mm (preprocessed_clss N) = atms_of_mm N \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
+lemma atms_of_mm_penc_subset2: \<open>finite \<Delta>\<Sigma> \<Longrightarrow> \<Delta>\<Sigma> \<subseteq> atms_of_mm N \<Longrightarrow>
+  atms_of_mm (penc N) = atms_of_mm N \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
       \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
   using atms_of_mm_encode_clause_subset[of N] atms_of_mm_encode_clause_subset2[of N]
-  by (auto simp: preprocessed_clss_def atms_of_mm_additional_constraints)
+  by (auto simp: penc_def atms_of_mm_additional_constraints)
 
-theorem card_atms_of_mm_preprocessed_clss:
+theorem card_atms_of_mm_penc:
   assumes \<open>finite \<Delta>\<Sigma>\<close> and
     \<open>\<Delta>\<Sigma> \<subseteq> atms_of_mm N\<close>
-  shows \<open>card (atms_of_mm (preprocessed_clss N)) \<le> 4 * card (atms_of_mm N)\<close> (is \<open>?A \<le> ?B\<close>)
+  shows \<open>card (atms_of_mm (penc N)) \<le> 4 * card (atms_of_mm N)\<close> (is \<open>?A \<le> ?B\<close>)
 proof -
   have \<open>?A = card
      (atms_of_mm N \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union>
       replacement_neg ` \<Delta>\<Sigma>)\<close> (is \<open>_ = card (?W \<union> ?X \<union> ?Y \<union> ?Z)\<close>)
-    using arg_cong[OF atms_of_mm_preprocessed_clss_subset2[of N], of card] assms
+    using arg_cong[OF atms_of_mm_penc_subset2[of N], of card] assms
     using card_Un_le
     by auto
   also have \<open>... \<le> card (?W \<union> ?X \<union> ?Y) + card ?Z\<close>
@@ -202,7 +202,7 @@ definition postp :: \<open>'v partial_interp \<Rightarrow> 'v partial_interp\<cl
      {A \<in> I. atm_of A \<notin> \<Delta>\<Sigma> \<and> atm_of A \<in> \<Sigma>} \<union> {A \<in> I. atm_of A \<in> \<Delta>\<Sigma> \<and> additional_var (atm_of A) \<in> I}\<close>
 
 lemma preprocess_clss_model_additional_variables:
-  assumes \<open>I \<Turnstile>sm preprocessed_clss N\<close> and
+  assumes \<open>I \<Turnstile>sm penc N\<close> and
     \<open>A \<in> \<Delta>\<Sigma>\<close> and
     \<open>finite \<Delta>\<Sigma>\<close> and
     cons: \<open>consistent_interp I\<close>
@@ -216,7 +216,7 @@ proof -
     using assms H[of \<open>Pos A\<close>] H[of \<open>Neg A\<close>] H[of \<open>Pos (A\<^sup>\<mapsto>\<^sup>1)\<close>]  H[of \<open>Neg (A\<^sup>\<mapsto>\<^sup>1)\<close>]
       H[of \<open>Neg (additional_atm A)\<close>] H[of \<open>Pos (additional_atm A)\<close>]
        H[of \<open>Pos (A\<^sup>\<mapsto>\<^sup>0)\<close>]  H[of \<open>Neg (A\<^sup>\<mapsto>\<^sup>0)\<close>]
-    by (auto simp: preprocessed_clss_def additional_constraints_def true_clss_def
+    by (auto simp: penc_def additional_constraints_def true_clss_def
       additional_constraint_def ball_Un)
 qed
 
@@ -484,12 +484,12 @@ proof -
     by (auto simp add: upostp_def image_image)
 qed
 
-lemma preprocessed_clss_ent_upostp:
+lemma penc_ent_upostp:
   assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
     sat: \<open>I \<Turnstile>sm N\<close> and
     cons: \<open>consistent_interp I\<close> and
     atm: \<open>atm_of ` I \<subseteq> atms_of_mm N\<close>
-  shows \<open>upostp I \<Turnstile>m preprocessed_clss N\<close>
+  shows \<open>upostp I \<Turnstile>m penc N\<close>
 proof -
   have [iff]: \<open>Pos (A\<^sup>\<mapsto>\<^sup>0) \<notin> I\<close> \<open>Pos (A\<^sup>\<mapsto>\<^sup>1) \<notin> I\<close> \<open>additional_var A \<notin> I\<close> \<open>Neg (additional_atm A) \<notin> I\<close>
      \<open>Neg (A\<^sup>\<mapsto>\<^sup>0) \<notin> I\<close> \<open>Neg (A\<^sup>\<mapsto>\<^sup>1) \<notin> I\<close>  if \<open>A \<in> \<Delta>\<Sigma>\<close> for A
@@ -558,30 +558,30 @@ proof -
       by (auto simp: image_image consistent_interp_def)
     done
 
-  show \<open>upostp I \<Turnstile>m preprocessed_clss N\<close>
-    using enc add unfolding preprocessed_clss_def by auto
+  show \<open>upostp I \<Turnstile>m penc N\<close>
+    using enc add unfolding penc_def by auto
 qed
 
-lemma satisfiable_preprocessed_clss:
+lemma satisfiable_penc:
   assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
     sat: \<open>satisfiable (set_mset N)\<close>
-  shows \<open>satisfiable (set_mset (preprocessed_clss N))\<close>
+  shows \<open>satisfiable (set_mset (penc N))\<close>
   using assms
   apply (subst (asm) satisfiable_def_min)
   apply clarify
   subgoal for I
-    using preprocessed_clss_ent_upostp[of N I] consistent_interp_upostp[of I]
+    using penc_ent_upostp[of N I] consistent_interp_upostp[of I]
     by auto
   done
 
-lemma preprocessed_clss_ent_postp:
+lemma penc_ent_postp:
   assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
-    sat: \<open>I \<Turnstile>sm preprocessed_clss N\<close> and
+    sat: \<open>I \<Turnstile>sm penc N\<close> and
     cons: \<open>consistent_interp I\<close>
   shows \<open>postp I \<Turnstile>m N\<close>
 proof -
   have enc: \<open>I \<Turnstile>m encode_clauses N\<close> and \<open>I \<Turnstile>m additional_constraints\<close>
-    using sat unfolding preprocessed_clss_def
+    using sat unfolding penc_def
     by auto
 
   show \<open>postp I \<Turnstile>m N\<close>
@@ -603,21 +603,21 @@ proof -
   qed
 qed
 
-lemma satisfiable_preprocessed_clss_satisfiable:
+lemma satisfiable_penc_satisfiable:
   assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
-    sat: \<open>satisfiable (set_mset (preprocessed_clss N))\<close>
+    sat: \<open>satisfiable (set_mset (penc N))\<close>
   shows \<open>satisfiable (set_mset N)\<close>
   using assms apply (subst (asm) satisfiable_def)
   apply clarify
   subgoal for I
-    using preprocessed_clss_ent_postp[OF \<Sigma>, of I] consistent_interp_postp[of I]
+    using penc_ent_postp[OF \<Sigma>, of I] consistent_interp_postp[of I]
     by auto
   done
 
-lemma satisfiable_preprocessed_clss_iff:
+lemma satisfiable_penc_iff:
   assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close>
-  shows \<open>satisfiable (set_mset (preprocessed_clss N)) \<longleftrightarrow> satisfiable (set_mset N)\<close>
-  using assms satisfiable_preprocessed_clss satisfiable_preprocessed_clss_satisfiable by blast
+  shows \<open>satisfiable (set_mset (penc N)) \<longleftrightarrow> satisfiable (set_mset N)\<close>
+  using assms satisfiable_penc satisfiable_penc_satisfiable by blast
 
 
 abbreviation \<rho>\<^sub>e_filter :: \<open>'v literal multiset \<Rightarrow> 'v literal multiset\<close> where
@@ -760,9 +760,9 @@ lemma distinct_additional_constraints[simp]:
   by (auto simp: additional_constraints_def additional_constraint_def
     distinct_mset_set_def finite_\<Sigma>)
 
-lemma distinct_mset_preprocessed_clss:
-  \<open>atms_of_mm N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset_mset (preprocessed_clss N) \<longleftrightarrow> distinct_mset_mset N\<close>
-  by (auto simp: preprocessed_clss_def
+lemma distinct_mset_penc:
+  \<open>atms_of_mm N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset_mset (penc N) \<longleftrightarrow> distinct_mset_mset N\<close>
+  by (auto simp: penc_def
     distinct_mset_encodes_clause_iff)
 
 lemma finite_upostp:
@@ -780,7 +780,7 @@ qed
 
 theorem full_encoding_OCDCL_correctness:
   assumes
-    st: \<open>full enc_weight_opt.cdcl_bab_stgy (init_state (preprocessed_clss N)) T\<close> and
+    st: \<open>full enc_weight_opt.cdcl_bab_stgy (init_state (penc N)) T\<close> and
     dist: \<open>distinct_mset_mset N\<close> and
     atms: \<open>atms_of_mm N = \<Sigma>\<close>
   shows
@@ -790,9 +790,9 @@ theorem full_encoding_OCDCL_correctness:
       atms_of I \<subseteq> atms_of_mm N \<Longrightarrow> set_mset I \<Turnstile>sm N \<Longrightarrow>
       \<rho> I \<ge> \<rho> (mset_set (postp (set_mset (the (weight T)))))\<close>
 proof -
-  let ?N = \<open>preprocessed_clss N\<close>
-  have \<open>distinct_mset_mset (preprocessed_clss N)\<close>
-    by (subst distinct_mset_preprocessed_clss)
+  let ?N = \<open>penc N\<close>
+  have \<open>distinct_mset_mset (penc N)\<close>
+    by (subst distinct_mset_penc)
       (use dist atms in auto)
   then have
     unsat: \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset ?N)\<close> and
@@ -803,14 +803,14 @@ proof -
       set_mset I \<Turnstile>sm ?N \<Longrightarrow> \<rho>\<^sub>e I \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
     for I
     using enc_weight_opt.full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of
-      \<open>preprocessed_clss N\<close> T, OF st]
+      \<open>penc N\<close> T, OF st]
     by fast+
 
   show \<open>unsatisfiable (set_mset N)\<close> if \<open>weight T = None\<close>
-    using unsat[OF that] satisfiable_preprocessed_clss[OF atms] by blast
+    using unsat[OF that] satisfiable_penc[OF atms] by blast
   let ?K = \<open>postp (set_mset (the (weight T)))\<close>
   show \<open>?K \<Turnstile>sm N\<close> if \<open>weight T \<noteq> None\<close>
-    using preprocessed_clss_ent_postp[OF atms, of \<open>set_mset (the (weight T))\<close>] model[OF that]
+    using penc_ent_postp[OF atms, of \<open>set_mset (the (weight T))\<close>] model[OF that]
     by auto
   show \<open>\<rho> I \<ge> \<rho> (mset_set ?K)\<close>
      if Some: \<open>weight T \<noteq> None\<close> and
@@ -829,7 +829,7 @@ proof -
       by auto
     have \<open>set_mset ?I \<Turnstile>m ?N\<close>
       unfolding I
-      by (rule preprocessed_clss_ent_upostp[OF atms I_N cons])
+      by (rule penc_ent_upostp[OF atms I_N cons])
 	(use atm in \<open>auto dest: multi_member_split\<close>)
     moreover have \<open>distinct_mset ?I\<close>
       by (rule distinct_mset_mset_set)
@@ -838,7 +838,7 @@ proof -
 	\<open>atm_of ` set_mset I = atms_of I\<close>
 	by (auto simp: atms_of_def)
       have \<open>atms_of ?I = atms_of_mm ?N\<close>
-	apply (subst atms_of_mm_preprocessed_clss_subset2[OF finite_\<Sigma>])
+	apply (subst atms_of_mm_penc_subset2[OF finite_\<Sigma>])
 	subgoal using \<Delta>\<Sigma>_\<Sigma> atms by auto
 	subgoal
 	  using atm_of_upostp_subset[of \<open>set_mset I\<close>] atm_of_upostp_subset2[of \<open>set_mset I\<close>] atm
@@ -1040,7 +1040,7 @@ lemma tautology_distinct_atm_iff:
 
 lemma no_step_cdcl_bab_r_stgy_no_step_cdcl_bab_stgy:
   assumes
-    N: \<open>init_clss S = preprocessed_clss N\<close> and
+    N: \<open>init_clss S = penc N\<close> and
     \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
     n_d: \<open>no_dup (trail S)\<close> and
     tr_alien: \<open>atm_of ` lits_of_l (trail S) \<subseteq> \<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma>
@@ -1052,7 +1052,7 @@ proof
   then show \<open>?A\<close>
     using N \<Sigma> cdcl_bab_r_stgy_cdcl_bab_stgy[of S] atms_of_mm_encode_clause_subset[of N]
     atms_of_mm_encode_clause_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma>
-    atms_of_mm_preprocessed_clss_subset2[of N]
+    atms_of_mm_penc_subset2[of N]
     by auto
 next
   assume ?A
@@ -1068,12 +1068,12 @@ next
     nsco': \<open>conflicting S = None \<Longrightarrow> negate_ann_lits (trail S) \<notin># enc_weight_opt.conflicting_clss S\<close>
     using nsi nsco unfolding enc_weight_opt.improvep.simps enc_weight_opt.conflict_opt.simps
     by auto
-  have N_\<Sigma>: \<open>atms_of_mm (preprocessed_clss N) =
+  have N_\<Sigma>: \<open>atms_of_mm (penc N) =
     atms_of_mm N \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union>
     replacement_neg ` \<Delta>\<Sigma>\<close>
     using N \<Sigma> cdcl_bab_r_stgy_cdcl_bab_stgy[of S] atms_of_mm_encode_clause_subset[of N]
     atms_of_mm_encode_clause_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma>
-    atms_of_mm_preprocessed_clss_subset2[of N]
+    atms_of_mm_penc_subset2[of N]
     by auto
   have False if dec: \<open>decide S T\<close> for T
   proof -
@@ -1121,7 +1121,7 @@ next
 	nsc': \<open>\<forall>E. E \<in># additional_constraint L \<longrightarrow>
               (\<forall>L\<in># E. \<not>trail S \<Turnstile>as CNot E)\<close>
 	if \<open>L \<in> \<Delta>\<Sigma>\<close> for L
-      using nsp nsc assms that finite_\<Sigma> unfolding preprocessed_clss_def
+      using nsp nsc assms that finite_\<Sigma> unfolding penc_def
       by (fastforce simp: propagate.simps conflict.simps additional_constraints_def
           clauses_def
         dest!: multi_member_split[of \<open>L\<close>])+
@@ -1209,7 +1209,7 @@ next
          using that(1) nsc'[of \<open>x\<close>] nsp'[of \<open>x\<close>] finite_\<Sigma>
           defined_replacement_neg[of \<open>x\<close>]
          apply (simp_all only: conflict.simps clauses_def N additional_constraint_def
-	    preprocessed_clss_def true_annots_true_cls simp_thms 3
+	    penc_def true_annots_true_cls simp_thms 3
 	    true_clss_insert
 	    set_mset_empty empty_iff finite_set_mset_mset_set
 	    Decided_Propagated_in_iff_in_lits_of_l imp_disjL Ball_def
@@ -1285,7 +1285,7 @@ next
       subgoal using n_d by (blast dest: distinct_consistent_interp)
       subgoal
 	using nsc by (auto simp: conflict.simps clauses_def N
-	  preprocessed_clss_def true_annots_true_cls)
+	  penc_def true_annots_true_cls)
       done
     moreover have \<open>trail S \<Turnstile>asm additional_constraints\<close>
       using \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> that 1 ent_add
@@ -1293,7 +1293,7 @@ next
 	true_annots_def true_annot_def by (auto
 	  dest: multi_member_split)
     ultimately have tr_S_clss: \<open>trail S \<Turnstile>asm init_clss S\<close>
-      unfolding assms preprocessed_clss_def by auto
+      unfolding assms penc_def by auto
 
      have \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close>
       if \<open>\<not> enat (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
@@ -1425,27 +1425,27 @@ lemma [simp]:
 corollary
   assumes
     \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and dist: \<open>distinct_mset_mset N\<close> and
-    \<open>full cdcl_bab_r_stgy (init_state (preprocessed_clss N)) T \<close>
+    \<open>full cdcl_bab_r_stgy (init_state (penc N)) T \<close>
   shows
-    \<open>full enc_weight_opt.cdcl_bab_stgy (init_state (preprocessed_clss N)) T\<close>
+    \<open>full enc_weight_opt.cdcl_bab_stgy (init_state (penc N)) T\<close>
 proof -
   have [simp]: \<open>atms_of_mm (CDCL_W_Abstract_State.init_clss (enc_weight_opt.abs_state T)) =
     atms_of_mm (init_clss T)\<close>
     by (auto simp: enc_weight_opt.abs_state_def init_clss.simps)
-  let ?S = \<open>init_state (preprocessed_clss N)\<close>
+  let ?S = \<open>init_state (penc N)\<close>
   have
     st: \<open>cdcl_bab_r_stgy\<^sup>*\<^sup>* ?S T\<close> and
     ns: \<open>no_step cdcl_bab_r_stgy T\<close>
     using assms unfolding full_def by metis+
   have st': \<open>enc_weight_opt.cdcl_bab_stgy\<^sup>*\<^sup>* ?S T\<close>
     by (rule rtranclp_cdcl_bab_r_stgy_cdcl_bab_stgy[OF _ st])
-      (use atms_of_mm_preprocessed_clss_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma> \<Sigma> in auto)
+      (use atms_of_mm_penc_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma> \<Sigma> in auto)
   have [simp]:
-    \<open>CDCL_W_Abstract_State.init_clss (abs_state (init_state (preprocessed_clss N))) =
-      (preprocessed_clss N)\<close>
+    \<open>CDCL_W_Abstract_State.init_clss (abs_state (init_state (penc N))) =
+      (penc N)\<close>
     by (auto simp: abs_state_def init_clss.simps)
   have [iff]: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state ?S)\<close>
-    using dist distinct_mset_preprocessed_clss[of N]
+    using dist distinct_mset_penc[of N]
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def \<Sigma>
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
@@ -1457,24 +1457,72 @@ proof -
     lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (enc_weight_opt.abs_state T)\<close>
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast+
-  have [simp]: \<open>init_clss T = preprocessed_clss N\<close>
+  have [simp]: \<open>init_clss T = penc N\<close>
     using rtranclp_cdcl_bab_r_stgy_init_clss[OF st] by auto
 
   have \<open>no_step enc_weight_opt.cdcl_bab_stgy T\<close>
     by (rule no_step_cdcl_bab_r_stgy_no_step_cdcl_bab_stgy[THEN iffD1, of _ N, OF _ _ _ _ ns])
-       (use  alien atms_of_mm_preprocessed_clss_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma> lev
+       (use  alien atms_of_mm_penc_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma> lev
          in \<open>auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def \<Sigma>
             cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def\<close>)
-  then show \<open>full enc_weight_opt.cdcl_bab_stgy (init_state (preprocessed_clss N)) T\<close>
+  then show \<open>full enc_weight_opt.cdcl_bab_stgy (init_state (penc N)) T\<close>
     using st' unfolding full_def
     by auto
 qed
 
+lemma cdcl_bab_stgy_no_smaller_propa:
+  \<open>cdcl_bab_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
+    no_smaller_propa S \<Longrightarrow> no_smaller_propa T\<close>
+  apply (induction rule: cdcl_bab_stgy.induct)
+  subgoal
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+      conflict.simps propagate.simps improvep.simps conflict_opt.simps
+      ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
+      elim!: rulesE)
+  subgoal
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+      conflict.simps propagate.simps improvep.simps conflict_opt.simps
+      ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
+      elim!: rulesE)
+  subgoal
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+      conflict.simps propagate.simps improvep.simps conflict_opt.simps
+      ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
+      elim!: rulesE)
+  subgoal
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+      conflict.simps propagate.simps improvep.simps conflict_opt.simps
+      ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
+      elim!: rulesE)
+  subgoal for T
+    apply (cases rule: ocdcl\<^sub>W_o.cases, assumption; thin_tac \<open>ocdcl\<^sub>W_o S T\<close>)
+    subgoal
+      using decide_no_smaller_step[of S T]
+      unfolding enc_weight_opt.no_confl_prop_impr.simps
+      by auto
+    subgoal
+      apply (cases rule: cdcl_bab_bj.cases, assumption; thin_tac \<open>cdcl_bab_bj S T\<close>)
+      subgoal
+	using no_smaller_propa_tl[of S T]
+	by (auto elim: rulesE)
+      subgoal
+	using no_smaller_propa_tl[of S T]
+	by (auto elim: rulesE)
+      subgoal
+	using backtrackg_no_smaller_propa[OF obacktrack_backtrackg, of S T]
+	unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+	   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+	   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+	by (auto elim: obacktrackE)
+      done
+    done
+  done
+
 definition no_lonely_weighted_lit_cls :: \<open>_ \<Rightarrow> bool\<close> where
-\<open>no_lonely_weighted_lit_cls C =
+\<open>no_lonely_weighted_lit_cls C \<longleftrightarrow>
   (\<forall>L\<in>\<Delta>\<Sigma>. L \<in># atm_of `# C \<longrightarrow>
         (replacement_pos L \<in> atms_of C \<or>
-	 replacement_neg L \<in> atms_of C))\<close>
+         replacement_neg L \<in> atms_of C))\<close>
 
 definition no_lonely_defined_weighted_lit :: \<open>_ \<Rightarrow> bool\<close> where
 \<open>no_lonely_defined_weighted_lit M =
@@ -1523,54 +1571,88 @@ lemma no_lonely_defined_weighted_lit_cls_negate_ann_lits:
       dest: in_lits_of_l_defined_litD)
   done
 
-(*TODO add strategy_inv*)
-lemma \<open>cdcl_bab_stgy S T \<Longrightarrow> no_smaller_propa S \<Longrightarrow> no_smaller_propa T\<close>
-  apply (induction rule: cdcl_bab_stgy.induct)
-  subgoal
-    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
-      conflict.simps propagate.simps improvep.simps conflict_opt.simps
-      ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
-      elim!: rulesE)
-  subgoal
-    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
-      conflict.simps propagate.simps improvep.simps conflict_opt.simps
-      ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
-      elim!: rulesE)
-  subgoal
-    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
-      conflict.simps propagate.simps improvep.simps conflict_opt.simps
-      ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
-      elim!: rulesE)
-  subgoal
-    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
-      conflict.simps propagate.simps improvep.simps conflict_opt.simps
-      ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
-      elim!: rulesE)
-  subgoal for T
-    apply (cases rule: ocdcl\<^sub>W_o.cases, assumption; thin_tac \<open>ocdcl\<^sub>W_o S T\<close>)
-    subgoal
-      using decide_no_smaller_step[of S T]
-      unfolding enc_weight_opt.no_confl_prop_impr.simps
-      by auto
-    subgoal
-    apply (cases rule: cdcl_bab_bj.cases, assumption; thin_tac \<open>cdcl_bab_bj S T\<close>)
-    subgoal
-      using no_smaller_propa_tl[of S T]
-      by (auto elim: rulesE)
-    subgoal
-      using no_smaller_propa_tl[of S T]
-      by (auto elim: rulesE)
-    subgoal
-    oops
+lemma defined_replacement_pos_orinal:
+  assumes
+    def_neg: \<open>Pos (atm_of L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S)\<close> and
+    \<open>set_mset (penc N) \<subseteq> set_mset (clauses S)\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    lev_L: \<open>get_level (trail S) (Neg (atm_of L\<^sup>\<mapsto>\<^sup>1)) < backtrack_lvl S\<close> and
+    L: \<open>atm_of L \<in> \<Delta>\<Sigma>\<close> and
+    n_d: \<open>no_dup (trail S)\<close>
+  shows \<open>defined_lit (trail S) L\<close>
+proof -
+  define i where \<open>i = get_level (trail S) (Neg (atm_of L\<^sup>\<mapsto>\<^sup>1))\<close>
+  have \<open>atm_of L \<in># mset_set \<Delta>\<Sigma>\<close>
+    using L finite_\<Sigma> by auto
+  then have H: \<open>\<And>M K M'. trail S = M' @ Decided K # M \<longrightarrow> (\<forall>D L'.
+    D + {#L'#} \<in># additional_constraint (atm_of L) \<longrightarrow> undefined_lit M L' \<longrightarrow> \<not> M \<Turnstile>as CNot D)\<close>
+    using smaller_propa assms(2) unfolding no_smaller_propa_def penc_def
+      additional_constraints_def
+    by (auto dest!: multi_member_split)
+  obtain M1 M2 K where
+    decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
+    lev_K: \<open>get_level (trail S) K = Suc i\<close>
+    using backtrack_ex_decomp[OF n_d lev_L] unfolding i_def
+    by blast
+  obtain M3 where
+    M3: \<open>trail S = M3 @ M2 @ Decided K # M1\<close>
+    using decomp by auto
+  define M2' where
+    \<open>M2' = M3 @ M2\<close>
+  have \<open>undefined_lit (M2' @ Decided K # []) (Pos (atm_of L\<^sup>\<mapsto>\<^sup>1))\<close>
+    using def_neg n_d lev_L lev_K i_def[symmetric]
+    unfolding M3 M2'_def[symmetric] append_assoc[symmetric]
+    by (auto simp: get_level_append_if defined_lit_Neg_Pos_iff
+        get_level_cons_if
+      split: if_splits
+      dest: no_dup_consistentD
+        cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+  then have Pos': \<open>Pos (atm_of L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l M1\<close>
+    using def_neg unfolding M3 M2'_def[symmetric] append_assoc[symmetric]
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l
+      dest: no_dup_consistentD cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+  then have [iff]: \<open>defined_lit M1 (Neg (atm_of L\<^sup>\<mapsto>\<^sup>1))\<close>
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
 
-(*
+  have [iff]: \<open>atm_of L \<noteq> additional_atm (atm_of L)\<close>
+    using L by auto
+  have 1: \<open>add_mset x N \<subseteq># {#a, b#} \<longleftrightarrow> (x = a \<and> N \<subseteq># {#b#} \<or> x = b \<and> N \<subseteq># {#a#})\<close>
+    for N and x a b :: \<open>'v literal\<close>
+    by (metis add_mset_commute empty_iff member_add_mset
+      mset_subset_eq_add_mset_cancel mset_subset_eq_insertD set_mset_empty)
+  have le2_empty: \<open>D - {#a, b#} = {#} \<longleftrightarrow> D = {#} \<or> D = {#a#} \<or> D = {#b#} \<or> D = {#a, b#}\<close>
+    for D and a b :: \<open>'v literal\<close>
+    unfolding Diff_eq_empty_iff_mset
+    by (cases D)
+      (auto simp add: add_mset_eq_add_mset remove1_mset_empty_iff 1
+        subset_eq_mset_single_iff)
+  have 2: \<open>remove1_mset a N = C \<longleftrightarrow> (a \<notin># N \<and> N = C \<or> N = add_mset a C)\<close>
+    for N C and a :: \<open>'v literal\<close>
+    by (auto simp: add_mset_remove_trivial_If
+      split: if_splits)
+ have \<open>defined_lit M1 L\<close>
+    using H[of M2' K M1] L Pos' M3 unfolding M2'_def
+    by (cases L)
+      (simp_all add: additional_constraint_def add_mset_eq_add_mset
+        le2_empty 2 defined_lit_Neg_Pos_iff
+        all_conj_distrib remove1_mset_empty_iff conj_disj_distribL)
+  then show ?thesis
+    using M3 unfolding M2'_def
+    by (auto simp: defined_lit_append)
+qed
+
+lemma Neg_in_lits_of_l_definedD:
+  \<open>Neg A \<in> lits_of_l M \<Longrightarrow> defined_lit M (Pos A)\<close>
+  by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
+
 lemma
   assumes
     \<open>cdcl_bab_r_stgy S T\<close> and
-    lonely: \<open>no_lonely_weighted_lit S\<close> and
     struct_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
     stgy_inv: \<open>cdcl_bab_stgy_inv S\<close> and
-    \<open>set_mset (preprocessed_clss N) \<subseteq> set_mset (clauses S)\<close>
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    lonely: \<open>no_lonely_weighted_lit S\<close> and
+    N: \<open>set_mset (penc N) \<subseteq> set_mset (clauses S)\<close>
   shows \<open>no_lonely_weighted_lit T\<close>
   using assms(1)
 proof (induction)
@@ -1596,8 +1678,8 @@ next
         no_lonely_defined_weighted_lit_cls_negate_ann_lits
       dest!: multi_member_split)
 next
-  case (cdcl_bab_r_propagate S')
-  then obtain E :: \<open>'v literal multiset\<close> and L :: \<open>'v literal\<close> where
+  case (cdcl_bab_r_propagate S') note propa = this(1)
+  obtain E :: \<open>'v literal multiset\<close> and L :: \<open>'v literal\<close> where
     [simp]: \<open>conflicting S = None\<close> and
     H: \<open>\<And>C. C \<in># clauses S \<Longrightarrow> no_lonely_weighted_lit_cls C\<close> and
     no: \<open>no_lonely_defined_weighted_lit (trail S)\<close> and
@@ -1607,14 +1689,24 @@ next
     Not: \<open>trail S \<Turnstile>as CNot (remove1_mset L E)\<close> and
     \<open>undefined_lit (trail S) L\<close> and
     S': \<open>S' \<sim> cons_trail (Propagated L E) S\<close>
-    using lonely unfolding no_lonely_weighted_lit_def propagate.simps
+    using lonely propa unfolding no_lonely_weighted_lit_def propagate.simps
     by auto
+  have n_d: \<open>no_dup (trail S)\<close>
+    using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by auto
+  have [iff]: \<open>Neg (atm_of L\<^sup>\<mapsto>\<^sup>1) \<noteq> L\<close> if \<open>atm_of L \<in> \<Delta>\<Sigma>\<close>
+    using L that
+    by (metis literal.sel new_vars_different_iff)
+  oops
+  (*
   have \<open>no_lonely_defined_weighted_lit (Propagated L E # trail S)\<close>
     unfolding no_lonely_defined_weighted_lit_def
     apply (intro ballI impI)
     using H[OF E] no Not L lone
+      defined_replacement_pos_orinal[of L S N, OF _ N smaller_propa _ _  n_d]
     apply (auto simp: no_lonely_defined_weighted_lit_def no_lonely_weighted_lit_cls_def
-      defined_lit_cons atm_iff_pos_or_neg_lit dest!: multi_member_split)
+        defined_lit_cons atm_iff_pos_or_neg_lit dest!: multi_member_split
+      dest: Neg_in_lits_of_l_definedD)
       apply (drule bspec, assumption)
       apply (clarsimp)
       apply auto[]
