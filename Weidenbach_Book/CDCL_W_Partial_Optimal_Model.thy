@@ -2,28 +2,6 @@ theory CDCL_W_Partial_Optimal_Model
   imports CDCL_W_Optimal_Model
 begin
 
-inductive list3_single_decrease where
-  \<open>list3_single_decrease [Suc a, b, c] [a, Suc b, c]\<close> |
-  \<open>list3_single_decrease [a, Suc b, c] [a, b, Suc c]\<close>
-
-inductive_cases list3_single_decreaseE: \<open>list3_single_decrease xs ys\<close>
-
-lemma list3_single_decrease_sum_le:
-  assumes
-    \<open>list3_single_decrease xs ys\<close>
-  shows
-    \<open>sum_list xs \<le> sum_list ys\<close>
-  using assms
-  by (auto elim!: list3_single_decreaseE)
-
-lemma rtranclp_list3_single_decrease_sum_le:
-  assumes
-    \<open>list3_single_decrease\<^sup>*\<^sup>* xs ys\<close>
-  shows
-    \<open>sum_list xs \<le> sum_list ys\<close>
-  using assms
-  by (induction) (auto dest: list3_single_decrease_sum_le)
-
 
 subsection \<open>Encoding of partial SAT into total SAT\<close>
 
