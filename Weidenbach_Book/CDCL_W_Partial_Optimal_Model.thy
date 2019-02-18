@@ -1513,7 +1513,9 @@ definition no_new_lonely_clause :: \<open>'v clause \<Rightarrow> bool\<close> w
 
 definition no_lonely_weighted_lit_cls :: \<open>_ \<Rightarrow> bool\<close> where
 \<open>no_lonely_weighted_lit_cls C \<longleftrightarrow>
-  (\<forall>L \<in> \<Delta>\<Sigma>. L \<in> atms_of C \<longrightarrow> (replacement_pos L \<in> atms_of C \<or> replacement_neg L \<in> atms_of C))\<close>
+  (\<forall>L \<in> \<Delta>\<Sigma>. L \<in> atms_of C \<longrightarrow>
+    (replacement_pos L \<in> atms_of C \<or> replacement_neg L \<in> atms_of C \<or>
+     additional_atm L \<in> atms_of C))\<close>
 
 lemma additional_constraints_no_lonely_weighted_lit_cls:
   \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow> C \<in># additional_constraint L \<Longrightarrow> no_lonely_weighted_lit_cls C\<close>
@@ -1770,7 +1772,7 @@ lemma no_lonely_weighted_lit_cls_ex_lit_max_lvl:
        \<and> get_level (trail S) (Pos L) = get_level (trail S)(Pos (L\<^sup>\<mapsto>\<^sup>1)))
     \<or> (L\<^sup>\<mapsto>\<^sup>1 \<in> atm_of ` (lits_of_l (trail S))
        \<and> get_level (trail S) (Pos L) = get_level (trail S) (additional_var L) \<or>
-         get_level (trail S) (Pos L) =  get_level (trail S) (Neg (L\<^sup>\<mapsto>\<^sup>1)))
+         get_level (trail S) (Pos L) = get_level (trail S) (Neg (L\<^sup>\<mapsto>\<^sup>1)))
     \<or> (L\<^sup>\<mapsto>\<^sup>0 \<in> atm_of ` (lits_of_l (trail S))
        \<and> get_level (trail S) (Pos L) = get_level (trail S)(Pos (L\<^sup>\<mapsto>\<^sup>0)))
     \<or> (L\<^sup>\<mapsto>\<^sup>0 \<in> atm_of ` (lits_of_l (trail S))
@@ -1855,7 +1857,6 @@ proof (intro ballI impI)
     by (auto dest!: split_list)
   have [iff]: \<open>L' \<noteq> Pos (atm_of L'\<^sup>\<mapsto>\<^sup>1)\<close>
     by (metis \<open>L \<in> \<Delta>\<Sigma>\<close> \<open>atm_of L' = L\<close> literal.sel(1) new_vars_different_iff(1))
-
   have \<open>\<And>L mark a b.
          a @ Propagated L mark # b = trail S \<Longrightarrow>
          b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> and
@@ -1884,7 +1885,8 @@ proof (intro ballI impI)
         image_Un
       dest!: multi_member_split)
   then show \<open>L\<^sup>\<mapsto>\<^sup>1 \<in> atms_of (negate_ann_lits (trail S)) \<or>
-        L\<^sup>\<mapsto>\<^sup>0 \<in> atms_of (negate_ann_lits (trail S))\<close>
+        L\<^sup>\<mapsto>\<^sup>0 \<in> atms_of (negate_ann_lits (trail S)) \<or>
+        additional_atm L \<in> atms_of (negate_ann_lits (trail S))\<close>
     using \<open>L \<in> \<Delta>\<Sigma>\<close>
     by (auto simp: additional_constraint_def uminus_lit_swap add_mset_eq_add_mset M2
         image_Un
@@ -1924,9 +1926,9 @@ proof (induction rule: enc_weight_opt.obacktrack.induct)
     using alien confl atms
     unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def clauses_def
     by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
-  have \<open>La \<notin># add_mset L D\<close> if La: \<open>atm_of La \<in> \<Delta>\<Sigma>\<close> for La
+  have \<open>La \<notin># ?D\<close> if La: \<open>atm_of La \<in> \<Delta>\<Sigma>\<close> for La
   proof
-    assume \<open>La \<in># add_mset L D\<close>
+    assume \<open>La \<in># ?D\<close>
     then have \<open>-La \<in> lits_of_l (trail S)\<close>
       using Not by (auto dest!: multi_member_split)
     then obtain E where
@@ -1937,14 +1939,32 @@ proof (induction rule: enc_weight_opt.obacktrack.induct)
           dest!: literal_is_lit_of_decided)
     then obtain M1 M2 where M2: \<open>trail S = M2 @ Propagated (-La) E # M1\<close>
       by (auto dest!: split_list)
-    have [iff]: \<open>(atm_of La)\<^sup>\<mapsto>\<^sup>1 \<noteq> atm_of L\<close>  \<open>(atm_of La)\<^sup>\<mapsto>\<^sup>0 \<noteq> atm_of L\<close>
+    then have La_tr: \<open>atm_of La \<in> atm_of ` lits_of_l (trail S)\<close>
+      by auto
+    have \<open>E \<in># additional_constraint (atm_of La)\<close>
+      using tr_Not[of _ \<open>-La\<close> E, OF M2[symmetric]]
+        lonely marked La unfolding no_lonely_weighted_lit_def
+      by (auto dest!: multi_member_split
+        simp: no_new_lonely_clause_def M2)
+    then have \<open>remove1_mset (- La) E \<noteq> {#}\<close>
+      by (auto simp: additional_constraint_def remove1_mset_empty_iff)
+   then have \<open>\<exists>L'\<in>#remove1_mset (- La) E.
+     get_level (trail S) (- La) = get_level (trail S) L'\<close>
+      using propagation_one_lit_of_same_lvl[OF struct_inv smaller_propa
+        \<open>Propagated (-La) E \<in> set (trail S)\<close> rea]
+      by auto
+    have [iff]: \<open>(atm_of La)\<^sup>\<mapsto>\<^sup>1 \<noteq> atm_of L\<close> \<open>(atm_of La)\<^sup>\<mapsto>\<^sup>0 \<noteq> atm_of L\<close>
       using new_vars_pos new_vars_neg \<open>atm_of La \<in> \<Delta>\<Sigma>\<close> L_\<Sigma> by fastforce+
-    have \<open>atm_of La\<^sup>\<mapsto>\<^sup>1 \<in> atms_of ?D \<or> atm_of La\<^sup>\<mapsto>\<^sup>0 \<in> atms_of ?D\<close>
-      using lone_add that \<open>La \<in># add_mset L D\<close> unfolding no_lonely_weighted_lit_cls_def
-      apply -
+    have \<open>(atm_of La)\<^sup>\<mapsto>\<^sup>1 \<in> atms_of ?D \<or> (atm_of La)\<^sup>\<mapsto>\<^sup>0 \<in> atms_of ?D \<or>
+      additional_atm (atm_of La) \<in> atms_of ?D\<close>
+      using lone_add that \<open>La \<in># add_mset L D\<close>
+      unfolding no_lonely_weighted_lit_cls_def apply -
       by (drule_tac x = \<open>atm_of La\<close> in bspec, assumption)
         (use atm_of_lit_in_atms_of[OF \<open>La \<in># add_mset L D\<close>] in auto)
-
+    then have TT
+      using no_lonely_weighted_lit_cls_ex_lit_max_lvl[OF struct_inv lonely
+        dec rea La La_tr smaller_propa] i
+      apply (auto simp: atms_of_def dest!: multi_member_split)
   oops
 
 lemma
