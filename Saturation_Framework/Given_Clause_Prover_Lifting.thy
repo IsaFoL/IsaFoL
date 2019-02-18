@@ -1560,11 +1560,16 @@ proof -
   then show \<open> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close> by blast
 qed
 
-interpretation src: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Empty_Order
+lemma is_red_crit_lift: \<open>redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G
+  entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Empty_Order\<close>
 proof
   show "po_on Empty_Order UNIV" unfolding Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
   show "wfp_on Empty_Order UNIV" unfolding wfp_on_def Empty_Order_def by simp
 qed
+
+interpretation src: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G
+  entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Empty_Order
+  using is_red_crit_lift .
 
 lemma inf_F_to_inf_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<subseteq> Inf_G\<close> for \<iota>
 proof
@@ -1633,10 +1638,25 @@ lemma Red_Inf_\<G>_eq: \<open>Red_Inf_\<G>_M M = Red_Inf_\<G>_M M'\<close> unfol
 
 thm redundancy_criterion_lifting.Red_F_\<G>_def
 
-lemma Red_F_\<G>_eq: \<open>Red_F_\<G>_M M = Red_F_\<G>_M M'\<close> unfolding Red_F_\<G>_M_def using redundancy_criterion_lifting.Red_F_\<G>_def sorry
+lemma lift_eq:
+  \<open>redundancy_criterion_lifting \<G>_F (\<G>_Inf M) Bot_G (|\<approx>F) Inf_F Bot_G (\<Turnstile>G) (\<Turnstile>G) (Inf_G M)
+    (Red_Inf_G M) Red_F_G Empty_Order
+  = redundancy_criterion_lifting \<G>_F (\<G>_Inf M') Bot_G (|\<approx>F) Inf_F Bot_G (\<Turnstile>G) (\<Turnstile>G) (Inf_G M')
+    (Red_Inf_G M') Red_F_G Empty_Order\<close>
+  unfolding redundancy_criterion_lifting_def grounding_function_def using \<G>_Inf_eq Inf_G_eq Red_Inf_G_eq by metis
+
+lemma Rf_eq: \<open>standard_redundancy_criterion.Rf Empty_Order M = standard_redundancy_criterion.Rf Empty_Order M'\<close>
+sorry
+
+lemma Red_F_\<G>_eq: \<open>Red_F_\<G>_M M = Red_F_\<G>_M M'\<close>
+  unfolding Red_F_\<G>_M_def Red_F_G_def using redundancy_criterion_lifting.Red_F_\<G>_def[of \<G>_F "\<G>_Inf M" Bot_F
+    entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G "Inf_G M" "Red_Inf_G M" Red_F_G
+    Empty_Order] Inf_G_eq \<G>_Inf_eq Red_Inf_G_eq is_red_crit_lift lift_eq apply auto sorry
 
 definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
   \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_set N)}\<close>
+
+
   
 end
 
