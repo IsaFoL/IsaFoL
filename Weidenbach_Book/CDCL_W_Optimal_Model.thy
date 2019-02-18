@@ -1875,6 +1875,23 @@ qed
 
 end
 
+
+lemma (in -)in_set_tlD: \<open>x \<in> set (tl xs) \<Longrightarrow> x \<in> set xs\<close>
+  by (cases xs) auto
+
+lemma get_all_mark_of_propagated_tl_proped:
+  \<open>M \<noteq> [] \<Longrightarrow> is_proped (hd M) \<Longrightarrow> get_all_mark_of_propagated (tl M) = tl (get_all_mark_of_propagated M)\<close>
+  by (induction M rule: ann_lit_list_induct)
+    (auto simp:)
+
+lemma cdcl_bab_reasons_in_clauses:
+  \<open>cdcl_bab S T \<Longrightarrow> reasons_in_clauses S \<Longrightarrow> reasons_in_clauses T\<close>
+  by (auto simp: cdcl_bab.simps reasons_in_clauses_def ocdcl\<^sub>W_o.simps
+      cdcl_bab_bj.simps get_all_mark_of_propagated_tl_proped
+    elim!: rulesE improveE conflict_optE obacktrackE
+    dest!: in_set_tlD
+    dest!: get_all_ann_decomposition_exists_prepend)
+
 end
 
 

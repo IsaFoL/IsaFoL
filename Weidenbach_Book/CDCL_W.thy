@@ -1407,6 +1407,13 @@ definition "cdcl\<^sub>W_learned_clause (S :: 'st) \<longleftrightarrow>
   ((\<forall>T. conflicting S = Some T \<longrightarrow> clauses S \<Turnstile>pm T)
   \<and> set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S))"
 
+text \<open>This is a more reduced version of the previous invariant. This is mostly interesting for BnB. However,
+  inlining it in the previous definition is a major undertaking.
+
+TODO: remove this duplicate.\<close>
+definition "reasons_in_clauses (S :: 'st) \<longleftrightarrow>
+  (set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S))"
+
 text \<open>\cwref{prop:prop:cdclConflClause}{Item 3 page 95} for the inital state and some additional structural
   properties about the trail.\<close>
 lemma cdcl\<^sub>W_learned_clause_S0_cdcl\<^sub>W_restart[simp]:
@@ -1471,6 +1478,24 @@ lemma rtranclp_cdcl\<^sub>W_restart_learned_clss:
     "cdcl\<^sub>W_learned_clause S"
   shows "cdcl\<^sub>W_learned_clause S'"
   using assms by induction (auto dest: cdcl\<^sub>W_restart_learned_clss intro: rtranclp_cdcl\<^sub>W_restart_consistent_inv)
+
+lemma cdcl\<^sub>W_restart_reasons_in_clauses:
+  assumes
+    "cdcl\<^sub>W_restart S S'" and
+    learned: "reasons_in_clauses S"
+  shows "reasons_in_clauses S'"
+  using assms(1) learned
+  by (induct rule: cdcl\<^sub>W_restart_all_induct)
+    (auto simp: reasons_in_clauses_def dest!: get_all_ann_decomposition_exists_prepend)
+
+lemma rtranclp_cdcl\<^sub>W_restart_reasons_in_clauses:
+  assumes
+    "cdcl\<^sub>W_restart\<^sup>*\<^sup>* S S'" and
+    learned: "reasons_in_clauses S"
+  shows "reasons_in_clauses S'"
+  using assms(1) learned
+  by (induct rule: rtranclp_induct)
+    (auto simp: cdcl\<^sub>W_restart_reasons_in_clauses)
 
 
 subsubsection \<open>No alien atom in the state\<close>
