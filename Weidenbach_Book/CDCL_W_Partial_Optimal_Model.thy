@@ -1758,7 +1758,7 @@ proof (rule ccontr)
     by auto
 qed
 
-lemma no_lonely_weighted_lit_cls_neg_ann_lits:
+lemma no_lonely_weighted_lit_cls_ex_lit_max_lvl:
   assumes \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
     lonely: \<open>no_lonely_weighted_lit S\<close> and
     dec: \<open>lonely_weighted_lit_decided S\<close> and
