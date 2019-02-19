@@ -62,7 +62,7 @@ abbreviation replacement_neg :: \<open>'v \<Rightarrow> 'v\<close> ("(_)\<^sup>\
 
 
 abbreviation additional_atm :: \<open>'v \<Rightarrow> 'v\<close> where
-  \<open>additional_atm A \<equiv>  (snd(snd(new_vars A)))\<close>
+  \<open>additional_atm A \<equiv> snd(snd(new_vars A))\<close>
 abbreviation additional_var :: \<open>'v \<Rightarrow> 'v literal\<close> where
   \<open>additional_var A \<equiv> Pos (additional_atm A)\<close>
 
@@ -1515,10 +1515,11 @@ definition no_lonely_weighted_lit_cls :: \<open>_ \<Rightarrow> bool\<close> whe
 \<open>no_lonely_weighted_lit_cls C \<longleftrightarrow>
   (\<forall>L \<in> \<Delta>\<Sigma>. L \<in> atms_of C \<longrightarrow>
     (replacement_pos L \<in> atms_of C \<or> replacement_neg L \<in> atms_of C \<or>
-     additional_atm L \<in> atms_of C))\<close>
+       additional_atm L \<in> atms_of C))\<close>
 
 lemma additional_constraints_no_lonely_weighted_lit_cls:
-  \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow> C \<in># additional_constraint L \<Longrightarrow> no_lonely_weighted_lit_cls C\<close>
+  \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow> C \<in># additional_constraint L \<Longrightarrow>
+    no_lonely_weighted_lit_cls C\<close>
   by (auto simp: additional_constraint_def
     no_lonely_weighted_lit_cls_def)
 
@@ -1893,7 +1894,6 @@ proof (intro ballI impI)
       dest!: multi_member_split)
 qed
 
-
 lemma
   assumes
     \<open>enc_weight_opt.obacktrack S T\<close> and
@@ -1904,7 +1904,9 @@ lemma
     dec: \<open>lonely_weighted_lit_decided S\<close> and
     N: \<open>set_mset (penc N) \<subseteq> set_mset (clauses S)\<close> and
     atms: \<open>atms_of_mm (clauses S) = \<Sigma>\<close> and
-    rea: \<open>reasons_in_clauses S\<close>
+    rea: \<open>reasons_in_clauses S\<close> and
+    nss: \<open>no_step skip S\<close> and
+    nsr: \<open>no_step resolve S\<close>
   shows \<open>no_lonely_weighted_lit T\<close>
   using assms(1)
 proof (induction rule: enc_weight_opt.obacktrack.induct)
@@ -1999,7 +2001,7 @@ next
   then show ?case
     using lonely assms
     unfolding enc_weight_opt.conflict_opt.simps
-    by (auto simp: no_lonely_weighted_lit_def no_lonely_weighted_lit_cls_neg_ann_lits
+    by (auto simp: no_lonely_weighted_lit_def intro!: no_lonely_weighted_lit_cls_neg_ann_lits
       dest!: multi_member_split)
 next
   case (cdcl_bab_r_propagate S') note propa = this(1)
