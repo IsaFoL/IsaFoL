@@ -1928,6 +1928,12 @@ proof (induction rule: enc_weight_opt.obacktrack.induct)
     using alien confl atms
     unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def clauses_def
     by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+  have ?thesis
+    unfolding no_lonely_weighted_lit_def
+      no_new_lonely_clause_def
+    using T apply simp
+    oops
+    (*
   have \<open>La \<notin># ?D\<close> if La: \<open>atm_of La \<in> \<Delta>\<Sigma>\<close> for La
   proof
     assume \<open>La \<in># ?D\<close>
@@ -1968,6 +1974,7 @@ proof (induction rule: enc_weight_opt.obacktrack.induct)
         dec rea La La_tr smaller_propa] i
       apply (auto simp: atms_of_def dest!: multi_member_split)
   oops
+*)
 
 lemma
   assumes
