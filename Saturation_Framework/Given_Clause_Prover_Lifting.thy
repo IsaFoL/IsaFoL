@@ -1636,7 +1636,7 @@ lemma Red_Inf_G_eq: \<open>Red_Inf_G M = Red_Inf_G M'\<close> unfolding Red_Inf_
 
 lemma Red_Inf_\<G>_eq: \<open>Red_Inf_\<G>_M M = Red_Inf_\<G>_M M'\<close> unfolding Red_Inf_\<G>_M_def using \<G>_Inf_eq Red_Inf_G_eq by metis
 
-thm redundancy_criterion_lifting.Red_F_\<G>_def
+thm lifting_in_framework
 
 lemma lift_eq:
   \<open>redundancy_criterion_lifting \<G>_F (\<G>_Inf M) Bot_G (|\<approx>F) Inf_F Bot_G (\<Turnstile>G) (\<Turnstile>G) (Inf_G M)
@@ -1645,13 +1645,10 @@ lemma lift_eq:
     (Red_Inf_G M') Red_F_G Empty_Order\<close>
   unfolding redundancy_criterion_lifting_def grounding_function_def using \<G>_Inf_eq Inf_G_eq Red_Inf_G_eq by metis
 
-lemma Rf_eq: \<open>standard_redundancy_criterion.Rf Empty_Order M = standard_redundancy_criterion.Rf Empty_Order M'\<close>
-sorry
+term Red_F_\<G>_M
 
-lemma Red_F_\<G>_eq: \<open>Red_F_\<G>_M M = Red_F_\<G>_M M'\<close>
-  unfolding Red_F_\<G>_M_def Red_F_G_def using redundancy_criterion_lifting.Red_F_\<G>_def[of \<G>_F "\<G>_Inf M" Bot_F
-    entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G "Inf_G M" "Red_Inf_G M" Red_F_G
-    Empty_Order] Inf_G_eq \<G>_Inf_eq Red_Inf_G_eq is_red_crit_lift lift_eq apply auto sorry
+
+
 
 definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
   \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_set N)}\<close>
