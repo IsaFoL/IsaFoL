@@ -38,39 +38,39 @@ text \<open>
 \<close>
 
 locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_weight
-  state_eq
-  state
-  \<comment> \<open>functions for the state:\<close>
-  \<comment> \<open>access functions:\<close>
-  trail init_clss learned_clss conflicting
-  \<comment> \<open>changing state:\<close>
-  cons_trail tl_trail add_learned_cls remove_cls
-  update_conflicting
+    state_eq
+    state
+    \<comment> \<open>functions for the state:\<close>
+    \<comment> \<open>access functions:\<close>
+    trail init_clss learned_clss conflicting
+    \<comment> \<open>changing state:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls
+    update_conflicting
 
-   \<comment> \<open>get state:\<close>
-   init_state
-   \<rho>
-   update_additional_info
-for
-  state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
-  state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
-      'v clause option \<times> 'b" and
-  trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-  init_clss :: "'st \<Rightarrow> 'v clauses" and
-  learned_clss :: "'st \<Rightarrow> 'v clauses" and
-  conflicting :: "'st \<Rightarrow> 'v clause option" and
+     \<comment> \<open>get state:\<close>
+     init_state
+     \<rho>
+     update_additional_info
+  for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
+	'v clause option \<times> 'b" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    conflicting :: "'st \<Rightarrow> 'v clause option" and
 
-  cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-  tl_trail :: "'st \<Rightarrow> 'st" and
-  add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-  remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-  update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-  init_state :: "'v clauses \<Rightarrow> 'st" and
-  \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
-  update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> +
-fixes \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
-  new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close>
+    init_state :: "'v clauses \<Rightarrow> 'st" and
+    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
+    update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> +
+  fixes \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
+    new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close>
 begin
 
 abbreviation replacement_pos :: \<open>'v \<Rightarrow> 'v\<close> ("(_)\<^sup>\<mapsto>\<^sup>1" 100) where
@@ -314,8 +314,9 @@ inductive_cases odecideE: \<open>odecide S T\<close>
 
 definition no_new_lonely_clause :: \<open>'v clause \<Rightarrow> bool\<close> where
   \<open>no_new_lonely_clause C \<longleftrightarrow>
-  (\<forall>L \<in> \<Delta>\<Sigma>. L \<in> atms_of C \<longrightarrow> C \<in># additional_constraint L) \<and>
-  (\<forall>L \<in> \<Delta>\<Sigma>. additional_atm L \<in> atms_of C \<longrightarrow> C \<in># additional_constraint L)\<close>
+  (\<forall>L \<in> \<Delta>\<Sigma>. L \<in> atms_of C \<longrightarrow>
+       replacement_pos L \<in> atms_of C \<or> replacement_neg L \<in> atms_of C \<or>
+       additional_atm L \<in> atms_of C)\<close>
 
 definition no_lonely_weighted_lit_cls :: \<open>_ \<Rightarrow> bool\<close> where
   \<open>no_lonely_weighted_lit_cls C \<longleftrightarrow>
@@ -1781,6 +1782,7 @@ proof (rule ccontr)
     by auto
 qed
 
+(*
 lemma no_lonely_weighted_lit_cls_ex_lit_max_lvl:
   assumes \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
     lonely: \<open>no_lonely_weighted_lit S\<close> and
@@ -1818,30 +1820,31 @@ proof -
   have \<open>\<And>L mark a b.
          a @ Propagated L mark # b = trail S \<Longrightarrow>
          b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> and
-    \<open>set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S)\<close>
+    \<open>set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S)\<close> and
+    sm: \<open>\<And>M K M' D L.
+       trail S = M' @ Decided K # M \<longrightarrow>
+       D + {#L#} \<in># clauses S \<longrightarrow> undefined_lit M L \<longrightarrow> \<not> M \<Turnstile>as CNot D\<close>
     using assms unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-      reasons_in_clauses_def
+      reasons_in_clauses_def no_smaller_propa_def
     by auto
   from this(1)[OF M2[symmetric]] this(2)
   have \<open>M1 \<Turnstile>as CNot (remove1_mset L' E)\<close> and \<open>L' \<in># E\<close> and \<open>E \<in># clauses S\<close>
     by (auto simp: M2)
-  moreover have \<open>E \<in># additional_constraint L\<close>
+  moreover have \<open>atm_of L'\<^sup>\<mapsto>\<^sup>1 \<in> atms_of E \<or>
+           atm_of L'\<^sup>\<mapsto>\<^sup>0 \<in> atms_of E \<or> additional_atm (atm_of L') \<in> atms_of E\<close>
     using  \<open>L' \<in># E\<close> \<open>L \<in> \<Delta>\<Sigma>\<close>  \<open>atm_of L' = L\<close> lonely \<open>E \<in># clauses S\<close>
     by (auto simp: no_lonely_weighted_lit_def no_new_lonely_clause_def
         dest!: multi_member_split)
-  ultimately have
-    \<open>is_pos L' \<longrightarrow> (Pos (L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l M1 \<and> E = {#Neg (L\<^sup>\<mapsto>\<^sup>1), Pos L#}) \<or>
-        (additional_var L \<in> lits_of_l M1 \<and> Neg (L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l M1 \<and>
-	E = {#Pos L, Neg (additional_atm L), Pos (L\<^sup>\<mapsto>\<^sup>0)#})\<close>
-    \<open>is_neg L' \<longrightarrow>
-      (Pos (L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l M1 \<and> E = {#Neg L, Neg (L\<^sup>\<mapsto>\<^sup>0)#}) \<or>
-      (additional_var L \<in> lits_of_l M1 \<and> Neg (L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l M1
-         \<and> E ={#Neg (additional_atm L), Neg L, Pos (L\<^sup>\<mapsto>\<^sup>1)#})\<close>
+
+  ultimately have ?thesis
     using \<open>L \<in> \<Delta>\<Sigma>\<close> \<open>atm_of L' = L\<close> apply -
-    by (cases L'; auto simp: additional_constraint_def uminus_lit_swap add_mset_eq_add_mset M2
+    apply clarsimp
+    apply auto
+    sorry
+    apply (cases L'; auto simp: uminus_lit_swap add_mset_eq_add_mset M2
         image_Un
-        dest!: multi_member_split)+
+      dest!: multi_member_split)
   moreover have
     \<open>Pos (L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l M1 \<Longrightarrow> L\<^sup>\<mapsto>\<^sup>1 \<in> atm_of ` lits_of_l M1\<close>
     \<open>Neg (L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l M1 \<Longrightarrow> L\<^sup>\<mapsto>\<^sup>1 \<in> atm_of ` lits_of_l M1\<close>
@@ -1853,7 +1856,9 @@ proof -
       \<open>atm_of L' = L\<close>
     by (cases L') (auto simp: M2 get_level_Neg_Pos)
 qed
+*)
 
+(*
 lemma no_lonely_weighted_lit_cls_neg_ann_lits:
   assumes \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
     lonely: \<open>no_lonely_weighted_lit S\<close> and
@@ -1912,7 +1917,7 @@ proof (intro ballI impI)
     by (auto simp: additional_constraint_def uminus_lit_swap add_mset_eq_add_mset M2
         image_Un
         dest!: multi_member_split)
-qed
+qed*)
 
 lemma simple_backtrack_obacktrack:
   \<open>simple_backtrack S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S) \<Longrightarrow>
@@ -1971,13 +1976,24 @@ proof (induction rule: simple_backtrack.induct)
     unfolding no_lonely_weighted_lit_def
       no_new_lonely_clause_def
     using state_eq_conflicting[OF T] by (auto simp: )
-  then have ?case
+  then show ?case
+    using lonely confl T
+    unfolding no_lonely_weighted_lit_def Ball_def
+      no_new_lonely_clause_def no_lonely_weighted_lit_cls_def
+    by (clarsimp simp: all_conj_distrib)
+  have \<open>atm_of L \<notin> \<Delta>\<Sigma>\<close>
+  proof
+    let ?x = \<open>atm_of L\<close>
+    assume \<open>atm_of L \<in> \<Delta>\<Sigma>\<close>
+    then have \<open>?x\<^sup>\<mapsto>\<^sup>1 \<in> atms_of (the (conflicting S)) \<or>
+          ?x\<^sup>\<mapsto>\<^sup>0 \<in> atms_of (the (conflicting S)) \<or>
+          additional_atm ?x \<in> atms_of (the (conflicting S))\<close>
     using lonely confl
-    unfolding no_lonely_weighted_lit_def
-      no_new_lonely_clause_def
-    using state_eq_conflicting[OF T] apply (auto simp: )
-    oops
-      (*
+    unfolding no_lonely_weighted_lit_def Ball_def
+      no_new_lonely_clause_def no_lonely_weighted_lit_cls_def
+    by (clarsimp simp: all_conj_distrib)
+oops
+(*
   have \<open>La \<notin># ?D\<close> if La: \<open>atm_of La \<in> \<Delta>\<Sigma>\<close> for La
   proof
     assume \<open>La \<in># ?D\<close>
@@ -2020,6 +2036,7 @@ proof (induction rule: simple_backtrack.induct)
   oops
 *)
 
+(*
 lemma
   assumes
     \<open>cdcl_bab_r_stgy S T\<close> and
@@ -2076,7 +2093,7 @@ next
       apply (auto simp: no_lonely_weighted_lit_def
           elim!: enc_weight_opt.obacktrackE)
       oops
-        (*      sorry
+              sorry
   next
     case skip
     then show ?thesis
