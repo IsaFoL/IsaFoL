@@ -1,7 +1,9 @@
 (*  Author:     Stefan Berghofer, TU Muenchen, 2003
-    Author: Andreas Halkjær From, DTU Compute, 2017
+    Author: Andreas Halkjær From, DTU Compute, 2019
     Thanks to John Bruntse Larsen, Anders Schlichtkrull & Jørgen Villadsen
 *)
+
+section \<open>First-Order Logic According to Berghofer\<close>
 
 theory FOL_Berghofer
   imports "HOL-Library.Countable"
@@ -334,12 +336,12 @@ The following substitution lemmas relate substitution and evaluation functions:
 theorem subst_lemma' [simp]:
   \<open>evalt e f (substt t u i) = evalt (e\<langle>i:evalt e f u\<rangle>) f t\<close>
   \<open>evalts e f (substts ts u i) = evalts (e\<langle>i:evalt e f u\<rangle>) f ts\<close>
-  by (induct t and ts rule: evalt.induct evalts.induct) simp_all
+  by (induct t and ts rule: substt.induct substts.induct) simp_all
 
 theorem lift_lemma [simp]:
   \<open>evalt (e\<langle>0:z\<rangle>) f (liftt t) = evalt e f t\<close>
   \<open>evalts (e\<langle>0:z\<rangle>) f (liftts ts) = evalts e f ts\<close>
-  by (induct t and ts rule: evalt.induct evalts.induct) simp_all
+  by (induct t and ts rule: liftt.induct liftts.induct) simp_all
 
 theorem subst_lemma [simp]:
   \<open>eval e f g (subst a t i) = eval (e\<langle>i:evalt e f t\<rangle>) f g a\<close>
@@ -348,7 +350,7 @@ theorem subst_lemma [simp]:
 theorem upd_lemma' [simp]:
   \<open>n \<notin> paramst t \<Longrightarrow> evalt e (f(n := x)) t = evalt e f t\<close>
   \<open>n \<notin> paramsts ts \<Longrightarrow> evalts e (f(n := x)) ts = evalts e f ts\<close>
-  by (induct t and ts rule: evalt.induct evalts.induct) auto
+  by (induct t and ts rule: paramst.induct paramsts.induct) auto
 
 theorem upd_lemma [simp]:
   \<open>n \<notin> params p \<Longrightarrow> eval e (f(n := x)) g p = eval e f g p\<close>
@@ -361,7 +363,7 @@ theorem list_upd_lemma [simp]: \<open>list_all (\<lambda>p. n \<notin> params p)
 theorem psubst_eval' [simp]:
   \<open>evalt e f (psubstt h t) = evalt e (\<lambda>p. f (h p)) t\<close>
   \<open>evalts e f (psubstts h ts) = evalts e (\<lambda>p. f (h p)) ts\<close>
-  by (induct t and ts rule: evalt.induct evalts.induct) simp_all
+  by (induct t and ts rule: psubstt.induct psubstts.induct) simp_all
 
 theorem psubst_eval:
   \<open>eval e f g (psubst h p) = eval e (\<lambda>p. f (h p)) g p\<close>
@@ -2860,8 +2862,8 @@ proof (rule infinite_super)
     by (metis (no_types, lifting))
 next
   have \<open>\<And>m n. Suc (2 * m) \<noteq> 2 * n\<close> by arith
-  then show \<open>range (\<lambda>n::nat. (2::nat) * n + (1::nat))
-    \<subseteq> - (\<Union>p::(nat, 'a) form \<in> psubst (( * ) (2::nat)) ` S. params p)\<close>
+  then show \<open>range (\<lambda>n. 2 * n + 1)
+    \<subseteq> - (\<Union>p::(nat, 'a) form \<in> psubst (\<lambda>n . 2 * n) ` S. params p)\<close>
     by auto
 qed
 
@@ -2892,17 +2894,17 @@ proof (intro ballI impI)
     using evalS by blast
   then have \<open>\<forall>x \<in> S. eval e f g x\<close>
     using evalS by blast
-  then have \<open>\<forall>p \<in> psubst (( * ) 2) ` S. eval e (\<lambda>n. f (n div 2)) g p\<close>
+  then have \<open>\<forall>p \<in> psubst (\<lambda>n. 2 * n) ` S. eval e (\<lambda>n. f (n div 2)) g p\<close>
     by (simp add: psubst_eval)
-  then have \<open>psubst (( * ) 2) ` S \<in> ?C\<close>
+  then have \<open>psubst (\<lambda>n. 2 * n) ` S \<in> ?C\<close>
     using doublep_infinite_params by blast
-  moreover have \<open>psubst (( * ) 2) p \<in> psubst (( * ) 2) ` S\<close>
+  moreover have \<open>psubst (\<lambda>n. 2 * n) p \<in> psubst (\<lambda>n. 2 * n) ` S\<close>
     using \<open>p \<in> S\<close> by blast
-  moreover have \<open>closed 0 (psubst (( * ) 2) p)\<close>
+  moreover have \<open>closed 0 (psubst (\<lambda>n. 2 * n) p)\<close>
     using \<open>closed 0 p\<close> by simp
   moreover have \<open>consistency ?C\<close>
     using sat_consistency by blast
-  ultimately have \<open>eval e' HApp ?g (psubst (( * ) 2) p)\<close>
+  ultimately have \<open>eval e' HApp ?g (psubst (\<lambda>n. 2 * n) p)\<close>
     using model_existence by blast
   then show \<open>eval e' (\<lambda>n. HApp (2 * n)) ?g p\<close>
     using psubst_eval by blast
@@ -4014,5 +4016,15 @@ proposition
 corollary \<open>\<forall>e (f::nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm) (g::nat \<Rightarrow> nat hterm list \<Rightarrow> bool).
     e,f,g,ps \<Turnstile> p \<Longrightarrow> ps \<turnstile> p\<close>
   by (rule completeness)
+
+section \<open>Acknowledgements\<close>
+
+text \<open>
+
+\<^item> Stefan Berghofer:
+First-Order Logic According to Fitting.
+\<^url>\<open>https://www.isa-afp.org/entries/FOL-Fitting.shtml\<close>
+
+\<close>
 
 end
