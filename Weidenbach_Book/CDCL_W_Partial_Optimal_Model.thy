@@ -23,6 +23,23 @@ interpretation test: conflict_driven_clause_learning\<^sub>W_optimal_weight wher
   update_additional_info = \<open>\<lambda>W (M, N, U, D, _, _). (M, N, U, D, W)\<close>
   by unfold_locales (auto simp: state\<^sub>W_ops.additional_info_def)
 
+(* TODO Move *)
+lemma uminus_lits_of_l_definedD:
+  \<open>-x \<in> lits_of_l M \<Longrightarrow> defined_lit M x\<close>
+  by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
+
+lemma defined_lit_Neg_Pos_iff:
+  \<open>defined_lit M (Neg A) \<longleftrightarrow> defined_lit M (Pos A)\<close>
+  by (simp add: defined_lit_map)
+
+lemma no_dup_alt_def:
+  \<open>no_dup M \<longleftrightarrow> distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
+  by (auto simp: no_dup_def simp flip: distinct_mset_mset_distinct)
+
+lemma defined_lit_Pos_atm_iff[simp]:
+  \<open>defined_lit M1 (Pos (atm_of x)) \<longleftrightarrow> defined_lit M1 x\<close>
+  by (cases x) (auto simp: defined_lit_Neg_Pos_iff)
+(* END Move *)
 
 text \<open>
   We here formalise the encoding from a formula to another formula from which we will run derive the
@@ -314,20 +331,21 @@ inductive_cases odecideE: \<open>odecide S T\<close>
 
 definition no_new_lonely_clause :: \<open>'v clause \<Rightarrow> bool\<close> where
   \<open>no_new_lonely_clause C \<longleftrightarrow>
-  (\<forall>L \<in> \<Delta>\<Sigma>. L \<in> atms_of C \<longrightarrow>
-       replacement_pos L \<in> atms_of C \<or> replacement_neg L \<in> atms_of C \<or>
-       additional_atm L \<in> atms_of C)\<close>
+    (\<forall>L \<in> \<Delta>\<Sigma>. L \<in> atms_of C \<longrightarrow>
+      Neg (replacement_pos L) \<in># C \<or> Neg (replacement_neg L) \<in># C \<or> C \<in># additional_constraint L)\<close>
 
 definition no_lonely_weighted_lit_cls :: \<open>_ \<Rightarrow> bool\<close> where
   \<open>no_lonely_weighted_lit_cls C \<longleftrightarrow>
-  (\<forall>L \<in> \<Delta>\<Sigma>. L \<in> atms_of C \<longrightarrow>
-    (replacement_pos L \<in> atms_of C \<or> replacement_neg L \<in> atms_of C \<or>
-       additional_atm L \<in> atms_of C))\<close>
+    (\<forall>L \<in> \<Delta>\<Sigma>. Pos L \<in># C \<longrightarrow>
+      (Neg (replacement_pos L) \<in># C \<or> (- additional_var L \<in># C \<and> Pos (replacement_neg L) \<in># C))) \<and>
+    (\<forall>L \<in> \<Delta>\<Sigma>. Neg L \<in># C \<longrightarrow>
+      Neg (replacement_neg L) \<in># C \<or> 
+      (- additional_var L \<in># C \<and> Pos (replacement_pos L) \<in># C))\<close>
 
 definition no_lonely_weighted_lit :: \<open>_ \<Rightarrow> bool\<close> where
   \<open>no_lonely_weighted_lit S \<longleftrightarrow>
-   (conflicting S \<noteq> None \<longrightarrow> no_lonely_weighted_lit_cls (the (conflicting S))) \<and>
-   (\<forall>C \<in># clauses S. no_new_lonely_clause C)\<close>
+    (conflicting S \<noteq> None \<longrightarrow> no_lonely_weighted_lit_cls (the (conflicting S))) \<and>
+    (\<forall>C \<in># clauses S. no_lonely_weighted_lit_cls C)\<close>
 
 definition lonely_weighted_lit_decided where
   \<open>lonely_weighted_lit_decided S \<longleftrightarrow>
@@ -337,61 +355,60 @@ end
 
 
 locale optimal_encoding = optimal_encoding_opt
-  state_eq
-  state
-  \<comment> \<open>functions for the state:\<close>
-  \<comment> \<open>access functions:\<close>
-  trail init_clss learned_clss conflicting
-  \<comment> \<open>changing state:\<close>
-  cons_trail tl_trail add_learned_cls remove_cls
-  update_conflicting
+    state_eq
+    state
+    \<comment> \<open>functions for the state:\<close>
+    \<comment> \<open>access functions:\<close>
+    trail init_clss learned_clss conflicting
+    \<comment> \<open>changing state:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls
+    update_conflicting
 
-\<comment> \<open>get state:\<close>
-init_state
-\<rho>
-update_additional_info
-\<Sigma> \<Delta>\<Sigma>
-new_vars
-for
-  state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
-  state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
-      'v clause option \<times> 'b" and
-  trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-  init_clss :: "'st \<Rightarrow> 'v clauses" and
-  learned_clss :: "'st \<Rightarrow> 'v clauses" and
-  conflicting :: "'st \<Rightarrow> 'v clause option" and
+    \<comment> \<open>get state:\<close>
+    init_state
+    \<rho>
+    update_additional_info
+    \<Sigma> \<Delta>\<Sigma>
+    new_vars
+  for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
+	'v clause option \<times> 'b" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    conflicting :: "'st \<Rightarrow> 'v clause option" and
+    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-tl_trail :: "'st \<Rightarrow> 'st" and
-add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
-
-init_state :: "'v clauses \<Rightarrow> 'st" and
-\<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
-update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
-\<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
-new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close> +
-assumes
-  finite_\<Sigma>:
-  \<open>finite \<Delta>\<Sigma>\<close> and
-  \<Delta>\<Sigma>_\<Sigma>:
-  \<open>\<Delta>\<Sigma> \<subseteq> \<Sigma>\<close> and
-  new_vars_pos:
-  \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_pos A \<notin> \<Sigma>\<close> and
-  new_vars_neg:
-  \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_neg A \<notin> \<Sigma>\<close> and
-  new_vars_addition_var:
-  \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> additional_atm A \<notin> \<Sigma>\<close> and
-  new_vars_dist:
-  \<open>inj_on replacement_pos \<Delta>\<Sigma>\<close>
-  \<open>inj_on replacement_neg \<Delta>\<Sigma>\<close>
-  \<open>inj_on additional_atm \<Delta>\<Sigma>\<close>
-  \<open>replacement_pos ` \<Delta>\<Sigma> \<inter> replacement_neg ` \<Delta>\<Sigma> = {}\<close>
-  \<open>replacement_pos ` \<Delta>\<Sigma> \<inter> additional_atm ` \<Delta>\<Sigma> = {}\<close>
-  \<open>replacement_neg ` \<Delta>\<Sigma> \<inter> additional_atm ` \<Delta>\<Sigma> = {}\<close> and
-  \<Sigma>_no_weight:
-  \<open>atm_of C \<in> \<Sigma> - \<Delta>\<Sigma> \<Longrightarrow> \<rho> (add_mset C M) = \<rho> M\<close>
+    init_state :: "'v clauses \<Rightarrow> 'st" and
+    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
+    update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
+    new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close> +
+  assumes
+    finite_\<Sigma>:
+    \<open>finite \<Delta>\<Sigma>\<close> and
+    \<Delta>\<Sigma>_\<Sigma>:
+    \<open>\<Delta>\<Sigma> \<subseteq> \<Sigma>\<close> and
+    new_vars_pos:
+    \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_pos A \<notin> \<Sigma>\<close> and
+    new_vars_neg:
+    \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_neg A \<notin> \<Sigma>\<close> and
+    new_vars_addition_var:
+    \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> additional_atm A \<notin> \<Sigma>\<close> and
+    new_vars_dist:
+    \<open>inj_on replacement_pos \<Delta>\<Sigma>\<close>
+    \<open>inj_on replacement_neg \<Delta>\<Sigma>\<close>
+    \<open>inj_on additional_atm \<Delta>\<Sigma>\<close>
+    \<open>replacement_pos ` \<Delta>\<Sigma> \<inter> replacement_neg ` \<Delta>\<Sigma> = {}\<close>
+    \<open>replacement_pos ` \<Delta>\<Sigma> \<inter> additional_atm ` \<Delta>\<Sigma> = {}\<close>
+    \<open>replacement_neg ` \<Delta>\<Sigma> \<inter> additional_atm ` \<Delta>\<Sigma> = {}\<close> and
+    \<Sigma>_no_weight:
+    \<open>atm_of C \<in> \<Sigma> - \<Delta>\<Sigma> \<Longrightarrow> \<rho> (add_mset C M) = \<rho> M\<close>
 begin
 
 
@@ -996,14 +1013,6 @@ lemma cdcl_bab_r_stgy_cdcl_bab_stgy:
 end
 
 
-lemma defined_lit_Neg_Pos_iff:
-  \<open>defined_lit M (Neg A) \<longleftrightarrow> defined_lit M (Pos A)\<close>
-  by (simp add: defined_lit_map)
-
-lemma no_dup_alt_def:
-  \<open>no_dup M \<longleftrightarrow> distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
-  by (auto simp: no_dup_def simp flip: distinct_mset_mset_distinct)
-
 context
   fixes S :: 'st
   assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = \<Sigma> \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
@@ -1556,7 +1565,7 @@ lemma additional_constraints_no_lonely_weighted_lit_cls:
 lemma defined_replacement_pos_orinal:
   assumes
     def_neg: \<open>Pos (atm_of L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S)\<close> and
-    \<open>set_mset (penc N) \<subseteq> set_mset (clauses S)\<close> and
+    \<open>set_mset additional_constraints \<subseteq> set_mset (clauses S)\<close> and
     smaller_propa: \<open>no_smaller_propa S\<close> and
     lev_L: \<open>get_level (trail S) (Neg (atm_of L\<^sup>\<mapsto>\<^sup>1)) < backtrack_lvl S\<close> and
     L: \<open>atm_of L \<in> \<Delta>\<Sigma>\<close> and
@@ -1568,7 +1577,7 @@ proof -
     using L finite_\<Sigma> by auto
   then have H: \<open>\<And>M K M'. trail S = M' @ Decided K # M \<longrightarrow> (\<forall>D L'.
     D + {#L'#} \<in># additional_constraint (atm_of L) \<longrightarrow> undefined_lit M L' \<longrightarrow> \<not> M \<Turnstile>as CNot D)\<close>
-    using smaller_propa assms(2) unfolding no_smaller_propa_def penc_def
+    using smaller_propa assms(2) unfolding no_smaller_propa_def
       additional_constraints_def
     by (auto dest!: multi_member_split)
   obtain M1 M2 K where
@@ -1588,11 +1597,11 @@ proof -
         get_level_cons_if
         split: if_splits
         dest: no_dup_consistentD
-        cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+        no_dup_append_in_atm_notin)
   then have Pos': \<open>Pos (atm_of L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l M1\<close>
     using def_neg unfolding M3 M2'_def[symmetric] append_assoc[symmetric]
     by (auto simp: Decided_Propagated_in_iff_in_lits_of_l
-        dest: no_dup_consistentD cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+        dest: no_dup_consistentD no_dup_append_in_atm_notin)
   then have [iff]: \<open>defined_lit M1 (Neg (atm_of L\<^sup>\<mapsto>\<^sup>1))\<close>
     by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
 
@@ -1626,7 +1635,7 @@ qed
 lemma defined_replacement_neg_orinal:
   assumes
     def_neg: \<open>Pos (atm_of L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S)\<close> and
-    \<open>set_mset (penc N) \<subseteq> set_mset (clauses S)\<close> and
+    \<open>set_mset additional_constraints \<subseteq> set_mset (clauses S)\<close> and
     smaller_propa: \<open>no_smaller_propa S\<close> and
     lev_L: \<open>get_level (trail S) (Pos (atm_of L\<^sup>\<mapsto>\<^sup>0)) < backtrack_lvl S\<close> and
     L: \<open>atm_of L \<in> \<Delta>\<Sigma>\<close> and
@@ -1658,11 +1667,11 @@ proof -
         get_level_cons_if
         split: if_splits
         dest: no_dup_consistentD
-        cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+        no_dup_append_in_atm_notin)
   then have Pos': \<open>Pos (atm_of L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l M1\<close>
     using def_neg unfolding M3 M2'_def[symmetric] append_assoc[symmetric]
     by (auto simp: Decided_Propagated_in_iff_in_lits_of_l
-        dest: no_dup_consistentD cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+        dest: no_dup_consistentD no_dup_append_in_atm_notin)
   then have [iff]: \<open>defined_lit M1 (Pos (atm_of L\<^sup>\<mapsto>\<^sup>0))\<close>
     by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
 
@@ -1693,15 +1702,188 @@ proof -
     by (auto simp: defined_lit_append)
 qed
 
+lemma defined_replacement_additional_neg_orinal:
+  assumes
+    def_neg: \<open>Neg (atm_of L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S)\<close>
+      \<open>additional_var (atm_of L) \<in> lits_of_l (trail S)\<close> and
+    \<open>set_mset additional_constraints \<subseteq> set_mset (clauses S)\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    lev_L: \<open>get_level (trail S) (Neg (atm_of L\<^sup>\<mapsto>\<^sup>0)) < backtrack_lvl S\<close> and
+    lev_L': \<open>get_level (trail S) (additional_var (atm_of L)) < backtrack_lvl S\<close> and
+    L: \<open>atm_of L \<in> \<Delta>\<Sigma>\<close> and
+    n_d: \<open>no_dup (trail S)\<close>
+  shows \<open>defined_lit (trail S) L\<close>
+proof -
+  define i where
+    \<open>i = max (get_level (trail S) (Neg (atm_of L\<^sup>\<mapsto>\<^sup>0))) (get_level (trail S) (additional_var (atm_of L)))\<close>
+  have \<open>atm_of L \<in># mset_set \<Delta>\<Sigma>\<close>
+    using L finite_\<Sigma> by auto
+  then have H: \<open>\<And>M K M'. trail S = M' @ Decided K # M \<longrightarrow> (\<forall>D L'.
+    D + {#L'#} \<in># additional_constraint (atm_of L) \<longrightarrow> undefined_lit M L' \<longrightarrow> \<not> M \<Turnstile>as CNot D)\<close>
+    using smaller_propa assms(3) finite_\<Sigma> unfolding no_smaller_propa_def
+      additional_constraints_def
+    by (auto dest: multi_member_split)
+
+  have \<open>i < backtrack_lvl S\<close>
+    using lev_L lev_L' unfolding i_def by auto
+  then obtain M1 M2 K where
+    decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
+    lev_K: \<open>get_level (trail S) K = Suc i\<close>
+    using backtrack_ex_decomp[OF n_d] unfolding i_def
+    by blast
+  obtain M3 where
+    M3: \<open>trail S = M3 @ M2 @ Decided K # M1\<close>
+    using decomp by auto
+  define M2' where
+    \<open>M2' = M3 @ M2\<close>
+  have \<open>undefined_lit (M2' @ Decided K # []) (Neg (atm_of L\<^sup>\<mapsto>\<^sup>0))\<close>
+    using def_neg n_d lev_L lev_K i_def[symmetric]
+    unfolding M3 M2'_def[symmetric] append_assoc[symmetric]
+    by (auto simp: get_level_append_if defined_lit_Neg_Pos_iff
+        get_level_cons_if
+        split: if_splits
+        dest: no_dup_consistentD
+        no_dup_append_in_atm_notin)
+  then have Neg': \<open>Neg (atm_of L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l M1\<close>
+    using def_neg unfolding M3 M2'_def[symmetric] append_assoc[symmetric]
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l
+        dest: no_dup_consistentD no_dup_append_in_atm_notin)
+  then have [iff]: \<open>defined_lit M1 (Pos (atm_of L\<^sup>\<mapsto>\<^sup>0))\<close>
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+  have \<open>undefined_lit (M2' @ Decided K # []) (additional_var (atm_of L))\<close>
+    using def_neg n_d lev_L' lev_K i_def[symmetric]
+    unfolding M3 M2'_def[symmetric] append_assoc[symmetric]
+    by (auto simp: get_level_append_if defined_lit_Neg_Pos_iff
+        get_level_cons_if
+        split: if_splits
+        dest: no_dup_consistentD
+        no_dup_append_in_atm_notin)
+  then have Pos': \<open>additional_var (atm_of L) \<in> lits_of_l M1\<close>
+    using def_neg unfolding M3 M2'_def[symmetric] append_assoc[symmetric]
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l
+        dest: no_dup_consistentD no_dup_append_in_atm_notin)
+  then have [iff]: \<open>defined_lit M1 (additional_var (atm_of L))\<close>
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+  have [iff]: \<open>atm_of L \<noteq> additional_atm (atm_of L)\<close>
+    using L by auto
+  have 1: \<open>add_mset x N \<subseteq># {#a, b#} \<longleftrightarrow> (x = a \<and> N \<subseteq># {#b#} \<or> x = b \<and> N \<subseteq># {#a#})\<close>
+    for N and x a b :: \<open>'v literal\<close>
+    by (metis add_mset_commute empty_iff member_add_mset
+        mset_subset_eq_add_mset_cancel mset_subset_eq_insertD set_mset_empty)
+  have le2_empty: \<open>D - {#a, b#} = {#} \<longleftrightarrow> D = {#} \<or> D = {#a#} \<or> D = {#b#} \<or> D = {#a, b#}\<close>
+    for D and a b :: \<open>'v literal\<close>
+    unfolding Diff_eq_empty_iff_mset
+    by (cases D)
+      (auto simp add: add_mset_eq_add_mset remove1_mset_empty_iff 1
+        subset_eq_mset_single_iff)
+  have 2: \<open>remove1_mset a N = C \<longleftrightarrow> (a \<notin># N \<and> N = C \<or> N = add_mset a C)\<close>
+    for N C and a :: \<open>'v literal\<close>
+    by (auto simp: add_mset_remove_trivial_If
+        split: if_splits)
+  have \<open>defined_lit M1 L\<close>
+    using H[of M2' K M1] L Pos' Neg' M3 unfolding M2'_def
+    by (cases L)
+      (simp_all add: additional_constraint_def add_mset_eq_add_mset
+        le2_empty 2 defined_lit_Neg_Pos_iff
+        all_conj_distrib remove1_mset_empty_iff conj_disj_distribL)
+  then show ?thesis
+    using M3 unfolding M2'_def
+    by (auto simp: defined_lit_append)
+qed
+
+lemma defined_replacement_additional_neg_orinal2:
+  assumes
+    def_neg: \<open>Neg (atm_of L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S)\<close>
+      \<open>additional_var (atm_of L) \<in> lits_of_l (trail S)\<close> and
+    \<open>set_mset additional_constraints \<subseteq> set_mset (clauses S)\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    lev_L: \<open>get_level (trail S) (Neg (atm_of L\<^sup>\<mapsto>\<^sup>1)) < backtrack_lvl S\<close> and
+    lev_L': \<open>get_level (trail S) (additional_var (atm_of L)) < backtrack_lvl S\<close> and
+    L: \<open>atm_of L \<in> \<Delta>\<Sigma>\<close> and
+    n_d: \<open>no_dup (trail S)\<close>
+  shows \<open>defined_lit (trail S) L\<close>
+proof -
+  define i where
+    \<open>i = max (get_level (trail S) (Neg (atm_of L\<^sup>\<mapsto>\<^sup>1))) (get_level (trail S) (additional_var (atm_of L)))\<close>
+  have \<open>atm_of L \<in># mset_set \<Delta>\<Sigma>\<close>
+    using L finite_\<Sigma> by auto
+  then have H: \<open>\<And>M K M'. trail S = M' @ Decided K # M \<longrightarrow> (\<forall>D L'.
+    D + {#L'#} \<in># additional_constraint (atm_of L) \<longrightarrow> undefined_lit M L' \<longrightarrow> \<not> M \<Turnstile>as CNot D)\<close>
+    using smaller_propa assms(3) finite_\<Sigma> unfolding no_smaller_propa_def
+      additional_constraints_def
+    by (auto dest: multi_member_split)
+
+  have \<open>i < backtrack_lvl S\<close>
+    using lev_L lev_L' unfolding i_def by auto
+  then obtain M1 M2 K where
+    decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
+    lev_K: \<open>get_level (trail S) K = Suc i\<close>
+    using backtrack_ex_decomp[OF n_d] unfolding i_def
+    by blast
+  obtain M3 where
+    M3: \<open>trail S = M3 @ M2 @ Decided K # M1\<close>
+    using decomp by auto
+  define M2' where
+    \<open>M2' = M3 @ M2\<close>
+  have \<open>undefined_lit (M2' @ Decided K # []) (Neg (atm_of L\<^sup>\<mapsto>\<^sup>1))\<close>
+    using def_neg n_d lev_L lev_K i_def[symmetric]
+    unfolding M3 M2'_def[symmetric] append_assoc[symmetric]
+    by (auto simp: get_level_append_if defined_lit_Neg_Pos_iff
+        get_level_cons_if
+        split: if_splits
+        dest: no_dup_consistentD
+        no_dup_append_in_atm_notin)
+  then have Neg': \<open>Neg (atm_of L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l M1\<close>
+    using def_neg unfolding M3 M2'_def[symmetric] append_assoc[symmetric]
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l
+        dest: no_dup_consistentD no_dup_append_in_atm_notin)
+  then have [iff]: \<open>defined_lit M1 (Pos (atm_of L\<^sup>\<mapsto>\<^sup>1))\<close>
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+  have \<open>undefined_lit (M2' @ Decided K # []) (additional_var (atm_of L))\<close>
+    using def_neg n_d lev_L' lev_K i_def[symmetric]
+    unfolding M3 M2'_def[symmetric] append_assoc[symmetric]
+    by (auto simp: get_level_append_if defined_lit_Neg_Pos_iff
+        get_level_cons_if
+        split: if_splits
+        dest: no_dup_consistentD
+        no_dup_append_in_atm_notin)
+  then have Pos': \<open>additional_var (atm_of L) \<in> lits_of_l M1\<close>
+    using def_neg unfolding M3 M2'_def[symmetric] append_assoc[symmetric]
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l
+        dest: no_dup_consistentD no_dup_append_in_atm_notin)
+  then have [iff]: \<open>defined_lit M1 (additional_var (atm_of L))\<close>
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+  have [iff]: \<open>atm_of L \<noteq> additional_atm (atm_of L)\<close>
+    using L by auto
+  have 1: \<open>add_mset x N \<subseteq># {#a, b#} \<longleftrightarrow> (x = a \<and> N \<subseteq># {#b#} \<or> x = b \<and> N \<subseteq># {#a#})\<close>
+    for N and x a b :: \<open>'v literal\<close>
+    by (metis add_mset_commute empty_iff member_add_mset
+        mset_subset_eq_add_mset_cancel mset_subset_eq_insertD set_mset_empty)
+  have le2_empty: \<open>D - {#a, b#} = {#} \<longleftrightarrow> D = {#} \<or> D = {#a#} \<or> D = {#b#} \<or> D = {#a, b#}\<close>
+    for D and a b :: \<open>'v literal\<close>
+    unfolding Diff_eq_empty_iff_mset
+    by (cases D)
+      (auto simp add: add_mset_eq_add_mset remove1_mset_empty_iff 1
+        subset_eq_mset_single_iff)
+  have 2: \<open>remove1_mset a N = C \<longleftrightarrow> (a \<notin># N \<and> N = C \<or> N = add_mset a C)\<close>
+    for N C and a :: \<open>'v literal\<close>
+    by (auto simp: add_mset_remove_trivial_If
+        split: if_splits)
+  have \<open>defined_lit M1 L\<close>
+    using H[of M2' K M1] L Pos' Neg' M3 unfolding M2'_def
+    by (cases L)
+      (simp_all add: additional_constraint_def add_mset_eq_add_mset
+        le2_empty 2 defined_lit_Neg_Pos_iff
+        all_conj_distrib remove1_mset_empty_iff conj_disj_distribL)
+  then show ?thesis
+    using M3 unfolding M2'_def
+    by (auto simp: defined_lit_append)
+qed
+
 lemma Neg_in_lits_of_l_definedD:
   \<open>Neg A \<in> lits_of_l M \<Longrightarrow> defined_lit M (Pos A)\<close>
   by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
-
-lemma no_new_lonely_clause_no_lonely_weighted_lit_cls:
-  \<open>no_new_lonely_clause y \<Longrightarrow> no_lonely_weighted_lit_cls y\<close>
-  by (auto simp: no_new_lonely_clause_def no_lonely_weighted_lit_cls_def
-      additional_constraint_def)
-
+ 
 lemma propagation_one_lit_of_same_lvl:
   assumes
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
@@ -1782,45 +1964,28 @@ proof (rule ccontr)
     by auto
 qed
 
-(*
-lemma no_lonely_weighted_lit_cls_ex_lit_max_lvl:
-  assumes \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+lemma no_lonely_weighted_lit_cls_ex_lit_max_lvl_pos:
+  assumes struct_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
     lonely: \<open>no_lonely_weighted_lit S\<close> and
     dec: \<open>lonely_weighted_lit_decided S\<close> and
     rea: \<open>reasons_in_clauses S\<close> and
-    \<open>L \<in> \<Delta>\<Sigma>\<close> and \<open>L \<in> atm_of ` (lits_of_l (trail S))\<close> and
-    smaller_propa: \<open>no_smaller_propa S\<close>
+    \<open>L \<in> \<Delta>\<Sigma>\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    add: \<open>set_mset additional_constraints \<subseteq> set_mset (clauses S)\<close> and
+    L: \<open>Pos L \<in> lits_of_l (trail S)\<close> and
+    C1: \<open>Pos (L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S) \<Longrightarrow>
+      get_level (trail S) (Pos L) = get_level (trail S)(Pos (L\<^sup>\<mapsto>\<^sup>1)) \<Longrightarrow> P\<close> and
+    C2: \<open>Neg (L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S) \<Longrightarrow>
+       additional_var L \<in> lits_of_l (trail S) \<Longrightarrow>
+        get_level (trail S) (Pos L) = get_level (trail S) (additional_var L) \<or>
+         get_level (trail S) (Pos L) = get_level (trail S) (Neg (L\<^sup>\<mapsto>\<^sup>0)) \<Longrightarrow> P\<close>
   shows
-    \<open>(L\<^sup>\<mapsto>\<^sup>1 \<in> atm_of ` (lits_of_l (trail S))
-       \<and> get_level (trail S) (Pos L) = get_level (trail S)(Pos (L\<^sup>\<mapsto>\<^sup>1)))
-    \<or> (L\<^sup>\<mapsto>\<^sup>1 \<in> atm_of ` (lits_of_l (trail S))
-       \<and> get_level (trail S) (Pos L) = get_level (trail S) (additional_var L) \<or>
-         get_level (trail S) (Pos L) = get_level (trail S) (Neg (L\<^sup>\<mapsto>\<^sup>1)))
-    \<or> (L\<^sup>\<mapsto>\<^sup>0 \<in> atm_of ` (lits_of_l (trail S))
-       \<and> get_level (trail S) (Pos L) = get_level (trail S)(Pos (L\<^sup>\<mapsto>\<^sup>0)))
-    \<or> (L\<^sup>\<mapsto>\<^sup>0 \<in> atm_of ` (lits_of_l (trail S))
-       \<and> get_level (trail S) (Pos L) = get_level (trail S) (additional_var L) \<or>
-         get_level (trail S) (Pos L) = get_level (trail S) (Neg (L\<^sup>\<mapsto>\<^sup>0)))\<close>
-  unfolding no_lonely_weighted_lit_cls_def
+    \<open>P\<close>
 proof -
-  obtain L' where
-    \<open>atm_of L' = L\<close> and
-    \<open>L' \<in> lits_of_l (trail S)\<close>
-    using assms
-    by (auto simp: atms_of_def)
-  then obtain E where L'_E: \<open>Propagated L' E \<in> set (trail S)\<close>
-    using dec \<open>L \<in> \<Delta>\<Sigma>\<close> unfolding lonely_weighted_lit_decided_def
-    by (cases L')
-      (auto simp: lits_of_def uminus_lit_swap dest!: literal_is_lit_of_decided)
-  then obtain M1 M2 where M2: \<open>trail S = M2 @ Propagated L' E # M1\<close>
-    by (auto dest!: split_list)
-  have [iff]: \<open>L' \<noteq> Pos (atm_of L'\<^sup>\<mapsto>\<^sup>1)\<close>
-    by (metis \<open>L \<in> \<Delta>\<Sigma>\<close> \<open>atm_of L' = L\<close> literal.sel(1) new_vars_different_iff(1))
-
-  have \<open>\<And>L mark a b.
-         a @ Propagated L mark # b = trail S \<Longrightarrow>
-         b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> and
-    \<open>set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S)\<close> and
+  have H: \<open>\<And>L mark a b.
+	 a @ Propagated L mark # b = trail S \<Longrightarrow>
+	 b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> and
+    incl: \<open>set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S)\<close> and
     sm: \<open>\<And>M K M' D L.
        trail S = M' @ Decided K # M \<longrightarrow>
        D + {#L#} \<in># clauses S \<longrightarrow> undefined_lit M L \<longrightarrow> \<not> M \<Turnstile>as CNot D\<close>
@@ -1828,35 +1993,216 @@ proof -
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
       reasons_in_clauses_def no_smaller_propa_def
     by auto
-  from this(1)[OF M2[symmetric]] this(2)
-  have \<open>M1 \<Turnstile>as CNot (remove1_mset L' E)\<close> and \<open>L' \<in># E\<close> and \<open>E \<in># clauses S\<close>
-    by (auto simp: M2)
-  moreover have \<open>atm_of L'\<^sup>\<mapsto>\<^sup>1 \<in> atms_of E \<or>
-           atm_of L'\<^sup>\<mapsto>\<^sup>0 \<in> atms_of E \<or> additional_atm (atm_of L') \<in> atms_of E\<close>
-    using  \<open>L' \<in># E\<close> \<open>L \<in> \<Delta>\<Sigma>\<close>  \<open>atm_of L' = L\<close> lonely \<open>E \<in># clauses S\<close>
-    by (auto simp: no_lonely_weighted_lit_def no_new_lonely_clause_def
-        dest!: multi_member_split)
+  let ?L' = \<open>Pos L\<close>
+  obtain E where L'_E: \<open>Propagated ?L' E \<in> set (trail S)\<close>
+    using L dec \<open>L \<in> \<Delta>\<Sigma>\<close> unfolding lonely_weighted_lit_decided_def
+    by (auto simp: lits_of_def uminus_lit_swap dest!: literal_is_lit_of_decided)
+  then obtain M1 M2 where M2: \<open>trail S = M2 @ Propagated ?L' E # M1\<close>
+    by (auto dest!: split_list)
+  have [iff]: \<open>?L' \<noteq> Pos (L\<^sup>\<mapsto>\<^sup>1)\<close> \<open>L\<^sup>\<mapsto>\<^sup>1 \<noteq> L\<close>  \<open>L\<^sup>\<mapsto>\<^sup>0 \<noteq> L\<close>
+    by (metis \<open>L \<in> \<Delta>\<Sigma>\<close> literal.sel new_vars_different_iff)+
 
-  ultimately have ?thesis
-    using \<open>L \<in> \<Delta>\<Sigma>\<close> \<open>atm_of L' = L\<close> apply -
-    apply clarsimp
-    apply auto
-    sorry
-    apply (cases L'; auto simp: uminus_lit_swap add_mset_eq_add_mset M2
-        image_Un
-      dest!: multi_member_split)
-  moreover have
-    \<open>Pos (L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l M1 \<Longrightarrow> L\<^sup>\<mapsto>\<^sup>1 \<in> atm_of ` lits_of_l M1\<close>
-    \<open>Neg (L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l M1 \<Longrightarrow> L\<^sup>\<mapsto>\<^sup>1 \<in> atm_of ` lits_of_l M1\<close>
-    \<open>Pos (L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l M1 \<Longrightarrow> L\<^sup>\<mapsto>\<^sup>0 \<in> atm_of ` lits_of_l M1\<close>
-    \<open>Neg (L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l M1 \<Longrightarrow> L\<^sup>\<mapsto>\<^sup>0 \<in> atm_of ` lits_of_l M1\<close>
-    by force+
-  ultimately show ?thesis
-    using propagation_one_lit_of_same_lvl[OF assms(1) smaller_propa L'_E rea]
-      \<open>atm_of L' = L\<close>
-    by (cases L') (auto simp: M2 get_level_Neg_Pos)
+
+  from H[OF M2[symmetric]] incl
+  have M1_E: \<open>M1 \<Turnstile>as CNot (remove1_mset ?L' E)\<close> and \<open>?L' \<in># E\<close> and \<open>E \<in># clauses S\<close>
+    by (auto simp: M2)
+  have sm': \<open>trail S = M' @ Decided K # M \<longrightarrow>
+       D + {#L'#} \<in># additional_constraint L \<longrightarrow> undefined_lit M L' \<longrightarrow> \<not> M \<Turnstile>as CNot D\<close>
+      for M K M' D L'
+    using sm[of M' K M D L'] add \<open>L \<in> \<Delta>\<Sigma>\<close> finite_\<Sigma>
+    by (auto simp: additional_constraints_def dest: multi_member_split)
+  have n_d: \<open>no_dup (trail S)\<close> and n_d_M1: \<open>no_dup M1\<close>
+    using struct_invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto dest: no_dup_appendD simp: M2)
+  then have lev_L: \<open>get_level (trail S) (Pos L) = count_decided M1\<close>
+    unfolding M2 by auto
+
+  consider
+    \<open>Pos L = ?L'\<close> and \<open>Neg (L\<^sup>\<mapsto>\<^sup>1) \<in># E\<close> |
+    \<open>Pos L = ?L'\<close> and \<open>Neg (additional_atm L) \<in># E\<close> and \<open>Pos (L\<^sup>\<mapsto>\<^sup>0) \<in># E\<close>
+    using  \<open>?L' \<in># E\<close> \<open>L \<in> \<Delta>\<Sigma>\<close> lonely \<open>E \<in># clauses S\<close>
+    by (auto simp: no_lonely_weighted_lit_def no_lonely_weighted_lit_cls_def
+	  ball_conj_distrib add_mset_eq_add_mset
+	dest!: multi_member_split)
+  then show P
+  proof cases
+    case 1
+    then have 2: \<open>Pos (L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l M1\<close>
+      using M1_E by (auto dest!: multi_member_split)
+    then have \<open>get_level M1 (Neg (L\<^sup>\<mapsto>\<^sup>1)) = count_decided M1\<close> apply -
+      using defined_replacement_pos_orinal[of ?L' \<open>reduce_trail_to M1 S\<close>] assms
+	reduce_trail_to_skip_beginning[of S \<open>M2 @ [Propagated ?L' E]\<close> M1] n_d
+	no_smaller_propa_reduce_trail_to[OF smaller_propa, of M1]
+	count_decided_ge_get_level[of M1 \<open>(Neg (L\<^sup>\<mapsto>\<^sup>1))\<close>]
+      by (cases \<open>get_level M1 (Neg (L\<^sup>\<mapsto>\<^sup>1)) < count_decided M1\<close>)
+	(simp_all add: M2 n_d_M1) \<comment> \<open>Isabelle, why do you really need the cases?\<close>
+    moreover have \<open>get_level M1 (Neg (L\<^sup>\<mapsto>\<^sup>1)) = get_level (trail S) (Neg (L\<^sup>\<mapsto>\<^sup>1))\<close>
+      using n_d 2 by (auto simp: M2 get_level_cons_if get_level_append_if
+	Decided_Propagated_in_iff_in_lits_of_l
+	dest: Neg_in_lits_of_l_definedD no_dup_append_in_atm_notin)
+    ultimately show ?thesis
+      using C1 lev_L 2 by (auto simp: M2 get_level_Neg_Pos)
+  next
+    case 2
+    then have 3: \<open>Neg (L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l M1\<close> \<open>Pos (additional_atm L) \<in> lits_of_l M1\<close>
+      using M1_E by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+    then have \<open>get_level M1 (Neg (L\<^sup>\<mapsto>\<^sup>0)) = count_decided M1 \<or>
+       get_level M1 (additional_var L) = count_decided M1\<close> apply -
+      using defined_replacement_additional_neg_orinal[of ?L' \<open>reduce_trail_to M1 S\<close>]
+	reduce_trail_to_skip_beginning[of S \<open>M2 @ [Propagated ?L' E]\<close> M1] n_d assms(5) add
+	no_smaller_propa_reduce_trail_to[OF smaller_propa, of M1]
+	count_decided_ge_get_level[of M1 \<open>(Neg (L\<^sup>\<mapsto>\<^sup>0))\<close>]
+	count_decided_ge_get_level[of M1 \<open>additional_var L\<close>]
+      by (cases \<open>get_level M1 (Neg (L\<^sup>\<mapsto>\<^sup>0)) < count_decided M1\<close>;
+	   cases \<open>get_level M1 (additional_var L) < count_decided M1\<close>)
+	(simp_all add: M2 n_d_M1) \<comment> \<open>Isabelle, why do you really need the cases?\<close>
+    moreover have \<open>get_level M1 (Neg (L\<^sup>\<mapsto>\<^sup>0)) = get_level (trail S) (Neg (L\<^sup>\<mapsto>\<^sup>0))\<close> and
+      \<open>get_level M1 (additional_var L) = get_level (trail S) (additional_var L)\<close>
+      using n_d 2 3 by (auto simp: M2 get_level_cons_if get_level_append_if
+	Decided_Propagated_in_iff_in_lits_of_l
+	dest: Neg_in_lits_of_l_definedD no_dup_append_in_atm_notin)
+    ultimately show ?thesis
+      using C2 lev_L 2 3 by (auto simp: M2 get_level_Neg_Pos)
+  qed
 qed
-*)
+
+lemma no_lonely_weighted_lit_cls_ex_lit_max_lvl_neg:
+  assumes struct_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+    lonely: \<open>no_lonely_weighted_lit S\<close> and
+    dec: \<open>lonely_weighted_lit_decided S\<close> and
+    rea: \<open>reasons_in_clauses S\<close> and
+    \<open>L \<in> \<Delta>\<Sigma>\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    add: \<open>set_mset additional_constraints \<subseteq> set_mset (clauses S)\<close> and
+    L: \<open>Neg L \<in> lits_of_l (trail S)\<close> and
+    C3: \<open>Pos (L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S) \<Longrightarrow>
+      get_level (trail S) (Pos L) = get_level (trail S) (Pos (L\<^sup>\<mapsto>\<^sup>0)) \<Longrightarrow> P\<close> and
+    C4: \<open>Neg (L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S) \<Longrightarrow>
+       additional_var L \<in> lits_of_l (trail S) \<Longrightarrow>
+        get_level (trail S) (Pos L) = get_level (trail S) (additional_var L) \<or>
+         get_level (trail S) (Pos L) = get_level (trail S) (Neg (L\<^sup>\<mapsto>\<^sup>1)) \<Longrightarrow> P\<close>
+  shows
+    \<open>P\<close>
+proof -
+  have H: \<open>\<And>L mark a b.
+	 a @ Propagated L mark # b = trail S \<Longrightarrow>
+	 b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> and
+    incl: \<open>set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S)\<close> and
+    sm: \<open>\<And>M K M' D L.
+       trail S = M' @ Decided K # M \<longrightarrow>
+       D + {#L#} \<in># clauses S \<longrightarrow> undefined_lit M L \<longrightarrow> \<not> M \<Turnstile>as CNot D\<close>
+    using assms unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+      reasons_in_clauses_def no_smaller_propa_def
+    by auto
+  let ?L' = \<open>Neg L\<close>
+  obtain E where L'_E: \<open>Propagated ?L' E \<in> set (trail S)\<close>
+    using L dec \<open>L \<in> \<Delta>\<Sigma>\<close> unfolding lonely_weighted_lit_decided_def
+    by (auto simp: lits_of_def uminus_lit_swap dest!: literal_is_lit_of_decided)
+  then obtain M1 M2 where M2: \<open>trail S = M2 @ Propagated ?L' E # M1\<close>
+    by (auto dest!: split_list)
+  have [iff]: \<open>?L' \<noteq> Pos (L\<^sup>\<mapsto>\<^sup>1)\<close> \<open>L\<^sup>\<mapsto>\<^sup>1 \<noteq> L\<close>  \<open>L\<^sup>\<mapsto>\<^sup>0 \<noteq> L\<close>
+    by (metis \<open>L \<in> \<Delta>\<Sigma>\<close> literal.sel new_vars_different_iff)+
+
+
+  from H[OF M2[symmetric]] incl
+  have M1_E: \<open>M1 \<Turnstile>as CNot (remove1_mset ?L' E)\<close> and \<open>?L' \<in># E\<close> and \<open>E \<in># clauses S\<close>
+    by (auto simp: M2)
+  have sm': \<open>trail S = M' @ Decided K # M \<longrightarrow>
+       D + {#L'#} \<in># additional_constraint L \<longrightarrow> undefined_lit M L' \<longrightarrow> \<not> M \<Turnstile>as CNot D\<close>
+      for M K M' D L'
+    using sm[of M' K M D L'] add \<open>L \<in> \<Delta>\<Sigma>\<close> finite_\<Sigma>
+    by (auto simp: additional_constraints_def dest: multi_member_split)
+  have n_d: \<open>no_dup (trail S)\<close> and n_d_M1: \<open>no_dup M1\<close>
+    using struct_invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto dest: no_dup_appendD simp: M2)
+  then have lev_L: \<open>get_level (trail S) ?L' = count_decided M1\<close>
+    unfolding M2 by auto
+
+  consider
+    \<open>Neg (L\<^sup>\<mapsto>\<^sup>0) \<in># E\<close> |
+    \<open>Neg (additional_atm L) \<in># E\<close> and \<open>Pos (L\<^sup>\<mapsto>\<^sup>1) \<in># E\<close>
+    using  \<open>?L' \<in># E\<close> \<open>L \<in> \<Delta>\<Sigma>\<close> lonely \<open>E \<in># clauses S\<close>
+    by (auto simp: no_lonely_weighted_lit_def no_lonely_weighted_lit_cls_def
+	  ball_conj_distrib add_mset_eq_add_mset
+	dest!: multi_member_split)
+  then show P
+  proof cases
+    case 1
+    then have 2: \<open>Pos (L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l M1\<close>
+      using M1_E by (auto dest!: multi_member_split)
+    then have \<open>get_level M1 (Pos (L\<^sup>\<mapsto>\<^sup>0)) = count_decided M1\<close> apply -
+      using defined_replacement_neg_orinal[of ?L' \<open>reduce_trail_to M1 S\<close>] assms
+	reduce_trail_to_skip_beginning[of S \<open>M2 @ [Propagated ?L' E]\<close> M1] n_d
+	no_smaller_propa_reduce_trail_to[OF smaller_propa, of M1]
+	count_decided_ge_get_level[of M1 \<open>Pos (L\<^sup>\<mapsto>\<^sup>0)\<close>]
+      by (cases \<open>get_level M1 (Pos (L\<^sup>\<mapsto>\<^sup>0)) < count_decided M1\<close>)
+	(simp_all add: M2 n_d_M1) \<comment> \<open>Isabelle, why do you really need the cases?\<close>
+    moreover have \<open>get_level M1 (Pos (L\<^sup>\<mapsto>\<^sup>0)) = get_level (trail S) (Pos (L\<^sup>\<mapsto>\<^sup>0))\<close>
+      using n_d 2 by (auto simp: M2 get_level_cons_if get_level_append_if
+	Decided_Propagated_in_iff_in_lits_of_l
+	dest: Neg_in_lits_of_l_definedD no_dup_append_in_atm_notin)
+    ultimately show ?thesis
+      using C3 lev_L 2 by (auto simp: M2 get_level_Neg_Pos)
+  next
+    case 2
+    then have 3: \<open>Neg (L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l M1\<close> \<open>Pos (additional_atm L) \<in> lits_of_l M1\<close>
+      using M1_E assms(5) by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+    then have \<open>get_level M1 (Neg (L\<^sup>\<mapsto>\<^sup>1)) = count_decided M1 \<or>
+       get_level M1 (additional_var L) = count_decided M1\<close> apply -
+      using defined_replacement_additional_neg_orinal2[of ?L' \<open>reduce_trail_to M1 S\<close>]
+	reduce_trail_to_skip_beginning[of S \<open>M2 @ [Propagated ?L' E]\<close> M1] n_d assms(5) add
+	no_smaller_propa_reduce_trail_to[OF smaller_propa, of M1]
+	count_decided_ge_get_level[of M1 \<open>(Neg (L\<^sup>\<mapsto>\<^sup>1))\<close>]
+	count_decided_ge_get_level[of M1 \<open>additional_var L\<close>]
+      by (cases \<open>get_level M1 (Neg (L\<^sup>\<mapsto>\<^sup>1)) < count_decided M1\<close>;
+	   cases \<open>get_level M1 (additional_var L) < count_decided M1\<close>)
+	(simp_all add: M2 n_d_M1) \<comment> \<open>Isabelle, why do you really need the cases?\<close>
+    moreover have \<open>get_level M1 (Neg (L\<^sup>\<mapsto>\<^sup>1)) = get_level (trail S) (Neg (L\<^sup>\<mapsto>\<^sup>1))\<close> and
+      \<open>get_level M1 (additional_var L) = get_level (trail S) (additional_var L)\<close>
+      using n_d 2 3 by (auto simp: M2 get_level_cons_if get_level_append_if
+	Decided_Propagated_in_iff_in_lits_of_l
+	dest: Neg_in_lits_of_l_definedD no_dup_append_in_atm_notin)
+    ultimately show ?thesis
+      using C4 lev_L 2 3 by (auto simp: M2 get_level_Neg_Pos)
+  qed
+qed
+
+lemma no_lonely_weighted_lit_cls_ex_lit_max_lvl:
+  assumes struct_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+    lonely: \<open>no_lonely_weighted_lit S\<close> and
+    dec: \<open>lonely_weighted_lit_decided S\<close> and
+    rea: \<open>reasons_in_clauses S\<close> and
+    \<open>L \<in> \<Delta>\<Sigma>\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    add: \<open>set_mset additional_constraints \<subseteq> set_mset (clauses S)\<close> and
+    L: \<open>L \<in> atm_of ` (lits_of_l (trail S))\<close> and
+    C1: \<open>Pos L \<in> lits_of_l (trail S) \<Longrightarrow> Pos (L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S) \<Longrightarrow>
+      get_level (trail S) (Pos L) = get_level (trail S) (Pos (L\<^sup>\<mapsto>\<^sup>1)) \<Longrightarrow> P\<close> and
+    C2: \<open>Pos L \<in> lits_of_l (trail S) \<Longrightarrow> Neg (L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S) \<Longrightarrow>
+       additional_var L \<in> lits_of_l (trail S) \<Longrightarrow>
+        get_level (trail S) (Pos L) = get_level (trail S) (additional_var L) \<or>
+         get_level (trail S) (Pos L) = get_level (trail S) (Neg (L\<^sup>\<mapsto>\<^sup>0)) \<Longrightarrow> P\<close> and
+    C3: \<open>Neg L \<in> lits_of_l (trail S) \<Longrightarrow> Pos (L\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S) \<Longrightarrow>
+      get_level (trail S) (Pos L) = get_level (trail S) (Pos (L\<^sup>\<mapsto>\<^sup>0)) \<Longrightarrow> P\<close> and
+    C4: \<open>Neg L \<in> lits_of_l (trail S) \<Longrightarrow> Neg (L\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S) \<Longrightarrow>
+       additional_var L \<in> lits_of_l (trail S) \<Longrightarrow>
+        get_level (trail S) (Pos L) = get_level (trail S) (additional_var L) \<or>
+         get_level (trail S) (Pos L) = get_level (trail S) (Neg (L\<^sup>\<mapsto>\<^sup>1)) \<Longrightarrow> P\<close>
+  shows
+    \<open>P\<close>
+  apply (cases \<open>Pos L \<in> lits_of_l (trail S)\<close>)
+  subgoal
+    using no_lonely_weighted_lit_cls_ex_lit_max_lvl_pos[OF assms(1-7) _ assms(9,10)]
+    by blast
+  apply (cases \<open>Neg L \<in> lits_of_l (trail S)\<close>)
+  subgoal
+    using no_lonely_weighted_lit_cls_ex_lit_max_lvl_neg[OF assms(1-7) _ assms(11,12)]
+    by blast
+  using L by (metis imageE literal.exhaust_sel)
+
 
 (*
 lemma no_lonely_weighted_lit_cls_neg_ann_lits:
@@ -1937,6 +2283,7 @@ lemma simple_backtrack_obacktrack:
   apply (auto simp:)
   done
 
+(*
 lemma
   assumes
     \<open>simple_backtrack S T\<close> and
@@ -1992,7 +2339,7 @@ proof (induction rule: simple_backtrack.induct)
     unfolding no_lonely_weighted_lit_def Ball_def
       no_new_lonely_clause_def no_lonely_weighted_lit_cls_def
     by (clarsimp simp: all_conj_distrib)
-oops
+oops*)
 (*
   have \<open>La \<notin># ?D\<close> if La: \<open>atm_of La \<in> \<Delta>\<Sigma>\<close> for La
   proof
