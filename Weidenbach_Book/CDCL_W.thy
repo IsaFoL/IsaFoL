@@ -4316,17 +4316,18 @@ lemma no_smaller_propa_tl:
     \<open>no_smaller_propa U\<close>
   using assms by (cases \<open>trail S\<close>) (auto simp: no_smaller_propa_def)
 
-lemma no_dup_append_in_atm_notin:
+(*TODO Move*)
+lemma (in -) no_dup_append_in_atm_notin:
    assumes \<open>no_dup (M @ M')\<close> and \<open>L \<in> lits_of_l M'\<close>
      shows \<open>undefined_lit M L\<close>
   using assms by (auto simp add: atm_lit_of_set_lits_of_l no_dup_def
       defined_lit_map)
 
-lemma no_dup_uminus_append_in_atm_notin:
+lemma (in -) no_dup_uminus_append_in_atm_notin:
    assumes \<open>no_dup (M @ M')\<close> and \<open>-L \<in> lits_of_l M'\<close>
      shows \<open>undefined_lit M L\<close>
   using Decided_Propagated_in_iff_in_lits_of_l assms defined_lit_no_dupD(1) by blast
-
+(*END Move*)
 lemmas rulesE =
   skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE backtrackgE
 
@@ -4350,6 +4351,13 @@ proof clarify
   then show False
     using n_s by blast
 qed
+
+lemma no_smaller_propa_reduce_trail_to:
+   \<open>no_smaller_propa S \<Longrightarrow> no_smaller_propa (reduce_trail_to M1 S)\<close>
+  unfolding no_smaller_propa_def
+  by (subst (asm) append_take_drop_id[symmetric, of _ \<open>length (trail S) - length M1\<close>])
+    (auto simp: trail_reduce_trail_to_drop
+      simp del: append_take_drop_id)
 
 lemma backtrackg_no_smaller_propa:
   assumes o: \<open>backtrackg S T\<close> and smaller_propa: \<open>no_smaller_propa S\<close> and
