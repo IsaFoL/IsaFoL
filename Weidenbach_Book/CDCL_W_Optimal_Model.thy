@@ -261,7 +261,7 @@ definition additional_info' :: "'st \<Rightarrow> 'b" where
 definition conflicting_clss :: \<open>'st \<Rightarrow> 'v literal multiset multiset\<close> where
 \<open>conflicting_clss S = conflicting_clauses (init_clss S) (weight S)\<close>
 
-definition abs_state 
+definition abs_state
   :: "'st \<Rightarrow> ('v, 'v clause) ann_lit list \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option"
 where
   \<open>abs_state S = (trail S, init_clss S + conflicting_clss S, learned_clss S,
@@ -2071,6 +2071,11 @@ lemma too_heavy_clauses_contains_itself:
 lemma too_heavy_clause_None[simp]: \<open>too_heavy_clauses M None = {#}\<close>
   by (auto simp: too_heavy_clauses_def)
 
+lemma atms_of_mm_too_heavy_clauses_le:
+  \<open>atms_of_mm (too_heavy_clauses M I) \<subseteq> atms_of_mm M\<close>
+  by (auto simp: too_heavy_clauses_def atms_of_ms_def
+    simple_clss_finite dest: simple_clssE)
+
 lemma
   atms_too_heavy_clauses_None:
     \<open>atms_of_mm (too_heavy_clauses M None) = {}\<close> and
@@ -2299,7 +2304,6 @@ sublocale conflict_driven_clause_learning\<^sub>W where
   init_state = init_state
   by unfold_locales
 
-thm cdcl\<^sub>W_bjE
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops
   where
     state = state and
@@ -3069,6 +3073,140 @@ proof -
   show \<open>pNeg (mset M) \<in># conflicting_clss S\<close>
     by auto
 qed
+
+lemma (in -) simple_clss_element_mono:
+  \<open>x \<in> simple_clss A \<Longrightarrow> y \<subseteq># x \<Longrightarrow> y \<in> simple_clss A\<close>
+  by (auto simp: simple_clss_def atms_of_def intro: distinct_mset_mono
+    dest: not_tautology_mono)
+
+find_theorems "_ \<Turnstile> _" Pos Neg
+thm remove_literal_in_model_tautology
+(*TODO Move*)
+lemma
+  atms_of_s_empty [simp]:
+    \<open>atms_of_s {} = {}\<close> and
+  atms_of_s_empty_iff[simp]:
+    \<open>atms_of_s x = {} \<longleftrightarrow> x = {}\<close>
+  by (auto simp: atms_of_s_def)
+
+lemma Set_remove_diff_insert: \<open>a \<in> B - A \<Longrightarrow> B - Set.remove a A = insert a (B - A)\<close>
+  by auto
+lemma Set_insert_diff_remove: \<open>B - insert a A = Set.remove a (B - A)\<close>
+  by auto
+lemma Set_remove_insert: \<open>a \<notin> A' \<Longrightarrow> Set.remove a (insert a A') = A'\<close>
+  by (auto simp: Set.remove_def)
+lemma diff_eq_insertD:
+  \<open>B - A = insert a A' \<Longrightarrow> a \<in> B\<close>
+  by auto
+
+lemma finite_rev_induct:
+  assumes
+    \<open>finite B\<close>
+    \<open>P B\<close> and
+    \<open>\<And>a B. P (insert a B) \<Longrightarrow> P B\<close>
+  shows \<open>P {}\<close>
+proof -
+  have \<open>P A\<close> if \<open>A \<subseteq> B\<close> for A
+    using that
+    apply (induction "card (B- A)" arbitrary: A)
+    subgoal using assms(1) assms(2) card_seteq by auto
+    subgoal premises p for n A
+      using  p(2-)
+      unfolding card_Suc_eq eq_commute[of \<open>Suc _\<close>]
+      apply clarify
+      subgoal for a A'
+        using p(1)[of \<open>insert a A\<close>] assms(3)[of a A]
+        by (auto simp: Set_insert_diff_remove Set_remove_insert
+        diff_eq_insertD)
+      done
+    done
+  from this[of \<open>{}\<close>] show ?thesis by auto
+qed
+
+(*
+lemma
+  assumes
+    tauto: \<open>\<not>tautology M\<close> and 1: \<open>atms_of_mm (init_clss S) \<subseteq> \<Sigma>\<close>
+    \<open>too_heavy_clauses (init_clss S) (weight S) \<Turnstile>pm M\<close>
+  shows \<open>too_heavy_clauses (init_clss S) (weight S) \<Turnstile>pm {#x \<in># M. \<forall>M'. \<rho> (add_mset x M') = 0#}\<close>
+  unfolding true_clss_cls_def
+proof (intro allI impI)
+  fix I :: \<open>'v literal set\<close>
+  assume
+    tot: \<open>total_over_m I
+      (set_mset (too_heavy_clauses (init_clss S) (weight S)) \<union>
+       {{#x \<in># M. \<forall>M'. \<rho> (add_mset x M') = 0#}})\<close> and
+    cons: \<open>consistent_interp I\<close> and
+    ent: \<open>I \<Turnstile>sm too_heavy_clauses (init_clss S) (weight S)\<close>
+    thm subsumption_chained
+  have A: \<open>total_over_m I
+       (set_mset (too_heavy_clauses (init_clss S) (weight S)) \<union> {M}) \<Longrightarrow>
+      consistent_interp I \<Longrightarrow>
+      I \<Turnstile>sm too_heavy_clauses (init_clss S) (weight S) \<Longrightarrow> I \<Turnstile> M\<close> for I
+    using assms(3) unfolding true_clss_cls_def
+    by blast
+  define P where \<open>P L = (\<forall>M'. \<rho> (add_mset L M') = 0)\<close> for L
+  {
+    fix J :: \<open>'v literal set\<close>
+    assume J: \<open>atms_of_s {L \<in> set_mset M. \<not>P L \<and> atm_of L \<notin> atms_of_s I} \<subseteq> atms_of_s J\<close> and
+      cons_J: \<open>consistent_interp J\<close> and
+      inter: \<open>atms_of_s I \<inter> atms_of_s J = {}\<close>
+    let ?I1 = \<open>I \<union> J\<close>
+
+    have H:
+      \<open>- L \<in> I \<Longrightarrow> Neg (atm_of L) \<notin> I \<Longrightarrow> Pos (atm_of L) \<in> I\<close>
+      \<open>- L \<in> I \<Longrightarrow> Pos (atm_of L) \<notin> I \<Longrightarrow> Neg (atm_of L) \<in> I\<close> and
+    [dest]:
+      \<open>Neg (atm_of L) \<notin> I \<Longrightarrow> Pos (atm_of L) \<notin> I \<Longrightarrow> L \<in> I \<Longrightarrow> False\<close> and
+    [dest]: \<open>- L \<in> J \<Longrightarrow> L \<in> I \<Longrightarrow> False\<close>
+      for L
+      using inter
+      by (cases L; auto)+
+    have \<open>total_over_m ?I1
+	 (set_mset (too_heavy_clauses (init_clss S) (weight S)) \<union> {M})\<close>
+      using tot J
+      unfolding P_def[symmetric] total_over_m_alt_def
+      by (auto simp: atms_of_def conj_disj_distribR Collect_disj_eq
+	  Collect_conv_if literal.is_pos_def image_Un in_image_uminus_uminus
+	dest!: multi_member_split split: if_splits)
+    moreover have
+      \<open>consistent_interp ?I1\<close>
+      using cons H cons_J tauto inter
+      by (auto simp: consistent_interp_def disjoint_eq_subset_Compl atms_of_s_def)
+    moreover have
+      \<open>?I1 \<Turnstile>sm too_heavy_clauses (init_clss S) (weight S)\<close>
+      using ent by auto
+    ultimately have
+      \<open>?I1 \<Turnstile> M\<close>
+      using A[of ?I1]
+      by blast+
+  } note H = this
+  let ?I1 = \<open>I \<union> {L \<in> set_mset M. \<not>P L \<and> atm_of L \<notin> atms_of_s I}\<close>
+  have \<open>I \<union> J \<Turnstile> {#x \<in># M. atm_of x \<in> atms_of_s J#}\<close>
+    apply (rule finite_rev_induct[of ])
+    apply (induction J rule: )
+    subgoal for J
+      using tauto by (auto intro!: H simp:consistent_interp_def)
+    subgoal premises p for L J
+      using  p(2-)
+      apply (auto simp: card_Suc_eq)
+      subgoal for b B
+        using p(1)[of B] p(1)[of B]
+	apply auto
+*)
+
+inductive conflict_opt_weight_only :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T :: 'st where
+conflict_opt_weight_only_rule:
+  \<open>conflict_opt_weight_only S T\<close>
+  if
+    \<open>negate_ann_lits (trail S) \<in># conflicting_clss S\<close>
+    \<open>conflicting S = None\<close>
+    \<open>T \<sim> update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
+
+inductive full_DECO_backtrack :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+  \<open>full_DECO_backtrack S T\<close>
+  if
+    \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close>
 
 
 subsubsection \<open>Calculus with simple Improve rule\<close>
