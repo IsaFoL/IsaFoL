@@ -2810,13 +2810,9 @@ proof -
     by (auto simp: N_def atms_exactly_m_def total_over_m_def
         total_over_set_def image_image)
   moreover have \<open>?I \<Turnstile>sm N\<close>
-    using ent apply (auto simp: N_def true_clss_def image_image
+    using ent by (auto simp: N_def true_clss_def image_image
+          atm_of_lit_in_atms_of true_cls_def
         dest!: multi_member_split)
-    apply (smt atm_of_lit_in_atms_of mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
-    apply (smt atm_of_lit_in_atms_of mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
-    apply (smt atm_of_lit_in_atms_of image_iff insert_iff mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
-    apply (smt atm_of_lit_in_atms_of image_iff insert_iff mem_Collect_eq true_cls_def true_cls_union_increase true_lit_def)
-    done
   moreover have \<open>set_mset (mset_set ?I) = ?I\<close> and fin: \<open>finite ?I\<close>
     by (auto simp: atms_exactly_m_finite)
   moreover have \<open>distinct_mset (mset_set ?I)\<close>
