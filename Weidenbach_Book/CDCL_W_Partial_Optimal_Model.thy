@@ -138,7 +138,8 @@ definition additional_constraint :: \<open>'v \<Rightarrow> 'v clauses\<close> w
        {#-additional_var A, -Pos A, Pos (A\<^sup>\<mapsto>\<^sup>1)#},
        {#Neg (A\<^sup>\<mapsto>\<^sup>0), Neg A#},
        {#Neg (A\<^sup>\<mapsto>\<^sup>0), additional_var A#},
-       {#-additional_var A, -Neg A, Pos (A\<^sup>\<mapsto>\<^sup>0)#}#}\<close>
+       {#-additional_var A, -Neg A, Pos (A\<^sup>\<mapsto>\<^sup>0)#},
+       {#Pos (A\<^sup>\<mapsto>\<^sup>0), Pos (A\<^sup>\<mapsto>\<^sup>1), -additional_var A#}#}\<close>
 
 definition additional_constraints :: \<open>'v clauses\<close> where
   \<open>additional_constraints = \<Union>#(additional_constraint `# (mset_set \<Delta>\<Sigma>))\<close>
@@ -150,7 +151,7 @@ lemma size_encode_clauses[simp]: \<open>size (encode_clauses N) = size N\<close>
   by (auto simp: encode_clauses_def)
 
 lemma size_penc:
-  \<open>size (penc N) = size N + 6 * card \<Delta>\<Sigma>\<close>
+  \<open>size (penc N) = size N + 7 * card \<Delta>\<Sigma>\<close>
   by (auto simp: penc_def additional_constraints_def
       additional_constraint_def size_Union_mset_image_mset)
 
@@ -189,7 +190,7 @@ theorem card_atms_of_mm_penc:
   assumes \<open>finite \<Delta>\<Sigma>\<close> and
     \<open>\<Delta>\<Sigma> \<subseteq> atms_of_mm N\<close>
   shows \<open>card (atms_of_mm (penc N)) \<le> 4 * card (atms_of_mm N)\<close> (is \<open>?A \<le> ?B\<close>)
-proof -	
+proof -
   have \<open>?A = card
      (atms_of_mm N \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union>
       replacement_neg ` \<Delta>\<Sigma>)\<close> (is \<open>_ = card (?W \<union> ?X \<union> ?Y \<union> ?Z)\<close>)
@@ -586,6 +587,9 @@ proof -
     subgoal for y
       using cons upostp_additional_constraints_logic[of y I]
       by (auto simp: image_image)
+    subgoal for y
+      using cons upostp_additional_constraints_logic[of y I] H[of y]
+      by (auto simp: image_image consistent_interp_def)
     subgoal for y
       using cons upostp_additional_constraints_logic[of y I] H[of y]
       by (auto simp: image_image consistent_interp_def)
@@ -1962,6 +1966,7 @@ proof (rule ccontr)
     by auto
 qed
 
+(*
 lemma no_lonely_weighted_lit_cls_ex_lit_max_lvl_pos:
   assumes struct_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
     lonely: \<open>no_lonely_weighted_lit S\<close> and
@@ -2120,8 +2125,9 @@ proof -
     ultimately show ?thesis
       using C4 lev_L 4 3 by (auto simp: M2 get_level_Neg_Pos)
   qed
-qed
+qed*)
 
+(*
 lemma no_lonely_weighted_lit_cls_ex_lit_max_lvl_neg:
   assumes struct_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
     lonely: \<open>no_lonely_weighted_lit S\<close> and
@@ -2276,6 +2282,7 @@ lemma no_lonely_weighted_lit_cls_neg_ann_lits:
     by (rule no_lonely_weighted_lit_cls_ex_lit_max_lvl_neg[OF assms(1-4) _ assms(5,6), of L])
       (auto simp: in_negate_trial_iff)
    done
+*)
 
 lemma simple_backtrack_obacktrack:
   \<open>simple_backtrack S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S) \<Longrightarrow>
