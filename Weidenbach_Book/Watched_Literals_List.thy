@@ -2232,7 +2232,7 @@ proof -
   ultimately have \<open>L = K\<close>
     using \<open>K \<in># C\<close> M K_M
     by (auto dest!: multi_member_split simp: add_mset_eq_add_mset
-      dest: in_lits_of_l_defined_litD cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin
+      dest: in_lits_of_l_defined_litD no_dup_uminus_append_in_atm_notin
       no_dup_appendD no_dup_consistentD)
   then show ?lev_L
     using lev_K by simp
@@ -2246,7 +2246,7 @@ proof -
     then have \<open>get_level (get_trail T) K = get_level (Propagated (-L) C # M1) K\<close>
       apply -
       apply (subst (2) get_level_skip[symmetric, of M2])
-      using n_d M by (auto dest: cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin
+      using n_d M by (auto dest: no_dup_uminus_append_in_atm_notin
         intro: get_level_same_lits_cong)
     then show ?thesis
       using count_decided_ge_get_level[of \<open>Propagated (-L) C # M1\<close> K] count_dec_M1

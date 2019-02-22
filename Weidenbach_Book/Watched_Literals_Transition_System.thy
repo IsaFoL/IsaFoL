@@ -486,7 +486,7 @@ proof -
     have LM: \<open>L \<in> lits_of_l M\<close>
       using that unfolding M by auto
     have \<open>undefined_lit M' L\<close>
-      by (rule cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+      by (rule no_dup_append_in_atm_notin)
         (use that n_d in \<open>auto simp: M M' defined_lit_map\<close>)
     then show lev_L_M1: \<open>get_level M L = get_level M1 L\<close>
       using that n_d by (auto simp: M image_Un M')
@@ -3474,7 +3474,7 @@ next
             using n_d_M1 unfolding M1 by (auto simp: atm_lit_of_set_lits_of_l
                 atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
                 defined_lit_map atm_of_eq_atm_of image_Un
-                dest: cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin)
+                dest: no_dup_uminus_append_in_atm_notin)
           then show False
             using lev_M1_K''  count_decided_ge_get_level[of M1'' K''] unfolding M1
             by (auto simp: image_Un Int_Un_distrib)
@@ -3504,7 +3504,7 @@ next
     proof (rule ccontr)
       assume K''_M1'': \<open>\<not> ?thesis\<close>
       have \<open>undefined_lit (tl M2'' @ Decided K''' # []) (-K'')\<close>
-        apply (rule CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+        apply (rule no_dup_append_in_atm_notin)
          prefer 2 using K''_M1'' apply (simp; fail)
         by (use n_d in \<open>auto simp: M M1 no_dup_def; fail\<close>)[]
       then show False
@@ -3515,7 +3515,7 @@ next
     proof (rule ccontr)
       assume K'_M1'': \<open>\<not> ?thesis\<close>
       have \<open>undefined_lit (M3 @ M2 @ Decided K # tl M2'' @ Decided K''' # []) (-K')\<close>
-        apply (rule CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+        apply (rule no_dup_append_in_atm_notin)
          prefer 2 using K'_M1'' apply (simp; fail)
         by (use n_d in \<open>auto simp: M M1; fail\<close>)[]
       then show False
@@ -4119,7 +4119,7 @@ next
      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
 
   have \<open>undefined_lit (M3 @ M2 @ M1) K\<close>
-    by (rule cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin[of _ \<open>[Decided K]\<close>])
+    by (rule no_dup_append_in_atm_notin[of _ \<open>[Decided K]\<close>])
       (use n_d M in \<open>auto simp: no_dup_def\<close>)
   then have L_uL': \<open>L \<noteq> - L'\<close>
     using lev_L lev_L' lev_K unfolding M by (auto simp: image_Un)
@@ -4377,7 +4377,7 @@ lemma no_dup_append_decided_Cons_lev:
   shows \<open>count_decided M1 = get_level (M2 @ Decided K # M1) K - 1\<close>
 proof -
   have \<open>undefined_lit (M2 @ M1) K\<close>
-    by (rule CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin[of _
+    by (rule no_dup_append_in_atm_notin[of _
           \<open>[Decided K]\<close>])
       (use assms in auto)
   then show ?thesis
@@ -4595,7 +4595,7 @@ next
       unfolding M by auto
     moreover {
       have \<open>undefined_lit (M3 @ M2 @ [Decided K]) K''\<close>
-        by (rule CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin[of _ \<open>M1\<close>])
+        by (rule no_dup_append_in_atm_notin[of _ \<open>M1\<close>])
           (use n_d M K''_M1 in auto)
       then have \<open>get_level M1 K'' = 0\<close>
         using lev_K'' unfolding M by (auto simp: image_Un)

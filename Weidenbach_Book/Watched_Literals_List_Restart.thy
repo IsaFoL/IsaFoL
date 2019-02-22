@@ -254,7 +254,7 @@ proof -
       using n_d unfolding M
       by (auto 4 4 simp: valid_trail_reduction_simps get_level_append_if get_level_cons_if
           atm_of_eq_atm_of
-      dest: in_lits_of_l_defined_litD cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin
+      dest: in_lits_of_l_defined_litD no_dup_append_in_atm_notin
       split: if_splits)
     also have \<open>... \<longleftrightarrow> (L \<in> lits_of_l M' \<and> get_level M' L = 0)\<close>
       using eq by (metis local.H trail_renumber_get_level)
