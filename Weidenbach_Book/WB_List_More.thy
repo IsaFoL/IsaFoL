@@ -166,6 +166,21 @@ lemma set_Collect_Pair_to_fst_snd:
 lemma butlast_Nil_iff: \<open>butlast xs = [] \<longleftrightarrow> length xs = 1 \<or> length xs = 0\<close>
   by (cases xs) auto
 
+lemma Set_remove_diff_insert: \<open>a \<in> B - A \<Longrightarrow> B - Set.remove a A = insert a (B - A)\<close>
+  by auto
+
+lemma Set_insert_diff_remove: \<open>B - insert a A = Set.remove a (B - A)\<close>
+  by auto
+
+lemma Set_remove_insert: \<open>a \<notin> A' \<Longrightarrow> Set.remove a (insert a A') = A'\<close>
+  by (auto simp: Set.remove_def)
+
+lemma diff_eq_insertD:
+  \<open>B - A = insert a A' \<Longrightarrow> a \<in> B\<close>
+  by auto
+
+lemma in_set_tlD: \<open>x \<in> set (tl xs) \<Longrightarrow> x \<in> set xs\<close>
+  by (cases xs) auto
 
 subsection \<open>List Updates\<close>
 
@@ -674,6 +689,9 @@ proof -
   finally show ?thesis .
 qed
 
+lemma removeAll_notin: \<open>a \<notin># A \<Longrightarrow> removeAll_mset a A = A\<close>
+  using count_inI by force
+
 
 subsubsection \<open>Filter\<close>
 
@@ -773,6 +791,11 @@ lemma notin_add_mset_remdups_mset:
   \<open>a \<notin># A \<Longrightarrow> add_mset a (remdups_mset A) = remdups_mset (add_mset a A)\<close>
   by auto
 
+lemma distinct_mset_image_mset:
+  \<open>distinct_mset (image_mset f (mset xs)) \<longleftrightarrow> distinct (map f xs)\<close>
+  apply (subst mset_map[symmetric])
+  apply (subst distinct_mset_mset_distinct)
+  ..
 
 subsection \<open>Set of Distinct Multisets\<close>
 
@@ -1529,9 +1552,21 @@ lemma image_filter_replicate_mset:
   \<open>{#Ca \<in># replicate_mset m C. P Ca#} = (if P C then replicate_mset m C else {#})\<close>
   by (induction m) auto
 
-lemma (in -) size_Union_mset_image_mset:
+lemma size_Union_mset_image_mset:
   \<open>size (\<Union># A) = (\<Sum>i \<in># A. size i)\<close>
   by (induction A) auto
+
+lemma image_mset_minus_inj_on:
+  \<open>inj_on f (set_mset A \<union> set_mset B) \<Longrightarrow> f `# (A - B) = f `# A - f `# B\<close>
+  apply (induction A arbitrary: B)
+  subgoal by auto
+  subgoal for x A B
+    apply (cases \<open>x \<in># B\<close>)
+    apply (auto dest!: multi_member_split)
+    apply (subst diff_add_mset_swap)
+    apply auto
+    done
+  done
 
 lemma filter_mset_mono_subset:
   \<open>A \<subseteq># B \<Longrightarrow> (\<And>x. x \<in># A \<Longrightarrow> P x \<Longrightarrow> Q x) \<Longrightarrow> filter_mset P A \<subseteq># filter_mset Q B\<close>
@@ -1601,6 +1636,12 @@ lemma mset_set_eq_mset_iff: \<open>finite x \<Longrightarrow>  mset_set x = mset
   apply (metis finite_set_mset_mset_set set_mset_mset)
   apply (metis finite_set_mset_mset_set set_mset_mset)
   done
+
+lemma distinct_mset_iff:
+  \<open>\<not>distinct_mset C \<longleftrightarrow> (\<exists>a C'. C = add_mset a (add_mset a C'))\<close>
+  by (metis (no_types, hide_lams) One_nat_def
+      count_add_mset distinct_mset_add_mset distinct_mset_def
+      member_add_mset mset_add not_in_iff)
 
 
 section \<open>Finite maps and multisets\<close>

@@ -156,9 +156,20 @@ lemma tautology_pNeg[simp]:
       uminus_lit_swap add_mset_eq_add_mset eq_commute[of \<open>Neg _\<close> \<open>- _\<close>] eq_commute[of \<open>Pos _\<close> \<open>- _\<close>]
     dest!: multi_member_split)
 
-lemma (in -) pNeg_convolution[simp]:
+lemma pNeg_convolution[simp]:
   \<open>pNeg (pNeg C) = C\<close>
   by (auto simp: pNeg_def)
+
+lemma pNeg_minus[simp]: \<open>pNeg (A - B) = pNeg A - pNeg B\<close>
+  unfolding pNeg_def
+  by (subst image_mset_minus_inj_on) (auto simp: inj_on_def)
+
+lemma pNeg_empty[simp]: \<open>pNeg {#} = {#}\<close>
+  unfolding pNeg_def
+  by (auto simp: inj_on_def)
+
+lemma pNeg_replicate_mset[simp]: \<open>pNeg (replicate_mset n L) = replicate_mset n (-L)\<close>
+  unfolding pNeg_def by auto
 
 lemma distinct_image_mset_not_equal:
   assumes
@@ -1886,15 +1897,6 @@ qed
 
 end
 
-
-lemma (in -)in_set_tlD: \<open>x \<in> set (tl xs) \<Longrightarrow> x \<in> set xs\<close>
-  by (cases xs) auto
-
-lemma get_all_mark_of_propagated_tl_proped:
-  \<open>M \<noteq> [] \<Longrightarrow> is_proped (hd M) \<Longrightarrow> get_all_mark_of_propagated (tl M) = tl (get_all_mark_of_propagated M)\<close>
-  by (induction M rule: ann_lit_list_induct)
-    (auto simp:)
-
 lemma cdcl_bab_reasons_in_clauses:
   \<open>cdcl_bab S T \<Longrightarrow> reasons_in_clauses S \<Longrightarrow> reasons_in_clauses T\<close>
   by (auto simp: cdcl_bab.simps reasons_in_clauses_def ocdcl\<^sub>W_o.simps
@@ -2914,25 +2916,6 @@ proof -
     by auto
 qed
 
-
-lemma (in -) distinct_mset_image_mset:
-  \<open>distinct_mset (f `# mset xs) \<longleftrightarrow> distinct (map f xs)\<close>
-  apply (subst mset_map[symmetric])
-  apply (subst distinct_mset_mset_distinct)
-  ..
-
-lemma (in -) distinct_mset_atm_ofD:
-  \<open>distinct_mset (atm_of `# mset xc) \<Longrightarrow> distinct xc\<close>
-  by (induction xc) auto
-
-lemma (in -) atms_of_cong_set_mset:
-  \<open>set_mset D = set_mset D' \<Longrightarrow> atms_of D = atms_of D'\<close>
-  by (auto simp: atms_of_def)
-
-lemma (in -) true_clss_cls_cong_set_mset:
-  \<open>N \<Turnstile>pm D \<Longrightarrow> set_mset D = set_mset D' \<Longrightarrow> N \<Turnstile>pm D'\<close>
-  by (auto simp add: true_clss_cls_def true_cls_def atms_of_cong_set_mset[of D D'])
-
 lemma pruned_clause_in_conflicting_clss:
   assumes
     ge: \<open>\<And>M'. total_over_m (set_mset (mset (M @ M'))) (set_mset (init_clss S)) \<Longrightarrow>
@@ -3074,194 +3057,8 @@ proof -
     by auto
 qed
 
-lemma (in -) simple_clss_element_mono:
-  \<open>x \<in> simple_clss A \<Longrightarrow> y \<subseteq># x \<Longrightarrow> y \<in> simple_clss A\<close>
-  by (auto simp: simple_clss_def atms_of_def intro: distinct_mset_mono
-    dest: not_tautology_mono)
-
-(*TODO Move*)
-lemma
-  atms_of_s_empty [simp]:
-    \<open>atms_of_s {} = {}\<close> and
-  atms_of_s_empty_iff[simp]:
-    \<open>atms_of_s x = {} \<longleftrightarrow> x = {}\<close>
-  by (auto simp: atms_of_s_def)
-
-lemma Set_remove_diff_insert: \<open>a \<in> B - A \<Longrightarrow> B - Set.remove a A = insert a (B - A)\<close>
-  by auto
-lemma Set_insert_diff_remove: \<open>B - insert a A = Set.remove a (B - A)\<close>
-  by auto
-lemma Set_remove_insert: \<open>a \<notin> A' \<Longrightarrow> Set.remove a (insert a A') = A'\<close>
-  by (auto simp: Set.remove_def)
-lemma diff_eq_insertD:
-  \<open>B - A = insert a A' \<Longrightarrow> a \<in> B\<close>
-  by auto
-
-lemma finite_rev_induct:
-  assumes
-    \<open>finite B\<close>
-    \<open>P B\<close> and
-    \<open>\<And>a B. P (insert a B) \<Longrightarrow> P B\<close>
-  shows \<open>P {}\<close>
-proof -
-  have \<open>P A\<close> if \<open>A \<subseteq> B\<close> for A
-    using that
-    apply (induction "card (B- A)" arbitrary: A)
-    subgoal using assms(1) assms(2) card_seteq by auto
-    subgoal premises p for n A
-      using  p(2-)
-      unfolding card_Suc_eq eq_commute[of \<open>Suc _\<close>]
-      apply clarify
-      subgoal for a A'
-        using p(1)[of \<open>insert a A\<close>] assms(3)[of a A]
-        by (auto simp: Set_insert_diff_remove Set_remove_insert
-        diff_eq_insertD)
-      done
-    done
-  from this[of \<open>{}\<close>] show ?thesis by auto
-qed
-
 
 subsubsection \<open>Alternative versions\<close>
-
-lemma true_cls_remove_alien:
-  \<open>I \<Turnstile> N \<longleftrightarrow> {L. L \<in> I \<and> atm_of L \<in> atms_of N} \<Turnstile> N\<close>
-  by (auto simp: true_cls_def dest: multi_member_split)
-
-lemma true_clss_remove_alien:
-  \<open>I \<Turnstile>s N \<longleftrightarrow> {L. L \<in> I \<and> atm_of L \<in> atms_of_ms N} \<Turnstile>s N\<close>
-  by (auto simp: true_clss_def true_cls_def in_implies_atm_of_on_atms_of_ms dest: multi_member_split)
-
-
-lemma true_clss_alt_def:
-  \<open>N \<Turnstile>p \<chi> \<longleftrightarrow> (\<forall>I. atms_of_s I = atms_of_ms (N \<union> {\<chi>}) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile> \<chi>)\<close>
-  apply (rule iffI)
-  subgoal
-    unfolding total_over_set_alt_def true_clss_cls_def total_over_m_alt_def
-    by auto
-  subgoal
-    unfolding total_over_set_alt_def true_clss_cls_def total_over_m_alt_def
-    apply (intro conjI impI allI)
-    subgoal for I
-      using consistent_interp_subset[of \<open>{L \<in> I. atm_of L \<in> atms_of_ms (N \<union> {\<chi>})}\<close> I]
-      true_clss_mono_left[of  \<open>{L \<in> I. atm_of L \<in> atms_of_ms N}\<close> N \<open>{L \<in> I. atm_of L \<in> atms_of_ms (N \<union> {\<chi>})}\<close>]
-      true_clss_remove_alien[of I N]
-    by (drule_tac x = \<open>{L \<in> I. atm_of L \<in> atms_of_ms (N \<union> {\<chi>})}\<close> in spec)
-      (auto dest: true_cls_mono_set_mset_l)
-    done
-  done
-
-lemma true_clss_alt_def2:
-  assumes \<open>\<not>tautology \<chi>\<close>
-  shows \<open>N \<Turnstile>p \<chi> \<longleftrightarrow> (\<forall>I. atms_of_s I = atms_of_ms N \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile> \<chi>)\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
-proof (rule iffI)
-  assume ?A
-  then have H:
-      \<open>\<And>I. atms_of_ms (N \<union> {\<chi>}) \<subseteq> atms_of_s I \<longrightarrow>
-	   consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile> \<chi>\<close>
-    unfolding total_over_set_alt_def total_over_m_alt_def true_clss_cls_def by blast
-  show ?B
-    unfolding total_over_set_alt_def total_over_m_alt_def true_clss_cls_def
-  proof (intro conjI impI allI)
-    fix I :: \<open>'a literal set\<close>
-    assume
-      atms: \<open>atms_of_s I = atms_of_ms N\<close> and
-      cons: \<open>consistent_interp I\<close> and
-      \<open>I \<Turnstile>s N\<close>
-    let ?I1 = \<open>I \<union> uminus ` {L \<in> set_mset \<chi>. atm_of L \<notin> atms_of_s I}\<close>
-    have \<open>atms_of_ms (N \<union> {\<chi>}) \<subseteq> atms_of_s ?I1\<close>
-      by (auto simp add: atms in_image_uminus_uminus atm_iff_pos_or_neg_lit)
-    moreover have \<open>consistent_interp ?I1\<close>
-      using cons assms by (auto simp: consistent_interp_def)
-        (rename_tac x; case_tac x; auto; fail)+
-    moreover have \<open>?I1 \<Turnstile>s N\<close>
-      using \<open>I \<Turnstile>s N\<close> by auto
-    ultimately have \<open>?I1 \<Turnstile> \<chi>\<close>
-      using H[of ?I1] by auto
-    then show \<open>I \<Turnstile> \<chi>\<close>
-      using assms by (auto simp: true_cls_def)
-  qed
-next
-  assume ?B
-  show ?A
-    unfolding total_over_m_alt_def true_clss_alt_def
-  proof (intro conjI impI allI)
-    fix I :: \<open>'a literal set\<close>
-    assume
-      atms: \<open>atms_of_s I = atms_of_ms (N \<union> {\<chi>})\<close> and
-      cons: \<open>consistent_interp I\<close> and
-      \<open>I \<Turnstile>s N\<close>
-    let ?I1 = \<open>{L \<in> I. atm_of L \<in> atms_of_ms N}\<close>
-    have \<open>atms_of_s ?I1 = atms_of_ms N\<close>
-      using atms by (auto simp add: in_image_uminus_uminus atm_iff_pos_or_neg_lit)
-    moreover have \<open>consistent_interp ?I1\<close>
-      using cons assms by (auto simp: consistent_interp_def)
-    moreover have \<open>?I1 \<Turnstile>s N\<close>
-      using \<open>I \<Turnstile>s N\<close> by (subst (asm)true_clss_remove_alien)
-    ultimately have \<open>?I1 \<Turnstile> \<chi>\<close>
-      using \<open>?B\<close> by auto
-    then show \<open>I \<Turnstile> \<chi>\<close>
-      using assms by (auto simp: true_cls_def)
-  qed
-qed
-
-lemma true_clss_restrict_iff:
-  assumes \<open>\<not>tautology \<chi>\<close>
-  shows \<open>N \<Turnstile>p \<chi> \<longleftrightarrow> N \<Turnstile>p {#L \<in># \<chi>. atm_of L \<in> atms_of_ms N#}\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
-  apply (subst true_clss_alt_def2[OF assms])
-  apply (subst true_clss_alt_def2)
-  subgoal using not_tautology_mono[OF _ assms] by (auto dest: not_tautology_minus)
-  apply (rule HOL.iff_allI)
-  apply (auto 5 5 simp: true_cls_def atms_of_s_def dest!: multi_member_split)
-  done
-
-(*TODO Move*)
-lemma image_mset_minus_inj_on:
-  \<open>inj_on f (set_mset A \<union> set_mset B) \<Longrightarrow> f `# (A - B) = f `# A - f `# B\<close>
-  apply (induction A arbitrary: B)
-  subgoal by auto
-  subgoal for x A B
-    apply (cases \<open>x \<in># B\<close>)
-    apply (auto dest!: multi_member_split)
-    apply (subst diff_add_mset_swap)
-    apply auto
-    done
-  done
-
-lemma count_multi_member_split2:
-   \<open>count M a \<ge> n \<Longrightarrow> \<exists>M' m. M = replicate_mset m a + M' \<and> n = m\<close>
-  using count_multi_member_split[of n M a] by auto
-
-lemma pNeg_minus[simp]: \<open>pNeg (A - B) = pNeg A - pNeg B\<close>
-  unfolding pNeg_def
-  by (subst image_mset_minus_inj_on) (auto simp: inj_on_def)
-
-lemma pNeg_empty[simp]: \<open>pNeg {#} = {#}\<close>
-  unfolding pNeg_def
-  by (auto simp: inj_on_def)
-
-lemma pNeg_replicate_mset[simp]: \<open>pNeg (replicate_mset n L) = replicate_mset n (-L)\<close>
-  unfolding pNeg_def by auto
-
-lemma not_tautology_minusD:
-  \<open>tautology (A - B) \<Longrightarrow> tautology A\<close>
-  by (auto simp: tautology_decomp dest: in_diffD)
-
-lemma removeAll_notin: \<open>a \<notin># A \<Longrightarrow> removeAll_mset a A = A\<close>
-  using count_inI by force
-
-lemma true_cls_add_mset_strict: \<open>I \<Turnstile> add_mset L C \<longleftrightarrow> L \<in> I \<or> I \<Turnstile> (removeAll_mset L C)\<close>
-  using true_cls_mono_set_mset[of \<open>removeAll_mset L C\<close> C I]
-  apply (cases \<open>L \<in># C\<close>)
-  apply (auto dest: multi_member_split simp: removeAll_notin)
-  apply (metis (mono_tags, lifting) in_multiset_minus_notin_snd in_replicate_mset true_cls_def true_lit_def)
-  done
-
-lemma inj_on_uminus_lit: \<open>inj_on uminus A\<close> for A :: \<open>'a literal set\<close>
-  by (auto simp: inj_on_def)
-(*End Move*)
-
-
 
 subsubsection \<open>Calculus with simple Improve rule\<close>
 

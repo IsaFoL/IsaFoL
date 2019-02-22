@@ -23,24 +23,6 @@ interpretation test: conflict_driven_clause_learning\<^sub>W_optimal_weight wher
   update_additional_info = \<open>\<lambda>W (M, N, U, D, _, _). (M, N, U, D, W)\<close>
   by unfold_locales (auto simp: state\<^sub>W_ops.additional_info_def)
 
-(* TODO Move *)
-lemma uminus_lits_of_l_definedD:
-  \<open>-x \<in> lits_of_l M \<Longrightarrow> defined_lit M x\<close>
-  by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
-
-lemma defined_lit_Neg_Pos_iff:
-  \<open>defined_lit M (Neg A) \<longleftrightarrow> defined_lit M (Pos A)\<close>
-  by (simp add: defined_lit_map)
-
-lemma no_dup_alt_def:
-  \<open>no_dup M \<longleftrightarrow> distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
-  by (auto simp: no_dup_def simp flip: distinct_mset_mset_distinct)
-
-lemma defined_lit_Pos_atm_iff[simp]:
-  \<open>defined_lit M1 (Pos (atm_of x)) \<longleftrightarrow> defined_lit M1 x\<close>
-  by (cases x) (auto simp: defined_lit_Neg_Pos_iff)
-(* END Move *)
-
 text \<open>
   We here formalise the encoding from a formula to another formula from which we will run derive the
   optimal partial model.
@@ -1059,25 +1041,6 @@ lemma total_entails_iff_no_conflict:
         subset_iff sup.orderE total_not_true_cls_true_clss_CNot
         total_over_m_alt_def true_clss_def)
   done
-
-(*TODO Move*)
-lemma inj_on_Pos: \<open>inj_on Pos A\<close> and
-  inj_on_Neg: \<open>inj_on Neg A\<close>
-  by (auto simp: inj_on_def)
-
-lemma distinct_mset_iff:
-  \<open>\<not>distinct_mset C \<longleftrightarrow> (\<exists>a C'. C = add_mset a (add_mset a C'))\<close>
-  by (metis (no_types, hide_lams) One_nat_def
-      count_add_mset distinct_mset_add_mset distinct_mset_def
-      member_add_mset mset_add not_in_iff)
-
-lemma tautology_distinct_atm_iff:
-  \<open>distinct_mset C \<Longrightarrow> tautology C \<longleftrightarrow> \<not>distinct_mset (atm_of `# C)\<close>
-  apply (auto simp: tautology_decomp add_mset_eq_add_mset atm_of_eq_atm_of
-      simp flip: uminus_lit_swap
-      dest!: distinct_mset_iff[THEN iffD1] msed_map_invR
-      dest!: multi_member_split)
-  by (metis literal.exhaust_sel)
 
 lemma no_step_cdcl_bab_r_stgy_no_step_cdcl_bab_stgy:
   assumes
