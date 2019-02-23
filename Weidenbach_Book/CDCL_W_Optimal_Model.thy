@@ -225,6 +225,9 @@ lemma exists_lit_max_level_in_negate_ann_lits:
   \<open>negate_ann_lits M \<noteq> {#} \<Longrightarrow> \<exists>L\<in>#negate_ann_lits M. get_level M L = count_decided M\<close>
   by (cases \<open>M\<close>) (auto simp: negate_ann_lits_def)
 
+lemma negate_ann_lits_cons[simp]:
+  \<open>negate_ann_lits (L # M) = add_mset (- lit_of L) (negate_ann_lits M)\<close>
+  by (auto simp: negate_ann_lits_def)
 
 subsubsection \<open>CDCL BAB\<close>
 
@@ -2066,7 +2069,7 @@ definition conflicting_clauses
   :: \<open>'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses\<close>
 where
   \<open>conflicting_clauses N w =
-    {#C \<in># mset_set (simple_clss (atms_of_mm N)). too_heavy_clauses N w + N \<Turnstile>pm C#}\<close>
+    {#C \<in># mset_set (simple_clss (atms_of_mm N)). too_heavy_clauses N w \<Turnstile>pm C#}\<close>
 
 lemma too_heavy_clauses_conflicting_clauses:
   \<open>C \<in># too_heavy_clauses M w \<Longrightarrow> C \<in># conflicting_clauses M w\<close>

@@ -951,6 +951,219 @@ inductive cdcl_bab_r_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<cl
   cdcl_bab_r_conflict_opt: "enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bab_r_stgy S S'" |
   cdcl_bab_r_other': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_bab_r_stgy S S'"
 
+definition DECO_clause :: \<open>('v, 'a) ann_lits \<Rightarrow>  'v clause\<close>where
+  \<open>DECO_clause M = (uminus o lit_of) `# (filter_mset is_decided (mset M))\<close>
+
+lemma in_set_dropI:
+  \<open>m < length xs \<Longrightarrow> m \<ge> n \<Longrightarrow> xs ! m \<in> set (drop n xs)\<close>
+  unfolding in_set_conv_nth
+  by (rule exI[of _ \<open>m - n\<close>]) auto
+
+lemma entails_CNot_negate_ann_lits:
+  \<open>M \<Turnstile>as CNot D \<longleftrightarrow> set_mset D \<subseteq> set_mset (negate_ann_lits M)\<close>
+  by (auto simp: true_annots_true_cls_def_iff_negation_in_model
+      negate_ann_lits_def lits_of_def uminus_lit_swap
+    dest!: multi_member_split)
+
+inductive simple_backtrack_conflict_opt :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+  \<open>simple_backtrack_conflict_opt S T\<close>
+  if
+    \<open>backtrack_split (trail S) = (M2, Decided K # M1)\<close> and
+    \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close> and
+    \<open>conflicting S = None\<close>
+    \<open>T \<sim> cons_trail (Propagated (-K) (DECO_clause (trail S)))
+      (add_learned_cls (DECO_clause (trail S)) (reduce_trail_to M1 S))\<close>
+
+lemma defined_lit_mono:
+  \<open>defined_lit M2 L \<Longrightarrow> set M2 \<subseteq> set M3 \<Longrightarrow> defined_lit M3 L\<close>
+  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+lemma defined_lit_nth:
+  \<open>n < length M2 \<Longrightarrow> defined_lit M2 (lit_of (M2 ! n))\<close>
+  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def)
+
+lemma reduce_trail_to_compow_tl_trail_le:
+  \<open>length M < length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
+  apply (induction M\<equiv>M S\<equiv>M' arbitrary: M M' rule: reduce_trail_to.induct)
+  subgoal for F S
+    apply (subst reduce_trail_to.simps)
+    apply (cases \<open>length F < length (trail S) - Suc 0\<close>)
+    apply (auto simp: less_iff_Suc_add funpow_swap1)
+    apply (subgoal_tac \<open>k=0\<close>)
+    apply auto
+    by presburger
+  done
+
+lemma reduce_trail_to_compow_tl_trail_eq:
+  \<open>length M = length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
+  by auto
+
+lemma tl_trail_reduce_trail_to_cons:
+  \<open>length (L # M) < length (trail M') \<Longrightarrow> tl_trail (reduce_trail_to (L # M) M') = reduce_trail_to M M'\<close>
+  by (auto simp: reduce_trail_to_compow_tl_trail_le funpow_swap1
+      reduce_trail_to_compow_tl_trail_eq less_iff_Suc_add)
+
+lemma (*either the assumption should be added to the locales. Or there is a way to derive it. *)
+  assumes \<open>\<And>D D' S S'. S \<sim> S' \<Longrightarrow> update_conflicting D (update_conflicting D' S) \<sim> update_conflicting D S'\<close>
+  assumes \<open>simple_backtrack_conflict_opt S U\<close> and
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>\<exists>T T'. enc_weight_opt.conflict_opt S T \<and> resolve\<^sup>*\<^sup>* T T' \<and> obacktrack T' U\<close>
+  using assms(2-)
+proof (cases rule: simple_backtrack_conflict_opt.cases)
+  case (1 M2 K M1)
+  have tr: \<open>trail S = M2 @ Decided K # M1\<close>
+    using 1 backtrack_split_list_eq[of \<open>trail S\<close>]
+    by auto
+  let ?S = \<open>update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
+  have \<open>enc_weight_opt.conflict_opt S ?S\<close>
+    by (rule enc_weight_opt.conflict_opt.intros[OF 1(2,3)]) auto
+
+  let ?T = \<open>\<lambda>n. update_conflicting
+    (Some (negate_ann_lits (drop n (trail S))))
+    (reduce_trail_to (drop n (trail S)) S)\<close>
+  have proped_M2: \<open>is_proped (M2 ! n)\<close> if \<open>n < length M2\<close> for n
+    using that 1(1) nth_length_takeWhile[of \<open>Not \<circ> is_decided\<close> \<open>trail S\<close>]
+    length_takeWhile_le[of \<open>Not \<circ> is_decided\<close> \<open>trail S\<close>]
+    unfolding backtrack_split_takeWhile_dropWhile
+    apply (auto simp: )
+    by (metis annotated_lit.exhaust_disc comp_apply nth_mem set_takeWhileD)
+  have n_d: \<open>no_dup (trail S)\<close> and
+    le: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (abs_state S)\<close> and
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (abs_state S)\<close>
+    using inv
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
+  then have [simp]: \<open>K \<noteq> lit_of (M2 ! n)\<close> if \<open>n < length M2\<close> for n
+    using that unfolding tr
+    by (auto simp: defined_lit_nth)
+  have n_d_n: \<open>no_dup (drop n M2 @ Decided K # M1)\<close> for n
+    using n_d unfolding tr
+    by (subst (asm) append_take_drop_id[symmetric, of _ n])
+      (auto simp del: append_take_drop_id dest: no_dup_appendD)
+  have mark_dist: \<open>distinct_mset (mark_of (M2!n))\<close> if \<open>n < length M2\<close> for n
+    using dist that proped_M2[OF that] nth_mem[OF that]
+    unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def tr
+    by (cases \<open>M2!n\<close>) (auto simp: tr)
+
+  have [simp]: \<open>undefined_lit (drop n M2) K\<close> for n
+    using n_d defined_lit_mono[of \<open>drop n M2\<close> K M2]
+    unfolding tr
+    by (auto simp: set_drop_subset)
+  from this[of 0] have [simp]: \<open>undefined_lit M2 K\<close>
+    by auto
+  have [simp]: \<open>count_decided (drop n M2) = 0\<close> for n
+    apply (subst count_decided_0_iff)
+    using 1(1) nth_length_takeWhile[of \<open>Not \<circ> is_decided\<close> \<open>trail S\<close>]
+    length_takeWhile_le[of \<open>Not \<circ> is_decided\<close> \<open>trail S\<close>]
+    unfolding backtrack_split_takeWhile_dropWhile
+    by (auto simp: dest!: in_set_dropD set_takeWhileD)
+  from this[of 0] have [simp]: \<open>count_decided M2 = 0\<close> by simp
+  have proped: \<open>\<And>L mark a b.
+      a @ Propagated L mark # b = trail S \<longrightarrow>
+      b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close>
+    using le
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+    by auto
+  have mark: \<open>drop (Suc n) M2 @ Decided K # M1 \<Turnstile>as
+      CNot (mark_of (M2 ! n) - unmark (M2 ! n)) \<and>
+      lit_of (M2 ! n) \<in># mark_of (M2 ! n)\<close>
+    if \<open>n < length M2\<close> for n
+    using proped_M2[OF that] that
+      append_take_drop_id[of n M2, unfolded Cons_nth_drop_Suc[OF that, symmetric]]
+      proped[of \<open>take n M2\<close> \<open>lit_of (M2 ! n)\<close> \<open>mark_of (M2 ! n)\<close>
+    \<open>drop (Suc n) M2 @ Decided K # M1\<close>]
+    unfolding tr by (cases \<open>M2!n\<close>) auto
+
+  have \<open>resolve\<^sup>*\<^sup>* ?S (?T n)\<close> if \<open>n \<le> length M2\<close> for n
+    using that unfolding tr
+  proof (induction n)
+    case 0
+    then show ?case
+      using get_all_ann_decomposition_backtrack_split[THEN iffD1, OF 1(1)]
+        1
+      by (cases \<open>get_all_ann_decomposition (trail S)\<close>) (auto simp: tr)
+  next
+    case (Suc n)
+    have [simp]: \<open>\<not> Suc (length M2 - Suc n) < length M2 \<longleftrightarrow> n = 0\<close>
+      using Suc(2) by auto
+    have [simp]: \<open>reduce_trail_to (drop (Suc 0) M2 @ Decided K # M1) S = tl_trail S\<close>
+      apply (subst reduce_trail_to.simps)
+      using Suc by (auto simp: tr )
+    have [simp]: \<open>reduce_trail_to (M2 ! 0 # drop (Suc 0) M2 @ Decided K # M1) S = S\<close>
+      apply (subst reduce_trail_to.simps)
+      using Suc by (auto simp: tr )
+    have [simp]: \<open>(Suc (length M1) -
+          (length M2 - n + (Suc (length M1) - (n - length M2)))) = 0\<close>
+      \<open>(Suc (length M2 + length M1) -
+          (length M2 - n + (Suc (length M1) - (n - length M2)))) =n\<close>
+      \<open>length M2 - n + (Suc (length M1) - (n - length M2)) = Suc (length M2 + length M1) - n\<close>
+      using Suc by auto
+    have [symmetric,simp]: \<open>M2 ! n = Propagated (lit_of (M2 ! n)) (mark_of (M2 ! n))\<close>
+      using Suc proped_M2[of n]
+      by (cases \<open>M2 ! n\<close>)  (auto simp: tr trail_reduce_trail_to_drop hd_drop_conv_nth
+        intro!: resolve.intros)
+    have \<open>- lit_of (M2 ! n) \<in># negate_ann_lits (drop n M2 @ Decided K # M1)\<close>
+      using Suc in_set_dropI[of \<open>n\<close> \<open>map (uminus o lit_of) M2\<close> n]
+      by (simp add: negate_ann_lits_def comp_def drop_map
+         del: nth_mem)
+    moreover have \<open>get_maximum_level (drop n M2 @ Decided K # M1)
+       (remove1_mset (- lit_of (M2 ! n)) (negate_ann_lits (drop n M2 @ Decided K # M1))) =
+      Suc (count_decided M1)\<close>
+      using Suc(2) count_decided_ge_get_maximum_level[of \<open>drop n M2 @ Decided K # M1\<close>
+        \<open>(remove1_mset (- lit_of (M2 ! n)) (negate_ann_lits (drop n M2 @ Decided K # M1)))\<close>]
+      by (auto simp: negate_ann_lits_def tr max_def ac_simps
+        remove1_mset_add_mset_If get_maximum_level_add_mset
+	split: if_splits)
+    moreover have \<open>lit_of (M2 ! n) \<in># mark_of (M2 ! n)\<close>
+      using mark[of n] Suc by auto
+    moreover have \<open>(remove1_mset (- lit_of (M2 ! n))
+         (negate_ann_lits (drop n M2 @ Decided K # M1)) \<union>#
+        (mark_of (M2 ! n) - unmark (M2 ! n))) = negate_ann_lits (drop (Suc n) (trail S))\<close>
+      apply (rule distinct_set_mset_eq)
+      using n_d_n[of n] n_d_n[of \<open>Suc n\<close>] no_dup_distinct_mset[OF n_d_n[of n]] Suc
+        mark[of n] mark_dist[of n]
+      by (auto simp: tr Cons_nth_drop_Suc[symmetric, of n]
+          entails_CNot_negate_ann_lits
+        dest: in_diffD intro: distinct_mset_minus)
+    moreover  { have 1: \<open>(tl_trail
+       (reduce_trail_to (drop n M2 @ Decided K # M1) S)) \<sim>
+	 (reduce_trail_to (drop (Suc n) M2 @ Decided K # M1) S)\<close>
+      apply (subst Cons_nth_drop_Suc[symmetric, of n M2])
+      subgoal using Suc by (auto simp: tl_trail_update_conflicting)
+      subgoal
+        apply (rule state_eq_trans)
+	apply simp
+	apply (cases \<open>length (M2 ! n # drop (Suc n) M2 @ Decided K # M1) < length (trail S)\<close>)
+	apply (auto simp: tl_trail_reduce_trail_to_cons tr)
+	done
+      done
+    have \<open>update_conflicting
+     (Some (negate_ann_lits (drop (Suc n) M2 @ Decided K # M1)))
+     (reduce_trail_to (drop (Suc n) M2 @ Decided K # M1) S) \<sim>
+    update_conflicting
+     (Some (negate_ann_lits (drop (Suc n) M2 @ Decided K # M1)))
+     (tl_trail
+       (update_conflicting (Some (negate_ann_lits (drop n M2 @ Decided K # M1)))
+         (reduce_trail_to (drop n M2 @ Decided K # M1) S)))\<close>
+       apply (rule state_eq_trans)
+       prefer 2
+       apply (rule update_conflicting_state_eq)
+       apply (rule tl_trail_update_conflicting[THEN state_eq_sym[THEN iffD1]])
+       apply (subst state_eq_sym)
+       apply (subst assms(1))
+       apply (rule 1)
+       by fast }
+    ultimately have \<open>resolve (?T n) (?T (n+1))\<close> apply -
+      apply (rule resolve.intros[of _ \<open>lit_of (M2 ! n)\<close> \<open>mark_of (M2 ! n)\<close>])
+      using Suc
+        get_all_ann_decomposition_backtrack_split[THEN iffD1, OF 1(1)] 
+         in_get_all_ann_decomposition_trail_update_trail[of \<open>Decided K\<close> M1 \<open>M2\<close> \<open>S\<close>]
+      by (auto simp: tr trail_reduce_trail_to_drop hd_drop_conv_nth
+        intro!: resolve.intros intro: update_conflicting_state_eq)
+
+    show ?case
+      oops
+
 lemma ocdcl\<^sub>W_o_r_cases[consumes 1, case_names odecode obacktrack skip resolve]:
   assumes
     \<open>ocdcl\<^sub>W_o_r S T\<close>
