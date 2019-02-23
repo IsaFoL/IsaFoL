@@ -2041,9 +2041,11 @@ abbreviation \<rho>' :: \<open>'v clause option \<Rightarrow> enat\<close> where
   \<open>\<rho>' w \<equiv> (case w of None \<Rightarrow> \<infinity> | Some w \<Rightarrow> \<rho> w)\<close>
 
 definition is_improving_int
-  :: "('v, 'v clause) ann_lits \<Rightarrow> ('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clause option \<Rightarrow> bool"
+  :: "('v, 'v clause) ann_lits \<Rightarrow> ('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow>
+    'v clause option \<Rightarrow> bool"
 where
-  \<open>is_improving_int M M' N w \<longleftrightarrow> enat (\<rho> (lit_of `# mset M')) < \<rho>' w \<and> M' \<Turnstile>asm N \<and> no_dup M'  \<and>
+  \<open>is_improving_int M M' N w \<longleftrightarrow> enat (\<rho> (lit_of `# mset M')) < \<rho>' w \<and>
+    M' \<Turnstile>asm N \<and> no_dup M' \<and>
     lit_of `# mset M' \<in> simple_clss (atms_of_mm N) \<and>
     total_over_m (lits_of_l M') (set_mset N) \<and>
     (\<forall>M'. total_over_m (lits_of_l M') (set_mset N) \<longrightarrow> mset M \<subseteq># mset M' \<longrightarrow>
@@ -2054,12 +2056,17 @@ lemma distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftright
   unfolding pNeg_def
   by (rule distinct_image_mset_inj) (auto simp: inj_on_def)
 
-definition too_heavy_clauses :: \<open>'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses\<close> where
-  \<open>too_heavy_clauses M w = {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C \<ge> \<rho>' w#}\<close>
+definition too_heavy_clauses
+  :: \<open>'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses\<close>
+where
+  \<open>too_heavy_clauses M w =
+     {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C \<ge> \<rho>' w#}\<close>
 
-definition conflicting_clauses :: "'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses" where
-  \<open>conflicting_clauses M w =
-    {#C \<in># mset_set (simple_clss (atms_of_mm M)). too_heavy_clauses M w \<Turnstile>pm C#}\<close>
+definition conflicting_clauses
+  :: \<open>'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses\<close>
+where
+  \<open>conflicting_clauses N w =
+    {#C \<in># mset_set (simple_clss (atms_of_mm N)). too_heavy_clauses N w + N \<Turnstile>pm C#}\<close>
 
 lemma too_heavy_clauses_conflicting_clauses:
   \<open>C \<in># too_heavy_clauses M w \<Longrightarrow> C \<in># conflicting_clauses M w\<close>
@@ -2116,6 +2123,50 @@ proof -
   then show \<open>atms_of_mm (too_heavy_clauses M (Some w)) = atms_of_mm M\<close>
     using \<open>atms_of_mm (too_heavy_clauses M (Some w)) \<subseteq> atms_of_mm M\<close> by blast
 qed
+
+lemma (in -) Neg_atm_of_itself_uminus_iff: \<open>Neg (atm_of xa) \<noteq> - xa \<longleftrightarrow> is_neg xa\<close>
+  by (cases xa) auto
+
+lemma (in -) Pos_atm_of_itself_uminus_iff: \<open>Pos (atm_of xa) \<noteq> - xa \<longleftrightarrow> is_pos xa\<close>
+  by (cases xa)  auto
+
+text \<open>This is a slightly restrictive theorem, that encompasses most useful cases.
+  The assumption \<^term>\<open>\<not>tautology C\<close> can be removed if I is total over the clause.
+\<close>
+lemma (in -) true_clss_cls_true_clss_true_cls:
+  assumes \<open>N \<Turnstile>p C\<close>
+    \<open>I \<Turnstile>s N\<close> and
+    cons: \<open>consistent_interp I\<close> and
+    tauto: \<open>\<not>tautology C\<close>
+  shows \<open>I \<Turnstile> C\<close>
+proof -
+  let ?I = \<open>I \<union> uminus ` {L \<in> set_mset C. atm_of L \<notin> atms_of_s I}\<close>
+  let ?I2 = \<open>?I \<union> Pos ` {L \<in> atms_of_ms N. L \<notin> atms_of_s ?I}\<close>
+  have \<open>total_over_m ?I2 (N \<union> {C})\<close>
+    by (auto simp: total_over_m_alt_def atms_of_def in_image_uminus_uminus
+        Neg_atm_of_itself_uminus_iff Pos_atm_of_itself_uminus_iff
+      dest!: multi_member_split)
+  moreover have \<open>consistent_interp ?I2\<close>
+    using cons tauto unfolding consistent_interp_def
+    apply (intro allI)
+    apply (case_tac L)
+    by (auto simp: uminus_lit_swap eq_commute[of \<open>Pos _\<close> \<open>- _\<close>]
+      eq_commute[of \<open>Neg _\<close> \<open>- _\<close>])
+  moreover have \<open>?I2 \<Turnstile>s N\<close>
+    using \<open>I \<Turnstile>s N\<close> by auto
+  ultimately have \<open>?I2 \<Turnstile> C\<close>
+    using assms(1) unfolding true_clss_cls_def by fast
+  then show ?thesis
+    using tauto
+    by (subst (asm) true_cls_remove_alien)
+      (auto simp: true_cls_def in_image_uminus_uminus)
+qed
+
+lemma (in -)true_cls_mset_true_clss_iff:
+  \<open>finite C \<Longrightarrow> I \<Turnstile>m mset_set C \<longleftrightarrow> I \<Turnstile>s C\<close>
+  \<open>I \<Turnstile>m D \<longleftrightarrow> I \<Turnstile>s set_mset D\<close>
+  by (auto simp: true_clss_def true_cls_mset_def Ball_def
+    dest: multi_member_split)
 
 lemma entails_too_heavy_clauses_too_heavy_clauses:
   assumes
