@@ -4,6 +4,8 @@ begin
 
 
 subsection \<open>Encoding of partial SAT into total SAT\<close>
+definition (in -)DECO_clause :: \<open>('v, 'a) ann_lits \<Rightarrow>  'v clause\<close>where
+  \<open>DECO_clause M = (uminus o lit_of) `# (filter_mset is_decided (mset M))\<close>
 
 text \<open>As a way to make sure we don't reuse theorems names:\<close>
 interpretation test: conflict_driven_clause_learning\<^sub>W_optimal_weight where
@@ -68,7 +70,7 @@ locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_we
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
-    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {wellorder}\<close> and
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> +
   fixes \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
     new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close>
@@ -368,7 +370,7 @@ locale optimal_encoding = optimal_encoding_opt
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
-    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {wellorder}\<close> and
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
     \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
     new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close> +
@@ -644,7 +646,7 @@ lemma satisfiable_penc_iff:
 abbreviation \<rho>\<^sub>e_filter :: \<open>'v literal multiset \<Rightarrow> 'v literal multiset\<close> where
   \<open>\<rho>\<^sub>e_filter M \<equiv> filter_mset (\<lambda>x. atm_of x \<in> \<Delta>\<Sigma> \<and> additional_var (atm_of x) \<in># M) M\<close>
 
-definition \<rho>\<^sub>e :: \<open>'v literal multiset \<Rightarrow> nat\<close> where
+definition \<rho>\<^sub>e :: \<open>'v literal multiset \<Rightarrow> 'a :: {wellorder}\<close> where
   \<open>\<rho>\<^sub>e M = \<rho> (\<rho>\<^sub>e_filter M)\<close>
 
 lemma \<rho>\<^sub>e_mono: \<open>A \<subseteq># B \<Longrightarrow> \<rho>\<^sub>e A \<le> \<rho>\<^sub>e B\<close>
@@ -821,7 +823,7 @@ proof -
        atms_of (the (weight T)) \<subseteq> atms_of_mm ?N \<and> set_mset (the (weight T)) \<Turnstile>sm ?N \<and>
        distinct_mset (the (weight T))\<close> and
     opt: \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm ?N \<Longrightarrow>
-      set_mset I \<Turnstile>sm ?N \<Longrightarrow> \<rho>\<^sub>e I \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
+      set_mset I \<Turnstile>sm ?N \<Longrightarrow> Some (\<rho>\<^sub>e I) \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
     for I
     using enc_weight_opt.full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of
         \<open>penc N\<close> T, OF st]
@@ -869,7 +871,7 @@ proof -
     }
     moreover have \<open>consistent_interp (set_mset ?I)\<close>
       using cons unfolding I by (rule consistent_interp_upostp)
-    ultimately have \<open>\<rho>\<^sub>e ?I \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
+    ultimately have \<open>Some (\<rho>\<^sub>e ?I) \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
       using opt[of ?I] by auto
     moreover {
       have \<open>\<rho>\<^sub>e ?I = \<rho> (mset_set (set_mset I))\<close>
@@ -879,7 +881,7 @@ proof -
         by (subst (asm) distinct_mset_set_mset_ident)
           (use atms dist in auto)
     }
-    ultimately have \<open>\<rho> I \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
+    ultimately have \<open>Some (\<rho> I) \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
       using Some'
       by auto
     moreover {
@@ -898,7 +900,7 @@ proof -
           subgoal by (auto simp: postp_def)
           done
         done
-      then have \<open>\<rho> (mset_set ?K) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
+      then have \<open>Some (\<rho> (mset_set ?K)) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
         using Some by auto
     }
     moreover {
@@ -912,7 +914,7 @@ proof -
           apply (rule filter_mset_mono_subset)
           by (auto simp: postp_def)
         done
-      then have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
+      then have \<open>Some (\<rho>\<^sub>e (mset_set ?K)) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
         apply (subst (asm) distinct_mset_set_mset_ident)
          apply (use atms dist model[OF Some] in auto; fail)[]
         using Some' by auto
@@ -951,9 +953,6 @@ inductive cdcl_bab_r_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<cl
   cdcl_bab_r_conflict_opt: "enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bab_r_stgy S S'" |
   cdcl_bab_r_other': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_bab_r_stgy S S'"
 
-definition DECO_clause :: \<open>('v, 'a) ann_lits \<Rightarrow>  'v clause\<close>where
-  \<open>DECO_clause M = (uminus o lit_of) `# (filter_mset is_decided (mset M))\<close>
-
 lemma in_set_dropI:
   \<open>m < length xs \<Longrightarrow> m \<ge> n \<Longrightarrow> xs ! m \<in> set (drop n xs)\<close>
   unfolding in_set_conv_nth
@@ -977,6 +976,7 @@ inductive simple_backtrack_conflict_opt :: \<open>'st \<Rightarrow> 'st \<Righta
 lemma defined_lit_mono:
   \<open>defined_lit M2 L \<Longrightarrow> set M2 \<subseteq> set M3 \<Longrightarrow> defined_lit M3 L\<close>
   by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+
 lemma defined_lit_nth:
   \<open>n < length M2 \<Longrightarrow> defined_lit M2 (lit_of (M2 ! n))\<close>
   by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def)
@@ -1513,7 +1513,7 @@ next
       unfolding assms penc_def by auto
 
     have \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close>
-      if \<open>\<not> enat (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
+      if \<open>\<not> Some (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
       unfolding negate_ann_lits_pNeg_lit_of comp_def lit_of_mset_trail
       apply (rule enc_weight_opt.pruned_clause_in_conflicting_clss)
          apply (use eq_add_M' that in auto)[]
@@ -1524,7 +1524,7 @@ next
       using no_dup_distinct[OF n_d] distinct_consistent_interp[OF n_d]
       by (auto simp: lits_of_def simp flip: distinct_mset_mset_distinct)
     then have ge:
-      \<open>enat (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
+      \<open>Some (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
       using nsco' by auto
 
     let ?M'' = \<open>Decided `# Pos `# {#L \<in># mset_set \<Delta>\<Sigma>. undefined_lit (trail S) (Pos L)#}\<close>
@@ -1574,7 +1574,7 @@ next
       using \<open>trail S \<Turnstile>asm init_clss S\<close> arg_cong[OF M', of set_mset, symmetric]
       by (auto simp: true_annots_true_cls)
     moreover have \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close>
-      if \<open>\<not> enat (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
+      if \<open>\<not> Some (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
       unfolding negate_ann_lits_pNeg_lit_of comp_def lit_of_mset_trail
       apply (rule enc_weight_opt.pruned_clause_in_conflicting_clss)
          apply (use eq_add_M' that in auto)[]
@@ -2347,8 +2347,10 @@ proof -
     by fast
 qed
 
-inductive weight_sat :: \<open>'v clauses \<Rightarrow> ('v literal multiset \<Rightarrow> nat) \<Rightarrow> 'v literal multiset option \<Rightarrow>
-  bool\<close> where
+inductive weight_sat
+  :: \<open>'v clauses \<Rightarrow> ('v literal multiset \<Rightarrow> 'a :: wellorder) \<Rightarrow>
+    'v literal multiset option \<Rightarrow> bool\<close>
+where
   weight_sat:
   \<open>weight_sat N \<rho> (Some I)\<close>
 if

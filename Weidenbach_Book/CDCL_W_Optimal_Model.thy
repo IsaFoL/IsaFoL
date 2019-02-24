@@ -1916,7 +1916,7 @@ subsubsection \<open>OCDCL\<close>
 text \<open>This locales includes only the assumption we make on the weight function.\<close>
 locale ocdcl_weight =
   fixes
-    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close>
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {wellorder}\<close>
   assumes
     \<rho>_mono: \<open>A \<subseteq># B \<Longrightarrow> \<rho> A \<le> \<rho> B\<close>
 begin
@@ -1940,6 +1940,72 @@ definition \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> where
 sublocale ocdcl_weight \<rho>
   by (unfold_locales)
     (auto simp: \<rho>_def sum_image_mset_mono)
+
+end
+
+
+instantiation option ::(ord) ord
+begin
+  fun less_option  :: \<open>'a :: ord option \<Rightarrow> 'a option \<Rightarrow> bool\<close> where
+  \<open>less_option None _ = False\<close>
+| \<open>less_option (Some _) None \<longleftrightarrow> True\<close>
+| \<open>less_option (Some a) (Some b) \<longleftrightarrow> a < b\<close>
+
+  fun less_eq_option  :: \<open>'a :: ord option \<Rightarrow> 'a option \<Rightarrow> bool\<close> where
+  \<open>less_eq_option None None = True\<close>
+| \<open>less_eq_option None (Some _) = False\<close>
+| \<open>less_eq_option (Some _) None \<longleftrightarrow> True\<close>
+| \<open>less_eq_option (Some a) (Some b) \<longleftrightarrow> a \<le> b\<close>
+
+instance
+  by standard
+
+end
+
+instance option :: (preorder) preorder
+  apply standard
+  subgoal for a b
+    by (cases a; cases b) (auto simp: less_le_not_le)
+  subgoal for a
+    by (cases a) auto
+  subgoal for a b c
+    by (cases a; cases b; cases c) (auto dest: order_trans)
+  done
+
+instance option :: (order) order
+  apply standard
+  subgoal for a b
+    by (cases a; cases b) (auto simp: less_le_not_le)
+  done
+
+instance option :: (linorder) linorder
+  apply standard
+  subgoal for a b
+    by (cases a; cases b) (auto simp: less_le_not_le)
+  done
+
+instantiation option :: (wellorder) wellorder
+begin
+
+lemma wf_less_option: "wf {(M :: 'a option, N). M < N}"
+proof -
+  have 1: \<open>{(M :: 'a option, N). M < N} = 
+    map_prod Some Some ` {(M :: 'a, N). M < N} \<union>
+    {(a, b). a \<noteq> None \<and> b = None}\<close> (is \<open>?A = ?B \<union> ?C\<close>)
+    apply (auto simp: image_iff)
+    apply (case_tac a; case_tac b)
+    apply auto
+    done
+  have \<open>wf ?B\<close>
+    by (rule wf_map_prod_image) (auto intro: wf)
+  moreover have \<open>wf ?C\<close>
+    by (rule wfI_pf) auto
+  ultimately show \<open>wf (?A)\<close>
+    unfolding 1
+    by (rule wf_Un) (auto)
+qed
+
+instance by standard (metis CollectI split_conv wf_def wf_less_option)
 
 end
 
@@ -1972,7 +2038,7 @@ locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
     init_state :: "'v clauses \<Rightarrow> 'st" and
-    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close>  +
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {wellorder}\<close>  +
   fixes
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
   assumes
@@ -2040,14 +2106,14 @@ lemma
     "weight (update_weight_information M S) = Some (lit_of `# mset M)"
   by (auto simp: update_weight_information_def weight_def)
 
-abbreviation \<rho>' :: \<open>'v clause option \<Rightarrow> enat\<close> where
-  \<open>\<rho>' w \<equiv> (case w of None \<Rightarrow> \<infinity> | Some w \<Rightarrow> \<rho> w)\<close>
+abbreviation \<rho>' :: \<open>'v clause option \<Rightarrow> 'a option\<close> where
+  \<open>\<rho>' w \<equiv> (case w of None \<Rightarrow> None | Some w \<Rightarrow> Some (\<rho> w))\<close>
 
 definition is_improving_int
   :: "('v, 'v clause) ann_lits \<Rightarrow> ('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow>
     'v clause option \<Rightarrow> bool"
 where
-  \<open>is_improving_int M M' N w \<longleftrightarrow> enat (\<rho> (lit_of `# mset M')) < \<rho>' w \<and>
+  \<open>is_improving_int M M' N w \<longleftrightarrow> Some (\<rho> (lit_of `# mset M')) < \<rho>' w \<and>
     M' \<Turnstile>asm N \<and> no_dup M' \<and>
     lit_of `# mset M' \<in> simple_clss (atms_of_mm N) \<and>
     total_over_m (lits_of_l M') (set_mset N) \<and>
@@ -2063,7 +2129,7 @@ definition too_heavy_clauses
   :: \<open>'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses\<close>
 where
   \<open>too_heavy_clauses M w =
-     {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C \<ge> \<rho>' w#}\<close>
+     {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho>' w \<le> Some (\<rho> C)#}\<close>
 
 definition conflicting_clauses
   :: \<open>'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses\<close>
@@ -2378,11 +2444,11 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
     is_improving_int = is_improving_int and
     conflicting_clauses = conflicting_clauses
   apply unfold_locales
-  subgoal by (rule state_additional_info'; assumption)
-  subgoal by (rule state_update_weight_information; assumption)
-  subgoal by (rule conflicting_clss_incl_init_clss; assumption)
-  subgoal by (rule distinct_mset_mset_conflicting_clss2; assumption)
-  subgoal by (rule is_improving_conflicting_clss_update_weight_information; assumption)
+  subgoal by (rule state_additional_info')
+  subgoal by (rule state_update_weight_information)
+  subgoal by (rule conflicting_clss_incl_init_clss)
+  subgoal by (rule distinct_mset_mset_conflicting_clss2)
+  subgoal by (rule is_improving_conflicting_clss_update_weight_information)
   subgoal by (rule conflicting_clss_update_weight_information_in2; assumption)
   done
 
@@ -2396,7 +2462,7 @@ lemma wf_cdcl_bab2:
   done
 
 lemma not_entailed_too_heavy_clauses_ge:
-  \<open>C \<in> simple_clss (atms_of_mm N) \<Longrightarrow> \<not> too_heavy_clauses N w \<Turnstile>pm pNeg C \<Longrightarrow> \<not>\<rho> C \<ge> \<rho>' w\<close>
+  \<open>C \<in> simple_clss (atms_of_mm N) \<Longrightarrow> \<not> too_heavy_clauses N w \<Turnstile>pm pNeg C \<Longrightarrow> \<not>Some (\<rho> C) \<ge> \<rho>' w\<close>
   using true_clss_cls_in[of \<open>pNeg C\<close> \<open>set_mset (too_heavy_clauses N w)\<close>]
     too_heavy_clauses_contains_itself
   by (auto simp: too_heavy_clauses_def simple_clss_finite
@@ -2423,7 +2489,7 @@ proof -
 	no_strange_atm_def atms_of_def lits_of_def image_image
 	cdcl\<^sub>W_M_level_inv_def clauses_def
       dest: no_dup_not_tautology no_dup_distinct)
-  then have le: \<open>enat (\<rho> (lit_of `# mset (trail S))) < \<rho>' (weight S)\<close>
+  then have le: \<open>Some (\<rho> (lit_of `# mset (trail S))) < \<rho>' (weight S)\<close>
     using n_s confl total
     by (auto simp: conflict_opt.simps conflicting_clss_def lits_of_def
 	 conflicting_clauses_def clauses_def negate_ann_lits_pNeg_lit_of image_iff
@@ -2463,7 +2529,7 @@ proof -
 	using total by auto
     qed
   have \<open>is_improving (trail S) (trail S) S\<close>
-    if \<open>enat (\<rho> (lit_of `# mset (trail S))) < \<rho>' (weight S)\<close>
+    if \<open>Some (\<rho> (lit_of `# mset (trail S))) < \<rho>' (weight S)\<close>
     using that total H confl tr tot' M' unfolding is_improving_int_def lits_of_def
     by fast
   then show \<open>Ex (improvep S)\<close>
@@ -2498,7 +2564,7 @@ lemma obacktrack_model_still_model:
     cons: \<open>consistent_interp (set_mset I)\<close> and
     tot: \<open>atms_of I = atms_of_mm (init_clss S)\<close> and
     opt_struct: \<open>cdcl_bab_struct_invs S\<close> and
-    le: \<open>\<rho> I < \<rho>' (weight T)\<close>
+    le: \<open>Some (\<rho> I) < \<rho>' (weight T)\<close>
   shows
     \<open>set_mset I \<Turnstile>sm clauses T \<and> set_mset I \<Turnstile>sm conflicting_clss T\<close>
   using assms(1)
@@ -2543,7 +2609,7 @@ lemma improve_model_still_model:
     cons: \<open>consistent_interp (set_mset I)\<close> and
     tot: \<open>atms_of I = atms_of_mm (init_clss S)\<close> and
     opt_struct: \<open>cdcl_bab_struct_invs S\<close> and
-    le: \<open>\<rho> I < \<rho>' (weight T)\<close>
+    le: \<open>Some (\<rho> I) < \<rho>' (weight T)\<close>
   shows
     \<open>set_mset I \<Turnstile>sm clauses T \<and> set_mset I \<Turnstile>sm conflicting_clss T\<close>
   using assms(1)
@@ -2579,7 +2645,7 @@ proof (cases rule: improvep.cases)
     then obtain x where
       [simp]: \<open>C = pNeg x\<close> and
       x: \<open>x \<in> simple_clss (atms_of_mm (init_clss T))\<close> and
-      we: \<open>\<rho>' (weight T) \<le> enat (\<rho> x)\<close>
+      we: \<open>\<rho>' (weight T) \<le> Some (\<rho> x)\<close>
       unfolding too_heavy_clauses_def
       by (auto simp: simple_clss_finite)
     then have \<open>x \<noteq> I\<close>
@@ -2645,7 +2711,7 @@ lemma cdcl_bab_still_model:
     tot: \<open>atms_of I = atms_of_mm (init_clss S)\<close> and
     opt_struct: \<open>cdcl_bab_struct_invs S\<close>
   shows
-    \<open>(set_mset I \<Turnstile>sm clauses T \<and> set_mset I \<Turnstile>sm conflicting_clss T) \<or> \<rho> I \<ge> \<rho>' (weight T)\<close>
+    \<open>(set_mset I \<Turnstile>sm clauses T \<and> set_mset I \<Turnstile>sm conflicting_clss T) \<or> Some (\<rho> I) \<ge> \<rho>' (weight T)\<close>
   using assms
 proof (cases rule: cdcl_bab.cases)
   case cdcl_conflict
@@ -2691,13 +2757,13 @@ lemma rtranclp_cdcl_bab_still_model:
   assumes
     st: \<open>cdcl_bab\<^sup>*\<^sup>* S T\<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
-    ent: \<open>(set_mset I \<Turnstile>sm clauses S \<and> set_mset I \<Turnstile>sm conflicting_clss S) \<or> \<rho> I \<ge> \<rho>' (weight S)\<close> and
+    ent: \<open>(set_mset I \<Turnstile>sm clauses S \<and> set_mset I \<Turnstile>sm conflicting_clss S) \<or> Some (\<rho> I) \<ge> \<rho>' (weight S)\<close> and
     dist: \<open>distinct_mset I\<close> and
     cons: \<open>consistent_interp (set_mset I)\<close> and
     tot: \<open>atms_of I = atms_of_mm (init_clss S)\<close> and
     opt_struct: \<open>cdcl_bab_struct_invs S\<close>
   shows
-    \<open>(set_mset I \<Turnstile>sm clauses T \<and> set_mset I \<Turnstile>sm conflicting_clss T) \<or> \<rho> I \<ge> \<rho>' (weight T)\<close>
+    \<open>(set_mset I \<Turnstile>sm clauses T \<and> set_mset I \<Turnstile>sm conflicting_clss T) \<or> Some (\<rho> I) \<ge> \<rho>' (weight T)\<close>
   using st
 proof (induction rule: rtranclp_induct)
   case base
@@ -2722,14 +2788,14 @@ lemma full_cdcl_bab_stgy_larger_or_equal_weight:
   assumes
     st: \<open>full cdcl_bab_stgy S T\<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
-    ent: \<open>(set_mset I \<Turnstile>sm clauses S \<and> set_mset I \<Turnstile>sm conflicting_clss S) \<or> \<rho> I \<ge> \<rho>' (weight S)\<close> and
+    ent: \<open>(set_mset I \<Turnstile>sm clauses S \<and> set_mset I \<Turnstile>sm conflicting_clss S) \<or> Some (\<rho> I) \<ge> \<rho>' (weight S)\<close> and
     dist: \<open>distinct_mset I\<close> and
     cons: \<open>consistent_interp (set_mset I)\<close> and
     tot: \<open>atms_of I = atms_of_mm (init_clss S)\<close> and
     opt_struct: \<open>cdcl_bab_struct_invs S\<close> and
     stgy_inv: \<open>cdcl_bab_stgy_inv S\<close>
   shows
-    \<open>\<rho> I \<ge> \<rho>' (weight T)\<close> and
+    \<open>Some (\<rho> I) \<ge> \<rho>' (weight T)\<close> and
     \<open>unsatisfiable (set_mset (clauses T + conflicting_clss T))\<close>
 proof -
   have ns: \<open>no_step cdcl_bab_stgy T\<close> and
@@ -2769,7 +2835,7 @@ proof -
       using ent' cons ent''
       unfolding true_clss_cls_def by auto
   qed
-  then show \<open>\<rho>' (weight T) \<le> enat (\<rho> I)\<close>
+  then show \<open>\<rho>' (weight T) \<le> Some (\<rho> I)\<close>
     using rtranclp_cdcl_bab_still_model[OF st' all_struct ent dist cons tot opt_struct]
     by auto
 
@@ -2928,7 +2994,7 @@ theorem full_cdcl_bab_stgy_no_conflicting_clause_from_init_state:
        total_over_m (set_mset (the (weight T))) (set_mset N) \<and>
        distinct_mset (the (weight T))\<close>  and
     \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
-      set_mset I \<Turnstile>sm N \<Longrightarrow> \<rho> I \<ge> \<rho>' (weight T)\<close>
+      set_mset I \<Turnstile>sm N \<Longrightarrow> Some (\<rho> I) \<ge> \<rho>' (weight T)\<close>
 proof -
   let ?S = \<open>init_state N\<close>
   have \<open>distinct_mset C\<close> if \<open>C \<in># N\<close> for C
@@ -2965,7 +3031,7 @@ proof -
     by (auto simp: annotation_is_model_def)
 
   show \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
-      set_mset I \<Turnstile>sm N \<Longrightarrow> \<rho> I \<ge> \<rho>' (weight T)\<close>
+      set_mset I \<Turnstile>sm N \<Longrightarrow> Some (\<rho> I) \<ge> \<rho>' (weight T)\<close>
     using full_cdcl_bab_stgy_larger_or_equal_weight[of ?S T I] st unfolding full_def
     by auto
 qed
@@ -2974,7 +3040,7 @@ lemma pruned_clause_in_conflicting_clss:
   assumes
     ge: \<open>\<And>M'. total_over_m (set_mset (mset (M @ M'))) (set_mset (init_clss S)) \<Longrightarrow>
       distinct_mset (atm_of `# mset (M @ M')) \<Longrightarrow>
-      consistent_interp (set_mset (mset (M @ M'))) \<Longrightarrow> \<rho> (mset (M @ M')) \<ge> \<rho>' (weight S)\<close> and
+      consistent_interp (set_mset (mset (M @ M'))) \<Longrightarrow> Some (\<rho> (mset (M @ M'))) \<ge> \<rho>' (weight S)\<close> and
     atm: \<open>atms_of (mset M) \<subseteq> atms_of_mm (init_clss S)\<close> and
     dist: \<open>distinct M\<close> and
     cons: \<open>consistent_interp (set M)\<close>
@@ -3125,7 +3191,7 @@ pruning_rule:
     \<open>\<And>M'. total_over_m (set_mset (mset (map lit_of (trail S) @ M'))) (set_mset (init_clss S)) \<Longrightarrow>
        distinct_mset (atm_of `# mset (map lit_of (trail S) @ M')) \<Longrightarrow>
        consistent_interp (set_mset (mset (map lit_of (trail S) @ M'))) \<Longrightarrow>
-       \<rho>' (weight S) \<le> enat (\<rho> (mset (map lit_of (trail S) @ M')))\<close>
+       \<rho>' (weight S) \<le> Some (\<rho> (mset (map lit_of (trail S) @ M')))\<close>
     \<open>conflicting S = None\<close>
     \<open>T \<sim> update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
 
@@ -3133,7 +3199,7 @@ inductive oconflict_opt :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T ::
 oconflict_opt_rule:
   \<open>oconflict_opt S T\<close>
   if
-    \<open>\<rho> (lit_of `# mset (trail S)) \<ge> \<rho>' (weight S)\<close>
+    \<open>Some (\<rho> (lit_of `# mset (trail S))) \<ge> \<rho>' (weight S)\<close>
     \<open>conflicting S = None\<close>
     \<open>T \<sim> update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
 
@@ -3142,7 +3208,7 @@ improve_rule:
   \<open>improve S T\<close>
   if
     \<open>total_over_m (lits_of_l (trail S)) (set_mset (init_clss S))\<close>
-    \<open>enat (\<rho> (lit_of `# mset (trail S))) < \<rho>' (weight S)\<close>
+    \<open>Some (\<rho> (lit_of `# mset (trail S))) < \<rho>' (weight S)\<close>
     \<open>trail S \<Turnstile>asm init_clss S\<close>
     \<open>conflicting S = None\<close>
     \<open>T \<sim> update_weight_information (trail S) S\<close>
@@ -3173,7 +3239,7 @@ proof -
 	  (set_mset (init_clss S)) \<Longrightarrow>
 	 distinct_mset (atm_of `# mset (map lit_of (trail S) @ M')) \<Longrightarrow>
 	 consistent_interp (set_mset (mset (map lit_of (trail S) @ M'))) \<Longrightarrow>
-	 \<rho>' (weight S) \<le> enat (\<rho> (mset (map lit_of (trail S) @ M')))\<close>
+	 \<rho>' (weight S) \<le> Some (\<rho> (mset (map lit_of (trail S) @ M')))\<close>
     using ocdcl_pruning by (auto simp: pruning.simps)
   have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state S)\<close> and
     lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (abs_state S)\<close>
@@ -3224,7 +3290,7 @@ proof -
     using dist incl tauto by (auto simp: simple_clss_def)
   then have simple: \<open>(lit_of `# mset (trail S))
     \<in> {a. a \<in># mset_set (simple_clss (atms_of_mm (init_clss S))) \<and>
-	  \<rho>' (weight S) \<le> enat (\<rho> a)}\<close>
+	  \<rho>' (weight S) \<le> Some (\<rho> a)}\<close>
     using ocdcl_pruning by (auto simp: simple_clss_finite oconflict_opt.simps)
   have \<open>negate_ann_lits (trail S) \<in># conflicting_clss S\<close>
     unfolding negate_ann_lits_pNeg_lit_of comp_def conflicting_clss_def
@@ -3362,7 +3428,7 @@ proof -
 	      \<rho> (lit_of `# mset M') = \<rho> (lit_of `# mset (trail S))\<close> and
       S': \<open>S' \<sim> update_weight_information M' S\<close>
       using imp by (auto simp: improvep.simps is_improving_int_def)
-    have 1: \<open>\<not> \<rho>' (weight S) \<le> enat (\<rho> (lit_of `# mset (trail S)))\<close>
+    have 1: \<open>\<not> \<rho>' (weight S) \<le> Some (\<rho> (lit_of `# mset (trail S)))\<close>
       using nsco
       by (auto simp: is_improving_int_def oconflict_opt.simps)
     have 2: \<open>total_over_m (lits_of_l (trail S)) (set_mset (init_clss S))\<close>
@@ -3401,7 +3467,7 @@ proof -
   proof -
     have [simp]: \<open>conflicting S = None\<close>
       using that by (auto simp: conflict_opt.simps)
-    have 1: \<open>\<not> \<rho>' (weight S) \<le> enat (\<rho> (lit_of `# mset (trail S)))\<close>
+    have 1: \<open>\<not> \<rho>' (weight S) \<le> Some (\<rho> (lit_of `# mset (trail S)))\<close>
       using nsco
       by (auto simp: is_improving_int_def oconflict_opt.simps)
     have 2: \<open>total_over_m (lits_of_l (trail S)) (set_mset (init_clss S))\<close>
@@ -3513,7 +3579,7 @@ corollary full_ocdcl\<^sub>w_stgy_no_conflicting_clause_from_init_state:
        atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
        distinct_mset (the (weight T))\<close> and
     \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
-      set_mset I \<Turnstile>sm N \<Longrightarrow> \<rho> I \<ge> \<rho>' (weight T)\<close>
+      set_mset I \<Turnstile>sm N \<Longrightarrow> Some (\<rho> I) \<ge> \<rho>' (weight T)\<close>
   using full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of N T,
     OF full_ocdcl\<^sub>w_stgy_full_cdcl_bab_stgy[OF st] dist] dist
   by (auto simp: all_struct_init_state_distinct_iff)
@@ -3593,7 +3659,7 @@ proof -
   proof -
     have [simp]: \<open>conflicting S = None\<close>
       using that by (auto simp: conflict_opt.simps)
-    have 1: \<open>\<not> \<rho>' (weight S) \<le> enat (\<rho> (lit_of `# mset (trail S)))\<close>
+    have 1: \<open>\<not> \<rho>' (weight S) \<le> Some (\<rho> (lit_of `# mset (trail S)))\<close>
       using nsco
       by (auto simp: is_improving_int_def oconflict_opt.simps)
     have 2: \<open>total_over_m (lits_of_l (trail S)) (set_mset (init_clss S))\<close>
@@ -3692,7 +3758,7 @@ corollary full_ocdcl\<^sub>w_p_stgy_no_conflicting_clause_from_init_state:
        atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
        distinct_mset (the (weight T))\<close> and
     \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
-      set_mset I \<Turnstile>sm N \<Longrightarrow> \<rho> I \<ge> \<rho>' (weight T)\<close>
+      set_mset I \<Turnstile>sm N \<Longrightarrow> Some (\<rho> I) \<ge> \<rho>' (weight T)\<close>
   using full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of N T,
     OF full_ocdcl\<^sub>w_p_stgy_full_cdcl_bab_stgy[OF st] dist] dist
   by (auto simp: all_struct_init_state_distinct_iff)
