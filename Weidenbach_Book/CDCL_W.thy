@@ -464,6 +464,53 @@ lemma conflicting_add_learned_cls_conflicting[iff]:
   "conflicting (add_learned_cls C S) = None \<longleftrightarrow> conflicting S = None"
   by fastforce+
 
+lemma reduce_trail_to_compow_tl_trail_le:
+  \<open>length M < length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
+  apply (induction M\<equiv>M S\<equiv>M' arbitrary: M M' rule: reduce_trail_to.induct)
+  subgoal for F S
+    apply (subst reduce_trail_to.simps)
+    apply (cases \<open>length F < length (trail S) - Suc 0\<close>)
+    apply (auto simp: less_iff_Suc_add funpow_swap1)
+    apply (subgoal_tac \<open>k=0\<close>)
+    apply auto
+    by presburger
+  done
+
+lemma reduce_trail_to_compow_tl_trail_eq:
+  \<open>length M = length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
+  by auto
+
+lemma tl_trail_reduce_trail_to_cons:
+  \<open>length (L # M) < length (trail M') \<Longrightarrow> tl_trail (reduce_trail_to (L # M) M') = reduce_trail_to M M'\<close>
+  by (auto simp: reduce_trail_to_compow_tl_trail_le funpow_swap1
+      reduce_trail_to_compow_tl_trail_eq less_iff_Suc_add)
+
+lemma compow_tl_trail_add_learned_cls_swap:
+  \<open>(tl_trail ^^ n) (add_learned_cls D S) \<sim> add_learned_cls D ((tl_trail ^^ n) S)\<close>
+  by (induction n)
+   (auto intro: tl_trail_add_learned_cls_commute state_eq_trans
+      tl_trail_state_eq)
+
+lemma reduce_trail_to_add_learned_cls_state_eq:
+  \<open>length M \<le> length (trail S) \<Longrightarrow>
+  reduce_trail_to M (add_learned_cls D S) \<sim> add_learned_cls D (reduce_trail_to M S)\<close>
+  by (cases \<open>length M < length (trail S)\<close>)
+    (auto simp: compow_tl_trail_add_learned_cls_swap reduce_trail_to_compow_tl_trail_le
+      reduce_trail_to_compow_tl_trail_eq)
+
+lemma compow_tl_trail_update_conflicting_swap:
+  \<open>(tl_trail ^^ n) (update_conflicting D S) \<sim> update_conflicting D ((tl_trail ^^ n) S)\<close>
+  by (induction n)
+   (auto intro: tl_trail_add_learned_cls_commute state_eq_trans
+      tl_trail_state_eq tl_trail_update_conflicting)
+
+lemma reduce_trail_to_update_conflicting_state_eq:
+  \<open>length M \<le> length (trail S) \<Longrightarrow>
+  reduce_trail_to M (update_conflicting D S) \<sim> update_conflicting D (reduce_trail_to M S)\<close>
+  by (cases \<open>length M < length (trail S)\<close>)
+    (auto simp: compow_tl_trail_add_learned_cls_swap reduce_trail_to_compow_tl_trail_le
+      reduce_trail_to_compow_tl_trail_eq compow_tl_trail_update_conflicting_swap)
+
 lemma
   additional_info_cons_trail[simp]:
     \<open>additional_info (cons_trail L S) = additional_info S\<close> and

@@ -26,17 +26,6 @@ interpretation enc_weight_opt: conflict_driven_clause_learning\<^sub>W_optimal_w
   subgoal using weight_init_state by fast
   done
 
-lemma in_set_dropI:
-  \<open>m < length xs \<Longrightarrow> m \<ge> n \<Longrightarrow> xs ! m \<in> set (drop n xs)\<close>
-  unfolding in_set_conv_nth
-  by (rule exI[of _ \<open>m - n\<close>]) auto
-
-lemma entails_CNot_negate_ann_lits:
-  \<open>M \<Turnstile>as CNot D \<longleftrightarrow> set_mset D \<subseteq> set_mset (negate_ann_lits M)\<close>
-  by (auto simp: true_annots_true_cls_def_iff_negation_in_model
-      negate_ann_lits_def lits_of_def uminus_lit_swap
-    dest!: multi_member_split)
-
 inductive simple_backtrack_conflict_opt :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
   \<open>simple_backtrack_conflict_opt S T\<close>
   if
@@ -45,74 +34,6 @@ inductive simple_backtrack_conflict_opt :: \<open>'st \<Rightarrow> 'st \<Righta
     \<open>conflicting S = None\<close> and
     \<open>T \<sim> cons_trail (Propagated (-K) (DECO_clause (trail S)))
       (add_learned_cls (DECO_clause (trail S)) (reduce_trail_to M1 S))\<close>
-
-lemma defined_lit_mono:
-  \<open>defined_lit M2 L \<Longrightarrow> set M2 \<subseteq> set M3 \<Longrightarrow> defined_lit M3 L\<close>
-  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
-
-lemma defined_lit_nth:
-  \<open>n < length M2 \<Longrightarrow> defined_lit M2 (lit_of (M2 ! n))\<close>
-  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def)
-
-lemma reduce_trail_to_compow_tl_trail_le:
-  \<open>length M < length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
-  apply (induction M\<equiv>M S\<equiv>M' arbitrary: M M' rule: reduce_trail_to.induct)
-  subgoal for F S
-    apply (subst reduce_trail_to.simps)
-    apply (cases \<open>length F < length (trail S) - Suc 0\<close>)
-    apply (auto simp: less_iff_Suc_add funpow_swap1)
-    apply (subgoal_tac \<open>k=0\<close>)
-    apply auto
-    by presburger
-  done
-
-lemma reduce_trail_to_compow_tl_trail_eq:
-  \<open>length M = length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
-  by auto
-
-lemma tl_trail_reduce_trail_to_cons:
-  \<open>length (L # M) < length (trail M') \<Longrightarrow> tl_trail (reduce_trail_to (L # M) M') = reduce_trail_to M M'\<close>
-  by (auto simp: reduce_trail_to_compow_tl_trail_le funpow_swap1
-      reduce_trail_to_compow_tl_trail_eq less_iff_Suc_add)
-
-lemma DECO_clause_cons_Decide[simp]:
-  \<open>DECO_clause (Decided L # M) = add_mset (-L) (DECO_clause M)\<close> and
-  DECO_clause_cons_Proped[simp]:
-  \<open>DECO_clause (Propagated L C # M) = DECO_clause M\<close>
-  by (auto simp: DECO_clause_def)
-
-lemma [simp]:
-  \<open>CDCL_W_Abstract_State.trail (cdcl\<^sub>W_restart_mset.reduce_trail_to M (abs_state S)) =
-     trail (reduce_trail_to M S)\<close>
-  by (auto simp: trail_reduce_trail_to_drop
-    cdcl\<^sub>W_restart_mset.trail_reduce_trail_to_drop)
-
-lemma compow_tl_trail_add_learned_cls_swap:
-  \<open>(tl_trail ^^ n) (add_learned_cls D S) \<sim> add_learned_cls D ((tl_trail ^^ n) S)\<close>
-  by (induction n)
-   (auto intro: tl_trail_add_learned_cls_commute state_eq_trans
-      tl_trail_state_eq)
-
-lemma reduce_trail_to_add_learned_cls:
-  \<open>length M \<le> length (trail S) \<Longrightarrow>
-  reduce_trail_to M (add_learned_cls D S) \<sim> add_learned_cls D (reduce_trail_to M S)\<close>
-  by (cases \<open>length M < length (trail S)\<close>)
-    (auto simp: compow_tl_trail_add_learned_cls_swap reduce_trail_to_compow_tl_trail_le
-      reduce_trail_to_compow_tl_trail_eq)
-
-lemma compow_tl_trail_update_conflicting_swap:
-  \<open>(tl_trail ^^ n) (update_conflicting D S) \<sim> update_conflicting D ((tl_trail ^^ n) S)\<close>
-  by (induction n)
-   (auto intro: tl_trail_add_learned_cls_commute state_eq_trans
-      tl_trail_state_eq tl_trail_update_conflicting)
-
-lemma reduce_trail_to_update_conflicting:
-  \<open>length M \<le> length (trail S) \<Longrightarrow>
-  reduce_trail_to M (update_conflicting D S) \<sim> update_conflicting D (reduce_trail_to M S)\<close>
-  by (cases \<open>length M < length (trail S)\<close>)
-    (auto simp: compow_tl_trail_add_learned_cls_swap reduce_trail_to_compow_tl_trail_le
-      reduce_trail_to_compow_tl_trail_eq compow_tl_trail_update_conflicting_swap)
-
 
 lemma
   assumes \<open>simple_backtrack_conflict_opt S U\<close> and
@@ -364,19 +285,19 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
     apply (rule state_eq_trans)
     prefer 2
     apply (rule state_eq_sym[THEN iffD1])
-    apply (rule reduce_trail_to_add_learned_cls)
+    apply (rule reduce_trail_to_add_learned_cls_state_eq)
     apply (solves \<open>auto simp: tr\<close>)
     apply (rule add_learned_cls_state_eq)
     apply (rule state_eq_trans)
     prefer 2
     apply (rule state_eq_sym[THEN iffD1])
-    apply (rule reduce_trail_to_update_conflicting)
+    apply (rule reduce_trail_to_update_conflicting_state_eq)
     apply (solves \<open>auto simp: tr\<close>)
     apply (rule state_eq_trans)
     prefer 2
     apply (rule state_eq_sym[THEN iffD1])
     apply (rule update_conflicting_state_eq)
-    apply (rule reduce_trail_to_update_conflicting)
+    apply (rule reduce_trail_to_update_conflicting_state_eq)
     apply (solves \<open>auto simp: tr\<close>)
     apply (rule state_eq_trans)
     prefer 2

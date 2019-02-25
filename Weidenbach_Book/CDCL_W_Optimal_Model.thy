@@ -125,9 +125,31 @@ We later instantiate it with the optimisation calculus from Weidenbach's book.
 
 
 subsubsection \<open>Helper libraries\<close>
+(*TODO Move*)
+
+lemma in_set_dropI:
+  \<open>m < length xs \<Longrightarrow> m \<ge> n \<Longrightarrow> xs ! m \<in> set (drop n xs)\<close>
+  unfolding in_set_conv_nth
+  by (rule exI[of _ \<open>m - n\<close>]) auto
+
+lemma defined_lit_mono:
+  \<open>defined_lit M2 L \<Longrightarrow> set M2 \<subseteq> set M3 \<Longrightarrow> defined_lit M3 L\<close>
+  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+
+lemma defined_lit_nth:
+  \<open>n < length M2 \<Longrightarrow> defined_lit M2 (lit_of (M2 ! n))\<close>
+  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def)
+
+(*End Move*)
 
 definition negate_ann_lits :: "('v, 'v clause) ann_lits \<Rightarrow> 'v literal multiset" where
   \<open>negate_ann_lits M = (\<lambda>L. - lit_of L) `# (mset M)\<close>
+
+lemma entails_CNot_negate_ann_lits:
+  \<open>M \<Turnstile>as CNot D \<longleftrightarrow> set_mset D \<subseteq> set_mset (negate_ann_lits M)\<close>
+  by (auto simp: true_annots_true_cls_def_iff_negation_in_model
+      negate_ann_lits_def lits_of_def uminus_lit_swap
+    dest!: multi_member_split)
 
 text \<open>Pointwise negation of a clause:\<close>
 definition pNeg :: \<open>'v clause \<Rightarrow> 'v clause\<close> where
@@ -877,6 +899,18 @@ declare conflict_is_false_with_level_def[simp del]
 lemma trail_trail [simp]:
   \<open>CDCL_W_Abstract_State.trail (abs_state S) = trail S\<close>
   by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+
+lemma [simp]:
+  \<open>CDCL_W_Abstract_State.trail (cdcl\<^sub>W_restart_mset.reduce_trail_to M (abs_state S)) =
+     trail (reduce_trail_to M S)\<close>
+  by (auto simp: trail_reduce_trail_to_drop
+    cdcl\<^sub>W_restart_mset.trail_reduce_trail_to_drop)
+
+lemma [simp]:
+  \<open>CDCL_W_Abstract_State.trail (cdcl\<^sub>W_restart_mset.reduce_trail_to M (abs_state S)) =
+     trail (reduce_trail_to M S)\<close>
+  by (auto simp: trail_reduce_trail_to_drop
+    cdcl\<^sub>W_restart_mset.trail_reduce_trail_to_drop)
 
 lemma cdcl\<^sub>W_M_level_inv_cdcl\<^sub>W_M_level_inv[iff]:
   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (abs_state S) = cdcl\<^sub>W_M_level_inv S\<close>

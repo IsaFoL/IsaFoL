@@ -7,24 +7,12 @@ subsection \<open>Encoding of partial SAT into total SAT\<close>
 definition (in -)DECO_clause :: \<open>('v, 'a) ann_lits \<Rightarrow>  'v clause\<close>where
   \<open>DECO_clause M = (uminus o lit_of) `# (filter_mset is_decided (mset M))\<close>
 
-lemma in_set_dropI:
-  \<open>m < length xs \<Longrightarrow> m \<ge> n \<Longrightarrow> xs ! m \<in> set (drop n xs)\<close>
-  unfolding in_set_conv_nth
-  by (rule exI[of _ \<open>m - n\<close>]) auto
-
-lemma entails_CNot_negate_ann_lits:
-  \<open>M \<Turnstile>as CNot D \<longleftrightarrow> set_mset D \<subseteq> set_mset (negate_ann_lits M)\<close>
-  by (auto simp: true_annots_true_cls_def_iff_negation_in_model
-      negate_ann_lits_def lits_of_def uminus_lit_swap
-    dest!: multi_member_split)
-
-lemma defined_lit_mono:
-  \<open>defined_lit M2 L \<Longrightarrow> set M2 \<subseteq> set M3 \<Longrightarrow> defined_lit M3 L\<close>
-  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
-
-lemma defined_lit_nth:
-  \<open>n < length M2 \<Longrightarrow> defined_lit M2 (lit_of (M2 ! n))\<close>
-  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def)
+lemma
+  DECO_clause_cons_Decide[simp]:
+    \<open>DECO_clause (Decided L # M) = add_mset (-L) (DECO_clause M)\<close> and
+  DECO_clause_cons_Proped[simp]:
+    \<open>DECO_clause (Propagated L C # M) = DECO_clause M\<close>
+  by (auto simp: DECO_clause_def)
 
 lemma true_clss_cls_neg:
   \<open>N \<Turnstile>p I \<longleftrightarrow> N \<union> (\<lambda>L. {#-L#}) ` set_mset I \<Turnstile>p {#}\<close>
@@ -1043,27 +1031,6 @@ lemma reduce_trail_to_compow_tl_trail_le:
     apply auto
     by presburger
   done
-
-lemma reduce_trail_to_compow_tl_trail_eq:
-  \<open>length M = length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
-  by auto
-
-lemma tl_trail_reduce_trail_to_cons:
-  \<open>length (L # M) < length (trail M') \<Longrightarrow> tl_trail (reduce_trail_to (L # M) M') = reduce_trail_to M M'\<close>
-  by (auto simp: reduce_trail_to_compow_tl_trail_le funpow_swap1
-      reduce_trail_to_compow_tl_trail_eq less_iff_Suc_add)
-
-lemma DECO_clause_cons_Decide[simp]:
-  \<open>DECO_clause (Decided L # M) = add_mset (-L) (DECO_clause M)\<close> and
-  DECO_clause_cons_Proped[simp]:
-  \<open>DECO_clause (Propagated L C # M) = DECO_clause M\<close>
-  by (auto simp: DECO_clause_def)
-
-lemma [simp]:
-  \<open>CDCL_W_Abstract_State.trail (cdcl\<^sub>W_restart_mset.reduce_trail_to M (abs_state S)) =
-     trail (reduce_trail_to M S)\<close>
-  by (auto simp: trail_reduce_trail_to_drop
-    cdcl\<^sub>W_restart_mset.trail_reduce_trail_to_drop)
 
 lemma ocdcl\<^sub>W_o_r_cases[consumes 1, case_names odecode obacktrack skip resolve]:
   assumes
