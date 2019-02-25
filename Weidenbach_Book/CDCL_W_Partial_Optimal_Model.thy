@@ -7,6 +7,52 @@ subsection \<open>Encoding of partial SAT into total SAT\<close>
 definition (in -)DECO_clause :: \<open>('v, 'a) ann_lits \<Rightarrow>  'v clause\<close>where
   \<open>DECO_clause M = (uminus o lit_of) `# (filter_mset is_decided (mset M))\<close>
 
+lemma true_clss_cls_neg:
+  \<open>N \<Turnstile>p I \<longleftrightarrow> N \<union> (\<lambda>L. {#-L#}) ` set_mset I \<Turnstile>p {#}\<close>
+proof -
+  have [iff]: \<open> total_over_m Ia ((\<lambda>L. {#- L#}) ` set_mset I) \<longleftrightarrow>
+     total_over_set Ia (atms_of I)\<close> for Ia
+     by (auto simp: total_over_m_def
+       total_over_set_def atms_of_ms_def atms_of_def)
+  show ?thesis
+    apply (auto simp: true_clss_cls_def)
+    apply (metis Ball_CNot_Ball_mset consistent_CNot_not rev_image_eqI true_clss_def)
+     by (smt CNot_add_mset imageE insert_DiffM insert_iff total_not_true_cls_true_clss_CNot total_over_m_empty total_over_m_insert true_clss_def)
+qed
+
+lemma all_decomposition_implies_conflict_DECO_clause:
+  assumes \<open>all_decomposition_implies N (get_all_ann_decomposition M)\<close> and
+    \<open>M \<Turnstile>as CNot C\<close> and
+    \<open>C \<in> N\<close>
+  shows \<open>N \<Turnstile>p DECO_clause M\<close>
+    (is \<open>?I \<Turnstile>p ?A\<close>)
+proof -
+  let ?J = \<open>N \<union> {unmark L |L. is_decided L \<and> L \<in> set M}\<close>
+  have \<open>?J \<Turnstile>ps unmark_s {L |L. is_decided L \<and> L \<in> set M}\<close>
+    by (auto intro: all_in_true_clss_clss)
+  moreover have \<open>{unmark m |m. is_decided m \<and> m \<in> set M} =
+       unmark_s {L \<in> set M. is_decided L}\<close>
+     by auto
+  moreover have \<open>?J \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_ann_decomposition M))\<close>
+    using all_decomposition_implies_trail_is_implied [OF assms(1)]
+    by blast
+  ultimately have H: \<open>N \<union> unmark_s {L \<in> set M. is_decided L}
+    \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_ann_decomposition M))
+      \<union> unmark ` {m |m. is_decided m \<and> m \<in> set M}\<close>
+      by simp
+  have [simp]: \<open>(\<lambda>L. {#- L#}) ` set_mset (DECO_clause M) =
+    unmark_s {L \<in> set M. is_decided L}\<close>
+    by (auto simp: DECO_clause_def image_image)
+  show ?thesis
+    using H
+    apply (subst true_clss_cls_neg)
+    apply auto
+    by (metis (mono_tags, lifting) UnCI
+      \<open>{unmark m |m. is_decided m \<and> m \<in> set M} = unmark_s {L \<in> set M. is_decided L}\<close>
+      all_decomposition_implies_propagated_lits_are_implied assms(1) assms(2) assms(3)
+      true_clss_clss_contradiction_true_clss_cls_false true_clss_clss_true_clss_cls_true_clss_clss)
+qed
+
 text \<open>As a way to make sure we don't reuse theorems names:\<close>
 interpretation test: conflict_driven_clause_learning\<^sub>W_optimal_weight where
   state_eq = \<open>(=)\<close> and
@@ -1016,6 +1062,19 @@ lemma tl_trail_reduce_trail_to_cons:
   by (auto simp: reduce_trail_to_compow_tl_trail_le funpow_swap1
       reduce_trail_to_compow_tl_trail_eq less_iff_Suc_add)
 
+lemma DECO_clause_cons_Decide[simp]:
+  \<open>DECO_clause (Decided L # M) = add_mset (-L) (DECO_clause M)\<close> and
+  DECO_clause_cons_Proped[simp]:
+  \<open>DECO_clause (Propagated L C # M) = DECO_clause M\<close>
+  by (auto simp: DECO_clause_def)
+
+lemma [simp]:
+  \<open>CDCL_W_Abstract_State.trail (cdcl\<^sub>W_restart_mset.reduce_trail_to M (abs_state S)) =
+     trail (reduce_trail_to M S)\<close>
+  by (auto simp: trail_reduce_trail_to_drop
+    cdcl\<^sub>W_restart_mset.trail_reduce_trail_to_drop)
+
+
 lemma (*either the assumption should be added to the locales. Or there is a way to derive it. *)
   assumes \<open>\<And>D D' S S'. S \<sim> S' \<Longrightarrow> update_conflicting D (update_conflicting D' S) \<sim> update_conflicting D S'\<close>
   assumes \<open>simple_backtrack_conflict_opt S U\<close> and
@@ -1042,7 +1101,10 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
     by (metis annotated_lit.exhaust_disc comp_apply nth_mem set_takeWhileD)
   have n_d: \<open>no_dup (trail S)\<close> and
     le: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (abs_state S)\<close> and
-    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (abs_state S)\<close>
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (abs_state S)\<close> and
+    decomp_imp: \<open>all_decomposition_implies_m (clauses S + (conflicting_clss S))
+      (get_all_ann_decomposition (trail S))\<close> and
+    learned: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (abs_state S)\<close>
     using inv
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -1174,8 +1236,77 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
          in_get_all_ann_decomposition_trail_update_trail[of \<open>Decided K\<close> M1 \<open>M2\<close> \<open>S\<close>]
       by (auto simp: tr trail_reduce_trail_to_drop hd_drop_conv_nth
         intro!: resolve.intros intro: update_conflicting_state_eq)
+    then show ?case
+      using Suc by (auto simp add: tr)
+  qed
 
-    show ?case
+  have \<open>get_maximum_level (Decided K # M1) (DECO_clause M1) = get_maximum_level M1 (DECO_clause M1)\<close>
+    by (rule get_maximum_level_cong)
+      (use n_d in \<open>auto simp: tr get_level_cons_if atm_of_eq_atm_of
+      DECO_clause_def Decided_Propagated_in_iff_in_lits_of_l lits_of_def\<close>)
+  also have \<open>... = count_decided M1\<close>
+    using n_d unfolding tr apply -
+    apply (induction M1 rule: ann_lit_list_induct)
+    subgoal by auto
+    subgoal for L M1'
+      apply (subgoal_tac \<open>\<forall>La\<in>#DECO_clause M1'. get_level (Decided L # M1') La = get_level M1' La\<close>)
+      subgoal
+        using count_decided_ge_get_maximum_level[of \<open>M1'\<close> \<open>DECO_clause M1'\<close>]
+        get_maximum_level_cong[of \<open>DECO_clause M1'\<close> \<open>Decided L # M1'\<close> \<open>M1'\<close>]
+       by (auto simp: get_maximum_level_add_mset tr atm_of_eq_atm_of
+        max_def)
+      subgoal
+        by (auto simp: DECO_clause_def
+          get_level_cons_if atm_of_eq_atm_of Decided_Propagated_in_iff_in_lits_of_l
+          lits_of_def)
+       done
+   subgoal for L C M1'
+      apply (subgoal_tac \<open>\<forall>La\<in>#DECO_clause M1'. get_level (Propagated L C # M1') La = get_level M1' La\<close>)
+      subgoal
+        using count_decided_ge_get_maximum_level[of \<open>M1'\<close> \<open>DECO_clause M1'\<close>]
+        get_maximum_level_cong[of \<open>DECO_clause M1'\<close> \<open>Propagated L C # M1'\<close> \<open>M1'\<close>]
+       by (auto simp: get_maximum_level_add_mset tr atm_of_eq_atm_of
+        max_def)
+      subgoal
+        by (auto simp: DECO_clause_def
+          get_level_cons_if atm_of_eq_atm_of Decided_Propagated_in_iff_in_lits_of_l
+          lits_of_def)
+       done
+    done
+  finally have max: \<open>get_maximum_level (Decided K # M1) (DECO_clause M1) = count_decided M1\<close> .
+(*
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state (?T (length M2)))\<close>
+    sorry
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (abs_state (?T (length M2)))\<close>
+    sorry
+  then have \<open>set_mset (clauses S) \<union> set_mset (conflicting_clss S) \<Turnstile>p
+    add_mset (- K) (negate_ann_lits M1)\<close>
+    using le unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+    by (auto simp: tr)
+  have \<open>clauses S + (conflicting_clss S) \<Turnstile>pm DECO_clause (Decided K # M1)\<close>
+    apply (rule all_decomposition_implies_conflict_DECO_clause)
+    using all_decomposition_implies_trail_is_implied[OF decomp_imp]
+    apply (auto simp: tr)
+    sorry
+  have \<open>obacktrack (?T (length M2)) U\<close>
+      apply (rule obacktrack.intros[of _ \<open>-K\<close> \<open>negate_ann_lits M1\<close> K M1 \<open>[]\<close>
+        \<open>DECO_clause M1\<close> \<open>count_decided M1\<close>])
+      subgoal by (auto simp: tr)
+      subgoal by (auto simp: tr)
+      subgoal by (auto simp: tr)
+      subgoal
+        using count_decided_ge_get_maximum_level[of \<open>Decided K # M1\<close> \<open>DECO_clause M1\<close>]
+        by (auto simp: tr get_maximum_level_add_mset max_def)
+      subgoal using max by (auto simp: tr)
+      subgoal by (auto simp: tr)
+      subgoal by (auto simp: DECO_clause_def negate_ann_lits_def
+        image_mset_subseteq_mono)
+      subgoal apply (auto simp: tr)
+        sorry
+      subgoal
+        apply (rule state_eq_trans [OF 1(4)])
+        using 1(4) apply (auto simp: tr)
+    show ?case*)
       oops
 
 lemma ocdcl\<^sub>W_o_r_cases[consumes 1, case_names odecode obacktrack skip resolve]:
