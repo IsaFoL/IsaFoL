@@ -1078,7 +1078,7 @@ lemma [simp]:
 lemma (*either the assumption should be added to the locales. Or there is a way to derive it. *)
   assumes \<open>\<And>D D' S S'. S \<sim> S' \<Longrightarrow> update_conflicting D (update_conflicting D' S) \<sim> update_conflicting D S'\<close>
   assumes \<open>simple_backtrack_conflict_opt S U\<close> and
-    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close>
   shows \<open>\<exists>T T'. enc_weight_opt.conflict_opt S T \<and> resolve\<^sup>*\<^sup>* T T' \<and> obacktrack T' U\<close>
   using assms(2-)
 proof (cases rule: simple_backtrack_conflict_opt.cases)
@@ -1100,11 +1100,11 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
     apply (auto simp: )
     by (metis annotated_lit.exhaust_disc comp_apply nth_mem set_takeWhileD)
   have n_d: \<open>no_dup (trail S)\<close> and
-    le: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (abs_state S)\<close> and
-    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (abs_state S)\<close> and
-    decomp_imp: \<open>all_decomposition_implies_m (clauses S + (conflicting_clss S))
+    le: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (enc_weight_opt.abs_state S)\<close> and
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (enc_weight_opt.abs_state S)\<close> and
+    decomp_imp: \<open>all_decomposition_implies_m (clauses S + (enc_weight_opt.conflicting_clss S))
       (get_all_ann_decomposition (trail S))\<close> and
-    learned: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (abs_state S)\<close>
+    learned: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (enc_weight_opt.abs_state S)\<close>
     using inv
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -1274,6 +1274,16 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
        done
     done
   finally have max: \<open>get_maximum_level (Decided K # M1) (DECO_clause M1) = count_decided M1\<close> .
+  have \<open>trail S ⊨as CNot (negate_ann_lits (trail S))\<close>
+    by (auto simp: true_annots_true_cls_def_iff_negation_in_model
+      negate_ann_lits_def lits_of_def)
+  then have \<open>clauses S + (enc_weight_opt.conflicting_clss S) \<Turnstile>pm DECO_clause (trail S)\<close>
+    apply -
+    apply (rule all_decomposition_implies_conflict_DECO_clause[OF decomp_imp,
+      of \<open>negate_ann_lits (trail S)\<close>])
+    using 1
+    by (auto simp: )
+
 (*
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state (?T (length M2)))\<close>
     sorry
