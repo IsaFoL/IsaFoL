@@ -649,11 +649,14 @@ abbreviation \<rho>\<^sub>e_filter :: \<open>'v literal multiset \<Rightarrow> '
 definition \<rho>\<^sub>e :: \<open>'v literal multiset \<Rightarrow> 'a :: {linorder}\<close> where
   \<open>\<rho>\<^sub>e M = \<rho> (\<rho>\<^sub>e_filter M)\<close>
 
-lemma \<rho>\<^sub>e_mono: \<open>A \<subseteq># B \<Longrightarrow> \<rho>\<^sub>e A \<le> \<rho>\<^sub>e B\<close>
+lemma \<rho>\<^sub>e_mono: \<open>consistent_interp (set_mset B) \<Longrightarrow> distinct_mset B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> \<rho>\<^sub>e A \<le> \<rho>\<^sub>e B\<close>
   unfolding \<rho>\<^sub>e_def
   apply (rule \<rho>_mono)
-  apply (rule filter_mset_mono_subset)
-   apply auto
+  subgoal by (auto intro: consistent_interp_subset)
+  subgoal
+    by (rule distinct_mset_mono[of _ B]) auto
+  subgoal
+    by (rule filter_mset_mono_subset) auto
   done
 
 
@@ -689,7 +692,8 @@ lemma \<rho>_cancel_notin_\<Delta>\<Sigma>:
   by (induction M) (auto simp: \<Sigma>_no_weight)
 
 lemma \<rho>_mono2:
-  \<open>(\<And>A. A \<in># M \<Longrightarrow> atm_of A \<in> \<Sigma>) \<Longrightarrow> (\<And>A. A \<in># M' \<Longrightarrow> atm_of A \<in> \<Sigma>) \<Longrightarrow>
+  \<open>consistent_interp (set_mset M') \<Longrightarrow> distinct_mset M' \<Longrightarrow>
+   (\<And>A. A \<in># M \<Longrightarrow> atm_of A \<in> \<Sigma>) \<Longrightarrow> (\<And>A. A \<in># M' \<Longrightarrow> atm_of A \<in> \<Sigma>) \<Longrightarrow>
      {#A \<in># M. atm_of A \<in> \<Delta>\<Sigma>#} \<subseteq># {#A \<in># M'. atm_of A \<in> \<Delta>\<Sigma>#} \<Longrightarrow> \<rho> M \<le> \<rho> M'\<close>
   apply (subst (2) multiset_partition[of _ \<open>\<lambda>A. atm_of A \<notin> \<Delta>\<Sigma>\<close>])
   apply (subst multiset_partition[of _ \<open>\<lambda>A. atm_of A \<notin> \<Delta>\<Sigma>\<close>])
@@ -697,11 +701,16 @@ lemma \<rho>_mono2:
   subgoal by auto
   apply (subst \<rho>_cancel_notin_\<Delta>\<Sigma>)
   subgoal by auto
-  by (auto intro: \<rho>_mono)
+  by (auto intro!: \<rho>_mono intro: consistent_interp_subset intro!: distinct_mset_mono[of _ M'])
+
+lemma finite_upostp: \<open>finite I  \<Longrightarrow> finite \<Sigma> \<Longrightarrow> finite (upostp I)\<close>
+  using finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma>
+  by (auto simp: upostp_def)
 
 lemma \<rho>\<^sub>e_upostp_\<rho>:
-  assumes \<open>finite \<Sigma>\<close> and
+  assumes [simp]: \<open>finite \<Sigma>\<close> and
     \<open>finite I\<close> and
+    cons: \<open>consistent_interp I\<close> and
     I_\<Sigma>: \<open>atm_of ` I \<subseteq> \<Sigma>\<close>
   shows \<open>\<rho>\<^sub>e (mset_set (upostp I)) = \<rho> (mset_set I)\<close> (is \<open>?A = ?B\<close>)
 proof -
@@ -720,6 +729,8 @@ proof -
     using assms \<Delta>\<Sigma>_\<Sigma> apply -
     unfolding \<rho>\<^sub>e_def filter_filter_mset
     apply (rule \<rho>_mono2)
+    subgoal using cons by auto
+    subgoal using distinct_mset_mset_set by auto
     subgoal by auto
     subgoal by auto
     apply (rule filter_mset_mono_subset)
@@ -731,6 +742,10 @@ proof -
     using assms \<Delta>\<Sigma>_\<Sigma> apply -
     unfolding \<rho>\<^sub>e_def filter_filter_mset
     apply (rule \<rho>_mono2)
+    subgoal using cons by (auto intro: consistent_interp_subset[of _ \<open>upostp I\<close>]
+      simp: consistent_interp_upostp finite_upostp)
+    subgoal by (auto intro: distinct_mset_mono[of _ \<open>mset_set (upostp I)\<close>]
+      simp: distinct_mset_mset_set)
     subgoal by auto
     subgoal by auto
     unfolding filter_filter_mset
@@ -747,6 +762,7 @@ qed
 lemma \<rho>_postp_\<rho>\<^sub>e:
   assumes \<open>finite \<Sigma>\<close> and
     \<open>finite I\<close> and
+    \<open>consistent_interp I\<close> and
     I_\<Sigma>: \<open>atm_of ` I \<subseteq> \<Sigma> \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d\<close>
   shows \<open>\<rho>\<^sub>e (mset_set I) \<ge> \<rho> (mset_set (postp I))\<close>
 proof -
@@ -760,7 +776,8 @@ proof -
   show ?thesis
     using assms \<Delta>\<Sigma>_\<Sigma>
     by (auto simp: postp_def \<rho>\<^sub>e_def \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def conj_disj_distribR
-        mset_set_Union intro!: \<rho>_mono2)
+        mset_set_Union intro!: \<rho>_mono2
+        intro: consistent_interp_subset distinct_mset_mset_set)
 qed
 
 lemma encode_lit_eq_iff:
@@ -788,18 +805,8 @@ lemma distinct_mset_penc:
   by (auto simp: penc_def
       distinct_mset_encodes_clause_iff)
 
-lemma finite_upostp:
-  assumes \<open>finite \<Sigma>\<close>
-  shows \<open>finite (upostp I)\<close>
-proof -
-  have \<open>upostp I \<subseteq> Pos ` (\<Sigma> \<union> \<Delta>\<Sigma> \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d) \<union> Neg ` (\<Sigma> \<union> \<Delta>\<Sigma> \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d)\<close>
-    apply (auto simp: upostp_def image_Un \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def)
-    by (metis image_iff literal.exhaust_sel)
-  moreover have \<open>finite (Pos ` (\<Sigma> \<union> \<Delta>\<Sigma> \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d) \<union> Neg ` (\<Sigma> \<union> \<Delta>\<Sigma> \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d))\<close>
-    using assms finite_\<Sigma> by (auto simp: \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def)
-  ultimately show ?thesis
-    by (auto intro: finite_subset)
-qed
+lemma finite_postp: \<open>finite I \<Longrightarrow> finite (postp I)\<close>
+  by (auto simp: postp_def)
 
 theorem full_encoding_OCDCL_correctness:
   assumes
@@ -869,14 +876,14 @@ proof -
           by auto
         done
     }
-    moreover have \<open>consistent_interp (set_mset ?I)\<close>
+    moreover have cons': \<open>consistent_interp (set_mset ?I)\<close>
       using cons unfolding I by (rule consistent_interp_upostp)
     ultimately have \<open>Some (\<rho>\<^sub>e ?I) \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
       using opt[of ?I] by auto
     moreover {
       have \<open>\<rho>\<^sub>e ?I = \<rho> (mset_set (set_mset I))\<close>
         by (rule \<rho>\<^sub>e_upostp_\<rho>)
-          (use \<Delta>\<Sigma>_\<Sigma> atms atm in \<open>auto dest: multi_member_split\<close>)
+          (use \<Delta>\<Sigma>_\<Sigma> atms atm cons in \<open>auto dest: multi_member_split\<close>)
       then have \<open>\<rho>\<^sub>e ?I = \<rho> I\<close>
         by (subst (asm) distinct_mset_set_mset_ident)
           (use atms dist in auto)
@@ -888,6 +895,8 @@ proof -
       have \<open>\<rho> (mset_set ?K) \<le> \<rho>\<^sub>e (the (weight T))\<close>
         unfolding \<rho>\<^sub>e_def
         apply (rule \<rho>_mono2)
+        subgoal using model Some' by (auto intro: consistent_interp_subset)
+        subgoal using model Some' by (auto intro: distinct_mset_mono[of _ \<open>the (weight T)\<close>])
         subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
         subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
         subgoal
@@ -907,6 +916,8 @@ proof -
       have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> \<rho>\<^sub>e (mset_set (set_mset (the (weight T))))\<close>
         unfolding \<rho>\<^sub>e_def
         apply (rule \<rho>_mono2)
+        subgoal using model Some' by (auto intro: consistent_interp_subset)
+        subgoal using model Some' by (auto intro: distinct_mset_mono[of _ \<open>the (weight T)\<close>])
         subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
         subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
         subgoal
@@ -922,6 +933,9 @@ proof -
     moreover have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> \<rho> (mset_set ?K)\<close>
       unfolding \<rho>\<^sub>e_def
       apply (rule \<rho>_mono2)
+      subgoal
+        using model Some' by (auto simp: finite_postp consistent_interp_postp)
+      subgoal by (auto simp: distinct_mset_mset_set)
       subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
       subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
       subgoal

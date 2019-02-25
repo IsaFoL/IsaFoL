@@ -1956,11 +1956,13 @@ locale ocdcl_weight =
   fixes
     \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close>
   assumes
-    \<rho>_mono: \<open>A \<subseteq># B \<Longrightarrow> \<rho> A \<le> \<rho> B\<close>
+    \<rho>_mono: \<open>consistent_interp (set_mset B) \<Longrightarrow> distinct_mset B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> \<rho> A \<le> \<rho> B\<close>
 begin
 
-lemma \<rho>_empty_simp[simp]: \<open>\<rho> A \<ge> \<rho> {#}\<close> \<open>\<not>\<rho> A < \<rho> {#}\<close>  \<open>\<rho> A \<le> \<rho> {#} \<longleftrightarrow> \<rho> A = \<rho> {#}\<close>
-  using \<rho>_mono[of \<open>{#}\<close> A]
+lemma \<rho>_empty_simp[simp]:
+  assumes \<open>consistent_interp (set_mset A)\<close> \<open>distinct_mset A\<close>
+  shows \<open>\<rho> A \<ge> \<rho> {#}\<close> \<open>\<not>\<rho> A < \<rho> {#}\<close>  \<open>\<rho> A \<le> \<rho> {#} \<longleftrightarrow> \<rho> A = \<rho> {#}\<close>
+  using \<rho>_mono[of A \<open>{#}\<close>] assms
   by auto
 
 end
@@ -2212,16 +2214,16 @@ proof -
   have [simp]: \<open>distinct_mset (uminus `# w)\<close>
     by (subst distinct_image_mset_inj)
       (auto simp: dist inj_on_def)
-  have \<open>distinct_mset ?w\<close>
+  have dist: \<open>distinct_mset ?w\<close>
     using dist
     by (auto simp: distinct_mset_add distinct_image_mset_inj distinct_mset_mset_set uminus_lit_swap
       disjunct_not_in dest: multi_member_split)
-  moreover have \<open>\<not>tautology (w + negs (mset_set {x \<in> atms_of_mm M. x \<notin> atms_of w}))\<close>
+  moreover have not_tauto: \<open>\<not>tautology ?w\<close>
     by (auto simp: tautology_union taut uminus_lit_swap dest: multi_member_split)
   ultimately have \<open>?w \<in> (simple_clss (atms_of_mm M))\<close>
     using atms by (auto simp: simple_clss_def)
   moreover have \<open>\<rho> ?w \<ge> \<rho> w\<close>
-    by (rule \<rho>_mono) auto
+    by (rule \<rho>_mono) (use dist not_tauto in \<open>auto simp: consistent_interp_tuatology_mset_set tautology_decomp\<close>)
   ultimately have \<open>pNeg ?w \<in># too_heavy_clauses M (Some w)\<close>
     by (auto simp: too_heavy_clauses_def simple_clss_finite)
   then have \<open>atms_of_mm M \<subseteq> atms_of_mm (too_heavy_clauses M (Some w))\<close>
@@ -2722,11 +2724,12 @@ proof (cases rule: improvep.cases)
       by (auto simp: simple_clss_def)
     then have \<open>\<exists>a. ((a \<in># x \<and> a \<notin># I) \<or> (a \<in># I \<and> a \<notin># x))\<close>
       by auto
-    moreover have \<open>\<not>set_mset x \<subseteq> set_mset I\<close>
-      using \<rho>_mono[of \<open>x\<close> I] we le T distinct_set_mset_eq_iff[of x I] simple_clssE[OF x] dist
+    moreover have not_incl: \<open>\<not>set_mset x \<subseteq> set_mset I\<close>
+      using \<rho>_mono[of I \<open>x\<close>] we le T distinct_set_mset_eq_iff[of x I] simple_clssE[OF x]
+        dist cons
       by (cases \<open>weight S\<close>) auto
     moreover have \<open>x \<noteq> {#}\<close>
-      using we le T
+      using we le T cons dist not_incl
       by (cases \<open>weight S\<close>) auto
     ultimately obtain L where
       L_x: \<open>L \<in># x\<close> and
