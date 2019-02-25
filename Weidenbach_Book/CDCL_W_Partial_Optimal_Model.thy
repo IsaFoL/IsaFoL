@@ -42,7 +42,7 @@ inductive simple_backtrack_conflict_opt :: \<open>'st \<Rightarrow> 'st \<Righta
   if
     \<open>backtrack_split (trail S) = (M2, Decided K # M1)\<close> and
     \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close> and
-    \<open>conflicting S = None\<close>
+    \<open>conflicting S = None\<close> and
     \<open>T \<sim> cons_trail (Propagated (-K) (DECO_clause (trail S)))
       (add_learned_cls (DECO_clause (trail S)) (reduce_trail_to M1 S))\<close>
 
@@ -87,13 +87,39 @@ lemma [simp]:
   by (auto simp: trail_reduce_trail_to_drop
     cdcl\<^sub>W_restart_mset.trail_reduce_trail_to_drop)
 
+lemma compow_tl_trail_add_learned_cls_swap:
+  \<open>(tl_trail ^^ n) (add_learned_cls D S) \<sim> add_learned_cls D ((tl_trail ^^ n) S)\<close>
+  by (induction n)
+   (auto intro: tl_trail_add_learned_cls_commute state_eq_trans
+      tl_trail_state_eq)
 
-lemma (*either the assumption should be added to the locales. Or there is a way to derive it. *)
-  assumes \<open>\<And>D D' S S'. S \<sim> S' \<Longrightarrow> update_conflicting D (update_conflicting D' S) \<sim> update_conflicting D S'\<close>
+lemma reduce_trail_to_add_learned_cls:
+  \<open>length M \<le> length (trail S) \<Longrightarrow>
+  reduce_trail_to M (add_learned_cls D S) \<sim> add_learned_cls D (reduce_trail_to M S)\<close>
+  by (cases \<open>length M < length (trail S)\<close>)
+    (auto simp: compow_tl_trail_add_learned_cls_swap reduce_trail_to_compow_tl_trail_le
+      reduce_trail_to_compow_tl_trail_eq)
+
+lemma compow_tl_trail_update_conflicting_swap:
+  \<open>(tl_trail ^^ n) (update_conflicting D S) \<sim> update_conflicting D ((tl_trail ^^ n) S)\<close>
+  by (induction n)
+   (auto intro: tl_trail_add_learned_cls_commute state_eq_trans
+      tl_trail_state_eq tl_trail_update_conflicting)
+
+lemma reduce_trail_to_update_conflicting:
+  \<open>length M \<le> length (trail S) \<Longrightarrow>
+  reduce_trail_to M (update_conflicting D S) \<sim> update_conflicting D (reduce_trail_to M S)\<close>
+  by (cases \<open>length M < length (trail S)\<close>)
+    (auto simp: compow_tl_trail_add_learned_cls_swap reduce_trail_to_compow_tl_trail_le
+      reduce_trail_to_compow_tl_trail_eq compow_tl_trail_update_conflicting_swap)
+
+
+lemma
   assumes \<open>simple_backtrack_conflict_opt S U\<close> and
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close>
-  shows \<open>\<exists>T T'. enc_weight_opt.conflict_opt S T \<and> resolve\<^sup>*\<^sup>* T T' \<and> obacktrack T' U\<close>
-  using assms(2-)
+  shows \<open>\<exists>T T'. enc_weight_opt.conflict_opt S T \<and> resolve\<^sup>*\<^sup>* T T'
+    \<and> enc_weight_opt.obacktrack T' U\<close>
+  using assms
 proof (cases rule: simple_backtrack_conflict_opt.cases)
   case (1 M2 K M1)
   have tr: \<open>trail S = M2 @ Decided K # M1\<close>
@@ -111,6 +137,12 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
     length_takeWhile_le[of \<open>Not \<circ> is_decided\<close> \<open>trail S\<close>]
     unfolding backtrack_split_takeWhile_dropWhile
     apply (auto simp: )
+    by (metis annotated_lit.exhaust_disc comp_apply nth_mem set_takeWhileD)
+  have is_dec_M2[simp]: \<open>filter_mset is_decided (mset M2) = {#}\<close>
+    using 1(1) nth_length_takeWhile[of \<open>Not \<circ> is_decided\<close> \<open>trail S\<close>]
+    length_takeWhile_le[of \<open>Not \<circ> is_decided\<close> \<open>trail S\<close>]
+    unfolding backtrack_split_takeWhile_dropWhile
+    apply (auto simp: filter_mset_empty_conv)
     by (metis annotated_lit.exhaust_disc comp_apply nth_mem set_takeWhileD)
   have n_d: \<open>no_dup (trail S)\<close> and
     le: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (enc_weight_opt.abs_state S)\<close> and
@@ -162,8 +194,9 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
       proped[of \<open>take n M2\<close> \<open>lit_of (M2 ! n)\<close> \<open>mark_of (M2 ! n)\<close>
     \<open>drop (Suc n) M2 @ Decided K # M1\<close>]
     unfolding tr by (cases \<open>M2!n\<close>) auto
-
-  have \<open>resolve\<^sup>*\<^sup>* ?S (?T n)\<close> if \<open>n \<le> length M2\<close> for n
+  have confl: \<open>enc_weight_opt.conflict_opt S ?S\<close>
+    by (rule enc_weight_opt.conflict_opt.intros) (use 1 in auto)
+  have res: \<open>resolve\<^sup>*\<^sup>* ?S (?T n)\<close> if \<open>n \<le> length M2\<close> for n
     using that unfolding tr
   proof (induction n)
     case 0
@@ -239,7 +272,7 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
        apply (rule update_conflicting_state_eq)
        apply (rule tl_trail_update_conflicting[THEN state_eq_sym[THEN iffD1]])
        apply (subst state_eq_sym)
-       apply (subst assms(1))
+       apply (subst update_conflicting_update_conflicting)
        apply (rule 1)
        by fast }
     ultimately have \<open>resolve (?T n) (?T (n+1))\<close> apply -
@@ -284,7 +317,7 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
         by (auto simp: DECO_clause_def
           get_level_cons_if atm_of_eq_atm_of Decided_Propagated_in_iff_in_lits_of_l
           lits_of_def)
-       done
+      done
     done
   finally have max: \<open>get_maximum_level (Decided K # M1) (DECO_clause M1) = count_decided M1\<close> .
   have \<open>trail S \<Turnstile>as CNot (negate_ann_lits (trail S))\<close>
@@ -297,33 +330,89 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
     using 1
     by auto
 
-  have \<open>clauses S + (conflicting_clss S) \<Turnstile>pm DECO_clause (Decided K # M1)\<close>
-    apply (rule all_decomposition_implies_conflict_DECO_clause)
-    using all_decomposition_implies_trail_is_implied[OF decomp_imp]
+  have neg: \<open>trail S \<Turnstile>as CNot (mset (map (uminus o lit_of) (trail S)))\<close>
+    by (auto simp: true_annots_true_cls_def_iff_negation_in_model
+      lits_of_def)
+  have ent: \<open>clauses S + enc_weight_opt.conflicting_clss S \<Turnstile>pm DECO_clause (trail S)\<close>
+    by (rule all_decomposition_implies_conflict_DECO_clause[OF decomp_imp,
+         of \<open>mset (map (uminus o lit_of) (trail S))\<close>])
+      (use neg 1 in \<open>auto simp: negate_ann_lits_def\<close>)
+  have deco: \<open>DECO_clause (M2 @ Decided K # M1) = add_mset (- K) (DECO_clause M1)\<close>
+    by (auto simp: DECO_clause_def)
+  have eg: \<open>reduce_trail_to M1 (reduce_trail_to (Decided K # M1) S) \<sim>
+    reduce_trail_to M1 S\<close>
+    apply (subst reduce_trail_to_compow_tl_trail_le)
+    apply (solves \<open>auto simp: tr\<close>)
+    apply (subst (3)reduce_trail_to_compow_tl_trail_le)
+    apply (solves \<open>auto simp: tr\<close>)
     apply (auto simp: tr)
-    sorry
-  have \<open>obacktrack (?T (length M2)) U\<close>
-      apply (rule obacktrack.intros[of _ \<open>-K\<close> \<open>negate_ann_lits M1\<close> K M1 \<open>[]\<close>
-        \<open>DECO_clause M1\<close> \<open>count_decided M1\<close>])
-      subgoal by (auto simp: tr)
-      subgoal by (auto simp: tr)
-      subgoal by (auto simp: tr)
-      subgoal
-        using count_decided_ge_get_maximum_level[of \<open>Decided K # M1\<close> \<open>DECO_clause M1\<close>]
-        by (auto simp: tr get_maximum_level_add_mset max_def)
-      subgoal using max by (auto simp: tr)
-      subgoal by (auto simp: tr)
-      subgoal by (auto simp: DECO_clause_def negate_ann_lits_def
-        image_mset_subseteq_mono)
-      subgoal apply (auto simp: tr)
-      
-        sorry
-      subgoal
-        apply (rule state_eq_trans [OF 1(4)])
-        using 1(4) apply (auto simp: tr)
-(*	
-    show ?case*)
-      oops
+    apply (cases \<open>M2 = []\<close>)
+    apply (auto simp: reduce_trail_to_compow_tl_trail_le reduce_trail_to_compow_tl_trail_eq tr)
+    done
+
+  have U: \<open>cons_trail (Propagated (- K) (DECO_clause (M2 @ Decided K # M1)))
+     (add_learned_cls (DECO_clause (M2 @ Decided K # M1))
+       (reduce_trail_to M1 S)) \<sim>
+    cons_trail (Propagated (- K) (add_mset (- K) (DECO_clause M1)))
+     (reduce_trail_to M1
+       (add_learned_cls (add_mset (- K) (DECO_clause M1))
+         (update_conflicting None
+           (update_conflicting (Some (add_mset (- K) (negate_ann_lits M1)))
+             (reduce_trail_to (Decided K # M1) S)))))\<close>
+    unfolding deco
+    apply (rule cons_trail_state_eq)
+    apply (rule state_eq_trans)
+    prefer 2
+    apply (rule state_eq_sym[THEN iffD1])
+    apply (rule reduce_trail_to_add_learned_cls)
+    apply (solves \<open>auto simp: tr\<close>)
+    apply (rule add_learned_cls_state_eq)
+    apply (rule state_eq_trans)
+    prefer 2
+    apply (rule state_eq_sym[THEN iffD1])
+    apply (rule reduce_trail_to_update_conflicting)
+    apply (solves \<open>auto simp: tr\<close>)
+    apply (rule state_eq_trans)
+    prefer 2
+    apply (rule state_eq_sym[THEN iffD1])
+    apply (rule update_conflicting_state_eq)
+    apply (rule reduce_trail_to_update_conflicting)
+    apply (solves \<open>auto simp: tr\<close>)
+    apply (rule state_eq_trans)
+    prefer 2
+    apply (rule state_eq_sym[THEN iffD1])
+    apply (rule update_conflicting_update_conflicting)
+    apply (rule eg)
+    apply (rule state_eq_trans)
+    prefer 2
+    apply (rule state_eq_sym[THEN iffD1])
+    apply (rule update_conflicting_itself)
+    by (use 1 in auto)
+
+  have bt: \<open>enc_weight_opt.obacktrack (?T (length M2)) U\<close>
+    apply (rule enc_weight_opt.obacktrack.intros[of _ \<open>-K\<close> \<open>negate_ann_lits M1\<close> K M1 \<open>[]\<close>
+      \<open>DECO_clause M1\<close> \<open>count_decided M1\<close>])
+    subgoal by (auto simp: tr)
+    subgoal by (auto simp: tr)
+    subgoal by (auto simp: tr)
+    subgoal
+      using count_decided_ge_get_maximum_level[of \<open>Decided K # M1\<close> \<open>DECO_clause M1\<close>]
+      by (auto simp: tr get_maximum_level_add_mset max_def)
+    subgoal using max by (auto simp: tr)
+    subgoal by (auto simp: tr)
+    subgoal by (auto simp: DECO_clause_def negate_ann_lits_def
+      image_mset_subseteq_mono)
+    subgoal using ent by (auto simp: tr DECO_clause_def)
+    subgoal
+      apply (rule state_eq_trans [OF 1(4)])
+      using 1(4) U by (auto simp: tr)
+    done
+
+  show ?thesis
+    using confl res[of \<open>length M2\<close>, simplified] bt
+    by blast
+qed
+
 end
 
 end

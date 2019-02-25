@@ -165,7 +165,13 @@ locale state\<^sub>W_no_state =
     tl_trail_add_learned_cls_commute:
       \<open>tl_trail (add_learned_cls C T) \<sim> add_learned_cls C (tl_trail T)\<close> and
     tl_trail_update_conflicting:
-      \<open>tl_trail (update_conflicting D T) \<sim> update_conflicting D (tl_trail T)\<close>
+      \<open>tl_trail (update_conflicting D T) \<sim> update_conflicting D (tl_trail T)\<close> and
+
+    update_conflicting_update_conflicting:
+      \<open>\<And>D D' S S'. S \<sim> S' \<Longrightarrow>
+        update_conflicting D (update_conflicting D' S) \<sim> update_conflicting D S'\<close> and
+    update_conflicting_itself:
+    \<open>\<And>D S'. conflicting S' = D \<Longrightarrow> update_conflicting D S' \<sim> S'\<close>
 
 locale state\<^sub>W =
   state\<^sub>W_no_state
