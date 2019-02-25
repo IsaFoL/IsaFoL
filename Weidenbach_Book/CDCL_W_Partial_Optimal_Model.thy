@@ -2165,7 +2165,7 @@ lemma simple_backtrack_obacktrack:
 
 end
 
-interpretation test: optimal_encoding_opt where
+interpretation test_real: optimal_encoding_opt where
   state_eq = \<open>(=)\<close> and
   state = id and
   trail = \<open>\<lambda>(M, N, U, D, W). M\<close> and
@@ -2178,7 +2178,7 @@ interpretation test: optimal_encoding_opt where
   remove_cls = \<open>\<lambda>C (M, N, U, D, W). (M, removeAll_mset C N, removeAll_mset C U, D, W)\<close> and
   update_conflicting = \<open>\<lambda>C (M, N, U, _, W). (M, N, U, C, W)\<close> and
   init_state = \<open>\<lambda>N. ([], N, {#}, None, None, ())\<close> and
-  \<rho> = \<open>\<lambda>_. 0\<close> and
+  \<rho> = \<open>\<lambda>_. (0::real)\<close> and
   update_additional_info = \<open>\<lambda>W (M, N, U, D, _, _). (M, N, U, D, W)\<close> and
   \<Sigma> = \<open>{1..(100::nat)}\<close> and
   \<Delta>\<Sigma> = \<open>{1..(50::nat)}\<close> and
@@ -2189,7 +2189,7 @@ lemma mult3_inj:
   \<open>3 * A = Suc (3 * Aa) \<longleftrightarrow> False\<close> \<open>3 * A = Suc (Suc (3 * Aa)) \<longleftrightarrow> False\<close> for A Aa::nat
   by presburger+
 
-interpretation test: optimal_encoding where
+interpretation test_real: optimal_encoding where
   state_eq = \<open>(=)\<close> and
   state = id and
   trail = \<open>\<lambda>(M, N, U, D, W). M\<close> and
@@ -2202,7 +2202,47 @@ interpretation test: optimal_encoding where
   remove_cls = \<open>\<lambda>C (M, N, U, D, W). (M, removeAll_mset C N, removeAll_mset C U, D, W)\<close> and
   update_conflicting = \<open>\<lambda>C (M, N, U, _, W). (M, N, U, C, W)\<close> and
   init_state = \<open>\<lambda>N. ([], N, {#}, None, None, ())\<close> and
-  \<rho> = \<open>\<lambda>_. 0\<close> and
+  \<rho> = \<open>\<lambda>_. (0::real)\<close> and
+  update_additional_info = \<open>\<lambda>W (M, N, U, D, _, _). (M, N, U, D, W)\<close> and
+  \<Sigma> = \<open>{1..(100::nat)}\<close> and
+  \<Delta>\<Sigma> = \<open>{1..(50::nat)}\<close> and
+  new_vars = \<open>\<lambda>n. (200 + 3*n, 200 + 3*n+1, 200 + 3*n+2)\<close>
+  by unfold_locales (auto simp: inj_on_def mult3_inj)
+
+interpretation test_nat: optimal_encoding_opt where
+  state_eq = \<open>(=)\<close> and
+  state = id and
+  trail = \<open>\<lambda>(M, N, U, D, W). M\<close> and
+  init_clss = \<open>\<lambda>(M, N, U, D, W). N\<close> and
+  learned_clss = \<open>\<lambda>(M, N, U, D, W). U\<close> and
+  conflicting = \<open>\<lambda>(M, N, U, D, W). D\<close> and
+  cons_trail = \<open>\<lambda>K (M, N, U, D, W). (K # M, N, U, D, W)\<close> and
+  tl_trail = \<open>\<lambda>(M, N, U, D, W). (tl M, N, U, D, W)\<close> and
+  add_learned_cls = \<open>\<lambda>C (M, N, U, D, W). (M, N, add_mset C U, D, W)\<close> and
+  remove_cls = \<open>\<lambda>C (M, N, U, D, W). (M, removeAll_mset C N, removeAll_mset C U, D, W)\<close> and
+  update_conflicting = \<open>\<lambda>C (M, N, U, _, W). (M, N, U, C, W)\<close> and
+  init_state = \<open>\<lambda>N. ([], N, {#}, None, None, ())\<close> and
+  \<rho> = \<open>\<lambda>_. (0::nat)\<close> and
+  update_additional_info = \<open>\<lambda>W (M, N, U, D, _, _). (M, N, U, D, W)\<close> and
+  \<Sigma> = \<open>{1..(100::nat)}\<close> and
+  \<Delta>\<Sigma> = \<open>{1..(50::nat)}\<close> and
+  new_vars = \<open>\<lambda>n. (200 + 3*n, 200 + 3*n+1, 200 + 3*n+2)\<close>
+  by unfold_locales
+
+interpretation test_nat: optimal_encoding where
+  state_eq = \<open>(=)\<close> and
+  state = id and
+  trail = \<open>\<lambda>(M, N, U, D, W). M\<close> and
+  init_clss = \<open>\<lambda>(M, N, U, D, W). N\<close> and
+  learned_clss = \<open>\<lambda>(M, N, U, D, W). U\<close> and
+  conflicting = \<open>\<lambda>(M, N, U, D, W). D\<close> and
+  cons_trail = \<open>\<lambda>K (M, N, U, D, W). (K # M, N, U, D, W)\<close> and
+  tl_trail = \<open>\<lambda>(M, N, U, D, W). (tl M, N, U, D, W)\<close> and
+  add_learned_cls = \<open>\<lambda>C (M, N, U, D, W). (M, N, add_mset C U, D, W)\<close> and
+  remove_cls = \<open>\<lambda>C (M, N, U, D, W). (M, removeAll_mset C N, removeAll_mset C U, D, W)\<close> and
+  update_conflicting = \<open>\<lambda>C (M, N, U, _, W). (M, N, U, C, W)\<close> and
+  init_state = \<open>\<lambda>N. ([], N, {#}, None, None, ())\<close> and
+  \<rho> = \<open>\<lambda>_. (0::nat)\<close> and
   update_additional_info = \<open>\<lambda>W (M, N, U, D, _, _). (M, N, U, D, W)\<close> and
   \<Sigma> = \<open>{1..(100::nat)}\<close> and
   \<Delta>\<Sigma> = \<open>{1..(50::nat)}\<close> and
