@@ -1341,10 +1341,14 @@ lemma ocdcl\<^sub>W_o_same_weight: \<open>ocdcl\<^sub>W_o S U \<Longrightarrow> 
 	clauses_def conflict.simps cdcl\<^sub>W_o.simps decide.simps cdcl\<^sub>W_bj.simps
 	skip.simps resolve.simps obacktrack.simps)
 
+text \<open>This is a proof artefact: it is easier to reasion on \<^term>\<open>improvep\<close> when the set of
+  initial clauses is fixed (here by \<^term>\<open>N\<close>). The next theorem shows that the conclusion
+  is equivalent to not fixing the set of clauses.\<close>
 lemma wf_cdcl_bab:
-  assumes improve: \<open>\<And>S T. improvep S T \<Longrightarrow> (\<nu> (weight T), \<nu> (weight S)) \<in> R\<close> and
+  assumes improve: \<open>\<And>S T. improvep S T \<Longrightarrow> init_clss S = N \<Longrightarrow> (\<nu> (weight T), \<nu> (weight S)) \<in> R\<close> and
     wf_R: \<open>wf R\<close>
-  shows \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bab S T}\<close>
+  shows \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bab S T \<and>
+      init_clss S = N}\<close>
     (is \<open>wf ?A\<close>)
 proof -
   let ?R = \<open>{(T, S). (\<nu> (weight T), \<nu> (weight S)) \<in> R}\<close>
@@ -1374,6 +1378,40 @@ proof -
     by (rule wf_subset)
 qed
 
+corollary wf_cdcl_bab_fixed_iff:
+  shows \<open>(\<forall>N. wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bab S T
+       \<and> init_clss S = N}) \<longleftrightarrow>
+     wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bab S T}\<close>
+    (is \<open>(\<forall>N. wf (?A N)) \<longleftrightarrow> wf ?B\<close>)
+proof
+  assume \<open>wf ?B\<close>
+  then show \<open>\<forall>N. wf (?A N)\<close>
+    by (intro allI, rule wf_subset) auto
+next
+  assume \<open>\<forall>N. wf (?A N)\<close>
+  show \<open>wf ?B\<close>
+    unfolding wf_iff_no_infinite_down_chain
+  proof
+    assume \<open>\<exists>f. \<forall>i. (f (Suc i), f i) \<in> ?B\<close>
+    then obtain f where f: \<open>(f (Suc i), f i) \<in> ?B\<close> for i
+      by blast
+    then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state (f n))\<close> for n
+      by (induction n) auto
+    with f have st: \<open>cdcl_bab\<^sup>*\<^sup>* (f 0) (f n)\<close> for n
+      apply (induction n)
+      subgoal by auto
+      subgoal by (subst rtranclp_unfold,subst tranclp_unfold_end)
+	 auto
+      done
+    let ?N = \<open>init_clss (f 0)\<close>
+    have N: \<open>init_clss (f n) = ?N\<close> for n
+      using st[of n] by (auto dest: rtranclp_cdcl_bab_no_more_init_clss)
+    have \<open>(f (Suc i), f i) \<in> ?A ?N\<close> for i
+      using f N by auto
+    with \<open>\<forall>N. wf (?A N)\<close> show False
+      unfolding wf_iff_no_infinite_down_chain by blast
+  qed
+qed
 
 lemma conflict_is_false_with_level_abs_iff:
   \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (abs_state S) \<longleftrightarrow>
@@ -1916,7 +1954,7 @@ subsubsection \<open>OCDCL\<close>
 text \<open>This locales includes only the assumption we make on the weight function.\<close>
 locale ocdcl_weight =
   fixes
-    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {wellorder}\<close>
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close>
   assumes
     \<rho>_mono: \<open>A \<subseteq># B \<Longrightarrow> \<rho> A \<le> \<rho> B\<close>
 begin
@@ -1989,7 +2027,7 @@ begin
 
 lemma wf_less_option: "wf {(M :: 'a option, N). M < N}"
 proof -
-  have 1: \<open>{(M :: 'a option, N). M < N} = 
+  have 1: \<open>{(M :: 'a option, N). M < N} =
     map_prod Some Some ` {(M :: 'a, N). M < N} \<union>
     {(a, b). a \<noteq> None \<and> b = None}\<close> (is \<open>?A = ?B \<union> ?C\<close>)
     apply (auto simp: image_iff)
@@ -2008,7 +2046,6 @@ qed
 instance by standard (metis CollectI split_conv wf_def wf_less_option)
 
 end
-
 
 locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
   conflict_driven_clause_learning\<^sub>W
@@ -2038,7 +2075,7 @@ locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
     init_state :: "'v clauses \<Rightarrow> 'st" and
-    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {wellorder}\<close>  +
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close>  +
   fixes
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
   assumes
@@ -2452,14 +2489,41 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
   subgoal by (rule conflicting_clss_update_weight_information_in2; assumption)
   done
 
-lemma wf_cdcl_bab2:
-   \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bab S T}\<close>
-  apply (rule wf_cdcl_bab[of \<rho>' \<open>{(j, i). j < i}\<close>])
+lemma wf_cdcl_bab_fixed:
+   \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bab S T
+      \<and> init_clss S = N}\<close>
+  apply (rule wf_cdcl_bab[of N id \<open>{(I', I). I' \<noteq> None \<and>
+     (the I') \<in> simple_clss (atms_of_mm N) \<and> (\<rho>' I', \<rho>' I) \<in> {(j, i). j < i}}\<close>])
   subgoal for S T
     by (cases \<open>weight S\<close>; cases \<open>weight T\<close>)
       (auto simp: improvep.simps is_improving_int_def split: enat.splits)
-  subgoal by (simp add: wf)
+  subgoal
+    apply (rule wf_finite_segments)
+    subgoal by (auto simp: irrefl_def)
+    subgoal
+      apply (auto simp: irrefl_def trans_def intro: less_trans[of \<open>Some _\<close> \<open>Some _\<close>])
+      apply (rule less_trans[of \<open>Some _\<close> \<open>Some _\<close>])
+      apply auto
+      done
+    subgoal for x
+      by (subgoal_tac \<open>{y. (y, x)
+         \<in> {(I', I).
+            I' \<noteq> None \<and>
+            the I' \<in> simple_clss (atms_of_mm N) \<and>
+            (\<rho>' I', \<rho>' I) \<in> {(j, i). j < i}}} =
+	    Some ` {y. (y, x)
+         \<in> {(I', I).
+             I' \<in> simple_clss (atms_of_mm N) \<and>
+            (\<rho>' (Some I'), \<rho>' I) \<in> {(j, i). j < i}}}\<close>)
+       (auto simp: finite_image_iff
+	   intro: finite_subset[OF _ simple_clss_finite[of \<open>atms_of_mm N\<close>]])
+    done
   done
+
+lemma wf_cdcl_bab2:
+  \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)
+     \<and> cdcl_bab S T}\<close>
+  by (subst wf_cdcl_bab_fixed_iff[symmetric]) (intro allI, rule wf_cdcl_bab_fixed)
 
 lemma not_entailed_too_heavy_clauses_ge:
   \<open>C \<in> simple_clss (atms_of_mm N) \<Longrightarrow> \<not> too_heavy_clauses N w \<Turnstile>pm pNeg C \<Longrightarrow> \<not>Some (\<rho> C) \<ge> \<rho>' w\<close>

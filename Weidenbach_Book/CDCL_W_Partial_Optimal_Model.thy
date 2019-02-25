@@ -70,7 +70,7 @@ locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_we
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
-    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {wellorder}\<close> and
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close> and
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> +
   fixes \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
     new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close>
@@ -370,7 +370,7 @@ locale optimal_encoding = optimal_encoding_opt
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
-    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {wellorder}\<close> and
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close> and
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
     \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
     new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v \<times> 'v\<close> +
@@ -646,7 +646,7 @@ lemma satisfiable_penc_iff:
 abbreviation \<rho>\<^sub>e_filter :: \<open>'v literal multiset \<Rightarrow> 'v literal multiset\<close> where
   \<open>\<rho>\<^sub>e_filter M \<equiv> filter_mset (\<lambda>x. atm_of x \<in> \<Delta>\<Sigma> \<and> additional_var (atm_of x) \<in># M) M\<close>
 
-definition \<rho>\<^sub>e :: \<open>'v literal multiset \<Rightarrow> 'a :: {wellorder}\<close> where
+definition \<rho>\<^sub>e :: \<open>'v literal multiset \<Rightarrow> 'a :: {linorder}\<close> where
   \<open>\<rho>\<^sub>e M = \<rho> (\<rho>\<^sub>e_filter M)\<close>
 
 lemma \<rho>\<^sub>e_mono: \<open>A \<subseteq># B \<Longrightarrow> \<rho>\<^sub>e A \<le> \<rho>\<^sub>e B\<close>
@@ -2348,7 +2348,7 @@ proof -
 qed
 
 inductive weight_sat
-  :: \<open>'v clauses \<Rightarrow> ('v literal multiset \<Rightarrow> 'a :: wellorder) \<Rightarrow>
+  :: \<open>'v clauses \<Rightarrow> ('v literal multiset \<Rightarrow> 'a :: linorder) \<Rightarrow>
     'v literal multiset option \<Rightarrow> bool\<close>
 where
   weight_sat:
