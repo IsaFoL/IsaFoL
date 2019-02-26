@@ -819,7 +819,7 @@ lemma finite_postp: \<open>finite I \<Longrightarrow> finite (postp I)\<close>
 
 theorem full_encoding_OCDCL_correctness:
   assumes
-    st: \<open>full enc_weight_opt.cdcl_bab_stgy (init_state (penc N)) T\<close> and
+    st: \<open>full enc_weight_opt.cdcl_bnb_stgy (init_state (penc N)) T\<close> and
     dist: \<open>distinct_mset_mset N\<close> and
     atms: \<open>atms_of_mm N = \<Sigma>\<close>
   shows
@@ -841,7 +841,7 @@ proof -
     opt: \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm ?N \<Longrightarrow>
       set_mset I \<Turnstile>sm ?N \<Longrightarrow> Some (\<rho>\<^sub>e I) \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
     for I
-    using enc_weight_opt.full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of
+    using enc_weight_opt.full_cdcl_bnb_stgy_no_conflicting_clause_from_init_state[of
         \<open>penc N\<close> T, OF st]
     by fast+
 
@@ -960,21 +960,21 @@ qed
 
 inductive ocdcl\<^sub>W_o_r :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
   decide: "odecide S S' \<Longrightarrow> ocdcl\<^sub>W_o_r S S'" |
-  bj: "enc_weight_opt.cdcl_bab_bj S S' \<Longrightarrow> ocdcl\<^sub>W_o_r S S'"
+  bj: "enc_weight_opt.cdcl_bnb_bj S S' \<Longrightarrow> ocdcl\<^sub>W_o_r S S'"
 
-inductive cdcl_bab_r :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
-  cdcl_conflict: "conflict S S' \<Longrightarrow> cdcl_bab_r S S'" |
-  cdcl_propagate: "propagate S S' \<Longrightarrow> cdcl_bab_r S S'" |
-  cdcl_improve: "enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_bab_r S S'" |
-  cdcl_conflict_opt: "enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bab_r S S'" |
-  cdcl_o': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> cdcl_bab_r S S'"
+inductive cdcl_bnb_r :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+  cdcl_conflict: "conflict S S' \<Longrightarrow> cdcl_bnb_r S S'" |
+  cdcl_propagate: "propagate S S' \<Longrightarrow> cdcl_bnb_r S S'" |
+  cdcl_improve: "enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_bnb_r S S'" |
+  cdcl_conflict_opt: "enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bnb_r S S'" |
+  cdcl_o': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> cdcl_bnb_r S S'"
 
-inductive cdcl_bab_r_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
-  cdcl_bab_r_conflict: "conflict S S' \<Longrightarrow> cdcl_bab_r_stgy S S'" |
-  cdcl_bab_r_propagate: "propagate S S' \<Longrightarrow> cdcl_bab_r_stgy S S'" |
-  cdcl_bab_r_improve: "enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_bab_r_stgy S S'" |
-  cdcl_bab_r_conflict_opt: "enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bab_r_stgy S S'" |
-  cdcl_bab_r_other': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_bab_r_stgy S S'"
+inductive cdcl_bnb_r_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+  cdcl_bnb_r_conflict: "conflict S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'" |
+  cdcl_bnb_r_propagate: "propagate S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'" |
+  cdcl_bnb_r_improve: "enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'" |
+  cdcl_bnb_r_conflict_opt: "enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'" |
+  cdcl_bnb_r_other': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_bnb_r_stgy S S'"
 
 lemma reduce_trail_to_compow_tl_trail_le:
   \<open>length M < length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
@@ -996,7 +996,7 @@ lemma ocdcl\<^sub>W_o_r_cases[consumes 1, case_names odecode obacktrack skip res
     \<open>skip S T \<Longrightarrow> P T\<close>
     \<open>resolve S T \<Longrightarrow> P T\<close>
   shows \<open>P T\<close>
-  using assms by (auto simp: ocdcl\<^sub>W_o_r.simps enc_weight_opt.cdcl_bab_bj.simps)
+  using assms by (auto simp: ocdcl\<^sub>W_o_r.simps enc_weight_opt.cdcl_bnb_bj.simps)
 
 context
   fixes S :: 'st
@@ -1023,14 +1023,14 @@ lemma ocdcl\<^sub>W_o_r_ocdcl\<^sub>W_o:
   using S_\<Sigma> by (auto simp: ocdcl\<^sub>W_o_r.simps enc_weight_opt.ocdcl\<^sub>W_o.simps
       dest: odecide_decide)
 
-lemma cdcl_bab_r_cdcl_bab:
-  \<open>cdcl_bab_r S T \<Longrightarrow> enc_weight_opt.cdcl_bab S T\<close>
-  using S_\<Sigma> by (auto simp: cdcl_bab_r.simps enc_weight_opt.cdcl_bab.simps
+lemma cdcl_bnb_r_cdcl_bnb:
+  \<open>cdcl_bnb_r S T \<Longrightarrow> enc_weight_opt.cdcl_bnb S T\<close>
+  using S_\<Sigma> by (auto simp: cdcl_bnb_r.simps enc_weight_opt.cdcl_bnb.simps
       dest: ocdcl\<^sub>W_o_r_ocdcl\<^sub>W_o)
 
-lemma cdcl_bab_r_stgy_cdcl_bab_stgy:
-  \<open>cdcl_bab_r_stgy S T \<Longrightarrow> enc_weight_opt.cdcl_bab_stgy S T\<close>
-  using S_\<Sigma> by (auto simp: cdcl_bab_r_stgy.simps enc_weight_opt.cdcl_bab_stgy.simps
+lemma cdcl_bnb_r_stgy_cdcl_bnb_stgy:
+  \<open>cdcl_bnb_r_stgy S T \<Longrightarrow> enc_weight_opt.cdcl_bnb_stgy S T\<close>
+  using S_\<Sigma> by (auto simp: cdcl_bnb_r_stgy.simps enc_weight_opt.cdcl_bnb_stgy.simps
       dest: ocdcl\<^sub>W_o_r_ocdcl\<^sub>W_o)
 
 end
@@ -1042,25 +1042,25 @@ context
      \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
 begin
 
-lemma rtranclp_cdcl_bab_r_cdcl_bab:
-  \<open>cdcl_bab_r\<^sup>*\<^sup>* S T \<Longrightarrow> enc_weight_opt.cdcl_bab\<^sup>*\<^sup>* S T\<close>
+lemma rtranclp_cdcl_bnb_r_cdcl_bnb:
+  \<open>cdcl_bnb_r\<^sup>*\<^sup>* S T \<Longrightarrow> enc_weight_opt.cdcl_bnb\<^sup>*\<^sup>* S T\<close>
   apply (induction rule: rtranclp_induct)
   subgoal by auto
   subgoal for T U
-    using S_\<Sigma> enc_weight_opt.rtranclp_cdcl_bab_no_more_init_clss[of S T]
-    by(auto dest: cdcl_bab_r_cdcl_bab)
+    using S_\<Sigma> enc_weight_opt.rtranclp_cdcl_bnb_no_more_init_clss[of S T]
+    by(auto dest: cdcl_bnb_r_cdcl_bnb)
   done
 
 
-lemma rtranclp_cdcl_bab_r_stgy_cdcl_bab_stgy:
-  \<open>cdcl_bab_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> enc_weight_opt.cdcl_bab_stgy\<^sup>*\<^sup>* S T\<close>
+lemma rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_stgy:
+  \<open>cdcl_bnb_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> enc_weight_opt.cdcl_bnb_stgy\<^sup>*\<^sup>* S T\<close>
   apply (induction rule: rtranclp_induct)
   subgoal by auto
   subgoal for T U
     using S_\<Sigma>
-      enc_weight_opt.rtranclp_cdcl_bab_no_more_init_clss[of S T,
-        OF enc_weight_opt.rtranclp_cdcl_bab_stgy_cdcl_bab]
-    by(auto dest: cdcl_bab_r_stgy_cdcl_bab_stgy)
+      enc_weight_opt.rtranclp_cdcl_bnb_no_more_init_clss[of S T,
+        OF enc_weight_opt.rtranclp_cdcl_bnb_stgy_cdcl_bnb]
+    by(auto dest: cdcl_bnb_r_stgy_cdcl_bnb_stgy)
   done
 
 end
@@ -1079,7 +1079,7 @@ lemma total_entails_iff_no_conflict:
         total_over_m_alt_def true_clss_def)
   done
 
-lemma no_step_cdcl_bab_r_stgy_no_step_cdcl_bab_stgy:
+lemma no_step_cdcl_bnb_r_stgy_no_step_cdcl_bnb_stgy:
   assumes
     N: \<open>init_clss S = penc N\<close> and
     \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
@@ -1087,11 +1087,11 @@ lemma no_step_cdcl_bab_r_stgy_no_step_cdcl_bab_stgy:
     tr_alien: \<open>atm_of ` lits_of_l (trail S) \<subseteq> \<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma>
        \<union> additional_atm ` \<Delta>\<Sigma>\<close>
   shows
-    \<open>no_step cdcl_bab_r_stgy S \<longleftrightarrow> no_step enc_weight_opt.cdcl_bab_stgy S\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+    \<open>no_step cdcl_bnb_r_stgy S \<longleftrightarrow> no_step enc_weight_opt.cdcl_bnb_stgy S\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
 proof
   assume ?B
   then show \<open>?A\<close>
-    using N \<Sigma> cdcl_bab_r_stgy_cdcl_bab_stgy[of S] atms_of_mm_encode_clause_subset[of N]
+    using N \<Sigma> cdcl_bnb_r_stgy_cdcl_bnb_stgy[of S] atms_of_mm_encode_clause_subset[of N]
       atms_of_mm_encode_clause_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma>
       atms_of_mm_penc_subset2[of N]
     by auto
@@ -1103,7 +1103,7 @@ next
     nsc: \<open>no_step conflict S\<close> and
     nsi: \<open>no_step enc_weight_opt.improvep S\<close> and
     nsco: \<open>no_step enc_weight_opt.conflict_opt S\<close>
-    by (auto simp: cdcl_bab_r_stgy.simps ocdcl\<^sub>W_o_r.simps)
+    by (auto simp: cdcl_bnb_r_stgy.simps ocdcl\<^sub>W_o_r.simps)
   have
     nsi': \<open>\<And>M'. conflicting S = None \<Longrightarrow> \<not>enc_weight_opt.is_improving (trail S) M' S\<close> and
     nsco': \<open>conflicting S = None \<Longrightarrow> negate_ann_lits (trail S) \<notin># enc_weight_opt.conflicting_clss S\<close>
@@ -1112,7 +1112,7 @@ next
   have N_\<Sigma>: \<open>atms_of_mm (penc N) =
     atms_of_mm N \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union>
     replacement_neg ` \<Delta>\<Sigma>\<close>
-    using N \<Sigma> cdcl_bab_r_stgy_cdcl_bab_stgy[of S] atms_of_mm_encode_clause_subset[of N]
+    using N \<Sigma> cdcl_bnb_r_stgy_cdcl_bnb_stgy[of S] atms_of_mm_encode_clause_subset[of N]
       atms_of_mm_encode_clause_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma>
       atms_of_mm_penc_subset2[of N]
     by auto
@@ -1170,7 +1170,7 @@ next
       using \<Delta>\<Sigma>_\<Sigma> by auto
     have atms_tr': \<open>\<Sigma> - \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<subseteq>
        atm_of ` (lits_of_l (trail S))\<close>
-      using N \<Sigma> cdcl_bab_r_stgy_cdcl_bab_stgy[of S] atms_of_mm_encode_clause_subset[of N]
+      using N \<Sigma> cdcl_bnb_r_stgy_cdcl_bnb_stgy[of S] atms_of_mm_encode_clause_subset[of N]
         atms_of_mm_encode_clause_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma>
         defined_replacement_pos defined_replacement_neg defined_additional_atm defined_all
       unfolding N \<Sigma> N_\<Sigma> (*TODO proof*)
@@ -1445,19 +1445,19 @@ next
   qed
   then show ?B
     using \<open>?A\<close>
-    by (auto simp: cdcl_bab_r_stgy.simps enc_weight_opt.cdcl_bab_stgy.simps
+    by (auto simp: cdcl_bnb_r_stgy.simps enc_weight_opt.cdcl_bnb_stgy.simps
         ocdcl\<^sub>W_o_r.simps enc_weight_opt.ocdcl\<^sub>W_o.simps)
 qed
 
-lemma cdcl_bab_r_stgy_init_clss:
-  \<open>cdcl_bab_r_stgy S T \<Longrightarrow> init_clss S = init_clss T\<close>
-  by (auto simp: cdcl_bab_r_stgy.simps ocdcl\<^sub>W_o_r.simps  enc_weight_opt.cdcl_bab_bj.simps
+lemma cdcl_bnb_r_stgy_init_clss:
+  \<open>cdcl_bnb_r_stgy S T \<Longrightarrow> init_clss S = init_clss T\<close>
+  by (auto simp: cdcl_bnb_r_stgy.simps ocdcl\<^sub>W_o_r.simps  enc_weight_opt.cdcl_bnb_bj.simps
       elim: conflictE propagateE enc_weight_opt.improveE enc_weight_opt.conflict_optE
       odecideE skipE resolveE enc_weight_opt.obacktrackE)
 
-lemma rtranclp_cdcl_bab_r_stgy_init_clss:
-  \<open>cdcl_bab_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> init_clss S = init_clss T\<close>
-  by  (induction rule: rtranclp_induct)(auto simp:  dest: cdcl_bab_r_stgy_init_clss)
+lemma rtranclp_cdcl_bnb_r_stgy_init_clss:
+  \<open>cdcl_bnb_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> init_clss S = init_clss T\<close>
+  by  (induction rule: rtranclp_induct)(auto simp:  dest: cdcl_bnb_r_stgy_init_clss)
 
 lemma [simp]:
   \<open>enc_weight_opt.abs_state (init_state N) = abs_state (init_state N)\<close>
@@ -1466,20 +1466,20 @@ lemma [simp]:
 corollary
   assumes
     \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and dist: \<open>distinct_mset_mset N\<close> and
-    \<open>full cdcl_bab_r_stgy (init_state (penc N)) T \<close>
+    \<open>full cdcl_bnb_r_stgy (init_state (penc N)) T \<close>
   shows
-    \<open>full enc_weight_opt.cdcl_bab_stgy (init_state (penc N)) T\<close>
+    \<open>full enc_weight_opt.cdcl_bnb_stgy (init_state (penc N)) T\<close>
 proof -
   have [simp]: \<open>atms_of_mm (CDCL_W_Abstract_State.init_clss (enc_weight_opt.abs_state T)) =
     atms_of_mm (init_clss T)\<close>
     by (auto simp: enc_weight_opt.abs_state_def init_clss.simps)
   let ?S = \<open>init_state (penc N)\<close>
   have
-    st: \<open>cdcl_bab_r_stgy\<^sup>*\<^sup>* ?S T\<close> and
-    ns: \<open>no_step cdcl_bab_r_stgy T\<close>
+    st: \<open>cdcl_bnb_r_stgy\<^sup>*\<^sup>* ?S T\<close> and
+    ns: \<open>no_step cdcl_bnb_r_stgy T\<close>
     using assms unfolding full_def by metis+
-  have st': \<open>enc_weight_opt.cdcl_bab_stgy\<^sup>*\<^sup>* ?S T\<close>
-    by (rule rtranclp_cdcl_bab_r_stgy_cdcl_bab_stgy[OF _ st])
+  have st': \<open>enc_weight_opt.cdcl_bnb_stgy\<^sup>*\<^sup>* ?S T\<close>
+    by (rule rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_stgy[OF _ st])
       (use atms_of_mm_penc_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma> \<Sigma> in auto)
   have [simp]:
     \<open>CDCL_W_Abstract_State.init_clss (abs_state (init_state (penc N))) =
@@ -1491,49 +1491,49 @@ proof -
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def \<Sigma>
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state T)\<close>
-    using enc_weight_opt.rtranclp_cdcl_bab_stgy_all_struct_inv[of ?S T]
-      enc_weight_opt.rtranclp_cdcl_bab_stgy_cdcl_bab[OF st']
+    using enc_weight_opt.rtranclp_cdcl_bnb_stgy_all_struct_inv[of ?S T]
+      enc_weight_opt.rtranclp_cdcl_bnb_stgy_cdcl_bnb[OF st']
     by auto
   then have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (enc_weight_opt.abs_state T)\<close> and
     lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (enc_weight_opt.abs_state T)\<close>
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast+
   have [simp]: \<open>init_clss T = penc N\<close>
-    using rtranclp_cdcl_bab_r_stgy_init_clss[OF st] by auto
+    using rtranclp_cdcl_bnb_r_stgy_init_clss[OF st] by auto
 
-  have \<open>no_step enc_weight_opt.cdcl_bab_stgy T\<close>
-    by (rule no_step_cdcl_bab_r_stgy_no_step_cdcl_bab_stgy[THEN iffD1, of _ N, OF _ _ _ _ ns])
+  have \<open>no_step enc_weight_opt.cdcl_bnb_stgy T\<close>
+    by (rule no_step_cdcl_bnb_r_stgy_no_step_cdcl_bnb_stgy[THEN iffD1, of _ N, OF _ _ _ _ ns])
       (use  alien atms_of_mm_penc_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma> lev
         in \<open>auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def \<Sigma>
             cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def\<close>)
-  then show \<open>full enc_weight_opt.cdcl_bab_stgy (init_state (penc N)) T\<close>
+  then show \<open>full enc_weight_opt.cdcl_bnb_stgy (init_state (penc N)) T\<close>
     using st' unfolding full_def
     by auto
 qed
 
-lemma cdcl_bab_stgy_no_smaller_propa:
-  \<open>cdcl_bab_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
+lemma cdcl_bnb_stgy_no_smaller_propa:
+  \<open>cdcl_bnb_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
     no_smaller_propa S \<Longrightarrow> no_smaller_propa T\<close>
-  apply (induction rule: cdcl_bab_stgy.induct)
+  apply (induction rule: cdcl_bnb_stgy.induct)
   subgoal
     by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
         conflict.simps propagate.simps improvep.simps conflict_opt.simps
-        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
+        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bnb_bj.simps
         elim!: rulesE)
   subgoal
     by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
         conflict.simps propagate.simps improvep.simps conflict_opt.simps
-        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
+        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bnb_bj.simps
         elim!: rulesE)
   subgoal
     by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
         conflict.simps propagate.simps improvep.simps conflict_opt.simps
-        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
+        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bnb_bj.simps
         elim!: rulesE)
   subgoal
     by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
         conflict.simps propagate.simps improvep.simps conflict_opt.simps
-        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bab_bj.simps
+        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bnb_bj.simps
         elim!: rulesE)
   subgoal for T
     apply (cases rule: ocdcl\<^sub>W_o.cases, assumption; thin_tac \<open>ocdcl\<^sub>W_o S T\<close>)
@@ -1542,7 +1542,7 @@ lemma cdcl_bab_stgy_no_smaller_propa:
       unfolding enc_weight_opt.no_confl_prop_impr.simps
       by auto
     subgoal
-      apply (cases rule: cdcl_bab_bj.cases, assumption; thin_tac \<open>cdcl_bab_bj S T\<close>)
+      apply (cases rule: cdcl_bnb_bj.cases, assumption; thin_tac \<open>cdcl_bnb_bj S T\<close>)
       subgoal
         using no_smaller_propa_tl[of S T]
         by (auto elim: rulesE)
@@ -2407,9 +2407,9 @@ lemma atms_exactly_m_alt_def2:
   by (metis atms_of_def atms_of_s_def atms_exactly_m_alt_def equalityI order_refl total_over_m_def
       total_over_set_alt_def)
 
-lemma (in optimal_encoding) full_cdcl_bab_stgy_weight_sat:
-  \<open>full cdcl_bab_stgy (init_state N) T \<Longrightarrow> distinct_mset_mset N \<Longrightarrow> weight_sat N \<rho> (weight T)\<close>
-  using full_cdcl_bab_stgy_no_conflicting_clause_from_init_state[of N T]
+lemma (in optimal_encoding) full_cdcl_bnb_stgy_weight_sat:
+  \<open>full cdcl_bnb_stgy (init_state N) T \<Longrightarrow> distinct_mset_mset N \<Longrightarrow> weight_sat N \<rho> (weight T)\<close>
+  using full_cdcl_bnb_stgy_no_conflicting_clause_from_init_state[of N T]
   apply (cases \<open>weight T = None\<close>)
   subgoal
     by (auto intro!: weight_sat.intros(2))
