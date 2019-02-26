@@ -2647,6 +2647,99 @@ proof (cases rule: obacktrack.cases)
 qed
 
 
+lemma entails_too_heavy_clauses_if_le:
+  assumes
+    dist: \<open>distinct_mset I\<close> and
+    cons: \<open>consistent_interp (set_mset I)\<close> and
+    tot: \<open>atms_of I = atms_of_mm N\<close> and
+    le: \<open>Some (\<rho> I) < \<rho>' (Some M')\<close>
+  shows
+    \<open>set_mset I \<Turnstile>m too_heavy_clauses N (Some M')\<close>
+proof -
+  show \<open>set_mset I \<Turnstile>m too_heavy_clauses N (Some M')\<close>
+    unfolding true_cls_mset_def
+  proof
+    fix C
+    assume \<open>C \<in># too_heavy_clauses N (Some M')\<close>
+    then obtain x where
+      [simp]: \<open>C = pNeg x\<close> and
+      x: \<open>x \<in> simple_clss (atms_of_mm N)\<close> and
+      we: \<open>\<rho> M' \<le> \<rho> x\<close>
+      unfolding too_heavy_clauses_def
+      by (auto simp: simple_clss_finite)
+    then have \<open>x \<noteq> I\<close>
+      using cdcl_bnb_larger_still_larger[of S T]
+      using le
+      by auto
+    then have \<open>set_mset x \<noteq> set_mset I\<close>
+      using distinct_set_mset_eq_iff[of x I] x dist
+      by (auto simp: simple_clss_def)
+    then have \<open>\<exists>a. ((a \<in># x \<and> a \<notin># I) \<or> (a \<in># I \<and> a \<notin># x))\<close>
+      by auto
+    moreover have not_incl: \<open>\<not>set_mset x \<subseteq> set_mset I\<close>
+      using \<rho>_mono[of I \<open>x\<close>] we le distinct_set_mset_eq_iff[of x I] simple_clssE[OF x]
+	dist cons
+      by auto
+    moreover have \<open>x \<noteq> {#}\<close>
+      using we le cons dist not_incl
+      by (cases \<open>weight S\<close>) auto
+    ultimately obtain L where
+      L_x: \<open>L \<in># x\<close> and
+      \<open>L \<notin># I\<close>
+      by auto
+    moreover have \<open>atms_of x \<subseteq> atms_of I\<close>
+      using simple_clssE[OF x] tot
+      atm_iff_pos_or_neg_lit[of a I] atm_iff_pos_or_neg_lit[of a x]
+      by (auto dest!: multi_member_split)
+    ultimately have \<open>-L \<in># I\<close>
+      using tot simple_clssE[OF x] atm_of_notin_atms_of_iff
+      by auto
+    then show \<open>set_mset I \<Turnstile> C\<close>
+      using L_x by (auto simp: simple_clss_finite pNeg_def dest!: multi_member_split)
+  qed
+qed
+
+
+lemma entails_conflicting_clauses_if_le:
+  fixes M''
+  defines \<open>M' \<equiv> lit_of `# mset M''\<close>
+  assumes
+    dist: \<open>distinct_mset I\<close> and
+    cons: \<open>consistent_interp (set_mset I)\<close> and
+    tot: \<open>atms_of I = atms_of_mm N\<close> and
+    le: \<open>Some (\<rho> I) < \<rho>' (Some M')\<close> and
+    \<open>is_improving_int M M'' N w\<close>
+  shows
+    \<open>set_mset I \<Turnstile>m conflicting_clauses N (weight (update_weight_information M'' S))\<close>
+proof -
+  show ?thesis
+    apply (rule entails_too_heavy_clauses_too_heavy_clauses)
+    subgoal using cons by auto
+    subgoal
+      using assms unfolding is_improving_int_def
+      by (auto simp: total_over_m_alt_def M'_def atms_of_def
+          atms_too_heavy_clauses_Some eq_commute[of _ \<open>atms_of_mm N\<close>]
+          lit_in_set_iff_atm
+	dest: multi_member_split
+	dest!: simple_clssE)
+    subgoal
+      using entails_too_heavy_clauses_if_le[OF assms(2-5)]
+      by (auto simp: M'_def)
+    subgoal
+      using assms unfolding is_improving_int_def
+      by (auto simp: M'_def lits_of_def image_image
+	dest!: simple_clssE)
+    subgoal
+      using assms unfolding is_improving_int_def
+      by (auto simp: M'_def lits_of_def image_image
+	dest!: simple_clssE)
+    subgoal
+      using assms unfolding is_improving_int_def
+      by (auto simp: M'_def lits_of_def image_image
+	dest!: simple_clssE)
+    done
+qed
+
 lemma improve_model_still_model:
   assumes
     \<open>improvep S T\<close> and
@@ -2684,69 +2777,15 @@ proof (cases rule: improvep.cases)
   have tot2: \<open>total_over_m (set_mset I) (set_mset (init_clss S))\<close>
     using tot[symmetric]
     by (auto simp: total_over_m_def total_over_set_def atm_iff_pos_or_neg_lit)
-  have 2: \<open>set_mset I \<Turnstile>m too_heavy_clauses (init_clss T) (weight T)\<close>
-    unfolding true_cls_mset_def
-  proof
-    fix C
-    assume \<open>C \<in># too_heavy_clauses (init_clss T) (weight T)\<close>
-    then obtain x where
-      [simp]: \<open>C = pNeg x\<close> and
-      x: \<open>x \<in> simple_clss (atms_of_mm (init_clss T))\<close> and
-      we: \<open>\<rho>' (weight T) \<le> Some (\<rho> x)\<close>
-      unfolding too_heavy_clauses_def
-      by (auto simp: simple_clss_finite)
-    then have \<open>x \<noteq> I\<close>
-      using cdcl_bnb_larger_still_larger[of S T] cdcl_bnb.intros(3)[OF assms(1)]
-      using le T
-      apply (simp add: )
-      by (smt le_less_trans less_irrefl)
-    then have \<open>set_mset x \<noteq> set_mset I\<close>
-      using distinct_set_mset_eq_iff[of x I] x dist
-      by (auto simp: simple_clss_def)
-    then have \<open>\<exists>a. ((a \<in># x \<and> a \<notin># I) \<or> (a \<in># I \<and> a \<notin># x))\<close>
-      by auto
-    moreover have not_incl: \<open>\<not>set_mset x \<subseteq> set_mset I\<close>
-      using \<rho>_mono[of I \<open>x\<close>] we le T distinct_set_mset_eq_iff[of x I] simple_clssE[OF x]
-        dist cons
-      by (cases \<open>weight S\<close>) auto
-    moreover have \<open>x \<noteq> {#}\<close>
-      using we le T cons dist not_incl
-      by (cases \<open>weight S\<close>) auto
-    ultimately obtain L where
-      L_x: \<open>L \<in># x\<close> and
-      \<open>L \<notin># I\<close>
-      by auto
-    moreover have \<open>atms_of x \<subseteq> atms_of I\<close>
-      using simple_clssE[OF x] tot T
-      atm_iff_pos_or_neg_lit[of a I] atm_iff_pos_or_neg_lit[of a x]
-      by (auto dest!: multi_member_split)
-    ultimately have \<open>-L \<in># I\<close>
-      using tot simple_clssE[OF x] atm_of_notin_atms_of_iff
-      by auto
-    then show \<open>set_mset I \<Turnstile> C\<close>
-      using L_x by (auto simp: simple_clss_finite pNeg_def dest!: multi_member_split)
-  qed
-  then have
+  have
     \<open>set_mset I \<Turnstile>m conflicting_clauses (init_clss S) (weight (update_weight_information M' S))\<close>
-    apply -
-    apply (rule entails_too_heavy_clauses_too_heavy_clauses)
-    subgoal using cons by auto
-    subgoal using tot tot2 dist2 atm_trail taut2
-      by (auto simp: total_over_m_def atms_too_heavy_clauses_Some)
-    subgoal
-      using T by auto
-    subgoal
-      using atm_trail by auto
-    subgoal
-      using taut2 by auto
-    subgoal
-      using dist2 by auto
-    done
+    apply (rule entails_conflicting_clauses_if_le)
+    using T dist cons tot le imp by (auto intro!: )
 
   then have \<open>set_mset I \<Turnstile>m conflicting_clss (update_weight_information M' S)\<close>
     by (auto simp: update_weight_information_def conflicting_clss_def)
   then show ?thesis
-    using ent improve_rule 2 T by auto
+    using ent improve_rule T by auto
 qed
 
 lemma cdcl_bnb_still_model:

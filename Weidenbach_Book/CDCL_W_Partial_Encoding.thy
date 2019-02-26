@@ -976,18 +976,6 @@ inductive cdcl_bnb_r_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<cl
   cdcl_bnb_r_conflict_opt: "enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'" |
   cdcl_bnb_r_other': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_bnb_r_stgy S S'"
 
-lemma reduce_trail_to_compow_tl_trail_le:
-  \<open>length M < length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
-  apply (induction M\<equiv>M S\<equiv>M' arbitrary: M M' rule: reduce_trail_to.induct)
-  subgoal for F S
-    apply (subst reduce_trail_to.simps)
-    apply (cases \<open>length F < length (trail S) - Suc 0\<close>)
-    apply (auto simp: less_iff_Suc_add funpow_swap1)
-    apply (subgoal_tac \<open>k=0\<close>)
-    apply auto
-    by presburger
-  done
-
 lemma ocdcl\<^sub>W_o_r_cases[consumes 1, case_names odecode obacktrack skip resolve]:
   assumes
     \<open>ocdcl\<^sub>W_o_r S T\<close>
