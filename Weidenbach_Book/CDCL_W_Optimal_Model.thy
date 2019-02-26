@@ -125,22 +125,6 @@ We later instantiate it with the optimisation calculus from Weidenbach's book.
 
 
 subsubsection \<open>Helper libraries\<close>
-(*TODO Move*)
-
-lemma in_set_dropI:
-  \<open>m < length xs \<Longrightarrow> m \<ge> n \<Longrightarrow> xs ! m \<in> set (drop n xs)\<close>
-  unfolding in_set_conv_nth
-  by (rule exI[of _ \<open>m - n\<close>]) auto
-
-lemma defined_lit_mono:
-  \<open>defined_lit M2 L \<Longrightarrow> set M2 \<subseteq> set M3 \<Longrightarrow> defined_lit M3 L\<close>
-  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
-
-lemma defined_lit_nth:
-  \<open>n < length M2 \<Longrightarrow> defined_lit M2 (lit_of (M2 ! n))\<close>
-  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def)
-
-(*End Move*)
 
 definition negate_ann_lits :: "('v, 'v clause) ann_lits \<Rightarrow> 'v literal multiset" where
   \<open>negate_ann_lits M = (\<lambda>L. - lit_of L) `# (mset M)\<close>
@@ -250,6 +234,7 @@ lemma exists_lit_max_level_in_negate_ann_lits:
 lemma negate_ann_lits_cons[simp]:
   \<open>negate_ann_lits (L # M) = add_mset (- lit_of L) (negate_ann_lits M)\<close>
   by (auto simp: negate_ann_lits_def)
+
 
 subsubsection \<open>CDCL BAB\<close>
 

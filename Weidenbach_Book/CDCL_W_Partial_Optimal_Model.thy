@@ -57,7 +57,7 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
     using that 1(1) nth_length_takeWhile[of \<open>Not \<circ> is_decided\<close> \<open>trail S\<close>]
     length_takeWhile_le[of \<open>Not \<circ> is_decided\<close> \<open>trail S\<close>]
     unfolding backtrack_split_takeWhile_dropWhile
-    apply (auto simp: )
+    apply auto
     by (metis annotated_lit.exhaust_disc comp_apply nth_mem set_takeWhileD)
   have is_dec_M2[simp]: \<open>filter_mset is_decided (mset M2) = {#}\<close>
     using 1(1) nth_length_takeWhile[of \<open>Not \<circ> is_decided\<close> \<open>trail S\<close>]

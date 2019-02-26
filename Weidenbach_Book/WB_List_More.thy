@@ -212,6 +212,24 @@ lemma in_set_take_conv_nth:
   \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>m<min n (length xs). xs ! m = x)\<close>
   by (metis in_set_conv_nth length_take min.commute min.strict_boundedE nth_take)
 
+lemma in_set_dropI:
+  \<open>m < length xs \<Longrightarrow> m \<ge> n \<Longrightarrow> xs ! m \<in> set (drop n xs)\<close>
+  unfolding in_set_conv_nth
+  by (rule exI[of _ \<open>m - n\<close>]) auto
+
+lemma in_set_drop_conv_nth:
+  \<open>x \<in> set (drop n xs) \<longleftrightarrow> (\<exists>m \<ge> n. m < length xs \<and> xs ! m = x)\<close>
+  apply (rule iffI)
+  subgoal
+    apply (subst (asm) in_set_conv_nth)
+    apply clarsimp
+    apply (rule_tac x = \<open>n+i\<close> in exI)
+    apply (auto)
+    done
+  subgoal
+    by (auto intro: in_set_dropI)
+  done
+
 text \<open>Taken from \<^file>\<open>~~/src/HOL/Word/Word.thy\<close>\<close>
 lemma atd_lem: \<open>take n xs = t \<Longrightarrow> drop n xs = d \<Longrightarrow> xs = t @ d\<close>
   by (auto intro: append_take_drop_id [symmetric])

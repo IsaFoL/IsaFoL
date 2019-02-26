@@ -319,6 +319,14 @@ lemma defined_lit_Pos_atm_iff[simp]:
   \<open>defined_lit M1 (Pos (atm_of x)) \<longleftrightarrow> defined_lit M1 x\<close>
   by (cases x) (auto simp: defined_lit_Neg_Pos_iff)
 
+lemma defined_lit_mono:
+  \<open>defined_lit M2 L \<Longrightarrow> set M2 \<subseteq> set M3 \<Longrightarrow> defined_lit M3 L\<close>
+  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+
+lemma defined_lit_nth:
+  \<open>n < length M2 \<Longrightarrow> defined_lit M2 (lit_of (M2 ! n))\<close>
+  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def)
+
 
 subsection \<open>Backtracking\<close>
 
