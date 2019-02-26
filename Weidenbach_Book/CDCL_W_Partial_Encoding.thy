@@ -4,7 +4,8 @@ begin
 
 
 subsection \<open>Encoding of partial SAT into total SAT\<close>
-definition (in -)DECO_clause :: \<open>('v, 'a) ann_lits \<Rightarrow>  'v clause\<close>where
+
+definition DECO_clause :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v clause\<close> where
   \<open>DECO_clause M = (uminus o lit_of) `# (filter_mset is_decided (mset M))\<close>
 
 lemma
@@ -14,51 +15,6 @@ lemma
     \<open>DECO_clause (Propagated L C # M) = DECO_clause M\<close>
   by (auto simp: DECO_clause_def)
 
-lemma true_clss_cls_neg:
-  \<open>N \<Turnstile>p I \<longleftrightarrow> N \<union> (\<lambda>L. {#-L#}) ` set_mset I \<Turnstile>p {#}\<close>
-proof -
-  have [iff]: \<open> total_over_m Ia ((\<lambda>L. {#- L#}) ` set_mset I) \<longleftrightarrow>
-     total_over_set Ia (atms_of I)\<close> for Ia
-     by (auto simp: total_over_m_def
-       total_over_set_def atms_of_ms_def atms_of_def)
-  show ?thesis
-    apply (auto simp: true_clss_cls_def)
-    apply (metis Ball_CNot_Ball_mset consistent_CNot_not rev_image_eqI true_clss_def)
-     by (smt CNot_add_mset imageE insert_DiffM insert_iff total_not_true_cls_true_clss_CNot total_over_m_empty total_over_m_insert true_clss_def)
-qed
-
-lemma all_decomposition_implies_conflict_DECO_clause:
-  assumes \<open>all_decomposition_implies N (get_all_ann_decomposition M)\<close> and
-    \<open>M \<Turnstile>as CNot C\<close> and
-    \<open>C \<in> N\<close>
-  shows \<open>N \<Turnstile>p DECO_clause M\<close>
-    (is \<open>?I \<Turnstile>p ?A\<close>)
-proof -
-  let ?J = \<open>N \<union> {unmark L |L. is_decided L \<and> L \<in> set M}\<close>
-  have \<open>?J \<Turnstile>ps unmark_s {L |L. is_decided L \<and> L \<in> set M}\<close>
-    by (auto intro: all_in_true_clss_clss)
-  moreover have \<open>{unmark m |m. is_decided m \<and> m \<in> set M} =
-       unmark_s {L \<in> set M. is_decided L}\<close>
-     by auto
-  moreover have \<open>?J \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_ann_decomposition M))\<close>
-    using all_decomposition_implies_trail_is_implied [OF assms(1)]
-    by blast
-  ultimately have H: \<open>N \<union> unmark_s {L \<in> set M. is_decided L}
-    \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_ann_decomposition M))
-      \<union> unmark ` {m |m. is_decided m \<and> m \<in> set M}\<close>
-      by simp
-  have [simp]: \<open>(\<lambda>L. {#- L#}) ` set_mset (DECO_clause M) =
-    unmark_s {L \<in> set M. is_decided L}\<close>
-    by (auto simp: DECO_clause_def image_image)
-  show ?thesis
-    using H
-    apply (subst true_clss_cls_neg)
-    apply auto
-    by (metis (mono_tags, lifting) UnCI
-      \<open>{unmark m |m. is_decided m \<and> m \<in> set M} = unmark_s {L \<in> set M. is_decided L}\<close>
-      all_decomposition_implies_propagated_lits_are_implied assms(1) assms(2) assms(3)
-      true_clss_clss_contradiction_true_clss_cls_false true_clss_clss_true_clss_cls_true_clss_clss)
-qed
 
 text \<open>As a way to make sure we don't reuse theorems names:\<close>
 interpretation test: conflict_driven_clause_learning\<^sub>W_optimal_weight where

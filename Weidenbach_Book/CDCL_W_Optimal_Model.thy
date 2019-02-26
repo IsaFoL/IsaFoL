@@ -125,6 +125,12 @@ We later instantiate it with the optimisation calculus from Weidenbach's book.
 
 
 subsubsection \<open>Helper libraries\<close>
+lemma (in -) Neg_atm_of_itself_uminus_iff: \<open>Neg (atm_of xa) \<noteq> - xa \<longleftrightarrow> is_neg xa\<close>
+  by (cases xa) auto
+
+lemma (in -) Pos_atm_of_itself_uminus_iff: \<open>Pos (atm_of xa) \<noteq> - xa \<longleftrightarrow> is_pos xa\<close>
+  by (cases xa)  auto
+
 
 definition negate_ann_lits :: "('v, 'v clause) ann_lits \<Rightarrow> 'v literal multiset" where
   \<open>negate_ann_lits M = (\<lambda>L. - lit_of L) `# (mset M)\<close>
@@ -2250,50 +2256,6 @@ proof -
   then show \<open>atms_of_mm (too_heavy_clauses M (Some w)) = atms_of_mm M\<close>
     using \<open>atms_of_mm (too_heavy_clauses M (Some w)) \<subseteq> atms_of_mm M\<close> by blast
 qed
-
-lemma (in -) Neg_atm_of_itself_uminus_iff: \<open>Neg (atm_of xa) \<noteq> - xa \<longleftrightarrow> is_neg xa\<close>
-  by (cases xa) auto
-
-lemma (in -) Pos_atm_of_itself_uminus_iff: \<open>Pos (atm_of xa) \<noteq> - xa \<longleftrightarrow> is_pos xa\<close>
-  by (cases xa)  auto
-
-text \<open>This is a slightly restrictive theorem, that encompasses most useful cases.
-  The assumption \<^term>\<open>\<not>tautology C\<close> can be removed if I is total over the clause.
-\<close>
-lemma (in -) true_clss_cls_true_clss_true_cls:
-  assumes \<open>N \<Turnstile>p C\<close>
-    \<open>I \<Turnstile>s N\<close> and
-    cons: \<open>consistent_interp I\<close> and
-    tauto: \<open>\<not>tautology C\<close>
-  shows \<open>I \<Turnstile> C\<close>
-proof -
-  let ?I = \<open>I \<union> uminus ` {L \<in> set_mset C. atm_of L \<notin> atms_of_s I}\<close>
-  let ?I2 = \<open>?I \<union> Pos ` {L \<in> atms_of_ms N. L \<notin> atms_of_s ?I}\<close>
-  have \<open>total_over_m ?I2 (N \<union> {C})\<close>
-    by (auto simp: total_over_m_alt_def atms_of_def in_image_uminus_uminus
-        Neg_atm_of_itself_uminus_iff Pos_atm_of_itself_uminus_iff
-      dest!: multi_member_split)
-  moreover have \<open>consistent_interp ?I2\<close>
-    using cons tauto unfolding consistent_interp_def
-    apply (intro allI)
-    apply (case_tac L)
-    by (auto simp: uminus_lit_swap eq_commute[of \<open>Pos _\<close> \<open>- _\<close>]
-      eq_commute[of \<open>Neg _\<close> \<open>- _\<close>])
-  moreover have \<open>?I2 \<Turnstile>s N\<close>
-    using \<open>I \<Turnstile>s N\<close> by auto
-  ultimately have \<open>?I2 \<Turnstile> C\<close>
-    using assms(1) unfolding true_clss_cls_def by fast
-  then show ?thesis
-    using tauto
-    by (subst (asm) true_cls_remove_alien)
-      (auto simp: true_cls_def in_image_uminus_uminus)
-qed
-
-lemma (in -)true_cls_mset_true_clss_iff:
-  \<open>finite C \<Longrightarrow> I \<Turnstile>m mset_set C \<longleftrightarrow> I \<Turnstile>s C\<close>
-  \<open>I \<Turnstile>m D \<longleftrightarrow> I \<Turnstile>s set_mset D\<close>
-  by (auto simp: true_clss_def true_cls_mset_def Ball_def
-    dest: multi_member_split)
 
 lemma entails_too_heavy_clauses_too_heavy_clauses:
   assumes

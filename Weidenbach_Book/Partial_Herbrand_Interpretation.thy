@@ -676,7 +676,15 @@ lemma total_over_set_atm_of:
   shows "total_over_set I K \<longleftrightarrow> (\<forall>l \<in> K. l \<in> (atm_of ` I))"
   unfolding total_over_set_def by (metis atms_of_s_def in_atms_of_s_decomp)
 
+lemma true_cls_mset_true_clss_iff:
+  \<open>finite C \<Longrightarrow> I \<Turnstile>m mset_set C \<longleftrightarrow> I \<Turnstile>s C\<close>
+  \<open>I \<Turnstile>m D \<longleftrightarrow> I \<Turnstile>s set_mset D\<close>
+  by (auto simp: true_clss_def true_cls_mset_def Ball_def
+    dest: multi_member_split)
+
+
 subsubsection \<open>Tautologies\<close>
+
 text \<open>We define tautologies as clause entailed by every total model and show later that is
   equivalent to containing a literal and its negation.\<close>
 definition "tautology (\<psi>:: 'v clause) \<equiv> \<forall>I. total_over_set I (atms_of \<psi>) \<longrightarrow> I \<Turnstile> \<psi>"
@@ -808,6 +816,7 @@ lemma tautology_distinct_atm_iff:
 lemma not_tautology_minusD:
   \<open>tautology (A - B) \<Longrightarrow> tautology A\<close>
   by (auto simp: tautology_decomp dest: in_diffD)
+
 
 
 subsubsection \<open>Entailment for clauses and propositions\<close>
@@ -1188,6 +1197,39 @@ lemma true_clss_restrict_iff:
   apply (rule HOL.iff_allI)
   apply (auto 5 5 simp: true_cls_def atms_of_s_def dest!: multi_member_split)
   done
+
+
+text \<open>This is a slightly restrictive theorem, that encompasses most useful cases.
+  The assumption \<^term>\<open>\<not>tautology C\<close> can be removed if the model \<^term>\<open>I\<close> is total
+  over the clause.
+\<close>
+lemma true_clss_cls_true_clss_true_cls:
+  assumes \<open>N \<Turnstile>p C\<close>
+    \<open>I \<Turnstile>s N\<close> and
+    cons: \<open>consistent_interp I\<close> and
+    tauto: \<open>\<not>tautology C\<close>
+  shows \<open>I \<Turnstile> C\<close>
+proof -
+  let ?I = \<open>I \<union> uminus ` {L \<in> set_mset C. atm_of L \<notin> atms_of_s I}\<close>
+  let ?I2 = \<open>?I \<union> Pos ` {L \<in> atms_of_ms N. L \<notin> atms_of_s ?I}\<close>
+  have \<open>total_over_m ?I2 (N \<union> {C})\<close>
+    by (auto simp: total_over_m_alt_def atms_of_def in_image_uminus_uminus
+      dest!: multi_member_split)
+  moreover have \<open>consistent_interp ?I2\<close>
+    using cons tauto unfolding consistent_interp_def
+    apply (intro allI)
+    apply (case_tac L)
+    by (auto simp: uminus_lit_swap eq_commute[of \<open>Pos _\<close> \<open>- _\<close>]
+      eq_commute[of \<open>Neg _\<close> \<open>- _\<close>])
+  moreover have \<open>?I2 \<Turnstile>s N\<close>
+    using \<open>I \<Turnstile>s N\<close> by auto
+  ultimately have \<open>?I2 \<Turnstile> C\<close>
+    using assms(1) unfolding true_clss_cls_def by fast
+  then show ?thesis
+    using tauto
+    by (subst (asm) true_cls_remove_alien)
+      (auto simp: true_cls_def in_image_uminus_uminus)
+qed
 
 
 subsection \<open>Subsumptions\<close>

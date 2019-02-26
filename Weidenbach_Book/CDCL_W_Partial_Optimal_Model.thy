@@ -245,7 +245,7 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
     by (auto simp: true_annots_true_cls_def_iff_negation_in_model
       negate_ann_lits_def lits_of_def)
   then have \<open>clauses S + (enc_weight_opt.conflicting_clss S) \<Turnstile>pm DECO_clause (trail S)\<close>
-    apply -
+     unfolding DECO_clause_def apply -
     apply (rule all_decomposition_implies_conflict_DECO_clause[OF decomp_imp,
       of \<open>negate_ann_lits (trail S)\<close>])
     using 1
@@ -255,6 +255,7 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
     by (auto simp: true_annots_true_cls_def_iff_negation_in_model
       lits_of_def)
   have ent: \<open>clauses S + enc_weight_opt.conflicting_clss S \<Turnstile>pm DECO_clause (trail S)\<close>
+    unfolding DECO_clause_def
     by (rule all_decomposition_implies_conflict_DECO_clause[OF decomp_imp,
          of \<open>mset (map (uminus o lit_of) (trail S))\<close>])
       (use neg 1 in \<open>auto simp: negate_ann_lits_def\<close>)

@@ -1049,6 +1049,40 @@ lemma true_clss_clss_CNot_true_clss_cls_unsatisfiable:
       true_cls_empty true_clss_cls_def true_clss_clss_generalise_true_clss_clss
       true_clss_clss_true_clss_cls true_clss_clss_union_false_true_clss_clss_cnot)
 
+lemma true_clss_cls_neg:
+  \<open>N \<Turnstile>p I \<longleftrightarrow> N \<union> (\<lambda>L. {#-L#}) ` set_mset I \<Turnstile>p {#}\<close>
+proof -
+  have [simp]: \<open>(\<lambda>L. {#- L#}) ` set_mset I = CNot I\<close> for I
+    by (auto simp: CNot_def)
+  have [iff]: \<open> total_over_m Ia ((\<lambda>L. {#- L#}) ` set_mset I) \<longleftrightarrow>
+     total_over_set Ia (atms_of I)\<close> for Ia
+    by (auto simp: total_over_m_def
+       total_over_set_def atms_of_ms_def atms_of_def)
+  show ?thesis
+    by (auto simp: true_clss_cls_def consistent_CNot_not
+       total_not_CNot)
+qed
+
+lemma all_decomposition_implies_conflict_DECO_clause:
+  assumes \<open>all_decomposition_implies N (get_all_ann_decomposition M)\<close> and
+    \<open>M \<Turnstile>as CNot C\<close> and
+    \<open>C \<in> N\<close>
+  shows \<open>N \<Turnstile>p (uminus o lit_of) `# (filter_mset is_decided (mset M))\<close>
+    (is \<open>?I \<Turnstile>p ?A\<close>)
+proof -
+  have \<open>{unmark m |m. is_decided m \<and> m \<in> set M} =
+       unmark_s {L \<in> set M. is_decided L}\<close>
+     by auto
+  have \<open>N \<union> unmark_s {L \<in> set M. is_decided L} \<Turnstile>p {#}\<close>
+    by (metis (mono_tags, lifting) UnCI
+      \<open>{unmark m |m. is_decided m \<and> m \<in> set M} = unmark_s {L \<in> set M. is_decided L}\<close>
+      all_decomposition_implies_propagated_lits_are_implied assms
+      true_clss_clss_contradiction_true_clss_cls_false true_clss_clss_true_clss_cls_true_clss_clss)
+  then show ?thesis
+    apply (subst true_clss_cls_neg)
+    by (auto simp: image_image)
+qed
+
 
 subsection \<open>Other\<close>
 
