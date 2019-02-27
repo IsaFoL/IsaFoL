@@ -205,6 +205,10 @@ lemma get_all_mark_of_propagated_append[simp]:
   "get_all_mark_of_propagated (A @ B) = get_all_mark_of_propagated A @ get_all_mark_of_propagated B"
   by (induct A rule: ann_lit_list_induct) auto
 
+lemma get_all_mark_of_propagated_tl_proped:
+  \<open>M \<noteq> [] \<Longrightarrow> is_proped (hd M) \<Longrightarrow> get_all_mark_of_propagated (tl M) = tl (get_all_mark_of_propagated M)\<close>
+  by (induction M rule: ann_lit_list_induct) auto
+
 
 subsubsection \<open>Properties about the levels\<close>
 

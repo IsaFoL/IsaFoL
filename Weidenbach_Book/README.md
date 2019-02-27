@@ -68,7 +68,27 @@ The code of the SAT solver is in the ``code`` folder. To run it:
 
 ## Names Correspondance and Publications
 
-### A Verified SAT Solver with Watched Literals Using Imperative HOL, Accepted at CPP 18 ###
+### A Verified SAT Solver Framework including Optimization and Partial Valuations ###
+
+Version: commit 05aba9aa532589f4313009626dca346babc5a16c
+
+| Paper                   | Theory file                      | Isabelle name                                                             |
+|-------------------------|----------------------------------|---------------------------------------------------------------------------|
+| Lemma 2                 | ``CDCL_W_Optimal_Model``         | ``wf_cdcl_bnb2``   (termination) and                                      |
+|                         |                                  | ``full_cdcl_bnb_stgy_no_conflicting_clss_unsat``                          |
+| Theorem 3               | ``CDCL_W_Optimal_Model``         | ``full_cdcl_bnb_stgy_no_conflicting_clause_from_init_state``              |
+| Lemma 4                 | ``CDCL_W_Optimal_Model``         | Directly formalized with Improve+                                         |
+| ``interpretation CDCL`` | ``CDCL_W_Abstract_State``        | the interpreatation are named ``cdcl\<^sub>W_restart_mset``               |
+| is_improving            | ``CDCL_W_Optimal_Model``         | ``definition is_improving_int`` (line 2176)                               |
+| T_N(O)                  | ``CDCL_W_Optimal_Model``         | ``definition conflicting_clauses`` (line 2198)                            |
+| Isabelle Lemma 5        | ``CDCL_W_Optimal_Model``         | ``entails_conflicting_clauses_if_le``                                     |
+| ``penc``                | ``CDCL_W_Partial_Encoding``      | ``penc``                                                                  |
+| Lemma 6                 | ``CDCL_W_Partial_Encoding``      | ``penc_ent_upostp``  and ``penc_ent_postp``                               |
+| Lemma 7                 | ``CDCL_W_Partial_Encoding``      | ``full_encoding_OCDCL_correctness``                                       |
+| Lemma 8                 | ``CDCL_W_Partial_Encoding``      | Inlined in the proof of ``no_step_cdcl_bnb_r_stgy_no_step_cdcl_bnb_stgy`` |
+| Lemma 9 (ongoing)       | ``CDCL_W_Partial_Optimal_Model`` | ongoing                                                                          |
+
+### A Verified SAT Solver with Watched Literals Using Imperative HOL CPP 18 ###
 
 Version: commit 678b79ae5e865b9cc21081adb091e5baaa802c0b
 
@@ -90,7 +110,7 @@ Version: commit 678b79ae5e865b9cc21081adb091e5baaa802c0b
 |``conflict_is_empty_lookup``| ``IsaSAT_Lookup_Conflict``                  | ``conflict_assn_is_empty``
 
 
-### A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality, submitted ###
+### A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality ###
 
 Version: commit 678b79ae5e865b9cc21081adb091e5baaa802c0b
 
