@@ -1051,6 +1051,23 @@ lemma rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_stgy:
     by(auto dest: cdcl_bnb_r_stgy_cdcl_bnb_stgy)
   done
 
+
+lemma rtranclp_cdcl_bnb_r_all_struct_inv:
+  \<open>cdcl_bnb_r\<^sup>*\<^sup>* S T \<Longrightarrow>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S) \<Longrightarrow>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state T)\<close>
+  using rtranclp_cdcl_bnb_r_cdcl_bnb[of T]
+   enc_weight_opt.rtranclp_cdcl_bnb_stgy_all_struct_inv by blast
+
+lemma rtranclp_cdcl_bnb_r_stgy_all_struct_inv:
+  \<open>cdcl_bnb_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S) \<Longrightarrow>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state T)\<close>
+  using rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_stgy[of T]
+    enc_weight_opt.rtranclp_cdcl_bnb_stgy_all_struct_inv[of S T]
+    enc_weight_opt.rtranclp_cdcl_bnb_stgy_cdcl_bnb[of S T]
+  by auto
+
 end
 
 lemma total_entails_iff_no_conflict:

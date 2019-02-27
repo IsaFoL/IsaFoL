@@ -35,7 +35,7 @@ inductive simple_backtrack_conflict_opt :: \<open>'st \<Rightarrow> 'st \<Righta
     \<open>T \<sim> cons_trail (Propagated (-K) (DECO_clause (trail S)))
       (add_learned_cls (DECO_clause (trail S)) (reduce_trail_to M1 S))\<close>
 
-lemma
+lemma simple_backtrack_conflict_opt_conflict_analysis:
   assumes \<open>simple_backtrack_conflict_opt S U\<close> and
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close>
   shows \<open>\<exists>T T'. enc_weight_opt.conflict_opt S T \<and> resolve\<^sup>*\<^sup>* T T'
@@ -335,6 +335,148 @@ proof (cases rule: simple_backtrack_conflict_opt.cases)
     by blast
 qed
 
+inductive conflict_opt0 :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+  \<open>conflict_opt0 S T\<close>
+  if
+    \<open>count_decided (trail S) = 0\<close> and
+    \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close> and
+    \<open>conflicting S = None\<close> and
+    \<open>T \<sim> update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
+
+
+inductive cdcl_dpll_bnb_r :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+  cdcl_conflict: "conflict S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'" |
+  cdcl_propagate: "propagate S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'" |
+  cdcl_improve: "enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'" |
+  cdcl_conflict_opt0: "conflict_opt0 S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'" |
+  cdcl_simple_backtrack_conflict_opt:
+    \<open>simple_backtrack_conflict_opt S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'\<close> |
+  cdcl_o': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'"
+
+inductive cdcl_dpll_bnb_r_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+  cdcl_dpll_bnb_r_conflict: "conflict S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'" |
+  cdcl_dpll_bnb_r_propagate: "propagate S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'" |
+  cdcl_dpll_bnb_r_improve: "enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'" |
+  cdcl_dpll_bnb_r_conflict_opt0: "conflict_opt0 S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'" |
+  cdcl_dpll_bnb_r_simple_backtrack_conflict_opt:
+    \<open>simple_backtrack_conflict_opt S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'\<close> |
+  cdcl_dpll_bnb_r_other': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'"
+
+lemma conflict_opt0_conflict_opt:
+  \<open>conflict_opt0 S T \<Longrightarrow> enc_weight_opt.conflict_opt S T\<close>
+  by (auto simp: conflict_opt0.simps  enc_weight_opt.conflict_opt.simps)
+
+lemma backtrack_split_some_is_decided_then_snd_has_hd2:
+  \<open>\<exists>l\<in>set M. is_decided l \<Longrightarrow> \<exists>M' L' M''. backtrack_split M = (M'', Decided L' # M')\<close>
+  by (metis backtrack_split_snd_hd_decided backtrack_split_some_is_decided_then_snd_has_hd
+    is_decided_def list.distinct(1) list.sel(1) snd_conv)
+
+lemma no_step_conflict_opt0_simple_backtrack_conflict_opt:
+  \<open>no_step conflict_opt0 S \<Longrightarrow> no_step simple_backtrack_conflict_opt S \<Longrightarrow>
+  no_step enc_weight_opt.conflict_opt S\<close>
+  using backtrack_split_some_is_decided_then_snd_has_hd2[of \<open>trail S\<close>]
+    count_decided_0_iff[of \<open>trail S\<close>]
+  by (fastforce simp: conflict_opt0.simps simple_backtrack_conflict_opt.simps
+    enc_weight_opt.conflict_opt.simps
+    annotated_lit.is_decided_def)
+
+lemma no_step_cdcl_dpll_bnb_r_cdcl_bnb_r:
+  assumes \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close>
+  shows
+    \<open>no_step cdcl_dpll_bnb_r S \<longleftrightarrow> no_step cdcl_bnb_r S\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof
+  assume ?A
+  show ?B
+    using \<open>?A\<close> no_step_conflict_opt0_simple_backtrack_conflict_opt[of S]
+    by (auto simp: cdcl_bnb_r.simps
+      cdcl_dpll_bnb_r.simps all_conj_distrib)
+next
+  assume ?B
+  show ?A
+    using \<open>?B\<close> simple_backtrack_conflict_opt_conflict_analysis[OF _ assms]
+    by (auto simp: cdcl_bnb_r.simps cdcl_dpll_bnb_r.simps all_conj_distrib
+      dest: conflict_opt0_conflict_opt)
+qed
+
+lemma cdcl_dpll_bnb_r_cdcl_bnb_r:
+  assumes \<open>cdcl_dpll_bnb_r S T\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close>
+  shows \<open>cdcl_bnb_r\<^sup>*\<^sup>* S T\<close>
+  using assms
+proof (cases rule: cdcl_dpll_bnb_r.cases)
+  case cdcl_simple_backtrack_conflict_opt
+  then obtain S1 S2 where
+    \<open>enc_weight_opt.conflict_opt S S1\<close>
+    \<open>resolve\<^sup>*\<^sup>* S1 S2\<close> and
+    \<open>enc_weight_opt.obacktrack S2 T\<close>
+    using simple_backtrack_conflict_opt_conflict_analysis[OF _ assms(2), of T]
+    by auto
+  then have \<open>cdcl_bnb_r S S1\<close>
+    \<open>cdcl_bnb_r\<^sup>*\<^sup>* S1 S2\<close>
+    \<open>cdcl_bnb_r S2 T\<close>
+    using  mono_rtranclp[of resolve enc_weight_opt.cdcl_bnb_bj]
+    mono_rtranclp[of enc_weight_opt.cdcl_bnb_bj ocdcl\<^sub>W_o_r]
+    mono_rtranclp[of ocdcl\<^sub>W_o_r cdcl_bnb_r]
+    ocdcl\<^sub>W_o_r.intros enc_weight_opt.cdcl_bnb_bj.resolve
+    cdcl_bnb_r.intros
+    enc_weight_opt.cdcl_bnb_bj.intros
+    by (auto 5 4 dest: cdcl_bnb_r.intros conflict_opt0_conflict_opt)
+  then show ?thesis
+    by auto
+qed (auto 5 4 dest: cdcl_bnb_r.intros conflict_opt0_conflict_opt)
+
+
+context
+  fixes S :: 'st
+  assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = \<Sigma> \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
+     \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
+begin
+lemma cdcl_dpll_bnb_r_all_struct_inv:
+  \<open>cdcl_dpll_bnb_r S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S) \<Longrightarrow>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state T)\<close>
+  using cdcl_dpll_bnb_r_cdcl_bnb_r[of S T]
+    rtranclp_cdcl_bnb_r_all_struct_inv[OF S_\<Sigma>]
+  by auto
+
+end
+
+context
+  fixes S :: 'st
+  assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = \<Sigma> \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
+     \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
+begin
+
+lemma rtranclp_cdcl_dpll_bnb_r_cdcl_bnb_r:
+  assumes \<open>cdcl_dpll_bnb_r\<^sup>*\<^sup>* S T\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close>
+  shows \<open>cdcl_bnb_r\<^sup>*\<^sup>* S T\<close>
+  using assms
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for T U
+    using cdcl_dpll_bnb_r_cdcl_bnb_r[of T U]
+      rtranclp_cdcl_bnb_r_all_struct_inv[OF S_\<Sigma>, of T]
+    by auto
+  done
+
+lemma rtranclp_cdcl_dpll_bnb_r_all_struct_inv:
+  \<open>cdcl_dpll_bnb_r\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S) \<Longrightarrow>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state T)\<close>
+  using rtranclp_cdcl_dpll_bnb_r_cdcl_bnb_r[of T]
+    rtranclp_cdcl_bnb_r_all_struct_inv[OF S_\<Sigma>, of T]
+  by auto
+
+(*TODO: add strategy!*)
+lemma
+  assumes \<open>full cdcl_dpll_bnb_r S T\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close>
+  shows \<open>full cdcl_bnb_r S T\<close>
+  using no_step_cdcl_dpll_bnb_r_cdcl_bnb_r[of T]
+    rtranclp_cdcl_dpll_bnb_r_cdcl_bnb_r[of T]
+    rtranclp_cdcl_dpll_bnb_r_all_struct_inv[of T] assms
+  by (auto simp: full_def)
+
+end
 end
 
 end
