@@ -828,6 +828,8 @@ theorem full_encoding_OCDCL_correctness:
     \<open>weight T \<noteq> None \<Longrightarrow> distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow>
       atms_of I \<subseteq> atms_of_mm N \<Longrightarrow> set_mset I \<Turnstile>sm N \<Longrightarrow>
       \<rho> I \<ge> \<rho> (mset_set (postp (set_mset (the (weight T)))))\<close>
+    \<open>weight T \<noteq> None \<Longrightarrow> ρ\<^sub>e (the (enc_weight_opt.weight T)) =
+      ρ (mset_set (postp (set_mset (the (enc_weight_opt.weight T)))))\<close>
 proof -
   let ?N = \<open>penc N\<close>
   have \<open>distinct_mset_mset (penc N)\<close>
@@ -851,16 +853,57 @@ proof -
   show \<open>?K \<Turnstile>sm N\<close> if \<open>weight T \<noteq> None\<close>
     using penc_ent_postp[OF atms, of \<open>set_mset (the (weight T))\<close>] model[OF that]
     by auto
+
+  assume Some: \<open>weight T \<noteq> None\<close>
+  have Some': \<open>enc_weight_opt.weight T \<noteq> None\<close>
+    using Some by auto
+  have \<open>enc_weight_opt.\<rho>' (weight T) \<le> Some (\<rho> (mset_set ?K))\<close>
+    using Some'
+    apply auto
+    unfolding \<rho>\<^sub>e_def
+    apply (rule \<rho>_mono2)
+    subgoal
+      using model Some' by (auto simp: finite_postp consistent_interp_postp)
+    subgoal by (auto simp: distinct_mset_mset_set)
+    subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
+    subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
+    subgoal
+      apply (subst distinct_subseteq_iff[symmetric])
+      using dist model[OF Some]
+      by (auto simp: postp_def distinct_mset_mset_set filter_filter_mset
+	    intro: distinct_mset_mono[of _ \<open>the (enc_weight_opt.weight T)\<close>])
+    done
+  moreover {
+    have \<open>\<rho> (mset_set ?K) \<le> \<rho>\<^sub>e (the (weight T))\<close>
+      unfolding \<rho>\<^sub>e_def
+      apply (rule \<rho>_mono2)
+      subgoal using model Some' by (auto intro: consistent_interp_subset)
+      subgoal using model Some' by (auto intro: distinct_mset_mono[of _ \<open>the (weight T)\<close>])
+      subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
+      subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
+      subgoal
+	unfolding filter_filter_mset
+	apply (rule filter_mset_mono_subset)
+	subgoal
+	  apply (subst distinct_subseteq_iff[symmetric])
+	  using dist model[OF Some]
+	  by (auto simp: postp_def distinct_mset_mset_set)
+	subgoal by (auto simp: postp_def)
+	done
+      done
+    then have \<open>Some (\<rho> (mset_set ?K)) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
+      using Some by auto
+    } note le =this
+  ultimately show \<open>\<rho>\<^sub>e (the (weight T)) = (\<rho> (mset_set ?K))\<close>
+    using Some' by auto
+
   show \<open>\<rho> I \<ge> \<rho> (mset_set ?K)\<close>
-    if Some: \<open>weight T \<noteq> None\<close> and
-      dist: \<open>distinct_mset I\<close> and
+    if dist: \<open>distinct_mset I\<close> and
       cons: \<open>consistent_interp (set_mset I)\<close> and
       atm: \<open>atms_of I \<subseteq> atms_of_mm N\<close> and
       I_N: \<open>set_mset I \<Turnstile>sm N\<close>
   proof -
     let ?I = \<open>mset_set (upostp (set_mset I))\<close>
-    have Some': \<open>enc_weight_opt.weight T \<noteq> None\<close>
-      using Some by auto
     have [simp]: \<open>finite (upostp (set_mset I))\<close>
       by (rule finite_upostp)
         (use atms in auto)
@@ -901,27 +944,6 @@ proof -
       using Some'
       by auto
     moreover {
-      have \<open>\<rho> (mset_set ?K) \<le> \<rho>\<^sub>e (the (weight T))\<close>
-        unfolding \<rho>\<^sub>e_def
-        apply (rule \<rho>_mono2)
-        subgoal using model Some' by (auto intro: consistent_interp_subset)
-        subgoal using model Some' by (auto intro: distinct_mset_mono[of _ \<open>the (weight T)\<close>])
-        subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
-        subgoal using atms dist model[OF Some] atms \<Delta>\<Sigma>_\<Sigma> by (auto simp: postp_def)
-        subgoal
-          unfolding filter_filter_mset
-          apply (rule filter_mset_mono_subset)
-          subgoal
-            apply (subst distinct_subseteq_iff[symmetric])
-            using dist model[OF Some]
-            by (auto simp: postp_def distinct_mset_mset_set)
-          subgoal by (auto simp: postp_def)
-          done
-        done
-      then have \<open>Some (\<rho> (mset_set ?K)) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
-        using Some by auto
-    }
-    moreover {
       have \<open>\<rho>\<^sub>e (mset_set ?K) \<le> \<rho>\<^sub>e (mset_set (set_mset (the (weight T))))\<close>
         unfolding \<rho>\<^sub>e_def
         apply (rule \<rho>_mono2)
@@ -953,7 +975,7 @@ proof -
         by (auto simp: postp_def)
       done
     ultimately show ?thesis
-      using Some' by auto
+      using Some' le by auto
   qed
 qed
 
