@@ -2,6 +2,19 @@ theory CDCL_W_Partial_Optimal_Model
   imports CDCL_W_Partial_Encoding
 begin
 
+
+lemma (in conflict_driven_clause_learning\<^sub>W_optimal_weight)
+   conflict_opt_state_eq_compatible:
+  \<open>conflict_opt S T \<Longrightarrow> S \<sim> S' \<Longrightarrow> T \<sim> T' \<Longrightarrow> conflict_opt S' T'\<close>
+  using state_eq_trans[of T' T
+    \<open>update_conflicting (Some (negate_ann_lits (trail S'))) S\<close>]
+  using state_eq_trans[of T
+    \<open>update_conflicting (Some (negate_ann_lits (trail S'))) S\<close>
+    \<open>update_conflicting (Some (negate_ann_lits (trail S'))) S'\<close>]
+  update_conflicting_state_eq[of S S' \<open>Some {#}\<close>]
+  apply (auto simp: conflict_opt.simps state_eq_sym)
+  using reduce_trail_to_state_eq state_eq_trans update_conflicting_state_eq by blast
+
 context optimal_encoding
 begin
 
@@ -34,6 +47,8 @@ inductive simple_backtrack_conflict_opt :: \<open>'st \<Rightarrow> 'st \<Righta
     \<open>conflicting S = None\<close> and
     \<open>T \<sim> cons_trail (Propagated (-K) (DECO_clause (trail S)))
       (add_learned_cls (DECO_clause (trail S)) (reduce_trail_to M1 S))\<close>
+
+inductive_cases simple_backtrack_conflict_optE: \<open>simple_backtrack_conflict_opt S T\<close>
 
 lemma simple_backtrack_conflict_opt_conflict_analysis:
   assumes \<open>simple_backtrack_conflict_opt S U\<close> and
@@ -341,8 +356,9 @@ inductive conflict_opt0 :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<clos
     \<open>count_decided (trail S) = 0\<close> and
     \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close> and
     \<open>conflicting S = None\<close> and
-    \<open>T \<sim> update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
+    \<open>T \<sim> update_conflicting (Some {#}) (reduce_trail_to ([] :: ('v, 'v clause) ann_lits) S)\<close>
 
+inductive_cases conflict_opt0E: \<open>conflict_opt0 S T\<close>
 
 inductive cdcl_dpll_bnb_r :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
   cdcl_conflict: "conflict S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'" |
@@ -362,9 +378,174 @@ inductive cdcl_dpll_bnb_r_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> boo
     \<open>simple_backtrack_conflict_opt S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'\<close> |
   cdcl_dpll_bnb_r_other': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'"
 
+lemma no_dup_dropI:
+  \<open>no_dup M \<Longrightarrow> no_dup (drop n M)\<close>
+  by (cases \<open>n < length M\<close>)  (auto simp: no_dup_def drop_map[symmetric])
+
+lemma tranclp_resolve_state_eq_compatible:
+  \<open>resolve\<^sup>+\<^sup>+ S T \<Longrightarrow>T \<sim> T' \<Longrightarrow> resolve\<^sup>+\<^sup>+ S T'\<close>
+  apply (induction arbitrary: T' rule: tranclp_induct)
+  apply (auto dest: resolve_state_eq_compatible)
+  by (metis resolve_state_eq_compatible state_eq_ref tranclp_into_rtranclp tranclp_unfold_end)
+
+lemma conflict_opt0_state_eq_compatible:
+  \<open>conflict_opt0 S T \<Longrightarrow> S \<sim> S' \<Longrightarrow> T \<sim> T' \<Longrightarrow> conflict_opt0 S' T'\<close>
+  using state_eq_trans[of T' T
+    \<open>update_conflicting (Some {#}) (reduce_trail_to ([]::('v,'v clause) ann_lits) S)\<close>]
+  using state_eq_trans[of T
+    \<open>update_conflicting (Some {#}) (reduce_trail_to ([]::('v,'v clause) ann_lits) S)\<close>
+    \<open>update_conflicting (Some {#}) (reduce_trail_to ([]::('v,'v clause) ann_lits) S')\<close>]
+  update_conflicting_state_eq[of S S' \<open>Some {#}\<close>]
+  apply (auto simp: conflict_opt0.simps state_eq_sym)
+  using reduce_trail_to_state_eq state_eq_trans update_conflicting_state_eq by blast
+
+
 lemma conflict_opt0_conflict_opt:
-  \<open>conflict_opt0 S T \<Longrightarrow> enc_weight_opt.conflict_opt S T\<close>
-  by (auto simp: conflict_opt0.simps  enc_weight_opt.conflict_opt.simps)
+  assumes \<open>conflict_opt0 S U\<close> and
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close>
+  shows \<open>\<exists>T. enc_weight_opt.conflict_opt S T \<and> resolve\<^sup>*\<^sup>* T U\<close>
+proof -
+  have
+    1: \<open>count_decided (trail S) = 0\<close> and
+    neg: \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close> and
+    confl: \<open>conflicting S = None\<close> and
+    U: \<open>U \<sim> update_conflicting (Some {#}) (reduce_trail_to ([]::('v,'v clause)ann_lits) S)\<close>
+    using assms by (auto elim: conflict_opt0E)
+  let ?T = \<open>update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
+  have confl: \<open>enc_weight_opt.conflict_opt S ?T\<close>
+    using neg confl
+    by (auto simp: enc_weight_opt.conflict_opt.simps)
+  let ?T = \<open>\<lambda>n. update_conflicting
+    (Some (negate_ann_lits (drop n (trail S))))
+    (reduce_trail_to (drop n (trail S)) S)\<close>
+
+  have proped_M2: \<open>is_proped (trail S ! n)\<close> if \<open>n < length (trail S)\<close> for n
+    using 1 that by (auto simp: count_decided_0_iff is_decided_no_proped_iff)
+  have n_d: \<open>no_dup (trail S)\<close> and
+    le: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (enc_weight_opt.abs_state S)\<close> and
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (enc_weight_opt.abs_state S)\<close> and
+    decomp_imp: \<open>all_decomposition_implies_m (clauses S + (enc_weight_opt.conflicting_clss S))
+      (get_all_ann_decomposition (trail S))\<close> and
+    learned: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (enc_weight_opt.abs_state S)\<close>
+    using inv
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
+  have proped: \<open>\<And>L mark a b.
+      a @ Propagated L mark # b = trail S \<longrightarrow>
+      b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close>
+    using le
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+    by auto
+  have [simp]: \<open>count_decided (drop n (trail S)) = 0\<close> for n
+    using 1 unfolding count_decided_0_iff
+    by (cases \<open>n < length (trail S)\<close>) (auto dest: in_set_dropD)
+  have [simp]: \<open>get_maximum_level (drop n (trail S)) C = 0\<close> for n C
+    using count_decided_ge_get_maximum_level[of \<open>drop n (trail S)\<close> C]
+    by auto
+  have mark_dist: \<open>distinct_mset (mark_of (trail S!n))\<close> if \<open>n < length (trail S)\<close> for n
+    using dist that proped_M2[OF that] nth_mem[OF that]
+    unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+    by (cases \<open>trail S!n\<close>) auto
+
+  have res: \<open>resolve (?T n) (?T (Suc n))\<close> if \<open>n < length (trail S)\<close> for n
+  proof -
+    define L and E where
+      \<open>L = lit_of (trail S ! n)\<close> and
+      \<open>E = mark_of (trail S ! n)\<close>
+    have \<open>hd (drop n (trail S)) = Propagated L E\<close> and
+      tr_Sn: \<open>trail S ! n = Propagated L E\<close>
+      using proped_M2[OF that]
+      by (cases \<open>trail S ! n\<close>; auto simp: that hd_drop_conv_nth L_def E_def; fail)+
+    have \<open>L \<in># E\<close> and
+      ent_E: \<open>drop (Suc n) (trail S) \<Turnstile>as CNot (remove1_mset L E)\<close>
+      using proped[of \<open>take n (trail S)\<close> L E \<open>drop (Suc n) (trail S)\<close>]
+        that unfolding tr_Sn[symmetric]
+      by (auto simp: Cons_nth_drop_Suc)
+    have 1: \<open>negate_ann_lits (drop (Suc n) (trail S)) =
+       (remove1_mset (- L) (negate_ann_lits (drop n (trail S))) \<union>#
+        remove1_mset L E)\<close>
+      apply (subst distinct_set_mset_eq_iff[symmetric])
+      subgoal
+        using n_d by (auto simp: no_dup_dropI)
+      subgoal
+        using n_d mark_dist[OF that] unfolding tr_Sn
+        by (auto intro: distinct_mset_mono no_dup_dropI
+	  intro!: distinct_mset_minus)
+      subgoal
+        using ent_E unfolding tr_Sn[symmetric]
+        by (auto simp: negate_ann_lits_def that
+  	    Cons_nth_drop_Suc[symmetric] L_def lits_of_def
+  	    true_annots_true_cls_def_iff_negation_in_model
+	    uminus_lit_swap
+	  dest!: multi_member_split)
+       done
+    have \<open>update_conflicting (Some (negate_ann_lits (drop (Suc n) (trail S))))
+     (reduce_trail_to (drop (Suc n) (trail S)) S) \<sim>
+    update_conflicting
+     (Some
+       (remove1_mset (- L) (negate_ann_lits (drop n (trail S))) \<union>#
+        remove1_mset L E))
+     (tl_trail
+       (update_conflicting (Some (negate_ann_lits (drop n (trail S))))
+         (reduce_trail_to (drop n (trail S)) S)))\<close>
+      unfolding 1[symmetric]
+      apply (rule state_eq_trans)
+      prefer 2
+      apply (rule state_eq_sym[THEN iffD1])
+      apply (rule update_conflicting_state_eq)
+      apply (rule tl_trail_update_conflicting)
+      apply (rule state_eq_trans)
+      prefer 2
+      apply (rule state_eq_sym[THEN iffD1])
+      apply (rule update_conflicting_update_conflicting)
+      apply (rule state_eq_ref)
+      apply (rule update_conflicting_state_eq)
+      using that
+      by (auto simp: reduce_trail_to_compow_tl_trail funpow_swap1)
+    moreover have \<open>L \<in># E\<close>
+      using proped[of \<open>take n (trail S)\<close> L E \<open>drop (Suc n) (trail S)\<close>]
+        that unfolding tr_Sn[symmetric]
+      by (auto simp: Cons_nth_drop_Suc)
+    moreover have \<open>- L \<in># negate_ann_lits (drop n (trail S))\<close>
+      by (auto simp: negate_ann_lits_def L_def
+        in_set_dropI that)
+      term \<open>get_maximum_level (drop n (trail S))\<close>
+    ultimately show ?thesis apply -
+      by (rule resolve.intros[of _ L E])
+        (use that in \<open>auto simp: trail_reduce_trail_to_drop
+	  \<open>hd (drop n (trail S)) = Propagated L E\<close>\<close>)
+  qed
+  have \<open>resolve\<^sup>*\<^sup>* (?T 0) (?T n)\<close> if \<open>n \<le> length (trail S)\<close> for n
+    using that
+    apply (induction n)
+    subgoal by auto
+    subgoal for n
+      using res[of n] by auto
+    done
+  from this[of \<open>length (trail S)\<close>] have \<open>resolve\<^sup>*\<^sup>* (?T 0) (?T (length (trail S)))\<close>
+    by auto
+  moreover have \<open>?T (length (trail S)) \<sim> U\<close>
+    apply (rule state_eq_trans)
+    prefer 2 apply (rule state_eq_sym[THEN iffD1], rule U)
+    by auto
+  moreover have False if \<open>(?T 0) = (?T (length (trail S)))\<close> and \<open>length (trail S) > 0\<close>
+    using arg_cong[OF that(1), of conflicting] that(2)
+    by (auto simp: negate_ann_lits_def)
+  ultimately have \<open>length (trail S) > 0 \<longrightarrow> resolve\<^sup>*\<^sup>* (?T 0) U\<close>
+    using tranclp_resolve_state_eq_compatible[of \<open>?T 0\<close>
+      \<open>?T (length (trail S))\<close> U] apply (subst (asm) rtranclp_unfold)
+    by (auto simp: )
+  then have ?thesis if \<open>length (trail S) > 0\<close>
+    using confl that by auto
+  moreover have ?thesis if \<open>length (trail S) = 0\<close>
+    using that confl U 
+      enc_weight_opt.conflict_opt_state_eq_compatible[of S \<open>(update_conflicting (Some {#}) S)\<close> S U]
+    by (auto simp: state_eq_sym)
+  ultimately show ?thesis
+    by blast
+qed
+
 
 lemma backtrack_split_some_is_decided_then_snd_has_hd2:
   \<open>\<exists>l\<in>set M. is_decided l \<Longrightarrow> \<exists>M' L' M''. backtrack_split M = (M'', Decided L' # M')\<close>
@@ -394,8 +575,8 @@ next
   assume ?B
   show ?A
     using \<open>?B\<close> simple_backtrack_conflict_opt_conflict_analysis[OF _ assms]
-    by (auto simp: cdcl_bnb_r.simps cdcl_dpll_bnb_r.simps all_conj_distrib
-      dest: conflict_opt0_conflict_opt)
+    by (auto simp: cdcl_bnb_r.simps cdcl_dpll_bnb_r.simps all_conj_distrib assms
+      dest!: conflict_opt0_conflict_opt)
 qed
 
 lemma cdcl_dpll_bnb_r_cdcl_bnb_r:
@@ -423,7 +604,25 @@ proof (cases rule: cdcl_dpll_bnb_r.cases)
     by (auto 5 4 dest: cdcl_bnb_r.intros conflict_opt0_conflict_opt)
   then show ?thesis
     by auto
-qed (auto 5 4 dest: cdcl_bnb_r.intros conflict_opt0_conflict_opt)
+next
+  case cdcl_conflict_opt0
+  then obtain S1 where
+    \<open>enc_weight_opt.conflict_opt S S1\<close>
+    \<open>resolve\<^sup>*\<^sup>* S1 T\<close>
+    using conflict_opt0_conflict_opt[OF _ assms(2), of T]
+    by auto
+  then have \<open>cdcl_bnb_r S S1\<close>
+    \<open>cdcl_bnb_r\<^sup>*\<^sup>* S1 T\<close>
+    using  mono_rtranclp[of resolve enc_weight_opt.cdcl_bnb_bj]
+    mono_rtranclp[of enc_weight_opt.cdcl_bnb_bj ocdcl\<^sub>W_o_r]
+    mono_rtranclp[of ocdcl\<^sub>W_o_r cdcl_bnb_r]
+    ocdcl\<^sub>W_o_r.intros enc_weight_opt.cdcl_bnb_bj.resolve
+    cdcl_bnb_r.intros
+    enc_weight_opt.cdcl_bnb_bj.intros
+    by (auto 5 4 dest: cdcl_bnb_r.intros conflict_opt0_conflict_opt)
+  then show ?thesis
+    by auto
+qed (auto 5 4 dest: cdcl_bnb_r.intros conflict_opt0_conflict_opt simp: assms)
 
 lemma resolve_no_prop_confl: \<open>resolve S T \<Longrightarrow> no_step propagate S \<and> no_step conflict S\<close>
   by (auto elim!: rulesE )
@@ -559,6 +758,70 @@ lemma full_cdcl_dpll_bnb_r_stgy_full_cdcl_bnb_r_stgy:
     dest: cdcl_bnb_r_stgy_cdcl_bnb_r cdcl_bnb_r_stgy_cdcl_dpll_bnb_r_stgy)
 
 end
+
+definition lonely_lit_in_add_only :: \<open>'st \<Rightarrow> bool\<close> where
+\<open>lonely_lit_in_add_only S \<longleftrightarrow>
+  (\<forall>L C. L \<in> \<Delta>\<Sigma> \<longrightarrow> C \<in># clauses S \<longrightarrow> L \<in> atms_of C \<longrightarrow> C \<in># additional_constraint L) \<and>
+  (\<forall>L. L \<in> \<Delta>\<Sigma> \<longrightarrow> conflicting S \<noteq> None \<longrightarrow> L \<in> atms_of (the (conflicting S)) \<longrightarrow>
+    the (conflicting S) \<in># additional_constraint L)\<close>
+
+definition lonely_not_decided :: \<open>'st \<Rightarrow> bool\<close> where
+\<open>lonely_not_decided S \<longleftrightarrow>
+  (\<forall>L. atm_of L \<in> \<Delta>\<Sigma> \<longrightarrow> Decided L \<notin> set (trail S))\<close>
+
+(*TODO Move*)
+lemma backtrack_split_get_all_ann_decompositionD:
+  \<open>backtrack_split M = (a, b) \<Longrightarrow> (b, a) \<in> set (get_all_ann_decomposition M)\<close>
+  using get_all_ann_decomposition_backtrack_split[of M a b]
+  by (cases \<open>get_all_ann_decomposition M\<close>) auto
+
+lemma cdcl_dpll_bnb_r_lonely_not_decided:
+  assumes \<open>cdcl_dpll_bnb_r S T\<close> and
+    \<open>lonely_not_decided S\<close>
+  shows \<open>lonely_not_decided T\<close>
+  using assms
+  by (induction)
+    (auto simp: conflict.simps lonely_not_decided_def
+       ocdcl\<^sub>W_o_r.simps enc_weight_opt.cdcl_bnb_bj.simps
+     elim!: rulesE enc_weight_opt.improveE conflict_opt0E
+       simple_backtrack_conflict_optE odecideE
+       enc_weight_opt.obacktrackE
+     dest!: backtrack_split_get_all_ann_decompositionD in_set_tlD)
+
+lemma
+  assumes \<open>cdcl_dpll_bnb_r S T\<close> and
+    \<open>lonely_lit_in_add_only S\<close> and
+    \<open>lonely_not_decided S\<close>
+  shows \<open>lonely_lit_in_add_only T\<close>
+  using assms
+proof (induction)
+  case (cdcl_conflict S')
+  then show ?case by (auto simp: lonely_lit_in_add_only_def
+    conflict.simps)
+next
+  case (cdcl_propagate S')
+  then show ?case by (auto simp: lonely_lit_in_add_only_def
+    propagate.simps)
+next
+  case (cdcl_improve S')
+  then show ?case
+    by (auto simp: enc_weight_opt.improvep.simps
+      lonely_lit_in_add_only_def)
+next
+  case (cdcl_conflict_opt0 S')
+  then show ?case
+    by (auto simp: conflict_opt0.simps
+      lonely_lit_in_add_only_def)
+next
+  case (cdcl_simple_backtrack_conflict_opt S')
+  then show ?case
+    by (auto simp: lonely_lit_in_add_only_def
+      DECO_clause_def atms_of_def annotated_lit.is_decided_def
+      simple_backtrack_conflict_opt.simps lonely_not_decided_def)
+next
+  case (cdcl_o' S')
+  then show ?case
+oops
 
 end
 
