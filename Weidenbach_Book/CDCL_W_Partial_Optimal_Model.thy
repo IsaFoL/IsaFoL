@@ -425,58 +425,127 @@ proof (cases rule: cdcl_dpll_bnb_r.cases)
     by auto
 qed (auto 5 4 dest: cdcl_bnb_r.intros conflict_opt0_conflict_opt)
 
+lemma resolve_no_prop_confl: \<open>resolve S T \<Longrightarrow> no_step propagate S \<and> no_step conflict S\<close>
+  by (auto elim!: rulesE )
+lemma cdcl_bnb_r_stgy_res:
+  \<open>resolve S T \<Longrightarrow> cdcl_bnb_r_stgy S T\<close>
+    using enc_weight_opt.cdcl_bnb_bj.resolve[of S T]
+    ocdcl\<^sub>W_o_r.intros[of S T]
+    cdcl_bnb_r_stgy.intros[of S T]
+    resolve_no_prop_confl[of S T]
+  by (auto 5 4 dest: cdcl_bnb_r_stgy.intros conflict_opt0_conflict_opt)
+
+lemma rtranclp_cdcl_bnb_r_stgy_res:
+  \<open>resolve\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_bnb_r_stgy\<^sup>*\<^sup>* S T\<close>
+    using mono_rtranclp[of resolve cdcl_bnb_r_stgy]
+    cdcl_bnb_r_stgy_res
+  by (auto)
+
+lemma obacktrack_no_prop_confl: \<open>enc_weight_opt.obacktrack S T \<Longrightarrow> no_step propagate S \<and> no_step conflict S\<close>
+  by (auto elim!: rulesE enc_weight_opt.obacktrackE)
+
+lemma cdcl_bnb_r_stgy_bt:
+  \<open>enc_weight_opt.obacktrack S T \<Longrightarrow> cdcl_bnb_r_stgy S T\<close>
+    using enc_weight_opt.cdcl_bnb_bj.backtrack[of S T]
+    ocdcl\<^sub>W_o_r.intros[of S T]
+    cdcl_bnb_r_stgy.intros[of S T]
+    obacktrack_no_prop_confl[of S T]
+  by (auto 5 4 dest: cdcl_bnb_r_stgy.intros conflict_opt0_conflict_opt)
+
+lemma cdcl_dpll_bnb_r_stgy_cdcl_bnb_r_stgy:
+  assumes \<open>cdcl_dpll_bnb_r_stgy S T\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close>
+  shows \<open>cdcl_bnb_r_stgy\<^sup>*\<^sup>* S T\<close>
+  using assms
+proof (cases rule: cdcl_dpll_bnb_r_stgy.cases)
+  case cdcl_dpll_bnb_r_simple_backtrack_conflict_opt
+  then obtain S1 S2 where
+    \<open>enc_weight_opt.conflict_opt S S1\<close>
+    \<open>resolve\<^sup>*\<^sup>* S1 S2\<close> and
+    \<open>enc_weight_opt.obacktrack S2 T\<close>
+    using simple_backtrack_conflict_opt_conflict_analysis[OF _ assms(2), of T]
+    by auto
+  then have \<open>cdcl_bnb_r_stgy S S1\<close>
+    \<open>cdcl_bnb_r_stgy\<^sup>*\<^sup>* S1 S2\<close>
+    \<open>cdcl_bnb_r_stgy S2 T\<close>
+    using enc_weight_opt.cdcl_bnb_bj.resolve
+    by (auto dest: cdcl_bnb_r_stgy.intros conflict_opt0_conflict_opt
+      rtranclp_cdcl_bnb_r_stgy_res cdcl_bnb_r_stgy_bt)
+  then show ?thesis
+    by auto
+qed (auto 5 4 dest: cdcl_bnb_r_stgy.intros conflict_opt0_conflict_opt)
+
+lemma cdcl_bnb_r_stgy_cdcl_bnb_r:
+  \<open>cdcl_bnb_r_stgy S T \<Longrightarrow> cdcl_bnb_r S T\<close>
+  by (auto simp: cdcl_bnb_r_stgy.simps cdcl_bnb_r.simps)
+
+lemma rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_r:
+  \<open>cdcl_bnb_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_bnb_r\<^sup>*\<^sup>* S T\<close>
+  by (induction rule: rtranclp_induct)
+   (auto dest: cdcl_bnb_r_stgy_cdcl_bnb_r)
 
 context
   fixes S :: 'st
   assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = \<Sigma> \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
      \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
 begin
-lemma cdcl_dpll_bnb_r_all_struct_inv:
-  \<open>cdcl_dpll_bnb_r S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S) \<Longrightarrow>
+lemma cdcl_dpll_bnb_r_stgy_all_struct_inv:
+  \<open>cdcl_dpll_bnb_r_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S) \<Longrightarrow>
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state T)\<close>
-  using cdcl_dpll_bnb_r_cdcl_bnb_r[of S T]
+  using cdcl_dpll_bnb_r_stgy_cdcl_bnb_r_stgy[of S T]
     rtranclp_cdcl_bnb_r_all_struct_inv[OF S_\<Sigma>]
+    rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_r[of S T]
   by auto
 
 end
 
+lemma cdcl_bnb_r_stgy_cdcl_dpll_bnb_r_stgy:
+  \<open>cdcl_bnb_r_stgy S T \<Longrightarrow> \<exists>T. cdcl_dpll_bnb_r_stgy S T\<close>
+  by (meson cdcl_bnb_r_stgy.simps cdcl_dpll_bnb_r_conflict cdcl_dpll_bnb_r_conflict_opt0
+    cdcl_dpll_bnb_r_other' cdcl_dpll_bnb_r_propagate cdcl_dpll_bnb_r_simple_backtrack_conflict_opt
+    cdcl_dpll_bnb_r_stgy.intros(3) no_step_conflict_opt0_simple_backtrack_conflict_opt)
+
 context
   fixes S :: 'st
   assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = \<Sigma> \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
      \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
 begin
 
-lemma rtranclp_cdcl_dpll_bnb_r_cdcl_bnb_r:
-  assumes \<open>cdcl_dpll_bnb_r\<^sup>*\<^sup>* S T\<close> and
+lemma rtranclp_cdcl_dpll_bnb_r_stgy_cdcl_bnb_r:
+  assumes \<open>cdcl_dpll_bnb_r_stgy\<^sup>*\<^sup>* S T\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close>
-  shows \<open>cdcl_bnb_r\<^sup>*\<^sup>* S T\<close>
+  shows \<open>cdcl_bnb_r_stgy\<^sup>*\<^sup>* S T\<close>
   using assms
   apply (induction rule: rtranclp_induct)
   subgoal by auto
   subgoal for T U
-    using cdcl_dpll_bnb_r_cdcl_bnb_r[of T U]
+    using cdcl_dpll_bnb_r_stgy_cdcl_bnb_r_stgy[of T U]
       rtranclp_cdcl_bnb_r_all_struct_inv[OF S_\<Sigma>, of T]
+      rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_r[of S T]
     by auto
   done
 
-lemma rtranclp_cdcl_dpll_bnb_r_all_struct_inv:
-  \<open>cdcl_dpll_bnb_r\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S) \<Longrightarrow>
+lemma rtranclp_cdcl_dpll_bnb_r_stgy_all_struct_inv:
+  \<open>cdcl_dpll_bnb_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S) \<Longrightarrow>
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state T)\<close>
-  using rtranclp_cdcl_dpll_bnb_r_cdcl_bnb_r[of T]
+  using rtranclp_cdcl_dpll_bnb_r_stgy_cdcl_bnb_r[of T]
     rtranclp_cdcl_bnb_r_all_struct_inv[OF S_\<Sigma>, of T]
+    rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_r[of S T]
   by auto
 
-(*TODO: add strategy!*)
-lemma
-  assumes \<open>full cdcl_dpll_bnb_r S T\<close> and
+lemma full_cdcl_dpll_bnb_r_stgy_full_cdcl_bnb_r_stgy:
+  assumes \<open>full cdcl_dpll_bnb_r_stgy S T\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close>
-  shows \<open>full cdcl_bnb_r S T\<close>
+  shows \<open>full cdcl_bnb_r_stgy S T\<close>
   using no_step_cdcl_dpll_bnb_r_cdcl_bnb_r[of T]
-    rtranclp_cdcl_dpll_bnb_r_cdcl_bnb_r[of T]
-    rtranclp_cdcl_dpll_bnb_r_all_struct_inv[of T] assms
-  by (auto simp: full_def)
+    rtranclp_cdcl_dpll_bnb_r_stgy_cdcl_bnb_r[of T]
+    rtranclp_cdcl_dpll_bnb_r_stgy_all_struct_inv[of T] assms
+      rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_r[of S T]
+  by (auto simp: full_def
+    dest: cdcl_bnb_r_stgy_cdcl_bnb_r cdcl_bnb_r_stgy_cdcl_dpll_bnb_r_stgy)
 
 end
+
 end
 
 end
