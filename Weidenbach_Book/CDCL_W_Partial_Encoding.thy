@@ -828,8 +828,8 @@ theorem full_encoding_OCDCL_correctness:
     \<open>weight T \<noteq> None \<Longrightarrow> distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow>
       atms_of I \<subseteq> atms_of_mm N \<Longrightarrow> set_mset I \<Turnstile>sm N \<Longrightarrow>
       \<rho> I \<ge> \<rho> (mset_set (postp (set_mset (the (weight T)))))\<close>
-    \<open>weight T \<noteq> None \<Longrightarrow> ρ\<^sub>e (the (enc_weight_opt.weight T)) =
-      ρ (mset_set (postp (set_mset (the (enc_weight_opt.weight T)))))\<close>
+    \<open>weight T \<noteq> None \<Longrightarrow> \<rho>\<^sub>e (the (enc_weight_opt.weight T)) =
+      \<rho> (mset_set (postp (set_mset (the (enc_weight_opt.weight T)))))\<close>
 proof -
   let ?N = \<open>penc N\<close>
   have \<open>distinct_mset_mset (penc N)\<close>
