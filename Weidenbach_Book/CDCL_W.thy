@@ -480,6 +480,12 @@ lemma reduce_trail_to_compow_tl_trail_eq:
   \<open>length M = length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
   by auto
 
+lemma reduce_trail_to_compow_tl_trail:
+  \<open>length M \<le> length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
+  using reduce_trail_to_compow_tl_trail_eq[of M M']
+    reduce_trail_to_compow_tl_trail_le[of M M']
+  by (cases \<open>length M < length (trail M')\<close>) auto
+
 lemma tl_trail_reduce_trail_to_cons:
   \<open>length (L # M) < length (trail M') \<Longrightarrow> tl_trail (reduce_trail_to (L # M) M') = reduce_trail_to M M'\<close>
   by (auto simp: reduce_trail_to_compow_tl_trail_le funpow_swap1

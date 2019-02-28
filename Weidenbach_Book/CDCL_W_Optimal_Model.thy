@@ -135,6 +135,9 @@ lemma (in -) Pos_atm_of_itself_uminus_iff: \<open>Pos (atm_of xa) \<noteq> - xa 
 definition negate_ann_lits :: "('v, 'v clause) ann_lits \<Rightarrow> 'v literal multiset" where
   \<open>negate_ann_lits M = (\<lambda>L. - lit_of L) `# (mset M)\<close>
 
+lemma negate_ann_lits_empty[simp]: \<open>negate_ann_lits [] = {#}\<close>
+  by (auto simp: negate_ann_lits_def)
+
 lemma entails_CNot_negate_ann_lits:
   \<open>M \<Turnstile>as CNot D \<longleftrightarrow> set_mset D \<subseteq> set_mset (negate_ann_lits M)\<close>
   by (auto simp: true_annots_true_cls_def_iff_negation_in_model

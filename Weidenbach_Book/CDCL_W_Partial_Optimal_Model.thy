@@ -473,6 +473,20 @@ proof (cases rule: cdcl_dpll_bnb_r_stgy.cases)
       rtranclp_cdcl_bnb_r_stgy_res cdcl_bnb_r_stgy_bt)
   then show ?thesis
     by auto
+next
+  case cdcl_dpll_bnb_r_conflict_opt0
+  then obtain S1 where
+    \<open>enc_weight_opt.conflict_opt S S1\<close>
+    \<open>resolve\<^sup>*\<^sup>* S1 T\<close>
+    using conflict_opt0_conflict_opt[OF _ assms(2), of T]
+    by auto
+  then have \<open>cdcl_bnb_r_stgy S S1\<close>
+    \<open>cdcl_bnb_r_stgy\<^sup>*\<^sup>* S1 T\<close>
+    using enc_weight_opt.cdcl_bnb_bj.resolve
+    by (auto dest: cdcl_bnb_r_stgy.intros conflict_opt0_conflict_opt
+      rtranclp_cdcl_bnb_r_stgy_res cdcl_bnb_r_stgy_bt)
+  then show ?thesis
+    by auto
 qed (auto 5 4 dest: cdcl_bnb_r_stgy.intros conflict_opt0_conflict_opt)
 
 lemma cdcl_bnb_r_stgy_cdcl_bnb_r:
