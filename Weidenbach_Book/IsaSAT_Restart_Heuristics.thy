@@ -1700,7 +1700,8 @@ where
         L \<leftarrow> isa_trail_nth M i;
 	C \<leftarrow> get_the_propagation_reason_pol M L;
 	RETURN (L, C)};
-      if C = None then RETURN (i+1, M, N, D, Q, W)
+      ASSERT(C \<noteq> None);
+      if the C = 0 then RETURN (i+1, M, N, D, Q, W)
       else do {
         ASSERT(C \<noteq> None);
         M \<leftarrow> isasat_replace_annot_in_trail M L;
@@ -1809,8 +1810,24 @@ lemma no_dup_nth_proped_dec_notin:
     split: if_splits nat.splits)
   by (metis no_dup_no_propa_and_dec nth_mem)
 
+
+(*TODO Move*)
+lemma RES_ASSERT_moveout:
+  "(\<And>a. a \<in> P \<Longrightarrow> Q a) \<Longrightarrow> do {a \<leftarrow> RES P; ASSERT(Q a); (f a)} =
+   do {a\<leftarrow> RES P; (f a)}"
+  apply (subst order_class.eq_iff)
+  apply (rule conjI)
+  subgoal
+    by (refine_rcg bind_refine_RES[where R=Id, unfolded Down_id_eq])
+      auto
+  subgoal
+    by (refine_rcg bind_refine_RES[where R=Id, unfolded Down_id_eq])
+      auto
+  done
+
+
 lemma get_literal_and_reason:
-  assumes 
+  assumes
     \<open>((k, S), k', T) \<in> nat_rel \<times>\<^sub>f twl_st_heur_restart\<close> and
     \<open>remove_one_annot_true_clause_one_imp_wl_D_pre k' T\<close> and
     proped: \<open>is_proped (rev (fst T) ! k')\<close>
@@ -1840,19 +1857,45 @@ proof -
   define k'' where \<open>k'' \<equiv> length (get_trail_wl T) - Suc k'\<close>
   have k'': \<open>k'' < length (get_trail_wl T)\<close>
     using k' by (auto simp: k''_def)
-  have 1: \<open>(SPEC (\<lambda>p. rev (fst T) ! k' = Propagated (fst p) (snd p))) =
+  have \<open>rev (get_trail_wl T) ! k' = get_trail_wl T ! k''\<close>
+    using k' k'' by (auto simp: k''_def nth_rev)
+  then have \<open>rev_trail_nth (fst T) k' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms (get_clauses_wl T) (get_unit_init_clss_wl T))\<close>
+    using k'' assms nth_mem[OF k']
+    by (auto simp: twl_st_heur_restart_def rev_trail_nth_def
+      trail_pol_alt_def)
+  then have 1: \<open>(SPEC (\<lambda>p. rev (fst T) ! k' = Propagated (fst p) (snd p))) =
     do {
       L \<leftarrow> RETURN (rev_trail_nth (fst T) k');
+      ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms (get_clauses_wl T) (get_unit_init_clss_wl T)));
       C \<leftarrow> (get_the_propagation_reason (fst T) L);
+      ASSERT(C \<noteq> None);
       RETURN (L, the C)
     }\<close>
     using proped dec_notin k' nth_mem[OF k''] no_dup_same_annotD[OF n_d]
-    by (cases \<open>rev (get_trail_wl T) ! k'\<close>)
-      (fastforce simp: RETURN_def RES_RES_RETURN_RES rev_trail_nth_def
+    apply (subst order_class.eq_iff)
+    apply (rule conjI)
+    subgoal
+      unfolding get_the_propagation_reason_def
+      by (cases \<open>rev (get_trail_wl T) ! k'\<close>)
+        (auto simp: RES_RES_RETURN_RES rev_trail_nth_def
+            get_the_propagation_reason_def lits_of_def rev_nth
+  	    RES_RETURN_RES
+          dest: split_list
+	  simp flip: k''_def
+	  intro!: le_SPEC_bindI[of _ \<open>Some (mark_of (get_trail_wl T ! k''))\<close>])
+    subgoal
+      apply (cases \<open>rev (get_trail_wl T) ! k'\<close>) (*TODO proof*)
+      apply  (auto simp: RES_RES_RETURN_RES rev_trail_nth_def
           get_the_propagation_reason_def lits_of_def rev_nth
+	  RES_RETURN_RES RES_ASSERT_moveout
         simp flip: k''_def
         dest: split_list
-        intro!: exI[of _ \<open>Some (mark_of (rev (fst T) ! k'))\<close>])+
+        intro!: exI[of _ \<open>Some (mark_of (rev (fst T) ! k'))\<close>])
+	  apply (subst RES_ASSERT_moveout)
+	  apply (auto simp: RES_RETURN_RES
+        dest: split_list)
+	done
+    done
 
   show ?thesis
     supply RETURN_as_SPEC_refine[refine2 del]
@@ -1864,19 +1907,16 @@ proof -
         of \<open>(all_init_atms (get_clauses_wl T) (get_unit_init_clss_wl T))\<close>])
     subgoal using k' by auto
     subgoal using assms by (cases S; auto dest: twl_st_heur_restart_trailD)
-    subgoal apply auto
-    oops
-    (*
-      sorry
-    subgoal using assms by (cases S; auto dest: twl_st_heur_restart_trailD)
-    subgoal apply auto
-      sorry
+    subgoal by auto
+    subgoal for K K'
+      using assms by (auto simp: twl_st_heur_restart_def)
+    subgoal
+      by auto
     done
 qed
 
-
 lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D:
-  \<open>(uncurry remove_one_annot_true_clause_one_imp_wl_D_heur, 
+  \<open>(uncurry remove_one_annot_true_clause_one_imp_wl_D_heur,
     uncurry remove_one_annot_true_clause_one_imp_wl_D) \<in>
     nat_rel \<times>\<^sub>f twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>nat_rel \<times>\<^sub>f twl_st_heur_restart\<rangle>nres_rel\<close>
   unfolding remove_one_annot_true_clause_one_imp_wl_D_heur_def
@@ -1885,8 +1925,13 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
   apply (refine_rcg get_literal_and_reason)
   subgoal for x y by auto
   subgoal for x y by auto
+  subgoal for x y by auto
+  subgoal for x y by auto
+  subgoal for x y by (cases x; cases y; auto)
+  subgoal
     oops
-  
+find_theorems isasat_replace_annot_in_trail replace_annot_in_trail_spec
+(*
 lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D:
   \<open>(remove_one_annot_true_clause_imp_wl_D_heur, remove_one_annot_true_clause_imp_wl_D) \<in>
     twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
@@ -1951,7 +1996,7 @@ lemma \<open>(x, y) \<in> twl_st_heur \<Longrightarrow>
 oops
 thm isa_find_decomp_wl_imp_find_decomp_wl_imp
   find_theorems isa_find_decomp_wl_imp
-  
+
 lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   \<open>(cdcl_twl_full_restart_wl_D_GC_heur_prog, cdcl_twl_full_restart_wl_D_GC_prog) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
