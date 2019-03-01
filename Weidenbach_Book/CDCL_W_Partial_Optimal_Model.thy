@@ -789,38 +789,102 @@ lemma cdcl_dpll_bnb_r_lonely_not_decided:
      dest!: backtrack_split_get_all_ann_decompositionD in_set_tlD)
 
 lemma
-  assumes \<open>cdcl_dpll_bnb_r S T\<close> and
-    \<open>lonely_lit_in_add_only S\<close> and
-    \<open>lonely_not_decided S\<close>
+  assumes
+    \<open>cdcl_dpll_bnb_r S T\<close> and
+    lone: \<open>lonely_lit_in_add_only S\<close> and
+    ndec: \<open>lonely_not_decided S\<close>
   shows \<open>lonely_lit_in_add_only T\<close>
-  using assms
-proof (induction)
-  case (cdcl_conflict S')
-  then show ?case by (auto simp: lonely_lit_in_add_only_def
+  using assms(1)
+proof (cases)
+  case (cdcl_conflict)
+  then show ?thesis
+    using lone ndec by (auto simp: lonely_lit_in_add_only_def
     conflict.simps)
 next
-  case (cdcl_propagate S')
-  then show ?case by (auto simp: lonely_lit_in_add_only_def
+  case (cdcl_propagate)
+  then show ?thesis
+    using lone ndec by (auto simp: lonely_lit_in_add_only_def
     propagate.simps)
 next
-  case (cdcl_improve S')
-  then show ?case
-    by (auto simp: enc_weight_opt.improvep.simps
+  case (cdcl_improve)
+  then show ?thesis
+    using lone ndec by (auto simp: enc_weight_opt.improvep.simps
       lonely_lit_in_add_only_def)
 next
-  case (cdcl_conflict_opt0 S')
-  then show ?case
-    by (auto simp: conflict_opt0.simps
+  case (cdcl_conflict_opt0)
+  then show ?thesis
+    using lone ndec by (auto simp: conflict_opt0.simps
       lonely_lit_in_add_only_def)
 next
-  case (cdcl_simple_backtrack_conflict_opt S')
-  then show ?case
-    by (auto simp: lonely_lit_in_add_only_def
+  case cdcl_simple_backtrack_conflict_opt
+  then show ?thesis
+    using lone ndec by (auto simp: lonely_lit_in_add_only_def
       DECO_clause_def atms_of_def annotated_lit.is_decided_def
       simple_backtrack_conflict_opt.simps lonely_not_decided_def)
 next
-  case (cdcl_o' S')
-  then show ?case
+  case cdcl_o'
+  then show ?thesis
+  proof cases
+    case decide
+    then show ?thesis
+    using lone ndec by (auto simp: lonely_lit_in_add_only_def
+      DECO_clause_def atms_of_def annotated_lit.is_decided_def
+      odecide.simps lonely_not_decided_def)
+  next
+    case bj
+    then show ?thesis
+    proof cases
+      case skip
+      then show ?thesis
+        using lone ndec by (auto simp: lonely_lit_in_add_only_def
+          DECO_clause_def atms_of_def annotated_lit.is_decided_def
+          skip.simps lonely_not_decided_def)
+    next
+      case backtrack
+      then obtain D L K i M1 M2 D' where
+	conf: "conflicting S = Some (add_mset L D)" and
+	decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
+	lev: "get_level (trail S) L = backtrack_lvl S" and
+	max: "get_level (trail S) L = get_maximum_level (trail S) (add_mset L D')" and
+	max_D: "get_maximum_level (trail S) D' \<equiv> i" and
+	lev_K: "get_level (trail S) K = Suc i" and
+	D'_D: \<open>D' \<subseteq># D\<close> and
+	NU_DL: \<open>clauses S + enc_weight_opt.conflicting_clss S \<Turnstile>pm add_mset L D'\<close> and
+	T: "T \<sim> cons_trail (Propagated L (add_mset L D'))
+		    (reduce_trail_to M1
+		      (add_learned_cls (add_mset L D')
+			(update_conflicting None S)))"
+	by (elim enc_weight_opt.obacktrackE) auto
+      show ?thesis
+        unfolding lonely_lit_in_add_only_def
+      proof (intro conjI allI impI)
+	fix K :: \<open>'v\<close> and C :: \<open>'v literal multiset\<close>
+	assume
+	  \<open>K \<in> \<Delta>\<Sigma>\<close> and
+	  \<open>C \<in># clauses T\<close> and
+	  \<open>K \<in> atms_of C\<close>
+(*	then show \<open>C \<in># additional_constraint K\<close>
+          using lone ndec T conf apply (auto simp: lonely_lit_in_add_only_def
+            DECO_clause_def atms_of_def annotated_lit.is_decided_def
+            enc_weight_opt.obacktrack.simps lonely_not_decided_def)
+	    sorry
+      next
+	fix K :: \<open>'v\<close>
+	assume
+	  \<open>K \<in> \<Delta>\<Sigma>\<close> and
+	  \<open>conflicting T \<noteq> None\<close> and
+	  \<open>K \<in> atms_of (the (conflicting T))\<close>
+	show \<open>the (conflicting T) \<in># additional_constraint K\<close> sorry
+      qed
+    next
+      case resolve
+      then show ?thesis
+        using lone ndec by (auto simp: lonely_lit_in_add_only_def
+          DECO_clause_def atms_of_def annotated_lit.is_decided_def
+          resolve.simps lonely_not_decided_def)
+    qed
+    sorry
+  qed*)
 oops
 
 end
