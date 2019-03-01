@@ -1692,6 +1692,109 @@ where
       RETURN (M, val, lvls, reason[atm_of L := 0], k)
     })\<close>
 
+lemma trail_pol_replace_annot_in_trail_spec:
+  assumes
+    \<open>atm_of x2 < length x1e\<close> and
+    x2: \<open>atm_of x2 \<in># \<A>\<close> and
+    pol: \<open>((x1b, x1c, x1d, x1e, x2d), ys @ Propagated x2 C # zs) \<in> trail_pol \<A>\<close>
+  shows \<open>((x1b, x1c, x1d, x1e[atm_of x2 := 0], x2d), ys @ Propagated x2 0 # zs)
+         \<in> trail_pol \<A>\<close>
+proof -
+  obtain x y where
+    x2d: \<open>x2d = (count_decided (ys @ Propagated x2 C # zs), y)\<close> and
+    reasons: \<open>((map lit_of (rev (ys @ Propagated x2 C # zs)), x1e),
+      ys @ Propagated x2 C # zs)
+     \<in> ann_lits_split_reasons \<A>\<close> and
+    pol: \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<A>.        nat_of_lit L < length x1c \<and>
+        x1c ! nat_of_lit L = polarity (ys @ Propagated x2 C # zs) L\<close> and
+    n_d: \<open>no_dup (ys @ Propagated x2 C # zs)\<close> and
+    lvls: \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<A>. atm_of L < length x1d \<and>
+        x1d ! atm_of L = get_level (ys @ Propagated x2 C # zs) L\<close> and
+    \<open>undefined_lit ys (lit_of (Propagated x2 C))\<close> and
+    \<open>undefined_lit zs (lit_of (Propagated x2 C))\<close> and
+    inA:\<open>\<forall>L\<in>set (ys @ Propagated x2 C # zs). lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
+    cs: \<open>control_stack y (ys @ Propagated x2 C # zs)\<close> and
+    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> (ys @ Propagated x2 C # zs)\<close> and
+    \<open>length (ys @ Propagated x2 C # zs) < uint_max\<close> and
+    \<open>length (ys @ Propagated x2 C # zs) \<le> uint_max div 2 + 1\<close> and
+    \<open>count_decided (ys @ Propagated x2 C # zs) < uint_max\<close> and
+    \<open>length (map lit_of (rev (ys @ Propagated x2 C # zs))) =
+     length (ys @ Propagated x2 C # zs)\<close> and
+    bounded: \<open>isasat_input_bounded \<A>\<close> and
+    x1b: \<open>x1b = map lit_of (rev (ys @ Propagated x2 C # zs))\<close>
+    using pol unfolding trail_pol_alt_def
+    by blast
+  have lev_eq: \<open>get_level (ys @ Propagated x2 C # zs) =
+    get_level (ys @ Propagated x2 0 # zs)\<close>
+    \<open>count_decided (ys @ Propagated x2 C # zs) =
+      count_decided (ys @ Propagated x2 0 # zs)\<close>
+    by (auto simp: get_level_cons_if get_level_append_if)
+  have [simp]: \<open>atm_of x2 < length x1e\<close>
+    using reasons x2 in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
+    by (auto simp: ann_lits_split_reasons_def
+      dest: multi_member_split)
+  have \<open>((x1b, x1e[atm_of x2 := 0]), ys @ Propagated x2 0 # zs)
+       \<in> ann_lits_split_reasons \<A>\<close>
+    using reasons n_d undefined_notin
+    by (auto simp: ann_lits_split_reasons_def x1b
+      DECISION_REASON_def atm_of_eq_atm_of)
+  moreover have n_d': \<open>no_dup (ys @ Propagated x2 0 # zs)\<close>
+    using n_d by auto
+  moreover have \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<A>.
+     nat_of_lit L < length x1c \<and>
+        x1c ! nat_of_lit L = polarity (ys @ Propagated x2 0 # zs) L\<close>
+    using pol by (auto simp: polarity_def)
+  moreover have \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<A>.
+    atm_of L < length x1d \<and>
+           x1d ! atm_of L = get_level (ys @ Propagated x2 0 # zs) L\<close>
+    using lvls by (auto simp: get_level_append_if get_level_cons_if)
+  moreover have \<open>control_stack y (ys @ Propagated x2 0 # zs)\<close>
+    using cs apply -
+    apply (subst control_stack_alt_def[symmetric, OF n_d'])
+    apply (subst (asm) control_stack_alt_def[symmetric, OF n_d])
+    unfolding control_stack'_def lev_eq
+    apply normalize_goal
+    apply (intro ballI conjI)
+    apply (solves auto)
+    unfolding set_append list.set(2) Un_iff insert_iff
+    apply (rule disjE, assumption)
+    subgoal for L
+      by (drule_tac x = L in bspec)
+        (auto simp: nth_append nth_Cons split: nat.splits)
+    apply (rule disjE[of \<open>_ = _\<close>], assumption)
+    subgoal for L
+      by (auto simp: nth_append nth_Cons split: nat.splits)
+    subgoal for L
+      by (drule_tac x = L in bspec)
+        (auto simp: nth_append nth_Cons split: nat.splits)
+    done
+  ultimately show ?thesis
+    using n_d x2 inA bounded
+    unfolding trail_pol_def x2d
+    by simp
+qed
+
+lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
+  \<open>(uncurry isasat_replace_annot_in_trail,
+    uncurry replace_annot_in_trail_spec) \<in>
+    [\<lambda>(M, L). \<exists>C. Propagated L C \<in> set M \<and> atm_of L \<in># \<A>]\<^sub>f trail_pol \<A> \<times>\<^sub>f Id \<rightarrow> \<langle>trail_pol \<A>\<rangle>nres_rel\<close>
+  unfolding isasat_replace_annot_in_trail_def replace_annot_in_trail_spec_def
+    uncurry_def
+  apply (intro frefI nres_relI)
+  apply refine_rcg
+  subgoal
+    using in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
+    by (auto simp: trail_pol_alt_def ann_lits_split_reasons_def)
+  subgoal for x y x1 x2 x1a x1b x2a x1c x2b x1d x2c x1e x2d x2e
+    apply (clarify dest!: split_list[of \<open>Propagated _ _\<close>])
+    apply (rule RETURN_SPEC_refine)
+    apply (rule_tac x = \<open>ys @ Propagated x2 0 # zs\<close> in exI)
+    apply (intro conjI)
+    prefer 2 apply blast
+    apply (auto intro!: trail_pol_replace_annot_in_trail_spec)
+    done
+  done
+
 definition remove_one_annot_true_clause_one_imp_wl_D_heur
   :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (nat \<times> twl_st_wl_heur) nres\<close>
 where
@@ -1887,7 +1990,7 @@ proof -
       apply (cases \<open>rev (get_trail_wl T) ! k'\<close>) (*TODO proof*)
       apply  (auto simp: RES_RES_RETURN_RES rev_trail_nth_def
           get_the_propagation_reason_def lits_of_def rev_nth
-	  RES_RETURN_RES RES_ASSERT_moveout
+	  RES_RETURN_RES
         simp flip: k''_def
         dest: split_list
         intro!: exI[of _ \<open>Some (mark_of (rev (fst T) ! k'))\<close>])
@@ -1914,6 +2017,12 @@ proof -
       by auto
     done
 qed
+lemma extra_information_mark_to_delete_extract_and_remove:
+  \<open>valid_arena N N' vdom \<Longrightarrow> C \<in># dom_m N' \<Longrightarrow> C = C' \<Longrightarrow>
+  RETURN (extra_information_mark_to_delete N C)
+    \<le> \<Down> {(N, (N', C, b)). valid_arena N N' vdom} (extract_and_remove N' C')\<close>
+  by (auto simp: extract_and_remove_def RETURN_RES_refine_iff
+    intro: valid_arena_extra_information_mark_to_delete')
 
 lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D:
   \<open>(uncurry remove_one_annot_true_clause_one_imp_wl_D_heur,
@@ -1922,15 +2031,41 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
   unfolding remove_one_annot_true_clause_one_imp_wl_D_heur_def
     remove_one_annot_true_clause_one_imp_wl_D_def case_prod_beta uncurry_def
   apply (intro frefI nres_relI)
+  subgoal for x y
   apply (refine_rcg get_literal_and_reason)
-  subgoal for x y by auto
-  subgoal for x y by auto
-  subgoal for x y by auto
-  subgoal for x y by auto
-  subgoal for x y by (cases x; cases y; auto)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (cases x; cases y; auto)
+  apply (rule isasat_replace_annot_in_trail_replace_annot_in_trail_spec
+    [of \<open>all_init_atms_st (snd y)\<close>, THEN fref_to_Down_curry])
   subgoal
-    oops
-find_theorems isasat_replace_annot_in_trail replace_annot_in_trail_spec
+    by (cases x, cases y)
+     (fastforce simp: twl_st_heur_restart_def
+       trail_pol_alt_def)+
+  subgoal
+    by (cases x, cases y)
+     (fastforce simp: twl_st_heur_restart_def
+       trail_pol_alt_def)+
+  subgoal
+    unfolding mark_garbage_pre_def
+      arena_is_valid_clause_idx_def
+    apply (cases x, cases y)
+    apply (fastforce simp: twl_st_heur_restart_def)
+    done
+  apply (rule extra_information_mark_to_delete_extract_and_remove[of _ _ \<open>set (get_vdom (snd x))\<close>])
+  subgoal
+    by (cases x, cases y) (fastforce simp: twl_st_heur_restart_def)
+  subgoal
+    by auto
+  subgoal
+    by auto
+  subgoal
+oops
+find_theorems remove_all_annot_true_clause_imp_wl_D_heur
+  remove_all_annot_true_clause_imp_wl_D
+
 (*
 lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D:
   \<open>(remove_one_annot_true_clause_imp_wl_D_heur, remove_one_annot_true_clause_imp_wl_D) \<in>
@@ -1971,9 +2106,6 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
     *)
 
 
-
-
-
 definition cdcl_twl_full_restart_wl_D_GC_heur_prog where
 \<open>cdcl_twl_full_restart_wl_D_GC_heur_prog S = do {
     S \<leftarrow> do {
@@ -2005,4 +2137,5 @@ lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   apply (intro frefI nres_relI)
   apply refine_rcg
   oops
+
 end

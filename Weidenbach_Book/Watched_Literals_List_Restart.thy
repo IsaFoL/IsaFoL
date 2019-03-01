@@ -1743,6 +1743,7 @@ where
       ASSERT(remove_one_annot_true_clause_one_imp_pre i (M, N, D, NE, UE, Q, W));
       ASSERT(is_proped ((rev M)!i));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
+      ASSERT(Propagated L C \<in> set M);
       if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
       else do {
         ASSERT(C \<in># dom_m N);
@@ -2327,6 +2328,11 @@ proof -
       subgoal unfolding U_def Ut_def Uf_def M'' by auto
       done
   qed
+  have rev_set: \<open>rev (get_trail_l T) ! i \<in> set (get_trail_l T)\<close>
+    using assms
+    by (metis length_rev nth_mem rem_one_annot_i_T
+      remove_one_annot_true_clause_one_imp_pre_def set_rev)
+
   show ?thesis
     unfolding remove_one_annot_true_clause_one_imp_def T replace_annot_in_trail_spec_def
       extract_and_remove_def
@@ -2338,6 +2344,9 @@ proof -
       unfolding iT T remove_one_annot_true_clause_imp_inv_def
         remove_one_annot_true_clause_one_imp_pre_def
       by (auto simp add: All_less_Suc rev_map is_decided_no_proped_iff)
+    subgoal
+      using rev_set unfolding T
+      by auto
     subgoal using I length_ST unfolding iT T remove_one_annot_true_clause_imp_inv_def
       remove_one_annot_true_clause_one_imp_pre_def
       by (auto simp add: All_less_Suc)

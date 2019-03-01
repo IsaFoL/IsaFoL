@@ -919,6 +919,7 @@ where
       ASSERT(remove_one_annot_true_clause_one_imp_wl_pre i (M, N, D, NE, UE, Q, W));
       ASSERT(is_proped (rev M ! i));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev M)!i = Propagated L C);
+      ASSERT(Propagated L C \<in> set M);
       if C = 0 then RETURN (i+1, M, N, D, NE, UE, Q, W)
       else do {
         ASSERT(C \<in># dom_m N);
@@ -957,6 +958,7 @@ proof -
     subgoal by (simp add: state_wl_l_def)
     subgoal by (simp add: state_wl_l_def)
     subgoal by simp
+    subgoal by (simp add: state_wl_l_def)
     subgoal by (simp add: state_wl_l_def)
     subgoal by (simp add: state_wl_l_def)
     subgoal by simp
