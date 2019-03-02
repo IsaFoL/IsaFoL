@@ -617,20 +617,19 @@ where
      \<close>
 
 definition remove_all_annot_true_clause_one_imp_heur
-  :: \<open>nat \<times> arena \<Rightarrow> arena nres\<close>
+  :: \<open>nat \<times> nat \<times> arena \<Rightarrow> (nat \<times> arena) nres\<close>
 where
-\<open>remove_all_annot_true_clause_one_imp_heur = (\<lambda>(C, N). do {
-      if arena_status N C = DELETED
-         then RETURN (extra_information_mark_to_delete N C)
-      else do {
-        RETURN N
-      }
+\<open>remove_all_annot_true_clause_one_imp_heur = (\<lambda>(C, j, N). do {
+      case arena_status N C of
+        DELETED \<Rightarrow> RETURN (j, N)
+      | IRRED \<Rightarrow> RETURN (j, extra_information_mark_to_delete N C)
+      | LEARNED \<Rightarrow> RETURN (j-1, extra_information_mark_to_delete N C)
   })\<close>
 
 definition remove_all_annot_true_clause_imp_wl_D_heur_pre where
   \<open>remove_all_annot_true_clause_imp_wl_D_heur_pre L S \<longleftrightarrow>
     (\<exists>S'. (S, S') \<in> twl_st_heur_restart
-      \<and> remove_all_annot_true_clause_imp_wl_D_pre (all_atms_st S') L S')\<close>
+      \<and> remove_all_annot_true_clause_imp_wl_D_pre (all_init_atms_st S') L S')\<close>
 
 
 (* TODO: unfold Let when generating code! *)
@@ -638,30 +637,37 @@ definition remove_all_annot_true_clause_imp_wl_D_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>remove_all_annot_true_clause_imp_wl_D_heur = (\<lambda>L (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       stats). do {
+       stats, fast_ema, slow_ema, ccount, vdom, avdom, lcount, opts). do {
     ASSERT(remove_all_annot_true_clause_imp_wl_D_heur_pre L (M, N0, D, Q, W, vm, \<phi>, clvls,
-       cach, lbd, outl, stats));
+       cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount, opts));
     let xs = W!(nat_of_lit L);
-    (_, N) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, N).
+    (_, lcount', N) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, j, N).
         remove_all_annot_true_clause_imp_wl_D_heur_inv
-           (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats) xs
-           (i, M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats)\<^esup>
-      (\<lambda>(i, N). i < length xs)
-      (\<lambda>(i, N). do {
+           (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+	  fast_ema, slow_ema, ccount, vdom, avdom, lcount, opts) xs
+           (i, M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+	  fast_ema, slow_ema, ccount, vdom, avdom, j, opts)\<^esup>
+      (\<lambda>(i, j, N). i < length xs)
+      (\<lambda>(i, j, N). do {
         ASSERT(i < length xs);
-        if clause_not_marked_to_delete_heur (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats) i
+        if clause_not_marked_to_delete_heur (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+	  fast_ema, slow_ema, ccount, vdom, avdom, lcount, opts) i
         then do {
-          N \<leftarrow> remove_all_annot_true_clause_one_imp_heur (fst (xs!i), N);
+          (j, N) \<leftarrow> remove_all_annot_true_clause_one_imp_heur (fst (xs!i), j, N);
           ASSERT(remove_all_annot_true_clause_imp_wl_D_heur_inv
-             (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats) xs
-             (i, M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats));
-          RETURN (i+1, N)
+             (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+	       fast_ema, slow_ema, ccount, vdom, avdom, lcount, opts) xs
+             (i, M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+	       fast_ema, slow_ema, ccount, vdom, avdom, j, opts));
+          RETURN (i+1, j, N)
         }
         else
-          RETURN (i+1, N)
+          RETURN (i+1, j, N)
       })
-      (0, N0);
-    RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats)
+      (0, lcount, N0);
+    RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+	  fast_ema, slow_ema, ccount, vdom, avdom, lcount', opts)
   })\<close>
 
 
@@ -1928,6 +1934,58 @@ lemma RES_ASSERT_moveout:
       auto
   done
 
+lemma remove_all_annot_true_clause_imp_wl_inv_length_cong:
+  \<open>remove_all_annot_true_clause_imp_wl_inv S xs T \<Longrightarrow>
+    length xs = length ys \<Longrightarrow> remove_all_annot_true_clause_imp_wl_inv S ys T\<close>
+  by (auto simp: remove_all_annot_true_clause_imp_wl_inv_def
+    remove_all_annot_true_clause_imp_inv_def)
+
+lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D:
+  \<open>(uncurry remove_all_annot_true_clause_imp_wl_D_heur,
+    uncurry remove_all_annot_true_clause_imp_wl_D) \<in>
+    [\<lambda>(L, S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S)]\<^sub>f
+    Id \<times>\<^sub>f twl_st_heur_restart \<rightarrow> \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
+  unfolding remove_all_annot_true_clause_imp_wl_D_heur_def
+    remove_all_annot_true_clause_imp_wl_D_def uncurry_def
+  apply (intro frefI nres_relI)
+  subgoal for x y
+  apply (refine_rcg
+    WHILEIT_refine[where R = \<open>{((i::nat, lcount::nat, N'), (j, N, NE)). i = j \<and>
+      valid_arena N' N (set (get_vdom (snd x))) \<and>
+       lcount = size (learned_clss_lf N) \<and>
+       vdom_m (all_init_atms_st (snd y))(get_watched_wl (snd y))
+         N \<subseteq> set (get_vdom (snd x))}\<close>])
+  subgoal for i x2 M x2a N x2b D x2c NE x2d UE x2e WS Q j x1g M' x2g N' x2h
+       D' x2i W' x2j vm x2k \<phi> x2l clvls x2m cach x2n lbd x2o outl x2p stats ss
+    unfolding remove_all_annot_true_clause_imp_wl_D_heur_pre_def
+    apply (rule_tac x=\<open>snd y\<close> in exI)
+    by auto
+  subgoal
+    unfolding twl_st_heur_restart_def
+    by auto
+  subgoal for L x2 M x2a N x2b D x2c NE x2d UE x2e Q WS j x1g M' x2g N' x2h
+      D' x2i W' x2j vm x2k \<phi> x2l clvls x2m cach x2n lbd x2o outl x2p stats
+      x2q fast_ema x2r slow_ema x2s ccount x2t vdom x2u avdom x2v lcount opts t1 t2
+      kN' kNNE k' N2
+    unfolding remove_all_annot_true_clause_imp_wl_D_heur_inv_def
+      prod.case remove_all_annot_true_clause_imp_wl_D_inv_def
+    apply (rule exI[of _ \<open>(M, N, D, NE, UE, Q, WS)\<close>])
+    apply (rule exI[of _ \<open>(M, fst (snd kNNE), D, snd (snd kNNE), UE, Q, WS)\<close>])
+    apply auto
+    apply (simp add: twl_st_heur_restart_def)[]
+    apply (rule remove_all_annot_true_clause_imp_wl_inv_length_cong)
+    apply assumption
+    apply (auto simp add: twl_st_heur_restart_def map_fun_rel_def)[]
+    done
+  subgoal
+    by (auto simp add: twl_st_heur_restart_def map_fun_rel_def)
+  subgoal
+    by (auto simp add: twl_st_heur_restart_def map_fun_rel_def)[]
+  subgoal
+    apply (auto simp add: clause_not_marked_to_delete_heur_def
+      remove_all_annot_true_clause_imp_wl_D_inv_def)[]
+oops
+find_theorems clause_not_marked_to_delete_heur vdom_m
 
 lemma get_literal_and_reason:
   assumes
