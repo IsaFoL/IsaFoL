@@ -37,28 +37,38 @@ where
      (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
         remove_all_annot_true_clause_imp_inv S' xs (i, T')))\<close>
 
+definition remove_all_annot_true_clause_one_imp_wl
+where
+\<open>remove_all_annot_true_clause_one_imp_wl = (\<lambda>(C, S). do {
+      if C \<in># dom_m (get_clauses_wl S) then
+        if irred (get_clauses_wl S) C
+        then RETURN (drop_clause_add_move_init S C)
+        else RETURN (drop_clause S C)
+      else do {
+        RETURN S
+      }
+  })\<close>
+
 definition remove_all_annot_true_clause_imp_wl
   :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> ('v twl_st_wl) nres\<close>
 where
-\<open>remove_all_annot_true_clause_imp_wl = (\<lambda>L (M, N0, D, NE0, UE, Q, W). do {
-    let xs = W L;
-    (_, N, NE) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, N, NE).
-        remove_all_annot_true_clause_imp_wl_inv (M, N0, D, NE0, UE, Q, W) xs
-          (i, M, N, D, NE, UE, Q, W)\<^esup>
-      (\<lambda>(i, N, NE). i < length xs)
-      (\<lambda>(i, N, NE). do {
+\<open>remove_all_annot_true_clause_imp_wl = (\<lambda>L S. do {
+    let xs = get_watched_wl S L;
+    (_, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, T). remove_all_annot_true_clause_imp_wl_inv S xs (i, T)\<^esup>
+      (\<lambda>(i, T). i < length xs)
+      (\<lambda>(i, T). do {
         ASSERT(i < length xs);
         let (C, _, _) = xs!i;
-        if C \<in># dom_m N \<and> length (N \<propto> C) \<noteq> 2
+        if C \<in># dom_m (get_clauses_wl T) \<and> length ((get_clauses_wl T) \<propto> C) \<noteq> 2
         then do {
-          (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (C, N, NE);
-          RETURN (i+1, N, NE)
+          T \<leftarrow> remove_all_annot_true_clause_one_imp_wl (C, T);
+          RETURN (i+1, T)
         }
         else
-          RETURN (i+1, N, NE)
+          RETURN (i+1, T)
       })
-      (0, N0, NE0);
-    RETURN (M, N, D, NE, UE, Q, W)
+      (0, S);
+    RETURN T
   })\<close>
 
 
@@ -702,9 +712,9 @@ private lemma x1r_xo: \<open>x1r \<in># dom_m x1o\<close>
   using xs_x1n_dom x1r_dom
   by auto
 
-
+(*
 lemma remove_all_annot_true_clause_one_imp_le:
-  shows \<open>remove_all_annot_true_clause_one_imp (x1r, x1q, x2q)
+  shows \<open>remove_all_annot_true_clause_one_imp (x1r, T)
          \<le> \<Down> {((N, NE), (N', NE')). N = N' \<and> NE = NE' \<and>
             correct_watching'' (get_trail_wl (snd LS), N, get_conflict_wl (snd LS), NE,
                get_unit_learned_clss_wl (snd LS), literals_to_update_wl(snd LS), get_watched_wl (snd LS))}
@@ -715,7 +725,7 @@ proof -
     by (auto simp: remove_all_annot_true_clause_one_imp_def map_nth
       intro: correct_watching''_fmdrop correct_watching''_fmdrop')
 qed
-
+*)
 
 context
   fixes xa :: \<open>'v clauses_l \<times>
@@ -867,17 +877,6 @@ proof -
       by (auto dest!: multi_member_split[of L'] simp: clause_to_update_def
         dest: in_set_takeD)
   qed
-  have \<open>remove_all_annot_true_clause_one_imp (C, N0, NE0) \<le>
-        \<Down> {((N, NE), (N', NE')). N = N' \<and> NE = NE' \<and>
-            (C \<in># dom_m N0 \<longrightarrow> N = fmdrop C N0 \<and> (irred N0 C' \<longrightarrow> NE' = add_mset (mset (N0\<propto>C)) NE0)
-              \<and> (\<not>irred N0 C' \<longrightarrow> NE' = NE0)) \<and>
-            (C \<notin># dom_m N0 \<longrightarrow> N = N0 \<and>  NE' = NE0)}
-          (remove_all_annot_true_clause_one_imp (C', N', NE'))\<close>
-      (is \<open>_ \<le> \<Down> ?remove_all_one _\<close>)
-    if \<open>(C, C') \<in> Id\<close> and \<open>(N0, N') \<in> Id\<close> and \<open>(NE0, NE') \<in> Id\<close>
-    for C C' N' NE0 NE' N0
-    using that distinct_mset_dom[of N0]
-    unfolding remove_all_annot_true_clause_one_imp_def by (auto simp: distinct_mset_remove1_All)
 
   show ?thesis
     supply [[goals_limit=1]]
@@ -885,11 +884,11 @@ proof -
     unfolding uncurry_def remove_all_annot_true_clause_imp_wl_def
       remove_all_annot_true_clause_imp_def
     subgoal for LS LT
-      apply (refine_rcg H literal_in_watch_list remove_all_annot_true_clause_one_imp_le
+      apply (refine_rcg literal_in_watch_list (*literal_in_watch_list remove_all_annot_true_clause_one_imp_le*)
         WHILEIT_refine[where R=\<open>{((i, N, NE), (i', N', NE')). i = i' \<and> N = N' \<and> NE = NE' \<and>
             correct_watching'' (get_trail_wl (snd LS), N, get_conflict_wl (snd LS), NE,
                get_unit_learned_clss_wl (snd LS), literals_to_update_wl(snd LS), get_watched_wl (snd LS))}\<close>])
-      apply assumption+
+      apply assumption
       subgoal by (rule remove_all_initialisation)
       subgoal by (rule remove_all_annot_true_clause_imp_wl_inv_in_loop)
       subgoal by (auto simp: state_wl_l_def remove_all_annot_true_clause_imp_wl_inv_def)

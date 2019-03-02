@@ -207,27 +207,27 @@ where
 definition remove_all_annot_true_clause_imp_wl_D
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
-\<open>remove_all_annot_true_clause_imp_wl_D = (\<lambda>L (M, N0, D, NE0, UE, Q, W). do {
-    ASSERT(remove_all_annot_true_clause_imp_wl_D_pre (all_init_atms_st (M, N0, D, NE0, UE, Q, W))
-      L (M, N0, D, NE0, UE, Q, W));
-    let xs = W L;
-    (_, N, NE) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, N, NE).
-        remove_all_annot_true_clause_imp_wl_D_inv (M, N0, D, NE0, UE, Q, W) xs
-          (i, M, N, D, NE, UE, Q, W)\<^esup>
-      (\<lambda>(i, N, NE). i < length xs)
-      (\<lambda>(i, N, NE). do {
+\<open>remove_all_annot_true_clause_imp_wl_D = (\<lambda>L S. do {
+    ASSERT(remove_all_annot_true_clause_imp_wl_D_pre (all_init_atms_st S)
+      L S);
+    let xs = get_watched S L;
+    (_, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, T).
+        remove_all_annot_true_clause_imp_wl_D_inv S xs
+          (i, T)\<^esup>
+      (\<lambda>(i, T). i < length xs)
+      (\<lambda>(i, T). do {
         ASSERT(i < length xs);
         let (C, _ , _) = xs ! i;
-        if C \<in># dom_m N \<and> length (N \<propto> C) \<noteq> 2
+        if C \<in># dom_m (get_clauses_wl T) \<and> length ((get_clauses_wl T) \<propto> C) \<noteq> 2
         then do {
-          (N, NE) \<leftarrow> remove_all_annot_true_clause_one_imp (C, N, NE);
-          RETURN (i+1, N, NE)
+          T \<leftarrow> remove_all_annot_true_clause_one_imp (C, T);
+          RETURN (i+1, T)
         }
         else
-          RETURN (i+1, N, NE)
+          RETURN (i+1, T)
       })
-      (0, N0, NE0);
-    RETURN (M, N, D, NE, UE, Q, W)
+      (0, S);
+    RETURN T
   })\<close>
 
 lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_init_itself[iff]:
