@@ -1648,24 +1648,6 @@ next
     using S'U' IH by fastforce
 qed
 
-
-definition (in -) extract_and_remove
-  :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> ('v clauses_l \<times> 'v clause_l \<times> bool) nres\<close>
-where
-  \<open>extract_and_remove N j = do {
-      ASSERT((j :: nat) \<in># dom_m (N :: 'v clauses_l));
-      SPEC(\<lambda>(N' :: 'v clauses_l, C' :: 'v clause_l, b :: bool). N' = fmdrop j N \<and> C' = N\<propto>j \<and>
-         b = irred N j)
-    }\<close>
-
-definition (in -) replace_annot_in_trail_spec :: \<open>('v, nat) ann_lits \<Rightarrow> 'v literal \<Rightarrow>
-    (('v, nat) ann_lits) nres\<close>
-where
-  \<open>replace_annot_in_trail_spec M L = do {
-      ASSERT(L \<in> lits_of_l M);
-      SPEC(\<lambda>M'. \<exists>M2 M1 C. M = M2 @ Propagated L C # M1 \<and> M' = M2 @ Propagated L 0 # M1)
-    }\<close>
-
 definition drop_clause_add_move_init where
   \<open>drop_clause_add_move_init = (\<lambda>(M, N0, D, NE0, UE, Q, W) C.
      (M, fmdrop C N0, D, add_mset (mset (N0 \<propto> C)) NE0, UE, Q, W))\<close>
@@ -2446,9 +2428,8 @@ proof -
     by (metis length_rev nth_mem rem_one_annot_i_T
       remove_one_annot_true_clause_one_imp_pre_def set_rev)
   show ?thesis
-    unfolding remove_one_annot_true_clause_one_imp_def replace_annot_in_trail_spec_def
-      extract_and_remove_def
-    apply (refine_vcg )
+    unfolding remove_one_annot_true_clause_one_imp_def
+    apply refine_vcg
     subgoal using rem_one_annot_i_T unfolding iT T by simp
     subgoal using proped I le
       rtranclp_remove_one_annot_true_clause_map_is_decided_trail[of S T, 
