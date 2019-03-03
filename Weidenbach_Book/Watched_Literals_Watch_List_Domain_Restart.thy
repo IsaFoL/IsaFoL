@@ -28,6 +28,16 @@ definition all_init_atms :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v multiset\<
 
 declare all_init_atms_def[symmetric, simp]
 
+lemma all_init_atms_alt_def:
+  \<open>set_mset (all_init_atms N NE) = atms_of_mm (mset `# init_clss_lf N) \<union> atms_of_mm NE\<close>
+  unfolding all_init_atms_def all_init_lits_def
+  by (auto simp: in_all_lits_of_mm_ain_atms_of_iff
+      all_lits_of_mm_def atms_of_ms_def image_UN
+      atms_of_def
+    dest!: multi_member_split[of \<open>(_, _)\<close> \<open>ran_m N\<close>]
+    dest: multi_member_split atm_of_lit_in_atms_of
+    simp del: set_image_mset)
+
 abbreviation all_init_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<close> where
   \<open>all_init_atms_st S \<equiv> atm_of `# all_init_lits_st S\<close>
 
@@ -300,9 +310,69 @@ definition remove_one_annot_true_clause_one_imp_wl_D_pre where
      remove_one_annot_true_clause_one_imp_wl_pre i T \<and>
      literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T) T\<close>
 
+definition remove_one_annot_true_clause_one_imp_wl_D
+  :: \<open>nat \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres\<close>
+where
+\<open>remove_one_annot_true_clause_one_imp_wl_D = (\<lambda>i S. do {
+      ASSERT(remove_one_annot_true_clause_one_imp_wl_D_pre i S);
+      ASSERT(is_proped (rev (get_trail_wl S) ! i));
+      (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev (get_trail_wl S))!i = Propagated L C);
+      ASSERT(Propagated L C \<in> set (get_trail_wl S));
+      ASSERT(atm_of L \<in># all_init_atms_st S);
+      if C = 0 then RETURN (i+1, S)
+      else do {
+        ASSERT(C \<in># dom_m (get_clauses_wl S));
+	T \<leftarrow> replace_annot_l L C S;
+	ASSERT(get_clauses_wl S = get_clauses_wl T);
+	T \<leftarrow> remove_and_add_cls_l C T;
+        \<comment> \<open>S \<leftarrow> remove_all_annot_true_clause_imp_wl L S;\<close>
+        RETURN (i+1, T)
+      }
+  })\<close>
+
+lemma remove_one_annot_true_clause_one_imp_wl_pre_in_trail_in_all_init_atms_st:
+  assumes
+    inv: \<open>remove_one_annot_true_clause_one_imp_wl_D_pre K S\<close> and
+    LC_tr: \<open>Propagated L C \<in> set (get_trail_wl S)\<close>
+  shows \<open>atm_of L \<in># all_init_atms_st S\<close>
+proof -
+  obtain x xa where
+    Sx: \<open>(S, x) \<in> state_wl_l None\<close> and
+    \<open>correct_watching'' S\<close> and
+    \<open>twl_list_invs x\<close> and
+    \<open>K < length (get_trail_l x)\<close> and
+    \<open>twl_list_invs x\<close> and
+    \<open>get_conflict_l x = None\<close> and
+    \<open>clauses_to_update_l x = {#}\<close> and
+    x_xa: \<open>(x, xa) \<in> twl_st_l None\<close> and
+    struct: \<open>twl_struct_invs xa\<close>
+    using inv
+    unfolding remove_one_annot_true_clause_one_imp_wl_pre_def
+      remove_one_annot_true_clause_one_imp_pre_def
+      remove_one_annot_true_clause_one_imp_wl_D_pre_def
+    by blast
+  have \<open>L \<in> lits_of_l (trail (state\<^sub>W_of xa))\<close>
+    using LC_tr Sx x_xa
+    by (force simp: twl_st twl_st_l twl_st_wl lits_of_def)
+  moreover have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of xa)\<close>
+    using struct unfolding twl_struct_invs_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast
+  ultimately have \<open>atm_of L \<in> atms_of_mm (init_clss (state\<^sub>W_of xa))\<close>
+    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (auto simp: twl_st twl_st_l twl_st_wl)
+  then have \<open>atm_of L \<in> atms_of_mm (mset `# (init_clss_lf (get_clauses_wl S)) +
+      get_unit_init_clss_wl S)\<close>
+    using Sx x_xa
+    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (auto simp: twl_st twl_st_l twl_st_wl)
+  then show ?thesis
+    by (auto simp: all_init_atms_alt_def)
+qed
+
 
 lemma remove_one_annot_true_clause_one_imp_wl_D_remove_one_annot_true_clause_one_imp_wl:
-  \<open>(uncurry remove_one_annot_true_clause_one_imp_wl,
+  \<open>(uncurry remove_one_annot_true_clause_one_imp_wl_D,
     uncurry remove_one_annot_true_clause_one_imp_wl) \<in>
    nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S} \<rightarrow>\<^sub>f
      \<langle>nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<rangle>nres_rel\<close>
@@ -341,8 +411,8 @@ proof -
 	  init_clss_l_fmdrop_irrelev)
   show ?thesis
     supply [[goals_limit=1]]
-    unfolding uncurry_def
-      remove_one_annot_true_clause_one_imp_wl_def
+    unfolding uncurry_def remove_one_annot_true_clause_one_imp_wl_def
+      remove_one_annot_true_clause_one_imp_wl_D_def
     apply (intro frefI nres_relI)
     subgoal for x y
       apply (refine_vcg
@@ -352,6 +422,9 @@ proof -
       subgoal unfolding remove_one_annot_true_clause_one_imp_wl_D_pre_def by auto
       subgoal by auto
       subgoal by auto
+      subgoal by auto
+      subgoal for K S K' S' LC LC' L C L' C'
+        by (rule remove_one_annot_true_clause_one_imp_wl_pre_in_trail_in_all_init_atms_st)
       subgoal by auto
       subgoal by auto
       subgoal by auto
@@ -365,7 +438,6 @@ proof -
       subgoal by auto
       done
     done
-
 qed
 
 definition remove_one_annot_true_clause_imp_wl_D_inv where
@@ -381,7 +453,7 @@ where
       \<or> (count_decided (get_trail_wl S) = 0 \<and> k = length (get_trail_wl S)));
     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>remove_one_annot_true_clause_imp_wl_D_inv S\<^esup>
       (\<lambda>(i, S). i < k)
-      (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl i S)
+      (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl_D i S)
       (0, S);
     RETURN S
   })\<close>
