@@ -2211,8 +2211,11 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
 definition cdcl_twl_full_restart_wl_D_GC_heur_prog where
 \<open>cdcl_twl_full_restart_wl_D_GC_heur_prog S = do {
     S \<leftarrow> do {
+      if count_decided_st_heur S > 0
+      then do {
         S \<leftarrow> find_decomp_wl_st_int 0 S;
         empty_Q S
+      } else RETURN S
     };
     T \<leftarrow> remove_one_annot_true_clause_imp_wl_D_heur S;
     U \<leftarrow> mark_to_delete_clauses_wl_D_heur T;
@@ -2220,23 +2223,201 @@ definition cdcl_twl_full_restart_wl_D_GC_heur_prog where
     RETURN V
   }\<close>
 
-lemma \<open>(x, y) \<in> twl_st_heur \<Longrightarrow>
-          find_decomp_wl_st_int 0 x \<bind> empty_Q
-          \<le> \<Down> twl_st_heur (cdcl_twl_local_restart_wl_spec0 y)\<close>
-  apply (cases x; cases y)
-  unfolding find_decomp_wl_st_int_def empty_Q_def
-  apply simp
-  apply (auto simp: )
-oops
 
+lemma RES_RETURN_RES5:
+   \<open>SPEC \<Phi> \<bind> (\<lambda>(T1, T2, T3, T4, T5). RETURN (f T1 T2 T3 T4 T5)) =
+    RES ((\<lambda>(a, b, c, d, e). f a b c d e) ` {T. \<Phi> T})\<close>
+  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>\<lambda>(a, b, c, d, e). f a b c d e\<close>]
+  apply (subst (asm)(2) split_prod_bound)
+  apply (subst (asm)(3) split_prod_bound)
+  apply (subst (asm)(4) split_prod_bound)
+  apply (subst (asm)(5) split_prod_bound)
+  by simp
+
+lemma RES_RETURN_RES6:
+   \<open>SPEC \<Phi> \<bind> (\<lambda>(T1, T2, T3, T4, T5, T6). RETURN (f T1 T2 T3 T4 T5 T6)) =
+    RES ((\<lambda>(a, b, c, d, e, f'). f a b c d e f') ` {T. \<Phi> T})\<close>
+  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>\<lambda>(a, b, c, d, e, f'). f a b c d e f'\<close>]
+  apply (subst (asm)(2) split_prod_bound)
+  apply (subst (asm)(3) split_prod_bound)
+  apply (subst (asm)(4) split_prod_bound)
+  apply (subst (asm)(5) split_prod_bound)
+  apply (subst (asm)(6) split_prod_bound)
+  by simp
+
+lemma RES_RETURN_RES7:
+   \<open>SPEC \<Phi> \<bind> (\<lambda>(T1, T2, T3, T4, T5, T6, T7). RETURN (f T1 T2 T3 T4 T5 T6 T7)) =
+    RES ((\<lambda>(a, b, c, d, e, f', g). f a b c d e f' g) ` {T. \<Phi> T})\<close>
+  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>\<lambda>(a, b, c, d, e, f', g). f a b c d e f' g\<close>]
+  apply (subst (asm)(2) split_prod_bound)
+  apply (subst (asm)(3) split_prod_bound)
+  apply (subst (asm)(4) split_prod_bound)
+  apply (subst (asm)(5) split_prod_bound)
+  apply (subst (asm)(6) split_prod_bound)
+  apply (subst (asm)(7) split_prod_bound)
+  by simp
+
+definition find_decomp_wl0 where
+  \<open>find_decomp_wl0 = (\<lambda>(M, N, D, NE, UE, Q, W) (M', N', D', NE', UE', Q', W').
+	 (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
+	    count_decided M' = 0) \<and>
+	  (N', D', NE', UE', Q', W') = (N, D, NE, UE, Q, W))\<close>
+
+definition empty_Q_wl :: \<open>_\<close> where
+\<open>empty_Q_wl = (\<lambda>(M', N, D, NE, UE, _, W). (M', N, D, NE, UE, {#}, W))\<close>
+
+lemma cdcl_twl_local_restart_wl_spec0_alt_def:
+  \<open>cdcl_twl_local_restart_wl_spec0 = (\<lambda>S.
+    if count_decided (get_trail_wl S) > 0
+    then do {
+      T \<leftarrow> SPEC(find_decomp_wl0 S);
+      RETURN (empty_Q_wl T)
+    } else RETURN S)\<close>
+  by (intro ext; case_tac S)
+    (fastforce simp: cdcl_twl_local_restart_wl_spec0_def
+	RES_RETURN_RES2 image_iff RES_RETURN_RES
+	find_decomp_wl0_def empty_Q_wl_def
+      dest: get_all_ann_decomposition_exists_prepend)
+
+lemma cdcl_twl_local_restart_wl_spec0:
+  assumes Sy:  \<open>(S, y) \<in> twl_st_heur_restart\<close> and
+    \<open>get_conflict_wl y = None\<close>
+  shows \<open>do {
+      if count_decided_st_heur S > 0
+      then do {
+        S \<leftarrow> find_decomp_wl_st_int 0 S;
+        empty_Q S
+      } else RETURN S
+    }
+         \<le> \<Down> twl_st_heur_restart (cdcl_twl_local_restart_wl_spec0 y)\<close>
+proof -
+  define upd :: \<open>_ \<Rightarrow> _ \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+    \<open>upd M' vm = (\<lambda> (_, N, D, Q, W, _, \<phi>, clvls, cach, lbd, stats).
+       (M', N, D, Q, W, vm, \<phi>, clvls, cach, lbd, stats))\<close>
+     for M' :: trail_pol and vm
+  have find_decomp_wl_st_int_alt_def:
+    \<open>find_decomp_wl_st_int = (\<lambda>highest S. do{
+      (M', vm) \<leftarrow> isa_find_decomp_wl_imp (get_trail_wl_heur S) highest (get_vmtf_heur S);
+      RETURN (upd M' vm S)
+    })\<close>
+    unfolding upd_def find_decomp_wl_st_int_def
+    by (auto intro!: ext)
+
+  have [refine0]: \<open>do {
+	  (M', vm) \<leftarrow>
+	    isa_find_decomp_wl_imp (get_trail_wl_heur S) 0 (get_vmtf_heur S);
+	  RETURN (upd M' vm S)
+	} \<le> \<Down> {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+	  ccount,
+       vdom, avdom, lcount, opts),
+     T).
+       ((M', N', D', isa_length_trail M', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema,
+         slow_ema, restart_info_restart_done ccount, vdom, avdom, lcount, opts),
+	  (empty_Q_wl T)) \<in> twl_st_heur_restart \<and>
+	  isa_length_trail_pre M'} (SPEC (find_decomp_wl0 y))\<close>
+     (is \<open>_ \<le> \<Down> ?A _\<close>)
+    if
+      \<open>0 < count_decided_st_heur S\<close> and
+      \<open>0 < count_decided (get_trail_wl y)\<close>
+  proof -
+    have A:
+      \<open>?A = {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+	  ccount,
+       vdom, avdom, lcount, opts),
+     T).
+       ((M', N', D', length (get_trail_wl T), W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema,
+         slow_ema, restart_info_restart_done ccount, vdom, avdom, lcount, opts),
+	  (empty_Q_wl T)) \<in> twl_st_heur_restart \<and>
+	  isa_length_trail_pre M'}\<close>
+	  supply[[goals_limit=1]]
+      apply (rule ; rule)
+      subgoal for x
+        apply clarify
+	apply (frule twl_st_heur_restart_isa_length_trail_get_trail_wl)
+        by (auto simp:  trail_pol_def empty_Q_wl_def
+            isa_length_trail_def
+          dest!: ann_lits_split_reasons_map_lit_of)
+      subgoal for x
+        apply clarify
+	apply (frule twl_st_heur_restart_isa_length_trail_get_trail_wl)
+        by (auto simp:  trail_pol_def empty_Q_wl_def
+            isa_length_trail_def
+          dest!: ann_lits_split_reasons_map_lit_of)
+      done
+
+    let ?\<A> = \<open>all_init_atms_st y\<close>
+    have \<open>get_vmtf_heur S \<in> isa_vmtf ?\<A> (get_trail_wl y)\<close>and
+      n_d: \<open>no_dup (get_trail_wl y)\<close>
+      using Sy
+      by (auto simp: twl_st_heur_restart_def)
+    then obtain vm' where
+      vm': \<open>(get_vmtf_heur S, vm') \<in> Id \<times>\<^sub>f distinct_atoms_rel ?\<A>\<close> and
+      vm: \<open>vm' \<in> vmtf (all_init_atms_st y) (get_trail_wl y)\<close>
+      unfolding isa_vmtf_def
+      by force
+
+    have find_decomp_w_ns_pre:
+      \<open>find_decomp_w_ns_pre (all_init_atms_st y) ((get_trail_wl y, 0), vm')\<close>
+      using that assms vm' vm unfolding find_decomp_w_ns_pre_def
+      by (auto simp: twl_st_heur_restart_def
+        dest: trail_pol_literals_are_in_\<L>\<^sub>i\<^sub>n_trail)
+    have 1: \<open>isa_find_decomp_wl_imp (get_trail_wl_heur S) 0 (get_vmtf_heur S) \<le>
+       \<Down> ({(M, M'). (M, M') \<in> trail_pol ?\<A> \<and> count_decided M' = 0} \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel ?\<A>))
+         (find_decomp_w_ns ?\<A> (get_trail_wl y) 0 vm')\<close>
+      apply (rule  order_trans)
+      apply (rule isa_find_decomp_wl_imp_find_decomp_wl_imp[THEN fref_to_Down_curry2,
+        of \<open>get_trail_wl y\<close> 0 vm' _ _ _ ?\<A>])
+      subgoal using that by auto
+      subgoal
+        using Sy vm'
+	by (auto simp: twl_st_heur_restart_def)
+      apply (rule order_trans, rule ref_two_step')
+      apply (rule find_decomp_wl_imp_find_decomp_wl'[THEN fref_to_Down_curry2,
+        of ?\<A> \<open>get_trail_wl y\<close> 0 vm'])
+      subgoal by (rule find_decomp_w_ns_pre)
+      subgoal by auto
+      subgoal
+        using n_d
+        by (fastforce simp: find_decomp_w_ns_def conc_fun_RES Image_iff)
+      done
+    show ?thesis
+      supply [[goals_limit=1]] unfolding A
+      apply (rule bind_refine_res[OF _ 1[unfolded find_decomp_w_ns_def conc_fun_RES]])
+      apply (case_tac y, cases S)
+      apply clarify
+      apply (rule RETURN_SPEC_refine)
+      apply (auto simp: upd_def find_decomp_wl0_def
+        intro!: RETURN_SPEC_refine)
+	apply (rule_tac x=bx in exI)
+	using assms
+	apply auto
+	by (auto simp: twl_st_heur_restart_def out_learned_def
+	    empty_Q_wl_def
+	  intro: isa_vmtfI isa_length_trail_pre dest: no_dup_appendD)
+  qed
+
+  show ?thesis
+    unfolding find_decomp_wl_st_int_alt_def
+      cdcl_twl_local_restart_wl_spec0_alt_def
+    apply refine_vcg
+    subgoal
+      using Sy by (auto simp: twl_st_heur_restart_count_decided_st_alt_def)
+    subgoal
+      unfolding empty_Q_def empty_Q_wl_def
+      by refine_vcg
+        (simp_all add: twl_st_heur_restart_isa_length_trail_get_trail_wl)
+    subgoal
+      using Sy .
+    done
+qed
 
 lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   \<open>(cdcl_twl_full_restart_wl_D_GC_heur_prog, cdcl_twl_full_restart_wl_D_GC_prog) \<in>
-    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+    [\<lambda>y.  get_conflict_wl y = None]\<^sub>f twl_st_heur_restart \<rightarrow> \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
   unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def
     cdcl_twl_full_restart_wl_D_GC_prog_def
   apply (intro frefI nres_relI)
-  apply refine_rcg
+  apply (refine_rcg cdcl_twl_local_restart_wl_spec0)
   oops
 
 end
