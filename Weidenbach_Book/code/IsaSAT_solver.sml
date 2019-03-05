@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "b5f9e06f";
+val version : string = "6c998a0e";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -2771,6 +2771,29 @@ fun access_length_heur_fast_code2 x =
     end)
     x;
 
+fun isa_marked_as_used_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl_get heap_uint32 ai
+          (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))) ();
+    in
+      not (((Word32.andb (xa,
+              Word32.fromLargeInt (IntInf.toLarge (4 : IntInf.int)))) : Word32.word) = (Word32.fromInt 0))
+    end)
+    x;
+
+fun marked_as_used_st_fast_code2 x =
+  (fn ai => fn bi =>
+    let
+      val (_, (a1a, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, (_, (_, (_, (_, (_, _))))))))))))))))
+        = ai;
+    in
+      isa_marked_as_used_code a1a bi
+    end)
+    x;
+
 fun clause_is_learned_heur_code2 x =
   (fn ai => fn bi =>
     let
@@ -2783,6 +2806,37 @@ fun clause_is_learned_heur_code2 x =
                 in
                   ((xa : Word32.word) = (Word32.fromInt 1))
                 end)
+    end)
+    x;
+
+fun isa_mark_unused_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl_get heap_uint32 ai
+          (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))) ();
+    in
+      arl_set heap_uint32 ai
+        (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
+        (Word32.andb (xa,
+          Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
+        ()
+    end)
+    x;
+
+fun mark_unused_st_fast_code2 x =
+  (fn ai =>
+    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+  (a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
+      =>
+    fn () =>
+    let
+      val xa = isa_mark_unused_code a1a ai ();
+    in
+      (a1, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
+  (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+(a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
     end)
     x;
 
@@ -3115,9 +3169,12 @@ then (fn f_ => fn () => f_ ((clause_lbd_heur_code2 a2 x_d) ()) ())
                       then (fn f_ => fn () => f_
                              ((access_length_heur_fast_code2 a2 x_d) ()) ())
                              (fn xd =>
-                               (fn () =>
-                                 (not ((xd : Uint64.uint64) = (Uint64.fromInt
-                        (2 : IntInf.int))))))
+                               (if not ((xd : Uint64.uint64) = (Uint64.fromInt
+                         (2 : IntInf.int)))
+                                 then (fn f_ => fn () => f_
+((marked_as_used_st_fast_code2 a2 x_d) ()) ())
+(fn x_n => (fn () => (not x_n)))
+                                 else (fn () => false)))
                       else (fn () => false)))
            else (fn () => false)))
 else (fn () => false))
@@ -3126,7 +3183,8 @@ else (fn () => false))
                                        (if x_j
  then (fn f_ => fn () => f_ ((mark_garbage_heur_code2 x_d a1 a2) ()) ())
         (fn x_l => (fn () => (a1, x_l)))
- else (fn () => (plus_nat a1 one_nat, a2))))))))))
+ else (fn f_ => fn () => f_ ((mark_unused_st_fast_code2 x_d a2) ()) ())
+        (fn x_m => (fn () => (plus_nat a1 one_nat, x_m)))))))))))
           (x_a, xa) ();
     in
       let
@@ -3649,6 +3707,17 @@ fun access_length_heur_code x =
     end)
     x;
 
+fun marked_as_used_st_code x =
+  (fn ai => fn bi =>
+    let
+      val (_, (a1a, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, (_, (_, (_, (_, (_, _))))))))))))))))
+        = ai;
+    in
+      isa_marked_as_used_code a1a bi
+    end)
+    x;
+
 fun mark_garbage_heur_code x =
   (fn ai => fn bia =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
@@ -3676,6 +3745,22 @@ fun clause_lbd_heur_code x =
         = ai;
     in
       isa_get_clause_LBD_code a1a bi
+    end)
+    x;
+
+fun mark_unused_st_code x =
+  (fn ai =>
+    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+  (a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
+      =>
+    fn () =>
+    let
+      val xa = isa_mark_unused_code a1a ai ();
+    in
+      (a1, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
+  (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+(a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
     end)
     x;
 
@@ -3747,9 +3832,12 @@ fun mark_to_delete_clauses_wl_D_heur_impl x =
                           then (fn f_ => fn () => f_
                                  ((access_length_heur_code a2 x_d) ()) ())
                                  (fn xe =>
-                                   (fn () =>
-                                     (not ((xe : Uint64.uint64) = (Uint64.fromInt
-                            (2 : IntInf.int))))))
+                                   (if not
+ ((xe : Uint64.uint64) = (Uint64.fromInt (2 : IntInf.int)))
+                                     then (fn f_ => fn () => f_
+    ((marked_as_used_st_code a2 x_d) ()) ())
+    (fn x_n => (fn () => (not x_n)))
+                                     else (fn () => false)))
                           else (fn () => false)))
                else (fn () => false)))
     else (fn () => false))
@@ -3758,7 +3846,8 @@ fun mark_to_delete_clauses_wl_D_heur_impl x =
    (if x_j
      then (fn f_ => fn () => f_ ((mark_garbage_heur_code x_d a1 a2) ()) ())
             (fn x_l => (fn () => (a1, x_l)))
-     else (fn () => (plus_nat a1 one_nat, a2)))))))))))
+     else (fn f_ => fn () => f_ ((mark_unused_st_code x_d a2) ()) ())
+            (fn x_m => (fn () => (plus_nat a1 one_nat, x_m))))))))))))
           (x_a, xa) ();
     in
       let
@@ -3998,6 +4087,20 @@ fun conflict_remove1_code x =
     end)
     x;
 
+fun isa_mark_used_fast_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl_get_u64 heap_uint32 ai
+          (Uint64.minus bi (Uint64.fromInt (4 : IntInf.int))) ();
+    in
+      arl_set_u64 heap_uint32 ai
+        (Uint64.minus bi (Uint64.fromInt (4 : IntInf.int)))
+        (Word32.orb (xa, Word32.fromLargeInt (IntInf.toLarge (4 : IntInf.int))))
+        ()
+    end)
+    x;
+
 fun tl_trail_tr_fast_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
     let
@@ -4040,17 +4143,18 @@ fun update_confl_tl_wl_fast_code x =
       in
         (fn f_ => fn () => f_ ((conflict_remove1_code bia (a1o, a2o)) ()) ())
           (fn (a1r, a2r) =>
-            (fn f_ => fn () => f_ ((tl_trail_tr_fast_code a1) ()) ())
-              (fn xb =>
-                (fn f_ => fn () => f_
-                  ((isa_vmtf_unset_code (atm_of_code bia) a1g) ()) ())
-                  (fn xaa =>
-                    (fn () =>
-                      (false,
-                        (xb, (a1a, ((a1n, (a1r, a2r)),
-                                     (a1e, (a1f,
-     (xaa, (a1h, (fast_minus_uint32 a1p (Word32.fromInt 1),
-                   (a1j, (a1q, (a2q, a2l))))))))))))))))
+            (fn f_ => fn () => f_ ((isa_mark_used_fast_code a1a ai) ()) ())
+              (fn x_e =>
+                (fn f_ => fn () => f_ ((tl_trail_tr_fast_code a1) ()) ())
+                  (fn xb =>
+                    (fn f_ => fn () => f_
+                      ((isa_vmtf_unset_code (atm_of_code bia) a1g) ()) ())
+                      (fn xaa =>
+                        (fn () =>
+                          (false,
+                            (xb, (x_e, ((a1n, (a1r, a2r)),
+ (a1e, (a1f, (xaa, (a1h, (fast_minus_uint32 a1p (Word32.fromInt 1),
+                           (a1j, (a1q, (a2q, a2l)))))))))))))))))
       end
         ()
     end)
@@ -5855,6 +5959,20 @@ fun resolve_merge_conflict_code x =
     end)
     x;
 
+fun isa_mark_used_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl_get heap_uint32 ai
+          (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))) ();
+    in
+      arl_set heap_uint32 ai
+        (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
+        (Word32.orb (xa, Word32.fromLargeInt (IntInf.toLarge (4 : IntInf.int))))
+        ()
+    end)
+    x;
+
 fun tl_trail_tr_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
     let
@@ -5897,17 +6015,18 @@ fun update_confl_tl_wl_code x =
       in
         (fn f_ => fn () => f_ ((conflict_remove1_code bia (a1o, a2o)) ()) ())
           (fn (a1r, a2r) =>
-            (fn f_ => fn () => f_ ((tl_trail_tr_code a1) ()) ())
-              (fn xb =>
-                (fn f_ => fn () => f_
-                  ((isa_vmtf_unset_code (atm_of_code bia) a1g) ()) ())
-                  (fn xaa =>
-                    (fn () =>
-                      (false,
-                        (xb, (a1a, ((a1n, (a1r, a2r)),
-                                     (a1e, (a1f,
-     (xaa, (a1h, (fast_minus_uint32 a1p (Word32.fromInt 1),
-                   (a1j, (a1q, (a2q, a2l))))))))))))))))
+            (fn f_ => fn () => f_ ((isa_mark_used_code a1a ai) ()) ())
+              (fn x_e =>
+                (fn f_ => fn () => f_ ((tl_trail_tr_code a1) ()) ())
+                  (fn xb =>
+                    (fn f_ => fn () => f_
+                      ((isa_vmtf_unset_code (atm_of_code bia) a1g) ()) ())
+                      (fn xaa =>
+                        (fn () =>
+                          (false,
+                            (xb, (x_e, ((a1n, (a1r, a2r)),
+ (a1e, (a1f, (xaa, (a1h, (fast_minus_uint32 a1p (Word32.fromInt 1),
+                           (a1j, (a1q, (a2q, a2l)))))))))))))))))
       end
         ()
     end)
