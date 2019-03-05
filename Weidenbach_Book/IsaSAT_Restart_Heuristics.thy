@@ -1919,7 +1919,7 @@ where
         S \<leftarrow> isasat_replace_annot_in_trail L (the C) S;
 	ASSERT(mark_garbage_pre (get_clauses_wl_heur S, the C));
         let S = mark_garbage_heur2 (the C) S;
-        \<comment> \<open>S \<leftarrow> remove_all_annot_true_clause_imp_wl_D_heur L S;\<close>
+        \<comment> \<open>\<^text>\<open>S \<leftarrow> remove_all_annot_true_clause_imp_wl_D_heur L S;\<close>\<close>
         RETURN (i+1, S)
       }
   })\<close>

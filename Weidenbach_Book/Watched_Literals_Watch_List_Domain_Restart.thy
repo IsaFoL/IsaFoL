@@ -325,7 +325,7 @@ where
 	T \<leftarrow> replace_annot_l L C S;
 	ASSERT(get_clauses_wl S = get_clauses_wl T);
 	T \<leftarrow> remove_and_add_cls_l C T;
-        \<comment> \<open>S \<leftarrow> remove_all_annot_true_clause_imp_wl L S;\<close>
+        \<comment> \<open>\<^text>\<open>S \<leftarrow> remove_all_annot_true_clause_imp_wl L S;\<close>\<close>
         RETURN (i+1, T)
       }
   })\<close>
