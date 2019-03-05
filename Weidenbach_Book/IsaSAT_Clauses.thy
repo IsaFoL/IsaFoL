@@ -744,4 +744,77 @@ lemma swap_lits_refine[sepref_fr_rules]:
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp)
 
+definition fm_mv_clause_to_new_arena where
+ \<open>fm_mv_clause_to_new_arena C old_arena new_arena = do {
+    let st = C - (if arena_length old_arena C \<le> 4 then 4 else 5);
+    let en = C + arena_length old_arena C;
+    (i, new_arena) \<leftarrow>
+        WHILE\<^sub>T (\<lambda>(i, new_arena). i < en)
+          (\<lambda>(i, new_arena). do {
+              ASSERT (i < length old_arena);
+              RETURN (i + one_uint64_nat, new_arena @ [old_arena ! i])
+          })
+          (st, new_arena);
+      RETURN (new_arena)
+  }\<close>
+
+lemma slice_append_nth:
+  \<open>a \<le> b \<Longrightarrow> Suc b \<le> length xs \<Longrightarrow> Misc.slice a (Suc b) xs = Misc.slice a b xs @ [xs ! b]\<close>
+  by (auto simp: Misc.slice_def take_Suc_conv_app_nth
+    Suc_diff_le)
+
+find_theorems valid_arena append
+lemma
+  assumes \<open>valid_arena old_arena N vd\<close> and
+    \<open>valid_arena new_arena N' vd'\<close> and
+    \<open>C \<in># dom_m N\<close>
+  shows \<open>fm_mv_clause_to_new_arena C old_arena new_arena \<le>
+    SPEC(\<lambda>new_arena'.
+       new_arena' = new_arena @ clause_slice old_arena N C)\<close>
+proof -
+  define st and en where
+    \<open>st = C - (if arena_length old_arena C \<le> 4 then 4 else 5)\<close> and
+    \<open>en = C + arena_length old_arena C\<close>
+  have st:
+    \<open>st = C - header_size (N \<propto> C)\<close>
+    using assms
+    unfolding st_def
+    by (auto simp: st_def header_size_def
+        arena_lifting)
+  show ?thesis
+    using assms
+    unfolding fm_mv_clause_to_new_arena_def st_def[symmetric]
+      en_def[symmetric] Let_def
+    apply (refine_vcg
+     WHILET_rule[where R = \<open>measure (\<lambda>(i, N). en - i)\<close> and
+       I = \<open>\<lambda>(i, new_arena'). i \<le> C + length (N\<propto>C) \<and> i \<ge> st \<and>
+         new_arena' = new_arena @
+	   Misc.slice (C - header_size (N\<propto>C)) i old_arena\<close>])
+    subgoal
+      by auto
+    subgoal
+      using arena_lifting[OF assms(1,3)]
+      by (auto simp: st)
+    subgoal
+      by (auto simp: st arena_lifting)
+    subgoal
+      using arena_lifting[OF assms(1,3)]
+      by (auto simp: st en_def)
+    subgoal
+      using arena_lifting[OF assms(1,3)]
+      by (auto simp: st en_def)
+    subgoal
+      using arena_lifting[OF assms(1,3)]
+      by (auto simp: st en_def)
+    subgoal
+      using arena_lifting[OF assms(1,3)]
+      by (auto simp: st)
+    subgoal
+      by (auto simp: st en_def arena_lifting[OF assms(1,3)]
+        slice_append_nth)
+    subgoal by auto
+    subgoal by (auto simp: en_def arena_lifting)
+    done
+qed
+
 end
