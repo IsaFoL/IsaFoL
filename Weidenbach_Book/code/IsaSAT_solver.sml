@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "6c998a0e";
+val version : string = "3fc867ca";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -2669,6 +2669,105 @@ fun clause_not_marked_to_delete_heur_fast_code2 x =
     end)
     x;
 
+fun delete_index_vdom_heur_fast_code2 x =
+  (fn ai =>
+    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+  (a1n, (a1o, (a1p, a2p)))))))))))))))))
+      =>
+    fn () =>
+    let
+      val xa = arl_last heap_nat a1p ();
+      val xb = arl_set heap_nat a1p ai xa ();
+    in
+      (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+ (a1n, (a1o, (arl_butlast_nonresizing xb, a2p)))))))))))))))))
+    end)
+    x;
+
+fun isa_mark_unused_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl_get heap_uint32 ai
+          (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))) ();
+    in
+      arl_set heap_uint32 ai
+        (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
+        (Word32.andb (xa,
+          Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
+        ()
+    end)
+    x;
+
+fun mark_unused_st_fast_code2 x =
+  (fn ai =>
+    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+  (a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
+      =>
+    fn () =>
+    let
+      val xa = isa_mark_unused_code a1a ai ();
+    in
+      (a1, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
+  (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+(a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
+    end)
+    x;
+
+fun access_vdom_at_fast_code x =
+  (fn ai => fn bi =>
+    let
+      val (_, (_, (_, (_, (_, (_, (_, (_,
+(_, (_, (_, (_, (_, (_, (_, (_, (a1p, _)))))))))))))))))
+        = ai;
+    in
+      arl_get heap_nat a1p bi
+    end)
+    x;
+
+fun length_avdom_fast_code x =
+  (fn (_, (_, (_, (_, (_, (_, (_, (_, (_,
+(_, (_, (_, (_, (_, (_, (_, (a1p, _)))))))))))))))))
+     =>
+    arl_length heap_nat a1p)
+    x;
+
+fun mark_clauses_as_unused_wl_D_heur_fast_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val a =
+        heap_WHILET
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((length_avdom_fast_code a2) ()) ())
+              (fn x_a => (fn () => (less_nat a1 x_a))))
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((access_vdom_at_fast_code a2 a1) ()) ())
+              (fn x_a =>
+                (fn f_ => fn () => f_
+                  ((clause_not_marked_to_delete_heur_fast_code2 a2 x_a) ()) ())
+                  (fn xa =>
+                    (if not xa
+                      then (fn f_ => fn () => f_
+                             ((delete_index_vdom_heur_fast_code2 a1 a2) ()) ())
+                             (fn x_d => (fn () => (a1, x_d)))
+                      else (fn f_ => fn () => f_
+                             ((mark_unused_st_fast_code2 x_a a2) ()) ())
+                             (fn x_e =>
+                               (fn () => (plus_nat a1 one_nat, x_e)))))))
+          (ai, bi) ();
+    in
+      let
+        val (_, aa) = a;
+      in
+        (fn () => aa)
+      end
+        ()
+    end)
+    x;
+
 fun get_the_propagation_reason_fast_code x =
   (fn ai => fn bi =>
     let
@@ -2730,23 +2829,6 @@ fun access_lit_in_clauses_heur_fast_code2 x =
                                end)
     x;
 
-fun delete_index_vdom_heur_fast_code2 x =
-  (fn ai =>
-    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-  (a1n, (a1o, (a1p, a2p)))))))))))))))))
-      =>
-    fn () =>
-    let
-      val xa = arl_last heap_nat a1p ();
-      val xb = arl_set heap_nat a1p ai xa ();
-    in
-      (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
- (a1n, (a1o, (arl_butlast_nonresizing xb, a2p)))))))))))))))))
-    end)
-    x;
-
 fun number_clss_to_keep_fast_impl x =
   (fn xi =>
     (fn () =>
@@ -2806,37 +2888,6 @@ fun clause_is_learned_heur_code2 x =
                 in
                   ((xa : Word32.word) = (Word32.fromInt 1))
                 end)
-    end)
-    x;
-
-fun isa_mark_unused_code x =
-  (fn ai => fn bi => fn () =>
-    let
-      val xa =
-        arl_get heap_uint32 ai
-          (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))) ();
-    in
-      arl_set heap_uint32 ai
-        (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
-        (Word32.andb (xa,
-          Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
-        ()
-    end)
-    x;
-
-fun mark_unused_st_fast_code2 x =
-  (fn ai =>
-    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-  (a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
-      =>
-    fn () =>
-    let
-      val xa = isa_mark_unused_code a1a ai ();
-    in
-      (a1, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
-  (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-(a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
     end)
     x;
 
@@ -3029,17 +3080,6 @@ fun sort_vdom_heur_fast_code x =
     end)
     x;
 
-fun access_vdom_at_fast_code x =
-  (fn ai => fn bi =>
-    let
-      val (_, (_, (_, (_, (_, (_, (_, (_,
-(_, (_, (_, (_, (_, (_, (_, (_, (a1p, _)))))))))))))))))
-        = ai;
-    in
-      arl_get heap_nat a1p bi
-    end)
-    x;
-
 fun mark_garbage_code x =
   (fn ai => fn bi =>
     arl_set heap_uint32 ai (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
@@ -3105,13 +3145,6 @@ fun mark_garbage_heur_code2 x =
   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
 (a1n, (a1o, (xac, (minus_nata a1q one_nat, a2q))))))))))))))))))
     end)
-    x;
-
-fun length_avdom_fast_code x =
-  (fn (_, (_, (_, (_, (_, (_, (_, (_, (_,
-(_, (_, (_, (_, (_, (_, (_, (a1p, _)))))))))))))))))
-     =>
-    arl_length heap_nat a1p)
     x;
 
 fun clause_lbd_heur_code2 x =
@@ -3188,9 +3221,11 @@ else (fn () => false))
           (x_a, xa) ();
     in
       let
-        val (_, aa) = a;
+        val (a1, a2) = a;
       in
-        incr_restart_stat_fast_code aa
+        (fn f_ => fn () => f_
+          ((mark_clauses_as_unused_wl_D_heur_fast_code a1 a2) ()) ())
+          incr_restart_stat_fast_code
       end
         ()
     end)
@@ -3608,6 +3643,90 @@ fun incr_restart_stat_slow_code x =
       end))
     x;
 
+fun delete_index_vdom_heur_code x =
+  (fn ai =>
+    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+  (a1n, (a1o, (a1p, a2p)))))))))))))))))
+      =>
+    fn () =>
+    let
+      val xa = arl_last heap_nat a1p ();
+      val xb = arl_set heap_nat a1p ai xa ();
+    in
+      (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+ (a1n, (a1o, (arl_butlast_nonresizing xb, a2p)))))))))))))))))
+    end)
+    x;
+
+fun mark_unused_st_code x =
+  (fn ai =>
+    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+  (a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
+      =>
+    fn () =>
+    let
+      val xa = isa_mark_unused_code a1a ai ();
+    in
+      (a1, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
+  (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+(a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
+    end)
+    x;
+
+fun access_vdom_at_code x =
+  (fn ai => fn bi =>
+    let
+      val (_, (_, (_, (_, (_, (_, (_, (_,
+(_, (_, (_, (_, (_, (_, (_, (_, (a1p, _)))))))))))))))))
+        = ai;
+    in
+      arl_get heap_nat a1p bi
+    end)
+    x;
+
+fun length_avdom_code x =
+  (fn (_, (_, (_, (_, (_, (_, (_, (_, (_,
+(_, (_, (_, (_, (_, (_, (_, (a1p, _)))))))))))))))))
+     =>
+    arl_length heap_nat a1p)
+    x;
+
+fun mark_clauses_as_unused_wl_D_heur_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val a =
+        heap_WHILET
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((length_avdom_code a2) ()) ())
+              (fn x_a => (fn () => (less_nat a1 x_a))))
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((access_vdom_at_code a2 a1) ()) ())
+              (fn x_a =>
+                (fn f_ => fn () => f_
+                  ((clause_not_marked_to_delete_heur_code a2 x_a) ()) ())
+                  (fn xa =>
+                    (if not xa
+                      then (fn f_ => fn () => f_
+                             ((delete_index_vdom_heur_code a1 a2) ()) ())
+                             (fn x_d => (fn () => (a1, x_d)))
+                      else (fn f_ => fn () => f_ ((mark_unused_st_code x_a a2)
+                             ()) ())
+                             (fn x_e =>
+                               (fn () => (plus_nat a1 one_nat, x_e)))))))
+          (ai, bi) ();
+    in
+      let
+        val (_, aa) = a;
+      in
+        (fn () => aa)
+      end
+        ()
+    end)
+    x;
+
 fun get_the_propagation_reason_code x =
   (fn ai => fn bi =>
     let
@@ -3648,23 +3767,6 @@ fun sort_vdom_heur_code x =
       (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
  (a1n, (a1o, (xa, a2p)))))))))))))))))
-    end)
-    x;
-
-fun delete_index_vdom_heur_code x =
-  (fn ai =>
-    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-  (a1n, (a1o, (a1p, a2p)))))))))))))))))
-      =>
-    fn () =>
-    let
-      val xa = arl_last heap_nat a1p ();
-      val xb = arl_set heap_nat a1p ai xa ();
-    in
-      (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
- (a1n, (a1o, (arl_butlast_nonresizing xb, a2p)))))))))))))))))
     end)
     x;
 
@@ -3748,44 +3850,10 @@ fun clause_lbd_heur_code x =
     end)
     x;
 
-fun mark_unused_st_code x =
-  (fn ai =>
-    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-  (a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
-      =>
-    fn () =>
-    let
-      val xa = isa_mark_unused_code a1a ai ();
-    in
-      (a1, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
-  (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-(a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
-    end)
-    x;
-
-fun access_vdom_at_code x =
-  (fn ai => fn bi =>
-    let
-      val (_, (_, (_, (_, (_, (_, (_, (_,
-(_, (_, (_, (_, (_, (_, (_, (_, (a1p, _)))))))))))))))))
-        = ai;
-    in
-      arl_get heap_nat a1p bi
-    end)
-    x;
-
 fun imp_option_eq eq a b =
   (case (a, b) of (NONE, NONE) => (fn () => true)
     | (NONE, SOME _) => (fn () => false) | (SOME _, NONE) => (fn () => false)
     | (SOME aa, SOME ba) => eq aa ba);
-
-fun length_avdom_code x =
-  (fn (_, (_, (_, (_, (_, (_, (_, (_, (_,
-(_, (_, (_, (_, (_, (_, (_, (a1p, _)))))))))))))))))
-     =>
-    arl_length heap_nat a1p)
-    x;
 
 fun mark_to_delete_clauses_wl_D_heur_impl x =
   (fn xi => fn () =>
@@ -3851,9 +3919,11 @@ fun mark_to_delete_clauses_wl_D_heur_impl x =
           (x_a, xa) ();
     in
       let
-        val (_, aa) = a;
+        val (a1, a2) = a;
       in
-        incr_restart_stat_slow_code aa
+        (fn f_ => fn () => f_ ((mark_clauses_as_unused_wl_D_heur_code a1 a2) ())
+          ())
+          incr_restart_stat_slow_code
       end
         ()
     end)
