@@ -1260,6 +1260,84 @@ definition delete_index_vdom_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<R
      (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
        ccount, vdom, delete_index_and_swap avdom i, lcount))\<close>
 
+lemma in_set_delete_index_and_swapD:
+  \<open>x \<in> set (delete_index_and_swap xs i) \<Longrightarrow> x \<in> set xs\<close>
+  apply (cases \<open>i < length xs\<close>)
+  apply (auto dest!: in_set_butlastD)
+  by (metis List.last_in_set in_set_upd_cases list.size(3) not_less_zero)
+
+
+lemma delete_index_vdom_heur_twl_st_heur_restart:
+  \<open>(S, T) \<in> twl_st_heur_restart \<Longrightarrow>
+    (delete_index_vdom_heur i S, T) \<in> twl_st_heur_restart\<close>
+  by (auto simp: twl_st_heur_restart_def delete_index_vdom_heur_def
+    dest: in_set_delete_index_and_swapD simp del: delete_index_and_swap.simps)
+
+definition mark_clauses_as_unused_wl_D_heur
+  :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+where
+\<open>mark_clauses_as_unused_wl_D_heur  = (\<lambda>i S. do {
+    (_, T) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, S). i < length (get_avdom S))
+      (\<lambda>(i, T). do {
+        ASSERT(i < length (get_avdom T));
+        ASSERT(access_vdom_at_pre T i);
+        let C = get_avdom T ! i;
+        ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
+        if \<not>clause_not_marked_to_delete_heur T C then RETURN (i, delete_index_vdom_heur i T)
+        else do {
+          ASSERT(arena_act_pre (get_clauses_wl_heur T) C);
+          RETURN (i+1, mark_unused_st_heur C T)
+        }
+      })
+      (i, S);
+    RETURN T
+  })\<close>
+
+lemma avdom_delete_index_vdom_heur[simp]:
+  \<open>get_avdom (delete_index_vdom_heur i S) =
+     delete_index_and_swap (get_avdom S) i\<close>
+  by (cases S) (auto simp: delete_index_vdom_heur_def)
+
+lemma mark_clauses_as_unused_wl_D_heur:
+  assumes \<open>(S, T) \<in> twl_st_heur_restart\<close>
+  shows \<open>mark_clauses_as_unused_wl_D_heur i S \<le> \<Down> twl_st_heur_restart (SPEC ( (=) T))\<close>
+proof -
+  have 1: \<open> \<Down> twl_st_heur_restart (SPEC ( (=) T)) = do {
+      (i, T) \<leftarrow> SPEC (\<lambda>(i::nat, T'). (T', T) \<in> twl_st_heur_restart);
+      RETURN T
+    }\<close>
+    by (auto simp: RES_RETURN_RES2 uncurry_def conc_fun_RES)
+  show ?thesis
+    unfolding mark_clauses_as_unused_wl_D_heur_def 1
+    apply (rule Refine_Basic.bind_mono)
+    subgoal
+      apply (refine_vcg
+         WHILET_rule[where R = \<open>measure (\<lambda>(i, T). length (get_avdom T) - i)\<close> and
+	   I = \<open>\<lambda>(_, S). (S, T) \<in> twl_st_heur_restart\<close>])
+      subgoal by auto
+      subgoal using assms by auto
+      subgoal by auto
+      subgoal unfolding access_vdom_at_pre_def by auto
+      subgoal
+        unfolding clause_not_marked_to_delete_heur_pre_def
+	  arena_is_valid_clause_vdom_def
+	by (fastforce simp: twl_st_heur_restart_def)
+      subgoal
+        by (auto intro: delete_index_vdom_heur_twl_st_heur_restart)
+      subgoal by auto
+      subgoal
+        unfolding arena_is_valid_clause_idx_def
+	  arena_is_valid_clause_vdom_def arena_act_pre_def
+	by (fastforce simp: twl_st_heur_restart_def twl_st_heur_restart)
+      subgoal by (auto intro!: mark_unused_st_heur simp: twl_st_heur_restart)
+      subgoal by auto
+      done
+    subgoal
+      by auto
+    done
+qed
+
 definition mark_to_delete_clauses_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
@@ -1267,7 +1345,7 @@ where
     ASSERT(mark_to_delete_clauses_wl_D_heur_pre S);
     S \<leftarrow> sort_vdom_heur S;
     let l = number_clss_to_keep S;
-    (_, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
+    (i, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
       (\<lambda>(i, S). i < length (get_avdom S))
       (\<lambda>(i, T). do {
         ASSERT(i < length (get_avdom T));
@@ -1303,6 +1381,7 @@ where
         }
       })
       (l, S);
+    T \<leftarrow> mark_clauses_as_unused_wl_D_heur i T;
     incr_restart_stat T
   })\<close>
 
@@ -1370,7 +1449,7 @@ proof -
       S \<leftarrow> sort_vdom_heur S;
       _ \<leftarrow> RETURN (get_avdom S);
       l \<leftarrow> RETURN (number_clss_to_keep S);
-      (_, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
+      (i, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
         (\<lambda>(i, S). i < length (get_avdom S))
         (\<lambda>(i, T). do {
           ASSERT(i < length (get_avdom T));
@@ -1404,6 +1483,7 @@ proof -
           }
         })
         (l, S);
+      T \<leftarrow> mark_clauses_as_unused_wl_D_heur i T;
       incr_restart_stat T
     })\<close>
     unfolding mark_to_delete_clauses_wl_D_heur_def
@@ -1589,7 +1669,13 @@ proof -
        {(Sa, (T, xs)). (Sa, T) \<in> twl_st_heur_restart \<and> xs = get_avdom Sa}\<close>
        for x y S Sa xs l la u
     by auto
-
+  have [refine0]: \<open>mark_clauses_as_unused_wl_D_heur i T
+    \<le> SPEC
+       (\<lambda>x. incr_restart_stat x \<le> SPEC (\<lambda>c. (c, S) \<in> twl_st_heur_restart))\<close>
+    if \<open>(T, S) \<in> twl_st_heur_restart\<close> for S T i
+    by (rule order_trans, rule mark_clauses_as_unused_wl_D_heur[OF that, of i])
+      (auto simp: conc_fun_RES incr_restart_stat_def
+        twl_st_heur_restart_def)
   show ?thesis
     supply sort_vdom_heur_def[simp]
     unfolding mark_to_delete_clauses_wl_D_heur_alt_def mark_to_delete_clauses_wl_D_alt_def
@@ -1655,7 +1741,7 @@ proof -
     subgoal
       by (auto intro!: mark_unused_st_heur)
     subgoal
-      by (auto simp: incr_restart_stat_def twl_st_heur_restart_def)
+      by (auto simp:)
     done
 qed
 

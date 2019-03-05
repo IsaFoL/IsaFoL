@@ -504,6 +504,42 @@ declare mark_unused_st_code.refine[sepref_fr_rules]
   mark_unused_st_fast_code.refine[sepref_fr_rules]
   mark_unused_st_fast_code2.refine[sepref_fr_rules]
 
+
+sepref_register mark_clauses_as_unused_wl_D_heur
+sepref_definition mark_clauses_as_unused_wl_D_heur_code
+  is \<open>uncurry mark_clauses_as_unused_wl_D_heur\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
+  unfolding mark_clauses_as_unused_wl_D_heur_def
+    mark_unused_st_heur_def[symmetric]
+    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+  by sepref
+
+
+sepref_definition clause_not_marked_to_delete_heur_fast_code2
+  is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
+  :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding clause_not_marked_to_delete_heur_alt_def isasat_bounded_assn_def
+     clause_not_marked_to_delete_heur_pre_def
+  by sepref
+
+
+declare clause_not_marked_to_delete_heur_fast_code.refine[sepref_fr_rules]
+  clause_not_marked_to_delete_heur_fast_code2.refine[sepref_fr_rules]
+
+sepref_definition mark_clauses_as_unused_wl_D_heur_fast_code
+  is \<open>uncurry mark_clauses_as_unused_wl_D_heur\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mark_clauses_as_unused_wl_D_heur_def
+    mark_unused_st_heur_def[symmetric]
+    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+  by sepref
+
+declare mark_clauses_as_unused_wl_D_heur_fast_code.refine[sepref_fr_rules]
+  mark_clauses_as_unused_wl_D_heur_code.refine[sepref_fr_rules]
+
+
 sepref_register mark_to_delete_clauses_wl_D_heur
 sepref_definition mark_to_delete_clauses_wl_D_heur_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
@@ -528,18 +564,6 @@ sepref_definition sort_vdom_heur_fast_code
   by sepref
 
 declare sort_vdom_heur_fast_code.refine[sepref_fr_rules]
-
-sepref_definition clause_not_marked_to_delete_heur_fast_code2
-  is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
-  :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding clause_not_marked_to_delete_heur_alt_def isasat_bounded_assn_def
-     clause_not_marked_to_delete_heur_pre_def
-  by sepref
-
-
-declare clause_not_marked_to_delete_heur_fast_code.refine[sepref_fr_rules]
-  clause_not_marked_to_delete_heur_fast_code2.refine[sepref_fr_rules]
 
 sepref_definition access_lit_in_clauses_heur_fast_code2
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
