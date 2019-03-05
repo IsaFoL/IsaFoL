@@ -952,7 +952,8 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
     let should_not_reduce = (\<not>opt_red \<or> upper_restart_bound_not_reached S);
     RETURN ((opt_res \<or> opt_red) \<and>
        (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
-      level > two_uint32_nat \<and> level < max_restart_decision_lvl \<and>
+      level > two_uint32_nat \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help: 
+         \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
       nat_of_uint32_conv level > nat_of_uint64 (fema >> 48))}
   \<close>
 
