@@ -2786,6 +2786,26 @@ lemma isa_mark_used_code[sepref_fr_rules]:
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
 
+definition four_uint32 where \<open>four_uint32 = (4 :: uint32)\<close>
+
+lemma four_uint32_hnr:
+  \<open>(uncurry0 (return 4), uncurry0 (RETURN (four_uint32 :: uint32)) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def four_uint32_def)
+
+sepref_definition isa_mark_used_fast_code
+  is \<open>uncurry isa_mark_used\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn uint32_assn)\<close>
+  supply four_uint32_hnr[sepref_fr_rules] STATUS_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_mark_used_def four_uint32_def[symmetric]
+  by sepref
+
+lemma isa_mark_used_fast_code[sepref_fr_rules]:
+  \<open>(uncurry isa_mark_used_fast_code, uncurry (RETURN \<circ>\<circ> mark_used))
+     \<in> [uncurry arena_act_pre]\<^sub>a arena_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
+  using isa_mark_used_fast_code.refine[FCOMP isa_mark_used_mark_used]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
 lemma length_mark_used[simp]: \<open>length (mark_used arena C) = length arena\<close>
   by (auto simp: mark_used_def)
 
@@ -2963,6 +2983,20 @@ lemma isa_mark_unused_code[sepref_fr_rules]:
   \<open>(uncurry isa_mark_unused_code, uncurry (RETURN \<circ>\<circ> mark_unused))
      \<in> [uncurry arena_act_pre]\<^sub>a arena_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
   using isa_mark_unused_code.refine[FCOMP isa_mark_unused_mark_unused]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+sepref_definition isa_mark_unused_fast_code
+  is \<open>uncurry isa_mark_unused\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn uint32_assn)\<close>
+  supply STATUS_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_mark_unused_def ACTIVITY_SHIFT_def fast_minus_def[symmetric]
+  by sepref
+
+lemma isa_mark_unused_fast_code[sepref_fr_rules]:
+  \<open>(uncurry isa_mark_unused_fast_code, uncurry (RETURN \<circ>\<circ> mark_unused))
+     \<in> [uncurry arena_act_pre]\<^sub>a arena_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
+  using isa_mark_unused_fast_code.refine[FCOMP isa_mark_unused_mark_unused]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
 

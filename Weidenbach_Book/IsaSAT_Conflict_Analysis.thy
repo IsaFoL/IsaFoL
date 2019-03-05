@@ -272,6 +272,8 @@ where
         else isa_resolve_merge_conflict_gt2 M N C (b, (n, xs)) clvls lbd outl;
       ASSERT(curry lookup_conflict_remove1_pre L (n, xs) \<and> clvls \<ge> 1);
       let (n, xs) = lookup_conflict_remove1 L (n, xs);
+      ASSERT(arena_act_pre N C);
+      let N = mark_used N C;
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (b, (n, xs)), Q, W, isa_vmtf_unset L' vm,
@@ -358,6 +360,8 @@ proof -
                           _ \<leftarrow> ASSERT (curry lookup_conflict_remove1_pre b (n, xs) \<and>
                              1 \<le> clvls);
                           let (n, xs) = lookup_conflict_remove1 b (n, xs);
+                          ASSERT (arena_act_pre c a);
+                          let c = mark_used c a;
                           ASSERT(vmtf_unset_pre (atm_of b) ivmtf);
 			  ASSERT(tl_trailt_tr_pre ba);
                           RETURN
@@ -617,6 +621,10 @@ proof -
     moreover have \<open>tl_trailt_tr_pre ba\<close>
       by (rule tl_trailt_tr_pre[OF _ trail])
         (use nempty in auto)
+    moreover have \<open>arena_act_pre c a\<close>
+      using arena ao by (auto simp: arena_act_pre_def arena_is_valid_clause_idx_def)
+    moreover have \<open>valid_arena (mark_used c a) ca (set an)\<close>
+      using arena ao by (auto intro: valid_arena_mark_used)
     ultimately show ?thesis
        using rel inv
        apply -
@@ -641,14 +649,16 @@ proof -
 		   (case x of
 		    (bb, n, xs) \<Rightarrow>
 		      \<lambda>(clvls, lbd, outl). do {
-			   _ \<leftarrow> ASSERT
+			   ASSERT
 				(curry lookup_conflict_remove1_pre b (n, xs) \<and>
 				 1 \<le> clvls);
 			   let (n, xs) = lookup_conflict_remove1 b (n, xs);
-			   _ \<leftarrow> ASSERT
+                          ASSERT (arena_act_pre c a);
+                          let c = mark_used c a;
+			  ASSERT
 				(vmtf_unset_pre (atm_of b)
 				  ((ah, ai, aj, ak, bc), al, bd));
-			   _ \<leftarrow> ASSERT (tl_trailt_tr_pre (aa, ab, ac, ad, ae, ba));
+			   ASSERT (tl_trailt_tr_pre (aa, ab, ac, ad, ae, ba));
 			   RETURN
 			    (False, tl_trailt_tr (aa, ab, ac, ad, ae, ba), c,
 			     (bb, n, xs), e, f,
@@ -911,6 +921,11 @@ proof -
     have highest_lev: \<open>get_level baa bl = count_decided baa\<close>
       using tr_nempty hd_M_L_C
       by (cases baa) (auto)
+    have act: \<open>arena_act_pre c bk\<close>
+      using bk valid by (auto simp: arena_act_pre_def
+        arena_is_valid_clause_idx_def)
+    have valid_used: \<open>valid_arena (mark_used c bk) ca (set ra)\<close>
+      using valid bk by (auto intro: valid_arena_mark_used)
     have 8: \<open>card_max_lvl baa (remove1_mset bl (mset (ca \<propto> bk)) \<union># the da) - Suc 0
        \<in> counts_maximum_level (tl baa)
           (Some (resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl))\<close>
@@ -923,7 +938,8 @@ proof -
       apply (rule isasat_lookup_merge_eq2[THEN fref_to_Down_curry7, THEN order_trans])
       apply (rule merge)
       apply (rule rel')
-      using 1 2 3 4 5 6 7 8 tr valid rel tr_nempty n_d no_dup_tlD[OF n_d]
+      using 1 2 3 4 5 6 7 8 tr valid rel tr_nempty n_d no_dup_tlD[OF n_d] act
+        valid_used
       unfolding merge_conflict_m_g_eq2_def merge_conflict_m_eq2_def
       by (auto intro!: RES_refine ASSERT_refine_left
 	     tl_trail_tr[THEN fref_to_Down_unRET]

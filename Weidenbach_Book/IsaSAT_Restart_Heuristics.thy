@@ -1149,6 +1149,35 @@ lemma mark_garbage_heur_wl:
       elim!: in_set_upd_cases)
   done
 
+definition mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>mark_unused_st_heur C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount, opts).
+    (M', mark_unused N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount, opts))\<close>
+
+lemma mark_unused_st_heur_simp[simp]:
+  \<open>get_avdom (mark_unused_st_heur C T) = get_avdom T\<close>
+  \<open>get_vdom (mark_unused_st_heur C T) = get_vdom T\<close>
+  by (cases T; auto simp: mark_unused_st_heur_def; fail)+
+
+lemma mark_unused_st_heur:
+  assumes
+    \<open>(S, T) \<in> twl_st_heur_restart\<close> and
+    \<open>C \<in># dom_m (get_clauses_wl T)\<close>
+  shows \<open>(mark_unused_st_heur C S, T) \<in> twl_st_heur_restart\<close>
+  using assms
+  apply (cases S; cases T)
+   apply (simp add: twl_st_heur_restart_def mark_unused_st_heur_def
+	all_init_atms_def[symmetric])
+  apply (auto simp: twl_st_heur_restart_def mark_garbage_heur_def mark_garbage_wl_def
+         learned_clss_l_l_fmdrop size_remove1_mset_If
+     simp: all_init_atms_def all_init_lits_def
+     simp del: all_init_atms_def[symmetric]
+     intro: valid_arena_mark_unused
+      dest!: in_set_butlastD in_vdom_m_fmdropD
+      elim!: in_set_upd_cases)
+  done
+
 lemma twl_st_heur_restart_valid_arena[twl_st_heur_restart]:
   assumes
     \<open>(S, T) \<in> twl_st_heur_restart\<close>
@@ -1254,18 +1283,23 @@ where
           ASSERT(arena_is_valid_clause_vdom (get_clauses_wl_heur T) C);
           ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow>
             arena_is_valid_clause_idx (get_clauses_wl_heur T) C);
+          ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow>
+	    marked_as_used_pre (get_clauses_wl_heur T) C);
           let can_del = (D \<noteq> Some C) \<and>
 	     arena_lbd (get_clauses_wl_heur T) C > MINIMUM_DELETION_LBD \<and>
              arena_status (get_clauses_wl_heur T) C = LEARNED \<and>
-             arena_length (get_clauses_wl_heur T) C \<noteq> two_uint64_nat;
+             arena_length (get_clauses_wl_heur T) C \<noteq> two_uint64_nat \<and>
+	     \<not>marked_as_used (get_clauses_wl_heur T) C;
           if can_del
           then
             do {
               ASSERT(mark_garbage_pre (get_clauses_wl_heur T, C));
               RETURN (i, mark_garbage_heur C i T)
             }
-          else
-            RETURN (i+1, T)
+          else do {
+	    ASSERT(arena_act_pre (get_clauses_wl_heur T) C);
+            RETURN (i+1, mark_unused_st_heur C T)
+	  }
         }
       })
       (l, S);
@@ -1315,7 +1349,7 @@ proof -
 	    ASSERT (get_clauses_wl T \<propto> (xs ! i) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st T));
             can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow>
               (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and>
-               \<not>irred (get_clauses_wl T) (xs!i) \<and> length (get_clauses_wl T \<propto> (xs!i)) \<noteq> 2 );
+               \<not>irred (get_clauses_wl T) (xs!i) \<and> length (get_clauses_wl T \<propto> (xs!i)) \<noteq> 2);
             ASSERT(i < length xs);
             if can_del
             then
@@ -1351,17 +1385,22 @@ proof -
             ASSERT(get_clause_LBD_pre (get_clauses_wl_heur T) C);
             ASSERT(arena_is_valid_clause_vdom (get_clauses_wl_heur T) C);
             ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow>
-                arena_is_valid_clause_idx (get_clauses_wl_heur T) C);
+                arena_is_valid_clause_idx (get_clauses_wl_heur T) C); 
+            ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow>
+	        marked_as_used_pre (get_clauses_wl_heur T) C);
             let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > MINIMUM_DELETION_LBD \<and>
                arena_status (get_clauses_wl_heur T) C = LEARNED \<and>
-               arena_length (get_clauses_wl_heur T) C \<noteq> two_uint64_nat;
+               arena_length (get_clauses_wl_heur T) C \<noteq> two_uint64_nat \<and>
+	       \<not>marked_as_used (get_clauses_wl_heur T) C;
             if can_del
             then do {
               ASSERT(mark_garbage_pre (get_clauses_wl_heur T, C));
               RETURN (i, mark_garbage_heur C i T)
             }
-            else
-              RETURN (i+1, T)
+            else do {
+  	      ASSERT(arena_act_pre (get_clauses_wl_heur T) C);
+              RETURN (i+1, mark_unused_st_heur C T)
+	    }
           }
         })
         (l, S);
@@ -1391,7 +1430,8 @@ proof -
         \<le> \<Down> {(D, b). b \<longleftrightarrow> ((D \<noteq> Some (get_avdom x2b ! x1b)) \<and>
                arena_lbd (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) > MINIMUM_DELETION_LBD \<and>
                arena_status (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) = LEARNED) \<and>
-                arena_length (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<noteq> two_uint32_nat}
+               arena_length (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<noteq> two_uint32_nat \<and>
+	       \<not>marked_as_used (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b)}
        (SPEC
            (\<lambda>b. b \<longrightarrow>
                 Propagated (get_clauses_wl x1a \<propto> (x2a ! x1) ! 0) (x2a ! x1)
@@ -1589,13 +1629,15 @@ proof -
       unfolding prod.simps
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
       by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
-        (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena twl_st_heur_restart_get_avdom_nth_get_vdom)
+        (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena
+	  twl_st_heur_restart_get_avdom_nth_get_vdom)
     subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
       unfolding prod.simps
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
       by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur_restart arena_dom_status_iff
           dest: twl_st_heur_restart_valid_arena twl_st_heur_restart_get_avdom_nth_get_vdom)
+    subgoal unfolding marked_as_used_pre_def by fast
     subgoal
       by (auto simp: twl_st_heur_restart)
     subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
@@ -1605,8 +1647,13 @@ proof -
         (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena)
     subgoal
       by (auto intro!: mark_garbage_heur_wl)
+    subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
+      unfolding prod.simps mark_garbage_pre_def arena_act_pre_def
+        arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
+      by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
+        (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena)
     subgoal
-      by auto
+      by (auto intro!: mark_unused_st_heur)
     subgoal
       by (auto simp: incr_restart_stat_def twl_st_heur_restart_def)
     done
