@@ -2882,7 +2882,7 @@ lemma GC_remap_ran_m_remap:
     (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin)
 
 lemma GC_remap_ran_m_no_rewrite_map:
-  \<open>GC_remap (old, m, new) (old', m', new')  \<Longrightarrow> C \<notin># dom_m old \<Longrightarrow> m' C = m C\<close>
+  \<open>GC_remap (old, m, new) (old', m', new') \<Longrightarrow> C \<notin># dom_m old \<Longrightarrow> m' C = m C\<close>
   by (induction "(old, m, new)" "(old', m', new')" rule: GC_remap.induct)
     (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin split: if_splits)
 
@@ -2895,14 +2895,14 @@ lemma GC_remap_ran_m_no_rewrite_fmap:
 
 
 lemma rtranclp_GC_remap_init_clss_l_old_new:
-  \<open>GC_remap\<^sup>*\<^sup>* S S'  \<Longrightarrow>
+  \<open>GC_remap\<^sup>*\<^sup>* S S' \<Longrightarrow>
     init_clss_l (fst S) + init_clss_l (snd (snd S)) = init_clss_l (fst S') + init_clss_l (snd (snd S'))\<close>
   by (induction rule: rtranclp_induct)
     (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin split: if_splits
       dest: GC_remap_init_clss_l_old_new)
 
 lemma rtranclp_GC_remap_learned_clss_l_old_new:
-  \<open>GC_remap\<^sup>*\<^sup>* S S'  \<Longrightarrow>
+  \<open>GC_remap\<^sup>*\<^sup>* S S' \<Longrightarrow>
     learned_clss_l (fst S) + learned_clss_l (snd (snd S)) =
       learned_clss_l (fst S') + learned_clss_l (snd (snd S'))\<close>
   by (induction rule: rtranclp_induct)
@@ -2910,13 +2910,13 @@ lemma rtranclp_GC_remap_learned_clss_l_old_new:
       dest: GC_remap_learned_clss_l_old_new)
 
 lemma rtranclp_GC_remap_ran_m_no_rewrite_fmap:
-  \<open>GC_remap\<^sup>*\<^sup>* S S'  \<Longrightarrow> C \<in># dom_m (snd (snd S)) \<Longrightarrow>
+  \<open>GC_remap\<^sup>*\<^sup>* S S' \<Longrightarrow> C \<in># dom_m (snd (snd S)) \<Longrightarrow>
     C \<in># dom_m (snd (snd S')) \<and> fmlookup (snd (snd S)) C = fmlookup (snd (snd S')) C\<close>
   by (induction rule: rtranclp_induct)
     (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin dest: GC_remap_ran_m_no_rewrite_fmap)
 
 lemma GC_remap_ran_m_no_rewrite:
-  \<open>GC_remap S S'  \<Longrightarrow> C \<in># dom_m (fst S) \<Longrightarrow> C \<in># dom_m (fst S') \<Longrightarrow>
+  \<open>GC_remap S S' \<Longrightarrow> C \<in># dom_m (fst S) \<Longrightarrow> C \<in># dom_m (fst S') \<Longrightarrow>
          fmlookup (fst S) C = fmlookup (fst S') C\<close>
   by (induction rule: GC_remap.induct)
     (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin distinct_mset_dom
@@ -2934,7 +2934,7 @@ lemma GC_remap_ran_m_lookup_kept:
   using assms by (smt GC_remap.cases fmlookup_drop fst_conv in_dom_m_lookup_iff)
 
 lemma rtranclp_GC_remap_ran_m_no_rewrite:
-  \<open>GC_remap\<^sup>*\<^sup>*  S S'  \<Longrightarrow> C \<in># dom_m (fst S) \<Longrightarrow> C \<in># dom_m (fst S') \<Longrightarrow>
+  \<open>GC_remap\<^sup>*\<^sup>*  S S' \<Longrightarrow> C \<in># dom_m (fst S) \<Longrightarrow> C \<in># dom_m (fst S') \<Longrightarrow>
     fmlookup (fst S) C = fmlookup (fst S') C\<close>
   apply (induction rule: rtranclp_induct)
   subgoal by auto
@@ -2945,13 +2945,13 @@ lemma rtranclp_GC_remap_ran_m_no_rewrite:
   done
 
 lemma GC_remap_ran_m_no_lost:
-  \<open>GC_remap S S'  \<Longrightarrow> C \<in># dom_m (fst S') \<Longrightarrow> C \<in># dom_m (fst S)\<close>
+  \<open>GC_remap S S' \<Longrightarrow> C \<in># dom_m (fst S') \<Longrightarrow> C \<in># dom_m (fst S)\<close>
   by (induction rule: GC_remap.induct)
     (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin distinct_mset_dom distinct_mset_set_mset_remove1_mset
       dest: GC_remap_ran_m_remap)
 
 lemma rtranclp_GC_remap_ran_m_no_lost:
-  \<open>GC_remap\<^sup>*\<^sup>* S S'  \<Longrightarrow> C \<in># dom_m (fst S') \<Longrightarrow> C \<in># dom_m (fst S)\<close>
+  \<open>GC_remap\<^sup>*\<^sup>* S S' \<Longrightarrow> C \<in># dom_m (fst S') \<Longrightarrow> C \<in># dom_m (fst S)\<close>
   apply (induction rule: rtranclp_induct)
   subgoal by auto
   subgoal for y z
@@ -2963,7 +2963,7 @@ lemma rtranclp_GC_remap_ran_m_no_lost:
 
 
 lemma GC_remap_ran_m_no_new_lost:
-  \<open>GC_remap S S'  \<Longrightarrow> dom (fst (snd S)) \<subseteq> set_mset (dom_m (fst S)) \<Longrightarrow>
+  \<open>GC_remap S S' \<Longrightarrow> dom (fst (snd S)) \<subseteq> set_mset (dom_m (fst S)) \<Longrightarrow>
     dom (fst (snd S')) \<subseteq> set_mset (dom_m (fst S))\<close>
   by (induction rule: GC_remap.induct)
     (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin distinct_mset_dom
@@ -2971,7 +2971,7 @@ lemma GC_remap_ran_m_no_new_lost:
       dest: GC_remap_ran_m_remap)
 
 lemma rtranclp_GC_remap_ran_m_no_new_lost:
-  \<open>GC_remap\<^sup>*\<^sup>* S S'  \<Longrightarrow> dom (fst (snd S)) \<subseteq> set_mset (dom_m (fst S)) \<Longrightarrow>
+  \<open>GC_remap\<^sup>*\<^sup>* S S' \<Longrightarrow> dom (fst (snd S)) \<subseteq> set_mset (dom_m (fst S)) \<Longrightarrow>
     dom (fst (snd S')) \<subseteq> set_mset (dom_m (fst S))\<close>
   apply (induction rule: rtranclp_induct)
   subgoal by auto
