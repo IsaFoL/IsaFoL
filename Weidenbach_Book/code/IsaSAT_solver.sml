@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "b8188e2f";
+val version : string = "82a9c27c";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -5599,9 +5599,7 @@ fun length_u64_code A_ =
 fun append_and_length_fast_code x =
   (fn ai => fn bia => fn bi =>
     let
-      val xa =
-        (if ai then (Word32.fromInt 0)
-          else Word32.fromLargeInt (IntInf.toLarge (5 : IntInf.int)));
+      val xa = (if ai then (Word32.fromInt 0) else (Word32.fromInt 1));
     in
       (fn () =>
         let
@@ -6873,9 +6871,7 @@ fun header_size_code x =
 fun append_and_length_code x =
   (fn ai => fn bia => fn bi =>
     let
-      val xa =
-        (if ai then (Word32.fromInt 0)
-          else Word32.fromLargeInt (IntInf.toLarge (5 : IntInf.int)));
+      val xa = (if ai then (Word32.fromInt 0) else (Word32.fromInt 1));
     in
       (fn () =>
         let

@@ -1243,20 +1243,24 @@ qed
 
 paragraph \<open>Learning a clause\<close>
 
+definition append_clause_skeleton where
+  \<open>append_clause_skeleton st used act lbd C arena =
+    (if is_short_clause C then
+      arena @ (AStatus st used) # AActivity act # ALBD lbd #
+      ASize (length C - 2) # map ALit C
+    else arena @ APos 0 # (AStatus st used) # AActivity act #
+      ALBD lbd # ASize (length C - 2) # map ALit C)\<close>
+
 definition append_clause where
   \<open>append_clause b C arena =
-    (if is_short_clause C then
-      arena @ (if b then AStatus IRRED False else AStatus LEARNED True) # AActivity 0 # ALBD (length C - 2) #
-      ASize (length C - 2) # map ALit C
-    else arena @ APos 0 # (if b then AStatus IRRED False else AStatus LEARNED True) # AActivity 0 #
-      ALBD (length C - 2)# ASize (length C - 2) # map ALit C)\<close>
+    append_clause_skeleton (if b then IRRED else LEARNED) False 0 (length C - 2) C arena\<close>
 
 lemma arena_active_clause_append_clause:
   assumes
     \<open>i \<ge> header_size (N \<propto> i)\<close> and
     \<open>i < length arena\<close> and
     \<open>xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>
-  shows \<open>xarena_active_clause (clause_slice (append_clause b C arena) N i)
+  shows \<open>xarena_active_clause (clause_slice (append_clause_skeleton st used act lbd C arena) N i)
      (the (fmlookup N i))\<close>
 proof -
   have \<open>drop (header_size (N \<propto> i)) (clause_slice arena N i) = map ALit (N \<propto> i)\<close> and
@@ -1269,24 +1273,28 @@ proof -
    have \<open>i + length (N \<propto> i) \<le> length arena\<close>
     unfolding xarena_active_clause_alt_def
     by (auto simp add: slice_len_min_If header_size_def is_short_clause_def split: if_splits)
-  then have \<open>clause_slice (append_clause b C arena) N i = clause_slice arena N i\<close>
-    by (auto simp add: append_clause_def)
+  then have \<open>clause_slice (append_clause_skeleton st used act lbd C arena) N i = clause_slice arena N i\<close>
+    by (auto simp add: append_clause_skeleton_def)
   then show ?thesis
     using assms by simp
 qed
 
 lemma length_append_clause[simp]:
+  \<open>length (append_clause_skeleton st used act lbd C arena) = length arena + length C + header_size C\<close>
   \<open>length (append_clause b C arena) = length arena + length C + header_size C\<close>
-  by (auto simp: append_clause_def header_size_def)
+  by (auto simp: append_clause_skeleton_def header_size_def
+    append_clause_def)
 
-lemma arena_active_clause_append_clause_same: \<open>2 \<le> length C \<Longrightarrow>
+lemma arena_active_clause_append_clause_same: \<open>2 \<le> length C \<Longrightarrow> st \<noteq> DELETED \<Longrightarrow>
+    b \<longleftrightarrow> (st = IRRED) \<Longrightarrow>
     xarena_active_clause
      (Misc.slice (length arena) (length arena + header_size C + length C)
-       (append_clause b C arena))
+       (append_clause_skeleton st used act lbd C arena))
      ((the (fmlookup (fmupd (length arena + header_size C) (C, b) N)
      (length arena + header_size C))))\<close>
-  unfolding xarena_active_clause_alt_def append_clause_def
-  by (auto simp: header_size_def slice_start0 SHIFTS_def slice_Cons split: if_splits)
+  unfolding xarena_active_clause_alt_def append_clause_skeleton_def
+  by (cases st)
+   (auto simp: header_size_def slice_start0 SHIFTS_def slice_Cons split: if_splits)
 
 lemma clause_slice_append_clause:
   assumes
@@ -1294,13 +1302,15 @@ lemma clause_slice_append_clause:
     dom: \<open>valid_arena arena N vdom\<close> and
     \<open>arena_dead_clause (dead_clause_slice (arena) N ia)\<close>
   shows
-    \<open>arena_dead_clause (dead_clause_slice (append_clause b C arena) N ia)\<close>
+    \<open>arena_dead_clause (dead_clause_slice (append_clause_skeleton st used act lbd C arena) N ia)\<close>
 proof -
   have ia_ge: \<open>ia \<ge> 4\<close> \<open>ia < length arena\<close>
     using dom ia unfolding valid_arena_def
     by auto
-  then have \<open>dead_clause_slice (arena) N ia = dead_clause_slice (append_clause b C arena) N ia\<close>
-    by (auto simp add: extra_information_mark_to_delete_def drop_update_swap append_clause_def
+  then have \<open>dead_clause_slice (arena) N ia =
+      dead_clause_slice (append_clause_skeleton st used act lbd C arena) N ia\<close>
+    by (auto simp add: extra_information_mark_to_delete_def drop_update_swap
+      append_clause_skeleton_def
       arena_dead_clause_def swap_lits_def SHIFTS_def swap_def ac_simps
        Misc.slice_def header_size_def split: if_splits)
   then show ?thesis
@@ -1308,12 +1318,14 @@ proof -
 qed
 
 
-lemma valid_arena_append_clause:
-  assumes arena: \<open>valid_arena arena N vdom\<close> and le_C: \<open>length C \<ge> 2\<close>
-  shows \<open>valid_arena (append_clause b C arena) (fmupd (length arena + header_size C) (C, b) N)
+lemma valid_arena_append_clause_skeleton:
+  assumes arena: \<open>valid_arena arena N vdom\<close> and le_C: \<open>length C \<ge> 2\<close> and
+    b: \<open>b \<longleftrightarrow> (st = IRRED)\<close> and st: \<open>st \<noteq> DELETED\<close>
+  shows \<open>valid_arena (append_clause_skeleton st used act lbd C arena)
+      (fmupd (length arena + header_size C) (C, b) N)
      (insert (length arena + header_size C) vdom)\<close>
 proof -
-  let ?arena = \<open>append_clause b C arena\<close>
+  let ?arena = \<open>append_clause_skeleton st used act lbd C arena\<close>
   let ?i= \<open>length arena + header_size C\<close>
   let ?N = \<open>(fmupd (length arena + header_size C) (C, b) N)\<close>
   let ?vdom = \<open>insert (length arena + header_size C) vdom\<close>
@@ -1342,17 +1354,28 @@ proof -
         ia < length ?arena \<and>
         header_size (?N \<propto> ia) \<le> ia \<and>
         xarena_active_clause (clause_slice ?arena ?N ia) (the (fmlookup ?N ia))\<close> for ia
-    using dom'[of ia] le_C arena_active_clause_append_clause_same[of C arena b]
+    using dom'[of ia] le_C arena_active_clause_append_clause_same[of C st b arena used]
+      b st
     by auto
   moreover have \<open>ia\<in>vdom \<longrightarrow>
-        ia \<notin># dom_m N \<longrightarrow> ia < length (append_clause b C arena) \<and>
-        4 \<le> ia \<and> arena_dead_clause (Misc.slice (ia - 4) ia (append_clause b C arena))\<close> for ia
-    using vdom[of ia] clause_slice_append_clause[of ia N vdom arena b C, OF _ _ arena] le_C
+        ia \<notin># dom_m N \<longrightarrow> ia < length (?arena) \<and>
+        4 \<le> ia \<and> arena_dead_clause (Misc.slice (ia - 4) ia (?arena))\<close> for ia
+    using vdom[of ia] clause_slice_append_clause[of ia N vdom arena st used act lbd C, OF _ _ arena]
+      le_C b st
     by auto
   ultimately show ?thesis
     unfolding valid_arena_def
     by auto
 qed
+
+lemma valid_arena_append_clause:
+  assumes arena: \<open>valid_arena arena N vdom\<close> and le_C: \<open>length C \<ge> 2\<close>
+  shows \<open>valid_arena (append_clause b C arena)
+      (fmupd (length arena + header_size C) (C, b) N)
+     (insert (length arena + header_size C) vdom)\<close>
+  using valid_arena_append_clause_skeleton[OF assms,
+    of b \<open>if b then IRRED else LEARNED\<close>]
+  by (auto simp: append_clause_def)
 
 
 subsubsection \<open>Refinement Relation\<close>

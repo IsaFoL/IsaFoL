@@ -472,7 +472,7 @@ than reserving a space that is large enough directly. However, in this case the 
 is so large that there should not be any difference\<close>
 definition fm_add_new where
  \<open>fm_add_new b C N = do {
-    let st = (if b then AStatus IRRED False else AStatus LEARNED True);
+    let st = (if b then AStatus IRRED False else AStatus LEARNED False);
     let l = length N;
     let s = length C - 2;
     let N = (if is_short_clause C then
@@ -496,7 +496,7 @@ lemma header_size_Suc_def:
 
 lemma nth_append_clause:
   \<open>a < length C \<Longrightarrow> append_clause b C N ! (length N + header_size C + a) = ALit (C ! a)\<close>
-  unfolding append_clause_def header_size_Suc_def
+  unfolding append_clause_def header_size_Suc_def append_clause_skeleton_def
   by (auto simp: nth_Cons nth_append)
 
 lemma fm_add_new_append_clause:
@@ -507,7 +507,8 @@ lemma fm_add_new_append_clause:
     I = \<open>\<lambda>(i, N'). N' = take (length N + header_size C + i) (append_clause b C N) \<and>
       i \<le> length C\<close>])
   subgoal by auto
-  subgoal by (auto simp: append_clause_def header_size_def)
+  subgoal by (auto simp: append_clause_def header_size_def
+    append_clause_skeleton_def split: if_splits)
   subgoal by simp
   subgoal by simp
   subgoal by (auto simp: take_Suc_conv_app_nth nth_append_clause)
@@ -537,6 +538,16 @@ lemma AStatus_LEARNED [sepref_fr_rules]:
   \<open>(uncurry0 (return 0b101), uncurry0 (RETURN AStatus_LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
   by sepref_to_hoare
     (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    status_rel_def bitfield_rel_def)
+
+
+definition AStatus_LEARNED2 where
+  \<open>AStatus_LEARNED2 = AStatus LEARNED False\<close>
+
+lemma AStatus_LEARNED2 [sepref_fr_rules]:
+  \<open>(uncurry0 (return 0b001), uncurry0 (RETURN AStatus_LEARNED2)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_LEARNED2_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
     status_rel_def bitfield_rel_def)
 
 sepref_definition is_short_clause_code
@@ -591,7 +602,7 @@ sepref_definition append_and_length_code
        arena_assn *a nat_assn\<close>
   supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro]
   unfolding fm_add_new_def AStatus_IRRED_def[symmetric]
-   AStatus_LEARNED_def[symmetric]
+   AStatus_LEARNED_def[symmetric] AStatus_LEARNED2_def[symmetric]
    two_uint64_nat_def[symmetric]
    apply (rewrite in \<open>let _ = _ - _ in _\<close> length_uint64_nat_def[symmetric])
    apply (rewrite in \<open>let _ = _ in let _ = _ in let _ = \<hole> in _\<close> uint32_of_uint64_conv_def[symmetric])
@@ -665,7 +676,7 @@ sepref_definition (in -)append_and_length_fast_code
   supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro] append_and_length_code_fast[intro]
     header_size_def[simp]
   unfolding fm_add_new_def AStatus_IRRED_def[symmetric] append_and_length_fast_code_pre_def
-   AStatus_LEARNED_def[symmetric]
+   AStatus_LEARNED_def[symmetric] AStatus_LEARNED2_def[symmetric]
    two_uint64_nat_def[symmetric] fm_add_new_fast_def
    apply (rewrite in \<open>let _ = _ - _ in _\<close> length_uint64_nat_def[symmetric])
    apply (rewrite in \<open>let _ = _ in _\<close> length_uint64_nat_def[symmetric])
@@ -678,7 +689,7 @@ declare append_and_length_fast_code.refine[sepref_fr_rules]
 
 lemma fm_add_new_alt_def:
  \<open>fm_add_new b C N = do {
-      let st = (if b then AStatus_IRRED else AStatus_LEARNED);
+      let st = (if b then AStatus_IRRED else AStatus_LEARNED2);
       let l = length_uint64_nat N;
       let s = uint32_of_uint64_conv (length_uint64_nat C - two_uint64_nat);
       let N =
@@ -698,7 +709,7 @@ lemma fm_add_new_alt_def:
           (zero_uint64_nat, N);
       RETURN (N, l + header_size C)
     }\<close>
-  unfolding fm_add_new_def Let_def AStatus_LEARNED_def AStatus_IRRED_def
+  unfolding fm_add_new_def Let_def AStatus_LEARNED2_def AStatus_IRRED_def
   by auto
 
 definition fmap_swap_ll_u64 where
@@ -758,12 +769,13 @@ definition fm_mv_clause_to_new_arena where
       RETURN (new_arena)
   }\<close>
 
+(*TODO Move*)
 lemma slice_append_nth:
   \<open>a \<le> b \<Longrightarrow> Suc b \<le> length xs \<Longrightarrow> Misc.slice a (Suc b) xs = Misc.slice a b xs @ [xs ! b]\<close>
   by (auto simp: Misc.slice_def take_Suc_conv_app_nth
     Suc_diff_le)
+(*ENd Move*)
 
-find_theorems valid_arena append
 lemma
   assumes \<open>valid_arena old_arena N vd\<close> and
     \<open>valid_arena new_arena N' vd'\<close> and
