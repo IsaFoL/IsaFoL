@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "82a9c27c";
+val version : string = "788ea2b7";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -1009,16 +1009,17 @@ fun arl_set_u64 A_ a i x =
               (b, snd a)
             end);
 
-fun isa_arena_incr_act_fast_code x =
+fun isa_mark_used_fast_code x =
   (fn ai => fn bi => fn () =>
     let
       val xa =
         arl_get_u64 heap_uint32 ai
-          (Uint64.minus bi (Uint64.fromInt (3 : IntInf.int))) ();
+          (Uint64.minus bi (Uint64.fromInt (4 : IntInf.int))) ();
     in
       arl_set_u64 heap_uint32 ai
-        (Uint64.minus bi (Uint64.fromInt (3 : IntInf.int)))
-        (Word32.+ (xa, (Word32.fromInt 1))) ()
+        (Uint64.minus bi (Uint64.fromInt (4 : IntInf.int)))
+        (Word32.orb (xa, Word32.fromLargeInt (IntInf.toLarge (4 : IntInf.int))))
+        ()
     end)
     x;
 
@@ -1039,7 +1040,7 @@ fun set_conflict_wl_heur_fast_code x =
       let
         val (a1m, (a1n, (a1o, a2o))) = a;
       in
-        (fn f_ => fn () => f_ ((isa_arena_incr_act_fast_code a1a ai) ()) ())
+        (fn f_ => fn () => f_ ((isa_mark_used_fast_code a1a ai) ()) ())
           (fn xa =>
             (fn f_ => fn () => f_ ((isa_length_trail_fast_code a1) ()) ())
               (fn xaa =>
@@ -1812,15 +1813,17 @@ fun arl_set A_ =
    (aa, n)
  end);
 
-fun isa_arena_incr_act_code x =
+fun isa_mark_used_code x =
   (fn ai => fn bi => fn () =>
     let
       val xa =
-        arl_get heap_uint32 ai (minus_nata bi (nat_of_integer (3 : IntInf.int)))
-          ();
+        arl_get heap_uint32 ai
+          (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))) ();
     in
-      arl_set heap_uint32 ai (minus_nata bi (nat_of_integer (3 : IntInf.int)))
-        (Word32.+ (xa, (Word32.fromInt 1))) ()
+      arl_set heap_uint32 ai
+        (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
+        (Word32.orb (xa, Word32.fromLargeInt (IntInf.toLarge (4 : IntInf.int))))
+        ()
     end)
     x;
 
@@ -1837,7 +1840,7 @@ fun set_conflict_wl_heur_code x =
       let
         val (a1m, (a1n, (a1o, a2o))) = a;
       in
-        (fn f_ => fn () => f_ ((isa_arena_incr_act_code a1a ai) ()) ())
+        (fn f_ => fn () => f_ ((isa_mark_used_code a1a ai) ()) ())
           (fn xa =>
             (fn f_ => fn () => f_ ((isa_length_trail_code a1) ()) ())
               (fn xaa =>
@@ -4154,20 +4157,6 @@ fun conflict_remove1_code x =
     end)
     x;
 
-fun isa_mark_used_fast_code x =
-  (fn ai => fn bi => fn () =>
-    let
-      val xa =
-        arl_get_u64 heap_uint32 ai
-          (Uint64.minus bi (Uint64.fromInt (4 : IntInf.int))) ();
-    in
-      arl_set_u64 heap_uint32 ai
-        (Uint64.minus bi (Uint64.fromInt (4 : IntInf.int)))
-        (Word32.orb (xa, Word32.fromLargeInt (IntInf.toLarge (4 : IntInf.int))))
-        ()
-    end)
-    x;
-
 fun tl_trail_tr_fast_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
     let
@@ -6021,20 +6010,6 @@ fun resolve_merge_conflict_code x =
           end
             ()
         end)
-    end)
-    x;
-
-fun isa_mark_used_code x =
-  (fn ai => fn bi => fn () =>
-    let
-      val xa =
-        arl_get heap_uint32 ai
-          (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))) ();
-    in
-      arl_set heap_uint32 ai
-        (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
-        (Word32.orb (xa, Word32.fromLargeInt (IntInf.toLarge (4 : IntInf.int))))
-        ()
     end)
     x;
 
