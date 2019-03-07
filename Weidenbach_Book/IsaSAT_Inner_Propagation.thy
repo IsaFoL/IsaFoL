@@ -687,8 +687,7 @@ lemma set_conflict_wl'_alt_def:
 
 definition set_conflict_wl_heur_pre where
   \<open>set_conflict_wl_heur_pre =
-     (\<lambda>(C, S). True
-       )\<close>
+     (\<lambda>(C, S). True)\<close>
 
 definition set_conflict_wl_heur
   :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -699,7 +698,7 @@ where
     (D, clvls, lbd, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n lbd outl;
     ASSERT(arena_act_pre N C);
     ASSERT(isa_length_trail_pre M);
-    RETURN (M, arena_incr_act N C, D, isa_length_trail M, W, vmtf, \<phi>, clvls, cach, lbd, outl,
+    RETURN (M, mark_used N C, D, isa_length_trail M, W, vmtf, \<phi>, clvls, cach, lbd, outl,
       incr_conflict stats, fema, sema)})\<close>
 
 
@@ -1298,7 +1297,7 @@ proof -
       by (subst isa_length_trail_length_u[THEN fref_to_Down_unRET_Id])
        (auto simp: twl_st_heur'_def twl_st_heur_def counts_maximum_level_def
         set_conflict_wl'_pre_def all_atms_def[symmetric]
-       intro: valid_arena_arena_incr_act)
+       intro!: valid_arena_mark_used)
     done
 qed
 
