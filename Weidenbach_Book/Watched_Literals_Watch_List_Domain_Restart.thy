@@ -1301,6 +1301,182 @@ proof -
     done
 qed
 
+
+definition cdcl_GC_clauses_prog_copy_wl_entry
+  :: \<open>'v clauses_l \<Rightarrow> 'v watched \<Rightarrow> 'v literal \<Rightarrow>
+         'v clauses_l \<Rightarrow> ('v clauses_l \<times> 'v clauses_l) nres\<close>
+where
+\<open>cdcl_GC_clauses_prog_copy_wl_entry = (\<lambda>N W A N'. do {
+    let le = length W;
+    (i, N, N') \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, N, N'). i < le)
+      (\<lambda>(i, N, N'). do {
+        ASSERT(i < length W);
+        let C = fst (W ! i);
+        if C \<in># dom_m N then do {
+          D \<leftarrow> SPEC(\<lambda>D. D \<notin># dom_m N');
+	  RETURN (i+1, fmdrop C N, fmupd D (N \<propto> C, irred N C) N')
+        } else RETURN (i+1, N, N')
+      }) (0, N, N');
+    RETURN (N, N')
+  })\<close>
+
+lemma cdcl_GC_clauses_prog_copy_wl_entry:
+  assumes \<open>\<exists>m. GC_remap\<^sup>*\<^sup>* (a, b, c) (N0, m, N0') \<and>
+	  ran m \<subseteq> set_mset (dom_m N0') \<and>
+	  dom m = set_mset (dom_m a) - set_mset (dom_m N0)\<close>
+  shows
+    \<open>cdcl_GC_clauses_prog_copy_wl_entry N0 W A N0' \<le>
+      SPEC(\<lambda>(N, N'). \<exists>m. GC_remap\<^sup>*\<^sup>* (a, b, c) (N, m, N') \<and>
+	  ran m \<subseteq> set_mset (dom_m N') \<and>
+	  dom m = set_mset (dom_m a) - set_mset (dom_m N))\<close>
+proof -
+  have [simp]:
+    \<open>x \<in># remove1_mset a (dom_m aaa) \<longleftrightarrow> x \<noteq> a \<and> x \<in># dom_m aaa\<close> for x a aaa
+    using distinct_mset_dom[of aaa]
+    by (cases \<open>a \<in># dom_m aaa\<close>)
+      (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+
+  show ?thesis
+    unfolding cdcl_GC_clauses_prog_copy_wl_entry_def
+    apply (refine_vcg
+      WHILET_rule[where I = \<open>\<lambda>(i, N, N'). \<exists>m. GC_remap\<^sup>*\<^sup>* (a, b, c) (N, m, N') \<and>
+	  ran m \<subseteq> set_mset (dom_m N') \<and>
+	  dom m = set_mset (dom_m a) - set_mset (dom_m N)\<close> and
+	R = \<open>measure (\<lambda>(i, N, N'). length W -i)\<close>])
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal for s aa ba aaa baa x x1 x2 x1a x2a
+      apply clarify
+      apply (subgoal_tac \<open>\<exists>m'. GC_remap (aaa, m, baa) (fmdrop (fst (W ! aa)) aaa, m',
+		fmupd x (the (fmlookup aaa (fst (W ! aa)))) baa) \<and>
+	  ran m' \<subseteq> set_mset (dom_m (fmupd x (the (fmlookup aaa (fst (W ! aa)))) baa)) \<and>
+	  dom m' = set_mset (dom_m a) - set_mset (dom_m (fmdrop (fst (W ! aa)) aaa))\<close>)
+      apply (auto intro: rtranclp.rtrancl_into_rtrancl)
+      apply (auto simp: GC_remap.simps)
+      apply (rule_tac x= \<open>m(fst (W ! aa) \<mapsto> x)\<close> in exI)
+      apply (intro conjI)
+      apply (rule_tac x=x in exI)
+      apply (rule_tac x= \<open>fst (W ! aa)\<close> in exI)
+      apply (force dest: rtranclp_GC_remap_ran_m_no_lost)+
+      done
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+definition cdcl_GC_clauses_prog_single_wl
+  :: \<open>'v clauses_l \<Rightarrow> ('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v \<Rightarrow>
+         'v clauses_l \<Rightarrow> ('v clauses_l \<times> 'v clauses_l \<times> ('v literal \<Rightarrow> 'v watched)) nres\<close>
+where
+\<open>cdcl_GC_clauses_prog_single_wl = (\<lambda>N WS A N'. do {
+    L \<leftarrow> RES {Pos A, Neg A};
+    (N, N') \<leftarrow> cdcl_GC_clauses_prog_copy_wl_entry N (WS L) L N';
+    let WS = WS(L := []);
+    (N, N') \<leftarrow> cdcl_GC_clauses_prog_copy_wl_entry N (WS (-L)) L N';
+    let WS = WS(-L := []);
+    RETURN (N, N', WS)
+  })\<close>
+
+
+lemma cdcl_GC_clauses_prog_single_wl:
+  assumes \<open>\<exists>m. GC_remap\<^sup>*\<^sup>* (a, b, c) (N0, m, N0') \<and>
+	  ran m \<subseteq> set_mset (dom_m N0') \<and>
+	  dom m = set_mset (dom_m a) - set_mset (dom_m N0)\<close>
+  shows
+    \<open>cdcl_GC_clauses_prog_single_wl N0 W A N0' \<le>
+      SPEC(\<lambda>(N, N', WS'). \<exists>m. GC_remap\<^sup>*\<^sup>* (a, b, c) (N, m, N') \<and>
+	  ran m \<subseteq> set_mset (dom_m N') \<and>
+	  dom m = set_mset (dom_m a) - set_mset (dom_m N) \<and>
+	  WS' (Pos A) = [] \<and> WS' (Neg A) = [] \<and>
+	  (\<forall>L. L \<noteq> Pos A \<longrightarrow> L \<noteq> Neg A \<longrightarrow> W L = WS' L)
+	  )\<close>
+proof -
+  show ?thesis
+    unfolding cdcl_GC_clauses_prog_single_wl_def
+    apply (refine_vcg
+      cdcl_GC_clauses_prog_copy_wl_entry)
+    apply(solves \<open>use assms in auto\<close>)
+    apply(solves \<open>auto\<close>)
+    apply(solves \<open>auto\<close>)
+    done
+qed
+
+
+definition cdcl_GC_clauses_prog_wl_inv
+  :: \<open>'v multiset \<Rightarrow> 'v clauses_l \<Rightarrow>
+    'v multiset \<times> ('v clauses_l \<times> 'v clauses_l \<times> ('v literal \<Rightarrow> 'v watched)) \<Rightarrow> bool\<close>
+where
+\<open>cdcl_GC_clauses_prog_wl_inv \<A> N0 = (\<lambda>(\<B>, (N, N', WS)). \<B> \<subseteq># \<A> \<and>
+  (\<forall>A \<in> set_mset \<A> - set_mset \<B>. (WS (Pos A) = []) \<and> WS (Neg A) = []) \<and>
+  (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (N, m, N')\<and>
+      ran m \<subseteq> set_mset (dom_m N') \<and>
+      dom m = set_mset (dom_m N0) - set_mset (dom_m N)))\<close>
+
+definition cdcl_GC_clauses_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+\<open>cdcl_GC_clauses_prog_wl = (\<lambda>(M, N0, D, NE, UE, Q, WS). do {
+    ASSERT(cdcl_GC_clauses_pre_wl (M, N0, D, NE, UE, Q, WS));
+    \<A> \<leftarrow> SPEC(\<lambda>\<A>. set_mset \<A> = set_mset (all_atms N0 (NE + UE)));
+    (_, (N, N', WS)) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_GC_clauses_prog_wl_inv \<A> N0\<^esup>
+      (\<lambda>(\<B>, _). \<B> \<noteq> {#})
+      (\<lambda>(\<B>, (N, N', WS)). do {
+        ASSERT(\<B> \<noteq> {#});
+	A \<leftarrow> SPEC (\<lambda>A. A \<in># \<B>);
+	(N, N', WS) \<leftarrow> cdcl_GC_clauses_prog_single_wl N WS A N';
+	RETURN (remove1_mset A \<B>, (N, N', WS))
+      })
+      (\<A>, (N0, fmempty, WS));
+    RETURN (M, N, D, NE, UE, Q, WS)
+  })\<close>
+
+
+lemma cdcl_GC_clauses_prog_single_wl:
+  assumes \<open>((M, N0, D, NE, UE, Q, WS), S) \<in> state_wl_l None \<and>
+    correct_watching'' (M, N0, D, NE, UE, Q, WS) \<and> cdcl_GC_clauses_pre S\<close>
+  shows
+    \<open>cdcl_GC_clauses_prog_wl (M, N0, D, NE, UE, Q, WS) \<le>
+      SPEC(\<lambda>(M, N, D, NE, UE, Q, WS).
+         \<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (fmempty, m, N)
+	  )\<close>
+proof -
+  show ?thesis
+    supply[[goals_limit=1]]
+    unfolding cdcl_GC_clauses_prog_wl_def
+    apply (refine_vcg
+      WHILEIT_rule[where R = \<open>measure (\<lambda>(\<A>::'v multiset, (_::'v clauses_l, _ ::'v clauses_l,
+          _:: 'v literal \<Rightarrow> 'v watched)). size \<A>)\<close>]
+      cdcl_GC_clauses_prog_single_wl[of N0 \<open>\<lambda>_. None\<close> fmempty])
+    subgoal
+      using assms
+      unfolding cdcl_GC_clauses_pre_wl_def
+      by blast
+    subgoal by auto
+    subgoal unfolding cdcl_GC_clauses_prog_wl_inv_def by auto
+    subgoal by auto
+    subgoal
+      unfolding cdcl_GC_clauses_prog_wl_inv_def
+      by auto
+    subgoal for a b aa ba ab bb ac bc ad bd ae be
+        x s af bf ag bg ah bh xa xb ai bi aj bj
+      using in_remove1_msetI[of _ xa af]
+      unfolding cdcl_GC_clauses_prog_wl_inv_def prod.case
+      apply (intro conjI ballI)
+      prefer 2
+      apply (case_tac \<open>A = xa\<close>)
+      prefer 2
+      apply (case_tac \<open>A = xa\<close>)
+      apply auto
+       by (metis Diff_iff in_remove1_msetI)
+    subgoal
+      by (auto dest!: multi_member_split)
+    subgoal
+      unfolding cdcl_GC_clauses_prog_wl_inv_def
+      apply auto
+  oops
+
 end
 
 end
