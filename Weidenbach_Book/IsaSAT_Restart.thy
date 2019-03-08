@@ -572,7 +572,7 @@ sepref_definition access_lit_in_clauses_heur_fast_code2
   supply length_rll_def[simp] [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
   unfolding isasat_bounded_assn_def access_lit_in_clauses_heur_alt_def
     fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
-    fmap_rll_u64_def[symmetric] arena_is_valid_clause_idx_le_uint64_max2[intro]
+    fmap_rll_u64_def[symmetric] arena_lit_pre_le[intro]
   by sepref
 
 declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
