@@ -120,7 +120,6 @@ sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub
     \<and> distinct_mset C' \<and> L' \<notin># C' \<and> \<not>tautology (add_mset L' C')"
   by unfold_locales
 
-thm cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy.axioms
 sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy where
   trail = "\<lambda>S. convert_trail_from_W (trail S)" and
   clauses\<^sub>N\<^sub>O\<^sub>T = clauses and
