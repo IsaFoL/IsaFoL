@@ -9,7 +9,7 @@ locale covering_models =
     \<rho> :: \<open>'v \<Rightarrow> bool\<close>
 begin
 text \<open>
-  The first version of the calculus was obviously wrong, because there is no totality
+  The first version of the calculus is probably wrong, because there is no totality
   condition in the rule ConflCM.\<close>
 
 definition model_is_dominating :: \<open>'v literal multiset \<Rightarrow> 'v literal multiset \<Rightarrow> bool\<close> where
