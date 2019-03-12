@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "c908565a";
+val version : string = "d3982ff3";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -4226,16 +4226,19 @@ fun update_confl_tl_wl_fast_code x =
           (fn (a1r, a2r) =>
             (fn f_ => fn () => f_ ((isa_mark_used_fast_code a1a ai) ()) ())
               (fn x_e =>
-                (fn f_ => fn () => f_ ((tl_trail_tr_fast_code a1) ()) ())
-                  (fn xb =>
-                    (fn f_ => fn () => f_
-                      ((isa_vmtf_unset_code (atm_of_code bia) a1g) ()) ())
-                      (fn xaa =>
-                        (fn () =>
-                          (false,
-                            (xb, (x_e, ((a1n, (a1r, a2r)),
- (a1e, (a1f, (xaa, (a1h, (fast_minus_uint32 a1p (Word32.fromInt 1),
-                           (a1j, (a1q, (a2q, a2l)))))))))))))))))
+                (fn f_ => fn () => f_ ((isa_arena_incr_act_fast_code x_e ai) ())
+                  ())
+                  (fn x_g =>
+                    (fn f_ => fn () => f_ ((tl_trail_tr_fast_code a1) ()) ())
+                      (fn xb =>
+                        (fn f_ => fn () => f_
+                          ((isa_vmtf_unset_code (atm_of_code bia) a1g) ()) ())
+                          (fn xaa =>
+                            (fn () =>
+                              (false,
+                                (xb, (x_g, ((a1n, (a1r, a2r)),
+     (a1e, (a1f, (xaa, (a1h, (fast_minus_uint32 a1p (Word32.fromInt 1),
+                               (a1j, (a1q, (a2q, a2l))))))))))))))))))
       end
         ()
     end)
@@ -6096,16 +6099,18 @@ fun update_confl_tl_wl_code x =
           (fn (a1r, a2r) =>
             (fn f_ => fn () => f_ ((isa_mark_used_code a1a ai) ()) ())
               (fn x_e =>
-                (fn f_ => fn () => f_ ((tl_trail_tr_code a1) ()) ())
-                  (fn xb =>
-                    (fn f_ => fn () => f_
-                      ((isa_vmtf_unset_code (atm_of_code bia) a1g) ()) ())
-                      (fn xaa =>
-                        (fn () =>
-                          (false,
-                            (xb, (x_e, ((a1n, (a1r, a2r)),
- (a1e, (a1f, (xaa, (a1h, (fast_minus_uint32 a1p (Word32.fromInt 1),
-                           (a1j, (a1q, (a2q, a2l)))))))))))))))))
+                (fn f_ => fn () => f_ ((isa_arena_incr_act_code x_e ai) ()) ())
+                  (fn x_g =>
+                    (fn f_ => fn () => f_ ((tl_trail_tr_code a1) ()) ())
+                      (fn xb =>
+                        (fn f_ => fn () => f_
+                          ((isa_vmtf_unset_code (atm_of_code bia) a1g) ()) ())
+                          (fn xaa =>
+                            (fn () =>
+                              (false,
+                                (xb, (x_g, ((a1n, (a1r, a2r)),
+     (a1e, (a1f, (xaa, (a1h, (fast_minus_uint32 a1p (Word32.fromInt 1),
+                               (a1j, (a1q, (a2q, a2l))))))))))))))))))
       end
         ()
     end)
