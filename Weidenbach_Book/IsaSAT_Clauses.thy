@@ -472,7 +472,7 @@ than reserving a space that is large enough directly. However, in this case the 
 is so large that there should not be any difference\<close>
 definition fm_add_new where
  \<open>fm_add_new b C N = do {
-    let st = (if b then AStatus IRRED True else AStatus LEARNED True);
+    let st = (if b then AStatus IRRED False else AStatus LEARNED False);
     let l = length N;
     let s = length C - 2;
     let N = (if is_short_clause C then
@@ -699,7 +699,7 @@ declare append_and_length_fast_code.refine[sepref_fr_rules]
 
 lemma fm_add_new_alt_def:
  \<open>fm_add_new b C N = do {
-      let st = (if b then AStatus_IRRED2 else AStatus_LEARNED);
+      let st = (if b then AStatus_IRRED else AStatus_LEARNED2);
       let l = length_uint64_nat N;
       let s = uint32_of_uint64_conv (length_uint64_nat C - two_uint64_nat);
       let N =

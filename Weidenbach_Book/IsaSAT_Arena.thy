@@ -1253,7 +1253,7 @@ definition append_clause_skeleton where
 
 definition append_clause where
   \<open>append_clause b C arena =
-    append_clause_skeleton 0 (if b then IRRED else LEARNED) True 0 (length C - 2) C arena\<close>
+    append_clause_skeleton 0 (if b then IRRED else LEARNED) False 0 (length C - 2) C arena\<close>
 
 lemma arena_active_clause_append_clause:
   assumes
