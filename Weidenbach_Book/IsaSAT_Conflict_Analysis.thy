@@ -255,6 +255,17 @@ lemma tl_state_wl_heur_tl_state_wl:
   apply (auto simp: lit_of_hd_trail_def)[3]
   done
 
+lemma arena_act_pre_mark_used:
+  \<open>arena_act_pre arena C \<Longrightarrow>
+  arena_act_pre (mark_used arena C) C\<close>
+  unfolding arena_act_pre_def arena_is_valid_clause_idx_def
+  apply clarify
+  apply (rule_tac x=N in exI)
+  apply (rule_tac x=vdom in exI)
+  by (auto simp: arena_act_pre_def
+    simp: valid_arena_mark_used)
+
+
 definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
@@ -274,6 +285,8 @@ where
       let (n, xs) = lookup_conflict_remove1 L (n, xs);
       ASSERT(arena_act_pre N C);
       let N = mark_used N C;
+      ASSERT(arena_act_pre N C);
+      let N = arena_incr_act N C;
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (b, (n, xs)), Q, W, isa_vmtf_unset L' vm,
@@ -362,6 +375,8 @@ proof -
                           let (n, xs) = lookup_conflict_remove1 b (n, xs);
                           ASSERT (arena_act_pre c a);
                           let c = mark_used c a;
+                          ASSERT (arena_act_pre c a);
+                          let c = arena_incr_act c a;
                           ASSERT(vmtf_unset_pre (atm_of b) ivmtf);
 			  ASSERT(tl_trailt_tr_pre ba);
                           RETURN
@@ -635,9 +650,9 @@ proof -
        subgoal unfolding merge_conflict_m_def conc_fun_SPEC
         by (auto simp: twl_st_heur_conflict_ana_def merge_conflict_m_def update_confl_tl_wl_pre_def
            resolve_cls_wl'_def ac_simps no_dup_tlD lookup_remove1_uminus arena_in_L
-	   all_atms_def[symmetric] eq
-           intro!: ASSERT_refine_left
-	     tl_trail_tr[THEN fref_to_Down_unRET])
+	   all_atms_def[symmetric] eq Let_def
+           intro!: ASSERT_refine_left valid_arena_arena_incr_act
+	     tl_trail_tr[THEN fref_to_Down_unRET] arena_act_pre_mark_used)
        done
   qed
 
@@ -655,6 +670,8 @@ proof -
 			   let (n, xs) = lookup_conflict_remove1 b (n, xs);
                           ASSERT (arena_act_pre c a);
                           let c = mark_used c a;
+                          ASSERT (arena_act_pre c a);
+                          let c = arena_incr_act c a;
 			  ASSERT
 				(vmtf_unset_pre (atm_of b)
 				  ((ah, ai, aj, ak, bc), al, bd));
@@ -939,10 +956,11 @@ proof -
       apply (rule merge)
       apply (rule rel')
       using 1 2 3 4 5 6 7 8 tr valid rel tr_nempty n_d no_dup_tlD[OF n_d] act
-        valid_used
-      unfolding merge_conflict_m_g_eq2_def merge_conflict_m_eq2_def
+        valid_used bk
+      unfolding merge_conflict_m_g_eq2_def merge_conflict_m_eq2_def Let_def
       by (auto intro!: RES_refine ASSERT_refine_left
-	     tl_trail_tr[THEN fref_to_Down_unRET]
+	     tl_trail_tr[THEN fref_to_Down_unRET] valid_arena_arena_incr_act
+	     arena_act_pre_mark_used
       	  simp: conc_fun_RES r twl_st_heur_conflict_ana_def
 	  simp flip: all_atms_def)
   qed
