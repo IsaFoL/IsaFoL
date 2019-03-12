@@ -1151,10 +1151,11 @@ lemma mark_garbage_heur_wl:
   done
 
 definition mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>mark_unused_st_heur C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount, opts).
-    (M', mark_unused N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount, opts))\<close>
+  \<open>mark_unused_st_heur C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
+      stats, fast_ema, slow_ema, ccount, vdom, avdom, lcount, opts).
+    (M', arena_decr_act (mark_unused N' C) C, D', j, W', vm, \<phi>, clvls, cach,
+      lbd, outl, stats, fast_ema, slow_ema, ccount,
+      vdom, avdom, lcount, opts))\<close>
 
 lemma mark_unused_st_heur_simp[simp]:
   \<open>get_avdom (mark_unused_st_heur C T) = get_avdom T\<close>
@@ -1174,9 +1175,9 @@ lemma mark_unused_st_heur:
          learned_clss_l_l_fmdrop size_remove1_mset_If
      simp: all_init_atms_def all_init_lits_def
      simp del: all_init_atms_def[symmetric]
-     intro: valid_arena_mark_unused
-      dest!: in_set_butlastD in_vdom_m_fmdropD
-      elim!: in_set_upd_cases)
+     intro!: valid_arena_mark_unused valid_arena_arena_decr_act
+     dest!: in_set_butlastD in_vdom_m_fmdropD
+     elim!: in_set_upd_cases)
   done
 
 lemma twl_st_heur_restart_valid_arena[twl_st_heur_restart]:
@@ -1465,10 +1466,11 @@ proof -
             ASSERT(get_clause_LBD_pre (get_clauses_wl_heur T) C);
             ASSERT(arena_is_valid_clause_vdom (get_clauses_wl_heur T) C);
             ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow>
-                arena_is_valid_clause_idx (get_clauses_wl_heur T) C); 
+                arena_is_valid_clause_idx (get_clauses_wl_heur T) C);
             ASSERT(arena_status (get_clauses_wl_heur T) C = LEARNED \<longrightarrow>
 	        marked_as_used_pre (get_clauses_wl_heur T) C);
-            let can_del = (D \<noteq> Some C) \<and> arena_lbd (get_clauses_wl_heur T) C > MINIMUM_DELETION_LBD \<and>
+            let can_del = (D \<noteq> Some C) \<and>
+	       arena_lbd (get_clauses_wl_heur T) C > MINIMUM_DELETION_LBD \<and>
                arena_status (get_clauses_wl_heur T) C = LEARNED \<and>
                arena_length (get_clauses_wl_heur T) C \<noteq> two_uint64_nat \<and>
 	       \<not>marked_as_used (get_clauses_wl_heur T) C;

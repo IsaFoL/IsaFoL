@@ -697,7 +697,8 @@ where
     ASSERT(curry6 isa_set_lookup_conflict_aa_pre M N C D n lbd outl);
     (D, clvls, lbd, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n lbd outl;
     ASSERT(isa_length_trail_pre M);
-    RETURN (M, N, D, isa_length_trail M, W, vmtf, \<phi>, clvls, cach, lbd, outl,
+    ASSERT(arena_act_pre N C);
+    RETURN (M, arena_incr_act N C, D, isa_length_trail M, W, vmtf, \<phi>, clvls, cach, lbd, outl,
       incr_conflict stats, fema, sema)})\<close>
 
 
@@ -1288,10 +1289,15 @@ proof -
       unfolding arena_act_pre_def arena_is_valid_clause_idx_def
       by (rule isa_length_trail_pre)
         (auto simp: twl_st_heur'_def twl_st_heur_def)
+    subgoal for x y
+       unfolding arena_act_pre_def arena_is_valid_clause_idx_def
+       by (rule exI[of _ \<open>get_clauses_wl (snd y)\<close>], rule exI[of _ \<open>set (get_vdom (snd x))\<close>])
+         (auto simp: twl_st_heur'_def twl_st_heur_def set_conflict_wl'_pre_def)
     subgoal
       by (subst isa_length_trail_length_u[THEN fref_to_Down_unRET_Id])
        (auto simp: twl_st_heur'_def twl_st_heur_def counts_maximum_level_def
-        set_conflict_wl'_pre_def all_atms_def[symmetric])
+        set_conflict_wl'_pre_def all_atms_def[symmetric]
+	intro!: valid_arena_arena_incr_act valid_arena_mark_used)
     done
 qed
 

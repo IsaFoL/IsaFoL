@@ -475,11 +475,22 @@ declare marked_as_used_st_code.refine[sepref_fr_rules]
   marked_as_used_st_fast_code.refine[sepref_fr_rules]
   marked_as_used_st_fast_code2.refine[sepref_fr_rules]
 
+lemma arena_act_pre_mark_used:
+  \<open>arena_act_pre arena C \<Longrightarrow>
+  arena_act_pre (mark_unused arena C) C\<close>
+  unfolding arena_act_pre_def arena_is_valid_clause_idx_def
+  apply clarify
+  apply (rule_tac x=N in exI)
+  apply (rule_tac x=vdom in exI)
+  by (auto simp: arena_act_pre_def
+    simp: valid_arena_mark_unused)
+
 sepref_definition mark_unused_st_code
   is \<open>uncurry (RETURN oo mark_unused_st_heur)\<close>
   :: \<open>[\<lambda>(C, S). arena_act_pre (get_clauses_wl_heur S) C]\<^sub>a
         nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
   unfolding mark_unused_st_heur_def isasat_unbounded_assn_def
+    arena_act_pre_mark_used[intro!]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -489,6 +500,7 @@ sepref_definition mark_unused_st_fast_code
   :: \<open>[\<lambda>(C, S). arena_act_pre (get_clauses_wl_heur S) C]\<^sub>a
         uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding mark_unused_st_heur_def isasat_bounded_assn_def
+    arena_act_pre_mark_used[intro!]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -497,6 +509,7 @@ sepref_definition mark_unused_st_fast_code2
   :: \<open>[\<lambda>(C, S). arena_act_pre (get_clauses_wl_heur S) C]\<^sub>a
         nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding mark_unused_st_heur_def isasat_bounded_assn_def
+    arena_act_pre_mark_used[intro!]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -512,6 +525,7 @@ sepref_definition mark_clauses_as_unused_wl_D_heur_code
   unfolding mark_clauses_as_unused_wl_D_heur_def
     mark_unused_st_heur_def[symmetric]
     access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+    arena_act_pre_mark_used[intro!]
   by sepref
 
 
