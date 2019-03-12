@@ -1253,7 +1253,7 @@ definition append_clause_skeleton where
 
 definition append_clause where
   \<open>append_clause b C arena =
-    append_clause_skeleton 0 (if b then IRRED else LEARNED) False 0 (length C - 2) C arena\<close>
+    append_clause_skeleton 0 (if b then IRRED else LEARNED) True 0 (length C - 2) C arena\<close>
 
 lemma arena_active_clause_append_clause:
   assumes
@@ -1293,8 +1293,8 @@ lemma arena_active_clause_append_clause_same: \<open>2 \<le> length C \<Longrigh
     xarena_active_clause
      (Misc.slice (length arena) (length arena + header_size C + length C)
        (append_clause_skeleton pos st used act lbd C arena))
-     ((the (fmlookup (fmupd (length arena + header_size C) (C, b) N)
-     (length arena + header_size C))))\<close>
+     (the (fmlookup (fmupd (length arena + header_size C) (C, b) N)
+       (length arena + header_size C)))\<close>
   unfolding xarena_active_clause_alt_def append_clause_skeleton_def
   by (cases st)
    (auto simp: header_size_def slice_start0 SHIFTS_def slice_Cons split: if_splits)
