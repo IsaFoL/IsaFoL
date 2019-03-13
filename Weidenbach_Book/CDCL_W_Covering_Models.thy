@@ -312,10 +312,11 @@ definition covering_simple_clss where
   \<open>covering_simple_clss N S \<longleftrightarrow> (set_mset (covering S) \<subseteq> simple_clss (atms_of_mm N)) \<and>
      distinct_mset (covering S)\<close>
 
-(*TODO Move*)
-lemma (in -) distinct_mset_subset_iff_remdups:
-  \<open>distinct_mset a \<Longrightarrow> a \<subseteq># b \<longleftrightarrow> a \<subseteq># remdups_mset b\<close>
-  by (simp add: distinct_mset_inter_remdups_mset subset_mset.le_iff_inf)
+lemma [simp]: \<open>covering (init_state N) = {#}\<close>
+  by (simp add: covering_def weight_init_state)
+
+lemma \<open>covering_simple_clss N (init_state N)\<close>
+  by (auto simp: covering_simple_clss_def)
 
 lemma cdcl_bnb_covering_simple_clss:
   \<open>cdcl_bnb S T \<Longrightarrow> init_clss S = N \<Longrightarrow> covering_simple_clss N S \<Longrightarrow> covering_simple_clss N T\<close>

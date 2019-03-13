@@ -1685,6 +1685,10 @@ lemma in_mset_fset_fmember[simp]: \<open>x \<in># mset_fset N \<longleftrightarr
 lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow> x \<in># N\<close>
   by (auto simp: fmember.rep_eq fset_mset_def Abs_fset_inverse)
 
+lemma distinct_mset_subset_iff_remdups:
+  \<open>distinct_mset a \<Longrightarrow> a \<subseteq># b \<longleftrightarrow> a \<subseteq># remdups_mset b\<close>
+  by (simp add: distinct_mset_inter_remdups_mset subset_mset.le_iff_inf)
+
 
 subsubsection \<open>Finite map and multisets\<close>
 
