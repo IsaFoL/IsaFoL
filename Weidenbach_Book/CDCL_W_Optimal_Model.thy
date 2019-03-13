@@ -1441,6 +1441,46 @@ next
   qed
 qed
 
+text \<open>The following is a slightly more restricted version of the theorem, because it makes it possible
+to ass some specific invariant, which can be useful when the decreasing argument is complicated.
+\<close>
+lemma wf_cdcl_bnb_with_additional_inv:
+  assumes improve: \<open>\<And>S T. improvep S T \<Longrightarrow> P S \<Longrightarrow> init_clss S = N \<Longrightarrow> (\<nu> (weight T), \<nu> (weight S)) \<in> R\<close> and
+    wf_R: \<open>wf R\<close> and
+    \<open>\<And>S T. cdcl_bnb S T \<Longrightarrow> P S \<Longrightarrow> init_clss S = N \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow> P T\<close>
+  shows \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bnb S T \<and> P S \<and>
+      init_clss S = N}\<close>
+    (is \<open>wf ?A\<close>)
+proof -
+  let ?R = \<open>{(T, S). (\<nu> (weight T), \<nu> (weight S)) \<in> R}\<close>
+
+  have \<open>wf {(T, S).  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W S T}\<close>
+    by (rule cdcl\<^sub>W_restart_mset.wf_cdcl\<^sub>W)
+  from wf_if_measure_f[OF this, of abs_state]
+  have wf: \<open>wf {(T, S).  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and>
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T) \<and> weight S = weight T}\<close>
+    (is \<open>wf ?CDCL\<close>)
+    by (rule wf_subset) auto
+  have \<open>wf (?R \<union> ?CDCL)\<close>
+    apply (rule wf_union_compatible)
+    subgoal by (rule wf_if_measure_f[OF wf_R, of \<open>\<lambda>x. \<nu> (weight x)\<close>])
+    subgoal by (rule wf)
+    subgoal by (auto simp: cdcl\<^sub>W_same_weight)
+    done
+
+  moreover have \<open>?A \<subseteq> ?R \<union> ?CDCL\<close>
+    using assms(3) cdcl_bnb.intros(3)
+    by (auto dest: cdcl\<^sub>W.intros cdcl\<^sub>W_restart_mset.W_propagate cdcl\<^sub>W_restart_mset.W_other
+	  conflict_conflict propagate_propagate decide_decide improve conflict_opt_conflict
+	  cdcl\<^sub>W_o_cdcl\<^sub>W_o cdcl\<^sub>W_restart_mset.W_conflict W_conflict cdcl\<^sub>W_o.intros cdcl\<^sub>W.intros
+	  cdcl\<^sub>W_o_cdcl\<^sub>W_o
+	simp: cdcl\<^sub>W_same_weight cdcl_bnb.simps ocdcl\<^sub>W_o_same_weight
+	elim: conflict_optE)
+  ultimately show ?thesis
+    by (rule wf_subset)
+qed
+
+
 lemma conflict_is_false_with_level_abs_iff:
   \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (abs_state S) \<longleftrightarrow>
     conflict_is_false_with_level S\<close>

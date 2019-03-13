@@ -26,6 +26,12 @@ definition is_improving_int :: \<open>('v, 'v clause) ann_lits \<Rightarrow> ('v
   M \<Turnstile>asm N \<and>
   no_dup M\<close>
 
+lemma model_is_dominated_refl: \<open>model_is_dominated I I\<close>
+  by (auto simp: model_is_dominated_def)
+
+lemma model_is_dominated_trans:
+  \<open>model_is_dominated I J \<Longrightarrow> model_is_dominated J K \<Longrightarrow> model_is_dominated I K\<close>
+  by (auto simp: model_is_dominated_def)
 
 text \<open>This criteria is a bit more general than Weidenbach's version.\<close>
 definition conflicting_clauses
@@ -300,6 +306,42 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
   subgoal by (rule distinct_mset_mset_conflicting_clss2)
   subgoal by (rule is_improving_conflicting_clss_update_weight_information)
   subgoal by (rule conflicting_clss_update_weight_information_in2)
+  done
+
+definition covering_simple_clss where
+  \<open>covering_simple_clss N S \<longleftrightarrow> (set_mset (covering S) \<subseteq> simple_clss (atms_of_mm N)) \<and>
+     distinct_mset (covering S)\<close>
+
+(*TODO Move*)
+lemma (in -) distinct_mset_subset_iff_remdups:
+  \<open>distinct_mset a \<Longrightarrow> a \<subseteq># b \<longleftrightarrow> a \<subseteq># remdups_mset b\<close>
+  by (simp add: distinct_mset_inter_remdups_mset subset_mset.le_iff_inf)
+
+lemma cdcl_bnb_covering_simple_clss:
+  \<open>cdcl_bnb S T \<Longrightarrow> init_clss S = N \<Longrightarrow> covering_simple_clss N S \<Longrightarrow> covering_simple_clss N T\<close>
+  by (auto simp: cdcl_bnb.simps covering_simple_clss_def is_improving_int_def
+      model_is_dominated_refl ocdcl\<^sub>W_o.simps cdcl_bnb_bj.simps
+    elim!: rulesE improveE conflict_optE obacktrackE
+    dest!: multi_member_split[of _ \<open>covering S\<close>])
+
+lemma wf_cdcl_bnb_fixed:
+   \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bnb S T
+       \<and> covering_simple_clss N S \<and> init_clss S = N}\<close>
+  apply (rule wf_cdcl_bnb_with_additional_inv[of
+     \<open>covering_simple_clss N\<close>
+     N id \<open>{(T, S). (T, S) \<in> {(\<M>', \<M>). \<M> \<subset># \<M>' \<and> distinct_mset \<M>'
+       \<and> set_mset \<M>' \<subseteq> simple_clss (atms_of_mm N)}}\<close>])
+  subgoal
+    by (auto simp: improvep.simps is_improving_int_def covering_simple_clss_def
+         add_mset_eq_add_mset  model_is_dominated_refl
+      dest!: multi_member_split)
+  subgoal
+    apply (rule wf_bounded_set[of _ \<open>\<lambda>_. simple_clss (atms_of_mm N)\<close> set_mset])
+    apply (auto simp: distinct_mset_subset_iff_remdups[symmetric] simple_clss_finite
+      simp flip: remdups_mset_def)
+    by (metis distinct_mset_mono distinct_mset_set_mset_ident)
+  subgoal
+    by (rule cdcl_bnb_covering_simple_clss)
   done
 
 end
