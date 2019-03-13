@@ -2188,7 +2188,7 @@ where
       lit_of `# mset M' \<in> simple_clss (atms_of_mm N) \<longrightarrow>
       \<rho> (lit_of `# mset M') = \<rho> (lit_of `# mset M))\<close>
 
-lemma distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftrightarrow> distinct_mset x\<close>
+lemma (in -) distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftrightarrow> distinct_mset x\<close>
   unfolding pNeg_def
   by (rule distinct_image_mset_inj) (auto simp: inj_on_def)
 
