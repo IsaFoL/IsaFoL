@@ -59,6 +59,9 @@ lemma gcl_remove_trms_trms_ecl:
   \<open>finite (cl_ecl C) \<Longrightarrow> ground_clause (cl_ecl C) \<Longrightarrow> trms_ecl (Rep_gclause (gcl_remove_trms C)) = {}\<close>
   using Abs_gclause_inverse [of \<open>Ecl (cl_ecl C) {}\<close>] by auto
 
+(* the definitions of ground inferences could be more precise and require \<sigma> = [] and C' = cl_ecl C,
+   but this information is not useful and makes it more difficult to show that our notion of
+   saturation implies saturation as defined in Supercalc.superposition *)
 definition ground_reflexion_inferences :: \<open>'a gclause inference set\<close> where
 \<open>ground_reflexion_inferences = {Infer [P] (gcl_remove_trms C) | P C. \<exists> \<sigma> C'. reflexion (Rep_gclause P) C \<sigma> Ground C' \<and> ground_clause (cl_ecl C)}\<close>
 
@@ -385,13 +388,13 @@ proof -
       fix E
       assume \<open>E \<in> ?NCC\<close>
       then consider (a) \<open>E \<in> NC0\<close> | (b) \<open>E \<in> ND1\<close> by blast
-      then show \<open>\<exists>P\<in>set (prems_of \<iota>). (E,P) \<in> gclause_ord\<close>
+      then show \<open>\<exists>P \<in> set (prems_of \<iota>). (E,P) \<in> gclause_ord\<close>
       proof cases
         case a
         then show ?thesis using NC0_prop by auto
       next
         case b
-        obtain P where P_elem: \<open>P\<in>set (prems_of \<iota>)\<close> and P_prop: \<open>(D,P) \<in> gclause_ord\<close> using \<open>D \<in> NC0\<close> NC0_prop by auto
+        obtain P where P_elem: \<open>P \<in> set (prems_of \<iota>)\<close> and P_prop: \<open>(D,P) \<in> gclause_ord\<close> using \<open>D \<in> NC0\<close> NC0_prop by auto
         from b have \<open>(E,D) \<in> gclause_ord\<close> using ND1_ord by auto
         also have \<open>(D,P) \<in> gclause_ord\<close> using P_prop .
         finally show ?thesis using gclause_ord_trans P_elem by auto
@@ -404,48 +407,231 @@ proof -
   then show ?thesis by auto
 qed
 
+lemma subst_lit_empty: \<open>subst_lit L [] = L\<close>
+  by (metis subst_Nil subst_equation.elims subst_lit.elims subst_lit.simps(1))
+
+lemma subst_cl_empty:
+  \<open>subst_cl C [] = C\<close>
+proof -
+  from subst_lit_empty have \<open>subst_lit L [] = L\<close> for L :: \<open>'b literal\<close> .
+  then show ?thesis by auto
+qed
+
+lemma mset_ecl_empty: \<open>mset_ecl (C, []) = {# mset_lit L. L \<in># mset_set (cl_ecl C) #}\<close>
+  by (metis (no_types, lifting) subst_lit_empty image_mset_cong mset_ecl.simps)
+
 lemma exists_premise_greater:
   assumes \<open>\<iota> \<in> ground_superposition_inference_system\<close>
-  shows \<open>\<exists>D \<in> Rep_gclause ` set (prems_of \<iota>). ((Rep_gclause (concl_of \<iota>), []), (D , [])) \<in> ecl_ord\<close>
+  shows \<open>\<exists>D \<in> set (prems_of \<iota>). (concl_of \<iota>, D) \<in> gclause_ord\<close>
 proof -
-  from assms consider (a) \<open>\<iota> \<in> ground_reflexion_inferences\<close>
-    | (b) \<open>\<iota> \<in> ground_factorization_inferences\<close>
-    | (c) \<open>\<iota> \<in> ground_superposition_inferences\<close> by auto
+  from assms consider (refl) \<open>\<iota> \<in> ground_reflexion_inferences\<close>
+    | (fact) \<open>\<iota> \<in> ground_factorization_inferences\<close>
+    | (supr) \<open>\<iota> \<in> ground_superposition_inferences\<close> by auto
   then show ?thesis
   proof cases
-    case a
-    then obtain P C C' \<sigma> where \<open>reflexion (Rep_gclause P) C \<sigma> Ground C'\<close>
-                           and \<open>ground_clause (cl_ecl C)\<close>
+    case refl
+    then obtain P C C' \<sigma> where reflexion: \<open>reflexion (Rep_gclause P) C \<sigma> Ground C'\<close>
+                           and ground_C: \<open>ground_clause (cl_ecl C)\<close>
                            and prems_def: \<open>set (prems_of \<iota>) = {P}\<close>
-                           and \<open>concl_of \<iota> = gcl_remove_trms C\<close>
+                           and concl_def: \<open>concl_of \<iota> = gcl_remove_trms C\<close>
       unfolding ground_reflexion_inferences_def by auto
-    then obtain L1 t s where
-      \<open>eligible_literal L1 (Rep_gclause P) \<sigma>\<close>
-      \<open>L1 \<in> cl_ecl (Rep_gclause P)\<close>
-      \<open>orient_lit_inst L1 t s neg \<sigma>\<close>
-      \<open>ck_unifier t s \<sigma> Ground\<close>
-      \<open>cl_ecl C = subst_cl (cl_ecl (Rep_gclause P) - { L1 }) \<sigma>\<close>
-      \<open>C' = cl_ecl (Rep_gclause P) - { L1 }\<close>
+    then obtain L1
+      where L1_elem: \<open>L1 \<in> cl_ecl (Rep_gclause P)\<close>
+      and C_def: \<open>cl_ecl C = subst_cl (cl_ecl (Rep_gclause P) - { L1 }) \<sigma>\<close>
       unfolding reflexion_def by blast
-    have \<open>((Rep_gclause (concl_of \<iota>), []), (Rep_gclause P, [])) \<in> ecl_ord\<close> sorry
-    then show ?thesis using prems_def by auto
+    have \<open>finite (cl_ecl C)\<close>
+      using Rep_gclause [of P] reflexion_preserves_finiteness reflexion by blast
+    then have \<open>cl_ecl (Rep_gclause (concl_of \<iota>)) = cl_ecl C\<close> using concl_def gcl_remove_trms_cl_ecl [of C] ground_C by auto
+    also have \<open>... = cl_ecl (Rep_gclause P) - { L1 }\<close>
+      using Rep_gclause [of P] C_def substs_preserve_ground_clause [of \<open>cl_ecl (Rep_gclause P) - {L1}\<close> \<sigma>] by auto
+    finally have \<open>cl_ecl (Rep_gclause (concl_of \<iota>)) \<union> { L1 } = cl_ecl (Rep_gclause P)\<close> and \<open>L1 \<notin> cl_ecl (Rep_gclause (concl_of \<iota>))\<close> using L1_elem by auto
+    then have \<open>mset_set (cl_ecl (Rep_gclause P)) = mset_set (cl_ecl (Rep_gclause (concl_of \<iota>))) + {# L1 #}\<close>
+      using mset_set_insert [of L1 \<open>cl_ecl (Rep_gclause (concl_of \<iota>))\<close>] Rep_gclause [of \<open>concl_of \<iota>\<close>] by auto
+    then have \<open>mset_ecl (Rep_gclause (concl_of \<iota>), []) \<subset># mset_ecl (Rep_gclause P, [])\<close> using subst_lit_empty by auto
+    then have \<open>(mset_ecl (Rep_gclause (concl_of \<iota>), []), mset_ecl (Rep_gclause P, [])) \<in> mult (mult trm_ord)\<close>
+      using subset_implies_mult by blast
+    then show ?thesis using prems_def unfolding gclause_ord_def by auto
   next
-    case b
-    then obtain P C C' \<sigma> where \<open>factorization (Rep_gclause P) C \<sigma> Ground C'\<close>
-                           and \<open>ground_clause (cl_ecl C)\<close>
+    case fact
+    then obtain P C C' \<sigma> where factorization: \<open>factorization (Rep_gclause P) C \<sigma> Ground C'\<close>
+                           and ground_C: \<open>ground_clause (cl_ecl C)\<close>
                            and prems_def: \<open>set (prems_of \<iota>) = {P}\<close>
-                           and \<open>concl_of \<iota> = gcl_remove_trms C\<close>
+                           and concl_def: \<open>concl_of \<iota> = gcl_remove_trms C\<close>
       unfolding ground_factorization_inferences_def by auto
-    have \<open>((Rep_gclause (concl_of \<iota>), []), (Rep_gclause P, [])) \<in> ecl_ord\<close> sorry
-    then show ?thesis using prems_def by auto
+    then obtain L' L1 L2 s t u v
+      where C_def: \<open>cl_ecl C = subst_cl (cl_ecl (Rep_gclause P) - {L2} \<union> {L'}) \<sigma>\<close>
+        and L1_def: \<open>L1 = Pos (Eq t s) \<or> L1 = Pos (Eq s t)\<close>
+        and L1_elem: \<open>L1 \<in> cl_ecl (Rep_gclause P)\<close>
+        and L2_def: \<open>L2 = Pos (Eq u v) \<or> L2 = Pos (Eq v u)\<close>
+        and L2_elem: \<open>L2 \<in> cl_ecl (Rep_gclause P)\<close>
+        and L'_def: \<open>L' = Neg (Eq s v)\<close>
+        and s_t_order: \<open>(t \<lhd> \<sigma>, s \<lhd> \<sigma>) \<notin> trm_ord\<close>
+        and s_t_neq: \<open>t \<lhd> \<sigma> \<noteq> s \<lhd> \<sigma>\<close>
+        and u_v_order: \<open>(u \<lhd> \<sigma>, v \<lhd> \<sigma>) \<notin> trm_ord\<close>
+        and t_v_neq: \<open>t \<lhd> \<sigma> \<noteq> v \<lhd> \<sigma>\<close>
+        and unifier: \<open>ck_unifier t u \<sigma> Ground\<close>
+      unfolding factorization_def orient_lit_inst_def by blast
+    (* all terms are ground and the order is total on them *)
+    from L1_elem and Rep_gclause [of P] have \<open>vars_of_lit L1 = {}\<close> by auto
+    with L1_def have ground_s_t: \<open>ground_term s \<and> ground_term t\<close> unfolding ground_term_def by auto
+    then have s_t_def: \<open>s \<lhd> \<sigma> = s \<and> t \<lhd> \<sigma> = t\<close> using substs_preserve_ground_terms by blast
+    with s_t_order trm_ord_ground_total ground_s_t s_t_neq have s_t_order': \<open>(s, t) \<in> trm_ord\<close> by auto
+    from L2_elem and Rep_gclause [of P] have \<open>vars_of_lit L2 = {}\<close> by auto
+    with L2_def have ground_u_v: \<open>ground_term u \<and> ground_term v\<close> unfolding ground_term_def by auto
+    then have u_v_def: \<open>u \<lhd> \<sigma> = u \<and> v \<lhd> \<sigma> = v\<close> using substs_preserve_ground_terms by blast
+    with s_t_def unifier have u_t_eq: \<open>u = t\<close> unfolding ck_unifier_def Unifier_def by auto
+    with u_v_order trm_ord_ground_total ground_u_v ground_s_t t_v_neq u_v_def s_t_def have v_t_order: \<open>(v, t) \<in> trm_ord\<close> by auto
+    with L2_def L'_def u_t_eq have \<open>mset_lit L' = {#s,s,v,v#} \<and> mset_lit L2 = {#t,v#}\<close> by auto
+    (* the new literal is smaller than the one in the premise *)
+    with v_t_order s_t_order' have lit_smaller: \<open>(mset_lit L', mset_lit L2) \<in> mult trm_ord\<close>
+      by (smt add_mset_commute empty_iff insert_iff mset_ordering_singleton mult_cancel_add_mset set_mset_add_mset_insert set_mset_empty trm_ord_irrefl trm_ord_trans)
+    (* the conclusion itself *)
+    have ground_concl: \<open>ground_clause (cl_ecl (Rep_gclause P) - {L2} \<union> {L'})\<close>
+      using Rep_gclause [of P] ground_s_t ground_u_v L'_def unfolding ground_term_def by auto
+    have \<open>finite (cl_ecl C)\<close>
+      using Rep_gclause [of P] factorization_preserves_finiteness factorization by blast
+    then have \<open>cl_ecl (Rep_gclause (concl_of \<iota>)) = cl_ecl C\<close> using concl_def gcl_remove_trms_cl_ecl [of C] ground_C by auto
+    then have cl_concl_def: \<open>cl_ecl (Rep_gclause (concl_of \<iota>)) = cl_ecl (Rep_gclause P) - {L2} \<union> {L'}\<close>
+      using C_def ground_concl substs_preserve_ground_clause [of \<open>cl_ecl (Rep_gclause P) - {L2} \<union> {L'}\<close> \<sigma>] by metis
+    then have \<open>(mset_ecl (Rep_gclause (concl_of \<iota>), []), mset_ecl (Rep_gclause P, [])) \<in> mult (mult trm_ord)\<close>
+    proof (cases \<open>L' \<in> cl_ecl (Rep_gclause P) - {L2}\<close>)
+      case True
+      then have \<open>cl_ecl (Rep_gclause (concl_of \<iota>)) \<union> {L2} = cl_ecl (Rep_gclause P)\<close>
+        using cl_concl_def L2_elem by auto
+      moreover have \<open>L2 \<notin> cl_ecl (Rep_gclause (concl_of \<iota>))\<close>
+        using cl_concl_def L2_def L'_def by blast
+      ultimately have \<open>mset_set (cl_ecl (Rep_gclause P)) = mset_set (cl_ecl (Rep_gclause (concl_of \<iota>))) + {#L2#}\<close>
+        using mset_set_insert [of L2 \<open>cl_ecl (Rep_gclause (concl_of \<iota>))\<close>] Rep_gclause [of \<open>concl_of \<iota>\<close>] by auto
+      then have \<open>mset_ecl (Rep_gclause (concl_of \<iota>), []) \<subset># mset_ecl (Rep_gclause P, [])\<close> using subst_lit_empty by auto
+      then have \<open>(mset_ecl (Rep_gclause (concl_of \<iota>), []), mset_ecl (Rep_gclause P, [])) \<in> mult (mult trm_ord)\<close>
+        using subset_implies_mult by blast
+      then show ?thesis using prems_def unfolding gclause_ord_def by auto
+    next
+      case False
+      then have \<open>mset_set (cl_ecl (Rep_gclause P) - {L2} \<union> {L'}) = mset_set (cl_ecl (Rep_gclause P) - {L2}) + {# L' #}\<close>
+        using multisets_continued.mset_set_insert Rep_gclause [of P] by auto
+      then have \<open>mset_ecl (Rep_gclause (concl_of \<iota>), []) = {# mset_lit L. L \<in># mset_set (cl_ecl (Rep_gclause P) - {L2}) + {#L'#} #}\<close>
+        using mset_ecl_empty cl_concl_def by presburger
+      then have mset_concl_def: \<open>mset_ecl (Rep_gclause (concl_of \<iota>), []) = {# mset_lit L. L \<in># mset_set (cl_ecl (Rep_gclause P) - {L2}) #} + {#mset_lit L'#}\<close>
+        by auto
+      have \<open>cl_ecl (Rep_gclause P) = cl_ecl (Rep_gclause P) - {L2} \<union> {L2}\<close>
+        using L2_elem by auto
+      then have \<open>mset_set (cl_ecl (Rep_gclause P)) = mset_set (cl_ecl (Rep_gclause P) - {L2}) + {#L2#}\<close>
+        using Rep_gclause [of P] multisets_continued.mset_set_insert [of L2 \<open>cl_ecl (Rep_gclause P) - {L2}\<close>] by auto
+      then have \<open>mset_ecl (Rep_gclause P, []) = {# mset_lit L. L \<in># mset_set (cl_ecl (Rep_gclause P) - {L2}) + {#L2#} #}\<close>
+        using mset_ecl_empty by presburger
+      then have mset_P_def: \<open>mset_ecl (Rep_gclause P, []) = {# mset_lit L. L \<in># mset_set (cl_ecl (Rep_gclause P) - {L2}) #} + {#mset_lit L2#}\<close>
+        by auto
+      from mset_P_def mset_concl_def lit_smaller show ?thesis
+        using one_step_implies_mult [of \<open>{#mset_lit L2#}\<close> \<open>{#mset_lit L'#}\<close> \<open>mult trm_ord\<close> \<open>{# mset_lit L. L \<in># mset_set (cl_ecl (Rep_gclause P) - {L2}) #}\<close>] by auto
+    qed
+    then show ?thesis using prems_def unfolding gclause_ord_def by auto
   next
-    case c
-    then obtain P1 P2 C C' \<sigma> where \<open>superposition (Rep_gclause P1) (Rep_gclause P2) C \<sigma> Ground C'\<close>
-                           and \<open>ground_clause (cl_ecl C)\<close>
-                           and \<open>set (prems_of \<iota>) = {P1, P2}\<close>
-                           and \<open>concl_of \<iota> = gcl_remove_trms C\<close>
+    case supr
+    then obtain P1 P2 C C' \<sigma> where superposition: \<open>superposition (Rep_gclause P1) (Rep_gclause P2) C \<sigma> Ground C'\<close>
+                               and ground_C: \<open>ground_clause (cl_ecl C)\<close>
+                               and prems_def: \<open>set (prems_of \<iota>) = {P1, P2}\<close>
+                               and concl_def: \<open>concl_of \<iota> = gcl_remove_trms C\<close>
       unfolding ground_superposition_inferences_def by auto
-    then show ?thesis sorry
+    then obtain L L' M s t t' u u' p v polarity
+      where C_def: \<open>cl_ecl C = subst_cl (cl_ecl (Rep_gclause P1) - {L} \<union> (cl_ecl (Rep_gclause P2) - {M} \<union> {L'})) \<sigma>\<close>
+        and M_def: \<open>orient_lit_inst M u v pos \<sigma>\<close>
+        and L_def: \<open>orient_lit_inst L t s polarity \<sigma>\<close>
+        and L'_def: \<open>L' = mk_lit polarity (Eq t' s)\<close>
+        and L_elem: \<open>L \<in> cl_ecl (Rep_gclause P1)\<close>
+        and M_elem: \<open>M \<in> cl_ecl (Rep_gclause P2)\<close>
+        and u_v_neq: \<open>u \<lhd> \<sigma> \<noteq> v \<lhd> \<sigma>\<close>
+        and subterm: \<open>subterm t p u'\<close>
+        and replacement: \<open>replace_subterm t p v t'\<close>
+        and M_max_lit: \<open>strictly_maximal_literal (Rep_gclause P2) M \<sigma>\<close>
+        and M_L_order: \<open>(subst_lit M \<sigma>, subst_lit L \<sigma>) \<in> lit_ord\<close>
+        and unifier : \<open>ck_unifier u' u \<sigma> Ground\<close>
+      unfolding superposition_def by force
+    have ground_L': \<open>vars_of_lit L' = {}\<close>
+    proof -
+      have \<open>vars_of_lit L' = vars_of t' \<union> vars_of s\<close>
+        using L'_def by (metis (full_types) mk_lit.elims vars_of_lit.simps vars_of_eq.simps)
+      also have \<open>... = vars_of t'\<close>
+        using L_def L_elem Rep_gclause [of P1] unfolding orient_lit_inst_def by force
+      also have \<open>... \<subseteq> vars_of t \<union> vars_of v\<close>
+        using vars_of_replacement replacement by fast
+      also have \<open>... = vars_of v\<close>
+        using L_def L_elem Rep_gclause [of P1] unfolding orient_lit_inst_def by force
+      also have \<open>... = {}\<close>
+        using M_def M_elem Rep_gclause [of P2] unfolding orient_lit_inst_def by force
+      finally show ?thesis by auto
+    qed
+    have \<open>u' \<lhd> \<sigma> = u \<lhd> \<sigma>\<close> using unifier unfolding ck_unifier_def Unifier_def by auto
+    then have \<open>(u' \<lhd> \<sigma>, v \<lhd> \<sigma>) \<notin> trm_ord\<close> and \<open>u' \<lhd> \<sigma> \<noteq> v \<lhd> \<sigma>\<close> using M_def u_v_neq unfolding orient_lit_inst_def by auto
+    moreover have \<open>ground_term u'\<close>
+      using L_def L_elem Rep_gclause [of P1] vars_subterm [of t p u'] subterm unfolding ground_term_def orient_lit_inst_def by force
+    moreover have \<open>ground_term v\<close>
+      using M_def M_elem Rep_gclause [of P2] unfolding ground_term_def orient_lit_inst_def by force
+    ultimately have \<open>(v, u') \<in> trm_ord\<close> using trm_ord_ground_total substs_preserve_ground_terms by metis
+    then have t'_t_order: \<open>(t', t) \<in> trm_ord\<close>
+      using subterm replacement replacement_monotonic [of v \<open>[]\<close> u' t p t'] by auto
+    (* the new literal is smaller than the one resolved upon *)
+    consider (neg) \<open>mset_lit L' = {#s,s,t',t'#} \<and> mset_lit L = {#s,s,t,t#}\<close> | (pos) \<open>mset_lit L' = {#s,t'#} \<and> mset_lit L = {#s,t#}\<close>
+      using L'_def L_def unfolding orient_lit_inst_def by fastforce
+    then have lit_smaller: \<open>(mset_lit L', mset_lit L) \<in> mult trm_ord\<close>
+    proof cases
+      case neg
+      then show ?thesis using one_step_implies_mult [of \<open>{#t,t#}\<close> \<open>{#t',t'#}\<close> trm_ord \<open>{#s,s#}\<close>] t'_t_order
+        by (smt empty_not_add_mset insert_DiffM2 insert_iff set_mset_add_mset_insert union_commute union_is_single union_mset_add_mset_right)
+    next
+      case pos
+      then show ?thesis using t'_t_order
+        by (simp add: mset_ordering_singleton mult_cancel_add_mset trm_ord_irrefl trm_ord_trans)
+    qed
+    (* compare the conclusion and P1 *)
+    have ground_concl: \<open>ground_clause (cl_ecl (Rep_gclause P1) - {L} \<union> (cl_ecl (Rep_gclause P2) - {M} \<union> {L'}))\<close>
+      using Rep_gclause [of P1] Rep_gclause [of P2] ground_L' by auto
+    have \<open>finite (cl_ecl C)\<close>
+      using Rep_gclause [of P1] Rep_gclause [of P2] superposition_preserves_finiteness superposition by blast
+    then have \<open>cl_ecl (Rep_gclause (concl_of \<iota>)) = cl_ecl C\<close> using concl_def gcl_remove_trms_cl_ecl [of C] ground_C by auto
+    also have \<open>... = cl_ecl (Rep_gclause P1) - {L} \<union> (cl_ecl (Rep_gclause P2) - {M} \<union> {L'})\<close>
+      using C_def ground_concl substs_preserve_ground_clause [of \<open>cl_ecl (Rep_gclause P1) - {L} \<union> (cl_ecl (Rep_gclause P2) - {M} \<union> {L'})\<close>] by blast
+    also have \<open>... = cl_ecl (Rep_gclause P1) - {L} \<union> ((cl_ecl (Rep_gclause P2) - {M} \<union> {L'}) - (cl_ecl (Rep_gclause P1) - {L}))\<close> by blast
+    finally have \<open>mset_set (cl_ecl (Rep_gclause (concl_of \<iota>))) = mset_set (cl_ecl (Rep_gclause P1) - {L}) + mset_set ((cl_ecl (Rep_gclause P2) - {M} \<union> {L'}) - (cl_ecl (Rep_gclause P1) - {L}))\<close>
+      using mset_set_Union [of \<open>cl_ecl (Rep_gclause P1) - {L}\<close> \<open>cl_ecl (Rep_gclause P2) - {M} \<union> {L'} - (cl_ecl (Rep_gclause P1) - {L})\<close>]
+             Rep_gclause [of P1] Rep_gclause [of P2] by fastforce
+    then have \<open>mset_ecl (Rep_gclause (concl_of \<iota>), []) = {# mset_lit L. L \<in># mset_set (cl_ecl (Rep_gclause P1) - {L}) + mset_set ((cl_ecl (Rep_gclause P2) - {M} \<union> {L'}) - (cl_ecl (Rep_gclause P1) - {L})) #}\<close>
+      using mset_ecl_empty by presburger
+    then have mset_ecl_concl: \<open>mset_ecl (Rep_gclause (concl_of \<iota>), []) = {# mset_lit L. L \<in># mset_set (cl_ecl (Rep_gclause P1) - {L}) #} + {# mset_lit L. L \<in># mset_set ((cl_ecl (Rep_gclause P2) - {M} \<union> {L'}) - (cl_ecl (Rep_gclause P1) - {L})) #}\<close>
+      by auto
+    have \<open>cl_ecl (Rep_gclause P1) = cl_ecl (Rep_gclause P1) - {L} \<union> {L}\<close> using L_elem by auto
+    then have \<open>mset_set (cl_ecl (Rep_gclause P1)) = mset_set (cl_ecl (Rep_gclause P1) - {L}) + mset_set {L}\<close>
+      using Rep_gclause [of P1] mset_set_Union [of \<open>cl_ecl (Rep_gclause P1) - {L}\<close> \<open>{L}\<close>] by auto
+    then have \<open>mset_ecl (Rep_gclause P1, []) = {# mset_lit L. L \<in># mset_set (cl_ecl (Rep_gclause P1) - {L}) + mset_set {L} #}\<close>
+      using mset_ecl_empty by presburger
+    then have mset_ecl_P1: \<open>mset_ecl (Rep_gclause P1, []) = {# mset_lit L. L \<in># mset_set (cl_ecl (Rep_gclause P1) - {L}) #} + {# mset_lit L #}\<close> by auto
+    have L_greater: \<open>k \<in># {# mset_lit L. L \<in># mset_set (cl_ecl (Rep_gclause P2) - {M} \<union> {L'} - (cl_ecl (Rep_gclause P1) - {L})) #} \<Longrightarrow> (k, mset_lit L) \<in> mult trm_ord\<close> for k
+    proof -
+      assume \<open>k \<in># {# mset_lit L. L \<in># mset_set (cl_ecl (Rep_gclause P2) - {M} \<union> {L'} - (cl_ecl (Rep_gclause P1) - {L})) #}\<close>
+      then have \<open>k \<in> mset_lit ` (cl_ecl (Rep_gclause P2) - {M} \<union> {L'} - (cl_ecl (Rep_gclause P1) - {L}))\<close>
+        using Rep_gclause [of P1] Rep_gclause [of P2] by simp
+      then obtain Lk where \<open>Lk \<in> cl_ecl (Rep_gclause P2) - {M} \<union> {L'} - (cl_ecl (Rep_gclause P1) - {L})\<close>
+                      and k_def: \<open>k = mset_lit Lk\<close> by auto
+      then consider (a) \<open>Lk \<in> cl_ecl (Rep_gclause P2) - {M}\<close> | (b) \<open>Lk = L'\<close> by blast
+      then show ?thesis
+      proof cases
+        case a
+        then have \<open>(subst_lit Lk \<sigma>, subst_lit M \<sigma>) \<in> lit_ord\<close> using M_max_lit unfolding strictly_maximal_literal_def by blast
+        then have \<open>(subst_lit Lk \<sigma>, subst_lit L \<sigma>) \<in> lit_ord\<close> using M_L_order lit_ord_trans unfolding trans_def by blast
+        moreover have \<open>subst_lit Lk \<sigma> = Lk\<close>
+          using a substs_preserve_ground_lit Rep_gclause [of P2] by fast
+        moreover have \<open>subst_lit L \<sigma> = L\<close>
+          using L_elem substs_preserve_ground_lit Rep_gclause [of P1] by fast
+        ultimately show ?thesis using k_def unfolding lit_ord_def by auto
+      next
+        case b
+        then show ?thesis using lit_smaller k_def by auto
+      qed
+    qed
+    from mset_ecl_concl mset_ecl_P1 L_greater have \<open>(mset_ecl (Rep_gclause (concl_of \<iota>), []), mset_ecl (Rep_gclause P1, [])) \<in> mult (mult trm_ord)\<close>
+      using one_step_implies_mult [of \<open>{# mset_lit L #}\<close> \<open>{# mset_lit L. L \<in># mset_set ((cl_ecl (Rep_gclause P2) - {M} \<union> {L'}) - (cl_ecl (Rep_gclause P1) - {L})) #}\<close> \<open>mult trm_ord\<close> \<open>{# mset_lit L. L \<in># mset_set (cl_ecl (Rep_gclause P1) - {L}) #}\<close>]
+      by force
+    then show ?thesis using prems_def unfolding gclause_ord_def by auto
   qed
 qed
 
@@ -461,7 +647,7 @@ proof -
     assume \<open>D \<in> {concl_of \<iota>}\<close>
     then have D_def: \<open>D = concl_of \<iota>\<close> by auto
     then obtain cl_P where \<open>cl_P \<in> set (prems_of \<iota>)\<close>
-                    and \<open>((Rep_gclause (concl_of \<iota>), []), Rep_gclause cl_P, []) \<in> ecl_ord\<close>
+                    and \<open>(concl_of \<iota>, cl_P) \<in> gclause_ord\<close>
       using exists_premise_greater [of \<iota>] assms by blast
     then show \<open>\<exists>P\<in>set (prems_of \<iota>). (D, P) \<in> gclause_ord\<close> unfolding gclause_ord_def ecl_ord_def using D_def by blast
   qed
@@ -928,31 +1114,32 @@ proof
     using no_variable_introduction_lit [of \<sigma> s t] assms by auto
 qed
 
-(* We impose the restriction that the MGUs must be idempotent. Without this, the unifier may
-   introduce new variables, and some inferences would not be groundable. *)
-definition fo_reflexion_inferences :: \<open>'a fclause inference set\<close> where
-\<open>fo_reflexion_inferences = {Infer [P] (fcl_remove_trms C) | P C. \<exists> \<sigma> C'. reflexion (Rep_fclause P) C \<sigma> FirstOrder C' \<and> Idem \<sigma>}\<close>
+(* To ground first-order inferences, we need their unifier *)
+datatype 'b fo_inference = Fo_Infer (inf: \<open>'b fclause inference\<close>) (subst: \<open>'b subst\<close>)
 
-definition fo_factorization_inferences :: \<open>'a fclause inference set\<close> where
-\<open>fo_factorization_inferences = {Infer [P] (fcl_remove_trms C) | P C. \<exists> \<sigma> C'. factorization (Rep_fclause P) C \<sigma> FirstOrder C' \<and> Idem \<sigma>}\<close>
+definition fo_reflexion_inferences :: \<open>'a fo_inference set\<close> where
+\<open>fo_reflexion_inferences = {Fo_Infer (Infer [P] (fcl_remove_trms C)) \<sigma> | P C \<sigma>. \<exists> C'. reflexion (Rep_fclause P) C \<sigma> FirstOrder C' \<and> Idem \<sigma>}\<close>
 
-definition fo_superposition_inferences :: \<open>'a fclause inference set\<close> where
-\<open>fo_superposition_inferences = {Infer [P1 , P2] (fcl_remove_trms C) | P1 P2 C. \<exists> \<sigma> C'. superposition (Rep_fclause P1) (Rep_fclause P2) C \<sigma> FirstOrder C' \<and> Idem \<sigma>}\<close>
+definition fo_factorization_inferences :: \<open>'a fo_inference set\<close> where
+\<open>fo_factorization_inferences = {Fo_Infer (Infer [P] (fcl_remove_trms C)) \<sigma> | P C \<sigma>. \<exists> C'. factorization (Rep_fclause P) C \<sigma> FirstOrder C' \<and> Idem \<sigma>}\<close>
+
+definition fo_superposition_inferences :: \<open>'a fo_inference set\<close> where
+\<open>fo_superposition_inferences = {Fo_Infer (Infer [P1 , P2] (fcl_remove_trms C)) \<sigma> | P1 P2 C \<sigma>. \<exists> C'. superposition (Rep_fclause P1) (Rep_fclause P2) C \<sigma> FirstOrder C' \<and> Idem \<sigma>}\<close>
 
 abbreviation fo_superposition_inference_system :: \<open>'a fclause inference set\<close>
   where
-\<open>fo_superposition_inference_system \<equiv> fo_reflexion_inferences
-                                   \<union> fo_factorization_inferences
-                                   \<union> fo_superposition_inferences\<close>
+\<open>fo_superposition_inference_system \<equiv> inf ` (fo_reflexion_inferences
+                                          \<union> fo_factorization_inferences
+                                          \<union> fo_superposition_inferences)\<close>
 
 interpretation fo_inf: sound_inference_system \<open>empty_fclauses\<close> \<open>(\<Turnstile>F)\<close> fo_superposition_inference_system
 proof
   show \<open>\<iota> \<in> fo_superposition_inference_system \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>F {concl_of \<iota>}\<close> for \<iota>
   proof -
     assume \<open>\<iota> \<in> fo_superposition_inference_system\<close>
-    then consider (a) \<open>\<iota> \<in> fo_reflexion_inferences\<close>
-      | (b) \<open>\<iota> \<in> fo_factorization_inferences\<close>
-      | (c) \<open>\<iota> \<in> fo_superposition_inferences\<close>
+    then consider (a) \<open>\<iota> \<in> inf ` fo_reflexion_inferences\<close>
+      | (b) \<open>\<iota> \<in> inf ` fo_factorization_inferences\<close>
+      | (c) \<open>\<iota> \<in> inf `fo_superposition_inferences\<close>
       by auto
     then show \<open>set (prems_of \<iota>) \<Turnstile>F {concl_of \<iota>}\<close>
     proof cases
@@ -1005,11 +1192,21 @@ abbreviation subst_fclause :: \<open>'a subst \<Rightarrow> 'a fclause \<Rightar
 abbreviation grounding_subst :: \<open>'a subst \<Rightarrow> 'a fclause \<Rightarrow> bool\<close>
   where \<open>grounding_subst \<sigma> F \<equiv> ground_clause (subst_cl (cl_ecl (Rep_fclause F)) \<sigma>)\<close>
 
+lemma Rep_subst_fclause:
+  \<open>grounding_subst \<sigma> F \<Longrightarrow> Rep_gclause (subst_fclause \<sigma> F) = Ecl (subst_cl (cl_ecl (Rep_fclause F)) \<sigma>) {}\<close>
+  using Abs_gclause_inverse [of \<open>Ecl (subst_cl (cl_ecl (Rep_fclause F)) \<sigma>) {}\<close>]
+        Rep_fclause [of F] by simp
+
 definition grounding_clause :: \<open>'a fclause \<Rightarrow> 'a gclause set\<close>
   where \<open>grounding_clause F = { subst_fclause \<sigma> F | \<sigma>. grounding_subst \<sigma> F }\<close>
 
+(* Since substitutions are not recorded in inferences, we use this function to get them back *)
+fun gen_substs :: \<open>'a fclause inference \<Rightarrow> 'a subst set\<close>
+  where \<open>gen_substs \<iota> = { subst I | I. inf I = \<iota> \<and> I \<in> fo_reflexion_inferences \<union> fo_factorization_inferences \<union> fo_superposition_inferences }\<close>
+
 definition grounding_inference :: \<open>'a fclause inference \<Rightarrow> 'a gclause inference set\<close>
-  where \<open>grounding_inference \<iota> = { Infer (map (subst_fclause \<sigma>) (prems_of \<iota>)) (subst_fclause \<sigma> (concl_of \<iota>)) | \<sigma>. list_all (grounding_subst \<sigma>) (prems_of \<iota>) }\<close>
+  where \<open>grounding_inference \<iota> = { Infer (map (subst_fclause (\<sigma> \<lozenge> \<theta>)) (prems_of \<iota>)) (subst_fclause (\<sigma> \<lozenge> \<theta>) (concl_of \<iota>))
+                                 | \<sigma> \<theta>. list_all (grounding_subst (\<sigma> \<lozenge> \<theta>)) (prems_of \<iota>) \<and> \<sigma> \<in> gen_substs \<iota>}\<close>
 
 lemma grounding_prems_grounding_concl:
   assumes \<open>\<iota> \<in> fo_superposition_inference_system\<close>
@@ -1018,9 +1215,9 @@ lemma grounding_prems_grounding_concl:
 proof -
   have \<open>vars_of_cl (cl_ecl (Rep_fclause (concl_of \<iota>))) \<subseteq> (\<Union>C \<in> set (prems_of \<iota>). vars_of_cl (cl_ecl (Rep_fclause C)))\<close>
   proof -
-    from assms(1) consider (refl) \<open>\<iota> \<in> fo_reflexion_inferences\<close>
-      | (fact) \<open>\<iota> \<in> fo_factorization_inferences\<close>
-      | (supr) \<open>\<iota> \<in> fo_superposition_inferences\<close>
+    from assms(1) consider (refl) \<open>\<iota> \<in> inf ` fo_reflexion_inferences\<close>
+      | (fact) \<open>\<iota> \<in> inf ` fo_factorization_inferences\<close>
+      | (supr) \<open>\<iota> \<in> inf ` fo_superposition_inferences\<close>
       by auto
     then show ?thesis
     proof cases
@@ -1138,13 +1335,124 @@ proof -
     using ground_substs_yield_ground_clause by blast
 qed
 
+lemma reflexion_grounding:
+  assumes \<open>reflexion (Rep_fclause P) C \<sigma> FirstOrder C'\<close>
+  assumes \<open>grounding_subst (\<sigma> \<lozenge> \<theta>) P\<close>
+  assumes \<open>Idem \<sigma>\<close>
+  shows \<open>\<exists>C'. reflexion (Rep_gclause (subst_fclause (\<sigma> \<lozenge> \<theta>) P)) (subst_ecl C (\<sigma> \<lozenge> \<theta>)) [] Ground (subst_cl C' (\<sigma> \<lozenge> \<theta>))\<close>
+proof -
+  from assms(1) obtain t s Cl_P Cl_C trms_C L
+    where i: \<open>eligible_literal L (Rep_fclause P) \<sigma>\<close>
+      and ii: \<open>L \<in> cl_ecl (Rep_fclause P)\<close>
+      and iii: \<open>Cl_C = cl_ecl C\<close>
+      and iv: \<open>Cl_P = cl_ecl (Rep_fclause P)\<close>
+      and v: \<open>orient_lit_inst L t s neg \<sigma>\<close>
+      and vi: \<open>ck_unifier t s \<sigma> FirstOrder\<close>
+      and vii: \<open>C = Ecl Cl_C trms_C\<close>
+      and viii: \<open>trms_C = get_trms Cl_C (dom_trms Cl_C (subst_set (trms_ecl (Rep_fclause P) \<union> {t}) \<sigma>)) FirstOrder\<close>
+      and ix: \<open>Cl_C = subst_cl C' \<sigma>\<close>
+      and x: \<open>C' = Cl_P - {L}\<close>
+    unfolding reflexion_def by auto
+  let ?t = \<open>t \<lhd> (\<sigma> \<lozenge> \<theta>)\<close>
+  let ?s = \<open>s \<lhd> (\<sigma> \<lozenge> \<theta>)\<close>
+  let ?Cl_P = \<open>subst_cl Cl_P (\<sigma> \<lozenge> \<theta>)\<close>
+  let ?Cl_C = \<open>subst_cl Cl_C (\<sigma> \<lozenge> \<theta>)\<close>
+  let ?trms_C = \<open>(\<lambda>x. x \<lhd> (\<sigma> \<lozenge> \<theta>)) ` trms_C\<close>
+  let ?L = \<open>subst_lit L (\<sigma> \<lozenge> \<theta>)\<close>
+  have \<open>eligible_literal ?L (Rep_gclause (subst_fclause (\<sigma> \<lozenge> \<theta>) P)) []\<close> using i Rep_subst_fclause assms(2) sorry
+  moreover have \<open>?L \<in> cl_ecl (Rep_gclause (subst_fclause (\<sigma> \<lozenge> \<theta>) P))\<close> using ii Rep_subst_fclause assms(2) by auto
+  moreover have \<open>?Cl_C = cl_ecl (subst_ecl C (\<sigma> \<lozenge> \<theta>))\<close> using iii by (metis (no_types, lifting) cl_ecl.simps subst_ecl.simps vii)
+  moreover have \<open>?Cl_P = cl_ecl (Rep_gclause (subst_fclause (\<sigma> \<lozenge> \<theta>) P))\<close> using iv Rep_subst_fclause assms(2) by auto
+  moreover have \<open>orient_lit_inst ?L (?t) (?s) neg []\<close> sorry
+  moreover have \<open>ck_unifier (?t) (?s) [] Ground\<close> using vi Unifier_def ck_unifier_def ck_unifier_thm by fastforce
+  moreover have \<open>subst_ecl C (\<sigma> \<lozenge> \<theta>) = Ecl ?Cl_C ?trms_C\<close> sorry
+  moreover have \<open>?trms_C = get_trms ?Cl_C (dom_trms ?Cl_C (subst_set (trms_ecl (Rep_gclause (subst_fclause (\<sigma> \<lozenge> \<theta>) P)) \<union> {?t}) [])) Ground\<close> sorry
+  moreover have \<open>?Cl_C = subst_cl (subst_cl C' (\<sigma> \<lozenge> \<theta>)) []\<close> using ix assms(3) subst_cl_empty unfolding Idem_def by (metis composition_of_substs_cl subst_eq_cl)
+  moreover have \<open>subst_cl C' (\<sigma> \<lozenge> \<theta>) = ?Cl_P - {?L}\<close> sorry
+  ultimately show ?thesis unfolding reflexion_def by blast
+qed
 
 lemma grounding_inference_preserves_system:
-  \<open>\<iota> \<in> fo_superposition_inference_system \<Longrightarrow> \<kappa> \<in> grounding_inference \<iota> \<Longrightarrow> \<kappa> \<in> ground_superposition_inference_system\<close>
+  \<open>\<kappa> \<in> grounding_inference \<iota> \<Longrightarrow> \<kappa> \<in> ground_superposition_inference_system\<close>
 proof -
-  assume \<iota>_elem: \<open>\<iota> \<in> fo_superposition_inference_system\<close> and \<kappa>_elem: \<open>\<kappa> \<in> grounding_inference \<iota>\<close>
-  show \<open>\<kappa> \<in> ground_superposition_inference_system\<close> sorry
+  assume \<open>\<kappa> \<in> grounding_inference \<iota>\<close>
+  then obtain \<sigma> \<theta>
+    where \<kappa>_def: \<open>\<kappa> = Infer (map (subst_fclause (\<sigma> \<lozenge> \<theta>)) (prems_of \<iota>)) (subst_fclause (\<sigma> \<lozenge> \<theta>) (concl_of \<iota>))\<close>
+      and \<open>Fo_Infer \<iota> \<sigma> \<in> fo_reflexion_inferences \<union> fo_factorization_inferences \<union> fo_superposition_inferences \<close>
+      and grounding_prems: \<open>list_all (grounding_subst (\<sigma> \<lozenge> \<theta>)) (prems_of \<iota>)\<close>
+    unfolding grounding_inference_def by force
+  then consider (refl) \<open>\<exists>P C C'. \<iota> = Infer [P] (fcl_remove_trms C) \<and> reflexion (Rep_fclause P) C \<sigma> FirstOrder C'\<close>
+    | (fact) \<open>\<exists>P C C'. \<iota> = Infer [P] (fcl_remove_trms C) \<and> factorization (Rep_fclause P) C \<sigma> FirstOrder C'\<close>
+    | (supr) \<open>\<exists>P1 P2 C C'. \<iota> = Infer [P1, P2] (fcl_remove_trms C) \<and> superposition (Rep_fclause P1) (Rep_fclause P2) C \<sigma> FirstOrder C'\<close>
+    unfolding fo_reflexion_inferences_def fo_factorization_inferences_def fo_superposition_inferences_def by blast
+  then show \<open>\<kappa> \<in> ground_superposition_inference_system\<close>
+  proof cases
+    case refl
+    then obtain P C C'
+      where \<iota>_def: \<open>\<iota> = Infer [P] (fcl_remove_trms C)\<close>
+        and \<open>reflexion (Rep_fclause P) C \<sigma> FirstOrder C'\<close> by auto
+    then have \<open>reflexion (Rep_gclause (subst_fclause (\<sigma> \<lozenge> \<theta>) P)) (subst_ecl C (\<sigma> \<lozenge> \<theta>)) [] Ground (subst_cl C' (\<sigma> \<lozenge> \<theta>))\<close> sorry
+    moreover from \<iota>_def \<kappa>_def have \<open>\<kappa> = Infer [subst_fclause (\<sigma> \<lozenge> \<theta>) P] (gcl_remove_trms (subst_ecl C (\<sigma> \<lozenge> \<theta>)))\<close> sorry
+    moreover have \<open>ground_clause (cl_ecl (subst_ecl C (\<sigma> \<lozenge> \<theta>)))\<close> sorry
+    ultimately have \<open>\<kappa> \<in> ground_reflexion_inferences\<close> unfolding ground_reflexion_inferences_def by blast
+    then show ?thesis sorry
+  next
+    case fact
+    then show ?thesis sorry
+  next
+    case supr
+    then show ?thesis sorry
+  qed
 qed
+(*proof -
+  assume \<iota>_elem: \<open>\<iota> \<in> fo_superposition_inference_system\<close> and \<kappa>_elem: \<open>\<kappa> \<in> grounding_inference \<iota>\<close>
+  then consider (refl) \<open>\<iota> \<in> fo_reflexion_inferences\<close>
+    | (fact) \<open>\<iota> \<in> fo_factorization_inferences\<close>
+    | (supr) \<open>\<iota> \<in> fo_superposition_inferences\<close> by auto
+  then show \<open>\<kappa> \<in> ground_superposition_inference_system\<close>
+  proof cases
+    case refl
+    then obtain P C \<sigma> C'
+      where \<iota>_def: \<open>\<iota> = Infer [P] (fcl_remove_trms C)\<close>
+        and finite_P: \<open>finite (cl_ecl (Rep_fclause P))\<close>
+        and reflexion: \<open>reflexion (Rep_fclause P) C \<sigma> FirstOrder C'\<close>
+        and idem: \<open>Idem \<sigma>\<close>
+      using fo_reflexion_inferences_def Rep_fclause by fastforce
+    with \<kappa>_elem obtain \<theta>
+      where \<kappa>_def: \<open>\<kappa> = Infer [subst_fclause \<theta> P] (subst_fclause \<theta> (fcl_remove_trms C))\<close>
+        and \<theta>_grounding_prems: \<open>grounding_subst \<theta> P\<close>
+      unfolding grounding_inference_def list_all_def by auto
+    from finite_P reflexion have finite_C: \<open>finite (cl_ecl C)\<close> using reflexion_preserves_finiteness by blast
+    from \<theta>_grounding_prems \<iota>_elem have \<theta>_grounding_concl: \<open>grounding_subst \<theta> (fcl_remove_trms C)\<close>
+      using \<iota>_def grounding_prems_grounding_concl [of \<iota> \<theta>] by auto
+    have concl_def: \<open>subst_fclause \<theta> (fcl_remove_trms C) = Abs_gclause (Ecl (subst_cl (cl_ecl C) \<theta>) {})\<close>
+      using finite_C substs_preserve_finiteness [of \<open>cl_ecl C\<close> \<theta>] fcl_remove_trms_cl_ecl by auto
+    have \<open>\<kappa> \<in> ground_reflexion_inferences\<close>
+    proof -
+      have concl_def': \<open>gcl_remove_trms (subst_ecl C \<theta>) = Abs_gclause (Ecl (subst_cl (cl_ecl C) \<theta>) {})\<close>
+        by (metis (no_types, lifting) cl_ecl.simps gcl_remove_trms.elims subst_ecl.simps cl_ecl.elims trms_ecl.simps)
+      have \<open>\<kappa> = Infer [subst_fclause \<theta> P] (gcl_remove_trms (subst_ecl C \<theta>))\<close>
+        using concl_def concl_def' \<kappa>_def by auto
+      moreover have \<open>reflexion (Rep_gclause (subst_fclause (\<sigma> \<lozenge> \<theta>) P)) (subst_ecl C (\<sigma> \<lozenge> \<theta>)) [] Ground (subst_cl C' (\<sigma> \<lozenge> \<theta>))\<close>
+        using reflexion idem \<theta>_grounding_prems reflexion_grounding by blast
+      moreover have \<open>ground_clause (cl_ecl (subst_ecl C \<theta>))\<close>
+      proof -
+        have \<open>cl_ecl (subst_ecl C \<theta>) = subst_cl (cl_ecl C) \<theta>\<close>
+          by (smt cl_ecl.elims eclause.inject subst_ecl.simps)
+        then show ?thesis
+          using \<theta>_grounding_concl finite_C substs_preserve_finiteness fcl_remove_trms_cl_ecl by auto
+      qed
+      ultimately show ?thesis unfolding ground_reflexion_inferences_def sorry
+    qed
+    then show ?thesis by auto
+  next
+    case fact
+    then show ?thesis sorry
+  next
+    case supr
+    then show ?thesis sorry
+  qed
+qed*)
 
 interpretation grounding_function empty_fclauses \<open>(\<Turnstile>F)\<close> fo_superposition_inference_system
   empty_gclauses \<open>(\<Turnstile>G)\<close> ground_superposition_inference_system \<open>(\<Turnstile>G)\<close> Red_Inf_sup Red_gclause grounding_clause grounding_inference
