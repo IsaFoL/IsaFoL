@@ -9,6 +9,9 @@ subsequent extraction of the minimal covering models.\<close>
 
 type_synonym 'v cov = \<open>'v literal multiset multiset\<close>
 
+lemma (in -) pNeg_mono: \<open>C \<subseteq># C' \<Longrightarrow> pNeg C \<subseteq># pNeg C'\<close>
+  by (auto simp: image_mset_subseteq_mono pNeg_def)
+
 locale covering_models =
   fixes
     \<rho> :: \<open>'v \<Rightarrow> bool\<close>
@@ -20,11 +23,12 @@ definition model_is_dominated :: \<open>'v literal multiset \<Rightarrow> 'v lit
 
 definition is_improving_int :: \<open>('v, 'v clause) ann_lits \<Rightarrow> ('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v cov \<Rightarrow> bool\<close> where
 \<open>is_improving_int M M' N \<M> \<longleftrightarrow>
-  (M = M' \<and> (\<forall>I \<in># \<M>. \<not>model_is_dominated (lit_of `# mset M) I)) \<and>
+  (M = M' \<and> \<^cancel>\<open>\<text>\<open>(\<forall>I \<in># \<M>. \<not>model_is_dominated (lit_of `# mset M) I) \<and>\<close>\<close>
   total_over_m (lits_of_l M) (set_mset N) \<and>
   lit_of `# mset M \<in> simple_clss (atms_of_mm N) \<and>
+  lit_of `# mset M \<notin># \<M> \<and>
   M \<Turnstile>asm N \<and>
-  no_dup M\<close>
+  no_dup M)\<close>
 
 lemma model_is_dominated_refl: \<open>model_is_dominated I I\<close>
   by (auto simp: model_is_dominated_def)
@@ -231,8 +235,6 @@ lemma total_over_m_atms_incl:
     \<open>x \<in> atms_of_mm N \<Longrightarrow> x \<in> atms_of_s M\<close>
   by (meson assms contra_subsetD total_over_m_alt_def)
 
-lemma (in -) pNeg_mono: \<open>C \<subseteq># C' \<Longrightarrow> pNeg C \<subseteq># pNeg C'\<close>
-  by (auto simp: image_mset_subseteq_mono pNeg_def)
 lemma conflicting_clss_update_weight_information_in2:
   assumes \<open>is_improving M M' S\<close>
   shows \<open>negate_ann_lits M' \<in># conflicting_clss (update_weight_information M' S)\<close>
@@ -373,7 +375,6 @@ lemma can_always_improve:
     n_s: \<open>no_step conflict_opt S\<close> and
     confl: \<open>conflicting S = None\<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
-    cov: \<open>covering_simple_clss N S\<close> and
     N: \<open>atms_of_mm N = atms_of_mm (init_clss S)\<close>
   shows \<open>Ex (improvep S)\<close>
 proof -
@@ -395,111 +396,18 @@ proof -
         lits_of_def image_image atms_of_def
       dest: distinct_consistent_interp no_dup_not_tautology
         no_dup_distinct)
-  have \<open>\<not> model_is_dominated (lit_of `# mset (trail S)) I\<close>
-    if cov': \<open>I \<in># covering S\<close> for I
-  proof -
-    have tot_I: \<open>total_over_m (set_mset I) (set_mset N)\<close> and
-      simp_I: \<open>I \<in> simple_clss (atms_of_mm N)\<close>
-      using cov that by (auto simp: covering_simple_clss_def)
-    have False
-      using n_s
-      apply (auto simp: conflict_opt.simps conflicting_clss_def
-        conflicting_clauses_def)
-(*    then have \<open>{#L \<in># lit_of `# mset (trail S). is_pos L \<and> \<rho> (atm_of L)#} =
-        {#L \<in># I. is_pos L \<and> \<rho> (atm_of L)#}\<close>
-      if \<open>{#L \<in># lit_of `# mset (trail S). is_pos L \<and> \<rho> (atm_of L)#} \<subseteq>#
-        {#L \<in># I. is_pos L \<and> \<rho> (atm_of L)#}\<close>
-    proof -
-      have \<open>set_mset {#L \<in># lit_of `# mset (trail S). is_pos L \<and> \<rho> (atm_of L)#} \<subseteq>
-         set_mset {#L \<in># I. is_pos L \<and> \<rho> (atm_of L)#}\<close>
-	using that n_d total trail_simple simp_I by (auto simp: simple_clss_def
-	    distinct_subseteq_iff[symmetric] distinct_mset_filter
-	    distinct_consistent_interp no_dup_not_tautology
-	    no_dup_distinct total_over_m_alt_def
-	     distinct_set_mset_eq_iff[symmetric]
-	     atms_of_s_def atms_of_def lits_of_def image_image
-	  simp flip: N
-	  dest!: multi_member_split[of _ I])
-      moreover have \<open>set_mset {#L \<in># I. is_pos L \<and> \<rho> (atm_of L)#} \<subseteq>
-        set_mset {#L \<in># lit_of `# mset (trail S). is_pos L \<and> \<rho> (atm_of L)#}\<close>
-	(is \<open>?A \<subseteq> ?B\<close>)
-      proof
-	fix x assume \<open>x \<in> ?A\<close>
-	then have \<open>is_pos x\<close> and \<open>\<rho> (atm_of x)\<close> and \<open>x \<in># I\<close>
-	  by auto
-	then have \<open>atm_of x \<in> atms_of_mm N\<close>
-  	  using that n_d total trail_simple simp_I
-	  by (auto simp: simple_clss_def
-	    dest!: multi_member_split[of _ I])
-	then have \<open>atm_of x \<in> atms_of_s (lits_of_l (trail S))\<close>
-	using that n_d total trail_simple simp_I by (auto simp: simple_clss_def
-	    distinct_consistent_interp no_dup_not_tautology
-	    total_over_m_alt_def clauses_def
-	  simp flip: N)
-	then have \<open>x \<in> lits_of_l (trail S) \<or> -x \<in> lits_of_l (trail S)\<close>
-	  by (auto simp: atms_of_s_def atm_of_eq_atm_of)
-	then have \<open>x \<in> lits_of_l (trail S)\<close>
-	  using \<open>is_pos x\<close> \<open>\<rho> (atm_of x)\<close> \<open>x \<in># I\<close> simp_I that
-	  apply (auto simp: lits_of_def uminus_lit_swap tautology_add_mset
-	    simple_clss_def dest!: multi_member_split)
-	    sledgehammer
-	  
-	  sorry
-	then show \<open>x \<in> ?B\<close>
-	  apply auto
-	using that n_d total trail_simple simp_I apply (auto simp: simple_clss_def
-	    distinct_subseteq_iff[symmetric] distinct_mset_filter
-	    distinct_consistent_interp no_dup_not_tautology
-	    no_dup_distinct total_over_m_alt_def
-	     distinct_set_mset_eq_iff[symmetric] clauses_def
-	     atms_of_s_def atms_of_def lits_of_def image_image
-	     atm_of_eq_atm_of
-	  simp flip: N
-	  dest!: multi_member_split[of _ I])
-	  sledgehammer
-	  sorry
-      show ?thesis
-	apply (subst distinct_set_mset_eq_iff[symmetric])
-	subgoal
-	  using that n_d total trail_simple by (auto simp: simple_clss_def
-	    distinct_subseteq_iff[symmetric] distinct_mset_filter)
-	subgoal
-	  using that n_d total trail_simple tot_I simp_I
-	  by (auto simp: simple_clss_def
-	    distinct_subseteq_iff[symmetric] distinct_mset_filter)
-	subgoal
-	using that n_d total trail_simple apply (auto simp: simple_clss_def
-	    distinct_subseteq_iff[symmetric] distinct_mset_filter
-	    distinct_consistent_interp no_dup_not_tautology
-	    no_dup_distinct total_over_m_alt_def
-	     distinct_set_mset_eq_iff[symmetric]
-	     atms_of_s_def atms_of_def lits_of_def image_image
-	  simp flip: N
-	  dest!: multi_member_split[of _ I])
-	sorry
-    qed
-    from this[symmetric] show ?thesis
-      using n_s that confl
-       true_clss_cls_in_susbsuming[of
-         \<open>pNeg (filter_mset (\<lambda>L. is_pos L \<and> \<rho> (atm_of L)) I)\<close>  \<open>negate_ann_lits (trail S)\<close>
-        \<open>set_mset ((pNeg o filter_mset (\<lambda>L. is_pos L \<and> \<rho> (atm_of L))) `#
-        covering S)\<close>, simplified]
-      apply (auto simp: conflict_opt.simps conflicting_clss_def
-        conflicting_clauses_def pNeg_mono simple_clss_finite
-	negate_ann_lits_pNeg_lit_of model_is_dominated_def
-	pNeg_mono image_mset_subseteq_mono trail_simple
+  have False if \<open>lit_of `# mset (trail S) \<in># covering S\<close>
+    using n_s confl that trail_simple by (auto simp: conflict_opt.simps
+      conflicting_clauses_insert conflicting_clss_def simple_clss_finite
+      negate_ann_lits_pNeg_lit_of
       dest!: multi_member_split)
-    sorry
-    find_theorems negate_ann_lits pNeg
-  then have \<open>is_improving (trail S) (trail S) S\<close>
+  then have imp: \<open>is_improving (trail S) (trail S) S\<close>
     unfolding is_improving_int_def
-    using assms n_d apply (auto simp: clauses_def)
-    sorry
+    using assms trail_simple n_d by (auto simp: clauses_def)
   show ?thesis
-    apply (rule exI)
-    apply (rule improvep.intros)
-*)
-oops
+    by (rule exI) (rule improvep.intros[OF imp confl state_eq_ref])
+qed
+
 end
 
 end
