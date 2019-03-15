@@ -4,14 +4,16 @@ begin
 
 section \<open>Covering Models\<close>
 
+(*TODO Move*)
+lemma (in -) filter_disj_eq:
+  \<open>{x \<in> A. P x \<or> Q x} = {x \<in> A. P x} \<union> {x \<in> A.  Q x}\<close>
+  by auto
+
+
 text \<open>I am only interested in the extension of CDCL to find covering mdoels, not in the required
 subsequent extraction of the minimal covering models.\<close>
 
 type_synonym 'v cov = \<open>'v literal multiset multiset\<close>
-
-lemma pNeg_mono: \<open>C \<subseteq># C' \<Longrightarrow> pNeg C \<subseteq># pNeg C'\<close>
-  by (auto simp: image_mset_subseteq_mono pNeg_def)
-
 
 lemma true_clss_cls_in_susbsuming:
   \<open>C' \<subseteq># C \<Longrightarrow> C' \<in> N \<Longrightarrow> N \<Turnstile>p C\<close>
@@ -63,13 +65,6 @@ where
   M \<Turnstile>asm N \<and>
   no_dup M\<close>
 
-lemma (in -) pNeg_simple_clss_iff[simp]:
-  \<open>pNeg M \<in> simple_clss N \<longleftrightarrow> M \<in> simple_clss N\<close>
-  by (auto simp: simple_clss_def)
-
-lemma (in -) uminus_simple_clss_iff[simp]:
-  \<open>uminus `# M \<in> simple_clss N \<longleftrightarrow>  M \<in> simple_clss N\<close>
- by (metis pNeg_simple_clss_iff pNeg_def)
 
 text \<open>This criteria is a bit more general than Weidenbach's version.\<close>
 abbreviation conflicting_clauses_ent where
@@ -323,14 +318,6 @@ proof -
     conflicting_clauses_def conflicting_clss_def pNeg_mono
       negate_ann_lits_pNeg_lit_of image_iff image_mset_subseteq_mono)
 qed
-
-text \<open>This version of @{thm true_clss_cls_subset} is useful as intro rule.\<close>
-lemma (in -)true_clss_cls_subsetI: \<open>I \<Turnstile>p A \<Longrightarrow> I \<subseteq> I' \<Longrightarrow> I' \<Turnstile>p A\<close>
-  by (simp add: true_clss_cls_subset)
-
-lemma (in -) filter_disj_eq:
-  \<open>{x \<in> A. P x \<or> Q x} = {x \<in> A. P x} \<union> {x \<in> A.  Q x}\<close>
-  by auto
 
 lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improving M M' S \<Longrightarrow>
        conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M' S)\<close>

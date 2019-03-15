@@ -186,6 +186,14 @@ lemma pNeg_empty[simp]: \<open>pNeg {#} = {#}\<close>
 lemma pNeg_replicate_mset[simp]: \<open>pNeg (replicate_mset n L) = replicate_mset n (-L)\<close>
   unfolding pNeg_def by auto
 
+lemma distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftrightarrow> distinct_mset x\<close>
+  unfolding pNeg_def
+  by (rule distinct_image_mset_inj) (auto simp: inj_on_def)
+
+lemma pNeg_simple_clss_iff[simp]:
+  \<open>pNeg M \<in> simple_clss N \<longleftrightarrow> M \<in> simple_clss N\<close>
+  by (auto simp: simple_clss_def)
+
 lemma distinct_image_mset_not_equal:
   assumes
     LL': \<open>L \<noteq> L'\<close> and
@@ -243,6 +251,13 @@ lemma exists_lit_max_level_in_negate_ann_lits:
 lemma negate_ann_lits_cons[simp]:
   \<open>negate_ann_lits (L # M) = add_mset (- lit_of L) (negate_ann_lits M)\<close>
   by (auto simp: negate_ann_lits_def)
+
+lemma uminus_simple_clss_iff[simp]:
+  \<open>uminus `# M \<in> simple_clss N \<longleftrightarrow>  M \<in> simple_clss N\<close>
+ by (metis pNeg_simple_clss_iff pNeg_def)
+
+lemma pNeg_mono: \<open>C \<subseteq># C' \<Longrightarrow> pNeg C \<subseteq># pNeg C'\<close>
+  by (auto simp: image_mset_subseteq_mono pNeg_def)
 
 
 subsubsection \<open>CDCL BNB\<close>
@@ -2228,10 +2243,6 @@ where
       lit_of `# mset M' \<in> simple_clss (atms_of_mm N) \<longrightarrow>
       \<rho> (lit_of `# mset M') = \<rho> (lit_of `# mset M))\<close>
 
-lemma (in -) distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftrightarrow> distinct_mset x\<close>
-  unfolding pNeg_def
-  by (rule distinct_image_mset_inj) (auto simp: inj_on_def)
-
 definition too_heavy_clauses
   :: \<open>'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses\<close>
 where
@@ -2247,7 +2258,6 @@ where
 lemma too_heavy_clauses_conflicting_clauses:
   \<open>C \<in># too_heavy_clauses M w \<Longrightarrow> C \<in># conflicting_clauses M w\<close>
   by (auto simp: conflicting_clauses_def too_heavy_clauses_def simple_clss_finite)
-    (auto simp: simple_clss_def)
 
 lemma too_heavy_clauses_contains_itself:
   \<open>M \<in> simple_clss (atms_of_mm N) \<Longrightarrow> pNeg M \<in># too_heavy_clauses N (Some M)\<close>

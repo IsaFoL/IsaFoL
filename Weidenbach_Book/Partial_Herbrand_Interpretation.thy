@@ -870,6 +870,10 @@ lemma true_clss_cls_subset:
   "A \<subseteq> B \<Longrightarrow> A \<Turnstile>p CC \<Longrightarrow> B \<Turnstile>p CC"
   unfolding true_clss_cls_def total_over_m_union by (simp add: total_over_m_subset true_clss_mono)
 
+text \<open>This version of @{thm true_clss_cls_subset} is useful as intro rule.\<close>
+lemma (in -)true_clss_cls_subsetI: \<open>I \<Turnstile>p A \<Longrightarrow> I \<subseteq> I' \<Longrightarrow> I' \<Turnstile>p A\<close>
+  by (simp add: true_clss_cls_subset)
+
 lemma true_clss_cs_mono_l[simp]:
   "A \<Turnstile>p CC \<Longrightarrow> A \<union> B \<Turnstile>p CC"
   by (auto intro: true_clss_cls_subset)
