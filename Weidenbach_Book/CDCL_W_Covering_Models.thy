@@ -9,8 +9,13 @@ subsequent extraction of the minimal covering models.\<close>
 
 type_synonym 'v cov = \<open>'v literal multiset multiset\<close>
 
-lemma (in -) pNeg_mono: \<open>C \<subseteq># C' \<Longrightarrow> pNeg C \<subseteq># pNeg C'\<close>
+lemma pNeg_mono: \<open>C \<subseteq># C' \<Longrightarrow> pNeg C \<subseteq># pNeg C'\<close>
   by (auto simp: image_mset_subseteq_mono pNeg_def)
+
+
+lemma true_clss_cls_in_susbsuming:
+  \<open>C' \<subseteq># C \<Longrightarrow> C' \<in> N \<Longrightarrow> N \<Turnstile>p C\<close>
+  by (metis subset_mset.le_iff_add true_clss_cls_in true_clss_cls_mono_r)
 
 locale covering_models =
   fixes
@@ -21,6 +26,27 @@ definition model_is_dominated :: \<open>'v literal multiset \<Rightarrow> 'v lit
 \<open>model_is_dominated M M' \<longleftrightarrow>
   filter_mset (\<lambda>L. is_pos L \<and> \<rho> (atm_of L)) M \<subseteq># filter_mset (\<lambda>L. is_pos L \<and> \<rho> (atm_of L)) M'\<close>
 
+lemma model_is_dominated_refl: \<open>model_is_dominated I I\<close>
+  by (auto simp: model_is_dominated_def)
+
+lemma model_is_dominated_trans:
+  \<open>model_is_dominated I J \<Longrightarrow> model_is_dominated J K \<Longrightarrow> model_is_dominated I K\<close>
+  by (auto simp: model_is_dominated_def)
+
+definition is_dominating :: \<open>'v literal multiset multiset \<Rightarrow> 'v literal multiset \<Rightarrow> bool\<close> where
+  \<open>is_dominating \<M> I \<longleftrightarrow> (\<exists>M\<in>#\<M>. \<exists>J. I \<subseteq># J \<and> model_is_dominated J M)\<close>
+
+lemma
+  is_dominating_in:
+    \<open>I \<in># \<M> \<Longrightarrow> is_dominating \<M> I\<close> and
+  is_dominating_mono:
+    \<open>is_dominating \<M> I \<Longrightarrow> set_mset \<M> \<subseteq> set_mset \<M>' \<Longrightarrow> is_dominating \<M>' I\<close> and
+  is_dominating_mono_model:
+    \<open>is_dominating \<M> I \<Longrightarrow> I' \<subseteq># I \<Longrightarrow> is_dominating \<M> I'\<close>
+  using multiset_filter_mono[of I' I \<open>\<lambda>L.  is_pos L \<and> \<rho> (atm_of L)\<close>]
+  by (auto 5 5 simp: is_dominating_def model_is_dominated_def
+    dest!: multi_member_split)
+
 definition is_improving_int :: \<open>('v, 'v clause) ann_lits \<Rightarrow> ('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v cov \<Rightarrow> bool\<close> where
 \<open>is_improving_int M M' N \<M> \<longleftrightarrow>
   (M = M' \<and> \<^cancel>\<open>\<text>\<open>(\<forall>I \<in># \<M>. \<not>model_is_dominated (lit_of `# mset M) I) \<and>\<close>\<close>
@@ -29,13 +55,6 @@ definition is_improving_int :: \<open>('v, 'v clause) ann_lits \<Rightarrow> ('v
   lit_of `# mset M \<notin># \<M> \<and>
   M \<Turnstile>asm N \<and>
   no_dup M)\<close>
-
-lemma model_is_dominated_refl: \<open>model_is_dominated I I\<close>
-  by (auto simp: model_is_dominated_def)
-
-lemma model_is_dominated_trans:
-  \<open>model_is_dominated I J \<Longrightarrow> model_is_dominated J K \<Longrightarrow> model_is_dominated I K\<close>
-  by (auto simp: model_is_dominated_def)
 
 lemma (in -) pNeg_simple_clss_iff[simp]:
   \<open>pNeg M \<in> simple_clss N \<longleftrightarrow> M \<in> simple_clss N\<close>
@@ -51,19 +70,37 @@ definition conflicting_clauses
 where
   \<open>conflicting_clauses N w =
     {#C \<in># mset_set (simple_clss (atms_of_mm N)).
-       (pNeg o filter_mset (\<lambda>L. is_pos L \<and> \<rho> (atm_of L))) `# w \<Turnstile>pm C#}\<close>
-
-lemma (in -) true_clss_cls_in_susbsuming:
-  \<open>C' \<subseteq># C \<Longrightarrow> C' \<in> N \<Longrightarrow> N \<Turnstile>p C\<close>
-  by (metis subset_mset.le_iff_add true_clss_cls_in true_clss_cls_mono_r)
+      (pNeg o filter_mset (\<lambda>L. is_pos L \<and> \<rho> (atm_of L))) `# w + N \<Turnstile>pm C#}\<close>
 
 lemma conflicting_clauses_insert:
   assumes \<open>M \<in> simple_clss (atms_of_mm N)\<close>
   shows \<open>pNeg M \<in># conflicting_clauses N (add_mset M w)\<close>
   using assms true_clss_cls_in_susbsuming[of \<open>pNeg {#L \<in># M. is_pos L \<and> \<rho> (atm_of L)#}\<close>
-    \<open>pNeg M\<close> \<open>set_mset ((pNeg o filter_mset (\<lambda>L. is_pos L \<and> \<rho> (atm_of L))) `# add_mset M w)\<close>]
+    \<open>pNeg M\<close> \<open>set_mset ((pNeg o filter_mset (\<lambda>L. is_pos L \<and> \<rho> (atm_of L))) `# add_mset M w)
+      \<union> set_mset N\<close>]
   by (auto simp: conflicting_clauses_def simple_clss_finite
     pNeg_def image_mset_subseteq_mono)
+
+
+lemma
+  assumes \<open>is_dominating \<M> I\<close> and
+    \<open>atms_of_s (set_mset I) = atms_of_mm N\<close> and
+    \<open>set_mset I \<Turnstile>m N\<close> and
+    \<open>consistent_interp (set_mset I)\<close> and
+    \<open>\<not>tautology I\<close> and
+    \<open>distinct_mset I\<close>
+  shows
+    \<open>pNeg I \<in># conflicting_clauses N \<M>\<close>
+proof -
+  have simpI: \<open>I \<in> simple_clss (atms_of_mm N)\<close>
+    using assms by (auto simp: simple_clss_def atms_of_s_def atms_of_def)
+  obtain I' J where \<open>J \<in># \<M>\<close> and \<open>model_is_dominated I' J\<close> and \<open>I \<subseteq># I'\<close>
+    using assms(1) unfolding is_dominating_def
+    by auto
+  
+  show ?thesis
+    apply (auto simp: conflicting_clauses_def simple_clss_finite simpI)
+  oops
 
 end
 
@@ -241,7 +278,7 @@ lemma conflicting_clss_update_weight_information_in2:
   using assms
      true_clss_cls_in_susbsuming[of \<open>pNeg {#L \<in># lit_of `# mset M. is_pos L \<and> \<rho> (atm_of L)#}\<close>
     \<open>pNeg (lit_of `# mset M)\<close> \<open>set_mset ((pNeg o filter_mset (\<lambda>L. is_pos L \<and> \<rho> (atm_of L))) `#
-      covering (update_weight_information M' S))\<close>]
+      covering (update_weight_information M' S)) \<union> set_mset (init_clss S)\<close>]
   apply (auto simp: simple_clss_finite
     conflicting_clauses_def conflicting_clss_def is_improving_int_def)
   by (auto simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
