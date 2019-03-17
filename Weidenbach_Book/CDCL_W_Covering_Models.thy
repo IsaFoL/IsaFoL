@@ -66,11 +66,13 @@ where
   no_dup M\<close>
 
 
-text \<open>This criteria is a bit more general than Weidenbach's version.\<close>
+text \<open>This criteria is a bit more general than Weidenbach's version.
+
+TODO: add totality condition.\<close>
 abbreviation conflicting_clauses_ent where
   \<open>conflicting_clauses_ent N \<M> \<equiv>
      {#pNeg {#L \<in># x. is_pos L \<and> \<rho> (atm_of L)#}.
-        x \<in># filter_mset (is_dominating \<M>)
+        x \<in># filter_mset (\<lambda>x. is_dominating \<M> x) \<^cancel>\<open>\<^term> \<open>a \<and> atms_of x = atms_of_mm N\<close>\<close>
             (mset_set (simple_clss (atms_of_mm N)))#}+ N\<close>
 
 definition conflicting_clauses
@@ -81,7 +83,7 @@ where
       conflicting_clauses_ent N \<M> \<Turnstile>pm C#}\<close>
 
 lemma conflicting_clauses_insert:
-  assumes \<open>M \<in> simple_clss (atms_of_mm N)\<close>
+  assumes \<open>M \<in> simple_clss (atms_of_mm N)\<close> (*and \<open>atms_of M = atms_of_mm N\<close>*)
   shows \<open>pNeg M \<in># conflicting_clauses N (add_mset M w)\<close>
   using assms true_clss_cls_in_susbsuming[of \<open>pNeg {#L \<in># M. is_pos L \<and> \<rho> (atm_of L)#}\<close>
     \<open>pNeg M\<close> \<open>set_mset (conflicting_clauses_ent N (add_mset M w))\<close>]
@@ -504,6 +506,98 @@ proof -
     by (rule exI) (rule improvep.intros[OF imp confl state_eq_ref])
 qed
 
+lemma
+  assumes
+    \<open>Pos L \<in> I\<close> and
+    \<open>\<rho> L\<close> and
+    L_in: \<open>L \<in> atms_of_mm (init_clss S)\<close> and
+    ent: \<open>I \<Turnstile>m init_clss S\<close> and
+    cdcl: \<open>cdcl_bnb S T\<close> and
+    no_L: \<open>\<not>(\<exists>J\<in># covering T. Pos L \<in># J)\<close> and
+    cov: \<open>covering_simple_clss N S\<close> and
+    NS: \<open>atms_of_mm N = atms_of_mm (init_clss S)\<close>
+  shows \<open>I \<Turnstile>m CDCL_W_Abstract_State.init_clss (abs_state T)\<close>
+proof -
+  have no_L: \<open>\<not>(\<exists>J\<in># covering S. Pos L \<in># J)\<close>
+    using cdcl no_L
+    by (cases) (auto elim!: rulesE improveE conflict_optE obacktrackE
+      simp: ocdcl\<^sub>W_o.simps cdcl_bnb_bj.simps)
+  have \<open>I \<Turnstile>m conflicting_clss S\<close>
+    unfolding conflicting_clss_def conflicting_clauses_def
+      set_mset_filter true_cls_mset_def
+  proof
+    fix C
+    assume \<open>C \<in> {a. a \<in># mset_set (simple_clss (atms_of_mm (init_clss S))) \<and>
+                {#pNeg {#L \<in># x. is_pos L \<and> \<rho> (atm_of L)#}
+                . x \<in># filter_mset (is_dominating (covering S))
+                        (mset_set (simple_clss (atms_of_mm (init_clss S))))#} +
+                init_clss S \<Turnstile>pm
+                a}\<close>
+    then have \<open>C \<in> simple_clss (atms_of_mm (init_clss S))\<close> and
+      \<open>(\<lambda>x. pNeg {#L \<in># x. is_pos L \<and> \<rho> (atm_of L)#}) `
+           {x \<in> simple_clss (atms_of_mm (init_clss S)). is_dominating (covering S) x} \<union>
+          set_mset (init_clss S) \<Turnstile>p C\<close>
+      by (auto simp: simple_clss_finite)
+    have \<open>I \<Turnstile>s (\<lambda>x. pNeg {#L \<in># x. is_pos L \<and> \<rho> (atm_of L)#}) `
+           {x \<in> simple_clss (atms_of_mm (init_clss S)). is_dominating (covering S) x}\<close>
+      unfolding NS[symmetric]
+        total_over_m_alt_def true_clss_def
+    proof
+      fix D
+      assume \<open>D \<in> (\<lambda>x. pNeg {#L \<in># x. is_pos L \<and> \<rho> (atm_of L)#}) `
+            {x \<in> simple_clss (atms_of_mm N). is_dominating (covering S) x}\<close>
+      then obtain x where
+        D: \<open>D = pNeg {#L \<in># x. is_pos L \<and> \<rho> (atm_of L)#}\<close> and
+        x: \<open>x \<in> simple_clss (atms_of_mm N)\<close> and
+        dom: \<open>is_dominating (covering S) x\<close>
+        by auto
+      then have \<open>Pos L \<in># x\<close>
+        using cov L_in no_L
+	unfolding NS[symmetric]
+        apply (auto simp: true_clss_def is_dominating_def model_is_dominated_def
+	    covering_simple_clss_def atms_of_def pNeg_def image_image
+	    total_over_m_alt_def atms_of_s_def
+          dest!: multi_member_split)
+	  oops
+	  (*
+      then have \<open>L \<in> atms_of D\<close>
+        using cov L_in no_L
+	unfolding NS[symmetric]
+        apply (auto simp: true_clss_def is_dominating_def model_is_dominated_def
+	    covering_simple_clss_def atms_of_def pNeg_def image_image
+          dest!: multi_member_split)
+      then have \<open>Pos L \<in># D \<or> Neg L \<in># D\<close>
+	sorry
+      show \<open>I \<Turnstile> D\<close>
+      thm cov L_in no_L
+      apply (auto simp: true_clss_def is_dominating_def model_is_dominated_def
+        dest!: multi_member_split)
+      sorry
+    show \<open>I \<Turnstile> C\<close>
+      sorry
+  qed
+  then have I_S: \<open>I \<Turnstile>m CDCL_W_Abstract_State.init_clss (abs_state S)\<close>
+    using ent
+    by (auto simp: abs_state_def init_clss.simps)
+  show ?thesis
+  using cdcl
+  proof (cases)
+    case cdcl_conflict
+    then show ?thesis using I_S by (auto elim!: conflictE)
+  next
+    case cdcl_propagate
+    then show ?thesis sorry
+  next
+    case cdcl_improve
+    then show ?thesis sorry
+  next
+    case cdcl_conflict_opt
+    then show ?thesis sorry
+  next
+    case cdcl_other'
+    then show ?thesis sorry
+  qed
+*)
 end
 
 end
