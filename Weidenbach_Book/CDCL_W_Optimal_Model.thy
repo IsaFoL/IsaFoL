@@ -1295,6 +1295,17 @@ next
 	elim!: conflict_optE)
 qed
 
+lemma rtranclp_cdcl_bnb_cdcl\<^sub>W_learned_clauses_entailed_by_init:
+  assumes
+    \<open>cdcl_bnb\<^sup>*\<^sup>* S T\<close> and
+    entailed: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (abs_state S)\<close> and
+    all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (abs_state T)\<close>
+  using assms
+  by (induction rule: rtranclp_induct)
+   (auto intro: cdcl_bnb_cdcl\<^sub>W_learned_clauses_entailed_by_init
+      rtranclp_cdcl_bnb_stgy_all_struct_inv)
+
 lemma atms_of_init_clss_conflicting_clss2[simp]:
   \<open>atms_of_mm (init_clss S) \<union> atms_of_mm (conflicting_clss S) = atms_of_mm (init_clss S)\<close>
   using atms_of_conflicting_clss[of S] by blast
@@ -2016,6 +2027,51 @@ next
 	  ..
       qed
     qed
+  qed
+qed
+
+
+lemma full_cdcl_bnb_stgy_unsat:
+  assumes
+    st: \<open>full cdcl_bnb_stgy S T\<close> and
+    all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+    opt_struct: \<open>cdcl_bnb_struct_invs S\<close> and
+    stgy_inv: \<open>cdcl_bnb_stgy_inv S\<close>
+  shows
+    \<open>unsatisfiable (set_mset (clauses T + conflicting_clss T))\<close>
+proof -
+  have ns: \<open>no_step cdcl_bnb_stgy T\<close> and
+    st: \<open>cdcl_bnb_stgy\<^sup>*\<^sup>* S T\<close> and
+    st': \<open>cdcl_bnb\<^sup>*\<^sup>* S T\<close>
+    using st unfolding full_def by (auto intro: rtranclp_cdcl_bnb_stgy_cdcl_bnb)
+  have ns': \<open>no_step cdcl_bnb T\<close>
+    by (meson cdcl_bnb.cases cdcl_bnb_stgy.simps no_confl_prop_impr.elims(3) ns)
+  have struct_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
+    using rtranclp_cdcl_bnb_stgy_all_struct_inv[OF st' all_struct] .
+  have stgy_T: \<open>cdcl_bnb_stgy_inv T\<close>
+    using rtranclp_cdcl_bnb_stgy_stgy_inv[OF st all_struct stgy_inv] .
+  have confl: \<open>conflicting T = Some {#}\<close>
+    using no_step_cdcl_bnb_stgy_empty_conflict[OF ns' struct_T stgy_T] .
+
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (abs_state T)\<close> and
+    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state T)\<close>
+    using struct_T unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
+  then have ent': \<open>set_mset (clauses T + conflicting_clss T) \<Turnstile>p {#}\<close>
+    using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+    by auto
+
+  show \<open>unsatisfiable (set_mset (clauses T + conflicting_clss T))\<close>
+  proof
+    assume \<open>satisfiable (set_mset (clauses T + conflicting_clss T))\<close>
+    then obtain I where
+      ent'': \<open>I \<Turnstile>sm clauses T + conflicting_clss T\<close> and
+      tot: \<open>total_over_m I (set_mset (clauses T + conflicting_clss T))\<close> and
+      \<open>consistent_interp I\<close>
+      unfolding satisfiable_def
+      by blast
+    then show \<open>False\<close>
+      using ent'
+      unfolding true_clss_cls_def by auto
   qed
 qed
 
