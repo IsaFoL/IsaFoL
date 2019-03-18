@@ -66,9 +66,7 @@ where
   no_dup M\<close>
 
 
-text \<open>This criteria is a bit more general than Weidenbach's version.
-
-TODO: add totality condition.\<close>
+text \<open>This criteria is a bit more general than Weidenbach's version.\<close>
 abbreviation conflicting_clauses_ent where
   \<open>conflicting_clauses_ent N \<M> \<equiv>
      {#pNeg {#L \<in># x. \<rho> (atm_of L)#}.

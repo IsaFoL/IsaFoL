@@ -97,6 +97,7 @@ session "CDCL_no_Sepref" (Weidenbach_Book) = "HOL"  +
     CDCL_W_Optimal_Model
     CDCL_W_Partial_Encoding
     CDCL_W_Partial_Optimal_Model
+    CDCL_W_Covering_Models
 
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
@@ -138,6 +139,7 @@ session "CDCL" (Weidenbach_Book) = "Sepref_IICF"  +
     CDCL_W_Optimal_Model
     CDCL_W_Partial_Encoding
     CDCL_W_Partial_Optimal_Model
+    CDCL_W_Covering_Models
 
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
