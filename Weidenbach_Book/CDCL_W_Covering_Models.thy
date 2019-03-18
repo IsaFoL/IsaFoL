@@ -72,7 +72,7 @@ TODO: add totality condition.\<close>
 abbreviation conflicting_clauses_ent where
   \<open>conflicting_clauses_ent N \<M> \<equiv>
      {#pNeg {#L \<in># x. is_pos L \<and> \<rho> (atm_of L)#}.
-        x \<in># filter_mset (\<lambda>x. is_dominating \<M> x) \<^cancel>\<open>\<^term> \<open>a \<and> atms_of x = atms_of_mm N\<close>\<close>
+        x \<in># filter_mset (\<lambda>x. is_dominating \<M> x \<and> atms_of x = atms_of_mm N)
             (mset_set (simple_clss (atms_of_mm N)))#}+ N\<close>
 
 definition conflicting_clauses
@@ -83,7 +83,7 @@ where
       conflicting_clauses_ent N \<M> \<Turnstile>pm C#}\<close>
 
 lemma conflicting_clauses_insert:
-  assumes \<open>M \<in> simple_clss (atms_of_mm N)\<close> (*and \<open>atms_of M = atms_of_mm N\<close>*)
+  assumes \<open>M \<in> simple_clss (atms_of_mm N)\<close> and \<open>atms_of M = atms_of_mm N\<close>
   shows \<open>pNeg M \<in># conflicting_clauses N (add_mset M w)\<close>
   using assms true_clss_cls_in_susbsuming[of \<open>pNeg {#L \<in># M. is_pos L \<and> \<rho> (atm_of L)#}\<close>
     \<open>pNeg M\<close> \<open>set_mset (conflicting_clauses_ent N (add_mset M w))\<close>]
@@ -93,7 +93,7 @@ lemma conflicting_clauses_insert:
 
 lemma is_dominating_in_conflicting_clauses:
   assumes \<open>is_dominating \<M> I\<close> and
-    \<open>atms_of_s (set_mset I) = atms_of_mm N\<close> and
+    atm: \<open>atms_of_s (set_mset I) = atms_of_mm N\<close> and
     \<open>set_mset I \<Turnstile>m N\<close> and
     \<open>consistent_interp (set_mset I)\<close> and
     \<open>\<not>tautology I\<close> and
@@ -106,13 +106,19 @@ proof -
   obtain I' J where \<open>J \<in># \<M>\<close> and \<open>model_is_dominated I' J\<close> and \<open>I \<subseteq># I'\<close>
     using assms(1) unfolding is_dominating_def
     by auto
+  then have \<open>I \<in> {x \<in> simple_clss (atms_of_mm N).
+         (is_dominating A x \<or> (\<exists>Ja. x \<subseteq># Ja \<and> model_is_dominated Ja J)) \<and>
+         atms_of x = atms_of_mm N}\<close>
+    using assms(1) atm
+    by (auto simp: conflicting_clauses_def simple_clss_finite simpI atms_of_def
+        pNeg_mono true_clss_cls_in_susbsuming is_dominating_add_mset atms_of_s_def
+      dest!: multi_member_split)
   then show ?thesis
     using assms(1)
-    apply (auto simp: conflicting_clauses_def simple_clss_finite simpI
-        pNeg_mono true_clss_cls_in_susbsuming
-      dest!: multi_member_split)
-    by (metis (mono_tags, lifting) UnCI image_eqI mem_Collect_eq
-      multiset_filter_subset pNeg_mono simpI true_clss_cls_in_susbsuming)
+    by (auto simp: conflicting_clauses_def simple_clss_finite simpI
+        pNeg_mono  is_dominating_add_mset
+      dest!: multi_member_split
+      intro!: true_clss_cls_in_susbsuming[of \<open>(\<lambda>x. pNeg {#L \<in># x. is_pos L \<and> \<rho> (atm_of L)#}) I\<close>])
 qed
 
 end
@@ -297,7 +303,7 @@ proof -
   have
     [simp]: \<open>M' = M\<close> and
     \<open>\<forall>I\<in>#covering S. \<not> model_is_dominated (lit_of `# mset M) I\<close> and
-    \<open>total_over_m (lits_of_l M) (set_mset (init_clss S))\<close> and
+    tot: \<open>total_over_m (lits_of_l M) (set_mset (init_clss S))\<close> and
     simpI: \<open>lit_of `# mset M \<in> simple_clss (atms_of_mm (init_clss S))\<close> and
     \<open>lit_of `# mset M \<notin># covering S\<close> and
     \<open>no_dup M\<close> and
@@ -311,14 +317,26 @@ proof -
     by (auto simp: simple_clss_finite multiset_filter_mono2 pNeg_mono
       conflicting_clauses_def conflicting_clss_def is_improving_int_def
       simpI)
+  moreover have \<open>atms_of (lit_of `# mset M) = atms_of_mm (init_clss S)\<close>
+    using tot simpI
+    by (auto simp: simple_clss_finite multiset_filter_mono2 pNeg_mono
+      conflicting_clauses_def conflicting_clss_def is_improving_int_def
+      total_over_m_alt_def atms_of_s_def lits_of_def image_image atms_of_def
+      simple_clss_def)
+  ultimately have \<open>(\<exists>x. x \<in> simple_clss (atms_of_mm (init_clss S)) \<and>
+          is_dominating (add_mset (lit_of `# mset M) (covering S)) x \<and>
+          atms_of x = atms_of_mm (init_clss S) \<and>
+          pNeg {#L \<in># lit_of `# mset M. is_pos L \<and> \<rho> (atm_of L)#} =
+          pNeg {#L \<in># x. is_pos L \<and> \<rho> (atm_of L)#})\<close>
+    by (auto intro: exI[of _ \<open>lit_of `# mset M\<close>] simp add: simpI is_dominating_in)
   then show ?thesis
-    using
+    using is_dominating_in
      true_clss_cls_in_susbsuming[of \<open>pNeg {#L \<in># lit_of `# mset M. is_pos L \<and> \<rho> (atm_of L)#}\<close>
     \<open>pNeg (lit_of `# mset M)\<close> \<open>set_mset (conflicting_clauses_ent
       (init_clss S) (covering (update_weight_information M' S)))\<close>]
     by (auto simp: simple_clss_finite multiset_filter_mono2 simpI
-    conflicting_clauses_def conflicting_clss_def pNeg_mono
-      negate_ann_lits_pNeg_lit_of image_iff image_mset_subseteq_mono)
+      conflicting_clauses_def conflicting_clss_def pNeg_mono
+        negate_ann_lits_pNeg_lit_of image_iff image_mset_subseteq_mono)
 qed
 
 lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improving M M' S \<Longrightarrow>
@@ -470,7 +488,17 @@ proof -
         lits_of_def image_image atms_of_def
       dest: distinct_consistent_interp no_dup_not_tautology
         no_dup_distinct)
-
+  then have [simp]: \<open>atms_of ?M = atms_of_mm (init_clss S)\<close>
+    using total
+    by (auto simp: total_over_m_alt_def simple_clss_def atms_of_def image_image
+      lits_of_def atms_of_s_def clauses_def)
+  then have K: \<open>is_dominating (covering S) ?M \<Longrightarrow> pNeg {#L \<in># lit_of `# mset (trail S). is_pos L \<and> \<rho> (atm_of L)#}
+         \<in> (\<lambda>x. pNeg {#L \<in># x. is_pos L \<and> \<rho> (atm_of L)#}) `
+           {x \<in> simple_clss (atms_of_mm (init_clss S)).
+            is_dominating (covering S) x \<and>
+            atms_of x = atms_of_mm (init_clss S)}\<close>
+    by (auto simp: image_iff trail_simple
+      intro!: exI[of _ \<open>lit_of `# mset (trail S)\<close>])
   have H: \<open>I \<in># covering S \<Longrightarrow>
         model_is_dominated ?M I \<Longrightarrow>
 	pNeg {#L \<in># ?M. is_pos L \<and> \<rho> (atm_of L)#}
@@ -480,17 +508,17 @@ proof -
     using is_dominating_in[of \<open>lit_of `# mset M\<close> \<open>add_mset (lit_of `# mset M) (covering S)\<close>]
       trail_simple
     by (auto 5 5 simp: simple_clss_finite multiset_filter_mono2 pNeg_mono
-      conflicting_clauses_def conflicting_clss_def is_improving_int_def
-      is_dominating_add_mset filter_disj_eq image_Un
-       dest!: multi_member_split)
+          conflicting_clauses_def conflicting_clss_def is_improving_int_def
+          is_dominating_add_mset filter_disj_eq image_Un
+        dest!: multi_member_split)
   have \<open>I \<in># covering S \<Longrightarrow>
         model_is_dominated ?M I \<Longrightarrow> False\<close> for I
-    using n_s confl H[of I]
+    using n_s confl H[of I] K
      true_clss_cls_in_susbsuming[of \<open>pNeg {#L \<in># ?M. is_pos L \<and> \<rho> (atm_of L)#}\<close>
     \<open>pNeg ?M\<close> \<open>set_mset (conflicting_clauses_ent
       (init_clss S) (covering S))\<close>]
     by (auto simp: conflict_opt.simps simple_clss_finite
-        conflicting_clss_def conflicting_clauses_def
+        conflicting_clss_def conflicting_clauses_def is_dominating_def
 	is_dominating_add_mset filter_disj_eq image_Un pNeg_mono
 	multiset_filter_mono2 negate_ann_lits_pNeg_lit_of
       intro: trail_simple)
