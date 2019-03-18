@@ -3051,7 +3051,7 @@ proof -
 qed
 
 
-lemma full_cdcl_bnb_stgy_unsat:
+lemma full_cdcl_bnb_stgy_unsat2:
   assumes
     st: \<open>full cdcl_bnb_stgy S T\<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
