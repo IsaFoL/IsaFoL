@@ -1115,31 +1115,31 @@ proof
 qed
 
 (* To ground first-order inferences, we need their unifier *)
-datatype 'b fo_inference = Fo_Infer (inf: \<open>'b fclause inference\<close>) (subst: \<open>'b subst\<close>)
+(*datatype 'b fo_inference = Fo_Infer (inf: \<open>'b fclause inference\<close>) (subst: \<open>'b subst\<close>)*)
 
-definition fo_reflexion_inferences :: \<open>'a fo_inference set\<close> where
-\<open>fo_reflexion_inferences = {Fo_Infer (Infer [P] (fcl_remove_trms C)) \<sigma> | P C \<sigma>. \<exists> C'. reflexion (Rep_fclause P) C \<sigma> FirstOrder C' \<and> Idem \<sigma>}\<close>
+definition fo_reflexion_inferences :: \<open>'a fclause inference set\<close> where
+\<open>fo_reflexion_inferences = {Infer [P] (fcl_remove_trms C) | P C \<sigma>. \<exists> C'. reflexion (Rep_fclause P) C \<sigma> FirstOrder C'}\<close>
 
-definition fo_factorization_inferences :: \<open>'a fo_inference set\<close> where
-\<open>fo_factorization_inferences = {Fo_Infer (Infer [P] (fcl_remove_trms C)) \<sigma> | P C \<sigma>. \<exists> C'. factorization (Rep_fclause P) C \<sigma> FirstOrder C' \<and> Idem \<sigma>}\<close>
+definition fo_factorization_inferences :: \<open>'a fclause inference set\<close> where
+\<open>fo_factorization_inferences = {Infer [P] (fcl_remove_trms C) | P C \<sigma>. \<exists> C'. factorization (Rep_fclause P) C \<sigma> FirstOrder C'}\<close>
 
-definition fo_superposition_inferences :: \<open>'a fo_inference set\<close> where
-\<open>fo_superposition_inferences = {Fo_Infer (Infer [P1 , P2] (fcl_remove_trms C)) \<sigma> | P1 P2 C \<sigma>. \<exists> C'. superposition (Rep_fclause P1) (Rep_fclause P2) C \<sigma> FirstOrder C' \<and> Idem \<sigma>}\<close>
+definition fo_superposition_inferences :: \<open>'a fclause inference set\<close> where
+\<open>fo_superposition_inferences = {Infer [P1 , P2] (fcl_remove_trms C) | P1 P2 C \<sigma>. \<exists> C'. superposition (Rep_fclause P1) (Rep_fclause P2) C \<sigma> FirstOrder C'}\<close>
 
 abbreviation fo_superposition_inference_system :: \<open>'a fclause inference set\<close>
   where
-\<open>fo_superposition_inference_system \<equiv> inf ` (fo_reflexion_inferences
-                                          \<union> fo_factorization_inferences
-                                          \<union> fo_superposition_inferences)\<close>
+\<open>fo_superposition_inference_system \<equiv> fo_reflexion_inferences
+                                   \<union> fo_factorization_inferences
+                                   \<union> fo_superposition_inferences\<close>
 
 interpretation fo_inf: sound_inference_system \<open>empty_fclauses\<close> \<open>(\<Turnstile>F)\<close> fo_superposition_inference_system
 proof
   show \<open>\<iota> \<in> fo_superposition_inference_system \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>F {concl_of \<iota>}\<close> for \<iota>
   proof -
     assume \<open>\<iota> \<in> fo_superposition_inference_system\<close>
-    then consider (a) \<open>\<iota> \<in> inf ` fo_reflexion_inferences\<close>
-      | (b) \<open>\<iota> \<in> inf ` fo_factorization_inferences\<close>
-      | (c) \<open>\<iota> \<in> inf `fo_superposition_inferences\<close>
+    then consider (a) \<open>\<iota> \<in> fo_reflexion_inferences\<close>
+      | (b) \<open>\<iota> \<in> fo_factorization_inferences\<close>
+      | (c) \<open>\<iota> \<in> fo_superposition_inferences\<close>
       by auto
     then show \<open>set (prems_of \<iota>) \<Turnstile>F {concl_of \<iota>}\<close>
     proof cases
@@ -1201,14 +1201,19 @@ definition grounding_clause :: \<open>'a fclause \<Rightarrow> 'a gclause set\<c
   where \<open>grounding_clause F = { subst_fclause \<sigma> F | \<sigma>. grounding_subst \<sigma> F }\<close>
 
 (* Since substitutions are not recorded in inferences, we use this function to get them back *)
-fun gen_substs :: \<open>'a fclause inference \<Rightarrow> 'a subst set\<close>
+(*fun gen_substs :: \<open>'a fclause inference \<Rightarrow> 'a subst set\<close>
   where \<open>gen_substs \<iota> = { subst I | I. inf I = \<iota> \<and> I \<in> fo_reflexion_inferences \<union> fo_factorization_inferences \<union> fo_superposition_inferences }\<close>
 
 definition grounding_inference :: \<open>'a fclause inference \<Rightarrow> 'a gclause inference set\<close>
   where \<open>grounding_inference \<iota> = { Infer (map (subst_fclause (\<sigma> \<lozenge> \<theta>)) (prems_of \<iota>)) (subst_fclause (\<sigma> \<lozenge> \<theta>) (concl_of \<iota>))
-                                 | \<sigma> \<theta>. list_all (grounding_subst (\<sigma> \<lozenge> \<theta>)) (prems_of \<iota>) \<and> \<sigma> \<in> gen_substs \<iota>}\<close>
+                                 | \<sigma> \<theta>. list_all (grounding_subst (\<sigma> \<lozenge> \<theta>)) (prems_of \<iota>) \<and> \<sigma> \<in> gen_substs \<iota>}\<close>*)
 
-lemma grounding_prems_grounding_concl:
+definition grounding_inference :: \<open>'a fclause inference \<Rightarrow> 'a gclause inference set\<close>
+  where \<open>grounding_inference \<iota> = { Infer (map (subst_fclause \<sigma>) (prems_of \<iota>)) (subst_fclause \<sigma> (concl_of \<iota>))
+                                 | \<sigma>. list_all (grounding_subst \<sigma>) (prems_of \<iota>) \<and> grounding_subst \<sigma> (concl_of \<iota>)}
+                                 \<inter> ground_superposition_inference_system\<close>
+
+(*lemma grounding_prems_grounding_concl:
   assumes \<open>\<iota> \<in> fo_superposition_inference_system\<close>
   assumes \<open>list_all (grounding_subst \<sigma>) (prems_of \<iota>)\<close>
   shows \<open>grounding_subst \<sigma> (concl_of \<iota>)\<close>
@@ -1333,9 +1338,9 @@ proof -
   ultimately have \<open>ground_on (vars_of_cl (cl_ecl (Rep_fclause (concl_of \<iota>)))) \<sigma>\<close> unfolding ground_on_def by blast
   then show ?thesis
     using ground_substs_yield_ground_clause by blast
-qed
+qed*)
 
-lemma reflexion_grounding:
+(*lemma reflexion_grounding:
   assumes \<open>reflexion (Rep_fclause P) C \<sigma> FirstOrder C'\<close>
   assumes \<open>grounding_subst (\<sigma> \<lozenge> \<theta>) P\<close>
   assumes \<open>Idem \<sigma>\<close>
@@ -1363,16 +1368,16 @@ proof -
   moreover have \<open>?L \<in> cl_ecl (Rep_gclause (subst_fclause (\<sigma> \<lozenge> \<theta>) P))\<close> using ii Rep_subst_fclause assms(2) by auto
   moreover have \<open>?Cl_C = cl_ecl (subst_ecl C (\<sigma> \<lozenge> \<theta>))\<close> using iii by (metis (no_types, lifting) cl_ecl.simps subst_ecl.simps vii)
   moreover have \<open>?Cl_P = cl_ecl (Rep_gclause (subst_fclause (\<sigma> \<lozenge> \<theta>) P))\<close> using iv Rep_subst_fclause assms(2) by auto
-  moreover have \<open>orient_lit_inst ?L (?t) (?s) neg []\<close> sorry
+  moreover have \<open>orient_lit_inst ?L (?t) (?s) neg []\<close> using v unfolding orient_lit_inst_def sorry
   moreover have \<open>ck_unifier (?t) (?s) [] Ground\<close> using vi Unifier_def ck_unifier_def ck_unifier_thm by fastforce
   moreover have \<open>subst_ecl C (\<sigma> \<lozenge> \<theta>) = Ecl ?Cl_C ?trms_C\<close> sorry
   moreover have \<open>?trms_C = get_trms ?Cl_C (dom_trms ?Cl_C (subst_set (trms_ecl (Rep_gclause (subst_fclause (\<sigma> \<lozenge> \<theta>) P)) \<union> {?t}) [])) Ground\<close> sorry
   moreover have \<open>?Cl_C = subst_cl (subst_cl C' (\<sigma> \<lozenge> \<theta>)) []\<close> using ix assms(3) subst_cl_empty unfolding Idem_def by (metis composition_of_substs_cl subst_eq_cl)
   moreover have \<open>subst_cl C' (\<sigma> \<lozenge> \<theta>) = ?Cl_P - {?L}\<close> sorry
   ultimately show ?thesis unfolding reflexion_def by blast
-qed
+qed*)
 
-lemma grounding_inference_preserves_system:
+(*lemma grounding_inference_preserves_system:
   \<open>\<kappa> \<in> grounding_inference \<iota> \<Longrightarrow> \<kappa> \<in> ground_superposition_inference_system\<close>
 proof -
   assume \<open>\<kappa> \<in> grounding_inference \<iota>\<close>
@@ -1452,7 +1457,7 @@ qed
     case supr
     then show ?thesis sorry
   qed
-qed*)
+qed*)*)
 
 interpretation grounding_function empty_fclauses \<open>(\<Turnstile>F)\<close> fo_superposition_inference_system
   empty_gclauses \<open>(\<Turnstile>G)\<close> ground_superposition_inference_system \<open>(\<Turnstile>G)\<close> Red_Inf_sup Red_gclause grounding_clause grounding_inference
@@ -1492,17 +1497,13 @@ next
   show \<open>\<iota> \<in> fo_superposition_inference_system \<Longrightarrow> grounding_inference \<iota> \<subseteq> Red_Inf_sup (grounding_clause (concl_of \<iota>))\<close> for \<iota>
   proof
     fix \<kappa>
-    assume \<iota>_elem: \<open>\<iota> \<in> fo_superposition_inference_system\<close> and \<kappa>_elem: \<open>\<kappa> \<in> grounding_inference \<iota>\<close>
-    have \<open>concl_of \<kappa> \<in> grounding_clause (concl_of \<iota>)\<close>
-    proof -
-      from \<kappa>_elem \<iota>_elem obtain \<sigma> where \<open>list_all (grounding_subst \<sigma>) (prems_of \<iota>)\<close>
-                                   and \<open>grounding_subst \<sigma> (concl_of \<iota>)\<close>
-                                   and \<open>\<kappa> = Infer (map (subst_fclause \<sigma>) (prems_of \<iota>)) (subst_fclause \<sigma> (concl_of \<iota>))\<close>
-        unfolding grounding_inference_def using grounding_prems_grounding_concl by blast
-      then show \<open>concl_of \<kappa> \<in> grounding_clause (concl_of \<iota>)\<close> unfolding grounding_clause_def by auto
-    qed
+    assume \<open>\<iota> \<in> fo_superposition_inference_system\<close> and \<open>\<kappa> \<in> grounding_inference \<iota>\<close>
+    then obtain \<sigma> where \<open>\<kappa> = Infer (map (subst_fclause \<sigma>) (prems_of \<iota>)) (subst_fclause \<sigma> (concl_of \<iota>))\<close>
+                    and \<open>concl_of \<kappa> \<in> grounding_clause (concl_of \<iota>)\<close>
+                    and \<open>\<kappa> \<in> ground_superposition_inference_system\<close>
+      unfolding grounding_inference_def grounding_clause_def by auto
     then show \<open>\<kappa> \<in> Red_Inf_sup (grounding_clause (concl_of \<iota>))\<close>
-      using Red_Inf_of_Inf_to_N grounding_inference_preserves_system \<iota>_elem \<kappa>_elem by auto
+      using Red_Inf_of_Inf_to_N by auto
   qed
 qed
 
@@ -1616,7 +1617,52 @@ proof
     then show \<open>\<iota> \<in> Red_Inf_sup (\<G>_set N) \<or> (\<exists>\<kappa>. \<kappa> \<in> fo_inf.Inf_from N \<and> \<iota> \<in> grounding_inference \<kappa>)\<close>
     proof cases
       case refl
-      then show ?thesis sorry
+      then obtain P C \<sigma> C'
+        where \<iota>_def: \<open>\<iota> = Infer [P] (gcl_remove_trms C)\<close>
+          and reflexion: \<open>reflexion (Rep_gclause P) C \<sigma> Ground C'\<close>
+          and \<open>ground_clause (cl_ecl C)\<close>
+          and \<open>P \<in> \<G>_set N\<close>
+        unfolding ground_reflexion_inferences_def by auto
+      then obtain P' \<theta>
+        where P'_elem: \<open>P' \<in> N\<close>    
+          and P_subst: \<open>subst_fclause \<theta> P' = P\<close>
+          and grounding_\<theta>: \<open>grounding_subst \<theta> P'\<close>
+        unfolding grounding_clause_def by blast
+      from reflexion obtain L1 s t
+        where L1_elem: \<open>L1 \<in> cl_ecl (Rep_gclause P)\<close>
+          and L1_def: \<open>orient_lit_inst L1 t s neg \<sigma>\<close>
+          and C_def: \<open>cl_ecl C = subst_cl (cl_ecl (Rep_gclause P) - {L1}) \<sigma>\<close>
+        unfolding reflexion_def by blast
+      with P_subst have \<open>L1 \<in> subst_cl (cl_ecl (Rep_fclause P')) \<theta>\<close>
+        using Abs_gclause_inverse [of \<open>Ecl (subst_cl (cl_ecl (Rep_fclause P')) \<theta>) {}\<close>] Rep_fclause [of P'] grounding_\<theta> by force
+      then obtain L1'
+        where L1'_elem: \<open>L1' \<in> cl_ecl (Rep_fclause P')\<close>
+          and L1'_def: \<open>L1 = subst_lit L1' \<theta>\<close> by auto
+      let ?D = \<open>Abs_fclause (Ecl (cl_ecl (Rep_fclause P') - {L1'}) {})\<close>
+      have \<open>cl_ecl C = cl_ecl (Rep_gclause P) - {L1}\<close>
+        using C_def substs_preserve_ground_clause [of \<open>cl_ecl (Rep_gclause P) - {L1}\<close> \<sigma>] Rep_gclause [of P] by auto
+      also have \<open>... = cl_ecl (Rep_gclause (subst_fclause \<theta> P')) - {subst_lit L1' \<theta>}\<close>
+        using P_subst L1'_def by auto
+      also have \<open>... = subst_cl (cl_ecl (Rep_fclause P')) - {subst_lit L1' \<theta>}\<close>
+      also have \<open>... = subst_cl (cl_ecl (Rep_fclause P') - {L1'}) \<theta>\<close> using L1'_elem by try0
+      have \<open>subst_cl (cl_ecl (Rep_fclause P') - {L1'}) \<theta> = cl_ecl C\<close> sorry
+      then have \<open>subst_cl (cl_ecl (Rep_fclause ?D)) \<theta> = cl_ecl C\<close>
+        using Abs_fclause_inverse [of \<open>Ecl (cl_ecl (Rep_fclause P') - {L1'}) {}\<close>] Rep_fclause [of P'] by auto
+      then have D_subst: \<open>subst_fclause \<theta> ?D = gcl_remove_trms C\<close> by auto
+      have grounding_\<theta>_D: \<open>grounding_subst \<theta> ?D\<close>
+        using Abs_fclause_inverse [of \<open>Ecl (cl_ecl (Rep_fclause P') - {L1'}) {}\<close>] Rep_fclause [of P'] grounding_\<theta> by auto
+      let ?\<kappa> = \<open>Infer [P'] ?D\<close>
+      have \<open>?\<kappa> \<in> fo_reflexion_inferences\<close> sorry
+      moreover have \<open>set (prems_of ?\<kappa>) \<subseteq> N\<close> using P'_elem by auto
+      moreover have \<open>\<iota> \<in> grounding_inference ?\<kappa>\<close>
+      proof -
+        have \<open>\<iota> = Infer (map (subst_fclause \<theta>) (prems_of ?\<kappa>)) (subst_fclause \<theta> (concl_of ?\<kappa>))\<close> using \<iota>_def P_subst D_subst by auto
+        moreover have \<open>list_all (grounding_subst \<theta>) (prems_of ?\<kappa>)\<close> using grounding_\<theta> by auto
+        moreover have \<open>grounding_subst \<theta> (concl_of ?\<kappa>)\<close> using grounding_\<theta>_D by auto
+        moreover have \<open>\<iota> \<in> ground_superposition_inference_system\<close> using refl by auto
+        ultimately show \<open>\<iota> \<in> grounding_inference ?\<kappa>\<close> unfolding grounding_inference_def by blast
+      qed
+      ultimately show ?thesis unfolding fo_inf.Inf_from_def by blast
     next
       case fact
       then show ?thesis sorry
