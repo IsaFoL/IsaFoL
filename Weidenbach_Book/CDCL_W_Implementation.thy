@@ -522,7 +522,7 @@ next
   have clss_C: \<open>clauses (toS S) \<Turnstile>pm mset C\<close> and
     M_C: \<open>M \<Turnstile>as CNot (mset C)\<close> and
     lev_inv: "cdcl\<^sub>W_M_level_inv (toS S)"
-    using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def S E
+    using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_alt_def S E
       cdcl\<^sub>W_conflicting_def
     by auto
   obtain M2' where M2': "(M2, M2') \<in> set (get_all_ann_decomposition M)"

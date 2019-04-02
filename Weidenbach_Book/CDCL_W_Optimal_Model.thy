@@ -457,7 +457,7 @@ lemma invs_update_weight_information[simp]:
   \<open>cdcl\<^sub>W_conflicting (update_weight_information C S) = cdcl\<^sub>W_conflicting S\<close>
   \<open>cdcl\<^sub>W_learned_clause (update_weight_information C S) = cdcl\<^sub>W_learned_clause S\<close>
   unfolding no_strange_atm_def cdcl\<^sub>W_M_level_inv_def distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_conflicting_def
-    cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_all_struct_inv_def by auto
+    cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_all_struct_inv_def by auto
 
 lemma conflict_opt_cdcl\<^sub>W_all_struct_inv:
   assumes \<open>conflict_opt S T\<close> and
@@ -468,7 +468,7 @@ lemma conflict_opt_cdcl\<^sub>W_all_struct_inv:
   by (auto simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
 	cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
 	cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-	cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+	cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
 	true_annots_true_cls_def_iff_negation_in_model
 	in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
 	distinct_mset_mset_conflicting_clss abs_state_def
@@ -513,7 +513,7 @@ proof (induction rule: improvep.cases)
       by (auto 6 2 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
 	    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
 	    cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-	    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+	    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
 	    true_annots_true_cls_def_iff_negation_in_model
 	    in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
 	    image_Un distinct_mset_mset_conflicting_clss abs_state_def
@@ -2057,7 +2057,7 @@ proof -
     alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state T)\<close>
     using struct_T unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
   then have ent': \<open>set_mset (clauses T + conflicting_clss T) \<Turnstile>p {#}\<close>
-    using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+    using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
     by auto
 
   show \<open>unsatisfiable (set_mset (clauses T + conflicting_clss T))\<close>
@@ -3011,7 +3011,7 @@ proof -
     alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state T)\<close>
     using struct_T unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
   then have ent': \<open>set_mset (clauses T + conflicting_clss T) \<Turnstile>p {#}\<close>
-    using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+    using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
     by auto
   have atms_eq: \<open>atms_of I \<union> atms_of_mm (conflicting_clss T) = atms_of_mm (init_clss T)\<close>
     using tot[symmetric] atms_of_conflicting_clss[of T] alien
@@ -3077,7 +3077,7 @@ proof -
     alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state T)\<close>
     using struct_T unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
   then have ent': \<open>set_mset (clauses T + conflicting_clss T) \<Turnstile>p {#}\<close>
-    using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+    using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
     by auto
 
   show \<open>unsatisfiable (set_mset (clauses T + conflicting_clss T))\<close>
@@ -3745,7 +3745,7 @@ lemma all_struct_init_state_distinct_iff:
       cdcl\<^sub>W_restart_mset.no_strange_atm_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
       abs_state_def cdcl\<^sub>W_restart_mset_state)
 
 lemma no_step_ocdcl\<^sub>w_stgy_no_step_cdcl_bnb_stgy:

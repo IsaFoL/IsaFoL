@@ -818,7 +818,7 @@ proof -
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def distinct_mset_mset_conflicting_clss
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def)
   have cdcl: \<open>cdcl_bnb\<^sup>*\<^sup>* ?S T\<close>
     using st rtranclp_cdcl_bnb_stgy_cdcl_bnb unfolding full_def by blast
   have cov: \<open>covering_simple_clss N ?S\<close>
@@ -834,7 +834,7 @@ proof -
     total_over_m I (set_mset (init_clss T + conflicting_clss T))\<close> for I
     using struct_T atms_of_conflicting_clss[of T]
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def satisfiable_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def satisfiable_def
       cdcl\<^sub>W_restart_mset.no_strange_atm_def
     by (auto simp: clauses_def satisfiable_def total_over_m_alt_def
       abs_state_def cdcl\<^sub>W_restart_mset_state
@@ -848,7 +848,7 @@ proof -
   then have \<open>init_clss T + conflicting_clss T \<Turnstile>pm {#}\<close>
     using struct_T confl
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
       cdcl\<^sub>W_restart_mset.no_strange_atm_def tot_I
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
     by (auto simp: clauses_def abs_state_def cdcl\<^sub>W_restart_mset_state

@@ -1516,7 +1516,7 @@ proof -
     using dist distinct_mset_penc[of N]
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def \<Sigma>
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def)
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state T)\<close>
     using enc_weight_opt.rtranclp_cdcl_bnb_stgy_all_struct_inv[of ?S T]
       enc_weight_opt.rtranclp_cdcl_bnb_stgy_cdcl_bnb[OF st']
@@ -2001,7 +2001,7 @@ lemma simple_backtrack_obacktrack:
     enc_weight_opt.obacktrack S T\<close>
   unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
   apply (auto simp: simple_backtrack.simps
       enc_weight_opt.obacktrack.simps)
   apply (rule_tac x=L in exI)

@@ -95,7 +95,7 @@ proof -
     \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N, U, D))\<close>
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
     by fast
   then have \<open>C \<in># N + U\<close>
     using in_trail cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail[of C M]
@@ -523,7 +523,7 @@ proof -
     \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N + NE, U + UE, D'))\<close>
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
     by fast
   then have \<open>add_mset (-L) C \<in># ?N\<close>
     using in_trail cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail[of \<open>add_mset (-L) C\<close> M]
@@ -1426,7 +1426,7 @@ proof -
      set_mset (cdcl\<^sub>W_restart_mset.clauses S''')\<close>
     using struct_invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
     by fast
   have \<open>no_dup (get_trail_wl S)\<close>
     using struct_invs S_S' S'_S'' unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -1816,7 +1816,7 @@ proof -
      set_mset (cdcl\<^sub>W_restart_mset.clauses S''')\<close>
     using struct_invs'
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
     by fast
   have n_d: \<open>no_dup (get_trail_wl S)\<close>
     using struct_invs' S_S' S'_S'' unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
