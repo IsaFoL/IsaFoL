@@ -1,5 +1,5 @@
 theory IsaSAT_Setup
-  imports IsaSAT_Clauses IsaSAT_Arena Watched_Literals.WB_Tuples
+  imports IsaSAT_Clauses IsaSAT_Arena
     Watched_Literals_VMTF IsaSAT_Lookup_Conflict LBD IsaSAT_Watch_List
 begin
 
@@ -37,23 +37,22 @@ overflow), there are just there to look for regressions, do some comparisons (e.
 we are propagating slower than the other solvers), or to test different option combination.
 \<close>
 type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
-type_synonym stats_assn = \<open>(uint64, uint64, uint64, uint64, uint64, uint64) tuple6\<close>
 
 abbreviation stats_assn where
-  \<open>stats_assn \<equiv> tuple6_assn uint64_assn uint64_assn uint64_assn uint64_assn uint64_assn
-    uint64_assn\<close>
+  \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn
+     *a uint64_assn\<close>
 
 definition incr_propagation :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_propagation = (\<lambda>(propa, confl, dec, res, lres, uset). (propa + 1, confl, dec, res, lres, uset))\<close>
+  \<open>incr_propagation = (\<lambda>(propa, confl, dec). (propa + 1, confl, dec))\<close>
 
 definition incr_conflict :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_conflict = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl + 1, dec, res, lres, uset))\<close>
+  \<open>incr_conflict = (\<lambda>(propa, confl, dec). (propa, confl + 1, dec))\<close>
 
 definition incr_decision :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_decision = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl, dec + 1, res, lres, uset))\<close>
+  \<open>incr_decision = (\<lambda>(propa, confl, dec, res). (propa, confl, dec + 1, res))\<close>
 
 definition incr_restart :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_restart = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl, dec, res + 1, lres, uset))\<close>
+  \<open>incr_restart = (\<lambda>(propa, confl, dec, res, lres). (propa, confl, dec, res + 1, lres))\<close>
 
 definition incr_lrestart :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_lrestart = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl, dec, res, lres + 1, uset))\<close>
@@ -61,79 +60,29 @@ definition incr_lrestart :: \<open>stats \<Rightarrow> stats\<close> where
 definition incr_uset :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_uset = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl, dec, res, lres, uset + 1))\<close>
 
-definition one_uint64_assn :: \<open>uint64\<close> where
-\<open>one_uint64_assn = 1\<close>
+lemma incr_propagation_hnr[sepref_fr_rules]:
+    \<open>(return o incr_propagation, RETURN o incr_propagation) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_propagation_def)
 
-lemma one_uint64_asn_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return 1), uncurry0 (RETURN one_uint64_assn)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  unfolding one_uint64_assn_def
-  by sepref_to_hoare sep_auto
+lemma incr_conflict_hnr[sepref_fr_rules]:
+    \<open>(return o incr_conflict, RETURN o incr_conflict) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_conflict_def)
 
-sepref_definition incr_propagation_code
-  is \<open>RETURN o incr_propagation\<close>
-  :: \<open>stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  supply sum_uint64_assn[sepref_fr_rules] to_tuple6_id_hnr[sepref_fr_rules]
-  unfolding incr_propagation_def comp_def one_uint64_def[symmetric]
-    one_uint64_assn_def[symmetric] to_tuple6_id.simps[symmetric]
-  apply (subst (2) of_tuple6_id_def[symmetric])
-  by sepref
+lemma incr_decision_hnr[sepref_fr_rules]:
+    \<open>(return o incr_decision, RETURN o incr_decision) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_decision_def)
 
-declare incr_propagation_code.refine[sepref_fr_rules]
+lemma incr_restart_hnr[sepref_fr_rules]:
+    \<open>(return o incr_restart, RETURN o incr_restart) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_restart_def)
 
-sepref_definition incr_conflict_code
-  is \<open>RETURN o incr_conflict\<close>
-  :: \<open>stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  supply sum_uint64_assn[sepref_fr_rules] to_tuple6_id_hnr[sepref_fr_rules]
-  unfolding incr_conflict_def comp_def one_uint64_def[symmetric]
-    one_uint64_assn_def[symmetric] to_tuple6_id.simps[symmetric]
-  apply (subst (2) of_tuple6_id_def[symmetric])
-  by sepref
+lemma incr_lrestart_hnr[sepref_fr_rules]:
+    \<open>(return o incr_lrestart, RETURN o incr_lrestart) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_lrestart_def)
 
-declare incr_conflict_code.refine[sepref_fr_rules]
-
-sepref_definition incr_decision_code
-  is \<open>RETURN o incr_decision\<close>
-  :: \<open>stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  supply sum_uint64_assn[sepref_fr_rules] to_tuple6_id_hnr[sepref_fr_rules]
-  unfolding incr_decision_def comp_def one_uint64_def[symmetric]
-    one_uint64_assn_def[symmetric] to_tuple6_id.simps[symmetric]
-  apply (subst (2) of_tuple6_id_def[symmetric])
-  by sepref
-
-declare incr_decision_code.refine[sepref_fr_rules]
-
-sepref_definition incr_restart_code
-  is \<open>RETURN o incr_restart\<close>
-  :: \<open>stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  supply sum_uint64_assn[sepref_fr_rules] to_tuple6_id_hnr[sepref_fr_rules]
-  unfolding incr_restart_def comp_def one_uint64_def[symmetric]
-    one_uint64_assn_def[symmetric] to_tuple6_id.simps[symmetric]
-  apply (subst (2) of_tuple6_id_def[symmetric])
-  by sepref
-
-declare incr_restart_code.refine[sepref_fr_rules]
-
-sepref_definition incr_lrestart_code
-  is \<open>RETURN o incr_lrestart\<close>
-  :: \<open>stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  supply sum_uint64_assn[sepref_fr_rules] to_tuple6_id_hnr[sepref_fr_rules]
-  unfolding incr_lrestart_def comp_def one_uint64_def[symmetric]
-    one_uint64_assn_def[symmetric] to_tuple6_id.simps[symmetric]
-  apply (subst (2) of_tuple6_id_def[symmetric])
-  by sepref
-
-declare incr_lrestart_code.refine[sepref_fr_rules]
-
-sepref_definition incr_uset_code
-  is \<open>RETURN o incr_uset\<close>
-  :: \<open>stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  supply sum_uint64_assn[sepref_fr_rules] to_tuple6_id_hnr[sepref_fr_rules]
-  unfolding incr_uset_def comp_def one_uint64_def[symmetric]
-    one_uint64_assn_def[symmetric] to_tuple6_id.simps[symmetric]
-  apply (subst (3) of_tuple6_id_def[symmetric])
-  by sepref
-
-declare incr_uset_code.refine[sepref_fr_rules]
+lemma incr_uset_hnr[sepref_fr_rules]:
+    \<open>(return o incr_uset, RETURN o incr_uset) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_uset_def)
 
 
 paragraph \<open>Moving averages\<close>
@@ -349,13 +298,13 @@ type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats_assn \<times> ema \<times> ema \<times> restart_info \<times>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
     vdom_assn \<times> vdom_assn \<times> nat \<times> opts\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats_assn \<times> ema \<times> ema \<times> restart_info \<times>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
     vdom_assn \<times> vdom_assn \<times> nat \<times> opts\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>

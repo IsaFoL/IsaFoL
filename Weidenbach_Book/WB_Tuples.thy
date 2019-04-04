@@ -1,5 +1,5 @@
 theory WB_Tuples
-  imports Watched_Literals.WB_More_Refinement
+  imports WB_More_Refinement
 begin
 
 text \<open>

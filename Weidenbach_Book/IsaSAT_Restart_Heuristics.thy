@@ -697,117 +697,9 @@ lemma two_uint64[sepref_fr_rules]:
 
 
 definition upper_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>upper_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd,
-      outl, stats, fast_ema, slow_ema, ccount, vdom, avdom, lcount, opts).
-    case of_tuple6_id stats of (props, decs, confl, restarts, _) \<Rightarrow>
+  \<open>upper_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount, opts).
     lcount < 3000 + 500 * nat_of_uint64 restarts)\<close>
-
-lemma [safe_constraint_rules]:
-  fixes
-    R1 :: \<open>'a1 \<Rightarrow> 'a2 \<Rightarrow> assn\<close> and
-    R2 :: \<open>'b1 \<Rightarrow> 'b2 \<Rightarrow> assn\<close>
-  shows
-    \<open>CONSTRAINT is_pure R1 \<Longrightarrow> CONSTRAINT is_pure R2 \<Longrightarrow> CONSTRAINT is_pure R3 \<Longrightarrow>
-     CONSTRAINT is_pure (tuple3_assn R1 R2 R3)\<close>
-  unfolding CONSTRAINT_def
-  apply (subst is_pure_def)
-  apply (rule exI[of _ \<open>\<lambda>(a, b, c) s. case s of (Tuple3 a' b' c') \<Rightarrow>  (a', a) \<in> the_pure R1 \<and>
-     (b', b) \<in> the_pure R2 \<and> (c', c) \<in> the_pure R3\<close>])
-  apply (intro allI)
-  apply (case_tac x, case_tac x')
-  apply (auto simp: import_param_3 hn_ctxt_def ac_simps)
-  done
-
-lemma [safe_constraint_rules]:
-    \<open>CONSTRAINT is_pure R1 \<Longrightarrow> CONSTRAINT is_pure R2 \<Longrightarrow> CONSTRAINT is_pure R3 \<Longrightarrow>
-      CONSTRAINT is_pure R4 \<Longrightarrow>
-     CONSTRAINT is_pure (tuple4_assn R1 R2 R3 R4)\<close>
-  unfolding CONSTRAINT_def
-  apply (subst is_pure_def)
-  apply (rule exI[of _ \<open>\<lambda>(a, b, c, d) s. case s of (Tuple4 a' b' c' d') \<Rightarrow>  (a', a) \<in> the_pure R1 \<and>
-     (b', b) \<in> the_pure R2 \<and> (c', c) \<in> the_pure R3 \<and> (d', d) \<in> the_pure R4\<close>])
-  apply (intro allI)
-  apply (case_tac x, case_tac x')
-  apply (auto simp: import_param_3 hn_ctxt_def ac_simps)
-  done
-
-lemma [safe_constraint_rules]:
-    \<open>CONSTRAINT is_pure R1 \<Longrightarrow> CONSTRAINT is_pure R2 \<Longrightarrow> CONSTRAINT is_pure R3 \<Longrightarrow>
-      CONSTRAINT is_pure R4 \<Longrightarrow> CONSTRAINT is_pure R5 \<Longrightarrow>
-     CONSTRAINT is_pure (tuple5_assn R1 R2 R3 R4 R5)\<close>
-  unfolding CONSTRAINT_def
-  apply (subst is_pure_def)
-  apply (rule exI[of _ \<open>\<lambda>(a, b, c, d, e) s. case s of (Tuple5 a' b' c' d' e') \<Rightarrow> 
-    (a', a) \<in> the_pure R1 \<and> (b', b) \<in> the_pure R2 \<and> (c', c) \<in> the_pure R3 \<and>
-    (d', d) \<in> the_pure R4 \<and> (e', e) \<in> the_pure R5\<close>])
-  apply (intro allI)
-  apply (case_tac x, case_tac x')
-  apply (auto simp: import_param_3 hn_ctxt_def ac_simps)
-  done
-
-lemma [safe_constraint_rules]:
-    \<open>CONSTRAINT is_pure R1 \<Longrightarrow> CONSTRAINT is_pure R2 \<Longrightarrow> CONSTRAINT is_pure R3 \<Longrightarrow>
-      CONSTRAINT is_pure R4 \<Longrightarrow> CONSTRAINT is_pure R5 \<Longrightarrow> CONSTRAINT is_pure R6 \<Longrightarrow>
-     CONSTRAINT is_pure (tuple6_assn R1 R2 R3 R4 R5 R6)\<close>
-  unfolding CONSTRAINT_def
-  apply (subst is_pure_def)
-  apply (rule exI[of _ \<open>\<lambda>(a, b, c, d, e, f) s. case s of (Tuple6 a' b' c' d' e' f') \<Rightarrow> 
-    (a', a) \<in> the_pure R1 \<and> (b', b) \<in> the_pure R2 \<and> (c', c) \<in> the_pure R3 \<and>
-    (d', d) \<in> the_pure R4 \<and> (e', e) \<in> the_pure R5 \<and> (f', f) \<in> the_pure R6\<close>])
-  apply (intro allI)
-  apply (case_tac x, case_tac x')
-  apply (auto simp: import_param_3 hn_ctxt_def ac_simps)
-  done
-
-lemma [safe_constraint_rules]:
-    \<open>CONSTRAINT is_pure R1 \<Longrightarrow> CONSTRAINT is_pure R2 \<Longrightarrow> CONSTRAINT is_pure R3 \<Longrightarrow>
-     CONSTRAINT is_pure R4 \<Longrightarrow> CONSTRAINT is_pure R5 \<Longrightarrow> CONSTRAINT is_pure R6 \<Longrightarrow>
-     CONSTRAINT is_pure R7 \<Longrightarrow>
-     CONSTRAINT is_pure (tuple7_assn R1 R2 R3 R4 R5 R6 R7)\<close>
-  unfolding CONSTRAINT_def
-  apply (subst is_pure_def)
-  apply (rule exI[of _ \<open>\<lambda>(a, b, c, d, e, f, g) s. case s of (Tuple7 a' b' c' d' e' f' g') \<Rightarrow>
-    (a', a) \<in> the_pure R1 \<and> (b', b) \<in> the_pure R2 \<and> (c', c) \<in> the_pure R3 \<and>
-    (d', d) \<in> the_pure R4 \<and> (e', e) \<in> the_pure R5 \<and> (f', f) \<in> the_pure R6 \<and>
-    (g', g) \<in> the_pure R7\<close>])
-  apply (intro allI)
-  apply (case_tac x, case_tac x')
-  apply (auto simp: import_param_3 hn_ctxt_def ac_simps)
-  done
-
-lemma [safe_constraint_rules]:
-    \<open>CONSTRAINT is_pure R1 \<Longrightarrow> CONSTRAINT is_pure R2 \<Longrightarrow> CONSTRAINT is_pure R3 \<Longrightarrow>
-     CONSTRAINT is_pure R4 \<Longrightarrow> CONSTRAINT is_pure R5 \<Longrightarrow> CONSTRAINT is_pure R6 \<Longrightarrow>
-     CONSTRAINT is_pure R7 \<Longrightarrow> CONSTRAINT is_pure R8 \<Longrightarrow>
-     CONSTRAINT is_pure (tuple8_assn R1 R2 R3 R4 R5 R6 R7 R8)\<close>
-  unfolding CONSTRAINT_def
-  apply (subst is_pure_def)
-  apply (rule exI[of _ \<open>\<lambda>(a, b, c, d, e, f, g, h) s.
-    case s of (Tuple8 a' b' c' d' e' f' g' h') \<Rightarrow>
-      (a', a) \<in> the_pure R1 \<and> (b', b) \<in> the_pure R2 \<and> (c', c) \<in> the_pure R3 \<and>
-      (d', d) \<in> the_pure R4 \<and> (e', e) \<in> the_pure R5 \<and> (f', f) \<in> the_pure R6 \<and>
-      (g', g) \<in> the_pure R7 \<and> (h', h) \<in> the_pure R8\<close>])
-  apply (intro allI)
-  apply (case_tac x, case_tac x')
-  apply (auto simp: import_param_3 hn_ctxt_def ac_simps)
-  done
-
-lemma [safe_constraint_rules]:
-    \<open>CONSTRAINT is_pure R1 \<Longrightarrow> CONSTRAINT is_pure R2 \<Longrightarrow> CONSTRAINT is_pure R3 \<Longrightarrow>
-     CONSTRAINT is_pure R4 \<Longrightarrow> CONSTRAINT is_pure R5 \<Longrightarrow> CONSTRAINT is_pure R6 \<Longrightarrow>
-     CONSTRAINT is_pure R7 \<Longrightarrow> CONSTRAINT is_pure R8 \<Longrightarrow> CONSTRAINT is_pure R9 \<Longrightarrow>
-     CONSTRAINT is_pure (tuple9_assn R1 R2 R3 R4 R5 R6 R7 R8 R9)\<close>
-  unfolding CONSTRAINT_def
-  apply (subst is_pure_def)
-  apply (rule exI[of _ \<open>\<lambda>(a, b, c, d, e, f, g, h, i) s.
-    case s of (Tuple9 a' b' c' d' e' f' g' h' i') \<Rightarrow>
-      (a', a) \<in> the_pure R1 \<and> (b', b) \<in> the_pure R2 \<and> (c', c) \<in> the_pure R3 \<and>
-      (d', d) \<in> the_pure R4 \<and> (e', e) \<in> the_pure R5 \<and> (f', f) \<in> the_pure R6 \<and>
-      (g', g) \<in> the_pure R7 \<and> (h', h) \<in> the_pure R8 \<and> (i', i) \<in> the_pure R9\<close>])
-  apply (intro allI)
-  apply (case_tac x, case_tac x')
-  apply (auto simp: import_param_3 hn_ctxt_def ac_simps)
-  done
 
 sepref_register upper_restart_bound_not_reached
 sepref_definition upper_restart_bound_not_reached_impl
@@ -815,7 +707,6 @@ sepref_definition upper_restart_bound_not_reached_impl
   :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding upper_restart_bound_not_reached_def PR_CONST_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
-   of_tuple6_id_hnr[sepref_fr_rules]
   by sepref
 
 sepref_definition upper_restart_bound_not_reached_fast_impl
@@ -823,7 +714,6 @@ sepref_definition upper_restart_bound_not_reached_fast_impl
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding upper_restart_bound_not_reached_def PR_CONST_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
-   of_tuple6_id_hnr[sepref_fr_rules]
   by sepref
 
 declare upper_restart_bound_not_reached_impl.refine[sepref_fr_rules]
@@ -832,8 +722,8 @@ declare upper_restart_bound_not_reached_impl.refine[sepref_fr_rules]
 
 definition (in -) lower_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>lower_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
-        stats, fast_ema, slow_ema, ccount, vdom, avdom, lcount, opts).
-     case of_tuple6_id stats of (props, decs, confl, restarts, _) \<Rightarrow>
+        (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount, opts).
      (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (lcount < 2000 + 300 * nat_of_uint64 restarts))))\<close>
 
 sepref_register lower_restart_bound_not_reached
@@ -1341,10 +1231,9 @@ qed
 
 definition number_clss_to_keep :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>number_clss_to_keep = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
-      stats, fast_ema, slow_ema, ccount,
+      (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
        vdom, avdom, lcount).
-    case of_tuple6_id stats of (props, decs, confl, restarts, _) \<Rightarrow>
-      1000 + 150 * nat_of_uint64 restarts)\<close>
+    1000 + 150 * nat_of_uint64 restarts)\<close>
 
 
 definition access_vdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where

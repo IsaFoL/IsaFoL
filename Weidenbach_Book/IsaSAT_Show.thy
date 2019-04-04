@@ -80,10 +80,9 @@ lemma isasat_information_banner_hnr[sepref_fr_rules]:
    R\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
   by sepref_to_hoare (sep_auto simp: isasat_information_banner_code_def isasat_information_banner_def)
 
-definition isasat_current_information :: \<open>stats_assn \<Rightarrow> nat \<Rightarrow> unit\<close> where
-\<open>isasat_current_information stat lcount =
-   (case stat of
-     Tuple6 propa confl decs frestarts lrestarts uset \<Rightarrow>
+definition isasat_current_information :: \<open>stats \<Rightarrow> nat \<Rightarrow> unit\<close> where
+\<open>isasat_current_information =
+   (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset) lcount.
       if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
      then
         println_string (String.implode (show ''c | '' @ show confl @ show '' | '' @ show propa @

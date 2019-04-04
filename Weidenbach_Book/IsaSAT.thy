@@ -1451,13 +1451,10 @@ definition empty_conflict_code :: \<open>(_ list option \<times> stats) nres\<cl
      let M1 = Some M0;
      RETURN (M1, (zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64))}\<close>
 
-abbreviation stats2_assn where
-  \<open>stats2_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn\<close>
-
 abbreviation  model_stat_assn where
-  \<open>model_stat_assn \<equiv> option_assn (arl_assn unat_lit_assn) *a stats2_assn\<close>
+  \<open>model_stat_assn \<equiv> option_assn (arl_assn unat_lit_assn) *a stats_assn\<close>
 
-sepref_definition empty_conflict_code'
+sepref_definition  empty_conflict_code'
   is \<open>uncurry0 (empty_conflict_code)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
   unfolding empty_conflict_code_def
@@ -1473,7 +1470,6 @@ definition empty_init_code :: \<open>_ list option \<times> stats\<close> where
 sepref_definition  empty_init_code'
   is \<open>uncurry0 (RETURN empty_init_code)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
-  supply to_tuple6_id_hnr[sepref_fr_rules]
   unfolding empty_init_code_def
   by sepref
 
@@ -2241,10 +2237,10 @@ lemma isasat_fast_init_alt_def:
   by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def intro!: ext)
 
 definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_list option \<times> stats\<close> where
-  \<open>get_trail_wl_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (Some M, of_tuple6 stat))\<close>
+  \<open>get_trail_wl_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (Some M, stat))\<close>
 
 definition get_stats_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_list option \<times> stats\<close> where
-  \<open>get_stats_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (None, of_tuple6 stat))\<close>
+  \<open>get_stats_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (None, stat))\<close>
 
 
 definition  model_stat_rel where
@@ -2265,11 +2261,10 @@ proof -
   show ?thesis
     by sepref_to_hoare
       (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def isasat_unbounded_assn_def
-        isasat_init_assn_def get_trail_wl_code_def of_tuple6_def
+        isasat_init_assn_def get_trail_wl_code_def
         extract_model_of_state_def extract_model_of_state_stat_def
         dest!: ann_lits_split_reasons_map_lit_of
-        elim!: mod_starE
-	split: tuple6.split)
+        elim!: mod_starE)
 qed
 
 lemma get_stats_code[sepref_fr_rules]:
@@ -2284,11 +2279,10 @@ proof -
   show ?thesis
     by sepref_to_hoare
       (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def isasat_unbounded_assn_def
-        isasat_init_assn_def get_trail_wl_code_def get_stats_code_def of_tuple6_def
+        isasat_init_assn_def get_trail_wl_code_def get_stats_code_def
         extract_model_of_state_def extract_model_of_state_stat_def extract_state_stat_def
         dest!: ann_lits_split_reasons_map_lit_of
-        elim!: mod_starE
-	split: tuple6.split)
+        elim!: mod_starE)
 qed
 
 lemma nat_of_uint32_max:
