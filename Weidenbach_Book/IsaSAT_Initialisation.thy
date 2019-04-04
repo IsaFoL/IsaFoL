@@ -2537,7 +2537,7 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
     (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
        lbd, vdom). do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
-     let init_stats = (0::uint64, 0::uint64, 0::uint64, 0::uint64, 0::uint64, 0::uint64);
+     let init_stats = to_tuple6_id (0::uint64) (0::uint64) (0::uint64) (0::uint64) (0::uint64) (0::uint64);
      let fema = ema_fast_init;
      let sema = ema_slow_init;
      let ccount = restart_info_init;
@@ -2583,12 +2583,11 @@ lemma finalise_init_finalise_init:
       intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf
       dest: isa_vmtf_init_nemptyD)
 
-thm finalise_init_finalise_init[THEN fref_to_Down_curry, of ops S ops' T, unfolded prod.simps]
-
 sepref_definition finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
   :: \<open>opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
+    to_tuple6_id_hnr[sepref_fr_rules]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def isasat_init_assn_def isasat_bounded_assn_def
     arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric]
@@ -2598,6 +2597,7 @@ sepref_definition finalise_init_code_unb
   is \<open>uncurry finalise_init_code\<close>
   :: \<open>opts_assn\<^sup>d *\<^sub>a isasat_init_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
+    to_tuple6_id_hnr[sepref_fr_rules]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def isasat_init_unbounded_assn_def isasat_unbounded_assn_def
     arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric]

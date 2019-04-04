@@ -198,17 +198,19 @@ qed
 sepref_register number_clss_to_keep
 
 sepref_definition number_clss_to_keep_impl
-  is \<open> (RETURN o number_clss_to_keep)\<close>
+  is \<open>(RETURN o number_clss_to_keep)\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding number_clss_to_keep_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
+    to_tuple6_id_hnr[sepref_fr_rules]
   by sepref
 
 sepref_definition number_clss_to_keep_fast_impl
-  is \<open> (RETURN o number_clss_to_keep)\<close>
+  is \<open>(RETURN o number_clss_to_keep)\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding number_clss_to_keep_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
+    to_tuple6_id_hnr[sepref_fr_rules]
   by sepref
 
 declare number_clss_to_keep_impl.refine[sepref_fr_rules]
@@ -216,14 +218,14 @@ declare number_clss_to_keep_impl.refine[sepref_fr_rules]
 
 sepref_register access_vdom_at
 sepref_definition access_vdom_at_code
-  is \<open>uncurry ( (RETURN oo access_vdom_at))\<close>
+  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
   :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
 sepref_definition access_vdom_at_fast_code
-  is \<open>uncurry ( (RETURN oo access_vdom_at))\<close>
+  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
   :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
