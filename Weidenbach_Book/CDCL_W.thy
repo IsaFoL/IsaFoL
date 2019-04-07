@@ -2,6 +2,7 @@ theory CDCL_W
   imports CDCL_W_Level Weidenbach_Book_Base.Wellfounded_More
 begin
 
+
 chapter \<open>Weidenbach's CDCL\<close>
 
 text \<open>The organisation of the development is the following:
@@ -58,7 +59,7 @@ abbreviation hd_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lit" where
 definition clauses :: "'st \<Rightarrow> 'v clauses" where
 "clauses S = init_clss S + learned_clss S"
 
-abbreviation resolve_cls where
+abbreviation resolve_cls :: \<open>'a literal \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause\<close> where
 "resolve_cls L D' E \<equiv> remove1_mset (-L) D' \<union># remove1_mset L E"
 
 abbreviation state_butlast :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses
