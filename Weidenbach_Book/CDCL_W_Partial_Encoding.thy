@@ -841,7 +841,7 @@ proof -
        atms_of (the (weight T)) \<subseteq> atms_of_mm ?N \<and> set_mset (the (weight T)) \<Turnstile>sm ?N \<and>
        distinct_mset (the (weight T))\<close> and
     opt: \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm ?N \<Longrightarrow>
-      set_mset I \<Turnstile>sm ?N \<Longrightarrow> Some (\<rho>\<^sub>e I) \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
+      set_mset I \<Turnstile>sm ?N \<Longrightarrow> Found (\<rho>\<^sub>e I) \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
     for I
     using enc_weight_opt.full_cdcl_bnb_stgy_no_conflicting_clause_from_init_state[of
         \<open>penc N\<close> T, OF st]
@@ -857,7 +857,7 @@ proof -
   assume Some: \<open>weight T \<noteq> None\<close>
   have Some': \<open>enc_weight_opt.weight T \<noteq> None\<close>
     using Some by auto
-  have \<open>enc_weight_opt.\<rho>' (weight T) \<le> Some (\<rho> (mset_set ?K))\<close>
+  have \<open>enc_weight_opt.\<rho>' (weight T) \<le> Found (\<rho> (mset_set ?K))\<close>
     using Some'
     apply auto
     unfolding \<rho>\<^sub>e_def
@@ -891,7 +891,7 @@ proof -
 	subgoal by (auto simp: postp_def)
 	done
       done
-    then have \<open>Some (\<rho> (mset_set ?K)) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
+    then have \<open>Found (\<rho> (mset_set ?K)) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
       using Some by auto
     } note le =this
   ultimately show \<open>\<rho>\<^sub>e (the (weight T)) = (\<rho> (mset_set ?K))\<close>
@@ -930,7 +930,7 @@ proof -
     }
     moreover have cons': \<open>consistent_interp (set_mset ?I)\<close>
       using cons unfolding I by (rule consistent_interp_upostp)
-    ultimately have \<open>Some (\<rho>\<^sub>e ?I) \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
+    ultimately have \<open>Found (\<rho>\<^sub>e ?I) \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
       using opt[of ?I] by auto
     moreover {
       have \<open>\<rho>\<^sub>e ?I = \<rho> (mset_set (set_mset I))\<close>
@@ -940,7 +940,7 @@ proof -
         by (subst (asm) distinct_mset_set_mset_ident)
           (use atms dist in auto)
     }
-    ultimately have \<open>Some (\<rho> I) \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
+    ultimately have \<open>Found (\<rho> I) \<ge> enc_weight_opt.\<rho>' (weight T)\<close>
       using Some'
       by auto
     moreover {
@@ -956,7 +956,7 @@ proof -
           apply (rule filter_mset_mono_subset)
           by (auto simp: postp_def)
         done
-      then have \<open>Some (\<rho>\<^sub>e (mset_set ?K)) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
+      then have \<open>Found (\<rho>\<^sub>e (mset_set ?K)) \<le> enc_weight_opt.\<rho>' (weight T)\<close>
         apply (subst (asm) distinct_mset_set_mset_ident)
          apply (use atms dist model[OF Some] in auto; fail)[]
         using Some' by auto
@@ -1364,7 +1364,7 @@ next
       unfolding assms penc_def by auto
 
     have \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close>
-      if \<open>\<not> Some (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
+      if \<open>\<not> Found (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
       unfolding negate_ann_lits_pNeg_lit_of comp_def lit_of_mset_trail
       apply (rule enc_weight_opt.pruned_clause_in_conflicting_clss)
          apply (use eq_add_M' that in auto)[]
@@ -1375,7 +1375,7 @@ next
       using no_dup_distinct[OF n_d] distinct_consistent_interp[OF n_d]
       by (auto simp: lits_of_def simp flip: distinct_mset_mset_distinct)
     then have ge:
-      \<open>Some (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
+      \<open>Found (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
       using nsco' by auto
 
     let ?M'' = \<open>Decided `# Pos `# {#L \<in># mset_set \<Delta>\<Sigma>. undefined_lit (trail S) (Pos L)#}\<close>
@@ -1425,7 +1425,7 @@ next
       using \<open>trail S \<Turnstile>asm init_clss S\<close> arg_cong[OF M', of set_mset, symmetric]
       by (auto simp: true_annots_true_cls)
     moreover have \<open>negate_ann_lits (trail S) \<in># enc_weight_opt.conflicting_clss S\<close>
-      if \<open>\<not> Some (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
+      if \<open>\<not> Found (\<rho>\<^sub>e (lit_of `# mset (trail S))) < enc_weight_opt.\<rho>' (enc_weight_opt.weight S)\<close>
       unfolding negate_ann_lits_pNeg_lit_of comp_def lit_of_mset_trail
       apply (rule enc_weight_opt.pruned_clause_in_conflicting_clss)
          apply (use eq_add_M' that in auto)[]
