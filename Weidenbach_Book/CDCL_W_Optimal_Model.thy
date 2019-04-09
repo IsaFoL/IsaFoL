@@ -1,5 +1,5 @@
 theory CDCL_W_Optimal_Model
-  imports CDCL_W_Abstract_State "HOL-Library.Extended_Nat" "../lib/Explorer"
+  imports CDCL.CDCL_W_Abstract_State "HOL-Library.Extended_Nat" Weidenbach_Book_Base.Explorer
 begin
 
 section \<open>CDCL Extensions\<close>
