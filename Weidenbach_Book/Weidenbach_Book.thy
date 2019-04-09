@@ -28,8 +28,6 @@ imports
   CDCL_Extensions.CDCL_W_Partial_Optimal_Model
   CDCL_Extensions.CDCL_W_Covering_Models
 
-(*  CDCL.CDCL_W_Optimal_Model*)
-
   IsaSAT.IsaSAT
 begin
 text \<open>This theory imports all the other theories (and is not needed in the documentation,

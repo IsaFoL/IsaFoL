@@ -234,7 +234,6 @@ session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
   description \<open>This extends the previous version to a very simple 'SMT' solver: we enumerate all models and let an unspecified theoty solver checks if a model is valid or another must be found.\<close>
   sessions
     Normalisation
-    Resolution_Superposition
     CDCL
     Watched_Literals
   theories[document = true]
@@ -249,15 +248,17 @@ session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
 
 session Weidenbach_Book (Weidenbach_Book) = IsaSAT +
   description \<open>We import everything\<close>
+  options [document = pdf, document_output = "output", quick_and_dirty]
   sessions
     Normalisation
-    Resolution_Superposition
     CDCL
     CDCL_Extensions
     Watched_Literals
     Model_Enumeration
     IsaSAT
-  theories[document = true, quick_and_dirty]
+    "HOL-Library"
+    Resolution_Superposition
+  theories
     Weidenbach_Book
   document_files
     "root.tex"
