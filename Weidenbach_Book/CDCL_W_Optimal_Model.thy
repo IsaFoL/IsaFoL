@@ -2095,7 +2095,7 @@ locale ocdcl_weight =
   fixes
     \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close>
   assumes
-    \<rho>_mono: \<open>consistent_interp (set_mset B) \<Longrightarrow> distinct_mset B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> \<rho> A \<le> \<rho> B\<close>
+    \<rho>_mono: \<open>distinct_mset B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> \<rho> A \<le> \<rho> B\<close>
 begin
 
 lemma \<rho>_empty_simp[simp]:

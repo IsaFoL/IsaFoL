@@ -699,7 +699,7 @@ lemma rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_r:
 
 context
   fixes S :: 'st
-  assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = \<Sigma> \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
+  assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = (\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_pos ` \<Delta>\<Sigma>
      \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
 begin
 lemma cdcl_dpll_bnb_r_stgy_all_struct_inv:
@@ -720,7 +720,7 @@ lemma cdcl_bnb_r_stgy_cdcl_dpll_bnb_r_stgy:
 
 context
   fixes S :: 'st
-  assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = \<Sigma> \<union> additional_atm ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>
+  assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = (\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_pos ` \<Delta>\<Sigma>
      \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
 begin
 
