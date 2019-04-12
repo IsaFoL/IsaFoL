@@ -466,16 +466,19 @@ lemma conflicting_add_learned_cls_conflicting[iff]:
   by fastforce+
 
 lemma reduce_trail_to_compow_tl_trail_le:
-  \<open>length M < length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
-  apply (induction M\<equiv>M S\<equiv>M' arbitrary: M M' rule: reduce_trail_to.induct)
-  subgoal for F S
-    apply (subst reduce_trail_to.simps)
-    apply (cases \<open>length F < length (trail S) - Suc 0\<close>)
-    apply (auto simp: less_iff_Suc_add funpow_swap1)
-    apply (subgoal_tac \<open>k=0\<close>)
-    apply auto
-    by presburger
-  done
+  assumes \<open>length M < length (trail M')\<close>
+  shows \<open>reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
+proof -
+  have [simp]: \<open>(\<forall>ka. k \<noteq> Suc ka) \<longleftrightarrow> k = 0\<close> for k
+    by (cases k) auto
+  show ?thesis
+    using assms
+    apply (induction M\<equiv>M S\<equiv>M' arbitrary: M M' rule: reduce_trail_to.induct)
+    subgoal for F S
+      by (subst reduce_trail_to.simps; cases \<open>length F < length (trail S) - Suc 0\<close>)
+        (auto simp: less_iff_Suc_add funpow_swap1)
+    done
+ qed
 
 lemma reduce_trail_to_compow_tl_trail_eq:
   \<open>length M = length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
