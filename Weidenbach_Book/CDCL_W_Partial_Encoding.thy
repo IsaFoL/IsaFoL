@@ -86,10 +86,10 @@ locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_we
 begin
 
 abbreviation replacement_pos :: \<open>'v \<Rightarrow> 'v\<close> ("(_)\<^sup>\<mapsto>\<^sup>1" 100) where
-  \<open>replacement_pos A \<equiv> (fst(new_vars A))\<close>
+  \<open>replacement_pos A \<equiv> fst (new_vars A)\<close>
 
 abbreviation replacement_neg :: \<open>'v \<Rightarrow> 'v\<close> ("(_)\<^sup>\<mapsto>\<^sup>0" 100) where
-  \<open>replacement_neg A \<equiv> ((snd(new_vars A)))\<close>
+  \<open>replacement_neg A \<equiv> snd (new_vars A)\<close>
 
 
 fun encode_lit where
@@ -971,7 +971,6 @@ context
   assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = (\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_pos ` \<Delta>\<Sigma>
      \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
 begin
-
 
 lemma odecide_decide:
   \<open>odecide S T \<Longrightarrow> decide S T\<close>
