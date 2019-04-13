@@ -29,7 +29,7 @@ Close the "Isabelle2018/HOL" window.
 
 Step 2. Download and install AFP-2018:
 
-    ~/RPx $ hg clone https://bitbucket.org/isa-afp/afp-2018 -r 96e565d
+    ~/RPx $ hg clone https://bitbucket.org/isa-afp/afp-2018 -r 201a9e590564
     ~/RPx $ cd afp-2018
     ~/RPx/afp-devel $ pwd >> ~/.isabelle/Isabelle2018/etc/components
     ~/RPx/afp-devel $ cd ..
