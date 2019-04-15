@@ -2,6 +2,7 @@ theory CDCL_W_Partial_Optimal_Model
   imports CDCL_W_Partial_Encoding
 begin
 
+
 lemma (in conflict_driven_clause_learning\<^sub>W_optimal_weight)
    conflict_opt_state_eq_compatible:
   \<open>conflict_opt S T \<Longrightarrow> S \<sim> S' \<Longrightarrow> T \<sim> T' \<Longrightarrow> conflict_opt S' T'\<close>
@@ -853,6 +854,101 @@ lemma
       done
     done
   done
+
+definition additional_lit_notin_both :: \<open>'st \<Rightarrow> bool\<close> where
+  \<open>additional_lit_notin_both S \<longleftrightarrow>
+     (\<forall>A\<in>\<Delta>\<Sigma>. \<forall>C \<in># clauses S. Neg (replacement_pos A) \<in># C \<longrightarrow> Neg (replacement_neg A) \<in># C \<longrightarrow> False)\<close>
+
+lemma replace_pos_neg_not_both_decided:
+  assumes
+    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    dec0: \<open>Decided (Pos (A\<^sup>\<mapsto>\<^sup>0)) \<in> set (trail S)\<close> and
+    dec1: \<open>Decided (Pos (A\<^sup>\<mapsto>\<^sup>1)) \<in> set (trail S)\<close> and
+    add: \<open>additional_constraints \<subseteq># clauses S\<close> and
+    [simp]: \<open>A \<in> \<Delta>\<Sigma>\<close>
+  shows False
+proof -
+  have add: \<open>additional_constraint A \<subseteq># clauses S\<close>
+    using add multi_member_split[of A \<open>mset_set \<Delta>\<Sigma>\<close>] by (auto simp: additional_constraints_def
+      subset_mset.dual_order.trans)
+  have n_d: \<open>no_dup (trail S)\<close>
+    using struct unfolding  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
+  have H: \<open>\<And>M K M' D L.
+     trail S = M' @ Decided K # M \<Longrightarrow>
+     D + {#L#} \<in># additional_constraint A \<Longrightarrow> undefined_lit M L \<Longrightarrow> \<not> M \<Turnstile>as CNot D\<close>
+    using smaller_propa add unfolding no_smaller_propa_def by blast
+  consider
+    M1 M2 M3 where \<open>trail S = M3 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>0)) # M2 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>1)) # M1\<close> |
+    M1 M2 M3 where \<open>trail S = M3 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>1)) # M2 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>0)) # M1\<close>
+    using in_set_conv_decomp[THEN iffD1, OF dec0] dec1 by (auto 5 5 dest: in_set_conv_decomp[THEN iffD1])
+  then show ?thesis
+  proof cases
+    case (1 M1 M2 M3)
+    then show ?thesis
+      using H[of \<open> M3\<close> \<open>Pos (A\<^sup>\<mapsto>\<^sup>0)\<close> \<open>M2 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>1)) # M1\<close> \<open>{#Neg (A\<^sup>\<mapsto>\<^sup>1)#}\<close> \<open>Neg (A\<^sup>\<mapsto>\<^sup>0)\<close>] n_d
+      by (auto simp: additional_constraint_def defined_lit_map)
+  next
+    case 2
+    then show ?thesis
+      using H[of \<open> M3\<close> \<open>Pos (A\<^sup>\<mapsto>\<^sup>1)\<close> \<open>M2 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>0)) # M1\<close> \<open>{#Neg (A\<^sup>\<mapsto>\<^sup>0)#}\<close> \<open>Neg (A\<^sup>\<mapsto>\<^sup>1)\<close>] n_d
+      by (auto simp: additional_constraint_def defined_lit_map)
+  qed
+qed
+
+lemma
+  assumes \<open>cdcl_dpll_bnb_r_stgy S T\<close> and
+    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    notin: \<open>additional_lit_notin S\<close> and
+    reasons: \<open>reasons_in_clauses S\<close> and
+    notin_both: \<open>additional_lit_notin_both S\<close> and
+    add: \<open>additional_constraints \<subseteq># clauses S\<close>
+  shows \<open>additional_lit_notin_both T\<close>
+  using assms(1)
+proof cases
+  case cdcl_dpll_bnb_r_conflict
+  then show ?thesis using notin_both by (auto elim!: rulesE simp: additional_lit_notin_both_def)
+next
+  case cdcl_dpll_bnb_r_propagate
+  then show ?thesis using notin_both by (auto elim!: rulesE simp: additional_lit_notin_both_def)
+next
+  case cdcl_dpll_bnb_r_improve
+  then show ?thesis using notin_both by (auto elim!: enc_weight_opt.improveE simp: additional_lit_notin_both_def)
+next
+  case cdcl_dpll_bnb_r_conflict_opt0
+  then show ?thesis using notin_both by (auto elim!: conflict_opt0E simp: additional_lit_notin_both_def)
+next
+  case cdcl_dpll_bnb_r_simple_backtrack_conflict_opt
+  then show ?thesis
+    using notin_both notin replace_pos_neg_not_both_decided[of S, OF struct smaller_propa _ _ add]
+    by (fastforce elim!: simple_backtrack_conflict_optE
+      simp: additional_lit_notin_both_def additional_lit_notin_def DECO_clause_def
+        eq_commute[of \<open>Neg _\<close>] uminus_lit_swap additional_constraints_def
+      elim!: is_decided_ex_Decided)
+next
+  case cdcl_dpll_bnb_r_other'
+  then show ?thesis
+  proof cases
+    case decide
+    then show ?thesis using notin_both by (auto elim!: odecideE simp: additional_lit_notin_both_def)
+  next
+    case bj
+    then show ?thesis
+    proof cases
+      case skip
+      then show ?thesis using notin_both by (auto elim!: rulesE simp: additional_lit_notin_both_def)
+    next
+      case resolve
+      then show ?thesis using notin_both by (auto elim!: rulesE simp: additional_lit_notin_both_def)
+    next
+      case backtrack
+      then show ?thesis
+        apply (auto simp: additional_lit_notin_both_def)
+oops
+
 
 context
   fixes S :: 'st and N :: \<open>'v clauses\<close>
