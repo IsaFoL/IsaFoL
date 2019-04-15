@@ -808,7 +808,7 @@ lemma cdcl_dpll_bnb_r_stgy_reasons_in_clauses:
       simple_backtrack_conflict_optE enc_weight_opt.obacktrackE
     dest!: backtrack_split_trailD get_all_ann_decomposition_exists_prepend)
 
-lemma
+lemma cdcl_dpll_bnb_r_stgy_additional_lit_notin:
   assumes \<open>cdcl_dpll_bnb_r_stgy S T\<close> and \<open>additional_lit_notin S\<close> and
     struct: \<open>reasons_in_clauses S\<close>
   shows \<open>additional_lit_notin T\<close>
@@ -893,15 +893,114 @@ proof -
   next
     case 2
     then show ?thesis
-      using H[of \<open> M3\<close> \<open>Pos (A\<^sup>\<mapsto>\<^sup>1)\<close> \<open>M2 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>0)) # M1\<close> \<open>{#Neg (A\<^sup>\<mapsto>\<^sup>0)#}\<close> \<open>Neg (A\<^sup>\<mapsto>\<^sup>1)\<close>] n_d
+      using H[of \<open>M3\<close> \<open>Pos (A\<^sup>\<mapsto>\<^sup>1)\<close> \<open>M2 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>0)) # M1\<close> \<open>{#Neg (A\<^sup>\<mapsto>\<^sup>0)#}\<close> \<open>Neg (A\<^sup>\<mapsto>\<^sup>1)\<close>] n_d
       by (auto simp: additional_constraint_def defined_lit_map)
   qed
 qed
 
-lemma
+lemma replace_pos_neg_not_both_decided_highest_lvl:
+  assumes
+    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    smaller_confl: \<open>no_smaller_confl S\<close> and
+    dec0: \<open>Pos (A\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l (trail S)\<close> and
+    dec1: \<open>Pos (A\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l (trail S)\<close> and
+    add: \<open>additional_constraints \<subseteq># clauses S\<close> and
+    [simp]: \<open>A \<in> \<Delta>\<Sigma>\<close>
+  shows \<open>get_level (trail S) (Pos (A\<^sup>\<mapsto>\<^sup>0)) = backtrack_lvl S \<and>
+     get_level (trail S) (Pos (A\<^sup>\<mapsto>\<^sup>1)) = backtrack_lvl S\<close>
+proof (rule ccontr)
+  assume neg: \<open>\<not>?thesis\<close>
+  let ?L0 = \<open>get_level (trail S) (Pos (A\<^sup>\<mapsto>\<^sup>0))\<close>
+  let ?L1 = \<open>get_level (trail S) (Pos (A\<^sup>\<mapsto>\<^sup>1))\<close>
+  define KL where \<open>KL = (if ?L0 > ?L1 then (Pos (A\<^sup>\<mapsto>\<^sup>1)) else (Pos (A\<^sup>\<mapsto>\<^sup>0)))\<close>
+  define KL' where \<open>KL' = (if ?L0 > ?L1 then (Pos (A\<^sup>\<mapsto>\<^sup>0)) else (Pos (A\<^sup>\<mapsto>\<^sup>1)))\<close>
+  then have \<open>get_level (trail S) KL < backtrack_lvl S\<close> and
+    le: \<open>?L0 < backtrack_lvl S \<or> ?L1 < backtrack_lvl S\<close>
+      \<open>?L0 \<le> backtrack_lvl S \<and> ?L1 \<le> backtrack_lvl S\<close>
+    using neg count_decided_ge_get_level[of \<open>trail S\<close> \<open>Pos (A\<^sup>\<mapsto>\<^sup>0)\<close>]
+      count_decided_ge_get_level[of \<open>trail S\<close> \<open>Pos (A\<^sup>\<mapsto>\<^sup>1)\<close>]
+    unfolding KL_def
+    by force+
+
+  have \<open>KL \<in> lits_of_l (trail S)\<close>
+    using dec1 dec0 by (auto simp: KL_def)
+  have add: \<open>additional_constraint A \<subseteq># clauses S\<close>
+    using add multi_member_split[of A \<open>mset_set \<Delta>\<Sigma>\<close>] by (auto simp: additional_constraints_def
+      subset_mset.dual_order.trans)
+  have n_d: \<open>no_dup (trail S)\<close>
+    using struct unfolding  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
+  have H: \<open>\<And>M K M' D L.
+     trail S = M' @ Decided K # M \<Longrightarrow>
+     D + {#L#} \<in># additional_constraint A \<Longrightarrow> undefined_lit M L \<Longrightarrow> \<not> M \<Turnstile>as CNot D\<close> and
+    H': \<open>\<And>M K M' D L.
+     trail S = M' @ Decided K # M \<Longrightarrow>
+     D \<in># additional_constraint A \<Longrightarrow>  \<not> M \<Turnstile>as CNot D\<close>
+    using smaller_propa add smaller_confl unfolding no_smaller_propa_def no_smaller_confl_def by blast+
+
+  have L1_L0: \<open>?L1 = ?L0\<close>
+  proof (rule ccontr)
+    assume neq: \<open>?L1 \<noteq> ?L0\<close>
+    define i where \<open>i \<equiv> min ?L1 ?L0\<close>
+    obtain K M1 M2 where
+      decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
+      \<open>get_level (trail S) K = Suc i\<close>
+      using backtrack_ex_decomp[OF n_d, of i] neq le
+      by (cases \<open>?L1 < ?L0\<close>) (auto simp: min_def i_def)
+    have \<open>get_level (trail S) KL \<le> i\<close> and \<open>get_level (trail S) KL' > i\<close>
+      using neg neq le by (auto simp: KL_def KL'_def i_def)
+    then have \<open>undefined_lit M1 KL'\<close>
+      using n_d decomp \<open>get_level (trail S) K = Suc i\<close>
+         count_decided_ge_get_level[of \<open>M1\<close> KL']
+      by (force  dest!: get_all_ann_decomposition_exists_prepend
+        simp: get_level_append_if get_level_cons_if atm_of_eq_atm_of
+	dest: defined_lit_no_dupD
+	split: if_splits)
+    moreover have \<open>{#-KL', -KL#} \<in># additional_constraint A\<close>
+      using neq by (auto simp: additional_constraint_def KL_def KL'_def)
+    moreover have \<open>KL \<in> lits_of_l M1\<close>
+      using \<open>get_level (trail S) KL \<le> i\<close> \<open>get_level (trail S) K = Suc i\<close>
+       n_d decomp \<open>KL \<in> lits_of_l (trail S)\<close>
+         count_decided_ge_get_level[of \<open>M1\<close> KL]
+      by (auto dest!: get_all_ann_decomposition_exists_prepend
+        simp: get_level_append_if get_level_cons_if atm_of_eq_atm_of
+	dest: defined_lit_no_dupD in_lits_of_l_defined_litD
+	split: if_splits)
+    ultimately show False
+      using H[of _ K M1 \<open>{#-KL#}\<close> \<open>-KL'\<close>] decomp
+      by force
+  qed
+
+  obtain K M1 M2 where
+    decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
+    lev_K: \<open>get_level (trail S) K = Suc ?L1\<close>
+    using backtrack_ex_decomp[OF n_d, of ?L1] le
+    by (cases \<open>?L1 < ?L0\<close>) (auto simp: min_def L1_L0)
+  then obtain M3 where
+    M3: \<open>trail S = M3 @ Decided K # M1\<close>
+    by auto
+  then have [simp]: \<open>undefined_lit M3 (Pos (A\<^sup>\<mapsto>\<^sup>1))\<close>  \<open>undefined_lit M3 (Pos (A\<^sup>\<mapsto>\<^sup>0))\<close>
+    by (solves \<open>use n_d L1_L0 lev_K M3 in auto\<close>)
+      (solves \<open>use n_d L1_L0[symmetric] lev_K M3 in auto\<close>)
+  then have [simp]: \<open>Pos (A\<^sup>\<mapsto>\<^sup>0) \<notin> lits_of_l M3\<close>  \<open>Pos (A\<^sup>\<mapsto>\<^sup>1) \<notin> lits_of_l M3\<close>
+    using Decided_Propagated_in_iff_in_lits_of_l by blast+
+  have \<open>Pos (A\<^sup>\<mapsto>\<^sup>1) \<in> lits_of_l M1\<close>  \<open>Pos (A\<^sup>\<mapsto>\<^sup>0) \<in> lits_of_l M1\<close>
+    using n_d L1_L0 lev_K dec0 dec1 Decided_Propagated_in_iff_in_lits_of_l
+    by (auto dest!: get_all_ann_decomposition_exists_prepend
+        simp: M3 get_level_cons_if
+	split: if_splits)
+  then show False
+    using H'[of M3 K M1 \<open>{#Neg (A\<^sup>\<mapsto>\<^sup>0), Neg (A\<^sup>\<mapsto>\<^sup>1)#}\<close>]
+    by (auto simp: additional_constraint_def M3)
+qed
+
+lemma cdcl_dpll_bnb_r_stgy_additional_lit_notin_both:
   assumes \<open>cdcl_dpll_bnb_r_stgy S T\<close> and
     struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close> and
     smaller_propa: \<open>no_smaller_propa S\<close> and
+    smaller_confl: \<open>no_smaller_confl S\<close> and
     notin: \<open>additional_lit_notin S\<close> and
     reasons: \<open>reasons_in_clauses S\<close> and
     notin_both: \<open>additional_lit_notin_both S\<close> and
@@ -945,10 +1044,56 @@ next
       then show ?thesis using notin_both by (auto elim!: rulesE simp: additional_lit_notin_both_def)
     next
       case backtrack
+      then obtain M1 M2 :: \<open>('v, 'v clause) ann_lits\<close> and K L :: \<open>'v literal\<close> and
+          D D' :: \<open>'v clause\<close> where
+	confl: \<open>conflicting S = Some (add_mset L D)\<close> and
+	decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
+	max: \<open>get_maximum_level (trail S) (add_mset L D') = local.backtrack_lvl S\<close> and
+	lev_L: \<open>get_level (trail S) L = local.backtrack_lvl S\<close> and
+	max_le: \<open>get_level (trail S) K = Suc (get_maximum_level (trail S) D')\<close> and
+	D'_D: \<open>D' \<subseteq># D\<close> and
+	\<open>set_mset (clauses S) \<union> set_mset (enc_weight_opt.conflicting_clss S) \<Turnstile>p
+	 add_mset L D'\<close> and
+	T: \<open>T \<sim>
+	   cons_trail (Propagated L (add_mset L D'))
+	    (reduce_trail_to M1
+	      (add_learned_cls (add_mset L D') (update_conflicting None S)))\<close>
+        by (auto simp: enc_weight_opt.obacktrack.simps)
+      have
+        tr_D: \<open>trail S \<Turnstile>as CNot (add_mset L D)\<close> and
+        \<open>distinct_mset (add_mset L D)\<close> and
+	n_d: \<open>no_dup (trail S)\<close>
+        using struct confl
+	unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+	  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+	  cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+	  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+	by auto
+      have tr_D': \<open>trail S \<Turnstile>as CNot (add_mset L D')\<close>
+        using tr_D D'_D by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
+      define D'' where \<open>D'' \<equiv> add_mset L D'\<close>
+      then have D'_D'': \<open>D' = remove1_mset L D''\<close> \<open>L \<in># D''\<close>
+        by auto
+      have \<open>get_level (trail S) K \<le> count_decided (trail S)\<close>
+        using decomp n_d
+	by (auto dest!: get_all_ann_decomposition_exists_prepend
+	  dest: defined_lit_no_dupD in_lits_of_l_defined_litD)
+      then have False if
+         \<open>A \<in> \<Delta>\<Sigma>\<close> \<open>Neg (A\<^sup>\<mapsto>\<^sup>1) \<in># add_mset L D'\<close>\<open>Neg (A\<^sup>\<mapsto>\<^sup>0) \<in># add_mset L D'\<close> for A
+        using tr_D' that(1,3) multi_member_split[OF that(2)]  multi_member_split[OF that(3)]
+         replace_pos_neg_not_both_decided_highest_lvl[OF struct smaller_propa smaller_confl
+        _ _ add, of A] tr_D' notin_both max_le lev_L
+	count_decided_ge_get_maximum_level[of \<open>trail S\<close> \<open>D'\<close>]
+	unfolding D''_def[symmetric] unfolding D'_D''
+	by (auto dest!: simp: add_mset_eq_add_mset get_maximum_level_add_mset
+	  get_level_Neg_Pos max_def remove1_mset_add_mset_If split: if_splits)
       then show ?thesis
-        apply (auto simp: additional_lit_notin_both_def)
-oops
-
+        using T notin_both
+        by (auto simp: additional_lit_notin_both_def
+	  dest!: enc_weight_opt.obacktrackE)
+    qed
+  qed
+qed
 
 context
   fixes S :: 'st and N :: \<open>'v clauses\<close>
