@@ -759,7 +759,7 @@ lemma rtranclp_cdcl_dpll_bnb_r_stgy_cdcl_bnb_r:
   done
 
 lemma rtranclp_cdcl_dpll_bnb_r_stgy_all_struct_inv:
-  \<open>cdcl_dpll_bnb_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> 
+  \<open>cdcl_dpll_bnb_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow>
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S) \<Longrightarrow>
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state T)\<close>
   using rtranclp_cdcl_dpll_bnb_r_stgy_cdcl_bnb_r[of T]
@@ -781,6 +781,78 @@ lemma full_cdcl_dpll_bnb_r_stgy_full_cdcl_bnb_r_stgy:
 end
 
 
+definition additional_lit_notin :: \<open>'st \<Rightarrow> bool\<close> where
+  \<open>additional_lit_notin S \<longleftrightarrow>
+    ((\<forall>A\<in>\<Delta>\<Sigma>. Decided (Neg (replacement_pos A)) \<notin> set (trail S)) \<and>
+     (\<forall>A\<in>\<Delta>\<Sigma>. Decided (Neg (replacement_neg A)) \<notin> set (trail S)) \<and>
+     (\<forall>A\<in>\<Delta>\<Sigma>. \<forall>C \<in># clauses S. Pos (replacement_pos A) \<notin># C) \<and>
+     (\<forall>A\<in>\<Delta>\<Sigma>. \<forall>C \<in># clauses S. Pos (replacement_neg A) \<notin># C) \<and>
+     (\<forall>A\<in>\<Delta>\<Sigma>. conflicting S \<noteq> None \<longrightarrow> Pos (replacement_pos A) \<notin># the (conflicting S)) \<and>
+     (\<forall>A\<in>\<Delta>\<Sigma>. conflicting S \<noteq> None \<longrightarrow> Pos (replacement_neg A) \<notin># the (conflicting S)))\<close>
+
+(*TODO Move*)
+lemma backtrack_split_reduce_trail_to[simp]:
+  \<open>backtrack_split (trail S) = (M2, Decided K # M1) \<Longrightarrow> trail (reduce_trail_to M1 S) = M1\<close>
+  using get_all_ann_decomposition_backtrack_split get_all_ann_decomposition_decomp reduce_trail_to_trail_tl_trail_decomp by blast
+
+lemma backtrack_split_trailD:
+  \<open>backtrack_split (trail S) = (M2, Decided K # M1) \<Longrightarrow> trail S = M2 @ Decided K # M1\<close>
+  by (metis backtrack_split_list_eq fst_conv snd_conv)
+
+lemma cdcl_dpll_bnb_r_stgy_reasons_in_clauses:
+  \<open>cdcl_dpll_bnb_r_stgy S T \<Longrightarrow> reasons_in_clauses S \<Longrightarrow> reasons_in_clauses T\<close>
+  by (auto 5 5 simp: cdcl_dpll_bnb_r_stgy.simps reasons_in_clauses_def ocdcl\<^sub>W_o_r.simps
+      enc_weight_opt.cdcl_bnb_bj.simps neq_Nil_conv
+    elim!: rulesE enc_weight_opt.improveE conflict_opt0E odecideE
+      simple_backtrack_conflict_optE enc_weight_opt.obacktrackE
+    dest!: backtrack_split_trailD get_all_ann_decomposition_exists_prepend)
+
+lemma
+  assumes \<open>cdcl_dpll_bnb_r_stgy S T\<close> and \<open>additional_lit_notin S\<close> and
+    struct: \<open>reasons_in_clauses S\<close>
+  shows \<open>additional_lit_notin T\<close>
+  using assms(1,2)
+  apply (cases)
+  subgoal
+    by (auto simp: additional_lit_notin_def elim!: rulesE)
+  subgoal
+    by (auto simp: additional_lit_notin_def elim!: rulesE)
+  subgoal
+    by (auto simp: additional_lit_notin_def elim!: rulesE enc_weight_opt.improveE)
+  subgoal
+    by (clarsimp simp: additional_lit_notin_def
+      elim!: rulesE conflict_opt0E)
+  subgoal
+    apply (clarsimp simp: additional_lit_notin_def
+      elim!: rulesE odecideE simple_backtrack_conflict_optE is_decided_ex_Decided
+      dest: backtrack_split_trailD)
+      apply (auto dest: backtrack_split_trailD
+        simp: DECO_clause_def uminus_lit_swap
+	  eq_commute[of \<open>Pos _\<close>]
+      elim: is_decided_ex_Decided)
+    done
+  subgoal
+    apply (cases rule: ocdcl\<^sub>W_o_r.cases, assumption)
+    subgoal
+      by (auto simp: additional_lit_notin_def
+        elim!: rulesE odecideE)
+    subgoal
+      apply (cases rule: enc_weight_opt.cdcl_bnb_bj.cases, assumption)
+      subgoal
+        by (auto elim!: rulesE odecideE  enc_weight_opt.obacktrackE
+	   simp: additional_lit_notin_def)
+      subgoal
+        using struct unfolding reasons_in_clauses_def
+	by (cases \<open>trail S\<close>)
+          (auto elim!: rulesE odecideE  enc_weight_opt.obacktrackE
+	   dest!: in_diffD
+	   simp: additional_lit_notin_def)
+      subgoal
+        by (auto elim!: rulesE odecideE  enc_weight_opt.obacktrackE
+	   simp: additional_lit_notin_def mset_subset_eq_exists_conv)
+      done
+    done
+  done
 
 context
   fixes S :: 'st and N :: \<open>'v clauses\<close>
