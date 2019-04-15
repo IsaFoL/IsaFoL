@@ -1072,8 +1072,7 @@ lemma cdcl_bnb_stgy_no_smaller_confl:
   assumes \<open>cdcl_bnb_stgy S T\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
     \<open>no_smaller_confl S\<close> and
-    \<open>conflict_is_false_with_level S\<close> and
-    \<open>no_smaller_improvep S\<close>
+    \<open>conflict_is_false_with_level S\<close>
   shows \<open>no_smaller_confl T\<close>
   using assms
 proof (induction rule: cdcl_bnb_stgy.cases)
@@ -3971,6 +3970,62 @@ corollary full_ocdcl\<^sub>w_p_stgy_no_conflicting_clause_from_init_state:
   using full_cdcl_bnb_stgy_no_conflicting_clause_from_init_state[of N T,
     OF full_ocdcl\<^sub>w_p_stgy_full_cdcl_bnb_stgy[OF st] dist] dist
   by (auto simp: all_struct_init_state_distinct_iff)
+
+
+lemma cdcl_bnb_stgy_no_smaller_propa:
+  \<open>cdcl_bnb_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
+    no_smaller_propa S \<Longrightarrow> no_smaller_propa T\<close>
+  apply (induction rule: cdcl_bnb_stgy.induct)
+  subgoal
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+        conflict.simps propagate.simps improvep.simps conflict_opt.simps
+        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bnb_bj.simps
+        elim!: rulesE)
+  subgoal
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+        conflict.simps propagate.simps improvep.simps conflict_opt.simps
+        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bnb_bj.simps
+        elim!: rulesE)
+  subgoal
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+        conflict.simps propagate.simps improvep.simps conflict_opt.simps
+        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bnb_bj.simps
+        elim!: rulesE)
+  subgoal
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+        conflict.simps propagate.simps improvep.simps conflict_opt.simps
+        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bnb_bj.simps
+        elim!: rulesE)
+  subgoal for T
+    apply (cases rule: ocdcl\<^sub>W_o.cases, assumption; thin_tac \<open>ocdcl\<^sub>W_o S T\<close>)
+    subgoal
+      using decide_no_smaller_step[of S T]
+      unfolding no_confl_prop_impr.simps
+      by auto
+    subgoal
+      apply (cases rule: cdcl_bnb_bj.cases, assumption; thin_tac \<open>cdcl_bnb_bj S T\<close>)
+      subgoal
+        using no_smaller_propa_tl[of S T]
+        by (auto elim: rulesE)
+      subgoal
+        using no_smaller_propa_tl[of S T]
+        by (auto elim: rulesE)
+      subgoal
+        using backtrackg_no_smaller_propa[OF obacktrack_backtrackg, of S T]
+        unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+        by (auto elim: obacktrackE)
+      done
+    done
+  done
+
+lemma rtranclp_cdcl_bnb_stgy_no_smaller_propa:
+  \<open>cdcl_bnb_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
+    no_smaller_propa S \<Longrightarrow> no_smaller_propa T\<close>
+  by (induction rule: rtranclp_induct)
+    (use rtranclp_cdcl_bnb_stgy_all_struct_inv
+        rtranclp_cdcl_bnb_stgy_cdcl_bnb in \<open>force intro: cdcl_bnb_stgy_no_smaller_propa\<close>)+
 
 end
 
