@@ -50,8 +50,8 @@ what we need, so here is an alternative version:
 \<close>
 
 primrec size_form :: \<open>('a, 'b) form \<Rightarrow> nat\<close> where
-  \<open>size_form FF = 0\<close>
-| \<open>size_form TT = 0\<close>
+  \<open>size_form \<bottom> = 0\<close>
+| \<open>size_form \<top> = 0\<close>
 | \<open>size_form (Pre _ _) = 0\<close>
 | \<open>size_form (Con p q) = size_form p + size_form q + 1\<close>
 | \<open>size_form (Dis p q) = size_form p + size_form q + 1\<close>
@@ -78,8 +78,8 @@ primrec
 | \<open>closedts m (t # ts) = (closedt m t \<and> closedts m ts)\<close>
 
 primrec closed :: \<open>nat \<Rightarrow> ('a, 'b) form \<Rightarrow> bool\<close> where
-  \<open>closed m FF = True\<close>
-| \<open>closed m TT = True\<close>
+  \<open>closed m \<bottom> = True\<close>
+| \<open>closed m \<top> = True\<close>
 | \<open>closed m (Pre b ts) = closedts m ts\<close>
 | \<open>closed m (Con p q) = (closed m p \<and> closed m q)\<close>
 | \<open>closed m (Dis p q) = (closed m p \<and> closed m q)\<close>
@@ -129,8 +129,8 @@ primrec
 
 primrec subst :: \<open>('a, 'b) form \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> ('a, 'b) form\<close>
   ("_[_'/_]" [300, 0, 0] 300) where
-  \<open>FF[s/k] = FF\<close>
-| \<open>TT[s/k] = TT\<close>
+  \<open>\<bottom>[s/k] = \<bottom>\<close>
+| \<open>\<top>[s/k] = \<top>\<close>
 | \<open>(Pre b ts)[s/k] = Pre b (ts[s/k])\<close>
 | \<open>(Con p q)[s/k] = Con (p[s/k]) (q[s/k])\<close>
 | \<open>(Dis p q)[s/k] = Dis (p[s/k]) (q[s/k])\<close>
@@ -179,8 +179,8 @@ primrec
 | \<open>paramsts (t # ts) = (paramst t \<union> paramsts ts)\<close>
 
 primrec params :: \<open>('a, 'b) form \<Rightarrow> 'a set\<close> where
-  \<open>params FF = {}\<close>
-| \<open>params TT = {}\<close>
+  \<open>params \<bottom> = {}\<close>
+| \<open>params \<top> = {}\<close>
 | \<open>params (Pre b ts) = paramsts ts\<close>
 | \<open>params (Con p q) = params p \<union> params q\<close>
 | \<open>params (Dis p q) = params p \<union> params q\<close>
@@ -203,8 +203,8 @@ primrec
 | \<open>psubstts f (t # ts) = psubstt f t # psubstts f ts\<close>
 
 primrec psubst :: \<open>('a \<Rightarrow> 'c) \<Rightarrow> ('a, 'b) form \<Rightarrow> ('c, 'b) form\<close> where
-  \<open>psubst f FF = FF\<close>
-| \<open>psubst f TT = TT\<close>
+  \<open>psubst f \<bottom> = \<bottom>\<close>
+| \<open>psubst f \<top> = \<top>\<close>
 | \<open>psubst f (Pre b ts) = Pre b (psubstts f ts)\<close>
 | \<open>psubst f (Con p q) = Con (psubst f p) (psubst f q)\<close>
 | \<open>psubst f (Dis p q) = Dis (psubst f p) (psubst f q)\<close>
@@ -392,11 +392,11 @@ The derivability judgement @{text \<open>G \<turnstile> a\<close>} is defined as
 
 inductive deriv :: \<open>('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> bool\<close> ("_ \<turnstile> _" [50,50] 50) where
   Assum: \<open>a \<in> set G \<Longrightarrow> G \<turnstile> a\<close>
-| TTI: \<open>G \<turnstile> TT\<close>
-| FFE: \<open>G \<turnstile> FF \<Longrightarrow> G \<turnstile> a\<close>
-| NegI: \<open>a # G \<turnstile> FF \<Longrightarrow> G \<turnstile> Neg a\<close>
-| NegE: \<open>G \<turnstile> Neg a \<Longrightarrow> G \<turnstile> a \<Longrightarrow> G \<turnstile> FF\<close>
-| Class: \<open>Neg a # G \<turnstile> FF \<Longrightarrow> G \<turnstile> a\<close>
+| TTI: \<open>G \<turnstile> \<top>\<close>
+| FFE: \<open>G \<turnstile> \<bottom> \<Longrightarrow> G \<turnstile> a\<close>
+| NegI: \<open>a # G \<turnstile> \<bottom> \<Longrightarrow> G \<turnstile> Neg a\<close>
+| NegE: \<open>G \<turnstile> Neg a \<Longrightarrow> G \<turnstile> a \<Longrightarrow> G \<turnstile> \<bottom>\<close>
+| Class: \<open>Neg a # G \<turnstile> \<bottom> \<Longrightarrow> G \<turnstile> a\<close>
 | AndI: \<open>G \<turnstile> a \<Longrightarrow> G \<turnstile> b \<Longrightarrow> G \<turnstile> Con a b\<close>
 | AndE1: \<open>G \<turnstile> Con a b \<Longrightarrow> G \<turnstile> a\<close>
 | AndE2: \<open>G \<turnstile> Con a b \<Longrightarrow> G \<turnstile> b\<close>
@@ -441,13 +441,13 @@ proof -
       by (simp add: Assum)
     then have \<open>[Pre p [], Neg ?or] \<turnstile> ?or\<close>
       by (rule OrI1)
-    ultimately have \<open>[Pre p [], Neg ?or] \<turnstile> FF\<close>
+    ultimately have \<open>[Pre p [], Neg ?or] \<turnstile> \<bottom>\<close>
       by (rule NegE)
     then have \<open>[Neg ?or] \<turnstile> Neg (Pre p [])\<close>
       by (rule NegI)
     then have \<open>[Neg ?or] \<turnstile> ?or\<close>
       by (rule OrI2) }
-  ultimately have \<open>[Neg ?or] \<turnstile> FF\<close>
+  ultimately have \<open>[Neg ?or] \<turnstile> \<bottom>\<close>
     by (rule NegE)
   then show ?thesis
     by (rule Class)
@@ -502,7 +502,7 @@ proof -
   moreover have \<open>Pre P [Fun 0 []] # ?G \<turnstile> Neg (Pre P [Fun 0 []])\<close>
     and \<open>Pre P [Fun 0 []] # ?G \<turnstile> Pre P [Fun 0 []]\<close>
     by (simp_all add: Assum)
-  then have \<open>Pre P [Fun 0 []] # ?G \<turnstile> FF\<close>
+  then have \<open>Pre P [Fun 0 []] # ?G \<turnstile> \<bottom>\<close>
     by (rule NegE)
   then have \<open>Pre P [Fun 0 []] # ?G \<turnstile> Uni (Pre P [Var 0])\<close>
     by (rule FFE)
@@ -510,7 +510,7 @@ proof -
     using ImplI by simp
   then have \<open>?G \<turnstile> Exi ?impl\<close>
     by (rule ExistsI)
-  ultimately have \<open>?G \<turnstile> FF\<close>
+  ultimately have \<open>?G \<turnstile> \<bottom>\<close>
     by (rule NegE)
   then have \<open>?G' \<turnstile> Pre P [Var 0][Fun 0 []/0]\<close>
     using Class by simp
@@ -542,7 +542,7 @@ proof -
       by (simp add: Assum)
     then have \<open>[Pre P [], ?PQP, Neg ?PQPP] \<turnstile> ?PQPP\<close>
       by (rule ImplI)
-    ultimately have \<open>[Pre P [], ?PQP, Neg ?PQPP] \<turnstile> FF\<close>
+    ultimately have \<open>[Pre P [], ?PQP, Neg ?PQPP] \<turnstile> \<bottom>\<close>
       by (rule NegE) }
   then have \<open>[Pre P [], ?PQP, Neg ?PQPP] \<turnstile> Pre Q []\<close>
     by (rule FFE)
@@ -606,16 +606,16 @@ completeness are equivalent:
 \item All consistent sets are satisfiable
 \end{enumerate}
 The latter property is called the {\em model existence theorem}. To see why 2
-implies 1, observe that @{text \<open>Neg p, ps \<notturnstile> FF\<close>} implies
+implies 1, observe that @{text \<open>Neg p, ps \<notturnstile> \<bottom>\<close>} implies
 that @{text \<open>Neg p, ps\<close>} is consistent, which, by the model existence theorem,
 implies that @{text \<open>Neg p, ps\<close>} has a model, which in turn implies that
 @{text \<open>ps \<notTurnstile> p\<close>}. By contraposition, it therefore follows
-from @{text \<open>ps \<Turnstile> p\<close>} that @{text \<open>Neg p, ps \<turnstile> FF\<close>}, which allows us to
+from @{text \<open>ps \<Turnstile> p\<close>} that @{text \<open>Neg p, ps \<turnstile> \<bottom>\<close>}, which allows us to
 deduce @{text \<open>ps \<turnstile> p\<close>} using rule @{text Class}.
 
 In most textbooks on logic, a set @{text S} of formulae is called {\em consistent},
 if no contradiction can be derived from @{text S} using a {\em specific proof calculus},
-i.e.\ @{text \<open>S \<notturnstile> FF\<close>}. Rather than defining consistency relative to
+i.e.\ @{text \<open>S \<notturnstile> \<bottom>\<close>}. Rather than defining consistency relative to
 a {\em specific} calculus, Fitting uses the more general approach of describing
 properties that all consistent sets must have (see \secref{sec:consistent-sets}).
 
@@ -655,7 +655,7 @@ following holds:
 definition consistency :: \<open>('a, 'b) form set set \<Rightarrow> bool\<close> where
   \<open>consistency C = (\<forall>S. S \<in> C \<longrightarrow>
      (\<forall>p ts. \<not> (Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S)) \<and>
-     FF \<notin> S \<and> Neg TT \<notin> S \<and>
+     \<bottom> \<notin> S \<and> Neg \<top> \<notin> S \<and>
      (\<forall>Z. Neg (Neg Z) \<in> S \<longrightarrow> S \<union> {Z} \<in> C) \<and>
      (\<forall>A B. Con A B \<in> S \<longrightarrow> S \<union> {A, B} \<in> C) \<and>
      (\<forall>A B. Neg (Dis A B) \<in> S \<longrightarrow> S \<union> {Neg A, Neg B} \<in> C) \<and>
@@ -680,7 +680,7 @@ consistency property} as follows:
 definition alt_consistency :: \<open>('a, 'b) form set set \<Rightarrow> bool\<close> where
   \<open>alt_consistency C = (\<forall>S. S \<in> C \<longrightarrow>
      (\<forall>p ts. \<not> (Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S)) \<and>
-     FF \<notin> S \<and> Neg TT \<notin> S \<and>
+     \<bottom> \<notin> S \<and> Neg \<top> \<notin> S \<and>
      (\<forall>Z. Neg (Neg Z) \<in> S \<longrightarrow> S \<union> {Z} \<in> C) \<and>
      (\<forall>A B. Con A B \<in> S \<longrightarrow> S \<union> {A, B} \<in> C) \<and>
      (\<forall>A B. Neg (Dis A B) \<in> S \<longrightarrow> S \<union> {Neg A, Neg B} \<in> C) \<and>
@@ -734,9 +734,9 @@ proof (intro allI impI conjI)
       using * by blast
   qed
 
-  have \<open>FF \<notin> ?S'\<close> and \<open>Neg TT \<notin> ?S'\<close>
+  have \<open>\<bottom> \<notin> ?S'\<close> and \<open>Neg \<top> \<notin> ?S'\<close>
     using conc sc unfolding consistency_def by simp_all
-  then show \<open>FF \<notin> S\<close> and \<open>Neg TT \<notin> S\<close>
+  then show \<open>\<bottom> \<notin> S\<close> and \<open>Neg \<top> \<notin> S\<close>
     by (force, force)
 
   { fix Z
@@ -910,14 +910,14 @@ proof (intro allI impI conjI)
     then show \<open>\<not> (Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S)\<close>
       using \<open>S \<subseteq> x\<close> by blast }
 
-  { have \<open>FF \<notin> x\<close>
+  { have \<open>\<bottom> \<notin> x\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
-    then show \<open>FF \<notin> S\<close>
+    then show \<open>\<bottom> \<notin> S\<close>
       using \<open>S \<subseteq> x\<close> by blast }
 
-  { have \<open>Neg TT \<notin> x\<close>
+  { have \<open>Neg \<top> \<notin> x\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
-    then show \<open>Neg TT \<notin> S\<close>
+    then show \<open>Neg \<top> \<notin> S\<close>
       using \<open>S \<subseteq> x\<close> by blast }
 
   { fix Z
@@ -1092,19 +1092,19 @@ proof (intro allI impI conjI)
         using altconc unfolding alt_consistency_def by fast
     qed }
 
-  show \<open>FF \<notin> S\<close>
+  show \<open>\<bottom> \<notin> S\<close>
   proof
-    assume \<open>FF \<in> S\<close>
-    then have \<open>{FF} \<in> C\<close>
+    assume \<open>\<bottom> \<in> S\<close>
+    then have \<open>{\<bottom>} \<in> C\<close>
       using finc by simp
     then show False
       using altconc unfolding alt_consistency_def by fast
   qed
 
-  show \<open>Neg TT \<notin> S\<close>
+  show \<open>Neg \<top> \<notin> S\<close>
   proof
-    assume \<open>Neg TT \<in> S\<close>
-    then have \<open>{Neg TT} \<in> C\<close>
+    assume \<open>Neg \<top> \<in> S\<close>
+    then have \<open>{Neg \<top>} \<in> C\<close>
       using finc by simp
     then show False
       using altconc unfolding alt_consistency_def by fast
@@ -1545,8 +1545,8 @@ theorem diag_undiag_term [simp]:
   by (simp add: diag_term_def undiag_term_def term_btree)
 
 fun form_of_btree :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarrow> 'b) \<Rightarrow> btree \<Rightarrow> ('a, 'b) form\<close> where
-  \<open>form_of_btree f g (Leaf 0) = FF\<close>
-| \<open>form_of_btree f g (Leaf (Suc 0)) = TT\<close>
+  \<open>form_of_btree f g (Leaf 0) = \<bottom>\<close>
+| \<open>form_of_btree f g (Leaf (Suc 0)) = \<top>\<close>
 | \<open>form_of_btree f g (Branch (Leaf 0) (Branch (Leaf m) (Leaf n))) =
      Pre (g m) (diag_list (diag_term f) n)\<close>
 | \<open>form_of_btree f g (Branch (Leaf (Suc 0)) (Branch t1 t2)) =
@@ -1563,8 +1563,8 @@ fun form_of_btree :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarr
      Exi (form_of_btree f g t)\<close>
 
 primrec btree_of_form :: \<open>('a \<Rightarrow> nat) \<Rightarrow> ('b \<Rightarrow> nat) \<Rightarrow> ('a, 'b) form \<Rightarrow> btree\<close> where
-  \<open>btree_of_form f g FF = Leaf 0\<close>
-| \<open>btree_of_form f g TT = Leaf (Suc 0)\<close>
+  \<open>btree_of_form f g \<bottom> = Leaf 0\<close>
+| \<open>btree_of_form f g \<top> = Leaf (Suc 0)\<close>
 | \<open>btree_of_form f g (Pre b ts) = Branch (Leaf 0)
      (Branch (Leaf (g b)) (Leaf (undiag_list (undiag_term f) ts)))\<close>
 | \<open>btree_of_form f g (Con a b) = Branch (Leaf (Suc 0))
@@ -1915,7 +1915,7 @@ A Hintikka set is defined as follows:
 definition hintikka :: \<open>('a, 'b) form set \<Rightarrow> bool\<close> where
   \<open>hintikka H =
      ((\<forall>p ts. \<not> (Pre p ts \<in> H \<and> Neg (Pre p ts) \<in> H)) \<and>
-     FF \<notin> H \<and> Neg TT \<notin> H \<and>
+     \<bottom> \<notin> H \<and> Neg \<top> \<notin> H \<and>
      (\<forall>Z. Neg (Neg Z) \<in> H \<longrightarrow> Z \<in> H) \<and>
      (\<forall>A B. Con A B \<in> H \<longrightarrow> A \<in> H \<and> B \<in> H) \<and>
      (\<forall>A B. Neg (Dis A B) \<in> H \<longrightarrow> Neg A \<in> H \<and> Neg B \<in> H) \<and>
@@ -2268,10 +2268,10 @@ proof (intro allI impI conjI)
     show \<open>\<not> (Pre p ts \<in> ?H \<and> Neg (Pre p ts) \<in> ?H)\<close>
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast }
 
-  show \<open>FF \<notin> ?H\<close>
+  show \<open>\<bottom> \<notin> ?H\<close>
     using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
 
-  show \<open>Neg TT \<notin> ?H\<close>
+  show \<open>Neg \<top> \<notin> ?H\<close>
     using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
 
   { fix Z
@@ -2440,53 +2440,53 @@ consistency property:
 
 theorem deriv_consistency:
   assumes inf_param: \<open>infinite (UNIV :: 'a set)\<close>
-  shows \<open>consistency {S::('a, 'b) form set. \<exists>G. S = set G \<and> \<not> G \<turnstile> FF}\<close>
+  shows \<open>consistency {S::('a, 'b) form set. \<exists>G. S = set G \<and> \<not> G \<turnstile> \<bottom>}\<close>
   unfolding consistency_def
 proof (intro conjI allI impI notI)
   fix S :: \<open>('a, 'b) form set\<close>
-  assume \<open>S \<in> {set G |G. \<not> G \<turnstile> FF}\<close> (is \<open>S \<in> ?C\<close>)
+  assume \<open>S \<in> {set G |G. \<not> G \<turnstile> \<bottom>}\<close> (is \<open>S \<in> ?C\<close>)
   then obtain G :: \<open>('a, 'b) form list\<close>
-    where *: \<open>S = set G\<close> and \<open>\<not> G \<turnstile> FF\<close>
+    where *: \<open>S = set G\<close> and \<open>\<not> G \<turnstile> \<bottom>\<close>
     by blast
 
   { fix p ts
     assume \<open>Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S\<close>
     then have \<open>G \<turnstile> Pre p ts\<close> and \<open>G \<turnstile> Neg (Pre p ts)\<close>
       using Assum * by blast+
-    then have \<open>G \<turnstile> FF\<close>
+    then have \<open>G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then show False
-      using \<open>\<not> G \<turnstile> FF\<close> by blast }
+      using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
 
-  { assume \<open>FF \<in> S\<close>
-    then have \<open>G \<turnstile> FF\<close>
+  { assume \<open>\<bottom> \<in> S\<close>
+    then have \<open>G \<turnstile> \<bottom>\<close>
       using Assum * by blast
     then show False
-      using \<open>\<not> G \<turnstile> FF\<close> by blast }
+      using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
 
-  { assume \<open>Neg TT \<in> S\<close>
-    then have \<open>G \<turnstile> Neg TT\<close>
+  { assume \<open>Neg \<top> \<in> S\<close>
+    then have \<open>G \<turnstile> Neg \<top>\<close>
       using Assum * by blast
-    moreover have \<open>G \<turnstile> TT\<close>
+    moreover have \<open>G \<turnstile> \<top>\<close>
       using TTI by blast
-    ultimately have \<open>G \<turnstile> FF\<close>
+    ultimately have \<open>G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then show False
-      using \<open>\<not> G \<turnstile> FF\<close> by blast }
+      using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
 
   { fix Z
     assume \<open>Neg (Neg Z) \<in> S\<close>
     then have \<open>G \<turnstile> Neg (Neg Z)\<close>
       using Assum * by blast
 
-    { assume \<open>Z # G \<turnstile> FF\<close>
+    { assume \<open>Z # G \<turnstile> \<bottom>\<close>
       then have \<open>G \<turnstile> Neg Z\<close>
         using NegI by blast
-      then have \<open>G \<turnstile> FF\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using NegE \<open>G \<turnstile> Neg (Neg Z)\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    then have \<open>\<not> Z # G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
+    then have \<open>\<not> Z # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>S \<union> {Z} = set (Z # G)\<close>
       using * by simp
@@ -2500,16 +2500,16 @@ proof (intro conjI allI impI notI)
     then have \<open>G \<turnstile> A\<close> and \<open>G \<turnstile> B\<close>
       using AndE1 AndE2 by blast+
 
-    { assume \<open>A # B # G \<turnstile> FF\<close>
+    { assume \<open>A # B # G \<turnstile> \<bottom>\<close>
       then have \<open>B # G \<turnstile> Neg A\<close>
         using NegI by blast
       then have \<open>G \<turnstile> Neg A\<close>
         using cut \<open>G \<turnstile> B\<close> by blast
-      then have \<open>G \<turnstile> FF\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using NegE \<open>G \<turnstile> A\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    then have \<open>\<not> A # B # G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
+    then have \<open>\<not> A # B # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>S \<union> {A, B} = set (A # B # G)\<close>
       using * by simp
@@ -2527,7 +2527,7 @@ proof (intro conjI allI impI notI)
       using OrI1 by blast
     moreover have \<open>A # Neg B # G \<turnstile> Neg (Dis A B)\<close>
       using * \<open>Neg (Dis A B) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>A # Neg B # G \<turnstile> FF\<close>
+    ultimately have \<open>A # Neg B # G \<turnstile> \<bottom>\<close>
       using NegE \<open>A # Neg B # G \<turnstile> Neg (Dis A B)\<close> by blast
     then have \<open>Neg B # G \<turnstile> Neg A\<close>
       using NegI by blast
@@ -2538,21 +2538,21 @@ proof (intro conjI allI impI notI)
       using OrI2 by blast
     moreover have \<open>B # G \<turnstile> Neg (Dis A B)\<close>
       using * \<open>Neg (Dis A B) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>B # G \<turnstile> FF\<close>
+    ultimately have \<open>B # G \<turnstile> \<bottom>\<close>
       using NegE \<open>B # G \<turnstile> Neg (Dis A B)\<close> by blast
     then have \<open>G \<turnstile> Neg B\<close>
       using NegI by blast
 
-    { assume \<open>Neg A # Neg B # G \<turnstile> FF\<close>
+    { assume \<open>Neg A # Neg B # G \<turnstile> \<bottom>\<close>
       then have \<open>Neg B # G \<turnstile> Neg (Neg A)\<close>
         using NegI by blast
-      then have \<open>Neg B # G \<turnstile> FF\<close>
+      then have \<open>Neg B # G \<turnstile> \<bottom>\<close>
         using NegE \<open>Neg B # G \<turnstile> Neg A\<close> by blast
-      then have \<open>G \<turnstile> FF\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using cut \<open>G \<turnstile> Neg B\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    then have \<open>\<not> Neg A # Neg B # G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
+    then have \<open>\<not> Neg A # Neg B # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>S \<union> {Neg A, Neg B} = set (Neg A # Neg B # G)\<close>
       using * by simp
@@ -2566,7 +2566,7 @@ proof (intro conjI allI impI notI)
       by (simp add: Assum)
     moreover have \<open>A # Neg A # Neg B # G \<turnstile> Neg A\<close>
       by (simp add: Assum)
-    ultimately have \<open>A # Neg A # Neg B # G \<turnstile> FF\<close>
+    ultimately have \<open>A # Neg A # Neg B # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>A # Neg A # Neg B # G \<turnstile> B\<close>
       using FFE by blast
@@ -2574,7 +2574,7 @@ proof (intro conjI allI impI notI)
       using ImplI by blast
     moreover have \<open>Neg A # Neg B # G \<turnstile> Neg (Imp A B)\<close>
       using * \<open>Neg (Imp A B) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>Neg A # Neg B # G \<turnstile> FF\<close>
+    ultimately have \<open>Neg A # Neg B # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>Neg B # G \<turnstile> A\<close>
       using Class by blast
@@ -2585,22 +2585,22 @@ proof (intro conjI allI impI notI)
       using ImplI by blast
     moreover have \<open>B # G \<turnstile> Neg (Imp A B)\<close>
       using * \<open>Neg (Imp A B) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>B # G \<turnstile> FF\<close>
+    ultimately have \<open>B # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>G \<turnstile> Neg B\<close>
       using NegI by blast
 
-    { assume \<open>A # Neg B # G \<turnstile> FF\<close>
+    { assume \<open>A # Neg B # G \<turnstile> \<bottom>\<close>
       then have \<open>Neg B # G \<turnstile> Neg A\<close>
         using NegI by blast
-      then have \<open>Neg B # G \<turnstile> FF\<close>
+      then have \<open>Neg B # G \<turnstile> \<bottom>\<close>
         using NegE \<open>Neg B # G \<turnstile> A\<close> by blast
-      then have \<open>G \<turnstile> FF\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using cut \<open>G \<turnstile> Neg B\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close>
         by blast }
-    then have \<open>\<not> A # Neg B # G \<turnstile> FF\<close>
+    then have \<open>\<not> A # Neg B # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>{A, Neg B} \<union> S = set (A # Neg B # G)\<close>
       using * by simp
@@ -2612,14 +2612,14 @@ proof (intro conjI allI impI notI)
     then have \<open>G \<turnstile> Dis A B\<close>
       using * Assum by blast
 
-    { assume \<open>(\<forall>G'. set G' = S \<union> {A} \<longrightarrow> G' \<turnstile> FF)\<close>
-        and \<open>(\<forall>G'. set G' = S \<union> {B} \<longrightarrow> G' \<turnstile> FF)\<close>
-      then have \<open>A # G \<turnstile> FF\<close> and \<open>B # G \<turnstile> FF\<close>
+    { assume \<open>(\<forall>G'. set G' = S \<union> {A} \<longrightarrow> G' \<turnstile> \<bottom>)\<close>
+        and \<open>(\<forall>G'. set G' = S \<union> {B} \<longrightarrow> G' \<turnstile> \<bottom>)\<close>
+      then have \<open>A # G \<turnstile> \<bottom>\<close> and \<open>B # G \<turnstile> \<bottom>\<close>
         using * by simp_all
-      then have \<open>G \<turnstile> FF\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using OrE \<open>G \<turnstile> Dis A B\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
     then show \<open>S \<union> {A} \<in> ?C \<or> S \<union> {B} \<in> ?C\<close>
       by blast }
 
@@ -2634,7 +2634,7 @@ proof (intro conjI allI impI notI)
       using AndI by blast
     moreover have \<open>B # A # Neg ?x # G \<turnstile> Neg (Con A B)\<close>
       using * \<open>Neg (Con A B) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>B # A # Neg ?x # G \<turnstile> FF\<close>
+    ultimately have \<open>B # A # Neg ?x # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>A # Neg ?x # G \<turnstile> Neg B\<close>
       using NegI by blast
@@ -2642,7 +2642,7 @@ proof (intro conjI allI impI notI)
       using OrI2 by blast
     moreover have \<open>A # Neg ?x # G \<turnstile> Neg ?x\<close>
       by (simp add: Assum)
-    ultimately have \<open>A # Neg ?x # G \<turnstile> FF\<close>
+    ultimately have \<open>A # Neg ?x # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>Neg ?x # G \<turnstile> Neg A\<close>
       using NegI by blast
@@ -2651,14 +2651,14 @@ proof (intro conjI allI impI notI)
     then have \<open>G \<turnstile> Dis (Neg A) (Neg B)\<close>
       using Class' by blast
 
-    { assume \<open>(\<forall>G'. set G' = S \<union> {Neg A} \<longrightarrow> G' \<turnstile> FF)\<close>
-        and \<open>(\<forall>G'. set G' = S \<union> {Neg B} \<longrightarrow> G' \<turnstile> FF)\<close>
-      then have \<open>Neg A # G \<turnstile> FF\<close> and \<open>Neg B # G \<turnstile> FF\<close>
+    { assume \<open>(\<forall>G'. set G' = S \<union> {Neg A} \<longrightarrow> G' \<turnstile> \<bottom>)\<close>
+        and \<open>(\<forall>G'. set G' = S \<union> {Neg B} \<longrightarrow> G' \<turnstile> \<bottom>)\<close>
+      then have \<open>Neg A # G \<turnstile> \<bottom>\<close> and \<open>Neg B # G \<turnstile> \<bottom>\<close>
         using * by simp_all
-      then have \<open>G \<turnstile> FF\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using OrE \<open>G \<turnstile> Dis (Neg A) (Neg B)\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
     then show \<open>S \<union> {Neg A} \<in> ?C \<or> S \<union> {Neg B} \<in> ?C\<close>
       by blast }
 
@@ -2677,7 +2677,7 @@ proof (intro conjI allI impI notI)
       using OrI2 by blast
     moreover have \<open>A # Neg ?x # G \<turnstile> Neg ?x\<close>
       by (simp add: Assum)
-    ultimately have \<open>A # Neg ?x # G \<turnstile> FF\<close>
+    ultimately have \<open>A # Neg ?x # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>Neg ?x # G \<turnstile> Neg A\<close>
       using NegI by blast
@@ -2686,14 +2686,14 @@ proof (intro conjI allI impI notI)
     then have \<open>G \<turnstile> Dis (Neg A) B\<close>
       using Class' by blast
 
-    { assume \<open>(\<forall>G'. set G' = S \<union> {Neg A} \<longrightarrow> G' \<turnstile> FF)\<close>
-        and \<open>(\<forall>G'. set G' = S \<union> {B} \<longrightarrow> G' \<turnstile> FF)\<close>
-      then have \<open>Neg A # G \<turnstile> FF\<close> and \<open>B # G \<turnstile> FF\<close>
+    { assume \<open>(\<forall>G'. set G' = S \<union> {Neg A} \<longrightarrow> G' \<turnstile> \<bottom>)\<close>
+        and \<open>(\<forall>G'. set G' = S \<union> {B} \<longrightarrow> G' \<turnstile> \<bottom>)\<close>
+      then have \<open>Neg A # G \<turnstile> \<bottom>\<close> and \<open>B # G \<turnstile> \<bottom>\<close>
         using * by simp_all
-      then have \<open>G \<turnstile> FF\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using OrE \<open>G \<turnstile> Dis (Neg A) B\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
     then show \<open>S \<union> {Neg A} \<in> ?C \<or> S \<union> {B} \<in> ?C\<close>
       by blast }
 
@@ -2704,12 +2704,12 @@ proof (intro conjI allI impI notI)
     then have \<open>G \<turnstile> P[t/0]\<close>
       using ForallE by blast
 
-    { assume \<open>P[t/0] # G \<turnstile> FF\<close>
-      then have \<open>G \<turnstile> FF\<close>
+    { assume \<open>P[t/0] # G \<turnstile> \<bottom>\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using cut \<open>G \<turnstile> P[t/0]\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    then have \<open>\<not> P[t/0] # G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
+    then have \<open>\<not> P[t/0] # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>S \<union> {P[t/0]} = set (P[t/0] # G)\<close>
       using * by simp
@@ -2728,17 +2728,17 @@ proof (intro conjI allI impI notI)
       using ExistsI by blast
     moreover have \<open>P[t/0] # G \<turnstile> Neg (Exi P)\<close>
       using * \<open>Neg (Exi P) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>P[t/0] # G \<turnstile> FF\<close>
+    ultimately have \<open>P[t/0] # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>G \<turnstile> Neg (P[t/0])\<close>
       using NegI by blast
 
-    { assume \<open>Neg (P[t/0]) # G \<turnstile> FF\<close>
-      then have \<open>G \<turnstile> FF\<close>
+    { assume \<open>Neg (P[t/0]) # G \<turnstile> \<bottom>\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using cut \<open>G \<turnstile> Neg (P[t/0])\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    then have \<open>\<not> Neg (P[t/0]) # G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
+    then have \<open>\<not> Neg (P[t/0]) # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>S \<union> {Neg (P[t/0])} = set (Neg (P[t/0]) # G)\<close>
       using * by simp
@@ -2759,19 +2759,19 @@ proof (intro conjI allI impI notI)
     then obtain x where **: \<open>x \<in> - ((\<Union>p \<in> set G. params p) \<union> params P)\<close>
       using infinite_imp_nonempty by blast
 
-    { assume \<open>P[Fun x []/0] # G \<turnstile> FF\<close>
+    { assume \<open>P[Fun x []/0] # G \<turnstile> \<bottom>\<close>
       moreover have \<open>list_all (\<lambda>p. x \<notin> params p) G\<close>
         using ** by (simp add: list_all_iff)
       moreover have \<open>x \<notin> params P\<close>
         using ** by simp
-      moreover have \<open>x \<notin> params FF\<close>
+      moreover have \<open>x \<notin> params \<bottom>\<close>
         by simp
-      ultimately have \<open>G \<turnstile> FF\<close>
+      ultimately have \<open>G \<turnstile> \<bottom>\<close>
         using ExistsE \<open>G \<turnstile> Exi P\<close> by fast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close>
         by blast}
-    then have \<open>\<not> P[Fun x []/0] # G \<turnstile> FF\<close>
+    then have \<open>\<not> P[Fun x []/0] # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>S \<union> {P[Fun x []/0]} = set (P[Fun x []/0] # G)\<close>
       using * by simp
@@ -2800,7 +2800,7 @@ proof (intro conjI allI impI notI)
       using ExistsI by blast
     moreover have \<open>Neg (P[Fun x []/0]) # ?x # G \<turnstile> ?x\<close>
       by (simp add: Assum)
-    ultimately have \<open>Neg (P[Fun x []/0]) # ?x # G \<turnstile> FF\<close>
+    ultimately have \<open>Neg (P[Fun x []/0]) # ?x # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>?x # G \<turnstile> P[Fun x []/0]\<close>
       using Class by blast
@@ -2812,24 +2812,24 @@ proof (intro conjI allI impI notI)
       using ForallI by fast
     moreover have \<open>?x # G \<turnstile> Neg (Uni P)\<close>
       using * \<open>Neg (Uni P) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>?x # G \<turnstile> FF\<close>
+    ultimately have \<open>?x # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>G \<turnstile> Exi (Neg P)\<close>
       using Class by blast
 
-    { assume \<open>Neg (P[Fun x []/0]) # G \<turnstile> FF\<close>
+    { assume \<open>Neg (P[Fun x []/0]) # G \<turnstile> \<bottom>\<close>
       moreover have \<open>list_all (\<lambda>p. x \<notin> params p) G\<close>
         using ** by (simp add: list_all_iff)
       moreover have \<open>x \<notin> params P\<close>
         using ** by simp
-      moreover have \<open>x \<notin> params FF\<close>
+      moreover have \<open>x \<notin> params \<bottom>\<close>
         by simp
-      ultimately have \<open>G \<turnstile> FF\<close>
+      ultimately have \<open>G \<turnstile> \<bottom>\<close>
         using ExistsE \<open>G \<turnstile> Exi (Neg P)\<close> by fastforce
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close>
         by blast}
-    then have \<open>\<not> Neg (P[Fun x []/0]) # G \<turnstile> FF\<close>
+    then have \<open>\<not> Neg (P[Fun x []/0]) # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>S \<union> {Neg (P[Fun x []/0])} = set (Neg (P[Fun x []/0]) # G)\<close>
       using * by simp
@@ -2849,10 +2849,10 @@ theorem natded_complete:
   shows \<open>ps \<turnstile> p\<close>
 proof (rule Class, rule ccontr)
   fix e
-  assume \<open>\<not> Neg p # ps \<turnstile> FF\<close>
+  assume \<open>\<not> Neg p # ps \<turnstile> \<bottom>\<close>
 
   let ?S = \<open>set (Neg p # ps)\<close>
-  let ?C = \<open>{set (G :: (nat, nat) form list) | G. \<not> G \<turnstile> FF}\<close>
+  let ?C = \<open>{set (G :: (nat, nat) form list) | G. \<not> G \<turnstile> \<bottom>}\<close>
   let ?f = HFun
   let ?g = \<open>(\<lambda>a ts. Pre a (terms_of_hterms ts) \<in> Extend ?S
               (mk_finite_char (mk_alt_consistency (close ?C))) from_nat)\<close>
@@ -2866,7 +2866,7 @@ proof (rule Class, rule ccontr)
     moreover have \<open>consistency ?C\<close>
       using deriv_consistency by blast
     moreover have \<open>?S \<in> ?C\<close>
-      using \<open>\<not> Neg p # ps \<turnstile> FF\<close> by blast
+      using \<open>\<not> Neg p # ps \<turnstile> \<bottom>\<close> by blast
     moreover have \<open>infinite (- (\<Union>p \<in> ?S. params p))\<close>
       by (simp add: Compl_eq_Diff_UNIV)
     moreover note \<open>closed 0 p\<close> \<open>\<forall>p \<in> set ps. closed 0 p\<close> \<open>x \<in> ?S\<close>
@@ -2916,10 +2916,10 @@ proof (intro allI impI conjI)
       then show False by simp
     qed }
 
-  show \<open>FF \<notin> S\<close>
+  show \<open>\<bottom> \<notin> S\<close>
     using * by fastforce
 
-  show \<open>Neg TT \<notin> S\<close>
+  show \<open>Neg \<top> \<notin> S\<close>
     using * by fastforce
 
   { fix Z
@@ -3314,8 +3314,8 @@ primrec
   \<open>subc_list c s (t # l) = subc_term c s t # subc_list c s l\<close>
 
 primrec subc :: \<open>'a \<Rightarrow> 'a term \<Rightarrow> ('a, 'b) form \<Rightarrow> ('a, 'b) form\<close> where
-  \<open>subc c s FF = FF\<close> |
-  \<open>subc c s TT = TT\<close> |
+  \<open>subc c s \<bottom> = \<bottom>\<close> |
+  \<open>subc c s \<top> = \<top>\<close> |
   \<open>subc c s (Pre i l) = Pre i (subc_list c s l)\<close> |
   \<open>subc c s (Neg p) = Neg (subc c s p)\<close> |
   \<open>subc c s (Imp p q) = Imp (subc c s p) (subc c s q)\<close> |

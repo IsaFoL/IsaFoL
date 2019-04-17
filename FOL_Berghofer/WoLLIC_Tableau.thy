@@ -10,7 +10,7 @@ theory WoLLIC_Tableau imports WoLLIC_FOL begin
 inductive TC :: \<open>('a, 'b) form list \<Rightarrow> bool\<close> ("\<stileturn> _" 0) where
   Basic: \<open>\<stileturn> Pre i l # Neg (Pre i l) # G\<close>
 | BasicFF: \<open>\<stileturn> \<bottom> # G\<close>
-| BasicNegTT: \<open>\<stileturn> Neg TT # G\<close>
+| BasicNegTT: \<open>\<stileturn> Neg \<top> # G\<close>
 | AlphaNegNeg: \<open>\<stileturn> A # G \<Longrightarrow> \<stileturn> Neg (Neg A) # G\<close>
 | AlphaAnd: \<open>\<stileturn> A # B # G \<Longrightarrow> \<stileturn> Con A B # G\<close>
 | AlphaNegOr: \<open>\<stileturn> Neg A # Neg B # G \<Longrightarrow> \<stileturn> Neg (Dis A B) # G\<close>
@@ -150,7 +150,7 @@ proof (intro conjI allI impI notI)
     then show False
       using * BasicFF Order \<open>\<not> (\<stileturn> G)\<close> by fastforce }
 
-  { assume \<open>Neg TT \<in> S\<close>
+  { assume \<open>Neg \<top> \<in> S\<close>
     then show False
       using * BasicNegTT Order \<open>\<not> (\<stileturn> G)\<close> by fastforce }
 
