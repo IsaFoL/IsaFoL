@@ -5381,8 +5381,8 @@ proof -
         have [simp]: \<open>k - min (length M') k = 0\<close>
           unfolding k_def by auto
         have C_N_U: \<open>C \<in># N + U'\<close>
-          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def Sk
-            k_def[symmetric]
+          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def Sk
+            k_def[symmetric] cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
           apply (subst (asm)(4)M')
           apply (subst (asm)(10)M')
           unfolding K
@@ -5529,8 +5529,8 @@ proof -
         have [simp]: \<open>k - min (length M') k = 0\<close>
           unfolding k_def by auto
         have C_N_U: \<open>C \<in># N + U'\<close>
-          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def Sk
-            k_def[symmetric]
+          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def Sk
+            k_def[symmetric] cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
           apply (subst (asm)(4)M')
           apply (subst (asm)(10)M')
           unfolding K
@@ -5686,7 +5686,7 @@ proof -
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
         S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def)
   have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
     by (rule true_clss_clss_true_clss_cls_true_clss_clss[OF N_U_M M_D])
   then have \<open>set_mset N \<Turnstile>ps CNot D\<close> \<open>set_mset N \<Turnstile>p D\<close>
@@ -5719,7 +5719,7 @@ proof -
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
         S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def)
   have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
     by (rule true_clss_clss_true_clss_cls_true_clss_clss[OF N_U_M M_D])
   then have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close> \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>

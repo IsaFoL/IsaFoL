@@ -405,7 +405,7 @@ next
       using tr_T tr_T' confl unfolding M''_def by (auto elim: rulesE)
     have "init_clss T' + learned_clss S \<Turnstile>pm ?D'"
       using inv_T' confl_T' \<open>clauses S = clauses T\<close> \<open>clauses T = clauses T'\<close> T'_L_D'
-      unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def clauses_def by auto
+      unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_alt_def clauses_def by auto
     have "reduce_trail_to (convert_trail_from_NOT (convert_trail_from_W M1)) S =
       reduce_trail_to M1 S"
       by (rule reduce_trail_to_length) simp

@@ -1,41 +1,11 @@
-theory WoLLIC_Sorry imports Main begin
+(*
+    Author: Jørgen Villadsen, DTU Compute, 2019
+    Contributors: Andreas Halkjær From, Alexander Birch Jensen & Anders Schlichtkrull
+*)
 
-datatype 'a "term" =
-  Var nat |
-  Fun 'a \<open>'a term list\<close>
+section \<open>Formalizing a Sequent Calculus in Isabelle/HOL\<close>
 
-datatype ('a, 'b) form =
-  FF ("\<bottom>") |
-  TT ("\<top>") |
-  Pre 'b \<open>'a term list\<close> |
-  Con \<open>('a, 'b) form\<close> \<open>('a, 'b) form\<close> |
-  Dis \<open>('a, 'b) form\<close> \<open>('a, 'b) form\<close> |
-  Imp \<open>('a, 'b) form\<close> \<open>('a, 'b) form\<close> |
-  Neg \<open>('a, 'b) form\<close> |
-  Uni \<open>('a, 'b) form\<close> |
-  Exi \<open>('a, 'b) form\<close>
-
-datatype 'a hterm = HFun 'a \<open>'a hterm list\<close>
-
-definition shift where
-  \<open>shift e v z \<equiv> \<lambda>n. if n < v then e n else if n = v then z else e (n - 1)\<close>
-
-fun semantics_term and semantics_list where
-  \<open>semantics_term e f (Var n) = e n\<close> |
-  \<open>semantics_term e f (Fun i l) = f i (semantics_list e f l)\<close> |
-  \<open>semantics_list e f [] = []\<close> |
-  \<open>semantics_list e f (t # l) = semantics_term e f t # semantics_list e f l\<close>
-
-fun semantics where
-  \<open>semantics e f g \<bottom> = False\<close> |
-  \<open>semantics e f g \<top> = True\<close> |
-  \<open>semantics e f g (Pre i l) = g i (semantics_list e f l)\<close> |
-  \<open>semantics e f g (Con p q) = (semantics e f g p \<and> semantics e f g q)\<close> |
-  \<open>semantics e f g (Dis p q) = (semantics e f g p \<or> semantics e f g q)\<close> |
-  \<open>semantics e f g (Imp p q) = (semantics e f g p \<longrightarrow> semantics e f g q)\<close> |
-  \<open>semantics e f g (Neg p) = (\<not> semantics e f g p)\<close> |
-  \<open>semantics e f g (Uni p) = (\<forall>z. semantics (shift e 0 z) f g p)\<close> |
-  \<open>semantics e f g (Exi p) = (\<exists>z. semantics (shift e 0 z) f g p)\<close>
+theory FOL_Appendix imports FOL_Sequent begin
 
 fun new_term and new_list where
   \<open>new_term c (Var n) = True\<close> |
@@ -106,13 +76,56 @@ inductive sequent_calculus ("\<tturnstile> _" 0) where
   \<open>\<tturnstile> Neg (sub 0 (Fun i []) p) # x \<Longrightarrow> news i (p # x) \<Longrightarrow> \<tturnstile> Neg (Exi p) # x\<close> |
   \<open>\<tturnstile> x \<Longrightarrow> ext y x \<Longrightarrow> \<tturnstile> y\<close>
 
+lemma s1 [simp]: \<open>new_term c t = FOL_Berghofer.new_term c t\<close> \<open>new_list c l = FOL_Berghofer.new_list c l\<close>
+  by (induct t and l rule: new_term_new_list.induct) simp_all
+
+lemma s2 [simp]: \<open>new c p = FOL_Berghofer.new c p\<close>
+  by (induct p) simp_all
+
+lemma s3 [simp]: \<open>news c x = FOL_Berghofer.news c x\<close>
+  by (induct x) simp_all
+
+lemma s4 [simp]: \<open>inc_term t = liftt (t :: 'a term)\<close> \<open>inc_list l = liftts (l :: 'a term list)\<close>
+  by (induct t and l rule: inc_term_inc_list.induct) simp_all
+
+lemma s5 [simp]: \<open>sub_term v s t = substt t s v\<close> \<open>sub_list v s l = substts l s v\<close>
+  by (induct t and l rule: inc_term_inc_list.induct) simp_all
+
+lemma s6 [simp]: \<open>sub v s p = subst p s v\<close>
+  by (induct p arbitrary: v s) simp_all
+
+lemma member_set [simp]: \<open>p \<in> set x = member p x\<close>
+  by (induct x) simp_all
+
+lemma ext_set [simp]: \<open>set x \<subseteq> set y = ext y x\<close>
+  by (induct x) simp_all
+
+lemma x1: \<open>\<tturnstile> x \<Longrightarrow> \<turnstile> x\<close>
+  by (induct x rule: sequent_calculus.induct) (simp_all add: SC.intros)
+
+lemma x2: \<open>\<turnstile> x \<Longrightarrow> \<tturnstile> x\<close>
+  by (induct x rule: SC.induct) (simp_all add: sequent_calculus.intros)
+
+lemma x0: \<open>(\<tturnstile> x) = (\<turnstile> x)\<close>
+  using x1 x2 by fast
+
 abbreviation herbrand_valid ("\<then> _" 0) where
   \<open>(\<then> p :: (nat, nat) form) \<equiv> \<forall>(e :: _ \<Rightarrow> nat hterm) f g. semantics e f g p\<close>
 
 theorem complete_sound: \<open>\<then> p \<Longrightarrow> \<tturnstile> [p]\<close> \<open>\<tturnstile> [q] \<Longrightarrow> semantics e f g q\<close>
-  sorry
+  by (use sc_completeness x0 list.map(1) in metis) (use sc_soundness x0 in fastforce)
 
 corollary \<open>(\<then> p) \<longleftrightarrow> (\<tturnstile> [p])\<close>
   using complete_sound by fast
+
+subsection \<open>Acknowledgements\<close>
+
+text \<open>
+
+\<^item> Mordechai (Moti) Ben-Ari:
+Mathematical Logic for Computer Science.
+\<^url>\<open>https://www.springer.com/gp/book/9781447141280\<close>
+
+\<close>
 
 end

@@ -12,8 +12,8 @@ TODO.
 
 theory Executable_FO_Ordered_Resolution_Prover
   imports
-    Deterministic_FO_Ordered_Resolution_Prover
-    Executable_Subsumption
+    Functional_Ordered_Resolution_Prover.Deterministic_FO_Ordered_Resolution_Prover
+    Functional_Ordered_Resolution_Prover.Executable_Subsumption
     "HOL-Library.Code_Target_Nat"
     Show.Show_Instances
     IsaFoR_Term_KBO

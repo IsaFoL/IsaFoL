@@ -11,7 +11,7 @@ theory IsaFoR_Term
 begin
 
 text \<open>
-This part of the formalization has been [moved to the Functional Ordered Resolution Prover IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/Functional_Ordered_Resolution_Prover/).
+This part of the formalization has been [moved to the Functional Ordered Resolution Prover AFP entry](https://www.isa-afp.org/browser_info/current/AFP/Functional_Ordered_Resolution_Prover/IsaFoR_Term.html).
 \<close>
 
 end

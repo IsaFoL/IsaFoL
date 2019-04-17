@@ -5,12 +5,12 @@
 
 section \<open>Sequent Calculus\<close>
 
-theory WoLLIC_Sequent imports WoLLIC_Tableau begin
+theory FOL_Sequent imports FOL_Tableau begin
 
 inductive SC :: \<open>('a, 'b) form list \<Rightarrow> bool\<close> ("\<turnstile> _" 0) where
   Basic: \<open>\<turnstile> Pre i l # Neg (Pre i l) # G\<close>
 | BasicNegFF: \<open>\<turnstile> Neg \<bottom> # G\<close>
-| BasicTT: \<open>\<turnstile> TT # G\<close>
+| BasicTT: \<open>\<turnstile> \<top> # G\<close>
 | AlphaNegNeg: \<open>\<turnstile> A # G \<Longrightarrow> \<turnstile> Neg (Neg A) # G\<close>
 | AlphaNegAnd: \<open>\<turnstile> Neg A # Neg B # G \<Longrightarrow> \<turnstile> Neg (Con A B) # G\<close>
 | AlphaOr: \<open>\<turnstile> A # B # G \<Longrightarrow> \<turnstile> Dis A B # G\<close>

@@ -1,5 +1,5 @@
 theory Watched_Literals_Watch_List
-  imports Watched_Literals_List Array_UInt "../lib/Explorer"
+  imports Watched_Literals_List Array_UInt Weidenbach_Book_Base.Explorer
 begin
 
 text \<open>Remove notation that coonflicts with \<^term>\<open>list_update\<close>:\<close>

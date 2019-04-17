@@ -2,6 +2,7 @@ theory CDCL_W
   imports CDCL_W_Level Weidenbach_Book_Base.Wellfounded_More
 begin
 
+
 chapter \<open>Weidenbach's CDCL\<close>
 
 text \<open>The organisation of the development is the following:
@@ -58,7 +59,7 @@ abbreviation hd_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lit" where
 definition clauses :: "'st \<Rightarrow> 'v clauses" where
 "clauses S = init_clss S + learned_clss S"
 
-abbreviation resolve_cls where
+abbreviation resolve_cls :: \<open>'a literal \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause\<close> where
 "resolve_cls L D' E \<equiv> remove1_mset (-L) D' \<union># remove1_mset L E"
 
 abbreviation state_butlast :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses
@@ -465,16 +466,19 @@ lemma conflicting_add_learned_cls_conflicting[iff]:
   by fastforce+
 
 lemma reduce_trail_to_compow_tl_trail_le:
-  \<open>length M < length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
-  apply (induction M\<equiv>M S\<equiv>M' arbitrary: M M' rule: reduce_trail_to.induct)
-  subgoal for F S
-    apply (subst reduce_trail_to.simps)
-    apply (cases \<open>length F < length (trail S) - Suc 0\<close>)
-    apply (auto simp: less_iff_Suc_add funpow_swap1)
-    apply (subgoal_tac \<open>k=0\<close>)
-    apply auto
-    by presburger
-  done
+  assumes \<open>length M < length (trail M')\<close>
+  shows \<open>reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
+proof -
+  have [simp]: \<open>(\<forall>ka. k \<noteq> Suc ka) \<longleftrightarrow> k = 0\<close> for k
+    by (cases k) auto
+  show ?thesis
+    using assms
+    apply (induction M\<equiv>M S\<equiv>M' arbitrary: M M' rule: reduce_trail_to.induct)
+    subgoal for F S
+      by (subst reduce_trail_to.simps; cases \<open>length F < length (trail S) - Suc 0\<close>)
+        (auto simp: less_iff_Suc_add funpow_swap1)
+    done
+ qed
 
 lemma reduce_trail_to_compow_tl_trail_eq:
   \<open>length M = length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
@@ -1462,22 +1466,29 @@ text \<open>This invariant shows that:
   \<^item> the marks belong to the clauses. We could also restrict it to entailment by the clauses, to
   allow forgetting this clauses.\<close>
 
-definition "cdcl\<^sub>W_learned_clause (S :: 'st) \<longleftrightarrow>
-  ((\<forall>T. conflicting S = Some T \<longrightarrow> clauses S \<Turnstile>pm T)
-  \<and> set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S))"
+definition (in state\<^sub>W_ops) reasons_in_clauses :: \<open>'st \<Rightarrow> bool\<close> where
+  \<open>reasons_in_clauses (S :: 'st) \<longleftrightarrow>
+    (set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S))\<close>
 
-text \<open>This is a more reduced version of the previous invariant. This is mostly interesting for BnB. However,
-  inlining it in the previous definition is a major undertaking.
+definition (in state\<^sub>W_ops) cdcl\<^sub>W_learned_clause :: \<open>'st \<Rightarrow> bool\<close> where
+ "cdcl\<^sub>W_learned_clause (S :: 'st) \<longleftrightarrow>
+    ((\<forall>T. conflicting S = Some T \<longrightarrow> clauses S \<Turnstile>pm T)
+    \<and> reasons_in_clauses S)"
 
-TODO: remove this duplicate.\<close>
-definition "reasons_in_clauses (S :: 'st) \<longleftrightarrow>
-  (set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S))"
+lemma cdcl\<^sub>W_learned_clause_alt_def:
+  \<open>cdcl\<^sub>W_learned_clause (S :: 'st) \<longleftrightarrow>
+    ((\<forall>T. conflicting S = Some T \<longrightarrow> clauses S \<Turnstile>pm T)
+    \<and> set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S))\<close>
+  by (auto simp: cdcl\<^sub>W_learned_clause_def reasons_in_clauses_def)
+
+lemma reasons_in_clauses_init_state[simp]: \<open>reasons_in_clauses (init_state N)\<close>
+  by (auto simp: reasons_in_clauses_def)
 
 text \<open>\cwref{prop:prop:cdclConflClause}{Item 3 page 95} for the inital state and some additional structural
   properties about the trail.\<close>
 lemma cdcl\<^sub>W_learned_clause_S0_cdcl\<^sub>W_restart[simp]:
    "cdcl\<^sub>W_learned_clause (init_state N)"
-  unfolding cdcl\<^sub>W_learned_clause_def by auto
+  unfolding cdcl\<^sub>W_learned_clause_alt_def by auto
 
 text \<open>\cwref{prop:prop:cdclvaluation}{Item 4 page 95}\<close>
 lemma cdcl\<^sub>W_restart_learned_clss:
@@ -1491,14 +1502,14 @@ proof (induct rule: cdcl\<^sub>W_restart_all_induct)
   case (backtrack L D K i M1 M2 T D') note decomp = this(2) and confl = this(1) and lev_K = this (6)
     and T = this(9)
   show ?case
-    using decomp learned confl T unfolding cdcl\<^sub>W_learned_clause_def
+    using decomp learned confl T unfolding cdcl\<^sub>W_learned_clause_alt_def reasons_in_clauses_def
     by (auto dest!: get_all_ann_decomposition_exists_prepend)
 next
   case (resolve L C M D) note trail = this(1) and CL = this(2) and confl = this(4) and DL = this(5)
     and lvl = this(6) and T = this(7)
   moreover
     have "clauses S \<Turnstile>pm add_mset L C"
-      using trail learned unfolding cdcl\<^sub>W_learned_clause_def clauses_def
+      using trail learned unfolding cdcl\<^sub>W_learned_clause_alt_def clauses_def reasons_in_clauses_def
       by (auto dest: true_clss_clss_in_imp_true_clss_cls)
   moreover have "remove1_mset (- L) D + {#- L#} = D"
     using DL by (auto simp: multiset_eq_iff)
@@ -1507,28 +1518,29 @@ next
   ultimately show ?case
     using learned T
     by (auto dest: mk_disjoint_insert
-      simp add: cdcl\<^sub>W_learned_clause_def clauses_def
+      simp add: cdcl\<^sub>W_learned_clause_alt_def clauses_def reasons_in_clauses_def
       intro!: true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or[of _ L])
 next
   case (restart T)
   then show ?case
     using learned
     by (auto
-      simp: clauses_def cdcl\<^sub>W_learned_clause_def
+      simp: clauses_def cdcl\<^sub>W_learned_clause_alt_def reasons_in_clauses_def
       dest: true_clss_clssm_subsetE)
 next
   case propagate
-  then show ?case using learned by (auto simp: cdcl\<^sub>W_learned_clause_def)
+  then show ?case using learned by (auto simp: cdcl\<^sub>W_learned_clause_alt_def reasons_in_clauses_def)
 next
   case conflict
   then show ?case using learned
-    by (fastforce simp: cdcl\<^sub>W_learned_clause_def clauses_def
-      true_clss_clss_in_imp_true_clss_cls)
+    by (fastforce simp: cdcl\<^sub>W_learned_clause_alt_def clauses_def
+      true_clss_clss_in_imp_true_clss_cls reasons_in_clauses_def)
 next
   case (forget U)
   then show ?case using learned
-    by (auto simp: cdcl\<^sub>W_learned_clause_def clauses_def split: if_split_asm)
-qed (use learned in \<open>auto simp: cdcl\<^sub>W_learned_clause_def clauses_def\<close>)
+    by (auto simp: cdcl\<^sub>W_learned_clause_alt_def clauses_def reasons_in_clauses_def
+      split: if_split_asm)
+qed (use learned in \<open>auto simp: cdcl\<^sub>W_learned_clause_alt_def clauses_def reasons_in_clauses_def\<close>)
 
 lemma rtranclp_cdcl\<^sub>W_restart_learned_clss:
   assumes
@@ -1536,7 +1548,8 @@ lemma rtranclp_cdcl\<^sub>W_restart_learned_clss:
     "cdcl\<^sub>W_M_level_inv S"
     "cdcl\<^sub>W_learned_clause S"
   shows "cdcl\<^sub>W_learned_clause S'"
-  using assms by induction (auto dest: cdcl\<^sub>W_restart_learned_clss intro: rtranclp_cdcl\<^sub>W_restart_consistent_inv)
+  using assms
+  by induction (auto dest: cdcl\<^sub>W_restart_learned_clss intro: rtranclp_cdcl\<^sub>W_restart_consistent_inv)
 
 lemma cdcl\<^sub>W_restart_reasons_in_clauses:
   assumes
@@ -1588,8 +1601,8 @@ proof (induction rule: propagate.induct)
   case (propagate_rule C L T) note confl = this(1) and C = this(2) and C_L = this(3) and
     tr = this(4) and undef = this(5) and T = this(6)
   have atm_CL: "atms_of C \<subseteq> atms_of_mm (init_clss S)"
-    using C alien unfolding no_strange_atm_def
-    by (auto simp: clauses_def atms_of_ms_def)
+    using C alien unfolding no_strange_atm_def 
+    by (auto simp: clauses_def dest!: multi_member_split)
   show ?case
     unfolding no_strange_atm_def
   proof (intro conjI allI impI, goal_cases)
@@ -2032,7 +2045,7 @@ next
   proof (rule true_clss_cls_plus_CNot)
     show "?I \<Turnstile>p add_mset L (remove1_mset L C)"
       apply (rule true_clss_clss_in_imp_true_clss_cls[of _ "set_mset (clauses S)"])
-      using learned propa L by (auto simp: cdcl\<^sub>W_learned_clause_def true_annot_CNot_diff)
+      using learned propa L by (auto simp: cdcl\<^sub>W_learned_clause_alt_def true_annot_CNot_diff)
   next
     have "unmark_l (trail S) \<Turnstile>ps CNot (remove1_mset L C)"
       using S_CNot_C by (blast dest: true_annots_true_clss_clss)
@@ -2302,7 +2315,7 @@ lemma cdcl\<^sub>W_learned_clauses_entailed:
 proof (induction rule: cdcl\<^sub>W_restart_all_induct)
   case backtrack
   then show ?case
-    using assms unfolding cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+    using assms unfolding cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_learned_clauses_entailed_by_init_def
     by (auto dest!: get_all_ann_decomposition_exists_prepend
       simp: clauses_def cdcl\<^sub>W_M_level_inv_decomp dest: true_clss_clss_left_right)
 qed (auto simp: cdcl\<^sub>W_learned_clauses_entailed_by_init_def elim: true_clss_clssm_subsetE)
@@ -2479,7 +2492,7 @@ lemma conflict_with_false_implies_unsat:
   using assms
 proof -
   have "cdcl\<^sub>W_learned_clause S'" using cdcl\<^sub>W_restart_learned_clss cdcl\<^sub>W_restart learned lev by auto
-  then have entail_false: "clauses S' \<Turnstile>pm {#}" using assms(3) unfolding cdcl\<^sub>W_learned_clause_def by auto
+  then have entail_false: "clauses S' \<Turnstile>pm {#}" using assms(3) unfolding cdcl\<^sub>W_learned_clause_alt_def by auto
   moreover have entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S'\<close>
     using cdcl\<^sub>W_learned_clauses_entailed[OF cdcl\<^sub>W_restart learned learned_entailed] .
   ultimately have "set_mset (init_clss S') \<Turnstile>ps {{#}}"
@@ -2782,7 +2795,7 @@ proof (rule backtrack_rule)
   qed
 
   show \<open>clauses S \<Turnstile>pm add_mset L D\<close>
-    using cdcl\<^sub>W_learned_clause_def confl learned by blast
+    using cdcl\<^sub>W_learned_clause_alt_def confl learned by blast
 
   show \<open>T \<sim> cons_trail (Propagated L (add_mset L D)) (reduce_trail_to M1 (add_learned_cls (add_mset L D) (update_conflicting None S)))\<close>
     using T by blast
@@ -3164,7 +3177,7 @@ proof -
     case (Some_Empty E)
     then have "conflicting S = Some {#}" by auto
     then have unsat_clss_S: "unsatisfiable (set_mset (clauses S))"
-      using learned unfolding cdcl\<^sub>W_learned_clause_def true_clss_cls_def
+      using learned unfolding cdcl\<^sub>W_learned_clause_alt_def true_clss_cls_def
         conflict_is_false_with_level_def
       by (metis (no_types, lifting) Un_insert_right atms_of_empty satisfiable_def
           sup_bot.right_neutral total_over_m_insert total_over_set_empty true_cls_empty)
@@ -3239,7 +3252,7 @@ proof -
     case (Some_Empty E)
     then have "conflicting S = Some {#}" by auto
     then have unsat_clss_S: "unsatisfiable (set_mset (clauses S))"
-      using learned learned_entailed unfolding cdcl\<^sub>W_learned_clause_def true_clss_cls_def
+      using learned learned_entailed unfolding cdcl\<^sub>W_learned_clause_alt_def true_clss_cls_def
         conflict_is_false_with_level_def
       by (metis (no_types, lifting) Un_insert_right atms_of_empty satisfiable_def
           sup_bot.right_neutral total_over_m_insert total_over_set_empty true_cls_empty)
@@ -3252,7 +3265,7 @@ proof -
         by auto
       have "init_clss S \<Turnstile>psm learned_clss S"
         using learned_entailed
-        unfolding cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_learned_clauses_entailed_by_init_def by blast
+        unfolding cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_learned_clauses_entailed_by_init_def by blast
       then show ?thesis
         using f3 unsat_clss_S
         unfolding true_clss_clss_def total_over_m_def clauses_def satisfiable_def
@@ -4596,7 +4609,8 @@ proof (rule ccontr)
   have \<open>undefined_lit M1 K\<close>
     using nd unfolding M' K decomp' by simp
   moreover have \<open>{#} + {#K#} \<in># clauses S\<close>
-    using struct unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def M M' K C
+    using struct unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_alt_def M M' K C
+      reasons_in_clauses_def
     by auto
   moreover have \<open>M1 \<Turnstile>as CNot {#}\<close>
     by auto
@@ -4730,7 +4744,7 @@ proof -
     alien: \<open>no_strange_atm S\<close>
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by fast+
   have clss_D: \<open>clauses S \<Turnstile>pm D\<close>
-    using learned conf unfolding cdcl\<^sub>W_learned_clause_def by auto
+    using learned conf unfolding cdcl\<^sub>W_learned_clause_alt_def by auto
   have M_CNot_D: \<open>trail S \<Turnstile>as CNot D\<close> and m_confl: \<open>every_mark_is_a_conflict S\<close>
     using conf confl unfolding cdcl\<^sub>W_conflicting_def by auto
   have n_d: \<open>no_dup M\<close>
