@@ -16,3 +16,5 @@ Post-proceedings of the 7th International Workshop on Theorem proving components
 ## Author ##
 
 * [Andreas Halkjær From](mailto:s144442 shtrudel student.dtu.dk)
+
+Contributors: Alexander Birch Jensen, Anders Schlichtkrull & Jørgen Villadsen
