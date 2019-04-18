@@ -1196,7 +1196,7 @@ lemma rtranclp_cdcl_dpll_bnb_r_stgy_additional_lit_notin_both_init_state:
       conflict_is_false_with_level_def)
   subgoal
     apply (auto simp: additional_lit_notin_def)
-    sorry
+(*    sorry
   subgoal
     by (auto simp: reasons_in_clauses_def)
   subgoal
@@ -1208,7 +1208,8 @@ lemma rtranclp_cdcl_dpll_bnb_r_stgy_additional_lit_notin_both_init_state:
   subgoal
     by (auto simp: conflict_is_false_with_level_def)
   done
-
+*)
+oops
 
 context
   fixes S :: 'st and N :: \<open>'v clauses\<close>
