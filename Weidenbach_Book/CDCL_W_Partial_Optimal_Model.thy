@@ -1216,11 +1216,94 @@ context
   assumes S_\<Sigma>: \<open>init_clss S = penc N\<close>
 begin
 
+lemma replacement_pos_neg_defined_same_lvl:
+  assumes
+    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close> and
+    A: \<open>A \<in> \<Delta>\<Sigma>\<close> and
+    lev: \<open>get_level (trail S) (Pos (replacement_pos A)) < backtrack_lvl S\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    smaller_confl: \<open>cdcl_bnb_stgy_inv S\<close>
+  shows
+    \<open>Pos (replacement_pos A) \<in> lits_of_l (trail S) \<Longrightarrow>
+      Neg (replacement_neg A) \<in> lits_of_l (trail S)\<close>
+proof -
+  have n_d: \<open>no_dup (trail S)\<close>
+    using struct
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
+    have H: \<open>\<And>M K M' D L.
+        trail S = M' @ Decided K # M \<Longrightarrow>
+        D + {#L#} \<in># additional_constraint A \<Longrightarrow> undefined_lit M L \<Longrightarrow> \<not> M \<Turnstile>as CNot D\<close> and
+      H': \<open>\<And>M K M' D L.
+        trail S = M' @ Decided K # M \<Longrightarrow>
+        D \<in># additional_constraint A \<Longrightarrow>  \<not> M \<Turnstile>as CNot D\<close>
+    using smaller_propa S_\<Sigma> A smaller_confl unfolding no_smaller_propa_def clauses_def penc_def
+      additional_constraints_def cdcl_bnb_stgy_inv_def no_smaller_confl_def by fastforce+
+
+  show \<open>Neg (replacement_neg A) \<in> lits_of_l (trail S)\<close>
+    if Pos: \<open>Pos (replacement_pos A) \<in> lits_of_l (trail S)\<close>
+  proof -
+    obtain M1 M2 K where
+      \<open>trail S = M2 @ Decided K # M1\<close> and
+      \<open>Pos (replacement_pos A) \<in> lits_of_l M1\<close>
+      using lev n_d Pos by (force dest!: split_list elim!: is_decided_ex_Decided
+        simp: lits_of_def count_decided_def filter_empty_conv)
+    then show \<open>Neg (replacement_neg A) \<in> lits_of_l (trail S)\<close>
+      using H[of M2 K M1 \<open>{#Neg (replacement_pos A)#}\<close> \<open>Neg (replacement_neg A)\<close>]
+        H'[of M2 K M1 \<open>{#Neg (replacement_pos A), Neg (replacement_neg A)#}\<close>]
+	by (auto simp: additional_constraint_def Decided_Propagated_in_iff_in_lits_of_l)
+  qed
+qed
+
+
+lemma replacement_pos_neg_defined_same_lvl':
+  assumes
+    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close> and
+    A: \<open>A \<in> \<Delta>\<Sigma>\<close> and
+    lev: \<open>get_level (trail S) (Pos (replacement_neg A)) < backtrack_lvl S\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    smaller_confl: \<open>cdcl_bnb_stgy_inv S\<close>
+  shows
+    \<open>Pos (replacement_neg A) \<in> lits_of_l (trail S) \<Longrightarrow>
+      Neg (replacement_pos A) \<in> lits_of_l (trail S)\<close>
+proof -
+  have n_d: \<open>no_dup (trail S)\<close>
+    using struct
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
+    have H: \<open>\<And>M K M' D L.
+        trail S = M' @ Decided K # M \<Longrightarrow>
+        D + {#L#} \<in># additional_constraint A \<Longrightarrow> undefined_lit M L \<Longrightarrow> \<not> M \<Turnstile>as CNot D\<close> and
+      H': \<open>\<And>M K M' D L.
+        trail S = M' @ Decided K # M \<Longrightarrow>
+        D \<in># additional_constraint A \<Longrightarrow>  \<not> M \<Turnstile>as CNot D\<close>
+    using smaller_propa S_\<Sigma> A smaller_confl unfolding no_smaller_propa_def clauses_def penc_def
+      additional_constraints_def cdcl_bnb_stgy_inv_def no_smaller_confl_def by fastforce+
+
+  show \<open>Neg (replacement_pos A) \<in> lits_of_l (trail S)\<close>
+    if Pos: \<open>Pos (replacement_neg A) \<in> lits_of_l (trail S)\<close>
+  proof -
+    obtain M1 M2 K where
+      \<open>trail S = M2 @ Decided K # M1\<close> and
+      \<open>Pos (replacement_neg A) \<in> lits_of_l M1\<close>
+      using lev n_d Pos by (force dest!: split_list elim!: is_decided_ex_Decided
+        simp: lits_of_def count_decided_def filter_empty_conv)
+    then show \<open>Neg (replacement_pos A) \<in> lits_of_l (trail S)\<close>
+      using H[of M2 K M1 \<open>{#Neg (replacement_neg A)#}\<close> \<open>Neg (replacement_pos A)\<close>]
+        H'[of M2 K M1 \<open>{#Neg (replacement_neg A), Neg (replacement_pos A)#}\<close>]
+	by (auto simp: additional_constraint_def Decided_Propagated_in_iff_in_lits_of_l)
+  qed
+qed
+
 lemma
   assumes
     \<open>enc_weight_opt.cdcl_bnb_stgy S T\<close> and
     struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close> and
-    dist: \<open>distinct_mset (normalize_clause `# learned_clss S)\<close>
+    dist: \<open>distinct_mset (normalize_clause `# learned_clss S)\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    smaller_confl: \<open>cdcl_bnb_stgy_inv S\<close>
   shows \<open>distinct_mset (normalize_clause `# learned_clss T)\<close>
   using assms(1)
 proof (cases)
@@ -1255,10 +1338,10 @@ next
       then obtain M1 M2 :: \<open>('v, 'v clause) ann_lits\<close> and K L :: \<open>'v literal\<close> and
           D D' :: \<open>'v clause\<close> where
 	confl: \<open>conflicting S = Some (add_mset L D)\<close> and
-	\<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
+	decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
 	\<open>get_maximum_level (trail S) (add_mset L D') = local.backtrack_lvl S\<close> and
 	\<open>get_level (trail S) L = local.backtrack_lvl S\<close> and
-	\<open>get_level (trail S) K = Suc (get_maximum_level (trail S) D')\<close> and
+	lev_K: \<open>get_level (trail S) K = Suc (get_maximum_level (trail S) D')\<close> and
 	D'_D: \<open>D' \<subseteq># D\<close> and
 	\<open>set_mset (clauses S) \<union> set_mset (enc_weight_opt.conflicting_clss S) \<Turnstile>p
 	 add_mset L D'\<close> and
@@ -1270,22 +1353,40 @@ next
       have
         tr_D: \<open>trail S \<Turnstile>as CNot (add_mset L D)\<close> and
         \<open>distinct_mset (add_mset L D)\<close> and
-	\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (abs_state S)\<close>
+	\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (abs_state S)\<close> and
+	n_d: \<open>no_dup (trail S)\<close>
         using struct confl
 	unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
 	  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
 	  cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+	  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
 	by auto
       have tr_D': \<open>trail S \<Turnstile>as CNot (add_mset L D')\<close>
         using D'_D tr_D
 	by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
-      have \<open>-normalize_lit L2 \<in> lits_of_l (trail S) \<longleftrightarrow> -L2 \<in> lits_of_l (trail S)\<close>
-        if \<open>L2 \<in># D\<close>
+      have \<open>normalize_lit L2 \<in> lits_of_l (trail S) \<longleftrightarrow> L2 \<in> lits_of_l (trail S)\<close>
+        if \<open>L2 \<in># D'\<close>
 	for L2
-	using multi_member_split[OF that] tr_D
-	apply (cases L2)
-	apply (use that in auto)
+      proof -
+        have \<open>get_level (trail S) L2 < backtrack_lvl S\<close>
+	  using multi_member_split[OF that(1)] tr_D lev_K
+	    count_decided_ge_get_level[of \<open>trail S\<close> K]
+	  by (auto simp: get_maximum_level_add_mset max_def
+	    split: if_splits)
+	moreover have \<open>-L2 \<in> lits_of_l (trail S)\<close>
+	  using tr_D that D'_D
+	  by (auto dest!: multi_member_split
+	    simp: subset_mset.le_iff_add)
+	ultimately show ?thesis
+	  using replacement_pos_neg_defined_same_lvl[OF struct _ _ smaller_propa
+	      smaller_confl]
+	    replacement_pos_neg_defined_same_lvl'[OF struct _ _ smaller_propa
+	    smaller_confl]
+	  apply (cases L2)
+	  apply (auto simp: get_level_Neg_Pos)
+	  prefer 2
 	oops
+	find_theorems get_level Pos Neg
 (*
 	sorry
       have False
