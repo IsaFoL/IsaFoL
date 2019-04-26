@@ -90,16 +90,49 @@ paragraph \<open>Moving averages\<close>
 text \<open>We use (at least hopefully) the variant of EMA-14 implemented in Cadical, but with fixed-point
 calculation (\<^term>\<open>1 :: nat\<close> is \<^term>\<open>(1 :: nat) >> 32\<close>).
 
-Remark that the coefficient \<^term>\<open>\<beta>\<close> already takes care of the fixed-point conversion of the glue.
+Remark that the coefficient \<^term>\<open>\<beta>\<close> already should not take care of the fixed-point conversion of the glue.
+Otherwise, \<^term>\<open>value\<close> is wrongly updated.
 \<close>
 type_synonym ema = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 
 abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
   \<open>ema_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn\<close>
 
+definition ema_bitshifting where
+  \<open>ema_bitshifting = (1 << 32)\<close>
+
+sepref_register ema_bitshifting
+
+lemma ema_bitshifting_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 4294967296), uncurry0 (RETURN ema_bitshifting)) \<in> 
+     unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+proof -
+  have [simp]: \<open>Suc 0 << 32 = 4294967296\<close>
+    by eval
+  show ?thesis
+    unfolding ema_bitshifting_def
+    by sepref_to_hoare
+      (sep_auto simp: uint64_nat_rel_def br_def ema_bitshifting_def
+         nat_of_uint64_1_32 uint32_max_def)
+qed
+
+lemma ema_bitshifting_hnr2[sepref_fr_rules]:
+  \<open>(uncurry0 (return 4294967296), uncurry0 (RETURN ema_bitshifting)) \<in> 
+     unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+proof -
+  have [simp]: \<open>(1::uint64) << 32 = 4294967296\<close>
+    by eval
+  show ?thesis
+    unfolding ema_bitshifting_def
+    by sepref_to_hoare
+      (sep_auto simp: uint64_nat_rel_def br_def ema_bitshifting_def
+         nat_of_uint64_1_32 uint32_max_def)
+qed
+
 definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<close> where
   \<open>ema_update = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
-     let value = value + \<beta> * ((uint64_of_nat lbd) - value) in
+     let lbd = (uint64_of_nat lbd) * ema_bitshifting in
+     let value = value + \<beta> * (lbd - value) in
      if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
      else
        let wait = 2 * period + 1 in
@@ -110,7 +143,8 @@ definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<
 
 definition (in -) ema_update_ref :: \<open>uint32 \<Rightarrow> ema \<Rightarrow> ema\<close> where
   \<open>ema_update_ref = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
-     let value = value + \<beta> * ((uint64_of_uint32 lbd) - value) in
+     let lbd = (uint64_of_uint32 lbd) * ema_bitshifting in
+     let value = value + \<beta> * (lbd - value) in
      if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
      else
        let wait = 2 * period + 1 in

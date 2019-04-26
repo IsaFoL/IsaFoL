@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "d3982ff3";
+val version : string = "b275eced";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -5519,12 +5519,17 @@ fun isa_vmtf_flush_fast_code x =
     end)
     x;
 
+fun ema_bitshifting (A1_, A2_) =
+  shiftl A1_ (one A2_) (nat_of_integer (32 : IntInf.int));
+
 fun ema_update_ref x =
   (fn lbd => fn (value, (alpha, (beta, (wait, period)))) =>
     let
+      val lbda =
+        Uint64.times (uint64_of_uint32 lbd)
+          (ema_bitshifting (bits_uint64, one_uint64));
       val valuea =
-        Uint64.plus value
-          (Uint64.times beta (Uint64.minus (uint64_of_uint32 lbd) value));
+        Uint64.plus value (Uint64.times beta (Uint64.minus lbda value));
     in
       (if Uint64.less_eq beta alpha orelse Uint64.less Uint64.zero wait
         then (valuea, (alpha, (beta, (Uint64.minus wait Uint64.one, period))))
