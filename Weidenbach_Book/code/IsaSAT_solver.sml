@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "b275eced";
+val version : string = "364d271b";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -2376,18 +2376,17 @@ fun restart_required_heur_fast_code x =
                              then Uint64.less x_h
                                     (shiftr_uint64
                                       (Uint64.times
-(Uint64.fromInt (18 : IntInf.int)) (ema_get_value xaa))
+(Uint64.fromInt (12 : IntInf.int)) (ema_get_value xaa))
                                       (nat_of_integer (4 : IntInf.int)))
                              else true) andalso
                             (Uint64.less minimum_number_between_restarts
                                x_j andalso
                               (less_nat bi x_l andalso
                                 (Word32.< (two_uint32, x_r) andalso
-                                  less_nat
-                                    (nat_of_uint64
-                                      (shiftr_uint64 x_h
-(nat_of_integer (48 : IntInf.int))))
-                                    (nat_of_uint32 x_r))))))))
+                                  Uint64.less
+                                    (shiftr_uint64 x_h
+                                      (nat_of_integer (32 : IntInf.int)))
+                                    (uint64_of_uint32 x_r))))))))
                 end))
       end
         ()
@@ -2457,12 +2456,6 @@ fun incr_lrestart x =
     (propa, (confl, (dec, (res, (Uint64.plus lres Uint64.one, uset))))))
     x;
 
-fun ema_reinit (F1_, F2_) G_ H_ (value, (alpha, (beta, (wait, period)))) =
-  (value,
-    (alpha,
-      (shiftl F1_ (one F2_) (nat_of_integer (32 : IntInf.int)),
-        (zero G_, zero H_))));
-
 fun incr_lrestart_stat_fast_code x =
   (fn xi =>
     (fn () =>
@@ -2474,12 +2467,8 @@ fun incr_lrestart_stat_fast_code x =
       in
         (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
      (a1g, (a1h, (a1i, (a1j, (incr_lrestart a1k,
-                               (ema_reinit (bits_uint64, one_uint64) zero_uint64
-                                  zero_uint64 a1l,
-                                 (ema_reinit (bits_uint64, one_uint64)
-                                    zero_uint64 zero_uint64 a1m,
-                                   (restart_info_restart_done a1n,
-                                     (a1o, (a1p, a2p)))))))))))))))))
+                               (a1l, (a1m, (restart_info_restart_done a1n,
+     (a1o, (a1p, a2p)))))))))))))))))
       end))
     x;
 
@@ -2810,6 +2799,12 @@ fun incr_restart x =
   (fn (propa, (confl, (dec, (res, lres)))) =>
     (propa, (confl, (dec, (Uint64.plus res Uint64.one, lres)))))
     x;
+
+fun ema_reinit (F1_, F2_) G_ H_ (value, (alpha, (beta, (wait, period)))) =
+  (value,
+    (alpha,
+      (shiftl F1_ (one F2_) (nat_of_integer (32 : IntInf.int)),
+        (zero G_, zero H_))));
 
 fun incr_restart_stat_fast_code x =
   (fn xi =>
@@ -3408,18 +3403,17 @@ fun restart_required_heur_slow_code x =
                              then Uint64.less x_h
                                     (shiftr_uint64
                                       (Uint64.times
-(Uint64.fromInt (18 : IntInf.int)) (ema_get_value xaa))
+(Uint64.fromInt (12 : IntInf.int)) (ema_get_value xaa))
                                       (nat_of_integer (4 : IntInf.int)))
                              else true) andalso
                             (Uint64.less minimum_number_between_restarts
                                x_j andalso
                               (less_nat bi x_l andalso
                                 (Word32.< (two_uint32, x_r) andalso
-                                  less_nat
-                                    (nat_of_uint64
-                                      (shiftr_uint64 x_h
-(nat_of_integer (48 : IntInf.int))))
-                                    (nat_of_uint32 x_r))))))))
+                                  Uint64.less
+                                    (shiftr_uint64 x_h
+                                      (nat_of_integer (32 : IntInf.int)))
+                                    (uint64_of_uint32 x_r))))))))
                 end))
       end
         ()
@@ -3491,12 +3485,8 @@ fun incr_lrestart_stat_slow_code x =
       in
         (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
      (a1g, (a1h, (a1i, (a1j, (incr_lrestart a1k,
-                               (ema_reinit (bits_uint64, one_uint64) zero_uint64
-                                  zero_uint64 a1l,
-                                 (ema_reinit (bits_uint64, one_uint64)
-                                    zero_uint64 zero_uint64 a1m,
-                                   (restart_info_restart_done a1n,
-                                     (a1o, (a1p, a2p)))))))))))))))))
+                               (a1l, (a1m, (restart_info_restart_done a1n,
+     (a1o, (a1p, a2p)))))))))))))))))
       end))
     x;
 
@@ -5529,7 +5519,13 @@ fun ema_update_ref x =
         Uint64.times (uint64_of_uint32 lbd)
           (ema_bitshifting (bits_uint64, one_uint64));
       val valuea =
-        Uint64.plus value (Uint64.times beta (Uint64.minus lbda value));
+        (if Uint64.less value lbda
+          then Uint64.plus value
+                 (shiftr_uint64 (Uint64.times beta (Uint64.minus lbda value))
+                   (nat_of_integer (32 : IntInf.int)))
+          else Uint64.minus value
+                 (shiftr_uint64 (Uint64.times beta (Uint64.minus value lbda))
+                   (nat_of_integer (32 : IntInf.int))));
     in
       (if Uint64.less_eq beta alpha orelse Uint64.less Uint64.zero wait
         then (valuea, (alpha, (beta, (Uint64.minus wait Uint64.one, period))))
