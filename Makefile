@@ -64,6 +64,7 @@ doc:
 	cp -R $(ISABELLE2018_HOME)/Weidenbach_Book $(DESTINATION)/current || :
 	cp -R $(ISABELLE2018_HOME)/Saturation_Framework $(DESTINATION)/current || :
 	cp -R $(ISABELLE2018_HOME)/Functional_Ordered_Resolution_Prover $(DESTINATION)/current || :
+	find $(DESTINATION)/current -name "*.html" -exec sed -i -e "s|\\htmllink{\(.*\)}|<a id=\"\1\"></a>|g" {} \;
 	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2018" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2018_version)"
 
 refs:

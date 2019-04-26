@@ -3422,7 +3422,7 @@ improve_rule:
     \<open>T \<sim> update_weight_information (trail S) S\<close>
 
 text \<open>This is the basic version of the calculus:\<close>
-inductive ocdcl\<^sub>w :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+inductive ocdcl\<^sub>w :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where (* \htmllink{ocdcl-def} *)
 ocdcl_conflict: "conflict S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
 ocdcl_propagate: "propagate S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
 ocdcl_improve: "improve S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
@@ -3430,7 +3430,7 @@ ocdcl_conflict_opt: "oconflict_opt S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
 ocdcl_other': "ocdcl\<^sub>W_o S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
 ocdcl_pruning: "pruning S S' \<Longrightarrow> ocdcl\<^sub>w S S'"
 
-inductive ocdcl\<^sub>w_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+inductive ocdcl\<^sub>w_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where (* \htmllink{ocdcl-strategy-def} *)
 ocdcl\<^sub>w_conflict: "conflict S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'" |
 ocdcl\<^sub>w_propagate: "propagate S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'" |
 ocdcl\<^sub>w_improve: "improve S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'" |
@@ -3956,14 +3956,14 @@ lemma full_ocdcl\<^sub>w_p_stgy_full_cdcl_bnb_stgy:
   unfolding full_def
   by (auto dest: rtranclp_cdcl_bnb_stgy_all_struct_inv[OF rtranclp_cdcl_bnb_stgy_cdcl_bnb])
 
-corollary full_ocdcl\<^sub>w_p_stgy_no_conflicting_clause_from_init_state:
+corollary full_ocdcl\<^sub>w_p_stgy_no_conflicting_clause_from_init_state: (* \htmllink{ocdcl-correctness} *)
   assumes
     st: \<open>full ocdcl\<^sub>w_p_stgy (init_state N) T\<close> and
     dist: \<open>distinct_mset_mset N\<close>
   shows
     \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset N)\<close> and
     \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
-       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
+       atms_of (the (weight T)) \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
        distinct_mset (the (weight T))\<close> and
     \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
       set_mset I \<Turnstile>sm N \<Longrightarrow> Found (\<rho> I) \<ge> \<rho>' (weight T)\<close>
