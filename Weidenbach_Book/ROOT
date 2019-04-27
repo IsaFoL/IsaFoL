@@ -153,6 +153,7 @@ session "CDCL_Extensions" (Weidenbach_Book) = "CDCL"  +
   theories [quick_and_dirty = false, document = true]
     CDCL_W_Optimal_Model
     CDCL_W_Partial_Encoding
+    CDCL_W_MaxSAT
     CDCL_W_Partial_Optimal_Model
     CDCL_W_Covering_Models
 
