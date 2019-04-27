@@ -9,7 +9,8 @@ text \<open>
   simple fix, except taking complete models.
 
   Based on Dominik Zimmer's thesis, we later reduced the problem of finding partial models to
-  finding total models
+  finding total models. We later switched to the more elegant dual rail encoding (thanks to the 
+  reviewer).
 \<close>
 
 subsection \<open>Optimisations\<close>
@@ -2375,7 +2376,7 @@ proof -
     using \<open>atms_of_mm (too_heavy_clauses M (Some w)) \<subseteq> atms_of_mm M\<close> by blast
 qed
 
-lemma entails_too_heavy_clauses_too_heavy_clauses:
+lemma entails_too_heavy_clauses_too_heavy_clauses: (* \htmllink{ocdcl-entails-conflicting} *)
   assumes
     \<open>consistent_interp I\<close> and
     tot: \<open>total_over_m I (set_mset (too_heavy_clauses M w))\<close> and
@@ -3777,7 +3778,7 @@ lemma full_ocdcl\<^sub>w_stgy_full_cdcl_bnb_stgy:
   unfolding full_def
   by (auto dest: rtranclp_cdcl_bnb_stgy_all_struct_inv[OF rtranclp_cdcl_bnb_stgy_cdcl_bnb])
 
-corollary full_ocdcl\<^sub>w_stgy_no_conflicting_clause_from_init_state:
+corollary full_ocdcl\<^sub>w_stgy_no_conflicting_clause_from_init_state: (* \htmllink{ocdcl-correctness} *)
   assumes
     st: \<open>full ocdcl\<^sub>w_stgy (init_state N) T\<close> and
     dist: \<open>distinct_mset_mset N\<close>
@@ -3956,7 +3957,7 @@ lemma full_ocdcl\<^sub>w_p_stgy_full_cdcl_bnb_stgy:
   unfolding full_def
   by (auto dest: rtranclp_cdcl_bnb_stgy_all_struct_inv[OF rtranclp_cdcl_bnb_stgy_cdcl_bnb])
 
-corollary full_ocdcl\<^sub>w_p_stgy_no_conflicting_clause_from_init_state: (* \htmllink{ocdcl-correctness} *)
+corollary full_ocdcl\<^sub>w_p_stgy_no_conflicting_clause_from_init_state: (* \htmllink{ocdcl-improvep-correctness} *)
   assumes
     st: \<open>full ocdcl\<^sub>w_p_stgy (init_state N) T\<close> and
     dist: \<open>distinct_mset_mset N\<close>

@@ -401,7 +401,7 @@ lemma \<Delta>\<Sigma>_notin_upost[simp]:
    \<open>y \<in> \<Delta>\<Sigma> \<Longrightarrow> Pos y \<notin> upostp I\<close>
   using \<Delta>\<Sigma>_\<Sigma> by (auto simp: upostp_def)
 
-lemma penc_ent_upostp:
+lemma penc_ent_upostp: (* \htmllink{ocdcl-enc-upostp-model} *)
   assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
     sat: \<open>I \<Turnstile>sm N\<close> and
     cons: \<open>consistent_interp I\<close> and
@@ -471,7 +471,7 @@ lemma satisfiable_penc:
     by auto
   done
 
-lemma penc_ent_postp:
+lemma penc_ent_postp: (*  \htmllink{ocdcl-enc-postp-model} *)
   assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
     sat: \<open>I \<Turnstile>sm penc N\<close> and
     cons: \<open>consistent_interp I\<close>
@@ -653,7 +653,7 @@ proof -
       intro!: consistent_interp_unionI
       simp: consistent_interp_upostp finite_upostp consistent_interp_poss
         consistent_interp_negs)
-    subgoal by (auto intro: distinct_mset_mono[of _ \<open>uspostp I\<close>]
+    subgoal by (auto
       simp: distinct_mset_mset_set distinct_mset_add image_mset_mset_set inj_on_Pos inj_on_Neg
         mset_inter_empty_set_mset)
     subgoal by auto
@@ -672,53 +672,6 @@ proof -
     by simp
 qed
 
-(*
-
-lemma \<rho>_postp_\<rho>\<^sub>e:
-  assumes \<open>finite \<Sigma>\<close> and
-    \<open>finite I\<close> and
-    cons: \<open>consistent_interp I\<close> and
-    I_\<Sigma>: \<open>atm_of ` I \<subseteq> (\<Sigma> - \<Delta>\<Sigma>) \<union> \<Sigma>\<^sub>a\<^sub>d\<^sub>d\<close> and
-    penc: \<open>I \<Turnstile> penc N\<close>
-  shows \<open>\<rho>\<^sub>e (mset_set I) \<ge> \<rho> (mset_set (postp I))\<close>
-proof -
-  have [simp]: \<open>finite I\<close>
-    using assms by auto
-  have [simp]: \<open>finite {A \<in> I. P A}\<close> for P
-    apply (rule finite_subset[of _ \<open>Pos ` atm_of ` I \<union> Neg ` atm_of ` I\<close>])
-     apply auto
-    by (metis image_iff literal.exhaust_sel)
-  have [dest]: \<open>xa \<in> \<Delta>\<Sigma> \<Longrightarrow> Pos (xa\<^sup>\<mapsto>\<^sup>1) \<in> upostp I \<Longrightarrow> Pos (xa\<^sup>\<mapsto>\<^sup>0) \<in> upostp I \<Longrightarrow> False\<close> for xa
-    using cons unfolding penc_def
-    by (auto simp: additional_constraint_def additional_constraints_def
-      true_cls_mset_def consistent_interp_def upostp_def)
-
-  show ?thesis
-    using assms \<Delta>\<Sigma>_\<Sigma> unfolding \<rho>\<^sub>e_def apply-
-    apply (rule \<rho>_mono2)
-    subgoal
-    apply (auto simp: postp_def \<rho>\<^sub>e_def \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def conj_disj_distribR
-	consistent_interp_poss
-	consistent_interp_negs
-        mset_set_Union intro!: consistent_interp_unionI
-        intro: consistent_interp_subset distinct_mset_mset_set
-        consistent_interp_subset[of _ \<open>Pos ` \<Delta>\<Sigma>\<close>]
-        consistent_interp_subset[of _ \<open>Neg ` \<Delta>\<Sigma>\<close>])
-	sorry
-    subgoal
-      by (auto simp: distinct_mset_mset_set distinct_mset_add image_mset_mset_set inj_on_Pos inj_on_Neg
-        mset_inter_empty_set_mset finite_upostp)
-    subgoal
-       by (auto simp: postp_def)
-    subgoal
-       by (auto simp: postp_def)
-    subgoal
-      by (subst distinct_subseteq_iff[symmetric])
-        (auto simp: postp_def simp: image_mset_mset_set inj_on_Neg inj_on_Pos
-           distinct_mset_add mset_inter_empty_set_mset distinct_mset_mset_set)
-    done
-qed
-*)
 
 lemma encode_lit_eq_iff:
   \<open>atm_of x \<in> \<Sigma> \<Longrightarrow> atm_of y \<in> \<Sigma> \<Longrightarrow> encode_lit x = encode_lit y \<longleftrightarrow> x = y\<close>
@@ -751,7 +704,7 @@ lemma finite_postp: \<open>finite I \<Longrightarrow> finite (postp I)\<close>
 lemma distinct_mset_filter_mset_set[simp]: \<open>distinct_mset {#a \<in># mset_set A. P a#}\<close>
   by (simp add: distinct_mset_filter distinct_mset_mset_set)
   
-theorem full_encoding_OCDCL_correctness:
+theorem full_encoding_OCDCL_correctness: (* \htmllink{ocdcl-partial-enc-correctness} *)
   assumes
     st: \<open>full enc_weight_opt.cdcl_bnb_stgy (init_state (penc N)) T\<close> and
     dist: \<open>distinct_mset_mset N\<close> and
@@ -1025,7 +978,7 @@ lemma rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_stgy:
     using S_\<Sigma>
       enc_weight_opt.rtranclp_cdcl_bnb_no_more_init_clss[of S T,
         OF enc_weight_opt.rtranclp_cdcl_bnb_stgy_cdcl_bnb]
-    by(auto dest: cdcl_bnb_r_stgy_cdcl_bnb_stgy)
+    by (auto dest: cdcl_bnb_r_stgy_cdcl_bnb_stgy)
   done
 
 
@@ -1119,7 +1072,7 @@ next
         using nsd L undef T N_\<Sigma>
         using odecide.intros(2-)[of S \<open>A\<close>]
         unfolding N \<Sigma>
-	by (cases L) (auto 6 5 simp: defined_lit_Neg_Pos_iff \<Sigma>)
+        by (cases L) (auto 6 5 simp: defined_lit_Neg_Pos_iff \<Sigma>)
     qed
     have defined_replacement_pos: \<open>defined_lit (trail S) (Pos (replacement_pos L))\<close>
       if \<open>L \<in> \<Delta>\<Sigma>\<close> for L
@@ -1130,18 +1083,6 @@ next
     have defined_replacement_neg: \<open>defined_lit (trail S) (Pos (replacement_neg L))\<close>
       if \<open>L \<in> \<Delta>\<Sigma>\<close> for L
       using nsd that \<Delta>\<Sigma>_\<Sigma> odecide.intros(2-)[of S \<open>L\<close>] by (force simp: N \<Sigma> N_\<Sigma>)
-    have \<open>atm_of L \<in># mset_set \<Delta>\<Sigma>\<close> and 3: \<open>atm_of L \<in> \<Delta>\<Sigma>\<close>
-      using 1 2 L \<Delta>\<Sigma>_\<Sigma> finite_\<Sigma> by (auto simp: N \<Sigma> N_\<Sigma>)
-    have nsp': \<open>\<forall>E. E \<in># additional_constraint L \<longrightarrow>
-              (\<forall>L\<in># E. trail S \<Turnstile>as CNot (remove1_mset L E) \<longrightarrow>
-                   defined_lit (trail S) L)\<close> and
-      nsc': \<open>\<forall>E. E \<in># additional_constraint L \<longrightarrow>
-              (\<forall>L\<in># E. \<not>trail S \<Turnstile>as CNot E)\<close>
-      if \<open>L \<in> \<Delta>\<Sigma>\<close> for L
-      using nsp nsc assms that finite_\<Sigma> unfolding penc_def
-      by (fastforce simp: propagate.simps conflict.simps additional_constraints_def
-          clauses_def
-          dest!: multi_member_split[of \<open>L\<close>])+
     have [simp]: \<open>{A \<in> \<Delta>\<Sigma>. A \<in> \<Sigma>} = \<Delta>\<Sigma>\<close>
       using \<Delta>\<Sigma>_\<Sigma> by auto
     have atms_tr': \<open>\<Sigma> - \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<subseteq>
