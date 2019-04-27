@@ -9,7 +9,7 @@ text \<open>
   simple fix, except taking complete models.
 
   Based on Dominik Zimmer's thesis, we later reduced the problem of finding partial models to
-  finding total models. We later switched to the more elegant dual rail encoding (thanks to the 
+  finding total models. We later switched to the more elegant dual rail encoding (thanks to the
   reviewer).
 \<close>
 
