@@ -17,13 +17,13 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
     pivot \<leftarrow> RETURN (h (xs ! j0));
     (i, xs) \<leftarrow> FOREACHi
       (\<lambda>js (i, xs). i < length xs \<and> mset xs = mset xs0 \<and> i \<ge> i0 \<and>
-	 i \<le> (j0 - 1) - card js)
+	     i \<le> (j0 - 1) - card js)
       (set [i0..<j0 - 1])
       (\<lambda>j (i, xs). do {
-	ASSERT(j < length xs \<and> i < length xs \<and> mset xs = mset xs0);
-	if R (h (xs!j)) pivot
-	then RETURN (i+1, swap xs i j)
-	else RETURN (i, xs)
+	      ASSERT(j < length xs \<and> i < length xs \<and> mset xs = mset xs0); \<comment> \<open>@maxi Add stronger invariant here\<close>
+       	if R (h (xs!j)) pivot
+      	then RETURN (i+1, swap xs i j)
+      	else RETURN (i, xs)
       })
       (i0, xs);
     RETURN (xs, i+1)
@@ -37,10 +37,19 @@ lemma Min_atLeastLessThan2[simp]: \<open>{a..<b} \<noteq> {} \<Longrightarrow> M
   using linorder_class.eq_Min_iff[of \<open>{a..<b}\<close> a]
   by auto
 
+(*
+lemma tam: \<open>\<forall> x. x \<le> (2::nat) \<longrightarrow> x \<ge> 2 \<longrightarrow> x = 2\<close>
+  by auto
+
+lemma tamtam: \<open>(\<forall> x. x \<le> (2::nat) \<longrightarrow> x \<ge> 2 \<longrightarrow> x = 2) \<and> (\<forall> y. y \<le> (3::nat) \<longrightarrow> y \<ge> 3 \<longrightarrow> y = 3)\<close>
+  by auto
+*)
+
 lemma partition_between_mset_eq:
   assumes \<open>i < length xs\<close> and \<open>j < length xs\<close> and \<open>j > i\<close>
   shows \<open>partition_between R h i j xs \<le> SPEC(\<lambda>(xs', j'). mset xs = mset xs' \<and> j' < length xs \<and>
-     j' > i \<and> j' \<le> j)\<close>
+     j' > i \<and> j' \<le> j \<and>
+    (\<forall> k. j' \<ge> k \<and> k \<ge> i \<longrightarrow> xs'!k \<le> xs'!j') \<and> (\<forall> k. k \<ge> j' \<and> k \<le> j \<longrightarrow> xs'!k \<ge> xs'!j') )\<close>
 proof -
   have H: \<open>Suc b \<le> j - card \<sigma>\<close>
     if
@@ -109,33 +118,72 @@ proof -
     subgoal using assms by auto
     subgoal by auto
     subgoal using assms(3) by auto
+    \<comment> \<open>I think we need a stronger invariant to prove this.\<close>
+    subgoal by sorry
+    subgoal by sorry
     done
 qed
 
-definition quicksort :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a::ord list \<Rightarrow> 'a list nres\<close> where
-\<open>quicksort R h i j xs0 = do {
-  RECT (\<lambda>f (i,j,xs). do {
-      ASSERT(mset xs = mset xs0);
+ 
+definition sublist :: \<open>'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list\<close> where
+\<open>sublist xs i j = [xs!i. i <- upt i (j+1)]\<close>
+
+lemma sublist_not_empty: \<open>i1 \<le> i2 \<and> xs \<noteq> [] \<Longrightarrow> sublist xs i1 i2 \<noteq> []\<close>
+  apply (induction i2)
+  sorry
+
+value \<open>sublist [0,1,2,3::nat] 0 1\<close>
+
+lemma sublist_app: \<open>i1 \<le> i2 \<Longrightarrow> i2 \<le> i3 \<Longrightarrow> sublist xs i1 i3 = sublist xs i1 i2 @ sublist xs (i2+1) i3\<close>
+  sorry
+
+definition sorted_sublist :: \<open>'a::linorder list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
+\<open>sorted_sublist xs i j = sorted (sublist xs i j)\<close>
+
+lemma sorted_sublist_refl: \<open>sorted_sublist xs i i\<close>
+  sorry
+
+lemma sorted_sublist_partition:
+  assumes \<open>i1 \<le> i2\<close> and \<open>i2 + 1 \<le> i3\<close> and
+    \<open>sorted_sublist xs i1 i2\<close> and
+    \<open>sorted_sublist xs (i2+2) i3\<close> and
+    \<open>\<And> k. k \<ge> i1 \<and> k \<le> i2     \<longrightarrow> xs!k \<le> xs!(i2+1)\<close> and
+    \<open>\<And> k. k \<ge> i2 + 1 \<and> k \<le> i3 \<longrightarrow> xs!k \<ge> xs!(i2+1)\<close>
+  shows \<open>sorted_sublist xs i1 i3\<close>
+  sorry
+
+\<comment> \<open>The left part is already sorted. The elements are always the same. \<open>i\<close> and \<open>j\<close> are pointers on
+    the list, and \<open>i\<le>j\<close>.\<close>
+definition quicksort_inv :: \<open>'a::linorder list \<Rightarrow> nat \<Rightarrow> ('a list * nat * nat) \<Rightarrow> bool\<close> where
+\<open>quicksort_inv xs0 i0 p \<equiv>
+  case p of
+    (xs,i,j) \<Rightarrow>
+      i < length xs \<and> j < length xs \<and> i \<le> j \<and>
+      mset xs = mset xs0 \<and>
+      sorted_sublist xs i0 i\<close>
+
+definition quicksort :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a::linorder list \<Rightarrow> 'a list nres\<close> where
+\<open>quicksort R h i0 j0 xs0 = do {
+  RECT (\<lambda>f (i, j, xs). do {
+      ASSERT(quicksort_inv xs0 i0 (xs, i, j));
       if i+1 \<ge> j then RETURN xs
-      else do{
-	(xs, k) \<leftarrow> partition_between R h i j xs;
-	xs \<leftarrow> f (i, k-1, xs);
-	f (k, j, xs)
+      else do {
+	      (xs, k) \<leftarrow> partition_between R h i j xs;
+      	xs \<leftarrow> f (i, k-1, xs);
+      	f (k, j, xs)
       }
     })
-    (i, j, xs0)
+    (i0, j0, xs0)
   }\<close>
-
 
 lemma quicksort_between_mset_eq:
   assumes \<open>i < length xs\<close> and \<open>j < length xs\<close> and \<open>j \<ge> i\<close>
-  shows \<open>quicksort R h i j xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs'))\<close>
+  shows \<open>quicksort R h i j xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs' \<and> sorted_sublist xs' i j))\<close>
 proof -
   have wf: \<open>wf (measure (\<lambda>(i, j, xs). Suc j - i))\<close>
     by auto
-  have pre: \<open>(\<lambda>(i, j, xs'). i < length xs \<and> j < length xs \<and> i \<le> j \<and>
-    mset xs = mset xs') (i,j,xs)\<close>
-    using assms by auto
+  have pre: \<open>quicksort_inv xs i (xs, i,j)\<close>
+    using assms by (auto simp add: quicksort_inv_def sorted_sublist_refl)
   show ?thesis
     unfolding quicksort_def
     apply (rule RECT_rule)
@@ -143,30 +191,16 @@ proof -
       apply (rule wf)
      apply (rule pre)
     subgoal premises IH for f x
-      using IH(2)
+      using IH
       apply (refine_vcg)
-      apply ((auto; fail)+)[2]
-      apply (rule partition_between_mset_eq[THEN order_trans])
-      subgoal by (auto dest: mset_eq_length)
-      subgoal by (auto dest: mset_eq_length)
-      subgoal by (auto dest: mset_eq_length)
-      apply (rule SPEC_rule)
-      apply (subst (5) Down_id_eq[symmetric])
-      apply (case_tac xa, simp only: prod.simps)
-      apply (rule bind_refine_spec)
-      prefer 2
-      apply (rule IH(1)[THEN order_trans])
-      subgoal
-        by (auto dest: mset_eq_length)
-      subgoal by auto
-      apply (subst (3) Down_id_eq[symmetric])
-      apply (rule order.refl)
-      apply (rule IH(1)[THEN order_trans])
-      subgoal
-        by (auto dest: mset_eq_length)
-      subgoal by auto
       apply auto
-      done
+      subgoal
+        \<comment> \<open>apply rule for \<open>partition_between\<close> somehow\<close>
+        sorry
+      subgoal
+        sorry
+      subgoal sorry
+      apply (rule spec) sorry
     done
 qed
 
@@ -204,10 +238,10 @@ where
       ([i0..<j0 - 1])
       (\<lambda>_. True)
       (\<lambda>j (i, xs). do {
-	ASSERT(j < length xs \<and> i < length xs \<and> mset xs = mset xs0);
-	if R (h (xs!j)) pivot
-	then RETURN (i+1, swap xs i j)
-	else RETURN (i, xs)
+	      ASSERT(j < length xs \<and> i < length xs \<and> mset xs = mset xs0);
+      	if R (h (xs!j)) pivot
+      	then RETURN (i+1, swap xs i j)
+      	else RETURN (i, xs)
       })
       (i0, xs);
     RETURN (xs, i+1)
@@ -309,18 +343,18 @@ sepref_definition partition_between_ref_code
 
 declare partition_between_ref_code.refine[sepref_fr_rules]
 
-definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a::ord list \<Rightarrow> 'a list nres\<close> where
-\<open>quicksort_ref R h i j xs0 = do {
+definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a::linorder list \<Rightarrow> 'a list nres\<close> where
+\<open>quicksort_ref R h i0 j0 xs0 = do {
   RECT (\<lambda>f (i,j,xs). do {
-      ASSERT(mset xs = mset xs0);
+      ASSERT(quicksort_inv xs0 i0 (xs, i, j));
       if i+1 \<ge> j then RETURN xs
       else do{
-	(xs, k) \<leftarrow> partition_between_ref R h i j xs;
-	xs \<leftarrow> f (i, k-1, xs);
-	f (k, j, xs)
+      	(xs, k) \<leftarrow> partition_between_ref R h i j xs;
+      	xs \<leftarrow> f (i, k-1, xs);
+      	f (k, j, xs)
       }
     })
-    (i, j, xs0)
+    (i0, j0, xs0)
   }\<close>
 
 lemma quicksort_ref_quicksort:
@@ -410,10 +444,36 @@ lemma full_quicksort_ref_full_quicksort:
      (auto intro!: quicksort_ref_quicksort[unfolded Down_id_eq]
        simp: List.null_def)
 
-lemma full_quicksort:
-  shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs'))\<close>
-  unfolding full_quicksort_def
-  by (auto intro: quicksort_between_mset_eq[THEN order_trans])
+value "sublist [0::nat,1,2] 0 2"
 
+lemma sublist_length: \<open>xs \<noteq> [] \<Longrightarrow> xs = sublist xs 0 (length xs - 1)\<close>
+  apply (simp add: sublist_def)
+  sorry
+
+lemma sorted_sublist_sorted [simp]: \<open>xs \<noteq> [] \<Longrightarrow> sorted_sublist xs 0 (length xs - 1) \<Longrightarrow> sorted xs\<close>
+  apply (simp add: sorted_sublist_def)
+  apply (rewrite sublist_length)
+  apply auto
+  done
+
+lemma sorted_nil: \<open>sorted []\<close>
+  by auto
+
+lemma full_quicksort':
+  shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs' \<and> (if xs = [] then xs' = [] else sorted_sublist xs' 0 (length xs' - 1))))\<close>
+  unfolding full_quicksort_def
+  apply (auto intro: quicksort_between_mset_eq [THEN order_trans])
+  sorry
+
+lemma sublist_length': \<open>mset xs = mset xs' \<Longrightarrow> xs' \<noteq> [] \<Longrightarrow> xs = sublist xs 0 (length xs - 1)\<close>
+  sorry
+
+
+lemma full_quicksort:
+  shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs' \<and> sorted xs'))\<close>
+  apply (rule order_trans)
+   apply (rule full_quicksort')
+  sorry
+    \<comment> \<open>This looks trivial, but I really don't know how this works.\<close>
 
 end
