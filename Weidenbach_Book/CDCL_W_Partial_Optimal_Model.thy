@@ -402,7 +402,7 @@ inductive cdcl_dpll_bnb_r_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> boo
 
 lemma no_dup_dropI:
   \<open>no_dup M \<Longrightarrow> no_dup (drop n M)\<close>
-  by (cases \<open>n < length M\<close>)  (auto simp: no_dup_def drop_map[symmetric])
+  by (cases \<open>n < length M\<close>) (auto simp: no_dup_def drop_map[symmetric])
 
 lemma tranclp_resolve_state_eq_compatible:
   \<open>resolve\<^sup>+\<^sup>+ S T \<Longrightarrow>T \<sim> T' \<Longrightarrow> resolve\<^sup>+\<^sup>+ S T'\<close>
@@ -503,14 +503,14 @@ proof -
          dest!: multi_member_split)
        done
     have \<open>update_conflicting (Some (negate_ann_lits (drop (Suc n) (trail S))))
-     (reduce_trail_to (drop (Suc n) (trail S)) S) \<sim>
-    update_conflicting
-     (Some
-       (remove1_mset (- L) (negate_ann_lits (drop n (trail S))) \<union>#
-        remove1_mset L E))
-     (tl_trail
-       (update_conflicting (Some (negate_ann_lits (drop n (trail S))))
-         (reduce_trail_to (drop n (trail S)) S)))\<close>
+       (reduce_trail_to (drop (Suc n) (trail S)) S) \<sim>
+      update_conflicting
+       (Some
+         (remove1_mset (- L) (negate_ann_lits (drop n (trail S))) \<union>#
+          remove1_mset L E))
+       (tl_trail
+         (update_conflicting (Some (negate_ann_lits (drop n (trail S))))
+           (reduce_trail_to (drop n (trail S)) S)))\<close>
       unfolding 1[symmetric]
       apply (rule state_eq_trans)
       prefer 2
@@ -556,8 +556,7 @@ proof -
     by (auto simp: negate_ann_lits_def)
   ultimately have \<open>length (trail S) > 0 \<longrightarrow> resolve\<^sup>*\<^sup>* (?T 0) U\<close>
     using tranclp_resolve_state_eq_compatible[of \<open>?T 0\<close>
-      \<open>?T (length (trail S))\<close> U] apply (subst (asm) rtranclp_unfold)
-    by (auto simp: )
+      \<open>?T (length (trail S))\<close> U] by (subst (asm) rtranclp_unfold) auto
   then have ?thesis if \<open>length (trail S) > 0\<close>
     using confl that by auto
   moreover have ?thesis if \<open>length (trail S) = 0\<close>
@@ -618,11 +617,11 @@ proof (cases rule: cdcl_dpll_bnb_r.cases)
     \<open>cdcl_bnb_r\<^sup>*\<^sup>* S1 S2\<close>
     \<open>cdcl_bnb_r S2 T\<close>
     using  mono_rtranclp[of resolve enc_weight_opt.cdcl_bnb_bj]
-    mono_rtranclp[of enc_weight_opt.cdcl_bnb_bj ocdcl\<^sub>W_o_r]
-    mono_rtranclp[of ocdcl\<^sub>W_o_r cdcl_bnb_r]
-    ocdcl\<^sub>W_o_r.intros enc_weight_opt.cdcl_bnb_bj.resolve
-    cdcl_bnb_r.intros
-    enc_weight_opt.cdcl_bnb_bj.intros
+      mono_rtranclp[of enc_weight_opt.cdcl_bnb_bj ocdcl\<^sub>W_o_r]
+      mono_rtranclp[of ocdcl\<^sub>W_o_r cdcl_bnb_r]
+      ocdcl\<^sub>W_o_r.intros enc_weight_opt.cdcl_bnb_bj.resolve
+      cdcl_bnb_r.intros
+      enc_weight_opt.cdcl_bnb_bj.intros
     by (auto 5 4 dest: cdcl_bnb_r.intros conflict_opt0_conflict_opt)
   then show ?thesis
     by auto
@@ -636,18 +635,19 @@ next
   then have \<open>cdcl_bnb_r S S1\<close>
     \<open>cdcl_bnb_r\<^sup>*\<^sup>* S1 T\<close>
     using  mono_rtranclp[of resolve enc_weight_opt.cdcl_bnb_bj]
-    mono_rtranclp[of enc_weight_opt.cdcl_bnb_bj ocdcl\<^sub>W_o_r]
-    mono_rtranclp[of ocdcl\<^sub>W_o_r cdcl_bnb_r]
-    ocdcl\<^sub>W_o_r.intros enc_weight_opt.cdcl_bnb_bj.resolve
-    cdcl_bnb_r.intros
-    enc_weight_opt.cdcl_bnb_bj.intros
+      mono_rtranclp[of enc_weight_opt.cdcl_bnb_bj ocdcl\<^sub>W_o_r]
+      mono_rtranclp[of ocdcl\<^sub>W_o_r cdcl_bnb_r]
+      ocdcl\<^sub>W_o_r.intros enc_weight_opt.cdcl_bnb_bj.resolve
+      cdcl_bnb_r.intros
+      enc_weight_opt.cdcl_bnb_bj.intros
     by (auto 5 4 dest: cdcl_bnb_r.intros conflict_opt0_conflict_opt)
   then show ?thesis
     by auto
 qed (auto 5 4 dest: cdcl_bnb_r.intros conflict_opt0_conflict_opt simp: assms)
 
 lemma resolve_no_prop_confl: \<open>resolve S T \<Longrightarrow> no_step propagate S \<and> no_step conflict S\<close>
-  by (auto elim!: rulesE )
+  by (auto elim!: rulesE)
+
 lemma cdcl_bnb_r_stgy_res:
   \<open>resolve S T \<Longrightarrow> cdcl_bnb_r_stgy S T\<close>
     using enc_weight_opt.cdcl_bnb_bj.resolve[of S T]

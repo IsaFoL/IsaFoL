@@ -66,7 +66,7 @@ locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_we
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
-	'v clause option \<times> 'b" and
+        'v clause option \<times> 'b" and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -302,7 +302,7 @@ locale optimal_encoding = optimal_encoding_opt
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
-	'v clause option \<times> 'b" and
+        'v clause option \<times> 'b" and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -506,10 +506,10 @@ proof -
       apply (auto simp: encode_clause_def postp_def encode_lit_alt_def
           split: if_splits
           dest!: multi_member_split[of _ C])
-	  using image_iff apply fastforce
-	  apply (case_tac xa; auto)
-	  apply auto
-	  done
+          using image_iff apply fastforce
+          apply (case_tac xa; auto)
+          apply auto
+          done
        (*TODO proof*)
   qed
 qed
@@ -615,10 +615,10 @@ proof -
   have [simp]: \<open>finite I\<close>
     using assms by auto
   have [simp]: \<open>mset_set
-	{x \<in> I.
-	 atm_of x \<in> \<Sigma> \<and>
-	 atm_of x \<notin> replacement_pos ` \<Delta>\<Sigma> \<and>
-	 atm_of x \<notin> replacement_neg ` \<Delta>\<Sigma>} = mset_set I\<close>
+        {x \<in> I.
+         atm_of x \<in> \<Sigma> \<and>
+         atm_of x \<notin> replacement_pos ` \<Delta>\<Sigma> \<and>
+         atm_of x \<notin> replacement_neg ` \<Delta>\<Sigma>} = mset_set I\<close>
     using I_\<Sigma> by auto
   have [simp]: \<open>finite {A \<in> \<Delta>\<Sigma>. P A}\<close> for P
     by (rule finite_subset[of _ \<Delta>\<Sigma>])
@@ -662,7 +662,7 @@ proof -
       apply (subst distinct_subseteq_iff[symmetric])
       apply (auto simp: distinct_mset_mset_set distinct_mset_add image_mset_mset_set inj_on_Pos inj_on_Neg
         mset_inter_empty_set_mset finite_upostp)
-	apply (metis image_eqI literal.exhaust_sel)
+        apply (metis image_eqI literal.exhaust_sel)
     apply (auto simp: upostp_def image_image)
     apply (metis (mono_tags, lifting) imageI literal.collapse(1) literal.collapse(2) mem_Collect_eq)
     apply (metis (mono_tags, lifting) imageI literal.collapse(1) literal.collapse(2) mem_Collect_eq)
@@ -760,8 +760,8 @@ proof -
   have cons_f: \<open>consistent_interp (set_mset (\<rho>\<^sub>e_filter (the (weight T))))\<close>
     using model
     by (auto simp: postp_def \<rho>\<^sub>e_def \<Sigma>\<^sub>a\<^sub>d\<^sub>d_def conj_disj_distribR
-	consistent_interp_poss
-	consistent_interp_negs
+        consistent_interp_poss
+        consistent_interp_negs
         mset_set_Union intro!: consistent_interp_unionI
         intro: consistent_interp_subset distinct_mset_mset_set
         consistent_interp_subset[of _ \<open>Pos ` \<Delta>\<Sigma>\<close>]
@@ -787,7 +787,7 @@ proof -
       by (force simp: filter_filter_mset consistent_interp_def postp_def
               image_mset_mset_set inj_on_Neg inj_on_Pos finite_postp
               distinct_mset_add mset_inter_empty_set_mset distinct_mset_mset_set
-	    intro: distinct_mset_mono[of _ \<open>the (enc_weight_opt.weight T)\<close>])+
+            intro: distinct_mset_mono[of _ \<open>the (enc_weight_opt.weight T)\<close>])+
     done
   moreover {
     have \<open>\<rho> (mset_set ?K) \<le> \<rho>\<^sub>e (the (weight T))\<close>
@@ -1495,7 +1495,7 @@ proof -
     apply -
     by (rule partial_max_sat)
       (use fin \<open>I \<in> ?Is\<close> in \<open>auto simp: atms_exactly_m_finite
-	consistent_interp_tuatology_mset_set\<close>)
+        consistent_interp_tuatology_mset_set\<close>)
   then show \<open>\<exists>I. partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some I)\<close>
     by fast
 qed
@@ -1525,9 +1525,9 @@ lemma partial_max_sat_is_weight_sat:
   defines
     \<open>\<rho>' \<equiv> (\<lambda>C. sum_mset
        ((\<lambda>L. if L \<in> Pos ` additional_atm ` set_mset N\<^sub>S
-	 then count N\<^sub>S (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)
-	   * \<rho> (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)
-	 else 0) `# C))\<close>
+         then count N\<^sub>S (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)
+           * \<rho> (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)
+         else 0) `# C))\<close>
   assumes
     add: \<open>\<And>C. C \<in># N\<^sub>S \<Longrightarrow> additional_atm C \<notin> atms_of_mm (N\<^sub>H + N\<^sub>S)\<close>
     \<open>\<And>C D. C \<in># N\<^sub>S \<Longrightarrow> D \<in># N\<^sub>S \<Longrightarrow> additional_atm C = additional_atm D \<longleftrightarrow> C = D\<close> and
@@ -1639,24 +1639,24 @@ proof -
       by (auto simp: comp_def)
     have H: \<open>sum_mset
        (\<rho> `#
-	filter_mset (Not \<circ> (\<Turnstile>) {L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)})
-	 N\<^sub>S) = \<rho>' I\<close>
-	    unfolding I_I[symmetric] unfolding \<rho>'_def cl_of_def[symmetric]
-	      sum_mset_sum_count if_distrib
-	    apply (auto simp: sum_mset_sum_count image_image simp flip: sum.inter_restrict
-	        cong: if_cong)
-	    apply (subst comm_monoid_add_class.sum.reindex_cong[symmetric, of cl_of, OF _ refl])
-	    apply ((use inj in auto; fail)+)[2]
-	    apply (rule sum.cong)
-	    apply auto[]
-	    using inj[of \<open>set_mset I\<close>] \<open>set_mset I \<Turnstile>sm N\<close> assms(2)
-	    apply (auto dest!: multi_member_split simp: N_def image_Int
-	        atm_of_lit_in_atms_of true_cls_def)[]
-	    using add apply (auto simp: true_cls_def)
-	    done
+        filter_mset (Not \<circ> (\<Turnstile>) {L. L \<in># I \<and> atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)})
+         N\<^sub>S) = \<rho>' I\<close>
+            unfolding I_I[symmetric] unfolding \<rho>'_def cl_of_def[symmetric]
+              sum_mset_sum_count if_distrib
+            apply (auto simp: sum_mset_sum_count image_image simp flip: sum.inter_restrict
+                cong: if_cong)
+            apply (subst comm_monoid_add_class.sum.reindex_cong[symmetric, of cl_of, OF _ refl])
+            apply ((use inj in auto; fail)+)[2]
+            apply (rule sum.cong)
+            apply auto[]
+            using inj[of \<open>set_mset I\<close>] \<open>set_mset I \<Turnstile>sm N\<close> assms(2)
+            apply (auto dest!: multi_member_split simp: N_def image_Int
+                atm_of_lit_in_atms_of true_cls_def)[]
+            using add apply (auto simp: true_cls_def)
+            done
     have \<open>(\<Sum>x\<in>(I' \<union> (\<lambda>x. Pos (additional_atm x)) ` {C. C \<in># N\<^sub>S \<and> \<not> I' \<Turnstile> C} \<union>
-	 (\<lambda>x. Neg (additional_atm x)) ` {C. C \<in># N\<^sub>S \<and> I' \<Turnstile> C}) \<inter>
-	(\<lambda>x. Pos (additional_atm x)) ` set_mset N\<^sub>S.
+         (\<lambda>x. Neg (additional_atm x)) ` {C. C \<in># N\<^sub>S \<and> I' \<Turnstile> C}) \<inter>
+        (\<lambda>x. Pos (additional_atm x)) ` set_mset N\<^sub>S.
        count N\<^sub>S (cl_of x) * \<rho> (cl_of x))
     \<le> (\<Sum>A\<in>{a. a \<in># N\<^sub>S \<and> \<not> I' \<Turnstile> a}. count N\<^sub>S A * \<rho> A)\<close>
       apply (subst comm_monoid_add_class.sum.reindex_cong[symmetric, of cl_of, OF _ refl])
@@ -1687,7 +1687,7 @@ qed
 
 lemma atms_exactly_m_alt_def:
   \<open>atms_exactly_m (set_mset y) N \<longleftrightarrow> atms_of y \<subseteq> atms_of_mm N \<and>
-	total_over_m (set_mset y) (set_mset N)\<close>
+        total_over_m (set_mset y) (set_mset N)\<close>
   by (auto simp: atms_exactly_m_def atms_of_s_def atms_of_def
       atms_of_ms_def dest!: multi_member_split)
 
