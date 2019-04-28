@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "364d271b";
+val version : string = "0ea746a4";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -2239,7 +2239,8 @@ fun upper_restart_bound_not_reached_fast_impl x =
       in
         less_nat a1u
           (plus_nat (nat_of_integer (3000 : IntInf.int))
-            (times_nat (nat_of_integer (500 : IntInf.int)) (nat_of_uint64 a1o)))
+            (times_nat (nat_of_integer (1000 : IntInf.int))
+              (nat_of_uint64 a1o)))
       end))
     x;
 
@@ -2376,7 +2377,7 @@ fun restart_required_heur_fast_code x =
                              then Uint64.less x_h
                                     (shiftr_uint64
                                       (Uint64.times
-(Uint64.fromInt (11 : IntInf.int)) (ema_get_value xaa))
+(Uint64.fromInt (12 : IntInf.int)) (ema_get_value xaa))
                                       (nat_of_integer (4 : IntInf.int)))
                              else true) andalso
                             (Uint64.less minimum_number_between_restarts
@@ -2636,7 +2637,7 @@ fun lower_restart_bound_not_reached_fast_impl x =
           opts_restart a2u andalso
             less_nat a1u
               (plus_nat (nat_of_integer (2000 : IntInf.int))
-                (times_nat (nat_of_integer (300 : IntInf.int))
+                (times_nat (nat_of_integer (1000 : IntInf.int))
                   (nat_of_uint64 a1o)))
       end))
     x;
@@ -3287,7 +3288,8 @@ fun upper_restart_bound_not_reached_impl x =
       in
         less_nat a1u
           (plus_nat (nat_of_integer (3000 : IntInf.int))
-            (times_nat (nat_of_integer (500 : IntInf.int)) (nat_of_uint64 a1o)))
+            (times_nat (nat_of_integer (1000 : IntInf.int))
+              (nat_of_uint64 a1o)))
       end))
     x;
 
@@ -3403,7 +3405,7 @@ fun restart_required_heur_slow_code x =
                              then Uint64.less x_h
                                     (shiftr_uint64
                                       (Uint64.times
-(Uint64.fromInt (11 : IntInf.int)) (ema_get_value xaa))
+(Uint64.fromInt (12 : IntInf.int)) (ema_get_value xaa))
                                       (nat_of_integer (4 : IntInf.int)))
                              else true) andalso
                             (Uint64.less minimum_number_between_restarts
@@ -3618,7 +3620,7 @@ fun lower_restart_bound_not_reached_impl x =
           opts_restart a2u andalso
             less_nat a1u
               (plus_nat (nat_of_integer (2000 : IntInf.int))
-                (times_nat (nat_of_integer (300 : IntInf.int))
+                (times_nat (nat_of_integer (1000 : IntInf.int))
                   (nat_of_uint64 a1o)))
       end))
     x;

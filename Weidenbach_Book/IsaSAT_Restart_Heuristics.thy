@@ -699,7 +699,7 @@ lemma two_uint64[sepref_fr_rules]:
 definition upper_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>upper_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
        vdom, avdom, lcount, opts).
-    lcount < 3000 + 500 * nat_of_uint64 restarts)\<close>
+    lcount < 3000 + 1000 * nat_of_uint64 restarts)\<close>
 
 sepref_register upper_restart_bound_not_reached
 sepref_definition upper_restart_bound_not_reached_impl
@@ -724,7 +724,7 @@ definition (in -) lower_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rig
   \<open>lower_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
         (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
        vdom, avdom, lcount, opts).
-     (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (lcount < 2000 + 300 * nat_of_uint64 restarts))))\<close>
+     (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (lcount < 2000 + 1000 * nat_of_uint64 restarts))))\<close>
 
 sepref_register lower_restart_bound_not_reached
 sepref_definition lower_restart_bound_not_reached_impl
@@ -950,7 +950,7 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
     let opt_red = opts_reduction_st S;
     let opt_res = opts_restart_st S;
     let sema = ema_get_value (get_slow_ema_heur S);
-    let limit = (11 * sema) >> 4;
+    let limit = (12 * sema) >> 4;
        \<comment>\<open>roughly speaking 125/100 with hopefully no overflow (there is currently no division
          on \<^typ>\<open>uint64\<close>\<close>
     let fema = ema_get_value (get_fast_ema_heur S);
