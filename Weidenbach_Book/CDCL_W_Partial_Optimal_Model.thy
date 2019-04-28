@@ -18,6 +18,29 @@ lemma (in conflict_driven_clause_learning\<^sub>W_optimal_weight)
 context optimal_encoding
 begin
 
+definition base_atm :: \<open>'v \<Rightarrow> 'v\<close> where
+  \<open>base_atm L = (if L \<in> \<Sigma> - \<Delta>\<Sigma> then L else
+    if L \<in> replacement_neg ` \<Delta>\<Sigma> then (SOME K. (K \<in> \<Delta>\<Sigma> \<and> L = replacement_neg K))
+    else (SOME K. (K \<in> \<Delta>\<Sigma> \<and> L = replacement_pos K)))\<close>
+
+lemma normalize_lit_Some_simp[simp]: \<open>(SOME K. K \<in> \<Delta>\<Sigma> \<and> (L\<^sup>\<mapsto>\<^sup>0 = K\<^sup>\<mapsto>\<^sup>0)) = L\<close> if \<open>L \<in> \<Delta>\<Sigma>\<close> for K
+  by (rule some1_equality) (use that in auto)
+
+lemma base_atm_simps1[simp]:
+  \<open>L \<in> \<Sigma> \<Longrightarrow> L \<notin> \<Delta>\<Sigma> \<Longrightarrow> base_atm L = L\<close>
+  by (auto simp: base_atm_def)
+
+lemma base_atm_simps2[simp]:
+  \<open>L \<in> (\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<Longrightarrow>
+    K \<in> \<Sigma> \<Longrightarrow> K \<notin> \<Delta>\<Sigma> \<Longrightarrow> L \<in> \<Sigma> \<Longrightarrow> K = base_atm L \<longleftrightarrow> L = K\<close>
+  by (auto simp: base_atm_def)
+
+lemma base_atm_simps3[simp]:
+  \<open>L \<in> \<Sigma> - \<Delta>\<Sigma> \<Longrightarrow> base_atm L \<in> \<Sigma>\<close>
+  \<open>L \<in> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<Longrightarrow> base_atm L \<in> \<Delta>\<Sigma>\<close>
+  apply (auto simp: base_atm_def)
+  by (metis (mono_tags, lifting) tfl_some)
+
 fun normalize_lit :: \<open>'v literal \<Rightarrow> 'v literal\<close> where
   \<open>normalize_lit (Pos L) =
     (if L \<in> replacement_neg ` \<Delta>\<Sigma> then Neg (replacement_pos (SOME K. (K \<in> \<Delta>\<Sigma> \<and> L = replacement_neg K)))
@@ -29,8 +52,6 @@ fun normalize_lit :: \<open>'v literal \<Rightarrow> 'v literal\<close> where
 abbreviation normalize_clause :: \<open>'v clause \<Rightarrow> 'v clause\<close> where
 \<open>normalize_clause C \<equiv> normalize_lit `# C\<close>
 
-lemma normalize_lit_Some_simp[simp]: \<open>(SOME K. K \<in> \<Delta>\<Sigma> \<and> (L\<^sup>\<mapsto>\<^sup>0 = K\<^sup>\<mapsto>\<^sup>0)) = L\<close> if \<open>L \<in> \<Delta>\<Sigma>\<close> for K
-  by (rule some1_equality) (use that in auto)
 
 lemma normalize_lit[simp]:
   \<open>L \<in> \<Sigma> - \<Delta>\<Sigma> \<Longrightarrow> normalize_lit (Pos L) = (Pos L)\<close>
@@ -38,6 +59,119 @@ lemma normalize_lit[simp]:
   \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow> normalize_lit (Pos (replacement_neg L)) = Neg (replacement_pos L)\<close>
   \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow> normalize_lit (Neg (replacement_neg L)) = Pos (replacement_pos L)\<close>
   by auto
+
+definition all_clauses_literals :: \<open>'v list\<close> where
+  \<open>all_clauses_literals = (SOME xs. mset xs = mset_set ((\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>))\<close>
+
+
+context
+  assumes [simp]: \<open>finite \<Sigma>\<close>
+begin
+
+lemma all_clauses_literals:
+  \<open>mset all_clauses_literals = mset_set ((\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>)\<close>
+  \<open>distinct all_clauses_literals\<close>
+  \<open>set all_clauses_literals = ((\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>)\<close>
+proof -
+  show 1: \<open>mset all_clauses_literals = mset_set ((\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>)\<close>
+    using someI[of \<open>\<lambda>xs. mset xs = mset_set ((\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>)\<close>]
+      finite_\<Sigma> ex_mset[of \<open>mset_set (\<Sigma> - \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>)\<close>]
+    unfolding all_clauses_literals_def[symmetric]
+    by metis
+  show 2: \<open>distinct all_clauses_literals\<close>
+    using someI[of \<open>\<lambda>xs. mset xs = mset_set ((\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>)\<close>]
+      finite_\<Sigma> ex_mset[of \<open>mset_set (\<Sigma> - \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>)\<close>]
+    unfolding all_clauses_literals_def[symmetric]
+    by (metis distinct_mset_mset_set distinct_mset_mset_distinct)
+  show 3: \<open>set all_clauses_literals = ((\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>)\<close>
+    using arg_cong[OF 1, of set_mset] finite_\<Sigma>
+    by simp
+qed
+
+definition complete_trail :: \<open>('v, 'v clause) ann_lits \<Rightarrow> ('v, 'v clause) ann_lits\<close> where
+\<open>complete_trail M = M @ map (Decided o Pos) (filter (\<lambda>L. undefined_lit M (Pos L)) all_clauses_literals)\<close>
+
+lemma no_dup_complete_trail[simp]:
+  \<open>no_dup (complete_trail M) \<longleftrightarrow> no_dup M\<close>
+  by (auto simp: complete_trail_def no_dup_def comp_def all_clauses_literals(1,2)
+    undefined_notin)
+
+lemma tautology_complete_trail[simp]:
+  \<open>tautology (lit_of `# mset (complete_trail M)) \<longleftrightarrow> tautology (lit_of `# mset M)\<close>
+  by (auto simp: complete_trail_def tautology_decomp' comp_def all_clauses_literals
+          undefined_notin uminus_lit_swap defined_lit_Neg_Pos_iff
+       simp flip: defined_lit_Neg_Pos_iff)
+
+lemma atms_of_complete_trail:
+  \<open>atms_of (lit_of `# mset (complete_trail M)) =
+     atms_of (lit_of `# mset M) \<union> (\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>\<close>
+  by (auto simp: complete_trail_def atms_of_def all_clauses_literals
+    image_image image_Un undefined_notin defined_lit_map)
+
+fun ocdcl_score_rev :: \<open>('v, 'b) ann_lits \<Rightarrow> ('v, 'b) ann_lits \<Rightarrow> nat\<close> where
+  \<open>ocdcl_score_rev _ [] = 0\<close> |
+  \<open>ocdcl_score_rev M' (Propagated K C # M) = ocdcl_score_rev (M' @ [Propagated K C]) M\<close> |
+  \<open>ocdcl_score_rev M' (Decided K # M) = ocdcl_score_rev (M' @ [Decided K]) M + 
+     (if atm_of K \<in> \<Sigma> - \<Delta>\<Sigma> then 1
+     else if Decided (base_atm (atm_of K)) \<in> set (map (map_annotated_lit (base_atm o atm_of) id id) M')
+         then 2 else 1) * 3^card (base_atm ` atms_of (lit_of `# mset M))\<close>
+
+abbreviation ocdcl_score:: \<open>('v, 'b) ann_lits \<Rightarrow> ('v, 'b) ann_lits \<Rightarrow> nat\<close> where
+  \<open>ocdcl_score M M' \<equiv> ocdcl_score_rev M (rev M')\<close>
+
+lemma ocdcl_score_rev_induct_internal:
+  fixes xs ys :: \<open>('v, 'b) ann_lits\<close>
+  assumes
+    \<open>ys @ xs = M0\<close>
+    \<open>P M0 []\<close>
+    \<open>\<And>L C M M'. M0 = M' @ Propagated L C # M  \<Longrightarrow> P (M' @ [Propagated L C]) M \<Longrightarrow> P M' (Propagated L C # M)\<close>
+    \<open>\<And>L M M'. M0 = M' @ Decided L # M\<Longrightarrow> P (M' @ [Decided L]) M \<Longrightarrow> P M' (Decided L # M)\<close>
+  shows \<open>P ys xs \<and> ys @ xs = M0\<close>
+  using assms(1)
+  apply (induction ys xs rule: ocdcl_score_rev.induct)
+  subgoal using assms(1,2) by auto
+  subgoal for M L C M'
+    using assms(3) by auto
+  subgoal for M L M'
+    using assms(4) by auto
+  done
+
+lemma ocdcl_score_rev_induct2:
+  fixes xs ys :: \<open>('v, 'b) ann_lits\<close>
+  assumes
+    \<open>P (ys @ xs) []\<close>
+    \<open>\<And>L C M M'. ys @ xs = M' @ Propagated L C # M  \<Longrightarrow> P (M' @ [Propagated L C]) M \<Longrightarrow> P M' (Propagated L C # M)\<close>
+    \<open>\<And>L M M'. ys @ xs = M' @ Decided L # M \<Longrightarrow> P (M' @ [Decided L]) M \<Longrightarrow> P M' (Decided L # M) \<close>
+  shows \<open>P ys xs\<close>
+  using ocdcl_score_rev_induct_internal[of ys xs \<open>ys @ xs\<close> P] assms by auto
+
+lemma ocdcl_score_rev_induct:
+  fixes xs ys :: \<open>('v, 'b) ann_lits\<close>
+  assumes
+    \<open>P xs []\<close>
+    \<open>\<And>L C M M'. xs = M' @ Propagated L C # M  \<Longrightarrow> P (M' @ [Propagated L C]) M \<Longrightarrow> P M' (Propagated L C # M)\<close>
+    \<open>\<And>L M M'. xs = M' @ Decided L # M \<Longrightarrow> P (M' @ [Decided L]) M \<Longrightarrow> P M' (Decided L # M) \<close>
+  shows \<open>P [] xs\<close>
+  using ocdcl_score_rev_induct_internal[of \<open>[]\<close> xs xs P] assms by auto
+
+lemma Decided_map_annotated_lit_iff[simp]:
+  \<open>Decided L = map_annotated_lit f g h x \<longleftrightarrow> (\<exists>x'. x = Decided x' \<and> L = f x')\<close>
+  by (cases x) auto
+
+lemma
+  \<open>atm_of ` (lits_of_l (M' @ M)) \<subseteq> \<Sigma> \<Longrightarrow> no_dup (M' @ M) \<Longrightarrow>
+     ocdcl_score_rev M' M \<le> 3 ^ (card ((base_atm o atm_of) ` lits_of_l M))\<close>
+  apply (induction M' M rule: ocdcl_score_rev_induct2)
+  subgoal by auto
+  subgoal for L M' M
+    by (cases \<open>atm_of L \<in> \<Sigma>\<close>) (auto simp: card_insert_if)
+  subgoal for L Ma M'a
+    using \<Delta>\<Sigma>_\<Sigma>
+    apply (auto simp: card_insert_if atm_of_eq_atm_of lits_of_def image_image
+      atms_of_def image_Un dest!: split_list[of _ M'a])
+  oops
+
+end
 
 
 interpretation enc_weight_opt: conflict_driven_clause_learning\<^sub>W_optimal_weight where
