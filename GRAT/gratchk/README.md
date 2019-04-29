@@ -4,13 +4,12 @@ Distribution of GRATchk with complete Isabelle/HOL formalization.
 
 ## Prerequisites
   * Working installation of [Isabelle/HOL](https://isabelle.in.tum.de) with the [Archive of Formal Proofs](https://www.isa-afp.org) installed 
-    as [component](https://www.isa-afp.org/using.shtml). We require version = Isabelle-2017, which, at the time of writing, is the current version.
+    as described [here](https://www.isa-afp.org/using.shtml). We require version = Isabelle-2018, which, at the time of writing, is the current version.
   * To compile the actual executable GRATchk: An [MLton](http://mlton.org/) compiler version >= 20100608.
 
 ## Building
   Run 
-      isabelle build -d '$AFP' -D.
-  note the single quotes around <code>'$AFP'<code>!
+      isabelle build -D.
   This will invoke Isabelle to check all proofs and re-generate the exported code, which is written to <code>code/gratchk_export.sml</code>
 
   Moreover, the proof document and proof outline will be regenerated.
@@ -19,7 +18,7 @@ Distribution of GRATchk with complete Isabelle/HOL formalization.
 
 ## Inspecting the Proof
   The best way to inspect the proof is to load it into the Isabelle IDE. In this directory, type
-      isabelle jedit -d '$AFP' -d . -l Sepref_IICF Grat_Check_Code_Exporter.thy
+      isabelle jedit -d . -l Sepref_IICF Grat_Check_Code_Exporter.thy
   On the first invocation of this command, a base image with the required libraries is built, which may take several minutes.
   When invoked, the IDE will display the last theory of the formal development, where the exported code is generated, and 
   a self-contained correctness theorem down to the integer sequence representing a formula is proved. 
