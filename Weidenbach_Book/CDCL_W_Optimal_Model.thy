@@ -4028,6 +4028,11 @@ lemma rtranclp_cdcl_bnb_stgy_no_smaller_propa:
     (use rtranclp_cdcl_bnb_stgy_all_struct_inv
         rtranclp_cdcl_bnb_stgy_cdcl_bnb in \<open>force intro: cdcl_bnb_stgy_no_smaller_propa\<close>)+
 
+lemma wf_ocdcl\<^sub>w_p:  (* \htmllink{ocdcl-improvep-termination} *)
+  \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)
+     \<and> ocdcl\<^sub>w_p S T}\<close>
+  by (rule wf_subset[OF wf_cdcl_bnb2]) (auto dest: ocdcl\<^sub>w_p_cdcl_bnb)
+
 end
 
 end
