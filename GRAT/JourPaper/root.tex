@@ -42,10 +42,10 @@
 \usepackage{cite}
 
 
-\usepackage{packages/isabelle}
-\usepackage{packages/isabelletags}
-\usepackage{packages/isabellesym}
-\usepackage{packages/comment}
+\usepackage{isabelle}
+\usepackage{isabelletags}
+\usepackage{isabellesym}
+\usepackage{isabelleComment}
 
 % \isabellestyle{it}
 
@@ -114,16 +114,16 @@
 
 \newcommand\CC{C\nolinebreak[4]\hspace{-.05em}\raisebox{.4ex}{\relsize{-3}{\textbf{++}}}}
 
-% Include snippets
-\newcommand{\DefineSnippet}[2]{%
-   \expandafter\newcommand\csname snippet--#1\endcsname{%
-     \begin{quote}
-     \begin{isabelle}\footnotesize
-     #2
-     \end{isabelle}
-     \end{quote}}}
-\newcommand{\Snippet}[1]{\ifcsname snippet--#1\endcsname\csname snippet--#1\endcsname\else\PackageError{}{No snippet '#1' defined.}{}\fi}
-\input{snippets/snippets.out}
+% % Include snippets
+% \newcommand{\DefineSnippet}[2]{%
+%    \expandafter\newcommand\csname snippet--#1\endcsname{%
+%      \begin{quote}
+%      \begin{isabelle}\footnotesize
+%      #2
+%      \end{isabelle}
+%      \end{quote}}}
+% \newcommand{\Snippet}[1]{\ifcsname snippet--#1\endcsname\csname snippet--#1\endcsname\else\PackageError{}{No snippet '#1' defined.}{}\fi}
+% %\input{snippets.out}
 
 
 \newcommand{\todo}[1]{\par\noindent\fbox{\parbox{\textwidth}{\color{darkgray}#1}}}
@@ -175,20 +175,33 @@
 \maketitle
 
 \begin{abstract}
-We present an efficient formally verified checker for satisfiability and unsatisfiability certificates for 
-Boolean formulas in conjunctive normal form. 
-While satisfiability certificates are straightforward to check, the unsatisfiability checker utilizes a two phase approach: 
-Starting from a DRAT certificate, the unverified generator computes an enriched certificate,
-which is then checked against the original formula by the verified checker.
-
-The actual implementation of the checker is mechanically verified with the Isabelle/HOL theorem prover, 
-against a specification of the semantics of the formula down to the integer sequence by which it is represented.
-
-On a realistic benchmark suite drawn from the 2016 and 2017 SAT competitions, our approach is significantly faster 
-than the unverified standard tool DRAT-trim. An optional multi-threaded mode of the generator further reduces the 
-runtime, in particular for big problems.
+SAT solvers decide the satisfiability of Boolean formulas in conjunctive normal form. 
+They are commonly used for software and hardware verification.
+Modern SAT solvers are highly complex and optimized programs. 
+As a single bug in the solver may invalidate the verification of many systems, 
+SAT solvers output certificates for their answer, which are then checked independently.
+However, even certificate checking requires highly optimized non-trivial programs.
+This paper presents the first SAT solver certificate checker that is 
+formally verified down to the integer sequence representing the formula.
+Our tool supports the full DRAT standard, and is even faster than the unverified state-of-the-art tool {\sl drat-trim}, 
+on a realistic set of benchmarks drawn from the 2016 and 2017 SAT competitions. An optional multi-threaded mode further
+reduces the runtime, in particular for big certificates.
 \end{abstract}
 
+% \begin{abstract}
+% We present an efficient, formally verified checker for satisfiability and unsatisfiability certificates for 
+% Boolean formulas in conjunctive normal form. 
+% While satisfiability certificates are straightforward to check, the unsatisfiability checker utilizes a two phase approach: 
+% Starting from a DRAT certificate, the unverified generator computes an enriched certificate,
+% which is then checked against the original formula by the verified checker.
+% 
+% The actual implementation of the checker is mechanically verified with the Isabelle/HOL theorem prover, 
+% against a specification of the semantics of the formula down to the integer sequence by which it is represented.
+% 
+% On a realistic benchmark suite drawn from the 2016 and 2017 SAT competitions, our approach is significantly faster 
+% than the unverified standard tool {\sl drat-trim}. An optional multi-threaded mode of the generator further reduces the 
+% runtime, in particular for big problems.
+% \end{abstract}
 
 
 
@@ -210,7 +223,7 @@ Since 2014, only certificates in the DRAT format~\cite{WHH14} are accepted~\cite
 % \wrt the current clauses. Moreover, the DRAT format supports deletion of clauses that are no longer required to derive the empty clause.
 % Mainly efficiency optimization?, can, in theory, enable drat-proofs
 
-The standard tool to check DRAT certificates is DRAT-trim~\cite{WHH14,drat-trim-webpage}. 
+The standard tool to check DRAT certificates is {\sl drat-trim}~\cite{WHH14,drat-trim-webpage}. 
 It is a highly optimized C program with many features, including forward and backward checking modes, a satisfiability certificate checking mode,
 and a feature to output reduced (trimmed) certificates.
 % 
@@ -222,10 +235,11 @@ and a feature to output reduced (trimmed) certificates.
 % reduce the number of newly marked lemmas.
 % 
 However, the high degree of optimization and the wealth of features come at the price of code complexity, increasing the likelihood of bugs. And indeed, 
-during our formalization of DRAT certificates, we realized that DRAT-trim was missing a crucial check, thus accepting (maliciously engineered) unsat certificates 
+during our formalization of DRAT certificates, we realized that {\sl drat-trim} was missing a crucial check, thus accepting (maliciously engineered) unsat certificates 
 for satisfiable formulas. This bug has been confirmed by the authors, and is now fixed.
 Moreover, we discovered several numeric and buffer overflow issues in the parser~\cite{drat-trim-issues}, which could lead to misinterpretation of the formula.
-Thus, although being less complex than SAT solvers, efficient DRAT checkers are still complex enough to easily overlook bugs.\footnote{Unfortunately, the available version history of DRAT-trim~\cite{drat-trim-github} only dates back to October 2016. We can only speculate whether the discovered bugs were present in the versions used for the 2014 and 2016 SAT competitions.} 
+Thus, although being less complex than SAT solvers, efficient DRAT checkers are still complex enough to easily overlook bugs.
+%\footnote{Unfortunately, the available version history of {\sl drat-trim}~\cite{drat-trim-github} only dates back to October 2016. We can only speculate whether the discovered bugs were present in the versions used for the 2014 and 2016 SAT competitions.} 
 
 One method to ensure correctness of software is to conduct a machine-checked correctness proof. 
 A common approach is to prove correct a specification in the logic of an interactive theorem prover, and then generate executable code from 
@@ -235,7 +249,7 @@ Unfortunately, the algorithms and low-level optimizations required for \emph{eff
 hard to verify and existing approaches (\eg \cite{DFM10,WHH13}) do not scale to large problems.
 
 While working on the verification of an efficient DRAT checker, the author learned about GRIT, proposed by Cruz-Filipe et al.\ \cite{CMS17}: 
-They use a modified version of DRAT-trim to generate an enriched certificate from the original DRAT certificate. 
+They use a modified version of {\sl drat-trim} to generate an enriched certificate from the original DRAT certificate. 
 The crucial idea is to record the required unit propagations, such that the checker of the enriched certificate only needs 
 to implement a check whether a clause is unit, instead of a fully fledged unit propagation algorithm.
 
@@ -262,26 +276,32 @@ Independently of us, Cruz-Filipe et al.~also extended their tool to DRAT~\cite{C
 % %
 % Finally, the GRIT format only supports the less powerful DRUP-fragment of DRAT, making it unsuitable for recent SAT solvers which output full DRAT~(\eg CryptoMiniSAT, Riss6~\cite{SATCOMP16}).
 
-In this paper, which is an extended version of our conference papers~\cite{La17_CADE,La17_SAT}, we present enriched certificates for full DRAT, along with a checker whose correctness is formally verified down to the integer sequence 
-representing the formula. 
-The simple unverified parser that reads a formula into an integer array is written in Standard ML~\cite{MHMT97}, which guarantees that numeric and buffer overflows will 
-not go unnoticed. On the same basis, we also implement and verify a sat certificate checker, obtaining a complete and formally verified SAT solver certification tool.
+In this paper we present the GRAT toolchain:
+An enriched certificate format for full DRAT, a highly optimized certificate generator, and a certificate checker whose correctness
+is formally verified down to the integer array representing the formula. 
+The simple unverified parser that reads a formula into an integer array is written in Standard ML~\cite{MHMT97}, which guarantees that numeric and buffer overflows will not go unnoticed. 
+On the same basis, we also implement and verify a sat certificate checker, obtaining a complete and formally verified SAT solver certification tool.
 
 We use stepwise refinement techniques to obtain an efficient verified checker, and implement aggressive optimizations in the generator.
 A distinguishing feature is a multi-threaded mode for the generator, which allows us to trade computing resources for additional speedup.
 
-We benchmark our tool against DRAT-trim and LRAT on a realistic benchmark suite drawn from the 2016 and 2017 SAT 
-competitions: Already in single-threaded mode, our tool is faster than LRAT on every single problem, and, on most problems, even faster than the (unverified) DRAT-trim.
+We benchmark our tool against {\sl drat-trim} and LRAT on a realistic benchmark suite drawn from the 2016 and 2017 SAT 
+competitions: Already in single-threaded mode, our tool is faster than LRAT on every single problem, and, on most problems, even faster than the (unverified) {\sl drat-trim}.
 In multi-threaded mode with 8 threads, we get an average speedup of $2.2$.
 
+This paper is an extended version of our conference papers~\cite{La17_CADE,La17_SAT}. It provides a unified description of 
+both the certificate generator and checker, and extends the benchmark set to include problems from the 2017 SAT competition.
 Our tools, formalizations, and benchmark results are available online~\cite{GRAT-homepage}.
+
 
 The rest of this paper is organized as follows: 
 After briefly recalling the theory of DRAT certificates (\S\ref{sec:unsat_cert}), we introduce our enriched certificate format (\S\ref{sec:grat-format}).
 We then give a short overview of the Isabelle Refinement Framework (\S\ref{sec:imp_ref_framework})
 and describe its application to verifying our certificate checker (\S\ref{sec:grat_verified}). 
-The paper ends with a description of our certificate generator (\S\ref{sec:gratgen}) and a report on the experimental evaluation 
+Next, we describe our certificate generator (\S\ref{sec:gratgen}) and report on the experimental evaluation 
 of our tools (\S\ref{sec:benchmarks}).
+Finally, we discuss future work (\S\ref{sec:disc}) and give a conclusion (\S\ref{sec:concl}).
+
 
 \section{Unsatisfiability Certificates}\label{sec:unsat_cert}
 We briefly recall the theory of DRAT unsatisfiability certificates. 
@@ -333,13 +353,13 @@ in unit propagations during RUP and RAT checks. Lemmas that remain unmarked need
 \emph{core-first} unit propagation~\cite{WHH14} prefers marked unit clauses over unmarked ones.
 
 In practice, DRAT certificate checkers spend most time on unit propagation\footnote{Our profiling data indicates that, depending on the problem, up to 93\% of the time is spent for unit propagation.}, for which highly optimized implementations of rather complex algorithms 
-are used (\eg DRAT-trim uses a two-watched-literals algorithm~\cite{MMZZ01}).
+are used (\eg {\sl drat-trim} uses a two-watched-literals algorithm~\cite{MMZZ01}).
 Unfortunately, verifying such highly optimized code in a proof assistant is a major endeavor.
 Thus, a crucial idea is to implement an unverified tool that enriches the certificate with additional information that can be used for simpler and more efficient verification.
 For DRUP, the GRIT format has been proposed recently~\cite{CMS17}. 
 It stores, for each lemma, a list of unit clauses in the order they become unit, followed by a conflict clause.
 Thus, \emph{finding} the next unit or conflict clause is replaced by 
-simply \emph{checking} whether a clause is unit or conflict. A modified version of DRAT-trim can be used to generate a GRIT certificate from the original DRAT certificate.
+simply \emph{checking} whether a clause is unit or conflict. A modified version of {\sl drat-trim} can be used to generate a GRIT certificate from the original DRAT certificate.
 
 
 \section{The GRAT Format}\label{sec:grat-format}
@@ -352,8 +372,8 @@ For memory efficiency reasons, we store the certificate in two parts: The lemma 
 During certificate checking, this part is entirely loaded into memory.
 The proof file contains the hints and instructions for the certificate checker. It is not completely loaded into memory but only streamed during checking.
 
-The proof file is a binary file, containing a sequence of 32 bit signed integers stored in 2's complement little endian format. 
-The sequence is reversed (or the file is streamed backwards), and then interpreted according to the following grammar:
+The proof file is a binary file, containing a sequence (stored in reverse order) of 32 bit signed integers in 2's complement little endian format. 
+The sequence is interpreted according to the following grammar:
 \begin{lstlisting}[language={},columns={[c]fullflexible},literate={}]
   proof      ::= rat-counts item* conflict
   literal    ::= int32 != 0
@@ -374,7 +394,7 @@ Partial assignments are extended to literals in the natural way.
 Initially, the clause map contains the clauses of the original formula, and the partial assignment maps all variables to undecided.
 Then, the checker iterates over the items of the proof, processing each item as follows:
 \begin{description}
-  \item[\tt rat-counts] This item contains a list of pairs of literals and the number how often they are used in RAT proofs. 
+  \item[\tt rat-counts] This item contains a list of pairs of literals and the count how often they are used in RAT proofs. 
       This map allows the checker to maintain lists of RAT candidates for the relevant literals, instead of gathering the 
       possible RAT candidates by iterating over the whole clause database for each RAT proof, which is expensive.
       Literals that are not used in RAT proofs at all do not occur in the list. This item is the first item of the proof.
@@ -538,7 +558,7 @@ and a predicate \isai{sat'} which holds iff such a model exists:
 \begin{lstlisting}
 definition compat_assignment :: "(nat -` bool) => valuation => bool" 
   where "compat_assignment A \<sigma> == \<forall>x v. A x = Some v ==> \<sigma> x = v"
-definition "models' F A == models F \<inter> Collect (compat_assignment A)"
+definition "models' F A == models F \<inter> {A. compat_assignment A}"
 definition "sat' F A == models' F A ~= {}"
 \end{lstlisting}
 Obviously, a formula is satisfiable wrt.\ the empty partial assignment if, and only if, it is satisfiable:
@@ -598,7 +618,7 @@ where the assignment \isai$A_1$ will be computed by unit propagation.
 % 
 % 
 % 
-% Thus, this lemma states that if $l$ is a literal of the clause $C$ that is not assigned to false\footnote{The check for this side condition was actually omitted in DRAT-trim, making it unsound (\cf introduction).}, and for all \emph{candidate clauses} $D$ that contain $\neg l$,
+% Thus, this lemma states that if $l$ is a literal of the clause $C$ that is not assigned to false\footnote{The check for this side condition was actually omitted in {\sl drat-trim}, making it unsound (\cf introduction).}, and for all \emph{candidate clauses} $D$ that contain $\neg l$,
 % the the clause $C(D\setminus\neg l)$ is implied, then the clause $C$ is redundant, \ie we can add it to the formula without changing satisfiability.
 
 \subsection{Abstract Checker Algorithm}
@@ -690,7 +710,8 @@ first lemma, and \isai{prf} is the proof stream.
 First, the RAT literal counts are read (2) and the formula is parsed into the clause map (3).
 Then, the assignment is initialized to everything undecided (4).
 The function then iterates over the proof stream and checks each item (5--9), until the formula has been certified (or an exception terminates the program).
-Here, the checker's state is wrapped into an option type, where \isai{None} indicates that the formula has been certified. 
+Here, the checker's state is wrapped into an option type, where \isai{None} indicates that the formula has been certified. The function 
+\isai{the (Some x) = x} extracts the value from an option.
 %
 Correctness of the abstract checker is expressed by the following lemma:
 \begin{lstlisting}
@@ -811,7 +832,7 @@ definition "verify_sat_spec DB F_end == 1 <= F_end \<and> F_end <= length DB \<a
   (let lst = tl (take F_end DB) in F_invar lst \<and> sat (F_\<alpha> lst))"
 \end{lstlisting}
 
-Finally, to obtain our verified sat and unsat checker \emph{gratchk}, Isabelle/HOL's code generator is used to extract Standard ML code for \isai{verify_(un)sat_impl}. 
+Finally, to obtain our verified sat and unsat checker {\sl gratchk}, Isabelle/HOL's code generator is used to extract Standard ML code for \isai{verify_(un)sat_impl}. 
 We add a command line interface and a small (40 LOC) parser to read the formula into an array. 
 Moreover, we implement a buffered reader for the proof file. This, however, does not affect the correctness statement, which is 
 valid for all proof stream implementations. The resulting program is compiled with MLton~\cite{MLton}.
@@ -930,7 +951,7 @@ In the case of unsatisfiability, the bounds have been adjusted to exclude the em
 In order to generate GRAT certificates, we extend a DRAT checker algorithm 
 to record the unit clauses that lead to a conflict when checking each lemma. 
 As the certificate generator is not part of the trusted code base, we can afford aggressive optimizations.
-Our generator \emph{gratgen} started as a reimplementation of the backward mode of DRAT-trim~\cite{WHH13,drat-trim-webpage} in \CC, to 
+Our generator {\sl gratgen} started as a reimplementation of the backward mode of {\sl drat-trim}~\cite{WHH13,drat-trim-webpage} in \CC, to 
 which we added certificate generation. Later, we implemented multithreading and some additional optimizations.
 The multithreading mode allows us to trade computing resources for faster response time. It makes sense in settings where parallelization 
 on the granularity of whole problems does not exhaust the available computing resources, \eg when one is interested in a quick answer for a single problem.
@@ -989,20 +1010,20 @@ threads. In theory, one thread could prove most of the lemmas, while the other t
 seeing only very few marked lemmas. However, we have not observed such behavior in practice, and thus did not implement any further synchronization
 between the threads.
 
-In the remainder of this section, we describe the most important optimizations that we have implemented in gratgen: RAT-run heuristics and separate watchlists.
+In the remainder of this section, we describe the most important optimizations that we have implemented in {\sl gratgen}: RAT-run heuristics and separate watchlists.
 
 \subsection{RAT-Run Heuristics}
 To verify that a lemma has the RAT property (\cf Section~\ref{sec:uprop_and_rat}), one has to collect all RAT candidate lemmas, \ie those clauses in the 
 database that contain the negated pivot literal. As it is not known in advance which of the lemmas will
 actually be marked and require a full RAT proof (most lemmas are proved by a RUP-proof), maintaining a database of candidate 
-lemmas for each literal would be inefficient. Thus, DRAT-trim iterates over the whole clause database on each RAT proof. Our profiling indicated that a significant amount of the runtime may be spent on searching candidate lemmas. However, we observed that certificates
+lemmas for each literal would be inefficient. Thus, {\sl drat-trim} iterates over the whole clause database on each RAT proof. Our profiling indicated that a significant amount of the runtime may be spent on searching candidate lemmas. However, we observed that certificates
 usually contain runs of multiple RAT lemmas with the same pivot. Thus, we store the result of the last search through the database, and reuse it if 
 we should encounter a RAT lemma over the same pivot. Moreover, in multi-threaded mode, we always allocate a run of lemmas with the same pivot to the 
 same thread, as the stored search result is maintained thread-locally. Our benchmarks (Section~\ref{sec:benchmarks}) indicate that this optimization is very efficient if actual RAT lemmas are present. If there are no RAT lemmas, the heuristics' overhead is effectively a single check in the outer loop
 of the backwards phase, and, as expected, we observed no decrease in performance.
 
 \subsection{Separate Watchlists}
-Another important heuristics, which is already implemented in DRAT-trim, is core-first unit propagation.
+Another important heuristics, which is already implemented in {\sl drat-trim}, is core-first unit propagation.
 On unit propagation, marked lemmas are preferred over unmarked ones. This way, the unit clauses used for a proof are more likely to be already marked,
 thus reducing the overall number of marked lemmas.
 
@@ -1013,33 +1034,51 @@ assigned to false, a new watched literal is searched. If no new watched literal 
 assigned to true or unit propagation stops with a conflict. To efficiently iterate over the clauses watching a literal, they are stored in a \emph{watchlist} for 
 each literal.
 
-In DRAT-trim, core first unit propagation is implemented by two iterators over the watchlists of the newly assigned literals.
+In {\sl drat-trim}, core first unit propagation is implemented by two iterators over the watchlists of the newly assigned literals.
 The first iterator ignores unmarked clauses, while 
 the second iterator processes unmarked clauses. The second iterator is only advanced when the first iterator cannot be advanced further. By advancing the second 
 iterator, new literals may be assigned, which makes advancing the first iterator possible again.
 However, skipping the iterators over irrelevant clauses may yield considerable overhead in the performance sensitive inner loop of unit propagation.
-Thus, for gratgen, we have implemented two watchlists for each literal, one for the marked and one for the unmarked lemmas. 
+Thus, for {\sl gratgen}, we have implemented two watchlists for each literal, one for the marked and one for the unmarked lemmas. 
 This way, the iterators during unit propagation never have to skip over irrelevant clauses. On the other hand, when marking a clause, we have to spend additional time
 to move it from the unmarked to the marked watchlists\footnote{We have also experimented with lazily moving marked clauses if they are encountered in the unmarked list during unit propagation but this turned out to be less efficient.}. In practice, we found this optimization to be effective.
 
 
 \section{Benchmarks}\label{sec:benchmarks}
-  We have benchmarked GRAT with one and eight threads against DRAT-trim and LRAT~\cite{HHKW17} on problems taken from the main tracks of the 2016 and 2017 SAT 
+  We have benchmarked GRAT with one and eight threads against {\sl drat-trim} and LRAT~\cite{HHKW17} on problems taken from the main tracks of the 2016 and 2017 SAT 
   competitions~\cite{satcomp-2016,satcomp-2017}. We consider the problems solved by 2017 gold medalist Maple, and the problems solved by 2016 silver medalist Riss6.
   We chose the silver medalist for 2016, as the gold medalist is, again, Maple.
   Moreover, we consider the problems solved by CryptoMiniSat in 2016. Although not among the Top 3 solvers, we included CryptoMiniSat because it seems to be 
   the only prover that produces a significant amount of RAT lemmas. For the 2017 competition, only abcdSAT seems to produce RAT lemmas, and we did not include 
-  it in our benchmarks\footnote{Due to constraints on available computation time. Note that this shifts the benchmark results in favor of DRAT-trim, 
+  it in our benchmarks\footnote{Due to constraints on available computation time. Note that this shifts the benchmark results in favor of {\sl drat-trim}, 
     as our tool has optimizations specifically tailored to handle RAT lemmas.}
     
-  All tested tools verified all but four unsatisfiability certificates: On two certificates, DRAT-trim timed out (using the default timeout of 20.000 seconds), 
-  and it segfaulted on a third one. A fourth certificate lead to an out-of-memory error of multithreaded gratgen. We excluded these certificates 
-  from the benchmarks.
-    
-  Figure~\ref{fig:benchmark} shows the results for the unsatisfiability certificates. The first three scatter plots compare the 
+  All tested tools verified all but four unsatisfiability certificates: On two certificates, {\sl drat-trim} timed out (using the default timeout of 20.000 seconds), 
+  and it segfaulted on a third one. A fourth certificate led to an out-of-memory error of multithreaded {\sl gratgen}.
+  Table~\ref{tab:failed_times} displays the results for these certificates. 
+  
+  Figure~\ref{fig:benchmark} shows the results for the other unsatisfiability certificates. The first three scatter plots compare the 
   wall-clock time of LRAT against GRAT with one and eight threads. Here, already single-threaded GRAT is faster than LRAT on every problem.
   As expected, the difference is more significant on problems that contain RAT lemmas: for the problems that actually contain RAT 
   lemmas, single-threaded GRAT is about 3 times faster than LRAT, while, for the other problems, it is only 1.7 times faster.
+  
+  \begin{table}[!t]
+  \begin{center}    
+  \begin{tabular}{|l|l|l|l|l|}
+    \bf Problem               & \bf SAT-Solver & \bf drat-trim & \bf GRAT-1 & \bf GRAT-8 \\\hline
+    sokoban-p16.sas.cr.37     & cmsat          &     timeout   & 2.3h       &     39m    \\
+    valves-gates-1-k617-unsat & cmsat          &     timeout   & 2.1h       &     27m    \\
+    sokoban-p20.sas.ex.13     & cmsat          &     SEGV      & 1.1h       &     38m    \\
+    10pipe\_k                 & riss6          &     52m       & 1.1h       &     OOM    \\ \hline
+  \end{tabular}
+  \caption{Solving times for problems where at least one tool failed. 
+    The drat-trim column displays the times required by only {\sl drat-trim} (without LRAT).
+    The {GRAT-1} column displays the times for the whole GRAT toolchain in single-threaded mode, 
+    and {GRAT-8} displays the times when using 8 threads.}\label{tab:failed_times}
+  \end{center}    
+  \end{table}
+  
+    
   
 \begin{figure}[!t]
   \begin{center}    
@@ -1064,9 +1103,9 @@ to move it from the unmarked to the marked watchlists\footnote{We have also expe
           ylabel style={yshift=-4ex},
           legend style={at={(1,-0.1)},anchor=north,cells={anchor=east}},
       ]
-      \addplot+[only marks,mark=square] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Lrat}/3600] {scatter-cmsat.data};
+      \addplot+[only marks,mark=square] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Lrat}/3600] {scatter-cmsat.data.tex};
       \addlegendentry{single threaded}
-      \addplot+[only marks,mark=o] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Lrat}/3600] {scatter-cmsat.data};
+      \addplot+[only marks,mark=o] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Lrat}/3600] {scatter-cmsat.data.tex};
       \addlegendentry{8 threads}
       \addplot+[domain=0:6,smooth,mark=,color=black]{x};
       
@@ -1083,9 +1122,9 @@ to move it from the unmarked to the marked watchlists\footnote{We have also expe
           ylabel={LRAT/hours},
           ylabel style={yshift=-4ex},
       ]
-      \addplot+[only marks,mark=square] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Lrat}/3600] {scatter-riss6.data};
+      \addplot+[only marks,mark=square] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Lrat}/3600] {scatter-riss6.data.tex};
 %       \addlegendentry{single threaded}
-      \addplot+[only marks,mark=o] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Lrat}/3600] {scatter-riss6.data};
+      \addplot+[only marks,mark=o] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Lrat}/3600] {scatter-riss6.data.tex};
 %       \addlegendentry{8 threads}
       \addplot+[domain=0:3,smooth,mark=,color=black]{x};
 
@@ -1102,9 +1141,9 @@ to move it from the unmarked to the marked watchlists\footnote{We have also expe
           ylabel={LRAT/hours},
           ylabel style={yshift=-4ex},
       ]
-      \addplot+[only marks,mark=square] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Lrat}/3600] {scatter-maple.data};
+      \addplot+[only marks,mark=square] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Lrat}/3600] {scatter-maple.data.tex};
 %       \addlegendentry{single threaded}
-      \addplot+[only marks,mark=o] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Lrat}/3600] {scatter-maple.data};
+      \addplot+[only marks,mark=o] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Lrat}/3600] {scatter-maple.data.tex};
 %       \addlegendentry{8 threads}
       \addplot+[domain=0:4,smooth,mark=,color=black]{x};
       
@@ -1119,16 +1158,16 @@ to move it from the unmarked to the marked watchlists\footnote{We have also expe
           ytick={0,1,2,3,4},
           xlabel style={align=center},
           xlabel={GRAT/hours},
-          ylabel={DRAT-trim/hours},
+          ylabel={{\sl drat-trim}/hours},
           ylabel style={yshift=-4ex},
       ]
-      \addplot[only marks,mark=square,color=blue] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Drat}/3600] {scatter-maple.data};
-      \addplot[only marks,mark=square,color=blue] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Drat}/3600] {scatter-cmsat.data};
-      \addplot[only marks,mark=square,color=blue] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Drat}/3600] {scatter-riss6.data};
+      \addplot[only marks,mark=square,color=blue] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Drat}/3600] {scatter-maple.data.tex};
+      \addplot[only marks,mark=square,color=blue] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Drat}/3600] {scatter-cmsat.data.tex};
+      \addplot[only marks,mark=square,color=blue] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Drat}/3600] {scatter-riss6.data.tex};
 %       \addlegendentry{single threaded}
-      \addplot[only marks,mark=o,color=red] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Drat}/3600] {scatter-maple.data};
-      \addplot[only marks,mark=o,color=red] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Drat}/3600] {scatter-cmsat.data};
-      \addplot[only marks,mark=o,color=red] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Drat}/3600] {scatter-riss6.data};
+      \addplot[only marks,mark=o,color=red] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Drat}/3600] {scatter-maple.data.tex};
+      \addplot[only marks,mark=o,color=red] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Drat}/3600] {scatter-cmsat.data.tex};
+      \addplot[only marks,mark=o,color=red] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Drat}/3600] {scatter-riss6.data.tex};
 %       \addlegendentry{8 threads}
       \addplot[domain=0:4,smooth,mark=,color=black]{x};
       
@@ -1139,20 +1178,39 @@ to move it from the unmarked to the marked watchlists\footnote{We have also expe
   %     \node at (group c1r1.south) [anchor=west, xshift= 1.1cm] {\ref{grouplegend}};
     \end{tikzpicture}
   \end{center}
-  \caption{Comparison of DRAT-trim and GRAT, ran on a server board with a 22-core XEON Broadwell CPU @2.2GHz and 128GiB RAM.}\label{fig:benchmark}
+  \caption{Comparison of {\sl drat-trim} and GRAT, ran on a server board with a 22-core XEON Broadwell CPU @2.2GHz and 128GiB RAM.}\label{fig:benchmark}
 \end{figure}
   
   
-  Except for small problems, multithreading yields a significant speedup: Considering only problems where single-threaded gratgen needs longer than 100 seconds,
-  the average speedup with eight threads is $2.1$, the average speedup of the backwards checking phase of gratgen, which is the only parallelized part, is $3.3$.
+  Except for small problems, multithreading yields a significant speedup: Considering only problems where single-threaded {\sl gratgen} needs longer than 100 seconds,
+  the average speedup with eight threads is $2.1$, the average speedup of the backwards checking phase of {\sl gratgen}, which is the only parallelized part, is $3.3$.
   
-  Finally, the last scatter plot in Figure~\ref{fig:benchmark} compares GRAT against DRAT-trim. 
+  Finally, the last scatter plot in Figure~\ref{fig:benchmark} compares GRAT against {\sl drat-trim}. 
   Although we compare a verified tool against an unverified one, GRAT wins this comparison: Except for a few certificates, it is faster than 
-  DRAT-trim, and there is only a single outlier where GRAT is significantly slower than DRAT-trim. 
+  {\sl drat-trim}, and there is only a single outlier where GRAT is significantly slower than {\sl drat-trim}. 
   
-  We also compare the memory consumption: In single threaded mode, gratgen needs roughly three times more memory than DRAT-trim, with eight threads, this figure increases to 
-  roughly nine times more memory. Due to the garbage collection in Standard ML, we could not measure meaningful memory consumptions for gratchk.
+  We also compare the memory consumption: In single threaded mode, {\sl gratgen} needs roughly three times more memory than {\sl drat-trim}, with eight threads, this figure increases to 
+  roughly nine times more memory. Due to the garbage collection in Standard ML, we could not measure meaningful memory consumptions for {\sl gratchk}.
   The extra memory in single-threaded mode is mostly due to the proof being stored in memory, the extra memory in multithreaded mode is due to the duplication of data for each thread.
+  
+  Finally, Table~\ref{tab:check_phases} shows the runtimes of the verified second phase only. 
+  Here, {\sl gratchk} is significantly faster than LRAT's verified phase {\sl lrat-check}. 
+  In particular, due to the RAT-counts field that is available in GRAT, but not in LRAT (\cf\S\ref{sec:grat-format}), true RAT lemmas are handled more efficiently. This explains the large discrepancy for the CryptoMiniSat prover.
+  \begin{table}
+    \begin{minipage}{.42\textwidth}
+    \begin{tabular}{|l|l|l|}
+      \bf Prover & \bf gratchk & \bf lrat-check \\\hline
+      Maple      & 275         & 346 \\
+      Cmsat      & 66          & 613 \\
+      Riss6      & 253         & 575 \\\hline
+    \end{tabular}
+    \end{minipage}
+    \hspace*{.05\textwidth}
+    \begin{minipage}{.5\textwidth}
+    \caption{Runtimes in minutes of the second phase, summed over all certificates generated by a prover.}\label{tab:check_phases}
+    \end{minipage}
+  \end{table}
+  
   
   For completeness, we also report on the satisfiable problems in our benchmark set: The 241 sat certificates in our benchmark set have a size of 566MiB and could be
   checked in roughly 100 seconds.
@@ -1161,42 +1219,20 @@ to move it from the unmarked to the marked watchlists\footnote{We have also expe
   
 %   We ran the benchmarks on a standard server board with a 22 core Intel XEON Broadwell processor with 2.2 GHz and 128 GiB of RAM.
 %   We have used gratgen in single-threaded mode and with 8 threads.
-%   We also ran DRAT-trim on the same set of benchmarks, with a timeout of 20,000s. The results are displayed as scatter plots in Figure~\ref{fig:benchmark}. 
-%   The value for DRAT-trim is on the y axis, and the value for GRAT on the x axis. The line indicates the identity, \ie points above 
-%   the line mean that we are better, and points below the line mean that DRAT-trim is better. 
+%   We also ran {\sl drat-trim} on the same set of benchmarks, with a timeout of 20,000s. The results are displayed as scatter plots in Figure~\ref{fig:benchmark}. 
+%   The value for {\sl drat-trim} is on the y axis, and the value for GRAT on the x axis. The line indicates the identity, \ie points above 
+%   the line mean that we are better, and points below the line mean that {\sl drat-trim} is better. 
   
 
-\section{Conclusions}\label{sec:concl}
-
-
-We have presented a formally verified SAT solver certification tool. 
-Already in single threaded mode, it is significantly faster than the unverified standard tool DRAT-trim, on a benchmark 
-suite taken from the 2017 and 2016 SAT competitions.
-Additionally, we implemented a multi-threaded mode, 
-which allows us to trade computing resources for significantly smaller response times.
-The formal proof covers the actual implementation of the checker and the semantics of the 
-formula down to the sequence of integers by which it is represented.
-
-Our approach involves two phases: The first phase generates an enriched certificate, 
-which is then checked against the original formula by the second phase.
-While the main computational work is done by the first phase, soundness of the approach 
-only depends on the second phase, which is also algorithmically less complex, making it more amenable to formal verification. 
-Using stepwise refinement techniques, we were able to formally verify a rather efficient implementation of the second phase.
-
-We conclude with some statistics: The formalization of the certificate checker is roughly 5k lines of code.
-In order to realize this formalization, several general purpose libraries (\eg the exception monad and some imperative data structures) had to be developed. 
-These sum up to additional 3.5k lines. The time spent on the formalization was roughly three man-months. The multi-threaded certificate generator has roughly 3k 
-lines of code, and took two man-months to develop.
-
-\subsection{Future Work}
+\section{Discussion and Future Work}\label{sec:disc}  
 Currently, the formal proof of our verified checker goes down to the representation of the formula as integer array,
 thus requiring a (small) unverified parser. A next step would be to verify the parser, too.
 Moreover, verification stops at the Isabelle/HOL code generator, whose correctness is only proved on paper~\cite{HaNi10,HKKN13}. 
 There is work on the mechanical verification of code generators~\cite{MO14}, and even the subsequent compilers~\cite{KMNO14}.
 This technology became available for Isabelle/HOL only recently~\cite{HuNi18} but does not yet support the imperative arrays required for our application.
 
-If the memory consumption of gratgen should become a problem, we could easily write out the proof to disk instead of storing it in RAM. 
-We expect that this would yield a memory consumption similar to DRAT-trim. For multi-threaded mode, we plan to share more (read-only) data between the threads.
+If the memory consumption of {\sl gratgen} should become a problem, we could easily write out the proof to disk instead of storing it in RAM. 
+We expect that this would yield a memory consumption similar to {\sl drat-trim}. For multi-threaded mode, we plan to share more (read-only) data between the threads.
 
 An interesting research topic would be to integrate enriched certificate generation directly into SAT solvers. 
 The performance decrease in the solver could be weighed against the cost of generating an enriched certificate.
@@ -1210,11 +1246,52 @@ including our own work~\cite{FBL18}, we do not expect that verified SAT solvers 
 
 Finally, we chose a benchmark set which is realistic but can be run in a few weeks on the available hardware.
 We plan to run our tools on larger benchmark suites, once we have access to sufficient (supercomputing) hardware.
+  
+\section{Conclusions}\label{sec:concl}
+We have presented a formally verified SAT solver certification tool. 
+Already in single threaded mode, it is significantly faster than the unverified standard tool {\sl drat-trim}, on a benchmark 
+suite taken from the 2017 and 2016 SAT competitions.
+Additionally, we implemented a multi-threaded mode, 
+which allows us to trade computing resources for significantly smaller response times.
+The formal proof covers the actual implementation of the checker and the semantics of the 
+formula down to the sequence of integers by which it is represented.
 
-\paragraph{Acknowledgements} We thank Maximilian Kirchmeier for proposing and evaluating optimizations for gratgen~\cite{Kirch17}.
+Our approach involves two phases: The first phase generates an enriched certificate, 
+which is then checked against the original formula by the second phase.
+While the main computational work is done by the first phase, soundness of the approach 
+only depends on the second phase, which is also algorithmically less complex, making it more amenable to formal verification. 
+Using stepwise refinement techniques, we were able to formally verify a rather efficient implementation of the second phase.
+Together with novel optimizations in the first phase, this makes our tool faster than the unverified {\sl drat-trim}.
+Although most computational work is done in the first phase, optimizing the second phase is important: 
+While {\sl gratchk} was quite efficient from the beginning, the LRAT checker has seen several 
+improvements over time~\cite{HHKW17}. The initial version was purely functional, and often dominated the runtime of the whole certification 
+process~\cite{CHHKS17}. 
+
+% 
+% 
+% While we have used the Refinement Framework to 
+% verify an efficient imperative checker from the beginning, the LRAT checker has seen a number of improvements~\cite{CHHKS17,HHKW17}, 
+% making it an order of magnitude faster than the initial LRAT checker (However, still somewhat slower than {\sl gratchk}).
+% 
+% 
+% The LRAT tool's second phase has seen a number of 
+% optimizations, going from purely functional code in Coq to a more efficient ACL2 based checker
+% 
+% 
+% 
+
+
+We conclude with some statistics: The formalization of the certificate checker is roughly 5k lines of code.
+In order to realize this formalization, several general purpose libraries (\eg the exception monad and some imperative data structures) had to be developed. 
+These sum up to additional 3.5k lines. The time spent on the formalization was roughly three man-months. The multi-threaded certificate generator has roughly 3k 
+lines of code, and took two man-months to develop.
+
+\paragraph{Acknowledgements} We thank Maximilian Kirchmeier for proposing and evaluating optimizations for {\sl gratgen}~\cite{Kirch17}.
 Moreover, we thank Mathias Fleury and Simon Wimmer for very useful comments on the draft version of this paper, 
-and Lars Hupel for instant help on any problems related to the benchmark server. Finally, we thank the anonymous reviewers of the 
-conference papers on which this paper is based for their useful comments.
+and Lars Hupel for instant help on any problems related to the benchmark server. Finally, we thank the anonymous reviewers for their useful comments.
+
+This work has been supported by the DFG grant LA 3292/1 "Verifizierte Model Checker" 
+and the VeTSS grant "Formal Verification of Information Flow Security for Relational Databases".
 
 % \clearpage
 
