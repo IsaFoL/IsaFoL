@@ -415,5 +415,4 @@ lemma full_quicksort:
   unfolding full_quicksort_def
   by (auto intro: quicksort_between_mset_eq[THEN order_trans])
 
-
 end

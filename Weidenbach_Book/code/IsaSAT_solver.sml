@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "0ea746a4";
+val version : string = "9cd9c273";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -1254,9 +1254,7 @@ fun access_lit_in_clauses_heur_fast_code x =
     end)
     x;
 
-fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
-
-fun uint32_of_uint64 n = uint32_of_nat (nat_of_uint64 n);
+fun uint32_of_uint64 x = Word32.fromLargeWord x;
 
 fun isa_update_pos_fast_code x =
   (fn ai => fn bia => fn bi =>
@@ -1472,6 +1470,8 @@ fun length_aa_u32_o64 A_ xs i =
     in
       arl_length_o64 A_ x ()
     end);
+
+fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
 
 fun cut_watch_list_heur2_fast_code x =
   (fn ai => fn bib => fn bia => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) =>
