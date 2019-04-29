@@ -950,7 +950,7 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
     let opt_red = opts_reduction_st S;
     let opt_res = opts_restart_st S;
     let sema = ema_get_value (get_slow_ema_heur S);
-    let limit = (12 * sema) >> 4;
+    let limit = (11 * sema) >> 4;
        \<comment>\<open>roughly speaking 125/100 with hopefully no overflow (there is currently no division
          on \<^typ>\<open>uint64\<close>\<close>
     let fema = ema_get_value (get_fast_ema_heur S);

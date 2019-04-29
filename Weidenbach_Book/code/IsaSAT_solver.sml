@@ -2377,7 +2377,7 @@ fun restart_required_heur_fast_code x =
                              then Uint64.less x_h
                                     (shiftr_uint64
                                       (Uint64.times
-(Uint64.fromInt (12 : IntInf.int)) (ema_get_value xaa))
+(Uint64.fromInt (11 : IntInf.int)) (ema_get_value xaa))
                                       (nat_of_integer (4 : IntInf.int)))
                              else true) andalso
                             (Uint64.less minimum_number_between_restarts
@@ -3405,7 +3405,7 @@ fun restart_required_heur_slow_code x =
                              then Uint64.less x_h
                                     (shiftr_uint64
                                       (Uint64.times
-(Uint64.fromInt (12 : IntInf.int)) (ema_get_value xaa))
+(Uint64.fromInt (11 : IntInf.int)) (ema_get_value xaa))
                                       (nat_of_integer (4 : IntInf.int)))
                              else true) andalso
                             (Uint64.less minimum_number_between_restarts
