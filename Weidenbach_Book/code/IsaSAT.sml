@@ -77,7 +77,7 @@ fun print_stat (propa, (confl, (dec, (res, (lres, ures))))) end_of_init end_of_p
     val clock = Time.toSeconds (#usr (#nongc end_of_processing)) + Time.toSeconds (#sys (#nongc end_of_processing));
     fun print_stat d t =
         (print ("c " ^ d ^ ": " ^ IntInf.toString (Uint64.toInt t) ^ "\n");
-         print ("c " ^ d ^ " per s: " ^ IntInf.toString (Uint64.toInt t div clock) ^ "\n"))
+         if clock <> 0 then print ("c " ^ d ^ " per s: " ^ IntInf.toString (Uint64.toInt t div clock) ^ "\n") else ())
      val _ = print "c\nc\nc ***** stats *****\n"
      val _ = print_timer "time init" end_of_init
      val _ = print_timer "time solving" end_of_processing
